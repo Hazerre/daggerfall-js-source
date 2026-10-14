@@ -7,10 +7,14 @@ on:
     paths:
       - 'src/ui/intro*.js'
       - 'src/systems/introTheme.js'
+      - 'src/systems/introScore.js'
+      - 'src/systems/songPlayer.js'
+      - 'src/systems/gmSynth.js'
       - 'src/assets/intro/**'
       - 'src/assets/branding/**'
       - 'tools/intro*.mjs'
       - 'test/intro.test.js'
+      - 'test/intro3_score.test.js'
       - '.github/workflows/intro-quality.yml'
 
 permissions:
@@ -35,9 +39,11 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Source, types, tests, build
         run: npm run check
-      - name: Independent decoded music landmarks
+      # INTRO3: the theme is the score, played by the game's own player - its landmarks heard where the cue puts them,
+      # its peaks under the ceiling, over the film's 27 s (the whole song's loudness is a local run: ~8 min to render)
+      - name: The score through the game's own player
         if: ${{ !cancelled() }}
-        run: mkdir -p test-harness/intro && node tools/introAudioCheck.mjs test-harness/intro/audio-landmarks.json
+        run: mkdir -p test-harness/intro && node tools/introScoreProbe.mjs --seconds 27 --wav test-harness/intro/theme-opening.wav
       - name: Live clock, transitions, ownership and responsive presentation
         if: ${{ !cancelled() }}
         run: node tools/introProbe.mjs

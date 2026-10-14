@@ -865,3 +865,21 @@ Mac: "Do the not done." The record is `06-Systems/Professions-Arc.md` section 45
   heard at the net however its landing was missed (W1).
 - **Not heard here**: the creak, the fall, the logs, a vein's rubble and its chunks are the node's, and the node is each
   character's own - another's tree still stands for you.
+
+## INTRO3 (2026-10-14): the main theme, written as notes - the film's and the menu's
+
+The owner: "With the main menu music, is there anyway to recreate it using the sound system daggerfall's music uses",
+then "you do it and it's for both". The front door's theme was a recording decoded by a session of its own; it is now
+a song made in code (`systems/introScore.js`, `DFOTHEME.HMI`) - the fourth after the Warden's score (WB7), the Arena's
+and the Hour's - transcribed from that recording bar by bar and played by `SongPlayer` and the FM bank for the film
+and the menu (`systems/introTheme.js`).
+
+- **Its tempo is the film's**: one tempo (128.76 BPM, 68 ticks of lead) that puts the cue sheet's cloud break (11.712 s)
+  and the logo's beat (19.168 s) on its bar lines, within 0.2 ms.
+- **Its volume is the player's own law**: MUSIC_GAIN under MusicVolume and the video mute, followed live; the session's
+  gain is the film's level (0.82) or the menu's (0.26) alone.
+- **Its loudness is the recording's**: a light press (`INTRO_PRESS`, 3:1 from -14 dB, ceiling -1 dBFS) at level 1 -
+  about -22 dBFS through the body at MusicVolume 0.5, the recording's rise and fall kept. Measured through the real
+  player: `tools/introScoreProbe.mjs`.
+- **Not here**: a music pack's replacement by name and MIDI-OUT1's device - the session plays before the music service
+  exists, on the FM bank. `10-UI/UI-Arc.md` INTRO3.

@@ -1072,7 +1072,7 @@ onset curve at all - the curve there is flat - so the landing read as
 arbitrary. The beat Mac hears is real and measurable: decoded sample
 **230016 / 12000 = 19.168s**, normalized flux 1.77 and the largest raw
 onset anywhere between the cloud break and the close. The title now lands
-there. `tools/introAudioCheck.mjs` measures that window instead, still
+there. `tools/introAudioCheck.mjs` (DELETED at INTRO3) measured that window instead, still
 reports the louder 21.066667s answer so a replacement track cannot swap
 the two silently, and still fails above 1ms of drift. The camera's rest
 moved with the beat (18.9s to 17.54s), keeping the same 0.85s of
@@ -1184,6 +1184,75 @@ Pins: `test/intro.test.js` (the removed strings and classes by name, the
 clip rather than the hide, the footer as the failure surface, both of the
 button's words, and the probe's new anchor). Mutants:
 `tools/mutants/introfield.json`, 7 dead.
+
+### INTRO3 THE THEME IN THE GAME'S OWN VOICE (2026-10-14)
+
+The owner: "With the main menu music, is there anyway to recreate it using
+the sound system daggerfall's music uses", then "you do it and it's for
+both" - the film and the menu.
+
+INTRO2's score was a recorded master (`assets/intro/theme.mp3`, 164.3 s,
+made with Suno) that `IntroTheme` fetched, decoded and looped through a
+buffer source of its own. It is now WRITTEN AS NOTES -
+`systems/introScore.js`, one song (`DFOTHEME.HMI`) in the shape an HMI song
+decodes to, as the Warden's score is (`08-Audio/Audio.md` WB7) - and played
+by the game's own song player and FM bank (`systems/songPlayer.js`,
+`gmSynth.js`), so the front door sounds like the rest of the soundtrack.
+The recording left the tree (it is in git history); nothing is fetched or
+decoded any more.
+
+**Transcribed, not invented.** The recording was read bar by bar: its
+stems split (htdemucs), each transcribed (basic-pitch), its beats tracked,
+its harmony read from beat-synchronous chroma and the bass stem, and every
+melody bar checked against its chord. G minor; a four-bar opening over a
+low G; E-flat and F rising to a held C major (the cloud break); G minor on
+the impact with the horn's call; the theme - (G A) B-flat A B-flat, C F D,
+E-flat C A, B-flat C B-flat A F, G - over i, VII, iv, v, VI and VII, four
+statements between an answer on D, A-flat and C minor, a build to D6 at
+103 s, a breakdown on a bare G at 118 s and the dominant, D major, at
+132 s; the close on G at 159 s. The arrangement is the recording's: the
+horn on the theme (the violins an octave over it where the recording opens
+out), strings and choir, a low-string pulse in 3-3-2, taiko-like drums, a
+harp in the quiet bars, the reverse cymbal's riser into each landmark.
+Measured against the recording, the render's harmony agrees half bar by
+half bar at a mean chroma cosine of 0.95 (0.62 for random pairs).
+
+**The film's cue sheet stands; the score answers to it.** The recording's
+cloud break (11.712 s) and the 19-second beat the logo lands on (19.168 s)
+are four bars apart and both downbeats. The song has one tempo (HMI has no
+tempo map), and it is the one that puts those two bar lines exactly there:
+128.76 BPM - a hair over the recording's opening, which ran 129 before
+settling to 127 - after a lead of 68 ticks (0.53 s; the recording's first
+sound was at 0.59 s). Both land within 0.2 ms of the cue, and each is struck
+- the crash, the orchestra hit, the timpani - at the top of a riser.
+
+**The session.** `IntroTheme` keeps its contract - a gesture's synchronous
+unlock, one source from the first note through the menu, suspension that
+holds the picture, ownership released before any game boots - and its two
+levels (0.82 for the film, 0.26 under the menu). It hands the song to a
+`SongPlayer` on its own context, into its own gain; the player's origin (the
+song's tick 0, 0.06 s after it starts) is the film's time zero, read
+against the audio device clock as the buffer's start was. The VOLUME is now
+the player's own law (`musicGain`: MUSIC_GAIN under MusicVolume and the
+video mute, followed live), so the session gain is the film's or the menu's
+level alone. The song carries a light press (3:1 from -14 dB, a ceiling a
+decibel under the clip): it stands at the recording's loudness, about
+-22 dBFS as the intro played it at MusicVolume 0.5, and keeps its rise and
+fall - the swell from nothing, the dip before the impact, the breakdown.
+
+Not wired, and said here so nobody goes looking: a music pack's
+replacement by name and a MIDI-out device (MIDI-OUT1) - the session plays
+before the music service exists, on the FM bank. The classic menu
+(`scenes/menu.js`) plays MIDI.BSA's 5STRONG as it always has.
+
+Tools: `tools/introScoreProbe.mjs` replaces `tools/introAudioCheck.mjs` (DELETED) -
+the song rendered through the real player offline and measured (no NaN,
+under the ceiling at the highest MusicVolume, within 2 dB of the
+recording's loudness, both landmarks the strongest onset within 25 ms of
+their cue); `tools/introCapture.mjs` muxes that render into its review
+video; `tools/introProbe.mjs`'s failure path is now a browser without Web
+Audio. Pins: `test/intro3_score.test.js` (5) and `test/intro.test.js`
+(the session around the player). Mutants: `tools/mutants/intro3.json`, 18, all dead.
 
 ## U65 THE INTRO (2026-08-30) - HISTORICAL REMOVAL
 
