@@ -3022,6 +3022,21 @@ export function validPartyPose(p) {
   // SCALE5d: `ly` - the layer of the place I stand in (wire.js isLayered), so a mate who comes asks for mine; omitted for
   //   the place itself and refused alone when out of its law
   if (Number.isInteger(p.ly) && p.ly >= 1 && p.ly < LAYERS_MAX) out.ly = p.ly;
+  // PARTY-PING: `pg` - a look's point for the party, {k place, x y z metres, at the sender's stamp}. Omitted when
+  //   there is none. A relay from before this field strips it and closes nothing (an unknown pose field is dropped).
+  if (p.pg && typeof p.pg === 'object' && !Array.isArray(p.pg)
+    && typeof p.pg.k === 'string' && /^[\w:.,-]{1,96}$/.test(p.pg.k)
+    && [p.pg.x, p.pg.y, p.pg.z].every(finite)
+    && Math.abs(p.pg.x) <= POSE_BOUND && Math.abs(p.pg.z) <= POSE_BOUND && Math.abs(p.pg.y) <= POSE_Y_BOUND
+    && finite(p.pg.at) && p.pg.at >= 0) {
+    out.pg = {
+      k: p.pg.k,
+      x: Math.round(p.pg.x * 100) / 100, y: Math.round(p.pg.y * 100) / 100, z: Math.round(p.pg.z * 100) / 100,
+      at: Math.round(p.pg.at),
+    };
+    if (typeof p.pg.n === 'string' && /^[\w .'-]{1,48}$/.test(p.pg.n)) out.pg.n = p.pg.n;
+    if (p.pg.e === 1) out.pg.e = 1;
+  }
   return out;
 }
 
