@@ -374,7 +374,8 @@ export function remoteModel(deps = {}, state = {}) {
       : deps.loot ? (deps.loot.storage === true ? 'storage' : 'container') : 'ground';   // SHIP-STORE: the player's own storage
   return {
     kind,
-    title: (kind === 'reward' && typeof state.chooseOne?.title === 'string' && state.chooseOne.title) || REMOTE_TITLE[kind],   // WILD1: a choice may name itself (a fallen player's gear)
+    title: (kind === 'reward' && typeof state.chooseOne?.title === 'string' && state.chooseOne.title)   // WILD1: a choice may name itself (a fallen player's gear)
+      || (kind === 'storage' && typeof deps.loot?.title === 'string' && deps.loot.title) || REMOTE_TITLE[kind],   // CARGO-ANYWHERE: and a ship's hold (holdDoor.js - "The Sea Wolf's hold")
     items,
     count: items.length,
     weight: totalWeight(items),

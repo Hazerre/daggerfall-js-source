@@ -8549,7 +8549,7 @@ export function createWorldModes(host) {
   }
   async function enterSailingCabin(saved, pos = null, visit = null) {
     if (mode !== 'exterior' || !host.sailingCabin) return false;
-    const entry = sailingCabinEntry(blocks, saved, host.sailingCabin.fromNative);
+    const entry = sailingCabinEntry(blocks, saved, host.sailingCabin.fromNative, typeof visit?.cabinOwner === 'string');   // AUDIT 2: another's cabin is as built - her stain is her captain's ledger's
     if (!entry) return false;
     return enterInteriorCore(entry.hit, entry.entries, { building: entry.building, pos, ...visit });
   }
@@ -8721,7 +8721,7 @@ export function createWorldModes(host) {
         // building reached through ?interior=NAME:REC omitted it.
         hit.dfBlock, hit.dfBlock.index, hit.recordIndex, hit.climateBase, hit.season,
         hit.door.matrix, {
-          voxelfolk, piece, paint, setupStaticNpc, houseOwned, peopleVisible, baseEditable,
+          voxelfolk, piece, paint, setupStaticNpc, houseOwned, peopleVisible, baseEditable, restyle: hit.restyle ?? null,   // CABIN-LOOK: a cabin stained (scenes/cabinLook.js)
           // TAVERN-TABLE (world/card/cardTableProp.js; the owner: "Lets instead place a specific table in each inn"): every
           // tavern stands the card table's own prop - its one card table
           placeCardTable: isTavern(building?.buildingType ?? BUILDING_TYPES.None),
