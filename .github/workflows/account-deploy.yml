@@ -64,6 +64,8 @@ on:
       - "src/net/moderation.js"
       - "src/net/safety/chatStamp.js"
       - "src/net/safety/chatFeed.js"
+      - "src/net/grantMeasure.js"
+      - "src/net/grantLaw.js"
       - "src/net/safety/safetyLaw.js"
       - "src/net/safety/conduct.js"
       - "src/net/playClock.js"

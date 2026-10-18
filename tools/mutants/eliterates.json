@@ -38,8 +38,8 @@
   {
     "name": "ELITE-RATES-the-loose-stand-refused",
     "file": "src/scenes/exteriorFoes.js",
-    "old": "!replacing && !team && !inLocation() && elitesAllowed(",
-    "new": "!replacing && !team && !loose && !inLocation() && elitesAllowed(",
+    "old": "eliteFoe === undefined && !puppet && !allied && !questBehaviour && !replacing && !team && !inLocation() && elitesAllowed(",
+    "new": "eliteFoe === undefined && !puppet && !allied && !questBehaviour && !replacing && !team && !loose && !inLocation() && elitesAllowed(",
     "tests": [
       "test/systems/elitefloor_foetitle.test.js"
     ]

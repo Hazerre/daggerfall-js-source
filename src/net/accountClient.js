@@ -353,6 +353,7 @@ const REFUSAL_WORDS = {
   // WB5b: a gate's kill receipt carried to the service. net/gate/gateClaims.js says nothing of these to the player - it keeps
   // what they do not settle and lets go of what they do - but a word the service can say is a word with a sentence.
   'no-gate-key': () => t('account.refusal.noGateKey', 'The account service cannot check a gate\'s receipt right now. It is kept and tried again.'),
+  'no-relay-key': () => t('account.refusal.noRelayKey', 'The account service cannot hand out the relay\'s key right now. Other players\' foes are not checked until it can.'),   // GRANT3 (Spawn-Grants.md section 13): /v1/relaykey, a reader's key
   receipt: () => t('account.refusal.receipt', 'That gate\'s receipt was not signed by the gate, or it has run out.'),
   'not-yours': () => t('account.refusal.notYours', 'That gate\'s receipt names another account.'),
   // INT8: DUEL1's loser's own report, retired - a duel's result is the relay's receipt now

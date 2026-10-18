@@ -173,8 +173,8 @@
   {
     "name": "AUDIT-BOUNTY1-B2-the-pack-is-saved-and-capped",
     "file": "src/scenes/world.js",
-    "old": "        ...(hit.spawnOpts ?? {}),   // BOUNTY1: a bounty's pack stands `loose` and `transient`\n",
-    "new": "",
+    "old": "...(hit.spawnOpts ?? {}), grantKind:",
+    "new": "grantKind:",
     "tests": [
       "test/systems/auditbounty1.test.js"
     ]

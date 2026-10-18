@@ -281,6 +281,8 @@ import { createLandforms, landformLiftField, landformSites, landformClimates, cl
 import { ecotoneOwner } from '../world/ecotone.js'; import { MAP_W, MAP_H } from '../world/road/roadNetwork.js';   // ECOTONE1: a border point's owner, the pixel's lattice origin, the map's edges
 import { forestAt } from '../world/terrain/terrainNature.js';   // FOREST1 (AUDIT F1): a wood's flats keep out of the rock pieces; GRASS-LIT2: the shot hook's woods
 import { huntKind, createBodyStamps, bodiesHere, trackerMarks } from './huntHost.js';   // PROF7: Hunting's bodies - a kind in it, the kills that stamp them, a Tracker's marks; INDOOR-SKIN: the pool by the mode
+import { freePull } from '../systems/travel/freePull.js';   // OW-FREE-STRAIGHT, moved out (HOST-SPLIT)
+import { createGrantHost } from './grantHost.js';   // GRANT2-GRANT4: the spawn grants - my stands' and my reading of others' (bible/11-Multiplayer/Spawn-Grants.md)
 import { fishKind } from './fishHost.js';   // PROF8: Fishing's casts and schools - a kind in it
 import { rollNoticeDoors } from './rollNoticeHost.js';   // SEAT-WORDS / STANDING-WORDS: what the Roll's tracker says
 import { utcDayOfMs } from '../net/nodeLaw.js';   // PROF8: a haul's UTC day
@@ -12332,7 +12334,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const fast = wildTravelling() && !_inAnyLocationRect([spot.x, spot.y, spot.z]);
     const noticed = !fast || noticeRoll(Math.hypot(spot.x - feet[0], spot.z - feet[2]), SIGHT_RADIUS, wildStealth(), { seesThrough: !!ENEMY_BASICS[hit.mobileType]?.seesThroughInvisibility, concealment: concealmentFlags(playerEntity), rng: Math.random });   // INVIS-SWING: an illusion blinds the check
     const stood = exteriorFoes.spawnFoe(hit.mobileType, [spot.x, fly ? spot.y + 1.5 : spot.y, spot.z], {
-      yaw: Math.atan2(feet[0] - spot.x, feet[2] - spot.z),   // LookAt player
+      yaw: Math.atan2(feet[0] - spot.x, feet[2] - spot.z), grantKind: hit.revenant ? 'rev' : 'enc',   // LookAt player; GRANT3: a wanderer's grant (a revenant's its own kind)
       ...(hit.revenant ? revenantSpawnOptions(hit.revenant, effectiveLevel(playerEntity)) : {}),   // REVENANT: a returning one - its record, its gender, a class foe's level
     }).then((f) => { if (f && fast) { if (noticed) wildFoes.alert(f, performance.now() / 1000); else wildFoes.checked(f); } return f; }).catch(() => null);
     if (noticed) journeyMet();   // AUDIT OW5b E1: placed beside the traveller - a walking journey stops now, never once the foe has loaded and sensed
@@ -12405,7 +12407,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       const fly = (ENEMY_BASICS[mobileType]?.behaviour ?? 'General') === 'Flying';
       stands.push(exteriorFoes.spawnFoe(mobileType, [spot.x, fly ? spot.y + 1.5 : spot.y, spot.z], {
         yaw: Math.atan2(anchorFeet[0] - spot.x, anchorFeet[2] - spot.z),
-        ...(hit.spawnOpts ?? {}),   // BOUNTY1: a bounty's pack stands `loose` and `transient`
+        ...(hit.spawnOpts ?? {}), grantKind: hit.fixed ? 'bounty' : hit.kind === 'band' ? 'band' : 'camp',   // BOUNTY1: a bounty's pack stands `loose` and `transient`; GRANT3-GRANT4: the group's grant, by what it is
       }).then((f) => {
         if (f) {
           f.campId = campId; f.campAlertRadius = hit.alertRadius;
@@ -17182,7 +17184,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   }
 
   async function pump() {
-    if (building || queue.length === 0) return;
+    if (building || !state.owes(queue)) return;   // QUEUE-OWED: a pixel the stream let go while it waited is never built
     building = true;
     const next = queue.shift();
     _streamSince ??= performance.now();   // PERF-EXT24: a run of streamed builds begins
@@ -17212,7 +17214,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       state.fail(next.px, next.py, performance.now());
     }
     building = false;
-    if (!queue.length) _streamSince = null;   // PERF-EXT24: and ends with the queue
+    if (!state.owes(queue)) _streamSince = null;   // PERF-EXT24: and ends with the queue (QUEUE-OWED: with what it still owes)
   }
 
   /** F5-QUESTS (2026-09-26): THIS HOST'S PAUSE BAG, one arm for both doors that mount the pause window - hudCtx.togglePause
@@ -21198,6 +21200,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     },
     sweep: (ids, now) => { csaPeers.sweepOwners(ids, now, FOES_STALE_MS); csaAboard.sweepRiders(ids, now, FOES_STALE_MS); },
   });
+  const grants = createGrantHost({ session: () => online, climateAt: (x, y) => maps.getClimateIndex(x, y) });   // GRANT3: the spawn grants (scenes/grantHost.js) - the pool's net and my session's answers
   const onlineStart = () => {
     online = new OnlineSession({
       url: params.get('server') || getPref('onlineServer') || DEFAULT_SERVER,
@@ -21277,6 +21280,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       inRoom: (k) => online?.inRoom?.(k) ?? false,   // WORLD6b-iii(b): a frame keyed to a halo's cell is its owner's cell
       selfId: () => online?.id ?? null,   // WORLD6b-ii: whose blow a streamed target names - mine, when the target is me
       peers: peersNear,   // WORLD6b-ii: the peers as MY foes' target candidates (WORLD3's law for the dungeon host's foes, per owner)
+      grants,   // GRANT3: my stands' grants and my reading of every owner's
       now: () => performance.now(),
       staleMs: FOES_STALE_MS,   // AUDIT WORLD6b C3: an owner whose stream has died is swept as the seat is (WORLD2's own window)
       onPeerHit: (hit, fate) => hitSend(hit, fate),   // AUDIT FOES FOE2: through the pending set, so a refused blow heals; LOOT-DUP: with the frame's own fate
@@ -21398,6 +21402,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     online.onSerpent = (w) => { if (w?.k === 'bd') serpentHost?.wrecked?.(w); else serpentLink?.word(w); };   // SERPENT1: the sea serpent's cell's word (on my cell's socket or a halo's) - its fight, its swim, its blows, my receipt
     online.onRaid = (f, room) => raidRelayWord(f, room);   // RAID3: a town cell's word about its raid - the ledger, the cleanse, my receipt
     online.onRite = (w) => riteHost?.onBroken(w);   // WB12d: the hub's broken rite
+    online.onGrant = (g) => grants.answer(g);   // GRANT3: my cell's answer to a grant ask, or an heir's grant
     online.onWatch = (r) => { seatBook?.keepWatch(r); motherlodeBook?.watch(r); };   // SEAT1b: the Watch's tick, kept where it stands in a seat's pixel; PROF2b: and where it stands on a Motherlode's
     // SEAT2a part four: A SIEGE'S BATTLE - its words to the session; a step refused or a rise at the camp moves me there
     // (the ground's own height to settle - the motor stands me on it); my receipt carried to the service
@@ -29695,9 +29700,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       now: () => performance.now(),
       staleMs: FOES_STALE_MS,
       onPeerHit: (hit, fate) => hitSend({ ...hit, own: 1 }, fate),   // OWN1: routed to its `to`, whoever hosts
+      grants,   // GRANT4: the building's own stands on their grants, as the street's (Spawn-Grants section 14)
       toWire: (feet) => [feet[0], feet[1] - state.compensation[1], feet[2]],
       toScene: (p) => [p[0], p[1] + state.compensation[1], p[2]],
     } : null),
+    grants: () => (online ? grants : null),   // GRANT4: and a dungeon's own lane's (dungeonContext.js grants)
     foesQuestShare: () => partyOnlyQuestShare(questShareSeam),   // QUEST-PARTY phase 3b: the party's law for the building's quest foes; QUEST-OWNER: its owner's party's alone, in a building and underground
     onFoeHit: (hit, fate) => hitSend(hit, fate),   // WORLD2: a blow on a puppet goes to the host; AUDIT FOES FOE2: through the pending set, so a refused blow heals; LOOT-DUP: with the frame's own fate
     // WORLD3: a door moved goes to the room (the session refuses it outside a world room); the peers in my room at
@@ -30924,42 +30931,9 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
   };
   /** OW-ROADSIDE (2026-09-28, Mac: routes "appear traveling alongside" the road): a route whose first step is a road's (or
    *  a track's) is joined first at the nearest point of that first run - never walked beside it to its far end. */
-  // OW-FREE-STRAIGHT: the planner walks the pixel grid (diagonal, then straight), so a FREE journey bent at a pixel middle
-  // on the way - toward the road or a place - though the way ahead was clear. In FREE mode an all-open route is pulled
-  // taut: each stretch jumps to the farthest pixel the line of sight reaches without water or a blocked (mountain) step.
-  function tvFreePull(plan, roads = false) {
-    if (roads || travelPathUsesRoads() || !plan?.pixels || plan.pixels.length < 3 || plan.kinds?.some((k) => k !== 'open')) return plan;
-    const g = tvRouteGround();
-    const line = (a, b) => {   // 8-connected pixels a -> b (Bresenham)
-      const out = [a]; let x = a.x, y = a.y;
-      const dx = Math.abs(b.x - a.x), dy = Math.abs(b.y - a.y), sx = a.x < b.x ? 1 : -1, sy = a.y < b.y ? 1 : -1;
-      let err = dx - dy;
-      while (x !== b.x || y !== b.y) {
-        const e2 = 2 * err;
-        if (e2 > -dy) { err -= dy; x += sx; }
-        if (e2 < dx) { err += dx; y += sy; }
-        out.push({ x, y });
-      }
-      return out;
-    };
-    const clear = (a, b) => {
-      const pts = line(a, b);
-      for (let i = 1; i < pts.length; i++) {
-        if (g.isWater(pts[i].x, pts[i].y)) return false;
-        if (g.openBlocked(pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y, i === 1 && g.peakAt(a.x, a.y))) return false;
-      }
-      return true;
-    };
-    const px = plan.pixels, keep = [px[0]];
-    let i = 0;
-    while (i < px.length - 1) {
-      let j = px.length - 1;
-      while (j > i + 1 && !clear(px[i], px[j])) j--;
-      keep.push(px[j]);
-      i = j;
-    }
-    return keep.length >= px.length ? plan : { ...plan, pixels: keep, kinds: keep.slice(1).map(() => 'open') };
-  }
+  // OW-FREE-STRAIGHT: a FREE journey's all-open route pulled taut (systems/travel/freePull.js - moved out by GRANT3,
+  // HOST-SPLIT); never a road's route
+  function tvFreePull(plan, roads = false) { return roads || travelPathUsesRoads() ? plan : freePull(plan, tvRouteGround); }
   /** OW-TOWN-RING (2026-09-29, Mac: "Pathing doesnt follow the road around cities"): a location's rects - Travel Options'
    *  own (locationRectsOf: the town and its border ring), native - from the tile rect the pixel's build stamps
    *  (setLocationTiles over the location's own blocks), so a town a route passes far ahead of the streamed terrain has

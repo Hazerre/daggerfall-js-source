@@ -172,8 +172,8 @@
   {
     "name": "GROUND-GATE-cold-unawaited",
     "file": "server/src/index.js",
-    "old": "    if (this._relayCfgAt === -Infinity) await this._relayCfgFresh(now);",
-    "new": "    if (this._relayCfgAt === -Infinity) void this._relayCfgFresh(now);",
+    "old": "    if (!groundRoom(key) || m.gl >= GROUND_LAW) return false;\n    if (this._relayCfgAt === -Infinity) await this._relayCfgFresh(now);",
+    "new": "    if (!groundRoom(key) || m.gl >= GROUND_LAW) return false;\n    if (this._relayCfgAt === -Infinity) void this._relayCfgFresh(now);",
     "tests": [
       "test/net/fb1017f_groundgate.test.js"
     ],

@@ -2209,6 +2209,11 @@
   "tr": "2b91aea545a9",
   "by": "claude-in-session"
  },
+ "account.refusal.noRelayKey": {
+  "en": "f30ce4c5cdb0",
+  "tr": "26ad0a0373ef",
+  "by": "claude-in-session"
+ },
  "account.refusal.noRentRoom": {
   "en": "673af4e8d3b3",
   "tr": "87cb6ce12af4",

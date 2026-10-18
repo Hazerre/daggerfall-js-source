@@ -276,8 +276,8 @@
   {
     "name": "AUDIT-SAFE-RELAY-S1-the-binding-unread",
     "file": "server/src/index.js",
-    "old": "      const svc = this.env?.ACCOUNTS;\n",
-    "new": "      const svc = null;\n",
+    "old": "      const svc = this.env?.ACCOUNTS;\n      const res = typeof svc?.fetch === 'function' ? await svc.fetch(new Request(this.env.MOD_FEED_URL, init))",
+    "new": "      const svc = null;\n      const res = typeof svc?.fetch === 'function' ? await svc.fetch(new Request(this.env.MOD_FEED_URL, init))",
     "tests": [
       "test/net/safety/safe_relay_audit.test.js"
     ],

@@ -12,6 +12,8 @@
 //   node tools/realmReview.mjs budget-set <json>             write the budget's config - { enforce, bands: [{ upTo, rate, cap }] }
 //   node tools/realmReview.mjs bodies [days]                 INT14: the boss fights' count - mends claimed a minute, and what
 //                                                            the line standing would have cost
+//   node tools/realmReview.mjs grants [days]                 GRANT2: the spawn grants' asks - per kind, an account's asks an
+//                                                            hour, what the buckets and the cell's ceiling would have refused
 //   node tools/realmReview.mjs progress [days]               INT17: the progression claims' measure - each stream's claims an
 //                                                            hour of play, its quantiles, who went past the line standing
 //   node tools/realmReview.mjs progress-set <json>           write the line - { enforce, streams: { <stream>: { rate, cap } } }
@@ -31,6 +33,10 @@
 // `rate` past its 0.999 quantile with room, and `budget-set` with `enforce: true`.
 // INT17 (the owner, 2026-10-17: "Measure first"): read `progress 7` after a week, set each stream's `rate` past its 0.999
 // quantile with room (and its `cap` a few hours' worth), and `progress-set` with `enforce: true` and every stream named.
+// GRANT2 (bible/11-Multiplayer/Spawn-Grants.md section 12; the owner: seven days): read `grants 7` after a week, set each
+// kind's bucket in net/grantLaw.js GRANT_KINDS past its 0.999 quantile with room and GRANT_CELL_CEILING past the cells'
+// most live - GRANT5: each kind's `rate.suggested` and the cells' `suggested` say both, half again past the measure - then
+// GRANT6: `/relay grantMode enforce` (Spawn-Grants section 15).
 // INT14 (Mac, 2026-10-10: "Measure, then enforce"): read `bodies 7` after a week; the boss fights' line is the RELAY'S - set
 // its BOSS_BODY var (server/wrangler.toml, net/bossBody.js bodyConfig) to `{"enforce": true, "body": {"depth", "perS"},
 // "hull": {"depth", "perS"}}`, `perS` past the 0.999 quantile's rate (a minute's, in thousandths: / 60000) with room.
@@ -49,6 +55,7 @@ export const USAGE = [
   '       node tools/realmReview.mjs budget [days]',
   '       node tools/realmReview.mjs budget-set <json>',
   '       node tools/realmReview.mjs bodies [days]',
+  '       node tools/realmReview.mjs grants [days]',
   '       node tools/realmReview.mjs progress [days]',
   '       node tools/realmReview.mjs progress-set <json>',
   '       node tools/realmReview.mjs gains [days]',
@@ -93,7 +100,7 @@ export function reviewRequest(argv) {
     const days = rest.length ? Number(rest[0]) : 7;
     return Number.isSafeInteger(days) && days >= 1 && days <= 30 ? { path: '/v1/mod/realm-budget', body: { days } } : { usage: USAGE };
   }
-  if ((act === 'bodies' || act === 'gains' || act === 'progress') && rest.length <= 1) {   // INT14; HACKED-GOLD: the gains past the bucket; INT17: the claims' measure
+  if ((act === 'bodies' || act === 'gains' || act === 'progress' || act === 'grants') && rest.length <= 1) {   // INT14; HACKED-GOLD: the gains past the bucket; INT17: the claims' measure; GRANT2: the spawn grants'
     const days = rest.length ? Number(rest[0]) : 7;
     return Number.isSafeInteger(days) && days >= 1 && days <= 30 ? { path: `/v1/mod/realm-${act}`, body: { days } } : { usage: USAGE };
   }

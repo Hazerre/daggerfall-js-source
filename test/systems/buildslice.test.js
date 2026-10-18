@@ -103,7 +103,7 @@ test('PERF-EXT24: the world host sizes the stream\'s slice by the frame clock, l
   assert.match(WORLD, /  const breather = createBreather\(\{   \/\/ PERF7[^\n]*\n    budget: \(\) => frameFitBudget\(\{ intervalMs: frameInterval\(\), busyMs: lastBusy\(\), streamingMs: _streamSince == null \? 0 : performance\.now\(\) - _streamSince, awaited: _awaitedBuilds > 0 \}\),\n    onSlice: \(ms\) => \{ lendFrame\(ms\); meterFor\(renderer\.gl\)\?\.addCpu\('build', ms\); \},\n    frames: framesBegun,[^\n]*\n  \}\);/);
   const pump = WORLD.slice(WORLD.indexOf('  async function pump() {'), WORLD.indexOf('\n  }\n', WORLD.indexOf('  async function pump() {')));
   assert.match(pump, /const next = queue\.shift\(\);\n    _streamSince \?\?= performance\.now\(\);/, 'the pump\'s builds are the stream');
-  assert.match(pump, /building = false;\n    if \(!queue\.length\) _streamSince = null;/, 'and the stream ends with the queue');
+  assert.match(pump, /building = false;\n    if \(!state\.owes\(queue\)\) _streamSince = null;/, 'and the stream ends with the queue - with what it still owes (QUEUE-OWED: a queue holding only pixels the stream let go owes nothing)');
   assert.equal((WORLD.match(/(?<!let )_streamSince = /g) || []).length, 2, 'only the pump and a teleport\'s sweep end a stream');
 });
 

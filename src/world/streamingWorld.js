@@ -264,6 +264,17 @@ export class StreamingWorldState {
     return out.sort(nearestFirstFrom(this.current));
   }
 
+  /** QUEUE-OWED (bible/06-Systems/Travel-View.md QUEUE-OWED): whether the host's build queue holds a pixel the stream
+   *  still owes next - the ones at its head the stream let go while they waited (left the grid behind a crossing) are
+   *  dropped unbuilt, so what stands at the head is the next to build. DFU's UpdateTerrains collects first and builds
+   *  only the terrains still active (StreamingWorld.cs:654-657); the pump built every entry and threw the ones let go
+   *  away after, so a fast journey's road spent the stream's time on ground nobody would see while the grid round the
+   *  traveller waited. */
+  owes(queue) {
+    while (queue.length && !this.loaded.has(StreamingWorldState.key(queue[0].px, queue[0].py))) queue.shift();
+    return queue.length > 0;
+  }
+
   /**
    * Per-frame step. Mutates compensation on recenters.
    * @param {number[]} camPos - scene position; caller applies the

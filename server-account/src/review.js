@@ -21,6 +21,8 @@
 //                            window (a patron's purchases - AUDIT LW-II-2 S6) and the budget's config; `set` writes it
 //   /v1/mod/realm-bodies     INT14: the boss fights' count - each fight's receipts, the mends claimed a minute, and what the
 //                            line standing would have cost (bodiesMeasure)
+//   /v1/mod/realm-grants     GRANT2: the spawn grants' asks - per kind, an account's asks an hour (quantiles, most), what
+//                            the buckets and the ceiling would have refused, the cells' most live (grants.js grantsMeasure)
 //   /v1/mod/realm-progress   INT17: the progression claims' measure - each stream's claims an hour of play, its quantiles
 //                            and most, who went past the line standing - and the line's config; `set` writes it
 //   /v1/mod/realm-gains      HACKED-GOLD: who gained past the bucket in a window, largest first (gainsMeasure) - while the
@@ -46,6 +48,7 @@ import { budgetConfig, budgetConfigOf, forgetBudgetConfig, BUDGET_DEFAULT, FAUCE
 import { repairOf, applyRepair } from '../../src/net/repairLaw.js';   // SUMMON-REPAIR: the repair's law, the tool's too
 import { isHandleShaped } from '../../src/net/handleShape.js';   // SUMMON-REPAIR: an account named by its handle
 import { wealthOf } from './judge.js';
+import { grantsMeasure } from './grants.js';   // GRANT2: the spawn grants' measure (bible/11-Multiplayer/Spawn-Grants.md section 12)
 import { progressConfig, progressConfigOf, forgetProgressConfig, PROGRESS_LINE, PROGRESS_STREAMS } from './progress.js';   // INT17: the progression claims' line
 import { REALM_LETTER_TEMPLATE } from '../../src/net/realm/realmGoldLaw.js';   // HACKED-GOLD: a trade's letters, at their worth
 
@@ -124,6 +127,7 @@ export async function reviewAct(ctx, player, env, act, body = {}) {
     return progressMeasure(db, nowS, Number.isSafeInteger(body.days) && body.days >= 1 && body.days <= 30 ? body.days : 7);
   }
   if (act === 'bodies') return bodiesMeasure(db, nowS, Number.isSafeInteger(body.days) && body.days >= 1 && body.days <= 30 ? body.days : 7);
+  if (act === 'grants') return grantsMeasure(db, nowS, Number.isSafeInteger(body.days) && body.days >= 1 && body.days <= 30 ? body.days : 7, ranked);   // GRANT2: the spawn grants' measure
   if (act === 'gains') return gainsMeasure(db, nowS, Number.isSafeInteger(body.days) && body.days >= 1 && body.days <= 30 ? body.days : 7);
   if (act === 'characters') {
     // SUMMON-REPAIR: the account by its handle as the service folds it (the customs pass's way), and its realm characters -

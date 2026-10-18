@@ -115,8 +115,8 @@
   {
     "name": "X12-welcome-without-v",
     "file": "server/src/index.js",
-    "old": ",\"v\":${JSON.stringify(RELAY_VERSION)}${rf}${a.ly ? `,\"ly\":${a.ly}` : ''}}`;",
-    "new": "${rf}${a.ly ? `,\"ly\":${a.ly}` : ''}}`;",
+    "old": ",\"v\":${JSON.stringify(RELAY_VERSION)}${rf}${gm}${a.ly ? `,\"ly\":${a.ly}` : ''}}`;",
+    "new": "${rf}${gm}${a.ly ? `,\"ly\":${a.ly}` : ''}}`;",
     "tests": [
       "test/net/slam13.test.js",
       "test/net/chat1.test.js",

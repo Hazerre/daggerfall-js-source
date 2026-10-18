@@ -2200,6 +2200,68 @@ data source's, every host's.
 catch's last line is `state.fail`), `tools/mutants/auditwod.json` WOD6-failed-build-stays-arrival and
 `tools/mutants/ow_loadowed.json` LOAD-OWED-failed-kept-on-the-books re-aimed by content.
 
+## QUEUE-OWED - the queue builds only what the stream still owes (2026-10-18, a player through LostMyLeg)
+
+*"the world isnt loading at times in the overworld and when it doesnt load his overworld speed goes down to 1x"*
+(LostMyLeg on Discord, of another player, handed over as a screenshot).
+
+**What holds the clock.** With nothing near, only the land's hold can take a journey to x1 (LOAD-OWED's table): TV2's
+governor halves the clock while a pixel of the counted grid is owed and not built, and climbs back a step for each
+TV_GOV_CLEAR_S clean. Since LOAD-OWED a pixel is owed only while the stream holds it, and since BUILD-RETRY a build that
+threw is asked for again. What was left is how long the stream takes to build what it owes, and what it spends the time on.
+
+**FOUND.** The host's build queue is first in, first out, and nothing took a pixel off it when the stream let it go. A
+crossing queues the grid's new edge (streamingWorld.js:"load = this._loadList") and lets go what left the grid (the
+frame's unload: `destroyPixel`, `state.release`). A pixel let go while it still waited in the queue stayed there, and the
+pump built it whole and then threw it away - its teardown after the build (AUDIT 24's, the line above
+world.js:"else state.stood(next.px, next.py);") was written for a pixel let go while its build was in flight. DFU never
+builds one: UpdateTerrains collects first and builds only the terrains still active (StreamingWorld.cs:654-657). Under
+the Overworld at x100 the stream falls behind, which is why the governor exists, and on a road that turns the backlog's
+pixels leave the grid behind the traveller before their turn comes. Each was a build the grid round the traveller
+waited on: holes in the view, and the clock held at x1 while the land loaded.
+
+Measured on the host's own code (the stream, the pump, the view's governor and its count, lifted out of
+`scenes/world.js` as LOAD-OWED's test lifts them): a journey under the view at x100, nothing near, every build a fixed
+real time, one at a time, 300 s. A turning road turns a right angle every 20 s.
+
+| Journey | Build | x1 before | x1 now | Builds begun for a let-go pixel, before |
+|---|---|---|---|---|
+| on foot (5 m/s), diagonal | 1 s | 18.6 s | 9.4 s | 22 of 273 |
+| on foot, turning | 1 s | 34.3 s | 13.1 s | 56 of 279 |
+| horse (12 m/s), diagonal | 0.5 s | 14.6 s | 10.1 s | 60 of 554 |
+| horse, turning | 0.5 s | 25.1 s | 10.1 s | 91 of 551 |
+| horse, diagonal | 1 s | 96.1 s | 24.2 s | 38 of 292 |
+| horse, turning | 1 s | 126.5 s | 56.4 s | 78 of 292 |
+
+None is begun now. A straight road is unchanged (on foot 4.9 s, a horse 39.9 s at 1 s a build): there the backlog never
+outlives the grid, and what holds the clock is the machine's build rate - TV2's cap as designed ("Cap it to what loads
+cleanly"). Recorded, not changed.
+
+**FIXED.** The pump asks the stream's books before it starts a build and as one ends (streamingWorld.js:"owes(queue) {",
+world.js:"if (building || !state.owes(queue)) return;"): the let-go pixels at the queue's head are dropped unbuilt, the
+rest keep their order, and with nothing owed the stream's run is over (PERF-EXT24's `_streamSince`). Both asks are
+needed - the one as a build ends catches what left the grid while it built, the one before a build what the frame's own
+crossing let go before the pump's turn. A pixel let go while its build is in flight is still torn down when it lands. The
+pump is no longer than it was (HOST-SPLIT). Every producer that queues a pixel puts it on the books - the init's and a
+crossing's load lists, BUILD-RETRY's re-ask, and the rebuild sweeps (the roads, World of Daggerfall's late regions, the
+hollow, the gate's clearing, the season's re-skin, a layout pin), each of a pixel standing in `built` - so nothing of
+theirs is dropped while the stream holds it.
+
+Recorded, not changed: the terrain worker chains a job that arrives while the roads network loads on `pendingRoads`
+(terrainGenWorker.js:"if (m.t === 'job' && pendingRoads)"), and nothing clears it if the network's build throws - every
+later job, and the stream with it, would wait for ever. No such throw is known, and that stall would hold every pixel
+from the network's arrival on, not "at times". The cause on the player's machine is not proven: no game data is in the
+container and no log came with the report. The stream's own line (`stream: entered X,Y (load N, unload M)`) and any
+`pixel X,Y failed` error in their console would show whether the stream fell behind or stopped.
+
+**The four hosts.** `scenes/world.js` wired - it alone streams pixels (the pump). `scenes/exterior.js` builds one fixed
+city once; `scenes/worldModes.js` (a building) and `scenes/dungeonContext.js` (a dungeon) stream no pixels and keep no
+build queue.
+
+`test/systems/travel/ow_queueowed.test.js` (3), `tools/mutants/ow_queueowed.json` (4, all dead). PIN MOVED: `buildslice`
+(PERF-EXT24: the stream ends with what the queue still owes); `tools/mutants/perfextc.json`
+PERF-EXT24-the-stream-never-ends-so-its-age-guard-trips-at-once-next-time re-aimed by content.
+
 ## TIME-DILATION - the sea's AI never on the journey's clock (2026-10-17, the owner)
 
 The owner: *"fix a pre existing issue where AI can actually use the overworld as time dilation"*. The record is

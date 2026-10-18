@@ -308,6 +308,7 @@ import { egFindStruck, egFindKill } from '../systems/eliteGates/egFind.js';   //
 import { rollCorpseKit, capFoeLoot } from '../systems/foeLootCap.js';   // KIT-ROLL: a foe's kit, laddered at its death by every body door; AUDIT 625 L5: a copy's cap
 import { dropFoeCard } from '../systems/card/cardSources.js';   // AUDIT CARDS-6 A3: a joiner's copy of a body draws for its own card
 import { FOE_LEVEL_MAX, CELL_LOOSE_PUPPETS, sharedClassicMinutes, hitClassField, hitClassOf } from '../net/wire.js';   // TELL8: a blow's class on a hit   // SEARCH1: a room's search stamp, read as the world minute it was searched at   // AUDIT RENOWN1 GAME-3: the stream's bound on a class foe's level; SUMMON-SYNC: an owner's loose stands a reader stands, the cell's allowance
+import { grantKindOf } from '../net/grantLaw.js';   // GRANT4: the own lane's stands on their grants (bible/11-Multiplayer/Spawn-Grants.md section 14)
 /** DESYNC-ZERO: a reader's allowance for one owner's loose stands in a room (a Greater Giant's call of ten, summons, Mark's
  *  stands) - CELL_LOOSE_PUPPETS (four) left most of a call unseen by the rest of the room. Reader-side only: the relay never
  *  reads it. */
@@ -1780,8 +1781,13 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // ARENA2: a bout fighter (scenes/arena/arenaBouts.js) at its tier's `level`, carrying its `bout` from its first frame -
     // no loot (nobody dies on the sand to drop it), and never the room's (the instance is one player's)
     const e = { mobileType, gender, x: position[0], y: position[1], z: position[2], spawnDistanceType: 0, ...(allied ? { allied: true } : {}), ...(questSpawn ? { questSpawn: true } : {}), ...(loadID != null ? { loadID } : {}), ...(Number.isFinite(level) ? { level } : {}), ...(eliteFoe ? { eliteFoe: true } : {}), ...(revenant ? { revenant, lairStand: !!lairStand, ...(turned ? { turned: true } : {}) } : {}) };   // RVN11c: a betrayer turned where it stood   // SEARCH1: a searched grave's elite - applyEliteScaling and grantEliteLoot read the record's mark; RVN7d: a revenant's record
+    // GRANT4 (Spawn-Grants section 14): a stand that rides the room's own lane stands on its grant - asked before the build,
+    // and while the law enforces, none stands without one (a bout is the instance's own, and rides nothing)
+    const ask = bout ? null : grants?.()?.memberFor(grantKindOf({ allied, questBehaviour: questSpawn, revenant, loose: true })) ?? null, granted = ask ? await ask : null, gm = granted && 'gr' in granted ? granted : null;
+    if (ask && !gm && grants?.()?.enforcing()) return null;
     const f = await buildFoeAt(e, false);
     if (!f) return null;
+    if (gm) grants?.()?.stood(gm.gr, gm.i, f);
     if (yawRad != null && f.ai) f.ai.yaw = yawRad;
     if (bout) { f.entity.bout = bout; f.entity.items = []; f._bout = true; return f; }
     f._loose = true;   // SUMMON-SYNC: a loose stand - it rides the room's own lane to everyone in the room (ownLoose)
@@ -5218,7 +5224,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     const owesMax = max != null && f._maxSent !== max && _maxLeft > 0;
     if (!full && f._sentKey === key && !owesMax) return null;
     if (owesMax) { r.k = max; f._maxSent = max; _maxLeft--; }
-    if (seeded && (full || f._lsSent === undefined)) { r.ls = foeSeed(f); f._lsSent = r.ls; }   // AUDIT MW-NPC II K3: on its first record and every full frame (a joiner since learns it)
+    if (seeded && (full || f._lsSent === undefined)) { r.ls = foeSeed(f); f._lsSent = r.ls; }
+    if (seeded && f._grant && !f._grant._dead) r.gr = [f._grant.g, f._grantI];   // GRANT4: the own lane's grant and member - the frame's `gs` carries the grant   // AUDIT MW-NPC II K3: on its first record and every full frame (a joiner since learns it)
     f._sentKey = key;
     return r;
   }
@@ -5431,6 +5438,9 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   // through its owner, hunting every player there, handed at a door out or a death to the player nearest it, and gone
   // with an owner that left without a word (only a shared quest's orphan is adopted, the cell's law).
   let _ownSeq = 0, _ownFrameSeq = 0, _ownGen = 0;
+  /** GRANT4: the grants' host (scenes/grantHost.js) while a session is open, else null - the own lane's stands' grants.
+   *  Called `grants?.()`: the own lane's source pins mount its doors alone, without it. */
+  function grants() { return opts.grants?.() ?? null; }
   const _ownPups = new Map();   // `${owner}:${i}` -> a party member's quest foe (or SUMMON-SYNC: anyone's loose stand) stood here as a puppet
   const _ownPending = new Map();   // `${owner}:${i}` -> the newest record while its puppet builds
   const _ownPendLoose = new Set();   // SUMMON-SYNC: the pending keys that are loose stands, for the loose allowance
@@ -5462,6 +5472,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     _maxLeft = full || heirOf ? 0 : FOE_MAX_PER_FRAME;   // AUDIT SETS M1: the layout's law - a whole frame pays once built, a delta a few
     const out = [], src = [];
     for (const f of foes) {
+      if (f.dead && f._grant) grants?.()?.ended(f);   // GRANT4: its member gone - the grant's last frees it
       if (f._ownFrom != null || (f.dead && !f.corpse)) continue;
       const qt = ownQuestTag(f);
       if (!qt && !ownLoose(f)) continue;   // SUMMON-SYNC: a shared quest's foe, or a loose stand - nothing else past the run
@@ -5482,7 +5493,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       const fl = (f._questMarker && !qt.pv ? 1 : 0) | (!f.dead && questTouched(f) ? 2 : 0) | (qt.pv ? 4 : 0);   // DESYNC-ZERO: a private quest's foe (4), never a party marker
       qf.push(fl ? [i, qt.q, qt.s, fl] : [i, qt.q, qt.s]);
     });
-    const frame = { n: ++_ownFrameSeq, k: _locationKey, full: whole ? 1 : 0, f: out, ...(qf.length ? { qf } : {}), ...(lf.length ? { lf } : {}), ...(cp.length ? { cp, cn } : {}) };
+    const gs = grants?.()?.frameGrants(src.map(([f]) => f._grant), whole) ?? [];   // GRANT4: the grants these records name
+    const frame = { n: ++_ownFrameSeq, k: _locationKey, full: whole ? 1 : 0, f: out, ...(gs.length ? { gs } : {}), ...(qf.length ? { qf } : {}), ...(lf.length ? { lf } : {}), ...(cp.length ? { cp, cn } : {}) };
     if (full || heirOf) fitMaxima(frame, src.map(([f], k) => [out[k], f]));
     return frame;
   }
@@ -5499,6 +5511,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     if (Number.isFinite(data.n)) { if (data.n <= o.n) return false; o.n = data.n; }
     o.at = performance.now();
     const tags = validQuestTags(data.qf), loose = validLooseSeqs(data.lf), comp = validLooseSeqs(data.cp);   // AUDIT CC-E1: `cp` the owner's companions (the loose numbers' own law)
+    grants?.()?.heard(from, data.gs);   // GRANT4: the grants this frame carries, each checked once
     const compNames = companionNames(data.cp, data.cn);   // AUDIT WK-U3: and their names
     const seen = new Set(), marks = [], named = new Set();
     for (const raw of data.f.slice(0, CELL_FRAME_RECORDS_MAX)) {
@@ -5534,10 +5547,10 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       if (took) { _ownAdopted.delete(key); if (r.d !== 1 && !took.dead && !took._gone) letGoOwn(took); }
       if (f) { applyOwnRecord(f, r, share); if ((lo && comp.has(r.i)) || f.companion != null) companionPuppet(f, lo && comp.has(r.i), compNames.get(r.i)); f._heirElse = ownHeirElse(r); if (ownHeirIsMe(r) && f.companion == null) adoptOwn(from, f, share); continue; }
       if (_ownPending.has(key)) { const was = _ownPending.get(key); _ownPending.set(key, { ...r, ls: r.ls ?? was.ls }); continue; }   // AUDIT MW-NPC II K3: a newer word keeps the owner's seed the first one carried
-      if (r.d === 1 || r.t == null || !r.f || !canStandFoe(r.t) || ownPuppetsOf(from, lo) >= (lo ? LOOSE_PUPPETS_MAX : QUEST_PUPPETS_MAX)) continue;
+      if (r.d === 1 || r.t == null || !r.f || !canStandFoe(r.t) || ownPuppetsOf(from, lo) >= (lo ? LOOSE_PUPPETS_MAX : QUEST_PUPPETS_MAX) || grants?.()?.downed(from, r)) continue;   // AUDIT GRANT A11: one stood down is not stood again on the same grant
       _ownPending.set(key, { ...r, _comp: lo && comp.has(r.i), _compName: compNames.get(r.i) ?? null });
       if (lo) _ownPendLoose.add(key);
-      standOwnPuppet(from, r, qt, o.gen, lo).catch((e) => { _ownPending.delete(key); _ownPendLoose.delete(key); console.error('[online] another player\'s foe could not stand here:', e); });
+      standOwnPuppet(from, r, qt, o.gen, lo, grants?.()?.check(from, null, r) ?? null).catch((e) => { _ownPending.delete(key); _ownPendLoose.delete(key); console.error('[online] another player\'s foe could not stand here:', e); });
     }
     if (data.full === 1) for (const [key, f] of [..._ownPups]) if (f._ownFrom === from && !seen.has(f._ownI)) dropOwnPuppet(key, f);
     if (data.full === 1) for (const [key, k] of [..._ownKept]) if (k.from === from && !named.has(k.r.i)) _ownKept.delete(key);   // AUDIT DISC28 QS-J: as a stood record goes
@@ -5554,7 +5567,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   }
   /** QUEST-PARTY phase 3c: a party member's quest foe stood here - the build chain's own, where its record says, posed
    *  by the newest record since; a build its owner's sweep overtook ends on arrival. */
-  async function standOwnPuppet(from, r, qt, gen, lo = false) {
+  async function standOwnPuppet(from, r, qt, gen, lo = false, grantCheck = null) {   // GRANT4: `grantCheck` its grant's check (scenes/grantHost.js check)
     const key = ownPupKey(from, r.i);
     const f = await buildFoeAt({ mobileType: r.t, gender: GENDER_BIT[r.x === 1 ? 1 : 0], x: r.f[0], y: r.f[1], z: r.f[2], spawnDistanceType: 0 }, false, { puppet: true, feetGiven: true });   // DISC28-H: `r.f` is the owner's feet; AUDIT PRE-MERGE 0928 M1: the owner's foe - no spawn of mine (its abyss had it)
     const kept = _ownPending.has(key);   // no room change cleared it (clearOwnPuppets empties the pending)
@@ -5572,6 +5585,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     const share = ownShare();
     applyOwnRecord(f, newest, share);
     if (newest._comp ?? r._comp) companionPuppet(f, true, newest._compName ?? r._compName);   // AUDIT CC-E1
+    if (grantCheck && grants?.()?.enforcing()) void grantCheck.then((why) => { if (grants?.()?.standsDown(why) && _ownPups.get(key) === f) dropOwnPuppet(key, f); });   // GRANT6: while the law enforces, a forged grant or none stands down
     f._heirElse = ownHeirElse(newest);
     if (f.companion == null && (ownHeirIsMe(newest) || !!newest._orphanMine) && !adoptOwn(from, f, share) && heirOrphan) dropOwnPuppet(key, f);   // AUDIT CC-E1: a companion is never anyone's heir's
     return f;
@@ -5699,6 +5713,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     if (live >= QUEST_PUPPETS_MAX + LOOSE_PUPPETS_MAX) return 0;
     const b = qt ? (share?.behaviourFor?.(qt) ?? null) : null;   // SUMMON-SYNC: a loose stand binds no quest - its heir takes it as it stands
     _ownPups.delete(key);
+    grants?.()?.adopted(from, f, f._ownI);   // GRANT4: its handed grant - come, or awaited - before its number is mine
     const p = f._pup;
     if (p) { f.ai.feet[0] = p.feet[0]; f.ai.feet[1] = p.feet[1]; f.ai.feet[2] = p.feet[2]; f.ai.yaw = p.yaw; }
     f.ai.resumeLive?.();
@@ -5722,6 +5737,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     for (const f of [...foes]) {
       const heir = f._heir; f._heir = null;
       if (!heir || f._ownFrom != null || f.dead) continue;
+      grants?.()?.handed(f, heir);   // GRANT4: its member signed to its heir (scenes/grantHost.js handed)
       letGoOwn(f);
       n++;
     }
@@ -5731,6 +5747,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
    *  from: its batch, its place in the pool and the target machine's memory; no death, no corpse, and its quest's
    *  instance let go with it (the other copy's record is the one this quest counts from here, as a partner's). */
   function letGoOwn(f) {
+    grants?.()?.ended(f);   // GRANT4: given back, its member is no longer mine
     if (f.batch) { renderer.destroyBillboardBatch(f.batch); f.batch = null; }
     f._gone = true; f.dead = true;
     dropCandidate(f);
@@ -7332,6 +7349,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   sceneAmbience.setPreset('dungeon');
   function drawFoes(dt, canvas, proj, view, eye, playerFeet, moveHeld = false, playerHeight = CAPSULE_HEIGHT, playerSneaking = false, playerMove = null, playerBobY = 0, playerCrouching = false, playerRenderFeet = null, playerClimb = null, aimView = null) {
     if (_staleChunkNotice) { _staleChunkNotice = false; setMidScreenText(STALE_CHUNK_IN_PLAY_TEXT, STALE_CHUNK_IN_PLAY_SECONDS); }
+    grants?.()?.tick();   // GRANT4: my grants' clock underground - renewed, the tally handed on
     // AUDIT CLIMB-ARC F10: what the player AIMS with - the look, the ears, the spell's line, the blow's, the activation's -
     // is the view before the climb's feel laid its pitch and roll on the picture (the world and exterior hosts read cam)
     const aimed = aimView ?? view;

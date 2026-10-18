@@ -118,6 +118,21 @@ SD_DISCORD_ROLE = ""
 # LEGAL STATE: nothing is kept and nothing is posted. The service drops
 # what it is fed while its reviewer is off (MOD_AI, or no key).
 MOD_FEED_URL = "https://daggerfall-accounts.mackcothran.workers.dev/v1/mod/feed"
+# ═══ GRANT2: THE SPAWN GRANTS' MEASURE ═══════════════════════════════
+#
+# Where each cell posts its window of spawn grant asks for the account
+# service to keep (src/net/grantMeasure.js; bible/11-Multiplayer/
+# Spawn-Grants.md section 12) - per account and kind, the asks, the
+# members, and what the buckets and the cell's ceiling would have
+# refused; read with `node tools/realmReview.mjs grants`. Signed with
+# GATE_SIGNING_KEY, the chat feed's door: never awaited by an ask, never
+# retried. EMPTY IS A LEGAL STATE: nothing is posted. The law's mode is
+# the relay setting `grantMode` (GRANT_MODE; unset: measure). GRANT8 and
+# GRANT9 (Spawn-Grants.md section 16) are the settings `grantRoll` (an
+# encounter's species its grant's seed's) and `grantStrip` (the relay
+# drops a record its grant does not stand) - GRANT_ROLL and GRANT_STRIP,
+# each off while unset, set with /relay.
+GRANT_FEED_URL = "https://daggerfall-accounts.mackcothran.workers.dev/v1/mod/grant-feed"
 # ═══ INT11-INT14: THE LINE THE BOSS FIGHTS' COUNT RUNS BY ════════════
 #
 # The relay counts each fighter's body in a gate, an Abyss Dungeon and

@@ -179,8 +179,8 @@
   {
     "name": "QP3C-handed-kept",
     "file": "src/scenes/dungeonContext.js",
-    "old": "      if (!heir || f._ownFrom != null || f.dead) continue;\n      letGoOwn(f);",
-    "new": "      if (!heir || f._ownFrom != null || f.dead || true) continue;\n      letGoOwn(f);",
+    "old": "      if (!heir || f._ownFrom != null || f.dead) continue;\n      grants?.()?.handed(f, heir);",
+    "new": "      if (!heir || f._ownFrom != null || f.dead || true) continue;\n      grants?.()?.handed(f, heir);",
     "tests": ["test/scenes/questparty3c.test.js"]
   },
   {
