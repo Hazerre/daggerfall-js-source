@@ -2,12 +2,12 @@
   {
     "name": "HOST-SPLIT-a-ceiling-under-its-host",
     "file": "test/scenes/hostceiling.test.js",
-    "old": "['src/scenes/world.js', 'bootWorld', 21_186, MODULE]",
+    "old": "['src/scenes/world.js', 'bootWorld', 21_234, MODULE]",
     "new": "['src/scenes/world.js', 'bootWorld', 20_900, MODULE]",
     "tests": [
       "test/scenes/hostceiling.test.js"
     ],
-    "note": "PIN MOVED (FIELD BUGS 2026-10-16b GRAVE-PARTY): world.js's ceiling lowered 21,676 -> 21,638 on main's count (21,679 -> 21,641 on its branch before the merge; activateGrave out)."
+    "note": "PIN MOVED (PARTY-PING, 2026-10-18): the ceiling rose 21,186 -> 21,234. Main had filled it, and the ping's seams are 48 code lines of wiring that cannot leave the host. 20,900 still sits under the host, so the law still dies."
   },
   {
     "name": "HOST-SPLIT-a-ceiling-left-high",
