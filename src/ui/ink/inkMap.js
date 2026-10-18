@@ -1058,15 +1058,34 @@ export function paintInkStatic(ctx, model, view, opts) {
 export const MARKS_PAN_PAD = 0.5;
 /** MAP-PAN: the marks bitmap stays within this on a side. A paper already there bakes flush. */
 export const MARKS_DEVICE_MAX = 8192;
+/** MAP-PAN: and within this many device pixels altogether (64MB of RGBA). A 5K sheet
+ *  with half a paper of pad on both axes is under the side cap and still ~150MB. */
+export const MARKS_DEVICE_PIXELS = 16_777_216;
 
-/** The margin, in paper pixels, the marks layer bakes past each edge. */
+/** The margin, in paper pixels, the marks layer bakes past each edge. Both axes shrink
+ *  by the same fraction once the bitmap's area would pass the cap. */
 export function marksMargin(paperW, paperH, dpr = 1) {
   const axis = (paper) => {
     const spare = MARKS_DEVICE_MAX - paper * dpr;
-    if (!(spare > 0) || !(dpr > 0)) return 0;
+    if (!(spare > 0) || !(dpr > 0) || !(paper > 0)) return 0;
     return Math.min(paper * MARKS_PAN_PAD * dpr, spare / 2) / dpr;
   };
-  return { padX: axis(paperW), padY: axis(paperH) };
+  const padX = axis(paperW);
+  const padY = axis(paperH);
+  const w0 = (paperW + 2 * padX) * dpr;
+  const h0 = (paperH + 2 * padY) * dpr;
+  if (!(w0 > 0) || !(h0 > 0) || w0 * h0 <= MARKS_DEVICE_PIXELS) return { padX, padY };
+  // the largest shared fraction of the two pads whose bitmap still fits
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    const w = (paperW + 2 * padX * mid) * dpr;
+    const h = (paperH + 2 * padY * mid) * dpr;
+    if (w <= MARKS_DEVICE_MAX && h <= MARKS_DEVICE_MAX && w * h <= MARKS_DEVICE_PIXELS) lo = mid;
+    else hi = mid;
+  }
+  return { padX: padX * lo, padY: padY * lo };
 }
 
 /**
@@ -1126,23 +1145,29 @@ export function paintInkMarks(ctx, model, view, opts) {
   }
 }
 
-/** MAP-PAN: the view's paper still lies inside a marks layer baked at `layer`. A zoom does not. */
+/** MAP-PAN: where the blit will put the bitmap, in paper pixels. The shift is whole
+ *  device pixels, which is the rect a retained layer has to cover. */
+function marksBlitRect(layer, view) {
+  const dpr = layer.dpr || 1;
+  const dx = Math.round((layer.ox - view.ox) * view.scale * dpr) / dpr;
+  const dy = Math.round((layer.oy - view.oy) * view.scale * dpr) / dpr;
+  return { dx, dy, dw: layer.canvas.width / dpr, dh: layer.canvas.height / dpr };
+}
+
+/** MAP-PAN: the blit of `layer` still covers the whole paper. A zoom does not.
+ *  The check is the rounded device-pixel rect the blit actually draws: a layer
+ *  whose edge already sits inside the view, or whose bitmap runs short, does not hold. */
 export function marksLayerHolds(layer, view, paperW, paperH) {
   if (!layer?.canvas || layer.scale !== view.scale || !(view.scale > 0)) return false;
-  const dx = (layer.ox - view.ox) * view.scale;
-  const dy = (layer.oy - view.oy) * view.scale;
-  const eps = 1;
-  return dx <= eps && dy <= eps && dx + layer.paperW >= paperW - eps && dy + layer.paperH >= paperH - eps;
+  const { dx, dy, dw, dh } = marksBlitRect(layer, view);
+  const eps = 1e-4;
+  return dx <= eps && dy <= eps && dx + dw >= paperW - eps && dy + dh >= paperH - eps;
 }
 
 /** MAP-PAN: lay the marks layer on the paper, shifted by the pan. Smoothing stays off so a
  *  fractional step does not blur a glyph that was painted crisp; the shift is whole device pixels. */
 export function blitMarksLayer(ctx, layer, view) {
-  const dpr = layer.dpr || 1;
-  const dx = Math.round((layer.ox - view.ox) * view.scale * dpr) / dpr;
-  const dy = Math.round((layer.oy - view.oy) * view.scale * dpr) / dpr;
-  const dw = layer.canvas.width / dpr;
-  const dh = layer.canvas.height / dpr;
+  const { dx, dy, dw, dh } = marksBlitRect(layer, view);
   const smooth = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(layer.canvas, dx, dy, dw, dh);
@@ -1167,8 +1192,10 @@ export function syncMarksLayer(prev, spec) {
   const { padX, padY } = marksMargin(paperW, paperH, dpr);
   const bw = paperW + 2 * padX;
   const bh = paperH + 2 * padY;
-  const dw = Math.max(1, Math.round(bw * dpr));
-  const dh = Math.max(1, Math.round(bh * dpr));
+  // ceil, so the bitmap is never a device pixel short of the paper it claims:
+  // a short one fails the hold and would be baked again on the next frame
+  const dw = Math.max(1, Math.ceil(bw * dpr));
+  const dh = Math.max(1, Math.ceil(bh * dpr));
   // AUDIT-MAP2: assigning a canvas's width resets its bitmap even to the same value
   if (canvas.width !== dw || canvas.height !== dh) { canvas.width = dw; canvas.height = dh; }
   const scale = view.scale;

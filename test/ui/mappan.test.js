@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 
 import {
   paintInkStatic, paintInkMarks, syncMarksLayer, blitMarksLayer, marksLayerHolds, marksMargin,
-  MARKS_PAN_PAD, toPaper,
+  MARKS_PAN_PAD, MARKS_DEVICE_PIXELS, toPaper,
 } from '../../src/ui/ink/inkMap.js';
 
 const read = (p) => readFileSync(p, 'utf8');
@@ -112,4 +112,26 @@ test('MAP-PAN: the margin gives way when the bitmap would pass the device cap (m
   assert.equal(marksMargin(200, 100, 1).padY, 50);
   assert.equal(marksMargin(8000, 100, 1).padX, (8192 - 8000) / 2);
   assert.equal(marksMargin(9000, 100, 1).padX, 0, 'a paper already past the cap bakes flush');
+});
+
+test('MAP-PAN: the margin also gives way when the bitmap\'s area would pass the cap (mutants: marks-area-uncapped)', () => {
+  // a 5K landscape sheet: half a paper of pad on both axes stays under 8192 a side and is still ~150MB
+  const paperW = 3965, paperH = 2420;
+  const full = marksMargin(paperW, paperH, 1);
+  assert.ok(full.padX < paperW * MARKS_PAN_PAD && full.padY < paperH * MARKS_PAN_PAD, 'both pads shrink together');
+  assert.ok(full.padX > 0 && full.padY > 0, 'the paper itself fits, so a margin remains');
+  const dw = paperW + 2 * full.padX;
+  const dh = paperH + 2 * full.padY;
+  assert.ok(dw <= 8192 && dh <= 8192, 'each side stays under the side cap');
+  assert.ok(dw * dh <= MARKS_DEVICE_PIXELS, 'and the bitmap stays under the area cap');
+  assert.equal(marksMargin(6000, 4000, 1).padX, 0, 'a paper already past the area bakes flush');
+});
+
+test('MAP-PAN: a layer is kept only when its blit covers the whole paper (mutants: marks-kept-short)', () => {
+  const view = { ox: 0, oy: 0, scale: 4 };
+  const cover = { canvas: { width: 200, height: 100 }, ox: 0, oy: 0, scale: 4, dpr: 2, paperW: 100, paperH: 50 };
+  assert.equal(marksLayerHolds(cover, view, 100, 50), true, 'the blit fills the paper');
+  // one device pixel inside the left edge
+  assert.equal(marksLayerHolds({ ...cover, ox: 1 / 8 }, view, 100, 50), false, 'a strip inside the left edge is not covered');
+  assert.equal(marksLayerHolds({ ...cover, canvas: { width: 199, height: 100 } }, view, 100, 50), false, 'a bitmap short of the paper is not covered');
 });
