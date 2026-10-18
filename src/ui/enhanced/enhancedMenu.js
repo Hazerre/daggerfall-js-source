@@ -5055,34 +5055,53 @@ function statsMaster(detail, m) {
  *  stands (its Escape is the card's No - the back stack's release had resumed the game under it), and the window's
  *  unmount takes it down (the sheet's key left it over the running game, its Y still choosing a permanent path). */
 let askUp = /** @type {null | (() => void)} */ (null);
+let askSeq = 0;
 function askCard(lines, onYes) {
   askUp?.();
   const back = el('div', 'px-master-ask');
   const card = el('div', 'inputbox yesnobox');
   card.setAttribute('role', 'alertdialog');
+  // AUDIT SPEC-RESET L3-3: modal for the keys and the reader too - named by its rows, the window under it inert (Tab and
+  // Space walked it: the family switched, the tabs changed, and Y paid a reset over the Quests tab), the focus on No and
+  // given back to its opener when it goes
+  card.setAttribute('aria-modal', 'true');
   const rows = el('div', 'inputbox-rows');
+  rows.id = `px-ask-${++askSeq}`;
+  card.setAttribute('aria-labelledby', rows.id);
   for (const t of lines) rows.append(el('div', 'notice-row center', t));
+  const opener = globalThis.document?.activeElement ?? null;
+  const under = app && !app.hasAttribute?.('inert') ? app : null;
+  // AUDIT SPEC-RESET L3-4: answered ONCE, however many doors call it (THE SLOT IS EMPTIED's other half, as the skin's
+  // YesNoBoxWindow.answer is), and a key held down before the card stood answers nothing by its repeat
+  let answered = false;
+  const answer = (yes) => { if (answered) return; answered = true; close(); if (yes) onYes(); };
   // DFU's keys, as the skin's YesNo box keeps them: Y yes, N or Return no (the default) - and Escape no here too, on
   // CAPTURE and stopped, so it answers the card instead of closing the pause page under it
   const onKey = (e) => {
     const k = e.code;
     if (k !== 'KeyY' && k !== 'KeyN' && k !== 'Enter' && k !== 'NumpadEnter' && k !== 'Escape') return;
     e.preventDefault(); e.stopImmediatePropagation();
-    close();
-    if (k === 'KeyY') onYes();
+    if (e.repeat) return;
+    answer(k === 'KeyY');
   };
-  const close = () => { removeEventListener('keydown', onKey, true); back.remove(); if (askUp === close) askUp = null; };
+  const close = () => {
+    removeEventListener('keydown', onKey, true); back.remove(); under?.removeAttribute?.('inert');
+    if (askUp === close) askUp = null;
+    if (opener?.isConnected) opener.focus?.({ preventScroll: true });
+  };
   addEventListener('keydown', onKey, true);
   askUp = close;
   const bar = acts([
-    { label: t('pause.ask.yes', 'Yes'), onClick: () => { close(); onYes(); } },
-    { label: t('pause.ask.no', 'No'), primary: true, onClick: close },
+    { label: t('pause.ask.yes', 'Yes'), onClick: () => answer(true) },
+    { label: t('pause.ask.no', 'No'), primary: true, onClick: () => answer(false) },
   ]);
   bar.classList.add('yesnobox-acts');
   const hint = el('div', 'notice-hint', t('pause.ask.hint', 'Y yes · N or Enter no'));
   card.append(rows, bar, hint);
   back.append(card);
   document.body.append(back);
+  under?.setAttribute?.('inert', '');
+  [...(bar.querySelectorAll?.('button') ?? [])].pop()?.focus?.({ preventScroll: true });   // No, the default
 }
 
 function statsSkills(detail, m) {

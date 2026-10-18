@@ -623,6 +623,7 @@ test('AUDIT SCHOOLS L3 F2: A SAVE AN OLDER BUILD CARRIED KEEPS ITS PATH - no `ar
   p.spells = [signatureSpell('seer')];
   const snap = JSON.parse(JSON.stringify(snapshotPlayer(p)));
   const { arcanePath: _a, pathPrompted: _b, ...older } = snap;
+  older.career = { ...older.career }; delete older.career.arcaneMirror;   // PIN MOVED (AUDIT SPEC-RESET L2-1): a save from before the mirror - the book alone bears witness
   const back = (s) => { const e = structuredClone(playerEntity); restorePlayer(e, s); return [e.arcanePath, e.pathPrompted]; };
   assert.deepEqual(back(older), ['seer', true], 'the book bears witness');
   assert.deepEqual(back({ ...older, spells: [signatureSpell('seer'), signatureSpell('necromancer')] }), [null, false], 'two paths\' spells');
@@ -710,8 +711,8 @@ test('AUDIT SCHOOLS L4 M1 / L5 H3: THE ONE ASK (scenes/shared.js raisePlayerSkil
   assert.equal(asks.length, 2);
   // PIN MOVED (GROWTH4, bible/10-UI/Growth.md section 7): the enhanced skin's box sends the player to the Growth tab; the
   // classic skin's to the skill screen, whose S row opens the same guide
-  assert.deepEqual(asks[1].rows, ['Specialisation', '', '3 specialisations are open to you:', 'Riftwalker, Warden, Necromancer', '', 'See them all and choose one on the Growth tab of the pause menu. The choice cannot be undone.']);
-  assert.equal(AP.pathsOpenRows([AP.PATH_BY_ID.warden]).at(-1), 'Choose one in your skill screen. The choice cannot be undone.', 'the classic skin\'s');
+  assert.deepEqual(asks[1].rows, ['Specialisation', '', '3 specialisations are open to you:', 'Riftwalker, Warden, Necromancer', '', 'See them all and choose one on the Growth tab of the pause menu.', 'Resetting it later costs 200,000 gold.']);   // PIN MOVED (SPEC-RESET; AUDIT SPEC-RESET L4-5: the price a row of its own)
+  assert.equal(AP.pathsOpenRows([AP.PATH_BY_ID.warden]).at(-2), 'Choose one in your skill screen.', 'the classic skin\'s');
   assert.deepEqual([asks[1].okOnly, asks[1].onYes, three.arcanePath ?? null, three.pathPrompted], [true, null, null, true], 'named, none chosen');
   // one box a pass: a mastery waiting is asked first, the path on the next quiet pass
   const busy = mage([RES, MYS], 100);

@@ -28,7 +28,7 @@
 //     is the token's `cl`, which the ladder's health reads - arenaLaw.js ladderVitality); its eight attributes within
 //     MAX_STAT_VALUE (statMods.js, both leveling lanes' cap); its skills within SKILL_HARD_CAP (skillSoftcap.js); and
 //     SCHOOLS5 (bible/06-Systems/Arcane-Specialisations.md section 7) its specialisation, when it carries one - a path the
-//     table holds, both its schools mastered, and no signature spell but its own path's (arcanePaths.js pathFindings).
+//     table holds and both its schools mastered (arcanePaths.js pathFindings - no signature spell is judged).
 //   - EVERY ITEM IT HOLDS (possessedItemLists) - the pack, the wagon, the bag, the furnisher's and the repairer's lists,
 //     what it set out or stored in its own rooms, a rented room's and a deed's chests, a boat's hold, a companion's pack -
 //     through the item law (systems/item/itemLaw.js), and a crafted piece against the service's own `products` (judgeProducts:
@@ -49,7 +49,7 @@ import { possessedItemLists } from '../../src/systems/item/possessedItems.js';  
 import { MAX_STAT_VALUE } from '../../src/systems/statMods.js';
 import { SKILL_HARD_CAP } from '../../src/systems/skillSoftcap.js';
 import { STAT_KEYS_ORDER } from '../../src/systems/statMods.js';
-import { pathFindings } from '../../src/systems/arcanePaths.js';   // SCHOOLS5: a save's specialisation and its signature spells
+import { pathFindings } from '../../src/systems/arcanePaths.js';   // SCHOOLS5: a save's specialisation
 
 /** The judge's version: the item law's, and its own character law beside it. */
 export const JUDGE_VERSION = ITEM_LAW_VERSION;

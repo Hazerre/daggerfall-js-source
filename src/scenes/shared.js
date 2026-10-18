@@ -48,6 +48,7 @@ import { announceSkillRaise, announceMastery, announceSkillMilestone } from '../
 import { masterSkillsBoxDue, setMasterSkills, MASTER_SKILLS_OFFER_ROWS, MASTER_SKILLS_INFO_ROWS, MASTER_SKILLS_DECLINED_TEXT, MASTER_SKILLS_INTRO_ROWS, nextMasteryChoice, masteryChoiceRows, masterSkill } from '../systems/masterSkills.js';   // SOFTCAP3/4
 import { nextPathChoice, pathChoices, pathChoiceRows, pathsOpenRows, choosePath, pathDeclinedText, pathDeclinedGrowthText } from '../systems/arcanePaths.js';   // SCHOOLS1: the specialisation's one ask - GROWTH4: its words, the Growth tab's where it stands
 import { nextMartialChoice, martialChoices, martialChoiceRows, martialOpenRows, chooseMartialPath, martialDeclinedText, martialDeclinedGrowthText } from '../systems/martialPaths.js';   // MARTIAL1: the martial specialisation's one ask
+import { computeEntityMods } from '../systems/entityMods.js';   // AUDIT SPEC-RESET L1-3: a chosen path's stats now, not at the next round
 import { DOOR_SPELL_TEXT, castBySkeletonKey } from '../systems/mysticism.js';   // X1: the door-spell alert lines; D9: Open.CheckCastByItem
 import { raiseSkills } from '../systems/advancement.js';   // AUDIT 23 (entity-1): the rest-end raise
 import { tickPlayerMinutes, runMagicRoundsFor, worldMinutes, skyMinutes, setWorldMinutes, ownMinutes, advanceOwnMinutes, tickInFlight, MINUTES_PER_DAY, CLASSIC_MINUTES_PER_SECOND, sharedClockOn } from '../systems/worldTick.js';
@@ -1541,7 +1542,8 @@ export function raisePlayerSkills(entity, { say = () => {}, onLevelUp = null, ro
   } else {
     // SCHOOLS1 (bible/06-Systems/Arcane-Specialisations.md section 3): THE SPECIALISATION - two schools mastered and no
     // path yet, on a pass that put no other box up (a mastery's own choice comes first): asked ONCE a character,
-    // permanently decided by Yes; No leaves it to the skill screen, which offers every open path.
+    // decided by Yes (given up only for gold - SPEC-RESET, systems/specReset.js); No leaves it to the skill screen, which
+    // offers every open path.
     // AUDIT SCHOOLS L4 M1: ONE path open is asked about (Yes chooses it); SEVERAL are named in an OK box that sends the
     // player to the skill screen, where each is offered - a permanent Yes on whichever stood first in the table was no
     // choice at all
@@ -1552,7 +1554,7 @@ export function raisePlayerSkills(entity, { say = () => {}, onLevelUp = null, ro
       if (open.length > 1) ask(pathsOpenRows(open, { growth: isEnhanced() }), null, null, { okOnly: true });   // GROWTH4: the enhanced skin's guide is the Growth tab's
       else {
         ask(pathChoiceRows(entity, path.id),
-          () => { const r = choosePath(entity, path.id); say(r.text); if (r.ok) audio.playOneShot(SOUND.ArenaFanfareLevelUp, 1); },
+          () => { const r = choosePath(entity, path.id); say(r.text); if (r.ok) { computeEntityMods(entity); audio.playOneShot(SOUND.ArenaFanfareLevelUp, 1); } },
           () => say(isEnhanced() ? pathDeclinedGrowthText() : pathDeclinedText()));
       }
     } else {
@@ -1566,7 +1568,7 @@ export function raisePlayerSkills(entity, { say = () => {}, onLevelUp = null, ro
         if (open.length > 1) ask(martialOpenRows(open, { growth: isEnhanced() }), null, null, { okOnly: true });
         else {
           ask(martialChoiceRows(entity, martial.id),
-            () => { const r = chooseMartialPath(entity, martial.id); say(r.text); if (r.ok) audio.playOneShot(SOUND.ArenaFanfareLevelUp, 1); },
+            () => { const r = chooseMartialPath(entity, martial.id); say(r.text); if (r.ok) { computeEntityMods(entity); audio.playOneShot(SOUND.ArenaFanfareLevelUp, 1); } },
             () => say(isEnhanced() ? martialDeclinedGrowthText() : martialDeclinedText()));
         }
       }

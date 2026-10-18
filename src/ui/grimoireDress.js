@@ -971,6 +971,7 @@ ${G} body .dfgambit .dfgambit-head.dfgambit-won${IN_INK}${NOT_WOOD} { color: #1d
 ${G} body .dfgambit .dfgambit-head.dfgambit-lost${IN_INK}${NOT_WOOD} { color: ${T.red} !important; }
 ${G} body .dfgambit .dfgambit-pip.dfgambit-lit, ${G} body .dfgambit .dfgambit-step i.dfgambit-lit { background: ${T.goldLeaf} !important; }
 ${G} .px-sys .binder-chip.short { color: #ff8a6a !important; outline: 2px solid #ff8a6a; outline-offset: -3px; }
+${G} .px-sys .gr-acts .act:is(:disabled, [disabled]) { color: rgba(43,26,12,0.35) !important; }   /* AUDIT SPEC-RESET L3-6: the guide's refused press faded, as the pack's are - the page press's soft ink read as enabled */
 
 /* WELL - sunk into the board: a dark hollow with the light caught on its far lip */
 ${at(R.well)} { background-color: rgba(22,13,6,0.9); color: ${T.cream};

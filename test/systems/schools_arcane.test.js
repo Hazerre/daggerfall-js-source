@@ -163,11 +163,11 @@ test('SCHOOLS1 THE CHOICE: two mastered schools open their path, three open thre
   assert.equal(AP.nextPathChoice(ask)?.id, 'necromancer');
   ask.pathPrompted = true;
   assert.equal(AP.nextPathChoice(ask), null, 'asked once - the skill screen keeps it');
-  // the box: what it does, that it is permanent
+  // the box: what it does, and what undoing it costs
   const rows = AP.pathChoiceRows(mage([ALT, RES, MYS]), 'necromancer');
   assert.deepEqual(rows, ['Specialise as Necromancer?', 'Restoration and Mysticism', '',
     'Death\'s Due: Each kill restores 5% of your health and 5% of your magicka.',
-    'Siphon Life (signature spell): Heals you for 50% of the damage dealt.', '', 'This decision cannot be undone.',
+    'Siphon Life (signature spell): Heals you for 50% of the damage dealt.', '', 'Resetting it later costs 200,000 gold.',   // PIN MOVED (SPEC-RESET)
     '2 other specialisations are open to you.']);
   assert.equal(AP.pathChoiceRows(mage([ALT, RES, MYS]), 'necromancer', { others: false }).length, 7);
 });
@@ -215,6 +215,7 @@ test('SCHOOLS1 THE SAVE: the path and its one ask round-trip; an id no table hol
   assert.equal(forged.arcanePath, null, 'no such path');
   const old = structuredClone(playerEntity);
   const { arcanePath: _a, pathPrompted: _b, ...before } = snap;
+  before.career = { ...before.career }; delete before.career.arcaneMirror;   // PIN MOVED (AUDIT SPEC-RESET L2-1): a save from before the arc carries no mirror either
   restorePlayer(old, { ...before, spells: [] });   // and no book to bear witness (an older build's save with one: audit_schools)
   assert.equal(old.arcanePath, null, 'a save from before the arc');
   assert.equal(old.pathPrompted, false);

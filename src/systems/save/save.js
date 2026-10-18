@@ -32,7 +32,7 @@ import { getWorldVariationSaveData, restoreWorldVariationData, clearWorldDataVar
 import { snapshotAutomap, restoreAutomap } from '../automap/automap.js';   // A1: dictAutomapDungeonsDiscoveryState rides SaveData_v1
 import { createSceneCache, snapshotSceneCache, restoreSceneCache } from '../sceneCache.js';   // P1
 import { seedCustomSpellIndex } from '../spell/spellMaker.js';   // S1: made spells carry their own record
-import { isPathId, pathWitnessed } from '../arcanePaths.js';   // SCHOOLS1: the specialisation's id, read through its own table
+import { isPathId, pathWitnessed, pathFindings } from '../arcanePaths.js';   // SCHOOLS1: the specialisation's id, read through its own table
 import { isMartialPathId } from '../martialPaths.js';   // MARTIAL1: the martial specialisation's id, read through its own table
 import { seedBundleSeq, effectKindLoaded } from '../effects.js';   // X10: the live-bundle counter's restore half; AUDIT PRE-MERGE 0928 S3: a mod's effect restores only while its mod is loaded
 import { repairLostCurses } from '../curseRepair.js';   // CURSE-REPAIR1: a curse the round clock pruned, given back
@@ -355,9 +355,9 @@ export function snapshotPlayer(entity, { position = null, pose = null, classicMi
   snap.lefayTribute = normalTribute(entity.lefayTribute);   // LEFAY1: the flowers laid at Julian LeFay's monument - how many, and the newest where they lay
   snap.masteredSkills = Array.isArray(entity.masteredSkills) ? [...entity.masteredSkills] : [];   // SOFTCAP4: the permanent 2/2/1 masteries
   snap.masteryPrompted = Array.isArray(entity.masteryPrompted) ? [...entity.masteryPrompted] : [];   // SOFTCAP4: the skills already asked about
-  snap.arcanePath = isPathId(entity.arcanePath) ? entity.arcanePath : null;   // SCHOOLS1: the permanent specialisation (systems/arcanePaths.js)
+  snap.arcanePath = isPathId(entity.arcanePath) ? entity.arcanePath : null;   // SCHOOLS1: the specialisation (systems/arcanePaths.js; given up only by systems/specReset.js)
   snap.pathPrompted = entity.pathPrompted === true;   // SCHOOLS1: the one ask, made
-  snap.martialPath = isMartialPathId(entity.martialPath) ? entity.martialPath : null;   // MARTIAL1: the permanent martial specialisation (systems/martialPaths.js)
+  snap.martialPath = isMartialPathId(entity.martialPath) ? entity.martialPath : null;   // MARTIAL1: the martial specialisation (systems/martialPaths.js; given up only by systems/specReset.js)
   snap.martialPrompted = entity.martialPrompted === true;   // MARTIAL1: its one ask, made
   snap.career = entity.career ? { ...entity.career } : null;   // plain CFG data
   // AUDIT MARTIAL L3 F1: the permanent martial path's MIRROR, in the one record every older build carries whole - an older
@@ -367,6 +367,10 @@ export function snapshotPlayer(entity, { position = null, pose = null, classicMi
   if (snap.career) {
     delete snap.career.martialMirror;
     if (snap.martialPath) snap.career.martialMirror = { path: snap.martialPath, of: snap.characterId };
+    // AUDIT SPEC-RESET L2-1: and the arcane path's, written for none too. The book's witness (restorePlayer) had been the
+    // arcane path's only memory across an older build's carry, and SPEC-RESET leaves a path given up's signature spell in
+    // the book: the carry gave the path back with the 200,000 still spent, or swapped a newer choice for it, free
+    snap.career.arcaneMirror = { path: snap.arcanePath, prompted: snap.pathPrompted, of: snap.characterId };
   }
   snap.items = (entity.items ?? []).map((it) => ({ ...it }));
   // E4: `data.playerEntity.goldPieces = entity.GoldPieces`
@@ -830,9 +834,16 @@ export function restorePlayer(entity, snap, spellsByIndex = null) {
   // career's mirror bears witness to the choice that build dropped, already asked
   const mirror = snap.career?.martialMirror;
   if (snap.martialPath === undefined && isMartialPathId(mirror?.path) && mirror.of === snap.characterId) { entity.martialPath = mirror.path; entity.martialPrompted = true; }
+  // AUDIT SPEC-RESET L2-1: the arcane mirror says the choice an older build dropped - a path the judge holds lawful (both
+  // its schools mastered, pathFindings), or none - and the book's witness (below, once the spellbook is back) is read only
+  // for a save that carries no such mirror
+  const arcMirror = snap.career?.arcaneMirror;
+  const arcMirrored = snap.arcanePath === undefined && arcMirror?.of === snap.characterId
+    && (arcMirror.path === null || (isPathId(arcMirror.path) && !pathFindings({ arcanePath: arcMirror.path, masteredSkills: snap.masteredSkills }).length));
+  if (arcMirrored) { entity.arcanePath = arcMirror.path; entity.pathPrompted = arcMirror.prompted === true; }
   entity._mentor = null;   // SOFTCAP1: recomputed by the party frame, never restored
   entity.career = snap.career ? { ...snap.career } : entity.career;
-  if (snap.career) delete entity.career.martialMirror;   // AUDIT MARTIAL L3 F1: the mirror is the save's, never the live career's
+  if (snap.career) { delete entity.career.martialMirror; delete entity.career.arcaneMirror; }   // AUDIT MARTIAL L3 F1: a mirror is the save's, never the live career's
   entity.items = snap.items.map((it) => setItemFields(it));   // JAN1: SetItem's two writes on every item in (a copy, as before)
   entity.wagonItems = (snap.wagonItems ?? []).map((it) => setItemFields(it));   // W-slice (pre-W saves restore empty); JAN1: set on the way in
   entity.bagItems = (snap.bagItems ?? []).map((it) => setItemFields(it));   // BAG1: a save written before holds none
@@ -1121,7 +1132,7 @@ export function restorePlayer(entity, snap, spellsByIndex = null) {
   seedCustomSpellIndex(entity.spells);
   // AUDIT SCHOOLS L3 F2: a save an OLDER BUILD carried has no `arcanePath` key at all (a newer one writes null for none)
   // and keeps its signature spell whole - the book bears witness to the permanent choice that build dropped
-  if (snap.arcanePath === undefined && !entity.arcanePath) {
+  if (snap.arcanePath === undefined && !arcMirrored && !entity.arcanePath) {
     const witnessed = pathWitnessed(entity.spells, entity.masteredSkills);
     if (witnessed) { entity.arcanePath = witnessed; entity.pathPrompted = true; }
   }

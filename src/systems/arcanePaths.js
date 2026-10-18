@@ -14,13 +14,14 @@
 //   - every NUMBER a path's passive and rider names (`PATH_NUMBERS`) - the one home the words print and
 //     arcanePowers.js does, so a balance pass moves one number;
 //   - WHO may choose (`pathChoices`: Master Skills in force, two or more schools mastered, no path yet) and the choice
-//     (`choosePath`: PERMANENT - nothing here undoes it, as nothing undoes a mastery);
+//     (`choosePath`: undone only by SPEC-RESET's paid reset, systems/specReset.js - nothing here undoes it);
 //   - when a path ACTS (`pathAwake`: my own entity, Master Skills in force, both its schools mastered, not mentoring -
 //     and the powers add the refereed fight's word, sigil.js sigilDueling, the one every loot and set power sleeps on:
 //     importing it here would hang the price's graph on sigil.js's, which reaches back into spellcost.js);
 //   - THE SCHOOLS A SIGNATURE SPELL IS CAST IN (`pathCastSchool`): its path's two, so a Necromancer's Siphon Life is
 //     priced, taught and strengthened by Restoration and Mysticism, never by a Destruction they did not choose;
-//   - the judge's finding (`pathFindings`): a path whose schools are not both mastered, or another path's spell.
+//   - the judge's finding (`pathFindings`): a path no table holds, or whose schools are not both mastered (no signature
+//     spell is judged - AUDIT SCHOOLS L3 F2).
 //
 // Everything a player reads is `t()`, read when it is read - the signature spell's name too: it is minted into the record
 // in the buyer's language (a record's name is a label, as a made spell's is; a signature spell is known by its `path`
@@ -51,6 +52,11 @@ const HEAL_HEALTH = (...p) => slot(10, 8, ...p);
  *  ceiling (spellMaker.js READY_MADE_INDEX_CEILING - a made spell is never minted or seeded there). PERSISTED DATA: a
  *  bought copy carries its index, so the band never moves (pinned literal, -46101..-46115). */
 export const SIGNATURE_INDEX_BASE = -46100;
+
+/** SPEC-RESET (bible/10-UI/Growth.md section 10): the gold that gives up one family's path - an arcane one or a martial
+ *  one (systems/specReset.js pays it). Its home is here, where the Worker-bundled laws' choice boxes can name it:
+ *  specReset.js reaches court.js, which the Worker must never bundle. */
+export const SPEC_RESET_GOLD = 200000;
 
 /**
  * THE NUMBERS every passive and rider names - the design page's table, section 5. A share is a fraction, a `pct` a
@@ -301,7 +307,7 @@ export function pathRefusal(entity, id) {
   return null;
 }
 
-/** Choose it - PERMANENT. Returns { ok, text }. */
+/** Choose it - for good, short of the paid reset (specReset.js). Returns { ok, text }. */
 export function choosePath(entity, id) {
   const why = pathRefusal(entity, id);
   if (why) return { ok: false, text: why };
@@ -342,7 +348,7 @@ export function pathChoiceRows(entity, id, { others = true } = {}) {
     '',
     ...pathPowerRows(p),
     '',
-    t('schools.choice.final', 'This decision cannot be undone.'),
+    t('schools.choice.reset', 'Resetting it later costs {gold, number} gold.', { gold: SPEC_RESET_GOLD }),
     ...(more > 0 ? [t('schools.choice.others', '{n, plural, one {# other specialisation is open to you.} other {# other specialisations are open to you.}}', { n: more })] : []),
   ];
 }
@@ -356,8 +362,11 @@ export function pathsOpenRows(open, { growth = false } = {}) {
     t('schools.open.count', '{n, plural, one {# specialisation is open to you:} other {# specialisations are open to you:}}', { n: open.length }),
     open.map((p) => p.name).join(', '),
     '',
-    growth ? t('schools.open.whereGrowth', 'See them all and choose one on the Growth tab of the pause menu. The choice cannot be undone.')
-      : t('schools.open.where', 'Choose one in your skill screen. The choice cannot be undone.'),
+    growth ? t('schools.open.whereGrowth', 'See them all and choose one on the Growth tab of the pause menu.')
+      : t('schools.open.where', 'Choose one in your skill screen.'),
+    // AUDIT SPEC-RESET L4-5: the price a row of its own - in the classic parchment box (288 px) one sentence more wrapped
+    // a lone word onto a line of its own in six languages
+    t('schools.choice.reset', 'Resetting it later costs {gold, number} gold.', { gold: SPEC_RESET_GOLD }),
   ];
 }
 

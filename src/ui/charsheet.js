@@ -59,6 +59,7 @@ import { YesNoBoxWindow } from './yesNoBox.js';   // SOFTCAP3: the Master Skills
 import { masterSkillsActive, masterSkillsSwitchable, masterSkillsBlockReason, masterSkillsStatusText, setMasterSkills, MASTER_SKILLS_OFFER_ROWS, MASTER_SKILLS_INFO_ROWS, MASTERY_GROUP_NAMES, masterySlots, masteryCandidates, masteryChoiceRows, masterSkill, isMasteredSkill, careerGroupOf } from '../systems/masterSkills.js';   // SOFTCAP3/4
 import { pathOf, pathChoices, pathChoiceRows, pathAboutRows, choosePath, pathPossible } from '../systems/arcanePaths.js';   // SCHOOLS1: the specialisation row
 import { martialPathOf, martialChoices, martialChoiceRows, martialAboutRows, chooseMartialPath, martialPossible } from '../systems/martialPaths.js';   // MARTIAL1: and the martial one
+import { computeEntityMods } from '../systems/entityMods.js';   // AUDIT SPEC-RESET L1-3: a chosen path's stats now, not at the next round
 import { liveRaceTemplate, liveRaceName } from '../systems/vampirism.js';   // DISC10-D V5: the live race the sheet names
 /** AUDIT LIVED1 Q: the sheet's due column online - "in 359 days" / "due now"; null offline, where DFU's date stands. */
 const loanDueShort = (due) => { const s = ownTimeLeftShort(due); return s == null ? null : s === 'now' ? 'due now' : `in ${s}`; };
@@ -918,7 +919,8 @@ export class CharSheet {
 
   /** MARTIAL1 (bible/05-Combat/Martial-Specialisations.md section 3): the Martial row, classic face - the Specialisation
    *  row's own law. A path chosen: DFU's OK box says what it does. None yet: each open path is asked about in DFU's Yes/No
-   *  box - PERMANENT on Yes; No, then W, offers the next (the plate stays behind the box, AUDIT SCHOOLS L4 H1). */
+   *  box - chosen on Yes (given up only by SPEC-RESET); No, then W, offers the next (the plate stays behind the box, AUDIT
+   *  SCHOOLS L4 H1). */
   _martialPrompt() {
     if (this._growth('specs:martial')) return;   // GROWTH4: the guide, where it opens
     const e = this.entity;
@@ -930,13 +932,13 @@ export class CharSheet {
     const more = pool.length > 1 ? ['', t('martial.sheet.next', '{n, plural, one {# martial specialisation is open - No, then W, for the next.} other {# martial specialisations are open - No, then W, for the next.}}', { n: pool.length })] : [];
     this.child = new YesNoBoxWindow({
       rows: [...martialChoiceRows(e, p.id, { others: false }), ...more],
-      onYes: () => { const r = chooseMartialPath(e, p.id); this.notice = r.text; this.noticeOk = r.ok; },
+      onYes: () => { const r = chooseMartialPath(e, p.id); if (r.ok) computeEntityMods(e); this.notice = r.text; this.noticeOk = r.ok; },
     });
   }
 
   /** SCHOOLS1 (bible/06-Systems/Arcane-Specialisations.md section 3): the Specialisation row, classic face. A path chosen:
-   *  DFU's OK box says what it does. None yet: each open path is asked about in DFU's Yes/No box - PERMANENT on Yes; No,
-   *  then S, offers the next. */
+   *  DFU's OK box says what it does. None yet: each open path is asked about in DFU's Yes/No box - chosen on Yes (given
+   *  up only by SPEC-RESET); No, then S, offers the next. */
   _pathPrompt() {
     if (this._growth('specs:arcane')) return;   // GROWTH4: the guide, where it opens
     const e = this.entity;
@@ -949,7 +951,7 @@ export class CharSheet {
     const more = pool.length > 1 ? ['', t('schools.sheet.next', '{n, plural, one {# specialisation is open - No, then S, for the next.} other {# specialisations are open - No, then S, for the next.}}', { n: pool.length })] : [];
     this.child = new YesNoBoxWindow({
       rows: [...pathChoiceRows(e, p.id, { others: false }), ...more],
-      onYes: () => { const r = choosePath(e, p.id); this.notice = r.text; this.noticeOk = r.ok; },
+      onYes: () => { const r = choosePath(e, p.id); if (r.ok) computeEntityMods(e); this.notice = r.text; this.noticeOk = r.ok; },
     });
   }
 

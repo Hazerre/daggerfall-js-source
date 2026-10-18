@@ -109,7 +109,7 @@ spell, the martial law's weapons and technique, one shape). Pure model (`specGui
 
 - **A path's state, on THIS character** (`SPEC_STATES`): **Chosen**; **Available** (both mastered - Choose stands);
   **Needs mastering** (both at 100, a Master Skills press away); **Within reach** (both still masterable); **Closed**
-  (the family's other path held - one of each, for good); **No slots left** (the mastery slots left cannot hold the
+  (the family's other path held - one of each; its line points to the held path's Reset - and only where a reset could open it: section 10); **No slots left** (the mastery slots left cannot hold the
   pair: a group the player's own masteries filled, or two skills of one group with one slot left - Master Skills'
   own count, `masterSkills.js:"export function masterableCount(entity, ids) {"`, as `pathPossible` and `martialPossible`
   count the family - AUDIT GROWTH LANE1-1, LANE1-4); **Not for your class** (a skill the career cannot master). In that
@@ -130,7 +130,8 @@ spell, the martial law's weapons and technique, one shape). Pure model (`specGui
   and the temples' - and cast; or the Weapon Technique key while fighting with one of its two skills, a weapon's own
   technique first only while the loot ladder is on - `combat/techniques.js` techniqueInHand; LANE1-11).
 - **Choose** asks in the law's own box (`pathChoiceRows` / `martialChoiceRows`) and commits through the law
-  (`choosePath` / `chooseMartialPath`) - permanent, as before; the page writes nothing itself.
+  (`choosePath` / `chooseMartialPath`) - permanent but for SPEC-RESET's paid reset (section 10); the page writes nothing
+  itself.
 - **The page:** the two families as a switch, each with its count of open paths (it starts on a landing's family, else
   the one with a path open, else the one held, else the one the class can meet - `firstFamily`, LANE1-9); the family's
   line (`familyLine`: the path held, the paths open, how one opens, or why none can - the class, or the slots its
@@ -194,7 +195,8 @@ pane (`drawStage`: the key changes, the last face is dropped; the same key, the 
   mid-spend stays owed: the Ascension's Escape is the window's; the points placed are placed again, and the page says so.
 - **The guide's Yes/No card** answers its own keys while it stands - its Escape is its No, the window's back stack
   stands down - and goes with the window (LANE3-9: Escape closed the card and the window; F5 left it over the running
-  game, its Y still choosing a permanent path).
+  game, its Y still choosing a permanent path). Since AUDIT SPEC-RESET L3-3/L3-4 it is modal to the keys and the reader
+  too (named by its rows, the window under it inert, the focus on No and back to its opener) and answered once.
 
 ## 7. GROWTH4 - the classic skin and the words
 
@@ -274,3 +276,73 @@ shows three pages. No host grew (HOST-SPLIT): world.js's line is one entry of th
   screen and a phone with no page error and no sideways scroll, the faces in the pane at the stage's size, the phone's
   doors, full screen and back, and the Escape held by unaccepted stars; since AUDIT GROWTH the Level page's door at
   1280x720 and the Ascension whole in the pane at 1920x1080 (33 of 33).
+
+## 10. SPEC-RESET - a specialisation given up, for gold
+
+The owner, 2026-10-18: *"Lets allow players to reset their ingame builds for a high cost."* Two questions were put,
+and the owner chose:
+
+- **What resets:** *the specialisations* - an arcane path and a martial path, each on its own. Of the rest of a build,
+  the Firmament already had its respec (10,000 gold, `06-Systems/Firmament.md`), the captain's stars and a sworn
+  revenant's are free to take back, and a mastery and an Ascend's points stay permanent (a save records no level's
+  share of an attribute, so an Ascend has nothing honest to give back).
+- **The price:** *200k* - `SPEC_RESET_GOLD`, 200,000 gold a family whatever the level, twenty times the Firmament's.
+
+**DFU has none of it** - no specialisation to give up (`06-Systems/Arcane-Specialisations.md` section 9). Port-only.
+Audited the same day: `01-Overview/audits/Audit-Spec-Reset.md` (AUDIT SPEC-RESET); what it changed is written below.
+
+- **The law** (`systems/specReset.js`): `specResetRefusal` - no such family, no path held, or too little gold;
+  `resetSpec` pays and clears the family's field (`arcanePath`, `martialPath`). **What pays** is what pays the
+  Firmament's respec (AUDIT SPEC-RESET L1-1: 200,000 coins weigh 500 kg, so no purse carries them): the coins, else the
+  letters of credit and then the coins (`court.js` deductGold - PlayerEntity.DeductGoldAmount's order), and online what
+  is still owed off the Empire's account (`court.js` payUndoable; `realmGoldLaw.js` accountOfSave - EMPIRE-ACCOUNT, one
+  account for every region; a loan is no gold). Offline an account is its region's and the pause window stands in
+  none, so coins and letters pay (GetGoldAmount, what a shop or a trainer asks) and the refusal says so ("paid in coins
+  or letters of credit"). The reset also marks the family's one ask made (`pathPrompted`, `martialPrompted` - L1-2: a
+  path chosen on the guide had never set it, and the next quiet pass offered back the path just paid away) and folds
+  the entity's mods at once (L1-3: a passive's stats outlived it until the next magic round; every Choose folds too -
+  the guide's, the one ask's Yes, the classic sheet's). Nothing else moves: the other family, the masteries, and the
+  spellbook - a signature spell whose path is not held is the plain bundle the spell maker could make (`arcanePaths.js`
+  pathCastSchool), and the judge reads no signature spell. The price's home is `arcanePaths.js` (`SPEC_RESET_GOLD`),
+  where both laws' choice boxes name it: `specReset.js` reaches `court.js`, which the account Worker that bundles
+  `arcanePaths.js` must never import.
+- **Online** the path is the save's alone - no service holds it, and the judge's `pathFindings` asks only that a path
+  held has both schools mastered - so the purse, the account and the path move in one save, together, as a trainer's
+  fee and its skill do; a lost write, a closed tab or a seat taken back reverts both (AUDIT SPEC-RESET L2 drove each).
+  A reset path saves as `null` and loads as none - and stays none across an older build's carry: the career carries an
+  **arcane mirror** (`career.arcaneMirror`, the path or none, written on every save, AUDIT SPEC-RESET L2-1), read for a
+  save with no `arcanePath` key before the book is - the book's witness (AUDIT SCHOOLS L3 F2) had handed a reset path
+  back with its 200,000 still spent, or swapped a newer choice for it, free. A mirror another character wrote (an
+  heir's inherited career), or whose path its schools no longer back, is no mirror; the martial mirror is written only
+  for a path held (`save.js`).
+- **The guide's Reset** (`ui/growth/specGuide.js` resetModel): under the chosen path's detail, "Reset · 200,000 gold".
+  It asks first in the window's Yes/No card - the price; what goes (the passive and the signature technique; for a
+  spell, that a bought one stays in the book as an ordinary spell, or that an unbought one is no longer sold - L1-5);
+  that the masteries stay; the paths open after the reset (the held one among them, its pair still mastered), and
+  whether more are within reach - or, with Master Skills off, that it must be on to choose again. Short of the gold the
+  press stands disabled and its line says why. **A reset that would buy back the same path is refused**: where no other
+  path of the family is open or within reach (no other of its skills can still be mastered - not a career skill, or no
+  slot left for it), the line says so (`afterReset` - the list's own states, read on a view of the entity with nothing
+  held, never a write) - first, whatever the gold (AUDIT SPEC-RESET L3-1: the gold line hid it until the player held
+  200,000). Yes resets and the note says so ("Warden is reset."); with Master Skills on the family's paths
+  stand open again and the rail counts the choice waiting, the guide being where it is made. A closed path's line points
+  to the Reset - and only a path a reset could open is Closed: one the class can never master, or whose slots are
+  spent, says so whatever is held (L3-1). The note is a status line brought into view and focused (L3-2: the pane kept
+  its scroll and the answer stood above it, a Choose's too); the refused press's reason is read with it (L3-5) and the
+  Grimoire fades it (L3-6); its "·" never starts a line (L3-7). The window's Yes/No card is modal to the keys and the
+  reader - named by its rows, the window under it inert, the focus on No and given back to its opener - and answered
+  once, a held key's repeat answering nothing (L3-3, L3-4: Space walked the window under it, and Y paid a reset over
+  the Quests tab).
+- **The words** that said a choice could not be undone now name the price: the choice boxes (`schools.choice.reset`,
+  `martial.choice.reset`), the several-open boxes - the price a row of its own there (L4-5: in the classic parchment
+  box one sentence more wrapped a lone word onto a line in six languages) - and the guide's lead. Every word through
+  the text core, drafted in-session into the thirteen whole languages.
+- **The four hosts:** the guide is the pause window's, which `scenes/exterior.js`, `scenes/world.js`,
+  `scenes/worldModes.js` and `scenes/dungeonContext.js` all open through the same doors (section 8) - none wired, none
+  grew. The classic skin reaches it through the sheet's S and W rows (section 7).
+- **Pins:** `test/ui/growth/specreset.test.js` (10): the price and the boxes' words; the law paid in coins, then in a
+  letter and coins, the other family, the masteries and the book untouched; the refusals with nothing moved; the save;
+  the guide's model (its ask, the paths open after, the only-path guard, Master Skills off); the press driven in the
+  pause window; and the audit's four (the Empire's account, the one ask, the mods, an older build's carry), with L5's gaps closed in them (the martial half whole, the 'ready' arm, the refusals' order, the lead's price, a new visit's note) and L3's fixes driven (the card modal and answered once, the note's status and focus, the reason read, the Closed states). Mutants:
+  `tools/mutants/specreset.json` (72: 71 dead, judged serially, and one equivalent as recorded - AUDIT SPEC-RESET L5-8). Pins moved to the new words: `growth1_tab`, `schools_arcane`,
+  `martial_paths`, `audit_schools`.

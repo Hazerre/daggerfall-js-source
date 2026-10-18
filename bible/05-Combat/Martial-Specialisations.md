@@ -67,8 +67,8 @@ nothing a player could see. That is where the identity goes.
   skills - one minor slot between them - showed the card for good; the arcane `pathPossible` the same, and both now read
   the slots - and the guide counts each path's pair the same way (AUDIT GROWTH LANE1-1).
 - **The choice.** Any pair of the player's mastered weapon skills names one path (section 5); with three mastered, the
-  player picks among their pairs. `entity.martialPath` holds the path's id. **PERMANENT** - nothing undoes it, as nothing
-  undoes a mastery. Asked ONCE on the first quiet pass after the second weapon is mastered (`scenes/shared.js`
+  player picks among their pairs. `entity.martialPath` holds the path's id. **Held until given up for 200,000 gold**
+  (SPEC-RESET, `10-UI/Growth.md` section 10) - nothing else undoes it; a mastery is never undone. Asked ONCE on the first quiet pass after the second weapon is mastered (`scenes/shared.js`
   raisePlayerSkills - after a mastery's own box and after the arcane path's ask, one box a pass; one path open is asked
   about, several are named and sent to the skill screen - AUDIT SCHOOLS L4 M1's law). The box asks "Martial
   specialisation: {name}?" - never the arcane ask's own "Specialise as {name}?" (AUDIT MARTIAL L4 L4: a spellsword
@@ -249,7 +249,8 @@ nothing), read back, already asked, only from a save with no `martialPath` key a
 ## 9. Departures, and what is recorded rather than built
 
 - **Port-only, all of it.** Daggerfall has no specialisation and no weapon perk past 100; Port-Ledger A records the arc.
-- **No respecialisation** - permanent, as a mastery and an arcane path are.
+- **A respecialisation costs 200,000 gold**, as an arcane path's does (SPEC-RESET, `10-UI/Growth.md` section 10); a
+  mastery is still permanent.
 - **Offline the weapons past 100 stay Daggerfall's** (section 4); the paths themselves work offline with the switch on.
 - **The Short Blade's pace meets the swing law's floor** at the top of Speed: a dagger at Speed 100 swings at 0.107 s a
   frame, and the floor is 0.09 - x1.19 there, x1.4 at Speed 87 and below. The floor is SWING-LAW's ("swing speed is
