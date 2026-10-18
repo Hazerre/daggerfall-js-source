@@ -56,9 +56,9 @@ export function createPingLabels() {
           root.appendChild(node);
           nodes.set(r.id, node);
         }
-        const author = node.querySelector('[data-role="author"]');
-        const pin = node.querySelector('[data-role="pin"]');
-        const under = node.querySelector('[data-role="under"]');
+        const author = /** @type {HTMLElement|null} */ (node.querySelector('[data-role="author"]'));
+        const pin = /** @type {HTMLElement|null} */ (node.querySelector('[data-role="pin"]'));
+        const under = /** @type {HTMLElement|null} */ (node.querySelector('[data-role="under"]'));
         if (author) {
           author.textContent = r.author || '';
           author.style.color = r.color;

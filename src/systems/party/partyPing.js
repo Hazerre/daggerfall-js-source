@@ -1,5 +1,6 @@
 // @ts-check
 import { groundHit } from '../../player/travelPick.js';
+import { staticBuildingsHasHit } from '../../world/staticBuildings.js';
 // PARTY-PING: a look's point, said to the party and drawn for a moment.
 // Not a DFU member. The middle button is DFU's AutoRun (InputManager.cs:995);
 // the port's default gives that button to the ping and moves auto-run to F3
@@ -68,6 +69,29 @@ export function groundAim(eye, dir, ground, reach = PING_GROUND_M) {
     maxDist: reach, stepMin: far ? 2 : 0.4, stepShare: far ? 0.004 : 0.01, refine: 12,
   });
   return hit.point && hit.dist <= reach ? hit.point : null;
+}
+
+/**
+ * Where a look meets a building, or a city gate. A tree or a rock is the
+ * same collider and is not a hit: only a point inside a static building's
+ * box, or a gate's own bucket, stops the look. Null when the look meets
+ * neither before `reach`.
+ * @param {ArrayLike<number>} eye
+ * @param {ArrayLike<number>} dir
+ * @param {{ raycastHit?: (o: ArrayLike<number>, d: ArrayLike<number>, m: number) => { dist: number, key?: string|null } }|null} col
+ * @param {ReadonlyArray<{ aabb: { min: number[], max: number[] } }>|null} buildings
+ */
+export function buildingStop(eye, dir, col, buildings, reach = PING_GROUND_M) {
+  if (!eye || !dir || !col?.raycastHit) return null;
+  const len = Math.hypot(dir[0], dir[1], dir[2]);
+  if (!(len > 1e-8) || !(reach > 0)) return null;
+  const u = [dir[0] / len, dir[1] / len, dir[2] / len];
+  const hit = col.raycastHit(eye, u, reach);
+  if (!hit || !Number.isFinite(hit.dist) || hit.dist < 0.15 || hit.dist > reach) return null;
+  const at = [eye[0] + u[0] * hit.dist, eye[1] + u[1] * hit.dist, eye[2] + u[2] * hit.dist];
+  const gate = typeof hit.key === 'string' && hit.key.startsWith('gate:');
+  if (!gate && !staticBuildingsHasHit(buildings ?? [], at)) return null;
+  return { dist: hit.dist };
 }
 
 /**

@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   PING_MARK_MS, PING_PATH_MS, PING_IN_MS, PING_OUT_MS, PING_REACH_M,
-  aimPoint, fadeAlpha, settleAim, groundRoute, groundAim, markUnderLook, pathRibbon, placeKeyOf,
+  aimPoint, fadeAlpha, settleAim, groundRoute, groundAim, markUnderLook, pathRibbon, placeKeyOf, buildingStop,
 } from '../../../src/systems/party/partyPing.js';
 import { pingDistanceText } from '../../../src/render/partyPingLabels.js';
 import { pingSubject } from '../../../src/systems/party/partyPingCaption.js';
@@ -71,6 +71,15 @@ test('PARTY-PING: a look names a point within reach, and the floor route is dash
     look: { targets: [{ key: 'search:2', aabb: { min: [-1, 0, 3], max: [1, 2, 4] }, distance: 30, reach: 30 }], name: () => 'Shelf' },
   });
   assert.equal(board?.name, 'Shelf');
+  const who = pingSubject([0, 1, 0], [0, 0, 1], {
+    collider: { raycast: () => Infinity },
+    crowd: [{ name: 'Mara', dist: 6 }, { name: 'Bran', dist: 9 }],
+  });
+  assert.equal(who?.name, 'Mara', 'the nearer person is the one named');
+  const house = { aabb: { min: [-2, 0, 5], max: [2, 8, 9] } };
+  const stopped = buildingStop([0, 2, 0], [0, 0, 1], { raycastHit: () => ({ dist: 6, key: '12,4' }) }, [house], 80);
+  assert.ok(stopped && Math.abs(stopped.dist - 6) < 0.01, 'a building stops the look');
+  assert.equal(buildingStop([0, 2, 0], [0, 0, 1], { raycastHit: () => ({ dist: 6, key: '12,4' }) }, [{ aabb: { min: [20, 0, 20], max: [22, 4, 22] } }], 80), null, 'a rock, which is not a building, does not');
 });
 
 test('PARTY-PING: a place key is the dungeon, the building or the open air', () => {
@@ -86,7 +95,7 @@ test('PARTY-PING: a place key is the dungeon, the building or the open air', () 
 });
 
 /** A host over a look that hits `dist` metres out, in `place`. */
-function pingHost({ place = { k: 'w', space: 'world' }, mesh = null, route = null, ground = null, clear = null, subject = null } = {}) {
+function pingHost({ place = { k: 'w', space: 'world' }, mesh = null, route = null, ground = null, clear = null, subject = null, buildings = null } = {}) {
   let now = 5000;
   let press = false;
   let blocked = false;
@@ -109,6 +118,7 @@ function pingHost({ place = { k: 'w', space: 'world' }, mesh = null, route = nul
     ground,
     clear,
     subject: () => subject,
+    buildings: () => buildings,
     route: (chf, from, to) => { routed += 1; return route ? route(chf, from, to) : [[...from], [...to]]; },
   });
   return {
@@ -211,6 +221,20 @@ test('PARTY-PING: a route is laid by following a mate, and lifting it leaves the
   w.h.frame({ eye: [0, 2, 0], dir: [0, -1, 3] });
   assert.equal(w.h.line(), false, 'my own point on open ground lays no route');
   assert.ok(w.h.poseField().pg && w.h.poseField().pg.z > 2, 'the point meets the ground, not the air');
+  const front = pingHost({
+    place: { k: 'w:3.4', space: 'world' }, ground: () => 0,
+    buildings: [{ aabb: { min: [-4, 0, 3], max: [4, 8, 10] } }],
+    subject: { name: 'Door', dist: 6 },
+  });
+  front.hit(5.6);
+  front.tap();
+  front.h.frame({ eye: [0, 2, 0], dir: [0, -0.02, 1] });
+  assert.equal(front.h.poseField().pg.n, 'Door', 'a door in front of its building is named');
+  assert.ok(front.h.poseField().pg.z < 12, 'the mark stands on the door, not the ground beyond the house');
+  const folk = pingHost({ place: { k: 'w:3.4', space: 'world' }, ground: () => 0, subject: { name: 'Mara', dist: 7 } });
+  folk.tap();
+  folk.h.frame({ eye: [0, 2, 0], dir: [0, -0.02, 1] });
+  assert.equal(folk.h.poseField().pg.n, 'Mara', 'a person under the look is named');
   w.h.hear('mate', { pg: { k: 'w:3.4', x: 0, y: 0, z: 8, at: w.now } });
   w.at(w.now + 400);
   w.tap();

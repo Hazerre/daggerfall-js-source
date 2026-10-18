@@ -10,7 +10,7 @@ import { createPingLabels, pingDistanceText } from '../render/partyPingLabels.js
 import {
   PING_MARK_MS, PING_PATH_MS, PING_OUT_MS, PING_REACH_M, PING_GROUND_M, PING_COOLDOWN_MS, PING_ARRIVE_M,
   PING_WALL_NY, PING_WALL_BACK, PING_COLOR_MINE, PING_COLOR_MATE,
-  aimPoint, placeOk, placeKeyOf, fadeAlpha, settleAim, groundAim, groundRoute, markUnderLook,
+  aimPoint, placeOk, placeKeyOf, fadeAlpha, settleAim, groundAim, groundRoute, markUnderLook, buildingStop,
 } from '../systems/party/partyPing.js';
 
 /** Unlocked action doors, left out of the soup the way the dungeon's bake leaves them
@@ -45,7 +45,7 @@ function kneeClear(col, a, b) {
  *   blocked: () => boolean,
  *   mode: () => string,
  *   place: () => { k: string, space: string }|null,
- *   collider: () => { raycastHit?: (o: ArrayLike<number>, d: ArrayLike<number>, m: number) => { dist: number } }|null,
+ *   collider: () => { raycastHit?: (o: ArrayLike<number>, d: ArrayLike<number>, m: number) => { dist: number, key?: string|null, normal?: number[] }, surfaceHit?: (o: ArrayLike<number>, d: ArrayLike<number>, m: number) => { dist: number, key?: string|null, normal?: number[] }, raycast?: (o: ArrayLike<number>, d: ArrayLike<number>, m: number) => number }|null,
  *   feet: () => ArrayLike<number>|null,
  *   toWire: (p: number[], space: string) => { x: number, y: number, z: number },
  *   fromWire: (pg: { x: number, y: number, z: number }, space: string) => number[],
@@ -56,6 +56,7 @@ function kneeClear(col, a, b) {
  *   clear?: (a: number[], b: number[]) => boolean,
  *   route?: (chf: object, from: ArrayLike<number>, to: number[]) => number[][]|null,
  *   subject?: (eye: ArrayLike<number>, dir: ArrayLike<number>, reach: number) => { name?: string, elite?: boolean, dist: number }|null,
+ *   buildings?: () => ReadonlyArray<{ aabb: { min: number[], max: number[] } }>|null,
  *   project?: (p: number[]) => { x: number, y: number, front: boolean }|null,
  *   travel?: () => boolean,
  *   author?: () => string,
@@ -63,12 +64,15 @@ function kneeClear(col, a, b) {
  * }} deps
  */
 export function createPartyPingHost(deps) {
-  /** @type {{ id: string, at: number[], born: number, lifeUntil: number, markUntil: number, pathUntil: number, color: readonly number[], k: string, space: string, hold: boolean, mine: boolean, acct: string|null, name: string, elite: boolean }[]} */
+  /**
+   * @typedef {{ id: string, at: number[], wire?: { x: number, y: number, z: number }, born: number, lifeUntil: number, markUntil: number, pathUntil: number, color: readonly number[], k: string, space: string, hold: boolean, mine: boolean, acct: string|null, name: string, elite: boolean }} PingMark
+   */
+  /** @type {PingMark[]} */
   const marks = [];
   /** @type {Map<string, number>} */
   const heard = new Map();
   let lastCast = -1e9;
-  /** @type {{ k: string, x: number, y: number, z: number, at: number }|null} */
+  /** @type {{ k: string, x: number, y: number, z: number, at: number, n?: string, e?: number }|null} */
   let pg = null;
   let pgUntil = 0;
   let unsent = false;
@@ -81,7 +85,7 @@ export function createPartyPingHost(deps) {
   let pathFrom = null;
   /** @type {object|null} */
   let pathGoal = null;
-  /** @type {object|null} */
+  /** @type {PingMark|null} */
   let follow = null;
   /** @type {ArrayLike<number>|null} */
   let lookEye = null;
@@ -211,7 +215,7 @@ export function createPartyPingHost(deps) {
   };
 
   /** A look: follow a mate's mark under it, or name a point of my own. */
-  const cast = ({ eye, dir, reach }) => {
+  const cast = ({ eye, dir, reach = undefined }) => {
     const now = deps.now();
     const place = deps.place();
     if (deps.blocked() || !place || !eye || !dir || now - lastCast < PING_COOLDOWN_MS) return false;
@@ -232,8 +236,12 @@ export function createPartyPingHost(deps) {
     if (place.space === 'world' && typeof deps.ground === 'function') {
       const g = groundAim(eye, dir, deps.ground, cap);
       const gDist = g ? Math.hypot(g[0] - eye[0], g[1] - eye[1], g[2] - eye[2]) : Infinity;
-      if (sub && Number.isFinite(sub.dist) && sub.dist + 0.4 < gDist) {
+      const shell = buildingStop(eye, dir, deps.collider(), deps.buildings?.() ?? null, cap);
+      const limit = Math.min(gDist, shell?.dist ?? Infinity);
+      if (sub && Number.isFinite(sub.dist) && sub.dist <= limit + 0.75) {
         at = aimPoint(eye, dir, sub.dist, cap); name = sub.name || ''; elite = !!sub.elite;
+      } else if (shell && shell.dist < gDist) {
+        at = aimPoint(eye, dir, Math.max(0.2, shell.dist - 0.35), cap);
       } else at = g;
     } else {
       const col = deps.collider();
@@ -390,7 +398,8 @@ export function createPartyPingHost(deps) {
  *   sound: () => void, navMesh?: () => object|null, actions?: () => object|null,
  *   ground?: (x: number, z: number) => number,
  *   route?: (chf: object, from: ArrayLike<number>, to: number[]) => number[][]|null,
- *   subject?: (eye: ArrayLike<number>, dir: ArrayLike<number>, reach: number) => object|null,
+ *   subject?: (eye: ArrayLike<number>, dir: ArrayLike<number>, reach: number) => { name?: string, elite?: boolean, dist: number }|null,
+ *   buildings?: () => ReadonlyArray<{ aabb: { min: number[], max: number[] } }>|null,
  *   project?: (p: number[]) => { x: number, y: number, front: boolean }|null,
  *   travel?: () => boolean,
  *   author?: () => string,
@@ -414,6 +423,7 @@ export function createWorldPartyPing(deps) {
     ground: deps.ground,
     route: deps.route,
     subject: deps.subject,
+    buildings: deps.buildings,
     project: deps.project,
     travel: deps.travel,
     author: deps.author,

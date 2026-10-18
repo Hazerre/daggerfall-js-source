@@ -56,7 +56,7 @@ export class PartyPingDraw {
 
   /**
    * @param {{ _proj: Float32Array, _view: Float32Array, _camPos: ArrayLike<number>, gl: WebGL2RenderingContext, markForeignPass: () => void }} renderer
-   * @param {ReadonlyArray<{ at: number[], color: number[], alpha: number }>} marks
+   * @param {ReadonlyArray<{ at: number[], color: number[], alpha: number }>} _marks
    * @param {ReadonlyArray<{ pts: ReadonlyArray<ReadonlyArray<number>>, color: ArrayLike<number>, alpha: number }>} ribbons
    */
   draw(renderer, _marks, ribbons) {
