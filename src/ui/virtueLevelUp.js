@@ -40,6 +40,7 @@ import { audio } from '../systems/audio.js';
 import { SOUND } from '../systems/soundClips.js';
 import { STAT_KEYS_ORDER } from '../systems/chargen.js';
 import { drawText, measureText } from './text.js';
+import { t } from '../systems/textManager.js';   // AUDIT GROWTH LANE5-1: the purse's label, read in the player's language
 import { nativeMetrics, NATIVE_W } from './native/nativePanel.js';
 import {
   levelingSettings, virtuePurse, canRaiseAttribute, canLowerAttribute,
@@ -59,6 +60,9 @@ export const TAKE_ONE_BACK_HINT = 'Take a point back with - and place it elsewhe
 /** l10n/en.yaml:35-36 choose_attributes_label / remaining_points_label. */
 export const chooseAttributesLabel = (count) => `Choose ${count} Attributes to increase`;
 export const REMAINING_POINTS_LABEL = 'Virtues left';
+/** AUDIT GROWTH LANE5-1: the author's label where it is drawn - here and on the Ascension's plate - in the player's
+ *  language, its English the constant above (the author's own, pinned to en.yaml). */
+export const remainingPointsLabel = () => t('levelup.pool.virtue', REMAINING_POINTS_LABEL);
 
 /** The mod prints Morrowind's `sAttributeStrength` GMSTs; Daggerfall's
  *  own attribute names are the port's stat keys, and the sheet already
@@ -285,7 +289,7 @@ export class VirtueLevelUpScreen {
 
     centre(`LEVEL ${this.entity.pendingLevel ?? this.entity.level}!`, 16, gold);
     centre(chooseAttributesLabel(this.s.maxUpdatableAttribute), 28, white);
-    centre(`${REMAINING_POINTS_LABEL}: ${this.purse}`, 40, gold);
+    centre(`${remainingPointsLabel()}: ${this.purse}`, 40, gold);
 
     STAT_KEYS_ORDER.forEach((k, i) => {
       at(this.rowText(k, i === this.cursor), ROW_X, ROW_TOP + i * ROW_PITCH,

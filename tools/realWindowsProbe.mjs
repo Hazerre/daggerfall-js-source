@@ -142,7 +142,7 @@ try {
         if (lane) r.resolveFrame();
         const state = createViewOut();
         const scene = { draw: ({ renderer }) => { renderer.drawMesh(street, I, null); if (wingToo) renderer.drawMesh(wing, I, null); } };
-        let px = null, vo = null, now = 0;
+        let px = null, vo = null, now = 0, viewDraws = 0;
         for (let f = 0; f < 3; f++) {
           now += 16;
           vo = viewOutFrame(state, { renderer: r, mode, proj, view, now, scene });
@@ -152,11 +152,12 @@ try {
           r.setClearColor([0, 0, 0, 1]);
           r.beginFrame(proj, view, new Float32Array([0, 1, 0]), WORLD_FRAME);
           r.setGlassView(vo);
+          viewDraws = Math.max(viewDraws, r.stats.viewDraws ?? 0);   // PASS-COUNT (AUDIT FB1018 L2-1): the room's frame takes the view out's count, and a kept picture draws none
           r.drawMesh(room, I, null);
           if (lane) r.resolveFrame();
           px = read();
         }
-        return { gl: gl.getError(), px: Array.from(px), vo, viewDraws: r._rwViewDraws ?? 0 };
+        return { gl: gl.getError(), px: Array.from(px), vo, viewDraws };
       },
     };
   }, { W, H });

@@ -654,7 +654,8 @@ test('PX28: Tab puts away what it opened, then raises the dial', () => {
   // teardown - a stack that grows a dead arm would swallow a Tab.
   for (const door of ['inventoryDoor', 'spellbookDoor', 'chronicleDoor', 'charSheetDoor']) {
     const s = read(`src/ui/${door}.js`);
-    assert.match(s, /unregister = registerOverlay\(close\);/, `${door} registers`);
+    // PIN MOVED (GROWTH5, bible/10-UI/Growth.md section 6): the sheet's arm asks a sky on the Growth stage first, then closes
+    assert.match(s, door === 'charSheetDoor' ? /const dialClose = \(\) => \{ if \(view\?\.asksFirst\?\.\(\)\) \{ unregister = registerOverlay\(dialClose\); return; \} close\(\); \};\n\s+unregister = registerOverlay\(dialClose\);/ : /unregister = registerOverlay\(close\);/, `${door} registers`);
     assert.match(s, /unregister\(\);/, `${door} unregisters on teardown`);
   }
 });

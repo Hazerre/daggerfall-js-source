@@ -190,8 +190,8 @@ test('MARTIAL1 THE CHOICE: two weapon skills mastered open their path; the choic
   const rows = MP.martialChoiceRows(fighter([LB, AR]), 'ranger');
   assert.equal(rows[0], 'Martial specialisation: Ranger?'); assert.equal(rows[1], 'Long Blade and Archery');   // PIN MOVED (AUDIT MARTIAL L4 L4): never the arcane ask's words
   assert.ok(rows.includes('This decision cannot be undone.'));
-  assert.match(MP.martialPowerRows(MP.MARTIAL_BY_ID.vanguard).join(' '), /10% lighter.*Judgement \(signature technique\).*8 metres.*2\.5 metres.*4% of your health.*3 foes/);
-  assert.match(MP.martialPowerRows(MP.MARTIAL_BY_ID.berserker).join(' '), /Below 50%.*20% harder.*10%.*Savage Whirl.*3 metres.*8 seconds, 10%/);
+  assert.match(MP.martialPowerRows(MP.MARTIAL_BY_ID.vanguard).join(' '), /10% less damage.*Judgement \(signature technique\).*8 metres.*2\.5 metres.*4% of your health.*3 enemies/);
+  assert.match(MP.martialPowerRows(MP.MARTIAL_BY_ID.berserker).join(' '), /Below 50%.*20% more damage.*10%.*Savage Whirl.*3 metres.*8 seconds.*10%/);
   assert.match(MP.martialOpenRows([MP.MARTIAL_BY_ID.ranger, MP.MARTIAL_BY_ID.vanguard]).join(' '), /2 martial specialisations are open to you: Ranger, Vanguard/);
 });
 
@@ -603,9 +603,8 @@ test('MARTIAL THE SEAMS: every host\'s rig registers the powers; the one ask, th
   assert.match(shared, /entity\.martialPrompted = true;/);
   const sheet = src('src/ui/charsheet.js');
   assert.match(sheet, /action === 'KeyW' \|\| action === 'w'\)\) \{ this\._martialPrompt\(\); return; \}/);
-  const menu = src('src/ui/enhanced/enhancedMenu.js');
-  assert.match(menu, /if \(mt\) specCard\(detail, \{ title: t\('pause\.master\.martial\.title', 'Martial Specialisation'\)/);
-  assert.match(src('src/ui/enhanced/enhancedCharSheet.js'), /choose: \(id\) => chooseMartialPath\(e, id\),/);
+  // PIN MOVED (GROWTH2, bible/10-UI/Growth.md section 5): the enhanced card is the Growth tab's guide, reading the same law
+  assert.match(src('src/ui/growth/specGuide.js'), /pair: \(p\) => p\.skills, pairText: martialSkillsText, ask: \(e, id\) => martialChoiceRows\(e, id\), choose: chooseMartialPath,/);
   assert.match(src('src/combat/playerWeapon.js'), /if \(techOn\(foe\)\) tellTechniqueLanded\(tb, foe, blow\);/);
   assert.match(src('src/combat/arrowFlight.js'), /if \(m\.technique && !playerBody\(foe\)\) tellTechniqueLanded\(m\.technique, foe, dmg\);/);
   // BAL10: both mods' arms hand the swing reader's word on, and the sheet's estimate reads the fists' modifiers as the cores do

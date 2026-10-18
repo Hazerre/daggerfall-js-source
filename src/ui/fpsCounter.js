@@ -27,11 +27,21 @@
 // shows; __fpsStats adds them when a probe asks, so hidden they cost
 // nothing (`sizeLine` is the pure half).
 //
+// PASS-COUNT (FIELD BUGS 2026-10-18, MADMAN0037: "The Mouse and Fawn tavern in Sentinel ... Gpu fans turn into jet
+// turbines", over a counter that read 198 fps and "draws 67"): THE PASSES THE DRAW COUNT MISSED, AND THE PACE. The
+// renderer's `draws` is the frame's own pass; a building's view out through its windows (the street, drawn first) and
+// the shadow maps' replays were counted nowhere, so the screenshot said 67 draws over a frame that drew a city through
+// the glass. `view` and `shadow` (Renderer.stats viewDraws / shadowDraws) ride the draws line when a second's mean is half a draw a frame or more.
+// And what holds the frame rate: `vsync off` where the desktop shell lifted the display's wait (daggerShell.framesLifted -
+// the VSync setting off), and the Frame Rate Cap (systems/frameCap.js) - 198 fps is a display's or a cap's or neither's,
+// and the counter now says which (`paceLine` is the pure half). The line stands only when one of them is not the default:
+// no line is the display's own pace, uncapped (the browser always waits for the display).
+//
 // The pure half (`fpsStats`) is executed by test/ui/enhanced/mwarms_fps.test.js;
 // the DOM half runs against the same stub document AUDIT 62 built.
 
 import { frameCpu } from '../systems/frameClock.js';   // PERF1: the hosts' script time
-import { frameCapSkip } from '../systems/frameCap.js';   // FPS-CAP1: the frames the cap held back are not counted
+import { frameCapSkip, frameCapFps } from '../systems/frameCap.js';   // FPS-CAP1: the frames the cap held back are not counted; PASS-COUNT: and the cap said
 
 const PERIOD_MS = 1000;
 
@@ -80,6 +90,19 @@ export function scriptSplitLine(cpu) {
   return `\nin frame ${cpu.inFrameMs.toFixed(1)}  before ${cpu.beforeMs.toFixed(1)}  stream ${cpu.streamMs.toFixed(1)}`;
 }
 
+/** PASS-COUNT: what holds the frame rate - `lifted` the desktop shell runs without the display's wait (VSync off), `cap`
+ *  the Frame Rate Cap's fps (0: off) - or '' for the defaults (the display's pace, no cap). Pure. */
+export function paceLine(lifted, cap) {
+  if (!lifted && !(cap > 0)) return '';
+  return `\n${lifted ? 'vsync off' : 'vsync'}  ${cap > 0 ? `cap ${cap}` : 'no cap'}`;
+}
+
+/** PASS-COUNT: the draws line - the frame's own draws and binds, then the view out's and the shadow maps' where the second
+ *  held any (each a per-frame mean). Pure. */
+export function drawsLine(draws, binds, view, shadow) {
+  return `\ndraws ${Math.round(draws)}  binds ${Math.round(binds)}` + (view >= 0.5 ? `  view ${Math.round(view)}` : '') + (shadow >= 0.5 ? `  shadow ${Math.round(shadow)}` : '');
+}
+
 /**
  * Mount the overlay. Returns { el, tick(now), dispose() }; the tick is
  * public so a test can drive it without a frame loop.
@@ -101,6 +124,7 @@ export function mountFpsCounter({ enabled = () => true, raf = (typeof requestAni
   let stamps = [];
   let shown = false;
   let sumDraws = 0, sumBinds = 0, samples = 0;   // PERF3: the renderer's per-frame counts (beginFrame zeroes them), summed over the second
+  let sumView = 0, sumShadow = 0;   // PASS-COUNT: the view out's and the shadow maps'
   let last = null;   // PERF9: the last second's numbers, for the probe
   // PERF-SCALE: the GPU and the frame's size ride the probe's read, asked for when it asks - never on a hidden tick
   const described = () => { const i = info?.(); return i ? { gpu: i.gpu ?? null, world: i.world ?? null, canvas: i.canvas ?? null, dpr: i.dpr ?? null, scale: i.scale ?? null, retro: !!i.retro } : null; };
@@ -113,7 +137,7 @@ export function mountFpsCounter({ enabled = () => true, raf = (typeof requestAni
     if (frameCapSkip(now)) { if (live && raf) handle = raf(tick); return; }
     stamps.push(now);
     const st = stats?.();   // PERF3: one complete frame's counts, whichever side of the host's callback this tick fell
-    if (st) { sumDraws += st.draws; sumBinds += st.texBinds; samples++; }
+    if (st) { sumDraws += st.draws; sumBinds += st.texBinds; sumView += st.viewDraws ?? 0; sumShadow += st.shadowDraws ?? 0; samples++; }
     const on = !!enabled();
     if (on !== shown) { shown = on; el.style.display = on ? 'block' : 'none'; }
     if (now - stamps[0] >= PERIOD_MS) {
@@ -123,19 +147,22 @@ export function mountFpsCounter({ enabled = () => true, raf = (typeof requestAni
         // PERF3: the renderer's draws and texture binds, averaged per frame
         // over the second - the GL call count is the CPU side of the GPU's
         // work, and the number the culls and the sort are meant to move.
-        const gpu = samples ? `\ndraws ${Math.round(sumDraws / samples)}  binds ${Math.round(sumBinds / samples)}` : '';
+        const gpu = samples ? drawsLine(sumDraws / samples, sumBinds / samples, sumView / samples, sumShadow / samples) : '';
         const i = on ? info?.() : null;   // PERF-SCALE: the GPU and the size, while shown
         const size = sizeLine(i);
         if (on) el.textContent = `${fps} fps\n${meanMs.toFixed(1)} ms  worst ${worstMs.toFixed(0)}`
           + (cpu ? `\nscript ${cpu.meanMs.toFixed(1)} ms  worst ${cpu.worstMs.toFixed(0)}` : '') + scriptSplitLine(cpu) + gpu
+          + paceLine(!!globalThis.window?.daggerShell?.framesLifted, frameCapFps())   // PASS-COUNT
           + (i ? `\ngpu ${i.gpu ?? 'unknown'}` : '') + (size ? `\n${size}` : '');
         // PERF9: the same numbers for a probe (tools/perfProbe.mjs) - the
         // last second's, as an object, whether or not the overlay shows.
         last = { fps, meanMs, worstMs, scriptMs: cpu?.meanMs ?? null, scriptWorstMs: cpu?.worstMs ?? null, draws: samples ? sumDraws / samples : null, binds: samples ? sumBinds / samples : null,
+          viewDraws: samples ? sumView / samples : null, shadowDraws: samples ? sumShadow / samples : null,   // PASS-COUNT
           scriptInFrameMs: cpu?.inFrameMs ?? null, scriptBeforeMs: cpu?.beforeMs ?? null, scriptStreamMs: cpu?.streamMs ?? null };   // SCRIPT-SPLIT
       }
       stamps = [now];
       sumDraws = 0; sumBinds = 0; samples = 0;   // PERF3
+      sumView = 0; sumShadow = 0;   // PASS-COUNT
     }
     if (live && raf) handle = raf(tick);
   }

@@ -87,17 +87,22 @@ export function setEnemySpells(entity, spellList, spellsByIndex) {
   }
 }
 
-/** The SetEnemyCareer spell-assignment tail: monsters take their
- *  per-career list; class enemies with CastsMagic take
- *  EnemyClassSpells[min(6, level / 3)] (C# int division). */
+/** The SetEnemyCareer spell-assignment tail as indices: monsters take
+ *  their per-career list; class enemies with CastsMagic take
+ *  EnemyClassSpells[min(6, level / 3)] (C# int division). Empty for a
+ *  foe that casts nothing. GRANT0 (bible/11-Multiplayer/Spawn-Grants.md
+ *  section 8): `level` apart from the entity's, so a dungeon copy built
+ *  at its reader's level asks what its owner's foe casts at the owner's. */
+export function enemySpellIndices(entity, level = entity?.level) {
+  if (!entity) return [];
+  if (!entity.isClass) return MONSTER_SPELL_LISTS[entity.careerIndex] ?? [];
+  if (!entity.basics?.castsMagic) return [];
+  return ENEMY_CLASS_SPELLS[Math.min(6, Math.trunc(level / 3))] ?? [];
+}
+
+/** The SetEnemyCareer spell-assignment tail (enemySpellIndices). */
 export function assignEnemySpells(entity, spellsByIndex) {
   if (!spellsByIndex) return;
-  if (!entity.isClass) {
-    const list = MONSTER_SPELL_LISTS[entity.careerIndex];
-    if (list) setEnemySpells(entity, list, spellsByIndex);
-  } else if (entity.basics?.castsMagic) {
-    let spellListLevel = Math.trunc(entity.level / 3);
-    if (spellListLevel > 6) spellListLevel = 6;
-    setEnemySpells(entity, ENEMY_CLASS_SPELLS[spellListLevel], spellsByIndex);
-  }
+  const list = enemySpellIndices(entity);
+  if (list.length) setEnemySpells(entity, list, spellsByIndex);
 }

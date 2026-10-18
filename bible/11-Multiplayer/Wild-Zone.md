@@ -102,7 +102,11 @@ ordinary dungeon.
 Two players standing in the zone may strike each other - never KIN: a member of my party or one under its truce, my
 duel's opponent, or - MAC'S DECISION (2026-10-14, "Guildmates are friends") - a member of my guild - in the
 open country and, since PVPDUNGEON (2026-10-08, the owner: "players should be able to attack each other in dungeons
-too in the pvp zone"), in its dungeons (`wildCan`, `world.js:"const wildCan = ()"`). THE RELAY REFEREES EVERY BLOW
+too in the pvp zone"), in its dungeons (`wildCan`, `world.js:"const wildCan = ()"`) - in its dungeons only since
+AUDIT FB1018 L3-5 (`01-Overview/audits/Audit-Field-Bugs-2026-10-18.md`): wildFair had asked whether the PEER's pose
+stands in the zone, and a dungeon's pose is the dungeon's own frame, which the map reads as its corner pixel, so every
+peer underground was refused. In a dungeon a room's peer is fair by the place now (the place is the zone: wildCan's
+`wildHere`, the door's pixel). THE RELAY REFEREES EVERY BLOW
 (INT9, 2026-10-09, `06-Systems/Integrity-Arc.md` section 5; `src/net/wild/wildRef.js`): my own cell's socket says I stand in
 the zone (`zone` - its audit: never a halo's, again at each crossing and every `WILD_ZONE_KEEP_MS`) and a blow lands only
 where both fighters said so in the same cell, at the Royal Tourney's vitality (never the save's health; the bar kept at

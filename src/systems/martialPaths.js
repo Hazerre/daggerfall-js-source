@@ -179,122 +179,122 @@ const WORDS = Object.freeze({
   blademaster: () => ({
     name: t('martial.blademaster.name', 'Blademaster'),
     passiveName: t('martial.blademaster.passive', 'Flowing Steel'),
-    passive: t('martial.blademaster.passiveText', 'Each blow or arrow of yours that lands builds a stack for {seconds} seconds: {pct}% more damage a stack, at most {stacks}.', { seconds: N.flowingSteel.seconds, pct: N.flowingSteel.pct, stacks: N.flowingSteel.stacks }),
+    passive: t('martial.blademaster.passiveText', 'Each blow or arrow that hits gives you a stack for {seconds} seconds: +{pct}% damage per stack, up to {stacks} stacks.', { seconds: N.flowingSteel.seconds, pct: N.flowingSteel.pct, stacks: N.flowingSteel.stacks }),
     technique: t('martial.blademaster.technique', THOUSAND_CUTS),
-    techniqueText: t('martial.blademaster.techniqueText', 'Dash {metres} metres, striking every foe you pass.', { metres: FORMS.thousandCuts.length }),
-    rider: t('martial.blademaster.rider', 'Every foe it strikes is cut again for {pct}% of the blow.', { pct: pc(N.thousandCuts.share) }),
+    techniqueText: t('martial.blademaster.techniqueText', 'Dash {metres} metres, hitting every enemy you pass.', { metres: FORMS.thousandCuts.length }),
+    rider: t('martial.blademaster.rider', 'Each enemy it hits takes an extra {pct}% of the damage.', { pct: pc(N.thousandCuts.share) }),
   }),
   warblade: () => ({
     name: t('martial.warblade.name', 'Warblade'),
     passiveName: t('martial.warblade.passive', 'War Rhythm'),
-    passive: t('martial.warblade.passiveText', 'Each foe you kill quickens your swings by {pct}% for {seconds} seconds.', { pct: N.warRhythm.pct, seconds: N.warRhythm.seconds }),
+    passive: t('martial.warblade.passiveText', 'Each kill makes you swing {pct}% faster for {seconds} seconds.', { pct: N.warRhythm.pct, seconds: N.warRhythm.seconds }),
     technique: t('martial.warblade.technique', RALLYING_CLEAVE),
-    techniqueText: t('martial.warblade.techniqueText', 'Strike every foe in a wide arc before you.'),
-    rider: t('martial.warblade.rider', 'For {seconds} seconds, your blows and arrows land {pct}% harder.', { pct: N.rallyingCleave.pct, seconds: N.rallyingCleave.seconds }),
+    techniqueText: t('martial.warblade.techniqueText', 'Hit every enemy in a wide arc in front of you.'),
+    rider: t('martial.warblade.rider', 'For {seconds} seconds, your blows and arrows deal {pct}% more damage.', { pct: N.rallyingCleave.pct, seconds: N.rallyingCleave.seconds }),
   }),
   vanguard: () => ({
     name: t('martial.vanguard.name', 'Vanguard'),
     passiveName: t('martial.vanguard.passive', 'Iron Discipline'),
-    passive: t('martial.vanguard.passiveText', 'Foes\' blows land {pct}% lighter on you.', { pct: N.ironDiscipline.lighter }),
+    passive: t('martial.vanguard.passiveText', 'Enemy blows deal {pct}% less damage to you.', { pct: N.ironDiscipline.lighter }),
     technique: t('martial.vanguard.technique', JUDGEMENT),
-    techniqueText: t('martial.vanguard.techniqueText', 'Leap up to {metres} metres onto a foe and strike every foe within {radius} metres of the landing.', { metres: FORMS.judgement.range[1], radius: FORMS.judgement.radius }),
-    rider: t('martial.vanguard.rider', 'Each foe it strikes restores {pct}% of your health, from at most {foes} foes.', { pct: N.judgement.heal, foes: N.judgement.foes }),
+    techniqueText: t('martial.vanguard.techniqueText', 'Leap up to {metres} metres onto an enemy and hit every enemy within {radius} metres of where you land.', { metres: FORMS.judgement.range[1], radius: FORMS.judgement.radius }),
+    rider: t('martial.vanguard.rider', 'Each enemy it hits restores {pct}% of your health (up to {foes} enemies).', { pct: N.judgement.heal, foes: N.judgement.foes }),
   }),
   ranger: () => ({
     name: t('martial.ranger.name', 'Ranger'),
     passiveName: t('martial.ranger.passive', 'Hunter\'s Instinct'),
-    passive: t('martial.ranger.passiveText', 'Your blows and arrows strike beasts {pct}% harder.', { pct: N.huntersInstinct.pct }),
+    passive: t('martial.ranger.passiveText', 'Your blows and arrows deal {pct}% more damage to beasts.', { pct: N.huntersInstinct.pct }),
     technique: t('martial.ranger.technique', MARK_OF_THE_HUNT),
-    techniqueText: t('martial.ranger.techniqueText', 'With a bow, a shot through up to {through} foes; with a long blade, a pounce on a foe up to {metres} metres away.', { through: FORMS.huntersMark.through, metres: FORMS.huntersPounce.range[1] }),
-    rider: t('martial.ranger.rider', 'Each foe it strikes is marked for {seconds} seconds: your blows and arrows at it land {pct}% harder.', { seconds: N.huntersMark.seconds, pct: N.huntersMark.pct }),
+    techniqueText: t('martial.ranger.techniqueText', 'Bow: a shot that passes through up to {through} enemies. Long blade: leap at an enemy up to {metres} metres away.', { through: FORMS.huntersMark.through, metres: FORMS.huntersPounce.range[1] }),
+    rider: t('martial.ranger.rider', 'Each enemy it hits is marked for {seconds} seconds: your blows and arrows deal {pct}% more damage to it.', { seconds: N.huntersMark.seconds, pct: N.huntersMark.pct }),
   }),
   bladedancer: () => ({
     name: t('martial.bladedancer.name', 'Skirmisher'),
     passiveName: t('martial.bladedancer.passive', 'Dancer\'s Step'),
-    passive: t('martial.bladedancer.passiveText', 'One foe\'s blow in {n} misses you entirely.', { n: N.dancersStep.oneIn }),
+    passive: t('martial.bladedancer.passiveText', 'One enemy blow in {n} misses you.', { n: N.dancersStep.oneIn }),
     technique: t('martial.bladedancer.technique', CYCLONE),
-    techniqueText: t('martial.bladedancer.techniqueText', 'Strike every foe within {metres} metres around you.', { metres: FORMS.cyclone.reach }),
-    rider: t('martial.bladedancer.rider', 'Your swings quicken by {pct}% for {seconds} seconds.', { pct: N.cyclone.pace, seconds: N.cyclone.seconds }),
+    techniqueText: t('martial.bladedancer.techniqueText', 'Hit every enemy within {metres} metres.', { metres: FORMS.cyclone.reach }),
+    rider: t('martial.bladedancer.rider', 'You swing {pct}% faster for {seconds} seconds.', { pct: N.cyclone.pace, seconds: N.cyclone.seconds }),
   }),
   bloodletter: () => ({
     name: t('martial.bloodletter.name', 'Bloodletter'),
     passiveName: t('martial.bloodletter.passive', 'Bloodlust'),
-    passive: t('martial.bloodletter.passiveText', 'Each foe you kill restores {pct}% of your health.', { pct: N.bloodlust.health }),
+    passive: t('martial.bloodletter.passiveText', 'Each kill restores {pct}% of your health.', { pct: N.bloodlust.health }),
     technique: t('martial.bloodletter.technique', GUTTING_LUNGE),
-    techniqueText: t('martial.bloodletter.techniqueText', 'Dash {metres} metres, striking every foe you pass.', { metres: FORMS.guttingLunge.length }),
-    rider: t('martial.bloodletter.rider', 'A foe already under {pct}% of its health takes the blow again.', { pct: pc(N.guttingLunge.below) }),
+    techniqueText: t('martial.bloodletter.techniqueText', 'Dash {metres} metres, hitting every enemy you pass.', { metres: FORMS.guttingLunge.length }),
+    rider: t('martial.bloodletter.rider', 'An enemy already below {pct}% health takes the blow twice.', { pct: pc(N.guttingLunge.below) }),
   }),
   cutthroat: () => ({
     name: t('martial.cutthroat.name', 'Cutthroat'),
     passiveName: t('martial.cutthroat.passive', 'Cheap Shot'),
-    passive: t('martial.cutthroat.passiveText', 'Your blows and arrows at a foe that has not noticed you land {pct}% harder.', { pct: N.cheapShot.pct }),
+    passive: t('martial.cutthroat.passiveText', 'Your blows and arrows deal {pct}% more damage to enemies that haven\'t noticed you.', { pct: N.cheapShot.pct }),
     technique: t('martial.cutthroat.technique', BLACKJACK),
-    techniqueText: t('martial.cutthroat.techniqueText', 'One heavy blow at the nearest foe before you, +{toHit} to hit.', { toHit: FORMS.blackjack.toHit }),
-    rider: t('martial.cutthroat.rider', 'A foe that had not noticed you takes the blow twice.'),   // N.blackjack.times is 2 (pinned beside the word)
+    techniqueText: t('martial.cutthroat.techniqueText', 'A heavy blow at the nearest enemy in front of you, +{toHit} to hit.', { toHit: FORMS.blackjack.toHit }),
+    rider: t('martial.cutthroat.rider', 'An enemy that hadn\'t noticed you takes the blow twice.'),   // N.blackjack.times is 2 (pinned beside the word)
   }),
   assassin: () => ({
     name: t('martial.assassin.name', 'Assassin'),
     passiveName: t('martial.assassin.passive', 'Opening Strike'),
-    passive: t('martial.assassin.passiveText', 'Your first blow or arrow at each foe lands {pct}% harder.', { pct: N.openingStrike.pct }),
+    passive: t('martial.assassin.passiveText', 'Your first blow or arrow at each enemy deals {pct}% more damage.', { pct: N.openingStrike.pct }),
     technique: t('martial.assassin.technique', VANISHING_STRIKE),
-    techniqueText: t('martial.assassin.techniqueText', 'With a bow, one heavy shot; with a short blade, a dash behind a foe and a strike.'),
-    rider: t('martial.assassin.rider', 'When it lands, you fade from sight: Chameleon for {rounds} rounds.', { rounds: N.vanishingStrike.rounds }),
+    techniqueText: t('martial.assassin.techniqueText', 'Bow: one heavy shot. Short blade: dash behind an enemy and strike.'),
+    rider: t('martial.assassin.rider', 'On a hit, you gain Chameleon for {rounds} rounds.', { rounds: N.vanishingStrike.rounds }),
   }),
   shadowdancer: () => ({
     name: t('martial.shadowdancer.name', 'Shadowdancer'),
     passiveName: t('martial.shadowdancer.passive', 'Light Step'),
     passive: t('martial.shadowdancer.passiveText', '+{agility} Agility and +{dodging} Dodging.', { agility: N.lightStep.agility, dodging: N.lightStep.dodging }),
     technique: t('martial.shadowdancer.technique', PHANTOM_STRIKE),
-    techniqueText: t('martial.shadowdancer.techniqueText', 'Dash behind a foe up to {metres} metres away and strike.', { metres: FORMS.phantomStrike.range[1] }),
-    rider: t('martial.shadowdancer.rider', 'For {seconds} seconds, one foe\'s blow in {n} misses you entirely.', { seconds: N.phantomStrike.seconds, n: N.phantomStrike.oneIn }),
+    techniqueText: t('martial.shadowdancer.techniqueText', 'Dash behind an enemy up to {metres} metres away and strike.', { metres: FORMS.phantomStrike.range[1] }),
+    rider: t('martial.shadowdancer.rider', 'For {seconds} seconds, one enemy blow in {n} misses you.', { seconds: N.phantomStrike.seconds, n: N.phantomStrike.oneIn }),
   }),
   juggernaut: () => ({
     name: t('martial.juggernaut.name', 'Juggernaut'),
     passiveName: t('martial.juggernaut.passive', 'Stand Firm'),
-    passive: t('martial.juggernaut.passiveText', 'A hurt that takes you below {below}% of your health heals {pct}% of your health. Ready again after {minutes} minutes.', { below: pc(N.standFirm.below), pct: N.standFirm.heal, minutes: N.standFirm.recover / 60 }),
+    passive: t('martial.juggernaut.passiveText', 'When damage drops you below {below}% health, you heal {pct}% of your health. Once every {minutes} minutes.', { below: pc(N.standFirm.below), pct: N.standFirm.heal, minutes: N.standFirm.recover / 60 }),
     technique: t('martial.juggernaut.technique', EARTHSPLITTER),
-    techniqueText: t('martial.juggernaut.techniqueText', 'Strike every foe within {metres} metres around you.', { metres: FORMS.earthsplitter.reach }),
-    rider: t('martial.juggernaut.rider', 'For {seconds} seconds, foes\' blows land {pct}% lighter on you.', { seconds: N.earthsplitter.seconds, pct: N.earthsplitter.lighter }),
+    techniqueText: t('martial.juggernaut.techniqueText', 'Hit every enemy within {metres} metres.', { metres: FORMS.earthsplitter.reach }),
+    rider: t('martial.juggernaut.rider', 'For {seconds} seconds, enemy blows deal {pct}% less damage to you.', { seconds: N.earthsplitter.seconds, pct: N.earthsplitter.lighter }),
   }),
   woodsman: () => ({
     name: t('martial.woodsman.name', 'Woodsman'),
     passiveName: t('martial.woodsman.passive', 'Tireless'),
-    passive: t('martial.woodsman.passiveText', 'Each foe you kill restores {pct}% of your fatigue.', { pct: N.tireless.fatigue }),
+    passive: t('martial.woodsman.passiveText', 'Each kill restores {pct}% of your fatigue.', { pct: N.tireless.fatigue }),
     technique: t('martial.woodsman.technique', FELLING_STRIKE),
-    techniqueText: t('martial.woodsman.techniqueText', 'With a bow, {arrows} arrows rain on a spot; with an axe, a leap onto a foe up to {metres} metres away.', { arrows: FORMS.fellingVolley.arrows, metres: FORMS.fellingStrike.range[1] }),
-    rider: t('martial.woodsman.rider', 'Each foe it fells restores {pct}% of your health.', { pct: N.fellingStrike.heal }),
+    techniqueText: t('martial.woodsman.techniqueText', 'Bow: {arrows} arrows rain down on a spot. Axe: leap onto an enemy up to {metres} metres away.', { arrows: FORMS.fellingVolley.arrows, metres: FORMS.fellingStrike.range[1] }),
+    rider: t('martial.woodsman.rider', 'Each enemy it kills restores {pct}% of your health.', { pct: N.fellingStrike.heal }),
   }),
   berserker: () => ({
     name: t('martial.berserker.name', 'Berserker'),
     passiveName: t('martial.berserker.passive', 'Frenzy'),
-    passive: t('martial.berserker.passiveText', 'Below {below}% of your health, your blows and arrows land {pct}% harder and your swings quicken by {pace}%.', { below: pc(N.frenzy.below), pct: N.frenzy.pct, pace: N.frenzy.pace }),
+    passive: t('martial.berserker.passiveText', 'Below {below}% health, your blows and arrows deal {pct}% more damage and you swing {pace}% faster.', { below: pc(N.frenzy.below), pct: N.frenzy.pct, pace: N.frenzy.pace }),
     technique: t('martial.berserker.technique', SAVAGE_WHIRL),
-    techniqueText: t('martial.berserker.techniqueText', 'Strike every foe within {metres} metres around you.', { metres: FORMS.savageWhirl.reach }),
-    rider: t('martial.berserker.rider', 'For {seconds} seconds, {pct}% of every blow you land heals you.', { seconds: N.savageWhirl.seconds, pct: N.savageWhirl.leech }),
+    techniqueText: t('martial.berserker.techniqueText', 'Hit every enemy within {metres} metres.', { metres: FORMS.savageWhirl.reach }),
+    rider: t('martial.berserker.rider', 'For {seconds} seconds, every blow or arrow you land heals you for {pct}% of its damage.', { seconds: N.savageWhirl.seconds, pct: N.savageWhirl.leech }),
   }),
   crusader: () => ({
     name: t('martial.crusader.name', 'Crusader'),
     passiveName: t('martial.crusader.passive', 'Purge'),
-    passive: t('martial.crusader.passiveText', 'Your blows and arrows strike undead and daedra {pct}% harder.', { pct: N.purge.pct }),
+    passive: t('martial.crusader.passiveText', 'Your blows and arrows deal {pct}% more damage to undead and daedra.', { pct: N.purge.pct }),
     technique: t('martial.crusader.technique', HALLOWED_STRIKE),
-    techniqueText: t('martial.crusader.techniqueText', 'With a bow, a shot through up to {through} foes; with a blunt weapon, one heavy blow at the nearest foe before you, +{toHit} to hit.', { through: FORMS.hallowedShot.through, toHit: FORMS.hallowedStrike.toHit }),
-    rider: t('martial.crusader.rider', 'Undead and daedra it strikes take {pct}% of the blow again.', { pct: pc(N.hallowedStrike.share) }),
+    techniqueText: t('martial.crusader.techniqueText', 'Bow: a shot that passes through up to {through} enemies. Blunt weapon: a heavy blow at the nearest enemy in front of you, +{toHit} to hit.', { through: FORMS.hallowedShot.through, toHit: FORMS.hallowedStrike.toHit }),
+    rider: t('martial.crusader.rider', 'Undead and daedra it hits take an extra {pct}% of the damage.', { pct: pc(N.hallowedStrike.share) }),
   }),
   brawler: () => ({
     name: t('martial.brawler.name', 'Brawler'),
     passiveName: t('martial.brawler.passive', 'Grit'),
-    passive: t('martial.brawler.passiveText', 'Each round, {health}% of your health and {fatigue}% of your fatigue come back.', { health: N.grit.health, fatigue: N.grit.fatigue }),
+    passive: t('martial.brawler.passiveText', 'Each round, you regain {health}% of your health and {fatigue}% of your fatigue.', { health: N.grit.health, fatigue: N.grit.fatigue }),
     technique: t('martial.brawler.technique', KNOCKOUT),
-    techniqueText: t('martial.brawler.techniqueText', 'One heavy blow at the nearest foe before you, +{toHit} to hit.', { toHit: FORMS.knockout.toHit }),
-    rider: t('martial.brawler.rider', 'For {seconds} seconds, the foe it strikes hits you {pct}% lighter.', { seconds: N.knockout.seconds, pct: N.knockout.lighter }),
+    techniqueText: t('martial.brawler.techniqueText', 'A heavy blow at the nearest enemy in front of you, +{toHit} to hit.', { toHit: FORMS.knockout.toHit }),
+    rider: t('martial.brawler.rider', 'For {seconds} seconds, blows from the enemy it hits deal {pct}% less damage to you.', { seconds: N.knockout.seconds, pct: N.knockout.lighter }),
   }),
   windrunner: () => ({
     name: t('martial.windrunner.name', 'Strider'),
     passiveName: t('martial.windrunner.passive', 'Windborne'),
     passive: t('martial.windrunner.passiveText', '+{speed} Speed, +{running} Running and +{jumping} Jumping.', { speed: N.windborne.speed, running: N.windborne.running, jumping: N.windborne.jumping }),
     technique: t('martial.windrunner.technique', WINDSTRIKE),
-    techniqueText: t('martial.windrunner.techniqueText', 'With a bow, {arrows} arrows rain on a spot; bare-handed, a flying kick at a foe up to {metres} metres away, from the air too.', { arrows: FORMS.windVolley.arrows, metres: FORMS.windKick.range[1] }),
-    rider: t('martial.windrunner.rider', 'Each foe it strikes restores {pct}% of your fatigue, from at most {foes} foes.', { pct: N.windstrike.fatigue, foes: N.windstrike.foes }),
+    techniqueText: t('martial.windrunner.techniqueText', 'Bow: {arrows} arrows rain down on a spot. Bare hands: a flying kick at an enemy up to {metres} metres away, even in mid-air.', { arrows: FORMS.windVolley.arrows, metres: FORMS.windKick.range[1] }),
+    rider: t('martial.windrunner.rider', 'Each enemy it hits restores {pct}% of your fatigue (up to {foes} enemies).', { pct: N.windstrike.fatigue, foes: N.windstrike.foes }),
   }),
 });
 /** A path's words now: { name, passiveName, passive, technique, techniqueText, rider } - in the player's language. */
@@ -385,6 +385,9 @@ export function chooseMartialPath(entity, id) {
 }
 
 export const MARTIAL_DECLINED_TEXT = 'You can choose a martial specialisation later in your skill screen.';
+/** GROWTH4: the No's line where the enhanced pause window stands - its Growth tab (arcanePaths.js's own law). */
+export const MARTIAL_DECLINED_GROWTH_TEXT = 'You can choose a martial specialisation later on the Growth tab of the pause menu.';
+export const martialDeclinedGrowthText = () => t('martial.declinedGrowth', MARTIAL_DECLINED_GROWTH_TEXT);
 /** The No's line, in the player's language. */
 export const martialDeclinedText = () => t('martial.declined', MARTIAL_DECLINED_TEXT);
 
@@ -414,15 +417,17 @@ export function martialChoiceRows(entity, id, { others = true } = {}) {
   ];
 }
 
-/** The one ask when SEVERAL martial paths are open - their names, and where each is chosen (AUDIT SCHOOLS L4 M1's law). */
-export function martialOpenRows(open) {
+/** The one ask when SEVERAL martial paths are open - their names, and where each is chosen (AUDIT SCHOOLS L4 M1's law;
+ *  GROWTH4: `growth` - the enhanced pause window's Growth tab, else the skill screen). */
+export function martialOpenRows(open, { growth = false } = {}) {
   return [
     t('martial.open.title', 'Martial Specialisation'),
     '',
     t('martial.open.count', '{n, plural, one {# martial specialisation is open to you:} other {# martial specialisations are open to you:}}', { n: open.length }),
     open.map((p) => p.name).join(', '),
     '',
-    t('martial.open.where', 'Choose one in your skill screen. The choice cannot be undone.'),
+    growth ? t('martial.open.whereGrowth', 'See them all and choose one on the Growth tab of the pause menu. The choice cannot be undone.')
+      : t('martial.open.where', 'Choose one in your skill screen. The choice cannot be undone.'),
   ];
 }
 

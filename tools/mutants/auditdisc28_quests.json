@@ -295,8 +295,8 @@
   {
     "name": "AD28Q-J2-cell-orphan-unmarked",
     "file": "src/scenes/exteriorFoes.js",
-    "old": "    _pupPending.set(key, { ...r, _quest: qt, _orphanMine: true });",
-    "new": "    _pupPending.set(key, { ...r, _quest: qt });",
+    "old": "    _pupPending.set(key, { ...r, _quest: qt, _orphanMine: true, _cp: cp != null });",
+    "new": "    _pupPending.set(key, { ...r, _quest: qt, _cp: cp != null });",
     "tests": [
       "test/systems/quest/auditdisc28_quests.test.js"
     ]

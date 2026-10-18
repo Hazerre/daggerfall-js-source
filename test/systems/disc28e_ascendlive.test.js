@@ -70,7 +70,7 @@ test('ASCEND-LIVE: the report - a werewolf\'s stars wear what the character HAS,
   assert.equal(liveNote(row(s, 'agility')), '93 with its bonus');
   assert.deepEqual([row(s, 'willpower').live, liveNote(row(s, 'willpower'))], [52, ''], 'a stat the curse leaves alone says nothing more');
   assert.deepEqual([liveTint(str), liveTint(row(s, 'willpower'))], ['boosted', ''], 'the classic sheet\'s tint above the permanent value, none where the two agree');
-  assert.equal(starLabel(str), 'Strength 100 (63 of its own), a point here will not show for now');
+  assert.equal(starLabel(str), 'Strength 100 (63 permanent), a point here won\'t show for now');   // PIN MOVED (AUDIT GROWTH LANE5-1)
   assert.equal(starLabel(row(s, 'willpower')), 'Willpower 52');
   // The live value follows the WORKING value: Endurance 58 + 40 = 98, two points from the ceiling.
   focusAt(s, 'endurance');
@@ -79,7 +79,7 @@ test('ASCEND-LIVE: the report - a werewolf\'s stars wear what the character HAS,
   // ...and the law is untouched: the permanent point still goes in, and the window closes the same way.
   assert.ok(raiseAt(s, 'strength'));
   assert.deepEqual([row(s, 'strength').value, row(s, 'strength').live], [64, 100]);
-  assert.equal(starLabel(row(s, 'strength')), 'Strength 100 (64 of its own), raised by 1, a point here will not show for now');
+  assert.equal(starLabel(row(s, 'strength')), 'Strength 100 (64 permanent), raised by 1, a point here won\'t show for now');   // PIN MOVED (AUDIT GROWTH LANE5-1)
   assert.equal(canAscend(s), s.pool === 0);
 });
 
@@ -89,9 +89,9 @@ test('ASCEND-LIVE: a vampire by day reads lower and by night higher - the live v
   vampirismMagicRound(p, { nowMinutes: DAY });
   const s = new LevelUpScreen(p, seq(0), { fanfare: false });
   assert.deepEqual([row(s, 'strength').value, row(s, 'strength').live], [63, 43]);
-  assert.equal(liveNote(row(s, 'strength')), '43 for now');
+  assert.equal(liveNote(row(s, 'strength')), 'Lowered to 43 for now');   // PIN MOVED (AUDIT GROWTH LANE5-1)
   assert.equal(liveTint(row(s, 'strength')), 'lowered', 'the classic sheet\'s drained tint');
-  assert.equal(starLabel(row(s, 'strength')), 'Strength 43 (63 of its own)');
+  assert.equal(starLabel(row(s, 'strength')), 'Strength 43 (63 permanent)');   // PIN MOVED (AUDIT GROWTH LANE5-1)
   vampirismMagicRound(p, { nowMinutes: NIGHT + 24 * 60 });
   assert.equal(row(new LevelUpScreen(p, seq(0), { fanfare: false }), 'strength').live, 83);
 });
@@ -108,12 +108,12 @@ test('ASCEND-LIVE: a point held at a FLOOR is flagged as one at the ceiling is -
   const s = new LevelUpScreen(p, seq(0), { fanfare: false });
   const str = row(s, 'strength');
   assert.deepEqual([str.value, str.live, str.capped], [63, 1, true]);
-  assert.equal(liveNote(str), '1 for now - a point here won\'t show');
-  assert.equal(starLabel(str), 'Strength 1 (63 of its own), a point here will not show for now');
+  assert.equal(liveNote(str), 'Lowered to 1 for now - a point here won\'t show');   // PIN MOVED (AUDIT GROWTH LANE5-1)
+  assert.equal(starLabel(str), 'Strength 1 (63 permanent), a point here won\'t show for now');   // PIN MOVED (AUDIT GROWTH LANE5-1)
   // A point that shows is never flagged: by night the same Strength reads 63 - 45 + 20 and rises with a press.
   vampirismMagicRound(p, { nowMinutes: NIGHT + 24 * 60 });
   const night = row(new LevelUpScreen(p, seq(0), { fanfare: false }), 'strength');
-  assert.deepEqual([night.live, night.capped, liveNote(night)], [38, false, '38 for now']);
+  assert.deepEqual([night.live, night.capped, liveNote(night)], [38, false, 'Lowered to 38 for now']);   // PIN MOVED (AUDIT GROWTH LANE5-1)
 });
 
 test('ASCEND-LIVE: the mod\'s lane and the view the Stats page opens read the same live values the Stats page draws', () => {

@@ -245,7 +245,8 @@ Mac: "They should have their own unique personalities that affect their speach. 
 Mac: "Players should have the option to kill or spare"; "the choice popup should reuse the loot menu".
 
 - **The yield**: the blow that would kill one of the player's revenants (any blow - the revenant is the player's own;
-  never the player's own Disintegrate - since RVN-OWNERS-CHOICE, section 15, no one else's whole blow is a kill)
+  since RVN-OWNERS-CHOICE, section 15, no one else's whole blow is a kill, and since RVN-OWN-KNEEL, section 15, nor is the
+  player's own Disintegrate - it passes the last stand and the will and kneels it here)
   leaves it at 1 health on its knees (`systems/revenant/revenantFate.js beginYield`): its fight and its run over, its hurt's
   last frame held with a breath now and then (`MobileUnit.heldPose`), no blow reaches it, no foe hunts it
   (`enemyTargets.js`), never in the save. Its plea is said in its voice; its record notes the deed. Its
@@ -350,9 +351,18 @@ is a foe's whole blow, a companion's, and a stat drained to zero, whose tick nam
 choice is offered, not taken. (The drain's tick returns every 0.2 s while the stat stays at zero, so at rank 3 and up the
 first tick makes the last stand and the next tears it away unless its will is broken - it escapes, to come again; the
 owner's own Disintegrate or a broken will still closes that fight. The audit of the branch, 2026-10-16.) My own
-Disintegrate and my own Razor still kill outright, as sections 19 and 20 say.
+Disintegrate and my own Razor still kill outright, as sections 19 and 20 say (until RVN-OWN-KNEEL, below).
 DEPARTURE from sections 11, 19 and 20 as written ("a Disintegrate kills it outright" - whosever it was): the rule they
 recorded is the owner's alone now. Pinned by `test/systems/revenant/fb1016b_rvnownerschoice.test.js`.
+
+**RVN-OWN-KNEEL** (FIELD BUGS 2026-10-17g; Discord #general, Dude7ox: "Disintegrate just outright kills your rev with no
+option to hire"; the owner: "Hmm thought I fixed this"): **no blow skips the kill-or-spare.** The owner's own whole blow
+- a Disintegrate, the Razor's whole-health strike - still passes over the last stand and the will, the Disintegrate's
+edge (sections 19, 20), and then kneels it like any killing blow: alive at 1, its record open, Kill or Spare offered
+(both doors' yield gate asks `revenantFate.js ownersWholeKill` of the will alone). A host that cannot open the choice
+(`exterior.js`, no `fates`) lets it die as before. DEPARTURE from RVN-OWNERS-CHOICE's "my own Disintegrate and my own
+Razor still kill outright" and from sections 19 and 20 as written. Pinned by
+`test/systems/revenant/fb1017g_rvnownkneel.test.js`; the record, `01-Overview/bugs/Field-Bugs-2026-10-17g.md`.
 
 ## 16. The audit (2026-10-02, Mac: "Audit everything and ensure perfection")
 
@@ -427,8 +437,9 @@ sky reads day), weighs twice on a wind-up, and no adaptation takes from it. The 
 "Weakness" word, a hiss, its card - and under half its health, unknown, it flinches from it (a hint). From rank 3 its
 will must be broken in the fight: strike its weakness, or stagger it twice (since FEUD BALANCE, section 34: stagger it
 once, or dodge one of its blows perfectly). Unbroken at the killing blow it does not
-kneel - it tears away into the smoke, an escape that ranks it up. A Disintegrate kills it outright - its owner's own
-(RVN-OWNERS-CHOICE, section 15: anyone else's is a killing blow like any). The page says its
+kneel - it tears away into the smoke, an escape that ranks it up. A Disintegrate - its owner's own - passes its will
+and kneels it (RVN-OWN-KNEEL, section 15; until 2026-10-17 it killed it outright; RVN-OWNERS-CHOICE: anyone else's is a
+killing blow like any). The page says its
 weakness as known and the will's rule. The law: `bible/12-Enhanced-AI/Feud-Arc.md` section 14 and its RVN3 record.
 
 ## 20. The last stand (FEUD RVN4, 2026-10-04)
@@ -437,7 +448,8 @@ From rank 3, once a fight, the blow that would kneel or kill a revenant brings i
 its health by rank (since FEUD BALANCE, section 34: 30%, 35% or 40%) - roaring: for 1.2 seconds no blow reaches it, and (Enhanced AI on) an iron ring about its feet lands
 as the roar ends; with the switch off it stands and roars. Then phase two for the rest of the fight: heavier and quicker
 blows, more Speed, shorter wind-ups and cooldowns, chains of three, iron one in two, an ember rim and a tenth more size.
-A Disintegrate still kills - its owner's own (RVN-OWNERS-CHOICE, section 15). The page names it from rank 3. The law:
+A Disintegrate - its owner's own - passes the last stand and kneels it (RVN-OWN-KNEEL, section 15; until 2026-10-17 it
+killed it). The page names it from rank 3. The law:
 `bible/12-Enhanced-AI/Feud-Arc.md` section 15 and its RVN4 record.
 
 ## 21. Signature blows (FEUD RVN5, 2026-10-04)
@@ -1096,8 +1108,8 @@ further is its shortest (`rvnWayTo`: Awakened Art is four from the Oath). Giving
 CAPTAIN-TREE's law, not the Firmament's silver and gold: the sky is the oath's, kept in the save and the mirror as its
 loyalty is (`sanitizeCompanion` reads it back through the law, its level and its rank - a hand-made sky is cut to what it
 may hold), and a deserter or a betrayer leaves with no oath and no sky. Every reading of its stars - its stats, Awakened Art -
-comes through the same door at its record's points (`rvnStatsOf`, `rvnAwakened`). Set abroad, the oath refuses ("It is
-abroad - set its stars when it is back." - `swornStarsRefusal`), as its kit's acts do (AUDIT RVN F10).
+comes through the same door at its record's points (`rvnStatsOf`, `rvnAwakened`). Set abroad, the oath refuses ("It's away on a
+mission. Set its stars when it returns." - `swornStarsRefusal`), as its kit's acts do (AUDIT RVN F10).
 
 **What the stars do** (`rvnStarStats`, each a share, each sum kept within `RVN_STAR_LEAST`..`RVN_STAR_MOST`) is read where
 the revenant's own numbers are read:
@@ -1154,12 +1166,14 @@ right-pressed (or held), taken back with those joined only through it; Accept gi
 sky stays pending and the window says why. The side panel, under the bar wherever a long name ends it, says what its stars
 do, each aspect, and its art: its own, awakened, or what Awakened Art would teach it. The window takes the focus as it opens
 and gives it back to the Stars button as it closes; while it stands it is on the overlays' stack, so the QuickDial's key
-asks it first, as the Firmament's own window does - an unaccepted sky is never dropped unasked (section 45 S8, S21, S22).
+asks it first, and so do the F5 sheet's own keys (`10-UI/Growth.md` section 6, AUDIT GROWTH LANE4-1) - an unaccepted sky is
+never dropped unasked (section 45 S8, S21, S22).
 
 **The doors**: the Companions page (`ui/companionRoster.js`) says each sworn one's level and the stars it has to set ("Level
 3 · 2 stars to set", gold while any wait) and gives it **Stars** (none abroad). Its sky is laid over the pause window as the
-Firmament is over the Stats page - `ui/firmamentOver.js revenantStarsOver`, the Firmament's own door built once (`overPage`)
-for both - from either door that draws the page (`ui/pauseDoor.js`, `ui/charSheetDoor.js`), and the page is put back on
+Firmament was over the Stats page - `ui/firmamentOver.js revenantStarsOver`, the door the Firmament had, built once (`overPage`)
+for both (GROWTH3 drew the Firmament in the pause window's Growth tab and its door went; this one stays - the owner, of a
+Growth-tab page for it: "Keep it on the companion page", `10-UI/Growth.md` section 1) - from either door that draws the page (`ui/pauseDoor.js`, `ui/charSheetDoor.js`), and the page is put back on
 Companions when it closes (`enhancedMenu.js` lands on `at: 'companions'`). Offline and online alike: the sky is the save's.
 The mission sheet's days are its own road's ("Black Marsh - 82 hours, danger V").
 

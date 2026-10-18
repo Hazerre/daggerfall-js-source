@@ -164,8 +164,51 @@ them down beside the wagon.
 
 **Companions** take the seats the players have not, while the wagon goes with
 its owner (trailing behind the cart, or following). When it is parked they
-step down and walk at heel (`src/scenes/crewAshore.js` `seat`; the motor's
-seat gate in `src/characters/enemy/enemyMotor.js`).
+get down where a player rider gets down from that seat and walk at heel
+(`src/scenes/crewAshore.js` `seat` and getDown; the motor's seat gate in
+`src/characters/enemy/enemyMotor.js`).
+
+**WAGON-ALIGHT (FIELD BUGS 2026-10-18, `01-Overview/bugs/Field-Bugs-2026-10-18.md`).**
+Nauya: "when they dismount from the wagon, they just drop down inside of it,
+and they get stuck in your wagon unable to help you or move out of it". The
+sentence above promised a step down that nothing took. The motor was the
+seat's only reader: a seat that went (the wagon parked, its team told to wait,
+a horse lost, a player given the seat) let the body fall through the bed where
+it sat, and the parked box - kept from closing round the player's capsule
+alone - stood round it. Its two-sided faces push no body out, so the companion
+stood boxed in for as long as the player stayed within the 40 m catch-up,
+which is exactly while a fight runs. Respawning the wagon freed them because
+the box stood again at the new pose.
+
+- **One get-down point.** `src/systems/wagon/wagonSeats.js` getDownPoint is
+  GET_DOWN_STEP (1.6 m) behind the seat's yaw, over the side and clear of the
+  box. The Open Wagon's seats stand 0.82 m off its middle and its box 1.6 m.
+  A player's getting down (`src/scenes/wagon/wagonRiders.js` getDown) and a
+  companion's both call it, and GET_DOWN_STEP and GET_DOWN_REACH moved into
+  the law beside it.
+- **The companion layer takes the step.** Each frame `crewAshore.js` keeps
+  the seat a body sits in. The frame its seat goes, the body is stood at the
+  seat's get-down point. The step is swept from the seat by the place's
+  `spot`, so it never lands in a wall, and the motor is stood afresh there
+  (resumeLive). A body further than GET_DOWN_REACH from its seat was moved by
+  something else and stays where it is, the player's own guard.
+- **The box law covers every body of mine.** `src/scenes/horseCartPool.js`
+  capsuleInBox reads `bodyCapsules` beside `playerCapsule`. The streaming
+  host hands it both companion layers' capsules (`crewAshore.capsules()` and
+  the sworn's `revenantAshore.capsules()`), so no box stands round a companion
+  getting down or one at heel where a wagon is laid. A wagon summoned where a
+  companion idles at heel inside its footprint stands its box once that
+  companion walks off it - the wagon can be walked through meanwhile (AUDIT
+  FB1018 L1-2, recorded).
+
+Pins: `test/scenes/fb1018_wagonalight.test.js` (7), on the real bake, cart
+runtime, pool, collider, seats, companion layer and motor. Mutants:
+`tools/mutants/fb1018_wagonalight.json` (12, all dead). AUDIT FB1018
+(`01-Overview/audits/Audit-Field-Bugs-2026-10-18.md`) added the seat given on
+the road, the step swept by a wall, who rides, the reach on both axes and the
+host's seat lines, and recorded one edge it did not fix: a floating-origin
+recentre on the very frame the wagon parks leaves a companion standing in the
+bed (L1-1), boxed by nothing, and it walks out at heel.
 
 **Departure (STANDING RIDERS).** Riders and companions ride STANDING in the
 bed. The port's people are billboards and DFU has no seated pose to give
@@ -718,7 +761,9 @@ push no body out - held the player in it.
 - The parked box stops at the body and the front axle: the pair's pole and
   the team stand outside it (`src/world/wagonModels.js` boundsOf).
 - The box is never stood round my capsule (capsuleInBox): a wagon laid where
-  I stand stands its box once I have stepped out of it. In is
+  I stand stands its box once I have stepped out of it. Since WAGON-ALIGHT
+  (`01-Overview/bugs/Field-Bugs-2026-10-18.md`) the same holds for my
+  companions' capsules (`bodyCapsules`). In is
   CAPSULE_BOX_SKIN past touching (AUDIT WAGONS3 T1: in at contact, every body
   leaning on the wagon took its box down, walked through it and stood again
   on the far side; feet on the caravan's roof dropped into it).
@@ -973,14 +1018,18 @@ comes back as the Small Cart, as built.
 ## THE FOUR HOSTS
 
 - `src/scenes/world.js` - wired: the models, the kinds, the capacity, the
-  stable, the caravan's door, the riders and the companions' seats; since
+  stable, the caravan's door, the riders and the companions' seats (and,
+  since WAGON-ALIGHT, their getting down and the box law over their
+  capsules); since
   WAGONS2 the paint, the Overworld's seats, the visits (the plaque's rows and
   word, the visit's door, the room's key, the owner's pieces, the listener).
 - `src/scenes/exterior.js` (the fixed city) - wired for the models, the kinds,
   the capacity, the stable and the paint, and (the final audit) its windows'
   view out of the street's wagons. FLAGGED: no caravan room, no riders
   and no visits. It has no peers and no private-room path, so the plaque lists
-  none of those rows.
+  none of those rows. It stands no companion layer either, so WAGON-ALIGHT's
+  getting down and `bodyCapsules` have nothing to wire there (its box law
+  reads my capsule alone, as before).
 - `src/scenes/worldModes.js` - the caravan's room: its entry, save field,
   restore, decor kind and exit; since WAGONS2 its turn, its paint tab, the
   visit (the guest's stations, bed and refusals, the pieces stood and

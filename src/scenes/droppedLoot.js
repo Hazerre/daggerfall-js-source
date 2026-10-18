@@ -91,6 +91,24 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
   physical.attach({ emptied: (backing) => { if (backing?.kind === 'pile' && backing.pile && !backing.pile.items.length) removePile(backing.pile); } });
   const presented = (p) => p.physical === true && physical.presents(p);
   const flatAnims = new FlatAnimator();   // FA1 slice 3: the rule lives in ONE place
+  /** FIELD BUGS 2026-10-18 LOOT-FLATS: A PILE'S BATCH IS FREED ONE WAY - out of the animator, then off the GPU. Five of the
+   *  nine frees (both restores, the scene's sweep) destroyed the batch and left its animator entry, so every room left and
+   *  every load kept ticking the dead batches of every animated pile it had held (EVERY ALLOCATION HAS AN OWNER). */
+  function freeBatch(p) {
+    if (!p.batch) return;
+    flatAnims.remove(p.batch);
+    renderer.destroyBillboardBatch(p.batch);
+  }
+  /** LOOT-FLATS: a pile's batch reminted where the pile now lies (a recentre, a moved ground) - its animator entry follows
+   *  it (the animator kept the old batch, and an animated pile stood still from its first recentre on). */
+  function remintBatch(p) {
+    const was = p.batch;
+    renderer.destroyBillboardBatch(was);
+    p.batch = renderer.createBillboardBatch(p.archive, p.record, p.size, [[p.pos[0], p.pos[1], p.pos[2]]]);
+    p.batch.noShadow = true;   // F2
+    p.batch.frame = 0;
+    flatAnims.rebind(was, p.batch);
+  }
   let _nextId = 0;   // AUDIT 17e F28: stable ids - keys must survive releaseEmptied's splice
   const roll = pick ?? (() => Math.floor(Math.random() * RANDOM_TREASURE_ICONS.length));
 
@@ -203,7 +221,7 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
     const i = piles.indexOf(pile);
     if (i < 0) return;
     pile.dead = true;   // AUDIT 24: an in-flight mount must not publish onto this
-    if (pile.batch) { flatAnims.remove(pile.batch); renderer.destroyBillboardBatch(pile.batch); }
+    freeBatch(pile);
     pile.batch = null;
     piles.splice(i, 1);
   }
@@ -218,7 +236,7 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
       const p = piles[i];
       if (p.pixelKey !== pixelKey) continue;
       p.dead = true;   // AUDIT 24: an in-flight mount must not publish onto this
-      if (p.batch) { flatAnims.remove(p.batch); renderer.destroyBillboardBatch(p.batch); }   // FA1: the clock goes with the batch
+      freeBatch(p);   // FA1: the clock goes with the batch
       piles.splice(i, 1);
     }
   }
@@ -232,7 +250,7 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
       const p = piles[i];
       if (p.pixelKey !== pixelKey || !keep(p)) continue;
       p.dead = true;   // AUDIT 24: an in-flight mount must not publish onto this
-      if (p.batch) { flatAnims.remove(p.batch); renderer.destroyBillboardBatch(p.batch); }
+      freeBatch(p);
       piles.splice(i, 1);
       out.unshift({ items: p.items, pos: [...p.pos], archive: p.archive, record: p.record, ...(p.physical ? { physical: true } : {}) });   // PI1
     }
@@ -255,7 +273,7 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
     });
   }
   function restoreWorld(saved, fromNative, yOffset = 0) {
-    for (const p of piles) { p.dead = true; if (p.batch) renderer.destroyBillboardBatch(p.batch); }   // AUDIT 24: mark first - an in-flight mount reads it
+    for (const p of piles) { p.dead = true; freeBatch(p); }   // AUDIT 24: mark first - an in-flight mount reads it
     piles.length = 0;
     physical.clear();   // PI1: a load is a new world - its bodies' items are laid down again, not thrown
     for (const s of saved ?? []) {
@@ -298,7 +316,7 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
    *  record - a restore must not reroll the icon. A snapshot with no
    *  piles clears, matching DFU's rebuild-from-save. */
   function restorePiles(saved) {
-    for (const p of piles) { p.dead = true; if (p.batch) renderer.destroyBillboardBatch(p.batch); }   // AUDIT 24: mark first - an in-flight mount reads it
+    for (const p of piles) { p.dead = true; freeBatch(p); }   // AUDIT 24: mark first - an in-flight mount reads it
     piles.length = 0;
     physical.clear();   // PI1: the scene went (or came back from its cache) - its items stand again with it
     for (const s of saved ?? []) {
@@ -336,7 +354,7 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
    *  emptied treasure pile stays emptied across a re-entry. */
   function deactivate(pile) {
     pile.inactive = true;
-    if (pile.batch) { flatAnims.remove(pile.batch); renderer.destroyBillboardBatch(pile.batch); }
+    freeBatch(pile);
     pile.batch = null;
   }
 
@@ -411,7 +429,7 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
       // port's owner rule (AUDIT 17e F28).
       if (p.container) { deactivate(p); continue; }
       p.dead = true;   // AUDIT 24: an in-flight mount must not publish onto this
-      if (p.batch) renderer.destroyBillboardBatch(p.batch);
+      freeBatch(p);
       piles.splice(i, 1);
     }
   }
@@ -425,12 +443,7 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
     for (const p of piles) {
       p.pos[0] += dx; p.pos[1] += dy; p.pos[2] += dz;
       // the centers are baked into a STATIC_DRAW buffer - rebuild
-      if (p.batch) {
-        renderer.destroyBillboardBatch(p.batch);
-        p.batch = renderer.createBillboardBatch(p.archive, p.record, p.size, [[p.pos[0], p.pos[1], p.pos[2]]]);
-        p.batch.noShadow = true;   // F2
-        p.batch.frame = 0;
-      }
+      if (p.batch) remintBatch(p);
     }
   }
 
@@ -445,12 +458,7 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
       const d = dy(p.pos[0], p.pos[2]);
       if (!d) continue;
       p.pos[1] += d;
-      if (p.batch) {
-        renderer.destroyBillboardBatch(p.batch);
-        p.batch = renderer.createBillboardBatch(p.archive, p.record, p.size, [[p.pos[0], p.pos[1], p.pos[2]]]);
-        p.batch.noShadow = true;   // F2
-        p.batch.frame = 0;
-      }
+      if (p.batch) remintBatch(p);
     }
   }
 

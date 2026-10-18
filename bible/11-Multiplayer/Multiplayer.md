@@ -194,6 +194,15 @@ count MEASURES first: each boss receipt carries what it saw, and nobody
 falls by it until staff set the relay's line. The world itself - the
 boss's blow on this screen, the potion, the save - is still the client's.
 
+GRANT0 (2026-10-17, `11-Multiplayer/Spawn-Grants.md`; PROPOSED, nothing
+built): a foe that rides to another player would exist only on a grant
+the relay rolls and signs when the foe is made. Its elite and champion
+are the relay's roll; its species comes from the grant's seed, which
+every reader checks against its own map files. The relay never reads
+the foe stream (revised 2026-10-18, for its cost). The simulation stays
+on the owner's machine, as decision 2 has it: the relay rolls a foe's
+identity, not its life.
+
 ### The state model is the save
 
 `systems/save/save.js` already knows how to snapshot the world and restore

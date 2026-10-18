@@ -25,6 +25,17 @@ export const RIDE_REASK_MS = 15_000;
 export const RIDE_ASK_REACH = 6;
 /** The most seats any wagon has (the wire's bound on a seat index). */
 export const MAX_SEATS = 4;
+/** How far beside the wagon a rider stands when they get down (m) - a player (scenes/wagon/wagonRiders.js getDown) and a
+ *  companion (scenes/crewAshore.js getDown) alike. */
+export const GET_DOWN_STEP = 1.6;
+/** WAGONS2 (AUDIT): how far from their seat a rider may be and still be stood down beside the wagon (m) - further, the
+ *  body was moved by something else (a load, a respawn, a teleport) and stays where it is. */
+export const GET_DOWN_REACH = 6;
+/** WHERE A RIDER GETS DOWN from `seat` (`{ feet, yaw }`, the pool's seatWorld): over the side behind them - a seat faces
+ *  across the bed, so GET_DOWN_STEP back from its feet is past the wagon's side, clear of its box (the Open Wagon's
+ *  seats stand 0.82 m off its middle, its box 1.6 m). FIELD BUGS 2026-10-18 WAGON-ALIGHT: ONE POINT FOR EVERY RIDER -
+ *  the players' alone had it, and a companion whose seat went dropped through the bed where it sat. */
+export const getDownPoint = (seat) => [seat.feet[0] - Math.sin(seat.yaw) * GET_DOWN_STEP, seat.feet[1], seat.feet[2] - Math.cos(seat.yaw) * GET_DOWN_STEP];
 /** A peer id as the wire carries one (net/wire.js's ids: the relay's, short and printable). */
 const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 export const validPeerId = (v) => typeof v === 'string' && ID_RE.test(v);

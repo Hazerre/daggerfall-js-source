@@ -796,8 +796,8 @@
   {
     "name": "AUF-L4M4-overlay-close-unasked",
     "file": "src/ui/firmamentWindow.js",
-    "old": "    if (!dead && unaccepted() && !armedClose) {\n      armedClose = true;",
-    "new": "    if (false) {\n      armedClose = true;",
+    "old": "    if (!dead && unaccepted() && !armedClose) {\n      arm();",
+    "new": "    if (false) {\n      arm();",
     "tests": [
       "test/systems/audit_uicalm_firm1.test.js"
     ]

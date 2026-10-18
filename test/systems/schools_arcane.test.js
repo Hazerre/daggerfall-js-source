@@ -166,8 +166,8 @@ test('SCHOOLS1 THE CHOICE: two mastered schools open their path, three open thre
   // the box: what it does, that it is permanent
   const rows = AP.pathChoiceRows(mage([ALT, RES, MYS]), 'necromancer');
   assert.deepEqual(rows, ['Specialise as Necromancer?', 'Restoration and Mysticism', '',
-    'Death\'s Due: Each foe you kill returns 5% of your health and 5% of your magicka.',
-    'Siphon Life (signature spell): 50% of what it lands heals you.', '', 'This decision cannot be undone.',
+    'Death\'s Due: Each kill restores 5% of your health and 5% of your magicka.',
+    'Siphon Life (signature spell): Heals you for 50% of the damage dealt.', '', 'This decision cannot be undone.',
     '2 other specialisations are open to you.']);
   assert.equal(AP.pathChoiceRows(mage([ALT, RES, MYS]), 'necromancer', { others: false }).length, 7);
 });

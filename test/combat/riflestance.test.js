@@ -64,6 +64,8 @@ function posed(asm, info, opts) {
   const grip = [0, 1, 2].map((i) => wb.t[i] + app(turn(wb.a), info.attitude.t)[i] * Math.hypot(wb.a[0], wb.a[3], wb.a[6]));
   return { barrel: [G[1], G[4], G[7]], top: [G[2], G[5], G[8]], grip, fit: asm.holdFit };
 }
+/** The left hand's finger joints, posed. */
+const leftFingers = (asm) => [...asm.skeleton.byName].filter(([n]) => /^bip01 l finger\d+$/.test(n)).map(([, r]) => asm.mats.get(r).t);
 /** The retail body's own frame (the oracle the test reads for itself): right from shoulder to shoulder, up the spine. */
 function bodyAxes(asm) {
   const at = (n) => asm.mats.get(asm.skeleton.byName.get(n)).t;
@@ -152,15 +154,42 @@ test('RIFLE-STANCE first person on the MW-STEEL4 stand-in (retail\'s bones, a ca
   };
   const muzzle = (g) => [0, 1, 2].map((i) => g.grip[i] + g.barrel[i] * 47);
   const aim = posed(asm, info, { w: 1, ready: 1, view: 'first', eyeRef: cam });
-  assert.ok(deg(aim.barrel, [0, 1, 0]) < 1.5, 'aim: down the lens');
+  // PIN MOVED (RIFLE-AIM-LOW, 2026-10-18): the aim was level down the lens (within 1.5 degrees of +Y) with the left WRIST in
+  // the picture; it is 4 degrees down the lens now, under the crosshair, and the left hand is seen where it holds - its
+  // fingers on the forend - with the wrist below the picture's edge
+  assert.ok(deg(aim.barrel, [0, Math.cos(4 * RAD), -Math.sin(4 * RAD)]) < 1.5, 'aim: down the lens, 4 degrees under it');
   assert.ok(inLens(muzzle(aim)).ok, 'its muzzle in the picture');
-  assert.ok(inLens(asm.mats.get(asm.skeleton.byName.get('bip01 l hand')).t).ok, 'and the left hand under it');
+  assert.ok(leftFingers(asm).some((p) => inLens(p).ok), 'and the left hand under it, its fingers on the forend');
   assert.ok(aim.fit.reach.R < 0.05 && aim.fit.reach.L < 0.05, 'both wrists on their holds');
   const low = posed(asm, info, { w: 1, ready: 0, view: 'first', eyeRef: cam });
   assert.ok(inLens(muzzle(low)).ok, 'low: its muzzle in the picture');
   assert.ok(inLens(muzzle(low)).v < inLens(muzzle(aim)).v, 'and lower than the aim\'s');
   assert.ok(low.fit.reach.R < 0.05 && low.fit.reach.L < 0.05, 'both wrists on their holds');
   assert.equal(rifleStanceRequest(asm.skeleton, asm.mats, { view: 'first', eyeRef: null }), null, 'no eye: nothing');
+});
+
+test('RIFLE-AIM-LOW (Mac: "the thunderlock in first person (morrowind) when shooting/aiming sits too high on the screen"): in first person the aimed gun stands WHOLLY UNDER THE CROSSHAIR - every vertex of the posed gun at least 0.15 of the picture\'s half-height below its middle (the level barrel at 0.17 of the arm under the eye ran off toward the vanishing point, its top 0.20 of the half-height ABOVE the middle); its muzzle and the left hand\'s fingers on the forend in the picture; both wrists on their holds; still above the low ready (mutants: RIFLE-AIM-LOW-the-old-row, RIFLE-AIM-LOW-level)', async () => {
+  const { asm, info, cam } = await holding({ eye: [0, 6, 123] });
+  const half = Math.tan(FP_FIELD_OF_VIEW / 2);
+  /** The posed gun's highest point on the picture, a share of the half-height above (+) or below (-) its middle. */
+  const gunTop = () => {
+    const eye = asm.mats.get(cam).t;
+    let top = -Infinity;
+    for (const p of asm.pieces.filter((q) => q.slot === 'weapon')) {
+      const v = p.positions;
+      for (let i = 0; i < v.length; i += 3) { const d = v[i + 1] - eye[1]; if (d > 1e-6) top = Math.max(top, (v[i + 2] - eye[2]) / d / half); }
+    }
+    return top;
+  };
+  const picture = (p) => { const eye = asm.mats.get(cam).t, d = sub(p, eye); return d[1] > 0 && Math.abs(d[2] / d[1]) < half && Math.abs(d[0] / d[1]) < half * 4 / 3; };
+  const aim = posed(asm, info, { w: 1, ready: 1, view: 'first', eyeRef: cam });
+  const top = gunTop();
+  assert.ok(top < -0.15, `the gun wholly under the crosshair: its top ${top.toFixed(3)} of the half-height from the middle`);
+  assert.ok(picture([0, 1, 2].map((i) => aim.grip[i] + aim.barrel[i] * 47)), 'its muzzle in the picture');
+  assert.ok(leftFingers(asm).some(picture), 'the left hand\'s fingers on the forend, in the picture');
+  assert.ok(aim.fit.reach.R < 0.05 && aim.fit.reach.L < 0.05, 'both wrists on their holds');
+  posed(asm, info, { w: 1, ready: 0, view: 'first', eyeRef: cam });
+  assert.ok(gunTop() < top, 'and the low ready lower still');
 });
 
 test('RIFLE-STANCE the fight\'s signal: a foe\'s harm on the player within a window (playerHarmedWithin) - a fresh one stands, an old one does not, a player\'s own does not count, and the fights\' end forgets it', () => {

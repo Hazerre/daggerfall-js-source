@@ -102,6 +102,6 @@ test('RVN13 THE HOSTS: the street writes and reads all four (its master by its n
   const d = read('src/scenes/dungeonContext.js');
   assert.match(d, /if \(f\.entity\?\.revenant\) Object\.assign\(r, feudWire\(f\.entity\.revenant\)\);/);   // PIN MOVED (AUDIT FEUD: a new authority's too)
   assert.match(d, /\$\{r\.v\},\$\{r\.ad \?\? 0\},\$\{r\.wq \?\? -1\},\$\{r\.p2 \?\? 0\}/);
-  assert.match(d, /if \(_fw !== \(f\._feudWire \?\? null\)\) \{ f\._feudWire = _fw; f\.entity\.revenant = _fw \? feudFromWire\(f\.entity\.revenant, r\)/);
+  assert.match(d, /if \(_feudOk && _fw !== \(f\._feudWire \?\? null\)\) \{ f\._feudWire = _fw; f\.entity\.revenant = _fw \? feudFromWire\(f\.entity\.revenant, r\)/);
   assert.match(d, /if \(data\.wc != null && hitClassOf\(data\)\?\.weak && f\.entity\?\.revenant\?\.id\) feudRevealWeak\(f\.entity\);/);
 });

@@ -1704,7 +1704,12 @@ export class Renderer {
     this.maxPointLights = CLASSIC_MAX_LIGHTS;
     this._decA = new Float32Array(3); this._decB = new Float32Array(3); this._decC = new Float32Array(3);   // AUDIT F4: three, because one site decodes the ambient, the moon AND the sun and holds all three   // EL1: the decode scratch (two, for the billboard tint's two terms)
     this._pointColorDec = new Float32Array(CLASSIC_MAX_LIGHTS * 3);
-    this.stats = { draws: 0, programBinds: 0, vaoBinds: 0, texBinds: 0, bbCulled: 0, spriteBinds: 0 };   // PERF-CROWD2: bbCulled, the billboards this frame did NOT submit; MWNPC2: spriteBinds, the body batch's binds of the sprite target; MWNPC1: made before the first world set is built - its character program is bound through _use there
+    this.stats = { draws: 0, programBinds: 0, vaoBinds: 0, texBinds: 0, bbCulled: 0, spriteBinds: 0, viewDraws: 0, shadowDraws: 0 };   // PERF-CROWD2: bbCulled, the billboards this frame did NOT submit; MWNPC2: spriteBinds, the body batch's binds of the sprite target; MWNPC1: made before the first world set is built - its character program is bound through _use there
+    // FIELD BUGS 2026-10-18 PASS-COUNT: THE FRAME'S OTHER PASSES, COUNTED (viewDraws, shadowDraws). The view out
+    // (outsideViewFrame) draws the street BEFORE the room's beginFrame, whose reset lost its draws, and the shadow maps kept
+    // their own count - so a building's overlay read "draws 67" over a frame that drew a city's street through the glass
+    // and every lamp's cube. The room's beginFrame takes the view out's count (its own nested begin, `_rwOutside` set,
+    // takes none) and the lane's shadow render writes its own.
     this._skinNrm = new Float32Array(9);   // MWNPC1: drawCharacter's normal-matrix scratch (skinNormalMatrix)
     this._spriteBatch = { items: [], open: false, depth: 0 };   // MWNPC2: the body pass's pictures, queued for one bind (beginCharacterSpriteBatch)
     /** @type {WebGLTexture|null} */ this._skinIdentity = null;    // MWNPC1: the identity palette (_skinIdentityTex) - before the first set is built, which makes it
@@ -3052,6 +3057,7 @@ export class Renderer {
         haze: this._lane ? this._lane.scatterDensity(this._fogMode, this._fogDensity, this._fogRange[0], this._fogRange[1]) : 0,   // VC7b: the fog's extinction, for the sun's march through the haze
       });
     }
+    this.stats.shadowDraws = (sp.stats.sunDraws | 0) + (sp.stats.pointDraws | 0);   // PASS-COUNT: the shadow maps' replays this frame
     this._perf?.mark('world');   // VC6d: the passes' work is submitted; everything until the sky or the resolve is the world's own draws
     sp.discard();
     this._restoreWorldViewport();
@@ -5530,7 +5536,7 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
   beginFrame(proj, view, lightDir, opts = null) {
     this._close2D();   // PERF-2D: the baseline back, before anything that needs it
     const s = this.stats;
-    s.draws = 0; s.programBinds = 0; s.vaoBinds = 0; s.texBinds = 0; s.bbCulled = 0;   // PERF-CROWD2
+    s.draws = 0; s.programBinds = 0; s.vaoBinds = 0; s.texBinds = 0; s.bbCulled = 0; s.shadowDraws = 0;   // PERF-CROWD2; PASS-COUNT
     // VC4: the cloud shadow deck is a FRAME's, not the renderer's - a host
     // that wants one sets it after this (the exterior hosts do, per
     // pixel); an interior or a dungeon, which never does, gets none, and
@@ -5575,6 +5581,8 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
     // LC1: the lantern grid for this frame's lights, on a WORLD frame of the lane alone (a panel bracket's frame is another view and another viewport: every light)
     this._clustersLive = !!this._lane && opts?.world === true && !this._panelSaved && this._spriteDepth === 0 && this._studioDepth === 0 && this._buildClusters(proj, view);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    s.viewDraws = this._rwOutside ? 0 : this._rwViewDraws;
+    this._rwViewDraws = 0;   // PASS-COUNT: the view out's draws, taken by the room's frame (the stats' note) - the view out's own begin zeroes it too, and its close counts afresh
     this._use(this.program);
     gl.uniformMatrix4fv(this.uProj, false, proj);
     gl.uniformMatrix4fv(this.uView, false, view);
@@ -5917,11 +5925,12 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
   }
 
   /** PANE-CLIP (FIELD BUGS 2026-10-12g): THE PANES' DEPTH - the last watched frame's glass and cutout sub-meshes, depth
-   *  alone, under the view out's lens and into its own texture (cleared to the far plane: no pane). Answers whether any
-   *  drew. A pane whose mesh was let go since (the room left) is passed over. */
+   *  alone, under the view out's lens and into its own texture (cleared to the far plane: no pane). Answers how many
+   *  drew (AUDIT FB1018 L2-3: the view out's count takes them - its own begin zeroes the stats they went into). A pane
+   *  whose mesh was let go since (the room left) is passed over. */
   _rwDrawPanes(t, pv) {
     const n = this._rwPaneN;
-    if (!n) return false;
+    if (!n) return 0;
     this._close2D();   // PERF-2D: the baseline back (outsideViewFrame closed it already - the law is each drawer's own)
     const gl = this.gl;
     const P = (this._rwPaneProg ??= this._rwPaneProgram());
@@ -5943,7 +5952,7 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
       drew++;
     }
     gl.enable(gl.CULL_FACE);
-    return drew > 0;
+    return drew;
   }
 
   /** PANE-CLIP: the panes' program, built on the first view out that has panes. */
@@ -5987,11 +5996,11 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
       proj: this._proj, view: this._view, lightDir: this._lightDir, camPos: [this._camPos[0], this._camPos[1], this._camPos[2]],
       worldViewportPx: this._worldViewportPx, rw: { rooms: this._rw.rooms, watch: this._rw.watch, live: this._rw.live },
     };
-    let drew = false;
+    let drew = false, panes = 0, begun = false;
     try {
       if (this._lane) { this._lane = null; this._installWorldSet(this._classicSet); }
       this._air = null; this._shadows = null;
-      const panes = this._rwDrawPanes(t, mat4Multiply(cropProj, view, t.pv));   // PANE-CLIP: before the street's own target is bound
+      panes = this._rwDrawPanes(t, mat4Multiply(cropProj, view, t.pv));   // PANE-CLIP: before the street's own target is bound
       gl.bindFramebuffer(gl.FRAMEBUFFER, t.fbo);
       if (!t.attached) {
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t.tex, 0);
@@ -6015,7 +6024,7 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
       }
       t.fog = Float32Array.from(this._fogColor);   // the background's sky stands under the same air
       this.setClearColor(VIEW_OUT_CLEAR);   // nothing drawn is the sky: the background paints it
-      this.beginFrame(cropProj, view, sunDir ?? (k?.taken ? k.lightDir : this._lightDir));
+      this.beginFrame(cropProj, view, sunDir ?? (k?.taken ? k.lightDir : this._lightDir)); begun = true;   // PASS-COUNT (AUDIT FB1018 L2-4): from here the stats are the view out's
       this._frameFbo = t.fbo; setFrameTarget(t.fbo);   // RW1 (AUDIT): again - the frame's own begin let the lane's target go, and a sprite pass restoring "the frame's" target would have drawn on the screen
       gl.viewport(0, 0, t.w, t.h);
       this._worldViewportPx = [0, 0, t.w, t.h];   // a pass that restores "the world's" viewport restores this one
@@ -6034,11 +6043,13 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
       const info = { renderer: this, proj: cropProj, view, pv: t.pv, planes: t.planes, eye: [this._camPos[0], this._camPos[1], this._camPos[2]] };
       scene.draw(info);
       for (const f of this.outsideViewDraws) f(info);
-      this._rwViewDraws = this.stats.draws;
       drew = true;
     } catch (e) {
       console.warn('[real windows] the view out could not be drawn', e?.message ?? e);
     } finally {
+      // PASS-COUNT: the view out keeps its own count as it closes - the street since its begin and the panes before it
+      // (AUDIT FB1018 L2-3), and what went out before a throw too (L2-4)
+      this._rwViewDraws = (begun ? this.stats.draws : 0) + panes;
       if (this._rwPaneOn) {   // the panes are the pass's alone: off, the sampler back on unit 0 (a picture is always bound there), the unit emptied
         this._use(this.program); gl.uniform1f(this.rwLocs.paneOn, 0); gl.uniform1i(this.rwLocs.pane, 0);
         this._activeTexture(gl.TEXTURE0 + VIEW_PANE_UNIT); gl.bindTexture(gl.TEXTURE_2D, null); this._activeTexture(gl.TEXTURE0);

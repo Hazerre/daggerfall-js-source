@@ -85,7 +85,8 @@ test('EG-ZM THE TIMERS ROW\'S DOOR (section 20): where the host hands the boards
   assert.equal(all(v3.root, 'tm-door').length, 0);
   // THE PAUSE FACE: a handoff, as the sheet's doors - and a door that opened nothing resumes
   const menu = rd('src/ui/enhanced/enhancedMenu.js');
-  assert.match(menu, /\nconst timersDoor = \(fn\) => \{ onAction\('handoff'\); if \(!fn\(\)\) onAction\('resume'\); \};\n/);
+  // PIN MOVED (AUDIT GROWTH LANE2-3): a Growth face under the window is asked first, then the hand-off as before
+  assert.match(menu, /\nconst timersDoor = \(fn\) => \{\n\s*if \(pauseTab === 'growth' && growthAsks\(\)\) \{ [^\n]*return; \}\n\s*onAction\('handoff'\); if \(!fn\(\)\) onAction\('resume'\);\n\};\n/);
   assert.match(menu, /timersWindow\(document, \{ read: \(\) => hooks\.timers\?\.\(\{ ask: true \}\) \?\? null, onClose: [^\n]*, door: timersDoor \}\);/);
 });
 

@@ -60,7 +60,8 @@ const baseTones = (P) => ({
  * @property {(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, rim: string, line: (w: number) => number) => void} drawStart
  * @property {{ forget: string, forgot: string, accept: string, acceptN: (n: number) => string, summary: string, home: string,
  *   homeAria: string, close: string, hint: string, hintTouch: string, unaccepted: string, set: string, startTip: string,
- *   backMany: (n: number) => string, back: string, take: (n: number) => string, noPoints: string | null }} words
+ *   backMany: (n: number) => string, back: string, take: (n: number) => string, noPoints: string | null, unacceptedEsc?: string }} words
+ *   `unacceptedEsc` the ask in the Growth tab (GROWTH3's `embed`), whatever press would leave the sky
  */
 
 const el = (tag, cls = null, text = null) => {
@@ -75,10 +76,12 @@ function seeded(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 10
 
 /**
  * Mount a sky over `host`. `changed` once a sky is accepted (the save's word); `onExit` when it closes.
+ * GROWTH3 (bible/10-UI/Growth.md section 6): `embed` draws it in the pause window's Growth tab - the Firmament's own
+ * embedding (ui/firmamentWindow.js): the stage's size, no Close and no Escape of its own; the window asks `back()`.
  * @param {HTMLElement} host @param {SkyDesc} sky
- * @param {{ changed?: () => void, onExit?: (reason?: string) => void, doc?: Document }} [deps]
+ * @param {{ changed?: () => void, onExit?: (reason?: string) => void, doc?: Document, embed?: boolean }} [deps]
  */
-export function mountSkyWindow(host, sky, { changed = () => {}, onExit = () => {}, doc = document } = {}) {
+export function mountSkyWindow(host, sky, { changed = () => {}, onExit = () => {}, doc = document, embed = false } = {}) {
   injectEnhancedStyle(doc);
   injectEnhancedFonts(doc);
   if (doc.getElementById && !doc.getElementById(FIRM_STYLE_ID)) {
@@ -141,6 +144,7 @@ export function mountSkyWindow(host, sky, { changed = () => {}, onExit = () => {
   sayBox.setAttribute('data-grim', 'ink');
   sayBox.setAttribute('role', 'status');
   root.append(canvas, bar, side, tip, hint, sayBox);
+  if (embed) { root.classList.add('fmt-embed'); root.setAttribute('aria-modal', 'false'); exitBtn.hidden = true; }   // GROWTH3
   host.append(root);
 
   // ── the view ──
@@ -180,11 +184,19 @@ export function mountSkyWindow(host, sky, { changed = () => {}, onExit = () => {
   let dirty = true;
   let sayTimer = 0;
   let armedClose = false;
+  // AUDIT GROWTH LANE3-8: the ask is for the stars it named - one taken or given back since, and the next leave asks again
+  let armedAt = '';
+  const rearm = () => { if (armedClose && armedAt !== pending.join()) armedClose = false; };
+  const arm = () => { armedClose = true; armedAt = pending.join(); };
   const heldSet = () => new Set(pending);
 
+  /** AUDIT GROWTH LANE2-6: the line under the bar, in the root's own frame - in the tab the root is not at the screen's
+   *  top (it stood 200 px low, or off a short stage), and again whenever the window is resized (a phone's face measured
+   *  while it waited, detached, for its door). */
+  const placeSay = () => { sayBox.style.top = `${Math.round((barFoot() || 66) + 10)}px`; };
   function say(text, refused = false, stay = false) {
     sayBox.textContent = text;
-    sayBox.style.top = `${Math.round((bar.getBoundingClientRect?.().bottom ?? 66) + 10)}px`;
+    placeSay();
     sayBox.classList.add('on');
     sayBox.classList.toggle('no', refused);
     clearTimeout(sayTimer);
@@ -370,10 +382,11 @@ export function mountSkyWindow(host, sky, { changed = () => {}, onExit = () => {
 
   // ── the keys: a modal window owns its input ──
   function onKey(e) {
-    if (dead) return;
+    if (dead || (embed && !root.isConnected)) return;   // GROWTH3: a stage between two draws of its page hears nothing
+    if (embed && root.closest?.('[inert]')) return;   // AUDIT GROWTH LANE2-1: and nothing while a window over the pause window holds it inert (the account window's fields)
     let used = true;
     switch (e.key) {
-      case 'Escape': tryClose(); break;
+      case 'Escape': if (embed) { used = false; break; } tryClose(); break;   // GROWTH3: the window's back stack asks back()
       case 'Enter': if (e.target?.tagName === 'BUTTON') { used = false; break; } click(); accept(); break;
       case 'h': case 'H': click(); fit(); break;
       case '+': case '=': zoomAt(vw() / 2, vh() / 2, 1.25); break;
@@ -389,9 +402,18 @@ export function mountSkyWindow(host, sky, { changed = () => {}, onExit = () => {
     if (used) { e.preventDefault(); e.stopPropagation(); }
   }
   globalThis.addEventListener?.('keydown', onKey, true);
+  /** GROWTH3: the pause window's back stack, in the tab - unaccepted stars asked about once; whether it took the press. */
+  function back() {
+    rearm();
+    if (dead || !unaccepted() || armedClose) return false;
+    arm();
+    say(W.unacceptedEsc ?? W.unaccepted, true);
+    return true;
+  }
   /** Closing with a change not accepted asks first - once; the second close lets it go. */
   function tryClose() {
-    if (unaccepted() && !armedClose) { armedClose = true; say(W.unaccepted, true); return false; }
+    rearm();
+    if (unaccepted() && !armedClose) { arm(); say(W.unaccepted, true); return false; }
     close();
     return true;
   }
@@ -406,10 +428,14 @@ export function mountSkyWindow(host, sky, { changed = () => {}, onExit = () => {
     hold();
     placeSide();
     dirty = true;
+    placeSay();   // LANE2-6
   }
   resize();
   const onResize = () => resize();
   globalThis.addEventListener?.('resize', onResize);
+  // GROWTH3: in the tab the stage moves under the sky - it is watched
+  let watch = null;
+  if (embed) try { watch = new globalThis.ResizeObserver(() => { if (!dead) resize(); }); watch.observe(root); } catch { watch = null; }
 
   function background(time) {
     const w = canvas.width, h = canvas.height;
@@ -610,7 +636,7 @@ export function mountSkyWindow(host, sky, { changed = () => {}, onExit = () => {
   fit();
   hold();
   if (sky.points() === 0 && W.noPoints) say(W.noPoints, false, true);
-  (goBtn.disabled ? homeBtn : goBtn).focus?.({ preventScroll: true });   // AUDIT RVN-STARS S21: a disabled Accept takes no focus - the dialog's first press does
+  if (!embed) (goBtn.disabled ? homeBtn : goBtn).focus?.({ preventScroll: true });   // GROWTH3: in the tab the window's own focus stands   // AUDIT RVN-STARS S21: a disabled Accept takes no focus - the dialog's first press does
 
   /** Down, and nothing said - the door's own dispose (it is the one closing). */
   function teardown() {
@@ -620,6 +646,7 @@ export function mountSkyWindow(host, sky, { changed = () => {}, onExit = () => {
     clearTimeout(sayTimer);
     globalThis.removeEventListener?.('keydown', onKey, true);
     globalThis.removeEventListener?.('resize', onResize);
+    watch?.disconnect?.();
     root.remove();
     return true;
   }
@@ -636,6 +663,10 @@ export function mountSkyWindow(host, sky, { changed = () => {}, onExit = () => {
     model: () => ({ committed: committed.slice(), pending: pending.slice(), changes: changes(), view: { ...view }, hover }),
     /** Probe seams: press a star, take one back, accept, close as the Escape key does - as a player would. */
     take, giveBack, accept, tryClose,
+    /** GROWTH3: the tab's Escape (above), and the stage's word that it moved (refit: its first true size). */
+    back,
+    resize: (refit = false) => { if (dead) return; if (refit && embed && vw() < 980) side.classList.add('shut'); resize(); if (refit) { fit(); hold(); } },   // a narrow stage starts with the summary shut
+    close,
     hoverAt: (id) => { const s = starOf(id); if (!s) return; const p = toScreen(s.pos[0], s.pos[1]); setHover(id, p.x, p.y); },
   };
 }

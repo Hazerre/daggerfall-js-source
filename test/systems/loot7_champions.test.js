@@ -107,7 +107,8 @@ test('LOOT7: the street\'s - a hash of where it stands, its type and the count, 
   const ef = strip(read('src/scenes/exteriorFoes.js'));
   assert.match(ef, /if \(!allied && !entity\.eliteFoe\) applyChampion\(entity, champion !== undefined \? champion : revenant \? \(revenant\.trait \? championIndex\(revenant\.trait\) : null\) : \(capped \? rollStreetChampion\(pending\.feet, mobileType\) : null\), \{ own: !puppet \}\);\s*(?:if \(revenant && !puppet\) applyRevenant\(entity, revenant(?:, \{ turned \})?\);\s*)?(?:(?:const wild = |if \(wild|if \(zoneGiant != null\))[^\n]*\n\s*|entity\.(?:maxHealth|healthMult|damageScale) = [^\n]*\n\s*|\}\s*\n\s*)*if \(puppet\) entity\.items = \[\];/, 'the owner rolls an encounter\'s, a puppet takes its owner\'s word - before the loot (WILD1: the open zone\'s scaling between; ELITE FOES: never on an elite - one or the other)');   // ZONE-GIANTS/PVPGIANT: the zone's giant marks and its ten-times body are the zone's scaling too
   assert.match(ef, /if \(!onWatch && f\.entity\?\.champion\) r\.cp = championIndex\(f\.entity\.champion\);/, 'the record carries it');
-  assert.equal((ef.match(/champion: r\.cp \?\? null/g) ?? []).length, 2, 'both of a puppet\'s stands read it');
+  assert.equal((ef.match(/const cp = Number\.isInteger\(r\.cp\) && championsOf\(from\) < PEER_CHAMPION_PUPPETS_MAX \? r\.cp : null;/g) ?? []).length, 2, 'both of a puppet\'s stands read it, under its owner\'s champions');   // PIN MOVED (GRANT0, Spawn-Grants.md section 8: the trait counted)
+  assert.equal((ef.match(/champion: cp \}\)/g) ?? []).length, 2, 'and stand it');
   assert.match(ef, /champion: f\.entity\.champion \?\? null,/, 'a save keeps it');
   assert.match(ef, /champion: sf\.champion \? championIndex\(sf\.champion\) : null/, 'and a load stands it again, never rolled');
 });

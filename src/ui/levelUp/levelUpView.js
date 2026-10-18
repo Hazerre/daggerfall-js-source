@@ -71,12 +71,13 @@
 import { STAT_KEYS_ORDER } from '../../systems/chargen.js';
 import { statUp, statDown, MAX_STAT_VALUE } from '../chargen.js';
 import { mustDistributeBonusPointsText } from '../charsheet.js';
-import { REMAINING_POINTS_ERROR, REMAINING_POINTS_LABEL, TAKE_ONE_BACK_HINT } from '../virtueLevelUp.js';
+import { REMAINING_POINTS_ERROR, remainingPointsLabel, TAKE_ONE_BACK_HINT } from '../virtueLevelUp.js';
 import { attributeOffset, canRaiseAttribute, canLowerAttribute, LEVELUP_TOTAL, levelBarProgress, levelingSettings, usesVirtueLeveling } from '../../systems/oblivionLeveling.js';   // ASCEND-ANYTIME: a mod-law view still needs the mod's own prices to draw a row
 import { LEVELUP_SKILL_SUM_PER_LEVEL, skillRecentlyIncreased } from '../../systems/advancement.js';
 import { SKILL_NAMES, displaySkillValue } from '../../systems/skills.js';
 import { liveStat } from '../../systems/statMods.js';   // ASCEND-LIVE: what a star IS, beside what the rollout spends
 import { sheetModel } from '../enhanced/enhancedCharSheet.js';
+import { t } from '../../systems/textManager.js';   // AUDIT GROWTH LANE5-1: the window's own words, read in the player's language when drawn
 
 /** The three shapes a level-up can wear. They are not three laws -
  *  oghma is the classic screen with `oghma` latched (AUDIT 39: a FIXED
@@ -99,8 +100,18 @@ export function levelUpLane(screen) {
 /** The eight, as a player reads them. The classic sheet prints
  *  three-letter heads because a 320x200 panel has no room; this window
  *  has the room for the whole word, the same call ui/virtueLevelUp.js
- *  made. */
-export const attributeLabel = (k) => (k ? k.charAt(0).toUpperCase() + k.slice(1) : '');
+ *  made. AUDIT GROWTH LANE5-1: each read in the player's language; a key that is no attribute keeps its own word. */
+const ATTRIBUTE_NAME = Object.freeze({
+  strength: () => t('levelup.attr.strength', 'Strength'),
+  intelligence: () => t('levelup.attr.intelligence', 'Intelligence'),
+  willpower: () => t('levelup.attr.willpower', 'Willpower'),
+  agility: () => t('levelup.attr.agility', 'Agility'),
+  endurance: () => t('levelup.attr.endurance', 'Endurance'),
+  personality: () => t('levelup.attr.personality', 'Personality'),
+  speed: () => t('levelup.attr.speed', 'Speed'),
+  luck: () => t('levelup.attr.luck', 'Luck'),
+});
+export const attributeLabel = (k) => (Object.hasOwn(ATTRIBUTE_NAME, k) ? ATTRIBUTE_NAME[k]() : k ? k.charAt(0).toUpperCase() + k.slice(1) : '');
 
 /**
  * WHAT EACH ATTRIBUTE DOES, in one line, and every line names a
@@ -115,10 +126,14 @@ export const attributeLabel = (k) => (k ? k.charAt(0).toUpperCase() + k.slice(1)
  * `ui/charSheetDoor.js` promises the enhanced skin "reads no ARENA2 at
  * all" and this window is behind that promise, so these are the port's
  * own words - as ui/settings/settingsCopy.js's are.
+ *
+ * AUDIT GROWTH LANE5-1 (the owner: "no AI like text, over explanations, or weird descriptions"): each a getter, so a
+ * line is read in the player's language when it is drawn, and each said plainly - what raising the attribute does,
+ * in the game's own terms, with no figure of speech in the way.
  */
 export const ATTRIBUTE_BLURB = Object.freeze({
   // combat/formulas.js:"export function damageModifier" damageModifier = floor((strength - 50) / 5),
-  // which calculateAttackDamage adds to every landed blow;
+  // which calculateAttackDamage adds to every landed blow (a weapon's, a bow's or the fists');
   // entityMaxEncumbrance over liveStat strength is the pack's ceiling.
   //
   // LV1's AUDIT CORRECTED THE SECOND CLAUSE. It read "what you can
@@ -128,37 +143,40 @@ export const ATTRIBUTE_BLURB = Object.freeze({
   // all; DFU draws the figure and never charges for it"). A window
   // that promises a penalty the game does not apply is teaching a
   // player to spend a point on nothing.
-  strength: 'Adds to every blow you land, and to the weight your pack will hold.',
-  // systems/chargen.js:"skillUses: new Array" - spellPoints(intelligence, multiplier) is the whole magicka pool.
-  intelligence: 'Sets your pool of spell points, by your class\'s own multiplier.',
+  get strength() { return t('levelup.blurb.strength', 'Raises the damage of every hit you land and how much you can carry.'); },
+  // systems/chargen.js:"const maxMagicka = spellPoints" - spellPoints(intelligence, multiplier) is the whole magicka pool.
+  get intelligence() { return t('levelup.blurb.intelligence', 'Sets your maximum magicka: Intelligence times your class\'s multiplier.'); },
   // systems/spellcast.js:"saving += magicResist(liveStat(target, 'willpower'))" - `saving += magicResist(liveStat(target,
   // 'willpower'))`, the CONSUMER of DFU's MagicResist. The first cut
   // cited systems/quest/questMacros.js:"return 'BLANK';", which only PRINTS the same
   // figure for %mr, and a display is not evidence that a number does
   // anything (LV1's audit).
-  willpower: 'Hardens you against magic: a tenth of it goes into every saving throw.',
+  get willpower() { return t('levelup.blurb.willpower', 'Resists spells: a tenth of your Willpower is added to every saving throw.'); },
   // combat/formulas.js:"export const statsToHit" statsToHit = floor((your luck - theirs) / 10)
-  // + floor((your agility - theirs) / 10), read INSIDE the hit roll.
+  // + floor((your agility - theirs) / 10), read INSIDE the hit roll - every attack's, so it is the
+  // player's swing at a foe and a foe's at the player alike (calculateSuccessfulHit).
   //
   // LV1's AUDIT CORRECTED THIS ONE TOO. It described `toHitModifier`
   // (:118, floor(agility/10) - 5), which is the CHARACTER SHEET's
   // display modifier - ui/chargen.js:"toHit: sign(toHitModifier(st.agility))" and the quest macros are its
   // only readers - so "a tenth of it, less five, rides on every swing"
   // named a number that rides nothing.
-  agility: 'Rides every swing: a tenth of the gap between your agility and your foe\'s.',
+  get agility() { return t('levelup.blurb.agility', 'Raises your chance to hit and lowers the enemy\'s chance to hit you.'); },
   // systems/chargen.js hitPointsPerLevelUp reads hitPointsModifier = floor(endurance / 10) - 5.
-  endurance: 'Rolls into the health you gain at every level from here on.',
-  // combat/formulas.js:"(:377-380), and this" - merchant reaction takes personality / 5; systems/court.js:"let chance = legalRep" takes it again.
-  personality: 'Warms merchants, judges and anyone else weighing what you are worth.',
+  get endurance() { return t('levelup.blurb.endurance', 'Raises the health you gain each level from now on.'); },
+  // systems/shopStock.js:"export function calculateTradePrice" haggles Mercantile and Personality against the
+  // merchant's; scenes/townTalk.js:"personality: playerEntity.stats?.personality != null ? liveStat(playerEntity, 'personality') : 50,"
+  // is the talk reaction's personality / 5; systems/court.js:"let chance = legalRep" is the Not Guilty plea's.
+  get personality() { return t('levelup.blurb.personality', 'Better prices, friendlier townspeople and better odds in court.'); },
   // player/motor.js:"this.speed = walkSpeed" walkSpeed(stats.speed) is how fast you move;
-  // combat/weapon/weaponRig.js:"HT1: HANDHELD TORCHES." reads liveStat speed for the swing.
-  speed: 'Quickens your weapon and closes the ground between you and a fight.',
+  // combat/weapon/weaponRig.js:"const playerWeapon = new PlayerWeapon" reads liveStat speed for the swing.
+  get speed() { return t('levelup.blurb.speed', 'Makes you move and swing your weapon faster.'); },
   // combat/formulas.js:"export const statsToHit" again - the same term agility rides -
   // and systems/unleveledLoot.js:"const playerLuck", where the vendored ladder rolls
   // rarity against the player's luck, which is where a player actually
   // notices it. (AUDIT 28e: a line shorter - at 360 to 375 wide it was the one blurb that ran to a third line, and
   // the tallest sets the Ascension's band.)
-  luck: 'Rides every swing with agility, and tilts what the dead and dungeons hold.',
+  get luck() { return t('levelup.blurb.luck', 'Helps you hit and avoid hits, as Agility does, and improves your loot.'); },
 });
 
 /**
@@ -276,8 +294,8 @@ export function viewOnlyScreen(entity, virtue = false) {
   const e = entity ?? {};
   const stats = { ...(e.stats ?? {}) };
   return {
-    /** What the crown reads to promise no level, and the window to ask
-     *  its own question instead of "choose what rises". */
+    /** What the crown reads to promise no level, and the window to say
+     *  what it shows instead of asking for points it does not have. */
     viewOnly: true,
     entity: e,
     cursor: 0,
@@ -358,11 +376,12 @@ export function rolloutRows(screen) {
 
 /** ASCEND-LIVE: the line under the pick, when what the character HAS is not the permanent value the presses move -
  *  and, where a point would not show, that it would not. Empty when the two agree. One line on a phone (AUDIT 28e:
- *  "...shows only once that ends" wrapped to four); the star's own words say the rest. */
+ *  "...shows only once that ends" wrapped to four); the star's own words say the rest. AUDIT GROWTH LANE5-1: a value
+ *  below the permanent one says it is lowered ("43 for now" named no cause). */
 export function liveNote(row) {
   if (!row || row.live === row.value) return '';
-  const said = row.live > row.value ? `${row.live} with its bonus` : `${row.live} for now`;
-  return row.capped ? `${said} - a point here won't show` : said;
+  const said = row.live > row.value ? t('levelup.live.boosted', '{live} with its bonus', { live: row.live }) : t('levelup.live.lowered', 'Lowered to {live} for now', { live: row.live });
+  return row.capped ? t('levelup.live.capped', '{said} - a point here won\'t show', { said }) : said;
 }
 
 /** ASCEND-LIVE: the tint a star's figure and the pick line wear - the classic sheet's two, a live value above its
@@ -370,11 +389,15 @@ export function liveNote(row) {
 export const liveTint = (row) => (!row ? '' : row.live > row.value ? 'boosted' : row.live < row.value ? 'lowered' : '');
 
 /** A star's words for a screen reader: the figure it wears, the permanent value under it where the two differ, the
- *  points placed, and a point the law takes that would not show (AUDIT 28e: built in the window, unpinned). */
+ *  points placed, and a point the law takes that would not show (AUDIT 28e: built in the window, unpinned). AUDIT
+ *  GROWTH LANE5-1: the permanent value named as such ("of its own" said nothing a player knows). */
 export function starLabel(row) {
-  return `${row.label} ${row.live}${row.live !== row.value ? ` (${row.value} of its own)` : ''}`
-    + `${row.delta > 0 ? `, raised by ${row.delta}` : ''}${row.canRaise ? '' : ', cannot raise'}`
-    + `${row.capped ? ', a point here will not show for now' : ''}`;
+  const said = [row.live !== row.value ? t('levelup.star.permanent', '{name} {live} ({value} permanent)', { name: row.label, live: row.live, value: row.value })
+    : t('levelup.star.value', '{name} {live}', { name: row.label, live: row.live })];
+  if (row.delta > 0) said.push(t('levelup.star.raised', 'raised by {n}', { n: row.delta }));
+  if (!row.canRaise) said.push(t('levelup.star.cannotRaise', 'can\'t raise'));
+  if (row.capped) said.push(t('levelup.star.capped', 'a point here won\'t show for now'));
+  return said.join(', ');
 }
 
 /** What is left to spend, in whichever currency this lane counts in. */
@@ -384,9 +407,9 @@ export const rolloutPool = (screen) =>
 /** ...and what that currency is CALLED. The mod's own label for its
  *  side (l10n/en.yaml:36, through ui/virtueLevelUp.js), and the port's
  *  for Daggerfall's - "bonus points" is what CheckIfDoneLeveling's own
- *  refusal calls them (Internal_Strings.csv:110). */
+ *  refusal calls them (Internal_Strings.csv:110). AUDIT GROWTH LANE5-1: both read in the player's language. */
 export const poolLabel = (screen) =>
-  (levelUpLane(screen) === LANE_VIRTUE ? REMAINING_POINTS_LABEL : 'Bonus points left');
+  (levelUpLane(screen) === LANE_VIRTUE ? remainingPointsLabel() : t('levelup.pool.bonus', 'Bonus points left'));
 
 /**
  * THE OK BUTTON'S GATE - and BOTH of CheckIfDoneLeveling's terms.
@@ -422,8 +445,8 @@ export const allMaxed = (screen) => typeof screen?.allMax === 'function' && scre
 
 /** ...and what the window SAYS on that branch, because a plate reading
  *  "5 bonus points left" over an enabled button is a screen that looks
- *  broken. The port's own words: DFU shows nothing here at all. */
-export const ALL_MAX_LINE = 'Every attribute is at its maximum. What is left has nowhere to go.';
+ *  broken. The port's own words: DFU shows nothing here at all. AUDIT GROWTH LANE5-1: read when drawn, and plain. */
+export const allMaxLine = () => t('levelup.allMax', 'Every attribute is at its maximum. Leftover points can\'t be spent.');
 
 /** The refusal each lane already ships, so the window quotes rather
  *  than invents. */
@@ -441,7 +464,7 @@ export function corneredHint(screen) {
   // instruction with no elsewhere in it, on a window that would not
   // have let them out either way. There the truth is the other line
   // and the button is open (LV1's audit).
-  return allMaxed(screen) ? ALL_MAX_LINE : TAKE_ONE_BACK_HINT;
+  return allMaxed(screen) ? allMaxLine() : TAKE_ONE_BACK_HINT;
 }
 
 /**
@@ -512,7 +535,7 @@ export function levelUpCrown(entity, screen) {
   // must not tell.
   const viewOnly = !!screen?.viewOnly;
   return {
-    name: e.name ?? 'Adventurer',
+    name: e.name ?? t('levelup.crown.adventurer', 'Adventurer'),
     race: e.race ?? '',
     career: e.career?.name ?? '',
     lane,
@@ -548,7 +571,7 @@ export function levelProgress(entity, screen) {
       now: levelBarProgress(e),
       max: LEVELUP_TOTAL,
       carried: e.levelRollUp ?? 0,
-      label: 'Toward the next',
+      label: t('levelup.progress.virtue', 'Progress to next level'),
     };
   }
   const span = (e.currentLevelUpSkillSum ?? 0) - (e.startingLevelUpSkillSum ?? 0) + 28;
@@ -557,7 +580,7 @@ export function levelProgress(entity, screen) {
     now: ((span % per) + per) % per,
     max: per,
     carried: 0,
-    label: 'Skill sum toward the next',
+    label: t('levelup.progress.classic', 'Skill progress to next level'),
   };
 }
 
@@ -586,11 +609,13 @@ export const ROLE_DROPPED = 'dropped';      // the lowest major, subtracted back
 export const ROLE_BEST = 'best';            // the highest minor, the only one that counts
 export const ROLE_IDLE = 'idle';            // a minor that is not the best, or a misc skill
 
+/** AUDIT GROWTH LANE5-1: each a getter, read in the player's language when the ribbon is drawn, and said in the
+ *  player's terms - "the sum" was a word the window never defines. */
 export const ROLE_NOTE = Object.freeze({
-  [ROLE_COUNTS]: 'Every point counts toward your next level.',
-  [ROLE_DROPPED]: 'Your weakest major - dropped from the sum until another falls behind it.',
-  [ROLE_BEST]: 'Your best minor - the only minor the sum counts.',
-  [ROLE_IDLE]: 'Does not count toward your next level.',
+  get [ROLE_COUNTS]() { return t('levelup.role.counts', 'Every point counts toward your next level.'); },
+  get [ROLE_DROPPED]() { return t('levelup.role.dropped', 'Your lowest major skill. It doesn\'t count toward your next level.'); },
+  get [ROLE_BEST]() { return t('levelup.role.best', 'Your highest minor skill - the only minor skill that counts toward your next level.'); },
+  get [ROLE_IDLE]() { return t('levelup.role.idle', 'Doesn\'t count toward your next level.'); },
 });
 
 export function levelSumRoles(entity) {
@@ -650,9 +675,9 @@ export function riseRibbon(entity) {
   const c = e.career ?? {};
   const roles = levelSumRoles(e);
   const groups = new Map();
-  for (const id of c.primarySkills ?? []) groups.set(id, 'Primary');
-  for (const id of c.majorSkills ?? []) groups.set(id, 'Major');
-  for (const id of c.minorSkills ?? []) groups.set(id, 'Minor');
+  for (const id of c.primarySkills ?? []) groups.set(id, t('levelup.group.primary', 'Primary'));
+  for (const id of c.majorSkills ?? []) groups.set(id, t('levelup.group.major', 'Major'));
+  for (const id of c.minorSkills ?? []) groups.set(id, t('levelup.group.minor', 'Minor'));
   const ids = [...groups.keys()];
   // ...plus any MISCELLANEOUS skill that just rose. It is not in the
   // sum and the ribbon says so, but "Climbing rose and it did nothing
@@ -668,7 +693,7 @@ export function riseRibbon(entity) {
     // AUDIT 65 CV-1's read, the one sheetModel makes: GetLiveSkillValue,
     // so a lycanthrope's +30 shows here exactly as it shows there.
     value: displaySkillValue(e, id),   // SOFTCAP1: the printed 0..200 value, not the formula's
-    group: groups.get(id) ?? 'Miscellaneous',
+    group: groups.get(id) ?? t('levelup.group.misc', 'Miscellaneous'),
     role: roles.get(id) ?? ROLE_IDLE,
     note: ROLE_NOTE[roles.get(id) ?? ROLE_IDLE],
     risen: !!skillRecentlyIncreased(e, id),
@@ -689,9 +714,9 @@ export function riseRibbon(entity) {
 export function levelUpVitals(entity) {
   const m = sheetModel(entity ?? {});
   return [
-    { key: 'health', label: 'Health', now: m.health.now, max: m.health.max, fill: 'blood' },
-    { key: 'fatigue', label: 'Fatigue', now: m.fatigue.now, max: m.fatigue.max, fill: '' },
-    { key: 'magicka', label: 'Magicka', now: m.magicka.now, max: m.magicka.max, fill: 'verdigris' },
+    { key: 'health', label: t('levelup.vital.health', 'Health'), now: m.health.now, max: m.health.max, fill: 'blood' },
+    { key: 'fatigue', label: t('levelup.vital.fatigue', 'Fatigue'), now: m.fatigue.now, max: m.fatigue.max, fill: '' },
+    { key: 'magicka', label: t('levelup.vital.magicka', 'Magicka'), now: m.magicka.now, max: m.magicka.max, fill: 'verdigris' },
   ];
 }
 

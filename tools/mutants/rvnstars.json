@@ -830,11 +830,12 @@
   {
     "name": "RVN-STARS-bold-unsaid",
     "file": "src/ui/revenantStarsWindow.js",
-    "old": "    case 'bold': return t('rvn.stars.stat.bold', 'A hard road brings back nothing');\n",
+    "old": "    case 'bold': return t('rvn.stars.stat.bold', 'Brings back nothing if it returns hurt');\n",
     "new": "",
     "tests": [
       "test/systems/revenant/rvnstars.test.js"
-    ]
+    ],
+    "note": "TEXT (PIN MOVED): re-aimed by content - the plain words."
   },
   {
     "name": "RVN-STARS-rest-clamp-bare",

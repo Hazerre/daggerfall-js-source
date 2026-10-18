@@ -121,8 +121,8 @@
   {
     "name": "RAID2-ally-built-as-the-watch",
     "file": "src/scenes/exteriorFoes.js",
-    "old": ", allied: (r.t === KNIGHT_CITYWATCH_ID && allied.has(r.i)) || shipmate, champion: r.cp ?? null })",
-    "new": ", allied: shipmate, champion: r.cp ?? null })",
+    "old": ", allied: (r.t === KNIGHT_CITYWATCH_ID && allied.has(r.i)) || shipmate, champion: cp })",
+    "new": ", allied: shipmate, champion: cp })",
     "tests": ["test/systems/raid2_raidsOnline.test.js"]
   },
   {

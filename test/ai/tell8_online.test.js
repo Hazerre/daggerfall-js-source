@@ -291,7 +291,7 @@ test('TELL8: the hosts by source - both pools write the wind-up into the record 
   const x = rd('src/scenes/exteriorFoes.js'), d = rd('src/scenes/dungeonContext.js');
   assert.match(x, /if \(!f\.dead && f\.ai\._tac && !f\.ai\._tac\.puppet\) Object\.assign\(r, blowWire\(f\.ai, tacticsNow\(\), \(p\) => _net\.toWire\(p\)\)\);/);
   assert.match(x, /\$\{r\.sp \?\? 0\}(?:,\$\{r\.ad \?\? 0\},\$\{r\.wq \?\? -1\},\$\{r\.p2 \?\? 0\},\$\{r\.rt \?\? -1\},\$\{r\.rb \?\? 0\})?\$\{r\.wk !== undefined \|\| r\.ws !== undefined \? `,\$\{blowWireKey\(r\)\}` : ''\}`;/);   // PIN MOVED (FEUD WIRE: and the revenant's blows, `rb`)
-  assert.match(x, /if \(r\.d !== 1 && \(r\.wk !== undefined \|\| r\.ws !== undefined \|\| f\.ai\._tac\?\.puppet\)\) applyBlowRecord\(f\.ai, r, \{ origin: r\.wo \? _net\.toScene\(r\.wo\) : null, me: recipientIsMe\(f, r\.b \?\? r\.g \?\? p\.target\), entity: f\.entity, collider, sig: SIG \}\);/);   // PIN MOVED (FEUD WIRE: and the signature's numbers)
+  assert.match(x, /if \(r\.d !== 1 && \(r\.wk !== undefined \|\| r\.ws !== undefined \|\| f\.ai\._tac\?\.puppet\)\) applyBlowRecord\(f\.ai, r, \{ origin: r\.wo \? _net\.toScene\(r\.wo\) : null, me: recipientIsMe\(f, r\.b \?\? r\.g \?\? p\.target\), entity: f\.entity, collider, sig: f\.entity\.revenant \? SIG : null \}\);/);   // PIN MOVED (FEUD WIRE: and the signature's numbers; GRANT0, Spawn-Grants.md section 8: a revenant's alone)
   assert.match(x, /const _pb = f\.ai\._tac\?\.puppet \? puppetBlowTurn\(f\.ai, playerFeet\) : NO_PUPPET_BLOW;/);
   assert.match(x, /hurting: f\.ai\.hurtKnock \|\| _pb\.staggered, casting: !!f\._castPending, hold: _pb\.hold \}/);
   assert.match(x, /if \(f\._pup\?\.leap && !puppetGapLanded\(f\.ai\)\) return false;/);
@@ -303,7 +303,7 @@ test('TELL8: the hosts by source - both pools write the wind-up into the record 
   assert.match(x, /if \(onWatch\) _net\.watch\.hurt\(f, dmg, at, dir, data\.wc != null \? hitClassOf\(data\) : null, kind\);/);   // PIN MOVED (AUDIT TELL P1: and its kind)
   assert.match(d, /if \(!f\.dead && f\.ai\._tac && !f\.ai\._tac\.puppet\) Object\.assign\(r, blowWire\(f\.ai, tacticsNow\(\)\)\);/);
   assert.match(d, /\$\{r\.v\}(?:,\$\{r\.ad \?\? 0\},\$\{r\.wq \?\? -1\},\$\{r\.p2 \?\? 0\},\$\{r\.rb \?\? 0\})?\$\{r\.wk !== undefined \|\| r\.ws !== undefined \? `,\$\{blowWireKey\(r\)\}` : ''\}`;/);   // PIN MOVED (FEUD WIRE: and the revenant's blows, `rb`)
-  assert.match(d, /applyBlowRecord\(f\.ai, r, \{ origin: r\.wo \?\? null, me: _to != null && _me != null && _to === _me, entity: f\.entity, collider, sig: SIG \}\);/);   // PIN MOVED (FEUD WIRE: and the signature's numbers)
+  assert.match(d, /applyBlowRecord\(f\.ai, r, \{ origin: r\.wo \?\? null, me: _to != null && _me != null && _to === _me, entity: f\.entity, collider, sig: f\.entity\.revenant \? SIG : null \}\);/);   // PIN MOVED (FEUD WIRE: and the signature's numbers; GRANT0: a revenant's alone)
   assert.match(d, /_pb = f\.ai\._tac\?\.puppet \? puppetBlowTurn\(f\.ai, _pf\) : null;/);
   assert.match(d, /if \(r\.d !== 1 && \(r\.wk !== undefined \|\| r\.ws !== undefined \|\| f\.ai\._tac\?\.puppet\)\) \{/, 'a record and a puppet that say none: nothing to do (the lifted harnesses reach none of it)');
   assert.match(d, /hold: _puppet \? \(_pb\?\.hold \?\? false\) : f\.ai\._blowHold,/);

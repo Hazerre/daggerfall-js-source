@@ -233,7 +233,7 @@ export function martialEvade(entity) {
   if (!id || !pendingPlayerBlow()) return false;
   const oneIn = id === 'bladedancer' ? N.dancersStep.oneIn : id === 'shadowdancer' && _now() < _s.evadeUntil ? N.phantomStrike.oneIn : 0;
   if (!(oneIn > 0) || !(_rand() < 1 / oneIn)) return false;
-  say(t('martial.say.evade', 'You slip the blow.'));
+  say(t('martial.say.evade', 'You dodge the attack.'));
   return true;
 }
 /** THE HURT: Stand Firm - a hurt that takes me across its line, while ready; never one a death save turned aside.

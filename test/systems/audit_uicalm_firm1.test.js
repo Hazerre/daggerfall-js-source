@@ -749,7 +749,9 @@ test('AUDIT UICALM-FIRM1 L4 H1, M4, M5, L1-L4 (text pins - the window wants a ca
   assert.match(w, /view\.y = -n\.y \* view\.z \+ barFoot\(\) \/ 2;/);
   assert.match(w, /if \(e\.pointerType === 'touch' && d\.button !== 2 && hover !== key\) \{ setHover\(key, p\.x, p\.y\); return; \}/);
   assert.match(w, /canvas\.addEventListener\('pointerleave', \(e\) => \{ if \(!drag && e\.pointerType !== 'touch'\) setHover\(null, 0, 0\); \}\);/);
-  assert.match(w, /const overlayClose = \(\) => \{\n\s+if \(!dead && unaccepted\(\) && !armedClose\) \{[\s\S]{0,200}unregister = registerOverlay\(overlayClose\);\n\s+return;/);
+  // PIN MOVED (AUDIT GROWTH LANE5-1): the ask re-armed first (LANE3-8's rearm), its words the window's own t() line
+  assert.match(w, /const overlayClose = \(\) => \{\n\s+rearm\(\);\n\s+if \(!dead && unaccepted\(\) && !armedClose\) \{\n\s+arm\(\);\n\s+say\(unacceptedClose\(\), true\);\n\s+unregister = registerOverlay\(overlayClose\);\n\s+return;/);
+  assert.match(w, /const unacceptedClose = \(\) => t\('firmament\.unacceptedClose', 'You have unaccepted changes\. Press \{accept\} to keep them, or close again to discard them\.', \{ accept: t\('firmament\.accept', 'Accept'\) \}\);/);   // PIN MOVED (AUDIT GROWTH LANE5-2): the button's own word
   assert.match(w, /if \(used && e\.key !== 'Escape'\) armedClose = false;/);
   assert.match(w, /function unaccepted\(\) \{ const c = changes\(\); return !!\(c\.added \|\| c\.removed \|\| \(c\.startChanged && pending\.start\)\); \}/);
   assert.match(w, /const n = c\.added \+ c\.removed \+ \(c\.startChanged && pending\.start \? 1 : 0\);/);

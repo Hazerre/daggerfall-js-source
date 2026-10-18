@@ -1074,16 +1074,18 @@ has it on their next update.
 - **`PEER_ELITE_PUPPETS_MAX` (8)**: a record's `z` is believed for at most eight of one owner's foes, a taken elite
   among them. An owner rolls its own one in twenty, outside a town, so even a full frame of honest foes holds three or
   so. Past it the foe stands as its plain kind.
-- **`PEER_REVENANT_PUPPETS_MAX` (11)**: the revenants a character keeps (revenant.js REVENANT_MAX, five) and swears
-  (revenantCompanions.js REVENANT_RETINUE_MAX, six). Past it the record's revenant fields, its blows among them, are not
-  believed.
+- **`PEER_REVENANT_PUPPETS_MAX` (9)**: the revenants a character keeps (revenant.js REVENANT_MAX, three since UNQUIET)
+  and swears (revenantCompanions.js REVENANT_RETINUE_MAX, six). Past it the record's revenant fields, its blows among
+  them, are not believed.
 - **A Greater Giant is a giant, and one of each to an owner**: `gg` is believed only on WILD_GIANT, and only for the
   first of an owner's foes to name that index.
 
 THE FOUR HOSTS: `world.js` (the streamed exterior) WIRED - it hands a peer's frame to this pool. `worldModes.js` WIRED -
 an interior's pool is `createExteriorFoes` (`interiorFoes`). `dungeonContext.js` needs nothing here: its own lane
 carries only a party's quest foes and the room's loose stands, under their allowances, and its takeover already had
-its bound (AUDIT pre-merge D8, `adoptOwn`); its records stand no elite and no Greater Giant. The dungeon host's layout
+its bound (AUDIT pre-merge D8, `adoptOwn`); its records stand no elite and no Greater Giant (GRANT0, 2026-10-17: but a
+room member's records there cast any spell in the table, and their `rb`, `p2` and wind-up signature bit were believed
+uncapped; closed 2026-10-18 - `11-Multiplayer/Spawn-Grants.md` section 8). The dungeon host's layout
 stream is held to the layout every client built, and its revenants' blows ride as the host says - FLAGGED below.
 `exterior.js` (the fixed city) streams nothing and reads no peer.
 
@@ -1093,12 +1095,14 @@ stream is held to the layout every client built, and its revenants' blows ride a
   a peer stands is its word, and so is its place. A sender's total is one frame, and every sender is counted apart, so
   a cheater on several guest sessions stands that many times sixty-four. A room-wide count would desync honest crowds
   (DESYNC-ZERO); it is left for a measure.
-- **A champion's trait (`cp`, x1.25 to x1.875)** rides as its owner says. One foe in fourteen of every honest roll is
-  a champion, so no count holds it that honest play cannot reach.
+- **A champion's trait (`cp`, x1.25 to x1.875)** rides as its owner says, for at most `PEER_CHAMPION_PUPPETS_MAX` (17)
+  of an owner's foes since GRANT0 (2026-10-18, `11-Multiplayer/Spawn-Grants.md` section 8): the elites' allowance and
+  the revenants' bound, which honest play does not reach. Under it, which foe is a champion is still the owner's word.
 - **A class foe's level (`l`, to 100) and its weapon (`w`)** are the owner's word, as the record's law has always had
   them.
 - **The dungeon host's revenant blows** (FLAGGED): a seated host's layout foes carry `rb` and `p2` as the host says,
-  bounded by the layout's count.
+  bounded by the layout's count and, since GRANT0 (2026-10-18), by `PEER_REVENANT_PUPPETS_MAX` per owner. Under that, a
+  revenant's blows are still its owner's word.
 - **Moderation.** The screenshot's other half was a moderator with only `/mute` (MOD1). The owner's call for when bans
   are built (asked 2026-10-17, "Mods timed, devs permanent"): moderators `/kick`, and ban for up to thirty days;
   developers may also ban for good; nobody bans a moderator or a developer, as nobody mutes one. No ban is built here.
@@ -1107,6 +1111,13 @@ stream is held to the layout every client built, and its revenants' blows ride a
   (`server-account/src/sanctions.js` banAccount), and no moderator or developer is banned. Where it parts from the call
   above - a moderator's ban past thirty days, and for good - is the owner's to settle with that arc; nothing here
   changes it.
+- **The root (GRANT0, 2026-10-17).** KPbICA, on the Discord, read this section against the code: a reader can bound a
+  client's word but can never know the truth, because nothing in the system knows it. Mac chose "Plan server-rolled
+  spawns": `11-Multiplayer/Spawn-Grants.md` (PROPOSED, nothing built) - online, a foe that rides to another player
+  exists only on a grant the relay rolls and signs when the foe is made, and every reader checks it and rebuilds the foe
+  from the grant's seed (revised 2026-10-18: the relay never reads the foe stream). Planning also
+  found the wind-up's signature bit (x2) believed on any foe, at the street's readers and the dungeon's (that page's
+  section 1). Its section 8 closed those on 2026-10-18 (the owner: "Quick fixes first"), and caps champions.
 
 Pins: `test/scenes/foeforge.test.js` (8) - two real pools, the forged frames a modified client's and the honest ones the
 producer's own (`foesFrame`, `handOverFrame`); `tools/mutants/foeforge.json` (16, all dead). Pins moved (each marked

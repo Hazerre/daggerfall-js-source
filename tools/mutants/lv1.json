@@ -165,7 +165,7 @@
   {
     "name": "a-maxed-character-is-told-to-take-a-point-back",
     "file": "src/ui/levelUp/levelUpView.js",
-    "old": "  return allMaxed(screen) ? ALL_MAX_LINE : TAKE_ONE_BACK_HINT;",
+    "old": "  return allMaxed(screen) ? allMaxLine() : TAKE_ONE_BACK_HINT;",
     "new": "  return TAKE_ONE_BACK_HINT;",
     "tests": [
       "test/ui/enhancedLevelUp.test.js"

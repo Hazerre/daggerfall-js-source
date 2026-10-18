@@ -1932,7 +1932,7 @@ distance is a share of the right arm's own length.
 | stance | third person (from the right shoulder) | first person (from the eye) |
 |---|---|---|
 | LOW, the idle | the forend at the belt, the muzzle 30 degrees down and 30 across toward the left foot, canted 10; the elbows back at the sides | lowered, its forward half across the bottom of the picture toward the left, 12 down and 25 across |
-| AIM, in a fight | level down the body's forward at the collar, its sights up; the right elbow out, the left under the forend | level down the lens, right of the middle, the left hand under it in view |
+| AIM, in a fight | level down the body's forward at the collar, its sights up; the right elbow out, the left under the forend | right of the middle and under the crosshair, 4 degrees down the lens, the left hand's fingers on the forend in view (RIFLE-AIM-LOW, below; it was level, at 0.17 of the arm under the eye) |
 
 Third person reads the body's frame (right from shoulder to shoulder, up the spine); first person the lens's (it looks
 down the rig's +Y), and its stances are pulled in toward the shoulders so both hands reach from under the eye and the gun
@@ -1966,3 +1966,32 @@ person in the lens; the fight's signal; and the live arm with the shipped gun (n
 fight up and down, off through the sheathe). PIN MOVED: `climb6` C16 (the hook between the neck and the matrices takes
 the `hold` line). Mutant records whose anchor this slice moved, re-aimed by content and re-run (both dead): `rvn10`'s
 `RVN10-end-keeps-low` and `RVN10-end-keeps-fights` (`endPlayerFights` forgets the harm's time too).
+
+## RIFLE-AIM-LOW (2026-10-18): the first-person aim under the crosshair
+
+Mac: "the thunderlock in first person (morrowind) when shooting/aiming sits too high on the screen."
+
+RIFLE-STANCE's first-person aim held the grip 0.17 of the arm's length under the eye with the barrel level down the
+lens. A level barrel runs off toward the picture's vanishing point, which is the crosshair, so the long gun climbed the
+picture as it went: measured on the MW-STEEL4 stand-in (the posed gun's vertices through the 60-degree lens), its top
+stood 0.20 of the half-height ABOVE the middle - over the crosshair, the moment the aim came up to shoot. Lowering the
+grip alone brings it down slowly, the far end still converging on the middle (0.32 of the arm under the eye left its
+top just 0.115 under it); a few degrees of barrel down stops the climb.
+
+`RIFLE_STANCES.first.aim` holds the grip 0.28 of the arm under the eye and the barrel 4 degrees down the lens: the whole
+gun under the crosshair, its highest point 0.17 of the half-height below the middle (8% of the picture), right of it as
+before. The left hand is seen where it holds - its fingers on the forend, at 0.84 of the half-height down - with its
+wrist under the picture's edge; pushed further out to keep the wrist in view, the left arm no longer reached the forend
+on the stand-in, so it was not. Both wrists on their holds. The low ready (12 down, 25 across) is lower still and
+unchanged; so is third person.
+
+The stance is placed from the eye in shares of the arm, so where the gun lands on the picture holds on any skeleton
+whose arms reach it - `xbase_anim.1st.nif` included, though this container has none to look through. The gun's kick
+(MW-GUN-FEEL, 3 degrees of muzzle climb) rides over the aim as before. It is still one frozen row for Mac to move.
+
+**Pins** (`test/combat/riflestance.test.js`, 7): the new test reads the posed gun's every vertex on the picture - its
+top at least 0.15 of the half-height under the middle, its muzzle and the left fingers in the picture, both wrists on
+their holds, the low ready lower still. PIN MOVED: the first-person test's aim is 4 degrees down the lens (it was level
+within 1.5) and its left hand is read by its fingers on the forend (it read the wrist, now under the picture's edge).
+`tools/mutants/riflestance.json`: 16 dead - the two new, `RIFLE-AIM-LOW-the-old-row` (the stance as it was: the pins
+fail on it) and `RIFLE-AIM-LOW-level` (the barrel level again).

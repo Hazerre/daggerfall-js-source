@@ -52,13 +52,13 @@ test('LEVEL-PCT: the report - a character the bar levels reads the bar on the cl
   const v = played(LEVELING_VIRTUE);
   assert.equal(v.currentLevelUpSkillSum - v.startingLevelUpSkillSum, 1, 'the sum moved one, as it does for everyone');
   assert.equal(v.levelProgress, 12, 'the bar took 8 + 2 + 2');
-  assert.deepEqual(levelProgress(v, viewOnlyScreen(v, true)), { now: 12, max: LEVELUP_TOTAL, carried: 0, label: 'Toward the next' });
+  assert.deepEqual(levelProgress(v, viewOnlyScreen(v, true)), { now: 12, max: LEVELUP_TOTAL, carried: 0, label: 'Progress to next level' });   // PIN MOVED (AUDIT GROWTH LANE5-1)
   assert.deepEqual(box(v), ['Progress made to the next level: 12%'], 'the box reads the law that levels this character (was 93%)');
   // The same history on DFU's law: the bar never moved, and both screens read the sum - 93% and 14 of 15.
   const c = played(LEVELING_CLASSIC);
   assert.equal(c.levelProgress, 0);
   assert.deepEqual(box(c), ['Progress made to the next level: 93%']);
-  assert.deepEqual(levelProgress(c, viewOnlyScreen(c, false)), { now: 14, max: 15, carried: 0, label: 'Skill sum toward the next' });
+  assert.deepEqual(levelProgress(c, viewOnlyScreen(c, false)), { now: 14, max: 15, carried: 0, label: 'Skill progress to next level' });   // PIN MOVED (AUDIT GROWTH LANE5-1)
 });
 
 test('LEVEL-PCT: the Oghma Infinium\'s window reads the bar too - the crown asks the character\'s law, not the screen\'s lane', () => {
@@ -70,12 +70,12 @@ test('LEVEL-PCT: the Oghma Infinium\'s window reads the bar too - the crown asks
   const w = createCharSheetWindow({ entity: v });
   const frame = levelUpFrame(v, w);
   assert.equal(frame.lane, LANE_OGHMA, 'the book\'s own window');
-  assert.deepEqual(frame.progress, { now: 12, max: LEVELUP_TOTAL, carried: 0, label: 'Toward the next' });
+  assert.deepEqual(frame.progress, { now: 12, max: LEVELUP_TOTAL, carried: 0, label: 'Progress to next level' });   // PIN MOVED (AUDIT GROWTH LANE5-1)
   assert.deepEqual(box(v), ['Progress made to the next level: 12%'], 'the box and the crown, one number');
   // The same book on DFU's law reads the sum, as before.
   const c = played(LEVELING_CLASSIC);
   SPECIAL_ARTIFACT_HANDLERS.get(ARTIFACTS.OghmaInfinium).used({ entity: c, ctx: {} });
-  assert.deepEqual(levelUpFrame(c, createCharSheetWindow({ entity: c })).progress, { now: 14, max: 15, carried: 0, label: 'Skill sum toward the next' });
+  assert.deepEqual(levelUpFrame(c, createCharSheetWindow({ entity: c })).progress, { now: 14, max: 15, carried: 0, label: 'Skill progress to next level' });   // PIN MOVED (AUDIT GROWTH LANE5-1)
 });
 
 test('LEVEL-PCT: the bar reads the same on both screens at its ends - held to 0..100, a full bar 100%', () => {

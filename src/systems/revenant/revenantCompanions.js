@@ -321,7 +321,7 @@ export function takeSwornGear(id, key) {
 /** Why its sky may not change now - abroad (its sky is set at my side, as its kit is), or no longer sworn - or null. */
 export function swornStarsRefusal(r) {
   if (!r?.sworn) return t('rvn.sworn.gone', 'It is no longer sworn to you.');
-  if (stateOf(r) === 'errand') return t('rvn.stars.no.abroad', 'It is abroad - set its stars when it is back.');
+  if (stateOf(r) === 'errand') return t('rvn.stars.no.abroad', 'It\'s away on a mission. Set its stars when it returns.');
   return null;
 }
 /** SET: its sky as `ids` (through the law: the Oath, each star joined, its points) - its blows and its health at once.

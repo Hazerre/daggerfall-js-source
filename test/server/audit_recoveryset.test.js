@@ -123,7 +123,12 @@ test('AUDIT RECOVERY-SET C3 C4: a password guessed through the profile spends LO
   assert.equal((await newRecoveryCodes(fresh.ctx, rowOf(fresh.ctx, fresh.id), { password: 'one more guess', code: fresh.codes[1] })).error, 'bad-login', 'a right password did not forgive the bucket');
 });
 
-test('AUDIT RECOVERY-SET C4 A4: the routes\' words - 429 for rate; two presses racing answer one set and one 409; two of a set\'s codes recovering at once answer one 200 and one 409 codes-moved, a sentence and not "wrong code" (mutants: rate as 400; codes-moved as 400; the race loser told bad-code)', async () => {
+test('AUDIT RECOVERY-SET C4 A4: the routes\' words - 429 for rate; two presses racing answer one set and one 409; two of a set\'s codes recovering at once answer one 200 and one 409 codes-moved, a sentence and not "wrong code" (mutants: rate as 400; codes-moved as 400; the race loser told bad-code)', async (t) => {
+  // THE WINDOW IS THE WALL CLOCK'S (overRate: `floor(nowS / LOGIN_WINDOW_S) * LOGIN_WINDOW_S`, a quarter hour), and the worker
+  // reads it per request: a run whose ten guesses straddled a quarter hour opened a fresh window before the eleventh call,
+  // which went through (CI on #997's head, "200 !== 429"). The clock is held at NOW - a window's first second - for the
+  // whole test, as accountworker.test.js holds its own, so every call is judged in the one window the bound speaks of.
+  t.mock.method(Date, 'now', () => NOW * 1000);
   const { call } = await stand();
   const me = (await call('/v1/auth/guest', { ...ACCEPTED })).body;
   const reg = (await call('/v1/auth/register', { handle: 'Medora', password: 'the right one', ...ACCEPTED, set: true }, me.secret)).body;

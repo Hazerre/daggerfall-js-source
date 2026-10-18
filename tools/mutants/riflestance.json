@@ -124,5 +124,23 @@
     "tests": [
       "test/combat/riflestance.test.js"
     ]
+  },
+  {
+    "name": "RIFLE-AIM-LOW-the-old-row",
+    "file": "src/combat/gun/rifleStance.js",
+    "old": "    aim: Object.freeze({ grip: Object.freeze([0.13, 0.40, -0.28]), pitch: 4, yaw: 0, cant: 0,",
+    "new": "    aim: Object.freeze({ grip: Object.freeze([0.13, 0.40, -0.17]), pitch: 0, yaw: 0, cant: 0,",
+    "tests": [
+      "test/combat/riflestance.test.js"
+    ]
+  },
+  {
+    "name": "RIFLE-AIM-LOW-level",
+    "file": "src/combat/gun/rifleStance.js",
+    "old": "    aim: Object.freeze({ grip: Object.freeze([0.13, 0.40, -0.28]), pitch: 4, yaw: 0, cant: 0,",
+    "new": "    aim: Object.freeze({ grip: Object.freeze([0.13, 0.40, -0.28]), pitch: 0, yaw: 0, cant: 0,",
+    "tests": [
+      "test/combat/riflestance.test.js"
+    ]
   }
 ]

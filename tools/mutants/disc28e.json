@@ -195,7 +195,7 @@
   {
     "name": "ASCEND-LIVE-note-silent-when-capped",
     "file": "src/ui/levelUp/levelUpView.js",
-    "old": "  return row.capped ? `${said} - a point here won't show` : said;",
+    "old": "  return row.capped ? t('levelup.live.capped', '{said} - a point here won\\'t show', { said }) : said;",
     "new": "  return said;",
     "tests": [
       "test/systems/disc28e_ascendlive.test.js"
@@ -204,8 +204,8 @@
   {
     "name": "ASCEND-LIVE-note-lowered-as-bonus",
     "file": "src/ui/levelUp/levelUpView.js",
-    "old": "  const said = row.live > row.value ? `${row.live} with its bonus` : `${row.live} for now`;",
-    "new": "  const said = `${row.live} with its bonus`;",
+    "old": "  const said = row.live > row.value ? t('levelup.live.boosted', '{live} with its bonus', { live: row.live }) : t('levelup.live.lowered', 'Lowered to {live} for now', { live: row.live });",
+    "new": "  const said = t('levelup.live.boosted', '{live} with its bonus', { live: row.live });",
     "tests": [
       "test/systems/disc28e_ascendlive.test.js"
     ]
@@ -285,8 +285,8 @@
   {
     "name": "ASCEND-LIVE-aria-own-value-dropped",
     "file": "src/ui/levelUp/levelUpView.js",
-    "old": "  return `${row.label} ${row.live}${row.live !== row.value ? ` (${row.value} of its own)` : ''}`",
-    "new": "  return `${row.label} ${row.live}`",
+    "old": "  const said = [row.live !== row.value ? t('levelup.star.permanent', '{name} {live} ({value} permanent)', { name: row.label, live: row.live, value: row.value })\n    : t('levelup.star.value', '{name} {live}', { name: row.label, live: row.live })];",
+    "new": "  const said = [t('levelup.star.value', '{name} {live}', { name: row.label, live: row.live })];",
     "tests": [
       "test/systems/disc28e_ascendlive.test.js"
     ]
@@ -294,8 +294,8 @@
   {
     "name": "ASCEND-LIVE-aria-capped-dropped",
     "file": "src/ui/levelUp/levelUpView.js",
-    "old": "    + `${row.capped ? ', a point here will not show for now' : ''}`;",
-    "new": "    ;",
+    "old": "  if (row.capped) said.push(t('levelup.star.capped', 'a point here won\\'t show for now'));",
+    "new": "",
     "tests": [
       "test/systems/disc28e_ascendlive.test.js"
     ]
@@ -339,8 +339,8 @@
   {
     "name": "ASCEND-LIVE-floor-said-as-bonus",
     "file": "src/ui/levelUp/levelUpView.js",
-    "old": "  return row.capped ? `${said} - a point here won't show` : said;",
-    "new": "  return row.capped ? `${row.live} with its bonus - a point here won't show` : said;",
+    "old": "  return row.capped ? t('levelup.live.capped', '{said} - a point here won\\'t show', { said }) : said;",
+    "new": "  return row.capped ? t('levelup.live.capped', '{said} - a point here won\\'t show', { said: t('levelup.live.boosted', '{live} with its bonus', { live: row.live }) }) : said;",
     "tests": [
       "test/systems/disc28e_ascendlive.test.js"
     ]
@@ -384,8 +384,8 @@
   {
     "name": "ASCEND-LIVE-luck-the-long-one-again",
     "file": "src/ui/levelUp/levelUpView.js",
-    "old": "  luck: 'Rides every swing with agility, and tilts what the dead and dungeons hold.',",
-    "new": "  luck: 'Rides every swing beside agility - and tilts what the dead and the dungeons are carrying.',",
+    "old": "  get luck() { return t('levelup.blurb.luck', 'Helps you hit and avoid hits, as Agility does, and improves your loot.'); },",
+    "new": "  get luck() { return t('levelup.blurb.luck', 'Helps you hit and avoid being hit, as Agility does, and improves all the loot you find.'); },",
     "tests": [
       "test/systems/disc28e_ascendlive.test.js"
     ]

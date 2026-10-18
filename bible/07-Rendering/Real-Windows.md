@@ -40,6 +40,22 @@ against it are drawn, as the reporter at The Savage Goat expected), the neighbou
 frame's background, and cuts the glass texels inside it; the interior draws over it with normal depth. Unwanted 10 s,
 the target is freed. World.js walks VIEW_RINGS = 1 ring of pixels.
 
+**PASS-COUNT (`01-Overview/bugs/Field-Bugs-2026-10-18.md`).** MADMAN0037: "The Mouse and Fawn tavern in Sentinel,
+graphics settings preset ultra, Gpu fans turn into jet turbines", over an FPS counter that read 198 fps and "draws 67".
+The view out is drawn before the room's `beginFrame`, and that frame's reset of `renderer.stats` lost its draws, so a
+building's counter never showed the street it drew through the glass. The shadow maps' replays were counted only in
+their own pass's stats. The room's frame now takes the view out's count (`stats.viewDraws`) and the lane's shadow
+render writes its own (`stats.shadowDraws`) - the view out's count takes the panes' depth draws and a part-drawn
+street too (AUDIT FB1018 L2-3, L2-4). The counter prints each on its draws line when its mean is half a draw a frame or more
+(`src/ui/fpsCounter.js` drawsLine), and prints what holds the frame rate when it is not the default
+(`vsync off` where the desktop shell lifted the display's wait, the Frame Rate Cap's fps). OPEN, for the owner: the
+street is redrawn whenever any entry of the view matrix moves past VIEW_MOVE_EPS (1e-4), which is every frame of
+mouse-look, and from inside a city it draws each pixel's whole static batch the crop meets. In a city the size of
+Sentinel that is most of the city again - once a frame over the one rectangle the glass covers, never once a pane
+(AUDIT FB1018 L2-6). Standing still it is redrawn every VIEW_MAX_AGE_MS (250 ms), so `view` is read while turning
+the mouse. No measurement on the player's machine says this is the tavern's cost - the counter's `view` figure will. If it is, the levers move the picture: a redraw budget, or one
+wider picture per position sampled by direction.
+
 ## Which interior texels are glass, and the door for a room that is not ARENA2's
 An exterior window record drawn inside a building is glass (DFU lays interiors out with the same table under
 WindowStyle.Disabled). A building interior set's WINDOW WALL - record 2, read against its twin wall, record 1 - has

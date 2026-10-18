@@ -24,7 +24,7 @@
 //          drawAt(feet | null, g) (WAGONS2: where my body is DRAWN while I sit - the seat of a wagon drawn grown, or null;
 //          WAGONS3: `g` its grow, world/wagonModels.js rigGrowOf's - the body drawn at it) }
 // Not a DFU member. Ledger A (WAGONS1).
-import { createRideBook, validRideWord, rideWord, RIDE_TEXT, RIDE_ASK_TTL_MS, RIDE_ASK_REACH, companionSeats } from '../../systems/wagon/wagonSeats.js';
+import { createRideBook, validRideWord, rideWord, RIDE_TEXT, RIDE_ASK_TTL_MS, RIDE_ASK_REACH, companionSeats, getDownPoint, GET_DOWN_REACH } from '../../systems/wagon/wagonSeats.js';
 import { WAGON_KINDS } from '../../systems/wagon/wagonKinds.js';
 
 /** How long a fast travel waits after saying `go`, so the riders' clients hear it before the owner leaves the room. */
@@ -36,11 +36,6 @@ export const ARRIVE_WAIT_MS = 15_000;
 /** How long the owner's wagon may go unheard before a seated rider is stood down (ms) - a word missed, a frame's gap,
  *  is not the owner gone (WAGONS2 AUDIT: one frame without it stood the rider down). */
 export const RIDE_LOST_GRACE_MS = 2000;
-/** How far beside the wagon a rider stands when they get down (m). */
-export const GET_DOWN_STEP = 1.6;
-/** WAGONS2 (AUDIT): how far from their seat a rider may be and still be stood down beside the wagon (m) - further, the
- *  body was moved by something else (a load, a respawn, a teleport) and stays where it is. */
-export const GET_DOWN_REACH = 6;
 /** The plaque rows' ids (the pool hands a press back with one). */
 export const RIDE_ROW = Object.freeze({ ask: 'wagon:ride', down: 'wagon:down' });
 
@@ -81,7 +76,7 @@ export function createWagonRiders(deps) {
       const at = deps.pool.peerSeat(was.owner, was.seat);
       const body = deps.feet?.() ?? null;
       const near = at && (!body || Math.hypot(body[0] - at.feet[0], body[2] - at.feet[2]) <= GET_DOWN_REACH);   // WAGONS2 (AUDIT): a body moved off the seat by something else stays where it is
-      deps.unpin?.(near ? [at.feet[0] - Math.sin(at.yaw) * GET_DOWN_STEP, at.feet[1], at.feet[2] - Math.cos(at.yaw) * GET_DOWN_STEP] : null);   // over the side behind them (a seat faces across the bed)
+      deps.unpin?.(near ? getDownPoint(at) : null);   // over the side behind them (systems/wagon/wagonSeats.js getDownPoint - a companion's too)
       if (text) deps.say(text);
     }
   }

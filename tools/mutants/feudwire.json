@@ -245,8 +245,8 @@
   {
     "name": "FW-street-sig-unpassed",
     "file": "src/scenes/exteriorFoes.js",
-    "old": "entity: f.entity, collider, sig: SIG });",
-    "new": "entity: f.entity, collider });",
+    "old": "entity: f.entity, collider, sig: f.entity.revenant ? SIG : null });   // GRANT0 (Spawn-Grants.md section 8)",
+    "new": "entity: f.entity, collider });   // GRANT0 (Spawn-Grants.md section 8)",
     "tests": [
       "test/systems/revenant/feudwire.test.js"
     ]
@@ -281,8 +281,8 @@
   {
     "name": "FW-dungeon-sig-unpassed",
     "file": "src/scenes/dungeonContext.js",
-    "old": "entity: f.entity, collider, sig: SIG });",
-    "new": "entity: f.entity, collider });",
+    "old": "entity: f.entity, collider, sig: f.entity.revenant ? SIG : null });   // GRANT0: a signature is a revenant's",
+    "new": "entity: f.entity, collider });   // GRANT0: a signature is a revenant's",
     "tests": [
       "test/systems/revenant/feudwire.test.js"
     ]

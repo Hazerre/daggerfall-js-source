@@ -46,6 +46,13 @@ const RAD = Math.PI / 180;
  * the retail biped in the port's own plate (the record's renders), not on a guess: the low ready holds the forend at
  * the belt with the muzzle down and across toward the left foot and the elbows back at the sides; the aim holds the gun
  * level at the collar, the right elbow out, the left under the forend.
+ * RIFLE-AIM-LOW (2026-10-18, Mac: "the thunderlock in first person (morrowind) when shooting/aiming sits too high on the
+ * screen"): the first person's aim stood the grip 0.17 of the arm under the eye with the barrel level, and a level
+ * barrel runs off toward the picture's vanishing point - the crosshair - so the gun reached up over it (its top 0.20 of
+ * the half-height above the middle, measured on the stand-in). It holds the grip 0.28 under the eye and the barrel 4
+ * degrees down the lens: the whole gun under the crosshair (its top 0.17 of the half-height below it), the left hand's
+ * fingers still on the forend in view and both arms on their holds. The picture is the eye's, so this holds on any
+ * skeleton whose arms reach it.
  */
 export const RIFLE_STANCES = Object.freeze({
   third: Object.freeze({
@@ -54,7 +61,7 @@ export const RIFLE_STANCES = Object.freeze({
   }),
   first: Object.freeze({
     low: Object.freeze({ grip: Object.freeze([0.25, 0.40, -0.34]), pitch: 12, yaw: 25, cant: 8, poleR: Object.freeze([0.6, -0.6, -1]), poleL: Object.freeze([-0.5, -0.2, -1]) }),
-    aim: Object.freeze({ grip: Object.freeze([0.13, 0.40, -0.17]), pitch: 0, yaw: 0, cant: 0, poleR: Object.freeze([0.7, -0.2, -0.8]), poleL: Object.freeze([-0.3, 0, -1]) }),
+    aim: Object.freeze({ grip: Object.freeze([0.13, 0.40, -0.28]), pitch: 4, yaw: 0, cant: 0, poleR: Object.freeze([0.7, -0.2, -0.8]), poleL: Object.freeze([-0.3, 0, -1]) }),
   }),
 });
 

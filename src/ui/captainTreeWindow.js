@@ -100,7 +100,7 @@ export function starRefusal(held, id, points) {
   const way = wayTo(h, id);
   if (!way?.length) return t('captain.no.way', 'This star isn\'t connected to any of your stars.');
   const left = points - (h.length - 1);
-  if (way.length > left) return t('captain.no.points', 'Reaching this star costs {need} {need, plural, one {point} other {points}}. You have {left}. You get one point per captain level.', { need: way.length, left: Math.max(0, left) });
+  if (way.length > left) return t('captain.no.points', 'Reaching this star costs {need} {need, plural, one {point} other {points}}. You have {left}. You get one point per captain level after the first.', { need: way.length, left: Math.max(0, left) });
   return null;
 }
 
@@ -123,12 +123,13 @@ function drawHelm(ctx, x, y, r, rim, line) {
 
 /**
  * Mount the captain's stars over `host`. `ledger` the captain's (systems/naval/captainLedger.js: `captain()`, `tree()`,
- * `setTree(ids)`); `changed` once a sky is accepted (the save's word); `onExit` when it closes.
+ * `setTree(ids)`); `changed` once a sky is accepted (the save's word); `onExit` when it closes. GROWTH3 (bible/10-UI/
+ * Growth.md section 6): `embed` draws it in the pause window's Growth tab (skyWindow.js's embedding).
  * @param {HTMLElement} host
  * @param {{ ledger: { captain: () => { xp: number, level: number, points: number, next: number|null }, tree: () => string[], setTree: (ids: string[]) => string[] },
- *   changed?: () => void, onExit?: (reason?: string) => void, doc?: Document }} deps
+ *   changed?: () => void, onExit?: (reason?: string) => void, doc?: Document, embed?: boolean }} deps
  */
-export function mountCaptainTreeWindow(host, { ledger, changed = () => {}, onExit = () => {}, doc = document }) {
+export function mountCaptainTreeWindow(host, { ledger, changed = () => {}, onExit = () => {}, doc = document, embed = false }) {
   const captain = () => ledger.captain?.() ?? captainOf(null);
   /** @type {import('./skyWindow.js').SkyDesc} */
   const sky = {
@@ -144,7 +145,7 @@ export function mountCaptainTreeWindow(host, { ledger, changed = () => {}, onExi
       const c = captain(), left = c.points - (pending.length - 1);
       const level = el('span', 'fmt-purse');
       level.replaceChildren(el('span', null, t('captain.sky.level', 'Level')), el('b', null, String(c.level)),
-        el('span', 'of', c.next == null ? t('captain.sky.top', 'the highest') : t('captain.sky.xp', '{xp} of {next} XP', { xp: formatNumber(c.xp), next: formatNumber(c.next) })));   // AUDIT RVN-STARS S25: the player's own grouping
+        el('span', 'of', c.next == null ? t('captain.sky.top', 'max') : t('captain.sky.xp', '{xp} of {next} XP', { xp: formatNumber(c.xp), next: formatNumber(c.next) })));   // AUDIT RVN-STARS S25: the player's own grouping
       level.title = t('captain.sky.levelTip', 'Captain XP comes from sinking and capturing ships, beating off boarders, claiming prizes, finishing contracts, distance sailed, treasure charts, charting isles and selling goods at the exchange.');
       const pts = el('span', 'fmt-purse life');
       pts.replaceChildren(el('span', null, '★'), el('b', null, String(Math.max(0, left))), el('span', 'of', t('captain.sky.of', 'of {n}', { n: c.points })));
@@ -174,14 +175,15 @@ export function mountCaptainTreeWindow(host, { ledger, changed = () => {}, onExi
       close: t('captain.sky.close', 'Close'),
       hint: t('captain.sky.hint', 'Click a star to take it and the stars on the way to it · Right-click to remove · Drag to pan · Scroll to zoom · H: back to the Helm'),
       hintTouch: t('captain.sky.hintTouch', 'Tap a star to see it, tap again to take it · Hold a star to remove it · Drag to pan · Pinch to zoom'),
-      unaccepted: t('captain.sky.unaccepted', 'You have changes that aren\'t accepted. Close again to discard them.'),
+      unaccepted: t('captain.sky.unaccepted', 'You have unaccepted changes. Press {accept} to keep them, or close again to discard them.', { accept: t('captain.sky.accept', 'Accept') }),
+      unacceptedEsc: t('captain.sky.unacceptedLeave', 'You have unaccepted changes. Press {accept} to keep them, or leave again to discard them.', { accept: t('captain.sky.accept', 'Accept') }),   // GROWTH3: in the tab (any press that leaves)
       set: t('captain.sky.set', 'Stars saved. They apply to all of your ships.'),
       startTip: t('captain.tip.helm', 'Everyone starts with the Helm. Take a star next to it.'),
       backMany: (n) => t('captain.tip.backAfter', 'Right-click to remove it and {n, plural, one {the star} other {the # stars}} after it.', { n }),   // AUDIT RVN-STARS S24: never "the 1 stars"
       back: t('captain.tip.back', 'Right-click to remove.'),
       take: (n) => t('captain.tip.take', 'Click to take: {n} {n, plural, one {point} other {points}}.', { n }),
-      noPoints: t('captain.sky.noPoints', 'You get one point per captain level. Earn XP at sea: sink or capture a ship, finish a contract, or just sail.'),
+      noPoints: t('captain.sky.noPoints', 'You get one point per captain level after the first. Earn XP at sea: sink or capture a ship, finish a contract, or just sail.'),
     },
   };
-  return mountSkyWindow(host, sky, { changed, onExit, doc });
+  return mountSkyWindow(host, sky, { changed, onExit, doc, embed });
 }

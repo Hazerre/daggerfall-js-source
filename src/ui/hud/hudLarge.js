@@ -403,7 +403,7 @@ export async function loadHudLargeHead({ fetchBytes, palette, renderer }, entity
     // (no data, the wereboar - Morrowind has no boar) Daggerfall's stand, the curse's override first.
     const [rw, rh] = [LARGE_HUD_RECTS.head[2], LARGE_HUD_RECTS.head[3]];
     const mw = await playerHeadImage(entity, { px: rw * 4, ph: rh * 4, renderer }).catch(() => null);
-    if (mw) return { tex: renderer.uploadTexture('img', `mwhead#hud#${++_mwHeadSeq}`, toScreenOrder(mw)), w: mw.width, h: mw.height };
+    if (mw) { const mwKey = `mwhead#hud#${++_mwHeadSeq}`; return { tex: renderer.uploadTexture('img', mwKey, toScreenOrder(mw)), w: mw.width, h: mw.height, mwKey }; }   // HUD-HEAD: its name, so the head that replaces it lets it go
     // V5: the override head first (GetCustomHeadImageData's slot).
     // WERE0*I0 are IMGs (one bitmap); VAMP00I0 is a CIF indexed by
     // gender + birth race. A load failure falls to the racial head -
@@ -689,13 +689,29 @@ const headKeyFor = (entity) => {
   return `${entity?.race ?? 'Breton'}|${entity?.gender ?? 'male'}|${entity?.faceIndex ?? 0}|${ov ? `${ov.file}#${ov.record}` : ''}|mw${playerHeadKey(entity)}`;   // PORTRAIT3D: the data, and the helm
 };
 
+/** FIELD BUGS 2026-10-18 HUD-HEAD: A HEAD A LOAD ANSWERED, put on the bar only while `want` - the key it was loaded for -
+ *  is still `now`, the key the bar asks for; the Morrowind picture it replaces is let go (`release` its texture's name),
+ *  and so is an answer that came too late. Each Morrowind head is its own texture (PORTRAIT3D's sequence), and every helm
+ *  put on or taken off left the last one on the GPU for the session (EVERY ALLOCATION HAS AN OWNER); and two loads in
+ *  flight landed in the order they finished, so a slow first one could put the helm just taken off back on the bar.
+ *  Answers whether `h` went up. */
+export function swapHudHead(art, want, now, h, release) {
+  if (!h) return false;
+  if (!art || want !== now) { if (h.mwKey) release(h.mwKey); return false; }
+  const was = art.head;
+  art.head = h;
+  if (was?.mwKey && was !== h) release(was.mwKey);
+  return true;
+}
+
 export function largeHudOptions(deps, entity) {
   if (!largeHudEnabled()) return null;
   if (!_art) {
     if (!_loading && deps?.renderer && deps?.fetchBytes) {
+      const want = headKeyFor(entity);   // AUDIT FB1018 L3-3: the key the first head is loaded for - read when the bar lands, a helm put on meanwhile was never asked
       _loading = loadHudLarge(deps, entity).then((a) => {
         _art = a;
-        _headKey = a ? headKeyFor(entity) : null;
+        _headKey = a ? want : null;
         _loading = null;
       });
     }
@@ -704,7 +720,7 @@ export function largeHudOptions(deps, entity) {
   const key = headKeyFor(entity);
   if (key !== _headKey) {
     _headKey = key;
-    loadHudLargeHead(deps, entity).then((h) => { if (h) _art.head = h; });
+    loadHudLargeHead(deps, entity).then((h) => swapHudHead(_art, key, _headKey, h, (k) => deps.renderer?.releaseTexture?.('img', k)));   // HUD-HEAD
   }
   return {
     art: _art,

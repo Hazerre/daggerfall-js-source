@@ -23,7 +23,7 @@
 // here decides what may be allocated - it asks the law, and the service asks it again.
 // ═══════════════════════════════════════════════════════════════════
 
-import { t } from '../systems/textManager.js';   // UI-CALM: the read's failure, said
+import { t, localizedTable } from '../systems/textManager.js';   // UI-CALM: the read's failure, said; AUDIT GROWTH LANE5-1: every word the window says
 import { FIRM_NODES, FIRM_EDGES, SIGNS, SERPENT, FIRM_RADII, signById } from '../net/firmament/firmamentTree.js';
 import {
   pathTo, refundTakes, firmCostOf, fits, pointsLeft, treeDiff, refundSilver, statWords, statDef, overCap, treeStats, treeParts, FIRM_RESPEC_GOLD,
@@ -45,8 +45,8 @@ export const FIRM_STYLE_ID = 'firmament-window-css';
 // ─── THE TWO PALETTES ───────────────────────────────────────────────
 
 const F = FRAME_TONES, G = GRIM_TONES;
-/** The respec's price, as a reader says it (FIRM_RESPEC_GOLD). */
-const GOLD_WORD = FIRM_RESPEC_GOLD.toLocaleString('en-US');
+/** The respec's price, as the words take it (FIRM_RESPEC_GOLD, said `{gold, number}` - the reader's own grouping). */
+const GOLD = { gold: FIRM_RESPEC_GOLD };
 /** The sky's colours under Enhanced Plus: a night of brass and gold, the life ring in verdigris. */
 export const PLUS_SKY = Object.freeze({
   ground0: '#111827', ground1: '#04060a', haze: 'rgba(192,138,62,0.05)', star: '#d9d2c0',
@@ -75,8 +75,18 @@ export const NODE_R = Object.freeze({ small: 9, road: 9, notable: 16, keystone: 
 
 // ─── THE SHEET ──────────────────────────────────────────────────────
 
+/** What Escape says over unaccepted stars - the window's own Escape. */
+const unacceptedEscape = () => t('firmament.unacceptedEscape', 'You have unaccepted changes. Press {accept} to keep them, or press Escape again to discard them.', { accept: t('firmament.accept', 'Accept') });
+/** GROWTH5: what a press that would leave the sky says in the Growth tab (back(): Escape, another page or tab, the sheet's
+ *  or the QuickDial's key) - any of them, so it names none. */
+const unacceptedLeave = () => t('firmament.unacceptedLeave', 'You have unaccepted changes. Press {accept} to keep them, or leave again to discard them.', { accept: t('firmament.accept', 'Accept') });
+/** What the overlays' close (the QuickDial's key) says over unaccepted stars. */
+const unacceptedClose = () => t('firmament.unacceptedClose', 'You have unaccepted changes. Press {accept} to keep them, or close again to discard them.', { accept: t('firmament.accept', 'Accept') });   // AUDIT GROWTH LANE5-2: the button's own word
+
 export const FIRM_CSS = `
 .fmt-root { position: fixed; inset: 0; z-index: 14; overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: none; }
+.fmt-root.fmt-embed { position: absolute; z-index: auto; }   /* GROWTH3: drawn in the pause window's Growth tab, the stage's size */
+.fmt-root.fmt-embed .fmt-bar h2 { display: none; }   /* GROWTH3: the rail names the page */
 .fmt-root canvas.fmt-sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
 .fmt-root canvas.fmt-sky.drag { cursor: grabbing; }
 .fmt-root canvas.fmt-sky.over { cursor: pointer; }
@@ -99,7 +109,7 @@ export const FIRM_CSS = `
 .fmt-side ul { list-style: none; margin: 0; padding: 0; }
 .fmt-side li { padding: 2px 0; line-height: 1.35; }
 .fmt-side li.capped { color: #f3cf86; }
-.fmt-side li.capped::after { content: ' (at the cap)'; color: #b9b2a1; font-size: 12px; }   /* AUDIT UICALM-FIRM1 L5 M8: UI-CALM's type floor and quiet ink */
+.fmt-side li.capped::after { content: ' ' attr(data-cap); color: #b9b2a1; font-size: 12px; }   /* AUDIT UICALM-FIRM1 L5 M8: UI-CALM's type floor and quiet ink */
 .fmt-side li.neg { color: #e08a7a; }
 .fmt-side .none { color: #b9b2a1; font-style: italic; }
 .fmt-side .fmt-note { color: #b9b2a1; font-size: 12px; margin: 10px 0 0; line-height: 1.4; }
@@ -184,11 +194,12 @@ function ensureStyle(doc) {
 
 /** What a star is called by kind, as its card says it. */
 export function kindWords(n) {
-  const ring = n.ring === 'life' ? 'Craft' : 'Battle';
-  if (n.kind === 'start') return n.key === `${SERPENT.id}.start` ? 'Birthsign of no Guardian' : 'Birthsign';
-  if (n.kind === 'keystone') return `${ring} keystone`;
-  if (n.kind === 'notable') return `${ring} notable`;
-  return n.kind === 'road' ? `${ring} · ${n.name}` : `${ring} star`;
+  const ring = n.ring === 'life' ? 'life' : 'combat';
+  if (n.kind === 'start') return n.key === `${SERPENT.id}.start` ? t('firmament.kind.signCentre', 'Birthsign, in the centre') : t('firmament.kind.sign', 'Birthsign');
+  if (n.kind === 'keystone') return t('firmament.kind.keystone', '{ring, select, life {Craft keystone} other {Combat keystone}}', { ring });
+  if (n.kind === 'notable') return t('firmament.kind.notable', '{ring, select, life {Craft notable} other {Combat notable}}', { ring });
+  return n.kind === 'road' ? t('firmament.kind.road', '{ring, select, life {Craft} other {Combat}} · {name}', { ring, name: n.name })
+    : t('firmament.kind.star', '{ring, select, life {Craft star} other {Combat star}}', { ring });
 }
 /** A star's lines: its stats in words, a price's (a negative) marked. */
 export function statLines(stats) {
@@ -213,18 +224,23 @@ export function summaryOf(tree) {
 /** Why a star cannot be allocated, in words - or null when it can (`path` the law's way to it). */
 export function refusalOf(tree, key, stars, craft) {
   const n = FIRM_NODES.get(key);
-  if (!n) return 'That star is not in the heavens.';
-  if (!tree.start) return n.kind === 'start' ? null : 'First choose your birthsign from the seven great stars.';
-  if (n.kind === 'start') return key === tree.start ? null : 'Another birthsign. Unlearn your stars before you choose it.';
+  if (!n) return t('firmament.no.unknown', 'Unknown star.');
+  if (!tree.start) return n.kind === 'start' ? null : signFirst();
+  if (n.kind === 'start') return key === tree.start ? null : t('firmament.no.otherSign', 'You already have a birthsign. To change it, right-click yours to reset all stars.');
   if (tree.keys.includes(key)) return null;
   const path = pathTo(tree, key);
-  if (!path.length) return 'No path leads there from your stars.';
+  if (!path.length) return t('firmament.no.path', 'Your stars have no path to this star.');
   const want = [...tree.keys, ...path];
   if (fits(want, stars, craft)) return null;
   const c = firmCostOf(path), left = pointsLeft(tree.keys, stars, craft);
-  if (c.combat > left.stars) return `You need ${c.combat} Star${c.combat === 1 ? '' : 's'} and have ${Math.max(0, left.stars)}. Craft points serve only the crafts.`;
-  return `You need ${c.combat + c.life} point${c.combat + c.life === 1 ? '' : 's'} and have ${Math.max(0, left.stars) + left.craft}.`;
+  if (c.combat > left.stars) return t('firmament.no.stars', 'You need {need} {need, plural, one {Star} other {Stars}} and have {have}. Craft points can only be spent on craft stars.', { need: c.combat, have: Math.max(0, left.stars) });
+  return t('firmament.no.points', 'You need {need} {need, plural, one {point} other {points}} and have {have}.', { need: c.combat + c.life, have: Math.max(0, left.stars) + left.craft });
 }
+/** Why a star other than a sign cannot be taken before a sign is - the refusal's words and the press's. */
+const signFirst = () => t('firmament.no.signFirst', 'Choose a birthsign first: one of the seven large stars.');
+/** The respec with nothing to take back, and without the gold - the press's title and the service's refusal. */
+const respecNone = () => t('firmament.respec.none', 'Nothing to reset yet.');
+const needGold = () => t('firmament.respec.needGold', 'You need {gold, number} gold to respec.', GOLD);
 
 // ─── THE WINDOW ─────────────────────────────────────────────────────
 
@@ -241,10 +257,13 @@ function seeded(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 10
 /**
  * Mount the Firmament over `host`. `book` the page's (net/firmament/firmamentBook.js) - or `preview` for a sky with no service
  * (the lab page, an offline look): `{ tree, stars, craft, renown, commit? }`. `onExit` when it closes.
+ * GROWTH3 (bible/10-UI/Growth.md section 6): `embed` draws it IN the pause window's Growth tab (ui/growth/growthStage.js) -
+ * the stage's size, not the screen's; no Close (the tab is left as any page is), no overlay of its own and no Escape of its
+ * own: the window's back stack asks `back()` (a confirm shut, unaccepted stars asked about once) before it goes on.
  * @param {HTMLElement} host
- * @param {{ book?: any, preview?: any, onExit?: () => void, doc?: Document }} [o]
+ * @param {{ book?: any, preview?: any, onExit?: () => void, doc?: Document, embed?: boolean }} [o]
  */
-export function mountFirmamentWindow(host, { book = firmamentBook(), preview = null, onExit = () => {}, doc = document } = {}) {
+export function mountFirmamentWindow(host, { book = firmamentBook(), preview = null, onExit = () => {}, doc = document, embed = false } = {}) {
   injectEnhancedStyle(doc);
   injectEnhancedFonts(doc);
   ensureStyle(doc);
@@ -267,18 +286,18 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
   const root = el('div', 'fmt-root');
   root.setAttribute('role', 'dialog');
   root.setAttribute('aria-modal', 'true');
-  root.setAttribute('aria-label', 'The Firmament');
+  root.setAttribute('aria-label', t('firmament.title', 'The Firmament'));
   const canvas = /** @type {HTMLCanvasElement} */ (el('canvas', 'fmt-sky'));
   canvas.setAttribute('aria-hidden', 'true');
   const bar = el('div', 'fmt-bar');
   bar.setAttribute('data-grim', 'wood');
-  const title = el('h2', null, 'The Firmament');
+  const title = el('h2', null, t('firmament.title', 'The Firmament'));
   const starsChip = el('span', 'fmt-purse');
   const craftChip = el('span', 'fmt-purse life');
   const find = /** @type {HTMLInputElement} */ (el('input', 'fmt-find'));
   find.type = 'search';
-  find.placeholder = 'Search the stars...';
-  find.setAttribute('aria-label', 'Search the stars');
+  find.placeholder = t('firmament.search', 'Search stars...');
+  find.setAttribute('aria-label', t('firmament.searchAria', 'Search stars'));
   const btn = (label, cls, fn, aria = null) => {
     const b = /** @type {HTMLButtonElement} */ (el('button', `fmt-btn ${cls}`.trim(), label));
     b.type = 'button';
@@ -286,13 +305,13 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     b.onclick = (e) => { e.stopPropagation(); fn(); };
     return b;
   };
-  const undoBtn = btn('Forget changes', '', () => { pending = cloneTree(committed); refresh(); say('Your stars are as they were.'); });
-  const goBtn = btn('Accept', 'fmt-go', () => openConfirm());
-  const sideBtn = btn('Summary', '', () => { side.classList.toggle('shut'); });
-  const signBtn = btn('Birthsign', '', () => focusSign(), 'Centre on your birthsign');
-  const respecBtn = btn('Respec', '', () => openRespec(), `Unlearn every star for ${GOLD_WORD} gold`);
-  const shareBtn = btn('Share', '', () => openShare(), 'Copy your build as a code, or load one');
-  const exitBtn = btn('Close', 'fmt-exit', () => close());
+  const undoBtn = btn(t('firmament.discard', 'Discard changes'), '', () => { pending = cloneTree(committed); refresh(); say(t('firmament.say.discarded', 'Changes discarded.')); });
+  const goBtn = btn(t('firmament.accept', 'Accept'), 'fmt-go', () => openConfirm());
+  const sideBtn = btn(t('firmament.summary', 'Summary'), '', () => { side.classList.toggle('shut'); });
+  const signBtn = btn(t('firmament.signBtn', 'Birthsign'), '', () => focusSign(), t('firmament.signAria', 'Centre on your birthsign'));
+  const respecBtn = btn(t('firmament.respecBtn', 'Respec'), '', () => openRespec(), t('firmament.respec.tip', 'Remove all your stars and your birthsign for {gold, number} gold.', GOLD));
+  const shareBtn = btn(t('firmament.shareBtn', 'Share'), '', () => openShare(), t('firmament.shareAria', 'Copy your build code, or load one'));
+  const exitBtn = btn(t('firmament.close', 'Close'), 'fmt-exit', () => close());
   bar.append(title, starsChip, craftChip, find, signBtn, sideBtn, shareBtn, undoBtn, respecBtn, goBtn, exitBtn);
   const side = el('div', 'fmt-side');
   side.setAttribute('data-grim', 'ink');
@@ -300,8 +319,8 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
   const tip = el('div', 'fmt-tip');
   tip.setAttribute('data-grim', 'ink');
   const coarse = !!globalThis.matchMedia?.('(pointer: coarse)')?.matches;   // AUDIT UICALM-FIRM1 L4 H1: a finger's words
-  const hint = el('div', 'fmt-hint', coarse ? 'Tap a star to read it, tap it again to learn the path · Hold a learned star to unlearn it · Drag to look about · Pinch to zoom'
-    : 'Click a star to learn the path to it · Right-click a learned star to unlearn it · Drag to look about · Wheel to zoom · F: your birthsign');
+  const hint = el('div', 'fmt-hint', coarse ? t('firmament.hintTouch', 'Tap a star to see it, tap again to learn it and the stars on the way · Hold a learned star to remove it · Drag to pan · Pinch to zoom')
+    : t('firmament.hint', 'Click a star to learn it and the stars on the way · Right-click a learned star to remove it · Drag to pan · Scroll to zoom · F: centre on your birthsign'));
   hint.setAttribute('data-grim', 'ink');
   const sayBox = el('div', 'fmt-say');
   sayBox.setAttribute('data-grim', 'ink');
@@ -309,6 +328,7 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
   const confirmBox = el('div', 'fmt-confirmbox');
   confirmBox.setAttribute('data-grim', 'ink');
   root.append(canvas, bar, side, tip, hint, sayBox, confirmBox);
+  if (embed) { root.classList.add('fmt-embed'); root.setAttribute('aria-modal', 'false'); exitBtn.hidden = true; }   // GROWTH3
   host.append(root);
 
   // ── the view ──
@@ -364,10 +384,14 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
   const heldCommitted = () => new Set([committed.start, ...committed.keys].filter(Boolean));
 
   /** A line over the sky - gone after a moment, or (`stay`) until the next. */
+  /** AUDIT GROWTH LANE2-6: the line under the bar, in the root's own frame - in the tab the root is not at the screen's
+   *  top (it stood 200 px low, or off a short stage), and again whenever the window is resized (a phone's face measured
+   *  while it waited, detached, for its door). */
+  const placeSay = () => { sayBox.style.top = `${Math.round((barFoot() || 66) + 10)}px`; };
   function say(text, refused = false, stay = false) {
     sayBox.textContent = text;
     // always under the bar, however tall it has wrapped
-    sayBox.style.top = `${Math.round((bar.getBoundingClientRect?.().bottom ?? 66) + 10)}px`;
+    placeSay();
     sayBox.classList.add('on');
     sayBox.classList.toggle('no', refused);
     clearTimeout(sayTimer);
@@ -388,18 +412,18 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
   function refresh() {
     const p = purse();
     const left = pointsLeft(pending.keys, p.stars, p.craft);
-    starsChip.replaceChildren(el('span', null, '★ Stars'), el('b', null, String(Math.max(0, left.stars))), el('span', 'of', `of ${p.stars}`));
-    craftChip.replaceChildren(el('span', null, '✦ Craft'), el('b', null, String(left.craft)), el('span', 'of', `of ${p.craft}`));
-    starsChip.title = `Stars: two for each Renown level after the first (you are Renown ${p.renown}). They may be spent anywhere.`;
-    craftChip.title = 'Craft points: one for every 8 ranks in your professions. They may be spent only on the crafts of the outer ring.';
+    starsChip.replaceChildren(el('span', null, `★ ${t('firmament.purse.stars', 'Stars')}`), el('b', null, String(Math.max(0, left.stars))), el('span', 'of', t('firmament.purse.of', 'of {n}', { n: p.stars })));
+    craftChip.replaceChildren(el('span', null, `✦ ${t('firmament.purse.craft', 'Craft')}`), el('b', null, String(left.craft)), el('span', 'of', t('firmament.purse.of', 'of {n}', { n: p.craft })));
+    starsChip.title = t('firmament.purse.starsTip', 'Stars: 2 for each Renown level after the first (your Renown is {renown}). They can be spent on any star.', { renown: p.renown });
+    craftChip.title = t('firmament.purse.craftTip', 'Craft points: 1 for every 8 ranks, counting all your professions. They can only be spent on craft stars (the outer ring).');
     const c = changes();
     const n = c.added + c.removed + (c.startChanged && pending.start ? 1 : 0);   // AUDIT UICALM-FIRM1 L4 M5: a birthsign alone is a change
-    goBtn.textContent = n ? `Accept (${n})` : 'Accept';
+    goBtn.textContent = n ? t('firmament.acceptN', 'Accept ({n})', { n }) : t('firmament.accept', 'Accept');
     goBtn.disabled = !n || !online || respecking;   // AUDIT UICALM-FIRM1 L2 M1: no change while the sky is being taken back
     undoBtn.disabled = !n;
     // THE RESPEC: a sky with something learned in it, and (online) the gold in the purse
     respecBtn.disabled = !committed.start || (!preview && !book?.canRespec?.());
-    respecBtn.title = !committed.start ? 'Nothing is learned yet.' : respecBtn.disabled ? `You need ${GOLD_WORD} gold to respec.` : `Unlearn every star and your birthsign for ${GOLD_WORD} gold.`;
+    respecBtn.title = !committed.start ? respecNone() : respecBtn.disabled ? needGold() : t('firmament.respec.tip', 'Remove all your stars and your birthsign for {gold, number} gold.', GOLD);
     drawSide();
     dirty = true;
   }
@@ -408,23 +432,26 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     const s = summaryOf(pending);
     const sign = pending.start ? signById(pending.start.split('.')[0]) : null;
     const parts = [];
-    parts.push(el('h3', null, sign ? sign.name : 'No birthsign chosen'));
-    parts.push(el('p', 'fmt-sign', sign ? sign.lore : 'Click one of the seven great stars to take it as your birthsign. The Serpent in the centre may wander to any sign.'));
-    for (const [ring, label] of /** @type {const} */ ([['combat', 'In battle'], ['life', 'In trade and craft']])) {
-      parts.push(el('h3', null, label));
+    parts.push(el('h3', null, sign ? sign.name : t('firmament.side.noSign', 'No birthsign chosen')));
+    parts.push(el('p', 'fmt-sign', sign ? sign.lore : t('firmament.side.chooseSign', 'Click one of the seven large stars to choose your birthsign. The Serpent, in the centre, can reach every part of the sky.')));
+    for (const ring of /** @type {const} */ (['combat', 'life'])) {
+      parts.push(el('h3', null, ring === 'combat' ? t('firmament.side.combat', 'Combat') : t('firmament.side.craft', 'Crafting and trade')));
       const ul = el('ul');
-      if (!s[ring].length) ul.append(el('li', 'none', ring === 'combat' ? 'Nothing learned.' : 'Nothing learned. The crafts lie on the outer ring.'));
+      if (!s[ring].length) ul.append(el('li', 'none', ring === 'combat' ? t('firmament.side.none', 'Nothing learned yet.') : t('firmament.side.noneCraft', 'Nothing learned yet. Craft stars are on the outer ring.')));
       for (const line of s[ring]) {
         const li = el('li', `${line.capped ? 'capped' : ''} ${line.neg ? 'neg' : ''}`.trim(), line.text);
+        if (line.capped) li.setAttribute('data-cap', t('firmament.side.capped', '(capped)'));   // the CSS's ::after says it
         ul.append(li);
       }
       parts.push(ul);
     }
     const p = purse();
-    parts.push(el('p', 'fmt-note', `No arrangement of stars grants more than +30% to a weapon's blow or +30% to a spell, nor turns aside more than 15% of a blow. The stars hold no power offline, in duels, in the Arena, in sieges, or while you mentor. In the Wrothgarian Mountains they fight its beasts, never its players.`));
+    // the caps (firmamentLaw.js STAT_DEFS, BLOW_CAP, BLOW_TOTAL_CAP) and where the sky sleeps (firmamentPowers.js firmamentAwake: offline,
+    // a duel or an arena bout, mentoring; never a blow or a spell at a player - a siege and the Wrothgarian zone included)
+    parts.push(el('p', 'fmt-note', `${t('firmament.side.caps', 'Limits for all stars together: +30% weapon damage (up to +50% against unaware foes, or while you are below half Health), +30% spell damage, 15% less damage taken.')} ${t('firmament.side.where', 'Stars work only online, and not while you mentor. Combat stars do nothing in duels or Arena fights, and never add damage against other players.')}`));
     parts.push(el('p', 'fmt-note', `${p.renown < p.refund.freeBelow
-      ? `Unlearning stars costs nothing until Renown ${p.refund.freeBelow}.`
-      : `Each star unlearned costs ${p.refund.perStar} silver.`} A respec returns the whole sky to you for ${GOLD_WORD} gold.`));
+      ? t('firmament.side.refundFree', 'Removing stars is free until Renown {renown}.', { renown: p.refund.freeBelow })
+      : t('firmament.side.refundCost', 'Removing an accepted star costs {silver} silver.', { silver: p.refund.perStar })} ${t('firmament.side.respec', 'A respec removes all your stars and your birthsign for {gold, number} gold.', GOLD)}`));
     side.replaceChildren(...parts);
   }
 
@@ -432,7 +459,7 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
   function showTip(key, sx, sy) {
     const n = FIRM_NODES.get(key);
     if (!n) { tip.classList.remove('on'); return; }
-    const parts = [el('div', `nm${n.ring === 'life' ? ' life' : ''}`, n.kind === 'small' ? (n.ring === 'life' ? 'Minor craft star' : 'Minor star') : n.name)];
+    const parts = [el('div', `nm${n.ring === 'life' ? ' life' : ''}`, n.kind === 'small' ? (n.ring === 'life' ? t('firmament.tip.minorCraft', 'Minor craft star') : t('firmament.tip.minor', 'Minor star')) : n.name)];
     const sign = signById(n.sector);
     parts.push(el('div', 'kd', `${kindWords(n)}${sign && n.kind !== 'start' ? ` · ${sign.name}` : ''}`));
     const ul = el('ul');
@@ -443,20 +470,24 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     const p = purse();
     let foot = null, no = false;
     if (held().has(key)) {
-      if (n.kind === 'start') foot = 'Your birthsign. Right-click to unlearn every star and choose anew.';
+      if (n.kind === 'start') foot = t('firmament.tip.ownSign', 'Your birthsign. Right-click to reset all stars and choose again.');
       else {
         const takes = refundTakes(pending, key);
         const paid = takes.filter((k) => heldCommitted().has(k)).length;
         const silver = committed.start ? refundSilver(paid, p.renown) : 0;
-        foot = `Right-click to unlearn${takes.length > 1 ? `, with the ${takes.length - 1} star${takes.length === 2 ? '' : 's'} that depend on it` : ''}.${silver ? ` Costs ${silver} silver.` : ''}`;
+        foot = takes.length > 1 ? t('firmament.tip.removeWith', 'Right-click to remove it and {n, plural, one {the star that depends on it} other {the # stars that depend on it}}.', { n: takes.length - 1 })
+          : t('firmament.tip.remove', 'Right-click to remove.');
+        if (silver) foot += ` ${t('firmament.tip.removeCost', 'Costs {silver} silver.', { silver })}`;
       }
     } else {
       const why = refusalOf(pending, key, p.stars, p.craft);
-      if (why) { foot = why; no = true; } else if (n.kind === 'start') foot = 'Click to take this birthsign.';
+      if (why) { foot = why; no = true; } else if (n.kind === 'start') foot = t('firmament.tip.takeSign', 'Click to choose this birthsign.');
       else {
+        // the life ring takes Craft points first, then Stars (firmamentLaw.js pointsLeft)
         const c = firmCostOf(pathTo(pending, key));
-        const ways = [c.combat ? `${c.combat} Star${c.combat === 1 ? '' : 's'}` : null, c.life ? `${c.life} craft star${c.life === 1 ? '' : 's'}, paid in Craft points first` : null].filter(Boolean);
-        foot = `Click to learn: ${ways.join(' and ')}.`;
+        foot = !c.life ? t('firmament.tip.learnStars', 'Click to learn. Cost: {n} {n, plural, one {Star} other {Stars}}.', { n: c.combat })
+          : !c.combat ? t('firmament.tip.learnCraft', 'Click to learn. Cost: {n} {n, plural, one {point} other {points}}, Craft points first.', { n: c.life })
+            : t('firmament.tip.learnBoth', 'Click to learn. Cost: {stars} {stars, plural, one {Star} other {Stars}}, plus {craft} {craft, plural, one {point} other {points}} for craft stars, Craft points first.', { stars: c.combat, craft: c.life });
       }
     }
     if (foot) parts.push(el('p', `ft${no ? ' no' : ''}`, foot));
@@ -479,10 +510,10 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     if (!n) return;
     const p = purse();
     if (!pending.start) {
-      if (n.kind !== 'start') { say('First choose your birthsign from the seven great stars.', true); return; }
+      if (n.kind !== 'start') { say(signFirst(), true); return; }
       pending = { start: key, keys: [] };
       burst(key);
-      say(`${n.name} is now your birthsign.`);
+      say(t('firmament.say.signChosen', 'Birthsign chosen: {name}.', { name: n.name }));
       refresh();
       return;
     }
@@ -498,9 +529,9 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     if (!held().has(key)) return;
     const n = FIRM_NODES.get(key);
     if (n?.kind === 'start') {
-      if (!pending.keys.length && pending.start === key) { pending = { start: null, keys: [] }; say('Choose a birthsign.'); refresh(); return; }
+      if (!pending.keys.length && pending.start === key) { pending = { start: null, keys: [] }; say(t('firmament.say.chooseSign', 'Choose a birthsign.')); refresh(); return; }
       pending = { start: null, keys: [] };
-      say('All stars unlearned. Choose a birthsign.');
+      say(t('firmament.say.allRemoved', 'All stars removed. Choose a birthsign.'));
       refresh();
       return;
     }
@@ -517,33 +548,33 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
    *  in, loaded as changes to accept like any other - judged by the law against this character's purses first. */
   function openShare() {
     confirming = 'share';
-    const parts = [el('h3', null, 'Share your stars')];
+    const parts = [el('h3', null, t('firmament.share.title', 'Share your build'))];
     const code = buildCode(pending);
     if (code) {
-      parts.push(el('p', null, 'Your build, as it stands here. Copy it and paste it anywhere:'));
+      parts.push(el('p', null, t('firmament.share.yours', 'Your current build, including unaccepted changes. Copy this code to share it:')));
       const out = /** @type {HTMLInputElement} */ (el('input', 'fmt-find fmt-code'));
       out.readOnly = true;
       out.value = code;
-      out.setAttribute('aria-label', 'Your build code');
+      out.setAttribute('aria-label', t('firmament.share.codeAria', 'Your build code'));
       out.onfocus = () => out.select();
-      const copy = btn('Copy', 'fmt-go', async () => {
+      const copy = btn(t('firmament.share.copy', 'Copy'), 'fmt-go', async () => {
         let ok = false;
         try { await globalThis.navigator?.clipboard?.writeText(code); ok = true; } catch { /* the field is selected below */ }
         if (!ok) { out.focus(); out.select(); try { ok = !!globalThis.document?.execCommand?.('copy'); } catch { ok = false; } }
-        say(ok ? 'Your build is copied.' : 'Select the code and copy it.', !ok);
+        say(ok ? t('firmament.share.copied', 'Build code copied.') : t('firmament.share.copyFail', 'Select the code and copy it.'), !ok);
       });
       const row = el('div', 'row share');
       row.append(copy);
       parts.push(out, row);
-    } else parts.push(el('p', null, 'Choose a birthsign first, and you will have a build to share.'));
-    parts.push(el('p', null, 'Load a build someone shared:'));
+    } else parts.push(el('p', null, t('firmament.share.none', 'Choose a birthsign first to get a build code.')));
+    parts.push(el('p', null, t('firmament.share.load', 'Load a build code:')));
     const inp = /** @type {HTMLInputElement} */ (el('input', 'fmt-find fmt-code'));
     inp.placeholder = 'FIRM-...';
-    inp.setAttribute('aria-label', 'A build code to load');
+    inp.setAttribute('aria-label', t('firmament.share.loadAria', 'Build code to load'));
     inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); load(); } else if (e.key === 'Escape') confirmBox.classList.remove('on'); };
     const load = () => { if (loadBuild(inp.value)) confirmBox.classList.remove('on'); };
-    const back = btn('Back', '', () => confirmBox.classList.remove('on'));
-    const go = btn('Load', '', () => load());
+    const back = btn(t('firmament.back', 'Back'), '', () => confirmBox.classList.remove('on'));
+    const go = btn(t('firmament.share.loadBtn', 'Load'), '', () => load());
     const row = el('div', 'row');
     row.append(back, go);
     parts.push(inp, row);
@@ -551,29 +582,36 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     confirmBox.classList.add('on');
     inp.focus?.({ preventScroll: true });
   }
-  const BUILD_REFUSALS = Object.freeze({
-    'build-code': 'That is not a build code.', 'build-sky': 'That build was made under another sky. Ask for a new code.',
-    'build-start': 'That build has no birthsign.', 'firm-path': 'That build has a star with no path to its birthsign.',
-    'firm-key': 'That is not a build code.', 'firm-start': 'That build has no birthsign.',
-  });
+  const notACode = () => t('firmament.build.notCode', 'Not a valid build code.');
+  const noSign = () => t('firmament.build.noSign', 'That build has no valid birthsign.');
+  /** Each read when it is said (textManager.js localizedTable: a getter a key - an arrow, so tools/l10nRouted.mjs reads it as the port's own). */
+  const BUILD_REFUSALS = /** @type {Readonly<Record<string, string>>} */ (localizedTable({
+    'build-code': () => notACode(), 'build-sky': () => t('firmament.build.oldSky', 'That code is from a different version of the Firmament. Ask for a new code.'),
+    'build-start': () => noSign(), 'firm-path': () => t('firmament.build.path', 'That build has a star that isn\'t connected to its birthsign.'),
+    'firm-key': () => notACode(), 'firm-start': () => noSign(),
+  }));
   /** A pasted code loaded as the window's changes, when the law and this character's purses allow it. */
   function loadBuild(text) {
     const r = treeOfCode(text);
-    if (r.error) { say(BUILD_REFUSALS[r.error] ?? 'That is not a build code.', true); return false; }
+    if (r.error) { say(BUILD_REFUSALS[r.error] ?? notACode(), true); return false; }
     const p = purse();
     const fault = treeFault(r.tree, p.stars, p.craft);
     if (fault === 'firm-points') {
       const c = firmCostOf(r.tree.keys);
       const needStars = Math.max(c.combat, c.combat + c.life - p.craft);
-      say(`That build needs ${needStars} Stars${c.life ? ` and up to ${c.life} Craft points` : ''}. You have ${p.stars} Stars and ${p.craft} Craft points.`, true);
+      const have = { stars: p.stars, craft: p.craft };
+      say(c.life ? t('firmament.build.pointsCraft', 'That build needs {need, plural, one {# Star} other {# Stars}} and up to {life, plural, one {# Craft point} other {# Craft points}}. You have {stars, plural, one {# Star} other {# Stars}} and {craft, plural, one {# Craft point} other {# Craft points}}.', { need: needStars, life: c.life, ...have })
+        : t('firmament.build.points', 'That build needs {need, plural, one {# Star} other {# Stars}}. You have {stars, plural, one {# Star} other {# Stars}} and {craft, plural, one {# Craft point} other {# Craft points}}.', { need: needStars, ...have }), true);
       return false;
     }
-    if (fault) { say(BUILD_REFUSALS[fault] ?? 'That build cannot be learned.', true); return false; }
+    if (fault) { say(BUILD_REFUSALS[fault] ?? t('firmament.build.cannot', 'You can\'t learn that build.'), true); return false; }
     pending = cloneTree(r.tree);
     refresh();
     focusSign();
     const c = changes();
-    say(c.added || c.removed ? `Build loaded. Accept to learn it${c.silver ? ` (${c.silver} silver to unlearn what it leaves out)` : ''}.` : 'That build is already yours.');
+    say(!(c.added || c.removed) ? t('firmament.build.same', 'You already have that build.')
+      : c.silver ? t('firmament.build.loadedCost', 'Build loaded. Press {accept} to keep it. Removing the stars it leaves out costs {silver} silver.', { silver: c.silver, accept: t('firmament.accept', 'Accept') })
+        : t('firmament.build.loaded', 'Build loaded. Press {accept} to keep it.', { accept: t('firmament.accept', 'Accept') }));
     return true;
   }
   /** THE RESPEC, asked first: every star and the birthsign back, for the gold. */
@@ -581,12 +619,12 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     if (respecBtn.disabled) return;
     confirming = 'respec';
     const row = el('div', 'row');
-    const yes = btn(`Respec · ${GOLD_WORD} gold`, 'fmt-go', () => respec());
-    const no = btn('Back', '', () => confirmBox.classList.remove('on'));
+    const yes = btn(t('firmament.respec.go', 'Respec · {gold, number} gold', GOLD), 'fmt-go', () => respec());
+    const no = btn(t('firmament.back', 'Back'), '', () => confirmBox.classList.remove('on'));
     row.append(no, yes);
-    confirmBox.replaceChildren(el('h3', null, 'Unlearn every star?'),
-      el('p', null, 'All your stars and your birthsign are returned to you, to choose again.'),
-      el('p', null, `It costs ${GOLD_WORD} gold, taken from your purse and then your bank.`), row);
+    confirmBox.replaceChildren(el('h3', null, t('firmament.respec.ask', 'Reset all stars?')),
+      el('p', null, t('firmament.respec.what', 'This removes all your stars and your birthsign and gives back their points, so you can choose again.')),
+      el('p', null, t('firmament.respec.cost', 'It costs {gold, number} gold, taken from the gold you carry first, then from your bank account.', GOLD)), row);
     confirmBox.classList.add('on');
     yes.focus?.({ preventScroll: true });
   }
@@ -601,7 +639,7 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     if (r?.ok) {
       committed = preview ? { start: null, keys: [] } : cloneTree(book?.current?.() ?? { start: null, keys: [] });
       pending = cloneTree(committed);
-      say('Every star is unlearned. Choose a birthsign.', false, true);
+      say(t('firmament.respec.done', 'Respec done. Choose a birthsign.'), false, true);
     } else say(refusalText(r?.error, true), true);
     refresh();
   }
@@ -609,45 +647,50 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     confirming = 'accept';
     const c = changes();
     if (!c.added && !c.removed && !(c.startChanged && pending.start)) return;
-    const lines = [el('h3', null, 'Accept these stars?')];
-    if (c.startChanged && pending.start) lines.push(el('p', null, `Birthsign: ${FIRM_NODES.get(pending.start)?.name}.`));
-    if (c.added) lines.push(el('p', null, `${c.added} star${c.added === 1 ? '' : 's'} learned.`));
-    if (c.removed) lines.push(el('p', null, `${c.removed} star${c.removed === 1 ? '' : 's'} unlearned${c.silver ? ` for ${c.silver} silver` : ' at no cost'}.`));
+    const lines = [el('h3', null, t('firmament.confirm.ask', 'Accept these changes?'))];
+    if (c.startChanged && pending.start) lines.push(el('p', null, t('firmament.confirm.sign', 'Birthsign: {name}.', { name: FIRM_NODES.get(pending.start)?.name })));
+    if (c.added) lines.push(el('p', null, t('firmament.confirm.learn', 'Learn {n, plural, one {# star} other {# stars}}.', { n: c.added })));
+    if (c.removed) lines.push(el('p', null, c.silver ? t('firmament.confirm.removeCost', 'Remove {n, plural, one {# star} other {# stars}} for {silver} silver.', { n: c.removed, silver: c.silver })
+      : t('firmament.confirm.removeFree', 'Remove {n, plural, one {# star} other {# stars}} for free.', { n: c.removed })));
     const row = el('div', 'row');
-    const yes = btn(c.silver ? `Accept · ${c.silver} silver` : 'Accept', 'fmt-go', () => commit());
-    const no = btn('Back', '', () => confirmBox.classList.remove('on'));
+    const yes = btn(c.silver ? t('firmament.acceptSilver', 'Accept · {silver} silver', { silver: c.silver }) : t('firmament.accept', 'Accept'), 'fmt-go', () => commit());
+    const no = btn(t('firmament.back', 'Back'), '', () => confirmBox.classList.remove('on'));
     row.append(no, yes);
     lines.push(row);
     confirmBox.replaceChildren(...lines);
     confirmBox.classList.add('on');
     yes.focus?.({ preventScroll: true });
   }
-  const REFUSALS = Object.freeze({
-    'firm-points': 'You lack the points for that.', 'firm-path': 'A star has no path back to your birthsign.',
-    'firm-key': 'One of those stars is unknown.', 'firm-start': 'Choose a birthsign first.', 'firm-closed': 'The Firmament is closed to you for now.',
-    'firm-stale': 'Your stars were changed elsewhere. Look again.', 'marks-short': 'You lack the silver to unlearn those stars.',
-    'marks-closed': 'Silver may not be spent here.', offline: 'No word from the server. Your change is kept and will be sent again.',
-    'no-session': 'Sign in to keep your stars.', 'firm-rate': 'Too many changes this hour. Try again later.',
-    'firm-gold': `You need ${GOLD_WORD} gold to respec.`, 'realm-gold': `You need ${GOLD_WORD} gold to respec.`,
-    'firm-respec-empty': 'Nothing is learned yet.', 'firm-busy': 'A change is still on its way. Try again in a moment.',
-  });
+  /** Each read when it is said (textManager.js localizedTable: a getter a key). */
+  const REFUSALS = /** @type {Readonly<Record<string, string>>} */ (localizedTable({
+    'firm-points': () => t('firmament.refusal.points', 'Not enough points.'), 'firm-path': () => t('firmament.refusal.path', 'A star isn\'t connected to your birthsign.'),
+    'firm-key': () => t('firmament.refusal.key', 'One of those stars is unknown.'), 'firm-start': () => t('firmament.refusal.start', 'Choose a birthsign first.'),
+    'firm-closed': () => t('firmament.refusal.closed', 'The Firmament isn\'t available to you right now.'),
+    'firm-stale': () => t('firmament.refusal.stale', 'Your stars changed in another session. Check them and try again.'),
+    'marks-short': () => t('firmament.refusal.silver', 'Not enough silver to remove those stars.'),
+    'marks-closed': () => t('firmament.refusal.silverClosed', 'Silver can\'t be spent on this server right now.'),
+    offline: () => t('firmament.refusal.offline', 'The server didn\'t answer. Your change is saved and will be sent again.'),
+    'no-session': () => t('firmament.refusal.session', 'Sign in to save your stars.'), 'firm-rate': () => t('firmament.refusal.rate', 'Too many changes this hour. Try again later.'),
+    'firm-gold': () => needGold(), 'realm-gold': () => needGold(),
+    'firm-respec-empty': () => respecNone(), 'firm-busy': () => t('firmament.refusal.busy', 'A change is still being sent. Try again in a moment.'),
+  }));
   /** AUDIT UICALM-FIRM1 L4 L3-L4, L2 L5: EVERY REFUSAL SAYS WHY - the window's own words where it has them, else the
    *  account's (accountClient.js REFUSALS, in the player's language); a change the book keeps (no word on it - the net,
    *  the server, the Worker's rate and maintenance) says so; a respec is never kept, so its lost answer says to look. */
   function refusalText(error, respec) {
     const KEPT = ['offline', 'server', 'rate', 'maintenance'];
-    if (KEPT.includes(error)) return respec ? 'No word from the server about the respec. Open the Firmament again in a moment to see whether it was made.' : REFUSALS.offline;
+    if (KEPT.includes(error)) return respec ? t('firmament.refusal.respecLost', 'The server didn\'t answer the respec. Open the Firmament again in a moment to see if it went through.') : REFUSALS.offline;
     return /** @type {Record<string, string>} */ (REFUSALS)[error] ?? accountRefusalText(error);
   }
   /** UI-CALM (2026-10-14, a player: "why dont i get any stars ... with renown lvl 5"): a read the service refused was
    *  silent - the purses stood at their empty defaults ("0 of 0", Renown 1) as if that were the answer. Now it says so. */
   function readFailText(st) {
     if (!st?.error) return null;
-    if (st.error === 'firm-closed') return t('firm.readFail.closed', 'The Firmament is closed on this server for now - no stars can be read.');
-    if (st.error === 'no-session') return t('firm.readFail.session', 'Sign in online to read your stars.');
-    if (st.error === 'offline') return t('firm.readFail.offline', 'No word from the server - your stars could not be read. Try again in a moment.');
-    if (st.status === 404) return t('firm.readFail.missing', 'This server has no Firmament yet (404) - its account service needs the update. Your stars are not lost.');
-    return t('firm.readFail.other', 'Your stars could not be read (the server answered {why}). The count shown is not your Renown\'s.', { why: st.status ?? st.error });
+    if (st.error === 'firm-closed') return t('firm.readFail.closed', 'The Firmament is turned off on this server for now, so your stars can\'t be loaded.');
+    if (st.error === 'no-session') return t('firm.readFail.session', 'Sign in to see your stars.');
+    if (st.error === 'offline') return t('firm.readFail.offline', 'The server didn\'t answer, so your stars couldn\'t be loaded. Try again in a moment.');
+    if (st.status === 404) return t('firm.readFail.missing', 'This server doesn\'t have the Firmament yet (404). Its account service needs an update. Your stars are not lost.');
+    return t('firm.readFail.other', 'Your stars couldn\'t be loaded (the server answered {why}). The points shown are not your real totals.', { why: st.status ?? st.error });
   }
   async function commit() {
     confirmBox.classList.remove('on');
@@ -662,7 +705,7 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
       committed = preview ? cloneTree(want) : cloneTree(book?.current?.() ?? want);
       if (!preview) pending = cloneTree(committed);
       for (const k of added) burst(k);
-      say(added.length ? 'The stars are set.' : 'Your stars are changed.');
+      say(added.length ? t('firmament.say.saved', 'Stars saved.') : t('firmament.say.changed', 'Changes saved.'));
     } else {
       say(refusalText(r?.error, false), true);
       if (!preview && book) { committed = cloneTree(book.current()); }
@@ -794,14 +837,22 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
 
   // ── the keys: a modal overlay owns its input (U50's law) ──
   let armedClose = false;
+  // AUDIT GROWTH LANE3-8: the ask is for the stars it named - one taken or given back since, and the next leave asks again
+  let armedAt = '';
+  const sig = () => `${pending.start}|${pending.keys.join()}`;
+  const rearm = () => { if (armedClose && armedAt !== sig()) armedClose = false; };
+  const arm = () => { armedClose = true; armedAt = sig(); };
   function onKey(e) {
-    if (dead) return;
+    if (dead || (embed && !root.isConnected)) return;   // GROWTH3: a stage between two draws of its page hears nothing
+    if (embed && root.closest?.('[inert]')) return;   // AUDIT GROWTH LANE2-1: and nothing while a window over the pause window holds it inert (the account window's fields)
     if (e.target === find || e.target?.classList?.contains?.('fmt-code')) return;   // a field takes its own keys
     let used = true;
     switch (e.key) {
       case 'Escape':
+        if (embed) { used = false; break; }   // GROWTH3: the window's back stack asks back() - one Escape, one owner
         if (confirmBox.classList.contains('on')) { confirmBox.classList.remove('on'); break; }
-        if (unaccepted() && !armedClose) { armedClose = true; say('Your changes are not accepted yet. Press Escape again to discard them.', true); break; }
+        rearm();
+        if (unaccepted() && !armedClose) { arm(); say(unacceptedEscape(), true); break; }
         close();
         break;
       case 'Enter': if (e.target?.tagName === 'BUTTON') { used = false; break; } click(); if (confirmBox.classList.contains('on')) { if (confirming === 'respec') respec(); else if (confirming === 'accept') commit(); } else openConfirm(); break;
@@ -822,15 +873,25 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
   /** AUDIT UICALM-FIRM1 L4 M4: the overlays' close (the QuickDial's key, Tab by default) asks first, as Escape does - it
    *  had closed the window and thrown away unaccepted stars. Asked, the window stays up and on the overlays' stack. */
   const overlayClose = () => {
+    rearm();
     if (!dead && unaccepted() && !armedClose) {
-      armedClose = true;
-      say('Your changes are not accepted yet. Close again to discard them.', true);
+      arm();
+      say(unacceptedClose(), true);
       unregister = registerOverlay(overlayClose);
       return;
     }
     close();
   };
-  let unregister = registerOverlay(overlayClose);
+  let unregister = embed ? () => {} : registerOverlay(overlayClose);   // GROWTH3: in the tab the pause window is the overlay
+  /** GROWTH3: the pause window's back stack, in the tab - a confirm open is shut, unaccepted stars are asked about once
+   *  (as Escape asks); answers whether it took the press. A second press goes on, and the stars are let go. */
+  function back() {
+    if (dead) return false;
+    if (confirmBox.classList.contains('on')) { confirmBox.classList.remove('on'); return true; }
+    rearm();
+    if (unaccepted() && !armedClose) { arm(); say(unacceptedLeave(), true); return true; }
+    return false;
+  }
 
   // ── the drawing ──
   const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
@@ -842,10 +903,14 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     canvas.height = Math.max(1, Math.round(vh() * dpr));
     hold();   // a smaller window cannot leave the view further out than the sky
     dirty = true;
+    placeSay();   // LANE2-6
   }
   resize();
   const onResize = () => resize();
   globalThis.addEventListener?.('resize', onResize);
+  // GROWTH3: in the tab the stage moves under the sky (the rail, a phone turned, full screen and back) - it is watched
+  let watch = null;
+  if (embed) try { watch = new globalThis.ResizeObserver(() => { if (!dead) resize(); }); watch.observe(root); } catch { watch = null; }
 
   const sky = (x, y) => [x, y];
   function background(t) {
@@ -1107,9 +1172,10 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
 
   refresh();
   if (pending.start) focusSign(); else { fit(); hold(); dirty = true; }   // mounted: the bar's foot is known now
-  if (!online) say('The Firmament opens only online. Your Renown pays for its stars.', true, true);
-  else if (!pending.start) say('Choose your birthsign from the seven great stars.', false, true);
-  goBtn.focus?.({ preventScroll: true });
+  // AUDIT GROWTH LANE5-1: no line of its own for a window with no service - the tab never mounts it so (growthTab.js
+  // firmamentPage says the Firmament is online only), and Accept stands disabled
+  if (online && !pending.start) say(t('firmament.say.start', 'Choose a birthsign: one of the seven large stars.'), false, true);
+  if (!embed) goBtn.focus?.({ preventScroll: true });   // GROWTH3: in the tab the window's own focus stands
 
   function close() {
     if (dead) return;
@@ -1118,6 +1184,7 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     clearTimeout(sayTimer);
     globalThis.removeEventListener?.('keydown', onKey, true);
     globalThis.removeEventListener?.('resize', onResize);
+    watch?.disconnect?.();
     unregister();
     offBook?.();
     root.remove();
@@ -1127,6 +1194,9 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
   return {
     close,
     destroy: close,
+    /** GROWTH3: the tab's Escape (above), and the stage's word that it moved. */
+    back,
+    resize: (refit = false) => { if (dead) return; if (refit && embed && vw() < 980) side.classList.add('shut'); resize(); if (refit) { fit(); hold(); } },   // refit: its first true size (the stage laid out) - a narrow stage starts with the summary shut, as a narrow screen does
     /** Test and probe seam: what the window holds now. */
     model: () => ({ committed: cloneTree(committed), pending: cloneTree(pending), changes: changes(), view: { ...view }, hover, matches: [...matches] }),
     /** Probe seams: press a star, take one back, as a pointer would. */

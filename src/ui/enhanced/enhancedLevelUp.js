@@ -49,6 +49,7 @@ import { drawPixelGround } from '../pixelGround.js';
 import { registerOverlay } from './enhancedOverlays.js';   // PX28: Tab, which this screen refuses while a point is unspent
 import { overlayAction } from '../input.js';
 import { STAT_KEYS_ORDER } from '../../systems/chargen.js';
+import { t } from '../../systems/textManager.js';   // AUDIT GROWTH LANE5-1: the window's own words, read in the player's language when drawn
 import {
   STAR_FIGURE, ATTRIBUTE_BLURB, attributeLabel, levelUpModel, levelUpFrame, levelUpVitals,
   focusAt, raiseAt, lowerAt, ascend, focusedKey, starBrightness, refusalText,
@@ -73,25 +74,26 @@ const svg = (tag, cls) => {
  *  no health roll (AUDIT 39), so it must not be announced as one -
  *  the book gets its own sentence instead. */
 export function crownTitle(crown) {
-  if (crown.lane === LANE_OGHMA) return 'The Oghma Infinium';
+  if (crown.lane === LANE_OGHMA) return t('levelup.crown.oghma', 'The Oghma Infinium');
   // ASCEND-ANYTIME: no arrow where nothing moves. The Oghma arm above
   // is the same sentence about a different cause, and a view asked for
   // by a player who owes nothing is the second.
-  if (crown.to === crown.from) return `Level ${crown.from}`;
-  return `Level ${crown.from} → ${crown.to}`;
+  if (crown.to === crown.from) return t('levelup.crown.level', 'Level {level}', { level: crown.from });
+  return t('levelup.crown.levelUp', 'Level {from} → {to}', { from: crown.from, to: crown.to });
 }
 
 /** What the window ASKS, which is the sentence Skyrim puts in the
- *  middle of the sky. Ours is plural because Daggerfall's pool is. */
-export const ASK_ONE = 'Choose what rises';
+ *  middle of the sky. Ours is plural because Daggerfall's pool is.
+ *  AUDIT GROWTH LANE5-1: each read in the player's language when drawn, and said plainly. */
+export const askOne = () => t('levelup.ask.one', 'Spend your points');
 /** LV2: how the stars take a click, under the ask. */
-export const STAR_HOWTO = 'Click a star to choose it \u00b7 click again to add a point \u00b7 right-click to take one back';
-export const ASK_DONE = 'The stars are set';
+export const starHowto = () => t('levelup.howto', 'Click a star to choose it, click again to add a point, right-click to take one back');
+export const askDone = () => t('levelup.ask.done', 'All points spent');
 /** ASCEND-ANYTIME: ...and what it asks when it is asking nothing. The
  *  window is a VIEW here - the player opened their own sky to look at
  *  it - so the line names what they are looking at rather than a
  *  choice they do not have. */
-export const ASK_VIEW = 'Your stars';
+export const askView = () => t('levelup.ask.view', 'Your attributes');
 
 // ASCEND-ANYTIME: the doors reach the view-only screen THROUGH this
 // module, because this module is the lazy chunk they already load -
@@ -121,8 +123,13 @@ function meterRow(label, now, max, fill) {
  * builds one, because which one it is is ui/charSheetDoor.js's
  * question and the answer carries a mod's law behind it.
  *
+ * GROWTH3 (bible/10-UI/Growth.md section 4): `embed` draws it IN the pause window's Growth tab (ui/growth/growthStage.js)
+ * - the stage's size, not the screen's, and no overlay or Escape of its own: the window's back stack is the way out, and
+ * a level owed and left stays owed (its bonus points remembered on the character - advancement.js bonusPoolFor), to be
+ * spent here or wherever a level-up opens next. The OK still commits, and `onExit` follows it.
+ *
  * @param {HTMLElement} hostEl
- * @param {{screen: any, entity?: any, onExit?: () => void}} d
+ * @param {{screen: any, entity?: any, onExit?: () => void, embed?: boolean}} d
  */
 export function mountEnhancedLevelUp(hostEl, d = {}) {
   injectEnhancedStyle();
@@ -140,18 +147,20 @@ export function mountEnhancedLevelUp(hostEl, d = {}) {
   let unregister = () => {};
   let dead = false;
 
+  const embed = d.embed === true;
   const root = el('div', 'px-home lv-sky');
+  if (embed) root.classList.add('lv-embed');   // GROWTH3
   root.setAttribute('role', 'dialog');
-  root.setAttribute('aria-modal', 'true');
-  root.setAttribute('aria-label', 'Level up');
+  root.setAttribute('aria-modal', embed ? 'false' : 'true');
+  root.setAttribute('aria-label', t('levelup.aria', 'Level up'));
 
   // ── THE SKY ──────────────────────────────────────────────────
   // PX1b's cadence and PX1b's opt-out: 8fps, the rate pixel art
   // animates at, and nothing at all under prefers-reduced-motion.
   const ground = document.createElement('canvas');
   ground.className = 'px-ground';
-  const vw = () => globalThis.innerWidth ?? 1280;
-  const vh = () => globalThis.innerHeight ?? 720;
+  const vw = () => (embed && root.clientWidth) || (globalThis.innerWidth ?? 1280);   // GROWTH3: the stage's, in the tab
+  const vh = () => (embed && root.clientHeight) || (globalThis.innerHeight ?? 720);
   drawPixelGround(ground, vw(), vh(), 0);
   const still = typeof globalThis.matchMedia === 'function'
     && globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -164,7 +173,7 @@ export function mountEnhancedLevelUp(hostEl, d = {}) {
   // ── THE CROWN ────────────────────────────────────────────────
   const crown = el('header', 'lv-crown');
   const whoCell = el('div', 'lv-who');
-  whoCell.append(el('span', 'k', 'Name'));
+  whoCell.append(el('span', 'k', t('levelup.crown.name', 'Name')));
   const whoName = el('span', 'v');
   whoCell.append(whoName);
   const levelCell = el('div', 'lv-level');
@@ -175,7 +184,7 @@ export function mountEnhancedLevelUp(hostEl, d = {}) {
   const levelNote = el('div', 'lv-barnote');
   levelCell.append(levelJump, levelMeter, levelNote);
   const raceCell = el('div', 'lv-race');
-  raceCell.append(el('span', 'k', 'Race'));
+  raceCell.append(el('span', 'k', t('levelup.crown.race', 'Race')));
   const raceName = el('span', 'v');
   raceCell.append(raceName);
   crown.append(whoCell, levelCell, raceCell);
@@ -203,7 +212,7 @@ export function mountEnhancedLevelUp(hostEl, d = {}) {
   plate.append(plateCount, plateKey, plateRefuse, plateHint);
   // LV2: how the stars take a click - said once, beside the pool, where it
   // takes no room from the figure (positioned out of the band's flow)
-  if (!screen?.viewOnly) plate.append(el('p', 'lv-howto', STAR_HOWTO));   // PLUS1
+  if (!screen?.viewOnly) plate.append(el('p', 'lv-howto', starHowto()));   // PLUS1
   root.append(plate);
 
   // ── THE FIGURE ───────────────────────────────────────────────
@@ -248,7 +257,7 @@ export function mountEnhancedLevelUp(hostEl, d = {}) {
     // PLUS1: the select-then-spend stars (plain Enhanced's click-raises-at-once went with it, PLUS-DEAD)
     b.onclick = () => starPress(key, 1);
     b.oncontextmenu = (e) => { e.preventDefault(); starPress(key, -1); };
-    b.title = 'Click to choose - click again to add a point - right-click to take one back';
+    b.title = t('levelup.star.title', 'Click to choose, click again to add a point, right-click to take one back');
     figure.append(b);
     return { key, node: b, val, delta, gem };
   });
@@ -291,24 +300,24 @@ export function mountEnhancedLevelUp(hostEl, d = {}) {
 
   // ── THE CHOICE ───────────────────────────────────────────────
   const choice = el('div', 'lv-choice');
-  const ask = el('div', 'lv-ask', ASK_ONE);
+  const ask = el('div', 'lv-ask', askOne());
   const pick = el('div', 'lv-pick');
   const prev = el('button', 'lv-arrow', '◃');
   prev.type = 'button';
-  prev.title = 'Previous attribute';
-  prev.setAttribute('aria-label', 'Previous attribute');
+  prev.title = t('levelup.arrow.prev', 'Previous attribute');
+  prev.setAttribute('aria-label', prev.title);
   const next = el('button', 'lv-arrow', '▹');
   next.type = 'button';
-  next.title = 'Next attribute';
-  next.setAttribute('aria-label', 'Next attribute');
+  next.title = t('levelup.arrow.next', 'Next attribute');
+  next.setAttribute('aria-label', next.title);
   const minus = el('button', 'lv-press', '−');
   minus.type = 'button';
-  minus.title = 'Take this point back';
-  minus.setAttribute('aria-label', 'Take this point back');
+  minus.title = t('levelup.press.minus', 'Take a point back');
+  minus.setAttribute('aria-label', minus.title);
   const plus = el('button', 'lv-press', '+');
   plus.type = 'button';
-  plus.title = 'Put a point here';
-  plus.setAttribute('aria-label', 'Put a point here');
+  plus.title = t('levelup.press.plus', 'Add a point');
+  plus.setAttribute('aria-label', plus.title);
   const pickName = el('div', 'lv-pickname');
   const pickN = el('span', 'n');
   const pickF = el('span', 'f');
@@ -379,9 +388,11 @@ export function mountEnhancedLevelUp(hostEl, d = {}) {
   const vitals = el('div', 'lv-vitals');
   for (const m of levelUpVitals(entity)) vitals.append(meterRow(m.label, m.now, m.max, m.fill));
   const acts = el('div', 'lv-acts');
-  const ok = el('button', 'lv-ok', 'Ascend');
+  const ok = el('button', 'lv-ok', t('levelup.ok.ascend', 'Ascend'));
   ok.type = 'button';
   ok.onclick = () => confirm();
+  // AUDIT GROWTH LANE3-7: the view in the tab has no Close - the page is its place, and closing it drew it again
+  if (embed && screen?.viewOnly) ok.hidden = true;
   acts.append(ok);
   foot.append(vitals, acts);
   root.append(foot);
@@ -392,7 +403,7 @@ export function mountEnhancedLevelUp(hostEl, d = {}) {
    *  line rather than doing nothing, and the window stays up: there is
    *  no other way out of a level-up, in either lane. */
   function confirm() {
-    if (dead) return false;
+    if (dead || (embed && screen?.viewOnly)) return false;   // LANE3-7: nothing to close in the tab
     if (ascend(screen)) { onExit(); return true; }
     refused = true;
     paint();
@@ -421,8 +432,8 @@ export function mountEnhancedLevelUp(hostEl, d = {}) {
     raceName.textContent = [m.crown.race, m.crown.career].filter(Boolean).join(' ');
     levelJump.textContent = crownTitle(m.crown);
     levelFill.style.width = `${m.progress.max > 0 ? Math.max(0, Math.min(100, (m.progress.now / m.progress.max) * 100)) : 0}%`;
-    levelNote.textContent = `${m.progress.label} ${m.progress.now}/${m.progress.max}`
-      + (m.progress.carried > 0 ? ` · ${m.progress.carried} carried` : '');
+    levelNote.textContent = t('levelup.progress.bar', '{label}: {now}/{max}', { label: m.progress.label, now: m.progress.now, max: m.progress.max })
+      + (m.progress.carried > 0 ? ` · ${t('levelup.progress.carried', '{n} carried over', { n: m.progress.carried })}` : '');
 
     plateCount.textContent = String(m.pool);
     plateKey.textContent = m.poolLabel;
@@ -464,18 +475,18 @@ export function mountEnhancedLevelUp(hostEl, d = {}) {
     }
 
     const row = rows.get(m.focus);
-    // ASCEND-ANYTIME: a VIEW asks nothing. "The stars are set" is what
+    // ASCEND-ANYTIME: a VIEW asks nothing. "All points spent" is what
     // a finished LEVEL-UP says, and saying it to a player who never had
-    // points to set would be the window congratulating them for
+    // points to spend would be the window congratulating them for
     // nothing.
-    ask.textContent = m.crown.viewOnly ? ASK_VIEW : (m.pool > 0 ? ASK_ONE : ASK_DONE);
+    ask.textContent = m.crown.viewOnly ? askView() : (m.pool > 0 ? askOne() : askDone());
     pickN.textContent = row.label;
     pickF.textContent = row.delta > 0 ? `${row.base} → ${row.value}` : String(row.value);
     // THE PRICE, only where there is one. Daggerfall's pool is a point
     // a point; the mod prices Luck differently from the rest
     // (attributeOffset), and a window that hid that would be lying
     // about what the next press costs.
-    pickC.textContent = row.cost > 1 ? `${row.cost} per point` : '';
+    pickC.textContent = row.cost > 1 ? t('levelup.pick.cost', 'Costs {n} per point', { n: row.cost }) : '';
     for (const [k, a] of about) {
       const r = rows.get(k);
       a.item.classList.toggle('on', k === m.focus);
@@ -504,7 +515,7 @@ export function mountEnhancedLevelUp(hostEl, d = {}) {
     // ...and the button CLOSES rather than ascends, so it says so. The
     // Oghma arm beside it is the same rule for the same reason: the
     // word on the button is what the press does.
-    ok.textContent = m.crown.viewOnly ? 'Close' : (m.lane === LANE_OGHMA ? 'Read on' : 'Ascend');
+    ok.textContent = m.crown.viewOnly ? t('levelup.ok.close', 'Close') : (m.lane === LANE_OGHMA ? t('levelup.ok.oghma', 'Continue') : t('levelup.ok.ascend', 'Ascend'));
 
     if (ribbonNodes.length) {
       ribbonAt = Math.max(0, Math.min(ribbonRows.length - 1, ribbonAt));
@@ -530,8 +541,10 @@ export function mountEnhancedLevelUp(hostEl, d = {}) {
 
   function onKey(e) {
     if (dead || e.metaKey || e.ctrlKey || e.altKey) return;
-    const t = e.target;
-    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if (embed && !root.isConnected) return;   // GROWTH3: a stage between two draws of its page hears nothing
+    if (embed && root.closest?.('[inert]')) return;   // AUDIT GROWTH LANE2-1: and nothing while a window over the pause window holds it inert (the account window's fields)
+    const tgt = e.target;   // AUDIT GROWTH LANE5-1: not `t`, which is the text core's
+    if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.isContentEditable)) return;
     const key = focusedKey(screen);
     let used = true;
     switch (e.code) {
@@ -547,14 +560,17 @@ export function mountEnhancedLevelUp(hostEl, d = {}) {
       case 'ArrowDown': ribbonAt += 1; paint(); centreRibbon(); break;
       case 'Equal': case 'NumpadAdd': if (raiseAt(screen, key)) refused = false; paint(); break;
       case 'Minus': case 'NumpadSubtract': if (lowerAt(screen, key)) refused = false; paint(); break;
-      case 'Enter': case 'NumpadEnter': confirm(); break;
+      // AUDIT GROWTH LANE3-3: in the tab a focused button's Enter is the button's - the window's tabs, its rail and Full
+      // screen stand beside the face (Enter on the Stats tab pressed Ascend), as the Firmament's and the sky's keep it
+      case 'Enter': case 'NumpadEnter': if (embed && tgt?.tagName === 'BUTTON') { used = false; break; } confirm(); break;
       default: used = false;
     }
     if (!used) {
       // Escape is the only other key this screen answers, and it
       // answers it the way the OK button does: a level-up has one
-      // exit, and it is spent.
-      if (overlayAction(e) !== 'back') return;
+      // exit, and it is spent. GROWTH3: in the tab the window's back
+      // stack owns it - the level stays owed, nothing is lost.
+      if (embed || overlayAction(e) !== 'back') return;
       confirm();
     }
     // A MODAL OVERLAY OWNS ITS INPUT (U50's law): on CAPTURE and
@@ -573,11 +589,14 @@ export function mountEnhancedLevelUp(hostEl, d = {}) {
   const onResize = () => { if (!dead) drawPixelGround(ground, vw(), vh(), 0); };
   if (still) globalThis.addEventListener?.('resize', onResize);
   globalThis.addEventListener?.('keydown', onKey, true);
-  unregister = registerOverlay(closeArm);
+  if (!embed) unregister = registerOverlay(closeArm);   // GROWTH3: in the tab the pause window is the overlay
+  // GROWTH3: in the tab the stage moves under it - the sky redrawn to its size
+  let watch = null;
+  if (embed) try { watch = new globalThis.ResizeObserver(onResize); watch.observe(root); } catch { watch = null; }
   paint();
   // The first focus goes to the figure, not the document: this screen
   // is reachable by keyboard alone from the moment it opens.
-  stars[0]?.node?.focus?.({ preventScroll: true });
+  if (!embed) stars[0]?.node?.focus?.({ preventScroll: true });
 
   return {
     paint,
@@ -589,8 +608,12 @@ export function mountEnhancedLevelUp(hostEl, d = {}) {
       groundTimer = null;
       globalThis.removeEventListener?.('keydown', onKey, true);
       if (still) globalThis.removeEventListener?.('resize', onResize);
+      watch?.disconnect?.();
       unregister();
       root.remove();
     },
+    /** GROWTH3: the stage's word that it moved, and the tab's Escape (the level-up keeps nothing of its own to shut). */
+    resize: () => onResize(),
+    back: () => false,
   };
 }

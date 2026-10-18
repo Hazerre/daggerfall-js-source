@@ -1305,8 +1305,8 @@
   {
     "name": "AUDIT-LANDFORMS-II-G1-pile-unmoved",
     "file": "src/scenes/droppedLoot.js",
-    "old": "      p.pos[1] += d;\n      if (p.batch) {",
-    "new": "      if (p.batch) {",
+    "old": "      p.pos[1] += d;\n      if (p.batch) remintBatch(p);",
+    "new": "      if (p.batch) remintBatch(p);",
     "tests": [
       "test/world/terrain/auditlandforms.test.js"
     ]

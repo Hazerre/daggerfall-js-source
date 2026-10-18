@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { STAR_HOWTO } from '../../../src/ui/enhanced/enhancedLevelUp.js';
+import { starHowto } from '../../../src/ui/enhanced/enhancedLevelUp.js';
 import { LV2_CSS } from '../../../src/ui/levelUp/levelUpStyle.js';
 import { PLUS_CSS as ENHANCED_CSS } from '../../../src/ui/enhanced/enhancedPlusStyle.js';   // PLUS1: the refresh's dress is the Enhanced Plus sheet
 
@@ -23,7 +23,7 @@ test('LV2: every press leaves a stepped mark, and reduced motion stands them dow
   for (const k of ['fx-pick', 'fx-up', 'fx-down', 'fx-no']) assert.ok(LV2_CSS.includes(`.lv-star.${k}`), k);
   assert.match(LV2_CSS, /lv-rise [0-9]+ms steps\(/);
   assert.match(LV2_CSS, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.lv-pop \{ display: none; \}/);
-  assert.ok(STAR_HOWTO.includes('right-click'));
+  assert.ok(starHowto().includes('right-click'));   // PIN MOVED (AUDIT GROWTH LANE5-1): read when drawn
 });
 
 test('LV2: the dress moves no band - no plaque in a band takes a border or vertical padding', () => {

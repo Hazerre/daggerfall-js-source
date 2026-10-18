@@ -132,7 +132,10 @@ test('NT1 (F213): dungeonContext.destroy latches FIRST and marks piles dead befo
   const body = dc.slice(dc.indexOf('    destroy() {'));
   assert.match(body, /destroy\(\) \{\n      _ctxDead = true;/,
     'the context dead latch is the first act of destroy');
-  assert.ok(body.indexOf("for (const p of droppedLoot._piles) { p.dead = true; if (p.batch) renderer.destroyBillboardBatch(p.batch); }") > 0,
+  // PIN MOVED (AUDIT FB1018 L3-2, bible/01-Overview/audits/Audit-Field-Bugs-2026-10-18.md): the teardown frees the piles
+  // through the pool's own restore, which marks each dead before it frees it (LOOT-FLATS' one way out of the animator)
+  assert.ok(body.indexOf('droppedLoot.restorePiles(null);') > 0, 'the piles freed through the pool');
+  assert.match(src('scenes/droppedLoot.js'), /function restorePiles\(saved\) \{\n    for \(const p of piles\) \{ p\.dead = true; freeBatch\(p\); \}/,
     'dead BEFORE free - the droppedLoot removal protocol, so a warming pile cannot mint onto the orphan');
   assert.ok(body.includes('magic.destroy();'),
     'the context-minted cast engine dies with the scene (F214 wired)');

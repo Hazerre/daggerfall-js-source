@@ -39,10 +39,12 @@ import {
 import { MOD_SETTINGS } from '../../src/systems/modSettings.js';
 import { ORL_VENDOR } from '../../src/systems/oblivionLeveling.js';
 import { hostText } from '../hostText.mjs';   // HOST-SPLIT 2 (AUDIT, the second read): its negatives read the host whole
+import { patchLocaleTable, setLocale, _resetTextManagerForTests } from '../../src/systems/textManager.js';   // AUDIT GROWTH LANE5-1
+import { crownTitle, askOne, askDone, askView, starHowto } from '../../src/ui/enhanced/enhancedLevelUp.js';   // AUDIT GROWTH LANE5-1
 import {
   LANE_CLASSIC, LANE_OGHMA, LANE_VIRTUE, levelUpLane, rolloutRows, rolloutPool, poolLabel,
   canAscend, refusalText, corneredHint, pressAt, raiseAt, lowerAt, focusAt, focusedKey, ascend,
-  allMaxed, ALL_MAX_LINE, levelUpFrame,
+  allMaxed, allMaxLine, levelUpFrame,
   levelUpCrown, levelProgress, levelSumRoles, riseRibbon, levelUpVitals, levelUpModel,
   STAR_FIGURE, STAR_MIN_APART_X, STAR_MIN_APART_Y, crowdedStarPairs,
   ATTRIBUTE_BLURB, attributeLabel, starBrightness,
@@ -275,7 +277,9 @@ test('LV1: ALL-MAX IS THE OTHER TERM OF CheckIfDoneLeveling, and the first cut h
   assert.ok(rolloutRows(w).every((r) => !r.canRaise), 'and nothing can take a point of it');
   assert.equal(allMaxed(w), true);
   assert.equal(canAscend(w), true, 'so the way out is open');
-  assert.equal(corneredHint(w), ALL_MAX_LINE, 'and it says THAT, not "take a point back" - there is no elsewhere');
+  // PIN MOVED (AUDIT GROWTH LANE5-1): the line is read when drawn (allMaxLine), and says it plainly
+  assert.equal(corneredHint(w), allMaxLine(), 'and it says THAT, not "take a point back" - there is no elsewhere');
+  assert.equal(allMaxLine(), 'Every attribute is at its maximum. Leftover points can\'t be spent.');
   const level = p.level;
   assert.equal(ascend(w), true);
   assert.equal(p.level, level + 1, 'the level still lands');
@@ -386,8 +390,45 @@ test('LV1: the ribbon\'s roles RECONSTRUCT levelUpSkillSum exactly, over every s
   // ...and the four roles each say something different, so a player
   // reading the ribbon is reading four distinct facts.
   assert.equal(new Set(Object.values(ROLE_NOTE)).size, 4);
-  assert.match(ROLE_NOTE[ROLE_IDLE], /does not count/i);
-  assert.match(ROLE_NOTE[ROLE_DROPPED], /dropped/i);
+  // PIN MOVED (AUDIT GROWTH LANE5-1): the notes say the rule in the player's terms - "dropped from the sum" named a sum
+  // the window never defines - so each role is held to the skill it names and what that skill does for the level
+  assert.deepEqual({ ...ROLE_NOTE }, {
+    [ROLE_COUNTS]: 'Every point counts toward your next level.',
+    [ROLE_DROPPED]: 'Your lowest major skill. It doesn\'t count toward your next level.',
+    [ROLE_BEST]: 'Your highest minor skill - the only minor skill that counts toward your next level.',
+    [ROLE_IDLE]: 'Doesn\'t count toward your next level.',
+  });
+});
+
+test('AUDIT GROWTH LANE5-1: the window\'s words are read in the player\'s language when they are drawn, never fixed at load', () => {
+  // A word captured at module load stays English whatever the player chose: each of these is asked again on every
+  // read, so a table patched after the import answers - and English comes back with the locale.
+  const p = player();
+  const w = new LevelUpScreen(p, seq(0));
+  const english = [ATTRIBUTE_BLURB.luck, ROLE_NOTE[ROLE_IDLE], attributeLabel('luck'), poolLabel(w), allMaxLine(), askOne(), askDone(), askView(), starHowto(),
+    crownTitle({ lane: LANE_OGHMA }), crownTitle({ lane: LANE_CLASSIC, from: 3, to: 4 }), levelProgress(p, w).label, levelUpVitals(p)[0].label];
+  assert.deepEqual(english, ['Helps you hit and avoid hits, as Agility does, and improves your loot.', 'Doesn\'t count toward your next level.', 'Luck',
+    'Bonus points left', 'Every attribute is at its maximum. Leftover points can\'t be spent.', 'Spend your points', 'All points spent', 'Your attributes',
+    'Click a star to choose it, click again to add a point, right-click to take one back', 'The Oghma Infinium', 'Level 3 → 4',
+    'Skill progress to next level', 'Health']);
+  try {
+    patchLocaleTable('fr', 'Port_Strings', [['levelup.blurb.luck', 'Chance'], ['levelup.role.idle', 'Ne compte pas'], ['levelup.attr.luck', 'Chance (attribut)'],
+      ['levelup.pool.bonus', 'Points restants'], ['levelup.allMax', 'Tout est au maximum.'], ['levelup.ask.one', 'Dépensez vos points'],
+      ['levelup.ask.done', 'Points dépensés'], ['levelup.ask.view', 'Vos attributs'], ['levelup.howto', 'Cliquez'], ['levelup.crown.oghma', 'L\'Oghma Infinium'],
+      ['levelup.crown.levelUp', 'Niveau {from} → {to}'], ['levelup.progress.classic', 'Progrès'], ['levelup.vital.health', 'Santé']]);
+    setLocale('fr');
+    assert.deepEqual([ATTRIBUTE_BLURB.luck, ROLE_NOTE[ROLE_IDLE], attributeLabel('luck'), poolLabel(w), allMaxLine(), askOne(), askDone(), askView(), starHowto(),
+      crownTitle({ lane: LANE_OGHMA }), crownTitle({ lane: LANE_CLASSIC, from: 3, to: 4 }), levelProgress(p, w).label, levelUpVitals(p)[0].label],
+    ['Chance', 'Ne compte pas', 'Chance (attribut)', 'Points restants', 'Tout est au maximum.', 'Dépensez vos points', 'Points dépensés', 'Vos attributs', 'Cliquez',
+      'L\'Oghma Infinium', 'Niveau 3 → 4', 'Progrès', 'Santé']);
+    // ...and the mod's purse, its author's English (ui/virtueLevelUp.js REMAINING_POINTS_LABEL) read the same way
+    const mod = new VirtueLevelUpScreen(virtuePlayer(), { settings: S(), rolls: seq(0) });
+    patchLocaleTable('fr', 'Port_Strings', [['levelup.pool.virtue', 'Vertus restantes']]);
+    assert.equal(poolLabel(mod), 'Vertus restantes');
+    setLocale('en');
+    assert.equal(ATTRIBUTE_BLURB.luck, english[0], 'and English again with the locale');
+    assert.equal(poolLabel(mod), 'Virtues left');
+  } finally { _resetTextManagerForTests(); }
 });
 
 test('LV1: the ribbon leads with what rose, and is never empty', () => {

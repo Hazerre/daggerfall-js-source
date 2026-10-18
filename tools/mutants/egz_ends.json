@@ -305,8 +305,8 @@
   {
     "name": "EGZM-press-resumes-under-the-boards",
     "file": "src/ui/enhanced/enhancedMenu.js",
-    "old": "const timersDoor = (fn) => { onAction('handoff'); if (!fn()) onAction('resume'); };",
-    "new": "const timersDoor = (fn) => { onAction('resume'); fn(); };",
+    "old": "  onAction('handoff'); if (!fn()) onAction('resume');",
+    "new": "  onAction('resume'); fn();",
     "tests": [
       "test/ui/eliteGates/egz_ends_board.test.js"
     ]

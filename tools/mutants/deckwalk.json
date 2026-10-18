@@ -516,8 +516,8 @@
   {
     "name": "SHIPMATES-cw-build-ignored",
     "file": "src/scenes/exteriorFoes.js",
-    "old": "allied: (r.t === KNIGHT_CITYWATCH_ID && allied.has(r.i)) || shipmate, champion: r.cp ?? null })",
-    "new": "allied: r.t === KNIGHT_CITYWATCH_ID && allied.has(r.i), champion: r.cp ?? null })",
+    "old": "allied: (r.t === KNIGHT_CITYWATCH_ID && allied.has(r.i)) || shipmate, champion: cp })",
+    "new": "allied: r.t === KNIGHT_CITYWATCH_ID && allied.has(r.i), champion: cp })",
     "tests": [
       "test/systems/naval/deckwalk.test.js"
     ]

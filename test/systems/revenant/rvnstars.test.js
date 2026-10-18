@@ -442,9 +442,9 @@ test('RVN-STARS SETTING ITS SKY: through the law and its points; never abroad (s
   const book = RC.swornStarsBook(r.id);
   assert.deepEqual([book.tree(), book.stars().points, book.refusal()], [['oath', 'b_hp1'], 2, null]);
   RC.sendOnErrand(r.id, 'HighRock', 'forage', { now: T0, seed: 1 });
-  assert.equal(RC.setSwornStars(r.id, ['b_bl1']), 'It is abroad - set its stars when it is back.');
+  assert.equal(RC.setSwornStars(r.id, ['b_bl1']), 'It\'s away on a mission. Set its stars when it returns.');
   assert.deepEqual(rec(r).companion.stars, ['oath', 'b_hp1'], 'unchanged');
-  assert.equal(book.refusal(), 'It is abroad - set its stars when it is back.');
+  assert.equal(book.refusal(), 'It\'s away on a mission. Set its stars when it returns.');
   assert.equal(RC.setSwornStars('nobody', ['b_hp1']), 'It is no longer sworn to you.');
   RC.setRetinueBodies(null);
 });
@@ -499,7 +499,7 @@ test('RVN-STARS THE WINDOW\'S WORDS: every star named, its aspect and kind; a st
   assert.equal(rvnStarKindWords(ST.rvnStarOf('r_bound')), 'The Road · notable');
   assert.equal(rvnStarKindWords(ST.rvnStarOf('oath')), 'Starting star');
   assert.deepEqual([['health', 0.05], ['blows', -0.1], ['art', 0.15], ['haste', 0.05], ['odds', 0.3], ['odds', -0.5], ['haul', 0.3], ['road', 0.15], ['road', -0.1], ['bold', 1], ['loyal', 0.2], ['rest', 0.3]].map(([k, v]) => rvnStarStatWords(k, v)),
-    ['Health +5%', 'Damage -10%', 'Art strength +15%', 'Its art\'s cooldowns 5% shorter', 'Mission odds +3%', 'Mission odds -5%', 'Mission gold and materials +30%', 'Missions 15% shorter', 'Missions 10% longer', 'A hard road brings back nothing', 'Loyalty losses 20% smaller', 'Rests 30% shorter']);
+    ['Health +5%', 'Damage -10%', 'Art strength +15%', 'Its art\'s cooldowns 5% shorter', 'Mission odds +3%', 'Mission odds -5%', 'Mission gold and materials +30%', 'Missions 15% shorter', 'Missions 10% longer', 'Brings back nothing if it returns hurt', 'Loyalty losses 20% smaller', 'Rests 30% shorter']);
   assert.deepEqual(rvnSkySummary(['oath', 'b_hp1', 'b_bl1', 'b_bl2', 'b_relent', 'b_bl3', 'b_rage']).map((l) => [l.key, l.neg]), [['health', true], ['blows', false]]);
   assert.deepEqual(rvnSkySummary(['oath', 'r_odd1', 'r_haul1', 'r_far', 'r_haul2', 'r_fortune']).filter((l) => l.key === 'bold').map((l) => l.neg), [true], 'Fortune\'s price marked');
   assert.equal(rvnStarRefusal(['oath'], 'g_wake', 2), 'Reaching this star costs 4 points. It has 2. It gets one point per level after the first, and one per rank past the first.');
@@ -545,7 +545,7 @@ test('RVN-STARS THE WINDOW: the captain\'s sky window (ui/skyWindow.js) drawing 
     RC.sendOnErrand(r.id, 'HighRock', 'forage', { now: T0, seed: 1 });
     w.take('b_bl1');
     w.accept();
-    assert.equal(said(), 'It is abroad - set its stars when it is back.');
+    assert.equal(said(), 'It\'s away on a mission. Set its stars when it returns.');
     assert.deepEqual([rec(r).companion.stars, w.model().changes, changed], [['oath', 'g_pow1', 'b_hp1'], { added: 1, removed: 0 }, 1], 'refused: kept pending, nothing told');
     assert.equal(w.tryClose(), false, 'asked first');
     assert.equal(w.tryClose(), true);
@@ -583,11 +583,36 @@ test('RVN-STARS AUDIT RVN-STARS S8 THE QUICKDIAL\'S KEY ASKS THE SKY FIRST: the 
     door.view().take('b_hp1');
     assert.equal(closeTopOverlay(), true);
     assert.deepEqual([door.up(), backs], [true, 0], 'asked: still up');
-    assert.match(f.text(f.doc.body), /You have changes that aren't accepted/);
+    assert.match(f.text(f.doc.body), /You have unaccepted changes\. Press Accept to keep them, or close again to discard them\./);
     assert.equal(closeTopOverlay(), true);
     assert.deepEqual([door.up(), backs, rec(r).companion.stars], [false, 1, ['oath']], 'put away, the page back, nothing set');
     assert.equal(closeTopOverlay(), false, 'nothing of the sky left on the stack');
   });
+});
+
+test('RVN-STARS AUDIT GROWTH LANE4-1/2 THE SHEET\'S OWN KEYS ASK THE SKY FIRST: F5 (or the pack key\'s crossover) over a sworn one\'s sky with a star unaccepted says so once, in the words of a key press, and keeps the sky; the second press lets it go; a sky with nothing pending asks nothing; the note\'s health at once (mutants: the door\'s ask dropped; the sheet\'s key not asking it; the Close words)', async () => {
+  const { revenantStarsOver } = await import('../../../src/ui/firmamentOver.js');
+  await withWindow(async (f) => {
+    const r = sworn({ rank: 3 });
+    const door = revenantStarsOver({ alive: () => true, below: () => {}, back: () => {} });
+    assert.equal(door.asks(), false, 'no sky: nothing to ask');
+    door.hook(r.id);
+    for (let i = 0; i < 50 && !door.view(); i++) await new Promise((res) => setTimeout(res, 5));   // the lazy chunk
+    assert.equal(door.asks(), false, 'nothing pending');
+    // LANE4-2: the note says what AUDIT RVN-STARS S1 made true - health rescaled at Accept, not at the next call
+    assert.match(f.text(f.doc.body), /Changing its stars is free, but not while it's away\. Its health and damage change at once\./);
+    door.view().take('b_hp1');
+    assert.equal(door.asks(), true);
+    assert.equal(door.up(), true);
+    assert.match(f.text(f.doc.body), /You have unaccepted changes\. Press Accept to keep them, or leave again to discard them\./);
+    assert.equal(door.asks(), false, 'the second press lets it go');
+    // AUDIT GROWTH LANE3-8: the ask is for the stars it named - one more taken, and the next press asks again
+    door.view().take('b_bl1');
+    assert.equal(door.asks(), true, 'a new star: asked again');
+    door.drop();
+    assert.deepEqual(rec(r).companion.stars, ['oath'], 'never set');
+  });
+  assert.match(read('src/ui/charSheetDoor.js'), /if \(view\?\.asksFirst\?\.\(\) \|\| rvnStars\.asks\(\)\) return;/);
 });
 
 // ── the page and the doors ──────────────────────────────────────────
@@ -644,7 +669,7 @@ test('RVN-STARS THE PAGE: each sworn one\'s level and the stars it has to set (n
   assert.match(read('src/ui/companionRoster.js'), /get: \(\) => t\('rvn\.roster\.rail', 'Companions'\)/);
 });
 
-test('RVN-STARS THE DOORS: both doors that draw the pause window lay its sky over it (ui/firmamentOver.js revenantStarsOver - the Firmament\'s own door, built once) and put the page back on Companions; the menu lands there and hands its page the door; no host grew (PIN: the doors)', () => {
+test('RVN-STARS THE DOORS: both doors that draw the pause window lay its sky over it (ui/firmamentOver.js revenantStarsOver - the door the Firmament had, built once) and put the page back on Companions; the menu lands there and hands its page the door; no host grew (PIN: the doors)', () => {
   const over = read('src/ui/firmamentOver.js');
   assert.match(over, /export function revenantStarsOver\(\{ alive, below, back \}\) \{\n\s+let last = null;\n\s+const o = overPage\(\{/);
   assert.match(over, /load: \(\) => import\('\.\/revenantStarsWindow\.js'\),/);
@@ -655,7 +680,7 @@ test('RVN-STARS THE DOORS: both doors that draw the pause window lay its sky ove
   const pause = read('src/ui/pauseDoor.js');
   assert.match(pause, /get openRevenantStars\(\) \{ return rvnStars\.hook; \},/);
   assert.match(pause, /view = seams\.mountEnhancedMenu\(host, \{ mode: 'pause', hooks, onAction: act, at: 'companions' \}\);/);
-  assert.match(pause, /firm\.drop\(\); rvnStars\.drop\(\);/);
+  assert.match(pause, /rvnStars\.drop\(\);   \/\/ RVN-STARS: a sworn one's stars go with this window/);   // PIN MOVED (GROWTH3: the Firmament's door went to the Growth tab)
   const sheet = read('src/ui/charSheetDoor.js');
   assert.match(sheet, /openRevenantStars: rvnStars\.hook,/);
   assert.match(sheet, /back: \(\) => remountPage\('companions'\),/);
@@ -664,6 +689,6 @@ test('RVN-STARS THE DOORS: both doors that draw the pause window lay its sky ove
   const menu = read('src/ui/enhanced/enhancedMenu.js');
   assert.match(menu, /else if \(at === 'companions'\) \{ pauseTab = 'holdings'; holdSec = 'companions'; \}/);
   assert.match(menu, /stars: typeof hooks\.openRevenantStars === 'function' \? hooks\.openRevenantStars : null/);
-  assert.match(read('src/ui/captainTreeWindow.js'), /return mountSkyWindow\(host, sky, \{ changed, onExit, doc \}\);/, 'the captain\'s stars in the same window');
+  assert.match(read('src/ui/captainTreeWindow.js'), /return mountSkyWindow\(host, sky, \{ changed, onExit, doc, embed \}\);/, 'the captain\'s stars in the same window');   // PIN MOVED (GROWTH3: and drawn in the Growth tab, embedded)
   for (const host of ['src/scenes/world.js', 'src/scenes/worldModes.js', 'src/scenes/dungeonContext.js', 'src/scenes/exterior.js']) assert.doesNotMatch(read(host), /revenantStars|rvnStar|swornStars/, `${host}: never wired in a host`);
 });

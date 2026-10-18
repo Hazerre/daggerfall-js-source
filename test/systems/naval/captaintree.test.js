@@ -312,8 +312,8 @@ test('CAPTAIN-TREE the window\'s words: every star named, its half and kind; a s
   assert.deepEqual(starLines(starOf('m_wind')), [{ text: 'Speed under sail +12%', neg: false }, { text: 'Speed under oars -12%', neg: true }]);
   assert.deepEqual(skySummary(['helm', 'c_rel1', 'm_hold1']).map((l) => l.key), ['cargo', 'reload'], 'CAPTAIN_STATS\' order');
   assert.equal(starRefusal(['helm'], 'm_way1', 1), null);
-  assert.equal(starRefusal(['helm'], 'm_wind', 3), 'Reaching this star costs 5 points. You have 3. You get one point per captain level.');
-  assert.equal(starRefusal(['helm'], 'm_way1', 0), 'Reaching this star costs 1 point. You have 0. You get one point per captain level.');
+  assert.equal(starRefusal(['helm'], 'm_wind', 3), 'Reaching this star costs 5 points. You have 3. You get one point per captain level after the first.');
+  assert.equal(starRefusal(['helm'], 'm_way1', 0), 'Reaching this star costs 1 point. You have 0. You get one point per captain level after the first.');
   assert.equal(starRefusal(['helm'], 'nope', 9), 'Unknown star.');
   assert.equal(starRefusal(['helm', 'm_way1'], 'm_way1', 0), null, 'held');
 });
@@ -373,7 +373,7 @@ test('CAPTAIN-TREE the window: a star pressed sets the whole way to it while the
     w.take('c_rel1');
     assert.deepEqual(w.model().changes, { added: 2, removed: 0 });
     assert.equal(w.tryClose(), false, 'asked first');
-    assert.match(f.text(host), /You have changes that aren't accepted/);
+    assert.match(f.text(host), /You have unaccepted changes\. Press Accept to keep them, or close again to discard them\./);
     w.accept();
     assert.deepEqual(L.tree(), ['helm', 'm_way1', 'c_rel1']);
     assert.equal(changed, 1);

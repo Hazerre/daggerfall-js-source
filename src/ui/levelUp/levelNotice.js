@@ -428,7 +428,7 @@ function rowNode(doc, r) {
   // when there is a key to press - the same key the row already names, sent through ui/levelUp/levelUpOpener.js, so it
   // opens the window exactly as the sheet key does in every host. Without a binding it stays a plain line: a
   // button that presses nothing is a drawn door. It takes clicks only where the game hands the player a cursor
-  // (touch, or the freed cursor); the pause window's Stats page carries the same door for everyone else.
+  // (touch, or the freed cursor); the pause window's Growth tab (its Level page, the Stats page's Growth door) is the same door for everyone else.
   const clickable = r.kind === NOTICE_LEVEL && codeForAction(bindings(), 'CharacterSheet') != null;
   const n = doc.createElement(clickable ? 'button' : 'div');
   n.className = `lv-note lv-note-${r.kind}${r.kind === NOTICE_RENOWN ? ' lv-note-level' : ''}${r.kind === NOTICE_QUEST ? ' lv-note-mastery' : ''}${r.standing ? ' lv-standing' : ''}${clickable ? ' lv-clickable' : ''}${r.fading ? ' lv-fading' : ''}`;
