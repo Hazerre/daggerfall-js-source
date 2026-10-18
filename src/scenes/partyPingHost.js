@@ -10,7 +10,7 @@ import { createPingLabels, pingDistanceText } from '../render/partyPingLabels.js
 import {
   PING_MARK_MS, PING_PATH_MS, PING_OUT_MS, PING_REACH_M, PING_GROUND_M, PING_COOLDOWN_MS, PING_ARRIVE_M,
   PING_WALL_NY, PING_WALL_BACK, PING_COLOR_MINE, PING_COLOR_MATE,
-  aimPoint, placeOk, placeKeyOf, fadeAlpha, settleAim, groundAim, groundRoute, markUnderLook, buildingStop,
+  aimPoint, placeOk, pingPlace, fadeAlpha, settleAim, pingGround, groundRoute, markUnderLook, buildingStop,
 } from '../systems/party/partyPing.js';
 
 /** Unlocked action doors, left out of the soup the way the dungeon's bake leaves them
@@ -234,7 +234,7 @@ export function createPartyPingHost(deps) {
     try { sub = deps.subject?.(eye, dir, cap) ?? null; } catch { sub = null; }
     let at = null, name = '', elite = false;
     if (place.space === 'world' && typeof deps.ground === 'function') {
-      const g = groundAim(eye, dir, deps.ground, cap);
+      const g = pingGround(eye, dir, deps.ground, cap);
       const gDist = g ? Math.hypot(g[0] - eye[0], g[1] - eye[1], g[2] - eye[2]) : Infinity;
       const shell = buildingStop(eye, dir, deps.collider(), deps.buildings?.() ?? null, cap);
       const limit = Math.min(gDist, shell?.dist ?? Infinity);
@@ -412,7 +412,7 @@ export function createWorldPartyPing(deps) {
     pressed: deps.pressed,
     blocked: deps.blocked,
     mode: deps.mode,
-    place: () => placeKeyOf(deps.mode(), deps.identity(), deps.pixel()),
+    place: () => pingPlace(deps.mode(), deps.identity(), deps.pixel()),
     collider: deps.collider,
     feet: deps.feet,
     toWire: (p, space) => (space === 'world' ? deps.worldOf(p) : { x: p[0], y: p[1], z: p[2] }),

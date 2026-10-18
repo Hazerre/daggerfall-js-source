@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   PING_MARK_MS, PING_PATH_MS, PING_IN_MS, PING_OUT_MS, PING_REACH_M,
-  aimPoint, fadeAlpha, settleAim, groundRoute, groundAim, markUnderLook, pathRibbon, placeKeyOf, buildingStop,
+  aimPoint, fadeAlpha, settleAim, groundRoute, pingGround, markUnderLook, pathRibbon, pingPlace, buildingStop,
 } from '../../../src/systems/party/partyPing.js';
 import { pingDistanceText } from '../../../src/render/partyPingLabels.js';
 import { pingSubject } from '../../../src/systems/party/partyPingCaption.js';
@@ -52,9 +52,9 @@ test('PARTY-PING: a look names a point within reach, and the floor route is dash
   const around = groundRoute([0, 1, 0], [10, 1, 0], () => 1, (a, b) => !crosses(a, b));
   assert.ok(around && around.some((p) => Math.abs(p[2]) > 1.2), 'a wall is walked around, not through');
   const hill = (x, z) => (z > 4 && z < 12 ? 4 : 0);
-  const near = groundAim([0, 2, 0], [0, -0.05, 1], hill, 80);
+  const near = pingGround([0, 2, 0], [0, -0.05, 1], hill, 80);
   assert.ok(near && near[2] > 3.5 && near[2] < 6 && near[1] > 1, 'a rise is met on the near face');
-  const flat = groundAim([0, 3, 0], [0, -0.02, 1], () => 0, 512);
+  const flat = pingGround([0, 3, 0], [0, -0.02, 1], () => 0, 512);
   assert.ok(flat && flat[2] > 40, 'open ground is named well past a few metres');
   const icon = { at: [0, 0, 8], mine: false };
   assert.equal(markUnderLook([0, 0, 0], [0, 0, 1], [icon]), icon);
@@ -83,13 +83,13 @@ test('PARTY-PING: a look names a point within reach, and the floor route is dash
 });
 
 test('PARTY-PING: a place key is the dungeon, the building or the open air', () => {
-  assert.deepEqual(placeKeyOf('exterior', null, null), { k: 'w', space: 'world' });
-  assert.deepEqual(placeKeyOf('exterior', null, { x: 10, y: 20 }), { k: 'w:10.20', space: 'world' });
-  assert.deepEqual(placeKeyOf('dungeon', { kind: 'dungeon', mapId: 5, size: 'full' }, null), { k: 'd:5.full', space: 'dungeon' });
-  assert.deepEqual(placeKeyOf('dungeon', { kind: 'gate', day: 3 }, null), { k: 'd:gate:3', space: 'dungeon' });
-  assert.equal(placeKeyOf('dungeon', { kind: 'dungeon', mapId: NaN }, null), null);
+  assert.deepEqual(pingPlace('exterior', null, null), { k: 'w', space: 'world' });
+  assert.deepEqual(pingPlace('exterior', null, { x: 10, y: 20 }), { k: 'w:10.20', space: 'world' });
+  assert.deepEqual(pingPlace('dungeon', { kind: 'dungeon', mapId: 5, size: 'full' }, null), { k: 'd:5.full', space: 'dungeon' });
+  assert.deepEqual(pingPlace('dungeon', { kind: 'gate', day: 3 }, null), { k: 'd:gate:3', space: 'dungeon' });
+  assert.equal(pingPlace('dungeon', { kind: 'dungeon', mapId: NaN }, null), null);
   assert.deepEqual(
-    placeKeyOf('interior', { kind: 'interior', buildingKey: 12, instance: { owner: 'acct', epoch: 4 } }, { x: 10, y: 20 }),
+    pingPlace('interior', { kind: 'interior', buildingKey: 12, instance: { owner: 'acct', epoch: 4 } }, { x: 10, y: 20 }),
     { k: 'i:10.20.12:acct.4', space: 'interior' },
   );
 });

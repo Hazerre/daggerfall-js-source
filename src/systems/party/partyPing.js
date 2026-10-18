@@ -60,7 +60,7 @@ export const PING_WALL_BACK = 0.85;
  * @param {ArrayLike<number>} dir
  * @param {(x: number, z: number) => number} ground
  */
-export function groundAim(eye, dir, ground, reach = PING_GROUND_M) {
+export function pingGround(eye, dir, ground, reach = PING_GROUND_M) {
   if (!eye || !dir || typeof ground !== 'function') return null;
   const len = Math.hypot(dir[0], dir[1], dir[2]);
   if (!(len > 1e-8) || !(reach > 0)) return null;
@@ -162,7 +162,7 @@ function placeTag(id) {
  * @param {{ kind?: string, mapId?: number, size?: string, day?: *, s?: *, b?: *, o?: *, buildingKey?: number, instance?: object, private?: boolean, privateRoom?: *, boatUid?: * }|null} id
  * @param {{ x: number, y: number }|null} pixel
  */
-export function placeKeyOf(mode, id, pixel) {
+export function pingPlace(mode, id, pixel) {
   if (mode === 'exterior' || mode == null) {
     if (pixel && Number.isFinite(pixel.x) && Number.isFinite(pixel.y)) return { k: `w:${pixel.x | 0}.${pixel.y | 0}`, space: 'world' };
     return { k: 'w', space: 'world' };

@@ -28035,7 +28035,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     subject: (eye, dir, reach) => pingSubject(eye, dir, {
       collider: csaModeCollider(), reach,
       foes: (modes?.mode ?? 'exterior') === 'exterior' ? exteriorFoePool() : (modes?.insideFoes?.() ?? []),
-      objects: (modes?.mode === 'interior' ? modes.interiorCtx?.actions?.objects : modes?.mode === 'dungeon' ? modes?.dungeonCtx?.actions?.objects : null) ?? null,
+      objects: (modes?.mode === 'interior' ? modes?.interiorCtx?.actions?.objects : modes?.mode === 'dungeon' ? modes?.dungeonCtx?.actions?.objects : null) ?? null,
       look: modes?.pingLook?.() ?? null,
       crowd: pingCrowd(eye, dir, reach, _talkPersons(), openPeers(peersNear(), isPartyMate).filter(crowdDrawnHere), (p) => mobilePersonName(p?.person?.nameNPC), (p) => peerName(p?.id), csaModeCollider()),
     }),
