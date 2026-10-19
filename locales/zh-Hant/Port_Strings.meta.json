@@ -1134,6 +1134,16 @@
   "tr": "d6a055de1c25",
   "by": "claude-in-session"
  },
+ "travel.pace.viewFoot": {
+  "en": "e578298f5875",
+  "tr": "957606917fb9",
+  "by": "claude-in-session"
+ },
+ "travel.pace.viewMount": {
+  "en": "522010f69fee",
+  "tr": "ed946a12e341",
+  "by": "claude-in-session"
+ },
  "wagon.upkeep.boons.failing": {
   "en": "5e6a68b53a69",
   "tr": "d13b083f9df5",

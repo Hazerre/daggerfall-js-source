@@ -226,6 +226,8 @@ town.econ.reason.raid,"Một cuộc đột kích trước cổng đang làm hạ
 town.econ.trend.falling,"Thị trường đang giảm."
 town.econ.trend.flat,"Thị trường đi ngang."
 town.econ.trend.rising,"Thị trường đang tăng."
+travel.pace.viewFoot,"×{n} khi đi bộ, hoặc khi ngựa đang đói"
+travel.pace.viewMount,"×{n} là nhanh nhất mà bản đồ thế giới cho phép"
 wagon.upkeep.boons.failing,"{name} của bạn sắp rã. Bãi Xe hoặc Bộ Sửa Xe sẽ sửa nó."
 wagon.upkeep.boons.rickety,"{name} của bạn ọp ẹp. Bãi Xe có thể sửa nó."
 wild.escrow.collectLate,"Món đồ đó không còn được giữ cho bạn nữa."
