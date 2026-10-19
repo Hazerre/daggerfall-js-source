@@ -23,6 +23,7 @@
 // under the same law. Kept on the device, never in a save (the mod saved no travel state, Travel-Options.md).
 // ═══════════════════════════════════════════════════════════════════
 import { appStorage } from '../appStorage.js';
+import { t } from '../textManager.js';   // L10N4: the Overworld's two ceilings, read when a stepper paints them
 
 export const TRAVEL_PACE_STORE_KEY = 'dfjs.travel.pace2';
 /** The ladder every dial steps along. */
@@ -52,8 +53,8 @@ export const TRAVEL_PACE_TEXT = Object.freeze({
     foe: `The slowest the clock runs while enemies are near (×${ROAD_PACE_MAX} on a road only)`,
   },
   roadOnly: `×${ROAD_PACE_MAX} only on a road`,
-  viewFoot: `×${TV_PACE_FOOT} on foot, or while a horse is hungry`,
-  viewMount: `×${TV_PACE_MOUNT} is as fast as the Overworld goes`,
+  get viewFoot() { return t('travel.pace.viewFoot', '×{n} on foot, or while a horse is hungry', { n: TV_PACE_FOOT }); },
+  get viewMount() { return t('travel.pace.viewMount', '×{n} is as fast as the Overworld goes', { n: TV_PACE_MOUNT }); },
   slower: 'Slower',
   faster: 'Faster',
 });
