@@ -1358,6 +1358,7 @@ directory by `test/bible/audit18_bible_docs.test.js`:
 - `underwaterFog.js` - ROAD-B B3: UnderwaterFog.UpdateFog, the submerged fog/tint law shared by the dungeon and exterior hosts
 - `vfxGpu.js` - MW-SPELLFX1: a Morrowind effect's streams on the GPU - one particle effect per stream (formats/morrowind/mwVfx.js packs a mesh's triangles and its sparks alike), its texture set by file each frame and owned here, released whole; the arm's VFX_Hands and the world's spell effects (scenes/mwMagicFx.js, drawn by `Renderer.drawWorldParticleEffects`) each drive one
 - `windowEmission.js` - R2 window emission.
+- `playPrograms.js` - AUDIT SHADER-STALL (2026-10-20): the passes play meets - a gate's fire, the court's and the Spire's telegraphs, his blows' sparks, the crystals, the nodes' outline - STARTED at the renderer's idle warm (`renderer.js` lazyWarmSteps, a dynamic import off the boot's graph) where the driver compiles beside the frames (KHR_parallel_shader_compile), so each is done before it is first wanted; nothing is started where it cannot (bible/07-Rendering/Performance-Priority.md SHADER-STALL, the audit).
 - `precipitation.js` - R13 rain/snow + storm lightning. TWO PROFILES,
   TWO PROGRAMS (AUDIT 58 f3/render): the classic pass is DFU's cap on
   its own shader, byte for byte as it stood before EE8, and the

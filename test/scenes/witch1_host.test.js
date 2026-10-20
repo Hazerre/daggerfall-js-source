@@ -108,7 +108,7 @@ test('WITCH1 THE RAY AND THE PLAQUE: each offering a target at a door\'s reach; 
   assert.deepEqual(targets.map((t) => t.key), [offeringKey(MAP, MINE), offeringKey(MAP, THEIRS)]);
   assert.equal(targets[0].distance, RAY_DISTANCE);
   assert.equal(targets[0].reach, DEFAULT_ACTIVATION_DISTANCE);
-  assert.equal(targets[0].aabb[0], 1.15 - 0.5 + 100, 'in the scene: the pixel\'s translation added');
+  assert.equal(targets[0].aabb.min[0], 1.15 - 0.5 + 100, 'in the scene: the pixel\'s translation added - the ray\'s { min, max } (FB1020e OFFERING-RAY: the pick\'s own run is test/scenes/fb1020e_offeringray.test.js)');
   const own = H.hoverName(offeringKey(MAP, MINE));
   assert.equal(own.title, "Alice's Hearth Offering", 'named whole, so a language orders it as it reads');
   assert.deepEqual(own.actions.map((a) => a.id), ['fill', 'takeIn']);

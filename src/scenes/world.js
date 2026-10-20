@@ -88,7 +88,7 @@ import { lookAt, multiply, perspective, mirrorProjectionX, identity, UP_Y, wrapA
 import { aabbOutside, localAabb, transformedAabb, flatBatchAabb, cullDisabled } from '../render/frustum.js';   // GHOST1: the plane extraction comes through bounds.js's `spherePlanes` now - `_planes` serves the sphere test too
 import { spherePlanes, batchVisible, setFlatLean, batchSphere } from '../render/bounds.js';   // PERF-CROWD: the batch's own bounding sphere, the test the shadow replay already uses   // GHOST1: through its ONE home, on the NORMALISED planes it needs   // EV3: the frustum
 import { withMoonAmbient } from '../render/enhancedSky.js';   // EV5: secunda rides the ambient
-import { FarRingRenderer, ringDisabled, ringHeight, RING_HAZE_HOLD } from '../render/farRing.js';   // EV8: the province's mountains on the horizon; FAR-SEA1: its haze, the sea's too
+import { FarRingRenderer, ringDisabled, ringHeight, RING_HAZE_HOLD, BuiltPixels } from '../render/farRing.js';   // EV8: the province's mountains on the horizon; FAR-SEA1: its haze, the sea's too; OW-HORIZON: the built pixels, counting their changes for the ring's hole
 import { syncLightingLane, lanternColor } from '../render/enhancedLighting.js';   // EL1: the Enhanced Lighting lane, installed at mount
 import { collectBlockFlats, billboardSize, mobileBillboardSize, centredBase, classicBillboardSize } from '../world/rmbFlats.js'; // TREES-SEATED: a block's trees on the hills drawn under them; FIELD BUGS 2026-10-13e HILL-SEAT: and the pads under what its author stood on them
 import { flatFieldFor } from '../world/flatFields.js';   // FIELD BUGS 2026-10-04d CROPS: a crop field keeps a metre off the block's solids; AUDIT MERCHANT-YARDS G1: and a yard off the field
@@ -485,6 +485,7 @@ import { worldHoverFrame, hideWorldPlaque, destroyWorldPlaque, worldPlaqueOn, re
 import { TV_DUNGEON_MODELS_MAX } from '../systems/travel/travelDungeonModels.js';   // OW-DUNGEONS: each dungeon's own model, grown under the Overworld; TV-BURST: started one a frame
 import { keysHeading, axesToward, tvOwnGrow } from '../player/travelCamera.js';   // OW-FACE: the body faces the keys' way under the Overworld; OW-PEERS: the others grown as the traveller is
 import { createTravelView, TV_MOVE_ACTIONS, TRAVEL_VIEW_TEXT, travelViewLine, travelTripLine, travelWalkRate, shipPassageRows } from './travelView.js';   // TV1: the travel view (bible/06-Systems/Travel-View.md) - the raised eye, its input and its ways out
+import { horizonFog, horizonProj, horizonHit } from './travelHorizon.js';   // OW-HORIZON: from the air, as far as the eye can see - the haze, the lens and the click
 import { showTravelViewHud, hideTravelViewHud, updateTravelViewHud, travelViewHudPickAt, showTravelViewConfirm, hideTravelViewConfirm, travelViewConfirmOpen, setTravelViewArmsOf } from '../ui/travel/travelViewHud.js';   // TV1: its readout; AUDIT HERALDRY H4: the tag's arms
 import { createBandSprites } from '../world/bandSprites.js';   // OW-FOES: the bands as their monsters, faded in near
 import { shownWaypoints, isWaypointFollowed, waypointById, mapPointToNative, nativeToMapPoint, receiveWaypointLine, setWaypointSender, syncWaypointGroups } from '../systems/map/mapWaypoints.js';   // WAYPOINTS: the flags on the Overworld, their wire on the hub's party and guild channels
@@ -723,7 +724,7 @@ import { InputMessageBoxWindow } from '../ui/inputMessageBox.js';   // HCC: the 
 import { getBool, getInt, getFloat } from '../systems/settings/settings.js';   // U31: StartCellX/Y + StartInDungeon, the classic start's own three keys   // F-slice: worldCoordToMapPixel for the travel start pixel
 import { STREAMING_TERRAIN_SCALE, DEFAULT_TERRAIN_SCALE, HEIGHTMAP_DIMENSION, MAX_TERRAIN_HEIGHT, TERRAIN_SIZE, SCALED_OCEAN_ELEVATION, sampleKernel } from '../world/terrain/terrainSampler.js';   // GR1: the sea plane, so no blade stands in water
 import { restrideGrid, gridBed } from '../world/terrain/terrainGen.js';   // PERF-EXT26: the restride's grid - the kernel's own law (EV4's ghost rows), on the worker or here
-import { getLocationTerrainTileOrigin, setLocationTiles } from '../world/terrain/terrainTiles.js';
+import { getLocationTerrainTileOrigin, setLocationTiles, locationRectReader } from '../world/terrain/terrainTiles.js';
 // The start-marker arm (StreamingWorld's PositionPlayerToLocation), the
 // law and its two location-type reads. AUDIT 64 F18/F19: DFU reaches it
 // from FIVE sites, not one, and FOUR of them are here - the court
@@ -1668,7 +1669,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // the far ring below takes the same lane, so the horizon lights as the
   // ground does.
   const lightingOn = syncLightingLane(renderer);
-  const farRing = (isEnhanced() && !ringDisabled()) ? new FarRingRenderer(renderer.gl, { lane: renderer.lightingLane }) : null;
+  const farRing = (isEnhanced() && !ringDisabled()) ? new FarRingRenderer(renderer.gl, { renderer }) : null;   // EL1: the renderer's lighting lane; OW-HORIZON: and its focus and cloud deck, each frame
   const _ringOrigin = [0, 0, 0];
 
   // One location per map pixel game-wide (pinned corpus invariant).
@@ -4053,7 +4054,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // --- Per-pixel build --------------------------------------------------
   const worldHeight = MAX_TERRAIN_HEIGHT * STREAMING_TERRAIN_SCALE;   // TERRAIN-SCALE1: the game scene's
   const tileSide = TERRAIN_SIZE / 128;
-  const built = new Map(); // key -> pixel entry
+  const built = new BuiltPixels(); // key -> pixel entry (OW-HORIZON: a Map counting its keys' changes - the far ring's hole is keyed by them)
 
   // BOOT-TDZ (2026-09-18, Mac: "boot failed: can't access lexical
   // declaration 'yn' before initialization"): TRAVEL OPTIONS' BINDINGS
@@ -4630,7 +4631,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // made further down; the first pixels promote before it exists, so the question is late-bound (nothing is up yet).
   let _dwOverlayUp = () => false;
   const dwPlaying = () => !_dwOverlayUp();
-  const _etherRectScratch = new Uint8Array(128 * 128);   // AUDIT ETHER-OW C1-4: the isles' templates' tilemap, one for all
   const deepWaters = dwRender ? createDeepWatersHost({
     woods, woodsBytes,
     locations: [...locationIndex].map(([k, loc]) => { const i = k.indexOf(','); return [+k.slice(0, i), +k.slice(i + 1), loc]; }),
@@ -4647,7 +4647,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // - its places' rects read off the isles' templates once, as the Bay's are off its locations: a template's rect is
     // its blocks' alone, read as a clone reads them (the isles' region and an isle's own index - WD3 names the town
     // whose blocks come next, and no variant names a clone)
-    ether: etherSea ? etherPlaceRects(_etherTemplates, (t) => setLocationTiles({ ...t, regionIndex: ETHER_REGION, locationIndex: -1000 }, maps, blocks, _etherRectScratch.fill(0))) : null,   // AUDIT ETHER-OW C1-4: one tilemap, cleared per template (deepWatersLocationRects' own way)
+    ether: etherSea ? etherPlaceRects(_etherTemplates, locationRectReader(maps, blocks, { regionIndex: ETHER_REGION, locationIndex: -1000 })) : null,   // AUDIT ETHER-OW C1-4: one tilemap for the walk; BOOT-RECTS: and each block parsed once (terrainTiles.js locationRectReader)
   }) : null;
   /** OH-B: THERE'S A HOLE IN THE BOTTOM OF THE OCEAN 1.1.0 (jet082, vendor/ocean-holes/) - made below, after the decorations its
    *  pits keep out; the sea's floor builds are late-bound to it (a promote lands only after the world is up). */
@@ -8740,7 +8740,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   /** CSA-F: the waves' pass, and their pictures (InitializeWaveTextures, 1811-1819): the author's two paints and the
    *  snow they key, TEXTURE.303 record 1 of the player's ARENA2 - loaded at boot, as Start has them (CSA-J). */
   const csaRender = csaRuntime ? new ComeSailAwayRenderer(renderer) : null;
-  if (csaRender) void warmPrograms([() => csaRender._ensurePart(), () => csaRender._ensureWave()]);   // PERF-COMPILE1 (stutter): the sea's four programs at idle, not on the first frame at sea
+  if (csaRender) void warmPrograms(csaRender.warmSteps());   // PERF-COMPILE1 (stutter): the sea's four programs at idle, not on the first frame at sea; SHADER-STALL: each built once its compile is done
   let _csaWaveLoad = null;
   function csaWaveFrames() {
     _csaWaveLoad ??= (async () => {
@@ -30598,10 +30598,10 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
   // AUDIT DEEP R-4: on the SEA, its surface (and the margin with it - the sea is flat and known): the seabed Deep Waters
   // carves under clear water is no floor for a veil, whose foot the surface (no depth written) never cuts
   // (tvSeaY, the sea's surface, stands beside `state` - FIELD BUGS 2026-10-08 UNSTUCK-OUT's audit: the boot's load reads it)
-  const tvGroundAt = (x, z) => {
+  const tvGroundAt = (x, z, sea = true) => {   // OW-HORIZON: `sea` false - the ground itself, for a click (the curtains' margin is a veil's)
     const n = state.worldCoords([x, 0, z]);
     const g = tvSceneOf(n.x, n.z)[1];
-    if (!deepWaters) return g;
+    if (!deepWaters || !sea) return g;
     // AUDIT DEEP2 D4: at EVERY point, not in sea pixels alone - a storm over a coast took a beach sample, and a carved cell
     // in a land pixel answered the seabed, so the veil hung down to it through a surface that writes no depth; nothing
     // but the seabed lies under the sea, and land over it cuts the veil by its own depth
@@ -31156,7 +31156,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     const [sx, sy] = canvasPoint(clientX, clientY, canvas.getBoundingClientRect());
     const dir = rayDirFromScreen(sx, sy, canvas.clientWidth, canvas.clientHeight, _lastProj, _lastView, travelView.eye, worldViewportRect(canvas.clientWidth, canvas.clientHeight));
     if (!dir) return;
-    const hit = groundHit(travelView.eye, dir, (x, z) => heightAt(x, z));
+    const hit = horizonHit(travelView.eye, dir, (x, z) => tvGroundAt(x, z, false));   // OW-HORIZON: the land as far as the view shows it - the grid's, the far ring's past it
     let pix = null, place = null, water = false;
     if (hit.point) {
       const n = state.worldCoords(hit.point);
@@ -31434,7 +31434,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     const [sx, sy] = canvasPoint(clientX, clientY, canvas.getBoundingClientRect());
     const dir = rayDirFromScreen(sx, sy, canvas.clientWidth, canvas.clientHeight, _lastProj, _lastView, travelView.eye, worldViewportRect(canvas.clientWidth, canvas.clientHeight));
     if (!dir) return;
-    const hit = groundHit(travelView.eye, dir, (x, z) => heightAt(x, z));
+    const hit = horizonHit(travelView.eye, dir, (x, z) => tvGroundAt(x, z, false));   // OW-HORIZON: as the view's click
     if (!hit.point) { tvSay(TRAVEL_VIEW_TEXT.far); return; }
     const n = state.worldCoords(hit.point);
     openWaypointMenu({ x: clientX, y: clientY, point: nativeToMapPoint(n.x, n.z), by: ctx.by, canKind: ctx.canKind, onNote: say, owner: 'overworld' });
@@ -33682,7 +33682,6 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // into the same rect, takes the same number.
     const worldAspect = largeHudWorldAspect(canvas.clientWidth, canvas.clientHeight);
     spyglassStep(dt);   // SPYGLASS: the glass raised or lowered, its lens eased - before the lens is taken
-    const proj = mirrorProjectionX(perspective(glassFov(fieldOfView() + climbFeel.fovRad(), spyglass.lens), worldAspect, spyglass.near, 6000));   // HANDEDNESS (mat4's law)   // CLIMB4: a leap's kick   // SPYGLASS: the glass's lens   // GLASS-CLEAR: and its focus (GLASS_NEAR_MIN, the eye's own 0.2, while it is down)
     // MW-D25: the eye goes through the Morrowind camera machine - in
     // first person it comes back untouched (camera.cpp:165-169), in
     // third it is the reference's focal-and-pull-back with this host's
@@ -33733,6 +33732,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     const tvf = travelView?.frame(dt, { eye: tvHeadEye, fwd }) ?? null;
     const mwv = tvf ? { ...mwv0, eye: tvf.eye } : mwv0.ownEye ? { ...mwv0, eye: tvHeadEye } : mwv0;   // AUDIT TV B6: the frame the view came down in draws from the head, never from last frame's sky
     const viewFwd = tvf ? tvf.fwd : fwd;
+    const proj = horizonProj(glassFov(fieldOfView() + climbFeel.fovRad(), spyglass.lens), worldAspect, spyglass.near, tvf);   // HANDEDNESS (mat4's law)   // CLIMB4: a leap's kick   // SPYGLASS: the glass's lens   // GLASS-CLEAR: and its focus (GLASS_NEAR_MIN, the eye's own 0.2, while it is down)   // OW-HORIZON: under the travel view the planes hold the whole grid from the raised eye (scenes/travelHorizon.js) - after the view's frame, which says how far up it stands
     // WAGONS3: MY BODY ON MY BENCH - drawn on it as the wagon is drawn (grown with the rig under the Overworld), facing the
     // way it is driven, at the rig's grow (player/motor.js drawFeet / drawYaw / drawGrow - WAGONS2's seat in another's
     // wagon is drawn the same way, its drawAt); the fixed-city host's twin is exterior.js's
@@ -33985,7 +33985,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // Sunny/Overcast ARE linear fog to 2400 - the classic distance haze.
     // DaggerfallSky.SetSkyFogColor (:318-325): anything denser than
     // heavy rain fogs to Color.gray, not to the sky tint.
-    const fogNow = wxNow.fog;   // WX2: the row on the front (the table's own row, classic and settled)
+    const fogNow = horizonFog(wxNow.fog, tvf);   // WX2: the row on the front (the table's own row, classic and settled); OW-HORIZON: under the travel view a linear row's haze runs on to the horizon (scenes/travelHorizon.js) - the same row on the ground
     const fogColor = jungle ? jungle.haze({ fogColor: sky.fogColorFor(fogNow), fogRow: fogNow, eye: mwv.eye, dt, minute, weather, wind: wd.on ? wd.windV : null, sky }) : sky.fogColorFor(fogNow);   // DS1: the mod's own RenderSettings.fogColor while it is the sky; SetSkyFogColor over the horizon otherwise, as before; BANTHA1: and the jungle's haze over it - its uniforms, the sky's, the colour weighed with it, measured from the view's own eye (AUDIT BANTHA1 HOST-7: the fog's uCamPos)
     renderer.setFog(fogNow.mode,
       fogNow.density, fogNow.start, fogNow.end, fogColor);
@@ -34431,9 +34431,9 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
           // past the map answers -1 there, and the clamped mountains and deserts past the edge turned woodland green)
           climatePast: tamrielLand ? (x, y) => maps.getClimateIndex(x, y)
             : etherSea ? (x, y) => maps.getClimateIndex(...(inEtherLaw(x, y) ? [x, y] : [Math.max(0, Math.min(MAP_WIDTH - 1, x)), Math.max(0, Math.min(MAP_HEIGHT - 1, y))])) : null,
-        }, state.current.x, state.current.y, state.terrainDistance);
+        }, state.current.x, state.current.y, state.terrainDistance, built);   // OW-HORIZON: a pixel not yet built is the ring's
       } else {
-        farRing.punchHole(state.current.x, state.current.y, state.terrainDistance);
+        farRing.punchHole(state.current.x, state.current.y, state.terrainDistance, built);
       }
       farRing.draw(view, {
         origin: state.pixelTranslation(farRing.baseX, farRing.baseY, _ringOrigin),

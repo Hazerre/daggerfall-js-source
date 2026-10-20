@@ -131,6 +131,13 @@ Every move is one `db.batch` whose statements decide it against the rows as they
 (`server-account/src/festival.js`): no count is read in one request and written in another - a home changed hands, its old
 owner's bowl is credited from its own row; a take credits the owner it read, at a home that owner still owns.
 
+**From play - OFFERING-RAY (FIELD BUGS 2026-10-20e).** Each offering is a target in the street's one ray, its box the
+ray's `{ min, max }` with the pixel's translation on each corner (`player/activate.js` `RayBox`, which the offerings'
+list is typed with). It shipped as the batch's culling box, a 6-array the ray cannot read, and the pick tests every
+entrant's box before it races them, so every press in a street where an offering stood crashed the game - at a body, a
+person or a door alike - and the plaque named nothing there. Read to its root in
+`01-Overview/bugs/Field-Bugs-2026-10-20e.md`.
+
 ## The towns dressed
 
 Each town in its own people's way (`world/witchesDecor.js` `WITCH_KITS`, `witchCulture` - by the town's climate and its

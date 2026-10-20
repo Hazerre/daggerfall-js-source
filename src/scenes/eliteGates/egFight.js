@@ -73,8 +73,9 @@ import { HIT_KINDS, CRYSTAL_R, CRYSTAL_H } from '../../net/gate/gateBrain.js';
 import { strikeDamage, savedShare } from '../../net/gate/gateStrike.js';
 import { bossFrame, crystalStandIn, hostStandIn, hostCue, BOSS_CUES, CRYSTAL_CLIPS } from '../../world/gate/gateBoss.js';
 import { wordShare } from '../../combat/healthShare.js';   // FIELD BUGS 2026-10-18f RELAY-SHARE: a body's health's share, the relay's word
-import { GateTelegraphRenderer, TELEGRAPH_KIND, TELEGRAPH_STYLE, TELEGRAPH_EDGE_DAGON, TELEGRAPH_EDGE_SAFE, TELEGRAPH_POOL, TELEGRAPH_POOL_HAVEN, TELEGRAPH_POOL_SPIRE } from '../../render/gate/gateTelegraph.js';
-import { CourtCrystalRenderer } from '../../render/courtCrystals.js';
+import { GateTelegraphRenderer, telegraphPrograms, TELEGRAPH_KIND, TELEGRAPH_STYLE, TELEGRAPH_EDGE_DAGON, TELEGRAPH_EDGE_SAFE, TELEGRAPH_POOL, TELEGRAPH_POOL_HAVEN, TELEGRAPH_POOL_SPIRE } from '../../render/gate/gateTelegraph.js';
+import { CourtCrystalRenderer, CRYSTAL_PROGRAMS } from '../../render/courtCrystals.js';
+import { compiledPass } from '../../render/glProgram.js';   // SHADER-STALL: the breach's passes built once their programs are done
 import { titleCardModel, drawGateTitleCard, TITLE_HOLD_MS } from '../../ui/gate/gateTitleCard.js';
 import { setBatchHitFlash, setBatchGlint } from '../../systems/hitFlash.js';
 import { groundViewModel, drawGateGround } from '../../ui/gate/gateGroundView.js';   // EG-ZG: the peril arrow and the chain's words, the gate's own readout
@@ -509,7 +510,14 @@ export function createEgFight({ renderer = null, gl = null, getTexture = null, u
     blowMet.add(who);
     return blowSeq;
   }
-  let pass = null, passTried = false, crystalPass = null, crystalTried = false;
+  // SHADER-STALL (render/glProgram.js compiledPass): the telegraphs and the crystals built the first frame a breach draws
+  // them AND their programs are done - never a frame frozen on a compile; their doors made again for each breach (leave).
+  // AUDIT SHADER-STALL: and the first frame a blow's telegraph or a crystal must be SEEN, built then whatever the driver
+  // says (`get(true)`) - a blow a player cannot see coming is the fight's own fault, never a compile's; started at the
+  // boot's idle where the driver compiles beside the frames (render/playPrograms.js), so that build waits on nothing
+  const telegraphDoor = () => compiledPass(gl, telegraphPrograms(true), () => new GateTelegraphRenderer(gl, { spire: true }), (e) => console.warn('[eg] the telegraphs would not build', e?.message ?? e));
+  const crystalDoor = () => compiledPass(gl, CRYSTAL_PROGRAMS, () => new CourtCrystalRenderer(gl), (e) => console.warn('[eg] the crystals would not build', e?.message ?? e));
+  let pass = null, telegraphOf = telegraphDoor(), crystalPass = null, crystalsOf = crystalDoor();
   /** EG-G2: THE SPIRE MIX over this screen's engine and the music; the blows I was stung for; the frame's barks */
   const mix = createSpireMix({ audio, music, now });
   const stung = new Set(), _barks = [];
@@ -1354,10 +1362,10 @@ export function createEgFight({ renderer = null, gl = null, getTexture = null, u
       if (!centre) return false;
       let drew = false;
       if (_crystals.length) {
-        if (!crystalTried && gl) { crystalTried = true; try { crystalPass = new CourtCrystalRenderer(gl); } catch (e) { console.warn('[eg] the crystals would not build', e?.message ?? e); crystalPass = null; } }
+        crystalPass = crystalsOf(true);
         if (crystalPass) { crystalPass.draw(_crystals, proj, view, eye, seconds, fog); drew = drew || crystalPass.drawn > 0; }
       }
-      if (!passTried && gl) { passTried = true; try { pass = new GateTelegraphRenderer(gl, { spire: true }); } catch (e) { console.warn('[eg] the telegraphs would not build', e?.message ?? e); pass = null; } }
+      pass = telegraphOf(_shapes.length > 0);
       if (view) viewYaw = egViewYaw(view);
       if (proj && view) sigilsFrame(multiply(proj, view, _vp));
       egLookShapes(_shapes, egAccessNow(), stageNow);   // EG-G1/EG-G2: each shape in the shelf's palette, fill and style bit
@@ -1424,7 +1432,7 @@ export function createEgFight({ renderer = null, gl = null, getTexture = null, u
       if (!hall && !centre && !cardUp && !groundUp && !sigilsUp && !drawn.size && !fireBatches.size && !ll.length && !trail.length && !hymn) return;   // AUDIT EG III (lane4 #2): nothing held - asked every frame out of the Spire, it touches nothing (never the Burning Court's card)
       // AUDIT EG V (L6-5; sections 11.9 and 29, EVERY ALLOCATION HAS AN OWNER): the passes' slots emptied before they are freed
       const p0 = pass, c0 = crystalPass;
-      pass = null; crystalPass = null; passTried = false; crystalTried = false; floorBuf = null;
+      pass = null; crystalPass = null; telegraphOf = telegraphDoor(); crystalsOf = crystalDoor(); floorBuf = null;
       try { p0?.destroy(); } catch { /* gone with its context */ }
       try { c0?.destroy(); } catch { /* gone with its context */ }
       for (const d of drawn.values()) destroy(d);

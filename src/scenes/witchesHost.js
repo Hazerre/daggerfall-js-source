@@ -92,8 +92,9 @@ export function createWitchesHost(deps) {
   let heard = false, noticed = false, nightSaid = -1, account = /** @type {string|null} */ (null);
 
   const pixelKey = (/** @type {any} */ e) => `${e.px},${e.py}`;
-  /** The street's ray's list, filled in place a frame, and the one translation array the host reads pixels into. */
-  const _targets = [], _tr = [0, 0, 0];
+  /** The street's ray's list, filled in place a frame - each box the ray's `{ min, max }` (FB1020e OFFERING-RAY: the
+   *  culling box's 6-array threw on every press in the street) - and the one translation array the host reads pixels into. */
+  const _targets = /** @type {import('../player/activate.js').RayTarget[]} */ ([]), _tr = [0, 0, 0];
   const here = () => {
     const c = state?.current;
     const entry = c ? built.get(`${c.x},${c.y}`) : null;
@@ -268,8 +269,8 @@ export function createWitchesHost(deps) {
         if (built.get(k) !== s.entry) continue;
         const tr = state.pixelTranslation(s.entry.px, s.entry.py, _tr);
         for (const r of s.rows) {
-          const x = r.batch._box;
-          _targets.push({ key: offeringKey(s.mapId, r.o.buildingKey), aabb: [x[0] + tr[0], x[1] + tr[1], x[2] + tr[2], x[3] + tr[0], x[4] + tr[1], x[5] + tr[2]], distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE });
+          const x = r.batch._box;   // the culling box's 6-array, in the pixel's frame: its corners, into the scene's
+          _targets.push({ key: offeringKey(s.mapId, r.o.buildingKey), aabb: { min: [x[0] + tr[0], x[1] + tr[1], x[2] + tr[2]], max: [x[3] + tr[0], x[4] + tr[1], x[5] + tr[2]] }, distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE });
         }
       }
       return _targets;
