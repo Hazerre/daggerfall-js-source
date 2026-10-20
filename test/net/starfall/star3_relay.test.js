@@ -19,7 +19,7 @@ import {
   STAR_KILLS_MAX, STAR_BLOWS_MAX, STAR_TOP_WIRE_MAX, STAR_COUNT_MAX, STAR_LIGHT_MAX, STAR_PHASE_MAX, STAR_RECEIPT_WIRE_MAX,
   STAR_HELD_MAX, STAR_HELD_KEY, STAR_LEDGERS_MAX, STAR_LEDGERS_BY_MAX, STAR_IDLE_MS, STAR_KEEP_MS, STAR_RC_KEEP, STAR_RC_KEEP_MS,
   starLedgerKey, starReceiptKeyOf, LIVE_EVENTS, LIVE_EVENT_RELAY_MIN, relayKnowsLiveEvent, RELAY_VERSION, SOCIAL_ROOM,
-  worldRoom, STAR_INTERNAL_HELD,
+  worldRoom, STAR_INTERNAL_HELD, STAR_WAVE_SIZE_MAX,
 } from '../../../src/net/wire.js';
 import { fakeRooms } from '../../fakeRoom.mjs';
 import { fakeSocketClass } from '../../fakeSocket.mjs';
@@ -97,6 +97,8 @@ test('STAR3 THE WIRE: a star word projected whole and bounded - the wave its dea
   assert.equal(validStarOut({ ...st, p: STAR_PHASES.length }), null);
   assert.equal(validStarOut({ ...st, s: STAR_PER_NIGHT }), null);
   assert.equal(validStarOut({ ...st, wz: STAR_WAVE_MAX + 1 }), null);
+  assert.equal(STAR_WAVE_SIZE_MAX, STAR_WAVE_MAX, 'STAR-TUNE: the wire\'s copy of the law\'s most');
+  assert.equal(validStarOut({ ...st, wz: STAR_WAVE_MAX })?.wz, STAR_WAVE_MAX, 'a wave of twenty-four rides');
   assert.deepEqual(validStarOut({ ...st, wl: -1 }).wl, -1, 'no phase clock running');
   const hd = validStarOut({ k: 'hd', n: N, s: K, px: PX, py: PY, at: T.fallAt + 5, top: [7, 'Ann', '', 'Bran', 'Cat', 'Dun'], c: 9 });
   assert.deepEqual(hd.top, ['Ann', 'Bran', 'Cat'], 'junk never hides a name');

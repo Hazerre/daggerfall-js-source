@@ -25,6 +25,7 @@ import { starHeldKey, STAR_SAY_M } from '../../../src/systems/starfall/starfallC
 import { STAR_REGION_TEXT, STAR_AT_TEXT } from '../../../src/systems/starfall/starWords.js';
 import { STAR_SOUNDS } from '../../../src/systems/starfall/starSounds.js';
 import { starSiteId, WOD_STAR_PUPPETS_MAX, WOD_CAMP_PUPPETS_MAX } from '../../../src/world/worldOfDaggerfall/wodShared.js';
+import { CELL_FRAME_RECORDS_MAX } from '../../../src/net/wire.js';
 import { createExteriorFoes } from '../../../src/scenes/exteriorFoes.js';
 import { skyClamp, STAR_SKY_R, STAR_RING_SEGS, STAR_RING_WIDTH_M } from '../../../src/render/starfall/starfallPass.js';
 import { rimAt, buildStarModel, STAR_CRATER_R, STAR_RIM_H } from '../../../src/world/starfall/starModel.js';
@@ -622,7 +623,7 @@ const netFor = (id) => ({ room: () => 'world:3,12', selfId: () => id, peers: () 
 const flush = async () => { for (let i = 0; i < 6; i++) await new Promise((r) => setTimeout(r, 0)); };
 
 test('AUDIT STARFALL C7 A STAR\'S FOES UNDER AN ALLOWANCE THE SIZE OF ITS LAW: its owner never stands past STAR_LIVE_MAX of them at once - the most the law calls - and a reader stands that many of one owner\'s, apart from its camps\' sixteen (mutants: the bound, the star\'s allowance)', async () => {
-  assert.equal(STAR_LIVE_MAX, 9 + 1 + 2 * 10, 'a wave\'s nine, the master, two calls of the Heart-Star\'s circle');
+  assert.equal(STAR_LIVE_MAX, 24 + 1 + 2 * 10, 'a wave\'s twenty-four (STAR-TUNE), the master, two calls of the Heart-Star\'s circle');
   assert.equal(WOD_STAR_PUPPETS_MAX, STAR_LIVE_MAX, 'the reader\'s allowance is the owner\'s bound');
   assert.ok(WOD_STAR_PUPPETS_MAX > WOD_CAMP_PUPPETS_MAX);
   // the owner: a crowd of the circle's still standing, and a wave of nine called - only the room left stands
@@ -639,8 +640,10 @@ test('AUDIT STARFALL C7 A STAR\'S FOES UNDER AN ALLOWANCE THE SIZE OF ITS LAW: i
   const A = createExteriorFoes(poolRig());
   A.setNet(netFor('aaaa-0001')); A.setOnSites(() => {}, () => []);
   const star = starSiteId(3, 12, N, 0, 'c');
-  for (let i = 0; i < WOD_STAR_PUPPETS_MAX + 4; i++) await A.spawnFoe(0, [2000 + i * 3, 0, 2000], { placed: true, groundAlign: { hitDist: 0.5 }, site: star });
-  for (let i = 0; i < WOD_CAMP_PUPPETS_MAX + 2; i++) await A.spawnFoe(0, [2600 + i * 3, 0, 2000], { placed: true, groundAlign: { hitDist: 0.5 }, site: '3,12:7' });
+  // over each allowance, the whole inside one frame's sixty-four records (CELL_FRAME_RECORDS_MAX - STAR-TUNE: the star's forty-five and the camp's sixteen fit under it)
+  assert.ok(WOD_STAR_PUPPETS_MAX + 2 + WOD_CAMP_PUPPETS_MAX + 1 <= CELL_FRAME_RECORDS_MAX);
+  for (let i = 0; i < WOD_STAR_PUPPETS_MAX + 2; i++) await A.spawnFoe(0, [2000 + i * 3, 0, 2000], { placed: true, groundAlign: { hitDist: 0.5 }, site: star });
+  for (let i = 0; i < WOD_CAMP_PUPPETS_MAX + 1; i++) await A.spawnFoe(0, [2600 + i * 3, 0, 2000], { placed: true, groundAlign: { hitDist: 0.5 }, site: '3,12:7' });
   const B = createExteriorFoes(poolRig());
   B.setNet(netFor('bbbb-0002')); B.setOnSites(() => {});
   B.applyFoes('aaaa-0001', JSON.parse(JSON.stringify(A.foesFrame(true))));
@@ -857,6 +860,7 @@ test('STAR-TUNE THE COVEN STANDS AS AN EVENT\'S (the owner, of the first run: "t
     assert.deepEqual([f.entity.maxHealth, f.entity.health, f.entity.healthMult], [100 * STAR_FOE_HEALTH, 100 * STAR_FOE_HEALTH, STAR_FOE_HEALTH], 'the coven\'s, no foe of the road');
     assert.ok(Math.abs(f.ai.feet[1] - (h[1] + 0.8)) < 1e-6, `stood on the surface read from above (${f.ai.feet[1]})`);
     assert.equal(f.opts.groundAlign.hitDist, 0.2, 'its drop from just over it');
+    assert.equal(f.opts.grantKind, 'star', 'a grant of the star\'s own kind - a wave of any size its law gives, one ask');
   }
   // the master: an elite's own health; its circle the coven's
   w.st(2, { p: P_MASTER, w: 4, wz: 0, kn: 0, b: 1, nd: 1 });

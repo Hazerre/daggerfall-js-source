@@ -99,7 +99,7 @@ export const starBucket = (key) => `star:${key}`;
  *  kept none (a private window) counts on from the relay's. */
 export const STAR_BLOWS_STORE = 'dagger:starBlows';
 /** AUDIT STARFALL C7: THE MOST OF A STAR'S FOES ITS OWNER STANDS AT ONCE - what the law can call at one moment: a wave's
- *  most, the master, and both its circle's calls at the Heart-Star's size. Every stand is held to it, and a reader stands
+ *  most (STAR-TUNE: twenty-four), the master, and both its circle's calls at the Heart-Star's size. Every stand is held to it, and a reader stands
  *  a star's foes under an allowance of the same size (world/worldOfDaggerfall/wodShared.js WOD_STAR_PUPPETS_MAX). */
 export const STAR_LIVE_MAX = STAR_WAVE_MAX + 1 + STAR_CIRCLE_AT.length * starCircleSize(STAR_ACCOUNTS_MAX, true);
 
@@ -462,7 +462,7 @@ export function createStarfallHost(host) {
         mark(S, f);
         made(f);
       };
-      Promise.resolve(foes.spawnFoe(career, [x, at.y, z], { yaw: yaw ?? 0, gender: covenFemale(career) ? 'female' : null, placed: true, groundAlign: { hitDist: at.hitDist }, site, transient: true, eliteFoe: elite }))
+      Promise.resolve(foes.spawnFoe(career, [x, at.y, z], { yaw: yaw ?? 0, gender: covenFemale(career) ? 'female' : null, placed: true, groundAlign: { hitDist: at.hitDist }, site, transient: true, eliteFoe: elite, grantKind: 'star' }))   // STAR-TUNE: a grant of the star's own kind - a wave of any size its law gives, one ask
         .then(landed, () => landed(null));
     });
   }

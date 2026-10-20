@@ -17,6 +17,7 @@ import { CAMP_SIZE } from '../../src/systems/campEncounters.js';
 import { PARTY_SCALE_EXTRA_MAX } from '../../src/systems/party/partyScale.js';
 import { chooseRandomEnemy } from '../../src/systems/encounters.js';
 import { signEgCall } from '../../src/net/eliteGates/egCallSig.js';
+import { STAR_WAVE_MAX } from '../../src/net/starfall/starfallLaw.js';
 
 const { subtle } = globalThis.crypto;
 const T0 = 1_800_000_000_000;
@@ -30,6 +31,7 @@ test('GRANT1 THE PINNED RATES: each copy the relay holds equals its home - the e
   assert.equal(GRANT_CHAMPION_TRAITS, CHAMPION_TRAITS.length);
   assert.equal(GRANT_KINDS.enc.max, ROAD_PARTY_MAX, 'an encounter: the road party\'s most, its party\'s extra inside it');
   assert.equal(GRANT_KINDS.camp.max, CAMP_SIZE[1] + PARTY_SCALE_EXTRA_MAX, 'a camp: its own most and the party\'s extra');
+  assert.equal(GRANT_KINDS.star.max, STAR_WAVE_MAX, 'STAR-TUNE: a fallen star\'s coven - its law\'s largest wave, one grant');
   assert.deepEqual(Object.keys(GRANT_KINDS).slice(0, 2), ['enc', 'camp'], 'GRANT2\'s first stream; the other sources\' with GRANT4 (grant3_pool)');   // PIN MOVED (GRANT4): every source's kind
   for (const [s, salt] of [[0, 'marks'], [0xdeadbeef, 'species:2'], [12345, 'health:0']]) {
     const a = grantRng(s, salt), b = eliteRng(eliteHash('grant', s, salt));

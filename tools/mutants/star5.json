@@ -542,7 +542,7 @@
  {
   "name": "AUDIT-STARFALL-C7-the-camps-allowance",
   "file": "src/world/worldOfDaggerfall/wodShared.js",
-  "old": "export const WOD_STAR_PUPPETS_MAX = 30;",
+  "old": "export const WOD_STAR_PUPPETS_MAX = 45;",
   "new": "export const WOD_STAR_PUPPETS_MAX = 16;",
   "tests": [
    "test/scenes/starfall/star5_host.test.js"
@@ -769,5 +769,25 @@
       "test/systems/starfall/star5_defense.test.js"
     ],
     "note": "the first run's stand, 25 to 35 m out - a wave's first seconds spent walking in"
+  },
+  {
+    "name": "STAR-TUNE-the-camps-grant",
+    "file": "src/scenes/starfall/starfallHost.js",
+    "old": ", grantKind: 'star' }))",
+    "new": " }))",
+    "tests": [
+      "test/scenes/starfall/star5_host.test.js"
+    ],
+    "note": "a star's stand asks the camps' grant - nine a grant, the camps' bucket spent"
+  },
+  {
+    "name": "STAR-TUNE-the-rolls-shared",
+    "file": "src/systems/starfall/starfallClient.js",
+    "old": "STAR_STAND_ROLLS + w * 32 + i) % 1000",
+    "new": "STAR_STAND_ROLLS + w * 16 + i) % 1000",
+    "tests": [
+      "test/systems/starfall/star5_defense.test.js"
+    ],
+    "note": "a wave of twenty-four shares its last places' rolls with the next wave's first"
   }
 ]

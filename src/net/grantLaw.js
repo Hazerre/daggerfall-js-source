@@ -86,7 +86,10 @@ export const GRANT_CHAMPION_TRAITS = 5;
  *              whole field in a few asks, rarely.
  *    encr    - GRANT8: an encounter whose species its seed rolls - the relay's answer to an `enc` ask while its `grantRoll`
  *              is on (never asked for by name): enc's own bounds.
- *  enc's and camp's `max` are held equal to their homes by the test; the rest are bounds. */
+ *    star    - STAR-TUNE: a fallen star's coven (scenes/starfall/starfallHost.js stand): its law's largest wave in one
+ *              grant (net/starfall/starfallLaw.js STAR_WAVE_MAX, held equal by the test); a star's waves, its master and
+ *              its circle's two calls asked within the burst, a breath's ten seconds a token. The open country's alone.
+ *  enc's, camp's and star's `max` are held equal to their homes by the test; the rest are bounds. */
 export const GRANT_KINDS = Object.freeze({
   enc: Object.freeze({ max: 4, rate: 1 / 60, cap: 6, hostile: true }),
   camp: Object.freeze({ max: 8, rate: 1 / 20, cap: 9, hostile: true }),
@@ -102,10 +105,11 @@ export const GRANT_KINDS = Object.freeze({
   watch: Object.freeze({ max: 10, rate: 1 / 30, cap: 6, hostile: true }),
   kept: Object.freeze({ max: 24, rate: 1 / 600, cap: 2, hostile: true }),
   encr: Object.freeze({ max: 4, rate: 1 / 60, cap: 6, hostile: true }),
+  star: Object.freeze({ max: 24, rate: 1 / 10, cap: 8, hostile: true }),
 });
 /** GRANT4: the kinds of the open country alone - a world room (a building's, a dungeon's) refuses them `kind`: its stands
  *  roll no road's table, carry no bounty and call no Greater Giant. */
-export const GRANT_OPEN_KINDS = Object.freeze(['enc', 'camp', 'bounty', 'giant', 'encr']);
+export const GRANT_OPEN_KINDS = Object.freeze(['enc', 'camp', 'bounty', 'giant', 'encr', 'star']);
 /** GRANT8 (Spawn-Grants section 16): the kind the relay makes an `enc` ask's grant while `grantRoll` is on - its species
  *  rolled from its seed (scenes/grantHost.js grantSpecies), so neither its owner nor a forger chooses it. Pure. */
 export const grantKindRolled = (k, roll) => (k === 'enc' && roll ? 'encr' : k);

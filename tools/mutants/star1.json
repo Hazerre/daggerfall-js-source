@@ -111,11 +111,12 @@
   {
     "name": "STAR1-the-ceiling-raised",
     "file": "src/net/starfall/starfallLaw.js",
-    "old": "export const STAR_WAVE_MAX = 9;",
-    "new": "export const STAR_WAVE_MAX = 10;",
+    "old": "export const STAR_WAVE_MAX = 24;",
+    "new": "export const STAR_WAVE_MAX = 25;",
     "tests": [
       "test/net/starfall/star1_law.test.js"
-    ]
+    ],
+    "note": "STAR-TUNE (re-aimed by content): the most twenty-four, one grant of the star's kind"
   },
   {
     "name": "STAR1-the-circle-unbounded",
@@ -408,5 +409,15 @@
       "test/net/starfall/star1_law.test.js"
     ],
     "note": "the first run's twelve seconds between waves"
+  },
+  {
+    "name": "STAR-TUNE-the-old-ceiling",
+    "file": "src/net/starfall/starfallLaw.js",
+    "old": "export const STAR_WAVE_MAX = 24;",
+    "new": "export const STAR_WAVE_MAX = 9;",
+    "tests": [
+      "test/net/starfall/star1_law.test.js"
+    ],
+    "note": "the camps' grant's nine again - a party of eight's waves no bigger than a pair's (\"we should go beyond the limit\")"
   }
 ]

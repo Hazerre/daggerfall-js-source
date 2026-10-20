@@ -232,15 +232,22 @@ player at the star after `STAR_ORPHAN_MS` (10 s). The relay starts the first wav
 first word from the star. (The first build sprang it from `STAR_SPRING_M`, 80 m - the audit's C2, below.)
 
 **The waves** (`STAR_WAVES` 4). The relay says each wave's start and its size (`starWaveSize(k, n)` -
-`min(4 + 2(n - 1) + (k - 1), 9)`, `n` the defenders standing at the star when it starts, one at the least), so every
-screen agrees: a lone defender's 4, 5, 6 and 7; two, 6 to 9; three or more, the most from the second wave. Nine is the
-spawn grant's `site` stand (`net/grantLaw.js`); past it a party's own toughness answers (`systems/party/partyScale.js` -
-each foe shared by those who fight it). The coven's foes - its waves and its circle - stand with `STAR_FOE_HEALTH` (2)
+`min(4 + 2(n - 1) + (k - 1), 24)`, `n` the defenders standing at the star when it starts, one at the least), so every
+screen agrees: a lone defender's 4, 5, 6 and 7; two, 6 to 9; four, 10 to 13; eight, 18 to 21; ten or more, the most by
+the last wave. Twenty-four is one spawn grant's most (`net/grantLaw.js`): the star stands under a grant kind of its own,
+`star` (a wave of any size its law gives one ask, its bucket its own - never the camps' `site`, nine a grant, which the
+first build's waves were held to; the open country's alone), and the `st` frame carries a wave that size
+(`net/wire.js` `STAR_WAVE_SIZE_MAX`). Each foe is shared by those who fight it besides (`systems/party/partyScale.js`).
+The most a star's owner stands at once is a wave's twenty-four, the master and two calls of the Heart-Star's circle -
+forty-five (`STAR_LIVE_MAX`), a reader's allowance the same (`WOD_STAR_PUPPETS_MAX`), under one owner's frame of
+sixty-four. The owner's stand rolls each place's angle and radius from blocks of its own, thirty-two a wave
+(`STAR_STAND_ROLLS`), so no wave of twenty-four shares a roll with the next. The coven's foes - its waves and its circle - stand with `STAR_FOE_HEALTH` (2)
 times their health, as the rite's Summoner stands with its own (`scenes/riteHost.js`): what the rite on a star calls is
 no foe of the road. The master is an elite already (x5), and stands as one. The relay bounds a camp's foe by it
 (`net/foeBounds.js` `FOE_BOUND.star`), so a reader never strips the coven its owner stood. STAR-TUNE (the owner, of the
-first run: "the enemies are too few and die too quickly. Does this not have scaling?"): the first build's size was
-`clamp(2 + n + (k >= 3 ? 1 : 0), 3, 9)` - a lone defender's 3, 3, 4 and 4 - and its foes the road's, the wilds' own
+first run: "the enemies are too few and die too quickly. Does this not have scaling?"; then "we should go beyond the
+limit"): the first build's size was `clamp(2 + n + (k >= 3 ? 1 : 0), 3, 9)` - a lone defender's 3, 3, 4 and 4, a party
+of eight's nine - and its foes the road's, the wilds' own
 progression and the hero's threat alone (`scenes/exteriorFoes.js` spawnFoe). The owner stands them just past the
 crater's thrown earth (`STAR_STAND_R`, 14 to 20 m - 25 to 35 in the first build, whose waves spent their first seconds
 walking in), from the coven's roster for the
@@ -783,9 +790,10 @@ they meet:
 
 ## 13. Versions and deploy order
 
-STAR-TUNE moves the relay alone, to **world236**: the wave's size and the breath are the relay's law, and the foe
-bounds its strip reads (`net/foeBounds.js`); no frame changes, so `STAR_RELAY_MIN` stays 235 and the account service's
-version does not move. Relay first, then the client.
+STAR-TUNE moves the relay alone, to **world236**: the wave's size and the breath are the relay's law, the `star` grant
+kind its mint, the `st` frame's wave to twenty-four, and the foe bounds its strip reads (`net/foeBounds.js`). Client and
+relay move together (an older relay refuses the kind, an older client a ledger past nine); the star word does not
+change, so `STAR_RELAY_MIN` stays 235, and the account service's version does not move. Relay first, then the client.
 
 Relay first (it signs), then the account service (its migration first), then the client. The relay's version moves for
 the frame, the receipt and the hub's door - world235 (world233 on the branch, renumbered past SD-SEA's world233 and

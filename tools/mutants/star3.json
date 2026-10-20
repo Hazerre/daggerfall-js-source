@@ -520,5 +520,15 @@
   "tests": [
    "test/net/starfall/star3_relay.test.js"
   ]
- }
+ },
+  {
+    "name": "STAR-TUNE-the-wire-nine",
+    "file": "src/net/wire.js",
+    "old": "export const STAR_WAVE_SIZE_MAX = 24;",
+    "new": "export const STAR_WAVE_SIZE_MAX = 9;",
+    "tests": [
+      "test/net/starfall/star3_relay.test.js"
+    ],
+    "note": "a wave past nine refused on the wire - every reader drops the ledger"
+  }
 ]

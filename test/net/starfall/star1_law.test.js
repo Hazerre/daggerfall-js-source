@@ -93,15 +93,15 @@ test('STAR1 THE SPOT: each star stands within the gate\'s spread of its pixel\'s
   assert.ok(!starNear(N0, 1, 300, 200, x, z + 61 * 40));
 });
 
-test('STAR1 THE WAVES\' SIZE AND THE CIRCLE: four for the first defender and two for each beside it, one more each wave, four to nine - alone 4, 5, 6 and 7 (STAR-TUNE: "the enemies are too few"); the circle one and half the defenders, two to five, the Heart-Star\'s twice (mutants: STAR-TUNE-the-old-sizes; STAR-TUNE-a-defender-one-more; STAR-TUNE-the-waves-alike; STAR1-the-floor-dropped; STAR1-the-ceiling-raised)', () => {
-  const sizes = [1, 2, 3, 4].map((k) => [0, 1, 2, 3, 4, 5, 6, 7, 8].map((n) => starWaveSize(k, n)));
+test('STAR1 THE WAVES\' SIZE AND THE CIRCLE: four for the first defender and two for each beside it, one more each wave, four to twenty-four - alone 4, 5, 6 and 7, eight 18 to 21 (STAR-TUNE: "the enemies are too few"; "we should go beyond the limit"); the circle one and half the defenders, two to five, the Heart-Star\'s twice (mutants: STAR-TUNE-the-old-sizes; STAR-TUNE-a-defender-one-more; STAR-TUNE-the-waves-alike; STAR1-the-floor-dropped; STAR1-the-ceiling-raised)', () => {
+  const sizes = [1, 2, 3, 4].map((k) => [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 64].map((n) => starWaveSize(k, n)));
   assert.deepEqual(sizes, [
-    [4, 4, 6, 8, 9, 9, 9, 9, 9],
-    [5, 5, 7, 9, 9, 9, 9, 9, 9],
-    [6, 6, 8, 9, 9, 9, 9, 9, 9],
-    [7, 7, 9, 9, 9, 9, 9, 9, 9],
+    [4, 4, 6, 8, 10, 12, 14, 16, 18, 22, 24, 24, 24],
+    [5, 5, 7, 9, 11, 13, 15, 17, 19, 23, 24, 24, 24],
+    [6, 6, 8, 10, 12, 14, 16, 18, 20, 24, 24, 24, 24],
+    [7, 7, 9, 11, 13, 15, 17, 19, 21, 24, 24, 24, 24],
   ]);
-  assert.deepEqual([STAR_WAVE_MIN, STAR_WAVE_MAX], [4, 9], 'nine at most: the spawn grant\'s site stand (net/grantLaw.js)');
+  assert.deepEqual([STAR_WAVE_MIN, STAR_WAVE_MAX], [4, 24], 'twenty-four at most: one spawn grant of the star\'s own kind (net/grantLaw.js GRANT_KINDS.star)');
   assert.equal(STAR_FOE_HEALTH, 2, 'the coven\'s foes twice their health');
   assert.deepEqual([0, 1, 2, 3, 4, 6, 8, 10].map((n) => starCircleSize(n)), [2, 2, 2, 3, 3, 4, 5, 5]);
   assert.deepEqual([1, 6].map((n) => starCircleSize(n, true)), [4, 8]);

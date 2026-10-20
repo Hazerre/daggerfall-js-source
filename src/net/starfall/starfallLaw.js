@@ -126,16 +126,18 @@ export const STAR_KILL_MIN_MS = 2_500;
 export const STAR_BREATH_MS = 5_000;
 /** The master's fall is believed no sooner than this after it stood (encounter clock). */
 export const STAR_MASTER_MIN_MS = 45_000;
-/** A wave's size: a lone defender's first, and the most. */
+/** A wave's size: a lone defender's first, and the most - one spawn grant's (net/grantLaw.js GRANT_KINDS.star, a
+ *  fallen star's own kind, held equal by the test), so every wave of any size is one grant. */
 export const STAR_WAVE_MIN = 4;
-export const STAR_WAVE_MAX = 9;
+export const STAR_WAVE_MAX = 24;
 /**
- * A wave's size: four for the first defender and two for each beside it, one more each wave on - four to nine (the
- * spawn grant's `site` stand is nine at most - net/grantLaw.js GRANT_KINDS.site). Alone, 4, 5, 6 and 7; two, 6 to 9;
- * three or more, the most from the second wave. STAR-TUNE (the owner, of the first run: "the enemies are too few and
- * die too quickly. Does this not have scaling?"): it was two and the defenders, one more from the third - a lone
- * defender's 3, 3, 4 and 4. More than nine, a party's own toughness answers (systems/party/partyScale.js - each foe
- * shared by its fighters). Pure.
+ * A wave's size: four for the first defender and two for each beside it, one more each wave on - four to twenty-four.
+ * Alone, 4, 5, 6 and 7; two, 6 to 9; four, 10 to 13; eight, 18 to 21; ten or more, the most by the last wave.
+ * STAR-TUNE (the owner, of the first run: "the enemies are too few and die too quickly. Does this not have scaling?";
+ * then "we should go beyond the limit"): it was two and the defenders, one more from the third, to nine - the camps'
+ * spawn grant's stand (GRANT_KINDS.site) - a lone defender's 3, 3, 4 and 4 and a party of eight's nine. The star
+ * stands under a grant kind of its own now, sized to its law, and each foe is shared by those who fight it besides
+ * (systems/party/partyScale.js). Pure.
  * @param {number} k the wave, 1..STAR_WAVES @param {number} n the defenders
  */
 export const starWaveSize = (k, n) => Math.min(STAR_WAVE_MAX, STAR_WAVE_MIN + 2 * (Math.max(1, n | 0) - 1) + Math.max(0, (k | 0) - 1));
