@@ -185,8 +185,14 @@ round it to a crest at 7 m and falling away to 9.6 m, nine stones thrown onto th
 upright, two and a half metres out of the earth and sunk most of a metre into it, the rest leaning out from it) and three
 strands of thread that wind up the stone and run 90 m straight up (`world/starfall/starModel.js`). Every shape is the star's
 own roll, so every screen builds the same crater. The host builds it for a player within `STAR_BUILD_M` (1500 m), puts
-the stone in the collider, keeps the grass off the crater and its rim (`STAR_BARE_R`) and builds it again when the
-ground under it is built finer (`scenes/starfall/starfallHost.js`). The sky is one foreign pass after the Hollow's omen
+the stone AND its crater - the floor, the rim and its stones - in the collider, keeps the grass off the crater and its
+rim (`STAR_BARE_R`) and builds it again when the ground under it is built finer (`scenes/starfall/starfallHost.js`).
+STAR-TUNE (2026-10-20, the owner, of the first run: "The dirt mound where the star is crashed can be walked through"):
+the first build gave the collider the stone alone (`buildStarModel`'s `ground: false`), so the rim's 1.1 m of thrown
+earth was drawn and never held. It is held now, as a LATE solid (`player/lateSolid.js`, ROCK-CLEAR's gate): a crater
+built round a body standing on its rim is withheld until the body is clear of it, never closed on it, and the world
+frame's own settle stands it behind them. A foe's stand is read from over the rim's crest (`standOn`), so one stood on
+the rim or the floor - the master's circle, called about a master fighting at the stone - lands on it, never under it. The sky is one foreign pass after the Hollow's omen
 (`render/starfall/starfallPass.js`): the omen's glow, the streak's head and trail, the landing's flash and ring, and the
 beacon, each drawn scaled about the eye to `STAR_SKY_R` (4200 m) so the far plane (6000 m) never cuts a star that burns
 9 km up. The sounds are DAGGER.SND's own records, pitched (`systems/starfall/starSounds.js`).
@@ -226,8 +232,18 @@ player at the star after `STAR_ORPHAN_MS` (10 s). The relay starts the first wav
 first word from the star. (The first build sprang it from `STAR_SPRING_M`, 80 m - the audit's C2, below.)
 
 **The waves** (`STAR_WAVES` 4). The relay says each wave's start and its size (`starWaveSize(k, n)` -
-`clamp(2 + n + (k >= 3 ? 1 : 0), 3, 9)`, `n` the defenders standing at the star when it starts), so every screen
-agrees. The owner stands them, out of sight at the crater's edge (25 to 35 m), from the coven's roster for the
+`min(4 + 2(n - 1) + (k - 1), 9)`, `n` the defenders standing at the star when it starts, one at the least), so every
+screen agrees: a lone defender's 4, 5, 6 and 7; two, 6 to 9; three or more, the most from the second wave. Nine is the
+spawn grant's `site` stand (`net/grantLaw.js`); past it a party's own toughness answers (`systems/party/partyScale.js` -
+each foe shared by those who fight it). The coven's foes - its waves and its circle - stand with `STAR_FOE_HEALTH` (2)
+times their health, as the rite's Summoner stands with its own (`scenes/riteHost.js`): what the rite on a star calls is
+no foe of the road. The master is an elite already (x5), and stands as one. The relay bounds a camp's foe by it
+(`net/foeBounds.js` `FOE_BOUND.star`), so a reader never strips the coven its owner stood. STAR-TUNE (the owner, of the
+first run: "the enemies are too few and die too quickly. Does this not have scaling?"): the first build's size was
+`clamp(2 + n + (k >= 3 ? 1 : 0), 3, 9)` - a lone defender's 3, 3, 4 and 4 - and its foes the road's, the wilds' own
+progression and the hero's threat alone (`scenes/exteriorFoes.js` spawnFoe). The owner stands them just past the
+crater's thrown earth (`STAR_STAND_R`, 14 to 20 m - 25 to 35 in the first build, whose waves spent their first seconds
+walking in), from the coven's roster for the
 defenders' level - the band (`starBandOf`, the median level of the defenders the relay heard: band 1 to level 8,
 band 2 to 15, band 3 from 16), because Daggerfall's monsters have fixed levels and some want silver, dwarven or mithril
 to hurt (`ENEMY_BASICS` minMetalToHit), so a band never stands a foe its players cannot fight:
@@ -245,7 +261,9 @@ murderers as well as Daedra.
 
 A wave ends when its foes are all dead (the owner's word, never sooner than `STAR_KILL_MIN_MS` (2.5 s) a foe), or
 `STAR_WAVE_MAX_MS` (100 s) after it began - then the next comes whether the last is dead or not. Between waves the
-coven draws breath for `STAR_BREATH_MS` (12 s) and the star's light steadies (`STAR_BREATH_LIGHT`, 15).
+coven draws breath for `STAR_BREATH_MS` (5 s) and the star's light steadies (`STAR_BREATH_LIGHT`, 15). STAR-TUNE (the
+owner: "The time between waves is too long"): the first build's breath was 12 s and its waves stood 25 to 35 m out -
+some twenty seconds from a wave's last death to the next one's first blow; both are cut.
 
 **The light.** A star has `STAR_LIGHT` (100). The coven's summoned that fight hand to hand go for the STAR, not the
 defenders: the star stands in the target machine as a body of its own (the townsperson's law,
@@ -764,6 +782,10 @@ they meet:
   The Aetheric sets: the Wyrd's Raiment, then the Starspun Weave.
 
 ## 13. Versions and deploy order
+
+STAR-TUNE moves the relay alone, to **world236**: the wave's size and the breath are the relay's law, and the foe
+bounds its strip reads (`net/foeBounds.js`); no frame changes, so `STAR_RELAY_MIN` stays 235 and the account service's
+version does not move. Relay first, then the client.
 
 Relay first (it signs), then the account service (its migration first), then the client. The relay's version moves for
 the frame, the receipt and the hub's door - world235 (world233 on the branch, renumbered past SD-SEA's world233 and

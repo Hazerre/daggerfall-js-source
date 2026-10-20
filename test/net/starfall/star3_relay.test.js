@@ -232,7 +232,7 @@ test('STAR3 THE DEFENSE, HELD: the gathering, four waves and their breath, the m
     // the gathering, then the waves - each wave's size by the defenders standing as it starts
     let st = await defend(sayOthers, a, others, { until: (x) => x.p === P_WAVE });
     assert.equal(st.w, 1);
-    assert.equal(st.wz, starWaveSize(1, 3), 'three defenders: five foes');
+    assert.equal(st.wz, starWaveSize(1, 3), 'three defenders: eight foes');
     assert.equal(st.b, 2, 'the band of the defenders\' levels (12, 20, 12): the second');
     const blows = { hb: 0 };
     st = await defend(sayOthers, a, others, { until: (x) => x.p === P_BREATH, blows });

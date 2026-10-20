@@ -21,6 +21,7 @@ import { Collider } from '../../../src/player/collider.js';
 import { createExteriorFoes } from '../../../src/scenes/exteriorFoes.js';
 import { WOD_SITE_RE, starSiteId, wodSiteId } from '../../../src/world/worldOfDaggerfall/wodShared.js';
 import { starSiteKey } from '../../../src/systems/starfall/starfallSites.js';
+import { STAR_BARE_R } from '../../../src/world/starfall/starModel.js';
 
 const N = 493_210;
 /** Daggerfall's weapon metals (WeaponMaterialTypes): iron 0, silver 2, mithril 5. */
@@ -99,7 +100,9 @@ test('STAR5 THE CLOCK: a star is none before its omen, the omen, the streak, fal
   assert.equal(starClockPhase(N, 2, NaN), 'none');
 });
 
-test('STAR5 WHERE THEY STAND: a wave on a ring 25 to 35 metres out from the heart, out of the crater, each facing the star, the star\'s own places; the circle 6 metres about its master (mutants: the ring, the facing)', () => {
+test('STAR5 WHERE THEY STAND: a wave on a ring 14 to 20 metres out from the heart, just past the crater\'s thrown earth (STAR-TUNE: "The time between waves is too long" - from 25 to 35, a walk in), each facing the star, the star\'s own places; the circle 6 metres about its master (mutants: the ring, the facing, STAR-TUNE-the-coven-out-far)', () => {
+  assert.deepEqual(STAR_STAND_R, [14, 20]);
+  assert.ok(STAR_STAND_R[0] > STAR_BARE_R, 'out of the crater and its rim');
   for (let w = 1; w <= STAR_WAVES; w++) {
     const ps = starStandPlaces(N, 1, w, 8);
     assert.equal(ps.length, 8);

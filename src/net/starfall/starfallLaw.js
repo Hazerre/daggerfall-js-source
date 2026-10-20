@@ -120,19 +120,29 @@ export const STAR_GATHER_MS = 10_000;
 export const STAR_WAVE_MAX_MS = 100_000;
 /** A wave cleared is believed no sooner than this, a foe (the fastest its foes could die). */
 export const STAR_KILL_MIN_MS = 2_500;
-/** The coven draws breath this long between waves, and before the master. */
-export const STAR_BREATH_MS = 12_000;
+/** The coven draws breath this long between waves, and before the master. STAR-TUNE (2026-10-20, the owner, of the first
+ *  run: "The time between waves is too long"): 5 s, from 12 - the breath was the least of the wait (the next wave stood
+ *  25 to 35 m out and walked in after it: starfallClient.js STAR_STAND_R), and both are cut. */
+export const STAR_BREATH_MS = 5_000;
 /** The master's fall is believed no sooner than this after it stood (encounter clock). */
 export const STAR_MASTER_MIN_MS = 45_000;
-/** A wave's size, its bounds. */
-export const STAR_WAVE_MIN = 3;
+/** A wave's size: a lone defender's first, and the most. */
+export const STAR_WAVE_MIN = 4;
 export const STAR_WAVE_MAX = 9;
 /**
- * A wave's size: two and the defenders standing as it starts, one more from the third wave on - three to nine (the
- * spawn grant's `site` stand is nine at most - net/grantLaw.js GRANT_KINDS.site). Pure.
+ * A wave's size: four for the first defender and two for each beside it, one more each wave on - four to nine (the
+ * spawn grant's `site` stand is nine at most - net/grantLaw.js GRANT_KINDS.site). Alone, 4, 5, 6 and 7; two, 6 to 9;
+ * three or more, the most from the second wave. STAR-TUNE (the owner, of the first run: "the enemies are too few and
+ * die too quickly. Does this not have scaling?"): it was two and the defenders, one more from the third - a lone
+ * defender's 3, 3, 4 and 4. More than nine, a party's own toughness answers (systems/party/partyScale.js - each foe
+ * shared by its fighters). Pure.
  * @param {number} k the wave, 1..STAR_WAVES @param {number} n the defenders
  */
-export const starWaveSize = (k, n) => Math.max(STAR_WAVE_MIN, Math.min(STAR_WAVE_MAX, 2 + Math.max(0, n | 0) + (k >= 3 ? 1 : 0)));
+export const starWaveSize = (k, n) => Math.min(STAR_WAVE_MAX, STAR_WAVE_MIN + 2 * (Math.max(1, n | 0) - 1) + Math.max(0, (k | 0) - 1));
+/** STAR-TUNE: the coven's foes - its waves and its circle - stand with this times their health: what the rite on a star
+ *  calls is no foe of the road (the rite's Summoner's own law, net/gate/gateRite.js RITE_SUMMONER_HEALTH). The master is
+ *  an elite already (systems/eliteFoes.js). The relay bounds a camp's foe by it (net/foeBounds.js FOE_BOUND.star). */
+export const STAR_FOE_HEALTH = 2;
 /** The master's circle at each of its calls: one and half the defenders, two to five; the Heart-Star's twice. */
 export const starCircleSize = (n, heart = false) => Math.max(2, Math.min(5, 1 + Math.ceil(Math.max(0, n | 0) / 2))) * (heart ? 2 : 1);
 /** The master calls its circle at these shares of its health. */

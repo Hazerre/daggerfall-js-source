@@ -674,7 +674,8 @@ were not attached).
 - **The bound** (`net/foeBounds.js` foeHealthBound): every stage that builds a foe's maximum rounds once and never lowers
   it, so the highest base and every highest multiplier in the builders' own order and rounding is the exact legal most -
   each input a reader cannot see (the owner's dice, its combat standing and hero level, a revenant's rank, wrath and the
-  Dread, the wild ring, a Rite's Summoner) taken at its worst, and each mark the record says of itself (`z`, `cp`, `nm`,
+  Dread, the wild ring, a Rite's Summoner, a fallen star's coven - STAR-TUNE, any camp's foe x2, `FOE_BOUND.star`) taken
+  at its worst, and each mark the record says of itself (`z`, `cp`, `nm`,
   `gg`) only raising it. Two chains: the street's (`scenes/exteriorFoes.js` spawnFoe - a building's pool is the same
   module) and the dungeon's (`scenes/dungeonContext.js` buildFoeAt - its record carries no marks, so a layout foe's worst
   and a revenant's lair stand's are both taken). A class foe's base is DFU's roll at its worst (10 + level x

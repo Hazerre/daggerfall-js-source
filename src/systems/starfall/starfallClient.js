@@ -20,8 +20,10 @@ export const STAR_SAY_M = 55;
 export const STAR_HUD_M = 400;
 /** The ground shakes for a player this near a landing. */
 export const STAR_SHAKE_M = 300;
-/** The coven stands out of sight at the crater's edge: this far from the heart, its nearest and its farthest. */
-export const STAR_STAND_R = Object.freeze([25, 35]);
+/** The coven stands just past the crater's thrown earth (world/starfall/starModel.js STAR_BARE_R, 9.6 m): this far from
+ *  the heart, its nearest and its farthest. STAR-TUNE (the owner: "The time between waves is too long"): 14 to 20 m, from
+ *  25 to 35 - a wave stood that far out spent its first seconds walking in. */
+export const STAR_STAND_R = Object.freeze([14, 20]);
 /** A word that changed is said once more this long after - the relay's bucket may have dropped it (the rite's). */
 export const STAR_RESAY_MS = 1000;
 /** The master calls its circle this far out from itself. */
