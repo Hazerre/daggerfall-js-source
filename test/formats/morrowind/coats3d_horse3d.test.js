@@ -420,7 +420,7 @@ test('COATS3D by source: the view keeps the saddle and lifts RIDE-POV astride; t
   assert.match(rd('src/scenes/exterior.js'), /hcc\.drawVeiled3d\(\);   \/\/ AUDIT COATS3D A5/);
   const pool = rd('src/scenes/horseCartPool.js');
   assert.match(pool, /if \(rig\?\.ready\(\)\) \{ pose3dTeam\(rig, owner, team, conceal, _dt3d\); dropTeamBatches\(owner, 0\); return; \}/, 'the pool\'s team 3D, no billboard');
-  assert.match(pool, /rig\.step\(e\.horse, \{ feet: h\.position, yaw, speed: e\.speed, dt, look: lookOfOwner\(owner\) \}\);/, 'in its owner\'s look');
+  assert.match(pool, /rig\.step\(e\.horse, \{ feet: h\.position, yaw, speed: e\.speed, dt, look: lookOfOwner\(owner\), pose: false \}\);/, 'in its owner\'s look');   // PIN MOVED (HORSE-VIEW): its pose in the view, on its cadence (test/systems/horse/fb1021_horses.test.js)
   assert.match(rd('src/world/wagonModels.js'), /horses3d: \(\) => mwViewHorseRig\(\),/, 'both hosts, through the one construction seam');
   assert.match(rd('src/world/road/roadTeams.js'), /rig\.step\(s\.h3, \{ feet: h\.feet, yaw: h\.yaw, speed: h\.moving \? h\.speed : 0, dt, look: s\.look \}\);/, 'the road\'s strangers in their looks');
 });

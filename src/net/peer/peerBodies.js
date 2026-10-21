@@ -712,15 +712,25 @@ export class PeerBodies {
   /** COATS3D: a peer on a HORSE (the pose's `rd`; never the cart, never a beast) sits the 3D horse - its own, in the look
    *  the pose names (`rc`), stepped at the body's pace under its feet (HORSE-WALK: held under the gallop while the pose's
    *  `hs` says a slow ride), its seat the body's saddle (player/seatPose.js) as the player's own is (player/mwView.js).
-   *  Null, and the horse let go, off one or where the rig is not up. */
+   *  Null, and the horse let go, off one or where the rig is not up.
+   *  HORSE-VIEW: the gait steps here every frame and the pose waits for the rider's (_poseHorse): the horse is in the
+   *  rider's picture, so it is posed on the frames the body's skin is - on the body's cadence, in its view. */
   _saddle(b, shown, f, dt) {
     const rig = this._horses();
     if (!rig?.ready() || shown.rd !== POSE_RIDE.Horse || peerIsWolf(shown) || shown.wb) { this._unhorse(b); return null; }
     b.horse ??= rig.horse(seedOf(b.id));
     if (!b.horse) return null;
-    rig.step(b.horse, { feet: horseFeetUnder(f, b.yaw), yaw: b.yaw, speed: b.speed ?? 0, dt, look: shown.rc | 0, gallops: !shown.hs });   // HORSE-WALK: the pose's slow ride (its `hs` - walked, or under half) never gallops
+    rig.step(b.horse, { feet: horseFeetUnder(f, b.yaw), yaw: b.yaw, speed: b.speed ?? 0, dt, look: shown.rc | 0, gallops: !shown.hs, pose: false });   // HORSE-WALK: the pose's slow ride (its `hs` - walked, or under half) never gallops
     const seat = rig.seat(b.horse);
     return seat ? { feet: [f[0], f[1], f[2]], seat, yaw: b.yaw, lean: gaitShare(b.horse.gait, 'gallop') } : null;
+  }
+  /** HORSE-VIEW: a rider's horse posed with the body - where its gait's clock stands - and the saddle the body is about
+   *  to be posed to taken off that pose (the seat rides the Spine's stride). Called wherever the body's skin is posed. */
+  _poseHorse(b) {
+    const rig = b.horse && b.cam?.saddle ? this._horses() : null;
+    if (!rig?.pose(b.horse)) return;
+    const seat = rig.seat(b.horse);
+    if (seat) b.cam.saddle.seat = seat;
   }
   /** COATS3D: a body's horse let go (its palette). */
   _unhorse(b) {
@@ -775,6 +785,7 @@ export class PeerBodies {
     try {
       this._arm(b, peer.shown, peer.look);
       b.bank = Math.min(EFFECTS_BANK_MAX_S, b.bank + dt);   // AUDIT WB9 (bodies F1)
+      if (pose) this._poseHorse(b);   // HORSE-VIEW: astride, its horse first - the skin is posed to the seat of the horse's own new pose
       if (pose) { b.rig.update(dt, { pose: true, effectsDt: b.bank }); b.bank = 0; b.posed = true; b.owed = false; b.stale = false; b.posedAt = this._frame; }
       else b.rig.update(dt, { pose: false });
     } catch (e) { this._fail(b, `update threw: ${e?.message ?? e}`); }
@@ -977,7 +988,7 @@ export class PeerBodies {
       // WB9h: seen, and its skin behind its clocks (the view swung onto it past the margin since the frame stepped it) -
       // posed now, where its clocks stand, before it is drawn
       if (b.stale) {
-        try { b.rig.update(0, { pose: true, effectsDt: b.bank }); b.bank = 0; b.stale = false; b.owed = false; b.posedAt = this._frame; } catch (e) { this._fail(b, `update threw: ${e?.message ?? e}`); continue; }
+        try { this._poseHorse(b); b.rig.update(0, { pose: true, effectsDt: b.bank }); b.bank = 0; b.stale = false; b.owed = false; b.posedAt = this._frame; } catch (e) { this._fail(b, `update threw: ${e?.message ?? e}`); continue; }   // HORSE-VIEW: and its horse with it
       }
       const horse = b.horse && b.cam?.saddle ? this._horses()?.picture(b.horse, horseFeetUnder(b.feet, b.yaw, g), b.yaw, g) ?? null : null;   // COATS3D: astride, the horse in the body's picture
       try { if (b.rig.drawThird(canvas, { proj, view, eye, feet: b.feet, yaw: b.yaw, hitFlash: flashOf ? flashOf(b.id) : 0, conceal: b.veil ?? null, grow: g, up: this._cam?.up ?? null, fx, cast, anchored, horse })) drawn++; } catch (e) { this._fail(b, `draw threw: ${e?.message ?? e}`); }   // AUDIT MWBODY A1; HITFLASH1: a struck body flashes red; INVIS-LOOK: a concealed one blends; OW-PEERS: grown and leaned under the Overworld; MWNPC16: its own shadow; COATS3D: astride, its horse
