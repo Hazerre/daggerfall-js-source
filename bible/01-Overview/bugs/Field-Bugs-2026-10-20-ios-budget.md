@@ -1,4 +1,4 @@
-# Field bugs 2026-10-20: IOS-BUDGET - an iPhone's tab killed at 2 GB right after Play
+# Field bugs 2026-10-20: IOS-BUDGET - an iPhone's tab killed at 2 GB right after Play; the budget corrected, the kill measured and still open
 
 GitHub issue #1040 (willdelion, 2026-10-19), an iPhone 17 Pro Max on iOS 27.0.1, the game opened from the Home Screen:
 a white screen right after Play, then the home screen, at every setting. The reporter read the device log rather than
@@ -7,11 +7,12 @@ twenty-five seconds later, and the kernel killed it five seconds after that for 
 Every browser on iOS is WebKit and every one of them shares that cap; the player cannot raise it.
 
 The reporter's own diagnosis pointed at `bundleBudgetBytes` and said out loud that it was not instrumented. It is read
-here on the code, and it holds.
+here on the code, and it holds as far as it goes: the budget WAS wrong on iOS. It is then measured on an iPhone, and the
+kill does not go with it.
 
 | | Report | What it was | Done |
 |---|---|---|---|
-| 1 | #1040: the tab grows past 2 GB within thirty seconds of Play | DFMOD3's bundle budget scales with `navigator.deviceMemory` and read "no report" as an 8 GB machine. WebKit never reports it, so every iPhone and iPad took the 8 GB arm: 1536 MB for the texture mods' decoded pictures alone, on a tab that dies at 2048 | fixed (IOS-BUDGET) |
+| 1 | #1040: the tab grows past 2 GB within thirty seconds of Play | DFMOD3's bundle budget scales with `navigator.deviceMemory` and read "no report" as an 8 GB machine. WebKit never reports it, so every iPhone and iPad took the 8 GB arm: 1536 MB for the texture mods' decoded pictures alone, on a tab that dies at 2048. Corrected to 384 MB - and measured on an iPhone, the kill stands with every pack off: the exterior itself fills the tab | budget fixed (IOS-BUDGET); #1040 OPEN - the engine's exterior on a phone |
 
 ## IOS-BUDGET: the budget asks the device when the browser says nothing
 
@@ -35,12 +36,31 @@ as before, 768 MB, and the report wins over the device reading either way. `bund
 both take the navigator and the window as arguments so the law is pinned without a window stub, and the call sites
 pass nothing.
 
-**Not done, and said so.** The budget was not instrumented on the device, by the reporter or here; a 1536 MB budget
-on a 2 GB tab is a cause, and the log's growth curve fits it, but it is not proven the only one - the engine's own
-textures and the data in IndexedDB are the other candidates the DFMOD3 log named. The reporter's second and third
-suggestions - a ceiling for the whole tab, and `Enhancements/AssetInjection` off by default on iOS - are product
-choices for Mac and are not taken here. If the kill stands after this, the next read is the WebContent footprint
-with the texture packs off (Classic on the Texture Overhaul card), which splits the budget from the rest.
+**Measured on an iPhone, and the budget is not the cause.** This branch's build, served to an iPhone over https
+(Safari, online, an existing character, Privateer's Hold), Safari's Web Inspector on a Mac recording the Memory
+timeline - the page's own view of its heap, which does not count the WebGL textures on the GPU that iOS counts against
+the same 2 GB:
+
+| Run | Texture Overhaul | Where | Peak the inspector saw | Outcome |
+|---|---|---|---|---|
+| 1 | Vanilla Enhanced and its add-ons, as shipped (on by default) | the interior | 1.31 GB - JavaScript 1.11 GB, page 232 MB | the page killed ~27 s after Play, before stepping outside; WebKit reloaded it to the front door |
+| 2 | Classic - every pack off | the interior, then the street | 1.45 GB - JavaScript 1.25 GB, page 166 MB; already ~1.1 GB when the recording began indoors | killed ~26 s after stepping outside |
+| 3 | Classic | the interior only | - | survived the minutes it was watched |
+
+The budget's warning (`[texture] texture mods reached their memory budget (384 MB)`) was not seen in any run. So:
+the packs bring the kill forward (run 1 died indoors where run 2 did not), but with every pack off the engine's own
+exterior - Daggerfall's 1996 textures and nothing else - fills a 2 GB tab on its own. The heap is not the stored
+files either: the lean set the phone ingests is 893 files, 178 MB (`DaggerfallGameFiles.zip`, the KEEP rule), so
+`getBytes`'s never-evicted cache is bounded well under that. The 1.25 GB is what the exterior streamer BUILDS - decoded
+pictures, terrain, meshes, the navmesh - and sizing that for a phone is an engine question, not a budget constant.
+
+The fix above stands on its own terms: reading an iPhone as an 8 GB machine was wrong, and a mod set the player
+attaches on top of the packs is now bounded at 384 MB there instead of 1536. It does not close #1040. What would,
+in order of how much it proves: the exterior's own memory read on a phone (which arrays, how big - the inspector's
+JavaScript Allocations timeline names them); the reporter's third suggestion, the shipped packs off by default on a
+touch device with no `deviceMemory` (buys back run 1's margin, not run 2's); a whole-tab ceiling the streamer honours.
+All three are Mac's to choose; none is taken here. The reporter's device (iPhone 17 Pro Max, iOS 27.0.1) and the one
+measured here are both current phones; an older iPhone has less.
 
 **Pinned.** `test/systems/dfmod1.test.js` +1 (IOS-BUDGET: no report and a finger is 2 GB and 384 MB; no report and a
 mouse, or no window, stays 1536 MB; a report of 4 on a phone is 768 MB; a zero report is no report; 16 is still capped
@@ -48,5 +68,9 @@ at 1536), and DFMOD3's own pin re-aimed in its last assertion to say which brows
 `tools/mutants/ios_budget.json` +4 (the no-report arm back to 8; the tab read as 4 GB; a report ignored on a phone; a
 zero report taken as one), 4/4 dead.
 
-**Verified.** The test file, the mutants, lint, types and the bible's gates, here. Not an iPhone: nobody on this
-branch had one, and the fix is a number read off the device log, not a frame seen.
+**Verified.** The test file, the mutants, lint, types and the bible's gates, here; the three runs above on an iPhone,
+with the branch's build (`npm run build`, `dist/` served by `python3 -m http.server` behind a Cloudflare quick tunnel
+for the https WebCrypto wants - `vite preview` answers a missing `./arena2/*` probe with `index.html`, which skips the
+picker and feeds HTML to `MAPS.BSA`: "BSA file has an invalid DirectoryType", not a phone bug). Two small things the
+run turned up, not fixed here: that probe trusts a 200 without reading the bytes, and `main.js`'s "clear stored data
+and pick again" button is offered only for a missing-file message, so a corrupt stored set leaves no way back.
