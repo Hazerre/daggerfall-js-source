@@ -2,8 +2,8 @@
   {
     "name": "FF-one-floor",
     "file": "server/src/index.js",
-    "old": "    const floor = first ? -FOES_FULL_RESERVE : FOES_FULL_RESERVE;",
-    "new": "    const floor = FOES_FULL_RESERVE;",
+    "old": "      const sent = this._foesSend(ws, a, kind, data, length, ranged, bucket, now, first ? -FOES_FULL_RESERVE : FOES_FULL_RESERVE, lane);",
+    "new": "      const sent = this._foesSend(ws, a, kind, data, length, ranged, bucket, now, FOES_FULL_RESERVE, lane);",
     "tests": [
       "test/net/fb1021_foesfirst.test.js"
     ],
@@ -12,8 +12,8 @@
   {
     "name": "FF-first-floor-empty",
     "file": "server/src/index.js",
-    "old": "    const floor = first ? -FOES_FULL_RESERVE : FOES_FULL_RESERVE;",
-    "new": "    const floor = first ? 0 : FOES_FULL_RESERVE;",
+    "old": "      const sent = this._foesSend(ws, a, kind, data, length, ranged, bucket, now, first ? -FOES_FULL_RESERVE : FOES_FULL_RESERVE, lane);",
+    "new": "      const sent = this._foesSend(ws, a, kind, data, length, ranged, bucket, now, first ? 0 : FOES_FULL_RESERVE, lane);",
     "tests": [
       "test/net/fb1021_foesfirst.test.js"
     ],
@@ -22,8 +22,8 @@
   {
     "name": "FF-delta-no-reserve",
     "file": "server/src/index.js",
-    "old": "    const floor = first ? -FOES_FULL_RESERVE : FOES_FULL_RESERVE;",
-    "new": "    const floor = first ? -FOES_FULL_RESERVE : 0;",
+    "old": "      const sent = this._foesSend(ws, a, kind, data, length, ranged, bucket, now, FOES_FULL_RESERVE, lane);\n      return sent.pass ? sent.bucket : this._foesDropped(full, sent.bucket);",
+    "new": "      const sent = this._foesSend(ws, a, kind, data, length, ranged, bucket, now, 0, lane);\n      return sent.pass ? sent.bucket : this._foesDropped(full, sent.bucket);",
     "tests": [
       "test/net/fb1021_foesfirst.test.js"
     ],
@@ -82,8 +82,8 @@
   {
     "name": "FF-heard-unstamped",
     "file": "server/src/index.js",
-    "old": "    lane.heard = now;   // FOES-FIRST: heard on this lane\n",
-    "new": "",
+    "old": "    lane.heard = now;\n    if (relayCfgValue(",
+    "new": "    if (relayCfgValue(",
     "tests": [
       "test/net/fb1021_foesfirst.test.js"
     ],
@@ -105,14 +105,15 @@
     "old": "    if (first && full) lane.first = now;",
     "new": "    if (full) lane.first = now;",
     "tests": [
-      "test/net/fb1021_foesfirst.test.js"
+      "test/net/fb1021_foesfirst.test.js",
+      "test/net/fb1021b_foeshold.test.js"
     ],
     "note": "a full frame that went as a delta spends the turn again"
   },
   {
     "name": "FF-turn-unstamped",
     "file": "server/src/index.js",
-    "old": "    if (first && full) lane.first = now;   // and a full frame's turn first spent\n",
+    "old": "    if (first && full) lane.first = now;\n",
     "new": "",
     "tests": [
       "test/net/fb1021_foesfirst.test.js"
@@ -162,8 +163,8 @@
   {
     "name": "FF-budget-drop-uncounted",
     "file": "server/src/index.js",
-    "old": "    if (!budget.pass) return this._foesDropped(full, budget.bucket);",
-    "new": "    if (!budget.pass) return budget.bucket;",
+    "old": "      const sent = this._foesSend(ws, a, kind, data, length, ranged, bucket, now, FOES_FULL_RESERVE, lane);\n      return sent.pass ? sent.bucket : this._foesDropped(full, sent.bucket);",
+    "new": "      const sent = this._foesSend(ws, a, kind, data, length, ranged, bucket, now, FOES_FULL_RESERVE, lane);\n      return sent.bucket;",
     "tests": [
       "test/net/fb1021_foesfirst.test.js"
     ],
@@ -272,8 +273,8 @@
   {
     "name": "METRICS-blob-dropped",
     "file": "server/src/relayScale.js",
-    "old": "blobs: [kind, String(version), String(c.hitDrops), String(c.fullDrops), String(c.fulls)]",
-    "new": "blobs: [kind, String(version), String(c.hitDrops), String(c.fullDrops)]",
+    "old": "blobs: [kind, String(version), String(c.hitDrops), String(c.fullDrops), String(c.fulls), String(c.held)",
+    "new": "blobs: [kind, String(version), String(c.hitDrops), String(c.fullDrops), String(c.held)",
     "tests": [
       "test/net/fb1021_foesfirst.test.js"
     ],
@@ -282,8 +283,8 @@
   {
     "name": "METRICS-blobs-order",
     "file": "server/src/relayScale.js",
-    "old": "blobs: [kind, String(version), String(c.hitDrops), String(c.fullDrops), String(c.fulls)]",
-    "new": "blobs: [kind, String(version), String(c.fullDrops), String(c.hitDrops), String(c.fulls)]",
+    "old": "blobs: [kind, String(version), String(c.hitDrops), String(c.fullDrops), String(c.fulls), String(c.held)",
+    "new": "blobs: [kind, String(version), String(c.fullDrops), String(c.hitDrops), String(c.fulls), String(c.held)",
     "tests": [
       "test/net/fb1021_foesfirst.test.js"
     ],
@@ -292,8 +293,8 @@
   {
     "name": "METRICS-counts-unreset",
     "file": "server/src/relayScale.js",
-    "old": "batches: 0, hitDrops: 0, fullDrops: 0, fulls: 0 };",
-    "new": "batches: 0 };",
+    "old": "batches: 0, hitDrops: 0, fullDrops: 0, fulls: 0, held: 0,",
+    "new": "batches: 0, held: 0,",
     "tests": [
       "test/net/fb1021_foesfirst.test.js"
     ],
@@ -322,7 +323,7 @@
   {
     "name": "AUDIT-FF-F1-handover-turn-unstamped",
     "file": "server/src/index.js",
-    "old": "    if (urgent && foesFrameHandsOn(data)) lane.hands = now;   // AUDIT FOES-FIRST F1: and a handover's\n",
+    "old": "    if (urgent && hands) lane.hands = now;   // AUDIT FOES-FIRST F1: and a handover's\n",
     "new": "",
     "tests": [
       "test/net/fb1021_foesfirst.test.js"
@@ -342,8 +343,8 @@
   {
     "name": "AUDIT-FF-F2-stamped-after-the-send",
     "file": "server/src/index.js",
-    "old": "    lane.heard = now;   // FOES-FIRST: heard on this lane\n    if (first && full) lane.first = now;   // and a full frame's turn first spent\n    if (urgent && foesFrameHandsOn(data)) lane.hands = now;   // AUDIT FOES-FIRST F1: and a handover's\n    if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on' && (kind === 'own' || isCellRoom(a.key))) data = this._grantStripped(a, data, kind, now);   // GRANT9: the switch on - a record its grant does not stand goes nowhere; FOE-BOUNDS: nor one no builder could give\n    const out = fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched\n    if (out == null) { this._junk(ws); return budget.bucket; }\n    for (const other of listeners) this._send(other, out);\n",
-    "new": "    if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on' && (kind === 'own' || isCellRoom(a.key))) data = this._grantStripped(a, data, kind, now);   // GRANT9: the switch on - a record its grant does not stand goes nowhere; FOE-BOUNDS: nor one no builder could give\n    const out = fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched\n    if (out == null) { this._junk(ws); return budget.bucket; }\n    for (const other of listeners) this._send(other, out);\n    lane.heard = now;   // FOES-FIRST: heard on this lane\n    if (first && full) lane.first = now;   // and a full frame's turn first spent\n    if (urgent && foesFrameHandsOn(data)) lane.hands = now;   // AUDIT FOES-FIRST F1: and a handover's\n",
+    "old": "    lane.heard = now;\n    if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on' && (kind === 'own' || isCellRoom(a.key))) data = this._grantStripped(a, data, kind, now);   // GRANT9: the switch on - a record its grant does not stand goes nowhere; FOE-BOUNDS: nor one no builder could give\n    const out = fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched\n    if (out == null) { this._junk(ws); return { bucket: budget.bucket, pass: true, fan: 0 }; }\n    for (const other of listeners) this._send(other, out);",
+    "new": "    if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on' && (kind === 'own' || isCellRoom(a.key))) data = this._grantStripped(a, data, kind, now);   // GRANT9: the switch on - a record its grant does not stand goes nowhere; FOE-BOUNDS: nor one no builder could give\n    const out = fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched\n    if (out == null) { this._junk(ws); return { bucket: budget.bucket, pass: true, fan: 0 }; }\n    for (const other of listeners) this._send(other, out);\n    lane.heard = now;",
     "tests": [
       "test/net/fb1021_foesfirst.test.js"
     ],

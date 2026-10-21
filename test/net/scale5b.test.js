@@ -475,6 +475,9 @@ test('SCALE5b the foes fan, a method of its own with the budget asked before its
       // PIN MOVED (FOES-FIRST, Scale-Arc.md FOES-FIRST): every frame here is FULL and comes a second or more after its
       // sender's last, so it goes first - its floor is minus FOES_FULL_RESERVE, and the bucket stands that far lower
       // (it read byteGate's law, the floor at 0, for every frame alike). test/net/fb1021_foesfirst.test.js holds the rest.
+      // PIN MOVED (FOES-HOLD, Scale-Arc.md FOES-HOLD): a full frame the budget refuses is HELD for its turn, not dropped -
+      // each round here starts with an empty hold (the turns are test/net/fb1021b_foeshold.test.js's), and a refusal is
+      // counted held.
       const { floorGate, inRange, FOES_ROOM_BYTES_PER_S, FOES_FULL_RESERVE } = relay;
       const floor = -FOES_FULL_RESERVE;
       let dropped = 0, passed = 0, between = 0;
@@ -482,6 +485,7 @@ test('SCALE5b the foes fan, a method of its own with the budget asked before its
       for (let round = 0; round < 60; round++) {
         clock += 1000;   // past every sender's own meter
         for (const ws of socks) ws.sent.length = 0;
+        R.room._foesHolds = null;
         const from = socks[Math.floor(rnd() * socks.length)];
         const a = R.room._attach(from);
         const frame = JSON.stringify({ t: 'foes', data: { n: round, full: 1, f: Array.from({ length: 1 + Math.floor(rnd() * 8) }, (_, i) => ({ i, x: 1, y: 0, z: 1, h: 10 })) } });
@@ -508,7 +512,8 @@ test('SCALE5b the foes fan, a method of its own with the budget asked before its
         (over < per ? low : over < want ? mid : []).push(walked - before);
       }
       assert.ok(dropped > 10 && passed > 10 && between > 10, `both answers, and the band between one listener and all (${dropped} dropped, ${passed} passed, ${between} between)`);
-      assert.equal(R.room._metrics.c.drops, dropped, 'each drop counted');
+      assert.equal(R.room._metrics.c.held, dropped, 'each refusal held for its turn and counted');
+      assert.equal(R.room._metrics.c.drops, 0, 'and none dropped');
       assert.equal(R.room._metrics.c.foes, 60, 'and each frame');
       assert.ok(low.length > 5 && mid.length > 5);
       assert.ok(Math.max(...low) < Math.min(...mid), `a frame the room cannot afford for one listener walks nobody - the index asked ${JSON.stringify([...new Set(low)])} times for it, ${JSON.stringify([...new Set(mid)])} for one that walked`);

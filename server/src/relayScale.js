@@ -66,6 +66,10 @@ export class Bounded extends Map {
  *  | double19/20| items the second wire batched, the batches that carried them |
  *  | blob3      | blows the destination's funnels dropped (FOES-FIRST)         |
  *  | blob4/5    | full foes frames the budget dropped, full foes frames asked  |
+ *  | blob6/7    | foes frames held for their turn (FOES-HOLD), held frames sent |
+ *  | blob8      | held frames that left the hold unsent (stale, sender gone)   |
+ *  | blob9      | the held frames' waits summed, ms (blob9 / blob7: the mean)  |
+ *  | blob10     | beats: empty frames said for a held sender (FOES-HOLD)       |
  *
  *  Per kind, sends a pose: SUM(double8) / SUM(double7); storage a hello: SUM(double10 + double11) / SUM(double3).
  *
@@ -83,7 +87,7 @@ export class RoomMetrics {
   constructor(now = Date.now()) { this.reset(now); }
   reset(now) {
     this.since = now;
-    this.c = { hellos: 0, busy: 0, frames: 0, bytesIn: 0, poses: 0, sends: 0, bytesOut: 0, reads: 0, writes: 0, refusals: 0, full: 0, drops: 0, peak: 0, foes: 0, hits: 0, chats: 0, owed: 0, batches: 0, hitDrops: 0, fullDrops: 0, fulls: 0 };   // SCALE5b: from `full` on; FOES-FIRST: from `hitDrops` on, the blobs
+    this.c = { hellos: 0, busy: 0, frames: 0, bytesIn: 0, poses: 0, sends: 0, bytesOut: 0, reads: 0, writes: 0, refusals: 0, full: 0, drops: 0, peak: 0, foes: 0, hits: 0, chats: 0, owed: 0, batches: 0, hitDrops: 0, fullDrops: 0, fulls: 0, held: 0, heldSent: 0, heldGone: 0, heldMs: 0, beats: 0 };   // SCALE5b: from `full` on; FOES-FIRST: from `hitDrops` on, the blobs; FOES-HOLD: from `held` on
   }
   /** Anything to say? */
   get busy() { const c = this.c; return c.hellos + c.busy + c.frames + c.sends + c.reads + c.writes + c.refusals + c.full > 0; }   // SCALE5b: a room that only refused a socket for being full has that to say
@@ -94,7 +98,7 @@ export class RoomMetrics {
     if (wrote) {
       try {
         sink.writeDataPoint({
-          indexes: [kind], blobs: [kind, String(version), String(c.hitDrops), String(c.fullDrops), String(c.fulls)],   // FOES-FIRST: blob3 to 5, counts - the doubles are all spoken for
+          indexes: [kind], blobs: [kind, String(version), String(c.hitDrops), String(c.fullDrops), String(c.fulls), String(c.held), String(c.heldSent), String(c.heldGone), String(Math.round(c.heldMs)), String(c.beats)],   // FOES-FIRST: blob3 to 5, counts - the doubles are all spoken for; FOES-HOLD: blob6 to 10
           // SCALE5b (2026-10-10; bible/11-Multiplayer/Scale-Arc.md SCALE5b): WHAT SAYS A ROOM'S LIMIT IS NEAR, from double13 -
           // the sockets refused 'room full' (the Worker's door, which counted nothing - AUDIT SCALE II R1-5: a refusal the
           // walk could not get past, its last try's or a room's that does not layer, never a full layer it walked on from),

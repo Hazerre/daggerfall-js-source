@@ -1,0 +1,344 @@
+[
+  {
+    "name": "FH-replacement-drops-the-place",
+    "file": "server/src/foesHold.js",
+    "old": "    Object.assign(last, { data: frame.data, length: frame.length, ranged: frame.ranged, full: true, at: frame.at });",
+    "new": "    Object.assign(last, { data: frame.data, length: frame.length, ranged: frame.ranged, full: true, at: frame.at, seq: hold.seq++ });",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-replacement-into-a-handover",
+    "file": "server/src/foesHold.js",
+    "old": "  if (frame.full && !frame.hands && last && !last.hands) {",
+    "new": "  if (frame.full && !frame.hands && last) {",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-replacement-bytes-unkept",
+    "file": "server/src/foesHold.js",
+    "old": "    hold.bytes += frame.length - last.length;",
+    "new": "    hold.bytes += frame.length;",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-holding-senders-delta-held",
+    "file": "server/src/foesHold.js",
+    "old": "  if (mine.length && !frame.full && !frame.hands) return 'refused';",
+    "new": "  if (false && mine.length && !frame.full && !frame.hands) return 'refused';",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-sender-cap-off-by-one",
+    "file": "server/src/foesHold.js",
+    "old": "  if (mine.length >= FOES_HELD_PER_SENDER || hold.bytes + frame.length > FOES_HELD_BYTES_MAX) return 'refused';",
+    "new": "  if (mine.length > FOES_HELD_PER_SENDER || hold.bytes + frame.length > FOES_HELD_BYTES_MAX) return 'refused';",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-bytes-cap-unread",
+    "file": "server/src/foesHold.js",
+    "old": "  if (mine.length >= FOES_HELD_PER_SENDER || hold.bytes + frame.length > FOES_HELD_BYTES_MAX) return 'refused';",
+    "new": "  if (mine.length >= FOES_HELD_PER_SENDER) return 'refused';",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-the-head-the-newest",
+    "file": "server/src/foesHold.js",
+    "old": "  for (const e of hold.entries) if (!best || e.seq < best.seq) best = e;",
+    "new": "  for (const e of hold.entries) if (!best || e.seq > best.seq) best = e;",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-turn-unbounded",
+    "file": "server/src/foesHold.js",
+    "old": "  if (mine.length && turn + mine[0].length <= FOES_TURN_BYTES) { mine[0].seq = e.seq; hold.turn = { ws: e.ws, bytes: turn }; return; }",
+    "new": "  if (mine.length) { mine[0].seq = e.seq; hold.turn = { ws: e.ws, bytes: turn }; return; }",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-turn-never-kept",
+    "file": "server/src/foesHold.js",
+    "old": "  if (mine.length && turn + mine[0].length <= FOES_TURN_BYTES) { mine[0].seq = e.seq; hold.turn = { ws: e.ws, bytes: turn }; return; }",
+    "new": "  if (false) { mine[0].seq = e.seq; hold.turn = { ws: e.ws, bytes: turn }; return; }",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-turn-bytes-forgotten",
+    "file": "server/src/foesHold.js",
+    "old": "  const turn = (hold.turn?.ws === e.ws ? hold.turn.bytes : 0) + e.length;",
+    "new": "  const turn = e.length;",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-turn-outlives-an-unhold",
+    "file": "server/src/foesHold.js",
+    "old": "  if (hold.turn?.ws === e.ws) hold.turn = null;",
+    "new": "  if (false) hold.turn = null;",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-a-sent-senders-next-not-requeued",
+    "file": "server/src/foesHold.js",
+    "old": "  for (const next of mine) next.seq = hold.seq++;",
+    "new": "  for (const next of mine) void next;",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-delta-passes-a-held-frame",
+    "file": "server/src/index.js",
+    "old": "      if (hold.entries.length) return this._foesDropped(full, bucket);\n",
+    "new": "      if (false) return this._foesDropped(full, bucket);\n",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-drain-unasked",
+    "file": "server/src/index.js",
+    "old": "    if (hold.entries.length) bucket = this._foesDrain(kind, hold, bucket, now);   // FOES-HOLD: the held frames' turns come first",
+    "new": "    if (false) bucket = this._foesDrain(kind, hold, bucket, now);   // FOES-HOLD: the held frames' turns come first",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-a-small-frame-jumps-the-line",
+    "file": "server/src/index.js",
+    "old": "    if (!hold.entries.length) {\n      const sent = this._foesSend(ws, a, kind, data, length, ranged, bucket, now, first ? -FOES_FULL_RESERVE : FOES_FULL_RESERVE, lane);",
+    "new": "    if (true) {\n      const sent = this._foesSend(ws, a, kind, data, length, ranged, bucket, now, first ? -FOES_FULL_RESERVE : FOES_FULL_RESERVE, lane);",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-drain-floor-at-zero",
+    "file": "server/src/index.js",
+    "old": "      const sent = this._foesSend(e.ws, a, kind, e.data, e.length, e.ranged, bucket, now, -FOES_FULL_RESERVE, this._foesLane(e.ws, kind));",
+    "new": "      const sent = this._foesSend(e.ws, a, kind, e.data, e.length, e.ranged, bucket, now, 0, this._foesLane(e.ws, kind));",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-drain-skips-the-head",
+    "file": "server/src/index.js",
+    "old": "        if (sent.fan <= FOES_ROOM_BYTES_PER_S + FOES_FULL_RESERVE) break;   // its turn: the bucket fills for it",
+    "new": "        if (sent.fan <= FOES_ROOM_BYTES_PER_S + FOES_FULL_RESERVE) { unhold(hold, e); continue; }   // its turn: the bucket fills for it",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-hands-dropped-inside-the-cadence",
+    "file": "server/src/index.js",
+    "old": "    if (!first && !hands && !(full && hold.entries.length && heldOf(hold, ws).length)) {",
+    "new": "    if (!first && !(full && hold.entries.length && heldOf(hold, ws).length)) {",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-newer-full-dropped-inside-the-cadence",
+    "file": "server/src/index.js",
+    "old": "    if (!first && !hands && !(full && hold.entries.length && heldOf(hold, ws).length)) {",
+    "new": "    if (!first && !hands) {",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-handover-aged-out",
+    "file": "server/src/index.js",
+    "old": "      if (!a?.id || (!e.hands && now - e.at > FOES_STALE_MS)) { unhold(hold, e); this._metrics.c.heldGone++; this._foesDropped(e.full, bucket); continue; }",
+    "new": "      if (!a?.id || (now - e.at > FOES_STALE_MS)) { unhold(hold, e); this._metrics.c.heldGone++; this._foesDropped(e.full, bucket); continue; }",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-full-never-aged",
+    "file": "server/src/index.js",
+    "old": "      if (!a?.id || (!e.hands && now - e.at > FOES_STALE_MS)) { unhold(hold, e); this._metrics.c.heldGone++; this._foesDropped(e.full, bucket); continue; }",
+    "new": "      if (!a?.id) { unhold(hold, e); this._metrics.c.heldGone++; this._foesDropped(e.full, bucket); continue; }",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-held-wait-unsummed",
+    "file": "server/src/index.js",
+    "old": "      this._metrics.c.heldSent++; this._metrics.c.heldMs += now - e.since;\n    }\n    return this._foesBeats(kind, hold, bucket, now);",
+    "new": "      this._metrics.c.heldSent++;\n    }\n    return this._foesBeats(kind, hold, bucket, now);",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-beat-unasked",
+    "file": "server/src/index.js",
+    "old": "    return this._foesBeats(kind, hold, bucket, now);",
+    "new": "    return bucket;",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-beat-every-scan",
+    "file": "server/src/index.js",
+    "old": "      if (now - Math.max(lane.heard ?? e.since, lane.beat ?? -Infinity) < FOES_UNHEARD_MS || now - (lane.in ?? -Infinity) > FOES_FULL_MS) continue;",
+    "new": "      if (now - (lane.heard ?? e.since) < FOES_UNHEARD_MS || now - (lane.in ?? -Infinity) > FOES_FULL_MS) continue;",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-beat-for-a-quiet-sender",
+    "file": "server/src/index.js",
+    "old": "      if (now - Math.max(lane.heard ?? e.since, lane.beat ?? -Infinity) < FOES_UNHEARD_MS || now - (lane.in ?? -Infinity) > FOES_FULL_MS) continue;",
+    "new": "      if (now - Math.max(lane.heard ?? e.since, lane.beat ?? -Infinity) < FOES_UNHEARD_MS) continue;",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-beat-for-the-never-heard",
+    "file": "server/src/index.js",
+    "old": "      if (now - Math.max(lane.heard ?? e.since, lane.beat ?? -Infinity) < FOES_UNHEARD_MS || now - (lane.in ?? -Infinity) > FOES_FULL_MS) continue;",
+    "new": "      if (now - Math.max(lane.heard ?? -Infinity, lane.beat ?? -Infinity) < FOES_UNHEARD_MS || now - (lane.in ?? -Infinity) > FOES_FULL_MS) continue;",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-beat-numbered",
+    "file": "server/src/index.js",
+    "old": "      const data = typeof e.data.k === 'string' ? { f: [], k: e.data.k } : { f: [] };",
+    "new": "      const data = typeof e.data.k === 'string' ? { f: [], k: e.data.k, n: e.data.n } : { f: [] };",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-beat-without-its-room",
+    "file": "server/src/index.js",
+    "old": "      const data = typeof e.data.k === 'string' ? { f: [], k: e.data.k } : { f: [] };",
+    "new": "      const data = { f: [] };",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-beat-uncounted",
+    "file": "server/src/index.js",
+    "old": "      this._metrics.c.beats++;",
+    "new": "      void 0;",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-beat-scan-unbounded",
+    "file": "server/src/index.js",
+    "old": "    if (!hold.entries.length || now - (hold.beatAt ?? -Infinity) < FOES_BEAT_SCAN_MS) return bucket;",
+    "new": "    if (!hold.entries.length) return bucket;",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-leave-untried",
+    "file": "server/src/index.js",
+    "old": "    this._foesLeft(ws, a, Date.now());   // FOES-HOLD: what its foes lanes still hold, said before its leave",
+    "new": "    void 0;",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-leave-borrows-deeper",
+    "file": "server/src/index.js",
+    "old": "        if (e.hands) { const sent = this._foesSend(ws, a, kind, e.data, e.length, e.ranged, this[field], now, -FOES_FULL_RESERVE, this._foesLane(ws, kind)); this[field] = sent.bucket; if (sent.pass) { this._metrics.c.heldSent++; this._metrics.c.heldMs += now - e.since; continue; } }",
+    "new": "        if (e.hands) { const sent = this._foesSend(ws, a, kind, e.data, e.length, e.ranged, this[field], now, -Infinity, this._foesLane(ws, kind)); this[field] = sent.bucket; if (sent.pass) { this._metrics.c.heldSent++; this._metrics.c.heldMs += now - e.since; continue; } }",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-leave-sends-the-full-too",
+    "file": "server/src/index.js",
+    "old": "        if (e.hands) { const sent = this._foesSend(ws, a, kind, e.data, e.length, e.ranged, this[field], now, -FOES_FULL_RESERVE, this._foesLane(ws, kind));",
+    "new": "        if (true) { const sent = this._foesSend(ws, a, kind, e.data, e.length, e.ranged, this[field], now, -FOES_FULL_RESERVE, this._foesLane(ws, kind));",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-a-hold-blob-dropped",
+    "file": "server/src/relayScale.js",
+    "old": "String(c.held), String(c.heldSent), String(c.heldGone), String(Math.round(c.heldMs)), String(c.beats)]",
+    "new": "String(c.held), String(c.heldSent), String(c.heldGone), String(Math.round(c.heldMs))]",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-hold-blobs-out-of-order",
+    "file": "server/src/relayScale.js",
+    "old": "String(c.held), String(c.heldSent), String(c.heldGone), String(Math.round(c.heldMs)), String(c.beats)]",
+    "new": "String(c.heldSent), String(c.held), String(c.heldGone), String(Math.round(c.heldMs)), String(c.beats)]",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-hold-counts-unreset",
+    "file": "server/src/relayScale.js",
+    "old": "fulls: 0, held: 0, heldSent: 0, heldGone: 0, heldMs: 0, beats: 0 };",
+    "new": "fulls: 0, held: this.c?.held ?? 0, heldSent: 0, heldGone: 0, heldMs: 0, beats: 0 };",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  },
+  {
+    "name": "FH-dungeon-refuses-an-empty-frame",
+    "file": "src/scenes/dungeonContext.js",
+    "old": "    if (!data || !Array.isArray(data.f)) return false;\n    if (!_authority) return applyFoesFrame(data, from);",
+    "new": "    if (!data || !Array.isArray(data.f) || !data.f.length) return false;\n    if (!_authority) return applyFoesFrame(data, from);",
+    "tests": [
+      "test/net/seatheal.test.js"
+    ]
+  },
+  {
+    "name": "FH-street-refuses-an-empty-frame",
+    "file": "src/scenes/exteriorFoes.js",
+    "old": "    if (!_net?.toScene || typeof from !== 'string' || !from || !data || !Array.isArray(data.f)) return false;",
+    "new": "    if (!_net?.toScene || typeof from !== 'string' || !from || !data || !Array.isArray(data.f) || !data.f.length) return false;",
+    "tests": [
+      "test/net/fb1021b_foeshold.test.js"
+    ]
+  }
+]

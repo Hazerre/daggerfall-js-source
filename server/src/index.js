@@ -320,6 +320,8 @@ import { newGrantMeasure, foldGrantAsk, foldGrantTally, grantMeasureBatch, sealG
 import { foeStatsRefusal } from '../../src/net/foeBounds.js';   // FOE-BOUNDS: the most health a streamed foe can legally have (GRANT9's strip reads it)
 import { seatOf, seatElder, seatStreams, seatTraffic, seatSilent, seatHeardAt, seatInAt, othersInOf } from '../../src/net/seatLive.js';   // FIELD BUGS 2026-10-18d SEAT-LIVE: a dungeon room's seat is a live socket's
 import { FOES_STALE_MS } from './relay.js';   // SEAT-LIVE: the seat's staleness, the page's own (net/wire.js)
+import { FOES_FULL_MS } from './relay.js';   // FOES-HOLD: a held sender still streaming
+import { createFoesHold, holdFrame, heldHead, heldOf, unhold, served, FOES_BEAT_SCAN_MS } from './foesHold.js';   // FOES-HOLD: a room's first frames wait their turn
 import { holdemGate, holdemSitRoomGate } from './relay.js';   // CARDS5: the card table's gate; AUDIT CARDS-3 A4: the room's sits
 import { GATE_HELLO_HZ_MAX } from './relay.js';   // GATE-DOOR: a court's door
 import { newTable, topUp as holdemTopUp, sit as holdemSit, sitRefusal as holdemSitRefusal, stand as holdemStand, actAt as holdemAct, tick as holdemTick, nextAt as holdemNextAt, emptyTable as holdemEmpty, tableLook as holdemLook, stateDelta as holdemDelta, holdemGoldTable } from '../../src/net/holdemTable.js';   // CARDS5: THE RELAY DEALS - the room's card tables (holdemTable.js imports only cardLaw.js, which imports only dice.js)
@@ -2046,32 +2048,137 @@ export class Room {
    *  places: the one listener's worth before the walk, the whole fan after it. A full frame dropped is counted apart
    *  (blob4, of blob5's full frames asked). */
   _foesFan(ws, a, kind, data, length, ranged, bucket, now) {
-    const per = length + a.id.length + 8;
-    const full = foesFrameFull(data), lane = this._foesLane(ws, kind);
-    const urgent = this._foesUrgent(lane, foesFrameHandsOn(data), now);
+    const full = foesFrameFull(data), hands = foesFrameHandsOn(data), lane = this._foesLane(ws, kind);
+    const urgent = this._foesUrgent(lane, hands, now);
     const first = this._foesFirst(lane, full, urgent, now);
-    const floor = first ? -FOES_FULL_RESERVE : FOES_FULL_RESERVE;
-    const ahead = floorGate(bucket, now, per, FOES_ROOM_BYTES_PER_S, floor);
     this._metrics.c.foes++;   // SCALE5b: the frames by type
     if (full) this._metrics.c.fulls++;   // FOES-FIRST: and the full frames among them
-    if (!ahead.pass) return this._foesDropped(full, ahead.bucket);   // SCALE5b: not one listener's worth - no walk
+    lane.in = now;   // FOES-HOLD: the sender streams on this lane (a held frame's beat asks it)
+    const hold = this._foesHoldOf(kind);
+    if (hold.entries.length) bucket = this._foesDrain(kind, hold, bucket, now);   // FOES-HOLD: the held frames' turns come first
+    // FOES-HOLD: a delta - no handover, nor a full frame to take its sender's held one's place - spends the budget down
+    // to the reserve; while any frame is held, it waits behind the full frames, and a sender's own never overtakes its
+    // held one: dropped
+    if (!first && !hands && !(full && hold.entries.length && heldOf(hold, ws).length)) {
+      if (hold.entries.length) return this._foesDropped(full, bucket);
+      const sent = this._foesSend(ws, a, kind, data, length, ranged, bucket, now, FOES_FULL_RESERVE, lane);
+      return sent.pass ? sent.bucket : this._foesDropped(full, sent.bucket);
+    }
+    // FOES-HOLD: a frame that goes first spends its turn when it is taken - sent now, or held for its place. A handover
+    // is never dropped for the budget: inside its cadence it asks the reserve's floor and waits its turn past it (the
+    // turns are one a sender, so no page that calls every frame a handover buys more than its own)
+    if (first && full) lane.first = now;
+    if (urgent && hands) lane.hands = now;   // AUDIT FOES-FIRST F1: and a handover's
+    if (!hold.entries.length) {
+      const sent = this._foesSend(ws, a, kind, data, length, ranged, bucket, now, first ? -FOES_FULL_RESERVE : FOES_FULL_RESERVE, lane);
+      if (sent.pass) return sent.bucket;
+      bucket = sent.bucket;
+      if (sent.fan > FOES_ROOM_BYTES_PER_S + FOES_FULL_RESERVE) return this._foesDropped(full, bucket);   // a fan no bucket can ever take
+    }
+    const fate = holdFrame(hold, { ws, data, length, ranged, full, hands, at: now });
+    if (fate === 'refused') return this._foesDropped(full, bucket);
+    this._metrics.c.held++;
+    if (fate === 'replaced') this._foesDropped(true, bucket);   // the older full frame in that place, never sent: a full frame the budget did not carry
+    return bucket;
+  }
+  /** FOES-HOLD: one foes or own frame out to its listeners, if the room's budget takes its fan down to `floor` - one
+   *  listener's worth asked before the walk (SCALE5b: a frame dropped costs no walk and no stringify), the whole fan
+   *  after it (AUDIT WORLD2 A5). Answers the budget's bucket, whether it passed (a fan to nobody passes, spending
+   *  nothing), and the fan it asked - one listener's worth when the first ask refused it. */
+  _foesSend(ws, a, kind, data, length, ranged, bucket, now, floor, lane) {
+    const per = length + a.id.length + 8;
+    const ahead = floorGate(bucket, now, per, FOES_ROOM_BYTES_PER_S, floor);
+    if (!ahead.pass) return { bucket: ahead.bucket, pass: false, fan: per };   // SCALE5b: not one listener's worth - no walk
+    const listeners = this._foesListeners(ws, a, ranged);
+    const budget = floorGate(bucket, now, per * listeners.length, FOES_ROOM_BYTES_PER_S, floor);
+    if (!budget.pass) return { bucket: budget.bucket, pass: false, fan: per * listeners.length };
+    if (!listeners.length) return { bucket: budget.bucket, pass: true, fan: 0 };
+    // AUDIT FOES-FIRST F2: the lane is heard once the fan is CHARGED, before the frame is re-serialised - a frame charged
+    // and then junked (one that grew: `1e20` out as twenty-one digits) left its sender unheard, so every frame it sent
+    // went first, past both the turn's bound and the unheard rule
+    lane.heard = now;
+    if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on' && (kind === 'own' || isCellRoom(a.key))) data = this._grantStripped(a, data, kind, now);   // GRANT9: the switch on - a record its grant does not stand goes nowhere; FOE-BOUNDS: nor one no builder could give
+    const out = fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched
+    if (out == null) { this._junk(ws); return { bucket: budget.bucket, pass: true, fan: 0 }; }
+    for (const other of listeners) this._send(other, out);
+    return { bucket: budget.bucket, pass: true, fan: per * listeners.length };
+  }
+  /** The sockets a foes or own frame of `ws` goes to: every other hello'd one - in a cell, those in range of its pose
+   *  (AUDIT WORLD6b A4: ranged as the pose is). */
+  _foesListeners(ws, a, ranged) {
     const reach = ranged ? inRangeOf(a.key, a.pose) : null;
     const listeners = [];
     for (const [other, b] of this._all()) if (other !== ws && b.id && (!reach || reach(b.pose))) listeners.push(other);
-    const budget = floorGate(bucket, now, per * listeners.length, FOES_ROOM_BYTES_PER_S, floor);
-    if (!budget.pass) return this._foesDropped(full, budget.bucket);
-    if (!listeners.length) return budget.bucket;
-    // AUDIT FOES-FIRST F2: the lane's clocks are stamped once the fan is CHARGED, before the frame is re-serialised - a
-    // frame charged and then junked (one that grew: `1e20` out as twenty-one digits) left its sender unheard, so every
-    // frame it sent went first, past both the turn's bound and the unheard rule's
-    lane.heard = now;   // FOES-FIRST: heard on this lane
-    if (first && full) lane.first = now;   // and a full frame's turn first spent
-    if (urgent && foesFrameHandsOn(data)) lane.hands = now;   // AUDIT FOES-FIRST F1: and a handover's
-    if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on' && (kind === 'own' || isCellRoom(a.key))) data = this._grantStripped(a, data, kind, now);   // GRANT9: the switch on - a record its grant does not stand goes nowhere; FOE-BOUNDS: nor one no builder could give
-    const out = fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched
-    if (out == null) { this._junk(ws); return budget.bucket; }
-    for (const other of listeners) this._send(other, out);
-    return budget.bucket;
+    return listeners;
+  }
+  /** FOES-HOLD: a lane's hold (server/src/foesHold.js) - the instance's, as the budget is: a woken room holds nothing. */
+  _foesHoldOf(kind) { return ((this._foesHolds ??= {})[kind] ??= createFoesHold()); }
+  /** FOES-HOLD: THE HELD FRAMES' TURNS. Each held frame in its turn (foesHold.js heldHead) goes the moment the budget
+   *  holds its fan down to minus FOES_FULL_RESERVE, the fan walked where its sender stands now; the first that cannot
+   *  waits, and every frame behind it with it. A frame whose sender has gone (its leave gave it a last try,
+   *  `_foesLeft`), or a full frame whose words are FOES_STALE_MS old (its sender has said no newer one for that long:
+   *  its page hidden, so its readers let its puppets go), leaves the hold unsent; so does one whose fan no bucket can
+   *  take. A handover never ages out - the owner has let those foes go. Asked at every foes or own frame the lane
+   *  takes: a held frame's sender streams every FOES_MS, so its turn is asked at least that often. Answers the bucket. */
+  _foesDrain(kind, hold, bucket, now) {
+    for (let e = heldHead(hold); e; e = heldHead(hold)) {
+      const a = this._all().get(e.ws);
+      if (!a?.id || (!e.hands && now - e.at > FOES_STALE_MS)) { unhold(hold, e); this._metrics.c.heldGone++; this._foesDropped(e.full, bucket); continue; }
+      const sent = this._foesSend(e.ws, a, kind, e.data, e.length, e.ranged, bucket, now, -FOES_FULL_RESERVE, this._foesLane(e.ws, kind));
+      bucket = sent.bucket;
+      if (!sent.pass) {
+        if (sent.fan <= FOES_ROOM_BYTES_PER_S + FOES_FULL_RESERVE) break;   // its turn: the bucket fills for it
+        unhold(hold, e); this._foesDropped(e.full, bucket); continue;   // the room grew round it past what any bucket takes
+      }
+      served(hold, e);
+      this._metrics.c.heldSent++; this._metrics.c.heldMs += now - e.since;
+    }
+    return this._foesBeats(kind, hold, bucket, now);
+  }
+  /** FOES-HOLD: A HELD SENDER IS STILL HEARD. Its readers let an owner's puppets go once they have heard nothing of it
+   *  for FOES_STALE_MS (scenes/exteriorFoes.js, dungeonContext.js) - and where the full frames alone are more than the
+   *  budget, a sender's turn can come round slower than that. So the relay says for it what it is: a sender whose
+   *  frames are held, still streaming (a frame of its on the lane inside FOES_FULL_MS), whose readers have heard
+   *  nothing of it for FOES_UNHEARD_MS, is fanned an empty frame of its own - `{ f: [] }`, its held frame's `k` - which
+   *  every reader takes as the owner heard (no `n`: it moves no counter; no `full`: it sweeps nothing; no record: it
+   *  stands and moves nothing). One beat a sender every FOES_UNHEARD_MS at most, charged to the budget whatever it
+   *  holds (a few dozen bytes a listener); the scan at most every FOES_BEAT_SCAN_MS. A sender gone quiet (a page
+   *  hidden) is beaten for no longer than it streams, so its readers let it go as they did. Answers the bucket. */
+  _foesBeats(kind, hold, bucket, now) {
+    if (!hold.entries.length || now - (hold.beatAt ?? -Infinity) < FOES_BEAT_SCAN_MS) return bucket;
+    hold.beatAt = now;
+    for (const e of hold.entries) {
+      const lane = this._foesLane(e.ws, kind);
+      if (now - Math.max(lane.heard ?? e.since, lane.beat ?? -Infinity) < FOES_UNHEARD_MS || now - (lane.in ?? -Infinity) > FOES_FULL_MS) continue;   // silent since its last frame went - or, unheard on this instance (a woken room), since it was held
+      const a = this._all().get(e.ws);
+      if (!a?.id) continue;
+      lane.beat = now;
+      const listeners = this._foesListeners(e.ws, a, e.ranged);
+      if (!listeners.length) continue;
+      const data = typeof e.data.k === 'string' ? { f: [], k: e.data.k } : { f: [] };
+      const out = JSON.stringify(a.gv === 1 ? { t: kind, id: a.id, g: 1, data } : { t: kind, id: a.id, data });
+      bucket = { bytes: byteGate(bucket, now, 0, FOES_ROOM_BYTES_PER_S).bucket.bytes - out.length * listeners.length, at: now };
+      for (const other of listeners) this._send(other, out);
+      this._metrics.c.beats++;
+    }
+    return bucket;
+  }
+  /** FOES-HOLD: A SENDER LEAVING. An owner leaving the cell hands its foes on and closes (world/foeHandover.js), and a
+   *  reader takes no foes frame of a peer whose leave it has heard (net/online.js: a cell's frame from a peer `told`) -
+   *  so what the sender still holds would reach nobody after its leave. Its handovers are given a last try now, before
+   *  the leave is said, each as a first frame on its lane's budget (to minus FOES_FULL_RESERVE, never deeper: a page that
+   *  leaves with four frames held does not put the room in debt); the rest of what it held goes with it. */
+  _foesLeft(ws, a, now) {
+    if (!this._foesHolds || !a?.id) return;
+    for (const kind of Object.keys(this._foesHolds)) {
+      const hold = this._foesHolds[kind];
+      for (const e of heldOf(hold, ws)) {
+        unhold(hold, e);
+        const field = kind === 'own' ? '_roomOwn' : '_roomFoes';
+        if (e.hands) { const sent = this._foesSend(ws, a, kind, e.data, e.length, e.ranged, this[field], now, -FOES_FULL_RESERVE, this._foesLane(ws, kind)); this[field] = sent.bucket; if (sent.pass) { this._metrics.c.heldSent++; this._metrics.c.heldMs += now - e.since; continue; } }
+        this._metrics.c.heldGone++; this._foesDropped(e.full, this[field]);
+      }
+    }
   }
   /** FOES-FIRST: a sender's clocks on one lane of the foes fan (`foes` or `own`) - when its frame last went out
    *  (`heard`), when its full frame last went first (`first`) and when its handover last did (`hands`) - among its
@@ -4860,6 +4967,7 @@ export class Room {
     this._gone.add(ws);
     this._dead.delete(ws);
     const a = this._attach(ws);
+    this._foesLeft(ws, a, Date.now());   // FOES-HOLD: what its foes lanes still hold, said before its leave
     this._trails?.delete(ws);   // AUDIT INT11: its trail with it
     // AUDIT CHAT A7: a room that drained sweeps its own storage on the way out - the empty-hello sweep never
     // runs in a channel, which is never empty on the way in; what an unclean close left behind goes here

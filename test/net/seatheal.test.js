@@ -141,3 +141,21 @@ test('SEAT-HEAL: a puppet still refuses nothing new - a frame while the host is 
   assert.equal(j.ctx.applyFoes(null, 'H'), false);
   assert.equal(j.ctx.applyFoes({ n: 1 }, 'H'), false, 'a frame with no list is nothing');
 });
+
+test('FOES-HOLD (Scale-Arc.md FOES-HOLD): THE RELAY\'S BEAT FOR A HELD HOST IS ITS HEARTBEAT. A dungeon host whose frames the room\'s budget holds is beaten by the relay - `{ f: [] }` with its frame\'s `k`, no number, no `full` - and through world.js\'s own onFoes and the dungeon\'s own applyFoes the seat stays heard past FOES_STALE_MS, nothing on the board moves, and the host\'s held frame, numbered after its last, lands when it comes (mutants: tools/mutants/fb1021b_foeshold.json FH-dungeon-refuses-an-empty-frame)', () => {
+  const j = joiner();
+  j.join();
+  j.run(1000, { stream: j.rat(false) });   // the host heard, its last frame numbered n
+  assert.equal(j.ctx.isAuthority(), false);
+  for (let k = 0; k < 3; k++) {   // its frames held by the room's budget: the relay's beat each FOES_UNHEARD_MS
+    j.run(4000);
+    j.online.onFoes('H', { f: [], k: 'dungeon:7' });
+  }
+  j.run(1000);
+  assert.equal(j.ctx.isAuthority(), false, 'thirteen seconds of beats and no numbered frame: the seat still heard, the joiner a puppet');
+  assert.equal(j.foes[0].dead, false, 'nothing moved on the board');
+  j.frame([j.rat(true)]);   // the held frame, in its turn
+  assert.equal(j.foes[0].dead, true, 'and the host\'s held frame lands - the beat moved no counter');
+  j.run(7000);
+  assert.equal(j.ctx.isAuthority(), true, 'without a word, the seat handed back as before');
+});

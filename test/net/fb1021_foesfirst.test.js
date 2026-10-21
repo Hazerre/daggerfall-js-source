@@ -66,9 +66,11 @@ test('FOES-FIRST the fan over the real Room: every frame reaches exactly the lis
     let fulls = 0, fullDrops = 0, drops = 0;
     const low = [], mid = [];
     let from = socks[0];
+    let held = 0;
     for (let round = 0; round < 600; round++) {
       tick(100 + Math.floor(rnd() * 500));
       for (const ws of socks) ws.sent.length = 0;
+      R.room._foesHolds = null;   // PIN MOVED (FOES-HOLD): a first frame refused is held for its turn - each round from an empty hold, the turns test/net/fb1021b_foeshold.test.js's
       if (rnd() < 0.6) from = socks[Math.floor(rnd() * socks.length)];   // else the last sender again - a full frame inside its cadence
       const pick = rnd();
       const data = { n: round, ...(pick < 0.35 ? { full: 1 } : pick < 0.45 ? { lc: 4 } : { full: 0 }), f: Array.from({ length: 1 + Math.floor(rnd() * 6) }, (_, i) => ({ i, x: 1, y: 0, z: 1, h: 10 })) };
@@ -97,8 +99,10 @@ test('FOES-FIRST the fan over the real Room: every frame reaches exactly the lis
       assert.deepEqual(R.room._roomFoes, law.bucket, `round ${round}: the bucket`);
       seen[cls][law.pass ? 0 : 1]++;
       if (full) fulls++;
-      if (!law.pass) { drops++; if (full) fullDrops++; }
-      if (law.pass) { heardAt.set(from, t); if (first && full) firstAt.set(from, t); }
+      if (!law.pass && first) held++;   // FOES-HOLD: held for its turn
+      else if (!law.pass) { drops++; if (full) fullDrops++; }
+      if (law.pass) heardAt.set(from, t);
+      if (first && full) firstAt.set(from, t);   // FOES-HOLD: a first frame's turn spent when it is taken - sent, or held
       (over < per ? low : over < want ? mid : []).push(walked);
     }
     for (const [cls, [passed, dropped]] of Object.entries(seen)) assert.ok(passed >= 10 && dropped >= 10, `${cls}: both answers (${passed} went, ${dropped} dropped)`);
@@ -106,6 +110,7 @@ test('FOES-FIRST the fan over the real Room: every frame reaches exactly the lis
     assert.equal(c.fulls - c0.fulls, fulls, 'every full frame counted, the layout count\'s too');
     assert.equal(c.fullDrops - c0.fullDrops, fullDrops, 'each full frame dropped counted apart');
     assert.equal(c.drops - c0.drops, drops, 'and every drop, as SCALE5b counts them');
+    assert.equal(c.held - c0.held, held, 'a first frame refused held, never dropped (FOES-HOLD)');
     assert.ok(Math.max(...low) < Math.min(...mid), `a frame its floor cannot afford for one listener walks nobody (${JSON.stringify([...new Set(low)])} against ${JSON.stringify([...new Set(mid)])})`);
   });
 });
@@ -161,8 +166,9 @@ test('FOES-FIRST A FULL FAN PAST THE RESERVE: into a room the deltas hold at the
     tick(FOES_FIRST_MS + 100);
     R.room._roomFoes = { bytes: 100, at: now() };   // nearly spent, not in debt
     await R.raw(socks[0], big(2));
-    assert.equal(socks.slice(1).filter((s) => ofType(s, 'foes').length > 1).length, 0, 'past the reserve below empty: dropped whole');
+    assert.equal(socks.slice(1).filter((s) => ofType(s, 'foes').length > 1).length, 0, 'past the reserve below empty: not sent');
     assert.deepEqual(R.room._roomFoes, { bytes: 100, at: now() }, 'nothing spent, no debt');
+    assert.equal(R.room._foesHoldOf('foes').entries.length, 1, 'PIN MOVED (FOES-HOLD): held for its turn, never borrowed to its own cost');
   });
 });
 
@@ -217,7 +223,7 @@ test('FOES-FIRST HIT-DROPS: a blow a destination\'s funnel drops - its frames a 
     await R.raw(a, JSON.stringify({ t: 'foes', data: { n: 1, full: 1, f: [{ i: 0 }] } }));
     R.room._metricsTick(true);
     assert.equal(points.length, 1);
-    assert.deepEqual(points[0].blobs, ['world', String(RELAY_VERSION), '2', '0', '1'], 'blob3 the blows dropped, blob4 the full frames dropped, blob5 the full frames asked');
+    assert.deepEqual(points[0].blobs.slice(0, 5), ['world', String(RELAY_VERSION), '2', '0', '1'], 'blob3 the blows dropped, blob4 the full frames dropped, blob5 the full frames asked');   // PIN MOVED (FOES-HOLD): blob6 on are the hold's (test/net/fb1021b_foeshold.test.js)
     assert.equal(points[0].doubles.length, 20, 'the doubles as they were');
     assert.equal(R.room._metrics.c.hitDrops, 0, 'a new window counts from nothing');
   });
@@ -226,7 +232,7 @@ test('FOES-FIRST HIT-DROPS: a blow a destination\'s funnel drops - its frames a 
   Object.assign(m.c, { frames: 1, full: 3, drops: 4, peak: 9, foes: 5, hits: 6, chats: 7, owed: 8, batches: 2, hitDrops: 11, fullDrops: 12, fulls: 13 });
   const got = [];
   m.flush({ writeDataPoint: (p) => got.push(p) }, 'world', 7, 'w', 1, true);
-  assert.deepEqual(got[0].blobs, ['world', 'w', '11', '12', '13']);
+  assert.deepEqual(got[0].blobs.slice(0, 5), ['world', 'w', '11', '12', '13']);
   assert.deepEqual(got[0].doubles.slice(12), [3, 4, 9, 5, 6, 7, 8, 2]);
   assert.deepEqual([m.c.hitDrops, m.c.fullDrops, m.c.fulls], [0, 0, 0], 'reset with the window');
 });
@@ -258,11 +264,13 @@ test('AUDIT FOES-FIRST F1 A HANDOVER GOES FIRST: a cell\'s handover batch (world
     tick(FOES_FIRST_MS / 2); clear();
     R.room._roomFoes = { bytes: FOES_FULL_RESERVE, at: now() };
     await R.raw(socks[0], frame(4, true));
-    assert.equal(heard(), 0, 'a second inside FOES_FIRST_MS is a delta to the budget');
+    assert.equal(heard(), 0, 'a second inside FOES_FIRST_MS asks the reserve\'s floor, as a delta does');
+    assert.equal(R.room._foesHoldOf('foes').entries.length, 1, 'PIN MOVED (FOES-HOLD): and is held for its turn - a handover is never dropped for the budget');
     tick(FOES_FIRST_MS); clear();
     R.room._roomFoes = { bytes: FOES_FULL_RESERVE, at: now() };
     await R.raw(socks[0], frame(5, true));
     assert.equal(heard(), 11, 'and its next turn comes');
+    assert.deepEqual(ofType(socks[1], 'foes').map((m) => m.data.n), [4, 5], 'the held batch first, in its sender\'s order');
     const bench = await scene(SCENES.find((s) => s.name === 'hands'), 20);
     assert.equal(bench.hands, 100, `a crowded cell's handovers all heard (${bench.hands}%)`);
   });

@@ -82,6 +82,7 @@ Four read-only audits covered the relay (`server/src/index.js`), the account ser
 | SHED-LONG | After BUSY-HEART the overload eased (p50 17-45 s to 5-13 s) and held: a request on a D1 session waited 31 s on the database for every 5.6 s one on the binding did - the replica the longer queue. BOOKMARK-SPIRAL rolled back (the six polled reads at the primary first again, its session lookup's fallback kept), and an overload's shed 10 s where it was 2 | No | **Built** (2026-10-16; acct145) |
 | RELAY-LOAD | The relay's own metrics read by the operator - the rooms by kind, every five minutes by kind, the busiest rooms - from the Actions tab, as D1-LOAD reads the account service's | No | **Built** (2026-10-18, this branch - no version, no drop) |
 | FOES-FIRST | The full foes frames first on a room's foes budget: a delta stops at a reserve (a quarter of it), a full frame (once a second a sender), a handover (once a second a sender, AUDIT FOES-FIRST) or an unheard sender's frame may borrow as far below empty - the live cells dropped their full frames first; the blows a destination's funnels drop counted, and the full frames dropped, on the metrics point's blobs | Yes, once | **Built** (2026-10-21, relay world239, NOT YET DEPLOYED) |
+| FOES-HOLD | Where a room's full frames alone are more than its budget, a first frame the budget refuses is HELD for its turn: one line, one turn a sender, a newer full frame in its sender's place, nothing of a sender overtaking its own, no delta past a held frame, a held sender beaten so its readers keep it, a leaving sender's handovers tried before its leave - the star's large owner heard as often as the rest (0% before) | Yes, once (with FOES-FIRST's) | **Built** (2026-10-21, relay world239, NOT YET DEPLOYED) |
 | SCALE6 | Abuse and backups: Turnstile on guest creation, /64 IPv6 rate keys, bans, report and ignore, `ALLOWED_ORIGIN`, R2 snapshots, a hub export | Some | Alongside |
 
 **Relay deploy policy (SCALE):** relay changes are batched into as few deploys as possible, each in a window announced beforehand. A deploy drops every player, and until SCALE2 every reconnect is a D1 write storm.
@@ -3728,7 +3729,7 @@ and a blow either one dropped went without a word. The arm is a method of its ow
 the lines), and its drops are counted.
 
 **The metrics point's blobs.** RoomMetrics writes all twenty doubles Analytics Engine takes, so the counts past them
-are blobs (`server/src/relayScale.js:"blobs: [kind, String(version), String(c.hitDrops), String(c.fullDrops), String(c.fulls)]"`),
+are blobs (`server/src/relayScale.js:"blobs: [kind, String(version), String(c.hitDrops), String(c.fullDrops), String(c.fulls),"`),
 each its count in decimal:
 
 | Blob | Holds |
@@ -3790,22 +3791,11 @@ The bench, 60 s a scene, the frozen head against the audit's (the first six rows
 
 ### Left, each with its reason
 
-- **A room whose full frames alone are more than its budget.** The bigger star hears 35% of its full frames, the record
-  cap 13%: no order of frames carries what the budget does not. And the first frames are first-come and blind to size,
-  so ONE LARGE OWNER among smaller ones - a star's stander, the waves, the master and the circle on one owner, 48 or 64
-  records to 79 listeners - hears none of its full frames in the bigger star (`stander`, `stander64`: 0%; its deltas are
-  heard by the unheard rule, so its puppets stand, but its grants, sites and sweep do not reach a reader - two covens at
-  one star). Not a regression: on main the same owner was 0% and unheard the whole run. The audit tried a CLAIM (a first
-  full frame the fan refused held the budget until that sender's next): the 48-record stander heard 13.8%, but the
-  record cap's full frames fell from 13.2% to 6.4% (the room held for a frame two seconds off), and a claim for a
-  starved sender alone gave 3.4% and 7.1% - removed. What carries it is the budget's size for an event's cell, a
-  pending slot (the refused full frame kept and sent the moment the bucket holds it, superseded by its sender's next),
-  a full frame that re-says only what moved since its last heard one, or a layer's cap - the next slice's, chosen by
-  what blob4 and blob5 say live, and the owner's call.
-- **`tools/relayLoad.mjs` does not ask the blobs.** Its three questions and their pins (RELAY-LOAD) are a slice's own;
-  the SQL above is the question, by hand, until it does.
-- **The sender is not told.** A full frame the relay dropped is not said again before its next FOES_FULL_MS (AUDIT
-  WORLD2 A9's heal is the page's own refusal); a word back would be a frame a drop, past a budget that is already spent.
+- **A room whose full frames alone are more than its budget** - one large owner among smaller ones hearing none of its
+  full frames, the bigger star's owners half a minute between theirs: FOES-HOLD, below.
+- **The blobs read** - `tools/relayLoad.mjs`'s `fulls` question (FOES-HOLD, below).
+- **The sender is not told.** A full frame the budget refuses is held for its turn now (FOES-HOLD) rather than dropped,
+  so nothing is owed back: what is lost is a held full frame its sender's newer one replaced, and the newer says it all.
 - **The version.** Every byte of the relay is its law (`test/net/relayversion.test.js`): world239, NOT YET DEPLOYED,
   every pin that names it moved; its merge is one relay drop. world238 is claimed by two open branches (STAR-TUNE #1090,
   GRANT-SLEEP #1066): whichever lands after another takes the next number at its merge.
@@ -3828,3 +3818,129 @@ The bench, 60 s a scene, the frozen head against the audit's (the first six rows
   metrics point (`scale2b.test.js`) - its blobs the kind, the version and three counts.
 - Re-aimed by content, all dead: SCALE5b-foes-walk-first, SCALE5b-foes-drop-uncounted (`_foesDropped`), U7-foes-borrows
   (the budget is floorGate's), AOWN-hit-arm-unguarded (the arm is `_hitFunnel`).
+
+## FOES-HOLD: built (2026-10-21, relay world239 - NOT YET DEPLOYED; with FOES-FIRST, one relay drop at its merge)
+
+The owner, on FOES-FIRST's Left: "Yeah I wanna do everything. No band aids and true improvements." FOES-FIRST put the
+full frames first, and left a room whose full frames ALONE are more than its budget (a Starfall's crowd) first-come and
+blind to size: a refused frame was dropped, and the next to arrive took whatever the bucket had refilled. A small frame
+always fits sooner than a large one, so one large owner among smaller ones - a star's stander, the waves, the master and
+the circle on one owner - heard none of its full frames, and the owners the draw passed over waited half a minute between
+theirs: two covens at one star, a foe dead for one and alive for another.
+
+### The law (`server/src/foesHold.js`, wired by the Room)
+
+A frame that goes first (FOES-FIRST's: a full frame on its sender's turn, an unheard sender's frame) and that the budget
+cannot take is HELD, and every held frame goes in its turn:
+
+- **One line, one turn a sender.** The held frames are served first come, first served
+  (`server/src/foesHold.js:"export function heldHead(hold) {"`); a sender's turn sends its first held frame, and the
+  frames it holds behind it while the turn's own lengths come to FOES_TURN_BYTES (16 KiB: a full frame and a handover's
+  small batches beside it); past that the rest take places at the back (`served`). No sender's frames, however many or
+  however large, keep another's from their turn.
+- **A newer full frame takes its sender's place.** Its words, never its place (`holdFrame`, 'replaced'): the readers
+  want the newest list, and the place is the sender's. So a held frame's words are never older than its sender's last
+  full frame - two seconds at most while it streams.
+- **Nothing passes a held frame.** While any frame is held no delta spends the bucket (FOES-FIRST meant the deltas to
+  wait behind the full frames; with a held frame they do), and nothing of a sender overtakes its own: the readers drop
+  a frame whose `n` is not past the owner's last (`scenes/exteriorFoes.js` applyFoes, `dungeonContext.js`
+  applyFoesFrame and applyOwnFrame), so a delta that passed would turn the held full frame into one they refuse. It is
+  dropped; the held frame, which says everything it said, goes in its turn.
+- **A held frame borrows.** It goes the moment the bucket holds its fan down to minus FOES_FULL_RESERVE, the fan walked
+  where its sender stands then (`server/src/index.js:"_foesDrain(kind, hold, bucket, now) {"`); asked at every foes or
+  own frame the lane takes - a held frame's sender streams every FOES_MS, so its turn is asked at least that often, and
+  no timer is kept.
+- **A handover is never dropped for the budget.** It waits its turn like any first frame (inside its cadence it asks the
+  reserve's floor first), and it is never replaced and never ages out: the owner has let those foes go.
+- **No frame jumps the line.** FOES-FIRST's handover went first once a second whatever waited; a page that marks every
+  record with an heir (the word is the sender's own) would take that turn every second at any size - with a line to
+  jump, the whole budget. The bench's `liar` (one socket calling every 16 KiB frame a handover, twelve a second) buys its
+  one turn a round.
+- **A held sender is still heard.** Its readers let an owner's puppets go once they have heard nothing of it for
+  FOES_STALE_MS, and in a room whose full frames are several times the budget a sender's turn comes round slower than
+  that (the record cap's: every 9.4 s). So the relay says for it what it is: a sender whose frames are held, still
+  streaming (a frame on the lane inside FOES_FULL_MS), whose readers have heard nothing of it for FOES_UNHEARD_MS, is
+  fanned an empty frame of its own - `{ f: [] }` with its held frame's `k` (`server/src/index.js:"_foesBeats(kind, hold, bucket, now) {"`).
+  Every reader of every build takes it as the owner heard and nothing else: no `n` (it moves no counter, so the held
+  frame is still taken when it comes), no `full` (it sweeps nothing), no record. One a sender each FOES_UNHEARD_MS, a
+  few dozen bytes a listener, charged to the budget; a sender gone quiet (a hidden page) is beaten no longer than it
+  streams, so its readers let it go as they did.
+- **A sender leaving.** An owner leaving the cell hands its foes on and closes, and a reader takes no frame of a peer whose
+  leave it has heard - so what the sender still holds would reach nobody after its leave. Its handovers get a last try
+  before the leave is said, on the lane's budget to minus the reserve and never deeper (`_foesLeft`); the rest goes with it.
+- **Bounds.** FOES_HELD_PER_SENDER (4) frames a sender a lane, FOES_HELD_BYTES_MAX (64 of the largest frame) a lane; a
+  full frame whose words are FOES_STALE_MS old leaves the hold unsent; past any bound a frame is dropped and counted, as
+  FOES-FIRST counted it.
+
+### Measured
+
+`tools/foesFirstBench.mjs` over the real Room, 60 s a scene; "before" is FOES-FIRST's law (#1103's head, 9a46fc23a) run
+by the same bench. The bench now reads each send by the frame it carries (a held frame goes out while another sender's
+frame is taken) and runs its senders 15 s past the end so a frame held at the end has its turn; a delivered handover is
+its owner heard, as it is at a reader. Two scenes are new: `burst` (an owner handing on three batches at once, every
+second) and `liar` (above).
+
+| Scene | Full frames heard | Full frames apart p99 / max | Longest unheard, stale | The rest |
+|---|---|---|---|---|
+| quiet, crowded, flood, hands | as before (100%) | as before | as before | as before |
+| star: 30 of 60, 24 records | 76.0% -> 80.0% | 12.5 / 43.6 s -> 3.2 / 3.9 s | 4.6 s -> 3.9 s, 0 | deltas 1.4% -> 0.4% |
+| star80: 40 of 80, 24 records | 35.6% -> 44.8% | 31.4 / 48.6 s -> 5.1 / 6.1 s | 4.8 s -> 4.3 s, 0 | deltas 3.2% -> 0.4%; 460 beats |
+| big: 20 of 120 at the record cap | 13.9% -> 22.0% | 60 / 60 s -> 10.4 / 10.5 s | 5.4 s -> 4.3 s, 0 | deltas 4.8% -> 0.4%; 244 beats |
+| stander: the star80 crowd, one owner 48 | 34.7% -> 43.9% | 34.0 / 60 s -> 5.6 / 6.6 s | 5.0 s -> 4.3 s, 0 | **the stander's own 0% -> 44.8%** |
+| stander64: the same, one owner 64 | 34.6% -> 43.1% | 33.4 / 60 s -> 5.3 / 6.1 s | 10.9 s (0.44% stale) -> 4.3 s, 0 | **the stander's own 0% -> 41.4%** |
+| starHands: the star, two handovers a second | 74.2% -> 79.1% | 16.7 / 35.6 s -> 4.6 / 5.4 s | 8.6 s (0.84% stale) -> 5.4 s, 0 | handovers 98.3% -> 100% |
+| burst: the star, three batches at once a second | 75.2% -> 76.7% | 12.5 / 31.3 s -> 3.2 / 4.2 s | 8.3 s (0.35% stale) -> 4.0 s, 0 | **handovers 32.2% -> 100%** |
+| liar: the star, one page's every 16 KiB frame a "handover" | 65.4% -> 68.9% | 14.8 / 18.7 s -> 3.6 / 4.0 s | 4.6 s -> 4.0 s, 0 | the liar's frames 4.3% -> 5.5% |
+
+The room's bytes out are the budget's in every crowded scene, before and after (4.05 to 4.08 MiB a second). A held frame
+waits 2.1 s at the 99th in the star scenes (its words refreshed in its place meanwhile).
+
+**What it costs.** Where the full frames alone are more than the budget, the deltas wait behind them: 1.4-4.8% heard
+before, 0.4% after (the moments the line is empty). A full frame carries every record a delta does, so the puppets are
+moved by the full frames there - every 2.6 s at the star, 4.8 s at the bigger star, 9.4 s at the record cap - where
+before most owners were moved by a delta now and then and some by nothing for half a minute. Inside the budget (the
+quiet and crowded cells, the flood, the hands) nothing is ever held and nothing changed.
+
+### The metrics point
+
+Five more blobs (`server/src/relayScale.js`), each a count in decimal, read by `tools/relayLoad.mjs`'s `fulls` question:
+
+| Blob | Holds |
+|---|---|
+| `blob6` | frames held for their turn (a held full frame replaced by its sender's newer one counts again, and its older words as a full frame dropped - blob4) |
+| `blob7` | held frames sent |
+| `blob8` | held frames that left the hold unsent (stale, their sender gone) |
+| `blob9` | the waits of the held frames sent, summed, ms (`blob9 / blob7`, the mean) |
+| `blob10` | beats said for a held sender |
+
+### Left, each with its reason
+
+- **A room past its budget moves its puppets by its full frames.** The line carries every owner's state round fairly;
+  what it cannot do is carry more than the budget. Thinner frames would: a full frame's records are the delta's own JSON
+  (12 to 20 fields each) - a slice of the wire's own, both ends, past this one.
+- **The dungeon's own lane takes the beat by reading.** `dungeonContext.js` applyOwnFrame takes `{ f: [] }` with the
+  room's `k` and no `n` as an owner heard (its early returns read `f`, `k` and `n` alone); the pins run the beat through
+  the street pool (which the building's pool is - `makeInteriorFoes` mints it) and the dungeon host's stream
+  (`seatheal.test.js`, world.js's own onFoes), not the dungeon's own lane.
+- **The version.** world239 holds FOES-FIRST and FOES-HOLD, NOT YET DEPLOYED; FOES-HOLD re-hashed it in place.
+
+### Pins
+
+- `test/net/fb1021b_foeshold.test.js` (7): the law (a place taken, a newer full frame in its place, a holding sender's
+  delta refused, a handover behind its sender's own, the caps, the head, the turn and its bound); THE LINE over the real
+  Room (a large held frame first, before a smaller one that came after it; no delta past it; a holding sender's own
+  delta dropped and its newer full frame sent in its place); a delta the reserve affords dropped behind a held frame, a
+  held frame borrowing, a newer full frame inside its cadence in its place and its sender's next turn after it; the beat
+  (its shape, once each FOES_UNHEARD_MS, never for a quiet sender, the scan's bound) and the street pool taking it as its
+  owner heard - kept past FOES_STALE_MS, its counter unmoved, let go without a word; a sender leaving (its handover
+  before its leave, never deeper than the reserve; a full frame aged out, a handover never); the bench (the stander, the
+  bigger star, the record cap, the burst, the liar, the quiet and crowded cells as they were); the blobs.
+- `seatheal.test.js` (FOES-HOLD): a dungeon host held and beaten keeps the seat past FOES_STALE_MS through world.js's
+  own onFoes and the dungeon's own applyFoes, nothing on the board moved, and its held frame lands after.
+- `tools/mutants/fb1021b_foeshold.json`: 38, all dead.
+- PIN MOVED: `fb1021_foesfirst.test.js` - the fan's 600 frames each from an empty hold (a first frame refused is held,
+  counted held, never dropped), a full fan past the reserve below empty held rather than dropped whole, a handover inside
+  its cadence held and sent first at its next turn, the metrics' first five blobs; `scale5b.test.js`'s foes fan - each
+  round from an empty hold, a refusal held.
+- `tools/foesFirstBench.mjs`: each send read by its frame's number, the senders' tail, a handover its owner heard, the
+  `burst` and `liar` scenes.

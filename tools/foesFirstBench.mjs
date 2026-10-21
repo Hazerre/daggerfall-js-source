@@ -29,6 +29,9 @@ import { PIXEL_UNITS, FOES_ROOM_BYTES_PER_S, FOES_FULL_MS, FOES_STALE_MS } from 
 const FOES_MS = 200;   // net/online.js FOES_MS (online.js is the page's, and imports what Node does not load)
 const arg = (k, d) => process.argv.find((a) => a.startsWith(`${k}=`))?.split('=')[1] ?? d;
 const SECONDS = Number(arg('SECONDS', 60)), ONLY = arg('SCENE', null);
+/** FOES-HOLD: the senders stream on this long past the run, so a frame held when it ends has its turn (a frame sent
+ *  after the run is not read: the run's frames are the ones it counts). */
+const TAIL_MS = 15000;
 
 /** A seeded roll (mulberry32). */
 function roll(seed) {
@@ -62,6 +65,8 @@ export const SCENES = [
   { name: 'stander64', what: 'the same, the stander at the frame\'s record cap (64)', owners: 40, sockets: 80, records: 24, moving: 0.5, grants: 6, heavy: 64 },
   { name: 'hands', what: 'the crowded cell, and two handover batches a second', owners: 30, sockets: 60, records: 12, moving: 0.75, grants: 3, hands: true },
   { name: 'starHands', what: 'the star\'s crowd, and two handover batches a second', owners: 30, sockets: 60, records: 24, moving: 0.5, grants: 6, hands: true },
+  { name: 'burst', what: 'the star\'s crowd, and an owner handing on three batches at once every second (FOES-HOLD)', owners: 30, sockets: 60, records: 24, moving: 0.5, grants: 6, hands: true, burst: 3 },
+  { name: 'liar', what: 'the star\'s crowd, and one socket calling every 16 KiB frame a handover at FOES_HZ_MAX (FOES-HOLD)', owners: 30, sockets: 60, records: 24, moving: 0.5, grants: 6, flood: 16 * 1024, liar: true },
 ];
 
 async function onClock(fn) {
@@ -85,44 +90,67 @@ export async function scene(s, seconds = SECONDS) {
       await R.hello(ws, `p-${String(i).padStart(4, '0')}`, { x: (BX + rnd() * 0.5) * PIXEL_UNITS, y: 0, z: (499 - BY + rnd() * 0.5) * PIXEL_UNITS, yaw: 0, pitch: 0 });
       socks.push(ws);
     }
-    // heard: a frame is whole or nothing, so one listener's ear is every listener's - counted without a parse
-    let heard = 0, out = 0;
-    for (const ws of socks) ws.send = (str) => { out += str.length; if (str.startsWith('{"t":"foes"')) heard++; };
-    const start = now() + 5000;
+    // heard: a frame is whole or nothing, so one listener's ear is every listener's - a fan is one string to every
+    // listener, read once by its number (FOES-HOLD: a held frame goes out while another sender's frame is being taken,
+    // so a send is the frame it carries, not the frame that came in); an empty frame of no number is a held sender's
+    // beat (it says the owner is heard, and carries nothing)
+    let out = 0, last = null;
+    const delivered = [];
+    for (const ws of socks) ws.send = (str) => { if (now() <= end) out += str.length; if (str !== last && str.startsWith('{"t":"foes"')) { last = str; delivered.push(str); } };
+    const start = now() + 5000, end = start + seconds * 1000;
     const events = [];
     for (let o = 0; o < s.owners; o++) {
       let t = start + rnd() * FOES_MS, lastFull = start - rnd() * FOES_FULL_MS;
-      while (t < start + seconds * 1000) { const full = t - lastFull >= FOES_FULL_MS; if (full) lastFull = t; events.push({ t: Math.round(t), o, full }); t += FOES_MS + Math.floor(rnd() * 17); }
+      while (t < start + seconds * 1000 + TAIL_MS) { const full = t - lastFull >= FOES_FULL_MS; if (full) lastFull = t; events.push({ t: Math.round(t), o, full }); t += FOES_MS + Math.floor(rnd() * 17); }
     }
     const flooder = s.flood ? s.owners : -1;
-    if (s.flood) for (let t = start; t < start + seconds * 1000; t += Math.ceil(1000 / 12)) events.push({ t, o: flooder, full: true });
-    if (s.hands) for (let t = start + 250, k = 0; t < start + seconds * 1000; t += 500, k++) events.push({ t, o: (k * 7) % s.owners, full: false, hands: true });   // each from an owner leaving, a different one each time
+    if (s.flood) for (let t = start; t < start + seconds * 1000 + TAIL_MS; t += Math.ceil(1000 / 12)) events.push({ t, o: flooder, full: true });
+    if (s.hands) for (let t = start + 250, k = 0; t < start + seconds * 1000 + TAIL_MS; t += s.burst ? 1000 : 500, k++) for (let b = 0; b < (s.burst ?? 1); b++) events.push({ t, o: (k * 7) % s.owners, full: false, hands: true });   // each from an owner leaving, a different one each time (a burst: its batches at one moment, world/foeHandover.js)
     events.sort((x, y) => x.t - y.t);
-    const pad = s.flood ? JSON.stringify({ t: 'foes', data: { n: 0, full: 1, f: [], pad: 'p'.repeat(s.flood) } }) : '';
+    const pad = s.flood ? JSON.stringify({ t: 'foes', data: { n: 0, full: s.liar ? 0 : 1, f: s.liar ? [{ i: 0, e: 'p-0001', it: [] }] : [], pad: 'p'.repeat(s.flood) } }) : '';   // a liar's every record names an heir
     const st = { full: [0, 0], delta: [0, 0], flood: [0, 0], hfull: [0, 0], hdelta: [0, 0], hands: [0, 0] };
-    const lastHeard = new Map(), lastFull = new Map(), gaps = [];
-    let stale = 0, n = 0, silent = 0;
+    const lastHeard = new Map(), lastFull = new Map(), gaps = [], byN = new Map(), waits = [];
+    let stale = 0, n = 0, silent = 0, beats = 0;
+    const heardAt = (o, t) => {
+      const lh = lastHeard.get(o) ?? start;
+      if (t - lh > FOES_STALE_MS) stale += t - lh - FOES_STALE_MS;
+      silent = Math.max(silent, t - lh);
+      lastHeard.set(o, t);
+    };
+    const take = (t) => {
+      for (const str of delivered.splice(0)) {
+        const id = /"id":"p-(\d+)"/.exec(str), num = /"data":\{"n":(\d+)/.exec(str);
+        if (!id) continue;
+        const o = Number(id[1]);
+        if (!num) { if (o !== flooder && t <= end) { beats++; heardAt(o, t); } continue; }   // a beat: the owner heard, nothing carried
+        const e = byN.get(Number(num[1]));
+        if (!e || e.heard || e.tail) continue;
+        e.heard = true;
+        const k = e.o === flooder ? 'flood' : e.hands ? 'hands' : e.full ? 'full' : 'delta';
+        st[k][0]++;
+        if (s.heavy && e.o === 0 && !e.hands) st[e.full ? 'hfull' : 'hdelta'][0]++;
+        waits.push(t - e.t);
+        if (e.o === flooder || t > end) continue;   // the tail: a frame of the run heard, and its owner's silences read to the run's end alone
+        heardAt(e.o, t);   // a handover too: its readers hear the owner in it
+        if (e.hands) continue;
+        if (e.full) { gaps.push(t - (lastFull.get(e.o) ?? start)); lastFull.set(e.o, t); }
+      }
+    };
     for (const e of events) {
       set(e.t);
       const owner = socks[e.o];
       const shape = s.heavy && e.o === 0 ? { ...s, records: s.heavy, moving: 0.75 } : s;
-      const text = e.o === flooder ? pad.replace('"n":0', `"n":${++n}`) : frameOf(`p-${String(e.o).padStart(4, '0')}`, ++n, e.full, shape, e.hands);
-      const before = heard;
+      e.n = ++n;
+      e.tail = e.t >= end;
+      byN.set(e.n, e);
+      const text = e.o === flooder ? pad.replace('"n":0', `"n":${e.n}`) : frameOf(`p-${String(e.o).padStart(4, '0')}`, e.n, e.full, shape, e.hands);
       await R.raw(owner, text);
-      const passed = heard > before;
+      take(e.t);
+      if (e.tail) continue;
       const k = e.o === flooder ? 'flood' : e.hands ? 'hands' : e.full ? 'full' : 'delta';
-      const hk = s.heavy && e.o === 0 && !e.hands ? (e.full ? 'hfull' : 'hdelta') : null;
-      st[k][1]++; if (hk) st[hk][1]++;
-      if (!passed) continue;
-      st[k][0]++; if (hk) st[hk][0]++;
-      if (e.o === flooder || e.hands) continue;
-      const lh = lastHeard.get(e.o) ?? start;
-      if (e.t - lh > FOES_STALE_MS) stale += e.t - lh - FOES_STALE_MS;
-      silent = Math.max(silent, e.t - lh);
-      lastHeard.set(e.o, e.t);
-      if (e.full) { gaps.push(e.t - (lastFull.get(e.o) ?? start)); lastFull.set(e.o, e.t); }
+      st[k][1]++;
+      if (s.heavy && e.o === 0 && !e.hands) st[e.full ? 'hfull' : 'hdelta'][1]++;
     }
-    const end = start + seconds * 1000;
     for (let o = 0; o < s.owners; o++) {
       const lh = lastHeard.get(o) ?? start;
       if (end - lh > FOES_STALE_MS) stale += end - lh - FOES_STALE_MS;
@@ -137,6 +165,7 @@ export async function scene(s, seconds = SECONDS) {
       ...(s.heavy ? { heavyFull: pct(st.hfull), heavyDelta: pct(st.hdelta) } : {}), ...(s.hands ? { hands: pct(st.hands) } : {}),
       gapP50: q(0.5), gapP99: q(0.99), gapMax: gaps.at(-1) / 1000,
       stale: Math.round((10000 * stale) / (s.owners * seconds * 1000)) / 100, unheardMax: silent / 1000, outMiBs: Math.round((100 * out) / seconds / FOES_ROOM_BYTES_PER_S * 4) / 100,
+      waitP99: (waits.sort((x, y) => x - y)[Math.min(waits.length - 1, Math.floor(0.99 * waits.length))] ?? 0) / 1000, beats,
     };
   });
 }
@@ -146,6 +175,6 @@ if (isMain(import.meta.url)) {
   for (const s of SCENES) if (!ONLY || s.name === ONLY) {
     const r = await scene(s);
     rows.push(r);
-    process.stdout.write(`${s.name.padEnd(8)} ${s.what}\n  full ${r.full}%  delta ${r.delta}%${r.flood != null ? `  flood ${r.flood}%` : ''}${r.heavyFull != null ? `  heavy full ${r.heavyFull}% delta ${r.heavyDelta}%` : ''}${r.hands != null ? `  handovers ${r.hands}%` : ''}  full frames apart p50 ${r.gapP50} s, p99 ${r.gapP99} s, max ${r.gapMax} s  stale ${r.stale}% (unheard ${r.unheardMax} s at most)  out ${r.outMiBs} MiB/s\n`);
+    process.stdout.write(`${s.name.padEnd(8)} ${s.what}\n  full ${r.full}%  delta ${r.delta}%${r.flood != null ? `  flood ${r.flood}%` : ''}${r.heavyFull != null ? `  heavy full ${r.heavyFull}% delta ${r.heavyDelta}%` : ''}${r.hands != null ? `  handovers ${r.hands}%` : ''}  full frames apart p50 ${r.gapP50} s, p99 ${r.gapP99} s, max ${r.gapMax} s  stale ${r.stale}% (unheard ${r.unheardMax} s at most)  waited p99 ${r.waitP99} s  beats ${r.beats}  out ${r.outMiBs} MiB/s\n`);
   }
 }

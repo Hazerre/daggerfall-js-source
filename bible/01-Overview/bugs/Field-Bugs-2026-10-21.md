@@ -44,12 +44,25 @@ second at most; a sender's full frame goes first once a `FOES_FIRST_MS`, a frame
 dying, going through a door) once a `FOES_FIRST_MS` too, and its next frame first once it has been unheard
 `FOES_UNHEARD_MS`. The audit found the handovers held as deltas (a crowded cell's heard 29.2%, a star's 0.8%: now 100%)
 and a junked frame's sender left unheard (every frame of it first): both fixed. A cell whose full frames alone pass the
-budget (the Starfall's eighty sockets) hears 35% of them, never an owner silent past six seconds - but one LARGE owner
-among smaller ones, a star's stander, hears none of its full frames (0% before and after; its deltas are heard, so its
-puppets stand, but its grants, sites and sweep do not reach a reader: two covens at one star). A claim was tried and
-removed (it halved another crowd's full frames); the budget for an event's cell, a pending slot or thinner full frames
-is the next slice, `Scale-Arc.md` FOES-FIRST's Left. The new blobs measure it live - blob3 the blows the hit funnels
-dropped (silent until now), blob4 and blob5 the full frames dropped and asked. Relay world239.
+budget (the Starfall's eighty sockets) left them first-come and blind to size, so one LARGE owner among smaller ones, a
+star's stander, heard none of its full frames: FOES-HOLD (below) holds such a frame for its turn. The new blobs measure
+it live - blob3 the blows the hit funnels dropped (silent until now), blob4 and blob5 the full frames dropped and asked.
+Relay world239.
+
+## FOES-HOLD (1, the owner: "No band aids and true improvements") - `bible/11-Multiplayer/Scale-Arc.md` FOES-HOLD
+
+Where a room's full frames alone are more than its budget, a first frame the budget refuses is HELD for its turn
+(`server/src/foesHold.js`): one line, one turn a sender, a newer full frame in its sender's place, nothing of a sender
+overtaking its own (the readers' `n`), no delta past a held frame, a held frame borrowing to minus the reserve; a held
+sender still streaming is beaten - an empty frame of its own, which every reader takes as the owner heard - so its
+readers keep its puppets while its turn comes round; a leaving sender's handovers are tried before its leave is said; a
+handover waits its turn and is never dropped for the budget, and no frame jumps the line (a page that calls every frame
+a handover buys its one turn). Measured on the real Room (`tools/foesFirstBench.mjs`, 60 s a scene, against FOES-FIRST
+alone): the star's stander heard 0% -> 44.8% of its full frames; the bigger star's full frames 31.4 s apart at the 99th
+-> 5.1 s, the record cap's 60 s -> 10.4 s, nobody unheard past 4.3 s (10.9 s before); three handover batches at once
+heard 32.2% -> 100%. Inside the budget nothing is held and nothing changed; past it the deltas wait behind the full
+frames (1.4-4.8% heard -> 0.4%), which carry every record they do. Five more blobs (blob6-10) count the hold live, and
+`tools/relayLoad.mjs` reads them (its `fulls` question). Relay world239, re-hashed in place.
 
 ## OWNER-CLOCK (2) - `bible/06-Systems/Online-Arc.md` OWNER-CLOCK
 
