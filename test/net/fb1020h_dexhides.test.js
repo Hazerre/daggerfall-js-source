@@ -23,7 +23,8 @@ import { producersOf } from '../../src/net/chainLaw.js';
 import { marketCatalogue } from '../../src/net/marketLaw.js';
 import { HIDE_TEMPLATE_ROWS } from '../../src/systems/professions/profTemplates.js';
 import { templateByIndex, inventoryItemImage } from '../../src/systems/item/itemTemplates.js';
-import { mintMaterialItem, materialLabel } from '../../src/systems/professions/profItems.js';
+import { mintMaterialItem, materialLabel, materialCountLabel } from '../../src/systems/professions/profItems.js';
+import { chainPlan } from '../../src/net/chainLaw.js';
 import { createBodyStamps, bodiesHere, huntPlan, trackerMarks } from '../../src/scenes/huntHost.js';
 import { createExteriorFoes } from '../../src/scenes/exteriorFoes.js';
 import { registerPlayerKillListener } from '../../src/systems/playerKills.js';
@@ -85,7 +86,7 @@ test('DEX-HIDES: the three new hides - the Wolf Pelt and the Boar Hide tier 2, a
     [['cure:mudcrab', 'leather:cured', '2 hide:mudcrab'], ['cure:wolf', 'leather:cured', '2 hide:wolf'], ['cure:boar', 'leather:cured', '2 hide:boar']]);
   // a leather's cures stand cheapest first, as a chain plans them - the tier-1 chitin beside the Rat Pelt, the tier-2 furs
   // beside the Bat's and the Bear's
-  assert.deepEqual(producersOf('leather:cured').map((r) => r.id), ['cure:rat', 'cure:mudcrab', 'cure:bat', 'cure:bear', 'cure:wolf', 'cure:boar']);
+  assert.deepEqual(producersOf('leather:cured').map((r) => r.id), ['cure:rat', 'cure:mudcrab', 'cure:bat', 'cure:wolf', 'cure:boar', 'cure:bear']);   // PIN MOVED (AUDIT FB1021 L2-1): the Ram Kit's Bear Hide last of its tier
   assert.deepEqual([...PELTS], ['hide:rat', 'hide:bat', 'hide:bear', 'hide:tiger', 'hide:wolf', 'hide:boar'], 'a fur\'s hide cuts skins; chitin never');
   assert.deepEqual(['skins-244:wolf', 'skins-245:boar'].map((id) => [recipeById(id)?.name, recipeById(id)?.tier]), [['Large Skins (Wolf Pelt)', 2], ['Small Skins (Boar Hide)', 2]]);
 });
@@ -170,4 +171,13 @@ test('DEX-HIDES: the account service skins the mod\'s animals - a Wolf\'s Wolf P
   const dreugh = await s.call('/v1/prof/harvest', skin(279), mac.secret);
   assert.deepEqual([dreugh.status, dreugh.body.material, dreugh.body.hunt], [200, 'hide:dreugh', { hides: 3, high: 1 }], 'a tier-5 shell, one of the day\'s three rare');
   assert.deepEqual((await s.call('/v1/prof/harvest', skin(264), mac.secret)).body, { error: 'prof-foe' }, 'a Hell Hound is a daedra');
+});
+
+// AUDIT FB1021 (bible/01-Overview/audits/Audit-Field-Bugs-2026-10-21.md), carried onto this slice at the merge: the
+// branch for 2026-10-21 had built DEX-HIDES too, and its audit's two findings that held here.
+test('AUDIT FB1021 L2-1 THE RAM KIT\'S HIDE SPENT LAST: a chain for Cured Leather with Bear Hides, Wolf Pelts and Boar Hides held cures the Wolf\'s first and keeps the Bear Hide, the Ram Kit\'s too, to the last of its tier; the Stores count Mudcrab Chitin as a mass, as the Scorpion\'s (mutants: the Bear Hide in the table\'s place; the chitin counted)', () => {
+  const held = new Map([['hide:bear', 8], ['hide:wolf', 8], ['hide:boar', 8]]);
+  const p = chainPlan([{ key: 'leather:cured', n: 4 }], (k) => held.get(k) ?? 0, {});
+  assert.deepEqual([p.works, p.spent], [[{ id: 'cure:wolf', count: 4 }], [{ key: 'hide:wolf', n: 8 }]], 'it was every Bear Hide');
+  assert.deepEqual([materialCountLabel('hide:mudcrab', 3, false), materialCountLabel('hide:scorpion', 3, false), materialCountLabel('hide:wolf', 3, false)], ['Mudcrab Chitin', 'Scorpion Chitin', 'Wolf Pelts']);
 });

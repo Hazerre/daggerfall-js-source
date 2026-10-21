@@ -72,24 +72,6 @@
     ]
   },
   {
-    "name": "OW-HITCH-snow-heights-with-normal",
-    "file": "src/scenes/snowCoverHost.js",
-    "old": "p && normalOf ? normalOf(p, lx, lz, _n)[1] : normalY(sx, sz)",
-    "new": "normalY(sx, sz)",
-    "tests": [
-      "test/render/owhitch.test.js"
-    ]
-  },
-  {
-    "name": "OW-HITCH-snow-normal-x",
-    "file": "src/scenes/snowCoverHost.js",
-    "old": "normalOf(p, lx, lz, _n)[1]",
-    "new": "normalOf(p, lx, lz, _n)[0]",
-    "tests": [
-      "test/render/owhitch.test.js"
-    ]
-  },
-  {
     "name": "OW-HITCH-fall-word",
     "file": "src/systems/weather/weatherMap.js",
     "old": "    const word = s.bands[k][1];\n    if (WET.has(word)) {",
