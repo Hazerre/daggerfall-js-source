@@ -165,6 +165,7 @@ import { noteFirstUse } from '../tutorials.js';   // TUT1: the first touch of a 
 import { BOAT_ACTIONS } from './comeSailAwayActions.js';   // HUD-HELM: the helm keys' table, a leaf the HUD's helm panel reads
 import { peaceShare } from './peaceWay.js';   // PEACE-WAY: her way out of a fight
 import { createBoatLives } from '../../scenes/comeSailAway/farLife.js';   // BOAT-OWN: her Animators and particle systems by her range, the far law
+import { windStaleOutdoors } from './csaLoadWind.js';   // SAIL-WIND: a load outdoors never keeps the indoors' none
 
 export const COME_SAIL_AWAY_VENDOR = 'come-sail-away';
 /**
@@ -2793,10 +2794,12 @@ export function createComeSailAwayRuntime(deps) {
     if (boat.OarParticles.length > 0) for (const oarParticle of boat.OarParticles) shift(oarParticle.subEmitters[0].system);   // GetSubEmitterSystem(0)
   }
 
-  /** OnLoad (1943-1950). */
+  /** OnLoad (1943-1950). SAIL-WIND (FIELD BUGS 2026-10-21b): and a load that lands outdoors under the indoors' none asks
+   *  the door's wind (csaLoadWind.js says why). */
   function OnLoad() {
     UpdateBoatVisibility();
     UpdateWaveMesh();   // `if (waveObject != null)` - Start built it
+    if (windStaleOutdoors(deps.isPlayerInside(), state.windVectorCurrent)) UpdateWind(deps.weatherType?.() ?? WEATHER_TYPE.Sunny);
   }
   /** OnTransition (1978-1985): into or out of a building or a dungeon. */
   function OnTransition() {

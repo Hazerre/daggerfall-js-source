@@ -3794,8 +3794,8 @@ The bench, 60 s a scene, the frozen head against the audit's (the first six rows
 ### Left, each with its reason
 
 - **The version.** Every byte of the relay is its law (`test/net/relayversion.test.js`): world239, NOT YET DEPLOYED,
-  every pin that names it moved; its merge is one relay drop. world238 is claimed by two open branches (STAR-TUNE #1090,
-  GRANT-SLEEP #1066): whichever lands after another takes the next number at its merge.
+  every pin that names it moved; its merge is one relay drop. STAR-TUNE's world238 (#1090) merged first and is in this
+  law with it; GRANT-SLEEP #1066, open, claimed world238 too and takes the next number at its merge.
 
 ### Pins
 

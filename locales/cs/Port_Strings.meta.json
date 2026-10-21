@@ -7319,6 +7319,16 @@
   "tr": "71069f1e1ac1",
   "by": "claude-in-session"
  },
+ "chargen.class.skills.major": {
+  "en": "85c39f1a36a9",
+  "tr": "826ead2cf001",
+  "by": "claude-in-session"
+ },
+ "chargen.class.skills.primary": {
+  "en": "7bb8fba31082",
+  "tr": "7bb8fba31082",
+  "by": "claude-in-session"
+ },
  "chat.help.breach": {
   "en": "0abe32307fc8",
   "tr": "ddcd34926c06",
@@ -9642,6 +9652,21 @@
  "festival.cakes": {
   "en": "42b5d392c591",
   "tr": "ac78b75576e0",
+  "by": "claude-in-session"
+ },
+ "festival.finds.full": {
+  "en": "330c9b302a2c",
+  "tr": "e435ecaee639",
+  "by": "claude-in-session"
+ },
+ "festival.finds.today": {
+  "en": "93be20c18f10",
+  "tr": "9b77195944d3",
+  "by": "claude-in-session"
+ },
+ "festival.finds.todayFull": {
+  "en": "78bff0d44c1f",
+  "tr": "7c16d247c16c",
   "by": "claude-in-session"
  },
  "festival.found": {

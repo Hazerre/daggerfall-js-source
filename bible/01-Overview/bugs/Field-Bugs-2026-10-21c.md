@@ -171,8 +171,8 @@ the record says why); a whole cell's cost with its pack and the cell in progress
 - **The relay settings' state.** Read from the deploy: `GRANT_MODE`, `GRANT_STRIP` and `GRANT_DOOR` have no value in
   `server/wrangler.toml`, so the relay runs `measure` (an `ungranted` tally stands nothing down) with the strip and the
   door off - unless the owner set one with `/relay`, which the hub's storage keeps and only `/relay grantMode` reads.
-- **The version.** world238 is claimed by two open branches (STAR-TUNE #1090, GRANT-SLEEP #1066), against this release's
-  world239 - whichever lands after another takes the next number at its merge.
+- **The version.** This release is world239, past STAR-TUNE's world238 (#1090, merged first - its law is in world239's
+  with it); GRANT-SLEEP #1066, open, claimed world238 too and takes the next number at its merge.
 - **FOES-HOLD's own (`Scale-Arc.md` FOES-HOLD's Left).** A room past its budget moves its puppets by its full frames:
   thinner frames would carry more, a slice of the wire's own. A room's budget is shared: sockets sending the largest
   frames the wire takes still take their turns, one a sender, and stretch an honest owner's round. The dungeon's own

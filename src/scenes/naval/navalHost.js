@@ -123,6 +123,7 @@ import { createVolleyTally } from './navalTally.js';   // AUDIT NAV1 G17: my vol
 import { seaLiveryOf, seaFlagsOf } from '../../systems/naval/seaColours.js';   // SEA-COLOURS: the sea's ships in their own paint and flags
 import { liveryCode } from '../../systems/naval/shipLivery.js';
 import { noteAct } from '../../systems/questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
+import { createBerthWatch } from './navalBerth.js';   // FIELD BUGS 2026-10-21b VOYAGE-HOLD: the berth, still or not, and the helm let go in port
 
 /** The record's name in the save's per-mod slot (systems/modSaveData.js) - the port's own, as the Sigil Broker's is. */
 export const NAVAL_SAVE_VENDOR = 'NavalCombat';
@@ -833,7 +834,9 @@ export function createNavalHost(deps) {
   function boatPose(boat) {
     const r = csa();
     const rot = boat.GameObject.rotation;
-    const local = boat === r?.state?.CurrentBoat && sailing() ? (r.state.velocityCurrent ?? [0, 0, 0]) : [0, 0, 0];
+    // FIELD BUGS 2026-10-21b VOYAGE-HOLD: a boat aground lies still - the runtime keeps her last way (Come Sail Away moves
+    // a beached boat by none of it), and a Small Ship run ashore at the helm read 9.86 m/s: never a berth, and leagues logged
+    const local = boat === r?.state?.CurrentBoat && sailing() && !r.IsBeached?.(boat) ? (r.state.velocityCurrent ?? [0, 0, 0]) : [0, 0, 0];
     return { position: boat.GameObject.position, rotation: rot, velocity: quatRotate(rot, local), hull: boat.hull };
   }
   const yawOfRot = (rot) => { const f = quatRotate(rot, [0, 0, 1]); return Math.atan2(f[0], f[2]); };
@@ -1474,7 +1477,7 @@ export function createNavalHost(deps) {
     if (clock - lastSiteCheck < SITE_CHECK_S) return;
     lastSiteCheck = clock;
     const w = where();
-    if (boat && w.port && yardHere(boat)) deps.captain?.event?.({ type: 'berth', port: w.port.key, boat: boat.uid ?? null });   // a delivery's port
+    berths.step(boat, w.port);   // a delivery's port, a voyage's end (navalBerth.js: still or not, and the helm let go there)
     const sites = deps.captain?.sites?.() ?? [];
     const live = new Set(sites.map((x) => x.id));
     for (const id of [...siteStood.keys()]) if (!live.has(id)) siteStood.delete(id);
@@ -2767,6 +2770,9 @@ export function createNavalHost(deps) {
    *  the ring the port law reads: at twelve board ports no Small Ship finds water within a pixel). The berth, the shipwright and the
    *  crew's port ask this one question; the sea's traffic and its waters (`nearPort` alone) ask another. */
   const inPortWaters = () => { const w = where(); return !!(w.nearPort || w.port); };
+  /** VOYAGE-HOLD: the berth said to the captain (navalBerth.js) - still under her own way alone, the current's none of it. */
+  const berths = createBerthWatch({ lies: (b) => yardHere(b), clear: () => !hostileNearMe(), event: (ev) => deps.captain?.event?.(ev),
+    ownWay: (b) => { const r = csa(); return b === r?.state?.CurrentBoat && !r.IsBeached?.(b) ? Math.hypot(...(r.state.MoveVectorCurrent ?? r.state.velocityCurrent ?? [0, 0, 0])) : 0; } });
   /** Whether the shipwright stands for my boat: a port's waters, her way under YARD_SPEED, no hostile ship near. */
   function yardHere(boat) {
     if (!enabled || !boat || !inPortWaters()) return false;

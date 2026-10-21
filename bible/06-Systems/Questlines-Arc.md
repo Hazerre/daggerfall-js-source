@@ -571,7 +571,7 @@ sweeps `src/` both ways and pins where each is said:
 | gem-socketed, piece-reforged | a gem set in a socket - at the Reforge, or with the pack's own socket press (the inventory's gem wells), both through `systems/reforge.js` setGemPiece (AUDIT QUESTLINES ACTS-9: this said the Reforge alone); a piece reforged at the Reforge |
 | gambit-won | The King's Gambit settled, the player's side won (`scenes/gambitTableGame.js`) |
 | cards-won | a Hold'em pot or an Iliac hand won, offline and at the relay's tables |
-| port-reached, cargo-delivered | the harbour office: a berth at another port after a quarter league under sail (PORT_VOYAGE_M); a delivery contract done (`scenes/harbourOffice.js`) |
+| port-reached, cargo-delivered | the harbour office: a berth at another port after a quarter league under sail (PORT_VOYAGE_M) from the port she last lay still in, the helm let go in port a berth too (VOYAGE-HOLD, `01-Overview/bugs/Field-Bugs-2026-10-21b.md`); a delivery contract done (`scenes/harbourOffice.js`) |
 | ship-struck | a ship struck to the player's guns - in a sea the player stands, or online in her stander's word within SINK_CREDIT_S of the player's blow - one helper with the crew's win (`naval/navalHost.js` struckToMe; AUDIT QUESTLINES ACTS-11: the second arm said nothing, so online a group's other captains struck none) |
 | raid-repelled | a raid the player fought, cleansed (`systems/raidingParties.js`) |
 | arena-won | a ladder bout won - this screen's own, or the relay's `pve` bout; never the pit's practice nor a bout between players (`scenes/arena/arenaBouts.js`; AUDIT QUESTLINES ACTS-6) |
