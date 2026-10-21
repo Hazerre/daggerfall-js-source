@@ -298,5 +298,55 @@
       "test/net/fb1021_foesfirst.test.js"
     ],
     "note": "the new counts never started - NaN, and never reset"
+  },
+  {
+    "name": "AUDIT-FF-F1-handover-a-delta",
+    "file": "server/src/index.js",
+    "old": "_foesUrgent(lane, hands, now) { return (hands && now",
+    "new": "_foesUrgent(lane, hands, now) { return (false && now",
+    "tests": [
+      "test/net/fb1021_foesfirst.test.js"
+    ],
+    "note": "AUDIT FOES-FIRST F1: a handover batch held at the reserve as a delta - a crowded cell's heard 29.2%, the foes its owner let go gone for everyone"
+  },
+  {
+    "name": "AUDIT-FF-F1-handover-unbounded",
+    "file": "server/src/index.js",
+    "old": "(hands && now - (lane.hands ?? -Infinity) >= FOES_FIRST_MS)",
+    "new": "(hands)",
+    "tests": [
+      "test/net/fb1021_foesfirst.test.js"
+    ],
+    "note": "AUDIT FOES-FIRST F1: a sender naming an heir on every frame goes first on every frame"
+  },
+  {
+    "name": "AUDIT-FF-F1-handover-turn-unstamped",
+    "file": "server/src/index.js",
+    "old": "    if (urgent && foesFrameHandsOn(data)) lane.hands = now;   // AUDIT FOES-FIRST F1: and a handover's\n",
+    "new": "",
+    "tests": [
+      "test/net/fb1021_foesfirst.test.js"
+    ],
+    "note": "AUDIT FOES-FIRST F1: the handover's turn never spent - every batch first"
+  },
+  {
+    "name": "AUDIT-FF-F1-heir-empty-hands",
+    "file": "src/net/wire.js",
+    "old": "typeof r?.e === 'string' && r.e !== ''",
+    "new": "typeof r?.e === 'string'",
+    "tests": [
+      "test/net/fb1021_foesfirst.test.js"
+    ],
+    "note": "AUDIT FOES-FIRST F1: an empty heir read as a handover"
+  },
+  {
+    "name": "AUDIT-FF-F2-stamped-after-the-send",
+    "file": "server/src/index.js",
+    "old": "    lane.heard = now;   // FOES-FIRST: heard on this lane\n    if (first && full) lane.first = now;   // and a full frame's turn first spent\n    if (urgent && foesFrameHandsOn(data)) lane.hands = now;   // AUDIT FOES-FIRST F1: and a handover's\n    if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on' && (kind === 'own' || isCellRoom(a.key))) data = this._grantStripped(a, data, kind, now);   // GRANT9: the switch on - a record its grant does not stand goes nowhere; FOE-BOUNDS: nor one no builder could give\n    const out = fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched\n    if (out == null) { this._junk(ws); return budget.bucket; }\n    for (const other of listeners) this._send(other, out);\n",
+    "new": "    if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on' && (kind === 'own' || isCellRoom(a.key))) data = this._grantStripped(a, data, kind, now);   // GRANT9: the switch on - a record its grant does not stand goes nowhere; FOE-BOUNDS: nor one no builder could give\n    const out = fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched\n    if (out == null) { this._junk(ws); return budget.bucket; }\n    for (const other of listeners) this._send(other, out);\n    lane.heard = now;   // FOES-FIRST: heard on this lane\n    if (first && full) lane.first = now;   // and a full frame's turn first spent\n    if (urgent && foesFrameHandsOn(data)) lane.hands = now;   // AUDIT FOES-FIRST F1: and a handover's\n",
+    "tests": [
+      "test/net/fb1021_foesfirst.test.js"
+    ],
+    "note": "AUDIT FOES-FIRST F2: a frame charged then junked left its sender unheard - every frame it sent went first, past the turn's bound and the unheard rule"
   }
 ]

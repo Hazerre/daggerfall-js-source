@@ -81,7 +81,7 @@ Four read-only audits covered the relay (`server/src/index.js`), the account ser
 | BUSY-HEART | After BOOKMARK-SPIRAL deployed and the primary's own load halved, the overload held: it held only while players were in the world (healthy 20:00-20:04 with the relay's players dropped by its deploy, at more primary statements than when it came back), and the heartbeat and the motherlodes - asked again on their own schedules, twice and three times as often - spent the most of the database's time. Both stand back now | No | **Built** (2026-10-16; acct144) |
 | SHED-LONG | After BUSY-HEART the overload eased (p50 17-45 s to 5-13 s) and held: a request on a D1 session waited 31 s on the database for every 5.6 s one on the binding did - the replica the longer queue. BOOKMARK-SPIRAL rolled back (the six polled reads at the primary first again, its session lookup's fallback kept), and an overload's shed 10 s where it was 2 | No | **Built** (2026-10-16; acct145) |
 | RELAY-LOAD | The relay's own metrics read by the operator - the rooms by kind, every five minutes by kind, the busiest rooms - from the Actions tab, as D1-LOAD reads the account service's | No | **Built** (2026-10-18, this branch - no version, no drop) |
-| FOES-FIRST | The full foes frames first on a room's foes budget: a delta stops at a reserve (a quarter of it), a full frame (once a second a sender) or an unheard sender's frame may borrow as far below empty - the live cells dropped their full frames first; the blows a destination's funnels drop counted, and the full frames dropped, on the metrics point's blobs | Yes, once | **Built** (2026-10-21, this branch; the version at the merge) |
+| FOES-FIRST | The full foes frames first on a room's foes budget: a delta stops at a reserve (a quarter of it), a full frame (once a second a sender), a handover (once a second a sender, AUDIT FOES-FIRST) or an unheard sender's frame may borrow as far below empty - the live cells dropped their full frames first; the blows a destination's funnels drop counted, and the full frames dropped, on the metrics point's blobs | Yes, once | **Built** (2026-10-21, relay world239, NOT YET DEPLOYED) |
 | SCALE6 | Abuse and backups: Turnstile on guest creation, /64 IPv6 rate keys, bans, report and ignore, `ALLOWED_ORIGIN`, R2 snapshots, a hub export | Some | Alongside |
 
 **Relay deploy policy (SCALE):** relay changes are batched into as few deploys as possible, each in a window announced beforehand. A deploy drops every player, and until SCALE2 every reconnect is a D1 write storm.
@@ -3624,7 +3624,7 @@ the traders' and the yards' kept rows.
   one moved (audit_chap2, audit_chap3, auditlwii2_service, chap3a, d1load, homevendor, lw15, seat_replica, busy_gate,
   scale4f), all dead.
 
-## FOES-FIRST: built (2026-10-21, this branch - one relay drop at the merge, its version bumped there)
+## FOES-FIRST: built (2026-10-21, relay world239 - NOT YET DEPLOYED; one relay drop at its merge)
 
 From play: foes dead for one player and alive for another, foes that vanish, two covens at one Starfall star. The relay's
 own points say why (RELAY-LOAD's `daggerfall_relay`, live relay world237).
@@ -3639,8 +3639,8 @@ own points say why (RELAY-LOAD's `daggerfall_relay`, live relay world237).
 - **The frames lost are the full ones.** Readers tallied 285k grants never heard in nine hours (`ungranted`,
   `Spawn-Grants.md` section 18), and a grant rides a FULL frame. An owner sends a delta every FOES_MS (200 ms) and a full
   frame every FOES_FULL_MS (2 s); the deltas are small, the full frame lists every foe with its look's seed, its grants
-  (`gs`), the sites sprung (`sp`, `st`) and the handovers (`e`, `it`), and it is the frame whose list sweeps the gone at
-  every reader. In a cell past its budget the deltas keep the bucket below what a full fan costs, so a full frame almost
+  (`gs`) and the sites sprung (`sp`, `st`), and it is the frame whose list sweeps the gone at every reader. (A cell's
+  handovers - `e`, `it` - ride batches of their own that say `full` 0: AUDIT FOES-FIRST below.) In a cell past its budget the deltas keep the bucket below what a full fan costs, so a full frame almost
   never finds it whole: dead foes stand at one reader (the sweep never came), a coven is sprung twice (the site's word
   never came), and an owner that goes FOES_STALE_MS (6 s) unheard loses its puppets at its readers.
 
@@ -3675,25 +3675,33 @@ MiB a second in every crowded scene before and after: the budget is the budget, 
 - FOES_FIRST_MS, FOES_FULL_MS / 2 (1 s), and FOES_UNHEARD_MS, FOES_STALE_MS - FOES_FULL_MS (4 s).
 - `foesFrameFull(data)`: `full` 1 (a cell's, a building's, the own lane's), or the dungeon host's layout count `lc`,
   which that host says on its full frames alone and its readers read as a full frame's list (`dungeonContext.js`
-  foesFrame and its reader). The relay reads these two fields and nothing else of the frame.
+  foesFrame and its reader). The fan's class reads these two fields and the records' heirs (`foesFrameHandsOn`, AUDIT
+  FOES-FIRST); the relay reads `f` besides (its count against CELL_FRAME_RECORDS_MAX) and, with `grantStrip` on, every
+  record.
 
 **The fan** (`server/src/index.js`, the foes frame's method - no line of `_message`): a frame goes FIRST when
-(`server/src/index.js:"_foesFirst(lane, full, now) {"`)
+(`server/src/index.js:"_foesFirst(lane, full, urgent, now) {"`)
 - it is full and its sender's last full frame to go first went FOES_FIRST_MS ago or more, on that lane; or
+- it hands foes on (a record naming its heir) and its sender's last handover to go first went FOES_FIRST_MS ago or
+  more (AUDIT FOES-FIRST F1; `server/src/index.js:"_foesUrgent(lane, hands, now) {"`); or
 - its sender has not been heard on that lane for FOES_UNHEARD_MS, whatever the frame says.
 
 A first frame may take the bucket down to minus FOES_FULL_RESERVE; every other frame stops at plus it. Both asks keep
 their SCALE5b places - one listener's worth before the walk, so a frame dropped costs no walk and no stringify, and the
-whole fan after it - each against the frame's own floor. A sender's two clocks (`heard`, `first`) are kept per lane
-(`foes`, `own`) among its meters (`_foesLane`), the instance's: a woken room hears every sender first once more.
+whole fan after it - each against the frame's own floor. A sender's clocks (`heard`, `first`, `hands`) are kept per
+lane (`foes`, `own`) among its meters (`_foesLane`), the instance's: a woken room hears every sender first once more;
+they are stamped once the fan is CHARGED, before the frame is re-serialised (AUDIT FOES-FIRST F2).
 
 **Why these numbers.**
 - *A quarter.* A delta stops at the reserve, so a room the deltas fill stands at it - and a full fan of up to twice
-  the reserve (2 MiB: a 16 KiB frame to 128 listeners, a crowded cell's 3 KiB one to some 650) goes the moment it comes.
+  the reserve (2 MiB: a 16 KiB frame to 120 listeners; a crowded cell's 3 KiB one to every socket a room holds,
+  SOCKETS_MAX 256) goes the moment it comes.
   The deltas keep three quarters of the burst (3 MiB, 0.75 s of the rate) in a room that is not past its budget, where
   nothing changes (the table's first row). Modelled at half a MiB the 30-of-60 cell's full frames still all go, but the
   16 KiB fans of the record cap never do (both bounds under the fan); at 2 MiB a flooder's 64 KiB frames (3.7 MiB a fan)
-  get in and the deltas fall to 0.2%.
+  get in and the deltas fall to 0.2%. The other side of it: a DELTA whose fan is more than the budget less the
+  reserve (3 MiB) never goes, even into a full bucket - a world room's host's 12 KiB delta to 256 listeners, which
+  before passed into a full bucket up to 4 MiB; such a host is heard by its full frames and the unheard rule.
 - *Borrowed, as far as the reserve.* SLAM11 kept the foes stream from borrowing, because byteGate's borrow lets a frame
   take the bucket as far below empty as its own fan costs: a 64 KiB frame to 255 listeners is 16 MiB, four seconds of
   the room's every frame. Here the debt is the floor's, a quarter of a second at most, and the room's bytes a second
@@ -3748,30 +3756,72 @@ GROUP BY kind ORDER BY full_drops DESC
 `full_drops / fulls` is the share of full frames the budgets dropped; before this slice it was most of them in a cell
 past its budget, and from here it says whether the priority holds live.
 
+### AUDIT FOES-FIRST (2026-10-21)
+
+The owner: "We need to audit everything and ensure perfection". A cold lane over the slice, read-only, on the branch's
+frozen head (8a8539dc7), and an integration lane over its seams. Each finding traced to a concrete failure:
+
+- **F1, blocking: the handovers.** The record and this page said the full frames carry the handovers; in a cell they
+  do not. An owner leaving, dying or going through a door hands its live foes on in batches of its own
+  (`world/foeHandover.js`), each saying `full` 0 - a delta to the budget, held at the reserve, in exactly the crowded
+  cells this slice is for - and the owner has already let the foes go, so a batch dropped is foes gone for everyone.
+  Measured over the real Room: the audit lane's own bench (two batches a second) put them at 61.7% heard on main's law
+  and 29.2% under FOES-FIRST in the crowded cell, 92.5% and 1.7% at a star; this page's bench (`hands`, `starHands`)
+  29.2% and 0.8% under FOES-FIRST. A frame that hands foes on goes first on a turn of its own, once each FOES_FIRST_MS a
+  sender (`net/wire.js` foesFrameHandsOn, `_foesUrgent`): 100% in both.
+- **F2, should-fix: a frame charged and then junked.** The lane's clocks were stamped after the send, and a frame that
+  grows when it is re-serialised (`1e20`, out as twenty-one digits) returns before it as junk - its fan already charged.
+  Its sender stayed unheard, so every frame it sent went first, past both the turn's bound and the unheard rule
+  (modelled: the honest deltas fell from 77% to 4.8%, the honest full frames to 69.7%). The clocks are stamped once the
+  fan is charged.
+- **The size of a first frame** - the integration lane's: in Left below, with the claim the audit tried and removed.
+- **Docs.** "The relay reads these two fields and nothing else" was false (it reads `f`, and every record under
+  `grantStrip`); "a 3 KiB one to some 650" cannot be (SOCKETS_MAX 256) and "a 16 KiB frame to 128 listeners" is just
+  past the 2 MiB; the delta's cliff at 3 MiB was unsaid. Each fixed above.
+
+The bench, 60 s a scene, the frozen head against the audit's (the first six rows as before, within the bench's noise):
+
+| Scene | Full frames heard | Handovers heard | The stander's full frames |
+|---|---|---|---|
+| `hands`: 30 of 60, 12 records, two handovers a second | 100% -> 100% | 29.2% -> **100%** | - |
+| `starHands`: 30 of 60, 24 records, two handovers a second | 76.5% -> 75.8% | 0.8% -> **100%** | - |
+| `stander`: 40 of 80, 24 records, one owner 48 | 33.9% -> 33.9% | - | 0% -> 0% (Left) |
+| `stander64`: the same, one owner 64 | 33.5% -> 33.5% | - | 0% -> 0% (Left) |
+
 ### Left, each with its reason
 
 - **A room whose full frames alone are more than its budget.** The bigger star hears 35% of its full frames, the record
-  cap 13%: no order of frames carries what the budget does not. That is the budget's size, the full frame's (a delta
-  of its own that only re-says what moved since the last heard one), or a layer's cap - the next slice's, chosen by
-  what blob4 and blob5 say live.
+  cap 13%: no order of frames carries what the budget does not. And the first frames are first-come and blind to size,
+  so ONE LARGE OWNER among smaller ones - a star's stander, the waves, the master and the circle on one owner, 48 or 64
+  records to 79 listeners - hears none of its full frames in the bigger star (`stander`, `stander64`: 0%; its deltas are
+  heard by the unheard rule, so its puppets stand, but its grants, sites and sweep do not reach a reader - two covens at
+  one star). Not a regression: on main the same owner was 0% and unheard the whole run. The audit tried a CLAIM (a first
+  full frame the fan refused held the budget until that sender's next): the 48-record stander heard 13.8%, but the
+  record cap's full frames fell from 13.2% to 6.4% (the room held for a frame two seconds off), and a claim for a
+  starved sender alone gave 3.4% and 7.1% - removed. What carries it is the budget's size for an event's cell, a
+  pending slot (the refused full frame kept and sent the moment the bucket holds it, superseded by its sender's next),
+  a full frame that re-says only what moved since its last heard one, or a layer's cap - the next slice's, chosen by
+  what blob4 and blob5 say live, and the owner's call.
 - **`tools/relayLoad.mjs` does not ask the blobs.** Its three questions and their pins (RELAY-LOAD) are a slice's own;
   the SQL above is the question, by hand, until it does.
 - **The sender is not told.** A full frame the relay dropped is not said again before its next FOES_FULL_MS (AUDIT
   WORLD2 A9's heal is the page's own refusal); a word back would be a frame a drop, past a budget that is already spent.
-- **The version.** Every byte of the relay is its law (`test/net/relayversion.test.js`): RELAY_VERSION moves at the
-  merge, with every pin that names it, and the merge is one relay drop.
+- **The version.** Every byte of the relay is its law (`test/net/relayversion.test.js`): world239, NOT YET DEPLOYED,
+  every pin that names it moved; its merge is one relay drop. world238 is claimed by two open branches (STAR-TUNE #1090,
+  GRANT-SLEEP #1066): whichever lands after another takes the next number at its merge.
 
 ### Pins
 
-- `test/net/fb1021_foesfirst.test.js` (6): floorGate's law (byteGate's own at 0, over random buckets), the full word,
+- `test/net/fb1021_foesfirst.test.js` (8): floorGate's law (byteGate's own at 0, over random buckets), the full word,
   the constants at both ends; the fan over the real Room - every frame's listeners and bucket against floorGate at the
   floor its class names, over 600 frames of the four classes (a full frame's turn, a full frame inside its cadence, an
   unheard sender's frame, a heard sender's delta), each class both ways, the full frames and their drops counted, and a
   frame its floor cannot afford for one listener walking nobody; the lanes' clocks apart, a full frame inside the cadence
   a delta that spends no turn, the cadence's boundary to the millisecond; a full fan past the reserve going into a room
   the deltas hold and dropped whole below empty; the bench's crowded cell, flood and bigger star; HIT-DROPS and the
-  blobs.
-- `tools/mutants/fb1021_foesfirst.json`: 30, all dead.
+  blobs; AUDIT FOES-FIRST F1 (a handover first, once a second, into a room the deltas hold; the bench's `hands` 100%)
+  and F2 (a frame charged and junked spends its turn and is heard).
+- `tools/mutants/fb1021_foesfirst.json`: 35, all dead.
 - PIN MOVED: SCALE5b's foes fan pin (`scale5b.test.js`) - its frames all full and a second apart, so each goes first:
   its buckets stand about minus the reserve and its law is floorGate's; SLAM11's "the FOES fan does NOT borrow"
   (`slam11.test.js`) - a delta, which still borrows nothing, and a full frame's debt the reserve's at most; SCALE2b's

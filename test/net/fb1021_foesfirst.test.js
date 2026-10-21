@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 import { fakeRoom } from '../fakeRoom.mjs';
 import { RoomMetrics } from '../../server/src/relayScale.js';
 import * as relay from '../../server/src/relay.js';
-import { floorGate, byteGate, foesFrameFull, FOES_FULL_RESERVE, FOES_FIRST_MS, FOES_UNHEARD_MS, FOES_ROOM_BYTES_PER_S, FOES_FULL_MS, FOES_STALE_MS, PIXEL_UNITS, RELAY_VERSION } from '../../src/net/wire.js';
+import { floorGate, byteGate, foesFrameFull, foesFrameHandsOn, FOES_FULL_RESERVE, FOES_FIRST_MS, FOES_UNHEARD_MS, FOES_ROOM_BYTES_PER_S, FOES_FULL_MS, FOES_STALE_MS, PIXEL_UNITS, RELAY_VERSION } from '../../src/net/wire.js';
 import { scene, SCENES } from '../../tools/foesFirstBench.mjs';
 
 const RATE = FOES_ROOM_BYTES_PER_S;
@@ -229,4 +229,71 @@ test('FOES-FIRST HIT-DROPS: a blow a destination\'s funnel drops - its frames a 
   assert.deepEqual(got[0].blobs, ['world', 'w', '11', '12', '13']);
   assert.deepEqual(got[0].doubles.slice(12), [3, 4, 9, 5, 6, 7, 8, 2]);
   assert.deepEqual([m.c.hitDrops, m.c.fullDrops, m.c.fulls], [0, 0, 0], 'reset with the window');
+});
+
+test('AUDIT FOES-FIRST F1 A HANDOVER GOES FIRST: a cell\'s handover batch (world/foeHandover.js - `full` 0, its records naming an heir) is no delta to the budget - it goes first, once each FOES_FIRST_MS a sender, into a room the deltas hold at the reserve, where the deltas stop (a crowded cell\'s handovers were heard 29.2% under FOES-FIRST and a star\'s 1.7% - and the owner had let the foes go) (mutants: AUDIT-FF-F1-handover-a-delta; AUDIT-FF-F1-handover-unbounded; AUDIT-FF-F1-handover-turn-unstamped)', async () => {
+  await onClock(async ({ now, tick }) => {
+    const R = fakeRoom('world:3,12', { now });
+    const socks = [];
+    for (let i = 0; i < 12; i++) { const ws = R.connect(); tick(100); await R.hello(ws, `ho-${String(i).padStart(4, '0')}`, at(1, 1)); socks.push(ws); }
+    const rec = (i, e) => ({ i, x: 1, y: 0, z: 1, h: 10, ...(e ? { e, it: [] } : {}) });
+    const frame = (n, hands) => JSON.stringify({ t: 'foes', data: { n, k: 'world:3,12', full: 0, f: [rec(0, hands ? 'ho-0011' : null), rec(1, hands ? 'ho-0011' : null)] } });
+    assert.equal(foesFrameHandsOn(JSON.parse(frame(1, true)).data), true);
+    assert.equal(foesFrameHandsOn(JSON.parse(frame(1, false)).data), false);
+    assert.equal(foesFrameHandsOn({ f: [{ i: 0, e: '' }] }), false, 'an empty heir hands nothing on');
+    assert.equal(foesFrameFull(JSON.parse(frame(1, true)).data), false, 'a handover batch says `full` 0');
+    const heard = () => socks.slice(1).filter((s) => ofType(s, 'foes').length > 0).length;
+    const clear = () => { for (const s of socks) s.sent.length = 0; };
+    R.room._roomFoes = { bytes: RATE, at: now() };
+    await R.raw(socks[0], frame(1, false));   // heard: no sender here is first for being unheard
+    assert.equal(heard(), 11);
+    tick(300); clear();
+    R.room._roomFoes = { bytes: FOES_FULL_RESERVE, at: now() };   // where a crowd's deltas hold it
+    await R.raw(socks[0], frame(2, false));
+    assert.equal(heard(), 0, 'a delta stops at the reserve');
+    R.room._roomFoes = { bytes: FOES_FULL_RESERVE, at: now() };
+    await R.raw(socks[0], frame(3, true));
+    assert.equal(heard(), 11, 'the handover goes first');
+    assert.ok(R.room._roomFoes.bytes < FOES_FULL_RESERVE, 'spending below the reserve');
+    tick(FOES_FIRST_MS / 2); clear();
+    R.room._roomFoes = { bytes: FOES_FULL_RESERVE, at: now() };
+    await R.raw(socks[0], frame(4, true));
+    assert.equal(heard(), 0, 'a second inside FOES_FIRST_MS is a delta to the budget');
+    tick(FOES_FIRST_MS); clear();
+    R.room._roomFoes = { bytes: FOES_FULL_RESERVE, at: now() };
+    await R.raw(socks[0], frame(5, true));
+    assert.equal(heard(), 11, 'and its next turn comes');
+    const bench = await scene(SCENES.find((s) => s.name === 'hands'), 20);
+    assert.equal(bench.hands, 100, `a crowded cell's handovers all heard (${bench.hands}%)`);
+  });
+});
+
+test('AUDIT FOES-FIRST F2 A FRAME CHARGED IS HEARD: the lane\'s clocks are stamped once the fan is charged, before the frame is re-serialised - a full frame that grows (`1e20` out as twenty-one digits) is junk, but it spent its turn and its sender is heard, so its next full frame inside FOES_FIRST_MS and its deltas stop at the reserve (stamped after the send, every frame of such a sender went first, past both bounds) (mutants: AUDIT-FF-F2-stamped-after-the-send)', async () => {
+  await onClock(async ({ now, tick }) => {
+    const R = fakeRoom('world:3,12', { now });
+    const socks = [];
+    for (let i = 0; i < 12; i++) { const ws = R.connect(); tick(100); await R.hello(ws, `jk-${String(i).padStart(4, '0')}`, at(1, 1)); socks.push(ws); }
+    const heard = () => socks.slice(1).filter((s) => ofType(s, 'foes').length > 0).length;
+    const clear = () => { for (const s of socks) s.sent.length = 0; };
+    const grows = (n) => `{"t":"foes","data":{"n":${n},"full":1,"f":[{"i":0,"x":1e20,"y":0,"z":1,"h":10}]}}`;
+    const honest = (n, full) => JSON.stringify({ t: 'foes', data: { n, full, f: [{ i: 0, x: 1, y: 0, z: 1, h: 10 }] } });
+    tick(1000);
+    R.room._roomFoes = { bytes: FOES_FULL_RESERVE, at: now() };
+    const strikes = R.room._meterOf(socks[0]).junk ?? 0;
+    await R.raw(socks[0], grows(1));
+    assert.equal(heard(), 0, 'junk goes to nobody');
+    assert.ok(R.room._roomFoes.bytes < FOES_FULL_RESERVE, 'but its fan was charged, going first');
+    assert.equal(R.room._meterOf(socks[0]).junk ?? 0, strikes + 1, 'and struck as junk');
+    tick(FOES_FIRST_MS / 4); clear();
+    R.room._roomFoes = { bytes: FOES_FULL_RESERVE, at: now() };
+    await R.raw(socks[0], honest(2, 1));
+    assert.equal(heard(), 0, 'its turn is spent: the next full frame inside FOES_FIRST_MS stops at the reserve');
+    R.room._roomFoes = { bytes: FOES_FULL_RESERVE, at: now() };
+    await R.raw(socks[0], honest(3, 0));
+    assert.equal(heard(), 0, 'and it is heard: a delta stops at the reserve too');
+    tick(FOES_FIRST_MS); clear();
+    R.room._roomFoes = { bytes: FOES_FULL_RESERVE, at: now() };
+    await R.raw(socks[0], honest(4, 1));
+    assert.equal(heard(), 11, 'its next turn comes');
+  });
 });

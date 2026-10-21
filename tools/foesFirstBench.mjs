@@ -13,6 +13,10 @@
 //   stale          the share of owner-time its listeners heard nothing from it for past FOES_STALE_MS - its puppets
 //                   pruned, the foes that "vanish" - and the longest any owner went unheard
 //   out            the room's bytes out a second, against FOES_ROOM_BYTES_PER_S
+//   heavy          (a scene with `heavy`) its first owner's full frames and deltas heard - one owner of `heavy`
+//                   records among smaller ones, a star's stander (AUDIT FOES-FIRST: a claim)
+//   handovers      (a scene with `hands`) the handover batches heard - two a second, each of four records naming
+//                   an heir (world/foeHandover.js), from an owner leaving (AUDIT FOES-FIRST F1)
 //
 //   node tools/foesFirstBench.mjs [SECONDS=60] [SCENE=name]
 //
@@ -38,10 +42,11 @@ const record = (i, full, moving) => ({
 });
 /** A signed grant's size (net/grantLaw.js: the claims and an Ed25519 signature, 86 characters). */
 const grant = (g, o) => ({ g, o, q: 'world:13,13', a: 'acct-0123456789abcdef', k: 'enc', p: [13, 13], m: 9, l: 9, r: 7, n: 2, s: 5, e: 0, c: [-1, -1], h: -1, x: 1800000000000, sg: 'x'.repeat(86) });
-function frameOf(owner, n, full, { records, moving, grants }) {
+function frameOf(owner, n, full, { records, moving, grants }, hands = false) {
   const f = [];
-  for (let i = 0; i < records; i++) { const m = i < records * moving; if (full || m) f.push(record(i, full, m)); }
-  const data = { n, k: 'world:13,13', full: full ? 1 : 0, f, ...(full ? { gs: Array.from({ length: grants }, (_, g) => grant(g, owner)), sp: [[`13,13:star.4.${n % 3}`, 3]] } : {}) };
+  if (hands) for (let i = 0; i < 4; i++) f.push({ ...record(i, true, true), e: 'p-9999', it: [] });   // world/foeHandover.js: an heir and the items
+  else for (let i = 0; i < records; i++) { const m = i < records * moving; if (full || m) f.push(record(i, full, m)); }
+  const data = { n, k: 'world:13,13', full: full && !hands ? 1 : 0, f, ...(full && !hands ? { gs: Array.from({ length: grants }, (_, g) => grant(g, owner)), sp: [[`13,13:star.4.${n % 3}`, 3]] } : {}) };
   return JSON.stringify({ t: 'foes', data });
 }
 
@@ -52,6 +57,10 @@ export const SCENES = [
   { name: 'star80', what: 'a bigger star: 40 owners of 80, 24 records', owners: 40, sockets: 80, records: 24, moving: 0.5, grants: 6 },
   { name: 'big', what: '20 owners of 120 at the frame\'s record cap (64)', owners: 20, sockets: 120, records: 64, moving: 0.3, grants: 16 },
   { name: 'flood', what: 'the crowded cell, and one socket saying full:1 on 16 KiB frames at FOES_HZ_MAX', owners: 30, sockets: 60, records: 12, moving: 0.75, grants: 3, flood: 16 * 1024 },
+  { name: 'stander', what: 'a star\'s stander: 40 owners of 80, 24 records, the first owner 48 (the waves, the master, the circle)', owners: 40, sockets: 80, records: 24, moving: 0.5, grants: 6, heavy: 48 },
+  { name: 'stander64', what: 'the same, the stander at the frame\'s record cap (64)', owners: 40, sockets: 80, records: 24, moving: 0.5, grants: 6, heavy: 64 },
+  { name: 'hands', what: 'the crowded cell, and two handover batches a second', owners: 30, sockets: 60, records: 12, moving: 0.75, grants: 3, hands: true },
+  { name: 'starHands', what: 'the star\'s crowd, and two handover batches a second', owners: 30, sockets: 60, records: 24, moving: 0.5, grants: 6, hands: true },
 ];
 
 async function onClock(fn) {
@@ -86,23 +95,26 @@ export async function scene(s, seconds = SECONDS) {
     }
     const flooder = s.flood ? s.owners : -1;
     if (s.flood) for (let t = start; t < start + seconds * 1000; t += Math.ceil(1000 / 12)) events.push({ t, o: flooder, full: true });
+    if (s.hands) for (let t = start + 250, k = 0; t < start + seconds * 1000; t += 500, k++) events.push({ t, o: (k * 7) % s.owners, full: false, hands: true });   // each from an owner leaving, a different one each time
     events.sort((x, y) => x.t - y.t);
     const pad = s.flood ? JSON.stringify({ t: 'foes', data: { n: 0, full: 1, f: [], pad: 'p'.repeat(s.flood) } }) : '';
-    const st = { full: [0, 0], delta: [0, 0], flood: [0, 0] };
+    const st = { full: [0, 0], delta: [0, 0], flood: [0, 0], hfull: [0, 0], hdelta: [0, 0], hands: [0, 0] };
     const lastHeard = new Map(), lastFull = new Map(), gaps = [];
     let stale = 0, n = 0, silent = 0;
     for (const e of events) {
       set(e.t);
       const owner = socks[e.o];
-      const text = e.o === flooder ? pad.replace('"n":0', `"n":${++n}`) : frameOf(`p-${String(e.o).padStart(4, '0')}`, ++n, e.full, s);
+      const shape = s.heavy && e.o === 0 ? { ...s, records: s.heavy, moving: 0.75 } : s;
+      const text = e.o === flooder ? pad.replace('"n":0', `"n":${++n}`) : frameOf(`p-${String(e.o).padStart(4, '0')}`, ++n, e.full, shape, e.hands);
       const before = heard;
       await R.raw(owner, text);
       const passed = heard > before;
-      const k = e.o === flooder ? 'flood' : e.full ? 'full' : 'delta';
-      st[k][1]++;
+      const k = e.o === flooder ? 'flood' : e.hands ? 'hands' : e.full ? 'full' : 'delta';
+      const hk = s.heavy && e.o === 0 && !e.hands ? (e.full ? 'hfull' : 'hdelta') : null;
+      st[k][1]++; if (hk) st[hk][1]++;
       if (!passed) continue;
-      st[k][0]++;
-      if (e.o === flooder) continue;
+      st[k][0]++; if (hk) st[hk][0]++;
+      if (e.o === flooder || e.hands) continue;
       const lh = lastHeard.get(e.o) ?? start;
       if (e.t - lh > FOES_STALE_MS) stale += e.t - lh - FOES_STALE_MS;
       silent = Math.max(silent, e.t - lh);
@@ -121,6 +133,7 @@ export async function scene(s, seconds = SECONDS) {
     const pct = ([p, all]) => (all ? Math.round((1000 * p) / all) / 10 : null);
     return {
       scene: s.name, full: pct(st.full), delta: pct(st.delta), ...(s.flood ? { flood: pct(st.flood) } : {}),
+      ...(s.heavy ? { heavyFull: pct(st.hfull), heavyDelta: pct(st.hdelta) } : {}), ...(s.hands ? { hands: pct(st.hands) } : {}),
       gapP50: q(0.5), gapP99: q(0.99), gapMax: gaps.at(-1) / 1000,
       stale: Math.round((10000 * stale) / (s.owners * seconds * 1000)) / 100, unheardMax: silent / 1000, outMiBs: Math.round((100 * out) / seconds / FOES_ROOM_BYTES_PER_S * 4) / 100,
     };
@@ -132,6 +145,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   for (const s of SCENES) if (!ONLY || s.name === ONLY) {
     const r = await scene(s);
     rows.push(r);
-    process.stdout.write(`${s.name.padEnd(8)} ${s.what}\n  full ${r.full}%  delta ${r.delta}%${r.flood != null ? `  flood ${r.flood}%` : ''}  full frames apart p50 ${r.gapP50} s, p99 ${r.gapP99} s, max ${r.gapMax} s  stale ${r.stale}% (unheard ${r.unheardMax} s at most)  out ${r.outMiBs} MiB/s\n`);
+    process.stdout.write(`${s.name.padEnd(8)} ${s.what}\n  full ${r.full}%  delta ${r.delta}%${r.flood != null ? `  flood ${r.flood}%` : ''}${r.heavyFull != null ? `  heavy full ${r.heavyFull}% delta ${r.heavyDelta}%` : ''}${r.hands != null ? `  handovers ${r.hands}%` : ''}  full frames apart p50 ${r.gapP50} s, p99 ${r.gapP99} s, max ${r.gapMax} s  stale ${r.stale}% (unheard ${r.unheardMax} s at most)  out ${r.outMiBs} MiB/s\n`);
   }
 }
