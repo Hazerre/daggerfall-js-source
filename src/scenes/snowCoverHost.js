@@ -268,12 +268,15 @@ export function createSnowCoverHost({ renderer, climateAt, mapHeight, stateOf, b
      */
     async settle(breather) {
       if (!lane() || !place) return;
-      const { px, py } = place(), t = now();
-      if (!Number.isFinite(t)) return;
+      const { px, py } = place();
+      if (!Number.isFinite(now())) return;
       // AUDIT PRECIP DOC-7: while the world stands up (`arriving` - no ground under the player: the boot, an arrival) the
       // snow takes the arrival's budget, as the frame's own tick does - a year's history and the summer before it at a
       // mountain's window is two seconds of work, and the boot's breath of a frame made it seven
-      while (!at(px, py, t, arriving?.() ? Math.max(SNOW_COVER.arriveMs, breather.left()) : breather.left(), true)) await breather.breathe();
+      // FIELD BUGS 2026-10-21 SNOW-YEAR: each pass reads the clock's minute as it is - the frame's tick integrates the same
+      // window to it between passes, and a minute held from the first pass across the snow year's turn (its midsummer)
+      // asked another year's lattice than the tick: the two reset each other's points and the build waited for good
+      while (!at(px, py, now(), arriving?.() ? Math.max(SNOW_COVER.arriveMs, breather.left()) : breather.left(), true)) await breather.breathe();
     },
     lineAt,
     coverAt,

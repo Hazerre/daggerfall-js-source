@@ -10,9 +10,9 @@ with the decisions for me"); each section says which it took and why. The pins a
 | | Report | What it was | Done |
 |---|---|---|---|
 | 1 | Dûmorîkh: "Sailing Vessels Sometimes Have No Propulsion" - "This is only with sails. Oars work fine." | A save made below ground keeps the indoors' wind - none - and a load that lands outdoors (online a dungeon save wakes at a temple or town) restored it on the open sea: no way and no pull under sail, the oars untouched, until the game's next hour; a restart's exit save kept it | SAIL-WIND |
-| 2 | grayhatharry: "I had a quest that wanted me to sail from one port to another ... he informed me I hadn't sailed at all" | open: traced - a slow boat's departure dragged to the edge of its port's waters, a boat run aground or left at speed never berths, a load forgets the departure, and Pencart's waters were all Longham's | - |
+| 2 | grayhatharry: "I had a quest that wanted me to sail from one port to another ... he informed me I hadn't sailed at all" | "Under Sail" counted a voyage from the LAST berth heard, and a slow boat (a Rowboat, a Large Boat in a light wind) berths every step in her port's waters: her departure followed her out, and between near ports the quarter league never lay. A boat run aground or the helm let go at speed never berthed; a load forgot the departure; Pencart's water was all Longham's | VOYAGE-HOLD |
 | 3 | LEGALISE ARO...: "Equipping the lantern with O still puts it into your shield slot and not the lantern slot" | The world hangs a lit lantern at the hip whenever Handheld Torches' waist switch says so (shipped on), and the inventory read the belt's mark alone: the O key's lantern was drawn in the shield's hand, the lantern slot empty | BELT-WAIST |
-| 4 | 4M and Boar: "Crashing every minute" - "No message just black", "when I enter dungeons or traveling overworld" | open: traced on this branch | - |
+| 4 | 4M and Boar: "Crashing every minute" - "No message just black", "when I enter dungeons or traveling overworld" | The one black, silent failure in the tree: the desktop app's page dying after its version's trial, met by nothing. Two faults on the reported paths, each measured: the snow year's origin named two origins in one year, and a pixel build waited on the snow forever (the world built nothing again); the Snowfall mod's blanket queue held every pixel destroyed behind a travelling player, 1.8 MB of heap each | SNOW-YEAR, SNOW-HOLD, RENDERER-GONE |
 | 5 | Prefixo: "Soul Cake stopped dropping" - "still stuck at 122" | The day's cap (120 a UTC day), reached in under an hour of undead, answered every find past it with a miss's own `{ found: 0 }`: nothing said there was a cap, or when it ends | CAKE-CAP-SAID |
 
 ## SAIL-WIND: a load outdoors lays the outdoors' wind (1)
@@ -60,6 +60,77 @@ panels show no such hint.
 outdoors - a Small Ship under sail and a Large Boat raised from rest make way; a load indoors keeps none and a load outdoors
 keeps the wind its save carried; the predicate. `tools/mutants/fb1021_sailwind.json` (3, 3 dead).
 
+## VOYAGE-HOLD: a voyage counts from where she last lay (2)
+
+`src/scenes/harbourOffice.js` (`PORT_VOYAGE_M`, `berthed`), `src/scenes/naval/navalBerth.js` (`createBerthWatch`,
+`BERTH_STILL`), `src/scenes/naval/navalHost.js` (`boatPose`, the berth's wiring), `src/systems/naval/captainLedger.js`
+(`newLog`'s `departed`, `restoreDeparted`), `src/world/portSites.js` (`boardPortAt`), `src/scenes/world.js`
+(navalPortHere), `src/systems/questlines/quests/QLIS01.txt`, `QLOC02.txt`.
+
+FOUND. The quest is the harbourmaster's "Under Sail" (QLIS01): `ql act port-reached 1`, and "Sailed yet? No?" is said
+`when _qgclicked_ and not _sailed_`. BERTH-RING (`Field-Bugs-2026-10-20c.md`, the same symptom's fix) merged the evening
+before (#1085, `ccfb3c135`); what follows stands on the code after it. The act has one producer, the harbour office's berth law: a berth at
+another port than the last berth heard, with a quarter league (1,207 m) logged at the helm since it. A berth is the boat
+at my helm in a port's waters (a board port within SEA_RING) with her way 2.5 m/s or less (YARD_SPEED) and no hostile ship
+near, said every sites step she is. Four ways a player who sailed from one port town to the next was told they had not:
+
+1. A SLOW BOAT'S DEPARTURE FOLLOWED HER OUT. The departure was the LAST berth heard, and a slow boat berths every step she
+   is in her port's waters: a Rowboat (4,000 gold, oars only) rows at 2.00 m/s, a Large Boat (8,000) makes 2.38 m/s
+   close-hauled in a light wind. So her departure was where she left her port's waters, and the quarter league had to lie
+   between the two ports' waters. On the real host, office and ledger: rowing 3,000 m out of one port's waters straight
+   into the next's - no act; 819 m of open water between them - no act; 1,638 m - the act. On the real map 26 pairs of
+   board ports have waters closer than that, and 43 of the 106 have such a port as their nearest neighbour
+   (Sentinel-Mesiton 4.2 km apart, Pallaton-Sentinel 4.4 km): "a shy journey down the coast" in a first boat.
+2. HER ARRIVAL WAS NEVER SAID. Run aground in the next port's waters, she berthed never: Come Sail Away moves a beached
+   boat by none of her way and updates none of it, and the host's pose read her last (a Small Ship at the helm read
+   9.86 m/s for twenty seconds aground, a Large Boat 5.00 - and logged 197 m of leagues while she lay). Brought in at speed
+   and the helm let go, she berthed never either: StopSailingDelayed takes her way off at once and she is no longer at a
+   helm, so no step after said a berth.
+3. A LOAD FORGOT THE VOYAGE. The departure was the office's memory alone, and the ledger's restore lays a new log: a relog,
+   a reload or a crash between the two ports - and the same day's threads report the game going black every few minutes
+   (section BLACK-SCREEN) - and the next port counted nothing.
+4. PENCART COULD NEVER BE REACHED. The port whose waters a pixel lies in was the nearest by the ring's squares, a tie to
+   the list's first, and every pixel of Pencart's water tied it with Longham's: of the 106 board ports, Pencart alone named
+   none. Longham-Pencart (2.5 km) counted in neither direction.
+
+THE LAW NOW.
+
+- She sailed from where she last LAY STILL: a berth now says whether she lies still - her own way under BERTH_STILL
+  (0.5 m/s, the current none of it), or the helm let go - and only a still berth moves the departure
+  (`harbourOffice.js:"if (!from || ev.still !== false) log.departed = { port: ev.port, sailed };"`). A slow berth under way
+  is checked against the departure and moves nothing, so a Rowboat rowing out of one port and into the next is counted
+  from the quay she lay at. A berth at another port a quarter league on is the port reached, and she lies there from then.
+  A boat drifting where two ports' waters meet lies still in each in turn and never makes the quarter league between them;
+  a loop sailed before a short hop home counts nothing once she lies at home again.
+- Her arrival is said however she comes in: a boat aground lies still
+  (`navalHost.js:"const local = boat === r?.state?.CurrentBoat && sailing() && !r.IsBeached?.(boat) ? (r.state.velocityCurrent ?? [0, 0, 0]) : [0, 0, 0];"`
+  - and logs no leagues while she lies), and the helm let go in a port's waters with no hostile near is a berth, still
+  (`navalBerth.js:"else if (!boat && helm && port && deps.clear()) deps.event({ type: 'berth', port: port.key, boat: helm.uid ?? null, still: true });"`).
+  A cargo delivered there is delivered as well (QLIS02's `cargo-delivered`, the same berth).
+- The departure is the log's own (`captainLedger.js` newLog `departed`, restored only where it lies within its log's way):
+  a load keeps the voyage its save was on.
+- The port a pixel lies in is the nearest within SEA_RING by the crow's flight, exact on every engine
+  (`portSites.js:"export function boardPortAt(ports, x, y) {"`, the world's navalPortHere through it - code out of bootWorld). Inside a
+  ring of two it differs from the squares on a tie alone: Pencart now names 5,923 squares of ship water, nine neighbours
+  trade tied pixels, and no board port names none.
+- The quest says what counts: QLIS01's letter, log and the harbourmaster's word now ask for "the harbor of another, a
+  quarter league off or more", and QLOC02's log for each port "a quarter league or more from the last".
+
+THE GENERAL CLAIM ("at least 70% of the time the npc tells me I didn't do something"): read against the quest machine and
+the last fortnight's field passes, it names no second quest and is not reproduced as a fault of its own. What it can
+stand on is fixed: this voyage (QLIS01, QLOC02, QLIS02's cargo), CROWD-CLEAR's quest Person stood on a questor's marker
+(`Field-Bugs-2026-10-20c.md`) and QUEST-NAME-ONE's NPC answering to another name than the quest's (`Field-Bugs-2026-10-20.md`). Ruled out: a quest item never goes into the Materials Bag
+(`materialsBag.js`), the acts' counts and their `from` are saved, and the online checkpoint and the exit save stand.
+
+`test/systems/naval/fb1021_voyagehold.test.js` (8): on the real naval host, harbour office and ledger - the report (a
+Rowboat's pace out of one port's waters into the next's), the drift between two ports, the loop before a short hop, the
+helm let go at speed (at sea and with a hostile near, nothing), aground at the helm (and no leagues logged), a load between;
+`boardPortAt` on its own; and on the real map (ARENA2) every board port names water of its own, Pencart's tie read as the
+squares read it. QL11's load pin moved (`test/systems/questlines/ql11_acts.test.js`: a load keeps the voyage), and
+BERTH-RING's source pin and PORT-TOWNS' lifted host text (`fb1013c_porttowns.test.js`) moved to `boardPortAt`.
+`tools/mutants/fb1021_voyagehold.json` (11, 11 dead); `captboard.json`'s
+HOST-berth-unsaid and `fb1020c_berthring.json`'s ring re-aimed by content (both dead, the ring's without ARENA2).
+
 ## BELT-WAIST: the lantern at the waist is the slot's (3)
 
 `src/systems/beltLantern.js` (`waistLanternOf`), `src/ui/enhanced/enhancedInventory.js` (`equippedModel`, `lanternGroup`),
@@ -101,6 +172,71 @@ A torch and a candle are held, as Handheld Torches holds them, and stay the hand
 the pack's Use, a torch and a candle still in hand, the hung lantern first (and on the remembered light), the switch off
 behind a shield and a drawn sword, the hotbar beside a shield and an off-hand weapon. `tools/mutants/fb1021_beltwaist.json`
 (9, 9 dead).
+
+## BLACK-SCREEN: the world that stopped building, the pixels the snow held, and a stopped page said (4)
+
+`src/systems/weather/snowpack.js` (`yearOriginOf`), `src/scenes/snowCoverHost.js` (`settle`) - SNOW-YEAR;
+`src/systems/snowfallRuntime.js` (`_blanketTick`), `src/scenes/snowfallHost.js` (`terrainOf`) - SNOW-HOLD;
+`app/lib/rendererGone.cjs`, `app/main.cjs` (the game window) - RENDERER-GONE.
+
+FOUND. "No message just black" rules out the ordinary crash: a throw in the frame loop or an unhandled rejection puts
+up the CRASH panel (`main.js`), and a lost WebGL context puts up its own ("the graphics stopped ... tap here to reload",
+above the loading screen). One failure in the tree is black and silent: the desktop app's page dying after its
+version's trial (DA13). Its handler gave the stop to the trial - `gameStore.rollback` - which answers null once the
+version has proved itself, and returned: the window stood on its background colour with no word and no way back but
+closing it. What kills a page is the question then, and the real game, driven headless with the freeware's data
+(SwiftShader), found two faults on the reported paths. Neither is proven to be what 4M and Boar saw - nothing says which
+build they play or what their machines log - but each is real, measured, and on the way to exactly that screen:
+
+1. SNOW-YEAR - THE WORLD STOPPED BUILDING. The snow year's origin floored a midsummer carrying a fractional minute's float
+   error onto the 180-minute grid it lies on: two minutes of one year named origins a step apart, 2.7% of fractional
+   minutes, wherever the event minute is the sky's (offline; online the relay's sky mapping moves midsummer off the step,
+   not measured against the live clock). A pixel build waits for the snow (`pixelBuild.js` settle), holding the minute it
+   began at, while the frame's tick integrates the same window to the clock's minute: with two origins they reset each
+   other's lattice points every pass. Caught in the debugger in the running game, about one pixel into a journey: the
+   window's points new on every pass, 2.7 million steps skipped, the build never done - and the world's pump builds one
+   pixel at a time, so it built none again that session (about one build in 37 offline). Shipped with #1053
+   (2026-10-19).
+2. SNOW-HOLD - THE PIXELS THE SNOW HELD. Built and torn down a hundred-odd times in the running game, the GL's objects and
+   bytes stood flat, and the JS heap grew 1.8 MB a map pixel - the heap's snapshot traced it to the Snowfall mod's
+   blanket queue: each queued tile's SnowTerrain closures hold the host's whole pixel entry (its verge, its cover items).
+   The queue drained only while the local tier was not recentring, and a player on the move keeps it recentring (every
+   6 m by default); it was pruned of nothing. Measured in Node over a world streaming about a player at 40 m/s: every
+   one of 63 destroyed tiles held at 8 km, the queue growing with the road. And the host chained each rebuilt tile to
+   the one before it (`replaced`). Snowfall is on by default in winter - a new character starts in Morning Star. A
+   journey's pixels add up to the heap's end, and a page out of memory is a page gone: the black screen above.
+
+THE LAW NOW.
+
+- SNOW-YEAR: the sky's midsummer is a whole minute, so it is rounded to one before the floor
+  (`snowpack.js:"const midsummer = eventMinuteOfSky(Math.round(sky - since));"`) - one snow year, one origin, at any
+  fractional minute of it; and a build's wait asks the clock's minute on every pass, as the tick does
+  (`snowCoverHost.js:"while (!at(px, py, now(), arriving?.() ? Math.max(SNOW_COVER.arriveMs, breather.left()) : breather.left(), true)) await breather.breathe();"`),
+  so a wait across the year's real turn finishes too.
+- SNOW-HOLD: the blanket's five-second prune lets a queued tile go with the overlays once it leaves the rings it draws
+  (`snowfallRuntime.js:"if (B.queue.some((t) => !live.has(t))) { B.queue = B.queue.filter((t) => live.has(t)); B.queued = new Set(B.queue); }"`
+  - `_blanketProcess` skips such a tile, so letting it go is the same), and a blanket going inactive lets its queue go
+  (standing again queues every visible tile anew). The same walk now holds no destroyed tile and a queue of the 49 its
+  rings draw. A host tile says THAT it replaced one; the old goes to the runtime through `promotions` alone. Departures
+  from the Snowfall mod's ProcessBuildQueue and SetActive, named in Port-Ledger A (SNOW-HOLD).
+- RENDERER-GONE: a page that stops after its trial is said - *"The game stopped. It ran out of memory. Your saves are
+  kept - progress since your last save is lost."* - with Restart (the default) and Quit, and a page stopping three times
+  in two minutes says so; the reason is kept in `crash.log` beside the saves (a GPU process gone too), so the next report
+  can say why. A page that stops answering is offered Wait (the default and the cancel) or Restart, as Chromium's own
+  "Page unresponsive" does. The trial's rollback is asked first, as DA13 has it.
+
+NOT DONE, said: a browser tab that runs out of memory shows Chromium's own "Aw, Snap", which this game cannot draw over;
+a page watchdog for a build that never ends, and recovery on `webglcontextrestored`, are not built - with SNOW-YEAR's
+two causes gone no build is known to hang. Whether 4M's and Boar's crashes were these two is for the next report's
+`crash.log` (or the browser's) to say; the record above is what the tree held.
+
+`test/systems/weather/fb1021_snowyear.test.js` (2): the running game's two minutes and 6,000 fractional minutes of three
+years, one origin each; a build's wait across the year's turn with the frame's tick between its passes finishes.
+`test/systems/fb1021_snowhold.test.js` (3): a travelling player keeps the local tier recentring and the blanket holds no
+destroyed pixel; a blanket going inactive lets its queue go; a host tile rebuilt holds none. `test/tooling/fb1021_renderergone.test.js`
+(4): the boxes, their defaults and answers, the stop count and the log, and the shell's wiring by source; DA13's pin moved
+(`test/tooling/da13_gamechannel.test.js`). `tools/mutants/fb1021_snowyear.json` (2, 2 dead), `fb1021_snowhold.json`
+(3, 3 dead), `fb1021_renderergone.json` (7, 7 dead).
 
 ## CAKE-CAP-SAID: the day's cakes, said (5)
 
