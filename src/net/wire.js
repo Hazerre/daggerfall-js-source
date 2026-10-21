@@ -1534,7 +1534,7 @@ export const KEEPALIVE_FAN_MS = HEARTBEAT_MS / 2;
  *  is deployed by CI and the relay by hand, so a skew between them is the ordinary state of a release day, and until
  *  now nothing on either end could see it. */
 // Integrated Arena spectator visibility with staff teleport, stable boat identity and private ownership; deploy relay before clients.
-export const RELAY_VERSION = 'world238';   // world238: STAR-TUNE (2026-10-20, the owner, of the Starfall's first run: "the enemies are too few and die too quickly. Does this not have scaling?"; "The time between waves is too long"; bible/11-Multiplayer/Starfall.md section 4; world236 on its branch, renumbered past LONE-HERALD's world236 and FIELD BUGS 2026-10-20f's world237 at the merge; NOT YET DEPLOYED) - the star's law: a wave is four for the first defender and two for each beside it, one more each wave, four to twenty-four (net/starfall/starfallLaw.js starWaveSize - a lone defender's 4 to 7, from 3, 3, 4 and 4; then "we should go beyond the limit": past the camps' grant's nine), and the breath between waves five seconds, from twelve (STAR_BREATH_MS); a spawn grant kind of the star's own (net/grantLaw.js GRANT_KINDS.star - a wave of twenty-four one grant, the open country's alone) and the `st` frame's wave to twenty-four (STAR_WAVE_SIZE_MAX); the foe bounds hold a camp's foe to a fallen star's coven's twice its health (net/foeBounds.js FOE_BOUND.star - STAR_FOE_HEALTH), so the relay never strips the coven the client now stands. Client and relay move together: an older relay refuses the `star` grant kind, an older client drops a ledger of a wave past nine. STAR_RELAY_MIN stays 235 (the star word itself does not change).
+export const RELAY_VERSION = 'world239';   // world239: SD-THROUGH (2026-10-21, the owner: "When someone finds and enters the portal. I want a portal to show up for anyone in the dungeon and anyone entering that automatically leads them there."; bible/11-Multiplayer/Super-Dungeons.md section 6 and SD-THROUGH; NOT YET DEPLOYED) - a Hollow's realm tells the hub its first admission (SD_INTERNAL_IN, validSdInTell), the hub stamps the record's `inAt` (net/superDungeon/sdLaw.js sdEnter) and fans it, and every client in the Hollow or entering it stands the Way Through beside them. Client and relay move together: an older client projects `inAt` away, and an older relay never stamps it (no Way Through stands).
 // world237: FIELD BUGS 2026-10-20f (2026-10-20, bible/01-Overview/bugs/Field-Bugs-2026-10-20f.md, from ilovemybonk's word on the Elite Breach in #general; world236 on its branch, renumbered past LONE-HERALD's world236 at the merge; NOT YET DEPLOYED): LANDED-WORD - an Elite Breach's room tells a striker what each of its blows landed (`eland`, to it alone - net/eliteGates/egBrain.js egBlow), and a lord an errand holds at a threshold answers what it lost (net/eliteGates/egLords.js egLordHit), so the word, the recap and a Court's chart count that; FAIR-STILL - the fair trail reads a member's silence from held ground to held ground within the snap as standing still, never blind (net/eliteGates/egFair.js egStillGap); DOOR-WORD - a member at the door on a trail it refuses is told why, once a hall (`efair`, to it alone - egBrain.js doorWord). A page facing a relay before it keeps its claims (EG_LAND_RELAY_MIN); an older page drops both words. Deploy the relay first or with the pages
 // world236: FIELD BUGS 2026-10-20d LONE-HERALD (2026-10-20, a player in the Discord: "I JUST HIT REDOUBT 20 SOLO AND BECAUSE I DID IT WRONG ITS SEEN AS COMPANY"; bible/01-Overview/bugs/Field-Bugs-2026-10-20d.md, audited (AUDIT FB1020d: a company that went without its opener led by its first entrant); world235 on its branch, renumbered past THE WITCHES' FESTIVAL AND ITS STARFALL's world235 at the merge; NOT YET DEPLOYED): a Valkynaz Redoubt's herald news says its company's entrants (`n`, the Descent's count) and leads a company of one with its member's name (net/eliteGates/egBrain.js heraldCompany), the hub's read keeps the size (net/eliteGates/egHerald.js validEgHeraldTell) and its reckoning hands it to the posts, so the tenth Redoubt's post, First of the Spire and a seal lifted say a company of one alone - the room-to-hub tell grows a field; no frame a client reads changes shape, and either end may deploy first (a tell with no size is posted as a company, as it was).
 // world235: THE WITCHES' FESTIVAL AND ITS STARFALL, one release - WITCH1 (2026-10-20, the owner: "develop our first live event"; bible/06-Systems/Witches-Festival.md; world231, world233 then world234 on its branch, renumbered past main's world231 (NAME-WORDS), world232 (GAUNTLET-PLATES), world233 (SD-SEA) and world234 (DEX1) at the merges; NOT YET DEPLOYED) - the token's vocabulary grows: the Witchwarden and Hearthkeeper titles (TITLES), the Witchfire aura (AURAS), and a profile icon worn (`pi`, ICONS - the relay's hello carries it to the room beside the aura), and the Iliac Hand's festival cards and their two emblems (iliacCards.js); an older relay drops `pi` and refuses a token naming a word it does not hold, so client and relay move together. STAR3 (2026-10-20, the owner: "something coming from the sky and crashing into the ground, where people need to defend the objective in a wave based format with a boss topping off the encounter at the end"; bible/11-Multiplayer/Starfall.md sections 5, 9 and 13; world233 on its branch, renumbered past SD-SEA's world233 and DEX1's world234 at the merge, and one release with WITCH1's world235 when the festival's pull request was folded in; NOT YET DEPLOYED): THE STARFALL - a word at a fallen star (`star`) to its cell, which keeps the star's ledger (net/starfall/starfallLaw.js - the gathering, the waves and their breath, the master, the light, who defended), says it to the cell (`st`), mints each earner's receipt at the master's fall (`j1`, net/starfall/starReceipt.js - the gate's one key) and tells the hub (STAR_INTERNAL_HELD), which says the hold to everyone online (`hd`) and keeps the night's held stars (`hds`) and each account's receipts for a hello; STAR8 (bible/11-Multiplayer/Starfall.md section 7): TITLES gains `starwarden` (net/identityToken.js - the Thirteenth of Frostfall's title), so this relay reads a token wearing it. Deploy the relay first: a client says no star word to a relay older than STAR_RELAY_MIN (one would close the socket on it), and an older client drops the `star` frame
@@ -5766,7 +5766,9 @@ function serpentOutOf(m) {
 // from the socket's own pose (net/superDungeon/sdBrain.js orreryStep), and the hall's stones, fray, dial and Concord said back to every
 // soul in it - after each turn, and to each at its hello.
 //   client -> cell:  {t:'sd', k:'found', s, px, py}
-//   hub -> client:   {t:'sd', k:'ev', s, ph, r, at, until, next, foundAt?, fb?, fellAt?, top?, n?}
+//   hub -> client:   {t:'sd', k:'ev', s, ph, r, at, until, next, foundAt?, fb?, inAt?, fellAt?, top?, n?}
+// SD-THROUGH: `inAt` - when the first soul stepped through its Rift (the realm's first admission, told to the hub -
+// SD_INTERNAL_IN): from then on every client in its Hollow, and every one entering it, stands the Way Through beside them.
 //   client -> realm: {t:'sd', k:'pz', i, a, q}                                 (stone i, a +1 forward or -1 back, my turn's number)
 //   realm -> client: {t:'sd', k:'pz', s, st, f, lit, ok, i?, a?, id?, q?, x?, ls?, w?}   (the stones, the fray, the dial's
 //                    count, the Concord; the turn and its turner's id and number; x 1 when the Hour snapped back - AUDIT SD
@@ -5799,7 +5801,7 @@ export const SD_SLOT_MAX = 999_999_999;
 /** The most fighters a fall may count (the gate's seat bound). */
 export const SD_FIGHTERS_MAX = 256;
 
-/** @typedef {{ s:number, ph:string, r:number, at:number, until:number, next:number, foundAt?:number, fb?:string, fellAt?:number, top?:string, n?:number }} SdRecord */
+/** @typedef {{ s:number, ph:string, r:number, at:number, until:number, next:number, foundAt?:number, fb?:string, inAt?:number, fellAt?:number, top?:string, n?:number }} SdRecord */
 
 const sdMs = (t) => Number.isSafeInteger(t) && t >= 0;
 /**
@@ -5821,11 +5823,13 @@ export function validSdRecord(v) {
   if (out.s === 0 && out.ph !== 'gone') return null;
   if (r.foundAt != null) { if (!sdMs(r.foundAt)) return null; out.foundAt = r.foundAt; }
   if (r.fb != null) out.fb = sanitizeName(r.fb);
+  if (r.inAt != null) { if (!sdMs(r.inAt)) return null; out.inAt = r.inAt; }   // SD-THROUGH: the first soul through its Rift
   if (r.fellAt != null) { if (!sdMs(r.fellAt)) return null; out.fellAt = r.fellAt; }
   if (r.top != null) out.top = sanitizeName(r.top);
   if (r.n != null) { if (!Number.isSafeInteger(r.n) || r.n < 0 || r.n > SD_FIGHTERS_MAX) return null; out.n = r.n; }
   // a find and a fall are said with their instants, and a fall was always a find first: nobody enters an unfound Hollow
   if ((out.ph === 'found' || out.ph === 'fell') && out.foundAt == null) return null;
+  if (out.inAt != null && out.foundAt == null) return null;   // SD-THROUGH: nor steps through its Rift
   if (out.ph === 'fell' && out.fellAt == null) return null;
   return out;
 }
@@ -6010,6 +6014,9 @@ export const SD_INTERNAL_FOUND = '/internal/sd/found';
 export const SD_INTERNAL_LIVE = '/internal/sd/live';
 /** SD8b: a realm telling the hub its Remnant fell (the director moves its record on - net/superDungeon/sdLaw.js sdFell). */
 export const SD_INTERNAL_FELL = '/internal/sd/fell';
+/** SD-THROUGH: a realm telling the hub its first soul stepped through the Rift (the director stamps the record's `inAt` -
+ *  net/superDungeon/sdLaw.js sdEnter). */
+export const SD_INTERNAL_IN = '/internal/sd/in';
 /** How soon a cell whose hub did not answer a find tells it again (the rite's number). */
 export const SD_TELL_RETRY_MS = 5000;
 /** Where the hub keeps its record, a cell a find it owes the hub, and a realm who entered it (never `world:` - swept). */
@@ -6044,6 +6051,12 @@ export function validSdFellTell(v) {
   }
   const here = Array.isArray(b.here) ? b.here.filter((x) => typeof x === 'string' && ID_RE.test(x)).slice(0, SD_FIGHTERS_MAX) : [];
   return { s: b.s, at: b.at, top: sanitizeName(b.top), n: b.n, rc, here };
+}
+/** SD-THROUGH: a realm's first soul through, as told to the hub - its slot alone - projected, or null. */
+export function validSdInTell(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const b = /** @type {any} */ (v);
+  return intIn(b.s, 1, SD_SLOT_MAX) ? { s: b.s } : null;
 }
 /** SD9a: where the hub keeps an account's Hour receipt for its hello (its latest, a receipt's life) - outside every
  *  swept prefix but its own; how long an earner who stood in the realm at the kill is left to its floor first. */

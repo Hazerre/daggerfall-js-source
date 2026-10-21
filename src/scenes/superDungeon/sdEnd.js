@@ -116,6 +116,15 @@ export function ensureSdEndArt(renderer) {
   }
 }
 
+/** The collider's answers as the end's laws ask them (world/superDungeon/sdDungeon.js SdProbe): the floor under a point
+ *  (asked from a metre over it, three down) and a ray's clear distance - the Rift's and the Way Through's one probe. */
+export function sdProbeOf(collider) {
+  return {
+    floor: (at) => { const d = collider.raycast([at[0], at[1] + 1, at[2]], [0, -1, 0], 3); return Number.isFinite(d) ? at[1] + 1 - d : null; },
+    ray: (o, dir, max) => { const d = collider.raycast(o, dir, max); return Number.isFinite(d) ? d : null; },
+  };
+}
+
 /** A portal's activation box: `half` across either way of its axis, from its foot to `height` above it. */
 const boxOf = (at, half, height) => ({ min: [at[0] - half, at[1], at[2] - half], max: [at[0] + half, at[1] + height, at[2] + half] });
 /** AUDIT SD IV (F33): how far either side of its plane the Rift is pressed (m) - its ring and its claws as drawn. */
@@ -123,11 +132,11 @@ export const SD_RIFT_PRESS_M = 0.35;
 /** AUDIT SD IV (F33): THE RIFT'S PRESS IS ITS RING - a box turned with it (`base`, the stand's), its gear's span across,
  *  foot to top, SD_RIFT_PRESS_M either side of its plane, and the world box about that; no surface in the collider. Its
  *  whole sweep's cube (half its size every way, its size high) took the presses at the bodies and the floor before it. */
-function riftPress(r) {
+function riftPress(r, key = SD_RIFT_KEY) {
   const R = r.size / 2, top = r.cy + R, D = SD_RIFT_PRESS_M, b = r.base;
   const hx = Math.abs(b[0]) * R + Math.abs(b[8]) * D, hz = Math.abs(b[2]) * R + Math.abs(b[10]) * D;
   return {
-    key: SD_RIFT_KEY, aabb: { min: [r.at[0] - hx, r.at[1], r.at[2] - hz], max: [r.at[0] + hx, r.at[1] + top, r.at[2] + hz] },
+    key, aabb: { min: [r.at[0] - hx, r.at[1], r.at[2] - hz], max: [r.at[0] + hx, r.at[1] + top, r.at[2] + hz] },
     obb: { m: Float64Array.from(b), box: [-R, 0, -D, R, top, D] }, noSurface: true, distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE,
   };
 }
@@ -168,9 +177,11 @@ function standAtN(m, at, n, iLift, iYaw) {
  * Return's (the Hour's way home says its own). AUDIT SD II (L6 F5): `riftCount()` the Rift's plaque's second row - how
  * long its Hour stands (world/superDungeon/sdDungeon.js sdRiftCount), or null. SD-LOOK: `look()` its state (world/superDungeon/sdDungeon.js
  * riftLook - open by default), `clock()` the realm's anchored seconds (every screen's gear ticks together; `now`'s without).
- * @param {{ renderer?: any, audio?: any, now?: () => number, onRift?: () => (boolean|null|void), onReturn?: () => void, riftTo?: string, retTitle?: string, retTo?: string, riftCount?: () => (string | null), look?: () => any, clock?: () => number }} [deps]
+ * SD-THROUGH: `riftKey` and `riftTitle` the ring's own press key and plaque title - the Way Through is a second Rift
+ * (scenes/superDungeon/sdThrough.js), pressed and named apart from the Hollow's.
+ * @param {{ renderer?: any, audio?: any, now?: () => number, onRift?: () => (boolean|null|void), onReturn?: () => void, riftTo?: string, retTitle?: string, retTo?: string, riftCount?: () => (string | null), look?: () => any, clock?: () => number, riftKey?: string, riftTitle?: string }} [deps]
  */
-export function createSdEnd({ renderer = null, audio = null, now = () => performance.now(), onRift = () => {}, onReturn = () => {}, riftTo = SD_END_TEXT.riftTo, retTitle = SD_END_TEXT.ret, retTo = SD_END_TEXT.retTo, riftCount = () => null, look = () => SD_RIFT_OPEN_LOOK, clock = null } = {}) {
+export function createSdEnd({ renderer = null, audio = null, now = () => performance.now(), onRift = () => {}, onReturn = () => {}, riftTo = SD_END_TEXT.riftTo, retTitle = SD_END_TEXT.ret, retTo = SD_END_TEXT.retTo, riftCount = () => null, look = () => SD_RIFT_OPEN_LOOK, clock = null, riftKey = SD_RIFT_KEY, riftTitle = SD_END_TEXT.rift } = {}) {
   /** @type {any} */
   let rift = null;
   /** @type {any} AUDIT SD II (L6 F9, F16): when it began to rise, whether it has, and whether only a press takes it (the
@@ -186,7 +197,7 @@ export function createSdEnd({ renderer = null, audio = null, now = () => perform
   let _targets = NONE;
   const retarget = () => {
     const out = [];
-    if (rift) out.push(riftPress(rift));
+    if (rift) out.push(riftPress(rift, riftKey));
     if (ret) out.push({ key: SD_RETURN_KEY, aabb: boxOf(ret.at, (SD_RETURN_SIZE.w / 2) * ret.scale, SD_RETURN_SIZE.h * ret.scale), distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE });   // SD-LOOK S6: pressed where it stands, at its size
     _targets = out.length ? Object.freeze(out) : NONE;
   };
@@ -331,13 +342,13 @@ export function createSdEnd({ renderer = null, audio = null, now = () => perform
     targets() { return _targets; },
     /** The plaque's words for either - a namer is handed every key the ray can win. */
     hoverName(key) {
-      if (key === SD_RIFT_KEY && rift) { const n = riftCount(); return { title: SD_END_TEXT.rift, subs: n ? [riftTo, n] : [riftTo] }; }   // AUDIT SD II (L6 F5): and how long its Hour stands
+      if (key === riftKey && rift) { const n = riftCount(); return { title: riftTitle, subs: n ? [riftTo, n] : [riftTo] }; }   // AUDIT SD II (L6 F5): and how long its Hour stands
       if (key === SD_RETURN_KEY && ret) { ret.hoverAt = now(); return { title: retTitle, subs: [retTo] }; }   // SD10: the Hour's way home says its own; SD-LOOK S6: its hand-plate lights
       return null;
     },
     /** A press on either, handed to the host as a step is. True when it was one of these. */
     press(key) {
-      if (key === SD_RIFT_KEY && rift) { seen(onRift()); return true; }
+      if (key === riftKey && rift) { seen(onRift()); return true; }
       if (key === SD_RETURN_KEY && ret) { onReturn(); return true; }
       return false;
     },

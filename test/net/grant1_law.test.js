@@ -42,7 +42,7 @@ test('GRANT1 THE PINNED RATES: each copy the relay holds equals its home - the e
   const lawRow = readFileSync(new URL('./relayversion.test.js', import.meta.url), 'utf8').split('\n').find((l) => l.trimStart().startsWith(`world${STAR_GRANT_RELAY_MIN}: '`));
   assert.ok(lawRow && lawRow.includes('STAR-TUNE'), `world${STAR_GRANT_RELAY_MIN}'s law row is STAR-TUNE's (${lawRow?.slice(0, 120)})`);
   assert.ok(STAR_GRANT_RELAY_MIN <= Number(RELAY_VERSION.slice('world'.length)), 'the gate is no later than the relay this tree builds');
-  assert.deepEqual(['world237', 'world238', 'world300', 'nope', undefined].map(relaySupportsStarGrant), [false, true, true, false, false], 'an older relay is asked the stand\'s own kind');
+  assert.deepEqual(['world237', 'world239', 'world300', 'nope', undefined].map(relaySupportsStarGrant), [false, true, true, false, false], 'an older relay is asked the stand\'s own kind');
   assert.deepEqual(Object.keys(GRANT_KINDS).slice(0, 2), ['enc', 'camp'], 'GRANT2\'s first stream; the other sources\' with GRANT4 (grant3_pool)');   // PIN MOVED (GRANT4): every source's kind
   for (const [s, salt] of [[0, 'marks'], [0xdeadbeef, 'species:2'], [12345, 'health:0']]) {
     const a = grantRng(s, salt), b = eliteRng(eliteHash('grant', s, salt));

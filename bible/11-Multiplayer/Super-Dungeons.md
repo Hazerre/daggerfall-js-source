@@ -84,6 +84,7 @@ Ledger A rows are SD-ONLINE (the world's dungeon sizes online), TIER1 (the label
    ▼
  the DUNGEON (whole, Super foes) ── its END: the RIFT (to the realm) + the RETURN (to the entrance)
    │ the Rift, pressed ─► the realm room `sd:<s>` admits ─► the SHATTERED HOUR (a made level)
+   │ SD-THROUGH: its first admission ─► the hub stamps `inAt`, fanned ─► the WAY THROUGH beside everyone in the Hollow and everyone entering it
    ▼
  THRESHOLD ─► ORRERY OF ENDINGS (puzzle: relay-judged) ─► UNMOORED STEPS (platforming: the shared clock)
    ─► THE LAST MOMENT (the Brass Remnant: relay brain, 250 ms beat)
@@ -104,6 +105,7 @@ The hub (`chat:world`, the room every online tab holds) keeps the Super dungeon'
 | `r` | the region the census chose (0..61), or -1: the Bay's great cities (section 3) |
 | `at` | when it rose (relay ms) |
 | `foundAt`, `fb` | when it was found, and by whom (the finder's display name; never an account id) |
+| `inAt` | SD-THROUGH: when the first soul stepped through its Rift - its realm's first admission, told to the hub; never on an unfound record. From then on the Way Through stands (section 6) |
 | `fellAt`, `top`, `n` | when its boss fell, the top fighter's name, how many fought it (every seat in its fight - the gate's and the serpent's own count) |
 | `until` | when an unbeaten Hollow fades: `at + SD_LIFETIME_MS` |
 | `next` | when the next may rise: `fellAt + SD_COLLAPSE_MS + SD_COOLDOWN_MS` (or `until + SD_COOLDOWN_MS`) |
@@ -246,6 +248,17 @@ or the room can open one - a door open when they were stood moved all three, a c
   taken down at its end), where the player stood outside as they went in, never the Hour's own frame read in the
   street's (SD-LAND). The door is read in the street's own frame: the world host's door list keeps each door in its
   pixel's, and read raw it stood the player the streamer's vertical shift over the Hollow, in the sky (SD-SKY).
+- **The Way Through** (SD-THROUGH, 2026-10-21; the owner: *"When someone finds and enters the portal. I want a portal to
+  show up for anyone in the dungeon and anyone entering that automatically leads them there."*) - once the first soul
+  has stepped through the Rift (the record's `inAt`, section 2), a second Rift opens beside everyone in the Hollow and
+  beside everyone who enters it after, and leads straight to the Shattered Hour: *"The Rift stands open. The Way Through
+  opens beside you."* It is the Rift itself at its least size (2.6 m, `world/superDungeon/sdDungeon.js`
+  `SD_THROUGH_SIZE_M`), in the Rift's own state and GOLD (the way in, `Super-Dungeons-Look.md`'s five lights), three
+  metres ahead of me along my heading where its ring stands clear, its face turned to me (`sdThroughPlace`). Walked into or
+  pressed (`sdrift:1`), it is the Rift's own step: its word asked, the Hour's veil, the realm's hello. Its plaque: *The
+  Way Through - To the Shattered Hour*, with the Rift's count. It does not open for one the Hour refused for good, nor
+  for one within 12 m of the Rift when it is first asked (one back from the Hour lands beside it), and it goes out with
+  the Return when the boss falls - a collapse's fighters go back by the Rift itself.
 - **No Mark in a Hollow** (AUDIT SD IV F2): *"You cannot set a Mark in an Abyss Dungeon."* - a place that ends, as the
   court and the Hour are. A dungeon anchor knows its dungeon by its pixel alone, and a later Hollow may stand on that
   pixel in another layout: a Recall took the old one's spot there, in rock or the void.
@@ -621,11 +634,11 @@ One new frame type, `sd` (`net/wire.js`: `SD_KINDS`, `validSdIn`, `validSdOut`, 
 | client -> hub | `spent {s}` |
 | client -> cell | `found {s,px,py}` |
 | client -> `sd:<s>` | `in {lv,bv}`, `pz {i,a,q}`, `hit {q,d,r}`, `ehit {e,q,d,r}` (an Echo), `xhit {c,q,d,r}` (a Heart) |
-| hub -> client | `ev {s,ph,r,at,foundAt?,fb?,fellAt?,top?,n?,until,next}`, `rcpt {r}` |
+| hub -> client | `ev {s,ph,r,at,foundAt?,fb?,inAt?,fellAt?,top?,n?,until,next}`, `rcpt {r}` |
 | `sd:<s>` -> client | `st` (the whole state), `pz {st,f,lit,ok,ls?,w?}`, `mv`, `atk`, `hp`, `ph`, `ec` (Echoes), `cx`/`cxb`/`stun` (Hearts), `fell`, `rcpt`, `no {m}` |
 
 Internal doors (object to object): `/internal/sd/census`, `/internal/sd/found`, `/internal/sd/live`,
-`/internal/sd/fell`. The Worker mints an `sd:<s>` object only for the slot the hub's record names and only while it is
+`/internal/sd/fell`, `/internal/sd/in` (SD-THROUGH: a realm's first admission). The Worker mints an `sd:<s>` object only for the slot the hub's record names and only while it is
 `found` or `fell` (the gate's `gateHolds` law, read from the hub through `/internal/sd/live`). A hub that does not
 answer that ask is no answer, never "no record": the Worker mints nothing (the socket fails and the page reconnects on
 its backoff), and the realm refuses a hello as busy (`CLOSE_BUSY`, which the page tries again - never *"The Hour has
@@ -657,6 +670,11 @@ it is good and to an earner's seat at the fall; `spent {s}` in, to the hub alone
 bucket; the realm's tell to the hub carries its receipts (`rc`, [account, receipt] each) and who stood in the realm
 (`here`).
 
+SD-THROUGH (`world239`) shipped the record's `inAt` and the realm's door to the hub, `/internal/sd/in` (`{s}` -
+`validSdInTell`): the realm tells it from its admission, unawaited, until the hub has answered for the slot; the hub
+stamps the record once (`net/superDungeon/sdLaw.js` `sdEnter`) and fans it. An older client projects `inAt` away; an
+older relay never stamps it, and no Way Through stands.
+
 SD-HELLO: a page says nothing into `sd:<s>` but its hello (and the runtime's own ping) until the realm welcomes the
 socket. The realm's hello asks the hub (`/internal/sd/live`) before it names the socket, and a Durable Object takes the
 socket's next frame while that fetch is out: a pose read then is a pose before hello, refused for good. What waits for
@@ -672,9 +690,9 @@ gate's, a battle's, an arena's) write their own socket and never run in `sd:<s>`
 
 | host | what it carries |
 |---|---|
-| `scenes/world.js` | WIRED: the record, the omen and sighting, the found word, the Hollow at its pixel, the map/compass/timers, the realm's link, court, spoils, receipts, the veil, the ejections, the labels' entry line; one life a Hollow (SD-ONELIFE); the Hour's score (SD13), its voice, air and motes (SD14), the arena read and its title card (SD15), its blows seen (SD16), the Hour-Hand's beam (SD17), the marks card, the element and the save (SD18b), the taverns' word by the Ending (SD18c), the brass air, the door's banner and card (SD19 - the fog's grade through `scenes/shared.js` `setBrass`) |
+| `scenes/world.js` | WIRED: the record, the omen and sighting, the found word, the Hollow at its pixel, the map/compass/timers, the realm's link, court, spoils, receipts, the veil, the ejections, the labels' entry line; one life a Hollow (SD-ONELIFE); the Hour's score (SD13), its voice, air and motes (SD14), the arena read and its title card (SD15), its blows seen (SD16), the Hour-Hand's beam (SD17), the marks card, the element and the save (SD18b), the taverns' word by the Ending (SD18c), the brass air, the door's banner and card (SD19 - the fog's grade through `scenes/shared.js` `setBrass`); the Way Through's word (`through`) and its window and floor light in the Rift's pass, the veil on the nearer ring (SD-THROUGH) |
 | `scenes/worldModes.js` | WIRED: `enterSdRealm` / the way home, the realm's per-frame arm (lighting, fog, sky, the Orrery, the Steps, the arena), the dungeon's exit to the Hollow's door, the step through the fire under way (`stepping`, AUDIT SD III) |
-| `scenes/dungeonContext.js` | WIRED: the Super difficulty, the end (`dungeonEndOf`), the Rift and the Return, the realm's bodies (the Remnant, the Echoes, the Hearts) behind the gate's three seams, the refusals; the rig's body, its parts and gears (SD17), a strike's cast by its element (SD18b), the Remnant in its Ending's light (SD18c) |
+| `scenes/dungeonContext.js` | WIRED: the Super difficulty, the end (`dungeonEndOf`), the Rift and the Return, the realm's bodies (the Remnant, the Echoes, the Hearts) behind the gate's three seams, the refusals; the rig's body, its parts and gears (SD17), a strike's cast by its element (SD18b), the Remnant in its Ending's light (SD18c); the Way Through (SD-THROUGH, `scenes/superDungeon/sdThrough.js` wired) |
 | `scenes/exterior.js` | FLAGGED: the `?exterior` bench is offline; there is no Super dungeon offline. Its plaque is the World Tooltips mod's own *To <name>* - the tiers are said online alone (section 12). |
 
 ## 16. Slices and their records
@@ -705,6 +723,8 @@ gate's, a battle's, an arena's) write their own socket and never run in `sd:<s>`
 | SD26 | AUDIT SD IV |
 | SD27 | AUDIT SD V (cut short) |
 | SD-HERALD | the Abyss Dungeon on Discord: its rise, find, fall and fade posted to the world events' channel |
+| SD-SEA | no Hollow rises at sea |
+| SD-THROUGH | the Way Through: once one has stepped through the Rift, a second Rift beside everyone in the Hollow and everyone entering it |
 
 Each slice records below what it shipped, what it pins and what it leaves.
 
@@ -3356,3 +3376,68 @@ disc7's list of versions and soc1.json's version record (world233).
 THE FOUR HOSTS: none wired. `scenes/world.js`, `scenes/worldModes.js`, `scenes/dungeonContext.js` and
 `scenes/exterior.js` are untouched. The fallback is `scenes/superDungeon/sdHost.js`'s, which `scenes/world.js` wires
 online alone.
+
+### SD-THROUGH - 2026-10-21 (the Way Through)
+
+The owner, 2026-10-21: *"So the abyss dungeon. When someone finds and enters the portal. I want a portal to show up for
+anyone in the dungeon and anyone entering that automatically leads them there."*
+
+**Before.** A Hollow's Rift stood at its end alone (section 6): every fighter walked the whole Super dungeon to reach
+the Shattered Hour, however many had gone through before them, and nothing told anyone inside that the Hour was open.
+
+**Decided.** "There" is the Shattered Hour, where the first soul went. The portal is the Rift itself, a second ring, so
+it reads as the way in (GOLD, the brass astrolabe - never the MOON of a way out) and its step is the Rift's step - the
+same word, the same refusals, the same veil, the same realm hello. It shows up beside each player rather than at one
+spot: for those already inside at the moment someone first goes through, and at the way in for those who enter after.
+A departure from nothing in DFU (Daggerfall has no shared world); Ledger A's SUPER-DUNGEONS row covers it.
+
+**The relay** (`world239`, NOT YET DEPLOYED).
+
+- The record keeps `inAt` (`net/wire.js` `validSdRecord` - a relay instant, never on an unfound record), and the hub's
+  `ev` frame carries it to every client and every hello.
+- A Hollow's realm (`sd:<s>`) tells the hub at an admission while the record it holds is found and unstamped
+  (`Room._sdTellIn`, from `_sdAdmit`'s two exits - a newcomer's and a returner's): one tell in flight, unawaited (a hello
+  never waits on it), told again at the next admission until the hub answers (a 4xx is its last word), never in the
+  collapse. Its door is `/internal/sd/in` (`SD_INTERNAL_IN`, `validSdInTell` - the slot alone).
+- The hub stamps the record once (`net/superDungeon/sdLaw.js` `sdEnter`: found, its boss standing, no `inAt` yet - at the
+  hub's own instant), keeps it and fans it (`Room._sdInInternal`). Nothing names who went through: the record names the
+  finder and the top fighter alone.
+
+**The client.**
+
+- The world host's word on the Hollow's end carries `through` (`scenes/world.js` `sdRiftOf` - `world/superDungeon/sdDungeon.js`
+  `sdThroughStands`: the record's slot, `inAt`, and found).
+- The dungeon host wires `scenes/superDungeon/sdThrough.js` (`createSdThrough`) for a Hollow alone, framed beside the
+  Rift with the heading latched that frame (`_fpYaw`). Once a second it asks the word; the first ask that says through,
+  with the Rift admitting me, stands it - 3 m ahead along my heading, then 1.5 m, on the bearings nearest ahead first, the
+  first spot on my own floor with a clear line to it whose ring stands clear in its plane; else the first spot reached;
+  else, boxed in, at my feet (`sdThroughPlace`). Within 12 m of the Hollow's Rift at that ask, none opens this visit.
+  It goes out when the boss falls (the Return's own `returns`), for good this visit.
+- It is a second `createSdEnd` (`scenes/superDungeon/sdEnd.js`, which took a `riftKey` and a `riftTitle`): its key
+  `sdrift:1` rides the press ladder's `sdrift:` arm, its plaque says *The Way Through*, its press and walk-in are the
+  host's `sdRiftStep`. The collider's probe the Rift's place asks is one function now (`sdProbeOf`), the Rift's and the
+  Way Through's. Its window into the Hour and its floor light are drawn by the Rift's own pass (`world.js` `drawSdRift`,
+  `end.sdThroughLook`), its halo and light ride the end's lists, and the Hour's veil closes on the nearer of the two rings
+  (`sdVeilModelOf`, nothing made a frame).
+- Its two lines are the player's language's (L10N4: `sd.through.title`, `sd.through.opens` through `t()`, the English
+  catalog regenerated by `tools/l10nExtract.mjs`, and every language's row drafted in-session -
+  `tools/l10nInSession.mjs`, recorded as the machine's).
+
+**Not changed.** The Hour's laws (the realm's admission, one life, the seats) and the end's Rift and Return. The
+Hollow's walk is still there for whoever wants it, and the Rift at its end still stands.
+
+THE FOUR HOSTS: `scenes/dungeonContext.js` WIRED (the module made, framed, offered to the ray, named, pressed, drawn,
+lit and freed - its probe the end's); `scenes/world.js` WIRED (the word's `through`, the second ring in the Rift's pass,
+the veil's pivot); `scenes/worldModes.js` untouched (its `sdrift:` press arm and its `drawSdRift` call carry it as they
+are); `scenes/exterior.js` FLAGGED - the bench is offline, and no Super dungeon stands there. Host ceilings:
+`buildDungeonContext` 8,361 -> 8,378 logical lines (8,463), `bootWorld` 36,131 -> 36,135 (36,158).
+
+Pins: `test/net/superDungeon/sdthrough_relay.test.js` (4 - the wire and the law, the relay end to end over the real
+Room, the tell retried and stopped, the relay by source) and `test/world/superDungeon/sdthrough_way.test.js` (6 - the
+law, the place over a model hall, the module over a fake renderer, by the Rift, the veil's pivot, the hosts by source);
+`tools/mutants/sdthrough.json` (42, all dead). PIN MOVED: RELAY_VERSION's pin in 42 files, disc7's list of versions and
+soc1.json's version record (world239); `scale2b`'s count of the calls between rooms (28, each on a deadline); `sd4b_rift`'s hosts (the word, the namer, the press), `sd6c_hall`'s press,
+`sd25_orrery`'s halos and lights, `sd25_look`'s veil aim, `sd26_render`'s and the two lair tests' probe
+(`sdProbeOf`), `sd10b_audit`'s and `sd11c_page`'s `sdRiftOf` scope, `sd11d_words`' and `sd27_audit`'s pins anchored
+on their own lines (the Way Through repeats the Rift's `say` and `look`); `sd26_dungeon.json`, `sd25_orrery.json`,
+`sd25_look.json`, `sd11f.json`, `sd3.json`, `sd11d.json` and `sd27_audit.json` re-aimed by content, every record dead.

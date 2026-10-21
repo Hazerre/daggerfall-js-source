@@ -335,15 +335,15 @@ test('SD4b the hosts by source: the dungeon stands them for a Super dungeon alon
   assert.match(D, /if \(playerFeet\) \{ lastPlayerFeet = \[\.\.\.playerFeet\]; lastPlayerHeight = playerHeight; \}\n {4}if \(sdEnd\) sdEndFrame\(playerFeet\);/, 'the frame, the first I stand there');   // PIN MOVED (LAIR-WALK): the lair's stand asked below the navmesh's bake now
   assert.match(D, /const _dropBatches = [^\n]*\n {4}if \(sdEnd\) _dropBatches\.push\(\.\.\.sdEnd\.batches\(\)\);/);
   assert.match(D, /targets\.push\(\.\.\.camps\.targets\(\)\);[^\n]*\n {4}if \(sdEnd\) targets\.push\(\.\.\.sdEnd\.targets\(\)\);/);
-  assert.match(D, /\(key\) => sdEnd\?\.hoverName\(key\) \?\? null,/);
-  assert.match(D, /sdPress\(key\) \{ return !!sdEnd\?\.press\(key\) \|\| !!sdHall\?\.press\(key\); \},/);   // SD6c (PIN MOVED): and the Orrery's hall's
+  assert.match(D, /\(key\) => sdEnd\?\.hoverName\(key\) \?\? sdThrough\?\.hoverName\(key\) \?\? null,/);   // SD-THROUGH (PIN MOVED): and the Way Through's
+  assert.match(D, /sdPress\(key\) \{ return !!sdEnd\?\.press\(key\) \|\| !!sdThrough\?\.press\(key\) \|\| !!sdHall\?\.press\(key\); \},/);   // SD6c (PIN MOVED): and the Orrery's hall's; SD-THROUGH (PIN MOVED): and the Way Through's
   assert.match(D, /portals\.clear\(\);[^\n]*\n {6}sdEnd\?\.clear\(\);/);
   const W = read('src/scenes/worldModes.js');
   const arm = W.indexOf("if (key.startsWith('sdrift:') || key.startsWith('sdreturn:') || key.startsWith('sdstone:') || key.startsWith('sdplaque:')) { dungeonCtx.sdPress?.(key); return true; }");   // SD6c (PIN MOVED): and the Orrery's handles and plaques
   assert.ok(arm > 0 && arm < W.indexOf("    if (!key.startsWith('exit:')) {\n      dungeonCtx.actions.activate(key"), 'before the press falls through to the action objects');
   assert.match(W, /superRift: \(s\) => host\.superRift\?\.\(s\) \?\? null,/);
   const w = read('src/scenes/world.js');
-  assert.match(w, /const seen = \{ entered: _sdEntered\.has\(s\), fallen: _sdFallen\.has\(s\) \};\n\s*return \{ word: sdRiftWord\(rec, s, now, seen\), returns: sdReturnStands\(rec, s, now\), count: sdRiftCount\(rec, s, now\), look: riftLook\(rec, s, now, seen\), enter: \(\) => sdEnterRealm\(s\) \};/);   // SD5a (PIN MOVED): the realm's door - the step through to the Shattered Hour; SD-ONELIFE (PIN MOVED): and the Hours I died in
+  assert.match(w, /const seen = \{ entered: _sdEntered\.has\(s\), fallen: _sdFallen\.has\(s\) \};\n\s*return \{ word: sdRiftWord\(rec, s, now, seen\), returns: sdReturnStands\(rec, s, now\), through: sdThroughStands\(rec, s, now\), count: sdRiftCount\(rec, s, now\), look: riftLook\(rec, s, now, seen\), enter: \(\) => sdEnterRealm\(s\) \};/);   // SD5a (PIN MOVED): the realm's door - the step through to the Shattered Hour; SD-ONELIFE (PIN MOVED): and the Hours I died in   // SD-THROUGH (PIN MOVED): and whether one has gone through - the Way Through
   assert.match(w, /const rec = sdHost\.record\(\), now = Date\.now\(\) \+ _sharedOffsetMs;/, 'the hub\'s record, on the shared clock the Hollow\'s host reads');
   assert.match(w, /superRift: \(s\) => sdRiftOf\(s\),/);
   assert.match(read('bible/11-Multiplayer/Super-Dungeons.md'), /### SD4b - shipped 2026-10-07/);

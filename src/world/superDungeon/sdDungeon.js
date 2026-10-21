@@ -28,6 +28,7 @@ import { timerText } from '../../systems/eventTimers.js';
 import { RDB_SIDE } from '../rdbLayout.js';   // SD-REACH: a dungeon block's side - which block's square holds a marker
 import { riftCentreY } from './sdRiftModel.js';   // AUDIT SD IV (F36): the ring's centre as it stands - it hovers
 import { GLOBAL_SCALE } from '../meshReader.js';   // AUDIT SD IV (F38): a block's water level, in metres
+import { t } from '../../systems/textManager.js';   // SD-THROUGH: the Way Through's words in the player's language (L10N4)
 
 /** Health and damage multipliers for a Super dungeon's foes (the Elite's x2 and x2). */
 export const SUPER_HEALTH_SCALE = 4;
@@ -414,6 +415,59 @@ export function sdReturnStands(rec, s, now) {
   if (rec.s !== s) return false;
   const ph = sdPhase(rec, now);
   return ph === 'risen' || ph === 'found';
+}
+
+/**
+ * SD-THROUGH (2026-10-21, the owner: "When someone finds and enters the portal. I want a portal to show up for anyone in
+ * the dungeon and anyone entering that automatically leads them there."): THE WAY THROUGH - once the first soul has
+ * stepped through the Rift (the hub's record's `inAt`, stamped at its realm's first admission - net/superDungeon/sdLaw.js
+ * sdEnter), a second Rift stands beside everyone in the Hollow, and beside everyone who enters it, and leads to the
+ * Shattered Hour through the Rift's own door (its word asked, its veil, the realm's hello). It stands while the Hollow is
+ * found and its boss stands - it goes out with the Return, and a collapse's fighters go back by the Rift itself.
+ * @param {import('../../net/superDungeon/sdLaw.js').SdRecord | null | undefined} rec
+ * @param {number} s the Hollow's slot
+ * @param {number} now
+ */
+export function sdThroughStands(rec, s, now) {
+  return !!rec && rec.s === s && rec.inAt != null && sdPhase(rec, now) === 'found';
+}
+/** The Way Through's plaque and the line said as it opens beside me - each read in the player's language as it is read
+ *  (L10N4); its row the Rift's own. */
+export const SD_THROUGH_TEXT = Object.freeze({
+  get title() { return t('sd.through.title', 'The Way Through'); },
+  get to() { return SD_END_TEXT.riftTo; },
+  get opens() { return t('sd.through.opens', 'The Rift stands open. The Way Through opens beside you.'); },
+});
+/** Its ring across (m) - the Rift's least, a ring that stands in Daggerfall's corridors; how far ahead of me it opens (m,
+ *  then half that); and how near the Hollow's own Rift I stand for none to open (m - the Rift is right there). */
+export const SD_THROUGH_SIZE_M = SD_RIFT_MIN_M;
+export const SD_THROUGH_AHEAD_M = 3;
+export const SD_THROUGH_NEAR_RIFT_M = 12;
+/** The bearings about a heading, nearest it first: ahead, then a quarter-turn's halves either side, then round to behind. */
+const AROUND = Object.freeze([0, 1, -1, 2, -2, 3, -3, 4].map((k) => (k * Math.PI) / 4));
+/**
+ * THE WAY THROUGH'S PLACE: before `feet` (the floor I stand on) along my heading `yaw` (forward [sin yaw, 0, cos yaw]) -
+ * SD_THROUGH_AHEAD_M on, then half that, on the bearings nearest ahead first - the first spot on my own floor, a clear
+ * line at chest height to it, whose ring stands clear in its face's plane (discClear); its face turned to me. Else the
+ * first spot reached at all; else, boxed in, at my feet, facing my heading. Answers { at, size, face }, as sdRiftPlace.
+ * @param {number[]} feet
+ * @param {number} yaw
+ * @param {SdProbe} probe
+ */
+export function sdThroughPlace(feet, yaw, probe) {
+  const size = SD_THROUGH_SIZE_M, a0 = Number.isFinite(yaw) ? yaw : 0;
+  let reached = null;
+  for (const r of [SD_THROUGH_AHEAD_M, SD_THROUGH_AHEAD_M / 2]) {
+    for (const da of AROUND) {
+      const dir = [Math.sin(a0 + da), 0, Math.cos(a0 + da)];
+      const at = besideOn(feet, dir, r, probe);
+      if (!at) continue;
+      const face = [-dir[0], 0, -dir[2]];
+      if (discClear(at, size, face, probe)) return { at, size, face };
+      reached ??= { at, size, face };
+    }
+  }
+  return reached ?? { at: [feet[0], feet[1], feet[2]], size, face: [Math.sin(a0), 0, Math.cos(a0)] };
 }
 
 /** Whether `feet` stand in a portal whose foot is `at`: within `reach` of its axis across the floor, between its foot

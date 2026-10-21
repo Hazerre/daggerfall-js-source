@@ -377,7 +377,7 @@ test('SD6c the hosts by source: the dungeon host stands the hall in the Hour alo
   assert.doesNotMatch(D, /if \(sdHall\) sdHallFrame\(dt, playerFeet\);   \/\/ SD6c/);
   assert.match(D, /if \(sdHall\) targets\.push\(\.\.\.sdHall\.targets\(\)\);/);
   assert.match(D, /\(key\) => sdHall\?\.hoverName\(key\) \?\? null,/);
-  assert.match(D, /sdPress\(key\) \{ return !!sdEnd\?\.press\(key\) \|\| !!sdHall\?\.press\(key\); \},/);
+  assert.match(D, /sdPress\(key\) \{ return !!sdEnd\?\.press\(key\) \|\| !!sdThrough\?\.press\(key\) \|\| !!sdHall\?\.press\(key\); \},/);   // SD-THROUGH (PIN MOVED): the Way Through's between
   assert.match(D, /sdHall\?\.clear\(\);/);
   const W = read('src/scenes/worldModes.js');
   assert.match(W, /if \(key\.startsWith\('sdrift:'\) \|\| key\.startsWith\('sdreturn:'\) \|\| key\.startsWith\('sdstone:'\) \|\| key\.startsWith\('sdplaque:'\)\) \{ dungeonCtx\.sdPress\?\.\(key\); return true; \}/);
