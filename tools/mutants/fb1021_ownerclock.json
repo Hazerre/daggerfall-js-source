@@ -198,22 +198,22 @@
   {
     "name": "CU-brain-left-behind",
     "file": "src/scenes/ownerCatchUp.js",
-    "old": "      if (want > ticked) { tick(want - ticked); ticked = want; }",
-    "new": "      void want;",
+    "old": "if (i > 1 && want > ticked) { tick(want - ticked); ticked = want; }",
+    "new": "void want;",
     "tests": ["test/scenes/fb1021_ownerclock.test.js"]
   },
   {
     "name": "CU-shared-unread",
     "file": "src/scenes/ownerCatchUp.js",
-    "old": "    const plan = shared() ? catchUpPlan(",
-    "new": "    const plan = true ? catchUpPlan(",
+    "old": "    caught = shared();",
+    "new": "    caught = true;",
     "tests": ["test/scenes/fb1021_ownerclock.test.js"]
   },
   {
     "name": "CU-mark-dropped",
     "file": "src/scenes/ownerCatchUp.js",
-    "old": "    lastAt = at;\n    mark(at);",
-    "new": "    lastAt = at;",
+    "old": "      stepped.add(key);\n      mark(at);",
+    "new": "      stepped.add(key);",
     "tests": ["test/scenes/fb1021_ownerclock.test.js"]
   },
   {
@@ -261,22 +261,22 @@
   {
     "name": "WIRE-street-unwired",
     "file": "src/scenes/world.js",
-    "old": "  wireOwnerClock(exteriorFoes, modes, () => online?.status === 'open' && online.othersHere > 0);",
+    "old": "  wireOwnerClock([exteriorFoes, cityGuards], modes, () => online?.status === 'open' && online.othersHere > 0);",
     "new": "  void wireOwnerClock;",
     "tests": ["test/scenes/fb1021_ownerclock.test.js"]
   },
   {
     "name": "WIRE-alone-caught-up",
     "file": "src/scenes/world.js",
-    "old": "  wireOwnerClock(exteriorFoes, modes, () => online?.status === 'open' && online.othersHere > 0);",
-    "new": "  wireOwnerClock(exteriorFoes, modes, () => online?.status === 'open');",
+    "old": "  wireOwnerClock([exteriorFoes, cityGuards], modes, () => online?.status === 'open' && online.othersHere > 0);",
+    "new": "  wireOwnerClock([exteriorFoes, cityGuards], modes, () => online?.status === 'open');",
     "tests": ["test/scenes/fb1021_ownerclock.test.js"]
   },
   {
     "name": "CU-wall-time-planned",
     "file": "src/scenes/ownerCatchUp.js",
-    "old": "    const plan = shared() ? catchUpPlan(dt, extrasAfforded(rawMs, perCall)) : { n: 1, dt };",
-    "new": "    const plan = shared() ? catchUpPlan(Math.max(dt, Math.min(rawMs / 1000, OWNER_CATCHUP_MAX_S)), extrasAfforded(rawMs, perCall)) : { n: 1, dt };",
+    "old": "const plan = caught && before.has(key) ? catchUpPlan(dt, extraMax) : { n: 1, dt };",
+    "new": "const plan = caught && before.has(key) ? catchUpPlan(Math.max(dt, Math.min(shareMs / 100, OWNER_CATCHUP_MAX_S)), extraMax) : { n: 1, dt };",
     "tests": ["test/scenes/fb1021_ownerclock.test.js"]
   },
   {
@@ -310,8 +310,8 @@
   {
     "name": "CU-break-dropped",
     "file": "src/scenes/ownerCatchUp.js",
-    "old": "      else if (i > 2 && clock() - extrasFrom >= shareMs) break;",
-    "new": "      else if (i > 2 && clock() - extrasFrom >= Infinity) break;",
+    "old": "        else if (i > 2 && spent + clock() - extrasFrom >= shareMs) break;",
+    "new": "        else if (i > 2 && spent + clock() - extrasFrom >= Infinity) break;",
     "tests": ["test/scenes/fb1021_ownerclock.test.js"]
   },
   {
@@ -324,29 +324,29 @@
   {
     "name": "CU-perCall-not-max",
     "file": "src/scenes/ownerCatchUp.js",
-    "old": "    perCall = cost;   // the dearest",
-    "new": "    void cost;   // the dearest",
+    "old": "        cost = Math.max(cost, clock() - t0);",
+    "new": "        cost = clock() - t0;",
     "tests": ["test/scenes/fb1021_ownerclock.test.js"]
   },
   {
     "name": "CU-ticked-zero",
     "file": "src/scenes/ownerCatchUp.js",
-    "old": "let ticked = foeFrameDt(dt), cost = 0, extrasFrom = 0;",
-    "new": "let ticked = 0, cost = 0, extrasFrom = 0;",
+    "old": "    ticked = foeFrameDt(dt);   // the host ticked",
+    "new": "    ticked = 0;   // the host ticked",
     "tests": ["test/scenes/fb1021_ownerclock.test.js"]
   },
   {
     "name": "CU-rest-dropped",
     "file": "src/scenes/ownerCatchUp.js",
-    "old": "      timed(plan.dt, rest);",
-    "new": "      timed(plan.dt, []);",
+    "old": "(d) => update(d, ...rest)",
+    "new": "(d) => update(d)",
     "tests": ["test/scenes/fb1021_ownerclock.test.js"]
   },
   {
     "name": "CU-mark-after",
     "file": "src/scenes/ownerCatchUp.js",
-    "old": "    lastAt = at;\n    mark(at);",
-    "new": "    lastAt = at;\n    mark(at - 1000);",
+    "old": "      stepped.add(key);\n      mark(at);",
+    "new": "      stepped.add(key);\n      mark(at - 1000);",
     "tests": ["test/scenes/fb1021_ownerclock.test.js"]
   },
   {
@@ -366,29 +366,29 @@
   {
     "name": "MS-default-mark-dropped",
     "file": "src/scenes/ownerCatchUp.js",
-    "old": "export function markModalSteps(modes, { mark = (ms) => ownerClock.mark(ms) } = {}) {",
-    "new": "export function markModalSteps(modes, { mark = () => {} } = {}) {",
+    "old": "export function markModalSteps(modes, { mark = (ms) => ownerClock.mark(ms), frame = () => {} } = {}) {",
+    "new": "export function markModalSteps(modes, { mark = () => {}, frame = () => {} } = {}) {",
     "tests": ["test/scenes/fb1021_ownerclock.test.js"]
   },
   {
     "name": "W-shared-dropped",
     "file": "src/scenes/ownerCatchUp.js",
-    "old": "  catchUpOwnerFoes(pool, { shared });",
-    "new": "  catchUpOwnerFoes(pool);",
+    "old": "  _pageShared = shared;",
+    "new": "  void shared;",
     "tests": ["test/scenes/fb1021_ownerclock.test.js"]
   },
   {
     "name": "W-modal-unmarked",
     "file": "src/scenes/ownerCatchUp.js",
-    "old": "  markModalSteps(modes);\n}",
+    "old": "  markModalSteps(modes, { frame: () => ownerFoes.frame() });\n}",
     "new": "  void markModalSteps;\n}",
     "tests": ["test/scenes/fb1021_ownerclock.test.js"]
   },
   {
     "name": "W-street-uncaught",
     "file": "src/scenes/ownerCatchUp.js",
-    "old": "  catchUpOwnerFoes(pool, { shared });",
-    "new": "  void pool;",
+    "old": "  ownerFoes.pools(...pools);",
+    "new": "  void pools;",
     "tests": ["test/scenes/fb1021_ownerclock.test.js"]
   },
   {
