@@ -71,7 +71,9 @@ Each prefab tree keeps its own shape stamp (`world/prefabNode.js` `prefabShapeSt
 made 747 model keys and an 8.9 ms boat frame; now none and 2.1 ms. A boat past 600 m is walked, baked and lit every
 fourth frame on the time she missed, her held walk reused by the flats and the draw, a peer's boat's Animators the
 same - the sea's ships' far-life law, moved to `scenes/comeSailAway/farLife.js`: four near and twenty far boats, 4.5 ms
-to 2.5 ms.
+to 2.5 ms. Its audit: a far boat's held walk now ends at any on/off switch in her tree (hidden or shown the next
+frame, not up to three later), the stamp's field is `_treeStamp` (the renderer's `_sh*` names are its shadow memory's),
+and `setParent` refuses a cycle (as Unity does).
 
 ## HORSE-VIEW (4) - `bible/07-Rendering/Performance-Priority.md`
 
