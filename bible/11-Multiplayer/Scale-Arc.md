@@ -3634,7 +3634,7 @@ own points say why (RELAY-LOAD's `daggerfall_relay`, live relay world237).
 
 - **The drops are the foes budget's.** In the `world` rooms (every cell, `world:x,y`) over ten hours, double14 counted
   482k frames dropped of double16's 17.0M foes frames - 2.8%, and every one of them is `_foesFan`'s room budget
-  (`server/src/index.js:"_foesFan(ws, a, kind, data, length, ranged, bucket, now) {"`): one byte bucket a room
+  (`server/src/index.js:"_foesFan(ws, a, kind, data, text, ranged, bucket, now) {"`): one byte bucket a room
   (`_roomFoes`, and `_roomOwn` for OWN1's lane), FOES_ROOM_BYTES_PER_S (4 MiB) a second and a second's worth at most,
   shared by every owner in the cell, a frame passing when the bucket holds its fan whole.
 - **The frames lost are the full ones.** Readers tallied 285k grants never heard in nine hours (`ungranted`,
@@ -3768,14 +3768,16 @@ frozen head (8a8539dc7), and an integration lane over its seams. Each finding tr
   cells this slice is for - and the owner has already let the foes go, so a batch dropped is foes gone for everyone.
   Measured over the real Room: the audit lane's own bench (two batches a second) put them at 61.7% heard on main's law
   and 29.2% under FOES-FIRST in the crowded cell, 92.5% and 1.7% at a star; this page's bench (`hands`, `starHands`)
-  29.2% and 0.8% under FOES-FIRST. A frame that hands foes on goes first on a turn of its own, once each FOES_FIRST_MS a
-  sender (`net/wire.js` foesFrameHandsOn, `_foesUrgent`): 100% in both.
+  29.2% and 0.8% under FOES-FIRST. A frame that hands foes on goes first, once each FOES_FIRST_MS a sender
+  (`net/wire.js` foesFrameHandsOn, `_foesUrgent`): 100% in both. (FOES-HOLD, below, keeps it first and puts it in the
+  line: a turn of its own let a page that calls every frame a handover take the budget.)
 - **F2, should-fix: a frame charged and then junked.** The lane's clocks were stamped after the send, and a frame that
   grows when it is re-serialised (`1e20`, out as twenty-one digits) returns before it as junk - its fan already charged.
   Its sender stayed unheard, so every frame it sent went first, past both the turn's bound and the unheard rule
   (modelled: the honest deltas fell from 77% to 4.8%, the honest full frames to 69.7%). The clocks are stamped once the
   fan is charged.
-- **The size of a first frame** - the integration lane's: in Left below, with the claim the audit tried and removed.
+- **The size of a first frame** - the integration lane's: one large owner among smaller ones heard none of its full
+  frames. FOES-HOLD, below.
 - **Docs.** "The relay reads these two fields and nothing else" was false (it reads `f`, and every record under
   `grantStrip`); "a 3 KiB one to some 650" cannot be (SOCKETS_MAX 256) and "a 16 KiB frame to 128 listeners" is just
   past the 2 MiB; the delta's cliff at 3 MiB was unsaid. Each fixed above.
@@ -3791,11 +3793,6 @@ The bench, 60 s a scene, the frozen head against the audit's (the first six rows
 
 ### Left, each with its reason
 
-- **A room whose full frames alone are more than its budget** - one large owner among smaller ones hearing none of its
-  full frames, the bigger star's owners half a minute between theirs: FOES-HOLD, below.
-- **The blobs read** - `tools/relayLoad.mjs`'s `fulls` question (FOES-HOLD, below).
-- **The sender is not told.** A full frame the budget refuses is held for its turn now (FOES-HOLD) rather than dropped,
-  so nothing is owed back: what is lost is a held full frame its sender's newer one replaced, and the newer says it all.
 - **The version.** Every byte of the relay is its law (`test/net/relayversion.test.js`): world239, NOT YET DEPLOYED,
   every pin that names it moved; its merge is one relay drop. world238 is claimed by two open branches (STAR-TUNE #1090,
   GRANT-SLEEP #1066): whichever lands after another takes the next number at its merge.
@@ -3849,9 +3846,12 @@ cannot take is HELD, and every held frame goes in its turn:
 - **A held frame borrows.** It goes the moment the bucket holds its fan down to minus FOES_FULL_RESERVE, the fan walked
   where its sender stands then (`server/src/index.js:"_foesDrain(kind, hold, bucket, now) {"`); asked at every foes or
   own frame the lane takes - a held frame's sender streams every FOES_MS, so its turn is asked at least that often, and
-  no timer is kept.
-- **A handover is never dropped for the budget.** It waits its turn like any first frame (inside its cadence it asks the
-  reserve's floor first), and it is never replaced and never ages out: the owner has let those foes go.
+  no timer is kept. A frame whose fan no bucket can take (the budget and the reserve) is dropped - at once with nothing
+  held, at the head when it was held behind others (the room grew round it) - and the line moves on.
+- **A handover waits its turn and keeps it.** Inside its cadence it asks the reserve's floor first; held, it is never
+  replaced by a newer frame, never ages out (the owner has let those foes go) and is given a last try at its sender's
+  leave (below). It leaves the hold unsent only past the hold's bounds or its fan past any bucket - the budget alone
+  never drops it while its sender is here.
 - **No frame jumps the line.** FOES-FIRST's handover went first once a second whatever waited; a page that marks every
   record with an heir (the word is the sender's own) would take that turn every second at any size - with a line to
   jump, the whole budget. The bench's `liar` (one socket calling every 16 KiB frame a handover, twelve a second) buys its
@@ -3860,56 +3860,96 @@ cannot take is HELD, and every held frame goes in its turn:
   FOES_STALE_MS, and in a room whose full frames are several times the budget a sender's turn comes round slower than
   that (the record cap's: every 9.4 s). So the relay says for it what it is: a sender whose frames are held, still
   streaming (a frame on the lane inside FOES_FULL_MS), whose readers have heard nothing of it for FOES_UNHEARD_MS, is
-  fanned an empty frame of its own - `{ f: [] }` with its held frame's `k` (`server/src/index.js:"_foesBeats(kind, hold, bucket, now) {"`).
-  Every reader of every build takes it as the owner heard and nothing else: no `n` (it moves no counter, so the held
-  frame is still taken when it comes), no `full` (it sweeps nothing), no record. One a sender each FOES_UNHEARD_MS, a
-  few dozen bytes a listener, charged to the budget; a sender gone quiet (a hidden page) is beaten no longer than it
-  streams, so its readers let it go as they did.
+  fanned an empty frame of its own - `{ f: [] }` with its held frame's `k` when that is in a room key's shape
+  (`net/wire.js` isRoomKey), none else (`server/src/index.js:"_foesBeats(kind, hold, bucket, now) {"`). Every reader of
+  every build takes it as the owner heard and nothing else: no `n` (it moves no counter, so the held frame is still
+  taken when it comes), no `full` (it sweeps nothing), no record. One a sender each FOES_UNHEARD_MS, a few dozen bytes a
+  listener, charged as a held frame is, to minus FOES_FULL_RESERVE: a beat the bucket cannot take waits for the next
+  scan, owed still. A sender gone quiet (a hidden page) is beaten no longer than it streams, so its readers let it go as
+  they did.
 - **A sender leaving.** An owner leaving the cell hands its foes on and closes, and a reader takes no frame of a peer whose
   leave it has heard - so what the sender still holds would reach nobody after its leave. Its handovers get a last try
-  before the leave is said, on the lane's budget to minus the reserve and never deeper (`_foesLeft`); the rest goes with it.
-- **Bounds.** FOES_HELD_PER_SENDER (4) frames a sender a lane, FOES_HELD_BYTES_MAX (64 of the largest frame) a lane; a
-  full frame whose words are FOES_STALE_MS old leaves the hold unsent; past any bound a frame is dropped and counted, as
-  FOES-FIRST counted it.
+  before the leave is said, on the lane's budget to FOES_LEFT_FLOOR (`_foesLeft`): twice the reserve, one past the
+  first frames' floor the line keeps the bucket near. The floor is the room's, not a leave's - all the leaves together
+  put it no deeper, and the debt is repaid in half a second. The rest of what it held goes with it.
+- **Bounds, and room made fairly.** FOES_HELD_PER_SENDER (4) frames a sender a lane; FOES_HELD_BYTES_MAX (64 of the
+  largest frame) a lane, counted in the TEXT the hold keeps - a held frame is kept as it came and parsed again at its
+  turn. Past the bytes, room is made from the sender holding the most, each time the one holding the most now, while it
+  holds more than the frame's own sender will (`server/src/foesHold.js:"function roomFor(hold, mine, over) {"`): its
+  newest frame that is no handover first, a handover only when it holds nothing else; else the frame is refused and
+  nothing taken. A full frame whose words are FOES_STALE_MS old leaves the hold unsent. Every frame out of the hold
+  unsent is counted gone, and dropped as FOES-FIRST counted it.
 
 ### Measured
 
-`tools/foesFirstBench.mjs` over the real Room, 60 s a scene; "before" is FOES-FIRST's law (#1103's head, 9a46fc23a) run
-by the same bench. The bench now reads each send by the frame it carries (a held frame goes out while another sender's
-frame is taken) and runs its senders 15 s past the end so a frame held at the end has its turn; a delivered handover is
-its owner heard, as it is at a reader. Two scenes are new: `burst` (an owner handing on three batches at once, every
-second) and `liar` (above).
+`tools/foesFirstBench.mjs` over the real Room, 60 s a scene; "before" is FOES-FIRST's law (#1103's first head,
+9a46fc23a) run by the same bench, "after" this head. The bench reads each send by the frame it carries (a held frame
+goes out while another sender's frame is taken) and runs its senders 15 s past the end so a frame held at the end has
+its turn; a delivered handover is its owner heard, as it is at a reader. Three scenes are FOES-HOLD's: `burst` (an owner
+handing on three batches at once, every second), `liar` (above) and `leavers` (the bigger star, and thirty of its
+others each handing on 24 foes in two batches and closing in the same moment - a door, a teleport, a death).
 
 | Scene | Full frames heard | Full frames apart p99 / max | Longest unheard, stale | The rest |
 |---|---|---|---|---|
 | quiet, crowded, flood, hands | as before (100%) | as before | as before | as before |
 | star: 30 of 60, 24 records | 76.0% -> 80.0% | 12.5 / 43.6 s -> 3.2 / 3.9 s | 4.6 s -> 3.9 s, 0 | deltas 1.4% -> 0.4% |
-| star80: 40 of 80, 24 records | 35.6% -> 44.8% | 31.4 / 48.6 s -> 5.1 / 6.1 s | 4.8 s -> 4.3 s, 0 | deltas 3.2% -> 0.4%; 460 beats |
-| big: 20 of 120 at the record cap | 13.9% -> 22.0% | 60 / 60 s -> 10.4 / 10.5 s | 5.4 s -> 4.3 s, 0 | deltas 4.8% -> 0.4%; 244 beats |
-| stander: the star80 crowd, one owner 48 | 34.7% -> 43.9% | 34.0 / 60 s -> 5.6 / 6.6 s | 5.0 s -> 4.3 s, 0 | **the stander's own 0% -> 44.8%** |
-| stander64: the same, one owner 64 | 34.6% -> 43.1% | 33.4 / 60 s -> 5.3 / 6.1 s | 10.9 s (0.44% stale) -> 4.3 s, 0 | **the stander's own 0% -> 41.4%** |
-| starHands: the star, two handovers a second | 74.2% -> 79.1% | 16.7 / 35.6 s -> 4.6 / 5.4 s | 8.6 s (0.84% stale) -> 5.4 s, 0 | handovers 98.3% -> 100% |
-| burst: the star, three batches at once a second | 75.2% -> 76.7% | 12.5 / 31.3 s -> 3.2 / 4.2 s | 8.3 s (0.35% stale) -> 4.0 s, 0 | **handovers 32.2% -> 100%** |
+| star80: 40 of 80, 24 records | 35.6% -> 44.8% | 31.4 / 48.6 s -> 5.0 / 6.3 s | 4.8 s -> 4.4 s, 0 | deltas 3.2% -> 0.4%; 466 beats |
+| big: 20 of 120 at the record cap | 13.9% -> 22.2% | 60 / 60 s -> 10.4 / 10.5 s | 5.4 s -> 4.5 s, 0 | deltas 4.8% -> 0.4%; 240 beats |
+| stander: the star80 crowd, one owner 48 | 34.7% -> 43.9% | 34.0 / 60 s -> 5.8 / 6.7 s | 5.0 s -> 4.5 s, 0 | **the stander's own 0% -> 44.8%** |
+| stander64: the same, one owner 64 | 34.6% -> 43.0% | 33.4 / 60 s -> 6.0 / 6.5 s | 10.9 s (0.44% stale) -> 4.4 s, 0 | **the stander's own 0% -> 41.4%** |
+| starHands: the star, two handovers a second | 74.2% -> 78.7% | 16.7 / 35.6 s -> 3.5 / 4.1 s | 4.6 s -> 4.0 s, 0 | handovers 98.3% -> 100% |
+| burst: the star, three batches at once a second | 75.2% -> 76.7% | 12.5 / 31.3 s -> 3.2 / 4.2 s | 4.6 s -> 4.0 s, 0 | **handovers 32.2% -> 100%** |
+| leavers: star80, thirty owners handing on as they close | 46.7% -> 52.9% | 24.9 / 33.2 s -> 5.2 / 5.9 s | 4.8 s -> 4.5 s, 0 | **handovers 45% -> 100%** |
 | liar: the star, one page's every 16 KiB frame a "handover" | 65.4% -> 68.9% | 14.8 / 18.7 s -> 3.6 / 4.0 s | 4.6 s -> 4.0 s, 0 | the liar's frames 4.3% -> 5.5% |
 
 The room's bytes out are the budget's in every crowded scene, before and after (4.05 to 4.08 MiB a second). A held frame
-waits 2.1 s at the 99th in the star scenes (its words refreshed in its place meanwhile).
+waits 2.0-2.6 s at the 99th in the star scenes (its words refreshed in its place meanwhile). The bench is deterministic
+(one seed, a fake clock): it gives these figures to the digit on any machine.
 
 **What it costs.** Where the full frames alone are more than the budget, the deltas wait behind them: 1.4-4.8% heard
 before, 0.4% after (the moments the line is empty). A full frame carries every record a delta does, so the puppets are
 moved by the full frames there - every 2.6 s at the star, 4.8 s at the bigger star, 9.4 s at the record cap - where
 before most owners were moved by a delta now and then and some by nothing for half a minute. Inside the budget (the
-quiet and crowded cells, the flood, the hands) nothing is ever held and nothing changed.
+quiet and crowded cells, the flood, the hands) nothing is ever held and nothing changed. A leave borrows one reserve
+past the first frames' floor, so the full frames just after it wait half a second more.
+
+### AUDIT FOES-HOLD (2026-10-21)
+
+The owner: "Should be audit?" Five cold lanes, read-only, on the frozen head be264c7fa1; this slice's lane and the
+integration lane found these, each traced to a failure on the real Room, fixed and pinned:
+
+- **1, blocking: the beat.** It repeated its held frame's `k` - the sender's own word, at any length the frame cap let
+  in - to every listener, and was charged with no floor. Four sockets each holding a handover whose `k` was 58 KB put
+  the bucket 9.6 MiB into debt in 40 s, every honest frame held or dropped; twenty sent 4.6 times the budget. Now `k`
+  rides only in a room key's shape, and the beat is charged to the first frames' floor (twenty: the bucket at minus
+  half a MiB at worst, the bytes out the budget's).
+- **2, blocking: the hold's memory.** It kept the parsed frame and counted its text: padded with empty objects, 64 held
+  frames of 4 MiB of text were 85 MiB of heap in an isolate of 128. Now the text is kept and parsed again at its turn
+  (the same 64: 4.1 MiB). And first come, first served, sixteen sockets holding the largest frames shut every honest
+  owner out of the line: room is now made from the sender holding the most.
+- **3, should-fix: a handover at a leave.** A door, a teleport or a death hands the foes on and closes the socket in the
+  same moment; held at the back of the line and tried at the leave on the first frames' floor, a star owner's batches
+  were heard 22.5% of the time (65% before the hold; the bench's `leavers`, 30%). Now the leave borrows one reserve more:
+  100% in every scene the lanes built (1 to 24 records, closing at 0 to 1,000 ms, streaming or not).
+- **4, should-fix: pins.** Seven of the lane's mutants survived: a head no bucket takes blocking the line, the age read
+  off the place, a frame sent from the hold leaving its sender unheard, the beat uncharged, the own lane's leave on the
+  foes budget, an unaffordable fan held, a replacement uncounted - each pinned now, with a randomized run over a
+  persistent hold (the order every reader hears, the bounds, the floors, the counts).
+- **5, 6: the record and the metrics.** The table above is re-measured on the same bench both ways (the old "before"
+  of starHands and burst was an older bench's); a replaced delta was counted a full frame dropped, a head too large for
+  any bucket left uncounted, a frame junk at its turn counted sent.
+- The integration lane: "a handover is never dropped for the budget" overclaimed (3); the release text, below.
 
 ### The metrics point
 
-Five more blobs (`server/src/relayScale.js`), each a count in decimal, read by `tools/relayLoad.mjs`'s `fulls` question:
+Five more blobs (`server/src/relayScale.js`), each a count in decimal, read by `tools/relayLoad.mjs`'s `fulls` question.
+The frames held are the held sent, the held gone and the still held:
 
 | Blob | Holds |
 |---|---|
-| `blob6` | frames held for their turn (a held full frame replaced by its sender's newer one counts again, and its older words as a full frame dropped - blob4) |
+| `blob6` | frames held for their turn (a full frame in its sender's place counts again; the frame it replaced is gone) |
 | `blob7` | held frames sent |
-| `blob8` | held frames that left the hold unsent (stale, their sender gone) |
+| `blob8` | held frames that left the hold unsent: replaced, taken for room, stale, their sender gone, a fan past any bucket, junk at their turn (a full one among them is a full frame dropped - blob4) |
 | `blob9` | the waits of the held frames sent, summed, ms (`blob9 / blob7`, the mean) |
 | `blob10` | beats said for a held sender |
 
@@ -3918,29 +3958,38 @@ Five more blobs (`server/src/relayScale.js`), each a count in decimal, read by `
 - **A room past its budget moves its puppets by its full frames.** The line carries every owner's state round fairly;
   what it cannot do is carry more than the budget. Thinner frames would: a full frame's records are the delta's own JSON
   (12 to 20 fields each) - a slice of the wire's own, both ends, past this one.
+- **A room's budget is shared.** Sockets that send the largest frames the wire takes still take their turns, one a
+  sender, each a large fan: twenty of them in a crowd stretch every honest owner's round (the beats keep the honest heard;
+  their full frames come round slower). Turns weighed by bytes would give the large frames fewer - and an honest owner's
+  large handover with them; the hello gate and the per-socket meters bound how many sockets one page holds.
 - **The dungeon's own lane takes the beat by reading.** `dungeonContext.js` applyOwnFrame takes `{ f: [] }` with the
   room's `k` and no `n` as an owner heard (its early returns read `f`, `k` and `n` alone); the pins run the beat through
   the street pool (which the building's pool is - `makeInteriorFoes` mints it) and the dungeon host's stream
   (`seatheal.test.js`, world.js's own onFoes), not the dungeon's own lane.
-- **The version.** world239 holds FOES-FIRST and FOES-HOLD, NOT YET DEPLOYED; FOES-HOLD re-hashed it in place.
+- **The version.** world239 holds FOES-FIRST and FOES-HOLD, NOT YET DEPLOYED; FOES-HOLD and its audit re-hashed it in
+  place.
 
 ### Pins
 
-- `test/net/fb1021b_foeshold.test.js` (7): the law (a place taken, a newer full frame in its place, a holding sender's
-  delta refused, a handover behind its sender's own, the caps, the head, the turn and its bound); THE LINE over the real
-  Room (a large held frame first, before a smaller one that came after it; no delta past it; a holding sender's own
-  delta dropped and its newer full frame sent in its place); a delta the reserve affords dropped behind a held frame, a
-  held frame borrowing, a newer full frame inside its cadence in its place and its sender's next turn after it; the beat
-  (its shape, once each FOES_UNHEARD_MS, never for a quiet sender, the scan's bound) and the street pool taking it as its
-  owner heard - kept past FOES_STALE_MS, its counter unmoved, let go without a word; a sender leaving (its handover
-  before its leave, never deeper than the reserve; a full frame aged out, a handover never); the bench (the stander, the
-  bigger star, the record cap, the burst, the liar, the quiet and crowded cells as they were); the blobs.
+- `test/net/fb1021b_foeshold.test.js` (13): the law (a place taken, a newer full frame in its place and the one it
+  replaced answered, a holding sender's delta refused, a handover behind its sender's own, the cap, the head, the turn
+  and its bound); room made fairly (from the most, while it holds more, its full frame before its handover, nothing
+  taken on a refusal); THE LINE over the real Room (a large held frame first, before a smaller one that came after it;
+  no delta past it; a holding sender's own delta dropped and its newer full frame sent in its place); a delta the
+  reserve affords dropped behind a held frame, a held frame borrowing, a newer full frame inside its cadence in its
+  place; the beat (its shape, its key, once each FOES_UNHEARD_MS, charged, never past the floor and owed still, never
+  for a quiet sender, the scan's bound) and the street pool taking it as its owner heard; a sender leaving (its
+  handover before its leave, to FOES_LEFT_FLOOR and no deeper; a full frame aged out by its newest words, a handover
+  never); the line moving past a fan no bucket takes, a frame sent from the hold hearing its sender; the own lane (held,
+  beaten, left on its own budget); the hold counted and kept as text; room in the hold over the real Room; the law at
+  random over a persistent hold; the bench (the stander, the bigger star, the record cap, the burst, the leavers, the
+  liar, the quiet and crowded cells as they were); the blobs.
 - `seatheal.test.js` (FOES-HOLD): a dungeon host held and beaten keeps the seat past FOES_STALE_MS through world.js's
   own onFoes and the dungeon's own applyFoes, nothing on the board moved, and its held frame lands after.
-- `tools/mutants/fb1021b_foeshold.json`: 38, all dead.
+- `tools/mutants/fb1021b_foeshold.json`: 64, all dead (the audit's 26 among them).
 - PIN MOVED: `fb1021_foesfirst.test.js` - the fan's 600 frames each from an empty hold (a first frame refused is held,
   counted held, never dropped), a full fan past the reserve below empty held rather than dropped whole, a handover inside
   its cadence held and sent first at its next turn, the metrics' first five blobs; `scale5b.test.js`'s foes fan - each
   round from an empty hold, a refusal held.
 - `tools/foesFirstBench.mjs`: each send read by its frame's number, the senders' tail, a handover its owner heard, the
-  `burst` and `liar` scenes.
+  `burst`, `liar` and `leavers` scenes.

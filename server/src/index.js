@@ -320,8 +320,8 @@ import { newGrantMeasure, foldGrantAsk, foldGrantTally, grantMeasureBatch, sealG
 import { foeStatsRefusal } from '../../src/net/foeBounds.js';   // FOE-BOUNDS: the most health a streamed foe can legally have (GRANT9's strip reads it)
 import { seatOf, seatElder, seatStreams, seatTraffic, seatSilent, seatHeardAt, seatInAt, othersInOf } from '../../src/net/seatLive.js';   // FIELD BUGS 2026-10-18d SEAT-LIVE: a dungeon room's seat is a live socket's
 import { FOES_STALE_MS } from './relay.js';   // SEAT-LIVE: the seat's staleness, the page's own (net/wire.js)
-import { FOES_FULL_MS } from './relay.js';   // FOES-HOLD: a held sender still streaming
-import { createFoesHold, holdFrame, heldHead, heldOf, unhold, served, FOES_BEAT_SCAN_MS } from './foesHold.js';   // FOES-HOLD: a room's first frames wait their turn
+import { FOES_FULL_MS, isRoomKey } from './relay.js';   // FOES-HOLD: a held sender still streaming; AUDIT FOES-HOLD 1: its beat's key
+import { createFoesHold, holdFrame, heldHead, heldOf, unhold, served, FOES_BEAT_SCAN_MS, FOES_LEFT_FLOOR } from './foesHold.js';   // FOES-HOLD: a room's first frames wait their turn
 import { holdemGate, holdemSitRoomGate } from './relay.js';   // CARDS5: the card table's gate; AUDIT CARDS-3 A4: the room's sits
 import { GATE_HELLO_HZ_MAX } from './relay.js';   // GATE-DOOR: a court's door
 import { newTable, topUp as holdemTopUp, sit as holdemSit, sitRefusal as holdemSitRefusal, stand as holdemStand, actAt as holdemAct, tick as holdemTick, nextAt as holdemNextAt, emptyTable as holdemEmpty, tableLook as holdemLook, stateDelta as holdemDelta, holdemGoldTable } from '../../src/net/holdemTable.js';   // CARDS5: THE RELAY DEALS - the room's card tables (holdemTable.js imports only cardLaw.js, which imports only dice.js)
@@ -2046,9 +2046,9 @@ export class Room {
    *  and the sites sprung and hand foes on were the ones that lost. A frame that goes FIRST (`_foesFirst`) may spend
    *  the bucket to minus FOES_FULL_RESERVE; any other stops at plus it (wire.js floorGate). Both asks keep their
    *  places: the one listener's worth before the walk, the whole fan after it. A full frame dropped is counted apart
-   *  (blob4, of blob5's full frames asked). */
-  _foesFan(ws, a, kind, data, length, ranged, bucket, now) {
-    const full = foesFrameFull(data), hands = foesFrameHandsOn(data), lane = this._foesLane(ws, kind);
+   *  (blob4, of blob5's full frames asked). `text` is the frame as it came (FOES-HOLD: what a held frame keeps). */
+  _foesFan(ws, a, kind, data, text, ranged, bucket, now) {
+    const full = foesFrameFull(data), hands = foesFrameHandsOn(data), lane = this._foesLane(ws, kind), length = text.length;
     const urgent = this._foesUrgent(lane, hands, now);
     const first = this._foesFirst(lane, full, urgent, now);
     this._metrics.c.foes++;   // SCALE5b: the frames by type
@@ -2065,8 +2065,8 @@ export class Room {
       return sent.pass ? sent.bucket : this._foesDropped(full, sent.bucket);
     }
     // FOES-HOLD: a frame that goes first spends its turn when it is taken - sent now, or held for its place. A handover
-    // is never dropped for the budget: inside its cadence it asks the reserve's floor and waits its turn past it (the
-    // turns are one a sender, so no page that calls every frame a handover buys more than its own)
+    // is held whatever its cadence: inside it, it asks the reserve's floor and waits its turn past it (the turns are one
+    // a sender, so no page that calls every frame a handover buys more than its own)
     if (first && full) lane.first = now;
     if (urgent && hands) lane.hands = now;   // AUDIT FOES-FIRST F1: and a handover's
     if (!hold.entries.length) {
@@ -2075,16 +2075,33 @@ export class Room {
       bucket = sent.bucket;
       if (sent.fan > FOES_ROOM_BYTES_PER_S + FOES_FULL_RESERVE) return this._foesDropped(full, bucket);   // a fan no bucket can ever take
     }
-    const fate = holdFrame(hold, { ws, data, length, ranged, full, hands, at: now });
+    // AUDIT FOES-HOLD 2: held as the text it came as - the bytes the hold counts are the bytes it keeps; its `k` beside
+    // it for its beat, in a room key's shape or not at all (AUDIT FOES-HOLD 1)
+    const { fate, gone } = holdFrame(hold, { ws, text, k: isRoomKey(data.k) ? data.k : null, length, ranged, full, hands, at: now });
     if (fate === 'refused') return this._foesDropped(full, bucket);
     this._metrics.c.held++;
-    if (fate === 'replaced') this._foesDropped(true, bucket);   // the older full frame in that place, never sent: a full frame the budget did not carry
+    for (const e of gone) this._foesGone(e, bucket);   // the frame it replaced, and any taken to make it room: never sent
     return bucket;
+  }
+  /** FOES-HOLD: a held frame out of the hold unsent - replaced, taken for room, gone stale, its sender gone, or its fan
+   *  past any bucket: counted gone (blob8; so the held are the sent, the gone and the still held - AUDIT FOES-HOLD 6)
+   *  and as the drop it is (a full one apart). Answers the bucket. */
+  _foesGone(e, bucket) {
+    this._metrics.c.heldGone++;
+    return this._foesDropped(e.full, bucket);
+  }
+  /** FOES-HOLD: a held frame's turn taken - counted sent, its wait summed (blob7, blob9); or, charged and junk at its
+   *  re-serialising, counted gone (AUDIT FOES-HOLD 6: it was counted sent, and reached nobody). */
+  _foesServed(e, sent, now) {
+    if (sent.junk) this._metrics.c.heldGone++;
+    else { this._metrics.c.heldSent++; this._metrics.c.heldMs += now - e.since; }
   }
   /** FOES-HOLD: one foes or own frame out to its listeners, if the room's budget takes its fan down to `floor` - one
    *  listener's worth asked before the walk (SCALE5b: a frame dropped costs no walk and no stringify), the whole fan
    *  after it (AUDIT WORLD2 A5). Answers the budget's bucket, whether it passed (a fan to nobody passes, spending
-   *  nothing), and the fan it asked - one listener's worth when the first ask refused it. */
+   *  nothing), and the fan it asked - one listener's worth when the first ask refused it - and `junk`, a frame charged
+   *  and refused at its re-serialising. `data` is the frame's object, or a held frame's text (AUDIT FOES-HOLD 2), parsed
+   *  only once its fan is charged: what parsed when it came parses again. */
   _foesSend(ws, a, kind, data, length, ranged, bucket, now, floor, lane) {
     const per = length + a.id.length + 8;
     const ahead = floorGate(bucket, now, per, FOES_ROOM_BYTES_PER_S, floor);
@@ -2097,9 +2114,10 @@ export class Room {
     // and then junked (one that grew: `1e20` out as twenty-one digits) left its sender unheard, so every frame it sent
     // went first, past both the turn's bound and the unheard rule
     lane.heard = now;
+    if (typeof data === 'string') data = JSON.parse(data).data;
     if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on' && (kind === 'own' || isCellRoom(a.key))) data = this._grantStripped(a, data, kind, now);   // GRANT9: the switch on - a record its grant does not stand goes nowhere; FOE-BOUNDS: nor one no builder could give
     const out = fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched
-    if (out == null) { this._junk(ws); return { bucket: budget.bucket, pass: true, fan: 0 }; }
+    if (out == null) { this._junk(ws); return { bucket: budget.bucket, pass: true, fan: 0, junk: true }; }
     for (const other of listeners) this._send(other, out);
     return { bucket: budget.bucket, pass: true, fan: per * listeners.length };
   }
@@ -2123,15 +2141,15 @@ export class Room {
   _foesDrain(kind, hold, bucket, now) {
     for (let e = heldHead(hold); e; e = heldHead(hold)) {
       const a = this._all().get(e.ws);
-      if (!a?.id || (!e.hands && now - e.at > FOES_STALE_MS)) { unhold(hold, e); this._metrics.c.heldGone++; this._foesDropped(e.full, bucket); continue; }
-      const sent = this._foesSend(e.ws, a, kind, e.data, e.length, e.ranged, bucket, now, -FOES_FULL_RESERVE, this._foesLane(e.ws, kind));
+      if (!a?.id || (!e.hands && now - e.at > FOES_STALE_MS)) { unhold(hold, e); this._foesGone(e, bucket); continue; }
+      const sent = this._foesSend(e.ws, a, kind, e.text, e.length, e.ranged, bucket, now, -FOES_FULL_RESERVE, this._foesLane(e.ws, kind));
       bucket = sent.bucket;
       if (!sent.pass) {
         if (sent.fan <= FOES_ROOM_BYTES_PER_S + FOES_FULL_RESERVE) break;   // its turn: the bucket fills for it
-        unhold(hold, e); this._foesDropped(e.full, bucket); continue;   // the room grew round it past what any bucket takes
+        unhold(hold, e); this._foesGone(e, bucket); continue;   // the room grew round it past what any bucket takes
       }
       served(hold, e);
-      this._metrics.c.heldSent++; this._metrics.c.heldMs += now - e.since;
+      this._foesServed(e, sent, now);
     }
     return this._foesBeats(kind, hold, bucket, now);
   }
@@ -2141,9 +2159,12 @@ export class Room {
    *  frames are held, still streaming (a frame of its on the lane inside FOES_FULL_MS), whose readers have heard
    *  nothing of it for FOES_UNHEARD_MS, is fanned an empty frame of its own - `{ f: [] }`, its held frame's `k` - which
    *  every reader takes as the owner heard (no `n`: it moves no counter; no `full`: it sweeps nothing; no record: it
-   *  stands and moves nothing). One beat a sender every FOES_UNHEARD_MS at most, charged to the budget whatever it
-   *  holds (a few dozen bytes a listener); the scan at most every FOES_BEAT_SCAN_MS. A sender gone quiet (a page
-   *  hidden) is beaten for no longer than it streams, so its readers let it go as they did. Answers the bucket. */
+   *  stands and moves nothing). One beat a sender every FOES_UNHEARD_MS at most, the scan at most every
+   *  FOES_BEAT_SCAN_MS. A sender gone quiet (a page hidden) is beaten for no longer than it streams, so its readers let
+   *  it go as they did. AUDIT FOES-HOLD 1: a beat is a few dozen bytes a listener because its `k` is a room key's or
+   *  none (the sender's own word - repeated at the frame cap's length, four sockets drove the bucket 9.6 MiB into debt
+   *  in 40 s and twenty to 4.6 times the budget), and it is charged as any held frame is, to minus FOES_FULL_RESERVE:
+   *  a beat that does not fit waits for the next scan, so beats never put the room deeper. Answers the bucket. */
   _foesBeats(kind, hold, bucket, now) {
     if (!hold.entries.length || now - (hold.beatAt ?? -Infinity) < FOES_BEAT_SCAN_MS) return bucket;
     hold.beatAt = now;
@@ -2152,12 +2173,14 @@ export class Room {
       if (now - Math.max(lane.heard ?? e.since, lane.beat ?? -Infinity) < FOES_UNHEARD_MS || now - (lane.in ?? -Infinity) > FOES_FULL_MS) continue;   // silent since its last frame went - or, unheard on this instance (a woken room), since it was held
       const a = this._all().get(e.ws);
       if (!a?.id) continue;
-      lane.beat = now;
       const listeners = this._foesListeners(e.ws, a, e.ranged);
-      if (!listeners.length) continue;
-      const data = typeof e.data.k === 'string' ? { f: [], k: e.data.k } : { f: [] };
+      if (!listeners.length) { lane.beat = now; continue; }
+      const data = e.k === null ? { f: [] } : { f: [], k: e.k };
       const out = JSON.stringify(a.gv === 1 ? { t: kind, id: a.id, g: 1, data } : { t: kind, id: a.id, data });
-      bucket = { bytes: byteGate(bucket, now, 0, FOES_ROOM_BYTES_PER_S).bucket.bytes - out.length * listeners.length, at: now };
+      const beat = floorGate(bucket, now, out.length * listeners.length, FOES_ROOM_BYTES_PER_S, -FOES_FULL_RESERVE);
+      bucket = beat.bucket;
+      if (!beat.pass) continue;   // the room at its floor: owed still, asked at the next scan
+      lane.beat = now;
       for (const other of listeners) this._send(other, out);
       this._metrics.c.beats++;
     }
@@ -2166,8 +2189,10 @@ export class Room {
   /** FOES-HOLD: A SENDER LEAVING. An owner leaving the cell hands its foes on and closes (world/foeHandover.js), and a
    *  reader takes no foes frame of a peer whose leave it has heard (net/online.js: a cell's frame from a peer `told`) -
    *  so what the sender still holds would reach nobody after its leave. Its handovers are given a last try now, before
-   *  the leave is said, each as a first frame on its lane's budget (to minus FOES_FULL_RESERVE, never deeper: a page that
-   *  leaves with four frames held does not put the room in debt); the rest of what it held goes with it. */
+   *  the leave is said, on its lane's budget to FOES_LEFT_FLOOR (AUDIT FOES-HOLD 3: one reserve past a first frame's
+   *  floor - an owner closes its socket milliseconds after its handover, at a door or a teleport, and in a crowded room
+   *  the line keeps the bucket near the first frames' floor; the floor is the room's, so all the leaves together put it
+   *  no deeper); the rest of what it held goes with it. */
   _foesLeft(ws, a, now) {
     if (!this._foesHolds || !a?.id) return;
     for (const kind of Object.keys(this._foesHolds)) {
@@ -2175,8 +2200,12 @@ export class Room {
       for (const e of heldOf(hold, ws)) {
         unhold(hold, e);
         const field = kind === 'own' ? '_roomOwn' : '_roomFoes';
-        if (e.hands) { const sent = this._foesSend(ws, a, kind, e.data, e.length, e.ranged, this[field], now, -FOES_FULL_RESERVE, this._foesLane(ws, kind)); this[field] = sent.bucket; if (sent.pass) { this._metrics.c.heldSent++; this._metrics.c.heldMs += now - e.since; continue; } }
-        this._metrics.c.heldGone++; this._foesDropped(e.full, this[field]);
+        if (e.hands) {
+          const sent = this._foesSend(ws, a, kind, e.text, e.length, e.ranged, this[field], now, FOES_LEFT_FLOOR, this._foesLane(ws, kind));
+          this[field] = sent.bucket;
+          if (sent.pass) { this._foesServed(e, sent, now); continue; }
+        }
+        this._foesGone(e, this[field]);
       }
     }
   }
@@ -3908,7 +3937,7 @@ export class Room {
       // reader, and a dungeon's bound (`i >= _layoutFoes`, a layout every client built) has no cell equivalent; over
       // it the frame is junk, counted (the relay still reads nothing inside a record)
       if (cell && (!Array.isArray(m.data.f) || m.data.f.length > CELL_FRAME_RECORDS_MAX)) { this._junk(ws); return; }
-      this._roomFoes = this._foesFan(ws, a, 'foes', m.data, message.length, cell, this._roomFoes, now);   // SCALE5b: a method of its own
+      this._roomFoes = this._foesFan(ws, a, 'foes', m.data, message, cell, this._roomFoes, now);   // SCALE5b: a method of its own
       return;
     }
     if (m.t === 'own') {
@@ -3917,7 +3946,7 @@ export class Room {
       const now = Date.now();
       if (doored !== 'own') { if (!isWorldRoom(a.key)) { this._junk(ws); return; } a = this._meterFoes(ws, a, now); if (!a) return; }
       if (!Array.isArray(m.data.f) || m.data.f.length > CELL_FRAME_RECORDS_MAX) { this._junk(ws); return; }
-      this._roomOwn = this._foesFan(ws, a, 'own', m.data, message.length, false, this._roomOwn, now);   // SCALE5b: the foes frame's method
+      this._roomOwn = this._foesFan(ws, a, 'own', m.data, message, false, this._roomOwn, now);   // SCALE5b: the foes frame's method
       return;
     }
     if (m.t === 'hit') {

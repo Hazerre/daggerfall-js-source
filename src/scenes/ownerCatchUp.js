@@ -19,7 +19,10 @@
 // once the extras have spent that share: where the foes ARE what makes the frame slow, the cap's law stands as it was.
 // Offline, alone in the room, at 20 fps and up, or with the foes held (a zero frame), a pool takes the host's one step
 // exactly as before. The tactics brain's clock (ai/tacticsClock.js, the foes' own time) is carried with the extra steps,
-// so a wind-up lands where its body is.
+// so a wind-up lands where its body is - for the frame's first pool; one stepped after it in the same frame finds the
+// brain already at the furthest step (one FOE-CATCHUP step past its first call's bodies at most): the clock is one for
+// the page and only runs forward, and turning it back for a later pool would make the tokens a first pool's foes took
+// read as taken in the future.
 //
 // HOST-CLOCK (2026-10-21, OWNER-CLOCK's Left): ONE PLAN A FRAME, FOR EVERY POOL OF MINE. OWNER-CLOCK caught up the
 // street's encounter pool alone; a building's and a dungeon's foes kept FOE-CATCHUP's half of a slow host's frame, and the
@@ -28,10 +31,13 @@
 // (wired by world.js), a building's encounter pool and the watch called into it (worldModes.js, at the mount), and a
 // dungeon's foes (dungeonContext.js drawFoes, whose foe loop is the step it hands over). The fixed city's street
 // (exterior.js) streams nothing and is not wired; its buildings and dungeons go through it alone (offline: one call).
-// A frame's plan is made once, at its first step, priced at what every pool of the frame before cost a call - so the
-// extras of all of a frame's pools together spend OWNER_CATCHUP_SHARE at most - and every pool of the frame takes it,
-// so the brain's clock is carried once, as far as every body went. A pool that did not step in the frame before (a
-// door taken, a building's pools new) takes the host's one call: nothing measured buys nothing.
+// A frame's plan is made once, at its first step, priced at what every pool of the frame before cost a call, and every
+// pool of the frame takes it, so the brain's clock is carried once, as far as every body went. The extras of all of a
+// frame's pools together spend OWNER_CATCHUP_SHARE, past it by one call at most - the frame's first extra, made on the
+// forecast; a later one is made only while the extras' measured time is under the share. A pool that did not step in
+// the frame before (a door taken, a building's pools new) takes the host's one call: nothing measured buys nothing; nor
+// does one whose host says none of the foes it steps are mine (AUDIT HOST-CLOCK 1: a dungeon joiner's are all the
+// host's puppets, led by its stream, not stepped by my clock - an extra call of theirs is time spent for nothing).
 //
 // "Anyone else in my room" is the world host's `shared()`: world.js's `online.othersHere > 0`, the foes stream's own
 // nobody-to-hear test. On the street that room is the CELL (WORLD_CELL, 16 map pixels a side), wider than the RANGE_PIXELS
@@ -74,9 +80,10 @@ export function catchUpPlan(foeDt, extraMax = OWNER_CATCHUP_STEPS_MAX) {
 export const extrasAfforded = (rawMs, perCall) => (rawMs <= FRAME_MS_MAX && perCall > 0 ? (rawMs * OWNER_CATCHUP_SHARE) / perCall : 0);
 
 /**
- * THE CATCH-UP (HOST-CLOCK: one plan a frame for every pool it steps). `step(key, dt, call)` steps one pool's foes
+ * THE CATCH-UP (HOST-CLOCK: one plan a frame for every pool it steps). `step(key, dt, call, mine)` steps one pool's foes
  * through a host frame `dt`: `call(dt)` once, or the plan's calls of FOE-CATCHUP's size - and answers what the last
- * call answered. `key` is the pool (the same object every frame: what a call of it costs is kept against it).
+ * call answered. `key` is the pool (the same object every frame: what a call of it costs is kept against it); `mine`
+ * false - none of the foes it steps is mine to step (a dungeon joiner's puppets) - takes the host's one call.
  * `pools(...list)` puts each pool's `update(dt, ...rest)` through it, its signature, its callers and its answer kept.
  * `frame()` - the host's frame begins (the mode machine's, wired by wireOwnerClock); without it a frame begins when a
  * pool it already stepped steps again. `shared()` - anyone else in my room (the host's own nobody-to-hear test);
@@ -101,15 +108,15 @@ export function createOwnerCatchUp({ shared = () => false, clock = () => perform
   };
   const catchUp = {
     frame() { open = false; },
-    step(key, dt, call) {
+    step(key, dt, call, mine = true) {
       const at = clock();
       if (!open || stepped.has(key)) opens(at, dt);
       stepped.add(key);
       mark(at);
-      const plan = caught && before.has(key) ? catchUpPlan(dt, extraMax) : { n: 1, dt };
-      let out, cost = 0, extrasFrom = 0;
+      const plan = caught && mine && before.has(key) ? catchUpPlan(dt, extraMax) : { n: 1, dt };
+      let out, cost = 0, extrasFrom = null;
       for (let i = 1; i <= plan.n; i++) {
-        if (i === 2) extrasFrom = clock();
+        if (i === 2) { if (spent >= shareMs) break; extrasFrom = clock(); }   // AUDIT HOST-CLOCK 3: a later pool's extras only while the frame's share holds
         else if (i > 2 && spent + clock() - extrasFrom >= shareMs) break;   // the frame's extras have spent its share: the forecast was wrong
         const want = i * plan.dt;
         if (i > 1 && want > ticked) { tick(want - ticked); ticked = want; }   // each later call carries the brain to its end
@@ -117,7 +124,7 @@ export function createOwnerCatchUp({ shared = () => false, clock = () => perform
         out = call(plan.dt);
         cost = Math.max(cost, clock() - t0);
       }
-      if (plan.n > 1) spent += clock() - extrasFrom;
+      if (extrasFrom !== null) spent += clock() - extrasFrom;
       price.set(key, cost);   // the dearest of the frame's calls prices the next frame's
       return out;
     },
@@ -125,7 +132,7 @@ export function createOwnerCatchUp({ shared = () => false, clock = () => perform
     pools(...list) {
       for (const p of list) {
         const update = p.update;
-        p.update = (dt, ...rest) => catchUp.step(p, dt, (d) => update(d, ...rest));
+        p.update = (dt, ...rest) => catchUp.step(p, dt, (d) => update.call(p, d, ...rest));   // AUDIT HOST-CLOCK 5: a method's own `this`
       }
     },
   };

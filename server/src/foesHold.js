@@ -24,15 +24,18 @@
 // (the owner has let those foes go); its sender's leave gives what it still holds a last try (`_foesLeft`).
 //
 // This module is the hold's own law - pure; the Room's methods wire it (server/src/index.js `_foesFan`, `_foesDrain`).
-import { FOES_FRAME_MAX } from '../../src/net/wire.js';
+import { FOES_FRAME_MAX, FOES_FULL_RESERVE } from '../../src/net/wire.js';
 
 /** FOES-HOLD: the most frames one sender holds on a lane - its newest full frame and the handovers behind it (world/
  *  foeHandover.js splits an owner's handed foes into frames of FOES_FRAME_MAX, so an owner of a few dozen foes with their
  *  loot hands them on in two or three); more is refused, counted as a drop. */
 export const FOES_HELD_PER_SENDER = 4;
 /** FOES-HOLD: the most bytes a lane holds, the frames' own lengths - 64 of the largest frame a lane takes, or 256
- *  sockets' 16 KiB full frames. A fan is the frame times its listeners, so this is the memory, not the budget; past it
- *  the next frame to be held is refused, counted as a drop. */
+ *  sockets' 16 KiB full frames. A fan is the frame times its listeners, so this is the memory, not the budget - and the
+ *  memory it is: a held frame is kept as the TEXT it came as and parsed again at its turn (AUDIT FOES-HOLD 2: kept
+ *  parsed, a frame padded with empty objects held twenty-one times its length in the heap - 85 MiB for these 4 MiB, in
+ *  an isolate of 128). Past it, room is made from the senders holding more than the frame's would (`holdFrame`), else
+ *  the frame is refused, counted as a drop. */
 export const FOES_HELD_BYTES_MAX = 64 * FOES_FRAME_MAX;
 /** FOES-HOLD: a sender's turn in the line - its held frames' own lengths, the first whatever its size. 16 KiB: a full
  *  frame of a few dozen foes and a handover's batches beside it go in one turn; a page whose every frame is a 16 KiB
@@ -41,6 +44,13 @@ export const FOES_TURN_BYTES = 16 * 1024;
 /** FOES-HOLD: how often a lane's held senders are asked whether their readers are owed a beat (`_foesBeats`) - a
  *  quarter of a second: a beat is owed at FOES_UNHEARD_MS of silence, and the readers let go at FOES_STALE_MS. */
 export const FOES_BEAT_SCAN_MS = 250;
+/** FOES-HOLD: how far a leaving sender's held handovers may put its lane's budget in debt (`_foesLeft`) - twice the
+ *  reserve, one reserve past any first frame's floor. AUDIT FOES-HOLD 3: an owner going through a door or teleporting
+ *  hands its foes on and closes its socket a few milliseconds after (net/online.js join -> leave), and in a crowded room
+ *  its handover is held at the back of the line; tried at its leave on the first frames' own floor, against a bucket
+ *  the line keeps near that floor, a star owner's was heard 22.5% of the time (65% before the hold). The floor is the
+ *  ROOM's, not a leave's: all the leaves together put it no deeper, and the debt is repaid in half a second. */
+export const FOES_LEFT_FLOOR = -2 * FOES_FULL_RESERVE;
 
 /** A lane's hold: its frames in the order they took their places, the next place's number, the bytes held, and the
  *  turn under way (its sender and the bytes it has sent in it). */
@@ -78,27 +88,64 @@ export function served(hold, e) {
   for (const next of mine) next.seq = hold.seq++;
 }
 
+/** AUDIT FOES-HOLD 2: ROOM IN THE HOLD, made fair. `over` bytes past FOES_HELD_BYTES_MAX are made by taking frames from
+ *  the sender holding the most - each time the one that holds the most now, and only while it holds MORE than the
+ *  frame's own sender will (`mine`, its bytes with the frame): its newest frame that is no handover first (a full frame
+ *  its sender says again within the second), a handover only when it holds nothing else. So a sender holding little
+ *  always finds a place while another holds much - a few sockets holding the largest frames they may cannot shut the
+ *  room's honest owners out of the line (first come, first served, they did) - and a sender is never cut below what
+ *  the frame's own will hold. Answers the frames taken, out of the hold (none when nothing was over), or null when no
+ *  such room can be made - then nothing is taken. The frame's own sender is never the one: it holds more now than it
+ *  will only when the frame replaces a larger one of its, and then nothing is over. */
+function roomFor(hold, mine, over) {
+  if (over <= 0) return [];
+  const bytes = new Map();
+  for (const e of hold.entries) bytes.set(e.ws, (bytes.get(e.ws) ?? 0) + e.length);
+  const taken = [];
+  while (over > 0) {
+    let top = null, most = mine;
+    for (const [s, b] of bytes) if (b > most) { top = s; most = b; }
+    if (top === null) return null;
+    const theirs = hold.entries.filter((e) => e.ws === top && !taken.includes(e));
+    const e = theirs.findLast((x) => !x.hands) ?? /** @type {any} */ (theirs.at(-1));
+    taken.push(e);
+    bytes.set(top, most - e.length);
+    over -= e.length;
+  }
+  for (const e of taken) unhold(hold, e);
+  return taken;
+}
+
 /**
- * A first frame into the hold - `frame` is `{ ws, data, length, ranged, full, hands, at }`. Answers what became of it:
+ * A first frame into the hold - `frame` is `{ ws, length, full, hands, at }` and whatever its Room keeps with it (the
+ * frame's text, its listeners' range, its key), copied as it is. Answers `{ fate, gone }` - what became of it:
  *   'held'        it took a place of its own - a sender's first held frame its place in the line; one behind the
  *                 sender's own (a handover's next batch) a place after it
  *   'replaced'    a full frame, in the place of its sender's newest held frame when that is no handover (a full frame,
  *                 or an unheard sender's delta - a full frame says all either said)
- *   'refused'     past FOES_HELD_PER_SENDER or FOES_HELD_BYTES_MAX, or a frame that is neither full nor a handover from
- *                 a sender already holding one (that frame says everything this one could, and goes in its turn)
+ *   'refused'     past FOES_HELD_PER_SENDER, or past FOES_HELD_BYTES_MAX with no room to be made fairly (`roomFor`), or
+ *                 a frame that is neither full nor a handover from a sender already holding one (that frame says
+ *                 everything this one could, and goes in its turn)
+ * - and the frames that left the hold unsent for it (`gone`): the one it replaced, as it was, and any taken to make it
+ * room. Nothing changes on a refusal.
  */
 export function holdFrame(hold, frame) {
   const mine = heldOf(hold, frame.ws);
   const last = mine.at(-1);
-  if (frame.full && !frame.hands && last && !last.hands) {
-    if (hold.bytes - last.length + frame.length > FOES_HELD_BYTES_MAX) return 'refused';
-    hold.bytes += frame.length - last.length;
-    Object.assign(last, { data: frame.data, length: frame.length, ranged: frame.ranged, full: true, at: frame.at });
-    return 'replaced';
+  const replace = frame.full && !frame.hands && last && !last.hands ? last : null;
+  if (!replace && mine.length && !frame.full && !frame.hands) return { fate: 'refused', gone: [] };
+  if (!replace && mine.length >= FOES_HELD_PER_SENDER) return { fate: 'refused', gone: [] };
+  const out = replace ? replace.length : 0;
+  const held = mine.reduce((sum, e) => sum + e.length, 0) - out + frame.length;
+  const gone = roomFor(hold, held, hold.bytes - out + frame.length - FOES_HELD_BYTES_MAX);
+  if (!gone) return { fate: 'refused', gone: [] };
+  if (replace) {
+    gone.unshift({ ...replace });
+    hold.bytes += frame.length - replace.length;
+    Object.assign(replace, frame);
+    return { fate: 'replaced', gone };
   }
-  if (mine.length && !frame.full && !frame.hands) return 'refused';
-  if (mine.length >= FOES_HELD_PER_SENDER || hold.bytes + frame.length > FOES_HELD_BYTES_MAX) return 'refused';
   hold.entries.push({ ...frame, seq: hold.seq++, since: frame.at });
   hold.bytes += frame.length;
-  return 'held';
+  return { fate: 'held', gone };
 }

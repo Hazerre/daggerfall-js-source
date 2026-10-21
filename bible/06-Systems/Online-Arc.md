@@ -15461,19 +15461,35 @@ town watch's bodies kept it too, while its brains, on the page's one tactics clo
   and the last call's stand is what is drawn. The call's time is written into the frame's own `dt` and the frame takes
   its own back after the step (dungeonContext.js:"dt = frameDt;"): a closure parameter of that name shadowed drawFoes'
   own, which MAC-L1b's `no-shadow` run over the file refuses (the full suite found it). The hosts grew by wiring alone:
-  createWorldModes one logical line, buildDungeonContext five, bootWorld none.
+  createWorldModes one logical line, buildDungeonContext six (the step three, the frame's own `dt` taken back three),
+  bootWorld none.
 - **One plan a frame.** The plan is made at the frame's first step, priced at what every pool of the frame before cost a
-  call, so the extras of all a frame's pools together spend `OWNER_CATCHUP_SHARE` at most; every pool of the frame takes
-  it, so the brain's clock is carried once, as far as every body went - the watch's brains and its bodies are on one
-  clock. A pool that did not step in the frame before (a door: a building's pools new, the street's back after a
+  call; a pool makes an extra call only while the frame's extras, every pool's together, are under `OWNER_CATCHUP_SHARE`,
+  so they pass it by one call at most (the last one begun under it). Every pool of the frame takes the plan, so the
+  brain's clock is carried once, as far as every body went - the watch's brains and its bodies are on one clock. The
+  frame's first pool steps exactly on it; a pool stepped after it in the same frame finds the brain already at the
+  furthest step, one FOE-CATCHUP step past its first call's bodies at most - the clock is the page's and only runs
+  forward, and turning it back for a later pool would read the tokens the first pool's foes took as taken in the future. A pool that did not step in the frame before (a door: a building's pools new, the street's back after a
   building) takes the host's one call - nothing measured buys nothing - and the mode machine's frame begins the
   catch-up's (`wireOwnerClock` wires it), so a door's new pools are priced at their own from their second frame. A
-  pool's update keeps its answer (the watch's returns the batches its host draws). Offline, alone, at 20 fps and up or
-  held, every pool takes the host's one call exactly as before.
+  pool's update keeps its answer (the watch's returns the batches its host draws) and its own `this`. Offline, alone, at
+  20 fps and up or held, every pool takes the host's one call exactly as before - and so does a dungeon's foe loop with
+  no live foe of mine in it (dungeonContext.js:"ownerFoes.step(foes, frameDt, stepFoes, foes.some((f, i) => !f.dead && !isPuppetFoe(f, i)));"):
+  a joiner's foes are all the host's puppets, led by its stream and not by my clock, and an extra call of theirs was
+  every puppet's step, senses and sounds again for nothing.
 - **Not caught up, said plainly.** The pushes BETWEEN pools (`spaceAcross` and `clearDoorways` over the street's two and a
   building's two) run once a frame on FOE-CATCHUP's step - a push apart, no foe's walk; each pool's own spacing runs in
   each call. A building's and a dungeon's path budget (`pathBudget`) is the frame's, shared by its calls. The ON ICE rig
-  arm of the dungeon's loop would draw a rig each call; no foe carries one.
+  arm of the dungeon's loop would draw a rig each call; no foe carries one. A peer's puppets in the street's or a
+  building's pool step in each call beside the owner's own foes (the pool is one); a puppet eases to its stream, so the
+  extra call is spent time, not a wrong place.
+
+**AUDIT HOST-CLOCK** (2026-10-21, a cold read of the second pass): no blocking defect. Fixed and pinned: a dungeon joiner
+paid for a catch-up that stepped none of its foes (above); a later pool's first extra was made on the forecast alone, so
+the frame's share could be passed by a call a POOL (three pools forecast at 1 ms that cost 40 spent 120 ms of a 25 ms
+share) - now by one call a frame; `pools()` called a pool's update without its `this`. Said plainly instead of changed:
+the brain's clock for a later pool (above). Equivalent and unpinned: re-reading `shared()` per step rather than once a
+frame (only a message handler writes `othersHere`).
 
 A foe's body seconds a frame against its owner's player's (the clamped frame), on the real pools through the hosts' own
 wiring (`fb1021b_hostclock.test.js`: a building's rat and the watchman called in through worldModes' mount statements, a
@@ -15513,11 +15529,13 @@ this one sends none, and its puppets are led as DESYNC-ZERO led them. Executed t
 Durable Object: a cell's frame with the strip on and a record stripped, a world room's host stream and its own lane,
 each reaching every reader with the owner's `tm`, nothing counted as junk.
 
-**Pinned** (HOST-CLOCK) in `test/scenes/fb1021b_hostclock.test.js` (9: one plan for every pool of a frame, priced at
+**Pinned** (HOST-CLOCK) in `test/scenes/fb1021b_hostclock.test.js` (one plan for every pool of a frame, priced at
 their sum, the brain carried once, the last call's answer; a door's new pools; the frame's share across its pools; the
 page's frames the mode machine's; the street's watch through world.js's own statement on the page's clocks; THE PARITY
 of a building through worldModes' own mount statements and of a dungeon through drawFoes' own loop; the dungeon's foes
-stood once a frame; the hosts by source). `tools/mutants/fb1021b_hostclock.json` (22, all dead). Re-aimed by content
+stood once a frame; a pool's own `this`; a dungeon joiner's puppets stepped once, through dungeonContext's own
+predicates; the hosts by source - 11). `tools/mutants/fb1021b_hostclock.json` (29, all dead; the audit's five: the
+joiner caught up, its gate unwired, a dead foe counted mine, a later pool past the share, a method's `this` lost). Re-aimed by content
 in `fb1021_ownerclock.json`: fifteen records whose text the frame's plan rewrote (the brain, the shared test, the mark
 twice, the wall's time, the break, the price, the brain's start, the rest, the default mark, the wiring's three and
 world.js's two). PIN MOVED: `fb1021_ownerclock.test.js`'s two wiring pins (the statement's list) and `world2.test.js`'s

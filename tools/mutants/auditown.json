@@ -20,8 +20,8 @@
   {
     "name": "AOWN-own-arm-unguarded",
     "file": "server/src/index.js",
-    "old": "    const out = fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched\n    if (out == null) { this._junk(ws); return { bucket: budget.bucket, pass: true, fan: 0 }; }",
-    "new": "    const out = kind === 'own' ? JSON.stringify({ t: 'own', id: a.id, data }) : fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched\n    if (out == null) { this._junk(ws); return { bucket: budget.bucket, pass: true, fan: 0 }; }",
+    "old": "    const out = fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched\n    if (out == null) { this._junk(ws); return { bucket: budget.bucket, pass: true, fan: 0, junk: true }; }",
+    "new": "    const out = kind === 'own' ? JSON.stringify({ t: 'own', id: a.id, data }) : fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched\n    if (out == null) { this._junk(ws); return { bucket: budget.bucket, pass: true, fan: 0, junk: true }; }",
     "tests": [
       "test/net/own1.test.js"
     ],
@@ -30,8 +30,8 @@
   {
     "name": "AOWN-foes-arm-unguarded",
     "file": "server/src/index.js",
-    "old": "    const out = fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched\n    if (out == null) { this._junk(ws); return { bucket: budget.bucket, pass: true, fan: 0 }; }",
-    "new": "    const out = kind === 'foes' ? JSON.stringify({ t: 'foes', id: a.id, data }) : fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched\n    if (out == null) { this._junk(ws); return { bucket: budget.bucket, pass: true, fan: 0 }; }",
+    "old": "    const out = fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched\n    if (out == null) { this._junk(ws); return { bucket: budget.bucket, pass: true, fan: 0, junk: true }; }",
+    "new": "    const out = kind === 'foes' ? JSON.stringify({ t: 'foes', id: a.id, data }) : fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched\n    if (out == null) { this._junk(ws); return { bucket: budget.bucket, pass: true, fan: 0, junk: true }; }",
     "tests": [
       "test/net/own1.test.js"
     ],

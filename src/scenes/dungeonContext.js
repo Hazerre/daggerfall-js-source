@@ -8070,7 +8070,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       _drawSprite(renderer, canvas, f.rig, mat, proj, view, eye);
     }
     };
-    ownerFoes.step(foes, frameDt, stepFoes);   // HOST-CLOCK: the frame's foes, stepped through the page's one catch-up
+    ownerFoes.step(foes, frameDt, stepFoes, foes.some((f, i) => !f.dead && !isPuppetFoe(f, i)));   // HOST-CLOCK: the frame's foes, stepped through the page's one catch-up - AUDIT HOST-CLOCK 1: and caught up only with a foe of mine among them (a joiner's are the host's puppets, led by its stream)
     dt = frameDt;   // HOST-CLOCK: the rest of the frame - the bodies' end, the flats, the water, the HUD - on its own time
     // MWNPC5b: THE DEAD IN THEIR BODIES - the death played where they fell (the pose's `dd`), the corpse flat casting its
     // shadow alone while the body lies there; the living stand first (the lane's priority). Then the frame's bodies,

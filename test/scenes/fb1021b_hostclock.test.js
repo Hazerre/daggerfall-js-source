@@ -94,7 +94,7 @@ test('HOST-CLOCK a door: a pool that did not step in the frame before takes the 
   assert.deepEqual(run('building'), [0, 0, 1, 1], 'alone, priced or not: the host\'s one call');
 });
 
-test('HOST-CLOCK the frame\'s share is all its pools\': a host frame past world.js\'s clamp (0.3 s) planned at a cheap forecast stops the second pool\'s extras once the first pool\'s have spent the frame\'s share - the extras of a frame, every pool together, never past OWNER_CATCHUP_SHARE by more than a call (mutants: each pool\'s extras measured alone)', () => {
+test('HOST-CLOCK the frame\'s share is all its pools\': a host frame past world.js\'s clamp (0.3 s) planned at a cheap forecast stops the second pool\'s extras once the first pool\'s have spent the frame\'s share - a later pool makes an extra only while the frame\'s extras are under it, so the extras of a frame, every pool together, never pass OWNER_CATCHUP_SHARE by more than one call (AUDIT HOST-CLOCK 3: its first extra was made on the forecast alone, one call past the share a POOL) (mutants: each pool\'s extras measured alone; HC-later-pool-past-the-share)', () => {
   const clock = { ms: 0 };
   const costs = { a: [4], b: [4] };
   const a = counted(clock, () => costs.a.shift() ?? 10), b = counted(clock, () => costs.b.shift() ?? 10);
@@ -104,7 +104,28 @@ test('HOST-CLOCK the frame\'s share is all its pools\': a host frame past world.
   clock.ms = 500; c.frame(); a.calls.length = 0; b.calls.length = 0;
   a.update(0.3); b.update(0.3);
   assert.equal(OWNER_CATCHUP_SHARE * 250, 25);
-  assert.deepEqual([a.calls.length, b.calls.length], [4, 2], 'forecast at 4 + 4 ms (three extras each): the first pool\'s three extras spend 30 ms of the 25, so the second makes its one extra and stops');
+  assert.deepEqual([a.calls.length, b.calls.length], [4, 1], 'forecast at 4 + 4 ms (three extras each): the first pool\'s three extras spend 30 ms of the 25, so the second makes none');
+  const clock2 = { ms: 0 };
+  const dear = { on: false };
+  const p = counted(clock2, () => (dear.on ? 10 : 5)), q = counted(clock2, () => (dear.on ? 10 : 5));
+  const c2 = createOwnerCatchUp({ shared: () => true, clock: () => clock2.ms, tick: () => {}, mark: () => {} });
+  c2.pools(p, q);
+  clock2.ms = 250; c2.frame(); p.update(0.3); q.update(0.3);
+  clock2.ms = 500; c2.frame(); p.calls.length = 0; q.calls.length = 0;
+  dear.on = true;   // priced at 5 + 5 ms (two extras), each call now 10
+  p.update(0.3); q.update(0.3);
+  assert.deepEqual([p.calls.length, q.calls.length], [3, 2], 'the first pool\'s two extras spend 20 ms of the 25; the second\'s first goes, under the share, and its next would start past it');
+  assert.equal(clock2.ms - 500 - 2 * 10, 30, 'the frame\'s extras 30 ms: past the share of 25 by less than the one call made under it');
+});
+
+test('HOST-CLOCK a pool\'s update keeps its own `this` through the catch-up (AUDIT HOST-CLOCK 5: a method that reads `this` threw) (mutants: HC-pool-method-loses-this)', () => {
+  const clock = { ms: 0 };
+  const c = createOwnerCatchUp({ shared: () => true, clock: () => clock.ms, tick: () => {}, mark: () => {} });
+  const pool = { n: 0, update(dt, extra) { this.n += dt * extra; return this.n; } };
+  c.pools(pool);
+  c.frame();
+  assert.equal(pool.update(0.05, 2), 0.1);
+  assert.equal(pool.n, 0.1);
 });
 
 test('HOST-CLOCK the page\'s frames are its mode machine\'s, through world.js\'s wiring: the page\'s catch-up begins a frame at every frame of the mode machine wireOwnerClock wraps, so a door\'s new pools - a building\'s, cheap - are priced at their own calls from their second frame, never at the dear street they left behind (mutants: the wiring\'s frame dropped; the mode machine\'s frame unheard)', (t) => {
@@ -353,6 +374,34 @@ test('HOST-CLOCK a dungeon\'s caught-up frame stands its foes ONCE: each call be
   assert.equal(d.state.dt, hostDt(4), 'and the rest of the frame takes its own time back - not the last call\'s (MAC-L1b: the call\'s time is written into the frame\'s own name, never a binding that shadows it)');
 });
 
+// dungeonContext.js's own predicates for whose foe is whose - a room foe (the layout's, a shared encounter's) is the
+// authority's, and a page without it leads that foe as a puppet of the host's stream
+const PREDICATES = ['  const isRoomFoe = ', '  const isPuppetFoe = '].map((head) => { const at = DC.indexOf(head); return DC.slice(at, DC.indexOf('\n', at)); });
+test('HOST-CLOCK a dungeon joiner\'s foes are the host\'s puppets, led by its stream: the frame steps them once, caught up only with a live foe of mine among them (AUDIT HOST-CLOCK 1: a joiner below 20 fps ran the whole loop twice a frame - every puppet\'s step, its senses, its sounds - for nothing); the room\'s authority, or a joiner with a foe of its own, takes the plan (mutants: HC-joiner-caught-up; HC-joiner-gate-unwired; HC-dead-foe-mine)', (t) => {
+  assert.ok(DUNGEON_STEP && PREDICATES.every((p) => p.startsWith('  const ')), 'drawFoes\' loop and dungeonContext\'s predicates');
+  const clock = { ms: 500_000 };
+  t.mock.method(performance, 'now', () => clock.ms);
+  const modes = hostModes();
+  wireOwnerClock([], modes, () => true);
+  const calls = (authority, extra = null) => {
+    const foe = dungeonFoe();
+    const d = dungeonFrame(clock, foe);
+    if (extra) d.state.foes.push(extra);
+    Object.assign(d.state, { _authority: authority, _layoutFoes: 1, puppetStep: () => {} });
+    new Function('__s', `with (__s) {\n${PREDICATES.join('\n')}\n__s.isRoomFoe = isRoomFoe; __s.isPuppetFoe = isPuppetFoe;\n}`)(scope(d.state));
+    runFrames(clock, modes, 4, 1, d.step);
+    d.lane.begun = 0;
+    runFrames(clock, modes, 4, 1, d.step);
+    return d.lane.begun;
+  };
+  assert.equal(calls(true), 2, 'the room\'s authority at 4 fps, shared: the plan\'s two calls');
+  assert.equal(calls(false), 1, 'a joiner, its one foe the room\'s - the host\'s puppet: one call');
+  const own = dungeonFoe();
+  assert.equal(calls(false, own), 2, 'a joiner with a foe of its own beside the puppet: the plan');
+  const gone = dungeonFoe(); gone.dead = true;
+  assert.equal(calls(false, gone), 1, 'its own foe dead: nothing of mine to step, one call');
+});
+
 test('HOST-CLOCK the hosts by source: world.js\'s one statement hands the street\'s watch beside its encounter pool; worldModes puts the building\'s two pools through the page\'s catch-up at the mount and its frame\'s calls stand as they stood; drawFoes hands its foe loop - the loop as it stood, its spacing inside it - to the page\'s catch-up keyed by its foe list, its peers read once a frame outside it; no host keeps a catch-up of its own (mutants: none - the executed pins above hold the wiring)', () => {
   const w = rd('src/scenes/world.js');
   assert.equal((w.match(/wireOwnerClock\(/g) ?? []).length, 1);
@@ -367,7 +416,7 @@ test('HOST-CLOCK the hosts by source: world.js\'s one statement hands the street
   assert.match(body, /^ {4}const frameDt = dt;[^\n]*\n {4}const stepFoes = \(stepDt\) => \{\n {4}dt = stepDt;[^\n]*\n {4}_mobileBatches\.length = 0;\n {4}_npcStood\.length = 0;\n {4}npcLane\?\.begin\(\);\n {4}let _fi = -1;\n/, 'each call: the frame\'s lists afresh, the lane begun, the count from the top');
   assert.match(body, /\n {4}spaceFoes\(foes, collider, foeFrameDt\(dt\), [^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*clearDoorways\(foes, [^\n]*\n\s*for \(const f of foes\) \{\n {6}_fi\+\+;/, 'the spacing and the loop, inside it, on the call\'s step');
   assert.match(body, /f\.ai\.update\(foeFrameDt\(dt\), _pf, /, 'the body handed FOE-CATCHUP\'s step of the CALL');
-  assert.match(body, /\n {4}\};\n {4}ownerFoes\.step\(foes, frameDt, stepFoes\);[^\n]*\n {4}dt = frameDt;/, 'the loop handed to the page\'s catch-up, keyed by the context\'s one foe list');
+  assert.match(body, /\n {4}\};\n {4}ownerFoes\.step\(foes, frameDt, stepFoes, foes\.some\(\(f, i\) => !f\.dead && !isPuppetFoe\(f, i\)\)\);[^\n]*\n {4}dt = frameDt;/, 'the loop handed to the page\'s catch-up, keyed by the context\'s one foe list - caught up with a live foe of mine among them');
   assert.match(DC, /_peerFrame\+\+;[^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*const frameDt = dt;[^\n]*\n\s*const stepFoes = \(stepDt\) => \{/, 'the peers read once a frame, outside the calls');
   assert.equal((DC.match(/ownerFoes\./g) ?? []).length, 1);
   for (const [f, t] of [['world.js', w], ['worldModes.js', WM], ['dungeonContext.js', DC]]) assert.doesNotMatch(t, /catchUpOwnerFoes|createOwnerCatchUp/, `${f}: the page's one catch-up, never one of its own`);

@@ -16,7 +16,9 @@
 //   heavy          (a scene with `heavy`) its first owner's full frames and deltas heard - one owner of `heavy`
 //                   records among smaller ones, a star's stander (AUDIT FOES-FIRST: a claim)
 //   handovers      (a scene with `hands`) the handover batches heard - two a second, each of four records naming
-//                   an heir (world/foeHandover.js), from an owner leaving (AUDIT FOES-FIRST F1)
+//                   an heir (world/foeHandover.js), from an owner leaving (AUDIT FOES-FIRST F1); (a scene with
+//                   `leavers`) the batches of the sockets that hand their foes on and close in the same moment, as a
+//                   door, a teleport or a death does (net/online.js join -> leave; AUDIT FOES-HOLD 3)
 //
 //   node tools/foesFirstBench.mjs [SECONDS=60] [SCENE=name]
 //
@@ -46,9 +48,9 @@ const record = (i, full, moving) => ({
 });
 /** A signed grant's size (net/grantLaw.js: the claims and an Ed25519 signature, 86 characters). */
 const grant = (g, o) => ({ g, o, q: 'world:13,13', a: 'acct-0123456789abcdef', k: 'enc', p: [13, 13], m: 9, l: 9, r: 7, n: 2, s: 5, e: 0, c: [-1, -1], h: -1, x: 1800000000000, sg: 'x'.repeat(86) });
-function frameOf(owner, n, full, { records, moving, grants }, hands = false) {
+function frameOf(owner, n, full, { records, moving, grants, handRecords = 4 }, hands = false) {
   const f = [];
-  if (hands) for (let i = 0; i < 4; i++) f.push({ ...record(i, true, true), e: 'p-9999', it: [] });   // world/foeHandover.js: an heir and the items
+  if (hands) for (let i = 0; i < handRecords; i++) f.push({ ...record(i, true, true), e: 'p-9999', it: [] });   // world/foeHandover.js: an heir and the items
   else for (let i = 0; i < records; i++) { const m = i < records * moving; if (full || m) f.push(record(i, full, m)); }
   const data = { n, k: 'world:13,13', full: full && !hands ? 1 : 0, f, ...(full && !hands ? { gs: Array.from({ length: grants }, (_, g) => grant(g, owner)), sp: [[`13,13:star.4.${n % 3}`, 3]] } : {}) };
   return JSON.stringify({ t: 'foes', data });
@@ -67,6 +69,7 @@ export const SCENES = [
   { name: 'starHands', what: 'the star\'s crowd, and two handover batches a second', owners: 30, sockets: 60, records: 24, moving: 0.5, grants: 6, hands: true },
   { name: 'burst', what: 'the star\'s crowd, and an owner handing on three batches at once every second (FOES-HOLD)', owners: 30, sockets: 60, records: 24, moving: 0.5, grants: 6, hands: true, burst: 3 },
   { name: 'liar', what: 'the star\'s crowd, and one socket calling every 16 KiB frame a handover at FOES_HZ_MAX (FOES-HOLD)', owners: 30, sockets: 60, records: 24, moving: 0.5, grants: 6, flood: 16 * 1024, liar: true },
+  { name: 'leavers', what: 'the bigger star, and 30 of its others each handing on 24 foes in two batches and closing at once (AUDIT FOES-HOLD 3)', owners: 40, sockets: 80, records: 24, moving: 0.5, grants: 6, leavers: 30, handRecords: 12 },
 ];
 
 async function onClock(fn) {
@@ -105,6 +108,8 @@ export async function scene(s, seconds = SECONDS) {
     }
     const flooder = s.flood ? s.owners : -1;
     if (s.flood) for (let t = start; t < start + seconds * 1000 + TAIL_MS; t += Math.ceil(1000 / 12)) events.push({ t, o: flooder, full: true });
+    // a leaver: one of the others, once, from 10 s on - its two batches at one moment and its socket closed in it
+    if (s.leavers) for (let k = 0; k < s.leavers; k++) { const t = start + 10_000 + k * Math.floor((seconds * 1000 - 12_000) / s.leavers) + Math.floor(rnd() * 200); events.push({ t, o: s.owners + k, hands: true }, { t, o: s.owners + k, hands: true }, { t, o: s.owners + k, leave: true }); }
     if (s.hands) for (let t = start + 250, k = 0; t < start + seconds * 1000 + TAIL_MS; t += s.burst ? 1000 : 500, k++) for (let b = 0; b < (s.burst ?? 1); b++) events.push({ t, o: (k * 7) % s.owners, full: false, hands: true });   // each from an owner leaving, a different one each time (a burst: its batches at one moment, world/foeHandover.js)
     events.sort((x, y) => x.t - y.t);
     const pad = s.flood ? JSON.stringify({ t: 'foes', data: { n: 0, full: s.liar ? 0 : 1, f: s.liar ? [{ i: 0, e: 'p-0001', it: [] }] : [], pad: 'p'.repeat(s.flood) } }) : '';   // a liar's every record names an heir
@@ -122,7 +127,7 @@ export async function scene(s, seconds = SECONDS) {
         const id = /"id":"p-(\d+)"/.exec(str), num = /"data":\{"n":(\d+)/.exec(str);
         if (!id) continue;
         const o = Number(id[1]);
-        if (!num) { if (o !== flooder && t <= end) { beats++; heardAt(o, t); } continue; }   // a beat: the owner heard, nothing carried
+        if (!num) { if (o < s.owners && t <= end) { beats++; heardAt(o, t); } continue; }   // a beat: the owner heard, nothing carried (the flooder and the leavers are no owners)
         const e = byN.get(Number(num[1]));
         if (!e || e.heard || e.tail) continue;
         e.heard = true;
@@ -130,14 +135,17 @@ export async function scene(s, seconds = SECONDS) {
         st[k][0]++;
         if (s.heavy && e.o === 0 && !e.hands) st[e.full ? 'hfull' : 'hdelta'][0]++;
         waits.push(t - e.t);
-        if (e.o === flooder || t > end) continue;   // the tail: a frame of the run heard, and its owner's silences read to the run's end alone
+        if (e.o >= s.owners || t > end) continue;   // the tail: a frame of the run heard, and its owner's silences read to the run's end alone
         heardAt(e.o, t);   // a handover too: its readers hear the owner in it
         if (e.hands) continue;
         if (e.full) { gaps.push(t - (lastFull.get(e.o) ?? start)); lastFull.set(e.o, t); }
       }
     };
+    const left = new Set();
     for (const e of events) {
       set(e.t);
+      if (left.has(e.o)) continue;
+      if (e.leave) { left.add(e.o); await R.drop(socks[e.o]); take(e.t); continue; }
       const owner = socks[e.o];
       const shape = s.heavy && e.o === 0 ? { ...s, records: s.heavy, moving: 0.75 } : s;
       e.n = ++n;
@@ -162,7 +170,7 @@ export async function scene(s, seconds = SECONDS) {
     const pct = ([p, all]) => (all ? Math.round((1000 * p) / all) / 10 : null);
     return {
       scene: s.name, full: pct(st.full), delta: pct(st.delta), ...(s.flood ? { flood: pct(st.flood) } : {}),
-      ...(s.heavy ? { heavyFull: pct(st.hfull), heavyDelta: pct(st.hdelta) } : {}), ...(s.hands ? { hands: pct(st.hands) } : {}),
+      ...(s.heavy ? { heavyFull: pct(st.hfull), heavyDelta: pct(st.hdelta) } : {}), ...(s.hands || s.leavers ? { hands: pct(st.hands) } : {}),
       gapP50: q(0.5), gapP99: q(0.99), gapMax: gaps.at(-1) / 1000,
       stale: Math.round((10000 * stale) / (s.owners * seconds * 1000)) / 100, unheardMax: silent / 1000, outMiBs: Math.round((100 * out) / seconds / FOES_ROOM_BYTES_PER_S * 4) / 100,
       waitP99: (waits.sort((x, y) => x - y)[Math.min(waits.length - 1, Math.floor(0.99 * waits.length))] ?? 0) / 1000, beats,

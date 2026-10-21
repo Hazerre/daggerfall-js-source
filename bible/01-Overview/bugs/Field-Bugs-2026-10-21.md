@@ -11,7 +11,7 @@ and `fb1021b_*.json`.
 
 | | Report | What it was | Done |
 |---|---|---|---|
-| 1 | "enemy dsync" | A crowded cell's foes budget dropped the FULL frames first - they carry the sweep, the sites and the grants - so a reader missed deaths and removals and pruned a silent owner's foes; and the handover batches, deltas to the budget, were lost after their owner had let the foes go | FOES-FIRST, HIT-DROPS, AUDIT FOES-FIRST |
+| 1 | "enemy dsync" | A crowded cell's foes budget dropped the FULL frames first - they carry the sweep, the sites and the grants - so a reader missed deaths and removals and pruned a silent owner's foes; and the handover batches, deltas to the budget, were lost after their owner had let the foes go | FOES-FIRST, HIT-DROPS, AUDIT FOES-FIRST, FOES-HOLD, AUDIT FOES-HOLD |
 | 2 | "enemy dsync" | A slow owner's foes ran slow for everyone and their puppets stalled and jumped: the owner gave them half its clamped frame (FOE-CATCHUP), and a reader led them by arrival time | OWNER-CLOCK, HOST-CLOCK |
 | 3 | the profile's boat pool, `rendererModelKey` 2.6% | One shape stamp for every tree in the game: any boat built anywhere re-planned every boat; and every boat drawn was walked, baked and lit every frame wherever she sailed | BOAT-STAMP, BOAT-FAR, BOAT-OWN, HELD-DRAW, HELD-FLATS |
 | 4 | the profile's Horse Cart pool | Inside 400 m every horse was posed and its palette sent every frame, off-screen and parked ones too | HORSE-VIEW, HORSE-VIEW II |
@@ -56,14 +56,20 @@ Where a room's full frames alone are more than its budget, a first frame the bud
 (`server/src/foesHold.js`): one line, one turn a sender, a newer full frame in its sender's place, nothing of a sender
 overtaking its own (the readers' `n`), no delta past a held frame, a held frame borrowing to minus the reserve; a held
 sender still streaming is beaten - an empty frame of its own, which every reader takes as the owner heard - so its
-readers keep its puppets while its turn comes round; a leaving sender's handovers are tried before its leave is said; a
-handover waits its turn and is never dropped for the budget, and no frame jumps the line (a page that calls every frame
-a handover buys its one turn). Measured on the real Room (`tools/foesFirstBench.mjs`, 60 s a scene, against FOES-FIRST
-alone): the star's stander heard 0% -> 44.8% of its full frames; the bigger star's full frames 31.4 s apart at the 99th
--> 5.1 s, the record cap's 60 s -> 10.4 s, nobody unheard past 4.3 s (10.9 s before); three handover batches at once
-heard 32.2% -> 100%. Inside the budget nothing is held and nothing changed; past it the deltas wait behind the full
-frames (1.4-4.8% heard -> 0.4%), which carry every record they do. Five more blobs (blob6-10) count the hold live, and
-`tools/relayLoad.mjs` reads them (its `fulls` question). Relay world239, re-hashed in place.
+readers keep its puppets while its turn comes round; a handover waits its turn, never replaced nor aged out, and a
+leaving sender's are given a last try before its leave is said, one reserve deeper than any first frame; no frame
+jumps the line (a page that calls every frame a handover buys its one turn). Measured on the real Room
+(`tools/foesFirstBench.mjs`, 60 s a scene, against FOES-FIRST alone): the star's stander heard 0% -> 44.8% of its full
+frames; the bigger star's full frames 31.4 s apart at the 99th -> 5.0 s, the record cap's 60 s -> 10.4 s, nobody
+unheard past 4.5 s (10.9 s before); three handover batches at once heard 32.2% -> 100%, and thirty owners handing on
+their foes as they close (a door, a teleport, a death) 45% -> 100%. Inside the budget nothing is held and nothing
+changed; past it the deltas wait behind the full frames (1.4-4.8% heard -> 0.4%), which carry every record they do.
+Five more blobs (blob6-10) count the hold live, and `tools/relayLoad.mjs` reads them (its `fulls` question). AUDIT
+FOES-HOLD (the second pass's cold lanes): the held sender's beat repeated the sender's own `k` uncharged (a few sockets
+put the room's bucket hundreds of MiB in debt) - now a room key's or none, charged to the first frames' floor; the hold
+kept the parsed frame (85 MiB of heap for 4 MiB of text) - now the text, and room made from the sender holding the
+most; a handover at a leave was heard 22.5% of the time at a star - now 100%; the pins and the counts with them
+(`Scale-Arc.md` AUDIT FOES-HOLD). Relay world239, re-hashed in place.
 
 ## OWNER-CLOCK (2) - `bible/06-Systems/Online-Arc.md` OWNER-CLOCK
 
@@ -82,7 +88,9 @@ and the watch called into it (worldModes.js, one statement at the mount), a dung
 call it hands over) and the street's watch (world.js's one statement) - one plan a frame for all of them, priced at all
 of them, the tactics brain's clock carried once, so the watch's brains and bodies keep one clock. A slow building or
 dungeon host's foes keep its player's pace (x1 at every rate, where 0.75 at 15 fps and 0.5 below 10 before), measured
-on the real pools through the hosts' own wiring. FOE-CATCHUP's row in `Port-Ledger.md` says exactly what changed, for
+on the real pools through the hosts' own wiring. The second pass's audit found a dungeon joiner paying for a catch-up
+that stepped none of its foes (they are the host's puppets) - one call now - and a later pool's extras made past the
+frame's share on the forecast alone; both fixed and pinned (`Online-Arc.md` AUDIT HOST-CLOCK). FOE-CATCHUP's row in `Port-Ledger.md` says exactly what changed, for
 the owner to approve.
 
 ## BOAT-STAMP and BOAT-FAR (3) - `bible/07-Rendering/Performance-Priority.md`
@@ -154,6 +162,10 @@ for the owner to weigh.
   door off - unless the owner set one with `/relay`, which the hub's storage keeps and only `/relay grantMode` reads.
 - **The version.** world238 is claimed by two open branches (STAR-TUNE #1090, GRANT-SLEEP #1066), against this release's
   world239 - whichever lands after another takes the next number at its merge.
+- **FOES-HOLD's own (`Scale-Arc.md` FOES-HOLD's Left).** A room past its budget moves its puppets by its full frames:
+  thinner frames would carry more, a slice of the wire's own. A room's budget is shared: sockets sending the largest
+  frames the wire takes still take their turns, one a sender, and stretch an honest owner's round. The dungeon's own
+  lane takes the beat by reading; the pins run it through the street pool and the dungeon host's stream.
 - **The grass (FB1021B, `Performance-Exterior.md` THE GRASS ON THE MOVE's Left).** A cell's pack - now as dear as its
   placement, still one piece on the frame a cell ends; the cells a teleport's loading frames place over ground not yet
   built (read on the code, not measured); the worker PERF-EXT22 did not build. And the trade FB1021B states for the
