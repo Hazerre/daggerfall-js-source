@@ -23,6 +23,11 @@
 // jump, the whole budget. A handover waits its turn as any first frame does, and is never replaced and never ages out
 // (the owner has let those foes go); its sender's leave gives what it still holds a last try (`_foesLeft`).
 //
+// What the hold keeps is bounded twice: four frames a sender, and FOES_HELD_BYTES_MAX of their TEXT a lane - the text,
+// parsed again at its turn, because a parsed frame padded with empty objects weighs twenty times its length (AUDIT
+// FOES-HOLD 2). Past the bytes, room is made from the sender holding the most (`roomFor`), so a few sockets holding
+// the largest frames the wire takes cannot shut the room's honest owners out of the line.
+//
 // This module is the hold's own law - pure; the Room's methods wire it (server/src/index.js `_foesFan`, `_foesDrain`).
 import { FOES_FRAME_MAX, FOES_FULL_RESERVE } from '../../src/net/wire.js';
 
