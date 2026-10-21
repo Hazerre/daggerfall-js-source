@@ -22,7 +22,9 @@
 // taken at once, forgotten slowly, LEAD_GAP_EASE) and a frame's slack past it - never under LEAD_MAX_S, never past
 // LEAD_SLOW_MAX_S - and as far in the same proportion of LEAD_DIST_MAX (LEAD_DIST_SLOW_MAX at most). A word with a new
 // `tm` is a new word even where its foe has not moved: it stands, and nothing leads it. Where either record carries no
-// `tm` (an owner before this) every number is DESYNC-ZERO's, on the arrival clock.
+// `tm` (an owner before this) every number is DESYNC-ZERO's, on the arrival clock - and so where both carry the SAME
+// `tm` at other feet: the owner's clock did not move while its foe did (a mark that never came), so it says nothing of
+// the time between them, and the arrival clock does, rather than a velocity of nothing for as long as the clock stands.
 import { ownerTmDiffS } from '../net/ownerClock.js';   // OWNER-CLOCK: the owner's time between two of its words, across the wrap
 
 /** The longest a record is carried forward (s): past a missed frame it waits for the next word. */
@@ -60,7 +62,7 @@ export function puppetLead(p, t, nowS) {
   let L = p._lead;
   if (!L) { L = p._lead = { x: t[0], y: t[1], z: t[2], at: nowS, tm, gap: 0, cap: LEAD_MAX_S, vx: 0, vz: 0, out: [0, 0, 0] }; return t; }
   if (t[0] !== L.x || t[1] !== L.y || t[2] !== L.z || (tm != null && tm !== L.tm)) {   // a new word - OWNER-CLOCK: or a new moment of its owner's
-    const owned = tm != null && L.tm != null;   // OWNER-CLOCK: both words say when - the owner's time between them
+    const owned = tm != null && L.tm != null && tm !== L.tm;   // OWNER-CLOCK: both words say when - the owner's time between them; one moment twice (a clock that stopped) says nothing of it
     const dt = owned ? ownerTmDiffS(tm, L.tm) : nowS - L.at, dx = t[0] - L.x, dz = t[2] - L.z;
     L.vx = 0; L.vz = 0;
     if (dt >= LEAD_DT_MIN && dt <= LEAD_DT_MAX) {

@@ -3,15 +3,16 @@
 // stream, and a reader leads each puppet along the way its last two records show (DESYNC-ZERO, scenes/puppetLead.js) -
 // measured on the READER's arrival clock and carried LEAD_MAX_S at most. An owner at 3 fps sends a frame every 333 ms,
 // and every hitch on its machine or on the road between stood its foes still and jumped them; below 20 fps its foes also
-// walked slower than the room's time (FOE-CATCHUP's cap), for every reader. Now:
+// walked slower than its own player (FOE-CATCHUP's cap; half its pace below 10 fps), for every reader. Now:
 //   1. every foes and own frame says when its foes were stepped (`tm`, net/ownerClock.js), stamped by the session in the
 //      bytes it sends, and the relay - which reads nothing inside a frame - carries it through as it carries the rest;
 //   2. a reader takes velocity from the OWNER's time between two records that both say it, and carries the lead for the
 //      interval the owner is seen to keep (bounded), with DESYNC-ZERO's law exact where a record says none;
-//   3. online, with anyone else in the room, the street's pool catches its foes up to the frame's time in FOE-CATCHUP's
-//      own size of step - bounded in game time and in the frame's own time (scenes/ownerCatchUp.js).
+//   3. online, with anyone else in the room, the street's pool steps its foes through the host's own clamped frame in
+//      FOE-CATCHUP's own size of step - its owner's player's pace, never past it - and only on the extra calls a measured
+//      share of the frame's own time buys (scenes/ownerCatchUp.js).
 // Executed: the session on the fake socket, the relay's Room on the fake Durable Object, the real encounter pool as owner
-// and as reader, the pure doors; the hosts' wiring by source.
+// and as reader, the pure doors, the world host's wiring on the page's own clocks; the hosts' calls by source.
 import '../modsOff.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -22,8 +23,9 @@ import { fakeRoom } from '../fakeRoom.mjs';
 import { createOwnerClock, ownerClock, ownerTmOf, ownerTmDiffS, stampedFrameText, applyingOwnerTm, appliedOwnerTm, OWNER_TM_MOD } from '../../src/net/ownerClock.js';
 import { POSE_TS_MOD, parseClient, FOES_FRAME_MAX, OWN_RELAY_MIN, GROUND_LAW, GRANT_HELLO_LAW, cellRoomOfWire, PIXEL_UNITS } from '../../src/net/wire.js';
 import { puppetLead, LEAD_MAX_S, LEAD_DIST_MAX, LEAD_SLOW_MAX_S, LEAD_DIST_SLOW_MAX, LEAD_SLACK_S, LEAD_GAP_EASE } from '../../src/scenes/puppetLead.js';
-import { catchUpPlan, catchUpOwnerFoes, markModalSteps, OWNER_CATCHUP_MAX_S, OWNER_CATCHUP_SHARE, OWNER_CATCHUP_STEPS_MAX } from '../../src/scenes/ownerCatchUp.js';
-import { FOE_MAX_FRAME_DT } from '../../src/characters/enemy/enemyMotor.js';
+import { catchUpPlan, catchUpOwnerFoes, markModalSteps, wireOwnerClock, extrasAfforded, OWNER_CATCHUP_MAX_S, OWNER_CATCHUP_SHARE, OWNER_CATCHUP_STEPS_MAX, FRAME_MS_MAX } from '../../src/scenes/ownerCatchUp.js';
+import { FOE_MAX_FRAME_DT, foeFrameDt } from '../../src/characters/enemy/enemyMotor.js';
+import { tacticsNow } from '../../src/ai/tacticsClock.js';
 import { FIXED_DT } from '../../src/player/motor.js';
 import { createExteriorFoes } from '../../src/scenes/exteriorFoes.js';
 
@@ -324,6 +326,38 @@ test('OWNER-CLOCK the reader: bounded - a silent owner\'s word is carried LEAD_S
   assert.deepEqual([...puppetLead(still, [1, 0, 0], 0.3)], [1, 0, 0], 'its owner says it stands');
 });
 
+test('OWNER-CLOCK the reader: a clock that stops says nothing - two words with ONE `tm` at other feet (an owner whose mark never came) are led on the arrival clock, never at a velocity of nothing for as long as the clock stands; a word without `tm` forgets the last one\'s, and the lead\'s bound goes back to LEAD_MAX_S with it; a pair too far apart or too close in the owner\'s time teaches its interval nothing (mutants: one moment read as owned; the moment kept past a word without one; the slow cap kept unowned; the gap read outside the range)', () => {
+  const word = (pp, x, tm, s) => { pp.tm = tm; return puppetLead(pp, [x, 0, 0], s); };
+  // the clock stops: the owner's foe walks on while its frames keep saying the same moment
+  const frozen = { moving: true };
+  word(frozen, 0, 1000, 0); word(frozen, 1, 1200, 0.2);
+  assert.ok(near(frozen._lead.vx, 5), 'two moments: the owner\'s 1 m in 0.2 s');
+  word(frozen, 2, 1200, 0.45);
+  assert.ok(near(frozen._lead.vx, 4), `one moment twice: the arrival clock's 1 m in 0.25 s - ${frozen._lead.vx}`);
+  word(frozen, 3, 1200, 0.65);
+  assert.ok(near(frozen._lead.vx, 5) && near(frozen._lead.cap, LEAD_MAX_S), 'and on, at DESYNC-ZERO\'s bound');
+  assert.ok(near(puppetLead(frozen, [3, 0, 0], 0.75)[0], 3.5), 'led, not stood still');
+  // a word without `tm` between two with: the newer pair is no owner's pair
+  const gap = { moving: true };
+  word(gap, 0, 1000, 0); word(gap, 1, null, 0.2); word(gap, 2, 1400, 0.45);
+  assert.equal(gap._lead.tm, 1400);
+  assert.ok(near(gap._lead.vx, 4), `the arrival clock's 1 m in 0.25 s, not the owner's 1 m in 0.4 s across a word that said none - ${gap._lead.vx}`);
+  // an owner's slow words, then one without: the bound DESYNC-ZERO's again, frame for frame
+  const slow = { moving: true }, dz = { moving: true };
+  for (const [x, tm, s] of [[0, 0, 0], [1, 500, 0.5], [2, 1000, 1]]) { word(slow, x, tm, s); desyncZeroLead(dz, [x, 0, 0], s); }
+  assert.ok(near(slow._lead.cap, 0.5 + LEAD_SLACK_S), 'words half a second apart: carried 0.6 s');
+  word(slow, 3, null, 1.2); desyncZeroLead(dz, [3, 0, 0], 1.2);
+  assert.equal(slow._lead.cap, LEAD_MAX_S, 'a word without a clock: DESYNC-ZERO\'s bound');
+  assert.deepEqual([...puppetLead(slow, [3, 0, 0], 2.2)], [...desyncZeroLead(dz, [3, 0, 0], 2.2)], 'and DESYNC-ZERO\'s lead');
+  // a silence past LEAD_DT_MAX (1.2 s) and a burst under LEAD_DT_MIN (0.04 s) are no interval the owner keeps
+  const quiet = { moving: true };
+  word(quiet, 0, 0, 0); word(quiet, 1, 500, 0.5); word(quiet, 2, 1000, 1);
+  word(quiet, 3, 4000, 4);
+  assert.ok(near(quiet._lead.gap, 0.5) && near(quiet._lead.cap, 0.5 + LEAD_SLACK_S), `three seconds of silence: the interval kept, ${quiet._lead.gap}`);
+  word(quiet, 3.1, 4020, 4.02);
+  assert.ok(near(quiet._lead.gap, 0.5), `a burst 20 ms apart: the interval kept, ${quiet._lead.gap}`);
+});
+
 // ---- the encounter pool, owner and reader (the WORLD6b-ii rig: a crafted MONSTER.BSA on flat open ground) ----
 function craftCfg({ hpPerLevel = 4, speed = 90, str = 40, agi = 85, luck = 55, atkFlags = 0x08 } = {}) {
   const b = new Uint8Array(74); const v = new DataView(b.buffer);
@@ -382,53 +416,78 @@ test('OWNER-CLOCK the reader, executed on the real encounter pool: a record appl
   assert.equal(pup('eve-0003')._pup._lead.vx, 0, 'DESYNC-ZERO\'s arrival clock: three words in a millisecond say no speed');
 });
 
-test('OWNER-CLOCK the owner: the plan - at 20 fps and up, held, offline or with nothing to spend, the host\'s one step exactly; under it the frame\'s time in FOE-CATCHUP\'s own size of step, OWNER_CATCHUP_MAX_S at most; whatever is afforded, more than the host\'s one step gave (mutants: the cap; the step size; the afforded count unread; the host\'s step lost)', () => {
+test('OWNER-CLOCK the owner: the plan - at 20 fps and up, held, or with nothing to spend, the host\'s one step exactly; under it the HOST\'S OWN FRAME in FOE-CATCHUP\'s own size of step - never more game time than that frame, and whatever is afforded more than the host\'s one step gave a body; a frame past OWNER_CATCHUP_MAX_S stepped OWNER_CATCHUP_STEPS_MAX times and no more (mutants: the cap; the step size; the afforded count unread; the host\'s step lost; a fast frame caught up)', () => {
   assert.equal(OWNER_CATCHUP_STEPS_MAX, 6);
   assert.ok(near(OWNER_CATCHUP_STEPS_MAX * FOE_MAX_FRAME_DT, OWNER_CATCHUP_MAX_S));
-  assert.deepEqual(catchUpPlan(1 / 60, 1 / 60), { n: 1, dt: 1 / 60 }, '60 fps');
-  assert.deepEqual(catchUpPlan(FOE_MAX_FRAME_DT, 0.05), { n: 1, dt: FOE_MAX_FRAME_DT }, '20 fps: FOE-CATCHUP never cut it');
-  assert.deepEqual(catchUpPlan(0, 0.25), { n: 1, dt: 0 }, 'held');
-  assert.deepEqual(catchUpPlan(1 / 60, 0.25), { n: 1, dt: 1 / 60 }, 'a short frame after the pool sat out (a door, a load): its own step - only a slow frame is caught up');
-  assert.deepEqual(catchUpPlan(0.1, 0.25, 0), { n: 1, dt: 0.1 }, 'nothing afforded: the host\'s own step');
-  assert.deepEqual(catchUpPlan(0.1, 0.25), { n: 5, dt: 0.05 }, '4 fps: a quarter second in five');
-  assert.deepEqual(catchUpPlan(0.0666, 0.0666), { n: 2, dt: 0.0333 }, '15 fps: two');
-  const two = catchUpPlan(0.1, 0.5);
-  assert.equal(two.n, OWNER_CATCHUP_STEPS_MAX, '2 fps: capped');
-  assert.ok(near(two.n * two.dt, OWNER_CATCHUP_MAX_S) && two.dt <= FOE_MAX_FRAME_DT);
-  assert.deepEqual(catchUpPlan(0.1, 0.25, 1.9), { n: 2, dt: FOE_MAX_FRAME_DT }, 'one extra afforded: two full steps, 0.1 s where the host\'s gave the body 0.05');
-  for (const [dt, raw, extra] of [[0.06, 0.06, 1], [0.1, 0.1, 1], [0.1, 1, 1], [0.1, 0.3, 3]]) {
-    const pl = catchUpPlan(dt, raw, extra);
-    assert.ok(pl.dt <= FOE_MAX_FRAME_DT + 1e-12, 'every call a shape FOE-CATCHUP already hands a foe');
-    assert.ok(pl.n * pl.dt > Math.min(dt, FOE_MAX_FRAME_DT) && pl.n * pl.dt >= Math.min(dt, raw, OWNER_CATCHUP_MAX_S) - 1e-9, `${dt}/${raw}/${extra}: more than the host's step, never less than the frame`);
+  assert.deepEqual(catchUpPlan(1 / 60), { n: 1, dt: 1 / 60 }, '60 fps');
+  assert.deepEqual(catchUpPlan(FOE_MAX_FRAME_DT), { n: 1, dt: FOE_MAX_FRAME_DT }, '20 fps: FOE-CATCHUP never cut it');
+  assert.deepEqual(catchUpPlan(0), { n: 1, dt: 0 }, 'held');
+  assert.deepEqual(catchUpPlan(NaN), { n: 1, dt: NaN }, 'no frame: the host\'s own call');
+  assert.deepEqual(catchUpPlan(0.1, 0), { n: 1, dt: 0.1 }, 'nothing afforded: the host\'s own step');
+  assert.deepEqual(catchUpPlan(0.1, 0.9), { n: 1, dt: 0.1 }, 'less than a call afforded: none');
+  assert.deepEqual(catchUpPlan(0.1), { n: 2, dt: 0.05 }, '10 fps and below (world.js clamps its frame at 0.1 s): the frame in two');
+  assert.deepEqual(catchUpPlan(0.1, 5), { n: 2, dt: 0.05 }, 'and no more, whatever is afforded');
+  const at15 = catchUpPlan(1 / 15);
+  assert.ok(at15.n === 2 && near(at15.n * at15.dt, 1 / 15), `15 fps: the frame in two - ${JSON.stringify(at15)}`);
+  assert.deepEqual(catchUpPlan(0.3, 1.9), { n: 2, dt: FOE_MAX_FRAME_DT }, 'a longer host frame and one extra afforded: two full steps, never longer ones');
+  const long = catchUpPlan(0.5);
+  assert.ok(long.n === OWNER_CATCHUP_STEPS_MAX && near(long.n * long.dt, OWNER_CATCHUP_MAX_S), 'past OWNER_CATCHUP_MAX_S: stepped OWNER_CATCHUP_STEPS_MAX times, no more');
+  for (const dt of [0.051, 0.06, 1 / 15, 0.08, 0.1, 0.2, 0.3, 0.5]) {
+    for (const extra of [1, 2, 3, 6]) {
+      const pl = catchUpPlan(dt, extra);
+      assert.ok(pl.dt <= FOE_MAX_FRAME_DT + 1e-12, 'every call a shape FOE-CATCHUP already hands a foe');
+      assert.ok(pl.n * pl.dt <= dt + 1e-12, `${dt}/${extra}: never more than the host's own frame`);
+      assert.ok(pl.n * pl.dt > FOE_MAX_FRAME_DT, `${dt}/${extra}: more than the host's one step gave a body`);
+    }
   }
 });
 
 /** A pool whose calls are counted, each costing `cost` ms of the injected clock. */
 function countedPool(clock, cost = 0) { const calls = []; return { calls, update(dt) { calls.push(dt); clock.ms += cost; } }; }
+/** The body seconds a frame's calls gave a foe (each body takes foeFrameDt of its call). */
+const bodyS = (calls) => calls.reduce((a, d) => a + foeFrameDt(d), 0);
 
-test('OWNER-CLOCK the owner: online with anyone else here, a 4 fps owner\'s street pool keeps the room\'s time - a quarter second of foe time a frame, every call FOE-CATCHUP\'s size, the brain\'s clock carried to each call\'s end; at 2 fps it keeps OWNER_CATCHUP_MAX_S; alone or offline the host\'s one call as before; every call marks the owner clock (mutants: the plan unread; the brain left behind; the shared test unread; the mark dropped)', () => {
+test('OWNER-CLOCK the owner: THE PARITY - at every rate world.js\'s clamp allows, a street foe\'s body takes the seconds its owner\'s player takes and never more: 60 to 20 fps the host\'s one call as ever, 15 fps and below the clamped frame (0.1 s from 10 fps down) in FOE-CATCHUP\'s steps; alone, FOE-CATCHUP\'s half below 10 fps; a quarter-second frame is not read as a quarter second of foe time (mutants: the wall time planned; the plan outrunning the host)', () => {
+  assert.match(rd('src/scenes/world.js'), /const dt = Math\.min\(0\.1, \(now - last\) \/ 1000\);/, 'the player\'s frame: world.js\'s clamp');
+  const perFrame = (fps, shared) => {
+    const clock = { ms: 0 };
+    const p = catchUpOwnerFoes(countedPool(clock, 1), { shared: () => shared, clock: () => clock.ms, tick: () => {}, mark: () => {} });
+    let spent = 0, body = 0;
+    for (let k = 0; k < 6; k++) { clock.ms += 1000 / fps - spent; p.calls.length = 0; const t0 = clock.ms; p.update(Math.min(0.1, 1 / fps), me); spent = clock.ms - t0; body = bodyS(p.calls); }
+    return body;
+  };
+  const table = [60, 30, 20, 15, 10, 5, 4, 3, 2, 1].map((fps) => {
+    const player = Math.min(0.1, 1 / fps);
+    return [fps, +(perFrame(fps, true) / player).toFixed(9), +(perFrame(fps, false) / player).toFixed(9)];
+  });
+  assert.deepEqual(table, [[60, 1, 1], [30, 1, 1], [20, 1, 1], [15, 1, 0.75], [10, 1, 0.5], [5, 1, 0.5], [4, 1, 0.5], [3, 1, 0.5], [2, 1, 0.5], [1, 1, 0.5]],
+    'fps, then a street foe\'s seconds over its owner\'s player\'s a frame - online with anyone else in the room, and alone (as shipped the catch-up gave x2, x2.5 and x3 at 5, 4 and 3 fps)');
+});
+
+test('OWNER-CLOCK the owner: online with anyone else in the room, a 4 fps owner\'s street pool keeps its own world\'s pace - the host\'s clamped 0.1 s in two calls of FOE-CATCHUP\'s size, never the wall\'s quarter second; the brain\'s clock carried to each call\'s end; alone or offline the host\'s one call as before; every call marks the owner clock (mutants: the plan unread; the brain left behind; the shared test unread; the mark dropped)', () => {
   const clock = { ms: 0 };
   let shared = true;
-  const ticks = [], marks = [];
-  const pool4 = catchUpOwnerFoes(countedPool(clock), { shared: () => shared, clock: () => clock.ms, tick: (d) => ticks.push(d), mark: (m) => marks.push(m) });
-  for (let k = 0; k < 9; k++) { clock.ms += 250; pool4.calls.length = 0; ticks.length = 0; pool4.update(0.1, me); if (k === 0) continue;
-    assert.ok(near(pool4.calls.reduce((a, b) => a + b, 0), 0.25), `frame ${k}: a quarter second of foe time`);
-    assert.ok(pool4.calls.every((d) => d <= FOE_MAX_FRAME_DT + 1e-12), 'each call FOE-CATCHUP\'s size');
-    assert.ok(near(ticks.reduce((a, b) => a + b, 0), 0.25 - FOE_MAX_FRAME_DT), 'the brain carried past the host\'s own tick to the bodies\' time');
+  const ticks = [], marks = [], want = [];
+  const pool4 = catchUpOwnerFoes(countedPool(clock, 1), { shared: () => shared, clock: () => clock.ms, tick: (d) => ticks.push(d), mark: (m) => marks.push(m) });
+  for (let k = 0; k < 9; k++) {
+    clock.ms += 250; pool4.calls.length = 0; ticks.length = 0; want.push(clock.ms); pool4.update(0.1, me);
+    if (k === 0) { assert.deepEqual(pool4.calls, [0.1], 'the first frame: no cost measured, the host\'s own call'); continue; }
+    assert.deepEqual(pool4.calls, [FOE_MAX_FRAME_DT, FOE_MAX_FRAME_DT], `frame ${k}: the host's 0.1 s in two of FOE-CATCHUP's steps`);
+    assert.ok(near(ticks.reduce((a, b) => a + b, 0), 0.1 - FOE_MAX_FRAME_DT), 'the brain carried past the host\'s own tick to the bodies\' time');
   }
-  assert.deepEqual(marks, Array.from({ length: 9 }, (_, k) => 250 * (k + 1)), 'every call marks the moment its foes were stepped');
+  assert.deepEqual(marks, want, 'every call marks the moment its foes were stepped');
   clock.ms += 500; pool4.calls.length = 0; pool4.update(0.1, me);
-  assert.ok(near(pool4.calls.reduce((a, b) => a + b, 0), OWNER_CATCHUP_MAX_S), '2 fps: capped');
+  assert.deepEqual(pool4.calls, [FOE_MAX_FRAME_DT, FOE_MAX_FRAME_DT], '2 fps: the host\'s frame still, never the wall\'s half second');
   shared = false;
-  for (let k = 0; k < 3; k++) { clock.ms += 250; pool4.calls.length = 0; ticks.length = 0; pool4.update(0.1, me); assert.deepEqual(pool4.calls, [0.1], 'nobody to see: FOE-CATCHUP\'s law, the host\'s own call'); assert.deepEqual(ticks, []); }
+  for (let k = 0; k < 3; k++) { clock.ms += 250; pool4.calls.length = 0; ticks.length = 0; pool4.update(0.1, me); assert.deepEqual(pool4.calls, [0.1], 'nobody else in the room: FOE-CATCHUP\'s law, the host\'s own call'); assert.deepEqual(ticks, []); }
   shared = true;
   for (const fps of [60, 20]) { clock.ms += 1000 / fps; pool4.calls.length = 0; pool4.update(1 / fps, me); assert.deepEqual(pool4.calls, [1 / fps], `${fps} fps: the host's own call`); }
   clock.ms += 250; pool4.calls.length = 0; pool4.update(0, me);
   assert.deepEqual(pool4.calls, [0], 'held: held');
 });
 
-test('OWNER-CLOCK the owner: where the foes ARE the frame\'s cost the catch-up stands down - the extra calls spend OWNER_CATCHUP_SHARE of the frame at the last measured cost, a frame with none affordable takes the host\'s own call, and the first frame (no cost measured) takes it too; a frame a long absence follows reads no second as its own (mutants: the share unread; the cost unread; the absence read as a frame)', () => {
-  for (const [cost, want] of [[5, 0.25], [12, 0.15], [20, 0.1], [30, null]]) {
+test('OWNER-CLOCK the owner: where the foes ARE the frame\'s cost the catch-up stands down - the extra call spends OWNER_CATCHUP_SHARE of the frame at the last measured cost, a frame with none affordable takes the host\'s own call, and the first frame (no cost measured) takes it too; time away is no frame - a minute in a building or five seconds of a hidden tab buys nothing, a 1.5 s frame is still a frame (mutants: the share unread; the cost unread; the absence read as a frame)', () => {
+  for (const [cost, want] of [[5, [0.05, 0.05]], [20, [0.05, 0.05]], [25, [0.05, 0.05]], [30, [0.1]]]) {
     const clock = { ms: 0 };
     const p = catchUpOwnerFoes(countedPool(clock, cost), { shared: () => true, clock: () => clock.ms, tick: () => {}, mark: () => {} });
     clock.ms += 250; p.update(0.1, me);
@@ -438,21 +497,56 @@ test('OWNER-CLOCK the owner: where the foes ARE the frame\'s cost the catch-up s
       clock.ms += 250 - spent; p.calls.length = 0;   // a quarter-second frame, its foes' calls and all
       const t0 = clock.ms; p.update(0.1, me);
       spent = clock.ms - t0;
-      if (want == null) assert.deepEqual(p.calls, [0.1], `${cost} ms a call: nothing affordable, the host's own call`);
-      else {
-        assert.ok(near(p.calls.reduce((a, b) => a + b, 0), want), `${cost} ms a call: ${p.calls.reduce((a, b) => a + b, 0)} s of foe time, not ${want}`);
-        assert.ok(spent - cost <= OWNER_CATCHUP_SHARE * 250 + 1e-9, `the extra calls spent ${spent - cost} ms of the frame`);
-      }
+      assert.deepEqual(p.calls, want, `${cost} ms a call`);
+      assert.ok(spent - cost <= OWNER_CATCHUP_SHARE * 250 + 1e-9, `the extra call spent ${spent - cost} ms of the frame`);
     }
   }
-  const clock = { ms: 0 };
-  const q = catchUpOwnerFoes(countedPool(clock, 40), { shared: () => true, clock: () => clock.ms, tick: () => {}, mark: () => {} });
-  clock.ms += 250; q.update(0.1, me);
-  clock.ms += 60_000; q.calls.length = 0; q.update(0.1, me);
-  assert.equal(q.calls.length, 3, 'a minute away buys a second\'s share, not six seconds\' (100 ms at 40 a call: two extra)');
+  assert.equal(FRAME_MS_MAX, 2000);
+  for (const [awayMs, want] of [[60_000, [0.1]], [5000, [0.1]], [1500, [0.05, 0.05]]]) {
+    const clock = { ms: 0 };
+    const q = catchUpOwnerFoes(countedPool(clock, 1), { shared: () => true, clock: () => clock.ms, tick: () => {}, mark: () => {} });
+    for (let k = 0; k < 10; k++) { clock.ms += 16.7; q.update(1 / 60, me); }
+    clock.ms += awayMs; q.calls.length = 0; q.update(0.1, me);
+    assert.deepEqual(q.calls, want, `${awayMs} ms since the pool was last stepped`);
+  }
+  assert.equal(extrasAfforded(60_000, 1), 0, 'a minute away: no extra call');
+  assert.equal(extrasAfforded(FRAME_MS_MAX, 1), FRAME_MS_MAX * OWNER_CATCHUP_SHARE, 'a 0.5 fps frame: its share');
 });
 
-test('OWNER-CLOCK the owner, executed on the real encounter pool: at 4 fps its foe\'s body takes fifteen FIXED_DT steps a frame through the catch-up - the room\'s time - where FOE-CATCHUP alone gives it three (mutants: the plan unread)', async () => {
+test('OWNER-CLOCK the owner: the budget is measured, never assumed - a clock too coarse to see a call (it reads 0, as a privacy-clamped performance.now() does) buys no extra call where a free call bought them all; and the extras stop once their measured time passes the share, whatever the last frame forecast; the dearest of a frame\'s calls prices the next (mutants: a 0 reading priced free; the break dropped; the last call priced)', () => {
+  assert.equal(extrasAfforded(250, 0), 0, 'a call read as free buys nothing');
+  assert.equal(extrasAfforded(250, Infinity), 0, 'nothing measured buys nothing');
+  assert.equal(extrasAfforded(250, NaN), 0, 'a junk reading buys nothing');
+  assert.equal(extrasAfforded(250, 5), 5);
+  // a clock that never sees a call
+  const still = { ms: 0 };
+  const a = catchUpOwnerFoes(countedPool(still, 0), { shared: () => true, clock: () => still.ms, tick: () => {}, mark: () => {} });
+  for (let k = 0; k < 6; k++) { still.ms += 250; a.calls.length = 0; a.update(0.1, me); assert.deepEqual(a.calls, [0.1], `frame ${k}: a call read at 0 ms is no price`); }
+  // 100 ms quanta: a 20 ms call reads 0 or 100, and neither buys a call
+  const real = { ms: 0 };
+  const b = catchUpOwnerFoes(countedPool(real, 20), { shared: () => true, clock: () => Math.floor(real.ms / 100) * 100, tick: () => {}, mark: () => {} });
+  for (let k = 0; k < 200; k++) { real.ms += 230; b.update(0.1, me); }
+  assert.equal(b.calls.length, 200, 'one call a frame on a coarse clock');
+  // a host frame longer than world.js hands (0.3 s): six calls forecast at 4 ms a call, each costing 10 - the extras stop
+  // at the share (25 ms of a 250 ms frame), the brain carried to the last call made
+  const clock = { ms: 0 }, costs = [4];
+  const ticks = [], cCalls = [];
+  const c = catchUpOwnerFoes({ update(dt) { cCalls.push(dt); clock.ms += costs.shift() ?? 10; } }, { shared: () => true, clock: () => clock.ms, tick: (d) => ticks.push(d), mark: () => {} });
+  clock.ms += 250; c.update(0.3, me);
+  clock.ms += 246; cCalls.length = 0; c.update(0.3, me);
+  assert.deepEqual(cCalls, Array(4).fill(Math.min(FOE_MAX_FRAME_DT, 0.3 / 6)), 'the host\'s call and three extras: 30 ms, past the 25 ms share - not six calls');
+  assert.ok(near(ticks.reduce((x, y) => x + y, 0), 4 * FOE_MAX_FRAME_DT - FOE_MAX_FRAME_DT), 'the brain carried to the last call made');
+  // the dearest call prices the next frame: a frame of a 30 ms call and a 10 ms one affords nothing next
+  const d0 = { ms: 0 }, dcost = [10, 30, 10], dCalls = [];
+  const d = catchUpOwnerFoes({ update(dt) { dCalls.push(dt); d0.ms += dcost.shift() ?? 10; } }, { shared: () => true, clock: () => d0.ms, tick: () => {}, mark: () => {} });
+  d0.ms += 250; d.update(0.1, me);
+  d0.ms += 240; dCalls.length = 0; d.update(0.1, me);
+  assert.deepEqual(dCalls, [0.05, 0.05], '10 ms forecast: one extra');
+  d0.ms += 210; dCalls.length = 0; d.update(0.1, me);
+  assert.deepEqual(dCalls, [0.1], 'the frame\'s dearest call (30 ms) prices it past the share');
+});
+
+test('OWNER-CLOCK the owner, executed on the real encounter pool: at 4 fps its foe\'s body takes six FIXED_DT steps a frame through the catch-up - the 0.1 s its owner\'s player takes - where FOE-CATCHUP alone gives it three (mutants: the plan unread)', async () => {
   const counts = [];
   for (const caught of [true, false]) {
     const owner = pool('aaa-0001');
@@ -463,11 +557,11 @@ test('OWNER-CLOCK the owner, executed on the real encounter pool: at 4 fps its f
     rat.ai._step = (...a) => { steps++; return step(...a); };
     const clock = { ms: 0 };
     const pe = playerEntity();
-    if (caught) catchUpOwnerFoes(owner, { shared: () => true, clock: () => clock.ms, tick: () => {}, mark: () => {} });
+    if (caught) catchUpOwnerFoes(owner, { shared: () => true, clock: () => (clock.ms += 0.5), tick: () => {}, mark: () => {} });   // every read a half-millisecond on: a call is seen to cost
     for (let k = 0; k < 9; k++) { clock.ms += 250; owner.update(0.1, me, eye, senses(pe)); }
     counts.push(steps);
   }
-  assert.ok(Math.abs(counts[0] - 3 - 8 * 15) <= 1, `caught up: ${counts[0]} steps (the first frame the host's own three, then fifteen a frame)`);
+  assert.ok(Math.abs(counts[0] - 3 - 8 * 6) <= 1, `caught up: ${counts[0]} steps (the first frame the host's own three, then six a frame)`);
   assert.equal(counts[1], 9 * 3, 'FOE-CATCHUP alone: three a frame');
 });
 
@@ -500,4 +594,31 @@ test('OWNER-CLOCK the wiring by source: the world host wires it once, beside the
   // the steps the catch-up takes are FOE-CATCHUP's own size, so its pins hold: the pools still hand their bodies foeFrameDt
   assert.match(x, /f\.ai\.update\(foeFrameDt\(dt\), playerFeet, _armed\(f, senses\), _fParalyzed, _fPaused\);/);
   assert.equal(FIXED_DT * 3, FOE_MAX_FRAME_DT);
+});
+
+test('OWNER-CLOCK the wiring, executed: wireOwnerClock - the world host\'s one statement - on a street pool and a mode machine, with the page\'s own owner clock, its own tactics clock and its own performance.now() (mocked): shared and slow, the street\'s frame is the host\'s 0.1 s in two calls and the brain is carried to the second\'s end; alone, the host\'s one call; every street call, and every modal frame that ran, marks the page\'s clock at its moment (mutants: `shared` not handed on; the street left unwrapped; the modal steps unmarked; the default mark dropped; the default tick dropped)', (t) => {
+  let now = 50_000;
+  t.mock.method(performance, 'now', () => now);
+  const calls = [];
+  const street = { update(dt) { calls.push(dt); now += 2; } };   // a call the page's clock sees cost 2 ms
+  let ran = true, shared = true;
+  const modes = { frame: () => ran };
+  wireOwnerClock(street, modes, () => shared);
+  street.update(0.1, me);
+  assert.deepEqual(calls, [0.1], 'the first frame: nothing measured, the host\'s one call');
+  assert.equal(ownerClock.tm(), 50_000, 'the street\'s call marks the page\'s clock');
+  const brain = tacticsNow();
+  now += 248; calls.length = 0;
+  street.update(0.1, me);
+  assert.deepEqual(calls, [FOE_MAX_FRAME_DT, FOE_MAX_FRAME_DT], 'shared and a quarter-second frame: the host\'s 0.1 s in two');
+  assert.ok(near(tacticsNow() - brain, 0.1 - FOE_MAX_FRAME_DT), `the page's brain carried past the host's tick: ${tacticsNow() - brain}`);
+  assert.equal(ownerClock.tm(), 50_250);
+  shared = false; now += 246; calls.length = 0;
+  street.update(0.1, me);
+  assert.deepEqual(calls, [0.1], 'nobody else in the room: the host\'s one call');
+  assert.equal(modes.frame(0.1, 60_123.4), true, 'a modal frame that ran: its own answer');
+  assert.equal(ownerClock.tm(), 60_123, 'and the page\'s clock marked at its `now`');
+  ran = false;
+  assert.equal(modes.frame(0.1, 70_000), false);
+  assert.equal(ownerClock.tm(), 60_123, 'a frame that ran nothing marks nothing');
 });
