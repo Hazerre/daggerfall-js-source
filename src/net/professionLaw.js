@@ -926,8 +926,10 @@ export const SAW_RECIPES = Object.freeze(LOGS.map((l) => recipe(`saw:${woodOf(l.
  *  of work two hides, and a Tanner's makes two); Spider Silk weaves to a Silk Bolt at the loom, three a bolt. The rack
  *  and the loom are Outfitting's one station. No XP: a hide's was its skinning's, as a log's was its fall's (PROF0 25).
  *  DEX-HIDES (FIELD BUGS 2026-10-20h): by the hide's tier, the ten's order kept - a leather's cures stand cheapest first,
- *  as a chain plans them (chainLaw.js producersOf), so the Mudcrab Chitin's stands beside the Rat Pelt's. */
-export const CURE_RECIPES = Object.freeze(HIDES.filter((h) => h.cures).sort((a, b) => a.tier - b.tier).map((h) => recipe(`cure:${h.key.slice('hide:'.length)}`, /** @type {string} */ (h.cures), [[h.key, 2]],
+ *  as a chain plans them (chainLaw.js producersOf), so the Mudcrab Chitin's stands beside the Rat Pelt's. AUDIT FB1021
+ *  L2-1: the Bear Hide last of its tier - it is the Ram Kit's too, and a chain for Cured Leather spent every one before a
+ *  Wolf Pelt or a Boar Hide. */
+export const CURE_RECIPES = Object.freeze(HIDES.filter((h) => h.cures).sort((a, b) => a.tier - b.tier || Number(a === BEAR_HIDE) - Number(b === BEAR_HIDE)).map((h) => recipe(`cure:${h.key.slice('hide:'.length)}`, /** @type {string} */ (h.cures), [[h.key, 2]],
   { station: 'loom', more: Object.freeze({ profession: 'hunting', spec: 'tanner', per: 2, rank: 50 }), xp: null })));
 export const WEAVE_RECIPES = Object.freeze([recipe('weave:silk', SILK.key, [['hide:spider', 3]], { station: 'loom', xp: null })]);
 /** PROF11 (PROF0 4.5): Mortar a mix makes - "ten at a time". */

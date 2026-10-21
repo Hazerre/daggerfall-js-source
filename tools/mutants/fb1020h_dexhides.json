@@ -114,7 +114,7 @@
   {
     "name": "DEX-HIDES-the-cures-unsorted",
     "file": "src/net/professionLaw.js",
-    "old": "HIDES.filter((h) => h.cures).sort((a, b) => a.tier - b.tier).map(",
+    "old": "HIDES.filter((h) => h.cures).sort((a, b) => a.tier - b.tier || Number(a === BEAR_HIDE) - Number(b === BEAR_HIDE)).map(",
     "new": "HIDES.filter((h) => h.cures).map(",
     "tests": ["test/net/fb1020h_dexhides.test.js"]
   },
@@ -130,6 +130,20 @@
     "file": "src/net/recipeLaw.js",
     "old": "'hide:wolf', 'hide:boar']);",
     "new": "'hide:boar']);",
+    "tests": ["test/net/fb1020h_dexhides.test.js"]
+  },
+  {
+    "name": "AUDIT-FB1021-L2-1-the-bear-hide-in-the-table-s-place",
+    "file": "src/net/professionLaw.js",
+    "old": ".sort((a, b) => a.tier - b.tier || Number(a === BEAR_HIDE) - Number(b === BEAR_HIDE))",
+    "new": ".sort((a, b) => a.tier - b.tier)",
+    "tests": ["test/net/fb1020h_dexhides.test.js", "test/net/craft1_chain.test.js", "test/net/prof7_law.test.js"]
+  },
+  {
+    "name": "AUDIT-FB1021-the-mudcrab-s-chitin-counted",
+    "file": "src/systems/professions/profItems.js",
+    "old": "  'Mudcrab Chitin',   // DEX-HIDES",
+    "new": "  'Mudcrab Chitins',   // DEX-HIDES",
     "tests": ["test/net/fb1020h_dexhides.test.js"]
   }
 ]

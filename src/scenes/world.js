@@ -308,7 +308,7 @@ import { WARDEN_VENDOR } from '../systems/wagon/wagonWarden.js';   // WARDEN1: t
 import { townGroundOf, yardSitesOn, craftYardSitesOn, MONUMENT_KEEP_M, yardMeasuresOf, placedModelBox } from '../world/merchantYards/merchantYardSites.js';   // MERCHANT-YARDS: where they stand off the town's layout, and the people's navgrid carved round them
 import { isYardTown, yardKeeper, ALL_YARD_KINDS, YARD_BENCH } from '../systems/merchantYards.js';   // MERCHANT-YARDS: the towns that stand them, who keeps them, the town's people
 import { isPortTown, isPortTownType, portKeeper, portPlaceName, PORT_SITE_ORDER } from '../systems/portPlaces.js';   // SHIPYARDS: the port towns, their keepers and their places' names; FIELD BUGS 2026-10-13c PORT-TOWNS: the harbour board's ports are its towns
-import { townSeaOf, seaBearing, seaField, portSitesOn, portPlaceRows, sceneToLocationXZ, openSeaOf, seaBears, portTownOnSea, SEA_RING } from '../world/portSites.js';   // SHIPYARDS: where a port town's shipyard and lighthouse stand - its seaward ground; FIELD BUGS 2026-10-14 INLAND-PORTS: and which towns the open sea bears on
+import { townSeaOf, seaBearing, seaField, portSitesOn, portPlaceRows, sceneToLocationXZ, openSeaOf, seaBears, portTownOnSea, boardPortAt } from '../world/portSites.js';   // SHIPYARDS: where a port town's shipyard and lighthouse stand - its seaward ground; FIELD BUGS 2026-10-14 INLAND-PORTS: and which towns the open sea bears on
 import { SHIPYARD as SHIPYARD_LAYOUT } from '../world/shipyardModel.js';   // SHIPYARDS: the crew hall's table, for the talk directory's row
 import { HARBOUR_REACH } from '../systems/naval/shipLife.js';   // AUDIT HOLDINGS O1: the harbour's scan reach, its pixels built before it is sounded
 import { createHarbourBook } from '../systems/naval/harbourBook.js';   // HARBOUR-BOOK: the harbours near the player, the quays' and the sea's
@@ -3047,7 +3047,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const jungle = jungleOn() ? createJungleHost({ renderer, maps, mapWidth: MAP_W, mapHeight: MAP_H, stateOf: () => state, builtOf: () => built, heightAt: (x, z) => heightAt(x, z), breathe: () => breather.breathe(), haze: jungleHazeOn() }) : null;
   const jungleFloor = jungle && labGrass ? createJungleFloorHost({ gl: renderer.gl, jungle, pictures: floorPictures({ getTexture, palette }), density: grassDensity / LAB_GRASS.density, provoke: pageParam('provoke') !== 'last', onArrive: () => { labGrassField = null; } }) : null;   // BANTHA2: the jungle's floor, a second field of the grass (scenes/jungleFloorHost.js) - made when the jungle comes near; the meadow's field placed again beside it
   let _snowArrival = null;   // AUDIT PRECIP HOST-2: a trip's arrival minute (the event clock's) while its time has yet to run - declared before the host that reads it
-  const snowCover = createSnowCoverHost({ renderer, climateAt, mapHeight: MAP_H, stateOf: () => state, builtOf: () => built, heightAt: (x, z) => heightAt(x, z), owns: precipLawOn, markReskin: (key) => _reskin.skin(key), now: () => (_snowArrival !== null && worldMinutes() < _snowArrival ? _snowArrival : ((_snowArrival = null), worldMinutes())), place: () => ({ px: state.current.x, py: state.current.y }), arriving: () => !playerSpawned, normalOf: (p, lx, lz, out) => (p.groundNormals && (p._stride ?? 1) === 1 ? surfaceNormalAt(p.groundNormals, lx, lz, out) : surfaceNormalFromSamples(p.samples, lx, lz, p._stride ?? 1, out)) });   // OW-HITCH: the drawn ground's slope; AUDIT PRECIP HOST-2: ONE clock - a trip's arrival minute until its own time has run   // PRECIP4 (scenes/snowCoverHost.js): the ground's snow on the enhanced lane - its draws, its builds' seasons, the sweep
+  const snowCover = createSnowCoverHost({ renderer, climateAt, mapHeight: MAP_H, stateOf: () => state, builtOf: () => built, owns: precipLawOn, markReskin: (key) => _reskin.skin(key), markRebuild: (key) => _reskin.mark(key), now: () => (_snowArrival !== null && worldMinutes() < _snowArrival ? _snowArrival : ((_snowArrival = null), worldMinutes())), place: () => ({ px: state.current.x, py: state.current.y }), arriving: () => !playerSpawned });   // AUDIT PRECIP HOST-2: ONE clock - a trip's arrival minute until its own time has run   // PRECIP4 (scenes/snowCoverHost.js): the ground's snow on the enhanced lane - its draws, its builds' seasons, the sweep
   const trees = createTreesHost({ renderer, getTexture, seasons, seasonsActive: () => seasonsActive, lowPolyTreesOn: modSetting('low-poly-trees', 'Enabled') && params.get('trees') !== 'off', jungle, breathe: () => breather.breathe(), yards: () => yards });
   const { lowPolyTrees, lptSway: _lptSway, lptWindfall: _lptWindfall } = trees;   // LPT1: the door, and the flats' shares of the wind by prototype (the build writes them)
   mwViewAttachHorse(renderer);   // COATS3D: the 3D horse under the Morrowind body
@@ -9137,13 +9137,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const navalPortHere = () => {
     const p = playerTravelPixel(), key = `${p.x},${p.y}`;
     if (_navalPortHereAt?.key === key) return _navalPortHereAt.port;
-    let port = null, best = Infinity;
     if (etherSea && inEther(p.x, p.y)) {   // ETHER-PORTS: an isle's port past the Veil
       const isle = etherPortNear(p.x, p.y);
       _navalPortHereAt = { key, port: isle ? etherPortOf(isle) : null };
       return _navalPortHereAt.port;
     }
-    for (const q of navalPortList()) { const d = Math.max(Math.abs(q.px - p.x), Math.abs(q.py - p.y)); if (d <= SEA_RING && d < best) { best = d; port = q; } }
+    const port = boardPortAt(navalPortList(), p.x, p.y);   // FIELD BUGS 2026-10-21b VOYAGE-HOLD: the nearest by the crow's flight (Pencart's water tied Longham's)
     _navalPortHereAt = { key, port };
     return port;
   };
@@ -34878,7 +34877,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
         // grass only stands on the stride-1 ring anyway.
         const h = surfaceHeightAt(p.samples, lx, lz, p._stride ?? 1);
         if (h <= sea) return null;
-        if (snowCover.on && snowCover.buries(p, lx, lz, x, z, h + t[1])) return null;   // PRECIP4: no blade through the snow the ground shows there (AUDIT PRECIP HOST-9: at the blade's own height)
+        if (snowCover.on && snowCover.buries(p, lx, lz, h + t[1])) return null;   // PRECIP4: no blade through the snow the ground shows there (AUDIT PRECIP HOST-9: at the blade's own height)
         return h + t[1];
       };
       // GR4: the SAME lookup keep makes, answering with the tile's mean

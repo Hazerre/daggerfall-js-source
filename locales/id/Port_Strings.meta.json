@@ -9654,6 +9654,21 @@
   "tr": "75238748bbdb",
   "by": "claude-in-session"
  },
+ "festival.finds.full": {
+  "en": "330c9b302a2c",
+  "tr": "7d420d5a71a0",
+  "by": "claude-in-session"
+ },
+ "festival.finds.today": {
+  "en": "93be20c18f10",
+  "tr": "0c43cbe5e21a",
+  "by": "claude-in-session"
+ },
+ "festival.finds.todayFull": {
+  "en": "78bff0d44c1f",
+  "tr": "3ce11d0a35f9",
+  "by": "claude-in-session"
+ },
  "festival.found": {
   "en": "d2a56822f0e7",
   "tr": "6c280a8aae62",
@@ -26174,6 +26189,16 @@
   "tr": "c464e0e3a1c8",
   "by": "claude-in-session"
  },
+ "rvn.errand.left.realHours": {
+  "en": "09ae5f9750ec",
+  "tr": "61c014197ecc",
+  "by": "claude-in-session"
+ },
+ "rvn.errand.left.realMinutes": {
+  "en": "fa15b0cca051",
+  "tr": "0f9b3bd6dd80",
+  "by": "claude-in-session"
+ },
  "rvn.errand.no.abroad": {
   "en": "3d2f752aa20c",
   "tr": "2b1277ef8c59",
@@ -26535,8 +26560,8 @@
   "by": "claude-in-session"
  },
  "rvn.roster.abroadLived": {
-  "en": "02ad56e2e2bb",
-  "tr": "b3684314a9b2",
+  "en": "a57a6cdb3d6f",
+  "tr": "4deb24651664",
   "by": "claude-in-session"
  },
  "rvn.roster.broken": {
