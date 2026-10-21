@@ -271,6 +271,11 @@ Twigs, the Roots, Bamboo, Ginkgo Leaves, Palm, Aloe, Fig and Cactus do); in **au
 Hides cure to **Cured Leather** (tiers 1-3) or **Hardened Leather** (tiers 4-6) at a tanning rack, **2:1** (Tanner
 1:1). Butchery gives C&C's Raw Meat either way. DFU's own corpse loot is untouched: skinning adds, never replaces.
 
+DEX-HIDES (2026-10-21, `01-Overview/bugs/Field-Bugs-2026-10-20h.md`): Daggerfall Enemy Expansion's nine animals are
+skinned too, each by its own id (`net/professionLaw.js` HIDES): the Bat the Bat Leather, the Blood Spider the Spider
+Silk, the Mountain Lion the Tiger Pelt, the Land Dreugh the Dreugh Shell; and three hides of their own, **Wolf Pelt**
+(681, tier 2 - the Wolf, the Snow Wolf, the Dog), **Boar Hide** (682, tier 2) and **Mudcrab Chitin** (683, tier 1).
+
 ### 4.5 Cloth, stone and the Board's counters
 
 - **Linen Bolt** and **Wool Bolt** are sold by the Notice Board's own supplier - the Weavers' counter on the Market
@@ -332,6 +337,7 @@ The Basket's foods are Foraging's and C&C's own templates, not new ones (FORAGE0
 | 673-675 | Rough Stone, Cut Stone, Mortar | Stores | DFU Lodestone, greyed |
 | 678 | Siege-cracked Gem | Stores | DFU Diamond, cracked overlay |
 | 680 | Arcane Essence | Stores | DFU Ectoplasm, tinted |
+| 681-683 | Wolf Pelt, Boar Hide, Mudcrab Chitin (DEX-HIDES: Daggerfall Enemy Expansion's animals, 4.4) | Stores | Nymph Hair's lock; Fairy Dragon's Scales' |
 | 685-688 | Hunter's Stew, Fisherman's Supper, Orchard Tart, Feast of the Hearth | pack (food) | C&C's Meat / Cooked Fish / Bread, tinted |
 | 690 | Ram Kit | Stores (a siege work) | DFU Battle Axe, tinted |
 | 692 | Repair Kit | pack | DFU Warhammer, tinted |
