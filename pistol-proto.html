@@ -67,9 +67,9 @@
   <label><span>guard</span><input id="guard" type="checkbox" checked><span class="v">lower</span></label>
 
   <h2>Placement &mdash; FPSWeapon</h2>
-  <label><span>size &times;native</span><input id="scale" type="range" min="0.5" max="3" step="0.05" value="1"><span class="v" id="vscale"></span></label>
+  <label><span>size &times;native</span><input id="scale" type="range" min="0.5" max="3" step="0.05" value="1.05"><span class="v" id="vscale"></span></label>
   <label><span>offset</span><input id="offset" type="range" min="0" max="0.4" step="0.005" value="0"><span class="v" id="voffset"></span></label>
-  <label><span>raise</span><input id="raise" type="range" min="-60" max="60" step="1" value="0"><span class="v" id="vraise"></span></label>
+  <label><span>raise</span><input id="raise" type="range" min="-60" max="60" step="1" value="-1"><span class="v" id="vraise"></span></label>
 
   <h2>Cycle</h2>
   <label><span>fire fps</span><input id="fps" type="range" min="4" max="30" step="1" value="12"><span class="v" id="vfps"></span></label>
@@ -104,9 +104,9 @@
 
   <h2>Weapon Widget &mdash; Bob</h2>
   <label><span>Modules.Bob</span><input id="modBob" type="checkbox" checked><span class="v"></span></label>
-  <label><span>Bob.Length</span><input id="bobLength" type="range" min="0" max="200" step="1" value="100"><span class="v" id="vbobLength"></span></label>
+  <label><span>Bob.Length</span><input id="bobLength" type="range" min="0" max="200" step="1" value="146"><span class="v" id="vbobLength"></span></label>
   <label><span>Bob.SizeX</span><input id="bobSizeX" type="range" min="0" max="2" step="0.1" value="1"><span class="v" id="vbobSizeX"></span></label>
-  <label><span>Bob.SizeY</span><input id="bobSizeY" type="range" min="0" max="2" step="0.1" value="1"><span class="v" id="vbobSizeY"></span></label>
+  <label><span>Bob.SizeY</span><input id="bobSizeY" type="range" min="0" max="2" step="0.1" value="0.7"><span class="v" id="vbobSizeY"></span></label>
   <label><span>Bob.SpeedMove</span><input id="bobSpeedMove" type="range" min="0" max="2" step="0.1" value="1"><span class="v" id="vbobSpeedMove"></span></label>
   <label><span>Bob.SpeedState</span><input id="bobSpeedState" type="range" min="0" max="2" step="0.1" value="1"><span class="v" id="vbobSpeedState"></span></label>
   <label><span>Bob.Shape</span><select id="bobShape"><option value="0">U</option><option value="1">Sideways 8</option><option value="2">Inverted U</option></select></label>
@@ -114,9 +114,9 @@
 
   <h2>Weapon Widget &mdash; Inertia</h2>
   <label><span>Modules.Inertia</span><input id="modInertia" type="checkbox" checked><span class="v"></span></label>
-  <label><span>Scale</span><input id="inScale" type="range" min="0" max="2" step="0.1" value="1"><span class="v" id="vinScale"></span></label>
-  <label><span>Speed</span><input id="inSpeed" type="range" min="0" max="2" step="0.1" value="1"><span class="v" id="vinSpeed"></span></label>
-  <label><span>ForwardDepth</span><input id="inFwd" type="range" min="0" max="2" step="0.1" value="1"><span class="v" id="vinFwd"></span></label>
+  <label><span>Scale</span><input id="inScale" type="range" min="0" max="2" step="0.1" value="2"><span class="v" id="vinScale"></span></label>
+  <label><span>Speed</span><input id="inSpeed" type="range" min="0" max="2" step="0.1" value="2"><span class="v" id="vinSpeed"></span></label>
+  <label><span>ForwardDepth</span><input id="inFwd" type="range" min="0" max="2" step="0.1" value="0"><span class="v" id="vinFwd"></span></label>
   <label><span>ForwardSpeed</span><input id="inFwdSpeed" type="range" min="0" max="2" step="0.1" value="1"><span class="v" id="vinFwdSpeed"></span></label>
 
   <h2>Movement</h2>
@@ -148,20 +148,25 @@ const ctx = canvas.getContext('2d');
 const $ = (id) => document.getElementById(id);
 const O = PISTOL_OPENING;
 
-// THE SOUND's opening picks: a black-powder shot for a flintlock, and
-// the Thunderlock's own reload pair - the lists are the gun lab's.
-const pickOf = (slot, name) => (SFX_CANDIDATES[slot].some(([n]) => n === name) ? name : SFX_CANDIDATES[slot][0][0]);
+// THE OWNER'S PICKS (PISTOL-LAB 2): the lists are the gun lab's, and a
+// pick a list does not offer is an error, never a quiet fall to its head.
+const pickOf = (slot, name) => {
+  if (!SFX_CANDIDATES[slot].some(([n]) => n === name)) throw new Error(`no ${slot} clip ${name}`);
+  return name;
+};
+const W = O.widget;
 const state = {
   trigger: PAIR_TRIGGER.Alternate, lead: 'R', guard: true,
   scale: O.scale, offset: O.offset, raise: O.raise,
   fps: O.fps, cool: O.reloadMs, hit: O.hitFrame, auto: false,
   kick: O.kick, back: O.back, stiff: O.stiff, damp: O.damp,
   shake: O.shake, shakeRot: O.shakeRot, shakeFreq: O.shakeFreq, shakeDecay: O.shakeDecay,
-  sfxFire: pickOf('fire', 'fire-musket'), sfxOpen: pickOf('reload-open', 'open-gunrack'), sfxClose: pickOf('reload-close', 'close-shell'),
-  sfxVol: 1, sfxVary: 0.19, sfxOn: true,
-  drop: O.drop, offsetSpeed: 1, modOffset: true,
-  modBob: true, bobLength: 100, bobSizeX: 1, bobSizeY: 1, bobSpeedMove: 1, bobSpeedState: 1, bobShape: 0, bobIdle: true,
-  modInertia: true, inScale: 1, inSpeed: 1, inFwd: 1, inFwdSpeed: 1,
+  sfxFire: pickOf('fire', O.sfxFire), sfxOpen: pickOf('reload-open', O.sfxOpen), sfxClose: pickOf('reload-close', O.sfxClose),
+  sfxVol: O.sfxVol, sfxVary: O.sfxVary, sfxOn: true,
+  drop: O.drop, offsetSpeed: W['Offset.Speed'], modOffset: true,
+  modBob: true, bobLength: W['Bob.Length'], bobSizeX: W['Bob.SizeX'], bobSizeY: W['Bob.SizeY'],
+  bobSpeedMove: W['Bob.SpeedMove'], bobSpeedState: W['Bob.SpeedState'], bobShape: W['Bob.Shape'], bobIdle: W['Bob.BobWhileIdle'],
+  modInertia: true, inScale: W['Inertia.Scale'], inSpeed: W['Inertia.Speed'], inFwd: W['Inertia.ForwardDepth'], inFwdSpeed: W['Inertia.ForwardSpeed'],
   walk: false, run: false, crouch: false, spd: 50,
   alphaCut: O.alphaCut, light: 0.6, room: 0.62, grid: false,
 };
@@ -256,6 +261,13 @@ const CONTROLS = ['trigger','lead','guard','scale','offset','raise','fps','cool'
   'modInertia','inScale','inSpeed','inFwd','inFwdSpeed',
   'walk','run','crouch','spd','light','room','grid',
   'sfxFire','sfxOpen','sfxClose','sfxVol','sfxVary','sfxOn'];
+// THE ROW IS THE TRUTH, the markup a copy of it: every control is set
+// from `state` before it is bound, so a slider's `value=` that drifted
+// from PISTOL_OPENING cannot open the panel on a different weapon.
+for (const id of [...CONTROLS, 'alphaCut']) {
+  const el = $(id);
+  if (el.type === 'checkbox') el.checked = !!state[id]; else el.value = String(state[id]);
+}
 for (const id of CONTROLS) bind(id);
 bind('alphaCut', rebuild);
 

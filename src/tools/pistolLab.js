@@ -89,28 +89,33 @@ export function hardenAlpha(img, cut = 128) {
 export const nativeWidthPct = (anchorW, scale = 1) => (anchorW / 320) * scale;
 
 /**
- * THE OPENING NUMBERS - a first pass for the panel, not a decision. The
- * Thunderlock's opened on its own panel's first pass too, and the owner
- * moved them; these are named here so the probe, the pins and the page
- * open on one weapon.
+ * THE OWNER'S NUMBERS (PISTOL-LAB 2, 2026-10-21), off the lab's panel -
+ * "Must be these values/sounds exactly", over two screenshots of it. One
+ * frozen row, so the page, the probe and the pins open on one weapon, and
+ * the next person to move one moves it once (GUN_FEEL's rule).
  *
- *   - size 1x native, raise 0, offset 0: the forearm's cut sits on the
- *     view's bottom-right corner, where the art put it (the Thunderlock
- *     sank 8 units because its painting had no arm to hide);
- *   - 12 fps, hit on frame 2 (index 1, the flash), a 1400ms reload -
- *     a pistol's cycle is shorter than a rifle's, and a pair covers
- *     each other's reloads, which is the reason to carry two;
- *   - the kick smaller than the Thunderlock's 5: the art already
- *     kicks (frames 2 and 4-5), so the spring is the after-shock;
- *   - the shake at two thirds of the rifle's, because a volley lands
- *     two punches and the trauma stacks.
+ * Kept from the first pass: 12 fps, hit on frame 2 (the flash), a 1400ms
+ * reload, kick 3 / back 0 / stiffness 400 / damping 36, the shake at
+ * 20 / 2.5 / 60 / 5, drop 0.7, the cut at 128. Moved by the owner: the
+ * size to 1.05x native and the raise to -1 (a design unit below the
+ * view's edge); the three sounds; and Weapon Widget's Bob and Inertia -
+ * a longer, flatter Bob (Length 146, SizeY 0.7) and an Inertia at twice
+ * the mod's scale and speed with no forward depth. The widget's keys are
+ * the mod's own names, read through its own multipliers.
  */
 export const PISTOL_OPENING = Object.freeze({
-  scale: 1, raise: 0, offset: 0,
+  scale: 1.05, raise: -1, offset: 0,
   fps: 12, reloadMs: 1400, hitFrame: 1,
   kick: 3, back: 0, stiff: 400, damp: 36,
   shake: 20, shakeRot: 2.5, shakeFreq: 60, shakeDecay: 5,
   drop: 0.7, alphaCut: 128,
+  sfxFire: 'fire-shotgun', sfxOpen: 'open-shell', sfxClose: 'close-ready', sfxVol: 1, sfxVary: 0.19,
+  widget: Object.freeze({
+    'Offset.Speed': 1,
+    'Bob.Length': 146, 'Bob.SizeX': 1, 'Bob.SizeY': 0.7, 'Bob.SpeedMove': 1, 'Bob.SpeedState': 1,
+    'Bob.Shape': 0, 'Bob.BobWhileIdle': true,
+    'Inertia.Scale': 2, 'Inertia.Speed': 2, 'Inertia.ForwardDepth': 0, 'Inertia.ForwardSpeed': 1,
+  }),
 });
 
 /** How the trigger is pulled with a pistol in each hand. */

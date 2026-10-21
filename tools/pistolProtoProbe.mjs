@@ -50,6 +50,10 @@ const set = (vals) => page.evaluate((v) => {
 const read = () => page.evaluate(() => globalThis.__pistolLab);
 const click = (button = 0) => page.evaluate((b) => document.getElementById('c').dispatchEvent(new MouseEvent('mousedown', { button: b })), button);
 const unclick = () => page.evaluate(() => dispatchEvent(new MouseEvent('mouseup')));
+/** `__pistolLab` is written once a frame, so a read in the same instant as
+ *  a click is the frame BEFORE it (Home.md: frame-sync, never sleep). Two
+ *  rAFs: the first may run ahead of the page's own frame callback. */
+const nextFrame = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
 const STILL = { modBob: false, modInertia: false, modOffset: false, kick: 0, walk: false };
 const near = (a, b, eps = 1.5) => Math.abs(a - b) <= eps;
 /** Wait until both pistols are loaded and resting. */
@@ -78,12 +82,15 @@ check('the flash has room up and left of the rest frame, and the two share the a
 await set(STILL);
 await settle();
 let s = await read();
+// the panel's own size and raise - the owner's row, not a number assumed here
+const pose = await page.evaluate(() => ({ scale: +document.getElementById('scale').value, raise: +document.getElementById('raise').value }));
 check('both pistols are drawn - the lab opens on the pair', s.R.drawn && s.L.drawn && s.trigger === 'alternate', s.trigger);
-check('native size: the pistol is its art width on the 320-wide surface',
-  near(s.R.anchorRect.w, art.anchor.w * VW / 320), `${s.R.anchorRect.w.toFixed(1)}px for ${art.anchor.w} art px`);
-check('the forearm’s cut sits on the view’s bottom-right corner',
-  near(s.R.rect.x + s.R.rect.w, VW) && near(s.R.rect.y + s.R.rect.h, VH),
-  `right edge ${(s.R.rect.x + s.R.rect.w).toFixed(1)}, bottom ${(s.R.rect.y + s.R.rect.h).toFixed(1)}`);
+check('native size: the pistol is its art width on the 320-wide surface, times the panel’s size',
+  near(s.R.anchorRect.w, art.anchor.w * VW / 320 * pose.scale), `${s.R.anchorRect.w.toFixed(1)}px for ${art.anchor.w} art px at ${pose.scale}x`);
+// the raise is FPSWeapon's offsetHeight in design units: -1 sinks the cut one unit below the edge
+check('the forearm’s cut sits on the view’s right edge, the raise below its bottom',
+  near(s.R.rect.x + s.R.rect.w, VW) && near(s.R.rect.y + s.R.rect.h, VH - pose.raise * VH / 200),
+  `right edge ${(s.R.rect.x + s.R.rect.w).toFixed(1)}, bottom ${(s.R.rect.y + s.R.rect.h).toFixed(1)} at raise ${pose.raise}`);
 check('the left pistol is the right in the glass',
   near(s.L.rect.x, VW - (s.R.rect.x + s.R.rect.w)) && near(s.L.rect.y, s.R.rect.y) && near(s.L.rect.w, s.R.rect.w),
   `left x=${s.L.rect.x.toFixed(1)}, right ends ${(s.R.rect.x + s.R.rect.w).toFixed(1)} of ${VW}`);
@@ -121,14 +128,21 @@ await page.keyboard.press('ArrowRight');
 // ── WHICH HAND FIRES ─────────────────────────────────────────────────
 await set({ ...STILL, trigger: 'alternate', lead: 'R', fps: 12, cool: 1400 });
 await settle();
-await click(); await unclick();
-const first = (await read()).lastShot;
+// Counted per click, each read a drawn frame after it. The first cut read
+// `lastShot` in the click's own instant - the frame BEFORE the shot - and
+// answered "R then R" one run in three: a stale read, not a misfire.
+const shotsOf = (r) => `${r.R.shots}/${r.L.shots}`;
+const s0 = await read();
+await click(); await unclick(); await nextFrame();
+const s1 = await read();
 await page.waitForTimeout(150);
-await click(); await unclick();
-const second = (await read()).lastShot;
+await click(); await unclick(); await nextFrame();
+const s2 = await read();
+const firstR = s1.R.shots === s0.R.shots + 1 && s1.L.shots === s0.L.shots;
+const secondL = s2.L.shots === s1.L.shots + 1 && s2.R.shots === s1.R.shots;
 check('alternate: the lead opens and a quick second pull is the other hand’s (the flurry)',
-  first?.hand === 'R' && second?.hand === 'L' && second.off && !first.off,
-  `${first?.hand} then ${second?.hand}${second?.off ? ' (off hand)' : ''}`);
+  firstR && secondL && s2.lastShot?.off && s2.lastShot?.flurry,
+  `R/L shots ${shotsOf(s0)} -> ${shotsOf(s1)} (R ${s1.R.state}) -> ${shotsOf(s2)}, last ${s2.lastShot?.hand}${s2.lastShot?.off ? ' (off hand)' : ''}`);
 // THE GUARD: the resting pistol lowers while the other fires
 await settle();
 const restL = (await read()).L.anchorRect.y;
@@ -146,8 +160,7 @@ check('and comes back when the shot ends', near(afterGuard, restL), `back at y=$
 await set({ trigger: 'volley' });
 await settle();
 const before = await read();
-await click(); await unclick();
-await page.waitForTimeout(40);
+await click(); await unclick(); await nextFrame();
 const volley = await read();
 check('volley fires both on one pull', volley.R.shots === before.R.shots + 1 && volley.L.shots === before.L.shots + 1,
   `R ${before.R.shots}->${volley.R.shots}, L ${before.L.shots}->${volley.L.shots}`);
@@ -160,8 +173,7 @@ await page.screenshot({ path: `${shots}/volley.png` });
 await set({ trigger: 'perHand' });
 await settle();
 const ph = await read();
-await click(2); await unclick();
-await page.waitForTimeout(40);
+await click(2); await unclick(); await nextFrame();
 const ph2 = await read();
 check('per hand: the right mouse button fires the left pistol alone',
   ph2.L.shots === ph.L.shots + 1 && ph2.R.shots === ph.R.shots, `L ${ph.L.shots}->${ph2.L.shots}, R ${ph.R.shots}->${ph2.R.shots}`);

@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   PISTOL_STRIP, PISTOL_OPENING, PAIR_TRIGGER, stripCellRect, hardenAlpha, nativeWidthPct, createPair,
-  strikeHandOf, guardOffset, GUARD, FLURRY_WINDOW, gunFrameRect, createWidgetRig, ALIGN,
+  strikeHandOf, guardOffset, GUARD, FLURRY_WINDOW, gunFrameRect, createWidgetRig, ALIGN, SFX_CANDIDATES,
 } from '../../../src/tools/pistolLab.js';
 import { strikeHandOf as LAW_STRIKE, guardOffset as LAW_GUARD } from '../../../src/combat/twoHands/handsLaw.js';
 import { gunFrameRect as GAME_FRAME } from '../../../src/combat/gun/gunViewmodel.js';
@@ -158,12 +158,43 @@ test('the resting pistol lowers a share of its height while the other fires (han
   assert.ok(Math.abs(y - GUARD.LOWER * 101) < 1e-9);
 });
 
-test('the opening numbers are one row, and the page opens on them', () => {
+test('the owner\u2019s numbers, exactly (PISTOL-LAB 2: "Must be these values/sounds exactly")', () => {
+  // read off the owner's two screenshots of the panel, 2026-10-21 - a
+  // change here is the owner's to make, and must be made on purpose
+  assert.deepEqual({ ...PISTOL_OPENING, widget: { ...PISTOL_OPENING.widget } }, {
+    scale: 1.05, raise: -1, offset: 0,
+    fps: 12, reloadMs: 1400, hitFrame: 1,
+    kick: 3, back: 0, stiff: 400, damp: 36,
+    shake: 20, shakeRot: 2.5, shakeFreq: 60, shakeDecay: 5,
+    drop: 0.7, alphaCut: 128,
+    sfxFire: 'fire-shotgun', sfxOpen: 'open-shell', sfxClose: 'close-ready', sfxVol: 1, sfxVary: 0.19,
+    widget: {
+      'Offset.Speed': 1,
+      'Bob.Length': 146, 'Bob.SizeX': 1, 'Bob.SizeY': 0.7, 'Bob.SpeedMove': 1, 'Bob.SpeedState': 1,
+      'Bob.Shape': 0, 'Bob.BobWhileIdle': true,
+      'Inertia.Scale': 2, 'Inertia.Speed': 2, 'Inertia.ForwardDepth': 0, 'Inertia.ForwardSpeed': 1,
+    },
+  });
+  // every pick is a clip the lab offers, and the clip ships
+  for (const [slot, name] of [['fire', 'sfxFire'], ['reload-open', 'sfxOpen'], ['reload-close', 'sfxClose']]) {
+    assert.ok(SFX_CANDIDATES[slot].some(([n]) => n === PISTOL_OPENING[name]), `${PISTOL_OPENING[name]} is a ${slot} candidate`);
+    assert.ok(readFileSync(`public/sfx/${PISTOL_OPENING[name]}.wav`).length > 1000);
+  }
+});
+
+test('the page opens on the row: state is read from it, and every control is set from state before it is bound', () => {
   const html = page();
   assert.match(html, /const O = PISTOL_OPENING;/);
-  for (const [id, v] of [['scale', PISTOL_OPENING.scale], ['fps', PISTOL_OPENING.fps], ['cool', PISTOL_OPENING.reloadMs],
-    ['kick', PISTOL_OPENING.kick], ['shake', PISTOL_OPENING.shake], ['drop', PISTOL_OPENING.drop], ['alphaCut', PISTOL_OPENING.alphaCut]]) {
-    assert.match(html, new RegExp(`id="${id}"[^>]*value="${v}"`), `the ${id} slider opens on ${v}`);
+  assert.match(html, /const W = O\.widget;/);
+  for (const k of ['scale', 'raise', 'kick', 'shake', 'drop', 'alphaCut']) assert.match(html, new RegExp(`\\b${k}: O\\.${k}\\b`), `state.${k} is the row's`);
+  assert.match(html, /sfxFire: pickOf\('fire', O\.sfxFire\)/);
+  assert.match(html, /bobLength: W\['Bob\.Length'\]/);
+  assert.match(html, /inFwd: W\['Inertia\.ForwardDepth'\]/);
+  // the sync runs before the binding - the markup's value= cannot win
+  assert.ok(html.indexOf("el.checked = !!state[id]; else el.value = String(state[id]);") < html.indexOf('for (const id of CONTROLS) bind(id);'));
+  // and the markup agrees anyway, so a reader of the HTML is not misled
+  for (const [id, v] of [['scale', 1.05], ['raise', -1], ['bobLength', 146], ['bobSizeY', 0.7], ['inScale', 2], ['inSpeed', 2], ['inFwd', 0]]) {
+    assert.match(html, new RegExp(`id="${id}"[^>]*value="${v}"`), `the ${id} slider's markup says ${v}`);
   }
 });
 

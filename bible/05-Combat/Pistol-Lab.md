@@ -114,19 +114,27 @@ which is why the opening shake is two thirds of the Thunderlock's.
 **Each hand reloads on its own.** The reload lowers that hand on the Offset module's easing, with its own two sound ends.
 Carrying a pair is a way of covering one pistol's reload with the other.
 
-## The opening numbers - a first pass, for the owner's hand
+## The owner's numbers (PISTOL-LAB 2)
 
-`PISTOL_OPENING`, one frozen row that the page, the probe and the pins all read. The Thunderlock's panel opened on a first
-pass too, and Mac moved it. These are not decisions:
+The owner tuned the published lab and sent the panel back in two screenshots: *"Must be these values/sounds exactly"*.
+They are `PISTOL_OPENING`, one frozen row that the page, the probe and the pins all read (GUN_FEEL's rule: a number in two
+places disagrees with itself). `pistolLab.test.js` pins the row with `deepEqual`, so a change to it is a deliberate
+change to that test. The page sets every control from the row before binding it, so a slider's `value=` in the markup
+cannot open the panel on a different weapon.
 
-| | Value | Why it opens there |
+| | Value | Moved from the first pass |
 |---|---|---|
-| size, raise, offset | 1x native, 0, 0 | the arm's cut on the corner, where the art put it (the Thunderlock sank 8 units because its painting had no arm to hide) |
-| fire fps, hit frame, reload | 12, frame 2 (the flash), 1400 ms | a pistol cycles faster than a rifle, and a pair covers each other's reloads |
-| kick | 3 (the Thunderlock: 5) | the art already kicks (frames 2 and 4-5), so the spring is the after-shock |
-| shake | 20 / roll 2.5 / decay 5 (the Thunderlock: 30 / 4 / 5) | a volley lands two punches |
-| reload drop | 0.7 of the sprite's height | deeper than the Thunderlock's 0.55, a guess for a shorter sprite; the probe measured it at 283px down on an 800px window |
-| sound | `fire-musket` (black powder), the Thunderlock's reload pair | the closest of the gun lab's clips to a flintlock |
+| size, raise, offset | 1.05x native, -1, 0 | size 1, raise 0 - the cut now sits one design unit below the view's bottom edge |
+| fire fps, hit frame, reload | 12, frame 2 (the flash), 1400 ms | kept |
+| recoil | kick 3, back 0, stiffness 400, damping 36 | kept |
+| shake | 20, roll 2.5, rattle 60, decay 5 | kept |
+| sound | fire `fire-shotgun`, reload open `open-shell`, reload close `close-ready`; volume 1, pitch vary 0.19 | all three picks (the first pass was `fire-musket`, `open-gunrack`, `close-shell`) |
+| reload lower | drop 0.7, Offset.Speed 1, Offset on | kept |
+| Weapon Widget Bob | Length 146, SizeX 1, SizeY 0.7, SpeedMove 1, SpeedState 1, shape U, BobWhileIdle on | Length 100, SizeY 1 - a longer, flatter Bob |
+| Weapon Widget Inertia | on, Scale 2, Speed 2, ForwardDepth 0, ForwardSpeed 1 | Scale 1, Speed 1, ForwardDepth 1 |
+| art and room | alpha cut 128, muzzle light 0.6, room 0.62 | kept |
+
+"Walking" was ticked in the screenshot. It is a movement toggle (W), not a setting, so the lab still opens standing.
 
 ## Running it, and its own deploy
 
@@ -140,11 +148,17 @@ at **`/preview/pistol-lab/`**, beside the gun lab, built from the production che
 feature branch by name). The house build registers the page too (`vite.config.js` `pistolProto`; AUDIT 68 X2 fails a
 root page that is not an input).
 
-**The probe, 23 checks, all passing at the commit that added it**: the strip cuts to six frames and to 1 bit; the flash
+**The probe, 23 checks, all passing**: the strip cuts to six frames and to 1 bit; the flash
 has room and shares the arm's corner; the pair is drawn; native size; the cut is on the corner; the left is the mirror and
 does not overlap; six frames with zero drift; single is one pistol; the flurry; the guard lowers and returns; the volley
 fires both and guards neither; per hand; the reload lowers and returns; Bob goes outward; the shake moves the room and
 neither weapon; no page errors.
+
+**Read a frame after the click.** The page writes `__pistolLab` once per frame, so a probe read in the same instant as a
+click sees the frame before the shot. The first cut of the flurry check did that and answered "R then R" in one run of
+three, which looked like a misfire and was not. Every read after a click now waits for a drawn frame (`nextFrame`, two
+rAFs; Home.md's process rule: frame-sync, never sleep), and the flurry check counts each hand's shots per click. It passed
+in four runs of four.
 
 ## What graduation will need - not built here
 
