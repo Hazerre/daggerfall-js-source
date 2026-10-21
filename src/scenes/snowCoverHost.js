@@ -88,16 +88,18 @@ export function twinLayers(summer, winter) {
  * @param {{ renderer: any, climateAt: (px: number, py: number) => number, mapHeight: number, stateOf: () => any,
  *   builtOf: () => Map<string, any>, heightAt: (x: number, z: number) => number, owns: () => boolean,
  *   markReskin: (key: string) => void, now: () => number, place?: () => { px: number, py: number }, arriving?: () => boolean,
- *   clock?: () => number }} deps
+ *   clock?: () => number, normalOf?: ?((p: any, lx: number, lz: number, out: number[]) => ArrayLike<number>) }} deps
  *   `climateAt` the map's climate index; `stateOf()` the stream's state, `builtOf()` its pixels and `heightAt` its ground
  *   at a scene point (asked, never held); `owns()` whether the snow lane runs (weatherSim.js precipLawOn - the enhanced
  *   lane's law, with a host that handed the air its map); `markReskin(key)` the snow's re-skin of one pixel in place (world.js
  *   _reskin.skin - AUDIT PRECIP HOST-7); `now()` THE ONE CLOCK - the event minute the snow is read at; `place()` the player's pixel, for a build
  *   that asks before the first frame (`settle`); `arriving()` whether the world is still standing up (no ground under the
  *   player) - a build's wait then takes the arrival's budget (SNOW_COVER.arriveMs); `clock()` the frames' budget's clock
- *   (performance.now's - SNOW-BUDGET)
+ *   (performance.now's - SNOW-BUDGET); `normalOf(p, lx, lz, out)` the DRAWN ground's normal at a standing pixel's local
+ *   point (OW-HITCH: the vertex normals the terrain's fragment reads its snow by) - absent, the slope is the stream's
+ *   heights' (`heightAt`)
  */
-export function createSnowCoverHost({ renderer, climateAt, mapHeight, stateOf, builtOf, heightAt, owns, markReskin, now, place = null, arriving = null, clock = () => performance.now() }) {
+export function createSnowCoverHost({ renderer, climateAt, mapHeight, stateOf, builtOf, heightAt, owns, markReskin, now, place = null, arriving = null, clock = () => performance.now(), normalOf = null }) {
   const lattice = new SnowpackLattice({ climateAt, spacing: SNOW_COVER.spacing });
   const S = SNOW_COVER.spacing, R = SNOW_COVER.radius, SIDE = 2 * R + 1, STEP = SNOWPACK.stepMinutes;
   /** each window point's snowlines: `target` the pack now's, `shown` eased toward it (the frames'), `build` the pack's at
@@ -204,13 +206,21 @@ export function createSnowCoverHost({ renderer, climateAt, mapHeight, stateOf, b
    *  with it - AUDIT PRECIP GROUND-3). SNOW-BUDGET: the slope read only where the snowline lays any cover at that height -
    *  snowCoverAt answers 0 for none whatever the slope, and the slope is four of the stream's heights, read for every
    *  blade the grass placed. */
-  const drawnCover = (px, py, lx, lz, altitude, sx, sz) => {
+  const drawnCover = (px, py, lx, lz, altitude, sx, sz, p = null) => {
     const [x, z] = fieldOf(px, py, lx, lz);
     const cover = coverAtHeight(lineAt(x, z, _l), altitude);
     if (cover <= 0) return 0;
     const [ox, oz] = ecoOrigin(px, py);
-    return snowCoverAt(cover, normalY(sx, sz), lx, lz, ox, oz);
+    return snowCoverAt(cover, p && normalOf ? normalOf(p, lx, lz, _n)[1] : normalY(sx, sz), lx, lz, ox, oz);
   };
+  /** OW-HITCH (2026-10-21, the owner: "Theres still a lot of hitching in the overworld"): THE SLOPE THE GROUND IS DRAWN
+   *  WITH. The terrain's fragment sheds its snow by its own normal - the grid's vertex normals across its triangle
+   *  (renderer.js and enhancedLighting.js: `snowCover(..., normalize(vNormal), ...)`) - and the CPU's twin read four of
+   *  the stream's heights a metre either way instead: another surface's slope, and every height a lookup of the pixel
+   *  under it, for every blade the grass placed in a snowy field (the real game's largest steady cost of a landing after
+   *  the Overworld). A standing pixel's own normal (`normalOf`, one triangle) is the drawn one; the heights stay for a
+   *  host that hands none. */
+  const _n = [0, 1, 0];
   /** The ground's normal's y at scene point (x, z), off the stream's own heights (a metre either way). */
   const normalY = (x, z) => {
     const dx = heightAt(x + 1, z) - heightAt(x - 1, z), dz = heightAt(x, z + 1) - heightAt(x, z - 1);
@@ -383,7 +393,7 @@ export function createSnowCoverHost({ renderer, climateAt, mapHeight, stateOf, b
      *  off the lane. */
     buries(p, lx, lz, x, z, y) {
       if (!lane()) return false;
-      const c = drawnCover(p.px, p.py, lx, lz, y - stateOf().compensation[1] - SEA_LEVEL_M, x, z);
+      const c = drawnCover(p.px, p.py, lx, lz, y - stateOf().compensation[1] - SEA_LEVEL_M, x, z, p);   // OW-HITCH: its own pixel's drawn slope
       return c > 0 && c >= flatDraw(p.px, p.py, lx, lz);
     },
     /** WHETHER SNOW LIES under the player at scene point `pos` - the ground as drawn there past a half: on the lane the
@@ -396,7 +406,8 @@ export function createSnowCoverHost({ renderer, climateAt, mapHeight, stateOf, b
       const t = now();
       if (Number.isFinite(t) && nowRead !== t) at(px, py, t, SNOW_COVER.budgetMs, false);
       const tr = state.pixelTranslation(px, py, [0, 0, 0]);
-      return drawnCover(px, py, pos[0] - tr[0], pos[2] - tr[2], pos[1] - c[1] - SEA_LEVEL_M, pos[0], pos[2]) >= 0.5;
+      const here = normalOf ? builtOf().get(`${px},${py}`) ?? null : null;   // OW-HITCH: the feet read the drawn slope too, where their pixel stands
+      return drawnCover(px, py, pos[0] - tr[0], pos[2] - tr[2], pos[1] - c[1] - SEA_LEVEL_M, pos[0], pos[2], here) >= 0.5;
     },
     /** WHETHER SNOW LIES ABOUT THE PLAYER for what keeps a winter of its own - the Snowfall mod's `winter` (its gate, its
      *  snowpack; a change resets its depths and its tracks): AUDIT PRECIP GROUND-9 - on the lane, whether the snow lies on
