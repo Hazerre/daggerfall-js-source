@@ -58,7 +58,8 @@ panels show no such hint.
 
 `test/systems/comeSailAway/fb1021_sailwind.test.js` (4): the chain on the real runtime, saved below ground and loaded
 outdoors - a Small Ship under sail and a Large Boat raised from rest make way; a load indoors keeps none and a load outdoors
-keeps the wind its save carried; the predicate. `tools/mutants/fb1021_sailwind.json` (3, 3 dead).
+keeps the wind its save carried; the predicate. `tools/mutants/fb1021_sailwind.json` (3, 3 dead). TIDY1's folder pin
+moved (`test/tooling/tidy1_codemap.test.js`: the new module lives in `src/systems/comeSailAway/`, Code-Map rule 2).
 
 ## VOYAGE-HOLD: a voyage counts from where she last lay (2)
 
