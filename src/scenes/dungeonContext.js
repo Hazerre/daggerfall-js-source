@@ -115,6 +115,7 @@ import { setMidScreenText, midScreenText } from '../ui/midScreenText.js';   // A
 import { EnhancedEnemyAI, makeNavWorld } from '../ai/enhancedMotor.js';
 import { navGoalOn } from './interiorNav.js';   // INDOOR-WATCH AUDIT: the motor's off-mesh goal over the dungeon's own bake
 import { foeFrameDt } from '../characters/enemy/enemyMotor.js';   // FOE-CATCHUP: the one cap every pool hands its foes
+import { ownerFoes } from './ownerCatchUp.js';   // HOST-CLOCK: the foes' step through the page's one catch-up (OWNER-CLOCK's parity)
 import { spaceFoes, spacingSkips, clearDoorways, actionDoorSpots, freeLodgedFeet, clearPast } from '../characters/foeSpacing.js';   // FOE-SPACING: the pack keeps apart; AUDIT TACT C7: and the doorways clear; FIELD BUGS 2026-10-04d CRATE-FREE: and no foe stands in a crate
 import { isStaleChunk, STALE_CHUNK_IN_PLAY_TEXT, STALE_CHUNK_IN_PLAY_SECONDS } from '../systems/staleChunk.js';   // DISC19-D: a chunk gone mid-session is said, not swallowed
 import { hudRenderEnabled } from '../ui/hud/hudShortcuts.js';   // AUDIT 64 F37: the Draw override covers popupText too
@@ -7653,10 +7654,17 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // MWNPC5b: the lane, this frame - none while it is not wanted (and the one standing let go)
     const npcLane = npcBodiesOn() ? (_npcLane ??= createHostNpcBodies({ renderer, collider: () => collider })) : null;
     if (!npcLane && _npcLane) { _npcLane.destroy(); _npcLane = null; }
+    _peerFrame++;   // WORLD3: the peers' feet are read once a frame
+    // HOST-CLOCK (scenes/ownerCatchUp.js ownerFoes): THE FOES' STEP IS A CALL, as a street pool's update is - made once a
+    // frame, or, online with anyone else in the room under 20 fps, the host's frame in FOE-CATCHUP's steps on the page's
+    // one plan (my player's pace, never past it); `dt` inside is the call's. Each call stands the frame's foes whole - the
+    // lane begun, the batches listed - and the last call's stand is what is drawn below. (The body keeps its indentation,
+    // as world.js's PERF-V8 closures do. The ON ICE rig arm would draw a rig each call; no foe carries one.)
+    const stepFoes = (dt) => {
+    _mobileBatches.length = 0;
     _npcStood.length = 0;
     npcLane?.begin();
     let _fi = -1;
-    _peerFrame++;   // WORLD3: the peers' feet are read once a frame
     // FOE-SPACING: two bodies in one spot are pushed apart (characters/foeSpacing.js) - never a room's foe this page
     // does not own (its owner's stream poses it, as the loop's puppet arm below reads it)
     spaceFoes(foes, collider, foeFrameDt(dt), (f, i) => spacingSkips(f) || f._ownFrom != null || (!_authority && isRoomFoe(f, i)));   // AUDIT (pre-merge) D4: a party member's own foe (QUEST-PARTY 3c, SUMMON-SYNC) is a puppet too - its runner's frame places it
@@ -8059,6 +8067,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       const mat = trs(p[0], p[1] - f.rig.liveFootY * s, p[2], 0, f.ai.yaw * 180 / Math.PI, 0, s, s, s);   // live support point, same grounding rule as the player rig
       _drawSprite(renderer, canvas, f.rig, mat, proj, view, eye);
     }
+    };
+    ownerFoes.step(foes, dt, stepFoes);   // HOST-CLOCK: the frame's foes, stepped through the page's one catch-up
     // MWNPC5b: THE DEAD IN THEIR BODIES - the death played where they fell (the pose's `dd`), the corpse flat casting its
     // shadow alone while the body lies there; the living stand first (the lane's priority). Then the frame's bodies,
     // synced, drawn in one bind of the sprite target (MWNPC2), and every offered foe's billboard cast-only where its

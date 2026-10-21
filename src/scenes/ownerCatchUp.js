@@ -1,6 +1,6 @@
 // @ts-check
-// OWNER-CLOCK (2026-10-21, the field's enemy desync - net/ownerClock.js has the wire's half): MY STREET FOES KEEP MY
-// WORLD'S PACE WHILE ANYONE ELSE IS IN MY ROOM.
+// OWNER-CLOCK (2026-10-21, the field's enemy desync - net/ownerClock.js has the wire's half): MY FOES KEEP MY WORLD'S
+// PACE WHILE ANYONE ELSE IS IN MY ROOM.
 //
 // A foe is its owner's to step, so a slow owner's foes are slow for everyone. Below 20 fps they are slower than the
 // owner's own world: the host clamps its frame at 0.1 s (world.js "const dt = Math.min(0.1") and the player takes that
@@ -9,30 +9,38 @@
 // player's pace, and its every reader watched them do it. That cap is the cure for a snowball: a step is the port's
 // dearest work, and a hitch that asked for more of them made the next frame dearer.
 //
-// THE PARITY. Online, while anyone else is in my room, the street's pool (the encounter pool every cell streams) is
-// stepped again within the frame, in FOE-CATCHUP's own size of step (each call the shape of a 20 fps frame, a shape
-// every pool already runs), until it has taken THE HOST'S OWN FRAME - the clamped `dt` the host hands it, the time its
-// player took - and never more: the foes keep the owner's pace one to one at every rate the clamp allows, and never
-// outrun it (below 10 fps that is 0.1 s a frame in two calls where FOE-CATCHUP gave 0.05 s). Only the extra calls
-// OWNER_CATCHUP_SHARE of the frame's own time buys at the cost a call last measured are made - none on a clock too coarse
-// to measure one (a reading of nothing is no price), none on a frame past FRAME_MS_MAX (the pool was away - a
-// building, a dungeon, a hidden tab - not slow) - and the loop stops once the extras have spent that share: where the
-// foes ARE what makes the frame slow, the cap's law stands as it was. Offline, alone in the room, at 20 fps and up, or
-// with the foes held (a zero frame), the pool takes the host's one step exactly as before. The tactics brain's clock
-// (ai/tacticsClock.js, the foes' own time) is carried with the extra steps, so a wind-up lands where its body is.
+// THE PARITY. Online, while anyone else is in my room, a pool of my foes is stepped again within the frame, in
+// FOE-CATCHUP's own size of step (each call the shape of a 20 fps frame, a shape every pool already runs), until it has
+// taken THE HOST'S OWN FRAME - the clamped `dt` the host hands it, the time its player took - and never more: the foes
+// keep the owner's pace one to one at every rate the clamp allows, and never outrun it (below 10 fps that is 0.1 s a
+// frame in two calls where FOE-CATCHUP gave 0.05 s). Only the extra calls OWNER_CATCHUP_SHARE of the frame's own time
+// buys at the cost a call last measured are made - none on a clock too coarse to measure one (a reading of nothing is no
+// price), none on a frame past FRAME_MS_MAX (the page was away - a load, a hidden tab - not slow) - and the loop stops
+// once the extras have spent that share: where the foes ARE what makes the frame slow, the cap's law stands as it was.
+// Offline, alone in the room, at 20 fps and up, or with the foes held (a zero frame), a pool takes the host's one step
+// exactly as before. The tactics brain's clock (ai/tacticsClock.js, the foes' own time) is carried with the extra steps,
+// so a wind-up lands where its body is.
 //
-// "Anyone else in my room" is the host's `shared()`: world.js's `online.othersHere > 0`, the foes stream's own
+// HOST-CLOCK (2026-10-21, OWNER-CLOCK's Left): ONE PLAN A FRAME, FOR EVERY POOL OF MINE. OWNER-CLOCK caught up the
+// street's encounter pool alone; a building's and a dungeon's foes kept FOE-CATCHUP's half of a slow host's frame, and the
+// town watch's bodies kept it while its brains - one tactics clock for the page - ran on with the street's. Every pool
+// FOE-CATCHUP caps now goes through the page's one catch-up (`ownerFoes`): the street's encounter pool and its watch
+// (wired by world.js), a building's encounter pool and the watch called into it (worldModes.js, at the mount), and a
+// dungeon's foes (dungeonContext.js drawFoes, whose foe loop is the step it hands over). The fixed city's street
+// (exterior.js) streams nothing and is not wired; its buildings and dungeons go through it alone (offline: one call).
+// A frame's plan is made once, at its first step, priced at what every pool of the frame before cost a call - so the
+// extras of all of a frame's pools together spend OWNER_CATCHUP_SHARE at most - and every pool of the frame takes it,
+// so the brain's clock is carried once, as far as every body went. A pool that did not step in the frame before (a
+// door taken, a building's pools new) takes the host's one call: nothing measured buys nothing.
+//
+// "Anyone else in my room" is the world host's `shared()`: world.js's `online.othersHere > 0`, the foes stream's own
 // nobody-to-hear test. On the street that room is the CELL (WORLD_CELL, 16 map pixels a side), wider than the RANGE_PIXELS
 // (3) the relay fans my foes frames across - so it is not "anyone who can see these foes"; with parity it need not be:
-// what it turns on is my foes at my own world's pace.
+// what it turns on is my foes at my own world's pace. In a building or a dungeon it is the world room.
 //
-// THE CLOCK. Each step of the page's foes is marked on the owner clock (net/ownerClock.js) - the street pool's at its
-// call, a building's and a dungeon's (stepped inside the mode machine's frame) at the frame that ran them - so a foes
-// frame sent before the next step says when its foes stood where it says.
-//
-// Wired by the world host (scenes/world.js, wireOwnerClock beside the mode machine). Not here: the dungeon's and a
-// building's own foes are stepped inside their hosts' frames (dungeonContext.js, worldModes.js) beside the player's own
-// work, so they take one step a frame as before - their frames carry the clock, and their readers lead by it.
+// THE CLOCK. Each step of the page's foes is marked on the owner clock (net/ownerClock.js) - every pool's at its call,
+// and a building's and a dungeon's at the end of the mode machine's frame that ran them - so a foes frame sent before the
+// next step says when its foes stood where it says.
 import { FOE_MAX_FRAME_DT, foeFrameDt } from '../characters/enemy/enemyMotor.js';
 import { tickTactics } from '../ai/tacticsClock.js';
 import { ownerClock } from '../net/ownerClock.js';
@@ -42,11 +50,11 @@ import { ownerClock } from '../net/ownerClock.js';
 export const OWNER_CATCHUP_MAX_S = 0.3;
 /** The most of a frame's own time the extra steps may spend - a frame grows by a ninth at most, so no snowball. */
 export const OWNER_CATCHUP_SHARE = 0.1;
-/** The most calls a frame makes of the pool: OWNER_CATCHUP_MAX_S in FOE_MAX_FRAME_DT's steps. */
+/** The most calls a frame makes of a pool: OWNER_CATCHUP_MAX_S in FOE_MAX_FRAME_DT's steps. */
 export const OWNER_CATCHUP_STEPS_MAX = Math.round(OWNER_CATCHUP_MAX_S / FOE_MAX_FRAME_DT);
 
-/** The longest gap the budget reads as a frame's own time (ms): a 0.5 fps frame. Past it the pool was away (a building,
- *  a dungeon, a hidden tab), not slow, and the frame buys no extra call. */
+/** The longest gap the budget reads as a frame's own time (ms): a 0.5 fps frame. Past it the page was away (a load, a
+ *  hidden tab), not slow, and the frame buys no extra call. */
 export const FRAME_MS_MAX = 2000;
 
 /** How a frame's foes are stepped: `n` calls of `dt` each. The host handed `foeDt` (its clamp's, or 0 held), and
@@ -61,60 +69,101 @@ export function catchUpPlan(foeDt, extraMax = OWNER_CATCHUP_STEPS_MAX) {
 }
 
 /** The extra calls a frame `rawMs` long affords at `perCall` ms a call: OWNER_CATCHUP_SHARE of it - none for a frame
- *  past FRAME_MS_MAX (the pool was away), none for the first (0 ms), and none at a price unread: nothing measured yet
+ *  past FRAME_MS_MAX (the page was away), none for the first (0 ms), and none at a price unread: nothing measured yet
  *  (Infinity buys nothing) or a clock too coarse to see a call (a reading of 0, or NaN, is no price - never a free one). */
 export const extrasAfforded = (rawMs, perCall) => (rawMs <= FRAME_MS_MAX && perCall > 0 ? (rawMs * OWNER_CATCHUP_SHARE) / perCall : 0);
 
 /**
- * The street's pool, stepped through the catch-up: `pool.update(dt, ...rest)` keeps its signature and its callers.
- * `shared()` - anyone else in my room (the host's own nobody-to-hear test); `clock()` ms (the page's performance.now());
- * `tick` the tactics brain's clock; `mark` the owner clock's. What a call costs is measured every frame, and the next
- * frame affords the extra calls OWNER_CATCHUP_SHARE of its own time buys at that cost; the extras stop once their
- * measured time has spent that share, whatever the forecast said.
- * @param {{ update: (dt: number, ...rest: any[]) => any }} pool
+ * THE CATCH-UP (HOST-CLOCK: one plan a frame for every pool it steps). `step(key, dt, call)` steps one pool's foes
+ * through a host frame `dt`: `call(dt)` once, or the plan's calls of FOE-CATCHUP's size - and answers what the last
+ * call answered. `key` is the pool (the same object every frame: what a call of it costs is kept against it).
+ * `pools(...list)` puts each pool's `update(dt, ...rest)` through it, its signature, its callers and its answer kept.
+ * `frame()` - the host's frame begins (the mode machine's, wired by wireOwnerClock); without it a frame begins when a
+ * pool it already stepped steps again. `shared()` - anyone else in my room (the host's own nobody-to-hear test);
+ * `clock()` ms (the page's performance.now()); `tick` the tactics brain's clock; `mark` the owner clock's.
  * @param {{ shared?: () => boolean, clock?: () => number, tick?: (dt: number) => void, mark?: (ms: number) => void }} [o]
  */
-export function catchUpOwnerFoes(pool, { shared = () => false, clock = () => performance.now(), tick = tickTactics, mark = (ms) => ownerClock.mark(ms) } = {}) {
-  const step = pool.update;
-  let lastAt = null, perCall = Infinity;   // ms: a call's cost as last measured (none yet: nothing extra is afforded)
-  const timed = (dt, rest) => { const t0 = clock(); const out = step(dt, ...rest); perCall = Math.max(0, clock() - t0); return out; };
-  pool.update = (dt, ...rest) => {
-    const at = clock();
-    const rawMs = lastAt == null ? 0 : at - lastAt;
-    lastAt = at;
-    mark(at);
-    const plan = shared() ? catchUpPlan(dt, extrasAfforded(rawMs, perCall)) : { n: 1, dt };
-    if (plan.n === 1) return timed(plan.dt, rest);
-    // the host ticked the brain the frame's capped step before any pool moved; each later call carries it to its end
-    const shareMs = rawMs * OWNER_CATCHUP_SHARE;
-    let ticked = foeFrameDt(dt), cost = 0, extrasFrom = 0;
-    for (let i = 1; i <= plan.n; i++) {
-      if (i === 2) extrasFrom = clock();
-      else if (i > 2 && clock() - extrasFrom >= shareMs) break;   // the extras have spent the frame's share: the forecast was wrong
-      const want = i * plan.dt;
-      if (want > ticked) { tick(want - ticked); ticked = want; }
-      timed(plan.dt, rest);
-      cost = Math.max(cost, perCall);
-    }
-    perCall = cost;   // the dearest of the frame's calls prices the next frame's
-    return undefined;
+export function createOwnerCatchUp({ shared = () => false, clock = () => performance.now(), tick = tickTactics, mark = (ms) => ownerClock.mark(ms) } = {}) {
+  const price = new WeakMap();   // a pool -> the dearest of its calls in the last frame it stepped (ms)
+  let stepped = new Set(), before = new Set();   // the pools this frame has stepped, and the frame before's
+  let open = false, frameAt = null, caught = false, extraMax = 0, ticked = 0, shareMs = 0, spent = 0;
+  /** The frame's plan, at its first step: the time since the last frame's first step, priced at every pool of that frame. */
+  const opens = (at, dt) => {
+    const rawMs = frameAt == null ? 0 : at - frameAt;
+    frameAt = at;
+    before = stepped; stepped = new Set();
+    let cost = 0;   // none stepped before: a price of nothing, which buys nothing
+    for (const k of before) cost += price.get(k);
+    caught = shared();
+    extraMax = extrasAfforded(rawMs, cost);
+    ticked = foeFrameDt(dt);   // the host ticked the brain the frame's capped step before any pool moved
+    shareMs = rawMs * OWNER_CATCHUP_SHARE; spent = 0; open = true;
   };
+  const catchUp = {
+    frame() { open = false; },
+    step(key, dt, call) {
+      const at = clock();
+      if (!open || stepped.has(key)) opens(at, dt);
+      stepped.add(key);
+      mark(at);
+      const plan = caught && before.has(key) ? catchUpPlan(dt, extraMax) : { n: 1, dt };
+      let out, cost = 0, extrasFrom = 0;
+      for (let i = 1; i <= plan.n; i++) {
+        if (i === 2) extrasFrom = clock();
+        else if (i > 2 && spent + clock() - extrasFrom >= shareMs) break;   // the frame's extras have spent its share: the forecast was wrong
+        const want = i * plan.dt;
+        if (i > 1 && want > ticked) { tick(want - ticked); ticked = want; }   // each later call carries the brain to its end
+        const t0 = clock();
+        out = call(plan.dt);
+        cost = Math.max(cost, clock() - t0);
+      }
+      if (plan.n > 1) spent += clock() - extrasFrom;
+      price.set(key, cost);   // the dearest of the frame's calls prices the next frame's
+      return out;
+    },
+    /** @param {...{ update: (dt: number, ...rest: any[]) => any }} list */
+    pools(...list) {
+      for (const p of list) {
+        const update = p.update;
+        p.update = (dt, ...rest) => catchUp.step(p, dt, (d) => update(d, ...rest));
+      }
+    },
+  };
+  return catchUp;
+}
+
+/** One pool, through a catch-up of its own (OWNER-CLOCK's door, kept): `pool.update(dt, ...rest)` keeps its signature,
+ *  its callers and its answer. */
+export function catchUpOwnerFoes(pool, o = {}) {
+  createOwnerCatchUp(o).pools(pool);
   return pool;
 }
 
-/** A building's and a dungeon's foes are stepped inside the mode machine's frame: one that ran marks the clock. */
-export function markModalSteps(modes, { mark = (ms) => ownerClock.mark(ms) } = {}) {
-  const frame = modes.frame;
+let _pageShared = () => false;
+/** THE PAGE'S OWN (HOST-CLOCK) - one catch-up for every pool of foes the page steps, as it keeps one owner clock and
+ *  one tactics clock: the street's two (world.js), a building's two (worldModes.js), a dungeon's foe loop
+ *  (dungeonContext.js). Who is here is the world host's word (wireOwnerClock); a page that never says - the fixed city,
+ *  the standalone dungeon, offline - catches nothing up. */
+export const ownerFoes = createOwnerCatchUp({ shared: () => _pageShared() });
+
+/** A building's and a dungeon's foes are stepped inside the mode machine's frame: one that ran marks the clock. Every
+ *  frame of the host's (the street's too: world.js asks the mode machine first) begins a frame of the catch-up's. */
+export function markModalSteps(modes, { mark = (ms) => ownerClock.mark(ms), frame = () => {} } = {}) {
+  const inner = modes.frame;
   modes.frame = (dt, now) => {
-    const ran = frame(dt, now);
+    frame();
+    const ran = inner(dt, now);
     if (ran) mark(now);
     return ran;
   };
   return modes;
 }
 
-/** The world host's one wiring: its street pool caught up while `shared()`, its mode machine's steps marked. */
-export function wireOwnerClock(pool, modes, shared) {
-  catchUpOwnerFoes(pool, { shared });
-  markModalSteps(modes);
+/** The world host's one wiring: the page's catch-up told who is here (`shared`), the street's pools (the encounter pool
+ *  and the watch) put through it, its mode machine's frames marked and made the catch-up's frames. A building's pools
+ *  and a dungeon's foes go through the same catch-up from their own hosts. */
+export function wireOwnerClock(pools, modes, shared) {
+  _pageShared = shared;
+  ownerFoes.pools(...pools);
+  markModalSteps(modes, { frame: () => ownerFoes.frame() });
 }

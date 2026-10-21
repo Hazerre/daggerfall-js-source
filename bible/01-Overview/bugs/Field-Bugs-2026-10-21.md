@@ -6,12 +6,12 @@ the client's main thread from a Discord message - the Come Sail Away boat pool 1
 No report said where or when the enemies went wrong, so the live relay (world237) and the account service were read
 for the cause, and the profile's every line was traced on the code. Read on the code as it stands at main's
 `4bba28c6c`. Multiplayer is the port's own (DFU has no relay), so no DFU member moves; the boats' far cadence names
-its departure in `Port-Ledger.md`. The pins are `fb1021_*`, the mutants `tools/mutants/fb1021_*.json`.
+its departure in `Port-Ledger.md`. The pins are `fb1021_*` and `fb1021b_*`, the mutants `tools/mutants/fb1021_*.json` and `fb1021b_*.json`.
 
 | | Report | What it was | Done |
 |---|---|---|---|
 | 1 | "enemy dsync" | A crowded cell's foes budget dropped the FULL frames first - they carry the sweep, the sites and the grants - so a reader missed deaths and removals and pruned a silent owner's foes; and the handover batches, deltas to the budget, were lost after their owner had let the foes go | FOES-FIRST, HIT-DROPS, AUDIT FOES-FIRST |
-| 2 | "enemy dsync" | A slow owner's foes ran slow for everyone and their puppets stalled and jumped: the owner gave them half its clamped frame (FOE-CATCHUP), and a reader led them by arrival time | OWNER-CLOCK |
+| 2 | "enemy dsync" | A slow owner's foes ran slow for everyone and their puppets stalled and jumped: the owner gave them half its clamped frame (FOE-CATCHUP), and a reader led them by arrival time | OWNER-CLOCK, HOST-CLOCK |
 | 3 | the profile's boat pool, `rendererModelKey` 2.6% | One shape stamp for every tree in the game: any boat built anywhere re-planned every boat; and every boat drawn was walked, baked and lit every frame wherever she sailed | BOAT-STAMP, BOAT-FAR |
 | 4 | the profile's Horse Cart pool | Inside 400 m every horse was posed and its palette sent every frame, off-screen and parked ones too | HORSE-VIEW |
 | 5 | the profile's peer bodies, Web Worker | Already on a distance cadence (PEER-CADENCE); a worker would move only what is cheap (interpolation, 0.02 ms) | not a defect |
@@ -63,7 +63,13 @@ frame - 0.1 s at most, in 0.05 s substeps, one extra call a frame and only insid
 (none after time away, none on a clock too coarse to price a call) - so they keep pace with its player and never
 outrun it, where FOE-CATCHUP alone gave them half of it below 10 fps (three quarters at 15). As first built the same
 day they caught up the wall's time instead, three times the player at 3 fps; the audit put them back to the host's
-frame. FOE-CATCHUP's row in `Port-Ledger.md` says exactly what changed, for the owner to approve.
+frame. HOST-CLOCK, the same day, put every other pool of the owner's through the same law: a building's encounter pool
+and the watch called into it (worldModes.js, one statement at the mount), a dungeon's foes (drawFoes' foe loop, now the
+call it hands over) and the street's watch (world.js's one statement) - one plan a frame for all of them, priced at all
+of them, the tactics brain's clock carried once, so the watch's brains and bodies keep one clock. A slow building or
+dungeon host's foes keep its player's pace (x1 at every rate, where 0.75 at 15 fps and 0.5 below 10 before), measured
+on the real pools through the hosts' own wiring. FOE-CATCHUP's row in `Port-Ledger.md` says exactly what changed, for
+the owner to approve.
 
 ## BOAT-STAMP and BOAT-FAR (3) - `bible/07-Rendering/Performance-Priority.md`
 
@@ -88,6 +94,4 @@ half behind the eye: twenty uploads a frame to 3.7, the pool's frame 0.24 ms to 
 
 The Durable Object resets' cause; the relay settings' state (the owner's `/relay grantMode`); a star's large owner and
 the budget for a cell whose full frames alone pass it; world238, claimed by two open branches (STAR-TUNE #1090,
-GRANT-SLEEP #1066), against this release's world239 - whichever lands after another takes the next number; my own boats' Animators, the road's stranger teams and the standing horses, still stepped every frame; a
-slow dungeon or building host's foes, which carry `tm` but step FOE-CATCHUP's half of its frame (flagged in
-`Online-Arc.md`).
+GRANT-SLEEP #1066), against this release's world239 - whichever lands after another takes the next number; my own boats' Animators, the road's stranger teams and the standing horses, still stepped every frame.
