@@ -85,7 +85,8 @@ import {
 import { hitchAxle, bogieAxle, steerToward, yawed } from '../systems/horse/horseFollow.js';   // WAGON-HITCH: the shafts' one law, for a peer's trailing wagon (WAGONS2: and a four-wheeler's two)
 import { DeployedWagonVisual, wheelContacts, rolledAngles } from '../systems/horse/horseCart.js';   // DISC20-C: the mod's own two-wheel solve, for a peer's parked wagon (WAGONS2: and each wheel's roll)
 import { PARK_REACH, PARK_TTL_MS } from '../net/wire.js';   // HCC-PARK: how far a kept team's parts may stand from its anchor, and how long the relay keeps one
-import { poseCadenceFor, cadenceD2, lensOf } from '../net/peer/peerBodies.js';   // HORSE-VIEW: the 3D horses posed on the peers' bodies' cadence - AUDIT: by how far they look from the camera that draws them
+import { lensOf } from '../net/peer/peerBodies.js';   // HORSE-VIEW (AUDIT): the lens a body pass draws through - its cadence's
+import { poseWhereSeen } from '../world/horseView.js';   // HORSE-VIEW: a 3D horse posed where it is seen, on the peers' bodies' cadence - the law the road's and the standing horses read too (HORSE-VIEW II)
 import { thrownRecord } from '../systems/wagon/wagonWarden.js';   // WARDEN1: a kept team the town watch threw, where it landed
 import { WAGON_HOVER_TEXT } from '../player/eyeOfTheBeholder/eotbWagon.js';   // the hover word for a wagon - the noun of Eye Of The Beholder's Info line, so both carts read alike
 import { hccWireRecord, validHccRecord, hccRecordKey, easeToward, HCC_WIRE_KIND } from '../systems/horse/horseCartWire.js';
@@ -722,19 +723,12 @@ export function createHorseCartPool({
   /** A 3D horse's ground speed is eased toward the frame's over this many seconds (a stride does not flicker on a
    *  stutter); a step past H3D_LEAP m/s is a jump - the drawn point snapped - never a gallop. */
   const H3D_EASE = 0.15, H3D_LEAP = 40;
-  /** HORSE-VIEW: is a 3D horse's pose due this frame - the peers' bodies' cadence (net/peer/peerBodies.js poseCadenceFor:
-   *  every frame within 10 m, every second to 25, every third past it) at its horizontal distance from the eye, as a
-   *  body's is, staggered by its phase? AUDIT: the eye is the last body pass's camera (`_cam3d` - the zoomed-out boom's,
-   *  the bench's, the travel view's) and the distance is over its lens (cadenceD2 - the spyglass's magnification), as a
-   *  body's is: how far the horse looks. Before any pass, the frame's own eye; no eye at all: every frame. */
-  function h3dPoseDue(e, at) {
-    const eye = _cam3d?.eye ?? _eye;
-    if (!eye) return true;
-    return (_frameNo + e.phase) % poseCadenceFor(cadenceD2(at, eye, _cam3d?.lens ?? 1)) === 0;
-  }
   /** COATS3D: an owner's horses as 3D horses. HORSE-VIEW: every horse's gait steps every frame, and its pose is written
    *  and sent only in the last body pass's view (`_cam3d` - draw3d's own test, one frame behind; none yet, all are) on
-   *  its cadence (h3dPoseDue); one skipped out of that view is `out`, and the draw catches its pose up if the view has
+   *  the peers' bodies' cadence (world/horseView.js poseWhereSeen: every frame within 10 m, every second to 25, every
+   *  third past it, each horse its phase - AUDIT: by how far it looks from `_cam3d`, the zoomed-out boom's, the
+   *  bench's, the travel view's, over its lens, the spyglass's; before any pass from the frame's own eye, and with no
+   *  eye at all every frame); one skipped out of that view is `out`, and the draw catches its pose up if the view has
    *  swung onto it (horseRig.js draw's `fresh`), so it never shows a pose from when it was last seen. */
   function pose3dTeam(rig, owner, team, conceal, dt) {
     let i = 0;
@@ -754,8 +748,7 @@ export function createHorseCartPool({
       const yaw = Math.atan2(h.forward[0], h.forward[2]);
       rig.step(e.horse, { feet: h.position, yaw, speed: e.speed, dt, look: lookOfOwner(owner), pose: false });
       if (g !== 1) rig.place(e.horse, h.position, yaw, g);
-      e.out = !!cam && !rig.seen(e.horse, cam.view, cam.proj);
-      if (!e.out && h3dPoseDue(e, h.position)) rig.pose(e.horse);
+      e.out = poseWhereSeen(rig, e.horse, h.position, cam, _eye, _frameNo, e.phase);   // HORSE-VIEW: posed in the last pass's view, on its cadence
       e.frame = _frameNo; e.conceal = owner ? conceal : null;
     }
   }

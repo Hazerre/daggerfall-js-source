@@ -6,14 +6,15 @@ the client's main thread from a Discord message - the Come Sail Away boat pool 1
 No report said where or when the enemies went wrong, so the live relay (world237) and the account service were read
 for the cause, and the profile's every line was traced on the code. Read on the code as it stands at main's
 `4bba28c6c`. Multiplayer is the port's own (DFU has no relay), so no DFU member moves; the boats' far cadence names
-its departure in `Port-Ledger.md`. The pins are `fb1021_*`, the mutants `tools/mutants/fb1021_*.json`.
+its departure in `Port-Ledger.md`. The pins are `fb1021_*` and `fb1021b_*`, the mutants `tools/mutants/fb1021_*.json`
+and `fb1021b_*.json`.
 
 | | Report | What it was | Done |
 |---|---|---|---|
 | 1 | "enemy dsync" | A crowded cell's foes budget dropped the FULL frames first - they carry the sweep, the sites and the grants - so a reader missed deaths and removals and pruned a silent owner's foes; and the handover batches, deltas to the budget, were lost after their owner had let the foes go | FOES-FIRST, HIT-DROPS, AUDIT FOES-FIRST |
 | 2 | "enemy dsync" | A slow owner's foes ran slow for everyone and their puppets stalled and jumped: the owner gave them half its clamped frame (FOE-CATCHUP), and a reader led them by arrival time | OWNER-CLOCK |
-| 3 | the profile's boat pool, `rendererModelKey` 2.6% | One shape stamp for every tree in the game: any boat built anywhere re-planned every boat; and every boat drawn was walked, baked and lit every frame wherever she sailed | BOAT-STAMP, BOAT-FAR |
-| 4 | the profile's Horse Cart pool | Inside 400 m every horse was posed and its palette sent every frame, off-screen and parked ones too | HORSE-VIEW |
+| 3 | the profile's boat pool, `rendererModelKey` 2.6% | One shape stamp for every tree in the game: any boat built anywhere re-planned every boat; and every boat drawn was walked, baked and lit every frame wherever she sailed | BOAT-STAMP, BOAT-FAR, BOAT-OWN, HELD-DRAW, HELD-FLATS |
+| 4 | the profile's Horse Cart pool | Inside 400 m every horse was posed and its palette sent every frame, off-screen and parked ones too | HORSE-VIEW, HORSE-VIEW II |
 | 5 | the profile's peer bodies, Web Worker | Already on a distance cadence (PEER-CADENCE); a worker would move only what is cheap (interpolation, 0.02 ms) | not a defect |
 | 6 | the profile's grass | Real, under its budget already (`perFrame`, GRASS_SLICE); the catch-up mode while moving | left (not measured) |
 
@@ -75,6 +76,15 @@ to 2.5 ms. Its audit: a far boat's held walk now ends at any on/off switch in he
 frame, not up to three later), the stamp's field is `_treeStamp` (the renderer's `_sh*` names are its shadow memory's),
 and `setParent` refuses a cycle (as Unity does).
 
+BOAT-OWN, HELD-DRAW and HELD-FLATS (the same day, this record's Left and BOAT-FAR's What it still pays): my own boats'
+Animators and particle systems, which Come Sail Away's runtime stepped every frame at any range, live by the far law
+through a module the runtime wires (`scenes/comeSailAway/farLife.js` `createBoatLives` - the runtime three logical lines
+shorter, its ceiling 2,783 -> 2,780): ten boats of mine, eight moored 1-3 km off, 1.66 -> 0.87 ms a frame (a loaded
+container; 0.96 -> 0.39 quieter). A boat switched on or off or reshaped since she last lived lives that frame
+(`farTreeStep` - mine, a peer's, the pool's walk alike), so a far boat stood again starts over as she stands. A held
+boat is drawn from what her walk's draw found and her flats keep the scale her walk found, only their places made:
+four near and twenty far lit boats, the pool's frame and draw 15.59 -> 12.26 ms (5.67 -> 4.66 quieter).
+
 ## HORSE-VIEW (4) - `bible/07-Rendering/Performance-Priority.md`
 
 A 3D horse's gait steps every frame; its pose and palette upload wait for the view and the peers' bodies' cadence, a
@@ -84,10 +94,15 @@ head, a horse 2.3 m from a zoomed-out third-person camera was posed every other 
 third; now every frame). Twenty peers' horses,
 half behind the eye: twenty uploads a frame to 3.7, the pool's frame 0.24 ms to 0.09 ms.
 
+HORSE-VIEW II (the same day, this record's Left): the road's strangers' 3D horses and the standing horses are posed by
+the same law, which is its own module now (`world/horseView.js`, the pool's too) - their gait's clocks every frame, their
+poses in the view on the cadence, a horse swung into the view caught up before it is drawn. Twelve strangers' horses,
+half behind the eye: twelve palettes a frame to 1.85; eight standing horses in the view: eight to 4.33.
+
 ## Left
 
 The Durable Object resets' cause; the relay settings' state (the owner's `/relay grantMode`); a star's large owner and
 the budget for a cell whose full frames alone pass it; world238, claimed by two open branches (STAR-TUNE #1090,
-GRANT-SLEEP #1066), against this release's world239 - whichever lands after another takes the next number; my own boats' Animators, the road's stranger teams and the standing horses, still stepped every frame; a
+GRANT-SLEEP #1066), against this release's world239 - whichever lands after another takes the next number; a
 slow dungeon or building host's foes, which carry `tm` but step FOE-CATCHUP's half of its frame (flagged in
 `Online-Arc.md`).

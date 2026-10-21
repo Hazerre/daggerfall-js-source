@@ -76,7 +76,8 @@
     "new": "        one(gpu, rec.m, paint);",
     "tests": [
       "test/net/perfcrowd1.test.js",
-      "test/scenes/audit0928_online.test.js"
+      "test/scenes/audit0928_online.test.js",
+      "test/systems/comeSailAway/fb1021b_ownboats.test.js"
     ]
   }
 ]

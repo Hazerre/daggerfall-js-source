@@ -2983,8 +2983,11 @@ making their keys' names for windows they were not showing. Measured, before and
 
 Until BOAT-STAMP (2026-10-21) the stamp was one count for every tree in the game, so any boat built anywhere walked
 every boat's tree again the next frame; it is each tree's own now. BOAT-FAR (the same day) steps a peer's boat's
-Animators past 600 m of the player one frame in four on the time she missed, as the sea's ships' rigging steps; a boat
-of mine is stepped by the runtime every frame, as before. Both in `07-Rendering/Performance-Priority.md`.
+Animators past 600 m of the player one frame in four on the time she missed, as the sea's ships' rigging steps; BOAT-OWN
+(the same day) steps mine the same - `animate` and `simulateParticles` call `scenes/comeSailAway/farLife.js`
+`createBoatLives`, from the pool's eye - and a boat switched on or off since she last lived lives that frame, so a far
+boat of mine stood again still starts over from her default state as she stands. All in
+`07-Rendering/Performance-Priority.md`.
 
 ## What was already waiting in the port
 
