@@ -19,6 +19,7 @@ import { PARTY_SCALE_EXTRA_MAX } from '../../src/systems/party/partyScale.js';
 import { chooseRandomEnemy } from '../../src/systems/encounters.js';
 import { signEgCall } from '../../src/net/eliteGates/egCallSig.js';
 import { STAR_WAVE_MAX } from '../../src/net/starfall/starfallLaw.js';
+import { RELAY_VERSION } from '../../src/net/wire.js';
 
 const { subtle } = globalThis.crypto;
 const T0 = 1_800_000_000_000;
@@ -34,6 +35,13 @@ test('GRANT1 THE PINNED RATES: each copy the relay holds equals its home - the e
   assert.equal(GRANT_KINDS.camp.max, CAMP_SIZE[1] + PARTY_SCALE_EXTRA_MAX, 'a camp: its own most and the party\'s extra');
   assert.equal(GRANT_KINDS.star.max, STAR_WAVE_MAX, 'STAR-TUNE: a fallen star\'s coven - its law\'s largest wave, one grant');
   assert.equal(STAR_GRANT_RELAY_MIN, 238, 'AUDIT STAR-TUNE F1: the relay that mints the star\'s kind is STAR-TUNE\'s');
+  // AUDIT (the desync branch's integration lane): the gate names a VERSION, and a renumber at a merge moves RELAY_VERSION,
+  // its law row and its pins - never this. Held to the release it names: the law row of world<STAR_GRANT_RELAY_MIN> is
+  // STAR-TUNE's (test/net/relayversion.test.js), and no later than the relay this tree builds. A merge that renumbers
+  // STAR-TUNE past another release fails here until the gate moves with it.
+  const lawRow = readFileSync(new URL('./relayversion.test.js', import.meta.url), 'utf8').split('\n').find((l) => l.trimStart().startsWith(`world${STAR_GRANT_RELAY_MIN}: '`));
+  assert.ok(lawRow && lawRow.includes('STAR-TUNE'), `world${STAR_GRANT_RELAY_MIN}'s law row is STAR-TUNE's (${lawRow?.slice(0, 120)})`);
+  assert.ok(STAR_GRANT_RELAY_MIN <= Number(RELAY_VERSION.slice('world'.length)), 'the gate is no later than the relay this tree builds');
   assert.deepEqual(['world237', 'world238', 'world300', 'nope', undefined].map(relaySupportsStarGrant), [false, true, true, false, false], 'an older relay is asked the stand\'s own kind');
   assert.deepEqual(Object.keys(GRANT_KINDS).slice(0, 2), ['enc', 'camp'], 'GRANT2\'s first stream; the other sources\' with GRANT4 (grant3_pool)');   // PIN MOVED (GRANT4): every source's kind
   for (const [s, salt] of [[0, 'marks'], [0xdeadbeef, 'species:2'], [12345, 'health:0']]) {
