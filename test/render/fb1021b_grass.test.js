@@ -1,4 +1,4 @@
-// FIELD BUGS 2026-10-21 row 6 (FB1021B) - "grass streaming 11-24%" of a player's CPU profile of the main thread. The
+// FIELD BUGS 2026-10-21b row 6 (FB1021B) - "grass streaming 11-24%" of a player's CPU profile of the main thread. The
 // steady walk was under its budget already (PERF-EXT22: a rim cell a slice a frame); the catch-up was not measured
 // on the move. tools/grassMoveProbe.mjs measured it: a slice a frame is a cell every five frames, so the rim kept the
 // FRAME RATE's pace while its cells arrive at the eye's - and at 20 fps a DFU ride fell more than eight cells behind on

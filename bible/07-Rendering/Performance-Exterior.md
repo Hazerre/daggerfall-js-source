@@ -1618,7 +1618,7 @@ capabilities - with no round trip (Chromium main, read 2026-09-26).
 
 # THE GRASS ON THE MOVE (FB1021B, 2026-10-21)
 
-*FIELD BUGS 2026-10-21 row 6 (`01-Overview/bugs/Field-Bugs-2026-10-21.md`): a player's CPU profile of the online
+*FIELD BUGS 2026-10-21b row 6 (`01-Overview/bugs/Field-Bugs-2026-10-21b.md`): a player's CPU profile of the online
 client, relayed by the owner, had "grass streaming" at 11-24% of the main thread. The slice before this one found the
 walk under its budget (PERF-EXT22) and left the catch-up mode unmeasured on the move.*
 

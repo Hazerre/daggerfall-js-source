@@ -78,7 +78,7 @@ const windowHours = (h) => Math.min(loadHours(h), WINDOW_HOURS_MAX);
  *   mean wait of a held frame sent, the beats said for a held sender, and the blows the hit funnels dropped - over the
  *   points that carry the hold's blobs (`blob6 != ''`: a relay before FOES-HOLD wrote none, and the SQL API's
  *   `toUInt32` reads no empty string); whether the line holds live, kind by kind;
- * - storage (FIELD BUGS 2026-10-21, the rooms' resets: 877 "Internal error in Durable Object storage caused object to
+ * - storage (FIELD BUGS 2026-10-21b, the rooms' resets: 877 "Internal error in Durable Object storage caused object to
  *   be reset" on the evening of 2026-10-20, cause not found): the forty room-windows that wrote storage most - when,
  *   which kind, its reads and writes and the sockets it held - so a night of resets is read beside the rooms that were
  *   writing then (the resets themselves are Workers Observability's, not this dataset's).

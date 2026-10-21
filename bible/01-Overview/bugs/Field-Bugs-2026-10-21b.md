@@ -1,4 +1,4 @@
-# FIELD BUGS 2026-10-21 - enemy desync, and a player's CPU profile, read to their roots
+# FIELD BUGS 2026-10-21b - enemy desync, and a player's CPU profile, read to their roots
 
 The owner (2026-10-21): "People are also experiencing enemy dsync", then three screenshots of a player's CPU profile of
 the client's main thread from a Discord message - the Come Sail Away boat pool 11%, peer bodies and the network update

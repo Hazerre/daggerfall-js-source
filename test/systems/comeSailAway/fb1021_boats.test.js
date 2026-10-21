@@ -1,4 +1,4 @@
-// FIELD BUGS 2026-10-21 (a player's CPU profile online: the Come Sail Away pool's frame 11% of the frame, 6% with the
+// FIELD BUGS 2026-10-21b (a player's CPU profile online: the Come Sail Away pool's frame 11% of the frame, 6% with the
 // peers' boats not loaded - scenes/comeSailAway/comeSailAwayPool.js frame -> walkBoat, lateUpdateHolder, syncFlats - and
 // rendererModelKey, through partKey, 2.6%, the key made again most frames; bible/07-Rendering/Performance-Priority.md
 // BOAT-STAMP and BOAT-FAR).

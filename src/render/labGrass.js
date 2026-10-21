@@ -1480,7 +1480,7 @@ export const GRASS_SLICE = 1500;
  *  placed WHOLE - the shader's own fade start (`smoothstep(uRange*0.55,
  *  uRange, d)`, the lab's), inside which every blade of a cell draws. */
 export const GRASS_WHOLE_AT = 0.55;
-/** FB1021B (FIELD BUGS 2026-10-21 row 6): the fraction of the range a rim cell must stand placed by - the eye's
+/** FB1021B (FIELD BUGS 2026-10-21b row 6): the fraction of the range a rim cell must stand placed by - the eye's
  *  approach is its deadline. Out here the shader's fade (`smoothstep(uRange*0.55, uRange, d)`) leaves a blade 12.6%
  *  of itself, at the rim 0. A cell nearer than this and missing is due now: a birth's, an invalidate's. */
 export const GRASS_DUE_AT = 0.9;
@@ -1644,7 +1644,7 @@ export function createGrassField(renderer, { keep, ground = null, slope = null, 
         if (nearSq(held.cx, held.cz, ex, ez) > keepR2) { renderer.clearSlot(held.slot); live.delete(key); free.push(held.slot); }
       }
       if (pending && nearSq(pending.cx, pending.cz, ex, ez) > fillR2) pending = null;   // PERF-EXT22: walked out of reach before it was done - it would not be begun now either
-      // FB1021B (FIELD BUGS 2026-10-21 row 6, a player's CPU profile: grass streaming 11-24% of the main thread): THE
+      // FB1021B (FIELD BUGS 2026-10-21b row 6, a player's CPU profile: grass streaming 11-24% of the main thread): THE
       // RIM IS PLACED BY THE EYE'S APPROACH, NOT BY THE FRAME. PERF-EXT22 placed a rim cell GRASS_SLICE candidates a
       // frame and, with more than eight cells waiting, every cell whole, two a frame. A slice a frame is a cell every
       // five frames, so the rim's pace was the FRAME RATE's while its arrivals are the eye's speed's - and at 20 fps a

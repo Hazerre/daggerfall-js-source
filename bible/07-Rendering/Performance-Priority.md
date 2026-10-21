@@ -1831,7 +1831,7 @@ read as 0 resolves the same nodes. `stillChain`'s stamp is pinned by the part hu
 
 ## HORSE-VIEW II — the road's and the standing horses are posed as the pool's are
 
-*The record's Left (FIELD BUGS 2026-10-21): "the road's stranger teams and the standing horses, still stepped every
+*The record's Left (FIELD BUGS 2026-10-21b): "the road's stranger teams and the standing horses, still stepped every
 frame" - HORSE-VIEW's own Left.*
 
 **Found.** HORSE-VIEW left two lanes of 3D horses as they were. The road's strangers (`roadTeams.js`: the nearest
