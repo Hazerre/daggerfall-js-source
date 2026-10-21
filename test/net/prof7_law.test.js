@@ -35,8 +35,11 @@ import { MOBILE_TYPES } from '../../src/characters/mobile/mobileTypes.js';
 test('PROF7 law: the ten hides (4.4, 655-664 in its order) - each its foes by DFU\'s MobileTypes, its tier, its DFU part, its butchery (C&C\'s own animals and its Slaughterfish; none for the Harpy, the Dreugh and the Dragonling) and its cure (tiers 1-3 Cured, 4-6 Hardened; Spider Silk woven and Harpy Feathers fletched, never cured)', () => {
   assert.deepEqual(HIDES.map((h) => [h.key, h.templateIndex, h.name, h.tier, h.part, h.meat, h.cures]), [
     ['hide:rat', 655, 'Rat Pelt', 1, null, 'food:meat', 'leather:cured'],
+    ['hide:mudcrab', 676, 'Mudcrab Chitin', 1, null, 'food:fish', 'leather:cured'],   // PIN MOVED (DEX-HIDES, FIELD BUGS 2026-10-21): the Enemy Expansion's three of their own, 4.8's first free ids, each by its tier
     ['hide:bat', 656, 'Bat Leather', 2, null, 'food:meat', 'leather:cured'],
     ['hide:bear', 657, 'Bear Hide', 2, 'part:tooth', 'food:meat', 'leather:cured'],
+    ['hide:wolf', 667, 'Wolf Pelt', 2, 'part:tooth', 'food:meat', 'leather:cured'],
+    ['hide:boar', 672, 'Boar Hide', 2, 'part:tooth', 'food:meat', 'leather:cured'],
     ['hide:tiger', 658, 'Tiger Pelt', 3, 'part:tooth', 'food:meat', 'leather:cured'],
     ['hide:spider', 659, 'Spider Silk', 3, 'part:venom', 'food:meat', null],
     ['hide:scorpion', 660, 'Scorpion Chitin', 4, 'part:stinger', 'food:meat', 'leather:hardened'],
@@ -63,7 +66,7 @@ test('PROF7 law: the leathers (665 Cured tier 2, 666 Hardened tier 5) and the cl
   assert.deepEqual([CURED_LEATHER, HARDENED_LEATHER].map((m) => [m.key, m.templateIndex, m.tier, m.name]), [['leather:cured', 665, 2, 'Cured Leather'], ['leather:hardened', 666, 5, 'Hardened Leather']]);
   assert.deepEqual(CLOTHS.map((m) => [m.key, m.templateIndex, m.tier]), [['cloth:linen', 668, 1], ['cloth:wool', 669, 2], ['cloth:silk', 670, 4], ['cloth:standard', 671, 5]]);
   assert.deepEqual([LINEN, WOOL, SILK, STANDARD_SILK], CLOTHS);
-  assert.deepEqual(HIDE_TEMPLATES.map((m) => m.templateIndex), [655, 656, 657, 658, 659, 660, 661, 662, 663, 664, 665, 666, 668, 669, 670, 671]);
+  assert.deepEqual(HIDE_TEMPLATES.map((m) => m.templateIndex), [655, 676, 656, 657, 667, 672, 658, 659, 660, 661, 662, 663, 664, 665, 666, 668, 669, 670, 671]);   // PIN MOVED (DEX-HIDES)
   assert.deepEqual([...NO_PACK_FORM], ['work:ram', 'essence:arcane']);   // AUDIT PROF12 E1 (PIN MOVED): Arcane Essence the Stores'; SEAT2b part two (PIN MOVED): a siege work's road is the writ's - every hide, leather and cloth withdraws
   for (const m of [...HIDE_TEMPLATES, ...PARTS]) {
     assert.equal(minedMaterial(m.key)?.templateIndex, m.templateIndex, m.key);
@@ -178,8 +181,10 @@ test('PROF7 law: the trace - 4 + tier points (5 to 9) across the carcass; the to
 
 test('PROF7 law: the loom cures two hides to a leather (a Tanner\'s two a unit - a choice made at 50) and weaves three Spider Silk to a Silk Bolt; no XP - a hide\'s was its skinning\'s; the tailor\'s fee 50', () => {
   assert.deepEqual(CURE_RECIPES.map((r) => [r.id, r.out, r.inputs.map((i) => `${i.n} ${i.key}`).join(), r.station, r.per, r.more?.spec, r.more?.per, workSpecRank(r), r.xp]), [
-    ['cure:rat', 'leather:cured', '2 hide:rat', 'loom', 1, 'tanner', 2, 50, null], ['cure:bat', 'leather:cured', '2 hide:bat', 'loom', 1, 'tanner', 2, 50, null],
-    ['cure:bear', 'leather:cured', '2 hide:bear', 'loom', 1, 'tanner', 2, 50, null], ['cure:tiger', 'leather:cured', '2 hide:tiger', 'loom', 1, 'tanner', 2, 50, null],
+    ['cure:rat', 'leather:cured', '2 hide:rat', 'loom', 1, 'tanner', 2, 50, null], ['cure:mudcrab', 'leather:cured', '2 hide:mudcrab', 'loom', 1, 'tanner', 2, 50, null],   // PIN MOVED (DEX-HIDES): the Enemy Expansion's three, by the tier law
+    ['cure:bat', 'leather:cured', '2 hide:bat', 'loom', 1, 'tanner', 2, 50, null], ['cure:bear', 'leather:cured', '2 hide:bear', 'loom', 1, 'tanner', 2, 50, null],
+    ['cure:wolf', 'leather:cured', '2 hide:wolf', 'loom', 1, 'tanner', 2, 50, null], ['cure:boar', 'leather:cured', '2 hide:boar', 'loom', 1, 'tanner', 2, 50, null],
+    ['cure:tiger', 'leather:cured', '2 hide:tiger', 'loom', 1, 'tanner', 2, 50, null],
     ['cure:scorpion', 'leather:hardened', '2 hide:scorpion', 'loom', 1, 'tanner', 2, 50, null], ['cure:slaughterfish', 'leather:hardened', '2 hide:slaughterfish', 'loom', 1, 'tanner', 2, 50, null],
     ['cure:dreugh', 'leather:hardened', '2 hide:dreugh', 'loom', 1, 'tanner', 2, 50, null], ['cure:dragonling', 'leather:hardened', '2 hide:dragonling', 'loom', 1, 'tanner', 2, 50, null],
   ]);

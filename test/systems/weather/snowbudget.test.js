@@ -3,7 +3,8 @@
 // integrated a whole step at a time whatever the budget (snowpack.js advance read its deadline between steps), every one
 // of a frame's readers - the tick, the feet, the Snowfall mod's winter - ran a budget of its own, and the ground's slope
 // was read for every grass blade whether snow lay there or not. Held here: a call keeps its deadline between a step's
-// points and the packs are the ones one call makes; a frame's asks share one budget; the slope is read only under snow.
+// points and the packs are the ones one call makes; a frame's asks share one budget; the slope is read only under snow
+// (since SNOW-FACE, never - the cover reads no slope).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { SnowpackLattice, SNOWPACK, yearOriginOf } from '../../../src/systems/weather/snowpack.js';
@@ -89,7 +90,10 @@ test('SNOW-BUDGET a frame\'s asks share one budget: the tick spends the frame\'s
   } finally { setAirGround(null); }
 });
 
-test('SNOW-BUDGET the ground\'s slope is read only where the snowline lays snow: a summer\'s grass and feet ask the stream no heights, a winter\'s do - and the answers are the ones the slope gave (mutants: the slope read first)', async () => {
+// PIN MOVED (SNOW-FACE, FIELD BUGS 2026-10-21): the ground's cover reads no slope (render/snowCoverGlsl.js SNOW_GROUND), so
+// what SNOW-BUDGET held to the snow alone - the stream's heights, four a blade - is asked of the stream never; the host
+// takes no `heightAt`, and one handed to it anyway is left unasked.
+test('SNOW-BUDGET the grass and the feet ask the stream no heights, a summer\'s or a winter\'s (SNOW-FACE: the cover reads no slope) - and a full cover still buries every blade and whitens the feet', async () => {
   setAirGround({ climateAt: woods, groundAt: () => 0, topAt: () => 900 });
   try {
     const { host, heights } = coverHost((406 * 360 + 215) * 1440);
@@ -98,15 +102,14 @@ test('SNOW-BUDGET the ground\'s slope is read only where the snowline lays snow:
     const h0 = heights();
     for (let k = 0; k < 50; k++) assert.equal(host.buries(p, 100 + k, 200, 100 + k, -200, 10), false);
     assert.equal(host.winterAt([5, 10, -5], false), false);
-    assert.equal(heights(), h0, 'no snow: no slope asked');
-    // the lines laid down to the valley: the slope read, and a flat ground's cover full
+    assert.equal(heights(), h0, 'no snow: no height asked');
+    // the lines laid down to the valley: the cover full, and still no height asked
     for (const l of host._lines.values()) { l.shown = Float32Array.of(-500, -400, -300); l.target = Float32Array.from(l.shown); }
-    const h1 = heights();
     assert.equal(host.winterAt([5, 10, -5], false), true, 'white under the feet');
-    assert.ok(heights() > h1, 'its slope read');
     let buried = 0;
     for (let k = 0; k < 50; k++) buried += host.buries(p, 100 + k, 200, 100 + k, -200, 10) ? 1 : 0;
     assert.equal(buried, 50, 'every blade under a full cover');
+    assert.equal(heights(), h0, 'under snow: no height asked either');
   } finally { setAirGround(null); }
 });
 

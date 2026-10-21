@@ -12,6 +12,13 @@
 // (quest/clock.js chargeSeconds: "the lived step, never the raise"), since a raise that paid would be a faucet the
 // world pays for (Lived-Time.md). Offline the one clock's raw gap stands, DFU's own. The law is here; the acts are
 // systems/revenant/revenantCompanions.js (sendOnErrand, recallFromErrand, the party's wake).
+// OFFLINE-ROAD (FIELD BUGS 2026-10-21, the Discord's #feature-feedback: "I'd like to see them at least progress on the real
+// time bar when offline. It'd be a nice thing to send my single buddy out for when logging off") - ONLINE AN ERRAND KEEPS
+// THE WORLD'S TIME (errandOnWorld): its `due`, the world's minute it is back (worldTick.js worldMinutes, the event clock -
+// the wall's own), is the authority once the relay's clock is heard. The world's clock runs while the player is away and
+// no rest, Loiter or journey moves it, so time away carries an errand on and a raise still never does (AUDIT RVN F1's
+// faucet stays shut: a sworn one abroad earns at most its road's haul in its road's real time, as one played through
+// does). Until the relay's clock is heard the lived step carries it, as before.
 //
 //  - THE PLACES (ERRAND_PLACES): the Bay's own two a day off, the far shores four; each a DANGER (1-5) and the goods
 //    its land gives - Skyrim's orichalcum and pelts, Morrowind's ebony and the Dwemer's metal, Black Marsh's venom.
@@ -133,15 +140,17 @@ export function oddsWord(odds) {
 }
 
 /** A new errand for `r` to place `key` on venture `venture`, from minute `now` - its city drawn on `seed` (a whole number
- *  the caller draws). Null for an unknown place or venture. */
-export function newErrand(r, key, venture, now, seed) {
+ *  the caller draws). Null for an unknown place or venture. OFFLINE-ROAD: `world`, the world's trusted minute online
+ *  (NaN: none), gives it its `due` - the world's minute it is back. */
+export function newErrand(r, key, venture, now, seed, world = NaN) {
   const p = errandPlace(key);
   if (!p || !isVenture(venture) || !Number.isFinite(now)) return null;
   const s = Number.isInteger(seed) && seed >= 0 ? seed >>> 0 : 0;
   const cities = CITIES.filter((c) => c.province === key);
   const city = cities.length ? cities[Math.min(cities.length - 1, Math.floor(idStream(`${r?.id}`, `errand-city:${s}`)() * cities.length))].name : null;
   const sky = rvnErrandSky(r);   // AUDIT RVN-STARS S2, S3: its sky as it sets out - its road, its odds, its haul
-  return { place: key, venture, city, at: Math.floor(now), until: Math.floor(now) + Math.round(roadDays(p, sky) * MINUTES_PER_DAY), seed: s, sky: { ...sky } };
+  const len = Math.round(roadDays(p, sky) * MINUTES_PER_DAY);
+  return { place: key, venture, city, at: Math.floor(now), until: Math.floor(now) + len, seed: s, sky: { ...sky }, ...(Number.isFinite(world) ? { due: Math.floor(world) + len } : {}) };
 }
 /** An errand read back (a save, the mirror): its place and venture known, its minutes whole and in order, its sky within
  *  the stars' bounds (none: an errand older than the stars), else none. */
@@ -149,7 +158,7 @@ export function sanitizeErrand(e) {
   if (!e || typeof e !== 'object' || !errandPlace(e.place) || !isVenture(e.venture)) return null;
   if (!Number.isInteger(e.at) || !Number.isInteger(e.until) || e.until < e.at) return null;
   const sky = rvnErrandSkyOf(e.sky);
-  return { place: e.place, venture: e.venture, city: typeof e.city === 'string' && e.city ? e.city.slice(0, 40) : null, at: e.at, until: e.until, seed: Number.isInteger(e.seed) && e.seed >= 0 ? e.seed >>> 0 : 0, ...(sky ? { sky: { ...sky } } : {}) };
+  return { place: e.place, venture: e.venture, city: typeof e.city === 'string' && e.city ? e.city.slice(0, 40) : null, at: e.at, until: e.until, seed: Number.isInteger(e.seed) && e.seed >= 0 ? e.seed >>> 0 : 0, ...(sky ? { sky: { ...sky } } : {}), ...(Number.isInteger(e.due) ? { due: e.due } : {}) };   // OFFLINE-ROAD: its world's minute
 }
 /** When it is back - never more than its own road's days from `now` (an older clock under the record reads its days as
  *  more, as a rest's would - revenantCompanions.js restUntil, whose wake writes the clamp back: AUDIT RVN F5; AUDIT
@@ -168,6 +177,18 @@ export function errandStep(own, raised, online) {
   if (!online || !(own > 0)) return 0;
   const lived = Math.min(Math.max(own - (raised > 0 ? raised : 0), 0), ERRAND.STEP_MAX);
   return own - lived;
+}
+
+/** OFFLINE-ROAD: ONLINE, ERRAND `e` ON THE WORLD'S TIME - `world` the world's trusted minute, `own` the character's (the
+ *  minute the party's wake compares `until` against). Its `due`: its own where it has one, else its minutes left now from
+ *  the world's now (an errand sent before the relay's clock was heard, or before OFFLINE-ROAD), held to its own road's
+ *  days from the world's now (errandUntil's clamp, on the world's clock). Its `until`: as many minutes past `own` as the
+ *  world has left to `due` - never before it set out. Answers both. Pure. */
+export function errandOnWorld(e, own, world) {
+  const p = errandPlace(e?.place), w = Math.floor(world);
+  const most = p ? Math.round(roadDays(p, e.sky) * MINUTES_PER_DAY) : 0;
+  const due = Math.min(Number.isInteger(e?.due) ? e.due : w + Math.max(0, e.until - Math.floor(own)), w + most);
+  return { due, until: Math.max(e.at, Math.floor(own) + Math.max(0, due - w)) };
 }
 
 /** A material's tier (1 where none is known). */

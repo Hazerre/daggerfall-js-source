@@ -1,0 +1,74 @@
+[
+  {
+    "name": "OFFLINE-ROAD-the-due-unread",
+    "file": "src/systems/revenant/revenantErrands.js",
+    "old": "Math.min(Number.isInteger(e?.due) ? e.due : w + Math.max(0, e.until - Math.floor(own)), w + most)",
+    "new": "Math.min(w + Math.max(0, e.until - Math.floor(own)), w + most)",
+    "tests": [
+      "test/systems/revenant/fb1021_offlineroad.test.js"
+    ]
+  },
+  {
+    "name": "OFFLINE-ROAD-the-clamp-gone",
+    "file": "src/systems/revenant/revenantErrands.js",
+    "old": "Math.min(Number.isInteger(e?.due) ? e.due : w + Math.max(0, e.until - Math.floor(own)), w + most)",
+    "new": "(Number.isInteger(e?.due) ? e.due : w + Math.max(0, e.until - Math.floor(own)))",
+    "tests": [
+      "test/systems/revenant/fb1021_offlineroad.test.js"
+    ]
+  },
+  {
+    "name": "OFFLINE-ROAD-before-its-start",
+    "file": "src/systems/revenant/revenantErrands.js",
+    "old": "until: Math.max(e.at, Math.floor(own) + Math.max(0, due - w))",
+    "new": "until: Math.floor(own) + Math.max(0, due - w)",
+    "tests": [
+      "test/systems/revenant/fb1021_offlineroad.test.js"
+    ]
+  },
+  {
+    "name": "OFFLINE-ROAD-the-due-unkept",
+    "file": "src/systems/revenant/revenantErrands.js",
+    "old": ", ...(Number.isInteger(e.due) ? { due: e.due } : {}) };   // OFFLINE-ROAD: its world's minute",
+    "new": " };",
+    "tests": [
+      "test/systems/revenant/fb1021_offlineroad.test.js"
+    ]
+  },
+  {
+    "name": "OFFLINE-ROAD-sent-with-no-due",
+    "file": "src/systems/revenant/revenantCompanions.js",
+    "old": "const e = newErrand(r, place, venture, now, seed, world);",
+    "new": "const e = newErrand(r, place, venture, now, seed);",
+    "tests": [
+      "test/systems/revenant/fb1021_offlineroad.test.js"
+    ]
+  },
+  {
+    "name": "OFFLINE-ROAD-the-world-unread-online",
+    "file": "src/systems/revenant/revenantCompanions.js",
+    "old": "  const onWorld = online && Number.isFinite(world);",
+    "new": "  const onWorld = false;",
+    "tests": [
+      "test/systems/revenant/fb1021_offlineroad.test.js"
+    ]
+  },
+  {
+    "name": "OFFLINE-ROAD-the-world-untrusted",
+    "file": "src/systems/revenant/revenantCompanions.js",
+    "old": "online = sharedClockOn(), world = trustedWorldMinutes() } = {}) {",
+    "new": "online = sharedClockOn(), world = ownMinutes() } = {}) {",
+    "tests": [
+      "test/systems/revenant/fb1021_offlineroad.test.js"
+    ]
+  },
+  {
+    "name": "OFFLINE-ROAD-the-page-s-word-unsaid",
+    "file": "src/ui/companionRoster.js",
+    "old": "two real hours for each day abroad. Resting",
+    "new": "two real hours for each day. Resting",
+    "tests": [
+      "test/systems/revenant/fb1021_offlineroad.test.js"
+    ]
+  }
+]

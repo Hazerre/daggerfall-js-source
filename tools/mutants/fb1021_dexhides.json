@@ -1,0 +1,56 @@
+[
+  {
+    "name": "DEX-HIDES-a-wolf-unnamed",
+    "file": "src/net/professionLaw.js",
+    "old": "[DEX_MOB.Wolf, DEX_MOB.SnowWolf, DEX_MOB.Dog]",
+    "new": "[DEX_MOB.SnowWolf, DEX_MOB.Dog]",
+    "tests": [
+      "test/net/fb1021_dexhides.test.js"
+    ]
+  },
+  {
+    "name": "DEX-HIDES-the-bat-unnamed",
+    "file": "src/net/professionLaw.js",
+    "old": "[MOB.GiantBat, DEX_MOB.Bat]",
+    "new": "[MOB.GiantBat]",
+    "tests": [
+      "test/net/fb1021_dexhides.test.js"
+    ]
+  },
+  {
+    "name": "DEX-HIDES-the-hell-hound-skinned",
+    "file": "src/net/professionLaw.js",
+    "old": "[DEX_MOB.Boar], 'part:tooth'",
+    "new": "[DEX_MOB.Boar, 264], 'part:tooth'",
+    "tests": [
+      "test/net/fb1021_dexhides.test.js"
+    ]
+  },
+  {
+    "name": "DEX-HIDES-the-mudcrab-out-of-its-tier",
+    "file": "src/net/professionLaw.js",
+    "old": "hide('hide:mudcrab', 676, 'Mudcrab Chitin', 1,",
+    "new": "hide('hide:mudcrab', 676, 'Mudcrab Chitin', 3,",
+    "tests": [
+      "test/net/fb1021_dexhides.test.js"
+    ]
+  },
+  {
+    "name": "DEX-HIDES-the-page-s-line-unwritten",
+    "file": "src/ui/professions/profPages.js",
+    "old": "t('prof.page.unlocks.hunting1', 'Rat Pelt, Mudcrab Chitin')",
+    "new": "t('prof.page.unlocks.hunting1', 'Rat Pelt')",
+    "tests": [
+      "test/net/fb1021_dexhides.test.js"
+    ]
+  },
+  {
+    "name": "DEX-HIDES-the-chitin-counted",
+    "file": "src/systems/professions/profItems.js",
+    "old": "  'Mudcrab Chitin',   // DEX-HIDES (FIELD BUGS 2026-10-21): the Enemy Expansion's chitin is mass, as the scorpion's\n",
+    "new": "",
+    "tests": [
+      "test/net/fb1021_dexhides.test.js"
+    ]
+  }
+]

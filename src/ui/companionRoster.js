@@ -289,7 +289,9 @@ function errandSheet(el, r, rerender, now) {
   box.append(list);
   // AUDIT RVN D13: every number its constant's; F1: online, what carries it on
   box.append(el('span', 'cmp-foot', t('rvn.roster.abroadLaw', 'Danger runs from I to V. Its rank and gear improve its odds. Its haul goes to your purse, your pack and your Materials Bag. A hard-won mission brings back {pct}% of the haul, and it must rest after. Up to {n} can be abroad at once.', { pct: Math.round(ERRAND.HARD_SHARE * 100), n: ERRAND.MAX })));
-  if (sharedClockOn()) box.append(el('span', 'cmp-foot', t('rvn.roster.abroadLived', 'Online, mission time passes only while you play. Resting, waiting or traveling doesn\'t speed it up.')));
+  // OFFLINE-ROAD (FIELD BUGS 2026-10-21): online an errand keeps the world's time - a day abroad two real hours (wire.js
+  // ONLINE_MINUTES_PER_MS), away or not
+  if (sharedClockOn()) box.append(el('span', 'cmp-foot', t('rvn.roster.abroadLived', 'Online, a mission keeps real time: it goes on while you\'re away, two real hours for each day abroad. Resting, waiting or traveling doesn\'t speed it up.')));
   return box;
 }
 

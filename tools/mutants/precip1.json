@@ -127,15 +127,6 @@
     ]
   },
   {
-    "name": "PRECIP4-the-slope-unread",
-    "file": "src/render/snowCoverGlsl.js",
-    "old": "  c *= smoothstep(${f(s0)}, ${f(s1)}, n.y);   // a steep face sheds it",
-    "new": "",
-    "tests": [
-      "test/render/precip4_snowground.test.js"
-    ]
-  },
-  {
     "name": "PRECIP4-the-patches-over-a-whole-cover",
     "file": "src/render/snowCoverGlsl.js",
     "old": "  if (c <= 0.0 || c >= 1.0) return c;",
@@ -465,7 +456,7 @@
   {
     "name": "PRECIP4-the-turn-unmarked",
     "file": "src/scenes/snowCoverHost.js",
-    "old": "!turned.has(p)) { turned.add(p); markReskin(key); }",
+    "old": "!turned.has(p)) { turned.add(p); markRebuild(key); }",
     "new": "!turned.has(p)) { turned.add(p); }",
     "tests": [
       "test/render/precip4_snowground.test.js"

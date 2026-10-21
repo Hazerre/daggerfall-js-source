@@ -499,6 +499,14 @@ const MOB = Object.freeze({
   Rat: 0, GiantBat: 3, GrizzlyBear: 4, SabertoothTiger: 5, Spider: 6, Slaughterfish: 11, Harpy: 13, GiantScorpion: 20,
   Dragonling: 34, DragonlingAlternate: 40, Dreugh: 41,
 });
+/** DEX-HIDES (FIELD BUGS 2026-10-21, the Discord: "the variant bats and wolves I encountered have had no option for
+ *  skinning"): Daggerfall Enemy Expansion's animals by the mod's own ids (vendor/daggerfall-enemy-expansion/
+ *  MonsterBase.mdb.csv - a spawned foe's mobileType IS its id, characters/enemy/enemyEntity.js makeEnemyEntity), every row
+ *  of Affinity Animal. A static table, as MOB is: the service skins by it and keeps no registry of the mod's (its Hell
+ *  Hound, 264, is the mod's Daedra and no daedra is skinned). */
+const DEX_MOB = Object.freeze({
+  Bat: 260, Wolf: 262, SnowWolf: 263, Dog: 267, BloodSpider: 271, Boar: 278, LandDreugh: 279, MountainLion: 280, Mudcrab: 281,
+});
 /** A DFU creature part a body may give (4.4's "a chance of the DFU ingredient"), at its price's tier as a gem is
  *  (PROF0 23's bands): Big Tooth 8 gold, Spider's Venom 22, Giant Scorpion Stinger 25, Dragon's Scales 375. */
 export const PARTS = Object.freeze([
@@ -515,28 +523,38 @@ export const PARTS = Object.freeze([
 const hide = (key, templateIndex, name, tier, icon, foes, part, meat, cures) =>
   Object.freeze({ ...made(key, 'hides', tier, templateIndex, name, icon, null), foes: Object.freeze(foes), part, meat, cures });
 /**
- * THE TEN HIDES (4.4, templates 655-664 in its order), each its foes, tier, DFU part (4.4's column), its butchery (C&C's
+ * THE TEN HIDES (4.4, templates 655-664 in its order - DEX-HIDES: and the three past them, each among them by its tier), each its foes, tier, DFU part (4.4's column), its butchery (C&C's
  * own animals: SURV2's MEAT_BY_TYPE - Rat, Giant Bat, Grizzly Bear, Sabretooth Tiger, Spider, Giant Scorpion - Raw Meat;
  * its FISH_BY_TYPE's Slaughterfish Raw Fish; the Harpy, the Dreugh and the Dragonling none, as C&C gives their bodies
  * none) and its cure: tiers 1-3 to Cured Leather, 4-6 to Hardened Leather (4.4) - but Spider Silk, woven to a Silk Bolt
  * (4.5), and Harpy Feathers, which fletch (9.3's arrows), never cure (PROF0 29).
+ * DEX-HIDES: the Enemy Expansion's animals skinned too - each of its kin's hide where the ten have its kin (its Bat the
+ * classic Giant Bat's career, its Blood Spider a spider, its Mountain Lion the mod's own Tigers team, its Land Dreugh a
+ * dreugh), and three hides of their own past the ten for the kinds the ten have none of (4.8's first free ids): WOLF
+ * PELT (667: its Wolf, Snow Wolf and Dog - one team, Werecreatures, one coat), BOAR HIDE (672) and MUDCRAB CHITIN (676).
+ * Their tiers are the low ones their kin's are (the Wolf level 5 and the Boar 6 by the Bear's 2; the Mudcrab, level 2, by
+ * the Rat's 1); the wolf's fang and the boar's tusk DFU's Big Tooth, as the Bear's and the Tiger's; their butchery Raw
+ * Meat, the crab's Raw Fish (C&C's own catch from the water); each cures by the tier law.
  */
 export const HIDES = Object.freeze([
   hide('hide:rat', 655, 'Rat Pelt', 1, ICON_HAIR, [MOB.Rat], null, 'food:meat', 'leather:cured'),
-  hide('hide:bat', 656, 'Bat Leather', 2, ICON_HAIR, [MOB.GiantBat], null, 'food:meat', 'leather:cured'),
+  hide('hide:mudcrab', 676, 'Mudcrab Chitin', 1, ICON_SCALES, [DEX_MOB.Mudcrab], null, 'food:fish', 'leather:cured'),   // DEX-HIDES: each by its tier (a chain's works stand cheapest first - recipeLaw.js producersOf)
+  hide('hide:bat', 656, 'Bat Leather', 2, ICON_HAIR, [MOB.GiantBat, DEX_MOB.Bat], null, 'food:meat', 'leather:cured'),
   hide('hide:bear', 657, 'Bear Hide', 2, ICON_HAIR, [MOB.GrizzlyBear], 'part:tooth', 'food:meat', 'leather:cured'),
-  hide('hide:tiger', 658, 'Tiger Pelt', 3, ICON_HAIR, [MOB.SabertoothTiger], 'part:tooth', 'food:meat', 'leather:cured'),
-  hide('hide:spider', 659, 'Spider Silk', 3, ICON_WRAPPINGS, [MOB.Spider], 'part:venom', 'food:meat', null),
+  hide('hide:wolf', 667, 'Wolf Pelt', 2, ICON_HAIR, [DEX_MOB.Wolf, DEX_MOB.SnowWolf, DEX_MOB.Dog], 'part:tooth', 'food:meat', 'leather:cured'),
+  hide('hide:boar', 672, 'Boar Hide', 2, ICON_HAIR, [DEX_MOB.Boar], 'part:tooth', 'food:meat', 'leather:cured'),
+  hide('hide:tiger', 658, 'Tiger Pelt', 3, ICON_HAIR, [MOB.SabertoothTiger, DEX_MOB.MountainLion], 'part:tooth', 'food:meat', 'leather:cured'),
+  hide('hide:spider', 659, 'Spider Silk', 3, ICON_WRAPPINGS, [MOB.Spider, DEX_MOB.BloodSpider], 'part:venom', 'food:meat', null),
   hide('hide:scorpion', 660, 'Scorpion Chitin', 4, ICON_SCALES, [MOB.GiantScorpion], 'part:stinger', 'food:meat', 'leather:hardened'),
   hide('hide:slaughterfish', 661, 'Slaughterfish Scales', 4, ICON_SCALES, [MOB.Slaughterfish], null, 'food:fish', 'leather:hardened'),
   hide('hide:harpy', 662, 'Harpy Feathers', 5, ICON_FEATHER, [MOB.Harpy], null, null, null),
-  hide('hide:dreugh', 663, 'Dreugh Shell', 5, ICON_SCALES, [MOB.Dreugh], null, null, 'leather:hardened'),
+  hide('hide:dreugh', 663, 'Dreugh Shell', 5, ICON_SCALES, [MOB.Dreugh, DEX_MOB.LandDreugh], null, null, 'leather:hardened'),
   hide('hide:dragonling', 664, 'Dragonling Scale', 6, ICON_SCALES, [MOB.Dragonling, MOB.DragonlingAlternate], 'part:dragonscale', null, 'leather:hardened'),
 ]);
 /** The hide a foe's body gives, by its MobileTypes value, or null for a body no knife takes a hide from. */
 export const hideOfFoe = (mobileType) => (Number.isSafeInteger(mobileType) ? HIDES.find((h) => h.foes.includes(mobileType)) ?? null : null);
-/** Hunting's Bear Hide - the Ram Kit's (PROF0 25). */
-export const BEAR_HIDE = HIDES[2];
+/** Hunting's Bear Hide - the Ram Kit's (PROF0 25); by its key (DEX-HIDES: the hides stand by tier, the ten's places moved). */
+export const BEAR_HIDE = HIDES.find((h) => h.key === 'hide:bear');
 /** The leathers (4.4: 665, 666): Cured the cure of tiers 1-3, their middle, tier 2; Hardened of tiers 4-6, tier 5. */
 export const CURED_LEATHER = made('leather:cured', 'hides', 2, 665, 'Cured Leather', ICON_GARMENT, null);
 export const HARDENED_LEATHER = made('leather:hardened', 'hides', 5, 666, 'Hardened Leather', ICON_GARMENT, null);
