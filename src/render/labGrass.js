@@ -1663,15 +1663,29 @@ export function createGrassField(renderer, { keep, ground = null, slope = null, 
       // - the rim takes one slice a frame, as it did (a frame a whole cell took, none), and past it what the deadlines
       //   ask: the least pace that has every rim cell placed by its own (earliest deadline first: the nearest) - the
       //   eye's own speed's work, spread over the frames it has, never capped below it, or the grass would stand holes
-      //   the old catch-up never left - or, with a cell due now (inside already), whatever the frame's time allows,
+      //   the old catch-up never left - and, with a cell due now (inside already), the frame's time past that pace,
       //   GRASS_STEP candidates at a time.
       // A walk that keeps up is PERF-EXT22's walk to the candidate. A ride the slice cannot keep up with is paced to
       // the eye, frame for frame, and never two whole cells; a birth fills nearest first inside the frame's time.
+      // AUDIT FB1021B F1 (the owner: "no band aids and true improvements"): the cells due now took the frame's time
+      // INSTEAD of the pace, and before the cells it was owed to - so one cell due now (a birth on the move: the jungle
+      // floor's re-made meadow on a ride, an Overworld journey's end, a publish over the disc; a band cell re-read the
+      // step leaves behind) turned the deadlines off, and where the frame's time placed less than the eye brought in
+      // (a slow machine, a fast ride) the cells ahead missed theirs, came due now themselves, and kept it so: the bench's
+      // slow machine (a candidate 1/256 ms) born on a 20 fps DFU ride stood holes inside GRASS_DUE_AT for 1,006 frames,
+      // 342 cells crossing it unplaced; a strong gallop with one band cell re-read behind it never recovered. Now the
+      // pace is spent first on the cells whose deadlines ask it, the cells due now take the frame's time past it, and
+      // the rest wait: no cell with a deadline is let cross GRASS_DUE_AT for a backlog's sake, and a birth on the move
+      // fills in the frames a standing one does (597 there).
       const ux = Number.isFinite(lastX) ? ex - lastX : 0, uz = Number.isFinite(lastZ) ? ez - lastZ : 0;   // the eye's step this frame
       const step = Math.hypot(ux, uz);
       lastX = ex; lastZ = ez;
       const wholeR = range * GRASS_WHOLE_AT, dueR = range * GRASS_DUE_AT;
-      const wholeR2 = wholeR * wholeR;
+      const wholeR2 = wholeR * wholeR, dueR2 = dueR * dueR;
+      // AUDIT FB1021B F2: a cell in progress the eye has brought inside the fade's start is an inner cell, let go so the
+      // loop below places it whole as one never begun - held, it was in no list but its own, and stood unplaced inside
+      // 165 m (as near as 141) while cells farther out were placed
+      if (pending && nearSq(pending.cx, pending.cz, ex, ez) <= wholeR2) pending = null;
       /** FB1021B: 1 for a cell past the fade's start whose nearest point the step moves away from, else 0 */
       const behind = (cx, cz, d2) => (d2 > wholeR2 && (Math.min(Math.max(ex, cx * cell + gx), (cx + 1) * cell + gx) - ex) * ux
         + (Math.min(Math.max(ez, cz * cell + gz), (cz + 1) * cell + gz) - ez) * uz < 0 ? 1 : 0);
@@ -1732,19 +1746,26 @@ export function createGrassField(renderer, { keep, ground = null, slope = null, 
         write(item, slot, wholeSpare);
         wholeMs = clock() - s;
       }
-      // the rim: the cell in progress, then the rest by deadline
+      // the rim: the cell in progress, the cells the deadlines' pace reaches, the cells due now, then the rest by deadline
+      // (an inner cell the frame's time left waits for the next frame, whole)
       const ask = { keep: keepNow, ground: groundNow, slope: slopeNow, height };
-      const rim = want.filter((w) => w.d > wholeR2);   // an inner cell the frame's time left waits for the next frame, whole
-      let owed = 0, need = 0, now = false;   // the candidates owed in this order, the least pace meeting every deadline, a cell due now
+      const late = want.filter((w) => w.d > wholeR2 && w.d <= dueR2 && !w.back);   // due now, and the step not leaving them
+      const rim = want.filter((w) => w.d > dueR2 || (w.d > wholeR2 && w.back));   // a deadline to come, or none: what the step leaves
+      let owed = 0, need = 0, now = late.length > 0;   // the candidates owed in this order, the least pace meeting every deadline, a cell due now
       // a deadline of `due` frames leaves ceil(due) updates before the step that brings the cell inside - this one
       // and the rest - so the pace is the owed over those; a cell inside already is due now
       const owe = (d2, back, n) => { owed += n; const due = dueIn(d2, back); if (due === 0) now = true; else need = Math.max(need, owed / Math.ceil(due)); };
       if (pending) { const pd = nearSq(pending.cx, pending.cz, ex, ez); owe(pd, behind(pending.cx, pending.cz, pd), perCell - pending.st.i); }
       for (const w of rim) owe(w.d, w.back, perCell);
-      let cur = pending, ri = 0, done = 0, first = budget === perFrame;   // the slice a frame - on a frame no whole cell took
+      // AUDIT FB1021B F1: the cells due now come after the rim cells this frame's pace reaches - the cell in progress's
+      // rest and as many whole cells as the pace's candidates - and before the rest, so the pace lands where it is owed
+      let head = 0;
+      for (let o = pending ? perCell - pending.st.i : 0; head < rim.length && o < need; head++) o += perCell;
+      rim.splice(head, 0, ...late);
+      let cur = pending, ri = 0, done = 0, first = budget === perFrame, paced = 0;   // the slice a frame - on a frame no whole cell took; the time the pace past it took
       pending = null;
       while (budget > 0) {
-        if (!first && (now ? clock() - t0 >= budgetMs : done >= need)) break;   // one slice a frame; past it the deadlines' pace - with a cell due now, the frame's time
+        if (!first && done >= need && !(now && clock() - t0 - paced < budgetMs)) break;   // one slice a frame; past it the deadlines' pace - with a cell due now, the frame's time past it
         if (!cur) {
           if (ri >= rim.length || slotFor(rim[ri].d, false) === undefined) break;   // AUDIT PERF10 F1: nothing begun that no slot would take
           const w = rim[ri++];
@@ -1752,9 +1773,11 @@ export function createGrassField(renderer, { keep, ground = null, slope = null, 
           cur = { ...w, st: rimSpare };
         }
         const st = cur.st, i0 = st.i;
+        const timed = now && !first && done < need, s = timed ? clock() : 0;   // a step of the pace while a cell is due now: not the frame's time's
         const finished = stepGrassCell(st, first ? GRASS_SLICE : now ? GRASS_STEP : Math.min(GRASS_STEP, Math.ceil(need - done)), ask);
         first = false;
         done += st.i - i0;
+        if (timed) paced += clock() - s;
         if (!finished) continue;
         const slot = slotFor(nearSq(cur.cx, cur.cz, ex, ez), true);
         if (slot === undefined) { cur = null; break; }   // a nearer cell took the last slot meanwhile: begun again from the world as it stands

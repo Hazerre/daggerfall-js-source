@@ -1692,12 +1692,15 @@ Wasted work otherwise, and why it stays:
 - **The rim takes one slice a frame, as it did** - none on a frame a whole cell took - **and past it what the deadlines
   ask**: the least pace that has every rim cell placed by its own (earliest deadline first: nearest first), uncapped,
   because the work is the eye's speed's and a cap below it stands holes; `GRASS_STEP` (250) candidates at a time.
-- **The cells due now take a share of the frame**: `GRASS_FRAME_MS` (3) of a 60 Hz frame, and that share
+  AUDIT FB1021B F1 (below): the pace is counted without the cells due now, and spent first - the rim cells it reaches
+  this frame come before them.
+- **The cells due now take a share of the frame** past that pace: `GRASS_FRAME_MS` (3) of a 60 Hz frame, and that share
   (`GRASS_FRAME_SHARE`, 0.18) of a longer one measured on the field's clock between its updates, up to a 20 fps frame
   (`GRASS_FRAME_GAP_MS`, 50) - so a birth fills in the same seconds at any frame rate, and a hitch grants no more.
 - **What the step leaves behind waits for the rest**: past the fade's start, a cell behind the step sorts after every
-  other and is never due, so a birth on the move fills the way the eye is going and the hysteresis takes most of what
-  it leaves (before: placed nearest-first, and let go).
+  other and is never due past `GRASS_DUE_AT` (inside it, due now - a hole a turn of the head finds - and still last),
+  so a birth on the move fills the way the eye is going and the hysteresis takes most of what it leaves (before:
+  placed nearest-first, and let go).
 - **No slice is spent on a cell no slot takes** (AUDIT PERF10 F1's starved field): the slot is asked before a cell is
   begun as well as when it is written.
 - `GRASS_CATCH_UP` and the count switch are gone; `perFrame` (2) still caps the cells written a frame, so no frame
@@ -1708,34 +1711,38 @@ The placer is untouched: every cell is the bytes `placeLabGrassCell` makes (gras
 ## After
 
 The same paths, paired - the frames past one slice, the most candidates a frame, the CPU ms of `update()` a frame (p99 /
-mean), the holes (frames with a cell inside 0.9 of the range unplaced) and the cells never placed:
+mean), the holes (frames with a cell inside 0.9 of the range unplaced) and the cells never placed. Re-run at AUDIT
+FB1021B (below) on the merged, fixed field, the before main's placer at the merge (OW-HITCH's, `e394529e85`), at a
+load of 6-20 on the container's four cores: every count of every straight and wandering path is the slice's run's to
+the frame - on a ride no cell is due now, and the audit's change is in what a cell due now does - and the times are
+this run's:
 
 | fps | DFU speed, m/s | path | before: frames past a slice | most a frame | cpu ms p99 / mean | after: frames past a slice | most a frame | cpu ms p99 / mean | holes | never placed (nearest) |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 60 | walk 4.4 | straight | 0 | 1,500 | 3.41 / 0.407 | 0 | 1,500 | 3.29 / 0.366 | 0 | 0 |
-| 60 | run 7.6 | straight | 0 | 1,500 | 3.59 / 0.601 | 0 | 1,500 | 3.69 / 0.651 | 0 | 0 |
-| 60 | run (SPD 100, Running 100) 11.7 | straight | 0 | 1,500 | 3.48 / 0.839 | 0 | 1,500 | 3.59 / 0.874 | 0 | 0 |
-| 60 | horse walk (HORSE-WALK) 5.1 | straight | 0 | 1,500 | 3.02 / 0.376 | 0 | 1,500 | 2.99 / 0.381 | 0 | 0 |
-| 60 | horse (DFU ride) 10.8 | straight | 0 | 1,500 | 3.70 / 0.833 | 0 | 1,500 | 3.60 / 0.823 | 0 | 0 |
-| 60 | gallop 16.1 | straight | 0 | 1,500 | 3.98 / 1.250 | 0 | 1,500 | 3.95 / 1.177 | 0 | 0 |
-| 60 | gallop (SPD 100, Running 100) 22.2 | straight | 140 (3.9%) | 12,244 | 11.03 / 1.552 | 980 (27.2%) | 1,705 | 4.98 / 1.574 | 0 | 36 (290 m) |
-| 60 | cart 7.6 | straight | 0 | 1,500 | 3.19 / 0.544 | 0 | 1,500 | 3.39 / 0.577 | 0 | 0 |
-| 30 | walk 4.4 | straight | 0 | 1,500 | 3.52 / 0.666 | 0 | 1,500 | 3.18 / 0.621 | 0 | 0 |
-| 30 | run 7.6 | straight | 0 | 1,500 | 3.64 / 1.125 | 0 | 1,500 | 3.96 / 1.148 | 0 | 0 |
-| 30 | run (SPD 100, Running 100) 11.7 | straight | 108 (6.0%) | 10,744 | 10.69 / 1.640 | 1300 (72.2%) | 1,787 | 5.31 / 1.664 | 0 | 16 (290 m) |
-| 30 | horse walk (HORSE-WALK) 5.1 | straight | 0 | 1,500 | 3.33 / 0.724 | 0 | 1,500 | 3.53 / 0.763 | 0 | 0 |
-| 30 | horse (DFU ride) 10.8 | straight | 63 (3.5%) | 10,744 | 10.69 / 1.510 | 37 (2.1%) | 1,519 | 4.57 / 1.440 | 0 | 12 (290 m) |
-| 30 | gallop 16.1 | straight | 240 (13.3%) | 12,244 | 13.78 / 2.324 | 1708 (94.9%) | 2,470 | 5.46 / 2.168 | 0 | 26 (290 m) |
-| 30 | gallop (SPD 100, Running 100) 22.2 | straight | 395 (21.9%) | 12,244 | 12.38 / 2.914 | 1768 (98.2%) | 3,432 | 6.58 / 3.007 | 0 | 38 (290 m) |
-| 30 | cart 7.6 | straight | 0 | 1,500 | 3.62 / 1.115 | 0 | 1,500 | 3.84 / 1.126 | 0 | 0 |
-| 20 | walk 4.4 | straight | 0 | 1,500 | 3.84 / 1.020 | 0 | 1,500 | 3.76 / 1.067 | 0 | 0 |
-| 20 | run 7.6 | straight | 59 (4.9%) | 10,744 | 10.98 / 1.659 | 502 (41.8%) | 1,721 | 4.80 / 1.509 | 0 | 8 (290 m) |
-| 20 | run (SPD 100, Running 100) 11.7 | straight | 182 (15.2%) | 12,244 | 15.78 / 2.715 | 1141 (95.1%) | 2,699 | 5.43 / 2.288 | 0 | 17 (290 m) |
-| 20 | horse walk (HORSE-WALK) 5.1 | straight | 0 | 1,500 | 3.78 / 1.122 | 0 | 1,500 | 4.40 / 1.233 | 0 | 0 |
-| 20 | horse (DFU ride) 10.8 | straight | 156 (13.0%) | 12,244 | 12.22 / 2.196 | 1108 (92.3%) | 2,470 | 5.70 / 2.198 | 0 | 15 (290 m) |
-| 20 | gallop 16.1 | straight | 298 (24.8%) | 12,244 | 13.72 / 3.257 | 1176 (98.0%) | 3,750 | 6.83 / 3.336 | 0 | 26 (290 m) |
-| 20 | gallop (SPD 100, Running 100) 22.2 | straight | 439 (36.6%) | 12,244 | 16.03 / 4.525 | 1186 (98.8%) | 5,181 | 7.98 / 4.508 | 0 | 38 (290 m) |
-| 20 | cart 7.6 | straight | 59 (4.9%) | 10,744 | 10.89 / 1.625 | 502 (41.8%) | 1,721 | 4.81 / 1.515 | 0 | 8 (290 m) |
+| 60 | walk 4.4 | straight | 0 | 1,500 | 3.24 / 0.346 | 0 | 1,500 | 3.08 / 0.325 | 0 | 0 |
+| 60 | run 7.6 | straight | 0 | 1,500 | 3.09 / 0.505 | 0 | 1,500 | 3.17 / 0.514 | 0 | 0 |
+| 60 | run (SPD 100, Running 100) 11.7 | straight | 0 | 1,500 | 3.29 / 0.762 | 0 | 1,500 | 3.26 / 0.772 | 0 | 0 |
+| 60 | horse walk (HORSE-WALK) 5.1 | straight | 0 | 1,500 | 3.05 / 0.347 | 0 | 1,500 | 3.04 / 0.353 | 0 | 0 |
+| 60 | horse (DFU ride) 10.8 | straight | 0 | 1,500 | 3.28 / 0.699 | 0 | 1,500 | 3.24 / 0.704 | 0 | 0 |
+| 60 | gallop 16.1 | straight | 0 | 1,500 | 3.42 / 1.034 | 0 | 1,500 | 3.68 / 1.054 | 0 | 0 |
+| 60 | gallop (SPD 100, Running 100) 22.2 | straight | 140 (3.9%) | 12,244 | 9.91 / 1.372 | 980 (27.2%) | 1,705 | 4.01 / 1.327 | 0 | 36 (290 m) |
+| 60 | cart 7.6 | straight | 0 | 1,500 | 3.08 / 0.495 | 0 | 1,500 | 3.53 / 0.540 | 0 | 0 |
+| 30 | walk 4.4 | straight | 0 | 1,500 | 3.29 / 0.604 | 0 | 1,500 | 3.18 / 0.582 | 0 | 0 |
+| 30 | run 7.6 | straight | 0 | 1,500 | 3.57 / 1.022 | 0 | 1,500 | 3.56 / 0.998 | 0 | 0 |
+| 30 | run (SPD 100, Running 100) 11.7 | straight | 108 (6.0%) | 10,744 | 9.78 / 1.498 | 1300 (72.2%) | 1,787 | 4.29 / 1.413 | 0 | 16 (290 m) |
+| 30 | horse walk (HORSE-WALK) 5.1 | straight | 0 | 1,500 | 3.43 / 0.704 | 0 | 1,500 | 3.14 / 0.662 | 0 | 0 |
+| 30 | horse (DFU ride) 10.8 | straight | 63 (3.5%) | 10,744 | 9.95 / 1.399 | 37 (2.1%) | 1,519 | 3.96 / 1.290 | 0 | 12 (290 m) |
+| 30 | gallop 16.1 | straight | 240 (13.3%) | 12,244 | 11.00 / 2.049 | 1708 (94.9%) | 2,470 | 5.11 / 1.993 | 0 | 26 (290 m) |
+| 30 | gallop (SPD 100, Running 100) 22.2 | straight | 395 (21.9%) | 12,244 | 13.85 / 2.866 | 1768 (98.2%) | 3,432 | 4.84 / 2.553 | 0 | 38 (290 m) |
+| 30 | cart 7.6 | straight | 0 | 1,500 | 3.54 / 1.028 | 0 | 1,500 | 3.63 / 1.024 | 0 | 0 |
+| 20 | walk 4.4 | straight | 0 | 1,500 | 3.36 / 0.885 | 0 | 1,500 | 3.53 / 0.888 | 0 | 0 |
+| 20 | run 7.6 | straight | 59 (4.9%) | 10,744 | 9.63 / 1.464 | 502 (41.8%) | 1,721 | 4.16 / 1.358 | 0 | 8 (290 m) |
+| 20 | run (SPD 100, Running 100) 11.7 | straight | 182 (15.2%) | 12,244 | 10.71 / 2.149 | 1141 (95.1%) | 2,699 | 5.14 / 2.115 | 0 | 17 (290 m) |
+| 20 | horse walk (HORSE-WALK) 5.1 | straight | 0 | 1,500 | 3.48 / 1.000 | 0 | 1,500 | 3.66 / 1.015 | 0 | 0 |
+| 20 | horse (DFU ride) 10.8 | straight | 156 (13.0%) | 12,244 | 12.59 / 2.092 | 1108 (92.3%) | 2,470 | 4.79 / 1.913 | 0 | 15 (290 m) |
+| 20 | gallop 16.1 | straight | 298 (24.8%) | 12,244 | 13.23 / 3.095 | 1176 (98.0%) | 3,750 | 5.21 / 2.822 | 0 | 26 (290 m) |
+| 20 | gallop (SPD 100, Running 100) 22.2 | straight | 439 (36.6%) | 12,244 | 15.50 / 4.137 | 1186 (98.8%) | 5,181 | 7.23 / 4.014 | 0 | 38 (290 m) |
+| 20 | cart 7.6 | straight | 59 (4.9%) | 10,744 | 9.63 / 1.457 | 502 (41.8%) | 1,721 | 4.47 / 1.365 | 0 | 8 (290 m) |
 
 "Past a slice" before is the catch-up; after it is the deadlines' pace - most frames of a fast ride now, at a fifth to
 a half of what one catch-up frame asked. The mean is the same work: spread, not saved. The wander rows say the same
@@ -1745,34 +1752,38 @@ minute never placed, none nearer than 278 m (a blade there draws 7% of itself at
 
 | birth (30 s) | before: frames with a hole / settled / cpu ms p99, max / never placed (nearest) | after: the same |
 |---|---|---|
-| 60 fps standing | 145 / frame 214 / 15.10, 24.93 / 0 | 453 / frame 779 / 8.46, 17.32 / 0 |
-| 60 fps walk 4.43 | 146 / 203 / 15.46, 28.18 / 11 (285 m) | 504 / 640 / 6.42, 23.63 / 35 (254 m) |
-| 60 fps run 7.59 | 145 / 220 / 12.30, 19.96 / 17 (277 m) | 526 / 657 / 6.26, 7.31 / 58 (225 m) |
-| 60 fps gallop 16.14 | 146 / 388 / 13.98, 31.68 / 36 (255 m) | 514 / 714 / 6.69, 9.91 / 122 (135 m) |
-| 60 fps gallop 22.25 | 145 / - / 15.65, 18.76 / 48 (236 m) | 532 / - / 6.23, 7.87 / 161 (132 m) |
-| 30 fps standing | 145 / 214 / 15.90, 23.43 / 0 | 332 / 655 / 9.18, 30.90 / 0 |
-| 30 fps run 7.59 | 145 / 288 / 16.16, 24.06 / 36 (255 m) | 393 / 528 / 8.02, 18.49 / 90 (183 m) |
-| 30 fps gallop 16.14 | 145 / - / 15.39, 19.08 / 67 (211 m) | 413 / - / 8.27, 8.66 / 169 (107 m) |
-| 20 fps standing | 145 / 214 / 13.83, 16.97 / 0 | 302 / - / 9.03, 10.12 / 0 |
-| 20 fps run 7.59 | 146 / - / 16.41, 17.31 / 49 (236 m) | 327 / - / 10.64, 12.30 / 111 (165 m) |
-| 20 fps gallop 16.14 | 145 / - / 16.20, 30.82 / 101 (165 m) | 381 / - / 10.00, 11.48 / 204 (85 m) |
+| 60 fps standing | 145 / frame 214 / 11.11, 19.69 / 0 | 337 / frame 662 / 8.43, 15.96 / 0 |
+| 60 fps walk 4.43 | 146 / 203 / 11.89, 22.05 / 11 (285 m) | 364 / 515 / 7.03, 18.47 / 27 (264 m) |
+| 60 fps run 7.59 | 145 / 220 / 11.85, 16.64 / 17 (277 m) | 354 / 529 / 7.89, 16.08 / 46 (238 m) |
+| 60 fps gallop 16.14 | 146 / 388 / 11.77, 16.65 / 36 (255 m) | 338 / 493 / 7.63, 12.04 / 86 (193 m) |
+| 60 fps gallop 22.25 | 145 / - / 13.16, 17.96 / 48 (236 m) | 339 / - / 8.69, 12.63 / 120 (165 m) |
+| 30 fps standing | 145 / 214 / 13.70, 19.93 / 0 | 243 / 569 / 8.47, 8.99 / 0 |
+| 30 fps run 7.59 | 145 / 288 / 15.45, 17.09 / 36 (255 m) | 275 / 404 / 9.33, 12.20 / 69 (210 m) |
+| 30 fps gallop 16.14 | 145 / - / 13.98, 16.59 / 67 (211 m) | 246 / - / 10.44, 18.93 / 123 (144 m) |
+| 20 fps standing | 145 / 214 / 11.69, 16.91 / 0 | 152 / 478 / 11.46, 12.62 / 0 |
+| 20 fps run 7.59 | 146 / - / 15.38, 16.25 / 49 (236 m) | 171 / - / 11.46, 21.25 / 66 (219 m) |
+| 20 fps gallop 16.14 | 145 / - / 15.13, 18.02 / 101 (165 m) | 176 / - / 11.53, 11.94 / 131 (135 m) |
 
-A birth's frames are about half as heavy (p99 15-17 ms to 6-11 ms of CPU here), and on this container it is two to
-three times as long: the near band (inside 0.9 of the range) stands whole after 453 frames standing at 60 fps (7.6 s)
-where it did after 145 (2.4 s), after 332 at 30 fps (11 s, was 4.8) and 302 at 20 (15 s, was 7.3) - the share keeps the
-seconds from tripling at a low frame rate. The last band, past 0.9, comes a slice a frame while the eye stands (a cell
-every five frames): settled at frame 779 at 60 fps, and not within the 30 s at 20 fps. On a machine where a cell and its
-pack cost under 1.5 ms, two fit the 3 ms and a birth is the base's pace exactly - `perFrame` caps it there.
+A birth's frames are lighter (p99 of CPU here, the table's rows: 11-13 ms to 7-9 at 60 fps, 14-15 to 8-10 at 30, and at
+20 fps, where the share is 9 ms, 12-15 to 11-12), and longer: the near band (inside 0.9 of the range) stands whole after
+337 frames standing at 60 fps (5.6 s) where it did after 145 (2.4 s), after 243 at 30 fps (8.1 s, was 4.8) and 152 at 20
+(7.6 s, was 7.3) - the share keeps the seconds from growing at a low frame rate. The last band, past 0.9, comes a slice
+a frame while the eye stands (a cell every five frames): settled at frame 662 at 60 fps, 569 at 30 and 478 at 20. A
+birth is timed on the field's clock, which is the page's wall clock, so its frames move with the machine's load: the
+slice's own run, at a load of 12-33, read 453, 332 and 302 frames where this one reads 337, 243 and 152 (the standing
+birth's code is the slice's to the candidate). On a machine where a cell and its pack cost under 1.5 ms, two fit the 3
+ms and a birth is the base's pace exactly - `perFrame` caps it there. On the move the eye's own pace is paid on a
+birth's frames too (AUDIT FB1021B F1), so a birth on the move is whole in about a standing one's frames.
 
-**THE TRADE-OFF, stated - the owner should weigh it.** A ride, a run, a cart: the work is the same and spread - no
-frame of the move places a whole cell again, and none stands a hole. A birth is lighter a frame and slower to finish:
-on this container the band that draws stands whole in two to three times the seconds (7.6 s for 2.4 at 60 fps, 15 s
-for 7.3 at 20), and on the move the cells it reaches last - those the eye leaves behind - can recede past the fade's
-start unplaced and wait for the hysteresis: a gallop's birth leaves 122-204 cells never placed, the nearest 85-135 m
-behind the rider, where the base left 36-101 and 165-255 m. And a cell that comes into range only at the flank and
-never inside 0.9 of it can go unplaced while the deadlines keep the slice busy - up to 38 a minute on a straight ride,
-never nearer than 290 m (a blade there draws 1.6% of itself), and up to 120 under a wanderer's turns, never nearer than
-278 m (7%) - where the base placed it, by catching up. Both are what the brief asked of it: what will be seen first
+**THE TRADE-OFF, stated - the owner should weigh it.** A ride, a run, a cart: the work is the same and spread - no frame
+of the move places a whole cell again, and none stands a hole. A birth is lighter a frame and slower to finish: on this
+container the band that draws stands whole in up to two and a half times the seconds (5.6 s for 2.4 at 60 fps, 8.1 for
+4.8 at 30, 7.6 for 7.3 at 20), and on the move the cells it reaches last - those the eye leaves behind - can recede past
+the fade's start unplaced and wait for the hysteresis: a gallop's birth leaves 86-131 cells never placed, the nearest
+135-193 m behind the rider, where the base left 36-101 and 165-255 m. And a cell that comes into range only at the flank
+and never inside 0.9 of it can go unplaced while the deadlines keep the slice busy - up to 38 a minute on a straight
+ride, never nearer than 290 m (a blade there draws 1.6% of itself), and up to 120 under a wanderer's turns, never nearer
+than 278 m (7%) - where the base placed it, by catching up. Both are what the brief asked of it: what will be seen first
 placed first, and no cell placed that the hysteresis will drop.
 
 **Daggerfall Unity.** DFU's own terrain draws no blade field (its grass is a mod's - Real Grass, the toggle
@@ -1780,7 +1791,8 @@ placed first, and no cell placed that the hysteresis will drop.
 own (LAB-GRASS). What DFU gave this slice is the eye's speeds: every path ran at PlayerSpeedChanger's.
 
 **The four hosts.** The grass field lives in `scenes/world.js` alone (the jungle floor's field, `jungleFloorHost.js`, is
-the same `createGrassField` and is paced the same) - wired by being the field it already calls. `scenes/exterior.js`,
+the same `createGrassField` and is paced by the same law - each field its own share and its own first whole cell, so in
+the jungle a frame pays two: AUDIT FB1021B F3 below) - wired by being the field it already calls. `scenes/exterior.js`,
 `scenes/worldModes.js` and `scenes/dungeonContext.js` hold no grass field: nothing to wire, flagged here by name. No
 host changed.
 
@@ -1821,3 +1833,98 @@ the one for a cell inside the fade sliced judged by `fb1021b_grass` too, whose t
 from a sliced one); PERF-EXT21's origin record dies on the crossing pin re-stated above; `grasspath.json`'s two
 eviction records, and its GRASS-PATH1 mask record, which had stopped parsing when JUNGLE-TRAILS lengthened its line's
 comment (not this slice's change).
+
+## AUDIT FB1021B (2026-10-21) - the deadlines kept while a cell is due now
+
+The slice read cold, every finding verified on the code and measured before it was fixed (the owner: "no band aids
+and true improvements"). FIELD BUGS 2026-10-21b (`01-Overview/bugs/Field-Bugs-2026-10-21b.md`) row 6.
+
+**F1 (should-fix) - one cell due now turned the deadlines off, and a slow machine never recovered.** The rim stopped at
+`now ? clock() - t0 >= budgetMs : done >= need`: with one rim cell missing inside `GRASS_DUE_AT`, the frame's share
+REPLACED the deadlines' pace, and the cells due now - nearest first - took it before the cells it was owed to. Where
+the share placed less than the eye brought in, the cells ahead missed their deadlines, came due now in their turn, and
+`now` never cleared: the rim came in only as its cells crossed 165 m, whole, by the inner loop - the spike the slice
+set out to remove. In the game: a birth on the move (the jungle floor's `onArrive` re-making the meadow on a ride; an
+Overworld journey's end - TV1 skips the field's updates while the travel view stands; a publish over the disc,
+PERF-EXT21; a standing birth ridden off from), and a band cell re-read behind the step (it sorted last and held `now`
+until the ride left it past 0.9). Measured on `fb1021b_grass.test.js`'s bench at its slow machine - a candidate 1/256
+ms, no pack: the 20 fps frame's 9 ms is 2,304 candidates, about what a DFU ride brings in; holes read before each
+update, a crossing a cell seen unplaced past 0.9 and then unplaced inside it - and on WOODS.WLD's ground with the
+field's clock running K times the process's CPU time (a machine K times slower, as the share sees it; the ground's
+runs move by a tenth from run to run with the container's load, the bench's not at all):
+
+| 20 fps | before: frames with a hole inside 0.9 / last / crossed unplaced | the audit's proposal | after |
+|---|---|---|---|
+| bench, a standing birth | 563 / 562 / 0 | the same | the same |
+| bench, DFU ride 10.76 m/s born on the move | 1,007 / 1,006 / 342 | 425 / 424 / 57 | 598 / 597 / 0 |
+| bench, gallop 16.14 born on the move | 1,200 of 1,200 (never whole) | 283 | 435 / 434 / 0 |
+| bench, gallop 22.25 (SPD 100, Running 100), a band cell re-read 200 m behind | 1,200 of 1,200, 801 crossed | 89 / 88 / 0 | 89 / 88 / 0: the cell itself, until the gallop leaves it past 0.9 |
+| ground, K 1, DFU ride born on the move | 202 | 175 | 199 |
+| ground, K 2, gallop born on the move | 408 | 240 | 279 |
+| ground, K 4, DFU ride born on the move | 613 | 356 | 440 |
+| ground, K 4, gallop 22.25 born on the move | 1,200 of 1,200 (never whole) | 236 | 320 |
+
+The audit's proposal - the share a floor under the deadlines' pace, the pace counted over the cells with a deadline -
+recovers soonest, and by two means this fix does not take: it lets the arrivals cross (57 on the bench's ride), and
+its pace, owed to cells the backlog keeps it from, climbs as their deadlines close and is spent on the backlog. On the
+bench at a normal machine's cost (1/1024 ms), a minute's birth on the move, the most candidates a frame and the frames
+of two whole cells (12,244, `perFrame`'s cap): the slice 6,122 / 0 at 60 fps (a gallop), 6,372 / 0 at 30 and 9,372 / 0
+at 20 (a DFU ride, both); the proposal 12,244 / 28, 12,244 / 29 and 12,244 / 37; this fix 8,372 / 0, 9,372 / 0 and
+12,244 / 15 - the eye's own pace paid on a birth's frame as on a ride's, which the slice had dropped. What changed
+instead, `createGrassField.update`:
+
+- **The pace is spent where it is owed.** The rim's order is the cell in progress, then the rim cells the deadlines'
+  pace reaches this frame (its candidates counted in whole cells from the cell in progress's rest), then the cells due
+  now, nearest first, then the rest by deadline, what the step leaves behind last. The pace is counted without the cells
+  due now - a birth's band before the first deadline would ask the whole band of one frame, the base's catch-up - and it
+  is spent first, so no cell with a deadline is let cross 0.9 unplaced for a backlog's sake: 0 on every run above.
+- **The cells due now take the frame's share past that pace.** The pace's steps past the frame's slice are timed and
+  are not the share's; the slice is the share's as it was, so a standing birth is FB1021B's to the candidate. A birth
+  on the move fills in the frames a standing one does (the bench: 597 for 562), at any machine's speed.
+- A band cell the step leaves behind is still due now - a hole a turn of the head finds - and still last: the share
+  past the pace reaches it once what stands ahead is placed (behind a strong gallop at 20 fps on the bench at 1/1024 ms,
+  61 frames on, at 238 m - the pace alone never would: the rim ahead always has a cell waiting its deadline), and on a
+  machine whose share is spent ahead it goes past 0.9 unplaced, the only hole (the table's gallop).
+
+**F2 (nit) - the cell in progress was never an inner cell.** `want` left out the cell in progress
+(`key !== pending?.key`), so a rim cell the eye had brought inside the fade's start waited as the rim's while cells
+farther out came whole - the audit measured one 22 frames inside 165 m, as near as 141 m, behind a starved rim. A cell
+in progress inside the fade's start is let go now, before `want` is built, and the inner loop places it whole, nearest
+first, the first always. OW-HITCH's reuse holds: the cell let go held the rim's arrays (`rimSpare`), a whole cell is
+placed into the whole cell's (`wholeSpare`), and a rim cell is begun into `rimSpare` only when none is in progress.
+With F1's order the audit's own case no longer arises (its cell waits 1-3 frames, never nearer than 276 m); the cell
+comes inside 165 m still where the eye outruns the rim in one update - the frames the travel view skips.
+
+**F3 (nit, the record) - in the jungle a frame pays two shares.** `scenes/world.js` updates the meadow's field and then
+the jungle floor's, each its own `createGrassField` with its own share and its own first whole cell, and `onArrive`
+re-makes both at once. Decided: the share is PER FIELD, and the four hosts paragraph above says so. One budget for the
+pair would need a frame both read and one of them opens: the host would open it (bootWorld grows - HOST-SPLIT) or the
+field would guess which update came first in a frame off its clock. And the floor's cells are holes as much as the
+meadow's: a shared share halves each field's fill. The cost, stated: while both fill, the jungle's frames pay up to two
+shares (6 ms at 60 fps, 18 at 20) and two first whole cells; each field's pace is its own cells' and is not a share.
+
+**F4 (nit, pin gap) - a whole cell's cost unpinned.** `wholeMs` is read after `writeSlot` - the cell placed AND packed,
+as the pack is as dear as the placement - but every birth-timing pin ran with no pack, so reading it before the pack
+survived. A packed bench now pins it: two cells' time less one pack fits one packed cell.
+
+**F5 (nit, pin gap) - the cell in progress's `behind` unread.** Pinned: a cell in progress 2 m past 0.9 that a strong
+gallop leaves behind gets its slice and no more, where read as ahead it would owe a third of its rest that frame.
+
+Pins, `test/render/fb1021b_grass.test.js` (19 now): on the bench's slow machine a 20 fps DFU ride born on the move lets
+no cell cross 0.9 unplaced and stands whole inside it within a standing birth's frames and 3 s; a strong gallop with a
+band cell re-read behind it has that cell for its only hole and no crossing; with a cell due now on the move a frame
+takes the slice, the deadlines' pace past it and the frame's time past that, to the candidate (3,000 + 1,250); the cells
+a step from their deadline stand placed before a cell due now is begun; a band cell behind a gallop is placed by the
+time past the pace while still inside 0.9; a cell in progress brought inside the fade's start comes whole, nearest
+first, on its frame; one the step leaves behind gets its slice and no more; a whole cell's cost is its pack too; and a
+cell inside the fade's start re-read behind a gallop comes back whole on its frame (for FB1021B's own mutant of the
+fade's start in `behind`: the birth-on-the-move pin that had killed it no longer did once F1 was in).
+Mutants: `tools/mutants/fb1021b_grass.json` 63 - 60 dead, 3 equivalent as recorded (the two of FB1021B's, and the pace's
+steps timed without a cell due now: `paced` read by nothing then). Seventeen are the audit's own - every line it wrote,
+mutated; four of the slice's, and three of `perfextc.json`'s PERF-EXT22, were re-aimed at the text they mutate now
+(`mutantdrift`). The lists the field's tests judge, run whole beside it with `--jobs 2`: `owhitch.json` 27, all dead;
+`grasspath.json` 21, 20 dead and its equivalent as recorded; `perfextc.json` 103, 102 dead and PERF-EXT24's
+flat-slice record no verdict - its `perf7.test.js` fails here with no mutant, the pin #1109 broke and main's OW-HITCH
+follow-up 2 (`27636a695d`) mended after this branch's base; and the one record of another list inside the field,
+`grasslit2.json`'s AUDIT-GRASSLIT2-C-ask-no-slope, dead. With `fb1021b_grass.json`, one run: 215 records, 210 dead,
+4 equivalent, 1 no verdict.

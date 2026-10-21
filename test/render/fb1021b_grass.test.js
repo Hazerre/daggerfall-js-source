@@ -5,6 +5,9 @@
 // 13% of its frames (a gallop 25%, a run and a cart 5%), each of them two whole cells. The rim is paced to the eye now
 // (a deadline a cell, GRASS_DUE_AT), a birth inside the frame's time (GRASS_FRAME_MS on the field's own clock), and
 // what a step leaves behind waits for the rest. bible/07-Rendering/Performance-Exterior.md FB1021B.
+// AUDIT FB1021B (the same record's section; FIELD BUGS 2026-10-21b): a cell due now had turned the deadlines off, and
+// a slow machine born on the move never recovered - the pace is spent first now, and the cells due now take the
+// frame's time past it.
 //
 // On the real createGrassField - and on the real LabGrassRenderer, its packs written into a GL that answers and counts
 // (test/world/terrain/grassshift.test.js's) - over a world where every candidate stands (the dearest cell there is).
@@ -202,6 +205,19 @@ test('FB1021B: a birth is timed - the first whole cell of a frame always, the ne
     for (let f = 0; f < 3000; f++) { const r = b.frame(field, 409.6, 409.6); writes += r.writes; if (r.missing === 0) break; }
     assert.equal(writes, field.live.size, `${writes} writes for ${field.live.size} cells`);
   }
+  // AUDIT FB1021B F4: a whole cell's cost is its placement AND its pack - two cells' time less one pack fits one packed
+  // cell, where one counted without its pack would fit a second
+  {
+    const P = 1000;
+    const b = bench({ pack: P });
+    const field = G.createGrassField(b.R, { keep: b.keep, clock: b.clock, frameMs: 2 * perCell + P, perFrame: 3 });
+    for (let f = 0; f < 3; f++) {
+      const before = new Set(field.live.keys());
+      b.frame(field, 409.6, 409.6);
+      const inner = [...field.live.values()].filter((h) => !before.has(G.cellKey(h.cx, h.cz)) && nearest(h.cx, h.cz, 409.6, 409.6) <= wholeR);
+      assert.equal(inner.length, 1, `frame ${f}: one whole cell - its pack is its cost too`);
+    }
+  }
   // three cells' time and perFrame 3: the second's cost measured on its own, not with the first's
   {
     const b = bench();
@@ -386,4 +402,182 @@ test('FB1021B: a field with too few slots begins no cell it cannot write (AUDIT 
   for (let f = 0; f < 120; f++) { ex += CELL / 8; b.frame(field, ex, 21.9); }
   for (let f = 0; f < 60; f++) b.frame(field, ex, 21.9);
   assert.equal(field.live.size, field.slots, 'every slot still holds a cell - none was let go to a question');
+});
+
+/** AUDIT FB1021B F1: a ride on the bench's slow machine - a candidate 1/256 ms, so the frame's time at 20 fps (9 ms) is
+ *  2,304 candidates, about what a DFU ride brings in - at `step` metres a 20 fps frame: born on the move (the jungle
+ *  floor's re-made meadow on a ride, an Overworld journey's end), or settled first with a band cell `behindAt` metres
+ *  behind the eye re-read. Holes are read before each update; a cell seen unplaced past GRASS_DUE_AT and then unplaced
+ *  inside it crossed. */
+function slowRide(step, { born = true, behindAt = 0, frames = 1200 } = {}) {
+  const b = bench({ unit: 1 / 256 });
+  const field = G.createGrassField(b.R, { keep: b.keep, clock: b.clock });
+  let ex = 615, f = 0;
+  const ez = 615;
+  const tick = () => { b.t = Math.max(b.t, f++ * 50); return b.frame(field, ex, ez); };   // the frames begin 50 ms apart
+  if (!born) {
+    for (let i = 0; i < 4000; i++) if (tick().missing === 0) break;
+    for (let i = 0; i < 5; i++) { ex += step; tick(); }
+    const cx = Math.floor((ex - behindAt) / CELL), cz = Math.floor(ez / CELL);
+    field.invalidate(cx * CELL + 1, cz * CELL + 1, cx * CELL + 2, cz * CELL + 2);
+  }
+  const past = new Set();
+  let holed = 0, last = -1, crossed = 0, most = 0;
+  for (let i = 0; i < frames; i++) {
+    ex += step;
+    const k = Math.ceil(RANGE / CELL) + 1, ecx = Math.floor(ex / CELL), ecz = Math.floor(ez / CELL);
+    let n = 0;
+    for (let cz = ecz - k; cz <= ecz + k; cz++) for (let cx = ecx - k; cx <= ecx + k; cx++) {
+      const key = G.cellKey(cx, cz), d = nearest(cx, cz, ex, ez);
+      if (field.live.has(key)) { past.delete(key); continue; }
+      if (d > dueR) { if (d <= RANGE) past.add(key); continue; }
+      n++;
+      if (past.delete(key)) crossed++;
+    }
+    if (n) { holed++; last = i; }
+    most = Math.max(most, n);
+    tick();
+  }
+  return { holed, last, crossed, most };
+}
+
+test('AUDIT FB1021B F1: a cell due now no longer turns the deadlines off - on a slow machine a 20 fps ride born on the move lets no cell cross GRASS_DUE_AT unplaced and stands whole inside it in the frames a standing birth takes (mutants: the time instead of the pace, the cells due now first, the pace paid out of the frame\'s time)', () => {
+  const ride = (50 + DF_RIDE_BASE) / CLASSIC_TO_UNITY_RATIO / 20;   // 0.54 m a frame
+  const standing = slowRide(0), born = slowRide(ride);
+  assert.ok(standing.last > 400 && standing.crossed === 0, `a standing birth on this machine: whole inside GRASS_DUE_AT after ${standing.last + 1} frames`);
+  // before: 342 cells crossed unplaced, and a hole stood until frame 1,006
+  assert.equal(born.crossed, 0, 'no cell with a deadline crossed GRASS_DUE_AT unplaced');
+  assert.ok(born.last < standing.last + 60, `whole inside GRASS_DUE_AT after ${born.last + 1} frames - a standing birth's ${standing.last + 1}, and 3 s more at most`);
+});
+
+test('AUDIT FB1021B F1: a band cell re-read behind a strong gallop on a slow machine is the only hole - the ride ahead keeps its deadlines while it waits, and it goes past GRASS_DUE_AT unplaced (mutant: the time instead of the pace)', () => {
+  const strong = ((100 + DF_RIDE_BASE) / CLASSIC_TO_UNITY_RATIO) * (1.35 + 100 / 200) / 20;   // 1.11 m a frame
+  const r = slowRide(strong, { born: false, behindAt: 200, frames: 600 });
+  // before: the cell kept a cell due now, the frame's time placed less than the gallop brought in, and the cells ahead
+  // came due now one after another - 801 crossed unplaced, a hole on every frame of the 60 s
+  assert.equal(r.crossed, 0, 'no cell with a deadline crossed GRASS_DUE_AT unplaced');
+  assert.equal(r.most, 1, 'the cell behind was the only hole');
+  assert.ok(r.last > 40 && r.last < 100, `and it stood until the gallop left it past GRASS_DUE_AT (frame ${r.last})`);
+});
+
+test('AUDIT FB1021B F1: with a cell due now on the move, a frame takes the deadlines\' pace and its own time past it - the pace\'s steps past the slice are not the frame\'s time\'s, the slice is (mutants: the pace paid out of the frame\'s time, the slice taken off it, the last step only)', () => {
+  const step = ((100 + DF_RIDE_BASE) / CLASSIC_TO_UNITY_RATIO) * (1.35 + 100 / 200) / 20;   // a strong gallop at 20 fps
+  const F = 3000, b = bench();   // a candidate a unit of the clock: the frame's time is 3,000 candidates
+  const field = G.createGrassField(b.R, { keep: b.keep, clock: b.clock, frameMs: F });
+  let ex = 622;
+  const ez = 615;
+  settle(b, field, ex, ez);
+  // the three cells 8 m from GRASS_DUE_AT straight ahead (the pace counts the cell in progress, above) - and a cell beside
+  // the eye at 195 m, inside GRASS_DUE_AT: due now
+  for (const cz of [19, 20, 21]) field.invalidate(30 * CELL + 1, cz * CELL + 1, 30 * CELL + 2, cz * CELL + 2);
+  field.invalidate(20 * CELL + 1, 27 * CELL + 1, 20 * CELL + 2, 27 * CELL + 2);
+  ex += step;
+  assert.ok(Math.abs(nearest(20, 27, ex, ez) - 195) < 0.1);
+  // the pace: three cells over the 7 updates left, met by the slice and five steps past it; then the frame's time
+  // past those five steps
+  const need = 3 * perCell / 7, paced = Math.ceil((need - G.GRASS_SLICE) / G.GRASS_STEP) * G.GRASS_STEP;
+  const r = b.frame(field, ex, ez);
+  assert.equal(r.keeps, F + paced, `the slice and the frame's time (${F}), and the pace past the slice on top (${paced})`);
+});
+
+test('AUDIT FB1021B F1: a band cell re-read behind a gallop is due now all the same - the frame\'s time past the pace places it once what stands ahead is placed, before the gallop leaves it past GRASS_DUE_AT (mutant: only a cell ahead is due now)', () => {
+  // a strong gallop at 20 fps on a machine whose frame's time is more than the gallop brings in (a candidate ~1 us): the
+  // pace alone never reaches the cell - the rim ahead always has a cell waiting its deadline - the time past it does
+  const step = ((100 + DF_RIDE_BASE) / CLASSIC_TO_UNITY_RATIO) * (1.35 + 100 / 200) / 20;
+  const b = bench({ unit: 1 / 1024 });
+  const field = G.createGrassField(b.R, { keep: b.keep, clock: b.clock });
+  let ex = 615;
+  const ez = 615;
+  settle(b, field, ex, ez);
+  for (let f = 0; f < 5; f++) { ex += step; b.frame(field, ex, ez); }
+  const cx = Math.floor((ex - 200) / CELL), cz = Math.floor(ez / CELL);
+  field.invalidate(cx * CELL + 1, cz * CELL + 1, cx * CELL + 2, cz * CELL + 2);
+  let f = 0;
+  for (; f < 600 && !field.live.has(G.cellKey(cx, cz)); f++) { ex += step; b.t = Math.max(b.t, f * 50); b.frame(field, ex, ez); }
+  assert.ok(field.live.has(G.cellKey(cx, cz)), 'the cell behind was placed');
+  assert.ok(nearest(cx, cz, ex, ez) < dueR, `while it stood inside GRASS_DUE_AT (${nearest(cx, cz, ex, ez).toFixed(0)} m, frame ${f})`);
+});
+
+test('AUDIT FB1021B F2: a cell in progress the eye brings inside the fade\'s start is an inner cell - placed whole, nearest first, on the frame it is missed (mutant: held as the rim\'s)', () => {
+  const b = bench();
+  const field = G.createGrassField(b.R, { keep: b.keep, clock: () => 0 });   // a clock that stands still: perFrame (2) alone ends a frame
+  let ex = 615;
+  const ez = 615;
+  settle(b, field, ex, ez);
+  // a rim cell 280 m ahead re-read, and begun: one slice, the eye standing
+  const cx = Math.floor((ex + 285) / CELL), cz = Math.floor(ez / CELL), key = G.cellKey(cx, cz);
+  field.invalidate(cx * CELL + 1, cz * CELL + 1, cx * CELL + 2, cz * CELL + 2);
+  b.frame(field, ex, ez);
+  assert.equal(field.pending?.key, key, 'the cell is in progress');
+  // the eye comes 185 m on in one update (the travel view's frames skip the field's): the cell in progress stands 100 m
+  // off, and the cells beyond it that were past the range are missing inside the fade's start too, farther out
+  ex += 185;
+  const d = nearest(cx, cz, ex, ez);
+  assert.ok(Math.abs(d - 100) < 0.1);
+  const k = Math.ceil(wholeR / CELL) + 1, ecx = Math.floor(ex / CELL);
+  const others = [];
+  for (let z = cz - k; z <= cz + k; z++) for (let x = ecx - k; x <= ecx + k; x++) if (G.cellKey(x, z) !== key && nearest(x, z, ex, ez) <= wholeR && !field.live.has(G.cellKey(x, z))) others.push(nearest(x, z, ex, ez));
+  assert.ok(others.length >= 2 && Math.min(...others) > d, `${others.length} other inner cells missing, the nearest ${Math.min(...others).toFixed(0)} m off`);
+  b.frame(field, ex, ez);
+  assert.ok(field.live.has(key), 'the cell in progress came whole on the frame it was inside, the nearest first');
+  assert.equal(field.pending, null);
+});
+
+test('AUDIT FB1021B F5: a cell in progress the step leaves behind owes the pace nothing - the frame gives it its slice and no more, however near GRASS_DUE_AT it stands (mutant: read as one ahead)', () => {
+  const b = bench();
+  const field = G.createGrassField(b.R, { keep: b.keep, clock: b.clock });
+  // a rim cell straight ahead whose near edge stands 2 m past GRASS_DUE_AT, re-read and begun while the eye stands
+  const cx = 30, cz = 20, ez = 615;
+  let ex = cx * CELL - dueR - 2;
+  settle(b, field, ex, ez);
+  field.invalidate(cx * CELL + 1, cz * CELL + 1, cx * CELL + 2, cz * CELL + 2);
+  b.frame(field, ex, ez);
+  assert.equal(field.pending?.key, G.cellKey(cx, cz), 'the cell is in progress');
+  assert.equal(field.pending.st.i, G.GRASS_SLICE);
+  // a strong gallop's frame at 20 fps the other way: read as ahead, it would be 3 frames from its deadline and owe a
+  // third of its rest this frame - past the slice
+  const step = ((100 + DF_RIDE_BASE) / CLASSIC_TO_UNITY_RATIO) * (1.35 + 100 / 200) / 20;
+  ex -= step;
+  assert.ok((perCell - G.GRASS_SLICE) / Math.ceil((nearest(cx, cz, ex, ez) - dueR) / step) > G.GRASS_SLICE);
+  assert.equal(b.frame(field, ex, ez).keeps, G.GRASS_SLICE, 'its slice, and no more');
+});
+
+test('FB1021B: a cell inside the fade\'s start is never left behind - one re-read behind a gallop, with the rim\'s cells waiting ahead, comes whole on the frame it is missed (mutant: an inner cell can be left behind)', () => {
+  const step = ((100 + DF_RIDE_BASE) / CLASSIC_TO_UNITY_RATIO) * (1.35 + 100 / 200) / 20;   // a strong gallop at 20 fps: past what a slice keeps up with
+  const b = bench({ unit: 1 / 1024 });
+  const field = G.createGrassField(b.R, { keep: b.keep, clock: b.clock });
+  let ex = 615;
+  const ez = 615;
+  settle(b, field, ex, ez);
+  for (let f = 0; f < 60; f++) { ex += step; b.frame(field, ex, ez); }
+  const cx = Math.floor((ex - 100) / CELL), cz = Math.floor(ez / CELL);
+  field.invalidate(cx * CELL + 1, cz * CELL + 1, cx * CELL + 2, cz * CELL + 2);
+  ex += step;
+  // the ride's rim: cells past GRASS_DUE_AT ahead, waiting their deadlines
+  const k = Math.ceil(RANGE / CELL) + 1, ecx = Math.floor(ex / CELL), ecz = Math.floor(ez / CELL);
+  let ahead = 0;
+  for (let z = ecz - k; z <= ecz + k; z++) for (let x = ecx; x <= ecx + k; x++) if (nearest(x, z, ex, ez) > dueR && nearest(x, z, ex, ez) <= RANGE && !field.live.has(G.cellKey(x, z)) && G.cellKey(x, z) !== field.pending?.key) ahead++;
+  assert.ok(ahead > 0, `the rim has cells waiting ahead (${ahead})`);
+  const r = b.frame(field, ex, ez);
+  assert.ok(field.live.has(G.cellKey(cx, cz)), `the cell ${nearest(cx, cz, ex, ez).toFixed(0)} m behind came back`);
+  assert.ok(r.keeps >= perCell, 'whole');
+});
+
+test('AUDIT FB1021B F1: the cells the pace reaches come before a cell due now - three cells a step from GRASS_DUE_AT stand placed after the frame, and the cell due now waits for the frame\'s time (mutants: the pace reaches no cell, half the cells it owes)', () => {
+  const step = ((100 + DF_RIDE_BASE) / CLASSIC_TO_UNITY_RATIO) * (1.35 + 100 / 200) / 20;   // a strong gallop at 20 fps
+  const b = bench();   // a candidate a unit of the clock, and a frame's time of 1: nothing past the pace
+  const field = G.createGrassField(b.R, { keep: b.keep, clock: b.clock, frameMs: 1, perFrame: 4 });
+  let ex = 30 * CELL - dueR - 0.5 - step;
+  const ez = 615;
+  settle(b, field, ex, ez);
+  const three = [19, 20, 21].map((cz) => G.cellKey(30, cz)), late = G.cellKey(20, 27);
+  for (const cz of [19, 20, 21]) field.invalidate(30 * CELL + 1, cz * CELL + 1, 30 * CELL + 2, cz * CELL + 2);
+  field.invalidate(20 * CELL + 1, 27 * CELL + 1, 20 * CELL + 2, 27 * CELL + 2);
+  ex += step;
+  assert.ok([19, 20, 21].every((cz) => nearest(30, cz, ex, ez) - dueR < step), 'the three are a step from their deadline: the pace owes all three this frame');
+  assert.ok(nearest(20, 27, ex, ez) < dueR, 'and the fourth is due now');
+  const r = b.frame(field, ex, ez);
+  assert.deepEqual(three.map((k) => field.live.has(k)), [true, true, true], 'the three stand placed before the step brings them inside');
+  assert.equal(field.live.has(late), false, 'the cell due now waits for a frame with time past the pace');
+  assert.equal(r.writes, 3);
 });

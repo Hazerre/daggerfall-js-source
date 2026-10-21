@@ -16,7 +16,7 @@ and `fb1021b_*.json`.
 | 3 | the profile's boat pool, `rendererModelKey` 2.6% | One shape stamp for every tree in the game: any boat built anywhere re-planned every boat; and every boat drawn was walked, baked and lit every frame wherever she sailed | BOAT-STAMP, BOAT-FAR, BOAT-OWN, HELD-DRAW, HELD-FLATS |
 | 4 | the profile's Horse Cart pool | Inside 400 m every horse was posed and its palette sent every frame, off-screen and parked ones too | HORSE-VIEW, HORSE-VIEW II |
 | 5 | the profile's peer bodies, Web Worker | Already on a distance cadence (PEER-CADENCE); a worker would move only what is cheap (interpolation, 0.02 ms) | not a defect |
-| 6 | the profile's grass | Under its budget on a walk (PERF-EXT22's slice a frame) - but a slice a frame paced the rim by the frame rate, and at 20 fps a DFU ride, a run or a cart fell more than eight cells behind on 5-13% of its frames (a gallop 25%), at 30 fps a ride 3.5% and a gallop 13%: two whole cells on each of those frames | FB1021B |
+| 6 | the profile's grass | Under its budget on a walk (PERF-EXT22's slice a frame) - but a slice a frame paced the rim by the frame rate, and at 20 fps a DFU ride, a run or a cart fell more than eight cells behind on 5-13% of its frames (a gallop 25%), at 30 fps a ride 3.5% and a gallop 13%: two whole cells on each of those frames | FB1021B, AUDIT FB1021B |
 
 ## What the live service showed (2026-10-21)
 
@@ -141,10 +141,21 @@ A boot, a teleport, a fast travel's arrival and the jungle floor's re-made meado
 A defect, fixed in `render/labGrass.js` `createGrassField.update`: a rim cell's deadline is the eye's own step - the
 frames before it could come inside GRASS_DUE_AT (0.9) of the range - and the rim takes one slice a frame and past it the
 least pace that meets every deadline; the cells due now (a birth's, an invalidate's) take a share of the frame
-(GRASS_FRAME_MS of a 60 Hz frame, 3 ms, that share of a longer one up to a 20 fps frame), the first whole cell under the
-eye always; what the step leaves behind waits for the rest. The count switch (GRASS_CATCH_UP) is gone. The bytes a
-cell is placed with are unchanged. The trade - a birth's frames lighter, its far band slower - is stated in the record
-for the owner to weigh.
+(GRASS_FRAME_MS of a 60 Hz frame, 3 ms, that share of a longer one up to a 20 fps frame) past that pace, the first
+whole cell under the eye always; what the step leaves behind waits for the rest. The count switch (GRASS_CATCH_UP) is
+gone. The bytes a cell is placed with are unchanged. The trade - a birth's frames lighter, its far band slower - is
+stated in the record for the owner to weigh.
+
+AUDIT FB1021B (the same day, the record's own section): one cell due now had turned the deadlines off - the frame's
+share replaced the pace and went to the cells due now first - so a birth on the move (the jungle floor's re-made meadow
+on a ride, an Overworld journey's end, a publish over the disc) or a band cell re-read behind the step, on a machine
+whose share placed less than the eye brought in, never recovered: the test bench's slow machine born on a 20 fps DFU
+ride stood holes inside 0.9 for 1,006 frames, 342 cells crossing it unplaced, and a strong gallop with one band cell
+re-read behind it had a hole on every frame. Fixed: the pace is counted without the cells due now and spent first, on
+the rim cells it reaches; the cells due now take the share past it - 0 cells crossing on every run, and a birth on the
+move whole in the frames a standing one takes (597 for 562 there). And: a cell in progress the eye brings inside the
+fade's start is placed whole as an inner cell; the jungle's two fields each take their own share (said, not shared:
+the record says why); a whole cell's cost with its pack and the cell in progress's `behind` pinned.
 
 ## Left
 
@@ -169,4 +180,6 @@ for the owner to weigh.
 - **The grass (FB1021B, `Performance-Exterior.md` THE GRASS ON THE MOVE's Left).** A cell's pack - now as dear as its
   placement, still one piece on the frame a cell ends; the cells a teleport's loading frames place over ground not yet
   built (read on the code, not measured); the worker PERF-EXT22 did not build. And the trade FB1021B states for the
-  owner: a birth's frames half as heavy, its far band two to three times the seconds on this container.
+  owner, re-measured at its audit: a birth's frames lighter (p99 7-9 ms of CPU at 60 fps where the base's were 11-13),
+  its band whole in up to two and a half times the seconds on this container - timed on the wall clock, so a busier
+  machine reads longer; and in the jungle, while both fields fill, two shares a frame (AUDIT FB1021B F3).

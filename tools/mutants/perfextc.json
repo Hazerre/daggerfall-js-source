@@ -222,8 +222,8 @@
   {
     "name": "PERF-EXT22-a-cell-inside-the-fade-is-sliced-too",
     "file": "src/render/labGrass.js",
-    "old": "      const wholeR2 = wholeR * wholeR;",
-    "new": "      const wholeR2 = 0;",
+    "old": "      const wholeR2 = wholeR * wholeR, dueR2 = dueR * dueR;",
+    "new": "      const wholeR2 = 0, dueR2 = dueR * dueR;",
     "tests": [
       "test/world/terrain/grassshift.test.js",
       "test/render/fb1021b_grass.test.js"
@@ -241,8 +241,8 @@
   {
     "name": "PERF-EXT22-the-field-never-catches-up-so-a-boot-slices-its-whole-rim",
     "file": "src/render/labGrass.js",
-    "old": "if (due === 0) now = true; else need",
-    "new": "if (due === 0) now = false; else need",
+    "old": "      let owed = 0, need = 0, now = late.length > 0;",
+    "new": "      let owed = 0, need = 0, now = false;",
     "tests": [
       "test/world/terrain/grassshift.test.js"
     ]
@@ -250,7 +250,7 @@
   {
     "name": "PERF-EXT22-the-field-always-catches-up-so-the-walk-spikes-again",
     "file": "src/render/labGrass.js",
-    "old": "      let owed = 0, need = 0, now = false;",
+    "old": "      let owed = 0, need = 0, now = late.length > 0;",
     "new": "      let owed = 0, need = 0, now = true;",
     "tests": [
       "test/world/terrain/grassshift.test.js"
