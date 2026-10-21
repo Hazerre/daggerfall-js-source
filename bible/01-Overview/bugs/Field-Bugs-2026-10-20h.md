@@ -842,7 +842,8 @@ FIXED.
   (`dexIds.js:"export const DEX_ENEMY_IDS = Object.freeze((() => {"`): every `.mdb.csv` line's ID that is not one of DFU's
   MobileTypes (`enemyBasics.js:"export const isClassicEnemyId = "`), with MUDEX's tables read after the mod's - the same
   reading the install registers, and a pin holds the two equal. A soul no creature has is still a finding.
-- THE SERVICE. acct166 carries law 9 (`service.js:"export const ACCOUNT_VERSION = 'acct166';"`, and wrangler.toml), one
+- THE SERVICE. acct166 carries law 9 (`service.js`'s ACCOUNT_VERSION, `'acct166'` at `1feee3838` - FIELD BUGS 2026-10-21b
+  CAKE-CAP-SAID's acct167 after it, renumbered past this at its merge - and wrangler.toml), one
   release with ESSENCE-LOOSE. The deploy's path list names the four files the Worker now bundles (dexIds.js,
   dexTableText.js, mudexTableText.js and dexCsv.js; 33 KB, mostly the mod's table text), and tech1_roster's LAW_SERVICE
   names law 9 as acct166's.

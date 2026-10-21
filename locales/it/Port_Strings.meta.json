@@ -9644,6 +9644,21 @@
   "tr": "ccec2b1cb5fd",
   "by": "claude-in-session"
  },
+ "festival.finds.full": {
+  "en": "330c9b302a2c",
+  "tr": "c6a4451a8cb6",
+  "by": "claude-in-session"
+ },
+ "festival.finds.today": {
+  "en": "93be20c18f10",
+  "tr": "f230c671c610",
+  "by": "claude-in-session"
+ },
+ "festival.finds.todayFull": {
+  "en": "78bff0d44c1f",
+  "tr": "b68c884dd05c",
+  "by": "claude-in-session"
+ },
  "festival.found": {
   "en": "d2a56822f0e7",
   "tr": "5e939eaa5757",

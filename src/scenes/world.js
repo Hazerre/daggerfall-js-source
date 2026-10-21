@@ -308,7 +308,7 @@ import { WARDEN_VENDOR } from '../systems/wagon/wagonWarden.js';   // WARDEN1: t
 import { townGroundOf, yardSitesOn, craftYardSitesOn, MONUMENT_KEEP_M, yardMeasuresOf, placedModelBox } from '../world/merchantYards/merchantYardSites.js';   // MERCHANT-YARDS: where they stand off the town's layout, and the people's navgrid carved round them
 import { isYardTown, yardKeeper, ALL_YARD_KINDS, YARD_BENCH } from '../systems/merchantYards.js';   // MERCHANT-YARDS: the towns that stand them, who keeps them, the town's people
 import { isPortTown, isPortTownType, portKeeper, portPlaceName, PORT_SITE_ORDER } from '../systems/portPlaces.js';   // SHIPYARDS: the port towns, their keepers and their places' names; FIELD BUGS 2026-10-13c PORT-TOWNS: the harbour board's ports are its towns
-import { townSeaOf, seaBearing, seaField, portSitesOn, portPlaceRows, sceneToLocationXZ, openSeaOf, seaBears, portTownOnSea, SEA_RING } from '../world/portSites.js';   // SHIPYARDS: where a port town's shipyard and lighthouse stand - its seaward ground; FIELD BUGS 2026-10-14 INLAND-PORTS: and which towns the open sea bears on
+import { townSeaOf, seaBearing, seaField, portSitesOn, portPlaceRows, sceneToLocationXZ, openSeaOf, seaBears, portTownOnSea, boardPortAt } from '../world/portSites.js';   // SHIPYARDS: where a port town's shipyard and lighthouse stand - its seaward ground; FIELD BUGS 2026-10-14 INLAND-PORTS: and which towns the open sea bears on
 import { SHIPYARD as SHIPYARD_LAYOUT } from '../world/shipyardModel.js';   // SHIPYARDS: the crew hall's table, for the talk directory's row
 import { HARBOUR_REACH } from '../systems/naval/shipLife.js';   // AUDIT HOLDINGS O1: the harbour's scan reach, its pixels built before it is sounded
 import { createHarbourBook } from '../systems/naval/harbourBook.js';   // HARBOUR-BOOK: the harbours near the player, the quays' and the sea's
@@ -9137,13 +9137,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const navalPortHere = () => {
     const p = playerTravelPixel(), key = `${p.x},${p.y}`;
     if (_navalPortHereAt?.key === key) return _navalPortHereAt.port;
-    let port = null, best = Infinity;
     if (etherSea && inEther(p.x, p.y)) {   // ETHER-PORTS: an isle's port past the Veil
       const isle = etherPortNear(p.x, p.y);
       _navalPortHereAt = { key, port: isle ? etherPortOf(isle) : null };
       return _navalPortHereAt.port;
     }
-    for (const q of navalPortList()) { const d = Math.max(Math.abs(q.px - p.x), Math.abs(q.py - p.y)); if (d <= SEA_RING && d < best) { best = d; port = q; } }
+    const port = boardPortAt(navalPortList(), p.x, p.y);   // FIELD BUGS 2026-10-21b VOYAGE-HOLD: the nearest by the crow's flight (Pencart's water tied Longham's)
     _navalPortHereAt = { key, port };
     return port;
   };
