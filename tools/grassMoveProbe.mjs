@@ -1,4 +1,4 @@
-// FIELD BUGS 2026-10-21b row 6 (FB1021B): THE GRASS FIELD WHILE THE PLAYER MOVES - measured.
+// FIELD BUGS 2026-10-21c row 6 (FB1021B): THE GRASS FIELD WHILE THE PLAYER MOVES - measured.
 //
 // A player's CPU profile showed grass streaming among the main thread's costs. PERF-EXT22 measured the field's
 // steady walk (`perFrame`, GRASS_SLICE) and left its catch-up mode - `catchUp ? perCell : GRASS_SLICE`, two whole

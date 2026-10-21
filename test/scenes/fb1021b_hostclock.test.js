@@ -1,4 +1,4 @@
-// HOST-CLOCK (2026-10-21, OWNER-CLOCK's Left in bible/01-Overview/bugs/Field-Bugs-2026-10-21b.md; bible/06-Systems/Online-Arc.md
+// HOST-CLOCK (2026-10-21, OWNER-CLOCK's Left in bible/01-Overview/bugs/Field-Bugs-2026-10-21c.md; bible/06-Systems/Online-Arc.md
 // OWNER-CLOCK, HOST-CLOCK). OWNER-CLOCK kept a slow owner's STREET foes to its own clamped frame (scenes/ownerCatchUp.js), and
 // FLAGGED the rest: a building's foes (scenes/worldModes.js) and a dungeon's (scenes/dungeonContext.js) were stepped
 // inside their hosts' frames at FOE-CATCHUP's half of a slow host's frame - half speed for everyone in the room below

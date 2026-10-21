@@ -1618,7 +1618,7 @@ capabilities - with no round trip (Chromium main, read 2026-09-26).
 
 # THE GRASS ON THE MOVE (FB1021B, 2026-10-21)
 
-*FIELD BUGS 2026-10-21b row 6 (`01-Overview/bugs/Field-Bugs-2026-10-21b.md`): a player's CPU profile of the online
+*FIELD BUGS 2026-10-21c row 6 (`01-Overview/bugs/Field-Bugs-2026-10-21c.md`): a player's CPU profile of the online
 client, relayed by the owner, had "grass streaming" at 11-24% of the main thread. The slice before this one found the
 walk under its budget (PERF-EXT22) and left the catch-up mode unmeasured on the move.*
 
@@ -1837,7 +1837,7 @@ comment (not this slice's change).
 ## AUDIT FB1021B (2026-10-21) - the deadlines kept while a cell is due now
 
 The slice read cold, every finding verified on the code and measured before it was fixed (the owner: "no band aids
-and true improvements"). FIELD BUGS 2026-10-21b (`01-Overview/bugs/Field-Bugs-2026-10-21b.md`) row 6.
+and true improvements"). FIELD BUGS 2026-10-21c (`01-Overview/bugs/Field-Bugs-2026-10-21c.md`) row 6.
 
 **F1 (should-fix) - one cell due now turned the deadlines off, and a slow machine never recovered.** The rim stopped at
 `now ? clock() - t0 >= budgetMs : done >= need`: with one rim cell missing inside `GRASS_DUE_AT`, the frame's share
