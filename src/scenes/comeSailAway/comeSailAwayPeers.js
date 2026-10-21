@@ -35,7 +35,7 @@ import { stowSail } from '../../systems/comeSailAway/comeSailAway.js';
 import { easeToward } from '../../systems/horse/horseCartWire.js';
 import { quatSlerp, quatMultiply, quatAngleAxis } from '../../world/quat.js';
 import { FOES_FULL_MS } from '../../net/online.js';
-import { farLife, farLifeStep } from './farLife.js';   // BOAT-FAR: her Animators' life by her range, navalHost's law
+import { farLife, farTreeStep } from './farLife.js';   // BOAT-FAR: her Animators' life by her range, navalHost's law (BOAT-OWN: her tree's)
 
 /** How fast a peer's boat turns toward its word (per second, the ease's rate). */
 export const CSA_PEER_TURN_RATE = 12;
@@ -220,8 +220,10 @@ export function createComeSailAwayPeers({ pool, selfId = () => null, log = conso
     // SEA-TOWN (FIELD BUGS 2026-10-11c): her Animators as kept for her tree (boatAnimators), not walked out of it again
     // for every boat of every player on every frame - asked even standing nowhere, so each starts over when she stands.
     // BOAT-FAR: and by her range, as the sea's ships' are (scenes/comeSailAway/farLife.js) - past NEAR_LIFE_M of the eye
-    // one frame in FAR_LIFE_EVERY, on the time she missed (up to eight boats a player, anywhere in some 3 km, every frame)
-    const lived = farLifeStep(s.life ??= farLife(lifeSeq++), dt, s.shown, eye);
+    // one frame in FAR_LIFE_EVERY, on the time she missed (up to eight boats a player, anywhere in some 3 km, every frame).
+    // BOAT-OWN: her tree's (farTreeStep) - hidden or shown, her helm taken or let go, she lives that frame, so her
+    // Animators start over or switch as her walk does, never up to three frames after it
+    const lived = farTreeStep(s.life ??= farLife(lifeSeq++), dt, s.boat.GameObject, s.shown, eye);
     if (lived !== null) for (const a of boatAnimators(s.boat)) a.update(lived);
   }
 

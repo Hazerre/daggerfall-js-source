@@ -95,18 +95,19 @@
   },
   {
     "name": "FB1021-reshaped-far-boat-held",
-    "file": "src/scenes/comeSailAway/comeSailAwayPool.js",
-    "old": "w.stamp > 0 && life.shape === shape && life.on === on;",
-    "new": "w.stamp > 0 && life.on === on;",
+    "file": "src/scenes/comeSailAway/farLife.js",
+    "old": "life.shape === shape && life.on === on ? pos : null",
+    "new": "life.on === on ? pos : null",
     "tests": [
-      "test/systems/comeSailAway/fb1021_boats.test.js"
+      "test/systems/comeSailAway/fb1021_boats.test.js",
+      "test/systems/comeSailAway/fb1021b_ownboats.test.js"
     ]
   },
   {
     "name": "FB1021-draws-walk-held",
     "file": "src/scenes/comeSailAway/comeSailAwayPool.js",
-    "old": "const kept = w !== undefined && w.stamp > 0 && life.shape",
-    "new": "const kept = w !== undefined && life.shape",
+    "old": "const kept = w !== undefined && w.stamp > 0;",
+    "new": "const kept = w !== undefined;",
     "tests": [
       "test/systems/comeSailAway/fb1021_boats.test.js"
     ]
@@ -159,8 +160,8 @@
   {
     "name": "FB1021-flats-unshifted",
     "file": "src/scenes/comeSailAway/comeSailAwayPool.js",
-    "old": "        const m = placed(recs[i]);",
-    "new": "        const m = made(recs[i]);",
+    "old": "const m = kept ? placedAt(recs[i]) : placed(recs[i]);",
+    "new": "const m = kept ? made(recs[i]) : made(recs[i]);",
     "tests": [
       "test/systems/comeSailAway/fb1021_boats.test.js"
     ]
@@ -168,8 +169,8 @@
   {
     "name": "FB1021-peer-range-unread",
     "file": "src/scenes/comeSailAway/comeSailAwayPeers.js",
-    "old": "const lived = farLifeStep(s.life ??= farLife(lifeSeq++), dt, s.shown, eye);",
-    "new": "const lived = farLifeStep(s.life ??= farLife(lifeSeq++), dt, s.shown, null);",
+    "old": "const lived = farTreeStep(s.life ??= farLife(lifeSeq++), dt, s.boat.GameObject, s.shown, eye);",
+    "new": "const lived = farTreeStep(s.life ??= farLife(lifeSeq++), dt, s.boat.GameObject, s.shown, null);",
     "tests": [
       "test/systems/comeSailAway/fb1021_boats.test.js"
     ]
@@ -240,11 +241,12 @@
   },
   {
     "name": "FB1021-switches-unread",
-    "file": "src/scenes/comeSailAway/comeSailAwayPool.js",
-    "old": "life.shape === shape && life.on === on;",
-    "new": "life.shape === shape;",
+    "file": "src/scenes/comeSailAway/farLife.js",
+    "old": "life.shape === shape && life.on === on ? pos : null",
+    "new": "life.shape === shape ? pos : null",
     "tests": [
-      "test/systems/comeSailAway/fb1021_boats.test.js"
+      "test/systems/comeSailAway/fb1021_boats.test.js",
+      "test/systems/comeSailAway/fb1021b_ownboats.test.js"
     ]
   },
   {
@@ -286,8 +288,8 @@
   {
     "name": "FB1021-held-parts-at-the-hull",
     "file": "src/scenes/comeSailAway/comeSailAwayPool.js",
-    "old": "        one(gpu, placed(rec), paint);",
-    "new": "        one(gpu, _shift !== null ? boat.MeshObject.worldMatrix() : made(rec), paint);",
+    "old": "one(e.gpu, placed(recs[e.i]), paint);",
+    "new": "one(e.gpu, _shift !== null ? boat.MeshObject.worldMatrix() : made(recs[e.i]), paint);",
     "tests": [
       "test/systems/comeSailAway/fb1021_boats.test.js"
     ]
