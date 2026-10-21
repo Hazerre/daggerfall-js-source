@@ -2628,3 +2628,51 @@ Look keep the quad's depth; the target, the unit and every drawn exit's depth wr
 the target is drawn into again (a program sampling it would be a feedback loop). `tools/mutants/fb1015_lootbody.json`:
 13 mutants, 13 dead. Pin moved: AUDIT MW-NPC C6's (`test/characters/mwnpc_audit.test.js`) holds
 C6's own half at the new door - every flat shown before a standing body's is marked; the hosts' order is FB1015's pin.
+
+## 30. NPC-MARKS - A MARK OVER THE PEOPLE WHO DO SOMETHING (SHIPPED 2026-10-21)
+
+The owner, 2026-10-21: "For morrowind models, vendors and quests npcs are hard to find due to everyone looking the
+same. Could we make a bobbing icon above their character for morrowind specifically?"
+
+THE PROBLEM IS THIS ARC'S OWN. Daggerfall's standing people are pictures, and the picture says who they are - a shop's
+keeper wears the shop's sprite. MWNPC17's wardrobe dresses everyone off their faction's role and their seed, so in a
+Morrowind body a jeweller and the customer at the counter can look alike, and a quest's contact looks like the room.
+
+WHAT SHIPS. Over each standing person whose BODY stands on the people lane (`createPopulationLane`'s new `heightOf` -
+PeerBodies' own, so an Altmer's mark hangs over an Altmer's head) and whose click goes somewhere other than talk, a
+small pixel-art icon bobs (`render/npcMarkPass.js`, `scenes/npcMarksHost.js`):
+
+- a gold "!" - a person a live quest holds (their QuestResourceBehaviour, the one `openStaticNpc`'s `doClick` reaches
+  first - PlayerActivate.cs:1523-1528 - or a quest's stood person). A quest set aside (QUEST-SHELF), ended or broken
+  marks no one. It wins over the other two: what the quest wants first.
+- a gold coin - StaticNPCClick's merchant arm (a Merchants-group person in a shop, a bank or a tavern, or a custom
+  merchant service's).
+- a blue gem - its guild-service arm and the coven's (a guild's trainers, spell sellers and quest givers).
+
+THE ROUTE IS THE CLICK'S. `staticNpcRouteIn` builds staticNpcRoute's arguments in one place, and `openStaticNpc` now
+asks it too (ONE CONSTRUCTION SEAM - the rr3 pin moved with it), so a mark never promises a door the click does not
+open. A person's route is read once, never before the faction table; their quest each frame.
+
+THE FORM. One quad a mark, square to the eye, at the body's crown plus MARK_OVER_HEAD_M; the icon drawn by the fragment
+stage on a 16 x 16 grid, so it reads as the pixel art the sprites are and ships no picture (nothing read from ARENA2).
+Blended, tested against the world's depth and writing none (a wall hides it - NAME1's complaint about names seen
+through walls is not repeated), never under MARK_MIN_RAD of the view, the nearest twelve (the lane's Near cap) within
+30 m, faded over the last fifth. The bob: 6 cm each way once a second on duelWall.js's wrapped clock, a phase each;
+still under the system's reduced motion. No fog: a cue for the eye, inside a street's width.
+
+A classic sprite is never marked - its picture is its mark - so with Morrowind People off, or no Morrowind data, nothing
+draws. The switch is the Features page's "Morrowind People Marks" (`npc-marks`, the `npcMarks` pref, on by default, the
+viewer's own).
+
+THE FOUR HOSTS. `scenes/worldModes.js` - the interior (the room's people and its quest stands) and the dungeon (its
+people, through `dungeonContext.js`'s new `peopleLane`, and its quest stands); `scenes/world.js` - the street's
+standing people (route read with no building: a guild's servant and a custom merchant service mark, a plain merchant
+in the street talks); `scenes/exterior.js` - the fixed-city bench's standing people, the same. Not marked: the walkers
+(MWNPC7 - no faction route), the yards' and homes' placed figures (MWNPC18), the stand-flats and the boats' crews
+(STAND-FLAT - no StaticNPC), the living world's residents (LW8).
+
+Not a DFU member: Ledger A row (NPC-MARKS). `test/scenes/npcmarks.test.js`; `tools/mutants/npcmarks.json`: 28 mutants,
+27 dead, one equivalent as recorded (the route's `insideBuilding` with no building). The icons' pixels and the quad's
+size are pinned on the shader's own code, run by `test/glsl.mjs`. The shader was compiled and drawn
+in headless Chromium (SwiftShader) against a dark and a lit wall before it shipped; the bodies themselves need the
+player's Morrowind data, so the marks over a live body were not seen on this machine.
