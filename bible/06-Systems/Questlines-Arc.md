@@ -467,6 +467,16 @@ stood for a quest Person now answers to the Person's own name (`systems/quest/pe
 stand's one builder and answered by `characters/staticNpc.js` staticNpcName - Port-Ledger's QUESTLINES row, departure
 11). Pinned by `test/systems/fb1020_questnameone.test.js`, which reads every `ql name` the scripts hold.
 
+SITE-NAMED (FIELD BUGS 2026-10-20h, report 2: "the Orrery quest's blank building name";
+`01-Overview/bugs/Field-Bugs-2026-10-20h.md`). The runner starts a step wherever the player stands, and a step's
+`remote temple` or `remote magery` was named through the town host's name bag, which answered nothing off a town: a
+temple or Mages Guild hall drawn on the road was named '' for good, and Brass at Dusk and The Orrery of Endings read
+"Meet Prior Anselm Vey at  in Wildertown" in the sheet, the letter, the journal, the talk and the map - as did nine more
+steps (the Burning Doors' and the Covens' Mages Guild halls, the Frostfall's last) and the main story's S0000008. The bag now answers once FACTION.TXT
+is read (`townTalk.js:"    if (!factions) return null;"`), DFU's own law (FormulaHelper.cs:3139-3162 reads
+PlayerEntity.FactionData wherever the player stands), and a save carrying such a site has it named at the load's
+re-seat (`place.js:"  nameSiteAgain(world) {"`). Pinned by `test/systems/quest/fb1020h_sitenamed.test.js`.
+
 ### 4.1 THE DAGON CYCLE - three lines, one story (online)
 
 The breach, the covens and the Spire are already one story in the shipped lore: Dagon's mortal faithful open the
