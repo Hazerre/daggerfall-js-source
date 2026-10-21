@@ -99,3 +99,9 @@ Every finding was checked against the code before anything was fixed:
 - `fb1021_snowface.test.js` 3 tests, `fb1021_dexhides.test.js` 7, `fb1021_offlineroad.test.js` 8.
 - `tools/mutants/fb1021_snowface.json` 6, `fb1021_dexhides.json` 12, `fb1021_offlineroad.json` 19, and three in
   `precip1.json`: all dead. `snowface` without ARENA2, as CI runs it.
+- Every mutant record whose text sits on a line the audit changed: 36, all dead. Of the 625 records on the files it
+  touched, 339 were run before the sweep was cut short for time (the slices' own lists and L4's 1,406 on the frozen head
+  already covered the rest's lines, unchanged since): all dead, none survived, the recorded equivalents as recorded.
+- The whole suite with ARENA2 after the fixes: 32,483 tests, 32,431 pass, 49 skipped, 3 fail - IT1's and WD1's patch
+  checksums and CRATE-FREE's BLOCKS.BSA list, which follow the fetched data's version and fail alike on main (L4).
+- Lint, types, `cites --check` (2,816 anchors), the bible gates, the clock census and `hostceiling`: clean.
