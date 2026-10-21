@@ -1463,6 +1463,8 @@ chapters.standing.others,"{n, plural, one {# autre guilde} many {# d’autres gu
 chapters.standing.othersOnly,"Votre réputation a changé auprès de {n, plural, one {# guilde} many {# de guildes} other {# guildes}} dont vous n’êtes pas membre."
 chapters.standing.paid,"{name} : versement de {paid} sur ce qui était dû (désormais {now})"
 chapters.standing.paidOwed,"{name} : versement de {paid} sur ce qui était dû (désormais {now}, encore {owed} à venir)"
+chargen.class.skills.major,"{m1}, {m2} et {m3}."
+chargen.class.skills.primary,"{p1}, {p2}, {p3},"
 chat.help.breach,"/breach - la Brèche d’élite : répondre à l’appel de votre compagnie ou ouvrir la fenêtre de départ (/breach help liste ses commandes)"
 chronicle.quests.abandon,"Abandonner"
 chronicle.quests.abandonArmed,"Cliquez encore"

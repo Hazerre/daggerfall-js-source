@@ -1463,6 +1463,8 @@ chapters.standing.others,"{n, plural, one {# gremio más} many {# de gremios má
 chapters.standing.othersOnly,"Tu reputación cambió con {n, plural, one {# gremio al que no perteneces} many {# de gremios a los que no perteneces} other {# gremios a los que no perteneces}}."
 chapters.standing.paid,"{name}: recibido {paid} de lo adeudado (ahora {now})"
 chapters.standing.paidOwed,"{name}: recibido {paid} de lo adeudado (ahora {now}, aún {owed} en camino)"
+chargen.class.skills.major,"{m1}, {m2} y {m3}."
+chargen.class.skills.primary,"{p1}, {p2}, {p3},"
 chat.help.breach,"/breach - la Brecha de élite: responde a la llamada de tu compañía o abre la ventana de inicio (/breach help enumera sus comandos)"
 chronicle.quests.abandon,"Abandonar"
 chronicle.quests.abandonArmed,"Haz clic otra vez"
