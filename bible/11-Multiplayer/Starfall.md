@@ -790,7 +790,8 @@ they meet:
 
 ## 13. Versions and deploy order
 
-STAR-TUNE moves the relay alone, to **world236**: the wave's size and the breath are the relay's law, the `star` grant
+STAR-TUNE moves the relay alone, to **world238** (world236 on its branch, renumbered past LONE-HERALD's world236 and
+FIELD BUGS 2026-10-20f's world237 at the merge with main): the wave's size and the breath are the relay's law, the `star` grant
 kind its mint, the `st` frame's wave to twenty-four, and the foe bounds its strip reads (`net/foeBounds.js`). Client and
 relay move together (an older relay refuses the kind, an older client a ledger past nine); the star word does not
 change, so `STAR_RELAY_MIN` stays 235, and the account service's version does not move. Relay first, then the client.

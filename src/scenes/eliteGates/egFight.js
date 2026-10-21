@@ -7,7 +7,7 @@
 //     (rising, walking, winding up, striking, flinching, falling); the errands' objects - the struck ones (rifts, anchors,
 //     banners, hearts, seals, braziers, standards, chains, pillars, sparks) as the Reckoning's crystals in their colours
 //     (render/courtCrystals.js), the stood-on ones (runes with their numerals, soul-gems, havens, the relic, the engine,
-//     the Orrery's stones, umbral discs) on the floor;
+//     the Orrery's stones' rings - each stone stands over its own, scenes/eliteGates/egOrrery.js - umbral discs) on the floor;
 //   THE BLOWS - each FULL shape stamp drawn by the telegraph pass (render/gate/gateTelegraph.js) in THE SPIRE DANGER EDGE,
 //     the TELEGRAPH BUDGET's order (net/eliteGates/egShape.js egShapeOrder), a CHECK's havens gold; each judged against MY OWN FEET at
 //     its landing (co-op's law - net/eliteGates/egShape.js egBlowVerdict), its share of my health through my saving throw, its push;
@@ -86,6 +86,8 @@ import { egFightFloors, egFloorPlan, egFloorPlanKeep, egHazardSurface, egPerilOf
 import { EG_SHADE_BAND } from '../../world/eliteGates/egTelegraph.js';   // AUDIT EG V (lane1 #13): in the dark every foe keeps the Shade's rim light
 import { drawEgSigils } from '../../ui/eliteGates/egSpireHud.js';   // EG-ZG: the marks over heads
 import { spireStoneWords } from '../../systems/eliteGates/spireOrrery.js';   // FIELD BUGS 2026-10-17e (ORRERY-SIGHT): a stone's name and hour, over it
+import { EG_STONE_TOP_M } from './egOrrery.js';   // FIELD BUGS 2026-10-20f (ORRERY-STONES): a stone stands, its words over its crown
+import { reportPlayerAttack } from '../../combat/formulas.js';   // FIELD BUGS 2026-10-20f (LANDED-WORD): the number, at the room's word
 import { EG_NUMERALS } from '../../ui/eliteGates/egParty.js';   // AUDIT EG IV (lane1 #15): the company's numerals, an errand's member drawn by its
 import { egMemberOf } from '../../net/eliteGates/egLink.js';
 import { multiply } from '../../world/mat4.js';
@@ -574,11 +576,15 @@ export function createEgFight({ renderer = null, gl = null, getTexture = null, u
    *  sets' and the martial powers), the door that sends it (hostHit) and the swing's ring (scenes/dungeonContext.js swingOnHost). */
   let strikeAt = /** @type {number[]|null} */ (null);
   const _strikeAt = [0, 0, 0];
+  /** FIELD BUGS 2026-10-20f (LANDED-WORD): whether my relay says what each of my blows landed (`eland` - net/wire.js
+   *  relaySupportsEgLand, told each frame by the breach client) - then a blow's number is the room's word, never the claim */
+  let landWord = false;
   function turnStandIn(t, b) {
     const e = t.entity, view = egFightView(spec), at = strikeAt;
     const off = !at || egStruckOff(view, b, at[0], at[1], at[2]);
     e.warded = off || egStrikeTurned(view, b, at[0], at[1], at[2], now(), spec);   // AUDIT FB1018f L3-6: the body where it stands now (its storey); and the reach off the hall's own floor
     e.wardText = off && at ? egNoFooting() : null;   // ui/hitNumbers.js: the ground's word, else the ward's
+    e.landsByWord = landWord;   // LANDED-WORD (ui/hitNumbers.js numberFor): a hit's number waits for the room's word of what landed
   }
 
   const play3 = (cue, at) => { if (!cue || !audio || !at) return; try { if (cue.id != null) audio.play3dId?.(cue.id, at, cue.volume, { maxDistance: cue.reach, distanceModel: 'linear', pitch: cue.pitch }); else audio.play3d?.(cue.clip, at, cue.volume, { maxDistance: cue.reach, distanceModel: 'linear', pitch: cue.pitch }); } catch { /* a sound is never the fight */ } };
@@ -1188,7 +1194,7 @@ export function createEgFight({ renderer = null, gl = null, getTexture = null, u
       const orr = F.pg?.obj === 'orrery' && Array.isArray(F.pg.st) ? F.pg.st : null;
       if (orr) for (const b of F.bodies) {
         if (b.role !== EG_ROLE.obj || OBJ_KEY[b.k] !== 'stone' || b.goneAt || !Number.isFinite(orr[b.pt])) continue;
-        const at = egScreenAt(vp, egGivenAt(b, centre, tg));
+        const at = egScreenAt(vp, egGivenAt(b, centre, tg, centre[1] + egBodyHeight(b, tg) + EG_STONE_TOP_M));   // ORRERY-STONES: over its crown gear, never across its sign
         if (at) _sigils.push({ key: `orr${b.i}`, x: at[0], y: at[1], marks: [{ sigil: 'stone', text: spireStoneWords(b.pt, orr[b.pt]) }] });
       }
       const subs = _subs;
@@ -1330,6 +1336,15 @@ export function createEgFight({ renderer = null, gl = null, getTexture = null, u
     hit: () => false,
     /** Every body my blows meet - lords, the legion, the struck objects - and a blow of mine on one (`hit` by number). */
     hostTargets: () => _targets,
+    /** FIELD BUGS 2026-10-20f (LANDED-WORD): whether my relay says what my blows land (the breach client, each frame). */
+    landsWord(on) { landWord = !!on; },
+    /** LANDED-WORD: the room's word that a blow of mine on body `i` landed `d` - its number (HN1's seam), the duel's law (INT8:
+     *  a miss said at once, a hit at the referee's word). A blow the room refused or the purse emptied lands 0, and says so. */
+    landed(i, d) {
+      if (!landWord || !Number.isInteger(i) || !Number.isFinite(d)) return false;
+      reportPlayerAttack({ hit: true, damage: d });
+      return true;
+    },
     hostHit({ i, d, r, tick = false } = /** @type {any} */ ({})) {
       if (!Number.isInteger(i) || !(Math.round(d) >= 1) || !Object.values(HIT_KINDS).includes(r)) return false;
       const E = link.state(), b = E.fight.bodies.find((q) => q.i === i);

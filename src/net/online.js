@@ -102,7 +102,7 @@ import { RAID_TOWNS_CHUNK } from './raid/raidLaw.js';   // RAID-ROLL: the towns 
 import { dungeonRoomTag } from './wire.js';   // SD-ONLINE: a dungeon's room carries the size it was built at
 import { nativePoseRoom } from './wire.js';   // SLIM-FRAME: the frame a room's poses are in - one home, the relay's slim pose rounds by it
 import { validSdIn, validSdOut, sdGate, sdPzGate, relaySupportsSd, sdFightGate, SD_BRAIN_V } from './wire.js';
-import { validEgIn, validEgOut, egGate, relaySupportsEg, EG_BRAIN_V } from './wire.js';   // EG-PLAY: an Elite Breach's frame - the open to the hub, a member's words to its room; the call, the breach and its fights in
+import { validEgIn, validEgOut, egGate, relaySupportsEg, relaySupportsEgLand, EG_BRAIN_V } from './wire.js';   // EG-PLAY: an Elite Breach's frame - the open to the hub, a member's words to its room; the call, the breach and its fights in
 import { egHubGate, EG_HUB_KINDS } from './wire.js';   // AUDIT EG IV (lane3 #5): the hub's breach words on their own bucket
 import { isEgRoom } from './eliteGates/egLaw.js';   // SD3: the Super dungeon's frame - a find out, the hub's record in; SD6b: a turn out, the realm's Orrery in
 import { isSdRoom } from './superDungeon/sdLaw.js';   // SD6b: the realm's room, where the Orrery's turns go
@@ -3212,6 +3212,7 @@ export class OnlineSession {
       if (primary) this.starOk = relaySupportsStar(relayV);   // STAR3: the cell keeps a fallen star - an older relay closes the socket on `star`
       else { const h = this._halo.get(room); if (h) h.starOk = relaySupportsStar(relayV); }
       if (primary) this.egOk = relaySupportsEg(relayV);   // EG-PLAY: a relay that opens Elite Breaches - an older one closes the socket on `eg`
+      if (primary) this.egLandOk = relaySupportsEgLand(relayV);   // FIELD BUGS 2026-10-20f LANDED-WORD: a relay that says what my blows on a breach's bodies land
       if (primary) this.sdOk = relaySupportsSd(relayV);   // SD3: the cell hears a Hollow found - an older relay closes the socket on `sd`
       else { const h = this._halo.get(room); if (h) h.sdOk = relaySupportsSd(relayV); }
       if (primary) this.serpentSiteOk = relaySupportsSerpentSite(relayV);   // SERPENT2: the hub's serpent herald

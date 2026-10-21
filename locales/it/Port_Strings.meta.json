@@ -8454,6 +8454,26 @@
   "tr": "6df2544bdd28",
   "by": "claude-in-session"
  },
+ "eg.fair.air": {
+  "en": "10ea2591e676",
+  "tr": "b2b7eba9a289",
+  "by": "claude-in-session"
+ },
+ "eg.fair.blind": {
+  "en": "6d3b3500cf14",
+  "tr": "730ee99ac19e",
+  "by": "claude-in-session"
+ },
+ "eg.fair.speed": {
+  "en": "fe2b747868e2",
+  "tr": "f3a800d6b6ca",
+  "by": "claude-in-session"
+ },
+ "eg.fair.void": {
+  "en": "e16eec86fe14",
+  "tr": "b5f9f7e4c486",
+  "by": "claude-in-session"
+ },
  "eg.gather.here": {
   "en": "1be0943a46f8",
   "tr": "d2207c7e9929",
@@ -11677,6 +11697,11 @@
  "growth.swap.btn": {
   "en": "653d05e50fe5",
   "tr": "12dcbde9c614",
+  "by": "claude-in-session"
+ },
+ "growth.swap.ground": {
+  "en": "62af4003d92b",
+  "tr": "fc2ddb09e355",
   "by": "claude-in-session"
  },
  "growth.swap.hintArcane": {
