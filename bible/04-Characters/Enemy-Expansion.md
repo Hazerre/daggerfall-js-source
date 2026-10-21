@@ -77,7 +77,7 @@ The mod in DFU's terms (`BestiaryMod.cs`, cited below by line):
 | DEX7 | the Morrowind bodies (section 4); a NoShadow row's body casts none (AUDIT DEX B2) | SHIPPED (section 10) |
 | AUDIT DEX | the arc's cold audit (2026-10-20): five lanes over the frozen snapshot `d8db6d444`, every finding proven, then fixed and pinned with a mutant or recorded - `bible/01-Overview/audits/Audit-DEX.md`; its corrections are marked AUDIT DEX in each section | DONE |
 | MUDEX1 | Meaner Monsters beside DEX is MUDEX, its author's form of it for this mod (Ralzar, `vendor/mudex`): its two tables read after the mod's own, Meaner Monsters' rows, xml and PCAAO's edit of it standing aside (Mac, 2026-10-20: "We need to make everything compatible. No if ands or vutts", then "Approve MUDEX") | SHIPPED (section 13) |
-| DEX-HIDES | The mod's nine Animal rows skinned by Hunting - its kin's hide, or Wolf Pelt, Boar Hide and Mudcrab Chitin (667, 672, 676); its Hell Hound, Daedra, not (the Discord's #feature-feedback, FIELD BUGS 2026-10-21: "the variant bats and wolves I encountered have had no option for skinning"; AUDIT FB1021 L4-12: this table had no row) | SHIPPED (section 14) |
+| DEX-HIDES | The mod's nine Animal rows skinned by Hunting - its kin's hide, or Wolf Pelt, Boar Hide and Mudcrab Chitin (681-683); its Hell Hound, Daedra, not (FIELD BUGS 2026-10-20h, and the Discord's #feature-feedback in FIELD BUGS 2026-10-21: "the variant bats and wolves I encountered have had no option for skinning"; AUDIT FB1021 L4-12: this table had no row) | SHIPPED (section 14) |
 
 ## 4. Morrowind
 
@@ -705,7 +705,7 @@ monsters field by field written and minted, the tables, Meaner Monsters standing
 `test/net/foebounds_law.test.js` (the seventh profile), `dex1_registry.test.js` (DEX alone, Meaner Monsters standing
 aside); mutants `tools/mutants/mudex1.json`, eleven, all dead.
 
-## 14. DEX-HIDES - the mod's animals skinned (FIELD BUGS 2026-10-21)
+## 14. DEX-HIDES - the mod's animals skinned (FIELD BUGS 2026-10-20h and 2026-10-21)
 
 The Discord's #feature-feedback (Shines): "the new mobs are great! But the variant bats and wolves I encountered have had
 no option for skinning." Hunting skinned by DFU's MobileTypes alone (`net/professionLaw.js` `hideOfFoe`), and the mod's
@@ -713,6 +713,8 @@ monsters are numbered past them (section 5: 256-290, a spawned foe's mobileType 
 stamped at its kill (`scenes/huntHost.js`), listed as a body or taken by the account service. Each of the mod's nine rows
 of Affinity Animal is skinned now - its kin's hide where Hunting's ten have its kin (the Bat, the Blood Spider, the
 Mountain Lion, the Land Dreugh), and Wolf Pelt, Boar Hide and Mudcrab Chitin for the rest; its Hell Hound is the mod's
-Daedra and stays unskinned. The table and its reasons are `06-Systems/Professions-Arc.md` 4.4 (DEX-HIDES); the record is
-`01-Overview/bugs/Field-Bugs-2026-10-21.md`. The ids are static numbers there, so the service needs no registry of the
+Daedra and stays unskinned. The hides and their reasons are `06-Systems/Professions-Arc.md` 4.4 (DEX-HIDES); the record is
+`01-Overview/bugs/Field-Bugs-2026-10-20h.md`, which built it first (the same thread reached `Field-Bugs-2026-10-21.md`,
+whose own build gave way to it at the merge, carrying its audit's two fixes - the Bear Hide spent last of its tier, the
+Mudcrab Chitin counted as a mass). The ids are static numbers there, so the service needs no registry of the
 mod's, and a mod switched off rolls none of them (section 7).

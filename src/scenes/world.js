@@ -13,7 +13,6 @@ import { resetPlayerGpsState } from '../world/playerGps.js';   // AUDIT DEX C1: 
 import { restAilmentLines } from '../systems/rest/restWarning.js';   // REST-WARN
 import { walkModeOn, bindWalkMode } from '../player/walkMode.js';   // PADWALK: walk mode, one button on and off
 import { iilSyncLane } from '../systems/improvedInteriorLighting.js';   // IIL2
-import { dfmodGroundLayers } from '../systems/dfmodTextures.js';   // GROUND1: an attached mod's terrain tile set
 import { RESURRECT_HOLD_MS, RESURRECT_HEALTH_PCT, RESURRECT_TEXT, rezSnapshot, rezFor } from '../systems/resurrect.js';   // RESURRECT1
 import { createPortalGates } from './portalGates.js'; import { PORTAL_TEXT, PORTAL_HOLD_TEXT, PORTAL_REGROUND, portalHold, spendPortalStone, portalPlace } from '../systems/portalStone.js'; import { takePortalGiftNotice } from '../systems/gate/gateSpoils.js'; import { restoresSoFar } from '../systems/save/save.js';   // PORTAL1: the Portal Stone's portals
 import { createPartyMapSender, hasSharedCartography } from '../systems/party/partyMap.js';   // PARTY-MAP
@@ -116,7 +115,7 @@ import { knownCriminal } from '../systems/standing.js';   // WATCH-KNOWS: the li
 import { createRelations, LIVING_WORLD_VENDOR } from '../systems/livingWorld/relations.js';   // LW2: how the living world regards this character (modData `LivingWorld`)
 import { firstNameOf } from '../systems/livingWorld/lines.js';
 import { travellerRoster, mintResident } from '../systems/livingWorld/census.js';   // LW3: a town's travellers, off its MAPS row alone; LW4: a newcomer to a place the road emptied
-import { townTrips, visitorsOf as tripVisitorsOf, awayOf as tripAwayOf, placeCycle, setsOut, newsOf, paceScale, NEWS_DAYS, diversAt, cycleOf, handsOn, nativeDry, divesIn, TRIP_REACH_PX } from '../systems/livingWorld/trips.js';   // LW3: the roads, pure; LW4: the places' cycles, the town's news; LW7: a townsperson's cycle, a trip's hand deaths; LW-DRY: the ground a party stops on
+import { townTrips, visitorsOf as tripVisitorsOf, awayOf as tripAwayOf, placeCycle, setsOut, newsOf, paceScale, NEWS_DAYS, diversAt, cycleOf, handsOn, nativeDry, divesIn, TRIP_REACH_PX, livingNearKey, LIVING_NEAR_KEPT } from '../systems/livingWorld/trips.js';   // LW3: the roads, pure; LW4: the places' cycles, the town's news; LW7: a townsperson's cycle, a trip's hand deaths; LW-DRY: the ground a party stops on
 import { createDryGround } from '../world/dryGround.js';   // LW-DRY: the height map's own dry ground, every client's alike
 import { placeAt, turnKey } from '../systems/livingWorld/lives.js';   // LW4: who holds a traveller's place
 import { peoplePage, residentOfId, regardBadge } from '../systems/livingWorld/people.js';   // LW7c: the chronicle's People page; AUDIT FB1010 C1: a betrothed as the census mints them
@@ -230,7 +229,7 @@ import { createExteriorFoes, MAX_ACTIVE_ENCOUNTER_FOES, encounterCap, WILD_PACK_
 import { createBreather, frameFitBudget } from '../systems/buildBreather.js';   // PERF7: the stream build yields to the frame; PERF-EXT24: a slice of what the frame left
 import { pieceIndex } from '../render/labGrass.js';   // PERF8: the piece under a point, by arithmetic
 import { meterFor } from '../render/perfMeter.js';   // GRASS2: the field gets a zone of its own - it was inside the world's
-import { LabGrassRenderer, createGrassField, grassRecordsOf, floorRecordsOf, tileMeanColour, discSlotCount, LAB_GRASS, LAB_DIM, GRASS_TONES, GRASS_TONES_CLASSIC } from '../render/labGrass.js';   // GR1: the lab's grass, byte for byte; PERF-EXT20: the field's slot count, warmed at mount
+import { LabGrassRenderer, createGrassField, discSlotCount, LAB_GRASS, LAB_DIM, GRASS_TONES, GRASS_TONES_CLASSIC } from '../render/labGrass.js';   // GR1: the lab's grass, byte for byte; PERF-EXT20: the field's slot count, warmed at mount
 import { windDrive, floraSwayOn, gustPhaseAfterShift, gustClock } from '../systems/wind/windDrive.js';   // WIND3: the one wind in every consumer's units; the flats' sway
 import { WindWispsRenderer, wispsOn, SAND_LOOK } from '../render/windWisps.js';   // WIND3: the wind, seen; WEATHER2d: the sandstorm's sand in the same program
 import { HeatHazeRenderer } from '../render/heatHaze.js';   // HAZE1: Heat Haze's ring, drawn
@@ -269,7 +268,8 @@ import { treeKind } from './treeHost.js';   // PROF4: Logging's trees - the fore
 import { createTreesHost } from './treesHost.js';   // LPT1 / BANTHA1 (HOST-SPLIT): the near 3D trees - Low Poly Trees' door and the jungle's, and their frame
 import { createJungleHost } from './jungleHost.js';   // BANTHA1: Bantha's jungle - its field, its trees' door, its haze
 import { createJungleFloorHost, floorPictures } from './jungleFloorHost.js';   // BANTHA2: the jungle's floor - a second field of the grass
-import { createSnowCoverHost, twinKey, twinLayers } from './snowCoverHost.js';   // PRECIP4: the snow the ground keeps, about the player
+import { createSnowCoverHost } from './snowCoverHost.js';
+import { createGroundSets } from './groundSets.js';   // OW-HITCH: a ground set made and uploaded a breath at a time (HOST-SPLIT)   // PRECIP4: the snow the ground keeps, about the player
 import { realForestsOn, roadVergesOn, climateBlendOn, jungleOn, jungleHazeOn } from './shared.js';   // FOREST1: the Real forests switch, and the places the woods hide; VERGE1: the clear roadsides' switch; ECOTONE1: the blended climates'
 import { landformsOn, tamrielLandOn, tamrielTraceOn, etherSeaOn, etherCrossOutOn } from './shared.js';   // LANDFORM1-3: the Landforms switch; TAMRIEL2: the land beyond the Bay's; TAMRIEL3: the trace's door; ETHER-SEA: the Eltheric Ocean's
 import { preloadTamrielTrace } from '../ui/tamrielTrace.js';   // TAMRIEL3: Daggerfall's own map of Tamriel, off the player's two files
@@ -1117,7 +1117,7 @@ import { registerItemUseHandler } from '../systems/item/itemTemplates.js';   // 
 import { mintBoatItem, mintShelfBoatUids, assignVariantsToShopItems, cargoLootTarget, BOAT_PARTS_TEMPLATE as CSA_PARTS_TEMPLATE, BOAT_DEED_TEMPLATE as CSA_DEED_TEMPLATE } from '../systems/comeSailAway/comeSailAwayItems.js';   // CSA-H: the two items, their shelf
 import { ListPickerWindow, listPickerArtLoaded } from '../ui/listPicker.js';   // CSA-H: the boat's variant picker
 import { mustSpawnOnFloor, alignFloorEnemyY, spawnRevealDistance, enemyRoster } from '../world/underwater/underwaterEnemies.js';   // DW-E4: where the mod sets a foe's transform; DW-E5: SpawnRevealDistance
-import { markPuddleWater, carryPuddleMask, puddleWetAt, PUDDLE_RECORDS } from '../world/puddleMask.js';   // WATER-PUDDLE: the puddle is the art's
+import { puddleWetAt, PUDDLE_RECORDS } from '../world/puddleMask.js';   // WATER-PUDDLE: the puddle is the art's
 import { rayUprightCapsule } from '../world/passiveFish.js';   // DW-E3: a fish's probe meets the player's capsule
 import { installDeepWatersFishIcons, createFishItem, normalizeFishItems, fishPictureUrl, fishIconArchive } from '../systems/deepWater/deepWatersFishItems.js';   // DW-E3: the fish as items
 import { clearEdgeBlackPixels } from '../world/underwater/underwaterDecorations.js';   // DW-E3: a fish's picture, edge-cleaned   // DW-E2: the seafloor's decorations   // DW-D: DeepWaterRuntime's load grace
@@ -3129,27 +3129,27 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   };
   const _livingDungeonsNear = new Map();
   const livingDungeonsNear = (px, py, r) => {
-    const key = `${px},${py},${r}`;
+    const key = livingNearKey(px, py, r);   // OW-HITCH
     let got = _livingDungeonsNear.get(key);
     if (got) return got;
     got = [];
     const idx = livingDungeonsIndex();
     for (let y = py - r; y <= py + r; y++) for (let x = px - r; x <= px + r; x++) { const d = idx.get(y * 1000 + x); if (d) got.push(d); }
     got.sort((a, b) => a.mapId - b.mapId);
-    if (_livingDungeonsNear.size > 512) _livingDungeonsNear.clear();
+    if (_livingDungeonsNear.size > LIVING_NEAR_KEPT) _livingDungeonsNear.clear();
     _livingDungeonsNear.set(key, got);
     return got;
   };
   const _livingNear = new Map();
   const livingTownsNear = (px, py, r) => {
-    const key = `${px},${py},${r}`;
+    const key = livingNearKey(px, py, r);   // OW-HITCH
     let got = _livingNear.get(key);
     if (got) return got;
     got = [];
     const idx = livingTownsIndex();
     for (let y = py - r; y <= py + r; y++) for (let x = px - r; x <= px + r; x++) { const t = idx.get(y * 1000 + x); if (t) got.push(t); }
     got.sort((a, b) => a.mapId - b.mapId);
-    if (_livingNear.size > 512) _livingNear.clear();
+    if (_livingNear.size > LIVING_NEAR_KEPT) _livingNear.clear();
     _livingNear.set(key, got);
     return got;
   };
@@ -5683,6 +5683,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     speed: player?.speed ?? 0, dt, scale, maxFrameDt: MAX_FRAME_DT,
     floor: TRAVEL_LOOKAHEAD, margin: TRAVEL_LOOKAHEAD_MARGIN,
   });
+  /** R9: A GROUND ARCHIVE'S TILE SET, ready for a pixel's draw and its grass - held by the pixel's place (`hold`, its
+   *  PLACE-LRU door), uploaded once (a texture mod's set first), the ground-sharpness tier on every cached set, and the
+   *  grass's three tables learned. The pixel's own archive, and ECOTONE1's neighbours' at a climate border (the sets
+   *  the ground's border samples - render/ecotoneGlsl.js). OW-HITCH (HOST-SPLIT): its home is scenes/groundSets.js -
+   *  a set made a record a breath, uploaded a few layers a breath, once a key. Made before the stream's build state
+   *  (`inFlight`, the breather below - asked at its breaths, never at the making). */
+  const { loadGroundSet } = createGroundSets({ renderer, getTexture, labGrass, breathe: () => breather.breathe(), grassRecords, floorRecords, groundPuddles, groundMeanColour, groundDrawnMeans });
   const inFlight = new Map();
   /** ECOTONE1: a border pixel's neighbours for its ground's draw (renderer.drawTerrain's `eco`) - their sets as the
    *  renderer holds them now. Null for a pixel with none, and while any of them is missing (the pixel's hold keeps them,
@@ -5704,61 +5711,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const g = p.ecoGround;
     const [dx, dz] = ecotoneOwner(p.px, p.py, x, z, (ax, az) => g[(az + 1) * 3 + ax + 1]);
     return g[(dz + 1) * 3 + dx + 1];
-  };
-  /** R9: A GROUND ARCHIVE'S TILE SET, ready for a pixel's draw and its grass - held by the pixel's place (`hold`, its
-   *  PLACE-LRU door), uploaded once (a texture mod's set first), the ground-sharpness tier on every cached set, and the
-   *  grass's three tables learned. The pixel's own archive, and ECOTONE1's neighbours' at a climate border (the sets
-   *  the ground's border samples - render/ecotoneGlsl.js). Moved here whole from the build, so both ask one home. */
-  /** A ground archive's layers as they are drawn (a texture mod's set first, GROUND1/VE2: TextureReader.GetTerrainTextureArray),
-   *  puddles marked (WATER-PUDDLE: a puddle record's water in its layer's alpha; GROUND1-W: a mod's set takes their shapes
-   *  from the classic records) - `modLayers` the mod's own, null for none. */
-  const groundLayersOf = async (archive, tex) => {
-    const modLayers = await dfmodGroundLayers(archive, tex), classic = [];
-    for (let r = 0; r < tex.recordCount; r++) classic.push(tex.getColor32(tex.getDFBitmap(r, 0), 0));
-    return { modLayers, layers: modLayers ? carryPuddleMask(modLayers, markPuddleWater(classic)) : markPuddleWater(classic) };
-  };
-  const loadGroundSet = async (groundArchive, hold, winter = null) => {
-    // AUDIT PRECIP GROUND-2: on the snow lane a set that wears a winter IS its twin - one array, its summer records then its
-    // winter ones (scenes/snowCoverHost.js twinLayers), held and uploaded once: never the two sets and a copy of both
-    const key = winter == null ? groundArchive : twinKey(groundArchive);
-    hold.tileArray(key); const groundTex = await getTexture(groundArchive);   // FIELD BUGS 2026-10-04d PLACE-LRU: held BEFORE the cache is asked, so no sweep in the await frees what this pixel will draw
-    if (!renderer.tileArrays.has(key)) {
-      const own = await groundLayersOf(groundArchive, groundTex);
-      renderer.uploadTileArray(key, winter == null ? own.layers : twinLayers(own.layers, (await groundLayersOf(winter, await getTexture(winter))).layers));
-      // AUDIT GRASS-LIT2 B2: the grass's colours off THESE layers - the ones drawn - and not a second ask of the mod
-      // door, whose cache a mod indexed mid-session empties (another decode, maybe another mod's tiles than these)
-      if (labGrass) groundDrawnMeans.set(groundArchive, own.modLayers ? own.modLayers.map(tileMeanColour) : null);
-    }
-    renderer.applyGroundSharpness();   // GRAIN AUDIT 1: the ground-sharpness tier lands on THIS load, on every cached archive - the cache outlives the scene
-    // GR1: which of this archive's records are GRASS, from its own texels -
-    // roads excluded by record, and a winter archive has no green base so
-    // it yields none. AUDIT 49 F3: learned whenever MISSING, not only on a
-    // tile-cache miss - the tile array cache lives on the renderer and
-    // outlives this scene, so an archive the exterior host had uploaded
-    // came back here cached, skipped the block above, and grew no grass.
-    // GRASS-LIT2: the tile set that is DRAWN - an attached texture mod's (GROUND1, the cached promise the upload above
-    // asked) - is what the grass's colour is taken off; asked BEFORE the three below are learned, so all three land in
-    // one step and no pixel places a field against records whose colours are still on their way
-    // AUDIT GRASS-LIT2 B2: the means taken at the upload above when it ran in this scene; asked of the door only for a
-    // tile array an earlier scene uploaded (the renderer's cache outlives the scene)
-    const drawnMeans = grassRecords.has(groundArchive) ? null
-      : groundDrawnMeans.has(groundArchive) ? groundDrawnMeans.get(groundArchive)
-      : (await dfmodGroundLayers(groundArchive, groundTex))?.map(tileMeanColour) ?? null;
-    if (!grassRecords.has(groundArchive)) {
-      const layers = [];
-      for (let r = 0; r < groundTex.recordCount; r++) layers.push(groundTex.getColor32(groundTex.getDFBitmap(r, 0), 0));
-      grassRecords.set(groundArchive, grassRecordsOf(layers)); floorRecords.set(groundArchive, floorRecordsOf(layers));   // BANTHA2: the floor's beside the meadow's
-      groundPuddles.set(groundArchive, markPuddleWater(layers));   // WATER-PUDDLE: the blades ask the mask the pass draws by
-      // GR4: each record's MEAN colour, for the grass root that stands on
-      // it - averaged once, rather than sampled per blade. AUDIT 68 S17:
-      // learned here, beside grassRecords (the tile cache outlives the
-      // scene), and off the color32's texels - it read the object's length.
-      // GRASS-LIT2: off the mod's tile where one dresses the archive - the
-      // ground a blade stands in is the one drawn. Which records are grass
-      // stays the classic file's question: a record means the same tile
-      // under any picture of it.
-      groundMeanColour.set(groundArchive, drawnMeans ?? layers.map(tileMeanColour));
-    }
   };
 
   async function buildPixel(px, py) {

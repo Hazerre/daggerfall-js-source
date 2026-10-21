@@ -72,6 +72,19 @@ Every finding was checked against the code before anything was fixed:
 | L4-12 | Enemy-Expansion section 3's slices table had no DEX-HIDES row, and a double blank line before section 14; Revenants section 42's Pinned line | FIXED (with L2-9, L3-6) |
 | L4-13 | The chitin words in de, cs and ko (= L2-7); the Wolf Pelt's reason "one team, Werecreatures" - the mod's Werecreatures team holds the Boar too | FIXED: the words; the reason is the canines' one coat, in the record, the arc's table and `professionLaw.js` |
 
+## At the merge with main
+
+Main had merged its own DEX-HIDES first (`01-Overview/bugs/Field-Bugs-2026-10-20h.md`: the same nine animals and keys, its
+hides at 681-683). It was taken whole and this branch's dropped, since its ids may already stand in a player's Stores.
+The L2 findings were run again on main's build: L2-2 (the Mudcrab's Raw Meat), L2-3 (the furs cut to skins) and L2-7 (the
+chitin words) held there already; L2-1 did not - main stood the Bear Hide before the Wolf Pelt, and a chain spent all 8
+Bear Hides - so its fix is carried as the Bear Hide's cure last of its tier, pinned in `fb1020h_dexhides.test.js` with
+the Mudcrab Chitin's mass noun (two mutants in `fb1020h_dexhides.json`, dead; main's `DEX-HIDES-the-cures-unsorted`
+re-aimed, dead). The rows above for L2-4, L2-6, L2-8 and L2-10 were about this branch's own build and went with it.
+
+Main's OW-HITCH had given the snow host the drawn ground's normal for the slope (`normalOf`); with no slope it is gone,
+`owhitch.test.js`'s snow pin moved to "the stream asked nothing", and `owhitch.json`'s two snow records retired.
+
 ## What it checked and found sound
 
 - **SNOW-FACE's law.** No slope consumer is left: `SNOW_GROUND.slope`, `normalY` and `heightAt` are gone from the host,

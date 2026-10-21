@@ -23579,14 +23579,29 @@
   "tr": "a956d1ea171d",
   "by": "claude-in-session"
  },
+ "prof.page.stores.fromPackGoods": {
+  "en": "658f1d1d015f",
+  "tr": "a76779de06b4",
+  "by": "claude-in-session"
+ },
  "prof.page.stores.goldGoods": {
   "en": "0d5a1ee06ac7",
   "tr": "4177106854d6",
   "by": "claude-in-session"
  },
+ "prof.page.stores.goldStays": {
+  "en": "d7fe9756ed0f",
+  "tr": "464d276feea6",
+  "by": "claude-in-session"
+ },
  "prof.page.stores.looseGoods": {
   "en": "4b2a8d95c0dd",
   "tr": "1ad3be733c62",
+  "by": "claude-in-session"
+ },
+ "prof.page.stores.looseMade": {
+  "en": "a48227c3560e",
+  "tr": "afe2a521f5e6",
   "by": "claude-in-session"
  },
  "prof.page.stores.matLine": {
@@ -23766,7 +23781,7 @@
  },
  "prof.page.unlocks.hunting1": {
   "en": "7e740646d01d",
-  "tr": "3f2447a6b558",
+  "tr": "dc8c7e974505",
   "by": "claude-in-session"
  },
  "prof.page.unlocks.hunting2": {

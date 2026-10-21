@@ -297,8 +297,8 @@ test('PRECIP4 A SET\'S TWIN IS THE SET (AUDIT PRECIP GROUND-2): its summer recor
   assert.equal(t[TWIN_LAYERS + 7], winter[7], 'a set at the size kept whole');
   assert.equal(t[3].colors[(1 * 4 + 1) * 4 + 3], summer[3].colors[0 * 4 + 3], 'a texel repeated, its alpha its own');
   assert.equal(t[3].colors[(3 * 4 + 3) * 4 + 3], summer[3].colors[(1 * 2 + 1) * 4 + 3]);
-  const w = read('src/scenes/world.js');
-  assert.match(w, /renderer\.uploadTileArray\(key, winter == null \? own\.layers : twinLayers\(own\.layers, \(await groundLayersOf\(winter, await getTexture\(winter\)\)\)\.layers\)\);/);
+  const w = read('src/scenes/groundSets.js');   // PIN MOVED (OW-HITCH): the world host's ground sets' home (HOST-SPLIT), uploading a few layers a breath
+  assert.match(w, /const layers = winter == null \? own\.layers : twinLayers\(own\.layers, \(await groundLayersOf\(winter, await getTexture\(winter\)\)\)\.layers\);\n\s+await stepsBreathing\(renderer\.uploadTileArraySteps\(key, layers\), breathe\);/);
   assert.equal(typeof RENDER.Renderer.prototype.makeTwinArray, 'undefined', 'no blit');
 });
 

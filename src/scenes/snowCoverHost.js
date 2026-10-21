@@ -96,7 +96,8 @@ export function twinLayers(summer, winter) {
  *   LANE-TURN, below); `now()` THE ONE CLOCK - the event minute the snow is read at; `place()` the player's pixel, for a build
  *   that asks before the first frame (`settle`); `arriving()` whether the world is still standing up (no ground under the
  *   player) - a build's wait then takes the arrival's budget (SNOW_COVER.arriveMs); `clock()` the frames' budget's clock
- *   (performance.now's - SNOW-BUDGET)
+ *   (performance.now's - SNOW-BUDGET). OW-HITCH's `normalOf` (the drawn ground's normal, for the slope's shed) went with
+ *   SNOW-FACE's slope: the snow reads no normal and no height.
  */
 export function createSnowCoverHost({ renderer, climateAt, mapHeight, stateOf, builtOf, owns, markReskin, markRebuild, now, place = null, arriving = null, clock = () => performance.now() }) {
   const lattice = new SnowpackLattice({ climateAt, spacing: SNOW_COVER.spacing });

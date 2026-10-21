@@ -81,7 +81,8 @@ test('WATER-PUDDLE: the pass keeps a puddle record\'s fragment by its layer\'s a
   assert.match(fs, /const mat2 PUDDLE_ROT\[4\] = mat2\[4\]\(mat2\(1\.0, 0\.0, 0\.0, 1\.0\), mat2\(0\.0, -1\.0, 1\.0, 0\.0\), mat2\(-1\.0, 0\.0, 0\.0, -1\.0\), mat2\(0\.0, 1\.0, -1\.0, 0\.0\)\);/, 'TERRAIN_FS\'s turns');
   assert.match(rd('src/render/renderer.js'), /const mat2 ROT\[4\] = mat2\[4\]\(\n\s+mat2\(1\.0, 0\.0, 0\.0, 1\.0\),\n\s+mat2\(0\.0, -1\.0, 1\.0, 0\.0\),\n\s+mat2\(-1\.0, 0\.0, 0\.0, -1\.0\),\n\s+mat2\(0\.0, 1\.0, -1\.0, 0\.0\)\);/, 'and TERRAIN_FS still turns so');
   // AUDIT PRECIP GROUND-2 (PIN MOVED): world.js writes it in its one layers' helper, for a set and its twin's winter alike
-  assert.match(rd('src/scenes/world.js'), /return \{ modLayers, layers: modLayers \? carryPuddleMask\(modLayers, markPuddleWater\(classic\)\) : markPuddleWater\(classic\) \};/, 'src/scenes/world.js: the alpha written before the upload');
+  // PIN MOVED (OW-HITCH): that helper's home is scenes/groundSets.js (HOST-SPLIT), marking a record a breath
+  assert.match(rd('src/scenes/groundSets.js'), /return \{ modLayers, layers: modLayers \? await stepsBreathing\(carryPuddleMaskSteps\(modLayers, marked\), breathe\) : marked \};/, 'src/scenes/groundSets.js: the alpha written before the upload');
   for (const f of ['src/scenes/exterior.js']) {
     assert.match(rd(f), /renderer\.uploadTileArray\(groundArchive, modLayers \? layers : markPuddleWater\(layers\)\);/, `${f}: the alpha written before the upload`);
   }
@@ -112,7 +113,9 @@ test('WATER-PUDDLE: the CPU\'s turn is the pass\'s, texel for texel, and the gra
   assert.equal(puddleWetAt(pool, 23 << 2, 1, 0.5), false, 'the far edge clamps onto the last texel of its own row, not the next row\'s first');
   // the placer: the corner table first (the rare water tile), then the puddle's own mask, from the layers the pass uploads
   const world = rd('src/scenes/world.js');
-  assert.match(world, /groundPuddles\.set\(groundArchive, markPuddleWater\(layers\)\);/);
+  // PIN MOVED (OW-HITCH): the mask is learned in scenes/groundSets.js (HOST-SPLIT) - the classic records' marks the layers
+  // were made with, kept once a set (and marked there, a record a breath, for a set an earlier scene uploaded)
+  assert.match(rd('src/scenes/groundSets.js'), /const marked = await stepsBreathing\(markPuddleWaterSteps\(classic\), breathe\);\n\s+if \(!groundPuddles\.has\(archive\)\) groundPuddles\.set\(archive, marked\);/);
   // PIN MOVED (ECOTONE1, 2026-10-07): the puddles of the set the root stands in (`ga`, keep's ground archive - at a climate
   // border the neighbour's the ground's border gives the point; the pixel's own everywhere else)
   assert.match(world, /if \(waterCorners\(byte, WATER_DRAW_MASK_TABLE\)\) \{\n\s+const puddle = PUDDLE_RECORDS\.includes\(rec\) \? groundPuddles\.get\(ga\)\?\.\[rec\] : null;\n\s+if \(!puddle \|\| puddleWetAt\(puddle, byte, lx \/ 6\.4 - tx, lz \/ 6\.4 - tz\)\) return null;\n\s+\}/);

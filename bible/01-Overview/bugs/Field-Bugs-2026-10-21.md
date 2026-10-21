@@ -15,7 +15,7 @@ changed is marked here with its finding's id.
 |---|---|---|---|
 | 1 | The owner's screenshot: "the side of the mountain without snow or floral" | On the snow lane a steep face shed its snow to its SUMMER tile - Daggerfall's grass, its dirt and its stone, the sets having no rock face. The landforms stand a range's flank past 52 degrees hundreds of metres wide, and DFU stands no tree past 50 | SNOW-FACE |
 | - | (found on the way) | A pixel standing when the snow lane turns was sent to a re-skin that refuses it, and wore the other lane's ground - in a winter turned off the lane, its summer set | LANE-TURN |
-| 2 | Shines: "the variant bats and wolves I encountered have had no option for skinning" | Hunting skinned by DFU's MobileTypes alone; the Enemy Expansion's foes are its own ids, 256-290 | DEX-HIDES |
+| 2 | Shines: "the variant bats and wolves I encountered have had no option for skinning" | Hunting skinned by DFU's MobileTypes alone; the Enemy Expansion's foes are its own ids, 256-290 | DEX-HIDES (FIELD BUGS 2026-10-20h's, merged first) |
 | 3 | Shines: "I'd like to see them at least progress on the real time bar when offline ... so far I haven't gotten anything from a 2-hour mission that I wouldn't have done better trying to harvest myself in a fraction of the time" | Online an errand ran on the character's own clock, which stands while they are away | OFFLINE-ROAD |
 
 ## SNOW-FACE: a steep face keeps its snow (1)
@@ -90,10 +90,9 @@ the window stands (`ready` - the tick integrates it), never while a cold year's 
 (AUDIT FB1021 L1-1: 2.6 s of work, three to seven seconds of empty world at a 4-8 ms slice). A turn off it is marked at
 once: off the lane nothing waits.
 
-## DEX-HIDES: the Enemy Expansion's animals are skinned (2)
+## DEX-HIDES: the Enemy Expansion's animals are skinned (2) - FIELD BUGS 2026-10-20h's, merged first
 
-`src/net/professionLaw.js` (`DEX_MOB`, `HIDES`, `BEAR_HIDE`), `src/ui/professions/profPages.js` (Hunting's unlocks),
-`src/systems/professions/profItems.js` (`PLURAL_SAME`).
+`src/net/professionLaw.js` (`HIDES`, `CURE_RECIPES`), `src/systems/professions/profItems.js` (`PLURAL_SAME`).
 
 FOUND. "Monster Expansion" is Daggerfall Enemy Expansion (DEX, `04-Characters/Enemy-Expansion.md`). A body is skinned when
 Hunting's table names its foe: `hideOfFoe(mobileType)`, read at the kill (`scenes/huntHost.js` `createBodyStamps` - no
@@ -106,31 +105,19 @@ Nine of the mod's rows are Animal: the Bat, the Wolf, the Snow Wolf, the Dog, th
 the Mountain Lion and the Mudcrab. Their meat already dropped through Climates & Calories (`survival/loot.js` reads the
 affinity), so only Hunting had missed them.
 
-DECIDED. Each of the nine is skinned, its kin's hide where Hunting's ten have its kin: the Bat Bat Leather, the Blood Spider
-Spider Silk, the Mountain Lion a Tiger Pelt (the mod files it on its Tigers team), the Land Dreugh a Dreugh Shell. The rest
-have no kin among the ten, and a wolf's body giving a Bear Hide reads as a bug of its own, so three hides of their own, at
-the reserved range's first free ids past the hides' block (`06-Systems/Professions-Arc.md` 4.8 - AUDIT FB1021 L4-10: lower
-ones are free too): WOLF PELT (667) for the Wolf, the Snow Wolf and the Dog (the canines, one coat - the mod's
-Werecreatures team holds the Boar too, and AUDIT FB1021 L4-13 found the team no reason), BOAR HIDE (672) and MUDCRAB CHITIN (676). Their tiers are their kin's low
-ones: the Wolf (level 5) and the Boar (level 6) by the Bear's 2, the Mudcrab (level 2) by the Rat's 1. The wolf's fang and
-the boar's tusk are DFU's Big Tooth, as the Bear's and the Tiger's are. Their butchery is C&C's Raw Meat, the crab's too
-(AUDIT FB1021 L2-2: this said Raw Fish, against PROF7's own law - C&C's corpse gives every Animal body Raw Meat, and the
-Slaughterfish alone Raw Fish), and each cures by the tier law to Cured Leather. The Land Dreugh takes the Dreugh's row
-whole, so no butchery: a departure from C&C, whose corpse feeds its body. The Hell Hound is the mod's Daedra (its
-Affinity), and no daedra is skinned. The Wolf Pelt and the Boar Hide are furs, so the furniture's skins (9.3: "a fur's
-hide") cut from them as from the four pelts - four recipes (AUDIT FB1021 L2-3: this said they stay the four, so no recipe
-was added, which left a Wolf Pelt only its cure); the chitin cuts none.
+AT THE MERGE. Main merged its own DEX-HIDES before this branch (`01-Overview/bugs/Field-Bugs-2026-10-20h.md`, the same
+thread): the same nine animals, the same keys, and its three hides at 681-683 where this branch had 667, 672 and 676.
+Its build is taken whole and this branch's dropped (`fb1021_dexhides.test.js` and its mutants with it): main's ids may
+already stand in a player's Stores, and its laws were this branch's after its audit - the Mudcrab's Raw Meat, the two
+furs cut to skins, the kin's hides. Two of this branch's audit's findings held on main's build too, and are carried
+(pinned in `fb1020h_dexhides.test.js`, mutants in `fb1020h_dexhides.json`):
 
-FIXED. `DEX_MOB` names the nine by the mod's ids, a static table as `MOB` is, so the account service skins them with no
-registry of the mod's. With the mod off no table rolls them. The three new hides stand among the ten BY TIER (Mudcrab
-Chitin after the Rat Pelt, Wolf Pelt and Boar Hide first of tier 2): a chain's works stand cheapest first (`chainLaw.js`
-`producersOf`, CRAFT1's fact - AUDIT FB1021 L2-5: this cited `recipeLaw.js`), and the loom's cures follow the table.
-Within tier 2 the spare pelts stand before Bat Leather and the Bear Hide (AUDIT FB1021 L2-1: placed after the Bear Hide, a
-chain for 4 Cured Leather from 8 of each spent all 8 Bear Hides - the Ram Kit's input - and no Wolf Pelt, which then had
-no other use); the Rat Pelt stays first of all, as a lenient chain names `works[0]`. So `BEAR_HIDE` is found by its key,
-no longer by its place. The templates register as the ten's do (`profTemplates.js` HIDE_TEMPLATE_ROWS). The Stores count
-"3 Wolf Pelts", "3 Boar Hides" and "3 Mudcrab Chitin" (a mass, as the Scorpion's). Hunting's page names each on its tier's
-line, in every language the catalog drafts.
+- the Bear Hide's cure stands LAST of its tier (AUDIT FB1021 L2-1): main stood it before the Wolf Pelt and the Boar Hide,
+  so a chain for 4 Cured Leather from 8 of each spent all 8 Bear Hides - the Ram Kit's input - and no pelt;
+- the Stores count "3 Mudcrab Chitin", a mass, as the Scorpion's ("3 Mudcrab Chitins" on main).
+
+The Land Dreugh shares the Dreugh's row whole on main too, so no butchery: a departure from C&C, whose corpse feeds its
+body (AUDIT FB1021 L2-2), written into Professions-Arc 4.4.
 
 ## OFFLINE-ROAD: online an errand keeps the world's time (3)
 
@@ -213,13 +200,8 @@ BIOME PRECIPITATION row says the height alone now. Section C has no row these to
   other lane taken for the rebuild, never sent to the skin, both turns, once, a turn onto the lane once the window stands;
   why the skin cannot serve; the world's wiring). AUDIT FB1021 L1-5: THE CHUNK holds a whole cover whole across the pixel
   at every second world tile (it read four places, and a cover held to 0.98 passed them).
-- `test/net/fb1021_dexhides.test.js` (7): THE LAW over the mod's own MonsterBase table (every Animal row skinned to its hide,
-  every other row none, the three new hides at 667, 672 and 676, registered, the table by tier); THE PRODUCER (the mod
-  installed, its foes minted as the game mints them, stamped at the kill, "Skin the Bat", "Skin the Wolf" and the rest; the
-  Hell Hound none); THE SERVICE (the account service skins a Wolf to a Wolf Pelt and a Bat to Bat Leather into the Stores,
-  and refuses the Hell Hound, `prof-foe`); THE PAGE (each hide on its tier's line). AUDIT FB1021 (3): A CHAIN SPENDS THE
-  SPARE PELTS FIRST (L2-1); THE BUTCHERY IS C&C'S OWN (L2-2, every one of the nine against C&C's own corpse); THE PELTS AND
-  THE PICTURES (L2-3, L2-6: the two furs cut, the chitin not; each new hide's icon).
+- DEX-HIDES (main's, FIELD BUGS 2026-10-20h): `test/net/fb1020h_dexhides.test.js`, and this branch's AUDIT FB1021 test
+  in it: THE RAM KIT'S HIDE SPENT LAST (L2-1, a chain over held hides; the Mudcrab Chitin a mass).
 - `test/systems/revenant/fb1021_offlineroad.test.js` (8): THE LAW (`errandOnWorld`'s minute, its `due` taken from its
   minutes left, the clamp, never before it set out, `due` carried by a send online and kept by a save); THE ROAD WHILE AWAY
   (sent online, ten days raised carry it not a minute; a logout, half a real day away, half left at the first frame of the
@@ -229,8 +211,8 @@ BIOME PRECIPITATION row says the height alone now. Section C has no row these to
   RAISE ACROSS THE FIRST TRUSTED WAKE IS NEVER PAID (L3-2); THE PRODUCER'S SHAPES (L3-3: a fractional world minute, an
   Undying Vigil's road, a send offline); THE WORDS ONLINE ARE REAL TIME (L3-5).
 
-Mutants: `tools/mutants/fb1021_snowface.json` (6), `fb1021_dexhides.json` (12), `fb1021_offlineroad.json` (19) - all
-dead, the audit's with them (it was 4, 6 and 8), and three of PRECIP4's own lines the audit pinned in `precip1.json`
+Mutants: `tools/mutants/fb1021_snowface.json` (6), `fb1021_offlineroad.json` (19) - all dead, the audit's with them (it
+was 4 and 8); two in main's `fb1020h_dexhides.json` (the Bear Hide in the table's place, the chitin counted); and three of PRECIP4's own lines the audit pinned in `precip1.json`
 (AUDIT FB1021 L1-6: the blade's shift, the feet's height, the laid snow's footprint).
 
 PINS MOVED.
@@ -241,29 +223,23 @@ PINS MOVED.
 - `waterpuddle.test.js`: the puddle's mask reads the ground's cover with no normal (it handed the chunk an upward one).
 - `snowbudget.test.js`: SNOW-BUDGET's "the slope read only under snow" is "no height asked, summer or winter" - its purpose,
   no stream reads for the grass, held whole.
-- `prof7_law.test.js`, `prof7_client.test.js`, `craft1_chain.test.js`, `prof4_law.test.js`: the hides' table, the templates,
-  the loom's cures and the chain's works with the three new hides in their places by tier.
-- `l10n4_hardcoded.test.js`: the ratchet's `professionLaw.js` +3 and `profItems.js` +1, the three hides' canonical names (an
-  item's canonical name is its row's, as the ten's beside them).
+- `prof7_law.test.js`, `craft1_chain.test.js` and `fb1020h_dexhides.test.js` (main's, at the merge): the loom's cures and
+  the chain's works with the Bear Hide last of tier 2 (AUDIT FB1021 L2-1).
+- `l10n4_hardcoded.test.js`: the ratchet's `profItems.js` +1, the Mudcrab Chitin's mass noun.
 - `rvnerrand.test.js`: the page's offline negative reads the new online word. AUDIT RVN F1's own pin is unchanged and still
   passes: it runs on a shared clock not yet heard, which is the lived step's case now.
 - By the audit (AUDIT FB1021): `precip4_snowground.test.js` THE HOST - a pixel built off the lane is not marked before the
   window stands (L1-1), and `buries` takes no scene x and z (L1-8); `snowbudget.test.js`'s host takes no `heightAt` and
-  records its rebuilds (L1-8); `prof7_law.test.js`, `prof7_client.test.js` and `craft1_chain.test.js` - tier 2's spare
-  pelts first (L2-1), the Mudcrab's Raw Meat (L2-2), six pelts' skins (L2-3); `craft2_patterns.test.js`'s measure, 667
-  recipes paying a first and 565 firsts (four more skins, L2-3).
+  records its rebuilds (L1-8).
 
 Mutant records retired with the slope: `audit_precip.json` AUDIT-PRECIP-GROUND-3-the-cpu-s-slope-unread, `precip1.json`
 PRECIP4-the-slope-unread, `snowbudget.json` SB-the-slope-read-first. The law they killed is gone. Re-aimed by content, all
 dead: `audit_precip.json` HOST-9-the-stream-s-ground (the blade's own height dropped, since there is no stream ground in
 the host now), GROUND-9's three (the snow's chunk with no normal), `precip1.json` PRECIP4-the-turn-unmarked (at
-`markRebuild`), `prof7.json` PROF7-spider-cured (the row names the Blood Spider), `rvnerrand.json` RVN-ERRAND-days-unread
+`markRebuild`), `rvnerrand.json` RVN-ERRAND-days-unread
 (the road's length, one line above where it stood).
 
-Translations: Hunting's tiers 1 and 2 and the sheet's online word, drafted in-session (`tools/l10nInSession.mjs`) for the
-thirteen languages the catalog covers and for Finnish's and Japanese's two rows of the three, each reusing the language's
-own names for the kin (its "Wolf", "Boar" and "Mudcrab" from the mod's names). By the audit: the sheet's online word with its hours read
-from the wire (`{h}`), the errand's real minutes and hours left (`rvn.errand.left.realMinutes`, `realHours`), Outfitting's
-skins line naming the two new furs, and the Mudcrab's chitin in each language's own chitin word (AUDIT FB1021 L2-7: de
-"Schlammkrabbenchitin", cs "Chitin bahenního kraba", ja "マッドクラブのキチン質", ko "진흙게 껍질", as each says the
-Scorpion's).
+Translations: the sheet's online word with its hours read from the wire (`{h}`) and the errand's real minutes and hours
+left (`rvn.errand.left.realMinutes`, `realHours`), drafted in-session (`tools/l10nInSession.mjs`) for the thirteen
+languages the catalog covers. Hunting's and Outfitting's rows are main's (FIELD BUGS 2026-10-20h), taken at the merge: its
+chitin words were already each language's own (AUDIT FB1021 L2-7 found this branch's were not).
