@@ -807,9 +807,11 @@ export function createComeSailAwayPool({ renderer = null, pipeline = null, fetch
         const size = bb.Summary.Size, w = size[0], h = size[1];
         if (!(w > 0 && h > 0)) continue;
         // BOAT-OWN (bible/07-Rendering/Performance-Priority.md): held, a flat she stood when she was walked keeps the scale
-        // that frame found (nothing scales a node of hers between her lives - her Animators step only as she lives) and
-        // only its place is made (placedAt: placed()'s own translation, to the bit) - neither the whole product nor its
-        // world rotation's climb, a flat a frame
+        // that frame found and only its place is made (placedAt: placed()'s own translation, to the bit) - neither the
+        // whole product nor its world rotation's climb, a flat a frame. Its place and its size are both her held walk's:
+        // an Animator of hers may step on a frame that holds her (mine on createBoatLives' stride, a peer's on
+        // comeSailAwayPeers.js's, neither this walk's) and move or scale a node, and her flat takes neither until her next
+        // life - as its place never did
         const kept = e.at === walk.stamp;
         const m = kept ? placedAt(recs[i]) : placed(recs[i]);   // PERF-SAILS2: a flat's matrix made as it is read
         let b = flats.get(n);

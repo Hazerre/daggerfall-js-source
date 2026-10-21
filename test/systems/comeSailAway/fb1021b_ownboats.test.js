@@ -22,6 +22,7 @@ import { HULL } from '../../../src/systems/naval/navalShips.js';
 import { PrefabNode } from '../../../src/world/prefabNode.js';
 import { invertAffine } from '../../../src/world/prefabColliders.js';
 import { multiply } from '../../../src/world/mat4.js';
+import { liveryCode, LIVERY_ARCHIVE } from '../../../src/systems/naval/shipLivery.js';
 
 const D = 0.02;
 const close = (a, b) => Math.abs(a - b) < 1e-9;
@@ -125,15 +126,18 @@ const fileFetch = async (url) => {
   const bytes = readFileSync(fileURLToPath(url));
   return { ok: true, json: async () => JSON.parse(bytes.toString('utf8')), arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.length) };
 };
-const texture = () => ({ recordCount: 100, getSize: () => ({ width: 40, height: 64 }), getScale: () => ({ width: 0, height: 0 }) });
-const standInPipeline = () => ({ textureFiles: { get: () => texture() }, cpuModels: new Map(), gpuMeshes: new Map(), getTexture: async () => texture(), uploadRecord() {}, getGpuMesh: async (id) => ({ classic: id }) });
+const plank = { width: 4, height: 4, data: new Uint8Array(16).fill(9) };   // every record a 4 x 4 plank (shiplivery.test.js's), for her paint
+const texture = () => ({ recordCount: 100, getSize: () => ({ width: 40, height: 64 }), getScale: () => ({ width: 0, height: 0 }), getDFBitmap: () => plank });
+const standInPipeline = () => ({ textureFiles: { get: () => texture() }, cpuModels: new Map(), gpuMeshes: new Map(), getTexture: async () => texture(), uploadRecord() {}, getGpuMesh: async (id) => ({ classic: id }),
+  palette: { getRed: (i) => i * 10, getGreen: (i) => i * 8, getBlue: (i) => i * 6 } });
 const settle = () => new Promise((r) => setTimeout(r, 5));
-/** fb1021_boats.test.js's pool: a renderer that records each draw (its mesh and matrix) and each flat it stands. */
+/** fb1021_boats.test.js's pool: a renderer that records each draw (its mesh, matrix and remap - her paint) and each flat it
+ *  stands, and takes a livery's pictures (the paint shop's upload). */
 async function recordingPool() {
   const log = { drawn: [], flats: [] };
   const renderer = {
     createMesh: (model) => ({ model, buffers: [{}, {}], bounds: [0, 0, 0, 0], subMeshes: model.subMeshes.map((s) => ({ ...s })) }),
-    drawMesh: (mesh, matrix) => log.drawn.push({ mesh, matrix: Float32Array.from(matrix) }), updateMeshVertices() {},
+    drawMesh: (mesh, matrix, remap) => log.drawn.push({ mesh, matrix: Float32Array.from(matrix), remap }), updateMeshVertices() {}, uploadTexture() {},
     createBillboardBatch: (a, rec, size) => { const b = { a, rec, size }; log.flats.push(b); return b; }, destroyBillboardBatch() {}, destroyMesh() {},
   };
   const pool = createComeSailAwayPool({ renderer, pipeline: standInPipeline(), fetchFn: fileFetch, log: { warn() {} } });
@@ -185,13 +189,16 @@ function walkedIn(boat, fn) {
 }
 /** The meshes a draw drew, counted by identity. */
 const meshCount = (drawn) => { const m = new Map(); for (const d of drawn) m.set(d.mesh, (m.get(d.mesh) ?? 0) + 1); return m; };
+/** The remap each mesh a draw drew was drawn by, and whether a remap carries a livery's paint. */
+const remapOf = (drawn) => new Map(drawn.map((d) => [d.mesh, d.remap]));
+const painted = (remap) => !!remap && [...remap.values()].some((v) => String(v).startsWith(`${LIVERY_ARCHIVE}_`));
 const near = (a, b, eps = 1e-3) => a.length === b.length && [...a].every((v, i) => Math.abs(v - b[i]) < eps);
 
-test('HELD-DRAW: a held boat\'s parts are the ones her walk\'s draw found - on a frame that holds her the draw reads none of her renderers and draws the very meshes it drew when she was walked, each where it stands now; a near boat\'s are read every frame, and her parts drawn where they stand as she sails; a list made over an older walk is made again (the frame that walked her drew nothing), and before any frame every draw reads her (mutants: the held list never drawn from, a list kept past her walk, a draw-made walk\'s list kept)', async () => {
+test('HELD-DRAW: a held boat\'s parts are the ones her walk\'s draw found - on a frame that holds her the draw reads none of her renderers and draws the very meshes it drew when she was walked, each where it stands now and in her livery as it drew them; a near boat\'s are read every frame, and her parts drawn where they stand as she sails; a list made over an older walk is made again (the frame that walked her drew nothing), and before any frame every draw reads her (mutants: the held list never drawn from, a list kept past her walk, a draw-made walk\'s list kept, the held parts\' paint dropped)', async () => {
   const { pool, log } = await recordingPool();
   const world = { cityLightsOn: true, playerPosition: [0, 0, 0] };
   const nearB = pool.spawnSeaNow(new Boat(HULL.SmallShip, 0)); nearB.GameObject.position = [0, 0, -50];
-  const far = pool.spawnSeaNow(new Boat(HULL.LargeGalley, 0)); far.GameObject.position = [0, 0, -1000];
+  const far = pool.spawnSeaNow(Object.assign(new Boat(HULL.LargeGalley, 0), { livery: liveryCode({ stain: 3, sail: 7 }) })); far.GameObject.position = [0, 0, -1000];   // SHIP-LIVERY: her planks stained, her sails tinted
   for (let i = 0; i < STILL_FRAMES * 2; i++) { pool.frame(1 / 60, world); pool.draw(); await settle(); }
   const nr = rendererReads(pool, nearB), fr = rendererReads(pool, far);
   const sail = () => {
@@ -200,7 +207,7 @@ test('HELD-DRAW: a held boat\'s parts are the ones her walk\'s draw found - on a
   };
   const hers = (d) => Math.abs(d.matrix[14] - far.GameObject.position[2]) < 150;
   const nearOnes = (d) => Math.abs(d.matrix[14] - nearB.GameObject.position[2]) < 30;
-  let lastWalked = null;
+  let lastWalked = null, lastPaint = null;
   for (let f = 0; f < FAR_LIFE_EVERY * 3; f++) {
     sail();
     const walked = walkedIn(far, () => pool.frame(1 / 60, world));
@@ -213,11 +220,14 @@ test('HELD-DRAW: a held boat\'s parts are the ones her walk\'s draw found - on a
     const nearAlone = log.drawn.filter((d) => nearOnes(d) && d.mesh !== batchMesh);
     assert.ok(nearAlone.length > 0, `near (${f}): parts of hers drawn on their own`);
     for (const d of nearAlone) assert.ok(nearPlan.parts.some((e) => e.gpu === d.mesh && near(d.matrix, e.node.worldMatrix())), `near (${f}): each where its node stands as she sails`);
-    const mine = meshCount(log.drawn.filter(hers));
-    if (walked) { assert.ok(farReads > 0, `far (${f}), walked: her renderers read`); lastWalked = mine; continue; }
+    const mine = meshCount(log.drawn.filter(hers)), paint = remapOf(log.drawn.filter(hers));
+    const alone = new Set(pool.walkOf(far).draws.alone.map((e) => e.gpu));
+    assert.ok(log.drawn.some((d) => hers(d) && alone.has(d.mesh) && painted(d.remap)), `far (${f}): her livery on a part of hers drawn on its own`);
+    if (walked) { assert.ok(farReads > 0, `far (${f}), walked: her renderers read`); lastWalked = mine; lastPaint = paint; continue; }
     assert.equal(farReads, 0, `far (${f}), held: none of her renderers read`);
     if (!lastWalked) continue;   // held before the first walk this loop saw: read by the walk before it
     assert.deepEqual([...mine.entries()], [...lastWalked.entries()], `far (${f}), held: the very meshes her walk's draw drew`);
+    for (const [mesh, remap] of paint) assert.equal(remap, lastPaint.get(mesh), `far (${f}), held: each in the very remap her walk's draw drew it by`);
   }
   // a part switched off while she is held is read as she lives - and a list made over an older walk is not drawn from:
   // the frame that walks her again draws nothing, the next draw (holding her) reads her parts again
@@ -245,7 +255,7 @@ test('HELD-DRAW: a held boat\'s parts are the ones her walk\'s draw found - on a
   assert.ok(r.during(() => fresh.pool.draw()) > 0, 'and the next one too');
 });
 
-test('HELD-FLATS: a held boat\'s flat keeps the scale the frame that walked her found and only its place is made - to the bit where placed() stands it (her hull\'s move times her walk\'s matrix), its world rotation never climbed; a flat scaled while she is held keeps its size until her next life, then takes it, as before (mutants: the held scale never kept, kept past her walk, a term of the place, the place unrounded)', async () => {
+test('HELD-FLATS: a held boat\'s flat keeps the scale the frame that walked her found and only its place is made - to the bit where placed() stands it (her hull\'s move times her walk\'s matrix), its world rotation never climbed; a flat scaled while she is held keeps its size until her next life, then takes it, as before - its height by its own height\'s scale, not its width\'s (mutants: the held scale never kept, kept past her walk, a term of the place, the place unrounded, the height off the width\'s scale)', async () => {
   const { pool } = await recordingPool();
   const world = { cityLightsOn: true, playerPosition: [0, 0, 0] };
   const far = pool.spawnSeaNow(new Boat(HULL.SmallShip, 0)); far.GameObject.position = [0, 0, -1000];
@@ -285,12 +295,12 @@ test('HELD-FLATS: a held boat\'s flat keeps the scale the frame that walked her 
   assert.ok(until((w) => !w), 'then held');
   const sizes = () => pool.batches().map((b) => b.size.h);
   const before = sizes();
-  flats.find((e) => e.r?.m_Enabled !== false && e.bb.Summary.Size[0] > 0).node.localScale = [2, 2, 2];
+  flats.find((e) => e.r?.m_Enabled !== false && e.bb.Summary.Size[0] > 0).node.localScale = [2, 3, 2];   // stretched: her height three times, her width twice
   for (let i = 0; i < FAR_LIFE_EVERY; i++) {
     sail(i);
     if (walkedIn(far, () => pool.frame(1 / 60, world))) {
-      const now = sizes(), grown = now.filter((h, k) => Math.abs(h - 2 * before[k]) < 1e-4);
-      assert.equal(grown.length, 1, `her next life: the scaled flat its own size, twice its walk's (${before} -> ${now})`);
+      const now = sizes(), grown = now.filter((h, k) => Math.abs(h - 3 * before[k]) < 1e-4);
+      assert.equal(grown.length, 1, `her next life: the scaled flat its own height, three times its walk's (${before} -> ${now})`);
       assert.equal(now.filter((h, k) => Math.abs(h - before[k]) < 1e-5).length, before.length - 1, 'every other as it was (found again from her new walk: the same to a float\'s last places)');
       return;
     }

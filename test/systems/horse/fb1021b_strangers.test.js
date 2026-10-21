@@ -62,15 +62,15 @@ const LOOK_PZ = new Float32Array([-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0,
 const EYE = [0, 0, 0];
 
 /** The road's teams on the Morrowind lane (the real rig), and one host frame: their sync (the frame's eye `eye`) and
- *  the body pass's 3D horses through `view` (and `lens` the pass's projection). */
+ *  the body pass's 3D horses through `view` (and `p` the pass's projection, `passEye` its eye). */
 async function roadStage() {
   const r = recordingRenderer();
   const rig = await rigOn(r);
   const teams = createRoadTeams({ renderer: r, presentation: () => null, horses3d: () => rig });
-  const frame = (horses, view, { eye = [0, 1.7, 0], p = proj } = {}) => {
+  const frame = (horses, view, { eye = [0, 1.7, 0], p = proj, passEye = EYE } = {}) => {
     rig.tick();
     teams.sync(horses, [], { dt: 1 / 60, eye });
-    return teams.draw3d(canvas, { proj: p, view, eye: EYE });
+    return teams.draw3d(canvas, { proj: p, view, eye: passEye });
   };
   return { r, rig, teams, frame };
 }
@@ -102,7 +102,22 @@ test('HORSE-VIEW II the road\'s strangers: a stranger\'s 3D horse out of the las
   assert.deepEqual(kinds(hidden.r), ['pose', 'draw']);
 });
 
-test('HORSE-VIEW II the road\'s cadence: in the view a stranger\'s horse is posed on the peers\' bodies\' cadence by how far it looks from the camera that draws it - every frame within 10 m, every second to 25 (along the ground), every third past it, two at one distance on different frames; through the spyglass at x8 one 76 m off every frame; before any body pass, from the frame\'s own eye (mutants: the phase dropped; the frames uncounted; the pass\'s lens never kept; the frame\'s eye unread)', async () => {
+test('HORSE-VIEW II (AUDIT) the road\'s strangers: a horse out of the last body pass\'s view that MOVES into it - a jump, judged in by the very camera that judged it out, so the draw\'s `fresh` never catches it - is posed as it comes in, on every frame of its cadence (40 m: every third), in the very pose an always-seen horse shows that frame; before, on two frames of three it was drawn in the pose it had when last seen (mutants: the law\'s last answer unread; the road\'s not handed)', async () => {
+  const K = 60;
+  for (let late = 0; late < 3; late++) {
+    const seen = await roadStage(), jump = await roadStage();
+    for (let f = 0; f <= K + late; f++) {
+      if (f === K + late) { seen.r.log.length = 0; jump.r.log.length = 0; }
+      assert.equal(seen.frame([horseAt('p0:h0', [-2, 0, 6])], LOOK_PZ), 1);
+      const at = f < K + late ? 40 : -40;   // 40 m behind the -z look, then 40 m ahead of it
+      assert.equal(jump.frame([horseAt('p0:h0', [0, 0, at])], LOOK_NZ), at < 0 ? 1 : 0, `frame ${f}: ${at < 0 ? 'come into the view, drawn' : 'behind the eye'}`);
+    }
+    assert.deepEqual(kinds(jump.r), ['pose', 'draw'], `come in ${late} frame(s) later: posed, then drawn - its cadence skips it`);
+    assert.deepEqual(jump.r.log.find((x) => x.up).pal, seen.r.log.find((x) => x.up).pal, 'in the pose the clock stands at - an every-frame horse\'s');
+  }
+});
+
+test('HORSE-VIEW II the road\'s cadence: in the view a stranger\'s horse is posed on the peers\' bodies\' cadence by how far it looks from the camera that draws it - every frame within 10 m, every second to 25 (along the ground), every third past it, two at one distance on different frames; from the pass\'s eye - the boom 8 m behind the head - not the frame\'s; through the spyglass at x8 one 76 m off every frame; before any body pass, from the frame\'s own eye (mutants: the phase dropped; the frames uncounted; the pass\'s eye never kept; the pass\'s lens never kept; the frame\'s eye unread)', async () => {
   const s = await roadStage();
   const at = { 'a:h0': [0, 0, -5], 'b:h0': [0, 10, -24], 'c:h0': [-3, 0, -60], 'd:h0': [3, 0, -60] };
   const keys = Object.keys(at);
@@ -124,6 +139,12 @@ test('HORSE-VIEW II the road\'s cadence: in the view a stranger\'s horse is pose
   const frames = posedOn(12, LOOK_NZ);
   assert.deepEqual(keys.map((k) => frames.get(k).length), [12, 6, 4, 4], '5 m every frame; 24 m along the ground (26 through the air) every second; 60 m every third');
   assert.notDeepEqual(frames.get('c:h0'), frames.get('d:h0'), 'two at one distance on different frames (each horse its phase)');
+  // the pass's eye, not the frame's: the boom drawn out 8 m behind the head (player/mwCamera.js, to 11.4) - the near one 5 m from
+  // the head and 13 from the lens, every second frame; the rest past 25 m from either
+  const BOOM = [0, 1.7, 8], LOOK_BOOM = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -1.7, -8, 1]);
+  s.frame(list(), LOOK_BOOM, { passEye: BOOM });   // the pass's eye kept, for the next frame's poses
+  const boomed = posedOn(12, LOOK_BOOM, { passEye: BOOM });
+  assert.deepEqual(keys.map((k) => boomed.get(k).length), [6, 4, 4, 4], 'from the boom: 13 m every second, 32 m and 68 m every third - not the head\'s 5 m');
   // the spyglass at x8 (world.js glassFov over the frame's own lens): 76 m drawn as 9.5 m - every frame
   const glass = perspective(glassFov(fieldOfView(), 8), 1280 / 720, 0.1, 1000);
   at['c:h0'] = [0, 0, -76]; at['d:h0'] = [1, 0, -76];

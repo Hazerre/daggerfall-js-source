@@ -183,6 +183,22 @@ test('HORSE-VIEW the pool: a peer\'s horse out of the last body pass\'s view is 
   assert.deepEqual(hidden.r.log.map((x) => (x.up ? 'pose' : 'draw')), ['pose', 'draw'], 'veiled: posed, then drawn');
 });
 
+test('HORSE-VIEW II (AUDIT) the pool: a peer\'s horse out of the last body pass\'s view that MOVES into it - a jump past the ease\'s snap, judged in by the very camera that judged it out, so the draw\'s `fresh` never catches it - is posed as it comes in, on every frame of its cadence (40 m: every third), in the very pose an always-seen horse shows that frame (mutant: the pool\'s last answer not handed)', async () => {
+  const K = 60;
+  for (let late = 0; late < 3; late++) {
+    const seen = await poolStage(), jump = await poolStage();
+    for (let f = 0; f <= K + late; f++) {
+      if (f === K + late) { seen.r.log.length = 0; jump.r.log.length = 0; }
+      const z = f < K + late ? 40 : -40;   // 40 m behind the -z look, then 40 m ahead of it
+      seen.pool.applyOwner('peer-0', { h: [-2, 0, 6, 1, 0, 1] }); jump.pool.applyOwner('peer-0', { h: [0, 0, z, 1, 0, 1] });
+      assert.equal(hostFrame(seen, LOOK_PZ), 1);
+      assert.equal(hostFrame(jump, LOOK_NZ), z < 0 ? 1 : 0, `frame ${f}: ${z < 0 ? 'come into the view, drawn' : 'behind the eye'}`);
+    }
+    assert.deepEqual(jump.r.log.map((x) => (x.up ? 'pose' : 'draw')), ['pose', 'draw'], `come in ${late} frame(s) later: posed, then drawn - its cadence skips it`);
+    assert.deepEqual(jump.r.log[0].pal, seen.r.log.find((x) => x.up).pal, 'in the pose the clock stands at - an every-frame horse\'s');
+  }
+});
+
 test('HORSE-VIEW the pool\'s cadence: in the view a horse is posed on the peers\' bodies\' cadence by its horizontal distance from the eye - every frame within 10 m, every second to 25, every third past it - staggered so two at one distance pose on different frames; before any body pass every horse held seen, on the cadence from the frame\'s own eye; no eye at all, every frame (mutants: the cadence dropped; the phase dropped; the distance\'s axis; the view\'s test before any pass; the frame\'s eye before any pass; no eye never posed)', async () => {
   const s = await poolStage();
   const at = { near: [0, 0, -5], mid: [0, 10, -24], far: [-3, 0, -60], far2: [3, 0, -60] };   // `mid` 10 m up: 26 m off as the crow flies, 24 along the ground

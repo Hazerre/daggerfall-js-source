@@ -69,7 +69,7 @@ export function farLifeStep(life, dt, pos, eye) {
 export function farTreeStep(life, dt, root, pos, eye) {
   const shape = prefabShapeStamp(root), on = prefabSwitchStamp(root);
   const lived = farLifeStep(life, dt, life.shape === shape && life.on === on ? pos : null, eye);
-  if (lived !== null) { life.shape = shape; life.on = on; }
+  life.shape = shape; life.on = on;   // held, she stood at both already: only a ship whose stamps read as kept is judged by range
   return lived;
 }
 
@@ -94,8 +94,8 @@ export function createBoatLives({ eye = () => null } = {}) {
       for (const boat of boats) {
         let life = lives.get(boat);
         if (!life) { life = { ...farLife(seq++), lived: null }; lives.set(boat, life); }
-        const root = boat.GameObject;
-        life.lived = farTreeStep(life, dt, root, root.parent ? root.position : root.localPosition, at);
+        const root = boat.GameObject;   // SpawnBoat's 'Boat', hung under nothing: her local place is where she stands
+        life.lived = farTreeStep(life, dt, root, root.localPosition, at);
         if (life.lived !== null) for (const a of boatAnimators(boat)) a.update(life.lived);
       }
     },

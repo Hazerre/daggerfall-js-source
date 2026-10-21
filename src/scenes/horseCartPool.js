@@ -748,7 +748,7 @@ export function createHorseCartPool({
       const yaw = Math.atan2(h.forward[0], h.forward[2]);
       rig.step(e.horse, { feet: h.position, yaw, speed: e.speed, dt, look: lookOfOwner(owner), pose: false });
       if (g !== 1) rig.place(e.horse, h.position, yaw, g);
-      e.out = poseWhereSeen(rig, e.horse, h.position, cam, _eye, _frameNo, e.phase);   // HORSE-VIEW: posed in the last pass's view, on its cadence
+      e.out = poseWhereSeen(rig, e.horse, h.position, cam, _eye, _frameNo, e.phase, e.out);   // HORSE-VIEW: posed in the last pass's view, on its cadence - and as it comes into it (HORSE-VIEW II's audit)
       e.frame = _frameNo; e.conceal = owner ? conceal : null;
     }
   }

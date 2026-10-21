@@ -18,8 +18,9 @@
 // HORSE-VIEW II (2026-10-21, bible/07-Rendering/Performance-Priority.md): on the Morrowind lane a stranger's 3D horse
 // steps its gait every frame and is posed as the Horse Cart pool's are (world/horseView.js poseWhereSeen) - in the last
 // body pass's view (draw3d's camera, one frame behind), on the peers' bodies' cadence by how far it looks from that
-// camera; one skipped out of the view is caught up by the draw as the view swings onto it (`fresh`). Every one of them,
-// out of the view and at any range, was posed and its palette sent every frame.
+// camera; one skipped out of the view is caught up by the draw as the view swings onto it (`fresh`), and one that moves
+// into it by the next sync (its last `out` handed back to the law - the audit's). Every one of them, out of the view and
+// at any range, was posed and its palette sent every frame.
 import { mat4FromQuatPos, quatLookRotation } from '../quat.js';
 import { usableBounds } from '../../systems/wagon/wagon41214.js';
 import { boxTriangles, HORSE_ARCHIVE, horseStillRecord, HORSE_BILLBOARD_WIDTH, HORSE_BILLBOARD_HEIGHT } from '../../scenes/horseCartPool.js';
@@ -121,7 +122,7 @@ export function createRoadTeams({ renderer, presentation, collider = () => null,
         if (!s.h3) continue;
         rig.step(s.h3, { feet: h.feet, yaw: h.yaw, speed: h.moving ? h.speed : 0, dt, look: s.look, pose: false });   // HORSE-VIEW II: its gait every frame, its pose where it is seen
         if (grow > 1) rig.place(s.h3, h.feet, h.yaw, grow);
-        s.out = poseWhereSeen(rig, s.h3, h.feet, cam3d, eye, frameNo, s.phase);
+        s.out = poseWhereSeen(rig, s.h3, h.feet, cam3d, eye, frameNo, s.phase, s.out);   // out when last judged: posed as it comes in
         drawn3d.push(s);
         continue;
       }

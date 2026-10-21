@@ -2,8 +2,8 @@
   {
     "name": "BO-tree-stamps-never-kept",
     "file": "src/scenes/comeSailAway/farLife.js",
-    "old": "  if (lived !== null) { life.shape = shape; life.on = on; }\n",
-    "new": "",
+    "old": "  life.shape = shape; life.on = on;   // held",
+    "new": "  // held",
     "tests": [
       "test/systems/comeSailAway/fb1021b_ownboats.test.js"
     ]
@@ -11,8 +11,8 @@
   {
     "name": "BO-lives-eye-unread",
     "file": "src/scenes/comeSailAway/farLife.js",
-    "old": "root.parent ? root.position : root.localPosition, at);",
-    "new": "root.parent ? root.position : root.localPosition, null);",
+    "old": "root, root.localPosition, at);",
+    "new": "root, root.localPosition, null);",
     "tests": [
       "test/systems/comeSailAway/fb1021b_ownboats.test.js"
     ]
@@ -20,7 +20,7 @@
   {
     "name": "BO-lives-range-unread",
     "file": "src/scenes/comeSailAway/farLife.js",
-    "old": "life.lived = farTreeStep(life, dt, root, root.parent ? root.position : root.localPosition, at);",
+    "old": "life.lived = farTreeStep(life, dt, root, root.localPosition, at);",
     "new": "life.lived = farTreeStep(life, dt, root, null, at);",
     "tests": [
       "test/systems/comeSailAway/fb1021b_ownboats.test.js"
@@ -217,5 +217,34 @@
     "tests": [
       "test/systems/comeSailAway/fb1021b_ownboats.test.js"
     ]
+  },
+  {
+    "name": "HD-AUDIT-held-paint-dropped",
+    "file": "src/scenes/comeSailAway/comeSailAwayPool.js",
+    "old": "for (const e of list.alone) one(e.gpu, placed(recs[e.i]), paint);",
+    "new": "for (const e of list.alone) one(e.gpu, placed(recs[e.i]));",
+    "tests": [
+      "test/systems/comeSailAway/fb1021b_ownboats.test.js"
+    ]
+  },
+  {
+    "name": "HF-AUDIT-height-off-the-width",
+    "file": "src/scenes/comeSailAway/comeSailAwayPool.js",
+    "old": "e.sy = Math.abs(s[1]); e.at = walk.stamp; }",
+    "new": "e.sy = Math.abs(s[0]); e.at = walk.stamp; }",
+    "tests": [
+      "test/systems/comeSailAway/fb1021b_ownboats.test.js"
+    ]
+  },
+  {
+    "name": "HF-AUDIT-place-zero-dropped",
+    "file": "src/scenes/comeSailAway/comeSailAwayPool.js",
+    "old": "_placedAt[12 + row] = 0 + a[row] * m[12]",
+    "new": "_placedAt[12 + row] = a[row] * m[12]",
+    "tests": [
+      "test/systems/comeSailAway/fb1021b_ownboats.test.js"
+    ],
+    "equivalent": true,
+    "why": "The leading `0 +` is mat4.js multiply's `let sum = 0`, kept so placedAt reads as the product's column 3 is summed. Dropped, a sum can differ only in a zero's sign, and only where every product before the last is -0 - and the last, the held shift's translation times her walk's homogeneous one (1), is never -0: the shift is multiply's own answer (heldShift), whose sums start at +0 and so never answer -0 (+0 + -0 is +0), and a +0 last term makes a -0 sum +0. Every place is the same float, its sign too - placed()'s, which is what the pin holds."
   }
 ]

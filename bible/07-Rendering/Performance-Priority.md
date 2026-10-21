@@ -76,7 +76,8 @@ stranger teams and the standing horses, still stepped every frame", and BOAT-FAR
 just shipped to what they had not reached: the road's strangers' 3D horses and the standing horses are posed as the
 pool's are (the law its own module now, `world/horseView.js`, read by all three), my own boats' Animators and particle
 systems live by the far law, and a held boat is drawn from what her walk's draw found, her flats keeping the scale her
-walk found. They move the picture as HORSE-VIEW and BOAT-FAR did, no further. Their sections are after BOAT-FAR's.
+walk found. They move the picture as HORSE-VIEW and BOAT-FAR did, no further. Their sections are after BOAT-FAR's, each
+closed by the same day's cold audit (a horse that moves into the view posed as it comes in, and the lines no pin held).
 
 OW-HITCH (2026-10-21, the owner: "Theres still a lot of hitching in the overworld. Can you please fix this properly") is
 the second pass measured IN THE REAL GAME: an Overworld journey over the freeware ARENA2 under one CPU profile, every
@@ -1844,22 +1845,24 @@ horse would stand.
 
 **The fix** (`world/horseView.js`; `roadTeams.js`, `standingHorses.js`, `horseCartPool.js` `pose3dTeam`).
 - **One law.** HORSE-VIEW's law lived in the pool (`pose3dTeam` and its `h3dPoseDue`); it is its own module now,
-  `horseView.js:"export function poseWhereSeen(rig, horse, at, cam, eye, frame, phase) {"` over
+  `horseView.js:"export function poseWhereSeen(rig, horse, at, cam, eye, frame, phase, wasOut = false) {"` over
   `horseView.js:"export function horsePoseDue(frame, phase, at, cam, eye) {"`, and the pool, the road and the standing
   horses read it: no pose out of the camera's view; in it, the peers' bodies' cadence (`poseCadenceFor`) by how far
-  the horse looks from that camera, over its lens (`cadenceD2`, `lensOf`), each horse its own phase; its answer, `out`,
-  handed to the draw as `fresh`. The pool is unchanged: its pins stand as they were, and its mutants, re-aimed into the
-  module, die there.
+  the horse looks from that camera, over its lens (`cadenceD2`, `lensOf`), each horse its own phase - and one come into
+  the view since it was last judged out of it posed then, whatever its cadence says (`wasOut`, the audit below); its
+  answer, `out`, handed to the draw as `fresh` and back to the law the next frame. The pool's pins stand as they were,
+  and its mutants, re-aimed into the module, die there.
 - **The road's strangers.** Every 3D horse's gait steps every frame (`pose: false`) and its pose is judged by the last
-  body pass's camera, as the pool's are: `draw3d` keeps it with its lens (one frame behind), and catches up a horse
-  skipped out of that view as the view swings onto it
-  (`roadTeams.js:"s.out = poseWhereSeen(rig, s.h3, h.feet, cam3d, eye, frameNo, s.phase);"`). Before any pass, from the
-  frame's own eye (the roads' `cam.pos`).
+  body pass's camera, as the pool's are: `draw3d` keeps it with its eye and lens (one frame behind), and catches up a
+  horse skipped out of that view as the view swings onto it; one that moved into the view is posed as the sync judges
+  it in (`roadTeams.js:"s.out = poseWhereSeen(rig, s.h3, h.feet, cam3d, eye, frameNo, s.phase, s.out);"`). Before any
+  pass, from the frame's own eye (the roads' `cam.pos`).
 - **The standing horses.** Every horse that stands steps its idle's clock every frame. `end` judges the view by the
   camera the frame draws through - both hosts hand it the `{ proj, view }` they hand the draw - and the cadence by the
   distance from `begin`'s eye (world.js `mwv.eye`, exterior.js `eye`) over that camera's lens
   (`standingHorses.js:"e.out = poseWhereSeen(rig, e.horse, o.feet, cam ? pass : null, eye, frameNo, e.phase);"`); `draw`
-  draws the ones in the view and catches up one come into it since its last pose (`fresh`). The view test is the rig's
+  draws the ones in the view and catches up one come into it since its last pose (`fresh`) - judged by the camera it
+  is drawn through, however it came into the view, so it hands the law no `wasOut`. The view test is the rig's
   own (`seen`, the draw's box), where it was a ball at the feet of its own (`VIEW_LIFT`, `VIEW_REACH`, gone): a horse
   whose ball was out and whose box was in is drawn now, where it was dropped at the screen's edge.
 
@@ -1907,6 +1910,36 @@ the rig's `seen` and `pose`), `coats3d_horse3d.test.js` (the road's step, `pose:
 the law's pose), all dead - the standing horses' two `fresh` records only once the catch-up was pinned past 10 m (within
 it the cadence poses a horse the frame it comes into the view, so `fresh` had nothing to do); `fb1021_horses.json`'s eight records of the pool's cadence and view re-aimed into
 `horseView.js`, and `standflats.json`'s STAND-HORSE-unseen-stepped onto the standing horses' view.
+
+**AUDIT HORSE-VIEW II (the same day) - a horse that moves into the view is posed as it comes in.** Two findings, each
+paid.
+
+1. *The entry into the view.* The law judged `out` by the last pass's camera at the horse's new place, and the draw's
+   `fresh` caught up only a horse that camera judged out. One out of the view where it stood that moved, between two
+   syncs, into that camera's view - a jump past the pool's ease (`easeToward`'s 20 m snap: a peer's teleport), a team
+   come round the eye - was judged in by the very camera that had judged it out; on a frame its cadence skipped, it was
+   drawn in the pose it had when last seen, however long ago. The audit's probe - the road's stranger 40 m behind the
+   eye, jumped 40 m ahead of it - found it so on four of six frames of entry (every third frame is posed at 40 m). Now
+   the caller hands the law its last answer: a horse judged in that was out when last judged is posed then
+   (`horseView.js:"if (!out && (wasOut || horsePoseDue(frame, phase, at, cam, eye))) rig.pose(horse);"`) - the road's
+   `s.out`, the pool's `e.out`. The standing horses hand none: `end` judges them by the camera they are drawn through,
+   so the draw's `fresh` - the judgement before - catches up one come into the view however it came. The probe again:
+   none of six.
+2. *The road's cadence from the pass's eye, unpinned.* `draw3d` keeps its camera's eye for the next sync's cadence;
+   dropping it (the cadence read from the roads' `cam.pos`) survived every road pin, which put the sync's eye and the
+   pass's at one place along the ground. Pinned now with the boom drawn out 8 m behind the head: a horse 5 m from the
+   head and 13 from the lens is posed every second frame.
+
+What it changes on screen: a horse that comes into the view by moving into it shows the pose an every-frame horse shows
+that frame, as one the view swings onto always did. It costs one pose, the frame it comes in.
+
+Pins: `fb1021b_strangers.test.js` (5) - the road's stranger jumped from behind the eye 40 m into the view on each of
+the three frames of its cadence, posed before it is drawn, in an always-seen horse's pose; the road's cadence from the
+boom. `fb1021_horses.test.js` (9) - the pool's peer's horse the same, past the ease's snap. Mutants:
+`fb1021b_strangers.json`, 25 (five new: the law's last answer unread, the standing horses' default, the road's and the
+pool's last answer not handed, the pass's eye never kept; five re-aimed onto the lines as they read now), all dead.
+Run again round the change: `fb1021_horses.json` 36, `standflats.json` 18, and the road's records of `lw10`,
+`auditlwii2_road` and `perfwagon` (20) - all dead.
 
 ## BOAT-OWN — my own boats live by the far law
 
@@ -1959,6 +1992,19 @@ FB1021-draws-walk-held and FB1021-peer-range-unread onto their lines as they rea
 ST-away-passed-over and `csa_waves.json`'s CSA-F-particles-step-paused onto `createBoatLives`, `hostsplit.json`'s
 runtime ceiling onto 2,780.
 
+**AUDIT BOAT-OWN (the same day).** Two lines of `farLife.js` read more than they decided; each says what it does now,
+and no answer moves.
+1. *Her stamps kept only as she lived.* `farTreeStep` wrote her tree's stamps on a frame she lived alone. A frame that
+   holds her is one whose stamps read as kept - a changed one hands `farLifeStep` no place, and she lives - so there
+   they were written with what they held: the guard is gone (`farLife.js:"life.shape = shape; life.on = on;"`), its
+   mutant (the stamps kept every frame) was the same answer, and BO-tree-stamps-never-kept is re-aimed onto the line.
+2. *A parent no root of mine has.* `createBoatLives` read a boat's place as `root.parent ? root.position :
+   root.localPosition`, the pool's `lifeOf`'s shape; a boat of mine is SpawnBoat's
+   (`comeSailAwayBoat.js:"newBoat.GameObject = new PrefabNode('Boat');"`) and nothing in the tree hangs that root under
+   another node, so the first branch was never taken and its mutant survived every pin. It reads `root.localPosition`,
+   and says why; BO-lives-eye-unread and BO-lives-range-unread are re-aimed onto it. The pool's `lifeOf` has the same
+   branch over roots built the same way, and keeps it: it is not this record's line.
+
 ## HELD-DRAW and HELD-FLATS — a held boat is drawn from what her walk found
 
 *BOAT-FAR's What it still pays, 1 and 3: the draw read a held boat's plan every frame, and her flats were written whole
@@ -1978,16 +2024,24 @@ frame, carried by her move (`placed`), and her still batch is still asked every 
 her frames still and is made when it was. A list made over an older walk is not drawn from (the frame that walked her
 drew nothing), nor one a draw made outside a frame. The departure, past 600 m only: a mesh still loading when she was
 walked (a part's first sight, `meshFor`; the pipeline's classic models) is drawn from her next life, up to three frames
-later; a part's renderer switched on or off while she is held likewise (nothing does so in this tree: `m_Enabled` is
-written as she is built).
+later; a part's renderer switched on or off while she is held likewise. Once she is built, only her crew's flats are
+switched in this tree - `navalCrew.js:"for (const f of flats) { f.was = f.renderer.m_Enabled; f.renderer.m_Enabled = false; }"`
+as a crew stands in their places, and `standDown` puts each back - and the draw passes a flat by, switched or not:
+`syncFlats` reads a flat's `m_Enabled` every frame, held or walked.
 
 **HELD-FLATS** (`comeSailAwayPool.js` `syncFlats`, `placedAt`). A flat she stood on the frame that walked her keeps the
 scale that frame found (`comeSailAwayPool.js:"const kept = e.at === walk.stamp;"`), and only its place is made:
 `comeSailAwayPool.js:"function placedAt(r) {"` is `placed()`'s translation alone - the same products summed in the same
 order, rounded as mat4.js `multiply`'s scratch rounds them - so a held flat stands where it stood, to the bit. Its size
-is her walk's frame's own: nothing scales a node of hers between her lives (her Animators step as she lives), and the
-size a held frame found before came off her held walk's matrix all the same, through the node's live rotation - the
-same to a float's last places. A flat scaled while she is held takes its size from her next life, as before.
+is her walk's frame's own, as its place is: both come from her held walk. Not because nothing moves her nodes between
+her lives - since BOAT-OWN an Animator of hers steps on a stride of its own (mine on `createBoatLives`' `seq`, a peer's
+on `comeSailAwayPeers.js`'s `lifeSeq`, where the pool walks her on its `_lifeSeq`), so it can move or scale a node on a
+frame the pool holds her - but because a held flat is drawn from her walk whole: it takes such a move at her next life,
+its size with its place. The size a held frame found before came off her held walk's matrix too, through the node's
+live rotation - her walk's own to a float's last places, unless an Animator had turned the node since. A flat scaled while
+she is held takes its size from her next life, as before. What a held frame does read live is her still batch's chains
+(`stillBatch`, every frame, held or walked): a part an Animator moves while she is held leaves the batch that frame and
+is drawn on its own, where her walk stood it.
 
 **Measured** (the real pool over the vendored hulls, fb1021_boats.test.js's stand-in renderer, its pictures sized so
 the flats stand; four near and twenty far boats, lit, rolling; ABBA, six runs each, medians, the container under the
@@ -2021,6 +2075,28 @@ change, run again (`fb1021_horses` 36, `fb1021_boats` 37, `fb1011c_seatown` 8, `
 `perfsails1` 8, `perfsails3` 11, `lw10`, `perf_teams` and `auditlwii2_road`'s road records, and the draw's and the
 flats' records of `audit0928_online`, `csa_boats`, `csa_waves`, `navaudit_frame`, `shipfade`, `shiplivery`,
 `shipplaque`, `auditrefit2`, `dflook`): 205 dead, FB1021-bones-stamp-unread equivalent as recorded, and the two above.
+
+**AUDIT HELD-DRAW and HELD-FLATS (the same day).** Three lines no pin held, and the record's two reasons.
+1. *Her livery on a held frame.* A held boat's lone parts are drawn in her paint
+   (`comeSailAwayPool.js:"for (const e of list.alone) one(e.gpu, placed(recs[e.i]), paint);"`); a mutant that dropped
+   `paint` there - a painted far boat drawn as built on every frame the pool held her - survived every pin: the stand-in
+   renderer recorded no remap, and no boat wore a livery. The HELD-DRAW pin's far galley wears one now (her planks
+   stained and her sails tinted, over the stand-in's planks), her paint is on a part of hers drawn on its own, and on a
+   held frame each of her parts is drawn by the very remap her walk's draw drew it by.
+2. *A flat's height.* `e.sy` stood on no pin: every fixture scaled a flat alike on each axis. The HELD-FLATS pin's flat
+   is stretched now (`[2, 3, 2]`), and takes three times its height at her next life.
+3. *`placedAt`'s `0 +`*, recorded as equivalent: it is `multiply`'s `let sum = 0`, and dropping it could change only a
+   -0's sign, where every product before the last is -0 - and the last, the held shift's translation times her walk's
+   homogeneous one, never is (the shift is `multiply`'s own answer, whose sums start at +0). Every place is the same
+   float, its sign too.
+4. *The record's words*, corrected above: her renderers are switched once she is built - her crew's flats, which the
+   draw passes by; and a held flat keeps her walk's size because it keeps her walk's place, not because nothing scales
+   her nodes between her lives.
+
+Mutants: `fb1021b_ownboats.json`, 27 - HD-AUDIT-held-paint-dropped and HF-AUDIT-height-off-the-width new and dead,
+HF-AUDIT-place-zero-dropped equivalent as recorded, and the BOAT-OWN audit's three re-aimed; 26 dead. Run again round
+the change: `fb1021_boats.json` 37 (36 dead, FB1021-bones-stamp-unread equivalent as recorded), `fb1011c_seatown.json`
+8 and `csa_waves.json`'s CSA-F-particles-step-paused - all dead.
 
 ## OW-HITCH — the Overworld's hitches, measured in the real game
 
