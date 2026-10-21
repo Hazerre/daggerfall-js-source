@@ -1463,6 +1463,8 @@ chapters.standing.others,"още {n, plural, one {# гилдия} other {# ги�
 chapters.standing.othersOnly,"Положението ви се промени при {n, plural, one {# гилдия, в която не членувате} other {# гилдии, в които не членувате}}."
 chapters.standing.paid,"{name}: плащане от дължимото: {paid} (сега {now})"
 chapters.standing.paidOwed,"{name}: плащане от дължимото: {paid} (сега {now}, още {owed} на път)"
+chargen.class.skills.major,"{m1}, {m2} и {m3}."
+chargen.class.skills.primary,"{p1}, {p2}, {p3},"
 chat.help.breach,"/breach - Елитният пробив: отговори на зова на дружината си или отвори прозореца за начало (/breach help изброява командите му)"
 chronicle.quests.abandon,"Изостави"
 chronicle.quests.abandonArmed,"Щракнете отново"

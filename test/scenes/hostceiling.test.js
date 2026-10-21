@@ -57,7 +57,7 @@ const CEILINGS = [
   ['src/scenes/dungeonContext.js', 'buildDungeonContext', 8_463, MODULE],   // FIELD BUGS 2026-10-19f STAND-IN-WHOLE: 8,601 -> 8,463, its four spell doors out (scenes/gate/standInSpell.js)
   ['src/scenes/exterior.js', 'bootExterior', 5_441, MODULE],
   ['src/scenes/naval/navalHost.js', 'createNavalHost', 6_470, MODULE],   // a *Host.js grown into a knot of its own (HOST-SPLIT NAVAL)
-  ['src/systems/comeSailAway/comeSailAway.js', 'createComeSailAwayRuntime', 2_783, MODULE],   // the Come Sail Away runtime, one scope (AUDIT HOST-SPLIT NAVAL)
+  ['src/systems/comeSailAway/comeSailAway.js', 'createComeSailAwayRuntime', 2_780, MODULE],   // the Come Sail Away runtime, one scope (AUDIT HOST-SPLIT NAVAL); BOAT-OWN (FIELD BUGS 2026-10-21c): 3 logical lines out - her boats' Animators and particle systems to scenes/comeSailAway/farLife.js createBoatLives - 2,783 -> 2,780
   ['server/src/index.js', '_message', 2_046, METHOD],   // the relay's Room is 473 methods already - its knot is the one dispatcher
   // knots the code-line count missed because their lines are crowded (createFpArm stood at 1,999 code lines against
   // KNOT's 2,000); held from LEGIBLE 1 at their length plus ROOM
