@@ -54,6 +54,12 @@ longer asks the stream for heights at all (it read four a grass blade, under sno
 no `heightAt`. The Snowfall mod's own surface still thins its coat on its own steep slopes (`Surface.MaxSnowSlope`, 55
 degrees - the mod's law, untouched); it lays it where the ground wears snow, which is now the face too.
 
+Seen in play: the streaming world headless (SwiftShader, `?shot&world&class=0`, a one-square land view), at The Bat
+and Cat Pub in the Dragontail Mountains in the classic start's winter, the eye 300 m over its pixel. On main's code the
+range's flank beside it wore green grass with orange dirt blots and no tree, the screenshot's band. On this branch, from the
+same pose, the same face stands white, the low-poly rocks of the screenshot on the ridge behind it. The pictures are
+renders of the player's data and stay outside the tree (Port-Doctrine).
+
 ## LANE-TURN: a lane's turn rebuilds the pixels built under the other (found on the way)
 
 `src/scenes/snowCoverHost.js` (`tick`, the `markRebuild` dep), `src/scenes/world.js` (its wiring to `_reskin.mark`).
