@@ -472,7 +472,11 @@ test('SCALE5b the foes fan, a method of its own with the budget asked before its
         await R.hello(ws, `f-${String(i).padStart(4, '0')}`, { x: (BX + far + rnd()) * PIXEL_UNITS, y: 0, z: (499 - BY + rnd()) * PIXEL_UNITS, yaw: 0, pitch: 0 });
         socks.push(ws);
       }
-      const { byteGate, inRange, FOES_ROOM_BYTES_PER_S } = relay;
+      // PIN MOVED (FOES-FIRST, Scale-Arc.md FOES-FIRST): every frame here is FULL and comes a second or more after its
+      // sender's last, so it goes first - its floor is minus FOES_FULL_RESERVE, and the bucket stands that far lower
+      // (it read byteGate's law, the floor at 0, for every frame alike). test/net/fb1021_foesfirst.test.js holds the rest.
+      const { floorGate, inRange, FOES_ROOM_BYTES_PER_S, FOES_FULL_RESERVE } = relay;
+      const floor = -FOES_FULL_RESERVE;
       let dropped = 0, passed = 0, between = 0;
       const low = [], mid = [];   // how many times the index was asked for a frame refused below one listener's worth, and for one refused between
       for (let round = 0; round < 60; round++) {
@@ -485,10 +489,11 @@ test('SCALE5b the foes fan, a method of its own with the budget asked before its
         const heard = socks.filter((o) => o !== from && inRange(key, a.pose, R.room._attach(o).pose));
         const want = per * heard.length;
         // the bucket stood anywhere from empty to past the whole fan's cost
-        const bytes = [0, per / 2, per, (per + want) / 2, want - 1, want, want * 2][round % 7];
-        if (bytes >= per && bytes < want) between++;
+        const over = [0, per / 2, per, (per + want) / 2, want - 1, want, want * 2][round % 7];
+        const bytes = floor + over;
+        if (over >= per && over < want) between++;
         R.room._roomFoes = { bytes, at: clock };
-        const law = byteGate({ bytes, at: clock }, clock, want, FOES_ROOM_BYTES_PER_S);
+        const law = floorGate({ bytes, at: clock }, clock, want, FOES_ROOM_BYTES_PER_S, floor);
         let walked = 0;
         const all = R.room._all.bind(R.room);
         R.room._all = () => { walked++; return all(); };
@@ -500,7 +505,7 @@ test('SCALE5b the foes fan, a method of its own with the budget asked before its
         assert.deepEqual(R.room._roomFoes, law.bucket, `round ${round}: the bucket`);
         if (law.pass) passed++; else dropped++;
         assert.equal(R.room._meterOf(from).junk ?? 0, 0, `round ${round}: never junk`);
-        (bytes < per ? low : bytes < want ? mid : []).push(walked - before);
+        (over < per ? low : over < want ? mid : []).push(walked - before);
       }
       assert.ok(dropped > 10 && passed > 10 && between > 10, `both answers, and the band between one listener and all (${dropped} dropped, ${passed} passed, ${between} between)`);
       assert.equal(R.room._metrics.c.drops, dropped, 'each drop counted');

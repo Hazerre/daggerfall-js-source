@@ -311,7 +311,7 @@ import { mintArenaReceipt } from '../../src/net/arena/arenaReceipt.js';
 import { owIdInCell, owRowInCell, owRowSane, owFoldSpent, owFoldRows, owRowsBehind, owPrune, owLedgerOf, owLedgerEmpty, toWelcome, owFoldGraves } from '../../src/net/overworldLaw.js';
 
 import { serpentGate, validSerpentOut, SERPENT_INTERNAL_FELL, SERPENT_TELL_RETRY_MS, SERPENT_FIGHT_KEY, SERPENT_FIGHTS_KEY, SERPENT_SITES_MAX, serpentFightId, SERPENT_FELLS_KEY, SERPENT_FELLS_MAX, SERPENT_RC_PREFIX } from './relay.js';   // SERPENT1: the serpent's frame and its doors (the wire's, through relay.js - walked last, as ever)
-import { roomOf, parseClient, GROUND_LAW, GROUND_OLD_REASON, groundRoom, GRANT_HELLO_LAW, GRANT_OLD_REASON, inRange, inRangeOf, poseGate, chatGate, redGate, dmGate, muteGate, tokenGate, rosterFor, badged, isChatRoom, isWorldRoom, isCellRoom, streamsFoes, hitOwnerOf, worldFrameMaxFor, CELL_FRAME_RECORDS_MAX, HELLO_HZ_MAX, CHAT_HELLO_HZ_MAX, CHAT_ROOM_HZ_MAX, SOCKETS_MAX, CHAT_SOCKETS_MAX, DROP_STRIKES_MAX, CHAT_STRIKES_MAX, WORLD_MIN_MS, WORLD_CHUNK, worldTtlMsFor, WORLD_PREFIX, FOES_PREFIX, OWN_PREFIX, foesGate, byteGate, FOES_ROOM_BYTES_PER_S, HIT_ROOM_HZ_MAX, ACT_ROOM_HZ_MAX, ACT_ROOM_BYTES_PER_S, actGate, MAX_FRAME_BYTES, CLOSE_REPLACED, CLOSE_POLICY, CLOSE_BUSY, HIT_ROOM_BYTES_PER_S, whoGate, whoIdOf, WHO_ROOM_HZ_MAX, poseFan, poseChanged, RELAY_VERSION, KEEPALIVE_FAN_MS, ACT_SENDER_BYTES_PER_S, CHAT_ROSTER_MAX, isSocialRoom, socialGate, partyGate, SOCIAL_ROOM_HZ_MAX, FRIENDS_MAX, PENDING_MAX, PARTY_MAX, PARTY_INVITES_MAX, INVITE_TTL_MS, PARTY_OFFLINE_MS, ACCOUNT_TABS_MAX, mintPartyId, SOCIAL_REPEAT_MS, ACCOUNT_IDLE_MS, ACCOUNT_SWEEP_MS, SWEEP_STEP_MS, SWEEP_PAGE, questShareGate, amapShareGate, AMAP_ROOM_HZ_MAX, QUEST_ROOM_HZ_MAX, QUEST_ROOM_BYTES_PER_S, QUEST_PREFIX, QUEST_FRAME_MAX, tradeGate, TRADE_ROOM_HZ_MAX, TRADE_ROOM_BYTES_PER_S, castGate, CAST_HZ_MAX, CAST_DEST_SENDERS_MAX, parkGate, parkKey, parkKeyOf, PARK_KEY_RE, CARAVAN_DECOR_KEY, parkRegistryRoom, cellRoomOfWire, PARK_INTERNAL_REG, PARK_INTERNAL_DROP, PARK_CELL_MAX, PARK_ACCOUNT_MAX, PARK_TTL_MS, PARK_REFRESH_MS, CARAVAN_DOC_MIN_MS, PARTY_CHAT_ROOM_HZ_MAX, rollGate, rollDice, cardGate, pageGate, duelGate, DUEL_HZ_MAX, wedGate, WED_HZ_MAX, renownGate, renownRoomGate, lookGate, eventGate, EVENT_KEY, validLiveEvent, gateGate, siegeGate, SIEGE_IN_MS, GATE_INTERNAL_FELL, SOCIAL_ROOM, validGateOut, HELLO_WAIT_MS, GATE_TELL_RETRY_MS, gateReceiptKey, GATE_BRAIN_MIN, GATE_HERE_HOLD_MS, guildGate, homeGate, validHomeWord, HOME_WORDS_KEY, HOME_WORDS_KEEP_MS, HOME_WORDS_MAX, guildRoomGate, GUILD_CHAT_ROOM_HZ_MAX, SEAT_ELSEWHERE, raidGate, RAID_INTERNAL_CLEAN, RAID_INTERNAL_DAY, RAID_DAY_ASK_MS, raidTownsGate, RAID_TELL_RETRY_MS, RAID_CLEANS_MAX, RAID_LEDGER_PREFIX, raidLedgerKey, RAID_RC_PREFIX, raidReceiptKeyOf, RAID_RC_KEEP, RAID_RC_KEEP_MS, mapPixelOfWire, validRaidOut, worldRoom, sharedClassicMinutes, wallMsForClassicMinutes, isRegionRoom, travHubGate, travRoomGate, TRAV_STALE_MS, TRAV_WELCOME_MAX, owGate, owRoomGate, owGraveGate, OW_LEDGER_KEY, REALM_DOOR_WORD, riteRelayGate, validRiteOut, sanitizeName, RITE_INTERNAL_BROKEN, RITE_INTERNAL_DAY, RITE_TELL_RETRY_MS, RITE_KEY, RITE_BY_MAX, RITE_CIRCLES_MAX, RITE_HUB_CIRCLES_MAX, RITE_ASK_EVERY_MS, RITE_ASK_TIMEOUT_MS, arenaGate, bodyWordRelayGate, BUSY_TOKEN_UNREAD, POSE_BATCH_MS, ROSTER_BATCH_MS, WIRE2_BATCH_MAX, slimPose, wire2Batch, isLayered, layerOf, layerName, LAYER_HEADER, LAYER_FULL_HEADER, validPose, wardenVerdicts, wardenDue, parkSameSpot, parkSpotOf, WARDEN_RETRY_MS } from './relay.js';   // AUDIT INT15: bodyWordRelayGate - a body's word on a bucket of its own
+import { roomOf, parseClient, GROUND_LAW, GROUND_OLD_REASON, groundRoom, GRANT_HELLO_LAW, GRANT_OLD_REASON, inRange, inRangeOf, poseGate, chatGate, redGate, dmGate, muteGate, tokenGate, rosterFor, badged, isChatRoom, isWorldRoom, isCellRoom, streamsFoes, hitOwnerOf, worldFrameMaxFor, CELL_FRAME_RECORDS_MAX, HELLO_HZ_MAX, CHAT_HELLO_HZ_MAX, CHAT_ROOM_HZ_MAX, SOCKETS_MAX, CHAT_SOCKETS_MAX, DROP_STRIKES_MAX, CHAT_STRIKES_MAX, WORLD_MIN_MS, WORLD_CHUNK, worldTtlMsFor, WORLD_PREFIX, FOES_PREFIX, OWN_PREFIX, foesGate, byteGate, floorGate, FOES_ROOM_BYTES_PER_S, FOES_FULL_RESERVE, FOES_FIRST_MS, FOES_UNHEARD_MS, foesFrameFull, HIT_ROOM_HZ_MAX, ACT_ROOM_HZ_MAX, ACT_ROOM_BYTES_PER_S, actGate, MAX_FRAME_BYTES, CLOSE_REPLACED, CLOSE_POLICY, CLOSE_BUSY, HIT_ROOM_BYTES_PER_S, whoGate, whoIdOf, WHO_ROOM_HZ_MAX, poseFan, poseChanged, RELAY_VERSION, KEEPALIVE_FAN_MS, ACT_SENDER_BYTES_PER_S, CHAT_ROSTER_MAX, isSocialRoom, socialGate, partyGate, SOCIAL_ROOM_HZ_MAX, FRIENDS_MAX, PENDING_MAX, PARTY_MAX, PARTY_INVITES_MAX, INVITE_TTL_MS, PARTY_OFFLINE_MS, ACCOUNT_TABS_MAX, mintPartyId, SOCIAL_REPEAT_MS, ACCOUNT_IDLE_MS, ACCOUNT_SWEEP_MS, SWEEP_STEP_MS, SWEEP_PAGE, questShareGate, amapShareGate, AMAP_ROOM_HZ_MAX, QUEST_ROOM_HZ_MAX, QUEST_ROOM_BYTES_PER_S, QUEST_PREFIX, QUEST_FRAME_MAX, tradeGate, TRADE_ROOM_HZ_MAX, TRADE_ROOM_BYTES_PER_S, castGate, CAST_HZ_MAX, CAST_DEST_SENDERS_MAX, parkGate, parkKey, parkKeyOf, PARK_KEY_RE, CARAVAN_DECOR_KEY, parkRegistryRoom, cellRoomOfWire, PARK_INTERNAL_REG, PARK_INTERNAL_DROP, PARK_CELL_MAX, PARK_ACCOUNT_MAX, PARK_TTL_MS, PARK_REFRESH_MS, CARAVAN_DOC_MIN_MS, PARTY_CHAT_ROOM_HZ_MAX, rollGate, rollDice, cardGate, pageGate, duelGate, DUEL_HZ_MAX, wedGate, WED_HZ_MAX, renownGate, renownRoomGate, lookGate, eventGate, EVENT_KEY, validLiveEvent, gateGate, siegeGate, SIEGE_IN_MS, GATE_INTERNAL_FELL, SOCIAL_ROOM, validGateOut, HELLO_WAIT_MS, GATE_TELL_RETRY_MS, gateReceiptKey, GATE_BRAIN_MIN, GATE_HERE_HOLD_MS, guildGate, homeGate, validHomeWord, HOME_WORDS_KEY, HOME_WORDS_KEEP_MS, HOME_WORDS_MAX, guildRoomGate, GUILD_CHAT_ROOM_HZ_MAX, SEAT_ELSEWHERE, raidGate, RAID_INTERNAL_CLEAN, RAID_INTERNAL_DAY, RAID_DAY_ASK_MS, raidTownsGate, RAID_TELL_RETRY_MS, RAID_CLEANS_MAX, RAID_LEDGER_PREFIX, raidLedgerKey, RAID_RC_PREFIX, raidReceiptKeyOf, RAID_RC_KEEP, RAID_RC_KEEP_MS, mapPixelOfWire, validRaidOut, worldRoom, sharedClassicMinutes, wallMsForClassicMinutes, isRegionRoom, travHubGate, travRoomGate, TRAV_STALE_MS, TRAV_WELCOME_MAX, owGate, owRoomGate, owGraveGate, OW_LEDGER_KEY, REALM_DOOR_WORD, riteRelayGate, validRiteOut, sanitizeName, RITE_INTERNAL_BROKEN, RITE_INTERNAL_DAY, RITE_TELL_RETRY_MS, RITE_KEY, RITE_BY_MAX, RITE_CIRCLES_MAX, RITE_HUB_CIRCLES_MAX, RITE_ASK_EVERY_MS, RITE_ASK_TIMEOUT_MS, arenaGate, bodyWordRelayGate, BUSY_TOKEN_UNREAD, POSE_BATCH_MS, ROSTER_BATCH_MS, WIRE2_BATCH_MAX, slimPose, wire2Batch, isLayered, layerOf, layerName, LAYER_HEADER, LAYER_FULL_HEADER, validPose, wardenVerdicts, wardenDue, parkSameSpot, parkSpotOf, WARDEN_RETRY_MS } from './relay.js';   // AUDIT INT15: bodyWordRelayGate - a body's word on a bucket of its own
 import { NEW_VOICE_GAP_MS, SAFE_LAW_PATH } from './relay.js';   // SAFE6: a new voice's pace; SAFE4: the service's door in
 import { mintStamp, stampTabOf, PUBLIC_TABS } from '../../src/net/safety/chatStamp.js';   // SAFE2: the relay's stamp on every line it relays
 import { sealFeed, FEED_SIG_HEADER, FEED_BATCH, FEED_WAIT_MS, FEED_POST_MS } from '../../src/net/safety/chatFeed.js';   // SAFE5: the reviewer's feed
@@ -2035,23 +2035,82 @@ export class Room {
    *  `kind` 'foes' (a cell's: ranged as the pose is - AUDIT WORLD6b A4; a world room's host's: everyone) or 'own'
    *  (OWN1: everyone); answers the budget's bucket. A5: the fan is the frame times its listeners, and over the budget
    *  the frame is dropped and nobody struck (the next full frame heals it); AUDIT WORLD6b A3: asked before the frame is
-   *  re-serialised (the fan's bytes estimated: the frame's plus the envelope's), so a dropped frame costs no stringify. */
+   *  re-serialised (the fan's bytes estimated: the frame's plus the envelope's), so a dropped frame costs no stringify.
+   *
+   *  FOES-FIRST (2026-10-21, bible/11-Multiplayer/Scale-Arc.md FOES-FIRST): THE FULL FRAMES FIRST. The live relay's
+   *  `world` rooms dropped 2.8% of their foes frames (double14), every one to this budget, and the readers tallied a
+   *  grant never heard 285k times in nine hours: one bucket for every frame let the deltas, small and five a second
+   *  from every owner, hold it below what a full frame's fan costs, so the frames that sweep the gone, say the grants
+   *  and the sites sprung and hand foes on were the ones that lost. A frame that goes FIRST (`_foesFirst`) may spend
+   *  the bucket to minus FOES_FULL_RESERVE; any other stops at plus it (wire.js floorGate). Both asks keep their
+   *  places: the one listener's worth before the walk, the whole fan after it. A full frame dropped is counted apart
+   *  (blob4, of blob5's full frames asked). */
   _foesFan(ws, a, kind, data, length, ranged, bucket, now) {
     const per = length + a.id.length + 8;
-    const ahead = byteGate(bucket, now, per, FOES_ROOM_BYTES_PER_S);
+    const full = foesFrameFull(data), lane = this._foesLane(ws, kind);
+    const first = this._foesFirst(lane, full, now);
+    const floor = first ? -FOES_FULL_RESERVE : FOES_FULL_RESERVE;
+    const ahead = floorGate(bucket, now, per, FOES_ROOM_BYTES_PER_S, floor);
     this._metrics.c.foes++;   // SCALE5b: the frames by type
-    if (!ahead.pass) { this._metrics.c.drops++; return ahead.bucket; }   // SCALE5b: not one listener's worth - no walk
+    if (full) this._metrics.c.fulls++;   // FOES-FIRST: and the full frames among them
+    if (!ahead.pass) return this._foesDropped(full, ahead.bucket);   // SCALE5b: not one listener's worth - no walk
     const reach = ranged ? inRangeOf(a.key, a.pose) : null;
     const listeners = [];
     for (const [other, b] of this._all()) if (other !== ws && b.id && (!reach || reach(b.pose))) listeners.push(other);
-    const budget = byteGate(bucket, now, per * listeners.length, FOES_ROOM_BYTES_PER_S);
-    if (!budget.pass) { this._metrics.c.drops++; return budget.bucket; }
+    const budget = floorGate(bucket, now, per * listeners.length, FOES_ROOM_BYTES_PER_S, floor);
+    if (!budget.pass) return this._foesDropped(full, budget.bucket);
     if (!listeners.length) return budget.bucket;
     if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on' && (kind === 'own' || isCellRoom(a.key))) data = this._grantStripped(a, data, kind, now);   // GRANT9: the switch on - a record its grant does not stand goes nowhere; FOE-BOUNDS: nor one no builder could give
     const out = fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched
     if (out == null) { this._junk(ws); return budget.bucket; }
     for (const other of listeners) this._send(other, out);
+    lane.heard = now;   // FOES-FIRST: heard on this lane
+    if (first && full) lane.first = now;   // and a full frame's turn first spent
     return budget.bucket;
+  }
+  /** FOES-FIRST: a sender's two clocks on one lane of the foes fan (`foes` or `own`) - when its frame last went out
+   *  (`heard`) and when its full frame last went first (`first`) - among its meters, the instance's (a woken room hears
+   *  each sender first once more). */
+  _foesLane(ws, kind) { const m = this._meterOf(ws); return ((m.fl ??= {})[kind] ??= {}); }
+  /** FOES-FIRST: whether a frame goes FIRST on the room's foes budget - a full frame, at most once each FOES_FIRST_MS a
+   *  sender on its lane (`full` is the sender's own word: one that says it on every frame earns one a second), and the
+   *  first frame of a sender its lane has not heard for FOES_UNHEARD_MS, full or not - so a sender the full frames crowd
+   *  out of a room past its budget is still heard inside its readers' FOES_STALE_MS (the full frames alone can be more
+   *  than the budget: the record's 40-owner star). */
+  _foesFirst(lane, full, now) { return (full && now - (lane.first ?? -Infinity) >= FOES_FIRST_MS) || now - (lane.heard ?? -Infinity) >= FOES_UNHEARD_MS; }
+  /** SCALE5b: a foes frame the room's budget dropped, counted - FOES-FIRST: a full one apart - answering the bucket. */
+  _foesDropped(full, bucket) {
+    this._metrics.c.drops++;
+    if (full) this._metrics.c.fullDrops++;
+    return bucket;
+  }
+  /** WORLD2's blow onto its destination's one socket `tws` - the foe's owner in a cell, the host in a world room - past
+   *  the destination's two funnels. FOES-FIRST HIT-DROPS (2026-10-21): written inside `_message` (HOST-SPLIT: its arms
+   *  do not grow), and a blow either funnel dropped went silently - counted now (`hitDrops`, the metrics point's blob3).
+   *
+   *  A6: the funnel onto the destination's ONE socket - all strikers together, HIT_ROOM_HZ_MAX a second; over it the
+   *  blow is dropped and nobody struck. AUDIT WORLD6b A1/A2: the budget is the DESTINATION's (its own bucket, among its
+   *  meters), not the room's - in a cell the blows go to many owners, and one room-wide bucket let six honest fights, or
+   *  one stream of unroutable blows, silence every other blow in the country.
+   *
+   *  AUDIT WORLD6b-iii(c) C3: the hit bytes - a grant carries a corpse's pile, so the arm counts bytes as the foes and the
+   *  acts do; over the budget the frame is dropped, nobody struck (three sockets pushed 720 KiB/s of grants into one
+   *  destination through an arm that counted frames alone). AUDIT 68 X8-hit-byte-budget-room-wide-starves-grants: the
+   *  DESTINATION's, as the frame funnel is - one room-wide bucket let one socket's junk blows drop every honest grant in
+   *  the room, whose items had already left their corpse; and (the pre-merge review) a per-SENDER bucket reopened C3
+   *  itself, N senders each their own 256 KiB/s into one socket. Aimed at a destination, a flood spends that
+   *  destination's bytes and no one else's. */
+  _hitFunnel(ws, a, data, length, tws, now) {
+    const tm = this._meterOf(tws);
+    const funnel = tokenGate(tm.hbucket ?? null, now, HIT_ROOM_HZ_MAX);
+    tm.hbucket = funnel.bucket;
+    if (!funnel.pass) { this._metrics.c.hitDrops++; return; }
+    const out = fanOut('hit', a.id, data, length);   // AUDIT (pre-merge) O4: a nesting stringify cannot take, junk - it threw out of the handler
+    if (out == null) { this._junk(ws); return; }
+    const bytes = byteGate(tm.hbytes ?? null, now, out.length, HIT_ROOM_BYTES_PER_S);
+    tm.hbytes = bytes.bucket;
+    if (!bytes.pass) { this._metrics.c.hitDrops++; return; }
+    this._send(tws, out);
   }
 
   /** A frame to one socket; a socket that will not take it is closed (A10). */
@@ -3765,28 +3824,7 @@ export class Room {
       // WORLD2 A4's instrument), so a stream of them is struck out; a world room's host is always a socket
       const target = this._idFirst(host, ws);
       if (!target) { if (owned) this._junk(ws); return; }
-      // A6: the funnel onto the destination's ONE socket - all strikers together, HIT_ROOM_HZ_MAX a second; over it
-      // the blow is dropped and nobody struck. AUDIT WORLD6b A1/A2: the budget is the DESTINATION's (its own bucket,
-      // among its meters), not the room's - in a cell the blows go to many owners, and one room-wide bucket let six
-      // honest fights, or one stream of unroutable blows, silence every other blow in the country
-      const [tws] = target;
-      const tm = this._meterOf(tws);
-      const funnel = tokenGate(tm.hbucket ?? null, now, HIT_ROOM_HZ_MAX);
-      tm.hbucket = funnel.bucket;
-      if (!funnel.pass) return;
-      const out = fanOut('hit', a.id, m.data, message.length);   // AUDIT (pre-merge) O4: a nesting stringify cannot take, junk - it threw out of the handler
-      if (out == null) { this._junk(ws); return; }
-      // AUDIT WORLD6b-iii(c) C3: the hit bytes - a grant carries a corpse's pile, so the arm counts bytes as the foes
-      // and the acts do; over the budget the frame is dropped, nobody struck (three sockets pushed 720 KiB/s of grants
-      // into one destination through an arm that counted frames alone). AUDIT 68 X8-hit-byte-budget-room-wide-starves-grants:
-      // the DESTINATION's, as the frame funnel above is - one room-wide bucket let one socket's junk blows drop every
-      // honest grant in the room, whose items had already left their corpse; and (the pre-merge review) a per-SENDER
-      // bucket reopened C3 itself, N senders each their own 256 KiB/s into one socket. Aimed at a destination, a flood
-      // spends that destination's bytes and no one else's
-      const bytes = byteGate(tm.hbytes ?? null, now, out.length, HIT_ROOM_BYTES_PER_S);
-      tm.hbytes = bytes.bucket;
-      if (!bytes.pass) return;
-      this._send(tws, out);
+      this._hitFunnel(ws, a, m.data, message.length, target[0], now);   // FOES-FIRST HIT-DROPS: the destination's funnel, a method of its own - its drops counted
       return;
     }
     if (m.t === 'trade') {

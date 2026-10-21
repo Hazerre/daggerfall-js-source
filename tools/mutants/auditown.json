@@ -32,8 +32,8 @@
   {
     "name": "AOWN-hit-arm-unguarded",
     "file": "server/src/index.js",
-    "old": "      const out = fanOut('hit', a.id, m.data, message.length);   // AUDIT (pre-merge) O4: a nesting stringify cannot take, junk - it threw out of the handler\n      if (out == null) { this._junk(ws); return; }",
-    "new": "      let out; try { out = JSON.stringify({ t: 'hit', id: a.id, data: m.data }); } catch { return; }",
+    "old": "    const out = fanOut('hit', a.id, data, length);   // AUDIT (pre-merge) O4: a nesting stringify cannot take, junk - it threw out of the handler\n    if (out == null) { this._junk(ws); return; }",
+    "new": "    let out; try { out = JSON.stringify({ t: 'hit', id: a.id, data }); } catch { return; }",
     "tests": ["test/net/own1.test.js"]
   },
   {
