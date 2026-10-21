@@ -3695,6 +3695,13 @@ Seats-Arc 7.5). What sections 1, 2, 3.3, 4.1, 4.3, 4.5, 9.3 and 9.4 left open fo
   came down 8 logical lines (its ceiling 36,233 -> 36,225). Pinned: `test/systems/fb1019f_disenchantsaid.test.js` (3);
   PIN MOVED `prof12_client.test.js` (AUDIT PROF12 E2's host pin, onto the module and the wiring line);
   `tools/mutants/fb1019f_disenchantsaid.json` (13, all dead).
+- **ESSENCE-LOOSE** (FIELD BUGS 2026-10-20h, the Discord's #bug-reports: a player's Arcane Essence "bought with gold";
+  `01-Overview/bugs/Field-Bugs-2026-10-20h.md`). A piece made or tempered with a LOOSE unit (`Materials-Bag.md` 15, A1) is
+  walled to gold on its row, and the disenchant read that as a gold purchase: its Essence went into the Stores as gold's,
+  and the Reforge with Essence refused it. Its origin is now **loose** where the piece's goods walled it
+  (`products.loose`, migration 0142, acct166) - a station's, as a smelt's products of loose goods are - and **gold** where
+  gold bought it, as before; the Reforge spends as a station does, loose first. The Stores page says a no-pack-form
+  material's loose units are "made from pack goods", and its gold line no longer offers the pack.
 - **Pinned**: `test/systems/prof12_law.test.js` (15), `test/net/prof12_service.test.js` (13, through the real Worker),
   `test/systems/prof12_client.test.js` (16), `test/net/prof12_apothecary.test.js` (4, the Apothecary through the real Worker). Mutants:
   `tools/mutants/prof12.json` (206: 205 dead - AUDIT PROF-541 R2's six among them - and PROF12-spends-no-hash recorded equivalent - B1's ingredient comparison holds everything DFU's hash refused).
