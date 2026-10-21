@@ -458,7 +458,7 @@ const RELEASES_PAGE = 'https://github.com/Lattymoy/daggerfall-js-source/releases
 const { isNewerRelease } = require('./lib/updateCheck.cjs');
 const { updateTransport } = require('./lib/autoUpdate.cjs');
 const { UNLOAD_ASK, leaves, restartAsk, reinstallAsk, installFailedAsk, goesAhead } = require('./lib/shellDialogs.cjs');
-const { goneAsk, restarts, hangAsk, restartsHung, createStopCount, goneLine, logWith } = require('./lib/rendererGone.cjs');   // FIELD BUGS 2026-10-21 RENDERER-GONE
+const { goneAsk, restarts, hangAsk, restartsHung, createStopCount, goneLine, logWith } = require('./lib/rendererGone.cjs');   // FIELD BUGS 2026-10-21b RENDERER-GONE
 /** RENDERER-GONE: crash.log beside the saves - a process gone, when and why (its oldest lines dropped past its most). */
 const CRASH_LOG = () => path.join(app.getPath('userData'), 'crash.log');
 function logGone(what, details) {
@@ -1352,7 +1352,7 @@ async function createWindow({ onShown = null } = {}) {
     return true;
   };
   win.webContents.on('did-fail-load', (_e, code, _text, _url, isMainFrame) => { if (isMainFrame && code !== -3) giveUp('did not load'); });
-  // FIELD BUGS 2026-10-21 RENDERER-GONE (app/lib/rendererGone.cjs): a page that stopped after its trial was met by nothing -
+  // FIELD BUGS 2026-10-21b RENDERER-GONE (app/lib/rendererGone.cjs): a page that stopped after its trial was met by nothing -
   // the window stood black. It is said now, kept in crash.log, and restarted at the player's word; a hung page is offered
   // Wait or Restart (Restart crashes it on purpose, and that stop restarts without asking again)
   const stops = createStopCount();

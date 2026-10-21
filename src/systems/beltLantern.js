@@ -8,7 +8,7 @@
 // either skin and with the mod's "lanterns at the waist" switch off, so it takes no hand. One lantern hangs at a time.
 // Lighting another light puts it out as any light does (the one LightSource); it stays on the belt, unlit.
 //
-// BELT-WAIST (FIELD BUGS 2026-10-21, the Discord's #bug-reports: "Equipping the lantern with O still puts it into your
+// BELT-WAIST (FIELD BUGS 2026-10-21b, the Discord's #bug-reports: "Equipping the lantern with O still puts it into your
 // shield slot and not the lantern slot"): the lantern AT THE WAIST is the slot's, marked or not. With the mod's switch on
 // (shipped on, HT-WAIST-ON) every lit lantern hangs at the hip in the world - lanternAtWaist - and the inventory read the
 // mark alone, so a lantern lit by O, Use or the hotbar hung at the hip and was drawn in the shield's hand. waistLanternOf

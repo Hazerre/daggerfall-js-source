@@ -19949,7 +19949,7 @@ option under audio for it called Monster Volume with 0 - 100%".
   there each socket is the column's height shared out, so it fits without scrolling). A lantern there carries
   `beltLantern: true`, hangs at the waist when lit whatever Handheld Torches' waist switch says (`playerTorch.js`
   lanternAtWaist, `handheldTorches.js` atWaist), and is lit when hung and put out when taken off.
-  BELT-WAIST (`01-Overview/bugs/Field-Bugs-2026-10-21.md`): the socket holds the lantern AT THE WAIST - the one hung, or
+  BELT-WAIST (`01-Overview/bugs/Field-Bugs-2026-10-21b.md`): the socket holds the lantern AT THE WAIST - the one hung, or
   a lit one the waist switch hangs there (`beltLantern.js` waistLanternOf) - and the hand's row never does, so a lantern
   lit by O, Use or the hotbar is drawn where the world hangs it, not on the shield's panel. O lights the hung lantern
   first, a hung one takes no hand with the switch off, and the hotbar's lantern leaves a shield on.

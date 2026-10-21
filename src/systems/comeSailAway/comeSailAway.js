@@ -2789,7 +2789,7 @@ export function createComeSailAwayRuntime(deps) {
     if (boat.OarParticles.length > 0) for (const oarParticle of boat.OarParticles) shift(oarParticle.subEmitters[0].system);   // GetSubEmitterSystem(0)
   }
 
-  /** OnLoad (1943-1950). SAIL-WIND (FIELD BUGS 2026-10-21): and a load that lands outdoors under the indoors' none asks
+  /** OnLoad (1943-1950). SAIL-WIND (FIELD BUGS 2026-10-21b): and a load that lands outdoors under the indoors' none asks
    *  the door's wind (csaLoadWind.js says why). */
   function OnLoad() {
     UpdateBoatVisibility();

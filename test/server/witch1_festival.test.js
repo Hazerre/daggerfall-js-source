@@ -85,7 +85,7 @@ test('WITCH1 A FIND: the service\'s die decides at the source\'s odds; a guest, 
   assert.deepEqual(await findFestival(ctx(), player(alice), { source: 'foe' }, {}), { error: 'closed' });
   assert.deepEqual(await findFestival(ctx(AFTER_S), player(alice), { source: 'foe' }, ON), { error: 'closed' });
   assert.deepEqual(await findFestival(ctx(), player(alice), { source: 'gold' }, ON), { error: 'source' });
-  // PIN MOVED (CAKE-CAP-SAID, FIELD BUGS 2026-10-21): each answer says the day's cakes found, this find's with them
+  // PIN MOVED (CAKE-CAP-SAID, FIELD BUGS 2026-10-21b): each answer says the day's cakes found, this find's with them
   assert.deepEqual(await findFestival(ctx(DAY_S, MISS), player(alice), { source: 'foe' }, ON), { found: 0, cakes: 0, today: 0 });
   assert.deepEqual(await findFestival(ctx(DAY_S, HIT), player(alice), { source: 'foe' }, ON), { found: 1, cakes: 1, today: 1 });
   assert.deepEqual(await findFestival(ctx(DAY_S, HIT), player(alice), { source: 'endgame' }, ON), { found: 4, cakes: 5, today: 5 });
@@ -110,7 +110,7 @@ test('WITCH1 THE DAY\'S CAPS: FIND_ASKS_PER_DAY asks and FIND_CAKES_PER_DAY cake
   assert.equal((await findFestival(ctx(DAY_S + 86400), player(alice), { source: 'foe' }, ON)).found, 1);
 });
 
-test('CAKE-CAP-SAID: the day\'s cakes all found with asks to spare - a winning roll answers `capped`, never a miss\'s `{ found: 0 }` (FIELD BUGS 2026-10-21, "Soul Cake stopped dropping")', async () => {
+test('CAKE-CAP-SAID: the day\'s cakes all found with asks to spare - a winning roll answers `capped`, never a miss\'s `{ found: 0 }` (FIELD BUGS 2026-10-21b, "Soul Cake stopped dropping")', async () => {
   const { alice, player, ctx, db, row } = await stand();
   const day = utcDay(DAY_S);
   // the report: 120 found in the first hour of undead, a whole day of asks left

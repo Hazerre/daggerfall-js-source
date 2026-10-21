@@ -135,7 +135,7 @@ export function standingFor(act, cls, { marque = false } = {}) {
 const crownNames = () => CROWNS.map((c) => c.name);
 const whole = (v, max = Number.MAX_SAFE_INTEGER) => (Number.isFinite(v) ? Math.max(0, Math.min(max, Math.floor(v))) : 0);
 const zeros = (keys) => Object.fromEntries(keys.map((k) => [k, 0]));
-/** A new log: every count none. FIELD BUGS 2026-10-21 VOYAGE-HOLD: `departed` the port a voyage is counted from and the
+/** A new log: every count none. FIELD BUGS 2026-10-21b VOYAGE-HOLD: `departed` the port a voyage is counted from and the
  *  way logged when she lay there (scenes/harbourOffice.js PORT_VOYAGE_M) - kept with the log, so a load between two ports
  *  (a relog, a reload, a crash) keeps the voyage. */
 export function newLog() {

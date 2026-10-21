@@ -123,7 +123,7 @@ function learn(/** @type {any} */ d) {
 /** CAKE-CAP-SAID: the UTC day the service counts a day's finds in (marksLaw utcDay, its own), on the shared clock. */
 const findDay = () => utcDay(festivalNowMs() / 1000);
 /**
- * CAKE-CAP-SAID (FIELD BUGS 2026-10-21, "Soul Cake stopped dropping"): THE DAY'S FINDS - `{ found, max, full, resetMs }`:
+ * CAKE-CAP-SAID (FIELD BUGS 2026-10-21b, "Soul Cake stopped dropping"): THE DAY'S FINDS - `{ found, max, full, resetMs }`:
  * the cakes found this UTC day (null while no answer has said; a count said on an earlier day is this day's 0), the day's
  * most (FIND_CAKES_PER_DAY), whether the service has said they are all found, and when the next day opens.
  */

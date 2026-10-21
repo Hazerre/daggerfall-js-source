@@ -122,7 +122,7 @@ import { createVolleyTally } from './navalTally.js';   // AUDIT NAV1 G17: my vol
 import { seaLiveryOf, seaFlagsOf } from '../../systems/naval/seaColours.js';   // SEA-COLOURS: the sea's ships in their own paint and flags
 import { liveryCode } from '../../systems/naval/shipLivery.js';
 import { noteAct } from '../../systems/questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
-import { createBerthWatch } from './navalBerth.js';   // FIELD BUGS 2026-10-21 VOYAGE-HOLD: the berth, still or not, and the helm let go in port
+import { createBerthWatch } from './navalBerth.js';   // FIELD BUGS 2026-10-21b VOYAGE-HOLD: the berth, still or not, and the helm let go in port
 
 /** The record's name in the save's per-mod slot (systems/modSaveData.js) - the port's own, as the Sigil Broker's is. */
 export const NAVAL_SAVE_VENDOR = 'NavalCombat';
@@ -835,7 +835,7 @@ export function createNavalHost(deps) {
   function boatPose(boat) {
     const r = csa();
     const rot = boat.GameObject.rotation;
-    // FIELD BUGS 2026-10-21 VOYAGE-HOLD: a boat aground lies still - the runtime keeps her last way (Come Sail Away moves
+    // FIELD BUGS 2026-10-21b VOYAGE-HOLD: a boat aground lies still - the runtime keeps her last way (Come Sail Away moves
     // a beached boat by none of it), and a Small Ship run ashore at the helm read 9.86 m/s: never a berth, and leagues logged
     const local = boat === r?.state?.CurrentBoat && sailing() && !r.IsBeached?.(boat) ? (r.state.velocityCurrent ?? [0, 0, 0]) : [0, 0, 0];
     return { position: boat.GameObject.position, rotation: rot, velocity: quatRotate(rot, local), hull: boat.hull };

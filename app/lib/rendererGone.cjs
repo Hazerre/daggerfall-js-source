@@ -1,4 +1,4 @@
-// FIELD BUGS 2026-10-21 RENDERER-GONE (bible/01-Overview/bugs/Field-Bugs-2026-10-21.md, BLACK-SCREEN; the Discord's
+// FIELD BUGS 2026-10-21b RENDERER-GONE (bible/01-Overview/bugs/Field-Bugs-2026-10-21b.md, BLACK-SCREEN; the Discord's
 // #bug-reports: "Crashing every minute" - "No message just black", "when I enter dungeons or traveling overworld"): THE
 // GAME'S PAGE STOPPED, AND THE SHELL SAID SO.
 //

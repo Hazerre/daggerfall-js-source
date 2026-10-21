@@ -51,7 +51,7 @@ import { SEA_RING, seaBears } from '../net/fortLaw.js';   // FB1020c BERTH-RING:
 
 export { SEA_RING, seaBears };
 
-/** FIELD BUGS 2026-10-21 VOYAGE-HOLD: the board port whose waters map pixel (x, y) lies in - the nearest of `ports` within
+/** FIELD BUGS 2026-10-21b VOYAGE-HOLD: the board port whose waters map pixel (x, y) lies in - the nearest of `ports` within
  *  SEA_RING by the crow's flight (the squared pixels, exact on every engine), or null outside every ring. By the ring's
  *  squares alone (BERTH-RING's reading) a tie went to the list's first, and every pixel of Pencart's water tied it with
  *  Longham's: no berth ever named Pencart. Inside a ring of two the crow's flight differs from the squares on a tie alone.

@@ -144,7 +144,7 @@ export function createSnowfallHost({ gl = null, renderer = null, enhanced = fals
     byPixel.set(key, t);
     // OnPromoteTerrainData: its ground was rebuilt. The event is never the runtime's own frame's (DFU raises it from the
     // streaming world's), so one found while a build asked for the tile is heard when that frame is done (flushPromotions)
-    // SNOW-HOLD (FIELD BUGS 2026-10-21): `replaced` says THAT it replaced one - the old tile goes to the runtime through
+    // SNOW-HOLD (FIELD BUGS 2026-10-21b): `replaced` says THAT it replaced one - the old tile goes to the runtime through
     // `promotions` alone; held here, each tile kept the one before it, and every rebuild of a pixel stood in one chain
     if (was && was !== t) { t.replaced = true; if (runtime) promotions.push(t, was); }
     return t;

@@ -1490,7 +1490,7 @@ of a world frame of 1,353 ms. `SNOW_COVER.budgetMs` is 3 ms a frame, but it was 
 - `snowCoverHost.js budgetFor` gives the asks within `SNOW_COVER.frameMs` (12) one budget between them; a build's
   `settle` keeps the breather's own.
 - `drawnCover` reads the slope only where the cover is above nothing. `snowCoverAt` answers 0 for no cover whatever the
-  slope.
+  slope. (Since SNOW-FACE, FIELD BUGS 2026-10-21, it reads no slope at all - AUDIT FB1021 L4-3.)
 
 **Measured.** In node, over the real law (`snowCoverHost.js` and `snowpack.js` from this branch and from its base,
 Woodlands in late winter, an 11 x 11 window caught up while a frame asks as the world frame does - the feet three
@@ -1512,11 +1512,12 @@ slope's heights, because snow lay in that run. Settled (`frameProbe.mjs knight`,
 **What it still pays, ranked.**
 1. The weather map's births (`weatherMap.js systemsSpanWalk` -> `birthsIn`): one node of the walk took 65 ms in node,
    paid once (memoized), and the walk reads its deadline only between nodes. These are the 5-6 frames still over 8 ms.
-2. The grass's slope under snow: `buries` asks the world's `heightAt` four times a blade, a pixel found by a string key
-   each time. The blade's own pixel holds the same samples (a read inside `bootWorld`, under its ceiling).
+2. ~~The grass's slope under snow: `buries` asks the world's `heightAt` four times a blade, a pixel found by a string key
+   each time.~~ Paid off by SNOW-FACE (FIELD BUGS 2026-10-21, `01-Overview/bugs/Field-Bugs-2026-10-21.md`): the snow
+   has no slope, so `buries` asks no height (AUDIT FB1021 L1-3).
 3. A ground set's winter twin (`snowCoverHost.js twinLayers` -> `fit`): 88-173 ms of the minute.
 
-Pins: `test/systems/weather/snowbudget.test.js` (5). Mutants: `tools/mutants/snowbudget.json`, 4, all dead. Tooling:
+Pins: `test/systems/weather/snowbudget.test.js` (5). Mutants: `tools/mutants/snowbudget.json`, 3 now, all dead (it held 4: SNOW-FACE retired SB-the-slope-read-first with the slope - AUDIT FB1021 L1-3). Tooling:
 `tools/frameAb.mjs` reads the snow's and the falling weather's share of a frame.
 
 **AUDIT SNOW-BUDGET (2026-10-20, the owner: "ensure this is perfect and fidelity isnt lost").** A cold lane ran the
@@ -1585,7 +1586,10 @@ BOOT-FREEZE's runs, and a journey crosses climates.
   own vertex normal (`snowCover(..., normalize(vNormal), ...)`); `buries` and the feet read a standing pixel's normal
   there - the grid's, one triangle - where they read four of the stream's heights a metre either way, another surface's
   slope and four pixel lookups a blade. THE ONE CHANGE TO THE PICTURE: a blade at a snowline's slope edge stands or is
-  buried by the slope the ground is drawn with; a host that hands no normal reads the heights as before.
+  buried by the slope the ground is drawn with; a host that hands no normal reads the heights as before. SUPERSEDED at
+  SNOW-FACE's merge (FIELD BUGS 2026-10-21, `01-Overview/bugs/Field-Bugs-2026-10-21.md`): the snow has no slope, so
+  `buries` and the feet ask neither a normal nor a height - the lookups this item took out are gone whole, and
+  `normalOf` with them (`owhitch.test.js` PIN MOVED; `owhitch.json`'s two snow records retired with the law).
 - **The snowpack's year and the weather's systems** (`snowpack.js`, `weatherMap.js`, `airTemperature.js`). A step asks
   `fallAmong` - wornAmong's fall alone, no band, winner or answer object a system; a standing system carries its `d` in
   place of a copy of itself made to carry it (`takeNear`: the snowpack keeps a year of steps' systems, so every copy

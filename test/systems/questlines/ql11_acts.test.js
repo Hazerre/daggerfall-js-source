@@ -340,7 +340,7 @@ test('QL11 port-reached (scenes/harbourOffice.js): a berth at another port than 
     L.sailed(PORT_VOYAGE_M * 4);
     berth(o, WAYREST);
     assert.equal(heard.length, 1, 'out and home to the same port: no port reached');
-    // PIN MOVED (FIELD BUGS 2026-10-21 VOYAGE-HOLD): a load keeps the voyage its save was on - the departure is its log's
+    // PIN MOVED (FIELD BUGS 2026-10-21b VOYAGE-HOLD): a load keeps the voyage its save was on - the departure is its log's
     // own (it had read the first berth after a load as only where she lies, and a relog or a crash between two ports lost
     // the voyage) - and a departure past its log's way is no departure
     L.sailed(PORT_VOYAGE_M / 2);

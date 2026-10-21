@@ -49,7 +49,7 @@ A FIND is asked by its source and decided by the service's own die (`server-acco
 
 Every find lands in the pack (a face on a body is one the count cannot see). A day takes at most `FIND_ASKS_PER_DAY`
 (1,500) asks and `FIND_CAKES_PER_DAY` (120) cakes, a UTC day - a forged client finds no more than an honest one. CAKE-CAP-SAID
-(`01-Overview/bugs/Field-Bugs-2026-10-21.md`): the cakes are an hour's undead, not a day's play (a dead foe finds at 50%,
+(`01-Overview/bugs/Field-Bugs-2026-10-21b.md`): the cakes are an hour's undead, not a day's play (a dead foe finds at 50%,
 so 120 is about 240 kills - measured on the service, the 120th at kill 231), and a find past them had answered a miss's own
 `{ found: 0 }`, so a player farmed on against a cap nothing named. A find answers the day's count (`today`) and
 `capped: true` once it is spent, and so does the account's festival (`today`); the page says the day's end once a UTC day

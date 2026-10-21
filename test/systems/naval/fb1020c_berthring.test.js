@@ -69,7 +69,7 @@ test('FB1020c BERTH-RING a cargo goes to a port the sea bears on within SEA_RING
 
 test('FB1020c BERTH-RING by source: the board\'s port lain at is the nearest within SEA_RING, imported where it lives; where() hands it whether or not a flagged place is near; the berth, the shipwright and the crew\'s port read the two through one question; navalNearPort keeps its pixel for the sea\'s traffic and its waters (mutants: the ring a literal; where() gates the port on nearPort)', () => {
   const W = hostText('src/scenes/world.js');
-  // PIN MOVED (FIELD BUGS 2026-10-21 VOYAGE-HOLD): the ring and the nearest within it are the port law's own, read where
+  // PIN MOVED (FIELD BUGS 2026-10-21b VOYAGE-HOLD): the ring and the nearest within it are the port law's own, read where
   // they live (world/portSites.js boardPortAt - by the crow's flight, a tie no longer the list's first)
   assert.match(W, /import \{[^}]*\bboardPortAt\b[^}]*\} from '\.\.\/world\/portSites\.js';/);
   assert.match(W, /const port = boardPortAt\(navalPortList\(\), p\.x, p\.y\);/);

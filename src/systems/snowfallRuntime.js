@@ -982,7 +982,7 @@ export class SnowfallRuntime {
     const B = this.blanket, s = this.settings;
     const was = B.active;
     B.active = shouldBeActive && s.streamedBlanketPrototype && !!handoff;
-    // FIELD BUGS 2026-10-21 SNOW-HOLD: SetActive(false) lets its queue go - standing again queues every visible tile anew
+    // FIELD BUGS 2026-10-21b SNOW-HOLD: SetActive(false) lets its queue go - standing again queues every visible tile anew
     // (below), and a queued tile holds its map pixel's whole entry (the host's SnowTerrain closures): an indoors, or an
     // Overworld journey under the travel view, kept every pixel the world destroyed meanwhile
     if (!B.active) { if (was) { B.queue.length = 0; B.queued.clear(); } return; }

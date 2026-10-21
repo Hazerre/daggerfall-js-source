@@ -53,7 +53,7 @@ const movedWords = (c) => (c.kind === 'hunt' ? `${c.done} of ${c.need} pirate sh
 /** QL11: A PORT REACHED UNDER SAIL - a berth (the naval host's: her way under YARD_SPEED in a port's waters, said every
  *  second she is there) at another port than the one she sailed from, with at least this much way made at the helm since
  *  she lay there (m, the captain's log's own count): a quarter league.
- *  FIELD BUGS 2026-10-21 VOYAGE-HOLD: SHE SAILED FROM WHERE SHE LAST LAY STILL. The voyage was counted from the LAST berth
+ *  FIELD BUGS 2026-10-21b VOYAGE-HOLD: SHE SAILED FROM WHERE SHE LAST LAY STILL. The voyage was counted from the LAST berth
  *  heard, and a boat making 2.5 m/s or less (YARD_SPEED) berths every second she is in a port's waters - a Rowboat
  *  (2 m/s) always, a Large Boat in a light wind - so her departure followed her out to the edge of the port's waters and
  *  the quarter league had to lie between the two ports' waters: 26 pairs of ports lie closer than that. Now the

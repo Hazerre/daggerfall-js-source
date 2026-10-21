@@ -226,7 +226,7 @@ export function stepAirFloor(p, x, z, t0, t1) {
 export function yearOriginOf(t) {
   const sky = skyMinuteOfEvent(t);
   const since = (((sky - MIDSUMMER_MINUTE) % MINUTES_PER_YEAR) + MINUTES_PER_YEAR) % MINUTES_PER_YEAR;
-  // FIELD BUGS 2026-10-21 SNOW-YEAR: the sky's midsummer is a whole minute (MIDSUMMER_MINUTE a year on), and `sky - since`
+  // FIELD BUGS 2026-10-21b SNOW-YEAR: the sky's midsummer is a whole minute (MIDSUMMER_MINUTE a year on), and `sky - since`
   // carried a fractional minute's float error onto it - so off the sky calendar, where the event minute IS the sky's, it
   // fell a hair under the grid step it lies on in one minute and on it in the next, and the floor gave the year two
   // origins a step apart (2.7% of fractional minutes). Two askers a minute apart then reset each other's lattice points

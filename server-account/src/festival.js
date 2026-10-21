@@ -118,7 +118,7 @@ export async function festivalOf({ db, nowS }, player, env) {
  * night, skyDayAt, or the festival's own, 31 October: festivalLaw deadWalk), never past the day's cakes. `{ found, cakes, today }` (`found` the cakes this find gave, 0 for none;
  * `today` the day's cakes found, this one's with them), and `capped: true` with them once the day's cakes are all found;
  * `capped` the refusal once the day's asks are spent (`cakes` with it).
- * CAKE-CAP-SAID (FIELD BUGS 2026-10-21, "Soul Cake stopped dropping"): a find past the day's cakes answered `{ found: 0 }`,
+ * CAKE-CAP-SAID (FIELD BUGS 2026-10-21b, "Soul Cake stopped dropping"): a find past the day's cakes answered `{ found: 0 }`,
  * a miss's own words, so a player farmed on for hours against a cap nothing named - the answer says it now, and its count.
  * @param {{ db: any, nowS: number, rand?: (b: Uint8Array) => Uint8Array }} ctx @param {{ id: string, handle?: string|null }} player
  * @param {any} body @param {any} env

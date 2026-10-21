@@ -331,7 +331,7 @@ A PORT'S WATERS ARE THE PORT LAW'S RING (FB1020c BERTH-RING, 2026-10-20 - the fi
 harbor too another"* never registered). The berth - a boat of mine at her helm, slow, no hostile ship near, in a port's
 waters (`navalHost.js siteStep`, `yardHere`) - is what a delivery, the questlines' `port-reached` (the harbour office:
 a berth at another port a quarter league under sail after the port she last lay still in - VOYAGE-HOLD,
-`01-Overview/bugs/Field-Bugs-2026-10-21.md` - "Under Sail", "The Packet Lanes") and the
+`01-Overview/bugs/Field-Bugs-2026-10-21b.md` - "Under Sail", "The Packet Lanes") and the
 shipwright all ask; and a port's waters were a map pixel about the captain's (`navalPortHere`, and a place the port's
 data flags within one, `navalNearPort`). The shore DFU's kernel builds lies past it at twelve of the 106: no water a
 Small Ship lies in within a pixel of Daggerfall, Wayrest, Holwych, Ripmore, Isfakabi, Pencart, Aldbrugh, Gallocart,
