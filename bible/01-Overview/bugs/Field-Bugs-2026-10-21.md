@@ -10,7 +10,7 @@ its departure in `Port-Ledger.md`. The pins are `fb1021_*`, the mutants `tools/m
 
 | | Report | What it was | Done |
 |---|---|---|---|
-| 1 | "enemy dsync" | A crowded cell's foes budget dropped the FULL frames first - they carry the sweep, the sites, the grants and the handovers - so a reader missed deaths and removals and pruned a silent owner's foes | FOES-FIRST, HIT-DROPS |
+| 1 | "enemy dsync" | A crowded cell's foes budget dropped the FULL frames first - they carry the sweep, the sites and the grants - so a reader missed deaths and removals and pruned a silent owner's foes; and the handover batches, deltas to the budget, were lost after their owner had let the foes go | FOES-FIRST, HIT-DROPS, AUDIT FOES-FIRST |
 | 2 | "enemy dsync" | A slow owner's foes ran slow for everyone and their puppets stalled and jumped: the owner stepped them on its own clamped frame, and a reader led them by arrival time | OWNER-CLOCK |
 | 3 | the profile's boat pool, `rendererModelKey` 2.6% | One shape stamp for every tree in the game: any boat built anywhere re-planned every boat; and every boat drawn was walked, baked and lit every frame wherever she sailed | BOAT-STAMP, BOAT-FAR |
 | 4 | the profile's Horse Cart pool | Inside 400 m every horse was posed and its palette sent every frame, off-screen and parked ones too | HORSE-VIEW |
@@ -40,11 +40,16 @@ A room's foes bucket was shared by every owner in the cell, with no order: the d
 crowded cell's bucket drained and the full frames (every 2 s, large) lost first. Measured on the real Room
 (`tools/foesFirstBench.mjs`): thirty owners of sixty sockets heard 1.2% of their full frames; now 100%, the bytes out
 the same. A delta spends the bucket down to `FOES_FULL_RESERVE` (a quarter), a full frame into a debt of a quarter
-second at most; a sender's full frame goes first once a `FOES_FIRST_MS`, and its next frame first once it has been
-unheard `FOES_UNHEARD_MS`. A cell whose full frames alone pass the budget (the Starfall's eighty sockets) hears 35% of
-them, never an owner silent past six seconds; the budget itself is the next question, and the new blobs measure it -
-blob3 the blows the hit funnels dropped (silent until now), blob4 and blob5 the full frames dropped and asked. Relay
-world239.
+second at most; a sender's full frame goes first once a `FOES_FIRST_MS`, a frame that hands foes on (an owner leaving,
+dying, going through a door) once a `FOES_FIRST_MS` too, and its next frame first once it has been unheard
+`FOES_UNHEARD_MS`. The audit found the handovers held as deltas (a crowded cell's heard 29.2%, a star's 0.8%: now 100%)
+and a junked frame's sender left unheard (every frame of it first): both fixed. A cell whose full frames alone pass the
+budget (the Starfall's eighty sockets) hears 35% of them, never an owner silent past six seconds - but one LARGE owner
+among smaller ones, a star's stander, hears none of its full frames (0% before and after; its deltas are heard, so its
+puppets stand, but its grants, sites and sweep do not reach a reader: two covens at one star). A claim was tried and
+removed (it halved another crowd's full frames); the budget for an event's cell, a pending slot or thinner full frames
+is the next slice, `Scale-Arc.md` FOES-FIRST's Left. The new blobs measure it live - blob3 the blows the hit funnels
+dropped (silent until now), blob4 and blob5 the full frames dropped and asked. Relay world239.
 
 ## OWNER-CLOCK (2) - `bible/06-Systems/Online-Arc.md` OWNER-CLOCK
 
@@ -71,6 +76,7 @@ half behind the eye: twenty uploads a frame to 3.7, the pool's frame 0.24 ms to 
 
 ## Left
 
-The Durable Object resets' cause; the relay settings' state (the owner's `/relay grantMode`); the budget for a cell
-whose full frames alone pass it; my own boats' Animators and the road's stranger teams, still stepped every frame; a
+The Durable Object resets' cause; the relay settings' state (the owner's `/relay grantMode`); a star's large owner and
+the budget for a cell whose full frames alone pass it; world238, claimed by two open branches (STAR-TUNE #1090,
+GRANT-SLEEP #1066), against this release's world239 - whichever lands after another takes the next number; my own boats' Animators and the road's stranger teams, still stepped every frame; a
 slow dungeon host's foes, which carry `tm` but are not caught up.
