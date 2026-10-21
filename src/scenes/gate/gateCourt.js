@@ -117,7 +117,8 @@ export const SPUTTER_EVERY_MS = 500;
  *  this high over his court's heart, this far. */
 export const WRATH_LIGHT_Y = 6;
 export const WRATH_LIGHT_RANGE = 60;
-const WHITE = Object.freeze([1, 0.96, 0.9]), WRATH_RED = Object.freeze([1, 0.08, 0.04]);
+/** WB13e: the court's light white at his fall and at the Wrath's landing (scenes/eliteGates/egLordFall.js: a breach lord's fall too). */
+export const WHITE = Object.freeze([1, 0.96, 0.9]), WRATH_RED = Object.freeze([1, 0.08, 0.04]);
 /** WB9c (2026-09-30, Mac: "a detailed wipe mechanic on the final phase that should require players to destroy oblivion
  *  crystaline formations ... which then stuns his wipe mechanic"): DAGON'S RECKONING, said - its call (how many crystals
  *  there are to break), each crystal broken (by whom, and how many stand), and the Reckoning broken (he is stunned). */

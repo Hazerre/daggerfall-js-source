@@ -2447,7 +2447,7 @@ The mode's heartbeat fires in an order, timed from the lord's `fell`:
 
 | at | what |
 |---|---|
-| 0 s | the gate's fall beats (WB13e): *FELLED*, the body down |
+| 0 s | the gate's fall beats (WB13e; on every lord since EG-FALL): *FELLED*, the body down - the cry, the burst, the white flash and the shake; its thud at 1.5 s and the column of embers; its corpse left where it fell |
 | 1.5 s | the beacon climbs at the court's heart with SPIRREDT's first chord, under the card *Redoubt 5* / *The Broken Galleries* |
 | 3 s | the count's chip takes its time: *+15:00* (or *+10:00 - the Covenant's Press*, or *+3:00 - the last word* when the last word clamps it) |
 | 3.5 s | the spoils thrown at the beacon, at least 12 m from the way home |
@@ -10255,3 +10255,58 @@ SPIRE-FIRST-severide-not-granted re-aimed as SPIRE-FIRST-serveride-not-granted, 
 be seen by their character is seen so in Discord too. A list in config is still a person's edit: Hour's First's names
 came from the clears' claims (`sd-clears.yml`), which carry the account; the Spire's company has no such workflow, so
 the next name put on a handle list off the herald is checked against the account first.
+
+### EG-FALL - 2026-10-21 - A LORD'S FALL IS THE GATE'S
+
+The owner: *"I notice in the Elite Breaches, when the boss dies it freezes in place. Oblivion gates do the boss death the
+best way"*.
+
+**What was there (FACT, at 8089d374f).** A felled lord stays in its hall's fight on the relay's word: `egLordHit`
+(`net/eliteGates/egLords.js`) sets `EG_FL.fell` and the fall's instant, and keeps the body, so the Twins' fifteen seconds
+can raise one (`egLink.js` `fellOf` clears it again). The screen drew that body through `egBodyAct`
+(`scenes/eliteGates/egFight.js`), whose fallen branch read `frame: Math.min(3, ...)` over 1.2 s with `sink: 0` and had no
+end: the lord played four hurt frames and then stood on the fourth, upright and full size, for as long as the hall stood.
+Section 16.2 promised "the gate's fall beats (WB13e): *FELLED*, the body down"; the card shipped (`beats`), the body
+never went down, and none of the gate's other beats had been carried over - no cry, no thud, no light, no shake.
+
+**The fall.** `scenes/eliteGates/egLordFall.js` (new; `egFight.js` wires it, and no host is touched) gives every lord the
+Warden's fall from the Burning Court (`world/gate/gateBoss.js` `bossAct`, `scenes/gate/gateCourt.js` `fallEvent`,
+`drawCorpse` and `lights`). It uses the gate's own numbers (`FALL_MS`, `THUD_AT_MS`, `FALL_SINK_M`, `CORPSE_SCALE`,
+`BOSS_H`, `FALL_FLASH_MS`, `FALL_SHAKE`, `COLUMN_BURSTS`, `COLUMN_STEP_MS`, `FALL_CRY_LATE_MS`; `WHITE` is now exported for
+it), each grown by the lord's drawn size over the Warden's 3 (`EG_FALL_PER` - Grath at 4.8 sinks 2.4 m):
+- **The body** (`egLordFallAct`, which `egBodyAct` now answers for a fallen lord): its hurt frames to the floor by 1.5 s,
+  then sunk into the stone over the rest of 2.4 s, then gone. It falls where it fell (`drawBody` stands it at its fall's
+  instant, never on along a walk the relay said before it), and a flyer - the Mother of Dusk, the Wyrm aloft - drops out
+  of its hover by the thud (`aloft`).
+- **The kill**: its death cry (the gate's `fall` cue in the lord's own bark - `egFallCry`; a Daedra Lord's is the gate's
+  own), a burst of Dagon's size out of its chest whose sparks rest on its floor, the hall's light white for 0.4 s, and the
+  camera shaken 4 under the Spire's motion law (`egShakeMotion`: reduced motion none, Technique camera motion its share).
+- **The thud** at 1.5 s, and three embers rising off the floor a quarter second apart; its ember's glow at its chest
+  dies over the fall. The ember is the gate's own under the lord's element's aspect (`egLordEmber`: fire the Burning's,
+  frost the Rime's, shock the Storm's, poison the Venom's; Vael the fire and Isk the frost; no element, its band's).
+- **Its body left**: its mobile's own corpse (`enemyBasics.js` `corpseTexture`, every lord's mobile has one) where it
+  fell, grown as the lord is, with no giant's shadow (OW-BIG's law). It lies there while the fight keeps the lord, and
+  is put away when the Twin is raised (her next fall plays again from its own instant, also when the screen never saw
+  her stand), when the lord leaves the fight, at a new hall even before its fight is heard, and when the breach is left.
+- Each beat plays once a fall, and only while news, as the gate's do: a screen that comes to the hall later sees the
+  corpse on the floor and hears nothing.
+- The sparks are drawn by the gate's spark pass (`render/gate/gateFx.js`) in the fight's world pass, after the telegraph
+  floors (`egFight.js` `drawPass`). The corpses ride the fight's batches, and the flash and glow - each a record refilled
+  in place, casting no shadow - ride its lights. Two lights for 2.4 s a fall, then none.
+
+Not a DFU member: Daggerfall Unity's foes have no fall of their own. The gate's is the port's own (WB13e), and this
+departs from it twice: the cry is the lord's own voice where the gate's is always the Warden's, and the kill's sparks
+rest on the floor where the gate's rest at his chest's height. Ledger A's ELITE-GATES row names the file.
+
+**Pins.** `test/net/eliteGates/eg_lordfall.test.js` (10, through `egFight.js`'s own draw path over a recording renderer,
+a recording audio engine and, for the sparks, a recording WebGL): the act's frames, sink, end and drop; the ember and
+the cry; the fall drawn beat by beat to the corpse and a minute past it; only while news, a second for an ember; the
+flyer; the Twin raised, felled again, raised unseen, and the corpse freed by every way out; the sparks and the shake's
+law; the world pass. `tools/mutants/eg_fall.json`: 37, all dead. The first run left three alive - the reset's freeing
+(a new hall's fight not yet heard), an ember's news second, and a fall replayed past a raise this screen never saw - and
+each was pinned.
+
+**Left as it is, said.** Not seen in a running breach: the lords are the player's ARENA2 sprites, which no lab ships.
+The draw path, the renderer's calls and the GL calls are what was read. The FELLED card still stands at the word's
+arrival (the gate's waits 1.7 s, over his spoils). The legion's adds fall as they did (1.2 s, `edie`), and a mirror still
+crumbles. A raised Twin stands at once; she does not climb up out of the floor.
