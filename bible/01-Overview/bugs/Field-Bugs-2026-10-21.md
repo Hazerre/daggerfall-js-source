@@ -11,7 +11,7 @@ its departure in `Port-Ledger.md`. The pins are `fb1021_*`, the mutants `tools/m
 | | Report | What it was | Done |
 |---|---|---|---|
 | 1 | "enemy dsync" | A crowded cell's foes budget dropped the FULL frames first - they carry the sweep, the sites and the grants - so a reader missed deaths and removals and pruned a silent owner's foes; and the handover batches, deltas to the budget, were lost after their owner had let the foes go | FOES-FIRST, HIT-DROPS, AUDIT FOES-FIRST |
-| 2 | "enemy dsync" | A slow owner's foes ran slow for everyone and their puppets stalled and jumped: the owner stepped them on its own clamped frame, and a reader led them by arrival time | OWNER-CLOCK |
+| 2 | "enemy dsync" | A slow owner's foes ran slow for everyone and their puppets stalled and jumped: the owner gave them half its clamped frame (FOE-CATCHUP), and a reader led them by arrival time | OWNER-CLOCK |
 | 3 | the profile's boat pool, `rendererModelKey` 2.6% | One shape stamp for every tree in the game: any boat built anywhere re-planned every boat; and every boat drawn was walked, baked and lit every frame wherever she sailed | BOAT-STAMP, BOAT-FAR |
 | 4 | the profile's Horse Cart pool | Inside 400 m every horse was posed and its palette sent every frame, off-screen and parked ones too | HORSE-VIEW |
 | 5 | the profile's peer bodies, Web Worker | Already on a distance cadence (PEER-CADENCE); a worker would move only what is cheap (interpolation, 0.02 ms) | not a defect |
@@ -53,12 +53,17 @@ dropped (silent until now), blob4 and blob5 the full frames dropped and asked. R
 
 ## OWNER-CLOCK (2) - `bible/06-Systems/Online-Arc.md` OWNER-CLOCK
 
-Every foes and own frame now says its owner's step time (`tm`, ms, wrapped as the pose's stamp is), and a reader leads
-a puppet by the owner's time between its records, as far as the owner's own pace of sending (0.3 s to 0.75 s) - a 3-fps
-owner's foes stood still 35% of the time on a reader's screen, now 4.8%. The relay passes `tm` unread inside `data`, and
-an older reader never reads it. A slow owner's street foes are caught up in steps of 0.05 s, six at most a frame and
-only inside a tenth of the frame's own time, online with another in the room - FOE-CATCHUP's row in `Port-Ledger.md`
-narrowed to say so, for the owner to approve.
+Every foes and own frame now says its owner's step time (`tm`, ms, wrapped as the pose's stamp is; 14 bytes at most,
+0.3% to 3% of a room's foes budget), and a reader leads a puppet by the owner's time between its records, as far as the
+owner's own pace of sending (0.3 s to 0.75 s) - a 3-fps owner's foes stood still 35% of the time on a reader's screen,
+now 4.8%; a pair carrying one `tm` twice (a clock that stood) is led on the arrival clock. The relay passes `tm` unread
+inside `data` - OWNER-CLOCK needs no relay change of its own - and an older reader never reads it. Online with anyone
+else in the owner's room (the cell, not only those who see its foes), a slow owner's street foes step its own clamped
+frame - 0.1 s at most, in 0.05 s substeps, one extra call a frame and only inside a tenth of the frame's measured time
+(none after time away, none on a clock too coarse to price a call) - so they keep pace with its player and never
+outrun it, where FOE-CATCHUP alone gave them half of it below 10 fps (three quarters at 15). As first built the same
+day they caught up the wall's time instead, three times the player at 3 fps; the audit put them back to the host's
+frame. FOE-CATCHUP's row in `Port-Ledger.md` says exactly what changed, for the owner to approve.
 
 ## BOAT-STAMP and BOAT-FAR (3) - `bible/07-Rendering/Performance-Priority.md`
 
@@ -79,4 +84,5 @@ half behind the eye: twenty uploads a frame to 3.7, the pool's frame 0.24 ms to 
 The Durable Object resets' cause; the relay settings' state (the owner's `/relay grantMode`); a star's large owner and
 the budget for a cell whose full frames alone pass it; world238, claimed by two open branches (STAR-TUNE #1090,
 GRANT-SLEEP #1066), against this release's world239 - whichever lands after another takes the next number; my own boats' Animators and the road's stranger teams, still stepped every frame; a
-slow dungeon host's foes, which carry `tm` but are not caught up.
+slow dungeon or building host's foes, which carry `tm` but step FOE-CATCHUP's half of its frame (flagged in
+`Online-Arc.md`).
