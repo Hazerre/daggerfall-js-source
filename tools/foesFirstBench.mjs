@@ -1,0 +1,137 @@
+// FOES-FIRST (2026-10-21; bible/11-Multiplayer/Scale-Arc.md FOES-FIRST): WHICH FOES FRAMES A CROWDED ROOM LETS THROUGH,
+// MEASURED ON THE REAL ROOM over the pins' fake object (test/fakeRoom.mjs) - every hello a signed token, every frame
+// through the relay's own door (`webSocketMessage`), the room's own budget deciding. A scene is OWNERS sockets of
+// SOCKETS in one cell's block, each streaming its foes as the client does (scenes/world.js foesStream): a frame every
+// FOES_MS and the frame loop's sixteen milliseconds, FULL every FOES_FULL_MS at the owner's own phase (it came in when it
+// came in). The frames are the wire's record shape (scenes/exteriorFoes.js foesFrame) at RECORDS records - a delta the
+// moving share of them, a full frame every one with its look's seed, the grants (`gs`, about 150 bytes each before the
+// signature) and a site sprung (`sp`). Per scene:
+//
+//   full / delta   the share of each kind any listener heard (a fan is whole or nothing)
+//   gap p50/p99/max how long an owner's full frames were apart at its listeners - the sweep's, the grants' and the
+//                   sites' latency (a grant unheard past GRANT_VERDICT_WAIT_MS, 6 s, is tallied `ungranted`)
+//   stale          the share of owner-time its listeners heard nothing from it for past FOES_STALE_MS - its puppets
+//                   pruned, the foes that "vanish" - and the longest any owner went unheard
+//   out            the room's bytes out a second, against FOES_ROOM_BYTES_PER_S
+//
+//   node tools/foesFirstBench.mjs [SECONDS=60] [SCENE=name]
+//
+// A model of nothing but the senders: the Room's code runs. Run on a checkout before FOES-FIRST, it measures the law
+// that was (the record's "before" column was read so, off origin/main 4bba28c).
+import { fakeRoom } from '../test/fakeRoom.mjs';
+import { PIXEL_UNITS, FOES_ROOM_BYTES_PER_S, FOES_FULL_MS, FOES_STALE_MS } from '../src/net/wire.js';
+
+const FOES_MS = 200;   // net/online.js FOES_MS (online.js is the page's, and imports what Node does not load)
+const arg = (k, d) => process.argv.find((a) => a.startsWith(`${k}=`))?.split('=')[1] ?? d;
+const SECONDS = Number(arg('SECONDS', 60)), ONLY = arg('SCENE', null);
+
+/** A seeded roll (mulberry32). */
+function roll(seed) {
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+
+/** One record in the wire's shape (exteriorFoes.js foesFrame's `r`), a full frame's with its look's seed. */
+const record = (i, full, moving) => ({
+  i, t: 7 + (i % 30), x: i % 2, f: [3456.78 + i, 12.34, -7890.12 - i], y: 1.234, h: 45, k: 60, d: 0, a: 17, b: '', m: moving ? 1 : 0, g: '.', l: 9,
+  w: [110, 2], c: 0, s: 0, u: '', o: 0, gr: [42, i % 4], ...(full ? { ls: 1234567890 + i, ...(i % 2 ? { lw: 'a3.b7.c12.d4.e9.f2' } : {}) } : {}),
+});
+/** A signed grant's size (net/grantLaw.js: the claims and an Ed25519 signature, 86 characters). */
+const grant = (g, o) => ({ g, o, q: 'world:13,13', a: 'acct-0123456789abcdef', k: 'enc', p: [13, 13], m: 9, l: 9, r: 7, n: 2, s: 5, e: 0, c: [-1, -1], h: -1, x: 1800000000000, sg: 'x'.repeat(86) });
+function frameOf(owner, n, full, { records, moving, grants }) {
+  const f = [];
+  for (let i = 0; i < records; i++) { const m = i < records * moving; if (full || m) f.push(record(i, full, m)); }
+  const data = { n, k: 'world:13,13', full: full ? 1 : 0, f, ...(full ? { gs: Array.from({ length: grants }, (_, g) => grant(g, owner)), sp: [[`13,13:star.4.${n % 3}`, 3]] } : {}) };
+  return JSON.stringify({ t: 'foes', data });
+}
+
+export const SCENES = [
+  { name: 'quiet', what: '10 owners in a cell of 20 sockets, 12 records - inside the budget', owners: 10, sockets: 20, records: 12, moving: 0.75, grants: 3 },
+  { name: 'crowded', what: '30 owners in a cell of 60 sockets, 12 records', owners: 30, sockets: 60, records: 12, moving: 0.75, grants: 3 },
+  { name: 'star', what: 'a star\'s crowd: 30 owners of 60, 24 records (bodies ride)', owners: 30, sockets: 60, records: 24, moving: 0.5, grants: 6 },
+  { name: 'star80', what: 'a bigger star: 40 owners of 80, 24 records', owners: 40, sockets: 80, records: 24, moving: 0.5, grants: 6 },
+  { name: 'big', what: '20 owners of 120 at the frame\'s record cap (64)', owners: 20, sockets: 120, records: 64, moving: 0.3, grants: 16 },
+  { name: 'flood', what: 'the crowded cell, and one socket saying full:1 on 16 KiB frames at FOES_HZ_MAX', owners: 30, sockets: 60, records: 12, moving: 0.75, grants: 3, flood: 16 * 1024 },
+];
+
+async function onClock(fn) {
+  const realNow = Date.now;
+  let clock = 1_800_000_000_000;
+  Date.now = () => clock;
+  const quiet = { info: console.info, warn: console.warn, log: console.log };
+  console.info = console.warn = console.log = () => {};
+  try { return await fn({ now: () => clock, set: (t) => { clock = t; } }); } finally { Date.now = realNow; Object.assign(console, quiet); }
+}
+
+export async function scene(s, seconds = SECONDS) {
+  return onClock(async ({ now, set }) => {
+    const BX = 13 * 16 + 8, BY = 13 * 16 + 8;
+    const R = fakeRoom(`world:${Math.floor(BX / 16)},${Math.floor(BY / 16)}`, { now });
+    const rnd = roll(11);
+    const socks = [];
+    const t0 = now();
+    for (let i = 0; i < s.sockets; i++) {
+      const ws = R.connect(); set(t0 + i * 120);
+      await R.hello(ws, `p-${String(i).padStart(4, '0')}`, { x: (BX + rnd() * 0.5) * PIXEL_UNITS, y: 0, z: (499 - BY + rnd() * 0.5) * PIXEL_UNITS, yaw: 0, pitch: 0 });
+      socks.push(ws);
+    }
+    // heard: a frame is whole or nothing, so one listener's ear is every listener's - counted without a parse
+    let heard = 0, out = 0;
+    for (const ws of socks) ws.send = (str) => { out += str.length; if (str.startsWith('{"t":"foes"')) heard++; };
+    const start = now() + 5000;
+    const events = [];
+    for (let o = 0; o < s.owners; o++) {
+      let t = start + rnd() * FOES_MS, lastFull = start - rnd() * FOES_FULL_MS;
+      while (t < start + seconds * 1000) { const full = t - lastFull >= FOES_FULL_MS; if (full) lastFull = t; events.push({ t: Math.round(t), o, full }); t += FOES_MS + Math.floor(rnd() * 17); }
+    }
+    const flooder = s.flood ? s.owners : -1;
+    if (s.flood) for (let t = start; t < start + seconds * 1000; t += Math.ceil(1000 / 12)) events.push({ t, o: flooder, full: true });
+    events.sort((x, y) => x.t - y.t);
+    const pad = s.flood ? JSON.stringify({ t: 'foes', data: { n: 0, full: 1, f: [], pad: 'p'.repeat(s.flood) } }) : '';
+    const st = { full: [0, 0], delta: [0, 0], flood: [0, 0] };
+    const lastHeard = new Map(), lastFull = new Map(), gaps = [];
+    let stale = 0, n = 0, silent = 0;
+    for (const e of events) {
+      set(e.t);
+      const owner = socks[e.o];
+      const text = e.o === flooder ? pad.replace('"n":0', `"n":${++n}`) : frameOf(`p-${String(e.o).padStart(4, '0')}`, ++n, e.full, s);
+      const before = heard;
+      await R.raw(owner, text);
+      const passed = heard > before;
+      const k = e.o === flooder ? 'flood' : e.full ? 'full' : 'delta';
+      st[k][1]++;
+      if (!passed) continue;
+      st[k][0]++;
+      if (e.o === flooder) continue;
+      const lh = lastHeard.get(e.o) ?? start;
+      if (e.t - lh > FOES_STALE_MS) stale += e.t - lh - FOES_STALE_MS;
+      silent = Math.max(silent, e.t - lh);
+      lastHeard.set(e.o, e.t);
+      if (e.full) { gaps.push(e.t - (lastFull.get(e.o) ?? start)); lastFull.set(e.o, e.t); }
+    }
+    const end = start + seconds * 1000;
+    for (let o = 0; o < s.owners; o++) {
+      const lh = lastHeard.get(o) ?? start;
+      if (end - lh > FOES_STALE_MS) stale += end - lh - FOES_STALE_MS;
+      silent = Math.max(silent, end - lh);
+      gaps.push(end - (lastFull.get(o) ?? start));
+    }
+    gaps.sort((x, y) => x - y);
+    const q = (p) => gaps[Math.min(gaps.length - 1, Math.floor(p * gaps.length))] / 1000;
+    const pct = ([p, all]) => (all ? Math.round((1000 * p) / all) / 10 : null);
+    return {
+      scene: s.name, full: pct(st.full), delta: pct(st.delta), ...(s.flood ? { flood: pct(st.flood) } : {}),
+      gapP50: q(0.5), gapP99: q(0.99), gapMax: gaps.at(-1) / 1000,
+      stale: Math.round((10000 * stale) / (s.owners * seconds * 1000)) / 100, unheardMax: silent / 1000, outMiBs: Math.round((100 * out) / seconds / FOES_ROOM_BYTES_PER_S * 4) / 100,
+    };
+  });
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const rows = [];
+  for (const s of SCENES) if (!ONLY || s.name === ONLY) {
+    const r = await scene(s);
+    rows.push(r);
+    process.stdout.write(`${s.name.padEnd(8)} ${s.what}\n  full ${r.full}%  delta ${r.delta}%${r.flood != null ? `  flood ${r.flood}%` : ''}  full frames apart p50 ${r.gapP50} s, p99 ${r.gapP99} s, max ${r.gapMax} s  stale ${r.stale}% (unheard ${r.unheardMax} s at most)  out ${r.outMiBs} MiB/s\n`);
+  }
+}

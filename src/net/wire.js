@@ -535,6 +535,17 @@ export function frameCap(text) { return text.startsWith(WORLD_PREFIX) ? WORLD_FR
 /** AUDIT WORLD2 A5: a room's foes fan spends this many bytes a second - the frame's size times its listeners; one host
  *  at FOES_HZ_MAX and FOES_FRAME_MAX into SOCKETS_MAX listeners would have been 191 MiB/s out of one object. */
 export const FOES_ROOM_BYTES_PER_S = 4 * 1024 * 1024;
+/** FOES-FIRST (2026-10-21, bible/11-Multiplayer/Scale-Arc.md FOES-FIRST): THE FULL FRAMES' RESERVE in the room's foes
+ *  budget (and the own lane's). Every frame spent one bucket alike, so in a crowded cell the small deltas, every FOES_MS
+ *  from every owner, kept it below what a FULL frame's fan costs, and the full frames - the sweep, the grants, the
+ *  sites sprung, the handovers - were the ones dropped: 1.2% of them got through a 30-owner, 60-socket cell
+ *  (tools/foesFirstBench.mjs, over the real Room; 100% now). A delta now spends the bucket down to this and no
+ *  further; a frame that goes FIRST (a full frame, at most once each FOES_FIRST_MS a sender, or the first frame of a
+ *  sender unheard for FOES_UNHEARD_MS) may spend it and borrow as much again (floorGate's floor at minus this). A
+ *  quarter of the budget: a full fan of up to twice this (2 MiB - a 16 KiB frame to 128 listeners) goes straight into
+ *  a room the deltas hold at the reserve, the deltas keep three quarters of the burst, and the deepest debt a full
+ *  frame leaves is a quarter of a second of the rate, so the room's bytes a second stay at the budget on average. */
+export const FOES_FULL_RESERVE = FOES_ROOM_BYTES_PER_S / 4;
 
 /** QUEST1 (2026-09-20, revised): sharing an accepted quest with the party - systems/quest/questShare.js's own envelope
  *  (Quest.getSaveData()'s shape). First measured at "a few hundred bytes to a few KB for most quests" - wrong in
@@ -614,6 +625,17 @@ export function byteGate(bucket, nowMs, cost, rate, borrow = false) {
   const bytes = Math.min(rate, b.bytes + Math.max(0, ((nowMs - b.at) / 1000) * rate));
   if (borrow ? bytes < 0 : bytes < cost) return { bucket: { bytes, at: nowMs }, pass: false };
   return { bucket: { bytes: bytes - cost, at: nowMs }, pass: true };
+}
+/** FOES-FIRST (2026-10-21): byteGate's bucket spent down to a FLOOR - passes when the cost leaves at least `floor`,
+ *  spending it. A floor of 0 is byteGate's own law; a positive one holds a reserve back from this caller; a negative
+ *  one lets it borrow that far and no further, so the debt is bounded by the floor (byteGate's `borrow` bounds it by
+ *  the frame's own cost, which a stream cannot afford - SLAM11) and the rate holds on average. The room's foes fan
+ *  asks it with FOES_FULL_RESERVE either way round (server/src/index.js `_foesFan`). The refill is byteGate's own: asked
+ *  for nothing, it answers the bucket refilled to now, whatever it holds. */
+export function floorGate(bucket, nowMs, cost, rate, floor) {
+  const held = byteGate(bucket, nowMs, 0, rate).bucket;
+  if (held.bytes - cost < floor) return { bucket: held, pass: false };
+  return { bucket: { bytes: held.bytes - cost, at: nowMs }, pass: true };
 }
 /** CHAT-CHAN (2026-09-23, kurkku: "regional chat that everyone in the region can see (so players in Wayrest see
  *  messages from other players in Wayrest and so on)"): A REGION IS A CHANNEL of its own, one room per Daggerfall region
@@ -1514,6 +1536,18 @@ export const FOES_FULL_MS = 2000;
  *  a dungeon room's host that has said no frame for this long, with another socket there to hear it, holds the seat no
  *  longer (net/seatLive.js seatOf). */
 export const FOES_STALE_MS = 3 * FOES_FULL_MS;
+/** FOES-FIRST (2026-10-21): a sender's FULL frame goes first on the room's foes budget (FOES_FULL_RESERVE) at most this
+ *  often on each lane - every honest one comes FOES_FULL_MS apart; a sender that says `full` on every frame (the word
+ *  is the sender's own) earns one such frame a second, and the rest are deltas to the budget. */
+export const FOES_FIRST_MS = FOES_FULL_MS / 2;
+/** FOES-FIRST: a sender its lane has not heard for this long goes first with its next frame, full or not - two full
+ *  frames' cadence unheard, and one more full cadence (ten frames' tries) before its readers' FOES_STALE_MS prunes its
+ *  puppets. A room whose full frames alone are more than its budget would otherwise drop some owners whole. */
+export const FOES_UNHEARD_MS = FOES_STALE_MS - FOES_FULL_MS;
+/** FOES-FIRST: whether a foes or own frame is FULL - it says so (`full` 1: a cell's, a building's, the own lane's -
+ *  scenes/exteriorFoes.js and dungeonContext.js ownFrame) or carries the dungeon host's layout count (`lc`, said on its
+ *  full frames alone - dungeonContext.js foesFrame), which its readers take as a full frame's list. */
+export const foesFrameFull = (data) => data?.full === 1 || Number.isInteger(data?.lc);
 /** SLAM13 (2026-09-16, AUDIT SLAM A2): A KEEPALIVE IS HEARD BY THE WHOLE CROWD AT MOST THIS OFTEN. SLAM8 fans an
  *  unmoved pose to everyone in range, untiered, because a standing player's heartbeat is the one frame whose whole job
  *  is to be heard - and it assumed that frame comes every HEARTBEAT_MS, which is what the port's client does. A
