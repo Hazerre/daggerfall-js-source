@@ -9644,6 +9644,21 @@
   "tr": "63e10ee73638",
   "by": "claude-in-session"
  },
+ "festival.finds.full": {
+  "en": "330c9b302a2c",
+  "tr": "dd3864641df4",
+  "by": "claude-in-session"
+ },
+ "festival.finds.today": {
+  "en": "93be20c18f10",
+  "tr": "637290af1cd3",
+  "by": "claude-in-session"
+ },
+ "festival.finds.todayFull": {
+  "en": "78bff0d44c1f",
+  "tr": "0d3e0d8c43bf",
+  "by": "claude-in-session"
+ },
  "festival.found": {
   "en": "d2a56822f0e7",
   "tr": "7122104561eb",
@@ -23579,14 +23594,29 @@
   "tr": "1f3df3abb5f9",
   "by": "claude-in-session"
  },
+ "prof.page.stores.fromPackGoods": {
+  "en": "658f1d1d015f",
+  "tr": "55c76a987589",
+  "by": "claude-in-session"
+ },
  "prof.page.stores.goldGoods": {
   "en": "0d5a1ee06ac7",
   "tr": "f7a570308161",
   "by": "claude-in-session"
  },
+ "prof.page.stores.goldStays": {
+  "en": "d7fe9756ed0f",
+  "tr": "a813d83a9f7b",
+  "by": "claude-in-session"
+ },
  "prof.page.stores.looseGoods": {
   "en": "4b2a8d95c0dd",
   "tr": "a63b9f3f2c76",
+  "by": "claude-in-session"
+ },
+ "prof.page.stores.looseMade": {
+  "en": "a48227c3560e",
+  "tr": "1d3224057aa0",
   "by": "claude-in-session"
  },
  "prof.page.stores.matLine": {
@@ -23765,13 +23795,13 @@
   "by": "claude-in-session"
  },
  "prof.page.unlocks.hunting1": {
-  "en": "3150619be94c",
-  "tr": "d2dc85374400",
+  "en": "7e740646d01d",
+  "tr": "14d4e5477ef2",
   "by": "claude-in-session"
  },
  "prof.page.unlocks.hunting2": {
-  "en": "7ee91d615091",
-  "tr": "c30db93aeb2a",
+  "en": "3d94bbcfdab3",
+  "tr": "827f20f10dfd",
   "by": "claude-in-session"
  },
  "prof.page.unlocks.hunting3": {
@@ -23890,8 +23920,8 @@
   "by": "claude-in-session"
  },
  "prof.page.unlocks.outfitting2": {
-  "en": "c0be52db8eee",
-  "tr": "73ab741dffc1",
+  "en": "4b2213ed6f4a",
+  "tr": "aaaee59e4ea7",
   "by": "claude-in-session"
  },
  "prof.page.unlocks.outfitting3": {
@@ -26149,6 +26179,16 @@
   "tr": "e555e7d6fbce",
   "by": "claude-in-session"
  },
+ "rvn.errand.left.realHours": {
+  "en": "09ae5f9750ec",
+  "tr": "fa33831409e4",
+  "by": "claude-in-session"
+ },
+ "rvn.errand.left.realMinutes": {
+  "en": "fa15b0cca051",
+  "tr": "9e44143803ec",
+  "by": "claude-in-session"
+ },
  "rvn.errand.no.abroad": {
   "en": "3d2f752aa20c",
   "tr": "52c5bff32f8c",
@@ -26510,8 +26550,8 @@
   "by": "claude-in-session"
  },
  "rvn.roster.abroadLived": {
-  "en": "02ad56e2e2bb",
-  "tr": "fcc5c897a1e0",
+  "en": "a57a6cdb3d6f",
+  "tr": "c850a98b4995",
   "by": "claude-in-session"
  },
  "rvn.roster.broken": {
