@@ -5293,6 +5293,12 @@ export const STAR_KILLS_MAX = 99;
 /** A wave's most on the wire (`st`'s `wz`): net/starfall/starfallLaw.js STAR_WAVE_MAX, a copy because the law imports this
  *  module (held equal by test/net/starfall/star3_relay.test.js). STAR-TUNE: twenty-four, from nine. */
 export const STAR_WAVE_SIZE_MAX = 24;
+/** AUDIT STAR-TUNE F3: the most an older client's `st` reads (world235-world237's validStarOut: `wz` nine at most). It
+ *  dropped the whole frame for a wave past it - an older tab that held a party's star stood its third wave on for nobody,
+ *  nor the master. So `wz` rides at most this, and a wave past it says its size in `wx`, which this module reads back
+ *  into `wz` (an older one projects it away): an older owner stands nine of it and the wave still clears (its word's
+ *  `wc`, under the floor), never nothing. */
+export const STAR_WAVE_SIZE_OLD_MAX = 9;
 export const STAR_BLOWS_MAX = 9999;
 export const STAR_TOP_WIRE_MAX = 3;
 export const STAR_COUNT_MAX = 64;
@@ -5327,8 +5333,9 @@ const msOk = (v) => Number.isSafeInteger(v) && v >= 0;
 const starTopOf = (top) => (Array.isArray(top) ? top.filter((x) => typeof x === 'string' && x).slice(0, STAR_TOP_WIRE_MAX).map(sanitizeName) : []);
 /**
  * A cell's or the hub's star word, projected for the client - or null:
- *   `{k:'st', n, s, px, py, p, w, wz, kn, wl, lt, nd, b, ow, hc, hd, lo, why, hm?}` the ledger (starfallLaw.js
- *   starLedgerState) - `hm`, to the socket that spoke alone, its own account's credited blows;
+ *   `{k:'st', n, s, px, py, p, w, wz, kn, wl, lt, nd, b, ow, hc, hd, lo, why, hm?, wx?}` the ledger (starfallLaw.js
+ *   starLedgerState) - `hm`, to the socket that spoke alone, its own account's credited blows; `wx` a wave past
+ *   STAR_WAVE_SIZE_OLD_MAX, read back as its `wz` (AUDIT STAR-TUNE F3);
  *   `{k:'hd', n, s, px, py, at, top, c}` held, by whom (the first few named, `c` how many);
  *   `{k:'rc', r}` an earner's receipt; `{k:'hds', l: [[n, s, px, py, at], ...]}` the held stars the hub keeps.
  */
@@ -5350,7 +5357,8 @@ export function validStarOut(m) {
   if (!(Number.isSafeInteger(m.wl) && m.wl >= -1) || !intIn(m.lt, 0, STAR_LIGHT_MAX) || !intIn(m.nd, 0, STAR_COUNT_MAX) || !intIn(m.b, 1, 3)) return null;
   if (!flag(m.ow) || !intIn(m.hc, 0, STAR_BLOWS_MAX) || !msOk(m.hd) || !msOk(m.lo) || !intIn(m.why, 0, 2)) return null;
   if (m.hm !== undefined && !intIn(m.hm, 0, STAR_BLOWS_MAX)) return null;
-  const st = { k: 'st', n: m.n, s: m.s, px: m.px, py: m.py, p: m.p, w: m.w, wz: m.wz, kn: m.kn, wl: m.wl, lt: m.lt, nd: m.nd, b: m.b, ow: m.ow, hc: m.hc, hd: m.hd, lo: m.lo, why: m.why };
+  if (m.wx !== undefined && !(m.wz === STAR_WAVE_SIZE_OLD_MAX && intIn(m.wx, STAR_WAVE_SIZE_OLD_MAX + 1, STAR_WAVE_SIZE_MAX))) return null;   // AUDIT STAR-TUNE F3: a wave past an older client's, said whole
+  const st = { k: 'st', n: m.n, s: m.s, px: m.px, py: m.py, p: m.p, w: m.w, wz: m.wx ?? m.wz, kn: m.kn, wl: m.wl, lt: m.lt, nd: m.nd, b: m.b, ow: m.ow, hc: m.hc, hd: m.hd, lo: m.lo, why: m.why };
   return m.hm === undefined ? st : { ...st, hm: m.hm };
 }
 /** The door from a star's cell to the hub: a star held, its earners' receipts riding it (the raid's door). */

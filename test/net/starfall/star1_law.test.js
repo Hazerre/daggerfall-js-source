@@ -11,7 +11,7 @@ import {
   starNightAt, starOk, starTimes, starInWindow, starHeard, starSpotLocal, starNativeOf, starNear, STAR_REACH_M, STAR_UNITS_PER_M,
   STAR_WAVES, STAR_GATHER_MS, STAR_WAVE_MAX_MS, STAR_KILL_MIN_MS, STAR_BREATH_MS, STAR_MASTER_MIN_MS, starWaveSize, starCircleSize, STAR_WAVE_MIN, STAR_WAVE_MAX, STAR_FOE_HEALTH,
   STAR_LIGHT, STAR_BLOW_LIGHT, STAR_BREATH_LIGHT, STAR_BLOWS_HZ, STAR_BLOWS_BURST, starBandOf, STAR_PRESENT_MS, STAR_ORPHAN_MS,
-  newStarLedger, stepStar, foldStarWord, starEarned, starTop, starLedgerState, starPhaseLeft, starOwner, starMayMake, starLostAt,
+  newStarLedger, stepStar, foldStarWord, starClearFloorMs, starEarned, starTop, starLedgerState, starPhaseLeft, starOwner, starMayMake, starLostAt,
   P_FALLEN, P_GATHER, P_WAVE, P_BREATH, P_MASTER, P_HELD, P_LOST, STAR_LOST_DARK, STAR_LOST_DAWN, STAR_ACCOUNTS_MAX,
 } from '../../../src/net/starfall/starfallLaw.js';
 import { mintStarReceipt, readStarReceipt, verifyStarReceipt, starReceiptValid, STAR_RECEIPT_TTL_S } from '../../../src/net/starfall/starReceipt.js';
@@ -171,6 +171,27 @@ test('STAR1 THE MACHINE, END TO END: a defender\'s word begins the gathering; th
   assert.deepEqual(starEarned(led).map(([a]) => a), ['acctA'], 'one who stood and never struck earns nothing');
   assert.deepEqual(starTop(starEarned(led)), ['Ann']);
   assert.equal(foldStarWord(led, 'acctA', 'Ann', word({ o: 1 }), true, now + 2_000), false, 'nothing moves a held star');
+});
+test('AUDIT STAR-TUNE F2 THE FLOOR SHARED BY ITS DEFENDERS: a wave\'s clearing is believed once its foes, shared among the defenders who could kill them at once, could have died - a lone defender\'s as it was, a party of eight\'s eighteen foes in 7.5 s, never the 45 s a foe\'s floor alone made it (mutants: AUDIT-STAR-TUNE-F2-the-floor-unshared)', () => {
+  assert.deepEqual([[4, 1], [7, 1], [18, 8], [21, 8], [24, 12], [5, 0]].map(([wz, nd]) => starClearFloorMs(wz, nd)), [10_000, 17_500, 7_500, 7_500, 5_000, 12_500]);
+  const t = starTimes(N0, 1).fallAt + 5_000;
+  const led = begun(t);
+  const party = ['acctB', 'acctC', 'acctD', 'acctE', 'acctF', 'acctG', 'acctH'];
+  let now = t;
+  const tick = (ms, w = word({ o: 1, lv: 12 })) => {
+    now += ms;
+    for (const a of party) foldStarWord(led, a, a, word({ lv: 12 }), true, now);
+    foldStarWord(led, 'acctA', 'Ann', w, true, now);
+  };
+  for (let i = 0; i < 6 && led.p !== P_WAVE; i++) tick(2_000);
+  assert.equal(led.p, P_WAVE);
+  assert.equal(led.nd, 8, 'eight defenders at the star');
+  assert.equal(led.wz, starWaveSize(1, 8), 'a party of eight\'s first wave');
+  const ws = led.ws, clear = (ms) => tick(ms, word({ o: 1, lv: 12, kw: 1, wc: 1, kn: led.wz }));
+  clear(6_000);
+  assert.equal(led.p, P_WAVE, `not in six seconds (${led.ec - ws} ms in)`);
+  clear(2_000);
+  assert.equal(led.p, P_BREATH, `cleared at eight - its floor ${starClearFloorMs(led.wz, 8)} ms, never ${led.wz * STAR_KILL_MIN_MS}`);
 });
 const STAR_WORD_MS_TEST = 2_000;
 

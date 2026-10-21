@@ -9,6 +9,7 @@ import {
   GRANT_SIG_V, GRANT_TTL_MS, GRANT_SKEW_MS, GRANT_ELITE_CHANCE, GRANT_ELITE_MIN_RENOWN, GRANT_CHAMPION_PER_MILLE, GRANT_CHAMPION_TRAITS,
   GRANT_KINDS, GRANT_CELL_CEILING, GRANT_REFUSALS, GRANT_DICE,
   grantRng, grantDice, grantMarks, validGrant, grantBytes, signGrant, verifyGrant, grantMintGate, grantRefusal, grantMarksAllow,
+  STAR_GRANT_RELAY_MIN, relaySupportsStarGrant,
 } from '../../src/net/grantLaw.js';
 import { ELITE_FOE_OVERWORLD_CHANCE, ELITE_FOE_MIN_RENOWN, eliteRng, eliteHash } from '../../src/systems/eliteFoes.js';
 import { CHAMPION_PER_MILLE, CHAMPION_TRAITS } from '../../src/systems/champions.js';
@@ -32,6 +33,8 @@ test('GRANT1 THE PINNED RATES: each copy the relay holds equals its home - the e
   assert.equal(GRANT_KINDS.enc.max, ROAD_PARTY_MAX, 'an encounter: the road party\'s most, its party\'s extra inside it');
   assert.equal(GRANT_KINDS.camp.max, CAMP_SIZE[1] + PARTY_SCALE_EXTRA_MAX, 'a camp: its own most and the party\'s extra');
   assert.equal(GRANT_KINDS.star.max, STAR_WAVE_MAX, 'STAR-TUNE: a fallen star\'s coven - its law\'s largest wave, one grant');
+  assert.equal(STAR_GRANT_RELAY_MIN, 238, 'AUDIT STAR-TUNE F1: the relay that mints the star\'s kind is STAR-TUNE\'s');
+  assert.deepEqual(['world237', 'world238', 'world300', 'nope', undefined].map(relaySupportsStarGrant), [false, true, true, false, false], 'an older relay is asked the stand\'s own kind');
   assert.deepEqual(Object.keys(GRANT_KINDS).slice(0, 2), ['enc', 'camp'], 'GRANT2\'s first stream; the other sources\' with GRANT4 (grant3_pool)');   // PIN MOVED (GRANT4): every source's kind
   for (const [s, salt] of [[0, 'marks'], [0xdeadbeef, 'species:2'], [12345, 'health:0']]) {
     const a = grantRng(s, salt), b = eliteRng(eliteHash('grant', s, salt));

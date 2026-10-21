@@ -499,9 +499,10 @@ wired), the relay's law row; mutant records re-aimed where their text moved (`sc
 - **The kinds** (GRANT_KINDS, fifteen): `enc`, `camp`, `band`, `bounty`, `loose`, `site`, `managed`, `giant`, `rev`,
   `quest`, `ally`, `watch`, `kept`, GRANT8's `encr` (section 16), and STAR-TUNE's `star` - a fallen star's coven, its
   law's largest wave in one grant (`net/starfall/starfallLaw.js` STAR_WAVE_MAX, twenty-four), its own bucket, the open
-  country's alone (`bible/11-Multiplayer/Starfall.md` section 4). A stand's kind is its caller's word (`grantKind`:
-  world.js names the encounter's, the revenant's, the camp's, the band's and the bounty's; the Starfall's host the
-  star's) or its own shape (grantKindOf):
+  country's alone (`bible/11-Multiplayer/Starfall.md` section 4) - asked only of a relay that mints it (AUDIT STAR-TUNE
+  F1, `STAR_GRANT_RELAY_MIN` 238, `relaySupportsStarGrant`; an older relay is asked the stand's own kind). A stand's kind
+  is its caller's word (`grantKind`: world.js names the encounter's, the revenant's, the camp's, the band's and the
+  bounty's; the Starfall's host the star's) or its own shape (grantKindOf):
   an ally, a quest's foe, a Greater Giant, a revenant, marks its caller decided (`kept`), a stand its spawner manages,
   a loose stand, a marker's, else a capped stand (`band`). A quest's foe, an ally, a revenant, the watch and a `kept`
   stand roll no marks (GRANT_MARKLESS), and a reader believes theirs (grantMarksAllow): their own law decides them, and

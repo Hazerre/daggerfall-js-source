@@ -175,7 +175,7 @@
   {
     "name": "STAR1-the-kill-bound-dropped",
     "file": "src/net/starfall/starfallLaw.js",
-    "old": "led.ec - led.ws >= led.wz * STAR_KILL_MIN_MS",
+    "old": "led.ec - led.ws >= starClearFloorMs(led.wz, led.nd)",
     "new": "led.ec - led.ws >= 0",
     "tests": [
       "test/net/starfall/star1_law.test.js"
@@ -419,5 +419,15 @@
       "test/net/starfall/star1_law.test.js"
     ],
     "note": "the camps' grant's nine again - a party of eight's waves no bigger than a pair's (\"we should go beyond the limit\")"
+  },
+  {
+    "name": "AUDIT-STAR-TUNE-F2-the-floor-unshared",
+    "file": "src/net/starfall/starfallLaw.js",
+    "old": "Math.ceil(Math.max(0, wz) / Math.max(1, nd | 0)) * STAR_KILL_MIN_MS",
+    "new": "Math.max(0, wz) * STAR_KILL_MIN_MS",
+    "tests": [
+      "test/net/starfall/star1_law.test.js"
+    ],
+    "note": "AUDIT STAR-TUNE F2: a party's wave waited out a foe's floor each - eight defenders' 21 foes 52.5 s however fast they died"
   }
 ]

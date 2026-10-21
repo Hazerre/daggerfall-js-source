@@ -285,9 +285,12 @@ export function createStarfallHost(host) {
     // floor, its rim of thrown earth and the stones on it with the stone (`S.stone`, ensureMesh); and a LATE solid
     // (player/lateSolid.js, ROCK-CLEAR's gate): a crater built round a body standing on its rim is withheld until the
     // body is clear of it, never closed on it. Moved (a floating origin's recentre), it is put back where it is held
+    // AUDIT STAR-TUNE F4: a recentre (the same solid, moved with the body) is put back where it is held; a crater BUILT
+    // AGAIN (the ground under it built finer - `ground` - as a player walks up to it) is a new solid, asked of the body
+    // as the first was: replaced, it stood round a body already on its rim
     const key = starBucket(S.key);
-    if (S.colliderAt) late.replace(key, S.stone.positions, S.stone.indices, S.mat);
-    else late.add(key, S.stone.positions, S.stone.indices, S.mat);
+    if (S.colliderAt && S.colliderGen === S.stoneGen) late.replace(key, S.stone.positions, S.stone.indices, S.mat);
+    else { if (S.colliderAt) late.remove(key); late.add(key, S.stone.positions, S.stone.indices, S.mat); }
     S.colliderAt = S.mat; S.colliderGen = S.stoneGen;
   }
   /** AUDIT STARFALL (the relay's grace, WP1): WHETHER THE STAR IS STILL UNDECIDED - fallen, or past its deadline inside
@@ -462,7 +465,7 @@ export function createStarfallHost(host) {
         mark(S, f);
         made(f);
       };
-      Promise.resolve(foes.spawnFoe(career, [x, at.y, z], { yaw: yaw ?? 0, gender: covenFemale(career) ? 'female' : null, placed: true, groundAlign: { hitDist: at.hitDist }, site, transient: true, eliteFoe: elite, grantKind: 'star' }))   // STAR-TUNE: a grant of the star's own kind - a wave of any size its law gives, one ask
+      Promise.resolve(foes.spawnFoe(career, [x, at.y, z], { yaw: yaw ?? 0, gender: covenFemale(career) ? 'female' : null, placed: true, groundAlign: { hitDist: at.hitDist }, site, transient: true, eliteFoe: elite, grantKind: session()?.starGrantOk ? 'star' : undefined }))   // STAR-TUNE: a grant of the star's own kind - a wave of any size its law gives, one ask; AUDIT STAR-TUNE F1: of a relay that mints it (an older one's own kind, its waves nine at most)
         .then(landed, () => landed(null));
     });
   }

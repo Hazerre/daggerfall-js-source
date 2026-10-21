@@ -743,8 +743,8 @@
   {
     "name": "STAR-TUNE-the-gate-passed",
     "file": "src/scenes/starfall/starfallHost.js",
-    "old": "    else late.add(key, S.stone.positions, S.stone.indices, S.mat);",
-    "new": "    else col.addMesh(key, S.stone.positions, S.stone.indices, S.mat);",
+    "old": "late.remove(key); late.add(key, S.stone.positions, S.stone.indices, S.mat); }",
+    "new": "late.remove(key); col.addMesh(key, S.stone.positions, S.stone.indices, S.mat); }",
     "tests": [
       "test/scenes/starfall/star5_host.test.js"
     ],
@@ -773,7 +773,7 @@
   {
     "name": "STAR-TUNE-the-camps-grant",
     "file": "src/scenes/starfall/starfallHost.js",
-    "old": ", grantKind: 'star' }))",
+    "old": ", grantKind: session()?.starGrantOk ? 'star' : undefined }))",
     "new": " }))",
     "tests": [
       "test/scenes/starfall/star5_host.test.js"
@@ -789,5 +789,35 @@
       "test/systems/starfall/star5_defense.test.js"
     ],
     "note": "a wave of twenty-four shares its last places' rolls with the next wave's first"
+  },
+  {
+    "name": "AUDIT-STAR-TUNE-F1-star-asked-of-any-relay",
+    "file": "src/scenes/starfall/starfallHost.js",
+    "old": "grantKind: session()?.starGrantOk ? 'star' : undefined",
+    "new": "grantKind: 'star'",
+    "tests": [
+      "test/scenes/starfall/star5_host.test.js"
+    ],
+    "note": "AUDIT STAR-TUNE F1: a relay before world238 is asked a kind it does not mint - under enforce no wave stands, under grantStrip the coven is its owner's alone"
+  },
+  {
+    "name": "AUDIT-STAR-TUNE-F1-the-relay-min-moved",
+    "file": "src/net/grantLaw.js",
+    "old": "export const STAR_GRANT_RELAY_MIN = 238;",
+    "new": "export const STAR_GRANT_RELAY_MIN = 237;",
+    "tests": [
+      "test/net/grant1_law.test.js"
+    ],
+    "note": "AUDIT STAR-TUNE F1: world237 is asked the star's kind it refuses"
+  },
+  {
+    "name": "AUDIT-STAR-TUNE-F4-the-rebuild-replaced",
+    "file": "src/scenes/starfall/starfallHost.js",
+    "old": "if (S.colliderAt && S.colliderGen === S.stoneGen) late.replace(",
+    "new": "if (S.colliderAt) late.replace(",
+    "tests": [
+      "test/scenes/starfall/star5_host.test.js"
+    ],
+    "note": "AUDIT STAR-TUNE F4: a crater built again round a body on its rim stood at once, the body's check skipped"
   }
 ]

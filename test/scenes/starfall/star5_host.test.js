@@ -11,7 +11,7 @@ import '../../modsOff.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  createStarfallHost, starfallStands, STAR_BLOWS_STORE, STAR_LIVE_MAX, STAR_RESTAND_MS, STAR_COARSE_EVERY, STAR_FLOOR_OFFSET, STAR_BUILD_M,
+  createStarfallHost, starfallStands, STAR_BLOWS_STORE, STAR_LIVE_MAX, STAR_RESTAND_MS, STAR_COARSE_EVERY, STAR_FLOOR_OFFSET, STAR_BUILD_M, STAR_GROUND_EVERY,
 } from '../../../src/scenes/starfall/starfallHost.js';
 import {
   starNightAt, starTimes, starCircleSize, starLostAt, STAR_ORPHAN_MS, STAR_CIRCLE_AT, STAR_LOST_DARK, STAR_LIFE_MS, STAR_AFTER_MS, STAR_GRACE_MS,
@@ -89,7 +89,7 @@ function fakeGl() {
 function world({ storage = memStorage(), t = starTimes(N, 0).omenAt - 1000, gfx = false, surface = () => 0, coarse = undefined, account = undefined } = {}) {
   const w = { t, feet: null, region: COVEN.region, said: [], mids: [], sounds: [], heard: [], words: [], sprung: new Set(), peer: new Set(), peerAgo: 0, forgot: [], bare: [], storage, origin: [0, 0, 0] };
   w.foes = pool();
-  w.session = { starReady: () => true, sendStar: (word, cell) => { w.words.push({ ...word, cell }); return true; } };
+  w.session = { starReady: () => true, starGrantOk: true, sendStar: (word, cell) => { w.words.push({ ...word, cell }); return true; } };   // AUDIT STAR-TUNE F1: a relay that mints the `star` kind
   w.gl = gfx ? fakeGl() : null;
   w.renderer = gfx ? { gl: w.gl, meshes: [], draws: [], createMesh(m) { const mesh = { m }; this.meshes.push(mesh); return mesh; }, destroyMesh() {}, uploadTexture() {}, uploadEmissionTexture() {}, drawMesh(mesh, mat) { w.draws.push({ mesh, mat: Array.from(mat), offset: w.gl.calls.filter(([k, c]) => (k === 'enable' || k === 'disable') && c === 'POLYGON_OFFSET_FILL').at(-1)?.[0] === 'enable' }); } } : null;
   w.draws = [];
@@ -862,6 +862,14 @@ test('STAR-TUNE THE COVEN STANDS AS AN EVENT\'S (the owner, of the first run: "t
     assert.equal(f.opts.groundAlign.hitDist, 0.2, 'its drop from just over it');
     assert.equal(f.opts.grantKind, 'star', 'a grant of the star\'s own kind - a wave of any size its law gives, one ask');
   }
+  // AUDIT STAR-TUNE F1: a relay before the star's kind (the site live first) is asked the stand's own - main's, a wave of nine at most
+  w.session.starGrantOk = false;
+  w.st(2, { p: P_WAVE, w: 2, wz: 5, kn: 0, b: 1 });
+  await w.beat();
+  const older = w.foes.stood.filter((f) => f && f.site === sites.base).slice(wave.length);
+  assert.equal(older.length, 5, 'the next wave stands on an older relay too');
+  for (const f of older) assert.equal(f.opts.grantKind, undefined, 'its own shape\'s kind (net/grantLaw.js grantKindOf), never one the relay refuses');
+  w.session.starGrantOk = true;
   // the master: an elite's own health; its circle the coven's
   w.st(2, { p: P_MASTER, w: 4, wz: 0, kn: 0, b: 1, nd: 1 });
   await w.beat();
@@ -872,5 +880,30 @@ test('STAR-TUNE THE COVEN STANDS AS AN EVENT\'S (the owner, of the first run: "t
   const circle = w.foes.stood.filter((f) => f && f.site === sites.c);
   assert.ok(circle.length > 0);
   for (const f of circle) assert.equal(f.entity.maxHealth, 100 * STAR_FOE_HEALTH, 'its circle the coven\'s');
+  Date.now = realNow;
+});
+
+test('AUDIT STAR-TUNE F4 A CRATER BUILT AGAIN ASKS THE BODY AGAIN: the ground under a standing crater built finer (a player walking up to it) makes the crater anew - a new solid, withheld while the body stands in its rim, never stood round it; a recentre alone puts the same solid back (mutants: AUDIT-STAR-TUNE-F4-the-rebuild-replaced)', () => {
+  let H = null, bump = 0;
+  const w = world({ gfx: true, surface: (x, z) => (H && Math.hypot(x - H[0], z - H[2]) > 2 ? bump : 0) });
+  clockOf(w);
+  const T = starTimes(N, 2);
+  const h = w.heart(2), onRim = [h[0] + STAR_CRATER_R, h[1], h[2]], away = [h[0] + 40, h[1], h[2]];
+  H = [h[0] - w.origin[0], h[1], h[2] - w.origin[2]];
+  const late = lateSolidsOf(w.col);
+  const star = (b) => typeof b === 'string' && b.startsWith(`star:${N}.2@`);
+  late.settle({ pos: away, height: 1.8 });
+  w.t = T.fallAt + 500; w.feet = [...away];
+  w.frame(); w.frame();
+  const stood = () => w.col.adds.filter((a) => star(a.b)).length;
+  assert.equal(stood(), 1, 'the crater stands, nobody in its rim');
+  // the body walks onto the rim; the ground under the crater is built finer
+  late.settle({ pos: onRim, height: 1.8 }); w.feet = [...onRim];
+  bump = 0.5;
+  for (let i = 0; i <= STAR_GROUND_EVERY; i++) w.frame();
+  assert.ok(w.col.removes.some(star), 'the old crater taken down');
+  assert.equal(stood(), 1, 'the new one withheld while the body stands in its rim - never stood round it');
+  assert.equal(late.settle({ pos: away, height: 1.8 }), 1, 'clear of it, the new crater stands');
+  assert.equal(stood(), 2);
   Date.now = realNow;
 });

@@ -298,6 +298,14 @@ export const relaySupportsGrant = (v) => Number(/^world(\d+)$/.exec(String(v ?? 
 export const GRANT_STATS_RELAY_MIN = 223;
 /** Does the relay at version `v` take a tally's `stats`? */
 export const relaySupportsGrantStats = (v) => Number(/^world(\d+)$/.exec(String(v ?? ''))?.[1]) >= GRANT_STATS_RELAY_MIN;
+/** AUDIT STAR-TUNE F1: the first relay that mints the `star` kind (STAR-TUNE's). An older one answers the ask `kind`, so
+ *  under `enforce` no wave stands and under `grantStrip` the coven is its owner's alone - and the site goes live before
+ *  the relay's deploy is through (deploy.yml waits on the account service, which STAR-TUNE does not move). A client asks
+ *  `star` of a relay at this or later, and its stand's own kind (`site`, the master `kept` - main's) of an older one,
+ *  whose waves its own law holds to nine. */
+export const STAR_GRANT_RELAY_MIN = 238;
+/** Does the relay at version `v` mint the `star` kind? */
+export const relaySupportsStarGrant = (v) => Number(/^world(\d+)$/.exec(String(v ?? ''))?.[1]) >= STAR_GRANT_RELAY_MIN;
 
 /** The law's modes (relayCfg `grantMode`, the welcome's `gm`): `off` - no ask is made or answered; `measure` - every ask
  *  is granted and what the gate would refuse is counted (GRANT2 to GRANT5); `enforce` - the gate refuses (GRANT6). */
