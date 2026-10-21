@@ -230,8 +230,8 @@
   {
     "name": "PRECIP1-the-snow-mass-warm",
     "file": "src/systems/weather/airTemperature.js",
-    "old": "chill: wet * FALL.chill + snow * FALL.snowCold",
-    "new": "chill: wet * FALL.chill - snow * FALL.snowCold",
+    "old": "out.chill = wet * FALL.chill + snow * FALL.snowCold;",
+    "new": "out.chill = wet * FALL.chill - snow * FALL.snowCold;",
     "tests": [
       "test/systems/weather/precip1_air.test.js"
     ]
