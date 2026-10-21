@@ -268,6 +268,26 @@ Twigs, the Roots, Bamboo, Ginkgo Leaves, Palm, Aloe, Fig and Cactus do); in **au
 | Dreugh | Dreugh Shell | 5 | - |
 | Dragonling | Dragonling Scale | 6 | Dragon's Scales (46) |
 
+DEX-HIDES (FIELD BUGS 2026-10-21, `01-Overview/bugs/Field-Bugs-2026-10-21.md`; the Discord: "the variant bats and wolves I
+encountered have had no option for skinning"): Daggerfall Enemy Expansion's animals are skinned too, by the mod's own ids
+(a spawned foe's mobileType is its id, past DFU's MobileTypes - `professionLaw.js` `DEX_MOB`, a static table the account
+service skins by). Where the ten have its kin, its kin's hide; three hides of their own for the kinds they have none of,
+each among the ten by its tier (a chain's works stand cheapest first). Its Hell Hound is the mod's Daedra, and no daedra
+is skinned.
+
+| DEX foe (id, level) | Hide (4.8) | Tier | A chance of the DFU ingredient |
+|---|---|---|---|
+| Bat (260, 1) - the classic Giant Bat's career | Bat Leather | 2 | - |
+| Blood Spider (271, 7) | Spider Silk | 3 | Spider's Venom (41) |
+| Mountain Lion (280, 8) - the mod's Tigers team | Tiger Pelt | 3 | Big Tooth (56) |
+| Land Dreugh (279, 9) | Dreugh Shell | 5 | - |
+| Wolf (262, 5), Snow Wolf (263, 10), Dog (267, 3) - one team, Werecreatures | **Wolf Pelt** (667) | 2 | Big Tooth (56) |
+| Boar (278, 6) | **Boar Hide** (672) | 2 | Big Tooth (56) |
+| Mudcrab (281, 2) | **Mudcrab Chitin** (676) | 1 | - |
+
+The three cure by the tier law to Cured Leather; their butchery is Raw Meat, the Mudcrab's Raw Fish (C&C's catch from the
+water, as the Slaughterfish's). The furniture's skins (9.3) stay the four pelts: the new ones make none.
+
 Hides cure to **Cured Leather** (tiers 1-3) or **Hardened Leather** (tiers 4-6) at a tanning rack, **2:1** (Tanner
 1:1). Butchery gives C&C's Raw Meat either way. DFU's own corpse loot is untouched: skinning adds, never replaces.
 
@@ -327,6 +347,7 @@ The Basket's foods are Foraging's and C&C's own templates, not new ones (FORAGE0
 | 645-651 | the same seven Planks | Stores | DFU Small Oak Table's board, tinted |
 | 652, 653, 654 | Charcoal, Resin, Heartwood | Stores | DFU Lodestone / Aloe / Twigs, tinted |
 | 655-664 | the ten hides of 4.4 | Stores | DFU Small Skins, tinted |
+| 667, 672, 676 | Wolf Pelt, Boar Hide, Mudcrab Chitin - the Enemy Expansion's (4.4, DEX-HIDES) | Stores | as the ten's (29's FOUND): Nymph Hair's lock for the pelts, Fairy Dragon's Scales for the chitin |
 | 665, 666 | Cured Leather, Hardened Leather | Stores | DFU Large Skins, tinted |
 | 668-671 | Linen, Wool, Silk Bolt, Standard-bearer's Silk | Stores | DFU Small Tapestry, tinted |
 | 673-675 | Rough Stone, Cut Stone, Mortar | Stores | DFU Lodestone, greyed |

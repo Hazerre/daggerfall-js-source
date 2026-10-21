@@ -922,15 +922,20 @@ provinces (`world/tamriel/tamrielGeography.js PROVINCES`; a city of it named, dr
 - **Forage**: crafting materials first.
 - **Sell-sword**: gold first.
 
-It leaves through its portal (the layer reads the party), is gone the place's days on the character's own clock
-(`ownMinutes`), and comes back at the party's frame (`revenantParty().wake`). **Online only the time lived with the world
-carries it on** (AUDIT RVN F1 - `errandStep`, `chargeErrands`): the clock stands while the player is away, and a rest, a
-Loiter or a journey raises it (`worldTick.js raisedMinutes`) - a raise pushes every errand's minute back by as much, and a
-step past `ERRAND.STEP_MAX` (30 minutes - a quest clock's played step; time away) by the rest. A day abroad is two real
-hours of play. It is QCLOCK-WORLD's law (`quest/clock.js chargeSeconds`, "the lived step, never the raise"): a raise that
-paid was a faucet the world pays for (Lived-Time.md) - measured, a road journey's x100 raised 906k of wealth an hour at
-level 30 against the band's 200k. Offline the one clock carries it, DFU's own; the page says so online. The law is `systems/revenant/revenantErrands.js`; the acts are
-`revenantCompanions.js` (`sendOnErrand`, `recallFromErrand`, `returnFromErrand`).
+It leaves through its portal (the layer reads the party), is gone the place's days, and comes back at the party's frame
+(`revenantParty().wake`). **Online it keeps the world's time** (OFFLINE-ROAD, FIELD BUGS 2026-10-21,
+`01-Overview/bugs/Field-Bugs-2026-10-21.md` - `errandOnWorld`, `chargeErrands`): its `due` is the world's minute it is
+back (`worldTick.js worldMinutes`, the event clock, which runs on the wall whoever plays), so time away carries it on and a
+day abroad is two real hours, played or not. A rest, a Loiter or a journey raises the character's own clock alone
+(`worldTick.js raisedMinutes`), never the world's, so a raise still carries it on not a minute - AUDIT RVN F1's faucet
+(QCLOCK-WORLD's law, `quest/clock.js chargeSeconds`, "the lived step, never the raise": a raise that paid was a faucet the
+world pays for, Lived-Time.md - measured, a road journey's x100 raised 906k of wealth an hour at level 30 against the
+band's 200k) stays shut. Until the relay's clock is heard (`trustedWorldMinutes`) the lived step carries it as AUDIT RVN F1
+built it (`errandStep`: a raise pushes every errand's minute back by as much, and a step past `ERRAND.STEP_MAX` - 30
+minutes, a quest clock's played step - by the rest); an errand sent then takes its minutes left onto the world's clock at
+the first trusted wake. Offline the one clock carries it, DFU's own; the page says so online. The law is
+`systems/revenant/revenantErrands.js`; the acts are `revenantCompanions.js` (`sendOnErrand`, `recallFromErrand`,
+`returnFromErrand`).
 
 | Place | Days | Danger | Its goods |
 |---|---|---|---|

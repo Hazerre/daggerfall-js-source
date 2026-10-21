@@ -704,3 +704,15 @@ monsters field by field written and minted, the tables, Meaner Monsters standing
 `test/net/foebounds_law.test.js` (the seventh profile), `dex1_registry.test.js` (DEX alone, Meaner Monsters standing
 aside); mutants `tools/mutants/mudex1.json`, eleven, all dead.
 
+
+## 14. DEX-HIDES - the mod's animals skinned (FIELD BUGS 2026-10-21)
+
+The Discord's #feature-feedback (Shines): "the new mobs are great! But the variant bats and wolves I encountered have had
+no option for skinning." Hunting skinned by DFU's MobileTypes alone (`net/professionLaw.js` `hideOfFoe`), and the mod's
+monsters are numbered past them (section 5: 256-290, a spawned foe's mobileType its id), so none of its animals was ever
+stamped at its kill (`scenes/huntHost.js`), listed as a body or taken by the account service. Each of the mod's nine rows
+of Affinity Animal is skinned now - its kin's hide where Hunting's ten have its kin (the Bat, the Blood Spider, the
+Mountain Lion, the Land Dreugh), and Wolf Pelt, Boar Hide and Mudcrab Chitin for the rest; its Hell Hound is the mod's
+Daedra and stays unskinned. The table and its reasons are `06-Systems/Professions-Arc.md` 4.4 (DEX-HIDES); the record is
+`01-Overview/bugs/Field-Bugs-2026-10-21.md`. The ids are static numbers there, so the service needs no registry of the
+mod's, and a mod switched off rolls none of them (section 7).
