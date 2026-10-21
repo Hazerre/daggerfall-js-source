@@ -16,7 +16,7 @@ and `fb1021b_*.json`.
 | 3 | the profile's boat pool, `rendererModelKey` 2.6% | One shape stamp for every tree in the game: any boat built anywhere re-planned every boat; and every boat drawn was walked, baked and lit every frame wherever she sailed | BOAT-STAMP, BOAT-FAR, BOAT-OWN, HELD-DRAW, HELD-FLATS |
 | 4 | the profile's Horse Cart pool | Inside 400 m every horse was posed and its palette sent every frame, off-screen and parked ones too | HORSE-VIEW, HORSE-VIEW II |
 | 5 | the profile's peer bodies, Web Worker | Already on a distance cadence (PEER-CADENCE); a worker would move only what is cheap (interpolation, 0.02 ms) | not a defect |
-| 6 | the profile's grass | Real, under its budget already (`perFrame`, GRASS_SLICE); the catch-up mode while moving | left (not measured) |
+| 6 | the profile's grass | Under its budget on a walk (PERF-EXT22's slice a frame) - but a slice a frame paced the rim by the frame rate, and at 20 fps a DFU ride, a run or a cart fell more than eight cells behind on 5-13% of its frames (a gallop 25%), at 30 fps a ride 3.5% and a gallop 13%: two whole cells on each of those frames | FB1021B |
 
 ## What the live service showed (2026-10-21)
 
@@ -118,6 +118,26 @@ the same law, which is its own module now (`world/horseView.js`, the pool's too)
 poses in the view on the cadence, a horse swung into the view caught up before it is drawn. Twelve strangers' horses,
 half behind the eye: twelve palettes a frame to 1.85; eight standing horses in the view: eight to 4.33.
 
+## FB1021B (6) - `bible/07-Rendering/Performance-Exterior.md` THE GRASS ON THE MOVE
+
+Measured on the real field over Daggerfall's own ground (`tools/grassMoveProbe.mjs`: WOODS.WLD's woodlands round map
+pixel 200,200, the streamer's own floating origin, world.js's keep) at DFU's walk, run, ride, gallop and cart speeds and
+at 60, 30 and 20 frames a second. The steady walk was what PERF-EXT22 said; its catch-up was not: PERF-EXT22 placed the
+rim a slice a frame - a cell every five frames, whatever the eye's speed - and past eight cells waiting placed every
+cell whole, two a frame. So the rim kept the frame rate's pace and the slowest machines fell into the catch-up on the
+move: two whole cells (12,244 candidates, eight to ten times a slice frame) on 5% of a 20 fps run's or cart's frames,
+13% of a ride's, 25% of a gallop's, 3.5% and 13% of a ride's and a gallop's at 30 fps, 4% of a strong gallop's at 60.
+A boot, a teleport, a fast travel's arrival and the jungle floor's re-made meadow placed two whole cells a frame for
+~175 frames, and on the move a third of what a gallop's birth placed was behind the rider and let go unseen.
+
+A defect, fixed in `render/labGrass.js` `createGrassField.update`: a rim cell's deadline is the eye's own step - the
+frames before it could come inside GRASS_DUE_AT (0.9) of the range - and the rim takes one slice a frame and past it the
+least pace that meets every deadline; the cells due now (a birth's, an invalidate's) take a share of the frame
+(GRASS_FRAME_MS of a 60 Hz frame, 3 ms, that share of a longer one up to a 20 fps frame), the first whole cell under the
+eye always; what the step leaves behind waits for the rest. The count switch (GRASS_CATCH_UP) is gone. The bytes a
+cell is placed with are unchanged. The trade - a birth's frames lighter, its far band slower - is stated in the record
+for the owner to weigh.
+
 ## Left
 
 - **The Durable Object resets' cause.** Not found in this code, read again for the owner's "no band aids": a Starfall
@@ -134,3 +154,7 @@ half behind the eye: twelve palettes a frame to 1.85; eight standing horses in t
   door off - unless the owner set one with `/relay`, which the hub's storage keeps and only `/relay grantMode` reads.
 - **The version.** world238 is claimed by two open branches (STAR-TUNE #1090, GRANT-SLEEP #1066), against this release's
   world239 - whichever lands after another takes the next number at its merge.
+- **The grass (FB1021B, `Performance-Exterior.md` THE GRASS ON THE MOVE's Left).** A cell's pack - now as dear as its
+  placement, still one piece on the frame a cell ends; the cells a teleport's loading frames place over ground not yet
+  built (read on the code, not measured); the worker PERF-EXT22 did not build. And the trade FB1021B states for the
+  owner: a birth's frames half as heavy, its far band two to three times the seconds on this container.

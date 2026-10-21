@@ -260,7 +260,9 @@ test('GR5: a cell grows the same blades whoever is looking, and walking touches 
   // GRASS5: the budget has to exceed the WINDOW, which grew with the
   // range - at 400 the first update left 84 cells unfilled and the next
   // one finished them, which reads exactly like a step that moved cells.
-  const f = createGrassField(r, { keep: () => 0, perFrame: 1e9 });
+  // PIN MOVED (FB1021B): and its clock stands still - a machine that does the work in no time, whose frame's time
+  // (GRASS_FRAME_MS) never runs out, so perFrame alone bounds the frame, as it did
+  const f = createGrassField(r, { keep: () => 0, perFrame: 1e9, clock: () => 0 });
   assert.equal(w[0][0], 'a', 'the buffers are sized once, up front');
   // GRASS5: the start is SNAPPED to the cell grid rather than a round
   // number, so the fixture states a law rather than relying on the
@@ -289,7 +291,7 @@ test('GR5: a cell grows the same blades whoever is looking, and walking touches 
   const writes = w.filter((x) => x[0] === 'w').length, clears = w.filter((x) => x[0] === 'c').length;
   assert.ok(writes > 0 && writes < live / 4 && clears > 0 && clears < live / 4, `forty metres: one edge in, one out (${writes}/${clears} of ${live})`);
   // ...and a frame fills at most perFrame, so the walk cannot hitch.
-  const g = createGrassField(r, { keep: () => 0, perFrame: 2 }); w.length = 0;
+  const g = createGrassField(r, { keep: () => 0, perFrame: 2, clock: () => 0 }); w.length = 0;
   const pending = g.update(0, 0);
   assert.equal(w.filter((x) => x[0] === 'w').length, 2, 'two cells a frame');
   assert.ok(pending > 0, 'the rest wait their turn');
