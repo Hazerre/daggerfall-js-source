@@ -933,7 +933,15 @@ world pays for, Lived-Time.md - measured, a road journey's x100 raised 906k of w
 band's 200k) stays shut. Until the relay's clock is heard (`trustedWorldMinutes`) the lived step carries it as AUDIT RVN F1
 built it (`errandStep`: a raise pushes every errand's minute back by as much, and a step past `ERRAND.STEP_MAX` - 30
 minutes, a quest clock's played step - by the rest); an errand sent then takes its minutes left onto the world's clock at
-the first trusted wake. Offline the one clock carries it, DFU's own; the page says so online. The law is
+the first trusted wake, from its minute charged by that wake's lived step (AUDIT FB1021 L3-2: a raise across the first
+trusted wake was paid on it). The world's minute an errand reads is held to the time this session lived (AUDIT FB1021
+L3-1, `errandWorldMinute`): the client's world clock is the machine's clock plus the relay's offset, read once a welcome,
+so a machine clock set forward mid-session moved it and returned every errand at once (fourteen returns for ten +8 h
+moves, where the lived step held each wake to its thirty minutes); each primary welcome marks the world's minute with
+`performance.now()` (`worldTick.js hearSharedClock`), and a wake reads no more than that minute plus the monotonic time
+since at the wire's rate, plus a minute. A load hears the relay again, so time away still counts. Offline the one clock
+carries it, DFU's own. Online the page says so, and its times left are real minutes and hours at the wire's rate (AUDIT
+FB1021 L3-5: "back in about 24 hours" was two real hours, and the sky clock passes 48 in them). The law is
 `systems/revenant/revenantErrands.js`; the acts are `revenantCompanions.js` (`sendOnErrand`, `recallFromErrand`,
 `returnFromErrand`).
 
@@ -977,7 +985,9 @@ odds with the share.
 - **Measured** (lane E's probe, 1,500 seeds a cell, two abroad, rank V and its best kit, on lived time): at level 30 the
   best route brings about 990 gold a real hour (Black Marsh, Sell-sword) or 4,200 of item worth (`itemLaw.itemWorth`) -
   0.5% and 2% of the wealth budget's 200k band (`server-account/src/budget.js`) - and 0.03 Legendaries an hour; at level
-  10, 330 gold and 1,400 of worth an hour.
+  10, 330 gold and 1,400 of worth an hour. Per character (AUDIT FB1021 L3-4): online, since OFFLINE-ROAD, every one of an
+  account's realm characters keeps its errands on the world's clock while another is played, so an account of six
+  (`realm.js REALM_CHARACTERS_MAX`) may have twelve abroad - six times the hour at most, still 3% and 12% of the band.
 
 It is handed over at its return: gold to the purse, pieces to the pack, goods to the Materials Bag (then the pack, any
 overflow forced in - `materialsBag.js giveCarried`; units minted on the client are loose, as a find's are -
@@ -1009,6 +1019,8 @@ layer for its street, `scenes/worldModes.js`'s buildings and `scenes/dungeonCont
 returns wherever the player is; no host line. `scenes/exterior.js` stands no sworn one - FLAGGED, as section 40.
 
 Pinned: `test/systems/revenant/rvnerrand.test.js` (10); `tools/mutants/rvnerrand.json` (all dead - section 43).
+OFFLINE-ROAD and its audit: `test/systems/revenant/fb1021_offlineroad.test.js` (8); `tools/mutants/fb1021_offlineroad.json`
+(19, all dead).
 
 ## 43. AUDIT RVN - the kit, the arts and the errands audited (2026-10-17)
 

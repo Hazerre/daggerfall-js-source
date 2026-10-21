@@ -10,7 +10,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { standService, T0 } from '../accountDb.mjs';
-import { HIDES, hideOfFoe, xpForRank, TIER_RANKS } from '../../src/net/professionLaw.js';
+import { HIDES, hideOfFoe, xpForRank, TIER_RANKS, ICON_HAIR, ICON_SCALES } from '../../src/net/professionLaw.js';
 import { bodyKey } from '../../src/net/nodeLaw.js';
 import { utcDay } from '../../src/net/marksLaw.js';
 import { sharedClassicMinutes } from '../../src/net/wire.js';
@@ -22,6 +22,9 @@ import { makeEnemyEntity, _resetMintRowEditors } from '../../src/characters/enem
 import { createBodyStamps, huntPlan } from '../../src/scenes/huntHost.js';
 import { templateByIndex } from '../../src/systems/item/itemTemplates.js';
 import { materialCountLabel } from '../../src/systems/professions/profItems.js';
+import { chainPlan } from '../../src/net/chainLaw.js';
+import { PELTS, recipeById } from '../../src/net/recipeLaw.js';
+import { corpseFood } from '../../src/systems/survival/loot.js';
 import '../../src/systems/professions/profTemplates.js';
 
 /** The mod's MonsterBase rows, as it ships them: [id, name, affinity]. */
@@ -101,4 +104,36 @@ test('DEX-HIDES THE PAGE: Hunting\'s unlocks name every hide on its tier\'s line
   const { unlocksOf } = await import('../../src/ui/professions/profPages.js');
   const lines = unlocksOf('hunting');
   for (const h of HIDES) assert.ok(lines.find(([, tier]) => tier === h.tier)?.[0].includes(h.name), `${h.name} on line ${h.tier}`);
+});
+
+// ── AUDIT FB1021 (bible/01-Overview/audits/Audit-Field-Bugs-2026-10-21.md) ──────────────────────────────────────────────
+
+test('AUDIT FB1021 L2-1 A CHAIN SPENDS THE SPARE PELTS FIRST: asked for Cured Leather with Bear Hides, Wolf Pelts and Boar Hides held, it cures the Wolf\'s and the Boar\'s before the Bear\'s, the Ram Kit\'s (mutants: tier 2 in the old order)', () => {
+  const held = new Map([['hide:bear', 8], ['hide:wolf', 8], ['hide:boar', 8]]);
+  const p = chainPlan([{ key: 'leather:cured', n: 4 }], (k) => held.get(k) ?? 0, {});
+  assert.deepEqual([p.ok, p.works, p.spent], [true, [{ id: 'cure:wolf', count: 4 }], [{ key: 'hide:wolf', n: 8 }]]);
+  const more = chainPlan([{ key: 'leather:cured', n: 10 }], (k) => held.get(k) ?? 0, {});
+  assert.deepEqual(more.spent, [{ key: 'hide:wolf', n: 8 }, { key: 'hide:boar', n: 8 }, { key: 'hide:bear', n: 4 }], 'the Bear\'s last');
+});
+
+test('AUDIT FB1021 L2-2 THE BUTCHERY IS C&C\'S OWN: each of the Enemy Expansion\'s animals is butchered to the food Climates & Calories\' own corpse gives its body (survival/loot.js corpseFood) - Raw Meat, the Mudcrab\'s too - but the Land Dreugh, which shares the Dreugh\'s row and its none (mutants: the Mudcrab\'s Raw Fish)', (t) => {
+  t.after(() => { _resetEnemyExpansion(); clearCustomEnemies(); _resetMintRowEditors(); });
+  installEnemyExpansion({ on: true, log: silent });
+  for (const id of [260, 262, 263, 267, 271, 278, 280, 281]) {
+    const e = makeEnemyEntity(id, ENEMY_BASICS[id], null, 1, () => 0.5);
+    let i = 0;
+    const names = new Set(corpseFood(e, { luck: 50, rolls: () => ((i++ * 0.37) % 1) }).map((f) => f.name ?? f.shortName));
+    assert.deepEqual([...names], ['Raw Meat'], `${id}: C&C's body`);
+    assert.equal(hideOfFoe(id).meat, 'food:meat', `${id}: the butcher's the same`);
+  }
+  assert.equal(hideOfFoe(279).meat, null, 'the Land Dreugh: the Dreugh\'s row');
+});
+
+test('AUDIT FB1021 L2-3, L2-6 THE PELTS AND THE PICTURES: Wolf Pelt and Boar Hide are fur hides, cut to Large and Small Skins as the four are (recipeLaw.js PELTS); the chitin is not; the new hides wear the ten\'s pictures - a pelt Nymph Hair\'s lock, the chitin Fairy Dragon\'s Scales (mutants: a pelt left uncut; a picture swapped)', () => {
+  assert.ok(PELTS.includes('hide:wolf') && PELTS.includes('hide:boar') && !PELTS.includes('hide:mudcrab'));
+  assert.deepEqual(['skins-244:wolf', 'skins-245:wolf', 'skins-244:boar', 'skins-245:boar'].map((id) => recipeById(id)?.inputs.map((x) => `${x.n} ${x.key}`).join()), ['2 hide:wolf', '1 hide:wolf', '2 hide:boar', '1 hide:boar']);
+  for (const [id, icon] of [[667, ICON_HAIR], [672, ICON_HAIR], [676, ICON_SCALES]]) {
+    const tp = templateByIndex(id);
+    assert.deepEqual([tp.worldTextureArchive, tp.worldTextureRecord], [...icon], `${id}'s picture`);
+  }
 });

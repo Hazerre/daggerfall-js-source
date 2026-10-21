@@ -4,21 +4,19 @@
 // From the Companions page (ui/companionRoster.js) the player sends a sworn revenant on an errand to one of Tamriel's
 // nine provinces (world/tamriel/tamrielGeography.js PROVINCES - a city of it named for the errand, drawn on its seed),
 // for one of three ventures: PLUNDER (loot first), FORAGE (crafting materials first) or SELL-SWORD (gold first). It
-// leaves through its portal, is gone the province's days on the character's own clock (worldTick.js ownMinutes), and
-// comes back with its haul into the player's purse, pack and Materials Bag. ONLINE ONLY THE TIME LIVED WITH THE WORLD
-// CARRIES IT ON (AUDIT RVN F1 - errandStep): the own clock stands while the player is away, and a rest, a Loiter or a
-// journey raises it (worldTick.js raisedMinutes) - a raise pushes every errand's minute back by as much, and so does a
-// step past ERRAND.STEP_MAX (time away: a hidden tab, a window held) - QCLOCK-WORLD's law, a quest clock's
-// (quest/clock.js chargeSeconds: "the lived step, never the raise"), since a raise that paid would be a faucet the
-// world pays for (Lived-Time.md). Offline the one clock's raw gap stands, DFU's own. The law is here; the acts are
-// systems/revenant/revenantCompanions.js (sendOnErrand, recallFromErrand, the party's wake).
-// OFFLINE-ROAD (FIELD BUGS 2026-10-21, the Discord's #feature-feedback: "I'd like to see them at least progress on the real
-// time bar when offline. It'd be a nice thing to send my single buddy out for when logging off") - ONLINE AN ERRAND KEEPS
-// THE WORLD'S TIME (errandOnWorld): its `due`, the world's minute it is back (worldTick.js worldMinutes, the event clock -
-// the wall's own), is the authority once the relay's clock is heard. The world's clock runs while the player is away and
-// no rest, Loiter or journey moves it, so time away carries an errand on and a raise still never does (AUDIT RVN F1's
-// faucet stays shut: a sworn one abroad earns at most its road's haul in its road's real time, as one played through
-// does). Until the relay's clock is heard the lived step carries it, as before.
+// leaves through its portal, is gone the province's days, and comes back with its haul into the player's purse, pack and
+// Materials Bag. The law is here; the acts are systems/revenant/revenantCompanions.js (sendOnErrand, recallFromErrand, the
+// party's wake).
+//  - ITS CLOCK. Offline the one clock (DFU's own: a rest's day is a day). ONLINE IT KEEPS THE WORLD'S TIME (OFFLINE-ROAD,
+//    FIELD BUGS 2026-10-21, the Discord: "I'd like to see them at least progress on the real time bar when offline"):
+//    its `due` is the world's minute it is back (worldTick.js worldMinutes, the event clock - the wall's own, whoever
+//    plays), and each wake writes its minute on the character's own clock from it (errandOnWorld). So time away carries
+//    it on, and a rest, a Loiter or a journey - a raise of the character's own clock alone (worldTick.js raisedMinutes) -
+//    never does: AUDIT RVN F1's faucet (QCLOCK-WORLD's law, quest/clock.js chargeSeconds: "the lived step, never the
+//    raise"; Lived-Time.md) stays shut. The world's reading is held to the monotonic time since the relay's clock was
+//    last heard (AUDIT FB1021 L3-1, errandWorldMinute: a machine clock set forward moved it), and until it is first heard
+//    the LIVED STEP carries an errand (errandStep: a raise pushes its minute back by as much, and so does a step past
+//    ERRAND.STEP_MAX), which the first trusted wake takes onto the world's clock as it left it (AUDIT FB1021 L3-2).
 //
 //  - THE PLACES (ERRAND_PLACES): the Bay's own two a day off, the far shores four; each a DANGER (1-5) and the goods
 //    its land gives - Skyrim's orichalcum and pelts, Morrowind's ebony and the Dwemer's metal, Black Marsh's venom.
@@ -32,8 +30,10 @@
 //    kit - which no act changes while it is abroad). Gold by the player's level, the days, the danger and its rank;
 //    units of the place's goods, the cheaper more often and at most UNITS.FINE_A_DAY a day of tier UNITS.FINE_TIER and
 //    up; pieces minted as an elite's are (eliteFoes.js tieredGear), a tier each (Common with Loot rarity off).
-//  - BALANCED (AUDIT RVN, measured - Revenants.md section 42): at most ERRAND.MAX abroad at once; online, on lived time,
-//    a few hundredths of the wealth budget's hour (server-account/src/budget.js); a piece a day wherever it goes, so a
+//  - BALANCED (AUDIT RVN, measured - Revenants.md section 42): at most ERRAND.MAX abroad at once a character; online a
+//    few hundredths of the wealth budget's hour a character (server-account/src/budget.js - measured on lived time, which
+//    the world's real time is, an hour for an hour; since OFFLINE-ROAD every character's run while another is played -
+//    AUDIT FB1021 L3-4); a piece a day wherever it goes, so a
 //    far errand's better goods are its danger's tier odds and its gold; a Legendary per piece under the loot ladder's
 //    own cap.
 //  - INVENTORY AS ITS PACK IS: an errand is the save's (revenant.js ensureMirror) - the mirror never brings back an errand
@@ -57,6 +57,7 @@ import { materialCountLabel } from '../professions/profItems.js';   // AUDIT RVN
 import { addGoldPieces, addItem } from '../inventory.js';
 import { giveCarried } from '../materialsBag.js';
 import { MINUTES_PER_DAY } from '../gameDate.js';
+import { ONLINE_MINUTES_PER_MS } from '../../net/wire.js';   // AUDIT FB1021 L3-1, L3-5: the wire's rate, an event minute to the real ms
 import { t } from '../textManager.js';   // L10N4: the page's and the card's words through the text core
 
 /** Every number. MAX abroad at once; WON_LOYALTY for an errand won; GOLD per level a day (a range); DANGER_GOLD and
@@ -65,7 +66,8 @@ import { t } from '../textManager.js';   // L10N4: the page's and the card's wor
  *  FINE_A_DAY a day of tier FINE_TIER and up - AUDIT RVN F4: the hunt's and the mine's bounds on the finest); TIERS a
  *  piece's (MAGIC its chance, else Common; RARE and LEGENDARY each [base, a danger, a rank past the first] - AUDIT RVN F2:
  *  a Legendary at most 3.7% a piece, under the loot ladder's 4.5%); STEP_MAX the most minutes one wake carries an errand
- *  on online (quest/clock.js PLAYED_STEP_MAX_SECONDS's, in minutes - the rest is time away, forgiven). */
+ *  on by the lived step (quest/clock.js PLAYED_STEP_MAX_SECONDS's, in minutes - the rest is time away, forgiven): online
+ *  before the relay's clock is heard alone, since OFFLINE-ROAD. */
 export const ERRAND = Object.freeze({
   MAX: 2,
   WON_LOYALTY: 4,
@@ -179,6 +181,20 @@ export function errandStep(own, raised, online) {
   return own - lived;
 }
 
+/** AUDIT FB1021 L3-1: the event minutes a wake's world reading may run past the monotonic clock's (a frame's rounding,
+ *  never an hour). */
+export const ERRAND_WORLD_SLACK = 1;
+/** AUDIT FB1021 L3-1: THE WORLD'S MINUTE AN ERRAND MAY READ - `world` (the trusted reading: this machine's wall clock
+ *  through the relay's offset) no further than the relay's clock as last heard (`heard`, worldTick.js sharedClockHeardMark:
+ *  its world minute and the monotonic ms then) run on by the monotonic clock since (`perf`, the same clock's ms) at the
+ *  wire's rate, ERRAND_WORLD_SLACK more. A machine clock set forward after a welcome reads as no more time than passed
+ *  (the lived step's STEP_MAX had held it, and the world's reading followed it whole); the next welcome hears the true
+ *  clock, and an errand's `due` is absolute, so time a paused monotonic clock missed (a machine asleep) is paid then, never
+ *  lost. NaN with no reading or no hearing. Pure. */
+export function errandWorldMinute(world, heard, perf) {
+  if (!Number.isFinite(world) || !Number.isFinite(heard?.world) || !Number.isFinite(heard?.perf) || !Number.isFinite(perf)) return NaN;
+  return Math.min(world, heard.world + Math.max(0, perf - heard.perf) * ONLINE_MINUTES_PER_MS + ERRAND_WORLD_SLACK);
+}
 /** OFFLINE-ROAD: ONLINE, ERRAND `e` ON THE WORLD'S TIME - `world` the world's trusted minute, `own` the character's (the
  *  minute the party's wake compares `until` against). Its `due`: its own where it has one, else its minutes left now from
  *  the world's now (an errand sent before the relay's clock was heard, or before OFFLINE-ROAD), held to its own road's
@@ -279,17 +295,27 @@ export function errandHaulWords(haul) {
   if (!parts.length) return t('rvn.errand.haul.nothing', 'nothing');
   return parts.length === 1 ? parts[0] : t('rvn.errand.haul.list', '{most} and {last}', { most: parts.slice(0, -1).join(', '), last: parts[parts.length - 1] });
 }
-/** How long yet, in the page's words. */
-export function errandLeftWords(until, now) {
+/** AUDIT FB1021 L3-5: the real hours a day abroad takes online (the wire's rate - two). */
+export const ERRAND_REAL_HOURS_A_DAY = MINUTES_PER_DAY / (ONLINE_MINUTES_PER_MS * 3_600_000);
+/** How long yet, in the page's words. AUDIT FB1021 L3-5: `real` (online) in real time - the road keeps it there, and the
+ *  game's hours were the event clock's, a twelfth of the sky clock the HUD shows ("back in about 24 hours" was two real
+ *  hours, and forty-eight on the HUD's clock). */
+export function errandLeftWords(until, now, real = false) {
+  if (real) {
+    const m = Math.max(1, Math.ceil(Math.max(0, until - now) / (ONLINE_MINUTES_PER_MS * 60_000)));
+    if (m < 60) return t('rvn.errand.left.realMinutes', 'back in about {m, plural, one {# real minute} other {# real minutes}}', { m });
+    return t('rvn.errand.left.realHours', 'back in about {h, plural, one {# real hour} other {# real hours}}', { h: Math.round(m / 60) });
+  }
   const h = Math.ceil(Math.max(0, until - now) / 60);
   if (h <= 1) return t('rvn.errand.left.hour', 'back within the hour');
   if (h < 48) return t('rvn.errand.left.hours', 'back in about {h} hours', { h });
   return t('rvn.errand.left.days', 'back in about {d} days', { d: Math.round(h / 24) });
 }
-/** Where it is, in the page's words - "In Solitude, Skyrim (Plunder) - back in about 9 hours". */
-export function errandWords(e, now) {
+/** Where it is, in the page's words - "In Solitude, Skyrim (Plunder) - back in about 9 hours" (`real`: online, in real
+ *  time - AUDIT FB1021 L3-5). */
+export function errandWords(e, now, real = false) {
   const p = errandPlace(e?.place);
   if (!p) return t('rvn.errand.abroad', 'Abroad');
   const where = e.city ? t('rvn.errand.cityOf', '{city}, {province}', { city: e.city, province: p.name }) : p.name;
-  return t('rvn.errand.where', 'In {where} ({venture}), {left}', { where, venture: VENTURES[e.venture]?.label ?? e.venture, left: errandLeftWords(errandUntil(e, now), now) });
+  return t('rvn.errand.where', 'In {where} ({venture}), {left}', { where, venture: VENTURES[e.venture]?.label ?? e.venture, left: errandLeftWords(errandUntil(e, now), now, real) });
 }

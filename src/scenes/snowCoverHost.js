@@ -228,18 +228,22 @@ export function createSnowCoverHost({ renderer, climateAt, mapHeight, stateOf, b
     /** Whether the window about the player is integrated to now. */
     get ready() { return ready; },
     /**
-     * THE FRAME: the lane asked again (a pixel built under the other lane - a skin or a door changed, or a build in flight
-     * across the turn - is built again: LANE-TURN), the window about the player's pixel (px, py) integrated to the clock's minute
+     * THE FRAME: the window about the player's pixel (px, py) integrated to the clock's minute
      * within the frame's budget (`arriving` - no ground under the player yet - the larger), its lines read every
      * SNOW_COVER.nowMinutes and the shown lines eased over `dt` seconds; then, at every new step of the grid, the
-     * standing pixels swept.
+     * standing pixels swept. And the lane asked again: a pixel built under the other lane (the "Weather as places" or the
+     * enhanced environments' switch turned mid-game - AUDIT FB1021 L1-1 - or a build in flight across the turn) is built
+     * again (LANE-TURN) - a turn onto the lane once the window stands.
      */
     tick({ px, py, dt = 0, arriving = false }) {
       on = !!owns();
-      for (const [key, p] of builtOf()) if (p._snow !== undefined && (p._snow !== null) !== on && !turned.has(p)) { turned.add(p); markRebuild(key); }
       const t = now();
+      if (on && Number.isFinite(t)) at(px, py, t, arriving ? SNOW_COVER.arriveMs : SNOW_COVER.budgetMs, false);
+      // AUDIT FB1021 L1-1: a turn ONTO the lane rebuilds once the window stands - every standing pixel goes down at once (the
+      // classic flip's teardown), and a rebuild's `settle` integrated a cold window in the breather's frame slices
+      // meanwhile (~2.6 s of work: seconds with no ground). Till then each stands in DFU's season, as it was built
+      if (!on || ready) for (const [key, p] of builtOf()) if (p._snow !== undefined && (p._snow !== null) !== on && !turned.has(p)) { turned.add(p); markRebuild(key); }
       if (!on || !Number.isFinite(t)) return;
-      at(px, py, t, arriving ? SNOW_COVER.arriveMs : SNOW_COVER.budgetMs, false);
       // ease the window's shown lines toward their targets (the snowline moving with the weather walks, never jumps)
       const k = Math.min(1, dt / SNOW_COVER.ease);
       let moved = false;
@@ -370,11 +374,11 @@ export function createSnowCoverHost({ renderer, climateAt, mapHeight, stateOf, b
       for (const [, key] of due) markReskin(key);
       return due.map(([, key]) => key);
     },
-    /** WHETHER THE SNOW BURIES a grass blade's root at pixel-local (`lx`, `lz`) of standing pixel `p`, at scene point
-     *  (`x`, `y`, `z`) - its own height, the placer's (AUDIT PRECIP HOST-9) - the ground as drawn there (its cover and
-     *  its patches) reaching the blade's own draw (flatDraw): a meadow thins into the snow the ground shows. False off the
-     *  lane. */
-    buries(p, lx, lz, x, z, y) {
+    /** WHETHER THE SNOW BURIES a grass blade's root at pixel-local (`lx`, `lz`) of standing pixel `p`, at scene height
+     *  `y` - its own, the placer's (AUDIT PRECIP HOST-9) - the ground as drawn there (its cover and its patches) reaching
+     *  the blade's own draw (flatDraw): a meadow thins into the snow the ground shows. False off the lane. (AUDIT FB1021
+     *  L1-8: its scene x and z went with the slope, which alone read them.) */
+    buries(p, lx, lz, y) {
       if (!lane()) return false;
       const c = drawnCover(p.px, p.py, lx, lz, y - stateOf().compensation[1] - SEA_LEVEL_M);
       return c > 0 && c >= flatDraw(p.px, p.py, lx, lz);

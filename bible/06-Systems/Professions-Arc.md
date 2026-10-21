@@ -272,8 +272,10 @@ DEX-HIDES (FIELD BUGS 2026-10-21, `01-Overview/bugs/Field-Bugs-2026-10-21.md`; t
 encountered have had no option for skinning"): Daggerfall Enemy Expansion's animals are skinned too, by the mod's own ids
 (a spawned foe's mobileType is its id, past DFU's MobileTypes - `professionLaw.js` `DEX_MOB`, a static table the account
 service skins by). Where the ten have its kin, its kin's hide; three hides of their own for the kinds they have none of,
-each among the ten by its tier (a chain's works stand cheapest first). Its Hell Hound is the mod's Daedra, and no daedra
-is skinned.
+each among the ten by its tier (a chain's works stand cheapest first - `chainLaw.js` `producersOf`). Within tier 2 the two
+spare pelts stand before Bat Leather and the Bear Hide (AUDIT FB1021 L2-1: a chain for Cured Leather spent every Bear Hide,
+the Ram Kit's input, before a Wolf Pelt, which has no other use); the Rat Pelt stays first, since a lenient chain names
+`works[0]`. Its Hell Hound is the mod's Daedra, and no daedra is skinned.
 
 | DEX foe (id, level) | Hide (4.8) | Tier | A chance of the DFU ingredient |
 |---|---|---|---|
@@ -285,8 +287,11 @@ is skinned.
 | Boar (278, 6) | **Boar Hide** (672) | 2 | Big Tooth (56) |
 | Mudcrab (281, 2) | **Mudcrab Chitin** (676) | 1 | - |
 
-The three cure by the tier law to Cured Leather; their butchery is Raw Meat, the Mudcrab's Raw Fish (C&C's catch from the
-water, as the Slaughterfish's). The furniture's skins (9.3) stay the four pelts: the new ones make none.
+The three cure by the tier law to Cured Leather; their butchery is C&C's Raw Meat, the Mudcrab's too (AUDIT FB1021 L2-2:
+C&C's own corpse gives every Animal body Raw Meat and the Slaughterfish alone Raw Fish - `survival/loot.js`). The Land
+Dreugh shares the Dreugh's row whole, so no butchery: a departure from C&C, whose corpse feeds its body - its kin's hide
+is its kin's row. The furniture's skins (9.3) take the two furs, a fur's hide by 9.3's own word (AUDIT FB1021 L2-3): Wolf
+Pelt and Boar Hide cut to Large and Small Skins as the four pelts do, four recipes; the chitin makes none.
 
 Hides cure to **Cured Leather** (tiers 1-3) or **Hardened Leather** (tiers 4-6) at a tanning rack, **2:1** (Tanner
 1:1). Butchery gives C&C's Raw Meat either way. DFU's own corpse loot is untouched: skinning adds, never replaces.
@@ -347,8 +352,8 @@ The Basket's foods are Foraging's and C&C's own templates, not new ones (FORAGE0
 | 645-651 | the same seven Planks | Stores | DFU Small Oak Table's board, tinted |
 | 652, 653, 654 | Charcoal, Resin, Heartwood | Stores | DFU Lodestone / Aloe / Twigs, tinted |
 | 655-664 | the ten hides of 4.4 | Stores | DFU Small Skins, tinted |
-| 667, 672, 676 | Wolf Pelt, Boar Hide, Mudcrab Chitin - the Enemy Expansion's (4.4, DEX-HIDES) | Stores | as the ten's (29's FOUND): Nymph Hair's lock for the pelts, Fairy Dragon's Scales for the chitin |
 | 665, 666 | Cured Leather, Hardened Leather | Stores | DFU Large Skins, tinted |
+| 667, 672, 676 | Wolf Pelt, Boar Hide, Mudcrab Chitin - the Enemy Expansion's (4.4, DEX-HIDES) | Stores | as the ten's (29's FOUND): Nymph Hair's lock for the pelts, Fairy Dragon's Scales for the chitin |
 | 668-671 | Linen, Wool, Silk Bolt, Standard-bearer's Silk | Stores | DFU Small Tapestry, tinted |
 | 673-675 | Rough Stone, Cut Stone, Mortar | Stores | DFU Lodestone, greyed |
 | 678 | Siege-cracked Gem | Stores | DFU Diamond, cracked overlay |
@@ -2909,7 +2914,8 @@ Mac: **"Do it"** (2026-09-29, PROF7 after the VEIN-NEED fix: "What was next on t
     player's own clothing first, as DFU's Clothing Store shelves it, and both.
   - **Rugs 3 Wool, tapestries 4 Wool** (DFU's 237-243) - FOUND: 9.3's "+ a dye" has nothing to colour, DFU's furniture
     takes no dye; **Large Skins 2 and Small Skins 1 of a pelt** (244-245; a fur's hide - the Rat's, the Bat's, the
-    Bear's, the Tiger's; never silk, chitin, scales, feathers or shell). Among the home's things, as PROF4's furniture.
+    Bear's, the Tiger's, and DEX-HIDES' Wolf's and Boar's (AUDIT FB1021 L2-3); never silk, chitin, scales, feathers or
+    shell). Among the home's things, as PROF4's furniture.
   - **The Fishing-Net** (FORAGE0 14.7): 2 Linen Bolt, rank 0 - Foraging's own 1603, its quality its life.
   - The steps (9.2): **a Tailor's clothing, a Leatherworker's leather armour**; Outfitting XP 20 x the tier, +500 the
     first, under the crafter's limit - AUDIT 32 S1 (Mac: "Whatever you think is best"): none for the 152 made wholly of
@@ -5083,7 +5089,7 @@ At dusk the hub warns of a Motherlode in the Wrothgarian foothills in ten minute
 | Herbalism | common 0.8 s, steady 2.5 s, 3 degrees |
 | Hunting | trace 5-9 points, clean 0.8, torn 0.4 (as built, PROF7 - E held: 4 + tier points across 14 degrees, a zigzag of 3; begun within 2.5 degrees; the tolerance 3 degrees, x1.5 at Master, x (INT + AGI) / 2's band, sampled every 0.25 degree of its progress - AUDIT 32 L1; clean 0.6-6 s from the first move; Gentle 1.2 s) |
 | A body (PROF7) | `body:<day>:<12 hex>`, stamped at the player's own kill; a node while the pack holds a Skinning Knife; a hide 1, a clean pelt x1.5, a torn one its part lost; the part one body in four (Big Tooth, Spider's Venom, Giant Scorpion Stinger, Dragon's Scales); the butchery one Raw Meat (the Slaughterfish's Raw Fish), a Butcher's two, a Butcher's meat withdrawn spoiling at half the pace; ~~30 hides an account a day,~~ 3 of tiers 5-6 an account a day (AUDIT 32 L2: hides, not bodies; CAP-OFF, 2026-10-07: the thirty gone); lapsed at the UTC day's turn (B1); reached at DFU's corpse distance (H7); no ground, no hours, no witness; Hunting XP 15 x tier |
-| The hides (PROF7) | Rat Pelt 1, Bat Leather 2, Bear Hide 2, Tiger Pelt 3, Spider Silk 3, Scorpion Chitin 4, Slaughterfish Scales 4, Harpy Feathers 5, Dreugh Shell 5, Dragonling Scale 6 (655-664); Cured Leather tier 2, Hardened 5 (665-666); Linen 1, Wool 2, Silk 4, Standard-bearer's Silk 5 (668-671, the last unyielded); a hide 1 kg (Spider Silk and Harpy Feathers 0.25), a bolt 0.5; 8 x the tier's Marks value in gold, a leather and a Silk Bolt x1.5 |
+| The hides (PROF7) | Rat Pelt 1, Bat Leather 2, Bear Hide 2, Tiger Pelt 3, Spider Silk 3, Scorpion Chitin 4, Slaughterfish Scales 4, Harpy Feathers 5, Dreugh Shell 5, Dragonling Scale 6 (655-664); DEX-HIDES' Wolf Pelt 2, Boar Hide 2, Mudcrab Chitin 1 (667, 672, 676 - AUDIT FB1021 L2-4); Cured Leather tier 2, Hardened 5 (665-666); Linen 1, Wool 2, Silk 4, Standard-bearer's Silk 5 (668-671, the last unyielded); a hide 1 kg (Spider Silk and Harpy Feathers 0.25), a bolt 0.5; 8 x the tier's Marks value in gold, a leather and a Silk Bolt x1.5 |
 | The loom (PROF7) | a Clothing Store's, 50 gold a craft, a cure or a weave; a home's `loom` station, 50,000 gold; two hides a leather (tiers 1-3 Cured, 4-6 Hardened), a Tanner's two a unit (a choice at 50); three Spider Silk a Silk Bolt; no XP |
 | Outfitting's recipes (PROF7) | leather armour at Leather - Cuirass 6, Greaves 4, the rest 2 - Cured (rank 10) or Hardened (rank 55, a step); DFU's 76 garments in each cloth - a bolt, two, three, boots a bolt and a Cured Leather; rugs 3 Wool, tapestries 4 Wool, skins 2 and 1 of a pelt; the Fishing-Net 2 Linen; the steps a Tailor's clothing, a Leatherworker's leather armour; XP 20 x tier, +500 the first (AUDIT 32 S1: not the 152 made wholly of Linen and Wool) |
 | A garment's dye (PROF7) | DFU's ten clothing dyes (0-9), chosen at the loom, signed into the record (`u`); every garment (AUDIT 32 L3: the four unchangeable shirts too) |

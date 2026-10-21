@@ -23890,8 +23890,8 @@
   "by": "claude-in-session"
  },
  "prof.page.unlocks.outfitting2": {
-  "en": "c0be52db8eee",
-  "tr": "ff6cfc804900",
+  "en": "4b2213ed6f4a",
+  "tr": "730ea109a9eb",
   "by": "claude-in-session"
  },
  "prof.page.unlocks.outfitting3": {
@@ -26149,6 +26149,16 @@
   "tr": "83ac6ec6148c",
   "by": "claude-in-session"
  },
+ "rvn.errand.left.realHours": {
+  "en": "09ae5f9750ec",
+  "tr": "aeb8af80c03d",
+  "by": "claude-in-session"
+ },
+ "rvn.errand.left.realMinutes": {
+  "en": "fa15b0cca051",
+  "tr": "480bb8ba62b5",
+  "by": "claude-in-session"
+ },
  "rvn.errand.no.abroad": {
   "en": "3d2f752aa20c",
   "tr": "6c9133c12c06",
@@ -26510,8 +26520,8 @@
   "by": "claude-in-session"
  },
  "rvn.roster.abroadLived": {
-  "en": "c67e0f09847d",
-  "tr": "6d71d1d4518c",
+  "en": "a57a6cdb3d6f",
+  "tr": "95ab805354b0",
   "by": "claude-in-session"
  },
  "rvn.roster.broken": {

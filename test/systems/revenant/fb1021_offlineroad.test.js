@@ -94,6 +94,7 @@ test('OFFLINE-ROAD THE ROAD WHILE AWAY: online, sent at a logout and loaded agai
   // the other half away
   RC.forgetSwornMember(null);
   clock.world += DAY / 2;
+  WT.setSharedClock(null); online(clock);   // the next load: its welcome heard (AUDIT FB1021 L3-1: a reading past the monotonic clock since a welcome is never paid)
   restoreModSaveRecords(saved); WT.setOwnMinutes(ownAtSave);
   party().wake(own());
   assert.notEqual(rec(r).companion.state, 'errand', 'a real day away: back at the first frame');
@@ -125,7 +126,90 @@ test('OFFLINE-ROAD THE PAGE: online the sheet says a mission keeps real time - o
   buttons(draw(), 'Mission')[0].onclick();
   assert.doesNotMatch(draw().textContent, /real time/, 'offline: DFU\'s one clock');
   online({ world: T0 });
-  assert.match(draw().textContent, /Online, a mission keeps real time: it goes on while you're away, two real hours for each day abroad\. Resting, waiting or traveling doesn't speed it up\./);
+  assert.match(draw().textContent, /Online, a mission keeps real time: it goes on while you're away, 2 real hours for each day abroad\. Resting, waiting or traveling doesn't speed it up\./);   // PIN MOVED (AUDIT FB1021 L3-5): the hours read off the wire's rate
+  assert.equal(E.ERRAND_REAL_HOURS_A_DAY, 2);
+});
+
+// ── AUDIT FB1021 (bible/01-Overview/audits/Audit-Field-Bugs-2026-10-21.md) ──────────────────────────────────────────────
+
+test('AUDIT FB1021 L3-1 A MACHINE CLOCK SET FORWARD PAYS NOTHING: the world\'s reading is the machine\'s wall clock through the relay\'s offset, so a clock moved forward after the welcome moved it - an errand reads it no further than the monotonic time since the welcome; real time passed carries it on, and the next welcome pays what a stopped monotonic clock missed (mutants: the world read whole; the monotonic time unread; the hearing\'s mark unkept)', (t) => {
+  let perf = 1000;
+  RC._setErrandMonotonicForTests(() => perf);
+  t.after(() => RC._setErrandMonotonicForTests(null));
+  const clock = { world: T0 };
+  WT.setSharedClock(() => clock.world); WT.hearSharedClock(perf);
+  WT.setOwnMinutes(T0);
+  const r = sworn();
+  RC.sendOnErrand(r.id, 'Hammerfell', 'plunder', { now: T0, seed: 1 });
+  party().wake(own());
+  // the machine's clock set three days forward: the world's reading and the tick's own clock with it, no real time passed
+  clock.world += 3 * DAY; WT.setOwnMinutes(WT.ownMinutes() + 3 * DAY);
+  party().wake(own());
+  assert.equal(rec(r).companion.state, 'errand', 'three days of a moved clock: still abroad');
+  assert.ok(rec(r).companion.errand.until - own() >= DAY - E.ERRAND_WORLD_SLACK, 'its whole day still to go');
+  assert.equal(E.errandWorldMinute(clock.world, WT.sharedClockHeardMark(), perf), T0 + E.ERRAND_WORLD_SLACK, 'the reading held to the welcome\'s minute');
+  // half a day of real time (an hour: the wire's rate) - half the road
+  perf += 3_600_000;
+  party().wake(own());
+  assert.equal(rec(r).companion.state, 'errand');
+  assert.ok(Math.abs(rec(r).companion.errand.until - own() - DAY / 2) <= E.ERRAND_WORLD_SLACK, 'half left after a real hour');
+  // a welcome on the true clock (a machine asleep, its monotonic clock stopped, the relay's minute a day on): paid then
+  clock.world = T0 + DAY; WT.hearSharedClock(perf);
+  party().wake(own());
+  assert.notEqual(rec(r).companion.state, 'errand', 'the welcome\'s true day: back');
+});
+
+test('AUDIT FB1021 L3-2 A RAISE ACROSS THE FIRST TRUSTED WAKE IS NEVER PAID: sent before the relay\'s clock is heard, a rest\'s window open as the welcome lands (no wake in it) - the errand takes its minutes left as the lived step leaves them, the raise pushed back (mutants: the raise discarded at the turn)', () => {
+  const clock = { world: T0 };
+  WT.setSharedClock(() => clock.world);   // installed, not yet heard
+  WT.setOwnMinutes(T0);
+  const r = sworn();
+  RC.sendOnErrand(r.id, 'BlackMarsh', 'contract', { now: T0, seed: 1 });
+  party().wake(own());
+  WT.advanceOwnMinutes(96 * 60);   // a Loiter of 96 hours, the window open: no wake runs
+  WT.hearSharedClock();   // the welcome lands meanwhile
+  party().wake(own());
+  assert.equal(rec(r).companion.state, 'errand', 'the raise paid nothing');
+  assert.equal(rec(r).companion.errand.until - own(), 4 * DAY, 'its four days still to go');
+  assert.equal(rec(r).companion.errand.due, T0 + 4 * DAY, 'on the world\'s clock from the welcome');
+});
+
+test('AUDIT FB1021 L3-3 THE PRODUCER\'S SHAPES: the world\'s minute is fractional, and an errand\'s minutes stay whole through a save; an Undying Vigil\'s longer road is its own on the world\'s clock (AUDIT RVN-STARS S2); an errand sent offline carries no world\'s minute (mutants: the world unfloored; the Vigil\'s road the place\'s; a due offline)', () => {
+  const r = sworn();
+  const e = E.newErrand(rec(r), 'Hammerfell', 'plunder', T0, 1, T0 + 0.4);
+  assert.ok(Number.isInteger(e.due), 'sent at a fractional minute: a whole due');
+  const o = E.errandOnWorld(e, T0 + 7, T0 + 100.73);
+  assert.ok(Number.isInteger(o.until) && Number.isInteger(o.due), JSON.stringify(o));
+  assert.ok(E.sanitizeErrand({ ...e, ...o }), 'kept by a save');
+  const vigil = { ...e, sky: { odds: 0, haul: 0, road: -0.1, bold: false }, until: T0 + 1584, due: T0 + 1584 };
+  assert.equal(E.errandOnWorld(vigil, T0, T0).due, T0 + 1584, 'the Vigil\'s 1.1 days, not the place\'s one');
+  // offline: no world's minute
+  WT.setSharedClock(null); WT.setWorldMinutes(T0);
+  const q = sworn();
+  RC.sendOnErrand(q.id, 'Hammerfell', 'plunder', { now: T0, seed: 1 });
+  assert.equal(rec(q).companion.errand.due, undefined, 'offline: the one clock, no due');
+  // online, the wake's fractional minute: whole minutes, and the save keeps the errand
+  const clock = { world: T0 + 0.37 };
+  WT.setSharedClock(() => clock.world); WT.hearSharedClock();
+  WT.setOwnMinutes(T0);
+  const w = sworn();
+  RC.sendOnErrand(w.id, 'Skyrim', 'forage', { now: T0, seed: 2 });
+  clock.world += 0.61; party().wake(own());
+  const kept = rec(w).companion.errand;
+  assert.ok(Number.isInteger(kept.until) && Number.isInteger(kept.due) && E.sanitizeErrand(kept), JSON.stringify(kept));
+});
+
+test('AUDIT FB1021 L3-5 THE WORDS ONLINE ARE REAL TIME: an errand\'s time left in real minutes and hours at the wire\'s rate (a day abroad two real hours), the game\'s hours offline; the roster\'s line abroad online says it (mutants: the rate unread; the words the game\'s online)', () => {
+  assert.equal(E.errandLeftWords(T0 + DAY, T0, true), 'back in about 2 real hours');
+  assert.equal(E.errandLeftWords(T0 + 360, T0, true), 'back in about 30 real minutes');
+  assert.equal(E.errandLeftWords(T0 + 5, T0, true), 'back in about 1 real minute');
+  assert.equal(E.errandLeftWords(T0 + 8, T0, false), 'back within the hour');
+  assert.equal(E.errandLeftWords(T0 + DAY, T0), 'back in about 24 hours', 'offline the game\'s');
+  online({ world: T0 });
+  WT.setOwnMinutes(T0);
+  const r = sworn();
+  RC.sendOnErrand(r.id, 'Hammerfell', 'plunder', { now: T0, seed: 1 });
+  assert.match(RC.abroadWords(rec(r), T0), /, back in about 2 real hours$/);
 });
 
 // ── the page's fake document (rvnerrand.test.js's) ────────

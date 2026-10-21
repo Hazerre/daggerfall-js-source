@@ -1508,11 +1508,12 @@ slope's heights, because snow lay in that run. Settled (`frameProbe.mjs knight`,
 **What it still pays, ranked.**
 1. The weather map's births (`weatherMap.js systemsSpanWalk` -> `birthsIn`): one node of the walk took 65 ms in node,
    paid once (memoized), and the walk reads its deadline only between nodes. These are the 5-6 frames still over 8 ms.
-2. The grass's slope under snow: `buries` asks the world's `heightAt` four times a blade, a pixel found by a string key
-   each time. The blade's own pixel holds the same samples (a read inside `bootWorld`, under its ceiling).
+2. ~~The grass's slope under snow: `buries` asks the world's `heightAt` four times a blade, a pixel found by a string key
+   each time.~~ Paid off by SNOW-FACE (FIELD BUGS 2026-10-21, `01-Overview/bugs/Field-Bugs-2026-10-21.md`): the snow
+   has no slope, so `buries` asks no height (AUDIT FB1021 L1-3).
 3. A ground set's winter twin (`snowCoverHost.js twinLayers` -> `fit`): 88-173 ms of the minute.
 
-Pins: `test/systems/weather/snowbudget.test.js` (5). Mutants: `tools/mutants/snowbudget.json`, 4, all dead. Tooling:
+Pins: `test/systems/weather/snowbudget.test.js` (5). Mutants: `tools/mutants/snowbudget.json`, 3 now, all dead (it held 4: SNOW-FACE retired SB-the-slope-read-first with the slope - AUDIT FB1021 L1-3). Tooling:
 `tools/frameAb.mjs` reads the snow's and the falling weather's share of a frame.
 
 **AUDIT SNOW-BUDGET (2026-10-20, the owner: "ensure this is perfect and fidelity isnt lost").** A cold lane ran the

@@ -47,7 +47,7 @@ test('PRECIP4 THE CHUNK READS THE LAW: snowAtHeight is snowpack.js coverAtHeight
   }
 });
 
-test('PRECIP4 THE FRAGMENT\'S COVER: off the lane none; on it the line between the window\'s four points about it, its height (world y + the frame\'s offset) against it, a thin cover broken into patches while a bare one stays bare and a whole one whole (mutants: the switch unread; the offset\'s sign; the patches over a whole cover)', () => {
+test('PRECIP4 THE FRAGMENT\'S COVER: off the lane none; on it the line between the window\'s four points about it, its height (world y + the frame\'s offset) against it, a thin cover broken into patches while a bare one stays bare and a whole one whole (mutants: the switch unread; the offset\'s sign; the patches over a whole cover; the laid snow\'s footprint one axis twice)', () => {
   const [ox, oz] = ecoOrigin(200, 100);
   const f = chunk({ lines: lineFn(100, 150, 180), win: [ox, oz + 128], origin: [ox, oz, 0], alt: -34 });
   assert.equal(f.snowCover([400, 400], 2000 + 34, none, none), 1, 'whole over its 90 %');
@@ -56,6 +56,15 @@ test('PRECIP4 THE FRAGMENT\'S COVER: off the lane none; on it the line between t
   assert.equal(off.snowCover([400, 400], 9000, none, none), 0, 'off the lane');
   assert.equal(off.snowLaid([400, 400], 9000, none, none), 1, 'and a snow lying on the ground the whole ground\'s (GROUND-9)');
   assert.equal(f.snowLaid([400, 400], 0 + 34, none, none), 0, 'on it, the ground\'s own');
+  // AUDIT FB1021 L1-6: its footprint the fragment's own, both axes - a footprint one way only (a tile and a half a pixel
+  // up the screen, none across) fades the finest patches where a square one would not
+  let fades = 0;
+  for (let i = 0; i < 60; i++) {
+    const at = [i * 13.3 + 2, 800 - i * 11.9], wide = f.snowLaid(at, 150 + 34, none, [0, 1.5]);
+    assert.equal(wide, f.snowCover(at, 150 + 34, none, [0, 1.5]), `the ground's own at ${at}`);
+    if (Math.abs(wide - f.snowCover(at, 150 + 34, none, none)) > 1e-6) fades++;
+  }
+  assert.ok(fades > 10, `the footprint read: ${fades} of 60 changed by it`);
   let white = 0, n = 0, mixed = 0;
   for (let i = 0; i < 40; i++) for (let j = 0; j < 40; j++) { white += f.snowCover([i * 20.3 + 1, j * 20.3 + 1], 150 + 34, none, none); n++; }
   assert.ok(white / n > 0.3 && white / n < 0.7, `half the ground: ${(white / n).toFixed(2)}`);
@@ -323,12 +332,12 @@ test('PRECIP4 THE HOST: the lane asked each frame (a pixel built under the other
   const { host, marked, rebuilt, setAll, lane } = hostRig({ built });
   assert.equal(host.on, true, 'the lane known before the first frame - a boot\'s builds ask it');
   host.tick({ px: 200, py: 100 });
-  assert.deepEqual(rebuilt, ['201,100'], 'a pixel built off the lane built again on it');   // PIN MOVED (LANE-TURN): it was sent to the skin, which refused it
-  host.tick({ px: 200, py: 100 });
-  assert.deepEqual(rebuilt, ['201,100'], 'once');
+  assert.deepEqual(rebuilt, [], 'a pixel built off the lane: not before the window stands (no clock here - AUDIT FB1021 L1-1; fb1021_snowface.test.js turns it once it does)');
   lane.on = false; host.tick({ px: 200, py: 100 });
-  assert.deepEqual(rebuilt, ['201,100', '200,100'], 'the lane turned off: the one built on it');
-  assert.deepEqual(marked, [], 'and neither sent to the skin');
+  assert.deepEqual(rebuilt, ['200,100'], 'the lane turned off: the one built on it, at once');   // PIN MOVED (LANE-TURN): it was sent to the skin, which refused it
+  host.tick({ px: 200, py: 100 });
+  assert.deepEqual(rebuilt, ['200,100'], 'once');
+  assert.deepEqual(marked, [], 'and never sent to the skin');
   lane.on = true; host.tick({ px: 200, py: 100 });
   setAll([100, 200, 300]);
   for (let j = 40; j <= 60; j++) { const l = host._lines.get(latticeKey(101, j)); l.shown = Float32Array.of(300, 400, 500); }
@@ -385,23 +394,23 @@ test('PRECIP4 THE BUILD\'S SEASONS (AUDIT PRECIP HOST-6/8): a build keeps every 
   for (let k = 0; k < 50; k++) { const d = flatDraw(200, 100, k * 3.7, k * 9.1); assert.ok(d >= 0.15 && d <= 0.85, 'never at the ends'); assert.equal(d, flatDraw(200, 100, k * 3.7, k * 9.1)); }
 });
 
-test('PRECIP4 THE GRASS, THE FEET AND THE MOD (AUDIT PRECIP GROUND-3/9, HOST-4): a blade is buried and a foot treads snow where the ground DRAWS it there - its cover and its patches (snowCoverAt) - at the blade\'s own height; the feet\'s footsteps follow it, the calendar\'s winter taken off; the Snowfall mod stands wherever snow lies on any ground the window holds and lays it only where the ground wears it (it laid the mod\'s snow over a green field from the player\'s white one); off the lane DFU\'s word (mutants: the feet the calendar\'s; the mod\'s gate the player\'s spot)', () => {
+test('PRECIP4 THE GRASS, THE FEET AND THE MOD (AUDIT PRECIP GROUND-3/9, HOST-4): a blade is buried and a foot treads snow where the ground DRAWS it there - its cover and its patches (snowCoverAt) - at the blade\'s own height; the feet\'s footsteps follow it, the calendar\'s winter taken off; the Snowfall mod stands wherever snow lies on any ground the window holds and lays it only where the ground wears it (it laid the mod\'s snow over a green field from the player\'s white one); off the lane DFU\'s word (mutants: the feet the calendar\'s; the mod\'s gate the player\'s spot; the shift\'s sign under the blade; the feet\'s height unshifted)', () => {
   const { host, setAll, clock } = hostRig({ t: NaN });   // the blade's own height decides (AUDIT PRECIP HOST-9): the host asks the stream no height (SNOW-FACE)
   host.tick({ px: 200, py: 100 });
   setAll([-800, -700, -600]);
   const p = { px: 200, py: 100 };
-  assert.equal(host.buries(p, 10, 10, 0, 0, SEA_LEVEL_M + 100), true, 'under a line far below');
+  assert.equal(host.buries(p, 10, 10, SEA_LEVEL_M + 100), true, 'under a line far below');
   assert.equal(host.winterAt([PIX / 2, SEA_LEVEL_M + 100, -PIX / 2 + 10], false), true, 'snow under the feet');
   assert.equal(host.footSeason([PIX / 2, SEA_LEVEL_M + 100, -PIX / 2 + 10], SEASON.Summer), SEASON.Winter);
   setAll([3000, 3100, 3200]);
-  assert.equal(host.buries(p, 10, 10, 0, 0, SEA_LEVEL_M + 100), false, 'a blade at 100 m under a line at 3,000 - whatever the stream\'s ground there');
+  assert.equal(host.buries(p, 10, 10, SEA_LEVEL_M + 100), false, 'a blade at 100 m under a line at 3,000 - whatever the stream\'s ground there');
   assert.equal(host.winterAt([PIX / 2, SEA_LEVEL_M + 100, -PIX / 2 + 10], true), false, 'none, whatever the calendar');
   assert.equal(host.footSeason([PIX / 2, SEA_LEVEL_M + 100, -PIX / 2 + 10], SEASON.Winter), SEASON.Summer, 'the calendar\'s winter taken off');
   // the blade's own place reads the drawn cover: a half cover buries about half, and the same blade the same way twice
   setAll([0, 100, 200]);
   let buried = 0;
   for (let i = 0; i < 400; i++) {
-    const lx = (i * 53.3) % PIX, lz = (i * 31.7) % PIX, b = host.buries(p, lx, lz, lx, -lz, SEA_LEVEL_M + 100);
+    const lx = (i * 53.3) % PIX, lz = (i * 31.7) % PIX, b = host.buries(p, lx, lz, SEA_LEVEL_M + 100);
     const c = snowCoverAt(coverAtHeight([0, 100, 200], 100), lx, lz, ...ecoOrigin(200, 100));
     assert.equal(b, c > 0 && c >= flatDraw(200, 100, lx, lz), 'the drawn cover against the blade\'s own draw');
     if (b) buried++;
@@ -413,9 +422,18 @@ test('PRECIP4 THE GRASS, THE FEET AND THE MOD (AUDIT PRECIP GROUND-3/9, HOST-4):
   off.host.tick({ px: 200, py: 100 });
   assert.equal(off.host.winterNear(true), true); assert.equal(off.host.winterNear(false), false, 'off the lane DFU\'s season');
   assert.equal(off.host.winterAt([0, 0, 0], true), true, 'DFU\'s word');
-  assert.equal(off.host.buries(p, 1, 1, 0, 0, 0), false);
+  assert.equal(off.host.buries(p, 1, 1, 0), false);
   assert.equal(off.host.footSeason([0, 0, 0], SEASON.Winter), SEASON.Winter);
   assert.ok(Number.isNaN(clock.t));
+  // AUDIT FB1021 L1-6: a scene shifted by the floating origin (compensation 1,000 m up) - the blade's and the foot's
+  // height the world's, the shift taken off (every rig before stood at none, where its sign could not show)
+  const up = hostRig({ comp: [0, 1000, 0] });
+  up.host.tick({ px: 200, py: 100 });
+  up.setAll([500, 600, 700]);
+  assert.equal(up.host.buries(p, 10, 10, SEA_LEVEL_M + 100 + 1000), false, 'a blade 100 m up, under a line at 500');
+  assert.equal(up.host.buries(p, 10, 10, SEA_LEVEL_M + 900 + 1000), true, 'one at 900, over it');
+  assert.equal(up.host.winterAt([PIX / 2, SEA_LEVEL_M + 100 + 1000, -PIX / 2 + 10], true), false, 'a foot 100 m up: bare');
+  assert.equal(up.host.winterAt([PIX / 2, SEA_LEVEL_M + 900 + 1000, -PIX / 2 + 10], false), true, 'at 900: snow');
   const w = read('src/scenes/world.js');
   assert.equal(w.split('winter: snowCover.winterNear(season === SEASON.Winter)').length - 1, 2, 'the mod indoors and out');
   assert.equal(w.split('winter: snowCover.winterAt(player.pos, season === SEASON.Winter)').length - 1, 3, 'the three footsteps');
@@ -553,7 +571,7 @@ test('PRECIP4 THE WIRING: a build settles the snow, then keeps every season it t
   assert.equal(w.split('snowCover.drawOf(').length - 1, 4, 'both ground draws and both water lists');
   assert.equal(w.split('snowCover.arrayOf(').length - 1, 8, 'every reader of a pixel\'s set: its ground (both draws), its water (both lists), its shadow, the sea, the ring\'s sea, the border');
   assert.doesNotMatch(w, /renderer\.tileArrays\.get\(p\.groundArchive\)|renderer\.tileArrays\.get\(cell\.groundArchive\)/, 'no reader of the bare set the lane does not upload');
-  assert.match(w, /if \(snowCover\.on && snowCover\.buries\(p, lx, lz, x, z, h \+ t\[1\]\)\) return null;/);
+  assert.match(w, /if \(snowCover\.on && snowCover\.buries\(p, lx, lz, h \+ t\[1\]\)\) return null;/);
   assert.match(w, /p\._stride === 1 && p\.tilemapBytes && \(snowCover\.on \|\| p\.season !== SEASON\.Winter\)/);
   assert.match(w, /seasons, siegeFieldsByTown, snowCover, snowfall, standPixelNpcs,/);
   assert.match(b, /seasons, siegeFieldsByTown, snowCover, snowfall, standPixelNpcs,/);

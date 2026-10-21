@@ -34926,7 +34926,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
         // grass only stands on the stride-1 ring anyway.
         const h = surfaceHeightAt(p.samples, lx, lz, p._stride ?? 1);
         if (h <= sea) return null;
-        if (snowCover.on && snowCover.buries(p, lx, lz, x, z, h + t[1])) return null;   // PRECIP4: no blade through the snow the ground shows there (AUDIT PRECIP HOST-9: at the blade's own height)
+        if (snowCover.on && snowCover.buries(p, lx, lz, h + t[1])) return null;   // PRECIP4: no blade through the snow the ground shows there (AUDIT PRECIP HOST-9: at the blade's own height)
         return h + t[1];
       };
       // GR4: the SAME lookup keep makes, answering with the tile's mean

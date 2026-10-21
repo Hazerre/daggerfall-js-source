@@ -523,7 +523,8 @@ export const PARTS = Object.freeze([
 const hide = (key, templateIndex, name, tier, icon, foes, part, meat, cures) =>
   Object.freeze({ ...made(key, 'hides', tier, templateIndex, name, icon, null), foes: Object.freeze(foes), part, meat, cures });
 /**
- * THE TEN HIDES (4.4, templates 655-664 in its order - DEX-HIDES: and the three past them, each among them by its tier), each its foes, tier, DFU part (4.4's column), its butchery (C&C's
+ * THE HIDES (4.4: the ten, 655-664, and DEX-HIDES' three, 667, 672 and 676), by tier (AUDIT FB1021 L2-1: a chain spends a
+ * tier's hides in this order - chainLaw.js chainPlan - so tier 2's spare pelts stand before the Bear's), each its foes, tier, DFU part (4.4's column), its butchery (C&C's
  * own animals: SURV2's MEAT_BY_TYPE - Rat, Giant Bat, Grizzly Bear, Sabretooth Tiger, Spider, Giant Scorpion - Raw Meat;
  * its FISH_BY_TYPE's Slaughterfish Raw Fish; the Harpy, the Dreugh and the Dragonling none, as C&C gives their bodies
  * none) and its cure: tiers 1-3 to Cured Leather, 4-6 to Hardened Leather (4.4) - but Spider Silk, woven to a Silk Bolt
@@ -533,16 +534,17 @@ const hide = (key, templateIndex, name, tier, icon, foes, part, meat, cures) =>
  * dreugh), and three hides of their own past the ten for the kinds the ten have none of (4.8's first free ids): WOLF
  * PELT (667: its Wolf, Snow Wolf and Dog - one team, Werecreatures, one coat), BOAR HIDE (672) and MUDCRAB CHITIN (676).
  * Their tiers are the low ones their kin's are (the Wolf level 5 and the Boar 6 by the Bear's 2; the Mudcrab, level 2, by
- * the Rat's 1); the wolf's fang and the boar's tusk DFU's Big Tooth, as the Bear's and the Tiger's; their butchery Raw
- * Meat, the crab's Raw Fish (C&C's own catch from the water); each cures by the tier law.
+ * the Rat's 1); the wolf's fang and the boar's tusk DFU's Big Tooth, as the Bear's and the Tiger's; their butchery C&C's
+ * Raw Meat, as C&C feeds every Animal body (survival/loot.js - AUDIT FB1021 L2-2: the Mudcrab's too; the Land Dreugh
+ * shares the Dreugh's row and its butchery, none, though C&C's own corpse gives it Raw Meat); each cures by the tier law.
  */
 export const HIDES = Object.freeze([
   hide('hide:rat', 655, 'Rat Pelt', 1, ICON_HAIR, [MOB.Rat], null, 'food:meat', 'leather:cured'),
-  hide('hide:mudcrab', 676, 'Mudcrab Chitin', 1, ICON_SCALES, [DEX_MOB.Mudcrab], null, 'food:fish', 'leather:cured'),   // DEX-HIDES: each by its tier (a chain's works stand cheapest first - recipeLaw.js producersOf)
+  hide('hide:mudcrab', 676, 'Mudcrab Chitin', 1, ICON_SCALES, [DEX_MOB.Mudcrab], null, 'food:meat', 'leather:cured'),   // DEX-HIDES: each by its tier (a chain's works stand cheapest first - chainLaw.js producersOf)
+  hide('hide:wolf', 667, 'Wolf Pelt', 2, ICON_HAIR, [DEX_MOB.Wolf, DEX_MOB.SnowWolf, DEX_MOB.Dog], 'part:tooth', 'food:meat', 'leather:cured'),   // AUDIT FB1021 L2-1: the chain spends a tier in this order - the spare pelts before the Bear's, the Ram Kit's (the Rat stays tier 1's first: a plan's shortfall names its first work, and rats are everywhere)
+  hide('hide:boar', 672, 'Boar Hide', 2, ICON_HAIR, [DEX_MOB.Boar], 'part:tooth', 'food:meat', 'leather:cured'),
   hide('hide:bat', 656, 'Bat Leather', 2, ICON_HAIR, [MOB.GiantBat, DEX_MOB.Bat], null, 'food:meat', 'leather:cured'),
   hide('hide:bear', 657, 'Bear Hide', 2, ICON_HAIR, [MOB.GrizzlyBear], 'part:tooth', 'food:meat', 'leather:cured'),
-  hide('hide:wolf', 667, 'Wolf Pelt', 2, ICON_HAIR, [DEX_MOB.Wolf, DEX_MOB.SnowWolf, DEX_MOB.Dog], 'part:tooth', 'food:meat', 'leather:cured'),
-  hide('hide:boar', 672, 'Boar Hide', 2, ICON_HAIR, [DEX_MOB.Boar], 'part:tooth', 'food:meat', 'leather:cured'),
   hide('hide:tiger', 658, 'Tiger Pelt', 3, ICON_HAIR, [MOB.SabertoothTiger, DEX_MOB.MountainLion], 'part:tooth', 'food:meat', 'leather:cured'),
   hide('hide:spider', 659, 'Spider Silk', 3, ICON_WRAPPINGS, [MOB.Spider, DEX_MOB.BloodSpider], 'part:venom', 'food:meat', null),
   hide('hide:scorpion', 660, 'Scorpion Chitin', 4, ICON_SCALES, [MOB.GiantScorpion], 'part:stinger', 'food:meat', 'leather:hardened'),

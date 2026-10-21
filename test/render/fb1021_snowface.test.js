@@ -17,6 +17,8 @@ import { ecotoneGlsl } from '../../src/render/ecotoneGlsl.js';
 import { createSnowCoverHost } from '../../src/scenes/snowCoverHost.js';
 import { createSeasonReskin } from '../../src/world/seasonReskin.js';
 import { ecoOrigin } from '../../src/world/ecotone.js';
+import { setAirGround } from '../../src/systems/weather/airTemperature.js';
+import { CLIMATES } from '../../src/formats/mapsFile.js';
 
 const read = (p) => readFileSync(p, 'utf8');
 const none = [0, 0];
@@ -31,7 +33,7 @@ const chunk = (origin = [0, 0, 0]) => glslFunctions('uniform highp sampler2DArra
 const A = process.env.ARENA2_PATH;
 const HAVE = !!A && existsSync(join(A, 'WOODS.WLD'));
 
-test('SNOW-FACE THE CHUNK READS NO SLOPE: the ground\'s cover is its height\'s and its patches\' - no normal is asked of it in either terrain program, the water\'s bed or the Snowfall mod\'s surface - and under a whole cover a tile\'s texel is its winter record\'s, never the summer grass (mutants: the shed back in the chunk)', () => {
+test('SNOW-FACE THE CHUNK READS NO SLOPE: the ground\'s cover is its height\'s and its patches\' - no normal is asked of it in either terrain program, the water\'s bed or the Snowfall mod\'s surface - and under a whole cover a tile\'s texel is its winter record\'s, never the summer grass (mutants: the shed back in the chunk; a cover held under whole)', () => {
   const core = snowCoreGlsl();
   assert.match(core, /float snowCover\(vec2 local, float y, vec2 gx, vec2 gy\) \{/);
   assert.match(core, /float snowLaid\(vec2 local, float y, vec2 gx, vec2 gy\) \{/);
@@ -39,9 +41,11 @@ test('SNOW-FACE THE CHUNK READS NO SLOPE: the ground\'s cover is its height\'s a
   assert.match(read('src/render/waterSurface.js'), /float pc = snowCover\(vLocalXZ, vWorldPos\.y, wgx, wgy\);/, 'the water\'s bed');
   for (const p of ['src/render/renderer.js', 'src/render/enhancedLighting.js']) assert.match(read(p), /float snowC = snowCover\(vLocalXZ, vWorldPos\.y, gx, gy\);/, p);
   const [ox, oz] = ecoOrigin(917, 472), f = chunk([ox, oz, 0]);
+  // AUDIT FB1021 L1-5: every second world tile of the pixel, not four places - the patches round a cover a shade under
+  // whole back to 1 at most of them (a cover held to 0.98 left 289 of these 4,096 under it, and none of the four)
+  for (let lx = 0; lx < 819; lx += 12.8) for (let lz = 0; lz < 819; lz += 12.8) assert.equal(f.snowCover([lx, lz], 1500, none, none), 1, `whole at ${lx},${lz}`);
   for (const [lx, lz] of [[3, 5], [400, 400], [811, 17], [100, 700]]) {
     const c = f.snowCover([lx, lz], 1500, none, none);
-    assert.equal(c, 1, `whole at ${lx},${lz}`);
     assert.deepEqual([...f.snowGround(GREEN, [1, 0, 0, 0], c, [0.5, 0.5, 2], none, none)], WHITE, 'the grass tile\'s winter record');
   }
 });
@@ -76,21 +80,28 @@ test('SNOW-FACE ON THE FREEWARE\'S MAP: the landforms stand a range\'s flank pas
   assert.ok(faces / n > 0.3, `the faces: ${faces} of ${n}`);
 });
 
-test('LANE-TURN: a pixel built under the other lane goes to the REBUILD the season driver takes (world/seasonReskin.js take), never to the snow\'s re-skin, which refuses it - both turns, once each - and the world wires the host\'s rebuild to the driver\'s mark (mutants: sent to the skin; the world\'s rebuild a skin)', () => {
-  const reskin = createSeasonReskin();
+test('LANE-TURN: a pixel built under the other lane goes to the REBUILD the season driver takes (world/seasonReskin.js take), never to the snow\'s re-skin, which refuses it - both turns, once each; a turn onto the lane once the window stands (AUDIT FB1021 L1-1: the grid torn down while a rebuild integrated a cold window in frame slices); the world wires the host\'s rebuild to the driver\'s mark (mutants: sent to the skin; the world\'s rebuild a skin; a turn on before the window)', async (t) => {
+  setAirGround({ climateAt: () => CLIMATES.Woodlands, groundAt: () => 0, topAt: () => 900 });
+  t.after(() => setAirGround(null));
+  const reskin = createSeasonReskin(), skinned = [];
   const lane = { on: true };
   const built = new Map([['200,100', { px: 200, py: 100, _snow: { px: 200, py: 100, pixel: null, flats: new Float32Array(0) } }], ['201,100', { px: 201, py: 100, _snow: null }]]);
   const state = { compensation: [0, 0, 0], mapOrigin: { x: 200, y: 100 }, current: { x: 200, y: 100 }, pixelTranslation: (px, py, out = [0, 0, 0]) => out };
-  const host = createSnowCoverHost({ renderer: { tileArrays: new Map() }, climateAt: () => 0, mapHeight: 500, stateOf: () => state, builtOf: () => built, owns: () => lane.on, markReskin: (k) => reskin.skin(k), markRebuild: (k) => reskin.mark(k), now: () => NaN });
+  let ms = 0;
+  const host = createSnowCoverHost({ renderer: { tileArrays: new Map() }, climateAt: () => CLIMATES.Woodlands, mapHeight: 500, stateOf: () => state, builtOf: () => built, owns: () => lane.on,
+    markReskin: (k) => { skinned.push(k); reskin.skin(k); }, markRebuild: (k) => reskin.mark(k), now: () => (406 * 360 + 215) * 1440, place: () => ({ px: 200, py: 100 }), clock: () => (ms += 0.25) });
   host.tick({ px: 200, py: 100 });
-  assert.deepEqual(reskin.take(built), ['201,100'], 'built off the lane: rebuilt on it');
-  assert.equal(reskin.nextSkin(built, state.current), null, 'never left to the skin');
+  assert.equal(host.ready, false, 'a year of snow to integrate: not in a frame');
+  assert.equal(reskin.pending, false, 'built off the lane: not torn down before the window stands');
+  await host.settle({ left: () => Infinity, breathe: async () => {} });
+  host.tick({ px: 200, py: 100 });
+  assert.deepEqual(reskin.take(built), ['201,100'], 'the window standing: rebuilt on the lane');
   host.tick({ px: 200, py: 100 });
   assert.equal(reskin.pending, false, 'once');
   lane.on = false;
   host.tick({ px: 200, py: 100 });
-  assert.deepEqual(reskin.take(built), ['200,100'], 'built on the lane, the lane turned off: rebuilt off it');
-  assert.equal(reskin.nextSkin(built, state.current), null);
+  assert.deepEqual(reskin.take(built), ['200,100'], 'built on the lane, the lane turned off: rebuilt off it, at once');
+  assert.deepEqual(skinned, [], 'never sent to the skin');
   // why a skin cannot serve: the build's own re-skin refuses a pixel with no `_skin` (off the lane) and any off the lane
   assert.match(read('src/scenes/pixelBuild.js'), /const p = built\.get\(key\), sk = p\?\._skin;\n {4}if \(!sk \|\| !snowCover\?\.on\) return false;/);
   assert.match(read('src/scenes/world.js'), /markReskin: \(key\) => _reskin\.skin\(key\), markRebuild: \(key\) => _reskin\.mark\(key\),/);

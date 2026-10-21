@@ -486,10 +486,11 @@ const UNLOCKS = Object.freeze({
   // DEX-HIDES (FIELD BUGS 2026-10-21): and the Enemy Expansion's three of their own on their tiers' lines
   hunting: () => [[t('prof.page.unlocks.hunting1', 'Rat Pelt, Mudcrab Chitin'), 1], [t('prof.page.unlocks.hunting2', 'Bat Leather, Bear Hide, Wolf Pelt, Boar Hide'), 2], [t('prof.page.unlocks.hunting3', 'Tiger Pelt, Spider Silk'), 3],
     [t('prof.page.unlocks.hunting4', 'Scorpion Chitin, Slaughterfish Scales'), 4], [t('prof.page.unlocks.hunting5', 'Harpy Feathers, Dreugh Shell'), 5], [t('prof.page.unlocks.hunting6', 'Dragonling Scale'), 6]],
-  // AUDIT 32 R4: the skins by their pelt's tier (the Rat's open at 0, the Bat's and the Bear's at 10, the Tiger's at 25),
+  // AUDIT 32 R4: the skins by their pelt's tier (the Rat's open at 0, the Bat's, the Bear's, the Wolf's and the Boar's at 10
+  // - AUDIT FB1021 L2-3 - the Tiger's at 25),
   // and Standard-bearer's Silk said for what it waits on
   outfitting: () => [[t('prof.page.unlocks.outfitting1', 'Linen clothing; the Rat\'s skins; the Fishing-Net'), 1],
-    [t('prof.page.unlocks.outfitting2', 'Cured Leather armor; Wool clothing, rugs and tapestries; the Bat\'s and the Bear\'s skins'), 2],
+    [t('prof.page.unlocks.outfitting2', 'Cured Leather armor; Wool clothing, rugs and tapestries; the Bat\'s, the Bear\'s, the Wolf\'s and the Boar\'s skins'), 2],   // AUDIT FB1021 L2-3
     [t('prof.page.unlocks.outfitting3', 'The Tiger\'s skins'), 3], [t('prof.page.unlocks.outfitting4', 'Silk clothing'), 4],
     [t('prof.page.unlocks.outfitting5', 'Hardened Leather armor; Standard-bearer\'s Silk clothing (its silk comes with the sieges)'), 5]],
   // PROF8: every haul is Raw Fish - the rank sets its XP (a haul is worked at the rank's own tier); the sea's finds need

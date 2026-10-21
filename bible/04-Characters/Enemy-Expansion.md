@@ -704,7 +704,6 @@ monsters field by field written and minted, the tables, Meaner Monsters standing
 `test/net/foebounds_law.test.js` (the seventh profile), `dex1_registry.test.js` (DEX alone, Meaner Monsters standing
 aside); mutants `tools/mutants/mudex1.json`, eleven, all dead.
 
-
 ## 14. DEX-HIDES - the mod's animals skinned (FIELD BUGS 2026-10-21)
 
 The Discord's #feature-feedback (Shines): "the new mobs are great! But the variant bats and wolves I encountered have had

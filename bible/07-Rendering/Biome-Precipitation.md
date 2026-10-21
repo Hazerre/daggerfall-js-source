@@ -243,18 +243,22 @@ SNOW-FACE (FIELD BUGS 2026-10-21, `01-Overview/bugs/Field-Bugs-2026-10-21.md`, t
 band up a white range's side, bare of snow and of trees): the fragment shed its snow on a steep face (`SNOW_GROUND.slope`,
 the normal's y from 0.8 to 0.62 - 37 to 52 degrees), and what lay under it was its summer set's own tile, Daggerfall's
 grass, its dirt and its stone: the sets have no rock face to shed to. The landforms stand a range's flank past 52 degrees
-hundreds of metres wide (on the freeware's map 39% of the Dragontail pixel beside The Bat and Cat Pub), and DFU's
+hundreds of metres wide (on the freeware's map 44% of the Dragontail pixel beside The Bat and Cat Pub, 924,473, and 39%
+of 917,472 - AUDIT FB1021 L1-3), and DFU's
 TerrainNature stands no tree past 50 degrees, so the face drew as a green wall up a white mountain. There is no slope in
 the law now: a face keeps the snow its height lays, as DFU's winter set dresses every tile, steep or not; its trees are
 DFU's still (none past 50 degrees), and in snow it reads as a snowfield. A steep face's green summer patches between 37
 and 52 degrees went with it.
 
-LANE-TURN (the same record): a pixel standing when the lane turns (a skin or a door changed) was sent to the snow's
-re-skin, and `reskinPixelNow` refuses both turns - one built off the lane keeps no `_skin`, and off the lane the snow is
-not `on` - so it wore the other lane's ground until it streamed out: in a winter turned off the lane, its summer set. A
+LANE-TURN (the same record): a pixel standing when the lane turns (the "Weather as places" or "Enhanced environments"
+preference turned in play - `precipLawOn` reads them every call; AUDIT FB1021 L1-1) was sent to the snow's re-skin, and
+`reskinPixelNow` refuses both turns - one built off the lane keeps no `_skin`, and off the lane the snow is not `on` - so
+it wore the other lane's ground until it streamed out: in a winter turned off the lane, a ground array that was never
+loaded (the lane loads the twin alone, so most likely black - AUDIT FB1021 L1-7), or its summer set if that was cached. A
 lane's ground is its own archive (`groundArchive`: the summer set on the lane, DFU's season off it), which no re-skin
 touches, so the host marks such a pixel for a rebuild (`markRebuild`, world.js `_reskin.mark`), as the classic flip
-rebuilds its pixels. Under the snow the water's bed and sheet mix their summer and winter masks by the cover (GROUND-5: the
+rebuilds its pixels - a turn onto the lane once the snow's window stands, so the torn-down grid's first rebuild never
+waits on a cold year's integration in frame slices (AUDIT FB1021 L1-1). Under the snow the water's bed and sheet mix their summer and winter masks by the cover (GROUND-5: the
 summer puddles were drawn over the winter art). A desert's ground has no winter set (`TerrainMaterialProvider`'s guard),
 so its twin offset is nought and the cover leaves it as it is; next to a snowy neighbour, the neighbour's winter still
 blends in across the band. The sea's floor wears the lane's ground (its summer set; the snow is the ground's by its
@@ -342,6 +346,9 @@ Named here and in the Ledger row.
 - `test/render/precip4_snowground.test.js` (18): the chunk run through `test/glsl.mjs` against the law; the draw, the
   twin and the frame's texture on a recording GL; the host's clock, lines, draws, seasons, settle, sweep and feet; the
   wiring.
+- `test/render/fb1021_snowface.test.js` (3): SNOW-FACE and LANE-TURN - no slope in either terrain program, the water's bed
+  or the Snowfall mod's surface, a whole cover whole across a pixel; the Dragontail's faces on the freeware's map; a
+  lane's turn rebuilt, never re-skinned, onto the lane once the window stands.
 - `test/render/audit_precip_sky.test.js` (8) and `test/scenes/audit_precip_host7.test.js` (8): the sky's fixes and the
   in-place re-skin.
 - `tools/mutants/precip1.json` (one recorded equivalent) and `tools/mutants/audit_precip.json` - all dead.
