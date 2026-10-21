@@ -1463,6 +1463,8 @@ chapters.standing.others,"{n, plural, one {# altra gilda} many {# di altre gilde
 chapters.standing.othersOnly,"La reputazione è cambiata con {n, plural, one {# gilda} many {# di gilde} other {# gilde}} di cui non fai parte."
 chapters.standing.paid,"{name}: versato {paid} del dovuto (ora {now})"
 chapters.standing.paidOwed,"{name}: versato {paid} del dovuto (ora {now}, ancora {owed} in arrivo)"
+chargen.class.skills.major,"{m1}, {m2} e {m3}."
+chargen.class.skills.primary,"{p1}, {p2}, {p3},"
 chat.help.breach,"/breach - la Breccia d’élite: rispondi alla chiamata della tua compagnia o apri la finestra di partenza (/breach help ne elenca i comandi)"
 chronicle.quests.abandon,"Abbandona"
 chronicle.quests.abandonArmed,"Clicca di nuovo"
