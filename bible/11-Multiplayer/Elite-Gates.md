@@ -10302,7 +10302,8 @@ rest on the floor where the gate's rest at his chest's height. Ledger A's ELITE-
 a recording audio engine and, for the sparks, a recording WebGL): the act's frames, sink, end and drop; the ember and
 the cry; the fall drawn beat by beat to the corpse and a minute past it; only while news, a second for an ember; the
 flyer; the Twin raised, felled again, raised unseen, and the corpse freed by every way out; the sparks and the shake's
-law; the world pass. `tools/mutants/eg_fall.json`: 37, all dead. The first run left three alive - the reset's freeing
+law; the world pass. `test/scenes/nudedecor.test.js` names the new billboard host (NUDE-HOSTS: a corpse, never a
+person). `tools/mutants/eg_fall.json`: 37, all dead. The first run left three alive - the reset's freeing
 (a new hall's fight not yet heard), an ember's news second, and a fall replayed past a raise this screen never saw - and
 each was pinned.
 
