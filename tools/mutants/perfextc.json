@@ -138,8 +138,8 @@
  {
   "name": "PERF-EXT21-the-field-places-its-cells-at-the-scene-origin",
   "file": "src/render/labGrass.js",
-  "old": "seed, cell, originX: gx, originZ: gz }));   // PERF-EXT21",
-  "new": "seed, cell }));   // PERF-EXT21",
+  "old": "seed, cell, originX: gx, originZ: gz, reuse: wholeSpare }));   // OW-HITCH",
+  "new": "seed, cell, reuse: wholeSpare }));   // OW-HITCH",
   "tests": [
    "test/world/terrain/grassshift.test.js"
   ]
@@ -195,7 +195,7 @@
  {
   "name": "PERF-EXT22-a-slice-forgets-the-xorshift-word-so-the-rest-of-the-cell-is-another-cells",
   "file": "src/render/labGrass.js",
-  "old": "  st.s = s; st.i = end; st.n = n; st.count = n;",
+  "old": "  st.s = _xs[0]; st.i = end; st.n = n; st.count = n;",
   "new": "  st.i = end; st.n = n; st.count = n;",
   "tests": [
    "test/world/terrain/grassshift.test.js"
@@ -204,8 +204,8 @@
  {
   "name": "PERF-EXT22-a-slice-forgets-how-many-stood-so-the-next-overwrites-them",
   "file": "src/render/labGrass.js",
-  "old": "  st.s = s; st.i = end; st.n = n; st.count = n;",
-  "new": "  st.s = s; st.i = end; st.count = n;",
+  "old": "  st.s = _xs[0]; st.i = end; st.n = n; st.count = n;",
+  "new": "  st.s = _xs[0]; st.i = end; st.count = n;",
   "tests": [
    "test/world/terrain/grassshift.test.js"
   ]
@@ -294,8 +294,8 @@
  {
   "name": "PERF-EXT22-a-begun-cell-is-placed-at-the-scene-origin",
   "file": "src/render/labGrass.js",
-  "old": "          const st = beginGrassCell(cx, cz, { perCell, seed, cell, originX: gx, originZ: gz });",
-  "new": "          const st = beginGrassCell(cx, cz, { perCell, seed, cell });",
+  "old": "          const st = beginGrassCell(cx, cz, { perCell, seed, cell, originX: gx, originZ: gz, reuse: rimSpare });",
+  "new": "          const st = beginGrassCell(cx, cz, { perCell, seed, cell, reuse: rimSpare });",
   "tests": [
    "test/world/terrain/grassshift.test.js"
   ]
@@ -303,8 +303,8 @@
  {
   "name": "PERF-EXT22-a-finished-cell-is-thrown-away-and-placed-again-whole",
   "file": "src/render/labGrass.js",
-  "old": "renderer.writeSlot(slot, item.st ?? placeLabGrassCell(",
-  "new": "renderer.writeSlot(slot, placeLabGrassCell(",
+  "old": "        const placed = item.st ?? (wholeSpare = placeLabGrassCell(",
+  "new": "        const placed = (wholeSpare = placeLabGrassCell(",
   "tests": [
    "test/world/terrain/grassshift.test.js"
   ]

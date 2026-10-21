@@ -57,6 +57,12 @@ the trading windows: the rows on screen drawn, a picture into its tile) and SHAD
 built in play never waits on its compile), and SNOW-BUDGET (its second word: the snow the ground keeps holds to its
 frame budget). Their sections are after FIT-BITS'.
 
+OW-HITCH (2026-10-21, the owner: "Theres still a lot of hitching in the overworld. Can you please fix this properly") is
+the second pass measured IN THE REAL GAME: an Overworld journey over the freeware ARENA2 under one CPU profile, every
+frame's script read off it. Nine changes, each taking out a frame's spike or the garbage the collector stopped frames
+for, and none of them a change to what a player sees but one: the snow under a grass blade reads the slope the ground is
+drawn with. Its section is after SNOW-BUDGET's.
+
 ## How the pass was run
 
 NOT IN THE REAL GAME. The frame probe (`tools/frameProbe.mjs`, PERF-NEXT's recipe) needs the freeware ARENA2, and its
@@ -1272,9 +1278,7 @@ None of these moves the picture; each needs its own pass.
    (`uploadTileArray`), and the classic dial's art read back off a canvas (`dialClassicArt.js wearClassicDial`'s
    `toDataURL`: 7.3-8.3 s of the first task after the first world frame here, a round trip that pays the GPU process's
    queue; a 2D canvas kept in memory, `willReadFrequently`, would read back without one).
-4. **A ground set's puddle masks** - 0.5-1.1 s, at the boot and again when the stream meets a new climate or season
-   (`world.js groundLayersOf`): `puddleMask.js cleanMask` allocates an array a texel it walks, `shoreWaterColours` counts
-   2.6 million texels into a Map.
+4. **A ground set's puddle masks** - taken by OW-HITCH (below): a record a breath, and half the work.
 5. **The world-data spot check** - `packFileSha256`'s canonical JSON of one block in eight, ~0.8 s across the boot.
 
 ## TRADE-VIRT — the trading windows draw the rows on screen, and a picture lands in its tile
@@ -1537,6 +1541,93 @@ What it found, and what was done:
 Pins: `test/systems/weather/snowbudget.test.js` (+2: lock-step to the 560th step of the lane's own window, and the kept
 lines across a move). Mutants: `tools/mutants/audit_perfpass.json`'s ASB records, all dead.
 
+## OW-HITCH — the Overworld's hitches, measured in the real game
+
+*The owner (2026-10-21): "Theres still a lot of hitching in the overworld. Can you please fix this properly".*
+
+**How it was measured.** The freeware ARENA2 (`tools/fetch-data.sh`), Knightstale at 15:00, a new character, `&nofoes`
+not yet set (a foe found the player in the first run - which is how the blood sheet below was met). Chromium on
+SwiftShader in this container, 160 x 90, one page kept open by a driver in the session's scratch (not in the tree - the
+owner stopped the probe there): the world booted with the stream's build slice served at 250 ms by a probe-only edit
+(frameProbe's, made switchable), the opening windows closed, the slice put back to the game's own, then the Overworld
+raised (`__overworld`) and W held - the Travel Options speed, x60 (TV-WASD) - under one CPU profile at 250 us, every
+frame's `performance.now()` pinned to the profile's clock by a marker function in the first frame. 152 frames, 41.2 s of
+script. SwiftShader takes three of the four cores, so the main thread is starved and every figure below is several times
+a player's - they rank the costs; they are not a player's milliseconds. The fixes were then measured in node over the
+real modules (and the real data where a module reads it), each base tree against this one.
+
+**Found - the frames that froze, by what held them:**
+- the grass, the frame the Overworld came down: 4,746 ms of script in `labGrass.js clearSlot`'s `bufferSubData` - the
+  field frees every cell the journey left behind at once, and each free wrote 49 KB of zeros into the buffer the last
+  frame drew from - and 2,394 ms the next frame in `writeSlot`'s uploads;
+- the collector: 15.8 s of the 41.2 - the largest single pauses 0.5-1.8 s;
+- the blood sheet: 966 ms in one HUD draw (`bloodArt.js bloodAtlas`, the first blow), its idle-time prewarm never run;
+- every frame: the snow (`snowCoverHost` - `windowAbout`, the year's catch-up of each lattice edge at x60 - and, under
+  the grass's refill, four of the stream's heights a blade in `drawnCover`), the Living World's trips (`townTrips`, a
+  way's inns asking `livingTownsNear` at every pixel of it), the music's pump (`eventsInWindow`).
+Read beside them, not seen in this run: a ground set met at a new climate (What the boot still pays, 4) - 0.5-1.1 s in
+BOOT-FREEZE's runs, and a journey crosses climates.
+
+**The fixes, each the same answer for less:**
+- **The grass's uploads** (`labGrass.js`). `clearSlot` uploads nothing: a slot draws only with a box and a count
+  (GRASS2), so its zeros were never read. `writeSlot` uploads the `count` blades that stood, each lane from its start (a
+  road's or a shore's cell is mostly pad; an empty one uploads nothing). The lanes the draw reads are the bytes they were.
+- **The grass's garbage** (`labGrass.js`). The field places into two cells' arrays (`beginGrassCell`'s `reuse`, zeroed
+  first: the bytes a new cell holds) where it made five typed arrays a cell, 343 KB, 123 MB a refill; the xorshift word
+  lives in a `Uint32Array` (a closure's `let` past a small integer was an object at every one of a draw's four writes);
+  `grassClump` writes its two octaves' noise out in itself (the same operations in the same order). In node, three
+  refills of the 360-cell field: 193 -> 70 scavenges and 2.0 -> 1.4 s; a fill and a ride: 791 -> 251 MB allocated on the
+  heap, 2.5 -> 1.5 s.
+- **The blood sheet** (`bloodArt.js prewarmBloodAtlas`). Each idle request names a wait (BLOOD_PREWARM_WAIT_MS, 250 ms);
+  one run because the wait ran out takes one cell of the forty and asks again. The HUD's lens asks the prewarm too
+  (`hud.js`: the marks asked it only with the marks on). The same sheet to the byte.
+- **The snow under a blade** (`snowCoverHost.js`, the host's `normalOf`). The ground's fragment sheds its snow by its
+  own vertex normal (`snowCover(..., normalize(vNormal), ...)`); `buries` and the feet read a standing pixel's normal
+  there - the grid's, one triangle - where they read four of the stream's heights a metre either way, another surface's
+  slope and four pixel lookups a blade. THE ONE CHANGE TO THE PICTURE: a blade at a snowline's slope edge stands or is
+  buried by the slope the ground is drawn with; a host that hands no normal reads the heights as before.
+- **The snowpack's year and the weather's systems** (`snowpack.js`, `weatherMap.js`, `airTemperature.js`). A step asks
+  `fallAmong` - wornAmong's fall alone, no band, winner or answer object a system; a standing system carries its `d` in
+  place of a copy of itself made to carry it (`takeNear`: the snowpack keeps a year of steps' systems, so every copy
+  outlived the young generation); one list of a step's due points; no pair a step for its day (`dayOfSky`), no object for
+  its fall's terms (`airFallInto`); a step's name made only where one stands part-way. In node, a window moving one
+  lattice cell (the edge's year integrated in 3 ms calls): 965 -> 756 ms, 53.5 -> 48.3 MB a move; every pack, every
+  step count and every worn answer the same (a digest over three seasons' windows, moves and 480 places).
+- **A ground set's water** (`puddleMask.js`). `cleanMask` walks with typed stacks (an array of four neighbours a texel
+  was the walk's cost); `shoreWaterColours` counts in open-addressed typed arrays (a Map's get and set a texel);
+  `markShoreWater` reads a run of one colour once. Each mark is a generator over its records (`...Steps`; `stepsDone`
+  the old functions, `stepsBreathing` through a breather). On the real data, a set's classic mark and a 256-texel set's
+  carry: TEXTURE.002 60 + 282 -> 34 + 109 ms, TEXTURE.302 28 + 212 -> 10 + 70 ms; its longest step 3.1 ms. The masks
+  the same bytes.
+- **The set itself** (`scenes/groundSets.js` createGroundSets, out of bootWorld - HOST-SPLIT, `01-Overview/Host-Split.md`).
+  The marks a record a breath through the stream's breather; the upload a few layers a breath (`renderer.js
+  uploadTileArraySteps`, TILE_LAYERS_A_STEP 8, the array registered only whole); one load a key (`_loading`: a second
+  build waits for a set on its way); the grass's puddle mask is the one the layers were marked with (it was marked a
+  second time).
+- **The Living World's towns near** (`trips.js livingNearKey`, LIVING_NEAR_KEPT). A number a reach and a pixel where a
+  template string was made a call, and 8,192 kept where 512 was fewer than one long way's pixels (the book was cleared
+  inside a single trip's inns).
+- **The music's window** (`songPlayer.js eventsInWindow`). The window's first event found by halving; every pump walked
+  the song from its first event. The same events.
+
+**Not measured:** the frames after the fixes in the real game (the owner stopped the probe); a GPU's cost of the uploads
+the grass and the ground sets no longer make in one frame. On a machine with the data, the same journey on the base
+and on this tree is the A/B this pass owes (For the owner).
+
+**What is left.** The pixel builds' own allocations (a streamed pixel's grids, colliders and batches - megabytes of
+typed arrays a pixel, at x60 a pixel every second or two) are the collector's largest remaining food; pooling them is
+its own pass. The snow's catch-up keeps its 3 ms a frame (SNOW-BUDGET) through most of a fast journey: a lattice edge's
+year is 150-200 ms of work, and at x60 the window moves every five seconds.
+
+Pins: `test/render/owhitch.test.js` (9) - the grass's uploads and its two cells' arrays (every slot handed the bytes the
+cell placed alone holds, a walk with near cells re-read while a rim cell stands part-way), the blood sheet on a page
+that never idles, the snow's slope, fallAmong against wornAmong over the real map's systems, cleanMask against its old
+walk restated, the marks a record at a time, the ground sets (one make, the upload's steps, registered whole), the towns'
+key, the music's window against its old walk. Mutants: `tools/mutants/owhitch.json`, 27, all dead. Pins moved with the
+code they read (the ground sets' home: `audit68_worldjs`, `bantha2_floor`, `dfmod1`, `ecotone1`, `fb1004d_placelru`,
+`grain1_terrainmip`, `grasslit2`, `iil1`, `labGrass`, `precip4_snowground`, `ve1_vanillaEnhanced`, `waterpuddle`; the clump held to its
+composition; `grasslit2`'s recorders keep a cell as handed), and 28 mutant records of fourteen lists re-aimed by content, every one dead where it now stands.
+
 ## For the owner
 
 - **The A/B this branch owes**: on a machine with the data, `ARENA2_PATH=... node tools/frameProbe.mjs knight night`
@@ -1545,4 +1636,6 @@ lines across a move). Mutants: `tools/mutants/audit_perfpass.json`'s ASB records
 - **BOOT-FREEZE's A/B on a GPU**: `ARENA2_PATH=... node tools/bootFreezeProbe.mjs knight` with `TREE=` the base, then this
   branch - SwiftShader cannot say what a driver pays for the sea's compile and the ground's upload (What the boot still
   pays, 3), and a real GPU's frames are the ones a player waits through.
+- **OW-HITCH's A/B**: the same Overworld journey (W held at x60 from Knightstale) on the base and on this branch, on a
+  machine with a GPU - the frame after the view comes down, the first blow, a climate's edge.
 - **The picture's levers** above (1, 4, 6b, 7) are yours - and 5's distance is the Other players card's now (PEER-RANGE): each trades a little of what is seen for frame time.
