@@ -60,7 +60,9 @@ frame budget). Their sections are after FIT-BITS'.
 HORSE-VIEW (2026-10-21, a player's CPU profile: "Horse Cart pool (peers' horses and carts) 11% (3% with peers' teams
 not loaded)") poses a 3D horse where it is seen: its gait's clock every frame, its pose in the view on the peers' bodies'
 cadence, and a rider's horse with its rider's body. It moves the picture as PEER-CADENCE did the bodies': past 10 m a
-horse's stride is shown every second or third frame. Its section is after SNOW-BUDGET's.
+horse's stride is shown every second or third frame. Its audit the same day measures that cadence, the bodies' with it,
+from the camera that draws, through its lens (the zoomed-out camera's, the spyglass's). Its section is after
+SNOW-BUDGET's.
 
 BOAT-STAMP and BOAT-FAR (2026-10-21, a player's CPU profile online: the Come Sail Away pool's frame 11% of the frame,
 6% with the peers' boats not loaded, and `rendererModelKey` 2.6%, the key made again most frames) are one pass over the
@@ -1566,21 +1568,26 @@ and that body is posed on PEER-CADENCE's cadence, and not at all out of the view
 container).
 
 **The fix.** The gait's clock steps every frame; the pose waits for the view.
-- `step` takes `pose` (true when left out - the player's own horse and the road's teams step as before). False steps
-  the clock and places the horse, and neither writes nor sends its pose: it stands in the last one sent (`stale`). The
-  palette is the clock's alone, so `horseRig.js:"function pose(h)"` catches a horse up to the very palette an
-  every-frame horse shows on that frame. A horse never posed is posed whatever `pose` says. `seen` is the draw's own
-  view test, and `horseRig.js:"function draw(h, canvas,"` takes `fresh`: a pose behind its clock is caught up before
-  the picture is queued.
-- The pool's horses are posed only in the last body pass's view (`_cam3d`, draw3d's camera - one frame behind; before
-  the first pass, every one), and there on the peers' bodies' cadence (`horseCartPool.js:"function h3dPoseDue"` over
-  `peerBodies.js:"export function poseCadenceFor"`: every frame within 10 m, every second to 25 m, every third past
-  it, by the horizontal distance from the eye, each horse its own phase). A horse skipped out of the last view is
-  `out`, and `draw3d` and `drawVeiled3d` hand that on as `fresh`: one the view swings onto is posed in the draw, never
-  drawn in the pose it had when last seen.
+- `step` takes `pose` (true when left out - the horse I ride (`player/mwView.js`), the road's teams and the standing
+  horses (`world/standingHorses.js`) step as before; my own Horse Cart and Cargo horse or team is the pool's, and is
+  posed as the pool's are, below). False steps the clock and places the horse, and neither writes nor sends its pose: it
+  stands in the last one sent (`stale`). The palette is the clock's alone, so `horseRig.js:"function pose(h)"` catches a
+  horse up to the very palette an every-frame horse shows on that frame. A horse never posed is posed whatever `pose`
+  says. `seen` is the draw's own view test, and `horseRig.js:"function draw(h, canvas,"` takes `fresh`: a pose behind
+  its clock is caught up before the picture is queued.
+- The pool's horses - every one it stands, mine and every peer's, alone, following, parked in harness or pulling - are
+  posed only in the last body pass's view (`_cam3d`, draw3d's camera - one frame behind; before the first pass, every
+  one), and there on the peers' bodies' cadence (`horseCartPool.js:"function h3dPoseDue"` over
+  `peerBodies.js:"export function poseCadenceFor"`: every frame within 10 m, every second to 25 m, every third past it,
+  by the horizontal distance from the eye - since the audit below the camera's that draws, through its lens - each horse
+  its own phase). A horse skipped out of the last view is `out`, and `draw3d` and `drawVeiled3d` hand that on as
+  `fresh`: one the view swings onto is posed in the draw, never drawn in the pose it had when last seen.
 - A riding peer's horse steps its gait every frame and is posed with its rider (`peerBodies.js:"_poseHorse(b) {"`): on
   the frames the body's skin is - `_step`, and the draw's catch-up as the view swings onto a body - with the saddle the
-  body is posed to taken off the pose just sent. Out of the view neither is posed.
+  body is posed to taken off the pose just sent. Out of the view neither is posed - unless the body must be (WB9h's rank
+  3 in `_stepDue`: its first step, its first back from far or from a linger, the step after a rebuild let its mesh go -
+  posed whatever the view says): then its horse is posed with it, out of the view, and the body to that pose's seat (the
+  audit below pins it).
 
 What it changes on screen: a horse within 10 m and in view, nothing. Past it, its stride moves every second or third
 frame (30 or 20 times a second at 60 FPS), as a peer's body's has since PEER-CADENCE; where it stands and how it faces
@@ -1604,8 +1611,9 @@ some 60, 40 and 33%. The horses drawn are the same in every case (9.86 and 19.86
 game: the online frame probe's bots (`tools/onlineFrameProbe.mjs`) neither ride nor stand teams, so the profile's own
 11% is the player's to read again; it grows with the horses inside the 400 m, and so does what this takes off it.
 
-Left: the road's strangers (`roadTeams.js`, at most `WAGONS_DRAWN` teams) step their 3D horses every frame as before -
-the same `pose: false` fits there when a profile names them.
+Left: the road's strangers (`roadTeams.js`, at most `WAGONS_DRAWN` teams) and the standing horses
+(`world/standingHorses.js`) step their 3D horses every frame as before - the same `pose: false` fits there when a
+profile names them.
 
 Pins: `test/systems/horse/fb1021_horses.test.js` (5) - the rig's pose word bit for bit against an every-frame horse;
 its view test and `fresh`; the pool's horse out of the view and swung onto, against an always-seen pool's, and the
@@ -1614,6 +1622,64 @@ catch-up. PIN MOVED: `coats3d_horse3d.test.js` (the pool's step) and `horsewalk.
 `tools/mutants/fb1021_horses.json`, 22, all dead; `horsewalk.json`'s HORSEWALK-peer-horse-ungated re-aimed at the
 saddle's step as it now reads. The eleven existing records of seven lists within three lines of a changed line, and
 `horsewalk.json`'s 40, were run again: all dead.
+
+**AUDIT HORSE-VIEW (the same day) - the cadence is the picture's.** Three findings, each paid.
+
+1. *The cadence measured from the head, blind to the lens.* The pool's `h3dPoseDue` measured a horse from the eye the
+   frame was handed (world.js gives `hcc.frame` its `cam.pos`, the head), and a body's `_stepDue` from `sync`'s `near`
+   (`player.pos`); neither asked the lens. The camera that draws is `mwv.eye` - `draw3d`'s and the bodies' `draw`'s
+   `eye` - and zoomed all the way out it stands 11.4 m behind the head (`player/mwCamera.js` MAX_DISTANCE, 800
+   units): a horse 2.3 m from the lens, at the screen's side, was 10.03 m from the head and posed every second frame.
+   Through the spyglass (x2 to x8, world.js `glassFov`) a horse 80 m off is drawn as large as one 10 m off, and was
+   posed every third. Now both read the last body pass's camera, as they already read its view:
+   `peerBodies.js:"export const cadenceD2"` is the distance along the ground (PEER-CADENCE's: a height is no
+   distance) from that camera's eye over the magnification of its lens, `peerBodies.js:"export function lensOf"` -
+   the projection's fy over the fy of the frame's own field of view (`ui/viewSettings.js` `fieldOfView`, the lens every
+   host's projection is built on, the glass narrowing it), never under 1, so a lens a frame widens (CLIMB4's kick)
+   poses as the frame's own does. The pool keeps the lens with `_cam3d` (`draw3d`), the bodies with their pass's
+   camera (`draw`); before any pass the pool measures from the frame's own eye and the bodies from `near`, as before
+   (and so does a body never placed, ONE-BAD-BODY's: it has no feet to measure from the camera).
+   One function for both, so a rider and the pool's horse beside them keep one cadence - the NPC lanes' bodies
+   (`characters/npcBodies.js`, the same PeerBodies) with them. world.js is not touched: the modules read the camera
+   they kept. What stays measured from the head is who stands, not how large it is drawn: the bodies' range and
+   nearest-first order, the turn's lead margin, and PERF-TEAMS' reach.
+2. *A body that must pose out of the view, and its horse.* The record above said "out of the view neither is posed"; a
+   body WB9h must pose (rank 3) is posed out of the view, and `_step` poses its horse first whatever the view says - but
+   no pin held it: the horse posed only in the view (`if (pose && b.inView)`) survived, and would have left the horse in
+   its old pose, and the body posed to its old seat, until the next pose on the cadence. Pinned now through all three
+   ways in. The other survivor, the pool's horses held out of the view before any body pass (`e.out = !cam || ...`), was
+   near-equivalent (that pass's `fresh` catches each up before it is drawn); it is pinned by the law the second bullet
+   above states - before any pass every horse is held seen, posed on its cadence from the frame's own eye, and with no
+   eye at all every frame - rather than recorded as equivalent.
+3. *The record's words*, corrected above: a body that must pose is posed out of the view, its horse with it; and
+   "the player's own horse steps as before" is true of the horse I ride (`player/mwView.js`), not of my own Horse
+   Cart and Cargo horse or team, which is the pool's.
+
+What it changes on screen: a horse or a body near the zoomed-out camera, or brought near by the glass, has its stride
+every frame, as one near the head does; first person is as it was.
+
+Measured (the audit's `boomProbe.mjs` and this fix's `lensProbe.mjs`, in its session scratch: the real pool, rig and
+bake and the real PeerBodies, GL stubbed; frames posed of 12; pool horse / riding peer's body / its horse):
+
+| | base | AUDIT |
+|---|---|---|
+| zoomed out, a horse 2.3 m from the lens and 10.03 m from the head (the audit's probe) | 6 | 12 |
+| the same place, a pool horse and a riding peer side by side | 6 / 6 / 6 | 12 / 12 / 12 |
+| the spyglass at x8, 76 m (drawn as at 9.5 m) | 4 / 4 / 4 | 12 / 12 / 12 |
+| the spyglass at x8, 110 m (as at 13.75 m) | 4 / 4 / 4 | 6 / 6 / 6 |
+| the spyglass at x4, 60 m (as at 15 m) | 4 / 4 / 4 | 6 / 6 / 6 |
+| first person, the frame's own lens, 5 / 20 / 40 m | 12 / 6 / 4 | 12 / 6 / 4 |
+
+Pins: `fb1021_horses.test.js` (8): the lens and the distance; zoomed out, the glass at x8 and x4, and first person,
+the pool's horse and a riding peer side by side through world.js's own projection (glassFov) and a lookAt view; the
+three ways a body must pose behind the eye, its horse posed with it each time; the pool before any pass; and a body
+never placed, measured from `near` with a camera up and never throwing on its missing feet. Its
+`proj` is the frame's own lens now (fieldOfView, lensOf 1), so its distances are the ones posed by. PIN MOVED:
+`peercadence.test.js`'s source pin of the cadence's line. Mutants: `fb1021_horses.json`, 36 (14 new, five re-aimed
+where the distance moved into `cadenceD2`), all dead; `peercadence.json`'s
+PEERCADENCE-the-cadence-is-read-off-the-body-when-it-stood re-aimed, its 20 all dead. The lists with records on the
+lines round the change, run again: `horsewalk.json` 40, `wb9h.json` 24, `fb1001_mwcrowd.json` 8, `perf_teams.json`
+12, `invislook.json` 31 and `mwnpc5.json` 18, all dead.
 
 ## BOAT-STAMP — each tree its own shape stamp
 

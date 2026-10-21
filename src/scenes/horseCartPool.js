@@ -85,7 +85,7 @@ import {
 import { hitchAxle, bogieAxle, steerToward, yawed } from '../systems/horse/horseFollow.js';   // WAGON-HITCH: the shafts' one law, for a peer's trailing wagon (WAGONS2: and a four-wheeler's two)
 import { DeployedWagonVisual, wheelContacts, rolledAngles } from '../systems/horse/horseCart.js';   // DISC20-C: the mod's own two-wheel solve, for a peer's parked wagon (WAGONS2: and each wheel's roll)
 import { PARK_REACH, PARK_TTL_MS } from '../net/wire.js';   // HCC-PARK: how far a kept team's parts may stand from its anchor, and how long the relay keeps one
-import { poseCadenceFor } from '../net/peer/peerBodies.js';   // HORSE-VIEW: the 3D horses posed on the peers' bodies' cadence
+import { poseCadenceFor, cadenceD2, lensOf } from '../net/peer/peerBodies.js';   // HORSE-VIEW: the 3D horses posed on the peers' bodies' cadence - AUDIT: by how far they look from the camera that draws them
 import { thrownRecord } from '../systems/wagon/wagonWarden.js';   // WARDEN1: a kept team the town watch threw, where it landed
 import { WAGON_HOVER_TEXT } from '../player/eyeOfTheBeholder/eotbWagon.js';   // the hover word for a wagon - the noun of Eye Of The Beholder's Info line, so both carts read alike
 import { hccWireRecord, validHccRecord, hccRecordKey, easeToward, HCC_WIRE_KIND } from '../systems/horse/horseCartWire.js';
@@ -724,11 +724,13 @@ export function createHorseCartPool({
   const H3D_EASE = 0.15, H3D_LEAP = 40;
   /** HORSE-VIEW: is a 3D horse's pose due this frame - the peers' bodies' cadence (net/peer/peerBodies.js poseCadenceFor:
    *  every frame within 10 m, every second to 25, every third past it) at its horizontal distance from the eye, as a
-   *  body's is, staggered by its phase? No eye: every frame. */
+   *  body's is, staggered by its phase? AUDIT: the eye is the last body pass's camera (`_cam3d` - the zoomed-out boom's,
+   *  the bench's, the travel view's) and the distance is over its lens (cadenceD2 - the spyglass's magnification), as a
+   *  body's is: how far the horse looks. Before any pass, the frame's own eye; no eye at all: every frame. */
   function h3dPoseDue(e, at) {
-    if (!_eye) return true;
-    const dx = at[0] - _eye[0], dz = at[2] - _eye[2];
-    return (_frameNo + e.phase) % poseCadenceFor(dx * dx + dz * dz) === 0;
+    const eye = _cam3d?.eye ?? _eye;
+    if (!eye) return true;
+    return (_frameNo + e.phase) % poseCadenceFor(cadenceD2(at, eye, _cam3d?.lens ?? 1)) === 0;
   }
   /** COATS3D: an owner's horses as 3D horses. HORSE-VIEW: every horse's gait steps every frame, and its pose is written
    *  and sent only in the last body pass's view (`_cam3d` - draw3d's own test, one frame behind; none yet, all are) on
@@ -762,13 +764,13 @@ export function createHorseCartPool({
   function trim3d() {
     for (const [k, e] of _h3d) if (e.frame !== _frameNo) { e.rig?.release(e.horse); _h3d.delete(k); }
   }
-  let _cam3d = null;   // AUDIT COATS3D A5: the body pass's camera, for the veiled horses after the opaque world; HORSE-VIEW: and the next frame's poses' view
+  let _cam3d = null;   // AUDIT COATS3D A5: the body pass's camera, for the veiled horses after the opaque world; HORSE-VIEW: and the next frame's poses' view - AUDIT: and their cadence's eye and lens
   /** COATS3D: the 3D horses, in the host's body pass (between its sprite batch's open and flush - every Morrowind body's
    *  picture in one bind). Answers how many drew. AUDIT COATS3D A5: a concealed owner's horses are not this pass's - a
    *  veiled picture blends with no depth of its own, and the world drawn after it would paint it out - but drawVeiled3d's. */
   function draw3d(canvas, { proj, view, eye, up = null }) {
     const rig = horses3d?.();
-    _cam3d = rig ? { canvas, proj, view, eye, up } : null;
+    _cam3d = rig ? { canvas, proj, view, eye, up, lens: lensOf(proj) } : null;   // HORSE-VIEW (AUDIT): the lens once a pass (h3dPoseDue's)
     if (!rig) return 0;
     let n = 0;
     for (const e of _h3d.values()) if (e.frame === _frameNo && !e.conceal && rig.draw(e.horse, canvas, { proj, view, eye, up, fresh: e.out })) n++;   // HORSE-VIEW: one posed out of the last view caught up as it comes into this one
