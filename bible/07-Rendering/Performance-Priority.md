@@ -1637,11 +1637,21 @@ A tree built anywhere moved it: a peer's boat (`comeSailAwayPeers.js` `buildOne`
 colliders were made again.
 
 **The fix** (`world/prefabNode.js` `prefabShapeStamp`, `setParent`, `addComponent`). Each tree keeps its own stamp, on
-its top node (`_shape`). A node hung elsewhere stamps the tree it left and the tree it joined; a component added stamps
-its own tree. Every stamp is a draw of one count, so no two stamps anywhere are equal, and a node whose top node changes
-never reads a value it read before. The five readers ask the stamp of their own node's tree (`prefabShapeStamp(node)`).
+its top node (`_treeStamp`). A node hung elsewhere stamps the tree it left and the tree it joined; a component added
+stamps its own tree. Every bump is a fresh draw of one count, so no bump repeats a value any stamp has had, and a node
+whose tree changes never reads a value it read before. A tree never reshaped reads 0, as every such tree does - and no
+reader compares one tree's stamp with another's: each keeps the stamp it read off its own node's tree, and reads that
+node's tree's again. The five readers ask the stamp of their own node's tree (`prefabShapeStamp(node)`).
 No reader needed every tree's changes, so no stamp for all of them is kept. The answers are the same: PERF-SAILS3's
 digest of everything the pool draws, bakes and stands is unchanged, to the bit.
+
+**Its audit** (the same day). The field was `_shape` - and `test/render/perfextb.test.js` PERF-EXT10, which holds every
+field src/ writes after birth on a billboard batch to the factory's own (the renderer's `_sh*` among the names it reads
+by), failed the suite on `src/world/prefabNode.js: ._shape`. It is `_treeStamp` now, outside every name the sweep reads.
+And `topOf`, the climb to a tree's top, would never end for a node hung under itself or a node of its own: no caller does
+it, and `setParent` now refuses it, as Unity's SetParent refuses it - by a throw, before anything moves, so the caller is
+named where it asks. The refusal climbs the new parent's chain once a hanging - a build's, a graft's, a fitting stood
+when her list changes - and no frame of a boat standing as she stood hangs anything.
 
 **Measured.** In node, over the vendored hulls and a stand-in renderer, with two probes kept out of the tree (the
 slice's scratch): `csaKeyProbe` stands eight sea ships, six peers' boats and two of mine, all within 600 m; `farProbe`
@@ -1662,7 +1672,9 @@ Pins: `test/systems/comeSailAway/fb1021_boats.test.js` (the BOAT-STAMP test: a s
 anywhere, a peer's boat re-dressed, a node hung under one boat, taken out of her, hung from one boat to another, a
 component added - each boat's plan, Animators, bones and collider index made again only where her own tree changed);
 `test/world/navaudit_frame.test.js` THE INDEX FOLLOWS THE TREE'S SHAPE (the per-tree meaning, a node read under a new
-top node). Mutants: `tools/mutants/fb1021_boats.json`'s BOAT-STAMP records, all dead.
+top node); and its audit's refusal (a node under itself, its child, its grandchild: each refused, the tree as it stood -
+in a child process, so the mutant hangs the child, not the suite). Mutants: `tools/mutants/fb1021_boats.json`'s
+BOAT-STAMP records, all dead.
 
 ## BOAT-FAR — a far boat lives by the sea's ships' law
 
@@ -1677,18 +1689,32 @@ for themselves (`walkOf`).
 
 **The fix** (`scenes/comeSailAway/farLife.js`; `comeSailAwayPool.js` `frame`, `lifeOf`, `heldShift`, `walkOf`;
 `comeSailAwayPeers.js` `pose`):
-- **One law.** NEAR_LIFE_M, FAR_LIFE_EVERY and the step (`farLifeStep`) live in `farLife.js`. `navalHost.js`
-  re-exports the constants and poseShip reads the step.
+- **One law, each reader's eye.** NEAR_LIFE_M, FAR_LIFE_EVERY and the step (`farLifeStep`) live in `farLife.js`.
+  `navalHost.js` re-exports the constants and poseShip reads the step. The eye the range is read from is not shared:
+  poseShip's is the frame's view (`deps.look().origin`, the camera with Eye of the Beholder's over-the-shoulder offset,
+  or the feet with no look), the pool's the playerPosition its frame is handed (`world.js`: `player.pos`), the peers'
+  the pool's last. Where the camera stands apart from the player - over the shoulder, a free camera - a sea ship and a
+  boat at the one range are judged from eyes as far apart. One eye for all three is `world.js`'s change (the host hands
+  the pool its world), left to a slice that touches it.
 - **The pool.** `frame` reads the law from its playerPosition. Past 600 m a boat is walked, her holders baked and her
   lanterns decided one frame in four, each boat on her own frame of the stride, on the time she missed. A boat with no
-  frame's walk to hold (new, re-dressed, moved by the origin, or walked since by a draw) or whose tree was reshaped since
-  her walk is walked whatever her range.
+  frame's walk to hold (new, re-dressed, moved by the origin, or walked since by a draw), whose tree was reshaped since
+  her walk, or (its audit) one of whose nodes was switched on or off since is walked whatever her range.
 - **The held walk.** On the frames between, her last walk is held: `walkOf` answers it, so the flats and the draw never
   walk her again. It is carried to where she stands by her hull's move since it (`heldShift`: her hull's matrix now times
   the inverse of her walk's). Her still batch is drawn at her hull's matrix as it stands, to the bit, and every other
   part and flat of hers by the same move, so nothing of hers falls behind her hull as she sails and rolls.
 - **The peers.** `pose` steps a peer's boat's Animators by the same law, from the pool's last frame's eye
   (`pool.lifeEye`).
+
+**Its audit** (the same day). A held walk was kept while her tree's shape stood, but a switch is not a shape's change:
+a far Carrack switched off (a peer's look 'hidden', `UpdateBoatVisibility`) drew her 18 meshes up to three frames more,
+and switched on drew nothing for as many; her helm taken (`IdleObject` off, `ActiveObject` on) and a sea ship's sails set
+(poseShip's `setActive`) were as late. Which nodes a walk reaches is a function of the tree's shape and its switches, so
+each tree keeps a second stamp (`world/prefabNode.js` `prefabSwitchStamp`, on its top node, `_treeSwitch`): bumped by a
+`setActive` that changes what a node reads - one that sets what it reads bumps nothing - and `lifeOf` keeps a held walk
+only while both stamps stand. Recording her root's `activeSelf` alone would have missed the helm and the sails. A held
+boat is now drawn as switched the next frame, as a near one is.
 
 Departs from Come Sail Away's FixDeformations.LateUpdate and DFU's DaggerfallLight.Update and DungeonLightHandler.Update,
 which Unity runs on every boat every frame: past 600 m they run every fourth frame on the seconds she missed, so their
@@ -1719,11 +1745,19 @@ Four near boats alone: the same either side within the runs' spread (0.52 and 0.
 
 Pins: `test/systems/comeSailAway/fb1021_boats.test.js` - a near boat walked every frame, two far ones one frame in four
 on strides of their own, their lanterns' and sails' timers on the time they missed and still between; a held boat's
-batch at her hull's matrix to the bit, every other part and flat where its node stands now as she sails and rolls, and
-so again when she moves between a frame and its draw; a far boat reshaped, new, moved by the origin with a draw
-between, or re-dressed, walked; a peer's boat's Animators past 600 m one frame in four from the pool's eye, every frame
-with none; the law's own cases (the ground plane, the stride's frame, the missed time kept across coming near). `test/systems/naval/navaudit_presentation.test.js` keeps the sea's
-ships' stride. Mutants: `tools/mutants/fb1021_boats.json`, 26, all dead.
+batch at her hull's matrix to the bit, every other part and flat where its node stands now as she sails and rolls - each
+drawn mesh matched to a part of its own, by the mesh the draw drew it with (its plan entry's `gpu`) and its node's
+matrix, a part turned out of her batch among them - and so again when she moves between a frame and its draw; a far
+boat reshaped, new, moved by the origin with a draw between, or re-dressed, walked; switched off, nothing of her drawn
+the next frame, and switched on, all of her, on every frame of her stride, her helm taken and let go the same, and a
+switch that sets what a node reads holding her as before; a part hung on her root, outside her hull's frame, never
+batched and drawn where it stands, and with her hull switched off carried by her root's move; a peer's boat's Animators
+past 600 m one frame in four from the pool's eye, every frame with none; the law's own cases (the ground plane, the
+stride's frame, the missed time kept across coming near). `test/systems/naval/navaudit_presentation.test.js` keeps the
+sea's ships' stride. Mutants: `tools/mutants/fb1021_boats.json`, 37 - 36 dead and one equivalent as recorded: the
+bones `lateUpdateHolder` keeps by its tree's stamp are `resolveNodePointer`'s, read off the instance's own `prefabPaths`,
+which no reshape changes (a holder hung elsewhere reads another node, a new bone list is another list), so the stamp
+read as 0 resolves the same nodes. `stillChain`'s stamp is pinned by the part hung outside her hull's frame.
 
 ## For the owner
 

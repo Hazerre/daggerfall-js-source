@@ -6,7 +6,11 @@
 // (2026-10-21) found every boat the Come Sail Away pool draws - mine, the peers' and the sea's - walked, baked and lit
 // every frame wherever she was, and every peer's boat's Animators stepped every frame at any range
 // (scenes/comeSailAway/comeSailAwayPool.js frame, scenes/comeSailAway/comeSailAwayPeers.js pose). The three read the
-// law here, so it is one: the constants (navalHost re-exports them, where they were born) and the step.
+// law here, so it is one: the constants (navalHost re-exports them, where they were born) and the step. The EYE is each
+// reader's own (its audit): poseShip's the frame's view (navalHost's `deps.look().origin`, the camera over the
+// shoulder too, or the feet with no look), the pool's the playerPosition its frame is handed (scenes/world.js:
+// `player.pos`), the peers' the pool's last - so where the camera stands apart from the player, a sea ship and a boat
+// at one range are judged from eyes as far apart. One eye for all three is the host's to hand the pool.
 
 /** AUDIT NAV1 (the presentation, #17): HER RIGGING'S LIFE BY HER RANGE - past NEAR_LIFE_M of the eye a ship's animators
  *  and particle systems step every FAR_LIFE_EVERY frames with the time they missed: her sails' billow and her flag's
