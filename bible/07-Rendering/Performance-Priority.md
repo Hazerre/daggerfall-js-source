@@ -57,6 +57,11 @@ the trading windows: the rows on screen drawn, a picture into its tile) and SHAD
 built in play never waits on its compile), and SNOW-BUDGET (its second word: the snow the ground keeps holds to its
 frame budget). Their sections are after FIT-BITS'.
 
+HORSE-VIEW (2026-10-21, a player's CPU profile: "Horse Cart pool (peers' horses and carts) 11% (3% with peers' teams
+not loaded)") poses a 3D horse where it is seen: its gait's clock every frame, its pose in the view on the peers' bodies'
+cadence, and a rider's horse with its rider's body. It moves the picture as PEER-CADENCE did the bodies': past 10 m a
+horse's stride is shown every second or third frame. Its section is after SNOW-BUDGET's.
+
 ## How the pass was run
 
 NOT IN THE REAL GAME. The frame probe (`tools/frameProbe.mjs`, PERF-NEXT's recipe) needs the freeware ARENA2, and its
@@ -1536,6 +1541,72 @@ What it found, and what was done:
   packs; a moving window and a clock set back; `settle` and `force`; steady play.
 Pins: `test/systems/weather/snowbudget.test.js` (+2: lock-step to the 560th step of the lane's own window, and the kept
 lines across a move). Mutants: `tools/mutants/audit_perfpass.json`'s ASB records, all dead.
+
+## HORSE-VIEW — a 3D horse is posed where it is seen
+
+*A player's CPU profile (2026-10-21): "Horse Cart pool (peers' horses and carts) 11% (3% with peers' teams not loaded) -
+scenes/horseCartPool.js frame -> poseTeam / pose3dTeam / horseRig.step, writeHorsePalette".*
+
+**Found.** PERF-TEAMS cuts another player's team past `PEER_TEAM_DRAW_M` (400 m); inside it nothing asked the view or
+the distance before a pose. `horseCartPool.js:"function pose3dTeam"` stepped every horse the pool stands - mine, and
+every peer's alone, following, parked in harness or pulling - through `horseRig.js:"function step(h,"`, which stepped
+the gait, wrote the palette (`writeHorsePalette`, 33 bones composed) and sent it (`renderer.updateSkinPalette`, 1,632
+bytes) every frame. Only the draw asked the view (AUDIT COATS3D A12), so a horse behind the eye or a parked pair a
+hundred metres off cost what one in the street did. A riding peer's horse was the same:
+`peerBodies.js:"_saddle(b, shown, f, dt)"` stepped and sent it every frame from `_place`, whatever its rider's body did -
+and that body is posed on PEER-CADENCE's cadence, and not at all out of the view (WB9h). The gait is nothing (20 horses:
+0.005 ms a frame); the pose and its upload are the cost (0.175 ms a frame for 20 - `horsePalProbe`, node 22, this
+container).
+
+**The fix.** The gait's clock steps every frame; the pose waits for the view.
+- `step` takes `pose` (true when left out - the player's own horse and the road's teams step as before). False steps
+  the clock and places the horse, and neither writes nor sends its pose: it stands in the last one sent (`stale`). The
+  palette is the clock's alone, so `horseRig.js:"function pose(h)"` catches a horse up to the very palette an
+  every-frame horse shows on that frame. A horse never posed is posed whatever `pose` says. `seen` is the draw's own
+  view test, and `horseRig.js:"function draw(h, canvas,"` takes `fresh`: a pose behind its clock is caught up before
+  the picture is queued.
+- The pool's horses are posed only in the last body pass's view (`_cam3d`, draw3d's camera - one frame behind; before
+  the first pass, every one), and there on the peers' bodies' cadence (`horseCartPool.js:"function h3dPoseDue"` over
+  `peerBodies.js:"export function poseCadenceFor"`: every frame within 10 m, every second to 25 m, every third past
+  it, by the horizontal distance from the eye, each horse its own phase). A horse skipped out of the last view is
+  `out`, and `draw3d` and `drawVeiled3d` hand that on as `fresh`: one the view swings onto is posed in the draw, never
+  drawn in the pose it had when last seen.
+- A riding peer's horse steps its gait every frame and is posed with its rider (`peerBodies.js:"_poseHorse(b) {"`): on
+  the frames the body's skin is - `_step`, and the draw's catch-up as the view swings onto a body - with the saddle the
+  body is posed to taken off the pose just sent. Out of the view neither is posed.
+
+What it changes on screen: a horse within 10 m and in view, nothing. Past it, its stride moves every second or third
+frame (30 or 20 times a second at 60 FPS), as a peer's body's has since PEER-CADENCE; where it stands and how it faces
+move every frame. A rider and their horse move together, as before.
+
+**Measured** (node 22, this container; the real pool over the real rig and bake, GL stubbed and every palette sent
+counted; probes in this record's session scratch, the base tree and this one interleaved ABBA, six runs each,
+medians):
+
+| | base | HORSE-VIEW |
+|---|---|---|
+| 20 peers' horses, half behind the eye, 8-200 m: palettes sent a frame | 20 (32,640 B) | 3.74 (6,106 B) |
+| the pool's frame | 0.236 ms | 0.093 ms |
+| the same 20, all in view: palettes sent a frame | 20 (32,640 B) | 7.74 (12,634 B) |
+| the pool's frame | 0.258 ms | 0.138 ms |
+| 8 riding peers, half behind the eye, 5-115 m: horse palettes a frame | 8 | 2 (the bodies' own poses: 2) |
+| the bodies' sync and draw | 0.145 ms | 0.100 ms |
+
+A second run, the container busier, read 0.339 -> 0.142, 0.310 -> 0.185 and 0.325 -> 0.218 ms: the same shares off,
+some 60, 40 and 33%. The horses drawn are the same in every case (9.86 and 19.86 a frame). Not measured in the real
+game: the online frame probe's bots (`tools/onlineFrameProbe.mjs`) neither ride nor stand teams, so the profile's own
+11% is the player's to read again; it grows with the horses inside the 400 m, and so does what this takes off it.
+
+Left: the road's strangers (`roadTeams.js`, at most `WAGONS_DRAWN` teams) step their 3D horses every frame as before -
+the same `pose: false` fits there when a profile names them.
+
+Pins: `test/systems/horse/fb1021_horses.test.js` (5) - the rig's pose word bit for bit against an every-frame horse;
+its view test and `fresh`; the pool's horse out of the view and swung onto, against an always-seen pool's, and the
+veiled pass; the cadence by distance and phase; a riding peer's horse with its body, its seat, and the draw's
+catch-up. PIN MOVED: `coats3d_horse3d.test.js` (the pool's step) and `horsewalk.test.js` (the saddle's step). Mutants:
+`tools/mutants/fb1021_horses.json`, 22, all dead; `horsewalk.json`'s HORSEWALK-peer-horse-ungated re-aimed at the
+saddle's step as it now reads. The eleven existing records of seven lists within three lines of a changed line, and
+`horsewalk.json`'s 40, were run again: all dead.
 
 ## For the owner
 
