@@ -1341,7 +1341,32 @@ export function grassVnoise(x, z) {
  *  whatever map pixel the player was in (GRASS2 had it too; the GPU
  *  hash is 0 there as well). The offsets are arbitrary fractions of a
  *  lattice cell, so no lattice corner of either octave lands on 0. */
-export const grassClump = (x, z) => grassVnoise(x * 0.055 + 0.317, z * 0.055 + 0.713) * 0.66 + grassVnoise(x * 0.017 + 0.531, z * 0.017 + 0.279) * 0.34;
+export function grassClump(x, z) {
+  // OW-HITCH (2026-10-21, the owner: "Theres still a lot of hitching in the overworld"): grassVnoise of each octave with
+  // its four grassHash corners written out in it - the same operations in the same order, so the same number to the
+  // bit (test/render/owhitch.test.js holds it to `grassVnoise(...) * 0.66 + grassVnoise(...) * 0.34`). Asked once a
+  // blade that stands, the ten calls under it were each a number made and dropped (a call's answer is an object unless
+  // it is inlined, and the placer's loop is past the inliner's budget): a fifth of a gigabyte a field's refill.
+  let sum = 0;
+  for (let o = 0; o < 2; o++) {
+    const vx = o === 0 ? x * 0.055 + 0.317 : x * 0.017 + 0.531, vz = o === 0 ? z * 0.055 + 0.713 : z * 0.017 + 0.279;
+    const ix = Math.floor(vx), iz = Math.floor(vz);
+    let fx = vx - ix, fz = vz - iz;
+    fx = fx * fx * (3 - 2 * fx); fz = fz * fz * (3 - 2 * fz);
+    let a = 0, b = 0, c = 0, d = 0;
+    for (let k = 0; k < 4; k++) {   // grassHash at (ix, iz), (ix + 1, iz), (ix, iz + 1), (ix + 1, iz + 1)
+      let px = (ix + (k & 1)) * 123.34, pz = (iz + (k >> 1)) * 456.21;
+      px -= Math.floor(px); pz -= Math.floor(pz);
+      const dd = px * (px + 45.32) + pz * (pz + 45.32);
+      px += dd; pz += dd;
+      const pp = px * pz, h = pp - Math.floor(pp);
+      if (k === 0) a = h; else if (k === 1) b = h; else if (k === 2) c = h; else d = h;
+    }
+    const v = (a + (b - a) * fx) + ((c + (d - c) * fx) - (a + (b - a) * fx)) * fz;
+    sum = o === 0 ? v * 0.66 : sum + v * 0.34;
+  }
+  return sum;
+}
 /** the lane's tint: the lab's per-blade random, pulled 0.55 of the way to its patch */
 export const bakedTint = (rnd, x, z) => Math.max(0, Math.min(1, rnd + (grassClump(x, z) - rnd) * 0.55));
 
@@ -1360,7 +1385,7 @@ export const bakedTint = (rnd, x, z) => Math.max(0, Math.min(1, rnd + (grassClum
  * end - the one loop, which a field on the move runs a slice at a time.
  */
 export function placeLabGrassCell(cx, cz, opts) {
-  const st = beginGrassCell(cx, cz, opts);
+  const st = beginGrassCell(cx, cz, opts);   // OW-HITCH: `opts.reuse` - a spent cell's arrays, placed into again
   stepGrassCell(st, st.perCell, opts);
   return { inst: st.inst, inst2: st.inst2, rootY: st.rootY, ground: st.ground, slope: st.slope, count: st.count, perCell: st.perCell };
 }
@@ -1380,28 +1405,44 @@ export function placeLabGrassCell(cx, cz, opts) {
  * the lanes are the same bytes (pinned at 1, 1,500 and the whole cell).
  * The arrays are the cell's own, handed to writeSlot when it is done,
  * exactly as placeLabGrassCell's were.
+ *
+ * OW-HITCH (2026-10-21, the owner: "Theres still a lot of hitching in the overworld"): `reuse` - a cell's state whose
+ * arrays writeSlot has already packed and let go - is placed into again, zeroed first, so a cell begun on it is the
+ * bytes a new one is. The five arrays are 343 KB a cell at the shipped density, and a field filling after a teleport or
+ * the Overworld's landing places some 360 cells: 120 MB of garbage the collector then stopped frames for. The field
+ * keeps two (createGrassField: the cell placed whole, and the rim cell in slices); a caller that keeps what it was
+ * handed (a test's recorder) passes none and is handed new arrays as before.
  */
-export function beginGrassCell(cx, cz, { perCell, seed = LAB_GRASS.seed, cell = GRASS_CELL, originX = 0, originZ = 0 }) {
+export function beginGrassCell(cx, cz, { perCell, seed = LAB_GRASS.seed, cell = GRASS_CELL, originX = 0, originZ = 0, reuse = null }) {
+  const again = reuse && reuse.perCell === perCell;
+  if (again) { reuse.inst.fill(0); reuse.inst2.fill(0); reuse.rootY.fill(0); reuse.ground.fill(0); reuse.slope.fill(0); }
   return {
     cx, cz, cell, originX, originZ, perCell,
     s: grassCellSeed(cx, cz, seed),   // the xorshift word
     i: 0,                             // the next candidate
     n: 0,                             // the blades that stood so far
     count: 0,                         // writeSlot's name for n
-    inst: new Float32Array(perCell * 4), inst2: new Float32Array(perCell * 4),
-    rootY: new Float32Array(perCell), ground: new Float32Array(perCell * 3),
-    slope: new Float32Array(perCell * 2),   // GRASS-LIT2: the ground normal's x and z under each root (0, 0: level)
+    inst: again ? reuse.inst : new Float32Array(perCell * 4), inst2: again ? reuse.inst2 : new Float32Array(perCell * 4),
+    rootY: again ? reuse.rootY : new Float32Array(perCell), ground: again ? reuse.ground : new Float32Array(perCell * 3),
+    slope: again ? reuse.slope : new Float32Array(perCell * 2),   // GRASS-LIT2: the ground normal's x and z under each root (0, 0: level)
   };
 }
 
+/** OW-HITCH: stepGrassCell's xorshift word while a slice runs (one slice at a time: the placer is synchronous). */
+const _xs = new Uint32Array(1);
 /** PERF-EXT22: `budget` more candidates of a begun cell; true once the
  *  last one is placed. `keep`/`ground` are this frame's - a slice asks
  *  the world as it stands when the slice runs. */
 export function stepGrassCell(st, budget, { keep, ground = null, slope = null, height = LAB_GRASS.height }) {
   const { inst, inst2, rootY, cell, originX, originZ } = st;
   const groundCol = st.ground;
-  let s = st.s;
-  const rnd = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+  // OW-HITCH (2026-10-21, the owner: "Theres still a lot of hitching in the overworld"): THE WORD IN A TYPED SLOT. A
+  // `let` a closure writes lives in the closure's context, and a context holds a number past a small integer as an
+  // object - so every step of the xorshift (four writes a draw, ten draws a candidate, 6,122 candidates a cell) made one:
+  // some 2 MB a cell of garbage, a field's refill after the Overworld 0.7 GB of it. The word lives in a Uint32Array
+  // now and the steps are the same integer operations on the same number: the same draws, bit for bit.
+  _xs[0] = st.s;
+  const rnd = () => { let s = _xs[0]; s ^= s << 13; s ^= s >>> 17; s ^= s << 5; s >>>= 0; _xs[0] = s; return s / 4294967296; };
   const ox = st.cx * cell, oz = st.cz * cell;
   let n = st.n;
   const end = Math.min(st.perCell, st.i + budget);
@@ -1427,7 +1468,7 @@ export function stepGrassCell(st, budget, { keep, ground = null, slope = null, h
     st.slope[n * 2] = gn ? gn[0] : 0; st.slope[n * 2 + 1] = gn ? gn[2] : 0;
     n++;
   }
-  st.s = s; st.i = end; st.n = n; st.count = n;
+  st.s = _xs[0]; st.i = end; st.n = n; st.count = n;
   // the pad: height 0 draws nothing (the vertex stage collapses h=0)
   return end >= st.perCell;
 }
@@ -1524,6 +1565,11 @@ export function createGrassField(renderer, { keep, ground = null, slope = null, 
   /** FB1021B: where the last update's eye stood (the field's scene, moved with it at a shift) - its step is the
    *  approach every rim cell's deadline is reckoned on - and when the last update began, on the field's clock. */
   let lastX = NaN, lastZ = NaN, lastT = NaN;
+  /** OW-HITCH: the two cells' arrays the field places into again (beginGrassCell `reuse`) - the last cell placed whole
+   *  and the last rim cell begun. A renderer packs a cell in writeSlot and holds none of it after (LabGrassRenderer
+   *  copies it into its lanes' scratch), so a cell's arrays are free the moment it is written; the rim cell's are the
+   *  pending cell's until it is written or let go, and a rim cell is begun only when none is pending. */
+  let wholeSpare = null, rimSpare = null;
   /** PERF10: the square distance from the eye to a cell's nearest point -
    *  _drawVisibleSlots' own test, so what is filled is what is drawn.
    *  PERF-EXT21: the cell's edges stood in the field's frame, the eye
@@ -1682,7 +1728,8 @@ export function createGrassField(renderer, { keep, ground = null, slope = null, 
         const slot = slotFor(item.d, true);
         if (slot === undefined) return missing;   // every slot holds a nearer cell
         const s = clock();
-        write(item, slot, placeLabGrassCell(item.cx, item.cz, { keep: keepNow, ground: groundNow, slope: slopeNow, perCell, height, seed, cell, originX: gx, originZ: gz }));   // PERF-EXT21
+        wholeSpare = placeLabGrassCell(item.cx, item.cz, { keep: keepNow, ground: groundNow, slope: slopeNow, perCell, height, seed, cell, originX: gx, originZ: gz, reuse: wholeSpare });   // PERF-EXT21; OW-HITCH: into the last whole cell's arrays (written below before the next is placed)
+        write(item, slot, wholeSpare);
         wholeMs = clock() - s;
       }
       // the rim: the cell in progress, then the rest by deadline
@@ -1701,7 +1748,8 @@ export function createGrassField(renderer, { keep, ground = null, slope = null, 
         if (!cur) {
           if (ri >= rim.length || slotFor(rim[ri].d, false) === undefined) break;   // AUDIT PERF10 F1: nothing begun that no slot would take
           const w = rim[ri++];
-          cur = { ...w, st: beginGrassCell(w.cx, w.cz, { perCell, seed, cell, originX: gx, originZ: gz }) };
+          rimSpare = beginGrassCell(w.cx, w.cz, { perCell, seed, cell, originX: gx, originZ: gz, reuse: rimSpare });   // OW-HITCH: into the last rim cell's arrays - begun only when none is in progress
+          cur = { ...w, st: rimSpare };
         }
         const st = cur.st, i0 = st.i;
         const finished = stepGrassCell(st, first ? GRASS_SLICE : now ? GRASS_STEP : Math.min(GRASS_STEP, Math.ceil(need - done)), ask);
@@ -2133,7 +2181,6 @@ export class LabGrassRenderer {
     if (this.slotSpan) this.slotSpan[slot] = xSpan;
     const hFloor = heightFloor(this.height), hSpan = Math.max(1e-6, heightSpan(this.height));
     const A = this._packA, B = this._packB, C = this._packC;
-    A.fill(0); B.fill(0); C.fill(0);
     const u16 = (v) => Math.max(0, Math.min(65535, Math.round(v * 65535)));
     const u8 = (v) => Math.max(0, Math.min(255, Math.round(v * 255)));
     // AUDIT MEADOW1: THE MEADOW'S CARDS, which stand taller and reach wider than any blade: the tallest blade of the run
@@ -2169,11 +2216,18 @@ export class LabGrassRenderer {
       C[i * 4 + 3] = u8(ph / 6.283185307179586);
     }
     if (this.slotCardH) { this.slotCardH[slot] = cardH; this.slotCardRise[slot] = n > 0 ? Math.max(0, cardTop - y1) : 0; this.slotCardTilt[slot] = cardTilt; }   // AUDIT MEADOW1: over the box's own top, so a shift moves nothing here; and the steepest ground a card of it is sheared to
-    for (let k = 0; k < this._lanes.length; k++) {
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.bufs[k]);
-      gl.bufferSubData(gl.ARRAY_BUFFER, slot * p * this._lanes[k].bytes, this._packs[k]);
+    // OW-HITCH (2026-10-21, the owner: "Theres still a lot of hitching in the overworld"): ONLY THE BLADES THAT STOOD GO
+    // UP. A slot draws its first `slotCount` blades and never one past them (_drawVisibleSlots instances the count, and
+    // the prefix inside it), so the pad behind them is bytes no draw reads - and a write into a buffer the last frame
+    // drew from is one the driver may have to wait on or copy. A cell on a road or a shore is mostly pad; an empty one
+    // uploads nothing. The lanes the draw reads are the bytes they were.
+    if (n > 0) {
+      for (let k = 0; k < this._lanes.length; k++) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.bufs[k]);
+        gl.bufferSubData(gl.ARRAY_BUFFER, slot * p * this._lanes[k].bytes, this._packs[k], 0, n * 4);
+      }
+      gl.bindBuffer(gl.ARRAY_BUFFER, null);
     }
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
   }
 
   /** PERF-EXT21: the floating origin moved by `offset` - every standing
@@ -2191,19 +2245,15 @@ export class LabGrassRenderer {
     }
   }
 
-  /** GR5: a cell leaves - its heights go to zero, and h=0 draws nothing. */
+  /** GR5: a cell leaves - its slot draws nothing from here. OW-HITCH: and nothing is uploaded for it. A slot is drawn
+   *  only with a box and a count (_drawVisibleSlots: no box, no draw; GRASS2: no blade past `slotCount`), so the zeros
+   *  this wrote over its heights were never read - GRASS5 had already said the count, not the zeros, kept it off the
+   *  GPU. They were a bufferSubData a cell: the Overworld coming down frees every cell the journey left behind in one
+   *  frame (the eye is kilometres on), and the real game stood 4.6 s in that frame's zeros. The next cell written into
+   *  the slot writes every blade it draws (writeSlot). */
   clearSlot(slot) {
-    const gl = this.gl; const p = this.perCell;
     if (this.slotBox) this.slotBox[slot] = null;   // PERF2
     if (this.slotCount) this.slotCount[slot] = 0;   // GRASS2
-    // GRASS5: zeroing A zeroes the packed HEIGHT, and a blade of the
-    // cell's height FLOOR still draws - so a cleared slot is also
-    // dropped by slotCount, which is what really keeps it off the GPU.
-    // AUDIT GRASS-LIT2 A3: and the zero word's slope is level (stored XOR 15).
-    if (!this._zeros || this._zeros.length !== p * 4) this._zeros = new Uint16Array(p * 4);
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.bufs[0]);
-    gl.bufferSubData(gl.ARRAY_BUFFER, slot * p * 8, this._zeros);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
   }
 
   /** the lab's draw. `light` = {sunDir, amb, sunCol, dim}; `wind` = {dir, speed, windV, sway} (AUDIT MEADOW1: `sway`
