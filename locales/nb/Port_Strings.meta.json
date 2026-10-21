@@ -26164,6 +26164,16 @@
   "tr": "c1118ea5618b",
   "by": "claude-in-session"
  },
+ "rvn.errand.left.realHours": {
+  "en": "09ae5f9750ec",
+  "tr": "6c423d5c383b",
+  "by": "claude-in-session"
+ },
+ "rvn.errand.left.realMinutes": {
+  "en": "fa15b0cca051",
+  "tr": "0fc198c98f2f",
+  "by": "claude-in-session"
+ },
  "rvn.errand.no.abroad": {
   "en": "3d2f752aa20c",
   "tr": "5f35710ce745",
@@ -26525,8 +26535,8 @@
   "by": "claude-in-session"
  },
  "rvn.roster.abroadLived": {
-  "en": "02ad56e2e2bb",
-  "tr": "48b8199f1aa6",
+  "en": "a57a6cdb3d6f",
+  "tr": "ebf36dbaa4c1",
   "by": "claude-in-session"
  },
  "rvn.roster.broken": {

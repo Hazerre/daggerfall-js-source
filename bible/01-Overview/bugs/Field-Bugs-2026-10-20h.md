@@ -220,8 +220,10 @@ carries no part and cuts none. All three give Raw Meat (C&C gives every body of 
 `survival/loot.js:"export const isAnimal = (entity) =>"`) and cure to Cured Leather (4.4, tiers 1-3). Templates 681-683
 were free in the registry and in 4.8's table and sit after Arcane Essence (680); they take the pictures the ten borrow
 (a pelt is Nymph Hair's lock, a chitin Fairy Dragon's Scales'). The cures now stand by tier
-(`professionLaw.js:"HIDES.filter((h) => h.cures).sort((a, b) => a.tier - b.tier)"`), since a chain plans a leather's cures
-cheapest first (`chainLaw.js:"export const producersOf = "`, CRAFT1's order); the ten keep their order. The profession page
+(`professionLaw.js:"HIDES.filter((h) => h.cures).sort((a, b) => a.tier - b.tier"`), since a chain plans a leather's cures
+cheapest first (`chainLaw.js:"export const producersOf = "`, CRAFT1's order); the ten keep their order - but the Bear
+Hide's last of its tier since AUDIT FB1021 L2-1 (`01-Overview/audits/Audit-Field-Bugs-2026-10-21.md`: it is the Ram Kit's
+too, and a chain spent every one before a Wolf Pelt). The profession page
 names the new hides at Hunting 0 and 10 and the two furs' skins at Outfitting 10. No departure from DFU: DFU has no
 skinning (the professions are PROF0's), and the mod's ids are its own data, read off the vendored table and pinned
 against it.
