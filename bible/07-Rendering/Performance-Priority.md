@@ -62,6 +62,13 @@ not loaded)") poses a 3D horse where it is seen: its gait's clock every frame, i
 cadence, and a rider's horse with its rider's body. It moves the picture as PEER-CADENCE did the bodies': past 10 m a
 horse's stride is shown every second or third frame. Its section is after SNOW-BUDGET's.
 
+BOAT-STAMP and BOAT-FAR (2026-10-21, a player's CPU profile online: the Come Sail Away pool's frame 11% of the frame,
+6% with the peers' boats not loaded, and `rendererModelKey` 2.6%, the key made again most frames) are one pass over the
+boats. Every boat's caches stood on one shape stamp shared by every tree in the game, and every boat drawn was walked,
+baked and lit every frame wherever she sailed. BOAT-STAMP gives the same answers. BOAT-FAR moves what a boat past 600 m
+does: her sails, her lanterns and a peer's boat's Animators step every fourth frame, as the sea's ships' rigging already
+did, and every part of her stays drawn where she is. Their sections are after SNOW-BUDGET's.
+
 ## How the pass was run
 
 NOT IN THE REAL GAME. The frame probe (`tools/frameProbe.mjs`, PERF-NEXT's recipe) needs the freeware ARENA2, and its
@@ -1607,6 +1614,116 @@ catch-up. PIN MOVED: `coats3d_horse3d.test.js` (the pool's step) and `horsewalk.
 `tools/mutants/fb1021_horses.json`, 22, all dead; `horsewalk.json`'s HORSEWALK-peer-horse-ungated re-aimed at the
 saddle's step as it now reads. The eleven existing records of seven lists within three lines of a changed line, and
 `horsewalk.json`'s 40, were run again: all dead.
+
+## BOAT-STAMP — each tree its own shape stamp
+
+*A player's CPU profile online (2026-10-21): the Come Sail Away pool's frame 11% of the main thread
+(`scenes/comeSailAway/comeSailAwayPool.js` `frame` -> `walkBoat`, `lateUpdateHolder`, `syncFlats`) and
+`rendererModelKey`, through `partKey`, 2.6% - the key made again most frames.*
+
+**Found.** PERF-SAILS3 keeps a boat's plan (her holders, her flats, her parts, and each part's model key and still
+chain) while her walk's nodes and her tree's shape stand. But the shape was `world/prefabNode.js` `prefabShapeStamp`,
+ONE count for every tree in the game, moved by every `setParent` and `addComponent`. Five caches stood on it for every
+boat:
+- the pool's plan, and with it every part's key (`partKey` reads the plan's entry, made with no key);
+- the pool's still chains;
+- `lateUpdateHolder`'s bones;
+- `boatAnimators` (a walk of her whole tree);
+- `world/prefabColliders.js` `colliderIndex`.
+
+A tree built anywhere moved it: a peer's boat (`comeSailAwayPeers.js` `buildOne`), a sea hull streaming in within
+5 km (`navalHost.js` `buildOne`, one a frame), a re-dress (`setVariant`), a fitting stood (`deckFittingsHost.js`
+`standFittings`), a flag grafted (`graftColours`). The next frame, every boat's plan, keys, chains, bones, Animators and
+colliders were made again.
+
+**The fix** (`world/prefabNode.js` `prefabShapeStamp`, `setParent`, `addComponent`). Each tree keeps its own stamp, on
+its top node (`_shape`). A node hung elsewhere stamps the tree it left and the tree it joined; a component added stamps
+its own tree. Every stamp is a draw of one count, so no two stamps anywhere are equal, and a node whose top node changes
+never reads a value it read before. The five readers ask the stamp of their own node's tree (`prefabShapeStamp(node)`).
+No reader needed every tree's changes, so no stamp for all of them is kept. The answers are the same: PERF-SAILS3's
+digest of everything the pool draws, bakes and stands is unchanged, to the bit.
+
+**Measured.** In node, over the vendored hulls and a stand-in renderer, with two probes kept out of the tree (the
+slice's scratch): `csaKeyProbe` stands eight sea ships, six peers' boats and two of mine, all within 600 m; `farProbe`
+stands four near and twenty far peers' boats, their words at 10 Hz and under way. A tree built every frame elsewhere,
+before and after, three runs each:
+
+| | base | BOAT-STAMP |
+|---|---|---|
+| `csaKeyProbe`: `rendererModelKey` calls a frame | 747 | 0 |
+| `csaKeyProbe`: the frame (the pool's frame and draw, the probe's Animators), ms | 8.92 (7.47-9.81) | 2.13 (2.09-2.52) |
+| `farProbe`: the peers' frame + the pool's frame + its draw, ms | 14.83 (13.67-17.05) | 2.39 (2.30-3.01) |
+
+Medians, with the runs' spread. In the base's `farProbe` run, 7.9 of the 14.8 ms was the peers' frame - `boatAnimators`
+walking all 24 trees again - and `rendererModelKey` was called 1,589 times a frame. With nothing built, `csaKeyProbe`
+spends the same either side (2.45 and 2.11 ms, inside the spread): BOAT-STAMP is what a build elsewhere stops costing.
+
+Pins: `test/systems/comeSailAway/fb1021_boats.test.js` (the BOAT-STAMP test: a sea ship built elsewhere, a tree built
+anywhere, a peer's boat re-dressed, a node hung under one boat, taken out of her, hung from one boat to another, a
+component added - each boat's plan, Animators, bones and collider index made again only where her own tree changed);
+`test/world/navaudit_frame.test.js` THE INDEX FOLLOWS THE TREE'S SHAPE (the per-tree meaning, a node read under a new
+top node). Mutants: `tools/mutants/fb1021_boats.json`'s BOAT-STAMP records, all dead.
+
+## BOAT-FAR — a far boat lives by the sea's ships' law
+
+*The same profile: the pool's frame was still 6% of the main thread with the peers' boats not loaded.*
+
+**Found.** The pool's `frame` walked, baked and lit every boat it draws - mine, the peers', the sea's - every frame
+wherever she was. The peers' `pose` stepped every peer's boat's Animators every frame at any range: up to eight boats
+a player, anywhere in some 3 km. The sea's ships already had a law for their rigging (AUDIT NAV1 #17, `navalHost.js`
+poseShip): past NEAR_LIFE_M (600 m) of the eye, every FAR_LIFE_EVERY (4) frames, on the time it missed. The pool and the
+peers had none. And holding a far boat's walk in `frame` alone saves nothing: `syncFlats` and `draw` walked her again
+for themselves (`walkOf`).
+
+**The fix** (`scenes/comeSailAway/farLife.js`; `comeSailAwayPool.js` `frame`, `lifeOf`, `heldShift`, `walkOf`;
+`comeSailAwayPeers.js` `pose`):
+- **One law.** NEAR_LIFE_M, FAR_LIFE_EVERY and the step (`farLifeStep`) live in `farLife.js`. `navalHost.js`
+  re-exports the constants and poseShip reads the step.
+- **The pool.** `frame` reads the law from its playerPosition. Past 600 m a boat is walked, her holders baked and her
+  lanterns decided one frame in four, each boat on her own frame of the stride, on the time she missed. A boat with no
+  frame's walk to hold (new, re-dressed, moved by the origin, or walked since by a draw) or whose tree was reshaped since
+  her walk is walked whatever her range.
+- **The held walk.** On the frames between, her last walk is held: `walkOf` answers it, so the flats and the draw never
+  walk her again. It is carried to where she stands by her hull's move since it (`heldShift`: her hull's matrix now times
+  the inverse of her walk's). Her still batch is drawn at her hull's matrix as it stands, to the bit, and every other
+  part and flat of hers by the same move, so nothing of hers falls behind her hull as she sails and rolls.
+- **The peers.** `pose` steps a peer's boat's Animators by the same law, from the pool's last frame's eye
+  (`pool.lifeEye`).
+
+Departs from Come Sail Away's FixDeformations.LateUpdate and DFU's DaggerfallLight.Update and DungeonLightHandler.Update,
+which Unity runs on every boat every frame: past 600 m they run every fourth frame on the seconds she missed, so their
+timers count the same time and a change of the city lights reaches her up to three frames late. Within 600 m nothing
+changes - PERF-SAILS3's golden run stands its ships within 330 m of its player and its digest is unchanged. Its row is in
+`01-Overview/Port-Ledger.md` (Ledger A, continued).
+
+**Measured.** `farProbe`, four near and twenty far peers' boats, nothing built elsewhere, before and after:
+
+| ms a frame | base | BOAT-FAR |
+|---|---|---|
+| the peers' frame (their poses, their Animators) | 0.97 | 0.44 |
+| the pool's frame | 2.71 | 1.25 |
+| the pool's draw | 0.81 | 0.76 |
+| all three | 4.49 (4.25-4.70) | 2.45 (2.32-2.67) |
+
+Medians of three runs. Eight sea ships 1.2-1.9 km off with four near peers' boats: the pool's frame 0.88 -> 0.60 ms.
+Four near boats alone: the same either side within the runs' spread (0.52 and 0.62 ms, the runs 0.51-0.73) - within
+600 m the law holds nothing back.
+
+**What it still pays.**
+1. **The draw** walks every drawn boat's plan every frame - each part's key check, the still list, the still batch's
+   chain reads - held or not (0.76 ms above). A held boat's draw could keep her last frame's list.
+2. **My own boats' Animators and particle systems** are stepped by the Come Sail Away runtime every frame at any range
+   (`systems/comeSailAway/comeSailAway.js`, inside `createComeSailAwayRuntime`, a host under its ceiling). The law would
+   reach them through a module the runtime wires.
+3. **A held boat's flats** are written every frame (one product a flat), so her crew and lanterns stay with her.
+
+Pins: `test/systems/comeSailAway/fb1021_boats.test.js` - a near boat walked every frame, two far ones one frame in four
+on strides of their own, their lanterns' and sails' timers on the time they missed and still between; a held boat's
+batch at her hull's matrix to the bit, every other part and flat where its node stands now as she sails and rolls, and
+so again when she moves between a frame and its draw; a far boat reshaped, new, moved by the origin with a draw
+between, or re-dressed, walked; a peer's boat's Animators past 600 m one frame in four from the pool's eye, every frame
+with none; the law's own cases (the ground plane, the stride's frame, the missed time kept across coming near). `test/systems/naval/navaudit_presentation.test.js` keeps the sea's
+ships' stride. Mutants: `tools/mutants/fb1021_boats.json`, 26, all dead.
 
 ## For the owner
 
