@@ -6,7 +6,8 @@ The eighteen classes the class list offers are DFU's: CreateCharClassSelect (:59
 the player each career as the file has it. Several of those careers spend their skill groups on skills that do little
 for the character. CLASS-USE keeps every class's identity and everything else the file gives it, and re-chooses its
 primary, major and minor skills by four rules. It also fixes one equipment field. Code: `src/systems/stockClasses.js`.
-Pins: `test/systems/stockclasses.test.js`. Mutants: `tools/mutants/classuse.json` (14, all dead).
+Pins: `test/systems/stockclasses.test.js`. Mutants: `tools/mutants/classuse.json` (17, all dead with ARENA2; 15 without it, as CI runs - the two left are
+the classic skin's art load and the copied restrictions' check against the files, which need the files).
 
 ## What was wrong
 
@@ -35,10 +36,13 @@ Read from the shipped CLASS*.CFG:
 1. **A class can fight from the first level:** a primary or major in a weapon its career allows, or in Destruction.
 2. **A movement skill (Jumping, Running, Swimming, Climbing) holds a primary or major only where it is the class:** the
    Acrobat's Jumping and Running, the Burglar's Climbing, the Monk's Running, the Barbarian's Running. The others are
-   minors - they are among the fastest skills to train in any case.
+   minors, where they still train simply by moving.
 3. **No language skill takes a group slot.** Every language is still learnt, as a miscellaneous skill.
-4. **A pure fighter's primaries are two weapons and Critical Strike**, which serves whichever weapon it carries
-   (formulas.js reads it for every attack).
+4. **A pure fighter's primaries are two weapons and Critical Strike**, which serves whichever weapon it carries: it
+   rolls on every attack's chance to hit (`combat/formulas.js` `skillsToHit`) and trains on every connecting swing
+   (`scenes/hostCombat.js` `tallySwingSkills`). With three weapon primaries a fighter trained one of them; now its
+   weapon and Critical Strike both rise from the same swings, so its level sum (all three primaries count) moves
+   faster, not slower, though Critical Strike's own advancement multiplier is 8 to a weapon's 2.
 
 ## The revised lists
 
@@ -87,6 +91,11 @@ The Burglar is forbidden chain and plate instead of leather and chain; its shiel
 - `systems/chargenSession.js:"career: reviseStockCareer(i, cf.career)"` - `loadCareers`, the list both skins'
   wizards read. The class questions resolve to an index into that list, and legacy births read it (`legacyHost.js`
   `bornResult`), so both get the revision too.
+- **A custom class's biography follows the revised classes.** The builder's `classAffinityIndex`
+  (`systems/customClass.js`, BiogFile.GetClassAffinityIndex :519-558) picks the biography quiz of the stock class whose
+  twelve skills the custom class shares most, and it scores against that same list - so against the revised lists,
+  where DFU scores against the files. A departure, and the intended one: the custom class is matched to the classes
+  the player was shown.
 - `systems/chargenSession.js:"const career = reviseStockCareer(classIndex, cf.career);"` - the headless `?class=N`
   character.
 - **The description says the class it describes.** Each TEXT.RSC 2100+n record names the class's six primary and major
@@ -96,5 +105,16 @@ The Burglar is forbidden chain and plate instead of leather and chain; its shiel
   (`SKILL_NAMES`) and the two rows' joins are `t('chargen.class.skills.primary')` and `'chargen.class.skills.major'`,
   so a translated TEXT.RSC is rewritten in its own language. It is applied at both skins' seams: `ui/chargenArt.js` `classDescriptionLines`
   (classic) and `ui/enhanced/enhancedChargen.js` `attachChargenText` (enhanced). A record with no colon before its last row
-  is shown as it is, with one warning. The classic seam reads the GL art's TEXT.RSC, so no Node pin
-  reaches it; the enhanced seam and the rewrite itself are pinned.
+  is shown as it is, with one warning. Both seams are pinned; the classic one through `preloadChargenArt` over the
+  real files, so it runs where ARENA2 is.
+- **The Roleplay & Realism kit** (`roleplayRealismItems/rriKits.js`, when the mod is on) gives items for each primary
+  and major skill, so it follows the revision. Checked over every class: apart from the Acrobat's arrows (below) it hands
+  no class a weapon or armour the class may not equip that it did not hand before, and it no longer hands the Burglar
+  a helm it could not wear. The Acrobat's Archery brings arrows, which DFU's equip check reads as forbidden to any class with a weapon restriction
+  (`equip.js` `weaponProficiencyFlag`, its -1 quirk); arrows are shot from the pack, never equipped, so the Acrobat
+  shoots.
+- **The armour field's place** (`ARMOR_BITS_SHIFT`, `systems/specialAdvantages.js`) has one home: the builder's write,
+  the decode, `equip.js`'s read and this revision all read it.
+- **The description box keeps its size.** Measured in the classic box's own fonts (FONT0003, FONT0004), no revised
+  row is wider in pixels than its record's widest, and no record is longer than the eight rows the Sorcerer's already
+  has.

@@ -1,6 +1,7 @@
 // CLASS-USE (2026-10-21): the eighteen stock classes' revised skill lists (src/systems/stockClasses.js,
 // bible/04-Characters/Stock-Classes.md). The rules are pinned as rules, so a revision that breaks one fails here
-// whatever class it touches; the real-data half runs the lists through the producers the game uses.
+// whatever class it touches, and the producers' wiring runs on records the real reader mints, so CI holds it without
+// ARENA2; the real-data half holds the copied restrictions to the files and drives the classic skin's own art load.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -14,6 +15,8 @@ import { attachChargenText } from '../../src/ui/enhanced/enhancedChargen.js';
 import { CLASS_CAREERS } from '../../src/systems/chargen.js';
 import { ClassFile } from '../../src/formats/classFile.js';
 import { TextRsc } from '../../src/formats/textRsc.js';
+import { DFPalette } from '../../src/formats/dfPalette.js';
+import { preloadChargenArt, classDescriptionLines } from '../../src/ui/chargenArt.js';
 
 const ARENA2 = process.env.ARENA2_PATH;
 const skipReal = !ARENA2 || !existsSync(ARENA2) ? 'ARENA2_PATH not set or missing - real-data validation skipped' : false;
@@ -43,6 +46,23 @@ function cfgBytes({ name, weaponArmorShields = 0, skills = [0, 1, 2, 3, 4, 5, 6,
   return b;
 }
 const minted = (opts) => { const cf = new ClassFile(); cf.load(cfgBytes(opts)); return cf.career; };
+
+/** CLASS00..17.CFG's weaponArmorShieldsBitfield, as ClassFile reads them - the restrictions rule 1 is held against.
+ *  Copied so the rule runs without ARENA2 (CI); the real-data pin below holds the copy to the files. */
+const FILE_WEAPON_ARMOR_SHIELDS = Object.freeze([
+  0x1daa, 0x1100, 0x1980, 0x1f00, 0x192a, 0x1d80, 0x1100, 0x1ec0, 0x1100,
+  0x1f88, 0x1d90, 0x1f80, 0x1fc0, 0x201f00, 0x1000, 0x100, 0x0, 0x40,
+]);
+/** A fetchBytes that serves each CLASSnn.CFG as a record the real reader takes, with the file's restrictions and
+ *  skill lists that are none of the revision's - so a career that comes back revised was revised on the way. */
+const syntheticFetch = async (name) => {
+  const m = /^CLASS(\d\d)\.CFG$/.exec(name);
+  if (!m || Number(m[1]) >= CLASS_CAREERS.length) throw new Error(`no ${name} here`);
+  const i = Number(m[1]);
+  return cfgBytes({ name: CLASS_CAREERS[i], weaponArmorShields: FILE_WEAPON_ARMOR_SHIELDS[i], skills: [4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 1, 2] });
+};
+const listsOf = (c) => [c.primarySkills, c.majorSkills, c.minorSkills];
+const revisedLists = (r) => [[...r.primary], [...r.major], [...r.minor]];
 
 test('stock classes: one revision per stock career, in CLASS00..17 order, each 3/3/6 distinct real skills', () => {
   assert.deepEqual(STOCK_CLASS_REVISIONS.map((r) => r.name), [...CLASS_CAREERS]);
@@ -120,25 +140,41 @@ test('stock classes: the description lists the revised primaries then majors, ke
   assert.equal(reviseClassDescription(18, rows), rows, 'the custom class row has no revision');
 });
 
-test('stock classes (real data): loadCareers hands the wizard the revised lists, and the reader still reads the file', { skip: skipReal }, async () => {
-  const careers = await loadCareers(fetchBytes);
+test('stock classes: loadCareers hands the wizard every revised career, the file\'s restrictions kept and the Burglar\'s armour fixed', async () => {
+  const careers = await loadCareers(syntheticFetch);
+  assert.equal(careers.length, STOCK_CLASS_REVISIONS.length);
   careers.forEach(({ career }, i) => {
-    const r = STOCK_CLASS_REVISIONS[i];
-    assert.deepEqual([career.primarySkills, career.majorSkills, career.minorSkills], [[...r.primary], [...r.major], [...r.minor]], r.name);
+    assert.deepEqual(listsOf(career), revisedLists(STOCK_CLASS_REVISIONS[i]), STOCK_CLASS_REVISIONS[i].name);
+    const armourFree = (bf) => bf & ~(0x7 << 6);
+    assert.equal(armourFree(career.weaponArmorShieldsBitfield), armourFree(FILE_WEAPON_ARMOR_SHIELDS[i]), `${STOCK_CLASS_REVISIONS[i].name}'s weapons and shields moved`);
   });
-  const raw = new ClassFile();
-  raw.load(await fetchBytes('CLASS15.CFG'));
-  assert.deepEqual(raw.career.majorSkills, [S.Jumping, S.Running, S.Swimming], 'ClassFile must still read CLASS15.CFG exactly');
+  assert.equal((careers[7].career.weaponArmorShieldsBitfield >>> 6) & 7, 6, 'the Burglar: chain and plate');
 });
 
-test('stock classes (real data): rule 1 - every class can fight from the first level with a skill its career allows', { skip: skipReal }, async () => {
-  const careers = await loadCareers(fetchBytes);
+test('stock classes: rule 1 - every class can fight from the first level with a skill its career allows', async () => {
+  const careers = await loadCareers(syntheticFetch);
   careers.forEach(({ career }, i) => {
     const forbidden = career.weaponArmorShieldsBitfield & 0x3f;
     const fights = [...career.primarySkills, ...career.majorSkills].filter((id) =>
       id === S.Destruction || (WEAPON_BIT[id] !== undefined && (WEAPON_BIT[id] & forbidden) === 0));
     assert.ok(fights.length > 0, `${STOCK_CLASS_REVISIONS[i].name} has no primary or major it can fight with`);
+    const listsForbidden = [...career.primarySkills, ...career.majorSkills, ...career.minorSkills].filter((id) => WEAPON_BIT[id] & forbidden);
+    assert.deepEqual(listsForbidden.map((id) => SKILL_NAMES[id]), [], `${STOCK_CLASS_REVISIONS[i].name} trains a weapon it may not use`);
   });
+});
+
+test('stock classes (real data): the files are the restrictions the pins hold, and the reader still reads them exactly', { skip: skipReal }, async () => {
+  for (let i = 0; i < CLASS_CAREERS.length; i++) {
+    const raw = new ClassFile();
+    raw.load(await fetchBytes(`CLASS${String(i).padStart(2, '0')}.CFG`));
+    assert.equal(raw.career.weaponArmorShieldsBitfield, FILE_WEAPON_ARMOR_SHIELDS[i], `CLASS${i}.CFG's restrictions`);
+  }
+  const raw = new ClassFile();
+  raw.load(await fetchBytes('CLASS15.CFG'));
+  assert.deepEqual(raw.career.majorSkills, [S.Jumping, S.Running, S.Swimming], 'ClassFile must still read CLASS15.CFG exactly');
+  const careers = await loadCareers(fetchBytes);
+  careers.forEach(({ career }, i) => assert.deepEqual(listsOf(career), revisedLists(STOCK_CLASS_REVISIONS[i]), STOCK_CLASS_REVISIONS[i].name));
+  assert.equal((careers[7].career.weaponArmorShieldsBitfield >>> 6) & 7, 6, 'the real Burglar: chain and plate');
 });
 
 test('stock classes (real data): every class description is re-written to name its own six skills', { skip: skipReal }, async () => {
@@ -164,11 +200,26 @@ test('stock classes: the magic classes keep a school as a primary', () => {
   }
 });
 
-test('stock classes (real data): the headless ?class=N character is made from the revised career', { skip: skipReal }, async () => {
+test('stock classes: the headless ?class=N character is made from the revised career', async () => {
   const entity = { stats: {}, skills: 30, items: [] };
-  await applyHeadlessChargen(entity, 15, { fetchBytes });
+  const warn = console.warn;
+  console.warn = () => {};   // no FACTION.TXT here: the path parks the faction store, as it says
+  try { await applyHeadlessChargen(entity, 15, { fetchBytes: syntheticFetch }); } finally { console.warn = warn; }
+  assert.deepEqual(listsOf(entity.career), revisedLists(STOCK_CLASS_REVISIONS[15]));
+});
+
+test('stock classes (real data): the classic skin\'s description box reads the revised description', { skip: skipReal }, async () => {
+  const renderer = {
+    uploadTexture: (g, name) => `tex:${name}`, releaseTexture: () => {}, drawScreenQuad: () => {},
+    setScreenScissor: () => {}, clearScreenScissor: () => {}, gl: { drawingBufferWidth: 320, drawingBufferHeight: 200 },
+  };
+  const palette = new DFPalette();
+  palette.load(await fetchBytes('ART_PAL.COL'), 'ART_PAL.COL');
+  await preloadChargenArt({ renderer, palette, fetchBytes });
   const r = STOCK_CLASS_REVISIONS[15];
-  assert.deepEqual([entity.career.primarySkills, entity.career.majorSkills, entity.career.minorSkills], [[...r.primary], [...r.major], [...r.minor]]);
+  const text = classDescriptionLines(15).map((x) => x.text).join(' ');
+  assert.ok(text.includes(`${SKILL_NAMES[r.major[0]]}, ${SKILL_NAMES[r.major[1]]}, and ${SKILL_NAMES[r.major[2]]}.`), text);
+  assert.ok(!text.includes('Swimming'), 'the file\'s list is still shown');
 });
 
 test('stock classes: the enhanced skin\'s describeClass reads the revised description', () => {

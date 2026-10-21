@@ -56,8 +56,8 @@
   {
     "name": "CLASS-USE-armour-not-cleared",
     "file": "src/systems/stockClasses.js",
-    "old": "((career.weaponArmorShieldsBitfield & ~ARMOR_MASK) | (bits << ARMOR_SHIFT))",
-    "new": "(career.weaponArmorShieldsBitfield | (bits << ARMOR_SHIFT))",
+    "old": "((career.weaponArmorShieldsBitfield & ~ARMOR_MASK) | (bits << ARMOR_BITS_SHIFT))",
+    "new": "(career.weaponArmorShieldsBitfield | (bits << ARMOR_BITS_SHIFT))",
     "tests": [
       "test/systems/stockclasses.test.js"
     ]
@@ -121,6 +121,33 @@
     "file": "src/ui/enhanced/enhancedChargen.js",
     "old": "f.describeClass = (i) => reviseClassDescription(i, textRsc.linesById(CLASS_DESCRIPTION_TEXT_ID + i));",
     "new": "f.describeClass = (i) => textRsc.linesById(CLASS_DESCRIPTION_TEXT_ID + i);",
+    "tests": [
+      "test/systems/stockclasses.test.js"
+    ]
+  },
+  {
+    "name": "CLASS-USE-classic-description-unwired",
+    "file": "src/ui/chargenArt.js",
+    "old": "return rows.length ? reviseClassDescription(classIndex, rows) : null;",
+    "new": "return rows.length ? rows : null;",
+    "tests": [
+      "test/systems/stockclasses.test.js"
+    ]
+  },
+  {
+    "name": "CLASS-USE-healer-forbidden-minor",
+    "file": "src/systems/stockClasses.js",
+    "old": "[S.Thaumaturgy, S.Destruction, S.Illusion, S.Etiquette, S.Streetwise, S.ShortBlade]",
+    "new": "[S.Thaumaturgy, S.Destruction, S.Illusion, S.Etiquette, S.Streetwise, S.Archery]",
+    "tests": [
+      "test/systems/stockclasses.test.js"
+    ]
+  },
+  {
+    "name": "CLASS-USE-file-restrictions-copy-drifts",
+    "file": "test/systems/stockclasses.test.js",
+    "old": "0x1f88, 0x1d90, 0x1f80",
+    "new": "0x1f88, 0x1d80, 0x1f80",
     "tests": [
       "test/systems/stockclasses.test.js"
     ]

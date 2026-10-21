@@ -25,7 +25,7 @@
 // character keeps the career it was made with (save.js keeps the career whole).
 
 import { SKILLS, SKILL_COUNT, SKILL_NAMES } from './skills.js';
-import { ARMOR_BITS } from './specialAdvantages.js';
+import { ARMOR_BITS, ARMOR_BITS_SHIFT } from './specialAdvantages.js';
 import { t } from './textManager.js';   // the rewritten list's joins, in the player's language
 
 const S = SKILLS;
@@ -74,9 +74,8 @@ export const STOCK_CLASS_REVISIONS = Object.freeze([
     [S.Archery, S.ShortBlade, S.Dodging, S.Mercantile, S.Running, S.Swimming]),
 ]);
 
-/** The armour-type bits of weaponArmorShieldsBitfield (bits 6-8; specialAdvantages.js parseCareerData's shift). */
-const ARMOR_SHIFT = 6;
-const ARMOR_MASK = 0x7 << ARMOR_SHIFT;
+/** The armour-type field of weaponArmorShieldsBitfield, whole. */
+const ARMOR_MASK = 0x7 << ARMOR_BITS_SHIFT;
 
 /**
  * A stock career as DFO hands it to the player: the CFG's career (ClassFile's, untouched) copied, with the revision's
@@ -90,7 +89,7 @@ export function reviseStockCareer(index, career) {
   const out = { ...career, primarySkills: [...r.primary], majorSkills: [...r.major], minorSkills: [...r.minor] };
   if (r.forbiddenArmor) {
     const bits = r.forbiddenArmor.reduce((m, k) => m | ARMOR_BITS[k], 0);
-    out.weaponArmorShieldsBitfield = ((career.weaponArmorShieldsBitfield & ~ARMOR_MASK) | (bits << ARMOR_SHIFT)) >>> 0;
+    out.weaponArmorShieldsBitfield = ((career.weaponArmorShieldsBitfield & ~ARMOR_MASK) | (bits << ARMOR_BITS_SHIFT)) >>> 0;
   }
   return out;
 }
