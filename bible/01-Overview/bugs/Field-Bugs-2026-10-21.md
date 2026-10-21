@@ -243,7 +243,7 @@ destroyed pixel; a blanket going inactive lets its queue go; a host tile rebuilt
 
 `server-account/src/festival.js` (`findFestival`, `festivalOf`), `src/systems/festival/festivalClient.js` (`learn`,
 `festivalFindsToday`, `askFind`), `src/systems/festival/festivalWords.js`, `src/ui/wyrdWindow.js`,
-`src/scenes/witchesHost.js`. Account service acct166, no migration.
+`src/scenes/witchesHost.js`. Account service acct167 (acct166 on its branch, renumbered past FIELD BUGS 2026-10-20h's acct166 - ESSENCE-LOOSE and SOUL-LAW - at the merge), no migration.
 
 FOUND. A find is decided by the account service's die and capped by the day (`06-Systems/Witches-Festival.md`):
 `FIND_CAKES_PER_DAY` cakes a UTC day. Once the day's 120 were found, `findFestival` asked its die for nothing
@@ -278,4 +278,4 @@ The three lines are drafted in the thirteen whole languages (`festival.finds.*`)
 counts the day, a new UTC day finds; the find pins moved to carry `today`); `test/systems/festival/fb1021_cakecap.test.js`
 (5): the find that ends the day and the day's end said once, nothing asked after, the next day asked again; the asks'
 refusal; a player back after the cap; an older service (no `today`) asked and silent as before; the window's line and its
-day-turn. `tools/mutants/fb1021_cakecap.json` (10, 10 dead). The version's pins moved to acct166.
+day-turn. `tools/mutants/fb1021_cakecap.json` (10, 10 dead). The version's pins moved to acct167.

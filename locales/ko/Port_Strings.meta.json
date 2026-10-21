@@ -23594,14 +23594,29 @@
   "tr": "c9a8f98d1697",
   "by": "claude-in-session"
  },
+ "prof.page.stores.fromPackGoods": {
+  "en": "658f1d1d015f",
+  "tr": "439d97bb59d8",
+  "by": "claude-in-session"
+ },
  "prof.page.stores.goldGoods": {
   "en": "0d5a1ee06ac7",
   "tr": "6def4dcaf660",
   "by": "claude-in-session"
  },
+ "prof.page.stores.goldStays": {
+  "en": "d7fe9756ed0f",
+  "tr": "873d5e4f416a",
+  "by": "claude-in-session"
+ },
  "prof.page.stores.looseGoods": {
   "en": "4b2a8d95c0dd",
   "tr": "b6f24f0a66be",
+  "by": "claude-in-session"
+ },
+ "prof.page.stores.looseMade": {
+  "en": "a48227c3560e",
+  "tr": "d3cbc73278c0",
   "by": "claude-in-session"
  },
  "prof.page.stores.matLine": {
@@ -23780,13 +23795,13 @@
   "by": "claude-in-session"
  },
  "prof.page.unlocks.hunting1": {
-  "en": "3150619be94c",
-  "tr": "5ce268f308db",
+  "en": "7e740646d01d",
+  "tr": "f6e665c88b53",
   "by": "claude-in-session"
  },
  "prof.page.unlocks.hunting2": {
-  "en": "7ee91d615091",
-  "tr": "1afb1e1f3b9a",
+  "en": "3d94bbcfdab3",
+  "tr": "7d0287e13212",
   "by": "claude-in-session"
  },
  "prof.page.unlocks.hunting3": {
@@ -23905,8 +23920,8 @@
   "by": "claude-in-session"
  },
  "prof.page.unlocks.outfitting2": {
-  "en": "c0be52db8eee",
-  "tr": "764a56e2d533",
+  "en": "4b2213ed6f4a",
+  "tr": "99b77a2da1d4",
   "by": "claude-in-session"
  },
  "prof.page.unlocks.outfitting3": {

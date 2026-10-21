@@ -83,7 +83,7 @@ test('CAKE-CAP-SAID: a player who comes back after the day\'s finds is told at t
   assert.equal(fullLines().length, 1);
 });
 
-test('CAKE-CAP-SAID: a service that says no day (before acct166) is asked every kill and nothing is said - as before', async () => {
+test('CAKE-CAP-SAID: a service that says no day (before acct167) is asked every kill and nothing is said - as before', async () => {
   const { api, asked } = fakeApi({ mine: { ok: true, data: { cakes: 0 } }, find: { ok: true, data: { found: 0, cakes: 0 } } });
   bind(api);
   for (let i = 0; i < 3; i++) await kill();
