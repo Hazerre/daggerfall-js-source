@@ -168,8 +168,8 @@
   {
     "name": "HC-dungeon-loop-by-itself",
     "file": "src/scenes/dungeonContext.js",
-    "old": "    ownerFoes.step(foes, dt, stepFoes);",
-    "new": "    stepFoes(dt);",
+    "old": "    ownerFoes.step(foes, frameDt, stepFoes);",
+    "new": "    stepFoes(frameDt);",
     "tests": [
       "test/scenes/fb1021b_hostclock.test.js"
     ]
@@ -177,8 +177,8 @@
   {
     "name": "HC-dungeon-batches-kept",
     "file": "src/scenes/dungeonContext.js",
-    "old": "    const stepFoes = (dt) => {\n    _mobileBatches.length = 0;\n",
-    "new": "    const stepFoes = (dt) => {\n",
+    "old": "    dt = stepDt;   // the call's time in the frame's own name - the loop's text as it stood, and no binding shadowing the frame's (MAC-L1b's no-shadow)\n    _mobileBatches.length = 0;\n",
+    "new": "    dt = stepDt;   // the call's time in the frame's own name - the loop's text as it stood, and no binding shadowing the frame's (MAC-L1b's no-shadow)\n",
     "tests": [
       "test/scenes/fb1021b_hostclock.test.js"
     ]
@@ -197,6 +197,24 @@
     "file": "src/scenes/dungeonContext.js",
     "old": "    _npcStood.length = 0;\n    npcLane?.begin();\n    let _fi = -1;",
     "new": "    _npcStood.length = 0;\n    let _fi = -1;",
+    "tests": [
+      "test/scenes/fb1021b_hostclock.test.js"
+    ]
+  },
+  {
+    "name": "HOST-CLOCK-the-frame-keeps-the-last-call",
+    "file": "src/scenes/dungeonContext.js",
+    "old": "    dt = frameDt;   // HOST-CLOCK: the rest of the frame",
+    "new": "    void frameDt;   // HOST-CLOCK: the rest of the frame",
+    "tests": [
+      "test/scenes/fb1021b_hostclock.test.js"
+    ]
+  },
+  {
+    "name": "HOST-CLOCK-the-call-on-the-frame",
+    "file": "src/scenes/dungeonContext.js",
+    "old": "    dt = stepDt;   // the call's time",
+    "new": "    void stepDt;   // the call's time",
     "tests": [
       "test/scenes/fb1021b_hostclock.test.js"
     ]

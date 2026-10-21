@@ -7660,7 +7660,9 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // one plan (my player's pace, never past it); `dt` inside is the call's. Each call stands the frame's foes whole - the
     // lane begun, the batches listed - and the last call's stand is what is drawn below. (The body keeps its indentation,
     // as world.js's PERF-V8 closures do. The ON ICE rig arm would draw a rig each call; no foe carries one.)
-    const stepFoes = (dt) => {
+    const frameDt = dt;   // HOST-CLOCK: the frame's own time - the loop below reads `dt` as its call's, and the frame takes its own back after it
+    const stepFoes = (stepDt) => {
+    dt = stepDt;   // the call's time in the frame's own name - the loop's text as it stood, and no binding shadowing the frame's (MAC-L1b's no-shadow)
     _mobileBatches.length = 0;
     _npcStood.length = 0;
     npcLane?.begin();
@@ -8068,7 +8070,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       _drawSprite(renderer, canvas, f.rig, mat, proj, view, eye);
     }
     };
-    ownerFoes.step(foes, dt, stepFoes);   // HOST-CLOCK: the frame's foes, stepped through the page's one catch-up
+    ownerFoes.step(foes, frameDt, stepFoes);   // HOST-CLOCK: the frame's foes, stepped through the page's one catch-up
+    dt = frameDt;   // HOST-CLOCK: the rest of the frame - the bodies' end, the flats, the water, the HUD - on its own time
     // MWNPC5b: THE DEAD IN THEIR BODIES - the death played where they fell (the pose's `dd`), the corpse flat casting its
     // shadow alone while the body lies there; the living stand first (the lane's priority). Then the frame's bodies,
     // synced, drawn in one bind of the sprite target (MWNPC2), and every offered foe's billboard cast-only where its

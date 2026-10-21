@@ -15456,10 +15456,12 @@ town watch's bodies kept it too, while its brains, on the page's one tactics clo
 - **The wiring.** world.js's one statement hands the street's watch beside its encounter pool
   (world.js:"modes, () => online?.status"); worldModes.js puts the building's two pools through the page's catch-up at the
   mount (worldModes.js:"ownerFoes.pools(interiorFoes, interiorGuards);", one statement); and drawFoes hands its foe loop
-  to it as a call (dungeonContext.js:"const stepFoes = (dt) => {", the loop as it stood with its spacing inside it, keyed
+  to it as a call (dungeonContext.js:"const stepFoes = (stepDt) => {", the loop as it stood with its spacing inside it, keyed
   by the context's one foe list). Each call stands the dungeon's foes whole - the lane begun, the batches listed afresh -
-  and the last call's stand is what is drawn. The hosts grew by wiring alone: createWorldModes one logical line,
-  buildDungeonContext three, bootWorld none.
+  and the last call's stand is what is drawn. The call's time is written into the frame's own `dt` and the frame takes
+  its own back after the step (dungeonContext.js:"dt = frameDt;"): a closure parameter of that name shadowed drawFoes'
+  own, which MAC-L1b's `no-shadow` run over the file refuses (the full suite found it). The hosts grew by wiring alone:
+  createWorldModes one logical line, buildDungeonContext five, bootWorld none.
 - **One plan a frame.** The plan is made at the frame's first step, priced at what every pool of the frame before cost a
   call, so the extras of all a frame's pools together spend `OWNER_CATCHUP_SHARE` at most; every pool of the frame takes
   it, so the brain's clock is carried once, as far as every body went - the watch's brains and its bodies are on one

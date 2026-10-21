@@ -269,9 +269,9 @@ test('HOST-CLOCK THE PARITY, a building, executed through worldModes\' own mount
     'fps, then the building\'s rat\'s and watchman\'s body seconds over my player\'s - online with anyone else in the room, then alone (before this slice: the alone columns, online too)');
 });
 
-// dungeonContext.js drawFoes: the frame's foes, its own text - `const stepFoes = (dt) => {` to the step through the catch-up
+// dungeonContext.js drawFoes: the frame's foes, its own text - `const frameDt = dt;` to the step through the catch-up and the frame's own time taken back
 const DC = rd('src/scenes/dungeonContext.js');
-const STEP_FROM = DC.indexOf('    const stepFoes = (dt) => {'), STEP_TO = DC.indexOf('    // MWNPC5b: THE DEAD IN THEIR BODIES', STEP_FROM);
+const STEP_FROM = DC.indexOf('    const frameDt = dt;'), STEP_TO = DC.indexOf('    // MWNPC5b: THE DEAD IN THEIR BODIES', STEP_FROM);
 const DUNGEON_STEP = STEP_FROM > 0 && STEP_TO > STEP_FROM ? DC.slice(STEP_FROM, STEP_TO) : null;   // the closure and the frame's own call of it
 /** Whatever the loop reads that this pin hands it not: a stub that answers nothing (a call answers undefined, a member
  *  is the stub again). */
@@ -350,6 +350,7 @@ test('HOST-CLOCK a dungeon\'s caught-up frame stands its foes ONCE: each call be
   assert.equal(d.lane.begun, 2, 'the lane begun by each call');
   assert.deepEqual([d.state._mobileBatches.length, d.state._npcStood.length, d.lane.stood.length], [1, 1, 1], 'the foe listed once, stood once - not once a call');
   assert.equal(d.state._mobileBatches[0], foe.batch);
+  assert.equal(d.state.dt, hostDt(4), 'and the rest of the frame takes its own time back - not the last call\'s (MAC-L1b: the call\'s time is written into the frame\'s own name, never a binding that shadows it)');
 });
 
 test('HOST-CLOCK the hosts by source: world.js\'s one statement hands the street\'s watch beside its encounter pool; worldModes puts the building\'s two pools through the page\'s catch-up at the mount and its frame\'s calls stand as they stood; drawFoes hands its foe loop - the loop as it stood, its spacing inside it - to the page\'s catch-up keyed by its foe list, its peers read once a frame outside it; no host keeps a catch-up of its own (mutants: none - the executed pins above hold the wiring)', () => {
@@ -363,11 +364,11 @@ test('HOST-CLOCK the hosts by source: world.js\'s one statement hands the street
   assert.match(WM, /const _guardBatches = interiorGuards\.update\(foeDt, player\.pos, cam\.pos,/, 'and its watch, its batches drawn');
   assert.match(DC, /import \{ ownerFoes \} from '\.\/ownerCatchUp\.js';/);
   const body = DUNGEON_STEP;
-  assert.match(body, /^ {4}const stepFoes = \(dt\) => \{\n {4}_mobileBatches\.length = 0;\n {4}_npcStood\.length = 0;\n {4}npcLane\?\.begin\(\);\n {4}let _fi = -1;\n/, 'each call: the frame\'s lists afresh, the lane begun, the count from the top');
+  assert.match(body, /^ {4}const frameDt = dt;[^\n]*\n {4}const stepFoes = \(stepDt\) => \{\n {4}dt = stepDt;[^\n]*\n {4}_mobileBatches\.length = 0;\n {4}_npcStood\.length = 0;\n {4}npcLane\?\.begin\(\);\n {4}let _fi = -1;\n/, 'each call: the frame\'s lists afresh, the lane begun, the count from the top');
   assert.match(body, /\n {4}spaceFoes\(foes, collider, foeFrameDt\(dt\), [^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*clearDoorways\(foes, [^\n]*\n\s*for \(const f of foes\) \{\n {6}_fi\+\+;/, 'the spacing and the loop, inside it, on the call\'s step');
   assert.match(body, /f\.ai\.update\(foeFrameDt\(dt\), _pf, /, 'the body handed FOE-CATCHUP\'s step of the CALL');
-  assert.match(body, /\n {4}\};\n {4}ownerFoes\.step\(foes, dt, stepFoes\);/, 'the loop handed to the page\'s catch-up, keyed by the context\'s one foe list');
-  assert.match(DC, /_peerFrame\+\+;[^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*const stepFoes = \(dt\) => \{/, 'the peers read once a frame, outside the calls');
+  assert.match(body, /\n {4}\};\n {4}ownerFoes\.step\(foes, frameDt, stepFoes\);[^\n]*\n {4}dt = frameDt;/, 'the loop handed to the page\'s catch-up, keyed by the context\'s one foe list');
+  assert.match(DC, /_peerFrame\+\+;[^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*const frameDt = dt;[^\n]*\n\s*const stepFoes = \(stepDt\) => \{/, 'the peers read once a frame, outside the calls');
   assert.equal((DC.match(/ownerFoes\./g) ?? []).length, 1);
   for (const [f, t] of [['world.js', w], ['worldModes.js', WM], ['dungeonContext.js', DC]]) assert.doesNotMatch(t, /catchUpOwnerFoes|createOwnerCatchUp/, `${f}: the page's one catch-up, never one of its own`);
 });
