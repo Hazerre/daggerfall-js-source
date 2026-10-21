@@ -19949,6 +19949,10 @@ option under audio for it called Monster Volume with 0 - 100%".
   there each socket is the column's height shared out, so it fits without scrolling). A lantern there carries
   `beltLantern: true`, hangs at the waist when lit whatever Handheld Torches' waist switch says (`playerTorch.js`
   lanternAtWaist, `handheldTorches.js` atWaist), and is lit when hung and put out when taken off.
+  BELT-WAIST (`01-Overview/bugs/Field-Bugs-2026-10-21.md`): the socket holds the lantern AT THE WAIST - the one hung, or
+  a lit one the waist switch hangs there (`beltLantern.js` waistLanternOf) - and the hand's row never does, so a lantern
+  lit by O, Use or the hotbar is drawn where the world hangs it, not on the shield's panel. O lights the hung lantern
+  first, a hung one takes no hand with the switch off, and the hotbar's lantern leaves a shield on.
 - **Monsters** (`characters/enemy/enemySounds.js` attractStep, `scenes/hostCombat.js` tickEnemySound): a monster's attract
   clock runs at 1/2.5 of the game's, so it calls 40% as often; the city watch and a companion keep theirs. The Audio
   tab's **Monster Volume** (`systems/monsterVolume.js`, uiPrefs `monsterVolume`, 0-100%) scales a monster's call, its
