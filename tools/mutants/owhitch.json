@@ -29,8 +29,8 @@
   {
     "name": "OW-HITCH-field-no-reuse",
     "file": "src/render/labGrass.js",
-    "old": "originX: gx, originZ: gz, reuse: wholeSpare }));",
-    "new": "originX: gx, originZ: gz, reuse: null }));",
+    "old": "originX: gx, originZ: gz, reuse: wholeSpare });   // PERF-EXT21",
+    "new": "originX: gx, originZ: gz, reuse: null });   // PERF-EXT21",
     "tests": [
       "test/render/owhitch.test.js"
     ]
