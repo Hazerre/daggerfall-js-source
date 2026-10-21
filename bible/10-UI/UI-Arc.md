@@ -19964,3 +19964,16 @@ option under audio for it called Monster Volume with 0 - 100%".
   raised nothing still ends the activation.
 
 `test/ui/hud/hud_advance_tips.test.js`.
+
+## TAB-WALK, HUD-FOCUS - Tab is never the browser's walk, and the chat's buttons never keep the focus (FIELD BUGS 2026-10-20h)
+
+A player's report, as the coordinator summed it up: "TAB focusing the Socials button". PX15 kept Tab's browser default
+wherever the QuickDial did not answer it: on the classic skin, before the boot's last await, and with the dial
+rebound. That default is the browser's walk of the page's focus, not DFU's behaviour (DFU binds
+nothing to Tab). With the chat shut online, the walk stopped on the Social button, the first control the sheet draws
+over the world, and the next Space (Jump) pressed it. The hosts' one swallow now takes a Tab aimed at the page itself
+(`ui/input.js` isPageFocusWalk, in swallowBrowserKey), so an unanswered Tab does nothing. A field's Tab, a window's own
+walk and Ctrl+Tab are left alone. The chat's controls over the world (Play online here, the touch skin's Chat, both
+Social buttons, Show) are never the keyboard's focus (`ui/input.js` neverTheFocus): they are out of the walk, a mouse
+press gives them no focus, and a focus they get another way is given back. The record:
+`01-Overview/bugs/Field-Bugs-2026-10-20h.md`; the pins `test/ui/fb1020h_tabwalk.test.js`.
