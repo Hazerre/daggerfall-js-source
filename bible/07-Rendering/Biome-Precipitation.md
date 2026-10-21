@@ -238,14 +238,18 @@ No new texture unit. Each fragment then:
    computed once and handed to both - GROUND-6), so the snow crosses the border as the ground does.
 
 The same cover on the CPU is `snowCoverAt` (GROUND-3: the patches lived only in GLSL), read by the grass and the feet.
+Under the snow the water's bed and sheet mix their summer and winter masks by the cover (GROUND-5: the summer puddles were
+drawn over the winter art). A desert's ground has no winter set (`TerrainMaterialProvider`'s guard), so its twin offset
+is nought and the cover leaves it as it is; next to a snowy neighbour, the neighbour's winter still blends in across the
+band. The sea's floor wears the lane's ground (its summer set; the snow is the ground's by its cover), never the pixel's
+season (AUDIT FB1021 L4-9: these stood inside LANE-TURN's paragraph).
 
 SNOW-FACE (FIELD BUGS 2026-10-21, `01-Overview/bugs/Field-Bugs-2026-10-21.md`, the owner's screenshot of a straight green
 band up a white range's side, bare of snow and of trees): the fragment shed its snow on a steep face (`SNOW_GROUND.slope`,
 the normal's y from 0.8 to 0.62 - 37 to 52 degrees), and what lay under it was its summer set's own tile, Daggerfall's
 grass, its dirt and its stone: the sets have no rock face to shed to. The landforms stand a range's flank past 52 degrees
-hundreds of metres wide (on the freeware's map 44% of the Dragontail pixel beside The Bat and Cat Pub, 924,473, and 39%
-of 917,472 - AUDIT FB1021 L1-3), and DFU's
-TerrainNature stands no tree past 50 degrees, so the face drew as a green wall up a white mountain. There is no slope in
+hundreds of metres wide (on the freeware's map 44% of the Dragontail pixel beside The Bat and Cat Pub, 924,473, and 40%
+of 917,472 - AUDIT FB1021 L1-3, L4-5), and DFU's TerrainNature stands no tree past 50 degrees, so the face drew as a green wall up a white mountain. There is no slope in
 the law now: a face keeps the snow its height lays, as DFU's winter set dresses every tile, steep or not; its trees are
 DFU's still (none past 50 degrees), and in snow it reads as a snowfield. A steep face's green summer patches between 37
 and 52 degrees went with it.
@@ -258,11 +262,7 @@ loaded (the lane loads the twin alone, so most likely black - AUDIT FB1021 L1-7)
 lane's ground is its own archive (`groundArchive`: the summer set on the lane, DFU's season off it), which no re-skin
 touches, so the host marks such a pixel for a rebuild (`markRebuild`, world.js `_reskin.mark`), as the classic flip
 rebuilds its pixels - a turn onto the lane once the snow's window stands, so the torn-down grid's first rebuild never
-waits on a cold year's integration in frame slices (AUDIT FB1021 L1-1). Under the snow the water's bed and sheet mix their summer and winter masks by the cover (GROUND-5: the
-summer puddles were drawn over the winter art). A desert's ground has no winter set (`TerrainMaterialProvider`'s guard),
-so its twin offset is nought and the cover leaves it as it is; next to a snowy neighbour, the neighbour's winter still
-blends in across the band. The sea's floor wears the lane's ground (its summer set; the snow is the ground's by its
-cover), never the pixel's season.
+waits on a cold year's integration in frame slices (AUDIT FB1021 L1-1).
 
 **The builds.** A pixel's buildings, its town's climate swaps, its windmills and its homes wear Winter where the snow at
 its middle's ground (a town's planed height, else the ground's middle) covers a half (`SNOW_COVER.winter`). Each tree,

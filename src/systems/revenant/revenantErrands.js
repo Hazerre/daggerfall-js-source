@@ -173,8 +173,9 @@ export function errandUntil(e, now) {
 }
 /** AUDIT RVN F1: the minutes one wake's step pushes every errand's return back - `own` the own clock's movement since the
  *  last wake, `raised` the raises' (worldTick.js raisedMinutes; a count that went back - a new session's - is none). Online
- *  only the lived part carries an errand on, STEP_MAX at most: the raise and any time away are pushed; offline nothing
- *  is (DFU's one clock). Never negative. */
+ *  before the relay's clock is heard only the lived part carries an errand on, STEP_MAX at most: the raise and any time
+ *  away are pushed (once it is heard the world's time carries it - errandOnWorld, OFFLINE-ROAD); offline nothing is
+ *  (DFU's one clock). Never negative. */
 export function errandStep(own, raised, online) {
   if (!online || !(own > 0)) return 0;
   const lived = Math.min(Math.max(own - (raised > 0 ? raised : 0), 0), ERRAND.STEP_MAX);

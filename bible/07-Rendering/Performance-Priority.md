@@ -1486,7 +1486,7 @@ of a world frame of 1,353 ms. `SNOW_COVER.budgetMs` is 3 ms a frame, but it was 
 - `snowCoverHost.js budgetFor` gives the asks within `SNOW_COVER.frameMs` (12) one budget between them; a build's
   `settle` keeps the breather's own.
 - `drawnCover` reads the slope only where the cover is above nothing. `snowCoverAt` answers 0 for no cover whatever the
-  slope.
+  slope. (Since SNOW-FACE, FIELD BUGS 2026-10-21, it reads no slope at all - AUDIT FB1021 L4-3.)
 
 **Measured.** In node, over the real law (`snowCoverHost.js` and `snowpack.js` from this branch and from its base,
 Woodlands in late winter, an 11 x 11 window caught up while a frame asks as the world frame does - the feet three

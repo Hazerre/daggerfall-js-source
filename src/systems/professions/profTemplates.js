@@ -28,7 +28,7 @@
 // are the one door (law 3).
 //
 // PROF7 (2026-09-29, Mac: "Do it"; Professions-Arc.md 29): THE HIDES,
-// THE LEATHERS AND THE CLOTH (655-671) the same way - and THE SKINNING
+// THE LEATHERS AND THE CLOTH (655-671, 672, 676) the same way - and THE SKINNING
 // KNIFE (603), the one row here a shop shelves: a tool the player buys,
 // as Foraging's six are, ONLINE ONLY (FORAGE0 14.2: nothing offline uses
 // it) - General Stores and Pawn Shops, by DFU's own custom-item loop.

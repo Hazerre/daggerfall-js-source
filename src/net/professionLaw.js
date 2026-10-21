@@ -531,8 +531,8 @@ const hide = (key, templateIndex, name, tier, icon, foes, part, meat, cures) =>
  * (4.5), and Harpy Feathers, which fletch (9.3's arrows), never cure (PROF0 29).
  * DEX-HIDES: the Enemy Expansion's animals skinned too - each of its kin's hide where the ten have its kin (its Bat the
  * classic Giant Bat's career, its Blood Spider a spider, its Mountain Lion the mod's own Tigers team, its Land Dreugh a
- * dreugh), and three hides of their own past the ten for the kinds the ten have none of (4.8's first free ids): WOLF
- * PELT (667: its Wolf, Snow Wolf and Dog - one team, Werecreatures, one coat), BOAR HIDE (672) and MUDCRAB CHITIN (676).
+ * dreugh), and three hides of their own past the ten for the kinds the ten have none of (4.8's first free ids past the
+ * hides' block): WOLF PELT (667: its Wolf, Snow Wolf and Dog - the canines, one coat), BOAR HIDE (672) and MUDCRAB CHITIN (676).
  * Their tiers are the low ones their kin's are (the Wolf level 5 and the Boar 6 by the Bear's 2; the Mudcrab, level 2, by
  * the Rat's 1); the wolf's fang and the boar's tusk DFU's Big Tooth, as the Bear's and the Tiger's; their butchery C&C's
  * Raw Meat, as C&C feeds every Animal body (survival/loot.js - AUDIT FB1021 L2-2: the Mudcrab's too; the Land Dreugh

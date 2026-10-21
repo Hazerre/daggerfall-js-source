@@ -283,7 +283,7 @@ the Ram Kit's input, before a Wolf Pelt, which has no other use); the Rat Pelt s
 | Blood Spider (271, 7) | Spider Silk | 3 | Spider's Venom (41) |
 | Mountain Lion (280, 8) - the mod's Tigers team | Tiger Pelt | 3 | Big Tooth (56) |
 | Land Dreugh (279, 9) | Dreugh Shell | 5 | - |
-| Wolf (262, 5), Snow Wolf (263, 10), Dog (267, 3) - one team, Werecreatures | **Wolf Pelt** (667) | 2 | Big Tooth (56) |
+| Wolf (262, 5), Snow Wolf (263, 10), Dog (267, 3) - the canines, one coat | **Wolf Pelt** (667) | 2 | Big Tooth (56) |
 | Boar (278, 6) | **Boar Hide** (672) | 2 | Big Tooth (56) |
 | Mudcrab (281, 2) | **Mudcrab Chitin** (676) | 1 | - |
 
@@ -338,8 +338,8 @@ So the crowns sit on the richest veins, the free lands hold what no crown can, a
 
 ### 4.8 The new templates (600-699)
 
-Icons are DFU's own, recoloured at runtime (law 6): each row names the DFU icon it borrows. **600-602 and 604 are
-unused**: the Pick, the Woodcutter's Axe, the Sickle and the Fishing Rod this table first held are Foraging's own
+Icons are DFU's own, recoloured at runtime (law 6): each row names the DFU icon it borrows. **601, 602 and 604 are
+unused** (600 is the Materials Bag's since BAG1, `net/bagLaw.js` BAG_TEMPLATE - AUDIT FB1021 L4-10): the Pick, the Woodcutter's Axe, the Sickle and the Fishing Rod this table first held are Foraging's own
 Pick-Axe (1601), Wood-Axe (1600), Sickle (1602) and Fishing-Net (1603), and the Basket (1607) joined them (FORAGE0 14).
 The Basket's foods are Foraging's and C&C's own templates, not new ones (FORAGE0 14.6).
 
@@ -2812,7 +2812,7 @@ Mac: **"Do it"** (2026-09-29, PROF7 after the VEIN-NEED fix: "What was next on t
   from the crypto source - its node key `body:<day>:<id>` (`net/nodeLaw.js` bodyKey, read in its one spelling). A body
   another's blow felled is DFU's corpse alone.
 - **Bounded, not witnessed** (6): the id is the client's word and the tier the foe's the client names (`foe`, its
-  MobileTypes value); the account's day - ~~**30 hides,**~~ **3 of tiers 5-6** (CAP-OFF, 2026-10-07: the thirty gone, the three kept) - is
+  MobileTypes value, or since DEX-HIDES the Enemy Expansion's id - AUDIT FB1021 L4-3); the account's day - ~~**30 hides,**~~ **3 of tiers 5-6** (CAP-OFF, 2026-10-07: the thirty gone, the three kept) - is
   the whole defence, **decided in the harvest's own INSERT** (the day's rows of `profession = 'hunting'` an account, its high ones by a new `tier` column -
   AUDIT 32 L2: their units, the hides, a clean pelt's second among them, the last skinning cut to the day's room; it
   counted the rows, the bodies, so a day ran to 60 hides and its rare three to six).

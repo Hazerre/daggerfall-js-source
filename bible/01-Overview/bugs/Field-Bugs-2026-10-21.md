@@ -33,12 +33,12 @@ green grass, with its orange dirt and grey stone blots. The other half of the pi
 tree on a tile steeper than 50 degrees (`terrainNature.js` MAX_STEEPNESS, both the classic scatter and Real Forests). So a
 face past 52 degrees drew as a green band with no tree on it, and its gentler rim as green patches thinning into the snow.
 
-The faces are real ground. Measured on the freeware's map with the landforms on (`createLandforms` with the climates, the
-world host's own), at the sample spacing (6.4 m, central differences, a pixel's interior): over all 107,146 Mountain
-pixels 0.081% of the samples are faces past 52 degrees, over the 6,662 with a height byte of 80 or more 0.386% (AUDIT
-FB1021 L1-2: this record said 0.01% and 1.3%, which no scan reproduces), and the Dragontail range holds whole flanks of
-them - 44% of the pixel beside The Bat and Cat Pub (924,473), 41% beside The Howling Ogre Lodge, 37% beside Boorche's
-Guard, 39% of pixel 917,472. They run straight for kilometres along a range's flank, which is the band in the
+The faces are real ground. Measured on the freeware's map as the pin measures it (`generateSamples` under `createLandforms`
+with the climates - the world host hands them its roads and sites too, which neither reads), at the sample spacing (6.4 m,
+central differences, a pixel's interior): over the 107,146 Mountain pixels about 0.08% of the samples are faces past 52
+degrees, over the 6,662 with a height byte of 80 or more 0.38% (AUDIT FB1021 L1-2, L4-6: this record said 0.01% and 1.3%,
+which no scan reproduces), and the Dragontail range holds whole flanks of them - 44% of the pixel beside The Bat and Cat
+Pub (924,473), 40% beside The Howling Ogre Lodge (939,475), 37% beside Boorche's Guard (951,464), 40% of pixel 917,472. They run straight for kilometres along a range's flank, which is the band in the
 screenshot; their steepest stand 61 to 65 degrees. With DFU's kernel alone the same four pixels hold no face past 52
 degrees (their steepest 39 to 45, inside the old shed's thinning band, so a DFU face would have worn green patches, not a
 band). The classic lane never showed it, since its winter is DFU's whole set, and the snow lane showed it wherever a
@@ -49,7 +49,7 @@ tile is grass in every season, and DFU's winter set dresses every tile white, st
 face keeps the snow its height lays, and in snow it reads as a snowfield, white and bare of trees. Its trees stay DFU's
 (none past 50 degrees; the summer face is a grassy one, as DFU draws it). AUDIT FB1021 L1-4, said plainly: so the
 report's "no floral" half stands in every season - the band is bare of trees, white in winter now and green in summer
-(42% of 917,472 and 49% of 924,473 stand past 50 degrees). The faces are the landforms', not DFU's (with DFU's kernel the
+(43% of 917,472 and 49% of 924,473 stand past 50 degrees). The faces are the landforms', not DFU's (with DFU's kernel the
 same pixels hold none past 45, and DFU would have stood its trees there). Kept anyway: a tree on a 60-degree face stands
 out from a cliff, and reading DFU's slope under our ground for the scatter is a new law for the woods, not this fix; the
 winter of the screenshot reads as a snowfield. Not taken: drawing a rock tile on a face (the sets
@@ -109,8 +109,9 @@ affinity), so only Hunting had missed them.
 DECIDED. Each of the nine is skinned, its kin's hide where Hunting's ten have its kin: the Bat Bat Leather, the Blood Spider
 Spider Silk, the Mountain Lion a Tiger Pelt (the mod files it on its Tigers team), the Land Dreugh a Dreugh Shell. The rest
 have no kin among the ten, and a wolf's body giving a Bear Hide reads as a bug of its own, so three hides of their own, at
-the reserved range's first free ids (`06-Systems/Professions-Arc.md` 4.8): WOLF PELT (667) for the Wolf, the Snow Wolf and
-the Dog (one team, Werecreatures, one coat), BOAR HIDE (672) and MUDCRAB CHITIN (676). Their tiers are their kin's low
+the reserved range's first free ids past the hides' block (`06-Systems/Professions-Arc.md` 4.8 - AUDIT FB1021 L4-10: lower
+ones are free too): WOLF PELT (667) for the Wolf, the Snow Wolf and the Dog (the canines, one coat - the mod's
+Werecreatures team holds the Boar too, and AUDIT FB1021 L4-13 found the team no reason), BOAR HIDE (672) and MUDCRAB CHITIN (676). Their tiers are their kin's low
 ones: the Wolf (level 5) and the Boar (level 6) by the Bear's 2, the Mudcrab (level 2) by the Rat's 1. The wolf's fang and
 the boar's tusk are DFU's Big Tooth, as the Bear's and the Tiger's are. Their butchery is C&C's Raw Meat, the crab's too
 (AUDIT FB1021 L2-2: this said Raw Fish, against PROF7's own law - C&C's corpse gives every Animal body Raw Meat, and the
