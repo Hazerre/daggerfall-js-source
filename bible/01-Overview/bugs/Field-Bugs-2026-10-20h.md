@@ -22,7 +22,7 @@ and the code. Reports 1-7 were traced in parallel lanes on 2026-10-21, each on m
 | 4 | "the Temple of Mara's giant statue and invisible walls" | Not reproduced: the classic statue (TEXTURE.097 record 7) draws at DFU's 1.375 x 2.275 m; the packs' statue (1230.11) is not carried and draws nothing, as in DFU, on an empty pedestal in all 448 temples; every solid body stands inside a drawn flat | not reproducible |
 | 5 | "the Arcana Essence marked 'bought with gold'" (the item is Arcane Essence) | A piece crafted or tempered with goods put in from the pack is walled to gold for the market by `products.bought_with = 'gold'`, and the disenchant read that column as a gold purchase: its Essence went into the Stores as gold's - "bought with gold", "It can go to your pack" - and the Reforge with Essence refused it | ESSENCE-LOOSE |
 | 6 | "TAB focusing the Socials button" | The hosts prevented Tab only when the QuickDial answered it; on the classic skin, before the boot finished, or with the dial rebound, the browser walked the page's focus onto the only control over the world, the chat's Social button, and the next Space (Jump) pressed it; a mouse press left it focused the same way | TAB-WALK; HUD-FOCUS |
-| 7 | "the Soul Trap (Ogre) trade freeze" | Being traced; its section lands with its fix | in progress |
+| 7 | "the Soul Trap (Ogre) trade freeze" | Not a hang: the realm's trade hold. An Ogre is Daggerfall Enemy Expansion's 282, and item law 8 took only DFU's souls, so the judge found the trapper's gem "a Soul Trap the game could not have made" and froze its trading, with a strike (three gems sold made a week's hold). On the way: an offer the law refused stood on the giver's side of the trade's table but never rode the wire, and a trade could finish without it | SOUL-LAW (law 9, acct166, migration 0143); TRADE-WHOLE |
 | 8 | "the revenants' defects" | Not traced: the report is not in hand, and the owner chose to leave it open (2026-10-21) | open |
 | 9 | Kikkirik: "crash on talking with the fast traveler" (the CRASH panel: `TypeError: Cannot read properties of undefined (reading '0')` at `Qv` <- `bye` <- `i` <- `oy` <- `iy` <- `Object.Wh [as exteriorActivationHit]`) | A Hearth Offering's ray target carried the culling box's 6-array where the street's ray reads `{ min, max }`: every press in a town where one stood threw out of `rayAabb` | fixed on main by #1091 (FIELD BUGS 2026-10-20e OFFERING-RAY); nothing here |
 | 10 | Ballvald Steel-Hewer, in the chat of another player's crash screenshot: "there are many instances where insert here names are not appearing. meaning when i ask about the work they say go to talk to 'insert name here' :D" | The Work answer names whoever the questor pool's selection points at. Two things left that selection on someone the pool no longer held: the offer window spends the questor it was opened for, and a load brings in a pool without the selection. The answer then read "Go to a place called  and talk to someone named ." Found on the way: every woman with work was "him" | QUESTOR-HELD; QUESTOR-SHE |
@@ -584,7 +584,7 @@ A standing piece walled to gold that its owner never bought with gold is marked 
 GOLD-MARKET opened on 2026-09-30, so every one is still there. `prof_disenchants` is rebuilt with `loose` in its origin's
 CHECK (0041's and 0097's way), and a past disenchant of such a piece is named loose by the same rule. Each character's
 gold Essence moves to loose as far as those disenchants gave it, and never more than its Stores still hold of gold's.
-ACCOUNT_VERSION acct166: service.js and wrangler.toml, the history line naming it, and every version pin moved (30 pins
+ACCOUNT_VERSION acct166, one release with SOUL-LAW (whose migration is 0143, after this one): service.js and wrangler.toml, the history line naming both, and every version pin moved (30 pins
 in 19 test files, 10 records in 9 mutant lists). The same deploy carries DEX-HIDES' law to the Worker.
 
 THE FOUR HOSTS: none changed. `world.js` wires the Stores page and the enchanting station's acts through the module
@@ -777,6 +777,140 @@ NOT CHANGED (recorded as found):
 Seen on the real world host in headless Chromium, before and after: the chat was mounted on the running host as
 `world.js` mounts it, and the online session itself was not stood up. The Tab walk was seen on a plain page and not on
 the host, because the classic boot's own window held every key through the probe.
+
+## SOUL-LAW and TRADE-WHOLE: an Ogre's soul in a Soul Gem froze its trapper's trading (7)
+
+`src/systems/item/itemLaw.js` (soulLawful, MOD_SOULS, ITEM_LAW_VERSION 9); `src/systems/enemyExpansion/dexIds.js` (new);
+`server-account/migrations/0143_soul_lift.sql` (new); `server-account/src/service.js` and `server-account/wrangler.toml`
+(acct166, shared with ESSENCE-LOOSE); `.github/workflows/account-deploy.yml` (the Worker's paths). TRADE-WHOLE:
+`src/systems/tradePack.js` (wholeLot).
+
+FOUND. The "freeze" was the realm's trade hold, not a hang. The Ogre is not one of DFU's MobileTypes: it is Daggerfall
+Enemy Expansion's 282, a line of the mod's own MonsterBase table. DEX1 merged as #1067 on the day of the report and is on
+by default (`modSettings.js:"  'daggerfall-enemy-expansion': Object.freeze({"`); its fifty enemies are 256-290 (monsters)
+and 384-398 (people), joined to the bestiary at the game's load (`dexInstall.js:"  registerEnemyRows(rows);"`). The soul
+trap's kill door hands the foe's own mobile id to the trap
+(`exteriorFoes.js:"const trap = peer || _peerTrap ? { allowDeath: true } : attemptSoulTrap(f.entity, f.mobileType, playerEntity.items, Math.random());"`,
+`dungeonContext.js:"const trap = peer || _peerTrap ? { allowDeath: true } : attemptSoulTrap(foe.entity, foe.mobileType, playerEntity.items, Math.random());"`),
+and the gem takes it (`mysticism.js:"  trap.trappedSoulType = soulType;"`) - DFU's own law: EnemyEntity.cs:217 hands
+`SoulTrap.FillEmptyTrapItem((MobileTypes)mobileEnemy.ID)` and SoulTrap.cs:158 writes it. With the mod installed DFU's
+EnemyBasics holds the custom id, and ItemHelper.cs:352-368 names the gem "Soul Trap (Ogre)", as the port does
+(`itemInfo.js:"const shownSoulName = (soul) => getLocalizedEnemyName(soul, enemyDisplayName(soul));"`).
+
+Item law 8 took only DFU's ranges (`itemLaw.js:"const soulLawful = "`: 0-42 and 128-146), so a gem holding any of the
+fifty was a `soul` finding (`itemLaw.js:"&& soulLawful(item.trappedSoulType))) out.add('soul');"`). The account service
+judges every realm checkpoint headless with that law
+(`judge.js:"for (const code of findingsOf(it)) keep({ code, list: li, at: i, t: it?.templateIndex ?? null });"`), the
+verdict holds the character and adds a strike (`verdict.js:"  if (law > 0 || (until != null && until > nowS)) return 'law';"`),
+and the client announces the hold (`realmHoldHost.js:"session.onTradeHeld = "`) by the template's name
+(`itemIds.js:"  const name = now === 'law' && why ? lawTemplate(why.t)?.name : null;"`). Reproduced word for word through
+the real Worker: "The realm is reviewing this character: it carries a Soul Trap the game could not have made. Trading is
+frozen until it is gone. Holds add up: from the third, trading stays frozen for a week even after it is gone, and for a
+month each time after that." While the hold stands every route that hands the character's value to another player
+refuses it (`trade-held`); three gems filled and sold make three strikes and a week's hold. Measured over every creature
+a gem can hold - the 112 in the bestiary after the mod's install, DFU's 62 and the mod's 50 - filling the Mages Guild's
+Soul Gem through the kill law: under law 8 DFU's 62 were lawful and all 50 of the mod's findings (35 monsters, 15 people).
+Azura's Star the same.
+
+The trading windows were not the freeze. Driven with a pack of 152 Soul Gems (one per creature and 40 empty, past
+TRADE-VIRT's 120-row threshold), the merchant's counter in Sell and Buy drew every row named "Soul Trap (<creature>)" and
+priced it (5,000 gold to sell, 5,625 to buy at quality 10) in 52-78 ms, and moved the Ogre's gem onto the counter and back
+by double click; the trade between players drew all 152 rows. Filling a gem writes no value (SoulTrap.cs:158 writes only
+the soul), its picture is the template's, virtualRows' aim loop is bounded
+(`virtualRows.js:"    for (let pass = 0; pass < AIM_PASSES && steer(); pass++);"`), and a landing pass walks the waiting
+tiles once (`landingTiles.js:"export function landingTiles(draw, { alive = () => true, later = nextFrame } = {}) {"`).
+
+TRADE-WHOLE (found on the way). The trade between players writes the giver's offer for the wire through validLootList,
+and since AUDIT INT that clamp drops a piece the law refuses and keeps the rest
+(`systems/loot/loot.js:"    if (!lawRefuses(it)) out.push(lawPriced(it));"`) - right for a chest, wrong for a trade: the offer was
+never refused (`tradeSession.js:"      if (!wired) return { ok: false, why: 'That cannot be traded.' };"`), so the gem stood
+in the giver's offer while the wire carried nothing. Driven hand to hand on the real sessions: offered alone, the peer
+saw an empty table and its lock answered "Nothing is being traded."
+(`tradeSession.js:"    if (!this.hasContent) return { ok: false, why: 'Nothing is being traded.' };"`), the trade left
+open with nothing either side could do; offered beside 10 gold, both sides confirmed and read "Trade with B complete." -
+the take reserves the offered entries, gem included, while the commit sends only what the wire carries
+(`tradeSession.js:"    this._enqueue({ k: 'commit', r: this.rev, o: this.theirRev, items: this._mineWire, g: this.mine.gold }, {"`),
+so the gem left the giver's pack and the peer got the gold alone. Through the realm the half's `give` lacked the gem
+(`tradeSession.js:"    const half = { sid: this.sid, give: { items: this._mineWire, gold: this.mine.gold }, get: { items: this._theirRaw, gold: this.theirs.gold }, pick };"`)
+and the hold refused the trade first; and `unwire` showed a peer's lot less the piece the law refuses.
+
+FIXED.
+- LAW 9 (`itemLaw.js:"const MOD_SOULS = new Set(DEX_ENEMY_IDS);"`): a Soul Gem or Azura's Star may hold the soul of any
+  of the mod's fifty. The service installs no mod, so the ids are read headless from the mod's own tables
+  (`dexIds.js:"export const DEX_ENEMY_IDS = Object.freeze((() => {"`): every `.mdb.csv` line's ID that is not one of DFU's
+  MobileTypes (`enemyBasics.js:"export const isClassicEnemyId = "`), with MUDEX's tables read after the mod's - the same
+  reading the install registers, and a pin holds the two equal. A soul no creature has is still a finding.
+- THE SERVICE. acct166 carries law 9 (`service.js:"export const ACCOUNT_VERSION = 'acct166';"`, and wrangler.toml), one
+  release with ESSENCE-LOOSE. The deploy's path list names the four files the Worker now bundles (dexIds.js,
+  dexTableText.js, mudexTableText.js and dexCsv.js; 33 KB, mostly the mod's table text), and tech1_roster's LAW_SERVICE
+  names law 9 as acct166's.
+- MIGRATION 0143 (0142 on its lane, renumbered past ESSENCE-LOOSE's at the merge) lifts what law 8's soul finding alone
+  laid, reading the record as 0130 (KEY-LIFT) does, with three differences: 0130's own lift ends no count, because it
+  kept strikes; a Weir Key's finding (575, already lifted twice) never counts as one that could strike; and the soul's
+  signature is kept, as 0125 kept the key's - the migration runs before the Worker that carries law 9, so a checkpoint law
+  8 judges in that gap finds the same gem and is no new strike. Written as a staff act (`by: 'soul-lift'`); an untimed hold
+  lifts at the character's first checkpoint under law 9 in any case.
+- TRADE-WHOLE (`tradePack.js:"function wholeLot(records) {"`): the trade's pack clamps its lot whole or not at all, which
+  is what `wire` and `unwire` were documented to do ("or null if any is no item"). An offer holding a refused piece is
+  refused with "That cannot be traded." and the piece stays in the pack; a peer's lot that carries one ends the trade
+  with a message (tradeUnreadableText). validLootList is unchanged for the chests, bodies and shelves AUDIT INT made it
+  for.
+
+No departure from DFU: the law, the realm and the trade between players are the port's own (KEY-LAW's footing), and DFU
+fills and names the gem as the port now allows.
+
+THE FOUR HOSTS: none changed; none reads the law, each goes through the modules. `world.js` builds the realm's trade pack
+(`world.js:"  const tradePack = checkpointedTradePack(createTradePack(playerEntity, { stampIds: stampItemIds }), () => onlineCheckpoint());"`)
+and rolls the gate court's soul trap (`world.js:"    soulTrap: ({ chance, mobile }) => {"`); `worldModes.js` and
+`dungeonContext.js` open the merchant's counter (createTradeWindow), and `dungeonContext.js` runs its own kill door;
+`exterior.js` and `world.js` wire `exteriorFoes.js`, whose kill door fills the gem.
+
+PINS. `test/systems/item/fb1020h_soul.test.js` (6) and `test/server/fb1020h_soullift.test.js` (2), the fixtures the real
+producers' (the Mages Guild's Soul Gem by createEmptySoulTrap, Azura's Star by createArtifact over DFU's MAGIC.DEF, each
+filled by attemptSoulTrap with the mod's ids read by dexRead; the realm trade through the real createTradeManager and the
+account Worker over node:sqlite; law 8's findings in the shape the verdict writes):
+- the Ogre is the mod's 282, and its gem has no finding, in the service's judge too;
+- all 112 creatures fill the Soul Gem and Azura's Star lawfully, the 112 are exactly the creatures the install fields,
+  and the gem reads "Soul Trap (Ogre)";
+- the law's list is the mod's tables' own, with MUDEX and without; eight souls no creature has stay findings;
+- headless, in a process that imports only the judge, the fifty's gems give no finding;
+- through the realm the trapper checkpoints, is not held, hears no notice, and trades the gem; the realm settles it and
+  the receiver holds the Ogre's soul;
+- hand to hand, a refused piece is refused with a message and kept off the table, and a peer's lot carrying one is
+  refused whole;
+- migration 0143 lifts the report's week whole, and the next checkpoint carrying the gem holds nothing;
+- what 0143 counts and leaves over eleven characters: a forged piece's strike kept, with its own fade; a hold another
+  piece makes kept; three other findings, a timed act, staff's hold, a soul in a dagger and no soul at all left as they
+  were; 0130's kept strike kept.
+
+All eight fail before the fix: the realm pin with the field's own notice, the hand-to-hand pin with `{ ok: true }` for
+the offer, the two lift pins on the migration file's absence. With the law fixed and TRADE-WHOLE not, the hand-to-hand
+pin alone fails. Mutants `tools/mutants/fb1020h_soul.json` (21, all dead): the law (4: the mod's list unread, the list
+empty, the ranges widened, the law version unmoved), the id reading (3: classic lines kept, ClassBase unread, the wrong
+column), the trade's clamp (3: wire, unwire, the count check piece by piece) and the migration (11).
+
+PIN MOVED: the account version's pins (acct166, one release with ESSENCE-LOOSE); `ITEM_LAW_VERSION`/`JUDGE_VERSION` read 9
+in five files; 15 mutant records in 11 files re-aimed by content at acct166 and law 9, and ss1.json's `unwire` record at
+wholeLot, all dead; `06-Systems/Systems.md`'s module count is 761.
+
+NOT CHANGED:
+- THE NOTICE NAMES THE TEMPLATE. A law hold names the piece by `lawTemplate(why.t)` ("a Soul Trap", not "Soul Trap
+  (Ogre)"): the finding records the template alone. Naming it as the pack does would need the judge to record the soul.
+- THE ITEM MAKER OVER AZURA'S STAR. EnumerateFilledTraps counts a Star's soul unbounded
+  (`mysticism.js:"    else if (isAzurasStar(it)) found.add(soul);   // :121-125, unbounded"`, SoulBound.cs:121-125), so a
+  Star holding one of the fifty lists Bound Soul, and its chooser, held to SoulBound's 43 costed souls
+  (`enchantmentCatalogue.js:"    params = params.filter((p) => soulSet.has(p.param));   // SoulBound.cs:52-55"`), is empty:
+  pressing it does nothing. DFU with the mod throws IndexOutOfRangeException there (SoulBound.cs:125). A gem's soul past
+  43 is counted in neither game (`mysticism.js:"    if (isSoulTrap(it) && soul < SOUL_BOUND_MONSTER_ID_COUNT) found.add(soul);"`,
+  SoulBound.cs:115); the mod's souls bind nothing. Whether the Star should refuse or say so is the owner's call.
+- A FORGED SOUL'S STRIKE IS LIFTED TOO. The finding records the template, never the soul, so 0143 cannot tell a soul of
+  the fifty from one no creature has. A forged soul gains nothing (the fill writes no value, the item maker reads only
+  the first 43), and law 9 finds it again at the next checkpoint.
+- THE KEPT SIGNATURE. A character whose next finding comes before any clean checkpoint takes no strike for it - 0125's
+  trade-off, kept for the deploy gap.
+- THE MOD'S SOUL POINTS. The mod's tables carry no SoulPts column, so its creatures' souls are worth 0 to
+  ItemBuilder.CreateRandomlyFilledSoulTrap's `5000 + SoulPts`; the port's random fill (`shopStock.js`
+  createRandomlyFilledSoulTrap) draws only DFU's 0-42, as DFU's does.
 
 ## The revenants (8): left open
 
