@@ -5683,6 +5683,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     speed: player?.speed ?? 0, dt, scale, maxFrameDt: MAX_FRAME_DT,
     floor: TRAVEL_LOOKAHEAD, margin: TRAVEL_LOOKAHEAD_MARGIN,
   });
+  /** R9: A GROUND ARCHIVE'S TILE SET, ready for a pixel's draw and its grass - held by the pixel's place (`hold`, its
+   *  PLACE-LRU door), uploaded once (a texture mod's set first), the ground-sharpness tier on every cached set, and the
+   *  grass's three tables learned. The pixel's own archive, and ECOTONE1's neighbours' at a climate border (the sets
+   *  the ground's border samples - render/ecotoneGlsl.js). OW-HITCH (HOST-SPLIT): its home is scenes/groundSets.js -
+   *  a set made a record a breath, uploaded a few layers a breath, once a key. Made before the stream's build state
+   *  (`inFlight`, the breather below - asked at its breaths, never at the making). */
+  const { loadGroundSet } = createGroundSets({ renderer, getTexture, labGrass, breathe: () => breather.breathe(), grassRecords, floorRecords, groundPuddles, groundMeanColour, groundDrawnMeans });
   const inFlight = new Map();
   /** ECOTONE1: a border pixel's neighbours for its ground's draw (renderer.drawTerrain's `eco`) - their sets as the
    *  renderer holds them now. Null for a pixel with none, and while any of them is missing (the pixel's hold keeps them,
@@ -5705,12 +5712,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const [dx, dz] = ecotoneOwner(p.px, p.py, x, z, (ax, az) => g[(az + 1) * 3 + ax + 1]);
     return g[(dz + 1) * 3 + dx + 1];
   };
-  /** R9: A GROUND ARCHIVE'S TILE SET, ready for a pixel's draw and its grass - held by the pixel's place (`hold`, its
-   *  PLACE-LRU door), uploaded once (a texture mod's set first), the ground-sharpness tier on every cached set, and the
-   *  grass's three tables learned. The pixel's own archive, and ECOTONE1's neighbours' at a climate border (the sets
-   *  the ground's border samples - render/ecotoneGlsl.js). OW-HITCH (HOST-SPLIT): its home is scenes/groundSets.js -
-   *  a set made a record a breath, uploaded a few layers a breath, once a key. */
-  const { loadGroundSet } = createGroundSets({ renderer, getTexture, labGrass, breathe: () => breather.breathe(), grassRecords, floorRecords, groundPuddles, groundMeanColour, groundDrawnMeans });
 
   async function buildPixel(px, py) {
     const key = `${px},${py}`;
