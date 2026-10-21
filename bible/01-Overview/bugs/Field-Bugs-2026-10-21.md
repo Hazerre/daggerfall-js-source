@@ -76,13 +76,16 @@ to 2.5 ms.
 ## HORSE-VIEW (4) - `bible/07-Rendering/Performance-Priority.md`
 
 A 3D horse's gait steps every frame; its pose and palette upload wait for the view and the peers' bodies' cadence, a
-rider's horse posed with its rider's body, a horse turned into view posed before it is drawn. Twenty peers' horses,
+rider's horse posed with its rider's body, a horse turned into view posed before it is drawn. The cadence - the
+horses' and the peers' bodies' alike - is measured from the camera that draws, through its lens (the audit: from the
+head, a horse 2.3 m from a zoomed-out third-person camera was posed every other frame, and the spyglass's every
+third; now every frame). Twenty peers' horses,
 half behind the eye: twenty uploads a frame to 3.7, the pool's frame 0.24 ms to 0.09 ms.
 
 ## Left
 
 The Durable Object resets' cause; the relay settings' state (the owner's `/relay grantMode`); a star's large owner and
 the budget for a cell whose full frames alone pass it; world238, claimed by two open branches (STAR-TUNE #1090,
-GRANT-SLEEP #1066), against this release's world239 - whichever lands after another takes the next number; my own boats' Animators and the road's stranger teams, still stepped every frame; a
+GRANT-SLEEP #1066), against this release's world239 - whichever lands after another takes the next number; my own boats' Animators, the road's stranger teams and the standing horses, still stepped every frame; a
 slow dungeon or building host's foes, which carry `tm` but step FOE-CATCHUP's half of its frame (flagged in
 `Online-Arc.md`).
