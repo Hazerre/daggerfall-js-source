@@ -7319,6 +7319,16 @@
   "tr": "194b98d88970",
   "by": "claude-in-session"
  },
+ "chargen.class.skills.major": {
+  "en": "85c39f1a36a9",
+  "tr": "638014a7f7b8",
+  "by": "claude-in-session"
+ },
+ "chargen.class.skills.primary": {
+  "en": "7bb8fba31082",
+  "tr": "7bb8fba31082",
+  "by": "claude-in-session"
+ },
  "chat.help.breach": {
   "en": "0abe32307fc8",
   "tr": "9b7010bf9aef",

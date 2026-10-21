@@ -2979,6 +2979,16 @@
   "tr": "404e3156e0c4",
   "by": "claude-in-session"
  },
+ "chargen.class.skills.major": {
+  "en": "85c39f1a36a9",
+  "tr": "e4a9de958024",
+  "by": "claude-in-session"
+ },
+ "chargen.class.skills.primary": {
+  "en": "7bb8fba31082",
+  "tr": "7bb8fba31082",
+  "by": "claude-in-session"
+ },
  "combat.leadLeftHand": {
   "en": "9a84e174d1b8",
   "tr": "84a6eed18d46",

@@ -1463,6 +1463,8 @@ chapters.standing.others,"{n, plural, one {# other guild} other {# other guilds}
 chapters.standing.othersOnly,"Standing moved with {n, plural, one {# guild} other {# guilds}} you do not belong to."
 chapters.standing.paid,"{name}: {paid} of what was owed arrived (now {now})"
 chapters.standing.paidOwed,"{name}: {paid} of what was owed arrived (now {now}, {owed} more to come)"
+chargen.class.skills.major,"{m1}, {m2}, and {m3}."
+chargen.class.skills.primary,"{p1}, {p2}, {p3},"
 chat.help.breach,"/breach - the Elite Breach: answer your company's call or open the start window (/breach help lists its commands)"
 chronicle.quests.abandon,"Abandon"
 chronicle.quests.abandonArmed,"Click again"
