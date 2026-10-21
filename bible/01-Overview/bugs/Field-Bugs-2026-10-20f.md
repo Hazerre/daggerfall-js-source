@@ -1,152 +1,273 @@
-# FIELD BUGS 2026-10-20f - the Discord's bug-reports, read to their roots
+# FIELD BUGS 2026-10-20f - the Elite Breach, from a player who ran it, read to its roots
 
-Nine threads from the Discord's #bug-reports (2026-10-20), handed over as screenshots with no word beside them: nine
-reports, from Flylighter, PanickedTofu, SaberGGaming, MD-Geist, Afelipe, ATLAS, fogs (with sovot), CosmicBooty and
-Kikkirik - and a tenth in the chat behind Kikkirik's crash, from Ballvald Steel-Hewer. Each was traced end to end on
-the real producers, with the freeware's data (`tools/fetch-data.sh`) where the map, the blocks or the bodies decide, and
-Daggerfall Unity's own C# beside it. Read on main's `ccfb3c135`, and built on `a6cd40934` (#1091's merge). The calls the
-reports left open are taken here under the owner's standing word on these threads (Mac, 2026-10-19: "Stop with the
-decisions for me") - except where the owner's own number decides, which is left to the owner with its measurements; each
-section says which it took and why. The pins are `fb1020f_*`, the mutants `tools/mutants/fb1020f_*.json`.
+ilovemybonk's word on the Elite Breach in the Discord's #general (2026-10-20), answering Lattymoy's "Did you enjoy the
+content?", handed over as two screenshots with "Elite Breach feedback". Three reports and a remark. Each was traced on the
+real producers: the laws that lay the halls (`net/eliteGates/egLaw.js`), the relay's director (`net/eliteGates/egBrain.js`) run
+as the relay runs it, and the client's own modules. Read on the code as it stands at main's `ccfb3c135`. The calls the reports
+left open are taken here, under the owner's standing word on these threads (Mac, 2026-10-19: "Stop with the decisions for
+me"); each section says which it took and why. DFU has no Spire, no Elite Breach, no Orrery, no fair trail and no relay, so
+no DFU member moves and no ledger row but ELITE-GATES' own. The pins are `fb1020f_*`, the mutants `tools/mutants/fb1020f_*.json`.
+The record was 20d on its branch (its pins `fb1020d_*`), renumbered past LONE-HERALD's 20d and OFFERING-RAY's 20e at the
+merge of main.
 
 | | Report | What it was | Done |
 |---|---|---|---|
-| 9 | Kikkirik: "crash on talking with the fast traveler" (the CRASH panel: `TypeError: Cannot read properties of undefined (reading '0')` at `Qv` <- `bye` <- `i` <- `oy` <- `iy` <- `Object.Wh [as exteriorActivationHit]`) | A Hearth Offering's ray target carried the culling box's 6-array where the street's ray reads `{ min, max }`: every press in a town where one stood threw out of `rayAabb` | fixed on main by #1091 (FIELD BUGS 2026-10-20e OFFERING-RAY); nothing here |
-| 10 | Ballvald Steel-Hewer, in the chat of another player's crash screenshot: "there are many instances where insert here names are not appearing. meaning when i ask about the work they say go to talk to 'insert name here' :D" | The Work answer names whoever the questor pool's selection points at. Two things left that selection on someone the pool no longer held: the offer window spends the questor it was opened for, and a load brings in a pool without the selection. The answer then read "Go to a place called  and talk to someone named ." Found on the way: every woman with work was "him" | QUESTOR-HELD; QUESTOR-SHE |
+| 1 | "the clocks that do the time in the orrery task halls do not have models showing you where to interact with them. You have to search around an empty area for the 'rewind back, move forward' options while imps hit you with a constant nova effect that blinds your vision" | An Athenaeum's six stones were gold discs on the floor. Each was turned through two activation boxes 0.9 m to either side of the disc and a metre up, with nothing drawn there. The lock's pressure (a Harrier every 15 s until the Orrery is true) filled the legion while the player searched the air | ORRERY-STONES |
+| 2 | "There were a few instances with the 'cross.' Objectives where it seemed the game doesnt register i made it to the end. (If it helps, i get a 'no footing' damage number when i hit enemies while i cant exit the hall)" | The relay's fair trail read a member's silence as blindness. A client says no pose while nothing about it changes, so a member who waited out a span's timed pieces without moving the mouse was "unseen" there. A crossing more than 30% unseen opens no door, and nothing said so | FAIR-STILL, DOOR-WORD |
+| 3 | "it says at the end it only took 31k damage" when "ive dumped a literal million damage into a redoubt 16 boss"; "i cant tell how much and when my spells do as much damage as they do" | The hit numbers said each blow's CLAIM. The room landed what the member's purse, the lord's weight and its health allowed, about 195 a second at level 60. Circle 16's lord holds about 32k for a solo level-60 member, so the chart's 31k was the lord's whole | LANDED-WORD |
+| - | "It got very grindy at the end, which is understandable" | The depth law's own (section 18), as designed | not a defect |
 
-## QUESTOR-HELD: the Work answer names a questor the pool holds (10)
+## ORRERY-STONES: an Athenaeum's stones stand, and their levers are the handles (1)
 
-`src/systems/npcSession.js` (`_holdSelection`, run at the end of `removeNpcQuestor` and `restoreSaveData`).
+`src/scenes/eliteGates/egOrrery.js` (new: the stones on this screen), `src/world/superDungeon/sdHall.js` (`buildStoneModel`, one
+stone alone - the hall's `stoneInto`), `src/scenes/superDungeon/sdHall.js` (`sdHandWay`, the hands' short way exported),
+`src/scenes/eliteGates/egSpan.js` (the stand, the frame, the targets, the clear), `src/scenes/eliteGates/egFight.js` (the words
+over a stone).
 
-FOUND. The Work answers, TEXT.RSC 8076 (6 variants) and 8077 (8), each name the potential questor through `%pqn` and
-their building through `%pqp`. Both read the pool's selection, and `npcSession.js:"    if (!entry) return '';"` answers
-the empty string for a selection the pool does not hold. The answer is expanded first and the next questor is picked
-after it (`answerPipeline.js:"        this.deps.setRandomQuestor?.();"`), which is DFU's own order
-(TalkManager.cs:2033-2036). So an answer names the selection that stood BEFORE the ask. The build keeps that selection
-in the pool: it selects the last questor it adds (`npcSession.js:"        this.selectedNpcWorkKey = npc.nameSeed;"`,
-TalkManager.cs:2869). The other two writers did not:
-- THE OFFER. A click on a pool member opens the quest offer, and the offer window's constructor takes them out of the
-  pool, whether the job is accepted, declined or never drawn:
-  `offerFlow.js:"    if (!this.deps.isPlayerInsideCastle?.()) this.deps.removeNpcQuestor?.(npcData.nameSeed);"`,
-  DaggerfallQuestOfferWindow.cs:33-35. Nothing moved the selection off the spent questor. The selection is a uniform pick
-  made after the previous answer, so a player who goes to the person that answer named, and takes or declines their
-  job, makes the next answer blank with a chance of 1 in N, N being the pool's size. Pools are small where most players
-  ask. Over every location in Daggerfall's data, in its own layouts and in the town packs', the median village has 12
-  candidates, a roadside tavern 10 (5 in Beautiful Villages' rebuild) and a manor 7 (11). The 25% roll leaves pools of
-  about 3, 2.5 (1.25) and 1.75 (2.75). Driven over a sample of real locations, a player who follows each answer until the
-  pool is spent read a blank in 7% (cities) to 20% (taverns) of all Work answers. At least one blank came in 56-89% of
-  visits to a tavern, village, hamlet or city: "many instances". The blank happens once per stale selection, because the pick after it lands on a live questor.
-- THE LOAD. `save.js:"    talk.session.restoreSaveData(extras.talk);"` brings the save's pool in, but neither the
-  selection nor the pool's location is saved (DFU's SaveDataConversation carries neither). The arrival does not rebuild
-  the pool in the same town (`world.js:"    if (key === _topicsKey) {"`, then the location gate,
-  `npcSession.js:"    if (this.exteriorUsedForQuestors === locationIndex) return false;"`). The 25% draw is another
-  session's, so this session's selection is rarely in the restored pool. 72% of first answers after loading an earlier
-  session's save in the same town were blank, and 100% after a boot load in a location at index 0. The dungeon
-  quickload takes the same restore with no arrival at all
-  (`dungeonContext.js:"      if (session && restoreSessionState(extras, { questBridge: opts.questBridge, talk: opts.talkSave"`).
-  Online refuses an in-session load, so an online player like Ballvald met the offer's blank.
+FOUND. An Athenaeum's lock is the Hour's Orrery (`11-Multiplayer/Elite-Gates.md` section 8.4). The relay raises six `stone`
+objects on its court (`egBrain.js`, the Athenaeum's arm of the fight's stand, `r: 1`). The client drew each as a gold disc a
+metre across on the floor (`egFight.js` drawGround), and its name and hour over it (ORRERY-SIGHT,
+`Field-Bugs-2026-10-17e.md`). It offered the activation ray two boxes a stone, 0.7 m on a side, 0.9 m to either side of the
+disc's middle along the hall's x and a metre over its floor (ORRERY-HEIGHT, `Field-Bugs-2026-10-17c.md`). Nothing was drawn
+at either box. ORRERY-SIGHT's own record left it: "the stones are still drawn as discs. A stone with its dial and hand ...
+a question for the hall's look". So a player found a turn only by sweeping the crosshair through empty air beside a disc
+until the plaque read "Turn it forward an hour".
 
-Everything else that could print a blank was measured and does not occur, over all 12,068 locations with people in both
-layouts. No questor's building name is empty: only named buildings enter the pool, and a guild hall takes its guild's
-name. No questor's name is empty: the name bank is always a race bank, because the region index is clamped to 0..61. A
-town with no questor answers "There's no work available at all." The first answer after a build names the last questor
-added (200 of 200). The people named are real: in four cities, all 381 questors are a person the interior stands, with
-the same identity and name, and each opens the offer when clicked.
+While the lock stands untrue, `ceil(n/4)` Harriers rise every 15 s (`EG_LOCK_EVERY_MS`). For a company of one, that is a
+Harrier every 15 s up to the legion's cap: four in the first circles, seven by circle 16 (`egLegionCapOf`). Each Harrier
+bites from a disc about the member it runs at. A minute or two of searching filled the court with them. Each bite is a
+telegraph filling under the player, DFU's red damage flash, and blood on the lens past a tenth of the player's health
+(`ui/bloodScreen.js`). That is the "constant nova effect". It is the hall's pressure as designed, and the search for the
+handles is what let it pile up.
 
-DFU cannot print the blank, because it throws there. GetQuestorName, GetQuestorGender and GetQuestorLocation index the
-pool with no guard (TalkManager.cs:2586-2600). The first macro's GetMacroDataSource reads GetQuestorGender
-(TalkManagerMCP.cs:32-34), and MacroHelper.GetValue catches only NotImplementedException (MacroHelper.cs:503-528). So the
-next Work answer throws KeyNotFoundException before SetRandomQuestor (TalkManager.cs:2036) can move the selection, and
-the topic stays dead in that town until the pool is rebuilt. DFU's RemoveNpcQuestor (TalkManager.cs:2602-2605) and
-RestoreConversationData (TalkManager.cs:2541-2542) both leave the selection where it stood.
+The Spire's stones stand exactly where the Hour's do. The law lays them on a ring of 11 m about the court's heart at
+30, 90, 150, 210, 270 and 330 degrees (`egLaw.js`: `polar(X, zc, 1100, deg)`), and the Hour's stand at `SD_STONE_RING_R` 11
+on `SD_STONE_BEARINGS`, the same six. So the Spire's stone j faces its court's heart as the Hour's stone j faces its dial's.
 
-FIXED. Both writers end in `npcSession.js:"  _holdSelection() {"`. While the pool holds questors and none of them is the
-selection, it selects the last one it holds, the build's own rule. A selection the pool still holds is left alone, and
-an empty pool still answers the no-work record. Nothing is drawn: neither DFRandom nor the talk's rolls. DFU's order
-stays: the answer names the selection that stood before the ask, and the pick follows it. A departure from DFU's
-KeyNotFoundException (a dead Work topic), with its Port-Ledger A row (THE WORK ANSWER NAMES A QUESTOR THE POOL HOLDS)
-and its line in `06-Systems/Talk-Arc.md` (QUESTOR-HELD). The one new Ledger row moved every Ledger line below it:
-`tools/citeShift.mjs --apply` moved the 19 line cites it maps. Port-Status' section-2 identifiers and its section A tally
-(326 rows, 311 standing) were moved by hand, each checked against the base row it named, as were the struck
-`.SAV`-reader cite and the struck keybinding-registry one. Two of its identifiers were already one row off before this
-change (`:975`, A MOD'S MATERIALS, and `:976`, AN ENEMY'S GLOW), and are aimed at their rows now.
+FIXED. Each of an Athenaeum's stones stands as the Hour's own stone j: plinth, shaft, the kingdom's relief, the dial and its
+notch, the two cast levers, the brass cap, the bezel, the hand and the crown gear (`world/superDungeon/sdHall.js`'s builders,
+one copy). It is carried from the Hour's place to its spot by a translation alone (`egStoneShift`), on its spot's own floor
+(the law's centimetres, ORRERY-HEIGHT's law), and is not turned. Its two levers ARE the handles: each activation box is the
+Hour's `handleBox` carried the same way. The right lever as you face the stone turns it forward and the left turns it back,
+as in the Hour. The keys, the plaque's words and the press are unchanged. Its hand and crown gear show the room's word
+(`orr`): the relay's start before the trial, the true hours once the hall is behind the company (its door opens on a true
+Orrery alone), and going to a turn's hour the short way at the Hour's pace (`SD_HAND_RATE`). The stone is solid, as the
+Hour's are (AUDIT SD II): its slab, cap and levers stand in the collider. The words over a stone (ORRERY-SIGHT) stand over its
+crown gear, `EG_STONE_TOP_M`, never across its sign. Every part goes through the span's own `place`, in the circle's batch
+and the band's dress, so it is culled and freed with the span. The Hour's hall pictures its faces wear are uploaded once a
+renderer (`ensureSdHallArt`, as the Remnant does).
 
-QUESTOR-SHE (found on the way). The four pronouns of the Work answer are the questor's
-(`talkMacros.js:"  const female = () => ctx.questorGender?.() === GENDERS.Female;"`). That helper compared the string
-`'female'`, but the pool's NPCData carries the Genders enum
-(`staticNpc.js:"    gender: ((pn.flags ?? 0) & 32) === 32 ? GENDERS.Female : GENDERS.Male,"`), and the world host hands
-it on unchanged (`world.js:"      return npcSession.getQuestorGender();"`). So every woman with work, 44.8% of questors,
-was "he/him/his" in four of 8076's six variants and three of 8077's eight. The pins had handed the helper the string,
-which no producer mints. DFU switches on the enum (TalkManagerMCP.cs:146-195), so this restores DFU and departs from
-nothing.
+The gold disc stays under each stone, so the stone still reads as an errand on the floor. The Harriers' pressure is not
+changed: it is the lock's design, and the search it punished is gone.
 
-THE FOUR HOSTS: none changed. `world.js` mounts the pool and the talk MCP, `worldModes.js` opens the offer that spends a
-questor, and `dungeonContext.js`'s quickload restores the pool, each through the module. `exterior.js` runs no NPC session
-(`exterior.js:"  //     %f-faction NAME getters, removeNpcQuestor). This route runs no"`).
+The four hosts: `scenes/world.js`, `scenes/worldModes.js` and `scenes/dungeonContext.js` read `egSpan.targets()`, `press` and
+`hoverName` as before, so the levers reach the crosshair through them with no line changed. `scenes/exterior.js` is
+offline, with no breach (section 28).
 
-PINS. `test/systems/talk/fb1020f_questor.test.js` (7). The fixtures come from their producers: the town's people from
-questorCandidateBuildings over an RMB block, the pool from NPCSession, the offer from QuestOfferFlow.offerSocialQuest,
-the save from composeSessionState and restoreSessionState, and the answer from AnswerPipeline over the talk macros:
-- the build selects the last questor added, and the first answer names them;
-- the offer spends the questor the selection names, and the next answer names the last one standing;
-- an offer from another questor leaves the selection where it stood;
-- the pool spent to its last questor answers the no-work record;
-- a load whose pool lacks the standing selection selects the last questor it carries;
-- a woman with work is "her", with the world host's seam handing the pool's own value on;
-- with ARENA2, every variant of the real 8076 and 8077 names the held questor and their building after the offer.
+PINS. `test/scenes/eliteGates/fb1020f_orrerystones.test.js` (4):
+- THE STONES, under THE ASCENT's court and the 0 court of the laws before it: each spot stands the Hour's stone j, all four
+  parts drawn, its foot on its spot and its floor, carried and never turned, facing the court's heart;
+- THE LEVERS: each handle's box holds its stone's drawn lever whole, forward on the right as one faces it, at the lever's
+  height over its own floor. The real ray (`pickActivatableHit`) from a body before the stone, over the circle's collider and
+  the stones' solids, finds it from within the room's reach;
+- SOLID: a body's way from the court's heart meets each slab at its face;
+- THE HANDS: at the start before the trial, at a word's hours in it (0.3 hours a tenth of a second, the short way), and at
+  the truth once the hall is behind, each crown gear with its hand;
+- THE WORDS: in a woken Athenaeum on the director's own breach, each stone's words stand over its crown and its sign.
 
-Before the fix, four of them fail, the last with the field's own sentence
-(`8076[0] names nobody the pool holds: " might have work. You can find him in ."`). The three DFU laws pass either way.
-Mutants `tools/mutants/fb1020f_questor.json` (9, all dead): either writer unhooked, the empty-pool guard flipped, a held
-selection moved, the first questor instead of the last, the selection never written, the female arm made Male, the
-female arm inverted, and the string back.
+Mutants `tools/mutants/fb1020f_orrerystones.json` (9, all dead).
 
-PIN MOVED: `test/systems/talkmacros.test.js`'s pronoun pin and its `%pqn` pin hand the questor's gender and bank as the
-pool mints them (`GENDERS`, `BANK_TYPES`), not as the strings `'female'`/`'Breton'`. `test/systems/audit26_talk.test.js`'s
-F097 source pin reads the enum comparison. No existing mutant record named the lines this changes.
+PINS MOVED.
+- `egz_camera_budget.test.js`: the stones add four GL draws to a circle that lays an Athenaeum, two batched kinds of two
+  records each (the stones and bezels; the hands and crown gears that turn). Over 60 circles the frame's mean, worst and
+  worst occluding go from 32.9, 39 and 51 to 33.8, 43 and 55, under the Hour's 82.
+- `eglook_spans.test.js`: the stones wear the Hour's hall pictures (its atlas and the hands' glow), and only in a circle
+  that lays an Athenaeum. Their brass is the band's. The rule's purpose, that span pieces no longer wear the Steps' clock
+  faces, stands: the stones are the Hour's Orrery itself.
+- `egswap_client.test.js`: those pictures go up once a session with the first circle that lays an Athenaeum, as a band's
+  Beats' do (`ensureSdHallArt`, counted off the producer).
 
-NOT CHANGED (recorded as found, the coordinator's call for this batch):
-- THE POOL CAN OUTLIVE ITS TOWN. A restore carries no location, and the gate compares the per-region location index
-  alone (DFU's too). A save made outside any town that carries town A's pool, loaded and then followed into a town
-  whose index equals the session's stamp, keeps A's pool, and its answers name A's people and buildings. Two of the
-  3,231 neighbouring cross-region pairs of locations share an index.
-- THE WILDERNESS POOL. DFU's OnMapPixelChanged reaches GetBuildingList on a wilderness pixel, where CurrentLocationIndex
-  is -1 (PlayerGPS.cs:191-194), and clears the pool. The port keeps it: `townTalk.js:"    if (!topics || !factions) return;"`
-  never reaches the pool with no location. DFU, back in that town, then has no work at all, so the port's keeping is
-  arguably the better law, but it is an unrecorded departure.
-- THE INDEX-0 LOCATIONS. A fresh session's location stamp is 0 (DFU's Awake, TalkManager.cs:514), so the first visit to
-  a location at index 0 (14 hold questors, among them Arkmore, Crosswich, Warborne and Lamwych Hall) builds no pool and
-  answers "no work". After a boot load there, the stale selection is now held, so no blank.
-- THE BUILD'S DFRANDOM DRAW. DFU's GetBuildingList logs every questor it adds through GetQuestorName (TalkManager.cs:2870),
-  which srands DFRandom by that questor's seed and draws their name. The port's build draws nothing. Whether any
-  unseeded DFRandom reader follows a pool build was not checked.
+`fb1017c_orreryheight.test.js`'s handles are the levers now. Each is found from a body 1.55 m before its stone's
+face, over the circle's collider and the stones' solids, at the lever's height over its own floor. Before, they were found
+from the stone's middle, which is inside the stone now. Its three mutants (`fb1017c.json`) were re-aimed by content at
+`egStoneShift`, the one place the floor is read now. All dead.
 
-Not seen in play here. The pins and the measurements drive the real modules headless, the real records and towns
-from the player's data, and the real save envelope.
+Seen in the Spire lab (`spire.html`, seed 1, circle 11, its third hall): the six stones on the court, each with its dial,
+hand, crown gear and levers.
 
-## OFFERING-RAY, again: the fast traveler's crash is 2026-10-20e's (9)
+## FAIR-STILL: a member standing still is seen standing (2)
 
-No file changed for this report.
+`src/net/eliteGates/egFair.js` (`egStillGap`, egFairPose).
 
-FOUND. The panel's build is Update 0.0.296 (`a0ba01168`, the release `app-v0.1.10373`). Rebuilt from `git archive` with
-the release's own build stamp, its chunks are `worldTick-CEm_09Ca.js` - the panel's, exactly - with `arenaGate-GhJErWMY`
-and `world-6d1hmgxx` beside it, which the blurred names on the panel match; the world chunk carries the build tag, so
-the hash names that one build. The rebuilt sourcemaps map every frame of the panel, column for column:
-`activate.js:"let t0 = (aabb.min[a] - origin[a]) * inv;"` in `rayAabb` <- `nearestActivatableHit` <- `nearest` <-
-`firmFirst` <- `pickActivatableHit` <- `worldModes.js` `exteriorActivationHit` <- the press's `raceActivation` in
-`world.js`'s `frameMotor`. The rebuilt chunk's own `pickActivatableHit`, handed a person and one target as WITCH1 minted
-it, throws the panel's five frames at the panel's columns.
+FOUND. "Cross." is a span's objective (`egLaw.js` EG_OBJECTIVES). Only the relay judges arrival: the first member at the door
+(`egAtDoor`, within 3 m of the end plate's middle, on its floor) whose FAIR TRAIL holds opens it (`egBrain.js` doorOpener,
+fairOf). The fair trail is section 21's anti-cheat (`egFair.js`), and one of its laws is BLINDNESS: a gap over 0.4 s between
+two of a member's poses (`EG_BLIND_MS`) judges nothing, and a crossing more than 30% blind (`EG_FAIR_BLIND_MAX`) opens no
+door. But a client says a pose only when something about it changes: a step, a turn of the head, a draw. Otherwise it sends
+one every `HEARTBEAT_MS`, 20 s (`net/online.js` sendPose, `wire.js` poseChanged). So silence is the protocol's own word for
+"unchanged". The census already reads it that way (`server/src/index.js` _egTrails, AUDIT EG V L4-1). The fair trail read it
+as BLIND.
 
-So it is OFFERING-RAY (`Field-Bugs-2026-10-20e.md`), found the same evening from Temegast's and Boar's panels: a Hearth
-Offering's target (`witchesHost.js` `targets`) handed the ray the batch's culling box, and the pick tests every
-entrant's box before it races them, so the throw did not depend on what the press was aimed at. "The fast traveler"
-is Immersive Travel's carriage driver at the city gate (faction 8642, its "Fast Travel" service): a static NPC in the
-same door set, whose press threw in the race before `activateStaticNpc` was reached. Any press in that town would have.
+A span is timed pieces: Beats that come and go, Drifts that swing, Crumbles that fall and return. A player waits for them. A
+player who waited without moving the mouse was unseen for every second of it. Measured on the director's own breach
+(`egBreachNew`, `egEnter`, `egStep`, `egPoseIn`): a member walked each span of the build's law along its main way, 44 halls in
+twelve seeds' circles 1-4, at ten poses a second. It stood still without a pose before each leg the timed solver crosses on
+timed pieces (`egRouteSolved`'s pairs), for the given time a pair. Then it stood posing at the door.
 
-FIXED by #1091 (merged as `a6cd40934`, before this record was written), the same fix this trace had drafted: the
-offering mints the ray's `{ min, max }`, and `player/activate.js`'s `RayBox`/`RayTarget` types make the 6-array a type
-error at the producer. Checked on that merge: the trace's own end-to-end run (the real `createWitchesHost` standing two
-offerings, the real `createWorldModes` with them wired as `world.js` wires them, the carriage driver among its
-people, and `world.js`'s own press race cut out and run) threw the panel's TypeError on `a0ba01168` and on
-`ccfb3c135`; on `a6cd40934` the offerings carry `{ min, max }`, the press at the driver picks `person:0` at 3.12 m, and
-the hover pick throws nothing.
+| still, a pair | doors that never opened (member at the door) | blind share, median |
+|---|---|---|
+| 1 s | 24 of 44 | 0.29 |
+| 1.5 s | 35 of 44 | 0.38 |
+| 2 s | 42 of 44 | 0.45 |
+
+A blind share only falls as more of the crossing is seen. A player who walked about long enough on the plate saw the door open
+at last, and one who stood still at it never did. That is "a few instances" where "it seemed the game doesn't register I made
+it to the end".
+
+"No footing" is TURNED-BLOW's word (`Field-Bugs-2026-10-18f.md`), shown when a blow is struck from traversal ground: steps,
+bridges, stairs and rooms, everything but the islands, the arrival plate and the end plate (`egWalkGraph.js` egFightView).
+On a span that is 70-93% of the way, and every step before the end plate, the door bridge among them. The word was right
+where it showed. It says the player was on the way, near the end, not on the plate. Nothing about it changes here.
+
+Two more findings were measured and left as they are:
+- The door's reach is 3 m on a plate of 5 m, and the door bridge lands on the plate's rim, so a member on the outer 2 m is on
+  the plate and not at the door. The portico stands at the plate's heart, inside the reach. The reach also times a crossing
+  for the boards (`egFairCross`), so it is not widened here.
+- In each of the 44 spans the way passes 10-14 m from the end plate, at its height, with 60-90 m still to go - THE BROKEN
+  WAY's loop (spec law 10). It is the law's design, and the door is in view but not reached.
+
+FIXED. A gap that begins on held ground (the trail's last support, stamped at the pose before it) and ends on held ground
+within `EG_FAIR_SNAP_M` (2.5 m) of where it began is a member standing still (`egStillGap`). It is judged as a stretch (its
+speed, its air) and is never blind. EG_FAIR_SNAP_M is the game's own snap, and more than the first step a client says as it
+moves off after a wait (one frame of THE FAST BUILD's run). A gap that went further, or began or ended in the air, stays
+blind: what a body did unseen is still unknown, and the law's purpose stands. With the fix, the same walk, standing still
+1, 1.5 and 2 s a pair before each timed piece, opens all 44 doors, its blind share 0. The relay's law changed, so world237
+(`wire.js` RELAY_VERSION).
+
+PINS. `test/net/eliteGates/fb1020f_fairstill.test.js` (3):
+- THE LAW: standing still three seconds is seen and breaks nothing; the same gap ending past the snap, or begun in the air,
+  is blind; `egStillGap` at the snap's edge;
+- THE CROSSING: each span of three seeds' circles 1-4, walked as above with a 2 s wait a pair, opens its door and says no
+  word;
+- DOOR-WORD's, below.
+
+The law's pins also hold a gap begun at a jump's top (blind, though the body stood on the plate the pose before) and the
+snap's edge.
+
+PIN MOVED. `egint_relay.test.js` THE FAIR TRAIL: its blind gap was a gap from the arrival plate to an island and then 1.9 s
+standing on the island. The second gap is a member standing still now, so the pin's blind crossing is the first gap made
+long. It still proves that a crossing more than 30% blind opens no door.
+
+## DOOR-WORD: a member the door will not take is told why (2)
+
+`src/net/eliteGates/egBrain.js` (`doorWord`; the span's and the Brink's trial arm, the Deepway's way down, the closing),
+`src/net/eliteGates/egFair.js` (`EG_FAIR_WORDS`), `src/net/wire.js` (`efair`, `EG_FAIR_WIRE_WORDS`),
+`src/scenes/eliteGates/egClient.js` (`EG_FAIR_TEXT`, the door's line).
+
+FOUND. A trail the door refuses was refused in silence: the door in the trial (doorOpener), the step through it in the
+closing (`egDown`), and every pose-gated credit. A refused `down` even had the client say "You wait at the door for your
+company." every second. The objective kept saying *Cross.*
+
+FIXED. A member standing at the door, in the hall it was heard arriving in, on a trail the door refuses is told why, once a
+hall, to it alone: `{k:'efair', w}`. `w` is the break's own reason (`speed`, `air`, `void`) when the trail broke since its
+last island, else `blind`. This happens in the trial of a span or a Brink, at a Deepway's way down, and in any hall's
+closing. The client says it in the middle of the screen and in the chat (`EG_FAIR_TEXT`). While the door refuses it, the
+closing's door line is that word, never "You wait at the door". A break clears on the last island stood on, so the words
+for a break say to go back to it and cross again. A crossing seen too little is seen whole as the member stands at the door
+(FAIR-STILL), so the blind word says to stay at the door. `efair` rides world237 with LANDED-WORD. A page before it drops
+the frame (`validEgOut`'s default).
+
+PINS. `fb1020f_fairstill.test.js` DOOR-WORD (1): the wire's words are the law's, all four carried and no other; a teleport
+onto the door told `speed` once, to it alone; a crossing seen too little told `blind`; a refused `down` in the closing told
+once a hall; a fair crossing told nothing; the client says each word, and its door line is the reason while the door
+refuses it.
+
+Mutants `tools/mutants/fb1020f_fairstill.json` (11, FAIR-STILL's and DOOR-WORD's together, all dead).
+
+The four words are routed through the text core (`eg.fair.*`) and drafted in the thirteen whole languages, with the Spire
+in each one's own word (`tools/l10nInSession.mjs`).
+
+## LANDED-WORD: a blow's number is what it landed (3)
+
+`src/net/eliteGates/egBrain.js` (egBlow's `eland`), `src/net/eliteGates/egLords.js` (egLordHit answers what the lord lost; the
+seam returns it), `src/net/wire.js` (`eland`, `EG_LAND_RELAY_MIN`, `relaySupportsEgLand`), `src/net/online.js` (`egLandOk`),
+`src/scenes/eliteGates/egClient.js` (the word to the fight), `src/scenes/eliteGates/egFight.js` (`landsWord`, `landed`, the
+stand-ins' `landsByWord`), `src/ui/hitNumbers.js` (numberFor, showFollowUp), `src/systems/loot/lootPowers.js` and
+`src/systems/martialPowers.js` (a follow-up's target).
+
+FOUND. On a body the relay runs, the hit number was the striker's CLAIM: a swing's formula damage, or a spell's held to one
+blow's cap (STAND-IN-WHOLE, `Field-Bugs-2026-10-19f.md`: 780 at level 60, 975 with the Vestiges' factor). The room lands what
+the member's purse allows (the gate's hand and purse, `spendPurse`, `net/gate/gateBrain.js`): each blow at most `12 x ref`, out
+of one bucket a member, `15 x ref` deep and refilling at `3 x ref` a second, where ref is `dpsRef(level)` grown by the
+Vestiges' declared factor. The lord's own weight then applies (`egLordHitX`: the Unyielding decree, a stun, a Kynreeve's
+front, a flyer out of a blade's reach), and the lord's health caps it. An area spell sends one claim for each body it
+touches, every one shown at its cap, while the one bucket pays them all. A lord's health is `egTtkRef(c)` seconds of the
+company's reference damage (`egLordsNew`), not of its spells.
+
+Redoubt 16 follows circle 16's Court (hall 80). `egTtkRef(16)` is 180 x 1.07^15 = 496.6 s, so a solo member's lord holds
+32,281 at level 60 and 30,791 at level 57. That is the most a chart can ever count, and the report's 31k is the lord's whole.
+At level 60 the room lands at most about 195 a second (244 with the Vestiges' factor), so the fastest kill is about 166 s
+however strong the spells. Pinned on the director's own breach at that Court (seed 2's, a level-60 member alone): 600 spells
+of 3,000 claimed 1,800,000. The lord lost 30,176, and the member's damage and the chart's said 30,176. The screen had said
+780 a spell, 468,000; before STAND-IN-WHOLE it said each claim whole.
+
+The damage over time a spell leaves (BOSS-DOT) and an Arcane Echo's repeat were counted and never shown.
+
+A side finding, on the way: a lord an errand holds at a threshold (`hpFloor`) takes back what falls past the line
+(`egLordHit`), but the seam answered the purse's whole. While a lord was held, the recap, a Court's chart and the
+earned share counted blows it never felt.
+
+THE CALL. The duel already shows a blow's number at the referee's word (INT8, `scenes/world.js` duelHpIn: "the host says a
+miss and the referee's word a hit"). A copy of the purse on the striker's machine would still be a guess: the Vestiges'
+weight, the lord's and its held line are the room's. So the room says what landed.
+
+FIXED.
+- **The room's word.** Each blow the room judges tells its striker alone what it landed: `{k:'eland', i, d}`, whole points
+  (`egBlow`). A blow it refuses (a second break's refusal, struck from traversal ground, a lord that will not admit it)
+  lands 0 and says so.
+- **The held line.** `egLordHit` answers what the lord lost, and the seam returns it. The word, the member's damage, the
+  recap, the chart and the earned share count that.
+- **The screen.** A breach's stand-ins are marked `landsByWord` while the relay says the word (`egFight.js`, each frame, from
+  `online.egLandOk`). A hit on one shows no claim (`hitNumbers.js` numberFor). A miss and a turned blow ("No footing",
+  "Warded") still say theirs at once. The room's word shows the number a moment later through HN1's seam
+  (`reportPlayerAttack`), 0 included, and a lasting round's and an Echo's words show too. So the numbers a player sees add up
+  to what the chart says.
+- **A follow-up blow.** Open Hand's second, Many Endings' echo and the martial signatures' again (`systems/loot/lootPowers.js`,
+  `systems/martialPowers.js`) raise their own number (ROSE-SEEN, `Field-Bugs-2026-10-15e.md`). On a body the relay runs,
+  each is owed to the blow's one claim (`systems/playerDoor.js` oweFoe), and the room's word for that blow counts it. So on a
+  body whose room says what lands it raises no claim of its own (`ui/hitNumbers.js` showFollowUp, its `target`).
+- **An older relay.** A page facing a relay before world237 (`EG_LAND_RELAY_MIN`) keeps its claims, since it would hear no
+  word. The relay goes first, or with the pages.
+
+What it costs: a landed number loses the gold a critical or a backstab painted. The room says what landed, not how the
+swing rolled. The gate's court, the Abyss's Remnant and the sea serpent still show claims. Their rooms are other relays'
+laws, and none of them was reported. Each owes the same word, and it is written here as the next slice of this law.
+
+PINS. `test/net/eliteGates/fb1020f_landedword.test.js` (5):
+- THE REPORT: at circle 16's Court, a solo level-60 member claims over a million in spells. Every blow's word goes to it
+  alone, and their sum is the lord's health lost, the member's damage and its chart's, under the lord's whole. A refused blow
+  lands 0;
+- THE HELD LINE: a lord ten points over its line loses ten, and the word and the member's damage say ten;
+- THE SCREEN: no claim on a body whose room says what lands; a miss and a turned blow keep their words; the fight marks its
+  stand-ins and shows each word as a number, 0 included; an older relay's claims return; the breach client hands the word to
+  the fight and tells it whether its relay says it;
+- THE WIRE: `eland` bounded to a body's number and whole points; world237 the first relay that says it, and the relay this
+  tree builds says it, read off the welcome;
+- THE FOLLOW-UP: Many Endings' echo on a breach body's stand-in raises nothing and still rides the blow's claim; on a foe of
+  this machine's it rises as before.
+
+Mutants `tools/mutants/fb1020f_landedword.json` (16, all dead).
+
+PINS MOVED. `fb1018f_turnedblow.test.js`'s source pin reads the relay asking the strike law as `return land(0)`, and
+`Field-Bugs-2026-10-18f.md`'s anchor quotes that line. `audit_martial.test.js`'s L1 N1 source pin reads the martial path's
+follow-up handing its target. Re-aimed by content (7, all dead): `fb1015e_rose.json`'s six records on the follow-up's
+lines, and `audit_martial.json`'s AUDIT-MARTIAL-L1N1-the-owed-number-unshown.
+
+## The relay's version
+
+`wire.js` RELAY_VERSION `world237` (`world236` on its branch, renumbered past LONE-HERALD's `world236`, FIELD BUGS 2026-10-20d, at the merge of main), its law's row in `test/net/relayversion.test.js`. Its bundle's files are unchanged
+(nothing joined the graph), and every RELAY_VERSION pin was moved to it (42 files). NOT YET DEPLOYED.
+
+Mutant records re-aimed by content at the lines as they now read (7, all dead): `egint.json`'s EGINT-repeat-hits-land,
+`egz_legion.json`'s EGZ-the-strike-rule-gone, `egz_lords.json`'s EGZK-his-fall-untold, EGZK-the-threat-unweighed and
+EGZK-the-director-never-joins, `egz_rules.json`'s EGZI-wire-toll-unread and `soc1.json`'s S38-version-not-bumped.

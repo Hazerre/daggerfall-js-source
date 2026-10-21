@@ -464,7 +464,7 @@ Also RECORDED (Ledger A): SetRandomQuestor uses `new System.Random()`
 unseeded and wall-clock dependent. Unspecified, so the port's own roll
 is as faithful.
 
-**QUESTOR-HELD** (FIELD BUGS 2026-10-20f, Ledger A). While the pool
+**QUESTOR-HELD** (FIELD BUGS 2026-10-20h, Ledger A). While the pool
 holds questors, its selection names one of them. The build sets it on
 the last questor added (TalkManager.cs:2869), but RemoveNpcQuestor
 (TalkManager.cs:2602-2605) and RestoreConversationData
@@ -480,9 +480,9 @@ port's readers answered the empty string instead: "Go to a place called
 the last questor the pool holds. A selection still in the pool is left
 alone, and nothing is drawn. DFU's order is unchanged: the answer names
 the selection that stood before the ask, and the pick follows it.
-Pinned: `fb1020f_questor.test.js`.
+Pinned: `fb1020h_questor.test.js`.
 
-**QUESTOR-SHE** (FIELD BUGS 2026-10-20f). The four pronouns fork on
+**QUESTOR-SHE** (FIELD BUGS 2026-10-20h). The four pronouns fork on
 `talkMacros.js:"  const female = () => ctx.questorGender?.() === GENDERS.Female;"`.
 It compared the string `'female'`, but the pool's NPCData carries the
 Genders enum staticNpcData mints, and the world host hands that on

@@ -109,7 +109,7 @@ export function talkMacroSource(ctx) {
   const item = () => ctx.pipeline?.currentQuestionListItem ?? null;
   const qt = () => item()?.questionType ?? null;
   const err = () => text('resolvingError');
-  // QUESTOR-SHE (FIELD BUGS 2026-10-20f): this compared the string
+  // QUESTOR-SHE (FIELD BUGS 2026-10-20h): this compared the string
   // 'female', but the pool's NPCData carries the Genders enum
   // staticNpcData mints, so every woman with work was "him"
   const female = () => ctx.questorGender?.() === GENDERS.Female;

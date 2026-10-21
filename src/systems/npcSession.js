@@ -624,7 +624,7 @@ export class NPCSession {
   /** RemoveNpcQuestor (:2600-2604) - the offer flow's seam. */
   removeNpcQuestor(nameSeed) { this.npcsWithWork.delete(nameSeed); this._holdSelection(); }
 
-  /** QUESTOR-HELD (FIELD BUGS 2026-10-20f, Ledger A): while the pool
+  /** QUESTOR-HELD (FIELD BUGS 2026-10-20h, Ledger A): while the pool
    *  holds questors, the selection names one of them - the invariant the
    *  build sets (:2869, the last questor added). C#'s RemoveNpcQuestor
    *  and RestoreConversationData (:2541-2542) break it: the offer window

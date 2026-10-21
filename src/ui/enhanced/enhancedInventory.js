@@ -158,6 +158,7 @@ import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
 import { closeOnOutsideTap } from './enhancedOverlays.js';   // OT1
 import { repaintKeepingScroll } from '../domRepaint.js';
 import { virtualRows } from '../virtualRows.js';   // VIRT: a long list draws the rows on screen
+import { landingTiles } from './landingTiles.js';   // VIRT: a picture into its tile, not a repaint
 import { overlayAction, eventActions } from '../input.js';   // MAC-C: and the REGISTRY's answer for the two window keys
 import { audio } from '../../systems/audio.js';   // MAC-O6: the pack's own transfer cue - this window carried none at all
 import { dismantleStones, dismantleRefusal, dismantleWare, dismantleAsk, DISMANTLED, DISMANTLE_WORN } from '../../systems/sigil/sigilBroker.js';   // SS5: a Broker ware back into stones
@@ -715,7 +716,6 @@ const packFitSig = () => `${gridBox()}|${wornBox(false)}|${wornBox(true)}|${scre
 // `painted`): a pass that set off another without end would never stop
 // counting, and a tile is painted once.
 let repaints = 0;
-let landings = 0, painted = 0;
 
 /** "1 item", not "1 items". A count printed by a template literal is
  *  right eleven times out of twelve and wrong on the twelfth, which is
@@ -793,6 +793,10 @@ function lineOf(item) {
  *  lets go of them before it builds and aims the new ones once they are in the document; a resize measures them again. */
 let _lists = [];
 const keepList = (v) => { _lists.push(v); return v; };
+/** AUDIT TRADE-VIRT: each long list's rows' heights by item, kept across the pane's repaints (ui/virtualRows.js `sizes`) -
+ *  one set a list; let go when the pane's fit changes (another layout's heights). */
+const rowSizes = new Map();
+const sizesOf = (key) => { let m = rowSizes.get(key); if (!m) rowSizes.set(key, (m = new WeakMap())); return m; };
 /** Let go of the lists drawn into `container`, or of every list. */
 function dropLists(container = null) {
   _lists = _lists.filter((v) => {
@@ -2734,38 +2738,17 @@ export function wearBar(item) {
   bar.append(fill);
   return bar;
 }
-/** VIRT: THE TILES STILL WAITING ON THEIR PICTURE, and what each was drawn from. A cold picture repainted the whole
- *  pack when it landed - every row, every panel, the scroll kept and given back - and a long store of cold pictures was
- *  one full repaint a picture. A landing now asks for one pass on the next frame, and that pass gives each waiting tile
- *  its picture in place: the tile `itemTile` draws for the same line and box, with the wear bar the old one carried.
- *  The pictures that land together are one pass. A tile a repaint has thrown away is dropped, never drawn into. */
-const _waitingTiles = new Map();   // the initials tile -> { line, box, snap }
-let _tilesQueued = false;
-function tileLanded() {
-  if (_tilesQueued) return;
-  _tilesQueued = true;
-  (globalThis.requestAnimationFrame ?? ((f) => setTimeout(f, 16)))(paintLandedTiles);
-}
-function paintLandedTiles() {
-  _tilesQueued = false;
-  landings++;
-  for (const [tile, t] of _waitingTiles) {
-    if (!host || tile.isConnected === false) { _waitingTiles.delete(tile); continue; }
-    const fresh = itemTile(t.line, t.box, tileLanded, t.snap);
-    if (!fresh.classList.contains('has-icon')) continue;   // its picture is still being made - the pass is every waiting tile's, and another picture woke it
-    _waitingTiles.delete(tile);
-    const bar = tile.querySelector('.wear');
-    if (bar) fresh.append(bar);
-    tile.replaceWith(fresh);
-    painted++;
-  }
-}
+/** VIRT: THE TILES STILL WAITING ON THEIR PICTURE, and what each was drawn from (ui/enhanced/landingTiles.js - the law's
+ *  one home since TRADE-VIRT: the trade windows keep theirs by it too). A cold picture repainted the whole pack when it
+ *  landed - every row, every panel, the scroll kept and given back - and a long store of cold pictures was one full
+ *  repaint a picture. A landing now asks for one pass on the next frame, and that pass gives each waiting tile its
+ *  picture in place: the tile `itemTile` draws for the same line and box, with the wear bar the old one carried. The
+ *  pictures that land together are one pass. A tile a repaint has thrown away is dropped, never drawn into. */
+const _tiles = landingTiles((t, landed) => itemTile(t.line, t.box, landed, t.snap), { alive: () => !!host });
 /** A row's or a panel's picture, as `itemTile` draws it - and when it is not made yet, its initials now and the picture
  *  put in their place when it lands (above), not a repaint of the pack. */
 function liveTile(line, box, snap = true) {
-  const tile = itemTile(line, box, tileLanded, snap);
-  if (!tile.classList.contains('has-icon')) _waitingTiles.set(tile, { line, box, snap });
-  return tile;
+  return _tiles.tile({ line, box, snap });
 }
 /** An item's picture with its wear bar in it; `holder` (the row or socket that frames it) is marked `hasbar`, so the
  *  sheet can lift what shares the tile's foot. */
@@ -3068,7 +3051,7 @@ function fillRemoteList(list, filtering = STORE_FILTER_KINDS.has(remote.kind) &&
   // it is in the document. AUDIT VIRT: measured, and its spacers stood, BEFORE the scroll is given back - aimed at once,
   // the first rows were the list's whole height when the browser laid it out, and a search typed deep in a store threw
   // the scroll to their foot
-  const v = keepList(virtualRows(list, shown, (it) => itemRow(it, 'remote'), { onAim: rowsMoved }));
+  const v = keepList(virtualRows(list, shown, (it) => itemRow(it, 'remote'), { onAim: rowsMoved, sizes: sizesOf('remote') }));   // AUDIT TRADE-VIRT: its rows' heights kept across repaints
   v.sync({ draw: false });
   if (kept) list.scrollTop = kept;
   v.sync();
@@ -3190,7 +3173,7 @@ function listCol() {
   if (!rows.length) {
     col.append(el('p', 'packempty', 'Nothing in your pack fits this page.'));
   }
-  keepList(virtualRows(col, rows, (it) => itemRow(it), { onAim: rowsMoved }));   // VIRT: a long page draws the tiles on screen
+  keepList(virtualRows(col, rows, (it) => itemRow(it), { onAim: rowsMoved, sizes: sizesOf(`pack:${tab}`) }));   // VIRT: a long page draws the tiles on screen; AUDIT TRADE-VIRT: their heights kept across repaints
   return col;
 }
 
@@ -4170,7 +4153,7 @@ function render() {
     const prevList = host.querySelector('.packlists');
     if (prevList && _renderedTab) _scrollMemo.set(_renderedTab, prevList.scrollTop);
     dropLists();   // VIRT: the old DOM's windows and waiting tiles go with it
-    _waitingTiles.clear();
+    _tiles.clear();
     host.innerHTML = '';
     // PX16b (Mac: "really study the reference"): the reference's
     // ground is THE GAME - two translucent columns on the left third,
@@ -4591,7 +4574,7 @@ export function mountEnhancedInventory(hostEl, d = {}) {
   notice = null;
   goldEntry = null;
   repaints = 0;
-  landings = 0; painted = 0;   // AUDIT VIRT
+  _tiles.reset();   // AUDIT VIRT
   // U57: the three things opening the window already decided -
   // selectedActionMode, CheckWagonAccess and SetChooseOne - read once,
   // from the module the classic window reads them from. The pack has
@@ -4633,10 +4616,10 @@ export function mountEnhancedInventory(hostEl, d = {}) {
   if (typeof document !== 'undefined') document.addEventListener('pointerlockchange', lockHandler);
   fitSig = packFitSig();
   // VIRT: a resize that leaves the boxes as they were still moves a long list's columns and band - measured again
-  resizeHandler = () => { const sig = packFitSig(); if (sig !== fitSig) { fitSig = sig; if (host) render(); } else syncLists({ remeasure: true }); };
+  resizeHandler = () => { const sig = packFitSig(); if (sig !== fitSig) { fitSig = sig; rowSizes.clear(); if (host) render(); } else syncLists({ remeasure: true }); };   // AUDIT TRADE-VIRT: a new fit's rows measured afresh
   globalThis.addEventListener?.('resize', resizeHandler);
   globalThis.__pack = () => JSON.stringify({
-    tab, repaints, landings, painted, count: model.count, worn: model.worn.size,
+    tab, repaints, landings: _tiles.counts.landings, painted: _tiles.counts.painted, count: model.count, worn: model.worn.size,
     side, remoteKind: remote.kind, remoteCount: remote.count,
     figure: hostEl.querySelector('.figure-doll img') ? 'doll' : 'schematic',
     wornRows: [...hostEl.querySelectorAll('.wornrow')].length,
@@ -4684,7 +4667,7 @@ export function mountEnhancedInventory(hostEl, d = {}) {
       // door's close law, a scene change), and a refusal left on
       // screen would then outlive the pack that said it.
       dropLists();   // VIRT: the windows' scroll listeners, and the tiles that will never be drawn into
-      _waitingTiles.clear();
+      _tiles.clear();
       noticeRelease(noticeOwner);
       hostEl.innerHTML = '';
       host = null;
