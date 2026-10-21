@@ -88,6 +88,12 @@ const PUBLIC_ALLOWLIST = new Map([
   ['public/art/gun-idle.png', "OURS - Mac's own weapon art for the gun lab (2026-09-19); no ARENA2 pixel in it"],
   ['public/art/gun-fire-sheet.webp', "OURS - Mac's own six-frame fire sheet for the gun lab (2026-09-19); no ARENA2 pixel in it"],
   ['public/art/pistol-frames.png', "OURS - the owner's own six fire frames for the pistol lab (2026-10-21), laid side by side with their pixels unchanged; no ARENA2 pixel in it"],
+  ['public/art/pistolet-icon.png', "OURS - the owner's own Dwarven Pistolet sprite (PISTOLET, 2026-10-21), its 24x17 pixels recovered from the owner's screenshot; the inventory picture as it is; no ARENA2 pixel in it"],
+  ['public/art/pistolet-paperdoll.png', "OURS - pistolet-icon.png with the fist's gap cut across its grip by tools/pistoletArt.mjs (the right hand's doll layer); no ARENA2 pixel in it"],
+  ['public/art/pistolet-paperdoll-left.png', "OURS - pistolet-paperdoll.png in the mirror by tools/pistoletArt.mjs (the left hand's doll layer); no ARENA2 pixel in it"],
+  ['public/art/pistolet-icon-gilded.png', "OURS - pistolet-icon.png laid on the gold-leaf ramp by tools/pistoletArt.mjs (tools/gunIcons.mjs gild - the Sunken Sovereign's); no ARENA2 pixel in it"],
+  ['public/art/pistolet-paperdoll-gilded.png', "OURS - pistolet-paperdoll.png in gold leaf by tools/pistoletArt.mjs; no ARENA2 pixel in it"],
+  ['public/art/pistolet-paperdoll-left-gilded.png', "OURS - pistolet-paperdoll-left.png in gold leaf by tools/pistoletArt.mjs; no ARENA2 pixel in it"],
   ['public/art/gun-paperdoll.png', "OURS - Mac's own weapon art for the gun lab (2026-09-19), baked down and cut for the doll's hand by tools/gunPaperdoll.mjs; no ARENA2 pixel in it"],
   ['public/art/gun-ammo.png', "OURS - Mac's own ammunition art for the gun lab (2026-09-19), baked down by tools/gunPaperdoll.mjs; no ARENA2 pixel in it"],
   // THUNDERLOCK-ART + GILDED1 (2026-10-07): the gun's list picture and the Hourlock's gold pair, each DERIVED from the
@@ -460,6 +466,10 @@ const PUBLIC_ALLOWLIST = new Map([
   ['src/assets/mw/source/Pellet_Shot.fbx', "OURS - Mac's own Blender export of the Dwarven Thunderlock, committed so the two files below are a DERIVATION the gate can re-run rather than a blob"],
   ['src/assets/mw/meshes/thunderlock.nif', "OURS - Mac's own Dwarven Thunderlock model, baked to a Morrowind NIF by tools/nifWrite.mjs; a Bethesda format, no Bethesda data"],
   ['src/assets/mw/textures/thunderlock.dds', 'OURS - generated from that mesh\'s own geometry by tools/meshTexture.mjs (position, normal and cast occlusion); no image input, no ARENA2 or Morrowind pixel in it'],
+  ['src/assets/mw/meshes/pistolet.nif', "OURS - the owner's own Dwarven Pistolet sprite (public/art/pistolet-icon.png) extruded into a mesh by tools/bakePistolet.mjs and written by tools/nifWrite.mjs (PISTOLET); a Bethesda format, no Bethesda data"],
+  ['src/assets/mw/textures/pistolet.dds', "OURS - that sprite's own pixels on a 32x32 atlas by tools/bakePistolet.mjs; no ARENA2 or Morrowind pixel in it"],
+  ['src/assets/mw/meshes/pistolet_gilded.nif', "OURS - the same extruded mesh as pistolet.nif (the Sunken Sovereign's twin), naming its own texture, by tools/bakePistolet.mjs; a Bethesda format, no Bethesda data"],
+  ['src/assets/mw/textures/pistolet_gilded.dds', "OURS - the Pistolet sprite laid on tools/gunIcons.mjs's gold ramp by tools/bakePistolet.mjs; no ARENA2 or Morrowind pixel in it"],
   ['src/assets/mw/meshes/thunderlock_gilded.nif', "OURS - the same baked mesh as thunderlock.nif (GILDED1, the Hourlock's twin), naming its own texture, by tools/bakeThunderlock.mjs; a Bethesda format, no Bethesda data"],
   ['src/assets/mw/textures/thunderlock_gilded.dds', 'OURS - generated from that mesh\'s own geometry by tools/meshTexture.mjs on its gold-leaf bands (GILDED_BANDS); no image input, no ARENA2 or Morrowind pixel in it'],
   // MW-BRIG1 (2026-09-29): the Steel Brigandine, the port's own worn

@@ -81,11 +81,26 @@ export function widgetDefaults() {
  * Everything rides `readWidgetSettings`, the mod's own reader, so
  * every multiplier it applies is applied here too.
  */
-export function gunWidgetSettings(overrides = null) {
+export function gunWidgetSettings(overrides = null, tuning = null) {
   if (overrides) return readWidgetSettings(() => ({ ...widgetDefaults(), 'Modules.Inertia': true, ...overrides }));
   const s = readWidgetSettings();
-  return s.inertia ? s : { ...s, inertia: true };
+  const own = s.inertia ? s : { ...s, inertia: true };
+  if (!tuning) return own;
+  // PISTOLET: A WEAPON'S OWN TUNING (combat/gun/gunFeel.js PISTOLET_FEEL.widget - the owner's Bob and Inertia off the
+  // pistol lab's panel). The player's module SWITCHES stay theirs, as above; the MAGNITUDES are the weapon's, parsed by
+  // the mod's own reader and multipliers - and laid AFTER Diverse Weapons' preset, which would otherwise put its own Bob
+  // and Inertia over them (a departure, named in bible/05-Combat/Dwarven-Pistolet.md).
+  const t = readWidgetSettings(() => ({ ...widgetDefaults(), ...tuning }), { preset: false });
+  const tuned = {};
+  for (const k of TUNED_FIELDS) tuned[k] = t[k];
+  return { ...own, ...tuned };
 }
+/** PISTOLET: the parsed fields a weapon's tuning sets - the Offset slide's speed, Bob's shape and size, Inertia's lag. Never
+ *  a module's switch. */
+export const TUNED_FIELDS = Object.freeze([
+  'offsetSpeed', 'bobLength', 'bobSizeXMod', 'bobSizeYMod', 'moveSmoothSpeed', 'bobSmoothSpeed', 'bobShape', 'bobWhileIdle',
+  'inertiaScale', 'inertiaSpeed', 'inertiaForwardScale', 'inertiaForwardSpeed',
+]);
 
 /**
  * One frame of the three modules, in the component's own order -

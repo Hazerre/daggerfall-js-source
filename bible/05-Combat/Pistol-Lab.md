@@ -162,6 +162,13 @@ in four runs of four.
 
 ## What graduation will need - not built here
 
+**GRADUATED (PISTOLET, 2026-10-21)** as the Dwarven Pistolet - `Dwarven-Pistolet.md` is its record, and the list below
+is what it answered: the pair's `DUAL_GUN_TYPES` row and its balance (measured there), the Pellet spent per hand through
+the one machine, the doll and the icons, the four hosts through the rig. Still open as written: a pistol's own sounds,
+and the flash's canvas edge. The lab now READS the game's row (`combat/gun/gunFeel.js` PISTOLET_FEEL) and strip
+(`combat/gun/pistolStrip.js`), FIELD-GUN6's arrow.
+
+
 When the pistol becomes a weapon, the Thunderlock's own record (`Dwarven-Thunderlock.md`) is the checklist: templates,
 skill, damage, ammunition, all four hosts, icons and the paperdoll. Three things are this weapon's own:
 

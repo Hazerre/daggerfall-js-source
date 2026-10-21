@@ -193,6 +193,14 @@ Nothing in DFU's own pool sets that flag, so the classic pairings are
 exactly what they were: a dagger can still be Wyrmbane or
 Nightwhisper.
 
+## PISTOLET: rarer, and a second gun beside it (2026-10-21)
+
+The owner, giving the Dwarven Pistolet its numbers: *"make the thunderlock in general more rare along with the new hand
+cannon"*. The Thunderlock's unique find weighs `FIND_WEIGHT` 0.5 now, half its old 1, and the Pistolet's find weighs the
+same, so the two guns together turn up about as often as the Thunderlock alone did (`systems/thunderlock.js`). The
+Pistolet eats this weapon's Pellet, flies the same orb and runs this weapon's machine - and the rig's gun functions serve
+both (`heldFeel()`, `heldSfx()`). Its record is `Dwarven-Pistolet.md`.
+
 ## FIELD-GUN: the two the audit walked past
 
 Mac, the first time he held one:

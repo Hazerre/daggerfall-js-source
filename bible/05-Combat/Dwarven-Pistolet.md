@@ -1,0 +1,214 @@
+# The Dwarven Pistolet - the second gun, and the first a pair of can be carried
+
+`src/systems/pistolet.js` + `characters/thunderlockIds.js` (its numbers) + `combat/gun/pistoletArt.js`,
+`combat/gun/pistolStrip.js`, `combat/gun/gunPair.js` + `tools/pistoletArt.mjs`, `tools/bakePistolet.mjs`
+(PISTOLET, 2026-10-21)
+
+The owner, in three steps:
+1. *"this spritesheet is to be for our new weapon type, which can also be duel wielded. Its a dwarven flintlock style
+   pistol. We need to use the same prototype testing we did for the thunderlock"* - the pistol lab, `Pistol-Lab.md`.
+2. *"Must be these values/sounds exactly"* - the lab's panel, tuned (Pistol-Lab.md, PISTOL-LAB 2).
+3. *"Next this is the paperdoll model/inventory. The gun should use the same ammo the thunderlock uses"*. Asked:
+   - The full weapon, pair and all, in this step.
+   - The hand's gap cut on the doll.
+   - Damage 4-15, 2.5 kg, 260 gold, Archery.
+   - *"make the thunderlock in general more rare along with the new hand cannon"*.
+   - A lore name: **Dwarven Pistolet**.
+   - *"replace the serpent boss gilded weapon with this new weapon"*.
+   - For the Morrowind arm, *"Build one from the sprite"*.
+
+DFU has no gun and no dual wielding (SCOPE1: this is our own). The Dwarven Thunderlock is the worked example
+(`Dwarven-Thunderlock.md`), and every law here names the one of its laws it follows. What the Pistolet adds is a gun in
+ONE hand, and so a PAIR.
+
+## The item
+
+| | Value | Where |
+|---|---|---|
+| Template / art archive | 562 / 562 - past the Thunderlock's 560/561 | `characters/thunderlockIds.js` |
+| Name, weight, price | Dwarven Pistolet, 2.5 kg, 260 gold (the Thunderlock 6 kg, 480) | `systems/pistolet.js` PISTOLET_TEMPLATES |
+| Damage | 4-15 (`PISTOLET_SPAN`, once, on the leaf; `characters/weapons.js` answers it) | the Thunderlock's arm, one row along |
+| Skill | Archery (`weaponSkillUsed`) | |
+| Hands | Either (`characters/equipTable.js`) - one-handed, so a second one in the other hand is a pair | |
+| Ammunition | the **Dwemer Pellet** (`ammoTemplateFor` answers 561 for either gun), flying as the same shock orb | |
+| Found | a unique find from source tier 4, arriving with 6-18 Pellets; never on a shelf | the Thunderlock's |
+
+**The rarity.** Both guns' finds weigh `FIND_WEIGHT` 0.5, half the Thunderlock's old 1 (`systems/thunderlock.js`), so
+the two together turn up about as often as the Thunderlock alone did. Luck's small additive share is unchanged
+(`lootRarity.js uniqueFindChance`).
+
+**Every reader that asks about a gun and not about one gun** answers for both:
+- `isGunTemplate` (the leaf) and `isGunType` (`combat/fpsWeapon.js`).
+- The technique family - the guns share Piercing Shot.
+- The siege referee's reach and its "a shot is a bow's blow" (`net/siege/siegeRef.js` SIEGE_PISTOLET).
+- The item law's Weapons group (`systems/item/itemLaw.js`), the pseudo-archive registry, the test room (two rows, a
+  pair's worth).
+- The icons' install, beside the Thunderlock's (`systems/worldTick.js`).
+
+## The pictures
+
+**The owner's sprite was a screenshot**, an editor's canvas over its checkerboard, scaled up non-integrally (about 8.9
+screen pixels to an art pixel). Its native pixels were recovered like this:
+- The grid's pitch and phase were fitted by minimising each cell's spread over the art cells (pitch 8.89).
+- Each cell was read as the median of its non-checker pixels, the checker told apart pixel by pixel (neutral at 255 or
+  200).
+- The result was redrawn on the grid and diffed against the screenshot. The interiors match to a median of 0 and a 95th
+  percentile of 2 levels; the only misses are one screen column where the grid's last cell meets the next checker
+  square.
+
+The result, `public/art/pistolet-icon.png`, is 24x17 and 1-bit: Daggerfall's own scale, a classic dagger's doll record.
+If the owner has the original file, it replaces this one byte for byte and `node tools/pistoletArt.mjs` re-derives the
+rest.
+
+**One picture per job**, the Thunderlock's THUNDERLOCK-ART rule. The list shows the whole gun, the sprite as it is. The
+doll wears a layer with the fist's gap cut out:
+- `tools/pistoletArt.mjs` cuts it as a band square to the grip (the Thunderlock's `punchBand`, imported - and
+  `tools/gunPaperdoll.mjs` gained the `isMain` guard AUDIT 68 asks of a tool another imports).
+- The frame of the gun stays above the fist and the butt below it.
+- Nothing is resampled: the sprite is native, and turning a finished pixel sprite is the staircase the Gun-Lab record
+  warns of.
+
+**Two hands on the doll.** A classic Either-hand weapon carries two doll records, TEXTURE.234's base for the left hand
+and +1 for the right (`ui/paperDoll.js`). The Pistolet carries the right hand's layer and its mirror (`ART_RECORDS`:
+doll 0, icon 1, gold 2 and 3, left 4 and 5), chosen by the slot it is worn in (`pistoletImageRecord`).
+
+**Where they hang was measured, not guessed.** The fist's gap in every clean one-handed classic doll record (dagger,
+mace, shortsword, war axe; the player's own ARENA2 via `tools/fetch-data.sh`) closes at panel (27, 96) on the right hand
+and (69, 95) on the left. The band's centre goes on each (`PAPERDOLL_OFFSET`), and `pistolet.test.js` holds the two
+landings to that measurement. The owner's eye is the gate, as Mac's was on the Thunderlock's FIELD-GUN9.
+
+## First person - one gun
+
+Weapon types **Pistolet 19 / Pistolet_Magic 20**, past DFU's enum like the Thunderlock's 17/18. The same table
+(THUNDERLOCK_ANIMS: an idle, six frames on every direction), and the same machine (`combat/playerWeapon.js`: the melee
+one-shot with the ranged cooldown).
+
+Its cadence is the owner's panel (`combat/gun/gunFeel.js` **PISTOLET_FEEL**):
+- 12 fps, a 1400 ms reload, the hit on frame 2.
+- The spring at kick 3; the room shake at 2 (the Thunderlock's 3, scaled as the lab's 20 is to 30).
+- The three sounds `fire-shotgun`, `open-shell` and `close-ready`.
+- The reload dip at 0.7 of its height.
+- A flash that throws a torch's 14 (the rifle's 20).
+
+**The lab reads that row back** (`src/tools/pistolLab.js` PISTOL_OPENING), FIELD-GUN6's one-way arrow. Tuning the lab
+tunes the game.
+
+**The art** (`combat/gun/pistoletArt.js`) is the lab's strip, cut at a fixed stride and hardened to 1 bit, at NATIVE
+size: one art pixel is one pixel of the 320-wide surface, times the owner's 1.05. Its `pose` (width and raise) rides on
+the art, and the Thunderlock's art carries its own now too, so the rig asks the art rather than a table. Two findings
+were the strip's own:
+- **The muzzle is read off the flash alone.** The Thunderlock's reading (`muzzlePoint`, the brightness the shot frame
+  gained) assumes the gun stands still in its sheet. The owner's shot frame kicks the pistol and arm back inside the
+  canvas, so "what got brighter" was 735 texels across the frame, centred on nothing. The flash is the only thing in the
+  strip drawn at luminance 215 or more, so `flashPoint` takes the centroid of those: (0.16, 0.14) of the union box, on
+  the flame.
+- **The gilded frames gild the pistol, never the hand** (`pistoletGildKeep`). The Thunderlock's hand mask is tuned to
+  its painting (a 10 px blur at full resolution, the fist from the bottom-left), and the Pistolet's frames move the
+  pistol. So the rule is the pistol's colours: its brass, its teal grip, its steel and outlines. The leather, the skin
+  and the brown shadows are never gilded. The grey sleeve shares the steel's greys, so it is told apart by WHERE it is:
+  the grey reached from the frame's bottom-right corner, where the forearm leaves every frame.
+
+**Weapon Widget's Bob and Inertia, tuned** (the owner's Bob.Length 146, SizeY 0.7, Inertia 2/2/0):
+`gunWidgetSettings(null, PISTOLET_FEEL.widget)` keeps the player's module SWITCHES and takes the weapon's MAGNITUDES.
+It parses them with the mod's own reader (`readWidgetSettings`, which gained a `preset: false` door) and lays them
+AFTER Diverse Weapons' preset, which would otherwise put its own Bob and Inertia over them. **A departure from the mod:
+a weapon's own tuning over a preset's.** The Thunderlock carries no tuning and reads exactly what it read.
+
+The rig (`combat/weapon/weaponRig.js`) keeps its gun functions' names - `thunderlockHeld`, `drawThunderlock`,
+`thunderlockMuzzle`, the host's door - and they serve either gun now. `heldFeel()` and `heldSfx()` hand each its own
+row and clips; the voice, the toggle's clack, the spring, the dip, the slide, the flash's tint and the out-of-Pellets
+guard all read them.
+
+## First person - the pair
+
+**The law** (`combat/twoHands/handsLaw.js`). `DUAL_GUN_TYPES` [19, 20] beside the melee `DUAL_TYPES`, and **a pair is
+two of a kind** - two melee weapons or two Pistolets, never one of each. A swing and a shot are two machines' worth of
+difference, and the sprite lane draws them through two doors. The mixed pair is a later slice's. The Thunderlock is
+two-handed and never in a pair.
+
+**The machine** (`combat/playerWeapon.js` `gunPair`). It is ONE machine, as a sword pair's is: one shot at a time, and
+the hands take turns by the law's flurry (the lead opens, the other answers within FLURRY_WINDOW).
+- What a gun adds is its RELOAD, and a pair's point is that each hand has its own. At a shot's end the machine's ranged
+  cooldown moves onto the hand that fired (`_reload`), and the machine's own gate is left at the soonest either hand is
+  loaded again.
+- The pistol lab's one departure, carried: **a pull the law gives to a hand still reloading falls to the loaded one.**
+  A sword can always swing; a pistol mid-reload cannot fire.
+- A gun's flurry never starts a frame in (DUAL.FLURRY_FROM_FRAME): its six frames are a mechanism's.
+- The off hand's shot carries DUAL's terms (0.8 damage, Agility's to-hit, its weight's held ticks, 0.8 of a blow),
+  untouched.
+
+**The sprite** (`combat/gun/gunPair.js`, the module the rig wires - HOST-SPLIT). Each hand has its own widget rig,
+spring, guard and reload clacks, on one clock:
+- The left hand's rig steps FLIPPED, which gives Two-Hands' two sway rules for free: Bob outward, Inertia in the
+  screen's direction.
+- The resting pistol lowers GUARD.LOWER of its height while the other fires (the guard's rule is the hand that is not
+  striking - the pistol lab's probe found the lab lowering both, and that rule is what the module carries).
+- The draw is the rig's own `drawThunderlock` with a `hand`: the gun's frame, the left one in the mirror, the striking
+  one drawn over. Each hand keeps its own muzzle record, and the shot leaves the barrel that fired it.
+- The flash's light is thrown from that hand's side (`systems/thunderlock.js thunderlockMuzzleLight`, which reads the
+  side and reach the rig parks).
+- The pair's branch stands ahead of the melee pair's in the draw ladder.
+
+**The balance, measured through the machine** (`test/systems/pistolet.test.js`):
+
+| | Shots a minute | Damage a second (the mean of the span, the off hand's 0.8) |
+|---|---|---|
+| one Pistolet | 32 (1.9 s a shot) | 5.1 |
+| a pair | 64 | 9.1 |
+| the Thunderlock | 28 | 7.7 |
+
+A pair lands about 18% more than the Thunderlock a second (the test holds it under x1.25). It pays for that with more
+than twice its Pellets (64 a minute to 28), and both hands: no shield and no light. One Pistolet is the cheap gun, and
+the pair is its reason.
+
+## The Sunken Sovereign is a Pistolet
+
+`systems/gilded.js`: the serpent's Gilded record is an Ebony **Dwarven Pistolet**, where it was an Ebony Saber.
+- It keeps its id (every hoard and save that holds one reads it), its make, damage, Agility and leech lines, its power
+  Undertow (which charges on a shot that lands as on a swing) and its one-in-a-hundred drop.
+- Its skill line is Archery. Its lore reads as a pistolet's.
+- Its gold is the Pistolet's own pictures through the Gilded ramp, and in first person the pistol's pixels only.
+- A saber minted before this keeps its template, as every save's item does. `Gilded.md` section 7 records it.
+
+## The Morrowind arm
+
+The model is **the sprite, extruded** (`tools/bakePistolet.mjs`):
+- Every drawn pixel becomes a block 2 pixels thick, with faces only where a neighbour is empty.
+- Each face is coloured by its own pixel through a texture that is the sprite itself, so the pixel look is kept in
+  three dimensions.
+- 1,256 triangles, 36 cm long; the Thunderlock's frame (+Y the barrel, +Z up); the grip's middle at the origin.
+- The same NIF and DDS writers, the gold twin through the Gilded ramp.
+- The bake is deterministic and `pistolet.test.js` re-runs it against the committed bytes.
+
+Its rows (`characters/ownModels/ownWeaponModels.js`):
+- It hangs on the Weapon Bone, and a pair's second on the Weapon Bone Left (`fpArm.js resolveOffWeaponParts` reads the
+  same table).
+- `PISTOL_GRIP_ATTITUDE` puts the grip through the fist at its own 12-degree rake.
+- Morrowind has no pistol, so it borrows **MarksmanThrown (11)**, Morrowind's one one-handed ranged act. It shoots
+  rather than swings (the shot rides the arm's "shoot release", as the Thunderlock's does) and has no ammunition arm, so
+  nothing is drawn through the pistol.
+- `fieldgunmw.test.js` walks every row: each preloads and resolves through the arm against the skeleton fixture.
+
+**Not seen on a Morrowind body.** Morrowind's data is not freeware and is not in this container, so the model was
+checked:
+- read back through the port's own NIF reader;
+- rendered in the baker's preview sheet;
+- bound in the tests.
+
+It was not checked on a character. MarksmanThrown's clip is a throw, not a pistol's raise. **A pistol's own stance**
+(RIFLE-STANCE's kind, one-handed, the arm up and aimed) **is the named follow-up**, for whoever has the data to tune it.
+
+## Departures (Port-Ledger section A, PISTOLET)
+
+- The pair of guns: `DUAL_GUN_TYPES` and two of a kind beside Two-Hands' melee law.
+- A gun pair's reload, hand by hand, and the pull that falls to the loaded pistol.
+- A weapon's own Weapon Widget tuning laid over Diverse Weapons' preset.
+- The doll's two hands for a custom weapon, by slot.
+
+## What is still open
+
+- **A pistol's own stance on the Morrowind arm** (above).
+- **The mixed pair**: a Pistolet beside a sword.
+- **A pistol's own sounds**: the owner picked from the gun lab's clips; a flintlock's pan and ramrod were never searched
+  for.
+- **The doll's placement**, measured on the classic records; the owner's eye is the gate.

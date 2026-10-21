@@ -145,7 +145,10 @@ test('FIELD-GUN-MW2: the preload names exactly what the read opens', () => {
   // question - so they are asked together.
   const arc = shippedArchive();
   const all = [];
-  for (const weapon of [GUN, HOURLOCK]) {   // GILDED1: the plain gun and its gold twin, each its own row
+  // GILDED1: the plain gun and its gold twin, each its own row; PISTOLET: and the Dwarven Pistolet and its gold (the Sunken
+  // Sovereign) - every row, in the table's own order (its plain rows, then its gilded)
+  const PISTOLET = { templateIndex: 562, group: 'Weapons' }, SOVEREIGN = { templateIndex: 562, group: 'Weapons', rarity: 'gilded' };
+  for (const weapon of [GUN, PISTOLET, HOURLOCK, SOVEREIGN]) {
     const paths = weaponPartPaths({ weapon, hasAmmo: true, allWeapons: [], has: archiveHas([arc]) });
     const res = resolveWeaponParts({
       weapon, hasAmmo: true, allWeapons: [], find: (p) => (arc.has(p) ? arc : null),
@@ -157,7 +160,7 @@ test('FIELD-GUN-MW2: the preload names exactly what the read opens', () => {
     all.push(...paths);
   }
   assert.deepEqual(all, ownWeaponModelPaths(), 'the preload asks the table, not a second copy of it');
-  assert.notEqual(all[0], all[1], 'the Hourlock wears its own file');
+  assert.equal(new Set(all).size, all.length, 'every row wears its own file - the Hourlock and the Sunken Sovereign their gold');
 });
 
 test('FIELD-GUN-MW2: it BINDS - the shipped mesh reaches the arm\'s weapon bone', () => {

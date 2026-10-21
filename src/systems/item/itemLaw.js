@@ -82,6 +82,7 @@ import { DEX_ENEMY_IDS } from '../enemyExpansion/dexIds.js';   // SOUL-LAW: the 
 import '../professions/profTemplates.js';
 import '../survival/items.js';
 import '../thunderlock.js';
+import '../pistolet.js';   // PISTOLET: the second gun's row, the Thunderlock's way
 import '../gate/gateSpoils.js';
 import '../ayleidStones.js';
 import '../gems.js';   // GEM2: the graded gems' rows
@@ -129,7 +130,7 @@ const CLASSIC_GROUPS = (() => {
  *  writes it. Every index not named here is UselessItems2's - the custom items' own group. Pinned by the producer sweep
  *  (test/systems/item/int1_itemlaw.test.js): every custom index a producer mints, in the group it mints it in. */
 export const CUSTOM_TEMPLATE_GROUPS = Object.freeze({
-  Weapons: Object.freeze([513, 514, 560, 561]),
+  Weapons: Object.freeze([513, 514, 560, 561, 562]),
   Armor: Object.freeze([515, 516, 517, 518, 519, 520, 521, 522, 523, 524, 525, 526]),
   Gems: Object.freeze([570, 571, ...GEM_GRADE_TEMPLATES]),   // GEM2: the graded gems (systems/gems.js)
   Jewellery: Object.freeze([]),

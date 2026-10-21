@@ -34,7 +34,7 @@
 // lookup cannot close a cycle. `src/formats/morrowind/mwItemMap.js` and
 // `src/combat/fpArm.js` are both askers and both sit upstream of
 // everything `systems/thunderlock.js` touches.
-import { THUNDERLOCK_TEMPLATE } from '../thunderlockIds.js';
+import { THUNDERLOCK_TEMPLATE, PISTOLET_TEMPLATE } from '../thunderlockIds.js';
 
 /**
  * The port's own Morrowind-format models, by template index.
@@ -70,6 +70,15 @@ export const GUN_GRIP_ATTITUDE = (() => {
   const [x, y, z] = GRIP_CENTRE;
   const t = [-(a[0] * x + a[1] * y + a[2] * z), -(a[3] * x + a[4] * y + a[5] * z), -(a[6] * x + a[7] * y + a[8] * z)];
   return Object.freeze({ a: Object.freeze(a), t: Object.freeze(t) });
+})();
+
+/** PISTOLET: THE DWARVEN PISTOLET'S GRIP through the fist - GUN_GRIP_ATTITUDE's turn at the pistol's own rake (its grip
+ *  runs 12 degrees off square to its barrel, read off the sprite it is built from - tools/pistoletArt.mjs BAND), its
+ *  grip's middle already at the mesh's origin (tools/bakePistolet.mjs puts it there), so no offset. */
+const PISTOL_GRIP_RAKE = 12;
+export const PISTOL_GRIP_ATTITUDE = (() => {
+  const r = (PISTOL_GRIP_RAKE * Math.PI) / 180, c = Math.cos(r), s = Math.sin(r);
+  return Object.freeze({ a: Object.freeze([0, c, -s, 0, s, c, 1, 0, 0]), t: Object.freeze([0, 0, 0]) });
 })();
 
 export const OWN_MW_MODELS = Object.freeze({
@@ -125,6 +134,23 @@ export const OWN_MW_MODELS = Object.freeze({
     holdAs: 'rifle',
     attitude: GUN_GRIP_ATTITUDE,
   }),
+  // PISTOLET (2026-10-21, the owner: "Build one from the sprite"): the Dwarven Pistolet - its own sprite extruded
+  // (tools/bakePistolet.mjs), on the Weapon Bone, and a pair's second on the Weapon Bone Left (fpArm.js
+  // resolveOffWeaponParts reads this table for the left hand as for the right). Morrowind has no pistol either: it
+  // borrows MarksmanThrown (11, weapontype.hpp) - Morrowind's ONE ONE-HANDED RANGED act: it shoots rather than swings
+  // (the shot rides the arm's "shoot release", MW-D42's hold, as the Thunderlock's does) and has no ammunition arm, so
+  // nothing is drawn through the pistol. Its clip is a throw, not a pistol's raise - a pistol's own stance (RIFLE-STANCE's
+  // kind, one-handed) is the named follow-up, bible/05-Combat/Dwarven-Pistolet.md. No `holdAs`: the clip's hold.
+  [PISTOLET_TEMPLATE]: Object.freeze({
+    model: 'pistolet.nif',
+    bone: 'Weapon Bone',
+    animateAs: 11,
+    borrowsAmmo: false,
+    id: 'daggerfall_pistolet',
+    name: 'Dwarven Pistolet',
+    speed: 1,
+    attitude: PISTOL_GRIP_ATTITUDE,
+  }),
 });
 
 /**
@@ -139,6 +165,13 @@ export const OWN_MW_GILDED = Object.freeze({
     model: 'thunderlock_gilded.nif',
     id: 'daggerfall_hourlock',
     name: 'The Hourlock',
+  }),
+  // PISTOLET: the Sunken Sovereign's (systems/gilded.js) - the Pistolet in gold leaf (tools/bakePistolet.mjs)
+  [PISTOLET_TEMPLATE]: Object.freeze({
+    ...OWN_MW_MODELS[PISTOLET_TEMPLATE],
+    model: 'pistolet_gilded.nif',
+    id: 'daggerfall_sunken_sovereign',
+    name: 'The Sunken Sovereign',
   }),
 });
 

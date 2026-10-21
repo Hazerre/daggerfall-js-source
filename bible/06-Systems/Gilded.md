@@ -151,6 +151,13 @@ rows and the bake's two twins), SD9e (the spoils' order and the Hourlock's rate)
 
 ## 7. The world's two - the Dragonfire Oath and the Sunken Sovereign (GILDED2, 2026-10-15)
 
+**PISTOLET (2026-10-21, the owner: "replace the serpent boss gilded weapon with this new weapon").** The Sunken Sovereign
+is an Ebony **Dwarven Pistolet** now (`systems/gilded.js`, template 562 - `05-Combat/Dwarven-Pistolet.md`), its skill line
+Archery's where it was Long Blade's; its id, make, damage, Agility and leech lines, its power Undertow (which charges on a
+shot that lands as on a swing - `systems/loot/lootPowers.js`) and its drop are unchanged. Its gold is the Pistolet's own
+pictures through tools/gunIcons.mjs's ramp (`tools/pistoletArt.mjs`) and, in first person, the pistol's pixels and never
+the hand's (`combat/gun/pistoletArt.js` pistoletGildKeep). The tables below are GILDED2's, measured on the saber.
+
 Mac: "With the introduction of elite dungeons soon. I want to enhance the rewards for each world activety. We need to add
 a rare gilded weapon to the oblivion gates. A gilded weapon to the serpent + a rare chance of a title/aura drop." The
 title and the aura are the serpent's own slice (`11-Multiplayer/Sea-Serpent.md` section 17, SERPENT5); this section is
@@ -161,7 +168,7 @@ Rewards.md`) read the slice cold and moved what this section says where it was w
 
 | | The Dragonfire Oath (the gate's) | The Sunken Sovereign (the serpent's) |
 |---|---|---|
-| Weapon, make | Dai-Katana (123), Daedric - two hands, Long Blade | Saber (119), Ebony - either hand, Long Blade, a shield beside it |
+| Weapon, make | Dai-Katana (123), Daedric - two hands, Long Blade | Saber (119), Ebony - either hand, Long Blade, a shield beside it. **A Dwarven Pistolet (562), Ebony, Archery since PISTOLET** (below) |
 | Lines | +40% damage, +15 Strength, +30 Long Blade, +15 Endurance (AUDIT B1: no longer a slayer of the Daedra) | +40% damage, +15 Agility, +30 Long Blade, 10% leech |
 | Power | DRAGONFIRE - a landed blow on a Daedra burns it again for a third of the blow, and every OTHER Daedra within 3 m for as much; no Daedra resists it | UNDERTOW - each landed blow on a foe adds +10% to its next blows on that foe, up to +50%, for 6 s from the last; a foe it fells heals 10% of your health |
 | Brief (the card's 32) | "Daedra burn +33%, and all in 3m" | "+10%/hit on a foe; kills heal" |

@@ -67,8 +67,9 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { WEAPON_MATERIALS, WEAPONS } from '../characters/weapons.js';
-import { THUNDERLOCK_TEMPLATE } from '../characters/thunderlockIds.js';
+import { THUNDERLOCK_TEMPLATE, PISTOLET_TEMPLATE } from '../characters/thunderlockIds.js';
 import { createThunderlock } from './thunderlock.js';
+import { createPistolet } from './pistolet.js';   // PISTOLET: the Sunken Sovereign's mint
 import { createWeapon } from '../combat/enemyEquipment.js';   // GILDED2: a DFU weapon's own mint (CreateWeapon)
 import { itemBaseValue } from './item/itemTemplates.js';
 import { affixesWorth, validAffix, registerGildedRecords } from './loot/lootRarity.js';
@@ -157,23 +158,26 @@ export const DRAGONFIRE_OATH = Object.freeze({
   lore: 'A Dragonguard carried it through the first gate and never carried it back. The Deadlands blackened its steel; the Dragonfire in its gilding never went out.',
   hint: 'Said to fall from the Warden of the Burning Gate, once in a long while',
 });
-/** GILDED2: THE SUNKEN SOVEREIGN - the Old Coil's. An Ebony Saber (either hand, Long Blade - a shield beside it): a Sentinel
- *  admiral's, swallowed with her flagship. Its lines the Legendary band's top, its fourth the leech's - and its power
- *  UNDERTOW. */
+/** GILDED2: THE SUNKEN SOVEREIGN - the Old Coil's. PISTOLET (2026-10-21, the owner: "replace the serpent boss gilded
+ *  weapon with this new weapon"): an Ebony DWARVEN PISTOLET (either hand, Archery - its pair is a second Pistolet), where
+ *  it was an Ebony Saber. A Sentinel admiral's, swallowed with her flagship. The same record otherwise - its id (the
+ *  serpent's hoard and every save that holds one read it), its make, its lines but the skill's, its power UNDERTOW, which
+ *  charges on any blow that lands, a shot's as a swing's (systems/loot/lootPowers.js). Its gold is
+ *  tools/pistoletArt.mjs's. A saber minted before this reads its template off the item, as every save's does. */
 export const SUNKEN_SOVEREIGN = Object.freeze({
   id: 'the-sunken-sovereign',
   name: 'The Sunken Sovereign',
   group: 'Weapons',
-  templateIndex: WEAPONS.Saber,
+  templateIndex: PISTOLET_TEMPLATE,
   material: WEAPON_MATERIALS.Ebony,
   affixes: Object.freeze([
     line('damage', 40),
     line('stat', 15, 'agility'),
-    line('skill', 30, SKILLS.LongBlade),
+    line('skill', 30, SKILLS.Archery),
     line('leech', 10),
   ]),
   power: UNDERTOW,
-  lore: 'A Sentinel admiral\'s saber, swallowed with her flagship off Stros M\'kai. The Old Coil gave back only the blade, and the sea never touched its gilding.',
+  lore: 'A Sentinel admiral\'s pistolet, swallowed with her flagship off Stros M\'kai. The Old Coil gave back only the pistol, and the sea never touched its gilding, nor wet its powder.',
   hint: 'Said to lie in the Old Coil\'s belly, once in a long while',
 });
 
@@ -195,7 +199,9 @@ registerGildedRecords({ powerOf: (id) => gildedById(id)?.power ?? null, loreOf: 
  * @param {GildedRecord} r
  */
 export function mintGilded(r) {
-  const item = r.templateIndex === THUNDERLOCK_TEMPLATE ? createThunderlock({ material: r.material }) : createWeapon(r.templateIndex, r.material);
+  const item = r.templateIndex === THUNDERLOCK_TEMPLATE ? createThunderlock({ material: r.material })
+    : r.templateIndex === PISTOLET_TEMPLATE ? createPistolet({ material: r.material })   // PISTOLET: the Sunken Sovereign
+    : createWeapon(r.templateIndex, r.material);
   const affixes = r.affixes.filter(validAffix).map((a) => ({ ...a }));
   item.name = r.name;
   item.rarity = GILDED;

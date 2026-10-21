@@ -304,6 +304,10 @@ export function installThunderlockIcons({ fetchBytes = null } = {}) {
 // with it - few enough that the weapon still sends you looking.
 export const FIND_MIN_TIER = 4;
 export const FIND_PELLETS = Object.freeze({ min: 6, max: 18 });
+// PISTOLET (2026-10-21, the owner: "make the thunderlock in general more rare along with the new hand cannon"): the
+// find's weight, HALF its old 1 - and the Dwarven Pistolet's find (systems/pistolet.js) weighs the same, so the two
+// guns together turn up about as often as the Thunderlock alone did. One number, here with the find's other rules.
+export const FIND_WEIGHT = 0.5;
 
 // The pellet is AMMUNITION: never rarity-promoted, for the Arrow's own
 // reason - promoting a stack enchants it, and an enchanted item does
@@ -313,7 +317,7 @@ registerAmmunition(PELLET_TEMPLATE);
 registerUniqueFind({
   id: 'dwarven-thunderlock',
   minTier: FIND_MIN_TIER,
-  weight: 1,
+  weight: FIND_WEIGHT,
   mint: (rolls = Math.random) => {
     const n = FIND_PELLETS.min + Math.floor(rolls() * (FIND_PELLETS.max - FIND_PELLETS.min + 1));
     return [createThunderlock(), createPellets(n)];
@@ -460,11 +464,15 @@ export function thunderlockMuzzleLight(entity, feet, yaw = 0) {
   const f = [sy, 0, cy];              // forward
   const r = [cy, 0, -sy];             // right
   const o = MUZZLE_OFFSET;
+  // PISTOLET: the side the flash is on - a pair's left pistol fires from the left hand - and the gun's own reach (the
+  // Pistolet's PISTOLET_FEEL.flashRange), both parked by the rig beside the glow
+  const side = entity._thunderlockFlashSide === -1 ? -1 : 1;
+  const reach = entity._thunderlockFlashRange ?? GUN_FEEL.flashRange;
   return {
-    x: feet[0] + r[0] * o.right + f[0] * o.forward,
+    x: feet[0] + r[0] * o.right * side + f[0] * o.forward,
     y: feet[1] + o.up,
-    z: feet[2] + r[2] * o.right + f[2] * o.forward,
-    range: GUN_FEEL.flashRange * glow,
+    z: feet[2] + r[2] * o.right * side + f[2] * o.forward,
+    range: reach * glow,
     color: orbColour(),   // FIELD-GUN17: `withPlayerLights` takes a light's own colour where it has one
     // MAC-T1: a flash in your own hand gets no bloom glare either -
     // the same exemption the carried torch takes, for the same reason

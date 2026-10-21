@@ -37,46 +37,11 @@ export {
 import { createGunMachine } from './gunLab.js';
 import { HANDS_MODE, strikeHandOf, otherHand } from '../combat/twoHands/handsLaw.js';
 
-/**
- * THE STRIP. The owner's art arrived as six 88x113 frames, each on its
- * own transparent canvas and REGISTERED to the others by that canvas:
- * the forearm leaves every frame through the same bottom-right corner,
- * and the pistol moves inside the canvas because the art moves it (the
- * kick back on the flash, the muzzle up on 4-5). So the frames are laid
- * side by side in the order given, pixels unchanged
- * (public/art/pistol-frames.png, 528x113), and cut at a fixed stride -
- * no key, no badge gutter, no flood fill: the Thunderlock's sheet was a
- * contact sheet on a white page, this is not.
- *
- *   1 rest - 2 the shot (flash, kicked back) - 3 settling -
- *   4, 5 muzzle up (the same picture twice: a hold) - 6 settling (= 3)
- */
-export const PISTOL_STRIP = Object.freeze({ frames: 6, cellW: 88, cellH: 113, file: 'pistol-frames.png' });
-
-/** Cell `i` of the strip, an integer source rect (a half pixel resamples). */
-export function stripCellRect(i, strip = PISTOL_STRIP) {
-  return { x: i * strip.cellW, y: 0, w: strip.cellW, h: strip.cellH };
-}
-
-/**
- * THE 1-BIT CUT. The frames carry soft alpha - an antialiased fringe
- * and the flash's glow - and the port's screen quad discards texels
- * under 0.5 (drawScreenQuad), so a soft edge looks right in an image
- * viewer and wrong the moment the game draws it. The lab cuts at the
- * game's own 0.5 by default (`cut` 128) and keeps the threshold a live
- * control, because what it costs the flash's halo is the thing worth a
- * slider. Alpha goes to 0 or 255, nothing between. Mutates `img.data`
- * and answers how many texels it cleared.
- */
-export function hardenAlpha(img, cut = 128) {
-  const { data } = img;
-  let cleared = 0;
-  for (let p = 3; p < data.length; p += 4) {
-    if (data[p] >= cut) data[p] = 255;
-    else { if (data[p]) cleared++; data[p] = 0; }
-  }
-  return cleared;
-}
+// THE STRIP AND ITS CUT ARE THE GAME'S NOW (PISTOLET, 2026-10-21). They were written here while this page was the only
+// thing that had them; combat/gun/pistolStrip.js is their home since the Dwarven Pistolet became a weapon, and the lab
+// reads them from there - gunSheet.js's one-way arrow for the Thunderlock's sheet, one weapon along.
+export { PISTOL_STRIP, stripCellRect, hardenAlpha } from '../combat/gun/pistolStrip.js';   // the leaf combat/gun/pistoletArt.js reads too
+import { PISTOLET_FEEL } from '../combat/gun/gunFeel.js';
 
 /**
  * NATIVE SIZE. The Thunderlock's art was a 1790px painting and had to
@@ -89,33 +54,20 @@ export function hardenAlpha(img, cut = 128) {
 export const nativeWidthPct = (anchorW, scale = 1) => (anchorW / 320) * scale;
 
 /**
- * THE OWNER'S NUMBERS (PISTOL-LAB 2, 2026-10-21), off the lab's panel -
- * "Must be these values/sounds exactly", over two screenshots of it. One
- * frozen row, so the page, the probe and the pins open on one weapon, and
- * the next person to move one moves it once (GUN_FEEL's rule).
- *
- * Kept from the first pass: 12 fps, hit on frame 2 (the flash), a 1400ms
- * reload, kick 3 / back 0 / stiffness 400 / damping 36, the shake at
- * 20 / 2.5 / 60 / 5, drop 0.7, the cut at 128. Moved by the owner: the
- * size to 1.05x native and the raise to -1 (a design unit below the
- * view's edge); the three sounds; and Weapon Widget's Bob and Inertia -
- * a longer, flatter Bob (Length 146, SizeY 0.7) and an Inertia at twice
- * the mod's scale and speed with no forward depth. The widget's keys are
- * the mod's own names, read through its own multipliers.
+ * THE OWNER'S NUMBERS (PISTOL-LAB 2, 2026-10-21), off the lab's panel - "Must be these values/sounds exactly", over two
+ * screenshots of it. They are the GAME'S row now (combat/gun/gunFeel.js PISTOLET_FEEL - the Thunderlock's FIELD-GUN6
+ * rule: the lab settled them and the game reads them; tuning here is tuning there), and this is the lab's reading of it in
+ * the panel's own names, so the page, the probe and the pins still open on one weapon.
  */
 export const PISTOL_OPENING = Object.freeze({
-  scale: 1.05, raise: -1, offset: 0,
-  fps: 12, reloadMs: 1400, hitFrame: 1,
-  kick: 3, back: 0, stiff: 400, damp: 36,
-  shake: 20, shakeRot: 2.5, shakeFreq: 60, shakeDecay: 5,
-  drop: 0.7, alphaCut: 128,
-  sfxFire: 'fire-shotgun', sfxOpen: 'open-shell', sfxClose: 'close-ready', sfxVol: 1, sfxVary: 0.19,
-  widget: Object.freeze({
-    'Offset.Speed': 1,
-    'Bob.Length': 146, 'Bob.SizeX': 1, 'Bob.SizeY': 0.7, 'Bob.SpeedMove': 1, 'Bob.SpeedState': 1,
-    'Bob.Shape': 0, 'Bob.BobWhileIdle': true,
-    'Inertia.Scale': 2, 'Inertia.Speed': 2, 'Inertia.ForwardDepth': 0, 'Inertia.ForwardSpeed': 1,
-  }),
+  scale: PISTOLET_FEEL.scale, raise: PISTOLET_FEEL.raise, offset: PISTOLET_FEEL.offset,
+  fps: PISTOLET_FEEL.fps, reloadMs: PISTOLET_FEEL.reloadMs, hitFrame: PISTOLET_FEEL.hitFrame,
+  kick: PISTOLET_FEEL.kick, back: PISTOLET_FEEL.back, stiff: PISTOLET_FEEL.stiff, damp: PISTOLET_FEEL.damp,
+  shake: PISTOLET_FEEL.shake, shakeRot: PISTOLET_FEEL.shakeRot, shakeFreq: PISTOLET_FEEL.shakeFreq, shakeDecay: PISTOLET_FEEL.shakeDecay,
+  drop: PISTOLET_FEEL.hiddenTarget[1], alphaCut: PISTOLET_FEEL.alphaCut,
+  sfxFire: PISTOLET_FEEL.sfx.fire, sfxOpen: PISTOLET_FEEL.sfx.open, sfxClose: PISTOLET_FEEL.sfx.close,
+  sfxVol: PISTOLET_FEEL.sfxVolume, sfxVary: PISTOLET_FEEL.sfxVary,
+  widget: PISTOLET_FEEL.widget,
 });
 
 /** How the trigger is pulled with a pistol in each hand. */
