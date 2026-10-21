@@ -129,7 +129,7 @@ const HARDCODED = {
   'src/net/oneSeat.js': 3,
   'src/net/peer/peerBodies.js': 5,
   'src/net/postLaw.js': 1,
-  'src/net/professionLaw.js': 109,
+  'src/net/professionLaw.js': 112,   // FIELD BUGS 2026-10-20h DEX-HIDES: the Wolf Pelt's, the Boar Hide's and the Mudcrab Chitin's names - an item's canonical name is its row's, as the ten hides' are
   'src/net/raid/raidClaims.js': 5,
   'src/net/realm/realmGoldLaw.js': 1,
   'src/net/realm/realmTradeLaw.js': 21,
