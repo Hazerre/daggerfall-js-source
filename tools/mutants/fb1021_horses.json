@@ -101,7 +101,7 @@
   {
     "name": "HORSE-VIEW-pool-cadence-dropped",
     "file": "src/scenes/horseCartPool.js",
-    "old": "    return (_frameNo + e.phase) % poseCadenceFor(dx * dx + dz * dz) === 0;",
+    "old": "    return (_frameNo + e.phase) % poseCadenceFor(cadenceD2(at, eye, _cam3d?.lens ?? 1)) === 0;",
     "new": "    return true;",
     "tests": [
       "test/systems/horse/fb1021_horses.test.js"
@@ -110,26 +110,26 @@
   {
     "name": "HORSE-VIEW-pool-phase-dropped",
     "file": "src/scenes/horseCartPool.js",
-    "old": "    return (_frameNo + e.phase) % poseCadenceFor(dx * dx + dz * dz) === 0;",
-    "new": "    return _frameNo % poseCadenceFor(dx * dx + dz * dz) === 0;",
+    "old": "    return (_frameNo + e.phase) % poseCadenceFor(cadenceD2(at, eye, _cam3d?.lens ?? 1)) === 0;",
+    "new": "    return _frameNo % poseCadenceFor(cadenceD2(at, eye, _cam3d?.lens ?? 1)) === 0;",
     "tests": [
       "test/systems/horse/fb1021_horses.test.js"
     ]
   },
   {
     "name": "HORSE-VIEW-pool-height-for-depth",
-    "file": "src/scenes/horseCartPool.js",
-    "old": "    const dx = at[0] - _eye[0], dz = at[2] - _eye[2];",
-    "new": "    const dx = at[0] - _eye[0], dz = at[1] - _eye[1];",
+    "file": "src/net/peer/peerBodies.js",
+    "old": "export const cadenceD2 = (at, eye, lens = 1) => ((at[0] - eye[0]) ** 2 + (at[2] - eye[2]) ** 2) / (lens * lens);",
+    "new": "export const cadenceD2 = (at, eye, lens = 1) => ((at[0] - eye[0]) ** 2 + (at[1] - eye[1]) ** 2) / (lens * lens);",
     "tests": [
       "test/systems/horse/fb1021_horses.test.js"
     ]
   },
   {
     "name": "HORSE-VIEW-pool-height-counted",
-    "file": "src/scenes/horseCartPool.js",
-    "old": "    return (_frameNo + e.phase) % poseCadenceFor(dx * dx + dz * dz) === 0;",
-    "new": "    return (_frameNo + e.phase) % poseCadenceFor(dx * dx + dz * dz + (at[1] - _eye[1]) ** 2) === 0;",
+    "file": "src/net/peer/peerBodies.js",
+    "old": "export const cadenceD2 = (at, eye, lens = 1) => ((at[0] - eye[0]) ** 2 + (at[2] - eye[2]) ** 2) / (lens * lens);",
+    "new": "export const cadenceD2 = (at, eye, lens = 1) => ((at[0] - eye[0]) ** 2 + (at[2] - eye[2]) ** 2 + (at[1] - eye[1]) ** 2) / (lens * lens);",
     "tests": [
       "test/systems/horse/fb1021_horses.test.js"
     ]
@@ -137,8 +137,8 @@
   {
     "name": "HORSE-VIEW-pool-no-eye-never",
     "file": "src/scenes/horseCartPool.js",
-    "old": "    if (!_eye) return true;",
-    "new": "    if (!_eye) return false;",
+    "old": "    if (!eye) return true;",
+    "new": "    if (!eye) return false;",
     "tests": [
       "test/systems/horse/fb1021_horses.test.js"
     ]
@@ -193,6 +193,132 @@
     "file": "src/net/peer/peerBodies.js",
     "old": "        try { this._poseHorse(b); b.rig.update(0, { pose: true, effectsDt: b.bank });",
     "new": "        try { b.rig.update(0, { pose: true, effectsDt: b.bank });",
+    "tests": [
+      "test/systems/horse/fb1021_horses.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VIEW-AUDIT-pool-the-heads-distance",
+    "file": "src/scenes/horseCartPool.js",
+    "old": "    const eye = _cam3d?.eye ?? _eye;",
+    "new": "    const eye = _eye;",
+    "tests": [
+      "test/systems/horse/fb1021_horses.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VIEW-AUDIT-pool-no-frame-eye-before-a-pass",
+    "file": "src/scenes/horseCartPool.js",
+    "old": "    const eye = _cam3d?.eye ?? _eye;",
+    "new": "    const eye = _cam3d?.eye;",
+    "tests": [
+      "test/systems/horse/fb1021_horses.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VIEW-AUDIT-pool-lens-ignored",
+    "file": "src/scenes/horseCartPool.js",
+    "old": "    return (_frameNo + e.phase) % poseCadenceFor(cadenceD2(at, eye, _cam3d?.lens ?? 1)) === 0;",
+    "new": "    return (_frameNo + e.phase) % poseCadenceFor(cadenceD2(at, eye, 1)) === 0;",
+    "tests": [
+      "test/systems/horse/fb1021_horses.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VIEW-AUDIT-pool-lens-never-read-off-the-pass",
+    "file": "src/scenes/horseCartPool.js",
+    "old": "    _cam3d = rig ? { canvas, proj, view, eye, up, lens: lensOf(proj) } : null;",
+    "new": "    _cam3d = rig ? { canvas, proj, view, eye, up, lens: 1 } : null;",
+    "tests": [
+      "test/systems/horse/fb1021_horses.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VIEW-AUDIT-pool-out-before-any-pass",
+    "file": "src/scenes/horseCartPool.js",
+    "old": "      e.out = !!cam && !rig.seen(e.horse, cam.view, cam.proj);",
+    "new": "      e.out = !cam || !rig.seen(e.horse, cam.view, cam.proj);",
+    "tests": [
+      "test/systems/horse/fb1021_horses.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VIEW-AUDIT-bodies-the-heads-distance",
+    "file": "src/net/peer/peerBodies.js",
+    "old": "    const eye = this._cam?.eye ?? null, lens = this._cam?.lens ?? 1;",
+    "new": "    const eye = null, lens = this._cam?.lens ?? 1;",
+    "tests": [
+      "test/systems/horse/fb1021_horses.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VIEW-AUDIT-bodies-lens-ignored",
+    "file": "src/net/peer/peerBodies.js",
+    "old": "    const eye = this._cam?.eye ?? null, lens = this._cam?.lens ?? 1;",
+    "new": "    const eye = this._cam?.eye ?? null, lens = 1;",
+    "tests": [
+      "test/systems/horse/fb1021_horses.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VIEW-AUDIT-bodies-lens-never-read-off-the-pass",
+    "file": "src/net/peer/peerBodies.js",
+    "old": "    c.lens = lensOf(proj);",
+    "new": "    c.lens = 1;",
+    "tests": [
+      "test/systems/horse/fb1021_horses.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VIEW-AUDIT-bodies-no-distance-before-a-pass",
+    "file": "src/net/peer/peerBodies.js",
+    "old": ": b.d2) === 0 ? 1 : 0;",
+    "new": ": 0) === 0 ? 1 : 0;",
+    "tests": [
+      "test/net/peer/peercadence.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VIEW-AUDIT-lens-over-the-distance-once",
+    "file": "src/net/peer/peerBodies.js",
+    "old": "export const cadenceD2 = (at, eye, lens = 1) => ((at[0] - eye[0]) ** 2 + (at[2] - eye[2]) ** 2) / (lens * lens);",
+    "new": "export const cadenceD2 = (at, eye, lens = 1) => ((at[0] - eye[0]) ** 2 + (at[2] - eye[2]) ** 2) / lens;",
+    "tests": [
+      "test/systems/horse/fb1021_horses.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VIEW-AUDIT-lens-floor-dropped",
+    "file": "src/net/peer/peerBodies.js",
+    "old": "  return m > 1 + 1e-6 ? m : 1;",
+    "new": "  return m;",
+    "tests": [
+      "test/systems/horse/fb1021_horses.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VIEW-AUDIT-lens-base-a-fixed-sixty-degrees",
+    "file": "src/net/peer/peerBodies.js",
+    "old": "  const m = proj?.[5] * Math.tan(fieldOfView() / 2);",
+    "new": "  const m = proj?.[5] * Math.tan(Math.PI / 6);",
+    "tests": [
+      "test/systems/horse/fb1021_horses.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VIEW-AUDIT-must-pose-horse-only-in-view",
+    "file": "src/net/peer/peerBodies.js",
+    "old": "      if (pose) this._poseHorse(b);   // HORSE-VIEW: astride, its horse first",
+    "new": "      if (pose && b.inView) this._poseHorse(b);   // HORSE-VIEW: astride, its horse first",
+    "tests": [
+      "test/systems/horse/fb1021_horses.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VIEW-AUDIT-bodies-the-camera-read-off-no-feet",
+    "file": "src/net/peer/peerBodies.js",
+    "old": "poseCadenceFor(eye && b.feet ? cadenceD2(b.feet, eye, lens) : b.d2)",
+    "new": "poseCadenceFor(eye ? cadenceD2(b.feet, eye, lens) : b.d2)",
     "tests": [
       "test/systems/horse/fb1021_horses.test.js"
     ]

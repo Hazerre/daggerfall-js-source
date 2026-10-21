@@ -6,6 +6,9 @@
 // body pass's view on the peers' bodies' cadence, a horse the view swings onto caught up before it is drawn, a rider's
 // horse on the frames its rider's body is posed. The real rig (world/horseRig.js) over the real bake, the real pool
 // (scenes/horseCartPool.js) and the real PeerBodies (net/peer/peerBodies.js); GL is a recording stub.
+// AUDIT (the same day): the cadence's distance is the camera's that draws - the zoomed-out boom's, not the head's - over
+// its lens (the spyglass's), for the pool's horses and the bodies alike; a body that must pose out of the view poses its
+// horse with it.
 // bible/07-Rendering/Performance-Priority.md HORSE-VIEW.
 import '../../modsOff.js';
 import { test } from 'node:test';
@@ -15,9 +18,13 @@ import { PNG } from 'pngjs';
 import { createHorseRig } from '../../../src/world/horseRig.js';
 import { horsePoseScratch, writeHorsePalette } from '../../../src/world/horseModel.js';
 import { createHorseCartPool } from '../../../src/scenes/horseCartPool.js';
-import { PeerBodies, poseCadenceFor } from '../../../src/net/peer/peerBodies.js';
+import { PeerBodies, poseCadenceFor, lensOf, cadenceD2, BODY_RANGE } from '../../../src/net/peer/peerBodies.js';
 import { POSE_RIDE } from '../../../src/net/wire.js';
 import { HORSE_SPRITE_WIDTH, HORSE_SPRITE_HEIGHT } from '../../../src/systems/horse/horseCartLaw.js';
+import { fieldOfView } from '../../../src/ui/viewSettings.js';
+import { glassFov } from '../../../src/ui/spyglassView.js';
+import { perspective, mirrorProjectionX, lookAt } from '../../../src/world/mat4.js';
+import { MAX_DISTANCE, MW_UNITS_PER_METER } from '../../../src/player/mwCamera.js';
 
 const rd = (p) => readFileSync(new URL(`../../../${p}`, import.meta.url), 'utf8');
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -61,7 +68,7 @@ function poseOfClock(rig, h) {
 }
 
 const canvas = { clientWidth: 1280, clientHeight: 720 };
-const fy = 1 / Math.tan(Math.PI / 6);
+const fy = 1 / Math.tan(fieldOfView() / 2);   // AUDIT: the frame's own lens (lensOf 1) - the distances below are the ones posed by
 const proj = new Float32Array([fy / (1280 / 720), 0, 0, 0, 0, fy, 0, 0, 0, 0, -1.002, -1, 0, 0, -0.2002, 0]);
 const LOOK_NZ = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);   // the eye at the origin, down -z
 const LOOK_PZ = new Float32Array([-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1]);   // turned round: down +z
@@ -176,7 +183,7 @@ test('HORSE-VIEW the pool: a peer\'s horse out of the last body pass\'s view is 
   assert.deepEqual(hidden.r.log.map((x) => (x.up ? 'pose' : 'draw')), ['pose', 'draw'], 'veiled: posed, then drawn');
 });
 
-test('HORSE-VIEW the pool\'s cadence: in the view a horse is posed on the peers\' bodies\' cadence by its horizontal distance from the eye - every frame within 10 m, every second to 25, every third past it - staggered so two at one distance pose on different frames; no eye, every frame (mutants: the cadence dropped; the phase dropped; the distance\'s axis; no eye never posed)', async () => {
+test('HORSE-VIEW the pool\'s cadence: in the view a horse is posed on the peers\' bodies\' cadence by its horizontal distance from the eye - every frame within 10 m, every second to 25, every third past it - staggered so two at one distance pose on different frames; before any body pass every horse held seen, on the cadence from the frame\'s own eye; no eye at all, every frame (mutants: the cadence dropped; the phase dropped; the distance\'s axis; the view\'s test before any pass; the frame\'s eye before any pass; no eye never posed)', async () => {
   const s = await poolStage();
   const at = { near: [0, 0, -5], mid: [0, 10, -24], far: [-3, 0, -60], far2: [3, 0, -60] };   // `mid` 10 m up: 26 m off as the crow flies, 24 along the ground
   const owners = Object.keys(at);
@@ -201,10 +208,19 @@ test('HORSE-VIEW the pool\'s cadence: in the view a horse is posed on the peers\
   assert.equal(frames.get('far2').length, 4);
   assert.notDeepEqual(frames.get('far'), frames.get('far2'), 'two at one distance on different frames (each horse its phase)');
   for (const o of owners) assert.ok(frames.get(o).every((f, i, a) => !i || f - a[i - 1] === 12 / a.length), `${o}: evenly`);
-  // no eye: every frame
-  s.r.log.length = 0;
-  for (let f = 0; f < 3; f++) { word(); s.rig.tick(); s.pool.frame(1 / 60, null); s.pool.draw3d(canvas, { proj, view: LOOK_NZ, eye: [0, 0, 0] }); }
-  assert.equal(uploadsOf(s.r, meshes.get('far')), 3, 'no eye to measure from: posed every frame');
+  // AUDIT: BEFORE ANY BODY PASS there is no view to judge and no camera to measure from - every horse is held seen and
+  // posed on its cadence from the frame's own eye (the head's); and with no eye at all, every frame
+  for (const eye of [[0, 1.7, 0], null]) {
+    const pre = await poolStage();
+    const preWord = () => owners.forEach((o) => pre.pool.applyOwner(o, { h: [...at[o], 0, 1, 0] }));
+    for (let f = 0; f < 3; f++) { preWord(); pre.rig.tick(); pre.pool.frame(1 / 60, eye); }
+    const pm = new Map(meshesInOrder(pre.r).map((m, i) => [owners[i], m]));
+    assert.equal(pm.size, 4);
+    pre.r.log.length = 0;
+    for (let f = 0; f < 12; f++) { preWord(); pre.rig.tick(); pre.pool.frame(1 / 60, eye); }
+    assert.deepEqual(owners.map((o) => uploadsOf(pre.r, pm.get(o))), eye ? [12, 6, 4, 4] : [12, 12, 12, 12],
+      eye ? 'no body pass yet: every horse held seen, on the cadence from the frame\'s eye' : 'no eye to measure from: posed every frame');
+  }
 });
 /** A body rig that records each step (net/peer/peercadence.test.js's): whether it posed, and the saddle it posed to. */
 function bodyRigs(rigs) {
@@ -270,4 +286,135 @@ test('HORSE-VIEW a riding peer\'s horse is posed with its body: on exactly the f
   const caught = rigOf('behind').steps.find((x) => x.pose);
   assert.ok(caught, 'the body posed in the draw');
   assert.deepEqual(caught.seat, poseOfClock(horses, h).seat, 'to the seat of the horse\'s new pose');
+});
+
+// ── AUDIT HORSE-VIEW (the same day): THE CADENCE IS THE PICTURE'S
+/** A host's lens as world.js mints it - the frame's own field of view, narrowed by the spyglass's `lens` (glassFov) - and
+ *  a view down -z from `eye` (lookAt). */
+const hostProj = (lens = 1, fov = fieldOfView()) => mirrorProjectionX(perspective(glassFov(fov, lens), 1280 / 720, 0.2, 6000));
+const lookFrom = (eye) => lookAt(eye, [eye[0], eye[1], eye[2] - 1], [0, 1, 0]);
+const HEAD = [0, 1.7, 0];
+const BOOM_M = MAX_DISTANCE / MW_UNITS_PER_METER;   // player/mwCamera.js zoomed all the way out: 11.4 m behind the head
+
+/** Twelve host frames of a pool horse at `at` and a riding peer beside it (mirrored across x), the frame's eye the head
+ *  (world.js hcc.frame's cam.pos, peerBodies.sync's player.pos) and the body pass's camera at `eye` through `lens` (its
+ *  draw3d's and draw's mwv.eye and proj): how many frames each was posed on - the pool's horse, the rider's body and
+ *  the rider's horse. */
+async function sideBySide({ eye, lens = 1, at }) {
+  const s = await poolStage();
+  const rigs = [];
+  const pb = new PeerBodies({ renderer: {}, createRig: bodyRigs(rigs), buildOpts: (look) => ({ race: look.race }), now: () => 1000, horses: () => s.rig });
+  const rider = { id: 'rider', name: 'rider', told: true, look: { race: 'rider', gender: 'male', faceIndex: 0, items: [] },
+    shown: { x: -at[0], y: 0, z: at[2], yaw: 0, pitch: 0, mv: 0, wd: 0, an: 0, as: 0, am: 0, sr: 0, cn: 0, cr: 0, rd: POSE_RIDE.Horse, rc: 0, hs: 0 } };
+  const proj = hostProj(lens), view = lookFrom(eye);
+  const frame = () => {
+    s.pool.applyOwner('peer-0', { h: [at[0], 0, at[2], 0, 1, 0] });
+    s.rig.tick();
+    s.pool.frame(1 / 60, HEAD);
+    pb.sync([rider], (p) => [p.x, p.y, p.z], 1 / 60, HEAD);
+    s.pool.draw3d(canvas, { proj, view, eye });
+    pb.draw(canvas, { proj, view, eye });
+  };
+  for (let i = 0; i < 40 && !pb.has('rider'); i++) { frame(); await settle(); }
+  for (let i = 0; i < 6; i++) frame();
+  const b = pb._bodies.get('rider'), body = rigs.find((x) => x.opts?.race === 'rider');
+  assert.ok(b?.horse && body, 'the rider stands astride');
+  const poolMesh = meshesInOrder(s.r).find((m) => m !== b.horse.mesh);
+  const n = { pool: 0, body: 0, horse: 0 };
+  for (let i = 0; i < 12; i++) {
+    const n0 = s.r.log.length, s0 = body.steps.length;
+    frame();
+    const sent = s.r.log.slice(n0);
+    if (sent.some((x) => x.up === poolMesh)) n.pool++;
+    if (sent.some((x) => x.up === b.horse.mesh)) n.horse++;
+    if (body.steps.slice(s0).some((x) => x.pose)) n.body++;
+  }
+  return n;
+}
+
+test('HORSE-VIEW (AUDIT) the cadence is the picture\'s: from the camera that draws, through its lens - zoomed out, a horse and a rider 2 m from the lens (10 m from the head) posed every frame; through the spyglass at x8 one 76 m off posed as if 9.5 m, one 110 m off as if 13.75; in first person as before; the pool\'s horse and the rider beside it on one cadence (mutants: the head\'s distance, the pool\'s and the bodies\'; the lens ignored; the lens never read off the pass; the lens over the distance once; the lens\'s floor)', async () => {
+  // the lens: the glass's magnification over the frame's own field of view, and never under 1
+  assert.equal(lensOf(hostProj(1)), 1, 'the frame\'s own lens');
+  assert.ok(Math.abs(lensOf(hostProj(8)) - 8) < 1e-6, 'the glass at x8 (the projection is float32)');
+  assert.ok(Math.abs(lensOf(hostProj(4)) - 4) < 1e-6, 'and at x4');
+  assert.equal(lensOf(hostProj(1, fieldOfView() + 0.2)), 1, 'a lens the frame widened (CLIMB4\'s kick) poses as the frame\'s own');
+  assert.equal(lensOf(null), 1, 'no lens: none');
+  assert.equal(cadenceD2([3, 9, -76], [0, 1.7, 0], 8), (9 + 76 * 76) / 64, 'along the ground, over the lens squared');
+  // zoomed out: the camera 11.4 m behind the head, the horse and the rider at its sides - 10 m from the head, the head's
+  // second band, and 2 m from the lens
+  const boom = [0, 1.7, BOOM_M], beside = [1.6, 0, 9.9];
+  assert.equal(poseCadenceFor(beside[0] ** 2 + beside[2] ** 2), 2, 'the head would pose them every second frame');
+  assert.deepEqual(await sideBySide({ eye: boom, at: beside }), { pool: 12, body: 12, horse: 12 }, 'zoomed out: every frame, as near as they look');
+  // the spyglass at x8 and x4, held from the head
+  assert.deepEqual(await sideBySide({ eye: HEAD, lens: 8, at: [1, 0, -76] }), { pool: 12, body: 12, horse: 12 }, 'x8, 76 m: as if 9.5 m - every frame');
+  assert.deepEqual(await sideBySide({ eye: HEAD, lens: 8, at: [1, 0, -110] }), { pool: 6, body: 6, horse: 6 }, 'x8, 110 m: as if 13.75 m - every second frame');
+  assert.deepEqual(await sideBySide({ eye: HEAD, lens: 4, at: [1, 0, -110] }), { pool: 4, body: 4, horse: 4 }, 'x4, 110 m: as if 27.5 m - every third');
+  // first person, the frame's own lens: the head's cadence, as before
+  for (const [z, every] of [[-5, 1], [-20, 2], [-40, 3]]) {
+    assert.equal(poseCadenceFor(1 + z * z), every);
+    assert.deepEqual(await sideBySide({ eye: HEAD, at: [1, 0, z] }), { pool: 12 / every, body: 12 / every, horse: 12 / every }, `first person, ${-z} m: every ${every === 1 ? '' : every === 2 ? 'second ' : 'third '}frame, as before`);
+  }
+});
+
+test('HORSE-VIEW (AUDIT) a rider\'s body that must pose out of the view - its first step, its first back from far, the step after a rebuild let its mesh go (WB9h\'s rank 3) - poses its horse with it on that frame, and is posed to the seat of the horse\'s new pose (mutant: the rider\'s horse posed only in the view)', async () => {
+  const r = recordingRenderer();
+  const horses = await rigOn(r);
+  const rigs = [];
+  const pb = new PeerBodies({ renderer: {}, createRig: bodyRigs(rigs), buildOpts: (look) => ({ race: look.race }), now: () => 1000, horses: () => horses });
+  const behind = { id: 'behind', name: 'behind', told: true, look: { race: 'behind', gender: 'male', faceIndex: 0, items: [] },
+    shown: { x: 0, y: 0, z: 12, yaw: 0, pitch: 0, mv: 1, wd: 0, an: 0, as: 0, am: 0, sr: 0, cn: 0, cr: 0, rd: POSE_RIDE.Horse, rc: 0, hs: 0 } };
+  const toScene = (p) => [p.x, p.y, p.z];
+  /** One frame looking down -z (the rider 12 m behind the eye): the body's posing step, if it posed, and what was sent. */
+  const frame = () => {
+    const n0 = r.log.length, s0 = rigs[0]?.steps.length ?? 0;
+    behind.shown = { ...behind.shown, x: behind.shown.x + 0.12 };
+    pb.sync([behind], toScene, 1 / 60, [0, 0, 0]);
+    pb.draw(canvas, { proj, view: LOOK_NZ, eye: [0, 0, 0] });
+    return { posed: rigs[0]?.steps.slice(s0).find((x) => x.pose) ?? null, sent: r.log.slice(n0) };
+  };
+  /** The frame the body must pose on, behind the eye: its horse posed that frame, the body to that pose's seat. */
+  const mustPose = (f, why) => {
+    const b = pb._bodies.get('behind');
+    assert.ok(f.posed, `${why}: the body posed`);
+    assert.equal(b.inView, false, `${why}: behind the eye`);
+    assert.equal(f.sent.filter((x) => x.up === b.horse.mesh).length, 1, `${why}: its horse posed with it`);
+    assert.deepEqual(f.posed.seat, poseOfClock(horses, b.horse).seat, `${why}: the body posed to the seat of its horse's new pose`);
+    assert.equal(b.horse.stale, false);
+  };
+  /** A few frames behind the eye, posing nothing: the horse's pose falls behind its clock again. */
+  const unseen = () => {
+    for (let i = 0; i < 4; i++) assert.equal(frame().posed, null, 'behind the eye: not posed');
+    assert.equal(pb._bodies.get('behind').horse.stale, true);
+  };
+  // ITS FIRST STEP: the view known before the body stands, so its first pose is behind the eye
+  let first = null;
+  for (let i = 0; i < 40 && !first?.posed; i++) { first = frame(); await settle(); }
+  mustPose(first, 'its first step');
+  // ITS FIRST BACK FROM FAR
+  unseen();
+  behind.shown = { ...behind.shown, z: BODY_RANGE + 10 };
+  for (let i = 0; i < 3; i++) assert.equal(frame().posed, null, 'past the range: asleep');
+  assert.equal(pb._bodies.get('behind').horse.stale, true, 'its horse\'s clock ran on unposed');
+  behind.shown = { ...behind.shown, z: 12 };
+  mustPose(frame(), 'its first step back from far');
+  // THE STEP AFTER A REBUILD LET ITS MESH GO (an arrow's nock, a torch - AUDIT PEER-CADENCE F3)
+  unseen();
+  rigs[0].skinned = false;
+  mustPose(frame(), 'the step after a rebuild');
+});
+
+test('HORSE-VIEW (AUDIT) a body never placed - every pose it was sent not finite (ONE-BAD-BODY) - is measured from `near` with a camera up, as before: no feet to measure from the camera, and the frame never throws on them (mutant: the camera\'s distance read off no feet)', async (t) => {
+  const warn = console.warn;
+  console.warn = () => {};   // ONE-BAD-BODY says so once, on the console
+  t.after(() => { console.warn = warn; });
+  const rigs = [];
+  const pb = new PeerBodies({ renderer: {}, createRig: bodyRigs(rigs), buildOpts: (look) => ({ race: look.race }), now: () => 1000 });
+  const bad = { id: 'bad', name: 'bad', told: true, look: { race: 'bad', gender: 'male', faceIndex: 0, items: [] },
+    shown: { x: NaN, y: 0, z: -5, yaw: 0, pitch: 0, mv: 0, wd: 0, an: 0, as: 0, am: 0, sr: 0, cn: 0, cr: 0 } };
+  for (let i = 0; i < 12; i++) {
+    assert.doesNotThrow(() => { pb.sync([bad], (p) => [p.x, p.y, p.z], 1 / 60, [0, 0, 0]); pb.draw(canvas, { proj, view: LOOK_NZ, eye: [0, 0, 0] }); }, `frame ${i}`);
+    await settle();
+  }
+  assert.equal(pb._bodies.get('bad').feet, null, 'never placed');
+  assert.ok(rigs[0].steps.filter((s) => s.pose).length >= 2, 'built, posed on its first step and stepped on its cadence after');
 });

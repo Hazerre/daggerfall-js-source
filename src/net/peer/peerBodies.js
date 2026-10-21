@@ -85,6 +85,7 @@ import { gaitShare } from '../../world/horseModel.js';
 import { JUMP_UNITS, stepPeerPace } from './peerPace.js'; import { peerBodyYaw, peerClimbing, peerMoving, PeerClimbTrack } from './peerClimb.js';   // HT-WAIST-BACK: the pace law, lifted - the walkers' lanterns swing off it too; CLIMB5: the climb's facing and pose
 import { gatherActOf, peerGatherTool, peerGatherSwing, peerKneeling, GATHER_POSE_STRIKES } from './peerGather.js';   // PEER-ACTS: a gathering act's tool, blow and kneel
 import { weaponGlowOn, glowFromWord } from '../../systems/weaponGlow.js';   // WEAPON-GLOW1: a peer's weapon, glowing as its look says
+import { fieldOfView } from '../../ui/viewSettings.js';   // HORSE-VIEW (AUDIT): the frame's own lens, the cadence's base (lensOf)
 
 
 /** The most peers in a Morrowind body at once; the rest keep the paperdoll. */
@@ -163,7 +164,8 @@ export const peerBlow = (pace) => (pace == null ? null
 /** The drawn yaw eases toward the pose's at this rate (a second) - a turn the rig can see every frame, not one that stops between poses. */
 export const YAW_EASE = 12;
 /** PEER-CADENCE (2026-09-22, Mac: "look for ways to improve online performance"): how many frames apart a body's
- *  SKIN is re-posed, by its distance from the eye (scene units, metres) - `[within, every]`, the first row that
+ *  SKIN is re-posed, by its distance from the eye (scene units, metres; the camera that draws it, through its lens -
+ *  cadenceD2, HORSE-VIEW's audit) - `[within, every]`, the first row that
  *  holds. The clips advance every frame regardless (the rig's `pose: false`); what waits is poseAssembly, the mesh
  *  upload and the particle step, the whole of a body's CPU cost (PERF-RIG1: ~0.3 ms a body a frame at 3,000
  *  vertices, and eight bodies at once). The pose comes off the wire at POSE_HZ (10 a second) and the body is drawn
@@ -205,6 +207,22 @@ export function poseCadenceFor(d2) {
   for (const [within, every] of POSE_CADENCE) if (d2 <= within * within) return every;
   return POSE_CADENCE[POSE_CADENCE.length - 1][1];
 }
+/** HORSE-VIEW (AUDIT, the boom and the glass): THE CADENCE IS THE PICTURE'S. A body is as large on the screen as it is
+ *  near the camera that draws it, through that camera's lens - and the cadence measured it from the head: zoomed out,
+ *  the third-person camera stands up to 11.4 m behind the head (player/mwCamera.js MAX_DISTANCE), so a body 2 m from
+ *  the lens was 10 m from the head and posed every second frame, and through the spyglass (x2 to x8, world.js glassFov)
+ *  one 80 m off filled the screen and was posed every third. The magnification `proj` draws at: its fy over the fy of
+ *  the frame's own field of view (ui/viewSettings.js fieldOfView - the lens every host builds its projection on, the
+ *  glass narrowing it) - never under 1, so a lens a frame widens (CLIMB4's kick) poses as the frame's own lens does. */
+export function lensOf(proj) {
+  const m = proj?.[5] * Math.tan(fieldOfView() / 2);
+  return m > 1 + 1e-6 ? m : 1;
+}
+/** HORSE-VIEW (AUDIT): the squared distance a pose's cadence (poseCadenceFor) reads for a point `at` - along the ground,
+ *  as PEER-CADENCE measured it (a height is no distance), from `eye`, the camera that draws it, over its `lens`
+ *  (lensOf): how far off the point looks. The peers' bodies and the Horse Cart pool's 3D horses both read it, so a
+ *  rider and a horse the pool stands beside it keep one cadence. */
+export const cadenceD2 = (at, eye, lens = 1) => ((at[0] - eye[0]) ** 2 + (at[2] - eye[2]) ** 2) / (lens * lens);
 
 /** The rig's build options from a peer's look - the same inputs
  *  weaponRig.armBuildOptsOf maps the player's entity onto. `hasAmmo`
@@ -755,15 +773,17 @@ export class PeerBodies {
    * body, so bodies on one cadence skin on different frames whenever their builds landed (AUDIT PEER-CADENCE F1: a
    * per-body tick started on the standing frame made the stagger an accident of the build queue - eight bodies landed a
    * frame apart all skinned together). The skipped frames' dt is banked for the particle step, which keeps wall time on
-   * the frame that poses.
+   * the frame that poses. HORSE-VIEW (AUDIT): `every` by how far the body looks from the last pass's camera - its eye,
+   * through its lens (cadenceD2: the zoomed-out boom's, the spyglass's) - not from the head the range is measured from.
    * WB9h: a body out of the view skins nothing (its clocks run; it is posed as it is seen - `stale`), and of the rest
    * wanting a skin at most SKIN_BUDGET pose in a frame, in bySkinRank's order; one left over is owed the next frame.
    */
   _stepDue(dt) {
     const due = this._due;
+    const eye = this._cam?.eye ?? null, lens = this._cam?.lens ?? 1;   // HORSE-VIEW (AUDIT): the last pass's camera, as the view is (cadenceD2); before any - or for a body never placed (ONE-BAD-BODY) - the distance from `near`
     for (const b of due) {
       const must = !b.posed || !(b.rig.thirdActive?.() ?? true);
-      b.rank = must ? 3 : !b.inView ? 0 : (b.owed || b.stale) ? 2 : (this._frame + b.phase) % poseCadenceFor(b.d2) === 0 ? 1 : 0;
+      b.rank = must ? 3 : !b.inView ? 0 : (b.owed || b.stale) ? 2 : (this._frame + b.phase) % poseCadenceFor(eye && b.feet ? cadenceD2(b.feet, eye, lens) : b.d2) === 0 ? 1 : 0;
     }
     if (due.length > 1) due.sort(bySkinRank);
     let skins = 0;
@@ -927,6 +947,7 @@ export class PeerBodies {
     c.scaleOf = scaleOf;   // MWNPC10: a body drawn larger than itself, by its id (the lane's actor `scale`)
     c.anchoredOf = anchoredOf;   // AUDIT MWNPC16-18 A3: a body that never walks, by its id (the lane's) - the lo tier's lamps take its shadow
     c.canvas = canvas; c.proj = proj; c.view = view; c.eye = eye; c.flashOf = flashOf;
+    c.lens = lensOf(proj);   // HORSE-VIEW (AUDIT): this pass's magnification - the next frame's cadence (_stepDue), with its eye
     c.fxOf = fxOf;   // MWNPC5: a body's tells by its id (a foe's glint, elite glow, dissolve - characters/npcBodies.js)
     c.grow = grow; c.up = up;   // OW-PEERS (FIELD BUGS 2026-10-01 #11): under the Overworld each body drawn its grow times about its feet, leaned as the traveller's own is (drawThird's OW-BIG and AUDIT OW3 J6)
     this._planesOk = !!viewPlanes(proj, view, this._planes);   // WB9h: this pass's view - and the next frame's skins
