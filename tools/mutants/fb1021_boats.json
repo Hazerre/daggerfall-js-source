@@ -2,7 +2,7 @@
   {
     "name": "FB1021-one-stamp-for-every-tree",
     "file": "src/world/prefabNode.js",
-    "old": "export const prefabShapeStamp = (node) => topOf(node)._shape;",
+    "old": "export const prefabShapeStamp = (node) => topOf(node)._treeStamp;",
     "new": "export const prefabShapeStamp = (node) => _shapeCount;",
     "tests": [
       "test/systems/comeSailAway/fb1021_boats.test.js",
@@ -32,8 +32,8 @@
   {
     "name": "FB1021-node-stamped-not-its-top",
     "file": "src/world/prefabNode.js",
-    "old": "const reshaped = (n) => { topOf(n)._shape = ++_shapeCount; };",
-    "new": "const reshaped = (n) => { n._shape = ++_shapeCount; };",
+    "old": "const reshaped = (n) => { topOf(n)._treeStamp = ++_shapeCount; };",
+    "new": "const reshaped = (n) => { n._treeStamp = ++_shapeCount; };",
     "tests": [
       "test/systems/comeSailAway/fb1021_boats.test.js",
       "test/world/navaudit_frame.test.js"
@@ -42,8 +42,8 @@
   {
     "name": "FB1021-a-count-per-tree",
     "file": "src/world/prefabNode.js",
-    "old": "const reshaped = (n) => { topOf(n)._shape = ++_shapeCount; };",
-    "new": "const reshaped = (n) => { topOf(n)._shape++; };",
+    "old": "const reshaped = (n) => { topOf(n)._treeStamp = ++_shapeCount; };",
+    "new": "const reshaped = (n) => { topOf(n)._treeStamp++; };",
     "tests": [
       "test/world/navaudit_frame.test.js"
     ]
@@ -96,8 +96,8 @@
   {
     "name": "FB1021-reshaped-far-boat-held",
     "file": "src/scenes/comeSailAway/comeSailAwayPool.js",
-    "old": "const kept = w !== undefined && w.stamp > 0 && life.shape === shape;",
-    "new": "const kept = w !== undefined && w.stamp > 0;",
+    "old": "w.stamp > 0 && life.shape === shape && life.on === on;",
+    "new": "w.stamp > 0 && life.on === on;",
     "tests": [
       "test/systems/comeSailAway/fb1021_boats.test.js"
     ]
@@ -105,8 +105,8 @@
   {
     "name": "FB1021-draws-walk-held",
     "file": "src/scenes/comeSailAway/comeSailAwayPool.js",
-    "old": "const kept = w !== undefined && w.stamp > 0 && life.shape === shape;",
-    "new": "const kept = w !== undefined && life.shape === shape;",
+    "old": "const kept = w !== undefined && w.stamp > 0 && life.shape",
+    "new": "const kept = w !== undefined && life.shape",
     "tests": [
       "test/systems/comeSailAway/fb1021_boats.test.js"
     ]
@@ -234,6 +234,109 @@
     "file": "src/scenes/comeSailAway/farLife.js",
     "old": "  life.lifeDt = 0;\n",
     "new": "",
+    "tests": [
+      "test/systems/comeSailAway/fb1021_boats.test.js"
+    ]
+  },
+  {
+    "name": "FB1021-switches-unread",
+    "file": "src/scenes/comeSailAway/comeSailAwayPool.js",
+    "old": "life.shape === shape && life.on === on;",
+    "new": "life.shape === shape;",
+    "tests": [
+      "test/systems/comeSailAway/fb1021_boats.test.js"
+    ]
+  },
+  {
+    "name": "FB1021-setActive-unstamped",
+    "file": "src/world/prefabNode.js",
+    "old": "if (this.activeSelf !== on) { this.activeSelf = on; topOf(this)._treeSwitch = ++_shapeCount; }",
+    "new": "if (this.activeSelf !== on) { this.activeSelf = on; }",
+    "tests": [
+      "test/systems/comeSailAway/fb1021_boats.test.js"
+    ]
+  },
+  {
+    "name": "FB1021-switch-stamped-on-the-node",
+    "file": "src/world/prefabNode.js",
+    "old": "topOf(this)._treeSwitch = ++_shapeCount;",
+    "new": "this._treeSwitch = ++_shapeCount;",
+    "tests": [
+      "test/systems/comeSailAway/fb1021_boats.test.js"
+    ]
+  },
+  {
+    "name": "FB1021-every-setActive-a-switch",
+    "file": "src/world/prefabNode.js",
+    "old": "if (this.activeSelf !== on) { this.activeSelf = on;",
+    "new": "{ this.activeSelf = on;",
+    "tests": [
+      "test/systems/comeSailAway/fb1021_boats.test.js"
+    ]
+  },
+  {
+    "name": "FB1021-one-switch-stamp",
+    "file": "src/world/prefabNode.js",
+    "old": "export const prefabSwitchStamp = (node) => topOf(node)._treeSwitch;",
+    "new": "export const prefabSwitchStamp = (node) => (node ? 0 : 0);",
+    "tests": [
+      "test/systems/comeSailAway/fb1021_boats.test.js"
+    ]
+  },
+  {
+    "name": "FB1021-held-parts-at-the-hull",
+    "file": "src/scenes/comeSailAway/comeSailAwayPool.js",
+    "old": "        one(gpu, placed(rec), paint);",
+    "new": "        one(gpu, _shift !== null ? boat.MeshObject.worldMatrix() : made(rec), paint);",
+    "tests": [
+      "test/systems/comeSailAway/fb1021_boats.test.js"
+    ]
+  },
+  {
+    "name": "FB1021-held-unbatched-at-the-hull",
+    "file": "src/scenes/comeSailAway/comeSailAwayPool.js",
+    "old": "one(c.gpu, placed(c.rec), paint);",
+    "new": "one(c.gpu, _shift !== null ? boat.MeshObject.worldMatrix() : made(c.rec), paint);",
+    "tests": [
+      "test/systems/comeSailAway/fb1021_boats.test.js"
+    ]
+  },
+  {
+    "name": "FB1021-held-shift-by-a-hull-not-walked",
+    "file": "src/scenes/comeSailAway/comeSailAwayPool.js",
+    "old": "const node = hr !== undefined && hr.seen === w.stamp ? hull : boat.GameObject",
+    "new": "const node = hr !== undefined ? hull : boat.GameObject",
+    "tests": [
+      "test/systems/comeSailAway/fb1021_boats.test.js"
+    ]
+  },
+  {
+    "name": "FB1021-still-chain-kept-past-a-reshape",
+    "file": "src/scenes/comeSailAway/comeSailAwayPool.js",
+    "old": "const stamp = prefabShapeStamp(node), frame = boat.MeshObject;",
+    "new": "const stamp = 0, frame = boat.MeshObject;",
+    "tests": [
+      "test/systems/comeSailAway/fb1021_boats.test.js"
+    ]
+  },
+  {
+    "name": "FB1021-bones-stamp-unread",
+    "file": "src/scenes/comeSailAway/comeSailAwayPool.js",
+    "old": "const shape = prefabShapeStamp(skinnedNode);",
+    "new": "const shape = 0;",
+    "tests": [
+      "test/systems/comeSailAway/fb1021_boats.test.js",
+      "test/systems/comeSailAway/perfsails3.test.js",
+      "test/systems/comeSailAway/auditgalleon2_rig.test.js"
+    ],
+    "equivalent": true,
+    "why": "A holder's bones are resolveNodePointer's answers, read off the instance's own prefabPaths - made once as instantiatePrefab builds the instance, never by a reshape - and a holder hung elsewhere reads another skinnedNode (bonesOf) and a new bone list is another bonesList: so the bones a new stamp resolves again are the nodes it already holds. The stamp is kept for a resolver that reads the tree's shape."
+  },
+  {
+    "name": "FB1021-parent-under-its-own-node",
+    "file": "src/world/prefabNode.js",
+    "old": "for (let p = parent; p; p = p.parent) if (p === this) throw",
+    "new": "for (let p = parent; p; p = p.parent) if (p === null) throw",
     "tests": [
       "test/systems/comeSailAway/fb1021_boats.test.js"
     ]

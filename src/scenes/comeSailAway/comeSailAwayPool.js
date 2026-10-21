@@ -42,7 +42,7 @@ import { warmLiveryArt } from '../../world/ships/shipLiveryArt.js';   // AUDIT 2
 import { fitBoats } from './deckFittingsHost.js';   // DECK-PROPS: her fittings, stood in her tree
 import { liveryCode } from '../../systems/naval/shipLivery.js';
 import { spawnBoat, boatAssetNeeds, DUNGEON_LIGHT_HANDLER, HULL_NAMES, setBoatVariant, Boat, FIRST_HULL_MODEL_ID, meshLocalBounds, worldBounds } from '../../systems/comeSailAway/comeSailAwayBoat.js';
-import { resolveNodePointer, instantiatePrefab, prefabShapeStamp } from '../../world/prefabNode.js';
+import { resolveNodePointer, instantiatePrefab, prefabShapeStamp, prefabSwitchStamp } from '../../world/prefabNode.js';
 import { StaticBatchBuilder } from '../../render/staticBatch.js';   // AUDIT NAV1 (#13): a boat's still parts merged as a town's statics are
 import { instanceParticleSystems } from '../../world/unityParticles.js';
 import { bakeSkinnedMesh, recalculateNormals, fixDeformationsTick } from '../../world/skinnedBake.js';
@@ -367,22 +367,27 @@ export function createComeSailAwayPool({ renderer = null, pipeline = null, fetch
   // missed. On the frames between, her last walk is HELD: the flats and the draw read it (walkOf), never walking her
   // again, carried to where she stands now by her hull's move since it (heldShift) - her still batch drawn at her hull's
   // matrix as it stands, every other part of hers by the same move, so no part of hers falls behind her hull.
-  /** boat -> her place in the law (farLife), the shape her walk was made of, and her held shift (made once a frame) */
+  /** boat -> her place in the law (farLife), the shape and the switches her walk was made of, and her held shift (made
+   *  once a frame) */
   const lives = new WeakMap();
   let _lifeSeq = 0;
   /** @type {ArrayLike<number> | null} */ let _lifeEye = null;
   /** @type {Float32Array | null} */ let _shift = null;   // the boat being read's held shift (heldShift), or null
   /** BOAT-FAR: a boat's frame of the law - the time her walk, bakes and lanterns step by, or null: held. One with no
    *  frame's walk to hold - none yet, or one dropped (a re-dress, the origin's move: walks.delete) - or whose tree was
-   *  reshaped since it (a fitting stood, a part hung) is walked whatever her range. */
+   *  reshaped since it (a fitting stood, a part hung) is walked whatever her range. AUDIT (2026-10-21, a far Carrack
+   *  switched off drew her 18 meshes up to three frames more, and switched on drew nothing for as many): and so is one
+   *  with a node of her tree switched on or off since (prefabSwitchStamp: her root - a peer's look 'hidden',
+   *  UpdateBoatVisibility - her helm's IdleObject and ActiveObject, a sea ship's sails set), whose walk reaches other
+   *  nodes now. */
   function lifeOf(boat, dt) {
     let life = lives.get(boat);
-    if (!life) { life = { ...farLife(_lifeSeq++), shape: -1, shiftAt: 0, shiftNow: null, shift: null, m: null }; lives.set(boat, life); }
-    const w = walks.get(boat), root = boat.GameObject, shape = prefabShapeStamp(root);
-    const kept = w !== undefined && w.stamp > 0 && life.shape === shape;
+    if (!life) { life = { ...farLife(_lifeSeq++), shape: -1, on: -1, shiftAt: 0, shiftNow: null, shift: null, m: null }; lives.set(boat, life); }
+    const w = walks.get(boat), root = boat.GameObject, shape = prefabShapeStamp(root), on = prefabSwitchStamp(root);
+    const kept = w !== undefined && w.stamp > 0 && life.shape === shape && life.on === on;
     const lived = farLifeStep(life, dt, kept ? (root.parent ? root.position : root.localPosition) : null, _lifeEye);
     if (lived === null) w.heldAt = walkStamp;
-    else life.shape = shape;
+    else { life.shape = shape; life.on = on; }
     return lived;
   }
   /** BOAT-FAR: a held boat's move since her held walk - her hull's matrix now times the inverse of the one her walk made
@@ -883,9 +888,10 @@ export function createComeSailAwayPool({ renderer = null, pipeline = null, fetch
           }
         }
         if (!gpu) continue;
+        e.gpu = gpu;   // what it is drawn with this frame - the still list's, and (BOAT-FAR's audit) how a probe tells which part a draw is
         if (key && boat.MeshObject && e.chain === undefined) e.chain = stillChain(boat, node);   // PERF-SAILS3: asked once a plan (its own cache keys on the shape and the frame, as the plan does)
         const chain = key && boat.MeshObject ? e.chain : null;
-        if (chain) { e.gpu = gpu; e.rec = rec; still.push(e); continue; }   // PERF-SAILS3: the part's own record is the still list's entry
+        if (chain) { e.rec = rec; still.push(e); continue; }   // PERF-SAILS3: the part's own record is the still list's entry
         one(gpu, placed(rec), paint);
       }
       const batch = stillBatch(boat, still);
