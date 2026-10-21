@@ -6,7 +6,8 @@ the client's main thread from a Discord message - the Come Sail Away boat pool 1
 No report said where or when the enemies went wrong, so the live relay (world237) and the account service were read
 for the cause, and the profile's every line was traced on the code. Read on the code as it stands at main's
 `4bba28c6c`. Multiplayer is the port's own (DFU has no relay), so no DFU member moves; the boats' far cadence names
-its departure in `Port-Ledger.md`. The pins are `fb1021_*`, the mutants `tools/mutants/fb1021_*.json`.
+its departure in `Port-Ledger.md`. The pins are `fb1021_*` (FB1021B's `fb1021b_grass`), the mutants `tools/mutants/fb1021_*.json`
+(`fb1021b_grass.json`).
 
 | | Report | What it was | Done |
 |---|---|---|---|
@@ -15,7 +16,7 @@ its departure in `Port-Ledger.md`. The pins are `fb1021_*`, the mutants `tools/m
 | 3 | the profile's boat pool, `rendererModelKey` 2.6% | One shape stamp for every tree in the game: any boat built anywhere re-planned every boat; and every boat drawn was walked, baked and lit every frame wherever she sailed | BOAT-STAMP, BOAT-FAR |
 | 4 | the profile's Horse Cart pool | Inside 400 m every horse was posed and its palette sent every frame, off-screen and parked ones too | HORSE-VIEW |
 | 5 | the profile's peer bodies, Web Worker | Already on a distance cadence (PEER-CADENCE); a worker would move only what is cheap (interpolation, 0.02 ms) | not a defect |
-| 6 | the profile's grass | Real, under its budget already (`perFrame`, GRASS_SLICE); the catch-up mode while moving | left (not measured) |
+| 6 | the profile's grass | Under its budget on a walk (PERF-EXT22's slice a frame) - but a slice a frame paced the rim by the frame rate, and at 20 fps a DFU ride, a run or a cart fell more than eight cells behind on 5-13% of its frames (a gallop 25%), at 30 fps a ride 3.5% and a gallop 13%: two whole cells on each of those frames | FB1021B |
 
 ## What the live service showed (2026-10-21)
 
@@ -84,10 +85,32 @@ head, a horse 2.3 m from a zoomed-out third-person camera was posed every other 
 third; now every frame). Twenty peers' horses,
 half behind the eye: twenty uploads a frame to 3.7, the pool's frame 0.24 ms to 0.09 ms.
 
+## FB1021B (6) - `bible/07-Rendering/Performance-Exterior.md` THE GRASS ON THE MOVE
+
+Measured on the real field over Daggerfall's own ground (`tools/grassMoveProbe.mjs`: WOODS.WLD's woodlands round map
+pixel 200,200, the streamer's own floating origin, world.js's keep) at DFU's walk, run, ride, gallop and cart speeds and
+at 60, 30 and 20 frames a second. The steady walk was what PERF-EXT22 said; its catch-up was not: PERF-EXT22 placed the
+rim a slice a frame - a cell every five frames, whatever the eye's speed - and past eight cells waiting placed every
+cell whole, two a frame. So the rim kept the frame rate's pace and the slowest machines fell into the catch-up on the
+move: two whole cells (12,244 candidates, eight to ten times a slice frame) on 5% of a 20 fps run's or cart's frames,
+13% of a ride's, 25% of a gallop's, 3.5% and 13% of a ride's and a gallop's at 30 fps, 4% of a strong gallop's at 60.
+A boot, a teleport, a fast travel's arrival and the jungle floor's re-made meadow placed two whole cells a frame for
+~175 frames, and on the move a third of what a gallop's birth placed was behind the rider and let go unseen.
+
+A defect, fixed in `render/labGrass.js` `createGrassField.update`: a rim cell's deadline is the eye's own step - the
+frames before it could come inside GRASS_DUE_AT (0.9) of the range - and the rim takes one slice a frame and past it the
+least pace that meets every deadline; the cells due now (a birth's, an invalidate's) take a share of the frame
+(GRASS_FRAME_MS of a 60 Hz frame, 3 ms, that share of a longer one up to a 20 fps frame), the first whole cell under the
+eye always; what the step leaves behind waits for the rest. The count switch (GRASS_CATCH_UP) is gone. The bytes a
+cell is placed with are unchanged. The trade - a birth's frames lighter, its far band slower - is stated in the record
+for the owner to weigh.
+
 ## Left
 
 The Durable Object resets' cause; the relay settings' state (the owner's `/relay grantMode`); a star's large owner and
 the budget for a cell whose full frames alone pass it; world238, claimed by two open branches (STAR-TUNE #1090,
 GRANT-SLEEP #1066), against this release's world239 - whichever lands after another takes the next number; my own boats' Animators, the road's stranger teams and the standing horses, still stepped every frame; a
 slow dungeon or building host's foes, which carry `tm` but step FOE-CATCHUP's half of its frame (flagged in
-`Online-Arc.md`).
+`Online-Arc.md`); and the grass's (FB1021B, its record's Left): a cell's pack - now as dear as its placement, and still
+one piece on the frame a cell ends - the cells a teleport's loading frames place over ground not yet built (read on the
+code, not measured), and the worker PERF-EXT22 did not build.

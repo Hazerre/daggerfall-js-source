@@ -177,8 +177,8 @@
  {
   "name": "PERF-EXT22-a-begun-rim-cell-is-placed-whole-on-the-frame-it-arrives",
   "file": "src/render/labGrass.js",
-  "old": "          if (!stepGrassCell(st, GRASS_SLICE, ask)) { pending = { d, cx, cz, key, st }; continue; }",
-  "new": "          if (!stepGrassCell(st, perCell, ask)) { pending = { d, cx, cz, key, st }; continue; }",
+  "old": "        const finished = stepGrassCell(st, first ? GRASS_SLICE : now ? GRASS_STEP : Math.min(GRASS_STEP, Math.ceil(need - done)), ask);",
+  "new": "        const finished = stepGrassCell(st, first ? perCell : now ? GRASS_STEP : Math.min(GRASS_STEP, Math.ceil(need - done)), ask);",
   "tests": [
    "test/world/terrain/grassshift.test.js"
   ]
@@ -186,8 +186,8 @@
  {
   "name": "PERF-EXT22-the-cell-in-progress-takes-its-whole-rest-on-a-walk",
   "file": "src/render/labGrass.js",
-  "old": "        if (stepGrassCell(pending.st, catchUp ? perCell : GRASS_SLICE, ask)) {",
-  "new": "        if (stepGrassCell(pending.st, perCell, ask)) {",
+  "old": "        const finished = stepGrassCell(st, first ? GRASS_SLICE : now ? GRASS_STEP : Math.min(GRASS_STEP, Math.ceil(need - done)), ask);",
+  "new": "        const finished = stepGrassCell(st, first ? (i0 > 0 ? perCell : GRASS_SLICE) : now ? GRASS_STEP : Math.min(GRASS_STEP, Math.ceil(need - done)), ask);",
   "tests": [
    "test/world/terrain/grassshift.test.js"
   ]
@@ -213,8 +213,8 @@
  {
   "name": "PERF-EXT22-a-frame-that-finished-a-cell-begins-another-two-slices-in-one-frame",
   "file": "src/render/labGrass.js",
-  "old": "          if (pending || sliced) continue;           // one slice a frame",
-  "new": "          if (pending) continue;           // one slice a frame",
+  "old": "        first = false;",
+  "new": "        first = finished;",
   "tests": [
    "test/world/terrain/grassshift.test.js"
   ]
@@ -222,10 +222,11 @@
  {
   "name": "PERF-EXT22-a-cell-inside-the-fade-is-sliced-too",
   "file": "src/render/labGrass.js",
-  "old": "        if (!item.st && !catchUp && d > wholeR2) {   // PERF-EXT22: a rim cell on a walk",
-  "new": "        if (!item.st && !catchUp) {   // PERF-EXT22: a rim cell on a walk",
+  "old": "      const wholeR2 = wholeR * wholeR;",
+  "new": "      const wholeR2 = 0;",
   "tests": [
-   "test/world/terrain/grassshift.test.js"
+   "test/world/terrain/grassshift.test.js",
+   "test/render/fb1021b_grass.test.js"
   ]
  },
  {
@@ -240,8 +241,8 @@
  {
   "name": "PERF-EXT22-the-field-never-catches-up-so-a-boot-slices-its-whole-rim",
   "file": "src/render/labGrass.js",
-  "old": "      const catchUp = missing > GRASS_CATCH_UP;",
-  "new": "      const catchUp = false;",
+  "old": "if (due === 0) now = true; else need",
+  "new": "if (due === 0) now = false; else need",
   "tests": [
    "test/world/terrain/grassshift.test.js"
   ]
@@ -249,8 +250,8 @@
  {
   "name": "PERF-EXT22-the-field-always-catches-up-so-the-walk-spikes-again",
   "file": "src/render/labGrass.js",
-  "old": "      const catchUp = missing > GRASS_CATCH_UP;",
-  "new": "      const catchUp = true;",
+  "old": "      let owed = 0, need = 0, now = false;",
+  "new": "      let owed = 0, need = 0, now = true;",
   "tests": [
    "test/world/terrain/grassshift.test.js"
   ]
@@ -294,8 +295,8 @@
  {
   "name": "PERF-EXT22-a-begun-cell-is-placed-at-the-scene-origin",
   "file": "src/render/labGrass.js",
-  "old": "          const st = beginGrassCell(cx, cz, { perCell, seed, cell, originX: gx, originZ: gz });",
-  "new": "          const st = beginGrassCell(cx, cz, { perCell, seed, cell });",
+  "old": "st: beginGrassCell(w.cx, w.cz, { perCell, seed, cell, originX: gx, originZ: gz }) };",
+  "new": "st: beginGrassCell(w.cx, w.cz, { perCell, seed, cell, originX: 0, originZ: 0 }) };",
   "tests": [
    "test/world/terrain/grassshift.test.js"
   ]
@@ -303,8 +304,8 @@
  {
   "name": "PERF-EXT22-a-finished-cell-is-thrown-away-and-placed-again-whole",
   "file": "src/render/labGrass.js",
-  "old": "renderer.writeSlot(slot, item.st ?? placeLabGrassCell(",
-  "new": "renderer.writeSlot(slot, placeLabGrassCell(",
+  "old": "        write(cur, slot, st);",
+  "new": "        write(cur, slot, placeLabGrassCell(cur.cx, cur.cz, { keep: keepNow, ground: groundNow, slope: slopeNow, perCell, height, seed, cell, originX: gx, originZ: gz }));",
   "tests": [
    "test/world/terrain/grassshift.test.js"
   ]
