@@ -23,6 +23,7 @@
 // A model of nothing but the senders: the Room's code runs. Run on a checkout before FOES-FIRST, it measures the law
 // that was (the record's "before" column was read so, off origin/main 4bba28c).
 import { fakeRoom } from '../test/fakeRoom.mjs';
+import { isMain } from './lib/isMain.mjs';
 import { PIXEL_UNITS, FOES_ROOM_BYTES_PER_S, FOES_FULL_MS, FOES_STALE_MS } from '../src/net/wire.js';
 
 const FOES_MS = 200;   // net/online.js FOES_MS (online.js is the page's, and imports what Node does not load)
@@ -140,7 +141,7 @@ export async function scene(s, seconds = SECONDS) {
   });
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   const rows = [];
   for (const s of SCENES) if (!ONLY || s.name === ONLY) {
     const r = await scene(s);
