@@ -45,6 +45,8 @@ export function createStaffFollowHost({ hook, prepare, mode, where, toScene, eye
       const q = v ? toScene(v) : null;
       if (!q) return false;
       player.pos[0] = q[0]; player.pos[1] = q[1]; player.pos[2] = q[2];
+      // carried, never fallen: no flight is registered for a follow (the motor's one flight slot is a battle spectator's)
+      player._airVelX = 0; player._airVelZ = 0; player.velY = 0; player.falling = false; player.fallStart = q[1];
       cam.pos = [q[0], q[1] + eyeHeight(v), q[2]];
       cam.yaw = v.yaw; cam.pitch = v.pitch;
       return true;

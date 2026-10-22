@@ -20,7 +20,7 @@
 // doc's privacy policy line, "staff may watch play").
 // ═══════════════════════════════════════════════════════════════════
 import { mintToken, ID_RE, MAX_TTL_S } from '../../src/net/identityToken.js';
-import { privateInteriorOf, caravanKeyOf } from '../../src/net/privateInterior.js';
+import { privateInteriorOf } from '../../src/net/privateInterior.js';
 import { signingKey } from './signing.js';
 import { displayName } from './accounts.js';
 
@@ -43,8 +43,9 @@ export async function followSubject(hash, subtle) {
   return FOLLOW_SUBJECT_PREFIX + [...d.slice(0, 12)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** Whether a room is someone's private room - a home, a caravan, a boat's cabin. @param {string} room */
-export const privateRoomOf = (room) => !!(privateInteriorOf(room) || caravanKeyOf(room) || room.startsWith('owned:'));
+/** Whether a room is someone's private room - a home, a caravan, a boat's cabin (privateInteriorOf names all three).
+ *  @param {string} room */
+export const privateRoomOf = (room) => !!privateInteriorOf(room);
 
 /**
  * /v1/staff/follow - the route staff.js hands on. `who` the live staff session; `audit` its row maker.

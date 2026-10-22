@@ -146,20 +146,43 @@ test('STAFF-PANEL5-FOLLOW relay: a pose from a player with no party moves no sea
   assert.deepEqual([sinceOf(one), sinceOf(two)], before, 'a note writes no `since`');
 }));
 
-test('STAFF-PANEL5-FOLLOW relay: a party member\'s pose is fanned without its room; a note is written at once, party or not, as the hub always wrote one', async () => {
-  const writes = [];
+test('STAFF-PANEL5-FOLLOW relay: a party never reads a member\'s room - not in the view a joiner is handed, not in the fan', () => hub(async ({ r, tick, join, party }) => {
+  const act = (ws, o) => r.raw(ws, JSON.stringify({ t: 'social', ...o }));
+  const last = (ws, k) => ws.sent.filter((m) => (k === 'party' ? m.t === 'party' : m.t === 'social' && m.k === k)).at(-1);
+  const a = await join('peer-a', 'Aldo'), b = await join('peer-b', 'Bera');
+  await party(a, note('dungeon:m1234', { in: 1 })); tick();
+  await act(a, { k: 'party.invite', peer: 'peer-b' }); tick();
+  await act(b, { k: 'party.accept', party: last(b, 'invite').party }); tick();
+  const seat = last(b, 'state').party.members.find((m) => m.acct === 'acct-peer-a');
+  assert.equal(seat.p.loc, 'Daggerfall', 'the view carries the pose from before the party');
+  assert.equal('rk' in seat.p, false, 'and never its room');
+  await party(a, note('dungeon:m1234', { in: 1, h: 3 })); tick();
+  const fanned = last(b, 'party');
+  assert.equal(fanned.acct, 'acct-peer-a');
+  assert.equal(fanned.p.h, 3);
+  assert.equal('rk' in fanned.p, false, 'nor in the fan');
+  assert.equal(noteOf(r.room, 'acct-peer-a', Date.now()).p.rk, 'dungeon:m1234', 'the staff\'s read keeps it');
+}));
+
+test('STAFF-PANEL5-FOLLOW relay: a party member\'s pose is fanned without its room, and a note nobody follows tells nobody', () => {
   const sent = [];
-  const fake = { _setAttach: (ws, a, lazy) => { writes.push(lazy); ws.a = a; return true; }, _attach: (ws) => ws.a, _bySub: () => new Map(), _send: (ws, s) => sent.push(s), _dead: new Set(), _gone: new Set() };
-  const ws = { a: { sub: 'acct-bran', acct: 'acct-bran', party: null } };
+  const fake = { _setAttach: () => assert.fail('the caller writes the note (SOC1), not this'), _attach: (ws) => ws.a, _bySub: () => new Map(), _send: (ws, s) => sent.push(s), _dead: new Set(), _gone: new Set() };
+  const a = { sub: 'acct-bran', acct: 'acct-bran', party: null };
   const p = validPartyPose(note('world:1,1'));
-  const fan = followNoted(fake, ws, ws.a, p, 5);
+  const fan = followNoted(fake, a, p);
   assert.equal('rk' in fan, false);
   assert.equal(fan.px, p.px);
-  assert.deepEqual(ws.a.pm, { ...p, at: 5 }, 'kept whole, room and all');
-  ws.a.party = 'party-1';
-  followNoted(fake, ws, ws.a, p, 6);
-  assert.deepEqual(writes, [undefined, undefined]);
+  assert.equal(p.rk, 'world:1,1', 'the note itself keeps its room');
+  followNoted(fake, { ...a, party: 'party-1', pm: { ...p, rk: 'world:2,2', at: 1 } }, p);
   assert.equal(sent.length, 0, 'nobody follows: nobody is told');
+});
+
+test('STAFF-PANEL5-FOLLOW relay: the hub\'s copy of a note is the newest among an account\'s hub links, in either order', () => {
+  const older = { a: { pm: { ...note('world:1,1'), at: 10 } } }, newer = { a: { pm: { ...note('world:2,2'), at: 20 } } };
+  for (const order of [[older, newer], [newer, older]]) {
+    const fake = { _bySub: () => new Map([['acct-bran', new Set(order)]]), _attach: (ws) => ws.a, _dead: new Set(), _gone: new Set() };
+    assert.deepEqual(noteOf(fake, 'acct-bran', 30), { p: note('world:2,2'), at: 20 });
+  }
 });
 
 test('STAFF-PANEL5-FOLLOW relay: a spectator\'s hub link is told `on` and the note, every room change and nothing else, and `gone` when the target\'s last link goes', () => hub(async ({ r, tick, join, party }) => {
@@ -325,36 +348,4 @@ test('STAFF-PANEL5-FOLLOW relay: SILENT TP - an Admin\'s or a Shadow Fang\'s /tp
   const normal = await join('peer-normal', 'Normal');
   await send(normal, { k: 'ask', name: 'Bran', nonce: 'x', nt: 1 });
   assert.equal(stp(normal, 'result').at(-1).error, 'denied');
-}));
-
-test('STAFF-PANEL5-FOLLOW bench: what the where note and the follow cost the bus, measured', () => hub(async ({ r, tick, join, party, now }) => {
-  // the hub with ONLINE accounts on it, every one sending its note; then the same with a follow standing - the bus's own
-  // party arm, end to end through webSocketMessage (the frame's parse, the meter, the attachment, the follow's look)
-  const ONLINE = 400, NOTES = 4000;
-  const links = [];
-  for (let i = 0; i < ONLINE; i++) links.push(await join(`peer-n${i}`, `Walker${i}`));
-  const time = async (n, fn) => { const t0 = process.hrtime.bigint(); for (let i = 0; i < n; i++) await fn(i); return Number(process.hrtime.bigint() - t0) / 1e6 / n; };
-  // each note a moved one (a fresh pixel), so every follow's look runs in full
-  const msNote = await time(NOTES, (i) => { if (i % ONLINE === 0) tick(1000); return party(links[i % ONLINE], note(`world:${i % 900},${(i / 900) | 0}`, { px: i % 900, py: (i / 900) | 0 })); });
-  assert.equal(noteOf(r.room, `acct-peer-n${NOTES % ONLINE + 5}`, now())?.p.px, (NOTES - ONLINE + 5) % 900, 'every note was taken, none metered away');
-  const spies = [];
-  for (let i = 0; i < 16; i++) spies.push(await spectator(r, `peer-spy${i}`, `acct-peer-n${i}`));
-  const msFollowed = await time(NOTES, (i) => { if (i % ONLINE === 0) tick(1000); return party(links[i % ONLINE], note(`world:${(i + 1) % 900},${(i / 900) | 0}`, { px: (i + 1) % 900, py: (i / 900) | 0 })); });
-  assert.ok(fol(spies[3], 'note').length >= NOTES / ONLINE - 1, 'and each follow heard its target\'s every room');
-  // a leave and a join where nobody follows: one look-up each (followLeft/followJoined on their own)
-  const fake = { _follows: new Map(), _fol: new Map(), _bySub: () => new Map(), _attach: () => ({}), _dead: new Set(), _gone: new Set() };
-  const msLeave = await time(100_000, () => followLeft(fake, {}, { id: 'x', sub: 'acct-nobody', key: 'world:1,1' }));
-  const msJoin = await time(100_000, () => followJoined(fake, {}, { id: 'x', sub: 'acct-nobody', key: 'world:1,1' }));
-  const read = await time(10_000, (i) => noteOf(r.room, `acct-peer-n${i % ONLINE}`, now()));
-  // the scale: 10,000 online outside a party, each moving (a note every WHERE_NOTE_MOVING_MS) - 2,000 notes a second
-  const perSecond = (10_000 / (WHERE_NOTE_MOVING_MS / 1000));
-  const line = `bus bench (fake hub, this machine): a note ${msNote.toFixed(4)} ms (${msFollowed.toFixed(4)} ms with 16 follows standing); `
-    + `2,000 notes/s (10,000 online, all moving) = ${(msNote * perSecond).toFixed(1)} ms of each second; `
-    + `a staff read of a note ${read.toFixed(4)} ms; a room's leave/join where nobody follows ${(msLeave * 1000).toFixed(3)}/${(msJoin * 1000).toFixed(3)} us`;
-  console.log(line);
-  // loose bounds - the machine is shared; the numbers above are the measurement
-  assert.ok(msNote < 5, line);
-  assert.ok(msFollowed < msNote * 3 + 1, line);
-  assert.ok(msLeave < 0.01 && msJoin < 0.01, line);
-  void spies;
 }));

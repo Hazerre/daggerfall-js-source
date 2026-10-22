@@ -59,14 +59,13 @@ function tell(room, sub, frame) {
   return set.size;
 }
 
-/** (the bus) A WHERE NOTE KEPT - a party member's or anyone's: on its socket (`pm`, with its room `rk` inside it), as the
- *  hub always kept one (SOC1 - written at once, party or not, so a seat taken later reads it), told to the spectators
- *  following its account when its room changed, and handed back without `rk` for the party's fan - a room is the
+/** (the bus) A WHERE NOTE KEPT - a party member's or anyone's, already on its socket (`pm`, with its room `rk` inside
+ *  it, written by the caller as SOC1 always wrote it): told to the spectators following its account when its room
+ *  changed from `a.pm` (the attachment before), and handed back without `rk` for the party's fan - a room is the
  *  staff's to read, never a member's.
- *  @param {FollowRoom} room @param {any} ws @param {any} a @param {any} p the pose, parsed @param {number} now */
-export function followNoted(room, ws, a, p, now) {
+ *  @param {FollowRoom} room @param {any} a the attachment before the note @param {any} p the pose, parsed */
+export function followNoted(room, a, p) {
   const was = a.pm;
-  room._setAttach(ws, { ...a, pm: { ...p, at: now } });
   if (a.sub && room._follows?.has(a.sub) && noteWhere(was) !== noteWhere(p)) tell(room, a.sub, { k: 'note', sub: a.sub, p, ag: 0 });
   const { rk, ...fan } = p;
   void rk;

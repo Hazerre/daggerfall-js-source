@@ -76,8 +76,11 @@ test('STAFF-PANEL5-FOLLOW session: the hub\'s `fol` reaches onFollow through the
   const { FakeWS, sockets } = fakeSocketClass();
   const cell = new OnlineSession({ url: 'wss://relay.test', name: 'Bran', id: 'peer-c', secret: 'secret-c', WebSocketImpl: FakeWS, presence: true });
   cell.join('world:100,100', { x: 0, y: 0, z: 0, yaw: 0, pitch: 0 }); sockets[0].open();
-  cell.onFollow = () => assert.fail('a room is not the hub');
+  sockets[0].receive({ t: 'welcome', id: 'peer-c', peers: [], n: 1, v: `world${FOLLOW_RELAY_MIN}` });
+  const told = [];
+  cell.onFollow = (f) => told.push(f);   // a throw here is contained (online.js _deliver): counted instead
   sockets[0].receive({ t: 'fol', k: 'on', sub: 'acct-target' });
+  assert.deepEqual(told, [], 'a room is not the hub');
   cell.leave();
 });
 
@@ -231,12 +234,13 @@ test('STAFF-PANEL5-FOLLOW host: a follow leaves the host\'s room, enters the not
   assert.equal(prepared.length, 1);
   assert.equal(host.frame(), true);
   assert.equal(prepared.length, 1, 'entering: once');
-  const player = { pos: [0, 0, 0] }, cam = { pos: [0, 0, 0], yaw: 0, pitch: 0 };
+  const player = { pos: [0, 0, 0], velY: -9, falling: true, fallStart: 400, _airVelX: 1, _airVelZ: 2 }, cam = { pos: [0, 0, 0], yaw: 0, pitch: 0 };
   view = { x: 10, y: 20, z: 30, yaw: 1.25, pitch: -0.5 };
   assert.equal(host.eye(player, cam), false, 'no camera while the place loads');
   release(); await new Promise((r) => setImmediate(r));
   assert.equal(host.eye(player, cam), true);
   assert.deepEqual([player.pos, cam.pos, cam.yaw, cam.pitch], [[11, 22, 33], [11, 23.6, 33], 1.25, -0.5]);
+  assert.deepEqual([player.velY, player.falling, player.fallStart, player._airVelX, player._airVelZ], [0, false, 22, 0, 0], 'carried, no fall billed');
   view = { ...view, rd: 1 };
   host.eye(player, cam);
   assert.equal(cam.pos[1], 22 + 2.5, 'a rider\'s eye');
@@ -245,7 +249,8 @@ test('STAFF-PANEL5-FOLLOW host: a follow leaves the host\'s room, enters the not
   // outdoors, seen: the camera carries itself
   place = notePlace({ ...validPartyPose(note('world:1,1')), wx: 1, wy: 2, wz: 3 });
   host.frame();
-  assert.equal(prepared.length, 1);
+  await new Promise((r) => setImmediate(r));
+  assert.equal(prepared.length, 1, 'outdoors and seen: not entered');
   view = null;
   host.frame();
   await new Promise((r) => setImmediate(r));
@@ -365,4 +370,10 @@ test('STAFF-PANEL5-FOLLOW TP host: a place a note names no spot in is loaded and
   const withSpot = hostFunction('prepareStaffDestination', { modes, _wodInside: false, playerSpawned: false, _teleportToPixel: async () => {}, staffLanding: (d) => d.pos, capsuleFits: () => true, ohAbyss: null });
   await withSpot(notePlace({ ...validPartyPose(note('world:100,100')), wx: 1, wy: 2, wz: 3 }));
   assert.deepEqual(placed, [[1, 2, 3]]);
+});
+
+test('STAFF-PANEL5-FOLLOW host: outside a party the pose goes on as the where note, its feet and its room in it', () => {
+  assert.match(worldSource, /\.\.\.\(!social\?\.party && mode === 'exterior' && walkMode && playerSpawned && !worldMoveBusy\(\) && partyFeetOf\(player\.pos\)\),/, 'my feet outside a party');
+  assert.match(worldSource, /\.\.\.\(online\?\.room \? \{ rk: online\.room \} : \{\}\),/, 'the room I stand in');
+  assert.match(worldSource, /if \(socialLink\(\)\) socialLink\(\)\.solo = !social\.party;/, 'sent outside a party, at the note\'s pace');
 });

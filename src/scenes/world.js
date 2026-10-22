@@ -22386,7 +22386,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // STAFF-PANEL5-FOLLOW (design doc "DFO Staff Panel: design", Invisible follow): THE STAFF HOOK - a follow the Staff Panel
   // starts on this page (net/staffHook.js), and what the scene does with it (scenes/staffFollowHost.js)
   const staffFollow = staffFollowOnPage({ main: () => online, prepare: (d) => prepareStaffDestination(d, () => staffFollow.locked()), mode: () => modes?.mode ?? 'exterior', pixel: () => state.current, toScene: (p) => onlineToScene(p) });
-  registerFreeFlight(() => spectatingHere() || staffFollow.locked());   // AUDIT-SEATS G4: the spectator's camera is free - the motor's own flight over the town; STAFF-PANEL5-FOLLOW: and a follow's, the target's eyes or none
+  registerFreeFlight(() => spectatingHere());   // AUDIT-SEATS G4: the spectator's camera is free - the motor's own flight over the town
   /** AUDIT-SEATS G4: where the spectator stood when its camera went free, in the wire's frame (the floating origin moves
    *  under a flight) - the watching ended out on the street, it is set back on its feet there, no fall billed; ended any
    *  other way (a door, a death), it is forgotten. */
@@ -25947,7 +25947,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       ...(_walkLead && socialLink()?.partyWalkOk ? { tw: _walkLead } : {}),   // TV8: my walk while I lead one
       ...(_walkTs != null && socialLink()?.partyWalkOk ? { ts: _walkTs } : {}),   // TV8: when my journey last stopped for a reason of mine
       ...(social?.leads?.() && mode === 'exterior' && walkMode && playerSpawned && !worldMoveBusy() ? partyFeetOf(player.pos) : {}),
-      ...(!social?.party && mode === 'exterior' && walkMode && playerSpawned && !worldMoveBusy() ? partyFeetOf(player.pos) : {}),   // STAFF-PANEL5-FOLLOW: and outside a party, so a staff /tp lands on my feet without asking my game
+      ...(!social?.party && mode === 'exterior' && walkMode && playerSpawned && !worldMoveBusy() && partyFeetOf(player.pos)),   // STAFF-PANEL5-FOLLOW: and outside a party, so a staff /tp lands on my feet without asking my game
       ...partyFxField(),   // PARTY-BUFFS: my live spell effects, for the party's cards (net/partyBuffs.js)
       ...(bountyHost?.poseField() ?? {}),   // BOUNTY1: my bounties - the shared, the held and today's cleared (validPartyPose `bq`)
       ...(partyPing?.poseField() ?? {}),   // PARTY-PING: the look's point, while the route is still worth saying (validPartyPose `pg`)

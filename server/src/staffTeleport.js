@@ -2,7 +2,7 @@ import { isStaff } from '../../src/net/staffCommands.js';
 import { STAFF_TP_TIMEOUT_MS, quietTeleportAllowed } from '../../src/net/staffTeleport.js';
 import { noteOf } from './staffFollow.js';
 
-const fold = (s) => String(s).toLowerCase().replace(/['’]/g, '').replace(/[\s-]+/g, ' ').trim();
+const fold = (s) => String(s).toLowerCase().replace(/['\u2019]/g, '').replace(/[\s-]+/g, ' ').trim();
 
 /** Only the verified target socket may answer a pending ticket. Nothing is
  * persisted or broadcast; an eviction cancels the lookup via the client's timer.
