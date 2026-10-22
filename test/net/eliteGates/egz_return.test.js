@@ -446,7 +446,7 @@ test('EG-ZD THE SPANS\' CLOCK (section 10.8, EG-H1\'s host flag): the breach\'s 
   const realNow = Date.now, realPerf = performance.now;
   let wall = T0 + 400_000;
   Date.now = () => wall;
-  performance.now = () => 0;   // the anchor is the thing under test; a slow frame() must not look like a re-anchor
+  performance.now = () => 1000;   // the page's clock held still: a slow runner's pause must not read as a re-anchor
   try {
     const P = inBreach();
     assert.equal(P.client.breachNow(), null, 'no answer yet');

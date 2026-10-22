@@ -11914,6 +11914,11 @@
   "tr": "2382cf580218",
   "by": "claude-in-session"
  },
+ "helm.passenger": {
+  "en": "61953c9d9311",
+  "tr": "4e2757f1a3c8",
+  "by": "claude-in-session"
+ },
  "holdings.horse.boons.hungry": {
   "en": "11b471ca7d1e",
   "tr": "4f937974494b",
@@ -12114,16 +12119,6 @@
   "tr": "509b6c75405d",
   "by": "claude-in-session"
  },
- "inventory.store.anyMaterial": {
-  "en": "8177dd78731e",
-  "tr": "05313e806f88",
-  "by": "claude-in-session"
- },
- "inventory.store.anyRarity": {
-  "en": "cc8474c6626b",
-  "tr": "da1102a80dcd",
-  "by": "claude-in-session"
- },
  "inventory.store.containerFull": {
   "en": "25e48df7aefe",
   "tr": "5df4458c6009",
@@ -12134,9 +12129,19 @@
   "tr": "3b71dd8b5764",
   "by": "claude-in-session"
  },
+ "inventory.store.materialMenu": {
+  "en": "d8169782b57c",
+  "tr": "d8169782b57c",
+  "by": "claude-in-session"
+ },
  "inventory.store.rarityIn": {
   "en": "4edd5e0b523a",
   "tr": "b99f8f689236",
+  "by": "claude-in-session"
+ },
+ "inventory.store.rarityMenu": {
+  "en": "a3e1e99f2620",
+  "tr": "26599e2a0dae",
   "by": "claude-in-session"
  },
  "inventory.store.stashAll": {
@@ -12602,6 +12607,16 @@
  "levelup.vital.magicka": {
   "en": "3f9626ec308d",
   "tr": "9e8b3b54fe73",
+  "by": "claude-in-session"
+ },
+ "livingWorld.friend.court": {
+  "en": "0246b7029d39",
+  "tr": "ea56bf8c935c",
+  "by": "claude-in-session"
+ },
+ "livingWorld.friend.made": {
+  "en": "fee76aa0c9bf",
+  "tr": "e74552a87ef8",
   "by": "claude-in-session"
  },
  "lootBanner.honour.aura": {
@@ -28622,6 +28637,11 @@
  "spellbook.effect.magnitude": {
   "en": "032e12a22bdd",
   "tr": "ba5a9be1db64",
+  "by": "claude-in-session"
+ },
+ "standing.notice.served": {
+  "en": "b6b59e754a1b",
+  "tr": "b44f52c850fe",
   "by": "claude-in-session"
  },
  "starfall.at.breath": {
