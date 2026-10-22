@@ -49,7 +49,7 @@ import { accountKind, displayName, isMuted, overRate, muteAccount } from './acco
 import { SPROUT_S, canModerate, isDeveloper } from './titles.js';
 import { gatePublicKey } from './signing.js';
 import { autoMute, autoMutable, lawOrder, pushLaw, bannedUntil, findAccount, actionStatement, voidAutoMutes, banAccount, unbanAccount, reasonOf, muteMinutesOk } from './sanctions.js';
-import { STAFF_IDLE_S } from './staff.js';   // STAFF-PANEL2-FIX: a claim lives while the staff session that took it does (read at a call, never at load)
+import { STAFF_IDLE_S, auditStatement, staffRole } from './staff.js';   // STAFF-PANEL2-FIX: a claim lives while the staff session that took it does; an act's audit row (each read at a call, never at load)
 import { modAiOn } from './modAi.js';
 import { discordOn } from './discord.js';
 import { ID_RE } from '../../src/net/identityToken.js';
@@ -307,7 +307,7 @@ export async function modCase({ db }, actor, env, { target, name, caseId = null 
  *  running lifted - its unmute order answered, for the moderator's client to carry and pushed to the relay's door).
  *  STAFF-PANEL2-FIX: modAct's, so the claim and the one act a case are asked as every door's are. */
 export const modDismiss = (ctx, actor, env, { target, name, caseId = null }, { fetchFn = (u, i) => globalThis.fetch(u, i) } = {}) =>
-  modAct(ctx, actor, env, { act: 'dismiss', target, name, caseId }, { push: (o) => pushLaw(env, fetchFn, o) });
+  modAct(ctx, actor, env, { act: 'dismiss', target, name, caseId, from: 'in the game' }, { push: (o) => pushLaw(env, fetchFn, o) });
 
 /* ═══ STAFF-PANEL2-FIX - ONE ACT, FROM EVERY DOOR ═══
  * (2026-10-22; design doc "DFO Staff Panel: design", Weak spots "Sanctions, cases and roles" and "Panel Mute and Ban have
@@ -323,10 +323,22 @@ export const modDismiss = (ctx, actor, env, { target, name, caseId = null }, { f
  * - KINDS ("Moderators see only chat cases"): a spawn case is a developer's (`not-developer`).
  * - THE ADMIN'S SANCTION ("A Moderator can lift an Admin's ban"): lifting or cutting short what an Admin set needs an Admin
  *   (accounts.js muteAccount, sanctions.js banAccount and unbanAccount answer `admin-sanction`).
- * Lifting (an unmute, an unban) is no case's act. Every act lands in the strike history as before (`mod_actions`). */
+ * Lifting (an unmute, an unban) is no case's act. Every act lands in the strike history as before (`mod_actions`).
+ * STAFF-PANEL2-FIX (the flaw review of PR 1):
+ * - THE TAKE IS A LEASE: a refused act and a throw both give the case back; a take older than CASE_ACT_S is any press's.
+ * - ONE PRESS, ONE STRIKE: a click is UNIQUE in `mod_actions` (mod_actions_click, 0156), so the same press sent twice at
+ *   once, with no case to take, strikes once - the second's record refused by the index and answered as the first.
+ * - THE AUDIT ROW IS WRITTEN HERE (Weak spots: "Audit rows are written inside the shared act code, so in-game and Discord
+ *   acts land in the log too"): one row an act - ok, denied or failed, the door named (`from`) - whichever door asked.
+ *   The panel hands in its own writer (its session's role and key); the others write as the actor's staff role. */
 
 /** A press's one-time id, as a door sends it (the panel's own, a Discord interaction's id). */
 export const CLICK_RE = /^[\w-]{8,64}$/;
+/** STAFF-PANEL2-FIX: how long an act holds the case it took before another press may take it - a lease, so an act that
+ *  died before it gave the case back (a Worker cut off mid-act) does not hold it for the case's 90 days. */
+export const CASE_ACT_S = 60;
+/** STAFF-PANEL2-FIX: the refusals an act's audit row calls `denied` (a role's or a claim's door); every other `failed`. */
+const ACT_DENIED = Object.freeze(['staff-claimed', 'not-developer', 'admin-sanction']);
 
 /** SQL true while case row `t`'s staff panel claim stands: held, inside its time, and the staff session that took or last
  *  kept it still alive (staff.js staffSession's law: not past its whole life nor its idle) - design doc, Weak spots: "a
@@ -342,21 +354,62 @@ const utcMinute = (until) => new Date(until * 1000).toISOString().slice(0, 16).r
  * `reason`), unban, dismiss; `caseId` the case it answers (else the one modCase shows the actor); `click` the press's
  * one-time id; `actorName` what the record says (the door's words beside the name); `keepLonger` a button's: never
  * shorten what stands (DISCORD-5); `resolution` the case's closing words from the act's answer, else the act's own with
- * `from` (the door: 'staff panel', 'in the game') beside them. The order for the rooms
+ * `from` (the door: 'staff panel', 'in the game', 'Discord') beside them. The order for the rooms
  * goes to `push` (the relay's door, by default). Answers the act's own answer with `case` and `order`, or `{ error }`.
+ * STAFF-PANEL2-FIX: the act's audit row written once, whatever its outcome, by `audit` (the panel's; else as the actor's
+ * staff role) - a throw is written down as failed and thrown on. One who is no moderator is answered and not written: the
+ * game's /v1/mod doors are every player's to knock at, and the audit log is staff's.
  * @param {{ db: any, nowS: number, subtle: SubtleCrypto, rand: (b: Uint8Array) => void }} ctx @param {any} actor @param {any} env
  * @param {{ act: 'mute'|'ban'|'unban'|'dismiss', target?: unknown, name?: unknown, caseId?: unknown, click?: unknown, minutes?: any, days?: any,
  *   reason?: unknown, actorName?: string, from?: string, keepLonger?: boolean, resolution?: (r: any) => string }} ask
- * @param {{ push?: (order: string) => unknown }} [io]
+ * @param {{ push?: (order: string) => unknown, audit?: (act: string, target?: string|null, detail?: object|null, how?: object) => any }} [io]
  */
-export async function modAct(ctx, actor, env, ask, { push } = {}) {
-  const { db, nowS, subtle } = ctx;
+export async function modAct(ctx, actor, env, ask, { push, audit } = {}) {
   if (!canModerate(actor, env)) return { error: 'not-moderator' };
+  const { db, nowS } = ctx;
+  /** What the act found and did, as it goes: for its give-back and its row. */
+  const at = { target: /** @type {string|null} */ (null), name: /** @type {string|null} */ (null), click: /** @type {string|null} */ (null),
+    caseId: /** @type {string|null} */ (null), take: /** @type {string|null} */ (null), landed: false };
+  // the case given back for the next act - never one this act closed
+  const giveBack = () => db.prepare("UPDATE mod_cases SET act_click = NULL, act_at = NULL WHERE id = ?1 AND act_click = ?2 AND status = 'open'").bind(at.caseId, at.take).run();
+  const write = audit ?? ((/** @type {string} */ act, /** @type {string|null} */ target, /** @type {object|null} */ detail, /** @type {any} */ how) =>
+    auditStatement(db, nowS, { actor, role: staffRole(actor, env), act, target, detail, ...how }));
+  const num = (/** @type {unknown} */ v) => (Number.isFinite(v) ? v : null);
+  // what the row says: never a chat line (design doc: "Audit rows never copy chat text")
+  const detail = (/** @type {any} */ r, extra = {}) => ({ name: at.name, door: ask.from ?? null,
+    ...(ask.act === 'mute' ? { minutes: num(ask.minutes) } : ask.act === 'ban' ? { days: num(ask.days), reason: typeof ask.reason === 'string' ? ask.reason.slice(0, 200) : null } : {}),
+    ...(at.caseId ? { case: at.caseId } : {}), ...(r?.repeat ? { repeat: true } : {}), ...(r?.error ? { error: r.error } : {}), ...extra });
+  /** @type {any} */
+  let r;
+  try { r = await actOnce(ctx, actor, env, ask, push, at); }
+  catch (e) {
+    // A THROW GIVES THE CASE BACK, as a refusal does (the flaw review: a D1 error mid-act left the case taken until the
+    // 90-day sweep) - unless the act's record landed, when the take stands until its lease lapses (CASE_ACT_S)
+    if (at.take && !at.landed) await giveBack().catch(() => {});
+    // THE SAME PRESS SENT TWICE AT ONCE: the second's record refused by mod_actions_click - answered as the first was
+    const first = !at.landed && at.click ? await db.prepare('SELECT 1 AS y FROM mod_actions WHERE click = ?1').bind(at.click).first().catch(() => null) : null;
+    if (!first) {
+      await write(ask.act, at.target, detail(null, { error: String(/** @type {any} */ (e)?.message ?? e).slice(0, 200), ...(at.landed ? { landed: true } : {}) }), { outcome: 'failed' }).run().catch(() => {});
+      throw e;
+    }
+    r = { ok: true, repeat: true, target: at.target, name: at.name };
+  }
+  if (r.error && at.take) await giveBack();
+  await write(ask.act, at.target, detail(r), { outcome: r.error ? (ACT_DENIED.includes(r.error) ? 'denied' : 'failed') : 'ok' }).run();
+  return r;
+}
+
+/** modAct's act itself: `at` told what it found and did as it goes. @param {any} ctx @param {any} actor @param {any} env @param {any} ask
+ *  @param {((order: string) => unknown)|undefined} push @param {any} at */
+async function actOnce(ctx, actor, env, ask, push, at) {
+  const { db, nowS, subtle } = ctx;
   const row = await findAccount(db, { target: ask.target, name: ask.name });
   if ('error' in row) return row;
   const name = displayName(row);
+  at.target = row.id; at.name = name;
   const click = ask.click ?? null;
   if (click !== null && !(typeof click === 'string' && CLICK_RE.test(click))) return { error: 'bad-click' };
+  at.click = click;
   if (click && await db.prepare('SELECT 1 AS y FROM mod_actions WHERE click = ?1').bind(click).first()) return { ok: true, repeat: true, target: row.id, name };
   const lift = ask.act === 'unban' || (ask.act === 'mute' && ask.minutes === 0);
   /** @type {any} */
@@ -372,15 +425,18 @@ export async function modAct(ctx, actor, env, ask, { push } = {}) {
   if (ask.act === 'dismiss' && !c) return { error: 'no-case' };
   const take = click ?? caseIdOf(ctx.rand);
   if (c) {
+    at.caseId = c.id;
     if (c.status !== 'open') return { error: 'case-closed' };
     if (c.kind !== 'chat' && !isDeveloper(actor, env)) return { error: 'not-developer' };
-    // THE CASE TAKEN for this act alone - and never one another member holds in the panel - in one statement
-    const took = await db.prepare(`UPDATE mod_cases SET act_click = ?2, act_at = ?3 WHERE id = ?1 AND status = 'open' AND act_click IS NULL
+    // THE CASE TAKEN for this act alone - and never one another member holds in the panel - in one statement. A take
+    // older than CASE_ACT_S is an act that died holding it (STAFF-PANEL2-FIX): any press's again
+    const took = await db.prepare(`UPDATE mod_cases SET act_click = ?2, act_at = ?3 WHERE id = ?1 AND status = 'open' AND (act_click IS NULL OR act_at < ?3 - ${CASE_ACT_S})
       AND (claimed_by IS ?4 OR NOT ${claimHeldSql('mod_cases', 3)})`).bind(c.id, take, nowS, actor.id).run();
     if (!took.meta.changes) {
       const now = await db.prepare(`SELECT status, claimed_by, ${claimHeldSql('mod_cases', 2)} AS held FROM mod_cases WHERE id = ?1`).bind(c.id, nowS).first();
       return { error: now?.held && now.claimed_by !== actor.id ? 'staff-claimed' : now?.status === 'open' ? 'case-acted' : 'case-closed' };
     }
+    at.take = take;
   }
   const by = ask.actorName ?? displayName(actor);
   const caseId = c?.id ?? null;
@@ -394,11 +450,12 @@ export async function modAct(ctx, actor, env, ask, { push } = {}) {
     if (ask.keepLonger && muteMinutesOk(minutes) && minutes && isMuted(row, nowS) && Number(row.muted_until) >= nowS + minutes * 60) {
       // DISCORD-5: a button never shortens a mute that stands longer - its act recorded at the longer end
       r = canModerate(row, env) ? { error: 'protected' } : { ok: true, target: row.id, name, until: Number(row.muted_until), kept: true };
-      if (!r.error) await actionStatement(db, { target: row.id, kind: 'mute', until: r.until, reason: reasonOf(ask.reason), actor: actor.id, actorName: by, caseId, click, at: nowS }).run();
+      if (!r.error) { await actionStatement(db, { target: row.id, kind: 'mute', until: r.until, reason: reasonOf(ask.reason), actor: actor.id, actorName: by, caseId, click, at: nowS }).run(); at.landed = true; }
     } else {
       r = await muteAccount(ctx, actor, env, { target: row.id, minutes });
       if (!r.error) {
         await actionStatement(db, { target: row.id, kind: r.until ? 'mute' : 'unmute', until: r.until || null, reason: reasonOf(ask.reason), actor: actor.id, actorName: by, caseId, click, at: nowS }).run();
+        at.landed = true;
         order = await lawOrder(env, subtle, nowS, { s: row.id, mu: r.until });
       }
     }
@@ -407,18 +464,17 @@ export async function modAct(ctx, actor, env, ask, { push } = {}) {
     r = ask.act === 'ban'
       ? await banAccount(ctx, actor, env, { target: row.id, days: ask.days, reason: ask.reason, caseId, click, actorName: by, keepLonger: !!ask.keepLonger })
       : await unbanAccount(ctx, actor, env, { target: row.id, actorName: by });
+    at.landed = !r.error;   // the row and its record in one batch (sanctions.js)
     if (!r.error) order = await lawOrder(env, subtle, nowS, { s: row.id, bn: r.until });
     said = 'banned';
   } else if (ask.act === 'dismiss') {
     await resolveCase(db, { caseId, status: 'dismissed', by: displayName(actor), resolution: 'no action', nowS }).run();
     await actionStatement(db, { target: row.id, kind: 'dismiss', actor: actor.id, actorName: by, caseId, click, at: nowS }).run();
+    at.landed = true;
     order = await voidAutoMutes(ctx, env, { caseId: /** @type {string} */ (caseId), row, actor, actorName: by });
     r = { ok: true, target: row.id, name };
   } else r = { error: 'not-found' };
-  if (r.error) {
-    if (c) await db.prepare('UPDATE mod_cases SET act_click = NULL, act_at = NULL WHERE id = ?1 AND act_click = ?2').bind(c.id, take).run();
-    return r;
-  }
+  if (r.error) return r;   // modAct gives the case back
   // AUDIT SAFE SERVICE-2: a moderator's mute or ban closes the case it answered - as the moderator's act
   if (c && said) await resolveCase(db, { caseId, status: 'actioned', by: displayName(actor), resolution: ask.resolution?.(r) ?? (ask.from ? `${said} (${ask.from})` : said), nowS }).run();
   if (order) await (push ?? ((/** @type {string} */ o) => pushLaw(env, (u, i) => globalThis.fetch(u, i), o)))(order);
