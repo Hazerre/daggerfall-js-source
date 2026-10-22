@@ -380,7 +380,7 @@ test('LEASE1 THE LOAD (mob, 07:57Z: "we need to test if this affected load times
   } finally { Date.now = realNow; }
 });
 
-test('LEASE1 THE FOURTH REVIEW OF THE PR: a frame that waited at the door is heard under the socket as it stands after the wait - a lease that landed meanwhile, its mute or its freeze, stands - and the socket\'s later frames wait behind it, kept in their order; a bound socket\'s frame asks again past the TTL in a room that asked with the door off; and a build that hands on no lease asks once in LEASE_OLD_ASK_MS, in a room just woken first, so one let in before the door went on at the hub is turned away; and nothing of a socket that closed while its frame waited is heard after its leave (mutants: the wait judged on the old socket; frames out of order; a closed socket heard after the wait; one queued behind it heard; an old build asking once a wake; a bound socket never asking again; a woken room\'s old build never asking; an old build asking every minute)', async () => {
+test('LEASE1 THE FOURTH REVIEW OF THE PR: a frame that waited at the door is heard under the socket as it stands after the wait - a lease that landed meanwhile, its mute or its freeze, stands - and the socket\'s later frames wait behind it, kept in their order; a bound socket\'s frame asks again past the TTL in a room that asked with the door off; and a build that hands on no lease asks once in LEASE_OLD_ASK_MS, in a room just woken first, so one let in before the door went on at the hub is turned away; and nothing of a socket that closed, or a reconnect replaced, while its frame waited is heard after its leave, nor its lease taken (mutants: the wait judged on the old socket; frames out of order; a closed socket heard after the wait; one queued behind it heard; a closed socket\'s lease taken; a replaced socket heard after the wait; a closed socket unread past a wait; an old build asking once a wake; a bound socket never asking again; a woken room\'s old build never asking; an old build asking every minute)', async () => {
   const realNow = Date.now;
   let clock = 1_800_000_000_000;
   Date.now = () => clock;
@@ -439,6 +439,28 @@ test('LEASE1 THE FOURTH REVIEW OF THE PR: a frame that waited at the door is hea
       const told = ear.sent.filter((f) => f.id === 'gone-0001').map((f) => f.t);
       assert.ok(told.includes('leave'), 'its leave was said');
       assert.deepEqual(told.slice(told.lastIndexOf('leave') + 1), [], 'nothing of it after its leave');
+      // 1c. one that closes while its lease is read, a pose of it waiting on the read: the lease is not taken, so nothing of
+      // it is heard after its leave
+      const late = await join(cell, 'late-0001', cur, P0);
+      const lateL = await lease('acct-late-0001');
+      const reading = raw(cell, late, { t: 'lease', l: lateL });
+      const onRead = raw(cell, late, { t: 'pose', p: { ...P0, x: P0.x + 45, mv: 1 } });
+      await cell.drop(late);
+      await Promise.all([reading, onRead]);
+      const toldLate = ear.sent.filter((f) => f.id === 'late-0001').map((f) => f.t);
+      assert.ok(toldLate.includes('leave'), 'its leave was said');
+      assert.deepEqual(toldLate.slice(toldLate.lastIndexOf('leave') + 1), [], 'nothing of it after its leave');
+      // 1d. a reconnect takes the id while a pose of the socket it replaces waits at the door: that pose is not heard
+      const was1 = await join(cell, 'rep-0001', cur, P0);
+      clock += RELAY_CFG_TTL_MS + 1000;
+      hold = new Promise((r) => { release = r; });
+      await raw(cell, was1, { t: 'pose', p: { ...P0, x: P0.x + 4, mv: 1 } });   // asks beside, held
+      const replacedPose = raw(cell, was1, { t: 'pose', p: { ...P0, x: P0.x + 54, mv: 1 } });
+      await landed();
+      await join(cell, 'rep-0001', cur, P0);
+      assert.equal(cell.room._attach(was1).replaced, true, 'the reconnect replaced it');
+      hold = null; release(); await replacedPose;
+      assert.ok(!ear.sent.some((f) => f.t === 'pose' && f.p?.x === P0.x + 54), 'the replaced socket\'s pose is not heard');
       // 2. a room just woken (its settings gone with the object, the socket kept): a lapsed socket's pose waits on the
       // wake's first ask, and a lease with a freeze lands meanwhile
       const P1 = { ...P0, x: P0.x + 32 * PIXEL_UNITS };   // two cells east

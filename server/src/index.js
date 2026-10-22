@@ -7063,8 +7063,8 @@ export class Room {
   async _leaseHeard(ws, a) {
     if (ws.virtual) return a;
     const meter = this._meterOf(ws);
-    while (meter.dq) { await meter.dq.catch(() => null); if (this._dead.has(ws) || this._gone.has(ws)) return null; a = this._attach(ws); }
-    if (a.ld != null && !(a.ld * 1000 >= Date.now())) { await meter.lp; if (this._dead.has(ws) || this._gone.has(ws)) return null; a = this._attach(ws); }
+    while (meter.dq) { await meter.dq.catch(() => null); if (!(a = this._pastWait(ws))) return null; }
+    if (a.ld != null && !(a.ld * 1000 >= Date.now())) { await meter.lp; a = this._attach(ws); }   // closed or replaced meanwhile: its lease untaken (`_leaseRead`), the door's below
     const now = Date.now();
     if (a.ld != null ? a.ld * 1000 >= now : !a.id || !leaseRoom(a.key ?? this._busKey)) return a;
     const door = meter.dq = this._leaseDoor(ws, a.ld != null, now);
@@ -7074,11 +7074,18 @@ export class Room {
   async _leaseDoor(ws, bound, now) {
     if (bound) await (this._relayCfgAt === -Infinity ? this._relayCfgFresh(now) : this._relayCfgP);
     const on = await this._leaseDoorOn(now, bound || now - this._relayCfgAt >= LEASE_OLD_ASK_MS);
-    if (this._dead.has(ws) || this._gone.has(ws)) return null;   // closed while it waited: nothing of it is heard after its leave
-    const a = this._attach(ws);
+    const a = this._pastWait(ws);
+    if (!a) return null;
     if (!on || a.ld * 1000 >= Date.now()) return a;
     if (a.ld == null) this._refuse(ws, GROUND_OLD_WORDS, CLOSE_POLICY, LEASE_OLD_REASON);
     return null;
+  }
+  /** LEASE1 (the fourth review of the PR): the socket as it stands past a wait, or null - it closed, or a reconnect took its
+   *  id, meanwhile: nothing of it is heard, nor its lease taken, after its leave (`_attach` alone always answers). */
+  _pastWait(ws) {
+    if (this._dead.has(ws) || this._gone.has(ws)) return null;
+    const a = this._attach(ws);
+    return a.replaced ? null : a;
   }
   /** LEASE1: the lease key, derived once from the relay's secret (a CryptoKey cannot be stored; a deploy is a new object). */
   async _leaseKeyOf() {
@@ -7113,7 +7120,7 @@ export class Room {
     }
     if (!leaseRoom(room)) return;
     const r = await readLease(m.l, key, { subtle: crypto.subtle, nowS });
-    const b = this._attach(ws);   // read again past the awaits
+    const b = this._pastWait(ws);   // read again past the awaits
     if (!r || !b || r.s !== b.sub) return;
     const law = r.at > (b.lt ?? b.gio ?? 0);
     // a token says nothing of a freeze (a review of the PR: a fresh token, then a lease minted before it, dodged one), so

@@ -329,13 +329,13 @@
   {
     "name": "LEASE1-the-frame-not-waiting-on-its-lease",
     "file": "server/src/index.js",
-    "old": "    if (a.ld != null && !(a.ld * 1000 >= Date.now())) { await meter.lp; if (this._dead.has(ws) || this._gone.has(ws)) return null; a = this._attach(ws); }\n",
+    "old": "    if (a.ld != null && !(a.ld * 1000 >= Date.now())) { await meter.lp; a = this._attach(ws); }   // closed or replaced meanwhile: its lease untaken (`_leaseRead`), the door's below\n",
     "new": "",
     "why": "the honest game's first frame, right behind its lease, dropped while the lease is read",
     "tests": [
       "test/net/lease1.test.js"
     ],
-    "note": "LEASE1 REVIEW IV (2026-10-22, PIN MOVED): the wait at the door is its own method (`_leaseDoor`), behind the socket's own earlier frames (`dq`); an old build asks once in LEASE_OLD_ASK_MS. LEASE1 REVIEW IV b (2026-10-22, PIN MOVED): the line after the lease read's wait checks the socket is not closed."
+    "note": "LEASE1 REVIEW IV (2026-10-22, PIN MOVED): the wait at the door is its own method (`_leaseDoor`), behind the socket's own earlier frames (`dq`); an old build asks once in LEASE_OLD_ASK_MS. LEASE1 REVIEW IV b (2026-10-22, PIN MOVED): a socket closed or replaced during the lease read's wait is caught by `_leaseRead` and the door (`_pastWait`)."
   },
   {
     "name": "LEASE1-the-shards-line-past-the-door",
@@ -666,8 +666,8 @@
   {
     "name": "LEASE1-a-closed-socket-heard-after-the-wait",
     "file": "server/src/index.js",
-    "old": "    if (this._dead.has(ws) || this._gone.has(ws)) return null;   // closed while it waited: nothing of it is heard after its leave\n",
-    "new": "",
+    "old": "    const a = this._pastWait(ws);\n    if (!a) return null;\n    if (!on",
+    "new": "    const a = this._attach(ws);\n    if (!on",
     "why": "a frame that waited at the door is heard after its socket closed and its leave was said",
     "tests": [
       "test/net/lease1.test.js"
@@ -676,9 +676,39 @@
   {
     "name": "LEASE1-a-closed-sockets-queued-frame-heard",
     "file": "server/src/index.js",
-    "old": "while (meter.dq) { await meter.dq.catch(() => null); if (this._dead.has(ws) || this._gone.has(ws)) return null; a = this._attach(ws); }",
-    "new": "while (meter.dq) { await meter.dq.catch(() => null); a = this._attach(ws); }",
+    "old": "{ await meter.dq.catch(() => null); if (!(a = this._pastWait(ws))) return null; }",
+    "new": "{ await meter.dq.catch(() => null); a = this._attach(ws); }",
     "why": "a frame queued behind one at the door is heard after its socket closed",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-a-closed-sockets-lease-taken",
+    "file": "server/src/index.js",
+    "old": "    const b = this._pastWait(ws);   // read again past the awaits\n",
+    "new": "    const b = this._attach(ws);   // read again past the awaits\n",
+    "why": "a lease read while its socket closed is taken anyway (the socket back in the room's index), and the frame waiting on the read is heard after the leave",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-a-replaced-socket-heard-after-the-wait",
+    "file": "server/src/index.js",
+    "old": "    return a.replaced ? null : a;\n",
+    "new": "    return a;\n",
+    "why": "a frame of a socket a reconnect replaced while it waited at the door is heard, with no id",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-a-closed-socket-unread-past-a-wait",
+    "file": "server/src/index.js",
+    "old": "    if (this._dead.has(ws) || this._gone.has(ws)) return null;\n    const a = this._attach(ws);\n    return a.replaced",
+    "new": "    const a = this._attach(ws);\n    return a.replaced",
+    "why": "past every wait a closed socket reads as live: its frames are heard after its leave",
     "tests": [
       "test/net/lease1.test.js"
     ]
