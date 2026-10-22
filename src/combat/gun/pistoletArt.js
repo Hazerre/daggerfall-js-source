@@ -6,8 +6,8 @@
 //
 //   - A STRIP, NOT A SHEET. Six 88x113 frames side by side (public/art/pistol-frames.png), registered to each other by
 //     their canvas - the forearm leaves every frame through the same corner - so they are cut at a fixed stride: no key,
-//     no badge gutter. The pistol lab found this and wrote it; the laws live HERE now and the lab reads them back
-//     (src/tools/pistolLab.js), gunSheet.js's way for the Thunderlock.
+//     no badge gutter. The pistol lab found this and wrote it; the strip's laws live in combat/gun/pistolStrip.js now
+//     and the lab reads them back (src/tools/pistolLab.js), gunSheet.js's way for the Thunderlock.
 //   - NATIVE SIZE. The frames are a WEAPON*.CIF record's size, so one art pixel is one design pixel times the owner's
 //     scale (combat/gun/gunFeel.js PISTOLET_FEEL.scale) - no NATIVE_WIDTH guessed for a painting.
 //   - THE 1-BIT CUT. The frames carry soft alpha; the screen quad discards under 0.5, so the cut is made here, once, at
@@ -33,7 +33,7 @@ export const stripUrl = (file = `art/${PISTOL_STRIP.file}`) =>
 
 /** A pixel's class, for the gilding: the pistol's brass ('O') and teal grip ('T'), the steel and the outlines ('g', '#',
  *  '?'), and what is the HAND's - the leather and its shadows ('B'), the skin ('S'). Hue/lightness/saturation, read off
- *  the art's own palette (bible/05-Combat/Dwarven-Pistolet.md, "The gold"). */
+ *  the art's own palette (bible/05-Combat/Dwarven-Pistolet.md, "The gilded frames gild the pistol"). */
 function pixelClass(d, o) {
   if (d[o + 3] < 128) return '.';
   const r = d[o] / 255, g = d[o + 1] / 255, b = d[o + 2] / 255;
@@ -177,8 +177,8 @@ function crop(img, box) {
 
 /**
  * Load it - loadThunderlockArt's shape: `records` (0 the idle, 1 the six-frame cycle) at the ANCHOR's size in design
- * pixels, `anchor` and `unionBox` for gunFrameRect, `muzzle` measured off the flash (the frame the shot GAINED over the
- * rest frame), and `pose` - the width and raise gunFrameRect places it by, so the rig asks the art rather than a table.
+ * pixels, `anchor` and `unionBox` for gunFrameRect, `muzzle` measured off the flash alone (flashPoint, below - never what
+ * the shot frame gained over the rest frame), and `pose` - the width and raise gunFrameRect places it by, so the rig asks the art rather than a table.
  * @returns the art, or null.
  */
 export async function loadPistoletArt(renderer, { fetch: fetchStrip = null, decode = decodePng, magic = false, gilded = false } = {}) {

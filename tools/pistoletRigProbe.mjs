@@ -6,11 +6,13 @@
 // (weaponRig.clickAttack). No ARENA2: the gun's art needs no palette (artFor's own rule), and the room behind is a flat
 // colour - what this measures is the weapon.
 //
-// What no pin can claim: both pistols reach the screen through the gun's frame (the left one on the left, in the
-// mirror); a pull fires the lead and the next the other; each hand's muzzle is its own; the resting one guards; the
-// gilded pair (the Sunken Sovereign) draws gold; a single Pistolet draws alone on the right; and nothing throws.
+// What it checks on the real renderer: a pair is a gun pair on the rig; both pistols reach the screen, each forearm out
+// of its own corner (the left one in the mirror); a pull fires the lead and the next the other, loaded while the lead
+// reloads; each shot leaves its own barrel; the Pistolet's own clips; the rig spends no Pellet; one Pistolet is a single
+// gun; and nothing throws. AUDIT PISTOLET B7: the resting pistol, the gilded pair's own pictures and the single gun's
+// place are pinned in Node on the same rig (test/combat/weapon/pistoletRig.test.js), not here.
 //
-//     node tools/pistoletRigProbe.mjs [shots-dir]     (npm run pistoletrig)
+//     node tools/pistoletRigProbe.mjs [shots-dir]
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync, unlinkSync } from 'node:fs';

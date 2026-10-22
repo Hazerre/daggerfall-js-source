@@ -31,11 +31,18 @@ ONE hand, and so a PAIR.
 | Skill | Archery (`weaponSkillUsed`) | |
 | Hands | Either (`characters/equipTable.js`) - one-handed, so a second one in the other hand is a pair | |
 | Ammunition | the **Dwemer Pellet** (`ammoTemplateFor` answers 561 for either gun), flying as the same shock orb | |
-| Found | a unique find from source tier 4, arriving with 6-18 Pellets; never on a shelf | the Thunderlock's |
+| Found | the Thunderlock's unique find, half its mints, from source tier 4, arriving with 6-18 Pellets; never on a shelf | `systems/thunderlock.js` |
 
-**The rarity.** Both guns' finds weigh `FIND_WEIGHT` 0.5, half the Thunderlock's old 1 (`systems/thunderlock.js`), so
-the two together turn up about as often as the Thunderlock alone did. Luck's small additive share is unchanged
-(`lootRarity.js uniqueFindChance`).
+**The rarity.** There is ONE gun find, the Thunderlock's own at its old weight (`systems/thunderlock.js`). Its one mint
+draw picks the gun - the Pistolet at or over `GUN_SHARE` 0.5, the Thunderlock under it - and what is left of the draw,
+stretched back to a whole unit, counts the Pellets. So each gun turns up exactly half as often as the Thunderlock did, at
+every source, the find's cap and Luck's nudge included, and every seeded loot list draws what it always drew (Loot-II-Arc
+law 9). `systems/pistolet.js` hands the find its mint (`setSecondGun`).
+
+AUDIT PISTOLET (A5, A8, C2, C3, D6, D29) found the first cut, two finds at `FIND_WEIGHT` 0.5, neither half nor stable:
+- `uniqueFindChance` caps each find at 6 per mille and adds Luck's nudge per find, neither scaled by the weight, so a
+  tier-14 boss turned up a gun twice as often and the Thunderlock no rarer at all;
+- the second find's roll moved every later draw of every seeded list at tier 4 and up (seed 43 grew a Welkynd Stone).
 
 **Every reader that asks about a gun and not about one gun** answers for both:
 - `isGunTemplate` (the leaf) and `isGunType` (`combat/fpsWeapon.js`).
@@ -56,7 +63,9 @@ screen pixels to an art pixel). Its native pixels were recovered like this:
   percentile of 2 levels; the only misses are one screen column where the grid's last cell meets the next checker
   square.
 
-The result, `public/art/pistolet-icon.png`, is 24x17 and 1-bit: Daggerfall's own scale, a classic dagger's doll record.
+The result, `public/art/pistolet-icon.png`, is 24x17 and 1-bit, at Daggerfall's own scale: one of its pixels is one of
+the doll's. (It is not a dagger's doll record's size, as this page first said - those are 56x17 and 36x45: AUDIT PISTOLET
+D15.)
 If the owner has the original file, it replaces this one byte for byte and `node tools/pistoletArt.mjs` re-derives the
 rest.
 
@@ -105,8 +114,9 @@ the player's own ARENA2 via `tools/fetch-data.sh`) closes at panel (27, 96) on t
 - Checked on six bodies (Breton male and female, Nord male, Dark Elf female, Khajiit male, Argonian female): the hands
   are drawn in the same place, and each holds its gun the same way.
 
-`tools/pistoletDollProbe.mjs` draws it on the real doll. The owner's eye is the gate, as Mac's was on the
-Thunderlock's FIELD-GUN9.
+`tools/pistoletDollProbe.mjs` draws it on the real doll, beside a dagger pair and the gold pair, one row a body. The
+bodies are its argument (`--body=DarkElf:female`, a Breton male unless named), so the six-body check is one command -
+it drew one body until AUDIT PISTOLET D17. The owner's eye is the gate, as Mac's was on the Thunderlock's FIELD-GUN9.
 
 ## First person - one gun
 
@@ -147,8 +157,8 @@ a weapon's own tuning over a preset's.** The Thunderlock carries no tuning and r
 
 The rig (`combat/weapon/weaponRig.js`) keeps its gun functions' names - `thunderlockHeld`, `drawThunderlock`,
 `thunderlockMuzzle`, the host's door - and they serve either gun now. `heldFeel()` and `heldSfx()` hand each its own
-row and clips; the voice, the toggle's clack, the spring, the dip, the slide, the flash's tint and the out-of-Pellets
-guard all read them.
+row and clips; the voice, the toggle's clack, the spring, the dip, the slide and the flash's tint all read them. The
+out-of-Pellets guard asks only whether the weapon is a gun (`isGunType`), which both are.
 
 ## First person - the pair
 
@@ -166,7 +176,13 @@ the hands take turns by the law's flurry (the lead opens, the other answers with
   A sword can always swing; a pistol mid-reload cannot fire.
 - A gun's flurry never starts a frame in (DUAL.FLURRY_FROM_FRAME): its six frames are a mechanism's.
 - The off hand's shot carries DUAL's terms (0.8 damage, Agility's to-hit, its weight's held ticks, 0.8 of a blow),
-  untouched.
+  untouched. A shot's damage is rolled where it LANDS, after its strike is over, so the impact asks the gun it left
+  (`PlayerWeapon.isOffHandItem`, read in `combat/arrowFlight.js playerArrowHitFoe`), and the duel's roll takes `off`
+  for a shot as for a swing (`combat/duelCombat.js`). Every host weighs the shot's skill tally by the hand's blow.
+  AUDIT PISTOLET A1/A2/D7: until then an off-hand shot landed whole - the terms were written here and applied nowhere.
+- Each hand's reload is KEPT through a pair broken for a frame (a light lit, one pistol taken off) and a pair formed:
+  the pistol left waits out its own reload, and a second pistol drawn beside a reloading one is loaded (AUDIT PISTOLET
+  A3/B9). A technique is the lead hand's, never thrown by the off hand while the lead reloads (A6).
 
 **The sprite** (`combat/gun/gunPair.js`, the module the rig wires - HOST-SPLIT). Each hand has its own widget rig,
 spring, guard and reload clacks, on one clock:
@@ -176,21 +192,26 @@ spring, guard and reload clacks, on one clock:
   striking - the pistol lab's probe found the lab lowering both, and that rule is what the module carries).
 - The draw is the rig's own `drawThunderlock` with a `hand`: the gun's frame, the left one in the mirror, the striking
   one drawn over. Each hand keeps its own muzzle record, and the shot leaves the barrel that fired it.
-- The flash's light is thrown from that hand's side (`systems/thunderlock.js thunderlockMuzzleLight`, which reads the
-  side and reach the rig parks).
+- The flash's light is thrown from the side the firing gun is DRAWN on (`systems/thunderlock.js
+  thunderlockMuzzleLight`, which reads the side and reach the rig parks) - for a left-handed player, whose pair and
+  single gun are drawn in the mirror, too (AUDIT PISTOLET A9/B1/D14: the side was the hand's, so a left-handed
+  player's shots lit the wrong side of the screen).
 - The pair's branch stands ahead of the melee pair's in the draw ladder.
 
-**The balance, measured through the machine** (`test/systems/pistolet.test.js`):
+**The balance, measured in the game** (`test/combat/pistolet_law.test.js` A4): the shots through the machine, the off
+hand's share through the impact a shot lands on (`playerArrowHitFoe`, the span's top: 14 of 17, 0.82 - the integer
+roll's rounding of DUAL's 0.8):
 
-| | Shots a minute | Damage a second (the mean of the span, the off hand's 0.8) |
+| | Shots a minute | Damage a second (the mean of the span, the off hand's measured share) |
 |---|---|---|
 | one Pistolet | 32 (1.9 s a shot) | 5.1 |
-| a pair | 64 | 9.1 |
+| a pair | 64 | 9.2 |
 | the Thunderlock | 28 | 7.7 |
 
-A pair lands about 18% more than the Thunderlock a second (the test holds it under x1.25). It pays for that with more
+A pair lands about 20% more than the Thunderlock a second (the test holds it under x1.25). It pays for that with more
 than twice its Pellets (64 a minute to 28), and both hands: no shield and no light. One Pistolet is the cheap gun, and
-the pair is its reason.
+the pair is its reason. (Until AUDIT PISTOLET A4 the test multiplied by 0.8 itself and touched no damage code, while the
+game landed the off hand's shot whole: 10.1 a second, x1.32, past the ceiling the test held.)
 
 ## The Sunken Sovereign is a Pistolet
 
@@ -199,7 +220,14 @@ the pair is its reason.
   Undertow (which charges on a shot that lands as on a swing) and its one-in-a-hundred drop.
 - Its skill line is Archery. Its lore reads as a pistolet's.
 - Its gold is the Pistolet's own pictures through the Gilded ramp, and in first person the pistol's pixels only.
-- A saber minted before this keeps its template, as every save's item does. `Gilded.md` section 7 records it.
+- A saber minted before this keeps its template, as every save's item does, and stays LAWFUL: it is the record's
+  saber era (`SOVEREIGN_SABER_ERA` - the Saber, Long Blade, its own saber lore), which the item law and the lore read
+  through `gildedRecordOf`. AUDIT PISTOLET A7/C1/D8: until then a saber minted before this read as a forgery to the item
+  law - a trade hold at every checkpoint, a market refusal, dropped from the siege arms. The item law moved to 10 and the
+  account service with it. `Gilded.md` section 7 records it.
+- A Legendary Pistolet is The Last Lock, the Thunderlock's record, which claims both guns (AUDIT PISTOLET C5: claimed by
+  no record, every Legendary Pistolet rolled up as Wyrmbane, "Forged for a dragon hunt"). Its own Legendary is the
+  owner's call.
 
 ## The Morrowind arm
 
@@ -237,8 +265,12 @@ Its rows (`characters/ownModels/ownWeaponModels.js`):
 **Not seen on a Morrowind body.** Morrowind's data is not freeware and is not in this container, so the model was
 checked:
 - read back through the port's own NIF reader;
-- rendered in the baker's preview sheet;
-- bound in the tests.
+- looked at by the author: renders of the mesh off the tree, and the painted atlas the baker's `--sheet` writes - an
+  eye, not a committed check;
+- BOUND in the tests, both NIFs, plain and gilded: each binds to the Weapon Bone and its texture resolves from the
+  shipped archive (`fieldgunmw.test.js`), and `PISTOL_GRIP_ATTITUDE` is pinned (AUDIT PISTOLET D16: the Pistolet's
+  meshes were only path-resolved before). The pair's left pistol keeps the grip's attitude on the Weapon Bone Left (C6:
+  it hung in the raw mesh's frame).
 
 It was not checked on a character. MarksmanThrown's clip is a throw, not a pistol's raise. **A pistol's own stance**
 (RIFLE-STANCE's kind, one-handed, the arm up and aimed) **is the named follow-up**, for whoever has the data to tune it.
@@ -257,3 +289,6 @@ It was not checked on a character. MarksmanThrown's clip is a throw, not a pisto
 - **A pistol's own sounds**: the owner picked from the gun lab's clips; a flintlock's pan and ramrod were never searched
   for.
 - **The doll's placement**, measured on the classic records; the owner's eye is the gate.
+- **A Legendary of the Pistolet's own**: it borrows The Last Lock (above).
+
+AUDIT PISTOLET, 2026-10-22: `01-Overview/audits/Audit-Pistolet.md`.

@@ -151,7 +151,8 @@ unknown-key abort) affix-aware. Two lists, one wearer.
   material prefix (one gated arm on ResolveItemLongName's early return).
   MAT-SHOW: the metal is not gone. A Rare or better piece of armour or
   a weapon still puts it on `itemNameParts().material`, the same dim
-  sub-line a plain sword uses (`itemInfo.js:"if (!material || withholdsMaterialPrefix(item)) return name;"`).
+  sub-line a plain sword uses (`itemInfo.js:"if (!material || withholdsMaterialPrefix(item) || namesItsMetal(name, material)) return name;"`;
+  AUDIT PISTOLET C9: a name that already says its metal - the Dwarven Pistolet, the Dwarven Thunderlock - takes no second).
   The long name stays `Wyrmbane`, not `Dwarven Wyrmbane`. An artifact
   still says nothing of its metal. Handed down by Project Legacy it stays
   its own name under the house, `Hlaalu's Wyrmbane`, the metal still on

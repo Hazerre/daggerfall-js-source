@@ -1,7 +1,7 @@
 // THE DWARVEN PISTOLET'S DOLL LAYERS, from its inventory picture (PISTOLET, 2026-10-21; bible/05-Combat/Dwarven-Pistolet.md).
 //
-// The owner drew the pistol at Daggerfall's own scale - 24x17, the size of a classic dagger's doll record - so this is
-// NOT tools/gunPaperdoll.mjs: that one bakes a 1790px painting down. The picture is never resampled by a filter: the
+// The owner drew the pistol at Daggerfall's own scale - 24x17, one of its pixels one of the doll's (AUDIT PISTOLET D15:
+// not "a dagger's doll record" - those are 56x17 and 36x45) - so this is NOT tools/gunPaperdoll.mjs: that one bakes a 1790px painting down. The picture is never resampled by a filter: the
 // doll's layer is the owner's pixels, tilted by RotSprite (below), which keeps every pixel one of the sprite's own.
 //
 //   public/art/pistolet-icon.png    THE SOURCE - the owner's sprite, whole. It is the inventory picture as it is.
@@ -15,8 +15,9 @@
 //                                   degrees barrel-down, toward the other hand's gun. The owner picked it from rendered
 //                                   options after five rejected cuts of this hand (bible/05-Combat/Dwarven-Pistolet.md):
 //                                   "#4 is the closest but needs adjusting" (the right gun's pose mirrored, 45 degrees),
-//                                   then "C but lower" (60 degrees), "6 px lower" (PAPERDOLL_OFFSET.right). The one
-//                                   doll layer that is a mirror of the owner's drawing, by the owner's choice.
+//                                   then "C but lower" (60 degrees), and 2 px below the classic fist's gap ("Sorry I
+//                                   meant #2", PAPERDOLL_OFFSET.right). The one doll layer that is a mirror of the
+//                                   owner's drawing, by the owner's choice.
 //   -> pistolet-icon-gilded.png, pistolet-paperdoll-gilded.png, pistolet-paperdoll-left-gilded.png
 //                                   the same three in gold leaf, tools/gunIcons.mjs gild() - the Sunken Sovereign's
 //

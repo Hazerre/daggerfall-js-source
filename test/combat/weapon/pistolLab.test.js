@@ -22,8 +22,12 @@ test('the lab is a lab: nothing the game runs imports it', () => {
     'src/combat/weapon/weaponRig.js', 'src/combat/fpsWeapon.js', 'src/combat/weapon/weaponWidget.js',
     'src/combat/weapon/weaponWidgetMotion.js', 'src/combat/gun/gunViewmodel.js', 'src/combat/twoHands/handsLaw.js',
     'src/combat/twoHands/twoHands.js', 'src/systems/thunderlock.js',
+    // AUDIT PISTOLET D31: and the modules the lab graduated into the game
+    'src/systems/pistolet.js', 'src/combat/gun/gunPair.js', 'src/combat/gun/pistoletArt.js', 'src/combat/gun/pistolStrip.js',
+    'src/combat/gun/gunFeel.js', 'src/combat/playerWeapon.js',
   ]) {
-    assert.doesNotMatch(readFileSync(f, 'utf8'), /^\s*import[\s\S]*?from\s+'[^']*pistolLab/m, `${f} does not import the lab`);
+    // a side-effect import (`import '...pistolLab.js'`) is an import too
+    assert.doesNotMatch(readFileSync(f, 'utf8'), /^\s*import\s+(?:[\s\S]*?from\s+)?'[^']*pistolLab/m, `${f} does not import the lab`);
   }
   assert.ok(page().includes("from '/src/tools/pistolLab.js'"), 'the page is the consumer');
 });

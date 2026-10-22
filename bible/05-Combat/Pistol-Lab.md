@@ -160,22 +160,15 @@ three, which looked like a misfire and was not. Every read after a click now wai
 rAFs; Home.md's process rule: frame-sync, never sleep), and the flurry check counts each hand's shots per click. It passed
 in four runs of four.
 
-## What graduation will need - not built here
+## Graduation
 
-**GRADUATED (PISTOLET, 2026-10-21)** as the Dwarven Pistolet - `Dwarven-Pistolet.md` is its record, and the list below
-is what it answered: the pair's `DUAL_GUN_TYPES` row and its balance (measured there), the Pellet spent per hand through
-the one machine, the doll and the icons, the four hosts through the rig. Still open as written: a pistol's own sounds,
-and the flash's canvas edge. The lab now READS the game's row (`combat/gun/gunFeel.js` PISTOLET_FEEL) and strip
-(`combat/gun/pistolStrip.js`), FIELD-GUN6's arrow.
+**GRADUATED (PISTOLET, 2026-10-21)** as the Dwarven Pistolet - `Dwarven-Pistolet.md` is its record. It answered what this
+section listed: the pair's `DUAL_GUN_TYPES` row and its balance (measured there), the Pellet spent through the one
+machine (the out-of-Pellets guard asks whether the weapon is a gun, which serves a pair), the doll and the icons, the
+four hosts through the rig, and the Port-Ledger's A entry. The lab now READS the game's row (`combat/gun/gunFeel.js`
+PISTOLET_FEEL) and strip (`combat/gun/pistolStrip.js`), FIELD-GUN6's arrow. (The answered items were deleted here by
+AUDIT PISTOLET B8 - Home.md's RETIRING A FLAG DELETES THE SENTENCE.) Two are still open:
 
-
-When the pistol becomes a weapon, the Thunderlock's own record (`Dwarven-Thunderlock.md`) is the checklist: templates,
-skill, damage, ammunition, all four hosts, icons and the paperdoll. Three things are this weapon's own:
-
-- **The pair is a departure from Two-Hands.** `handsLaw.js` `DUAL_TYPES` deliberately excludes "the port's own gun", so a
-  pistol pair needs a row there, a balance row beside `DUAL`'s (the off hand's damage, its to-hit, its burden), and a
-  Port-Ledger A entry.
-- **Pellets.** Two pistols spend from one pouch, so the out-of-ammo guard (AUDIT-THUNDERLOCK F5) has to answer per hand.
 - **A pistol's own sounds.** The lab offers the Thunderlock's clips. A flintlock's pan flash, and a ramrod for its reload,
   are a search the lab has not yet run (`tools/freesoundPick.mjs`).
 - **The flash may be clipped at the canvas edge.** On frame 2 the flame reaches column 0 of its 88px canvas. If it was

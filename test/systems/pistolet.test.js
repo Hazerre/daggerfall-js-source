@@ -104,7 +104,7 @@ test('the readers that are not about ONE gun answer for both: the technique fami
 
 test('the pictures: the owner’s sprite whole in a list, a fist-gapped layer on each hand of the doll, gold for the Sunken Sovereign - and the bake reproduces every file', () => {
   const src = png(ART_SOURCE);
-  assert.deepEqual([src.width, src.height], [24, 17], 'Daggerfall’s own scale - a classic dagger’s doll record');
+  assert.deepEqual([src.width, src.height], [24, 17], 'Daggerfall’s own scale - one of its pixels one of the doll’s');
   for (let p = 3; p < src.data.length; p += 4) assert.ok(src.data[p] === 0 || src.data[p] === 255, '1-bit, the screen quad’s law');
   // the tool, re-run against what shipped - pixel for pixel
   const art = pistoletArt(src);
@@ -113,9 +113,10 @@ test('the pictures: the owner’s sprite whole in a list, a fist-gapped layer on
   // the gap severs the grip: the frame above it and the butt below it stay drawn
   const doll = png(ART_OUT.doll);
   const at = (img, x, y) => img.data[(y * img.width + x) * 4 + 3];
-  // A DOWNWARD ANGLE, NOT MIRRORED (the owner, 2026-10-22: "Still wrong. It should be at a downward angle in the right
-  // hand in the picture. Not mirrored"): each hand's layer is the gapped sprite turned by RotSprite - no colour in it
-  // that the sprite does not have - the left hand's barrel DOLL_ANGLE below level
+  // A DOWNWARD ANGLE (the owner, 2026-10-22: "Still wrong. It should be at a downward angle in the right hand in the
+  // picture. Not mirrored"): each hand's layer is the gapped sprite turned by RotSprite - no colour in it that the
+  // sprite does not have - the left hand's as drawn, its barrel DOLL_ANGLE below level; the right hand's flipped, by
+  // the owner's later pick (HAND_POSE, below)
   assert.equal(DOLL_ANGLE, 45);
   const left = png(ART_OUT.dollLeft);
   const colours = (img) => { const c = new Set(); for (let p = 0; p < img.data.length; p += 4) if (img.data[p + 3]) c.add(img.data.slice(p, p + 4).join()); return c; };

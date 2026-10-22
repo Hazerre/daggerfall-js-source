@@ -64,7 +64,7 @@ export function getItemHands(item, { bowLeftHand = getBool('Enhancements', 'BowL
   // which is what a gun this size and this heavy has to be.
   if (group === ITEM_GROUPS.Weapons && item.templateIndex === THUNDERLOCK_TEMPLATE) return ITEM_HANDS.Both;
   // PISTOLET: the same arm for the second gun - Either, a one-handed weapon's hand, so it is worn in either hand and a
-  // second one in the other makes a pair (combat/twoHands/handsLaw.js DUAL_TYPES)
+  // second one in the other makes a pair (combat/twoHands/handsLaw.js DUAL_GUN_TYPES)
   if (group === ITEM_GROUPS.Weapons && item.templateIndex === PISTOLET_TEMPLATE) return ITEM_HANDS.Either;
   const cls = customItemClass(item.templateIndex);   // RRI1: ItemArchersAxe / ItemLightFlail answer Either
   if (cls?.itemHands) return ITEM_HANDS[cls.itemHands];

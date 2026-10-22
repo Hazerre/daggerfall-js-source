@@ -10,7 +10,7 @@
 // the one it follows): an ARCHERY weapon that keeps the melee one-shot machine and pays the ranged cooldown; a custom
 // template past DFU's table; its own art archive; its pictures through the vendor-texture door. What is its own:
 //   - ONE-HANDED (characters/equipTable.js answers Either), so a second one in the other hand is a pair
-//     (combat/twoHands/handsLaw.js DUAL_TYPES) - and a pair of guns reloads hand by hand (combat/playerWeapon.js);
+//     (combat/twoHands/handsLaw.js DUAL_GUN_TYPES) - and a pair of guns reloads hand by hand (combat/playerWeapon.js);
 //   - it spends the THUNDERLOCK'S PELLET (characters/thunderlockIds.js ammoTemplateFor), so it has no ammunition of its own
 //     and the shops' Pellets (systems/shopStock.js) feed both guns;
 //   - the owner's lab numbers (combat/gun/gunFeel.js PISTOLET_FEEL), and art drawn at Daggerfall's own scale.

@@ -156,7 +156,16 @@ is an Ebony **Dwarven Pistolet** now (`systems/gilded.js`, template 562 - `05-Co
 Archery's where it was Long Blade's; its id, make, damage, Agility and leech lines, its power Undertow (which charges on a
 shot that lands as on a swing - `systems/loot/lootPowers.js`) and its drop are unchanged. Its gold is the Pistolet's own
 pictures through tools/gunIcons.mjs's ramp (`tools/pistoletArt.mjs`) and, in first person, the pistol's pixels and never
-the hand's (`combat/gun/pistoletArt.js` pistoletGildKeep). The tables below are GILDED2's, measured on the saber.
+the hand's, nor its muzzle flame (`combat/gun/pistoletArt.js` pistoletGildKeep and flashMask - AUDIT PISTOLET B3: the
+first cut gilded the flash). The tables below are GILDED2's, measured on the saber.
+
+**The saber era (AUDIT PISTOLET A7/C1/D8).** A Sovereign minted before PISTOLET is an Ebony Saber with a Long Blade line,
+and every save keeps what it holds. Against the re-pointed record it read as a forgery: the item law's Gilded marks
+compared its template to the Pistolet's, so the realm judge held its owner's trade at every checkpoint, the market
+refused it and the siege arms dropped it. The record now carries its era (`SOVEREIGN_SABER_ERA` in `systems/gilded.js`:
+the Saber, Long Blade, the saber's lore), and `gildedRecordOf(item)` answers the era's shape for a saber minted under the
+Sovereign's id - the item law (`validGildedMarks`) and the lore read through it. Nothing new mints a saber. The item law
+moved to 10 (`ITEM_LAW_VERSION`) and the account service to acct168 with it: deploy the account service.
 
 Mac: "With the introduction of elite dungeons soon. I want to enhance the rewards for each world activety. We need to add
 a rare gilded weapon to the oblivion gates. A gilded weapon to the serpent + a rare chance of a title/aura drop." The
@@ -168,7 +177,7 @@ Rewards.md`) read the slice cold and moved what this section says where it was w
 
 | | The Dragonfire Oath (the gate's) | The Sunken Sovereign (the serpent's) |
 |---|---|---|
-| Weapon, make | Dai-Katana (123), Daedric - two hands, Long Blade | Saber (119), Ebony - either hand, Long Blade, a shield beside it. **A Dwarven Pistolet (562), Ebony, Archery since PISTOLET** (below) |
+| Weapon, make | Dai-Katana (123), Daedric - two hands, Long Blade | Saber (119), Ebony - either hand, Long Blade, a shield beside it. **A Dwarven Pistolet (562), Ebony, Archery since PISTOLET** (above) |
 | Lines | +40% damage, +15 Strength, +30 Long Blade, +15 Endurance (AUDIT B1: no longer a slayer of the Daedra) | +40% damage, +15 Agility, +30 Long Blade, 10% leech |
 | Power | DRAGONFIRE - a landed blow on a Daedra burns it again for a third of the blow, and every OTHER Daedra within 3 m for as much; no Daedra resists it | UNDERTOW - each landed blow on a foe adds +10% to its next blows on that foe, up to +50%, for 6 s from the last; a foe it fells heals 10% of your health |
 | Brief (the card's 32) | "Daedra burn +33%, and all in 3m" | "+10%/hit on a foe; kills heal" |

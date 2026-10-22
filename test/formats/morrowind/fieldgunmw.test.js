@@ -29,7 +29,7 @@ import {
 import { animWeaponType } from '../../../src/combat/fpArm.js';
 import { MW_UNITS_PER_METRE, THUNDERLOCK_METRES, SETTINGS, OUT, SOURCE_FBX, bakeThunderlock } from '../../../tools/bakeThunderlock.mjs';
 import { WEAPONS } from '../../../src/characters/weapons.js';
-import { THUNDERLOCK_TEMPLATE } from '../../../src/characters/thunderlockIds.js';
+import { THUNDERLOCK_TEMPLATE, PISTOLET_TEMPLATE } from '../../../src/characters/thunderlockIds.js';
 import { OWN_MW_MODELS, OWN_MW_GILDED, ownWeaponModelFor, ownWeaponModelPaths } from '../../../src/characters/ownModels/ownWeaponModels.js';
 import { ownMwDataPath, ownMwArchive } from '../../../src/systems/ownMwAssets.js';
 import { makeVendoredArchive } from '../../../src/systems/urlArchive.js';
@@ -43,7 +43,7 @@ const shipped = (p) => new Uint8Array(readFileSync(new URL(`../../../src/assets/
 function shippedArchive() {
   const files = new Map();
   for (const own of [...Object.values(OWN_MW_MODELS), ...Object.values(OWN_MW_GILDED)]) files.set(`meshes/${own.model}`, shipped(`meshes/${own.model}`));
-  for (const t of ['thunderlock.dds', 'thunderlock_gilded.dds']) files.set(`textures/${t}`, shipped(`textures/${t}`));   // GILDED1: and the gold twin's
+  for (const t of ['thunderlock.dds', 'thunderlock_gilded.dds', 'pistolet.dds', 'pistolet_gilded.dds']) files.set(`textures/${t}`, shipped(`textures/${t}`));   // GILDED1: and the gold twin's; PISTOLET: and the Pistolet's two
   return { has: (p) => files.has(p), get: (p) => files.get(p) };
 }
 const GUN = { templateIndex: THUNDERLOCK_TEMPLATE };
@@ -177,6 +177,27 @@ test('FIELD-GUN-MW2: it BINDS - the shipped mesh reaches the arm\'s weapon bone'
   assert.deepEqual(bound.missingBones, []);
   assert.ok(bound.attachRef >= 0, 'the attach node resolved on the real skeleton');
   assert.equal(bound.attached[0].material.twoSided, true, 'the open shell stays two-sided through the bind');
+});
+
+test('AUDIT PISTOLET D16: the Dwarven Pistolet BINDS too - plain and gilded reach the arm\'s weapon bone, and their painted textures resolve', () => {
+  const arc = shippedArchive();
+  for (const [weapon, tex] of [[{ templateIndex: PISTOLET_TEMPLATE, group: 'Weapons' }, 'pistolet.dds'], [{ templateIndex: PISTOLET_TEMPLATE, group: 'Weapons', rarity: 'gilded' }, 'pistolet_gilded.dds']]) {
+    const res = resolveWeaponParts({
+      weapon, allWeapons: [], find: (p) => (arc.has(p) ? arc : null),
+      skeletonBytes: fixture('armfp.nif'), has: archiveHas([arc]),
+    });
+    const skeleton = buildSkeleton(parseNif(fixture('armfp.nif')));
+    const part = res.parts[0];
+    const bound = bindPart(skeleton, parseNif(part.bytes), { attachBone: part.bones[0] });
+    assert.equal(bound.attached.length, 1, `${tex}: one rigid batch`);
+    assert.deepEqual(bound.missingBones, []);
+    assert.ok(bound.attachRef >= 0, 'the attach node resolved on the real skeleton');
+    const b = flattenNif(parseNif(part.bytes))[0];
+    const entry = collectArmTextures([b], [arc]).get(tex);
+    assert.ok(entry?.ok, `${tex} decodes: ${entry?.error ?? ''}`);
+    assert.equal(entry.image.width, 256, 'the painted atlas, the Thunderlock\'s size');
+    assert.ok(entry.image.mips.length > 1);
+  }
 });
 
 test('FIELD-GUN-MW2: the texture resolves through rule 36\'s own ladder, and is not the magenta warning', () => {
