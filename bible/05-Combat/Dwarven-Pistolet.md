@@ -82,9 +82,14 @@ gold 2 and 3; left 4 and 5 are the same files at the left hand's offset), chosen
 
 **Where they hang was measured, not guessed.** The fist's gap in every clean one-handed classic doll record (dagger,
 mace, shortsword, war axe; the player's own ARENA2 via `tools/fetch-data.sh`) closes at panel (27, 96) on the right hand
-and (69, 95) on the left. The tilted band's centre (`dollGrip`, layer pixel (20.8, 9.9)) goes on each
-(`PAPERDOLL_OFFSET`). `pistolet.test.js` holds the two landings to that measurement, and the tilt to its shape (the
-muzzle below and left of the fist, nothing level out from it). `tools/pistoletDollProbe.mjs` draws it on the real doll. The owner's eye is the gate, as Mac's was on the Thunderlock's FIELD-GUN9.
+and (69, 95) on the left. The tilted band's centre (`dollGrip`, layer pixel (20.8, 9.9)) goes on the right hand's.
+The left hand is not the right's place in the glass. Seated on (69, 95), the same unmirrored gun crossed the left fist
+the other way: its frame lay over the knuckles and its butt stuck out past the hand. The owner: "its not fittest
+correctly in the left hand". So each hand holds it the same way instead: the butt in the fist's hole (the dark loop the
+curled fingers close on the bare doll: (29.5, 100.5) right, (64.5, 97) left), the frame out of the fist's top. The left
+hand's band centre (61.8, 94.9) was fitted by eye against the right's, placements tried on the bare doll.
+`pistolet.test.js` holds both landings (`PAPERDOLL_OFFSET`), and the tilt to its shape (the muzzle below and left of
+the fist, nothing level out from it). `tools/pistoletDollProbe.mjs` draws it on the real doll. The owner's eye is the gate, as Mac's was on the Thunderlock's FIELD-GUN9.
 
 ## First person - one gun
 

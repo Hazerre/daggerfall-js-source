@@ -92,11 +92,17 @@ export function createPistolet({ material = 4, condition = null } = {}) {
  * hand and (69, 95) for the left. ONE layer serves both hands, tilted barrel-down and NOT mirrored (the owner,
  * 2026-10-22, after a level cut and then a quarter-turned, mirrored pair: "Still wrong. It should be at a downward angle in
  * the right hand in the picture. Not mirrored"), so the fist's point is the same in both (tools/pistoletArt.mjs dollGrip,
- * layer pixel (20.8, 9.9), DOLL_ANGLE 45) and goes on each: the right hand's at panel (27 - 20.8, 96 - 9.9), the left's
- * at (69 - 20.8, 95 - 9.9). Screen coordinates, the panel's origin (200, 8) written beside them as the Thunderlock's
- * are. The owner's eye is the gate on both, as Mac's was on the Thunderlock's.
+ * layer pixel (20.8, 9.9), DOLL_ANGLE 45). The right hand's goes on its measured fist: panel (27 - 20.8, 96 - 9.9).
+ * THE LEFT HAND IS NOT THE RIGHT'S PLACE IN THE GLASS (the owner, 2026-10-22: "its not fittest correctly in the left
+ * hand"): the same unmirrored gun crosses the left fist the other way, so seated on (69, 95) its frame lay over the
+ * knuckles and its butt stuck out past the hand. Each hand holds it the same way instead - the BUTT in the fist's hole,
+ * the dark loop the curled fingers close (the bare ARENA2 doll: (29.5, 100.5) right, (64.5, 97) left), the frame out of
+ * the fist's top. On the right that is the measured place. The left's was found by eye against the right's, layer
+ * placements tried on the bare doll until its butt sat in the hole as the right's does: band centre (61.8, 94.9), the
+ * layer at (61.8 - 20.8, 94.9 - 9.9). Screen coordinates, the panel's origin (200, 8) written beside them as the
+ * Thunderlock's are. The owner's eye is the gate on both.
  */
-export const PAPERDOLL_OFFSET = Object.freeze({ right: Object.freeze({ x: 200 + 6, y: 8 + 86 }), left: Object.freeze({ x: 200 + 48, y: 8 + 85 }) });
+export const PAPERDOLL_OFFSET = Object.freeze({ right: Object.freeze({ x: 200 + 6, y: 8 + 86 }), left: Object.freeze({ x: 200 + 41, y: 8 + 85 }) });
 
 /** The records of archive 562, by job. */
 export const ART_RECORDS = Object.freeze({ doll: 0, icon: 1, gildedDoll: 2, gildedIcon: 3, dollLeft: 4, gildedDollLeft: 5 });

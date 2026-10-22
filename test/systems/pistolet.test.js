@@ -136,7 +136,12 @@ test('the pictures: the owner’s sprite whole in a list, a fist-gapped layer on
   const centreR = [PAPERDOLL_OFFSET.right.x - 200 + grip.x, PAPERDOLL_OFFSET.right.y - 8 + grip.y];
   const centreL = [PAPERDOLL_OFFSET.left.x - 200 + grip.x, PAPERDOLL_OFFSET.left.y - 8 + grip.y];
   assert.ok(Math.hypot(centreR[0] - 27, centreR[1] - 96) < 1.5, `the right hand’s gap on its fist (${centreR})`);
-  assert.ok(Math.hypot(centreL[0] - 69, centreL[1] - 95) < 1.5, `the left hand’s gap on its fist (${centreL})`);
+  // THE LEFT IS NOT THE RIGHT'S PLACE IN THE GLASS (the owner: "its not fittest correctly in the left hand"): its band
+  // centre (61.8, 94.9) was fitted by eye on the bare doll so the butt sits in the fist's hole, (64.5, 97), as the
+  // right's does - up and left of the hole, never past it
+  assert.ok(Math.hypot(centreL[0] - 61.8, centreL[1] - 94.9) < 1, `the left hand’s band where it was fitted (${centreL})`);
+  assert.ok(centreL[0] < 64.5 && centreL[1] < 97, 'the grip runs down-right INTO the left fist’s hole');
+  assert.ok(Math.hypot(centreL[0] - 69, centreL[1] - 95) > 5, 'and the left NOT seated on the classic gap - its frame lay over the knuckles there');
 });
 
 test('the pictures register through the stand-in door, all six', async () => {
