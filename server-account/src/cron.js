@@ -48,6 +48,7 @@
 // RESTORE's rewind) runs nothing: a write in the rewind's minute would vanish with it.
 // ═══════════════════════════════════════════════════════════════════
 
+import { seaSweeps } from './seaBounty.js';   // AUDIT SEA VENTURES B5
 import { closeAuctions, pruneMarketHistory, SETTLE_MAX, reckonPatrons, marketOpenFor, markPatronsShut } from './market.js';
 import { closeGuildWrits } from './writs.js';
 import { closeContracts } from './contracts.js';
@@ -225,6 +226,13 @@ export const HOUR_JOBS = Object.freeze([
   // a held one never: its piece is in no record but it
   ['wild-escrow', (ctx) => rounds(() => deleted(ctx.db,
     "DELETE FROM wild_escrow WHERE r IN (SELECT r FROM wild_escrow WHERE state != 'held' AND ended_at < ?1 LIMIT ?2)", ctx.nowS - WILD_FALLS_KEEP_S), SWEEP_ROWS)],
+  // AUDIT SEA VENTURES B5 (seaBounty.js seaSweeps): a kill at sea past the Wanted window, a wreck past its receipt's hour,
+  // and what has ended past its keeping - nothing standing, owed or held
+  ['sea', async (ctx) => {
+    let n = 0;
+    for (const [sql, cutoff] of seaSweeps(ctx.nowS)) n += await rounds(() => deleted(ctx.db, sql, cutoff), SWEEP_ROWS, ctx.budget);
+    return n;
+  }],
   // LW15 (bible/06-Systems/Living-World-II.md): the towns' patrons at their traders, the towns waiting (a read reckons its
   // own). AUDIT LW-II P8: while the market is open to everyone (market.js marketOpenFor, no account's - every switch
   // `on`); shut, its every route answers 'market-closed', and the clock paid patrons' gold anyway. AUDIT LW-II-2 S3: and

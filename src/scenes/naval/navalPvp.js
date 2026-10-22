@@ -24,6 +24,7 @@ import { SHIP_STATES } from '../../systems/naval/navalDamage.js';
 import { captainsDue } from '../../systems/sigil/sigilSetPowers.js';
 import { wildTakeTook } from '../../systems/wild/wildDropLaw.js';
 import { SEA_HOLD_F } from '../../net/sea/seaPrizeLaw.js';
+import { shutSeaHold } from '../../systems/naval/seaHoldGuard.js';
 
 /** The camera's shake when a captain's shot the referee judged lands on my ship. */
 export const PVP_STRUCK_SHAKE = 1.6;
@@ -53,10 +54,12 @@ export function createNavalPvp(deps) {
     deps.shake?.(PVP_STRUCK_SHAKE);
     return change;
   }
-  /** THE REFEREE'S WRECK OF MY SHIP: her hull at none - she lies crippled, as a sea ship's guns leave her. */
+  /** THE REFEREE'S WRECK OF MY SHIP: her hull at none - she lies crippled, as a sea ship's guns leave her - and her hold
+   *  shut while her wreck may be boarded (systems/naval/seaHoldGuard.js - AUDIT SEA VENTURES B3). */
   function wreck() {
     const boat = deps.boat?.(), st = boat ? deps.stateOf(boat) : null;
     if (st && st.damage.state !== SHIP_STATES.wrecked) st.damage.apply({ hull: st.damage.maxHull * 2, sail: 0, crew: 0 }, deps.clock());
+    if (boat) shutSeaHold(boat.uid);
   }
   /** A BOARDED WRECK'S PRIZE out of my boat's hold - the pieces the service took, each found by its own marks (net/sea/
    *  seaPrizeLaw.js seaPrizeTook, systems/wild/wildDropLaw.js wildTakeTook), never by its place; her hold's list alone

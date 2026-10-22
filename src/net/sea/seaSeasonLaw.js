@@ -41,9 +41,15 @@ export const seaSeasonStartS = (/** @type {number} */ season) => ARENA_SEASON_EP
  *  aether has raised her since the season began. */
 export const seaLegendsPossible = (/** @type {number} */ nowS) => SEA_LEGENDS * (Math.floor(Math.max(0, nowS - seaSeasonStartS(arenaSeasonOf(nowS))) / SEA_LEGEND_RISE_S) + 1);
 
+/** AUDIT SEA VENTURES B6: a world day on the shared clock, s - the ledger files a day's figures under the season its
+ *  first minute fell in (the day the season turns in counts for the old one), so for this long past a turn a save may
+ *  still carry the season before's. */
+export const SEA_WORLD_DAY_S = Math.round(1440 / ONLINE_MINUTES_PER_MS / 1000);
+
 /**
  * THE SEASON'S FIGURES A SAVE CARRIES, as the service reads them at `nowS`: `{ n, deepest, legends }` - the ledger's
- * `ether.season` - when it is this season's and within the law, else null (an older ledger's, another season's, a
+ * `ether.season` - when it is this season's (or, a world day at most past the turn, the season before's - AUDIT SEA
+ * VENTURES B6: those voyages counted for neither) and within the law, else null (an older ledger's, another season's, a
  * number no voyage could make).
  * @param {any} save @param {number} nowS
  */
@@ -51,9 +57,11 @@ export function seaSeasonFigures(save, nowS) {
   const s = save?.modData?.[SEA_SEASON_VENDOR]?.ether?.season;
   if (!s || typeof s !== 'object') return null;
   const { n, deepest, legends } = s;
-  if (!Number.isSafeInteger(n) || n !== arenaSeasonOf(nowS)) return null;
+  const cur = arenaSeasonOf(nowS), turnS = seaSeasonStartS(cur);
+  const before = n === cur - 1 && nowS - turnS < SEA_WORLD_DAY_S;
+  if (!Number.isSafeInteger(n) || (n !== cur && !before)) return null;
   if (!Number.isSafeInteger(deepest) || deepest < 0 || deepest > SEA_DEEPEST_MAX) return null;
-  if (!Number.isSafeInteger(legends) || legends < 0 || legends > seaLegendsPossible(nowS)) return null;
+  if (!Number.isSafeInteger(legends) || legends < 0 || legends > seaLegendsPossible(before ? turnS - 1 : nowS)) return null;
   return { n, deepest, legends };
 }
 

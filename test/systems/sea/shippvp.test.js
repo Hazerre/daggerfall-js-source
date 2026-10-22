@@ -24,7 +24,7 @@ import { itemWorth } from '../../../src/systems/item/itemLaw.js';
 import { ENCHANTMENT_TYPES } from '../../../src/formats/magicDef.js';
 import { createSeaBroadsides, SEA_SHOT_MS, SEA_HELM_SAY_MS, SEA_HELM_MIN_MS, SEA_BOARD_NEAR_M, SEA_BOARD_RETRY_MS, SEA_SAID_MS } from '../../../src/scenes/naval/seaBroadsides.js';
 import { createNavalPvp, PVP_STRUCK_SHAKE } from '../../../src/scenes/naval/navalPvp.js';
-import { createSeaWreckHost, SEA_WRECK_SLACK_S, SEA_WRECK_RETRY_MS, SEA_WRECK_TRIES } from '../../../src/scenes/seaWreckHost.js';
+import { createSeaWreckHost, SEA_WRECK_SLACK_S, SEA_WRECK_RETRY_MS, SEA_WRECK_CAPTAIN_RETRY_MS, SEA_WRECK_KEPT_MAX } from '../../../src/scenes/seaWreckHost.js';
 import { createShipDamage, SHIP_STATES } from '../../../src/systems/naval/navalDamage.js';
 import { wantedText, mountNavalYardWindow } from '../../../src/ui/naval/navalYardWindow.js';
 import { accountSeaWreck, REFUSALS, SESSION_KEY } from '../../../src/net/accountClient.js';
@@ -47,7 +47,7 @@ const RC = 'r00000000000000000d01', RK = 'r00000000000000000d02';
 const sword = (m, extra = {}) => ({ ...createWeapon(120, m, seeded(9)), ...extra });
 
 test('SHIP-PVP the wreck\'s receipt: its claims - both captains\' accounts and characters, the wreck\'s id, her uid, boarded or not, the room - within the wire\'s bounds; a fall\'s verifier refuses it, and it refuses a fall\'s own fields (mutants: each claim, the foreign, the version)', async () => {
-  assert.deepEqual([SEA_WRECK_GRACE_S, SEA_WRECK_TTL_S], [30, 3600]);
+  assert.deepEqual([SEA_WRECK_GRACE_S, SEA_WRECK_TTL_S], [300, 3600]);
   const ok = { f: 'acct-aaaa', c: RC, k: 'acct-bbbb', kc: RK, r: '0123456789ab', u: 77, b: 1, m: SEA_CELL, i: T, e: T + 60 };
   assert.ok(seaWreckValid(ok));
   assert.ok(seaWreckValid({ ...ok, b: 0 }));
@@ -467,7 +467,7 @@ test('SHIP-PVP the service\'s other ways: her killer carries the wreck past her 
     await realmJoinAt(h.svc.env, h.who.kim.secret, h.R.kim.id);
     assert.deepEqual((await h.bring('kim', rc)).body.took, [], 'joined since: her game holds none of them');
     assert.deepEqual((await h.reclaim('kim')).body, { ok: true, items: [] }, 'not before its hold');
-    Date.now = () => realNow() + (P.SEA_PRIZE_HOLD_S + 60) * 1000;
+    Date.now = () => realNow() + (SEA_WRECK_GRACE_S + 1 + P.SEA_PRIZE_HOLD_S + 60) * 1000;   // the hold, from the seize
     assert.deepEqual((await h.collect('hal')).body, { ok: true, items: [] }, 'her killer\'s time is out');
     const back = await h.reclaim('kim');
     assert.equal(back.status, 200, JSON.stringify(back.body));
@@ -660,8 +660,8 @@ test('SHIP-PVP the naval host\'s seams (navalPvp.js): my ship as the referee is 
   assert.equal(nouid.helm(), null, 'no uid the referee can sign');
 });
 
-test('SHIP-PVP the wreck\'s service half (seaWreckHost.js) and its door: her captain carries a signed wreck at once - the pieces taken out of her hold and said (her record already without them: said all the same); her killer waits her grace, carries it and collects - into the pack, said; unboarded, said; the door\'s routes (mutants: the captain, the killer, the grace, the collect, the words, the routes)', async () => {
-  assert.deepEqual([SEA_WRECK_SLACK_S, SEA_WRECK_RETRY_MS, SEA_WRECK_TRIES], [5, 15_000, 4]);
+test('SHIP-PVP the wreck\'s service half (seaWreckHost.js) and its door: her captain carries a signed wreck at her next frame - the pieces taken out of her hold and said (her record already without them: said all the same); her killer asks a moment on and collects - into the pack, said; unboarded, carried all the same and said; the door\'s routes (mutants: the captain, the killer, the slack, the collect, the words, the routes)', async () => {
+  assert.deepEqual([SEA_WRECK_SLACK_S, SEA_WRECK_RETRY_MS, SEA_WRECK_CAPTAIN_RETRY_MS, SEA_WRECK_KEPT_MAX, SEA_WRECK_GRACE_S], [5, 15_000, 2_000, 16, 300]);
   const kp = await keys();
   const mint = (o = {}) => mintSeaWreck({ f: 'acct-kim', c: RC, k: 'acct-hal', kc: RK, r: '0123456789ab', u: 77, b: 1, m: SEA_CELL, ...o }, kp.privateKey, { subtle, nowS: T });
   const host = (me, answers = {}) => {
@@ -672,8 +672,10 @@ test('SHIP-PVP the wreck\'s service half (seaWreckHost.js) and its door: her cap
     };
     const session = { transact: (fn) => fn({ id: me === 'acct-kim' ? RC : RK, lease: 'lease', seq: 3 }) };
     const naval = { pvp: { takeHold: (uid, took) => { st.took.push([uid, took]); return took.map((x) => `piece-${x.u}`); } } };
-    const w = createSeaWreckHost({ session, checkpoint: () => {}, character: () => RK, me: () => me, naval: () => naval, door, say: (x) => st.said.push(x), now: () => st.now });
-    return { w, st };
+    const kept = new Map();
+    const storage = { getItem: (k) => kept.get(k) ?? null, setItem: (k, v) => kept.set(k, v) };
+    const w = createSeaWreckHost({ session, checkpoint: () => {}, character: () => RK, me: () => me, naval: () => naval, door, storage, say: (x) => st.said.push(x), now: () => st.now });
+    return { w, st, storage };
   };
   const settle = async () => { for (let i = 0; i < 8; i++) await new Promise((r) => setImmediate(r)); };
   const TOOK = [{ g: 'Weapons', t: 120, m: 2, u: 'u1', p: null, n: 1, f: 'hold' }, { g: 'Weapons', t: 113, m: 0, u: 'u2', p: null, n: 1, f: 'hold' }];
@@ -681,28 +683,30 @@ test('SHIP-PVP the wreck\'s service half (seaWreckHost.js) and its door: her cap
   const cap = host('acct-kim');
   cap.w.receipt(await mint());
   await settle();
+  assert.equal(cap.st.asked.length, 0, 'kept for the frame');
+  cap.w.frame(); await settle();
   assert.deepEqual(cap.st.asked[0][1].realm, { id: RC, lease: 'lease', seq: 3 });
   assert.match(cap.st.asked[0][1].receipt, /^n1\./);
   assert.deepEqual(cap.st.took, [[77, TOOK]]);
   assert.deepEqual(cap.st.said, ['Your wreck was boarded and her hold plundered: 2 pieces taken.']);
   cap.w.receipt(await mint());
-  await settle();
+  cap.w.frame(); await settle();
   assert.equal(cap.st.asked.length, 1, 'carried once');
   const spared = host('acct-kim', { wreck: { ok: true, data: { r: '0123456789ab', b: 1, took: [], n: 0 } } });
   spared.w.receipt(await mint());
-  await settle();
+  spared.w.frame(); await settle();
   assert.deepEqual(spared.st.said, ['Your wreck was boarded, but nothing in her hold was worth the taking.']);
   const since = host('acct-kim', { wreck: { ok: true, data: { r: '0123456789ab', b: 1, took: [], n: 2, again: true } } });
   since.w.receipt(await mint());
-  await settle();
+  since.w.frame(); await settle();
   assert.deepEqual([since.st.took, since.st.said], [[], ['Your wreck was boarded and her hold plundered: 2 pieces taken.']], 'her record already without them: nothing taken, all the same said');
   // her killer
   const before = (playerEntity.items ??= []).length;
   const kil = host('acct-hal');
   kil.w.receipt(await mint());
   kil.w.frame(); await settle();
-  assert.equal(kil.st.asked.length, 0, 'her grace first');
-  kil.st.now += (SEA_WRECK_GRACE_S + SEA_WRECK_SLACK_S) * 1000;
+  assert.equal(kil.st.asked.length, 0, 'her own carry first');
+  kil.st.now += SEA_WRECK_SLACK_S * 1000;
   kil.w.frame(); await settle();
   assert.deepEqual(kil.st.asked.map(([k, req]) => [k, req.realm ?? null]), [['wreck', null], ['collect', { id: RK, lease: 'lease', seq: 3 }]], 'carried without my record, then collected into it');
   assert.equal(kil.st.asked[1][1].character, RK);
@@ -711,11 +715,12 @@ test('SHIP-PVP the wreck\'s service half (seaWreckHost.js) and its door: her cap
   playerEntity.items.length = before;
   const ub = host('acct-hal');
   ub.w.receipt(await mint({ b: 0 }));
+  ub.st.now += SEA_WRECK_SLACK_S * 1000;
   ub.w.frame(); await settle();
-  assert.deepEqual([ub.st.said, ub.st.asked.length], [['You did not board her in time. Her hold stays her captain\'s.'], 0]);
+  assert.deepEqual([ub.st.said, ub.st.asked.map(([k]) => k)], [['You did not board her in time. Her hold stays her captain\'s.'], ['wreck']], 'unboarded, carried all the same - a kill at sea - and nothing collected');
   const stranger = host('acct-val');
   stranger.w.receipt(await mint());
-  stranger.st.now += (SEA_WRECK_GRACE_S + SEA_WRECK_SLACK_S) * 1000;
+  stranger.st.now += SEA_WRECK_SLACK_S * 1000;
   stranger.w.frame(); await settle();
   assert.equal(stranger.st.asked.length, 0, 'no wreck of mine');
   // the door

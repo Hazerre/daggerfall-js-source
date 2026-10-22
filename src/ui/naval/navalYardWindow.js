@@ -202,13 +202,15 @@ export function wantedText(w) {
   const rows = (w.rows ?? []).map((r) => ({
     id: r.char, title: r.name,
     words: t('sea.bounty.row', '{kills, plural, =0 {No kills at sea of late} one {# kill at sea} other {# kills at sea}} - {gold} gold on their head', { kills: r.kills, gold: g(r.bounty) }),
-    presses: (w.posts ?? []).map((n) => ({ label: t('sea.bounty.post', 'Post {gold}', { gold: g(n) }), can: !w.busy, n })),
+    presses: (w.posts ?? []).map((n) => ({ label: t('sea.bounty.post', 'Post {gold}', { gold: g(n) }), can: !w.busy && !(w.purse < n), n })),   // AUDIT SEA VENTURES E7: greyed past the purse
   }));
   return {
     head: [t('sea.bounty.head', 'Wanted'), t('sea.bounty.headSub', 'the open sea\'s killers')],
     lede: w.asking ? t('sea.bounty.asking', 'The harbormaster is reading the board...') : rows.length ? t('sea.bounty.lede', 'Gold posted on a captain\'s head is paid to whoever sinks them at sea. Each post is your own gold.') : t('sea.bounty.none', 'No captain of the open sea is wanted.'),
     rows,
     owed: w.owed > 0 ? { title: t('sea.bounty.owedTitle', 'Bounties owed you'), words: t('sea.bounty.owed', '{gold} gold for the wanted captains you ended at sea.', { gold: g(w.owed) }), press: t('sea.bounty.collect', 'Collect'), can: !w.busy } : null,
+    // AUDIT SEA VENTURES B4: my posts on heads gone, back to me by the same collect
+    refund: w.refund > 0 ? { title: t('sea.bounty.refundTitle', 'Bounties returned'), words: t('sea.bounty.refund', '{gold} gold you posted on captains who are gone, back to you.', { gold: g(w.refund) }), press: t('sea.bounty.collect', 'Collect'), can: !w.busy } : null,
     mine: w.mine > 0 ? t('sea.bounty.mine', 'A bounty of {gold} gold stands on your own head.', { gold: g(w.mine) }) : null,
     // SHIP-PVP: a wreck's prizes held for me to collect, and my hold's goods a killer left, mine to reclaim
     prizes: w.prizes > 0 ? { title: t('sea.pvp.prizesTitle', 'Prizes taken at sea'), words: t('sea.pvp.prizes', '{n, plural, one {# piece} other {# pieces}} from wrecks you boarded, held for you.', { n: w.prizes }), can: !w.busy, press: t('sea.bounty.collect', 'Collect') } : null,
@@ -418,6 +420,7 @@ export function mountNavalYardWindow(host, deps) {
     wantedLede.textContent = [wt.lede, wt.mine].filter(Boolean).join(' ');
     for (const c of [...wantedList.children]) c.remove();
     if (wt.owed) wantedList.append(officeRow(wt.owed.title, wt.owed.words, null, wt.owed.press, wt.owed.can, () => w.collect()));
+    if (wt.refund) wantedList.append(officeRow(wt.refund.title, wt.refund.words, null, wt.refund.press, wt.refund.can, () => w.collect()));   // AUDIT SEA VENTURES B4
     if (wt.prizes) wantedList.append(officeRow(wt.prizes.title, wt.prizes.words, null, wt.prizes.press, wt.prizes.can, () => w.collectPrizes()));   // SHIP-PVP
     if (wt.back) wantedList.append(officeRow(wt.back.title, wt.back.words, null, wt.back.press, wt.back.can, () => w.reclaim()));
     for (const r of wt.rows) {

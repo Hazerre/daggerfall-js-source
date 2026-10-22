@@ -40,3 +40,6 @@ CREATE TABLE IF NOT EXISTS sea_prizes (
 );
 CREATE INDEX IF NOT EXISTS sea_prizes_killer ON sea_prizes (killer, killer_char, state, until_s);
 CREATE INDEX IF NOT EXISTS sea_prizes_victim ON sea_prizes (victim, victim_char, state, until_s);
+-- AUDIT SEA VENTURES B5: the hourly sweep's - a wreck past its receipt's hour, a prize ended past its keeping
+CREATE INDEX IF NOT EXISTS sea_wrecks_at ON sea_wrecks (at);
+CREATE INDEX IF NOT EXISTS sea_prizes_ended ON sea_prizes (ended_at) WHERE state != 'held';

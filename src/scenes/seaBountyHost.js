@@ -33,6 +33,12 @@ import { t } from '../systems/textManager.js';
 
 /** The board is read again when it is this old and the tab is shown (ms). */
 export const SEA_BOARD_FRESH_MS = 30_000;
+/** AUDIT SEA VENTURES E1: a read the service refused is asked again this long on, doubling to SEA_BOARD_FRESH_MS (ms) -
+ *  a refusal moved nothing, and the repaint that ends a read asked again at once: a page frozen in microtasks, or two
+ *  thousand reads a minute against the account's limit, every checkpoint of the account refused behind them. */
+export const SEA_BOARD_RETRY_MS = 5_000;
+/** The wait after `fails` refused reads in a row (ms). */
+export const boardRetryMs = (/** @type {number} */ fails) => Math.min(SEA_BOARD_FRESH_MS, SEA_BOARD_RETRY_MS * 2 ** Math.max(0, fails - 1));
 
 const gold = (n) => Math.round(Number(n) || 0).toLocaleString('en-US');
 /** A post's request id: one asked twice is one post. */
@@ -44,17 +50,21 @@ export function createSeaBounty(deps) {
   let door = deps.door ?? null, wreckDoor = deps.wreckDoor ?? null;
   const doorNow = () => (door ??= accountSeaBounty({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }));
   const wreckDoorNow = () => (wreckDoor ??= accountSeaWreck({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }));
-  let board = null, readAt = -Infinity, reading = false, busy = false, line = null;
+  // AUDIT SEA VENTURES E7: the act's answer and the read's refusal are two lines - a post that landed is never shown as
+  // failed by the read after it (a second post), and a refusal goes with the next good read
+  let board = null, nextAt = -Infinity, fails = 0, reading = false, busy = false, actLine = null, readLine = null;
   const on = () => !!deps.live?.() && !!deps.session;
   const repaint = () => { try { repaintNavalYard(); } catch { /* no window: nothing to paint */ } };
-  /** The board read from the service (once at a time) - painted when it comes. */
+  /** The gold a post here may be paid from - the purse and this region's account (the wallet's `gold`); none known, any. */
+  const purseOf = () => { const g = deps.wallet?.(deps.region?.())?.gold?.(); return Number.isFinite(g) ? g : Infinity; };
+  /** The board read from the service (once at a time) - painted when it comes; refused, asked again boardRetryMs on. */
   async function read() {
     if (reading || !on()) return;
     reading = true;
     try {
-      const r = await doorNow().board({ character: deps.character?.() });
-      if (r?.ok) { board = readSeaBoard(r.data); readAt = now(); }
-      else line = { text: accountRefusalText(r?.error), warn: true };
+      const r = await doorNow().board({ character: deps.character?.() }).catch(() => null);
+      if (r?.ok) { board = readSeaBoard(r.data); fails = 0; readLine = null; nextAt = now() + SEA_BOARD_FRESH_MS; }
+      else { readLine = { text: accountRefusalText(r?.error), warn: true }; nextAt = now() + boardRetryMs(++fails); }
     } finally { reading = false; repaint(); }
   }
   /** An act of the record's gold, its answer said and the board read again. */
@@ -62,13 +72,14 @@ export function createSeaBounty(deps) {
     busy = true; repaint();
     try {
       const r = await realmGoldAct({ ...o, needsAnswer: true, session: deps.session, checkpoint: () => deps.checkpoint?.() });
-      line = r?.ok ? { text: said(r.data ?? {}), warn: false } : { text: accountRefusalText(r?.error), warn: true };
-    } finally { busy = false; readAt = -Infinity; await read(); }
+      actLine = r?.ok ? { text: said(r.data ?? {}), warn: false } : { text: accountRefusalText(r?.error), warn: true };
+    } finally { busy = false; nextAt = -Infinity; await read(); }
   }
   /** GOLD ON A WANTED HEAD: `gold` off the purse onto captain `row`'s - held out while it is asked. */
   function post(row, n) {
     if (!on() || busy || !row) return;
     const region = deps.region(), rid = ridOf();
+    if (!(purseOf() >= n)) { actLine = { text: t('sea.bounty.short', 'You do not have {gold} gold to post.', { gold: gold(n) }), warn: true }; repaint(); return; }   // AUDIT SEA VENTURES E7: never asked - the purse and the bank would have been held below nothing
     void act({
       reserve: () => deps.wallet?.(region)?.pay(n),
       call: (/** @type {any} */ at) => doorNow().post({ character: deps.character(), realm: at, region, target: row.char, gold: n, rid }),
@@ -89,20 +100,21 @@ export function createSeaBounty(deps) {
     if (!on() || busy) return;
     busy = true; repaint();
     try {
-      const r = await fn({ session: deps.session, checkpoint: () => deps.checkpoint?.(), character: () => deps.character(), door: wreckDoorNow(), say: (/** @type {string} */ text) => { line = { text, warn: false }; } });
-      if (!r?.ok) line = { text: accountRefusalText(r?.error), warn: true };
-    } finally { readAt = -Infinity; busy = false; await read(); }
+      const r = await fn({ session: deps.session, checkpoint: () => deps.checkpoint?.(), character: () => deps.character(), door: wreckDoorNow(), say: (/** @type {string} */ text) => { actLine = { text, warn: false }; } });
+      if (!r?.ok) actLine = { text: accountRefusalText(r?.error), warn: true };
+    } finally { nextAt = -Infinity; busy = false; await read(); }
   }
   /**
    * THE TAB'S WANTED SECTION (ui/naval/navalYardWindow.js wantedText): null offline or with no realm character; else the
-   * board as last read - `{ asking, rows: [{ char, name, kills, bounty }], owed, mine, prizes, back, posts, busy, line,
-   * post, collect, collectPrizes, reclaim }` - read again when it is SEA_BOARD_FRESH_MS old.
+   * board as last read - `{ asking, rows: [{ char, name, kills, bounty }], owed, refund, mine, prizes, back, posts, purse, busy,
+   * line, post, collect, collectPrizes, reclaim }` - read again when it is SEA_BOARD_FRESH_MS old (a refused read
+   * boardRetryMs on), `purse` what the wallet here pays a post from.
    */
   function office() {
     if (!on()) return null;
-    if (!reading && now() - readAt >= SEA_BOARD_FRESH_MS) void read();
+    if (!reading && now() >= nextAt) void read();
     return {
-      asking: !board, rows: board?.wanted ?? [], owed: board?.owed ?? 0, mine: board?.mine ?? 0, prizes: board?.prizes ?? 0, back: board?.back ?? 0, posts: SEA_BOUNTY_POSTS, busy: busy || reading, line,
+      asking: !board, rows: board?.wanted ?? [], owed: board?.owed ?? 0, refund: board?.refund ?? 0, mine: board?.mine ?? 0, prizes: board?.prizes ?? 0, back: board?.back ?? 0, posts: SEA_BOUNTY_POSTS, purse: purseOf(), busy: busy || reading, line: actLine ?? readLine,
       post: (row, n) => post(row, n), collect: () => collect(),
       collectPrizes: () => void prizesAct(collectSeaPrizes), reclaim: () => void prizesAct(reclaimSeaPrizes),   // SHIP-PVP
     };

@@ -19,7 +19,7 @@
 // ═══════════════════════════════════════════════════════════════════
 import { verifySeaWreck, SEA_WRECK_GRACE_S } from '../../src/net/wild/wildReceipt.js';
 import { prepareRealmRecord, seizeRealmRecord, realmActFirst, realmAtOf, recordMovedOf, mustChange, dropIfUnnamed, dropObjects, realmSaveTextOf, holdRefusal } from './realm.js';
-import { piecesBarred } from './ledger.js';
+import { piecesBarred, knownCopySteps } from './ledger.js';
 import { ledgerKeyOf } from './judge.js';
 import { seaKillSteps } from './seaBounty.js';
 import { giveTradeGoods } from '../../src/net/realm/realmTradeLaw.js';
@@ -47,11 +47,12 @@ export async function seaWreck(ctx, player, body, { gateKey }, again = false) {
   const c = v.claims;
   if (player.id !== c.f && player.id !== c.k) return { error: 'not-yours' };
   const seize = player.id === c.k;
-  if (seize && ctx.nowS < c.i + SEA_WRECK_GRACE_S) return { error: 'grace' };
   const at = seize ? null : realmAtOf(body?.realm);
   if (!seize && (!at || at.id !== c.c)) return { error: at ? 'not-yours' : 'no-realm-character' };
-  // once a wreck: a second asking is the first's answer
+  // once a wreck: a second asking is the first's answer - her killer's too, within her grace (AUDIT SEA VENTURES E3: his
+  // prize waits for her own carry, never for the grace that keeps his seize back)
   const had = await ctx.db.prepare('SELECT boarded, took, seq FROM sea_wrecks WHERE r = ?1').bind(c.r).first();
+  if (!had && seize && ctx.nowS < c.i + SEA_WRECK_GRACE_S) return { error: 'grace' };
   if (had) {
     const took = parse(had.took) ?? [];
     const before = !!at && took.length > 0 && Number.isSafeInteger(had.seq) && at.seq < had.seq;   // her tab, from before the take
@@ -83,6 +84,10 @@ export async function seaWreck(ctx, player, body, { gateKey }, again = false) {
   const took = seaPrizeTook(taken);
   const steps = [
     ...(moved && taken.length ? moved.steps : []),
+    // AUDIT SEA VENTURES B2: each piece the prize took is written down as her own copy (ledger.js knownCopySteps, as a
+    // fall's dropped pieces are - wild.js): a game that kept a crafted piece in its hold held it again as the craft's
+    // owner, and her killer's became the locked copy. A reclaim's entry takes the row away again (ledger.js ledgerMoves).
+    ...knownCopySteps(ctx.db, c.c, [...escrow], ctx.nowS),
     ctx.db.prepare('INSERT INTO sea_wrecks (r, victim, victim_char, killer, killer_char, boat, boarded, took, seq, at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)')
       .bind(c.r, c.f, c.c, c.k, c.kc, c.u, c.b, JSON.stringify(took), moved && taken.length ? moved.seq : null, ctx.nowS),
     ...taken.map((it, i) => ctx.db.prepare("INSERT INTO sea_prizes (r, i, victim, victim_char, killer, killer_char, rec, at, until_s, state) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'held')")
@@ -95,6 +100,7 @@ export async function seaWreck(ctx, player, body, { gateKey }, again = false) {
     const now = await ctx.db.prepare('SELECT 1 AS x FROM sea_wrecks WHERE r = ?1').bind(c.r).first();
     if (now && !again) return seaWreck(ctx, player, body, { gateKey }, true);   // another asking landed it first: its answer
     if (at) { const m = await recordMovedOf(ctx.db, c.f, at); if (m) return m; }
+    else if (moved && taken.length) return { error: 'seq' };   // AUDIT SEA VENTURES B7: her record moved under the seize (her own checkpoint first) - asked again, it lands
     throw e;
   }
   if (moved && taken.length) await dropObjects(ctx.bucket, [moved.prev]);

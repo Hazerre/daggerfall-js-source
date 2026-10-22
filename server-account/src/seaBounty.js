@@ -15,7 +15,8 @@
 //     record hands no value to another player) onto a wanted captain's head, in one batch with its row; a request asked
 //     twice is one post.
 //   COLLECT (/v1/sea/bounty/collect): every owed sum of the asking character's paid into its record (creditSave, the
-//     region's bank as a market's gold is) and turned paid, in one batch - each row exactly once (mustChange).
+//     region's bank as a market's gold is) and turned paid, in one batch - each row exactly once (mustChange). Its posts on
+//     heads gone (deleted, or dead SEA_REFUND_AFTER_S) are written owed back to it first (AUDIT SEA VENTURES B4).
 //
 // GOLD IS NEVER MADE HERE: an owed sum is the posts its fall claimed, and a post left its poster's record in its own
 // batch. Not a DFU member: Daggerfall Unity has no players to hunt.
@@ -30,6 +31,31 @@ import { SEA_WANTED_DAYS, SEA_BOARD_MAX, SEA_BOUNTY_RID_RE, seaBountyGoldOk } fr
 const DAY_S = 86_400;
 /** The most owed sums one collect pays (a captain owed more collects again). */
 export const SEA_COLLECT_ROWS = 64;
+/** AUDIT SEA VENTURES B4: A POST ON A HEAD NO LONGER LIVING goes back to its poster - a head deleted, or dead this long
+ *  (s): a fall that ended it is carried within its receipt's hour and claims it first (seaKillSteps). Each post is written
+ *  owed to its poster's own character (`back:` its id) and marked claimed by it, in one batch - the poster's collect pays
+ *  it as an owed bounty. Before this the gold stood on the gone head for good. */
+export const SEA_REFUND_AFTER_S = 2 * 3600;
+const GONE_HEAD = 'NOT EXISTS (SELECT 1 FROM realm_characters c WHERE c.id = sea_bounties.target_char AND (c.dead_at IS NULL OR c.dead_at > ?3))';
+/** The posts of `poster`'s character `posterChar` on heads gone, written owed back to it (seaBountyCollect runs them). */
+export const seaRefundSteps = (/** @type {any} */ db, /** @type {string} */ poster, /** @type {string} */ posterChar, /** @type {number} */ nowS) => [
+  db.prepare(`INSERT OR IGNORE INTO sea_bounty_owed (r, killer, killer_char, target_char, gold, at) SELECT 'back:' || id, poster, poster_char, target_char, gold, ?4
+    FROM sea_bounties WHERE poster = ?1 AND poster_char = ?2 AND claimed_r IS NULL AND ${GONE_HEAD}`).bind(poster, posterChar, nowS - SEA_REFUND_AFTER_S, nowS),
+  db.prepare(`UPDATE sea_bounties SET claimed_r = 'back:' || id WHERE poster = ?1 AND poster_char = ?2 AND claimed_r IS NULL AND ${GONE_HEAD}`).bind(poster, posterChar, nowS - SEA_REFUND_AFTER_S),
+];
+/** AUDIT SEA VENTURES B5: what has ended is kept this long (s) - a bounty claimed, a sum paid, a prize collected or
+ *  returned - and then swept (the service's hourly clock - cron.js `sea`). */
+export const SEA_ENDED_KEEP_S = 30 * DAY_S;
+/** The sea's sweeps, each `[sql, cutoff]` - a delete a page at a time (cron.js rounds): a kill at sea past the Wanted
+ *  window, a wreck past its receipt's hour (a second asking is answered the first's - seaWreck.js), what has ended past
+ *  SEA_ENDED_KEEP_S. A bounty standing, a sum owed and a prize held are never swept. */
+export const seaSweeps = (/** @type {number} */ nowS) => /** @type {[string, number][]} */ ([
+  ['DELETE FROM sea_kills WHERE r IN (SELECT r FROM sea_kills WHERE at < ?1 LIMIT ?2)', nowS - SEA_WANTED_DAYS * DAY_S],
+  ['DELETE FROM sea_wrecks WHERE r IN (SELECT r FROM sea_wrecks WHERE at < ?1 LIMIT ?2)', nowS - 2 * 3600],
+  ['DELETE FROM sea_bounties WHERE id IN (SELECT id FROM sea_bounties WHERE claimed_r IS NOT NULL AND at < ?1 LIMIT ?2)', nowS - SEA_ENDED_KEEP_S],
+  ['DELETE FROM sea_bounty_owed WHERE r IN (SELECT r FROM sea_bounty_owed WHERE paid_at IS NOT NULL AND paid_at < ?1 LIMIT ?2)', nowS - SEA_ENDED_KEEP_S],
+  ["DELETE FROM sea_prizes WHERE rowid IN (SELECT rowid FROM sea_prizes WHERE state != 'held' AND ended_at < ?1 LIMIT ?2)", nowS - SEA_ENDED_KEEP_S],
+]);
 /** A post's id: twenty hex digits from the service's own randomness. */
 const postIdOf = (rand) => { const b = new Uint8Array(10); rand(b); return [...b].map((x) => x.toString(16).padStart(2, '0')).join(''); };
 /** The gold standing on a captain's head. */
@@ -73,13 +99,16 @@ export async function seaBountyBoard(ctx, player, body) {
     ORDER BY bounty DESC, kills DESC, rc.name LIMIT ?2`).bind(since, SEA_BOARD_MAX).all();
   const character = typeof body?.character === 'string' && REALM_CHARACTER_RE.test(body.character) ? body.character : null;
   const owed = character ? Number((await db.prepare('SELECT COALESCE(SUM(gold), 0) AS n FROM sea_bounty_owed WHERE killer = ?1 AND killer_char = ?2 AND paid_at IS NULL').bind(player.id, character).first())?.n ?? 0) : 0;
+  // AUDIT SEA VENTURES B4: and its posts on heads gone, to be written owed back to it by its collect
+  const refund = character ? Number((await db.prepare(`SELECT COALESCE(SUM(gold), 0) AS n FROM sea_bounties WHERE poster = ?1 AND poster_char = ?2 AND claimed_r IS NULL AND ${GONE_HEAD}`)
+    .bind(player.id, character, nowS - SEA_REFUND_AFTER_S).first())?.n ?? 0) : 0;
   const [pr, bk] = character ? await db.batch([
     db.prepare("SELECT COUNT(*) AS n FROM sea_prizes WHERE killer = ?1 AND killer_char = ?2 AND state = 'held' AND until_s > ?3").bind(player.id, character, nowS),
     db.prepare("SELECT COUNT(*) AS n FROM sea_prizes WHERE victim = ?1 AND victim_char = ?2 AND state = 'held' AND until_s <= ?3").bind(player.id, character, nowS),
   ]) : [null, null];
   return {
     wanted: (rows.results ?? []).map((x) => ({ char: x.ch, name: x.name, kills: Number(x.kills), bounty: Number(x.bounty) })),
-    owed, mine: character ? await standing(db, character) : 0,
+    owed, refund, mine: character ? await standing(db, character) : 0,
     prizes: Number(pr?.results?.[0]?.n ?? 0), back: Number(bk?.results?.[0]?.n ?? 0),
   };
 }
@@ -138,6 +167,7 @@ export async function seaBountyCollect(ctx, player, { character, realm = null, r
   if (side.error) return side;
   if (!side.at) return { error: 'sea-bounty-realm' };
   if (!regionOk(region)) return { error: 'bad-region' };
+  await db.batch(seaRefundSteps(db, player.id, character, nowS));   // AUDIT SEA VENTURES B4: its posts on heads gone, owed back to it first
   const rows = (await db.prepare('SELECT r, gold FROM sea_bounty_owed WHERE killer = ?1 AND killer_char = ?2 AND paid_at IS NULL ORDER BY at, r LIMIT ?3').bind(player.id, character, SEA_COLLECT_ROWS).all()).results ?? [];
   const gold = rows.reduce((n, x) => n + Number(x.gold), 0);
   if (!rows.length || !(gold > 0)) return { ok: true, gold: 0 };

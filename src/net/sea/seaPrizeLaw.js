@@ -9,7 +9,10 @@
 // hold - the boat the wreck names by her uid (Come Sail Away's `placedBoats[].Items`): her most valuable pieces first, as
 // many as come to SEA_PRIZE_SHARE of the worth of what she could give (her best piece always, if she holds any),
 // SEA_PRIZE_PIECES_MAX at most. Never a piece the record may not hand on - nor is one counted toward the share: one the ledger keeps back (a copy, a claim waiting - the caller's
-// `keep`), a classic save's own (itemLaw.js classicPiece - "Keep all, can't sell"), a locked one, a bound one. The rest of
+// `keep`), a classic save's own (itemLaw.js classicPiece - "Keep all, can't sell"), a locked one, a bound one, and none the
+// realm never lets pass between players (net/realm/realmTradeLaw.js tradeableRecord - AUDIT SEA VENTURES E5/B1: a quest's
+// piece, a summoned one, a boat's deed or parts - a deed handed on stood a second ship, parts left their cargo behind - a
+// Materials Bag, whose list stays in its owner's save). The rest of
 // her hold, her captain's bag, purse and gear stay - a wreck is no death (THE HOLD IS KEPT through a death at sea).
 // Her game finds what was taken by each piece's own marks (seaPrizeTook), never by its place in her hold.
 //
@@ -19,6 +22,7 @@ import { itemWorth, classicPiece } from '../../systems/item/itemLaw.js';
 import { isLocked } from '../../systems/item/itemLock.js';
 import { templateByIndex } from '../../systems/item/itemTemplates.js';
 import { wildTookOf } from '../../systems/wild/wildDropLaw.js';
+import { tradeableRecord } from '../realm/realmTradeLaw.js';
 
 /** The share of her hold's worth a boarded wreck gives up. */
 export const SEA_PRIZE_SHARE = 1 / 3;
@@ -31,9 +35,11 @@ export const SEA_HOLD_VENDOR = 'come-sail-away';
 /** Where a prize's piece lay, as her game names the list it takes it from (wildDropLaw.js wildTakeTook's pack word). */
 export const SEA_HOLD_F = 'hold';
 
-/** May a piece of her hold be a prize? - a record of the law's, worth something, never classic, locked or bound. */
+/** May a piece of her hold be a prize? - a record of the law's, worth something, never classic, locked or bound, and one
+ *  the realm lets pass between players (tradeableRecord - a hold's piece is worn by no one). */
 export const prizeable = (/** @type {any} */ it) => !!it && typeof it === 'object' && !classicPiece(it) && !isLocked(it)
-  && it.bound !== true && templateByIndex(it.templateIndex)?.bound !== true && itemWorth(it) > 0;
+  && it.bound !== true && templateByIndex(it.templateIndex)?.bound !== true && itemWorth(it) > 0
+  && tradeableRecord({ ...it, equipSlot: undefined });
 
 /** Her hold in a save: the Items of the placed boat whose uid is `uid` - or null. */
 export function seaHoldOf(/** @type {any} */ save, /** @type {number} */ uid) {

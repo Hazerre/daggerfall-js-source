@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS sea_kills (
   at          INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS sea_kills_killer ON sea_kills (killer_char, at);
+-- AUDIT SEA VENTURES B5: the Wanted window's own reads and the hourly sweep walk by when (never the whole history)
+CREATE INDEX IF NOT EXISTS sea_kills_at ON sea_kills (at);
 
 CREATE TABLE IF NOT EXISTS sea_bounties (
   id          TEXT PRIMARY KEY,        -- the post's id (the service's own randomness)
@@ -33,6 +35,12 @@ CREATE TABLE IF NOT EXISTS sea_bounties (
   UNIQUE (poster, rid)
 );
 CREATE INDEX IF NOT EXISTS sea_bounties_target ON sea_bounties (target_char, claimed_r);
+-- AUDIT SEA VENTURES B5: the bounties standing (the board, a head's sum), the posts a fall claimed (its owed sum, in the
+-- fall's own batch), a poster's own standing posts (B4's refund) and the ended ones the hourly sweep takes
+CREATE INDEX IF NOT EXISTS sea_bounties_standing ON sea_bounties (target_char) WHERE claimed_r IS NULL;
+CREATE INDEX IF NOT EXISTS sea_bounties_claimed ON sea_bounties (claimed_r);
+CREATE INDEX IF NOT EXISTS sea_bounties_poster ON sea_bounties (poster, poster_char) WHERE claimed_r IS NULL;
+CREATE INDEX IF NOT EXISTS sea_bounties_ended ON sea_bounties (at) WHERE claimed_r IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS sea_bounty_owed (
   r           TEXT PRIMARY KEY,        -- the fall that claimed the posts
@@ -44,3 +52,4 @@ CREATE TABLE IF NOT EXISTS sea_bounty_owed (
   paid_at     INTEGER                  -- null until collected
 );
 CREATE INDEX IF NOT EXISTS sea_bounty_owed_killer ON sea_bounty_owed (killer, killer_char, paid_at);
+CREATE INDEX IF NOT EXISTS sea_bounty_owed_paid ON sea_bounty_owed (paid_at) WHERE paid_at IS NOT NULL;   -- AUDIT SEA VENTURES B5: the sweep

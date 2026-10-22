@@ -43,5 +43,5 @@ export function readSeaBoard(v) {
   const wanted = v.wanted.slice(0, SEA_BOARD_MAX)
     .filter((w) => w && typeof w.char === 'string' && w.char.length <= 40 && typeof w.name === 'string' && w.name.length > 0 && w.name.length <= 64)
     .map((w) => ({ char: w.char, name: w.name, kills: gold(w.kills), bounty: gold(w.bounty) }));
-  return { wanted, owed: gold(v.owed), mine: gold(v.mine), prizes: gold(v.prizes), back: gold(v.back) };
+  return { wanted, owed: gold(v.owed), refund: gold(v.refund), mine: gold(v.mine), prizes: gold(v.prizes), back: gold(v.back) };
 }

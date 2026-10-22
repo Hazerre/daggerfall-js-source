@@ -26,13 +26,16 @@ import { repaintNavalYard } from '../ui/naval/navalPlunderDoor.js';
 
 /** The boards are read again when they are this old and the tab is shown (ms). */
 export const SEA_SEASON_FRESH_MS = 60_000;
+/** AUDIT SEA VENTURES E1: refused boards are asked again this long on, doubling to SEA_SEASON_FRESH_MS (ms) - as the
+ *  bounty board's (seaBountyHost.js SEA_BOARD_RETRY_MS). */
+export const SEA_SEASON_RETRY_MS = 5_000;
 
 /** @param {any} deps */
 export function createSeaSeason(deps) {
   const now = () => Number(deps.now?.()) || Date.now();
   let door = deps.door ?? null;
   const doorNow = () => (door ??= accountSeaSeason({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }));
-  let board = null, readAt = -Infinity, reading = false, line = null;
+  let board = null, nextAt = -Infinity, fails = 0, reading = false, line = null;
   const on = () => !!deps.live?.() && !!deps.session;
   const repaint = () => { try { repaintNavalYard(); } catch { /* no window: nothing to paint */ } };
   /** The boards read from the service (once at a time) - painted when they come. */
@@ -40,9 +43,10 @@ export function createSeaSeason(deps) {
     if (reading || !on()) return;
     reading = true;
     try {
-      const r = await doorNow().board({ character: deps.character?.() });
+      const r = await doorNow().board({ character: deps.character?.() }).catch(() => null);
       const b = r?.ok ? readSeaSeasonBoard(r.data) : null;
-      if (b) { board = b; line = null; readAt = now(); } else line = { text: accountRefusalText(r?.error), warn: true };
+      if (b) { board = b; line = null; fails = 0; nextAt = now() + SEA_SEASON_FRESH_MS; }
+      else { line = { text: accountRefusalText(r?.error), warn: true }; nextAt = now() + Math.min(SEA_SEASON_FRESH_MS, SEA_SEASON_RETRY_MS * 2 ** fails++); }
     } finally { reading = false; repaint(); }
   }
   /**
@@ -52,8 +56,9 @@ export function createSeaSeason(deps) {
    */
   function office() {
     if (!on()) return null;
-    if (!reading && now() - readAt >= SEA_SEASON_FRESH_MS) void read();
-    if (!board) return { asking: !line, season: 0, daysLeft: 0, deep: [], legends: [], mine: { deep: null, legends: null }, last: { deep: [], legends: [] }, line };
+    if (!reading && now() >= nextAt) void read();
+    // AUDIT SEA VENTURES E7: boards never read are still being asked for - never an empty season's lists
+    if (!board) return { asking: true, season: 0, daysLeft: 0, deep: [], legends: [], mine: { deep: null, legends: null }, last: { deep: [], legends: [] }, line };
     return { asking: false, ...board, daysLeft: Math.max(0, Math.ceil((board.ends * 1000 - now()) / 86_400_000)), line };
   }
   return { office, read };

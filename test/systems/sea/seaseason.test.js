@@ -230,7 +230,7 @@ test('SEA-SEASON the page\'s half (seaSeasonHost.js) and its door: no section of
   const no = page({ answer: { ok: false, error: 'bad-json' } });
   no.s.office(); await settle();
   const n = no.s.office();
-  assert.equal(n.asking, false);
+  assert.equal(n.asking, true);   // PIN MOVED (AUDIT SEA VENTURES E7): boards never read are still asked for, never an empty season
   assert.equal(n.line.warn, true);
   assert.ok(n.line.text.length > 0);
   const sent = [];
