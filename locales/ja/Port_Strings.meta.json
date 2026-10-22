@@ -10094,6 +10094,26 @@
   "tr": "ad2e31ee3077",
   "by": "claude-in-session"
  },
+ "net.staffMsg.chat": {
+  "en": "20300c94ec8a",
+  "tr": "f3ac6d63615f",
+  "by": "claude-in-session"
+ },
+ "net.staffMsg.from": {
+  "en": "a7d4fccfe4a9",
+  "tr": "6857e2904196",
+  "by": "claude-in-session"
+ },
+ "net.staffMsg.ok": {
+  "en": "9ce3bd4224c8",
+  "tr": "9ce3bd4224c8",
+  "by": "claude-in-session"
+ },
+ "net.staffMsg.title": {
+  "en": "9efcd7c3f139",
+  "tr": "8f8045d4c05b",
+  "by": "claude-in-session"
+ },
  "net.update.build": {
   "en": "21da376bfb7d",
   "tr": "37c3a7a86a4e",

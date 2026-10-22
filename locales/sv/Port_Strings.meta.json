@@ -9114,6 +9114,26 @@
   "tr": "6e4763860007",
   "by": "claude-in-session"
  },
+ "net.staffMsg.chat": {
+  "en": "20300c94ec8a",
+  "tr": "be609fa30faa",
+  "by": "claude-in-session"
+ },
+ "net.staffMsg.from": {
+  "en": "a7d4fccfe4a9",
+  "tr": "2186148a47af",
+  "by": "claude-in-session"
+ },
+ "net.staffMsg.ok": {
+  "en": "9ce3bd4224c8",
+  "tr": "9ce3bd4224c8",
+  "by": "claude-in-session"
+ },
+ "net.staffMsg.title": {
+  "en": "9efcd7c3f139",
+  "tr": "b2e361edc386",
+  "by": "claude-in-session"
+ },
  "quest.mark.many": {
   "en": "ac6a379cd9e1",
   "tr": "d4349ee85eb7",

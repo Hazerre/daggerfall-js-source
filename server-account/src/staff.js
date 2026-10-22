@@ -55,6 +55,7 @@ import { staffRealm, REALM_ROUTES } from './staffRealm.js';
 import { staffCensus, CENSUS_ROUTES } from './staffCensus.js';   // STAFF-PANEL4-CENSUS: the item and gold census, the contested pieces
 import { staffEconomy, ECON_ROUTES } from './staffEconomy.js';   // STAFF-PANEL3-ECON: market and trades, node activity, economy
 import { staffFollow, FOLLOW_ROUTES } from './staffFollow.js';   // STAFF-PANEL5-FOLLOW: a follow token, minted and written down
+import { staffMessage, MESSAGE_ROUTES } from './staffMessage.js';
 
 /** The header a staff session rides in - never `authorization`, which is the game's. */
 export const STAFF_SESSION_HEADER = 'x-staff-session';
@@ -112,6 +113,8 @@ export const STAFF_STATUS = Object.freeze({
   // sanction a Moderator would lift, a press with no one-time id, and a cut member an Admin would add back
   'case-acted': 409, 'case-closed': 409, 'admin-sanction': 403, 'bad-click': 400, 'staff-suspended': 409,
   'no-signing-key': 503,   // STAFF-PANEL5-FOLLOW (staffFollow.js): a service with no key mints no follow token
+  // STAFF-PANEL5-MESSAGE (staffMessage.js): a message past 200 characters, and a second inside a staff member's 5 seconds
+  'staff-message-long': 400, 'staff-message-rate': 429,
 });
 
 const enc = new TextEncoder();
@@ -364,6 +367,8 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   if (CENSUS_ROUTES.includes(path)) return staffCensus(ctx, env, path, body, who, audit);   // STAFF-PANEL4-CENSUS: Admin only
   if (ECON_ROUTES.includes(path)) return staffEconomy(ctx, env, path, body, who, audit);   // STAFF-PANEL3-ECON: an Admin's alone
   if (FOLLOW_ROUTES.includes(path)) return staffFollow(ctx, env, path, body, who, audit);   // STAFF-PANEL5-FOLLOW: Admins and Moderators
+  // ═══ STAFF-PANEL5-MESSAGE: Message on screen, and each message's state - Admins and Moderators both (staffMessage.js) ═══
+  if (MESSAGE_ROUTES.includes(path)) return staffMessage(ctx, env, path, body, who, audit);
 
   // ═══ THE ADMINS' DOORS: THE PANEL'S MODERATORS (mob, 07:42Z: "add it so admins can add or remove moderatoers") ═══
   // /v1/staff/mods lists them; /v1/staff/mod/add and /mod/remove { handle } - a registered account, not banned, not staff

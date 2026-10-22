@@ -79,6 +79,7 @@ import { TOWN_ECON_SWEEPS, TOWN_ECON_SEEN_SWEEP, townEconKeptFrom, townEconSeenF
 import { settleStaleYards } from './decor.js';   // YARD-SNAP: a town's yards built again where a write left them stale
 import { STAFF_AUDIT_KEEP_S } from './staff.js';   // STAFF-PANEL1: the audit log's month
 import { censusDay, censusBackfill } from './staffCensus.js';   // STAFF-PANEL4-CENSUS: the census's day and its one backfill, off peak
+import { STAFF_MESSAGE_KEEP_S } from './staffMessage.js';   // STAFF-PANEL5-MESSAGE: a staff message's month
 
 /** The two schedules - wrangler.toml's [triggers] crons name exactly these (test/server/scale4b.test.js holds the two to
  *  each other). The hour's minute is off the hour, where every other Worker's cron lands. */
@@ -254,6 +255,9 @@ export const HOUR_JOBS = Object.freeze([
   // its quiet hours, once - a latest tally for every character no checkpoint has tallied (staffCensus.js)
   ['census-day', (ctx) => censusDay(ctx)],
   ['census-backfill', (ctx, env) => censusBackfill(ctx, env)],
+  // STAFF-PANEL5-MESSAGE (design doc: "Each new table gets a retention"): a staff message's row past STAFF_MESSAGE_KEEP_S
+  ['staff-messages', (ctx) => rounds(() => deleted(ctx.db,
+    'DELETE FROM staff_messages WHERE id IN (SELECT id FROM staff_messages WHERE at < ?1 LIMIT ?2)', ctx.nowS - STAFF_MESSAGE_KEEP_S), SWEEP_ROWS)],
 ]);
 
 /** The jobs a schedule runs - none for a schedule this service does not keep (said, so a trigger renamed in

@@ -97,7 +97,9 @@ test('STAFF-PANEL1: every door is listed once, beside the game\'s, and none is b
     // STAFF-PANEL3-ECON: the economy (staffEconomy.js)
     '/v1/staff/econ/economy', '/v1/staff/econ/guilds', '/v1/staff/econ/harvests', '/v1/staff/econ/stream',
     // STAFF-PANEL5-FOLLOW: a follow token (staffFollow.js)
-    '/v1/staff/follow'].sort());
+    '/v1/staff/follow',
+    // STAFF-PANEL5-MESSAGE: Message on screen (staffMessage.js)
+    '/v1/staff/message', '/v1/staff/messages'].sort());
   // no secret to set anywhere: the config holds the lists and a public key, and nothing else of the panel's
   const toml = src('server-account/wrangler.toml');
   assert.match(toml, /^OWNER_HANDLES = "Lattymoy,SirMcMobdon"$/m);

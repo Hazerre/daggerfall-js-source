@@ -656,6 +656,7 @@ export class OnlineSession {
     this.presence = !!presence;   // false: a channel's session (CHAT1) - no pose out, a ping for a heartbeat
     this.onChat = null;           // (line) => void: a chat line in - {id, name, text, at, mine}
     this.onRed = null;            // RED1: (line) => void: the SERVER's own line - {text, at}, no id and no name, because nobody is speaking it
+    this.onStaffMessage = null;   // STAFF-PANEL5-MESSAGE: (mi) => void: a staff message waits for this account - its id; the words are the account service's
     this.onDm = null;             // TITLE-N: (line) => void: the Dungeon Master's line - {text, at}, as the server's: a voice over the game, not a player in it
     this.dmOk = false;            // TITLE-N: the relay that welcomed this socket carries /dm (relaySupportsDm) - an older one CLOSES the socket on the frame
     this.onEvent = null;          // EVENT1: (ev, {live}) => void - the server-wide live event now ({kind, at}) or null; live: it changed while I watched (a welcome's word is not)
@@ -2120,6 +2121,7 @@ export class OnlineSession {
     if (groundRoom(room)) frame.gl = GROUND_LAW;   // GROUND-GATE: the ground this build stands on, to a room whose peers stand on it (net/wire.js)
     if (streamsFoes(room)) frame.gv = GRANT_HELLO_LAW;   // GRANT-DOOR: the grants this build stands on, to a room whose foes ride (net/wire.js)
     if (leaseRoom(room)) frame.ls = 1;   // LEASE1: this build hands its hub's lease to the room
+    if (isSocialRoom(room)) frame.sm = 1;   // STAFF-PANEL5-MESSAGE: this build shows a staff message's box - a hub link without it is "old game, not shown"
     return frame;
   }
 
@@ -3732,6 +3734,13 @@ export class OnlineSession {
       if (!text) return;
       if (!this._lineIn(room, null, now)) return;
       this._deliver('chat', () => this.onRed?.({ text, at: Number.isFinite(m.at) ? m.at : now }));
+    } else if (m.t === 'smsg') {
+      // STAFF-PANEL5-MESSAGE: A STAFF MESSAGE WAITS, by the hub alone, and known by the FRAME TYPE, which only the account
+      // service's signed order makes and no player can send. It names the message, never its words: the words come off
+      // the account service with this player's own session (net/staffMessages.js), so a relay that lies can only make the
+      // game ask again (and the ask is paced there).
+      if (!primary || !isSocialRoom(room) || typeof m.mi !== 'string' || m.mi.length > 64) return;
+      this._deliver('smsg', () => this.onStaffMessage?.(m.mi));
     } else if (m.t === 'event') {
       // EVENT1: THE LIVE EVENT STAGED OR ENDED, by the hub alone - known by the frame type, as the server's line is. A
       // word this build does not know is no event (LIVE_EVENTS: a new one is safe against an old build).

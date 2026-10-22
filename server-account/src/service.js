@@ -565,6 +565,9 @@ export const ROUTES = new Set([
   '/v1/staff/econ/stream', '/v1/staff/econ/harvests', '/v1/staff/econ/economy', '/v1/staff/econ/guilds',
   // STAFF-PANEL5-FOLLOW: a follow token for a hidden staff spectator, minted and written down (staffFollow.js)
   '/v1/staff/follow',
+  // STAFF-PANEL5-MESSAGE: Message on screen - one sent, and each one's state (staffMessage.js); and the game's two: the
+  // messages waiting for its player, and one pressed OK (behind the game's own session)
+  '/v1/staff/message', '/v1/staff/messages', '/v1/safety/staff-messages', '/v1/safety/staff-message-ok',
   // PROF1: the professions (professions.js) - a character's tracks, Stores and day, the witnessed pixels, a harvest,
   // a specialisation, a withdrawal to the pack, a region's Court writs and a delivery. Every one behind a session, a
   // registered account's alone, and PROFESSIONS_OPEN's.
