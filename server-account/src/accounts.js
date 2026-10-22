@@ -410,7 +410,7 @@ export async function muteAccount({ db, nowS }, actor, env, { target, minutes })
   if (canModerate(row, env)) return { error: 'protected' };
   const until = minutes ? nowS + minutes * 60 : null;
   // STAFF-PANEL2-FIX (design doc, Weak spots: "A Moderator can lift an Admin's ban" - "Store who set each sanction;
-  // lifting an Admin's needs an Admin"): a mute an Admin set (`mute_admin`, 0153) is lifted or cut short by an Admin
+  // lifting an Admin's needs an Admin"): a mute an Admin set (`mute_admin`, 0156) is lifted or cut short by an Admin
   // alone, and stays the Admin's when another moderator lengthens it
   const adminHeld = row.mute_admin === 1 && isMuted(row, nowS);
   const admin = isDeveloper(actor, env);

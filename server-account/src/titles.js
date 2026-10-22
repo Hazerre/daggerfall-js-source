@@ -270,7 +270,7 @@ export const TIER_GLYPH = Object.freeze({ dungeonmaster: 'dm', disciple: 'discip
 export const TIER_AURA = Object.freeze({ aegis: 'oblivionward', primarch: 'radiance', shadowfang: 'shadowcloak', crystalfist: 'resonance', wikimaid: 'lilacwarren' });   // WIKIMAID: the Lilac Warren; CRYSTAL-FIST: the Crystal Resonance; PRIMARCH: the Golden Radiance; SHADOW-CLOAK (2026-10-04, the owner, for SirMcMobdon: "I want to build a new unique AURA specifically for his account. A holo shadow cloak with red accents. Extremely detailed"): the Holo Shadow Cloak
 
 /** STAFF-PANEL2-FIX (design doc, Weak spots: "Cutting off a staff member misses most doors" - "A stored suspended flag is
- *  checked in every role path"): a staff member an owner cut off (`players.staff_suspended`, migration 0153, staff.js
+ *  checked in every role path"): a staff member an owner cut off (`players.staff_suspended`, migration 0156, staff.js
  *  /v1/staff/cut) holds no staff role while it stands - not a developer, not a moderator, and no title whose glyph opens
  *  the staff's commands (net/staffCommands.js STAFF_GLYPHS) - so the panel, the game's /v1/mod doors, Discord and the
  *  next token's glyphs all read it at once. @param {any} player */

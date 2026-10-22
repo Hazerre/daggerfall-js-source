@@ -150,7 +150,7 @@ export async function banAccount({ db, nowS }, actor, env, { target, name, days,
   const until = keepLonger && isBanned(row, nowS) ? Math.max(asked, bannedUntil(row)) : asked;
   const why = reasonOf(reason) ?? (until !== asked ? (row.ban_reason ?? null) : null);
   // STAFF-PANEL2-FIX (design doc, Weak spots: "A Moderator can lift an Admin's ban"): a ban an Admin set (`ban_admin`,
-  // 0153) is cut short by an Admin alone, and stays the Admin's when another moderator lengthens it; who set the ban that
+  // 0156) is cut short by an Admin alone, and stays the Admin's when another moderator lengthens it; who set the ban that
   // stands is kept beside it (`banned_by`), as MOD1's `muted_by` is beside a mute
   const adminHeld = row.ban_admin === 1 && isBanned(row, nowS);
   const admin = isDeveloper(actor, env);

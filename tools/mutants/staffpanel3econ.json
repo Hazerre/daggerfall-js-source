@@ -591,7 +591,7 @@
   },
   {
     "name": "STAFF-PANEL3-ECON-index-trades-b-gone",
-    "file": "server-account/migrations/0148_staff_players.sql",
+    "file": "server-account/migrations/0151_staff_players.sql",
     "old": "CREATE INDEX IF NOT EXISTS realm_trades_b_player ON realm_trades (b_player, created_at) WHERE b_player IS NOT NULL;",
     "new": "-- gone",
     "why": "a trade's second side walks the table",
@@ -602,7 +602,7 @@
   },
   {
     "name": "STAFF-PANEL3-ECON-index-escrow-order",
-    "file": "server-account/migrations/0150_staff_economy.sql",
+    "file": "server-account/migrations/0153_staff_economy.sql",
     "old": "WHERE dst_kind = 'escrow' OR src_kind = 'escrow';",
     "new": "WHERE src_kind = 'escrow' OR dst_kind = 'escrow';",
     "why": "the escrow's sum walks the ledger (a partial index's WHERE must be the statement's own)",
@@ -612,7 +612,7 @@
   },
   {
     "name": "STAFF-PANEL3-ECON-index-rich-floor",
-    "file": "server-account/migrations/0150_staff_economy.sql",
+    "file": "server-account/migrations/0153_staff_economy.sql",
     "old": "WHERE wealth >= 250000;",
     "new": "WHERE wealth >= 200000;",
     "why": "the index's floor is not the module's",
@@ -622,7 +622,7 @@
   },
   {
     "name": "STAFF-PANEL3-ECON-index-vault-who-gone",
-    "file": "server-account/migrations/0150_staff_economy.sql",
+    "file": "server-account/migrations/0153_staff_economy.sql",
     "old": "CREATE INDEX IF NOT EXISTS idx_guild_vault_log_who ON guild_vault_log (who, at);",
     "new": "-- gone",
     "why": "a player's vault moves walk the log",

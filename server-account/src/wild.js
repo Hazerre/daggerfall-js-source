@@ -64,6 +64,7 @@ import { prepareRealmRecord, seizeRealmRecord, realmAtOf, realmActFirst, recordM
 import { ledgerKeyOf } from './judge.js';
 import { piecesBarred, knownCopySteps } from './ledger.js';
 import { isFrozen } from './staffFreeze.js';   // STAFF-PANEL5-FREEZE: a fall naming a frozen account
+import { seaKillSteps } from './seaBounty.js';   // SEA-BOUNTY: a kill at sea, written with its fall
 
 /** How long a fall's row is kept (its receipt's hour, and the room's remains' ten minutes past its respawn's two). */
 export const WILD_FALLS_KEEP_S = 2 * 3600;
@@ -121,7 +122,7 @@ async function answerOf(/** @type {any} */ ctx, /** @type {CryptoKey} */ signing
  */
 export async function wildFall(ctx, player, body, { gateKey, signing }, again = false) {
   if (!signing) return { error: 'no-signing-key' };
-  let fallen = player.id, killer = null, charId = null, r = null, w = -1, wt = null, seize = false;
+  let fallen = player.id, killer = null, charId = null, r = null, w = -1, wt = null, seize = false, sea = null;
   if (body?.receipt !== undefined) {
     if (!gateKey) return { error: 'no-gate-key' };
     const v = await verifyWildReceipt(body.receipt, gateKey, { subtle: ctx.subtle, nowS: ctx.nowS });
@@ -131,6 +132,7 @@ export async function wildFall(ctx, player, body, { gateKey, signing }, again = 
     if (!c.c) return { error: 'no-realm-character' };
     ({ f: fallen, k: killer, c: charId, r, w } = c);
     wt = Array.isArray(c.wt) ? c.wt : null;
+    sea = c;   // SEA-BOUNTY: the room it fell in and its killer's character - a kill at sea, written with the fall
     if (player.id === c.k) {
       if (ctx.nowS < c.i + WILD_FALL_GRACE_S) return { error: 'grace' };
       seize = true;
@@ -221,6 +223,9 @@ export async function wildFall(ctx, player, body, { gateKey, signing }, again = 
     // MAC (2026-10-14): the killer's piece, held - in the batch that took it off the record, or neither lands
     ...(escrow ? [ctx.db.prepare("INSERT INTO wild_escrow (r, player, char_id, killer, rec, at, until_s, state) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'held')")
       .bind(escrow.r, escrow.player, escrow.char_id, escrow.killer, escrow.rec, escrow.at, escrow.until_s)] : []),
+    // SEA-BOUNTY (seaBounty.js): a fall at sea at another's hand - the bounties on the fallen claimed for its killer, in the
+    // batch that writes the fall, or neither lands
+    ...seaKillSteps(ctx.db, sea, ctx.nowS),
   ];
   try { await ctx.db.batch(steps); } catch (e) {
     await dropIfUnnamed(ctx.db, ctx.bucket, fallen, charId, moved.key);
