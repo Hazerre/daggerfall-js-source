@@ -18,8 +18,9 @@
 //     (`staff-remove-pending` - roll back first, then remove), and its preview says what it will not undo: the Stores,
 //     the Drakes and the market purse live outside the save.
 //   - "Unexplained gold and XP" is WEALTH PAST THE ALLOWANCE (verdict.js's `measure`/`budget` findings), the gold apart from
-//     the goods (the finding's `gold`), XP read from the progression's hours (progress.js) - most urgent first, paged, kept
-//     GAINS_KEEP_MS so the panel never re-reads it on every open (design doc "Server load").
+//     the goods (the finding's `goods`, the rest of that wealth its gold), XP read from the progression's hours
+//     (progress.js) - most urgent first, paged, kept GAINS_KEEP_MS so the panel never re-reads it on every open (design
+//     doc "Server load").
 //   - Remove from a player takes the piece on a path of its own (realm.js prepareRealmRecord `take`): the repair path
 //     refuses copied pieces, which are what staff remove. The record moves one save on with its seat taken, so the
 //     player's game's next save is refused; the piece goes to the 30-day store (staff_evidence, migration 0152) and its
@@ -27,8 +28,10 @@
 //     the ledger contests (another holds it, or copies are known) needs `trail: true` - the design's "require a trail
 //     check before Remove" - and the preview names the trail; a copy written down on the character itself needs its
 //     trail check recorded first (staffCensus.js /v1/staff/contested/trail).
-//   - Remove from market is market.js marketRemove `keep`: the listing ends and its goods are kept, not returned.
-//   - Every removal names a reason and a note, and Put back undoes it within 30 days.
+//   - Remove from market is market.js marketRemove `keep`: the listing ends and its goods are kept, not returned. A listed
+//     piece the ledger contests asks the same trail check as Remove from a player.
+//   - Every removal names a reason and a note, and Put back undoes it within 30 days - the piece back as exactly what it
+//     was: the ledger row the removal took given back, any other left as it stands, and a copy mark where it was found.
 //
 // EVERY LIST PAGES (mob, 19:25Z: "put inf scroll in anything that pull lists"): `from` the offset of the next page,
 // answered as `next` while more stand.
@@ -91,6 +94,18 @@ const charRow = (/** @type {any} */ db, /** @type {unknown} */ id) => (typeof id
 const removalKept = (/** @type {any} */ db, /** @type {string} */ charId, /** @type {number} */ nowS) => db.prepare(
   "SELECT id FROM staff_evidence WHERE char_id = ?1 AND kind = 'player' AND state = 'kept' AND until > ?2 LIMIT 1",
 ).bind(charId, nowS).first();
+/** THE LEDGER'S TRAIL of a piece's key (design doc weak spots: "Copies found ... can blame an innocent player ... require a
+ *  trail check before Remove"): who holds it and since when, a claim on it, and every copy written down. Remove from a
+ *  player and Remove from market both ask it. */
+const trailOf = async (/** @type {any} */ db, /** @type {string} */ key) => {
+  const [uid, copies] = await Promise.all([
+    db.prepare('SELECT char_id, player, state, at, claim_char, claim_at FROM item_uids WHERE uid = ?1').bind(key).first(),
+    db.prepare('SELECT char_id, at, trail_at FROM item_dupes WHERE uid = ?1 ORDER BY at LIMIT 20').bind(key).all(),
+  ]);
+  return { uid, dupes: /** @type {any[]} */ (copies?.results ?? []) };
+};
+/** The ledger row's columns, as Put back finds them and leaves them (a row its removal did not take). */
+const UID_COLS = Object.freeze(['player', 'char_id', 'seen_seq', 'state', 'fp', 'claim_char', 'claim_at', 'at']);
 
 /**
  * A TRADE HOLD'S LEVEL, and why - from what the judge already wrote on the row (verdict.js) and its newest finding.
@@ -160,15 +175,18 @@ export async function gainsRanked(db, nowS, days) {
     const past = Number(c.past) || 0;
     const a = xpOf.get(c.player) ?? null;
     const score = Math.max(past / cap, a?.score ?? 0);
-    const gold = Number.isSafeInteger(d.gold) ? d.gold : null;
+    // the goods the verdict wrote (judge.js goodsOf, wealthOf's own worth), and the gold the rest of that same wealth - the
+    // debt off it (FLAW REVIEW: gold read by customs' measure, the loan never off it, made the goods short, even below nothing)
     const wealth = Number.isSafeInteger(d.wealth) ? d.wealth : null;
+    const goods = Number.isSafeInteger(d.goods) ? d.goods : null;
+    const gold = wealth != null && goods != null ? wealth - goods : null;
     const why = [`wealth ${past} past the allowance in ${c.n} gain${Number(c.n) === 1 ? '' : 's'}`];
-    if (gold != null && wealth != null) why.push(`as last judged: gold ${gold}, items ${wealth - gold}`);
+    if (gold != null) why.push(`as last judged: gold ${gold}, items ${goods}`);
     if (c.held) why.push(`trade held (${c.held})`);
     if (a) why.push(...xpWhy(a));
     return {
       char: { id: c.id, name: c.name }, account: accountOf(c), level: levelBy(score), why, score, last: Math.max(Number(c.last), a?.last ?? 0),
-      wealth: { past, gained: Number(c.gained) || 0, times: Number(c.n), now: wealth, gold, items: gold != null && wealth != null ? wealth - gold : null, held: c.held ?? null },
+      wealth: { past, gained: Number(c.gained) || 0, times: Number(c.n), now: wealth, gold, items: goods, held: c.held ?? null },
       xp: a ? a.streams : null,
     };
   });
@@ -230,6 +248,11 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
     await (r?.error ? audit(act, target, { ...detail, error: r.error }, { outcome: 'failed' }) : audit(act, target, detail)).run();
     return r;
   };
+  /** A CONTESTED PIECE (trailOf) is removed only with `trail: true` - and a copy written down on `charId`, the character it
+   *  is taken from, only once its trail check is recorded (STAFF-PANEL4-CENSUS's contract: staffCensus.js
+   *  /v1/staff/contested/trail, item_dupes.trail_at) - a confirm in the preview is not that check. */
+  const trailRefused = (/** @type {boolean} */ contested, /** @type {any[]} */ dupes, /** @type {string|null} */ charId) =>
+    contested && (body.trail !== true || dupes.some((d) => d.char_id === charId && d.trail_at == null));
 
   if (path === '/v1/staff/trade-holds') {
     const sort = body.sort === 'newest' ? 'newest' : 'urgent';
@@ -237,7 +260,7 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
     const rows = (await db.prepare(`SELECT c.id, c.name, c.player, p.handle, p.guest_name, c.held, c.held_at, c.held_until, c.strikes, c.law_holds, c.dupes, c.review,
         c.wealth, c.allowance, c.lease, c.lease_at, c.dead_at,
         (SELECT json_object('kind', f.kind, 'at', f.at, 'detail', json(f.detail)) FROM realm_findings f WHERE f.char_id = c.id AND f.kind != 'staff' ORDER BY f.id DESC LIMIT 1) AS finding,
-        (SELECT json_object('at', f.at, 'detail', json(f.detail)) FROM realm_findings f WHERE f.char_id = c.id AND f.kind = 'staff' ORDER BY f.id DESC LIMIT 1) AS staff
+        (SELECT json_object('at', f.at, 'detail', json(f.detail)) FROM realm_findings f WHERE f.char_id = c.id AND f.kind = 'staff' AND json_extract(f.detail, '$.act') = 'hold' ORDER BY f.id DESC LIMIT 1) AS staff
       FROM realm_characters c LEFT JOIN players p ON p.id = c.player
       WHERE c.held IS NOT NULL OR c.review IS NOT NULL ORDER BY c.held_at DESC LIMIT ?1`).bind(HOLDS_RANKED_MAX).all())?.results ?? [];
     const ranked = rows.map((r) => {
@@ -298,13 +321,24 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
     const detail = { listing: id.slice(0, 40), reason, note, char: row?.char_id ?? null };
     if (!reason) return said(act, row?.seller ?? null, detail, { error: 'staff-reason' });
     if (!note) return said(act, row?.seller ?? null, detail, { error: 'staff-note' });
+    // from here the act's ONE audit row is written by the shared act itself, in its own batch, with its outcome (market.js
+    // marketRemove `audit` - FLAW REVIEW: the game's door wrote none), never a second one here
+    const inside = (/** @type {object} */ extra) => (/** @type {{ target: string|null, okIf?: any, error?: string }} */ how) =>
+      audit(act, how.target, { ...detail, ...extra, ...(how.error ? { error: how.error, evidence: undefined } : {}) }, how.okIf ? { okIf: how.okIf } : { outcome: 'failed' });
     if (act === 'market-pull') {
-      // Pull: the listing ends and its goods go back to the seller on their next read (market.js marketRemove, unchanged)
-      return said(act, row?.seller ?? null, detail, await marketRemove(c, me, env, { listing: id }));
+      // Pull: the listing ends and its goods go back to the seller on their next read (market.js marketRemove)
+      return marketRemove(c, me, env, { listing: id }, { audit: inside({}) });
     }
     // Remove: the goods kept here 30 days instead, and the piece's ledger row marked taken (ledger.js SEIZED)
     const item = row ? (l?.item ?? row.escrowed ?? null) : null;
     const key = row ? (l?.kind === 'item' ? ledgerKeyOf(parse(l.item)) : row.provenance ?? null) : null;
+    if (key) {
+      // THE TRAIL CHECK Remove from a player asks (FLAW REVIEW: a contested piece was seized here unasked): copies of the
+      // piece written down, or its row not the market's own unclaimed hold (another holds it, a claim on it)
+      const { uid, dupes } = await trailOf(db, key);
+      const contested = dupes.length > 0 || (!!uid && (uid.state !== 'escrow' || uid.char_id !== '' || uid.claim_char != null));
+      if (trailRefused(contested, dupes, row?.char_id ?? null)) return said(act, row?.seller ?? null, { ...detail, key }, { error: 'staff-trail' });
+    }
     const eid = mintId(rand);
     const table = l ? 'listing' : 'auction';
     const also = (/** @type {string} */ nonce, /** @type {string} */ t) => (t !== table ? [] : [
@@ -316,8 +350,8 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
       ...(key ? [db.prepare(`UPDATE item_uids SET char_id = ?2, claim_char = NULL, claim_at = NULL, at = ?3 WHERE uid = ?1 AND state = 'escrow' AND char_id = ''
         AND EXISTS (SELECT 1 FROM staff_evidence WHERE id = ?4)`).bind(key, SEIZED, nowS, eid)] : []),
     ]);
-    const r = await marketRemove(c, me, env, { listing: id }, { keep: true, also });
-    return said(act, row?.seller ?? null, { ...detail, evidence: r.error ? undefined : eid, key }, r.error ? r : { ok: true, evidence: eid, until: nowS + EVIDENCE_KEEP_S });
+    const r = await marketRemove(c, me, env, { listing: id }, { keep: true, also, audit: inside({ evidence: eid, key }) });
+    return r.error ? r : { ok: true, evidence: eid, until: nowS + EVIDENCE_KEEP_S };
   }
 
   if (path === '/v1/staff/evidence/return') {
@@ -343,12 +377,24 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
       }
       return said('evidence-return', ev.player, detail, { ok: true, evidence: ev.id, kind: ev.kind });
     }
-    // a player's: the piece back into the pack of the record as it stands, one save on (the take's way, run back), and
-    // its ledger row the record's again with no copy written against it (ledgerMoves' `entered`, which a key the record
-    // already shows never reaches) - a record that already shows the piece again gets no second one (`shown`)
+    // a player's: the piece back into the pack of the record as it stands, one save on (the take's way, run back) - a
+    // record that already shows the piece again gets no second one (`shown`) - and THE LEDGER AS THE REMOVAL FOUND IT
+    // (FLAW REVIEW: Put back handed the row to the record a copy was taken from, off its real holder, and cleared the copy
+    // mark): the row the removal took (`seized`, still taken) the record's again; any other row - another record's piece,
+    // the market's, one taken from another record - left exactly as it stands, over what ledgerMoves' `entered` writes; and
+    // the record's own copy mark kept where the removal found one (`copy`), else cleared - a save that showed the taken
+    // piece again was written a copy of a row staff held. The batch is refused if that row moves meanwhile.
     const row = await charRow(db, ev.char_id);
     if (!row) return said('evidence-return', ev.player, detail, { error: 'no-realm-character' });
     if (row.dead_at != null) return said('evidence-return', ev.player, detail, { error: 'dead' });
+    const took = parse(ev.detail) ?? {};
+    const [uidNow, copyNow] = ev.key ? await Promise.all([
+      db.prepare(`SELECT ${UID_COLS.join(', ')} FROM item_uids WHERE uid = ?1`).bind(ev.key).first(),
+      db.prepare('SELECT * FROM item_dupes WHERE uid = ?1 AND char_id = ?2').bind(ev.key, row.id).first(),
+    ]) : [null, null];
+    const mine = took.seized === true && uidNow?.state === 'escrow' && uidNow.char_id === SEIZED;
+    const uidVals = uidNow ? UID_COLS.map((k) => uidNow[k]) : [];
+    const copyCols = copyNow && (!mine || took.copy === true) ? Object.keys(copyNow) : [];
     const piece = parse(ev.item);
     let shown = false;
     const prep = await seizeRealmRecord(c, row.player, row.id, (save) => {
@@ -362,11 +408,15 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
     if ('error' in prep) return said('evidence-return', ev.player, detail, { error: prep.error });
     try {
       await db.batch([
-        back, mustChange(db), ...prep.steps,
+        back, mustChange(db),
+        ...(uidNow ? [db.prepare(`UPDATE item_uids SET at = at WHERE uid = ?1 AND ${UID_COLS.map((k, i) => `${k} IS ?${i + 2}`).join(' AND ')}`).bind(ev.key, ...uidVals), mustChange(db)] : []),
+        ...prep.steps,
         ...(ev.key ? [
-          db.prepare(`UPDATE item_uids SET player = ?3, char_id = ?4, seen_seq = ?5, state = 'held', claim_char = NULL, claim_at = NULL, at = ?6
-            WHERE uid = ?1 AND state = 'escrow' AND char_id = ?2`).bind(ev.key, SEIZED, row.player, row.id, prep.seq, nowS),
+          ...(mine ? [db.prepare(`UPDATE item_uids SET player = ?3, char_id = ?4, seen_seq = ?5, state = 'held', claim_char = NULL, claim_at = NULL, at = ?6
+            WHERE uid = ?1 AND state = 'escrow' AND char_id = ?2`).bind(ev.key, SEIZED, row.player, row.id, prep.seq, nowS)]
+            : uidNow ? [db.prepare(`UPDATE item_uids SET ${UID_COLS.map((k, i) => `${k} = ?${i + 2}`).join(', ')} WHERE uid = ?1`).bind(ev.key, ...uidVals)] : []),
           db.prepare('DELETE FROM item_dupes WHERE uid = ?1 AND char_id = ?2').bind(ev.key, row.id),
+          ...(copyCols.length ? [db.prepare(`INSERT INTO item_dupes (${copyCols.join(', ')}) VALUES (${copyCols.map((_, i) => `?${i + 1}`).join(', ')})`).bind(...copyCols.map((k) => copyNow[k]))] : []),
         ] : []),
         staffFinding(db, row, nowS, { act: 'put-back', by, note, evidence: ev.id, key: ev.key ?? null, from: row.seq, to: prep.seq, shown }),
       ]);
@@ -381,8 +431,9 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
   // ═══ ONE ACCOUNT'S EVERY CHARACTER HELD (design doc weak spots: "Offer 'hold every character on this account'") ═══
   if (path === '/v1/staff/trade-hold' && body.id === undefined) {
     const account = await findAccount(db, { target: body.target, name: body.name });
-    if ('error' in account) return account;
     const note = noteOf(body.note);
+    // an account the lookup cannot name is a failed hold, written down (FLAW REVIEW: it left no row)
+    if ('error' in account) return said('trade-hold', null, { all: true, asked: String(body.target ?? body.name ?? '').slice(0, 64), note }, account);
     const chars = (await db.prepare('SELECT id, name FROM realm_characters WHERE player = ?1 AND dead_at IS NULL ORDER BY created_at').bind(account.id).all())?.results ?? [];
     const held = [];
     for (const ch of chars) {
@@ -481,25 +532,26 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
    * taken (realm.js seizeRealmRecord `take`), the piece kept 30 days, its ledger row marked taken (SEIZED), all in one batch.
    */
   async function takeAct() {
-    if (row.dead_at != null) return { error: 'dead' };
-    if (!c.bucket || !row.obj) return { error: 'no-data' };
-    const save = parse(await realmSaveTextOf(await c.bucket.get(row.obj)));
-    if (!save || typeof save !== 'object') return { error: 'no-data' };
-    const lists = possessedItemLists(save);
     let at = Array.isArray(body.at) && body.at.length === 2 && body.at.every(Number.isSafeInteger) ? /** @type {[number, number]} */ (body.at) : null;
+    // a confirmed removal refused before its piece is read is written down failed as any other (FLAW REVIEW: it left no row)
+    const early = (/** @type {string} */ error) => (body.confirm === true
+      ? said('item-take', row.player, { ...ch, key: typeof body.key === 'string' ? body.key.slice(0, 40) : null, at }, { error }) : { error });
+    if (row.dead_at != null) return early('dead');
+    if (!c.bucket || !row.obj) return early('no-data');
+    const save = parse(await realmSaveTextOf(await c.bucket.get(row.obj)));
+    if (!save || typeof save !== 'object') return early('no-data');
+    const lists = possessedItemLists(save);
     if (!at && typeof body.key === 'string') {
       for (let li = 0; li < lists.length && !at; li++) { const ii = lists[li].findIndex((it) => ledgerKeyOf(it) === body.key); if (ii >= 0) at = [li, ii]; }
     }
     const piece = at ? lists[at[0]]?.[at[1]] : null;
-    if (!at || !piece || typeof piece !== 'object' || (typeof body.key === 'string' && ledgerKeyOf(piece) !== body.key)) return { error: 'staff-no-piece' };
+    if (!at || !piece || typeof piece !== 'object' || (typeof body.key === 'string' && ledgerKeyOf(piece) !== body.key)) return early('staff-no-piece');
     const key = ledgerKeyOf(piece);
-    // THE LEDGER'S TRAIL (design doc weak spots: "Copies found ... can blame an innocent player ... require a trail check
-    // before Remove"): who holds the piece's key and since when, a claim on it, and every copy written down
-    const [uid, copies] = key ? await Promise.all([
-      db.prepare('SELECT char_id, player, state, at, claim_char, claim_at FROM item_uids WHERE uid = ?1').bind(key).first(),
-      db.prepare('SELECT char_id, at, trail_at FROM item_dupes WHERE uid = ?1 ORDER BY at LIMIT 20').bind(key).all(),
-    ]) : [null, null];
-    const dupes = copies?.results ?? [];
+    // THE LEDGER'S TRAIL (trailOf), and whether this record carries a copy mark of its own on the key (Put back keeps one)
+    const [{ uid, dupes }, own] = key ? await Promise.all([
+      trailOf(db, key),
+      db.prepare('SELECT 1 AS y FROM item_dupes WHERE uid = ?1 AND char_id = ?2').bind(key, row.id).first(),
+    ]) : [{ uid: null, dupes: [] }, null];
     const twice = key ? lists.flat().filter((it) => ledgerKeyOf(it) === key).length > 1 : false;
     const contested = !!key && (twice || dupes.length > 0 || (!!uid && (uid.char_id !== row.id || uid.state !== 'held' || uid.claim_char != null)));
     const trail = key ? {
@@ -518,10 +570,7 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
     if (!reason) return said('item-take', row.player, detail, { error: 'staff-reason' });
     if (!note) return said('item-take', row.player, detail, { error: 'staff-note' });
     if (body.seq !== row.seq) return said('item-take', row.player, detail, { error: 'seq' });   // the record moved since staff looked
-    // STAFF-PANEL4-CENSUS's contract: a copy written down on THIS character waits for its recorded trail check
-    // (staffCensus.js /v1/staff/contested/trail, item_dupes.trail_at) - a confirm in the preview is not that check
-    const unchecked = dupes.some((/** @type {any} */ d) => d.char_id === row.id && d.trail_at == null);
-    if (contested && (body.trail !== true || unchecked)) return said('item-take', row.player, detail, { error: 'staff-trail' });
+    if (trailRefused(contested, dupes, row.id)) return said('item-take', row.player, detail, { error: 'staff-trail' });
     const want = JSON.stringify(piece);
     const where = /** @type {[number, number]} */ (at);
     const prep = await seizeRealmRecord(c, row.player, row.id, (s) => {
@@ -545,7 +594,9 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
         ] : []),
         db.prepare(`INSERT INTO staff_evidence (id, kind, player, char_id, source, item, key, detail, reason, note, by_id, by_name, at, until)
           VALUES (?1, 'player', ?2, ?3, NULL, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`)
-          .bind(eid, row.player, row.id, want, key, JSON.stringify({ at, from: row.seq, to: prep.seq }), reason, note, me.id, displayName(me), nowS, nowS + EVIDENCE_KEEP_S),
+          // `seized`: the row this take marks taken - the record's own, or none the ledger knew (the upsert above); `copy`:
+          // the record's own copy mark it found - what Put back gives back, and keeps
+          .bind(eid, row.player, row.id, want, key, JSON.stringify({ at, from: row.seq, to: prep.seq, seized: !uid || uid.char_id === row.id, copy: !!own }), reason, note, me.id, displayName(me), nowS, nowS + EVIDENCE_KEEP_S),
         staffFinding(db, row, nowS, { act: 'take', by, note, reason, evidence: eid, key, from: row.seq, to: prep.seq }),
       ]);
     } catch {
