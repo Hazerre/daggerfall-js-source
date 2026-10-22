@@ -410,7 +410,7 @@ test('the Morrowind model is built and painted (PISTOLET-MODEL) - the bake repro
   const row = OWN_MW_MODELS[PISTOLET_TEMPLATE];
   assert.equal(row.animateAs, MW_WEAPON_TYPE.MarksmanThrown, 'the one-handed ranged act Morrowind has');
   assert.equal(row.borrowsAmmo, false);
-  assert.equal(row.holdAs, undefined, 'no long-gun stance');
+  assert.equal(row.holdAs, 'pistol', 'its own stance, not the long gun\'s');   // PIN MOVED (PISTOL-STANCE): it held the clip's, a throw - test/combat/pistolstance.test.js pins the stance
   assert.equal(OWN_MW_GILDED[PISTOLET_TEMPLATE].model, 'pistolet_gilded.nif');
 });
 

@@ -15,7 +15,7 @@ import { loadPistoletArt, pistoletGildKeep, flashMask, cutStrip } from '../../sr
 import { gildFrame } from '../../src/combat/thunderlockArt.js';
 import { WEAPON_TYPES } from '../../src/combat/fpsWeapon.js';
 import { readPng } from '../../tools/pngIO.mjs';
-import { OWN_MW_MODELS, OWN_MW_GILDED, PISTOL_GRIP_ATTITUDE, GUN_GRIP_ATTITUDE } from '../../src/characters/ownModels/ownWeaponModels.js';
+import { OWN_MW_MODELS, OWN_MW_GILDED, PISTOL_GRIP_ATTITUDE, PISTOL_FIST_UP, GUN_GRIP_ATTITUDE } from '../../src/characters/ownModels/ownWeaponModels.js';
 import { resolveWeaponParts, resolveOffWeaponParts, archiveHas } from '../../src/combat/fpArm.js';
 import { PISTOLET_TEMPLATE, THUNDERLOCK_TEMPLATE } from '../../src/characters/thunderlockIds.js';
 import { legendariesFor } from '../../src/systems/loot/lootRarity.js';
@@ -100,7 +100,11 @@ test('D16: the Morrowind rows hold the pistol\'s own grip - its 12-degree rake t
   assert.notEqual(PISTOL_GRIP_ATTITUDE, GUN_GRIP_ATTITUDE);
   const r = 12 * Math.PI / 180;
   assert.ok(Math.abs(PISTOL_GRIP_ATTITUDE.a[1] - Math.cos(r)) < 1e-12 && Math.abs(PISTOL_GRIP_ATTITUDE.a[4] - Math.sin(r)) < 1e-12, 'twelve degrees');
-  assert.deepEqual([...PISTOL_GRIP_ATTITUDE.t], [0, 0, 0], 'the grip\'s middle at the bone - no offset');
+  // PIN MOVED (PISTOL-STANCE, the owner: "the grip is too high up when held"): the grip's middle sat at the bone, and the
+  // fist closed on its lower half; the fist stands PISTOL_FIST_UP up the grip now - the mesh moved down the grip's own way
+  const up = [0, Math.sin(r), Math.cos(r)], A = PISTOL_GRIP_ATTITUDE.a;
+  const want = [0, 1, 2].map((i) => -PISTOL_FIST_UP * (A[i * 3] * up[0] + A[i * 3 + 1] * up[1] + A[i * 3 + 2] * up[2]));
+  assert.ok(PISTOL_GRIP_ATTITUDE.t.every((v, i) => Math.abs(v - want[i]) < 1e-12), `the fist up the grip (${PISTOL_GRIP_ATTITUDE.t})`);
   assert.equal(OWN_MW_MODELS[THUNDERLOCK_TEMPLATE].attitude, GUN_GRIP_ATTITUDE, 'the Thunderlock keeps the rifle\'s');
 });
 

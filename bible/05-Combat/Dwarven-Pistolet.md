@@ -256,10 +256,12 @@ texture it. This is bad".
 Its rows (`characters/ownModels/ownWeaponModels.js`):
 - It hangs on the Weapon Bone, and a pair's second on the Weapon Bone Left (`fpArm.js resolveOffWeaponParts` reads the
   same table).
-- `PISTOL_GRIP_ATTITUDE` puts the grip through the fist at its own 12-degree rake.
+- `PISTOL_GRIP_ATTITUDE` puts the grip through the fist at its own 12-degree rake, the fist high on it under the guard
+  (PISTOL-STANCE, below).
 - Morrowind has no pistol, so it borrows **MarksmanThrown (11)**, Morrowind's one one-handed ranged act. It shoots
   rather than swings (the shot rides the arm's "shoot release", as the Thunderlock's does) and has no ammunition arm, so
-  nothing is drawn through the pistol.
+  nothing is drawn through the pistol. The throw clip only TIMES the shot and the draw: while the pistol is drawn the
+  arms are the pistol's own stance's (`holdAs: 'pistol'`, PISTOL-STANCE).
 - `fieldgunmw.test.js` walks every row: each preloads and resolves through the arm against the skeleton fixture.
 
 **Not seen on a Morrowind body.** Morrowind's data is not freeware and is not in this container, so the model was
@@ -272,11 +274,68 @@ checked:
   meshes were only path-resolved before). The pair's left pistol keeps the grip's attitude on the Weapon Bone Left (C6:
   it hung in the raw mesh's frame).
 
-It was not checked on a character. MarksmanThrown's clip is a throw, not a pistol's raise. **A pistol's own stance**
-(RIFLE-STANCE's kind, one-handed, the arm up and aimed) **is the named follow-up**, for whoever has the data to tune it.
+It was not seen on Morrowind's own bodies: the stance below was chosen on renders of the vendored retail skeleton.
+
+## PISTOL-STANCE (2026-10-22): held as a pistol, the idle and the aim
+
+The owner, of the borrowed throw: "Yeah it needs its own stance. Same workflow we did to detail all the other
+animations. It needs an idle and active state just like the thunderlock."
+
+**Solved onto the gun** (`combat/gun/pistolStance.js`, RIFLE-STANCE's way - `Dwarven-Thunderlock.md`). While the pistol
+is drawn, each frame places the gun in one of two stances, eased between them, and the climb rig's own solver puts the
+hands on it through `poseAssembly`'s `hold` slot. Nothing about any skeleton is a number here: the body's frame is read
+off its shoulders and spine (third person) or the eye (first person), every distance a share of the right arm's length.
+- **One pistol**: the right hand on the grip; the empty left hand placed too (`free`), hanging at the side - so the
+  throw clip's empty hand never shows.
+- **A pair**: each hand on its own pistol, the left the right's mirror, on the Weapon Bone Left the mirror makes. That
+  part is placed mirrored in x before its bone (rule 13, `placeAtBone`), so the solver aims the reflected frame - a
+  first cut that aimed the right's frame missed the left wrist by 3 to 4.5 units.
+- **The door** is `combat/gun/gunHold.js`: the row's `holdAs` picks the stance (`'rifle'` the Thunderlock's, `'pistol'`
+  the Pistolet's); `combat/fpArm.js` reads it (`holdsRifle`, `rifleHold` - two expressions, no new lines in
+  `createFpArm`, HOST-SPLIT), and passes `pair` (`offShown`). When the hold stands and when the aim comes up are the
+  rifle's law, unchanged: on once drawn, off for the draw, the sheathe, the stone, a seat or a spell; the aim while it
+  shoots, for 6 s after, and while a foe's harm on the player stands (`rifleStanceStep`, `setCombatReady`).
+
+**Chosen by the owner's eye.** `tools/pistolStanceSheet.mjs` (and its first cut, the option sheets) drew the retail
+biped in the port's steel plate holding the shipped pistol, posed by the real solver, from three sides and through the
+first-person lens. Three idles, three aims, two pairs and three free hands; the owner picked, and said what was wrong:
+- "You can definitely tell the grip is too high up when held" - the fist closed on the grip's LOWER half, the lock and
+  barrel riding over it. Measured in the gun's own frame, retail's upper knuckles stood 0.16 under the grip's middle and
+  the trigger's tip 3.4 over it. `PISTOL_FIST_UP` (2.4, `ownWeaponModels.js`) moves the mesh down the grip's own way in
+  the attitude, so the fist closes from just under the guard to above the butt's flare, the thumb behind the tang. It
+  holds in every pose, the clip's too.
+- "the arms should be protruding more, not as scrunched up to the face" - the first aims stood the grip 0.92 of the arm
+  out, and because the grip rides well ahead of the wrist that bent the elbow to 97 degrees. The aim stands it 1.12 out
+  now (the arm reaches 1.17 straight): the elbow near straight, the gun far before the face.
+- "when duel wielding the mirror is too close together" - the single aim turns in toward the body's middle, and its
+  mirror met the two muzzles before the face. A pair holds its own rows (`pair`): each gun before its own shoulder.
+
+| stance | third person (from the shoulder) | first person (from the eye) |
+|---|---|---|
+| IDLE, "low, muzzle down" | the arm at rest at the side, the muzzle 60 degrees down at the ground ahead | low in the right of the picture, 45 down, turned 22 in |
+| AIM, "arm out, turned in to the eye line" | the arm out to 1.12 of its length (the elbow 148 degrees), the pistol level at eye height, in toward the middle and turned 7 degrees in | right of the crosshair and under it (its top 0.085 of the half-height below), the barrel turned 12 in so its side shows |
+| A PAIR, "each straight out from its own shoulder" | idle: both muzzles down at each side; aim: both arms out (1.15), the guns level and parallel, a shoulders' width apart | one in each lower corner, each turned 8 in; idle low at each side |
+| THE FREE HAND, "at the side" (one pistol) | hanging by the thigh, the fingers loose | low and out of the picture |
+
+**Measured** (the sheet tool prints it): every wrist on its hold in every stance - the reach misses 0 - in both views,
+single and pair.
+
+**Not verified here, and said plainly.** This container has no Morrowind data: the stances were picked on the retail
+biped's own rest and the MW-STEEL4 stand-in (retail's third-person bones with a camera at the eye), not on
+`xbase_anim.1st.nif` or the female and beast bodies. The table is one frozen row for whoever has the data to move it;
+`node tools/pistolStanceSheet.mjs` draws it again. The throw clip still times the shot; no recoil is added to the
+third-person body (the first person keeps MW-GUN-FEEL's kick over the whole view model).
+
+**Pins** (`test/combat/pistolstance.test.js`, 6): the row and the door; the fist high on the grip and closed round it;
+third person (the idle's muzzle down, the aim level with the arm out and turned in, the free hand at the side, a share
+between); a pair (both level, parallel, a shoulders' width apart, each top up); first person (the aim under the crosshair
+and turned in, a pair one each side, the idle lower); the live arm with the shipped pistol (held drawn, the fight up and
+down, a pair's left hand on its own pistol, off when sheathed). `tools/mutants/pistolstance.json`, 15 dead. PIN MOVED:
+`pistolet.test.js` (the row held no stance) and `pistolet_pins.test.js` D16 (the grip's middle at the bone).
 
 ## Departures (Port-Ledger section A, PISTOLET)
 
+- The arms solved onto the pistol while drawn, not the borrowed throw clip's (PISTOL-STANCE, RIFLE-STANCE's departure).
 - The pair of guns: `DUAL_GUN_TYPES` and two of a kind beside Two-Hands' melee law.
 - A gun pair's reload, hand by hand, and the pull that falls to the loaded pistol.
 - A weapon's own Weapon Widget tuning laid over Diverse Weapons' preset.
@@ -284,7 +343,7 @@ It was not checked on a character. MarksmanThrown's clip is a throw, not a pisto
 
 ## What is still open
 
-- **A pistol's own stance on the Morrowind arm** (above).
+- **The stance on Morrowind's own bodies**: picked on the vendored retail skeleton (PISTOL-STANCE, above).
 - **The mixed pair**: a Pistolet beside a sword.
 - **A pistol's own sounds**: the owner picked from the gun lab's clips; a flintlock's pan and ramrod were never searched
   for.

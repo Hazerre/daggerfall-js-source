@@ -1986,6 +1986,10 @@ fight up and down, off through the sheathe). PIN MOVED: `climb6` C16 (the hook b
 the `hold` line). Mutant records whose anchor this slice moved, re-aimed by content and re-run (both dead): `rvn10`'s
 `RVN10-end-keeps-low` and `RVN10-end-keeps-fights` (`endPlayerFights` forgets the harm's time too).
 
+PISTOL-STANCE (2026-10-22, `Dwarven-Pistolet.md`): the arm reaches this stance through `combat/gun/gunHold.js` now, which
+hands each gun the stance its row's `holdAs` names - the Thunderlock's `'rifle'` this one, the Pistolet's `'pistol'` its
+own one-handed hold. This stance, its step and its eases are unchanged; the riflestance pins pass as they stood.
+
 ## RIFLE-AIM-LOW (2026-10-18): the first-person aim under the crosshair
 
 Mac: "the thunderlock in first person (morrowind) when shooting/aiming sits too high on the screen."

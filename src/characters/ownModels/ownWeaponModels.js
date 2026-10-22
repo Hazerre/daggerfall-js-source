@@ -74,12 +74,21 @@ export const GUN_GRIP_ATTITUDE = (() => {
 
 /** PISTOLET: THE DWARVEN PISTOLET'S GRIP through the fist - GUN_GRIP_ATTITUDE's turn at the pistol's own rake (its grip
  *  runs 12 degrees off square to its barrel - the owner's sprite's slope, tools/pistoletArt.mjs BAND, which the modelled
- *  grip keeps: tools/modelPistolet.mjs GRIP_RAKE), its grip's middle already at the mesh's origin (the model puts it
- *  there), so no offset. */
+ *  grip keeps: tools/modelPistolet.mjs GRIP_RAKE).
+ *  PISTOL-STANCE (2026-10-22, the owner, of the first renders: "You can definitely tell the grip is too high up when
+ *  held"): THE FIST CLOSES HIGH ON THE GRIP, under the guard - `PISTOL_FIST_UP` model units up the grip from its middle.
+ *  The grip's middle at the bone (the first cut) closed retail's fist on the grip's LOWER half: measured in the gun's
+ *  own frame, its upper fingers' knuckles (Finger1) stood 0.16 under the middle and its lower (Finger2) 3.04, the
+ *  trigger's tip 3.4 above - the whole lock and barrel riding over the fist. Moved up 2.4, the upper knuckles stand 2.2
+ *  up the grip, the fingers wrapping it from just under the guard down to the butt's flare. */
 const PISTOL_GRIP_RAKE = 12;
+export const PISTOL_FIST_UP = 2.4;
 export const PISTOL_GRIP_ATTITUDE = (() => {
   const r = (PISTOL_GRIP_RAKE * Math.PI) / 180, c = Math.cos(r), s = Math.sin(r);
-  return Object.freeze({ a: Object.freeze([0, c, -s, 0, s, c, 1, 0, 0]), t: Object.freeze([0, 0, 0]) });
+  const a = [0, c, -s, 0, s, c, 1, 0, 0];
+  // the grip's way in the mesh (0, sin, cos), turned onto the bone: the mesh moved DOWN it so the fist stands up it
+  const up = [a[1] * s + a[2] * c, a[4] * s + a[5] * c, a[7] * s + a[8] * c];
+  return Object.freeze({ a: Object.freeze(a), t: Object.freeze(up.map((v) => -PISTOL_FIST_UP * v)) });
 })();
 
 export const OWN_MW_MODELS = Object.freeze({
@@ -141,13 +150,16 @@ export const OWN_MW_MODELS = Object.freeze({
   // as for the right). Morrowind has no pistol either: it
   // borrows MarksmanThrown (11, weapontype.hpp) - Morrowind's ONE ONE-HANDED RANGED act: it shoots rather than swings
   // (the shot rides the arm's "shoot release", MW-D42's hold, as the Thunderlock's does) and has no ammunition arm, so
-  // nothing is drawn through the pistol. Its clip is a throw, not a pistol's raise - a pistol's own stance (RIFLE-STANCE's
-  // kind, one-handed) is the named follow-up, bible/05-Combat/Dwarven-Pistolet.md. No `holdAs`: the clip's hold.
+  // nothing is drawn through the pistol. Its clip is a throw, not a pistol's raise - so the arms are the PISTOL-STANCE's
+  // while it is drawn (`holdAs: 'pistol'`, combat/gun/pistolStance.js: the idle low with the muzzle down, the aim with the arm
+  // out; a pair's left on its second pistol), the throw clip timing the shot and the draw beneath, as the crossbow's does
+  // for the Thunderlock's RIFLE-STANCE.
   [PISTOLET_TEMPLATE]: Object.freeze({
     model: 'pistolet.nif',
     bone: 'Weapon Bone',
     animateAs: 11,
     borrowsAmmo: false,
+    holdAs: 'pistol',
     id: 'daggerfall_pistolet',
     name: 'Dwarven Pistolet',
     speed: 1,
