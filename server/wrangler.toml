@@ -111,12 +111,15 @@ SD_DISCORD_ROLE = ""
 # Every herald post is a card (src/net/herald/heraldCard.js) - Dagon's
 # Breach, the Sea Serpent, the Abyss Dungeon and the Battlespire each in
 # its own colour. Name a thread of the gate's channel for a family and
-# its cards go there: a forum channel with one post per event, or a text
-# channel's threads - right-click the thread, Copy Thread ID (Developer
-# Mode on). A family with no thread of its own posts to the gate's
-# thread; with none set at all, everything goes to the channel itself,
-# as before. A FORUM CHANNEL NEEDS GATE_DISCORD_THREAD at least: Discord
-# refuses a forum post with no thread, and a refused post is let go.
+# its cards go there: a forum channel with one post a family (every
+# gate's cards in the gate's post), or a text channel's threads -
+# right-click the thread or the post and copy its ID (Developer Mode
+# on). A family with no thread of its own posts to the gate's thread;
+# with none set at all, everything goes to the channel itself, as
+# before. A thread Discord refuses (no thread of this channel, deleted,
+# locked) is said in the log and the card goes to the channel instead.
+# A FORUM CHANNEL NEEDS GATE_DISCORD_THREAD at least: Discord refuses a
+# forum post with no thread, and a refused post is let go.
 # Each is also a setting a developer changes at run time, with no
 # deploy: `/relay gateThread <id>`, `/relay serpentThread <id>`,
 # `/relay sdThread <id>`, `/relay egThread <id>` (src/net/relayCfg.js).

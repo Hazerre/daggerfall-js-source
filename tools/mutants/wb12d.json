@@ -2403,8 +2403,8 @@
   {
     "name": "AUDIT-WB12d-T-relay-herald-rite-names-lost",
     "file": "server/src/index.js",
-    "old": "place: site?.pl ?? null, by: riteNames(c), n: Object.keys(c.h).length }))",
-    "new": "place: site?.pl ?? null, by: [], n: Object.keys(c.h).length }))",
+    "old": "place: site?.pl ?? null, by: riteNames(c), n: Object.keys(c.h).length }), 'gate')",
+    "new": "place: site?.pl ?? null, by: [], n: Object.keys(c.h).length }), 'gate')",
     "tests": [
       "test/net/gate/wb12d_rite_relay.test.js",
       "test/net/gate/wb12d_rite_law.test.js",

@@ -5,6 +5,7 @@
 // sdThread and egThread - net/relayCfg.js).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import {
   HERALD_FAMILIES, heraldCard, heraldCss, heraldThread, heraldPostUrl, heraldWho, heraldWhen, heraldEmbedSize, heraldWebhook, heraldRole, heraldName, heraldStamp, heraldList,
@@ -18,6 +19,10 @@ import { SERPENT_RING_MAP_CSS } from '../../../src/ui/serpentMapMark.js';
 import { SD_RING_MAP_CSS } from '../../../src/ui/superDungeon/sdMapMark.js';
 import { EG_ARCH_RING_CSS } from '../../../src/ui/eliteGates/egArchMapMark.js';
 import { GATE_PLACE_MAX, SOCIAL_ROOM, SD_KEY } from '../../../src/net/wire.js';
+import { gateTimes } from '../../../src/net/gate/gateLaw.js';
+import { serpentTimes } from '../../../src/net/serpent/serpentLaw.js';
+import { SD_LIFETIME_MS, SD_COOLDOWN_MS } from '../../../src/net/superDungeon/sdLaw.js';
+import { EG_HERALD_KEY } from '../../../src/net/eliteGates/egHerald.js';
 import { RELAY_VERSION } from '../../../src/net/wire.js';
 import { relayCfgSupported, RELAY_CFG_KEY_MIN } from '../../../src/net/relayCfg.js';
 import { OnlineSession } from '../../../src/net/online.js';
@@ -54,10 +59,15 @@ test('HERALD-CARDS the card: one embed - its family\'s name and colour, the titl
 });
 
 test('HERALD-CARDS the bounds: every part of a card is cut to Discord\'s own bound, never refused - a body past one would be refused whole and let go (mutants: a bound lifted; the cut without its ellipsis)', () => {
-  const long = heraldCard({ family: 'spire', moment: 'm'.repeat(3000), title: 't'.repeat(300), text: 'x'.repeat(5000), fields: Array.from({ length: 30 }, (_, i) => [`f${i}`, 'v'.repeat(2000)]), role: ROLE, ping: 'p'.repeat(3000) });
+  const long = heraldCard({ family: 'spire', moment: 'm'.repeat(3000), title: 't'.repeat(300), text: 'x'.repeat(5000), role: ROLE, ping: 'p'.repeat(3000) });
   const e = long.embeds[0];
-  assert.deepEqual([e.title.length, e.description.length, e.fields.length, e.footer.text.length, long.content.length], [HERALD_TITLE_MAX, HERALD_TEXT_MAX, HERALD_FIELDS_MAX, HERALD_FOOTER_MAX, HERALD_CONTENT_MAX]);
-  assert.ok(e.fields.every((f) => f.value.length === HERALD_FIELD_VALUE_MAX && f.value.endsWith('\u2026')));
+  // AUDIT HERALD-CARDS L1: each part to its own bound, and the whole to 6000 (its own pin) - so each part measured alone
+  assert.deepEqual([e.title.length, e.footer.text.length, long.content.length], [HERALD_TITLE_MAX, HERALD_FOOTER_MAX, HERALD_CONTENT_MAX]);
+  assert.equal(heraldCard({ family: 'spire', moment: 'm', title: 't', text: 'x'.repeat(5000) }).embeds[0].description.length, HERALD_TEXT_MAX);
+  const many = heraldCard({ family: 'spire', moment: 'm', title: 't', fields: Array.from({ length: 30 }, (_, i) => [`f${i}`, 'v']) }).embeds[0].fields;
+  assert.equal(many.length, HERALD_FIELDS_MAX);
+  const wide = heraldCard({ family: 'spire', moment: 'm', title: 't', fields: [['f', 'v'.repeat(2000)]] }).embeds[0].fields[0].value;
+  assert.ok(wide.length === HERALD_FIELD_VALUE_MAX && wide.endsWith('\u2026'));
   assert.ok(e.title.endsWith('\u2026') && e.description.endsWith('\u2026'));
   assert.deepEqual([HERALD_TITLE_MAX, HERALD_TEXT_MAX, HERALD_FIELDS_MAX, HERALD_FIELD_VALUE_MAX, HERALD_FOOTER_MAX, HERALD_CONTENT_MAX, HERALD_EMBED_MAX], [256, 4096, 25, 1024, 2048, 2000, 6000], 'Discord\'s own');
 });
@@ -147,18 +157,18 @@ async function withHub(fn, env) {
   r.store.set(SD_KEY, { s: 0, ph: 'gone', r: -1, at: clock, until: clock, next: clock + 10 * 365 * 86_400_000 });
   const posts = [];
   globalThis.fetch = async (url, init) => { posts.push({ url, body: JSON.parse(init.body) }); return { ok: true, status: 204 }; };
-  try { await quiet(() => fn({ r, posts, tick: (ms) => { clock += ms; } })); } finally { Date.now = realNow; globalThis.fetch = realFetch; }
+  try { await quiet(() => fn({ r, posts, tick: (ms) => { clock += ms; }, set: (t) => { clock = t; } })); } finally { Date.now = realNow; globalThis.fetch = realFetch; }
 }
 
 test('HERALD-CARDS relay: each family posts to its own thread when the operator names one, else the gate\'s, else the channel itself - the gate\'s omen, the serpent\'s bells, the Abyss Dungeon\'s rise and the Spire\'s Redoubt each to theirs (mutants: every family to the gate\'s thread; a family\'s own thread ignored; the gate\'s not the fallback)', async () => {
   await withHub(async ({ r, posts }) => {
     assert.deepEqual(r.room._heraldOf().threads, { gate: null, serpent: null, abyss: null, spire: null }, 'none named: the channel itself');
-    await r.room._heraldSend(gateHerald.omenPost({ day: 538 }));
+    await r.room._heraldSend(gateHerald.omenPost({ day: 538 }), 'gate');
     assert.equal(posts.at(-1).url, HOOK, 'as before');
   }, {});
   await withHub(async ({ r, posts }) => {
     assert.deepEqual(r.room._heraldOf().threads, { gate: T_GATE, serpent: T_SEA, abyss: T_GATE, spire: T_EG });
-    await r.room._heraldSend(gateHerald.omenPost({ day: 538 }));
+    await r.room._heraldSend(gateHerald.omenPost({ day: 538 }), 'gate');
     await r.room._heraldSend(serpentOmenPost({ day: 5 }), 'serpent');
     await r.room._heraldSend(sdHeraldPost('rise', { s: 3, r: 17, until: 1.8e12, next: 1.8e12 }), 'abyss');
     await r.room._heraldSend(egHeraldPost({ kind: 'rd', o: 'Mac', w: 10, h: 50, t: 1 }), 'spire');
@@ -206,4 +216,87 @@ test('HERALD-CARDS the client says a thread setting only to a relay that knows i
     assert.equal(s.sendRelayCfg({ k: 'serpentThread', v: T_SEA }), true);
     assert.deepEqual(JSON.parse(sockets[0].sent.at(-1)), { t: 'cfg', k: 'serpentThread', v: T_SEA });
   });
+});
+
+// ═══ AUDIT HERALD-CARDS ══════════════════════════════════════════════════════════════════════════════════════════
+
+const T_ABYSS = '200000000000000003';
+const FAMILY_OF = Object.fromEntries(Object.entries(HERALD_FAMILIES).map(([f, F]) => [F.name, f]));
+
+test('AUDIT HERALD-CARDS M1: every beat posts its cards to its own family\'s thread - the gate\'s omen, the serpent\'s bells, the Abyss Dungeon\'s rise and the Spire\'s Redoubt, each beat driven with all four threads set; the route is read off the card\'s own family (mutants: a beat\'s family dropped, every post to the gate\'s thread)', async () => {
+  const threads = { gate: T_GATE, serpent: T_SEA, abyss: T_ABYSS, spire: T_EG };
+  await withHub(async ({ r, posts, set }) => {
+    const omen = gateTimes(538).omenAt;
+    set(omen); await r.room._heraldBeat(omen);
+    const bells = serpentTimes(611).omenAt;
+    set(bells); await r.room._serpentHeraldBeat(bells);
+    const T0 = Date.UTC(2026, 9, 9, 20, 0, 0);
+    r.store.set(SD_KEY, { s: 2, ph: 'risen', r: 17, at: T0, until: T0 + SD_LIFETIME_MS, next: T0 + SD_LIFETIME_MS + SD_COOLDOWN_MS });
+    r.room._sdRec = undefined;
+    set(T0 + 1000); await r.room._sdHeraldBeat(T0 + 1000);
+    const now = T0 + 2000;
+    r.store.set(EG_HERALD_KEY, { q: [{ i: 1, at: now, kind: 'rd', o: 'Mac', n: 3, w: 10, h: 50, t: 100, ew: 0 }], n: 1 });
+    set(now); await r.room._egHeraldBeat(now);
+    assert.deepEqual(posts.map((p) => FAMILY_OF[cardOf(p.body).author]), ['gate', 'serpent', 'abyss', 'spire'], 'one post a beat, each its own family');
+    for (const p of posts) assert.equal(p.url, `${HOOK}?thread_id=${threads[FAMILY_OF[cardOf(p.body).author]]}`, cardOf(p.body).author);
+  }, { GATE_DISCORD_THREAD: T_GATE, SERPENT_DISCORD_THREAD: T_SEA, SD_DISCORD_THREAD: T_ABYSS, EG_DISCORD_THREAD: T_EG, GATE_DISCORD_ROLE: ROLE });
+});
+
+test('AUDIT HERALD-CARDS H1: a thread Discord refuses (no thread of the channel, deleted, locked) never loses the post - it goes to the channel itself, once, and the refusal is said; let go only when the channel refuses it too; a post with no thread is not posted twice (mutants: the thread\'s refusal taken as the post\'s; the channel tried on a retryable answer)', async () => {
+  const run = async (answer) => {
+    const urls = [];
+    const warn = console.warn, said = [];
+    await withHub(async ({ r }) => {
+      globalThis.fetch = async (url) => { urls.push(url); return answer(url); };
+      console.warn = (...a) => said.push(a.join(' '));
+      try { return urls.push(await r.room._heraldSend(gateHerald.omenPost({ day: 538 }), 'serpent')); } finally { console.warn = warn; }
+    }, { GATE_DISCORD_THREAD: T_GATE });
+    return { urls, said };
+  };
+  const thread = `${HOOK}?thread_id=${T_GATE}`;
+  const refused = await run((url) => (url === thread ? { ok: false, status: 404, text: async () => '{"message": "Unknown Channel", "code": 10003}' } : { ok: true, status: 204 }));
+  assert.deepEqual(refused.urls, [thread, HOOK, true], 'refused in the thread: posted to the channel, and taken');
+  assert.ok(refused.said.some((w) => w.includes('serpent') && w.includes(T_GATE) && w.includes('404') && w.includes('Unknown Channel')), 'said, with the family, the thread and Discord\'s reason');
+  assert.deepEqual((await run(() => ({ ok: false, status: 400 }))).urls, [thread, HOOK, true], 'the channel refuses it too (a forum with no thread): let go, as before');
+  assert.deepEqual((await run(() => ({ ok: false, status: 429 }))).urls, [thread, false], 'Discord busy: owed, tried again HERALD_RETRY_MS on - never the channel instead');
+  assert.deepEqual((await run(() => ({ ok: false, status: 503 }))).urls, [thread, false]);
+  await withHub(async ({ r, posts }) => {
+    globalThis.fetch = async (url, init) => { posts.push({ url, body: JSON.parse(init.body) }); return { ok: false, status: 404 }; };
+    assert.equal(await r.room._heraldSend(gateHerald.omenPost({ day: 538 }), 'gate'), true, 'no thread: refused for good, let go');
+    assert.deepEqual(posts.map((p) => p.url), [HOOK], 'once - there is no thread to step back from');
+  }, {});
+});
+
+test('AUDIT HERALD-CARDS L1/L2: a card is held to Discord\'s 6000 whole - the text cut first, then the last fields let go - and a field with a blank name or value is none; a name never begins with a hyphen, which Discord draws as a list at a field\'s start (mutants: the whole unbounded; the facts dropped before the text; a blank field posted; "- Ann" kept)', () => {
+  const big = heraldCard({ family: 'gate', moment: 'M', title: 'T', text: 'x'.repeat(4096), fields: [['A', 'a'.repeat(1000)], ['B', 'b'.repeat(1000)], ['C', 'c'.repeat(1000)]] });
+  assert.equal(heraldEmbedSize(big), HERALD_EMBED_MAX);
+  assert.equal(big.embeds[0].fields.length, 3, 'the facts kept, the text cut');
+  assert.ok(big.embeds[0].description.endsWith('\u2026'));
+  const huge = heraldCard({ family: 'spire', moment: 'm'.repeat(3000), title: 't'.repeat(300), text: 'x'.repeat(5000), fields: Array.from({ length: 30 }, (_, i) => [`f${i}`, 'v'.repeat(2000)]) });
+  assert.ok(heraldEmbedSize(huge) <= HERALD_EMBED_MAX, `${heraldEmbedSize(huge)}`);
+  assert.deepEqual(heraldCard({ family: 'gate', moment: 'M', title: 'T', fields: [['A', ' '], [' ', 'v'], ['', 'v'], ['B', 'b']] }).embeds[0].fields, [{ name: 'B', value: 'b', inline: true }]);
+  assert.deepEqual(['- Ann', '--Bo', ' - Cy', 'Jo-Ann', '-'].map(heraldName), ['Ann', 'Bo', 'Cy', 'Jo-Ann', '']);
+  assert.equal(cardOf(gateHerald.fellPost({ day: 538, top: ['- Ann'], n: 1 })).fields['Struck down by'], 'Ann');
+});
+
+test('AUDIT HERALD-CARDS L3: a thread set that is no Discord id is said - its posts go to the gate\'s thread, as the routing pin shows - and a well-formed one says nothing (mutants: the slip silent)', async () => {
+  const said = [];
+  const read = async (env) => withHub(async ({ r }) => {
+    const hush = console.warn;   // the harness hushes the console; this pin listens under it
+    console.warn = (...a) => said.push(a.join(' '));
+    try { r.room._herald = undefined; r.room._heraldOf(); } finally { console.warn = hush; }
+  }, env);
+  await read({ GATE_DISCORD_THREAD: T_GATE, SD_DISCORD_THREAD: 'not-an-id' });
+  assert.deepEqual(said.filter((w) => w.includes('thread')), ['[herald] sdThread is not a Discord thread\'s id - its posts go to the gate\'s thread, else the channel']);
+  said.length = 0;
+  await read({ GATE_DISCORD_THREAD: T_GATE, SD_DISCORD_THREAD: T_ABYSS, SERPENT_DISCORD_THREAD: '' });
+  assert.deepEqual(said, [], 'well formed, or unset: nothing said');
+});
+
+test('AUDIT HERALD-CARDS S1: the threads\' floor is the relay that made them - the version row RELAY_CFG_KEY_MIN names is HERALD-CARDS\'s own, so a renumber at a merge that leaves the floor behind fails here, before a client says a thread to another branch\'s relay of that number and is closed on it (mutants: the floor a number apart from its row)', () => {
+  const law = readFileSync(new URL('../relayversion.test.js', import.meta.url), 'utf8');
+  for (const [k, min] of Object.entries(RELAY_CFG_KEY_MIN)) {
+    const row = law.split('\n').find((l) => l.startsWith(`  world${min}: '`)) ?? '';
+    assert.match(row, /HERALD-CARDS/, `${k}: world${min}'s row is HERALD-CARDS's`);
+  }
 });

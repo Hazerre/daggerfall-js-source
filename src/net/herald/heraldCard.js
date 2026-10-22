@@ -21,6 +21,7 @@
 // (HERALD_FAMILIES `thread` - a relay setting over its var, net/relayCfg.js): set, a family's cards go to its own thread
 // of the channel (a forum's post, a text channel's thread - Discord's `thread_id`); unset, to the gate's thread; none
 // set, to the channel itself, as before. One webhook, one channel, each event in its own place when the operator wants it.
+// A thread Discord refuses sends the card to the channel itself (server/src/index.js `_heraldSend`, AUDIT HERALD-CARDS H1).
 //
 // SAFE TO POST, as before: `allowed_mentions` is the one role a post names or nothing, so no text can ping anyone else; a
 // name a player can reach is held to letters, digits, spaces and a little punctuation (heraldName) wherever it is drawn.
@@ -73,8 +74,9 @@ export const heraldThread = (raw) => { const s = String(raw ?? '').trim(); retur
 export const heraldPostUrl = (hook, thread = null) => (thread ? `${hook}?thread_id=${thread}` : hook);
 
 /** A name as a post says it: letters, digits, spaces, apostrophes and hyphens (a name is sanitizeName's already - this
- *  keeps Discord's markdown, links and mentions out of it), or '' for none. */
-export const heraldName = (n) => String(n ?? '').replace(/[^A-Za-z0-9 '-]/g, '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX).trim();
+ *  keeps Discord's markdown, links and mentions out of it), or '' for none. AUDIT HERALD-CARDS L2: never a hyphen first -
+ *  a card's field begins with a name, and Discord draws "- Ann" there as a list. */
+export const heraldName = (n) => String(n ?? '').replace(/[^A-Za-z0-9 '-]/g, '').replace(/\s+/g, ' ').trim().replace(/^[-\s]+/, '').slice(0, NAME_MAX).trim();
 /** A relay-clock instant as Discord draws it in each reader's own time: `R` "in 15 minutes", `t` "14:32". */
 export const heraldStamp = (ms, style) => `<t:${Math.floor(ms / 1000)}:${style}>`;
 /** HERALD-CARDS: a moment as a card's field says it - the reader's own clock, then how soon ("14:32 (in 15 minutes)"). */
@@ -106,12 +108,18 @@ export function heraldCard({ family, moment, title, text = '', fields = [], role
   const r = heraldRole(role);
   /** @type {Array<{ name: string, value: string, inline: boolean }>} */
   const shown = [];
-  for (const [name, value, inline = true] of fields) if (value) shown.push({ name: clip(name, HERALD_FIELD_NAME_MAX), value: clip(value, HERALD_FIELD_VALUE_MAX), inline });
+  // AUDIT HERALD-CARDS L1: a field Discord needs both halves of - a blank name or value is no field
+  for (const [name, value, inline = true] of fields) if (String(value ?? '').trim() && String(name ?? '').trim()) shown.push({ name: clip(name, HERALD_FIELD_NAME_MAX), value: clip(value, HERALD_FIELD_VALUE_MAX), inline });
   /** @type {any} */
   const embed = { author: { name: fam.name }, title: clip(title, HERALD_TITLE_MAX), color: fam.colour };
   if (text) embed.description = clip(text, HERALD_TEXT_MAX);
   if (shown.length) embed.fields = shown.slice(0, HERALD_FIELDS_MAX);
   embed.footer = { text: clip(moment, HERALD_FOOTER_MAX) };
+  // AUDIT HERALD-CARDS L1: and the whole within Discord's 6000 (a body past it is refused whole, and let go) - the text
+  // cut first, since the facts are the card's; then the last fields let go
+  const over = heraldEmbedSize({ embeds: [embed] }) - HERALD_EMBED_MAX;
+  if (over > 0 && embed.description) embed.description = clip(embed.description, Math.max(1, embed.description.length - over));
+  while (heraldEmbedSize({ embeds: [embed] }) > HERALD_EMBED_MAX && embed.fields?.length) { embed.fields.pop(); if (!embed.fields.length) delete embed.fields; }
   /** @type {any} */
   const body = { embeds: [embed], allowed_mentions: r ? { roles: [r] } : { parse: [] } };
   if (r) body.content = clip(`<@&${r}> ${ping || embed.title}`, HERALD_CONTENT_MAX);

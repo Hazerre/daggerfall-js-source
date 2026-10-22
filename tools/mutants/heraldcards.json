@@ -11,7 +11,7 @@
   {
     "name": "HERALD-CARDS-an-empty-field-posted",
     "file": "src/net/herald/heraldCard.js",
-    "old": "if (value) shown.push(",
+    "old": "if (String(value ?? '').trim() && String(name ?? '').trim()) shown.push(",
     "new": "shown.push(",
     "tests": [
       "test/net/herald/heraldcards.test.js"
@@ -101,8 +101,8 @@
   {
     "name": "HERALD-CARDS-every-family-to-the-gate-thread",
     "file": "server/src/index.js",
-    "old": "heraldPostUrl(h.hook, h.threads?.[family] ?? null)",
-    "new": "heraldPostUrl(h.hook, h.threads?.gate ?? null)",
+    "old": "const thread = h.threads?.[family] ?? null;",
+    "new": "const thread = h.threads?.gate ?? null;",
     "tests": [
       "test/net/herald/heraldcards.test.js"
     ]
@@ -148,6 +148,105 @@
     "file": "src/net/online.js",
     "old": "return !!m && relayCfgSupported(this._relayCfgV, m.k) && this._send(",
     "new": "return !!m && this._send(",
+    "tests": [
+      "test/net/herald/heraldcards.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HERALD-CARDS-H1-the-thread-refusal-the-post-s",
+    "file": "server/src/index.js",
+    "old": "      if (!res.ok && thread && forGood(res.status)) {",
+    "new": "      if (false) {",
+    "tests": [
+      "test/net/herald/heraldcards.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HERALD-CARDS-H1-the-channel-on-a-retryable-answer",
+    "file": "server/src/index.js",
+    "old": "if (!res.ok && thread && forGood(res.status)) {",
+    "new": "if (!res.ok && thread) {",
+    "tests": [
+      "test/net/herald/heraldcards.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HERALD-CARDS-H1-the-reason-unsaid",
+    "file": "server/src/index.js",
+    "old": "(${res.status} ${await why(res)}) - posted to the channel instead",
+    "new": "(${res.status}) - posted to the channel instead",
+    "tests": [
+      "test/net/herald/heraldcards.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HERALD-CARDS-M1-a-beat-s-family-dropped",
+    "file": "server/src/index.js",
+    "old": "this._heraldSend(egHeraldPost(p), 'spire')",
+    "new": "this._heraldSend(egHeraldPost(p), 'gate')",
+    "tests": [
+      "test/net/herald/heraldcards.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HERALD-CARDS-M1-the-abyss-to-the-gate",
+    "file": "server/src/index.js",
+    "old": "this._heraldSend(sdHeraldPost(due.kind, rec, h.sdRole), 'abyss')",
+    "new": "this._heraldSend(sdHeraldPost(due.kind, rec, h.sdRole), 'gate')",
+    "tests": [
+      "test/net/herald/heraldcards.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HERALD-CARDS-L1-the-whole-unbounded",
+    "file": "src/net/herald/heraldCard.js",
+    "old": "  while (heraldEmbedSize({ embeds: [embed] }) > HERALD_EMBED_MAX && embed.fields?.length) {",
+    "new": "  while (false) {",
+    "tests": [
+      "test/net/herald/heraldcards.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HERALD-CARDS-L1-the-facts-before-the-text",
+    "file": "src/net/herald/heraldCard.js",
+    "old": "  if (over > 0 && embed.description) embed.description = clip(",
+    "new": "  if (false) embed.description = clip(",
+    "tests": [
+      "test/net/herald/heraldcards.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HERALD-CARDS-L1-a-blank-field-posted",
+    "file": "src/net/herald/heraldCard.js",
+    "old": "if (String(value ?? '').trim() && String(name ?? '').trim()) shown.push(",
+    "new": "if (value) shown.push(",
+    "tests": [
+      "test/net/herald/heraldcards.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HERALD-CARDS-L2-a-hyphen-first",
+    "file": "src/net/herald/heraldCard.js",
+    "old": ".trim().replace(/^[-\\s]+/, '').slice(0, NAME_MAX)",
+    "new": ".trim().slice(0, NAME_MAX)",
+    "tests": [
+      "test/net/herald/heraldcards.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HERALD-CARDS-L3-the-slip-silent",
+    "file": "server/src/index.js",
+    "old": "if (hook) for (const F of Object.values(HERALD_FAMILIES)) if (",
+    "new": "if (false) for (const F of Object.values(HERALD_FAMILIES)) if (",
+    "tests": [
+      "test/net/herald/heraldcards.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HERALD-CARDS-S1-the-floor-apart-from-its-row",
+    "file": "src/net/relayCfg.js",
+    "old": "RELAY_CFG_KEY_MIN = Object.freeze({ gateThread: 243, serpentThread: 243, sdThread: 243, egThread: 243 });",
+    "new": "RELAY_CFG_KEY_MIN = Object.freeze({ gateThread: 244, serpentThread: 244, sdThread: 244, egThread: 244 });",
     "tests": [
       "test/net/herald/heraldcards.test.js"
     ]

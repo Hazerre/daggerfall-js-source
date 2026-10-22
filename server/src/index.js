@@ -7971,22 +7971,37 @@ export class Room {
       // HERALD-CARDS: and the thread each family posts to - its own when the operator names one, else the gate's, else none
       const gateThread = heraldThread(role('gateThread'));
       const threads = Object.fromEntries(Object.entries(HERALD_FAMILIES).map(([f, F]) => [f, heraldThread(role(F.thread)) ?? gateThread]));
+      // AUDIT HERALD-CARDS L3: a thread set that is no Discord id posts to the gate's thread - said, as a webhook put wrong is
+      if (hook) for (const F of Object.values(HERALD_FAMILIES)) if (String(role(F.thread) ?? '').trim() && !heraldThread(role(F.thread))) console.warn(`[herald] ${F.thread} is not a Discord thread's id - its posts go to the gate's thread, else the channel`);
       this._herald = hook ? { hook, threads, role: heraldRole(role('gateRole')), serpentRole: serpentHeraldRole(role('serpentRole'), role('gateRole')), sdRole: serpentHeraldRole(role('sdRole'), role('gateRole')) } : null;
     }
     return this._herald;
   }
   /** One post to the channel; true once Discord has taken it - or refused it FOR GOOD (a 4xx but 429: a webhook deleted,
    *  a body it will never take - posted again every HERALD_RETRY_MS, it would only be refused again). HERALD-CARDS: into
-   *  the thread its family posts to (`family`, net/herald/heraldCard.js HERALD_FAMILIES). */
-  async _heraldSend(body, family = 'gate') {
+   *  the thread its family posts to (`family`, net/herald/heraldCard.js HERALD_FAMILIES) - every caller names it.
+   *  AUDIT HERALD-CARDS H1: A THREAD DISCORD REFUSES IS THE OPERATOR'S SLIP, NEVER THE POST'S. An id that names no thread
+   *  of the channel (the channel's own pasted, another channel's thread), a thread deleted, locked or private answers a
+   *  4xx, and every post of that family - of all four, through the gate's thread - was let go unposted, the omen's ping
+   *  with it. Refused there, the card is posted to the channel itself, once, and the refusal said with Discord's reason;
+   *  it is let go only if the channel refuses it too (a forum channel takes no post without its thread). */
+  async _heraldSend(body, family) {
     const h = this._heraldOf();
     if (!h) return false;
+    const thread = h.threads?.[family] ?? null;
+    const post = (url) => fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(HERALD_TIMEOUT_MS) });
+    const forGood = (status) => status >= 400 && status < 500 && status !== 429;
+    const why = async (res) => { try { return String(await res.text?.() ?? '').slice(0, 200); } catch { return ''; } };
     try {
-      const res = await fetch(heraldPostUrl(h.hook, h.threads?.[family] ?? null), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(HERALD_TIMEOUT_MS) });
+      let res = await post(heraldPostUrl(h.hook, thread));
+      if (!res.ok && thread && forGood(res.status)) {
+        console.warn(`[herald] Discord refused the ${family} post in thread ${thread} (${res.status} ${await why(res)}) - posted to the channel instead`);
+        res = await post(h.hook);
+      }
       if (res.ok) return true;
-      console.warn('[herald] Discord said', res.status);
-      return res.status >= 400 && res.status < 500 && res.status !== 429;
-    } catch (e) { console.warn('[herald] post failed', e?.message ?? e); return false; }
+      console.warn(`[herald] Discord said ${res.status} to the ${family} post`, await why(res));
+      return forGood(res.status);
+    } catch (e) { console.warn(`[herald] the ${family} post failed`, e?.message ?? e); return false; }
   }
   /** What the herald has posted and owes, in storage: the last day whose omen and whose kill went, and a kill owed. */
   async _heraldState() {
@@ -8064,19 +8079,19 @@ export class Room {
         const site = agreedGateSite(await this._gateSiteOf(), st.riteOwe.d);
         const c = riteCirclesBy(await this._riteOf(), st.riteOwe.d, site)[0] ?? null;   // AUDIT WB12d (R1): the circle the gate's site agrees with
         if (!c) retry = now + HERALD_RETRY_MS;   // none yet: owed while its circle stands
-        else if (await this._heraldSend(ritePost({ day: st.riteOwe.d, place: site?.pl ?? null, by: riteNames(c), n: Object.keys(c.h).length }))) { st.rite = st.riteOwe.d; st.riteOwe = null; }
+        else if (await this._heraldSend(ritePost({ day: st.riteOwe.d, place: site?.pl ?? null, by: riteNames(c), n: Object.keys(c.h).length }), 'gate')) { st.rite = st.riteOwe.d; st.riteOwe = null; }
         else retry = now + HERALD_RETRY_MS;
       }
       if (st.owe && (st.owe.d <= st.fell || !heraldFellLive(st.owe.d, now))) st.owe = null;
       if (st.owe) {
         const site = agreedGateSite(await this._gateSiteOf(), st.owe.d);
-        if (await this._heraldSend(fellPost({ day: st.owe.d, place: site?.pl ?? null, top: st.owe.top, n: st.owe.n }))) { st.fell = st.owe.d; st.owe = null; }
+        if (await this._heraldSend(fellPost({ day: st.owe.d, place: site?.pl ?? null, top: st.owe.top, n: st.owe.n }), 'gate')) { st.fell = st.owe.d; st.owe = null; }
         else retry = now + HERALD_RETRY_MS;
       }
       const due = heraldOmenDue(now, st.omen);
       if (due && due.at <= now) {
         const site = agreedGateSite(await this._gateSiteOf(), due.day);
-        if (await this._heraldSend(omenPost({ day: due.day, place: site?.pl ?? null, role: h.role }))) st.omen = due.day;
+        if (await this._heraldSend(omenPost({ day: due.day, place: site?.pl ?? null, role: h.role }), 'gate')) st.omen = due.day;
         else retry = now + HERALD_RETRY_MS;
       }
       // WRITTEN OVER WHAT STORAGE HOLDS NOW, not over this beat's read: a kill owed while Discord answered is kept

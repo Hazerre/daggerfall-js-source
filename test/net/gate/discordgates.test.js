@@ -20,6 +20,7 @@ import { fakeRoom } from '../../fakeRoom.mjs';
 import { OnlineSession } from '../../../src/net/online.js';
 import { fakeSocketClass } from '../../fakeSocket.mjs';
 import { cardOf, cardWords } from '../../heraldCards.mjs';   // HERALD-CARDS: a post read as its card
+import { heraldEmbedSize, HERALD_EMBED_MAX } from '../../../src/net/herald/heraldCard.js';   // AUDIT HERALD-CARDS L4
 
 const rd = (p) => readFileSync(new URL('../../../' + p, import.meta.url), 'utf8');
 const HOOK = 'https://discord.com/api/webhooks/123456789012345678/abc_DEF-123';
@@ -62,7 +63,7 @@ test('DISCORD-GATES law: THE OMEN\'S POST - the role pinged first and the ONLY m
   assert.equal(cardOf(q).title, 'The sky burns over the wilds');
   assert.equal(cardOf(q).fields.Where, 'Marked on your map', 'no place: the map');
   assert.ok(!cardWords(p).includes('marked on your map') && !cardWords(p).includes('Marked on your map'), 'a place: said');
-  assert.ok(cardWords(p).length < 2000 && cardWords(q).length < 2000, 'a Discord message\'s bound');
+  assert.ok(heraldEmbedSize(p) <= HERALD_EMBED_MAX && heraldEmbedSize(q) <= HERALD_EMBED_MAX && p.content.length <= 2000, 'Discord\'s bounds - the embed\'s whole, the content\'s (AUDIT HERALD-CARDS L4: a card\'s words are no message\'s content)');
 });
 
 test('DISCORD-GATES law: THE KILL\'S POST - the boss fallen, where, by the court\'s top dealers and how many more; pings nobody; a name is letters, digits, spaces, apostrophes and hyphens (mutants: a ping on the kill; the others miscounted; a name posted raw) - HERALD-CARDS: where and by whom its fields', () => {

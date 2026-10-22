@@ -381,7 +381,7 @@
   {
     "name": "DISCORD-GATES-a-dead-webhook-posted-for-ever",
     "file": "server/src/index.js",
-    "old": "      return res.status >= 400 && res.status < 500 && res.status !== 429;\n",
+    "old": "      return forGood(res.status);\n",
     "new": "      return false;\n",
     "tests": [
       "test/net/gate/discordgates.test.js"
@@ -390,8 +390,8 @@
   {
     "name": "DISCORD-GATES-a-429-given-up",
     "file": "server/src/index.js",
-    "old": "res.status < 500 && res.status !== 429;",
-    "new": "res.status < 500;",
+    "old": "status < 500 && status !== 429;",
+    "new": "status < 500;",
     "tests": [
       "test/net/gate/discordgates.test.js"
     ]
