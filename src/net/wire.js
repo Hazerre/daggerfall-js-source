@@ -3198,6 +3198,11 @@ export function validPartyPose(p) {
   // SCALE5d: `ly` - the layer of the place I stand in (wire.js isLayered), so a mate who comes asks for mine; omitted for
   //   the place itself and refused alone when out of its law
   if (Number.isInteger(p.ly) && p.ly >= 1 && p.ly < LAYERS_MAX) out.ly = p.ly;
+  // STAFF-PANEL5-FOLLOW (design doc "DFO Staff Panel: design", Invisible follow - the where note): `rk` - the room I stand
+  //   in, a cell's or a world room's (a dungeon's, a building's, an instance's) as the game names it, so a staff spectator
+  //   joins that very room (its layout and size included) without asking my game. The hub keeps it beside the pose and
+  //   fans it to nobody; omitted for any other room, and refused alone when out of its law
+  if (isWorldRoom(p.rk) || isCellRoom(p.rk)) out.rk = p.rk;
   // PARTY-PING: `pg` - a look's point for the party, {k place, x y z metres, at the sender's stamp}. Omitted when
   //   there is none. A relay from before this field strips it and closes nothing (an unknown pose field is dropped).
   if (p.pg && typeof p.pg === 'object' && !Array.isArray(p.pg)

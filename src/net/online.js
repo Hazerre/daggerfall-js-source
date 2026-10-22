@@ -71,6 +71,7 @@ import { relaySupportsFoeInventory } from './wire.js';
 //
 // Not a DFU member: Daggerfall Unity has no multiplayer. Ledger A row.
 import { validStaffTeleportIn, validStaffTeleportOut, staffTeleportSupported } from './staffTeleport.js';
+import { validFollowOut, whereNoteDue, followSupported } from './staffFollow.js';   // STAFF-PANEL5-FOLLOW: the hub's word to a spectator, and the where note's pace
 import { validRelayCfgIn, validRelayCfgOut, relayCfgSupported } from './relayCfg.js';
 import { relaySupportsSeatLive, seatAskDue, seatStreams } from './seatLive.js';   // FIELD BUGS 2026-10-18d SEAT-LIVE: a dungeon room's seat is a live socket's
 import { relaySupportsGrant, relaySupportsGrantStats, relaySupportsStarGrant, grantModeOf, validGrantAsk, validGrantOut, grantGate } from './grantLaw.js';   // GRANT2: the spawn grants' asks (bible/11-Multiplayer/Spawn-Grants.md section 12)   // SCALE5b: the relay's settings, a developer's
@@ -573,6 +574,9 @@ export class OnlineSession {
     this.amapOk = false;          // PARTY-MAP: the relay knows the `amap` frame (relaySupportsPartyMap) - an older one closes on it
     this._lastAmapAt = -Infinity; // PARTY-MAP: the client's own floor between two sends (AMAP_SEND_MS)
     this.onStaffTeleport = null;
+    this.followOk = false;        // STAFF-PANEL5-FOLLOW: the hub keeps where notes outside a party, and follows (the welcome says)
+    this.solo = false;            // STAFF-PANEL5-FOLLOW: in no party (the host says) - sendParty sends my where note, at its own pace
+    this.onFollow = null;         // STAFF-PANEL5-FOLLOW: (frame) => void - the hub's `fol` to a spectator's hub link (net/staffFollow.js validFollowOut)
     this.staffTeleportOk = false;
     this._rfOn = new WeakMap();    // SCALE5b: socket -> its cell judges the poses that reach it (`rf`) - a halo's are never thinned then
     this.onFound = null;          // SCALE5c: ({q, l, busy}) => void - the hub's answer to a search of everyone online by name
@@ -2188,6 +2192,7 @@ export class OnlineSession {
         this._lastParty = null; this._lastPartyAt = -Infinity;   // SOC2: a fresh socket is a fresh attachment at the hub - the next party pose goes whole
         this.amapOk = false;   // PARTY-MAP: likewise, the welcome says
         this.staffTeleportOk = false;
+        this.followOk = false;   // STAFF-PANEL5-FOLLOW: likewise
         this.instanceOk = false;   // INSTANCES: likewise - a relay rolled back behind world208 keeps no instance
         this.relayCfgOk = false;   // SCALE5b: likewise
         this.grantMode = null;   // GRANT2: likewise - an older relay closes the socket on an ask (GRANT6: null, not yet said - scenes/grantHost.js waits on it a stand's while)
@@ -2951,10 +2956,15 @@ export class OnlineSession {
     const pose = validPartyPose(p);
     if (!pose) return false;
     const now = this._now();
-    // PARTY-PING: a ping skips the floor (the marker is a moment) and still spends partyGate. `force` does not.
-    if (!urgent && now - this._lastPartyAt < PARTY_SEND_MS) return false;
     const s = JSON.stringify(pose);
-    if (!urgent && !force && this._lastParty === s) return false;
+    // STAFF-PANEL5-FOLLOW (design doc "DFO Staff Panel: design", Invisible follow): OUTSIDE A PARTY (`solo`, the host's word)
+    // the pose is my WHERE NOTE, which the hub keeps for staff alone - a changed one WHERE_NOTE_MOVING_MS after the last,
+    // the same one again WHERE_NOTE_STILL_MS after it (net/staffFollow.js whereNoteDue), and none to a relay before the
+    // follow (it would write each one at once for nobody)
+    if (this.solo) { if (!this.followOk || !whereNoteDue(now, this._lastPartyAt, this._lastParty !== s)) return false; }
+    // PARTY-PING: a ping skips the floor (the marker is a moment) and still spends partyGate. `force` does not.
+    else if (!urgent && now - this._lastPartyAt < PARTY_SEND_MS) return false;
+    else if (!urgent && !force && this._lastParty === s) return false;
     const gate = partyGate(this._pbucket, now);
     if (!gate.pass) return false;
     if (!this._send({ t: 'party', p: pose })) return false;
@@ -3293,6 +3303,7 @@ export class OnlineSession {
       if (primary) this.partyWalkOk = relaySupportsPartyWalk(relayV);   // TV8
       if (primary) this.partyLeadOk = relaySupportsPartyLead(relayV);   // PARTY-LEAD
       if (primary) this.staffTeleportOk = staffTeleportSupported(relayV);
+      if (primary) this.followOk = followSupported(relayV);   // STAFF-PANEL5-FOLLOW
       if (primary) this.relayCfgOk = relayCfgSupported(relayV);   // SCALE5b
       if (primary) this.grantMode = relaySupportsGrant(relayV) && streamsFoes(room) && typeof m.gm === 'string' ? grantModeOf(m.gm) : 'off';   // GRANT2: my cell's law - a relay before world218 closes on an ask (GRANT4: a world room's too)
       if (primary) this.findOk = hubShardsSupported(relayV);   // AUDIT SCALE II C-1: `find` is the shards' relay's (world192) - one before it parses it as an unknown message and closes the hub link 1008, terminal
@@ -3800,6 +3811,10 @@ export class OnlineSession {
       if (!primary || !isSocialRoom(room)) return;
       const f = validStaffTeleportOut(m);
       if (f) this._deliver('staff teleport', () => this.onStaffTeleport?.(f));
+    } else if (m.t === 'fol') {
+      if (!primary || !isSocialRoom(room)) return;   // STAFF-PANEL5-FOLLOW: the hub alone says it
+      const f = validFollowOut(m);
+      if (f) this._deliver('staff follow', () => this.onFollow?.(f));
     } else if (m.t === 'rf') {
       // SCALE5b: a cell's word that it judges the poses that reach it now (or no longer) - its socket's, for my halo there
       const ws = primary ? this._ws : this._halo.get(room)?.ws;
