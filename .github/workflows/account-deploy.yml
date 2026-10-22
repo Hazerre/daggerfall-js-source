@@ -352,6 +352,7 @@ on:
       - "src/systems/survival/needs.js"
       - "src/systems/survival/switch.js"
       - "src/systems/survival/temperature.js"
+      - "src/systems/pistolet.js"
       - "src/systems/textureReplacement.js"
       - "src/systems/thunderlock.js"
       - "src/systems/timeScale.js"
