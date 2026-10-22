@@ -363,8 +363,8 @@
   {
     "name": "STAFF-PANEL5-FEEDS-flag-source-unread",
     "file": "server-account/src/staffMonsters.js",
-    "old": "openCaseFor(ctx, env, row.id, 'review')",
-    "new": "openCaseFor(ctx, env, row.id, 'report')",
+    "old": "openCaseFor(ctx, env, row.id, 'review', 'spawn')",
+    "new": "openCaseFor(ctx, env, row.id, 'report', 'spawn')",
     "equivalent": true,
     "why": "grantCaseLines opened the account's one open case as 'review' just before (readers: true always opens it), so this call only reads its id back - its source is never written",
     "tests": [

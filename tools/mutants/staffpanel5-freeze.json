@@ -322,8 +322,8 @@
   {
     "name": "STAFF-PANEL5-FREEZE-door-refuses-freeze",
     "file": "server/src/index.js",
-    "old": "if (kind !== 'ban' && kind !== 'mute' && !STAFF_ORDER_KINDS.includes(kind)) return json({ error: 'bad law' }, 403);",
-    "new": "if (kind !== 'ban' && kind !== 'mute') return json({ error: 'bad law' }, 403);",
+    "old": "kind !== 'hide' && !STAFF_ORDER_KINDS.includes(kind)) return json({ error: 'bad law' }, 403);",
+    "new": "kind !== 'hide') return json({ error: 'bad law' }, 403);",
     "why": "the service's freeze refused at the door",
     "tests": [
       "test/net/staffpanel5_freeze_relay.test.js"
@@ -412,8 +412,8 @@
   {
     "name": "STAFF-PANEL5-FREEZE-walk-unbarred",
     "file": "server/src/index.js",
-    "old": "for (const [ws, a] of this._all()) if (ws !== except && a.id && !seatBarred(a)) list.push(a);",
-    "new": "for (const [ws, a] of this._all()) if (ws !== except && a.id) list.push(a);",
+    "old": "for (const [ws, a] of this._all()) if (ws !== except && a.id && !a.hid && !seatBarred(a)) list.push(a);",
+    "new": "for (const [ws, a] of this._all()) if (ws !== except && a.id && !a.hid) list.push(a);",
     "why": "a frozen host",
     "tests": [
       "test/net/staffpanel5_freeze_relay.test.js"
@@ -422,8 +422,8 @@
   {
     "name": "STAFF-PANEL5-FREEZE-lead-unbarred",
     "file": "server/src/index.js",
-    "old": "if (seatBarred(a)) return false;   // STAFF-PANEL5-FREEZE: a frozen socket leads nothing",
-    "new": "if (false) return false;",
+    "old": "if (a.hid || seatBarred(a)) return false;",
+    "new": "if (a.hid) return false;",
     "why": "a frozen socket leads",
     "tests": [
       "test/net/staffpanel5_freeze_relay.test.js"

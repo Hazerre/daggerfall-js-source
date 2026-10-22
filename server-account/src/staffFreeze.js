@@ -5,7 +5,7 @@
 //
 // A FREEZE IS A SANCTION OF ITS OWN, beside the mute and the ban (mob, 03:05Z: "the player can only look around"): an Admin's
 // act with a reason and a duration, Admins alone both ways, kept on the account's row with who made it
-// (`players.frozen_until`, `frozen_reason`, `frozen_by` - migration 0153). Every relay token minted while it stands carries
+// (`players.frozen_until`, `frozen_reason`, `frozen_by` - migration 0157). Every relay token minted while it stands carries
 // it (`fz`, identityToken.js), so a reload never sheds it (Weak spots: "A reload sheds a freeze"); its own order kind
 // (`freeze`, mintFreezeOrder) goes to the relay's law door, where the hub keeps it in a stored book of its own, as a ban's
 // (server/src/staffFreeze.js), and every room learns it from the lease (net/roomLease.js) or the token.
@@ -73,9 +73,11 @@ const ADMIN_ROUTES = new Set(['/v1/staff/freeze', '/v1/staff/unfreeze', '/v1/sta
 /** The player's own doors to their thread, behind the game's session (index.js). */
 export const STAFF_CHAT_ROUTES = Object.freeze(['/v1/staff-chat/read', '/v1/staff-chat/send']);
 /** The doors a frozen account still opens: signing out, its own account, the realm doors that load the character it looks
- *  around as, the relay token (which carries the freeze), and the staff chat. A realm record's own read (GET) is asked
- *  beside these (`freezeRefusal`). */
-export const FREEZE_ALLOWED = Object.freeze(['/v1/auth/logout', '/v1/auth/token', '/v1/account', '/v1/realm', '/v1/realm/join', '/v1/realm/leave', ...STAFF_CHAT_ROUTES]);
+ *  around as, the relay token (which carries the freeze), the staff chat, and a staff Message on screen read and OK'd
+ *  (STAFF-PANEL5-MESSAGE: staff talking to them, as the chat is). A realm record's own read (GET) is asked beside these
+ *  (`freezeRefusal`). */
+export const FREEZE_ALLOWED = Object.freeze(['/v1/auth/logout', '/v1/auth/token', '/v1/account', '/v1/realm', '/v1/realm/join', '/v1/realm/leave', ...STAFF_CHAT_ROUTES,
+  '/v1/safety/staff-messages', '/v1/safety/staff-message-ok']);
 const ALLOWED = new Set(FREEZE_ALLOWED);
 
 /** The panel's refusal words and their status (staff.js STAFF_STATUS takes them in) - and `frozen`, the gate's own (403). */

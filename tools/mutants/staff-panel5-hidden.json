@@ -352,8 +352,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-host",
     "file": "server/src/index.js",
-    "old": "if (ws !== except && a.id && !a.hid) list.push(a);",
-    "new": "if (ws !== except && a.id) list.push(a);",
+    "old": "if (ws !== except && a.id && !a.hid && !seatBarred(a)) list.push(a);",
+    "new": "if (ws !== except && a.id && !seatBarred(a)) list.push(a);",
     "why": "a hidden socket made the host",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -362,8 +362,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-leads",
     "file": "server/src/index.js",
-    "old": "if (ws !== except && b.id && !b.hid && b !== a) list.push(b);",
-    "new": "if (ws !== except && b.id && b !== a) list.push(b);",
+    "old": "if (ws !== except && b.id && !b.hid && b !== a && !seatBarred(b)) list.push(b);",
+    "new": "if (ws !== except && b.id && b !== a && !seatBarred(b)) list.push(b);",
     "why": "a hidden socket counted in who leads",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -382,8 +382,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-law-worker",
     "file": "server/src/index.js",
-    "old": "if (kind !== 'ban' && kind !== 'mute' && kind !== 'hide') return json",
-    "new": "if (kind !== 'ban' && kind !== 'mute') return json",
+    "old": " && kind !== 'hide' && !STAFF_ORDER_KINDS.includes(kind)) return json",
+    "new": " && !STAFF_ORDER_KINDS.includes(kind)) return json",
     "why": "the Worker's door refuses the hide kind",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -472,8 +472,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-attach-unmarked",
     "file": "server/src/index.js",
-    "old": "...(m.w2 === 1 ? { w2: 1 } : {}), ...(who.hid ? { hid: 1, lk: 0 } : {}) }))",
-    "new": "...(m.w2 === 1 ? { w2: 1 } : {}) }))",
+    "old": ", ...(who.hid ? { hid: 1, lk: 0 } : {}) }))",
+    "new": " }))",
     "why": "the socket never marked",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -522,8 +522,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-leave-seat",
     "file": "server/src/index.js",
-    "old": "    if (a.hid) return false;   // STAFF-PANEL5-HIDDEN: a hidden socket never leads",
-    "new": "    // STAFF-PANEL5-HIDDEN: a hidden socket never leads",
+    "old": "    if (a.hid || seatBarred(a)) return false;   // STAFF-PANEL5-HIDDEN: a hidden socket never leads",
+    "new": "    if (seatBarred(a)) return false;   // STAFF-PANEL5-HIDDEN: a hidden socket never leads",
     "why": "its leave moves the seat",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -603,8 +603,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-order-kind",
     "file": "src/net/identityToken.js",
-    "old": "'egopen', 'egadmit', 'ban', 'hide']);",
-    "new": "'egopen', 'egadmit', 'ban']);",
+    "old": "'staffcut', 'hide', 'freeze', 'staffline']);",
+    "new": "'staffcut', 'freeze', 'staffline']);",
     "why": "no hide kind",
     "tests": [
       "test/server/staffpanel5hidden.test.js"

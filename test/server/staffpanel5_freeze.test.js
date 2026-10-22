@@ -202,7 +202,7 @@ test('STAFF-PANEL5-FREEZE: ONE GATE - A MODDED CLIENT that ignores the freeze sc
     const until = nowS() + 3600;
     const want = { error: 'frozen', until, reason: 'botting in Daggerfall' };
     // the doors that take no game session at all: a stranger's, the self-proving, and the public reads answered before one
-    const selfProving = new Set([...OPEN_ROUTES, ...PATREON_OPEN_ROUTES, ...SAFE_OPEN_ROUTES, '/v1/auth/register', '/v1/pubkey', '/v1/relaykey', '/v1/mod/grant-feed', '/v1/homes/yards', '/v1/seats/sieges/live']);
+    const selfProving = new Set([...OPEN_ROUTES, ...PATREON_OPEN_ROUTES, ...SAFE_OPEN_ROUTES, '/v1/auth/register', '/v1/pubkey', '/v1/relaykey', '/v1/mod/grant-feed', '/v1/mod/reaction-feed', '/v1/mod/hidden-seen', '/v1/homes/yards', '/v1/seats/sieges/live']);
     const shut = [...ROUTES].filter((r) => !r.startsWith('/v1/staff/') && !selfProving.has(r) && !FREEZE_ALLOWED.includes(r));
     assert.ok(shut.length > 100, `every game door (${shut.length})`);
     for (const r of ['/v1/market/buy', '/v1/market/list', '/v1/market/bid', '/v1/realm/trade', '/v1/realm/die', '/v1/wild/fall', '/v1/heartbeat', '/v1/account/played']) assert.ok(shut.includes(r), r);
@@ -222,6 +222,7 @@ test('STAFF-PANEL5-FREEZE: ONE GATE - A MODDED CLIENT that ignores the freeze sc
     assert.equal((await s.ask('GET', '/v1/account', s.troll.secret)).status, 200, 'its own account');
     assert.equal((await s.said('/v1/auth/token', s.troll)).status, 200, 'its token');
     assert.equal((await s.said('/v1/staff-chat/read', s.troll)).status, 200, 'the staff chat');
+    assert.equal((await s.said('/v1/safety/staff-messages', s.troll)).status, 200, 'a staff Message on screen (STAFF-PANEL5-MESSAGE)');
     assert.equal(freezeRefusal('/v1/market/buy', false, { frozen_until: nowS() + 1 }, nowS()).error, 'frozen');
     assert.equal(freezeRefusal('/v1/market/buy', false, { frozen_until: nowS() }, nowS()), null, 'at its end, open');
     assert.equal(freezeRefusal('/v1/market/buy', false, { frozen_until: null }, nowS()), null);

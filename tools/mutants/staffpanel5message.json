@@ -292,8 +292,8 @@
   {
     "name": "STAFF-PANEL5-MESSAGE-door-refuses-kind",
     "file": "server/src/index.js",
-    "old": "if (kind !== 'ban' && kind !== 'mute' && kind !== 'smsg' && kind !== 'staffcut') return json({ error: 'bad law' }, 403);",
-    "new": "if (kind !== 'ban' && kind !== 'mute' && kind !== 'staffcut') return json({ error: 'bad law' }, 403);",
+    "old": "kind !== 'mute' && kind !== 'smsg' && kind !== 'staffcut' && kind !== 'hide'",
+    "new": "kind !== 'mute' && kind !== 'staffcut' && kind !== 'hide'",
     "why": "the relay's door refuses a staff message",
     "tests": [
       "test/net/staffpanel5message.test.js"
@@ -322,8 +322,8 @@
   {
     "name": "STAFF-PANEL5-MESSAGE-hello-sm-unkept",
     "file": "server/src/index.js",
-    "old": ", ...(m.sm === 1 && isSocialRoom(a.key) ? { sm: 1 } : {}) }))",
-    "new": " }))",
+    "old": ", ...(m.sm === 1 && isSocialRoom(a.key) ? { sm: 1 } : {}), ...(who.hid ? { hid: 1, lk: 0 } : {}) }))",
+    "new": ", ...(who.hid ? { hid: 1, lk: 0 } : {}) }))",
     "why": "the hello's `sm` never kept: every socket an old build",
     "tests": [
       "test/net/staffpanel5message.test.js"
