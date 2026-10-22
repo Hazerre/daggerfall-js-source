@@ -1531,7 +1531,9 @@ p95 0.9 ms, worst 1.9 ms (0.7 ms and 1.2 ms with nothing compiling).
 
 **Not measured.** The live game with a crowd: the link between the report and this build is the code path and the
 timings above. Other GPUs and drivers. A machine with fewer cores, where the background compile shares the CPU with
-the frames.
+the frames, and where ANGLE's compile threads are few: a pass a fight asks as needed (`get(true)`) inside the aura's
+compile could wait behind it. A player who never goes online still pays the background compile at a boot the shader
+cache misses; starting it at the first welcome instead is left for a measurement that shows the cost.
 
 Pins: `test/render/shaderstall.test.js` (AURA-STALL, and the auras in the list-and-constructor pin). Pins moved:
 `auditshaderstall.test.js` (the passes play meets), `wb9g_insignia.test.js` (a fire that will not build) and

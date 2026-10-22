@@ -29096,7 +29096,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // AURA-STALL (bible/07-Rendering/Performance-Priority.md): the pass built the first frame a wearer is in range AND its
   // program is done - started at the boot's idle (render/playPrograms.js). Built at the first wearer, its compile froze
   // the game 9-11 s on D3D11, and the travel view draws no aura, so it met a player on the frame the view came down near
-  // a crowd. An aura is cosmetic: it is never asked as needed, so it stands a frame late rather than a frame frozen.
+  // a crowd. An aura is cosmetic: it is never asked as needed, so a wearer met while the program still compiles stands
+  // without it for the rest of the compile (seconds at most, started at the boot) rather than a frame frozen for all of it.
   const auraPassOf = compiledPass(renderer.gl, AURA_PROGRAMS, () => new AuraRingRenderer(renderer.gl), (e) => console.warn('[online] the aura would not build', e?.message ?? e));
   const auraSeedOf = (id) => { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return ((h >>> 0) % 997) / 997; };
   function auraFrame(seen) {
