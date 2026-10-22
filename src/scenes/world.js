@@ -259,6 +259,7 @@ import { createMarksBook, mintMarksRid } from '../net/marksBook.js';   // MARKS1
 import { createNoticeBook, parseNoteCommand, planNoteAnswer, NOTE_LETTER_LOST } from '../net/noticeBook.js';   // NOTICE1: this device's Notice Boards - a town's board read, a note pinned
 import { createNoticeOverlay, closeNoticeDoor, noticeDoorOpen } from '../ui/noticeDoor.js';   // NOTICE1: the board's window, through its one door
 import { createProfBook } from '../net/profBook.js';   // PROF1: this character's professions - its Stores, its day, its harvests kept until answered
+import { dayTurnMs } from '../net/dayTurn.js';   // DAY-TURN: this page's moment in the day's turn
 import { createMotherlodeBook } from '../net/motherlodeBook.js';   // PROF2b: the day's Motherlodes - read, warned of, their Watch receipts kept
 import { createProfHud } from '../ui/professions/profHud.js';   // PROF1: the prompt, the act's meter, the toasts, the day's chip, the rank's banner
 import { createGatherHost } from './gatherHost.js'; // PROF1/PROF2: the gathering professions in the streaming world - the nodes, the target, the act
@@ -1870,13 +1871,14 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       relayNowS: () => (_sharedClockHeard ? Math.floor((Date.now() + _sharedOffsetMs) / 1000) : null),   // a receipt's life is the relay's
       // CROWN2: a Pact broken early, said in red on every tab as the server's own line (RED1) - offered again while there is no chat yet
       onRed: (line) => (redChat ? redChat(line) : false),
+      turnMs: dayTurnMs(),   // DAY-TURN: its report's day turns at this page's moment past midnight
     })
     : null;
   // CHAP2a (Chapters-Arc 4): the guild halls of the towns this client walks into, reported once a UTC day a town while
   // the Chapters are open to this account (net/npcHallBook.js; the entry edge is revealMemberGuildHalls'). Online only -
   // offline a town is DFU's.
   const hallDoor = params.has('online') ? accountRoll({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }) : null;
-  const hallBook = hallDoor ? createHallBook({ door: hallDoor, storage: appStorage() }) : null;
+  const hallBook = hallDoor ? createHallBook({ door: hallDoor, storage: appStorage(), turnMs: dayTurnMs() }) : null;   // DAY-TURN
   // CHAP3c (Chapters-Arc 5.2, 5.3): the chapter sheet - every chapter's Strength - held for the halls' prices and shelves
   // (net/chapterSheet.js), asked at a town's entry and again when it grows old. Online only - offline a hall is DFU's.
   const chapterSheet = hallDoor ? createChapterSheet({ door: hallDoor }) : null;
@@ -2006,7 +2008,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   };
   const profBook = params.has('online')
     ? createProfBook({ door: accountProf({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }), storage: appStorage(),
-      character: () => characterIdOf(playerEntity), now: () => Date.now() + _sharedOffsetMs, carry: carryHands })
+      character: () => characterIdOf(playerEntity), now: () => Date.now() + _sharedOffsetMs, carry: carryHands, turnMs: dayTurnMs() })   // DAY-TURN: its day's reads turn at this page's moment past midnight
     : null;
   // FIRM1 (bible/06-Systems/Firmament.md): THE FIRMAMENT'S BOOK - the character's passive tree and its purses as the account
   // service keeps them (net/firmament/firmamentBook.js); what it hears is the tree in force (systems/firmamentLive.js), and the window
