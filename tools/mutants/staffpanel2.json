@@ -22,8 +22,8 @@
   {
     "name": "STAFF-PANEL2-reason-not-standing-in",
     "file": "server-account/src/staffCases.js",
-    "old": "    if (said.has('threat')) raise(2, 'reported as a threat');",
-    "new": "    if (false) raise(2, 'reported as a threat');",
+    "old": "    if (threats) raise(threats >= THREAT_HIGH ? 2 : 1, 'reported as a threat');",
+    "new": "    if (false) raise(threats >= THREAT_HIGH ? 2 : 1, 'reported as a threat');",
     "why": "a threat the reviewer has not read yet ranked low",
     "tests": [
       "test/server/staffpanel2.test.js"
@@ -112,7 +112,7 @@
   {
     "name": "STAFF-PANEL2-claimed-not-below",
     "file": "server-account/src/staffCases.js",
-    "old": "      || (a.claim ? 1 : 0) - (b.claim ? 1 : 0)   // a claimed case sorts below the rest of its level\n",
+    "old": "      || (a.claim && !a.claim.idle ? 1 : 0) - (b.claim && !b.claim.idle ? 1 : 0)   // a claimed case sorts below the rest of its level, unless left idle\n",
     "new": "",
     "why": "a claimed case above the free ones of its level",
     "tests": [
@@ -142,7 +142,7 @@
   {
     "name": "STAFF-PANEL2-mod-many-cases",
     "file": "server-account/src/staffCases.js",
-    "old": "          AND NOT EXISTS (SELECT 1 FROM mod_cases o WHERE o.status = 'open' AND o.claimed_by = ?2 AND o.claim_until > ?3 AND o.id != ?1)`)",
+    "old": "          AND NOT EXISTS (SELECT 1 FROM mod_cases o WHERE o.status = 'open' AND o.claimed_by = ?2 AND ${claimHeldSql('o', 3)} AND o.id != ?1)`)",
     "new": "          `)",
     "why": "a Moderator holds two cases",
     "tests": [
@@ -152,7 +152,7 @@
   {
     "name": "STAFF-PANEL2-mod-takes-held",
     "file": "server-account/src/staffCases.js",
-    "old": "          AND (claimed_by IS NULL OR claimed_by = ?2 OR claim_until <= ?3)\n",
+    "old": "          AND (claimed_by IS ?2 OR NOT ${claimHeldSql('mod_cases', 3)})\n",
     "new": "",
     "why": "a Moderator takes a case another holds",
     "tests": [
@@ -162,7 +162,7 @@
   {
     "name": "STAFF-PANEL2-take-untold",
     "file": "server-account/src/staffCases.js",
-    "old": "claim_from = CASE WHEN claimed_by IS NOT NULL AND claimed_by != ?2 AND claim_until > ?3 THEN claimed_by ELSE NULL END,",
+    "old": "claim_from = CASE WHEN claimed_by != ?2 AND ${claimHeldSql('mod_cases', 3)} THEN claimed_by ELSE NULL END,",
     "new": "claim_from = NULL,",
     "why": "the Moderator never told",
     "tests": [
@@ -171,12 +171,13 @@
   },
   {
     "name": "STAFF-PANEL2-held-acted-on",
-    "file": "server-account/src/staffCases.js",
-    "old": "  if (theirs) {\n    await audit(path.slice('/v1/staff/'.length), row.id, { why: 'held' }, { outcome: 'denied' }).run();",
-    "new": "  if (false) {\n    await audit(path.slice('/v1/staff/'.length), row.id, { why: 'held' }, { outcome: 'denied' }).run();",
+    "file": "server-account/src/safety.js",
+    "old": "      AND (claimed_by IS ?4 OR NOT ${claimHeldSql('mod_cases', 3)})`)",
+    "new": "      AND (claimed_by IS ?4 OR 1 OR NOT ${claimHeldSql('mod_cases', 3)})`)",
     "why": "a held case acted on by another",
     "tests": [
-      "test/server/staffpanel2.test.js"
+      "test/server/staffpanel2.test.js",
+      "test/server/staffpanel2fix.test.js"
     ]
   },
   {
@@ -191,9 +192,9 @@
   },
   {
     "name": "STAFF-PANEL2-mute-untold",
-    "file": "server-account/src/staffCases.js",
-    "old": "      await pushLaw(env, (u, i) => globalThis.fetch(u, i), await lawOrder(env, subtle, nowS, { s: row.id, mu: r.until }));\n",
-    "new": "",
+    "file": "server-account/src/safety.js",
+    "old": "  if (order) await (push ?? ",
+    "new": "  if (false) await (push ?? ",
     "why": "a mute the live rooms never hear",
     "tests": [
       "test/server/staffpanel2.test.js"
@@ -201,9 +202,9 @@
   },
   {
     "name": "STAFF-PANEL2-ban-untold",
-    "file": "server-account/src/staffCases.js",
-    "old": "      await pushLaw(env, (u, i) => globalThis.fetch(u, i), await lawOrder(env, subtle, nowS, { s: row.id, bn: r.until }));\n",
-    "new": "",
+    "file": "server-account/src/safety.js",
+    "old": "    if (!r.error) order = await lawOrder(env, subtle, nowS, { s: row.id, bn: r.until });",
+    "new": "    if (false) order = await lawOrder(env, subtle, nowS, { s: row.id, bn: r.until });",
     "why": "a ban the live rooms never hear",
     "tests": [
       "test/server/staffpanel2.test.js"
@@ -211,12 +212,13 @@
   },
   {
     "name": "STAFF-PANEL2-mute-case-open",
-    "file": "server-account/src/staffCases.js",
-    "old": "      if (r.until) await resolveCase(",
-    "new": "      if (false) await resolveCase(",
+    "file": "server-account/src/safety.js",
+    "old": "  if (c && said) await resolveCase(",
+    "new": "  if (false) await resolveCase(",
     "why": "a muted account's case left open",
     "tests": [
-      "test/server/staffpanel2.test.js"
+      "test/server/staffpanel2.test.js",
+      "test/server/staffpanel2fix.test.js"
     ]
   },
   {
@@ -232,7 +234,7 @@
   {
     "name": "STAFF-PANEL2-failed-unwritten",
     "file": "server-account/src/staffCases.js",
-    "old": "    await audit(path.slice('/v1/staff/'.length), row.id, { ...detail, error: r.error }, { outcome: 'failed' }).run();\n",
+    "old": "    await audit(act, row.id, r.error === 'staff-claimed' ? { why: 'held' } : { ...detail, error: r.error }, { outcome: r.error === 'staff-claimed' ? 'denied' : 'failed' }).run();\n",
     "new": "",
     "why": "a refused act leaves no trace",
     "tests": [
@@ -241,9 +243,9 @@
   },
   {
     "name": "STAFF-PANEL2-discord-press-past-claim",
-    "file": "server-account/src/discord.js",
-    "old": "\n    AND (claimed_by IS NULL OR claimed_by = ?4 OR claim_until <= ?2)`)",
-    "new": "`)",
+    "file": "server-account/src/safety.js",
+    "old": "return { error: now?.held && now.claimed_by !== actor.id ? 'staff-claimed' : now?.status",
+    "new": "return { error: now?.status",
     "why": "a Discord press on a case another holds in the panel",
     "tests": [
       "test/server/staffpanel2.test.js"

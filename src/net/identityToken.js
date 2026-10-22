@@ -583,7 +583,7 @@ async function openSealed(token, publicKey, { subtle, nowS, skewS, valid }) {
  *  second: 'renown', a character's Renown that ROSE while its player was
  *  already in a room, carried in by that player's own client (the token
  *  that let them in said the Renown they had then). */
-export const ORDER_KINDS = Object.freeze(['mute', 'renown', 'guild', 'guildout', 'siege', 'stake', 'deck', 'remains', 'home', 'egopen', 'egadmit', 'ban']);   // SAFE4: a ban - its end, the service's word that the account may no longer play   // EG-PLAY: an Elite Breach's open and a member's admission   // QUEST-HOME: a town's homes moved, the service's word for every page online   // INT9: a fall's drop, the service's word on what it took   // CARDS10: a ranked seat's deck, vouched for   // GUILD1c: a character's guild now, and a member or a guild gone   // SEAT2a: a battle's pass
+export const ORDER_KINDS = Object.freeze(['mute', 'renown', 'guild', 'guildout', 'siege', 'stake', 'deck', 'remains', 'home', 'egopen', 'egadmit', 'ban', 'staffcut']);   // STAFF-PANEL2-FIX: a staff member cut off, the service's word that the account's sockets close   // SAFE4: a ban - its end, the service's word that the account may no longer play   // EG-PLAY: an Elite Breach's open and a member's admission   // QUEST-HOME: a town's homes moved, the service's word for every page online   // INT9: a fall's drop, the service's word on what it took   // CARDS10: a ranked seat's deck, vouched for   // GUILD1c: a character's guild now, and a member or a guild gone   // SEAT2a: a battle's pass
 /** An order lives a minute - long enough to be carried to every room
  *  the moderator holds, short enough that a leaked one is stale before
  *  anyone could use it for anything but what it already said. */
@@ -634,6 +634,8 @@ export function orderValid(c) {
   // SAFE4: a ban carries its end (`bn`, epoch seconds - 0 lifted) and no other kind's fields; no other kind carries a ban's
   if (c.o !== 'ban' && c.bn !== undefined) return false;
   if (c.o === 'ban' && (!Number.isSafeInteger(c.bn) || c.bn < 0 || c.mu !== undefined || c.lv !== undefined || c.dh !== undefined || !noGuild || !noSiege || !noStake || !noRemains || !noHome || !noEg)) return false;
+  // STAFF-PANEL2-FIX: a staff cut names its account and carries nothing else
+  if (c.o === 'staffcut' && (c.mu !== undefined || c.lv !== undefined || c.dh !== undefined || !noGuild || !noSiege || !noStake || !noRemains || !noHome || !noEg)) return false;
   if (!Number.isSafeInteger(c.i) || !Number.isSafeInteger(c.e)) return false;
   if (c.e <= c.i || c.e - c.i > ORDER_TTL_S) return false;
   return true;
@@ -906,6 +908,18 @@ export async function mintBanOrder({ s, bn }, privateKey, { subtle, nowS, ttlS =
   if (!Number.isSafeInteger(nowS)) throw new TypeError('mintBanOrder needs an integer epoch-seconds clock');
   const claims = { o: 'ban', s, bn, i: nowS, e: nowS + ttlS };
   if (!orderValid(claims)) throw new TypeError('mintBanOrder refused an order it could not verify');
+  return sealClaims(claims, privateKey, subtle);
+}
+
+/** STAFF-PANEL2-FIX (design doc "DFO Staff Panel: design", Weak spots: "Cutting off a staff member misses most doors"):
+ *  MINT A STAFF CUT ORDER - account `s` was cut off the staff by an owner (server-account/src/staff.js /v1/staff/cut).
+ *  The relay's hub closes each of the account's sockets whose token was minted before it (server/src/index.js
+ *  `_takeOrder`), so the staff glyphs that token carried go with them. Pushed through the service's door alone, never
+ *  carried by a client. */
+export async function mintStaffCutOrder({ s }, privateKey, { subtle, nowS, ttlS = ORDER_TTL_S }) {
+  if (!Number.isSafeInteger(nowS)) throw new TypeError('mintStaffCutOrder needs an integer epoch-seconds clock');
+  const claims = { o: 'staffcut', s, i: nowS, e: nowS + ttlS };
+  if (!orderValid(claims)) throw new TypeError('mintStaffCutOrder refused an order it could not verify');
   return sealClaims(claims, privateKey, subtle);
 }
 

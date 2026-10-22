@@ -54,6 +54,7 @@ on:
       - "src/net/sessionPassLaw.js"
       - "src/net/staffTeleport.js"
       - "src/net/relayCfg.js"
+      - "src/net/staffCommands.js"
       - "src/net/hubShards.js"
       - "src/net/privateInterior.js"
       - "src/net/instanceRoom.js"
