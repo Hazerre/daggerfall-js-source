@@ -243,6 +243,7 @@ import { takeGrantMeasure, GRANT_FEED_PATH } from './grants.js';   // GRANT2: th
 import { GRANT_MEASURE_SIG_HEADER, GRANT_MEASURE_MAX_BYTES } from '../../src/net/grantMeasure.js';
 import { stakeCards, cashoutCards } from './cards.js';   // CARDS6: a card table's stakes, escrowed
 import { seaBountyBoard, seaBountyPost, seaBountyCollect } from './seaBounty.js';   // SEA-BOUNTY: a freeport's bounty board on the open sea's killers
+import { seaSeasonBoard } from './seaSeason.js';   // SEA-SEASON: the sea's season boards
 import { deckOrderOf, claimIliac, iliacBoardOf } from './iliac.js';
 import { claimGambit, gambitBoardOf } from './gambit.js';   // KG6: The King's Gambit's season board and its GRANDMASTER   // CARDS10: a ranked seat's deck vouched for, Iliac Hand's season board and its title
 import { titleWorn, glyphsOf, glyphsHidden, auraWorn, iconWorn } from './titles.js';
@@ -1971,6 +1972,13 @@ const service = {
         if (r.error === 'seq') return json({ error: 'seq', seq: r.seq }, 409, origin);   // the record moved under the act, as a checkpoint's
         if ('error' in r) return json({ error: r.error }, REALM_STATUS[r.error] ?? JUDGE_STATUS[r.error] ?? 400, origin);
         return json(r, 200, origin);
+      }
+
+      // SEA-SEASON (2026-10-22, bible/03-World/Eltheric-Ocean.md SEA-SEASON): the season's deepest voyages and legends
+      // ended - read here; the figures come with each clean checkpoint (seaSeason.js, realm.js checkpointRealm)
+      if (path === '/v1/sea/season/board') {
+        if (request.method !== 'POST') return no('method', 405, origin);
+        return json(await seaSeasonBoard(ctx, who.player, body), 200, origin);
       }
 
       // ═══ CARDS6: A CARD TABLE'S STAKES ══════════════════════════════════

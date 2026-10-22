@@ -79,7 +79,8 @@ thousand leagues:
 | SEA-SET | THE DEEP'S OWN GEAR: the Eltheric Tidemail, an Aetheric set the Deep Aether and the Abyss alone give up - a legend ended, a vault's pile, a ruin's pile, the fleet's flagship, the storm's wrack | `systems/sigil/sigilSets.js` (`eltheric`), `systems/sigil/sigilSetPowers.js` (`captainsDue`), `systems/aetheric.js` (`ELTHERIC_SET_PIECES`, `ELTHERIC_CHANCE`, `rollElthericPiece`), `systems/sea/seaSpoils.js`, `scenes/naval/navalHost.js` (`legendTidemail`, `gunsRefit`, `dueOnHull`), `scenes/dungeonContext.js` and `scenes/roomLootHost.js` (the piles), `systems/item/itemLaw.js` (law 10) |
 | SEA-EVENTS | THE SEA'S SHARED CLOCK: the Aether Storm - its thunder, its wrack, its lightning - and the treasure fleet - its sailing, its ships, its flagship's spoils, the hub's word that it is scattered; both on the chart and in a freeport's talk | `systems/sea/seaEvents.js`, `scenes/naval/treasureFleet.js`, `scenes/seaVenturesHost.js` (`stormWord`, `stormTurned`, `seaStormShown`, `wrackSites`, `gather`, `step`, `fleetEnded`, `hubWord`, `rumours`, the chart's word), `scenes/naval/navalHost.js` (`fleet`, `stormStrike`, chargeEther's `treasureFleet.ended`, a site's `word`), `scenes/etherHost.js` (`credit`, `mid`, `say`), `net/wire.js` (`SEA_FLEET_PERIOD_MS`, `seaFleetSailing`, `fk`, `fd`), `net/wild/wildLaw.js` (`wdunFleetSunk`, `wdunFleets`), `server/src/index.js` (`_wdunWord`), `scenes/world.js` (`shownWeather`, the front, the sky, the wind, the sea's step, the hub's word, the sites, the haul, the office), `ui/etherChartWindow.js` (`paintStorm`, `paintFleet`, the keys), `systems/aetheric.js` (`ELTHERIC_CHANCE.storm`) |
 | SEA-VAULTS | THE VAULTS OF THE DEEP: the Wrothgarian halls on water - the day's four ruin isles of the Deep Aether and three of the Abyss, each an elite hall with its hub lock, crows, reset and epoch; marked on the chart; the open sea keeps no instance | `systems/sea/seaVaults.js`, `scenes/seaVenturesHost.js` (`vaultHere`, `openSeaAt`, `chartWord`, `crowLine`), `net/wire.js` (`seaVaultKey`, `seaVaultCell`, `seaVaultMapId`, `seaRoomCell`, `wdunHall`, `wdunRoomKey`, `WDUN_SEA_RELAY_MIN`), `net/online.js` (`wdunSeaOk`), `server/src/index.js` (`_instanceHello`), `scenes/instanceDoor.js` (`keepsNone`), `scenes/world.js` (`wildHallHere`, `wildDungeonGate`, `wdKey`, the crows' news, the chart's word, the door's `wild`), `ui/etherChartWindow.js` (`paintVault`, `CHART_VAULT_KEY`) |
-| SEA-BOUNTY | A FREEPORT'S BOUNTY BOARD: a fall at sea signed with its room and its killer's character; the kill, the posts, the claim and the owed at the service, gold never made; the harbourmaster's Wanted section | `net/sea/seaBountyLaw.js`, `server-account/src/seaBounty.js` (`seaKillSteps`, `seaBountyBoard`, `seaBountyPost`, `seaBountyCollect`), `server-account/migrations/0144_sea_bounty.sql`, `server-account/src/wild.js` (wildFall's batch), `net/wild/wildReceipt.js` (`m`, `kc`, `WILD_ROOM_RE`), `net/wild/wildRef.js` (`room`, `kc`), `net/wire.js` (`seaRoomOf`, `WILD_SEA_BOX`, `seaPlaceCell`), `server/src/index.js` (the strike's room, `_wildSign`), `net/accountClient.js` (`accountSeaBounty`, the refusals), `scenes/seaBountyHost.js`, `scenes/seaVenturesHost.js` (`wanted`), `ui/naval/navalYardWindow.js` (`wantedText`, `renderWanted`), `ui/naval/navalPlunderDoor.js` (`repaintNavalYard`), `scenes/world.js` (the sea's deps, the office), `systems/naval/etherCrossing.js` (`createCrossLand`) |
+| SEA-BOUNTY | A FREEPORT'S BOUNTY BOARD: a fall at sea signed with its room and its killer's character; the kill, the posts, the claim and the owed at the service, gold never made; the harbourmaster's Wanted section | `net/sea/seaBountyLaw.js`, `server-account/src/seaBounty.js` (`seaKillSteps`, `seaBountyBoard`, `seaBountyPost`, `seaBountyCollect`), `server-account/migrations/0144_sea_bounty.sql`, `server-account/src/wild.js` (wildFall's batch), `net/wild/wildReceipt.js` (`m`, `kc`, `WILD_ROOM_RE`), `net/wild/wildRef.js` (`room`, `kc`), `net/wire.js` (`seaRoomOf`, `WILD_SEA_BOX`, `seaPlaceCell`), `server/src/index.js` (the strike's room, `_wildSign`), `net/accountClient.js` (`accountSeaBounty`, the refusals), `scenes/seaBountyHost.js`, `scenes/seaVenturesHost.js` (`office`'s `wanted`), `ui/naval/navalYardWindow.js` (`wantedText`, `renderWanted`), `ui/naval/navalPlunderDoor.js` (`repaintNavalYard`), `scenes/world.js` (the sea's deps, the office), `systems/naval/etherCrossing.js` (`createCrossLand`) |
+| SEA-SEASON | THE SEASON'S CAPTAINS: the captain's ledger's season figures (the deepest voyage, the legends ended) by the world's day, dropped at both copy doors; read off a clean judged checkpoint within the law and kept at their most; the boards with their ranks and the last season's firsts; the harbourmaster's section | `net/sea/seaSeasonLaw.js`, `server-account/src/seaSeason.js` (`seaSeasonSteps`, `seaSeasonBoard`), `server-account/migrations/0145_sea_season.sql`, `server-account/src/realm.js` (checkpointRealm's batch), `systems/naval/captainLedger.js` (`ether.season`, `restoreSeason`, `deepest`, `endLegend`, `season`), `scenes/etherHost.js` (`sight`'s day), `systems/offlineCopy.js` (`dropSeason`), `net/accountClient.js` (`accountSeaSeason`), `scenes/seaSeasonHost.js`, `scenes/seaVenturesHost.js` (`office`), `ui/naval/navalYardWindow.js` (`seasonText`, `renderSeason`), `scenes/world.js` (the office's spread) |
 | (the ledger) | WHAT A CAPTAIN KEEPS OF IT: the isles charted, the legends ended and heard of, the strands gathered, the way out, the crossings - in the Captain save | `systems/naval/captainLedger.js` (`ether`, `chartIsle`, `endLegend`, `gathered`, `setCrossedFrom`, `crossed`, `hearLegend`), `scenes/etherHost.js` |
 
 THE FOUR HOSTS (Home.md; AUDIT CAPTAIN'S SEA H12 - the slices named none): the sea, its ships, the crossing, the chart
@@ -720,7 +721,8 @@ it fights nobody there and drops nothing - INT9's known limit, Wild-Zone.md sect
 and a captain's hold as a prize - the relay referees no naval fire yet, so a ship is no target of a player's; whether a
 captain's hold gives up a share at a death past the peace (the larger shelter at sea, above); a freeport's bounty board
 on the sea's killers. The Wrothgarian halls' daily elite vaults for the Deep Aether and the Abyss, with their locks and
-crows, are SEA-VAULTS (below); the bounty board is SEA-BOUNTY (below).
+crows, are SEA-VAULTS (below); the bounty board is SEA-BOUNTY (below); the season's boards for the deepest voyage and
+the legends ended are SEA-SEASON (below) - a title or prize for a season's first is still the owner's call.
 
 Pinned by `test/systems/wild/etherwild.test.js` (8); `tools/mutants/etherwild.json` (35, all dead).
 
@@ -931,7 +933,7 @@ the box, and harmless so: the relay referees no fall there.
   standing, always.
 
 **THE PAGE** (`scenes/seaBountyHost.js`, built by the sea's host - HOST-SPLIT: `world.js` hands `seaVentures` the realm
-session, the checkpoint, the wallet, the character and the region, and the harbourmaster's tab `seaVentures.wanted()`).
+session, the checkpoint, the wallet, the character and the region, and the harbourmaster's tab its Wanted section through `seaVentures.office()` - SEA-SEASON's spread).
 A freeport's harbourmaster's tab grows a WANTED section (`ui/naval/navalYardWindow.js` `wantedText`, `renderWanted`),
 online with a realm character alone: each wanted captain's kills and bounty with a press for each post
 (`SEA_BOUNTY_POSTS`: 500, 2,000, 10,000), the gold owed and its Collect, the bounty on one's own head, and the last
@@ -948,12 +950,67 @@ The account deploy watches the law's file (`account-deploy.yml`).
 and neither does the Bay's. A captain may be ended by a friend for the bounty (another account's character): the posts
 are other players' gold, and a friend is a player too - as a market's sale to a friend is. Gold, never items, is posted.
 
-**THE FOUR HOSTS.** `scenes/world.js` (the sea's deps, the office's `wanted`) WIRED through `scenes/seaVenturesHost.js`
+**THE FOUR HOSTS.** `scenes/world.js` (the sea's deps, the office's spread) WIRED through `scenes/seaVenturesHost.js`
 and `scenes/seaBountyHost.js`; `scenes/worldModes.js`, `scenes/dungeonContext.js` and `scenes/exterior.js` show no
 harbourmaster - FLAGGED, nothing to wire. bootWorld paid for its four deps by `createCrossLand` leaving it
 (`systems/naval/etherCrossing.js` - the crossing's land ring, ETHER-CROSSING's, built by its own module now).
 
 Pinned by `test/systems/sea/seabounty.test.js` (9); `tools/mutants/seabounty.json` (108, all dead).
+
+## SEA-SEASON - the season's captains: the deepest voyage and the legends ended
+
+The owner's "more of a reason to venture into this zone", and the last of ETHER-WILD's suggestions (2026-10-22: "Build
+ever single bit of this"): the realm's boards for how far past the Veil a captain has sailed this season and how many of
+the six legends they have sunk or taken, at every freeport. DFU keeps no season and no players' boards: the season is
+the realm's own (`net/arena/arenaLaw.js` arenaSeasonOf - eight weeks of wall time from a Monday, the arena's and the
+Spire's), and the boards are read off the service's own judged records.
+
+**THE FIGURES** are the captain's ledger's (`systems/naval/captainLedger.js` `ether.season` - `{ n, deepest, legends }`):
+the deepest leagues past the Veil a sighting at sea marked in the season (`deepest(d, day)` - the ether host hands it the
+world's day: `etherHost.js:"L.deepest?.(etherDepthAt(px), day());"`), and each legend ended in it (`endLegend`). The
+season is the one the world's day falls in (`net/sea/seaSeasonLaw.js` `seaSeasonOfDay` - online, the shared clock's
+wall time at the day's first minute; the day the season turns in counts for the old one). A new season begins the
+figures afresh; a day of a season before the one kept counts nothing (a world moved back). The save keeps them, read
+back within the law (`restoreSeason`); NEITHER COPY DOOR CARRIES THEM (`systems/offlineCopy.js` `dropSeason`): an
+offline game's voyages are on its own clock, and a copy brought online starts the season from nothing.
+
+**THE SERVICE** (`server-account/src/seaSeason.js`; the table `migrations/0145_sea_season.sql`; the law both ends read,
+`src/net/sea/seaSeasonLaw.js`):
+
+- A CLEAN CHECKPOINT CARRIES THEM, in its own batch (`server-account/src/realm.js:"...(v.clean ? seaSeasonSteps(db, { player: playerId, char: id }, save, nowS) : []),"`):
+  read through the law (`seaSeasonFigures` - this season's; the deepest no further than the sea goes, `SEA_DEEPEST_MAX`
+  1,365 leagues at its west edge; the legends no more than the six could have risen since the season began,
+  `seaLegendsPossible` - each once, and once more each `SEA_LEGEND_RISE_S`, the sixty hours of wall time that
+  `LEGEND_RISE_DAYS` are online) and written only while the character stands unheld, after the verdict's own write - so
+  a lawless checkpoint (the judge's `clean` is false) and a held character's say nothing to the boards. Each figure is
+  the most any checkpoint of the season has said, with the moment it was first reached.
+- THE BOARDS (`/v1/sea/season/board`): the season's first `SEA_SEASON_ROWS` (10) each way - the deepest first, the most
+  legends first, equal figures by who reached them first - the asking character's rank each way, and the season
+  before's first `SEA_SEASON_LAST_ROWS` (3). A held character stands on neither board while it is held, nor ahead of
+  anyone.
+
+**THE PAGE** (`scenes/seaSeasonHost.js`, built by the sea's host - HOST-SPLIT: the sea's host spreads `office()`'s two
+sections, the Wanted and the season's, into the harbourmaster's tab - `world.js:"...seaVentures.office(), buyChart:"`,
+no line more). A freeport's harbourmaster's tab grows THE SEASON'S CAPTAINS (`ui/naval/navalYardWindow.js` `seasonText`,
+`renderSeason`), online with a realm character alone: the season and its days left, the deepest voyages and the legends
+ended (each its rank, its captain and its figure, or a line that none has yet), the player's own places, and the last
+season's firsts. The boards are read when the tab is shown and again `SEA_SEASON_FRESH_MS` (a minute) on, once at a time.
+
+**THE DEPLOY.** The service's acct168 (migration 0145, the deploy's ledger applies it); the account deploy watches the
+law's file. No relay word: the figures come with the record.
+
+**KNOWN, NAMED.** The figures are the record's, and the service cannot replay a voyage: a modified client could write a
+false figure the law allows - a depth the sea has, legends at the rate they rise - as it could any field of a record
+the judge does not see through. The bounds keep it to what an honest captain could do; the hold keeps a lawless record
+off the boards. A checkpoint carries the figures, so the board stands a checkpoint behind the sea. No title or prize
+for a season's first yet - the owner's call (OPEN FOR THE OWNER).
+
+**THE FOUR HOSTS.** `scenes/world.js` (the office's spread, unchanged in length) WIRED through
+`scenes/seaVenturesHost.js` and `scenes/seaSeasonHost.js`; `scenes/etherHost.js` (the day to the deepest's mark);
+`scenes/worldModes.js`, `scenes/dungeonContext.js` and `scenes/exterior.js` show no harbourmaster - FLAGGED, nothing
+to wire.
+
+Pinned by `test/systems/sea/seaseason.test.js` (6); `tools/mutants/seaseason.json` (83, all dead).
 
 ## The ledger's record
 

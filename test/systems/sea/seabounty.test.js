@@ -315,7 +315,7 @@ test('SEA-BOUNTY the tab\'s words (navalYardWindow.js wantedText): each wanted c
   assert.equal(etherOfficeText({ ...office, wanted: w }).wanted.rows.length, 2);
   const win = src('src/ui/naval/navalYardWindow.js');
   assert.match(win, /renderWanted\(ot\.wanted, o\.wanted\);/);
-  assert.match(win, /body\.append\(tabs, lede, sec, pSec, oLede, boardSec, wantedSec, heldSec, lettersSec, tLede, tradeSec\);/);
+  assert.match(win, /body\.append\(tabs, lede, sec, pSec, oLede, boardSec, wantedSec, seasonSec, heldSec, lettersSec, tLede, tradeSec\);/);   // PIN MOVED (SEA-SEASON): and the season's captains after it
   assert.match(win, /\(\) => w\.post\(\{ char: r\.id, name: r\.title \}, p\.n\)/);
   assert.match(win, /officeRow\(wt\.owed\.title, wt\.owed\.words, null, wt\.owed\.press, wt\.owed\.can, \(\) => w\.collect\(\)\)/);
 });
@@ -376,7 +376,8 @@ test('SEA-BOUNTY the seams by source: the relay passes the room and signs it wit
   assert.match(src('.github/workflows/account-deploy.yml'), /- "src\/net\/sea\/seaBountyLaw\.js"/);
   const w = src('src/scenes/world.js');
   assert.match(w, /session: realmSession, checkpoint: onlineCheckpoint, wallet: realmWallet, character: \(\) => characterIdOf\(playerEntity\), region: _questRegionIndex,/);
-  assert.match(w, /rumours: \[\.\.\.o\.rumours, \.\.\.seaVentures\.rumours\(port\)\], wanted: seaVentures\.wanted\(\),/);
+  assert.match(w, /rumours: \[\.\.\.o\.rumours, \.\.\.seaVentures\.rumours\(port\)\], \.\.\.seaVentures\.office\(\),/);   // PIN MOVED (SEA-SEASON): the tab's sections, the Wanted and the season's, spread from the sea's host
+  assert.match(src('src/scenes/seaVenturesHost.js'), /office: \(\) => \(\{ wanted: bounty\.office\(\), season: season\.office\(\) \}\),/);
   assert.match(src('src/scenes/seaVenturesHost.js'), /const bounty = createSeaBounty\(\{ live, session: deps\.session, checkpoint: deps\.checkpoint, wallet: deps\.wallet, character: deps\.character, region: deps\.region, door: deps\.bountyDoor, now: clock \}\);/);
   assert.match(src('src/ui/naval/navalPlunderDoor.js'), /export const repaintNavalYard = \(\) => \{ YARD\.open\?\.repaint\?\.\(\); \};/);
 });

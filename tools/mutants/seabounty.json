@@ -821,8 +821,8 @@
   {
     "name": "SEA-BOUNTY-tab-no-section",
     "file": "src/ui/naval/navalYardWindow.js",
-    "old": "heads: { board: ['The quay\\'s talk', 'the legends of these waters'], letters: ['Charts', 'the harbormaster\\'s'] }, wanted: o.wanted ? wantedText(o.wanted) : null };",
-    "new": "heads: { board: ['The quay\\'s talk', 'the legends of these waters'], letters: ['Charts', 'the harbormaster\\'s'] }, wanted: null };",
+    "old": "wanted: o.wanted ? wantedText(o.wanted) : null, season:",
+    "new": "wanted: null, season:",
     "tests": [
       "test/systems/sea/seabounty.test.js"
     ]
@@ -866,8 +866,8 @@
   {
     "name": "SEA-BOUNTY-win-office-hides",
     "file": "src/ui/naval/navalYardWindow.js",
-    "old": "    for (const n of [oLede, boardSec, heldSec, lettersSec, wantedSec]) n.style.display = tab === 'office' ? '' : 'none';",
-    "new": "    for (const n of [oLede, boardSec, heldSec, lettersSec]) n.style.display = tab === 'office' ? '' : 'none';",
+    "old": "    for (const n of [oLede, boardSec, heldSec, lettersSec, wantedSec, seasonSec]) n.style.display = tab === 'office' ? '' : 'none';",
+    "new": "    for (const n of [oLede, boardSec, heldSec, lettersSec, seasonSec]) n.style.display = tab === 'office' ? '' : 'none';",
     "tests": [
       "test/systems/sea/seabounty.test.js"
     ]
@@ -929,8 +929,8 @@
   {
     "name": "SEA-BOUNTY-world-no-section",
     "file": "src/scenes/world.js",
-    "old": "wanted: seaVentures.wanted(), buyChart:",
-    "new": "wanted: null, buyChart:",
+    "old": "...seaVentures.office(), buyChart:",
+    "new": "buyChart:",
     "tests": [
       "test/systems/sea/seabounty.test.js"
     ]
@@ -956,8 +956,8 @@
   {
     "name": "SEA-BOUNTY-door-collect",
     "file": "src/net/accountClient.js",
-    "old": "    collect: (req) => post('/v1/sea/bounty/collect', req),\n  };\n}\n\n/** CARDS10",
-    "new": "    collect: (req) => post('/v1/sea/bounty/board', req),\n  };\n}\n\n/** CARDS10",
+    "old": "    collect: (req) => post('/v1/sea/bounty/collect', req),\n  };\n}\n\n/** SEA-SEASON",
+    "new": "    collect: (req) => post('/v1/sea/bounty/board', req),\n  };\n}\n\n/** SEA-SEASON",
     "tests": [
       "test/systems/sea/seabounty.test.js"
     ]

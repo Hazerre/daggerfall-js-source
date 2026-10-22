@@ -2294,6 +2294,13 @@ export function accountSeaBounty({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS 
   };
 }
 
+/** SEA-SEASON: THE SEA'S SEASON BOARDS' DOOR (server-account/src/seaSeason.js) - the season's deepest voyages and legends
+ *  ended, and the asking character's rank each way (`board`: `{ character }`). Its answer is `call`'s shape. */
+export function accountSeaSeason({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
+  const post = waitedPost({ fetch, storage }, waitMs);
+  return { board: (req) => post('/v1/sea/season/board', req) };
+}
+
 /** CARDS10: ILIAC HAND'S DOOR (server-account/src/iliac.js) - a ranked seat's deck vouched for (`deck`: `{ character,
  *  realm, deck }` - the service's order the relay seats it ranked on), a ranked game's receipt the relay signed, carried
  *  here by an account it names (`claim`), and the season board (`board`). Every answer is `call`'s shape. */
