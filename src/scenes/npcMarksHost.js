@@ -145,7 +145,7 @@ export function markKindOf(holder, ctx) {
 /** L7: how high the body's crown draws - its height, or under the Billboard Look (the upright card) cos(pitch) of it,
  *  the pitch the eye's ray to the body's middle makes. Pure. @param {number} tall @param {ArrayLike<number>} feet
  *  @param {ArrayLike<number>} eye @param {boolean} upright */
-export function crownOf(tall, feet, eye, upright) {
+export function markCrownOf(tall, feet, eye, upright) {
   if (!upright) return tall;
   const dx = feet[0] - eye[0], dy = feet[1] + tall / 2 - eye[1], dz = feet[2] - eye[2];
   const flat = Math.hypot(dx, dz), all = Math.hypot(flat, dy);
@@ -235,7 +235,7 @@ export function createNpcMarks(gl, { build = (g) => new NpcMarkRenderer(g), redu
         if (id == null || !feet) continue;
         const height = lane.heightOf(id);
         if (!(height > 0)) continue;   // no body stands for them: their own picture is their mark
-        const tall = crownOf(height, feet, eye, upright);
+        const tall = markCrownOf(height, feet, eye, upright);
         const d = Math.hypot(feet[0] - eye[0], feet[1] + tall - eye[1], feet[2] - eye[2]);
         if (!(d <= NPC_MARKS_REACH)) continue;
         // the nearest NPC_MARKS_MAX, kept sorted as they come: a free slot, or the farthest kept's, taken and moved in

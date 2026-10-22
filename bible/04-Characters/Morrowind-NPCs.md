@@ -2748,12 +2748,19 @@ THE LAW AND THE WIRING (L):
 - L6 FIXED. A mod's merchant service (Roleplay & Realism's) switched mid-session left the kept route. The route is
   read again whenever the switch's answer moves.
 - L7 FIXED. Under the Billboard Look the upright card draws the body cos(pitch) of its height (BODY-CARD), and the mark
-  hung at the full height floated over a shortened head from above. `crownOf` reads the switch.
+  hung at the full height floated over a shortened head from above. `markCrownOf` reads the switch.
 - FINE, as read: `interiorBuilding` is cleared on every way out, so the click and the mark read the same building in
   every mode; the faction listeners' quests are Individuals', whose route is talk; quest-words-first; tombstoned
   questors' behaviours destroyed; a quest's item and foe stands stand no body; outdoor quest people are the street's
   StaticNPCs (no stand is stood outdoors); the lane's feet are the holder's own array; interior holders are fresh
   each visit, so no route crosses buildings.
+
+AT THE PULL REQUEST (#1121): CI's first run of the audited change found one more - the one-home ratchet
+(`test/systems/talk/audit24_onehome.test.js`, ONE DFU MEMBER, ONE EXPORT) caught two names already declared elsewhere
+for other things: `MARK_KINDS` (systems/livingWorld/relations.js, a body's marks) and the audit's own `crownOf`
+(systems/naval/navalShips.js, a water's crown). Not one member twice - two homonyms - so ours were renamed
+(`NPC_MARK_KINDS`, `markCrownOf`) rather than listed in HOMONYMS. The same lesson as R1's: a ratchet over the whole
+tree's declarations names nothing the slice touched, so a slice adding exports runs it.
 
 `test/scenes/npcmarks.test.js` (21 tests; L1-L7, R2, R3/R4 and R5 each their own, the vertex stage's point law beside
 R9); `tools/mutants/npcmarks.json`: 46 records, 45 dead, one equivalent as recorded. The pass was compiled and drawn

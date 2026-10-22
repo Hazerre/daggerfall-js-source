@@ -40,7 +40,7 @@ export const MARK_BOB_HZ = 1;
 /** The icon's pixels a side. */
 export const MARK_GRID = 16;
 /** The kinds, and the number the shader draws each by. */
-export const MARK_KINDS = Object.freeze({ quest: 0, merchant: 1, service: 2 });
+export const NPC_MARK_KINDS = Object.freeze({ quest: 0, merchant: 1, service: 2 });
 
 const HEAD = `#version 300 es
 precision highp float;
@@ -63,7 +63,7 @@ void main() {
   gl_Position = uVP * vec4(p, 1.0);
 }`;
 export const NPC_MARK_FS = HEAD + `in vec2 vP;
-uniform int uKind;       // MARK_KINDS
+uniform int uKind;       // NPC_MARK_KINDS
 uniform float uAlpha;
 out vec4 o;
 float box(vec2 p, vec2 b) { vec2 d = abs(p) - b; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0); }
@@ -73,11 +73,11 @@ void main() {
   float d;            // the shape's distance (inside < 0)
   float inner = 1.0;  // 0 where the shape's own darker detail is
   vec3 fill;
-  if (uKind == ${MARK_KINDS.quest}) {
+  if (uKind == ${NPC_MARK_KINDS.quest}) {
     // "!": a bar over a dot, both square to the pixel grid
     d = min(box(p - vec2(0.0, 0.3), vec2(0.21, 0.52)), box(p - vec2(0.0, -0.62), vec2(0.21, 0.2)));
     fill = vec3(1.0, 0.93, 0.3);   // a lemon yellow, apart from the coin's amber where both are a few pixels
-  } else if (uKind == ${MARK_KINDS.merchant}) {
+  } else if (uKind == ${NPC_MARK_KINDS.merchant}) {
     // a coin: a disc, a ring stamped inside its rim
     float r = length(p);
     d = r - 0.8;
@@ -141,7 +141,7 @@ export class NpcMarkRenderer {
   }
 
   /**
-   * Draw `n` marks of `marks` ([{ at: [x, y, z] the point the icon stands on, kind: a MARK_KINDS name, alpha }], the
+   * Draw `n` marks of `marks` ([{ at: [x, y, z] the point the icon stands on, kind: a NPC_MARK_KINDS name, alpha }], the
    * first `n` read). `view` is the frame's view matrix: its first ROW (0, 4, 8) is lookAt's x, which the HANDEDNESS
    * mirror puts on the screen's LEFT, so the icon's right is its negative - the billboards' `camRight`. Nothing to
    * draw, nothing touched: not a program, not a VAO (AUDIT NPC-MARKS R2 - a bind with no draw left the renderer's
@@ -171,7 +171,7 @@ export class NpcMarkRenderer {
       const m = marks[i];
       if (!(m.alpha > 0.001)) continue;
       gl.uniform3f(U.uAt, m.at[0], m.at[1], m.at[2]);
-      gl.uniform1i(U.uKind, MARK_KINDS[m.kind] ?? MARK_KINDS.quest);
+      gl.uniform1i(U.uKind, NPC_MARK_KINDS[m.kind] ?? NPC_MARK_KINDS.quest);
       gl.uniform1f(U.uAlpha, Math.min(1, m.alpha));
       gl.drawArrays(gl.TRIANGLES, 0, this.count);
       this.drawn++;
