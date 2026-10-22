@@ -59,6 +59,7 @@ import { safetyMinute, safetySweep } from './safetyClock.js';   // SAFE5 + SAFE8
 import { sweepGuildNotes } from './guildBoard.js';
 import { sweepHarvests } from './professions.js';
 import { sweepCraftWrits } from './craftWrits.js';   // CRAFT-WRITS: an unfilled crafting writ the day after its own
+import { retryFreezePushes, sweepStaffChat } from './staffFreeze.js';   // STAFF-PANEL5-FREEZE: a freeze's push again, the staff chat's sweep
 import { SESSION_IDLE_S } from './accounts.js';
 import { storeArenaChampion, ARENA_CHAMPION_CLOCK_S } from './arena.js';
 import { iliacChampionClock } from './iliac.js';   // CARDS10: Iliac Hand's season #1, counted the arena's way
@@ -178,7 +179,10 @@ export const MINUTE_JOBS = Object.freeze([
   ['rez-holds', (ctx) => rounds(() => settleHolds(ctx), REZ_SETTLE_MAX, ctx.budget)],
   // SAFE5 + SAFE8 (bible/11-Multiplayer/Chat-Safety-Arc.md): the reviewer reads the relay's feed and the reported cases,
   // and each case's card goes to the moderators' channel - nothing a request waits on (safetyClock.js)
-  ['safety', (ctx, env) => safetyMinute(ctx, env)],
+  // STAFF-PANEL5-FREEZE (staffFreeze.js; design doc Weak spots: "A failed push leaves a freeze or unfreeze unapplied"): and a
+  // freeze or unfreeze the relay's door did not take, pushed again with a fresh order - the sanctions' own minute, so no
+  // job's share of the firing shrinks (AUDIT SCALE A2); nothing asked while no door is set
+  ['safety', async (ctx, env) => (await safetyMinute(ctx, env)) + (await retryFreezePushes(ctx, env))],
   ['motherlodes', async (ctx, env) => {
     const day = utcDay(ctx.nowS);
     if (profSwitchOf(env?.PROFESSIONS_OPEN) !== 'on' || lodesPicked === day) return 0;
@@ -275,6 +279,9 @@ export const HOUR_JOBS = Object.freeze([
   // evidence"): an episode past REACT_KEEP_S, unless kept still
   ['reactions', (ctx) => rounds(() => deleted(ctx.db,
     `DELETE FROM encounter_reactions WHERE id IN (SELECT id FROM encounter_reactions WHERE at < ?1 AND (keep_until IS NULL OR keep_until < ?1 + ${REACT_KEEP_S}) LIMIT ?2)`, ctx.nowS - REACT_KEEP_S), SWEEP_ROWS, ctx.budget)],
+  // STAFF-PANEL5-FREEZE (staffFreeze.js): a freeze's thread whose freeze ran out closed, and the staff chat's lines past
+  // STAFF_LINES_KEEP_S (90 days)
+  ['staff-chat', (ctx) => rounds(() => sweepStaffChat(ctx.db, ctx.nowS, SWEEP_ROWS), SWEEP_ROWS, ctx.budget)],
 ]);
 
 /** The jobs a schedule runs - none for a schedule this service does not keep (said, so a trigger renamed in

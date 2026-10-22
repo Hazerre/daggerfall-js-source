@@ -184,6 +184,7 @@ import { FOLLOW_INTERNAL_SAY } from '../../src/net/staffFollow.js';
 import { takeStaffMessage } from './staffMessage.js';   // STAFF-PANEL5-MESSAGE: a staff message's nudge, to one account's own hub sockets
 import { staffNetFrame, staffNetClosed, staffFoesSeen, staffFoesStripped, staffReactAsk, staffReactPose, staffLeft } from './staffFeeds.js';   // STAFF-PANEL5-FEEDS: the Staff Panel's counts - network bursts, monsters, an encounter's reaction (off until their URLs are set)
 import { hiddenMay, hiddenAsked, seatsTaken, hiddenHello, hiddenPose, hiddenLapse, hiddenEntered, isHidden } from './staffHidden.js';   // STAFF-PANEL5-HIDDEN: a hidden staff spectator, named by nobody
+import { STAFF_ORDER_KINDS, takeStaffOrder, frozenHello, busFreeze, frozenFrame, staffLine, freezeMoved, seatBarred, frozenAt } from './staffFreeze.js';   // STAFF-PANEL5-FREEZE: freeze player and the staff chat
 import { privateInteriorOf, privateInteriorAdmits, caravanKeyOf } from '../../src/net/privateInterior.js';   // WAGONS2-VISIT: and a caravan's own room
 import { isInstanceRoom, instanceOf, instanceAdmission, partyHoldsOwner, INSTANCE_INTERNAL_KIN, INSTANCE_KIN_KEEP_MS, INSTANCE_DOOR_WORD } from '../../src/net/instanceRoom.js';   // INSTANCES: an instance's room, its door and the hub's party answer (bible/11-Multiplayer/Instances.md)
 import { isStaff } from '../../src/net/staffCommands.js';
@@ -574,7 +575,7 @@ async function lawDoor(request, env) {
   const order = body?.order;
   if (typeof order !== 'string' || !order || order.length > 1024) return json({ error: 'bad law' }, 400);
   const kind = lawKindOf(order);
-  if (kind !== 'ban' && kind !== 'mute' && kind !== 'smsg' && kind !== 'staffcut' && kind !== 'hide') return json({ error: 'bad law' }, 403);   // no verify spent on what is no mute, ban, staff message (STAFF-PANEL5-MESSAGE), staff cut (STAFF-PANEL2-FIX) or a hidden mark's lapse (STAFF-PANEL5-HIDDEN, the hub's `hiddenLapse`)
+  if (kind !== 'ban' && kind !== 'mute' && kind !== 'smsg' && kind !== 'staffcut' && kind !== 'hide' && !STAFF_ORDER_KINDS.includes(kind)) return json({ error: 'bad law' }, 403);   // no verify spent on what is no mute, ban, staff message (STAFF-PANEL5-MESSAGE), staff cut (STAFF-PANEL2-FIX) a hidden mark's lapse (STAFF-PANEL5-HIDDEN, the hub's `hiddenLapse`), a freeze or a staff line's nudge (STAFF-PANEL5-FREEZE)
   const key = await lawKeyOf(env);
   if (!key) return json({ error: 'unavailable' }, 503);
   const nowS = Math.floor(Date.now() / 1000);
@@ -1755,6 +1756,7 @@ export class Room {
     if (await this._bannedHello(vws, a.sub, ti, now)) return;
     const order = typeof a.sub === 'string' ? this._orders.get(a.sub) : null;
     if (order && order.i > ti) a = { ...a, mu: order.mu, lt: order.i };   // LEASE1: `lt` the time of the room's last word on its mute
+    if (!(a = await busFreeze(this, vws, a, ti, now, GROUND_OLD_WORDS))) return;   // STAFF-PANEL5-FREEZE (staffFreeze.js): and the bus's book of freezes
     if (a.gi) { await this._loadGuildOuts(Math.floor(now / 1000)); if (this._guildOutAfter(a.gi, a.gm, ti)) a = this._unguild(a); }
     vws.att = a;
     this._vput(vws);
@@ -2331,15 +2333,15 @@ export class Room {
    *  holds it no longer - and, none live, the eldest; every other room's, the eldest. */
   _hostWalk(except, live = true) {
     const list = [];
-    for (const [ws, a] of this._all()) if (ws !== except && a.id && !a.hid) list.push(a);   // STAFF-PANEL5-HIDDEN: never a room's host
+    for (const [ws, a] of this._all()) if (ws !== except && a.id && !a.hid && !seatBarred(a)) list.push(a);   // STAFF-PANEL5-HIDDEN: never a room's host; STAFF-PANEL5-FREEZE: nor a frozen socket
     return seatOf(list, Date.now(), { live: live && seatStreams(list[0]?.key) });
   }
   /** Does this hello'd attachment lead every other (but except's) - is it the room's host? SEAT-LIVE: by the seat's own
    *  law (`seatOf`), with `a` counted though its socket has left the index (a leaver's). */
   _leads(a, except = null) {
-    if (a.hid) return false;   // STAFF-PANEL5-HIDDEN: a hidden socket never leads - nor is it counted among those who might
+    if (a.hid || seatBarred(a)) return false;   // STAFF-PANEL5-HIDDEN: a hidden socket never leads - nor is it counted among those who might; STAFF-PANEL5-FREEZE: nor a frozen one
     const list = [a];
-    for (const [ws, b] of this._all()) if (ws !== except && b.id && !b.hid && b !== a) list.push(b);
+    for (const [ws, b] of this._all()) if (ws !== except && b.id && !b.hid && b !== a && !seatBarred(b)) list.push(b);
     return seatOf(list, Date.now(), { live: seatStreams(a.key) }) === a.id;
   }
   /** SEAT-LIVE (AUDIT FB1018D L4-2): whether a leave moves the seat the room knows - the leaver led it, or it was the host
@@ -2837,6 +2839,7 @@ export class Room {
     // before the room's budget and metered by a line that budget lets through, and no other. The echo, and the stamp it
     // carries, are as they were.
     const words = frame.t === 'chat';   // a chat line - stamped, and paced in a channel; a roll is neither
+    if (ch === 'staff') { staffLine(this, ws, a, frame, now); return; }   // STAFF-PANEL5-FREEZE (staffFreeze.js): a staff thread's nudge, to its members alone - never its words
     if (ch === 'guild') {
       // GUILD1c: A GUILD'S LINE, said on the hub link and heard by every socket there wearing the sender's guild - the
       // verified token's, or a signed guild order's since, never the sender's word. The hub is the one room every
@@ -3009,6 +3012,7 @@ export class Room {
   async _takeOrder(order, now, kinds, hand) {
     if (typeof order !== 'string' || !order || order.length > 1024) return false;
     const kind = lawKindOf(order);
+    if (hand && STAFF_ORDER_KINDS.includes(kind)) kinds = STAFF_ORDER_KINDS;   // STAFF-PANEL5-FREEZE: the service's door (`hand`) alone carries a freeze or a staff line
     if (!kinds.includes(kind)) return false;
     await this._loadKey();
     if (!this._verifyKey) return false;
@@ -3017,6 +3021,7 @@ export class Room {
     if (!r.ok) return false;
     const c = r.claims;
     if (c.o === 'staffcut') return this._staffCut(c);
+    if (STAFF_ORDER_KINDS.includes(c.o)) return takeStaffOrder(this, c, order, now, GROUND_OLD_WORDS);   // STAFF-PANEL5-FREEZE (staffFreeze.js)
     const ban = c.o === 'ban';
     const sig = order.slice(order.lastIndexOf('.') + 1);
     if (ban) await this._loadBans(nowS);
@@ -3647,6 +3652,7 @@ export class Room {
       if (who.error) { this._refuse(ws, who.error); return; }
       if (await this._bannedHello(ws, who.subject, who.gio, now)) return;   // AUDIT SAFE RELAY-4: a ban this room took after the token was minted - told `banned` and closed, before anything is written (a method of its own)
       { const no = hiddenHello(this, ws, a, m, who); if (no) { this._refuse(ws, no); return; } }   // STAFF-PANEL5-HIDDEN: `who` marked off the signature, then a hidden seat said hello visible, or a hidden hello on a visible socket's id - before anything is written
+      if (await frozenHello(this, ws, a.key, who, m, now, GROUND_OLD_WORDS)) return;   // STAFF-PANEL5-FREEZE (staffFreeze.js): the token's freeze, or the hub's book's newer one - an old build's refused
       // SCALE5c: A SHARD HOLDS ITS OWN ACCOUNTS - one whose subject lands on another is told which (its client goes there),
       // before anything here is written
       if (isChannelShard(a.key) && shardOf(busOf(a.key), who.subject) !== a.key) { this._hubHop(ws, shardOf(busOf(a.key), who.subject) ?? /** @type {string} */ (busOf(a.key))); return; }   // SCALE5c part two: a region's shards the same
@@ -3767,7 +3773,7 @@ export class Room {
         // AUDIT SCALE II R2-4: and kept, so a woken instance whose sockets say nothing still knows it
         if (this._hubKeyKept !== this._hubKey) { this._hubKeyKept = this._hubKey; try { await this.state.storage.put(HUB_KEY_KEY, this._hubKey); } catch { this._hubKeyKept = null; } }
       }
-      if (!this._setAttach(ws, { ...a, ...placed, ...shown, ...(shard ? { vid, hm: { acct: m.acct ?? null, as: m.asecret ?? null, ps: m.ps === 1 ? 1 : 0, sc: m.secret } } : copy ? { vid } : {}), ...(m.gv >= GRANT_HELLO_LAW && streamsFoes(a.key) ? { gv: 1 } : {}), id: m.id, name: who.name, title: who.title, ...(who.ts ? { ts: who.ts } : {}), glyphs: who.glyphs, gx: who.gx, au: who.au, ...(who.pi ? { pi: who.pi } : {}), ...(who.rb ? { rb: who.rb } : {}), lv: who.lv, ...guild, ...(who.hn ? { hn: who.hn, hc: who.hc, hb: who.hb, hg: who.hg } : {}), ...(who.ci && !chat && !isSocialRoom(a.key) ? { ci: who.ci } : {}), ...(armsOk(who.wa) && !chat && !isSocialRoom(a.key) ? { wa: who.wa } : {}), gio: who.gio, ...(Number.isSafeInteger(who.lt) ? { lt: who.lt } : {}), ...(m.ls === 1 && leaseRoom(a.key) ? { ld: 0 } : {}), sub: who.subject, ...(instParty ? { ip: 1 } : {}), ...(siegeSide ? { sd: siegeSide } : {}), mu: who.mu, pose: chat ? null : m.pose, since: this._seatKeep(replaced, now), ...arena, ...charLv, ...linked, ...(chat && who.kind === 'guest' ? { gu: 1 } : {}), ...(m.w2 === 1 ? { w2: 1 } : {}), ...(who.fo ? { fo: who.fo } : {}), ...(m.sm === 1 && isSocialRoom(a.key) ? { sm: 1 } : {}), ...(who.hid ? { hid: 1, lk: 0 } : {}) })) { this._refuse(ws, 'hello too large'); return; }   // MOD1: `sub` the verified account (what a mute names), `mu` until when it may not talk   // RENOWN1: `lv` the Renown level the token carried   // AUDIT SAFE RELAY-11: `gu`, a guest's socket in a channel - paced as a sprout's (`_newVoiceWait`)   // STAFF-PANEL5-MESSAGE: `sm`, a hub socket whose game shows a staff message's box (its hello said so) - one without it is "old game, not shown"   // STAFF-PANEL5-HIDDEN: `hid`, a hidden staff spectator's socket (staffHidden.js) - and in no census (`lk` 0 over `linked`)
+      if (!this._setAttach(ws, { ...a, ...placed, ...shown, ...(shard ? { vid, hm: { acct: m.acct ?? null, as: m.asecret ?? null, ps: m.ps === 1 ? 1 : 0, sc: m.secret } } : copy ? { vid } : {}), ...(m.gv >= GRANT_HELLO_LAW && streamsFoes(a.key) ? { gv: 1 } : {}), id: m.id, name: who.name, title: who.title, ...(who.ts ? { ts: who.ts } : {}), glyphs: who.glyphs, gx: who.gx, au: who.au, ...(who.pi ? { pi: who.pi } : {}), ...(who.rb ? { rb: who.rb } : {}), lv: who.lv, ...guild, ...(who.hn ? { hn: who.hn, hc: who.hc, hb: who.hb, hg: who.hg } : {}), ...(who.ci && !chat && !isSocialRoom(a.key) ? { ci: who.ci } : {}), ...(armsOk(who.wa) && !chat && !isSocialRoom(a.key) ? { wa: who.wa } : {}), gio: who.gio, ...(Number.isSafeInteger(who.lt) ? { lt: who.lt } : {}), ...(m.ls === 1 && leaseRoom(a.key) ? { ld: 0 } : {}), sub: who.subject, ...(instParty ? { ip: 1 } : {}), ...(siegeSide ? { sd: siegeSide } : {}), mu: who.mu, ...(who.fz ? { fz: who.fz } : {}), ...(m.fv === 1 ? { fv: 1 } : {}), pose: chat ? null : m.pose, since: this._seatKeep(replaced, now), ...arena, ...charLv, ...linked, ...(chat && who.kind === 'guest' ? { gu: 1 } : {}), ...(m.w2 === 1 ? { w2: 1 } : {}), ...(who.fo ? { fo: who.fo } : {}), ...(m.sm === 1 && isSocialRoom(a.key) ? { sm: 1 } : {}), ...(who.hid ? { hid: 1, lk: 0 } : {}) })) { this._refuse(ws, 'hello too large'); return; }   // MOD1: `sub` the verified account (what a mute names), `mu` until when it may not talk   // RENOWN1: `lv` the Renown level the token carried   // AUDIT SAFE RELAY-11: `gu`, a guest's socket in a channel - paced as a sprout's (`_newVoiceWait`)   // STAFF-PANEL5-MESSAGE: `sm`, a hub socket whose game shows a staff message's box (its hello said so) - one without it is "old game, not shown"   // STAFF-PANEL5-HIDDEN: `hid`, a hidden staff spectator's socket (staffHidden.js) - and in no census (`lk` 0 over `linked`)
       if (!chat && m.pose && this._trailing({ key: a.key, sub: who.subject })) this._trailPose(ws, m.pose, now);   // AUDIT INT11: a fighter's socket new to the room stands where its hello put it, from now - on its trail, or none says when
       // SRV-N: `v` rides EVERY welcome, a channel's included. A player in the enhanced skin holds a presence socket
       // and one chat socket per tab; whichever reconnects first after a hand deploy is the one that notices, and the
@@ -3917,7 +3923,7 @@ export class Room {
     // and its lease
     if (m.t === 'lease') return this._leaseFrame(ws, a, m, message);
     if (m.t !== 'ping') { a = await this._leaseHeard(ws, a); if (!a) return; }
-    if (a.fz && a.fz > Math.floor(Date.now() / 1000) && m.t !== 'ping') return;
+    if (frozenFrame(this, a, m)) return;   // STAFF-PANEL5-FREEZE (staffFreeze.js): but its camera and its staff lines - and nothing aimed at a frozen socket is heard
     if (m.t === 'world') {
       // WORLD1: the room's memory - from the host, in a world room (both answered before the parse, above, and again
       // here for a small frame that came without the prefix), at most once in WORLD_MIN_MS of the room's LAST memory
@@ -4714,6 +4720,7 @@ export class Room {
       // CHAT1: the chat gate, its own bucket and strikes (a talker is not a mover)
       const now = Date.now();
       if (!this._spend(ws, now, chatGate, 'cbucket', 'cdrops', 'too many lines', CHAT_STRIKES_MAX)) return;   // over the rate: dropped, never queued
+      if (m.ch === 'staff') { staffLine(this, ws, a, m, now); return; }   // STAFF-PANEL5-FREEZE (staffFreeze.js): asked before the mute - a muted player still talks to staff, and only there
       // MOD1: A MUTED PLAYER'S LINE GOES NOWHERE, and they are told why
       // and until when - after the rate gate, so a muted player hammering
       // the key is struck out exactly as anyone else would be, and a
@@ -7153,7 +7160,7 @@ export class Room {
     const nowS = Math.floor(now / 1000);
     if (m.l === undefined) {
       if (!isSocialRoom(room)) return;
-      const l = await mintLease({ s: a.sub, mu: a.mu ?? 0, fz: a.fz ?? 0, at: nowS }, key, { subtle: crypto.subtle });
+      const l = await mintLease({ s: a.sub, mu: a.mu ?? 0, fz: frozenAt(a, nowS) ? a.fz : 0, at: nowS }, key, { subtle: crypto.subtle });   // STAFF-PANEL5-FREEZE: a freeze run out is said lifted, so a room's seat moves back on its lease
       if (l) this._send(ws, JSON.stringify({ t: 'lease', l }));
       return;
     }
@@ -7166,6 +7173,7 @@ export class Room {
     // an older lease still holds a freeze longer than the room's - it lifts none
     const next = { ...b, ld: Math.max(b.ld ?? 0, r.u), ...(law ? { lt: r.at, mu: r.mu, fz: r.fz } : r.fz > (b.fz ?? 0) ? { fz: r.fz } : {}) };
     if (!this._setAttach(ws, next)) return;
+    freezeMoved(this, b, next);   // STAFF-PANEL5-FREEZE (staffFreeze.js): a freeze landed or lifted moves the seat
     if (b.vid && isChannelShard(room) && ((b.mu ?? 0) !== (next.mu ?? 0) || (b.fz ?? 0) !== (next.fz ?? 0))) this._hubForward(ws, next, message);
   }
   /** GRANT-DOOR (bible/11-Multiplayer/Spawn-Grants.md section 20): is this hello one the door turns away - a foes room's

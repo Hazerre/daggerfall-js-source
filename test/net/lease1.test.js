@@ -171,7 +171,7 @@ test('LEASE1 A LEASE ROOM TAKES THE HUB\'S WORD from a lease newer than its own:
   assert.equal(of(late, 'muted').at(-1)?.until, muL, 'and told so');
 });
 
-test('LEASE1 A FROZEN SOCKET IS HEARD IN NOTHING BUT ITS PING AND ITS LEASE: its poses and lines go nowhere, until a lease lifts it; a lease minted before the socket\'s token still freezes it, and lifts no freeze (a review of the PR: a fresh token, then a lease older than it, dodged a freeze - a token says nothing of one) (mutants: the freeze unread; the ping dropped; the lease dropped; an older lease\'s freeze dropped; an older lease lifting a freeze; the frame judged before its lease)', async (t) => {
+test('LEASE1 A FROZEN SOCKET IS HEARD IN NOTHING BUT ITS PING AND ITS LEASE (STAFF-PANEL5-FREEZE: and its camera): its steps and lines go nowhere, until a lease lifts it; a lease minted before the socket\'s token still freezes it, and lifts no freeze (a review of the PR: a fresh token, then a lease older than it, dodged a freeze - a token says nothing of one) (mutants: the freeze unread; the ping dropped; the lease dropped; an older lease\'s freeze dropped; an older lease lifting a freeze; the frame judged before its lease)', async (t) => {
   const W = await rooms(t);
   const ice = await W.join(W.cell, 'ice-0001', { ls: 1 });
   const ear = await W.join(W.cell, 'ear-0001', { ls: 1 });
@@ -181,9 +181,12 @@ test('LEASE1 A FROZEN SOCKET IS HEARD IN NOTHING BUT ITS PING AND ITS LEASE: its
   assert.equal(ice.att.fz, fz);
   const heard = ear.sent.length;
   W.tick(1000);
-  await W.say(W.cell, ice, { t: 'pose', p: { ...P0, x: P0.x + 50 } });
+  await W.say(W.cell, ice, { t: 'pose', p: { ...P0, x: P0.x + 50, yaw: 1, mv: 1 } });
   await W.say(W.cell, ice, { t: 'chat', text: 'help' });
-  assert.equal(ear.sent.length, heard, 'nothing of it reached the room');
+  // STAFF-PANEL5-FREEZE (server/src/staffFreeze.js; design doc: "except the camera"): its camera alone reaches the room -
+  // the pose it stood in, its yaw new, no step
+  const got = ear.sent.slice(heard);
+  assert.deepEqual(got.map((f) => [f.t, f.p?.x, f.p?.z, f.p?.yaw, f.p?.mv ?? 0]), [['pose', P0.x, P0.z, 1, 0]], 'nothing of it reached the room but its camera');
   await W.say(W.cell, ice, { t: 'ping' });
   assert.deepEqual(ice.sent.at(-1), { t: 'pong' });
   W.tick(LEASE_FRAME_MIN_MS);

@@ -575,6 +575,12 @@ export const ROUTES = new Set([
   '/v1/staff/net', '/v1/staff/monsters', '/v1/staff/monster/flag', '/v1/staff/reactions', '/v1/staff/reactions/keep', '/v1/staff/net-feed',
   // STAFF-PANEL5-HIDDEN: Hide me and Show myself - a staff member hidden from every player (staffHidden.js)
   '/v1/staff/hide',
+  // STAFF-PANEL5-FREEZE (staffFreeze.js): freeze and unfreeze, the frozen list and a push again (Admins); Talk, a thread, a
+  // line, a thread closed and the open threads (Admins and Moderators) - and the player's own two doors to their thread,
+  // behind the game's session
+  '/v1/staff/freeze', '/v1/staff/unfreeze', '/v1/staff/freezes', '/v1/staff/freeze-push',
+  '/v1/staff/talk', '/v1/staff/chat', '/v1/staff/chat-send', '/v1/staff/chat-close', '/v1/staff/chats',
+  '/v1/staff-chat/read', '/v1/staff-chat/send',
   // PROF1: the professions (professions.js) - a character's tracks, Stores and day, the witnessed pixels, a harvest,
   // a specialisation, a withdrawal to the pack, a region's Court writs and a delivery. Every one behind a session, a
   // registered account's alone, and PROFESSIONS_OPEN's.

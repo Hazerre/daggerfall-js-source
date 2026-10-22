@@ -60,6 +60,7 @@ import { staffNet, NET_ROUTES } from './staffNet.js';   // STAFF-PANEL5-FEEDS: N
 import { staffMonsters, MONSTER_ROUTES } from './staffMonsters.js';   // STAFF-PANEL5-FEEDS: Monster watch
 import { staffReactions, REACTION_ROUTES } from './staffReactions.js';   // STAFF-PANEL5-FEEDS: the bot check
 import { staffHidden, HIDDEN_ROUTES, hiddenEnd } from './staffHidden.js';   // STAFF-PANEL5-HIDDEN: Hide me, and the mark's end
+import { staffFreeze, FREEZE_ROUTES, FREEZE_STATUS } from './staffFreeze.js';   // STAFF-PANEL5-FREEZE
 
 /** The header a staff session rides in - never `authorization`, which is the game's. */
 export const STAFF_SESSION_HEADER = 'x-staff-session';
@@ -121,6 +122,7 @@ export const STAFF_STATUS = Object.freeze({
   'staff-message-long': 400, 'staff-message-rate': 429,
   // STAFF-PANEL5-FEEDS (staffMonsters.js): a Flag whose spawn case did not open
   'flag-failed': 500,
+  ...FREEZE_STATUS,   // STAFF-PANEL5-FREEZE (staffFreeze.js): a freeze's and the staff chat's own words
 });
 
 const enc = new TextEncoder();
@@ -382,6 +384,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   if (MONSTER_ROUTES.includes(path)) return staffMonsters(ctx, env, path, body, who, audit);
   if (REACTION_ROUTES.includes(path)) return staffReactions(ctx, env, path, body, who, audit);
   if (HIDDEN_ROUTES.includes(path)) return staffHidden(ctx, env, path, body, who, audit);   // STAFF-PANEL5-HIDDEN: Hide me and Show myself (staffHidden.js)
+  if (FREEZE_ROUTES.includes(path)) return staffFreeze(ctx, env, path, body, who, audit);   // STAFF-PANEL5-FREEZE: freeze (Admins) and the staff chat (both)
 
   // ═══ THE ADMINS' DOORS: THE PANEL'S MODERATORS (mob, 07:42Z: "add it so admins can add or remove moderatoers") ═══
   // /v1/staff/mods lists them; /v1/staff/mod/add and /mod/remove { handle } - a registered account, not banned, not staff

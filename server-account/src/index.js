@@ -339,7 +339,8 @@ import { measured, heartbeatPartsOf } from './metrics.js';   // SCALE1: every re
 import { runCron } from './cron.js';   // SCALE4b: the service's own clock
 import { blocksOf, blockAccount, unblockAccount, fileReport, agreeConduct, conductAgreed, takeFeed, bannedAnswer, modCases, modCase, modDismiss, modAct, REPORT_BODY_MAX } from './safety.js';   // SAFE1-SAFE7: the chat's safety
 import { strikesLook, isBanned } from './sanctions.js';   // SAFE4: the record, the ladder and the ban
-import { staffRoute, STAFF_STATUS, STAFF_SESSION_HEADER } from './staff.js';   // STAFF-PANEL1: the staff panel's sign-in, sessions, roles and audit log
+import { freezeRefusal, frozenAnswer, playerStaffChat, isFrozen, STAFF_CHAT_ROUTES, STAFF_CHAT_STATUS } from './staffFreeze.js';   // STAFF-PANEL5-FREEZE: the freeze gate and the player's staff chat
+import { staffRoute, STAFF_STATUS, STAFF_SESSION_HEADER, auditStatement } from './staff.js';   // STAFF-PANEL1: the staff panel's sign-in, sessions, roles and audit log
 import { staffMessagesFor, staffMessageOk } from './staffMessage.js';   // STAFF-PANEL5-MESSAGE: the game's two doors
 import { hiddenToken, takeHiddenSeen } from './staffHidden.js';   // STAFF-PANEL5-HIDDEN: a hidden staff member's token, and a private home it entered
 import { HIDDEN_SEEN_PATH, HIDDEN_SEEN_MAX_BYTES, HIDDEN_SEEN_SIG_HEADER } from '../../src/net/hiddenSeen.js';
@@ -421,7 +422,7 @@ const overloaded = (origin) => {
 const JUDGE_STATUS = Object.freeze({ 'trade-held': 409, 'record-unjudged': 409, 'piece-dupe': 409, 'piece-claimed': 409, 'piece-legacy': 409 });
 /** INT9: a death's drop's refusals - no key to verify or sign with 503, a receipt not the caller's 403, the fallen's own
  *  grace or the room's falls 409; the record's own (REALM_STATUS) after them, a bad shape 400 (the default). */
-const WILD_STATUS = Object.freeze({ 'no-gate-key': 503, 'no-signing-key': 503, 'not-yours': 403, grace: 409, nonce: 400, 'no-escrow': 404, 'escrow-wait': 409, 'escrow-late': 409, 'escrow-moved': 409, 'escrow-collected': 409, 'escrow-returned': 409 });   // MAC (2026-10-14): the escrow's
+const WILD_STATUS = Object.freeze({ 'no-gate-key': 503, 'no-signing-key': 503, 'not-yours': 403, grace: 409, 'fallen-frozen': 409, nonce: 400, 'no-escrow': 404, 'escrow-wait': 409, 'escrow-late': 409, 'escrow-moved': 409, 'escrow-collected': 409, 'escrow-returned': 409 });   // MAC (2026-10-14): the escrow's
 /** HOME-RENT: a room's refusals - a bad shape 400 (the default). */
 const RENT_STATUS = Object.freeze({
   ...JUDGE_STATUS,
@@ -629,6 +630,7 @@ const MARKET_STATUS = Object.freeze({
   'prof-need-account': 403, 'market-closed': 403, 'not-moderator': 403, 'not-developer': 403,   // STAFF-PANEL2-FIX: a pull is a developer's
   'market-gone': 404,
   'marks-short': 409, 'marks-full': 409, 'stores-full': 409, 'stores-short': 409, 'market-own': 409, 'market-short': 409,
+  'market-seller-frozen': 409,   // STAFF-PANEL5-FREEZE: a frozen seller's goods sell nothing while the freeze stands
   'market-no-road': 409, 'market-price-moved': 409, 'market-seller-full': 409, 'market-listings-max': 409, 'market-orders-max': 409,
   'market-not-yours': 409, 'market-listed': 409, 'market-order-full': 409, 'market-elsewhere': 409, 'market-other-character': 409,
   'market-on-road': 409, 'market-courier-dear': 409,   // GLOBAL-MARKET: a fill from afar whose courier would take all its pay
@@ -1058,6 +1060,12 @@ const service = {
       if (!who) return no('auth', 401, origin);
       // SAFE4: A BANNED ACCOUNT ACTS IN NOTHING - no token (so no room), no save, no trade - and is told until when, and why,
       // on every door; it may still sign out
+      // STAFF-PANEL5-FREEZE (staffFreeze.js; design doc Weak spots: "Freeze blocks only some routes"): ONE FREEZE GATE BESIDE
+      // THE BAN'S (asked first, so a banned account hears its ban) - a frozen account opens nothing but signing out, its own account, the realm doors that load the character it
+      // looks around as, its relay token and the staff chat. Refused here, it is minted no pass; under a pass minted before
+      // the freeze, the checkpoint and the beat ask it in their own statements (realm.js, accounts.js creditPlay)
+      const frozen = !isBanned(who.player, nowS) && freezeRefusal(path, request.method === 'GET' && !!realmSlot, who.player, nowS);
+      if (frozen) return json(frozen, 403, origin);
       if (isBanned(who.player, nowS) && path !== '/v1/auth/logout') return json(bannedAnswer(who.player), 403, origin);
       // SESSION-SIGN: the next pass, after the ban (a banned account pays its lookup - AUDIT PLAN-1000 E6) and off the
       // primary's own answer alone (a replica's may stand before a sign-out - E5)
@@ -1191,6 +1199,9 @@ const service = {
         // every room reads it off the signature at the hello. Only while
         // it runs: a mute that has ended is simply absent.
         const mu = isMuted(who.player, nowS) ? mutedUntil(who.player) : undefined;
+        // STAFF-PANEL5-FREEZE: AND A FREEZE, the mute's law (design doc Weak spots: "A reload sheds a freeze") - only while it
+        // stands, so an unfrozen player mints the bytes they always did
+        const fz = isFrozen(who.player, nowS) ? who.player.frozen_until : undefined;
         // RENOWN1: AND THE LEVEL, when the client names the character it is
         // bringing online - that character's, derived from its track now
         // (1 for a character that has earned nothing yet). The client's
@@ -1239,7 +1250,7 @@ const service = {
         // AUDIT LEGACY III O1: AND WHICH REALM CHARACTER (`ci`, beside a 1 alone) - the relay stamps it on a wedding's frames,
         // so each half names the character its player saw. Kept when a house is left unsaid: the widest token without a
         // house is under TOKEN_MAX_CHARS with it (test/auditlegacy3)
-        const signed = { s: who.player.id, n: nameWorn.name, k: accountKind(who.player), ...wardrobe, mu, lv, ...(guild ?? {}), rc, ...(rc ? { ci: body.character } : {}), ...(ar !== undefined ? { ar } : {}), ...(cl != null ? { cl } : {}), ...(wa ? { wa } : {}) };
+        const signed = { s: who.player.id, n: nameWorn.name, k: accountKind(who.player), ...wardrobe, mu, lv, ...(guild ?? {}), rc, ...(rc ? { ci: body.character } : {}), ...(ar !== undefined ? { ar } : {}), ...(cl != null ? { cl } : {}), ...(wa ? { wa } : {}), ...(fz ? { fz } : {}) };
         let token = await mintToken(house ? { ...signed, ...house } : signed, key, { subtle, nowS });
         // the token's own bounds (identityToken.js TOKEN_MAX_CHARS, and AUDIT LEGACY III O11 the relay hello's TOKEN_BODY_MAX):
         // a house that would take it past either is left unsaid, never the rest
@@ -1257,6 +1268,7 @@ const service = {
           glyphs: wardrobe.g,
           ...(wardrobe.gx ? { glyphsOff: wardrobe.gx } : {}),   // GLYPH-WEAR: the ones my own name leaves out, absent for none
           mutedUntil: mu ?? 0,
+          frozenUntil: fz ?? 0,   // STAFF-PANEL5-FREEZE: the freeze the token carries - the game's freeze screen (net/staffChat.js)
           conduct: conductAgreed(who.player),   // SAFE7: whether the code of conduct as it stands is agreed - the client asks before a first line when not
           level: lv ?? null,
           xp: track ? track.xp : null,
@@ -2197,6 +2209,13 @@ const service = {
         return r.error ? no(r.error, PASS_STATUS[r.error] ?? 400, origin) : json(r, 200, origin);
       }
 
+      // STAFF-PANEL5-FREEZE (staffFreeze.js): THE PLAYER'S OWN STAFF CHAT THREAD - read, and a line of theirs in it
+      if (STAFF_CHAT_ROUTES.includes(path)) {
+        if (request.method !== 'POST') return no('method', 405, origin);
+        const r = await playerStaffChat(ctx, env, path, body, who.player, auditStatement);
+        return 'error' in r ? no(r.error, STAFF_CHAT_STATUS[/** @type {keyof typeof STAFF_CHAT_STATUS} */ (r.error)] ?? 400, origin) : json(r, 200, origin);
+      }
+
       // SCALE4c: ONE HEARTBEAT - the beat, the letterbox and a town's board, whichever the body names, each part answered
       // as its own route answers it (heartbeat.js), under the one session this request resolved
       if (path === '/v1/heartbeat') {
@@ -2488,6 +2507,7 @@ const service = {
             // the write still needs the lease)
             if (r.error === 'seq') return json({ error: 'seq', seq: r.seq }, 409, origin);
             if (r.error === 'banned') return json(bannedAnswer(r.player), 403, origin);   // E3: a ban under a pass, at once
+            if (r.error === 'frozen') return json(frozenAnswer(r.player), 403, origin);   // STAFF-PANEL5-FREEZE: a freeze under a pass, the same
             return answer(r);
           }
           if (request.method === 'GET') {
