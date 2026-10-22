@@ -2,7 +2,7 @@
   {
     "name": "C2-an-entry-dropped",
     "file": "src/ui/collections/wardrobeCatalogue.js",
-    "old": "    ilovelamp: E('world', 'open', () => t('coll.how.ilovelamp', 'Speak with a lamp keeper.')),\n",
+    "old": "    ilovelamp: E('world', 'open', () => t('coll.how.ilovelamp', 'Speak with a shopkeeper who is a lamp.')),\n",
     "new": "",
     "tests": [
       "test/ui/collections2.test.js"

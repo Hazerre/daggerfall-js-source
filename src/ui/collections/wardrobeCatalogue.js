@@ -171,7 +171,7 @@ export const WARDROBE = Object.freeze({
     formermaster: E('chapters', 'dormant', () => t('coll.how.formermaster', 'Lose a chapter’s Master seat. Held for the rest of that Season.')),
     highmaster: E('chapters', 'dormant', () => t('coll.how.highmaster', 'Shown in place of Chapter Master while your chapter stands Ascendant.'), { via: 'chaptermaster' }),
     seasonmaster: E('chapters', 'dormant', () => t('coll.how.seasonmaster', 'Hold a chapter’s Master seat for a whole Season. Kept for good.')),
-    ilovelamp: E('world', 'open', () => t('coll.how.ilovelamp', 'Speak with a lamp keeper.')),
+    ilovelamp: E('world', 'open', () => t('coll.how.ilovelamp', 'Speak with a shopkeeper who is a lamp.')),
     grandmaster: E('ranked', 'ranked', () => t('coll.how.grandmaster', 'Stand first on The King’s Gambit’s ranked board this season.')),
     coilbreaker: E('serpent', 'chance', serpent('coilbreaker')),
     spirewalker: E('spire', 'open', redoubt('spirewalker')),
