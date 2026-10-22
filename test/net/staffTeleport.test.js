@@ -233,6 +233,23 @@ test('STAFF-TP reported bug: /tp @player invokes exact player travel, never trav
   assert.deepEqual(calls, ['Bran']); assert.match(lines.at(-1).text, /exact position/);
 });
 
+test('STAFF-PANEL2-CHATMENU a chat line\'s TP asks by the socket the relay stamped on the line, never a name: the first ask is `{ id }` (net/staffTeleport.js, the relay\'s law, untouched), and /tp\'s own door carries it (mutant: the id asked as a name)', async () => {
+  const asks = [];
+  const scope = { isStaffT: () => true, staffGlyphs: () => ['dev'], worldMoveBusy: () => false, modes: {}, siegeSession: null, royalSession: null, seatOut: () => false, playerEntity: { health: 1 },
+    staffTeleportClient: { ask: async (target) => { asks.push(target); return { id: 'peer-bran', name: 'Bran', dest: ext }; } }, hudFade: { smashHUDToBlack() {}, fadeHUDFromBlack() {} },
+    followStaffPlayer, staffDestinationKey, prepareStaffDestination: async () => {}, placeStaffDestination: () => {}, _teleporting: false, staffTeleportHeld: false };
+  assert.equal((await hostFunction('teleportToStaffPlayer', scope)({ id: 'peer-bran' })).name, 'Bran');
+  assert.deepEqual(asks, [{ id: 'peer-bran' }, { id: 'peer-bran' }], 'by the socket, from the first ask');
+  asks.length = 0;
+  await hostFunction('teleportToStaffPlayer', scope)('Bran');
+  assert.deepEqual(asks, [{ name: 'Bran' }, { id: 'peer-bran' }], '/tp @NAME is as it was');
+  assert.deepEqual(validStaffTeleportIn({ k: 'ask', nonce: 'tp-1', id: 'peer-bran' }), { k: 'ask', nonce: 'tp-1', id: 'peer-bran' });
+  const calls = [], lines = [];
+  const run = hostFunction('runStaffCommand', { chatLog: { push: (_tab, line) => lines.push(line) }, worldMoveBusy: () => false, modes: {}, staffTeleportClient: {}, teleportToStaffPlayer: async (who) => { calls.push(who); return { name: 'Bran' }; }, console });
+  run('world', { cmd: 'tp', player: { id: 'peer-bran' } }); await Promise.resolve();
+  assert.deepEqual(calls, [{ id: 'peer-bran' }]); assert.match(lines.at(-1).text, /Teleported to Bran's exact position/);
+});
+
 test('STAFF-TP host: floating origin and vertical compensation are removed and restored without terrain snapping', () => {
   const state = new StreamingWorldState(); state.init(207, 213); state.compensation = [32.5, -70.125, -38.75];
   const local = [73.123456789, -19.87654321, 190.987654321]; const wc = state.worldCoords(local);
