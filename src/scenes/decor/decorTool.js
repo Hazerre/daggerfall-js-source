@@ -487,6 +487,7 @@ export function createDecorTool(deps) {
         return drawn && drawn !== entry.flat.join('.') ? `${entry.key}>${drawn}` : entry.key;
       },
       onMove: (piece) => beginPlacing(entryOf(piece), piece),
+      onDuplicate: (piece) => beginDuplicate(piece),
       onRemove: (piece) => { removePiece(piece); },
       onToggle: (piece, what) => { togglePiece(piece, what); },
       onTurn: (piece, dir) => { turnPlaced(piece, dir * DECOR_TURN_STEP); },   // DECOR-TURN
@@ -889,17 +890,19 @@ export function createDecorTool(deps) {
 
   // ── THE FREE CAMERA ───────────────────────────────────────────────
   /** A new piece from the catalogue, or (DECOR1e) `editing`, a placed piece moved - its own id, turn, scale, light and
-   *  storage; its size, when the scan has not read it yet, is what it was priced at. */
-  function beginPlacing(catalogueEntry, editing = null) {
+   *  storage; its size, when the scan has not read it yet, is what it was priced at. `pose` starts a new piece at a
+   *  turn and a scale (a duplicate) without moving the one it was copied from. */
+  function beginPlacing(catalogueEntry, editing = null, pose = null) {
     const s = ensureScan();
     const yard = !!deps.room?.()?.yard;   // HOME-YARD: outside, nothing is held and no piece carries a light of its own (YARD-LIGHT: a lamp lights as the town's)
     const entry0 = editing ? { ...catalogueEntry, light: editing.light ?? null, storage: !!editing.storage, station: editing.station ?? null } : catalogueEntry;   // AUDIT HOME-STATIONS S1: a moved station stays one
     const entry = yard ? { ...entry0, storage: false, light: null, station: null } : entry0;
     const free = entry.kind === 'own';   // DECOR2a: the player's own item - no price, whatever its size
     const radius = free ? null : s.radiusOf(catalogueEntry) ?? (editing ? editing.paid / (DECOR_PRICE_PER_METRE * editing.scale) : null);
+    const from = editing ?? pose;
     const eye = flightStart(editing);   // DECOR-ROOMS: in the room chosen - else at the eye, as ever
     placing = {
-      entry, radius, editing, free, placer: null, fly: [...eye], start: [...eye], id: editing ? editing.id : mintDecorId(), piece: null,
+      entry, radius, editing, pose: from, free, placer: null, fly: [...eye], start: [...eye], id: editing ? editing.id : mintDecorId(), piece: null,
       refused: null, busy: false, batch: null, flatSize: null, rise: 0, art: null, decal: null, inside: [], mirrors: true, release: null,   // DECOR-LPT: the host's picture's
       door: entry.kind === 'door', flip: false, marks: null, markSig: '',   // HOME-DOORS: hung in a doorway, its marks
       lotMarks: null, lotSig: '',   // HOME-YARD: the lot's edge
@@ -924,24 +927,34 @@ export function createDecorTool(deps) {
           p.flatSize = { ...own.size };
           p.mirrors = own.mirrors !== false;   // a tree turns in earnest - its picture never mirrors
           p.release = own.release ?? null;
-          p.placer = createDecorPlacer(entry, { radius, from: editing, free, flat: p.flatSize });   // WALL-CLEAR: how far it reaches into a wall
+          p.placer = createDecorPlacer(entry, { radius, from: p.pose, free, flat: p.flatSize });   // WALL-CLEAR: how far it reaches into a wall
           if (renderer?.createBillboardBatch) p.batch = renderer.createBillboardBatch(own.archive, own.key, { ...p.flatSize }, [[0, 0, 0]]);
           return;
         }
         if (pic) {
           p.flatSize = { w: pic.w, h: pic.h };
-          p.placer = createDecorPlacer(entry, { radius, from: editing, free, flat: p.flatSize });   // WALL-CLEAR: how far it reaches into a wall
+          p.placer = createDecorPlacer(entry, { radius, from: p.pose, free, flat: p.flatSize });   // WALL-CLEAR: how far it reaches into a wall
           if (renderer?.createBillboardBatch) p.batch = renderer.createBillboardBatch(MW_STAND_ARCHIVE, pic.key, { ...p.flatSize }, [[0, 0, 0]]);
           return;
         }
         if (!t || !(gr < t.recordCount)) return;
         deps.uploadRecord?.(ga, gr);
         p.flatSize = billboardSize(t, gr);
-        p.placer = createDecorPlacer(entry, { radius, from: editing, free, flat: p.flatSize });   // WALL-CLEAR: how far it reaches into a wall
+        p.placer = createDecorPlacer(entry, { radius, from: p.pose, free, flat: p.flatSize });   // WALL-CLEAR: how far it reaches into a wall
         if (renderer?.createBillboardBatch) p.batch = renderer.createBillboardBatch(ga, gr, { ...p.flatSize }, [[0, 0, 0]]);
       }, () => {});
     }
     listen(true);
+  }
+
+  /** A new piece with this one's model, turn, scale, light and whether it holds - never its contents, its craft, or
+   *  that it is the player's own. The copy is placed and paid as any new piece; leaving the placement writes nothing. */
+  function beginDuplicate(piece) {
+    if (!piece || piece.item) return false;
+    const known = entryOf(piece);
+    const light = piece.light ? { color: [...piece.light.color], range: piece.light.range, intensity: piece.light.intensity } : null;
+    beginPlacing({ ...known, light, storage: !!piece.storage, station: null, item: null }, null, { rot: piece.rot, scale: piece.scale });
+    return true;
   }
 
   /** DECOR2c: THE GHOST'S PICTURE, and its placer once it lands. MW-MOUNT: the room's own door - the Morrowind picture
@@ -958,7 +971,7 @@ export function createDecorTool(deps) {
       if (placing !== p || p.ask !== ask || !art) return;
       p.art = art;
       p.decal ??= renderer?.createDecalBatch?.(1) ?? null;
-      p.placer ??= createDecorPlacer(entry, { radius: p.radius, from: p.editing, free: p.free });
+      p.placer ??= createDecorPlacer(entry, { radius: p.radius, from: p.pose, free: p.free });
     }, () => {});
   }
   /** AUDIT DYE-ICON r3 1: the room asked its mounts' pictures again and let the old ones go (decorRoom.js onRefresh) -
@@ -1485,7 +1498,7 @@ export function createDecorTool(deps) {
     const p = placing;
     if (p.entry.model != null && !p.placer) {
       const m = modelFor(p.entry.model);
-      if (m) p.placer = createDecorPlacer(p.entry, { radius: p.radius, box: m.box, from: p.editing, free: p.free });
+      if (m) p.placer = createDecorPlacer(p.entry, { radius: p.radius, box: m.box, from: p.pose, free: p.free });
     }
     const held = (a) => flyHeld.has(a);
     const stick = stickMove(deps.stick?.() ?? null);   // DECOR1e: an analog stick in hand is read over the walk keys

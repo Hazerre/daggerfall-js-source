@@ -451,19 +451,20 @@ export function createDecorButton({ onPress, touch = false, doc = document }) {
  * NUDE-DECOR: `thumbKeyOf(entry)` - the key that picture is kept under (the entry's own, unless the host draws it as
  * another picture now - a figure's stand-in);
  * DECOR1e: `onMove(piece)`, `onRemove(piece)`, `onToggle(piece, 'light'|'storage')` - a placed piece's four changes;
+ * `onDuplicate(piece)` - a copy of the chosen piece, placed as a new one;
  * DECOR-TURN: `onTurn(piece, dir)` - and turned where it stands, a step left (-1) or right (1).
  * BASE-HIDE: `base` in the view - the room's own furniture, each `{ key, name, kind, model, flat, shape, hidden, holds,
  * dist }`, nearest first; `onBase(keys, out)` - those pieces taken out of the room (`out`) or put back, free.
  * DECOR-ROOMS: `rooms` and `roomId` in the view - a house's rooms (`{ id, name }`, two or more) and the one chosen, and
  * `room` on each placed and built-in piece; `onRoom(id)` - a room's tab chosen.
  * @param {{ onPlace: (entry: any) => void, onClose?: () => void, onPoint?: (entry: any) => void,
- *   thumbOf?: (entry: any) => Promise<string|null>|null, onMove?: (piece: any) => void, onRemove?: (piece: any) => void,
+ *   thumbOf?: (entry: any) => Promise<string|null>|null, onMove?: (piece: any) => void, onDuplicate?: (piece: any) => void, onRemove?: (piece: any) => void,
  *   onToggle?: (piece: any, what: string) => void, onTurn?: (piece: any, dir: number) => void, onPlaceLook?: (furniture: any, look: any) => void,
  *   onBase?: (keys: string[], out: boolean) => void, onRoom?: (id: number) => void, onRent?: (what: string, row: any, price: number|null) => void,
  *   onPaint?: (what: string, look: any) => void, doc?: any, win?: any, thumbKeyOf?: (entry: any) => string }} opts
  */
 export function createDecorPanel({
-  onPlace, onClose = () => {}, onPoint = () => {}, thumbOf = () => null, onMove = () => {}, onRemove = () => {}, onToggle = () => {},
+  onPlace, onClose = () => {}, onPoint = () => {}, thumbOf = () => null, onMove = () => {}, onDuplicate = () => {}, onRemove = () => {}, onToggle = () => {},
   onTurn = () => {}, onPlaceLook = () => {}, onBase = () => {}, onRoom = () => {}, onRent = () => {}, onPaint = () => {}, doc = document, win = globalThis,
   thumbKeyOf = (e) => e.key,
 }) {
@@ -542,6 +543,7 @@ export function createDecorPanel({
     return g;
   };
   const moveBtn = act('Move', () => { const it = placedSelected(); if (it && !moveBtn.disabled) { hide(); onMove(it.piece); } });
+  const dupBtn = act('Duplicate', () => { const it = placedSelected(); if (it && !dupBtn.disabled) { hide(); onDuplicate(it.piece); } });
   // DECOR-TURN (Mac: "the ability to rotate objects on the ground"): the chosen piece turned where it stands, the panel up
   const turnBtn = (label, dir) => { const b = act(label, () => { const it = placedSelected(); if (it && !b.disabled) onTurn(it.piece, dir); }); return b; };
   const turnLeftBtn = turnBtn('Turn left', -1), turnRightBtn = turnBtn('Turn right', 1);
@@ -565,7 +567,7 @@ export function createDecorPanel({
   removeBtn.className += ' warn flat';   // MENU-ORDER: a press that costs something, edged in blood (enhancedFrame.js FRAME_ROLES.warn)
   // MENU-ORDER: the eight presses in four named groups, not one wrapping row - where it stands, what it does, the craft it
   // serves, and taking it away (its own row, last); the yard's three a group of their own, hidden with it
-  roomActions.append(actGroup(DECOR_ACT_GROUPS.arrange, [moveBtn, turnLeftBtn, turnRightBtn]),
+  roomActions.append(actGroup(DECOR_ACT_GROUPS.arrange, [moveBtn, dupBtn, turnLeftBtn, turnRightBtn]),
     actGroup(DECOR_ACT_GROUPS.use, [lightBtn, storeBtn], 'dfdecor-yardless'),
     actGroup(DECOR_ACT_GROUPS.station, [stationPick, stationBtn], 'dfdecor-yardless'),
     actGroup('', [removeBtn]));
@@ -608,7 +610,7 @@ export function createDecorPanel({
   side.append(preview, pickName, pickLine, pickPrice, pickWhy, place, roomActions, baseActions, rentActions, paintActions);
   // MENU-ORDER: each press its picture, beside its word
   for (const b of [offerBtn, withdrawBtn, collectBtn]) b.className += ' flat';
-  for (const [b, icon] of [[place, 'place'], [moveBtn, 'move'], [turnLeftBtn, 'turn-left'], [turnRightBtn, 'turn-right'], [lightBtn, 'light'],
+  for (const [b, icon] of [[place, 'place'], [moveBtn, 'move'], [dupBtn, 'place'], [turnLeftBtn, 'turn-left'], [turnRightBtn, 'turn-right'], [lightBtn, 'light'],
     [storeBtn, 'storage'], [stationPick, 'list'], [stationBtn, 'station'], [removeBtn, 'remove'], [baseBtn, 'take-out'], [allOutBtn, 'take-out'],
     [allBackBtn, 'put-back'], [offerBtn, 'rent'], [withdrawBtn, 'remove'], [collectBtn, 'treasure'], [ownBtn, 'back'], [paintBtn, 'paint'], [backBtn, 'back']]) b.dataset.dficon = icon;
   body.append(list, side);
@@ -1101,7 +1103,7 @@ export function createDecorPanel({
   /** Everything the list reads that the host can change under it (the room's pieces: each one's id, cost, light,
    *  storage and whether it holds anything). */
   const signature = () => [view?.entries ? view.entries.length : -1, view?.ready ? 1 : 0, view?.sized ?? 0, view?.gold ?? 0, view?.count ?? 0,   // AUDIT 05b A3: a piece measured late, priced
-    (view?.placed ?? []).map((it) => `${it.piece.id}:${it.piece.paid}:${it.piece.light ? 1 : 0}:${it.piece.storage ? 1 : 0}:${it.holds ? 1 : 0}:${it.piece.station ?? ''}:${it.room ?? ''}`).join(','),   // AUDIT HOME-STATIONS S3: and its craft; DECOR-ROOMS: and its room
+    (view?.placed ?? []).map((it) => `${it.piece.id}:${it.piece.paid}:${it.piece.light ? 1 : 0}:${it.piece.storage ? 1 : 0}:${it.holds ? 1 : 0}:${it.piece.station ?? ''}:${it.piece.item ? 1 : 0}:${it.room ?? ''}`).join(','),   // AUDIT HOME-STATIONS S3: and its craft; one's own is not copied; DECOR-ROOMS: and its room
     (view?.own ?? []).map((e) => `${e.key}:${e.name}:${e.count ?? 1}`).join(','),   // DECOR2a: the pack's list
     (view?.base ?? []).map((it) => `${it.key}:${it.name}:${it.hidden ? 1 : 0}:${it.holds ? 1 : 0}:${it.room ?? ''}`).join(','),   // BASE-HIDE
     (view?.rooms ?? []).map((r) => `${r.id}:${r.name}`).join(','), view?.roomId ?? '', view?.doorways ?? '',
@@ -1189,6 +1191,7 @@ export function createDecorPanel({
     stationPick.disabled = !it || !!it.piece.item || it.piece.storage || door;
     stationBtn.disabled = stationPick.disabled;
     moveBtn.disabled = !it;
+    dupBtn.disabled = !it || !!it.piece.item;   // one's own goes back to the pack; a copy would be a bought piece
     turnLeftBtn.disabled = turnRightBtn.disabled = !it || door;   // DECOR-TURN: a door is turned by its doorway (Move)
     lightBtn.disabled = !it || door;
     storeBtn.disabled = !it || !!it.piece.item || (it.piece.storage && it.holds) || !!it.piece.station || door;   // HOME-STATIONS: a station holds nothing
