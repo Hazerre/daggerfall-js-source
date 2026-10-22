@@ -1271,15 +1271,15 @@ export const FEATURES = Object.freeze([
   }),
   // NPC-MARKS (2026-10-21, the owner: "vendors and quests npcs are hard to find due to everyone looking the same. Could we
   // make a bobbing icon above their character for morrowind specifically?"): a bobbing mark over a Morrowind body whose
-  // click is a quest's (a gold "!"), a merchant's (a gold coin) or a guild's (a blue gem) - scenes/npcMarksHost.js. On by
+  // click is a quest's (a yellow "!"), a merchant's (an amber coin) or a guild's or the arena's (a blue gem) - scenes/npcMarksHost.js. On by
   // default. The VIEWER'S: how this machine draws the people, never the wire. Read every frame by each host's marks, so
   // it lands at once; under the classic sprites nothing is drawn (the picture is the mark).
   Object.freeze({
     id: 'npc-marks',
     group: 'world',
     get title() { return t('features.npcMarks.title', 'Morrowind People Marks'); },
-    get note() { return t('features.npcMarks.note', 'With Morrowind People on, a small icon bobs over the people worth finding: a gold mark over someone a quest '
-      + 'needs, a coin over a merchant, and a blue gem over a guild\u2019s trainers and quest givers.'); },
+    get note() { return t('features.npcMarks.note', 'With Morrowind People on, a small icon bobs over the people worth finding: a yellow mark over someone a '
+      + 'quest needs, a coin over a merchant, and a blue gem over guild trainers, guild quest givers and the arena\u2019s officers.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'npcMarks', initial: true, online: 'player' }),
