@@ -1475,6 +1475,8 @@ directory by `test/bible/audit18_bible_docs.test.js`:
   sixteen pixels snapped to the 819.2 grid, which the terrain, the models, the
   characters and the flats sample through renderer.js's CLOUD_SHADOW_GLSL;
   VC5: the arc closed after an Opus review (Volumetric-Clouds-Arc.md).
+- `partyPingDraw.js` - PARTY-PING: the party's dotted route on the floor, depth-tested dashes (`systems/party/partyPing.js` pathRibbon). The pin is the screen mark, so this pass draws the line only.
+- `partyPingLabels.js` - PARTY-PING: the map pin on the screen, one size at any distance, the author's name above it and what was marked, with its distance, under it.
 
 RETIRED from this list (MAP1, 2026-09-18): `src/render/overworldRenderer.js`, the U61 OVERWORLD pass (the whole-bay relief, its markers, route line and cloud deck behind the enhanced travel map) - gone with the relief map itself (`src/ui/overworldMap.js`, RETIRED the same day) when the enhanced map became the held parchment (`src/ui/heldMap.js` + `src/ui/ink/inkMap.js`, a 2D canvas that draws through no renderer pass; bible/10-UI/Held-Map-Arc.md).
 

@@ -1119,6 +1119,8 @@ export const GROUND_OLD_REASON = 'old ground';
 export const GRANT_HELLO_LAW = 1;
 /** The most `gv` a hello may say - a later build's number, read; past it, read as none. */
 export const GRANT_HELLO_LAW_WIRE_MAX = 65535;
+/** LEASE1 (net/roomLease.js): the longest lease the wire carries. */
+export const LEASE_WIRE_MAX = 256;
 /** GRANT-DOOR: the refusal's close reason (a WebSocket close's reason is at most 123 bytes); the words ride the error frame
  *  before it, GROUND-GATE's own (server/src/index.js GROUND_OLD_WORDS: update the game). */
 export const GRANT_OLD_REASON = 'old grants';
@@ -1576,7 +1578,10 @@ export const KEEPALIVE_FAN_MS = HEARTBEAT_MS / 2;
  *  is deployed by CI and the relay by hand, so a skew between them is the ordinary state of a release day, and until
  *  now nothing on either end could see it. */
 // Integrated Arena spectator visibility with staff teleport, stable boat identity and private ownership; deploy relay before clients.
-export const RELAY_VERSION = 'world242';   // world242: AUDIT PISTOLET (2026-10-22, the owner: "Now lets do a comprehensive audit on everything"; bible/01-Overview/audits/Audit-Pistolet.md C7/D1, A1; NOT YET DEPLOYED) - the siege referee's arms know the Dwarven Pistolet (net/siege/siegeRef.js SIEGE_PISTOLET: its top, and a shot is a bow's blow), and the duel's roll takes `off` for a shot as for a swing (combat/duelCombat.js), so a pair's off-hand shot at a player lands DUAL's share. The PISTOLET branch edited the relay's graph under world237 (world241 at its merges) without a bump. Client and relay move together: an older relay rolls an off-hand shot whole.
+export const RELAY_VERSION = 'world245';   // world245: AUDIT PISTOLET (2026-10-22, world242 on its branch, renumbered past LEASE1's world242, PARTY-PING's world243 and SPAWN-THIN's world244 at the merge; the owner: "Now lets do a comprehensive audit on everything"; bible/01-Overview/audits/Audit-Pistolet.md C7/D1, A1; NOT YET DEPLOYED) - the siege referee's arms know the Dwarven Pistolet (net/siege/siegeRef.js SIEGE_PISTOLET: its top, and a shot is a bow's blow), and the duel's roll takes `off` for a shot as for a swing (combat/duelCombat.js), so a pair's off-hand shot at a player lands DUAL's share. The PISTOLET branch edited the relay's graph under world237 (world241 at its merges) without a bump. Client and relay move together: an older relay rolls an off-hand shot whole.
+// world244: SPAWN-THIN (2026-10-19, world224 on its branch, then world242, renumbered past PARTY-PING's world243 at the merge; bible/06-Systems/Systems-Arc.md; NOT YET DEPLOYED): the overworld keep drops a quarter of the spawn band (net/overworldLaw.js OW_SPAWN_KEEP), so a cell and a client agree which ruins stand.
+// world243: PARTY-PING (2026-10-18, the owner: ping something for the party; NOT YET DEPLOYED): validPartyPose carries `pg`, a look's point for the party. A relay before this field strips it and the socket stays open.
+// world242: LEASE1 (2026-10-22, the staff panel's mute and freeze holding against a modded game - mob: "this need addressed"; design doc "DFO Staff Panel: design", Holding against a modded game: room leases; net/roomLease.js; NOT YET DEPLOYED) - the hub hands each socket a lease (`{t:'lease'}` asked, `{t:'lease', l}` answered: the account, its mute and freeze, signed with a key the relay derives from GATE_SIGNING_KEY), the game hands it to every lease room it holds, and a lease room takes the hub's word from one newer than its own; a hello there says `ls` 1. The relay setting `leaseDoor` (off unset) turns away a hello that says no `ls`, and hears a bound socket in nothing but its ping while it holds no live lease (no grace). Client and relay move together: an older relay closes a socket on the frame, so the game asks and hands on leases only to a relay at world242 or later.
 // world241: SD-THROUGH (2026-10-21, world239 then world240 on its branch - renumbered past FIELD BUGS 2026-10-21c FOES-FIRST's world239 and GUILD-CAP's world240 at the merges; the owner: "When someone finds and enters the portal. I want a portal to show up for anyone in the dungeon and anyone entering that automatically leads them there."; bible/11-Multiplayer/Super-Dungeons.md section 6 and SD-THROUGH; NOT YET DEPLOYED) - a Hollow's realm tells the hub its first admission (SD_INTERNAL_IN, validSdInTell), the hub stamps the record's `inAt` (net/superDungeon/sdLaw.js sdEnter) and fans it, and every client in the Hollow or entering it stands the Way Through beside them. Client and relay move together: an older client projects `inAt` away, and an older relay never stamps it (no Way Through stands).
 // world240: GUILD-CAP (2026-10-21, the Discord's feature-feedback: "May you please increase the guild member cap"; bible/06-Systems/Online-Arc.md GUILD-CAP; NOT YET DEPLOYED): a guild holds 75 (net/guild/guildLaw.js GUILD_MEMBERS_MAX, 50 until now) and the hub's who-of-my-guild answer lists up to 100 (net/hubShards.js HUB_GUILD_WHO_MAX, 64 - a full guild's 74 others would have been cut at 64). No wire shape changed: the relay reads the cap nowhere, and every build reads a longer `found` list as it reads a shorter one (online.js read(HUB_GUILD_WHO_MAX) - an older client keeps its first 64). The account service enforces the cap and deploys with main.
 // world239: FIELD BUGS 2026-10-21c FOES-FIRST (2026-10-21, players' word of enemy desync; bible/01-Overview/bugs/Field-Bugs-2026-10-21c.md, bible/11-Multiplayer/Scale-Arc.md FOES-FIRST; NOT YET DEPLOYED; past STAR-TUNE's world238, #1090, merged first): a foes or own room spends its byte budget on FULL frames first - a delta only down to FOES_FULL_RESERVE, a full frame (`full` 1, or a dungeon host's `lc`) into a debt of a quarter-second at most, each sender one first a FOES_FIRST_MS and its next frame first once unheard FOES_UNHEARD_MS (server/src/index.js _foesFan, _foesLane, _foesFirst; net/wire.js floorGate) - where the deltas had kept a crowded cell's bucket drained and the full frames, which carry the sweep, the sites, the grants and the handovers, lost first (30 owners of 60 sockets heard 1.2% of them, now 100%); HIT-DROPS - the blows a destination's hit funnels drop counted, with the full frames asked and dropped, in the room's metrics' blobs (server/src/relayScale.js); AUDIT FOES-FIRST: a frame that hands foes on (a record naming its heir - net/wire.js foesFrameHandsOn) goes first on a turn of its own, and a sender's clocks are stamped once its fan is charged, before the re-serialise (a junked frame's sender is heard). FOES-HOLD (2026-10-21, the owner: "No band aids and true improvements"; Scale-Arc.md FOES-HOLD; re-hashed in place): where a room's full frames alone are more than its budget, a first frame the budget refuses is HELD for its turn (server/src/foesHold.js) - one line, one turn a sender, a newer full frame in its sender's place, nothing of a sender overtaking its own, no delta past a held frame; a held sender still streaming is beaten with an empty frame of its own (`{ f: [] }` and its frame's `k` - every reader of every build takes it as the owner heard), a leaving sender's handovers tried before its leave, and the hold counted in blob6 to blob10 - the star's large owner heard 0% -> 44.8% of its full frames. AUDIT FOES-HOLD (re-hashed in place): the beat's `k` a room key's or none (isRoomKey) and charged to the first frames' floor, a held frame kept as its text and room in the hold made from the sender holding the most, a leaving sender's handovers one reserve deeper (FOES_LEFT_FLOOR) - every one heard at a star's doors, 45% before the hold. No client gate: the relay reads `full`, `lc` and the records' heirs, and OWNER-CLOCK's `tm` (the client's, the same release) passes any relay unread. STAR-TUNE's world238 (#1090) merged first and its `star` grant kind is in this law with it; GRANT-SLEEP #1066, open, claimed world238 too and takes the next number at its merge.
@@ -2145,7 +2150,7 @@ export function inRangeOf(roomKey, from) {
   return (to) => !!to && Math.max(Math.abs(fx - Math.floor(to.x / PIXEL_UNITS)), Math.abs(fy - Math.floor(to.z / PIXEL_UNITS))) <= RANGE_PIXELS;
 }
 
-/** One client frame, parsed and checked: {t:'hello'|'pose'|'ping'|'chat'|'roll'|'say'|'narrate'|'stage'|'mute'|'ban'|'renown'|'guild'|'guildout'|'home'|'world'|'foes'|'own'|'hit'|'act'|'who'|'quest'|'social'|'party'|'trade'|'cast'|'card'|'page'|'duel'|'wed'|'park'|'caravan'|'look'|'gate'|'grant'|'siege'|'arena'|'raid'|'raidtowns'|'rite'|'star'|'ow'|'trav'|'amap'|'stp'|'cfg'|'find'|'serpent'|'sd'|'eg'|'wild'|'wdun'|'holdem'|'iliac'|'gambit', ...}
+/** One client frame, parsed and checked: {t:'hello'|'pose'|'ping'|'chat'|'roll'|'say'|'narrate'|'stage'|'mute'|'ban'|'renown'|'guild'|'guildout'|'home'|'world'|'foes'|'own'|'hit'|'act'|'who'|'quest'|'social'|'party'|'trade'|'cast'|'card'|'page'|'duel'|'wed'|'park'|'caravan'|'look'|'gate'|'grant'|'siege'|'arena'|'raid'|'raidtowns'|'rite'|'star'|'ow'|'trav'|'amap'|'stp'|'cfg'|'find'|'serpent'|'sd'|'eg'|'wild'|'wdun'|'holdem'|'iliac'|'gambit'|'lease', ...}
  *  or {error} - the caller closes on an error. INSPECT1: every arm below, named - this line had fallen seven behind
  *  (test/net/auditworld2.test.js derives the list from the arms now, so it cannot fall behind again - the merge with
  *  main's HCC-PARK was its first catch: the park arm, unnamed). */
@@ -2300,6 +2305,11 @@ export function parseClient(text, { hasHello = false } = {}) {
     return g;
   }
   if (m.t === 'ping') return { t: 'ping' };
+  if (m.t === 'lease') {   // LEASE1 (net/roomLease.js): an ask to the hub (no `l`), or the hub's lease, handed to a room
+    if (!hasHello) return { error: 'lease before hello' };
+    if (m.l === undefined) return { t: 'lease' };
+    return typeof m.l === 'string' && m.l.length > 0 && m.l.length <= LEASE_WIRE_MAX ? { t: 'lease', l: m.l } : { error: 'bad lease' };
+  }
   if (m.t === 'hello') {
     if (hasHello) return { error: 'hello twice' };
     const id = typeof m.id === 'string' && ID_RE.test(m.id) ? m.id : null;
@@ -2370,6 +2380,7 @@ export function parseClient(text, { hasHello = false } = {}) {
     // room's door refuses none while its gate is on, and a later build's number is read as it is
     if (Number.isSafeInteger(m.gl) && m.gl >= 1 && m.gl <= GROUND_LAW_WIRE_MAX) hello.gl = m.gl;
     if (Number.isSafeInteger(m.gv) && m.gv >= 1 && m.gv <= GRANT_HELLO_LAW_WIRE_MAX) hello.gv = m.gv;   // GRANT-DOOR: the grants this build stands on - read as GROUND-GATE's `gl` is
+    if (m.ls === 1) hello.ls = 1;   // LEASE1: this build hands its hub's lease to the room (net/roomLease.js) - 1 or nothing, the `w2` law
     return hello;
   }
   if (m.t === 'pose') {
@@ -3187,6 +3198,21 @@ export function validPartyPose(p) {
   // SCALE5d: `ly` - the layer of the place I stand in (wire.js isLayered), so a mate who comes asks for mine; omitted for
   //   the place itself and refused alone when out of its law
   if (Number.isInteger(p.ly) && p.ly >= 1 && p.ly < LAYERS_MAX) out.ly = p.ly;
+  // PARTY-PING: `pg` - a look's point for the party, {k place, x y z metres, at the sender's stamp}. Omitted when
+  //   there is none. A relay from before this field strips it and closes nothing (an unknown pose field is dropped).
+  if (p.pg && typeof p.pg === 'object' && !Array.isArray(p.pg)
+    && typeof p.pg.k === 'string' && /^[\w:.,-]{1,96}$/.test(p.pg.k)
+    && [p.pg.x, p.pg.y, p.pg.z].every(finite)
+    && Math.abs(p.pg.x) <= POSE_BOUND && Math.abs(p.pg.z) <= POSE_BOUND && Math.abs(p.pg.y) <= POSE_Y_BOUND
+    && finite(p.pg.at) && p.pg.at >= 0) {
+    out.pg = {
+      k: p.pg.k,
+      x: Math.round(p.pg.x * 100) / 100, y: Math.round(p.pg.y * 100) / 100, z: Math.round(p.pg.z * 100) / 100,
+      at: Math.round(p.pg.at),
+    };
+    if (typeof p.pg.n === 'string' && /^[\w .'-]{1,48}$/.test(p.pg.n)) out.pg.n = p.pg.n;
+    if (p.pg.e === 1) out.pg.e = 1;
+  }
   return out;
 }
 

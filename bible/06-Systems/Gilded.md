@@ -166,7 +166,7 @@ compared its template to the Pistolet's, so the realm judge held its owner's tra
 refused it and the siege arms dropped it. The record now carries its era (`SOVEREIGN_SABER_ERA` in `systems/gilded.js`:
 the Saber, Long Blade, the saber's lore), and `gildedRecordOf(item)` answers the era's shape for a saber minted under the
 Sovereign's id - the item law (`validGildedMarks`) and the lore read through it. Nothing new mints a saber. The item law
-moved to 10 (`ITEM_LAW_VERSION`) and the account service to acct168 with it: deploy the account service.
+moved to 10 (`ITEM_LAW_VERSION`) and the account service to acct170 with it (acct168 on its branch, renumbered at the merge): deploy the account service.
 
 Mac: "With the introduction of elite dungeons soon. I want to enhance the rewards for each world activety. We need to add
 a rare gilded weapon to the oblivion gates. A gilded weapon to the serpent + a rare chance of a title/aura drop." The

@@ -134,8 +134,9 @@
 //   POST /v1/stores/withdraw { character, material, qty, rid }         -> { ok, material, qty, store } | { repeat, ... }
 //        BAG1: { carry: true, held, seen? } counts the units as carried -> { ..., carry, carried }
 //   POST /v1/stores/deposit { character, material, qty, held, order, rid, seen? } -> { ok, material, qty, own, bought, gold, loose?, store, carried } | { repeat, ... }   (BAG1: `order` 'all' or 'spend'; a deposit made is answered as made, for good - prof_deposits; BAG-CRAFT: 'work', a station's, moves `loose` units the count does not hold too)
-//   POST /v1/writs/list { character, region }                          -> { region, day, endsAt, writs, today }
+//   POST /v1/writs/list { character, region }                          -> { region, day, endsAt, writs, today, crafts: { writs, today } }   (CRAFT-WRITS: the character's crafting writs)
 //   POST /v1/writs/deliver { character, id, rid }                      -> { ok, writ, pay, balance, track, store, today, renown, order } | { repeat, ... }
+//   POST /v1/writs/craft { character, id, rid, realm, pieces? }        -> { ok, writ, pay, xp, balance, track, today, renown, realm, order } | { repeat, ... }   (CRAFT-WRITS: a crafting writ filled, its goods out of the realm record)
 // RENOWN1, Renown. The caller's own character, by the id its
 // save carries (RENOWN-CHAR: a track a character again - RENOWN-ACCOUNT
 // kept one an account for a day); the level rides the token when the
@@ -235,7 +236,7 @@ import {
   ACCOUNT_MAX, ACCOUNT_WINDOW_S,
 } from './accounts.js';
 import { mintToken, mintOrder, mintRenownOrder, mintGuildOrder, mintGuildOutOrder, mintHomeOrder, MAX_TTL_S, TOKEN_V, ID_RE, SEAT_TITLES, CHAPTER_TITLES, TOKEN_MAX_CHARS, TOKEN_BODY_MAX, tokenBodyOf } from '../../src/net/identityToken.js';
-import { ACCOUNT_VERSION, MAX_BODY_BYTES, ROUTES, OPEN_ROUTES, PATREON_OPEN_ROUTES, SAFE_OPEN_ROUTES, savePathOf, realmPathOf, poiPathOf, SAVE_MAX_BYTES, SHOT_MAX_BYTES, maintaining, routeDb, d1BookmarkOf, D1_BOOKMARK_RE, d1Overloaded, noteOverload, shedding } from './service.js';   // SCALE4d: the routes a read replica may serve, and the session they are served on
+import { ACCOUNT_VERSION, MAX_BODY_BYTES, ROUTES, OPEN_ROUTES, PATREON_OPEN_ROUTES, SAFE_OPEN_ROUTES, STAFF_ROUTES, savePathOf, realmPathOf, poiPathOf, SAVE_MAX_BYTES, SHOT_MAX_BYTES, maintaining, routeDb, d1BookmarkOf, D1_BOOKMARK_RE, d1Overloaded, noteOverload, shedding } from './service.js';   // SCALE4d: the routes a read replica may serve, and the session they are served on
 import { poiRolesOf, putPoiAsset, getPoiAsset, savePoiDraft, submitPoi, withdrawPoi, requestRetire, reviewPoi, rollbackPoi, listPoi, poiHistory, poiQueue, poiLiveFeed, poiHeldVersion, poiFeedTag, listShelf, shelfEntry, shelve, unshelve, POI_ASSET_MAX, POI_DRAFT_BODY_MAX, POI_LIVE_ASSET_MAX_AGE_S } from './poi.js';   // POI-1: the POI store - builders draft, an approver decides, the feed is what is live; POI-4b: the library's shelf
 import { listSaves, putCard, putBlob, getBlob, deleteSave, saveCardOf } from './saves.js';
 import { signingKey, gatePublicKey } from './signing.js';
@@ -305,6 +306,7 @@ const withChapterTitles = async (/** @type {any} */ ctx, /** @type {any} */ play
 import { decorOf, placeDecor, moveDecor, removeDecor, hideDecorBase, yardsKept, forgetYards, settleYards } from './decor.js';   // YARD-SHED: a town's yards kept   // DECOR1: an online home's decor; BASE-HIDE: what its owner took out
 import { gateStrikeStatement, gateStrikeAnswer, raidStrikeStatement, combatStrikeAnswer, raidStrikeRid, deedStatements, deedAnswer, deedEvent, marksOf, marksCardOf, exchangeMarks, depositGuildMarks, withdrawGuildMarks, marksReport, serpentStrikeStatement, serpentStrikeAnswer, findMarks, starStrikeStatement, starStrikeRid } from './marks.js';   // MARKS1: the server's currency; SILVER-WAYS: a raid's silver and a guild's deeds
 import { readBoard, pinNote, takeDownNote, reportNote, moderateNote, postNotice, removeNotice } from './board.js';   // NOTICE1: the Notice Board
+import { craftWritBoard, deliverCraftWrit } from './craftWrits.js';   // CRAFT-WRITS: the guilds' asks of a crafter
 import { profState, profPixels, harvestNode, chooseSpec, withdrawStores, depositStores, smeltAtForge, craftAtAnvil, temperPiece, buyStock, listWrits, deliverWrit } from './professions.js';   // BAG1: a deposit   // PROF1: the professions; PROF2: the forge; PROF3: the anvil and the smith's stock
 import { brewAtStation, disenchantPiece, reforgeWithEssence } from './alchemy.js';   // PROF12: Alchemy's brew, Enchanting's disenchant
 import {
@@ -332,6 +334,7 @@ import { measured, heartbeatPartsOf } from './metrics.js';   // SCALE1: every re
 import { runCron } from './cron.js';   // SCALE4b: the service's own clock
 import { blocksOf, blockAccount, unblockAccount, fileReport, agreeConduct, conductAgreed, takeFeed, bannedAnswer, resolveCase, modCases, modCase, modDismiss, REPORT_BODY_MAX } from './safety.js';   // SAFE1-SAFE7: the chat's safety
 import { banAccount, unbanAccount, strikesLook, isBanned, actionStatement, lawOrder, pushLaw } from './sanctions.js';   // SAFE4: the record, the ladder and the ban
+import { staffRoute, STAFF_STATUS, STAFF_SESSION_HEADER } from './staff.js';   // STAFF-PANEL1: the staff panel's sign-in, sessions, roles and audit log
 import { discordSigned, discordInteraction, DISCORD_BODY_MAX } from './discord.js';   // SAFE8: the moderators' queue in Discord
 import { FEED_MAX_BYTES, FEED_SIG_HEADER } from '../../src/net/safety/chatFeed.js';   // SAFE5: the relay's feed of public lines
 import { heartbeat } from './heartbeat.js';   // SCALE4c: one request for a tab's three clocks
@@ -588,6 +591,7 @@ const PROF_STATUS = Object.freeze({
   'prof-piece-gone': 409, 'realm-needed': 400, lease: 409, seq: 409, 'no-realm-character': 404, 'no-data': 404, 'no-storage': 503,
   'node-taken': 409, 'writ-taken': 409, 'writ-expired': 409, 'writ-cap': 409, 'marks-full': 409, 'marks-short': 409, 'prof-respec-pending': 409,
   'prof-rate': 429,
+  'craft-writ-cap': 409, 'craft-writ-filled': 409, 'craft-unbrewed': 409, 'craft-pieces': 409, 'craft-goods-gone': 409,   // CRAFT-WRITS: the day's three, the brews, the pieces, the record's goods
   'chapters-closed': 403,   // AUDIT CHAP2 S3: a hall writ while the Chapters are not this account's - 403, as every door says it
   // PROF6: guild writs, commissions and the guild Stores
   'writs-closed': 403, 'guild-rank': 403, 'guilds-need-account': 403, 'commission-not-yours': 403, 'market-not-yours': 403,
@@ -734,7 +738,7 @@ const service = {
         headers: {
           'access-control-allow-origin': origin,
           'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'access-control-allow-headers': 'content-type, authorization, x-realm-lease, x-realm-seq, x-realm-summary, x-d1-bookmark, if-none-match, x-session-pass',   // REALM P1: a checkpoint's lease, sequence and tile; SCALE4g: the tab's D1 bookmark; POI-1: the feed version a game holds; SESSION-SIGN: the session's pass
+          'access-control-allow-headers': 'content-type, authorization, x-realm-lease, x-realm-seq, x-realm-summary, x-d1-bookmark, if-none-match, x-session-pass, x-staff-session',   // REALM P1: a checkpoint's lease, sequence and tile; SCALE4g: the tab's D1 bookmark; POI-1: the feed version a game holds; SESSION-SIGN: the session's pass
           'access-control-max-age': '86400',
         },
       });
@@ -905,6 +909,17 @@ const service = {
         // never on Discord's three seconds
         const exec = /** @type {any} */ (held).exec;
         return json(await discordInteraction(ctx, env, interaction, typeof exec?.waitUntil === 'function' ? { later: (p) => exec.waitUntil(p) } : {}), 200, origin);
+      }
+
+      // STAFF-PANEL1 (staff.js): THE STAFF PANEL'S DOORS. None takes a game session - a game secret opens no staff door and a
+      // staff token no game door - so they are answered here, before the ladder resolves one.
+      if (STAFF_ROUTES.has(path)) {
+        if (request.method !== 'POST') return no('method', 405, origin);
+        const body = await readBody(request);
+        if (!body) return no('body', 400, origin);
+        const exec = /** @type {any} */ (held).exec;   // the refusal audit's write follows the answer (staff.js `refused`)
+        const r = await staffRoute(typeof exec?.waitUntil === 'function' ? { ...ctx, later: (/** @type {Promise<any>} */ p) => exec.waitUntil(p) } : ctx, env, path, body, { ip: request.headers.get('cf-connecting-ip') || 'unknown', token: request.headers.get(STAFF_SESSION_HEADER) });
+        return 'error' in r ? no(r.error, STAFF_STATUS[/** @type {keyof typeof STAFF_STATUS} */ (r.error)] ?? 400, origin) : json(r, 200, origin);
       }
 
       if (OPEN_ROUTES.has(path)) {
@@ -1923,9 +1938,10 @@ const service = {
           // PROF6: the Court's writs, and beside them this board's guild writs and commissions (writs.js writBoard)
           '/v1/writs/list': async () => {
             const r = await listWrits(ctx, who.player, env, body);
-            return 'error' in r ? r : { ...r, ...(await writBoard(ctx, who.player, env, body)), ...(await contractBoard(ctx, who.player, env, body)) };   // SILVER-WAYS: and its guild contracts
+            return 'error' in r ? r : { ...r, ...(await writBoard(ctx, who.player, env, body)), ...(await contractBoard(ctx, who.player, env, body)), ...(await craftWritBoard(ctx, who.player, env, body)) };   // SILVER-WAYS: and its guild contracts; CRAFT-WRITS: and the character's crafting writs
           },
           '/v1/writs/deliver': () => deliverWrit(ctx, who.player, env, body),
+          '/v1/writs/craft': () => deliverCraftWrit({ ...ctx, bucket: env.SAVES }, who.player, env, body),   // CRAFT-WRITS: the goods out of the realm record, in R2
           '/v1/writs/post': () => postGuildWrit(ctx, who.player, env, body),   // PROF6: a guild writ
           '/v1/writs/supply': () => supplyGuildWrit(ctx, who.player, env, body),
           '/v1/writs/withdraw': () => withdrawGuildWrit(ctx, who.player, env, body),

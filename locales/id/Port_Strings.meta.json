@@ -1204,6 +1204,31 @@
   "tr": "94a47a03895c",
   "by": "claude-in-session"
  },
+ "account.refusal.craftGoodsGone": {
+  "en": "b41c788936f4",
+  "tr": "06b80dc4551e",
+  "by": "claude-in-session"
+ },
+ "account.refusal.craftPieces": {
+  "en": "f032696bcd65",
+  "tr": "0a8194e12fa1",
+  "by": "claude-in-session"
+ },
+ "account.refusal.craftUnbrewed": {
+  "en": "d6b221061ab6",
+  "tr": "1f9606fafaf1",
+  "by": "claude-in-session"
+ },
+ "account.refusal.craftWritCap": {
+  "en": "18d40380fd6d",
+  "tr": "d444e46526f7",
+  "by": "claude-in-session"
+ },
+ "account.refusal.craftWritFilled": {
+  "en": "60bbcecd9de4",
+  "tr": "c51a5168f882",
+  "by": "claude-in-session"
+ },
  "account.refusal.customsAllowance": {
   "en": "793153fc9b40",
   "tr": "9b045b73ebaf",
@@ -11914,6 +11939,11 @@
   "tr": "e3e8e3304a5f",
   "by": "claude-in-session"
  },
+ "helm.passenger": {
+  "en": "61953c9d9311",
+  "tr": "0baa1f8b49d6",
+  "by": "claude-in-session"
+ },
  "holdings.horse.boons.hungry": {
   "en": "11b471ca7d1e",
   "tr": "c1d6a2bae96f",
@@ -12114,16 +12144,6 @@
   "tr": "3a308d59adad",
   "by": "claude-in-session"
  },
- "inventory.store.anyMaterial": {
-  "en": "8177dd78731e",
-  "tr": "c431bcc6f55f",
-  "by": "claude-in-session"
- },
- "inventory.store.anyRarity": {
-  "en": "cc8474c6626b",
-  "tr": "34e71c64267d",
-  "by": "claude-in-session"
- },
  "inventory.store.containerFull": {
   "en": "25e48df7aefe",
   "tr": "046f374250c1",
@@ -12134,9 +12154,19 @@
   "tr": "47fde474feeb",
   "by": "claude-in-session"
  },
+ "inventory.store.materialMenu": {
+  "en": "d8169782b57c",
+  "tr": "989a57a974e8",
+  "by": "claude-in-session"
+ },
  "inventory.store.rarityIn": {
   "en": "4edd5e0b523a",
   "tr": "24186b39198d",
+  "by": "claude-in-session"
+ },
+ "inventory.store.rarityMenu": {
+  "en": "a3e1e99f2620",
+  "tr": "f68524a830fb",
   "by": "claude-in-session"
  },
  "inventory.store.stashAll": {
@@ -12602,6 +12632,16 @@
  "levelup.vital.magicka": {
   "en": "3f9626ec308d",
   "tr": "3f9626ec308d",
+  "by": "claude-in-session"
+ },
+ "livingWorld.friend.court": {
+  "en": "0246b7029d39",
+  "tr": "d26e431de098",
+  "by": "claude-in-session"
+ },
+ "livingWorld.friend.made": {
+  "en": "fee76aa0c9bf",
+  "tr": "d601a906bf55",
   "by": "claude-in-session"
  },
  "lootBanner.honour.aura": {
@@ -19504,6 +19544,46 @@
   "tr": "584685d2decd",
   "by": "claude-in-session"
  },
+ "notice.craftWrit.court": {
+  "en": "0e06cb458119",
+  "tr": "4cf4d5761150",
+  "by": "claude-in-session"
+ },
+ "notice.craftWrit.deliver": {
+  "en": "dcac5d49c54c",
+  "tr": "307b98142e5b",
+  "by": "claude-in-session"
+ },
+ "notice.craftWrit.elsewhere": {
+  "en": "f7b40c528549",
+  "tr": "95684f95d1b0",
+  "by": "claude-in-session"
+ },
+ "notice.craftWrit.full": {
+  "en": "d5cf5f0fc765",
+  "tr": "809988bf0539",
+  "by": "claude-in-session"
+ },
+ "notice.craftWrit.head": {
+  "en": "2f997704072d",
+  "tr": "3c4a11f31d2b",
+  "by": "claude-in-session"
+ },
+ "notice.craftWrit.kind": {
+  "en": "942da43630fa",
+  "tr": "062e7d097e39",
+  "by": "claude-in-session"
+ },
+ "notice.craftWrit.mine": {
+  "en": "53c1df74536f",
+  "tr": "c9c6eccfc44d",
+  "by": "claude-in-session"
+ },
+ "notice.craftWrit.unknown": {
+  "en": "f818ff47bed4",
+  "tr": "eef5be0d8512",
+  "by": "claude-in-session"
+ },
  "notice.skills.improve": {
   "en": "41e3abdbb040",
   "tr": "2b210066b63a",
@@ -22352,6 +22432,81 @@
  "prof.craft.xpTop": {
   "en": "17683031667e",
   "tr": "14d34307b3ac",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.countDish": {
+  "en": "2620ee9d814b",
+  "tr": "498ba5d2bc4c",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.countKit": {
+  "en": "1e4295bd6131",
+  "tr": "a7a092c71dbc",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.countPotion": {
+  "en": "27ab7fc11ae5",
+  "tr": "2e77e322a70e",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.delivered": {
+  "en": "7ab3a53814bd",
+  "tr": "c2680c2ea1f7",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.filled": {
+  "en": "7a872917b93c",
+  "tr": "cca47c96e30e",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.heldPiece": {
+  "en": "64bd61e1ac9d",
+  "tr": "12da43b48a72",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.heldPotion": {
+  "en": "0df572ce5b27",
+  "tr": "a433600f9b6a",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.madeDish": {
+  "en": "b7ce00fd9272",
+  "tr": "be505ef11032",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.madeKit": {
+  "en": "3c1cdeb194b6",
+  "tr": "20b3ab983745",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.madePotion": {
+  "en": "adc1ccebe8a8",
+  "tr": "df4e598352f5",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.need": {
+  "en": "a3adc29a7a09",
+  "tr": "fc70ac8cbb8c",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.pay": {
+  "en": "e004c65b52b5",
+  "tr": "7f28c091e1a1",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.shortBrew": {
+  "en": "5c96920bf78f",
+  "tr": "0e97a7c3da0b",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.shortCarry": {
+  "en": "05d94ce59133",
+  "tr": "690777550e36",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.shortMake": {
+  "en": "a102d722f048",
+  "tr": "e4b5edff3d13",
   "by": "claude-in-session"
  },
  "prof.lode.legend": {
@@ -28624,6 +28779,11 @@
   "tr": "a872433b2224",
   "by": "claude-in-session"
  },
+ "standing.notice.served": {
+  "en": "b6b59e754a1b",
+  "tr": "dbb816158db5",
+  "by": "claude-in-session"
+ },
  "starfall.at.breath": {
   "en": "55298eac8e62",
   "tr": "cb6cb00ac17a",
@@ -29607,6 +29767,16 @@
  "travel.nav.gatesShut": {
   "en": "fd358facc6db",
   "tr": "95cfbae1d3fc",
+  "by": "claude-in-session"
+ },
+ "travel.pace.viewFoot": {
+  "en": "e578298f5875",
+  "tr": "62978ce82a23",
+  "by": "claude-in-session"
+ },
+ "travel.pace.viewMount": {
+  "en": "522010f69fee",
+  "tr": "bbb47a5cf107",
   "by": "claude-in-session"
  },
  "travelView.tip.weather": {
