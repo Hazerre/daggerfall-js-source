@@ -193,7 +193,7 @@ import { plaqueListing } from '../systems/quickLoot.js';   // AUDIT HOME-VOTE B1
 import { lootPile } from '../player/lootStack.js';   // LOOT-STACK: the pile under the reticle, as the loot window's tabs
 import { silverFindAt } from '../systems/silverFinds.js';   // SILVER-FINDS (AUDIT 625 S2): an interior's treasure pile rolls its find too
 import { staticDoorName, npcHoverName, questResourceName, questStandItem, worldTooltipsOn, hideInteractTooltip,
-  houseContainerName, houseContainerHover, actionObjectName, lootPileName,
+  houseContainerName, houseContainerHover, actionObjectName, lootPileName, indoorDecorHover,
   BOOKSHELF_TEXT, SHOP_SHELF_TEXT, LADDER_TEXT, BULLETIN_BOARD_TEXT, mobileEntityName, liveEntityName } from '../systems/worldTooltips.js'; import { questFoeSubs } from '../systems/quest/questFoeLine.js';   // WORLD-HOVER: the mod's ladder for the families THIS host stands; QUEST-FOE-LINE: a quest's foe says whose it is   // WORLD-HOVER: the mod's ladder for the families THIS host stands
 import { LOCATION_TYPES, REGION_NAMES, REGION_RACES } from '../formats/mapsFile.js';   // WORLD-HOVER: .cs:777-782 - a dungeon exit names its town, or the region   // WORLD-HOVER: the texture record is DERIVED at its one reader, off the stored model id
 import { isShop, isRepairShop, stockShopShelf, stockHouseContainer, PRIVATE_PROPERTY_TEXT_ID, privatePropertyRows, calculateCost, calculateTradePrice, regionPriceAdjustment, SHOP_BUYS_GROUPS, shopBuysItem, stockSoulGems, stockGuildMagicItems, stockGuildPotions, dayShelf, createStockedDate, needsRestock, stockSearched, restockEndless } from '../systems/shopStock.js';   // X6: the soul-gem shelf; G4: the two guild shelves; A2: the daily restock; ENDLESS-STOCK: the bag and the Campfire never sell out
@@ -3480,20 +3480,18 @@ export function createWorldModes(host) {
         return isShop(b?.buildingType) ? { title: SHOP_SHELF_TEXT } : null;
       }
       if (key.startsWith('ladder:')) return { title: LADDER_TEXT };   // .cs:473-476
-      // DECOR1c: a placed piece, by the catalogue's name once the decorator has read it (DECOR1d), a storage model by
-      // the house container's own word until then; any other piece stays unnamed until the catalogue can name it
+      // DECOR1c: a placed piece that does something - one's own, a container, a station, the hall's board. A chair or a
+      // candle stays unnamed (indoorDecorHover).
       if (key.startsWith('decor:')) {
         const piece = interiorDecor.pieceOf(decorIdOfKey(key));
-        if (!piece) return null;
-        if (piece.item) {   // DECOR2a: an own thing - the owner's own record names it in full, anyone else its numbers
-          const kept = interiorDecor.ownOf(piece.id);
-          const n = (kept ? itemLongName(kept) : null) || decorItemName(piece.item);
-          return n ? { title: n } : null;
-        }
-        if (isHallBoard(piece) && hallMemberHere()) return { title: HALL_BOARD_TITLE };   // GUILD1e: the hall's board, its members'
-        const t = decorNames.get(decorKey(piece)) ?? (piece.storage && piece.model != null ? houseContainerName(piece.model) : null);
-        const craft = piece.station ? DECOR_STATION_NAMES[piece.station] : null;   // AUDIT HOME-STATIONS S8: a station says so
-        return t ? { title: craft ? `${t} (${craft})` : t } : craft ? { title: craft } : null;
+        const kept = piece?.item ? interiorDecor.ownOf(piece.id) : null;
+        return indoorDecorHover(piece, {
+          itemTitle: piece?.item ? ((kept ? itemLongName(kept) : null) || decorItemName(piece.item)) : null,
+          boardTitle: piece && isHallBoard(piece) && hallMemberHere() ? HALL_BOARD_TITLE : null,
+          catalogueName: piece ? (decorNames.get(decorKey(piece)) ?? null) : null,
+          containerName: piece?.model != null ? houseContainerName(piece.model) : null,
+          stationName: piece?.station ? (DECOR_STATION_NAMES[piece.station] ?? null) : null,
+        });
       }
       // .cs:304-312 - a LIVE entity is `Entity.Name`, and only when
       // its motor says it is not hostile.
