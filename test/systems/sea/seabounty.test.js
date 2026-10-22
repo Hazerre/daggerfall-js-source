@@ -302,7 +302,7 @@ test('SEA-BOUNTY the tab\'s words (navalYardWindow.js wantedText): each wanted c
   assert.deepEqual(t.rows[0].presses.map((p) => [p.label, p.can, p.n]), [['Post 500', true, 500], ['Post 2,000', true, 2000], ['Post 10,000', true, 10_000]]);
   assert.deepEqual(t.owed, { title: 'Bounties owed you', words: '1,200 gold for the wanted captains you ended at sea.', press: 'Collect', can: true });
   assert.equal(t.mine, 'A bounty of 300 gold stands on your own head.');
-  assert.equal(t.lede, 'Gold posted on a captain\'s head is paid to whoever sinks them at sea. Each post is your own gold.');
+  assert.equal(t.lede, 'Gold posted on a captain\'s head is paid to whoever ends them at sea: a death at their hand, or a wreck at their guns. Each post is your own gold.');   // PIN MOVED (AUDIT SEA VENTURES F10): a bounty is claimed by a kill at sea or a wreck, never a sinking alone
   assert.deepEqual(t.line, { text: 'x', warn: false });
   const busy = wantedText({ ...w, busy: true });
   assert.ok(busy.rows[0].presses.every((p) => !p.can) && !busy.owed.can, 'greyed while an answer is awaited');

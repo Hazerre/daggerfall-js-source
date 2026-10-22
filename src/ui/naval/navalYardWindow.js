@@ -206,7 +206,7 @@ export function wantedText(w) {
   }));
   return {
     head: [t('sea.bounty.head', 'Wanted'), t('sea.bounty.headSub', 'the open sea\'s killers')],
-    lede: w.asking ? t('sea.bounty.asking', 'The harbormaster is reading the board...') : rows.length ? t('sea.bounty.lede', 'Gold posted on a captain\'s head is paid to whoever sinks them at sea. Each post is your own gold.') : t('sea.bounty.none', 'No captain of the open sea is wanted.'),
+    lede: w.asking ? t('sea.bounty.asking', 'The harbormaster is reading the board...') : rows.length ? t('sea.bounty.lede', 'Gold posted on a captain\'s head is paid to whoever ends them at sea: a death at their hand, or a wreck at their guns. Each post is your own gold.') : t('sea.bounty.none', 'No captain of the open sea is wanted.'),
     rows,
     owed: w.owed > 0 ? { title: t('sea.bounty.owedTitle', 'Bounties owed you'), words: t('sea.bounty.owed', '{gold} gold for the wanted captains you ended at sea.', { gold: g(w.owed) }), press: t('sea.bounty.collect', 'Collect'), can: !w.busy } : null,
     // AUDIT SEA VENTURES B4: my posts on heads gone, back to me by the same collect

@@ -11,8 +11,8 @@
   {
     "name": "ETHER-WILD-peace-a-square",
     "file": "src/systems/wild/etherWild.js",
-    "old": "  return Math.hypot(x - h.px, y - h.py) <= ETHER_PEACE_PX;",
-    "new": "  return Math.max(Math.abs(x - h.px), Math.abs(y - h.py)) <= ETHER_PEACE_PX;",
+    "old": "  if (Math.hypot(x - h.px, y - h.py) <= ETHER_PEACE_PX) return true;",
+    "new": "  if (Math.max(Math.abs(x - h.px), Math.abs(y - h.py)) <= ETHER_PEACE_PX) return true;",
     "tests": [
       "test/systems/wild/etherwild.test.js"
     ]
@@ -254,8 +254,8 @@
   {
     "name": "ETHER-WILD-chart-peace-offline",
     "file": "src/ui/etherChartWindow.js",
-    "old": "const peace = word.pvp && on(hx, hy",
-    "new": "const peace = on(hx, hy",
+    "old": "const peace = word.pvp && on((hx + px1) / 2",
+    "new": "const peace = on((hx + px1) / 2",
     "tests": [
       "test/ui/etherchart_peace.test.js"
     ]

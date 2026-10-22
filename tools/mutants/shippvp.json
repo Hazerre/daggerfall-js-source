@@ -362,7 +362,7 @@
   {
     "name": "SHIP-PVP-wreck-never",
     "file": "src/net/sea/seaRef.js",
-    "old": "  const [wreck, evicted] = got > 0 && her.hp <= 1e-6 ? wreckOf(st, to, her, by, now, rid, room) : [null, null];",
+    "old": "  const [wreck, evicted] = her.hp <= 1e-6 ? wreckOf(st, to, her, by, now, rid, room) : [null, null];",
     "new": "  const [wreck, evicted] = [null, null];",
     "tests": [
       "test/systems/sea/shippvp.test.js"

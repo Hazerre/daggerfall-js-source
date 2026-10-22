@@ -5,7 +5,7 @@
 import '../../modsOff.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createSeaBounty, SEA_BOARD_FRESH_MS, SEA_BOARD_RETRY_MS, boardRetryMs } from '../../../src/scenes/seaBountyHost.js';
+import { createSeaBounty, SEA_BOARD_FRESH_MS, SEA_BOARD_READ_RETRY_MS, boardRetryMs } from '../../../src/scenes/seaBountyHost.js';
 import { createSeaSeason, SEA_SEASON_FRESH_MS, SEA_SEASON_RETRY_MS } from '../../../src/scenes/seaSeasonHost.js';
 import { wantedText, seasonText } from '../../../src/ui/naval/navalYardWindow.js';
 import * as P from '../../../src/net/sea/seaPrizeLaw.js';
@@ -57,6 +57,8 @@ import { WAGON_MODE } from '../../../src/systems/horse/horseCartLaw.js';
 import { worldCoordToMapPixel } from '../../../src/world/streamingWorld.js';
 import { veilhaven, islesNear, inEther, inVeil } from '../../../src/world/ethericSea.js';
 import * as CHART from '../../../src/ui/etherChartWindow.js';
+import * as tm from '../../../src/systems/textManager.js';
+import { etherWayWord, etherRingBonus } from '../../../src/systems/wild/etherWild.js';
 import { standService } from '../../accountDb.mjs';
 import { seatRealm, recordOf } from '../../realmSeat.mjs';
 
@@ -68,8 +70,8 @@ const settle = async () => { for (let i = 0; i < 6; i++) await new Promise((r) =
 /** A realm session whose acts run at once over `seq`. */
 const sessionAt = (seq = 3) => ({ transact: (fn) => fn({ id: RC, lease: 'lease', seq }) });
 
-test('AUDIT SEA VENTURES E1: a board read the service refused is asked again SEA_BOARD_RETRY_MS on, doubling to the fresh wait - never at once from the paint that ends it, never a page frozen in reads; a good read waits SEA_BOARD_FRESH_MS (mutants: the backoff, the failure\'s wait, the fresh wait)', async () => {
-  assert.deepEqual([SEA_BOARD_RETRY_MS, SEA_BOARD_FRESH_MS, SEA_SEASON_RETRY_MS, SEA_SEASON_FRESH_MS], [5_000, 30_000, 5_000, 60_000]);
+test('AUDIT SEA VENTURES E1: a board read the service refused is asked again SEA_BOARD_READ_RETRY_MS on, doubling to the fresh wait - never at once from the paint that ends it, never a page frozen in reads; a good read waits SEA_BOARD_FRESH_MS (mutants: the backoff, the failure\'s wait, the fresh wait)', async () => {
+  assert.deepEqual([SEA_BOARD_READ_RETRY_MS, SEA_BOARD_FRESH_MS, SEA_SEASON_RETRY_MS, SEA_SEASON_FRESH_MS], [5_000, 30_000, 5_000, 60_000]);
   assert.deepEqual([1, 2, 3, 4, 5, 9].map(boardRetryMs), [5_000, 10_000, 20_000, 30_000, 30_000, 30_000]);
   let now = 1_000_000, asked = 0, answer = { ok: false, error: 'rate' };
   const door = { board: async () => { asked++; return answer; } };
@@ -77,16 +79,16 @@ test('AUDIT SEA VENTURES E1: a board read the service refused is asked again SEA
   for (let i = 0; i < 200; i++) { b.office(); await settle(); }   // every paint asks for the section, as the window does
   assert.equal(asked, 1, 'one refused read - and none again from the paints after it');
   assert.equal(b.office().line?.warn, true, 'its refusal said');
-  now += SEA_BOARD_RETRY_MS - 1; b.office(); await settle();
+  now += SEA_BOARD_READ_RETRY_MS - 1; b.office(); await settle();
   assert.equal(asked, 1);
   now += 1; b.office(); await settle();
   assert.equal(asked, 2, 'asked again its wait on');
-  now += SEA_BOARD_RETRY_MS; b.office(); await settle();
+  now += SEA_BOARD_READ_RETRY_MS; b.office(); await settle();
   assert.equal(asked, 2, 'the wait doubled');
-  now += SEA_BOARD_RETRY_MS; b.office(); await settle();
+  now += SEA_BOARD_READ_RETRY_MS; b.office(); await settle();
   assert.equal(asked, 3);
   answer = { ok: true, data: { wanted: [], owed: 0, mine: 0 } };
-  now += 4 * SEA_BOARD_RETRY_MS; b.office(); await settle();
+  now += 4 * SEA_BOARD_READ_RETRY_MS; b.office(); await settle();
   assert.equal(asked, 4);
   assert.equal(b.office().line, null, 'a good read takes the refusal away');
   now += SEA_BOARD_FRESH_MS - 1; b.office(); await settle();
@@ -144,7 +146,7 @@ test('AUDIT SEA VENTURES E7: a post that landed is said as landed though the rea
   const r2 = createSeaBounty({ live: () => true, session: sessionAt(), checkpoint: () => {}, wallet, character: () => RC, region: () => 19, door: { board: async () => (++reads === 1 ? { ok: false, error: 'rate' } : { ok: true, data: { wanted: [], owed: 0, mine: 0 } }) }, now: () => now });
   r2.office(); await settle();
   assert.equal(r2.office().line?.warn, true);
-  now += SEA_BOARD_RETRY_MS; r2.office(); await settle();
+  now += SEA_BOARD_READ_RETRY_MS; r2.office(); await settle();
   assert.equal(r2.office().line, null);
 });
 
@@ -275,11 +277,21 @@ test('AUDIT SEA VENTURES E2, E3, E4: the wreck\'s page half - her killer carries
   after.w.frame(); await settle();
   assert.deepEqual(after.st.asked.map(([x]) => x), ['wreck', 'collect'], 'the reloaded page carries it');
   assert.deepEqual(JSON.parse(kept.get(SEA_WRECK_KEPT_KEY)), [], 'and forgets it carried');
-  // an expired receipt is dropped unasked
+  // an expired receipt is dropped unasked - never owed, never said
+  const old = host('acct-hal');
+  old.st.now = (T + 3601) * 1000;
+  old.w.receipt(await mint({ b: 0 }));
+  assert.deepEqual([old.st.said, old.kept.get(SEA_WRECK_KEPT_KEY) ?? null], [[], null], 'past its hour: nothing owed, nothing said');
   const late = host('acct-hal');
   late.w.receipt(await mint());
   late.st.now += 3601 * 1000; late.w.frame(); await settle();
   assert.equal(late.st.asked.length, 0);
+});
+
+test('AUDIT SEA VENTURES E3: the seize waits SEA_WRECK_GRACE_S (300 s) - her own carry, asked every SEA_WRECK_CAPTAIN_RETRY_MS while her record is busy, has five minutes to land before her killer\'s takes the record (thirty seconds was a busy captain\'s hold seized), and her hold is shut no longer than the grace (mutants: the grace)', () => {
+  assert.equal(SEA_WRECK_GRACE_S, 300);
+  assert.ok(SEA_HOLD_SHUT_MS <= SEA_WRECK_GRACE_S * 1000, 'her hold shut within her grace');
+  assert.ok(SEA_WRECK_GRACE_S * 1000 >= 100 * SEA_WRECK_CAPTAIN_RETRY_MS, 'a hundred of her own asks before his');
 });
 
 test('AUDIT SEA VENTURES B3: a wrecked ship\'s hold is shut while her wreck may be boarded - the referee\'s wreck shuts it, the door and the mod\'s own box open it to no one, she is neither packed nor laid up - and her carry settled opens it again; kept across a reload, never past SEA_HOLD_SHUT_MS (mutants: the shut, the door, the box, the pack, the lay-up, the open)', async () => {
@@ -332,8 +344,11 @@ test('AUDIT SEA VENTURES B4: a post on a head gone - deleted, or dead SEA_REFUND
   assert.equal(post.status, 200, JSON.stringify(post.body));
   const board = async () => (await svc.call('/v1/sea/bounty/board', { character: R.pat.id }, who.pat.secret)).body;
   assert.equal((await board()).refund, 0, 'a living head: nothing back');
-  raw.prepare('UPDATE realm_characters SET dead_at = ? WHERE id = ?').run(nowS - SEA_REFUND_AFTER_S + 60, R.kim.id);
+  assert.equal(SEA_REFUND_AFTER_S, 2 * 3600);
+  raw.prepare('UPDATE realm_characters SET dead_at = ? WHERE id = ?').run(nowS - 60, R.kim.id);
   assert.equal((await board()).refund, 0, 'dead a moment: a fall that ended it may yet claim it');
+  raw.prepare('UPDATE realm_characters SET dead_at = ? WHERE id = ?').run(nowS - 2 * 3600 + 60, R.kim.id);
+  assert.equal((await board()).refund, 0, 'dead not two hours: still standing');
   raw.prepare('UPDATE realm_characters SET dead_at = ? WHERE id = ?').run(nowS - SEA_REFUND_AFTER_S - 1, R.kim.id);
   assert.equal((await board()).refund, 2000, 'dead past the wait: back to its poster');
   const before = recordOf(svc.env, R.pat.id);
@@ -495,7 +510,8 @@ test('AUDIT SEA VENTURES A3, A4, F1/A1: the relay - what landed is said rounded 
   let clock = T * 1000; Date.now = () => clock;
   try {
     const world = fakeRooms({ now: () => clock });
-    const A = worldRoom(7800, -5000), B = worldRoom(7801, -5000);
+    const A = worldRoom(7800, -5000), B = worldRoom(7800 + 2 * 16, -5000);
+    assert.notEqual(A, B, 'two cells');
     const base = (key) => { const m = /^world:(-?\d+),(-?\d+)$/.exec(key); return { x: Number(m[1]) * PIXEL_UNITS + 16384, z: (499 - Number(m[2])) * PIXEL_UNITS + 16384 }; };
     const join = async (key, id, x, ci) => {
       const r = world.room(key), b0 = base(key), ws = r.connect();
@@ -588,6 +604,8 @@ test('AUDIT SEA VENTURES D7, D8, A5: a vault of the deep stands in a room of its
   assert.equal(seaVaultMapId(cx, cy), place);
   assert.equal(seaVaultRoomMapId(cx, cy) >>> 20, SEA_VAULT_LANE);
   assert.equal(seaVaultRoomMapId(cx, cy) & 0xfffff, place & 0xfffff, 'the same cell, its own lane');
+  assert.notEqual(seaVaultRoomMapId(cx, cy), place, 'never the plain ruin\'s room');
+  assert.equal(SEA_VAULT_LANE, 0xe8);
   assert.equal(seaVaultRoomId(place, H), seaVaultRoomMapId(cx, cy), 'the vault the gate let me into: its lane');
   assert.equal(seaVaultRoomId(place, null), place, 'its plain ruin: its own');
   assert.equal(seaVaultRoomId(place, seaVaultKey(cx + 1, cy)), place, 'another isle\'s vault: its own');
@@ -735,10 +753,14 @@ test('AUDIT SEA VENTURES D2, D4, D5, D9, D10: a treasure fleet\'s flagship pays 
   assert.equal(v.fleetEnded(f.n, 'sink'), f.purse);
   assert.equal(v.fleetEnded(f.n, 'board'), 0, 'a second end of the sailing: nothing');
   assert.deepEqual(credits, [f.purse]);
+  const fresh = make();
+  fresh.step(0);
+  assert.equal(fed.at(-1)?.sunk, true, 'after a reload she is never stood again - the save says so, before any word');
+  assert.equal(fresh.chartWord().fleet.sunk, true);
   const reloaded = make();
   assert.equal(reloaded.fleetEnded(f.n, 'sink'), 0, 'after a reload: nothing (the save keeps it)');
   reloaded.step(0);
-  assert.equal(fed.at(-1)?.sunk, true, 'after a reload she is never stood again');
+  assert.equal(fed.at(-1)?.sunk, true);
   reloaded.hubWord({ k: 'st', fleets: [] });
   assert.equal(reloaded.chartWord().fleet.sunk, true, 'the hub\'s hello puts my own sinking out never');
   sent.length = 0;
@@ -885,4 +907,39 @@ test('AUDIT SEA VENTURES C6, C7: the open sea says its own words - /unstuck outd
   assert.match(w, /townTalk\.say\(d\.burnt \? zoneWord\('burntLate', seaRoomOf\(room\) \? ETHER_KIND : null\)\(\) : zoneWord\('dropLate', seaRoomOf\(room\) \? ETHER_KIND : null\)\);/);
   assert.match(w, /zoneWord\(left === ETHER_KIND && !etherInPeace\(playerTravelPixel\(\)\?\.x, playerTravelPixel\(\)\?\.y\) \? 'quiet' : 'leave', left \|\| undefined\)/);
   assert.match(readFileSync(new URL('../../../src/systems/revenant/revenantCompanions.js', import.meta.url), 'utf8'), /revenantsWithYou\(\)\.length >= WILD_REVENANTS_MAX\) return zoneWord\('revenantOne'\);/);
+  const was = tm.currentLocale();   // the mountains' two, as the sea's: through the text core (L10N4), read when said
+  try {
+    tm.setLocale(tm.PSEUDO_LOCALE);
+    for (const k of ['unstuckOut', 'revenantOne']) {
+      assert.notEqual(hills(k), k === 'unstuckOut' ? '/unstuck does not work outdoors in the mountains.' : 'Only one revenant may walk at your side in the Wrothgarian Mountains.', `${k}: said in the language`);
+      assert.equal(typeof hills(k), 'string', `${k}: a string, where its callers read one`);
+    }
+  } finally { tm.setLocale(was); }
+});
+
+test('AUDIT SEA VENTURES F4: the sea\'s lines say a way and a ring\'s loot in the language of the moment - the sixteen points of the compass and "+75% loot" through the text core, in the harbourmaster\'s talk, the storm\'s and the fleet\'s words, the zone\'s ring lines and the chart\'s ways (mutants: the way, the bonus, the chart)', () => {
+  const POINTS = ['north', 'north-north-east', 'north-east', 'east-north-east', 'east', 'east-south-east', 'south-east', 'south-south-east', 'south', 'south-south-west', 'south-west', 'west-south-west', 'west', 'west-north-west', 'north-west', 'north-north-west'];
+  assert.deepEqual(POINTS.map(etherWayWord), POINTS, 'in English as they were');
+  assert.deepEqual([etherWayWord(null), etherRingBonus(3)], ['', '+75% loot']);
+  const was = tm.currentLocale();
+  try {
+    tm.setLocale(tm.PSEUDO_LOCALE);
+    for (const p of POINTS) assert.notEqual(etherWayWord(p), p, `${p}: said in the language`);
+    assert.notEqual(etherRingBonus(4), '+100% loot');
+    assert.ok(ETHER_WILD_TEXT.ring(4).includes(etherRingBonus(4)), 'the ring line\'s loot');
+    const english = /\b(north|south|east|west)(-|\b)/;
+    const h = veilhaven();
+    const v = createSeaVentures({ live: () => false, day: () => 0, pixel: () => ({ x: h.px, y: h.py }), locks: new Map(), crows: new Map(), mine: () => null, clock: () => 9000 * SEA_FLEET_PERIOD_MS + SEA_FLEET_OFFSET_MS + 60_000, naval: () => null, state: { localFromWorld: (x, z) => [x, z] }, link: () => null, ether: {} });
+    for (const line of v.rumours({ px: h.px, py: h.py })) assert.doesNotMatch(line, english, line);
+    assert.doesNotMatch(CHART.wayWords({ px: h.px, py: h.py }, { px: h.px - 300, py: h.py - 120 }), english);
+  } finally { tm.setLocale(was); }
+});
+
+test('AUDIT SEA VENTURES F5: the referee\'s numbers pinned by value - the pins that read their offsets off SEA_REF (the boarding\'s window, the reach, the credit) moved with them and could not fail; and the rise\'s first reach (mutants: the window, the reach, the credit, the rise)', () => {
+  assert.deepEqual({ ...R.SEA_REF }, {
+    toughMax: 2.4, mendMs: 120_000, creditMs: 30_000, wreckMs: 600_000, boardMs: 180_000, boardM: 40,
+    reachM: 300, slackM: 30, hz: 10, rateX: 1.5, depthX: 20, capX: 14, sailCapX: 4, fireMs: 10_000, helmMs: 20_000,
+    shipsMax: 200, wrecksMax: 64,
+  }, 'the record\'s numbers (bible/03-World/Eltheric-Ocean.md SHIP-PVP): three minutes to board, 300 m and 30 m of slack, 30 s of credit');
+  assert.equal(ETHER_RISE_PX, 60, 'the rise sought from 60 px out, doubled until a freeport stands within it');
 });

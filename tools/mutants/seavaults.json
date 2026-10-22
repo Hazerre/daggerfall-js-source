@@ -38,8 +38,8 @@
   {
     "name": "SEA-VAULTS-room-a-mountain-halls",
     "file": "src/net/wire.js",
-    "old": "  if (sea) return `dungeon:m${seaVaultMapId(sea[0], sea[1])}`;   // SEA-VAULTS: the ruin isle's own place's room",
-    "new": "  if (false) return `dungeon:m${seaVaultMapId(sea[0], sea[1])}`;   // SEA-VAULTS: the ruin isle's own place's room",
+    "old": "  if (sea) return `dungeon:m${seaVaultRoomMapId(sea[0], sea[1])}`;",
+    "new": "  if (false) return `dungeon:m${seaVaultRoomMapId(sea[0], sea[1])}`;",
     "tests": [
       "test/systems/sea/seavaults.test.js"
     ]
@@ -74,7 +74,7 @@
   {
     "name": "SEA-VAULTS-room-cell-any-salt",
     "file": "src/net/wire.js",
-    "old": "  if (!Number.isSafeInteger(id) || id <= 0 || id > 0xffffffff || id >>> 20 !== 0xe7) return null;",
+    "old": "  if (!Number.isSafeInteger(id) || id <= 0 || id > 0xffffffff || (id >>> 20 !== 0xe7 && id >>> 20 !== SEA_VAULT_LANE)) return null;",
     "new": "  if (!Number.isSafeInteger(id) || id <= 0 || id > 0xffffffff) return null;",
     "tests": [
       "test/systems/sea/seavaults.test.js"
@@ -119,7 +119,7 @@
   {
     "name": "SEA-VAULTS-online-asks-any-hub",
     "file": "src/net/online.js",
-    "old": "if (seaVaultCell(w.h) && !this.wdunSeaOk) return false;",
+    "old": "if ((seaVaultCell(w.h) || w.k === 'fk') && !this.wdunSeaOk) return false;",
     "new": "if (false) return false;",
     "tests": [
       "test/systems/sea/seavaults.test.js"

@@ -236,8 +236,8 @@
   {
     "name": "SEA-SET-seam-legend",
     "file": "src/scenes/naval/navalHost.js",
-    "old": "deps.ether?.legendEnded?.(legend.id, act); legendTidemail(legend, s.seed); }",
-    "new": "deps.ether?.legendEnded?.(legend.id, act); }",
+    "old": "    if (legend) legendTidemail(legend, s.seed, deps.ether?.legendEnded?.(legend.id, act), {",
+    "new": "    if (legend) void (legend, s.seed, deps.ether?.legendEnded?.(legend.id, act), {",
     "tests": [
       "test/systems/sea/seaset.test.js"
     ]

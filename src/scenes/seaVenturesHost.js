@@ -61,7 +61,7 @@ import { createSeaSeason } from './seaSeasonHost.js';
 import { createSeaBroadsides } from './naval/seaBroadsides.js';
 import { createSeaWreckHost } from './seaWreckHost.js';
 import { wildHere, wildZoneKind } from '../systems/wild/wildZone.js';
-import { ETHER_KIND } from '../systems/wild/etherWild.js';
+import { ETHER_KIND, etherWayWord } from '../systems/wild/etherWild.js';
 import { t } from '../systems/textManager.js';
 import { characterIdOf } from '../systems/characterId.js';
 import { playerEntity } from '../characters/playerEntity.js';
@@ -176,7 +176,7 @@ export function createSeaVentures(deps) {
   let fkAt = -Infinity;
   let fedAt = -Infinity, heardStorm = null, heardFleet = null, inStorm = null, strikesSeen = null;
   /** The way from the player's pixel to a point, in words ("west-north-west"), or '' where they stand on it. */
-  const wayTo = (p, q) => (p && q ? compassPoint(q.x - centre(p).x, q.y - centre(p).y) ?? '' : '');
+  const wayTo = (p, q) => (p && q ? etherWayWord(compassPoint(q.x - centre(p).x, q.y - centre(p).y)) : '');   // AUDIT SEA VENTURES F4: in the language of the moment
   /** THE FLEET'S FEED: the sailing under way, each ship where her station on the route is now and FLEET_LEAD_MS on, in
    *  the scene - `{ n, band, ships }` - or null (in port, or the player off the sea). */
   function fleetList(now, p) {
@@ -199,8 +199,8 @@ export function createSeaVentures(deps) {
     if (cur && !sunk.has(cur.n) && (mine.has(cur.n) || deps.ether?.fleetDone?.(cur.n)) && now - fkAt >= FLEET_TELL_MS && tellHub(cur.n)) fkAt = now;
     if (!atSea(p)) { inStorm = null; strikesSeen = null; return; }
     const s = stormAt(now), f = fleetAt(now);
-    if (s && heardStorm !== s.n) { heardStorm = s.n; const e = stormEye(s, now); mid(t('sea.storm.gathers', 'An Aether storm gathers to the {way} ({band}).', { band: bandName(etherBandAt(e.x).id), way: wayTo(p, e) || 'north' }), 5); }
-    if (f && heardFleet !== f.n && !down(f.n)) { heardFleet = f.n; const q = fleetPlace(f, now); mid(t('sea.fleet.sails', 'A treasure fleet weighs anchor ({band}): the {ship} and her escorts, bound east. It lies to the {way}.', { band: bandName(f.band), ship: f.name, way: wayTo(p, q) || 'north' }), 6); }
+    if (s && heardStorm !== s.n) { heardStorm = s.n; const e = stormEye(s, now); mid(t('sea.storm.gathers', 'An Aether storm gathers to the {way} ({band}).', { band: bandName(etherBandAt(e.x).id), way: wayTo(p, e) || etherWayWord('north') }), 5); }
+    if (f && heardFleet !== f.n && !down(f.n)) { heardFleet = f.n; const q = fleetPlace(f, now); mid(t('sea.fleet.sails', 'A treasure fleet weighs anchor ({band}): the {ship} and her escorts, bound east. It lies to the {way}.', { band: bandName(f.band), ship: f.name, way: wayTo(p, q) || etherWayWord('north') }), 6); }
     const here = stormOver(p, now);
     if ((here?.n ?? null) !== inStorm) {
       if (here) say(t('sea.storm.enter', 'You sail into the Aether storm. Lightning seeks the masts, and wrack rides the swell.'), 5);
@@ -254,11 +254,11 @@ export function createSeaVentures(deps) {
   function rumours(port) {
     const now = clock(), out = [], mins = (ms) => Math.max(1, Math.ceil(ms / 60_000));
     const f = fleetAt(now);
-    if (f && !down(f.n)) out.push(t('sea.rumour.fleet', 'A treasure fleet is under way ({band}): the {ship} and her escorts, {way} of here and bound east. It makes port in {min} minutes.', { band: bandName(f.band), ship: f.name, way: wayTo(port && { x: port.px, y: port.py }, fleetPlace(f, now)) || 'north', min: mins(f.end - now) }));
-    else { const g = nextFleet(now); out.push(t('sea.rumour.fleetNext', 'The next treasure fleet weighs anchor in {min} minutes ({band}), {way} of here.', { band: bandName(g.band), way: wayTo(port && { x: port.px, y: port.py }, g.from) || 'north', min: mins(g.start - now) })); }
+    if (f && !down(f.n)) out.push(t('sea.rumour.fleet', 'A treasure fleet is under way ({band}): the {ship} and her escorts, {way} of here and bound east. It makes port in {min} minutes.', { band: bandName(f.band), ship: f.name, way: wayTo(port && { x: port.px, y: port.py }, fleetPlace(f, now)) || etherWayWord('north'), min: mins(f.end - now) }));
+    else { const g = nextFleet(now); out.push(t('sea.rumour.fleetNext', 'The next treasure fleet weighs anchor in {min} minutes ({band}), {way} of here.', { band: bandName(g.band), way: wayTo(port && { x: port.px, y: port.py }, g.from) || etherWayWord('north'), min: mins(g.start - now) })); }
     const s = stormAt(now);
-    if (s) out.push(t('sea.rumour.storm', 'An Aether storm is blowing {way} of here. It blows itself out in {min} minutes.', { way: wayTo(port && { x: port.px, y: port.py }, stormEye(s, now)) || 'north', min: mins(s.end - now) }));
-    else { const g = nextStorm(now); out.push(t('sea.rumour.stormNext', 'Sailors say an Aether storm will gather {way} of here in {min} minutes.', { way: wayTo(port && { x: port.px, y: port.py }, { x: g.x0, y: g.y0 }) || 'north', min: mins(g.start - now) })); }
+    if (s) out.push(t('sea.rumour.storm', 'An Aether storm is blowing {way} of here. It blows itself out in {min} minutes.', { way: wayTo(port && { x: port.px, y: port.py }, stormEye(s, now)) || etherWayWord('north'), min: mins(s.end - now) }));
+    else { const g = nextStorm(now); out.push(t('sea.rumour.stormNext', 'Sailors say an Aether storm will gather {way} of here in {min} minutes.', { way: wayTo(port && { x: port.px, y: port.py }, { x: g.x0, y: g.y0 }) || etherWayWord('north'), min: mins(g.start - now) })); }
     return out;
   }
   // ── SEA-BOUNTY ─────────────────────────────────────────────────────────────────────────────────────────────────────

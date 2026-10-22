@@ -308,7 +308,7 @@ const HARDCODED = {
   'src/scenes/travelView.js': 39,
   'src/scenes/treeHost.js': 3,
   'src/scenes/windfallHost.js': 5,
-  'src/scenes/world.js': 347,   // FB1020c ONE-SAVE: the kept words moved to the Stores page (BAG_PAGE_WORDS.kept); CABIN-FOES: Transport > Ship's helm refusal read off CABIN_REFUSAL
+  'src/scenes/world.js': 346,   // FB1020c ONE-SAVE: the kept words moved to the Stores page (BAG_PAGE_WORDS.kept); CABIN-FOES: Transport > Ship's helm refusal read off CABIN_REFUSAL; AUDIT SEA VENTURES C6: -1, /unstuck's outdoor refusal read off the zone's words
   'src/scenes/worldModes.js': 83,
   'src/systems/aetheric.js': 168,   // SEA-SET: +17, the Eltheric Tidemail's nine names and lore, as the Weave's - the records' own data, minted onto the item; WITCH1: the Wyrd's Raiment's nine pieces, each its name and its affixes' names (+18) - an item's canonical name, as every Aetheric set's; STAR7: +18, the Starspun Weave's nine names and lore - the records' own data, minted onto the item, never read at load
   'src/systems/alchemyItems.js': 3,
@@ -480,7 +480,7 @@ const HARDCODED = {
   'src/systems/rest/restWarning.js': 5,
   'src/systems/resurrect.js': 6,
   'src/systems/revenant/revenant.js': 73,
-  'src/systems/revenant/revenantCompanions.js': 4,
+  'src/systems/revenant/revenantCompanions.js': 3,   // AUDIT SEA VENTURES C7: -1, the zone's one-revenant refusal read off the zone's words
   'src/systems/revenant/revenantFate.js': 14,
   'src/systems/revenant/revenantFeud.js': 27,
   'src/systems/revenant/revenantPersonality.js': 621,

@@ -56,8 +56,8 @@
   {
     "name": "SEA-EVENTS-hub-any-sailing",
     "file": "src/net/wild/wildLaw.js",
-    "old": "  if (!(Number.isSafeInteger(n) && (n === cur || n === cur - 1))) return false;",
-    "new": "  if (!(Number.isSafeInteger(n) && n <= cur)) return false;",
+    "old": "  if (!(now >= start && now <= start + SEA_FLEET_SAIL_MS + SEA_FLEET_LATE_MS)) return false;",
+    "new": "  if (!(now <= start + SEA_FLEET_SAIL_MS + SEA_FLEET_LATE_MS)) return false;",
     "tests": [
       "test/systems/sea/seaevents.test.js"
     ]
@@ -65,8 +65,8 @@
   {
     "name": "SEA-EVENTS-hub-this-alone",
     "file": "src/net/wild/wildLaw.js",
-    "old": "  if (!(Number.isSafeInteger(n) && (n === cur || n === cur - 1))) return false;",
-    "new": "  if (!(Number.isSafeInteger(n) && n === cur)) return false;",
+    "old": "  if (!(now >= start && now <= start + SEA_FLEET_SAIL_MS + SEA_FLEET_LATE_MS)) return false;",
+    "new": "  if (!(now >= start && now <= start + SEA_FLEET_SAIL_MS)) return false;",
     "tests": [
       "test/systems/sea/seaevents.test.js"
     ]
@@ -416,7 +416,7 @@
   {
     "name": "SEA-EVENTS-ships-on-land",
     "file": "src/scenes/naval/treasureFleet.js",
-    "old": "        if (!deps.isWater(s.pos[0], s.pos[2], 0)) continue;",
+    "old": "        if (!deps.isWater(s.pos[0], s.pos[2], classById(s.classId)?.hull ?? 0)) continue;",
     "new": "        void 0;",
     "tests": [
       "test/systems/sea/seaevents.test.js"
@@ -479,7 +479,7 @@
   {
     "name": "SEA-EVENTS-spoils-untold",
     "file": "src/scenes/naval/treasureFleet.js",
-    "old": "    deps.fleetEnded(entry.fleet.n, act);",
+    "old": "    if (!(Number(deps.fleetEnded(entry.fleet.n, act)) > 0)) return null;",
     "new": "    void act;",
     "tests": [
       "test/systems/sea/seaevents.test.js"
@@ -506,7 +506,7 @@
   {
     "name": "SEA-EVENTS-host-wrack-again",
     "file": "src/scenes/seaVenturesHost.js",
-    "old": "    if (wracked.has(id)) return [];\n",
+    "old": "    if (hauled(id)) return [];\n",
     "new": "\n",
     "tests": [
       "test/systems/sea/seaevents.test.js"
@@ -515,7 +515,7 @@
   {
     "name": "SEA-EVENTS-host-haul-again",
     "file": "src/scenes/seaVenturesHost.js",
-    "old": "    if (wracked.has(id)) return { items: [], text: '' };\n",
+    "old": "    if (hauled(id)) return { items: [], text: '' };\n",
     "new": "\n",
     "tests": [
       "test/systems/sea/seaevents.test.js"
@@ -542,7 +542,7 @@
   {
     "name": "SEA-EVENTS-host-feed-unscattered",
     "file": "src/scenes/seaVenturesHost.js",
-    "old": "deps.naval?.()?.fleet?.(list, { sunk: !!list && sunk.has(list.n) });",
+    "old": "deps.naval?.()?.fleet?.(list, { sunk: !!list && down(list.n) });",
     "new": "deps.naval?.()?.fleet?.(list, { sunk: false });",
     "tests": [
       "test/systems/sea/seaevents.test.js"
@@ -578,8 +578,8 @@
   {
     "name": "SEA-EVENTS-host-fleet-said-always",
     "file": "src/scenes/seaVenturesHost.js",
-    "old": "    if (f && heardFleet !== f.n && !sunk.has(f.n)) {",
-    "new": "    if (f && !sunk.has(f.n)) {",
+    "old": "    if (f && heardFleet !== f.n && !down(f.n)) {",
+    "new": "    if (f && !down(f.n)) {",
     "tests": [
       "test/systems/sea/seaevents.test.js"
     ]
@@ -614,8 +614,8 @@
   {
     "name": "SEA-EVENTS-host-hub-any-relay",
     "file": "src/scenes/seaVenturesHost.js",
-    "old": "    if (link?.wdunSeaOk && link.status === 'open') link.sendWdun({ k: 'fk', n: f.n });",
-    "new": "    if (link?.status === 'open') link.sendWdun({ k: 'fk', n: f.n });",
+    "old": "return !!link?.wdunSeaOk && link.status === 'open' && link.sendWdun({ k: 'fk', n }) === true; };",
+    "new": "return link?.status === 'open' && link.sendWdun({ k: 'fk', n }) === true; };",
     "tests": [
       "test/systems/sea/seaevents.test.js"
     ]
@@ -623,8 +623,8 @@
   {
     "name": "SEA-EVENTS-host-hub-kept",
     "file": "src/scenes/seaVenturesHost.js",
-    "old": "    sunk.clear();\n    for (const n of w.fleets ?? []) sunk.add(n);",
-    "new": "    for (const n of w.fleets ?? []) sunk.add(n);",
+    "old": "    sunk.clear();   // the hub's word alone - mine kept (AUDIT SEA VENTURES D5: its hello put my own sinking out)\n",
+    "new": "",
     "tests": [
       "test/systems/sea/seaevents.test.js"
     ]

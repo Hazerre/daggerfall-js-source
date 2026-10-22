@@ -172,7 +172,7 @@ export function seaShot(st, by, to, { d = 0, s: sail = 0, f = false, kin = false
   her.struckAt = now;
   if (got > 0) { her.hp -= got; her.by = by; her.byAt = now; }   // E6B: her killer is a captain whose shot took her bar
   const frac = her.max > 0 ? got / her.max : 0;
-  const [wreck, evicted] = got > 0 && her.hp <= 1e-6 ? wreckOf(st, to, her, by, now, rid, room) : [null, null];
+  const [wreck, evicted] = her.hp <= 1e-6 ? wreckOf(st, to, her, by, now, rid, room) : [null, null];   // a shot lands only on a bar above none: one that took none wrecks nothing
   return { ok: true, dealt: got, frac, sail: Math.min(1, canvas), fire, left: her.max > 0 ? Math.max(0, her.hp) / her.max : 0, wreck, evicted, why: null };
 }
 

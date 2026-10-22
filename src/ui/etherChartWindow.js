@@ -51,7 +51,7 @@ import { t } from '../systems/textManager.js';   // L10N4 (at the merge of main)
 import { isleByKey, BANDS, VEIL_X, LEAGUE_PX, KIND_WORDS, ETHER_BOX, compassPoint, veilhaven, ETHER_SEA_NAME } from '../world/ethericSea.js';
 import { hauntOf, legendById, HAUNT_PX } from '../systems/naval/etherShips.js';
 import { isleGood, goodById } from '../systems/naval/tradeGoods.js';   // ISLE-TRADE: a port isle's own good of the Bay, on its card
-import { ETHER_PEACE_PX } from '../systems/wild/etherWild.js';   // ETHER-WILD: Veilhaven's peace, drawn where the open sea's fights begin
+import { ETHER_PEACE_PX, etherWayWord } from '../systems/wild/etherWild.js';   // ETHER-WILD: Veilhaven's peace, drawn where the open sea's fights begin
 import { paintWildCrows, paintWildLocks } from './wild/wildMapInk.js';   // SEA-VAULTS: the mountains' crows and padlock, on the chart's paper
 import { HALL_INK } from './ink/inkMap.js';   // SEA-VAULTS: a vault's oxblood, the halls' own
 
@@ -163,7 +163,7 @@ export function wayWords(from, to) {
   const dx = to.px - from.px, dy = to.py - from.py;
   const leagues = Math.hypot(dx, dy) / LEAGUE_PX;
   if (leagues < 0.5) return t('sea.chart.here', 'here');
-  return t('sea.chart.way', '{n, plural, one {# league} other {# leagues}} {point}', { n: Math.max(1, Math.round(leagues)), point: compassPoint(dx, dy) });
+  return t('sea.chart.way', '{n, plural, one {# league} other {# leagues}} {point}', { n: Math.max(1, Math.round(leagues)), point: etherWayWord(compassPoint(dx, dy)) });   // AUDIT SEA VENTURES F4: the point in the language of the moment
 }
 /** An isle in a line: "Port Pelleveth - a port - 12 leagues west-north-west" - its name's first letter raised (X17). */
 export const isleWords = (isle, ship) => t('sea.chart.isleLine', '{name} - {kind} - {way}', { name: capFirst(isle.name), kind: KIND_WORDS[isle.kind] ?? t('sea.chart.anIsle', 'an isle'), way: wayWords(ship, isle) });

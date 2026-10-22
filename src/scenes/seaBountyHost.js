@@ -36,9 +36,9 @@ export const SEA_BOARD_FRESH_MS = 30_000;
 /** AUDIT SEA VENTURES E1: a read the service refused is asked again this long on, doubling to SEA_BOARD_FRESH_MS (ms) -
  *  a refusal moved nothing, and the repaint that ends a read asked again at once: a page frozen in microtasks, or two
  *  thousand reads a minute against the account's limit, every checkpoint of the account refused behind them. */
-export const SEA_BOARD_RETRY_MS = 5_000;
+export const SEA_BOARD_READ_RETRY_MS = 5_000;
 /** The wait after `fails` refused reads in a row (ms). */
-export const boardRetryMs = (/** @type {number} */ fails) => Math.min(SEA_BOARD_FRESH_MS, SEA_BOARD_RETRY_MS * 2 ** Math.max(0, fails - 1));
+export const boardRetryMs = (/** @type {number} */ fails) => Math.min(SEA_BOARD_FRESH_MS, SEA_BOARD_READ_RETRY_MS * 2 ** Math.max(0, fails - 1));
 
 const gold = (n) => Math.round(Number(n) || 0).toLocaleString('en-US');
 /** A post's request id: one asked twice is one post. */

@@ -24,7 +24,7 @@
 // zone's words on this ground, registered with wildZone.js so the mountains' leaf imports nothing of the sea.
 // ═══════════════════════════════════════════════════════════════════
 import { BANDS, ETHER_WORD, inEther, inVeil, etherBandAt, veilhaven, islesNear } from '../../world/ethericSea.js';
-import { WILD_RINGS, wildRingAt, wildRingBonus, registerZoneWords } from './wildZone.js';
+import { WILD_RINGS, wildRingAt, wildRingLoot, registerZoneWords } from './wildZone.js';
 import { t } from '../textManager.js';
 
 /** The ground's kind on the live flag (wildZone.js setWildHere). */
@@ -95,14 +95,29 @@ const BAND_NAMES = Object.freeze({
   abyss: () => t('sea.wild.band.abyss', 'The Abyss'),
 });
 
+/** AUDIT SEA VENTURES F4: a ring's loot in the sea's sentences ("+75% loot" - wildZone.js wildRingBonus's, said through the
+ *  text core: the band was each language's and its loot English). */
+export const etherRingBonus = (/** @type {number} */ ring) => t('sea.wild.bonus', '+{pct}% loot', { pct: Math.round((wildRingLoot(ring) - 1) * 100) });
+/** AUDIT SEA VENTURES F4: THE COMPASS'S SIXTEEN POINTS through the text core (world/ethericSea.js compassPoint's words - the
+ *  sea's rumours, its storm's and its fleet's lines, the chart's ways said a way in English in every language), each its
+ *  own key whole for the extractor. */
+const WAY_WORDS = Object.freeze({
+  north: () => t('sea.way.n', 'north'), 'north-north-east': () => t('sea.way.nne', 'north-north-east'), 'north-east': () => t('sea.way.ne', 'north-east'), 'east-north-east': () => t('sea.way.ene', 'east-north-east'),
+  east: () => t('sea.way.e', 'east'), 'east-south-east': () => t('sea.way.ese', 'east-south-east'), 'south-east': () => t('sea.way.se', 'south-east'), 'south-south-east': () => t('sea.way.sse', 'south-south-east'),
+  south: () => t('sea.way.s', 'south'), 'south-south-west': () => t('sea.way.ssw', 'south-south-west'), 'south-west': () => t('sea.way.sw', 'south-west'), 'west-south-west': () => t('sea.way.wsw', 'west-south-west'),
+  west: () => t('sea.way.w', 'west'), 'west-north-west': () => t('sea.way.wnw', 'west-north-west'), 'north-west': () => t('sea.way.nw', 'north-west'), 'north-north-west': () => t('sea.way.nnw', 'north-north-west'),
+});
+/** A compass point's word in the language of the moment (compassPoint's, or '' for none). */
+export const etherWayWord = (/** @type {string | null | undefined} */ point) => (point ? WAY_WORDS[/** @type {keyof typeof WAY_WORDS} */ (point)]?.() ?? point : '');
+
 /** The zone's words on the sea (WILD_TEXT's keys, said this ground's way) - through the text core (L10N4), read when said. */
 export const ETHER_WILD_TEXT = Object.freeze({
   enter: () => t('sea.wild.enter', 'You sail out of Veilhaven\'s peace onto the open {word} Ocean, an open PvP zone. Foes here are four times as strong, and you can lose what you carry.', { word: ETHER_WORD }),
   leave: () => t('sea.wild.leave', 'You are in Veilhaven\'s peace. No player may attack you here.'),
-  ring: (r) => t('sea.wild.ring', '{band}: {bonus}.', { band: etherRingName(r), bonus: wildRingBonus(r) }),
+  ring: (r) => t('sea.wild.ring', '{band}: {bonus}.', { band: etherRingName(r), bonus: etherRingBonus(r) }),
   ringCross: (r, deeper) => (deeper
-    ? t('sea.wild.deeper', 'Deeper - {band}: {bonus}.', { band: etherRingName(r), bonus: wildRingBonus(r) })
-    : t('sea.wild.shallower', 'Back toward the Veil - {band}: {bonus}.', { band: etherRingName(r), bonus: wildRingBonus(r) })),
+    ? t('sea.wild.deeper', 'Deeper - {band}: {bonus}.', { band: etherRingName(r), bonus: etherRingBonus(r) })
+    : t('sea.wild.shallower', 'Back toward the Veil - {band}: {bonus}.', { band: etherRingName(r), bonus: etherRingBonus(r) })),
   chipTip: () => t('sea.wild.chipTip', 'The {word} Ocean past Veilhaven\'s peace: other players may attack you. Foes are four times as strong and drop up to twice the loot (25% more in the Shallows, twice in the Abyss). If you die, you drop what you carry.', { word: ETHER_WORD }),
   deathHold: () => t('sea.wild.deathHold', 'Past the Veil the dead wait two minutes.'),
   teleport: () => t('sea.wild.teleport', 'You cannot teleport into, out of or about the open {word} Ocean. Sail.', { word: ETHER_WORD }),

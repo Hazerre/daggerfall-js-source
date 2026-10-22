@@ -58,6 +58,15 @@ test('ETHER-WILD the chart: the peace painted as water - before the haunts and t
   assert.ok(g.log.slice(ring, ring + 6).some((c) => c[0] === 'setLineDash' && c[1].length === 2), 'its ring dashed');
   const firstIsle = g.log.findIndex((c) => c[0] === 'arc' && c[3] !== m.peace.r && c[1] !== m.peace.x);
   assert.ok(ring < firstIsle, 'under the isles\' marks');
+  // AUDIT SEA VENTURES F6: and under a haunt - the model above has none in view (the wake's haunt lies 95 px west of
+  // her), so the order was pinned against the isles alone: a view between the two holds both
+  const both = M.chartModel(word({ pvp: true, legends: [{ id: 'wake', name: 'Sorrow\'s Wake', trait: 'swift', sails: true }] }), at(2, -47, 25), W, H);
+  assert.ok(both.peace && both.haunts.length === 1, 'her peace and the wake\'s haunt in one view');
+  const g3 = stubContext();
+  M.paintChart(g3, both, W, H);
+  const peaceAt = g3.log.findIndex((c) => c[0] === 'arc' && c[1] === both.peace.x && c[3] === both.peace.r);
+  const hauntAt = g3.log.findIndex((c) => c[0] === 'fillRect' && c[1] === both.haunts[0].x - both.haunts[0].r && c[3] === 2 * both.haunts[0].r);
+  assert.ok(peaceAt > 0 && hauntAt > peaceAt, 'the peace\'s water under the haunt\'s square');
   const name = g.log.findIndex((c) => c[0] === 'fillText' && c[1] === M.peaceName());
   assert.ok(name > ring, 'named');
   assert.deepEqual(g.log[name].slice(2), [Math.round(m.peace.x), Math.round(m.peace.y - m.peace.r + 12)], 'inside its ring\'s top, centred');
