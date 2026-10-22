@@ -231,9 +231,10 @@ test('ES1 seam: enhanced skin only, one renderer field, the classic pass untouch
   assert.match(classic, /export function buildDaySkyPanorama/);
   assert.match(classic, /export function nightSkyIndexForSky/);
   assert.doesNotMatch(classic, /enhanced/i, 'skyRenderer.js knows nothing of the enhanced sky');
-  // Both hosts hand the weather and the classic clock through.
+  // Both hosts hand the weather and the classic clock through (SEA-EVENTS: world.js the Aether Storm's first, at sea -
+  // scenes/seaVenturesHost.js seaStormShown, shown as the Sun Baby's clear day is).
   for (const host of ['src/scenes/world.js', 'src/scenes/exterior.js']) {
-    assert.match(read(host), /\{ weather, violence: weatherOverride \?\? currentWeatherRaw\(\), classicMinutes: playerTicker\.classicMinutes, skyMinutes: skyMinutes\(\), sun: wxNow\.sun, flash: flash - 1, pos: [^}]+ \}\);\s*\/\/ WEATHER2a[^\n]*ES1/, `${host} feeds the sky`);   // TIME1: two minutes
+    assert.match(read(host), /\{ weather, violence: weatherOverride \?\? (?:seaStormShown\(\) \?\? )?currentWeatherRaw\(\), classicMinutes: playerTicker\.classicMinutes, skyMinutes: skyMinutes\(\), sun: wxNow\.sun, flash: flash - 1, pos: [^}]+ \}\);\s*\/\/ WEATHER2a[^\n]*ES1/, `${host} feeds the sky`);   // TIME1: two minutes
   }
   // The lab is a page like the other prototypes, built as one.
   assert.match(read('vite.config.js'), /sky: 'sky\.html',/);

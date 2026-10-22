@@ -111,8 +111,10 @@ import '../naval/treasureCharts.js';   // CAPT-CHARTS: the treasure chart
  *  each one 'soul' and froze its trapper's trading (FIELD BUGS 2026-10-20h). PISTOLET moved it to 10: the Dwarven Pistolet
  *  (562) is a template the law knows, and the Sunken Sovereign is lawful in both its shapes - the gilded Pistolet it is
  *  minted as from law 10 on, and the Ebony Saber minted before (systems/gilded.js SOVEREIGN_SABER_ERA; AUDIT PISTOLET A7,
- *  C1, D8) - so a finding a law of 9 made against either is a finding to ask again. */
-export const ITEM_LAW_VERSION = 10;
+ *  C1, D8) - so a finding a law of 9 made against either is a finding to ask again.
+ *  SEA-SET moved it to 11 (10 on its branch, renumbered past PISTOLET's at the merge): the Eltheric Tidemail's nine
+ *  records (systems/aetheric.js ELTHERIC_SET_PIECES) are lawful from it on - a law of 10 or less found every one 'aetheric'. */
+export const ITEM_LAW_VERSION = 11;
 
 const T = ENCHANTMENT_TYPES;
 const TYPE_KEY = Object.freeze(Object.fromEntries(Object.entries(T).map(([k, v]) => [v, k])));
