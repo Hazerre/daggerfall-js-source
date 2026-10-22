@@ -89,7 +89,7 @@ import { tabStorage } from '../systems/appStorage.js';   // the tab's own storag
 import { STAMP_RE } from './safety/chatStamp.js';   // SAFE2: a line's stamp, carried as the relay said it
 import { MUTE_HZ_MAX, CHAT_HZ_MAX, CHAT_MAX, relaySupportsBan } from './wire.js';   // AUDIT SAFE RELAY-2: the order meter and my own lines' pace, the relay's word on my chat's own bucket; RELAY-3: the ban frame's relay
 import { REALM_CHARACTER_RE } from './identityToken.js';   // AUDIT LEGACY III O1: a wed frame's stamped realm character, by the token's own shape
-import { leaseRoom, relaySupportsLease, LEASE_MS } from './roomLease.js';   // LEASE1: my hub's lease, handed to every lease room I hold
+import { leaseRoom, relaySupportsLease, LEASE_MS, LEASE_HELD_MS } from './roomLease.js';   // LEASE1: my hub's lease, handed to every lease room I hold
 import { LEASE_WIRE_MAX } from './wire.js';
 /** LEASE1: the frames a lease room's socket sends with no lease ahead of them - the runtime's ping, the hello, a lease. */
 const LEASE_QUIET_RE = /^\{"t":"(?:ping|hello|lease)"/;
@@ -663,6 +663,7 @@ export class OnlineSession {
     this.onLease = null;          // LEASE1: (l) => void - my hub's lease, to hand to every lease room I hold (net/roomLease.js)
     this.leaseOk = false;         // LEASE1: the relay that welcomed this socket knows the lease frame - an older one CLOSES a socket on it
     this._lease = null;           // LEASE1: my hub's newest lease, handed on by each lease room's socket ahead of its next frame (`_leased`)
+    this._leaseAt = -Infinity;    // LEASE1: when it came, on my own clock (LEASE_HELD_MS)
     this.onSlowed = null;         // SAFE6: ({ms}) => void - my public line was too soon for a new voice; the next may go in `ms`
     this.onWelcomed = null;       // AUDIT SAFE CLIENT-8: () => void - my room's socket was welcomed (a reconnect's too): what the page reads of the account at a start is read again
     this.banOk = false;           // AUDIT SAFE RELAY-3: the relay that welcomed this socket knows the `ban` frame (relaySupportsBan) - an older one CLOSES the socket on it
@@ -2813,23 +2814,27 @@ export class OnlineSession {
   /** LEASE1 (net/roomLease.js): my hub's lease, kept for this session's lease rooms - its own and each halo's. Nothing goes
    *  now: each lease room's socket hands it just ahead of the next frame it sends there (`_leased`), so a room where I do
    *  nothing is woken by nothing (mob's load check, 07:57Z: "if we affected server performasnce" - every room a player
-   *  stood idle in was woken every LEASE_MS). False when this session takes none. */
+   *  stood idle in was woken every LEASE_MS). KEPT WHEREVER I STAND (a review of the PR: one that came while I stood in a
+   *  dungeon's floor, a gate or my home, or before this socket's welcome, was thrown away, and the next lease room heard
+   *  nothing of me until the hub's next) - `_leased` hands it on only in a lease room of a relay that knows the frame.
+   *  False when this session takes none now. */
   sendLease(l) {
-    if (!this.leaseOk || typeof l !== 'string' || !l || !(leaseRoom(this.room) || [...this._halo.keys()].some(leaseRoom))) return false;
+    if (typeof l !== 'string' || !l) return false;
     this._lease = l;
-    return true;
+    this._leaseAt = this._now();
+    return this.leaseOk && (leaseRoom(this.room) || [...this._halo.keys()].some(leaseRoom));
   }
 
   /** LEASE1: a lease room's socket, made to hand my newest lease on just ahead of the first frame it sends after that lease
    *  came - a ping, a hello and a lease itself excepted - and never twice. Every frame a room hears from me rides behind a
    *  lease it holds (the room closes a bound socket whose lease lapsed at its own next frame); a socket that sends nothing
-   *  hands nothing. */
+   *  hands nothing; and a lease held past LEASE_HELD_MS is handed on nowhere. */
   _leased(ws, room) {
     if (!ws || !leaseRoom(room) || typeof ws.send !== 'function') return ws;
     const send = ws.send.bind(ws);
     let handed = null;
     ws.send = (s) => {
-      const l = this._lease;
+      const l = this._now() - this._leaseAt < LEASE_HELD_MS ? this._lease : null;
       if (l && l !== handed && this.leaseOk && this._welcomed.has(ws) && typeof s === 'string' && !LEASE_QUIET_RE.test(s)) { handed = l; send(JSON.stringify({ t: 'lease', l })); }
       return send(s);
     };

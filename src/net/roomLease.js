@@ -13,12 +13,16 @@
 //     next frame it sends there (net/online.js `_leased`) - a room where the player does nothing is woken by nothing
 //     (mob's load check, 2026-10-22 07:57Z);
 //   - a lease room takes a lease for the socket's own account only; one newer than the room's last word on the socket
-//     (its token, a carried order, an earlier lease) sets the socket's mute and freeze - the hub's word wins;
+//     (its token, a carried order, an earlier lease) sets the socket's mute and freeze - the hub's word wins - and an
+//     older one still holds a freeze longer than the room's, since a token says nothing of one (a review of the PR);
 //   - a socket whose hello said it hands leases on (`ls` 1) is BOUND: while the relay's `leaseDoor` is on (net/relayCfg.js),
 //     a bound socket is heard in nothing but its ping and its lease until its first lease lands - no grace (a review of
 //     the PR: a changed game that reconnected inside one would never be leased, and a token carries no freeze); the
-//     honest game hands its lease on ahead of its first frame there, and that frame waits on the lease's read - a bound
-//     socket whose last lease lapsed is closed `busy` at its own next frame - an honest game's hub was away; it comes
+//     honest game keeps its hub's newest lease wherever it stands and hands it on ahead of its first frame there, and
+//     that frame waits on the lease's read (a frame before the game's first lease, or long after its hub went away, is
+//     lost with the door on: the game has nothing to hand on, its poses go again, and its hub answers within a trip); a
+//     region's shard asks the door before it hands a line up to its bus; a bound socket whose last lease lapsed is
+//     closed `busy` at its own next frame - an honest game's hub was away; it comes
 //     back - and a lease room refuses a hello that does not say `ls` (LEASE_OLD_REASON, GRANT-DOOR's own law: off until
 //     the site serves the build that says it, since the relay deploys first), never waiting on the hub to know;
 //   - a banned account holds no hub link, so it is handed no lease.
@@ -35,6 +39,10 @@ export const LEASE_LIFE_S = 90;
 /** The fewest ms between two lease frames a room reads from one socket (an ask minted, or a lease checked) - an honest game
  *  says one every LEASE_MS. */
 export const LEASE_FRAME_MIN_MS = 5_000;
+/** How long the game hands a lease on after it came - its life less a margin for the wire, on the game's own clock from
+ *  when it came, never by the lease's own times (a player's clock is not the relay's). One past it the room would read as
+ *  none, spending its one lease read in LEASE_FRAME_MIN_MS on it (a review of the PR). */
+export const LEASE_HELD_MS = (LEASE_LIFE_S - 15) * 1000;
 /** HKDF's info: this law's key and nobody else's. */
 export const LEASE_INFO = 'dfo-room-lease:v1';
 /** The close reason of a hello the lease door refuses (a WebSocket close's reason is at most 123 bytes); the words ride

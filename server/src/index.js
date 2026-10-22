@@ -448,7 +448,7 @@ const relayCfgRefusal = (k, v) => {
   if (k === 'grantRoll') return v === 'on' || v === 'off' ? null : 'grantRoll is on (an encounter\'s grant rolls its species from its seed) or off';   // GRANT8 (Spawn-Grants.md section 16)
   if (k === 'grantStrip') return v === 'on' || v === 'off' ? null : 'grantStrip is on (the relay drops a foe record its grant does not stand) or off';   // GRANT9 (Spawn-Grants.md section 16)
   if (k === 'grantDoor') return v === 'on' || v === 'off' ? null : 'grantDoor is on (a foes room refuses a build that does not stand on spawn grants) or off';   // GRANT-DOOR (Spawn-Grants.md section 20)
-  if (k === 'leaseDoor') return v === 'on' || v === 'off' ? null : 'leaseDoor is on (a lease room refuses a build that hands on no lease, and closes a socket whose lease lapsed) or off';   // LEASE1 (net/roomLease.js)
+  if (k === 'leaseDoor') return v === 'on' || v === 'off' ? null : 'leaseDoor is on (a lease room refuses a build that hands on no lease, hears a socket in nothing but its ping until its first lease, and closes one whose lease lapsed) or off';   // LEASE1 (net/roomLease.js)
   if (k !== 'bossBody') return heraldRole(v) === null ? `${k} is a Discord role's id, 15 to 21 digits - not its name or its mention` : null;
   let o = null;
   try { o = JSON.parse(v); } catch { /* refused below */ }
@@ -3498,7 +3498,9 @@ export class Room {
     // SCALE5c: A SHARD HANDS ON every frame but its socket's hello, ping and pose (a channel keeps no place), AS IT CAME -
     // before any door or parse here: the bus parses it, meters it and strikes for it over the socket's ShardSocket, as
     // the hub always did, and its doors (a quest's, which asks the account only the bus's socket carries) are the bus's
-    if (a.vid && a.id && typeof message === 'string' && isChannelShard(a.key) && !shardKeeps(message)) { this._hubForward(ws, a, message); return; }
+    // LEASE1: past the lease door first (a review of the PR: a region's lines went up unleased) - the lease is the shard's
+    // to keep, and the bus's socket for it is the shard's own
+    if (a.vid && a.id && typeof message === 'string' && isChannelShard(a.key) && !shardKeeps(message)) { a = await this._leaseHeard(ws, a); if (a) this._hubForward(ws, a, message); return; }
     // SCALE5d part two: A COURT'S COPY HANDS ON its sockets' gate words - the fight is the court's. AUDIT SCALE II R3-1: by
     // what a frame IS, in the gate arm below, never by how it begins (here it was a frame's first bytes, and a gate word
     // in another key order stood a fight on the copy)
@@ -3567,7 +3569,7 @@ export class Room {
     // last duplicate wins - `{"t":"pose","t":"chat",...}` was kept and run here as a line under the shard's own law (a
     // mute the bus applied never reached it). Parsed as anything but the three it keeps, it goes up as it came: the bus
     // parses it as this did, and judges it
-    if (a.vid && a.id && isChannelShard(a.key) && m.t !== 'hello' && m.t !== 'ping' && m.t !== 'pose' && m.t !== 'lease') { this._hubForward(ws, a, message); return; }
+    if (a.vid && a.id && isChannelShard(a.key) && m.t !== 'hello' && m.t !== 'ping' && m.t !== 'pose' && m.t !== 'lease') { a = await this._leaseHeard(ws, a); if (a) this._hubForward(ws, a, message); return; }   // LEASE1: as above
     // AUDIT SCALE II R3-7: and a court hears from a copy's socket its gate words alone (the copy hands up nothing else)
     if (ws.court && m.t !== 'gate') { this._junk(ws); return; }
     if (m.t === 'hello') {
@@ -3868,21 +3870,12 @@ export class Room {
       }
       return;
     }
-    // LEASE1 (net/roomLease.js): THE HUB'S WORD, IN EVERY ROOM - a lease asked or handed on (a method of its own); while
-    // `leaseDoor` is on, a bound socket (`ld` 0 from its hello) is heard in nothing but its ping and its lease until its first lease lands -
-    // NO GRACE (a review of the PR: a changed game that reconnected inside one would never be leased, and its token carries
-    // no freeze), a frame behind a lease still being read waiting on that read and never on the hub; one whose lease lapsed
-    // is closed `busy` at its own next frame, and one bound to nothing (a build that hands on no lease, let in by a room
-    // that did not know the door was on) is turned away as its hello would be - the speaker alone is looked at, never the
-    // room (a silent socket moves nothing and says nothing); and a socket the hub holds frozen is heard in nothing it says
-    // but its ping and its lease
+    // LEASE1 (net/roomLease.js): THE HUB'S WORD, IN EVERY ROOM - a lease asked or handed on (a method of its own), every
+    // other frame but a ping past the lease door (`_leaseHeard`: the speaker alone is looked at, never the room - a silent
+    // socket moves nothing and says nothing); and a socket the hub holds frozen is heard in nothing it says but its ping
+    // and its lease
     if (m.t === 'lease') return this._leaseFrame(ws, a, m, message);
-    if (m.t !== 'ping' && !ws.virtual && a.ld === 0) { await this._meterOf(ws).lp; a = this._attach(ws); if (!a) return; }
-    if (m.t !== 'ping' && !ws.virtual && (a.ld != null ? !(a.ld * 1000 >= Date.now()) : !!a.id && leaseRoom(a.key ?? this._busKey)) && await this._leaseDoorOn(Date.now())) {
-      if (a.ld == null) this._refuse(ws, GROUND_OLD_WORDS, CLOSE_POLICY, LEASE_OLD_REASON);
-      else if (a.ld) this._refuse(ws, LEASE_LAPSED, CLOSE_BUSY);
-      return;
-    }
+    if (m.t !== 'ping') { a = await this._leaseHeard(ws, a); if (!a) return; }
     if (a.fz && a.fz > Math.floor(Date.now() / 1000) && m.t !== 'ping') return;
     if (m.t === 'world') {
       // WORLD1: the room's memory - from the host, in a world room (both answered before the parse, above, and again
@@ -7033,11 +7026,33 @@ export class Room {
   /** LEASE1: is `leaseDoor` on, by what this room holds? NEVER WAITS ON THE HUB (mob, 07:57Z: "we need to test if this
    *  affected load times", "if we affected server performasnce" - every lease room asked the hub's one object once a
    *  minute, and a fresh room's first frame past a hello waited on it): the ask goes beside, and its answer is the next
-   *  frame's. `ls` is the game's own word, so a wait would buy no lock. */
+   *  frame's. `ls` is the game's own word, so a wait would buy no lock. (A bound socket's frame with no live lease waits
+   *  once a wake: `_leaseHeard`.) */
   async _leaseDoorOn(now) {
     const cfg = await this._relayCfgOf();
     void this._relayCfgFresh(now);
     return relayCfgValue(cfg, this.env, 'leaseDoor') === 'on';
+  }
+  /** LEASE1: THE LEASE DOOR ON A FRAME (any but a ping or a lease; a region's shard asks it before it hands one up to its
+   *  bus) - the attachment to hear it under, or null: not heard. A frame of a socket with no live lease, behind a lease
+   *  still being read, waits on that read (`lp`: the honest game hands its lease on just ahead of the frame - its first,
+   *  or its first after an idle spell its last lease lapsed in). Then, while `leaseDoor` is on: a bound socket with no lease
+   *  yet (`ld` 0) is heard in nothing - NO GRACE (a review of the PR: a changed game that reconnected inside one would never
+   *  be leased, and a token carries no freeze) - and stands (its lease may be on its way); one whose lease lapsed is closed
+   *  `busy`; and one bound to nothing in a lease room (a build that hands on no lease, let in by a room that did not know
+   *  the door was on) is turned away as its hello would be. A bound socket's door is never a cold object's guess (a review
+   *  of the PR: a woken room heard an unleased frame on the Worker's var): it waits on the hub's answer once a wake - a
+   *  socket with a live lease never comes here, so honest play never waits. */
+  async _leaseHeard(ws, a) {
+    if (ws.virtual) return a;
+    if (a.ld != null && !(a.ld * 1000 >= Date.now())) { await this._meterOf(ws).lp; a = this._attach(ws); if (!a) return null; }
+    const now = Date.now();
+    if (a.ld != null ? a.ld * 1000 >= now : !a.id || !leaseRoom(a.key ?? this._busKey)) return a;
+    if (a.ld != null && this._relayCfgAt === -Infinity) await this._relayCfgFresh(now);
+    if (!(await this._leaseDoorOn(now))) return a;
+    if (a.ld == null) this._refuse(ws, GROUND_OLD_WORDS, CLOSE_POLICY, LEASE_OLD_REASON);
+    else if (a.ld) this._refuse(ws, LEASE_LAPSED, CLOSE_BUSY);
+    return null;
   }
   /** LEASE1: the lease key, derived once from the relay's secret (a CryptoKey cannot be stored; a deploy is a new object). */
   async _leaseKeyOf() {
@@ -7075,9 +7090,11 @@ export class Room {
     const b = this._attach(ws);   // read again past the awaits
     if (!r || !b || r.s !== b.sub) return;
     const law = r.at > (b.lt ?? b.gio ?? 0);
-    const next = { ...b, ld: Math.max(b.ld ?? 0, r.u), ...(law ? { lt: r.at, mu: r.mu, fz: r.fz } : {}) };
+    // a token says nothing of a freeze (a review of the PR: a fresh token, then a lease minted before it, dodged one), so
+    // an older lease still holds a freeze longer than the room's - it lifts none
+    const next = { ...b, ld: Math.max(b.ld ?? 0, r.u), ...(law ? { lt: r.at, mu: r.mu, fz: r.fz } : r.fz > (b.fz ?? 0) ? { fz: r.fz } : {}) };
     if (!this._setAttach(ws, next)) return;
-    if (law && b.vid && isChannelShard(room) && ((b.mu ?? 0) !== r.mu || (b.fz ?? 0) !== r.fz)) this._hubForward(ws, next, message);
+    if (b.vid && isChannelShard(room) && ((b.mu ?? 0) !== (next.mu ?? 0) || (b.fz ?? 0) !== (next.fz ?? 0))) this._hubForward(ws, next, message);
   }
   /** GRANT-DOOR (bible/11-Multiplayer/Spawn-Grants.md section 20): is this hello one the door turns away - a foes room's
    *  (a cell, a world room: net/wire.js streamsFoes) from a build whose hello says no spawn grants (`gv`), while

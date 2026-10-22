@@ -32,12 +32,13 @@
   {
     "name": "LEASE1-the-change-not-handed-up",
     "file": "server/src/index.js",
-    "old": "if (law && b.vid && isChannelShard(room)",
-    "new": "if (false && b.vid && isChannelShard(room)",
+    "old": "if (b.vid && isChannelShard(room) && ((b.mu ?? 0)",
+    "new": "if (false && b.vid && isChannelShard(room) && ((b.mu ?? 0)",
     "why": "a region's bus never hears the mute its shard took",
     "tests": [
       "test/net/lease1.test.js"
-    ]
+    ],
+    "note": "LEASE1 REVIEW II (2026-10-22, PIN MOVED): the frame door is its own method now (`_leaseHeard`), asked by a region's shard too."
   },
   {
     "name": "LEASE1-minted-in-any-room",
@@ -72,13 +73,13 @@
   {
     "name": "LEASE1-the-renewed-closed",
     "file": "server/src/index.js",
-    "old": "(a.ld != null ? !(a.ld * 1000 >= Date.now()) :",
-    "new": "(a.ld != null ? true :",
+    "old": "if (a.ld != null ? a.ld * 1000 >= now :",
+    "new": "if (a.ld != null ? false :",
     "why": "a renewed socket closed",
     "tests": [
       "test/net/lease1.test.js"
     ],
-    "note": "LEASE1 NO GRACE (PIN MOVED): a bound socket's hello sets `ld` 0, and its first lease sets the lapse."
+    "note": "LEASE1 REVIEW II (2026-10-22, PIN MOVED): the frame door is its own method now (`_leaseHeard`), asked by a region's shard too."
   },
   {
     "name": "LEASE1-the-door-always-on",
@@ -233,13 +234,13 @@
   {
     "name": "LEASE1-load-the-door-asked-of-every-frame",
     "file": "server/src/index.js",
-    "old": "m.t !== 'ping' && !ws.virtual && (a.ld != null ? !(a.ld * 1000 >= Date.now()) : !!a.id && leaseRoom(a.key ?? this._busKey)) && await this._leaseDoorOn(Date.now())",
-    "new": "m.t !== 'ping' && !ws.virtual && await this._leaseDoorOn(Date.now()) && (a.ld != null ? !(a.ld * 1000 >= Date.now()) : !!a.id && leaseRoom(a.key ?? this._busKey))",
+    "old": "    if (a.ld != null ? a.ld * 1000 >= now : !a.id || !leaseRoom(a.key ?? this._busKey)) return a;",
+    "new": "    if (!(await this._leaseDoorOn(now)) && (a.ld != null ? a.ld * 1000 >= now : !a.id || !leaseRoom(a.key ?? this._busKey))) return a;",
     "why": "every frame in a lease room asks after the door, so every lease room asks the hub once a minute",
     "tests": [
       "test/net/lease1.test.js"
     ],
-    "note": "LEASE1 NO GRACE (PIN MOVED): the same door, read for `lb`."
+    "note": "LEASE1 REVIEW II (2026-10-22, PIN MOVED): the frame door is its own method now (`_leaseHeard`), asked by a region's shard too."
   },
   {
     "name": "LEASE1-load-the-hello-door-awaited",
@@ -254,22 +255,24 @@
   {
     "name": "LEASE1-load-the-unbound-let-stand",
     "file": "server/src/index.js",
-    "old": ": !!a.id && leaseRoom(a.key ?? this._busKey))",
-    "new": ": false)",
+    "old": ": !a.id || !leaseRoom(a.key ?? this._busKey)) return a;",
+    "new": ": true) return a;",
     "why": "a build that hands on no lease, let in by a cold room, stays with the door on",
     "tests": [
       "test/net/lease1.test.js"
-    ]
+    ],
+    "note": "LEASE1 REVIEW II (2026-10-22, PIN MOVED): the frame door is its own method now (`_leaseHeard`), asked by a region's shard too."
   },
   {
     "name": "LEASE1-sent-on-its-own",
     "file": "src/net/online.js",
-    "old": "    this._lease = l;\n    return true;",
-    "new": "    this._lease = l;\n    this._send({ t: 'lease', l });\n    return true;",
+    "old": "    this._leaseAt = this._now();\n    return this.leaseOk",
+    "new": "    this._leaseAt = this._now();\n    this._send({ t: 'lease', l });\n    return this.leaseOk",
     "why": "every idle room is woken by the lease (the load check's cost)",
     "tests": [
       "test/net/lease1.test.js"
-    ]
+    ],
+    "note": "LEASE1 REVIEW II (2026-10-22, PIN MOVED): the frame door is its own method now (`_leaseHeard`), asked by a region's shard too."
   },
   {
     "name": "LEASE1-handed-ahead-of-every-frame",
@@ -304,29 +307,142 @@
   {
     "name": "LEASE1-the-unleased-heard",
     "file": "server/src/index.js",
-    "old": "(a.ld != null ? !(a.ld * 1000 >= Date.now()) :",
-    "new": "(a.ld != null ? !!a.ld && a.ld * 1000 < Date.now() :",
+    "old": "if (a.ld != null ? a.ld * 1000 >= now :",
+    "new": "if (a.ld != null ? !a.ld || a.ld * 1000 >= now :",
     "why": "a bound socket with no lease yet heard in everything",
     "tests": [
       "test/net/lease1.test.js"
-    ]
+    ],
+    "note": "LEASE1 REVIEW II (2026-10-22, PIN MOVED): the frame door is its own method now (`_leaseHeard`), asked by a region's shard too."
   },
   {
     "name": "LEASE1-the-unleased-closed",
     "file": "server/src/index.js",
-    "old": "      else if (a.ld) this._refuse(ws, LEASE_LAPSED, CLOSE_BUSY);",
-    "new": "      else this._refuse(ws, LEASE_LAPSED, CLOSE_BUSY);",
+    "old": "    else if (a.ld) this._refuse(ws, LEASE_LAPSED, CLOSE_BUSY);",
+    "new": "    else this._refuse(ws, LEASE_LAPSED, CLOSE_BUSY);",
     "why": "a socket whose first lease is on its way closed",
+    "tests": [
+      "test/net/lease1.test.js"
+    ],
+    "note": "LEASE1 REVIEW II (2026-10-22, PIN MOVED): the frame door is its own method now (`_leaseHeard`), asked by a region's shard too."
+  },
+  {
+    "name": "LEASE1-the-frame-not-waiting-on-its-lease",
+    "file": "server/src/index.js",
+    "old": "    if (a.ld != null && !(a.ld * 1000 >= Date.now())) { await this._meterOf(ws).lp; a = this._attach(ws); if (!a) return null; }\n",
+    "new": "",
+    "why": "the honest game's first frame, right behind its lease, dropped while the lease is read",
+    "tests": [
+      "test/net/lease1.test.js"
+    ],
+    "note": "LEASE1 REVIEW II (2026-10-22, PIN MOVED): the frame door is its own method now (`_leaseHeard`), asked by a region's shard too."
+  },
+  {
+    "name": "LEASE1-the-shards-line-past-the-door",
+    "file": "server/src/index.js",
+    "old": "isChannelShard(a.key) && !shardKeeps(message)) { a = await this._leaseHeard(ws, a); if (a) this._hubForward(ws, a, message); return; }",
+    "new": "isChannelShard(a.key) && !shardKeeps(message)) { this._hubForward(ws, a, message); return; }",
+    "why": "a region's line goes up to its bus unleased",
     "tests": [
       "test/net/lease1.test.js"
     ]
   },
   {
-    "name": "LEASE1-the-frame-not-waiting-on-its-lease",
+    "name": "LEASE1-the-shards-parsed-line-past-the-door",
     "file": "server/src/index.js",
-    "old": "    if (m.t !== 'ping' && !ws.virtual && a.ld === 0) { await this._meterOf(ws).lp; a = this._attach(ws); if (!a) return; }\n",
+    "old": "m.t !== 'lease') { a = await this._leaseHeard(ws, a); if (a) this._hubForward(ws, a, message); return; }",
+    "new": "m.t !== 'lease') { this._hubForward(ws, a, message); return; }",
+    "why": "a line dressed as a pose goes up to the bus unleased",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-an-older-leases-freeze-dropped",
+    "file": "server/src/index.js",
+    "old": ": r.fz > (b.fz ?? 0) ? { fz: r.fz } : {}) };",
+    "new": ": {}) };",
+    "why": "a fresh token, then a lease minted before it, dodges a freeze",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-an-older-lease-lifting-a-freeze",
+    "file": "server/src/index.js",
+    "old": ": r.fz > (b.fz ?? 0) ? { fz: r.fz } : {}) };",
+    "new": ": { fz: r.fz }) };",
+    "why": "a lease older than the room's word lifts a freeze",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-an-older-freeze-not-handed-up",
+    "file": "server/src/index.js",
+    "old": "if (b.vid && isChannelShard(room) && ((b.mu ?? 0)",
+    "new": "if (law && b.vid && isChannelShard(room) && ((b.mu ?? 0)",
+    "why": "a region's bus never hears the freeze an older lease held",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-a-cold-rooms-guess",
+    "file": "server/src/index.js",
+    "old": "    if (a.ld != null && this._relayCfgAt === -Infinity) await this._relayCfgFresh(now);\n",
     "new": "",
-    "why": "the honest game's first frame, right behind its lease, dropped while the lease is read",
+    "why": "a woken room hears a bound socket's unleased frame on the Worker's var",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-a-renewal-after-a-lapse-not-waited-on",
+    "file": "server/src/index.js",
+    "old": "    if (a.ld != null && !(a.ld * 1000 >= Date.now())) { await this._meterOf(ws).lp;",
+    "new": "    if (a.ld === 0) { await this._meterOf(ws).lp;",
+    "why": "an idle honest socket closed busy with its renewal on the way",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-a-lapsed-socket-closed-with-the-door-off",
+    "file": "server/src/index.js",
+    "old": "    if (!(await this._leaseDoorOn(now))) return a;",
+    "new": "    if (!(a.ld > 0 || await this._leaseDoorOn(now))) return a;",
+    "why": "every honest player whose hub was away closed busy in every lease room while the door is off",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-a-lapsed-sockets-ping-closed",
+    "file": "server/src/index.js",
+    "old": "    if (m.t !== 'ping') { a = await this._leaseHeard(ws, a); if (!a) return; }",
+    "new": "    if (a.ld && m.t === 'ping') { a = await this._leaseHeard(ws, a); if (!a) return; }\n    if (m.t !== 'ping') { a = await this._leaseHeard(ws, a); if (!a) return; }",
+    "why": "a lapsed socket's ping closes it",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-a-lease-thrown-away-outside-a-lease-room",
+    "file": "src/net/online.js",
+    "old": "    if (typeof l !== 'string' || !l) return false;\n    this._lease = l;",
+    "new": "    if (!this.leaseOk || typeof l !== 'string' || !l || !(leaseRoom(this.room) || [...this._halo.keys()].some(leaseRoom))) return false;\n    this._lease = l;",
+    "why": "a lease that came in a dungeon, a gate, a home or before a welcome thrown away: the next lease room deaf to me until the hub's next",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-a-lease-held-forever",
+    "file": "src/net/online.js",
+    "old": "      const l = this._now() - this._leaseAt < LEASE_HELD_MS ? this._lease : null;",
+    "new": "      const l = this._lease;",
+    "why": "a lapsed lease handed on, spending the room's one read on nothing",
     "tests": [
       "test/net/lease1.test.js"
     ]

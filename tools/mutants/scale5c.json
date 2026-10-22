@@ -102,12 +102,12 @@
   {
     "name": "SCALE5c-frame-not-handed-up",
     "file": "server/src/index.js",
-    "old": "    if (a.vid && a.id && typeof message === 'string' && isChannelShard(a.key) && !shardKeeps(message)) { this._hubForward(ws, a, message); return; }\n",
+    "old": "    if (a.vid && a.id && typeof message === 'string' && isChannelShard(a.key) && !shardKeeps(message)) { a = await this._leaseHeard(ws, a); if (a) this._hubForward(ws, a, message); return; }\n",
     "new": "",
     "tests": [
       "test/net/scale5c.test.js"
     ],
-    "note": "a shard runs a world line itself - the other shards never hear it, and a shared quest meets the shard's door"
+    "note": "a shard runs a world line itself - the other shards never hear it, and a shared quest meets the shard's door LEASE1 REVIEW II (PIN MOVED): the line passes the lease door before it goes up."
   },
   {
     "name": "SCALE5c-forward-unbounded",
