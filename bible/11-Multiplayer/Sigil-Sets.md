@@ -389,7 +389,7 @@ on its own stream, so every earlier roll stays what it was for its seed; the Sha
 
 No world drop, shelf or Broker rolls one. These are the client's rolls, as a Legendary's are: no relay or service receipt
 seeds the sea's legends or its ruins (the gate's, the serpent's, a star's and the Spire's sets ride one) - the item law
-holds each piece to its record (item law 10, `itemLaw.js` ITEM_LAW_VERSION; acct168), never to its source.
+holds each piece to its record (item law 10, `itemLaw.js` ITEM_LAW_VERSION; acct169), never to its source.
 
 | pieces | ability | Faint -> Ascendant |
 |---|---|---|

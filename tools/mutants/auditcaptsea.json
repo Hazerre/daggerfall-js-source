@@ -2962,7 +2962,7 @@
   {
     "name": "ACS-X16-heading",
     "file": "src/scenes/world.js",
-    "old": "if (!boat) return cam.yaw; const f = boatForward(boat); return Math.atan2(f[0], f[2]); };",
+    "old": "if (!boat) return cam.yaw; const f = boatForward(boat, cam.yaw); return Math.atan2(f[0], f[2]); };",
     "new": "return cam.yaw; };",
     "tests": [
       "test/systems/naval/auditcaptsea.test.js"

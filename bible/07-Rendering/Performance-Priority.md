@@ -139,9 +139,14 @@ the 3/4 line, and the standing horses' and the crews' calls took it over. Their 
 (`standingHorsesFrame`, `offerCrews`), and the look's step before the motor - `if (!gamePaused()) {`, the look filter,
 the keyboard look, the lock-on - runs as a closure of its own, `frameLook`: 44,976 bytes.
 
+**At the merge of main into SEA VENTURES (2026-10-22, `03-World/Eltheric-Ocean.md`).** The frame had grown to 46,111
+bytes, 31 over the 3/4 line - main's growth and the Aether Storm's words in the weather's front, sky and crossing
+(SEA-EVENTS). The snow ground's line (PRECIP4: its tick about the player, its frame handed to the renderer) runs as a
+closure of its own, `frameSnowCover`, its line as it was: 45,950 bytes.
+
 Pins: `test/scenes/perfv8.test.js` (2) - every `frame` in the world host's graph and every closure moved out of one under the
 ceiling and under three quarters of it (the tripwire: move the next statement out before the cliff, not after); over
-the parse, the 21 closures by name in order, each made in the frame and called once - a plain call, the statement after
+the parse, the closures by name in order (26 since `frameSnowCover`), each made in the frame and called once - a plain call, the statement after
 its close - holding one statement, no `return`, no `var`. Mutants: `tools/mutants/perfv8.json`, 8, all dead.
 
 ## PERF-YARD — a yard's pieces are culled as the town's own models are

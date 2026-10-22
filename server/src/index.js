@@ -183,6 +183,10 @@ import { privateInteriorOf, privateInteriorAdmits, caravanKeyOf } from '../../sr
 import { isInstanceRoom, instanceOf, instanceAdmission, partyHoldsOwner, INSTANCE_INTERNAL_KIN, INSTANCE_KIN_KEEP_MS, INSTANCE_DOOR_WORD } from '../../src/net/instanceRoom.js';   // INSTANCES: an instance's room, its door and the hub's party answer (bible/11-Multiplayer/Instances.md)
 import { isStaff } from '../../src/net/staffCommands.js';
 import { RELAY_CFG_TTL_MS, RELAY_INTERNAL_CFG, mayRelayCfg, relayCfgValue } from '../../src/net/relayCfg.js';   // SCALE5b: the relay's settings, at run time
+import { leaseKeyOf, mintLease, readLease, leaseRoom, LEASE_FRAME_MIN_MS, LEASE_OLD_REASON } from '../../src/net/roomLease.js';   // LEASE1: the hub's word on every socket, in every room
+/** LEASE1 (the fourth review of the PR): a frame of a build that hands on no lease asks the hub's door at most this often -
+ *  never once a minute (mob's load), yet one let in before the door went on at the hub is turned away within it. */
+const LEASE_OLD_ASK_MS = 10 * RELAY_CFG_TTL_MS;
 import { busOf, shardOf, isChannelShard, isChannelBus, isRegionBus, isCourtCopy, courtOfCopy, upOf, HUB_INTERNAL_UP, HUB_INTERNAL_POLL, HUB_POLL_MS, HUB_OUTBOX_MAX, HUB_OUTBOX_BYTES, HUB_BATCH_MS, HUB_SYNC_MS, HUB_COUNT_MS, HUB_BATCH_MAX, CLOSE_HUB, HUB_FIND_MAX, HUB_FIND_ROOM_HZ_MAX, HUB_GUILD_WHO_MAX, HUB_WHO_KEEP_MS, HUB_FRAME_MAX, HUB_UP_HZ_MAX, HUB_UP_BURST, shardKeeps, foldFind, HUB_BATCH_BYTES, HUB_UP_QUEUE_BYTES, HUB_SILENT_MS, SHARD_LAW_KEYS, HUB_KEY_KEY } from '../../src/net/hubShards.js';   // SCALE5c: the hub, sixteen ways
 import { verifyToken, verifyOrder, verifyStakeOrderAnyAge, importPublicKeyB64, MAX_TTL_S, ORDER_TTL_S, renownIssuable, deckDigest, remainsDigest, _b64url } from '../../src/net/identityToken.js';   // MOD1: and the mute order, checked with the same key; AUDIT SAFE RELAY-10: and an order's claims read for its kind (`lawKindOf`)
 /** ACC1d/F8: the most spent signatures one room remembers. Every entry
@@ -453,6 +457,7 @@ const relayCfgRefusal = (k, v) => {
   if (k === 'grantRoll') return v === 'on' || v === 'off' ? null : 'grantRoll is on (an encounter\'s grant rolls its species from its seed) or off';   // GRANT8 (Spawn-Grants.md section 16)
   if (k === 'grantStrip') return v === 'on' || v === 'off' ? null : 'grantStrip is on (the relay drops a foe record its grant does not stand) or off';   // GRANT9 (Spawn-Grants.md section 16)
   if (k === 'grantDoor') return v === 'on' || v === 'off' ? null : 'grantDoor is on (a foes room refuses a build that does not stand on spawn grants) or off';   // GRANT-DOOR (Spawn-Grants.md section 20)
+  if (k === 'leaseDoor') return v === 'on' || v === 'off' ? null : 'leaseDoor is on (a lease room refuses a build that hands on no lease, and hears a socket in nothing but its ping while it holds no live lease) or off';   // LEASE1 (net/roomLease.js)
   if (k !== 'bossBody') return heraldRole(v) === null ? `${k} is a Discord role's id, 15 to 21 digits - not its name or its mention` : null;
   let o = null;
   try { o = JSON.parse(v); } catch { /* refused below */ }
@@ -892,6 +897,7 @@ export class Room {
     this._seatSaid = undefined;  // SEAT-LIVE: the host the room was last told (`_sayHost`) - undefined: not known since this object woke
     this._relayCfg = undefined;  // SCALE5b: the relay's settings (net/relayCfg.js) - the hub's from its storage, any other room's as the hub last answered
     this._relayCfgAt = -Infinity;   // SCALE5b: when a room not the hub last asked
+    this._relayCfgP = null;         // LEASE1: that ask, in flight or settled (`_leaseHeard` waits on it)
     this._rfSaid = false;        // SCALE5b: whether this cell last said it judges the poses that reach it (`_rfSay`)
     // SCALE5c (the bus): its shards' sockets (`ShardSocket`, by the id each shard gives its own), and what is owed each shard
     this._vsocks = new Map();
@@ -975,6 +981,7 @@ export class Room {
     this._siegeSavedAt = 0;
     this._helloBy = new Map();   // AUDIT-SEATS R3: a battle room's hello buckets, by verified account (_battleHelloGate) - a wake forgets them, as the meters
     this._receiptKey = undefined;   // WB3: the relay's signing key (GATE_SIGNING_KEY), imported once; null = none (the receipts go out unsigned)
+    this._leaseKey = undefined;   // LEASE1: the lease key (net/roomLease.js leaseKeyOf), derived once; null = none (no lease handed out, nobody bound)
     this._grants = null;            // GRANT2 (Spawn-Grants.md section 12): a cell's spawn grants (_grantState) - made at its first ask, in memory alone
     this._gateFell = undefined;     // WB3: the hub's last word of a kill, said to a hello while its gate still holds
     this._serpentSiteRec = undefined; // SERPENT2: the hub's record of where the serpent lies, as accounts said it (net/gate/gateHerald.js foldGateSite) - undefined: not read yet
@@ -1397,7 +1404,7 @@ export class Room {
   _hubN(local) { return this._hubTotal != null ? Math.max(this._hubTotal, local) : local; }
   /** A shard's attachment as the bus keeps it on the ShardSocket - the socket's id, badge and account, never its place,
    *  its room, its wire or the shard's own bookkeeping. */
-  _shardAtt(a) { const { key, pose, hm, at, w2, vid, ly, ...att } = a; void key; void pose; void hm; void at; void w2; void vid; void ly; return att; }
+  _shardAtt(a) { const { key, pose, hm, at, w2, vid, ly, ld, ...att } = a; void key; void pose; void hm; void at; void w2; void vid; void ly; void ld; return att; }   // LEASE1: a socket's lease is its shard's to keep (`ld`)
   /** (a shard) A socket that came to the wrong shard is told the right one, and closed - nothing written. */
   _hubHop(ws, key) {
     this._send(ws, JSON.stringify({ t: 'hub', key }));
@@ -1742,7 +1749,7 @@ export class Room {
     // held (its law door, and every ban a carrier hands a shard, which hands it up), so a shard's own hello asked none
     if (await this._bannedHello(vws, a.sub, ti, now)) return;
     const order = typeof a.sub === 'string' ? this._orders.get(a.sub) : null;
-    if (order && order.i > ti) a = { ...a, mu: order.mu };
+    if (order && order.i > ti) a = { ...a, mu: order.mu, lt: order.i };   // LEASE1: `lt` the time of the room's last word on its mute
     if (a.gi) { await this._loadGuildOuts(Math.floor(now / 1000)); if (this._guildOutAfter(a.gi, a.gm, ti)) a = this._unguild(a); }
     vws.att = a;
     this._vput(vws);
@@ -3337,6 +3344,7 @@ export class Room {
     // it (and one minted before an unmute cannot hold them in it).
     const order = this._orders.get(r.claims.s);
     const mu = order && order.i > r.claims.i ? order.mu : (r.claims.mu ?? 0);
+    const lt = order && order.i > r.claims.i ? order.i : r.claims.i;   // LEASE1: when that word was said - a lease older says nothing of the mute
     // RENOWN1: and Renown, off the same signature - `lv`
     // beside the title and glyphs, stamped by `badged` wherever they are.
     // GUILD1c: and the guild - its id, tag and member row, all three or none - unless this room has since heard that
@@ -3352,7 +3360,7 @@ export class Room {
     const house = c.hn ? { hn: c.hn, ...(c.hc ? { hc: c.hc } : {}), ...(c.hb ? { hb: c.hb } : {}), ...(c.hg ? { hg: c.hg } : {}) } : {};
     // AUDIT LEGACY III O1: and the realm character itself - `ci`, beside the realm's yes alone (identityToken.js claimsValid)
     // INT7: and its ARMS (`wa`, the judged pack's most reach and its bow) - every referee's clip of a blow between players
-    return { name: c.n, kind: c.k, subject: c.s, title: c.t, ts: c.ts, glyphs: c.g, gx: c.gx, au: c.au, pi: c.pi, rb: c.rb, mu, lv: c.lv, ...guild, gio: c.i, ar: c.ar, cl: c.cl, ...house, ci: c.ci, wa: c.wa };   // ARENA4: the season's rating, the hall's queue's   // ARENA4b: `cl` the character's level, a ladder fighter's vitality's
+    return { name: c.n, kind: c.k, subject: c.s, title: c.t, ts: c.ts, glyphs: c.g, gx: c.gx, au: c.au, pi: c.pi, rb: c.rb, mu, lt, lv: c.lv, ...guild, gio: c.i, ar: c.ar, cl: c.cl, ...house, ci: c.ci, wa: c.wa };   // ARENA4: the season's rating, the hall's queue's   // ARENA4b: `cl` the character's level, a ladder fighter's vitality's
   }
 
   /** The verifying key, imported once. Shared by the hello and by
@@ -3498,10 +3506,13 @@ export class Room {
   async _message(ws, message) {
     let a = this._attach(ws);
     this._kind ??= a.key ? roomKindOf(a.key) : null;   // SCALE2b: a metric names the room's kind, never the room
-    // SCALE5c: A SHARD HANDS ON every frame but its socket's hello, ping and pose (a channel keeps no place), AS IT CAME -
-    // before any door or parse here: the bus parses it, meters it and strikes for it over the socket's ShardSocket, as
-    // the hub always did, and its doors (a quest's, which asks the account only the bus's socket carries) are the bus's
-    if (a.vid && a.id && typeof message === 'string' && isChannelShard(a.key) && !shardKeeps(message)) { this._hubForward(ws, a, message); return; }
+    // SCALE5c: A SHARD HANDS ON every frame but its socket's hello, ping, pose and lease (a channel keeps no place), AS IT
+    // CAME - past the lease door alone, before any other door or parse here: the bus parses it, meters it and strikes for
+    // it over the socket's ShardSocket, as the hub always did, and its doors (a quest's, which asks the account only the
+    // bus's socket carries) are the bus's
+    // LEASE1: past the lease door first (a review of the PR: a region's lines went up unleased) - the lease is the shard's
+    // to keep, and the bus's socket for it is the shard's own
+    if (a.vid && a.id && typeof message === 'string' && isChannelShard(a.key) && !shardKeeps(message)) { a = await this._leaseHeard(ws, a); if (a) this._hubForward(ws, a, message); return; }
     // SCALE5d part two: A COURT'S COPY HANDS ON its sockets' gate words - the fight is the court's. AUDIT SCALE II R3-1: by
     // what a frame IS, in the gate arm below, never by how it begins (here it was a frame's first bytes, and a gate word
     // in another key order stood a fight on the copy)
@@ -3568,9 +3579,9 @@ export class Room {
     if (m.error) { this._refuse(ws, m.error); return; }
     // AUDIT SCALE II R1-7: A SHARD KEEPS A FRAME BY WHAT IT IS. The door above kept a frame by its first key, and JSON's
     // last duplicate wins - `{"t":"pose","t":"chat",...}` was kept and run here as a line under the shard's own law (a
-    // mute the bus applied never reached it). Parsed as anything but the three it keeps, it goes up as it came: the bus
+    // mute the bus applied never reached it). Parsed as anything but the four it keeps, it goes up as it came: the bus
     // parses it as this did, and judges it
-    if (a.vid && a.id && isChannelShard(a.key) && m.t !== 'hello' && m.t !== 'ping' && m.t !== 'pose') { this._hubForward(ws, a, message); return; }
+    if (a.vid && a.id && isChannelShard(a.key) && m.t !== 'hello' && m.t !== 'ping' && m.t !== 'pose' && m.t !== 'lease') { a = await this._leaseHeard(ws, a); if (a) this._hubForward(ws, a, message); return; }   // LEASE1: as above
     // AUDIT SCALE II R3-7: and a court hears from a copy's socket its gate words alone (the copy hands up nothing else)
     if (ws.court && m.t !== 'gate') { this._junk(ws); return; }
     if (m.t === 'hello') {
@@ -3728,7 +3739,7 @@ export class Room {
         // AUDIT SCALE II R2-4: and kept, so a woken instance whose sockets say nothing still knows it
         if (this._hubKeyKept !== this._hubKey) { this._hubKeyKept = this._hubKey; try { await this.state.storage.put(HUB_KEY_KEY, this._hubKey); } catch { this._hubKeyKept = null; } }
       }
-      if (!this._setAttach(ws, { ...a, ...placed, ...shown, ...(shard ? { vid, hm: { acct: m.acct ?? null, as: m.asecret ?? null, ps: m.ps === 1 ? 1 : 0, sc: m.secret } } : copy ? { vid } : {}), ...(m.gv >= GRANT_HELLO_LAW && streamsFoes(a.key) ? { gv: 1 } : {}), id: m.id, name: who.name, title: who.title, ...(who.ts ? { ts: who.ts } : {}), glyphs: who.glyphs, gx: who.gx, au: who.au, ...(who.pi ? { pi: who.pi } : {}), ...(who.rb ? { rb: who.rb } : {}), lv: who.lv, ...guild, ...(who.hn ? { hn: who.hn, hc: who.hc, hb: who.hb, hg: who.hg } : {}), ...(who.ci && !chat && !isSocialRoom(a.key) ? { ci: who.ci } : {}), ...(armsOk(who.wa) && !chat && !isSocialRoom(a.key) ? { wa: who.wa } : {}), gio: who.gio, sub: who.subject, ...(instParty ? { ip: 1 } : {}), ...(siegeSide ? { sd: siegeSide } : {}), mu: who.mu, pose: chat ? null : m.pose, since: this._seatKeep(replaced, now), ...arena, ...charLv, ...linked, ...(chat && who.kind === 'guest' ? { gu: 1 } : {}), ...(m.w2 === 1 ? { w2: 1 } : {}) })) { this._refuse(ws, 'hello too large'); return; }   // MOD1: `sub` the verified account (what a mute names), `mu` until when it may not talk   // RENOWN1: `lv` the Renown level the token carried   // AUDIT SAFE RELAY-11: `gu`, a guest's socket in a channel - paced as a sprout's (`_newVoiceWait`)
+      if (!this._setAttach(ws, { ...a, ...placed, ...shown, ...(shard ? { vid, hm: { acct: m.acct ?? null, as: m.asecret ?? null, ps: m.ps === 1 ? 1 : 0, sc: m.secret } } : copy ? { vid } : {}), ...(m.gv >= GRANT_HELLO_LAW && streamsFoes(a.key) ? { gv: 1 } : {}), id: m.id, name: who.name, title: who.title, ...(who.ts ? { ts: who.ts } : {}), glyphs: who.glyphs, gx: who.gx, au: who.au, ...(who.pi ? { pi: who.pi } : {}), ...(who.rb ? { rb: who.rb } : {}), lv: who.lv, ...guild, ...(who.hn ? { hn: who.hn, hc: who.hc, hb: who.hb, hg: who.hg } : {}), ...(who.ci && !chat && !isSocialRoom(a.key) ? { ci: who.ci } : {}), ...(armsOk(who.wa) && !chat && !isSocialRoom(a.key) ? { wa: who.wa } : {}), gio: who.gio, ...(Number.isSafeInteger(who.lt) ? { lt: who.lt } : {}), ...(m.ls === 1 && leaseRoom(a.key) ? { ld: 0 } : {}), sub: who.subject, ...(instParty ? { ip: 1 } : {}), ...(siegeSide ? { sd: siegeSide } : {}), mu: who.mu, pose: chat ? null : m.pose, since: this._seatKeep(replaced, now), ...arena, ...charLv, ...linked, ...(chat && who.kind === 'guest' ? { gu: 1 } : {}), ...(m.w2 === 1 ? { w2: 1 } : {}) })) { this._refuse(ws, 'hello too large'); return; }   // MOD1: `sub` the verified account (what a mute names), `mu` until when it may not talk   // RENOWN1: `lv` the Renown level the token carried   // AUDIT SAFE RELAY-11: `gu`, a guest's socket in a channel - paced as a sprout's (`_newVoiceWait`)
       if (!chat && m.pose && this._trailing({ key: a.key, sub: who.subject })) this._trailPose(ws, m.pose, now);   // AUDIT INT11: a fighter's socket new to the room stands where its hello put it, from now - on its trail, or none says when
       // SRV-N: `v` rides EVERY welcome, a channel's included. A player in the enhanced skin holds a presence socket
       // and one chat socket per tab; whichever reconnects first after a hand deploy is the one that notices, and the
@@ -3871,6 +3882,13 @@ export class Room {
       }
       return;
     }
+    // LEASE1 (net/roomLease.js): THE HUB'S WORD, IN EVERY ROOM - a lease asked or handed on (a method of its own), every
+    // other frame but a ping past the lease door (`_leaseHeard`: the speaker alone is looked at, never the room - a silent
+    // socket moves nothing and says nothing); and a socket the hub holds frozen is heard in nothing it says but its ping
+    // and its lease
+    if (m.t === 'lease') return this._leaseFrame(ws, a, m, message);
+    if (m.t !== 'ping') { a = await this._leaseHeard(ws, a); if (!a) return; }
+    if (a.fz && a.fz > Math.floor(Date.now() / 1000) && m.t !== 'ping') return;
     if (m.t === 'world') {
       // WORLD1: the room's memory - from the host, in a world room (both answered before the parse, above, and again
       // here for a small frame that came without the prefix), at most once in WORLD_MIN_MS of the room's LAST memory
@@ -4843,7 +4861,7 @@ export class Room {
       const told = JSON.stringify({ t: 'muted', until: mu });
       for (const [other, b] of [...this._all()]) {
         if (b.sub !== sub || b.gio > i) continue;   // AUDIT SAFE RELAY-6: a socket whose token was minted after the order already carries the truth (`_takeOrder`'s law)
-        this._setAttach(other, { ...b, mu });
+        this._setAttach(other, { ...b, mu, lt: Math.max(b.lt ?? 0, i) });   // LEASE1: a lease older than this order says nothing of the mute
         this._send(other, told);   // the player hears it at once - muted until, or 0 for lifted
       }
     }
@@ -6983,6 +7001,10 @@ export class Room {
     this._relayCfgAt = now;
     const rooms = this.env?.ROOMS;
     if (!rooms?.idFromName || !rooms?.get) return;
+    await (this._relayCfgP = this._relayCfgAsk(rooms));   // LEASE1: the ask in flight, for the lease door to wait on (`_leaseHeard`)
+  }
+  /** SCALE5b: _relayCfgFresh's ask of the hub - its every failure caught here. */
+  async _relayCfgAsk(rooms) {
     try {
       const res = await rooms.get(rooms.idFromName(SOCIAL_ROOM)).fetch(new Request(`https://relay.internal${RELAY_INTERNAL_CFG}`, { signal: AbortSignal.timeout(ROOM_CALL_MS) }));
       const v = res?.ok ? await res.json() : null;
@@ -7009,7 +7031,110 @@ export class Room {
   async _doorRefused(ws, key, m, now) {
     if (await this._groundRefusal(key, m, now)) { this._refuse(ws, GROUND_OLD_WORDS, CLOSE_POLICY, GROUND_OLD_REASON); return true; }
     if (await this._grantDoorRefusal(key, m, now)) { this._refuse(ws, GROUND_OLD_WORDS, CLOSE_POLICY, GRANT_OLD_REASON); return true; }
+    if (await this._leaseDoorRefusal(key, m, now)) { this._refuse(ws, GROUND_OLD_WORDS, CLOSE_POLICY, LEASE_OLD_REASON); return true; }   // LEASE1: a build that hands on no lease while the door is on
     return false;
+  }
+  /** LEASE1 (net/roomLease.js): is this hello one the lease door turns away - a lease room's from a build that hands on no
+   *  lease (`ls`), while `leaseDoor` is on? GRANT-DOOR's own law, below. */
+  async _leaseDoorRefusal(key, m, now) {
+    if (!leaseRoom(key) || m.ls === 1) return false;
+    return this._leaseDoorOn(now);
+  }
+  /** LEASE1: is `leaseDoor` on, by what this room holds? NEVER WAITS ON THE HUB (mob, 07:57Z: "we need to test if this
+   *  affected load times", "if we affected server performasnce" - every lease room asked the hub's one object once a
+   *  minute, and a fresh room's first frame past a hello waited on it): the ask goes beside, and its answer is the next
+   *  frame's. `ls` is the game's own word, so a wait would buy no lock. Asked beside at most once a TTL, and with `ask`
+   *  false not at all: a frame of a build that hands on no lease asks only once in LEASE_OLD_ASK_MS (a review of the PR:
+   *  with the door off, every lease room holding an old build asked the hub once a minute - the load mob would not have;
+   *  the fourth: asked only once a wake, one let in before the door went on at the hub was heard for the whole wake).
+   *  (A bound socket's frame with no live lease waits on the answer: `_leaseHeard`.) */
+  async _leaseDoorOn(now, ask = true) {
+    const cfg = await this._relayCfgOf();
+    if (ask) void this._relayCfgFresh(now);
+    return relayCfgValue(cfg, this.env, 'leaseDoor') === 'on';
+  }
+  /** LEASE1: THE LEASE DOOR ON A FRAME (any but a ping or a lease; a region's shard asks it before it hands one up to its
+   *  bus) - the attachment to hear it under, or null: not heard. A bound socket's frame with no live lease, behind a lease
+   *  still being read, waits on that read (`lp`: the honest game hands its lease on just ahead of the frame - its first,
+   *  or its first after an idle spell its last lease lapsed in). Then, while `leaseDoor` is on: a bound socket with no live
+   *  lease - none yet (`ld` 0), or one that lapsed - is heard in nothing and stands, until its next lease lands: NO GRACE (a
+   *  review of the PR: a changed game that reconnected inside one would never be leased, and a token carries no freeze),
+   *  and no close (the third review: a close bought an honest game back from a hidden tab nothing but a reconnect, its new
+   *  socket as unheard); and one bound to nothing in a lease room (a build that hands on no lease, let in by a room that
+   *  did not know the door was on) is turned away as its hello would be. A bound socket's door is never a guess: its frame
+   *  waits on the hub's answer in flight, or asks it first in a wake that never has (the reviews: a woken room heard an
+   *  unleased frame on the Worker's var, and a second frame during the first's wait did too) - a socket with a live lease
+   *  never comes here, so honest play never waits but behind a frame of its own. THE FOURTH REVIEW: a frame that waited
+   *  is judged on the socket as it stands after the wait, never as it stood before (a lease that landed meanwhile - its
+   *  mute, its freeze - was written back over with the old attachment, door off), and a socket's later frames wait
+   *  behind it (`dq`), so they are heard in the order they were said. */
+  async _leaseHeard(ws, a) {
+    if (ws.virtual) return a;
+    const meter = this._meterOf(ws);
+    while (meter.dq) { await meter.dq.catch(() => null); if (!(a = this._pastWait(ws))) return null; }
+    if (a.ld != null && !(a.ld * 1000 >= Date.now())) { await meter.lp; a = this._attach(ws); }   // closed or replaced meanwhile: its lease untaken (`_leaseRead`), the door's below
+    const now = Date.now();
+    if (a.ld != null ? a.ld * 1000 >= now : !a.id || !leaseRoom(a.key ?? this._busKey)) return a;
+    const door = meter.dq = this._leaseDoor(ws, a.ld != null, now);
+    try { return await door; } finally { if (meter.dq === door) meter.dq = null; }
+  }
+  /** LEASE1: `_leaseHeard`'s wait at the door, for a frame with no live lease - the attachment to hear it under, or null. */
+  async _leaseDoor(ws, bound, now) {
+    if (bound) await (this._relayCfgAt === -Infinity ? this._relayCfgFresh(now) : this._relayCfgP);
+    const on = await this._leaseDoorOn(now, bound || now - this._relayCfgAt >= LEASE_OLD_ASK_MS);
+    const a = this._pastWait(ws);
+    if (!a) return null;
+    if (!on || a.ld * 1000 >= Date.now()) return a;
+    if (a.ld == null) this._refuse(ws, GROUND_OLD_WORDS, CLOSE_POLICY, LEASE_OLD_REASON);
+    return null;
+  }
+  /** LEASE1 (the fourth review of the PR): the socket as it stands past a wait, or null - it closed, or a reconnect took its
+   *  id, meanwhile: nothing of it is heard, nor its lease taken, after its leave (`_attach` alone always answers). */
+  _pastWait(ws) {
+    const a = this._dead.has(ws) || this._gone.has(ws) ? null : this._attach(ws);
+    return a?.replaced ? null : a;
+  }
+  /** LEASE1: the lease key, derived once from the relay's secret (a CryptoKey cannot be stored; a deploy is a new object). */
+  async _leaseKeyOf() {
+    if (this._leaseKey === undefined) this._leaseKey = await leaseKeyOf(this.env?.GATE_SIGNING_KEY, { subtle: crypto.subtle });
+    return this._leaseKey;
+  }
+  /** LEASE1: A LEASE FRAME. An ask, on a hub link - answered with a lease for the socket's own account, its mute and freeze
+   *  as the hub holds them now. A lease, in a lease room - for this socket's account, and not lapsed: its socket's lease
+   *  renewed, and its mute and freeze taken when it is newer than the room's last word on them (`lt`: its token, an order,
+   *  a lease before it); a region's shard hands a change on to its bus, which judges the lines. One a socket every
+   *  LEASE_FRAME_MIN_MS whatever it sends - each costs a MAC. */
+  async _leaseFrame(ws, a, m, message) {
+    const now = Date.now();
+    const meter = this._meterOf(ws);   // AUDIT ATTACH: a meter is the instance's, never the attachment's
+    if (now - (meter.lq ?? -Infinity) < LEASE_FRAME_MIN_MS) return;
+    meter.lq = now;
+    let read = () => {};
+    meter.lp = new Promise((ok) => { read = ok; });   // a frame behind this lease waits on its read (the hub's door above)
+    try { await this._leaseRead(ws, a, m, message, now); } finally { read(); }
+  }
+  /** LEASE1: _leaseFrame's work, past its meter. */
+  async _leaseRead(ws, a, m, message, now) {
+    const key = await this._leaseKeyOf();
+    if (!key || typeof a.sub !== 'string' || !a.sub) return;
+    const room = a.key ?? this._busKey;
+    const nowS = Math.floor(now / 1000);
+    if (m.l === undefined) {
+      if (!isSocialRoom(room)) return;
+      const l = await mintLease({ s: a.sub, mu: a.mu ?? 0, fz: a.fz ?? 0, at: nowS }, key, { subtle: crypto.subtle });
+      if (l) this._send(ws, JSON.stringify({ t: 'lease', l }));
+      return;
+    }
+    if (!leaseRoom(room)) return;
+    const r = await readLease(m.l, key, { subtle: crypto.subtle, nowS });
+    const b = this._pastWait(ws);   // read again past the awaits
+    if (!r || !b || r.s !== b.sub) return;
+    const law = r.at > (b.lt ?? b.gio ?? 0);
+    // a token says nothing of a freeze (a review of the PR: a fresh token, then a lease minted before it, dodged one), so
+    // an older lease still holds a freeze longer than the room's - it lifts none
+    const next = { ...b, ld: Math.max(b.ld ?? 0, r.u), ...(law ? { lt: r.at, mu: r.mu, fz: r.fz } : r.fz > (b.fz ?? 0) ? { fz: r.fz } : {}) };
+    if (!this._setAttach(ws, next)) return;
+    if (b.vid && isChannelShard(room) && ((b.mu ?? 0) !== (next.mu ?? 0) || (b.fz ?? 0) !== (next.fz ?? 0))) this._hubForward(ws, next, message);
   }
   /** GRANT-DOOR (bible/11-Multiplayer/Spawn-Grants.md section 20): is this hello one the door turns away - a foes room's
    *  (a cell, a world room: net/wire.js streamsFoes) from a build whose hello says no spawn grants (`gv`), while

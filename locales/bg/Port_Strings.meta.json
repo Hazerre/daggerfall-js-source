@@ -11959,6 +11959,11 @@
   "tr": "c20b02678b82",
   "by": "claude-in-session"
  },
+ "helm.passenger": {
+  "en": "61953c9d9311",
+  "tr": "62d9ba12ff27",
+  "by": "claude-in-session"
+ },
  "holdings.horse.boons.hungry": {
   "en": "11b471ca7d1e",
   "tr": "ede3289e4277",
@@ -12159,16 +12164,6 @@
   "tr": "93f2d2013075",
   "by": "claude-in-session"
  },
- "inventory.store.anyMaterial": {
-  "en": "8177dd78731e",
-  "tr": "302b59468fb4",
-  "by": "claude-in-session"
- },
- "inventory.store.anyRarity": {
-  "en": "cc8474c6626b",
-  "tr": "da55163416a5",
-  "by": "claude-in-session"
- },
  "inventory.store.containerFull": {
   "en": "25e48df7aefe",
   "tr": "73b00471c20b",
@@ -12179,9 +12174,19 @@
   "tr": "ca511bd9e593",
   "by": "claude-in-session"
  },
+ "inventory.store.materialMenu": {
+  "en": "d8169782b57c",
+  "tr": "19114f713f60",
+  "by": "claude-in-session"
+ },
  "inventory.store.rarityIn": {
   "en": "4edd5e0b523a",
   "tr": "7605976d8b07",
+  "by": "claude-in-session"
+ },
+ "inventory.store.rarityMenu": {
+  "en": "a3e1e99f2620",
+  "tr": "f07c1c06cf22",
   "by": "claude-in-session"
  },
  "inventory.store.stashAll": {
@@ -12647,6 +12652,16 @@
  "levelup.vital.magicka": {
   "en": "3f9626ec308d",
   "tr": "984102d9ff2a",
+  "by": "claude-in-session"
+ },
+ "livingWorld.friend.court": {
+  "en": "0246b7029d39",
+  "tr": "533394b033f0",
+  "by": "claude-in-session"
+ },
+ "livingWorld.friend.made": {
+  "en": "fee76aa0c9bf",
+  "tr": "7d16a604f0f6",
   "by": "claude-in-session"
  },
  "lootBanner.honour.aura": {
@@ -29239,6 +29254,11 @@
   "tr": "a5b2350c866d",
   "by": "claude-in-session"
  },
+ "standing.notice.served": {
+  "en": "b6b59e754a1b",
+  "tr": "c3420891a154",
+  "by": "claude-in-session"
+ },
  "starfall.at.breath": {
   "en": "55298eac8e62",
   "tr": "258b189879fe",
@@ -30222,6 +30242,16 @@
  "travel.nav.gatesShut": {
   "en": "fd358facc6db",
   "tr": "b56234fc45f8",
+  "by": "claude-in-session"
+ },
+ "travel.pace.viewFoot": {
+  "en": "e578298f5875",
+  "tr": "231c4ddf2fd4",
+  "by": "claude-in-session"
+ },
+ "travel.pace.viewMount": {
+  "en": "522010f69fee",
+  "tr": "9d24fc8177bf",
   "by": "claude-in-session"
  },
  "travelView.tip.weather": {

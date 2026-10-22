@@ -11,8 +11,8 @@
   {
     "name": "PACE-road-rule-never-drops",
     "file": "src/systems/travel/travelPace.js",
-    "old": "  return Math.min(v, topOn(ground));   // WILD3: under the zone's cap too",
-    "new": "  return v;   // WILD3: under the zone's cap too",
+    "old": "  return Math.min(v, top);",
+    "new": "  return v;",
     "tests": [
       "test/systems/travel/pacedials.test.js"
     ]
@@ -20,8 +20,8 @@
   {
     "name": "PACE-road-rule-leaves-the-foe-dial",
     "file": "src/systems/travel/travelPace.js",
-    "old": "  return Math.min(v, topOn(ground));   // WILD3: under the zone's cap too",
-    "new": "  return which === 'foe' ? v : Math.min(v, topOn(ground));   // WILD3: under the zone's cap too",
+    "old": "  return Math.min(v, top);",
+    "new": "  return which === 'foe' ? v : Math.min(v, top);",
     "tests": [
       "test/systems/travel/pacedials.test.js"
     ]
@@ -47,7 +47,7 @@
   {
     "name": "PACE-rise-past-the-ground",
     "file": "src/systems/travel/travelPace.js",
-    "old": "  return paceNow(which) < topOn(ground);",
+    "old": "  return paceNow(which) < top;",
     "new": "  return paceNow(which) < ROAD_PACE_MAX;",
     "tests": [
       "test/systems/travel/pacedials.test.js"

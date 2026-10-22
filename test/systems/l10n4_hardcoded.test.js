@@ -206,6 +206,8 @@ const HARDCODED = {
   'src/render/nodeGlint.js': 2,
   'src/render/oceanHolesRender.js': 4,
   'src/render/orderedDither.js': 1,
+  'src/render/partyPingDraw.js': 2,   // PARTY-PING: the route's two shaders - GLSL the scan reads as prose (`in vec3`), weaponGlowGlsl.js's same line
+  'src/render/partyPingLabels.js': 1,   // PARTY-PING: the pin's SVG, markup the scan reads as prose
   'src/render/precipitation.js': 6,
   'src/render/rainCurtains.js': 1,
   'src/render/realWindows.js': 11,

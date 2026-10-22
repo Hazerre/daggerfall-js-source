@@ -683,6 +683,8 @@ async function crossingWorld(over = {}) {
   const { createCaptainLedger } = await import('../../../src/systems/naval/captainLedger.js');
   const src = hostText('src/scenes/world.js');
   const text = src.slice(src.indexOf('  const crossGate = createCrossingGate();'), src.indexOf('  let _navalWasOn = null;'));
+  // PIN MOVED (HOST-SPLIT at the merge of main into SEA VENTURES): her heading's law at the module's scope, the camera's yaw its argument
+  const boatForward = new Function(`${src.match(/\nconst boatForward = \(boat, yaw\) => \{[\s\S]*?\n\};\n/)[0]}\nreturn boatForward;`)();
   const log = [];
   const w = { etherSea: true, etherOut: true, sailing: true, paused: false, loading: false, overlay: null, transitioning: false, mode: 'exterior', busy: false, arriving: false, px: 150, py: 300, hostile: false, passengers: 0, teleport: null, ...over };
   const ledger = createCaptainLedger();
@@ -706,7 +708,7 @@ async function crossingWorld(over = {}) {
     crossingRows: EC.crossingRows, captainLedger: ledger, crossingTarget: EC.crossingTarget, CROSS_DAYS: EC.CROSS_DAYS,
     _onlineWorldSession: () => !!w.online, get online() { return w.online ?? null; },   // ETHER-WILD: the question's warning is online's (offline here, as these pins were written)
     hudFade: { smashHUDToBlack: () => log.push('black'), fadeHUDFromBlack: () => log.push('fade in') },
-    csaCall: (fn) => fn(), cam: { yaw: 0 },
+    csaCall: (fn) => fn(), cam: { yaw: 0 }, boatForward,
     _teleportToPixel: async (px, py, local, opts) => {
       log.push(`teleport(${px},${py})`);
       if (w.teleport) return w.teleport(px, py, opts);
@@ -892,7 +894,7 @@ test('AUDIT CAPTAIN\'S SEA X15/X16: the chart goes with the world it charts - sh
   const src = hostText('src/scenes/world.js');
   assert.match(src, /const navalClear = \(\) => \{[^\n]*closeNavalYard\(\); closeEtherChart\(\);/);
   const open = src.slice(src.indexOf('  function openEtherChart() {'), src.indexOf('  /** AUDIT NAV1 (the helm): the shipwright\'s window over the world'));
-  const fwd = src.match(/ {2}const boatForward = \(boat\) => \{[\s\S]*?\n {2}\};\n/)[0];
+  const fwd = src.match(/\nconst boatForward = \(boat, yaw\) => \{[\s\S]*?\n\};\n/)[0];   // PIN MOVED (HOST-SPLIT at the merge of main into SEA VENTURES): at the module's scope, the camera's yaw its argument
   const seen = [];
   const w = { sailing: true, boat: { GameObject: { rotation: [0, Math.sin(Math.PI / 4), 0, Math.cos(Math.PI / 4)] } } };   // turned a quarter: her bow east
   const scope = {
