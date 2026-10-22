@@ -19,6 +19,8 @@ import { runCron, CRON_HOUR, HOUR_JOBS } from '../../server-account/src/cron.js'
 import { BUDGET_DEFAULT } from '../../server-account/src/budget.js';
 import { PROGRESS_LINE } from '../../server-account/src/progress.js';
 import { SEIZED } from '../../server-account/src/ledger.js';
+import { goodsOf, wealthOf } from '../../server-account/src/judge.js';
+import { itemWorth } from '../../src/systems/item/itemLaw.js';
 import { createWeapon } from '../../src/combat/enemyEquipment.js';
 import { applyRarity } from '../../src/systems/loot/lootRarity.js';
 import { roadPixels } from '../../src/net/marketLaw.js';
@@ -117,6 +119,10 @@ test('STAFF-PANEL3-REALM: TRADE HOLDS - every held or flagged character with why
   s.raw.prepare("UPDATE realm_characters SET held = 'staff', held_at = ?, dupes = 2 WHERE id = ?").run(nowS() - 40, copier.id);
   const flagged = await s.seat('Flagged');
   s.raw.prepare("UPDATE realm_characters SET review = 'outlier' WHERE id = ?").run(flagged.id);
+  // FLAW REVIEW: a later staff act's note - a mend, a take - is not the hold's: the hold's own note (or none) is said
+  const act = (id, detail) => s.raw.prepare("INSERT INTO realm_findings (player, char_id, seq, at, law, kind, detail) VALUES (?, ?, 1, ?, 0, 'staff', ?)").run(s.row(id).player, id, nowS(), JSON.stringify(detail));
+  act(copier.id, { act: 'mend', by: 'SirMcMobdon', note: 'ticket 42' });
+  act(mine.id, { act: 'take', by: 'SirMcMobdon', note: 'duped sword' });
   const r = await s.admin('/v1/staff/trade-holds');
   assert.equal(r.status, 200, JSON.stringify(r.body));
   const names = r.body.characters.map((c) => [c.name, c.level]);
@@ -182,6 +188,8 @@ test('STAFF-PANEL3-REALM: HOLD one character or every one of an account, and UNH
   assert.deepEqual(s.audits('trade-unhold').map((x) => [x.outcome, x.detail.was]), [['ok', 'law']]);
   assert.deepEqual(await s.admin('/v1/staff/trade-unhold', { id: 'r00000000000000000000' }), { status: 404, body: { error: 'no-realm-character' } });
   assert.deepEqual(await s.admin('/v1/staff/trade-hold', { name: 'Nobody At All' }), { status: 404, body: { error: 'no-player' } });
+  // FLAW REVIEW: an account the lookup cannot name is a failed hold, written down
+  assert.deepEqual(s.audits('trade-hold').at(-1), { act: 'trade-hold', target: null, detail: { all: true, asked: 'Nobody At All', note: null, error: 'no-player' }, outcome: 'failed' });
 });
 
 test('STAFF-PANEL3-REALM: ROLL BACK - previewed with what it will not undo (the Stores, the Drakes, the market purse), the staff hold kept through it, refused while a removal from that character is kept (mutants: confirm; the kept removal; staff hold lifted; each of what it leaves)', async () => {
@@ -242,16 +250,22 @@ test('STAFF-PANEL3-REALM: FIX ACCOUNT - the purse mend and the repair as buttons
 test('STAFF-PANEL3-REALM: WEALTH PAST THE ALLOWANCE - the judge\'s gains with gold apart from goods (the verdict writes the gold), XP past the line from the progression\'s hours, most urgent first by allowances past, paged and kept five minutes; the Home roll-up (mutants: the gold; the score; the levels; the cache)', async () => {
   const s = await stand();
   const g = await s.seat('Goldy');
-  assert.equal((await s.put(g.who, g.id, freshSave({ name: 'Goldy', goldPieces: 5_000_000, items: [piece('a1b2c3d4e5f60718')] }))).status, 200);
+  // a bank loan on the books (owed 5500, the most a level 1 owes): wealthOf takes it off, so the gold of the wealth is
+  // 5,004,000 + 5,000 - 5,500 and the goods the dagger alone - customs' gold (no loan off) made them 5,500 short, below nothing
+  const dagger = piece('a1b2c3d4e5f60718');
+  const goldy = freshSave({ name: 'Goldy', goldPieces: 5_000_000, bankAccounts: [{ accountGold: 5000, loanTotal: 5500 }], items: [dagger, { group: 'Currency', templateIndex: 276, stackCount: 4000 }] });
+  assert.equal((await s.put(g.who, g.id, goldy)).status, 200);
   const f = s.raw.prepare("SELECT detail FROM realm_findings WHERE char_id = ? AND kind = 'measure'").all(g.id).map((r) => JSON.parse(r.detail));
   assert.equal(f.length, 1);
-  assert.equal(f[0].gold, 5_000_000, 'the verdict writes the gold of the wealth beside it');
-  assert.ok(f[0].wealth > 5_000_000);
+  assert.deepEqual([f[0].goods, f[0].wealth], [itemWorth(dagger), wealthOf(goldy)], 'the verdict writes the goods of the wealth beside it, in its own measure');
+  assert.equal(f[0].wealth - f[0].goods, 5_003_500);
+  assert.deepEqual([goodsOf(goldy), goodsOf(null), goodsOf({ items: [{ ...dagger, bound: true }] })], [itemWorth(dagger), 0, 0], 'goodsOf, pure: no coin, no bound piece');
+  assert.ok(itemWorth(dagger) > 0 && itemWorth(dagger) < 5500, 'the old subtraction would read the goods below nothing');
   // a smaller gain: one allowance and a bit past
   const m = await s.seat('Middling');
   const cap = BUDGET_DEFAULT.bands[0].cap;
   s.raw.prepare("INSERT INTO realm_findings (player, char_id, seq, at, law, kind, detail) VALUES (?, ?, 2, ?, 0, 'measure', ?)")
-    .run(s.row(m.id).player, m.id, nowS() - 100, JSON.stringify({ gain: cap * 2, over: Math.round(cap * 1.5), level: 1, played: 0, wealth: cap * 2, gold: cap }));
+    .run(s.row(m.id).player, m.id, nowS() - 100, JSON.stringify({ gain: cap * 2, over: Math.round(cap * 1.5), level: 1, played: 0, wealth: cap * 2, goods: cap }));
   // XP past the line, an account with no wealth found
   const xp = await s.registered('Grinder');
   const renownCap = PROGRESS_LINE.streams.renown.cap;
@@ -260,8 +274,8 @@ test('STAFF-PANEL3-REALM: WEALTH PAST THE ALLOWANCE - the judge\'s gains with go
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.deepEqual(r.body.gains.map((x) => [x.char?.name ?? null, x.account.name, x.level]), [['Goldy', 'Goldy', 'high'], ['Middling', 'Middling', 'medium'], [null, 'Grinder', 'low']]);
   const top = r.body.gains[0];
-  assert.deepEqual([top.wealth.gold, top.wealth.items, top.wealth.times], [5_000_000, f[0].wealth - 5_000_000, 1]);
-  assert.match(top.why.join(' · '), /as last judged: gold 5000000, items \d+/);
+  assert.deepEqual([top.wealth.gold, top.wealth.items, top.wealth.now, top.wealth.times], [5_003_500, itemWorth(dagger), f[0].wealth, 1]);
+  assert.ok(top.why.includes(`as last judged: gold 5003500, items ${itemWorth(dagger)}`), top.why.join(' · '));
   assert.deepEqual(r.body.gains[2].xp, { renown: { over: Math.round(renownCap * 0.5), amount: renownCap * 2 } });
   assert.deepEqual(r.body.gains[2].why, [`Renown XP ${Math.round(renownCap * 0.5)} past the line`]);
   assert.deepEqual([r.body.next, r.body.total, r.body.days], [null, 3, 7]);
@@ -373,6 +387,75 @@ test('STAFF-PANEL3-REALM: PULL and REMOVE FROM MARKET - a reason and a note each
   assert.deepEqual(await s.admin('/v1/staff/evidence/return', { id: rl.body.evidence, note: 'n' }), { status: 409, body: { error: 'staff-evidence-gone' } });
 });
 
+test('STAFF-PANEL3-REALM: REMOVE FROM MARKET asks the trail check Remove from a player asks (FLAW REVIEW: a contested piece was seized unasked) - a listed piece with a copy written down, or a claim on its row, needs `trail: true`; a copy on the seller itself its recorded check (mutants: the check; copies; the row; the seller\'s copy)', async () => {
+  const s = await stand();
+  const seller = await s.seated('Seller');
+  const other = await s.seated('Other');
+  const list = (id, uid) => {
+    s.raw.prepare(`INSERT INTO market_listings (id, seller, char_id, region, kind, units, own, price, fee, at, expires_at, state, rid, n, currency, item)
+      VALUES (?, ?, ?, ?, 'item', 1, 1, 50, 1, ?, ?, 'open', ?, ?, 'gold', ?)`).run(id, seller.id, seller.character, DF, nowS(), nowS() + 3600, `r${id}`, `n${id}`, JSON.stringify(piece(uid)));
+    s.raw.prepare("INSERT INTO item_uids (uid, player, char_id, seen_seq, state, fp, at) VALUES (?, ?, '', 3, 'escrow', '113:1', 1)").run(uid, seller.id);
+  };
+  const removal = (id, extra = {}) => s.admin('/v1/staff/market/remove', { listing: id, reason: 'duplicated', note: 'duped', ...extra });
+  const state = (id) => s.raw.prepare('SELECT state FROM market_listings WHERE id = ?').get(id).state;
+  const uidOf = (k) => ({ ...s.raw.prepare('SELECT char_id, state FROM item_uids WHERE uid = ?').get(k) });
+  // a copy another character holds, written down: contested
+  list('trailcopyaaaaaaaaaaaaaa', 'aaaa000011112222');
+  s.raw.prepare('INSERT INTO item_dupes (uid, char_id, at) VALUES (?, ?, 5)').run('aaaa000011112222', other.character);
+  assert.deepEqual(await removal('trailcopyaaaaaaaaaaaaaa'), { status: 409, body: { error: 'staff-trail' } });
+  assert.deepEqual([state('trailcopyaaaaaaaaaaaaaa'), uidOf('aaaa000011112222')], ['open', { char_id: '', state: 'escrow' }], 'nothing seized');
+  assert.deepEqual(s.audits('market-remove').map((a) => [a.target, a.outcome, a.detail.key, a.detail.error]), [[seller.id, 'failed', 'aaaa000011112222', 'staff-trail']]);
+  assert.equal((await removal('trailcopyaaaaaaaaaaaaaa', { trail: true })).status, 200, 'its trail confirmed');
+  assert.deepEqual([state('trailcopyaaaaaaaaaaaaaa'), uidOf('aaaa000011112222')], ['removed', { char_id: SEIZED, state: 'escrow' }]);
+  // a claim on the row (another record shows the piece): contested
+  list('trailclaimaaaaaaaaaaaaa', 'bbbb000011112222');
+  s.raw.prepare('UPDATE item_uids SET claim_char = ?, claim_at = 1 WHERE uid = ?').run(other.character, 'bbbb000011112222');
+  assert.deepEqual(await removal('trailclaimaaaaaaaaaaaaa'), { status: 409, body: { error: 'staff-trail' } });
+  assert.equal((await removal('trailclaimaaaaaaaaaaaaa', { trail: true })).status, 200);
+  // a copy written down on the seller's own character waits for its recorded trail check - a confirm alone is not one
+  list('trailownaaaaaaaaaaaaaaa', 'cccc000011112222');
+  s.raw.prepare('INSERT INTO item_dupes (uid, char_id, at) VALUES (?, ?, 5)').run('cccc000011112222', seller.character);
+  assert.deepEqual(await removal('trailownaaaaaaaaaaaaaaa', { trail: true }), { status: 409, body: { error: 'staff-trail' } });
+  s.raw.prepare('UPDATE item_dupes SET trail_at = 6 WHERE uid = ?').run('cccc000011112222');
+  assert.equal((await removal('trailownaaaaaaaaaaaaaaa', { trail: true })).status, 200);
+  // the market's own unclaimed hold, no copy known: no trail asked
+  list('trailnoneaaaaaaaaaaaaaa', 'dddd000011112222');
+  assert.equal((await removal('trailnoneaaaaaaaaaaaaaa')).status, 200);
+});
+
+test('STAFF-PANEL3-REALM: A PULL THROUGH THE GAME\'S DOOR IS WRITTEN DOWN (FLAW REVIEW: marketRemove wrote no audit) - the shared act writes one row, ok or failed with its word, whichever door; the panel\'s door no second (mutants: the act\'s row; its outcome)', async () => {
+  const s = await stand();
+  const seller = await s.seated('Seller');
+  s.raw.prepare("INSERT INTO prof_stores (player, char_id, material, origin, qty) VALUES (?, ?, 'ore:mithril', 'own', 50)").run(seller.id, seller.character);
+  s.raw.prepare('INSERT INTO marks (account, balance) VALUES (?, 100)').run(seller.id);
+  const list = async () => (await s.call('/v1/market/list', { character: seller.character, region: DF, kind: 'material', material: 'ore:mithril', units: 5, price: 8, hubs: HUBS, rid: rid() }, seller.secret)).body.listing.id;
+  const mob = (await s.call('/v1/auth/login', { handle: 'SirMcMobdon', password: PASSWORD })).body.secret;
+  const asy = (await s.call('/v1/auth/login', { handle: 'Asynian', password: PASSWORD })).body.secret;
+  const l = await list();
+  assert.deepEqual((await s.call('/v1/market/remove', { listing: l }, asy)).body, { error: 'not-developer' });
+  assert.deepEqual(s.audits('market-pull'), [], 'a refused player is no staff act');
+  assert.deepEqual((await s.call('/v1/market/remove', { listing: l }, mob)).body, { ok: true });
+  assert.deepEqual((await s.call('/v1/market/remove', { listing: l }, mob)).body, { error: 'market-gone' });
+  assert.deepEqual((await s.call('/v1/market/remove', { listing: '!' }, mob)).body, { error: 'bad-listing' });
+  // an auction likewise
+  s.raw.prepare(`INSERT INTO market_auctions (id, seller, char_id, region, provenance, wear, opening, fee, at, ends_at, state, rid, n)
+    VALUES ('auctionbbbbbbbbbbbbbbbbb', ?, ?, ?, 'p000000000000002', 900, 10, 1, ?, ?, 'open', 'r2', 'n2')`).run(seller.id, seller.character, DF, nowS(), nowS() + 3600);
+  assert.deepEqual((await s.call('/v1/market/remove', { listing: 'auctionbbbbbbbbbbbbbbbbb' }, mob)).body, { ok: true });
+  const rows = s.raw.prepare("SELECT actor_name, role, act, target, detail, outcome FROM staff_audit WHERE act = 'market-pull' ORDER BY id").all().map((r) => ({ ...r, detail: JSON.parse(r.detail) }));
+  assert.deepEqual(rows, [
+    { actor_name: 'SirMcMobdon', role: 'admin', act: 'market-pull', target: seller.id, detail: { listing: l, door: 'game' }, outcome: 'ok' },
+    { actor_name: 'SirMcMobdon', role: 'admin', act: 'market-pull', target: seller.id, detail: { listing: l, door: 'game', error: 'market-gone' }, outcome: 'failed' },
+    { actor_name: 'SirMcMobdon', role: 'admin', act: 'market-pull', target: null, detail: { listing: '!', door: 'game', error: 'bad-listing' }, outcome: 'failed' },
+    { actor_name: 'SirMcMobdon', role: 'admin', act: 'market-pull', target: seller.id, detail: { listing: 'auctionbbbbbbbbbbbbbbbbb', door: 'game' }, outcome: 'ok' },
+  ]);
+  // the panel's own door: one row each, written by the act - ok, then failed with its word
+  const p = await list();
+  assert.deepEqual((await s.admin('/v1/staff/market/pull', { listing: p, reason: 'other', note: 'wrong board' })).body, { ok: true });
+  assert.deepEqual(await s.admin('/v1/staff/market/pull', { listing: p, reason: 'other', note: 'again' }), { status: 409, body: { error: 'market-gone' } });
+  assert.deepEqual(s.audits('market-pull').slice(4).map((a) => [a.target, a.outcome, a.detail.note, a.detail.door, a.detail.error]),
+    [[seller.id, 'ok', 'wrong board', undefined, undefined], [seller.id, 'failed', 'again', undefined, 'market-gone']]);
+});
+
 test('STAFF-PANEL3-REALM: REMOVE FROM A PLAYER - previewed, then taken on its own path: one save on, the seat taken, the piece kept and its ledger row taken, so a save that shows it again holds a copy; a contested piece needs its trail checked; Roll back waits; Put back gives it back (mutants: seq; trail; take; the seized row; Put back)', async () => {
   const s = await stand();
   const uid = 'abcdef0123456789';
@@ -386,6 +469,9 @@ test('STAFF-PANEL3-REALM: REMOVE FROM A PLAYER - previewed, then taken on its ow
   assert.ok(pre.body.worth > 0);
   assert.deepEqual(await s.admin('/v1/staff/item/take', { id: t.id, key: 'ffffffffffffffff' }), { status: 409, body: { error: 'staff-no-piece' } });
   const take = { id: t.id, at: [0, 0], seq: 2, confirm: true, reason: 'duplicated', note: 'the duped dagger' };
+  // FLAW REVIEW: a confirmed removal refused before its piece is read is written down failed too
+  assert.deepEqual(await s.admin('/v1/staff/item/take', { ...take, at: undefined, key: 'ffffffffffffffff' }), { status: 409, body: { error: 'staff-no-piece' } });
+  assert.deepEqual(s.audits('item-take').at(-1), { act: 'item-take', target: s.row(t.id).player, detail: { char: t.id, name: 'Taker', key: 'ffffffffffffffff', at: null, error: 'staff-no-piece' }, outcome: 'failed' });
   assert.deepEqual(await s.admin('/v1/staff/item/take', { ...take, reason: 'because' }), { status: 400, body: { error: 'staff-reason' } });
   assert.deepEqual(await s.admin('/v1/staff/item/take', { ...take, seq: 1 }), { status: 409, body: { error: 'seq' } });
   const r = await s.admin('/v1/staff/item/take', take);
@@ -417,7 +503,7 @@ test('STAFF-PANEL3-REALM: REMOVE FROM A PLAYER - previewed, then taken on its ow
   assert.equal(s.raw.prepare('SELECT 1 FROM item_dupes WHERE uid = ? AND char_id = ?').get(uid, t.id), undefined);
   assert.equal(s.raw.prepare('SELECT state FROM staff_evidence WHERE id = ?').get(r.body.evidence).state, 'returned');
   assert.equal(s.staffFindings(t.id).at(-1).act, 'put-back');
-  assert.deepEqual(s.audits('item-take').map((a) => [a.outcome, a.detail.error]), [['failed', 'staff-reason'], ['failed', 'seq'], ['ok', undefined]]);
+  assert.deepEqual(s.audits('item-take').map((a) => [a.outcome, a.detail.error]), [['failed', 'staff-no-piece'], ['failed', 'staff-reason'], ['failed', 'seq'], ['ok', undefined]]);
   // A CONTESTED PIECE - a copy the ledger wrote down - asks its trail checked first, and is taken whatever the ledger says
   const cuid = '0123456789abcdef';
   const u = await s.seat('Copyholder', freshSave({ name: 'Copyholder', items: [piece(cuid, 12)] }));
@@ -433,12 +519,13 @@ test('STAFF-PANEL3-REALM: REMOVE FROM A PLAYER - previewed, then taken on its ow
   assert.equal(ct.status, 200, JSON.stringify(ct.body));
   assert.deepEqual(recordOf(s.env, u.id).items, []);
   assert.deepEqual({ ...s.raw.prepare('SELECT char_id, state FROM item_uids WHERE uid = ?').get(cuid) }, { char_id: SEIZED, state: 'escrow' }, 'known copies: its row kept gone, then taken');
-  // put back where the record no longer shows it: into the pack, the row the record's, its copy mark cleared
+  // put back where the record no longer shows it: into the pack, the row the record's - and (FLAW REVIEW: Put back is an
+  // undo) its copy mark kept as the removal found it, its trail check with it
   const cback = await s.admin('/v1/staff/evidence/return', { id: ct.body.evidence, note: 'checked: his' });
   assert.equal(cback.status, 200, JSON.stringify(cback.body));
   assert.deepEqual([cback.body.shown, recordOf(s.env, u.id).items.map((i) => i.uid)], [false, [cuid]]);
   assert.deepEqual({ ...s.raw.prepare('SELECT char_id, state FROM item_uids WHERE uid = ?').get(cuid) }, { char_id: u.id, state: 'held' });
-  assert.equal(s.raw.prepare('SELECT 1 FROM item_dupes WHERE uid = ? AND char_id = ?').get(cuid, u.id), undefined);
+  assert.deepEqual({ ...s.raw.prepare('SELECT at, trail_found FROM item_dupes WHERE uid = ? AND char_id = ?').get(cuid, u.id) }, { at: 5, trail_found: 'copier' });
   assert.deepEqual(await s.admin('/v1/staff/evidence/return', { id: ct.body.evidence, note: 'again' }), { status: 409, body: { error: 'staff-evidence-gone' } });
   // a copy of a piece ANOTHER record holds: taken, and the holder's row stays the holder's
   const h = await s.seat('Holder', freshSave({ name: 'Holder', items: [piece('1111222233334444', 13)] }));
@@ -453,6 +540,43 @@ test('STAFF-PANEL3-REALM: REMOVE FROM A PLAYER - previewed, then taken on its ow
   const vt = await s.admin('/v1/staff/item/take', { id: v.id, at: [0, 0], seq: s.row(v.id).seq, confirm: true, trail: true, reason: 'duplicated', note: 'a copy of Holder\'s' });
   assert.equal(vt.status, 200, JSON.stringify(vt.body));
   assert.deepEqual({ ...s.raw.prepare("SELECT char_id, state, claim_char FROM item_uids WHERE uid = '5555666677778888'").get() }, { char_id: h.id, state: 'held', claim_char: null }, 'the holder\'s, its claim withdrawn');
+  // PUT BACK OF THAT COPY (FLAW REVIEW: Put back handed the holder's row to the record the copy was taken from): the piece
+  // back in the Victim's pack as the copy it was - the Holder's row still the Holder's, a copy mark written meanwhile kept
+  const uidOf = (k) => ({ ...s.raw.prepare('SELECT char_id, state FROM item_uids WHERE uid = ?').get(k) });
+  s.raw.prepare('INSERT INTO item_dupes (uid, char_id, at) VALUES (?, ?, ?)').run('5555666677778888', v.id, nowS());
+  // (a checkpoint that moves the holder's row while the Put back is read refuses it whole - nothing written over it stale)
+  const get = s.env.SAVES.get;
+  s.env.SAVES.get = async (k) => { s.env.SAVES.get = get; s.raw.prepare("UPDATE item_uids SET at = at + 1 WHERE uid = '5555666677778888'").run(); return get(k); };
+  assert.deepEqual(await s.admin('/v1/staff/evidence/return', { id: vt.body.evidence, note: 'raced' }), { status: 409, body: { error: 'seq' } });
+  assert.equal(s.raw.prepare('SELECT state FROM staff_evidence WHERE id = ?').get(vt.body.evidence).state, 'kept');
+  const vback = await s.admin('/v1/staff/evidence/return', { id: vt.body.evidence, note: 'the call was wrong' });
+  assert.equal(vback.status, 200, JSON.stringify(vback.body));
+  assert.deepEqual([vback.body.shown, recordOf(s.env, v.id).items.map((i) => i.uid)], [false, ['5555666677778888']]);
+  assert.deepEqual(uidOf('5555666677778888'), { char_id: h.id, state: 'held' }, 'the holder keeps its piece');
+  assert.ok(s.raw.prepare('SELECT 1 FROM item_dupes WHERE uid = ? AND char_id = ?').get('5555666677778888', v.id), 'the copy stays a copy');
+  // ...a copy of a piece the market holds (a listing's): the market's row stays the market's
+  const plant = async (name, k, seed) => {
+    const who = await s.seat(name, freshSave({ name }));
+    s.env.SAVES._map.set(s.row(who.id).obj, new TextEncoder().encode(JSON.stringify({ ...recordOf(s.env, who.id), items: [piece(k, seed)] })));
+    const took = await s.admin('/v1/staff/item/take', { id: who.id, at: [0, 0], seq: s.row(who.id).seq, confirm: true, trail: true, reason: 'duplicated', note: 'a copy' });
+    assert.equal(took.status, 200, JSON.stringify(took.body));
+    return { ...who, evidence: took.body.evidence };
+  };
+  s.raw.prepare("INSERT INTO item_uids (uid, player, char_id, seen_seq, state, fp, at) VALUES ('9999aaaabbbbcccc', ?, '', 3, 'escrow', '113:1', 1)").run(s.row(h.id).player);
+  const mc = await plant('Marketcopy', '9999aaaabbbbcccc', 15);
+  assert.deepEqual(uidOf('9999aaaabbbbcccc'), { char_id: '', state: 'escrow' });
+  assert.equal((await s.admin('/v1/staff/evidence/return', { id: mc.evidence, note: 'wrong call' })).status, 200);
+  assert.deepEqual(uidOf('9999aaaabbbbcccc'), { char_id: '', state: 'escrow' }, 'the listing\'s piece stays in the market\'s hands');
+  // ...and a copy of a piece staff took from its holder: put back, the row stays taken - never the copy's
+  assert.equal((await s.admin('/v1/staff/item/take', { id: h.id, at: [0, 0], seq: s.row(h.id).seq, confirm: true, reason: 'duplicated', note: 'his own' })).status, 200);
+  assert.deepEqual(uidOf('1111222233334444'), { char_id: SEIZED, state: 'escrow' });
+  const sc = await plant('Secondcopy', '1111222233334444', 13);
+  assert.equal((await s.admin('/v1/staff/evidence/return', { id: sc.evidence, note: 'wrong call' })).status, 200);
+  assert.deepEqual(uidOf('1111222233334444'), { char_id: SEIZED, state: 'escrow' }, 'taken from its holder still');
+  // a confirmed removal from a dead character: refused, and written down failed
+  s.raw.prepare('UPDATE realm_characters SET dead_at = 1 WHERE id = ?').run(sc.id);
+  assert.deepEqual(await s.admin('/v1/staff/item/take', { id: sc.id, at: [0, 0], seq: s.row(sc.id).seq, confirm: true, reason: 'other', note: 'n' }), { status: 409, body: { error: 'dead' } });
+  assert.deepEqual([s.audits('item-take').at(-1).outcome, s.audits('item-take').at(-1).detail.error], ['failed', 'dead']);
 });
 
 test('STAFF-PANEL3-REALM: the 30-day store is swept by the hour - kept or put back, past its `until` (mutant: the cutoff)', async () => {

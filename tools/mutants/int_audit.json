@@ -251,8 +251,8 @@
   {
     "name": "INTA-the-pile-a-find",
     "file": "server-account/src/judge.js",
-    "old": "  for (const list of [...possessedItemLists(save), ...groundItemLists(save)]) {",
-    "new": "  for (const list of possessedItemLists(save)) {",
+    "old": "const wealthLists = (/** @type {any} */ save) => [...possessedItemLists(save), ...groundItemLists(save)];",
+    "new": "const wealthLists = (/** @type {any} */ save) => [...possessedItemLists(save)];",
     "tests": [
       "test/server/int2_judge.test.js"
     ]
