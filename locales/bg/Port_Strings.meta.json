@@ -22319,6 +22319,16 @@
   "tr": "f181be9c11b9",
   "by": "claude-in-session"
  },
+ "post.claimAll": {
+  "en": "aa103d36fc93",
+  "tr": "c63924b2ef87",
+  "by": "claude-in-session"
+ },
+ "post.claimedAll": {
+  "en": "fa91cde86929",
+  "tr": "c8fc4b527298",
+  "by": "claude-in-session"
+ },
  "prof.craft.xp": {
   "en": "b0681175210f",
   "tr": "7e9288a88042",
@@ -28597,6 +28607,16 @@
  "spellbook.effect.magnitude": {
   "en": "032e12a22bdd",
   "tr": "a5b2350c866d",
+  "by": "claude-in-session"
+ },
+ "spoils.lost.back": {
+  "en": "3c518bdae2fa",
+  "tr": "593e350e0885",
+  "by": "claude-in-session"
+ },
+ "spoils.lost.mailed": {
+  "en": "53d5716ff137",
+  "tr": "04d7185b48d4",
   "by": "claude-in-session"
  },
  "starfall.at.breath": {
