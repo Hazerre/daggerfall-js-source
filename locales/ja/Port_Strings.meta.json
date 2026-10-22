@@ -4514,6 +4514,16 @@
   "tr": "96e894ba3325",
   "by": "claude-in-session"
  },
+ "features.npcMarks.note": {
+  "en": "9ac4077e0fc2",
+  "tr": "30273acbbe98",
+  "by": "claude-in-session"
+ },
+ "features.npcMarks.title": {
+  "en": "a3f85ff33ef4",
+  "tr": "d4b5016eba6a",
+  "by": "claude-in-session"
+ },
  "features.questHerald.note": {
   "en": "96aa445162b4",
   "tr": "f4048bd4ba53",
@@ -12152,6 +12162,21 @@
  "saddle.hello.none": {
   "en": "c4f18acb1d78",
   "tr": "9558aa4f5f22",
+  "by": "claude-in-session"
+ },
+ "sd.through.opens": {
+  "en": "1e72c7ca985d",
+  "tr": "351ace95ef70",
+  "by": "claude-in-session"
+ },
+ "sd.through.title": {
+  "en": "45d79739680d",
+  "tr": "037c7d44fa17",
+  "by": "claude-in-session"
+ },
+ "sd.through.to": {
+  "en": "9adecd5690cd",
+  "tr": "95253ab443b7",
   "by": "claude-in-session"
  },
  "sea.exchange.band": {

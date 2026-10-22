@@ -802,7 +802,7 @@ hello for one to everyone, as it refuses a mountain hall's (`server/src/index.js
 tell today's vaults from the other ruins without drawing the day's picks, so it refuses them all; no quest sends a
 player to an isle's place.
 
-**THE WIRE** is world241 (`WDUN_SEA_RELAY_MIN`): an older relay closes the socket on a sea key, so the social socket asks
+**THE WIRE** is world242 (`WDUN_SEA_RELAY_MIN`; world241 on its branch, renumbered past SD-THROUGH's world241 at the merge): an older relay closes the socket on a sea key, so the social socket asks
 one of a hub that reads it alone (`online.js:"if (seaVaultCell(w.h) && !this.wdunSeaOk) return false;"`) - at an older
 relay a vault keeps this session's own lock, as a mountain hall does with no hub.
 
@@ -879,7 +879,7 @@ when scattered - each keyed ("The Aether storm, blowing now", "The treasure flee
 **A FREEPORT'S TALK** (the harbourmaster's tab - `etherHost.js` office's rumours, `seaVentures.rumours`): the fleet under
 way, or the next to sail - its band, its way from here and its minutes; the storm blowing, or the next to gather.
 
-**THE WIRE** rides world241 (SEA-VAULTS' version, undeployed - `fk` in, `fd` out, the hello's `fleets`); an older relay
+**THE WIRE** rides world242 (SEA-VAULTS' version, undeployed - `fk` in, `fd` out, the hello's `fleets`); an older relay
 is never told, and a fleet sunk there is scattered for its sinker alone.
 
 **KNOWN, NAMED.** A fleet's flagship is the client's to sink (no relay referees the sea's ships), so `fk` is trusted from
@@ -944,7 +944,7 @@ are the record's gold acts (`realmGoldAct`, as a card table's stake is) - a post
 asked and given back on a refusal, a collect's banked where the service banks it - and the board read again on the answer.
 The presses grey while an answer is awaited.
 
-**THE WIRE AND THE DEPLOY.** The relay's half rides world241 (undeployed); the service's acct168 (from migration 0144,
+**THE WIRE AND THE DEPLOY.** The relay's half rides world242 (undeployed); the service's acct168 (from migration 0144,
 the deploy's ledger applies it). An older relay's receipts name no room: its falls pay no bounty and make nobody wanted.
 The account deploy watches the law's file (`account-deploy.yml`).
 
@@ -1022,7 +1022,7 @@ to fight: the fight is the sea's own, refereed as the open zone's blows are (INT
 (the serpent's reference broadside, its purse).
 
 **THE GUNS OPEN** where the open sea is the open zone (online; past the peace - `systems/wild/etherWild.js` ETHER_KIND; at a
-relay that referees them - `online.js` `seaPvpOk`, world241's `relaySupportsSeaPvp`; and each word only through a socket
+relay that referees them - `online.js` `seaPvpOk`, world242's `relaySupportsSeaPvp`; and each word only through a socket
 whose own relay does - `_seaPvpOn`: a halo's says for itself, and each socket's word goes with it across a crossing). There my balls meet a STRANGER
 captain's ship (never my party's or my guild's - world.js `wildIsStranger`; and the relay refuses kin again: wildKin's party,
 truce, duel and guild), and a peer's are seen to meet another's (seen only). Ashore, in the Bay, at peace, or wrecked
@@ -1090,7 +1090,7 @@ guns within the referee's `SEA_REF.hz`); the referee's words heard.
   captain's record, once (`Your hold's goods - Reclaim`).
 - NO PIECE IS MADE OR LOST: a prize is pieces a record held, held by the service until one of the two takes them.
 
-**THE WIRE AND THE DEPLOY.** world241 (undeployed): `helm`, `shot` (directed - the room her captain stands in) and `board`
+**THE WIRE AND THE DEPLOY.** world242 (undeployed): `helm`, `shot` (directed - the room her captain stands in) and `board`
 (the wreck's id alone, the wreck's room's) in; `hull`, `wreck` and `wc` out; the relay's bundle grows `net/sea/seaRef.js` (the serpent's three walk from it now).
 The service's acct168 (migration 0146); the account deploy watches the prize's law. An older relay is never sent a sea
 kind (it would close the socket).

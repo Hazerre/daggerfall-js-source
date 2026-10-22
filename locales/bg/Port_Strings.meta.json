@@ -9459,6 +9459,16 @@
   "tr": "76fbda3b2b1e",
   "by": "claude-in-session"
  },
+ "features.npcMarks.note": {
+  "en": "9ac4077e0fc2",
+  "tr": "f0cc1b15834e",
+  "by": "claude-in-session"
+ },
+ "features.npcMarks.title": {
+  "en": "a3f85ff33ef4",
+  "tr": "82953d99bc6b",
+  "by": "claude-in-session"
+ },
  "features.questHerald.note": {
   "en": "96aa445162b4",
   "tr": "0daa7a6f06a8",
@@ -28252,6 +28262,21 @@
  "schools.wardwright.spell": {
   "en": "7bfc23d6b57d",
   "tr": "c10cd613ad30",
+  "by": "claude-in-session"
+ },
+ "sd.through.opens": {
+  "en": "1e72c7ca985d",
+  "tr": "8f2131cd672f",
+  "by": "claude-in-session"
+ },
+ "sd.through.title": {
+  "en": "45d79739680d",
+  "tr": "4f51b596a2eb",
+  "by": "claude-in-session"
+ },
+ "sd.through.to": {
+  "en": "9adecd5690cd",
+  "tr": "e95ef7f35a3b",
   "by": "claude-in-session"
  },
  "sea.board.cargoVoid": {

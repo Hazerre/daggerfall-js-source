@@ -36,7 +36,7 @@ test('SEA-EVENTS the wire and the hub: a sailing scattered is `fk` in, `fd` out 
   assert.deepEqual(validWdunOut({ t: 'wdun', k: 'fd', fleets: [3, -1, 'x', 4, 5, 6, 7] }), { k: 'fd', fleets: [3, 4] });
   assert.deepEqual(validWdunOut({ t: 'wdun', k: 'st', day: 2, locks: [], crows: [], fleets: [9] }).fleets, [9]);
   assert.deepEqual(validWdunOut({ t: 'wdun', k: 'st', day: 2, locks: [], crows: [] }).fleets, [], 'an older hub\'s hello: none');
-  assert.ok(relaySupportsWdunSea('world241') && !relaySupportsWdunSea('world240'), 'one version with the vaults');
+  assert.ok(relaySupportsWdunSea('world242') && !relaySupportsWdunSea('world241'), 'one version with the vaults');
   const st = L.wdunEmpty(), now = P * 100 + 5000;
   assert.deepEqual(st.fleets, {});
   assert.equal(L.wdunFleetSunk(st, 101, now), false, 'a sailing not yet come');

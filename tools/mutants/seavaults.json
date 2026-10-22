@@ -65,8 +65,8 @@
   {
     "name": "SEA-VAULTS-relay-min",
     "file": "src/net/wire.js",
-    "old": "export const WDUN_SEA_RELAY_MIN = 241;",
-    "new": "export const WDUN_SEA_RELAY_MIN = 240;",
+    "old": "export const WDUN_SEA_RELAY_MIN = 242;",
+    "new": "export const WDUN_SEA_RELAY_MIN = 241;",
     "tests": [
       "test/systems/sea/seavaults.test.js"
     ]

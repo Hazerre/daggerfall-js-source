@@ -50,7 +50,7 @@ test('SEA-VAULTS the wire: a vault of the deep is keyed by its cell, `"e<cx>,<cy
   assert.deepEqual(validWdunOut({ t: 'wdun', k: 'cr', crows: [['e1,2', 5], ['1,2', 6], ['e9999,1', 3]] }), { k: 'cr', crows: [['e1,2', 5], ['1,2', 6]] });
   assert.deepEqual(validWdunOut({ t: 'wdun', k: 'ok', h: 'e1,2', ep: 3 }), { k: 'ok', h: 'e1,2', ep: 3 });
   assert.deepEqual(parseClient(JSON.stringify({ t: 'wdun', k: 'in', h: 'e1,2' }), { hasHello: true }), { t: 'wdun', k: 'in', h: 'e1,2' });
-  assert.equal(WDUN_SEA_RELAY_MIN, 241);
+  assert.equal(WDUN_SEA_RELAY_MIN, 242);
   assert.ok(relaySupportsWdunSea(RELAY_VERSION), 'this relay reads it');
   assert.ok(!relaySupportsWdunSea('world240'), 'an older one closes the socket on it - never asked');
 });

@@ -274,8 +274,8 @@ test('SHIP-PVP the wreck (seaRef.js): her bar at none by a captain\'s shot, or b
 test('SHIP-PVP the wire: a captain\'s helm, shot and boarding projected within their bounds, a shot directed at her captain\'s room and a boarding the wreck\'s room\'s; the referee\'s hull, wreck and signed wreck; the relay that referees them (mutants: the bounds, the kinds, the gate)', () => {
   assert.deepEqual([...SEA_PVP_KINDS], ['helm', 'shot', 'board']);
   assert.equal(SEA_SHOT_MAX, 8000);
-  assert.equal(SEA_PVP_RELAY_MIN, 241);
-  assert.deepEqual(['world240', 'world241', 'world300', 'x', null].map(relaySupportsSeaPvp), [false, true, true, false, false]);
+  assert.equal(SEA_PVP_RELAY_MIN, 242);
+  assert.deepEqual(['world241', 'world242', 'world300', 'x', null].map(relaySupportsSeaPvp), [false, true, true, false, false]);
   assert.deepEqual(validWildData({ k: 'helm', hl: 2, t: 150, u: 7, h: 900, junk: 1 }), { k: 'helm', hl: 2, t: 150, u: 7, h: 900 });
   for (const bad of [{ hl: 5 }, { hl: -2 }, { t: 99 }, { t: 241 }, { u: -1 }, { h: 1001 }, { h: 1.5 }]) assert.equal(validWildData({ k: 'helm', hl: 2, t: 150, u: 7, h: 900, ...bad }), null, JSON.stringify(bad));
   assert.deepEqual(validWildData({ k: 'shot', to: 'peer-0002', d: SEA_SHOT_MAX, s: 0, f: 1 }), { to: 'peer-0002', k: 'shot', d: SEA_SHOT_MAX, s: 0, f: 1 });

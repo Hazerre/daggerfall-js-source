@@ -1576,7 +1576,7 @@ export const KEEPALIVE_FAN_MS = HEARTBEAT_MS / 2;
  *  is deployed by CI and the relay by hand, so a skew between them is the ordinary state of a release day, and until
  *  now nothing on either end could see it. */
 // Integrated Arena spectator visibility with staff teleport, stable boat identity and private ownership; deploy relay before clients.
-export const RELAY_VERSION = 'world241';   // world241: SEA VENTURES (2026-10-22, the owner: "Build ever single bit of this and dont return until its perfected" - the Eltheric Ocean's ventures; bible/03-World/Eltheric-Ocean.md SEA-VAULTS and the sections after it; NOT YET DEPLOYED): the hub reads a vault of the deep by its cell (`wdun` keys `"e<cx>,<cy>"` - wdunHall, wdunRoomKey, WDUN_SEA_RELAY_MIN) and keeps a treasure fleet's flagship sunk for its sailing (`fk`, `fd` - SEA-EVENTS), refuses an instance of an isle's dungeon (seaRoomCell), a fall at another's hand signs its room and its killer's character (net/wild/wildReceipt.js `m`, `kc` - SEA-BOUNTY: the service's word on a kill at sea; a receipt up to 512 long, DUEL_REF_RECEIPT_MAX), and the referee judges a broadside between captains in the open sea (SHIP-PVP - net/sea/seaRef.js: a captain's `helm`, `shot` and `board` in, the `hull` a shot landed, a `wreck` and its signed receipt `wc` out - net/wild/wildReceipt.js `n1`; relaySupportsSeaPvp). An older client never sends a sea key, and an older relay is never asked one.
+export const RELAY_VERSION = 'world242';   // world242: SEA VENTURES (2026-10-22, world241 on its branch - renumbered past SD-THROUGH's world241 at the merge; the owner: "Build ever single bit of this and dont return until its perfected" - the Eltheric Ocean's ventures; bible/03-World/Eltheric-Ocean.md SEA-VAULTS and the sections after it; NOT YET DEPLOYED): the hub reads a vault of the deep by its cell (`wdun` keys `"e<cx>,<cy>"` - wdunHall, wdunRoomKey, WDUN_SEA_RELAY_MIN) and keeps a treasure fleet's flagship sunk for its sailing (`fk`, `fd` - SEA-EVENTS), refuses an instance of an isle's dungeon (seaRoomCell), a fall at another's hand signs its room and its killer's character (net/wild/wildReceipt.js `m`, `kc` - SEA-BOUNTY: the service's word on a kill at sea; a receipt up to 512 long, DUEL_REF_RECEIPT_MAX), and the referee judges a broadside between captains in the open sea (SHIP-PVP - net/sea/seaRef.js: a captain's `helm`, `shot` and `board` in, the `hull` a shot landed, a `wreck` and its signed receipt `wc` out - net/wild/wildReceipt.js `n1`; relaySupportsSeaPvp). An older client never sends a sea key, and an older relay is never asked one.
 // world240: GUILD-CAP (2026-10-21, the Discord's feature-feedback: "May you please increase the guild member cap"; bible/06-Systems/Online-Arc.md GUILD-CAP; NOT YET DEPLOYED): a guild holds 75 (net/guild/guildLaw.js GUILD_MEMBERS_MAX, 50 until now) and the hub's who-of-my-guild answer lists up to 100 (net/hubShards.js HUB_GUILD_WHO_MAX, 64 - a full guild's 74 others would have been cut at 64). No wire shape changed: the relay reads the cap nowhere, and every build reads a longer `found` list as it reads a shorter one (online.js read(HUB_GUILD_WHO_MAX) - an older client keeps its first 64). The account service enforces the cap and deploys with main.
 // world239: FIELD BUGS 2026-10-21c FOES-FIRST (2026-10-21, players' word of enemy desync; bible/01-Overview/bugs/Field-Bugs-2026-10-21c.md, bible/11-Multiplayer/Scale-Arc.md FOES-FIRST; NOT YET DEPLOYED; past STAR-TUNE's world238, #1090, merged first): a foes or own room spends its byte budget on FULL frames first - a delta only down to FOES_FULL_RESERVE, a full frame (`full` 1, or a dungeon host's `lc`) into a debt of a quarter-second at most, each sender one first a FOES_FIRST_MS and its next frame first once unheard FOES_UNHEARD_MS (server/src/index.js _foesFan, _foesLane, _foesFirst; net/wire.js floorGate) - where the deltas had kept a crowded cell's bucket drained and the full frames, which carry the sweep, the sites, the grants and the handovers, lost first (30 owners of 60 sockets heard 1.2% of them, now 100%); HIT-DROPS - the blows a destination's hit funnels drop counted, with the full frames asked and dropped, in the room's metrics' blobs (server/src/relayScale.js); AUDIT FOES-FIRST: a frame that hands foes on (a record naming its heir - net/wire.js foesFrameHandsOn) goes first on a turn of its own, and a sender's clocks are stamped once its fan is charged, before the re-serialise (a junked frame's sender is heard). FOES-HOLD (2026-10-21, the owner: "No band aids and true improvements"; Scale-Arc.md FOES-HOLD; re-hashed in place): where a room's full frames alone are more than its budget, a first frame the budget refuses is HELD for its turn (server/src/foesHold.js) - one line, one turn a sender, a newer full frame in its sender's place, nothing of a sender overtaking its own, no delta past a held frame; a held sender still streaming is beaten with an empty frame of its own (`{ f: [] }` and its frame's `k` - every reader of every build takes it as the owner heard), a leaving sender's handovers tried before its leave, and the hold counted in blob6 to blob10 - the star's large owner heard 0% -> 44.8% of its full frames. AUDIT FOES-HOLD (re-hashed in place): the beat's `k` a room key's or none (isRoomKey) and charged to the first frames' floor, a held frame kept as its text and room in the hold made from the sender holding the most, a leaving sender's handovers one reserve deeper (FOES_LEFT_FLOOR) - every one heard at a star's doors, 45% before the hold. No client gate: the relay reads `full`, `lc` and the records' heirs, and OWNER-CLOCK's `tm` (the client's, the same release) passes any relay unread. STAR-TUNE's world238 (#1090) merged first and its `star` grant kind is in this law with it; GRANT-SLEEP #1066, open, claimed world238 too and takes the next number at its merge.
 // world238: STAR-TUNE (2026-10-20, the owner, of the Starfall's first run: "the enemies are too few and die too quickly. Does this not have scaling?"; "The time between waves is too long"; bible/11-Multiplayer/Starfall.md section 4; world236 on its branch, renumbered past LONE-HERALD's world236 and FIELD BUGS 2026-10-20f's world237 at the merge; NOT YET DEPLOYED) - the star's law: a wave is four for the first defender and two for each beside it, one more each wave, four to twenty-four (net/starfall/starfallLaw.js starWaveSize - a lone defender's 4 to 7, from 3, 3, 4 and 4; then "we should go beyond the limit": past the camps' grant's nine), and the breath between waves five seconds, from twelve (STAR_BREATH_MS); a spawn grant kind of the star's own (net/grantLaw.js GRANT_KINDS.star - a wave of twenty-four one grant, the open country's alone) and the `st` frame's wave to twenty-four (STAR_WAVE_SIZE_MAX); the foe bounds hold a camp's foe to a fallen star's coven's twice its health (net/foeBounds.js FOE_BOUND.star - STAR_FOE_HEALTH), so the relay never strips the coven the client now stands. Client and relay move together: an older relay refuses the `star` grant kind, an older client drops a ledger of a wave past nine. STAR_RELAY_MIN stays 235 (the star word itself does not change).
@@ -4400,7 +4400,7 @@ export const WILD_DIRECTED = Object.freeze(['strike', 'spell', 'worn', 'shot']);
 /** SHIP-PVP: the kinds of the open sea's guns (net/sea/seaRef.js) - each a relay's of world SEA_PVP_RELAY_MIN or newer. */
 export const SEA_PVP_KINDS = Object.freeze(['helm', 'shot', 'board']);
 /** SHIP-PVP: the first relay that referees the open sea's guns - an older one closes the socket on a kind it does not know. */
-export const SEA_PVP_RELAY_MIN = 241;
+export const SEA_PVP_RELAY_MIN = 242;
 export const relaySupportsSeaPvp = (v) => { const m = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!m && Number(m[1]) >= SEA_PVP_RELAY_MIN; };
 /** SHIP-PVP: the most hull or canvas one shot word claims (a gathered volley's), and a toughness said in hundredths. */
 export const SEA_SHOT_MAX = 8000;
@@ -4455,7 +4455,7 @@ export const relaySupportsWdun = (v) => { const m = /^world(\d+)$/.exec(typeof v
 /** SEA-VAULTS: the first relay whose hub reads a vault of the deep's key (`"e<cx>,<cy>"`) - an older one answers it "bad wdun"
  *  and closes the socket, so a client asks a vault's lock only of one this new or newer. SEA-EVENTS: and the treasure
  *  fleet's sinking (`fk`), the same version. */
-export const WDUN_SEA_RELAY_MIN = 241;
+export const WDUN_SEA_RELAY_MIN = 242;
 /** SEA-EVENTS (2026-10-22, bible/03-World/Eltheric-Ocean.md SEA-EVENTS): THE TREASURE FLEET'S SAILINGS - one each
  *  SEA_FLEET_PERIOD_MS of the relay's clock, numbered from its epoch; the hub keeps a sailing's flagship sunk for
  *  everyone (net/wild/wildLaw.js wdunFleetSunk), the clients draw its route and its ships (systems/sea/seaEvents.js). */
@@ -5931,7 +5931,9 @@ function serpentOutOf(m) {
 // from the socket's own pose (net/superDungeon/sdBrain.js orreryStep), and the hall's stones, fray, dial and Concord said back to every
 // soul in it - after each turn, and to each at its hello.
 //   client -> cell:  {t:'sd', k:'found', s, px, py}
-//   hub -> client:   {t:'sd', k:'ev', s, ph, r, at, until, next, foundAt?, fb?, fellAt?, top?, n?}
+//   hub -> client:   {t:'sd', k:'ev', s, ph, r, at, until, next, foundAt?, fb?, inAt?, fellAt?, top?, n?}
+// SD-THROUGH: `inAt` - when the first soul stepped through its Rift (the realm's first admission, told to the hub -
+// SD_INTERNAL_IN): from then on every client in its Hollow, and every one entering it, stands the Way Through beside them.
 //   client -> realm: {t:'sd', k:'pz', i, a, q}                                 (stone i, a +1 forward or -1 back, my turn's number)
 //   realm -> client: {t:'sd', k:'pz', s, st, f, lit, ok, i?, a?, id?, q?, x?, ls?, w?}   (the stones, the fray, the dial's
 //                    count, the Concord; the turn and its turner's id and number; x 1 when the Hour snapped back - AUDIT SD
@@ -5964,7 +5966,7 @@ export const SD_SLOT_MAX = 999_999_999;
 /** The most fighters a fall may count (the gate's seat bound). */
 export const SD_FIGHTERS_MAX = 256;
 
-/** @typedef {{ s:number, ph:string, r:number, at:number, until:number, next:number, foundAt?:number, fb?:string, fellAt?:number, top?:string, n?:number }} SdRecord */
+/** @typedef {{ s:number, ph:string, r:number, at:number, until:number, next:number, foundAt?:number, fb?:string, inAt?:number, fellAt?:number, top?:string, n?:number }} SdRecord */
 
 const sdMs = (t) => Number.isSafeInteger(t) && t >= 0;
 /**
@@ -5986,11 +5988,13 @@ export function validSdRecord(v) {
   if (out.s === 0 && out.ph !== 'gone') return null;
   if (r.foundAt != null) { if (!sdMs(r.foundAt)) return null; out.foundAt = r.foundAt; }
   if (r.fb != null) out.fb = sanitizeName(r.fb);
+  if (r.inAt != null) { if (!sdMs(r.inAt)) return null; out.inAt = r.inAt; }   // SD-THROUGH: the first soul through its Rift
   if (r.fellAt != null) { if (!sdMs(r.fellAt)) return null; out.fellAt = r.fellAt; }
   if (r.top != null) out.top = sanitizeName(r.top);
   if (r.n != null) { if (!Number.isSafeInteger(r.n) || r.n < 0 || r.n > SD_FIGHTERS_MAX) return null; out.n = r.n; }
   // a find and a fall are said with their instants, and a fall was always a find first: nobody enters an unfound Hollow
   if ((out.ph === 'found' || out.ph === 'fell') && out.foundAt == null) return null;
+  if (out.inAt != null && out.foundAt == null) return null;   // SD-THROUGH: nor steps through its Rift
   if (out.ph === 'fell' && out.fellAt == null) return null;
   return out;
 }
@@ -6175,6 +6179,9 @@ export const SD_INTERNAL_FOUND = '/internal/sd/found';
 export const SD_INTERNAL_LIVE = '/internal/sd/live';
 /** SD8b: a realm telling the hub its Remnant fell (the director moves its record on - net/superDungeon/sdLaw.js sdFell). */
 export const SD_INTERNAL_FELL = '/internal/sd/fell';
+/** SD-THROUGH: a realm telling the hub its first soul stepped through the Rift (the director stamps the record's `inAt` -
+ *  net/superDungeon/sdLaw.js sdEnter). */
+export const SD_INTERNAL_IN = '/internal/sd/in';
 /** How soon a cell whose hub did not answer a find tells it again (the rite's number). */
 export const SD_TELL_RETRY_MS = 5000;
 /** Where the hub keeps its record, a cell a find it owes the hub, and a realm who entered it (never `world:` - swept). */
@@ -6209,6 +6216,12 @@ export function validSdFellTell(v) {
   }
   const here = Array.isArray(b.here) ? b.here.filter((x) => typeof x === 'string' && ID_RE.test(x)).slice(0, SD_FIGHTERS_MAX) : [];
   return { s: b.s, at: b.at, top: sanitizeName(b.top), n: b.n, rc, here };
+}
+/** SD-THROUGH: a realm's first soul through, as told to the hub - its slot alone - projected, or null. */
+export function validSdInTell(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const b = /** @type {any} */ (v);
+  return intIn(b.s, 1, SD_SLOT_MAX) ? { s: b.s } : null;
 }
 /** SD9a: where the hub keeps an account's Hour receipt for its hello (its latest, a receipt's life) - outside every
  *  swept prefix but its own; how long an earner who stood in the realm at the kill is left to its floor first. */
