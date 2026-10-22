@@ -5908,7 +5908,7 @@ the character's name and near names refused) and `tools/mutants/egeco_honours.js
 SPIRE-FIRST-NAME-the-character-listed (dead). A handle list takes the account's handle, never a name off the herald,
 which since NAME-AS may be a character's (`bible/11-Multiplayer/Elite-Gates.md` section 31, SPIRE-FIRST-NAME).
 
-## LOST-SPOILS — the Lost and Found: what a boss's floor still holds goes to the mailbox (2026-10-22, acct168)
+## LOST-SPOILS — the Lost and Found: what a boss's floor still holds goes to the mailbox (2026-10-22, acct173)
 
 The owner: "So I want to utilize the mailbox as a way to obtain lost items/loot if not picked up from a boss. For
 example, the oblivion gates. Abyss dungeons, elite breaches ,etc". Read against the code first, nothing on a boss's
@@ -6018,11 +6018,11 @@ into another of the account's characters than the one that fought is that charac
 `scenes/world.js` builds the door (`net/lostSpoils.js` lostSpoilsMail, over its post box, its lines in the chat) and
 hands it to the court's pool and the Hour's. `scenes/dungeonContext.js` and `scenes/worldModes.js` stand those floors
 through the world host's pools (the press, the plaque) and need nothing of their own. `scenes/exterior.js`, the fixed
-city, stands no boss floor. bootWorld takes ten logical lines (36,143, under its 36,158).
+city, stands no boss floor. bootWorld takes ten logical lines (36,255 at the merge of main, under its 36,256).
 
 ### Versions, words, pins
 
-- acct168. No migration (server_post as it stands) and no relay change (the relay bundles none of these files). PIN
+- acct173 (acct168 on its branch, renumbered past STAFF-PANEL1's acct168, CRAFT-PAYS' acct169, PISTOLET's acct170, AUDIT COLLECTIONS-II's acct171 and SEA VENTURES' acct172 at the merge). No migration (server_post as it stands) and no relay change (the relay bundles none of these files). PIN
   MOVED: the account version's pins (20 test files, among them the history `auditscale2_acct.test.js` holds them to) and its ten
   version records, re-aimed by content, each dead - GATEKEYS-the-empty-var-back once its own test was green, which asked
   first that the deploy carry the new files: the account Worker now bundles `src/net/lostLaw.js`, and through it `systems/superDungeon/sdSpoils.js`, `systems/eliteGates/egSpoils.js` and

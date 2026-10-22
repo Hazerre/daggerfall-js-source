@@ -82,6 +82,7 @@ export const PROGRESS_ROUTES = Object.freeze({
   '/v1/prof/disenchant': Object.freeze(['prof', true]),
   '/v1/prof/temper': Object.freeze(['prof', true]),
   '/v1/writs/deliver': Object.freeze(['prof', true]),
+  '/v1/writs/craft': Object.freeze(['prof', true]),   // CRAFT-WRITS: a crafting writ's XP and Renown
 });
 
 /** A line's shape - whole, unsigned numbers. */
@@ -227,6 +228,7 @@ export function progressSpentOf(path, a) {
     case '/v1/towns/watch': break;   // AUDIT TOWN-ECON 2 SVC-2: a town's share, never its player's progress
     case '/v1/marks/find': if (n(a.struck)) add('find', 1); break;
     case '/v1/writs/deliver': if (a.ok) { add('prof', writXp(n(a.pay))); add('renown', n(a.renown?.credited)); } break;
+    case '/v1/writs/craft': if (a.ok) { add('prof', n(a.xp)); add('renown', n(a.renown?.credited)); } break;   // CRAFT-WRITS: the XP the crafter's limit let in
     default:
       if (path in PROGRESS_ROUTES) {
         add('prof', n(a.xp));

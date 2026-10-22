@@ -1389,6 +1389,30 @@ gate by source), `tools/mutants/tv_wasd.json` (13 dead - two of them on to1's K2
 zero in the host is now this gate's, never the journey's). TV2's three pins on the governor's lines and the trip line, and its A2
 mutant, re-aimed to the grown lines (never loosened). Ledger A (continued): THE OVERWORLD'S MOVEMENT KEYS TRAVEL.
 
+## TV-PACE - THE OVERWORLD STOPS AT ×10, AND AT ×20 ON A FED MOUNT (2026-10-19) - REVERTED (2026-10-22, below; this is the record of what it did)
+
+The request (#1059): limit Travel view to ×10, and let a fed horse run at ×20; then, the same for a cart and a caravan,
+nobody faster than ×20, on foot never past ×10, and Hungry or Starving at ×10 instead of a food percentage.
+
+What it did: while the view was up, the host's frame set a ceiling each frame (setTravelViewPaceCap, from the upkeep's
+travelViewCap for the transport), and the speed dial ran under it and kept the number the player chose (TV_PACE_FOOT
+×10, TV_PACE_MOUNT ×20 in `systems/travel/travelPace.js`). On foot, aboard, or swimming the keys, ×10. A horse, a small
+cart, an open wagon or a caravan at Fed could run at ×20 (steedCare's mountHunger: the horse ridden, or the hungriest
+horse of the team that pulls). Hungry and Starving held it at ×10. Bringing the view down gave the road's ×100 and the
+open ground's ×60 back. The near-enemies dial was not this ceiling.
+
+**TV-PACE REVERTED** (2026-10-22, the owner, at BOARD-SIFT's merge: "Do me a favor and also revert the change made from
+one of my developers along with this merge. They changed speeds"). The Overworld runs at the dials again, as PACE-DIALS
+and WILD3 set them: the road's ×100 and the open ground's ×60, under a wild zone's cap where one stands. Out: the frame's
+ceiling line (bootWorld's ceiling 36,256 -> 36,255, `test/scenes/hostceiling.test.js`), the ceiling and its two
+constants in `systems/travel/travelPace.js`, the stepper's two titles and their two keys in every language
+(`travel.pace.viewFoot`, `travel.pace.viewMount`), steedCare's mountHunger, the upkeep's travelViewCap, and their pins
+(`test/systems/travel/tvpace_mount.test.js` (DELETED), the TV-PACE test in `test/systems/travel/pacedials.test.js` - PIN MOVED
+back, its host regex to the two ground lines). `tools/mutants/waypoints_pace.json`'s three PACE records are aimed at
+`paceNow`'s and `paceCanRise`'s own lines again. SPAWN-THIN, merged in the same pull request (#1059), is not reverted: it is the owner's own
+ask (`06-Systems/Systems-Arc.md`, SPAWN-THIN), and the relay's world224 stays its version. Horse-Care's road section
+reads as before TV-PACE.
+
 ## OW-TOGGLE - FIRST-PERSON TRAVEL, A SWITCH - SHIPPED (2026-09-28, Mac: "bring back the original travel option as a toggle. Off by default.")
 
 Mac, the same day: *"Travel Options was changed. The normal first person travel accelerated was removed in favor of the

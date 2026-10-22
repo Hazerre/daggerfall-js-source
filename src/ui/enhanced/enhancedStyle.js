@@ -1012,7 +1012,7 @@ img.fit { image-rendering: pixelated; }   /* AUDIT UI A1: a fitted picture drawn
 .itemrow[data-rarity="legendary"] .itemname > span:first-child, .packdetail .card[data-rarity="legendary"] h3, .wplaque-row[data-rarity="legendary"] > span:first-child { color: #e07a2e; }
 .itemrow[data-rarity="aetheric"] .itemname > span:first-child, .packdetail .card[data-rarity="aetheric"] h3, .wplaque-row[data-rarity="aetheric"] > span:first-child { color: #bfe8ff; }
 .itemrow[data-rarity="artifact"] .itemname > span:first-child, .packdetail .card[data-rarity="artifact"] h3, .wplaque-row[data-rarity="artifact"] > span:first-child { color: #b57bee; }
-.itemrow[data-rarity="gilded"] .itemname > span:first-child, .packdetail .card[data-rarity="gilded"] h3, .wplaque-row[data-rarity="gilded"] > span:first-child { color: #ffcf4d; }
+.itemrow[data-rarity="gilded"] .itemname > span:first-child, .packdetail .card[data-rarity="gilded"] h3, .wplaque-row[data-rarity="gilded"] > span:first-child { color: #ff3b4a; }
 .packdetail ul.rarity { list-style: none; margin: 4px 0 10px; padding: 0; font-family: var(--data); font-size: 13px; line-height: 1.5; }
 .packdetail ul.rarity li:first-child { text-transform: uppercase; letter-spacing: 0.16em; font-size: 11px; color: var(--dim); }
 .packdetail ul.rarity li.lore { color: var(--dim); font-style: italic; }   /* CARD-FIT: by its own class - the card's list carries no lore now, and its last AFFIX wore the lore's dim italic */
@@ -2770,13 +2770,14 @@ ${SUPPORT_MARKS_CSS}
 .px-postwin .pm-foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; }
 .px-postwin .pm-claimrow { justify-content: flex-end; margin: 0 0 8px; }   /* LOST-SPOILS: Claim all, above the list */
 .px-postwin [data-rarity="magic"] { color: #6f9ee8; } .px-postwin [data-rarity="rare"] { color: #e4c34f; } .px-postwin [data-rarity="legendary"] { color: #e07a2e; }
-.px-postwin [data-rarity="aetheric"] { color: #bfe8ff; } .px-postwin [data-rarity="artifact"] { color: #b57bee; } .px-postwin [data-rarity="gilded"] { color: #ffcf4d; }
+.px-postwin [data-rarity="aetheric"] { color: #bfe8ff; } .px-postwin [data-rarity="artifact"] { color: #b57bee; } .px-postwin [data-rarity="gilded"] { color: #ff3b4a; }
 /* AUDIT SERVER-POST: the tiers above are LR1's own hexes (systems/loot/lootRarity.js RARITIES, pinned against it - a stylesheet
    never imports the loot ladder, which reaches the whole combat graph); on Stone's light panel the three darkest read
-   3.0-3.3:1 and are lifted past 4.5:1 there alone. */
+   3.0-3.3:1 and are lifted past 4.5:1 there alone - and GILDED-RED's crimson, 2.3:1 on Stone's ground, to its own light. */
 :root[data-plus-theme="stone"] .px-postwin [data-rarity="magic"] { color: #b4cdf7; }
 :root[data-plus-theme="stone"] .px-postwin [data-rarity="legendary"] { color: #f7b27a; }
 :root[data-plus-theme="stone"] .px-postwin [data-rarity="artifact"] { color: #dcbaf9; }
+:root[data-plus-theme="stone"] .px-postwin [data-rarity="gilded"] { color: #ffb1b7; }
 :root[data-plus-theme="stone"] .px-postwin { --dim: #e2dccd; --brass: #ffd98a; text-shadow: 1px 1px 0 rgba(5,6,8,0.85); }
 /* PRIVATE-REPORT (2026-10-17): the mailbox window's report form and the readers' inbox (ui/enhanced/enhancedReport.js) - the
    post's own rows, buttons and dim words, and the account card's field (label.field) for its title and its words. */
@@ -5349,12 +5350,16 @@ ${paceControlsCss('tview')}
    fixed furniture (PX21e: the rows scroll, never the frame). AUDIT WAGON-FILTER C1: the first cut's wrapping chips and
    hint stood 202-236 px tall and left a phone on its side 1 px of list; one row is 44 px. The menu wears the search's
    dress, the brass on focus. */
-.storefilter { display: flex; align-items: center; gap: 6px; padding: 6px 10px; flex: 0 0 auto;
+.storefilter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 10px; flex: 0 0 auto;
   border-bottom: 2px solid rgba(125,116,96,0.3); }
+/* FILTER-FIT (2026-10-17): the menus keep their whole words. Where they do not fit beside the search - a container
+   of a few rows draws one column, a narrow window - they move under it together and share that row; on one row the
+   search takes the room left over. */
+.storemenus { display: flex; gap: 6px; flex: 1 1 auto; min-width: 0; }
 .storesearch, .storecat, .storerarity, .storemat { font: inherit; font-size: 13px; min-height: 32px; box-sizing: border-box; color: #d8cfae;
   background: rgba(0,0,0,0.35); border: 1px solid rgba(125,116,96,0.45); border-radius: 0; }
-.storesearch { flex: 1 1 0; min-width: 0; padding: 0 8px; }
-.storecat, .storerarity, .storemat { flex: 0 1 auto; max-width: 28%; padding: 0 4px; }
+.storesearch { flex: 999 1 140px; min-width: 0; padding: 0 8px; }
+.storecat, .storerarity, .storemat { flex: 1 1 0; min-width: 0; padding: 0 4px; text-overflow: ellipsis; }
 .storecat option, .storerarity option, .storemat option { color: #d8cfae; background: #10141a; }
 .storesearch::placeholder { color: #9c937d; }
 .storesearch:focus, .storecat:focus, .storerarity:focus, .storemat:focus { outline: none; border-color: var(--brass); }

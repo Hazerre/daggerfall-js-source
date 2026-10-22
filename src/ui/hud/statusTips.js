@@ -12,7 +12,7 @@ import { DISEASE_NAMES, DISEASE_DATA } from '../../systems/diseases.js';
 import { BOON } from '../../systems/survival/needs.js';
 import { LEVEL_WORDS } from '../../systems/survival/status.js';
 import { STIFF_PENALTY } from '../../systems/survival/rest.js';
-import { WILD_TEXT } from '../../systems/wild/wildZone.js';
+import { WILD_TEXT, zoneWord } from '../../systems/wild/wildZone.js';
 
 /** The attributes as the sheet names them. */
 export const STAT_WORDS = Object.freeze({
@@ -136,7 +136,7 @@ export function statusTip(tile, entity, extra = {}) {
   }
   if (tile.key === 'wild') {
     title = WILD_TEXT.chip;
-    lines.push(String(tile.name ?? ''), WILD_TEXT.chipTip);
+    lines.push(String(tile.name ?? ''), zoneWord('chipTip'));   // ETHER-WILD: the ground's own tip (the sea's past the Veil)
     return { title, meta: 'Zone', lines, foot: tile.foot ? `Ring ${tile.foot}` : null };
   }
   if (tile.key === 'rested') {

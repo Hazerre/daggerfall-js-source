@@ -49,6 +49,7 @@ import { equipTableOf } from '../equip.js';
 import { isShieldTemplate } from '../armorMaterials.js';
 import { isAmmunition } from '../item/itemTemplates.js';
 import { EQUIP_SLOTS } from '../../characters/paperdoll/paperdoll.js';
+import { ETHER_WORD } from '../../world/ethericSea.js';   // SEA-SET: the sea's name in the Undertow's words (ELTHERIC: one word's home)
 
 /** The pieces a set's tiers wake at. */
 export const SET_TIERS = Object.freeze([2, 4, 6]);
@@ -339,6 +340,27 @@ export const SIGIL_SETS = Object.freeze({
       tier(6, 'mephalas-veil', "Mephala's Veil", { rounds: [2, 4], recover: [240, 120] },
         (v) => `When a hit drops you below ${Math.round(VEIL_BELOW * 100)}% health, the web hides you. Chameleon for ${v.rounds * ROUND_SECONDS} s. Recovers in ${v.recover} s`,
         (v) => `Under ${Math.round(VEIL_BELOW * 100)}%: Chameleon ${v.rounds * ROUND_SECONDS}s`),
+    ]),
+  }),
+  // SEA-SET (2026-10-22, the owner: "Build ever single bit of this" - the sea past the Veil's Abyss-only gear;
+  // bible/11-Multiplayer/Sigil-Sets.md section 6h, the sea's page's SEA-SET): THE TIDEMAIL - an Aetheric set
+  // no world drop, shelf or Broker rolls; the Deep Aether's and the Abyss's own: a legend taken or sunk there, a vault of
+  // the deep and a ruin's hoard there carry a piece (systems/aetheric.js rollElthericPiece). Its patron is no Daedra: the
+  // Drowned Queen, Maraveth, Thrice Drowned - the sea's legends are its makers, and every piece was taken off one of them.
+  // Its colour the aether's cold blue (world/ethericSea.js ETHER_LIGHT_TINT's sea).
+  eltheric: Object.freeze({
+    id: 'eltheric', name: `The ${ETHER_WORD} Tidemail`, prince: 'The Drowned Queen', colour: '#6fcfe6', aetheric: true,
+    role: 'What the deep gives back to those who sail it',
+    tiers: Object.freeze([
+      tier(2, 'stormwrack', 'Stormwrack', { shock: [10, 30], speed: [2, 6] },
+        (v) => `+${v.shock} shock resistance, +${v.speed} Speed`,
+        (v) => `+${v.shock} shock resist, +${v.speed} Speed`),
+      tier(4, 'undertow', 'Undertow', { more: [15, 40] },
+        (v) => `Your weapon deals ${v.more}% more damage in the open ${ETHER_WORD} Ocean, and half of that anywhere else`,
+        (v) => `+${v.more}% at sea, half ashore`),
+      tier(6, 'captains-due', "The Captain's Due", { guns: [10, 30], hull: [10, 25] },
+        (v) => `Your ship's guns deal ${v.guns}% more damage, and your ship takes ${v.hull}% less from guns and rams`,
+        (v) => `Guns +${v.guns}%, hull hits -${v.hull}%`),
     ]),
   }),
 });

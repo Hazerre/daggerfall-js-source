@@ -52,7 +52,7 @@ import {
 import { handleLooksLikeEmail } from '../net/handleShape.js';   // HANDLE-EMAIL: a new username is never an address
 import { ACCEPTED, TERMS_URL, PRIVACY_URL } from '../net/legalLaw.js';   // TERMS1: the documents a new account agrees to
 import { t, localizedTable } from '../systems/textManager.js';   // L10N4: the card's words in the player's language, read when they are drawn
-import { AURA_TEXT } from './playerBadge.js';   // SHADOW-CLOAK (AUDIT): an aura's name in the card's note
+import { AURA_TEXT, TITLE_TEXT } from './playerBadge.js';   // SHADOW-CLOAK (AUDIT): an aura's name in the card's note - COLLECTIONS-II: and a title's
 import { ICON_TEXT } from './profileIcons.js';   // WITCH1: an icon's name in the card's note
 
 /** Every stage this card can be on. Exported because a pin that
@@ -406,7 +406,7 @@ export function AccountFlow({ io, storage, onChange = () => {}, now = () => Date
       // in the same breath as the refusal would have.
       self.wardrobe = { ...(self.wardrobe ?? {}), titles: r.data.titles, title: r.data.title, glyphs: r.data.glyphs, ...glyphHalf(r.data), ...auraHalf(r.data) };   // WB9g: the auras ride the same answer
       self.busy = false;
-      self.note = want ? t('account.flow.wearing', 'Wearing {what}.', { what: want }) : t('account.flow.titleRemoved', 'Title removed.');
+      self.note = want ? t('account.flow.wearing', 'Wearing {what}.', { what: TITLE_TEXT[want] ?? want }) : t('account.flow.titleRemoved', 'Title removed.');   // COLLECTIONS-II: the title's name, never its key (the Collections page says this note)
       adoptIdentity(storage, { glyphs: r.data.glyphs, glyphsOff: r.data.glyphsOff, aura: auraStated(r.data), icon: iconStated(r.data), secret: asked });   // WB9g: my own screen's word, from the answer (AUDIT B4: into the session that asked)
       changed();
       return true;

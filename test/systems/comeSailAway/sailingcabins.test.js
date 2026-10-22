@@ -424,8 +424,16 @@ test('existing bank Transport callback enters the launched deed boat through the
     hudFade: { smashHUDToBlack: () => {}, fadeHUDFromBlack: () => calls.push('fade') },
     _teleportToPixel: async (x, y) => calls.push(['pixel', x, y]), state: { worldCoords: (p) => ({ x: p[0], z: p[2] }), compensation: [0, 0, 0] },
     csaSyncColliders: () => {}, CSA_TRIGGER_MODEL: TRIGGER_MODEL, player, cam, csaLocalOf: localOf, csaDeckPose: deckPose, townTalk: { say: (line) => said.push(line) },
-    navalHostileNear: () => false, CABIN_REFUSAL };   // FB1020c CABIN-FOES: no hostile ship near
+    navalHostileNear: () => false, CABIN_REFUSAL,   // FB1020c CABIN-FOES: no hostile ship near
+    // PIN MOVED (AUDIT SEA VENTURES C1): the cabin is a teleport to her boat's pixel like any - here neither the open zone's
+    // refusal nor the Veil's (each says its own); refused, it asks nothing further and boards nothing
+    wildTeleportRefused: (px) => { assert.deepEqual(px, { x: boat.MapPixel.X, y: boat.MapPixel.Y }, 'asked of her boat\'s pixel'); return false; }, veilRefused: () => false,
+    boatPixelOf: (b) => ({ x: b.MapPixel.X, y: b.MapPixel.Y }) };
   const enter = new Function(...Object.keys(args), `return (${worldFunction('enterLinkedBankCabin')});`)(...Object.values(args));
+  const refusedArgs = { ...args, wildTeleportRefused: () => true };
+  const refusedEnter = new Function(...Object.keys(refusedArgs), `return (${worldFunction('enterLinkedBankCabin')});`)(...Object.values(refusedArgs));
+  assert.equal(await refusedEnter(), true, 'refused: answered');
+  assert.deepEqual(calls, [], 'refused: no exit, no fade, no boarding');
   const saved = JSON.stringify(r.s.rt.getSaveData());
   assert.equal(await enter(), true);
   assert.ok(readBankCabinLink(playerEntity.boatCabinLink));

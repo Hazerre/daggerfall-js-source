@@ -2565,7 +2565,11 @@ fallen their spoils at risk and the company a member until the next Redoubt, or 
 Losing the whole company still costs the run.
 
 - **The Unfallen**: a company that takes Redoubt 10 with no fall, in a breach begun at Hall 1, holds the title *the
-  Unfallen* and a flame on its board row (section 20).
+  Unfallen* and a flame on its board row (section 20). AS BUILT (AUDIT COLLECTIONS-II, 2026-10-22,
+  `01-Overview/audits/Audit-Collections-II.md` L1-4): the fall counted is the member's own - a Redoubt receipt's `fl`
+  is its member's falls (`egBrain.js:"fl: m.falls ?? 0"`) and egHonourBitsOf grants on it
+  (`egHonours.js:"c.fl === 0 && c.ew === 0"`) - so a member who never fell holds the title whoever else in the company fell. The
+  Collections page says what is built; which is meant is the owner's to decide.
 - **The Lone Beacon**: a Court felled by one living member, in a company of four or more, gives that member the title
   *the Lone Beacon* and a herald line (section 20).
 
@@ -10258,3 +10262,32 @@ SPIRE-FIRST-severide-not-granted re-aimed as SPIRE-FIRST-serveride-not-granted, 
 be seen by their character is seen so in Discord too. A list in config is still a person's edit: Hour's First's names
 came from the clears' claims (`sd-clears.yml`), which carry the account; the Spire's company has no such workflow, so
 the next name put on a handle list off the herald is checked against the account first.
+
+### EG-SPANS-HELD - 2026-10-22 - THE SPANS' CLOCK PIN ON A HELD PAGE CLOCK
+
+The site's deploy 1592 (#1126's merge, `d4c96bea7`) was refused by `verify / tests 8/8`, on the one failure among that
+shard's 3,948 tests: EG-ZD's THE SPANS' CLOCK in `test/net/eliteGates/egz_return.test.js`, *not re-anchored for a wander
+under the step*. The tree was #1126's head's to the byte (`fb8bde413`), whose check had passed the same pin, and AUDIT
+QUESTLINES had seen it fail once under load and pass alone (`01-Overview/audits/Audit-Questlines.md`, "Not this arc's") -
+named there for this arc.
+
+**Why it failed.** `spanSeconds` reads render/deadlands.js `anchoredClock`, which carries the seconds on the page's clock
+(`performance.now()`) from an anchor on the wall. The pin held the wall (`Date.now`) and not the page's clock: between the
+two reads it compared, the wall stepped the round trip's 100 ms and the page's clock moved by whatever the runner spent on
+a frame and a ping's answer - and the pin allowed that 50 ms. A busy runner spent more, and the seconds moved by it, as
+the law says they should: the pin was wrong, not the clock. Reproduced: a 60 ms stall between the two reads fails it on
+that assertion.
+
+**The fix** is 52aff580b's (#1124, the staff panel's branch, which had reproduced it under load on its own): the pin holds
+the page's clock still as well, so the seconds move only when the anchor is taken again - a wander under the step leaves
+them where they stood, where taking the anchor again moves them 103 ms, either side of the pin's 50. This record's branch
+made the same fix after the deploy failed and withdrew it at the merge (main's is the file). The same stall passes it.
+
+**The pins.** `tools/mutants/egz_return.json` - 71, every one dead on the held clock, the spans' five among them
+(EGZ-spans-clock-outside, EGZ-reanchor-every-sample, EGZ-reanchor-never, EGZ-host-spans-on-the-welcome and
+EGZ-host-egnow-on-the-welcome).
+
+**Left, said.** `prof3_client`, the other test the audit named, strikes the Anvil on real 400 ms timers; it is the
+Anvil's arc's, and not touched here.
+
+**The game.** Nothing in `src/` moved. **The four hosts.** None touched (HOST-SPLIT).
