@@ -13,10 +13,10 @@
 // block of 5 by 5 tiles (32 m, room for her hull) - on the built ground. A pixel not built yet reads no water anywhere,
 // and keeps its middle: the leg is aimed again when it begins, and a leg begins once the one before it arrives.
 
-/** A map pixel's side in native units (DFU's 32768), and its tiles (the built ground's 128 a side). */
-export const PIXEL_UNITS = 32768;
-export const PIXEL_TILES = 128;
-const TILE = PIXEL_UNITS / PIXEL_TILES;
+import { MP_WORLD_UNITS, T_SIZE as TILE } from './travelPaths.js';
+
+/** A map pixel's tiles, the built ground's 128 a side (travelPaths.js: MPworldUnits over TSize). */
+export const PIXEL_TILES = MP_WORLD_UNITS / TILE;
 /** Half the block of water a mark must stand in, in tiles: 5 by 5 - 32 m. */
 export const MARK_BLOCK_HALF = 2;
 
@@ -35,7 +35,7 @@ export function seaLegMark(origin, waterAt) {
   };
   const mid = PIXEL_TILES / 2;
   const at = (/** @type {number} */ i, /** @type {number} */ j) => ({ x: origin.x + (i + 0.5) * TILE, z: origin.z + (j + 0.5) * TILE });
-  const centre = { x: origin.x + PIXEL_UNITS / 2, z: origin.z + PIXEL_UNITS / 2 };
+  const centre = { x: origin.x + MP_WORLD_UNITS / 2, z: origin.z + MP_WORLD_UNITS / 2 };
   if (floats(centre.x, centre.z)) return null;
   const lo = MARK_BLOCK_HALF, hi = PIXEL_TILES - 1 - MARK_BLOCK_HALF;
   /** @type {{ x: number, z: number } | null} */

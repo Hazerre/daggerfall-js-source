@@ -24,10 +24,10 @@ import { quatRotate } from '../../../src/world/quat.js';
 import { HELM_RUDDER_ACTIONS } from '../../../src/systems/inputActions.js';
 import { createJourneyHand, passengerHelm, passengerCard, PASSENGER_KEYS } from '../../../src/scenes/naval/passageHelm.js';
 import { voyageSails, passageDestinations } from '../../../src/systems/naval/passage.js';
-import { seaLegMark, PIXEL_UNITS, PIXEL_TILES } from '../../../src/systems/travel/seaMark.js';
+import { seaLegMark, PIXEL_TILES } from '../../../src/systems/travel/seaMark.js';
 import { routeLegs, planRoute, routeGround, VOYAGE_LANDFALL_PX } from '../../../src/systems/travel/travelRoute.js';
 import { createTravelOptions, readTravelOptionsSettings } from '../../../src/systems/travel/travelOptions.js';
-import { mapPixelWorldOrigin } from '../../../src/systems/travel/travelPaths.js';
+import { mapPixelWorldOrigin, MP_WORLD_UNITS as PIXEL_UNITS } from '../../../src/systems/travel/travelPaths.js';
 import { WATER_BYTE } from '../../../src/world/roadsProducer.js';
 
 const ROOT = fileURLToPath(new URL('../../..', import.meta.url));

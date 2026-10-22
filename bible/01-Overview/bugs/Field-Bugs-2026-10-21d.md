@@ -276,8 +276,11 @@ roadstead's resume, A1 kept; no ring on the sea; the mark on a built pixel and t
 map's 56 voyages; the plate under the Overworld and the bar; the host's wiring. Pins moved: PASSAGE's A1
 (`passagehost.test.js`), OWS2's journey taps (`ows2_crossing.test.js`), CSA-L's hand (`csa_together.test.js`), F17's two
 (`auditnav2_helm.test.js`: a pad's sail tap under the view refused, the journey's own through the wrapper), HELM-LADDER's
-seam (`csa_sailing.test.js`), and three lifted-host rigs given the new names (`fb1011c_seatown.test.js`,
-`travel_report_regressions.test.js`); `test/portTerrain.mjs` hands the heightmap it reads. `tools/mutants/fb1021d_passage.json`
+seam (`csa_sailing.test.js`), the helm panel's line in HOLD-DOOR and SHIP-CREW (`holddoor.test.js`,
+`shipcrew.test.js`: a passenger's card before her Orders, Hold and load), and three lifted-host rigs given the new names
+(`fb1011c_seatown.test.js`, `travel_report_regressions.test.js`, and `auditships_sail.test.js`'s journey press);
+`test/portTerrain.mjs` hands the heightmap it reads. `seaMark.js` takes the pixel's units and tile from `travelPaths.js`
+(TravelOptionsMod's MPworldUnits and TSize) - no third copy of 32768 (AUDIT 24's one home). `tools/mutants/fb1021d_passage.json`
 (18, 18 dead); `ows2.json`, `csa_together.json`, `auditnav2_helm.json` and `passage.json` records re-aimed (dead).
 
 ## Gates and what was measured beside them
