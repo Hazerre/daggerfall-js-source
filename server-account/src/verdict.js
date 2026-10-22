@@ -40,10 +40,10 @@
 // character's baseline is a newborn's purse (REALM_BIRTH_WEALTH_MAX); one through customs, its level's allowance.
 // ═══════════════════════════════════════════════════════════════════
 
-import { judgeSave, judgeProducts, STRIKES_FOR_TIMED, JUDGE_VERSION, FINDINGS_KEPT, WEALTH_VERSION } from './judge.js';
+import { judgeSave, judgeProducts, STRIKES_FOR_TIMED, JUDGE_VERSION, FINDINGS_KEPT, WEALTH_VERSION, goodsOf } from './judge.js';
 import { ledgerStep, chargeSteps } from './ledger.js';
 import { budgetConfig, bandOf, stepBudget } from './budget.js';
-import { customsAllowance, liquidWealthOf } from '../../src/net/realm/realmGoldLaw.js';
+import { customsAllowance } from '../../src/net/realm/realmGoldLaw.js';
 import { censusStep } from './staffCensus.js';   // STAFF-PANEL4-CENSUS: the census's tally, on the hour's row and the character's latest
 
 /** INT2's cutover (Mac: "Items judged, wealth baselined"): a character whose first judged wealth stands past this many
@@ -189,10 +189,11 @@ export async function verdictOn({ db, nowS }, { player, char, seq, key }, row, s
   if (law > 0 && sig !== row.law_sig) finding('law', { count: law, findings: lawFindings.slice(0, FINDINGS_KEPT), ...(lawHolds ? {} : { excused: true }) });
   // a GAIN that leaves the bucket short is found; a checkpoint that gained nothing while play pays a shortfall back finds
   // nothing new (the hold, under `enforce`, stands until it is paid)
-  // STAFF-PANEL3-REALM (design doc weak spots: "split gold from item worth"): and the gold of that wealth (realmGoldLaw.js
-  // liquidWealthOf - the purse, the banks, coins, letters and deeds at their gold), so staff read gold apart from goods -
-  // asked only when this finding is written
-  if (budget.over > 0 && gain > 0) finding(config.enforce ? 'budget' : 'measure', { gain, over: budget.over, level: lv.level, played: dPlayed, wealth: judged.wealth, gold: liquidWealthOf(save), ...(first ? { first: true } : {}) });
+  // STAFF-PANEL3-REALM (design doc weak spots: "split gold from item worth"): and the goods of that wealth (judge.js
+  // goodsOf - its pieces that are not gold, at the wealth's own worth), so staff read gold - the rest of it, the debt off
+  // it - apart from goods in one measure (FLAW REVIEW: customs' gold beside it, the loan never off it, made the goods short)
+  // - asked only when this finding is written
+  if (budget.over > 0 && gain > 0) finding(config.enforce ? 'budget' : 'measure', { gain, over: budget.over, level: lv.level, played: dPlayed, wealth: judged.wealth, goods: goodsOf(save), ...(first ? { first: true } : {}) });
   if (outlier) finding('outlier', { wealth: judged.wealth, level: lv.level });
   // the hour's measure: what no witness explains, apart by sign, against the seconds played at this level
   const hour = Math.floor(nowS / HOUR_S) * HOUR_S;

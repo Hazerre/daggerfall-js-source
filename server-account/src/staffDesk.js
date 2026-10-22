@@ -230,7 +230,11 @@ export async function staffDesk(ctx, env, path, body, who, audit) {
     if ('error' in row) return row;
     if (path === '/v1/staff/notes/add') {
       const text = noteText(body.text);
-      if (!text) return { error: 'note-text' };
+      if (!text) {
+        // a refused act is written down failed (STAFF-PANEL3-DESK FIX, flaw review) - still never the words
+        await audit('note-add', row.id, { name: displayName(row), error: 'note-text' }, { outcome: 'failed' }).run();
+        return { error: 'note-text' };
+      }
       const [, , made] = await db.batch([
         db.prepare('INSERT INTO staff_notes (target, author, author_name, text, at) VALUES (?1, ?2, ?3, ?4, ?5)').bind(row.id, me.id, displayName(me), text, nowS),
         // the table's retention: the newest STAFF_NOTES_KEEP a player
@@ -300,7 +304,11 @@ export async function staffDesk(ctx, env, path, body, who, audit) {
   }
   if (path === '/v1/staff/settings/save') {
     const s = settingsOf(body.settings);
-    if ('error' in s) return s;
+    if ('error' in s) {
+      // written down failed, once in ten minutes as a save is (STAFF-PANEL3-DESK FIX, flaw review)
+      await audit('settings-save', null, { error: s.error }, { outcome: 'failed', onceIn: READ_ROW_S }).run();
+      return s;
+    }
     await db.batch([
       db.prepare('INSERT INTO staff_settings (player, doc, at) VALUES (?1, ?2, ?3) ON CONFLICT (player) DO UPDATE SET doc = excluded.doc, at = excluded.at').bind(me.id, s.json, nowS),
       audit('settings-save', null, null, { onceIn: READ_ROW_S }),   // a drag a second is one row in ten minutes
@@ -392,11 +400,15 @@ export async function staffDesk(ctx, env, path, body, who, audit) {
     // Remove (the note goes, its reports with it) or Restore (reports no longer hide it) - board.js moderateNote, the
     // game's moderators' own act
     const act = body.act === 'remove' || body.act === 'restore' ? body.act : null;
-    if (!act) return { error: 'bad-act' };
+    const detail = { id: typeof body.id === 'string' ? body.id.slice(0, 40) : null };
+    if (!act) {
+      // a refused act is written down failed (STAFF-PANEL3-DESK FIX, flaw review)
+      await audit('board-moderate', null, { ...detail, error: 'bad-act' }, { outcome: 'failed' }).run();
+      return { error: 'bad-act' };
+    }
     const note = typeof body.id === 'string' ? await db.prepare('SELECT author FROM board_notes WHERE id = ?1').bind(body.id).first() : null;
     const r = await moderateNote({ db }, me, env, body.id, act);
     const target = note?.author ?? null;
-    const detail = { id: typeof body.id === 'string' ? body.id.slice(0, 40) : null };
     if ('error' in r) {
       await audit(`board-${act}`, target, { ...detail, error: r.error }, { outcome: 'failed' }).run();
       return r;
