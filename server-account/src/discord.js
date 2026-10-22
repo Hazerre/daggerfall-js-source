@@ -276,7 +276,7 @@ async function onPress(ctx, env, body, actor, io) {
       : { act: 'dismiss' };
   // the interaction's own id is the press's one-time id
   const click = typeof body?.id === 'string' && CLICK_RE.test(body.id) ? body.id : null;
-  const r = await modAct(ctx, actor, env, { ...ask, target: c.target, caseId, click, reason: `case ${caseId}`, actorName: `${displayName(actor)} (Discord)`, keepLonger: true },
+  const r = await modAct(ctx, actor, env, { ...ask, target: c.target, caseId, click, reason: `case ${caseId}`, actorName: `${displayName(actor)} (Discord)`, from: 'Discord', keepLonger: true },
     { push: (o) => { pushAfter(io, env, o); } });   // DISCORD-4: handed to `later`, never awaited before the answer
   if ('error' in r) { await release(); return r.error === 'no-player' ? say('That account is gone.') : say(refusedText(r.error)); }
   return redraw(ctx, caseId);
@@ -310,14 +310,14 @@ async function onCommand(ctx, env, body, actor, io) {
     case 'mute': case 'unmute': {
       const minutes = sub.name === 'unmute' ? 0 : Number(optionOf(sub, 'minutes') ?? ladderMinutes(await strikesOf(ctx.db, row.id, ctx.nowS)));
       // a mute closes the account's open chat case, as the moderator's act (DISCORD-11)
-      const r = await modAct(ctx, actor, env, { act: 'mute', target: row.id, minutes, reason, actorName: by, resolution: () => `muted ${minutesWord(minutes)} (/mod)` }, { push });
+      const r = await modAct(ctx, actor, env, { act: 'mute', target: row.id, minutes, reason, actorName: by, from: 'Discord', resolution: () => `muted ${minutesWord(minutes)} (/mod)` }, { push });
       if ('error' in r) return say(refusedText(r.error));
       return say(minutes ? `${md(name)} is muted for ${minutesWord(minutes)}.` : `${md(name)} can chat again.`);
     }
     case 'ban': case 'unban': {
       const days = sub.name === 'unban' ? null : Number(optionOf(sub, 'days') ?? 30);
-      const r = await modAct(ctx, actor, env, days === null ? { act: 'unban', target: row.id, actorName: by }
-        : { act: 'ban', target: row.id, days, reason, actorName: by, resolution: (/** @type {any} */ x) => `banned ${banWord(x.until)} (/mod)` }, { push });
+      const r = await modAct(ctx, actor, env, days === null ? { act: 'unban', target: row.id, actorName: by, from: 'Discord' }
+        : { act: 'ban', target: row.id, days, reason, actorName: by, from: 'Discord', resolution: (/** @type {any} */ x) => `banned ${banWord(x.until)} (/mod)` }, { push });
       if ('error' in r) return say(refusedText(r.error));
       return say(days === null ? `${md(name)} is unbanned.` : `${md(name)} is banned ${banWord(r.until)}.`);
     }

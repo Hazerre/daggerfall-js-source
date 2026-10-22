@@ -392,8 +392,8 @@
   {
     "name": "AUDIT-SAFE-S2-game-mute-leaves-case",
     "file": "server-account/src/safety.js",
-    "old": "  if (c && said) await resolveCase(",
-    "new": "  if (c && said && false) await resolveCase(",
+    "old": "said) => (c ? [resolveCase(db, { caseId, status: 'actioned'",
+    "new": "said) => (c && false ? [resolveCase(db, { caseId, status: 'actioned'",
     "tests": [
       "test/server/safe_audit.test.js"
     ]
@@ -467,7 +467,8 @@
     "old": "  if (!canModerate(actor, env)) return { error: 'not-moderator' };\n  const row = await findAccount(db, { target, name });\n  if ('error' in row) return row;\n  if (!isBanned(row, nowS)) return { error: 'not-banned' };",
     "new": "  const row = await findAccount(db, { target, name });\n  if ('error' in row) return row;\n  if (!isBanned(row, nowS)) return { error: 'not-banned' };",
     "tests": [
-      "test/server/safe_audit.test.js"
+      "test/server/safe_audit.test.js",
+      "test/server/staffpanel2fix.test.js"
     ]
   },
   {

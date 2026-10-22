@@ -257,6 +257,6 @@ test('STAFF-PANEL2: THE ACTS are the game\'s moderators\' own - the strike histo
     assert.equal((await s.staff('/v1/staff/ban', { target: s.troll.id, days: -1, click: 'press-0006' }, s.asy.session)).status, 400);
     assert.equal((await s.staff('/v1/staff/mute', { name: 'nobody-here', minutes: 30, click: 'press-0007' }, s.asy.session)).status, 404);
     assert.deepEqual({ ...s.raw.prepare("SELECT outcome, detail FROM staff_audit WHERE act = 'mute' AND target = ?").get(s.idOf('Tabbyvish')) },
-      { outcome: 'failed', detail: JSON.stringify({ name: 'Tabbyvish', minutes: 30, error: 'protected' }) });
+      { outcome: 'failed', detail: JSON.stringify({ name: 'Tabbyvish', door: 'staff panel', minutes: 30, error: 'protected' }) });   // STAFF-PANEL2-FIX: modAct writes it, the door named
   } finally { s.restore(); }
 });

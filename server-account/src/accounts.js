@@ -400,7 +400,7 @@ export const isMuted = (row, nowS) => mutedUntil(row) > nowS;
  * `muted_by` is written beside it, so a mute always says who did it -
  * a power with no record is a power nobody can review.
  */
-export async function muteAccount({ db, nowS }, actor, env, { target, minutes }) {
+export async function muteAccount({ db, nowS }, actor, env, { target, minutes, also = null }) {
   if (!canModerate(actor, env)) return { error: 'not-moderator' };
   if (typeof target !== 'string' || !ID_RE.test(target)) return { error: 'no-player' };
   if (!Number.isSafeInteger(minutes) || minutes < 0 || minutes > MUTE_MAX_MIN) return { error: 'bad-minutes' };
@@ -415,9 +415,13 @@ export async function muteAccount({ db, nowS }, actor, env, { target, minutes })
   const adminHeld = row.mute_admin === 1 && isMuted(row, nowS);
   const admin = isDeveloper(actor, env);
   if (adminHeld && !admin && (until ?? 0) < Number(row.muted_until)) return { error: 'admin-sanction' };
-  await db.prepare('UPDATE players SET muted_until = ?, muted_by = ?, mute_admin = ? WHERE id = ?')
-    .bind(until, until ? actor.id : null, until ? (admin || adminHeld ? 1 : 0) : null, target).run();
-  return { ok: true, target, name: displayName(row), until: until ?? 0 };
+  const write = db.prepare('UPDATE players SET muted_until = ?, muted_by = ?, mute_admin = ? WHERE id = ?')
+    .bind(until, until ? actor.id : null, until ? (admin || adminHeld ? 1 : 0) : null, target);
+  const done = { ok: true, target, name: displayName(row), until: until ?? 0 };
+  // STAFF-PANEL2-FIX: `also(answer)`, the caller's own statements for this write's batch (safety.js modAct: the act's
+  // record and its case closed, so they land with the mute or none does); without it the one write, as before
+  await (also ? db.batch([write, ...also(done)]) : write.run());
+  return done;
 }
 
 /**

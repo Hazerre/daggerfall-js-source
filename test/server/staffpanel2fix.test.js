@@ -7,13 +7,14 @@ import assert from 'node:assert/strict';
 import { standService } from '../accountDb.mjs';
 import { staffWords, STAFF_SESSION_HEADER, STAFF_IDLE_S } from '../../server-account/src/staff.js';
 import { CLAIM_S, HIGH_IDLE_S } from '../../server-account/src/staffCases.js';
-import { openCaseFor } from '../../server-account/src/safety.js';
+import { openCaseFor, modAct, CASE_ACT_S } from '../../server-account/src/safety.js';
 import { discordInteraction } from '../../server-account/src/discord.js';
 import { mintStamp } from '../../src/net/safety/chatStamp.js';
 import { SAFE_LAW_PATH } from '../../src/net/wire.js';
 import { verifyOrder, verifyToken } from '../../src/net/identityToken.js';
 import { ACCEPTED } from '../../src/net/legalLaw.js';
 import { SPROUT_S } from '../../server-account/src/titles.js';
+import { banAccount, unbanAccount } from '../../server-account/src/sanctions.js';
 
 const { subtle } = globalThis.crypto;
 const enc = new TextEncoder();
@@ -377,5 +378,154 @@ test('STAFF-PANEL2-FIX 8: A NEW PASSWORD ENDS THE STAFF PANEL\'S SESSIONS - chan
     const rec = await s.game('/v1/auth/recover', { handle: 'Ravenna', code, password: 'a third good long one' });
     assert.equal(rec.status, 200, JSON.stringify(rec.body));
     assert.equal((await s.staff('/v1/staff/me', {}, raven.session)).status, 401);
+  } finally { s.restore(); }
+});
+
+// ═══ THE FLAW REVIEW OF PR 1 (findings 1-3, area "cases"): the take a lease, one press one strike, the act's audit row ═══
+
+/** A database that throws on each statement `re` matches, every other as it is - a D1 error mid-act, run alone or in a
+ *  batch (which the fake rolls back whole, as D1 does). */
+const flakyCtx = (s, re) => {
+  const fail = () => { throw new Error('D1_ERROR: overloaded'); };
+  const bad = { bind: () => bad, run: async () => fail(), first: async () => fail(), all: async () => fail(), _result: fail };
+  return { ...s.ctx(), db: new Proxy(s.env.DB, { get: (t, k) => (k === 'prepare' ? (sql) => (re.test(sql) ? bad : t.prepare(sql))
+    : typeof t[k] === 'function' ? t[k].bind(t) : t[k]) }) };
+};
+
+test('STAFF-PANEL2-FIX review 1: A THROW MID-ACT GIVES THE CASE BACK, and the take is a lease - a D1 error after the take leaves the case to the next act; a take older than CASE_ACT_S is any press\'s, a fresh one nobody else\'s (mutants: no give-back on a throw; the lease never lapsing; the lease lapsing at once; a throw unwritten)', async () => {
+  const s = await stand();
+  try {
+    const tab = s.row(s.g.Tabbyvish.id);
+    const t = await s.player();
+    const c = s.caseOn(t);
+    await assert.rejects(modAct(flakyCtx(s, /UPDATE players SET muted_until/), tab, s.env, { act: 'mute', target: t.id, minutes: 30, from: 'in the game' }), /overloaded/);
+    assert.deepEqual([s.caseRow(c).status, s.caseRow(c).act_click], ['open', null], 'the case given back');
+    assert.deepEqual({ ...s.raw.prepare("SELECT outcome, detail FROM staff_audit WHERE act = 'mute' AND target = ?").get(t.id) },
+      { outcome: 'failed', detail: JSON.stringify({ name: t.handle, door: 'in the game', minutes: 30, case: c, error: 'D1_ERROR: overloaded' }) }, 'the throw written down');
+    const next = await s.game('/v1/mod/mute', { target: t.id, minutes: 30 }, s.g.Tabbyvish.secret);
+    assert.deepEqual([next.status, next.body.case, s.caseRow(c).status], [200, c, 'actioned'], 'the next act, naming no case, takes it');
+    assert.equal(s.strikes(t.id), 1);
+    // a take inside its lease holds the case; past it, any press takes it
+    const v = await s.player();
+    const cv = s.caseOn(v);
+    s.raw.prepare('UPDATE mod_cases SET act_click = ?, act_at = ? WHERE id = ?').run('dead-press-1', nowS() - 5, cv);
+    assert.deepEqual(await s.game('/v1/mod/mute', { target: v.id, minutes: 30 }, s.g.Tabbyvish.secret).then((r) => [r.status, r.body.error]), [409, 'case-acted']);
+    s.raw.prepare('UPDATE mod_cases SET act_at = ? WHERE id = ?').run(nowS() - CASE_ACT_S - 1, cv);
+    const late = await s.game('/v1/mod/mute', { target: v.id, minutes: 30 }, s.g.Tabbyvish.secret);
+    assert.deepEqual([late.status, late.body.case, s.caseRow(cv).status], [200, cv, 'actioned'], 'a stale take is any press\'s');
+  } finally { s.restore(); }
+});
+
+test('STAFF-PANEL2-FIX review 2: THE SAME PRESS SENT TWICE AT ONCE, with no case to take, strikes once - the second answered as the first, a mute and a ban alike (mutants: the click index not UNIQUE; the refused record not read as the first)', async () => {
+  const s = await stand();
+  try {
+    const tab = s.row(s.g.Tabbyvish.id);
+    const t = await s.player();
+    const ask = { act: 'mute', target: t.id, minutes: 30, click: 'click-abcdef12', from: 'staff panel' };
+    const both = await Promise.all([modAct(s.ctx(), tab, s.env, ask), modAct(s.ctx(), tab, s.env, ask)]);
+    assert.deepEqual(both.map((r) => r.ok), [true, true]);
+    assert.deepEqual(both.map((r) => !!r.repeat).sort(), [false, true], 'one the act, one the repeat');
+    assert.equal(s.strikes(t.id), 1);
+    const ban = { act: 'ban', target: t.id, days: 1, click: 'click-abcdef13', from: 'staff panel' };
+    const bans = await Promise.all([modAct(s.ctx(), tab, s.env, ban), modAct(s.ctx(), tab, s.env, ban)]);
+    assert.deepEqual(bans.map((r) => !!r.repeat).sort(), [false, true]);
+    assert.equal(s.strikes(t.id), 2);
+    assert.deepEqual(s.raw.prepare("SELECT outcome, detail FROM staff_audit WHERE act IN ('mute', 'ban') AND target = ? ORDER BY id").all(t.id).map((r) => [r.outcome, /"repeat":true/.test(r.detail)]).sort(),
+      [['ok', false], ['ok', false], ['ok', true], ['ok', true]], 'each press written once, the repeat as one');
+  } finally { s.restore(); }
+});
+
+test('STAFF-PANEL2-FIX review 3: EVERY DOOR\'S ACT IS IN THE AUDIT LOG, written once in the shared act - the game\'s, Discord\'s and the panel\'s, ok, denied or failed, the door named, and the owners read it; a knock by one who is no moderator writes nothing (mutants: the doors\' row unwritten; the door unnamed at each door; a denial written as failed; the panel\'s writer not handed in)', async () => {
+  const s = await stand();
+  try {
+    const rows = (act, target) => s.raw.prepare('SELECT actor, role, outcome, detail, key_id FROM staff_audit WHERE act = ? AND target IS ? ORDER BY id').all(act, target)
+      .map((r) => ({ ...r, detail: JSON.parse(r.detail) }));
+    const tabId = s.g.Tabbyvish.id;
+    // the game's: a mute that closes the case, an Admin's ban, a Moderator's unban of it refused
+    const a = await s.player();
+    const ca = s.caseOn(a);
+    assert.equal((await s.game('/v1/mod/mute', { target: a.id, minutes: 30 }, s.g.Tabbyvish.secret)).status, 200);
+    assert.deepEqual(rows('mute', a.id), [{ actor: tabId, role: 'moderator', outcome: 'ok', key_id: null, detail: { name: a.handle, door: 'in the game', minutes: 30, case: ca } }]);
+    assert.equal((await s.game('/v1/mod/ban', { target: a.id, days: 7, reason: 'slurs' }, s.g.SirMcMobdon.secret)).status, 200);
+    assert.deepEqual(rows('ban', a.id).map((r) => [r.role, r.outcome, r.detail]), [['admin', 'ok', { name: a.handle, door: 'in the game', days: 7, reason: 'slurs' }]]);
+    assert.equal((await s.game('/v1/mod/unban', { target: a.id }, s.g.Tabbyvish.secret)).status, 403);
+    assert.deepEqual(rows('unban', a.id).map((r) => [r.outcome, r.detail.door, r.detail.error]), [['denied', 'in the game', 'admin-sanction']]);
+    // Discord's: a press, and /mod refused on a case another member holds, then a ban and its unban
+    const b = await s.player();
+    const cb = s.caseOn(b);
+    assert.equal((await s.press('222222222222222222', `safe:dis:${cb}`, 'discord-0000000009')).type, 7);
+    assert.deepEqual(rows('dismiss', b.id).map((r) => [r.actor, r.outcome, r.detail.door, r.detail.case]), [[tabId, 'ok', 'Discord', cb]]);
+    const c = await s.player();
+    s.caseOn(c);
+    assert.equal((await s.staff('/v1/staff/claim', { target: c.id }, s.asy.session)).status, 200);
+    assert.match((await s.command('222222222222222222', 'mute', { player: c.id, minutes: 30 })).data.content, /Another staff member/);
+    assert.deepEqual(rows('mute', c.id).map((r) => [r.outcome, r.detail.door, r.detail.error]), [['denied', 'Discord', 'staff-claimed']]);
+    assert.equal((await s.game('/v1/mod/dismiss', { target: c.id }, s.g.Asynian.secret)).status, 200, 'the holder, from the game');
+    assert.deepEqual(rows('dismiss', c.id).map((r) => [r.outcome, r.detail.door]), [['ok', 'in the game']]);
+    const f = await s.player();
+    const spawn = await openCaseFor(s.ctx(), s.env, f.id, 'review', 'spawn');
+    assert.match((await s.press('222222222222222222', `safe:dis:${spawn}`)).data.content, /Only an Admin/);
+    assert.deepEqual(rows('dismiss', f.id).map((r) => [r.outcome, r.detail.door, r.detail.error]), [['denied', 'Discord', 'not-developer']], 'a spawn case, a Moderator\'s press');
+    const d = await s.player();
+    assert.match((await s.command('222222222222222222', 'ban', { player: d.id, days: 1 })).data.content, /is banned/);
+    assert.match((await s.command('222222222222222222', 'unban', { player: d.id })).data.content, /is unbanned/);
+    assert.deepEqual([...rows('ban', d.id), ...rows('unban', d.id)].map((r) => [r.outcome, r.detail.door]), [['ok', 'Discord'], ['ok', 'Discord']]);
+    // the panel's: one row an act, its own - its session's key beside it
+    const e = await s.player();
+    assert.equal((await s.staff('/v1/staff/mute', { target: e.id, minutes: 30, click: 'press-v001' }, s.asy.session)).status, 200);
+    assert.deepEqual(rows('mute', e.id).map((r) => [r.outcome, r.detail.door, typeof r.key_id]), [['ok', 'staff panel', 'string']], 'one row, the panel\'s own');
+    // one who is no moderator, knocking at the game's door, writes nothing
+    assert.equal((await s.game('/v1/mod/mute', { target: e.id, minutes: 30 }, s.troll.secret)).status, 403);
+    assert.equal(rows('mute', e.id).length, 1);
+    // the owners read the game's and Discord's acts in their log
+    const log = (await s.staff('/v1/staff/audit', { target: b.id }, s.mob.session)).body.rows;
+    assert.deepEqual(log.map((r) => [r.act, r.actorName, r.detail.door]), [['dismiss', 'Tabbyvish', 'Discord']]);
+  } finally { s.restore(); }
+});
+
+test('STAFF-PANEL2-FIX review 4: THE ACT, ITS STRIKE AND ITS CASE\'S CLOSE ARE ONE BATCH - the close failing leaves neither the sanction nor its strike, for a mute, a button\'s mute that keeps a longer one, a ban and a dismiss; the case given back, and the next act strikes once (mutants: each written apart from its close)', async () => {
+  const s = await stand();
+  try {
+    const tab = s.row(s.g.Tabbyvish.id);
+    const closeFails = () => flakyCtx(s, /UPDATE mod_cases SET status/);
+    const acts = (id) => s.raw.prepare('SELECT COUNT(*) AS n FROM mod_actions WHERE target = ?').get(id).n;
+    let n = 0;
+    // the close failing, and the record failing (a dismiss writes its close first)
+    for (const [fails, failing] of [[closeFails, 'the close'], [() => flakyCtx(s, /INSERT INTO mod_actions/), 'the record']]) {
+      for (const [ask, look] of [
+        [{ act: 'mute', minutes: 30 }, (id) => s.row(id).muted_until],
+        [{ act: 'ban', days: 7 }, (id) => s.row(id).banned_until],
+        [{ act: 'dismiss' }, () => null],
+      ]) {
+        const t = await s.player();
+        const c = s.caseOn(t);
+        const press = { ...ask, target: t.id, click: `press-b${String(++n).padStart(5, '0')}`, from: 'in the game' };
+        await assert.rejects(modAct(fails(), tab, s.env, press), /overloaded/, ask.act);
+        assert.deepEqual([look(t.id), acts(t.id), s.caseRow(c).status, s.caseRow(c).act_click], [null, 0, 'open', null], `${ask.act}, ${failing} failing: neither landed, the case given back`);
+        const again = await modAct(s.ctx(), tab, s.env, press);
+        assert.deepEqual([again.ok, again.repeat, again.case, s.caseRow(c).status !== 'open', acts(t.id)], [true, undefined, c, true, 1], `${ask.act}: the same press, acted once`);
+      }
+    }
+    // a button's mute while a longer one stands: its record and the close, one batch
+    const k = await s.player();
+    const ck = s.caseOn(k);
+    s.raw.prepare('UPDATE players SET muted_until = ?, muted_by = ? WHERE id = ?').run(nowS() + 86400, s.g.Asynian.id, k.id);
+    await assert.rejects(modAct(closeFails(), tab, s.env, { act: 'mute', target: k.id, minutes: 30, caseId: ck, keepLonger: true, from: 'Discord' }), /overloaded/);
+    assert.deepEqual([acts(k.id), s.caseRow(ck).status], [0, 'open']);
+    const kept = await modAct(s.ctx(), tab, s.env, { act: 'mute', target: k.id, minutes: 30, caseId: ck, keepLonger: true, from: 'Discord' });
+    assert.deepEqual([kept.kept, acts(k.id), s.caseRow(ck).status], [true, 1, 'actioned']);
+  } finally { s.restore(); }
+});
+
+test('STAFF-PANEL2-FIX review 5: THE SANCTIONS KEEP THEIR OWN ROLE CHECK - modAct asks first, but the ban and the unban still refuse one who is no moderator, called straight (mutants: AUDIT-SAFE-DOC2-anyone-unbans; the ban unguarded)', async () => {
+  const s = await stand();
+  try {
+    const t = await s.player();
+    assert.equal((await s.game('/v1/mod/ban', { target: t.id, days: 7 }, s.g.Tabbyvish.secret)).status, 200);
+    const until = s.row(t.id).banned_until;
+    const nobody = s.row(s.sylvia.id);
+    assert.deepEqual(await unbanAccount(s.ctx(), nobody, s.env, { target: t.id }), { error: 'not-moderator' });
+    assert.deepEqual(await banAccount(s.ctx(), nobody, s.env, { target: s.troll.id, days: 7 }), { error: 'not-moderator' });
+    assert.deepEqual([s.row(t.id).banned_until, s.row(s.troll.id).banned_until], [until, null]);
   } finally { s.restore(); }
 });
