@@ -18,7 +18,7 @@
 //
 // The answer is kept a pixel (and a model's, a model id), so a ring is laid once a session; nothing of a mesh is kept.
 //
-// Not a DFU member: revenants are the port's own (Ledger A, RVN7).
+// Not a DFU member: revenants are the port's own (bible/12-Enhanced-AI/Feud-Arc.md 18.1, LAIR-DOOR).
 import { bountyDungeons } from '../systems/bounty/bountyBoard.js';
 import { RUMOR_PX } from '../systems/revenant/revenantFeud.js';
 import { meshHasDungeonEntrance } from '../systems/travel/travelDungeonModels.js';
