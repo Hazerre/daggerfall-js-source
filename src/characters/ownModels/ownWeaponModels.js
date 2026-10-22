@@ -85,10 +85,10 @@ const PISTOL_GRIP_RAKE = 12;
 export const PISTOL_FIST_UP = 2.4;
 export const PISTOL_GRIP_ATTITUDE = (() => {
   const r = (PISTOL_GRIP_RAKE * Math.PI) / 180, c = Math.cos(r), s = Math.sin(r);
-  const a = [0, c, -s, 0, s, c, 1, 0, 0];
+  const a = Object.freeze([0, c, -s, 0, s, c, 1, 0, 0]);   // GUN_GRIP_ATTITUDE's turn, at the pistol's own rake
   // the grip's way in the mesh (0, sin, cos), turned onto the bone: the mesh moved DOWN it so the fist stands up it
   const up = [a[1] * s + a[2] * c, a[4] * s + a[5] * c, a[7] * s + a[8] * c];
-  return Object.freeze({ a: Object.freeze(a), t: Object.freeze(up.map((v) => -PISTOL_FIST_UP * v)) });
+  return Object.freeze({ a, t: Object.freeze(up.map((v) => -PISTOL_FIST_UP * v)) });
 })();
 
 export const OWN_MW_MODELS = Object.freeze({
