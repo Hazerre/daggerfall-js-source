@@ -5682,6 +5682,7 @@ sea.chart.way,"{n, plural, one {# leghe} few {# leghe} other {# de leghe}} {poin
 sea.chart.zoomIn,"Mărește"
 sea.chart.zoomOut,"Micșorează"
 sea.exchange.band,"Economia portului: {band}. Prețurile de schimb o urmează."
+sea.tidemail.legend,"De la {ship}: {piece}, o piesă din {set}!"
 sea.wild.band.abyss,"Abisul"
 sea.wild.band.deep,"Eterul Adânc"
 sea.wild.band.reaches,"Întinderile"

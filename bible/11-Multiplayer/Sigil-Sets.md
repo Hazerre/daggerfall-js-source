@@ -361,6 +361,47 @@ are, and never a drop.
 Through the same seams: Wyrd-Sight the FOLD, Tallow-Ward the BLOW, Soul Harvest the KILL listener (`sigilSetPowers.js`).
 Its words are the festival's (`systems/festival/festivalWords.js` HARVEST_TEXT - its name, its proc, its recovery's end).
 
+## 6h. The deep sea's own set (SEA-SET, 2026-10-22)
+
+`03-World/Eltheric-Ocean.md` SEA-SET (the owner: "Build ever single bit of this and dont return until its perfected" - the
+Eltheric Ocean's Abyss-only gear): one more Aetheric set, the law's fourteenth, **The Eltheric Tidemail** - what the deep
+gives back to those who sail it - and its patron no Daedra but the Drowned Queen, Maraveth, Thrice Drowned: the sea's
+legends are its makers, and every piece was taken off one of them (`sigilSets.js` `eltheric`, `sigil.js` `SIGIL_SET_IDS`
+last). Nine fixed records of Adamantium, the one metal no other set wears - the seven body pieces, a round shield and a
+ONE-HANDED Saber, so all nine are worn at once - every affix at the Legendary band's MIDDLE (armour 16, an attribute 13, a
+resistance 43, a skill 25, weight 43, damage 30) and Maraveth's Mercy's blow the band's middle too (10): the Old Coil's
+measure, since the deep is a world boss's ground. One resistance of an element at most, and never shock - the 2-piece
+tier carries it (`systems/aetheric.js` `ELTHERIC_SET_PIECES`, `AETHERIC_RECORDS` last).
+
+The Drowned Admiral's Helm, the Right and Left Pauldrons of the Deep, The Tidemail Cuirass, Gauntlets of the Wheel,
+Greaves of the Sounding Line, The Hooded Pilot's Boots, The Starless Shield (Round Shield), Maraveth's Mercy (Saber).
+
+**Where it comes from - the deep alone** (`ELTHERIC_CHANCE`, `elthericChance`, `rollElthericPiece`, each source's last roll
+on its own stream, so every earlier roll stays what it was for its seed; the Shallows and the Reaches carry none):
+
+| source | the Deep Aether | the Abyss |
+|---|---|---|
+| a legend sunk or taken (`navalHost.js` legendTidemail, off her seed `^ TIDEMAIL_SALT`, into the boat I sail) - the Deep's Ninefold Hunger and Lantern-Eater, the Abyss's Pale Regent and Starless; the Reaches' two carry none | 1 in 4 | every time |
+| a vault of the deep's pile (SEA-VAULTS, `seaVault` on the place) | 1 in 4 | 1 in 2 |
+| an isle's ruin's treasure pile (`systems/sea/seaSpoils.js` seaPileMore - the layout's pile offline, a pile the room emptied, and the room's seeded base online, on its own dice) | 1 in 20 | 1 in 10 |
+| the treasure fleet's flagship (SEA-EVENTS) | every time | every time |
+
+No world drop, shelf or Broker rolls one. These are the client's rolls, as a Legendary's are: no relay or service receipt
+seeds the sea's legends or its ruins (the gate's, the serpent's, a star's and the Spire's sets ride one) - the item law
+holds each piece to its record (item law 10, `itemLaw.js` ITEM_LAW_VERSION; acct168), never to its source.
+
+| pieces | ability | Faint -> Ascendant |
+|---|---|---|
+| 2 | **Stormwrack** - shock resistance, Speed | +10 -> +30; +2 -> +6 |
+| 4 | **Undertow** - your weapon deals more while you stand in the open Eltheric Ocean (the open PvP zone on the sea's ground: `wildZone.js` wildZoneKind, never Veilhaven's peace), and half of that anywhere else | +15% -> +40% (half ashore) |
+| 6 | **The Captain's Due** - your ship's guns deal more, and your ship takes less from guns and rams | guns +10% -> +30%; hull -10% -> -25% |
+
+Through the same seams and one of its own: Stormwrack the FOLD, Undertow the BLOW (a weapon's blow alone; the half carried
+as every per cent is), and the Captain's Due THE SHIP'S DOOR - `sigilSetPowers.js` `captainsDue(entity)`, the player the
+player's door names (`systems/playerDoor.js` player()), read by the naval host at each of my balls over her Guns refit
+(`navalHost.js` gunsRefit) and at a ball's (`dueOnHull`) or a ram's hurt on a ship of mine. A serpent's blow is no gun's nor
+a ram's: the tier leaves it whole, as it says. It has no timer, so no chip.
+
 ## 7. The Sigil Broker - Sigil Stones buy the day's stock (SET7)
 
 A Daedra trader (the game has no Dremora sprite; a Daedra Seducer stands in) is held at each breach's faithful's
@@ -1114,6 +1155,15 @@ nine records (`aetheric.js` `STARSPUN_SET_PIECES`, `AETHERIC_RECORDS` last) and 
 `always`), its three powers through the seams (`sigilSetPowers.js`: the FOLD, `stranded` and the BLOW's read, `veil` on the
 HURT listener, the round's "ready again", the chip). Pinned by `test/systems/starfall/star7_rewards.test.js`; the order pins of
 SET1, SERPENT-SET, SD9d and EG15 moved for it. Mutants in `tools/mutants/star7.json`.
+
+### SEA-SET - the deep sea's own set (2026-10-22)
+
+**The Eltheric Tidemail** (section 6h): the law's fourteenth set (`sigilSets.js` `eltheric`, `sigil.js` `SIGIL_SET_IDS`
+last), its nine records (`aetheric.js` `ELTHERIC_SET_PIECES`, `AETHERIC_RECORDS` last), its shares and its roll
+(`ELTHERIC_CHANCE`, `rollElthericPiece`), the deep's piles (`systems/sea/seaSpoils.js`) and a legend's (`navalHost.js`
+legendTidemail), its three powers (`sigilSetPowers.js`: the FOLD, the BLOW, `captainsDue` and the naval host's three
+reads), item law 10. Pinned by `test/systems/sea/seaset.test.js`; the order pins of SET1, SERPENT-SET, SD9d, EG15 and STAR7
+moved for it. Mutants in `tools/mutants/seaset.json`.
 
 ### AUDIT STAR - the Weave's powers and the chips, read again (2026-10-20)
 

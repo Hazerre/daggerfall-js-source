@@ -274,7 +274,7 @@ test('ETHER-CHART the model: the charted isles in view (a port named at any zoom
 test('ETHER-CHART the doors: the travel map\'s door opens the chart past the Veil; the freeport\'s harbourmaster\'s tab its rumours and its chart (mutants: the door, the tab\'s words)', () => {
   const src = read('src/scenes/world.js');
   assert.match(src, /\{ const p = playerTravelPixel\(\); if \(etherSea && inEther\(p\.x, p\.y\)\) return openEtherChart\(\); \}/);
-  assert.match(src, /const word = \(\) => \{ const p = playerTravelPixel\(\); return etherHost\.chart\(p\.x, p\.y, heading\(\)\); \};/);   // PIN MOVED (AUDIT CAPTAIN'S SEA X16): the ship's heading at her helm
+  assert.match(src, /const word = \(\) => \{ const p = playerTravelPixel\(\); return \{ \.\.\.etherHost\.chart\(p\.x, p\.y, heading\(\)\), pvp: _onlineWorldSession\(\) && !!online\?\.wildOk \}; \};/);   // PIN MOVED (ETHER-WILD): the word says the open sea's fights, for the chart's peace   // PIN MOVED (AUDIT CAPTAIN'S SEA X16): the ship's heading at her helm
   assert.match(src, /const heading = \(\) => \{ const boat = csaRuntime\?\.isSailing\?\.\(\) \? csaRuntime\.state\.CurrentBoat : null; if \(!boat\) return cam\.yaw; const f = boatForward\(boat\); return Math\.atan2\(f\[0\], f\[2\]\); \};/);
   const door = read('src/ui/naval/navalPlunderDoor.js');
   assert.match(door, /load: \(\) => import\('\.\.\/etherChartWindow\.js'\),/);

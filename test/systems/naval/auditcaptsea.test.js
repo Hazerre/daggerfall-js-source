@@ -898,6 +898,7 @@ test('AUDIT CAPTAIN\'S SEA X15/X16: the chart goes with the world it charts - sh
     csaRuntime: { isSailing: () => w.sailing, get state() { return { CurrentBoat: w.boat }; } }, cam: { yaw: Math.PI },
     playerTravelPixel: () => ({ x: 6000, y: -5000 }), etherHost: { chart: (px, py, yaw) => { seen.push(yaw); return {}; } },
     createEtherChartOverlay: ({ word }) => { word(); return {}; }, townTalk: { showOverlay: () => {} },
+    _onlineWorldSession: () => false, online: null,   // ETHER-WILD: the word's pvp - offline here
   };
   const openEtherChart = new Function('scope', `with (scope) { ${fwd}\n${open}\nreturn openEtherChart; }`)(scope);
   assert.equal(openEtherChart(), true);

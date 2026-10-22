@@ -360,10 +360,38 @@ export const STARSPUN_SET_PIECES = Object.freeze([
   spun('blade', 'The Spindle-Blade', 'Weapons', 116, [a('damage'), a('stat', 'agility'), a('skill', SKILLS.ShortBlade)],
     'Ground from the spindle a coven wound its thread on. It still turns in the hand.'),
 ]);
+// ── SEA-SET: THE ELTHERIC TIDEMAIL ──────────────────────────────────
+/** SEA-SET (2026-10-22, bible/11-Multiplayer/Sigil-Sets.md section 6h): the deep sea's own - every piece taken off one of the
+ *  Eltheric Ocean's legends or out of the deep's vaults - nine in the places' order (the seven body pieces, a round shield
+ *  and a ONE-HANDED Saber, so all nine are worn at once), Adamantium, the one metal no other set wears: the sea's blue.
+ *  The deep is a world boss's ground (the Old Coil's measure): every affix at the Legendary band's MIDDLE, the blow the
+ *  band's middle too. One resistance of an element at most, and never shock (Stormwrack, the 2-piece tier, carries it): no
+ *  two pieces stack an element toward the saving throw's immunity (the Regalia's AUDIT FINAL lesson). */
+const tide = (key, name, group, templateIndex, affixes, lore) => record(`eltheric-${key}`, name, group, templateIndex, 'eltheric', 'Adamantium', SERPENT_SET_POWER, affixes, lore);
+export const ELTHERIC_SET_PIECES = Object.freeze([
+  tide('helm', "The Drowned Admiral's Helm", 'Armor', 107, [m('armor'), m('stat', 'willpower'), m('resist', 'frost')],
+    'Dredged up from the Abyss with the admiral still inside. The aether had kept him.'),
+  tide('right-pauldron', 'Right Pauldron of the Deep', 'Armor', 106, [m('armor'), m('stat', 'strength'), m('skill', SKILLS.Swimming)],
+    'Barnacles of violet glass grow on it, and on nothing else.'),
+  tide('left-pauldron', 'Left Pauldron of the Deep', 'Armor', 105, [m('armor'), m('stat', 'endurance'), m('resist', 'poison')],
+    'The salt has eaten every crest off it but the Veil\'s.'),
+  tide('cuirass', 'The Tidemail Cuirass', 'Armor', 102, [m('armor'), m('stat', 'endurance'), m('stat', 'strength')],
+    'It rises and falls with the tide, a breath behind the one who wears it.'),
+  tide('gauntlets', 'Gauntlets of the Wheel', 'Armor', 103, [m('armor'), m('stat', 'agility'), m('skill', SKILLS.CriticalStrike)],
+    'They held a ship\'s wheel through a storm that broke the mast above them.'),
+  tide('greaves', 'Greaves of the Sounding Line', 'Armor', 104, [m('armor'), m('stat', 'speed'), m('weight')],
+    'Marked in fathoms down each shin, and the marks go deeper than any line has.'),
+  tide('boots', "The Hooded Pilot's Boots", 'Armor', 108, [m('armor'), m('stat', 'speed'), m('resist', 'fire')],
+    'Taken off the Lantern-Eater\'s deck. Nothing had ever walked out of the dark in them before.'),
+  tide('shield', 'The Starless Shield', 'Armor', 110, [m('armor'), m('stat', 'willpower'), m('resist', 'magic')],
+    'Cut from a hull as black as the night it sailed. A ship that sees it coming sees nothing.'),
+  tide('saber', "Maraveth's Mercy", 'Weapons', 119, [m('damage'), m('stat', 'agility'), m('skill', SKILLS.LongBlade)],
+    'The Drowned Queen\'s own blade. She shows no mercy; it is named for the mercy she once begged for.'),
+]);
 /** EVERY AETHERIC RECORD - the Regalia, then the raiding parties', then (SERPENT-SET) the Old Coil's, then (SD9d) the
- *  Walking Brass's, then (EG15) the Battlemages', then (WITCH1) the Wyrd's, then (STAR7) the Starspun Weave - and the one
- *  every reader asks. */
-export const AETHERIC_RECORDS = Object.freeze([...REGALIA, ...RAID_SET_PIECES, ...SERPENT_SET_PIECES, ...NUMIDIUM_SET_PIECES, ...PANOPLY_SET_PIECES, ...WYRD_SET_PIECES, ...STARSPUN_SET_PIECES]);
+ *  Walking Brass's, then (EG15) the Battlemages', then (WITCH1) the Wyrd's, then (STAR7) the Starspun Weave, then (SEA-SET)
+ *  the Eltheric Tidemail - and the one every reader asks. */
+export const AETHERIC_RECORDS = Object.freeze([...REGALIA, ...RAID_SET_PIECES, ...SERPENT_SET_PIECES, ...NUMIDIUM_SET_PIECES, ...PANOPLY_SET_PIECES, ...WYRD_SET_PIECES, ...STARSPUN_SET_PIECES, ...ELTHERIC_SET_PIECES]);
 export const aethericById = (id) => AETHERIC_RECORDS.find((r) => r.id === id) ?? null;
 registerAethericLore((item) => aethericById(item?.aetheric)?.lore ?? null);   // the card's last line, as a Legendary's
 /** A record's make as the item wears it: its material's id in its group's table. */
@@ -490,6 +518,29 @@ export const STARSPUN_SET_CHANCE = RAID_SET_CHANCE;
 export function rollStarspunPiece(rolls = Math.random, always = false) {
   if (!always && !(rolls() < STARSPUN_SET_CHANCE)) return null;
   return mintAetheric(STARSPUN_SET_PIECES[Math.min(STARSPUN_SET_PIECES.length - 1, Math.floor(rolls() * STARSPUN_SET_PIECES.length))]);
+}
+
+/** SEA-SET: THE DEEP'S SHARES - the chance a source in a band of the Eltheric Ocean carries a Tidemail piece: a legend taken
+ *  or sunk (the Deep Aether's two a quarter of the time, the Abyss's two every time), a vault of the deep's spoils (SEA
+ *  VAULTS - a quarter, half), a ruin's treasure pile (a twentieth, a tenth), the treasure fleet's flagship (every time). The
+ *  Shallows and the Reaches carry none: the set is the deep's alone. */
+export const ELTHERIC_CHANCE = Object.freeze({
+  legend: Object.freeze({ deep: 1 / 4, abyss: 1 }),
+  vault: Object.freeze({ deep: 1 / 4, abyss: 1 / 2 }),
+  ruin: Object.freeze({ deep: 1 / 20, abyss: 1 / 10 }),
+  fleet: Object.freeze({ deep: 1, abyss: 1 }),
+});
+/** SEA-SET: the Tidemail roll's own stream, salted off a source's seed (a legend's ship, a vault's day) so it moves no other
+ *  roll of that seed. */
+export const TIDEMAIL_SALT = 0x71de;
+/** The share a source carries in a band (its id, world/ethericSea.js BANDS) - 0 for any other. */
+export const elthericChance = (source, band) => (Object.hasOwn(ELTHERIC_CHANCE, source) && Object.hasOwn(ELTHERIC_CHANCE[source], band) ? ELTHERIC_CHANCE[source][band] : 0);
+/** SEA-SET, THE SOURCE'S LAST ROLL (after everything it rolled before - every earlier roll stays what it was for its seed):
+ *  null most times; else one Tidemail piece, the same seed choosing which. A share of 1 takes no chance; none at all for a
+ *  share of 0. One roll when nothing drops, two when a piece does (one with a share of 1). */
+export function rollElthericPiece(rolls = Math.random, chance = 0) {
+  if (!(chance > 0) || (chance < 1 && !(rolls() < chance))) return null;
+  return mintAetheric(ELTHERIC_SET_PIECES[Math.min(ELTHERIC_SET_PIECES.length - 1, Math.floor(rolls() * ELTHERIC_SET_PIECES.length))]);
 }
 
 /** EG15, WHICH PANOPLY PIECE (systems/eliteGates/egSpoils.js rollEgSpoils, once its own draw - net/eliteGates/egPay.js egPanoplyHit, or the

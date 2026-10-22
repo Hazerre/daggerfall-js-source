@@ -1,4 +1,4 @@
-# The Eltheric Ocean - past the Veil (ETHER-SEA, ETHER-PLACES, ETHER-PORTS, ETHER-SHIPS, ETHER-LEGENDS, ETHER-CROSSING, ETHER-CHART, ETHER-LIGHT, 2026-10-11; ETHER-CHART2, ELTHERIC, ETHER-DEEP, ETHER-NODES, 2026-10-12; ETHER-OW, 2026-10-13; ETHER-WILD, 2026-10-21)
+# The Eltheric Ocean - past the Veil (ETHER-SEA, ETHER-PLACES, ETHER-PORTS, ETHER-SHIPS, ETHER-LEGENDS, ETHER-CROSSING, ETHER-CHART, ETHER-LIGHT, 2026-10-11; ETHER-CHART2, ELTHERIC, ETHER-DEEP, ETHER-NODES, 2026-10-12; ETHER-OW, 2026-10-13; ETHER-WILD, 2026-10-21; SEA-SET, 2026-10-22)
 
 The owner, 2026-10-11: *"A brand new open sea map that allows you to traverse to the etheric sea. Sail far enough and
 you are prompted to travel into the open sea. The etheric sea is a infinite procedural oceanscape with procedural
@@ -19,6 +19,9 @@ The owner, 2026-10-21: *"I want there to be more of a reason to venture into thi
 also like to implement open pvp for this zone specifficaly and implement some of the wrothgarian mountain open pvp
 aspects into the procedural Islands"* - ETHER-WILD: the sea past Veilhaven's peace an open PvP zone, its depth bands the
 Wrothgarian Mountains' four rings.
+
+The owner, 2026-10-22, of the reasons to venture that came with it: *"Build ever single bit of this and dont return until
+its perfected"* - the peace on the chart (ETHER-WILD), the deep's own gear (SEA-SET), and the sections after it.
 
 The pre-merge audit (AUDIT CAPTAIN'S SEA, the owner: "Lets do a comprehensive audit, enaure this is insanely detailed
 and perfection. No exceptions") is `01-Overview/audits/Audit-Captains-Sea.md`: its fixes stand in the sections below, each
@@ -73,6 +76,7 @@ thousand leagues:
 | ETHER-NODES | ITS NODES: the nodes' law knows the sea's ground - an isle's node, a haul and a pixel's witnesses taken by the service as the Bay's | `net/nodeLaw.js` (`pixelOk`, the ids' spelling) - both ends |
 | ETHER-OW | THE OVERWORLD PAST THE VEIL: the chart's Overworld door; an isle's place the view's own (plated, at the edge, TV6's); the governor's ground the stream's; the bands and the raiders seeded on the sea, their chases heard; a raider stood there the sea's own corsair | `ui/etherChartWindow.js` (the door), `scenes/travelView.js` (`TRAVEL_VIEW_BUTTON`), `world/ethericSea.js` (`onBayOrEther`), `world/etherPlaces.js` (`etherPlaceIsle`, `etherPlaceRows`), `scenes/world.js` (`openEtherChart`, `etherPlaceClone`, `tvEtherPlace`, `tvPlaceSummary`, `travelViewFarPlaces`, `tvDungeonRowsAt`, the governor, `bandOk`, `tvRaidOpen`, `tvRaidSea`), `systems/travel/travelBands.js` (`chaserPlaceOk`), `scenes/naval/navalHost.js` (`raiders`) |
 | ETHER-WILD | THE OPEN SEA: past Veilhaven's peace an open PvP zone, its bands the zone's four rings - the fights, the foes and their loot, the packs, the death's drop, the strangers, no teleport; the rise at a freeport; no pace cap; a hand ashore goes back aboard; the crossing's warning; /unstuck to a freeport | `systems/wild/etherWild.js`, `systems/wild/wildZone.js` (the ground on the flag, `registerZoneWords`, `zoneWord`), `scenes/world.js` (`wildFrame`, `wildAtWire`, `wildHidesPlayer`, `wildTeleportRefused`, `wildRiseSite`, `unstuckOutdoors`, `wildBornHere`, the crossing's rows), `scenes/dungeonContext.js` (`_wildRingRaw`), `scenes/grantHost.js` (`wildAbout`), `systems/naval/crewCompanions.js`, `systems/naval/etherCrossing.js`, `ui/hud/statusTips.js` |
+| SEA-SET | THE DEEP'S OWN GEAR: the Eltheric Tidemail, an Aetheric set the Deep Aether and the Abyss alone give up - a legend ended, a vault's pile, a ruin's pile, the fleet's flagship | `systems/sigil/sigilSets.js` (`eltheric`), `systems/sigil/sigilSetPowers.js` (`captainsDue`), `systems/aetheric.js` (`ELTHERIC_SET_PIECES`, `ELTHERIC_CHANCE`, `rollElthericPiece`), `systems/sea/seaSpoils.js`, `scenes/naval/navalHost.js` (`legendTidemail`, `gunsRefit`, `dueOnHull`), `scenes/dungeonContext.js` and `scenes/roomLootHost.js` (the piles), `systems/item/itemLaw.js` (law 10) |
 | (the ledger) | WHAT A CAPTAIN KEEPS OF IT: the isles charted, the legends ended and heard of, the strands gathered, the way out, the crossings - in the Captain save | `systems/naval/captainLedger.js` (`ether`, `chartIsle`, `endLegend`, `gathered`, `setCrossedFrom`, `crossed`, `hearLegend`), `scenes/etherHost.js` |
 
 THE FOUR HOSTS (Home.md; AUDIT CAPTAIN'S SEA H12 - the slices named none): the sea, its ships, the crossing, the chart
@@ -714,6 +718,29 @@ on the sea's killers; and the Wrothgarian halls' daily elite vaults for the Deep
 and crows.
 
 Pinned by `test/systems/wild/etherwild.test.js` (8); `tools/mutants/etherwild.json` (28, all dead).
+
+## SEA-SET - the deep's own gear: the Eltheric Tidemail
+
+A REASON TO GO DEEP. The Shallows and the Reaches pay as the Bay does; past them, the Deep Aether and the Abyss give up a
+set no other place in the world does - **The Eltheric Tidemail** (`11-Multiplayer/Sigil-Sets.md` section 6h: its law, its
+nine Adamantium records, its numbers). Its 2-piece is Stormwrack (shock resistance, Speed); its 4-piece Undertow, whose
+blow is whole only in the open sea and half anywhere else; its 6-piece the Captain's Due - the captain's ship's guns
+harder and her hull tougher. A set for the sea, worn at sea.
+
+WHERE THE DEEP GIVES IT UP (`systems/aetheric.js` `ELTHERIC_CHANCE`): a LEGEND ended - the Deep Aether's two a quarter of
+the time, the Abyss's two every time, into the boat the captain sails (`navalHost.js:"function legendTidemail(legend, seed) {"`,
+on her seed's own stream, beside her purse - so the Abyss's legends, the sea's hardest fights, always pay one); a VAULT
+of the deep's pile (a quarter, half - SEA-VAULTS); an isle's RUIN's treasure pile in those bands (a twentieth, a tenth -
+`systems/sea/seaSpoils.js` seaPileMore, the pile's last roll on its own dice: the layout's offline, the room's seeded base
+online, every client's alike); and the treasure fleet's flagship (every time - SEA-EVENTS). Each its source's LAST roll,
+so nothing the source rolled before moves.
+
+TRUSTED AS A LEGENDARY IS. The sea's legends and ruins are the client's (no relay or service receipt seeds them, as the
+gate's, the serpent's and a star's do), so these are the client's rolls; item law 10 holds every piece to its record -
+its make, its affixes, its sigil - and acct168 carries it. Named, not closed: a modified client can roll a piece the sea
+did not give it, as it can roll a Legendary.
+
+Pinned by `test/systems/sea/seaset.test.js`; `tools/mutants/seaset.json` (29, all dead).
 
 ## The ledger's record
 

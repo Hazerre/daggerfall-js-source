@@ -369,8 +369,8 @@
   {
     "name": "AH-T1-every-boat-refitted-alike",
     "file": "src/scenes/naval/navalHost.js",
-    "old": "    const k = Number(uid > 0 ? deps.refit?.({ uid })?.guns : 1);",
-    "new": "    const k = Number(deps.refit?.({ uid: 42 })?.guns ?? 1);",
+    "old": "    const refit = Number(uid > 0 ? deps.refit?.({ uid })?.guns : 1);",
+    "new": "    const refit = Number(deps.refit?.({ uid: 42 })?.guns ?? 1);",
     "tests": [
       "test/systems/naval/auditholdings.test.js"
     ]
