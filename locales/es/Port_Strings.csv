@@ -5646,6 +5646,7 @@ schools.wardwright.rider,"Durante {seconds} segundos, cada hechizo de Destrucci�
 schools.wardwright.spell,"Guarda prismática"
 sd.through.opens,"La Grieta está abierta. El Paso se abre a tu lado."
 sd.through.title,"El Paso"
+sd.through.to,"A la Hora Rota"
 sea.board.cargoVoid,"Contrato anulado - {title}. Ningún barco puede atracar allí."
 sea.chart.anIsle,"una isla"
 sea.chart.canvas,"Carta de {sea}: tu barco, las islas que has cartografiado, las profundidades, el Velo y las guaridas de las leyendas"

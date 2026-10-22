@@ -5646,6 +5646,7 @@ schools.wardwright.rider,"Por {seconds} segundos, cada feitiço de Destruição 
 schools.wardwright.spell,"Proteção Prismática"
 sd.through.opens,"A Fenda está aberta. A Passagem se abre ao seu lado."
 sd.through.title,"A Passagem"
+sd.through.to,"Para a Hora Partida"
 sea.board.cargoVoid,"Contrato anulado - {title}. Nenhum navio consegue atracar lá."
 sea.chart.anIsle,"uma ilha"
 sea.chart.canvas,"Carta de {sea}: seu navio, as ilhas que você mapeou, as profundezas, o Véu e os covis das lendas"

@@ -5646,6 +5646,7 @@ schools.wardwright.rider,"For {seconds} seconds, each Destruction spell that hit
 schools.wardwright.spell,"Prismatic Ward"
 sd.through.opens,"The Rift stands open. The Way Through opens beside you."
 sd.through.title,"The Way Through"
+sd.through.to,"To the Shattered Hour"
 sea.board.cargoVoid,"Contract void - {title}. No ship can make port there."
 sea.chart.anIsle,"an isle"
 sea.chart.canvas,"A chart of {sea}: your ship, the isles you have charted, the depths, the Veil and the legends' haunts"

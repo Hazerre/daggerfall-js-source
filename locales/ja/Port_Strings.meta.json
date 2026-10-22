@@ -12156,12 +12156,17 @@
  },
  "sd.through.opens": {
   "en": "1e72c7ca985d",
-  "tr": "d31b0444273b",
+  "tr": "351ace95ef70",
   "by": "claude-in-session"
  },
  "sd.through.title": {
   "en": "45d79739680d",
   "tr": "037c7d44fa17",
+  "by": "claude-in-session"
+ },
+ "sd.through.to": {
+  "en": "9adecd5690cd",
+  "tr": "95253ab443b7",
   "by": "claude-in-session"
  },
  "sea.exchange.band": {

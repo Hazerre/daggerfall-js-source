@@ -5646,6 +5646,7 @@ schools.wardwright.rider,"I {seconds} sekunder har hver trylleformel fra Ødelæ
 schools.wardwright.spell,"Prismeværn"
 sd.through.opens,"Riften står åben. Gennemgangen åbner sig ved din side."
 sd.through.title,"Gennemgangen"
+sd.through.to,"Til Den Knuste Time"
 sea.board.cargoVoid,"Kontrakt annulleret - {title}. Intet skib kan lægge til der."
 sea.chart.anIsle,"en ø"
 sea.chart.canvas,"Et søkort over {sea}: dit skib, de øer du har kortlagt, dybderne, Sløret og legendernes tilholdssteder"

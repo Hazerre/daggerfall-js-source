@@ -5646,6 +5646,7 @@ schools.wardwright.rider,"Timp de {seconds, plural, one {# secundă} few {# secu
 schools.wardwright.spell,"Pavăză prismatică"
 sd.through.opens,"Ruptura stă deschisă. Trecerea se deschide lângă tine."
 sd.through.title,"Trecerea"
+sd.through.to,"Spre Ceasul Sfărâmat"
 sea.board.cargoVoid,"Contract anulat - {title}. Nicio corabie nu poate acosta acolo."
 sea.chart.anIsle,"o insulă"
 sea.chart.canvas,"Harta: {sea} - corabia ta, insulele pe care le-ai cartografiat, adâncurile, Vălul și bârlogurile legendelor"

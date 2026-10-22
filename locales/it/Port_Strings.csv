@@ -5646,6 +5646,7 @@ schools.wardwright.rider,"Per {seconds} secondi, ogni incantesimo di Distruzione
 schools.wardwright.spell,"Protezione prismatica"
 sd.through.opens,"La Fenditura è aperta. Il Varco si apre accanto a te."
 sd.through.title,"Il Varco"
+sd.through.to,"All’Ora Infranta"
 sea.board.cargoVoid,"Contratto annullato - {title}. Nessuna nave può attraccare lì."
 sea.chart.anIsle,"un’isola"
 sea.chart.canvas,"Carta di {sea}: la tua nave, le isole che hai cartografato, le profondità, il Velo e i covi delle leggende"

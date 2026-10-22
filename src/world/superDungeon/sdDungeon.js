@@ -432,42 +432,61 @@ export function sdThroughStands(rec, s, now) {
   return !!rec && rec.s === s && rec.inAt != null && sdPhase(rec, now) === 'found';
 }
 /** The Way Through's plaque and the line said as it opens beside me - each read in the player's language as it is read
- *  (L10N4); its row the Rift's own. */
+ *  (L10N4; AUDIT SD-THROUGH B10: its row too - the Rift's own words, its own key, so the plaque is one language). */
 export const SD_THROUGH_TEXT = Object.freeze({
   get title() { return t('sd.through.title', 'The Way Through'); },
-  get to() { return SD_END_TEXT.riftTo; },
+  get to() { return t('sd.through.to', 'To the Shattered Hour'); },
   get opens() { return t('sd.through.opens', 'The Rift stands open. The Way Through opens beside you.'); },
 });
-/** Its ring across (m) - the Rift's least, a ring that stands in Daggerfall's corridors; how far ahead of me it opens (m,
- *  then half that); and how near the Hollow's own Rift I stand for none to open (m - the Rift is right there). */
+/** Its ring across (m) - the Rift's least, a ring that stands in Daggerfall's corridors; how far from me it opens (m,
+ *  then half that); and how near the Hollow's own Rift I stand for none to open yet (m - the Rift is right there). AUDIT
+ *  SD-THROUGH (B2): the way it leaves past it - a body's width beyond its rim and its air, on one side at least. */
 export const SD_THROUGH_SIZE_M = SD_RIFT_MIN_M;
 export const SD_THROUGH_AHEAD_M = 3;
 export const SD_THROUGH_NEAR_RIFT_M = 12;
-/** The bearings about a heading, nearest it first: ahead, then a quarter-turn's halves either side, then round to behind. */
-const AROUND = Object.freeze([0, 1, -1, 2, -2, 3, -3, 4].map((k) => (k * Math.PI) / 4));
+export const SD_THROUGH_PASS_M = 0.8;
+/** AUDIT SD-THROUGH (B1, B2): the bearings about a heading - beside the way I look first, off the line I walk (a half
+ *  quarter-turn either side), then straight ahead, then round to behind. */
+const BESIDE = Object.freeze([1, -1, 0, 2, -2, 3, -3, 4].map((k) => (k * Math.PI) / 4));
 /**
- * THE WAY THROUGH'S PLACE: before `feet` (the floor I stand on) along my heading `yaw` (forward [sin yaw, 0, cos yaw]) -
- * SD_THROUGH_AHEAD_M on, then half that, on the bearings nearest ahead first - the first spot on my own floor, a clear
- * line at chest height to it, whose ring stands clear in its face's plane (discClear); its face turned to me. Else the
- * first spot reached at all; else, boxed in, at my feet, facing my heading. Answers { at, size, face }, as sdRiftPlace.
+ * THE WAY THROUGH'S PLACE: about the floor under `feet`, by my heading `yaw` (forward [sin yaw, 0, cos yaw]) -
+ * SD_THROUGH_AHEAD_M off, then half that, on the bearings beside my way first (BESIDE) - the first spot on my own floor,
+ * a clear line at chest height to it, its face turned to me, where it STANDS WHOLE (AUDIT SD-THROUGH B2, B5 - from 200
+ * real entries a quarter stood through a wall or a ceiling, a third across a corridor, and a body off the floor stood it
+ * in the air): its ring clear in its face's plane (discClear) and over its axis to its top and its air, a way past it a
+ * body wide (SD_THROUGH_PASS_M) on one side at least, dry (`probe.water(x, z)`, the block's surface, where the probe
+ * knows one). With my feet off their floor (a jump, a fall, a swim, a climb) or no such spot, null: not yet - the host
+ * asks again as I move. Answers { at, size, face }, as sdRiftPlace.
  * @param {number[]} feet
  * @param {number} yaw
- * @param {SdProbe} probe
+ * @param {SdProbe & { water?: (x: number, z: number) => (number | null) }} probe
  */
 export function sdThroughPlace(feet, yaw, probe) {
   const size = SD_THROUGH_SIZE_M, a0 = Number.isFinite(yaw) ? yaw : 0;
-  let reached = null;
+  const ground = probe.floor(feet);
+  if (ground == null || Math.abs(ground - feet[1]) > SD_STEP_M) return null;
+  const foot = [feet[0], ground, feet[2]];
   for (const r of [SD_THROUGH_AHEAD_M, SD_THROUGH_AHEAD_M / 2]) {
-    for (const da of AROUND) {
+    for (const da of BESIDE) {
       const dir = [Math.sin(a0 + da), 0, Math.cos(a0 + da)];
-      const at = besideOn(feet, dir, r, probe);
+      const at = besideOn(foot, dir, r, probe);
       if (!at) continue;
       const face = [-dir[0], 0, -dir[2]];
-      if (discClear(at, size, face, probe)) return { at, size, face };
-      reached ??= { at, size, face };
+      if (standsWhole(at, size, face, probe)) return { at, size, face };
     }
   }
-  return reached ?? { at: [feet[0], feet[1], feet[2]], size, face: [Math.sin(a0), 0, Math.cos(a0)] };
+  return null;
+}
+/** AUDIT SD-THROUGH (B2): a ring that stands whole at `at` - its disc clear in its plane, its top and its air under the
+ *  ceiling over its axis, a body's way past it on one side, its foot dry. */
+function standsWhole(at, size, face, probe) {
+  if (!discClear(at, size, face, probe)) return false;
+  const R = size / 2, cy = at[1] + riftCentreY(size);
+  if (probe.ray([at[0], cy, at[2]], [0, 1, 0], R + SD_RIFT_AIR_M) != null) return false;
+  const chest = [at[0], at[1] + SD_CHEST_M, at[2]], past = R + SD_RIFT_AIR_M + SD_THROUGH_PASS_M;
+  if (probe.ray(chest, [-face[2], 0, face[0]], past) != null && probe.ray(chest, [face[2], 0, -face[0]], past) != null) return false;
+  const water = probe.water?.(at[0], at[2]);
+  return water == null || at[1] >= water;
 }
 
 /** Whether `feet` stand in a portal whose foot is `at`: within `reach` of its axis across the floor, between its foot

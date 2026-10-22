@@ -5646,6 +5646,7 @@ schools.wardwright.rider,"Pendant {seconds} secondes, chaque sort de Destruction
 schools.wardwright.spell,"Protection prismatique"
 sd.through.opens,"La Faille est ouverte. Le Passage s’ouvre à vos côtés."
 sd.through.title,"Le Passage"
+sd.through.to,"Vers l’Heure brisée"
 sea.board.cargoVoid,"Contrat annulé - {title}. Aucun navire ne peut y accoster."
 sea.chart.anIsle,"une île"
 sea.chart.canvas,"Carte de {sea} : votre navire, les îles que vous avez cartographiées, les profondeurs, le Voile et les repaires des légendes"

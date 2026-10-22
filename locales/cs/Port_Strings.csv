@@ -5646,6 +5646,7 @@ schools.wardwright.rider,"Na {seconds} s má každé kouzlo Ničení, které tě
 schools.wardwright.spell,"Duhová záštita"
 sd.through.opens,"Rozsedlina je otevřená. Vedle tebe se otevírá Průchod."
 sd.through.title,"Průchod"
+sd.through.to,"Do Roztříštěné hodiny"
 sea.board.cargoVoid,"Kontrakt zrušen - {title}. Žádná loď tam nemůže přistát."
 sea.chart.anIsle,"ostrov"
 sea.chart.canvas,"Mapa: {sea} - tvá loď, ostrovy, které jsi zmapoval, hlubiny, Závoj a doupata legend"

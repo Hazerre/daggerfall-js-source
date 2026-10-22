@@ -5646,6 +5646,7 @@ schools.wardwright.rider,"I {seconds} sekunder har hver trolldom fra Ødeleggels
 schools.wardwright.spell,"Prismevern"
 sd.through.opens,"Kløften står åpen. Gjennomgangen åpner seg ved siden av deg."
 sd.through.title,"Gjennomgangen"
+sd.through.to,"Til Den Knuste Time"
 sea.board.cargoVoid,"Kontrakten er annullert - {title}. Ingen skip kan legge til der."
 sea.chart.anIsle,"ei øy"
 sea.chart.canvas,"Et sjøkart over {sea}: skipet ditt, øyene du har kartlagt, dypene, Sløret og legendenes tilholdssteder"

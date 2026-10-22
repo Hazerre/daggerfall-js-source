@@ -132,12 +132,13 @@ export const SD_RIFT_PRESS_M = 0.35;
 /** AUDIT SD IV (F33): THE RIFT'S PRESS IS ITS RING - a box turned with it (`base`, the stand's), its gear's span across,
  *  foot to top, SD_RIFT_PRESS_M either side of its plane, and the world box about that; no surface in the collider. Its
  *  whole sweep's cube (half its size every way, its size high) took the presses at the bodies and the floor before it. */
-function riftPress(r, key = SD_RIFT_KEY) {
+function riftPress(r, key = SD_RIFT_KEY, yields = false) {
   const R = r.size / 2, top = r.cy + R, D = SD_RIFT_PRESS_M, b = r.base;
   const hx = Math.abs(b[0]) * R + Math.abs(b[8]) * D, hz = Math.abs(b[2]) * R + Math.abs(b[10]) * D;
   return {
     key, aabb: { min: [r.at[0] - hx, r.at[1], r.at[2] - hz], max: [r.at[0] + hx, r.at[1] + top, r.at[2] + hz] },
     obb: { m: Float64Array.from(b), box: [-R, 0, -D, R, top, D] }, noSurface: true, distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE,
+    ...(yields ? { yields: true } : {}),   // AUDIT SD-THROUGH (B3): the Way Through's - a door, a body or a chest behind it answers first (player/activate.js firmFirst)
   };
 }
 
@@ -178,10 +179,13 @@ function standAtN(m, at, n, iLift, iYaw) {
  * long its Hour stands (world/superDungeon/sdDungeon.js sdRiftCount), or null. SD-LOOK: `look()` its state (world/superDungeon/sdDungeon.js
  * riftLook - open by default), `clock()` the realm's anchored seconds (every screen's gear ticks together; `now`'s without).
  * SD-THROUGH: `riftKey` and `riftTitle` the ring's own press key and plaque title - the Way Through is a second Rift
- * (scenes/superDungeon/sdThrough.js), pressed and named apart from the Hollow's.
- * @param {{ renderer?: any, audio?: any, now?: () => number, onRift?: () => (boolean|null|void), onReturn?: () => void, riftTo?: string, retTitle?: string, retTo?: string, riftCount?: () => (string | null), look?: () => any, clock?: () => number, riftKey?: string, riftTitle?: string }} [deps]
+ * (scenes/superDungeon/sdThrough.js), pressed and named apart from the Hollow's. AUDIT SD-THROUGH: `riftTitle` and `riftTo` may be
+ * functions, read as the plaque is (B10: the player's language as it stands); `walkIn` false takes the ring by a press
+ * alone (B1: the way home's law, AUDIT SD II L6 F9 - the Way Through stands where players walk); `riftYields` its press
+ * gives way to anything firm behind it (B3).
+ * @param {{ renderer?: any, audio?: any, now?: () => number, onRift?: () => (boolean|null|void), onReturn?: () => void, riftTo?: string | (() => string), retTitle?: string, retTo?: string, riftCount?: () => (string | null), look?: () => any, clock?: () => number, riftKey?: string, riftTitle?: string | (() => string), walkIn?: boolean, riftYields?: boolean }} [deps]
  */
-export function createSdEnd({ renderer = null, audio = null, now = () => performance.now(), onRift = () => {}, onReturn = () => {}, riftTo = SD_END_TEXT.riftTo, retTitle = SD_END_TEXT.ret, retTo = SD_END_TEXT.retTo, riftCount = () => null, look = () => SD_RIFT_OPEN_LOOK, clock = null, riftKey = SD_RIFT_KEY, riftTitle = SD_END_TEXT.rift } = {}) {
+export function createSdEnd({ renderer = null, audio = null, now = () => performance.now(), onRift = () => {}, onReturn = () => {}, riftTo = SD_END_TEXT.riftTo, retTitle = SD_END_TEXT.ret, retTo = SD_END_TEXT.retTo, riftCount = () => null, look = () => SD_RIFT_OPEN_LOOK, clock = null, riftKey = SD_RIFT_KEY, riftTitle = SD_END_TEXT.rift, walkIn = true, riftYields = false } = {}) {
   /** @type {any} */
   let rift = null;
   /** @type {any} AUDIT SD II (L6 F9, F16): when it began to rise, whether it has, and whether only a press takes it (the
@@ -197,7 +201,7 @@ export function createSdEnd({ renderer = null, audio = null, now = () => perform
   let _targets = NONE;
   const retarget = () => {
     const out = [];
-    if (rift) out.push(riftPress(rift, riftKey));
+    if (rift) out.push(riftPress(rift, riftKey, riftYields));
     if (ret) out.push({ key: SD_RETURN_KEY, aabb: boxOf(ret.at, (SD_RETURN_SIZE.w / 2) * ret.scale, SD_RETURN_SIZE.h * ret.scale), distance: RAY_DISTANCE, reach: DEFAULT_ACTIVATION_DISTANCE });   // SD-LOOK S6: pressed where it stands, at its size
     _targets = out.length ? Object.freeze(out) : NONE;
   };
@@ -328,7 +332,7 @@ export function createSdEnd({ renderer = null, audio = null, now = () => perform
       const dx = feet[0] - lastFeet[0], dy = feet[1] - lastFeet[1], dz = feet[2] - lastFeet[2];
       const gap = t - lastAt[0] > SD_STEP_GAP_MS || !hasLast || dx * dx + dy * dy + dz * dz > SD_STEP_JUMP_M * SD_STEP_JUMP_M;
       lastAt[0] = t; lastFeet[0] = feet[0]; lastFeet[1] = feet[1]; lastFeet[2] = feet[2]; hasLast = true;
-      const inRift = !!rift && inSdPortal(feet, rift.at, Math.min(SD_RIFT_REACH_M, rift.size / 4), rift.size);
+      const inRift = !!rift && walkIn && inSdPortal(feet, rift.at, Math.min(SD_RIFT_REACH_M, rift.size / 4), rift.size);   // AUDIT SD-THROUGH (B1): a ring pressed alone is never walked into
       const inRet = !!ret && !ret.pressed && inSdPortal(feet, ret.at, SD_RETURN_REACH_M, SD_RETURN_SIZE.h);   // AUDIT SD II (L6 F9): the way home pressed alone
       const enteredRift = inRift && wasRift === false && !gap;
       const enteredRet = inRet && wasRet === false && !gap;
@@ -342,7 +346,7 @@ export function createSdEnd({ renderer = null, audio = null, now = () => perform
     targets() { return _targets; },
     /** The plaque's words for either - a namer is handed every key the ray can win. */
     hoverName(key) {
-      if (key === riftKey && rift) { const n = riftCount(); return { title: riftTitle, subs: n ? [riftTo, n] : [riftTo] }; }   // AUDIT SD II (L6 F5): and how long its Hour stands
+      if (key === riftKey && rift) { const n = riftCount(), to = typeof riftTo === 'function' ? riftTo() : riftTo; return { title: typeof riftTitle === 'function' ? riftTitle() : riftTitle, subs: n ? [to, n] : [to] }; }   // AUDIT SD II (L6 F5): and how long its Hour stands
       if (key === SD_RETURN_KEY && ret) { ret.hoverAt = now(); return { title: retTitle, subs: [retTo] }; }   // SD10: the Hour's way home says its own; SD-LOOK S6: its hand-plate lights
       return null;
     },
