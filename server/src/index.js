@@ -184,6 +184,9 @@ import { isInstanceRoom, instanceOf, instanceAdmission, partyHoldsOwner, INSTANC
 import { isStaff } from '../../src/net/staffCommands.js';
 import { RELAY_CFG_TTL_MS, RELAY_INTERNAL_CFG, mayRelayCfg, relayCfgValue } from '../../src/net/relayCfg.js';   // SCALE5b: the relay's settings, at run time
 import { leaseKeyOf, mintLease, readLease, leaseRoom, LEASE_FRAME_MIN_MS, LEASE_OLD_REASON } from '../../src/net/roomLease.js';   // LEASE1: the hub's word on every socket, in every room
+/** LEASE1 (the fourth review of the PR): a frame of a build that hands on no lease asks the hub's door at most this often -
+ *  never once a minute (mob's load), yet one let in before the door went on at the hub is turned away within it. */
+const LEASE_OLD_ASK_MS = 10 * RELAY_CFG_TTL_MS;
 import { busOf, shardOf, isChannelShard, isChannelBus, isRegionBus, isCourtCopy, courtOfCopy, upOf, HUB_INTERNAL_UP, HUB_INTERNAL_POLL, HUB_POLL_MS, HUB_OUTBOX_MAX, HUB_OUTBOX_BYTES, HUB_BATCH_MS, HUB_SYNC_MS, HUB_COUNT_MS, HUB_BATCH_MAX, CLOSE_HUB, HUB_FIND_MAX, HUB_FIND_ROOM_HZ_MAX, HUB_GUILD_WHO_MAX, HUB_WHO_KEEP_MS, HUB_FRAME_MAX, HUB_UP_HZ_MAX, HUB_UP_BURST, shardKeeps, foldFind, HUB_BATCH_BYTES, HUB_UP_QUEUE_BYTES, HUB_SILENT_MS, SHARD_LAW_KEYS, HUB_KEY_KEY } from '../../src/net/hubShards.js';   // SCALE5c: the hub, sixteen ways
 import { verifyToken, verifyOrder, verifyStakeOrderAnyAge, importPublicKeyB64, MAX_TTL_S, ORDER_TTL_S, renownIssuable, deckDigest, remainsDigest, _b64url } from '../../src/net/identityToken.js';   // MOD1: and the mute order, checked with the same key; AUDIT SAFE RELAY-10: and an order's claims read for its kind (`lawKindOf`)
 /** ACC1d/F8: the most spent signatures one room remembers. Every entry
@@ -7033,9 +7036,10 @@ export class Room {
    *  affected load times", "if we affected server performasnce" - every lease room asked the hub's one object once a
    *  minute, and a fresh room's first frame past a hello waited on it): the ask goes beside, and its answer is the next
    *  frame's. `ls` is the game's own word, so a wait would buy no lock. Asked beside at most once a TTL, and with `ask`
-   *  false not at all: a frame of a build that hands on no lease asks only when this wake has never asked (a review of
-   *  the PR: with the door off, every lease room holding an old build asked the hub once a minute - the load mob would
-   *  not have). (A bound socket's frame with no live lease waits on the answer: `_leaseHeard`.) */
+   *  false not at all: a frame of a build that hands on no lease asks only once in LEASE_OLD_ASK_MS (a review of the PR:
+   *  with the door off, every lease room holding an old build asked the hub once a minute - the load mob would not have;
+   *  the fourth: asked only once a wake, one let in before the door went on at the hub was heard for the whole wake).
+   *  (A bound socket's frame with no live lease waits on the answer: `_leaseHeard`.) */
   async _leaseDoorOn(now, ask = true) {
     const cfg = await this._relayCfgOf();
     if (ask) void this._relayCfgFresh(now);
@@ -7052,14 +7056,27 @@ export class Room {
    *  did not know the door was on) is turned away as its hello would be. A bound socket's door is never a guess: its frame
    *  waits on the hub's answer in flight, or asks it first in a wake that never has (the reviews: a woken room heard an
    *  unleased frame on the Worker's var, and a second frame during the first's wait did too) - a socket with a live lease
-   *  never comes here, so honest play never waits. */
+   *  never comes here, so honest play never waits but behind a frame of its own. THE FOURTH REVIEW: a frame that waited
+   *  is judged on the socket as it stands after the wait, never as it stood before (a lease that landed meanwhile - its
+   *  mute, its freeze - was written back over with the old attachment, door off), and a socket's later frames wait
+   *  behind it (`dq`), so they are heard in the order they were said. */
   async _leaseHeard(ws, a) {
     if (ws.virtual) return a;
-    if (a.ld != null && !(a.ld * 1000 >= Date.now())) { await this._meterOf(ws).lp; a = this._attach(ws); if (!a) return null; }
+    const meter = this._meterOf(ws);
+    while (meter.dq) { await meter.dq.catch(() => null); if (!(a = this._attach(ws))) return null; }
+    if (a.ld != null && !(a.ld * 1000 >= Date.now())) { await meter.lp; a = this._attach(ws); if (!a) return null; }
     const now = Date.now();
     if (a.ld != null ? a.ld * 1000 >= now : !a.id || !leaseRoom(a.key ?? this._busKey)) return a;
-    if (a.ld != null) await (this._relayCfgAt === -Infinity ? this._relayCfgFresh(now) : this._relayCfgP);
-    if (!(await this._leaseDoorOn(now, a.ld != null || this._relayCfgAt === -Infinity))) return a;
+    const door = meter.dq = this._leaseDoor(ws, a.ld != null, now);
+    try { return await door; } finally { if (meter.dq === door) meter.dq = null; }
+  }
+  /** LEASE1: `_leaseHeard`'s wait at the door, for a frame with no live lease - the attachment to hear it under, or null. */
+  async _leaseDoor(ws, bound, now) {
+    if (bound) await (this._relayCfgAt === -Infinity ? this._relayCfgFresh(now) : this._relayCfgP);
+    const on = await this._leaseDoorOn(now, bound || now - this._relayCfgAt >= LEASE_OLD_ASK_MS);
+    const a = this._attach(ws);
+    if (!a) return null;
+    if (!on || a.ld * 1000 >= Date.now()) return a;
     if (a.ld == null) this._refuse(ws, GROUND_OLD_WORDS, CLOSE_POLICY, LEASE_OLD_REASON);
     return null;
   }

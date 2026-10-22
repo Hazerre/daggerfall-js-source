@@ -123,13 +123,17 @@ function staffHandles(env) {
 /** ONE AUDIT ROW, as a statement for the batch it belongs to. `detail` is a small object, kept as JSON. `outcome` ok,
  *  denied (a role's door refused it) or failed (it changed nothing) - a review of the PR: a failed act read as done. `okIf`
  *  an EXISTS the batch's own next statement changes a row by, asked ahead of it in the same transaction - ok when it holds,
- *  failed when not. `onceIn` seconds: written only when this member wrote no row of this kind in them.
+ *  failed when not. `onceIn` seconds: written only when this member wrote no row of this kind, about this target with this
+ *  detail, in them (the fourth review of the PR: keyed on the member alone, a second member's read, or another view of
+ *  the log, inside one member's window left no trace).
  *  @param {any} db @param {number} nowS
  *  @param {{ actor?: any, role?: string|null, act: string, target?: string|null, detail?: object|null, keyId?: string|null, outcome?: 'ok'|'denied'|'failed', okIf?: { sql: string, args: unknown[] }|null, onceIn?: number }} row */
-export const auditStatement = (db, nowS, { actor = null, role = null, act, target = null, detail = null, keyId = null, outcome = 'ok', okIf = null, onceIn = 0 }) =>
-  db.prepare(`INSERT INTO staff_audit (at, actor, actor_name, role, act, target, detail, key_id, outcome) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ${okIf ? `CASE WHEN ${okIf.sql} THEN 'ok' ELSE 'failed' END` : '?'}${onceIn ? ' WHERE NOT EXISTS (SELECT 1 FROM staff_audit WHERE actor = ? AND act = ? AND at > ?)' : ''}`)
-    .bind(nowS, actor?.id ?? null, actor ? displayName(actor) : null, role, act, target, detail ? JSON.stringify(detail) : null, keyId,
-      ...(okIf ? okIf.args : [outcome]), ...(onceIn ? [actor?.id ?? null, act, nowS - onceIn] : []));
+export const auditStatement = (db, nowS, { actor = null, role = null, act, target = null, detail = null, keyId = null, outcome = 'ok', okIf = null, onceIn = 0 }) => {
+  const said = detail ? JSON.stringify(detail) : null;
+  return db.prepare(`INSERT INTO staff_audit (at, actor, actor_name, role, act, target, detail, key_id, outcome) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ${okIf ? `CASE WHEN ${okIf.sql} THEN 'ok' ELSE 'failed' END` : '?'}${onceIn ? ' WHERE NOT EXISTS (SELECT 1 FROM staff_audit WHERE actor = ? AND act = ? AND target IS ? AND detail IS ? AND at > ?)' : ''}`)
+    .bind(nowS, actor?.id ?? null, actor ? displayName(actor) : null, role, act, target, said, keyId,
+      ...(okIf ? okIf.args : [outcome]), ...(onceIn ? [actor?.id ?? null, act, target, said, nowS - onceIn] : []));
+};
 
 /** The handle a body names, folded as the lists fold it. @param {unknown} h */
 const handleLc = (h) => (typeof h === 'string' ? h.trim().toLowerCase().slice(0, 64) : '');
@@ -400,16 +404,17 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
     ]);
     return { ok: true, handle: target.handle, role, invite: code, expiresAt: until };
   }
-  // /v1/staff/audit { actor?, target?, act?, before?, limit? } - newest first; the read is itself a row (its first page, once
-  // in STAFF_READ_ROW_S)
+  // /v1/staff/audit { actor?, target?, act?, before?, limit? } - newest first; the read is itself a row, once in
+  // STAFF_READ_ROW_S a view (its filters) whatever its page - `before` is the caller's word, so a read that named one
+  // was a read left unwritten (the fourth review of the PR: any `before` past the newest row is the first page)
   const str = (/** @type {unknown} */ v) => (typeof v === 'string' && v ? v.slice(0, 64) : null);
   const before = Number.isSafeInteger(body.before) && body.before > 0 ? body.before : null;
   const limit = Number.isSafeInteger(body.limit) ? Math.min(Math.max(body.limit, 1), STAFF_AUDIT_PAGE) : STAFF_AUDIT_PAGE;
-  const q = { actor: str(body.actor), target: str(body.target), act: str(body.act), before };
+  const view = { actor: str(body.actor), target: str(body.target), act: str(body.act) };
   const r = await db.prepare(`SELECT * FROM staff_audit WHERE (?1 IS NULL OR actor = ?1) AND (?2 IS NULL OR target = ?2)
     AND (?3 IS NULL OR act = ?3) AND (?4 IS NULL OR id < ?4) ORDER BY id DESC LIMIT ?5`)
-    .bind(q.actor, q.target, q.act, q.before, limit).all();
-  if (!q.before) await audit('audit-read', q.target, q, { onceIn: STAFF_READ_ROW_S }).run();
+    .bind(view.actor, view.target, view.act, before, limit).all();
+  await audit('audit-read', view.target, view, { onceIn: STAFF_READ_ROW_S }).run();
   return {
     rows: (r.results ?? []).map((a) => {
       let detail = null;

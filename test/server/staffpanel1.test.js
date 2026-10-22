@@ -288,29 +288,38 @@ test('STAFF-PANEL1: the audit log is append-only, read by owners alone, and its 
   assert.throws(() => s.raw.prepare('DELETE FROM staff_audit').run(), /append-only/);
 });
 
-test('STAFF-PANEL1 (mob, 12:08Z, a review of the PR: "Audit log reads generate additional audit entries", "don\'t distinguish successful and failed operations", "No retention"; 12:12Z: "only keep for one month"): a read of the log, the team or the moderators is a row once in STAFF_READ_ROW_S and a page past the first never; every row says ok, denied or failed - a key forgotten that was not there failed, a role\'s door refused denied, a refused sign-in denied; and the hourly job deletes rows past STAFF_AUDIT_KEEP_S, the trigger every newer (mutants: every read a row; a page a row; a failed act ok; a forgotten key\'s outcome turned; the outcome unsaid; a refusal unwritten; a refused sign-in ok; the read\'s outcome unread; the month unkept; the job deleting the month; the trigger\'s month moved; the month a year)', async (t) => {
+test('STAFF-PANEL1 (mob, 12:08Z, a review of the PR: "Audit log reads generate additional audit entries", "don\'t distinguish successful and failed operations", "No retention"; 12:12Z: "only keep for one month"): a read of the log, the team or the moderators is a row once in STAFF_READ_ROW_S a member and a view, whatever its page (the fourth review: a `before` wrote no row at all, and a member\'s window hid every other member\'s read); every row says ok, denied or failed - a key forgotten that was not there, or another member\'s, failed, a role\'s door refused denied, a refused sign-in denied; and the hourly job deletes rows past STAFF_AUDIT_KEEP_S, the trigger every newer (mutants: every read a row; a `before` no row; one member\'s window everyone\'s; one view\'s window every view\'s; another\'s key forgotten done; a failed act ok; a forgotten key\'s outcome turned; the outcome unsaid; a refusal unwritten; a refused sign-in ok; the read\'s outcome unread; the month unkept; the job deleting the month; the trigger\'s month moved; the month a year)', async (t) => {
   const t0 = Date.now();
   let off = 0;
   t.mock.method(Date, 'now', () => t0 + off);
   const s = await stand();
   await s.registered('SirMcMobdon');
   await s.registered('Asynian');
+  await s.registered('Lattymoy');
   const me = await s.mobIn();
   const tok = { token: me.session };
   const rows = (act) => s.raw.prepare('SELECT outcome, detail FROM staff_audit WHERE act = ? ORDER BY id').all(act);
-  // reads: the first page once in STAFF_READ_ROW_S, a page past it never
+  const reads = () => ['audit-read', 'team-read', 'mods-read'].map((a) => rows(a).length);
+  // reads: once in STAFF_READ_ROW_S a member and a view, whatever the page
   await s.staff('/v1/staff/audit', {}, tok);
   await s.staff('/v1/staff/audit', {}, tok);
   await s.staff('/v1/staff/audit', { before: 1_000_000 }, tok);
   await s.staff('/v1/staff/team', {}, tok);
   await s.staff('/v1/staff/team', {}, tok);
-  assert.deepEqual([rows('audit-read').length, rows('team-read').length], [1, 1], 'a read again inside STAFF_READ_ROW_S, and a page, write nothing');
+  await s.staff('/v1/staff/mods', {}, tok);
+  assert.deepEqual(reads(), [1, 1, 1], 'a read again inside STAFF_READ_ROW_S, and a page of it, write nothing');
+  assert.deepEqual(JSON.parse(rows('audit-read')[0].detail), { actor: null, target: null, act: null }, 'the row is the view, never its page');
+  await s.staff('/v1/staff/audit', { target: 'acct-someone' }, tok);
+  assert.equal(rows('audit-read').length, 2, 'another view of the log inside the window: a row of its own');
+  const latty = await s.invited('Lattymoy', me);
+  await s.staff('/v1/staff/audit', {}, { token: latty.session });
+  await s.staff('/v1/staff/team', {}, { token: latty.session });
+  await s.staff('/v1/staff/mods', {}, { token: latty.session });
+  assert.deepEqual(reads(), [3, 2, 2], 'another member\'s read inside the first\'s window: theirs, written');
   off += STAFF_READ_ROW_S * 1000 + 1000;
-  assert.equal((await s.staff('/v1/staff/audit', { before: 1_000_000 }, tok)).status, 200);
-  assert.equal(rows('audit-read').length, 1, 'past it, a page past the first is still no row');
-  await s.staff('/v1/staff/audit', {}, tok);
+  assert.equal((await s.staff('/v1/staff/audit', { before: Number.MAX_SAFE_INTEGER }, tok)).status, 200);
   await s.staff('/v1/staff/team', {}, tok);
-  assert.deepEqual([rows('audit-read').length, rows('team-read').length], [2, 2], 'and the next first page is');
+  assert.deepEqual(reads(), [4, 3, 2], 'past it, the next read is a row - one naming a `before` too (any past the newest row is the first page)');
   // outcomes: done, changed nothing, refused
   const mod = await s.invited('Asynian', me);
   assert.equal((await s.staff('/v1/staff/team', {}, { token: mod.session })).body.error, 'staff-owner');
@@ -321,12 +330,16 @@ test('STAFF-PANEL1 (mob, 12:08Z, a review of the PR: "Audit log reads generate a
   assert.deepEqual(rows('login-refused').map((r) => r.outcome), ['denied'], 'a refused sign-in: denied');
   assert.equal((await s.staff('/v1/staff/key/forget', { id: 'no-such-key' }, { token: mod.session })).body.error, 'no-key');
   assert.deepEqual(rows('key-forget').map((r) => r.outcome), ['failed'], 'a key that was not there: failed, never done');
+  const [theirs] = (await s.staff('/v1/staff/keys', {}, { token: latty.session })).body.keys;
+  assert.equal((await s.staff('/v1/staff/key/forget', { id: theirs.id }, { token: mod.session })).body.error, 'no-key');
+  assert.deepEqual(rows('key-forget').map((r) => r.outcome), ['failed', 'failed'], 'another member\'s key: failed, never done');
+  assert.deepEqual((await s.staff('/v1/staff/keys', {}, { token: latty.session })).body.keys.map((k) => k.id), [theirs.id], 'and still theirs');
   const [own] = (await s.staff('/v1/staff/keys', {}, { token: mod.session })).body.keys;
   assert.equal((await s.staff('/v1/staff/key/forget', { id: own.id }, { token: mod.session })).body.ok, true);
-  assert.deepEqual(rows('key-forget').map((r) => r.outcome), ['failed', 'ok']);
+  assert.deepEqual(rows('key-forget').map((r) => r.outcome), ['failed', 'failed', 'ok']);
   assert.ok([...rows('invite'), ...rows('enrolled'), ...rows('login')].every((r) => r.outcome === 'ok'));
   const read = await s.staff('/v1/staff/audit', { act: 'key-forget' }, tok);
-  assert.deepEqual(read.body.rows.map((r) => r.outcome), ['ok', 'failed'], 'the read says it, newest first');
+  assert.deepEqual(read.body.rows.map((r) => r.outcome), ['ok', 'failed', 'failed'], 'the read says it, newest first');
   // the month: the hourly job deletes rows past it, and nothing deletes a newer one
   const real = Math.floor(t0 / 1000) + Math.floor(off / 1000);
   const put = s.raw.prepare("INSERT INTO staff_audit (at, act) VALUES (?, 'old')");

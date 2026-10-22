@@ -100,11 +100,32 @@
     ]
   },
   {
-    "name": "STAFF-PANEL1-a-page-a-row",
+    "name": "STAFF-PANEL1-a-before-no-row",
     "file": "server-account/src/staff.js",
-    "old": "  if (!q.before) await audit(",
-    "new": "  await audit(",
-    "why": "every page of the log a row",
+    "old": "  await audit('audit-read', view.target, view, { onceIn: STAFF_READ_ROW_S }).run();",
+    "new": "  if (!before) await audit('audit-read', view.target, view, { onceIn: STAFF_READ_ROW_S }).run();",
+    "why": "a read naming a `before` leaves no row, and any `before` past the newest row is the first page",
+    "tests": [
+      "test/server/staffpanel1.test.js"
+    ],
+    "note": "STAFF-PANEL1 REVIEW IV (2026-10-22, PIN TURNED): was STAFF-PANEL1-a-page-a-row, which pinned that bypass as right."
+  },
+  {
+    "name": "STAFF-PANEL1-one-members-window-everyones",
+    "file": "server-account/src/staff.js",
+    "old": "WHERE actor = ? AND act = ?",
+    "new": "WHERE ? IS NOT NULL AND act = ?",
+    "why": "one member's read hides every other member's for STAFF_READ_ROW_S",
+    "tests": [
+      "test/server/staffpanel1.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL1-one-views-window-every-views",
+    "file": "server-account/src/staff.js",
+    "old": "AND target IS ? AND detail IS ?",
+    "new": "AND (? IS NULL OR 1) AND (? IS NULL OR 1)",
+    "why": "a look at another player's rows, inside the window, leaves no trace",
     "tests": [
       "test/server/staffpanel1.test.js"
     ]
@@ -125,6 +146,16 @@
     "old": "revoked_at IS NULL)', args: [body.id, me.id]",
     "new": "revoked_at IS NOT NULL)', args: [body.id, me.id]",
     "why": "a key forgotten read failed, one not there read done",
+    "tests": [
+      "test/server/staffpanel1.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL1-anothers-key-forgotten-done",
+    "file": "server-account/src/staff.js",
+    "old": "WHERE id = ? AND player_id = ? AND revoked_at IS NULL)', args: [body.id, me.id]",
+    "new": "WHERE id = ? AND ? IS NOT NULL AND revoked_at IS NULL)', args: [body.id, me.id]",
+    "why": "a Moderator forgetting another member's key is written done, and nothing was forgotten",
     "tests": [
       "test/server/staffpanel1.test.js"
     ]
@@ -213,11 +244,12 @@
     "name": "STAFF-PANEL1-the-triggers-month-moved",
     "file": "server-account/migrations/0144_staff_panel.sql",
     "old": "CAST(strftime('%s', 'now') AS INTEGER) - 2588400",
-    "new": "CAST(strftime('%s', 'now') AS INTEGER) - 25884000",
+    "new": "CAST(strftime('%s', 'now') AS INTEGER) - 3600",
     "why": "the trigger lets anyone delete rows the month still keeps",
     "tests": [
       "test/server/staffpanel1.test.js"
-    ]
+    ],
+    "note": "STAFF-PANEL1 REVIEW IV (2026-10-22): its number was a year, which tightened the trigger; an hour loosens it, as its why says."
   },
   {
     "name": "STAFF-PANEL1-the-month-a-year",

@@ -11,7 +11,7 @@ import { fakeSocketClass } from '../fakeSocket.mjs';
 import * as H from '../../src/net/hubShards.js';
 import { leaseKeyOf, mintLease, readLease, leaseRoom, relaySupportsLease, LEASE_MS, LEASE_LIFE_S, LEASE_FRAME_MIN_MS, LEASE_HELD_MS, LEASE_HAND_MIN_MS, LEASE_OLD_REASON } from '../../src/net/roomLease.js';
 import { parseClient, cellRoomOfWire, chatRegionRoom, chatLangRoom, CHAT_WORLD_ROOM, CHAT_TRADE_ROOM, CHAT_LFG_ROOM, CLOSE_BUSY, CLOSE_POLICY, PIXEL_UNITS, LEASE_WIRE_MAX, GROUND_LAW, GRANT_HELLO_LAW } from '../../src/net/wire.js';
-import { RELAY_CFG_KEYS, RELAY_INTERNAL_CFG } from '../../src/net/relayCfg.js';
+import { RELAY_CFG_KEYS, RELAY_INTERNAL_CFG, RELAY_CFG_TTL_MS } from '../../src/net/relayCfg.js';
 import { mintOrder, _b64url } from '../../src/net/identityToken.js';
 import { OnlineSession, roomKeyFor } from '../../src/net/online.js';
 import { createSailingCabinLink } from '../../src/net/sailingCabinLink.js';
@@ -357,13 +357,14 @@ test('LEASE1 THE LOAD (mob, 07:57Z: "we need to test if this affected load times
       assert.equal(asked, 2, 'its unleased frame waited on the hub');
       assert.ok(!lines(ear).includes('a cold room'), 'and was not heard');
       assert.equal(bare.closed, null, 'it stands: its lease may be on its way');
-      // the third review: two frames of a cold room's bound socket at once - the second waits on the first's ask, never a guess
+      // the third review: frames of a cold room's bound sockets at once - each after the first waits on its ask, never a guess
+      // (the fourth: a socket's own second frame waits behind its first, another socket's on the ask in flight)
       const fr = room(chatLangRoom('fr'));
-      const frEar = await join(fr, 'ear-0002', cur2), frBare = await join(fr, 'bare-0002', cur2);
+      const frEar = await join(fr, 'ear-0002', cur2), frBare = await join(fr, 'bare-0002', cur2), frOther = await join(fr, 'bare-0012', cur2);
       clock += 1000;
-      await Promise.all([fr.raw(frBare, JSON.stringify({ t: 'chat', text: 'first at once' })), fr.raw(frBare, JSON.stringify({ t: 'chat', text: 'second at once' }))]);
-      assert.equal(asked, 3, 'one ask for both');
-      assert.ok(!lines(frEar).includes('first at once') && !lines(frEar).includes('second at once'), 'and neither heard');
+      await Promise.all([fr.raw(frBare, JSON.stringify({ t: 'chat', text: 'first at once' })), fr.raw(frBare, JSON.stringify({ t: 'chat', text: 'second at once' })), fr.raw(frOther, JSON.stringify({ t: 'chat', text: 'another at once' }))]);
+      assert.equal(asked, 3, 'one ask for all three');
+      assert.ok(!['first at once', 'second at once', 'another at once'].some((l) => lines(frEar).includes(l)), 'and none heard');
       // and a socket whose lease lapsed, in a room just woken (its settings gone with the object, the socket kept)
       const it = room(chatLangRoom('it'));
       const itEar = await join(it, 'ear-0003', cur2), itLap = await join(it, 'lap-0003', cur2);
@@ -375,6 +376,119 @@ test('LEASE1 THE LOAD (mob, 07:57Z: "we need to test if this affected load times
       await it.raw(itLap, JSON.stringify({ t: 'chat', text: 'lapsed in a woken room' }));
       assert.equal(asked, was + 1, 'its frame waited on the hub');
       assert.ok(!lines(itEar).includes('lapsed in a woken room'), 'and was not heard');
+    });
+  } finally { Date.now = realNow; }
+});
+
+test('LEASE1 THE FOURTH REVIEW OF THE PR: a frame that waited at the door is heard under the socket as it stands after the wait - a lease that landed meanwhile, its mute or its freeze, stands - and the socket\'s later frames wait behind it, kept in their order; a bound socket\'s frame asks again past the TTL in a room that asked with the door off; and a build that hands on no lease asks once in LEASE_OLD_ASK_MS, in a room just woken first, so one let in before the door went on at the hub is turned away (mutants: the wait judged on the old socket; frames out of order; an old build asking once a wake; a bound socket never asking again; a woken room\'s old build never asking; an old build asking every minute)', async () => {
+  const realNow = Date.now;
+  let clock = 1_800_000_000_000;
+  Date.now = () => clock;
+  const secret = await GATE;
+  const LEASE_OLD_ASK_MS = 10 * RELAY_CFG_TTL_MS;   // server/src/index.js
+  try {
+    await quiet(async () => {
+      const W = fakeRooms({ now: () => clock });
+      const room = (k) => { const r = W.room(k); r.env.GATE_SIGNING_KEY = secret; return r; };
+      const hub = room(CHAT_WORLD_ROOM);
+      let asked = 0, hold = null;
+      const fetch0 = hub.room.fetch.bind(hub.room);
+      hub.room.fetch = async (req) => { if (new URL(req.url).pathname === RELAY_INTERNAL_CFG) { asked++; if (hold) await hold; } return fetch0(req); };
+      const key = await leaseKeyOf(secret, { subtle });
+      const lease = (s, o = {}) => mintLease({ s, at: Math.floor(clock / 1000), ...o }, key, { subtle });
+      const join = async (R, id, extra, pose = null) => { const ws = R.connect(); clock += 300; await R.hello(ws, id, pose, extra); return ws; };
+      const raw = (R, ws, o) => R.raw(ws, JSON.stringify(o));
+      const landed = () => new Promise((r) => setImmediate(r));
+      const cur = { gl: GROUND_LAW, gv: GRANT_HELLO_LAW, ls: 1 };
+      // 1. the door off, a warm cell: a pose waits on the hub's answer in flight; the hub's lease, with a mute, lands; the
+      // socket's next pose is leased. The waiting pose is heard under the lease, and the later one after it
+      const cell = room(CELL);
+      const ear = await join(cell, 'ear-0001', cur, P0), mut = await join(cell, 'mut-0001', cur, P0);
+      clock += 1000;
+      await raw(cell, mut, { t: 'chat', text: 'warm-up' });   // the wake's first ask, answered
+      clock += RELAY_CFG_TTL_MS + 1000;
+      let release; hold = new Promise((r) => { release = r; });
+      await raw(cell, mut, { t: 'chat', text: 'past the TTL' });   // asks beside: the answer in flight, held
+      const first = raw(cell, mut, { t: 'pose', p: { ...P0, x: P0.x + 9, mv: 1 } });
+      await landed();
+      const mu = Math.floor(clock / 1000) + 3600;
+      await raw(cell, mut, { t: 'lease', l: await lease('acct-mut-0001', { mu }) });
+      const second = raw(cell, mut, { t: 'pose', p: { ...P0, x: P0.x + 18, mv: 1 } });
+      await landed();
+      hold = null; release(); await Promise.all([first, second]);
+      const a = cell.room._attach(mut);
+      assert.equal(a.mu, mu, 'the mute the lease brought stands');
+      assert.ok(a.ld * 1000 > clock, 'and its lease');
+      assert.equal(a.pose.x, P0.x + 18, 'the later pose kept: heard after the one at the door, never before');
+      clock += 1000;
+      await raw(cell, mut, { t: 'chat', text: 'muted' });
+      assert.ok(!lines(ear).includes('muted'), 'muted: not heard');
+      // 2. a room just woken (its settings gone with the object, the socket kept): a lapsed socket's pose waits on the
+      // wake's first ask, and a lease with a freeze lands meanwhile
+      const P1 = { ...P0, x: P0.x + 32 * PIXEL_UNITS };   // two cells east
+      const fzCell = room(cellRoomOfWire(P1.x, P1.z));
+      assert.notEqual(fzCell, cell);
+      const fzEar = await join(fzCell, 'ear-0002', cur, P1), ice = await join(fzCell, 'ice-0002', cur, P1);
+      Object.assign(fzCell.room, { _relayCfg: undefined, _relayCfgAt: -Infinity, _relayCfgP: null });
+      clock += 1000;
+      hold = new Promise((r) => { release = r; });
+      const waiting = raw(fzCell, ice, { t: 'pose', p: { ...P1, x: P1.x + 5, mv: 1 } });
+      await landed();
+      const fz = Math.floor(clock / 1000) + 600;
+      await raw(fzCell, ice, { t: 'lease', l: await lease('acct-ice-0002', { fz }) });
+      hold = null; release(); await waiting;
+      assert.equal(fzCell.room._attach(ice).fz, fz, 'the freeze the lease brought stands');
+      clock += 1000;
+      await raw(fzCell, ice, { t: 'chat', text: 'frozen' });
+      assert.ok(!lines(fzEar).includes('frozen'), 'frozen: not heard');
+      // 3. a developer turns the door on at the hub
+      const dev = await join(hub, 'dev-0001', { glyphs: ['dev'] });
+      clock += 5000;
+      await raw(hub, dev, { t: 'cfg', k: 'leaseDoor', v: 'on' });
+      // a bound socket's unleased frame past the TTL, in a room that asked with the door off: it asks; the next is not heard
+      const lfg = room(CHAT_LFG_ROOM);
+      const lfgEar = await join(lfg, 'ear-0003', cur), bare = await join(lfg, 'bare-0003', cur);
+      Object.assign(lfg.room, { _relayCfg: { leaseDoor: 'off' }, _relayCfgAt: clock - RELAY_CFG_TTL_MS - 1000, _relayCfgP: Promise.resolve() });
+      let was = asked;
+      await raw(lfg, bare, { t: 'chat', text: 'on the old word' });
+      await landed();
+      assert.equal(asked, was + 1, 'past the TTL its frame asked');
+      clock += 1000;
+      await raw(lfg, bare, { t: 'chat', text: 'on the new word' });
+      assert.ok(!lines(lfgEar).includes('on the new word'), 'the door on: not heard');
+      // an old build let in with the door off asks once in LEASE_OLD_ASK_MS, beside: inside it, never; past it, once - and
+      // the next frame is turned away with the door's own close
+      const de = room(chatLangRoom('de'));
+      const deEar = await join(de, 'ear-0004', cur);
+      Object.assign(de.room, { _relayCfg: { leaseDoor: 'off' }, _relayCfgAt: clock, _relayCfgP: Promise.resolve() });
+      const old = await join(de, 'old-0004', {});
+      assert.equal(old.closed, null, 'let in: the room held the door off');
+      was = asked;
+      for (let s = 0; s < 300; s += 15) { clock += 15_000; await raw(de, old, { t: 'chat', text: `line ${s}` }); }
+      await landed();
+      assert.equal(asked, was, 'inside LEASE_OLD_ASK_MS its lines never ask');
+      assert.ok(lines(deEar).includes('line 285') && old.closed === null, 'and are heard on the word the room holds');
+      clock += LEASE_OLD_ASK_MS;
+      await raw(de, old, { t: 'chat', text: 'past it' });
+      await landed();
+      assert.equal(asked, was + 1, 'past it, its frame asks, beside');
+      clock += 1000;
+      await raw(de, old, { t: 'chat', text: 'after the answer' });
+      assert.deepEqual(old.closed, { code: CLOSE_POLICY, reason: LEASE_OLD_REASON }, 'turned away');
+      assert.ok(!lines(deEar).includes('after the answer'));
+      // an old build in a room just woken, the door on at the hub alone: its first frame asks, its next is turned away
+      const it = room(chatLangRoom('it'));
+      Object.assign(it.room, { _relayCfg: { leaseDoor: 'off' }, _relayCfgAt: clock, _relayCfgP: Promise.resolve() });
+      const itOld = await join(it, 'old-0005', {});
+      Object.assign(it.room, { _relayCfg: undefined, _relayCfgAt: -Infinity, _relayCfgP: null });
+      was = asked;
+      clock += 1000;
+      await raw(it, itOld, { t: 'chat', text: 'woken' });
+      await landed();
+      assert.equal(asked, was + 1, 'the woken room\'s first frame of it asks');
+      clock += 1000;
+      await raw(it, itOld, { t: 'chat', text: 'after the answer' });
+      assert.deepEqual(itOld.closed, { code: CLOSE_POLICY, reason: LEASE_OLD_REASON }, 'turned away');
     });
   } finally { Date.now = realNow; }
 });
