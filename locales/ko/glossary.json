@@ -404,5 +404,14 @@
  "Dungeon Master (staff)": "던전 마스터",
  "developer": "개발자",
  "Rare drop": "희귀 드롭",
- "Oblivion": "오블리비언"
+ "Oblivion": "오블리비언",
+ "Chapter Master (the title's name, as the Collections page draws it)": "Chapter Master",
+ "The Turning Hour (the aura's name, as the Collections page draws it)": "The Turning Hour",
+ "Gilded (item tier)": "도금",
+ "Aetheric (item tier)": "에테르",
+ "rated bout (Arena)": "랭크 경기",
+ "unwagered (an Elite Breach run with no Wager)": "내기 없이",
+ "By chance (Collections chip: a random roll)": "확률 획득",
+ "the sprout (the new account's glyph)": "새싹 문양",
+ "Offered by {giver} (a questline's giver, last in the sentence)": "의뢰인: {giver}"
 }

@@ -81,5 +81,17 @@
  "moderator": "điều hành viên",
  "developer": "nhà phát triển",
  "Rare drop": "Rơi hiếm",
- "Oblivion": "Oblivion"
+ "Oblivion": "Oblivion",
+ "Chapter Master (the title's name, as the Collections page draws it)": "Chapter Master",
+ "The Turning Hour (the aura's name, as the Collections page draws it)": "The Turning Hour",
+ "Gilded (item tier)": "Mạ vàng",
+ "Legendary (item tier)": "Huyền thoại",
+ "Aetheric (item tier)": "Linh khí",
+ "guildmaster": "hội trưởng",
+ "rated bout / ranked game": "trận tính điểm / ván xếp hạng",
+ "unwagered (an Elite Breach run with no Wager)": "không đặt cược",
+ "guest (account)": "khách",
+ "By chance (Collections chip: a random roll)": "Ngẫu nhiên",
+ "the sprout (the new account's glyph)": "huy hiệu mầm non",
+ "Offered by {giver} (a questline's giver, last in the sentence)": "Người giao: {giver}."
 }

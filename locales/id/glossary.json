@@ -215,7 +215,7 @@
  "Master's seat (a chapter's chair)": "kursi Master",
  "council (a chapter's)": "dewan",
  "Ascendant (a chapter's top band)": "Berjaya",
- "lamp keeper": "lampu penjaga toko",
+ "lamp keeper": "lampu yang menjadi pemilik toko",
  "ranked board": "papan peringkat",
  "questline": "alur misi",
  "Title": "Gelar",
@@ -227,5 +227,17 @@
  "granted by name": "diberikan berdasarkan nama",
  "staff (the game's)": "staf permainan",
  "Warden of / Protector of / Keeper of / Champion of (worn title prefixes)": "tetap dalam bahasa Inggris, dalam “ ”: sebagai “Warden of” diikuti nama kota itu",
- "title names (Chapter Master, High Master, I Love Lamp...)": "tetap dalam bahasa Inggris, seperti yang ditampilkan permainan"
+ "title names (Chapter Master, High Master, I Love Lamp...)": "tetap dalam bahasa Inggris, seperti yang ditampilkan permainan",
+ "Chapter Master (the title's name, as the Collections page draws it)": "Chapter Master",
+ "The Turning Hour (the aura's name, as the Collections page draws it)": "The Turning Hour",
+ "Gilded (item tier)": "Berlapis Emas",
+ "Legendary (item tier)": "Legendaris",
+ "Aetheric (item tier)": "Eterik",
+ "guildmaster": "ketua serikat",
+ "rated bout (Arena)": "pertarungan berperingkat",
+ "unwagered (an Elite Breach run with no Wager)": "tanpa taruhan",
+ "guest (account)": "tamu",
+ "By chance (Collections chip: a random roll)": "Acak",
+ "the sprout (the new account's glyph)": "glif tunas",
+ "Offered by {giver} (a questline's giver, last in the sentence)": "Ditawarkan oleh {giver}."
 }

@@ -248,5 +248,17 @@
  "seat": "sete",
  "chapter (a guild's)": "avdeling",
  "account": "konto",
- "Arena": "Arena"
+ "Arena": "Arena",
+ "Chapter Master (the title's name, as the Collections page draws it)": "Chapter Master",
+ "The Turning Hour (the aura's name, as the Collections page draws it)": "The Turning Hour",
+ "By chance (availability chip)": "Med flaks",
+ "Automatic (availability chip)": "Automatisk",
+ "Closed (availability chip: closed to newcomers)": "Stengt",
+ "Per character (chip)": "Per karakter",
+ "Gilded (rarity)": "Forgylt",
+ "Aetheric (rarity)": "Eterisk",
+ "Legendary": "Legendarisk",
+ "rated bout (Arena)": "rangert kamp",
+ "Try again (button)": "Prøv igjen",
+ "the sprout (a new account's glyph)": "spiren"
 }

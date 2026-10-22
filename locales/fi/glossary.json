@@ -77,5 +77,18 @@
  "Breaches": "repeämät",
  "the Deadlands": "Kuolonmaat",
  "Arena": "Areena",
- "Patreon tier": "taso (tukitaso)"
+ "Patreon tier": "taso (tukitaso)",
+ "Chapter Master (the title's name, as the Collections page draws it)": "Chapter Master",
+ "The Turning Hour (the aura's name, as the Collections page draws it)": "The Turning Hour",
+ "By chance (availability chip)": "Onnella",
+ "Automatic (availability chip)": "Automaattinen",
+ "Closed (availability chip: closed to newcomers)": "Suljettu",
+ "Per character (chip)": "Hahmokohtainen",
+ "Gilded (rarity)": "Kullattu",
+ "Aetheric (rarity)": "Eteerinen",
+ "Legendary": "Legendaarinen",
+ "rated bout (Arena)": "sijoitusottelu",
+ "Try again (button)": "Yritä uudelleen",
+ "the sprout (a new account's glyph)": "verso",
+ "Bestowed (availability chip)": "Myönnetty"
 }

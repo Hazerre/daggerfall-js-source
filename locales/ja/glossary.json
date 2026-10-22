@@ -54,7 +54,7 @@
  "Protector of <Kingdom> (title)": "Protector of <Kingdom>",
  "Keeper of <Town> (title)": "Keeper of <Town>",
  "Champion of <Kingdom> (title)": "Champion of <Kingdom>",
- "lamp keeper": "店主のランプ",
+ "lamp keeper": "店主をしているランプ",
  "Iliac Hand (kept as is)": "Iliac Hand",
  "The King's Gambit (kept as is)": "The King's Gambit",
  "Arena": "アリーナ",
@@ -81,5 +81,17 @@
  "moderator": "モデレーター",
  "developer": "開発者",
  "Rare drop": "レアドロップ",
- "Oblivion": "オブリビオン"
+ "Oblivion": "オブリビオン",
+ "Chapter Master (the title's name, as the Collections page draws it)": "Chapter Master",
+ "The Turning Hour (the aura's name, as the Collections page draws it)": "The Turning Hour",
+ "Gilded (item tier)": "ギルデッド",
+ "Legendary (item tier)": "レジェンダリー",
+ "Aetheric (item tier)": "エーテリック",
+ "guildmaster": "ギルドマスター",
+ "rated bout (Arena)": "レート戦",
+ "unwagered (an Elite Breach run with no Wager)": "賭けなし",
+ "guest (account)": "ゲスト",
+ "By chance (Collections chip: a random roll)": "運次第",
+ "the sprout (the new account's glyph)": "新芽の徽章",
+ "Offered by {giver} (a questline's giver, last in the sentence)": "依頼人：{giver}"
 }

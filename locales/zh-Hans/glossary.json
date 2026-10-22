@@ -81,5 +81,19 @@
  "moderator": "管理员",
  "developer": "开发者",
  "Rare drop": "稀有掉落",
- "Oblivion": "湮灭"
+ "Oblivion": "湮灭",
+ "Chapter Master (the title's name, as the Collections page draws it)": "Chapter Master",
+ "The Turning Hour (the aura's name, as the Collections page draws it)": "The Turning Hour",
+ "Gilded (item tier)": "镀金",
+ "Legendary (item tier)": "传说",
+ "Aetheric (item tier)": "以太",
+ "guildmaster": "公会会长",
+ "rated bout / ranked game": "积分对战 / 排位赛",
+ "unwagered (an Elite Breach run with no Wager)": "不带赌注",
+ "guest (account)": "游客",
+ "By chance (Collections chip: a random roll)": "随机获得",
+ "the sprout (the new account's glyph)": "新芽徽记",
+ "Offered by {giver} (a questline's giver, last in the sentence)": "委托人：{giver}",
+ "dash in prose": "——（不用 ASCII “ - ”）",
+ "one in {n} (a chance)": "1/{n}"
 }

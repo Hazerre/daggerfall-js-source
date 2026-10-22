@@ -71,5 +71,17 @@
  "staff (the game's)": "oyunun ekibi",
  "Dungeon Master": "Zindan Efendisi",
  "Warden of / Protector of / Keeper of / Champion of (worn title prefixes)": "İngilizce kalır, “ ” içinde: unvanı “Warden of” ve kasabanın adıyla taşırsınız",
- "title names (Chapter Master, High Master, I Love Lamp...)": "oyunun gösterdiği gibi İngilizce kalır"
+ "title names (Chapter Master, High Master, I Love Lamp...)": "oyunun gösterdiği gibi İngilizce kalır",
+ "Chapter Master (the title's name, as the Collections page draws it)": "Chapter Master",
+ "The Turning Hour (the aura's name, as the Collections page draws it)": "The Turning Hour",
+ "Gilded (item tier)": "Yaldızlı",
+ "Legendary (item tier)": "Efsanevi (çoğ. Efsaneviler)",
+ "Aetheric (item tier)": "Eterik",
+ "guildmaster": "lonca lideri",
+ "rated bout / ranked game": "dereceli dövüş / dereceli oyun",
+ "unwagered (an Elite Breach run with no Wager)": "bahissiz",
+ "guest (account)": "misafir",
+ "By chance (Collections chip: a random roll)": "Şansa bağlı",
+ "the sprout (the new account's glyph)": "filiz simgesi",
+ "Offered by {giver} (a questline's giver, last in the sentence)": "Veren: {giver}."
 }

@@ -350,7 +350,7 @@
  "Master's seat (a chapter's chair)": "jilțul de Maestru",
  "council (a chapter's)": "consiliu",
  "Ascendant (a chapter's top band)": "în Ascensiune",
- "lamp keeper": "lampă de prăvălie",
+ "lamp keeper": "lampă care ține o prăvălie",
  "ranked board": "clasament",
  "questline": "serie de misiuni (pl. serii de misiuni)",
  "pledge (Patreon)": "angajament",
@@ -360,5 +360,16 @@
  "granted by name": "acordat nominal",
  "staff (the game's)": "echipa jocului",
  "Warden of / Protector of / Keeper of / Champion of (worn title prefixes)": "rămân în engleză, în „ ”: „Warden of”, urmat de numele orașului",
- "title names (Chapter Master, High Master, I Love Lamp...)": "rămân în engleză, cum le arată jocul"
+ "title names (Chapter Master, High Master, I Love Lamp...)": "rămân în engleză, cum le arată jocul",
+ "Chapter Master (the title's name, as the Collections page draws it)": "Chapter Master",
+ "The Turning Hour (the aura's name, as the Collections page draws it)": "The Turning Hour",
+ "By chance (availability chip)": "Cu noroc",
+ "Automatic (availability chip)": "Automat",
+ "Closed (availability chip: closed to newcomers)": "Închis",
+ "Per character (chip)": "Pe personaj",
+ "Gilded (rarity)": "Aurit",
+ "Aetheric (rarity)": "Eteric",
+ "rated bout (Arena)": "luptă de clasament",
+ "Try again (button)": "Încearcă din nou",
+ "the sprout (a new account's glyph)": "lăstarul"
 }

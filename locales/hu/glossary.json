@@ -74,5 +74,18 @@
  "staff (the game's)": "a játék stábja",
  "Dungeon Master": "Kazamatamester",
  "Warden of / Protector of / Keeper of / Champion of (worn title prefixes)": "angolul maradnak, „ ” között: „Warden of” címként viseled, a város nevével",
- "title names (Chapter Master, High Master, I Love Lamp...)": "angolul maradnak, ahogy a játék mutatja"
+ "title names (Chapter Master, High Master, I Love Lamp...)": "angolul maradnak, ahogy a játék mutatja",
+ "Chapter Master (the title's name, as the Collections page draws it)": "Chapter Master",
+ "The Turning Hour (the aura's name, as the Collections page draws it)": "The Turning Hour",
+ "By chance (availability chip)": "Szerencsével",
+ "Automatic (availability chip)": "Automatikus",
+ "Closed (availability chip: closed to newcomers)": "Lezárva",
+ "Per character (chip)": "Karakterenként",
+ "Gilded (rarity)": "Aranyozott",
+ "Aetheric (rarity)": "Éteri",
+ "Legendary": "Legendás",
+ "rated bout (Arena)": "ranglistás összecsapás",
+ "Try again (button)": "Próbáld újra",
+ "the sprout (a new account's glyph)": "a hajtás",
+ "{date} at a sentence end (a Hungarian date already ends in a period)": "no period after it: „vége: {date}” / „(vége: {date})”"
 }
