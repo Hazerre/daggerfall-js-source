@@ -204,7 +204,7 @@ test('REGARD-OWN (AUDIT FB1021d RO-1): townTalk says a friend made once nothing 
   tt.hudFrame(1 / 30, null);
   assert.equal(said.at(-1), 'Sir Ada counts you a friend now.', 'indoors too');
   const W = readFileSync(join(ROOT, 'src/scenes/world.js'), 'utf8');
-  assert.match(W, /friendsMade: \(\) => friendCards\(livingRelations\.friendsMade\(\), livingTownOfId, \(res\) => legacyTopicRows\(\{ living: \{ res \} \}\)\),/);
+  assert.match(W, /friendsMade: \(\) => friendCards\(livingRelations\.friendsMade\(\), livingTownOfId, legacyTopicRows\),/);
 });
 
 test('REGARD-OWN (AUDIT FB1021d RO-4): a friend\'s card is their resident minted again from their town, and the Courtship row read for them; an id of no known town is not named', () => {
@@ -212,7 +212,7 @@ test('REGARD-OWN (AUDIT FB1021d RO-4): a friend\'s card is their resident minted
   const s = street();
   const res = residentOfId(s.id, (m) => (m === 12345 ? town : null));
   assert.ok(res, 'the street\'s resident, minted again');
-  const cards = friendCards([s.id, 'L999999.h3'], (m) => (m === 12345 ? town : null), (r) => (r.name === res.name ? [{ topic: 'court' }] : []));
+  const cards = friendCards([s.id, 'L999999.h3'], (m) => (m === 12345 ? town : null), (p) => (p.living.res.name === res.name ? [{ topic: 'court' }] : []));
   assert.deepEqual(cards, [{ name: res.name, court: true }]);
   assert.deepEqual(friendCards([s.id], (m) => (m === 12345 ? town : null), () => [{ topic: 'family' }]), [{ name: res.name, court: false }]);
 });

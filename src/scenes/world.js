@@ -262,6 +262,7 @@ import { createMarksBook, mintMarksRid } from '../net/marksBook.js';   // MARKS1
 import { createNoticeBook, parseNoteCommand, planNoteAnswer, NOTE_LETTER_LOST } from '../net/noticeBook.js';   // NOTICE1: this device's Notice Boards - a town's board read, a note pinned
 import { createNoticeOverlay, closeNoticeDoor, noticeDoorOpen } from '../ui/noticeDoor.js';   // NOTICE1: the board's window, through its one door
 import { createProfBook } from '../net/profBook.js';   // PROF1: this character's professions - its Stores, its day, its harvests kept until answered
+import { dayTurnMs } from '../net/dayTurn.js';   // DAY-TURN: this page's moment in the day's turn
 import { createMotherlodeBook } from '../net/motherlodeBook.js';   // PROF2b: the day's Motherlodes - read, warned of, their Watch receipts kept
 import { createProfHud } from '../ui/professions/profHud.js';   // PROF1: the prompt, the act's meter, the toasts, the day's chip, the rank's banner
 import { createGatherHost } from './gatherHost.js'; // PROF1/PROF2: the gathering professions in the streaming world - the nodes, the target, the act
@@ -839,7 +840,7 @@ import { magicPowersLines } from '../systems/item/itemPowers.js';   // HOME-VEND
 import { itemIsIdentified } from '../systems/tradeModes.js';   // HOME-VENDOR: known, or "powers unknown"
 import { setSigilOnline, setSigilRenown } from '../systems/sigil/sigil.js';   // SIGIL1: a weapon won online carries a sigil, woken by my Renown
 import { setSetsDueling, setsDueling, drinkWorn, setSetsWearer } from '../systems/sigil/sigilSets.js';   // SET2: the duel's word - sets sleep in one; SET4: the drink, whole; SET5: the wearer a tooltip reads
-import { lootHudChips } from '../systems/loot/lootPowers.js'; import { setSetPowersVoice, setHudChips, heldPlayerBlow, remarkPlayerBlow } from '../systems/sigil/sigilSetPowers.js'; import '../systems/loot/lootDrought.js'; import '../systems/loot/lootCodex.js'; import { createLootLines } from './lootLines.js';   // SET3: what the sets DO - every power registered at import; its voice is this host's; SET5: its chips; LOOT4: and lootPowers.js beside it, what a loot piece DOES (the Loot arc), every kind registered at import; LOOT8: lootDrought.js, the drought's finder and take listener, registered at import; LOOT10: lootCodex.js, the codex's take listener, round sweep and record; LOOT11: the lines of light over a find
+import { lootHudChips } from '../systems/loot/lootPowers.js'; import { setSetPowersVoice, setHudChips, heldPlayerBlow, remarkPlayerBlow } from '../systems/sigil/sigilSetPowers.js'; import '../systems/loot/lootDrought.js'; import '../systems/loot/lootCodex.js'; import { createLootLines } from './lootLines.js'; import { createNpcMarks } from './npcMarksHost.js';   // NPC-MARKS: the marks over the street's people who do something; SET3: what the sets DO - every power registered at import; its voice is this host's; SET5: its chips; LOOT4: and lootPowers.js beside it, what a loot piece DOES (the Loot arc), every kind registered at import; LOOT8: lootDrought.js, the drought's finder and take listener, registered at import; LOOT10: lootCodex.js, the codex's take listener, round sweep and record; LOOT11: the lines of light over a find
 import { computeEntityMods, registerEntityFold, EMPTY_MODS } from '../systems/entityMods.js';   // SET3: the sets' stat fold, recomputed the moment they wake or sleep; SEAT1d: the Festive buff's
 import { createSeatEdicts, FESTIVE_FOLD, festiveMods } from '../systems/seatEdicts.js';   // SEAT1d: a held seat as this client lives it
 import { createTownEconHost } from './townEconHost.js';   // TOWN-ECON TE1: every town's economy - its counters' factor, its card; TE2: the players' share
@@ -1874,13 +1875,14 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       relayNowS: () => (_sharedClockHeard ? Math.floor((Date.now() + _sharedOffsetMs) / 1000) : null),   // a receipt's life is the relay's
       // CROWN2: a Pact broken early, said in red on every tab as the server's own line (RED1) - offered again while there is no chat yet
       onRed: (line) => (redChat ? redChat(line) : false),
+      turnMs: dayTurnMs(),   // DAY-TURN: its report's day turns at this page's moment past midnight
     })
     : null;
   // CHAP2a (Chapters-Arc 4): the guild halls of the towns this client walks into, reported once a UTC day a town while
   // the Chapters are open to this account (net/npcHallBook.js; the entry edge is revealMemberGuildHalls'). Online only -
   // offline a town is DFU's.
   const hallDoor = params.has('online') ? accountRoll({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }) : null;
-  const hallBook = hallDoor ? createHallBook({ door: hallDoor, storage: appStorage() }) : null;
+  const hallBook = hallDoor ? createHallBook({ door: hallDoor, storage: appStorage(), turnMs: dayTurnMs() }) : null;   // DAY-TURN
   // CHAP3c (Chapters-Arc 5.2, 5.3): the chapter sheet - every chapter's Strength - held for the halls' prices and shelves
   // (net/chapterSheet.js), asked at a town's entry and again when it grows old. Online only - offline a hall is DFU's.
   const chapterSheet = hallDoor ? createChapterSheet({ door: hallDoor }) : null;
@@ -2010,7 +2012,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   };
   const profBook = params.has('online')
     ? createProfBook({ door: accountProf({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }), storage: appStorage(),
-      character: () => characterIdOf(playerEntity), now: () => Date.now() + _sharedOffsetMs, carry: carryHands })
+      character: () => characterIdOf(playerEntity), now: () => Date.now() + _sharedOffsetMs, carry: carryHands, turnMs: dayTurnMs() })   // DAY-TURN: its day's reads turn at this page's moment past midnight
     : null;
   // FIRM1 (bible/06-Systems/Firmament.md): THE FIRMAMENT'S BOOK - the character's passive tree and its purses as the account
   // service keeps them (net/firmament/firmamentBook.js); what it hears is the tree in force (systems/firmamentLive.js), and the window
@@ -2993,7 +2995,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // AUDIT LW-II-2 C3: the caravan host's counters written first - what left a shelf reached the record only at its next
     // step, and a save inside that second shelved the piece again beside the one in the pack
     getSaveData: () => { _caravanHost?.flush(); return livingRelations.snapshot(); },
-    restoreSaveData: (rec) => { livingRelations = characterRelations(rec, ownMinutes, params.has('online'), () => skyMinutes()); },   // AUDIT FB1021d RO-3: the sky, once, for an old record's grudges
+    restoreSaveData: (rec) => { livingRelations = characterRelations(rec, ownMinutes, params.has('online')); },
     // LEGACY6: a new character knows nobody - unless born of the house on this page: the birth's share of the parent's
     // regard (legacyHost.seedRegards), whichever of the birth and this reset lands first
     newGame: () => { livingRelations = characterRelations(null, ownMinutes, params.has('online')); legacyHost?.seedRegards(livingRelations); },
@@ -6710,7 +6712,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // own town answers both: systems/livingWorld/livingTown.js)
     livingTalk: { refuses: (person) => person?.living?.town?.refuses(person) ?? null, talked: (person) => person?.living?.town?.talked(person), caught: (person) => person?.living?.town?.caught?.(person),
       regard: (person) => regardBadge(person?.living?.town?.regardCard?.(person) ?? null),   // PLAIN-UI: the talk panel's regard badge
-      friendsMade: () => friendCards(livingRelations.friendsMade(), livingTownOfId, (res) => legacyTopicRows({ living: { res } })),   // REGARD-OWN, AUDIT FB1021d RO-1/RO-4: the friends made, said once the HUD is clear
+      friendsMade: () => friendCards(livingRelations.friendsMade(), livingTownOfId, legacyTopicRows),   // REGARD-OWN, AUDIT FB1021d RO-1/RO-4: the friends made, said once the HUD is clear
       kin: (person, talk) => legacyMeetKin(person, talk),   // LEGACY-HOME: one of the player's line, met
       offers: (person, talk) => (livingWorldOn() ? caravanHostOf().offers(person, talk) || (_mode() === 'dungeon' && !!livingDivers?.offers(person, talk)) : false) },   // LW11: a caravan's merchant, a pedlar, a carter asks first; LW14: a company below - AUDIT LW-II-2 D4: below alone (one met there and left holding never answers the street's talk)
     legacyTopics: (person) => legacyTopicRows(person),   // LEGACY5: courting, the proposal, the wedding, the family
@@ -7151,6 +7153,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   }
   const droppedLoot = createDroppedLoot({ renderer, getTexture, uploadRecordFrame });   // U8e
   const lootLines = createLootLines(renderer.gl);   // LOOT11: the lines of light over a find, one pass for every mode
+  // NPC-MARKS (scenes/npcMarksHost.js): a bobbing mark over a street person's body whose click is a quest's or a guild's -
+  // the route read in the street (no building); the interior host keeps marks of its own
+  const npcMarks = createNpcMarks(renderer.gl), streetMarkCtx = { get dict() { return _questStore()?.dict ?? null; }, building: null,
+    offersWork: (pn) => npcSession.isNpcOfferingQuest(pn._mwSeed ??= staticNpcData(pn, { locationIndex: _questLoc()?.locationIndex ?? 0 }).nameSeed) };   // AUDIT NPC-MARKS L2: the work pool's questor, by the seed the street's click mints (worldModes.js staticNpcSceneCtx: no building)
   // FindGroundPosition (CreateDroppedLootContainer): the pile lands
   // on the ground BELOW the player, not at the motor's height
   const dropFeet = () => {
@@ -34171,6 +34177,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // distance from the player's own pixel - a hundred-odd integers,
     // sorted into a scratch array kept across frames, no allocation.
     const _peopleOn = streetPeople.frame();   // MWNPC8b
+    npcMarks.begin();   // NPC-MARKS: the street's candidates, gathered as its people are offered
     standingHorses.begin(tvf ? null : mwViewHorseRig(), mwv.eye);   // STAND-HORSE: the standing horses' frame - the lane's rig (none under the travel view)
     _pixelOrder.length = 0;
     for (const p of built.values()) { p._dist2 = (p.px - state.current.x) ** 2 + (p.py - state.current.y) ** 2; _pixelOrder.push(p); }
@@ -34300,6 +34307,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
         const f = pn._mwFeet ??= [0, 0, 0];
         f[0] = pn.x + t[0]; f[1] = pn.y + t[1]; f[2] = pn.z + t[2];
         streetPeople.offer(personActor(pn, look, f, mwv.eye, dt), pn.standBatch);
+        npcMarks.consider(pn, streetMarkCtx);   // NPC-MARKS
       }
       // STAND-FLAT / STAND-HORSE (Morrowind-NPCs.md section 28): the near rings' town horses offered their 3D horse, and
       // the people no StaticNPC holds their bodies, read as a placed figure is (MWNPC18's figureLook) - every other
@@ -35045,6 +35053,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // gate's fire, the same eye and fog (scenes/lootLines.js: the nearest eight within 40 m)
     if (lootLines.draw(() => [...exteriorFoes.lootFinds(), ...droppedLoot.lootFinds()], proj, view, new Float32Array(mwv.eye), now / 1000,
       { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, color: renderer._fogColor, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze })) renderer.markForeignPass();
+    if (npcMarks.draw(proj, view, mwv.eye, streetPeople, now / 1000)) renderer.markForeignPass();   // NPC-MARKS: the marks over the street's people, after its flats
     // TV4 (bible/06-Systems/Travel-View.md): THE CURTAINS FROM ABOVE - the weather map's falling cells as veils stood in
     // the world, under the travel view alone (at the eye the sky map's own curtains stand on the horizon); the same
     // cells the clouds draw, at the shared minute (render/rainCurtains.js)

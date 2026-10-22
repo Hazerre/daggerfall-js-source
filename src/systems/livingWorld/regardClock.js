@@ -17,6 +17,7 @@
 // has (twenty-odd sites across the towns, roads, dives and caravans); this seam is the one place the relations are made
 // (THE ONE CONSTRUCTION SEAM), and it counts every regard in the character's own day instead.
 import { createRelations, regardStanding, EASE_PER_DAY } from './relations.js';
+import { skyMinutes } from '../worldTick.js';   // AUDIT FB1021d RO-3: the sky, read once at an old record's load
 
 /** A regard's day starts at 04:00, as the living day does (livingTown.js dayOf). */
 export const REGARD_DAY_START_MIN = 240;
@@ -56,10 +57,10 @@ const skyStampedIs = (record, day, online) => !!record && typeof record === 'obj
  * @param {any} record - a save's (`snapshot()`), or none
  * @param {() => number} own - the character's own minutes (worldTick.js ownMinutes)
  * @param {boolean} [online] - the lane
- * @param {() => number} [sky] - the sky's minutes (worldTick.js skyMinutes), read once, for an old record's grudges (RO-3);
- *  offline it is the one clock
+ * @param {() => number} [sky] - the sky's minutes, read once, for an old record's grudges (RO-3); offline it is the one
+ *  clock - no stamp is taken on it
  */
-export function characterRelations(record, own, online = false, sky = own) {
+export function characterRelations(record, own, online = false, sky = () => skyMinutes()) {
   const today = () => regardDayOf(own());
   const day = today();
   const rel = createRelations(skyStampedIs(record, day, online) ? { ...record, people: rebased(record.people, day, regardDayOf(sky())) } : record);

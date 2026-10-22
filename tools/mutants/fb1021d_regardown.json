@@ -52,7 +52,7 @@
   {
     "name": "REGARD-OWN-host-on-relations",
     "file": "src/scenes/world.js",
-    "old": "    restoreSaveData: (rec) => { livingRelations = characterRelations(rec, ownMinutes, params.has('online'), () => skyMinutes()); },",
+    "old": "    restoreSaveData: (rec) => { livingRelations = characterRelations(rec, ownMinutes, params.has('online')); },",
     "new": "    restoreSaveData: (rec) => { livingRelations = createRelations(rec); },",
     "tests": [
       "test/systems/livingWorld/lw2_livingTown.test.js"
@@ -262,7 +262,7 @@
   {
     "name": "FRIEND-WORD-host-unwired",
     "file": "src/scenes/world.js",
-    "old": "      friendsMade: () => friendCards(livingRelations.friendsMade(), livingTownOfId, (res) => legacyTopicRows({ living: { res } })),",
+    "old": "      friendsMade: () => friendCards(livingRelations.friendsMade(), livingTownOfId, legacyTopicRows),",
     "new": "",
     "why": "the host never hands the friends made",
     "tests": [

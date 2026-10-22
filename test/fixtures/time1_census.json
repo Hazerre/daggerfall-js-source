@@ -1042,8 +1042,8 @@
    "why": "LW5: a visiting crew's stay - her dwell on the ships' clock turned into the sky's minutes the living world lives by"
   },
   {
-   "file": "src/scenes/world.js",
-   "has": "characterRelations(rec, ownMinutes, params.has('online'), () => skyMinutes())",
+   "file": "src/systems/livingWorld/regardClock.js",
+   "has": "export function characterRelations(record, own, online = false, sky = () => skyMinutes()) {",
    "clock": "sky",
    "why": "REGARD-OWN, AUDIT FB1021d RO-3: a sky-stamped record's grudges eased as the old sky law had eased them, read once at its load - no stamp is taken on the sky"
   },

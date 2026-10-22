@@ -22,10 +22,11 @@ export function friendLine({ name, court }) {
  * minted again from their town (people.js residentOfId), and whether the house's Courtship row is theirs. An id that names
  * no resident of a town known is not said.
  * @param {string[]} ids @param {(mapId: number) => any} townOf
- * @param {(res: any) => { topic?: string }[]} topicsOf - the legacy's Tell me about rows for a resident
+ * @param {(person: any) => { topic?: string }[]} topicsOf - the legacy's Tell me about rows for a person (a resident's
+ *  body: `{ living: { res } }`, as the talk hands it - world.js legacyTopicRows)
  * @returns {{ name: string, court: boolean }[]}
  */
 export function friendCards(ids, townOf, topicsOf) {
   return ids.map((id) => residentOfId(id, townOf)).filter(Boolean)
-    .map((res) => ({ name: res.name, court: (topicsOf(res) ?? []).some((r) => r.topic === 'court') }));
+    .map((res) => ({ name: res.name, court: (topicsOf({ living: { res } }) ?? []).some((r) => r.topic === 'court') }));
 }
