@@ -139,7 +139,7 @@ export const GUN_FEEL = Object.freeze({
  *   - `widget` - Weapon Widget's Bob and Inertia, TUNED for this weapon on the lab's panel. The game keeps the player's
  *     own module SWITCHES (and forces Inertia on, the Thunderlock's FIELD-GUN8 departure) and takes these MAGNITUDES:
  *     combat/gun/gunViewmodel.js gunWidgetSettings(null, PISTOLET_FEEL.widget). A departure, named there.
- *   - `sfx` - the three picks, file stems in public/sfx; systems/pistolet.js SFX_FILES is built from them.
+ *   - `sfx` - the three picks, file stems in public/sfx; systems/pistolet.js PISTOLET_SFX_FILES is built from them.
  *   - `alphaCut` - the 1-bit cut the strip is hardened at (the screen quad's 0.5).
  * `roomShake` and `flashRange` are the two judgements GUN_FEEL states as judgements, scaled: the lab's shake is 20 to the
  * Thunderlock's 30, so its room shake is 2 to the Thunderlock's 3; a pistol's flash throws a torch's 14 where the

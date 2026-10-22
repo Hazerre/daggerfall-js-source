@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  createPistolet, ICON_FILES, ART_RECORDS, PAPERDOLL_OFFSET, pistoletImageRecord, installPistoletIcons, PISTOLET_ARCHIVE,
+  createPistolet, PISTOLET_ICON_FILES, PISTOLET_ART_RECORDS, PISTOLET_PAPERDOLL_OFFSET, pistoletImageRecord, installPistoletIcons, PISTOLET_ARCHIVE,
 } from '../../src/systems/pistolet.js';
 import { EQUIP_SLOTS } from '../../src/systems/equip.js';
 import { mintGilded, SUNKEN_SOVEREIGN } from '../../src/systems/gilded.js';
@@ -27,20 +27,20 @@ import { PlayerWeapon } from '../../src/combat/playerWeapon.js';
 import { HANDS_MODE } from '../../src/combat/twoHands/handsLaw.js';
 
 test('D9 D10: the six pictures register as STAND-INS of archive 562, each doll record at its hand\'s place - the right\'s at the right, the left\'s at the left, gold and plain (mutants: nothing registered; not a stand-in; the offsets dropped; a left record at the right\'s place)', async () => {
-  assert.deepEqual(ICON_FILES.map(({ record, file, offset }) => ({ record, file, offset: offset ?? null })), [
-    { record: ART_RECORDS.doll, file: 'pistolet-paperdoll.png', offset: PAPERDOLL_OFFSET.right },
-    { record: ART_RECORDS.icon, file: 'pistolet-icon.png', offset: null },
-    { record: ART_RECORDS.gildedDoll, file: 'pistolet-paperdoll-gilded.png', offset: PAPERDOLL_OFFSET.right },
-    { record: ART_RECORDS.gildedIcon, file: 'pistolet-icon-gilded.png', offset: null },
-    { record: ART_RECORDS.dollLeft, file: 'pistolet-paperdoll-left.png', offset: PAPERDOLL_OFFSET.left },
-    { record: ART_RECORDS.gildedDollLeft, file: 'pistolet-paperdoll-left-gilded.png', offset: PAPERDOLL_OFFSET.left },
+  assert.deepEqual(PISTOLET_ICON_FILES.map(({ record, file, offset }) => ({ record, file, offset: offset ?? null })), [
+    { record: PISTOLET_ART_RECORDS.doll, file: 'pistolet-paperdoll.png', offset: PISTOLET_PAPERDOLL_OFFSET.right },
+    { record: PISTOLET_ART_RECORDS.icon, file: 'pistolet-icon.png', offset: null },
+    { record: PISTOLET_ART_RECORDS.gildedDoll, file: 'pistolet-paperdoll-gilded.png', offset: PISTOLET_PAPERDOLL_OFFSET.right },
+    { record: PISTOLET_ART_RECORDS.gildedIcon, file: 'pistolet-icon-gilded.png', offset: null },
+    { record: PISTOLET_ART_RECORDS.dollLeft, file: 'pistolet-paperdoll-left.png', offset: PISTOLET_PAPERDOLL_OFFSET.left },
+    { record: PISTOLET_ART_RECORDS.gildedDollLeft, file: 'pistolet-paperdoll-left-gilded.png', offset: PISTOLET_PAPERDOLL_OFFSET.left },
   ]);
   const textures = await import('../../src/systems/textureReplacement.js');
   const n = await installPistoletIcons({ fetchBytes: async (f) => readFileSync(`public/art/${f}`) });
   assert.ok(n === 6 || n === 0, `six registered, or already (${n}) - the install runs once`);
   const standIn = textures.vendorTextureStandIn(PISTOLET_ARCHIVE);
   assert.equal(standIn.recordCount, 6, 'archive 562 stands in, six records');
-  for (const r of ICON_FILES) {
+  for (const r of PISTOLET_ICON_FILES) {
     if (r.offset) assert.deepEqual(standIn.getOffset(r.record), { x: r.offset.x, y: r.offset.y }, `${r.file} at its hand's place`);
   }
 });
@@ -48,13 +48,13 @@ test('D9 D10: the six pictures register as STAND-INS of archive 562, each doll r
 test('D10: every hand, every finish: the doll wears its hand\'s layer, gold for the Sovereign; a list the whole gun (mutant: the gilded right hand plain)', () => {
   const plain = createPistolet(), gold = mintGilded(SUNKEN_SOVEREIGN);
   const at = (it, slot) => ({ ...it, equipSlot: slot });
-  assert.equal(pistoletImageRecord(at(plain, EQUIP_SLOTS.RightHand), true), ART_RECORDS.doll);
-  assert.equal(pistoletImageRecord(at(plain, EQUIP_SLOTS.LeftHand), true), ART_RECORDS.dollLeft);
-  assert.equal(pistoletImageRecord(at(gold, EQUIP_SLOTS.RightHand), true), ART_RECORDS.gildedDoll);
-  assert.equal(pistoletImageRecord(at(gold, EQUIP_SLOTS.LeftHand), true), ART_RECORDS.gildedDollLeft);
-  assert.equal(pistoletImageRecord(plain, true), ART_RECORDS.doll, 'unworn: the right\'s');
-  assert.equal(pistoletImageRecord(plain, false), ART_RECORDS.icon);
-  assert.equal(pistoletImageRecord(gold, false), ART_RECORDS.gildedIcon);
+  assert.equal(pistoletImageRecord(at(plain, EQUIP_SLOTS.RightHand), true), PISTOLET_ART_RECORDS.doll);
+  assert.equal(pistoletImageRecord(at(plain, EQUIP_SLOTS.LeftHand), true), PISTOLET_ART_RECORDS.dollLeft);
+  assert.equal(pistoletImageRecord(at(gold, EQUIP_SLOTS.RightHand), true), PISTOLET_ART_RECORDS.gildedDoll);
+  assert.equal(pistoletImageRecord(at(gold, EQUIP_SLOTS.LeftHand), true), PISTOLET_ART_RECORDS.gildedDollLeft);
+  assert.equal(pistoletImageRecord(plain, true), PISTOLET_ART_RECORDS.doll, 'unworn: the right\'s');
+  assert.equal(pistoletImageRecord(plain, false), PISTOLET_ART_RECORDS.icon);
+  assert.equal(pistoletImageRecord(gold, false), PISTOLET_ART_RECORDS.gildedIcon);
 });
 
 /** The art through a stub renderer that keeps every upload's pixels. */

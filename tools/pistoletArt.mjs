@@ -16,7 +16,7 @@
 //                                   options after five rejected cuts of this hand (bible/05-Combat/Dwarven-Pistolet.md):
 //                                   "#4 is the closest but needs adjusting" (the right gun's pose mirrored, 45 degrees),
 //                                   then "C but lower" (60 degrees), and 2 px below the classic fist's gap ("Sorry I
-//                                   meant #2", PAPERDOLL_OFFSET.right). The one doll layer that is a mirror of the
+//                                   meant #2", PISTOLET_PAPERDOLL_OFFSET.right). The one doll layer that is a mirror of the
 //                                   owner's drawing, by the owner's choice.
 //   -> pistolet-icon-gilded.png, pistolet-paperdoll-gilded.png, pistolet-paperdoll-left-gilded.png
 //                                   the same three in gold leaf, tools/gunIcons.mjs gild() - the Sunken Sovereign's
@@ -127,7 +127,7 @@ export function posed(level, hand, point = null) {
 }
 
 /** Where the band's centre - the fist - lands in a hand's layer, in its pixels. src/systems/pistolet.js
- *  PAPERDOLL_OFFSET seats this point on each hand's fist. */
+ *  PISTOLET_PAPERDOLL_OFFSET seats this point on each hand's fist. */
 export const dollGrip = (hand = 'left', { w = 24, h = 17, band = BAND } = {}) =>
   posed({ width: w, height: h, data: new Uint8Array(w * h * 4) }, hand, [band.cx * w, band.cy * h]).at;
 

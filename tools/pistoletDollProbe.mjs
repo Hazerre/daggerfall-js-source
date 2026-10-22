@@ -14,7 +14,8 @@
 // --body=Argonian:female - one row of three dolls a body.
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
-import { mkdirSync, writeFileSync, unlinkSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { writeFile, unlink } from 'node:fs/promises';
 
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= '/opt/pw-browsers';
 const ARGS = process.argv.slice(2);
@@ -22,8 +23,11 @@ const OUT = ARGS.find((a) => !a.startsWith('--')) || 'scratch/pistolet-doll';
 const BODIES = ARGS.filter((a) => a.startsWith('--body=')).map((a) => { const [race, gender = 'male'] = a.slice(7).split(':'); return { race, gender }; });
 if (!BODIES.length) BODIES.push({ race: 'Breton', gender: 'male' });
 mkdirSync(OUT, { recursive: true });
-const PAGE = 'pistoletdoll.tmp.html';
-writeFileSync(PAGE, `<!doctype html><html><head><meta charset="utf-8"><title>pistolet doll probe</title>
+// AUDIT PISTOLET M9: the page beside the probe (tools/, ignored as every *.tmp.html is), written inside the try whose
+// finally unlinks it (AUDIT 68 X2), and driven at its own path - never the site root, which is the landing page (U60).
+const PAGE_NAME = 'pistoletdoll.tmp.html';
+const PAGE = `tools/${PAGE_NAME}`;
+const HTML = `<!doctype html><html><head><meta charset="utf-8"><title>pistolet doll probe</title>
 <style>body{margin:0;background:#222}canvas{image-rendering:pixelated}</style></head><body><canvas id="gl" width="8" height="8" style="display:none"></canvas><canvas id="out"></canvas>
 <script type="module">
 import { Renderer } from '/src/render/renderer.js';
@@ -57,7 +61,7 @@ for (const { race, gender } of ${JSON.stringify(BODIES)}) {
 }
 globalThis.__dolls = dolls;
 globalThis.__ready = true;
-</script></body></html>`);
+</script></body></html>`;
 
 const server = await createServer({ server: { port: 5193, strictPort: true }, logLevel: 'error' });
 await server.listen();
@@ -65,11 +69,18 @@ const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=sw
 const page = await browser.newPage({ viewport: { width: 1000, height: 800 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
+const results = [];
+const check = (name, ok, detail = '') => { results.push(!!ok); console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? ` - ${detail}` : ''}`); };
 try {
-  await page.goto(`http://localhost:5193/${PAGE}`, { waitUntil: 'domcontentloaded', timeout: 600000 });
+  await writeFile(PAGE, HTML);
+  await page.goto(`http://localhost:5193/tools/${PAGE_NAME}`, { waitUntil: 'domcontentloaded', timeout: 600000 });
   await page.waitForFunction(() => globalThis.__ready, null, { timeout: 600000 });
   const dolls = await page.evaluate(() => globalThis.__dolls);
   console.log('dolls', dolls.map((d) => d && `${d.row}: ${d.w}x${d.h} slots ${d.slots}`).join(' | '));
+  // what can be judged without an eye: every body drew its three dolls, each pair worn in BOTH hands (the equip law's
+  // Either - EQUIP_SLOTS RightHand 19, LeftHand 21), and nothing threw. Where the fist meets the grip is the owner's eye.
+  check(`every body drew its three dolls (${BODIES.length} bodies)`, dolls.length === BODIES.length * 3 && dolls.every(Boolean), `${dolls.filter(Boolean).length} of ${BODIES.length * 3}`);
+  check('each pair is worn in both hands', dolls.every((d) => d && [...d.slots].sort((a, b) => a - b).join() === '19,21'), dolls.map((d) => d?.slots).join(' | '));
   const { writePng } = await import('./pngIO.mjs');
   // one row of three (the pistols, the daggers, the gold pair) a body
   const Z = 3, rows = [];
@@ -92,8 +103,11 @@ try {
     oy += rowH[ri] + 10;
   });
   writeFileSync(`${OUT}/dolls.png`, writePng({ width: W, height: H, data: out }));
-  console.log(errors.length ? `errors: ${errors.slice(0, 3).join(' | ')}` : 'no page errors', `- ${OUT}/dolls.png`);
+  console.log(`the dolls, for the eye: ${OUT}/dolls.png`);
+  check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 } finally {
   await browser.close(); await server.close();
-  try { unlinkSync(PAGE); } catch { /* gone */ }
+  await unlink(PAGE).catch(() => { /* gone */ });
 }
+console.log(`${results.filter(Boolean).length}/${results.length} ok`);
+process.exit(results.length && results.every(Boolean) ? 0 : 1);

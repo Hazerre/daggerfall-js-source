@@ -15,17 +15,21 @@
 //     node tools/pistoletRigProbe.mjs [shots-dir]
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
-import { mkdirSync, writeFileSync, unlinkSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { writeFile, unlink } from 'node:fs/promises';
 import { readPng } from './pngIO.mjs';
 
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= '/opt/pw-browsers';
 const OUT = process.argv[2] || 'scratch/pistolet-rig';
 mkdirSync(OUT, { recursive: true });
-const PAGE = 'pistoletrig.tmp.html';
+// AUDIT PISTOLET M9: the page beside the probe (tools/, ignored as every *.tmp.html is), written inside the try whose
+// finally unlinks it (AUDIT 68 X2), and driven at its own path - never the site root, which is the landing page (U60).
+const PAGE_NAME = 'pistoletrig.tmp.html';
+const PAGE = `tools/${PAGE_NAME}`;
 const results = [];
 const check = (name, ok, detail = '') => { results.push(!!ok); console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? ` - ${detail}` : ''}`); };
 
-writeFileSync(PAGE, `<!doctype html><html><head><meta charset="utf-8"><title>pistolet rig probe</title>
+const HTML = `<!doctype html><html><head><meta charset="utf-8"><title>pistolet rig probe</title>
 <style>html,body{margin:0;height:100%;overflow:hidden;background:#000}canvas{display:block;width:100vw;height:100vh}</style></head><body><canvas id="c"></canvas>
 <script type="module">
 import { Renderer } from '/src/render/renderer.js';
@@ -80,7 +84,7 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 globalThis.__ready = true;
-</script></body></html>`);
+</script></body></html>`;
 
 const server = await createServer({ server: { port: 5194, strictPort: true }, logLevel: 'error' });
 await server.listen();
@@ -90,7 +94,8 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 try {
-  await page.goto(`http://localhost:5194/${PAGE}`, { waitUntil: 'domcontentloaded', timeout: 600000 });
+  await writeFile(PAGE, HTML);
+  await page.goto(`http://localhost:5194/tools/${PAGE_NAME}`, { waitUntil: 'domcontentloaded', timeout: 600000 });
   await page.waitForFunction(() => globalThis.__ready, null, { timeout: 600000 });
   const st = () => page.evaluate(() => globalThis.__state());
   const waitFrames = async (n) => { const f = (await st()).frames; await page.waitForFunction(([f0, k]) => globalThis.__state().frames > f0 + k, [f, n], { timeout: 120000 }); };
@@ -145,7 +150,7 @@ try {
   check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 } finally {
   await browser.close(); await server.close();
-  try { unlinkSync(PAGE); } catch { /* gone */ }
+  await unlink(PAGE).catch(() => { /* gone */ });
 }
 console.log(`${results.filter(Boolean).length}/${results.length} ok - shots in ${OUT}/`);
 process.exit(results.every(Boolean) ? 0 : 1);

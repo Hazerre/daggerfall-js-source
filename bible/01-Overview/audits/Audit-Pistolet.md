@@ -22,7 +22,8 @@ finding reproduced or traced before it was acted on:
 
 **What reached a player: nothing** - the branch was unmerged and its relay and account service undeployed. On the
 branch:
-- the suite was red on six files, and the branch conflicted with main, so CI would have run nothing (D1-D5, D19, M2);
+- the suite was red on six files the lanes found and four more the whole check found, and the branch conflicted with
+  main, so CI would have run nothing (D1-D5, D19, M2, M8, M9);
 - the off hand's shot landed whole - DUAL's terms were written on the page and applied nowhere, and a pair ran at x1.32
   the Thunderlock, past the ceiling its own test claimed to hold (A1, A4);
 - the two gun finds at half weight were neither half as often (a tier-14 boss turned up a gun twice as often) nor
@@ -32,7 +33,7 @@ branch:
 - a left-handed player's muzzle light came from the wrong side (A9);
 - the gold Sovereign gilded its own muzzle flame (B3).
 
-69 findings, 54 distinct (lanes cross-reported the worst of them). Every one is fixed or recorded below.
+71 findings, 56 distinct (lanes cross-reported the worst of them). Every one is fixed or recorded below.
 
 ## Findings
 
@@ -140,6 +141,12 @@ Morrowind assets parse and resolve; the bakes byte-exact; the account Worker loa
 | M5 | MED | The fixes' version moves (item law 10, acct168, world242) and A1's two lines left 19 mutant records in 15 earlier lists aimed at text no longer there (`mutantdrift` QS6 F7 red): the laws they alone kill checked by nothing - caught at the record's gates before any push | FIXED: re-aimed by content, the same mutation each, and all 19 run again: dead |
 | M6 | MED | Two server pins of the judge's version (`test/server/fb1017_keylaw_lift.test.js`, `fb1016c_makerkept_lift.test.js`) still said law 9 after A7 moved it to 10 - CI red, and KEY-LAW's mutant no verdict; found by M5's run | FIXED: both moved, KEY-LAW's mutant judged again: dead |
 | M7 | MED | AUDIT 23's host pin (`test/systems/audit23_hosts.test.js` C14) still read A2's line as the unweighed tally - CI red; found by the whole `npm run check` | FIXED: PIN MOVED to the weighed arm |
+| M8 | MED | `systems/pistolet.js` declared seven names `systems/thunderlock.js` declares - `PAPERDOLL_OFFSET`, `ART_RECORDS`, `ICON_FILES`, `SFX`, `SFX_FILES`, `iconUrl`, `sfxUrl` - each a different value, so AUDIT 24's ONE HOME gate (`test/systems/talk/audit24_onehome.test.js`) failed twice: they DISAGREE, and the duplicate count went 42 to 49. Red at the frozen head; no lane ran that file; found by the whole check | FIXED: the Pistolet's own names (`PISTOLET_PAPERDOLL_OFFSET`, `PISTOLET_ART_RECORDS`, `PISTOLET_ICON_FILES`, `PISTOLET_SFX`, `PISTOLET_SFX_FILES`, `pistoletIconUrl`, `pistoletSfxUrl`) - the count back to 42, no ratchet moved; the four mutant records that name them re-aimed, dead |
+| M9 | MED | The slice's two page-writing probes broke three tooling rules, red at the frozen head: each wrote its page before its try (`audit68_tools` X2 - a failed browser launch leaves it behind) and drove it at the site's root, which is the landing page (`landing.test.js` U60); and the doll probe judged nothing - exit 0 whatever happened (`probehygiene` T3) | FIXED: both pages under `tools/`, written inside the try whose finally unlinks them, driven at their own path; the doll probe checks every body's three dolls, both hands worn and no page errors, and exits 1 on a failure. Both run again: 3/3 and 10/10, nothing left behind |
+
+## Outside the slice
+
+- `test/systems/professions/fb1013e_writwall.test.js` (WRIT-WALL mined Iron) failed once in the whole check: its `workTab` waits at most 400 `setImmediate` turns for a card, and under a loaded machine the card took up to 583 - on `main` as on this branch (six concurrent runs of each, measured). A wait bounded in turns, not time; not this slice's, and left to its own slice.
 
 ## What stands
 

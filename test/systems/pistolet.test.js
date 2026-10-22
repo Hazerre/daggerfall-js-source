@@ -7,8 +7,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   PISTOLET_TEMPLATE, PISTOLET_ARCHIVE, PISTOLET_TEMPLATES, PISTOLET_DAMAGE, PISTOLET_SKILL, createPistolet, isPistolet,
-  ICON_FILES, ART_RECORDS, PAPERDOLL_OFFSET, pistoletImageRecord, installPistoletIcons, GUN_SHARE,
-  SFX, SFX_FILES, installPistoletSounds,
+  PISTOLET_ICON_FILES, PISTOLET_ART_RECORDS, PISTOLET_PAPERDOLL_OFFSET, pistoletImageRecord, installPistoletIcons, GUN_SHARE,
+  PISTOLET_SFX, PISTOLET_SFX_FILES, installPistoletSounds,
 } from '../../src/systems/pistolet.js';
 import { THUNDERLOCK_TEMPLATE, PELLET_TEMPLATE, createThunderlock, createPellets, FIND_MIN_TIER } from '../../src/systems/thunderlock.js';
 import { isGunTemplate, ammoTemplateFor, orbArchiveFor, ORB_ARCHIVE, PISTOLET_SPAN } from '../../src/characters/thunderlockIds.js';
@@ -144,28 +144,28 @@ test('the pictures: the owner’s sprite whole in a list, a fist-gapped layer on
   assert.deepEqual(HAND_POSE, { left: { flip: false, turn: 45 }, right: { flip: true, turn: -60 } }, 'the left hand’s as drawn at 45, the right hand’s flipped at 60');
   // by job and by hand
   const it = createPistolet();
-  assert.equal(pistoletImageRecord(it, false), ART_RECORDS.icon);
-  assert.equal(pistoletImageRecord({ ...it, equipSlot: EQUIP_SLOTS.RightHand }, true), ART_RECORDS.doll);
-  assert.equal(pistoletImageRecord({ ...it, equipSlot: EQUIP_SLOTS.LeftHand }, true), ART_RECORDS.dollLeft);
+  assert.equal(pistoletImageRecord(it, false), PISTOLET_ART_RECORDS.icon);
+  assert.equal(pistoletImageRecord({ ...it, equipSlot: EQUIP_SLOTS.RightHand }, true), PISTOLET_ART_RECORDS.doll);
+  assert.equal(pistoletImageRecord({ ...it, equipSlot: EQUIP_SLOTS.LeftHand }, true), PISTOLET_ART_RECORDS.dollLeft);
   const gold = { ...it, rarity: 'gilded' };
-  assert.equal(pistoletImageRecord(gold, false), ART_RECORDS.gildedIcon);
-  assert.equal(pistoletImageRecord({ ...gold, equipSlot: EQUIP_SLOTS.LeftHand }, true), ART_RECORDS.gildedDollLeft);
+  assert.equal(pistoletImageRecord(gold, false), PISTOLET_ART_RECORDS.gildedIcon);
+  assert.equal(pistoletImageRecord({ ...gold, equipSlot: EQUIP_SLOTS.LeftHand }, true), PISTOLET_ART_RECORDS.gildedDollLeft);
   // each hand its own layer: the left hand's records are the left layer's files
-  const fileOf = (rec) => ICON_FILES.find((r) => r.record === rec).file;
-  assert.equal(`public/art/${fileOf(ART_RECORDS.dollLeft)}`, ART_OUT.dollLeft);
-  assert.equal(`public/art/${fileOf(ART_RECORDS.gildedDollLeft)}`, ART_OUT.dollLeftGilded);
-  assert.equal(`public/art/${fileOf(ART_RECORDS.doll)}`, ART_OUT.doll);
+  const fileOf = (rec) => PISTOLET_ICON_FILES.find((r) => r.record === rec).file;
+  assert.equal(`public/art/${fileOf(PISTOLET_ART_RECORDS.dollLeft)}`, ART_OUT.dollLeft);
+  assert.equal(`public/art/${fileOf(PISTOLET_ART_RECORDS.gildedDollLeft)}`, ART_OUT.dollLeftGilded);
+  assert.equal(`public/art/${fileOf(PISTOLET_ART_RECORDS.doll)}`, ART_OUT.doll);
   // every record a file that ships and is allow-listed; the doll's records carry their hand's offset
   const doctrine = readFileSync('test/tooling/doctrine.test.js', 'utf8');
-  for (const r of ICON_FILES) {
+  for (const r of PISTOLET_ICON_FILES) {
     assert.ok(readFileSync(`public/art/${r.file}`).length > 0);
     assert.ok(doctrine.includes(`'public/art/${r.file}'`), `${r.file} is on the doctrine’s allow-list`);
   }
   // THE HANDS WERE MEASURED (TEXTURE.234's one-handed doll records leave the fist's gap at panel (27, 96) right, (69, 95)
   // left). The left hand's band centre is on its gap; the right hand's 2 px below its own, (27, 98) - the owner's pick
   // ("C but lower", "Sorry I meant #2")
-  const centreR = [PAPERDOLL_OFFSET.right.x - 200 + gripR.x, PAPERDOLL_OFFSET.right.y - 8 + gripR.y];
-  const centreL = [PAPERDOLL_OFFSET.left.x - 200 + gripL.x, PAPERDOLL_OFFSET.left.y - 8 + gripL.y];
+  const centreR = [PISTOLET_PAPERDOLL_OFFSET.right.x - 200 + gripR.x, PISTOLET_PAPERDOLL_OFFSET.right.y - 8 + gripR.y];
+  const centreL = [PISTOLET_PAPERDOLL_OFFSET.left.x - 200 + gripL.x, PISTOLET_PAPERDOLL_OFFSET.left.y - 8 + gripL.y];
   assert.ok(Math.hypot(centreR[0] - 27, centreR[1] - 98) < 1, `the right hand’s grip where the owner put it (${centreR})`);
   assert.ok(Math.hypot(centreL[0] - 69, centreL[1] - 95) < 1.5, `the left hand’s gap on its fist (${centreL})`);
 });
@@ -176,22 +176,22 @@ test('the pictures register through the stand-in door, all six', async () => {
   const before = textures.vendorTextureCount();
   await installPistoletIcons({ fetchBytes: async (f) => { added.push(f); return readFileSync(`public/art/${f}`); } });
   assert.ok(textures.vendorTextureCount() >= before, 'registered');
-  assert.equal(ICON_FILES.length, 6);
-  assert.deepEqual(new Set(ICON_FILES.map((r) => r.archive)), new Set([PISTOLET_ARCHIVE]));
+  assert.equal(PISTOLET_ICON_FILES.length, 6);
+  assert.deepEqual(new Set(PISTOLET_ICON_FILES.map((r) => r.archive)), new Set([PISTOLET_ARCHIVE]));
 });
 
 test('its sounds are the owner’s three picks, read off the one row the lab opens on, in the classic format', async () => {
-  assert.deepEqual(Object.values(SFX_FILES), ['fire-shotgun.wav', 'open-shell.wav', 'close-ready.wav'],
+  assert.deepEqual(Object.values(PISTOLET_SFX_FILES), ['fire-shotgun.wav', 'open-shell.wav', 'close-ready.wav'],
     'the owner: "Must be these values/sounds exactly" - shotgun (clean crack), shell, ready (snaps shut)');
   assert.deepEqual([PISTOL_OPENING.sfxFire, PISTOL_OPENING.sfxOpen, PISTOL_OPENING.sfxClose], ['fire-shotgun', 'open-shell', 'close-ready'], 'and the lab’s dropdowns read the same row');
-  for (const f of Object.values(SFX_FILES)) {
+  for (const f of Object.values(PISTOLET_SFX_FILES)) {
     const b = readFileSync(`public/sfx/${f}`);
     assert.equal(new DataView(b.buffer, b.byteOffset).getUint32(24, true), 11025);
   }
   const keys = [];
   const n = await installPistoletSounds({ registerSound: (k) => { keys.push(k); return true; } }, { fetchBytes: async () => new Uint8Array([1]) });
   assert.equal(n, 3);
-  assert.deepEqual(keys.sort(), [SFX.close, SFX.fire, SFX.open].sort());
+  assert.deepEqual(keys.sort(), [PISTOLET_SFX.close, PISTOLET_SFX.fire, PISTOLET_SFX.open].sort());
 });
 
 test('the feel is the owner’s panel, one home: the game’s row, and the lab reads it back', () => {
@@ -370,7 +370,7 @@ test('the Sunken Sovereign is a gilded Pistolet: the owner’s "replace the serp
   assert.equal(it.rarity, 'gilded');
   assert.equal(it.gilded, 'the-sunken-sovereign', 'the same record id - every hoard and save that holds one reads it');
   assert.ok(it.affixes.some((a) => a.id === 'skill' && a.param === SKILLS.Archery));
-  assert.equal(pistoletImageRecord(it, false), ART_RECORDS.gildedIcon);
+  assert.equal(pistoletImageRecord(it, false), PISTOLET_ART_RECORDS.gildedIcon);
   assert.equal(ownWeaponModelFor(it)?.model, 'pistolet_gilded.nif');
 });
 

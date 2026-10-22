@@ -99,14 +99,14 @@ doll wears a layer with the fist's gap cut out:
    toward the other gun), "C but lower" (60 degrees), "Sorry I meant #2" (2 px lower). This cut.
 
 **Two hands on the doll.** A classic Either-hand weapon carries two doll records, TEXTURE.234's base for the left hand
-and +1 for the right (`ui/paperDoll.js`). The Pistolet carries each hand's own layer (`ART_RECORDS`: doll 0, icon 1,
+and +1 for the right (`ui/paperDoll.js`). The Pistolet carries each hand's own layer (`PISTOLET_ART_RECORDS`: doll 0, icon 1,
 gold 2 and 3, left 4 and 5), chosen by the slot it is worn in (`pistoletImageRecord`). A single Pistolet is worn in the
 right hand, so it shows flipped, angled in toward where the other would be.
 
 **Where they hang.** The fist's gap in every clean one-handed classic doll record (dagger, mace, shortsword, war axe;
 the player's own ARENA2 via `tools/fetch-data.sh`) closes at panel (27, 96) on the right hand and (69, 95) on the left.
-- The left hand's band centre (`dollGrip('left')`) is on its gap (`PAPERDOLL_OFFSET.left`).
-- The right hand's sits 2 px below its own, at (27, 98) - the owner's pick, not a rule (`PAPERDOLL_OFFSET.right`). The
+- The left hand's band centre (`dollGrip('left')`) is on its gap (`PISTOLET_PAPERDOLL_OFFSET.left`).
+- The right hand's sits 2 px below its own, at (27, 98) - the owner's pick, not a rule (`PISTOLET_PAPERDOLL_OFFSET.right`). The
   doll's right fist is not the left's mirror (the right arm hangs straight, the left is bent at the hip), and no one
   rule seated both: the attempts at one are rounds 4 to 6.
 - `pistolet.test.js` holds both places, each barrel's direction (the layer's pixels beyond the fist: down-left for the
@@ -116,7 +116,7 @@ the player's own ARENA2 via `tools/fetch-data.sh`) closes at panel (27, 96) on t
 
 `tools/pistoletDollProbe.mjs` draws it on the real doll, beside a dagger pair and the gold pair, one row a body. The
 bodies are its argument (`--body=DarkElf:female`, a Breton male unless named), so the six-body check is one command -
-it drew one body until AUDIT PISTOLET D17. The owner's eye is the gate, as Mac's was on the Thunderlock's FIELD-GUN9.
+it drew one body until AUDIT PISTOLET D17. It judges what needs no eye - every body's three dolls drawn, each pair worn in both hands, no page errors - and exits 1 on a failure (M9). The owner's eye is the gate, as Mac's was on the Thunderlock's FIELD-GUN9.
 
 ## First person - one gun
 

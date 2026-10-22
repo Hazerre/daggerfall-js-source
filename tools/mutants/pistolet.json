@@ -2,8 +2,8 @@
  {
   "name": "PLD-install-registers-nothing",
   "file": "src/systems/pistolet.js",
-  "old": "  return addVendorTextures(ICON_FILES.map(",
-  "new": "  return 0 && addVendorTextures(ICON_FILES.map(",
+  "old": "  return addVendorTextures(PISTOLET_ICON_FILES.map(",
+  "new": "  return 0 && addVendorTextures(PISTOLET_ICON_FILES.map(",
   "tests": [
    "test/systems/pistolet_pins.test.js"
   ]
@@ -29,8 +29,8 @@
  {
   "name": "PLD-gilded-right-doll-plain",
   "file": "src/systems/pistolet.js",
-  "old": "if (gilded) return left ? ART_RECORDS.gildedDollLeft : ART_RECORDS.gildedDoll;",
-  "new": "if (gilded) return left ? ART_RECORDS.gildedDollLeft : ART_RECORDS.doll;",
+  "old": "if (gilded) return left ? PISTOLET_ART_RECORDS.gildedDollLeft : PISTOLET_ART_RECORDS.gildedDoll;",
+  "new": "if (gilded) return left ? PISTOLET_ART_RECORDS.gildedDollLeft : PISTOLET_ART_RECORDS.doll;",
   "tests": [
    "test/systems/pistolet_pins.test.js"
   ]
@@ -38,8 +38,8 @@
  {
   "name": "PLD-gilded-left-doll-file-right-offset",
   "file": "src/systems/pistolet.js",
-  "old": "file: 'pistolet-paperdoll-left-gilded.png', offset: PAPERDOLL_OFFSET.left",
-  "new": "file: 'pistolet-paperdoll-left-gilded.png', offset: PAPERDOLL_OFFSET.right",
+  "old": "file: 'pistolet-paperdoll-left-gilded.png', offset: PISTOLET_PAPERDOLL_OFFSET.left",
+  "new": "file: 'pistolet-paperdoll-left-gilded.png', offset: PISTOLET_PAPERDOLL_OFFSET.right",
   "tests": [
    "test/systems/pistolet_pins.test.js"
   ]
@@ -47,8 +47,8 @@
  {
   "name": "PLD-left-doll-file-right-offset",
   "file": "src/systems/pistolet.js",
-  "old": "file: 'pistolet-paperdoll-left.png', offset: PAPERDOLL_OFFSET.left",
-  "new": "file: 'pistolet-paperdoll-left.png', offset: PAPERDOLL_OFFSET.right",
+  "old": "file: 'pistolet-paperdoll-left.png', offset: PISTOLET_PAPERDOLL_OFFSET.left",
+  "new": "file: 'pistolet-paperdoll-left.png', offset: PISTOLET_PAPERDOLL_OFFSET.right",
   "tests": [
    "test/systems/pistolet_pins.test.js"
   ]

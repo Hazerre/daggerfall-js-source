@@ -103,31 +103,33 @@ export function createPistolet({ material = 4, condition = null } = {}) {
  * not a rule: the right fist is not the left's mirror, so no one rule seats both. The owner names hands as the picture
  * shows them. Screen coordinates, the panel's origin (200, 8) written beside them as the Thunderlock's are.
  */
-export const PAPERDOLL_OFFSET = Object.freeze({ right: Object.freeze({ x: 200 + 17, y: 8 + 89 }), left: Object.freeze({ x: 200 + 48, y: 8 + 85 }) });
+// AUDIT PISTOLET M8: the Pistolet's own names - the Thunderlock's records are PAPERDOLL_OFFSET, ART_RECORDS, ICON_FILES,
+// SFX, SFX_FILES, iconUrl and sfxUrl, and two modules declaring one name is AUDIT 24's ONE HOME gate (audit24_onehome).
+export const PISTOLET_PAPERDOLL_OFFSET = Object.freeze({ right: Object.freeze({ x: 200 + 17, y: 8 + 89 }), left: Object.freeze({ x: 200 + 48, y: 8 + 85 }) });
 
 /** The records of archive 562, by job. */
-export const ART_RECORDS = Object.freeze({ doll: 0, icon: 1, gildedDoll: 2, gildedIcon: 3, dollLeft: 4, gildedDollLeft: 5 });
-export const ICON_FILES = Object.freeze([
-  { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.doll, frame: 0, file: 'pistolet-paperdoll.png', offset: PAPERDOLL_OFFSET.right },
-  { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.icon, frame: 0, file: 'pistolet-icon.png' },
-  { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.gildedDoll, frame: 0, file: 'pistolet-paperdoll-gilded.png', offset: PAPERDOLL_OFFSET.right },
-  { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.gildedIcon, frame: 0, file: 'pistolet-icon-gilded.png' },
-  { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.dollLeft, frame: 0, file: 'pistolet-paperdoll-left.png', offset: PAPERDOLL_OFFSET.left },
-  { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.gildedDollLeft, frame: 0, file: 'pistolet-paperdoll-left-gilded.png', offset: PAPERDOLL_OFFSET.left },
+export const PISTOLET_ART_RECORDS = Object.freeze({ doll: 0, icon: 1, gildedDoll: 2, gildedIcon: 3, dollLeft: 4, gildedDollLeft: 5 });
+export const PISTOLET_ICON_FILES = Object.freeze([
+  { archive: PISTOLET_ARCHIVE, record: PISTOLET_ART_RECORDS.doll, frame: 0, file: 'pistolet-paperdoll.png', offset: PISTOLET_PAPERDOLL_OFFSET.right },
+  { archive: PISTOLET_ARCHIVE, record: PISTOLET_ART_RECORDS.icon, frame: 0, file: 'pistolet-icon.png' },
+  { archive: PISTOLET_ARCHIVE, record: PISTOLET_ART_RECORDS.gildedDoll, frame: 0, file: 'pistolet-paperdoll-gilded.png', offset: PISTOLET_PAPERDOLL_OFFSET.right },
+  { archive: PISTOLET_ARCHIVE, record: PISTOLET_ART_RECORDS.gildedIcon, frame: 0, file: 'pistolet-icon-gilded.png' },
+  { archive: PISTOLET_ARCHIVE, record: PISTOLET_ART_RECORDS.dollLeft, frame: 0, file: 'pistolet-paperdoll-left.png', offset: PISTOLET_PAPERDOLL_OFFSET.left },
+  { archive: PISTOLET_ARCHIVE, record: PISTOLET_ART_RECORDS.gildedDollLeft, frame: 0, file: 'pistolet-paperdoll-left-gilded.png', offset: PISTOLET_PAPERDOLL_OFFSET.left },
 ]);
 /** Which of them an item wears for a job: on the doll its HAND's layer (the left hand's only when it is worn there - an
  *  unworn one and a right-hand one wear the right's), in a list the whole gun; gold for a Gilded piece. */
 export function pistoletImageRecord(item, forPaperDoll) {
   const gilded = item?.rarity === 'gilded';
-  if (!forPaperDoll) return gilded ? ART_RECORDS.gildedIcon : ART_RECORDS.icon;
+  if (!forPaperDoll) return gilded ? PISTOLET_ART_RECORDS.gildedIcon : PISTOLET_ART_RECORDS.icon;
   const left = item?.equipSlot === EQUIP_SLOTS.LeftHand;
-  if (gilded) return left ? ART_RECORDS.gildedDollLeft : ART_RECORDS.gildedDoll;
-  return left ? ART_RECORDS.dollLeft : ART_RECORDS.doll;
+  if (gilded) return left ? PISTOLET_ART_RECORDS.gildedDollLeft : PISTOLET_ART_RECORDS.gildedDoll;
+  return left ? PISTOLET_ART_RECORDS.dollLeft : PISTOLET_ART_RECORDS.doll;
 }
 registerOwnItemImage(PISTOLET_TEMPLATE, (item, { forPaperDoll = false } = {}) => ({ archive: PISTOLET_ARCHIVE, record: pistoletImageRecord(item, forPaperDoll) }));
 
 /** AUDIT-THUNDERLOCK F7: the site's root, never the document's. */
-export const iconUrl = (file) => new URL(`art/${file}`, APP_ROOT ?? globalThis.document?.baseURI ?? 'http://localhost/').href;
+export const pistoletIconUrl = (file) => new URL(`art/${file}`, APP_ROOT ?? globalThis.document?.baseURI ?? 'http://localhost/').href;
 
 let _installed = false;
 /** Register the pictures once (installThunderlockIcons' door - `standIn: true` IS the registration: archive 562 exists
@@ -136,11 +138,11 @@ export function installPistoletIcons({ fetchBytes = null } = {}) {
   if (_installed && vendorTextureCount() > 0) return 0;
   _installed = true;
   const load = fetchBytes ?? (async (name) => {
-    const r = await fetch(iconUrl(name));
+    const r = await fetch(pistoletIconUrl(name));
     if (!r.ok) throw new Error(`${name}: ${r.status}`);
     return new Uint8Array(await r.arrayBuffer());
   });
-  return addVendorTextures(ICON_FILES.map(({ archive, record, frame, file, offset }) => ({
+  return addVendorTextures(PISTOLET_ICON_FILES.map(({ archive, record, frame, file, offset }) => ({
     archive, record, frame, fileName: file, standIn: true, offset, load: () => load(file),
   })));
 }
@@ -161,13 +163,13 @@ setSecondGun(() => createPistolet());
 // the rig plays `pistolet:fire` and no host learns the weapon has sounds. The files are the owner's three picks off the
 // lab's panel, read from the one row that holds them (combat/gun/gunFeel.js PISTOLET_FEEL.sfx) - the pistol lab's
 // dropdowns open on the same row, so the audition and the game cannot disagree.
-export const SFX = Object.freeze({ fire: 'pistolet:fire', open: 'pistolet:open', close: 'pistolet:close' });
-export const SFX_FILES = Object.freeze({
-  [SFX.fire]: `${PISTOLET_FEEL.sfx.fire}.wav`,
-  [SFX.open]: `${PISTOLET_FEEL.sfx.open}.wav`,
-  [SFX.close]: `${PISTOLET_FEEL.sfx.close}.wav`,
+export const PISTOLET_SFX = Object.freeze({ fire: 'pistolet:fire', open: 'pistolet:open', close: 'pistolet:close' });
+export const PISTOLET_SFX_FILES = Object.freeze({
+  [PISTOLET_SFX.fire]: `${PISTOLET_FEEL.sfx.fire}.wav`,
+  [PISTOLET_SFX.open]: `${PISTOLET_FEEL.sfx.open}.wav`,
+  [PISTOLET_SFX.close]: `${PISTOLET_FEEL.sfx.close}.wav`,
 });
-export const sfxUrl = (file) => new URL(`sfx/${file}`, APP_ROOT ?? globalThis.document?.baseURI ?? 'http://localhost/').href;
+export const pistoletSfxUrl = (file) => new URL(`sfx/${file}`, APP_ROOT ?? globalThis.document?.baseURI ?? 'http://localhost/').href;
 
 let _sounds = null;
 /** Register the three clips, once. Answers how many took. */
@@ -175,12 +177,12 @@ export function installPistoletSounds(audio, { fetchBytes = null } = {}) {
   if (!audio?.registerSound) return Promise.resolve(0);
   return (_sounds ??= (async () => {
     const load = fetchBytes ?? (async (file) => {
-      const r = await fetch(sfxUrl(file));
+      const r = await fetch(pistoletSfxUrl(file));
       if (!r.ok) throw new Error(`${file}: ${r.status}`);
       return new Uint8Array(await r.arrayBuffer());
     });
     let n = 0;
-    for (const [key, file] of Object.entries(SFX_FILES)) {
+    for (const [key, file] of Object.entries(PISTOLET_SFX_FILES)) {
       try { if (await audio.registerSound(key, await load(file))) n++; } catch { /* the weapon still fires, silently */ }
     }
     return n;

@@ -43,7 +43,7 @@ import { readWidgetSettings } from './weaponWidgetMotion.js';   // FIELD-GUN8: t
 import { betterAmbience } from '../../systems/betterAmbience.js';   // FIELD-GUN6: the ONE camera shaker in the port, already wired through all four hosts
 import { orbColour, MUZZLE_FORWARD, orbArchiveFor } from '../../characters/thunderlockIds.js';   // FIELD-GUN17: the flash wears the orb's own colour, sampled rather than named
 import { worldRectPx } from '../../player/tapRay.js';   // FIELD-GUN19: the docked HUD's world strip, in canvas pixels - ROAD-E E5's one home for that flip
-import { installPistoletSounds, SFX as PL_SFX } from '../../systems/pistolet.js';   // PISTOLET: the second gun's clips, the same door
+import { installPistoletSounds, PISTOLET_SFX as PL_SFX } from '../../systems/pistolet.js';   // PISTOLET: the second gun's clips, the same door
 import { installThunderlockSounds, SFX as TL_SFX } from '../../systems/thunderlock.js';   // AUDIT-THUNDERLOCK F8: the weapon's own clips, through the mod-sound door   // the port's own weapon: its art is a sheet, not a CIF   // MAC-I: the tint's switch, with the sprite it tints
 // ROAD-tail (FPSSpellCasting.cs): the classic spellcasting HANDS. A
 // separate component in DFU and a separate module here, drawn by the
