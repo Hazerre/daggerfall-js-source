@@ -115,6 +115,7 @@ test('STAFF-PANEL6-STATUS: a value takes a limit\'s colour at or past its line, 
   assert.equal(levelOf(100, undefined), 'grey', 'no limit');
   assert.equal(levelOf(null, both), 'grey', 'no number is no colour (its tile says missing)');
   assert.equal(levelOf(0, { amber: 0, red: null }), 'amber', 'a line at 0');
+  assert.equal(levelOf(null, { amber: 0, red: 0 }), 'grey', 'no number is no colour, even past a line at 0');
 });
 
 test('STAFF-PANEL6-STATUS: server status is the Admins\' - a Moderator is refused, and the refusal written down', async () => {
@@ -252,6 +253,21 @@ test('STAFF-PANEL6-STATUS: missing data is said so - an Analytics Engine or rela
     const { body } = await t.staff('/v1/staff/status', {}, t.mob.session);
     assert.deepEqual([checkOf(body, 'relay').ok, tileOf(body, 'health').level], [false, 'red']);
   } finally { t.restore(); }
+  // the service's own database read failing is a service health failure
+  const v = await stand();
+  try {
+    v.raw.exec('DROP TABLE mod_feed');
+    const { body } = await v.staff('/v1/staff/status', {}, v.mob.session);
+    assert.deepEqual([checkOf(body, 'service').ok, checkOf(body, 'service').why, tileOf(body, 'health').level], [false, 'the service\'s database read failed', 'red']);
+    assert.deepEqual([tileOf(body, 'players').values.registered, tileOf(body, 'players').sources.registered], [null, 'missing']);
+  } finally { v.restore(); }
+  // an account named with no token asks nothing
+  const w = await stand({ STAFF_ANALYTICS_ACCOUNT: ACCT });
+  try {
+    const { body } = await w.staff('/v1/staff/status', {}, w.mob.session);
+    assert.equal(tileOf(body, 'load').sources.analytics, 'not-configured');
+    assert.equal(w.asked.filter((a) => a.to === 'ae').length, 0);
+  } finally { w.restore(); }
   // an account id that is not one never reaches the address
   const u = await stand({ STAFF_ANALYTICS_TOKEN: 'tok', STAFF_ANALYTICS_ACCOUNT: '../x' });
   try {
@@ -296,6 +312,9 @@ test('STAFF-PANEL6-STATUS: the AI reviewer failing turns health red - a failed r
 
 test('STAFF-PANEL6-STATUS: each part is kept for its window - a poll in ten seconds asks nothing again, and a limit set shows at once', async () => {
   const s = await stand({ STAFF_ANALYTICS_TOKEN: 'tok', STAFF_ANALYTICS_ACCOUNT: ACCT });
+  const real = Date.now, T0 = real();
+  let off = 0;
+  Date.now = () => T0 + off;   // the service's clock held still, then moved by whole seconds
   try {
     const status = () => s.staff('/v1/staff/status', { poll: true }, s.mob.session);
     const first = (await status()).body;
@@ -304,18 +323,21 @@ test('STAFF-PANEL6-STATUS: each part is kept for its window - a poll in ten seco
     const again = (await status()).body;
     assert.deepEqual(count(), { health: 1, ae: 3, eg: 1 }, 'kept');
     assert.equal(again.tiles[0].asOf, first.tiles[0].asOf);
-    await later((STATUS_FAST_S - 1) * 1000, status);
+    off = (STATUS_FAST_S - 1) * 1000;
+    await status();
     assert.deepEqual(count(), { health: 1, ae: 3, eg: 1 }, 'still inside the window');
-    await later(STATUS_FAST_S * 1000, status);
-    assert.deepEqual(count(), { health: 2, ae: 3, eg: 1 }, 'the fast part read again past its window; the slow part kept');
-    await later(STATUS_SLOW_S * 1000, status);
-    assert.deepEqual(count(), { health: 3, ae: 6, eg: 2 }, 'the slow part past its own');
-    // a limit set in this isolate shows on the next read, not ten seconds on
+    off = STATUS_FAST_S * 1000;
+    await status();
+    assert.deepEqual(count(), { health: 2, ae: 3, eg: 1 }, 'the fast part read again at its window\'s end; the slow part kept');
+    off = STATUS_SLOW_S * 1000;
+    await status();
+    assert.deepEqual(count(), { health: 3, ae: 6, eg: 2 }, 'the slow part at its own');
+    // a limit set in this isolate shows on the next read, not STATUS_FAST_S on
     s.raw.prepare('UPDATE players SET played_at = ? WHERE handle IS NOT NULL').run(nowS());
     await s.staff('/v1/staff/limit/set', { metric: 'players.registered', amber: 1, red: 3 }, s.mob.session);
     const now = (await status()).body;
     assert.deepEqual([tileOf(now, 'players').level, tileOf(now, 'players').values.registered], ['amber', 2]);
-  } finally { s.restore(); }
+  } finally { Date.now = real; s.restore(); }
 });
 
 test('STAFF-PANEL6-STATUS: a tile goes amber or red past the limits an Admin set, says why, and the worst tile is the status\'s', async () => {
@@ -350,9 +372,12 @@ test('STAFF-PANEL6-STATUS: HOME - the top n of each watch the caller may see, wo
   });
   const boom = { id: 'boom', label: 'boom', role: 'moderator', top: async () => { throw new Error('no'); } };
   const list = [w('quiet', 'moderator', []), w('lows', 'moderator', ['low', 'low']), w('admins', 'admin', ['high', 'medium']), boom,
-    w('highs', 'moderator', ['high', 'high', 'high', 'low'], 9, 5), w('one-high', 'moderator', ['high'])];
+    w('highs', 'moderator', ['high', 'high', 'high', 'low'], 9, 5), w('one-high', 'moderator', ['high']),
+    // a watch that answers its whole list, whatever n: Home cuts it
+    { ...w('long', 'moderator', []), top: async () => ({ items: ['low', 'low', 'low', 'low', 'low'].map((level) => ({ level, why: '', sub: null, name: '' })), high: 0, total: 5 }) }];
   const admin = await homeOf({}, {}, { player: {}, role: 'admin' }, 3, list);
-  assert.deepEqual(admin.watches.map((x) => x.id), ['highs', 'admins', 'one-high', 'boom', 'lows', 'quiet'], 'worst first; then most high; then the usual order');
+  assert.deepEqual(admin.watches.map((x) => x.id), ['highs', 'admins', 'one-high', 'boom', 'lows', 'long', 'quiet'], 'worst first; then most high; then the usual order');
+  assert.deepEqual([admin.watches[5].items.length, admin.watches[5].more], [3, 2], 'a watch that answered too many is cut to n');
   const highs = admin.watches[0];
   assert.deepEqual([highs.items.length, highs.high, highs.total, highs.more], [3, 5, 9, 6], 'the top n, and how many wait behind');
   assert.deepEqual(highs.items[0], { level: 'high', why: 'highs 0', sub: 'p0', name: 'P0' });
