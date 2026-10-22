@@ -908,7 +908,6 @@ export async function deleteRealm({ db, bucket, nowS = Math.floor(Date.now() / 1
     db.prepare('DELETE FROM firmament WHERE player = ? AND char_id = ?').bind(playerId, id),   // AUDIT UICALM-FIRM1 L2 L2: its sky with it (firmament_sets stay - the ids' memory, so a replay is answered, never made again)
     db.prepare('DELETE FROM prof_unbruised WHERE player = ? AND char_id = ?').bind(playerId, id),   // AUDIT PROF-541 B5: the unbruised count goes with the Stores it counts
     db.prepare('DELETE FROM prof_carried WHERE player = ? AND char_id = ?').bind(playerId, id),   // BAG1: and what it was counted as carrying
-    db.prepare('DELETE FROM craft_writs WHERE player = ? AND owner = ? AND filled_at IS NULL').bind(playerId, id),   // CRAFT-WRITS: its writs open - a filled one stays, the brews it took its memory (as firmament_sets)
     db.prepare('DELETE FROM npc_roll WHERE player = ? AND char_id = ?').bind(playerId, id),   // CHAP1: its standing with the guilds (npcRoll.js)
     db.prepare('DELETE FROM npc_roll_heads WHERE player = ? AND char_id = ?').bind(playerId, id),
     db.prepare('DELETE FROM npc_rep_events WHERE player = ? AND char_id = ?').bind(playerId, id),

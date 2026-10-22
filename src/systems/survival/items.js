@@ -44,7 +44,8 @@ export const SURVIVAL_TEMPLATES = Object.freeze([
   // CRAFT-PAYS (2026-10-21, the Discord's #feature-feedback: "Food is too heavy. Especially meat... meat should reduce in
   // weight once cooked becasue most of that weight will be water"; bible/06-Systems/Professions-Arc.md section 48): the
   // mod's raw meat and raw fish weighed two kilos a piece and kept it all through the fire. A cut is a kilo, and cooked it
-  // is half that - the water gone - so a cooked meal weighs a quarter of what it did. The dishes stand on these rows
+  // is half that - the water gone - so a cooked Meat weighs a quarter of what it did and a Cooked Fish a third (AUDIT
+  // CRAFT-WRITS T7: "a quarter" was the Meat's alone). The dishes stand on these rows
   // (professions/profTemplates.js DISH_TEMPLATE_ROWS) and lighten with them; Bread and Rations are the mod's.
   { index: TEMPLATE.RawFish, name: 'Raw Fish', baseWeight: 1.0, hitPoints: 50, basePrice: 4, rarity: 20, worldTextureArchive: 211, worldTextureRecord: 9 },
   { index: TEMPLATE.CookedFish, name: 'Cooked Fish', baseWeight: 0.5, hitPoints: 80, basePrice: 6, rarity: 10, worldTextureArchive: 211, worldTextureRecord: 10 },

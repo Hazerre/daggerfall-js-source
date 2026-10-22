@@ -524,6 +524,7 @@ const REFUSAL_WORDS = {
   'writ-cap': () => t('account.refusal.writCap', 'You have filled {max} writs today, the most a day allows.', { max: COURT_WRITS_PER_DAY }),   // CHAP2a: the Court's and the halls' one allowance
   // CRAFT-WRITS (bible/06-Systems/Professions-Arc.md section 49): a crafting writ's own refusals
   'craft-writ-cap': () => t('account.refusal.craftWritCap', 'You have filled {max} crafting writs today, the most a day allows.', { max: MARKS_FAUCETS.craftWrit.perDay }),
+  'craft-writ-filled': () => t('account.refusal.craftWritFilled', 'You have already filled this crafting writ.'),   // AUDIT CRAFT-WRITS S4
   'craft-unbrewed': () => t('account.refusal.craftUnbrewed', 'You have not brewed enough of that potion yourself. Bottles you found or bought do not count - brew them at an alchemy station.'),
   'craft-pieces': () => t('account.refusal.craftPieces', 'Only pieces you made yourself and never sold can fill this writ, and you need all of them.'),
   'craft-goods-gone': () => t('account.refusal.craftGoodsGone', 'Your pack does not hold enough of what this writ asks.'),

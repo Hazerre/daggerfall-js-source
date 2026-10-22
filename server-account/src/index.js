@@ -590,7 +590,7 @@ const PROF_STATUS = Object.freeze({
   'prof-piece-gone': 409, 'realm-needed': 400, lease: 409, seq: 409, 'no-realm-character': 404, 'no-data': 404, 'no-storage': 503,
   'node-taken': 409, 'writ-taken': 409, 'writ-expired': 409, 'writ-cap': 409, 'marks-full': 409, 'marks-short': 409, 'prof-respec-pending': 409,
   'prof-rate': 429,
-  'craft-writ-cap': 409, 'craft-unbrewed': 409, 'craft-pieces': 409, 'craft-goods-gone': 409,   // CRAFT-WRITS: the day's three, the brews, the pieces, the record's goods
+  'craft-writ-cap': 409, 'craft-writ-filled': 409, 'craft-unbrewed': 409, 'craft-pieces': 409, 'craft-goods-gone': 409,   // CRAFT-WRITS: the day's three, the brews, the pieces, the record's goods
   'chapters-closed': 403,   // AUDIT CHAP2 S3: a hall writ while the Chapters are not this account's - 403, as every door says it
   // PROF6: guild writs, commissions and the guild Stores
   'writs-closed': 403, 'guild-rank': 403, 'guilds-need-account': 403, 'commission-not-yours': 403, 'market-not-yours': 403,

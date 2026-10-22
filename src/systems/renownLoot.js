@@ -53,8 +53,9 @@ export function renownLootQuarters({ online = sigilOnline(), renown = sigilRenow
   return RENOWN_LOOT_QUARTERS[Math.max(0, renownSigilStage(renown))];
 }
 
-/** A knob at `quarters` of LOOT-EASE's step: `before` (the live game's, before LOOT-EASE) moved that share of the way
- *  to `after` (LOOT-EASE's own) - and on past it, above four quarters. Settled to nine places: every knob is a decimal of
+/** A knob at `quarters` of LOOT-EASE's step: `before` (the live game's, before LOOT-EASE - but for the two potions POT-THIN
+ *  cut, whose step starts where POT-THIN set it, healingSupply.js HEALING_*_CHANCE_BEFORE; AUDIT CRAFT-WRITS T7) moved that
+ *  share of the way to `after` (LOOT-EASE's own) - and on past it, above four quarters. Settled to nine places: every knob is a decimal of
  *  a few, and a quarter of 0.4 is not one in binary (1.3 would read 1.2999999999999998). */
 export const lootEased = (/** @type {number} */ before, /** @type {number} */ after, /** @type {number} */ quarters) =>
   Math.round((before + ((after - before) * quarters) / 4) * 1e9) / 1e9;

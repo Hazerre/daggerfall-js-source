@@ -1039,12 +1039,18 @@ export function createProfBook({ door, storage = null, character = () => null, n
         if (origin !== slot()) return { ...r, elsewhere: true };
         if (r?.ok) {
           applyTrack(r.data?.track);
-          // the Work list's own card filled, and the day's count - every region's list of this slot (the writs are the character's)
+          // the Work list's own card filled, and the day's count - every region's list of this slot (the writs are the account's)
           for (const [wk, hit] of writCache) {
             if (!wk.startsWith(`${slot()}|`) || !hit?.data?.crafts) continue;
             hit.data = { ...hit.data, crafts: { writs: hit.data.crafts.writs.map((w) => (w.id === writId ? { ...w, state: 'mine' } : w)), today: r.data?.today ?? hit.data.crafts.today } };
           }
-        } else shutBy(r);
+          writGen++;   // AUDIT CRAFT-WRITS C1: a list read while this was asked shows the writ open - read again
+        } else {
+          shutBy(r);
+          // C4: the record moved under the ask - this act landed with its answer lost, or another's: the track and the list
+          // read again
+          if (r?.error === 'seq') { state.reread = true; writGen++; }
+        }
         return r;
       })();
       const asking = m.promise;   // a throw lets the writ's id go (AUDIT2 BAG1 K13's law)
@@ -1231,6 +1237,9 @@ export function createProfBook({ door, storage = null, character = () => null, n
       writeKept(kept, key);   // let go BEFORE the pieces are made: a mint that threw is never a second mint
       for (const st of r.data?.stores ?? []) applyStore(st);
       applyTrack(r.data?.track);
+      // AUDIT CRAFT-WRITS C7: a brew, a dish or a kit moves what a crafting writ's card holds (its `brewed`, its `pieces`)
+      const made = w.brew === true ? null : recipeById(w.recipe);
+      if (w.brew === true || made?.kind === 'dish' || made?.product === 'kit') { writCache.clear(); writGen++; }
       if (!had) return { ok: true, data: r.data, elsewhere: true };
       try { mint(r.data, w); } catch (e) { console.warn('[prof] a craft would not mint', e); }   // AUDIT 30 C4: the kept craft its fee
       // AUDIT QUESTLINES ACTS-4: nor a dish - Cooking's recipes are crafts too (recipeLaw.js dishRecipe, kind 'dish'), and a

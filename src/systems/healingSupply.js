@@ -31,8 +31,9 @@
 // POT-THIN (2026-10-21, the Discord's #feature-feedback, "Crafting seems unrewarding": "I collect so many potions from
 // enemy drops that I never need to make potions... who needs to buy pots when you find them everywhere?"; the owner:
 // "I definitely want to decrease pot drops"; bible/06-Systems/Professions-Arc.md section 48): THE FLOOD TURNED DOWN. A
-// looting foe at Renown 20 carried a potion 19 times in 100 (this file's 10 and 6, DFU's random 3); it carries one 9
-// times in 100 now - the healing potion 4 and Restore Power 2 - so the brewer's bottle is the steady supply and the
+// looting foe at Renown 20 carried 19 potions in 100 (this file's 10 and 6, DFU's random 3); it carries 9 in 100 now -
+// the healing potion 4 and Restore Power 2 (AUDIT CRAFT-WRITS E8: an expected count, the chance of at least one some
+// 8.7 in 100) - so the brewer's bottle is the steady supply and the
 // drop a windfall. RENOWN-LOOT's ladder stands on new ends: a foe's healing potion 3 at Renown 1 to 5 at Renown 40 (it
 // was 8 to 12), its Restore Power 1 to 3 (3 to 9); a deep pile's healing potion 6 to 10 (15 to 21), its Restore Power 2
 // to 6 (5 to 15). DFU's own random potion (3 a foe, 4 a pile) and the counter's shelf are untouched.
@@ -56,7 +57,9 @@ export const MAGICKA_ENEMY_CHANCE = 2;
 /** MAGICKA-COMMON: a J-O pile's chance in 100 of holding one (POT-THIN: 10). */
 export const MAGICKA_PILE_CHANCE = 4;
 /** Where RENOWN-LOOT's step starts: a foe's healing potion 2 in 100 and a pile's 4; no Restore Power of their own at
- *  all. POT-THIN: the live game's before LOOT-EASE had been 6 and 12, and the step began there. */
+ *  all. POT-THIN: the live game's before LOOT-EASE had been 6 and 12, and the step began there - "BEFORE" names the
+ *  step's start now, an invented one below the live game's (AUDIT CRAFT-WRITS E5: the names kept, so every pin and
+ *  record reads them as they stood). Offline takes LOOT-EASE's buff whole - this file's 4 and 2 - so it is cut as well. */
 export const HEALING_ENEMY_CHANCE_BEFORE = 2;
 export const HEALING_PILE_CHANCE_BEFORE = 4;
 /** RENOWN-LOOT: the four chances at `quarters` of LOOT-EASE's buff (systems/renownLoot.js) - the ones above offline and

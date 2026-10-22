@@ -98,13 +98,13 @@ function shopIron(n) {
   return { ...structuredClone(iron), stackCount: n };
 }
 
-/** The real board's Work tab, read off the real books - the Court's and the chapters' writs, and the guild writs beside them. */
 /** CRAFT-WRITS: a wait on the real Worker's read by the clock, not a count of turns - the list's read does more since the
  *  crafting writs ride it, and 400 turns ran out under a loaded suite. */
 async function until(done, ms = 20_000) {
   const end = performance.now() + ms;   // never Date.now: this file holds it still
   while (!done() && performance.now() < end) await tick();
 }
+/** The real board's Work tab, read off the real books - the Court's and the chapters' writs, and the guild writs beside them. */
 async function workTab(book, writs = null) {
   const notices = { seenAt: () => null, read: async () => ({ board: { notes: [], notices: [], me: {} } }), markSeen() {}, cached: () => null, draft: () => ({ subject: '', body: '', days: 7, button: '' }), noticeDraft: () => ({ subject: '', body: '', days: 3 }) };
   const host = document.createElement('div');

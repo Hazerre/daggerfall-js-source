@@ -285,8 +285,8 @@ import { huntKind, createBodyStamps, bodiesHere, trackerMarks } from './huntHost
 import { freePull } from '../systems/travel/freePull.js';   // OW-FREE-STRAIGHT, moved out (HOST-SPLIT)
 import { createGrantHost } from './grantHost.js';   // GRANT2-GRANT4: the spawn grants - my stands' and my reading of others' (bible/11-Multiplayer/Spawn-Grants.md)
 import { wireOwnerClock } from './ownerCatchUp.js';   // OWNER-CLOCK: my foes' steps on the clock their frames carry, and the street's kept to my frame's pace while anyone else is in my room
-import { fishKind } from './fishHost.js';
-import { createCraftWritHost } from './craftWritHost.js';   // CRAFT-WRITS: the Work tab's crafting writs, handed over from the pack   // PROF8: Fishing's casts and schools - a kind in it
+import { fishKind } from './fishHost.js';   // PROF8: Fishing's casts and schools - a kind in it
+import { createCraftWritHost } from './craftWritHost.js';   // CRAFT-WRITS: the Work tab's crafting writs, handed over from the pack
 import { rollNoticeDoors } from './rollNoticeHost.js';   // SEAT-WORDS / STANDING-WORDS: what the Roll's tracker says
 import { utcDayOfMs } from '../net/nodeLaw.js';   // PROF8: a haul's UTC day
 import { registerPlayerKillListener } from '../systems/playerKills.js';   // PROF7: the player's own kill stamps a body

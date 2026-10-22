@@ -269,7 +269,7 @@
     "file": "src/systems/healingSupply.js",
     "old": "export const MAGICKA_ENEMY_CHANCE = 2;",
     "new": "export const MAGICKA_ENEMY_CHANCE = 3;",
-    "why": "a foe's 6 in 100 moved",
+    "why": "a foe's 2 in 100 (POT-THIN) moved to 3",
     "tests": [
       "test/systems/potion_common.test.js"
     ]
@@ -279,7 +279,7 @@
     "file": "src/systems/healingSupply.js",
     "old": "export const MAGICKA_PILE_CHANCE = 4;",
     "new": "export const MAGICKA_PILE_CHANCE = 5;",
-    "why": "a pile's 10 in 100 moved",
+    "why": "a pile's 4 in 100 (POT-THIN) moved to 5",
     "tests": [
       "test/systems/potion_common.test.js"
     ]
@@ -322,7 +322,7 @@
     "file": "src/systems/healingSupply.js",
     "old": "export const HEALING_ENEMY_CHANCE = 4;",
     "new": "export const HEALING_ENEMY_CHANCE = 10;",
-    "why": "the healing potion's foe chance back at 6",
+    "why": "the healing potion's foe chance back at POTION-COMMON's 10, before POT-THIN cut it to 4",
     "tests": [
       "test/systems/potion_common.test.js"
     ]
@@ -332,7 +332,7 @@
     "file": "src/systems/healingSupply.js",
     "old": "export const HEALING_PILE_CHANCE = 8;",
     "new": "export const HEALING_PILE_CHANCE = 18;",
-    "why": "the healing potion's pile chance back at 12",
+    "why": "the healing potion's pile chance back at POTION-COMMON's 18, before POT-THIN cut it to 8",
     "tests": [
       "test/systems/potion_common.test.js"
     ]

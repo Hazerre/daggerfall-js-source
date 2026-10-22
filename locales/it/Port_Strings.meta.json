@@ -1224,6 +1224,11 @@
   "tr": "130a4c11e1e3",
   "by": "claude-in-session"
  },
+ "account.refusal.craftWritFilled": {
+  "en": "60bbcecd9de4",
+  "tr": "2ac07ad12196",
+  "by": "claude-in-session"
+ },
  "account.refusal.customsAllowance": {
   "en": "793153fc9b40",
   "tr": "842633d8a0ea",
@@ -19524,6 +19529,11 @@
   "tr": "eef6cbaf42c4",
   "by": "claude-in-session"
  },
+ "notice.craftWrit.elsewhere": {
+  "en": "f7b40c528549",
+  "tr": "120a02afb0af",
+  "by": "claude-in-session"
+ },
  "notice.craftWrit.full": {
   "en": "d5cf5f0fc765",
   "tr": "c4b22f09e1bf",
@@ -19542,6 +19552,11 @@
  "notice.craftWrit.mine": {
   "en": "53c1df74536f",
   "tr": "28626c696e56",
+  "by": "claude-in-session"
+ },
+ "notice.craftWrit.unknown": {
+  "en": "f818ff47bed4",
+  "tr": "493d05d2485a",
   "by": "claude-in-session"
  },
  "notice.skills.improve": {
@@ -22400,7 +22415,7 @@
   "by": "claude-in-session"
  },
  "prof.craftWrit.countKit": {
-  "en": "da584b5bfb4e",
+  "en": "1e4295bd6131",
   "tr": "2fcdd8efbd48",
   "by": "claude-in-session"
  },

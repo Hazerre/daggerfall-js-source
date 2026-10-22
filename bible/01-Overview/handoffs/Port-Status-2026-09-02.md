@@ -16,7 +16,7 @@ superseded page was written as an audit's evidence file and carried its
 166 confirmed defects inline; this one carries none, because they are
 closed and their record is `Audit-44.md`. What this page is for is the
 three lists at the bottom: the **21 open flags** (21 stand after Wave E,
-the ship landing, ROAD-F, QX1/TP2 and SUMMON-SYNC, seventeen of them AUDIT 29's, PROF4's, SEAT1a's, ARENA2's, AUDIT TELL's, LEGACY1's, CARDS2's, AUDIT CARDS's, MERCHANT-YARDS's, AUDIT WAGONS3's four, WARDEN1's, SHIPYARDS', POI-2's, BANTHA1's and CRAFT-WRITS', added since, ARENA2's closed by ARENA-FIX, CARDS2's by TAVERN-TABLE and RW1's by GLASS-ALL - list 1 strikes the rest, and
+the ship landing, ROAD-F, QX1/TP2 and SUMMON-SYNC, eighteen of them AUDIT 29's, PROF4's, SEAT1a's, ARENA2's, AUDIT TELL's, LEGACY1's, CARDS2's, AUDIT CARDS's, MERCHANT-YARDS's, AUDIT WAGONS3's four, WARDEN1's, SHIPYARDS', POI-2's, BANTHA1's and CRAFT-WRITS', added since, ARENA2's closed by ARENA-FIX, CARDS2's by TAVERN-TABLE and RW1's by GLASS-ALL - list 1 strikes the rest, and
 `node tools/regenOpenFlags.mjs --check` is the arbiter) with the blocker the
 closeout triage assigned each, the **Port-Ledger section C rows still
 routed and not struck**, and the **deliberate departures that are not on

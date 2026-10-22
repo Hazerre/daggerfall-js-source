@@ -7,28 +7,34 @@
 // crafting writ asks what a crafter MAKES - potions, dishes, Repair Kits - and pays for the making. The record is
 // bible/06-Systems/Professions-Arc.md section 49.
 //
-// THE SHAPE. Each realm character is asked three a UTC day of its own (`k:<day>:<character>:<slot>`), drawn by the
-// service from the character's own dice the first time it reads a board that day, within its own ranks - a potion and a
-// dish of Provisioning's, and a Repair Kit of Smithing's where the character has smithed at all (else a second potion).
+// THE SHAPE. An ACCOUNT is asked three a UTC day (`k:<day>:<the character that read first>:<slot>`), drawn by the service
+// from the account's own dice the first time any of its realm characters reads a board that day, within its best
+// crafter's ranks - a potion and a dish of Provisioning's, and a Repair Kit of Smithing's where one of its characters has
+// smithed at all (else a second potion). AUDIT CRAFT-WRITS E1: a character's own three let an account of six pick its
+// best three of eighteen - the draw is the account's, and any of its characters fills a writ with its own goods.
 // The guild that would want it asks it (CRAFT_GUILDS): the Mages Guild most potions, the Temple of Stendarr the remedies,
 // the Fighters Guild strength and stamina, a soldier's dishes and the kits, the Temple of Mara the tart and the feast.
-// Filled whole at any board by its owner, before the day ends; an account fills CRAFT_WRITS_PER_DAY of them a day.
+// Filled whole at any board, before the day ends; an account fills CRAFT_WRITS_PER_DAY of them a day.
 //
 // WHAT FILLS ONE - MADE, AND HANDED OVER. A writ's Marks are minted only for an act the service witnessed (law 8):
-//  - POTIONS: the character's own BREWS (the service's prof_brews - every potion a station bottled for it), less what
-//    crafting writs already took, cover the count; and the bottles themselves leave the character's realm record - any
-//    bottles of that recipe, a Potent one too (a potion is a potion: the brews are the witness, the record the goods).
+//  - POTIONS: the filling character's own BREWS (the service's prof_brews - every potion a station bottled for it), less
+//    what the crafting writs it filled of that potion already took, cover the count; and the bottles themselves leave
+//    its realm record - any bottles of that recipe, a Potent one too (a potion is a potion: the brews are the witness,
+//    the record the goods).
 //    A looted or bought bottle fills nothing a brew of its own does not stand behind.
-//  - DISHES AND KITS: the pieces themselves, by provenance - each this character's make (products.char_id), never sold
-//    or bought (products.bought_with), on no listing, road or home, and in the record's pack loose; their rows go with them.
+//  - DISHES AND KITS: the pieces themselves, by provenance - each the filling character's make (products.char_id), the
+//    account's still (a sold one is its buyer's), never walled to gold (products.bought_with - AUDIT CRAFT-WRITS T2: a
+//    piece of goods bought for silver is its maker's all the same), on no listing, road or home, and in the record's pack
+//    loose; their rows go with them.
 //  - Never a potion wholly of the Apothecaries' goods (Water Breathing, Levitation - alchemyLaw brewFirstPays): silver
 //    bought at the counter and brewed would come back as more silver with no hand's work between.
 //
-// THE PAY (silver - Marks, `writ`'s kin: a mint, `craft-writ`). A writ is worth what its goods cost to make, half again:
-// a make's inputs at their Marks values (the Apothecaries sell at that value, so a reagent bought is counted at what it
-// cost), over the units one make gives a Novice (a brew 2 - CRAFT-PAYS - a dish 1, a kit 1), times CRAFT_PAY_PCT; never
-// less than CRAFT_PAY_FLOOR a tier (a rank's skill is paid for, not only its herbs), never more than CRAFT_WRIT_PAY_MAX
-// (the count is lowered first). Its XP twice its pay to the craft's track (the Court writ's own law, writXp), under the
+// THE PAY (silver - Marks, `writ`'s kin: a mint, `craft-writ`). A writ is worth what its goods cost to make: a make's
+// gathered inputs at their Marks values times CRAFT_PAY_PCT, and the goods only a counter sells (professionLaw
+// COUNTER_ONLY - the Apothecaries' reagents, sold at their value) at their cost alone (AUDIT CRAFT-WRITS E2: half again on
+// a reagent bought was silver in, more silver out), over the units one make gives a Novice (a brew 2 - CRAFT-PAYS - a dish
+// 1, a kit 1); never less than CRAFT_PAY_FLOOR a tier (a rank's skill is paid for, not only its herbs - the floor is what
+// most writs pay), never more than CRAFT_WRIT_PAY_MAX (the count is lowered first). Its XP twice its pay to the craft's track (the Court writ's own law, writXp), under the
 // crafter's limit; its Renown twice its pay at the rate (renownRate - the Court writ's ratio); and HALL_WRIT_REP standing
 // with its guild on the character's Roll, where the Roll keeps the guild (a hall writ's law, CHAP2a).
 //
@@ -38,15 +44,17 @@
 import { POTIONS, potionById, brewFirstPays, ingredientKeys } from './alchemyLaw.js';
 import { DISHES, recipeById, RECIPES } from './recipeLaw.js';
 import { material } from './nodeLaw.js';
-import { TIER_RANKS, topTierOf, professionName } from './professionLaw.js';
+import { TIER_RANKS, topTierOf, professionName, COUNTER_ONLY } from './professionLaw.js';
 import { renownRate } from './renown.js';
 import { gateHash } from './gate/gateLaw.js';
-import { REALM_CHARACTER_RE } from './identityToken.js';
 import { GUILD_FACTION_IDS, DIVINES } from '../systems/guild/guildFactions.js';
 import { takeTradeGoods, tradeableRecord, recordCount } from './realm/realmTradeLaw.js';
 import { PROVENANCE_RE } from './recipeLaw.js';
 import { MARKS_FAUCETS } from './marksLaw.js';
 import { hallPosterName } from './npcChapterLaw.js';
+import { UNYIELDED } from './marketLaw.js';
+import { GROUP_TEMPLATE_INDICES } from '../systems/item/itemTemplatesData.js';
+import { isLocked } from '../systems/item/itemLock.js';
 import { t } from '../systems/textManager.js';
 
 /** Crafting writs an account fills a UTC day - their own allowance, beside the Court's three: the faucet's cap. */
@@ -81,13 +89,14 @@ export const CRAFT_GUILDS = Object.freeze({
 
 /** The potions a writ may ask: DFU's twenty less the two made wholly of the Apothecaries' goods. */
 export const WRIT_POTIONS = Object.freeze(POTIONS.filter((p) => brewFirstPays(p)));
-/** The Repair Kits a writ may ask - every metal's (recipeLaw `kit:<metal>`). */
-export const WRIT_KITS = Object.freeze(RECIPES.filter((r) => r.product === 'kit'));
+/** The Repair Kits a writ may ask - every metal's (recipeLaw `kit:<metal>`) that can be made: AUDIT CRAFT-WRITS E4 - never
+ *  one of a metal nothing yields (marketLaw UNYIELDED, the Daedric ingot), a writ no smith could fill. */
+export const WRIT_KITS = Object.freeze(RECIPES.filter((r) => r.product === 'kit' && !r.inputs.some((i) => UNYIELDED.includes(i.key))));
 
 /**
  * A writ's product, by its key: `potion:<id>` (alchemyLaw POTIONS), `dish:<id>` (recipeLaw DISHES - either herb's
- * recipe of it), or a kit's own recipe id (`kit:steel`). `{ kind, key, id, name, tier, rank, cost, faction }`, or null.
- * `cost` is one make's inputs at their Marks values.
+ * recipe of it), or a kit's own recipe id (`kit:steel`). `{ kind, key, id, name, tier, rank, cost, bought, faction }`, or
+ * null. `cost` is one make's inputs at their Marks values; `bought` the part of it only a counter sells (COUNTER_ONLY).
  * @param {unknown} key
  */
 export function craftProductOf(key) {
@@ -97,21 +106,26 @@ export function craftProductOf(key) {
     const p = WRIT_POTIONS.find((x) => x.id === id);
     if (!p) return null;
     const cost = p.ingredients.reduce((s, t) => s + (cheapestValueOf(t) ?? Infinity), 0);
-    return Number.isFinite(cost) ? Object.freeze({ kind, key, id, name: p.name, tier: p.tier, rank: p.rank, cost, faction: CRAFT_GUILDS.potion[/** @type {keyof typeof CRAFT_GUILDS.potion} */ (id)] ?? CRAFT_GUILDS.potionDefault }) : null;
+    const bought = p.ingredients.filter((t) => ingredientKeys(t).every((k) => COUNTER_ONLY.includes(k))).reduce((s, t) => s + (cheapestValueOf(t) ?? 0), 0);
+    return Number.isFinite(cost) ? Object.freeze({ kind, key, id, name: p.name, tier: p.tier, rank: p.rank, cost, bought, faction: CRAFT_GUILDS.potion[/** @type {keyof typeof CRAFT_GUILDS.potion} */ (id)] ?? CRAFT_GUILDS.potionDefault }) : null;
   }
   if (kind === 'dish') {
     const d = DISHES.find((x) => x.id === id);
     if (!d) return null;
-    const cost = d.inputs.reduce((s, [k, n]) => s + (material(String(k))?.value ?? 0) * Number(n), 0) + (d.herb != null ? (material(`p1:${d.herb}`)?.value ?? 0) : 0);
-    return Object.freeze({ kind, key, id, name: d.name, tier: d.tier, rank: TIER_RANKS[d.tier - 1], cost, faction: CRAFT_GUILDS.dish[/** @type {keyof typeof CRAFT_GUILDS.dish} */ (id)] });
+    const goods = [...d.inputs.map(([k, n]) => ({ key: String(k), n: Number(n) })), ...(d.herb != null ? [{ key: `p1:${d.herb}`, n: 1 }] : [])];
+    return Object.freeze({ kind, key, id, name: d.name, tier: d.tier, rank: TIER_RANKS[d.tier - 1], ...costOf(goods), faction: CRAFT_GUILDS.dish[/** @type {keyof typeof CRAFT_GUILDS.dish} */ (id)] });
   }
   if (kind === 'kit') {
     const r = WRIT_KITS.find((x) => x.id === key);
     if (!r) return null;
-    const cost = r.inputs.reduce((s, i) => s + (material(i.key)?.value ?? 0) * i.n, 0);
-    return Object.freeze({ kind, key, id, name: r.name, tier: r.tier, rank: r.rank, cost, faction: CRAFT_GUILDS.kit });
+    return Object.freeze({ kind, key, id, name: r.name, tier: r.tier, rank: r.rank, ...costOf(r.inputs), faction: CRAFT_GUILDS.kit });
   }
   return null;
+}
+/** A make's `{ cost, bought }` of its inputs (`{ key, n }`): every one at its Marks value, and the counter's own apart. */
+function costOf(/** @type {ReadonlyArray<{ key: string, n: number }>} */ inputs) {
+  const at = (/** @type {{ key: string, n: number }} */ i) => (material(i.key)?.value ?? 0) * i.n;
+  return { cost: inputs.reduce((s, i) => s + at(i), 0), bought: inputs.filter((i) => COUNTER_ONLY.includes(i.key)).reduce((s, i) => s + at(i), 0) };
 }
 /** A DFU ingredient template's Marks value - its cheapest Stores key's (an herb is held under either plant group). */
 function cheapestValueOf(/** @type {number} */ templateIndex) {
@@ -126,30 +140,35 @@ export function craftWritBaseQty(/** @type {{ kind: string, tier: number }} */ p
   if (p.kind === 'dish') return p.tier >= 6 ? 1 : 3;
   return p.tier <= 3 ? 3 : p.tier <= 5 ? 2 : 1;
 }
-/** What `qty` of a product is worth: its unit cost (one make's, over a Novice's yield) times CRAFT_PAY_PCT, rounded up -
- *  never under the tier's floor. Uncapped: craftWritOf fits the count first. */
-export const craftWorth = (/** @type {{ kind: 'potion'|'dish'|'kit', tier: number, cost: number }} */ p, /** @type {number} */ qty) =>
-  Math.max(CRAFT_PAY_FLOOR * p.tier, Math.ceil((qty * p.cost * CRAFT_PAY_PCT) / (100 * NOVICE_YIELD[p.kind])));
+/** What `qty` of a product is worth: its unit cost (one make's, over a Novice's yield) - the gathered part times
+ *  CRAFT_PAY_PCT, the counter's at cost (E2) - rounded up, never under the tier's floor. Uncapped: craftWritOf fits the
+ *  count first. */
+export const craftWorth = (/** @type {{ kind: 'potion'|'dish'|'kit', tier: number, cost: number, bought?: number }} */ p, /** @type {number} */ qty) =>
+  Math.max(CRAFT_PAY_FLOOR * p.tier, Math.ceil((qty * ((p.cost - (p.bought ?? 0)) * CRAFT_PAY_PCT + (p.bought ?? 0) * 100)) / (100 * NOVICE_YIELD[p.kind])));
+/** The most a writ asks of one product - the table's own CHECK (migration 0144, `qty` 1 to 20). */
+export const CRAFT_WRIT_QTY_MAX = 20;
 /** A crafting writ's XP: twice its pay, to the craft's track (the Court writ's law, professionLaw writXp). */
 export const craftWritXp = (/** @type {number} */ pay) => 2 * pay;
 /** A crafting writ's Renown XP: twice its pay at the rate (the Court writ's ratio - renown.js renownRate). */
 export const craftWritRenown = (/** @type {number} */ pay) => renownRate(2 * pay);
 
 /**
- * A WRIT FOR `qty` OF A PRODUCT: its count fitted under CRAFT_WRIT_PAY_MAX (lowered while it pays more, never below 1),
+ * A WRIT FOR `qty` OF A PRODUCT: its count fitted under CRAFT_WRIT_PAY_MAX (lowered while it pays more, never below 1,
+ * never above CRAFT_WRIT_QTY_MAX - AUDIT CRAFT-WRITS E6: a row past the table's CHECK was dropped by its INSERT OR IGNORE),
  * then `{ product, kind, tier, faction, qty, pay, xp, renown, track }` - the pay capped where one unit alone is worth more.
  * @param {string} key @param {number} [qty]
  */
 export function craftWritOf(key, qty) {
   const p = craftProductOf(key);
   if (!p) return null;
-  let n = Number.isSafeInteger(qty) && /** @type {number} */ (qty) >= 1 ? /** @type {number} */ (qty) : craftWritBaseQty(p);
+  let n = Number.isSafeInteger(qty) && /** @type {number} */ (qty) >= 1 ? Math.min(CRAFT_WRIT_QTY_MAX, /** @type {number} */ (qty)) : craftWritBaseQty(p);
   while (n > 1 && craftWorth(/** @type {any} */ (p), n) > CRAFT_WRIT_PAY_MAX) n--;
   const pay = Math.min(CRAFT_WRIT_PAY_MAX, craftWorth(/** @type {any} */ (p), n));
   return Object.freeze({ product: p.key, kind: p.kind, tier: p.tier, faction: p.faction, qty: n, pay, xp: craftWritXp(pay), renown: craftWritRenown(pay), track: CRAFT_KINDS[/** @type {keyof typeof CRAFT_KINDS} */ (p.kind)] });
 }
 
-/** A crafting writ's id: `k:<day>:<realm id>:<slot>` - three a character a day. */
+/** A crafting writ's id: `k:<day>:<realm id>:<slot>` - three an account a day, under the realm id of its character that
+ *  read a board first that day (E1: the id's stem, never whose the writ is - it is the account's). */
 export const craftWritId = (/** @type {number} */ day, /** @type {string} */ character, /** @type {number} */ slot) => `k:${day}:${character}:${slot}`;
 export const CRAFT_WRIT_ID_RE = /^k:\d{1,7}:r[0-9a-f]{20}:[0-2]$/;
 
@@ -163,16 +182,21 @@ export function craftWritChoices(/** @type {'potion'|'dish'|'kit'} */ kind, /** 
   return open.filter((p) => /** @type {any} */ (p).tier >= best - 2).map((p) => /** @type {any} */ (p).key);
 }
 
+/** An account's id as the dice read it (server-account/src/accounts.js mintId - 24 of base64url). */
+export const CRAFT_WRIT_SEED_RE = /^[A-Za-z0-9_-]{16,64}$/;
+
 /**
- * A CHARACTER'S CRAFTING WRITS FOR A UTC DAY: three, drawn from its own dice (keyed by its realm id, the day and the slot,
- * as a member's own writ is), within its ranks - slot 0 a potion of Provisioning's, slot 1 a dish of Provisioning's, slot
- * 2 a Repair Kit of Smithing's where the character has smithed (`smithed`), else a second potion, another than slot
- * 0's where Provisioning opens another. Each `{ slot, ...craftWritOf }`; none for a character that is no realm id.
- * @param {number} day @param {unknown} character @param {{ provisioning?: number, smithing?: number, smithed?: boolean }} ranks
+ * AN ACCOUNT'S CRAFTING WRITS FOR A UTC DAY: three, drawn from its own dice (keyed by the account's id, the day and the
+ * slot - E1: never a character's, whose three each let an account choose among its characters' draws), within its best
+ * crafter's ranks - slot 0 a potion of Provisioning's, slot 1 a dish of Provisioning's, slot 2 a Repair Kit of Smithing's
+ * where one of its characters has smithed (`smithed`), else a second potion, another than slot 0's where Provisioning
+ * opens another. Each `{ slot, ...craftWritOf }`; none for a seed that is no account id.
+ * @param {number} day @param {unknown} account @param {{ provisioning?: number, smithing?: number, smithed?: boolean }|null} [ranks]
  */
-export function craftWritsFor(day, character, { provisioning = 0, smithing = 0, smithed = false } = {}) {
-  if (!Number.isSafeInteger(day) || typeof character !== 'string' || !REALM_CHARACTER_RE.test(character)) return [];
-  const id = [1, 8, 15].map((at) => parseInt(character.slice(at, at + 7), 16));
+export function craftWritsFor(day, account, ranks = {}) {
+  if (!Number.isSafeInteger(day) || typeof account !== 'string' || !CRAFT_WRIT_SEED_RE.test(account)) return [];
+  const { provisioning = 0, smithing = 0, smithed = false } = ranks ?? {};   // E6: a null read as none
+  const id = [...account].map((ch) => ch.charCodeAt(0));
   const roll = (/** @type {number} */ slot) => gateHash(CRAFT_WRIT_SALT, day, ...id, slot) / 4294967296;
   const pick = (/** @type {string[]} */ from, /** @type {number} */ slot) => from[Math.min(from.length - 1, Math.floor(roll(slot) * from.length))];
   const potions = craftWritChoices('potion', provisioning);
@@ -199,9 +223,18 @@ export const writPotionKey = (/** @type {string} */ product) => {
 
 // ─── THE GOODS (a save's pack, the service's record and the client's alike) ───
 
-/** A potion record of `key` that may leave: a bottle (its recipe key), never worn, a quest's, summoned or bound
- *  (realmTradeLaw tradeableRecord - a trade's own law). */
-const bottleOf = (/** @type {any} */ rec, /** @type {number} */ key) => Number.isSafeInteger(rec?.potionRecipeKey) && rec.potionRecipeKey === key && tradeableRecord(rec);
+/** DFU's potion bottle (loot.js POTION_TEMPLATE_INDEX - read here from the templates, the Worker bundling no loot). */
+const POTION_BOTTLE = GROUP_TEMPLATE_INDICES.UselessItems1[1];
+/** A record that may go to a writ: a trade's own law (realmTradeLaw tradeableRecord - never worn, a quest's, summoned or
+ *  bound), and never LOCKED (AUDIT CRAFT-WRITS C3: itemLock.js - a lock keeps a piece in the pack, as a disenchant's
+ *  PROF5 list keeps it). */
+const mayGo = (/** @type {any} */ rec) => tradeableRecord(rec) && !isLocked(rec);
+/** A potion record of `key` that may leave: a BOTTLE of its recipe (AUDIT CRAFT-WRITS E3: a recipe sheet names the potion's
+ *  key too - never the potion itself) that may go. */
+const bottleOf = (/** @type {any} */ rec, /** @type {number} */ key) => rec?.group === 'UselessItems1' && rec.templateIndex === POTION_BOTTLE
+  && Number.isSafeInteger(rec.potionRecipeKey) && rec.potionRecipeKey === key && mayGo(rec);
+/** A crafted piece's record answering a dish or kit writ, that may go. */
+export const pieceOf = (/** @type {any} */ rec, /** @type {string} */ product) => typeof rec?.provenance === 'string' && mayGo(rec) && pieceAnswers(product, rec?.recipe);
 /**
  * THE PACK'S OWN GOODS FOR A WRIT, the records a delivery takes: for a potion writ `qty` bottles of its recipe, the plain
  * ones before the Potent (a stack gives part of itself); for a dish or kit writ the records of `pieces` (provenance ids,
@@ -227,7 +260,7 @@ export function craftGoodsPick(items, w, pieces = null) {
   if (!Array.isArray(pieces) || pieces.length !== w.qty || new Set(pieces).size !== pieces.length || !pieces.every((p) => typeof p === 'string' && PROVENANCE_RE.test(p))) return null;
   const out = [];
   for (const pv of pieces) {
-    const at = list.findIndex((rec) => rec?.provenance === pv && tradeableRecord(rec) && pieceAnswers(w.product, rec?.recipe));
+    const at = list.findIndex((rec) => rec?.provenance === pv && pieceOf(rec, w.product));
     if (at < 0) return null;
     out.push({ at, n: 1 });
   }
@@ -239,7 +272,7 @@ export function craftGoodsHeld(/** @type {any[]} */ items, /** @type {{ product:
   const list = Array.isArray(items) ? items : [];
   const key = writPotionKey(w.product);
   if (key != null) return list.filter((rec) => bottleOf(rec, key)).reduce((s, rec) => s + recordCount(rec), 0);
-  return list.filter((rec) => typeof rec?.provenance === 'string' && tradeableRecord(rec) && pieceAnswers(w.product, rec?.recipe)).length;
+  return list.filter((rec) => pieceOf(rec, w.product)).length;
 }
 /**
  * TAKE A WRIT'S GOODS OUT OF A SAVE, in place - the trade's own take (realmTradeLaw takeTradeGoods: the very records
@@ -264,13 +297,14 @@ export function takeCraftGoods(save, w, pieces = null) {
 // In the player's language (systems/textManager.js t - the English is the catalog's); the guild by a hall writ's own name
 // (npcChapterLaw.js hallPosterName) and the track by its profession's (professionLaw.js professionName).
 
-/** "4 Potions of Restore Power", "a Potion of Healing", "3 servings of Hunter's Stew", "2 Steel Repair Kits". */
+/** "4 Potions of Restore Power", "a Potion of Healing", "3 servings of Hunter's Stew", "2 Steel Repair Kits", "one Ebony
+ *  Repair Kit". */
 export function craftCountText(/** @type {string} */ product, /** @type {number} */ qty) {
   const p = craftProductOf(product);
   if (!p) return String(qty);
   if (p.kind === 'potion') return t('prof.craftWrit.countPotion', '{n, plural, one {a Potion of {name}} other {# Potions of {name}}}', { n: qty, name: p.name });
   if (p.kind === 'dish') return t('prof.craftWrit.countDish', '{n, plural, one {a {name}} other {# servings of {name}}}', { n: qty, name: p.name });
-  return t('prof.craftWrit.countKit', '{n, plural, one {a {name}} other {# {name}s}}', { n: qty, name: p.name });
+  return t('prof.craftWrit.countKit', '{n, plural, one {one {name}} other {# {name}s}}', { n: qty, name: p.name });   // AUDIT CRAFT-WRITS C5: never "a Adamantium Repair Kit"
 }
 /** The guild's name, as a hall writ names it. */
 export const craftGuildName = (/** @type {number} */ faction) => hallPosterName(faction) ?? 'guild';

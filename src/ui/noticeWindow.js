@@ -563,11 +563,13 @@ export function mountNoticeBoard(host, deps) {
       const take = el('div', 'writ-take');
       const b = button('primary notice-take', t('notice.craftWrit.deliver', 'Deliver'), () => deliverCraft(w));
       b.disabled = busy || workBusy || !h.ready || full;
-      if (!h.ready) b.title = craftShortText(w, h);
-      else if (full) b.title = t('notice.craftWrit.full', 'You have filled today\'s crafting writs');
+      // why Deliver waits - on its title, its name for a reader, and the card (a phone has no hover): AUDIT CRAFT-WRITS C8,
+      // the day's three filled said on the card too, where only the title said it
+      const why = !h.ready ? craftShortText(w, h) : full ? t('notice.craftWrit.full', 'You have filled today\'s crafting writs') : null;
+      if (why) { b.title = why; b.setAttribute('aria-label', `${t('notice.craftWrit.deliver', 'Deliver')}: ${why}`); }
       take.append(b, el('span', null, craftHeldText(w, h)));
       li.append(take);
-      if (!h.ready) li.append(el('p', 'writ-walled', `${craftShortText(w, h)}.`));   // on the card - a phone has no hover
+      if (why) li.append(el('p', 'writ-walled', `${why}.`));
     }
     li.append(el('span', 'notice-seal', ''));
     return li;
@@ -578,13 +580,26 @@ export function mountNoticeBoard(host, deps) {
   async function deliverCraft(w) {
     if (busy || workBusy || !work.crafts) return;
     busy = true; render();
-    const r = await work.crafts.deliver(w);
+    let r;
+    try { r = await work.crafts.deliver(w); } catch (e) { console.warn('[work] a crafting writ would not deliver', e); r = { ok: false, error: 'server' }; }   // C9: never a board held busy
     if (r?.ok && r.data) work.onTaken?.(r);
-    const said = r?.ok ? craftFilledText(w, r.data) : accountRefusalText(r?.error);
+    const said = r?.ok ? craftFilledText(w, r.data) : craftRefusalText(r);
     if (!alive) { if (r?.ok) work.sayLate?.(said); return; }
     busy = false;
+    // AUDIT CRAFT-WRITS C1: the card filled at once - the list read again comes after, and a press on its Deliver meanwhile
+    // asked the service a second time
+    if ((r?.ok || r?.error === 'craft-writ-filled') && writs?.crafts) {
+      writs = { ...writs, crafts: { ...writs.crafts, writs: writs.crafts.writs.map((x) => (x.id === w.id ? { ...x, state: 'mine' } : x)) } };
+    }
     word = { ok: !!r?.ok, text: said };
     loadWrits(true);
+  }
+  /** C6: a delivery that did not land, said - the realm's silence (the goods wait with the record a rejoin reads) and a
+   *  character changed before the ask in their own words, every other refusal the service's. @param {any} r */
+  function craftRefusalText(r) {
+    if (r?.unknown) return t('notice.craftWrit.unknown', 'The realm did not answer. Rejoin and look at the board again - the writ shows whether it was filled.');
+    if (r?.elsewhere || r?.error === 'elsewhere') return t('notice.craftWrit.elsewhere', 'You are playing another character now - the writ was not delivered.');
+    return accountRefusalText(r?.error);
   }
 
   /** GUILD3d (bible/11-Multiplayer/Guilds-Made-Plain.md): A CHAPTER'S CARD - every line of one chapter of the region in one
