@@ -21,7 +21,7 @@
 // (`hidden-token`, its subject beside it). The session and the switch are read on the PRIMARY, never a replica's copy: a
 // sign-in a moment old, or Hide me a moment on, must never mint a token that shows them.
 //
-// THE MARK LAPSES (hiddenEnd): Show myself, a staff sign-out, an owner's cut and a Moderator removed each push a hide order
+// THE MARK LAPSES (hiddenEnd): Show myself, a staff sign-out, a key forgotten, an owner's cut and a Moderator removed each push a hide order
 // for every subject the account's staff sessions minted (identityToken.js mintHideOrder) to the relay's law door; the hub
 // closes those hidden sockets rather than show them, and the game comes back as a normal player on its next token.
 //
@@ -87,13 +87,13 @@ export async function hiddenToken(ctx, env, player, key) {
 
 /**
  * THE MARK LAPSES: a hide order pushed to the relay's door for each subject the account's staff sessions minted - every
- * one, or the one `hash` names (a sign-out of one session). Read before the caller deletes the sessions; pushed after the
- * answer where the Worker lets it (`ctx.later`). Answers how many orders it made.
- * @param {any} ctx @param {any} env @param {string} playerId @param {string|null} [hash]
+ * one, or those `only` names (a sign-out of one session, a key forgotten). Read before the caller deletes the sessions;
+ * pushed after the answer where the Worker lets it (`ctx.later`). Answers how many orders it made.
+ * @param {any} ctx @param {any} env @param {string} playerId @param {string[]|null} [only] the sessions' stored hashes
  */
-export async function hiddenEnd(ctx, env, playerId, hash = null) {
+export async function hiddenEnd(ctx, env, playerId, only = null) {
   const { db, subtle, nowS } = ctx;
-  const hashes = hash ? [hash] : ((await db.prepare(`SELECT token_hash FROM staff_sessions WHERE player_id = ?1 LIMIT ${SESSIONS_MAX}`).bind(playerId).all())?.results ?? []).map((r) => r.token_hash);
+  const hashes = only ? only.slice(0, SESSIONS_MAX) : ((await db.prepare(`SELECT token_hash FROM staff_sessions WHERE player_id = ?1 LIMIT ${SESSIONS_MAX}`).bind(playerId).all())?.results ?? []).map((r) => r.token_hash);
   const key = hashes.length ? await signingKey(env, subtle) : null;
   if (!key) return 0;
   const orders = await Promise.all(hashes.map(async (h) => mintHideOrder({ s: await hiddenSubOf(h, subtle) }, key, { subtle, nowS })));

@@ -312,7 +312,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   }
   if (path === '/v1/staff/logout') {
     const all = body.all === true;
-    await hiddenEnd(ctx, env, me.id, all ? null : who.hash);   // STAFF-PANEL5-HIDDEN: the session's hidden sockets closed, never shown
+    await hiddenEnd(ctx, env, me.id, all ? null : [who.hash]);   // STAFF-PANEL5-HIDDEN: the session's hidden sockets closed, never shown
     await db.batch([
       all ? db.prepare('DELETE FROM staff_sessions WHERE player_id = ?').bind(me.id) : db.prepare('DELETE FROM staff_sessions WHERE token_hash = ?').bind(who.hash),
       audit('logout', null, { all }),
@@ -325,6 +325,8 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   }
   if (path === '/v1/staff/key/forget') {
     if (typeof body.id !== 'string') return { error: 'body' };
+    const keyed = (await db.prepare('SELECT token_hash FROM staff_sessions WHERE key_id = ? AND player_id = ?').bind(body.id, me.id).all())?.results ?? [];
+    if (keyed.length) await hiddenEnd(ctx, env, me.id, keyed.map((r) => r.token_hash));   // STAFF-PANEL5-HIDDEN: a forgotten key's hidden sockets closed with its sessions
     const [, gone] = await db.batch([
       audit('key-forget', null, { id: body.id.slice(0, 40) }, { okIf: { sql: 'EXISTS (SELECT 1 FROM staff_keys WHERE id = ? AND player_id = ? AND revoked_at IS NULL)', args: [body.id, me.id] } }),
       db.prepare('UPDATE staff_keys SET revoked_at = ? WHERE id = ? AND player_id = ? AND revoked_at IS NULL').bind(nowS, body.id, me.id),

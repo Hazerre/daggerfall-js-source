@@ -393,6 +393,7 @@ export const ROUTES = new Set([
   '/v1/mod/realm-bodies',   // INT14: the boss fights' count, measured (review.js bodiesMeasure)
   '/v1/mod/realm-grants',   // GRANT2: the spawn grants' asks, measured (grants.js grantsMeasure)
   '/v1/mod/grant-feed',     // GRANT2: the relay's door in - a cell's window of asks, proven by its signature (grants.js)
+  '/v1/mod/hidden-seen',    // STAFF-PANEL5-HIDDEN: the relay's door in - a hidden staff subject entered a private home, proven by its signature (staffHidden.js takeHiddenSeen)
   '/v1/mod/realm-gains',    // HACKED-GOLD: who gained past the bucket (review.js gainsMeasure)
   '/v1/mod/realm-progress', // INT17: the progression claims' measure and their line (review.js progressMeasure)
   '/v1/mod/realm-trades',   // HACKED-GOLD: a character's realm trades, whom it traded with (review.js tradesOf)
