@@ -93,11 +93,14 @@ export function followHello(room, ws, now) {
 }
 
 /** (a room) Its word to the bus that a followed account came or went - never awaited, every failure caught here.
+ *  STAFF-PANEL5-FOLLOW-FIX (the relay review's finding 1): with the account's socket's id here (`id`), the one name the
+ *  spectator's game can find it by - a place room's roster and joins name no account (MOD1), so a follow matched by
+ *  account never found its target, and the camera never locked on.
  *  @param {FollowRoom} room @param {string} sub @param {'in'|'out'} k @param {any} a the socket's attachment */
 function say(room, sub, k, a) {
   const rooms = room.env?.ROOMS;
   if (!rooms?.idFromName || !rooms?.get) return;
-  const body = JSON.stringify({ sub, k, room: a.key, ...(a.ly ? { ly: a.ly } : {}) });
+  const body = JSON.stringify({ sub, k, room: a.key, ...(a.ly ? { ly: a.ly } : {}), id: a.id });
   void (async () => {
     try { await rooms.get(rooms.idFromName(SOCIAL_ROOM)).fetch(new Request(`https://relay.internal${FOLLOW_INTERNAL_SAY}`, { method: 'POST', body, signal: AbortSignal.timeout(ROOM_CALL_MS) })); }
     catch (e) { console.warn('[follow] the bus did not hear a room', /** @type {any} */ (e)?.message ?? e); }

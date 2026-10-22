@@ -5,6 +5,7 @@ import { privateInteriorOf } from './privateInterior.js';
 import { boatUid, readSailingCabin } from './boatIdentity.js';
 import { instanceOfWord, instanceOf, instanceWord } from './instanceRoom.js';   // INSTANCES (the audit): a place's instance, where the player stands in one
 import { validPartyPose } from './wire.js';   // STAFF-PANEL5-FOLLOW: a where note, as the hub keeps it
+import { t } from '../systems/textManager.js';   // STAFF-PANEL5-FOLLOW-FIX: a finished /tp's line in the player's language (L10N4)
 export const STAFF_TP_RELAY_MIN = 159;   // world156 now belongs to upstream's arena; unpublished local candidates through 158 are superseded by the combined law.
 export const STAFF_TP_TIMEOUT_MS = 8000;
 export const STAFF_TP_ERRORS = Object.freeze(['offline', 'ambiguous', 'busy', 'private', 'battle', 'unavailable', 'denied']);
@@ -150,18 +151,23 @@ export function notePlace(p) {
     return { kind: 'dungeon', ...at, mapId: +m[1], ...(word ? { ins: word } : {}), whole: !!word || !m[2], pos: null };
   }
   const bk = p.bk;
-  if (!integer(bk) || !bk || !/^interior:m[1-9]/.test(rk)) return null;
+  // STAFF-PANEL5-FOLLOW-FIX (finding 2): a home is its building's door into its own private room; a boat's cabin or a
+  // caravan names no door, so it does not match and their game is asked
+  const home = privateInteriorOf(rk);
+  if (!integer(bk) || !bk || !(/^interior:m[1-9]/.test(rk) || home?.buildingKey === bk)) return null;
   // the door the TP host's strict restore finds by the building's key (worldModes.js restoreInterior): its record is the
   // key's low byte (talkTopics.js makeBuildingKey), its first door, the block left to the key
-  return { kind: 'interior', ...at, door: { blockIndex: 0, recordIndex: bk & 0xff, doorIndex: 0, buildingKey: bk >>> 0 }, ...(word ? { ins: word } : {}), pos: null };
+  return { kind: 'interior', ...at, door: { blockIndex: 0, recordIndex: bk & 0xff, doorIndex: 0, buildingKey: bk >>> 0 }, ...(home ? { privateRoom: rk } : {}), ...(word ? { ins: word } : {}), pos: null };
 }
 
 /** The line a finished /tp @player says - and that the player can see it (design doc: "Label TP 'the player can see
  *  this' everywhere"). @param {{ name: string, via?: string, fb?: string }} who */
 export function staffTpLine(who) {
-  if (who.via === 'note') return `Teleported to ${who.name} from their where note - their game was told nothing, but the player can see you arrive.`;
-  if (who.fb) return `Teleported to ${who.name}'s exact position - their game was asked, because their where note ${who.fb === 'missing' ? 'was missing' : 'did not match'} (the player can see this).`;
-  return `Teleported to ${who.name}'s exact position (the player can see this).`;
+  const name = { name: who.name };
+  if (who.via === 'note') return t('net.staffTp.viaNote', 'Teleported to {name} from their where note - their game was told nothing, but the player can see you arrive.', name);
+  if (who.fb === 'missing') return t('net.staffTp.noteMissing', "Teleported to {name}'s exact position - their game was asked, because their where note was missing (the player can see this).", name);
+  if (who.fb) return t('net.staffTp.noteMismatch', "Teleported to {name}'s exact position - their game was asked, because their where note did not match (the player can see this).", name);
+  return t('net.staffTp.exact', "Teleported to {name}'s exact position (the player can see this).", name);
 }
 
 export function staffDestinationKey(d) {
