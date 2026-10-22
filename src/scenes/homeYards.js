@@ -72,6 +72,7 @@ import { remapSubMeshes } from '../world/texRemap.js';   // DECOR-OUTDOOR: a yar
 import { applyClimate } from '../world/climateSwaps.js';
 import { isNatureArchive, BLOCK_FLATS_OFFSET_Y } from '../world/rmbFlats.js';   // AUDIT YARD-LIGHT: and how far the town's flats stand below their lights
 import { LIGHTS_ARCHIVE, CITY_LIGHT_RANGE, CITY_LIGHT_INTENSITY, CITY_LIGHT_COLOR } from '../world/city/cityLights.js';   // YARD-LIGHT: the town's lantern
+import { interiorLightProperties } from '../world/interior/interiorLights.js';   // a candle's own light, the same one it gives indoors
 import { GLOBAL_SCALE } from '../world/meshReader.js';
 import { transformedAabb } from '../render/frustum.js';   // FB1009 HOME-FOOT: a model's ground where its placement stands it
 import { adoptLight } from '../render/lightId.js';   // LIGHT-ID: a row named by its lamp
@@ -93,6 +94,8 @@ export const homeYardWallet = (entity, region) => {
   };
 };
 export const YARD_LAMP = Object.freeze({ range: CITY_LIGHT_RANGE, intensity: CITY_LIGHT_INTENSITY, color: CITY_LIGHT_COLOR });
+/** TEXTURE.210 records that are candles (interiorLights.js). A yard lights these as that candle, not as a street lantern. */
+export const YARD_CANDLE_RECORDS = new Set([2, 3, 4, 5, 9, 11, 21]);
 /** AUDIT YARD-LIGHT (L1): HOW MANY OF A YARD'S LAMPS LIGHT - the most TEXTURE.210 flats any Daggerfall town block stands
  *  (eight, in GRVEAL01, GRVEAS01, GRVEAM01, CUSTAA02 and CUSTAA04 of the 920 RMB blocks; most stand three to five).
  *  A yard holds sixty pieces: sixty lamps round one lot summed nine times the brightest ground in any Daggerfall block,
@@ -104,7 +107,8 @@ export const YARD_LAMPS_MAX = 8;
  *  flats by blockFlatsOffsetY and never their lights (0.15 m), so a yard's lamp hangs as far above its own. */
 export const YARD_LAMP_RAISE = -BLOCK_FLATS_OFFSET_Y * GLOBAL_SCALE;
 /**
- * YARD-LIGHT: THE LIGHT A YARD'S PIECE GIVES (decorRoom.js `lampOf`) - a TEXTURE.210 flat's is the town's lantern, hung
+ * YARD-LIGHT: THE LIGHT A YARD'S PIECE GIVES (decorRoom.js `lampOf`) - a TEXTURE.210 flat's is the town's lantern, a
+ * candle (YARD_CANDLE_RECORDS) the candle it is indoors, hung
  * where the town hangs its own over a picture of its size (collectCityLights: the record's height plus the picture's -
  * the drawn top and YARD_LAMP_RAISE above it); anything else gives none, and neither does a flat whose picture has not
  * stood yet (`size` null). AUDIT YARD-LIGHT (L6): a piece scaled is the lamp scaled - its picture, its light's height
@@ -115,7 +119,12 @@ export const YARD_LAMP_RAISE = -BLOCK_FLATS_OFFSET_Y * GLOBAL_SCALE;
 export function yardLampOf(piece, size) {
   if (piece?.flat?.[0] !== LIGHTS_ARCHIVE || !(size?.h > 0)) return null;
   const k = piece.scale > 0 ? piece.scale : 1;
-  return { light: { ...YARD_LAMP, range: YARD_LAMP.range * k, slot: yardLampSlot(piece.id) }, lift: size.h + YARD_LAMP_RAISE * k };
+  const slot = yardLampSlot(piece.id);
+  if (YARD_CANDLE_RECORDS.has(piece.flat[1])) {
+    const c = interiorLightProperties(piece.flat[1]);
+    return { light: { range: c.range * k, intensity: c.intensity, color: c.color, slot }, lift: size.h + YARD_LAMP_RAISE * k };
+  }
+  return { light: { ...YARD_LAMP, range: YARD_LAMP.range * k, slot }, lift: size.h + YARD_LAMP_RAISE * k };
 }
 /** YARD-LIGHT: the town's flicker slot a yard's lamp takes (CityLightAnimator), named by its piece - FNV-1a of the id -
  *  so it keeps its own flicker whatever else stands (LA-LIGHTS1's law for the street's lanterns). */
