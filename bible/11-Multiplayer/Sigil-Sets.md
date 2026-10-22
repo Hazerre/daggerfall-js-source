@@ -389,7 +389,7 @@ on its own stream, so every earlier roll stays what it was for its seed; the Sha
 
 No world drop, shelf or Broker rolls one. These are the client's rolls, as a Legendary's are: no relay or service receipt
 seeds the sea's legends or its ruins (the gate's, the serpent's, a star's and the Spire's sets ride one) - the item law
-holds each piece to its record (item law 10, `itemLaw.js` ITEM_LAW_VERSION; acct169), never to its source.
+holds each piece to its record (item law 11, `itemLaw.js` ITEM_LAW_VERSION; acct172), never to its source.
 
 | pieces | ability | Faint -> Ascendant |
 |---|---|---|
@@ -1161,9 +1161,9 @@ SET1, SERPENT-SET, SD9d and EG15 moved for it. Mutants in `tools/mutants/star7.j
 
 **The Eltheric Tidemail** (section 6h): the law's fourteenth set (`sigilSets.js` `eltheric`, `sigil.js` `SIGIL_SET_IDS`
 last), its nine records (`aetheric.js` `ELTHERIC_SET_PIECES`, `AETHERIC_RECORDS` last), its shares and its roll
-(`ELTHERIC_CHANCE`, `rollElthericPiece`), the deep's piles (`systems/sea/seaSpoils.js`) and a legend's (`navalHost.js`
-legendTidemail), its three powers (`sigilSetPowers.js`: the FOLD, the BLOW, `captainsDue` and the naval host's three
-reads), item law 10. Pinned by `test/systems/sea/seaset.test.js`; the order pins of SET1, SERPENT-SET, SD9d, EG15 and STAR7
+(`ELTHERIC_CHANCE`, `rollElthericPiece`), the deep's piles (`systems/sea/seaSpoils.js`) and a legend's (`navalSeaSet.js`
+legendTidemail - out of createNavalHost, AUDIT SEA VENTURES D12), its three powers (`sigilSetPowers.js`: the FOLD, the BLOW, `captainsDue` and the naval host's three
+reads), item law 11 (10 on its branch, past PISTOLET's at the merge). Pinned by `test/systems/sea/seaset.test.js`; the order pins of SET1, SERPENT-SET, SD9d, EG15 and STAR7
 moved for it. Mutants in `tools/mutants/seaset.json`.
 
 ### AUDIT STAR - the Weave's powers and the chips, read again (2026-10-20)

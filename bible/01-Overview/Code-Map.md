@@ -358,6 +358,7 @@ wiring in `src/scenes/`. A feature with one or two modules in a layer keeps them
 | `src/ui/automap/` | The automap's window: the sheet, its camera, chrome, markers and words, and its door. |
 | `src/ui/bounty/` | The bounty board's window, its door and its mark on the map. |
 | `src/ui/card/` | The card table's HUD, its panel kit and the binder's page. |
+| `src/ui/collections/` | The Collections page's wardrobe (`10-UI/Collections.md`): the catalogue of every title, aura, profile icon and glyph - where it comes from, whether it can be had now and how - and a kind's part, read and worn through the account's flow. |
 | `src/ui/eliteGates/` | The Elite Breach on screen (`11-Multiplayer/Elite-Gates.md`, `Elite-Gates-Look.md`, `Elite-Gates-Ascent.md`): the start window, the boards, the HUD and the party, the beats, the arch's map mark, the access settings. |
 | `src/ui/enhanced/` | The Enhanced skin's windows and HUD - its windows. |
 | `src/ui/gate/` | The Oblivion Gate on screen: the banner, the boss bar, the damage chart, the ground view, the marks and the title card. |

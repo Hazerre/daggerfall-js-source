@@ -80,9 +80,9 @@ thousand leagues:
 | SEA-SET | THE DEEP'S OWN GEAR: the Eltheric Tidemail, an Aetheric set the Deep Aether and the Abyss alone give up - a legend ended, a vault's pile, a ruin's pile, the fleet's flagship, the storm's wrack | `systems/sigil/sigilSets.js` (`eltheric`), `systems/sigil/sigilSetPowers.js` (`captainsDue`), `systems/aetheric.js` (`ELTHERIC_SET_PIECES`, `ELTHERIC_CHANCE`, `rollElthericPiece`), `systems/sea/seaSpoils.js`, `scenes/naval/navalSeaSet.js` (`legendTidemail`, `dueOnHull` - out of createNavalHost, AUDIT SEA VENTURES D12), `scenes/naval/navalHost.js` (`gunsRefit`), `scenes/dungeonContext.js` and `scenes/roomLootHost.js` (the piles), `systems/item/itemLaw.js` (law 10) |
 | SEA-EVENTS | THE SEA'S SHARED CLOCK: the Aether Storm - its thunder, its wrack, its lightning - and the treasure fleet - its sailing, its ships, its flagship's spoils, the hub's word that it is scattered; both on the chart and in a freeport's talk | `systems/sea/seaEvents.js`, `scenes/naval/treasureFleet.js`, `scenes/seaVenturesHost.js` (`stormWord`, `stormTurned`, `seaStormShown`, `wrackSites`, `gather`, `step`, `fleetEnded`, `hubWord`, `rumours`, the chart's word), `scenes/naval/navalHost.js` (`fleet`, `stormStrike`, chargeEther's `treasureFleet.ended`, a site's `word`), `scenes/etherHost.js` (`credit`, `mid`, `say`, `fleetDone`, `haulWrack`, `wrackHauled`), `systems/naval/captainLedger.js` (`endFleet`, `haulWrack` - the save's `fleets` and `wrack`), `net/wire.js` (`SEA_FLEET_PERIOD_MS`, `seaFleetSailing`, `fk`, `fd`), `net/wild/wildLaw.js` (`wdunFleetSunk`, `wdunFleets`), `server/src/index.js` (`_wdunWord`), `scenes/world.js` (`shownWeather`, the front, the sky, the wind, the sea's step, the hub's word, the sites, the haul, the office), `ui/etherChartWindow.js` (`paintStorm`, `paintFleet`, the keys), `systems/aetheric.js` (`ELTHERIC_CHANCE.storm`) |
 | SEA-VAULTS | THE VAULTS OF THE DEEP: the Wrothgarian halls on water - the day's four ruin isles of the Deep Aether and three of the Abyss, each an elite hall with its hub lock, crows, reset and epoch; marked on the chart; the open sea keeps no instance | `systems/sea/seaVaults.js`, `scenes/seaVenturesHost.js` (`vaultHere`, `openSeaAt`, `chartWord`, `crowLine`), `net/wire.js` (`seaVaultKey`, `seaVaultCell`, `seaVaultMapId`, `seaRoomCell`, `wdunHall`, `wdunRoomKey`, `WDUN_SEA_RELAY_MIN`), `net/online.js` (`wdunSeaOk`), `server/src/index.js` (`_instanceHello`), `scenes/instanceDoor.js` (`keepsNone`), `scenes/world.js` (`wildHallHere`, `wildDungeonGate`, `wdKey`, the crows' news, the chart's word, the door's `wild`), `ui/etherChartWindow.js` (`paintVault`, `CHART_VAULT_KEY`) |
-| SEA-BOUNTY | A FREEPORT'S BOUNTY BOARD: a fall at sea signed with its room and its killer's character; the kill, the posts, the claim and the owed at the service, gold never made; the harbourmaster's Wanted section | `net/sea/seaBountyLaw.js`, `server-account/src/seaBounty.js` (`seaKillSteps`, `seaBountyBoard`, `seaBountyPost`, `seaBountyCollect`), `server-account/migrations/0145_sea_bounty.sql`, `server-account/src/wild.js` (wildFall's batch), `net/wild/wildReceipt.js` (`m`, `kc`, `WILD_ROOM_RE`), `net/wild/wildRef.js` (`room`, `kc`), `net/wire.js` (`seaRoomOf`, `WILD_SEA_BOX`, `seaPlaceCell`), `server/src/index.js` (the strike's room, `_wildSign`), `net/accountClient.js` (`accountSeaBounty`, the refusals), `scenes/seaBountyHost.js`, `scenes/seaVenturesHost.js` (`office`'s `wanted`), `ui/naval/navalYardWindow.js` (`wantedText`, `renderWanted`), `ui/naval/navalPlunderDoor.js` (`repaintNavalYard`), `scenes/world.js` (the sea's deps, the office), `systems/naval/etherCrossing.js` (`createCrossLand`) |
-| SEA-SEASON | THE SEASON'S CAPTAINS: the captain's ledger's season figures (the deepest voyage, the legends ended) by the world's day, dropped at both copy doors; read off a clean judged checkpoint within the law and kept at their most; the boards with their ranks and the last season's firsts; the harbourmaster's section | `net/sea/seaSeasonLaw.js`, `server-account/src/seaSeason.js` (`seaSeasonSteps`, `seaSeasonBoard`), `server-account/migrations/0146_sea_season.sql`, `server-account/src/realm.js` (checkpointRealm's batch), `systems/naval/captainLedger.js` (`ether.season`, `restoreSeason`, `deepest`, `endLegend`, `season`), `scenes/etherHost.js` (`sight`'s day), `systems/offlineCopy.js` (`dropSeason`), `net/accountClient.js` (`accountSeaSeason`), `scenes/seaSeasonHost.js`, `scenes/seaVenturesHost.js` (`office`), `ui/naval/navalYardWindow.js` (`seasonText`, `renderSeason`), `scenes/world.js` (the office's spread) |
-| SHIP-PVP | BROADSIDES BETWEEN CAPTAINS: a captain's helm, shots and boarding refereed by the relay (the bar, the purse, the reach, the wreck); the wreck signed (`n1`); at the service, a boarded wreck's hold's share held for its killer, collected or reclaimed, and a kill at sea; the page's guns, the naval host's seams, the wreck's service half, the board's prize rows | `net/sea/seaRef.js`, `net/sea/seaPrizeLaw.js`, `net/wild/wildReceipt.js` (`n1`), `net/wire.js` (`helm`, `shot`, `board`, `hull`, `wreck`, `wc`, `relaySupportsSeaPvp`), `server/src/index.js` (`_seaWord`, `_seaWrecked`, `_seaSign`, `_wildHand`, the beat, the read-back), `server-account/src/seaWreck.js`, `server-account/migrations/0147_sea_wreck.sql`, `server-account/src/seaBounty.js` (the board's prize counts), `net/accountClient.js` (`accountSeaWreck`), `net/online.js` (`seaPvpOk`, `_seaPvpOn`), `scenes/naval/navalPvp.js`, `scenes/naval/navalHost.js` (`hitBy`, `landHit`, `pvp`), `scenes/naval/seaBroadsides.js`, `scenes/seaWreckHost.js`, `systems/naval/seaHoldGuard.js` and `scenes/holdDoor.js` (the hold shut while she may be boarded), `scenes/seaBountyHost.js` (`collectPrizes`, `reclaim`), `scenes/seaVenturesHost.js` (`wref`, the step), `ui/naval/navalYardWindow.js` (the prize rows), `scenes/world.js` (the sea's deps, `wildRefIn`) |
+| SEA-BOUNTY | A FREEPORT'S BOUNTY BOARD: a fall at sea signed with its room and its killer's character; the kill, the posts, the claim and the owed at the service, gold never made; the harbourmaster's Wanted section | `net/sea/seaBountyLaw.js`, `server-account/src/seaBounty.js` (`seaKillSteps`, `seaBountyBoard`, `seaBountyPost`, `seaBountyCollect`), `server-account/migrations/0146_sea_bounty.sql`, `server-account/src/wild.js` (wildFall's batch), `net/wild/wildReceipt.js` (`m`, `kc`, `WILD_ROOM_RE`), `net/wild/wildRef.js` (`room`, `kc`), `net/wire.js` (`seaRoomOf`, `WILD_SEA_BOX`, `seaPlaceCell`), `server/src/index.js` (the strike's room, `_wildSign`), `net/accountClient.js` (`accountSeaBounty`, the refusals), `scenes/seaBountyHost.js`, `scenes/seaVenturesHost.js` (`office`'s `wanted`), `ui/naval/navalYardWindow.js` (`wantedText`, `renderWanted`), `ui/naval/navalPlunderDoor.js` (`repaintNavalYard`), `scenes/world.js` (the sea's deps, the office), `systems/naval/etherCrossing.js` (`createCrossLand`) |
+| SEA-SEASON | THE SEASON'S CAPTAINS: the captain's ledger's season figures (the deepest voyage, the legends ended) by the world's day, dropped at both copy doors; read off a clean judged checkpoint within the law and kept at their most; the boards with their ranks and the last season's firsts; the harbourmaster's section | `net/sea/seaSeasonLaw.js`, `server-account/src/seaSeason.js` (`seaSeasonSteps`, `seaSeasonBoard`), `server-account/migrations/0147_sea_season.sql`, `server-account/src/realm.js` (checkpointRealm's batch), `systems/naval/captainLedger.js` (`ether.season`, `restoreSeason`, `deepest`, `endLegend`, `season`), `scenes/etherHost.js` (`sight`'s day), `systems/offlineCopy.js` (`dropSeason`), `net/accountClient.js` (`accountSeaSeason`), `scenes/seaSeasonHost.js`, `scenes/seaVenturesHost.js` (`office`), `ui/naval/navalYardWindow.js` (`seasonText`, `renderSeason`), `scenes/world.js` (the office's spread) |
+| SHIP-PVP | BROADSIDES BETWEEN CAPTAINS: a captain's helm, shots and boarding refereed by the relay (the bar, the purse, the reach, the wreck); the wreck signed (`n1`); at the service, a boarded wreck's hold's share held for its killer, collected or reclaimed, and a kill at sea; the page's guns, the naval host's seams, the wreck's service half, the board's prize rows | `net/sea/seaRef.js`, `net/sea/seaPrizeLaw.js`, `net/wild/wildReceipt.js` (`n1`), `net/wire.js` (`helm`, `shot`, `board`, `hull`, `wreck`, `wc`, `relaySupportsSeaPvp`), `server/src/index.js` (`_seaWord`, `_seaWrecked`, `_seaSign`, `_wildHand`, the beat, the read-back), `server-account/src/seaWreck.js`, `server-account/migrations/0148_sea_wreck.sql`, `server-account/src/seaBounty.js` (the board's prize counts), `net/accountClient.js` (`accountSeaWreck`), `net/online.js` (`seaPvpOk`, `_seaPvpOn`), `scenes/naval/navalPvp.js`, `scenes/naval/navalHost.js` (`hitBy`, `landHit`, `pvp`), `scenes/naval/seaBroadsides.js`, `scenes/seaWreckHost.js`, `systems/naval/seaHoldGuard.js` and `scenes/holdDoor.js` (the hold shut while she may be boarded), `scenes/seaBountyHost.js` (`collectPrizes`, `reclaim`), `scenes/seaVenturesHost.js` (`wref`, the step), `ui/naval/navalYardWindow.js` (the prize rows), `scenes/world.js` (the sea's deps, `wildRefIn`) |
 | (the ledger) | WHAT A CAPTAIN KEEPS OF IT: the isles charted, the legends ended and heard of, the strands gathered, the way out, the crossings - in the Captain save | `systems/naval/captainLedger.js` (`ether`, `chartIsle`, `endLegend`, `gathered`, `setCrossedFrom`, `crossed`, `hearLegend`), `scenes/etherHost.js` |
 
 THE FOUR HOSTS (Home.md; AUDIT CAPTAIN'S SEA H12 - the slices named none): the sea, its ships, the crossing, the chart
@@ -752,8 +752,8 @@ flag as the mountains' buildings do - no player is struck indoors, its foes and 
 
 **ETHER-WILD ITSELF MOVED NO WIRE AND NO DEPLOY.** The relay referees a socket's word (`zone`) wherever its cell lies
 (A9, above), and the account service's fall read no map at ETHER-WILD: nothing on either moved. The slices after it
-move both (AUDIT SEA VENTURES F9 - "NO WIRE, NO DEPLOY" stood after they did): the relay's world245 (SEA-VAULTS'
-version, SEA-EVENTS' `fk`, SEA-BOUNTY's signed room, SHIP-PVP's referee), and the service's migrations 0145-0147 -
+move both (AUDIT SEA VENTURES F9 - "NO WIRE, NO DEPLOY" stood after they did): the relay's world246 (SEA-VAULTS'
+version, SEA-EVENTS' `fk`, SEA-BOUNTY's signed room, SHIP-PVP's referee), and the service's migrations 0146-0148 -
 SEA-BOUNTY's fall reads the sea's box at the service (`seaRoomOf`, `seaKillSteps`). A client from before ETHER-WILD never
 says it stands in the zone at sea, so it fights nobody there and drops nothing - INT9's known limit, Wild-Zone.md
 section 22.
@@ -787,11 +787,11 @@ fortieth, a twentieth - SEA-EVENTS). Each its source's LAST roll,
 so nothing the source rolled before moves.
 
 TRUSTED AS A LEGENDARY IS. The sea's legends and ruins are the client's (no relay or service receipt seeds them, as the
-gate's, the serpent's and a star's do), so these are the client's rolls; item law 10 holds every piece to its record -
-its make, its affixes, its sigil - and acct169 carries it. Named, not closed: a modified client can roll a piece the sea
+gate's, the serpent's and a star's do), so these are the client's rolls; item law 11 holds every piece to its record -
+its make, its affixes, its sigil - and acct172 carries it. Named, not closed: a modified client can roll a piece the sea
 did not give it, as it can roll a Legendary.
 
-Pinned by `test/systems/sea/seaset.test.js`; `tools/mutants/seaset.json` (30, all dead).
+Pinned by `test/systems/sea/seaset.test.js`; `tools/mutants/seaset.json` (31, all dead).
 
 ## SEA-VAULTS - the vaults of the deep: the mountains' halls on water
 
@@ -850,7 +850,7 @@ hello for one to everyone, as it refuses a mountain hall's (`server/src/index.js
 tell today's vaults from the other ruins without drawing the day's picks, so it refuses them all; no quest sends a
 player to an isle's place.
 
-**THE WIRE** is world245 (`WDUN_SEA_RELAY_MIN`; world241 on its branch, then world242, renumbered past SD-THROUGH's world241, LEASE1's world242, PARTY-PING's world243 and SPAWN-THIN's world244 at the merges): an older relay closes the socket on a sea key, so the social socket asks
+**THE WIRE** is world246 (`WDUN_SEA_RELAY_MIN`; world241 on its branch, then world242 and world245, renumbered past SD-THROUGH's world241, LEASE1's world242, PARTY-PING's world243, SPAWN-THIN's world244 and AUDIT PISTOLET's world245 at the merges): an older relay closes the socket on a sea key, so the social socket asks
 one of a hub that reads it alone (`online.js:"if ((seaVaultCell(w.h) || w.k === 'fk') && !this.wdunSeaOk) return false;"` - AUDIT SEA VENTURES A10: a fleet's sinking too) - at an older
 relay a vault keeps this session's own lock, as a mountain hall does with no hub. A vault's own lane rides the same
 version (an older relay's room for it is a room like any).
@@ -950,7 +950,7 @@ when scattered - each keyed ("The Aether storm, blowing now", "The treasure flee
 **A FREEPORT'S TALK** (the harbourmaster's tab - `etherHost.js` office's rumours, `seaVentures.rumours`): the fleet under
 way, or the next to sail - its band, its way from here and its minutes; the storm blowing, or the next to gather.
 
-**THE WIRE** rides world245 (SEA-VAULTS' version, undeployed - `fk` in, `fd` out, the hello's `fleets`); an older relay
+**THE WIRE** rides world246 (SEA-VAULTS' version, undeployed - `fk` in, `fd` out, the hello's `fleets`); an older relay
 is never told, and a fleet sunk there is scattered for its sinker alone.
 
 **KNOWN, NAMED.** A fleet's flagship is the client's to sink (no relay referees the sea's ships), so `fk` is trusted from
@@ -990,7 +990,7 @@ sea's box (`WILD_SEA_BOX`, pinned to `ETHER_BOX`), or an isle place's dungeon or
 `interior:m<id>...`, its map id in the sea's lane - `seaPlaceCell`, the vaults' inverse). Veilhaven's peace is inside
 the box, and harmless so: the relay referees no fall there.
 
-**THE SERVICE** (`server-account/src/seaBounty.js`; tables `migrations/0145_sea_bounty.sql`; the law both ends read,
+**THE SERVICE** (`server-account/src/seaBounty.js`; tables `migrations/0146_sea_bounty.sql`; the law both ends read,
 `src/net/sea/seaBountyLaw.js`):
 
 - THE KILL is written in the fall's OWN batch (`server-account/src/wild.js:"...seaKillSteps(ctx.db, sea, ctx.nowS),"`):
@@ -1018,7 +1018,7 @@ the box, and harmless so: the relay referees no fall there.
   service's hourly clock (`cron.js` `sea`, over `seaSweeps`, a page at a time) takes a kill at sea past the Wanted window,
   a wreck past its receipt's hour, and what has ended past `SEA_ENDED_KEEP_S` (thirty days) - a bounty claimed, a sum
   paid, a prize collected or returned; never a bounty standing, a sum owed or a prize held. The reads walk their own
-  indexes (migrations 0145 and 0147 - the standing posts, the claimed, the poster's, the kills by when).
+  indexes (migrations 0146 and 0148 - the standing posts, the claimed, the poster's, the kills by when).
 - NO GOLD IS MADE. Every coin owed was posted, and a post left its poster's record in its own batch: posted = owed +
   standing, always.
 
@@ -1039,7 +1039,7 @@ are the record's gold acts (`realmGoldAct`, as a card table's stake is) - a post
 asked and given back on a refusal, a collect's banked where the service banks it - and the board read again on the answer.
 The presses grey while an answer is awaited.
 
-**THE WIRE AND THE DEPLOY.** The relay's half rides world245 (undeployed); the service's acct169 (from migration 0145,
+**THE WIRE AND THE DEPLOY.** The relay's half rides world246 (undeployed); the service's acct172 (from migration 0146,
 the deploy's ledger applies it). An older relay's receipts name no room: its falls pay no bounty and make nobody wanted.
 The account deploy watches the law's file (`account-deploy.yml`).
 
@@ -1075,7 +1075,7 @@ figures afresh; a day of a season before the one kept counts nothing (a world mo
 back within the law (`restoreSeason`); NEITHER COPY DOOR CARRIES THEM (`systems/offlineCopy.js` `dropSeason`): an
 offline game's voyages are on its own clock, and a copy brought online starts the season from nothing.
 
-**THE SERVICE** (`server-account/src/seaSeason.js`; the table `migrations/0146_sea_season.sql`; the law both ends read,
+**THE SERVICE** (`server-account/src/seaSeason.js`; the table `migrations/0147_sea_season.sql`; the law both ends read,
 `src/net/sea/seaSeasonLaw.js`):
 
 - A CLEAN CHECKPOINT CARRIES THEM, in its own batch (`server-account/src/realm.js:"...(v.clean ? seaSeasonSteps(db, { player: playerId, char: id }, save, nowS) : []),"`):
@@ -1099,7 +1099,7 @@ season's firsts. The boards are read when the tab is shown and again `SEA_SEASON
 time - refused, asked again `SEA_SEASON_RETRY_MS` (5 s) on, doubling to the fresh wait (AUDIT SEA VENTURES E1); boards
 never read say they are being asked for, never an empty season's lists (E7).
 
-**THE DEPLOY.** The service's acct169 (migration 0146, the deploy's ledger applies it); the account deploy watches the
+**THE DEPLOY.** The service's acct172 (migration 0147, the deploy's ledger applies it); the account deploy watches the
 law's file. No relay word: the figures come with the record.
 
 **KNOWN, NAMED.** The figures are the record's, and the service cannot replay a voyage: a modified client could write a
@@ -1124,7 +1124,7 @@ to fight: the fight is the sea's own, refereed as the open zone's blows are (INT
 (the serpent's reference broadside, its purse).
 
 **THE GUNS OPEN** where the open sea is the open zone (online; past the peace - `systems/wild/etherWild.js` ETHER_KIND; at a
-relay that referees them - `online.js` `seaPvpOk`, world245's `relaySupportsSeaPvp`; and each word only through a socket
+relay that referees them - `online.js` `seaPvpOk`, world246's `relaySupportsSeaPvp`; and each word only through a socket
 whose own relay does - `_seaPvpOn`: a halo's says for itself, and each socket's word goes with it across a crossing). There my balls meet a STRANGER
 captain's ship (never my party's or my guild's - world.js `wildIsStranger`; and the relay refuses kin again: wildKin's party,
 truce, duel and guild), and a peer's are seen to meet another's (seen only). Ashore, in the Bay, at peace, or wrecked
@@ -1194,7 +1194,7 @@ and was unshootable after twenty seconds).
   the room's storage, `wildowed:`, so an object that slept still hands it over: A8, they were kept in memory alone). A
   ship with no uid, or a captain with no realm character, is signed never.
 
-**THE SERVICE** (`server-account/src/seaWreck.js`; tables `migrations/0147_sea_wreck.sql`; the prize's law both ends read,
+**THE SERVICE** (`server-account/src/seaWreck.js`; tables `migrations/0148_sea_wreck.sql`; the prize's law both ends read,
 `src/net/sea/seaPrizeLaw.js`):
 
 - THE WRECK (`/v1/sea/wreck`), once (its id): carried by her captain's own tab at once (a record act, where its record
@@ -1237,9 +1237,9 @@ and was unshootable after twenty seconds).
   captain's record, once (`Your hold's goods - Reclaim`).
 - NO PIECE IS MADE OR LOST: a prize is pieces a record held, held by the service until one of the two takes them.
 
-**THE WIRE AND THE DEPLOY.** world245 (undeployed): `helm`, `shot` (directed - the room her captain stands in) and `board`
+**THE WIRE AND THE DEPLOY.** world246 (undeployed): `helm`, `shot` (directed - the room her captain stands in) and `board`
 (the wreck's id alone, the wreck's room's) in; `hull`, `wreck` and `wc` out; the relay's bundle grows `net/sea/seaRef.js` (the serpent's three walk from it now).
-The service's acct169 (migration 0147); the account deploy watches the prize's law. An older relay is never sent a sea
+The service's acct172 (migration 0148); the account deploy watches the prize's law. An older relay is never sent a sea
 kind (it would close the socket).
 
 **KNOWN, NAMED.** The balls' harm is the shooter's game's reckoning, bounded by the purse (as the serpent's is): a modified

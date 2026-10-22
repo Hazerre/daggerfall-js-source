@@ -1012,7 +1012,7 @@ img.fit { image-rendering: pixelated; }   /* AUDIT UI A1: a fitted picture drawn
 .itemrow[data-rarity="legendary"] .itemname > span:first-child, .packdetail .card[data-rarity="legendary"] h3, .wplaque-row[data-rarity="legendary"] > span:first-child { color: #e07a2e; }
 .itemrow[data-rarity="aetheric"] .itemname > span:first-child, .packdetail .card[data-rarity="aetheric"] h3, .wplaque-row[data-rarity="aetheric"] > span:first-child { color: #bfe8ff; }
 .itemrow[data-rarity="artifact"] .itemname > span:first-child, .packdetail .card[data-rarity="artifact"] h3, .wplaque-row[data-rarity="artifact"] > span:first-child { color: #b57bee; }
-.itemrow[data-rarity="gilded"] .itemname > span:first-child, .packdetail .card[data-rarity="gilded"] h3, .wplaque-row[data-rarity="gilded"] > span:first-child { color: #ffcf4d; }
+.itemrow[data-rarity="gilded"] .itemname > span:first-child, .packdetail .card[data-rarity="gilded"] h3, .wplaque-row[data-rarity="gilded"] > span:first-child { color: #ff3b4a; }
 .packdetail ul.rarity { list-style: none; margin: 4px 0 10px; padding: 0; font-family: var(--data); font-size: 13px; line-height: 1.5; }
 .packdetail ul.rarity li:first-child { text-transform: uppercase; letter-spacing: 0.16em; font-size: 11px; color: var(--dim); }
 .packdetail ul.rarity li.lore { color: var(--dim); font-style: italic; }   /* CARD-FIT: by its own class - the card's list carries no lore now, and its last AFFIX wore the lore's dim italic */
@@ -2769,13 +2769,14 @@ ${SUPPORT_MARKS_CSS}
 .px-postwin .pm-itemname { font-size: 16px; letter-spacing: 0.04em; }
 .px-postwin .pm-foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; }
 .px-postwin [data-rarity="magic"] { color: #6f9ee8; } .px-postwin [data-rarity="rare"] { color: #e4c34f; } .px-postwin [data-rarity="legendary"] { color: #e07a2e; }
-.px-postwin [data-rarity="aetheric"] { color: #bfe8ff; } .px-postwin [data-rarity="artifact"] { color: #b57bee; } .px-postwin [data-rarity="gilded"] { color: #ffcf4d; }
+.px-postwin [data-rarity="aetheric"] { color: #bfe8ff; } .px-postwin [data-rarity="artifact"] { color: #b57bee; } .px-postwin [data-rarity="gilded"] { color: #ff3b4a; }
 /* AUDIT SERVER-POST: the tiers above are LR1's own hexes (systems/loot/lootRarity.js RARITIES, pinned against it - a stylesheet
    never imports the loot ladder, which reaches the whole combat graph); on Stone's light panel the three darkest read
-   3.0-3.3:1 and are lifted past 4.5:1 there alone. */
+   3.0-3.3:1 and are lifted past 4.5:1 there alone - and GILDED-RED's crimson, 2.3:1 on Stone's ground, to its own light. */
 :root[data-plus-theme="stone"] .px-postwin [data-rarity="magic"] { color: #b4cdf7; }
 :root[data-plus-theme="stone"] .px-postwin [data-rarity="legendary"] { color: #f7b27a; }
 :root[data-plus-theme="stone"] .px-postwin [data-rarity="artifact"] { color: #dcbaf9; }
+:root[data-plus-theme="stone"] .px-postwin [data-rarity="gilded"] { color: #ffb1b7; }
 :root[data-plus-theme="stone"] .px-postwin { --dim: #e2dccd; --brass: #ffd98a; text-shadow: 1px 1px 0 rgba(5,6,8,0.85); }
 /* PRIVATE-REPORT (2026-10-17): the mailbox window's report form and the readers' inbox (ui/enhanced/enhancedReport.js) - the
    post's own rows, buttons and dim words, and the account card's field (label.field) for its title and its words. */

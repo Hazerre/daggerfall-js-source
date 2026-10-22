@@ -596,8 +596,8 @@
   {
     "name": "SHIP-PVP-wire-gate",
     "file": "src/net/wire.js",
-    "old": "export const SEA_PVP_RELAY_MIN = 245;",
-    "new": "export const SEA_PVP_RELAY_MIN = 244;",
+    "old": "export const SEA_PVP_RELAY_MIN = 246;",
+    "new": "export const SEA_PVP_RELAY_MIN = 245;",
     "tests": [
       "test/systems/sea/shippvp.test.js"
     ]

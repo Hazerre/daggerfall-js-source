@@ -36,7 +36,7 @@ test('SEA-EVENTS the wire and the hub: a sailing scattered is `fk` in, `fd` out 
   assert.deepEqual(validWdunOut({ t: 'wdun', k: 'fd', fleets: [3, -1, 'x', 4, 5, 6, 7] }), { k: 'fd', fleets: [3, 4] });
   assert.deepEqual(validWdunOut({ t: 'wdun', k: 'st', day: 2, locks: [], crows: [], fleets: [9] }).fleets, [9]);
   assert.deepEqual(validWdunOut({ t: 'wdun', k: 'st', day: 2, locks: [], crows: [] }).fleets, [], 'an older hub\'s hello: none');
-  assert.ok(relaySupportsWdunSea('world245') && !relaySupportsWdunSea('world244'), 'one version with the vaults');
+  assert.ok(relaySupportsWdunSea('world246') && !relaySupportsWdunSea('world245'), 'one version with the vaults');
   // PIN MOVED (AUDIT SEA VENTURES A7): heard only while she is under way (her period's hour in port and the hour before
   // her said nothing yet) and a word late on its way - never "this sailing or the last" by the period alone
   const st = L.wdunEmpty(), now = P * 100 + E.FLEET_OFFSET_MS + 5000;

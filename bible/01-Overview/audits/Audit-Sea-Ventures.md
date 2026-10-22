@@ -66,7 +66,7 @@ has none.
 | B2 | HIGH | A crafted prize: no known copy was written for her - she kept the original and the piece he took was a locked copy | FIXED: the wreck's batch writes each piece taken down as his own copy, as a trade does |
 | B3 | HIGH | The wrecked captain emptied her hold into her pack, packed or laid up her boat in the boarding window: the hold opens from anywhere (CARGO-ANYWHERE), and a boarded wreck took nothing | FIXED: `systems/naval/seaHoldGuard.js` - from the referee's wreck of her until her own carry lands, `SEA_HOLD_SHUT_MS` (240 s) at most, kept across a reload, her hold opens to no one (the hold's door, the mod's own box) and she is neither packed nor laid up. Her page's: KNOWN |
 | B4 | MED | Bounties on a deleted or long-dead head stood for good; a character with gold owed, a wreck's prize held or its own hold's goods due back could be deleted with them | FIXED: a post on a head deleted, or dead `SEA_REFUND_AFTER_S` (two hours), is owed back to its poster and paid by its collect, once (`seaRefundSteps`); `deleteRealm` refuses (`sea-held`) until they come home |
-| B5 | MED | The board and a kill scanned the whole history, and nothing was ever pruned | FIXED: the service's hourly clock sweeps a kill past the Wanted window, a wreck past its receipt's hour and what has ended past `SEA_ENDED_KEEP_S` (thirty days) - never a bounty standing, a sum owed or a prize held (`seaSweeps`, `cron.js` `sea`); the reads walk their own indexes (migrations 0145, 0147) |
+| B5 | MED | The board and a kill scanned the whole history, and nothing was ever pruned | FIXED: the service's hourly clock sweeps a kill past the Wanted window, a wreck past its receipt's hour and what has ended past `SEA_ENDED_KEEP_S` (thirty days) - never a bounty standing, a sum owed or a prize held (`seaSweeps`, `cron.js` `sea`); the reads walk their own indexes (migrations 0146, 0148) |
 | B6 | LOW | The season's turn: a world day after it, a save still filed the season before's figures, and those voyages counted for neither | FIXED: for `SEA_WORLD_DAY_S` past a turn the season before's figures are read for it, its legends bounded by that whole season |
 | B7 | LOW | A seize that lost its race to her own checkpoint answered 500, and the page dropped it | FIXED: it answers `seq`, and is asked again |
 
@@ -128,7 +128,7 @@ has none.
 | F6 | LOW | "The peace painted under the haunts" was pinned in a view that held no haunt | FIXED: pinned in a view that holds the peace and a haunt |
 | F7 | LOW | The record's mutant counts were stale (108 and 181) | FIXED: 109 and 183, all dead |
 | F8 | LOW | Port-Ledger's ELTHERIC OCEAN row named none of the seven slices; Active-Arcs named four | FIXED: both name all seven, and this audit |
-| F9 | LOW | "NO WIRE, NO DEPLOY" stood after SEA-VAULTS to SHIP-PVP moved both | FIXED in the record: ETHER-WILD itself moved neither; the slices after it ride world245 and migrations 0145-0147 |
+| F9 | LOW | "NO WIRE, NO DEPLOY" stood after SEA-VAULTS to SHIP-PVP moved both | FIXED in the record: ETHER-WILD itself moved neither; the slices after it ride world246 and migrations 0146-0148 |
 | F10 | LOW | The bounty board said a captain is paid for a death, a sinking; a wreck claims, and a player's ship never sinks | FIXED: "paid to whoever ends them at sea: a death at their hand, or a wreck at their guns" |
 | F11 | LOW | The notes said a ship's reach and rate of fire depend on her hull; they are every hull's - her hull sets her purse | FIXED in the notes |
 | F12 | LOW | The notes said everyone at sea hears of a vault's crows; a captain in Veilhaven's peace does not | FIXED in the notes: everyone on the open sea past the peace |
@@ -167,7 +167,7 @@ id, as before), `test/net/auditscale.test.js` (B5's sweeps),
 D2, D4, D6: found by the touched mutant run, below, failing with no mutant), `test/systems/l10n4_hardcoded.test.js` (the
 two mountain words C6 and C7 moved through the text core: world.js 346, revenantCompanions.js 3),
 `test/scenes/hostceiling.test.js` (D12: createNavalHost's ceiling lowered to 6,455) and `test/net/relayversion.test.js`
-(world245's bundle hash).
+(world246's bundle hash).
 
 ## Mutants
 
@@ -198,8 +198,9 @@ two mountain words C6 and C7 moved through the text core: world.js 346, revenant
   (the board read's retry beside the boarding's `SEA_BOARD_RETRY_MS`; the compass's word beside the dungeon echo's
   `wayWord`) - renamed `SEA_BOARD_READ_RETRY_MS` and `etherWayWord`. All four mended, their suites and every gate (lint,
   types, the bible's, the cites, the relay's hash, the hosts' ceilings, the l10n ratchet) green after.
-- THE MERGE OF MAIN (LEASE1, PARTY-PING, SPAWN-THIN, STAFF-PANEL1 and the rest): the sea renumbered world245, acct169 and
-  migrations 0145-0147; bootWorld under main's ceiling again (two pure helpers to the module's scope) and the world
+- THE MERGES OF MAIN (LEASE1, PARTY-PING, SPAWN-THIN, STAFF-PANEL1 and the rest; then CRAFT-PAYS, CRAFT-WRITS, PISTOLET
+  and AUDIT COLLECTIONS-II): the sea renumbered world245, acct169 and migrations 0145-0147, then world246, acct172,
+  migrations 0146-0148 and item law 11; bootWorld under main's ceiling again (two pure helpers to the module's scope) and the world
   host's frame under the PERF-V8 tripwire (`frameSnowCover`). The whole suite over the merge - 32,902 tests - failed
   only that tripwire, mended.
 - Not verified here: two captains' broadsides in real browsers against the deployed relay; the hold's shut door in a

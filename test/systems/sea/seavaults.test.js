@@ -52,9 +52,9 @@ test('SEA-VAULTS the wire: a vault of the deep is keyed by its cell, `"e<cx>,<cy
   assert.deepEqual(validWdunOut({ t: 'wdun', k: 'cr', crows: [['e1,2', 5], ['1,2', 6], ['e9999,1', 3]] }), { k: 'cr', crows: [['e1,2', 5], ['1,2', 6]] });
   assert.deepEqual(validWdunOut({ t: 'wdun', k: 'ok', h: 'e1,2', ep: 3 }), { k: 'ok', h: 'e1,2', ep: 3 });
   assert.deepEqual(parseClient(JSON.stringify({ t: 'wdun', k: 'in', h: 'e1,2' }), { hasHello: true }), { t: 'wdun', k: 'in', h: 'e1,2' });
-  assert.equal(WDUN_SEA_RELAY_MIN, 245);   // PIN MOVED: world245 (world241 on its branch, then world242, renumbered past SD-THROUGH, LEASE1, PARTY-PING and SPAWN-THIN at the merges)
+  assert.equal(WDUN_SEA_RELAY_MIN, 246);   // PIN MOVED: world246 (world241 on its branch, then world242 and world245, renumbered past SD-THROUGH, LEASE1, PARTY-PING, SPAWN-THIN and AUDIT PISTOLET at the merges)
   assert.ok(relaySupportsWdunSea(RELAY_VERSION), 'this relay reads it');
-  assert.ok(!relaySupportsWdunSea('world244'), 'an older one closes the socket on it - never asked');
+  assert.ok(!relaySupportsWdunSea('world245'), 'an older one closes the socket on it - never asked');
 });
 
 test('SEA-VAULTS the hub, end to end over the fake relay: a sea key\'s lock an hour, its empty vault\'s room wiped (the isle place\'s own) and a new epoch, the crows told to everyone online (mutants: the key\'s room)', async () => {

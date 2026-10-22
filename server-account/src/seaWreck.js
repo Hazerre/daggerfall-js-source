@@ -3,7 +3,7 @@
 // SHIP-PVP (2026-10-22, the owner: "Build ever single bit of this and dont return until its perfected" - broadsides
 // between captains, a ship wrecked and boarded, her hold a prize; bible/03-World/Eltheric-Ocean.md SHIP-PVP) - A WRECK AT
 // SEA, the service's half. The relay referees the guns and signs the wreck (src/net/sea/seaRef.js, net/wild/wildReceipt.js
-// `n1`); the prize's law is both ends' (src/net/sea/seaPrizeLaw.js); the tables migrations/0147_sea_wreck.sql's.
+// `n1`); the prize's law is both ends' (src/net/sea/seaPrizeLaw.js); the tables migrations/0148_sea_wreck.sql's.
 //
 //   THE WRECK (/v1/sea/wreck): its receipt, carried by the wrecked captain's own tab (where its record stands - the act's
 //     lease), or by its killer's once SEA_WRECK_GRACE_S has passed (the record seized, as a fall's is - wild.js). Once a

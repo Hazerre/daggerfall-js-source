@@ -134,8 +134,9 @@
 //   POST /v1/stores/withdraw { character, material, qty, rid }         -> { ok, material, qty, store } | { repeat, ... }
 //        BAG1: { carry: true, held, seen? } counts the units as carried -> { ..., carry, carried }
 //   POST /v1/stores/deposit { character, material, qty, held, order, rid, seen? } -> { ok, material, qty, own, bought, gold, loose?, store, carried } | { repeat, ... }   (BAG1: `order` 'all' or 'spend'; a deposit made is answered as made, for good - prof_deposits; BAG-CRAFT: 'work', a station's, moves `loose` units the count does not hold too)
-//   POST /v1/writs/list { character, region }                          -> { region, day, endsAt, writs, today }
+//   POST /v1/writs/list { character, region }                          -> { region, day, endsAt, writs, today, crafts: { writs, today } }   (CRAFT-WRITS: the character's crafting writs)
 //   POST /v1/writs/deliver { character, id, rid }                      -> { ok, writ, pay, balance, track, store, today, renown, order } | { repeat, ... }
+//   POST /v1/writs/craft { character, id, rid, realm, pieces? }        -> { ok, writ, pay, xp, balance, track, today, renown, realm, order } | { repeat, ... }   (CRAFT-WRITS: a crafting writ filled, its goods out of the realm record)
 // RENOWN1, Renown. The caller's own character, by the id its
 // save carries (RENOWN-CHAR: a track a character again - RENOWN-ACCOUNT
 // kept one an account for a day); the level rides the token when the
@@ -308,6 +309,7 @@ const withChapterTitles = async (/** @type {any} */ ctx, /** @type {any} */ play
 import { decorOf, placeDecor, moveDecor, removeDecor, hideDecorBase, yardsKept, forgetYards, settleYards } from './decor.js';   // YARD-SHED: a town's yards kept   // DECOR1: an online home's decor; BASE-HIDE: what its owner took out
 import { gateStrikeStatement, gateStrikeAnswer, raidStrikeStatement, combatStrikeAnswer, raidStrikeRid, deedStatements, deedAnswer, deedEvent, marksOf, marksCardOf, exchangeMarks, depositGuildMarks, withdrawGuildMarks, marksReport, serpentStrikeStatement, serpentStrikeAnswer, findMarks, starStrikeStatement, starStrikeRid } from './marks.js';   // MARKS1: the server's currency; SILVER-WAYS: a raid's silver and a guild's deeds
 import { readBoard, pinNote, takeDownNote, reportNote, moderateNote, postNotice, removeNotice } from './board.js';   // NOTICE1: the Notice Board
+import { craftWritBoard, deliverCraftWrit } from './craftWrits.js';   // CRAFT-WRITS: the guilds' asks of a crafter
 import { profState, profPixels, harvestNode, chooseSpec, withdrawStores, depositStores, smeltAtForge, craftAtAnvil, temperPiece, buyStock, listWrits, deliverWrit } from './professions.js';   // BAG1: a deposit   // PROF1: the professions; PROF2: the forge; PROF3: the anvil and the smith's stock
 import { brewAtStation, disenchantPiece, reforgeWithEssence } from './alchemy.js';   // PROF12: Alchemy's brew, Enchanting's disenchant
 import {
@@ -592,6 +594,7 @@ const PROF_STATUS = Object.freeze({
   'prof-piece-gone': 409, 'realm-needed': 400, lease: 409, seq: 409, 'no-realm-character': 404, 'no-data': 404, 'no-storage': 503,
   'node-taken': 409, 'writ-taken': 409, 'writ-expired': 409, 'writ-cap': 409, 'marks-full': 409, 'marks-short': 409, 'prof-respec-pending': 409,
   'prof-rate': 429,
+  'craft-writ-cap': 409, 'craft-writ-filled': 409, 'craft-unbrewed': 409, 'craft-pieces': 409, 'craft-goods-gone': 409,   // CRAFT-WRITS: the day's three, the brews, the pieces, the record's goods
   'chapters-closed': 403,   // AUDIT CHAP2 S3: a hall writ while the Chapters are not this account's - 403, as every door says it
   // PROF6: guild writs, commissions and the guild Stores
   'writs-closed': 403, 'guild-rank': 403, 'guilds-need-account': 403, 'commission-not-yours': 403, 'market-not-yours': 403,
@@ -1951,9 +1954,10 @@ const service = {
           // PROF6: the Court's writs, and beside them this board's guild writs and commissions (writs.js writBoard)
           '/v1/writs/list': async () => {
             const r = await listWrits(ctx, who.player, env, body);
-            return 'error' in r ? r : { ...r, ...(await writBoard(ctx, who.player, env, body)), ...(await contractBoard(ctx, who.player, env, body)) };   // SILVER-WAYS: and its guild contracts
+            return 'error' in r ? r : { ...r, ...(await writBoard(ctx, who.player, env, body)), ...(await contractBoard(ctx, who.player, env, body)), ...(await craftWritBoard(ctx, who.player, env, body)) };   // SILVER-WAYS: and its guild contracts; CRAFT-WRITS: and the character's crafting writs
           },
           '/v1/writs/deliver': () => deliverWrit(ctx, who.player, env, body),
+          '/v1/writs/craft': () => deliverCraftWrit({ ...ctx, bucket: env.SAVES }, who.player, env, body),   // CRAFT-WRITS: the goods out of the realm record, in R2
           '/v1/writs/post': () => postGuildWrit(ctx, who.player, env, body),   // PROF6: a guild writ
           '/v1/writs/supply': () => supplyGuildWrit(ctx, who.player, env, body),
           '/v1/writs/withdraw': () => withdrawGuildWrit(ctx, who.player, env, body),
@@ -2109,7 +2113,7 @@ const service = {
 
       if (path === '/v1/account/glyph' && request.method === 'POST') {
         // GLYPH-WEAR: SHOW ONE GLYPH, OR HIDE IT - `{ glyph, on }`. 403 for `not-held`, as the title's.
-        const r = await equipGlyph(ctx, who.player, env, body.glyph, body.on !== false);
+        const r = await equipGlyph(ctx, await withSeatTitles(ctx, who.player, env), env, body.glyph, body.on !== false);   // AUDIT COLLECTIONS-II: the wardrobe it answers keeps a Charter's and a chapter's titles, as the title's door does
         return r.error ? no(r.error, r.error === 'not-held' ? 403 : 400, origin) : json(r, 200, origin);
       }
 

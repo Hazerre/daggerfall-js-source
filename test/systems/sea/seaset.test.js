@@ -105,8 +105,8 @@ test('SEA-SET THE RECORDS: nine in the places\' order - the seven body pieces, a
   assert.equal(new Set(AETHERIC_RECORDS.map((r) => r.id)).size, AETHERIC_RECORDS.length, 'every id its own');
 });
 
-test('SEA-SET MINTED AND CHECKED: each record mints Adamantium, Aetheric, known, its set\'s sigil fresh at Faint (the saber\'s with its blow), passes the wire\'s check and item law 10; an affix past its record, another set\'s sigil or another make is no item (mutants: the material; the check; the law\'s records)', () => {
-  assert.equal(ITEM_LAW_VERSION, 10);
+test('SEA-SET MINTED AND CHECKED: each record mints Adamantium, Aetheric, known, its set\'s sigil fresh at Faint (the saber\'s with its blow), passes the wire\'s check and item law 11; an affix past its record, another set\'s sigil or another make is no item (mutants: the material; the check; the law\'s records)', () => {
+  assert.equal(ITEM_LAW_VERSION, 11);   // PIN MOVED: law 11 (10 on its branch, renumbered past PISTOLET's at the merge)
   for (const r of ELTHERIC_SET_PIECES) {
     const it = mintAetheric(r);
     assert.equal(it.material, aethericMaterial(r));

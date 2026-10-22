@@ -289,6 +289,7 @@ import { freePull } from '../systems/travel/freePull.js';   // OW-FREE-STRAIGHT,
 import { createGrantHost } from './grantHost.js';   // GRANT2-GRANT4: the spawn grants - my stands' and my reading of others' (bible/11-Multiplayer/Spawn-Grants.md)
 import { wireOwnerClock } from './ownerCatchUp.js';   // OWNER-CLOCK: my foes' steps on the clock their frames carry, and the street's kept to my frame's pace while anyone else is in my room
 import { fishKind } from './fishHost.js';   // PROF8: Fishing's casts and schools - a kind in it
+import { createCraftWritHost } from './craftWritHost.js';   // CRAFT-WRITS: the Work tab's crafting writs, handed over from the pack
 import { rollNoticeDoors } from './rollNoticeHost.js';   // SEAT-WORDS / STANDING-WORDS: what the Roll's tracker says
 import { utcDayOfMs } from '../net/nodeLaw.js';   // PROF8: a haul's UTC day
 import { registerPlayerKillListener } from '../systems/playerKills.js';   // PROF7: the player's own kill stamps a body
@@ -496,7 +497,7 @@ import { showTravelViewHud, hideTravelViewHud, updateTravelViewHud, travelViewHu
 import { createBandSprites } from '../world/bandSprites.js';   // OW-FOES: the bands as their monsters, faded in near
 import { shownWaypoints, isWaypointFollowed, waypointById, mapPointToNative, nativeToMapPoint, receiveWaypointLine, setWaypointSender, syncWaypointGroups } from '../systems/map/mapWaypoints.js';   // WAYPOINTS: the flags on the Overworld, their wire on the hub's party and guild channels
 import { openWaypointMenu, waypointMenuOpen } from '../ui/waypointMenu.js';   // WAYPOINTS: the right-click menu
-import { onTravelPace, setPaceGround, setPaceZoneCap, setTravelViewPaceCap, WILD_PACE_CAP } from '../systems/travel/travelPace.js';   // PACE-DIALS: a dial turned under a running journey; the road rule's ground; TV-PACE: the Overworld's ceiling
+import { onTravelPace, setPaceGround, setPaceZoneCap, WILD_PACE_CAP } from '../systems/travel/travelPace.js';   // PACE-DIALS: a dial turned under a running journey; the road rule's ground
 import { showPaceBox, hidePaceBox } from '../ui/travel/travelPaceControls.js';   // PACE-DIALS: the other skins' dials, while a journey runs
 import { markShown, travellerKin } from '../systems/travel/travelViewFilters.js';   // OW-FILTER: a hidden group's sprites hidden with its marks
 import { travelPathMode, travelPathUsesRoads, pickTakesPlace, fineMoveHeld, TRAVEL_PATH_TEXT } from '../systems/travel/travelPathMode.js';   // OW-PATH: roads or free, and the snap to a town
@@ -27382,6 +27383,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // board's). Online, a town's rumour board opens the Notice Board once the service has said it is open to this account
   // (BOARD_OPEN); until it has, and whenever it is not, the board is DFU's own - the rumour box - and the read that
   // settles it is asked (the town's board is read on arrival anyway, for the count over it).
+  // CRAFT-WRITS (bible/06-Systems/Professions-Arc.md section 49): the Work tab's crafting writs, their goods out of the pack and the record
+  const craftWrits = createCraftWritHost({ player: () => playerEntity, session: () => realmSession, checkpoint: () => onlineCheckpoint(), saved: () => saveSoon.changed(), book: () => profBook });
   const openNoticeBoard = (town, rumour) => {
     if (!noticeBook || !town) return false;
     if (noticeBook.open !== true) { noticeBook.read(town.mapId); return false; }
@@ -27391,6 +27394,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const work = profBook?.state.open === true && Number.isInteger(region) ? {
       book: profBook, region, regionName: REGION_NAMES[region] ?? 'the region', countName: materialCountLabel,
       onTaken: (r) => profWritTaken(r),
+      crafts: craftWrits,   // CRAFT-WRITS
       sayLate: (text) => chatNotice(text),   // AUDIT CHAP3 C5: a writ filled after the board closed says its line in the chat
       // CHAP4d: a chapter's Master names its Focus here, for the character playing
       setFocus: hallDoor && realmSession ? (faction, focus) => hallDoor.focus(realmSession.id, faction, region, focus) : null,
@@ -35168,7 +35172,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       // gated on `m.enemy`, and this bow branch `continue`s past the
       // melee hit chain below. The damage door is each pool's own, so
       // a killed watchman still runs the crime and the corpse.
-      onPlayerArrowHitFoe: (m, t) => (t?.duel ? duelStrikeOut('arrow', m.weapon ?? null, 'StrikeDown', weaponRig.playerWeapon?.lastDrawMs ?? 0, t.id) : playerArrowHitFoe(m, t, {   // DUEL1: my shaft on my duel opponent is a strike their client resolves   // AUDIT-SEATS G5: on a battle's foe (`t.id`), a shaft to the referee
+      onPlayerArrowHitFoe: (m, t) => (t?.duel ? duelStrikeOut('arrow', m.weapon ?? null, 'StrikeDown', weaponRig.playerWeapon?.lastDrawMs ?? 0, t.id, { off: !!weaponRig.playerWeapon?.isOffHandItem?.(m.weapon) }) : playerArrowHitFoe(m, t, {   // DUEL1: my shaft on my duel opponent is a strike their client resolves   // AUDIT-SEATS G5: on a battle's foe (`t.id`), a shaft to the referee
         playerEntity, playerWeapon: weaponRig.playerWeapon, playerFeet: player.pos,
         dealDamage: (f, d) => (cityGuards.guards.includes(f)
           ? cityGuards.hurtGuard(f, d, player.pos, m.dir, { kind: 'arrow' })   // AUDIT-39r: the shaft shoves the watch too (WeaponManager.cs:576-595); TELL1: a shaft's weight on a wind-up
@@ -35241,7 +35245,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
             // AUDIT 23 (C14): the swing fatigue + the FULL bow tally
             // arm (Archery AND CriticalStrike) - see exterior.js.
             drainExteriorFatigue(SWING_FATIGUE_COST);
-            tallySwingSkills(playerEntity, weaponRig.playerWeapon.weapon);
+            tallySwingSkills(playerEntity, weaponRig.playerWeapon.weapon, weaponRig.playerWeapon.blowWeight);   // AUDIT PISTOLET A2: an off-hand shot counts as its blow weighs, as the other two hosts count it (THE FOUR HOSTS RULE)
             const fwd = [Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch)];
             arrows.fire(cam.pos, fwd, { fromPlayer: true, weapon: weaponRig.playerWeapon.weapon, muzzle: weaponRig.thunderlockMuzzle(fieldOfView()), summoned: shot.summoned }); weaponRig.noteShot?.(weaponRig.playerWeapon.weapon);   // SPELLFX1: the peers draw it   // FIELD-GUN17: the barrel's own offset when the hand holds the gun, null for every bow - the rig answers, the lane forks   // #64: LastBowUsed rides the shaft - the impact prices off it   // ROAD-H H1c: ArrowFlight.fire applies GetAimPosition's player arm (the bow hand), as DFU's missile does its own
           }
@@ -35488,7 +35492,6 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (socialLink()?.status === 'open' && social) syncWaypointGroups({ party: social.party?.id ?? null, guild: myGuildTag() });
     if (travelControlUI?.isShowing) setPaceGround(!!travelControlUI.onRoad);
     else if (travelView?.state === 'up') setPaceGround(travellerOnRoad());
-    setTravelViewPaceCap(travelView?.active ? upkeep.travelViewCap(player.transportMode) : null);   // TV-PACE: ×10 on foot or hungry, ×20 on a fed horse, cart or caravan, and never faster while the view is up
     const framePace = () => {   // PERF-V8
     if (isEnhanced() && typeof document !== 'undefined') {
       hidePaceBox();   // PACE-DIALS: the enhanced skins carry their own dials (the journey bar, the Overworld's block)

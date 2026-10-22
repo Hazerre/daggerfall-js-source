@@ -6292,7 +6292,7 @@ export async function bootExterior(canvas, renderer, params, status) {
             // and a BOW always takes the FULL tally arm (Archery AND
             // CriticalStrike) - this arm tallied Archery alone, free.
             drainExteriorFatigue(SWING_FATIGUE_COST);
-            tallySwingSkills(playerEntity, weaponRig.playerWeapon.weapon);
+            tallySwingSkills(playerEntity, weaponRig.playerWeapon.weapon, weaponRig.playerWeapon.blowWeight);   // AUDIT PISTOLET A2: an off-hand shot counts as its blow weighs, as the other two hosts count it (THE FOUR HOSTS RULE)
             arrows.fire(eye, fwd, { fromPlayer: true, weapon: weaponRig.playerWeapon.weapon, muzzle: weaponRig.thunderlockMuzzle(fieldOfView()), summoned: shot.summoned });   // FIELD-GUN17: the barrel's own offset when the hand holds the gun, null for every bow - the rig answers, the lane forks   // #64: LastBowUsed rides the shaft - the impact prices off it   // ROAD-H H1c: ArrowFlight.fire applies GetAimPosition's player arm (the bow hand), as DFU's missile does its own
           }
           continue;
