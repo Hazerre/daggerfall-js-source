@@ -6,7 +6,9 @@
 // resampled.
 //
 //   public/art/pistolet-icon.png    THE SOURCE - the owner's sprite, whole. It is the inventory picture as it is.
-//   -> pistolet-paperdoll.png       the right hand's doll layer: the fist's gap cut across the grip
+//   -> pistolet-paperdoll.png       the right hand's doll layer: the fist's gap cut across the grip, then the picture
+//                                   turned a quarter BARREL-DOWN (quarterTurn) - the doll's arms hang, and a hanging fist
+//                                   holds a pistol pointing at the ground, not level out from the hip
 //   -> pistolet-paperdoll-left.png  the left hand's: that layer in the mirror (a left hand is a right hand in the glass -
 //                                   combat/twoHands/handsLaw.js's rule, which the doll keeps too)
 //   -> pistolet-icon-gilded.png, pistolet-paperdoll-gilded.png, pistolet-paperdoll-left-gilded.png
@@ -39,6 +41,25 @@ export const OUT = Object.freeze({
  *  of the gun (rows 0-6) stays above the fist and the butt (rows 11-16) below it. */
 export const BAND = Object.freeze({ cx: 19.7 / 24, cy: 9 / 17, deg: -12, thick: 4, length: 9 });
 
+/** A quarter turn counter-clockwise, pixel for pixel - (x, y) to (y, w - 1 - x): the muzzle at the source's left goes to
+ *  the bottom, the grip at its right comes up to the top. A quarter turn is the one turn that moves pixels without
+ *  resampling them (no staircase, no holes - the Gun-Lab record's warning is about every other angle). */
+export function quarterTurn({ width: w, height: h, data }) {
+  const out = new Uint8Array(data.length);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const s = (y * w + x) * 4, d = ((w - 1 - x) * h + y) * 4;
+      out[d] = data[s]; out[d + 1] = data[s + 1]; out[d + 2] = data[s + 2]; out[d + 3] = data[s + 3];
+    }
+  }
+  return { width: h, height: w, data: out };
+}
+
+/** Where the band's centre - the fist - lands in the RIGHT hand's turned doll layer, in its pixels (the source's
+ *  (cx * w, cy * h) through quarterTurn). The left hand's is its mirror: (width - x, y). src/systems/pistolet.js
+ *  PAPERDOLL_OFFSET seats this point on each fist. */
+export const dollGrip = (w = 24, h = 17, band = BAND) => ({ x: band.cy * h, y: w - band.cx * w });
+
 /** The picture in the mirror, pixel for pixel. */
 export function mirror({ width: w, height: h, data }) {
   const out = new Uint8Array(data.length);
@@ -53,8 +74,9 @@ export function mirror({ width: w, height: h, data }) {
 
 /** The doll layers and the gilded set, from the source picture. Pure: a test re-runs it against the shipped files. */
 export function pistoletArt(src, band = BAND) {
-  const doll = { width: src.width, height: src.height, data: new Uint8Array(src.data) };
-  const cut = punchBand(doll, band);
+  const level = { width: src.width, height: src.height, data: new Uint8Array(src.data) };
+  const cut = punchBand(level, band);   // cut in the source's own frame (the band is measured there), then turned
+  const doll = quarterTurn(level);
   const dollLeft = mirror(doll);
   return { doll, dollLeft, iconGilded: gild(src), dollGilded: gild(doll), dollLeftGilded: gild(dollLeft), cut };
 }

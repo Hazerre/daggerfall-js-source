@@ -89,12 +89,14 @@ export function createPistolet({ material = 4, condition = null } = {}) {
  * WHERE EACH HANGS (FIELD-GUN4's question, the Thunderlock's PAPERDOLL_OFFSET, for two hands). The doll's fists were
  * MEASURED, not guessed: the gap a classic one-handed weapon's doll record leaves for the fist (TEXTURE.234, the
  * player's own ARENA2 - dagger, mace, shortsword, war axe, each hand's record) closes at panel (27, 96) for the right
- * hand and (69, 95) for the left. The band's centre (tools/pistoletArt.mjs BAND, source pixel (19.7, 9)) goes on each:
- * the right layer at panel (27 - 19.7, 96 - 9), the mirrored left one at (69 - (24 - 19.7), 95 - 9). Screen coordinates,
- * the panel's origin (200, 8) written beside them as the Thunderlock's are. The owner's eye is the gate on both, as
- * Mac's was on the Thunderlock's.
+ * hand and (69, 95) for the left. The layers hang BARREL-DOWN (the owner, 2026-10-22: "Paperdoll example is not holding
+ * them correctly" - drawn level, each pistol stuck out sideways from the hip with its grip under the fist), so the
+ * band's centre is the turned one (tools/pistoletArt.mjs dollGrip, layer pixel (9, 4.3)) and goes on each fist: the
+ * right layer at panel (27 - 9, 96 - 4.3), the mirrored left one at (69 - (17 - 9), 95 - 4.3) - each pistol down the
+ * OUTSIDE of its thigh, the grip up into the fist. Screen coordinates, the panel's origin (200, 8) written beside them
+ * as the Thunderlock's are. The owner's eye is the gate on both, as Mac's was on the Thunderlock's.
  */
-export const PAPERDOLL_OFFSET = Object.freeze({ right: Object.freeze({ x: 200 + 7, y: 8 + 87 }), left: Object.freeze({ x: 200 + 65, y: 8 + 86 }) });
+export const PAPERDOLL_OFFSET = Object.freeze({ right: Object.freeze({ x: 200 + 18, y: 8 + 92 }), left: Object.freeze({ x: 200 + 61, y: 8 + 91 }) });
 
 /** The records of archive 562, by job. */
 export const ART_RECORDS = Object.freeze({ doll: 0, icon: 1, gildedDoll: 2, gildedIcon: 3, dollLeft: 4, gildedDollLeft: 5 });

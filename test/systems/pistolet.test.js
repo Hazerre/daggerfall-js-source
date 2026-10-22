@@ -34,7 +34,7 @@ import { OWN_MW_MODELS, OWN_MW_GILDED, ownWeaponModelFor } from '../../src/chara
 import { MW_WEAPON_TYPE } from '../../src/formats/morrowind/mwFirstPerson.js';
 import { setModSetting, _resetModSettings } from '../../src/systems/modSettings.js';
 import { readPng } from '../../tools/pngIO.mjs';
-import { pistoletArt, SOURCE as ART_SOURCE, OUT as ART_OUT, BAND } from '../../tools/pistoletArt.mjs';
+import { pistoletArt, SOURCE as ART_SOURCE, OUT as ART_OUT, BAND, dollGrip } from '../../tools/pistoletArt.mjs';
 import { bakePistolet, OUT as MW_OUT, SOURCE as MW_SOURCE } from '../../tools/bakePistolet.mjs';
 
 const png = (f) => readPng(readFileSync(f));
@@ -100,14 +100,23 @@ test('the pictures: the owner’s sprite whole in a list, a fist-gapped layer on
   // the gap severs the grip: the frame above it and the butt below it stay drawn
   const doll = png(ART_OUT.doll);
   const at = (img, x, y) => img.data[(y * img.width + x) * 4 + 3];
+  // BARREL-DOWN (the owner, 2026-10-22: "Paperdoll example is not holding them correctly"): the layer is the sprite a
+  // quarter turn counter-clockwise - source (x, y) at layer (y, 23 - x) - so the muzzle (the source's left) hangs at
+  // the bottom and the grip comes up to the fist
+  assert.deepEqual([doll.width, doll.height], [17, 24], 'turned: tall, not wide');
   const gx = Math.round(BAND.cx * 24 - 0.5), gy = Math.round(BAND.cy * 17 - 0.5);
-  assert.equal(at(doll, gx, gy), 0, 'the fist’s gap at the band’s centre');
+  const turned = (x, y) => at(doll, y, 23 - x);   // the doll layer read at a SOURCE pixel
+  assert.equal(turned(gx, gy), 0, 'the fist’s gap at the band’s centre');
   assert.equal(at(src, gx, gy), 255, 'where the sprite had grip');
-  assert.equal(at(doll, 18, 3), 255, 'the frame above the fist');
-  assert.equal(at(doll, 21, 14), 255, 'and the butt below it');
+  assert.equal(turned(18, 3), 255, 'the frame on the barrel’s side of the fist');
+  assert.equal(turned(21, 14), 255, 'and the butt beyond it');
+  assert.equal(at(src, 0, 3), 255, 'the muzzle, in the source at its left');
+  assert.equal(at(doll, 3, 23), 255, 'hangs at the layer’s bottom - barrel-down');
+  const grip = dollGrip();
+  assert.ok(Math.hypot(grip.x - gy - 0.5, grip.y - (23 - gx) - 0.5) < 1, `dollGrip is the turned band centre (${grip.x}, ${grip.y})`);
   // the left hand's is the right's in the glass
   const left = png(ART_OUT.dollLeft);
-  for (let y = 0; y < 17; y++) for (let x = 0; x < 24; x++) assert.equal(at(left, 23 - x, y), at(doll, x, y));
+  for (let y = 0; y < 24; y++) for (let x = 0; x < 17; x++) assert.equal(at(left, 16 - x, y), at(doll, x, y));
   // by job and by hand
   const it = createPistolet();
   assert.equal(pistoletImageRecord(it, false), ART_RECORDS.icon);
@@ -123,9 +132,9 @@ test('the pictures: the owner’s sprite whole in a list, a fist-gapped layer on
     assert.ok(doctrine.includes(`'public/art/${r.file}'`), `${r.file} is on the doctrine’s allow-list`);
   }
   // THE HANDS WERE MEASURED (TEXTURE.234's one-handed doll records leave the fist's gap at panel (27, 96) right, (69, 95)
-  // left): the band's centre lands there on each hand
-  const centreR = [PAPERDOLL_OFFSET.right.x - 200 + BAND.cx * 24, PAPERDOLL_OFFSET.right.y - 8 + BAND.cy * 17];
-  const centreL = [PAPERDOLL_OFFSET.left.x - 200 + (24 - BAND.cx * 24), PAPERDOLL_OFFSET.left.y - 8 + BAND.cy * 17];
+  // left): the turned band's centre lands there on each hand
+  const centreR = [PAPERDOLL_OFFSET.right.x - 200 + grip.x, PAPERDOLL_OFFSET.right.y - 8 + grip.y];
+  const centreL = [PAPERDOLL_OFFSET.left.x - 200 + (17 - grip.x), PAPERDOLL_OFFSET.left.y - 8 + grip.y];
   assert.ok(Math.hypot(centreR[0] - 27, centreR[1] - 96) < 1.5, `the right hand’s gap on its fist (${centreR})`);
   assert.ok(Math.hypot(centreL[0] - 69, centreL[1] - 95) < 1.5, `the left hand’s gap on its fist (${centreL})`);
 });
