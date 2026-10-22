@@ -516,6 +516,7 @@ export function createDecorTool(deps) {
         raise: () => placing?.placer?.raise(DECOR_RAISE_STEP), lower: () => placing?.placer?.raise(-DECOR_RAISE_STEP),
         smaller: () => placing?.placer?.rescale(false), bigger: () => placing?.placer?.rescale(true),
         grid: () => placing?.placer?.toggleSnap(),
+        preview: () => togglePreview(),
         fly: (dir) => { if (placing) placing.rise = dir; },   // DECOR1e: a touch screen's Fly up/down, held
       },
     });
@@ -978,6 +979,15 @@ export function createDecorTool(deps) {
     else beginDuplicate(piece);
     return true;
   }
+  /** Freeze the ghost where it stands so the camera can walk round it. Nothing is stood or paid. */
+  function togglePreview() {
+    const p = placing;
+    if (!p?.piece || !p.aim) return false;
+    if (p.lock) { p.lock = null; return true; }
+    p.lock = { point: [...p.aim.point], normal: p.aim.normal ? [...p.aim.normal] : null, yaw: p.aimYaw ?? 0 };
+    return true;
+  }
+
   function refreshLook(eye, dir) {
     const piece = pieceUnderLook(eye, dir);
     looked = piece;
@@ -1557,8 +1567,12 @@ export function createDecorTool(deps) {
     const next = flyStep(p.fly, p.start, move, cam.yaw, cam.pitch, held('Run') ? DECOR_FLY_FAST : DECOR_FLY_SPEED, dt);
     p.fly = flyClip(deps.collider?.(), p.fly, next, through);   // DECOR-SHELL: never through the room's own faces
     const hit = eyeHit(deps.collider?.(), p.fly, lookDir(cam.yaw, cam.pitch), through);
-    if (deps.lot) markLot(p);   // HOME-YARD: the lot's edge, marked while a piece is placed
-    if (p.door) doorFrame(p, origin, cam);   // HOME-DOORS: fitted into the doorway looked at, never where the eye meets a surface
+    p.aim = hit;
+    p.aimYaw = cam.yaw;
+    if (deps.lot && !p.lock) markLot(p);   // HOME-YARD: the lot's edge, marked while a piece is placed
+    if (p.lock) {
+      if (!p.door && p.placer) p.piece = p.placer.pieceAt(p.lock.point, origin, p.id, p.lock.normal, p.lock.yaw);
+    } else if (p.door) doorFrame(p, origin, cam);   // HOME-DOORS: fitted into the doorway looked at, never where the eye meets a surface
     else p.piece = p.placer ? p.placer.pieceAt(hit.point, origin, p.id, hit.normal, cam.yaw) : null;   // DECOR2c: a mount reads the surface
     if (p.decal && p.art) {   // DECOR2c: the ghost hangs where the mount will - or, with nothing to hang on, nowhere
       const quad = p.piece ? decorMountQuad(p.piece, origin, { w: p.art.w * p.piece.scale, h: p.art.h * p.piece.scale }) : null;
@@ -1569,7 +1583,7 @@ export function createDecorTool(deps) {
     bar?.show({
       name: p.editing ? `Moving ${p.entry.name}` : p.entry.name, price, priceText: edit ? decorEditText(edit) : p.free ? 'free' : null,
       snap: !!p.placer?.state().snap, why: placingWhy(p, price),
-      sized: decorEntrySized(p.entry),   // DECOR-FIGURE: no Smaller or Bigger for one of Daggerfall's people
+      sized: decorEntrySized(p.entry), preview: !!p.lock,   // DECOR-FIGURE: no Smaller or Bigger for one of Daggerfall's people
     });
     refreshLook(p.fly, lookDir(cam.yaw, cam.pitch));
     if (p.batch && p.piece && p.flatSize) {

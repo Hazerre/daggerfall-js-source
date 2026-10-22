@@ -1355,7 +1355,7 @@ export function createDecorPanel({
 export const DECOR_KEYS_WORD = 'Keys';
 /** MENU-ORDER: each of the bar's presses its picture. */
 const DECOR_BAR_ICONS = Object.freeze({ place: 'place', turnLeft: 'turn-left', turnRight: 'turn-right', raise: 'up', lower: 'down',
-  smaller: 'smaller', bigger: 'bigger', grid: 'grid', back: 'back' });
+  smaller: 'smaller', bigger: 'bigger', grid: 'grid', preview: 'decorate', back: 'back' });
 /** MENU-ORDER: THE BAR'S LEGEND - each key's name and what presses it, a pair a line (a finger's two: the stick and
  *  Fly, and the look). DECOR-FIGURE: `sized` false tells no Size key. */
 export function decorBarKeys(touch, sized = true) {
@@ -1439,6 +1439,7 @@ export function createDecorBar({ on, touch = false, doc = document }) {
     return n;
   };
   const grid = b('Grid', 'grid');
+  const preview = b('Preview', 'preview');
   // DECOR1e: THE FINGER'S UP AND DOWN - held, as Jump and Crouch are on a keyboard; let go when the finger lifts, is
   // taken, or the bar goes (a window over the flight)
   let flyDir = 0;
@@ -1456,7 +1457,7 @@ export function createDecorBar({ on, touch = false, doc = document }) {
   // finger's fly); back
   const sep = () => el('span', 'dfdecor-bar-sep');
   btns.append(b('Place', 'place', 'dfdecor-btn'), sep(), b('Turn left', 'turnLeft'), b('Turn right', 'turnRight'), sep(), b('Raise', 'raise'),
-    b('Lower', 'lower'), sep(), smaller, bigger, grid);
+    b('Lower', 'lower'), sep(), smaller, bigger, grid, preview);
   if (touch) btns.append(hold('Fly up', 1), hold('Fly down', -1));
   // MENU-ORDER: the keys' legend folded behind one press - the pictured buttons are the bar; the words wait to be asked
   const keysChip = el('button', 'dfdecor-chip dfdecor-keys-toggle', DECOR_KEYS_WORD);
@@ -1471,7 +1472,7 @@ export function createDecorBar({ on, touch = false, doc = document }) {
   let alive = true;
   return {
     root,
-    show({ name, price, priceText = null, why: whyText = null, snap = false, sized = true }) {
+    show({ name, price, priceText = null, why: whyText = null, snap = false, sized = true, preview: frozen = false }) {
       if (!alive) return;
       const w = `${name} - ${priceText ?? decorPriceText(price)}`;
       if (what.textContent !== w) what.textContent = w;
@@ -1480,6 +1481,7 @@ export function createDecorBar({ on, touch = false, doc = document }) {
       const y = whyText ?? '';
       if (why.textContent !== y) why.textContent = y;
       grid.setAttribute('aria-pressed', snap ? 'true' : 'false');
+      preview.setAttribute('aria-pressed', frozen ? 'true' : 'false');
       if (root.dataset.up !== '1') root.dataset.up = '1';
     },
     hide() { flyTo(0); if (alive && root.dataset.up !== '0') root.dataset.up = '0'; },

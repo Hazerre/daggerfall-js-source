@@ -106,8 +106,8 @@ test('MENU-ORDER the decorator\'s presses: a placed piece\'s each its glyph, Rem
   assert.equal(bar.root.dataset.keys, '1', 'Keys unfolds it');
   keysChip.fire('click');
   assert.equal(bar.root.dataset.keys, '0');
-  assert.deepEqual(['Place', 'Raise', 'Lower', 'Grid', 'Back'].map((w) => all(bar.root, w === 'Place' ? 'dfdecor-btn' : 'dfdecor-chip').find((c) => c.textContent === w).dataset.dficon),
-    ['place', 'up', 'down', 'grid', 'back']);
+  assert.deepEqual(['Place', 'Raise', 'Lower', 'Grid', 'Preview', 'Back'].map((w) => all(bar.root, w === 'Place' ? 'dfdecor-btn' : 'dfdecor-chip').find((c) => c.textContent === w).dataset.dficon),
+    ['place', 'up', 'down', 'grid', 'decorate', 'back']);
   assert.match(text(one(bar.root, 'dfdecor-bar-keys')), /^Fly: walk keys/, 'the legend, a name and what presses it');
   assert.deepEqual(decorBarKeys(false).map(([k]) => k), ['Fly', 'Look', 'Turn', 'Raise/lower', 'Size', 'Grid', 'Place', 'Back']);
   assert.ok(!decorBarKeys(false, false).some(([k]) => k === 'Size'), 'a figure: no Size');
