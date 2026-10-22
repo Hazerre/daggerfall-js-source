@@ -8,6 +8,40 @@
 
 Newest first.
 
+**2026-10-21 - AUDIT STAR-TUNE (pull request #1090, the Starfall from its first run).** The owner: *"Audit this"*. One
+cold lane over the pull request's own diff, read-only, at the head that renumbered it world238 past main's world236 and
+world237. Four findings, each fixed and pinned (`bible/11-Multiplayer/Starfall.md` sections 4, 10 and 13; `Spawn-Grants.md`
+section 4): F1, the site goes live before the relay's deploy is through (the account service, which STAR-TUNE does not
+move, is all `deploy.yml` waits on), and a new client asked world237 a `star` grant it refuses - under `enforce` no wave
+stood, under `grantStrip` the coven was its owner's alone; the kind is now asked only of world238 and later
+(`STAR_GRANT_RELAY_MIN`), the stand's own kind of an older relay. F2, the wave's clearing floor stayed a foe's 2.5 s while
+a party's wave grew to twenty-one - an empty crater waited out to 52.5 s after a 25 s fight; it is shared by the
+defenders now (`starClearFloorMs`). F3, an older tab's `st` dropped a wave past nine whole, so an older owner stood a
+party's third wave and master for nobody; the cell says nine in `wz` and the wave in `wx`. An older reader removing a
+toughened coven foe past its old bound is recorded, not fixable from here. F4, a crater built again under a standing
+player skipped the late-solid gate's body check. Sound: the wave law, the grant's size and ceiling, toughening across
+handovers, the frame's 64 records, the stand height, the renumber. Mutants: 7 new and 3 re-aimed (`star1`, `star3`,
+`star5`), all dead.
+
+**2026-10-20 - AUDIT PERF-PASS (the performance pass, pull request #1078: TRIP-PICKS, the BOOT-FREEZE slices,
+TRADE-VIRT, SHADER-STALL, SNOW-BUDGET and the GATE-MIX merge).** The owner: *"I need you to audit this and ensure this is
+perfect and fidelity isnt lost"*. Four cold lanes on a frozen head (7e5cdfcb80), read-only, each against the code before
+its slice and over the freeware ARENA2 where it reads the game's files - the trading windows in Chromium beside the
+parent's, the doors over a fake context with and without the extension, the snowpack lock-step through whole snow years,
+the boot's slices over every region, location, town file and trip on the real map. The worst three, fidelity: a trade
+list whose rows are not one height scrolled into blank stretches and moved rows under the pointer (ui/virtualRows.js now
+measures every row and holds the one under the eye); the Elite Breach's telegraphs and crystals could be missing for a
+whole compile while a lord's blow wound up (a pass the game is played by is now built the frame it is needed, and started
+at the boot's idle so that build waits on nothing); a budgeted snowpack kept a melted point's old pack (a cut step is now
+stepped whole). The rest: a landed tile's tooltip, a resize that repainted the trade windows (a lost key, a stack count
+reset), a second compile from a warm a draw had beaten, a failed pass's programs kept, the veil's warm doing less, the
+court's warm spending a frame on a built pass, the snow's blink across a lattice cell (and the Snowfall mod's winter the
+calendar's meanwhile), an unbounded memory of road choices (200 MB at the map's whole). The boot's lane found no loss:
+every region and location, both packs' town files, every rect walk and fit window, 674,856 road orders and 224,560 trips,
+the same. Every finding fixed and pinned, or recorded with its reason, in `07-Rendering/Performance-Priority.md` (the
+AUDIT paragraphs under TRIP-PICKS, TRADE-VIRT, SHADER-STALL and SNOW-BUDGET). Mutants: `audit_perfpass.json` 27, all dead;
+13 older records re-aimed at the new code, dead.
+
 **2026-10-19 - AUDIT PLAN-1000 lanes E-H (SESSION-SIGN; lanes B-D's fixes; COURT-WATCH and CHECKPOINT-5; lane A's
 fixes and the branch whole).** Mac: *"Lets do a comprehensive audit and ensure perfection"*. Four more cold lanes on
 frozen worktrees - two of the slices had had no cold read at all (COURT-WATCH, CHECKPOINT-5, and lane A's own fixes) -
