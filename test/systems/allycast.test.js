@@ -464,7 +464,7 @@ test('ALLY-CAST by source: world.js picks the party mate with the F key\'s own r
   assert.match(wm, /selfCast: b\.bundleType === 'Spell' && \(b\.selfCast !== false \|\| b\.ally === true\),/, 'C4: the surface\'s');
   assert.match(rd('src/systems/mysticism.js'), /ally: !!a\.bundleAlly,/);
   const fxs = rd('src/systems/effects.js');
-  assert.match(fxs, /const allyCast = ctx\.allyCast === true;\s*\n(?:\s*\/\/[^\n]*\n)*\s*const duelCast = ctx\.duelCast === true;\s*\n\s*const findInc = \(pred\) => \(heldItem \? undefined : target\.activeEffects\?\.find\(\(a\) => !a\.heldItem && !!a\.bundleAlly === allyCast && !!a\.bundleDuel === duelCast && pred\(a\)\)\);/, 'C2: the incumbent law reads the tag (DUEL1: and the duel\'s, the same way)');
+  assert.match(fxs, /const allyCast = ctx\.allyCast === true;\s*\n(?:\s*\/\/[^\n]*\n)*\s*const duelCast = ctx\.duelCast === true;\s*\n\s*(?:\s*\/\/[^\n]*\n)*\s*const findInc = \(pred\) => \(heldItem \? undefined : target\.activeEffects\?\.find\(\(a, i\) => !a\.heldItem && \(i >= pinStart \|\| \(!!a\.bundleAlly === allyCast && !!a\.bundleDuel === duelCast\)\) && pred\(a\)\)\);/, 'C2: the incumbent law reads the tag (DUEL1: and the duel\'s, the same way) - of an entry an earlier cast pushed (PIN MOVED, FIELD BUGS 2026-10-22c GIFT-ONE: this cast\'s own entries are its own, tagged at the tail)');
   assert.match(fxs, /list\[i\]\.bundleAlly = allyCast;/);
   const o = rd('src/net/online.js');
   assert.match(o, /sendCast\(data\) \{\s*\n\s*const d = validCastData\(data\);\s*\n\s*if \(!d \|\| d\.to === this\.id \|\| !this\.castOk\) return false;/, 'the link projects its own frame first, and never sends one at a relay that would close the socket');

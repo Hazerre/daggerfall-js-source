@@ -2097,7 +2097,7 @@ way to it, where 64k - 27 m/s of way at an open journey's x60 - dropped a
 storm galleon's whole word from every screen. The change key carries it, so a boat brought up short is said at
 once. `scenes/comeSailAway/comeSailAwayPeers.js` LEADS a boat under way instead of
 chasing it: each frame it is carried on by the way's share of the frame
-(what the lead grew by - none past CSA_PEER_LEAD_MAX, 0.6 s, so a late
+(what the lead grew by - none past CSA_PEER_LEAD_MAX, so a late
 word leads no further and the boat holds where the way took it) and eased
 the rest of the way to the word led from its arrival; the turn the same,
 Rotate(up x turn) in the boat's own frame. A step past the snap is a
@@ -2107,6 +2107,18 @@ CSA_PEER_SNAP_S (2.5 s) if farther (`peerSnapM` - AUDIT SHIPS A7: at a fixed
 snap puts her passengers off). Each boat's frame keeps the pose before it (`moveOf`: none the
 frame it is built, none across a snap) and can be peeked a frame ahead
 (`poseAhead`).
+
+SEA-GLIDE (FIELD BUGS 2026-10-22c, `01-Overview/bugs/Field-Bugs-2026-10-22c.md`; Dahazed: "the boss fight turns into
+dodging friendly ships while they randomly speed up / warp in front of you"): the lead was 0.6 s and the rest eased at
+12 a second, so a boat whose words came only on the full frames (FOES_FULL_MS, 2 s - a crowded cell's relay drops the
+deltas past its budget, FOES-FIRST) stood still 1.4 s of every 2 and then ran 17 m in a fifth of a second (a replica of
+the law: 195 m/s at the worst, 70% of frames stopped). CSA_PEER_LEAD_MAX is two full frames' spacing now (4 s - a full
+frame held for its turn, FOES-HOLD, is led over too), and under way what the word says she is off by is taken up at the
+sea's own PUPPET-GLIDE catch (`glideToward`: CSA_PEER_CATCH 1 a second, never faster than CSA_PEER_CATCH_MPS 0.3 +
+CSA_PEER_CATCH_SHARE 0.1 of her way - `scenes/naval/navalHost.js` PUPPET_CATCH's three); a boat lying still eases onto
+her word at 12 as before, and past the snap she snaps. On the real pool and module, words on the full frames alone each
+up to 300 ms late: never stopped, never past her way and the catch (13.5 m/s at 12), within 3.1 m of her place (p99)
+(`test/scenes/fb1022c_seaglide.test.js`).
 
 **Aboard** (`scenes/comeSailAway/comeSailAwayAboard.js`). A player comes aboard another's
 boat by its own ladder - BoardBoat (112401) answers on it as on one's own:

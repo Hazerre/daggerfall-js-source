@@ -749,6 +749,16 @@ deed underground makes that dungeon its lair.
   chosen is kept by a deed in the open world (the hunt the player was told of stays true); a deed underground moves it,
   and a lair moved is one the player has not heard of (`lairKnown` false). A graveyard's crypt may be a lair (its stand
   is underground).
+- **LAIR-DOOR (FIELD BUGS 2026-10-22c, `01-Overview/bugs/Field-Bugs-2026-10-22c.md`; Zenako through fogs: "the Revenant
+  lair designated on the Revenants page is inaccessible ... The Stuvam Graveyard")**: a lair is a dungeon the player can
+  go down into. 28 of the 774 graveyards MAPS.BSA flags with a dungeon lay one block, GRVEAS10 or GRVEAS36, that places
+  no dungeon-entrance door - nobody enters them, here or in DFU - and the world host's door (`scenes/lairHost.js`
+  createLairDoor) offers only the ring's dungeons whose blocks place one, measured on the place as the pixel build lays it
+  and kept a session. A kept lair the host says nobody can enter is chosen again at the next deed in the open world
+  (`lairAfter`), and one already held is moved at once by every reader of a lair (`mendRevenantLairs`: the page, the map's
+  circle, the hunt, the rumours) to the enterable dungeon nearest it within a rumour's reach (`LAIR_MEND_PX`, 20 px) -
+  known as it was known; with none, it roams. The Stuvam Graveyard is the one of the 28 with no other dungeon in its own
+  ring: its revenant goes to Morarker's Nest, 14 px south.
 
 ### 18.2 Rumour
 

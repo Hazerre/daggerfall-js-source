@@ -929,7 +929,11 @@ export function applySpell(spell, casterLevel, target, sinks, rolls = Math.rando
   // DUEL1: a duel opponent's spell (ctx.duelCast, tagged bundleDuel below) - never merged with the target's own either,
   // its damage over time stops at the duel's floor, and the duel's end strips it
   const duelCast = ctx.duelCast === true;
-  const findInc = (pred) => (heldItem ? undefined : target.activeEffects?.find((a) => !a.heldItem && !!a.bundleAlly === allyCast && !!a.bundleDuel === duelCast && pred(a)));
+  // GIFT-ONE (FIELD BUGS 2026-10-22c, PauloHF: "a shield with 6002 strength ... both shields work"): an entry THIS cast
+  // pushed (at pinStart or past it) is this cast's, tagged at the tail - so it is never read by its missing tag. Read by
+  // it, a mate's spell carrying one effect twice found its own first entry untagged and stood a second beside it: two
+  // Shield pools a gift, three for three, where the caster's own cast of the same spell merges into one.
+  const findInc = (pred) => (heldItem ? undefined : target.activeEffects?.find((a, i) => !a.heldItem && (i >= pinStart || (!!a.bundleAlly === allyCast && !!a.bundleDuel === duelCast)) && pred(a)));
   // AUDIT SCHOOLS (L1 M1, L2 F1): A POWER'S BUNDLE ON ME (ctx.powerCast - a path's rider, through the door's castOnPlayer
   // with `power`) merges as DFU's incumbents merge, one entry a kind, so every reader keeps DFU's first-match law (X11) -
   // but where EITHER side of a merge is a power's, the Shield's pool and a ward's chance take the LARGER: by DFU's recast

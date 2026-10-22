@@ -1,0 +1,277 @@
+[
+  {
+    "name": "FB1022C-GIFT-ONE-own-entries-read-by-tag",
+    "file": "src/systems/effects.js",
+    "old": "(i >= pinStart || (!!a.bundleAlly === allyCast && !!a.bundleDuel === duelCast)) && pred(a)",
+    "new": "((!!a.bundleAlly === allyCast && !!a.bundleDuel === duelCast)) && pred(a)",
+    "tests": [
+      "test/systems/fb1022c_giftone.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-GIFT-ONE-first-own-entry-missed",
+    "file": "src/systems/effects.js",
+    "old": "(i >= pinStart || (!!a.bundleAlly",
+    "new": "(i > pinStart || (!!a.bundleAlly",
+    "tests": [
+      "test/systems/fb1022c_giftone.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-LAIR-DOOR-unread-read-as-none",
+    "file": "src/scenes/lairHost.js",
+    "old": "      if (e == null) unread = true;\n",
+    "new": "",
+    "tests": [
+      "test/systems/revenant/fb1022c_lairdoor.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-LAIR-DOOR-enhanced-only-always",
+    "file": "src/scenes/lairHost.js",
+    "old": "      if (m.enhancedOnly && !enhanced) continue;\n",
+    "new": "",
+    "tests": [
+      "test/systems/revenant/fb1022c_lairdoor.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-LAIR-DOOR-ring-unfiltered",
+    "file": "src/scenes/lairHost.js",
+    "old": ".filter((d) => enterable(d.px, d.py)).map(",
+    "new": ".map(",
+    "tests": [
+      "test/systems/revenant/fb1022c_lairdoor.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-LAIR-DOOR-region-dropped",
+    "file": "src/scenes/lairHost.js",
+    "old": "region: regionAt(d.px, d.py)",
+    "new": "region: -1",
+    "tests": [
+      "test/systems/revenant/fb1022c_lairdoor.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-LAIR-DOOR-pixel-not-kept",
+    "file": "src/scenes/lairHost.js",
+    "old": "    byPixel.set(key, v);\n",
+    "new": "",
+    "tests": [
+      "test/systems/revenant/fb1022c_lairdoor.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-LAIR-DOOR-model-not-kept",
+    "file": "src/scenes/lairHost.js",
+    "old": "    byModel.set(id, v);\n",
+    "new": "",
+    "tests": [
+      "test/systems/revenant/fb1022c_lairdoor.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-LAIR-DOOR-unread-judged-shut",
+    "file": "src/scenes/lairHost.js",
+    "old": "entranceOf, en) !== false;",
+    "new": "entranceOf, en) === true;",
+    "tests": [
+      "test/systems/revenant/fb1022c_lairdoor.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-LAIR-DOOR-nearest-is-itself",
+    "file": "src/scenes/lairHost.js",
+    "old": "if (d === 0 || d >= bestD",
+    "new": "if (d >= bestD",
+    "tests": [
+      "test/systems/revenant/fb1022c_lairdoor.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-LAIR-DOOR-nearest-the-farthest",
+    "file": "src/scenes/lairHost.js",
+    "old": "if (d === 0 || d >= bestD",
+    "new": "if (d === 0 || d <= bestD && bestD !== Infinity",
+    "tests": [
+      "test/systems/revenant/fb1022c_lairdoor.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-LAIR-DOOR-kept-never-asked",
+    "file": "src/systems/revenant/revenantFeud.js",
+    "old": "(kept && lairEnterable(kept, here) ? kept : null) ?? pickLair",
+    "new": "kept ?? pickLair",
+    "tests": [
+      "test/systems/revenant/fb1022c_lairdoor.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-LAIR-DOOR-host-word-ignored",
+    "file": "src/systems/revenant/revenantFeud.js",
+    "old": "here.enterable(lair.px, lair.py) !== false;",
+    "new": "true;",
+    "tests": [
+      "test/systems/revenant/fb1022c_lairdoor.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-LAIR-DOOR-never-mended",
+    "file": "src/systems/revenant/revenant.js",
+    "old": "    if (at.enterable(r.lair.px, r.lair.py) !== false) continue;\n",
+    "new": "    continue;\n",
+    "tests": [
+      "test/systems/revenant/fb1022c_lairdoor.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-LAIR-DOOR-asked-every-read",
+    "file": "src/systems/revenant/revenant.js",
+    "old": "    _lairsAsked.add(key);\n",
+    "new": "",
+    "tests": [
+      "test/systems/revenant/fb1022c_lairdoor.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-LAIR-DOOR-roams-still-known",
+    "file": "src/systems/revenant/revenant.js",
+    "old": "    if (!r.lair) { r.lairKnown = false; r.trail = 0; }\n",
+    "new": "",
+    "tests": [
+      "test/systems/revenant/fb1022c_lairdoor.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-LAIR-DOOR-map-unmended",
+    "file": "src/systems/revenant/revenant.js",
+    "old": "  mendRevenantLairs();   // LAIR-DOOR: no circle round a lair nobody can enter\n",
+    "new": "",
+    "tests": [
+      "test/systems/revenant/fb1022c_lairdoor.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-LAIR-DOOR-host-nearest-unread",
+    "file": "src/systems/revenant/revenant.js",
+    "old": "typeof at.nearest === 'function' ? at.nearest(r.lair.px, r.lair.py) : ",
+    "new": "",
+    "tests": [
+      "test/systems/revenant/fb1022c_lairdoor.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-SEA-GLIDE-lead-back-at-0.6",
+    "file": "src/scenes/comeSailAway/comeSailAwayPeers.js",
+    "old": "export const CSA_PEER_LEAD_MAX = (2 * FOES_FULL_MS) / 1000;",
+    "new": "export const CSA_PEER_LEAD_MAX = 0.6;",
+    "tests": [
+      "test/scenes/fb1022c_seaglide.test.js",
+      "test/systems/csa_together.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-SEA-GLIDE-ease-under-way",
+    "file": "src/scenes/comeSailAway/comeSailAwayPeers.js",
+    "old": "const position = !jumped && speed > 0 ? glideToward",
+    "new": "const position = false ? glideToward",
+    "tests": [
+      "test/scenes/fb1022c_seaglide.test.js",
+      "test/systems/csa_together.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-SEA-GLIDE-share-dropped",
+    "file": "src/scenes/comeSailAway/comeSailAwayPeers.js",
+    "old": "(CSA_PEER_CATCH_MPS + CSA_PEER_CATCH_SHARE * way) * d",
+    "new": "(CSA_PEER_CATCH_MPS + way) * d",
+    "tests": [
+      "test/scenes/fb1022c_seaglide.test.js",
+      "test/systems/csa_together.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-SEA-GLIDE-bound-dropped",
+    "file": "src/scenes/comeSailAway/comeSailAwayPeers.js",
+    "old": "Math.min(off * (1 - Math.exp(-CSA_PEER_CATCH * d)), (CSA_PEER_CATCH_MPS + CSA_PEER_CATCH_SHARE * way) * d) / off",
+    "new": "(off * (1 - Math.exp(-CSA_PEER_CATCH * d))) / off",
+    "tests": [
+      "test/scenes/fb1022c_seaglide.test.js",
+      "test/systems/csa_together.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-SEA-GLIDE-catch-moved",
+    "file": "src/scenes/comeSailAway/comeSailAwayPeers.js",
+    "old": "export const CSA_PEER_CATCH_MPS = 0.3;",
+    "new": "export const CSA_PEER_CATCH_MPS = 0.5;",
+    "tests": [
+      "test/scenes/fb1022c_seaglide.test.js",
+      "test/systems/csa_together.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-PEER-ART-walkers-looks-unkept",
+    "file": "src/net/peer/peerRiders.js",
+    "old": "    const code = spriteLookOf(s);\n",
+    "new": "    const code = s.horse;\n",
+    "tests": [
+      "test/net/peer/fb1022c_peerart.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-PEER-ART-record-kept-in-look",
+    "file": "src/net/peer/peerRiders.js",
+    "old": "`${p[0]}:${p[1]}:${p[2]}:${p.slice(4).join(':')}`",
+    "new": "`${p[0]}:${p[1]}:${p[2]}:${p[3]}:${p.slice(4).join(':')}`",
+    "tests": [
+      "test/net/peer/fb1022c_peerart.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-PEER-ART-every-picture-kept",
+    "file": "src/net/peer/peerRiders.js",
+    "old": "    if (pixels.size > RIDER_PIXELS_KEPT) pixels.delete(pixels.keys().next().value);   // PEER-ART: the longest unasked goes\n",
+    "new": "",
+    "tests": [
+      "test/net/peer/fb1022c_peerart.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-PEER-ART-asked-again-not-recent",
+    "file": "src/net/peer/peerRiders.js",
+    "old": "    if (img) pixels.delete(s.key);   // PEER-ART: asked again - the most recent\n",
+    "new": "    if (img) void 0;\n",
+    "tests": [
+      "test/net/peer/fb1022c_peerart.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-PEER-ART-cap-moved",
+    "file": "src/net/peer/peerRiders.js",
+    "old": "export const RIDER_PIXELS_KEPT = 64;",
+    "new": "export const RIDER_PIXELS_KEPT = 128;",
+    "tests": [
+      "test/net/peer/fb1022c_peerart.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-PEER-ART-drawn-sprite-trusted",
+    "file": "src/net/peer/peerRiders.js",
+    "old": "&& renderer?.textures?.has && !renderer.textures.has(k.replace(':', '_'))) { tex.delete(k); have = undefined; }",
+    "new": "&& false) { tex.delete(k); have = undefined; }",
+    "tests": [
+      "test/net/peer/fb1022c_peerart.test.js"
+    ]
+  },
+  {
+    "name": "FB1022C-PEER-ART-my-body-trusted",
+    "file": "src/player/eyeOfTheBeholder/eotbBody.js",
+    "old": "&& renderer.textures?.has && !renderer.textures.has(cacheKey(s).replace(':', '_'))) { tex.delete(cacheKey(s)); have = undefined; }",
+    "new": "&& false) { tex.delete(cacheKey(s)); have = undefined; }",
+    "tests": [
+      "test/net/peer/fb1022c_peerart.test.js"
+    ]
+  }
+]

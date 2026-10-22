@@ -387,7 +387,10 @@ export function createEotbBody({ count = spriteCount, urlFor = eotbSpriteUrl, de
   /** Decode one sprite and upload it, flipping when the state asks. */
   function ensure(s) {
     if (!renderer || !s) return null;
-    const have = tex.get(cacheKey(s));
+    let have = tex.get(cacheKey(s));
+    // PEER-ART (FIELD BUGS 2026-10-22c): a texture let go under this key by the peers' store (net/peer/peerRiders.js - a
+    // peer's outfit or horse look can be mine too) is uploaded again
+    if (have && !(have instanceof Promise) && renderer.textures?.has && !renderer.textures.has(cacheKey(s).replace(':', '_'))) { tex.delete(cacheKey(s)); have = undefined; }
     if (have && !(have instanceof Promise)) return have;
     if (have !== undefined) return null;                // in flight, or failed
     if (!urlFor(s.key)) { tex.set(cacheKey(s), null); return null; }

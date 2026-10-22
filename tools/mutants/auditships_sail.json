@@ -205,7 +205,7 @@
   {
     "name": "AUDIT-SHIPS-A7-the-ease-fixed",
     "file": "src/scenes/comeSailAway/comeSailAwayPeers.js",
-    "old": "const snap = peerSnapM(sceneWay(w, toScene));",
+    "old": "const snap = peerSnapM(way);",
     "new": "const snap = CSA_PEER_SNAP_M;",
     "tests": [
       "test/systems/auditships_sail.test.js"

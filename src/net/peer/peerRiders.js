@@ -55,6 +55,20 @@ export const RIDER_RETRY_MS = 30000;
 /** COATS1: how many riders' horse looks' dyed pictures stand at once, and how long a look undrawn is before it may go. */
 export const RIDER_LOOKS_KEPT = 12;
 export const RIDER_LOOK_IDLE_MS = 2000;
+/** PEER-ART (FIELD BUGS 2026-10-22c, Foretold: "an instance out of 7 that is leaking 5gb of ram"): how many sprites'
+ *  decoded pictures the store keeps for another texture of the same sprite (its mirror) - the most recently asked. Every
+ *  one was kept for the session: a worn-armour walker (LAYERED-PEERS) is some 55 frames of its own outfit, and each new
+ *  outfit met online kept ~4 MB of decoded pixels that nothing read again. */
+export const RIDER_PIXELS_KEPT = 64;
+/** PEER-ART: a sprite's LOOK, whose pictures go together - a rider's horse (COATS1), or a walker's worn-armour outfit
+ *  (layeredArmor.js layeredSprite's key less its record and frame: `LA:<body>:<combo>:<code>`); null for the class
+ *  sprites every player shares, which stand. @param {{ horse?: any, key?: string }} s */
+export function spriteLookOf(s) {
+  if (s?.horse) return s.horse;
+  if (!isLayeredKey(s?.key)) return null;
+  const p = /** @type {string} */ (s.key).split(':');
+  return p.length >= 5 ? `${p[0]}:${p[1]}:${p[2]}:${p.slice(4).join(':')}` : null;
+}
 
 async function decodeUrl(url) {
   if (isLayeredKey(url)) return worldOrderColors(await decodeLayered(url, decodePng), { owned: true });   // WORN-ARMOUR: composed from its strip
@@ -75,15 +89,16 @@ async function decodeUrl(url) {
  */
 export function createEotbArt({ renderer = null, urlFor = eotbSpriteUrl, decode = decodeUrl, clock = () => Date.now(), loadLantern = loadLanternArt } = {}) {
   const tex = new Map();      // `${archive}:${rec}` -> { w, h } | Promise | null (no art at all) | { failedAt } (asked again after RIDER_RETRY_MS)
-  const pixels = new Map();   // sprite key -> decode promise
+  const pixels = new Map();   // sprite key -> decode promise, the most recently asked last (PEER-ART: RIDER_PIXELS_KEPT of them)
   // COATS1: the riders' horses' looks (systems/horse/horseCoats.js) - each its own dyed pictures, so a look is let go once
   // RIDER_LOOKS_KEPT others were drawn since (EVERY ALLOCATION HAS AN OWNER: every horse is its own look, and a session
-  // meets many riders). code -> { keys: Set<tex key>, used: clock() }
+  // meets many riders). PEER-ART: and a walker's worn-armour outfit, the same (spriteLookOf). code -> { keys: Set<tex key>, used: clock() }
   const looks = new Map();
   function noteLook(s, k) {
-    if (!s.horse) return;
-    let l = looks.get(s.horse);
-    if (!l) { l = { keys: new Set(), used: 0 }; looks.set(s.horse, l); }
+    const code = spriteLookOf(s);
+    if (!code) return;
+    let l = looks.get(code);
+    if (!l) { l = { keys: new Set(), used: 0 }; looks.set(code, l); }
     l.keys.add(k); l.used = clock();
     if (looks.size <= RIDER_LOOKS_KEPT) return;
     const now = clock();
@@ -96,14 +111,20 @@ export function createEotbArt({ renderer = null, urlFor = eotbSpriteUrl, decode 
   function ensure(s) {
     const k = `${s.archive}:${s.rec}`;
     noteLook(s, k);
-    const have = tex.get(k);
+    let have = tex.get(k);
+    // PEER-ART: a texture let go under this key by another store (my own body's looks, eotbBody.js) is uploaded again -
+    // the renderer's cache is one for every store, and an outfit can be mine and a peer's at once
+    if (have && !(have instanceof Promise) && !('failedAt' in have) && renderer?.textures?.has && !renderer.textures.has(k.replace(':', '_'))) { tex.delete(k); have = undefined; }
     if (have && !(have instanceof Promise) && !('failedAt' in have)) return have;
     if (have && 'failedAt' in have && clock() - have.failedAt >= RIDER_RETRY_MS) tex.delete(k);
     else if (have !== undefined || !renderer?.uploadTexture) return null;
     const url = urlFor(s.key);
     if (!url) { tex.set(k, null); return null; }
     let img = pixels.get(s.key);
-    if (!img) { img = decode(url); pixels.set(s.key, img); img.catch(() => pixels.delete(s.key)); }
+    if (img) pixels.delete(s.key);   // PEER-ART: asked again - the most recent
+    else { img = decode(url); img.catch(() => { if (pixels.get(s.key) === img) pixels.delete(s.key); }); }
+    pixels.set(s.key, img);
+    if (pixels.size > RIDER_PIXELS_KEPT) pixels.delete(pixels.keys().next().value);   // PEER-ART: the longest unasked goes
     const p = img.then((raw) => {
       if (tex.get(k) !== p) return null;   // COATS1: let go while in flight - never uploaded
       const { width, height, colors } = lookedPixels(s, raw);   // COATS1: a rider's mount in its look

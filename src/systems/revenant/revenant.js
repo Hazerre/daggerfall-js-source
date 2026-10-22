@@ -325,7 +325,7 @@ export const swornRevenants = () => _state.list.filter((r) => r.sworn && !r.defe
 /** Every record, the slain too - a journal's page (never a tombstone). */
 export const allRevenants = () => _state.list.filter((r) => !r.gone);
 /** REVENANT-PAGE: this character's records (the mirror read in first), the slain too - the pause menu's page. */
-export function revenantsFor(player) { ensureMirror(player); return allRevenants(); }
+export function revenantsFor(player) { ensureMirror(player); mendRevenantLairs(); return allRevenants(); }   // LAIR-DOOR: the page names no lair nobody can enter
 export const revenantById = (id) => _state.list.find((r) => r.id === id && !r.gone) ?? null;
 
 const isStr = (v) => typeof v === 'string';
@@ -1361,6 +1361,7 @@ export function revenantRumor(here, session, { rolls = Math.random } = {}) {
   if (revenantHeld()) return null;   // RENOWN-GATE: held - no word of a lair it is not at; the mill's turn, its answer unspent
   if (!revenantOn() || !here || !session || !Number.isInteger(here.px) || !Number.isInteger(here.py)) return null;
   if (!((session.numAnswersGivenTellMeAboutOrRumors | 0) < MAX_ANSWERS_TELL_ME_ABOUT_OR_RUMORS || session.isSpyMaster)) return null;
+  mendRevenantLairs();   // LAIR-DOOR: no word of a lair nobody can enter
   const inRegion = (r) => Number.isInteger(here.region) && here.region >= 0 && r.lair.region === here.region;
   const near = livingRevenants().filter((r) => r.lair && (r.dread || inRegion(r) || Math.hypot(r.lair.px - here.px, r.lair.py - here.py) <= RUMOR_PX));   // UNQUIET: the Dread is known in every town
   if (!near.length || !(rolls() < RUMOR_CHANCE)) return null;
@@ -1384,11 +1385,40 @@ export function revenantRumor(here, session, { rolls = Math.random } = {}) {
   persist();
   return words;
 }
+/** LAIR-DOOR (FIELD BUGS 2026-10-22c, Zenako through fogs: "the Revenant lair designated on the Revenants page is
+ *  inaccessible ... The Stuvam Graveyard"): A LAIR NOBODY CAN ENTER, MOVED. A revenant that went to ground before the host
+ *  asked whether a dungeon has a door may hold one of the 28 graveyards whose blocks place none (scenes/lairHost.js). Each
+ *  held lair is asked of the host once a session (`lairHere({ x, y })` about its own pixel); one the player cannot go down
+ *  into moves to the enterable dungeon nearest it within a rumour's reach (the host's `nearest`, scenes/lairHost.js
+ *  LAIR_MEND_PX; a host without it, the ring's nearest - nearestLair) - known as it was known, so the page, the map's
+ *  circle, the hunt and the rumours point where it waits - and with none in reach it roams, unheard of. A host that
+ *  cannot say (underground, none running) is asked again later. Answers how many moved. */
+const _lairsAsked = new Set();
+export function mendRevenantLairs(door = playerDoor()) {
+  let moved = 0;
+  for (const r of livingRevenants()) {
+    if (!r.lair) continue;
+    const key = `${r.id}|${r.lair.px},${r.lair.py}`;
+    if (_lairsAsked.has(key)) continue;
+    let at = null;
+    try { at = door?.lairHere?.({ x: r.lair.px, y: r.lair.py }) ?? null; } catch { at = null; }
+    if (typeof at?.enterable !== 'function') continue;
+    _lairsAsked.add(key);
+    if (at.enterable(r.lair.px, r.lair.py) !== false) continue;
+    r.lair = typeof at.nearest === 'function' ? at.nearest(r.lair.px, r.lair.py) : nearestLair(r.lair.px, r.lair.py, at.dungeons);
+    if (!r.lair) { r.lairKnown = false; r.trail = 0; }
+    touch(r);
+    moved++;
+  }
+  if (moved) persist();
+  return moved;
+}
 /** RVN7c (bible/12-Enhanced-AI/Feud-Arc.md 18.3): THE LAIRS HEARD OF, ON THE MAPS - a circle at each living, unsworn
  *  revenant's lair the player knows (`lairKnown`), named for it (ui/bounty/bountyMapMark.js's shape, in blood red). */
 export function revenantMapMarks() {
   if (revenantHeld()) return [];   // RENOWN-GATE: held - no lair marked where none waits
   if (!revenantOn()) return [];
+  mendRevenantLairs();   // LAIR-DOOR: no circle round a lair nobody can enter
   return livingRevenants().filter((r) => r.lair && r.lairKnown).map((r) => ({ cx: r.lair.px + 0.5, cy: r.lair.py + 0.5, r: LAIR_RING_R, label: r.given ?? r.name, id: r.id }));
 }
 /** RVN7c (18.3): THE HUNTS, IN THE QUEST LOG - each lair heard of as an active side quest (scenes/quest/questBridge.js
@@ -1397,6 +1427,7 @@ export function revenantMapMarks() {
 export function revenantHuntEntries(here = null, { now = nowMinutes() } = {}) {
   if (revenantHeld()) return [];   // RENOWN-GATE: held - no hunt in the log for a lair none waits in
   if (!revenantOn()) return [];
+  mendRevenantLairs();   // LAIR-DOOR: no hunt to a lair nobody can enter
   const line = (text) => ({ formatting: 'text', text });
   return livingRevenants().filter((r) => r.lair && r.lairKnown).map((r) => {
     const dx = Number.isInteger(here?.px) ? r.lair.px - here.px : 0, dy = Number.isInteger(here?.py) ? r.lair.py - here.py : 0;
@@ -1792,4 +1823,4 @@ export function inheritRevenant(player, rec, { now = nowMinutes(), rolls = Math.
 }
 
 /** Tests only: forget everything. */
-export function _resetRevenantForTests() { _state.list = []; _state.mirrorId = null; _state.lastDay = null; forgetBodies(); }
+export function _resetRevenantForTests() { _state.list = []; _state.mirrorId = null; _state.lastDay = null; forgetBodies(); _lairsAsked.clear(); }
