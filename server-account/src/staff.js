@@ -70,6 +70,12 @@ export const STAFF_TRY_WINDOW_S = 15 * 60;
 export const STAFF_RATE_MAX = 120;
 /** Audit rows one read returns at most. */
 export const STAFF_AUDIT_PAGE = 100;
+/** How long the audit log keeps a row (mob, 12:12Z: "only keep for one month") - past it the hourly job deletes it
+ *  (cron.js staff-audit); inside it nobody can (migration 0144's trigger, an hour short of this for the two clocks). */
+export const STAFF_AUDIT_KEEP_S = 30 * 24 * 60 * 60;
+/** A read of the audit log, the team or the moderators is written once in this, a member and a kind (a review of the
+ *  PR: every read, and every page of one, was a row); a page past the first never is. */
+export const STAFF_READ_ROW_S = 10 * 60;
 
 /** What an extension signs: what it is doing ('login' or 'enroll'), the handle, and the second it signed at. */
 export const staffWords = (/** @type {'login'|'enroll'} */ what, /** @type {string} */ lc, /** @type {number} */ ts) => `dfo-staff:v1:${what}:${lc}:${ts}`;
@@ -114,11 +120,16 @@ function staffHandles(env) {
   return [...all];
 }
 
-/** ONE AUDIT ROW, as a statement for the batch it belongs to. `detail` is a small object, kept as JSON.
- *  @param {any} db @param {number} nowS @param {{ actor?: any, role?: string|null, act: string, target?: string|null, detail?: object|null, keyId?: string|null }} row */
-export const auditStatement = (db, nowS, { actor = null, role = null, act, target = null, detail = null, keyId = null }) =>
-  db.prepare('INSERT INTO staff_audit (at, actor, actor_name, role, act, target, detail, key_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    .bind(nowS, actor?.id ?? null, actor ? displayName(actor) : null, role, act, target, detail ? JSON.stringify(detail) : null, keyId);
+/** ONE AUDIT ROW, as a statement for the batch it belongs to. `detail` is a small object, kept as JSON. `outcome` ok,
+ *  denied (a role's door refused it) or failed (it changed nothing) - a review of the PR: a failed act read as done. `okIf`
+ *  an EXISTS the batch's own next statement changes a row by, asked ahead of it in the same transaction - ok when it holds,
+ *  failed when not. `onceIn` seconds: written only when this member wrote no row of this kind in them.
+ *  @param {any} db @param {number} nowS
+ *  @param {{ actor?: any, role?: string|null, act: string, target?: string|null, detail?: object|null, keyId?: string|null, outcome?: 'ok'|'denied'|'failed', okIf?: { sql: string, args: unknown[] }|null, onceIn?: number }} row */
+export const auditStatement = (db, nowS, { actor = null, role = null, act, target = null, detail = null, keyId = null, outcome = 'ok', okIf = null, onceIn = 0 }) =>
+  db.prepare(`INSERT INTO staff_audit (at, actor, actor_name, role, act, target, detail, key_id, outcome) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ${okIf ? `CASE WHEN ${okIf.sql} THEN 'ok' ELSE 'failed' END` : '?'}${onceIn ? ' WHERE NOT EXISTS (SELECT 1 FROM staff_audit WHERE actor = ? AND act = ? AND at > ?)' : ''}`)
+    .bind(nowS, actor?.id ?? null, actor ? displayName(actor) : null, role, act, target, detail ? JSON.stringify(detail) : null, keyId,
+      ...(okIf ? okIf.args : [outcome]), ...(onceIn ? [actor?.id ?? null, act, nowS - onceIn] : []));
 
 /** The handle a body names, folded as the lists fold it. @param {unknown} h */
 const handleLc = (h) => (typeof h === 'string' ? h.trim().toLowerCase().slice(0, 64) : '');
@@ -155,7 +166,7 @@ async function passwordStep(ctx, env, body, ip) {
  *  or the account is banned; the same word either way. */
 async function refused(/** @type {any} */ ctx, /** @type {any} */ player, /** @type {string|null} */ role, /** @type {string|null} */ why) {
   if (why) {
-    const write = auditStatement(ctx.db, ctx.nowS, { actor: player, role, act: 'login-refused', detail: { why } }).run();
+    const write = auditStatement(ctx.db, ctx.nowS, { actor: player, role, act: 'login-refused', detail: { why }, outcome: 'denied' }).run();
     if (typeof ctx.later === 'function') ctx.later(write.catch(() => {})); else await write;
   }
   return { error: 'staff-login' };
@@ -282,8 +293,10 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   const { db, rand, subtle, nowS } = ctx;
   const me = who.player;
   if (overAccountRate(`staff:${me.id}`, nowS, STAFF_RATE_MAX, 60)) return { error: 'rate' };
-  const audit = (/** @type {string} */ act, /** @type {string|null} */ target = null, /** @type {object|null} */ detail = null) =>
-    auditStatement(db, nowS, { actor: me, role: who.role, act, target, detail, keyId: who.keyId });
+  const audit = (/** @type {string} */ act, /** @type {string|null} */ target = null, /** @type {object|null} */ detail = null, /** @type {{ outcome?: 'ok'|'denied'|'failed', okIf?: { sql: string, args: unknown[] }, onceIn?: number }} */ how = {}) =>
+    auditStatement(db, nowS, { actor: me, role: who.role, act, target, detail, keyId: who.keyId, ...how });
+  /** A role's door refused this member: written down (a review of the PR: a Moderator trying an owner's page left no trace). */
+  const denied = async (/** @type {string} */ error) => { await audit('refused', null, { path, need: error === 'staff-admin' ? 'admin' : 'owner' }, { outcome: 'denied' }).run(); return { error }; };
 
   if (path === '/v1/staff/me') {
     return { handle: me.handle, role: who.role, owner: who.owner, idleS: STAFF_IDLE_S, idleAt: who.idleAt, expiresAt: who.expiresAt, keyId: who.keyId };
@@ -302,10 +315,10 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   }
   if (path === '/v1/staff/key/forget') {
     if (typeof body.id !== 'string') return { error: 'body' };
-    const [gone] = await db.batch([
+    const [, gone] = await db.batch([
+      audit('key-forget', null, { id: body.id.slice(0, 40) }, { okIf: { sql: 'EXISTS (SELECT 1 FROM staff_keys WHERE id = ? AND player_id = ? AND revoked_at IS NULL)', args: [body.id, me.id] } }),
       db.prepare('UPDATE staff_keys SET revoked_at = ? WHERE id = ? AND player_id = ? AND revoked_at IS NULL').bind(nowS, body.id, me.id),
       db.prepare('DELETE FROM staff_sessions WHERE key_id = ? AND player_id = ?').bind(body.id, me.id),
-      audit('key-forget', null, { id: body.id.slice(0, 40) }),
     ]);
     return gone.meta.changes ? { ok: true, id: body.id } : { error: 'no-key' };
   }
@@ -315,10 +328,10 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   // already. One the config names (MODERATOR_HANDLES, a moderating title, an Admin) is the config's to remove, never the
   // panel's. Removed, a member holding no other role loses every key, session and invite, as a cut does.
   if (path === '/v1/staff/mods' || path === '/v1/staff/mod/add' || path === '/v1/staff/mod/remove') {
-    if (who.role !== 'admin') return { error: 'staff-admin' };
+    if (who.role !== 'admin') return denied('staff-admin');
     if (path === '/v1/staff/mods') {
       const r = await db.prepare('SELECT id, handle FROM players WHERE staff_mod = 1 ORDER BY handle_lc LIMIT 500').all();
-      await audit('mods-read').run();
+      await audit('mods-read', null, null, { onceIn: STAFF_READ_ROW_S }).run();
       return { mods: (r.results ?? []).map((p) => ({ id: p.id, handle: p.handle })), config: staffHandles(env).filter((h) => !developerHandles(env).has(h)) };
     }
     const lc = handleLc(body.handle);
@@ -327,25 +340,25 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
     if (path === '/v1/staff/mod/add') {
       if (staffRole(target, env)) return { error: 'staff-already' };
       if (isBanned(target, nowS)) return { error: 'staff-banned' };
-      const [set] = await db.batch([
+      const [, set] = await db.batch([
+        audit('mod-add', target.id, { handle: target.handle }, { okIf: { sql: 'EXISTS (SELECT 1 FROM players WHERE id = ? AND staff_mod = 0)', args: [target.id] } }),
         db.prepare('UPDATE players SET staff_mod = 1 WHERE id = ? AND staff_mod = 0').bind(target.id),
-        audit('mod-add', target.id, { handle: target.handle }),
       ]);
       return set.meta.changes ? { ok: true, handle: target.handle } : { error: 'staff-already' };
     }
     if (target.staff_mod !== 1) return { error: staffRole(target, env) ? 'staff-config' : 'no-staff' };
     if (staffRole({ ...target, staff_mod: 0 }, env)) return { error: 'staff-config' };   // the config holds them still
     await db.batch([
+      audit('mod-remove', target.id, { handle: target.handle }, { okIf: { sql: 'EXISTS (SELECT 1 FROM players WHERE id = ? AND staff_mod = 1)', args: [target.id] } }),
       db.prepare('UPDATE players SET staff_mod = 0 WHERE id = ?').bind(target.id),
       db.prepare('UPDATE staff_keys SET revoked_at = ? WHERE player_id = ? AND revoked_at IS NULL').bind(nowS, target.id),
       ...['staff_sessions', 'staff_invites'].map((t) => db.prepare(`DELETE FROM ${t} WHERE player_id = ?`).bind(target.id)),
-      audit('mod-remove', target.id, { handle: target.handle }),
     ]);
     return { ok: true, handle: target.handle };
   }
 
   // ═══ THE OWNERS' DOORS ═══
-  if (!who.owner) return { error: 'staff-owner' };
+  if (!who.owner) return denied('staff-owner');
   if (path === '/v1/staff/team') {
     const handles = staffHandles(env).slice(0, 90);   // D1 binds 100 at most; the lists name a dozen
     const r = await db.prepare(`SELECT p.*,
@@ -354,7 +367,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
         (SELECT MAX(expires_at) FROM staff_invites i WHERE i.player_id = p.id AND i.expires_at > ?1) AS invite_until
       FROM players p WHERE p.staff_mod = 1 OR p.handle_lc IN (${['NULL', ...handles.map((_, i) => `?${i + 3}`)].join(', ')})`)
       .bind(nowS, nowS - STAFF_IDLE_S, ...handles).all();
-    await audit('team-read').run();
+    await audit('team-read', null, null, { onceIn: STAFF_READ_ROW_S }).run();
     return {
       team: (r.results ?? []).map((p) => ({
         id: p.id, handle: p.handle, role: staffRole(p, env), owner: isOwner(p, env), keys: p.keys, sessions: p.live, inviteUntil: p.invite_until ?? null,
@@ -387,7 +400,8 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
     ]);
     return { ok: true, handle: target.handle, role, invite: code, expiresAt: until };
   }
-  // /v1/staff/audit { actor?, target?, act?, before?, limit? } - newest first; the read is itself a row
+  // /v1/staff/audit { actor?, target?, act?, before?, limit? } - newest first; the read is itself a row (its first page, once
+  // in STAFF_READ_ROW_S)
   const str = (/** @type {unknown} */ v) => (typeof v === 'string' && v ? v.slice(0, 64) : null);
   const before = Number.isSafeInteger(body.before) && body.before > 0 ? body.before : null;
   const limit = Number.isSafeInteger(body.limit) ? Math.min(Math.max(body.limit, 1), STAFF_AUDIT_PAGE) : STAFF_AUDIT_PAGE;
@@ -395,12 +409,12 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   const r = await db.prepare(`SELECT * FROM staff_audit WHERE (?1 IS NULL OR actor = ?1) AND (?2 IS NULL OR target = ?2)
     AND (?3 IS NULL OR act = ?3) AND (?4 IS NULL OR id < ?4) ORDER BY id DESC LIMIT ?5`)
     .bind(q.actor, q.target, q.act, q.before, limit).all();
-  await audit('audit-read', q.target, q).run();
+  if (!q.before) await audit('audit-read', q.target, q, { onceIn: STAFF_READ_ROW_S }).run();
   return {
     rows: (r.results ?? []).map((a) => {
       let detail = null;
       try { detail = a.detail ? JSON.parse(a.detail) : null; } catch { detail = null; }
-      return { id: a.id, at: a.at, actor: a.actor, actorName: a.actor_name, role: a.role, act: a.act, target: a.target, detail, keyId: a.key_id };
+      return { id: a.id, at: a.at, actor: a.actor, actorName: a.actor_name, role: a.role, act: a.act, target: a.target, detail, keyId: a.key_id, outcome: a.outcome };
     }),
   };
 }

@@ -16,9 +16,11 @@
 --                 spent.
 -- staff_invites   a one-time code an owner hands a staff member to register their extension (24 h), kept as its hash.
 -- staff_sessions  the panel's session, kept as its hash: 30 minutes idle, 8 hours at most, and dead with its key.
--- staff_audit     every sign-in, refusal and staff act. APPEND-ONLY: the triggers below refuse an UPDATE or DELETE, so no
---                 route, and no staff member through one, can edit what was done. No foreign keys - a row outlives the
---                 accounts it names.
+-- staff_audit     every sign-in, refusal and staff act, and whether it was done (`outcome` ok), refused by a role's door
+--                 (denied) or changed nothing (failed). APPEND-ONLY for 30 days (mob, 12:12Z: "only keep for one month"):
+--                 the triggers below refuse an UPDATE, and a DELETE of a row newer, so no route, and no staff member
+--                 through one, can edit what was done; past it the hourly job deletes it (cron.js staff-audit). No
+--                 foreign keys - a row outlives the accounts it names.
 CREATE TABLE IF NOT EXISTS staff_keys (
   id         TEXT PRIMARY KEY,
   player_id  TEXT NOT NULL,
@@ -66,15 +68,19 @@ CREATE TABLE IF NOT EXISTS staff_audit (
   act        TEXT NOT NULL,
   target     TEXT,
   detail     TEXT,
-  key_id     TEXT
+  key_id     TEXT,
+  outcome    TEXT NOT NULL DEFAULT 'ok' CHECK (outcome IN ('ok', 'denied', 'failed'))
 );
 CREATE INDEX IF NOT EXISTS staff_audit_at ON staff_audit (at);
 CREATE INDEX IF NOT EXISTS staff_audit_actor ON staff_audit (actor, at);
 CREATE INDEX IF NOT EXISTS staff_audit_target ON staff_audit (target, at);
 CREATE TRIGGER IF NOT EXISTS staff_audit_no_update BEFORE UPDATE ON staff_audit
 BEGIN SELECT RAISE(ABORT, 'staff_audit is append-only'); END;
+-- 2588400: STAFF_AUDIT_KEEP_S (staff.js) less an hour, for the Worker's clock against the database's
+-- (test/server/staffpanel1.test.js holds the two to each other)
 CREATE TRIGGER IF NOT EXISTS staff_audit_no_delete BEFORE DELETE ON staff_audit
-BEGIN SELECT RAISE(ABORT, 'staff_audit is append-only'); END;
+WHEN OLD.at > CAST(strftime('%s', 'now') AS INTEGER) - 2588400
+BEGIN SELECT RAISE(ABORT, 'staff_audit is append-only for 30 days'); END;
 
 ALTER TABLE players ADD COLUMN staff_mod INTEGER NOT NULL DEFAULT 0;
 CREATE INDEX IF NOT EXISTS players_staff_mod ON players (staff_mod) WHERE staff_mod = 1;

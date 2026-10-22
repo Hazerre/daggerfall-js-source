@@ -21,10 +21,12 @@
 //     honest game keeps its hub's newest lease wherever it stands and hands it on ahead of its first frame there, and
 //     that frame waits on the lease's read (a frame before the game's first lease, or long after its hub went away, is
 //     lost with the door on: the game has nothing to hand on, its poses go again, and its hub answers within a trip); a
-//     region's shard asks the door before it hands a line up to its bus; a bound socket whose last lease lapsed is
-//     closed `busy` at its own next frame - an honest game's hub was away; it comes
-//     back - and a lease room refuses a hello that does not say `ls` (LEASE_OLD_REASON, GRANT-DOOR's own law: off until
-//     the site serves the build that says it, since the relay deploys first), never waiting on the hub to know;
+//     region's shard asks the door before it hands a line up to its bus; a bound socket whose last lease lapsed is heard
+//     in nothing until its next lands, never closed (the third review: a close bought an honest game back from a hidden
+//     tab nothing but a reconnect, as unheard); a bound socket's frame with no live lease waits on the hub's answer, never
+//     a guess; and a lease room refuses a hello that does not say `ls` (LEASE_OLD_REASON, GRANT-DOOR's own law: off until
+//     the site serves the build that says it, since the relay deploys first), never waiting on the hub to know - and a
+//     frame of such a build asks the hub only in a wake that never has (the load: never once a minute a room);
 //   - a banned account holds no hub link, so it is handed no lease.
 // The key is the relay's own secret (GATE_SIGNING_KEY) through HKDF with this law's own info - no new secret, and never
 // the key that signs a receipt. A relay without the secret hands out none, and binds nobody.
@@ -43,13 +45,14 @@ export const LEASE_FRAME_MIN_MS = 5_000;
  *  when it came, never by the lease's own times (a player's clock is not the relay's). One past it the room would read as
  *  none, spending its one lease read in LEASE_FRAME_MIN_MS on it (a review of the PR). */
 export const LEASE_HELD_MS = (LEASE_LIFE_S - 15) * 1000;
+/** The fewest ms between two leases the game hands one socket - the room's meter (LEASE_FRAME_MIN_MS), and a second for
+ *  the wire's jitter; a newer lease waits for the frame after (the third review: one the meter dropped was counted handed). */
+export const LEASE_HAND_MIN_MS = LEASE_FRAME_MIN_MS + 1000;
 /** HKDF's info: this law's key and nobody else's. */
 export const LEASE_INFO = 'dfo-room-lease:v1';
 /** The close reason of a hello the lease door refuses (a WebSocket close's reason is at most 123 bytes); the words ride
  *  the error frame before it, GROUND-GATE's own (server/src/index.js GROUND_OLD_WORDS: update the game). */
 export const LEASE_OLD_REASON = 'old lease';
-/** The refusal of a bound socket whose lease lapsed - closed `busy` (CLOSE_BUSY), which every build retries. */
-export const LEASE_LAPSED = 'lease lapsed';
 /** The first relay that knows the frame (RELAY_VERSION's number). */
 export const LEASE_RELAY_MIN = 242;
 /** Does the relay at version `v` know the lease frame? An older one closes a socket on a frame type it does not know. */

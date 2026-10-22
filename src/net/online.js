@@ -89,7 +89,7 @@ import { tabStorage } from '../systems/appStorage.js';   // the tab's own storag
 import { STAMP_RE } from './safety/chatStamp.js';   // SAFE2: a line's stamp, carried as the relay said it
 import { MUTE_HZ_MAX, CHAT_HZ_MAX, CHAT_MAX, relaySupportsBan } from './wire.js';   // AUDIT SAFE RELAY-2: the order meter and my own lines' pace, the relay's word on my chat's own bucket; RELAY-3: the ban frame's relay
 import { REALM_CHARACTER_RE } from './identityToken.js';   // AUDIT LEGACY III O1: a wed frame's stamped realm character, by the token's own shape
-import { leaseRoom, relaySupportsLease, LEASE_MS, LEASE_HELD_MS } from './roomLease.js';   // LEASE1: my hub's lease, handed to every lease room I hold
+import { leaseRoom, relaySupportsLease, LEASE_MS, LEASE_HELD_MS, LEASE_HAND_MIN_MS } from './roomLease.js';   // LEASE1: my hub's lease, handed to every lease room I hold
 import { LEASE_WIRE_MAX } from './wire.js';
 /** LEASE1: the frames a lease room's socket sends with no lease ahead of them - the runtime's ping, the hello, a lease. */
 const LEASE_QUIET_RE = /^\{"t":"(?:ping|hello|lease)"/;
@@ -2825,17 +2825,26 @@ export class OnlineSession {
     return this.leaseOk && (leaseRoom(this.room) || [...this._halo.keys()].some(leaseRoom));
   }
 
+  /** LEASE1: a second lane of mine (net/sailingCabinLink.js - no hub link hands it one) takes my session's lease, as old
+   *  as it is (the third review: the cabin lane was bound and never leased, so with the door on its boat went unheard). */
+  leaseFrom(s) {
+    if (typeof s?._lease === 'string' && s._leaseAt > this._leaseAt) { this._lease = s._lease; this._leaseAt = s._leaseAt; }
+  }
+
   /** LEASE1: a lease room's socket, made to hand my newest lease on just ahead of the first frame it sends after that lease
    *  came - a ping, a hello and a lease itself excepted - and never twice. Every frame a room hears from me rides behind a
-   *  lease it holds (the room closes a bound socket whose lease lapsed at its own next frame); a socket that sends nothing
-   *  hands nothing; and a lease held past LEASE_HELD_MS is handed on nowhere. */
+   *  lease it holds (with the door on, a bound socket with no live lease is heard in nothing); a socket that sends nothing
+   *  hands nothing; a lease held past LEASE_HELD_MS is handed on nowhere; and a newer lease waits LEASE_HAND_MIN_MS from the
+   *  last one this socket handed, for the frame after (the third review: the room's meter dropped one handed sooner, and
+   *  this socket counted it handed, so its live lease lapsed in the room). */
   _leased(ws, room) {
     if (!ws || !leaseRoom(room) || typeof ws.send !== 'function') return ws;
     const send = ws.send.bind(ws);
-    let handed = null;
+    let handed = null, handedAt = -Infinity;
     ws.send = (s) => {
-      const l = this._now() - this._leaseAt < LEASE_HELD_MS ? this._lease : null;
-      if (l && l !== handed && this.leaseOk && this._welcomed.has(ws) && typeof s === 'string' && !LEASE_QUIET_RE.test(s)) { handed = l; send(JSON.stringify({ t: 'lease', l })); }
+      const now = this._now();
+      const l = now - this._leaseAt < LEASE_HELD_MS ? this._lease : null;
+      if (l && l !== handed && now - handedAt >= LEASE_HAND_MIN_MS && this.leaseOk && this._welcomed.has(ws) && typeof s === 'string' && !LEASE_QUIET_RE.test(s)) { handed = l; handedAt = now; send(JSON.stringify({ t: 'lease', l })); }
       return send(s);
     };
     return ws;

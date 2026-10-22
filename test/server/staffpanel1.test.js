@@ -11,7 +11,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { standService } from '../accountDb.mjs';
-import { staffRole, isOwner, ownerKeys, staffWords, STAFF_SESSION_HEADER, STAFF_IDLE_S, STAFF_TRY_MAX, STAFF_KEYS_MAX, STAFF_SIG_S } from '../../server-account/src/staff.js';
+import { staffRole, isOwner, ownerKeys, staffWords, STAFF_SESSION_HEADER, STAFF_IDLE_S, STAFF_TRY_MAX, STAFF_KEYS_MAX, STAFF_SIG_S, STAFF_READ_ROW_S, STAFF_AUDIT_KEEP_S } from '../../server-account/src/staff.js';
+import { runCron, CRON_HOUR, HOUR_JOBS } from '../../server-account/src/cron.js';
 import { STAFF_ROUTES, ROUTES } from '../../server-account/src/service.js';
 import worker from '../../server-account/src/index.js';
 import { canModerate, glyphsOf } from '../../server-account/src/titles.js';
@@ -287,6 +288,59 @@ test('STAFF-PANEL1: the audit log is append-only, read by owners alone, and its 
   assert.throws(() => s.raw.prepare('DELETE FROM staff_audit').run(), /append-only/);
 });
 
+test('STAFF-PANEL1 (mob, 12:08Z, a review of the PR: "Audit log reads generate additional audit entries", "don\'t distinguish successful and failed operations", "No retention"; 12:12Z: "only keep for one month"): a read of the log, the team or the moderators is a row once in STAFF_READ_ROW_S and a page past the first never; every row says ok, denied or failed - a key forgotten that was not there failed, a role\'s door refused denied, a refused sign-in denied; and the hourly job deletes rows past STAFF_AUDIT_KEEP_S, the trigger every newer (mutants: every read a row; a page a row; a failed act ok; a forgotten key\'s outcome turned; the outcome unsaid; a refusal unwritten; a refused sign-in ok; the read\'s outcome unread; the month unkept; the job deleting the month; the trigger\'s month moved; the month a year)', async (t) => {
+  const t0 = Date.now();
+  let off = 0;
+  t.mock.method(Date, 'now', () => t0 + off);
+  const s = await stand();
+  await s.registered('SirMcMobdon');
+  await s.registered('Asynian');
+  const me = await s.mobIn();
+  const tok = { token: me.session };
+  const rows = (act) => s.raw.prepare('SELECT outcome, detail FROM staff_audit WHERE act = ? ORDER BY id').all(act);
+  // reads: the first page once in STAFF_READ_ROW_S, a page past it never
+  await s.staff('/v1/staff/audit', {}, tok);
+  await s.staff('/v1/staff/audit', {}, tok);
+  await s.staff('/v1/staff/audit', { before: 1_000_000 }, tok);
+  await s.staff('/v1/staff/team', {}, tok);
+  await s.staff('/v1/staff/team', {}, tok);
+  assert.deepEqual([rows('audit-read').length, rows('team-read').length], [1, 1], 'a read again inside STAFF_READ_ROW_S, and a page, write nothing');
+  off += STAFF_READ_ROW_S * 1000 + 1000;
+  assert.equal((await s.staff('/v1/staff/audit', { before: 1_000_000 }, tok)).status, 200);
+  assert.equal(rows('audit-read').length, 1, 'past it, a page past the first is still no row');
+  await s.staff('/v1/staff/audit', {}, tok);
+  await s.staff('/v1/staff/team', {}, tok);
+  assert.deepEqual([rows('audit-read').length, rows('team-read').length], [2, 2], 'and the next first page is');
+  // outcomes: done, changed nothing, refused
+  const mod = await s.invited('Asynian', me);
+  assert.equal((await s.staff('/v1/staff/team', {}, { token: mod.session })).body.error, 'staff-owner');
+  assert.equal((await s.staff('/v1/staff/mods', {}, { token: mod.session })).body.error, 'staff-admin');
+  assert.deepEqual(rows('refused').map((r) => [r.outcome, JSON.parse(r.detail).path, JSON.parse(r.detail).need]),
+    [['denied', '/v1/staff/team', 'owner'], ['denied', '/v1/staff/mods', 'admin']], 'a role\'s door refused: written, denied');
+  assert.equal((await s.login('Asynian', await extensionKey())).status, 401);
+  assert.deepEqual(rows('login-refused').map((r) => r.outcome), ['denied'], 'a refused sign-in: denied');
+  assert.equal((await s.staff('/v1/staff/key/forget', { id: 'no-such-key' }, { token: mod.session })).body.error, 'no-key');
+  assert.deepEqual(rows('key-forget').map((r) => r.outcome), ['failed'], 'a key that was not there: failed, never done');
+  const [own] = (await s.staff('/v1/staff/keys', {}, { token: mod.session })).body.keys;
+  assert.equal((await s.staff('/v1/staff/key/forget', { id: own.id }, { token: mod.session })).body.ok, true);
+  assert.deepEqual(rows('key-forget').map((r) => r.outcome), ['failed', 'ok']);
+  assert.ok([...rows('invite'), ...rows('enrolled'), ...rows('login')].every((r) => r.outcome === 'ok'));
+  const read = await s.staff('/v1/staff/audit', { act: 'key-forget' }, tok);
+  assert.deepEqual(read.body.rows.map((r) => r.outcome), ['ok', 'failed'], 'the read says it, newest first');
+  // the month: the hourly job deletes rows past it, and nothing deletes a newer one
+  const real = Math.floor(t0 / 1000) + Math.floor(off / 1000);
+  const put = s.raw.prepare("INSERT INTO staff_audit (at, act) VALUES (?, 'old')");
+  put.run(real - STAFF_AUDIT_KEEP_S - 60); put.run(real - STAFF_AUDIT_KEEP_S + 3 * 3600);
+  assert.throws(() => s.raw.prepare("DELETE FROM staff_audit WHERE act = 'old' AND at > ?").run(real - STAFF_AUDIT_KEEP_S), /append-only/, 'a row inside the month: nobody deletes it');
+  const ran = await runCron(s.env, { cron: CRON_HOUR, nowS: real, jobs: HOUR_JOBS.filter(([n]) => n === 'staff-audit') });
+  assert.deepEqual(ran.map((r) => [r.name, r.ok, r.changed]), [['staff-audit', true, 1]]);
+  assert.deepEqual(s.raw.prepare("SELECT at FROM staff_audit WHERE act = 'old'").all().map((r) => r.at), [real - STAFF_AUDIT_KEEP_S + 3 * 3600], 'the row past the month gone, the one inside it kept');
+  assert.ok(s.raw.prepare('SELECT COUNT(*) AS n FROM staff_audit WHERE act != ?').get('old').n > 10, 'today\'s rows all kept');
+  // the trigger's number is the month less an hour for the two clocks
+  assert.match(src('server-account/migrations/0144_staff_panel.sql'), new RegExp(`WHEN OLD\\.at > CAST\\(strftime\\('%s', 'now'\\) AS INTEGER\\) - ${STAFF_AUDIT_KEEP_S - 3600}\\n`));
+  assert.equal(STAFF_AUDIT_KEEP_S, 30 * 24 * 3600, 'mob: "only keep for one month"');
+});
+
 // ═══ AUDIT STAFF-PANEL1 (the step's flaw review, 2026-10-22): each hole it found, pinned shut ═══
 
 test('AUDIT STAFF-PANEL1: a refusal\'s audit row is written off the answer\'s path - a right password costs a wrong one\'s time', async () => {
@@ -378,7 +432,7 @@ test('AUDIT STAFF-PANEL1: renamed onto another listed handle, a key opens nothin
   assert.equal((await s.login('Fangy', mod.key)).status, 401, 'Fangy is listed, but this key was registered as Asynian');
 });
 
-test('STAFF-PANEL1: an Admin adds and removes Moderators from the panel (mob, 07:42Z: "add it so admins can add or remove moderatoers") - the account\'s, so a rename keeps it; the config\'s own stay the config\'s; a Moderator may not; removed is off the panel at once, keys and all', async () => {
+test('STAFF-PANEL1: an Admin adds and removes Moderators from the panel (mob, 07:42Z: "add it so admins can add or remove moderatoers") - the account\'s, so a rename keeps it; the config\'s own stay the config\'s; a Moderator may not; removed is off the panel at once, keys and all; each change written ok (mutants: a mod added read failed; a mod removed read failed)', async () => {
   const s = await stand({ DEVELOPER_HANDLES: 'Lattymoy,SirMcMobdon,Roderic' });
   await s.registered('SirMcMobdon');
   await s.registered('Roderic');
@@ -432,4 +486,5 @@ test('STAFF-PANEL1: an Admin adds and removes Moderators from the panel (mob, 07
   assert.equal((await as('/v1/staff/mod/remove', { handle: 'Player1' })).body.error, 'no-staff', 'twice is once');
   const acts = s.raw.prepare('SELECT act, target FROM staff_audit WHERE actor = ? ORDER BY id').all(admin.id ?? s.raw.prepare("SELECT id FROM players WHERE handle_lc = 'roderic'").get().id).map((a) => a.act);
   assert.deepEqual(acts.filter((a) => a.startsWith('mod')), ['mod-add', 'mods-read', 'mod-remove'], 'every change and read a row');
+  assert.deepEqual(s.raw.prepare("SELECT outcome FROM staff_audit WHERE act LIKE 'mod-%' ORDER BY id").all().map((r) => r.outcome), ['ok', 'ok'], 'done, and said so');
 });

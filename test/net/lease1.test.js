@@ -9,11 +9,12 @@ import assert from 'node:assert/strict';
 import { fakeRoom, fakeRooms } from '../fakeRoom.mjs';
 import { fakeSocketClass } from '../fakeSocket.mjs';
 import * as H from '../../src/net/hubShards.js';
-import { leaseKeyOf, mintLease, readLease, leaseRoom, relaySupportsLease, LEASE_MS, LEASE_LIFE_S, LEASE_FRAME_MIN_MS, LEASE_HELD_MS, LEASE_OLD_REASON, LEASE_LAPSED } from '../../src/net/roomLease.js';
+import { leaseKeyOf, mintLease, readLease, leaseRoom, relaySupportsLease, LEASE_MS, LEASE_LIFE_S, LEASE_FRAME_MIN_MS, LEASE_HELD_MS, LEASE_HAND_MIN_MS, LEASE_OLD_REASON } from '../../src/net/roomLease.js';
 import { parseClient, cellRoomOfWire, chatRegionRoom, chatLangRoom, CHAT_WORLD_ROOM, CHAT_TRADE_ROOM, CHAT_LFG_ROOM, CLOSE_BUSY, CLOSE_POLICY, PIXEL_UNITS, LEASE_WIRE_MAX, GROUND_LAW, GRANT_HELLO_LAW } from '../../src/net/wire.js';
 import { RELAY_CFG_KEYS, RELAY_INTERNAL_CFG } from '../../src/net/relayCfg.js';
 import { mintOrder, _b64url } from '../../src/net/identityToken.js';
-import { OnlineSession } from '../../src/net/online.js';
+import { OnlineSession, roomKeyFor } from '../../src/net/online.js';
+import { createSailingCabinLink } from '../../src/net/sailingCabinLink.js';
 
 const { subtle } = globalThis.crypto;
 const quiet = async (fn) => { const keep = { info: console.info, warn: console.warn, log: console.log }; console.info = console.warn = console.log = () => {}; try { return await fn(); } finally { Object.assign(console, keep); } };
@@ -23,7 +24,7 @@ const CELL = cellRoomOfWire(P0.x, P0.z);
 const of = (ws, t) => ws.sent.filter((f) => f.t === t);
 const lines = (ws) => of(ws, 'chat').map((f) => f.text);
 
-test('LEASE1 THE LEASE: minted with the relay\'s key and read back whole; another key\'s, a body changed under its mac, a lapsed one, one from past the clock\'s skew and one whose life is not LEASE_LIFE_S read as none; the frame and the rooms it binds (mutants: the mac unchecked; the life unchecked; the lapse; the skew; a hub bound)', async () => {
+test('LEASE1 THE LEASE: minted with the relay\'s key and read back whole; another key\'s, a body changed under its mac, a lapsed one, one from past the clock\'s skew and one whose life is not LEASE_LIFE_S read as none; the frame and the rooms it binds; how long the game holds one, and how often it hands one a socket (mutants: the mac unchecked; the life unchecked; the lapse unread; the skew unread; a hub bound; the hold past the life; the pace inside the meter)', async () => {
   const secret = await GATE;
   const k = await leaseKeyOf(secret, { subtle }), other = await leaseKeyOf(`${secret}x`, { subtle });
   for (const none of ['', undefined, null, 7]) assert.equal(await leaseKeyOf(none, { subtle }), null);
@@ -59,7 +60,10 @@ test('LEASE1 THE LEASE: minted with the relay\'s key and read back whole; anothe
   for (const key of [CHAT_WORLD_ROOM, H.hubOfSubject('acct-mac-0001'), 'nowhere', null]) assert.equal(leaseRoom(key), false, String(key));
   assert.deepEqual([relaySupportsLease('world241'), relaySupportsLease('world242'), relaySupportsLease('world300'), relaySupportsLease(null), relaySupportsLease('world')], [false, true, true, false, false]);
   assert.ok(RELAY_CFG_KEYS.includes('leaseDoor'));
-  assert.ok(new TextEncoder().encode(LEASE_OLD_REASON).length <= 123 && new TextEncoder().encode(LEASE_LAPSED).length <= 123);
+  assert.ok(new TextEncoder().encode(LEASE_OLD_REASON).length <= 123);
+  // the game's hold: past one lost ask, short of the life by a margin for the wire; its pace: past the room's meter, inside an ask
+  assert.ok(LEASE_HELD_MS >= 2 * LEASE_MS && LEASE_HELD_MS <= (LEASE_LIFE_S - 10) * 1000, String(LEASE_HELD_MS));
+  assert.ok(LEASE_HAND_MIN_MS > LEASE_FRAME_MIN_MS && LEASE_HAND_MIN_MS < LEASE_MS, String(LEASE_HAND_MIN_MS));
 });
 
 /** A hub, a Trade channel and a cell, apart (no binding between them), on one clock and one relay secret. */
@@ -73,7 +77,7 @@ async function rooms(t, env = {}) {
   const key = await leaseKeyOf(secret, { subtle });
   const lease = (o) => mintLease({ at: Math.floor(now / 1000), ...o }, key, { subtle });
   const say = (R, ws, o) => quiet(() => R.raw(ws, JSON.stringify(o)));
-  return { hub, trade, cell, join, lease, say, tick: (ms) => { now += ms; }, nowS: () => Math.floor(now / 1000) };
+  return { hub, trade, cell, make, join, lease, say, tick: (ms) => { now += ms; }, nowS: () => Math.floor(now / 1000) };
 }
 
 test('LEASE1 THE HUB HANDS ITS SOCKET A LEASE: its own account, its mute as the hub holds it, LEASE_LIFE_S of life - one a socket every LEASE_FRAME_MIN_MS; a room that is not the hub mints none, and the hub reads none; a relay without the secret hands out none (mutants: minted in any room; read in any room; the mute unsaid; the rate unread)', async (t) => {
@@ -107,7 +111,7 @@ test('LEASE1 THE HUB HANDS ITS SOCKET A LEASE: its own account, its mute as the 
   assert.equal(of(b, 'lease').length, 0, 'no secret, no lease');
 });
 
-test('LEASE1 A LEASE ROOM TAKES THE HUB\'S WORD from a lease newer than its own: a mute the game never carried holds in Trade, a mute lifted at the hub is lifted there; another account\'s, a lapsed, a forged and an older lease change nothing (mutants: the account unread; the law time unread; applied in a room it does not bind)', async (t) => {
+test('LEASE1 A LEASE ROOM TAKES THE HUB\'S WORD from a lease newer than its own: a mute the game never carried holds in Trade, a mute lifted at the hub is lifted there; another account\'s, a lapsed, a forged and an older lease change nothing; and the frame right behind a lease is judged under it (mutants: the account unread; the law time unread; the carried order unstamped; the frame judged before its lease)', async (t) => {
   const W = await rooms(t);
   const mac = await W.join(W.trade, 'mac-0001', { ls: 1 });
   const ear = await W.join(W.trade, 'ear-0001', { ls: 1 });
@@ -158,9 +162,16 @@ test('LEASE1 A LEASE ROOM TAKES THE HUB\'S WORD from a lease newer than its own:
   await W.say(W.trade, fresh, { t: 'chat', text: 'newer token' });
   assert.ok(lines(ear).includes('newer token'), 'an older lease says nothing over a newer token');
   assert.equal(fresh.att.ld, oldAt + LEASE_LIFE_S, 'yet it leased the socket: to the lease\'s own lapse');
+  // the honest game's first frame rides right behind its lease: a mute the lease carries holds over that very frame
+  const late = await W.join(W.trade, 'lat-0001', { ls: 1 });
+  W.tick(1000);
+  const muL = W.nowS() + 3600, withMute = await W.lease({ s: 'acct-lat-0001', mu: muL });
+  await Promise.all([W.say(W.trade, late, { t: 'lease', l: withMute }), W.say(W.trade, late, { t: 'chat', text: 'right behind a mute' })]);
+  assert.ok(!lines(ear).includes('right behind a mute'), 'judged under the lease it waited on, never the hello\'s word');
+  assert.equal(of(late, 'muted').at(-1)?.until, muL, 'and told so');
 });
 
-test('LEASE1 A FROZEN SOCKET IS HEARD IN NOTHING BUT ITS PING AND ITS LEASE: its poses and lines go nowhere, until a lease lifts it; a lease minted before the socket\'s token still freezes it, and lifts no freeze (a review of the PR: a fresh token, then a lease older than it, dodged a freeze - a token says nothing of one) (mutants: the freeze unread; the ping dropped; the lease dropped; an older lease\'s freeze dropped; an older lease lifting a freeze)', async (t) => {
+test('LEASE1 A FROZEN SOCKET IS HEARD IN NOTHING BUT ITS PING AND ITS LEASE: its poses and lines go nowhere, until a lease lifts it; a lease minted before the socket\'s token still freezes it, and lifts no freeze (a review of the PR: a fresh token, then a lease older than it, dodged a freeze - a token says nothing of one) (mutants: the freeze unread; the ping dropped; the lease dropped; an older lease\'s freeze dropped; an older lease lifting a freeze; the frame judged before its lease)', async (t) => {
   const W = await rooms(t);
   const ice = await W.join(W.cell, 'ice-0001', { ls: 1 });
   const ear = await W.join(W.cell, 'ear-0001', { ls: 1 });
@@ -201,9 +212,15 @@ test('LEASE1 A FROZEN SOCKET IS HEARD IN NOTHING BUT ITS PING AND ITS LEASE: its
   W.tick(1000);
   await W.say(W.cell, icy, { t: 'chat', text: 'thawed by a newer lease' });
   assert.ok(lines(ear).includes('thawed by a newer lease'), 'a lease newer than its token lifts it');
+  // a freeze riding just ahead of the frame: that frame is judged under it
+  const cold = await W.join(W.cell, 'cld-0001', { ls: 1 });
+  W.tick(1000);
+  const withFreeze = await W.lease({ s: 'acct-cld-0001', fz: W.nowS() + 600 });
+  await Promise.all([W.say(W.cell, cold, { t: 'lease', l: withFreeze }), W.say(W.cell, cold, { t: 'chat', text: 'right behind a freeze' })]);
+  assert.ok(!lines(ear).includes('right behind a freeze'), 'judged under the freeze it waited on');
 });
 
-test('LEASE1 THE DOOR: off, a build that hands on no lease is let in, and a bound socket with no lease yet or a lapsed one stands and is heard; on, a lease room refuses such a hello (GROUND-GATE\'s words, CLOSE_POLICY, LEASE_OLD_REASON) and the hub never does, a bound socket is heard in nothing but its ping until its first lease lands - NO GRACE (a review of the PR: a changed game that reconnected inside one was never leased, and a token carries no freeze) - a frame right behind a lease still being read waits on it and is heard, a bound socket whose lease lapsed has its ping answered and is closed CLOSE_BUSY at its own next frame while a renewed one stands, and an idle socket\'s renewal right ahead of its next frame is waited on too (mutants: the door always on; the hub bound; the renewed closed; the unleased heard; the unleased closed; a grace back; the frame not waiting on its lease; a lapsed socket closed with the door off; a lapsed socket\'s ping closed; a renewal after a lapse not waited on)', async (t) => {
+test('LEASE1 THE DOOR: off, a build that hands on no lease is let in, and a bound socket with no lease yet or a lapsed one stands and is heard; on, a lease room refuses such a hello (GROUND-GATE\'s words, CLOSE_POLICY, LEASE_OLD_REASON) and the hub never does, a bound socket is heard in nothing but its ping until its first lease lands - NO GRACE (a review of the PR: a changed game that reconnected inside one was never leased, and a token carries no freeze) - a frame right behind a lease still being read waits on it and is heard, a bound socket whose lease lapsed has its ping answered and is heard in nothing - never closed (the third review: a close bought an honest game back from a hidden tab nothing but a reconnect) - until its next lease lands, a renewed one stands, an idle socket\'s renewal right ahead of its next frame is waited on too, and a room no lease binds (a town, the hub) hears a build that hands on none (mutants: the door always on; the hub bound; the renewed unheard; the lease not renewed; the unleased heard; the unleased closed; a grace back; the frame not waiting on its lease; a lapsed socket unheard with the door off; a lapsed socket closed; a lapsed socket\'s ping dropped; a renewal after a lapse not waited on; a town bound; a hub\'s frame bound)', async (t) => {
   const off = await rooms(t);
   const ear0 = await off.join(off.trade, 'ear-0000', { ls: 1 });
   const old = await off.join(off.trade, 'old-0001');
@@ -254,9 +271,11 @@ test('LEASE1 THE DOOR: off, a build that hands on no lease is let in, and a boun
   assert.deepEqual(kept.sent.at(-1), { t: 'pong' }, 'a lapsed socket\'s ping is answered');
   assert.equal(kept.closed, null, 'and closes nothing');
   await on.say(on.trade, kept, { t: 'chat', text: 'and now' });
-  assert.equal(kept.closed?.code, CLOSE_BUSY, 'its lease lapsed: closed busy at its own next frame');
-  assert.equal(kept.closed?.reason, LEASE_LAPSED);
-  assert.ok(!lines(ear).includes('and now'));
+  assert.equal(kept.closed, null, 'its lease lapsed: never closed');
+  assert.ok(!lines(ear).includes('and now'), 'and heard in nothing');
+  await on.say(on.trade, kept, { t: 'lease', l: await on.lease({ s: 'acct-kpt-0001' }) });
+  await on.say(on.trade, kept, { t: 'chat', text: 'leased again' });
+  assert.ok(lines(ear).includes('leased again'), 'its next lease landed: heard again');
   assert.equal(fresh.closed, null, 'renewed: stands');
   assert.ok(lines(ear).includes('renewed'));
   // idle past its lease's life (a Trade tab only read): the honest game's renewal rides just ahead of its next line
@@ -265,9 +284,22 @@ test('LEASE1 THE DOOR: off, a build that hands on no lease is let in, and a boun
   await Promise.all([on.say(on.trade, fresh, { t: 'lease', l: renewal }), on.say(on.trade, fresh, { t: 'chat', text: 'back from idle' })]);
   assert.equal(fresh.closed, null, 'its renewal was waited on: not closed');
   assert.ok(lines(ear).includes('back from idle'), 'and its line heard');
+  // a room no lease binds hears a build that hands on none, the door on all the same: a town, and the hub itself
+  const town = on.make('town:m9');
+  const tEar = await on.join(town, 'ear-0002', { ls: 1 }), tOld = await on.join(town, 'old-0005');
+  const tHeard = tEar.sent.length;
+  on.tick(1000);
+  await on.say(town, tOld, { t: 'chat', text: 'a town' });
+  assert.equal(tOld.closed, null, 'a town is no lease room: not turned away');
+  assert.ok(tEar.sent.length > tHeard, 'and heard');
+  const hEar = await on.join(on.hub, 'ear-0003'), hOld = await on.join(on.hub, 'old-0006');
+  on.tick(1000);
+  await on.say(on.hub, hOld, { t: 'chat', text: 'the hub' });
+  assert.equal(hOld.closed, null, 'nor the hub');
+  assert.ok(lines(hEar).includes('the hub'), 'and heard');
 });
 
-test('LEASE1 THE LOAD (mob, 07:57Z: "we need to test if this affected load times", "for players", "if we affected server performasnce"): a lease room whose every socket holds a live lease never asks the hub - not on a fresh object\'s first frame past a hello, not once a minute after; a cold room lets a build that hands on no lease in without waiting on the hub, and turns it away at its next frame once the hub\'s answer says the door is on; and a cold room\'s bound socket with no lease is never heard on the Worker\'s var (mutants: the door asked of every frame; the hello door awaited; the unbound let stand; a cold room\'s guess)', async () => {
+test('LEASE1 THE LOAD (mob, 07:57Z: "we need to test if this affected load times", "for players", "if we affected server performasnce"): a lease room whose every socket holds a live lease never asks the hub - not on a fresh object\'s first frame past a hello, not once a minute after; a cold room lets a build that hands on no lease in without waiting on the hub, asks the hub for it once a wake and never once a minute, and turns it away at its next frame once the hub\'s answer says the door is on; and a cold room\'s bound socket with no live lease is never heard on the Worker\'s var - not its first frame, not a second during the first\'s wait, not a lapsed socket\'s in a room just woken (mutants: the door asked of every frame; the hello door awaited; the unbound let stand; a cold room\'s guess; an old build asking every minute; the ask in flight skipped; the cold wait a fresh socket\'s alone)', async () => {
   const realNow = Date.now;
   let clock = 1_800_000_000_000;
   Date.now = () => clock;
@@ -291,6 +323,16 @@ test('LEASE1 THE LOAD (mob, 07:57Z: "we need to test if this affected load times
       }
       assert.equal(cur.closed, null);
       assert.equal(asked, 0, 'a room whose sockets all hold live leases asks the hub nothing');
+      // the door off, an old build in a cold room: its hello asks the hub once, beside, and five minutes of its lines never again
+      const de = room(chatLangRoom('de'));
+      const deEar = await join(de, 'ear-0000', { gl: GROUND_LAW, gv: GRANT_HELLO_LAW, ls: 1 }), deOld = await join(de, 'old-0000', {});
+      await new Promise((r) => setImmediate(r));
+      assert.equal(asked, 1, 'its hello asked once, beside');
+      for (let s = 0; s < 300; s += 15) { clock += 15_000; await de.raw(deOld, JSON.stringify({ t: 'chat', text: `line ${s}` })); }
+      await new Promise((r) => setImmediate(r));
+      assert.equal(asked, 1, 'and its lines never: once a wake, not once a minute');
+      assert.ok(lines(deEar).includes('line 285') && deOld.closed === null, 'the door off: heard, and standing');
+      asked = 0;
       // a developer turns the door on at the hub; a COLD channel takes an old build's hello without waiting on the hub
       const dev = await join(hub, 'dev-0001', { glyphs: ['dev'] });
       clock += 5000;
@@ -315,6 +357,24 @@ test('LEASE1 THE LOAD (mob, 07:57Z: "we need to test if this affected load times
       assert.equal(asked, 2, 'its unleased frame waited on the hub');
       assert.ok(!lines(ear).includes('a cold room'), 'and was not heard');
       assert.equal(bare.closed, null, 'it stands: its lease may be on its way');
+      // the third review: two frames of a cold room's bound socket at once - the second waits on the first's ask, never a guess
+      const fr = room(chatLangRoom('fr'));
+      const frEar = await join(fr, 'ear-0002', cur2), frBare = await join(fr, 'bare-0002', cur2);
+      clock += 1000;
+      await Promise.all([fr.raw(frBare, JSON.stringify({ t: 'chat', text: 'first at once' })), fr.raw(frBare, JSON.stringify({ t: 'chat', text: 'second at once' }))]);
+      assert.equal(asked, 3, 'one ask for both');
+      assert.ok(!lines(frEar).includes('first at once') && !lines(frEar).includes('second at once'), 'and neither heard');
+      // and a socket whose lease lapsed, in a room just woken (its settings gone with the object, the socket kept)
+      const it = room(chatLangRoom('it'));
+      const itEar = await join(it, 'ear-0003', cur2), itLap = await join(it, 'lap-0003', cur2);
+      await it.raw(itLap, JSON.stringify({ t: 'lease', l: await mintLease({ s: 'acct-lap-0003', at: Math.floor(clock / 1000) }, key, { subtle }) }));
+      assert.ok(itLap.att.ld > 0, 'leased');
+      clock += LEASE_LIFE_S * 1000 + 1000;
+      Object.assign(it.room, { _relayCfg: undefined, _relayCfgAt: -Infinity, _relayCfgP: null });
+      const was = asked;
+      await it.raw(itLap, JSON.stringify({ t: 'chat', text: 'lapsed in a woken room' }));
+      assert.equal(asked, was + 1, 'its frame waited on the hub');
+      assert.ok(!lines(itEar).includes('lapsed in a woken room'), 'and was not heard');
     });
   } finally { Date.now = realNow; }
 });
@@ -353,7 +413,7 @@ async function world(fn, env = {}) {
   } finally { Date.now = realNow; }
 }
 
-test('LEASE1 THROUGH THE SHARDS: a mute the hub\'s bus took after the hello reaches the player\'s hub shard (SHARD_LAW_KEYS), so the lease that shard mints carries it; handed to a region\'s shard, the shard hands the change to its bus, where the region\'s lines are judged - the muted player\'s line reaches nobody (mutants: `mu`/`lt` not told the shard; the change not handed up)', async () => {
+test('LEASE1 THROUGH THE SHARDS: a mute the hub\'s bus took after the hello reaches the player\'s hub shard (SHARD_LAW_KEYS), so the lease that shard mints carries it; handed to a region\'s shard, the shard hands the change to its bus, where the region\'s lines are judged - the muted player\'s line reaches nobody (mutants: the shard not told; the change not handed up)', async () => {
   await world(async ({ bus, room, link, say, tick }) => {
     const v = 'p0', c = 'p1';
     const hv = H.hubOfSubject(`acct-${v}`), hc = H.hubOfSubject(`acct-${c}`);
@@ -387,7 +447,7 @@ test('LEASE1 THROUGH THE SHARDS: a mute the hub\'s bus took after the hello reac
   });
 });
 
-test('LEASE1 A REGION\'S SHARD ASKS THE DOOR BEFORE ITS BUS HEARS (a review of the PR: a region\'s lines went up to the bus unleased): with the door on, a bound socket\'s line on its shard goes up only behind a live lease - unleased, nobody on any shard hears it, and it stands; leased, everyone does; and a lease older than its token hands its freeze up to the bus all the same (mutants: the shard\'s line past the door; the shard\'s parsed line past the door; an older lease\'s freeze not handed up)', async () => {
+test('LEASE1 A REGION\'S SHARD ASKS THE DOOR BEFORE ITS BUS HEARS (a review of the PR: a region\'s lines went up to the bus unleased): with the door on, a bound socket\'s line on its shard goes up only behind a live lease - unleased, nobody on any shard hears it, and it stands; leased, everyone does; and a lease older than its token hands its freeze up to the bus all the same (mutants: the shard\'s line past the door; the shard\'s parsed line past the door; an older freeze not handed up)', async () => {
   await world(async ({ room, link, say, tick, settle }) => {
     const v = 'p0', c = 'p1', f = 'p2';
     const region = chatRegionRoom(3), rv = H.shardOf(region, `acct-${v}`), rc = H.shardOf(region, `acct-${c}`), rf = H.shardOf(region, `acct-${f}`);
@@ -427,7 +487,7 @@ test('LEASE1 A REGION\'S SHARD ASKS THE DOOR BEFORE ITS BUS HEARS (a review of t
   }, { LEASE_DOOR: 'on' });
 });
 
-test('LEASE1 THE GAME: a hello to a lease room says `ls` 1 and to the hub none; the hub link asks every LEASE_MS of a relay that knows the frame and never of an older one; the hub\'s lease is kept, never sent on its own - each lease room\'s socket, the primary\'s and every halo\'s, hands it just ahead of the next frame it sends, once, and never ahead of a ping (mob, 07:57Z: "if we affected server performasnce" - a room where I do nothing is woken by nothing) (mutants: `ls` everywhere; the ask unpaced; an old relay asked; a halo skipped; sent on its own; handed ahead of every frame; handed ahead of a ping; a lease thrown away outside a lease room; a lease held forever)', async () => {
+test('LEASE1 THE GAME: a hello to a lease room says `ls` 1 and to the hub none; the hub link asks every LEASE_MS of a relay that knows the frame and never of an older one; the hub\'s lease is kept, never sent on its own - each lease room\'s socket, the primary\'s and every halo\'s, hands it just ahead of the next frame it sends, once, never ahead of a ping and never two inside the room\'s meter (mob, 07:57Z: "if we affected server performasnce" - a room where I do nothing is woken by nothing); a lease is kept wherever I stand, for LEASE_HELD_MS, and the sailing cabin\'s lane hands the page\'s on too (mutants: `ls` everywhere; the ask unpaced; an old relay asked; a halo skipped; a lease from any room; sent on its own; handed ahead of every frame; handed ahead of a ping; the pace dropped; a lease thrown away outside a lease room; a lease held forever; the cabin lane unleased)', async () => {
   const { FakeWS, sockets } = fakeSocketClass();
   let now = 1_000_000;
   const session = (room, v, opts = {}) => {
@@ -483,6 +543,17 @@ test('LEASE1 THE GAME: a hello to a lease room says `ls` 1 and to the hub none; 
   assert.equal(sent(trade.ws).filter((f) => f.t === 'lease' && f.l).length, 1);
   assert.equal(trade.s.sendChat('last call'), true);
   assert.deepEqual(sent(trade.ws).slice(-2).map((f) => f.l ?? f.t), ['body.mac2', 'chat'], 'a newer lease rides ahead of the next line');
+  // PACED (the third review: a second lease inside the room's meter was dropped there, and counted handed here)
+  trade.s.sendLease('body.mac3');
+  now += LEASE_HAND_MIN_MS - 1;
+  assert.equal(trade.s.sendChat('too soon'), true);
+  assert.deepEqual(sent(trade.ws).slice(-2).map((f) => f.l ?? f.t), ['chat', 'chat'], 'a newer lease inside LEASE_HAND_MIN_MS of the last waits');
+  now += 1;
+  assert.equal(trade.s.sendChat('in time'), true);
+  assert.deepEqual(sent(trade.ws).slice(-2).map((f) => f.l ?? f.t), ['body.mac3', 'chat'], 'and rides the frame after');
+  now += LEASE_HAND_MIN_MS;
+  assert.equal(trade.s.sendChat('and again'), true);
+  assert.deepEqual(sent(trade.ws).slice(-2).map((f) => f.l ?? f.t), ['chat', 'chat'], 'the same lease never twice, past the pace too');
   assert.equal(hub.s.sendLease('body.mac'), false, 'the hub is handed none back');
   assert.equal(old.s.sendLease('body.mac'), false, 'nor an old relay');
   // the world's primary and its halos
@@ -525,6 +596,13 @@ test('LEASE1 THE GAME: a hello to a lease room says `ls` 1 and to the hub none; 
   early.welcome();
   assert.equal(early.s.sendChat('lfg crypt'), true);
   assert.deepEqual(sent(early.ws).slice(-2).map((f) => f.l ?? f.t), ['early.mac', 'chat'], 'kept through the welcome');
+  const held = session(CHAT_LFG_ROOM, 'world242');
+  await settle();
+  held.welcome();
+  assert.equal(held.s.sendLease('held.mac'), true);
+  now += LEASE_HELD_MS - 1;
+  assert.equal(held.s.sendChat('just in time'), true);
+  assert.deepEqual(sent(held.ws).slice(-2).map((f) => f.l ?? f.t), ['held.mac', 'chat'], 'held up to LEASE_HELD_MS');
   const stale = session(CHAT_LFG_ROOM, 'world242');
   await settle();
   stale.welcome();
@@ -532,4 +610,30 @@ test('LEASE1 THE GAME: a hello to a lease room says `ls` 1 and to the hub none; 
   now += LEASE_HELD_MS;
   assert.equal(stale.s.sendChat('too late'), true);
   assert.deepEqual(sent(stale.ws).filter((f) => f.t === 'lease'), [], 'held past LEASE_HELD_MS: handed on nowhere');
+  // THE SAILING CABIN'S LANE (the third review: its own session, outside the page's links, handed on nothing): it takes
+  // the page's lease each tick, a newer one too, and hands it ahead of its first frame in its world room
+  const lanes = [];
+  class Lane extends OnlineSession { constructor(o) { super({ ...o, WebSocketImpl: FakeWS, now: () => now }); lanes.push(this); } }
+  const cabin = createSailingCabinLink({ Session: Lane, frame: () => ({}), receive: () => {}, sweep: () => {} });
+  const page = session(CHAT_TRADE_ROOM, 'world242');
+  await settle();
+  page.welcome();
+  page.s.sendLease('page.mac');
+  const pixel = { x: 402, y: 151 }, at = { origin: [P0.x, P0.y, P0.z], yaw: 0 };
+  const laneRoom = roomKeyFor({ host: 'world', mode: 'exterior', mapPixel: pixel });
+  assert.ok(leaseRoom(laneRoom), laneRoom);
+  cabin.tick(page.s, at, pixel, now);
+  const lane = sockets.filter((w) => w.url.endsWith(`/room/${laneRoom}`)).at(-1);
+  lane.open();
+  await settle();
+  lane.receive({ t: 'welcome', id: 'me-00001', peers: [], n: 1, v: 'world242' });
+  now += 1000;
+  assert.equal(lanes[0].sendPose({ ...P0, x: P0.x + 40 }), true);
+  assert.deepEqual(sent(lane).filter((f) => f.t !== 'hello').slice(-2).map((f) => f.l ?? f.t), ['page.mac', 'pose'], 'the lane hands the page\'s lease ahead of its frame');
+  page.s.sendLease('page.mac2');
+  now += LEASE_HAND_MIN_MS;
+  cabin.tick(page.s, at, pixel, now);
+  assert.equal(lanes.length, 1, 'the same lane');
+  assert.deepEqual(sent(lane).slice(-2).map((f) => f.l ?? f.t), ['page.mac2', 'pose'], 'and the page\'s newer lease, ahead of the next tick\'s pose');
+  cabin.close();
 });
