@@ -64,6 +64,13 @@ export const DECOR_GRID = 0.25;
 export const DECOR_HANG_NY = 0.5;
 /** WALL-CLEAR: how far a piece set on a wall stands clear of it, past its own reach into it (metres). */
 export const DECOR_WALL_GAP = 0.02;
+/** How far an ordinary piece may sit into a wall, metres. Never more than half its own reach. */
+export const DECOR_WALL_CLIP = 0.05;
+/** The wall offset: a door, and a piece with no measured reach, stay clear by DECOR_WALL_GAP. Any other may clip. */
+export function decorWallOffset(reach, { door = false } = {}) {
+  if (door || !(reach > 0)) return reach + DECOR_WALL_GAP;
+  return reach - Math.min(DECOR_WALL_CLIP, reach * 0.5);
+}
 
 /** A turn wrapped into (-180, 180]. */
 export function wrapTurn(deg) {
@@ -202,7 +209,7 @@ export function createDecorPlacer(entry, { radius = null, box = null, from = nul
           x = -n[1] * a + n[0] * c;
           z = n[0] * a + n[1] * c;
         }
-        const out = reach(n) + DECOR_WALL_GAP;
+        const out = decorWallOffset(reach(n), { door: entry.kind === 'door' });
         x = round(x + n[0] * out, 3);
         z = round(z + n[1] * out, 3);
       } else if (s.snap) { x = snapTo(x, DECOR_GRID); z = snapTo(z, DECOR_GRID); }
