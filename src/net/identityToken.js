@@ -295,7 +295,7 @@ export function nameIsIssuable(name) {
 /**
  * The claims, as they ride. Short keys because this travels in a hello
  * on every connection and the payload is base64 on top.
- * @typedef {{s: string, n: string, k: 'guest'|'linked', i: number, e: number, t?: string, g?: string[], mu?: number, lv?: number, gi?: string, gt?: string, gm?: string, rc?: 0|1, ci?: string, au?: string, ar?: number, cl?: number, wa?: [number, 0|1], hn?: string, hc?: string, hb?: 1, hg?: number}} Claims
+ * @typedef {{s: string, n: string, k: 'guest'|'linked', i: number, e: number, t?: string, g?: string[], mu?: number, lv?: number, gi?: string, gt?: string, gm?: string, rc?: 0|1, ci?: string, au?: string, ar?: number, cl?: number, wa?: [number, 0|1], hn?: string, hc?: string, hb?: 1, hg?: number, hd?: 1}} Claims
  *   s  the account id          n  the display name
  *   k  guest or linked         i  issued at, epoch seconds
  *   e  expires at, epoch seconds
@@ -332,6 +332,12 @@ export function nameIsIssuable(name) {
  *      absent before its first judged checkpoint and from a service
  *      before INT7. Every referee's clip of a blow between players
  *      (net/siege/siegeRef.js siegeBlowMax, net/arena/arenaLaw.js arenaBlowCap)
+ *   hd 1 on a HIDDEN STAFF SPECTATOR's token (STAFF-PANEL5-HIDDEN, mob: "true
+ *      invis not lattys invis"), absent on every other: an Admin's or a
+ *      Moderator's while they hold a live staff session with Hide me on.
+ *      Its `s` is then a subject minted for that session, never the
+ *      account's id, so it takes no seat of the account's; the relay
+ *      passes such a socket on to nobody (server/src/staffHidden.js)
  *   hn hc hb hg  that realm character's HOUSE (LEGACY7, net/houseLaw.js):
  *      the line's surname, the member's given name, 1 for a Bloodline,
  *      the generation's numeral - `hn` or none of them; absent for a
@@ -429,6 +435,7 @@ export function claimsValid(c, { maxTtlS = MAX_TTL_S } = {}) {
   // INT7: the realm character's arms (every referee's clip): beside the realm's yes alone, of its shape or refused
   if (c.wa !== undefined && !(c.rc === 1 && armsIssuable(c.wa))) return false;
   if (!houseClaimOk(c)) return false;   // LEGACY7: the house - absent for none, each field of its shape or refused
+  if (c.hd !== undefined && c.hd !== 1) return false;   // STAFF-PANEL5-HIDDEN: a hidden staff spectator's mark - exactly 1, or absent
   if (!Number.isSafeInteger(c.i) || !Number.isSafeInteger(c.e)) return false;
   if (c.e <= c.i) return false;                 // a token that is born dead
   if (c.e - c.i > maxTtlS) return false;        // a minter that got greedy
@@ -452,7 +459,7 @@ export const tokenBodyOf = (/** @type {string} */ token) => String(token ?? '').
  * MINT. The account service's half - it holds the private key and
  * nothing else does.
  *
- * @param {{s:string, n:string, k:'guest'|'linked', t?:string, ts?:number[], g?:string[], mu?:number, lv?:number, gi?:string, gt?:string, gm?:string, rc?:0|1, ci?:string, au?:string, pi?:string, rb?:number[], gx?:string[], ar?:number, cl?:number, wa?:[number, 0|1], hn?:string, hc?:string, hb?:1, hg?:number}} who
+ * @param {{s:string, n:string, k:'guest'|'linked', t?:string, ts?:number[], g?:string[], mu?:number, lv?:number, gi?:string, gt?:string, gm?:string, rc?:0|1, ci?:string, au?:string, pi?:string, rb?:number[], gx?:string[], ar?:number, cl?:number, wa?:[number, 0|1], hn?:string, hc?:string, hb?:1, hg?:number, hd?:1}} who
  * @param {CryptoKey} privateKey  an Ed25519 private key
  * @param {{subtle: SubtleCrypto, nowS: number, ttlS?: number}} env
  * @returns {Promise<string>}
@@ -481,6 +488,7 @@ export async function mintToken(who, privateKey, { subtle, nowS, ttlS = MAX_TTL_
   if (who?.wa !== undefined) claims.wa = who.wa;   // INT7: only for a realm character judged since - before one, the bytes as before
   // LEGACY7: only for a realm character of a Project Legacy line - a character of none, the bytes as before
   if (who?.hn !== undefined) { claims.hn = who.hn; for (const k of /** @type {const} */ (['hc', 'hb', 'hg'])) if (who[k] !== undefined) claims[k] = who[k]; }
+  if (who?.hd !== undefined) claims.hd = who.hd;   // STAFF-PANEL5-HIDDEN: only on a hidden staff spectator's token - every other mints the bytes it always did
   // A BAD CLAIM SET IS REFUSED AT THE MINTER. The verifier would refuse
   // it too, but at the player's machine, where the only thing anyone
   // learns is that online is broken.
@@ -583,11 +591,13 @@ async function openSealed(token, publicKey, { subtle, nowS, skewS, valid }) {
  *  second: 'renown', a character's Renown that ROSE while its player was
  *  already in a room, carried in by that player's own client (the token
  *  that let them in said the Renown they had then). */
-export const ORDER_KINDS = Object.freeze(['mute', 'renown', 'guild', 'guildout', 'siege', 'stake', 'deck', 'remains', 'home', 'egopen', 'egadmit', 'ban']);   // SAFE4: a ban - its end, the service's word that the account may no longer play   // EG-PLAY: an Elite Breach's open and a member's admission   // QUEST-HOME: a town's homes moved, the service's word for every page online   // INT9: a fall's drop, the service's word on what it took   // CARDS10: a ranked seat's deck, vouched for   // GUILD1c: a character's guild now, and a member or a guild gone   // SEAT2a: a battle's pass
+export const ORDER_KINDS = Object.freeze(['mute', 'renown', 'guild', 'guildout', 'siege', 'stake', 'deck', 'remains', 'home', 'egopen', 'egadmit', 'ban', 'hide']);   // STAFF-PANEL5-HIDDEN: a hidden staff subject's mark ended (Show myself, the staff session's end) - its sockets closed, never shown   // SAFE4: a ban - its end, the service's word that the account may no longer play   // EG-PLAY: an Elite Breach's open and a member's admission   // QUEST-HOME: a town's homes moved, the service's word for every page online   // INT9: a fall's drop, the service's word on what it took   // CARDS10: a ranked seat's deck, vouched for   // GUILD1c: a character's guild now, and a member or a guild gone   // SEAT2a: a battle's pass
 /** An order lives a minute - long enough to be carried to every room
  *  the moderator holds, short enough that a leaked one is stale before
  *  anyone could use it for anything but what it already said. */
 export const ORDER_TTL_S = 60;
+/** STAFF-PANEL5-HIDDEN: a hide order's every key. */
+const HIDE_ORDER_KEYS = Object.freeze(['o', 's', 'hd', 'i', 'e']);
 
 /** `{o:'mute', s, mu, i, e}` - `mu` 0 is "unmuted" - or `{o:'renown', s,
  *  lv, i, e}` (RENOWN1), or `{o:'guild', s, gi?, gt?, gm?, i, e}` and
@@ -634,6 +644,10 @@ export function orderValid(c) {
   // SAFE4: a ban carries its end (`bn`, epoch seconds - 0 lifted) and no other kind's fields; no other kind carries a ban's
   if (c.o !== 'ban' && c.bn !== undefined) return false;
   if (c.o === 'ban' && (!Number.isSafeInteger(c.bn) || c.bn < 0 || c.mu !== undefined || c.lv !== undefined || c.dh !== undefined || !noGuild || !noSiege || !noStake || !noRemains || !noHome || !noEg)) return false;
+  // STAFF-PANEL5-HIDDEN: a hide order is `{o:'hide', s, hd: 0, i, e}` - the hidden subject `s` hidden no longer - and carries
+  // nothing else; no other kind carries an `hd`
+  if (c.o !== 'hide' && c.hd !== undefined) return false;
+  if (c.o === 'hide' && (c.hd !== 0 || Object.keys(c).some((k) => !HIDE_ORDER_KEYS.includes(k)))) return false;
   if (!Number.isSafeInteger(c.i) || !Number.isSafeInteger(c.e)) return false;
   if (c.e <= c.i || c.e - c.i > ORDER_TTL_S) return false;
   return true;
@@ -937,6 +951,17 @@ export async function mintGuildOutOrder({ s, gi, gm }, privateKey, { subtle, now
   const claims = { o: 'guildout', s, gi, i: nowS, e: nowS + ttlS };
   if (gm !== undefined) claims.gm = gm;
   if (!orderValid(claims)) throw new TypeError('mintGuildOutOrder refused an order it could not verify');
+  return sealClaims(claims, privateKey, subtle);
+}
+
+/** STAFF-PANEL5-HIDDEN: MINT A HIDE ORDER - the hidden staff subject `s` (a staff session's, never an account's id) is
+ *  hidden no longer: Show myself was pressed, or the staff session that hid it ended. The account service pushes it to the
+ *  relay's law door (sanctions.js pushLaw); the hub closes that subject's hidden sockets rather than show them
+ *  (server/src/staffHidden.js hiddenLapse). */
+export async function mintHideOrder({ s }, privateKey, { subtle, nowS, ttlS = ORDER_TTL_S }) {
+  if (!Number.isSafeInteger(nowS)) throw new TypeError('mintHideOrder needs an integer epoch-seconds clock');
+  const claims = { o: 'hide', s, hd: 0, i: nowS, e: nowS + ttlS };
+  if (!orderValid(claims)) throw new TypeError('mintHideOrder refused an order it could not verify');
   return sealClaims(claims, privateKey, subtle);
 }
 

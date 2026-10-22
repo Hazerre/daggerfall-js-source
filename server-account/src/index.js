@@ -335,6 +335,8 @@ import { runCron } from './cron.js';   // SCALE4b: the service's own clock
 import { blocksOf, blockAccount, unblockAccount, fileReport, agreeConduct, conductAgreed, takeFeed, bannedAnswer, resolveCase, modCases, modCase, modDismiss, REPORT_BODY_MAX } from './safety.js';   // SAFE1-SAFE7: the chat's safety
 import { banAccount, unbanAccount, strikesLook, isBanned, actionStatement, lawOrder, pushLaw } from './sanctions.js';   // SAFE4: the record, the ladder and the ban
 import { staffRoute, STAFF_STATUS, STAFF_SESSION_HEADER } from './staff.js';   // STAFF-PANEL1: the staff panel's sign-in, sessions, roles and audit log
+import { hiddenToken, takeHiddenSeen } from './staffHidden.js';   // STAFF-PANEL5-HIDDEN: a hidden staff member's token, and a private home it entered
+import { HIDDEN_SEEN_PATH, HIDDEN_SEEN_MAX_BYTES, HIDDEN_SEEN_SIG_HEADER } from '../../src/net/hiddenSeen.js';
 import { discordSigned, discordInteraction, DISCORD_BODY_MAX } from './discord.js';   // SAFE8: the moderators' queue in Discord
 import { FEED_MAX_BYTES, FEED_SIG_HEADER } from '../../src/net/safety/chatFeed.js';   // SAFE5: the relay's feed of public lines
 import { heartbeat } from './heartbeat.js';   // SCALE4c: one request for a tab's three clocks
@@ -891,6 +893,16 @@ const service = {
         return 'error' in r ? no(r.error, r.error === 'grant-signature' ? 401 : 400, origin) : json(r, 202, origin);
       }
 
+      // STAFF-PANEL5-HIDDEN (staffHidden.js): A HIDDEN STAFF SUBJECT ENTERED A PRIVATE HOME - the relay's note, proven by its
+      // signature over the exact bytes (the grants' measure's kind of door), written to the staff audit log
+      if (path === HIDDEN_SEEN_PATH) {
+        if (request.method !== 'POST') return no('method', 405, origin);
+        const bytes = await readCapped(request, HIDDEN_SEEN_MAX_BYTES);
+        if (!bytes) return no('too-large', 413, origin);
+        const r = await takeHiddenSeen(ctx, env, new Uint8Array(bytes), request.headers.get(HIDDEN_SEEN_SIG_HEADER));
+        return 'error' in r ? no(r.error, r.error === 'seen-signature' ? 401 : 400, origin) : json(r, 202, origin);
+      }
+
       // SAFE5 + SAFE8: THE TWO DOORS THE CHAT'S SAFETY OPENS TO A STRANGER - the relay's feed and Discord's interactions.
       // Neither is JSON a session carries; each is proven by a signature over its exact bytes, checked before a byte is read.
       if (SAFE_OPEN_ROUTES.has(path)) {
@@ -1101,6 +1113,11 @@ const service = {
         // cannot vouch for them. Said plainly rather than by minting
         // something the relay will refuse.
         if (!key) return no('no-signing-key', 503, origin);
+        // STAFF-PANEL5-HIDDEN (staffHidden.js): A HIDDEN STAFF MEMBER'S TOKEN IS THE SPECTATOR'S - `hd`, a subject of their
+        // staff session's and no badge, written in the staff audit log - while an Admin or a Moderator holds a live staff
+        // session with Hide me on. Every other account reads nothing more here.
+        const hidden = await hiddenToken(ctx, env, who.player, key);
+        if (hidden) return json(hidden, 200, origin);
         // ═══ ACC3: THE BADGE RIDES IN THE TOKEN ══════════════════
         //
         // A title and a glyph are read off the SIGNED claims and never
