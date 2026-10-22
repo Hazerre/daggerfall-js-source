@@ -149,3 +149,52 @@ export async function mintWildCollect(/** @type {{ r: string, k: string, c: stri
 export const readWildCollect = (/** @type {unknown} */ r) => readAs(WILD_COLLECT_V, wildCollectValid, r);
 /** VERIFY A COLLECT - the account service's half. */
 export const verifyWildCollect = (/** @type {unknown} */ r, /** @type {CryptoKey} */ publicKey, /** @type {{ subtle: SubtleCrypto, nowS: number, skewS?: number }} */ o) => verifyAs(WILD_COLLECT_V, wildCollectValid, r, publicKey, o);
+
+// ═══ SHIP-PVP (2026-10-22, the owner: "Build ever single bit of this and dont return until its perfected" - broadsides
+// between captains in the open sea; bible/03-World/Eltheric-Ocean.md SHIP-PVP): A SHIP WRECKED AT ANOTHER CAPTAIN'S GUNS,
+// SIGNED BY THE RELAY THAT REFEREED IT (net/sea/seaRef.js). The relay holds each captain's ship's bar in the open sea and
+// calls the wreck; its killer has SEA_REF.boardMs to come alongside and board her (`b` 1: her hold's share is the
+// killer's prize); then the relay signs it and hands it to both, and the account service takes the prize off the wrecked
+// captain's JUDGED record against it (server-account/src/seaWreck.js), once (the wreck's id) - the wrecked captain's own
+// tab first, the killer's after SEA_WRECK_GRACE_S. A wreck is a kill at sea for the bounty board (SEA-BOUNTY).
+//
+//     n1.<base64url({ f, c, k, kc, r, u, b, m, i, e })>.<base64url(64-byte Ed25519 signature)>
+//         f the wrecked captain's account   c its realm character   k the killer's account   kc its realm character
+//         r the wreck's id (twelve hex, the relay's)   u her uid (the boat whose hold gives the prize)   b boarded (1) or
+//         not (0)   m the room that refereed it   i issued   e expires (i + SEA_WRECK_TTL_S)
+// ═══════════════════════════════════════════════════════════════════
+export const SEA_WRECK_V = 'n1';
+/** How long a wreck's receipt is good, s. */
+export const SEA_WRECK_TTL_S = 3600;
+/** How long the wrecked captain's own tab has to bring it before the killer may bring it for them, s. */
+export const SEA_WRECK_GRACE_S = 30;
+/** A boat's uid as a wreck names it (Come Sail Away's `UID`: a positive whole number). */
+export const SEA_BOAT_UID_MAX = 0x7fffffff;
+/** Every other receipt's own fields - a fall's among them - never in a wreck's. */
+const WRECK_FOREIGN = [...WILD_FOREIGN.filter((f) => f !== 'u' && f !== 'b'), 'w', 'wt'];
+
+/** Everything a well-formed wreck's claims must be, before any signature is considered. */
+export function seaWreckValid(/** @type {any} */ c) {
+  if (!c || typeof c !== 'object' || Array.isArray(c)) return false;
+  if (WRECK_FOREIGN.some((f) => c[f] !== undefined)) return false;
+  if (typeof c.f !== 'string' || typeof c.k !== 'string' || !ID_RE.test(c.f) || !ID_RE.test(c.k) || c.k === c.f) return false;   // never her own guns
+  if (typeof c.c !== 'string' || !REALM_CHARACTER_RE.test(c.c) || typeof c.kc !== 'string' || !REALM_CHARACTER_RE.test(c.kc)) return false;
+  if (typeof c.r !== 'string' || !WILD_REMAINS_RE.test(c.r)) return false;
+  if (!Number.isSafeInteger(c.u) || c.u < 1 || c.u > SEA_BOAT_UID_MAX) return false;
+  if (c.b !== 0 && c.b !== 1) return false;
+  if (typeof c.m !== 'string' || !WILD_ROOM_RE.test(c.m)) return false;
+  if (!Number.isSafeInteger(c.i) || !Number.isSafeInteger(c.e)) return false;
+  if (c.e <= c.i || c.e - c.i > SEA_WRECK_TTL_S) return false;
+  return true;
+}
+/** MINT A WRECK - the relay's half; unsigned (`n1.<body>.`) with no key, which the service declines. */
+export async function mintSeaWreck(/** @type {{ f: string, c: string, k: string, kc: string, r: string, u: number, b: number, m: string }} */ { f, c, k, kc, r, u, b, m }, /** @type {CryptoKey|null} */ privateKey, /** @type {{ subtle: SubtleCrypto, nowS: number }} */ { subtle, nowS }) {
+  if (!Number.isSafeInteger(nowS)) throw new TypeError('mintSeaWreck needs an integer epoch-seconds clock');
+  const claims = { f, c, k, kc, r, u, b, m, i: nowS, e: nowS + SEA_WRECK_TTL_S };
+  if (!seaWreckValid(claims)) throw new TypeError('mintSeaWreck refused a claim set it could not verify');
+  return mintAs(SEA_WRECK_V, claims, privateKey, subtle);
+}
+/** READ A WRECK - the client's half. */
+export const readSeaWreck = (/** @type {unknown} */ r) => readAs(SEA_WRECK_V, seaWreckValid, r);
+/** VERIFY A WRECK - the account service's half. */
+export const verifySeaWreck = (/** @type {unknown} */ r, /** @type {CryptoKey} */ publicKey, /** @type {{ subtle: SubtleCrypto, nowS: number, skewS?: number }} */ o) => verifyAs(SEA_WRECK_V, seaWreckValid, r, publicKey, o);

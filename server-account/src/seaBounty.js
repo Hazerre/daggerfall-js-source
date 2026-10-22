@@ -54,9 +54,11 @@ export function seaKillSteps(db, claims, nowS) {
 }
 
 /**
- * BOARD: `{ character? }` - `{ wanted: [{ char, name, kills, bounty }], owed, mine }`: the wanted captains (a kill at sea
- * within SEA_WANTED_DAYS, or a bounty standing; a living character), the largest bounty first, then the most kills, at
- * most SEA_BOARD_MAX; the gold owed the asking character and the bounty on its own head (0 without one).
+ * BOARD: `{ character? }` - `{ wanted: [{ char, name, kills, bounty }], owed, mine, prizes, back }`: the wanted captains (a
+ * kill at sea within SEA_WANTED_DAYS, or a bounty standing; a living character), the largest bounty first, then the most
+ * kills, at most SEA_BOARD_MAX; the gold owed the asking character and the bounty on its own head (0 without one); SHIP-PVP
+ * (seaWreck.js): the pieces of wrecks it boarded held for it to collect (`prizes`), and its own hold's held past their
+ * hold, its to reclaim (`back`).
  * @param {any} ctx @param {any} player @param {any} body
  */
 export async function seaBountyBoard(ctx, player, body) {
@@ -71,9 +73,14 @@ export async function seaBountyBoard(ctx, player, body) {
     ORDER BY bounty DESC, kills DESC, rc.name LIMIT ?2`).bind(since, SEA_BOARD_MAX).all();
   const character = typeof body?.character === 'string' && REALM_CHARACTER_RE.test(body.character) ? body.character : null;
   const owed = character ? Number((await db.prepare('SELECT COALESCE(SUM(gold), 0) AS n FROM sea_bounty_owed WHERE killer = ?1 AND killer_char = ?2 AND paid_at IS NULL').bind(player.id, character).first())?.n ?? 0) : 0;
+  const [pr, bk] = character ? await db.batch([
+    db.prepare("SELECT COUNT(*) AS n FROM sea_prizes WHERE killer = ?1 AND killer_char = ?2 AND state = 'held' AND until_s > ?3").bind(player.id, character, nowS),
+    db.prepare("SELECT COUNT(*) AS n FROM sea_prizes WHERE victim = ?1 AND victim_char = ?2 AND state = 'held' AND until_s <= ?3").bind(player.id, character, nowS),
+  ]) : [null, null];
   return {
     wanted: (rows.results ?? []).map((x) => ({ char: x.ch, name: x.name, kills: Number(x.kills), bounty: Number(x.bounty) })),
     owed, mine: character ? await standing(db, character) : 0,
+    prizes: Number(pr?.results?.[0]?.n ?? 0), back: Number(bk?.results?.[0]?.n ?? 0),
   };
 }
 

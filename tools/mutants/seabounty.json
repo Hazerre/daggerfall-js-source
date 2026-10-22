@@ -956,8 +956,8 @@
   {
     "name": "SEA-BOUNTY-door-collect",
     "file": "src/net/accountClient.js",
-    "old": "    collect: (req) => post('/v1/sea/bounty/collect', req),\n  };\n}\n\n/** SEA-SEASON",
-    "new": "    collect: (req) => post('/v1/sea/bounty/board', req),\n  };\n}\n\n/** SEA-SEASON",
+    "old": "    collect: (req) => post('/v1/sea/bounty/collect', req),\n  };\n}\n\n/** SHIP-PVP: A WRECK AT SEA'S DOOR",
+    "new": "    collect: (req) => post('/v1/sea/bounty/board', req),\n  };\n}\n\n/** SHIP-PVP: A WRECK AT SEA'S DOOR",
     "tests": [
       "test/systems/sea/seabounty.test.js"
     ]

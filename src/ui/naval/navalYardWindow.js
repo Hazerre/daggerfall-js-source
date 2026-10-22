@@ -191,7 +191,8 @@ export function seasonText(s) {
 
 /**
  * SEA-BOUNTY: A FREEPORT'S WANTED SECTION's words for its model (scenes/seaBountyHost.js office) - pure: `{ head, lede,
- * rows: [{ id, title, words, presses: [{ label, can, n }] }], owed: { title, words, press, can } | null, mine, line }` -
+ * rows: [{ id, title, words, presses: [{ label, can, n }] }], owed: { title, words, press, can } | null, mine, prizes,
+ * back, line }` - SHIP-PVP: `prizes` and `back` a wreck's prizes held for me and my hold's goods due back, each a row -
  * each wanted captain's kills and bounty with a press for each post, the gold owed the player and its press, the bounty on
  * the player's own head, and the last answer's line.
  * @param {any} w
@@ -209,6 +210,9 @@ export function wantedText(w) {
     rows,
     owed: w.owed > 0 ? { title: t('sea.bounty.owedTitle', 'Bounties owed you'), words: t('sea.bounty.owed', '{gold} gold for the wanted captains you ended at sea.', { gold: g(w.owed) }), press: t('sea.bounty.collect', 'Collect'), can: !w.busy } : null,
     mine: w.mine > 0 ? t('sea.bounty.mine', 'A bounty of {gold} gold stands on your own head.', { gold: g(w.mine) }) : null,
+    // SHIP-PVP: a wreck's prizes held for me to collect, and my hold's goods a killer left, mine to reclaim
+    prizes: w.prizes > 0 ? { title: t('sea.pvp.prizesTitle', 'Prizes taken at sea'), words: t('sea.pvp.prizes', '{n, plural, one {# piece} other {# pieces}} from wrecks you boarded, held for you.', { n: w.prizes }), can: !w.busy, press: t('sea.bounty.collect', 'Collect') } : null,
+    back: w.back > 0 ? { title: t('sea.pvp.backTitle', 'Your hold\'s goods'), words: t('sea.pvp.back', '{n, plural, one {# piece} other {# pieces}} of your hold, never collected by the captain who boarded you.', { n: w.back }), press: t('sea.pvp.reclaim', 'Reclaim'), can: !w.busy } : null,
     line: w.line ?? null,
   };
 }
@@ -414,6 +418,8 @@ export function mountNavalYardWindow(host, deps) {
     wantedLede.textContent = [wt.lede, wt.mine].filter(Boolean).join(' ');
     for (const c of [...wantedList.children]) c.remove();
     if (wt.owed) wantedList.append(officeRow(wt.owed.title, wt.owed.words, null, wt.owed.press, wt.owed.can, () => w.collect()));
+    if (wt.prizes) wantedList.append(officeRow(wt.prizes.title, wt.prizes.words, null, wt.prizes.press, wt.prizes.can, () => w.collectPrizes()));   // SHIP-PVP
+    if (wt.back) wantedList.append(officeRow(wt.back.title, wt.back.words, null, wt.back.press, wt.back.can, () => w.reclaim()));
     for (const r of wt.rows) {
       const li = el('li', 'dfnaval-item dfnaval-officerow');
       li.setAttribute('data-row', r.id);

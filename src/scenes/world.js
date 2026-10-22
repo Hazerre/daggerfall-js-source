@@ -22455,6 +22455,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     live: () => etherSea && _onlineWorldSession() && !!online?.wildOk, day: () => wdunDayNow(), pixel: playerTravelPixel, locks: _wdunLocks, crows: _wdunCrows, mine: () => _wildMine,
     clock: () => raidNowMs(), naval: () => naval, state, link: socialLink, ether: etherHost,   // SEA-EVENTS: the shared clock, the naval host, the scene, the hub, the purse and the words (the ether host's)
     session: realmSession, checkpoint: onlineCheckpoint, wallet: realmWallet, character: () => characterIdOf(playerEntity), region: _questRegionIndex,   // SEA-BOUNTY: the record's gold acts
+    cell: () => online, foe: (id) => wildIsStranger(id, online?.drawable?.()?.find((d) => d.id === id)?.gt), name: (id) => peerName(id),   // SHIP-PVP: my cell's socket, a stranger captain, a name
   });
   const _giantsDown = new Map();  // ZONE-GIANTS: giant -> when it walks again (this machine's clock)
   const _giantsStood = new Map(); // ZONE-GIANTS: giant -> { foe, promise } - the one stood here
@@ -22995,6 +22996,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (g.k === 'hp') wildHpIn(g);
     else if (g.k === 'fell') wildFellIn(g, room);
     else if (g.k === 'rc') wildRcIn(g, room);
+    else seaVentures.wref(g, room);   // SHIP-PVP: the open sea's guns - a shot landed, a wreck (its room boarded), a wreck signed
   };
 
   // ── A BODY'S ONE PIECE (the killer's side) ──

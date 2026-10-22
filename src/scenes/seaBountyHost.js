@@ -19,10 +19,12 @@
 //   character() -> id       the realm character
 //   region() -> index       the region the player stands in (a freeport's: the sea's)
 //   door?                   the service's door (accountSeaBounty) - its own, when none is given
+//   wreckDoor?              SHIP-PVP: a wreck's prizes' door (accountSeaWreck) - its own, when none is given
 //   now?() -> ms            the clock
 // }
 // ═══════════════════════════════════════════════════════════════════
-import { accountSeaBounty, accountRefusalText } from '../net/accountClient.js';
+import { accountSeaBounty, accountSeaWreck, accountRefusalText } from '../net/accountClient.js';
+import { collectSeaPrizes, reclaimSeaPrizes } from './seaWreckHost.js';   // SHIP-PVP: a wreck's prizes, collected or back
 import { appStorage } from '../systems/appStorage.js';
 import { realmGoldAct } from '../systems/realmSaves.js';
 import { readSeaBoard, SEA_BOUNTY_POSTS } from '../net/sea/seaBountyLaw.js';
@@ -39,8 +41,9 @@ const ridOf = () => `sb${Date.now().toString(36)}${Math.floor(Math.random() * 1e
 /** @param {any} deps */
 export function createSeaBounty(deps) {
   const now = () => Number(deps.now?.()) || Date.now();
-  let door = deps.door ?? null;
+  let door = deps.door ?? null, wreckDoor = deps.wreckDoor ?? null;
   const doorNow = () => (door ??= accountSeaBounty({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }));
+  const wreckDoorNow = () => (wreckDoor ??= accountSeaWreck({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }));
   let board = null, readAt = -Infinity, reading = false, busy = false, line = null;
   const on = () => !!deps.live?.() && !!deps.session;
   const repaint = () => { try { repaintNavalYard(); } catch { /* no window: nothing to paint */ } };
@@ -80,17 +83,28 @@ export function createSeaBounty(deps) {
       call: (/** @type {any} */ at) => doorNow().collect({ character: deps.character(), realm: at, region }),
     }, (d) => (d.gold > 0 ? t('sea.bounty.collected', 'You collect {gold} gold in bounties. It is in your account here.', { gold: gold(d.gold) }) : t('sea.bounty.nothing', 'Nothing is owed you.')));
   }
+  /** SHIP-PVP: a wreck's prizes moved (`fn` - collectSeaPrizes or reclaimSeaPrizes), its answer said on the section's line
+   *  as well, and the board read again. */
+  async function prizesAct(/** @type {any} */ fn) {
+    if (!on() || busy) return;
+    busy = true; repaint();
+    try {
+      const r = await fn({ session: deps.session, checkpoint: () => deps.checkpoint?.(), character: () => deps.character(), door: wreckDoorNow(), say: (/** @type {string} */ text) => { line = { text, warn: false }; } });
+      if (!r?.ok) line = { text: accountRefusalText(r?.error), warn: true };
+    } finally { readAt = -Infinity; busy = false; await read(); }
+  }
   /**
    * THE TAB'S WANTED SECTION (ui/naval/navalYardWindow.js wantedText): null offline or with no realm character; else the
-   * board as last read - `{ asking, rows: [{ char, name, kills, bounty }], owed, mine, posts, busy, line, post, collect }` -
-   * read again when it is SEA_BOARD_FRESH_MS old.
+   * board as last read - `{ asking, rows: [{ char, name, kills, bounty }], owed, mine, prizes, back, posts, busy, line,
+   * post, collect, collectPrizes, reclaim }` - read again when it is SEA_BOARD_FRESH_MS old.
    */
   function office() {
     if (!on()) return null;
     if (!reading && now() - readAt >= SEA_BOARD_FRESH_MS) void read();
     return {
-      asking: !board, rows: board?.wanted ?? [], owed: board?.owed ?? 0, mine: board?.mine ?? 0, posts: SEA_BOUNTY_POSTS, busy: busy || reading, line,
+      asking: !board, rows: board?.wanted ?? [], owed: board?.owed ?? 0, mine: board?.mine ?? 0, prizes: board?.prizes ?? 0, back: board?.back ?? 0, posts: SEA_BOUNTY_POSTS, busy: busy || reading, line,
       post: (row, n) => post(row, n), collect: () => collect(),
+      collectPrizes: () => void prizesAct(collectSeaPrizes), reclaim: () => void prizesAct(reclaimSeaPrizes),   // SHIP-PVP
     };
   }
   return { office, read };

@@ -116,7 +116,7 @@ async function harbour() {
 
 test('SEA-BOUNTY the service, end to end over its routes and real records: a kill at sea makes its killer wanted; a post leaves its poster\'s record onto a wanted head, once a request; the wanted captain\'s fall at sea at another\'s hand claims it all for that hand\'s character, once a fall; the hand collects it into its record, once; no gold made (mutants: the kill, the claim, the once, the wanted, the self, the gold, the owed, the collect)', async () => {
   const h = await harbour();
-  assert.deepEqual(await h.board('pat'), { wanted: [], owed: 0, mine: 0 }, 'a quiet sea');
+  assert.deepEqual(await h.board('pat'), { wanted: [], owed: 0, mine: 0, prizes: 0, back: 0 }, 'a quiet sea');   // PIN MOVED (SHIP-PVP): and no prize held either way
   assert.equal((await h.post('pat', 'kim', 500)).body.error, 'sea-bounty-not-wanted', 'nobody is wanted yet');
   // kim kills val at sea
   const f1 = await h.fall('kim', 'val', 'aaaaaaaaaaaa');
@@ -221,7 +221,7 @@ test('SEA-BOUNTY the board\'s law: its bounds and presses, a wanted captain for 
   assert.equal(B.readSeaBoard({ wanted: 'x' }), null);
   const many = Array.from({ length: 20 }, (_, i) => ({ char: `r${i}`, name: `n${i}`, kills: i, bounty: i * 10 }));
   assert.equal(B.readSeaBoard({ wanted: many }).wanted.length, B.SEA_BOARD_MAX);
-  assert.deepEqual(B.readSeaBoard({ wanted: [{ char: 'r1', name: 'kim', kills: -3, bounty: 1.5 }, { char: 'r2', name: '' }, { name: 'x' }, null], owed: 'x', mine: 40 }), { wanted: [{ char: 'r1', name: 'kim', kills: 0, bounty: 0 }], owed: 0, mine: 40 });
+  assert.deepEqual(B.readSeaBoard({ wanted: [{ char: 'r1', name: 'kim', kills: -3, bounty: 1.5 }, { char: 'r2', name: '' }, { name: 'x' }, null], owed: 'x', mine: 40 }), { wanted: [{ char: 'r1', name: 'kim', kills: 0, bounty: 0 }], owed: 0, mine: 40, prizes: 0, back: 0 });   // PIN MOVED (SHIP-PVP): the prizes' counts
 });
 
 /** The page's half over a fake door, session and wallet. */

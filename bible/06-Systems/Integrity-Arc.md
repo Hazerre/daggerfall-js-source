@@ -640,7 +640,8 @@ receipt's carrier); `scenes/dungeonContext.js` and `scenes/worldModes.js` NO DUE
   there - `t`, `m`) within `WILD_REF.pickMs`, and the relay signs the fall - `f1` `{ f, c, k, r, w, wt, m, kc }`, the
   fallen, its realm character, the killer, the remains' id, the piece's place and what it was (and SEA-BOUNTY's, 2026-10-22:
   the room that refereed it and the killer's realm character - `03-World/Eltheric-Ocean.md` SEA-BOUNTY; an older relay's
-  receipt names neither) - and hands it to both; one away
+  receipt names neither; a SHIP wrecked at another captain's guns is signed apart, `n1` - SHIP-PVP) - and hands it to
+  both; one away
   hears it at its next zone word. Unpicked, it is signed without a piece; a building's or a dungeon's fall at once (no
   body is searched there); a fall waiting on its pick is kept in the room's storage (`WILD_FALL_PREFIX`) and signed by a
   room that restarted, and a full room's oldest is signed, never forgotten.

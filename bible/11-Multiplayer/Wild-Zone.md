@@ -232,7 +232,8 @@ Either death, at the first dead frame, while the room is still the player's (`wi
     at any time", `03-World/Naval-Refit.md`) opens a ship's hold from anywhere, the zone included: a piece stowed there
     from inside the zone is outside the drop, as a companion's pack was.
   - A boat placed on the zone's water keeps her hold through a death there, where CART-AWAY drops a cart parked on the
-    zone's ground.
+    zone's ground. (SHIP-PVP, 2026-10-22 - `03-World/Eltheric-Ocean.md` SHIP-PVP: in the open sea a SHIP wrecked at
+    another captain's guns and boarded gives up a share of her hold to her killer - a wreck, never a death.)
 - WORN: kept on a death to a foe. At another player's hand, in the open country (a cell room), the killer may take
   ONE worn piece: the fallen's game shows the list (`worn`, under the fall's id), the killer's body window picks
   (`pick`, INT9: to the relay, in the room that refereed the fall, within `WILD_REF.pickMs`, naming what the offer

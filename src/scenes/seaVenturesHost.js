@@ -16,6 +16,10 @@
 //   host (`step`), its flagship's purse and the hub's word that it is down (`fleetEnded`, `hubWord`), its words; both on the
 //   chart (`chartWord`) and in a freeport harbourmaster's talk (`rumours`).
 //
+//   THE OPEN SEA'S GUNS (SHIP-PVP, scenes/naval/seaBroadsides.js and scenes/seaWreckHost.js): broadsides between captains
+//   past Veilhaven's peace, refereed by the relay - attached to the naval host, stepped here, the referee's words heard
+//   (`wref`), a wreck's receipt carried to the service.
+//
 //   A FREEPORT HARBOURMASTER'S BOARDS (`office` - the tab's sections, spread into its model): the Wanted section
 //   (SEA-BOUNTY, scenes/seaBountyHost.js - `wanted`) and the season's captains (SEA-SEASON, scenes/seaSeasonHost.js -
 //   `season`).
@@ -36,6 +40,9 @@
 //                           checkpoint, the record's wallet, the realm character, the region stood in
 //   bountyDoor?             the bounty board's service door (its own, when none is given)
 //   seasonDoor?             the season boards' service door (its own, when none is given)
+//   cell() -> OnlineSession | null   SHIP-PVP's: my cell's socket (sendWild, `id`, `acct`, `seaPvpOk`)
+//   foe(id) -> bool         SHIP-PVP's: a peer outside my party and guild (world.js wildIsStranger)
+//   name(id) -> string      SHIP-PVP's: a peer's name, as shown
 // }
 // ═══════════════════════════════════════════════════════════════════
 import { inEther, etherBandAt, compassPoint } from '../world/ethericSea.js';
@@ -50,6 +57,10 @@ import { STRAND_SITE, STRAND_YIELD } from './etherHost.js';
 import { NATIVE_PIXEL } from '../systems/seaRaiders.js';
 import { createSeaBounty } from './seaBountyHost.js';
 import { createSeaSeason } from './seaSeasonHost.js';
+import { createSeaBroadsides } from './naval/seaBroadsides.js';
+import { createSeaWreckHost } from './seaWreckHost.js';
+import { wildHere, wildZoneKind } from '../systems/wild/wildZone.js';
+import { ETHER_KIND } from '../systems/wild/etherWild.js';
 import { t } from '../systems/textManager.js';
 
 /** SEA-EVENTS: a storm's wrack site's id - a strand's, so the naval host floats and hauls it as one (`strand:wrack:n:slot`). */
@@ -169,6 +180,7 @@ export function createSeaVentures(deps) {
    *  fed to the naval host (FLEET_FEED_MS apart); the storm's and the fleet's words as they come; the storm's lightning on
    *  the ship I sail. */
   function step(strikes = 0) {
+    pvpStep();   // SHIP-PVP: the open sea's guns, before anything of the sea's own
     const now = clock(), p = deps.pixel?.();
     if (now - fedAt >= FLEET_FEED_MS) { fedAt = now; const list = fleetList(now, p); deps.naval?.()?.fleet?.(list, { sunk: !!list && sunk.has(list.n) }); }
     if (!atSea(p)) { inStorm = null; strikesSeen = null; return; }
@@ -233,7 +245,23 @@ export function createSeaVentures(deps) {
   }
   // ── SEA-BOUNTY ─────────────────────────────────────────────────────────────────────────────────────────────────────
   const bounty = createSeaBounty({ live, session: deps.session, checkpoint: deps.checkpoint, wallet: deps.wallet, character: deps.character, region: deps.region, door: deps.bountyDoor, now: clock });
+  // ── SHIP-PVP ───────────────────────────────────────────────────────────────────────────────────────────────────────
+  const wrecks = createSeaWreckHost({ session: deps.session, checkpoint: deps.checkpoint, character: deps.character, me: () => deps.cell?.()?.acct ?? null, naval: deps.naval, say: (text, s) => say(text, s) });
+  const broadsides = createSeaBroadsides({
+    live: () => live() && !!deps.cell?.()?.seaPvpOk && wildHere() && wildZoneKind() === ETHER_KIND,
+    naval: deps.naval, send: (d, o) => deps.cell?.()?.sendWild?.(d, o) === true, me: () => deps.cell?.()?.id ?? null,
+    stranger: (id) => !!deps.foe?.(id), name: (id) => deps.name?.(id) ?? '', receipt: (rc) => wrecks.receipt(rc),
+    say: (text, s) => say(text, s), mid: (text, s) => mid(text, s),
+  });
+  let armed = null;   // the naval host the guns are attached to
+  /** The open sea's guns' step: attached to the naval host that stands now, stepped; a wreck's carry come due. */
+  function pvpStep() {
+    const nv = deps.naval?.() ?? null;
+    if (nv && nv !== armed) { nv.pvp?.attach?.(broadsides); armed = nv; }
+    broadsides.step();
+    wrecks.frame();
+  }
   // ── SEA-SEASON ─────────────────────────────────────────────────────────────────────────────────────────────────────
   const season = createSeaSeason({ live, session: deps.session, character: deps.character, door: deps.seasonDoor, now: clock });
-  return { vaultsNow, vaultHere, openSeaAt, chartWord: (now) => ({ ...chartWord(now), ...eventsWord() }), crowLine, stormWord, stormTurned, wrackSites, office: () => ({ wanted: bounty.office(), season: season.office() }), gather, step, fleetEnded, hubWord, rumours, fleetList: (now = clock()) => fleetList(now, deps.pixel?.()) };
+  return { vaultsNow, vaultHere, openSeaAt, chartWord: (now) => ({ ...chartWord(now), ...eventsWord() }), crowLine, stormWord, stormTurned, wrackSites, office: () => ({ wanted: bounty.office(), season: season.office() }), wref: (g, room) => broadsides.hear(g, room), gather, step, fleetEnded, hubWord, rumours, fleetList: (now = clock()) => fleetList(now, deps.pixel?.()) };
 }

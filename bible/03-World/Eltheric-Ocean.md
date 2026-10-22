@@ -81,6 +81,7 @@ thousand leagues:
 | SEA-VAULTS | THE VAULTS OF THE DEEP: the Wrothgarian halls on water - the day's four ruin isles of the Deep Aether and three of the Abyss, each an elite hall with its hub lock, crows, reset and epoch; marked on the chart; the open sea keeps no instance | `systems/sea/seaVaults.js`, `scenes/seaVenturesHost.js` (`vaultHere`, `openSeaAt`, `chartWord`, `crowLine`), `net/wire.js` (`seaVaultKey`, `seaVaultCell`, `seaVaultMapId`, `seaRoomCell`, `wdunHall`, `wdunRoomKey`, `WDUN_SEA_RELAY_MIN`), `net/online.js` (`wdunSeaOk`), `server/src/index.js` (`_instanceHello`), `scenes/instanceDoor.js` (`keepsNone`), `scenes/world.js` (`wildHallHere`, `wildDungeonGate`, `wdKey`, the crows' news, the chart's word, the door's `wild`), `ui/etherChartWindow.js` (`paintVault`, `CHART_VAULT_KEY`) |
 | SEA-BOUNTY | A FREEPORT'S BOUNTY BOARD: a fall at sea signed with its room and its killer's character; the kill, the posts, the claim and the owed at the service, gold never made; the harbourmaster's Wanted section | `net/sea/seaBountyLaw.js`, `server-account/src/seaBounty.js` (`seaKillSteps`, `seaBountyBoard`, `seaBountyPost`, `seaBountyCollect`), `server-account/migrations/0144_sea_bounty.sql`, `server-account/src/wild.js` (wildFall's batch), `net/wild/wildReceipt.js` (`m`, `kc`, `WILD_ROOM_RE`), `net/wild/wildRef.js` (`room`, `kc`), `net/wire.js` (`seaRoomOf`, `WILD_SEA_BOX`, `seaPlaceCell`), `server/src/index.js` (the strike's room, `_wildSign`), `net/accountClient.js` (`accountSeaBounty`, the refusals), `scenes/seaBountyHost.js`, `scenes/seaVenturesHost.js` (`office`'s `wanted`), `ui/naval/navalYardWindow.js` (`wantedText`, `renderWanted`), `ui/naval/navalPlunderDoor.js` (`repaintNavalYard`), `scenes/world.js` (the sea's deps, the office), `systems/naval/etherCrossing.js` (`createCrossLand`) |
 | SEA-SEASON | THE SEASON'S CAPTAINS: the captain's ledger's season figures (the deepest voyage, the legends ended) by the world's day, dropped at both copy doors; read off a clean judged checkpoint within the law and kept at their most; the boards with their ranks and the last season's firsts; the harbourmaster's section | `net/sea/seaSeasonLaw.js`, `server-account/src/seaSeason.js` (`seaSeasonSteps`, `seaSeasonBoard`), `server-account/migrations/0145_sea_season.sql`, `server-account/src/realm.js` (checkpointRealm's batch), `systems/naval/captainLedger.js` (`ether.season`, `restoreSeason`, `deepest`, `endLegend`, `season`), `scenes/etherHost.js` (`sight`'s day), `systems/offlineCopy.js` (`dropSeason`), `net/accountClient.js` (`accountSeaSeason`), `scenes/seaSeasonHost.js`, `scenes/seaVenturesHost.js` (`office`), `ui/naval/navalYardWindow.js` (`seasonText`, `renderSeason`), `scenes/world.js` (the office's spread) |
+| SHIP-PVP | BROADSIDES BETWEEN CAPTAINS: a captain's helm, shots and boarding refereed by the relay (the bar, the purse, the reach, the wreck); the wreck signed (`n1`); at the service, a boarded wreck's hold's share held for its killer, collected or reclaimed, and a kill at sea; the page's guns, the naval host's seams, the wreck's service half, the board's prize rows | `net/sea/seaRef.js`, `net/sea/seaPrizeLaw.js`, `net/wild/wildReceipt.js` (`n1`), `net/wire.js` (`helm`, `shot`, `board`, `hull`, `wreck`, `wc`, `relaySupportsSeaPvp`), `server/src/index.js` (`_seaWord`, `_seaWrecked`, `_seaSign`, `_wildHand`, the beat, the read-back), `server-account/src/seaWreck.js`, `server-account/migrations/0146_sea_wreck.sql`, `server-account/src/seaBounty.js` (the board's prize counts), `net/accountClient.js` (`accountSeaWreck`), `net/online.js` (`seaPvpOk`, `_seaPvpOn`), `scenes/naval/navalPvp.js`, `scenes/naval/navalHost.js` (`hitBy`, `landHit`, `pvp`), `scenes/naval/seaBroadsides.js`, `scenes/seaWreckHost.js`, `scenes/seaBountyHost.js` (`collectPrizes`, `reclaim`), `scenes/seaVenturesHost.js` (`wref`, the step), `ui/naval/navalYardWindow.js` (the prize rows), `scenes/world.js` (the sea's deps, `wildRefIn`) |
 | (the ledger) | WHAT A CAPTAIN KEEPS OF IT: the isles charted, the legends ended and heard of, the strands gathered, the way out, the crossings - in the Captain save | `systems/naval/captainLedger.js` (`ether`, `chartIsle`, `endLegend`, `gathered`, `setCrossedFrom`, `crossed`, `hearLegend`), `scenes/etherHost.js` |
 
 THE FOUR HOSTS (Home.md; AUDIT CAPTAIN'S SEA H12 - the slices named none): the sea, its ships, the crossing, the chart
@@ -685,8 +686,9 @@ mountains' own, unchanged. The crossing of a band is said in the sea's words ("D
   otherwise never send her hands home short of Veilhaven. A sworn one at the side stays, as in the mountains: the
   roster's "away" is no hold.
 - THE HOLD IS KEPT. A boat on the zone's water keeps her hold through a death there (Wild-Zone.md section 4, "Open for
-  the owner") - at sea, where most of what a captain carries is in it, the larger share of the shelter. Named, not
-  closed: the owner's call (OPEN FOR THE OWNER, below).
+  the owner") - at sea, where most of what a captain carries is in it, the larger share of the shelter. A death still
+  takes none of it; a SHIP WRECKED AT ANOTHER CAPTAIN'S GUNS AND BOARDED gives up a share of it (SHIP-PVP, below - her
+  best pieces to a third of what she could give, never a locked, bound or classic piece).
 - No Greater Giants, and no hall spawned: an isle's ruin stands where its isle does and is open every day - but the
   day's VAULTS of the deep (SEA-VAULTS, below) keep a hall's door, lock and crows, the hub's record keyed by the isle's
   cell. Every other ruin of the sea is itself.
@@ -717,12 +719,12 @@ flag as the mountains' buildings do - no player is struck indoors, its foes and 
 fall reads no map: nothing on either moves. A client from before ETHER-WILD never says it stands in the zone at sea, so
 it fights nobody there and drops nothing - INT9's known limit, Wild-Zone.md section 22.
 
-**OPEN FOR THE OWNER** (the suggestions that came with it, none built in ETHER-WILD): broadsides between players' ships
-and a captain's hold as a prize - the relay referees no naval fire yet, so a ship is no target of a player's; whether a
-captain's hold gives up a share at a death past the peace (the larger shelter at sea, above); a freeport's bounty board
-on the sea's killers. The Wrothgarian halls' daily elite vaults for the Deep Aether and the Abyss, with their locks and
-crows, are SEA-VAULTS (below); the bounty board is SEA-BOUNTY (below); the season's boards for the deepest voyage and
-the legends ended are SEA-SEASON (below) - a title or prize for a season's first is still the owner's call.
+**OPEN FOR THE OWNER** (the suggestions that came with it, none built in ETHER-WILD - each built since, 2026-10-22):
+broadsides between players' ships and a captain's hold as a prize are SHIP-PVP (below); the Wrothgarian halls' daily
+elite vaults for the Deep Aether and the Abyss, with their locks and crows, are SEA-VAULTS (below); the bounty board is
+SEA-BOUNTY (below); the season's boards for the deepest voyage and the legends ended are SEA-SEASON (below). Still the
+owner's call: a title or prize for a season's first; whether a DEATH past the peace (not a wreck) gives up a share of a
+captain's hold.
 
 Pinned by `test/systems/wild/etherwild.test.js` (8); `tools/mutants/etherwild.json` (35, all dead).
 
@@ -1011,6 +1013,102 @@ for a season's first yet - the owner's call (OPEN FOR THE OWNER).
 to wire.
 
 Pinned by `test/systems/sea/seaseason.test.js` (6); `tools/mutants/seaseason.json` (83, all dead).
+
+## SHIP-PVP - broadsides between captains: a ship wrecked, boarded, her hold a prize
+
+The owner's "more of a reason to venture into this zone", and the first of ETHER-WILD's suggestions (2026-10-22: "Build
+ever single bit of this"): past Veilhaven's peace, a captain's guns hit another captain's ship. DFU has no players' ships
+to fight: the fight is the sea's own, refereed as the open zone's blows are (INT9) and the Sea Serpent's broadsides are
+(the serpent's reference broadside, its purse).
+
+**THE GUNS OPEN** where the open sea is the open zone (online; past the peace - `systems/wild/etherWild.js` ETHER_KIND; at a
+relay that referees them - `online.js` `seaPvpOk`, world241's `relaySupportsSeaPvp`; and each word only through a socket
+whose own relay does - `_seaPvpOn`: a halo's says for itself, and each socket's word goes with it across a crossing). There my balls meet a STRANGER
+captain's ship (never my party's or my guild's - world.js `wildIsStranger`; and the relay refuses kin again: wildKin's party,
+truce, duel and guild), and a peer's are seen to meet another's (seen only). Ashore, in the Bay, at peace, or wrecked
+myself, my balls pass through a player's ship as ever. The naval host's seams are `scenes/naval/navalPvp.js` (my ship as
+the referee is told of her, its word laid on her, her wreck, a prize out of her hold) - its targets' `hitBy` and its
+`landHit` ask them (`navalHost.js:"hitBy: (s) => shipShot(s) || pvp.open(p.id, s, isMine(s)) });"`).
+
+**THE PAGE'S GUNS** (`scenes/naval/seaBroadsides.js`, built by the sea's host): my HELM said to the referee - my hull, my
+uid, my toughness (my Hull refit's, over the Captain's Due's share), my hull as my game reckons it - each `SEA_HELM_SAY_MS`
+and on a change (at most each `SEA_HELM_MIN_MS`), and that I have left her when I go; my balls' harm on her ship (as it
+would strike a sea ship, my Guns refit's with it) GATHERED and said each `SEA_SHOT_MS` a ship (`shot` - two ships under my
+guns within the referee's `SEA_REF.hz`); the referee's words heard.
+
+**THE REFEREE** (`src/net/sea/seaRef.js`, on the zone's own room state - its fighters, their places, their kin):
+
+- A SHIP is a captain's at her helm in the zone. Her BAR is her hull's player strength (`SEA_SHIP_HP`, the player's own
+  build's hullHp - pinned equal) times her toughness (never past `SEA_REF.toughMax`, the hardest refit over the Captain's
+  Due's most). Her own word only lowers it (a sea ship's guns broke her); a new hull or uid keeps the share; unstruck
+  `SEA_REF.mendMs`, she is whole again at her next word (no shot lands on a helm unsaid `SEA_REF.helmMs`, so every shot
+  meets a bar her last word set).
+- A SHOT lands only between two captains at their helms in the zone, neither down, never kin, neither's word older than
+  `SEA_REF.helmMs`, the shooter no jumper, within `SEA_REF.reachM` (both believed places, in metres), at most
+  `SEA_REF.hz` words a second, on the SHOOTER'S OWN PURSE: SHIP_REF of her hull a second (`net/serpent/serpentBrain.js`, the
+  serpent's reference broadside) refilled at `SEA_REF.rateX`, `SEA_REF.depthX` deep, no word past `SEA_REF.capX` of it;
+  her canvas bounded a word (`SEA_REF.sailCapX`), a fire once in `SEA_REF.fireMs`. What landed is said to both (`hull` -
+  per mille of her bar and canvas, a fire, her bar left), and her game lays it in shares (`navalPvp.js` `struck` - her
+  hull no higher than the bar leaves her, so her own builds and the referee's agree).
+- A WRECK is the referee's word: her bar at none by a captain's shot, or by her own word within `SEA_REF.creditMs` of one
+  (the last captain to land a shot her killer). A player's ship never sinks: she lies crippled (`wrecked`), as a sea ship's
+  guns leave her, shot no more `SEA_REF.wreckMs`. Said to the room (`wreck`), kept in the room's storage
+  (`SEA_WRECK_PREFIX`, read back by a restarted room) with where she lay (her captain's believed place).
+- BOARDED: her killer has `SEA_REF.boardMs` to come within `SEA_REF.boardM` of her - her captain's believed place (kept
+  when she goes from the room) or where she lay. HER CAPTAIN NEED NOT STAY: one who closes her tab, leaves the room or
+  jumps away leaves her wreck to be boarded, and a restarted room boards it where she lay (`seaRef.js` seaBoard; the
+  relay asks nothing of her socket). The page's guns say `board` - its id alone, to the room that wrecked her - when my
+  ship is within `SEA_BOARD_NEAR_M` of her boat, of where it last saw her, or of where she lay when the wreck was said
+  (her shown place copied - it moves each frame), again each `SEA_BOARD_RETRY_MS` until answered. Boarded, or its time out
+  (the room's beat), the relay signs the wreck (`net/wild/wildReceipt.js` `n1`: both captains' accounts and characters,
+  the wreck's id, her uid, `b` boarded or not, the room) and hands it to both (`wc`; kept for one away, as a fall's is).
+  A ship with no uid, or a captain with no realm character, is signed never.
+
+**THE SERVICE** (`server-account/src/seaWreck.js`; tables `migrations/0146_sea_wreck.sql`; the prize's law both ends read,
+`src/net/sea/seaPrizeLaw.js`):
+
+- THE WRECK (`/v1/sea/wreck`), once (its id): carried by her captain's own tab at once (a record act, where its record
+  stands), or by her killer's past `SEA_WRECK_GRACE_S` (the record seized, its lease cleared, as a fall's). BOARDED, and the
+  record not held by the judge, her hold's share - the boat her uid names (`placedBoats[].Items`): her most valuable pieces
+  while they come to `SEA_PRIZE_SHARE` (a third) of what she could give, her best always, `SEA_PRIZE_PIECES_MAX` at most;
+  never a piece the ledger keeps back, a classic save's, a locked or a bound one, and none of those swells the share -
+  off her record into the service's hands (`sea_prizes`, the ledger told they go in escrow), in one batch with the wreck.
+  Her game takes the same pieces out of her hold, each FOUND BY ITS MARKS - its id, its craft's provenance, else its group,
+  template, material and stack (`seaPrizeLaw.js` seaPrizeTook over `systems/wild/wildDropLaw.js` wildTookOf; `navalPvp.js`
+  `takeHold` over wildTakeTook, her hold's list alone) - never by its place: her hold in her game need not stand as her
+  record did (the fall's lesson, AUDIT INT9). Asked again, a wreck tells its pieces ONLY TO HER TAB FROM BEFORE THE TAKE
+  (`sea_wrecks.seq`, her record's sequence once they were taken: its first answer lost, or her killer's seize landed
+  under it); a tab that joined her record since holds none of them and is told none - it took them twice, pieces the
+  record never gave - though its captain is still told her hold was plundered. A boarded hold with nothing to give makes
+  no move of her record, and keeps no object of one.
+- A WRECK IS A KILL AT SEA (`seaBounty.js` seaKillSteps, in its batch): boarded or not, her killer is wanted and every
+  bounty on her captain is owed to her killer's character.
+- COLLECT (`/v1/sea/prize/collect`): every prize held for the asking character, into its record (`giveTradeGoods`), each
+  once (mustChange) - the killer's tab collects at once after the wreck, and a freeport's board shows what is left
+  (`Prizes taken at sea - Collect`).
+- RECLAIM (`/v1/sea/prize/reclaim`): a prize its killer left `SEA_PRIZE_HOLD_S` (three days) back into the wrecked
+  captain's record, once (`Your hold's goods - Reclaim`).
+- NO PIECE IS MADE OR LOST: a prize is pieces a record held, held by the service until one of the two takes them.
+
+**THE WIRE AND THE DEPLOY.** world241 (undeployed): `helm`, `shot` (directed - the room her captain stands in) and `board`
+(the wreck's id alone, the wreck's room's) in; `hull`, `wreck` and `wc` out; the relay's bundle grows `net/sea/seaRef.js` (the serpent's three walk from it now).
+The service's acct168 (migration 0146); the account deploy watches the prize's law. An older relay is never sent a sea
+kind (it would close the socket).
+
+**KNOWN, NAMED.** The balls' harm is the shooter's game's reckoning, bounded by the purse (as the serpent's is): a modified
+client fires the purse's most, never more; a captain claiming a bigger hull claims a bigger purse - never past a
+carrack's. A captain's toughness is her own word, bounded by the hardest an honest captain can make her. Her own reckoning
+of her hull can only lower her bar - a client that never says it is hurt is wrecked all the same by the referee's bar.
+Fights cross no cell's edge (a shot is refereed in the room its target stands in, its shooter a fighter there). Her crew
+is no part of the referee's fight (no man is lost to a captain's grape), and a captain's ship is boarded for her hold,
+never fought for on her deck.
+
+**THE FOUR HOSTS.** `scenes/naval/navalHost.js` (its targets, its landHit, its seams built - `navalPvp.js`) WIRED;
+`scenes/world.js` (the sea's host's cell, stranger and name; the referee's sea words routed) WIRED through
+`scenes/seaVenturesHost.js`, `scenes/naval/seaBroadsides.js` and `scenes/seaWreckHost.js`; `scenes/worldModes.js`,
+`scenes/dungeonContext.js` and `scenes/exterior.js` stand no ship - FLAGGED, nothing to wire.
+
+Pinned by `test/systems/sea/shippvp.test.js` (15); `tools/mutants/shippvp.json` (181, all dead).
 
 ## The ledger's record
 

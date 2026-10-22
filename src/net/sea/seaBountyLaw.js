@@ -31,10 +31,11 @@ export const SEA_BOUNTY_RID_RE = /^[A-Za-z0-9_-]{8,40}$/;
 export const seaBountyGoldOk = (n) => Number.isSafeInteger(n) && n >= SEA_BOUNTY_MIN && n <= SEA_BOUNTY_MAX;
 
 /**
- * The board's answer, as the client reads it: `{ wanted: [{ char, name, kills, bounty }], owed, mine }` - each row a wanted
- * captain (their character, name, kills at sea within SEA_WANTED_DAYS, the bounty standing), at most SEA_BOARD_MAX;
- * `owed` the gold owed the asking character; `mine` the bounty on their own head. Anything malformed dropped; null for
- * a body that is no board.
+ * The board's answer, as the client reads it: `{ wanted: [{ char, name, kills, bounty }], owed, mine, prizes, back }` - each
+ * row a wanted captain (their character, name, kills at sea within SEA_WANTED_DAYS, the bounty standing), at most
+ * SEA_BOARD_MAX; `owed` the gold owed the asking character; `mine` the bounty on their own head; SHIP-PVP: `prizes` the
+ * pieces of wrecks they boarded held for them, `back` their own hold's due back. Anything malformed dropped; null for a
+ * body that is no board.
  */
 export function readSeaBoard(v) {
   if (!v || typeof v !== 'object' || !Array.isArray(v.wanted)) return null;
@@ -42,5 +43,5 @@ export function readSeaBoard(v) {
   const wanted = v.wanted.slice(0, SEA_BOARD_MAX)
     .filter((w) => w && typeof w.char === 'string' && w.char.length <= 40 && typeof w.name === 'string' && w.name.length > 0 && w.name.length <= 64)
     .map((w) => ({ char: w.char, name: w.name, kills: gold(w.kills), bounty: gold(w.bounty) }));
-  return { wanted, owed: gold(v.owed), mine: gold(v.mine) };
+  return { wanted, owed: gold(v.owed), mine: gold(v.mine), prizes: gold(v.prizes), back: gold(v.back) };
 }
