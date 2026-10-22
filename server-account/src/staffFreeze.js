@@ -79,6 +79,9 @@ export const FREEZE_ALLOWED = Object.freeze(['/v1/auth/logout', '/v1/auth/token'
 const ALLOWED = new Set(FREEZE_ALLOWED);
 
 /** The panel's refusal words and their status (staff.js STAFF_STATUS takes them in) - and `frozen`, the gate's own (403). */
+/** This act's own revision landed: ?1 the player, ?2 now, ?3 the Admin, ?4 the new revision, ?5 the new end. */
+const LANDED = 'EXISTS (SELECT 1 FROM players WHERE id = ?1 AND freeze_rev = ?4 AND frozen_by = ?3 AND frozen_at = ?2 AND frozen_until IS ?5)';
+
 export const FREEZE_STATUS = Object.freeze({ frozen: 403, 'bad-reason': 400, 'bad-text': 400, 'not-frozen': 409, 'no-thread': 404, 'freeze-thread': 409, 'freeze-moved': 409 });
 /** The player's doors' refusal words and their status. */
 export const STAFF_CHAT_STATUS = Object.freeze({ 'bad-text': 400, 'no-thread': 404, rate: 429 });
@@ -206,18 +209,19 @@ export async function staffFreeze(ctx, env, path, body, who, audit) {
     const until = freeze ? nowS + /** @type {number} */ (minutes) * 60 : null;
     const rev = Number(row.freeze_rev) || 0;
     const detail = freeze ? { name, minutes, reason } : { name };
-    // the act, its thread and its audit row in one batch, keyed on the revision it was read at - two Admins at once land one
+    // the act, its thread and its audit row in one batch, keyed on the revision it was read at - two Admins at once land one,
+    // and the thread follows only the act that landed (a lost unfreeze never closes the winning freeze's thread)
     const [, set] = await db.batch([
       audit(act, row.id, detail, { okIf: { sql: 'EXISTS (SELECT 1 FROM players WHERE id = ? AND freeze_rev = ?)', args: [row.id, rev] } }),
       db.prepare(`UPDATE players SET frozen_until = ?2, frozen_reason = ?3, frozen_by = ?4, frozen_at = ?5, freeze_rev = ?6 + 1, freeze_live = 0
         WHERE id = ?1 AND freeze_rev = ?6`).bind(row.id, until, freeze ? reason : null, me.id, nowS, rev),
       freeze
         // A FREEZE OPENS THE THREAD, the player in it at once - the Staff tab is the one place a frozen player can type
-        ? db.prepare(`INSERT INTO staff_chat_threads (player, why, opened_at, opened_by, player_in, last_at, last_staff) VALUES (?1, 'freeze', ?2, ?3, 1, ?2, 1)
+        ? db.prepare(`INSERT INTO staff_chat_threads (player, why, opened_at, opened_by, player_in, last_at, last_staff) SELECT ?1, 'freeze', ?2, ?3, 1, ?2, 1 WHERE ${LANDED}
             ON CONFLICT(player) DO UPDATE SET why = 'freeze', player_in = 1, opened_at = CASE WHEN closed_at IS NULL THEN opened_at ELSE ?2 END,
-            opened_by = CASE WHEN closed_at IS NULL THEN opened_by ELSE ?3 END, closed_at = NULL`).bind(row.id, nowS, me.id)
+            opened_by = CASE WHEN closed_at IS NULL THEN opened_by ELSE ?3 END, closed_at = NULL`).bind(row.id, nowS, me.id, rev + 1, until)
         // and the unfreeze closes it (design doc: "The chat closes when the player is unfrozen")
-        : db.prepare('UPDATE staff_chat_threads SET closed_at = ?2, player_in = 0 WHERE player = ?1 AND closed_at IS NULL').bind(row.id, nowS),
+        : db.prepare(`UPDATE staff_chat_threads SET closed_at = ?2, player_in = 0 WHERE player = ?1 AND closed_at IS NULL AND ${LANDED}`).bind(row.id, nowS, me.id, rev + 1, until),
     ]);
     if (!set.meta.changes) return { error: 'freeze-moved' };
     const live = await pushFreeze(ctx, env, { id: row.id, frozen_until: until, freeze_rev: rev + 1 });
@@ -292,8 +296,9 @@ export async function staffFreeze(ctx, env, path, body, who, audit) {
  * `/v1/staff-chat/send` `{ text }` - a line of theirs in an open thread they are in. A mute does not shut it (Weak spots: "A
  * muted and frozen player can't talk to staff").
  * @param {any} ctx @param {any} env @param {string} path @param {any} body @param {any} player the session's account, read whole
+ * @param {(db: any, nowS: number, row: any) => any} auditStatement staff.js's audit row (handed in: staff.js imports this module)
  */
-export async function playerStaffChat(ctx, env, path, body, player) {
+export async function playerStaffChat(ctx, env, path, body, player, auditStatement) {
   const { db, nowS } = ctx;
   const thread = await db.prepare('SELECT * FROM staff_chat_threads WHERE player = ?1').bind(player.id).first();
   const open = threadOpen(thread, player, nowS) && thread.player_in === 1;
@@ -314,7 +319,11 @@ export async function playerStaffChat(ctx, env, path, body, player) {
     db.prepare('INSERT INTO staff_chat_lines (player, at, author, staff, text) VALUES (?1, ?2, ?1, 0, ?3) RETURNING id').bind(player.id, nowS, text),
     db.prepare('UPDATE staff_chat_threads SET last_at = ?2, last_staff = 0 WHERE player = ?1').bind(player.id, nowS),
   ]);
-  return { ok: true, line: { id: ins.results?.[0]?.id ?? null, at: nowS, staff: false, text } };
+  const id = ins.results?.[0]?.id ?? null;
+  // every line in the audit log, the player's too (design doc: "Every line is kept with the case and in the audit log") -
+  // by its id and length, never its words
+  await auditStatement(db, nowS, { actor: player, role: 'player', act: 'chat-line', target: player.id, detail: { line: id, len: text.length } }).run();
+  return { ok: true, line: { id, at: nowS, staff: false, text } };
 }
 
 /**

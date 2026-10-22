@@ -681,6 +681,9 @@ export class OnlineSession {
      *  the gate for every other door a line has (CHAT-POST's item, posted from the pack, went straight to sendChat). */
     this.mayChat = null;
     this.onMuted = null;          // MOD1: ({until}) => void - the relay says I am muted until then (epoch seconds), or 0: lifted
+    this.onFrozen = null;         // STAFF-PANEL5-FREEZE: ({until}) => void - the relay says staff froze my account until then (epoch seconds), or 0: lifted
+    this.onStaffNudge = null;     // STAFF-PANEL5-FREEZE: ({sl}) => void - my staff thread has a line `sl` to read from the account service
+    this.staffOk = false;         // STAFF-PANEL5-FREEZE: this hub said the staff channel's word (a `frozen`, a nudge) - it routes a staff nudge
     this.onFoes = null;           // WORLD2: (id, data) => void - the host's live foes in (a non-host's, from the room's host alone)
     this.onOwnFoes = null;        // OWN1: (id, data) => void - a peer's OWN foes in my world room (a building's, a dungeon's shared quest's)
     this.tradeOk = false;         // TRADE1: the relay that welcomed this socket routes trade frames (relaySupportsTrade) - an older one CLOSES the socket on the frame, so nothing is sent to it
@@ -2116,6 +2119,7 @@ export class OnlineSession {
     if (groundRoom(room)) frame.gl = GROUND_LAW;   // GROUND-GATE: the ground this build stands on, to a room whose peers stand on it (net/wire.js)
     if (streamsFoes(room)) frame.gv = GRANT_HELLO_LAW;   // GRANT-DOOR: the grants this build stands on, to a room whose foes ride (net/wire.js)
     if (leaseRoom(room)) frame.ls = 1;   // LEASE1: this build hands its hub's lease to the room
+    frame.fv = 1;   // STAFF-PANEL5-FREEZE: this build shows the freeze screen - a relay closes a frozen account's socket from a build that cannot
     return frame;
   }
 
@@ -2436,6 +2440,7 @@ export class OnlineSession {
     // CHAT-CHAN: a line for a channel inside the room (the party's, on the hub link) goes only to a relay that routes
     // it - an older one projects `{t:'chat', text}` and would fan the party's line to everyone online
     if (ch != null && (!CHAT_LINE_CHANNELS.includes(ch) || !(ch === 'guild' ? this.guildOk : this.chanOk))) return false;   // GUILD1c: a guild's line only to a relay that routes it - an older one refuses the channel and closes nothing, but says nothing either
+    if (ch === 'staff' && !this.staffOk) return false;   // STAFF-PANEL5-FREEZE: a staff nudge only to a hub that spoke the staff channel's word first (a `frozen`, a nudge)
     // EMOTE1: an action only to a relay that carries one - an older one would say "waves" as a line of its own
     if (me && !this.emoteOk) return false;
     const gate = chatGate(this._cbucket, this._now());
@@ -3652,6 +3657,13 @@ export class OnlineSession {
       const stood = this.peers.get(m.id);
       if (stood && stood.src == null) { stood.src = room; stood.srcAt = now; }   // NET-SMOOTH 2: stood by a pose, this room speaks for it
       if (stood && (!stood.told || stood.recall)) stood.heardIn = room;   // the socket the ask goes down (`_askRound`) - the one this stranger is heard through
+    } else if (m.t === 'chat' && m.ch === 'staff') {
+      // STAFF-PANEL5-FREEZE (net/staffChat.js): A STAFF THREAD'S NUDGE - a line's id (`sl`) the account service stored, never
+      // its words; the hub's alone, on the relay's word's own bucket. Heard, this hub routes the staff channel (`staffOk`).
+      if (!isSocialRoom(room) || !Number.isSafeInteger(m.sl) || m.sl <= 0 || !this._lawIn(room, now)) return;
+      this.staffOk = true;
+      const sl = m.sl;
+      this._deliver('chat', () => this.onStaffNudge?.({ sl }));
     } else if (m.t === 'chat') {
       // CHAT1: checked by the relay's own law (B7) - the id's shape, the name's, the line's; `mine` is the sender's own line back
       const text = typeof m.text === 'string' ? sanitizeChat(m.text) : '';
@@ -3747,6 +3759,14 @@ export class OnlineSession {
       this._inChat.set(room, g.bucket);
       if (!g.pass) { this.stats.chatsDropped++; return; }
       this._deliver('chat', () => this.onDm?.({ text, at: Number.isFinite(m.at) ? m.at : now }));
+    } else if (m.t === 'frozen') {
+      // STAFF-PANEL5-FREEZE (net/staffChat.js): STAFF FROZE MY ACCOUNT until then (epoch seconds), or 0: lifted. The screen
+      // is mine alone - the relay and the service hold me to it whatever it shows. On the relay's word's own bucket; my hub's
+      // next lease asked at once, so every room I hold learns it from my hand as soon as theirs.
+      if (!Number.isSafeInteger(m.until) || m.until < 0 || !this._lawIn(room, now)) return;
+      if (isSocialRoom(room)) { this.staffOk = true; this._leaseAskAt = -Infinity; }
+      const until = m.until;
+      this._deliver('chat', () => this.onFrozen?.({ until }));
     } else if (m.t === 'muted') {
       // MOD1: THE RELAY SAYS I AM MUTED (or no longer). On the chat line's
       // own inbound bucket, for CHAT-G's reason: it becomes a line in the

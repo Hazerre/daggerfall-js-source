@@ -339,6 +339,8 @@ test('STAFF-PANEL5-FREEZE: THE STAFF CHAT - Talk opens a thread outside a freeze
     _now += 5;
     const back = await s.said('/v1/staff-chat/send', s.sylvia, { text: 'Of course!' });
     assert.deepEqual([back.status, back.body.line.text, back.body.line.staff], [200, 'Of course!', false]);
+    const theirs = s.audits('chat-line').at(-1);
+    assert.deepEqual([theirs.role, theirs.target, theirs.detail], ['player', s.sylvia.id, { line: back.body.line.id, len: 10 }], 'the player\'s line in the audit log too - its id and length, never its words');
     assert.deepEqual((await s.said('/v1/staff-chat/read', s.sylvia, { after: line.body.line.id })).body.lines.map((l) => l.text), ['Of course!'], 'after its cursor');
     // the open threads: the one waiting on staff first
     await s.staff('/v1/staff/talk', { target: s.troll.id }, s.mob.session);
@@ -431,13 +433,39 @@ test('STAFF-PANEL5-FREEZE: A FAILED PUSH IS SAID AND TRIED AGAIN - the act saved
   } finally { s.restore(); }
 });
 
-test('STAFF-PANEL5-FREEZE: THE HOUR\'S SWEEP closes a freeze\'s thread whose freeze ran out and deletes the lines past STAFF_LINES_KEEP_S; the home roll-up names a frozen player waiting on staff (mutants: the sweep\'s freeze unread; the keep)', async () => {
+test('STAFF-PANEL5-FREEZE: TWO ADMINS AT ONCE - an act read at a revision another act moved lands nothing: `freeze-moved`, no order pushed, its audit row failed, and the thread follows the act that landed (a lost unfreeze never closes the winning freeze\'s thread) (mutants: the race unsaid; the thread unguarded)', async () => {
+  const s = await stand();
+  try {
+    /** The next batch runs after another Admin's act moved the player's revision - `then` that act's own write. */
+    const race = (then) => {
+      const batch = s.env.DB.batch;
+      s.env.DB.batch = async (list) => { s.env.DB.batch = batch; then(); return batch.call(s.env.DB, list); };
+    };
+    const bump = (sql = '') => s.raw.prepare(`UPDATE players SET freeze_rev = freeze_rev + 1${sql} WHERE id = ?`).run(s.troll.id);
+    race(() => bump());
+    let res = await s.freeze(s.troll);
+    assert.deepEqual([res.status, res.body], [409, { error: 'freeze-moved' }], 'the lost freeze');
+    assert.deepEqual([s.pushed.length, s.row(s.troll.id).frozen_until, s.thread(s.troll.id)], [0, null, null], 'no order, no freeze, no thread');
+    assert.equal(s.audits('freeze').at(-1).outcome, 'failed');
+    assert.equal((await s.freeze(s.troll)).status, 200);
+    const pushed = s.pushed.length;
+    // an unfreeze loses to a fresh freeze landing first: that freeze's thread stays open
+    race(() => bump(', frozen_at = frozen_at + 1'));
+    res = await s.staff('/v1/staff/unfreeze', { target: s.troll.id }, s.mob.session);
+    assert.deepEqual([res.status, res.body], [409, { error: 'freeze-moved' }], 'the lost unfreeze');
+    assert.deepEqual([s.pushed.length, s.thread(s.troll.id).closed_at, s.thread(s.troll.id).player_in], [pushed, null, 1], 'the winning freeze\'s thread open');
+    assert.equal(s.audits('unfreeze').at(-1).outcome, 'failed');
+  } finally { s.restore(); }
+});
+
+test('STAFF-PANEL5-FREEZE: THE HOUR\'S SWEEP closes a freeze\'s thread whose freeze ran out and deletes the lines past STAFF_LINES_KEEP_S; the home roll-up names a frozen player waiting on staff (mutants: the sweep\'s freeze unread; a Talk thread swept; the keep)', async () => {
   const s = await stand();
   try {
     await s.freeze(s.troll, { minutes: 1 });
     await s.said('/v1/staff-chat/send', s.troll, { text: 'why?' });
     const home = await HOME_WATCH.top({ db: s.env.DB, nowS: nowS() }, s.env, {}, 10);
     assert.deepEqual(home.items, [{ level: 'medium', why: 'frozen, waiting on a staff answer', sub: s.troll.id, name: 'Troll' }]);
+    assert.equal((await s.staff('/v1/staff/talk', { target: s.sylvia.id }, s.mob.session)).status, 200, 'a Talk thread beside it');
     s.raw.prepare("INSERT INTO staff_chat_lines (player, at, author, staff, text) VALUES (?, ?, ?, 0, 'old')").run(s.sylvia.id, nowS() - STAFF_LINES_KEEP_S - 1, s.sylvia.id);
     assert.equal(await sweepStaffChat(s.env.DB, nowS(), 100), 1, 'the old line alone: the freeze stands');
     assert.equal(s.thread(s.troll.id).closed_at, null);
@@ -445,6 +473,7 @@ test('STAFF-PANEL5-FREEZE: THE HOUR\'S SWEEP closes a freeze\'s thread whose fre
     assert.equal((await s.said('/v1/staff-chat/read', s.troll)).body.open, false, 'a freeze\'s thread is open only while it stands');
     assert.equal(await sweepStaffChat(s.env.DB, nowS(), 100), 1);
     assert.equal(s.thread(s.troll.id).closed_at, nowS());
+    assert.equal(s.thread(s.sylvia.id).closed_at, null, 'a Talk thread is no freeze\'s: the sweep leaves it open');
     assert.deepEqual(s.raw.prepare('SELECT text FROM staff_chat_lines ORDER BY id').all().map((r) => r.text), ['why?'], 'lines inside the keep stay');
   } finally { s.restore(); }
 });

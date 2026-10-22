@@ -1240,8 +1240,8 @@ export async function marketBuy(ctx, player, env, { character, region, listing: 
   ]);
   if (over) return { error: 'market-rate' };
   if (!l || l.state !== 'open' || Number(l.expires_at) <= nowS) return { error: 'market-gone' };
-  if (l.seller === me) return { error: 'market-own' };
   if (Number(l.seller_frozen) > nowS) return { error: 'market-seller-frozen' };   // STAFF-PANEL5-FREEZE: a frozen account's listings sell nothing
+  if (l.seller === me) return { error: 'market-own' };
   // HOME-VENDOR: a trader's piece is bought at its trader alone - the buyer's word names the listing's own stall, in its
   // home's region, and the stall still stands; any other listing is no trader's
   const vend = vendor == null ? null : vendorOf(vendor);
@@ -1944,8 +1944,8 @@ export async function marketBid(ctx, player, env, { character, region, auction: 
   const a = await db.prepare(`SELECT a.*, (SELECT bidder FROM market_bids WHERE id = a.high_bid) AS high_bidder,
     (SELECT frozen_until FROM players WHERE id = a.seller) AS seller_frozen FROM market_auctions a WHERE a.id = ?1`).bind(id).first();
   if (!a || a.state !== 'open' || Number(a.ends_at) <= nowS) return { error: 'market-gone' };
-  if (a.seller === me) return { error: 'market-own' };
   if (Number(a.seller_frozen) > nowS) return { error: 'market-seller-frozen' };   // STAFF-PANEL5-FREEZE: nor its auctions
+  if (a.seller === me) return { error: 'market-own' };
   if (a.high_bidder === me) return { error: 'auction-leading' };
   const high = a.high == null ? null : Number(a.high);
   const next = auctionNext(high, Number(a.opening));
