@@ -259,6 +259,7 @@ import { createMarksBook, mintMarksRid } from '../net/marksBook.js';   // MARKS1
 import { createNoticeBook, parseNoteCommand, planNoteAnswer, NOTE_LETTER_LOST } from '../net/noticeBook.js';   // NOTICE1: this device's Notice Boards - a town's board read, a note pinned
 import { createNoticeOverlay, closeNoticeDoor, noticeDoorOpen } from '../ui/noticeDoor.js';   // NOTICE1: the board's window, through its one door
 import { createProfBook } from '../net/profBook.js';   // PROF1: this character's professions - its Stores, its day, its harvests kept until answered
+import { dayTurnMs } from '../net/dayTurn.js';   // DAY-TURN: this page's moment in the day's turn
 import { createMotherlodeBook } from '../net/motherlodeBook.js';   // PROF2b: the day's Motherlodes - read, warned of, their Watch receipts kept
 import { createProfHud } from '../ui/professions/profHud.js';   // PROF1: the prompt, the act's meter, the toasts, the day's chip, the rank's banner
 import { createGatherHost } from './gatherHost.js'; // PROF1/PROF2: the gathering professions in the streaming world - the nodes, the target, the act
@@ -375,7 +376,8 @@ import { SD_STEPS_TEXT } from './superDungeon/sdSteps.js';   // SD7b: the cast-b
 import { inOrreryHall, dungeonToRealm as sdDungeonToRealm, SD_FRAY_LASH, SD_ARENA, realmToDungeon as sdRealmToDungeon, SD_TURN_WAIT_LINE } from '../net/superDungeon/sdBrain.js';   // SD6c: the snap's lash, on whoever stands in the hall; SD10: the arena, where the way home stands; AUDIT SD II (L7 H2): a turn the stones refused
 import { SD_REM_SINK_MS } from './superDungeon/sdRemnant.js';   // SD10: the way home rises once the Remnant's body has sunk
 import { SD_HOME_TEXT, SD_HOME_SAY_MS, SD_HOME_RISE_MS, SD_HOME_SCALE } from './superDungeon/sdEnd.js';   // SD10: the way home's words; AUDIT SD II (L6 F16): said as it rises
-import { sdRiftWord, sdReturnStands, sdRiftCount, riftLook, SD_ENTERED_KEY, SD_FALLEN_KEY, SD_NO_MARK, SD_RETURN_SIZE } from '../world/superDungeon/sdDungeon.js';   // SD4b: a Super dungeon's Rift and Return, off the hub's record
+import { sdRiftWord, sdReturnStands, sdRiftCount, riftLook, SD_ENTERED_KEY, SD_FALLEN_KEY, SD_NO_MARK, SD_RETURN_SIZE, sdThroughStands } from '../world/superDungeon/sdDungeon.js';   // SD4b: a Super dungeon's Rift and Return, off the hub's record; SD-THROUGH: and its Way Through
+import { sdVeilModelOf, sdRingsFarFirst } from './superDungeon/sdThrough.js';   // SD-THROUGH: the veil closes on the nearer of the Hollow's two rings; AUDIT SD-THROUGH (B8): the nearer drawn last
 import { sdSlotsKept } from '../systems/superDungeon/sdSlots.js';   // SD-ONELIFE: the Hollows' slots kept on the device, by the account
 import { sdCities, sdTemplates } from '../systems/superDungeon/sdSite.js';   // SD2b: the Hollow's cities and templates, over the game's own rows
 import { RANDOM_TREASURE_ARCHIVE } from '../systems/loot/lootDataTables.js';   // WB12d: the casket's pile, undrawn
@@ -1870,13 +1872,14 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       relayNowS: () => (_sharedClockHeard ? Math.floor((Date.now() + _sharedOffsetMs) / 1000) : null),   // a receipt's life is the relay's
       // CROWN2: a Pact broken early, said in red on every tab as the server's own line (RED1) - offered again while there is no chat yet
       onRed: (line) => (redChat ? redChat(line) : false),
+      turnMs: dayTurnMs(),   // DAY-TURN: its report's day turns at this page's moment past midnight
     })
     : null;
   // CHAP2a (Chapters-Arc 4): the guild halls of the towns this client walks into, reported once a UTC day a town while
   // the Chapters are open to this account (net/npcHallBook.js; the entry edge is revealMemberGuildHalls'). Online only -
   // offline a town is DFU's.
   const hallDoor = params.has('online') ? accountRoll({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }) : null;
-  const hallBook = hallDoor ? createHallBook({ door: hallDoor, storage: appStorage() }) : null;
+  const hallBook = hallDoor ? createHallBook({ door: hallDoor, storage: appStorage(), turnMs: dayTurnMs() }) : null;   // DAY-TURN
   // CHAP3c (Chapters-Arc 5.2, 5.3): the chapter sheet - every chapter's Strength - held for the halls' prices and shelves
   // (net/chapterSheet.js), asked at a town's entry and again when it grows old. Online only - offline a hall is DFU's.
   const chapterSheet = hallDoor ? createChapterSheet({ door: hallDoor }) : null;
@@ -2006,7 +2009,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   };
   const profBook = params.has('online')
     ? createProfBook({ door: accountProf({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }), storage: appStorage(),
-      character: () => characterIdOf(playerEntity), now: () => Date.now() + _sharedOffsetMs, carry: carryHands })
+      character: () => characterIdOf(playerEntity), now: () => Date.now() + _sharedOffsetMs, carry: carryHands, turnMs: dayTurnMs() })   // DAY-TURN: its day's reads turn at this page's moment past midnight
     : null;
   // FIRM1 (bible/06-Systems/Firmament.md): THE FIRMAMENT'S BOOK - the character's passive tree and its purses as the account
   // service keeps them (net/firmament/firmamentBook.js); what it hears is the tree in force (systems/firmamentLive.js), and the window
@@ -24791,7 +24794,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (!sdHost) return null;
     const rec = sdHost.record(), now = Date.now() + _sharedOffsetMs;
     const seen = { entered: _sdEntered.has(s), fallen: _sdFallen.has(s) };
-    return { word: sdRiftWord(rec, s, now, seen), returns: sdReturnStands(rec, s, now), count: sdRiftCount(rec, s, now), look: riftLook(rec, s, now, seen), enter: () => sdEnterRealm(s) };   // AUDIT SD II (L6 F5): and its count; SD-LOOK: and its look - its state, read off the same record
+    return { word: sdRiftWord(rec, s, now, seen), returns: sdReturnStands(rec, s, now), through: sdThroughStands(rec, s, now), count: sdRiftCount(rec, s, now), look: riftLook(rec, s, now, seen), enter: () => sdEnterRealm(s) };   // AUDIT SD II (L6 F5): and its count; SD-LOOK: and its look - its state, read off the same record; SD-THROUGH: and whether one has gone through (the Way Through stands)
   };
   /** AUDIT SD V (P1): the Rift's look alone, every frame it is drawn - none of the word, the count or the step's door
    *  sdRiftOf makes (it was made four times a frame for the look, ~2.4 KB); its `seen` kept. */
@@ -29370,9 +29373,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       if (sky && !inHour) sky.paint(deadlandsSeconds(), _sdHollowHaze, sdSkyLookNow(), renderer.worldViewportPx ?? [0, 0, renderer.gl.drawingBufferWidth, renderer.gl.drawingBufferHeight]);
       if (sky) { _sdRiftSky.map = sky.map.texture; _sdRiftSky.seconds = deadlandsSeconds(); _sdRiftSky.gain = inHour ? skyGain(renderer._fogColor, SD_REALM_FOG.color) : 1; }
       const look = end.sdEndLook?.(eye, sky ? _sdRiftSky : null, minuteNow() / 60);
-      sdVeilAim(proj, view, look?.window?.model ?? look?.bay?.model);
+      const through = end.sdThroughLook?.(eye, sky ? _sdRiftSky : null, minuteNow() / 60) ?? null;   // SD-THROUGH: the Way Through's window and floor light, the Rift's own pass
+      sdVeilAim(proj, view, sdVeilModelOf(eye, through, look));
       let drew = !!sky && !inHour;
-      if (look && pass?.draw(proj, view, look, fog, renderer.lightingLane ? SD_SKY_STEPS.lane : SD_SKY_STEPS.classic)) drew = true;
+      for (const l of sdRingsFarFirst(eye, through, look)) if (l && pass?.draw(proj, view, l, fog, renderer.lightingLane ? SD_SKY_STEPS.lane : SD_SKY_STEPS.classic)) drew = true;   // AUDIT SD-THROUGH (B8): the farther first - the pass writes no depth
       if (sdHaloPassOf()?.draw(proj, view, end.sdEndHalos?.() ?? [], fog, renderer.lightingLane ? SD_HALO_GAIN.lane : SD_HALO_GAIN.classic)) drew = true;
       if (drew) renderer.markForeignPass();
     },

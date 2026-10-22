@@ -42,7 +42,8 @@ import { EL_CODEC_GLSL, EL_TONEMAP_GLSL, EL_ATTEN_GLSL, EL_MAX_LIGHTS, elDecode,
  *
  * GR1's law was that the shaders are the lab's text byte for byte, and
  * the pin enforced it by slicing `grass-proto.html` at test time. That
- * law has been broken deliberately, three times, and the honest way to
+ * law has been broken deliberately, three times (SWAY-SOFT made it a
+ * fifth edit, GRASS6 having taken one back), and the honest way to
  * break it is to say exactly where rather than to loosen the pin: the
  * lab's text plus THESE edits, and nothing else, is what the game
  * compiles. Any other drift still fails the pin, which is the whole
@@ -99,6 +100,11 @@ export const GRASS2_VS_EDITS = Object.freeze([
   // hashes) for a value that never changed. The lab's own line,
   // `vTint = aInst2.z;`, is what compiles again; the lane carries the
   // patched tint from the placer.
+  Object.freeze({
+    why: 'SWAY-SOFT (2026-10-21, Mac: "make the grass sway more subtle"): a gentler gust and a smaller lean - LAB_LEAN_PER_PUSH and LAB_GUST_MAX in grassMeadow.js',
+    from: '  float push = length(uWindV) * (0.55 + gust * 0.75);\n  vec2 lean = aInst2.xy + wdir * push * 0.055;',
+    to: '  float push = length(uWindV) * (0.6 + gust * 0.45);\n  vec2 lean = aInst2.xy + wdir * push * 0.032;',
+  }),
 ]);
 
 export const LAB_GRASS_HEAD = `#version 300 es
@@ -224,8 +230,9 @@ void main(){
   vec2 wdir = length(uWindV) > 1e-4 ? normalize(uWindV) : vec2(1.0, 0.0);
   float along = dot(root, wdir);
   float gust = sin(uTime*1.7 - along*0.35 + aInst.w*0.6) * 0.5 + 0.5;
-  float push = length(uWindV) * (0.55 + gust * 0.75);
-  vec2 lean = aInst2.xy + wdir * push * 0.055;
+  // SWAY-SOFT (2026-10-21): a gentler gust and a subtler lean - 0.55 + 0.75 and 0.055 before (GRASS2_VS_EDITS)
+  float push = length(uWindV) * (0.6 + gust * 0.45);
+  vec2 lean = aInst2.xy + wdir * push * 0.032;
   vec3 p;
   p.xz = root + lean * (vT*vT) * h;
   // GR2 (Mac: from the side the blades are completely flat). A blade's

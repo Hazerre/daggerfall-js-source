@@ -331,8 +331,8 @@ import { newTable, topUp as holdemTopUp, sit as holdemSit, sitRefusal as holdemS
 import { newRemains, foldFall, takeFrom, remainsNamedFor, collectAsk, remainsWords, remainsLive, remainsEmpty, remainsSpent, remainsTakeover, remainsEvict, remainsOf, wildRemainsKey, WILD_REMAINS_PREFIX } from '../../src/net/wild/wildLaw.js';
 import { wildGate, wildDirected, WILD_HZ_MAX, WDUN_HZ_MAX, WDUN_HERE_MS, WDUN_INTERNAL_RESET, WDUN_INTERNAL_KIN, WDUN_INTERNAL_GONE, WILD_INTERNAL_VIT, wdunRoomKey, wdunHall, wdunHallOfRoom, WILD_REMAINS_MS as WDUN_PILE_MS } from './relay.js';
 import { WDUN_KEY, wdunOf, wdunPrune, wdunEnter, wdunHere, wdunLeave, wdunDie, wdunGone, wdunState, wdunCrows, wdunBound, wdunGiantDie, wdunGiants } from '../../src/net/wild/wildLaw.js';   // PVPDUNGEONS: the zone's halls, kept by the hub
-import { validSdRecord, sdRelayGate, validSdFoundTell, chatRegionRoom, SD_INTERNAL_CENSUS, SD_INTERNAL_FOUND, SD_INTERNAL_LIVE, SD_TELL_RETRY_MS, SD_KEY, SD_FOUND_KEY, SD_REALM_KEY, sdDeadKey, SD_REGION_COUNT, SD_FIGHTERS_MAX, sdPzRelayGate, SD_ORRERY_KEY, sdFightRelayGate, SD_BRAIN_MIN, SD_NO_WORDS, SD_FIGHT_KEY, SD_INTERNAL_FELL, validSdFellTell, SD_RC_PREFIX, sdReceiptKey, SD_HERE_HOLD_MS, SD_SLOT_KEY, SD_HELD_KEY } from './relay.js';   // SD3: the Super dungeon's frame, its record and its doors (the wire's, through relay.js)
-import { sdFirst, sdRise, sdFind, sdFell, sdGone, sdDue, pickSdRegion, sdFindBelieved, sdNearSite, sdHolds, sdAdmits, isSdRoom, sdSlotOfRoom, SD_NO_CLOSED, SD_NO_FULL, SD_NO_FALLEN } from '../../src/net/superDungeon/sdLaw.js';   // SD3: the Super dungeon's law - the director's moves, the census's pick, the find, the realm's room
+import { validSdRecord, sdRelayGate, validSdFoundTell, chatRegionRoom, SD_INTERNAL_CENSUS, SD_INTERNAL_FOUND, SD_INTERNAL_LIVE, SD_TELL_RETRY_MS, SD_KEY, SD_FOUND_KEY, SD_REALM_KEY, sdDeadKey, SD_REGION_COUNT, SD_FIGHTERS_MAX, sdPzRelayGate, SD_ORRERY_KEY, sdFightRelayGate, SD_BRAIN_MIN, SD_NO_WORDS, SD_FIGHT_KEY, SD_INTERNAL_FELL, validSdFellTell, SD_INTERNAL_IN, validSdInTell, SD_RC_PREFIX, sdReceiptKey, SD_HERE_HOLD_MS, SD_SLOT_KEY, SD_HELD_KEY } from './relay.js';   // SD3: the Super dungeon's frame, its record and its doors (the wire's, through relay.js)
+import { sdFirst, sdRise, sdFind, sdEnter, sdFell, sdGone, sdDue, pickSdRegion, sdFindBelieved, sdNearSite, sdHolds, sdAdmits, isSdRoom, sdSlotOfRoom, SD_NO_CLOSED, SD_NO_FULL, SD_NO_FALLEN } from '../../src/net/superDungeon/sdLaw.js';   // SD3: the Super dungeon's law - the director's moves, the census's pick, the find, the realm's room
 // SD-HERALD (2026-10-09, the owner: "We need to add discord integration to abyss dungeons"): TWO FILES JOIN THE BUNDLE -
 // net/superDungeon/sdHerald.js (the Abyss Dungeon's Discord posts and when they are owed, pure law - it imports sdLaw.js and
 // gateHerald.js, both here) and formats/mapsTables.js (MapsFile's verbatim tables, which import nothing - the region a
@@ -1035,6 +1035,7 @@ export class Room {
     if (path === SD_INTERNAL_FOUND) return this._sdFoundInternal(request);   // SD3: a cell telling the hub a Hollow found
     if (path === SD_INTERNAL_LIVE) return this._sdLiveInternal();   // SD3: the Worker or a realm asking the hub its record
     if (path === SD_INTERNAL_FELL) return this._sdFellInternal(request);   // SD8b: a realm telling the hub its Remnant fell
+    if (path === SD_INTERNAL_IN) return this._sdInInternal(request);   // SD-THROUGH: a realm telling the hub its first soul stepped through
     if (path === EG_INTERNAL_OPEN) return this._egOpenInternal(request);   // EG-PLAY: the hub opening a breach's room
     if (path === EG_INTERNAL_HERALD) return this._egHeraldInternal(request);   // EG-E3: a breach's room telling the hub its news, for the herald
     if (path === EG_INTERNAL_LIVE) return this._egLiveInternal();   // EG-H2: the Worker asking the hub the Spire's live breaches
@@ -3093,6 +3094,7 @@ export class Room {
     const gheld = await this._gambitTick();   // KG5: a King's Gambit table's turn clock, its turn's end, or its deal
     if (this._dead.size) await this._reap();   // AUDIT CARDS-3 A3: a send the tick failed closed its socket - no close comes for it
     if (held || iheld || gheld) return;
+    await this._sdInBeat(Date.now());   // AUDIT SD-THROUGH (A1): a realm's first soul through, owed the hub
     if (await this._sdFightTick()) return;   // SD8b: a realm's alarm is its Remnant's beat while its fight lives
     if (await this._egTick()) return;   // EG-PLAY: a breach's room's alarm is its director's beat while the breach lives
     // SERPENT1: A CELL WITH A SERPENT'S FIGHT beats it - and its other duties (a rite's tell, its raids' ends) still run,
@@ -8311,7 +8313,7 @@ export class Room {
     if (!rec || rec.s !== s || !sdHolds(rec, now)) return SD_NO_CLOSED;
     const realm = await this._sdRealmOf(s);
     if (sub && (realm.dead.includes(sub) || (realm.dead.length >= SD_FIGHTERS_MAX && (await this.state.storage.get(sdDeadKey(sub))) != null))) return SD_NO_FALLEN;   // SD-ONELIFE: one life a Hollow; AUDIT SD III (R2): past the list, its own key
-    if (sub && realm.in.includes(sub)) return null;
+    if (sub && realm.in.includes(sub)) { this._sdTellIn(s, rec, now); return null; }   // SD-THROUGH
     if (!sdAdmits(rec, now)) return SD_NO_CLOSED;
     const f = await this._sdFightOf();
     if (f?.fell) return SD_NO_CLOSED;   // SD8b: the realm knows its own kill before the hub's word comes round
@@ -8334,7 +8336,48 @@ export class Room {
     if (sub && guest && realm.in.filter((x) => guests.has(x)).length >= SD_GUEST_SEATS && !free((x) => guests.has(x))) return SD_NO_FULL;
     if (realm.in.length >= SD_FIGHTERS_MAX && !free(() => true)) return SD_NO_FULL;
     if (sub && !realm.in.includes(sub)) { realm.in.push(sub); if (guest) realm.gu.push(sub); await this.state.storage.put(SD_REALM_KEY, realm); }
+    this._sdTellIn(s, rec, now);   // SD-THROUGH: one went through - the hub hears it, and every Hollow's Way Through stands
     return null;
+  }
+  /** SD-THROUGH (Super-Dungeons.md section 6): THE HUB TOLD THAT ONE WENT THROUGH - at an admission while the hub's record
+   *  is found and has no `inAt`, one tell in flight, UNAWAITED (a hello never waits on it), until the hub has answered for
+   *  this slot; the hub's move is the law's (net/superDungeon/sdLaw.js sdEnter), so a second tell moves nothing. AUDIT
+   *  SD-THROUGH (A1): A TELL THAT DID NOT LAND IS OWED - told again on the realm's alarm SD_TELL_RETRY_MS on (_sdInBeat),
+   *  as a find's is (_sdTellHub): admissions met with a tell in flight were dropped with it, and a lone fighter's lost
+   *  tell was never told again. */
+  _sdTellIn(s, rec, now) {
+    const rooms = this.env?.ROOMS;
+    if (!rooms?.idFromName || !rooms?.get || rec?.inAt != null || !sdAdmits(rec, now) || this._sdInTold === s || this._sdInTelling === s) return;
+    this._sdInTelling = s;
+    const p = this._sdTellInNow(s, rooms).finally(() => { if (this._sdInTelling === s) this._sdInTelling = null; });
+    try { this.state.waitUntil?.(p); } catch { /* not every runtime */ }
+  }
+  /** The tell itself - never told once the realm's own Remnant has fallen (AUDIT SD-THROUGH A4: the hub's record says
+   *  found until the fall's tell lands, and a returner's tell in that gap stood a Way Through the collapse refuses); told
+   *  for good once the hub answers, a 400 its last word (A5: any other refusal - an older hub's 404 mid-deploy - is owed). */
+  async _sdTellInNow(s, rooms) {
+    try {
+      if ((await this._sdFightOf())?.fell) return;
+      const res = await rooms.get(rooms.idFromName(SOCIAL_ROOM)).fetch(new Request(`https://relay.internal${SD_INTERNAL_IN}`, { method: 'POST', body: JSON.stringify({ s }), signal: AbortSignal.timeout(SD_TELL_RETRY_MS) }));
+      if (res && (res.ok || res.status === 400)) { this._sdInTold = s; this._sdInOwed = null; return; }
+    } catch (e) { console.warn('[sd] in', e?.message ?? e); }
+    this._sdInOwed = s;
+    this._sdInRetryAt = Date.now() + SD_TELL_RETRY_MS;
+    await this._sdCellArm(this._sdInRetryAt);
+  }
+  /** AUDIT SD-THROUGH (A1): THE REALM'S ALARM TELLS AN OWED TELL AGAIN, once its retry is due - while the hub's record is
+   *  found and unstamped and the realm has admitted someone (_sdTellIn's own law). A woken instance (an eviction forgets
+   *  the owed slot) asks once, by its own sockets' room - a realm that admitted none is owed nothing. */
+  async _sdInBeat(now) {
+    if (this._sdInOwed === undefined) { const key = [...this._all()].map(([, b]) => b.key).find((k) => isSdRoom(k)); this._sdInOwed = key ? sdSlotOfRoom(key) : null; }
+    const s = this._sdInOwed;
+    if (s == null) return;
+    if (now < (this._sdInRetryAt ?? 0)) { await this._sdCellArm(this._sdInRetryAt); return; }   // an alarm sooner than the retry (a fight's beat) spends none of it
+    this._sdInOwed = null;
+    if (!(await this._sdRealmOf(s)).in.length) return;
+    const rec = await this._sdLiveOf(s, now);
+    if (rec === undefined) { this._sdInOwed = s; this._sdInRetryAt = now + SD_TELL_RETRY_MS; await this._sdCellArm(this._sdInRetryAt); return; }   // the hub silent: still owed
+    this._sdTellIn(s, rec, now);
   }
   /** SD-ONELIFE (Mac: "A death within the rift casts you out and youre unable to re enter. You get one life to prove your
    *  worth"): the account whose dying pose (PCORPSE1's `dd`) came through a realm is kept as dead there - every hello of
@@ -9313,6 +9356,18 @@ export class Room {
       if (fell) await this._sdHeraldArm(Date.now());   // SD-HERALD: and to the channel
     }
     await this._sdKeepReceipts(c, Date.now());   // SD9a
+    return json({ ok: true });
+  }
+  /** SD-THROUGH: THE HUB HEARS ONE WENT THROUGH - its record stamped (net/superDungeon/sdLaw.js sdEnter: once, while that slot
+   *  is found and its boss stands) and said to everyone online. Answered ok whether it moved or not: the realm tells once. */
+  async _sdInInternal(request) {
+    let body = null;
+    try { body = await request.json(); } catch { /* refused below */ }
+    const c = validSdInTell(body);
+    if (!c) return json({ ok: false }, 400);
+    const rec = await this._sdOf();
+    const inn = rec && rec.s === c.s ? sdEnter(rec, Date.now()) : null;
+    if (inn) { await this._sdSave(inn); this._sdFan(inn); }
     return json({ ok: true });
   }
   /**

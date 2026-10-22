@@ -1034,6 +1034,21 @@
   "tr": "b58579d65006",
   "by": "claude-in-session"
  },
+ "sd.through.opens": {
+  "en": "1e72c7ca985d",
+  "tr": "0b09ff803552",
+  "by": "claude-in-session"
+ },
+ "sd.through.title": {
+  "en": "45d79739680d",
+  "tr": "7180007a9398",
+  "by": "claude-in-session"
+ },
+ "sd.through.to": {
+  "en": "9adecd5690cd",
+  "tr": "a63f940b19a3",
+  "by": "claude-in-session"
+ },
  "sea.exchange.band": {
   "en": "80c476366bce",
   "tr": "f54efc0d4160",
