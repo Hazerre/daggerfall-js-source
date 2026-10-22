@@ -46,6 +46,10 @@
 // high, total }` (`role` 'moderator' shows it to every staff member, anything else to Admins alone). Moderators see
 // Reports only. A watch that throws is answered `failed: true` and sorts as a medium one - never as an empty, quiet one.
 import { HOME_WATCH as REPORTS_WATCH, AI_WAIT_S } from './staffCases.js';
+import { HOME_WATCH as WATCHLIST_WATCH } from './staffDesk.js';
+import { HOME_WATCH as ECONOMY_WATCH } from './staffEconomy.js';
+import { HOME_WATCH as GAINS_WATCH } from './staffRealm.js';
+import { HOME_WATCH as CONTESTED_WATCH } from './staffCensus.js';
 import { modAiOn } from './modAi.js';
 import { utcDay } from '../../src/net/marksLaw.js';
 import { PLAY_GRACE_S } from '../../src/net/playClock.js';
@@ -331,7 +335,7 @@ export const STATUS_WATCH = Object.freeze({
 });
 
 /** THE HOME ROLL-UP's watches, in their usual order - one plain list; a module's HOME_WATCH joins it by one line. */
-export const HOME_WATCHES = [REPORTS_WATCH, STATUS_WATCH];
+export const HOME_WATCHES = [REPORTS_WATCH, ECONOMY_WATCH, GAINS_WATCH, CONTESTED_WATCH, WATCHLIST_WATCH, STATUS_WATCH];   // the design's Home order: reports, then market and harvesting, then the rest
 
 const LEVELS = Object.freeze(['low', 'medium', 'high']);
 /**
@@ -344,7 +348,8 @@ export async function homeOf(ctx, env, who, n, watches = HOME_WATCHES) {
   const out = await Promise.all(mine.map(async (w, i) => {
     try {
       const r = await w.top(ctx, env, who, n);
-      const items = (r.items ?? []).slice(0, n);
+      // a watch may say why in parts (staffRealm.js) - Home says it as one line, parts joined as the panel's lists join them
+      const items = (r.items ?? []).slice(0, n).map((/** @type {any} */ x) => (Array.isArray(x.why) ? { ...x, why: x.why.join(' · ') } : x));
       return { id: w.id, label: w.label, items, high: num(r.high), total: num(r.total), more: Math.max(0, num(r.total) - items.length),
         worst: Math.max(-1, ...items.map((x) => LEVELS.indexOf(x.level))), i };
     } catch (e) {

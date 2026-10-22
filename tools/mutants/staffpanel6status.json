@@ -112,8 +112,8 @@
   {
     "name": "STAFF-PANEL6-STATUS-home-no-cut",
     "file": "server-account/src/staffStatus.js",
-    "old": "      const items = (r.items ?? []).slice(0, n);",
-    "new": "      const items = (r.items ?? []);",
+    "old": "      const items = (r.items ?? []).slice(0, n).map(",
+    "new": "      const items = (r.items ?? []).map(",
     "why": "a watch's whole list on Home",
     "tests": [
       "test/server/staffpanel6status.test.js"
