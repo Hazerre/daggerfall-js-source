@@ -17,7 +17,7 @@
 -- is idx_realm_trades_waiting's prefix)
 CREATE INDEX IF NOT EXISTS idx_market_sales_at ON market_sales (at);
 CREATE INDEX IF NOT EXISTS idx_market_fills_at ON market_fills (at);
-CREATE INDEX IF NOT EXISTS idx_realm_trades_b ON realm_trades (b_player, created_at);
+-- (a trade by its second side's account: 0148's realm_trades_b_player, made for the profile's Trades tab)
 
 -- ...and a guild vault's moves by time, and by who made them: the log keeps a name, never an account, and is never swept
 CREATE INDEX IF NOT EXISTS idx_guild_vault_log_at ON guild_vault_log (at);

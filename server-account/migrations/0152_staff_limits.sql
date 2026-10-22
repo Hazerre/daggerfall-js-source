@@ -24,5 +24,5 @@ CREATE TABLE IF NOT EXISTS staff_limits (
   CHECK (amber IS NOT NULL OR red IS NOT NULL),
   CHECK (amber IS NULL OR red IS NULL OR amber <= red)
 );
-CREATE INDEX IF NOT EXISTS guild_vault_log_at ON guild_vault_log (at);
+-- (a guild vault's moves by time: 0150's idx_guild_vault_log_at, made for the economy's stream)
 CREATE INDEX IF NOT EXISTS guild_store_moves_at ON guild_store_moves (at);

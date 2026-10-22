@@ -600,7 +600,7 @@ test('STAFF-PANEL3-ECON: every statement stands on an index - no big table walke
     }
   }
   const all = plans.map((p) => p[1]).join('\n');
-  for (const ix of ['idx_market_sales_at', 'idx_market_fills_at', 'idx_realm_trades_b', 'idx_guild_vault_log_at', 'idx_guild_vault_log_who', 'idx_market_sales_material',
+  for (const ix of ['idx_market_sales_at', 'idx_market_fills_at', 'realm_trades_b_player', 'idx_guild_vault_log_at', 'idx_guild_vault_log_who', 'idx_market_sales_material',
     'idx_market_fills_material', 'idx_marks_ledger_escrow', 'idx_realm_characters_rich', 'idx_node_harvests_day', 'idx_node_harvests_account', 'progress_hours_hour', 'idx_marks_day', 'realm_wealth_hours_hour']) {
     assert.match(all, new RegExp(`\\b${ix}\\b`), `${ix} unused`);
   }
