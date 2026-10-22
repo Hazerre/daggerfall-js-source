@@ -73,10 +73,10 @@ export const grimoireBackdrop = () => (Object.hasOwn(GRIMOIRE_BACKDROPS, getPref
 
 /** INK-TONES: a rarity's tone deepened to read on the page (the loot plaque's own), and a set's and the sigil's own
  *  colour mixed down with the ink - 40% (the sigil's lighter teal 35%) keeps its hue and reads at 4.5:1 or better on the cream page. */
-export const RARITY_INK = Object.freeze({ magic: '#1f4f9e', rare: '#5c4600', legendary: '#9a4210', aetheric: '#1d6a86', artifact: '#5e2a96', gilded: '#7a4a00' });
+export const RARITY_INK = Object.freeze({ magic: '#1f4f9e', rare: '#5c4600', legendary: '#9a4210', aetheric: '#1d6a86', artifact: '#5e2a96', gilded: '#a3122e' });
 export const SET_INK = 'color-mix(in srgb, var(--set, #4fb8a8) 40%, #120a04)';
 /** AUDIT C&C S4: the felt temperature's colours deepened to read on the page - the Plus plaque's ice and amber as inks
- *  (4.9:1 and 4.6:1 on the cream, the magic and the gilded tones' own), and its felt frame in the Plus warn's dark edge
+ *  (4.9:1 and 4.6:1 on the cream, the magic tone's own and the gilded's old amber), and its felt frame in the Plus warn's dark edge
  *  (4.2:1); a comfortable reading is written in the ink and a costing one framed in the pack's red. */
 export const TEMP_INK = Object.freeze({ cold: '#1f4f9e', hot: '#7a4a00', warn: '#7a5424' });
 export const SIGIL_INK = 'color-mix(in srgb, var(--sigil, #72f0d8) 35%, #120a04)';
@@ -1502,7 +1502,7 @@ ${G} .wplaque-row[data-rarity="rare"] > span:first-child { color: #5c4600 !impor
 ${G} .wplaque-row[data-rarity="legendary"] > span:first-child { color: #9a4210 !important; }
 ${G} .wplaque-row[data-rarity="aetheric"] > span:first-child { color: #1d6a86 !important; }
 ${G} .wplaque-row[data-rarity="artifact"] > span:first-child { color: #5e2a96 !important; }
-${G} .wplaque-row[data-rarity="gilded"] > span:first-child { color: #7a4a00 !important; }
+${G} .wplaque-row[data-rarity="gilded"] > span:first-child { color: #a3122e !important; }
 /* LOOT-MARKS (2026-10-12, a player's video: "seeing rarity in the quickloot is quite hard"): on the page the Rare, the
    Legendary and the Gilded were three browns - each rolled row now carries its tier's own bright gem, edged in ink, and
    a wash of its ink tone under it (ui/lootTierMarks.js); the lit row keeps its red bar beside the wash. */
