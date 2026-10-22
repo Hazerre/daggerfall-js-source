@@ -380,7 +380,7 @@ test('LEASE1 THE LOAD (mob, 07:57Z: "we need to test if this affected load times
   } finally { Date.now = realNow; }
 });
 
-test('LEASE1 THE FOURTH REVIEW OF THE PR: a frame that waited at the door is heard under the socket as it stands after the wait - a lease that landed meanwhile, its mute or its freeze, stands - and the socket\'s later frames wait behind it, kept in their order; a bound socket\'s frame asks again past the TTL in a room that asked with the door off; and a build that hands on no lease asks once in LEASE_OLD_ASK_MS, in a room just woken first, so one let in before the door went on at the hub is turned away (mutants: the wait judged on the old socket; frames out of order; an old build asking once a wake; a bound socket never asking again; a woken room\'s old build never asking; an old build asking every minute)', async () => {
+test('LEASE1 THE FOURTH REVIEW OF THE PR: a frame that waited at the door is heard under the socket as it stands after the wait - a lease that landed meanwhile, its mute or its freeze, stands - and the socket\'s later frames wait behind it, kept in their order; a bound socket\'s frame asks again past the TTL in a room that asked with the door off; and a build that hands on no lease asks once in LEASE_OLD_ASK_MS, in a room just woken first, so one let in before the door went on at the hub is turned away; and nothing of a socket that closed while its frame waited is heard after its leave (mutants: the wait judged on the old socket; frames out of order; a closed socket heard after the wait; one queued behind it heard; an old build asking once a wake; a bound socket never asking again; a woken room\'s old build never asking; an old build asking every minute)', async () => {
   const realNow = Date.now;
   let clock = 1_800_000_000_000;
   Date.now = () => clock;
@@ -423,6 +423,22 @@ test('LEASE1 THE FOURTH REVIEW OF THE PR: a frame that waited at the door is hea
       clock += 1000;
       await raw(cell, mut, { t: 'chat', text: 'muted' });
       assert.ok(!lines(ear).includes('muted'), 'muted: not heard');
+      // 1b. a socket that closes while its pose waits at the door, a later pose of it queued behind: nothing of it is
+      // heard after its leave
+      const gone = await join(cell, 'gone-0001', cur, P0);
+      clock += RELAY_CFG_TTL_MS + 1000;
+      hold = new Promise((r) => { release = r; });
+      await raw(cell, gone, { t: 'pose', p: { ...P0, x: P0.x + 3, mv: 1 } });   // asks beside, held
+      const atDoor = raw(cell, gone, { t: 'pose', p: { ...P0, x: P0.x + 27, mv: 1 } });
+      await landed();
+      await raw(cell, gone, { t: 'lease', l: await lease('acct-gone-0001') });
+      const behind = raw(cell, gone, { t: 'pose', p: { ...P0, x: P0.x + 36, mv: 1 } });
+      await landed();
+      await cell.drop(gone);
+      hold = null; release(); await Promise.all([atDoor, behind]);
+      const told = ear.sent.filter((f) => f.id === 'gone-0001').map((f) => f.t);
+      assert.ok(told.includes('leave'), 'its leave was said');
+      assert.deepEqual(told.slice(told.lastIndexOf('leave') + 1), [], 'nothing of it after its leave');
       // 2. a room just woken (its settings gone with the object, the socket kept): a lapsed socket's pose waits on the
       // wake's first ask, and a lease with a freeze lands meanwhile
       const P1 = { ...P0, x: P0.x + 32 * PIXEL_UNITS };   // two cells east

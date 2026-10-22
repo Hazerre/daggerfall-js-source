@@ -7063,8 +7063,8 @@ export class Room {
   async _leaseHeard(ws, a) {
     if (ws.virtual) return a;
     const meter = this._meterOf(ws);
-    while (meter.dq) { await meter.dq.catch(() => null); if (!(a = this._attach(ws))) return null; }
-    if (a.ld != null && !(a.ld * 1000 >= Date.now())) { await meter.lp; a = this._attach(ws); if (!a) return null; }
+    while (meter.dq) { await meter.dq.catch(() => null); if (this._dead.has(ws) || this._gone.has(ws)) return null; a = this._attach(ws); }
+    if (a.ld != null && !(a.ld * 1000 >= Date.now())) { await meter.lp; if (this._dead.has(ws) || this._gone.has(ws)) return null; a = this._attach(ws); }
     const now = Date.now();
     if (a.ld != null ? a.ld * 1000 >= now : !a.id || !leaseRoom(a.key ?? this._busKey)) return a;
     const door = meter.dq = this._leaseDoor(ws, a.ld != null, now);
@@ -7074,8 +7074,8 @@ export class Room {
   async _leaseDoor(ws, bound, now) {
     if (bound) await (this._relayCfgAt === -Infinity ? this._relayCfgFresh(now) : this._relayCfgP);
     const on = await this._leaseDoorOn(now, bound || now - this._relayCfgAt >= LEASE_OLD_ASK_MS);
+    if (this._dead.has(ws) || this._gone.has(ws)) return null;   // closed while it waited: nothing of it is heard after its leave
     const a = this._attach(ws);
-    if (!a) return null;
     if (!on || a.ld * 1000 >= Date.now()) return a;
     if (a.ld == null) this._refuse(ws, GROUND_OLD_WORDS, CLOSE_POLICY, LEASE_OLD_REASON);
     return null;

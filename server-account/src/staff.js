@@ -73,8 +73,8 @@ export const STAFF_AUDIT_PAGE = 100;
 /** How long the audit log keeps a row (mob, 12:12Z: "only keep for one month") - past it the hourly job deletes it
  *  (cron.js staff-audit); inside it nobody can (migration 0144's trigger, an hour short of this for the two clocks). */
 export const STAFF_AUDIT_KEEP_S = 30 * 24 * 60 * 60;
-/** A read of the audit log, the team or the moderators is written once in this, a member and a kind (a review of the
- *  PR: every read, and every page of one, was a row); a page past the first never is. */
+/** A read of the audit log, the team or the moderators is written once in this, a member and a view, whatever its page
+ *  (a review of the PR: every read, and every page of one, was a row). */
 export const STAFF_READ_ROW_S = 10 * 60;
 
 /** What an extension signs: what it is doing ('login' or 'enroll'), the handle, and the second it signed at. */

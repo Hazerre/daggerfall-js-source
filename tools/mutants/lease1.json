@@ -662,5 +662,25 @@
     "tests": [
       "test/net/lease1.test.js"
     ]
+  },
+  {
+    "name": "LEASE1-a-closed-socket-heard-after-the-wait",
+    "file": "server/src/index.js",
+    "old": "    if (this._dead.has(ws) || this._gone.has(ws)) return null;   // closed while it waited: nothing of it is heard after its leave\n",
+    "new": "",
+    "why": "a frame that waited at the door is heard after its socket closed and its leave was said",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-a-closed-sockets-queued-frame-heard",
+    "file": "server/src/index.js",
+    "old": "while (meter.dq) { await meter.dq.catch(() => null); if (this._dead.has(ws) || this._gone.has(ws)) return null; a = this._attach(ws); }",
+    "new": "while (meter.dq) { await meter.dq.catch(() => null); a = this._attach(ws); }",
+    "why": "a frame queued behind one at the door is heard after its socket closed",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
   }
 ]
