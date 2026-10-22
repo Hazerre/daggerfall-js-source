@@ -157,8 +157,8 @@
   {
     "name": "DEV3-tabby-not-granted",
     "file": "server-account/wrangler.toml",
-    "old": "DEVELOPER_HANDLES = \"Lattymoy,LostMyLeg,Tabby,RookieG,Roderic\"",
-    "new": "DEVELOPER_HANDLES = \"Lattymoy,LostMyLeg,RookieG,Roderic\"",
+    "old": "DEVELOPER_HANDLES = \"Lattymoy,LostMyLeg,Tabby,RookieG,Roderic,SirMcMobdon\"",
+    "new": "DEVELOPER_HANDLES = \"Lattymoy,LostMyLeg,RookieG,Roderic,SirMcMobdon\"",
     "tests": [
       "test/net/titlen.test.js"
     ],
@@ -167,8 +167,8 @@
   {
     "name": "DEV4-rookieg-not-granted",
     "file": "server-account/wrangler.toml",
-    "old": "DEVELOPER_HANDLES = \"Lattymoy,LostMyLeg,Tabby,RookieG,Roderic\"",
-    "new": "DEVELOPER_HANDLES = \"Lattymoy,LostMyLeg,Tabby,RookieG(Dev),Roderic\"",
+    "old": "DEVELOPER_HANDLES = \"Lattymoy,LostMyLeg,Tabby,RookieG,Roderic,SirMcMobdon\"",
+    "new": "DEVELOPER_HANDLES = \"Lattymoy,LostMyLeg,Tabby,RookieG(Dev),Roderic,SirMcMobdon\"",
     "tests": [
       "test/net/titlen.test.js"
     ],
@@ -177,8 +177,8 @@
   {
     "name": "DEV5-trashbattery-still-listed",
     "file": "server-account/wrangler.toml",
-    "old": "DEVELOPER_HANDLES = \"Lattymoy,LostMyLeg,Tabby,RookieG,Roderic\"",
-    "new": "DEVELOPER_HANDLES = \"Lattymoy,trashBattery,LostMyLeg,Tabby,RookieG,Roderic\"",
+    "old": "DEVELOPER_HANDLES = \"Lattymoy,LostMyLeg,Tabby,RookieG,Roderic,SirMcMobdon\"",
+    "new": "DEVELOPER_HANDLES = \"Lattymoy,trashBattery,LostMyLeg,Tabby,RookieG,Roderic,SirMcMobdon\"",
     "tests": [
       "test/net/titlen.test.js"
     ],
@@ -187,8 +187,8 @@
   {
     "name": "DEV6-roderic-not-granted",
     "file": "server-account/wrangler.toml",
-    "old": "DEVELOPER_HANDLES = \"Lattymoy,LostMyLeg,Tabby,RookieG,Roderic\"",
-    "new": "DEVELOPER_HANDLES = \"Lattymoy,LostMyLeg,Tabby,RookieG\"",
+    "old": "DEVELOPER_HANDLES = \"Lattymoy,LostMyLeg,Tabby,RookieG,Roderic,SirMcMobdon\"",
+    "new": "DEVELOPER_HANDLES = \"Lattymoy,LostMyLeg,Tabby,RookieG,SirMcMobdon\"",
     "tests": [
       "test/net/titlen.test.js"
     ],

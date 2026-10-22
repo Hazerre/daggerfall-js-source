@@ -1,0 +1,292 @@
+[
+  {
+    "name": "LEASE1-the-account-unread",
+    "file": "server/src/index.js",
+    "old": "if (!r || !b || r.s !== b.sub) return;",
+    "new": "if (!r || !b) return;",
+    "why": "another account's lease sets my mute",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-law-time-unread",
+    "file": "server/src/index.js",
+    "old": "const law = r.at > (b.lt ?? b.gio ?? 0);",
+    "new": "const law = true;",
+    "why": "an older lease lifts a newer order's mute",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-carried-order-unstamped",
+    "file": "server/src/index.js",
+    "old": "        this._setAttach(other, { ...b, mu, lt: Math.max(b.lt ?? 0, i) });",
+    "new": "        this._setAttach(other, { ...b, mu });",
+    "why": "a lease minted before a carried mute, replayed after it, lifts the mute",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-change-not-handed-up",
+    "file": "server/src/index.js",
+    "old": "if (law && b.vid && isChannelShard(room)",
+    "new": "if (false && b.vid && isChannelShard(room)",
+    "why": "a region's bus never hears the mute its shard took",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-minted-in-any-room",
+    "file": "server/src/index.js",
+    "old": "if (!isSocialRoom(room)) return;\n      const l = await mintLease",
+    "new": "const l = await mintLease",
+    "why": "a channel mints leases",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-read-in-any-room",
+    "file": "server/src/index.js",
+    "old": "if (!leaseRoom(room)) return;\n    const r = await readLease",
+    "new": "const r = await readLease",
+    "why": "the hub reads leases it hands out",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-rate-unread",
+    "file": "server/src/index.js",
+    "old": "    if (now - (meter.lq ?? -Infinity) < LEASE_FRAME_MIN_MS) return;",
+    "new": "",
+    "why": "a MAC a frame, unmetered",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-renewed-closed",
+    "file": "server/src/index.js",
+    "old": "(a.ld ? a.ld * 1000 < Date.now() :",
+    "new": "(a.ld ? true :",
+    "why": "a renewed socket closed",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-door-always-on",
+    "file": "server/src/index.js",
+    "old": "    return relayCfgValue(cfg, this.env, 'leaseDoor') === 'on';",
+    "new": "    return true;",
+    "why": "the door shuts with leaseDoor off",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-freeze-unread",
+    "file": "server/src/index.js",
+    "old": "if (a.fz && a.fz > Math.floor(Date.now() / 1000) && m.t !== 'ping') return;",
+    "new": "",
+    "why": "a frozen socket heard",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-lease-not-renewed",
+    "file": "server/src/index.js",
+    "old": "ld: Math.max(b.ld ?? 0, r.u)",
+    "new": "ld: b.ld",
+    "why": "a lease renews nothing",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-hub-bound",
+    "file": "server/src/index.js",
+    "old": "if (!leaseRoom(key) || m.ls === 1) return false;",
+    "new": "if (m.ls === 1) return false;",
+    "why": "the hub refuses the old build",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-shard-not-told",
+    "file": "src/net/hubShards.js",
+    "old": "'rb', 'lv', 'fz', 'lt']",
+    "new": "'rb', 'lv']",
+    "why": "a hub shard mints a lease from a stale freeze and law time",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-mac-unchecked",
+    "file": "src/net/roomLease.js",
+    "old": "if (!ok) return null;",
+    "new": "",
+    "why": "a forged lease read",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-life-unchecked",
+    "file": "src/net/roomLease.js",
+    "old": "|| c.u !== c.a + LEASE_LIFE_S) return null;",
+    "new": ") return null;",
+    "why": "a lease with any life read",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-lapse-unread",
+    "file": "src/net/roomLease.js",
+    "old": "if (c.u <= nowS || c.a > nowS + 30) return null;",
+    "new": "if (c.a > nowS + 30) return null;",
+    "why": "a lapsed lease read",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-skew-unread",
+    "file": "src/net/roomLease.js",
+    "old": "if (c.u <= nowS || c.a > nowS + 30) return null;",
+    "new": "if (c.u <= nowS) return null;",
+    "why": "a lease from the future read",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-ls-everywhere",
+    "file": "src/net/online.js",
+    "old": "if (leaseRoom(room)) frame.ls = 1;",
+    "new": "frame.ls = 1;",
+    "why": "a hub hello says ls",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-ask-unpaced",
+    "file": "src/net/online.js",
+    "old": "if (this.leaseOk && this.status === 'open' && isSocialRoom(this.room) && now - this._leaseAskAt >= LEASE_MS",
+    "new": "if (this.leaseOk && this.status === 'open' && isSocialRoom(this.room)",
+    "why": "the hub asked every tick",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-an-old-relay-asked",
+    "file": "src/net/online.js",
+    "old": "if (primary) this.leaseOk = relaySupportsLease(relayV);",
+    "new": "if (primary) this.leaseOk = true;",
+    "why": "a relay that closes on the frame asked",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-a-halo-skipped",
+    "file": "src/net/online.js",
+    "old": "    try { ws = this._leased(new this._WS(`${this.url}/room/${room}`), room); } catch {",
+    "new": "    try { ws = new this._WS(`${this.url}/room/${room}`); } catch {",
+    "why": "a halo never handed the lease",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-a-lease-from-any-room",
+    "file": "src/net/online.js",
+    "old": "if (!isSocialRoom(room) || typeof m.l !== 'string'",
+    "new": "if (typeof m.l !== 'string'",
+    "why": "a channel's word taken as the hub's lease",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-lease-kept",
+    "file": "src/scenes/chatSafetyHost.js",
+    "old": "    link.onLease = (l) => { for (const x of allLinks()) x?.sendLease?.(l); };",
+    "new": "    link.onLease = () => {};",
+    "why": "the page keeps its hub's lease to itself",
+    "tests": [
+      "test/net/safety/safe_client.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-load-the-door-asked-of-every-frame",
+    "file": "server/src/index.js",
+    "old": "m.t !== 'ping' && !ws.virtual && (a.ld ? a.ld * 1000 < Date.now() : !!a.id && leaseRoom(a.key ?? this._busKey)) && await this._leaseDoorOn(Date.now())",
+    "new": "m.t !== 'ping' && !ws.virtual && await this._leaseDoorOn(Date.now()) && (a.ld ? a.ld * 1000 < Date.now() : !!a.id && leaseRoom(a.key ?? this._busKey))",
+    "why": "every frame in a lease room asks after the door, so every lease room asks the hub once a minute",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-load-the-hello-door-awaited",
+    "file": "server/src/index.js",
+    "old": "    const cfg = await this._relayCfgOf();\n    void this._relayCfgFresh(now);\n    return relayCfgValue(cfg, this.env, 'leaseDoor')",
+    "new": "    await this._relayCfgFresh(now); const cfg = await this._relayCfgOf();\n    return relayCfgValue(cfg, this.env, 'leaseDoor')",
+    "why": "a cold room's hello waits on the hub",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-load-the-unbound-let-stand",
+    "file": "server/src/index.js",
+    "old": ": !!a.id && leaseRoom(a.key ?? this._busKey))",
+    "new": ": false)",
+    "why": "a build that hands on no lease, let in by a cold room, stays with the door on",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-sent-on-its-own",
+    "file": "src/net/online.js",
+    "old": "    this._lease = l;\n    return true;",
+    "new": "    this._lease = l;\n    this._send({ t: 'lease', l });\n    return true;",
+    "why": "every idle room is woken by the lease (the load check's cost)",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-handed-ahead-of-every-frame",
+    "file": "src/net/online.js",
+    "old": "if (l && l !== handed && this.leaseOk",
+    "new": "if (l && this.leaseOk",
+    "why": "a lease ahead of every frame: twice the frames",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-handed-ahead-of-a-ping",
+    "file": "src/net/online.js",
+    "old": "const LEASE_QUIET_RE = /^\\{\"t\":\"(?:ping|hello|lease)\"/;",
+    "new": "const LEASE_QUIET_RE = /^\\{\"t\":\"(?:hello|lease)\"/;",
+    "why": "a ping carries a lease, so the room wakes for it",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  }
+]

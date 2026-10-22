@@ -1,0 +1,72 @@
+[
+  {
+    "name": "STAFF-PANEL1-mods-any-staff",
+    "file": "server-account/src/staff.js",
+    "old": "    if (who.role !== 'admin') return { error: 'staff-admin' };\n",
+    "new": "",
+    "why": "a Moderator adds and removes Moderators",
+    "tests": [
+      "test/server/staffpanel1.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL1-mod-flag-unread",
+    "file": "server-account/src/titles.js",
+    "old": " || player.staff_mod === 1);",
+    "new": ");",
+    "why": "an Admin's Moderator moderates nothing",
+    "tests": [
+      "test/server/staffpanel1.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL1-mod-add-staff-again",
+    "file": "server-account/src/staff.js",
+    "old": "      if (staffRole(target, env)) return { error: 'staff-already' };\n",
+    "new": "",
+    "why": "an Admin or a listed Moderator flagged again",
+    "tests": [
+      "test/server/staffpanel1.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL1-mod-add-banned",
+    "file": "server-account/src/staff.js",
+    "old": "      if (isBanned(target, nowS)) return { error: 'staff-banned' };\n",
+    "new": "",
+    "why": "a banned account made a Moderator",
+    "tests": [
+      "test/server/staffpanel1.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL1-mod-remove-config",
+    "file": "server-account/src/staff.js",
+    "old": "    if (staffRole({ ...target, staff_mod: 0 }, env)) return { error: 'staff-config' };   // the config holds them still\n",
+    "new": "",
+    "why": "a listed Moderator's keys revoked by the panel while the config keeps them",
+    "tests": [
+      "test/server/staffpanel1.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL1-mod-remove-keys-kept",
+    "file": "server-account/src/staff.js",
+    "old": "      db.prepare('UPDATE staff_keys SET revoked_at = ? WHERE player_id = ? AND revoked_at IS NULL').bind(nowS, target.id),\n      ...['staff_sessions', 'staff_invites'].map((t) => db.prepare(`DELETE FROM ${t} WHERE player_id = ?`).bind(target.id)),\n      audit('mod-remove'",
+    "new": "      audit('mod-remove'",
+    "why": "a removed Moderator keeps their keys and sessions",
+    "tests": [
+      "test/server/staffpanel1.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL1-team-misses-panel-mods",
+    "file": "server-account/src/staff.js",
+    "old": "FROM players p WHERE p.staff_mod = 1 OR p.handle_lc IN",
+    "new": "FROM players p WHERE p.handle_lc IN",
+    "why": "the owners' team never shows an Admin's Moderators",
+    "tests": [
+      "test/server/staffpanel1.test.js"
+    ]
+  }
+]
