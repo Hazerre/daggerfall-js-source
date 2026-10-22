@@ -1372,6 +1372,72 @@ against the code before anything moved:
 Pins: `test/net/gatherspeed.test.js` (+4: G1, G2, G5, G7). Mutants: eight more in `tools/mutants/gatherspeed.json` (32), and
 the records the fixes moved re-aimed by content - 38 dead, AUDIT29-C4 equivalent as recorded.
 
+### 10.13 BOARD-SIFT - the work sifted and the market paged (2026-10-21)
+
+The owner's screenshot of a thread in the Discord's #feature-feedback ("Notice board market/work writs"), SaberGGaming:
+**"Definitely need sorting/filtering functions for work writs considering there are thousands of them and you have to
+scroll through them all to find what you want. The notice board market also doesnt show everything if there are too
+many weapons/armor/etc listed it stops after a certain number."** TheBard: **"The notice board in general needs some
+TLC. The writs especially."**
+
+FACT, read off the code before anything moved:
+
+- **The Market stopped at a hundred.** Each view answered its first MARKET_SHOWN (100) rows and nothing past them
+  (`server-account/src/market.js` marketRead): Crafted, Goods and Auctions read 500 and kept a hundred, Orders a hundred,
+  and nothing said more stood behind them. Materials differs: its search, family and tier choose the materials in the
+  query (AUDIT 30 U2), and a material's cheapest hundred are its front - it is not paged.
+- **The Work tab was one grid in the service's order**: the Court's and the chapters' writs (6 x ceil(active / 100) a
+  region a day, section 11, and each chapter's), then up to fifty guild writs, the contracts, up to fifty commissions -
+  under a panel for each of the region's chapters. An account fills three a day; finding them meant reading all of them.
+
+What changed:
+
+- **The Market turns pages** - Crafted, Goods, Auctions and Orders (`net/marketLaw.js` MARKET_PAGED_VIEWS). The service
+  reads `page` (marketPageOf: 0 to MARKET_PAGES_MAX - 1, 49; anything else the first) and answers MARKET_SHOWN rows that
+  many pages in, with the whole count (`page`, `total` - one COUNT in the view's own batch, so MARKET-SPEED's three round
+  trips stand). Every filter is in the query so a page is a page: Crafted's crafted-family filter, which ran after the
+  500-row cutoff, is the query's now (`pieceKeys`), and a Goods record goodOf would refuse is left out of the query too.
+  Each order ends on the row's id, so no row stands on two pages. Under the rows (`ui/marketTab.js` pagerNode): Previous,
+  "Page 2 of 7 · 643 in all", Next; a turn reads that page and brings its first row into view; one page draws none.
+- **A search, a least quality, an order.** Crafted and Auctions take a search of the pieces' names, read by the service
+  as the recipes it names - each word somewhere in the recipe's name (`recipesNamed`: "mithril sword" names the Mithril
+  Shortsword, Broadsword and Longsword; a piece is named by its recipe on both ends). Crafted takes the least quality
+  (Standard or better to Masterwork). Crafted, Goods and Auctions take an order (MARKET_SORTS): Cheapest first, the
+  default, still sorted by the landed price within its page (AUDIT 30 U16); Dearest first; Newest first; Best quality
+  first (Crafted); Ending soonest (Auctions' default). Goods takes no search: a pack piece's name is the client's, from the
+  player's own item templates, and the service holds no ARENA2 - its family and its order stand. A change reads the first
+  page; a view opens on its own defaults; a read that asks the defaults asks nothing new, so the request is the one it
+  always was. The market book's minute's cache is keyed by them too (`net/marketBook.js` keyOf).
+- **The Work tab's bar** (`ui/workSift.js`, wired by `ui/noticeWindow.js` workBody; each card handed in as an entry -
+  `writEntry`, `ui/workTab.js` entries): the kind (All work, Court writs, Chapter writs, Guild writs, Guild contracts,
+  Commissions - each with its count, a kind with none not offered); a search, each word among the card's words (its
+  material, guild, crafter or piece) or its kind's name; **Only what I can fill** - a Court or chapter writ whose Take
+  would fill it (held whole, the day's three not spent - writNode's own law), a guild writ the reader may deliver to and
+  holds a unit of within the guild Stores' room (`guildWritMost`, the card's Deliver's law), a commission naming the
+  reader with a piece that answers it, a contract never (it is earned in a raid); and the order - Ending soonest (the
+  default), Most silver (a guild writ's pay a unit by what it still asks), A to Z. The open work stands before the done (a
+  Court writ taken). Forty cards are drawn at once, "Show 40 more" under the last; where nothing matches, "No work
+  matches." and Show all work. The bar's choice is the professions book's for the session (`net/profBook.js`
+  state.workSift), so a board opened again opens on it.
+- **The chapters after the work.** The Merit lines without a card, How chapters work and the chapters' panels stand after
+  the grid and the forms, under "Chapters in Daggerfall" - a panel a chapter stood between the reader and the first writ.
+  What they say and their order among themselves are GUILD3d's and PLAIN-UI's, unchanged.
+- **Words**: 33 keys through the text core (`market.page.*`, `market.sift.*`, `notice.sift.*`, `notice.chapters.head`),
+  the English catalog regenerated (`tools/l10nExtract.mjs`) and drafted in-session for the thirteen whole languages
+  (`tools/l10nInSession.mjs`); the twelve still drafting owe them with the rest of the catalog.
+
+DFU has no member here - the board and its market are the port's own (NOTICE1, PROF5) - and no ledger row moves. THE
+FOUR HOSTS: none is touched; the board is a window its door mounts (`ui/noticeDoor.js`), and the world host's market
+deps are unchanged - the pager and the controls are the tab's own.
+
+Pins: `test/ui/boardsift.test.js` (5) and `test/net/boardsift_market.test.js` (4). Three pins moved, each marked PIN
+MOVED, for one reason: their fixtures list a five-day guild writ or contract before a two-day one (the service sends
+them soonest first), and the work now stands ending soonest - `test/ui/audit31_tabs.test.js` (U2, U10) picks W2 by its
+guild, `test/net/prof6_client.test.js` and `test/net/silverways_client.test.js` take the two cards the other way about. `test/net/market_recipe_family_limit.test.js` - the plan's index, the odd
+families' answers, Auctions' unknown piece unfiltered - passes unchanged. Mutants: `tools/mutants/boardsift.json`, 38,
+all dead; a 39th written survived and showed the service's paged answer checking its view where only paged views call
+it - the check is gone.
+
 ## 11. Writs - the Work tab
 
 - **Court writs** (the faucet): every region with a seat or hub posts **6 x max(1, ceil(active / 100)) a UTC day** (a

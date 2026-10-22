@@ -150,6 +150,8 @@ export function createProfBook({ door, storage = null, character = () => null, n
     /** BAG1: the service's carried count, by material - every unit it handed to the bag or the pack (bagLaw.js) */
     carried: new Map(),
     writs: { today: 0, max: 3 },
+    /** BOARD-SIFT: the Work tab's filter and order (ui/workSift.js), kept for the session - null until the board opens */
+    workSift: /** @type {any} */ (null),
     caps: /** @type {any} */ (null),
     /** PROF3: the account's Marks as the smith's stock last answered them, or null */
     marks: /** @type {number|null} */ (null),

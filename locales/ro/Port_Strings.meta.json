@@ -12649,6 +12649,76 @@
   "tr": "25ee09e30209",
   "by": "claude-in-session"
  },
+ "market.page.label": {
+  "en": "600584c2d5cc",
+  "tr": "e9528932b29b",
+  "by": "claude-in-session"
+ },
+ "market.page.next": {
+  "en": "bc981983e7f5",
+  "tr": "03f12f7cce75",
+  "by": "claude-in-session"
+ },
+ "market.page.of": {
+  "en": "f585c1f6cce6",
+  "tr": "5e0674257960",
+  "by": "claude-in-session"
+ },
+ "market.page.prev": {
+  "en": "50f94286ba30",
+  "tr": "a3f2b53cc305",
+  "by": "claude-in-session"
+ },
+ "market.sift.anyQuality": {
+  "en": "fc99c7aa369f",
+  "tr": "d84fafbde09f",
+  "by": "claude-in-session"
+ },
+ "market.sift.cheap": {
+  "en": "007824036f1a",
+  "tr": "afcbea730cbc",
+  "by": "claude-in-session"
+ },
+ "market.sift.dear": {
+  "en": "67160369fc5f",
+  "tr": "a939aaa954b1",
+  "by": "claude-in-session"
+ },
+ "market.sift.ending": {
+  "en": "7600e7bc2d7b",
+  "tr": "6aff490d20dd",
+  "by": "claude-in-session"
+ },
+ "market.sift.find": {
+  "en": "28abc0313db1",
+  "tr": "f7c0fcb49498",
+  "by": "claude-in-session"
+ },
+ "market.sift.findLabel": {
+  "en": "6d0ff7b011ca",
+  "tr": "a1a40c1122c9",
+  "by": "claude-in-session"
+ },
+ "market.sift.new": {
+  "en": "f5ec7772ca9b",
+  "tr": "7541091f37d5",
+  "by": "claude-in-session"
+ },
+ "market.sift.quality": {
+  "en": "96758730535a",
+  "tr": "119a1e82e0f6",
+  "by": "claude-in-session"
+ },
+ "market.sift.qualityLabel": {
+  "en": "63b91acb3bde",
+  "tr": "edef108a6979",
+  "by": "claude-in-session"
+ },
+ "market.sift.sortLabel": {
+  "en": "1d75774c0f96",
+  "tr": "301882d2af54",
+  "by": "claude-in-session"
+ },
  "marks.capped.star": {
   "en": "e77a901d5d64",
   "tr": "63c3f4d7b079",
@@ -19474,6 +19544,11 @@
   "tr": "cf8047c9662b",
   "by": "claude-in-session"
  },
+ "notice.chapters.head": {
+  "en": "74d3bbe40195",
+  "tr": "81271b30d0e4",
+  "by": "claude-in-session"
+ },
  "notice.chapters.rank.name": {
   "en": "f655d25b4390",
   "tr": "88cb3e21513c",
@@ -19492,6 +19567,96 @@
  "notice.chapters.standing.words": {
   "en": "240755025101",
   "tr": "71642a3642c6",
+  "by": "claude-in-session"
+ },
+ "notice.sift.all": {
+  "en": "6f936357137b",
+  "tr": "f91b293a9de8",
+  "by": "claude-in-session"
+ },
+ "notice.sift.chapter": {
+  "en": "bbcd48f1c075",
+  "tr": "4c1013aab0ec",
+  "by": "claude-in-session"
+ },
+ "notice.sift.clear": {
+  "en": "37699ac85df0",
+  "tr": "cf2758f2572e",
+  "by": "claude-in-session"
+ },
+ "notice.sift.commission": {
+  "en": "c51e0bc19c90",
+  "tr": "81af2a30c627",
+  "by": "claude-in-session"
+ },
+ "notice.sift.contract": {
+  "en": "ba6b8b709e83",
+  "tr": "13103e5bc86e",
+  "by": "claude-in-session"
+ },
+ "notice.sift.count": {
+  "en": "4ec58f7e5222",
+  "tr": "5738643da182",
+  "by": "claude-in-session"
+ },
+ "notice.sift.court": {
+  "en": "c412904b14da",
+  "tr": "29b0195e153f",
+  "by": "claude-in-session"
+ },
+ "notice.sift.ending": {
+  "en": "7600e7bc2d7b",
+  "tr": "6aff490d20dd",
+  "by": "claude-in-session"
+ },
+ "notice.sift.fill": {
+  "en": "adaec9b2200b",
+  "tr": "8d06e71c22b3",
+  "by": "claude-in-session"
+ },
+ "notice.sift.find": {
+  "en": "bce06414177f",
+  "tr": "4b576d100303",
+  "by": "claude-in-session"
+ },
+ "notice.sift.findLabel": {
+  "en": "16a34b25f759",
+  "tr": "9b9aceb696ec",
+  "by": "claude-in-session"
+ },
+ "notice.sift.guild": {
+  "en": "bd6ec6ba7938",
+  "tr": "7155516d176a",
+  "by": "claude-in-session"
+ },
+ "notice.sift.kindLabel": {
+  "en": "c6b7838e97d5",
+  "tr": "ed49d5ed7263",
+  "by": "claude-in-session"
+ },
+ "notice.sift.more": {
+  "en": "839d8480b485",
+  "tr": "cc4ad662d876",
+  "by": "claude-in-session"
+ },
+ "notice.sift.name": {
+  "en": "3ae085e5fa14",
+  "tr": "04fa96a703ce",
+  "by": "claude-in-session"
+ },
+ "notice.sift.none": {
+  "en": "c07fa462255f",
+  "tr": "748e472cba59",
+  "by": "claude-in-session"
+ },
+ "notice.sift.pay": {
+  "en": "33667afe5c3b",
+  "tr": "124b4fe9b0c8",
+  "by": "claude-in-session"
+ },
+ "notice.sift.sortLabel": {
+  "en": "ce1b465685f6",
+  "tr": "88ddc559ba79",
   "by": "claude-in-session"
  },
  "notice.skills.improve": {

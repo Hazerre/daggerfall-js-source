@@ -35,6 +35,11 @@
 // open); the Work tab's day stands above its cards, not under the last; the cards straight; the words cut to what the
 // reader needs.
 //
+// BOARD-SIFT (2026-10-21, feature-feedback: "Definitely need sorting/filtering functions for work writs considering
+// there are thousands of them"; "The notice board in general needs some TLC. The writs especially."): the Work tab's
+// cards - the Court's, the chapters', the guilds' and the commissions' - under one bar that sifts and orders them, a
+// page of them at a time (ui/workSift.js), the work first and the region's chapters under their own head after it.
+//
 // THE HOUSE'S SHAPE, as the bounty board's (ui/bounty/bountyWindow.js) and the Broker's before it: a lazy chunk the door
 // (ui/noticeDoor.js) mounts in its own host - `mountNoticeBoard(host, deps)` answers `{ repaint, unmount }` - the back
 // key and a tap on the scrim leave through the door's own close. On the classic skins the window lays its own sheet,
@@ -65,6 +70,7 @@ import { createWorkTab, writWalledText } from './workTab.js';   // PROF6: the Wo
 import { createSeatTab, boardFold } from './seatTab.js';   // SEAT1b: the Seat tab - a seat town's standings, pledges and Tribute
 import { createVendorTab } from './vendor/vendorTab.js';   // HOME-VENDOR: the Vendors tab, and a trader's stall
 import { bannerSvg } from './heraldryArt.js';   // GUILD1e: a guild's banner over its notes and its posters
+import { freshSift, siftWork, workSiftBar, workSiftFoot, wordsOf } from './workSift.js';   // BOARD-SIFT: the Work tab's bar
 
 /** @param {string} tag @param {string|null} [cls] @param {string|null} [text] */
 const el = (tag, cls = null, text = null) => {
@@ -244,6 +250,8 @@ export function mountNoticeBoard(host, deps) {
   let chapterGuideOpen = null;   // PLAIN-UI: How chapters work unfolded - null until the reader folds or unfolds it
   const work = deps.work ?? null;
   const workShown = () => !!work && work.book?.state?.open === true;
+  // BOARD-SIFT: the Work tab's filter and order - the professions book's for the session, so a reopened board keeps them
+  const sift = work?.book?.state ? (work.book.state.workSift ??= freshSift()) : freshSift();
   // PROF5: the Market tab - its own state and views, the window's one-at-a-time door and its status line
   const marketHost = deps.market ?? null;
   // MARKET-AUDIT U4: a market that shuts while its tab is read stays the tab, its shut word said (AUDIT 30 U11) - it vanished.
@@ -530,7 +538,7 @@ export function mountNoticeBoard(host, deps) {
     const walledSaid = walled > 0 ? writWalledText(walled, work.countName(w.material, walled)) : null;
     const take = el('div', 'writ-take');
     if (w.state === 'open') {
-      const full = (work.book.state.writs?.today ?? 0) >= (work.book.state.writs?.max ?? 3);
+      const full = writsFull();
       const b = button('primary notice-take', 'Take', () => takeWrit(w));
       b.disabled = busy || workBusy || held < w.qty || full;   // AUDIT 31 B10: nor while a guild writ's or a commission's act is out
       if (held < w.qty) b.title = walledSaid ?? (work.book.carrying?.() ? 'Not enough in your Stores, Materials Bag and pack together' : 'Not enough in your Stores');   // BAG1; AUDIT BAG1: and the pack; WRIT-WALL: and what of them is walled
@@ -542,6 +550,17 @@ export function mountNoticeBoard(host, deps) {
     if (walledSaid) li.append(el('p', 'writ-walled', walledSaid));   // WRIT-WALL: on the card - a phone has no hover
     li.append(el('span', 'notice-seal', ''));
     return li;
+  }
+
+  /** CHAP2a: today's writs filled - the Court's and the halls' one allowance. */
+  const writsFull = () => (work.book.state.writs?.today ?? 0) >= (work.book.state.writs?.max ?? 3);
+  /** BOARD-SIFT: a Court or chapter writ as the Work tab's bar sifts it - fillable while its Take would be (writNode's own
+   *  law: open, held whole, today's allowance not spent), its silver its pay, its name its material. */
+  function writEntry(w) {
+    const chapter = isChapterWrit(w.kind);
+    const name = work.countName(w.material, 2), open = w.state === 'open';
+    return { kind: chapter ? 'chapter' : 'court', open, fill: open && work.book.held(w.material) >= w.qty && !writsFull(), pay: Number(w.pay) || 0,
+      ends: Number(w.expiresAt) || 0, name, words: wordsOf(name, chapter ? hallPosterName(w.faction) : null), card: () => writNode(w) };
   }
 
   /** GUILD3d (bible/11-Multiplayer/Guilds-Made-Plain.md): A CHAPTER'S CARD - every line of one chapter of the region in one
@@ -656,9 +675,35 @@ export function mountNoticeBoard(host, deps) {
     const today = writs?.today ?? { filled: work.book.state.writs?.today ?? 0, max: work.book.state.writs?.max ?? 3 };
     // AUDIT CHAP2 C5: "Writs" - the count is every writ the account filled today, the Court's and the halls' (CALL 8)
     body.append(el('p', 'notice-worktoday', `Writs today: ${today.filled} of ${today.max}${writsStale ? ' - the list may be out of date' : ''}`));
+    const grid = el('ul', 'notice-grid');
+    grid.setAttribute('role', 'list');
+    const list = writs?.writs ?? [];
+    // GUILD3d: the receipts' asks are their chapters' Duties lines now - a card that cannot be taken is no writ. PROF6: this
+    // region's guild writs and commissions in the Court's own grid (AUDIT 31 U14 - the Court's stood alone). BOARD-SIFT:
+    // every card an entry the bar sifts and orders, a page of them drawn - the bar over the grid, "Show more" under it
+    const entries = [...list.map(writEntry), ...(workMore ? workMore.entries(writs) : [])];
+    const sifted = siftWork(entries, sift);
+    if (entries.length) body.append(workSiftBar(sift, entries, sifted.matched, sifted.rows.length, render));
+    for (const e of sifted.rows) grid.append(e.card());
+    if (writsBusy && !writs) grid.append(el('li', 'notice-empty', BOARD_WORDS.writsReading));
+    else if (!writs && writsError) {
+      const shut = writsError === 'prof-closed' || writsError === 'no-session' || writsError === 'auth';
+      const li = el('li', 'notice-empty', shut ? BOARD_WORDS.writsShut : BOARD_WORDS.writsSlow);   // AUDIT 31 U13: the guilds' and the commissions' too
+      if (!shut) li.append(button('notice-retry', 'Try again', () => loadWrits(true)));   // AUDIT 29 C11: read now, not in a minute
+      grid.append(li);
+    }
+    else if (writs && !list.length) grid.append(el('li', 'notice-empty', BOARD_WORDS.writsNone(work.regionName)));
+    body.append(grid);
+    const foot = workSiftFoot(sift, sifted.matched, sifted.rows.length, entries.length, render);
+    if (foot) body.append(foot);
+    const yours = workMore ? workMore.node(writs) : null;   // PROF6: "Yours", the forms
+    if (yours) body.append(yours);
+    // BOARD-SIFT: the region's chapters after the work, under their own head - their panels stood over the writs, a
+    // dozen of them between the reader and the first card
+    const carded = new Set((writs?.chapters ?? []).map((c) => c.faction));
+    if (writs?.chapters?.length || (writs?.merit ?? []).some((m) => !carded.has(m.faction))) body.append(sectionHead(t('notice.chapters.head', 'Chapters in {region}', { region: work.regionName })));
     // CHAP3a: the account's Merit here - GUILD3d: on its chapter's card; above them only for a chapter the board draws
     // no card for (a service from before the cards)
-    const carded = new Set((writs?.chapters ?? []).map((c) => c.faction));
     for (const m of writs?.merit ?? []) if (!carded.has(m.faction)) body.append(el('p', 'notice-merit', meritLineOf(m, nowS())));
     // PLAIN-UI: HOW CHAPTERS WORK over the cards - open for a reader with no Merit in any of them yet, folded for one with
     // some. AUDIT PLAIN-UI T3: the service sends a Merit row for EVERY membership here (npcMerit.js meritAsks, 0 and a
@@ -672,24 +717,6 @@ export function mountNoticeBoard(host, deps) {
       body.append(guide);
     }
     for (const c of writs?.chapters ?? []) body.append(chapterCard(c));   // GUILD3d: each chapter here, one card
-    const grid = el('ul', 'notice-grid');
-    grid.setAttribute('role', 'list');
-    const list = writs?.writs ?? [];
-    for (const w of list) grid.append(writNode(w));   // GUILD3d: the receipts' asks are their chapters' Duties lines now - a card that cannot be taken is no writ
-    // PROF6: this region's guild writs and commissions in the Court's own grid (AUDIT 31 U14 - the Court's stood alone)
-    const more = workMore ? workMore.cards(writs) : [];
-    for (const c of more) grid.append(c);
-    if (writsBusy && !writs) grid.append(el('li', 'notice-empty', BOARD_WORDS.writsReading));
-    else if (!writs && writsError) {
-      const shut = writsError === 'prof-closed' || writsError === 'no-session' || writsError === 'auth';
-      const li = el('li', 'notice-empty', shut ? BOARD_WORDS.writsShut : BOARD_WORDS.writsSlow);   // AUDIT 31 U13: the guilds' and the commissions' too
-      if (!shut) li.append(button('notice-retry', 'Try again', () => loadWrits(true)));   // AUDIT 29 C11: read now, not in a minute
-      grid.append(li);
-    }
-    else if (writs && !list.length) grid.append(el('li', 'notice-empty', BOARD_WORDS.writsNone(work.regionName)));
-    body.append(grid);
-    const yours = workMore ? workMore.node(writs) : null;   // PROF6: "Yours", the forms
-    if (yours) body.append(yours);
     return body;
   }
 

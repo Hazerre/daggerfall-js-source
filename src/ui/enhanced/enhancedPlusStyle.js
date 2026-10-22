@@ -1824,6 +1824,12 @@ export const PROF_CSS = `/* ── PROF1: THE PROFESSIONS ── */
 .market-pic, .prof-matpic { flex: none; vertical-align: middle; margin-right: 8px; image-rendering: pixelated; }
 .market-filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .market-search { flex: 1 1 140px; min-width: 0; }
+/* BOARD-SIFT: a paged view's pages under its rows - Previous, the page and its count, Next - a finger's press on a phone */
+.market-pager { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: center; margin: 8px 0 4px; }
+.market-pageof { font-size: 13px; letter-spacing: 0.04em; color: #e9e1cf; text-align: center; }
+.market-page:disabled { opacity: 0.45; }
+@media (pointer: coarse) { .market-page { min-height: 44px; } }
+@media (max-width: 640px) { .market-pageof { order: -1; flex-basis: 100%; } }   /* a phone: the page over its two presses, side by side */
 .market-num { width: 5.5em; }
 .market-rows, .market-list { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .market-row, .market-listhead { display: grid; grid-template-columns: minmax(0, 1.6fr) auto minmax(0, 1.4fr) auto 60px; gap: 2px 12px; align-items: center;
@@ -1905,6 +1911,17 @@ export const PROF_CSS = `/* ── PROF1: THE PROFESSIONS ── */
 .work-acts { display: flex; flex-wrap: wrap; gap: 8px; }
 .work-open.on { border-color: var(--brass, #c08a3e); background: rgba(192,138,62,0.16); }
 .work-none { font-style: italic; }
+/* BOARD-SIFT: the Work tab's bar over its grid - the kind, the search, "Only what I can fill", the order and the count -
+   on the day's dark strip; "Show more" under the grid, as wide as the cork */
+.work-sift { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 0 4px 12px; padding: 6px 10px;
+  background: rgba(12,10,8,0.72); border-left: 2px solid rgba(192,138,62,0.6); color: #e9e1cf; font-size: 13px; }
+.work-sift .work-select { flex: 0 1 auto; min-width: 0; max-width: 100%; text-overflow: ellipsis; }
+.work-find { flex: 1 1 140px; min-width: 0; }
+.work-sift-fill { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.work-sift-count { margin-left: auto; color: #b9ab93; font-size: 12px; }
+.work-sift-more { display: block; width: calc(100% - 8px); margin: 10px 4px 0; }
+.work-sift-none { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+@media (pointer: coarse) { .work-sift-fill, .work-sift-more { min-height: 44px; } }
 /* AUDIT 31 U2: every field under its visible name; U14: a field as tall as a button beside it, a form's select never
    clipped, an armed Decline marked */
 .work-label { display: flex; flex-direction: column; gap: 2px; min-width: 0; }

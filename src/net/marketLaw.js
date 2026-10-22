@@ -22,7 +22,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { STORES_MAX, MATERIAL_FAMILIES, MINED_KEYS, FOOD_KEYS, PLANT_GROUP_TEMPLATES } from './professionLaw.js';   // MARKET-ANY: and the Stores' forms
-import { PROVENANCE_RE, recipeById, takesQuality, MASTERWORK } from './recipeLaw.js';
+import { PROVENANCE_RE, recipeById, takesQuality, MASTERWORK, RECIPES } from './recipeLaw.js';   // BOARD-SIFT: a search's recipes
 import { MARKS_MAX } from './marksLaw.js';
 import { witnessedFact, factConfirmed, material } from './nodeLaw.js';
 import { tradeableRecord, boundRecord, BOAT_TEMPLATES, GOLD_PIECES_TEMPLATE, VALUE_IS_IDENTITY_TEMPLATES } from './realm/realmTradeLaw.js';   // MARKET-ANY: the trade's own law of what may leave a record
@@ -86,6 +86,47 @@ export const CRAFTED_FAMILIES = Object.freeze([
 ]);
 /** The material families the Materials view filters by - the Stores' own (section 8). */
 export const MARKET_FAMILIES = MATERIAL_FAMILIES;
+
+// ─── BOARD-SIFT: PAGES, ORDERS, A SEARCH OF THE PIECES ───────────────
+// (2026-10-21, feature-feedback: "The notice board market also doesnt show everything if there are too many
+// weapons/armor/etc listed it stops after a certain number") - a view showed its first MARKET_SHOWN rows and nothing
+// past them. The views of pieces and of buy orders turn pages of MARKET_SHOWN now, every filter read in the query
+// itself so a page is a page (bible/06-Systems/Professions-Arc.md 10.13).
+
+/** The views read a page at a time. Materials is not: its search, family and tier pick the materials first, and a
+ *  material's cheapest hundred are its market's front. */
+export const MARKET_PAGED_VIEWS = Object.freeze(['crafted', 'goods', 'auctions', 'orders']);
+/** The pages a view turns through, at most - MARKET_SHOWN x this many rows. */
+export const MARKET_PAGES_MAX = 50;
+/** A page as the service reads it: its first (0) for anything but a whole number in range. */
+export const marketPageOf = (n) => (Number.isSafeInteger(n) && n >= 0 && n < MARKET_PAGES_MAX ? n : 0);
+/** The orders a view of pieces is read in - the first its own, as before (the cheapest; an auction the soonest to end). */
+export const MARKET_SORTS = Object.freeze({
+  crafted: Object.freeze(['cheap', 'dear', 'new', 'quality']),
+  goods: Object.freeze(['cheap', 'dear', 'new']),
+  auctions: Object.freeze(['ending', 'cheap', 'dear', 'new']),
+});
+/** A view's order as the service reads it - its first for anything it does not offer; null for a view with none. */
+export const marketSortOf = (view, sort) => {
+  const sorts = Object.hasOwn(MARKET_SORTS, view) ? /** @type {Record<string, ReadonlyArray<string>>} */ (MARKET_SORTS)[view] : null;
+  return sorts ? (sorts.includes(sort) ? sort : sorts[0]) : null;
+};
+/** A search of the pieces, at most this long, as the service reads it: trimmed, lower-cased; '' for none. */
+export const MARKET_QUERY_MAX = 40;
+export const marketQueryOf = (q) => (typeof q === 'string' ? q.trim().toLowerCase().slice(0, MARKET_QUERY_MAX) : '');
+/** The least quality a Crafted read asks (recipeLaw QUALITY_NAMES' index), 0 - any - for anything else. */
+export const marketQualityOf = (n) => (Number.isSafeInteger(n) && n > 0 && n <= MASTERWORK ? n : 0);
+/**
+ * THE RECIPES A SEARCH OF THE PIECES NAMES - each word of it somewhere in the recipe's name ("mithril sword" names the
+ * Mithril Longsword), of `families` (null: every family). A piece is named by its recipe on both ends, so the service
+ * reads the search as these and the page holds only what matches. Pure.
+ * @param {string} query @param {ReadonlyArray<string>|null} [families]
+ * @returns {string[]} recipe ids
+ */
+export function recipesNamed(query, families = null) {
+  const words = marketQueryOf(query).split(/\s+/).filter(Boolean);
+  return RECIPES.filter((r) => (!families || families.includes(r.family)) && words.every((w) => r.name.toLowerCase().includes(w))).map((r) => r.id);
+}
 /** A request id, as every account act's: 8-40 of [A-Za-z0-9_-]. A listing's or an order's id is the service's own
  *  (SOC1's id shape, minted by `mintId`). */
 export const MARKET_RID_RE = /^[A-Za-z0-9_-]{8,40}$/;
