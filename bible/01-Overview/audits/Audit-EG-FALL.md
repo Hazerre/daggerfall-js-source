@@ -63,6 +63,14 @@ Every finding was checked against the code before anything was fixed:
 | L3-13 | Patch notes belong in the pull request's description; none is open | NOTED: written when the pull request opens |
 | L3 gate | `egz_return.test.js` "EG-ZD THE SPANS' CLOCK" failed once in `test:changed` (passes alone 3/3; its clock reads the real `performance.now()` within 50 ms on a saturated machine) | LEFT: not this change - no clock code moved |
 
+## The whole suite, after the fixes
+
+`npm test` on the fixed tree (00ae7136a): 32,699 tests, 32,327 passed, 3 failed. Two were audit24's ONE HOME
+(`test/systems/talk/audit24_onehome.test.js`): the gate's chest share was first named `GLOW_SHARE`, which
+`systems/lightning.js` declares for its own - renamed `GLOW_UP_SHARE`, both pass. The third, `sd25_arena.test.js`'s S7 (the
+Hour's arena makes nothing a frame, a heap measure in a child), passes alone on an idle machine: a measure under the whole
+suite's load, not this change (the spark pass's draw allocates nothing new).
+
 ## What it checked and found sound
 
 - **Clocks.** The fight's clock is the link's (the corrected shared clock). For a fight's last lord, `efl` and `efell` fold in
