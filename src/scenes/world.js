@@ -375,7 +375,8 @@ import { SD_STEPS_TEXT } from './superDungeon/sdSteps.js';   // SD7b: the cast-b
 import { inOrreryHall, dungeonToRealm as sdDungeonToRealm, SD_FRAY_LASH, SD_ARENA, realmToDungeon as sdRealmToDungeon, SD_TURN_WAIT_LINE } from '../net/superDungeon/sdBrain.js';   // SD6c: the snap's lash, on whoever stands in the hall; SD10: the arena, where the way home stands; AUDIT SD II (L7 H2): a turn the stones refused
 import { SD_REM_SINK_MS } from './superDungeon/sdRemnant.js';   // SD10: the way home rises once the Remnant's body has sunk
 import { SD_HOME_TEXT, SD_HOME_SAY_MS, SD_HOME_RISE_MS, SD_HOME_SCALE } from './superDungeon/sdEnd.js';   // SD10: the way home's words; AUDIT SD II (L6 F16): said as it rises
-import { sdRiftWord, sdReturnStands, sdRiftCount, riftLook, SD_ENTERED_KEY, SD_FALLEN_KEY, SD_NO_MARK, SD_RETURN_SIZE } from '../world/superDungeon/sdDungeon.js';   // SD4b: a Super dungeon's Rift and Return, off the hub's record
+import { sdRiftWord, sdReturnStands, sdRiftCount, riftLook, SD_ENTERED_KEY, SD_FALLEN_KEY, SD_NO_MARK, SD_RETURN_SIZE, sdThroughStands } from '../world/superDungeon/sdDungeon.js';   // SD4b: a Super dungeon's Rift and Return, off the hub's record; SD-THROUGH: and its Way Through
+import { sdVeilModelOf, sdRingsFarFirst } from './superDungeon/sdThrough.js';   // SD-THROUGH: the veil closes on the nearer of the Hollow's two rings; AUDIT SD-THROUGH (B8): the nearer drawn last
 import { sdSlotsKept } from '../systems/superDungeon/sdSlots.js';   // SD-ONELIFE: the Hollows' slots kept on the device, by the account
 import { sdCities, sdTemplates } from '../systems/superDungeon/sdSite.js';   // SD2b: the Hollow's cities and templates, over the game's own rows
 import { RANDOM_TREASURE_ARCHIVE } from '../systems/loot/lootDataTables.js';   // WB12d: the casket's pile, undrawn
@@ -24792,7 +24793,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (!sdHost) return null;
     const rec = sdHost.record(), now = Date.now() + _sharedOffsetMs;
     const seen = { entered: _sdEntered.has(s), fallen: _sdFallen.has(s) };
-    return { word: sdRiftWord(rec, s, now, seen), returns: sdReturnStands(rec, s, now), count: sdRiftCount(rec, s, now), look: riftLook(rec, s, now, seen), enter: () => sdEnterRealm(s) };   // AUDIT SD II (L6 F5): and its count; SD-LOOK: and its look - its state, read off the same record
+    return { word: sdRiftWord(rec, s, now, seen), returns: sdReturnStands(rec, s, now), through: sdThroughStands(rec, s, now), count: sdRiftCount(rec, s, now), look: riftLook(rec, s, now, seen), enter: () => sdEnterRealm(s) };   // AUDIT SD II (L6 F5): and its count; SD-LOOK: and its look - its state, read off the same record; SD-THROUGH: and whether one has gone through (the Way Through stands)
   };
   /** AUDIT SD V (P1): the Rift's look alone, every frame it is drawn - none of the word, the count or the step's door
    *  sdRiftOf makes (it was made four times a frame for the look, ~2.4 KB); its `seen` kept. */
@@ -29368,9 +29369,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       if (sky && !inHour) sky.paint(deadlandsSeconds(), _sdHollowHaze, sdSkyLookNow(), renderer.worldViewportPx ?? [0, 0, renderer.gl.drawingBufferWidth, renderer.gl.drawingBufferHeight]);
       if (sky) { _sdRiftSky.map = sky.map.texture; _sdRiftSky.seconds = deadlandsSeconds(); _sdRiftSky.gain = inHour ? skyGain(renderer._fogColor, SD_REALM_FOG.color) : 1; }
       const look = end.sdEndLook?.(eye, sky ? _sdRiftSky : null, minuteNow() / 60);
-      sdVeilAim(proj, view, look?.window?.model ?? look?.bay?.model);
+      const through = end.sdThroughLook?.(eye, sky ? _sdRiftSky : null, minuteNow() / 60) ?? null;   // SD-THROUGH: the Way Through's window and floor light, the Rift's own pass
+      sdVeilAim(proj, view, sdVeilModelOf(eye, through, look));
       let drew = !!sky && !inHour;
-      if (look && pass?.draw(proj, view, look, fog, renderer.lightingLane ? SD_SKY_STEPS.lane : SD_SKY_STEPS.classic)) drew = true;
+      for (const l of sdRingsFarFirst(eye, through, look)) if (l && pass?.draw(proj, view, l, fog, renderer.lightingLane ? SD_SKY_STEPS.lane : SD_SKY_STEPS.classic)) drew = true;   // AUDIT SD-THROUGH (B8): the farther first - the pass writes no depth
       if (sdHaloPassOf()?.draw(proj, view, end.sdEndHalos?.() ?? [], fog, renderer.lightingLane ? SD_HALO_GAIN.lane : SD_HALO_GAIN.classic)) drew = true;
       if (drew) renderer.markForeignPass();
     },
