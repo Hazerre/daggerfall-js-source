@@ -9444,6 +9444,16 @@
   "tr": "76fbda3b2b1e",
   "by": "claude-in-session"
  },
+ "features.npcMarks.note": {
+  "en": "9ac4077e0fc2",
+  "tr": "f0cc1b15834e",
+  "by": "claude-in-session"
+ },
+ "features.npcMarks.title": {
+  "en": "a3f85ff33ef4",
+  "tr": "82953d99bc6b",
+  "by": "claude-in-session"
+ },
  "features.questHerald.note": {
   "en": "96aa445162b4",
   "tr": "0daa7a6f06a8",
@@ -11929,6 +11939,11 @@
   "tr": "c20b02678b82",
   "by": "claude-in-session"
  },
+ "helm.passenger": {
+  "en": "61953c9d9311",
+  "tr": "62d9ba12ff27",
+  "by": "claude-in-session"
+ },
  "holdings.horse.boons.hungry": {
   "en": "11b471ca7d1e",
   "tr": "ede3289e4277",
@@ -12129,16 +12144,6 @@
   "tr": "93f2d2013075",
   "by": "claude-in-session"
  },
- "inventory.store.anyMaterial": {
-  "en": "8177dd78731e",
-  "tr": "302b59468fb4",
-  "by": "claude-in-session"
- },
- "inventory.store.anyRarity": {
-  "en": "cc8474c6626b",
-  "tr": "da55163416a5",
-  "by": "claude-in-session"
- },
  "inventory.store.containerFull": {
   "en": "25e48df7aefe",
   "tr": "73b00471c20b",
@@ -12149,9 +12154,19 @@
   "tr": "ca511bd9e593",
   "by": "claude-in-session"
  },
+ "inventory.store.materialMenu": {
+  "en": "d8169782b57c",
+  "tr": "19114f713f60",
+  "by": "claude-in-session"
+ },
  "inventory.store.rarityIn": {
   "en": "4edd5e0b523a",
   "tr": "7605976d8b07",
+  "by": "claude-in-session"
+ },
+ "inventory.store.rarityMenu": {
+  "en": "a3e1e99f2620",
+  "tr": "f07c1c06cf22",
   "by": "claude-in-session"
  },
  "inventory.store.stashAll": {
@@ -12617,6 +12632,16 @@
  "levelup.vital.magicka": {
   "en": "3f9626ec308d",
   "tr": "984102d9ff2a",
+  "by": "claude-in-session"
+ },
+ "livingWorld.friend.court": {
+  "en": "0246b7029d39",
+  "tr": "533394b033f0",
+  "by": "claude-in-session"
+ },
+ "livingWorld.friend.made": {
+  "en": "fee76aa0c9bf",
+  "tr": "7d16a604f0f6",
   "by": "claude-in-session"
  },
  "lootBanner.honour.aura": {
@@ -28752,6 +28777,11 @@
  "spellbook.effect.magnitude": {
   "en": "032e12a22bdd",
   "tr": "a5b2350c866d",
+  "by": "claude-in-session"
+ },
+ "standing.notice.served": {
+  "en": "b6b59e754a1b",
+  "tr": "c3420891a154",
   "by": "claude-in-session"
  },
  "starfall.at.breath": {

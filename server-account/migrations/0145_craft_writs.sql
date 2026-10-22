@@ -4,7 +4,7 @@
 --   npx wrangler d1 migrations apply daggerfall-accounts --remote
 --
 -- Applied exactly once through the `d1_migrations` ledger, which the deploy runs (ACC1-CI), before the Worker that
--- posts and fills the writs (acct168).
+-- posts and fills the writs (acct169; 0144 and acct168 on its branch, renumbered past STAFF-PANEL1's at the merge).
 --
 -- A CRAFTING WRIT. An ACCOUNT is asked three a UTC day (src/net/craftWritLaw.js craftWritsFor - AUDIT CRAFT-WRITS E1: a
 -- character's own three let an account of six choose its best three of eighteen), written down the first time any of its

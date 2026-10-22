@@ -46,7 +46,7 @@ const recipesOf = (/** @type {string} */ product) => {
   return p.kind === 'dish' ? COOKING_RECIPES.filter((r) => r.product === p.id).map((r) => r.id) : [p.key];
 };
 
-/** SQL: the potions of `potion` a character's WITNESSED brews made (migration 0144 - none of a cauldron's units loose)
+/** SQL: the potions of `potion` a character's WITNESSED brews made (migration 0145 - none of a cauldron's units loose)
  *  that no crafting writ it filled has taken yet. `p`, `c` the player's and the character's SQL; `potion` the recipe's name's,
  *  `product` the writ's - BOUND, never a column: AUDIT CRAFT-WRITS S1 - written as `craft_writs.product` inside the
  *  decision's UPDATE, SQLite read it as the subquery's own row's, and every writ the character had filled, of any

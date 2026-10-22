@@ -122,7 +122,7 @@ export async function brewAtStation(ctx, player, env, { character, potion: id, k
     held.push(`${workableSql('?1', '?2', `?${14 + 2 * i}`)} >= ?${15 + 2 * i}`);   // GOLD-MARKET: never gold's units; AUDIT BAG-CRAFT A1: a station's loose ones too
   });
   const decided = 'EXISTS (SELECT 1 FROM prof_brews WHERE player = ?1 AND rid = ?5 AND n = ?6)';
-  // CRAFT-WRITS (migration 0144): WITNESSED WHOLE where the cauldron spent no loose units - a station spends them first
+  // CRAFT-WRITS (migration 0145): WITNESSED WHOLE where the cauldron spent no loose units - a station spends them first
   // (workStatements), so a brew is a crafting writ's only while none of its inputs had any to spend
   const loose = `EXISTS (SELECT 1 FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND origin = '${LOOSE_ORIGIN}' AND qty > 0 AND material IN (${inputs.map((_, i) => `?${14 + 2 * i}`).join(', ')}))`;
   await db.batch([

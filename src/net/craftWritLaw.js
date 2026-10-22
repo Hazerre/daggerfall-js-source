@@ -145,7 +145,7 @@ export function craftWritBaseQty(/** @type {{ kind: string, tier: number }} */ p
  *  count first. */
 export const craftWorth = (/** @type {{ kind: 'potion'|'dish'|'kit', tier: number, cost: number, bought?: number }} */ p, /** @type {number} */ qty) =>
   Math.max(CRAFT_PAY_FLOOR * p.tier, Math.ceil((qty * ((p.cost - (p.bought ?? 0)) * CRAFT_PAY_PCT + (p.bought ?? 0) * 100)) / (100 * NOVICE_YIELD[p.kind])));
-/** The most a writ asks of one product - the table's own CHECK (migration 0144, `qty` 1 to 20). */
+/** The most a writ asks of one product - the table's own CHECK (migration 0145, `qty` 1 to 20). */
 export const CRAFT_WRIT_QTY_MAX = 20;
 /** A crafting writ's XP: twice its pay, to the craft's track (the Court writ's law, professionLaw writXp). */
 export const craftWritXp = (/** @type {number} */ pay) => 2 * pay;

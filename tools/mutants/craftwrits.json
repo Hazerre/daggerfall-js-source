@@ -433,7 +433,7 @@
   },
   {
     "name": "AUDIT-CRAFT-WRITS-S6-index-dropped",
-    "file": "server-account/migrations/0144_craft_writs.sql",
+    "file": "server-account/migrations/0145_craft_writs.sql",
     "old": "CREATE INDEX IF NOT EXISTS idx_craft_writs_open ON craft_writs (expires_at) WHERE filled_at IS NULL;\n",
     "new": "",
     "tests": [

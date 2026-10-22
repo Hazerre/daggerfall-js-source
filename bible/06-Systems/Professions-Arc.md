@@ -5089,7 +5089,7 @@ supply and the drop a windfall - which is what the record already said a crafter
 works: what wears out or is eaten").
 
 **The service.** `brewCount` is the service's law too (`server-account/src/alchemy.js` brewAtStation): a Novice's brew is
-answered two. `ACCOUNT_VERSION` acct168. No migration.
+answered two. `ACCOUNT_VERSION` acct169 (acct168 and migration 0144 on its branch, renumbered past STAFF-PANEL1 at the merge). No migration.
 
 ### 48.3 What it is for (the record's answer to "whats the end goal for crafting?")
 
@@ -5115,14 +5115,14 @@ change that took a consumable back from the loot so the crafter could supply it;
 - `src/systems/healingSupply.js` (the four chances, the two steps' start), `src/systems/renownLoot.js` (the stage table's
   two potion columns, a comment).
 - `src/net/alchemyLaw.js` (`brewCount`), `src/net/professionLaw.js` (`ALCHEMY_FEE`), `server-account/src/alchemy.js` (its
-  docblock), `server-account/src/service.js` and `wrangler.toml` (acct168), `src/ui/professions/profPages.js` (a docblock).
+  docblock), `server-account/src/service.js` and `wrangler.toml` (acct169), `src/ui/professions/profPages.js` (a docblock).
 - `src/systems/survival/items.js` (four rows), `vendor/climates-calories/README.md` (nine columns the port changes, not five).
 - **The four hosts**: none touched - the loot hooks are the shared rolls' on every host (`scenes/shared.js`
   installHealingSupply), the station the pages', the weights the template's.
 - PIN MOVED: `test/systems/potion_common.test.js`, `test/systems/renownloot.test.js` (the potion numbers);
   `test/systems/prof12_law.test.js`, `test/net/prof12_service.test.js`, `test/systems/prof12_client.test.js` (a Novice's two,
   25 gold); `test/systems/survival/auditcc_items.test.js`, `test/systems/prof9_client.test.js` (the weights); the account
-  version's pins (acct168). Mutants re-aimed by content: `tools/mutants/potioncommon.json`, `lootease.json`,
+  version's pins (acct169). Mutants re-aimed by content: `tools/mutants/potioncommon.json`, `lootease.json`,
   `renownloot.json` (79, all dead), `prof12.json` (`PROF12-count-novice-one` - the mutant that WAS a Novice's two is now its
   one; `PROF12-alchemy-fee` back to 50). AUDIT CRAFT-WRITS T5: the list holds 212 - one recorded equivalent
   (`PROF12-spends-no-hash`) and one survivor (`PROF12-migration-unique`, which survives on main as well), so 210 to die;
@@ -5139,7 +5139,7 @@ the mages guild. The reward can be crafting xp, silver, and rep."** Every number
 
 - **Whose.** Every writ the board posted asked a gathered material from the Stores (section 11). A crafting writ asks what
   a crafter MAKES, and is the ACCOUNT's: it is asked **three a UTC day**, drawn the first time any of its living realm
-  characters reads a board that day and written down (`craft_writs`, migration 0144 - `UNIQUE (day, player, slot)`, the
+  characters reads a board that day and written down (`craft_writs`, migration 0145 - `UNIQUE (day, player, slot)`, the
   id's stem that first reader's realm id) - so a writ never changes under a rank won mid-day, and two accounts never race
   for one. Filled whole at any board, by any of the account's characters with its OWN goods (`filled_char`), before the
   day ends. AUDIT CRAFT-WRITS E1: as built first each character was asked three of its own, and an account of six chose
@@ -5177,7 +5177,7 @@ in the same batch (INT19's law for every crafted act):
   summoned, bound or LOCKED one - AUDIT CRAFT-WRITS C3, itemLock.js; never the recipe's sheet, which names the potion's key
   too - E3). A potion is a potion: the brews are the witness and the record the goods,
   so a looted bottle can be handed over only where a brew of the character's own stands behind it.
-- **WITNESSED WHOLE** (migration 0144, `prof_brews.witnessed`): a station spends a cauldron's LOOSE units first (AUDIT
+- **WITNESSED WHOLE** (migration 0145, `prof_brews.witnessed`): a station spends a cauldron's LOOSE units first (AUDIT
   BAG-CRAFT A1 - what the pack put in that the service never handed out: a looted herb, a reagent bought for gold), and a
   potion of them is gold's goods, which never fetch silver (GOLD-MARKET). A brew is witnessed where it spent none
   (`alchemy.js` brewAtStation writes it in the brew's own decision). Brews before the column read 0 - their units'
@@ -5259,8 +5259,8 @@ what changed, is marked with its ids above.
 - **The law**: `src/net/craftWritLaw.js` (products, guilds, the draw, the pay, the goods, the words); `src/net/marksLaw.js`
   (`MARKS_FAUCETS.craftWrit`, `MARKS_KINDS['craft-writ']`).
 - **The service**: `server-account/src/craftWrits.js` (`craftWritBoard`, `deliverCraftWrit`, `sweepCraftWrits`);
-  `server-account/migrations/0144_craft_writs.sql`; `alchemy.js` (a brew's `witnessed`); `index.js` (`/v1/writs/craft`,
-  `crafts` on `/v1/writs/list`, the refusals' statuses); `service.js` (the route listed, acct168 - CRAFT-PAYS and
+  `server-account/migrations/0145_craft_writs.sql` (acct168 and migration 0144 on its branch, renumbered past STAFF-PANEL1 at the merge); `alchemy.js` (a brew's `witnessed`); `index.js` (`/v1/writs/craft`,
+  `crafts` on `/v1/writs/list`, the refusals' statuses); `service.js` (the route listed, acct169 - CRAFT-PAYS and
   CRAFT-WRITS one release); `progress.js` (INT16-INT17: a progression claim - its XP and Renown); `cron.js` (an unfilled
   writ swept the day after its own; a filled one stays - a potion writ's brews are counted by it); `professions.js`
   (`renownAnswer` exported). `realm.js` deletes nothing of them: they are the account's (E1), and a filled writ is the
@@ -5278,7 +5278,7 @@ what changed, is marked with its ids above.
   `tools/mutants/craftwrits.json` (88: 86 dead; `svc-room` equivalent - the marks table's CHECK refuses an overfill - and
   `svc-cap` equivalent - the schema holds the day's three, E1). PIN MOVED: `marks1`, `prof5_law` (a fourth mint),
   `auditscale` (the hour's clock 35), `scale4b` (the Work tab's first read of a day writes the day's three),
-  `accountworker` (the table), `int16`'s ROUTES list, and the account version's pins (AUDIT CRAFT-WRITS T5:
+  `accountworker` (the table), `int16`'s ROUTES list, `hostceiling` (bootWorld's ceiling 12 up at the merge with main, 36,243 to 36,255 - the host's one statement and one entry, five getters among them, the room main spent meanwhile), and the account version's pins (acct169) (AUDIT CRAFT-WRITS T5:
   `int16_progress` was named here and never moved - it walks the routes itself). `fb1013e_writwall` waits on the real
   Worker's board read by the clock (`performance.now`), not 400 turns - the read does more since the crafting writs ride
   it, and the count ran out under a loaded suite.
