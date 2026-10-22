@@ -89,6 +89,7 @@ import { goldSum, EMPIRE_ACCOUNT_WORDS } from '../../systems/homeWords.js';   //
 import { createDecorPlacer, decorEntrySized, DECOR_TURN_STEP, DECOR_TURN_FINE, DECOR_RAISE_STEP, DECOR_RAISE_FINE, wrapTurn } from '../../systems/decor/decorPlacer.js';   // DECOR-FIGURE: whether a piece takes a size step
 import { createDecorButton, createDecorPanel, createDecorBar, createDecorLookMenu, decorWhyNot } from '../../ui/decorPanel.js';
 import { decorLookOffers, decorAimKind } from '../../systems/decor/decorLook.js';
+import { interiorDoorIndex } from '../../systems/decor/decorInteriorDoors.js';
 import { pickActivatable } from '../../player/activate.js';
 import { DECOR_CAP, DECOR_PRICE_PER_METRE, DECOR_HIDDEN_CAP, decorPrice, decorPieceOf, decorRefund, decorRescale, mintDecorId, DECOR_STATIONS, DECOR_STATION_FEES, DECOR_STATION_NAMES } from '../../net/decorLaw.js';
 import { decorKey, DECOR_KINDS, decorFlatLight, modelKind, flatKind, decorRoomEntries } from '../../systems/decor/decorCatalogue.js';
@@ -855,26 +856,41 @@ export function createDecorTool(deps) {
     const b = deps.base?.();
     if (!b) return [];
     const eye = deps.eye?.() ?? null;
-    return b.list().map((p) => {
+    const list = roomList();   // DECOR-ROOMS: the room it stands in, where the house has more than one
+    const distOf = (at) => (eye && at ? Math.hypot(at[0] - eye[0], at[1] - eye[1], at[2] - eye[2]) : null);
+    const roomOf = (at) => (list && at ? rooms.roomOf(at)?.id ?? null : null);
+    const furniture = b.list().map((p) => {
       const shape = decorKey(p);
       const kind = p.model != null ? modelKind(p.model) : flatKind(p.flat[0]);
-      const dist = eye && p.at ? Math.hypot(p.at[0] - eye[0], p.at[1] - eye[1], p.at[2] - eye[2]) : null;
-      const list = roomList();   // DECOR-ROOMS: the room it stands in, where the house has more than one
-      return { key: p.key, shape, model: p.model, flat: p.flat, kind, name: deps.names?.get(shape) ?? DECOR_KINDS[kind], hidden: p.hidden, holds: p.holds, dist, room: list && p.at ? rooms.roomOf(p.at)?.id ?? null : null };
-    }).sort((a, b2) => (a.dist ?? Infinity) - (b2.dist ?? Infinity));
+      return { key: p.key, shape, model: p.model, flat: p.flat, kind, name: deps.names?.get(shape) ?? DECOR_KINDS[kind], hidden: p.hidden, holds: p.holds, dist: distOf(p.at), room: roomOf(p.at) };
+    });
+    const doors = (b.roomDoors?.list?.() ?? []).map((p) => ({
+      key: p.key, shape: p.key, model: null, flat: null, kind: 'door', name: 'Door', hidden: p.hidden, holds: false, door: true, dist: distOf(p.at), room: roomOf(p.at),
+    }));
+    return [...furniture, ...doors].sort((a, b2) => (a.dist ?? Infinity) - (b2.dist ?? Infinity));
   }
 
   /** BASE-HIDE: THE ROOM'S OWN FURNITURE TAKEN OUT (`out`) OR PUT BACK - free. An online home writes the room's whole list
    *  first (the account service is the room's truth, and every visitor's) and stands it once the service has it; the
    *  house and the ship stand it at once (the room's scene carries the list into the save). A piece that holds anything
    *  is never taken out: what it holds would go with it. */
+  function setRoomDoor(key, out) {
+    const i = interiorDoorIndex(key);
+    const doors = deps.base?.()?.roomDoors;
+    if (i == null || !doors || !deps.room?.()) return false;
+    const ok = out ? doors.hide(i) : doors.show(i);
+    if (ok) deps.say?.(`Door ${out ? 'taken out' : 'put back'}.`);
+    return ok;
+  }
   async function setBase(keys, out) {
     const r = deps.room?.();
     const b = deps.base?.();
     if (!r || !b || !Array.isArray(keys)) return false;
+    let doorsChanged = 0;
+    for (const k of keys) if (interiorDoorIndex(k) != null && setRoomDoor(k, out)) doorsChanged += 1;
     const rows = new Map(b.list().map((p) => [p.key, p]));
     const moving = keys.filter((k) => { const p = rows.get(k); return p && p.hidden !== out && !(out && p.holds); });
-    if (!moving.length) return false;
+    if (!moving.length) return doorsChanged > 0;
     const next = new Set(b.hidden());
     for (const k of moving) { if (out) next.add(k); else next.delete(k); }
     if (next.size > DECOR_HIDDEN_CAP) { deps.say?.('No more of this room\'s own furniture can be taken out.'); return false; }
@@ -962,7 +978,9 @@ export function createDecorTool(deps) {
 
   /** The placed piece the free camera looks at, or null. The building's own furniture is not in this list. */
   function pieceUnderLook(eye, dir) {
-    const key = pickActivatable(eye, dir, pool.targets?.() ?? [], { raycast: () => Infinity });
+    const doors = deps.base?.()?.roomDoors?.targets?.() ?? [];
+    const key = pickActivatable(eye, dir, [...(pool.targets?.() ?? []), ...doors], { raycast: () => Infinity });
+    if (interiorDoorIndex(key) != null) return { roomDoor: true, key, name: 'Door' };
     const id = decorIdOfKey(key);
     const piece = id ? pool.pieceOf?.(id) : null;
     if (!piece || piece.id === placing?.editing?.id || piece.id === placing?.id) return null;
@@ -971,6 +989,11 @@ export function createDecorTool(deps) {
   /** Move, duplicate or remove the piece under the crosshair. Run now; nothing is charged until a placement confirms. */
   function applyLookAction(action) {
     const piece = looked;
+    if (piece?.roomDoor) {
+      const offers = decorLookOffers({ key: piece.key, kind: 'roomdoor', mayEdit: !!deps.room?.() });
+      if (action !== 'remove' || !offers.remove) return false;
+      return setRoomDoor(piece.key, true);
+    }
     const offers = decorLookOffers(piece ? { kind: decorAimKind(decorKeyOf(piece.id), piece), piece, holds: !!pool.holdsAny?.(piece.id), mayEdit: !!deps.room?.() } : null);
     if (!offers[action]) return false;
     if (action === 'remove') { removePiece(piece); return true; }
@@ -991,6 +1014,10 @@ export function createDecorTool(deps) {
   function refreshLook(eye, dir) {
     const piece = pieceUnderLook(eye, dir);
     looked = piece;
+    if (piece?.roomDoor) {
+      lookMenu?.show({ name: piece.name, ...decorLookOffers({ key: piece.key, kind: 'roomdoor', mayEdit: !!deps.room?.() }) });
+      return;
+    }
     if (!piece) { lookMenu?.hide(); return; }
     lookMenu?.show({
       name: entryOf(piece).name,

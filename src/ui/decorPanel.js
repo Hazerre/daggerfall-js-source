@@ -580,8 +580,8 @@ export function createDecorPanel({
   const baseActions = el('div', 'dfdecor-base-actions');
   const baseBtn = act('Take out', () => { const it = baseSelected(); if (it && !baseBtn.disabled) onBase([it.key], !it.hidden); });
   // DECOR-ROOMS: "all" is the chosen room's all, where the house has rooms to choose between
-  const allOutBtn = act('Take all out', () => { const ks = roomed(view?.base ?? []).filter((it) => !it.hidden && !it.holds).map((it) => it.key); if (ks.length) onBase(ks, true); });
-  const allBackBtn = act('Put all back', () => { const ks = roomed(view?.base ?? []).filter((it) => it.hidden).map((it) => it.key); if (ks.length) onBase(ks, false); });
+  const allOutBtn = act('Take all out', () => { const ks = roomed(view?.base ?? []).filter((it) => !it.hidden && !it.holds && !it.door).map((it) => it.key); if (ks.length) onBase(ks, true); });
+  const allBackBtn = act('Put all back', () => { const ks = roomed(view?.base ?? []).filter((it) => it.hidden && !it.door).map((it) => it.key); if (ks.length) onBase(ks, false); });
   baseActions.append(actGroup(DECOR_ACT_GROUPS.piece, [baseBtn]), actGroup(DECOR_ACT_GROUPS.whole, [allOutBtn, allBackBtn]));
   // HOME-RENT: the chosen room's price moved, offered or withdrawn - and the rent held, collected
   const rentActions = el('div', 'dfdecor-rent-actions');
@@ -1235,8 +1235,8 @@ export function createDecorPanel({
     baseBtn.textContent = it?.hidden ? 'Put back' : 'Take out';
     baseBtn.dataset.dficon = it?.hidden ? 'put-back' : 'take-out';   // MENU-ORDER
     baseBtn.disabled = !it || (!it.hidden && it.holds);
-    allOutBtn.disabled = !rows.some((r) => !r.hidden && !r.holds);
-    allBackBtn.disabled = !rows.some((r) => r.hidden);
+    allOutBtn.disabled = !rows.some((r) => !r.hidden && !r.holds && !r.door);
+    allBackBtn.disabled = !rows.some((r) => r.hidden && !r.door);
     pickWhy.textContent = it && !it.hidden && it.holds ? DECOR_HOLDS_LINE : '';
   }
 

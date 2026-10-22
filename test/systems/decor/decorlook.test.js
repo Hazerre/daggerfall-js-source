@@ -16,6 +16,9 @@ test('the look tells a placed piece from the building\'s own furniture, a cupboa
   assert.equal(decorAimKind('container:3'), 'container');
   assert.equal(decorAimKind('exit:0'), 'structural');
   assert.equal(decorAimKind('act:door'), 'structural');
+  assert.equal(decorAimKind('intdoor:2'), 'roomdoor');
+  assert.deepEqual(decorLookOffers({ key: 'intdoor:2', kind: 'roomdoor', mayEdit: true }), { move: false, duplicate: false, remove: true });
+  assert.equal(decorLookOffers({ key: 'intdoor:2', kind: 'roomdoor', mayEdit: false }).remove, false);
   assert.deepEqual(decorLookOffers({ piece, kind: 'decor', holds: false, mayEdit: true }), { move: true, duplicate: true, remove: true });
   assert.equal(decorLookOffers({ piece, kind: 'container', holds: true, mayEdit: true }).remove, false);
   assert.equal(decorLookOffers({ piece: { ...piece, item: { id: 1 } }, kind: 'decor', mayEdit: true }).duplicate, false);
