@@ -954,7 +954,8 @@ export class OnlineSession {
     const h = this._halo.get(room);
     // AUDIT WORLD6b-iii(b) A1/B7/C2: a LIVE, OPEN halo alone is promoted - one dropped and pending its retry (ws null)
     // handed a dead socket to the primary and the next setHalo closed the good one; any other entry is ended by the
-    // ordinary join's leave() and the cell's socket stood at once. AUDIT 68 X7/S14-halo-connecting-orphan: it was
+    // ordinary join's leave() and the cell's socket stood at once (HALO-WAIT, above: a CONNECTING one is waited for
+    // first, while my own cell's socket is open, and ended so only once the wait is out). AUDIT 68 X7/S14-halo-connecting-orphan: it was
     // deleted here first, so a CONNECTING halo's socket was never closed - leave() closes only what `_halo` still holds
     if (h && h.ws && h.status === 'open' && this._ws && isCellRoom(room) && isCellRoom(this.room)) {
       // WORLD6b-iii(b): a crossing into a cell already hello'd as a halo PROMOTES its socket - no close, no reconnect,

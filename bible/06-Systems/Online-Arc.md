@@ -17013,10 +17013,11 @@ crossing. The host composes the look every frame it calls `join`
 (`composeLook`, a walk of the equipped slots; `setLook` returns at once when nothing changed). No relay change, no
 RELAY_VERSION, no deploy.
 
-**Pins.** `test/net/halowait.test.js` (the wait holds and promotes with nothing closed and nobody wiped; it is bounded;
-a dropped halo and a primary down are joined as before; by source). AUDIT 68 X7 (`test/net/audit68_net.test.js`)
+**Pins.** `test/net/halowait.test.js` (the wait holds and promotes with nothing closed, nobody wiped and the asked list
+kept until the crossing; a third cell at a corner is waited for by its own halo; the wait is bounded; a dropped halo and
+a primary down are joined as before; by source). AUDIT 68 X7 (`test/net/audit68_net.test.js`)
 re-aimed: the halo still connecting is waited for, and once the wait is out the ordinary join still closes it. Mutants:
-`tools/mutants/halowait.json`.
+`tools/mutants/halowait.json`, 7 dead.
 
 **Open.** The live mint's latency is not measured here; the teardown needed a mint slower than the lead, and this wait
 covers any mint the halo outlives. `HALO_WAIT_MS` is `BACKOFF_MAX_MS` by design, so raising the reconnect backoff's

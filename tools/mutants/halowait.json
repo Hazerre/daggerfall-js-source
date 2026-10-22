@@ -27,7 +27,7 @@
     "tests": [
       "test/net/halowait.test.js"
     ],
-    "note": "An open halo is promoted at once; waiting on it never ends while it stays open, and the crossing is never made."
+    "note": "An open halo is promoted at once; waiting on it instead holds the crossing until HALO_WAIT_MS runs out, and then the ordinary join tears every socket down - the bug back, later."
   },
   {
     "name": "HALO-WAIT-4-waits-with-my-own-cell-down",
@@ -47,7 +47,7 @@
     "tests": [
       "test/net/halowait.test.js"
     ],
-    "note": "Unbounded, a halo stuck connecting holds the crossing until tick's A7 drops it - and a halo whose socket never reports holds it for good."
+    "note": "Unbounded, the wait's own bound is gone and only tick's A7 drop (past BACKOFF_MAX_MS, in the same frame's tick) ends it - the bound would then live in another slice's constant and comparison, a frame later."
   },
   {
     "name": "HALO-WAIT-6-the-wait-a-millisecond-short",
@@ -58,5 +58,15 @@
       "test/net/halowait.test.js"
     ],
     "note": "The bound is the halo's own connecting life, to the millisecond; the pin waits to its last."
+  },
+  {
+    "name": "HALO-WAIT-7-the-lists-cleared-before-the-wait",
+    "file": "src/net/online.js",
+    "old": "    if (this._haloWait(room)) { if (pose) this.sendPose(pose); return; }",
+    "new": "    this._who.clear(); if (this._haloWait(room)) { if (pose) this.sendPose(pose); return; }",
+    "tests": [
+      "test/net/halowait.test.js"
+    ],
+    "note": "The host calls join every frame of the wait: an asked list cleared there is cleared every frame, and a stranger is asked every frame."
   }
 ]

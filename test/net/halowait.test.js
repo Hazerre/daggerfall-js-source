@@ -60,8 +60,10 @@ async function atTheEdge() {
 test('HALO-WAIT: a crossing into a cell whose halo is still minting WAITS - nothing closed, nobody wiped, my pose down my own cell all the while - and promotes the halo the frame its hello goes', () => quiet(async () => {
   const { s, sockets, clock, mints, st } = await atTheEdge();
   const posesBefore = sockets[0].sent.filter((f) => f.startsWith('{"t":"pose"')).length;
+  s._who.set('eve-0003', clock.t);   // a stranger asked for in my cell
   for (const x of [48, 48, 49, 49]) { clock.t += 300; hostFrame(s, { x, y: 200 }, clock.t, st); }   // 1.2 s in cell 3, the 500 ms hold long past
   assert.equal(s.room, 'world:2,12', 'still my old cell'); assert.equal(s._ws, sockets[0]);
+  assert.ok(s._who.has('eve-0003'), 'the asked list kept through every frame of the wait - asked before the join\'s clears');
   assert.equal(sockets.length, 2, 'no socket opened'); assert.equal(sockets[0].closed, null); assert.equal(sockets[1].closed, null, 'nothing closed');
   assert.ok(s.peers.has('bob-0002'), 'Bob still stands');
   assert.ok(sockets[0].sent.filter((f) => f.startsWith('{"t":"pose"')).length > posesBefore, 'my pose went on down the cell I hold');
@@ -72,6 +74,31 @@ test('HALO-WAIT: a crossing into a cell whose halo is still minting WAITS - noth
   assert.equal(s.room, 'world:3,12'); assert.equal(s._ws, sockets[1], 'the halo\'s socket promoted');
   assert.deepEqual(s.haloRooms(), ['world:2,12'], 'the cell left is a halo'); assert.equal(sockets.length, 2); assert.equal(sockets[0].closed, null);
   assert.equal(s.stats.reconnects, reconnects); assert.ok(s.peers.has('bob-0002'), 'nobody wiped');
+  assert.equal(s._who.has('eve-0003'), false, 'the crossing itself forgets who was asked (AUDIT WORLD6b-iii(e) B4)');
+}));
+
+test('HALO-WAIT: a pixel that moves on into a THIRD cell while waiting (a corner at speed) is joined by the same rule for that cell - waited for while its halo is connecting, then promoted, nothing torn down', () => quiet(async () => {
+  const { s, sockets, clock, mints } = traveller();
+  const st = { key: null, since: 0 };
+  const sock = (room) => sockets.find((w) => w.url.endsWith(`/room/${room}`) && !w.closed);
+  const mintOf = (room) => mints.find((m) => m.room === room);
+  hostFrame(s, { x: 40, y: 200 }, clock.t, st);
+  sockets[0].open(); await flush(); mints[0].answer(); await flush();
+  sockets[0].receive({ t: 'welcome', id: 'mac-0001', peers: [{ id: 'bob-0002', name: 'Bob', look, pose: poseAt({ x: 40, y: 200 }) }], host: null, world: null });
+  clock.t += 100; hostFrame(s, { x: 47, y: 207 }, clock.t, st);   // cell 2,12's corner pixel: three halos
+  assert.deepEqual(s.haloRooms().sort(), ['world:2,13', 'world:3,12', 'world:3,13']);
+  for (const r of s.haloRooms()) sock(r).open();
+  await flush();
+  for (let i = 0; i < 3; i++) { clock.t += 300; hostFrame(s, { x: 48, y: 207 }, clock.t, st); }   // into 3,12 and past its hold: waiting
+  assert.equal(s.room, 'world:2,12', 'waiting on 3,12');
+  for (let i = 0; i < 3; i++) { clock.t += 300; hostFrame(s, { x: 48, y: 208 }, clock.t, st); }   // on into 3,13 and past its own hold: waiting on 3,13
+  assert.equal(s.room, 'world:2,12', 'waiting on 3,13 now'); assert.equal(sockets.filter((w) => w.closed).length, 0, 'nothing closed');
+  mintOf('world:3,13').answer(); await flush();
+  clock.t += 100; hostFrame(s, { x: 48, y: 208 }, clock.t, st);
+  assert.equal(s.room, 'world:3,13'); assert.equal(s._ws, sock('world:3,13'), '3,13\'s own halo promoted');
+  assert.ok(s.peers.has('bob-0002'), 'nobody wiped'); assert.ok(s.haloRooms().includes('world:2,12'), 'the cell left a halo');
+  for (const m of mints) m.answer();
+  await flush();
 }));
 
 test('HALO-WAIT: the wait is BOUNDED - a halo still connecting HALO_WAIT_MS after it opened is not waited for, and the crossing is joined the ordinary way (its socket closed, not leaked)', () => quiet(async () => {
