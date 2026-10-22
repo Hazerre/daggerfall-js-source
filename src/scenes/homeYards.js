@@ -214,16 +214,20 @@ export const YARD_TOO_HIGH = DECOR_YARD_HIGH_WHY;
 export const YARD_EDGE_PAD = 0.05;
 /** FB1009 HOME-FOOT: the side of the cells a model's ground is measured in, metres (half Daggerfall's 0.8 m wall step). */
 export const YARD_FOOT_CELL = 0.4;
+/** A face this high, and higher, is a roof. Ground under the part of it that hangs past the walls is still the yard. */
+export const YARD_ROOF_Y = 2;
 
 /**
  * FB1009 HOME-FOOT (the Discord, "Property Problem": "I can't place in front of my door but I can place in front of
- * another's home"): THE GROUND A MODEL STANDS ON, seen from above - every face of it that covers ground (a roof, an
- * eave, a stair's tread, a wall's top), in `cell`-metre cells, answered as rects [x0, z0, x1, z1] in the model's own
+ * another's home"): THE GROUND A MODEL STANDS ON, seen from above - every face of it that covers ground (a roof, a
+ * stair's tread, a wall's top), in `cell`-metre cells, answered as rects [x0, z0, x1, z1] in the model's own
  * frame (each row's runs, a run the row above shares one rect). A wall covers no ground: its face seen from above is a
  * line. The box round the model was its ground, and Hammerfell's houses are L-shaped or stand an outside stair before
  * their door - the door opens onto open ground inside the box (ARCH3D 600, 709 and their kin: 44% of the desert's
  * houses), so the step before the owner's own door was "inside your house" while a neighbour whose door is in its box's
  * side stood free. A face is sampled strictly inside itself, so a roof's edge on a cell's side never marks the next.
+ * A roof that hangs past the walls is an eave: the ground under it is the yard. A roof with no walls under it, and
+ * anything lower than the roof (a step, a porch), still covers the ground it stands on.
  */
 export function modelFootRects(positions, indices, cell = YARD_FOOT_CELL) {
   let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
@@ -234,18 +238,53 @@ export function modelFootRects(positions, indices, cell = YARD_FOOT_CELL) {
   if (!(x1 > x0) || !(z1 > z0)) return [];
   const W = Math.ceil((x1 - x0) / cell), H = Math.ceil((z1 - z0) / cell);
   const hit = new Uint8Array(W * H);
+  const roof = new Uint8Array(W * H);
+  const walls = [];
+  const seen = new Set();
+  const mark = (grid, x, z) => { grid[Math.min(H - 1, Math.floor((z - z0) / cell)) * W + Math.min(W - 1, Math.floor((x - x0) / cell))] = 1; };
   for (let t = 0; t < indices.length; t += 3) {
     const a = indices[t] * 3, b = indices[t + 1] * 3, c = indices[t + 2] * 3;
-    const ax = positions[a], az = positions[a + 2], bx = positions[b], bz = positions[b + 2], cx = positions[c], cz = positions[c + 2];
-    if (Math.abs((bx - ax) * (cz - az) - (cx - ax) * (bz - az)) < 2e-3) continue;   // a wall: no ground under it
+    const ax = positions[a], ay = positions[a + 1], az = positions[a + 2];
+    const bx = positions[b], by = positions[b + 1], bz = positions[b + 2];
+    const cx = positions[c], cy = positions[c + 1], cz = positions[c + 2];
+    if (Math.abs((bx - ax) * (cz - az) - (cx - ax) * (bz - az)) < 2e-3) {
+      const edges = [[ax, az, bx, bz], [bx, bz, cx, cz], [cx, cz, ax, az]];
+      let best = edges[0], len = -1;
+      for (const e of edges) {
+        const d = Math.hypot(e[2] - e[0], e[3] - e[1]);
+        if (d > len) { best = e; len = d; }
+      }
+      if (len < 1e-3) continue;
+      const q = (v) => Math.round(v * 1000);
+      const ka = `${q(best[0])},${q(best[1])}`, kb = `${q(best[2])},${q(best[3])}`;
+      const key = ka < kb ? `${ka}|${kb}` : `${kb}|${ka}`;
+      if (!seen.has(key)) { seen.add(key); walls.push(best); }
+      continue;   // a wall: no ground under it
+    }
+    const high = ay >= YARD_ROOF_Y && by >= YARD_ROOF_Y && cy >= YARD_ROOF_Y;
+    const grid = high ? roof : hit;
     const n = Math.max(1, Math.ceil(Math.max(Math.hypot(bx - ax, bz - az), Math.hypot(cx - ax, cz - az), Math.hypot(cx - bx, cz - bz)) / (cell / 2)));
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n - i; j++) {
         const u = (i + 1 / 3) / n, v = (j + 1 / 3) / n, w = 1 - u - v;   // inside the face, never on its edge
-        const x = ax * w + bx * u + cx * v, z = az * w + bz * u + cz * v;
-        hit[Math.min(H - 1, Math.floor((z - z0) / cell)) * W + Math.min(W - 1, Math.floor((x - x0) / cell))] = 1;
+        mark(grid, ax * w + bx * u + cx * v, az * w + bz * u + cz * v);
       }
     }
+  }
+  const inside = (x, z) => {
+    let n = 0;
+    for (const [ax, az, bx, bz] of walls) {
+      if ((az > z) === (bz > z)) continue;
+      const cross = ax + ((z - az) / (bz - az)) * (bx - ax);
+      if (cross > x) n += 1;
+    }
+    return n % 2 === 1;
+  };
+  for (let i = 0; i < roof.length; i++) {
+    if (!roof[i] || hit[i]) continue;
+    if (!walls.length) { hit[i] = 1; continue; }
+    const q = i % W, r = (i / W) | 0;
+    if (inside(x0 + (q + 0.5) * cell, z0 + (r + 0.5) * cell)) hit[i] = 1;
   }
   const out = [];
   let open = new Map();
