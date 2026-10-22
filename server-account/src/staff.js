@@ -59,6 +59,7 @@ import { staffMessage, MESSAGE_ROUTES } from './staffMessage.js';
 import { staffNet, NET_ROUTES } from './staffNet.js';   // STAFF-PANEL5-FEEDS: Network bursts
 import { staffMonsters, MONSTER_ROUTES } from './staffMonsters.js';   // STAFF-PANEL5-FEEDS: Monster watch
 import { staffReactions, REACTION_ROUTES } from './staffReactions.js';   // STAFF-PANEL5-FEEDS: the bot check
+import { staffHidden, HIDDEN_ROUTES, hiddenEnd } from './staffHidden.js';   // STAFF-PANEL5-HIDDEN: Hide me, and the mark's end
 
 /** The header a staff session rides in - never `authorization`, which is the game's. */
 export const STAFF_SESSION_HEADER = 'x-staff-session';
@@ -147,7 +148,7 @@ export function ownerKeys(env) {
   return out;
 }
 /** Whether `pub` is this owner's key in the config - the only way a config key stands. @param {any} player @param {any} env @param {unknown} pub */
-const configKey = (player, env, pub) => typeof pub === 'string' && isOwner(player, env) && ownerKeys(env).get(String(player.handle).toLowerCase()) === pub;
+export const configKey = (player, env, pub) => typeof pub === 'string' && isOwner(player, env) && ownerKeys(env).get(String(player.handle).toLowerCase()) === pub;
 
 /** Every handle a role list names - the team an owner manages. @param {any} env */
 function staffHandles(env) {
@@ -343,6 +344,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   }
   if (path === '/v1/staff/logout') {
     const all = body.all === true;
+    await hiddenEnd(ctx, env, me.id, all ? null : [who.hash]);   // STAFF-PANEL5-HIDDEN: the session's hidden sockets closed, never shown
     await db.batch([
       all ? db.prepare('DELETE FROM staff_sessions WHERE player_id = ?').bind(me.id) : db.prepare('DELETE FROM staff_sessions WHERE token_hash = ?').bind(who.hash),
       audit('logout', null, { all }),
@@ -355,6 +357,8 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   }
   if (path === '/v1/staff/key/forget') {
     if (typeof body.id !== 'string') return { error: 'body' };
+    const keyed = (await db.prepare('SELECT token_hash FROM staff_sessions WHERE key_id = ? AND player_id = ?').bind(body.id, me.id).all())?.results ?? [];
+    if (keyed.length) await hiddenEnd(ctx, env, me.id, keyed.map((r) => r.token_hash));   // STAFF-PANEL5-HIDDEN: a forgotten key's hidden sockets closed with its sessions
     const [, gone] = await db.batch([
       audit('key-forget', null, { id: body.id.slice(0, 40) }, { okIf: { sql: 'EXISTS (SELECT 1 FROM staff_keys WHERE id = ? AND player_id = ? AND revoked_at IS NULL)', args: [body.id, me.id] } }),
       db.prepare('UPDATE staff_keys SET revoked_at = ? WHERE id = ? AND player_id = ? AND revoked_at IS NULL').bind(nowS, body.id, me.id),
@@ -377,6 +381,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   if (NET_ROUTES.includes(path)) return staffNet(ctx, env, path, body, who, audit);
   if (MONSTER_ROUTES.includes(path)) return staffMonsters(ctx, env, path, body, who, audit);
   if (REACTION_ROUTES.includes(path)) return staffReactions(ctx, env, path, body, who, audit);
+  if (HIDDEN_ROUTES.includes(path)) return staffHidden(ctx, env, path, body, who, audit);   // STAFF-PANEL5-HIDDEN: Hide me and Show myself (staffHidden.js)
 
   // ═══ THE ADMINS' DOORS: THE PANEL'S MODERATORS (mob, 07:42Z: "add it so admins can add or remove moderatoers") ═══
   // /v1/staff/mods lists them; /v1/staff/mod/add and /mod/remove { handle } - a registered account, not banned, not staff
@@ -404,6 +409,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
     }
     if (target.staff_mod !== 1) return { error: staffRole(target, env) ? 'staff-config' : 'no-staff' };
     if (staffRole({ ...target, staff_mod: 0 }, env)) return { error: 'staff-config' };   // the config holds them still
+    await hiddenEnd(ctx, env, target.id);   // STAFF-PANEL5-HIDDEN: their hidden sockets closed with their sessions
     await db.batch([
       audit('mod-remove', target.id, { handle: target.handle }, { okIf: { sql: 'EXISTS (SELECT 1 FROM players WHERE id = ? AND staff_mod = 1)', args: [target.id] } }),
       db.prepare('UPDATE players SET staff_mod = 0 WHERE id = ?').bind(target.id),
@@ -445,6 +451,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
       // their panel's, so no game door and no fresh token is theirs until they sign in again - and that token carries no
       // staff glyph. The relay is told to close what they hold now (sanctions.js staffCutOrder); `relay` says whether it
       // took the order (a relay that missed it closes nothing until the member's sockets drop or their lease lapses)
+      await hiddenEnd(ctx, env, target.id);   // STAFF-PANEL5-HIDDEN: their hidden sockets closed with their sessions
       await db.batch([
         db.prepare('UPDATE staff_keys SET revoked_at = ? WHERE player_id = ? AND revoked_at IS NULL').bind(nowS, target.id),
         ...['staff_sessions', 'staff_invites', 'sessions'].map((t) => db.prepare(`DELETE FROM ${t} WHERE player_id = ?`).bind(target.id)),

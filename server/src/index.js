@@ -183,6 +183,7 @@ import { followNoted, followHello, followJoined, followLeft, followSayInternal }
 import { FOLLOW_INTERNAL_SAY } from '../../src/net/staffFollow.js';
 import { takeStaffMessage } from './staffMessage.js';   // STAFF-PANEL5-MESSAGE: a staff message's nudge, to one account's own hub sockets
 import { staffNetFrame, staffNetClosed, staffFoesSeen, staffFoesStripped, staffReactAsk, staffReactPose, staffLeft } from './staffFeeds.js';   // STAFF-PANEL5-FEEDS: the Staff Panel's counts - network bursts, monsters, an encounter's reaction (off until their URLs are set)
+import { hiddenMay, hiddenAsked, seatsTaken, hiddenHello, hiddenPose, hiddenLapse, hiddenEntered, isHidden } from './staffHidden.js';   // STAFF-PANEL5-HIDDEN: a hidden staff spectator, named by nobody
 import { privateInteriorOf, privateInteriorAdmits, caravanKeyOf } from '../../src/net/privateInterior.js';   // WAGONS2-VISIT: and a caravan's own room
 import { isInstanceRoom, instanceOf, instanceAdmission, partyHoldsOwner, INSTANCE_INTERNAL_KIN, INSTANCE_KIN_KEEP_MS, INSTANCE_DOOR_WORD } from '../../src/net/instanceRoom.js';   // INSTANCES: an instance's room, its door and the hub's party answer (bible/11-Multiplayer/Instances.md)
 import { isStaff } from '../../src/net/staffCommands.js';
@@ -573,7 +574,7 @@ async function lawDoor(request, env) {
   const order = body?.order;
   if (typeof order !== 'string' || !order || order.length > 1024) return json({ error: 'bad law' }, 400);
   const kind = lawKindOf(order);
-  if (kind !== 'ban' && kind !== 'mute' && kind !== 'smsg' && kind !== 'staffcut') return json({ error: 'bad law' }, 403);   // no verify spent on what is no mute, ban, staff message (STAFF-PANEL5-MESSAGE) or staff cut (STAFF-PANEL2-FIX)
+  if (kind !== 'ban' && kind !== 'mute' && kind !== 'smsg' && kind !== 'staffcut' && kind !== 'hide') return json({ error: 'bad law' }, 403);   // no verify spent on what is no mute, ban, staff message (STAFF-PANEL5-MESSAGE), staff cut (STAFF-PANEL2-FIX) or a hidden mark's lapse (STAFF-PANEL5-HIDDEN, the hub's `hiddenLapse`)
   const key = await lawKeyOf(env);
   if (!key) return json({ error: 'unavailable' }, 503);
   const nowS = Math.floor(Date.now() / 1000);
@@ -899,6 +900,8 @@ export class Room {
     this._rfSaid = false;        // SCALE5b: whether this cell last said it judges the poses that reach it (`_rfSay`)
     // SCALE5c (the bus): its shards' sockets (`ShardSocket`, by the id each shard gives its own), and what is owed each shard
     this._vsocks = new Map();
+    this._vhid = new Set();      // STAFF-PANEL5-HIDDEN: the ShardSockets that are hidden staff spectators' (`_busCount` leaves them out)
+    this._hidHellos = new WeakSet();   // STAFF-PANEL5-HIDDEN: the hellos whose VERIFIED token said `hd: 1` (`_named`) - a frame's own fields are the client's word, an entry here the relay's alone
     this._vper = new Map();      // shard -> how many ShardSockets of its the bus holds (the shards a frame to everyone reaches)
     this._cper = new Map();      // SCALE5d part two: a court's copy -> how many of its sockets the court holds (its beats' reach)
     this._vshut = new Bounded(HUB_KEEP_MAX);   // SCALE5d part two: the ids of the ShardSockets this object closed - never asked to say their hello again
@@ -1070,7 +1073,8 @@ export class Room {
     if (walked && layerOf(request.headers.get(LAYER_HEADER)) > 0 && request.headers.get(LAYER_ASK_HEADER) === '1' && !this.state.getWebSockets().length) { const empty = json({ error: 'layer empty' }, 503); empty.headers.set(LAYER_EMPTY_HEADER, '1'); return empty; }
     // AUDIT SCALE II R1-5: double13 is the sockets refused `room full` - a full layer the walk passes on from refused
     // nobody, so only the walk's last try counts (LAYER_LAST_HEADER), and a room no walk reaches always does
-    if (this.state.getWebSockets().length >= cap) { this._unseatSilent(Date.now()); if (this.state.getWebSockets().length >= cap) { if (!walked || request.headers.get(LAYER_LAST_HEADER) === '1') this._metrics.c.full++; this._metricsTick(); const full = json({ error: 'room full' }, 503); full.headers.set(LAYER_FULL_HEADER, '1'); return full; } }   // SCALE5d: said full, so the Worker walks on to the next layer   // SCALE5b: counted   // the runtime drops a socket the object closed from the list at once (AUDIT WORLD34 D1)
+    const hs = hiddenAsked(request);   // STAFF-PANEL5-HIDDEN: a hidden seat asked (`?hd=1`) - the reserve's over the cap, and a visible socket's fullness counts no hidden one
+    if (seatsTaken(this, hs, cap) >= cap) { this._unseatSilent(Date.now()); if (seatsTaken(this, hs, cap) >= cap) { if (!walked || request.headers.get(LAYER_LAST_HEADER) === '1') this._metrics.c.full++; this._metricsTick(); const full = json({ error: 'room full' }, 503); full.headers.set(LAYER_FULL_HEADER, '1'); return full; } }   // SCALE5d: said full, so the Worker walks on to the next layer   // SCALE5b: counted   // the runtime drops a socket the object closed from the list at once (AUDIT WORLD34 D1)
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     // hibernation API: the object may sleep between messages; every
@@ -1080,6 +1084,7 @@ export class Room {
     this.state.acceptWebSocket(server);
     const ly = isLayered(key) || isGateRoom(key) ? layerOf(request.headers.get(LAYER_HEADER)) : 0;   // SCALE5d part two: and a gate court's copy   // SCALE5d: the layer the Worker says this object is
     const att = { key, id: null, name: null, pose: null, at: Date.now(), ...(ly ? { ly } : {}) };   // AUDIT WB A1: when it opened
+    if (hs) att.hs = 1;   // STAFF-PANEL5-HIDDEN: the seat is the hidden reserve's - its hello must be a hidden token's
     server.serializeAttachment(att);
     this._adopt(server, att);
     return new Response(null, { status: 101, webSocket: client });
@@ -1180,7 +1185,7 @@ export class Room {
     const s = this._byId().get(id);
     if (!s) return null;
     let best = null, seq = Infinity;
-    for (const ws of s) { if (ws === except) continue; const q = this._idxSeq.get(ws) ?? 0; if (q < seq) { seq = q; best = ws; } }
+    for (const ws of s) { if (ws === except) continue; const q = this._idxSeq.get(ws) ?? 0; if (isHidden(this._all().get(ws))) continue; if (q < seq) { seq = q; best = ws; } }   // STAFF-PANEL5-HIDDEN: a hidden socket is no frame's target
     return best ? [best, this._all().get(best)] : null;
   }
   /** SCALE5a: a set's sockets in the index's own order - what a walk of the index would have listed. */
@@ -1232,11 +1237,11 @@ export class Room {
   _othersOf(ws) {
     const out = [];
     for (const [other, b] of this._all()) if (other !== ws && b.id && !this._dead.has(other) && !this._gone.has(other)) out.push(b);
-    return out;
+    return out.filter((b) => !b.hid);   // STAFF-PANEL5-HIDDEN: a hidden socket is in no roster - nor the welcome's who-is-here, nor a region's travellers
   }
   /** AUDIT SCALE5a C1-C3: how many the room can name - hello'd, never a socket this object closed or whose leave is said
    *  (`_othersOf`'s rule, the joiner's own socket counted): the welcome's `n`, said again on a channel's every leave. */
-  _namedCount() { let n = 0; for (const [ws, b] of this._all()) if (b.id && !this._dead.has(ws) && !this._gone.has(ws)) n++; return n; }
+  _namedCount() { let n = 0; for (const [ws, b] of this._all()) if (b.id && !b.hid && !this._dead.has(ws) && !this._gone.has(ws)) n++; return n; }   // STAFF-PANEL5-HIDDEN: nor any count
   /** One frame to every hello'd socket but `ws` - the index walked in place, never copied: a failed send forgets its
    *  socket mid-walk (`_closed`), which a Map's own iteration takes (the entry gone is not visited), and nothing here
    *  adopts one. */
@@ -1663,8 +1668,8 @@ export class Room {
    *  lets one go as its leave is said) and its own, walked. `_namedCount`'s answer without a walk of every ShardSocket. */
   _busCount() {
     let n = this._vsocks.size;
-    for (const [ws, b] of this._reals()) if (b.id && !this._dead.has(ws) && !this._gone.has(ws)) n++;
-    return n;
+    for (const [ws, b] of this._reals()) if (b.id && !b.hid && !this._dead.has(ws) && !this._gone.has(ws)) n++;
+    return n - this._vhid.size;   // STAFF-PANEL5-HIDDEN: a hidden socket counted by nobody - a shard's, nor the bus's own
   }
   /** (the bus) A hello or a leave moved the hub's count: every shard heard from whose last delivery said another is
    *  told within HUB_COUNT_MS - one delivery a shard a second at most, carrying whatever else it is owed. */
@@ -1770,7 +1775,7 @@ export class Room {
     if (held.length && !m.cl) { this._refuse(vws, SEAT_ELSEWHERE, CLOSE_REPLACED); return; }
     if (m.cl) for (const o of held) this._refuse(o, SEAT_ELSEWHERE, CLOSE_REPLACED);
     this._busCountMoved();
-    this._fanRoster(vws, JSON.stringify(badged({ t: 'join', id: a.id, name: a.name, sub: a.sub, n: this._busCount() }, a)));
+    if (!a.hid) this._fanRoster(vws, JSON.stringify(badged({ t: 'join', id: a.id, name: a.name, sub: a.sub, n: this._busCount() }, a)));   // STAFF-PANEL5-HIDDEN: a hidden socket's join said to nobody
     if (!hubBus) { this._travTell(vws, now); return; }   // SCALE5c part two: a region's - its travellers' marks
     const ev = await this._liveEvent();
     if (ev) this._send(vws, JSON.stringify({ t: 'event', kind: ev.kind, at: ev.at, w: 1 }));   // `w`: as a welcome says it - a joiner's, not a fresh staging
@@ -1891,14 +1896,15 @@ export class Room {
     if (this._vper.size) this._downArm();
   }
   _vframe(b, s) { let k = b.i.get(s); if (k === undefined) { k = b.s.length; b.s.push(s); b.i.set(s, k); } return k; }
-  _vput(vws) { this._vsocks.set(vws.vid, vws); const per = vws.court ? this._cper : this._vper; per.set(vws.hub, (per.get(vws.hub) ?? 0) + 1); }   // SCALE5d part two: a court's copies counted apart - no channel's fan reaches them
-  _vdrop(vws) { if (this._vsocks.get(vws.vid) !== vws) return; this._vsocks.delete(vws.vid); const per = vws.court ? this._cper : this._vper; const n = (per.get(vws.hub) ?? 1) - 1; if (n > 0) per.set(vws.hub, n); else per.delete(vws.hub); if (vws.court) this._trails?.delete(vws); }
+  _vput(vws) { this._vsocks.set(vws.vid, vws); if (vws.att?.hid) this._vhid.add(vws.vid); const per = vws.court ? this._cper : this._vper; per.set(vws.hub, (per.get(vws.hub) ?? 0) + 1); }   // SCALE5d part two: a court's copies counted apart - no channel's fan reaches them
+  _vdrop(vws) { if (this._vsocks.get(vws.vid) !== vws) return; this._vsocks.delete(vws.vid); this._vhid.delete(vws.vid); const per = vws.court ? this._cper : this._vper; const n = (per.get(vws.hub) ?? 1) - 1; if (n > 0) per.set(vws.hub, n); else per.delete(vws.hub); if (vws.court) this._trails?.delete(vws); }
   /** SCALE5c: everyone the room can name but `ws` whose folded name holds `q` - HUB_FIND_MAX at most, badged. Each
    *  attachment's fold kept with it (a new attachment is a new fold), so a search is a walk and no string work. */
   _findNames(ws, q) {
     const l = [];
     if (!q) return l;
     for (const [w, b] of this._all()) {
+      if (b.hid) continue;   // STAFF-PANEL5-HIDDEN: never found
       if (w === ws || !b.id || this._dead.has(w) || this._gone.has(w)) continue;
       let f = this._folds.get(b);
       if (f === undefined) this._folds.set(b, f = foldFind(b.name));
@@ -1917,7 +1923,7 @@ export class Room {
     const l = [];
     if ((this._vsocks.size ? this._busCount() : this._namedCount()) <= CHAT_ROSTER_MAX) {
       for (const [w, b] of this._all()) {
-        if (!b.id || this._dead.has(w) || this._gone.has(w)) continue;
+        if (!b.id || b.hid || this._dead.has(w) || this._gone.has(w)) continue;   // STAFF-PANEL5-HIDDEN: never on the World or Region list
         l.push(badged({ id: b.id, name: b.name, sub: b.sub }, b));
         if (l.length >= CHAT_ROSTER_MAX) break;
       }
@@ -2325,14 +2331,15 @@ export class Room {
    *  holds it no longer - and, none live, the eldest; every other room's, the eldest. */
   _hostWalk(except, live = true) {
     const list = [];
-    for (const [ws, a] of this._all()) if (ws !== except && a.id) list.push(a);
+    for (const [ws, a] of this._all()) if (ws !== except && a.id && !a.hid) list.push(a);   // STAFF-PANEL5-HIDDEN: never a room's host
     return seatOf(list, Date.now(), { live: live && seatStreams(list[0]?.key) });
   }
   /** Does this hello'd attachment lead every other (but except's) - is it the room's host? SEAT-LIVE: by the seat's own
    *  law (`seatOf`), with `a` counted though its socket has left the index (a leaver's). */
   _leads(a, except = null) {
+    if (a.hid) return false;   // STAFF-PANEL5-HIDDEN: a hidden socket never leads - nor is it counted among those who might
     const list = [a];
-    for (const [ws, b] of this._all()) if (ws !== except && b.id && b !== a) list.push(b);
+    for (const [ws, b] of this._all()) if (ws !== except && b.id && !b.hid && b !== a) list.push(b);
     return seatOf(list, Date.now(), { live: seatStreams(a.key) }) === a.id;
   }
   /** SEAT-LIVE (AUDIT FB1018D L4-2): whether a leave moves the seat the room knows - the leaver led it, or it was the host
@@ -2975,6 +2982,7 @@ export class Room {
   async _lawInternal(request) {
     let body = null;
     try { body = await request.json(); } catch { body = null; }
+    if (lawKindOf(body?.order) === 'hide') { const ok = await hiddenLapse(this, body.order, Date.now()); await this._reap(); return json({ ok }); }   // STAFF-PANEL5-HIDDEN: a hidden mark's lapse - its sockets closed, never shown
     if (lawKindOf(body?.order) === 'smsg') return json(await takeStaffMessage(this, body.order, Date.now()));   // STAFF-PANEL5-MESSAGE (staffMessage.js)
     const ok = await this._takeOrder(body?.order, Date.now(), ['ban', 'mute', 'staffcut'], true);   // STAFF-PANEL2-FIX: and a staff member cut off
     await this._reap();
@@ -3375,6 +3383,7 @@ export class Room {
     // AUDIT LEGACY III O1: and the realm character itself - `ci`, beside the realm's yes alone (identityToken.js claimsValid)
     // INT7: and its ARMS (`wa`, the judged pack's most reach and its bow) - every referee's clip of a blow between players
     if (c.fo) house.fo = c.fo;   // STAFF-PANEL5-FOLLOW: `fo`, the account a hidden spectator follows (beside `hd` alone - claimsValid); set here, as the return's literal is pinned by other mutant lists
+    if (c.hd === 1) this._hidHellos.add(m);   // STAFF-PANEL5-HIDDEN: `hd`, a hidden staff spectator's token - the hello marked off the signature (staffHidden.js hiddenHello)
     return { name: c.n, kind: c.k, subject: c.s, title: c.t, ts: c.ts, glyphs: c.g, gx: c.gx, au: c.au, pi: c.pi, rb: c.rb, mu, lt, lv: c.lv, ...guild, gio: c.i, ar: c.ar, cl: c.cl, ...house, ci: c.ci, wa: c.wa };   // ARENA4: the season's rating, the hall's queue's   // ARENA4b: `cl` the character's level, a ladder fighter's vitality's
   }
 
@@ -3521,6 +3530,7 @@ export class Room {
 
   async _message(ws, message) {
     let a = this._attach(ws);
+    if (a.hid && !hiddenMay(message)) return;   // STAFF-PANEL5-HIDDEN: a hidden socket is heard in its allow list alone, before any door
     this._kind ??= a.key ? roomKindOf(a.key) : null;   // SCALE2b: a metric names the room's kind, never the room
     // SCALE5c: A SHARD HANDS ON every frame but its socket's hello, ping, pose and lease (a channel keeps no place), AS IT
     // CAME - past the lease door alone, before any other door or parse here: the bus parses it, meters it and strikes for
@@ -3636,13 +3646,15 @@ export class Room {
       const who = await this._named(m, now);
       if (who.error) { this._refuse(ws, who.error); return; }
       if (await this._bannedHello(ws, who.subject, who.gio, now)) return;   // AUDIT SAFE RELAY-4: a ban this room took after the token was minted - told `banned` and closed, before anything is written (a method of its own)
+      { const no = hiddenHello(this, ws, a, m, who); if (no) { this._refuse(ws, no); return; } }   // STAFF-PANEL5-HIDDEN: `who` marked off the signature, then a hidden seat said hello visible, or a hidden hello on a visible socket's id - before anything is written
       // SCALE5c: A SHARD HOLDS ITS OWN ACCOUNTS - one whose subject lands on another is told which (its client goes there),
       // before anything here is written
       if (isChannelShard(a.key) && shardOf(busOf(a.key), who.subject) !== a.key) { this._hubHop(ws, shardOf(busOf(a.key), who.subject) ?? /** @type {string} */ (busOf(a.key))); return; }   // SCALE5c part two: a region's shards the same
       if (isChannelBus(a.key) && m.hs === 1 && shardOf(a.key, who.subject)) { this._hubHop(ws, /** @type {string} */ (shardOf(a.key, who.subject))); return; }   // SCALE5c: a hub link of a build that knows the shards, said hello to the bus itself (no stored word of them yet), is told its own - before anything is held, so its close says no leave
-      if (a.key.startsWith('owned:') && !await privateInteriorAdmits(a.key, who.subject, isStaff(who.glyphs))) {
+      if (a.key.startsWith('owned:') && !await privateInteriorAdmits(a.key, who.subject, isStaff(who.glyphs) || !!who.hid)) {   // STAFF-PANEL5-HIDDEN: a hidden spectator's right is staff's
         this._refuse(ws, 'private room'); return;
       }
+      if (who.hid) hiddenEntered(this, a.key, who.subject);   // STAFF-PANEL5-HIDDEN: a private home entered, for the audit log
       // INSTANCES: AN INSTANCE ADMITS ITS OWNER, STAFF AND THE OWNER'S PARTY - asked before anything is written (the owned
       // room's law above), its hello gate spent first by account (_instanceHello); the hub silent is busy, and the page
       // tries again. A member let in as the party is marked (`ip`) - the room asks again while it stays
@@ -3657,7 +3669,7 @@ export class Room {
       // stands, one who entered it before (a reconnect, a fighter cast out and back) until it is gone - asked before anything
       // is written (the gate's law; the Worker asked the hub already, and this is the object's own word for a socket that
       // opened a moment before the Hour closed)
-      if (realmRoom) {
+      if (who.hid) { /* STAFF-PANEL5-HIDDEN: a hidden spectator takes no place in the realm's record - no seat, no turner */ } else if (realmRoom) {
         const known = !!who.subject && (await this._sdRealmOf(sdSlotOfRoom(a.key))).in.includes(who.subject);
         gate = await this._battleHelloGate(who.subject ?? m.id, known ? 'fighter' : 'watch', now);   // AUDIT SD II (L7 M1)
         if (!gate.pass) { this._refuse(ws, 'busy', CLOSE_BUSY); return; }
@@ -3682,7 +3694,7 @@ export class Room {
       // (the hello's `sp`) that this account fights on a side, or watches; the developers' ground only while the room
       // holds no battle
       let siegeSide = null;
-      if (battle) {
+      if (battle && !who.hid) {   // STAFF-PANEL5-HIDDEN: nor a side or a seat of a battle
         const v = await this._siegeAdmit(a.key, who, m.sp, now); if (v.no) { this._refuse(ws, v.no); return; } siegeSide = v.side;   // CROWN1 part two: and a Royal Tourney's, by its pass
         gate = await this._battleHelloGate(who.subject, siegeSide, now);   // AUDIT-SEATS R3: the token and the pass verified - now the gate
         if (!gate.pass) { this._refuse(ws, 'busy', CLOSE_BUSY); return; }
@@ -3755,7 +3767,7 @@ export class Room {
         // AUDIT SCALE II R2-4: and kept, so a woken instance whose sockets say nothing still knows it
         if (this._hubKeyKept !== this._hubKey) { this._hubKeyKept = this._hubKey; try { await this.state.storage.put(HUB_KEY_KEY, this._hubKey); } catch { this._hubKeyKept = null; } }
       }
-      if (!this._setAttach(ws, { ...a, ...placed, ...shown, ...(shard ? { vid, hm: { acct: m.acct ?? null, as: m.asecret ?? null, ps: m.ps === 1 ? 1 : 0, sc: m.secret } } : copy ? { vid } : {}), ...(m.gv >= GRANT_HELLO_LAW && streamsFoes(a.key) ? { gv: 1 } : {}), id: m.id, name: who.name, title: who.title, ...(who.ts ? { ts: who.ts } : {}), glyphs: who.glyphs, gx: who.gx, au: who.au, ...(who.pi ? { pi: who.pi } : {}), ...(who.rb ? { rb: who.rb } : {}), lv: who.lv, ...guild, ...(who.hn ? { hn: who.hn, hc: who.hc, hb: who.hb, hg: who.hg } : {}), ...(who.ci && !chat && !isSocialRoom(a.key) ? { ci: who.ci } : {}), ...(armsOk(who.wa) && !chat && !isSocialRoom(a.key) ? { wa: who.wa } : {}), gio: who.gio, ...(Number.isSafeInteger(who.lt) ? { lt: who.lt } : {}), ...(m.ls === 1 && leaseRoom(a.key) ? { ld: 0 } : {}), sub: who.subject, ...(instParty ? { ip: 1 } : {}), ...(siegeSide ? { sd: siegeSide } : {}), mu: who.mu, pose: chat ? null : m.pose, since: this._seatKeep(replaced, now), ...arena, ...charLv, ...linked, ...(chat && who.kind === 'guest' ? { gu: 1 } : {}), ...(m.w2 === 1 ? { w2: 1 } : {}), ...(who.fo ? { fo: who.fo } : {}), ...(m.sm === 1 && isSocialRoom(a.key) ? { sm: 1 } : {}) })) { this._refuse(ws, 'hello too large'); return; }   // MOD1: `sub` the verified account (what a mute names), `mu` until when it may not talk   // RENOWN1: `lv` the Renown level the token carried   // AUDIT SAFE RELAY-11: `gu`, a guest's socket in a channel - paced as a sprout's (`_newVoiceWait`)   // STAFF-PANEL5-MESSAGE: `sm`, a hub socket whose game shows a staff message's box (its hello said so) - one without it is "old game, not shown"
+      if (!this._setAttach(ws, { ...a, ...placed, ...shown, ...(shard ? { vid, hm: { acct: m.acct ?? null, as: m.asecret ?? null, ps: m.ps === 1 ? 1 : 0, sc: m.secret } } : copy ? { vid } : {}), ...(m.gv >= GRANT_HELLO_LAW && streamsFoes(a.key) ? { gv: 1 } : {}), id: m.id, name: who.name, title: who.title, ...(who.ts ? { ts: who.ts } : {}), glyphs: who.glyphs, gx: who.gx, au: who.au, ...(who.pi ? { pi: who.pi } : {}), ...(who.rb ? { rb: who.rb } : {}), lv: who.lv, ...guild, ...(who.hn ? { hn: who.hn, hc: who.hc, hb: who.hb, hg: who.hg } : {}), ...(who.ci && !chat && !isSocialRoom(a.key) ? { ci: who.ci } : {}), ...(armsOk(who.wa) && !chat && !isSocialRoom(a.key) ? { wa: who.wa } : {}), gio: who.gio, ...(Number.isSafeInteger(who.lt) ? { lt: who.lt } : {}), ...(m.ls === 1 && leaseRoom(a.key) ? { ld: 0 } : {}), sub: who.subject, ...(instParty ? { ip: 1 } : {}), ...(siegeSide ? { sd: siegeSide } : {}), mu: who.mu, pose: chat ? null : m.pose, since: this._seatKeep(replaced, now), ...arena, ...charLv, ...linked, ...(chat && who.kind === 'guest' ? { gu: 1 } : {}), ...(m.w2 === 1 ? { w2: 1 } : {}), ...(who.fo ? { fo: who.fo } : {}), ...(m.sm === 1 && isSocialRoom(a.key) ? { sm: 1 } : {}), ...(who.hid ? { hid: 1, lk: 0 } : {}) })) { this._refuse(ws, 'hello too large'); return; }   // MOD1: `sub` the verified account (what a mute names), `mu` until when it may not talk   // RENOWN1: `lv` the Renown level the token carried   // AUDIT SAFE RELAY-11: `gu`, a guest's socket in a channel - paced as a sprout's (`_newVoiceWait`)   // STAFF-PANEL5-MESSAGE: `sm`, a hub socket whose game shows a staff message's box (its hello said so) - one without it is "old game, not shown"   // STAFF-PANEL5-HIDDEN: `hid`, a hidden staff spectator's socket (staffHidden.js) - and in no census (`lk` 0 over `linked`)
       if (!chat && m.pose && this._trailing({ key: a.key, sub: who.subject })) this._trailPose(ws, m.pose, now);   // AUDIT INT11: a fighter's socket new to the room stands where its hello put it, from now - on its trail, or none says when
       // SRV-N: `v` rides EVERY welcome, a channel's included. A player in the enhanced skin holds a presence socket
       // and one chat socket per tab; whichever reconnects first after a hand deploy is the one that notices, and the
@@ -3784,7 +3796,7 @@ export class Room {
         // (the client counts it), never its own few as the hub's
         const jn = shard ? (this._hubTotal != null ? this._hubN(others.length + 1) : null) : others.length + 1;
         const said = JSON.stringify(badged({ t: 'join', id: m.id, name: who.name, sub: who.subject, ...(jn != null ? { n: jn } : {}) }, who));
-        this._fanRoster(ws, said);   // SCALE5a: the index walked in place, by a method of its own; SCALE5b: the second wire's batched
+        if (!who.hid) this._fanRoster(ws, said);   // STAFF-PANEL5-HIDDEN: a hidden socket's join said to nobody   // SCALE5a: the index walked in place, by a method of its own; SCALE5b: the second wire's batched
         if (shard) {
           // SCALE5c: A SHARD'S HELLO IS THE BUS'S TOO - its ShardSocket made there, which the account's picture, the
           // world's words and its receipts are said to, and the shard told the hub's count from then on
@@ -3887,7 +3899,7 @@ export class Room {
       if (String(a.key ?? '').startsWith('interior:') && who.subject) { try { await this._gambitOwed(ws, { sub: who.subject }, 0); } catch (e) { console.warn('[gambit] hello failed', e?.message ?? e); } }   // KG6: and the King's Gambit results owed here
       if (unseen) return;   // HOTFIX 1003f: a floor's hello said as anyone's - a private session's stranger's to nobody (a member's join says it: `_sessionShow`)
       const join = JSON.stringify(badged({ t: 'join', id: m.id, name: who.name, look: m.look, pose: this._drawn({ sub: who.subject, pose: m.pose }, a.key).pose }, who));   // AUDIT-SEATS T2: and a spectator's join stands it nowhere
-      for (const [other, b] of [...this._all()]) if (other !== ws && b.id && (!S || S.members[b.sub])) this._send(other, join);   // AUDIT PRE-MERGE 1003b R4: a member's to the members alone
+      if (!who.hid) for (const [other, b] of [...this._all()]) if (other !== ws && b.id && (!S || S.members[b.sub])) this._send(other, join);   // STAFF-PANEL5-HIDDEN: nor here   // AUDIT PRE-MERGE 1003b R4: a member's to the members alone
       followJoined(this, ws, this._attach(ws));   // STAFF-PANEL5-FOLLOW: a spectator counted here, or a followed account said come
       if (copy) {
         // SCALE5d part two: A COPY'S HELLO IS THE COURT'S TOO - its socket made there (admitted by the court's law, or
@@ -4695,6 +4707,7 @@ export class Room {
       this._send(ws, JSON.stringify(badged({ t: 'join', id: b.id, name: b.name, look, pose: inRange(a.key ?? '', a.pose, b.pose) ? (this._drawn(b, a.key).pose ?? null) : null }, b)));
       return;
     }
+    if (a.hid && (m.t === 'pose' || m.t === 'ping')) return hiddenPose(this, ws, a, m);   // STAFF-PANEL5-HIDDEN: a hidden pose kept for range, never fanned
     if (m.t === 'pose' || m.t === 'ping') return this._poseFrame(ws, a, m);   // PERF-RELAY1: the room's hottest path, a method of its own
     if (m.t === 'chat') {
       this._metrics.c.chats++;   // SCALE5b: the frames by type
@@ -5063,7 +5076,7 @@ export class Room {
     if (!last) { try { await this.state.storage.delete([lookKey(a.id), secretKey(a.id)]); } catch { /* the room forgets it on the next empty hello */ } }
     // ROSTER-G: a channel says its leaves now, as it says its joins - the roster beside the chat is everyone online
     const out = JSON.stringify({ t: 'leave', id: a.id, ...(isChatRoom(a.key) && !(isChannelShard(a.key) && this._hubTotal == null) ? { n: isChannelShard(a.key) ? this._hubN(this._namedCount()) : this._vsocks.size ? this._busCount() : this._namedCount() } : {}) });   // AUDIT SCALE II R2-4 (p4d): and a woken shard's leave none, as its join   // SCALE5c: a shard's, the hub's count   // AUDIT SCALE5a C1-C3: a channel's leave says the room's count, as its join does
-    if (isChatRoom(a.key)) this._fanRoster(ws, out); else this._fanBut(ws, out);   // SCALE5a: in place, as the join's; SCALE5b: a channel's, the second wire's batched
+    if (a.hid) { /* STAFF-PANEL5-HIDDEN: a hidden socket's leave said to nobody */ } else if (isChatRoom(a.key)) this._fanRoster(ws, out); else this._fanBut(ws, out);   // SCALE5a: in place, as the join's; SCALE5b: a channel's, the second wire's batched
     if ((isChannelShard(a.key) || (a.ly && isGateRoom(a.key))) && a.vid) { this._vidIdx.delete(a.vid); this._hubUpOwe(a.vid, 'x', 0); }   // SCALE5d part two: a court copy's too   // SCALE5c: and the bus told it went
     else if (isChannelBus(a.key)) this._busCountMoved();   // SCALE5c: the bus's - its shards told the hub's count
     this._travOwed.delete(a.id);   // AUDIT DEEP2 C2: the leave takes the mark out - an owed clear of it is said
@@ -8921,6 +8934,7 @@ export class Room {
   async _egAdmit(key, who, now) {
     const B = await this._egOf();
     if (!B || B.b !== egBreachOfRoom(key)) return 'the breach is closed';
+    if (who.hid) return null;   // STAFF-PANEL5-HIDDEN: a hidden spectator watches the open breach, admitted to nothing of the company's
     if (!who.subject || who.kind !== 'linked') return 'the breach answers only to its company';
     return egAdmitWord(B, who.subject, now);
   }
@@ -10704,7 +10718,7 @@ export class Room {
     if (wdunHallOfRoom(instanceOf(key)?.base)) return { no: INSTANCE_DOOR_WORD };
     let silent = false;
     const kin = async (subject, owner) => { const k = await this._instanceKinOf(subject, owner, now); if (k == null) silent = true; return k === true; };
-    const as = await instanceAdmission(key, who?.subject, { staff: isStaff(who?.glyphs), kin });
+    const as = await instanceAdmission(key, who?.subject, { staff: isStaff(who?.glyphs) || !!who?.hid, kin });   // STAFF-PANEL5-HIDDEN: a hidden spectator's right is staff's - no seat, no membership
     return as ? { as } : { no: silent ? 'busy' : INSTANCE_DOOR_WORD };
   }
   /** INSTANCES (the audit): A MEMBER LET IN AS THE OWNER'S PARTY IS ASKED AGAIN WHILE IT STAYS - the hello's word was the
@@ -11328,6 +11342,7 @@ export class Room {
    *  socket; then the friends and the party told - on EVERY hello, a second tab's too, since the peer ids my tabs
    *  stand as are what a friend's client marks me by in the world. */
   async _helloAccount(ws, m, now) {
+    if (isHidden(this._attach(ws))) return;   // STAFF-PANEL5-HIDDEN: a hidden socket is never the hub's account - no friend told it is online, no party
     // FRIENDS-SYNC (field bug: "My friend list is different between devices"): THE SOCIAL ACCOUNT IS THE VERIFIED
     // PLAYER - the token's subject, the same on every device signed in to it - never the browser profile's id
     // (net/social.js accountId, minted per appStorage), which made a laptop and a desktop two hub accounts with two
