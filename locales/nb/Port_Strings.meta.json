@@ -11894,6 +11894,11 @@
   "tr": "3067292a224d",
   "by": "claude-in-session"
  },
+ "helm.passenger": {
+  "en": "61953c9d9311",
+  "tr": "76a99a431cff",
+  "by": "claude-in-session"
+ },
  "holdings.horse.boons.hungry": {
   "en": "11b471ca7d1e",
   "tr": "9edb96a6934c",
@@ -12582,6 +12587,16 @@
  "levelup.vital.magicka": {
   "en": "3f9626ec308d",
   "tr": "3f9626ec308d",
+  "by": "claude-in-session"
+ },
+ "livingWorld.friend.court": {
+  "en": "0246b7029d39",
+  "tr": "68c82f759c9f",
+  "by": "claude-in-session"
+ },
+ "livingWorld.friend.made": {
+  "en": "fee76aa0c9bf",
+  "tr": "c1b1eece69da",
   "by": "claude-in-session"
  },
  "lootBanner.honour.aura": {
@@ -28587,6 +28602,11 @@
  "spellbook.effect.magnitude": {
   "en": "032e12a22bdd",
   "tr": "cea1b3a9ad4a",
+  "by": "claude-in-session"
+ },
+ "standing.notice.served": {
+  "en": "b6b59e754a1b",
+  "tr": "7db2e7c95d22",
   "by": "claude-in-session"
  },
  "starfall.at.breath": {

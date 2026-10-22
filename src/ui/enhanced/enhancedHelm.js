@@ -321,7 +321,7 @@ function paintHelm(doc, parts, last, state, hooks, holds) {
   if (last.scale !== scale) { last.scale = scale; parts.root.style.setProperty?.('--hud-scale', scale); }
   const rootClass = `helmpanel${state.touch ? ' touch' : ''}${aboard ? ' aboard' : ''}`;
   if (last.rootClass !== rootClass) { last.rootClass = rootClass; parts.root.className = rootClass; }
-  const title = h ? `At the helm - ${HULL_NAMES[h.hull] ?? 'Boat'}` : `Aboard ${aboard.owner ? `${aboard.owner}'s` : "another player's"} ${HULL_NAMES[aboard.hull] ?? 'boat'}`;
+  const title = h ? `At the helm - ${HULL_NAMES[h.hull] ?? 'Boat'}` : aboard.passage ? passengerTitle(aboard.passage) : `Aboard ${aboard.owner ? `${aboard.owner}'s` : "another player's"} ${HULL_NAMES[aboard.hull] ?? 'boat'}`;
   if (last.title !== title) { last.title = title; parts.name.textContent = title; }
   const speed = h ? helmSpeedText(h.way) : '';
   if (last.speed !== speed) { last.speed = speed; parts.speed.textContent = speed; }
@@ -344,6 +344,10 @@ function paintHelm(doc, parts, last, state, hooks, holds) {
     }
   }
 }
+
+/** FIELD BUGS 2026-10-21d PASSAGE-HANDS: a passenger at a booked ship's helm reads her card - her name and her port, no
+ *  buttons (scenes/naval/passageHelm.js passengerCard): her master's hand alone is on her helm. */
+const passengerTitle = (p) => t('helm.passenger', '{ship}, bound for {port} - her master steers', { ship: p.ship ?? t('passage.theShip', 'The ship'), port: p.port });
 
 /** HUD-HELM: the state HUD-MOVE's preview stands on - a Come Sail Away boat at the wheel with her sails stowed and her
  *  lanterns dark, the time dial at one. Named a preview on its title (buildHelmPreview), as every stand-in is. */

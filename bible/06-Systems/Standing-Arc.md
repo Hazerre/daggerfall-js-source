@@ -71,7 +71,11 @@ theirs).
 arrest's whole charge - the legal loss and the People faction's half - for every lesser crime; an **Assault, a Murder,
 a High Treason or a Treason** keeps half as its mark (rounded toward the player: a Murder served is -10 of its -20). An
 **acquittal** gives it all back: no crime found, no mark. Eight Conspiracy arrests served now leave a name where it
-started (DFU: -16).
+started (DFU: -16). [SENTENCE-MENDS, FIELD BUGS 2026-10-21d: and a sentence served - or the court's fine paid with no days -
+mends the name a penance's step toward the watch's line, as the watch's fine does (FINE-MENDS), the People's half with
+it: the charge alone came back, so a name under the line before the arrest walked out known; a Curfew's doubled charge
+comes back doubled (CURFEW-REFUND), and the road's patrols keep the release's grace (PATROL-GRACE) -
+`01-Overview/bugs/Field-Bugs-2026-10-21d.md`.]
 
 - **One charge per chase** (`arrestFlow.js chargeOnce`): the crime is charged at the first surrender box and not again
   while it is held; a WORSE crime committed in the chase (the Murder of a watchman) is charged as itself - and the court

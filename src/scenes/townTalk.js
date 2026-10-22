@@ -92,6 +92,7 @@ export { MODES, nextInteractionMode } from '../player/interactionMode.js';
 import { MODES, MODE_ACTIONS, getInteractionMode, setInteractionMode, nextInteractionMode, interactionModeText, askInteractionMode } from '../player/interactionMode.js';
 import { modeWheel, MODE_WHEEL_ACTION } from '../ui/modeWheel.js';   // MODE-WHEEL: the held key's wheel
 import { getClassicQuestionIndex } from '../systems/answerPipeline.js';   // F042
+import { friendWord } from '../systems/livingWorld/friendWord.js';   // FIELD BUGS 2026-10-21d REGARD-OWN: a friend made, said
 // AUDIT 58 (talk lane): the four modes ride the keybinding registry
 // now - MODE_ACTIONS lives beside the mode it sets
 // (player/interactionMode.js), because PlayerActivate.cs:221-228 reads
@@ -862,8 +863,10 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
       // has already said its piece through the session's messageBox
       if (talk?.kind !== 'talk') return;
       _talkNpc = target.person;
+      const was = livingTalk?.regard?.(target.person) ?? null;
       livingTalk?.talked?.(target.person);   // LW2: a word exchanged - their regard of the player
       _toneNext = target.person.living ? target.person : null;   // LW7: a resident's - each question's tone noted
+      sayFriend(target.person, was);
       // the local mirrors of the tone half TalkToNpc just reset
       toneSession = [0, 0, 0];
       lastToneIndex = -1;
@@ -1089,7 +1092,18 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
   /** TONE-TASTE: how the one spoken to takes the question's tone (talkTopics.js toneTaste) - their group's, as the
    *  reaction reads it (a mobile's is a Commoner's, npcSession.js setTargetMobileNPC; with no engine, the same). */
   const _toneTaste = () => toneTaste(tone, engine()?.session?.npcData?.socialGroup ?? 0);
-  const _toneHeard = () => { if (_toneTarget) livingTone?.(_toneTarget, _toneTaste()); };
+  const _toneHeard = () => {
+    if (!_toneTarget) return;
+    const was = livingTalk?.regard?.(_toneTarget) ?? null;
+    livingTone?.(_toneTarget, _toneTaste());
+    sayFriend(_toneTarget, was);
+  };
+  /** REGARD-OWN (FIELD BUGS 2026-10-21d): a word or its tone that makes a resident a friend is said - and where their
+   *  Courtship is, when the house can court them (legacyHost.topicRows' `topic`). */
+  function sayFriend(person, was) {
+    const line = friendWord(was, livingTalk?.regard?.(person) ?? null, { name: person?.living?.res?.name ?? '', court: (legacyTopics?.(person) ?? []).some((r) => r.topic === 'court') });
+    if (line) hud.add(line);
+  }
   // AUDIT 26 F043: the CURRENT partner's reaction seed. DFU seeds the
   // roll from whichever NPC is being spoken to - `DFRandom.Seed =
   // lastTargetMobileNPC.GetHashCode()` or `lastTargetStaticNPC`'s

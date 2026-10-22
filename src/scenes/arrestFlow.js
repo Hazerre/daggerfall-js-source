@@ -44,7 +44,7 @@ import { isTransformedLycanthrope, frightenChance, frightenRoar } from '../syste
 import { guildOfFaction, membershipOf, activeMemberships } from '../systems/guild/guilds.js';   // CR1: the rescue arms' member reads
 import { resolveVariantGuild } from '../systems/guild/guildVariants.js';
 import { advanceOwnMinutes, MINUTES_PER_DAY, ownMinutes, trustedWorldMinutes } from '../systems/worldTick.js';   // LIVED1: a sentence is served on the prisoner's own clock, online too
-import { banish, grantGrace, warningDue, noteWarning } from '../systems/standing.js';   // REP3: a banishment's term; REP1: the grace an answered law gives; WATCH-KNOWS: a first offence warned
+import { banish, grantGrace, warningDue, noteWarning, sentenceMends } from '../systems/standing.js';   // REP3: a banishment's term; REP1: the grace an answered law gives; WATCH-KNOWS: a first offence warned
 import { setSyntheticTimeIncrease } from '../systems/effectBroker.js';   // AUDIT 63 F13: DaggerfallCourtWindow_OnEndPrisonTime (EntityEffectBroker.cs:841-842)
 import { fillVitalSigns } from '../systems/statMods.js';
 import { alignSurvival } from '../systems/survival/needs.js';   // AUDIT C&C N3/H2: the prison feeds, waters and rests its prisoner
@@ -269,7 +269,7 @@ export function createArrestFlow({
   function chargeOnce() {
     if (playerEntity.chargedCrime === crimeId()) return;
     playerEntity.chargedCrime = crimeId();
-    lowerRepForCrime(playerEntity, region(), crimeId());
+    playerEntity.chargedFactor = lowerRepForCrime(playerEntity, region(), crimeId());   // CURFEW-REFUND: the court gives back what was charged
   }
 
   /** WATCH-KNOWS: the watch's warning, in its words. @param {number} crime @param {string} name */
@@ -436,6 +436,7 @@ export function createArrestFlow({
     // courtroom with no box and `arrested` standing, which is every damage veto on and nothing that can close it.
     const court = startCourt(playerEntity, region(), crimeId(), { rolls });
     if (!court) return;
+    court.factor = playerEntity.chargedFactor ?? 1;   // CURFEW-REFUND (FIELD BUGS 2026-10-21d): the charge as it was laid
     trial = { windows: new Set() };   // AUDIT DISC28 AR-1: this trial's token - its windows and its steps are its own
     // PlayerEntity.CourtWindow (:2341) sets `arrested` immediately before
     // the court window opens, and DaggerfallCourtWindow.OnPop (:435)
@@ -577,6 +578,7 @@ export function createArrestFlow({
       // Harmless while NormalizeReputations was unported; not harmless now
       // that it is.
       raiseRepForSentence(playerEntity, court);
+      sentenceMends(playerEntity, court.regionIndex);   // SENTENCE-MENDS (FIELD BUGS 2026-10-21d): and the name it was priced by
       const days = result.days;
       // SwitchToPrisonScreen (:511-524). DFU swaps the background on
       // the court window itself; the port lays the prison panel at the
@@ -653,6 +655,7 @@ export function createArrestFlow({
     // :347 on the plea, where DFU names the divergence it is fixing
     // ("Oversight in classic: Does not refill vital signs when
     // releasing in this case, so player is left with 1 health").
+    sentenceMends(playerEntity, court.regionIndex);   // SENTENCE-MENDS: the court's fine paid with no days answers the name too
     fillVitalSigns(playerEntity);
     release();
   }

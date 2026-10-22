@@ -115,7 +115,10 @@ collision pass hear an action by its OWN triangles, and kept the box for an acti
 flats keep the box", `Audit-PreMerge-0929.md`): `o.isFlat ? standsOnAction(...) : actionContact(...)`. `addEffect` and
 `addMoveFlat` carry the flat's mark; `addRelay` built its object without it. So a flat relay asked for triangles it was
 never given and was heard by nothing: a Collision03 flat Teleport walked into never fired, a MultiTrigger or Collision09
-one fired only when clicked, a model's always - "not always working". It carries the mark now; nothing else in `src/`
+one fired only when clicked, a model's always - "not always working". [REVERSED FOR THE WALK by FLAT-WALK, FIELD BUGS
+2026-10-21d: the corpus holds no Collision03 flat Teleport (13 MultiTrigger, 11 Direct, 1 None), DFU's flat box is a
+trigger no walk meets, and the walk-in this made sent Edworyan Laboratory's walkers to its entrance; the mark now keeps a
+flat relay off the walk - `01-Overview/bugs/Field-Bugs-2026-10-21d.md`.] It carries the mark now; nothing else in `src/`
 reads a relay's `isFlat`. A corpse on the floor before the wall cannot stop a walk-in (corpses carry no collider) and
 takes a click only aimed under 0.6 m inside its box.
 

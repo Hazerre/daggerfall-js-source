@@ -54,7 +54,7 @@ import { RDB_SIDE, MOVE_ACTION_FLAGS, ACTION_FLAGS, TRIGGER_FLAGS } from '../wor
 import { stopsOf } from '../systems/livingWorld/deepRoute.js';   // LW14: a company's stops, and what it left   // WAVE D: the move family - an acting FLAT tweens like the model beside it
 import { NPC_CONTEXT } from '../characters/staticNpc.js';   // AUDIT 64 F13: StaticNPC.SetLayoutData(RdbObject) stamps Context.Dungeon
 import { drawnFlat } from '../characters/nudeFlats.js';   // NUDE-FLATS: Show Nudity off draws a nude figure's clothed stand-in
-import { EFFECT_ACTION_FLAGS, COLLISION_TIMEOUT_S, isActionDoorObject, hasActionCollision, standsOnAction, actionContact, classifyPlacementAction, lookAtLockText, LOCKPICKING_SUCCESS_TEXT, LOCKPICKING_FAILURE_TEXT, DOOR_TEXT_HUD_DELAY_S, sharedRecord, validActionRecord } from '../world/actionSystem.js';   // AUDIT WORLD3 B1: the shared half of a record - the picker's latch stays home; AUDIT WORLD34 C2: and the memory's records projected like an act's
+import { EFFECT_ACTION_FLAGS, COLLISION_TIMEOUT_S, isActionDoorObject, hasActionCollision, walkHears, standsOnAction, actionContact, classifyPlacementAction, lookAtLockText, LOCKPICKING_SUCCESS_TEXT, LOCKPICKING_FAILURE_TEXT, DOOR_TEXT_HUD_DELAY_S, sharedRecord, validActionRecord } from '../world/actionSystem.js';   // AUDIT WORLD3 B1: the shared half of a record - the picker's latch stays home; AUDIT WORLD34 C2: and the memory's records projected like an act's
 import { TextRsc } from '../formats/textRsc.js';
 import { openPauseFlow, preloadPauseFlowArt, pauseDoorReady, pauseOpts } from '../ui/pauseDoor.js';
 import { releaseUnloadGuard } from '../systems/unloadGuard.js';   // AUDIT-MACL F3: the chargen Cancel is a door the game opened   // U51 picks the skin; MAC-L1: pauseOpts is the ONE reader of the door's options
@@ -7128,7 +7128,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       // unlocked and swung open on a bump - a Receive DFU's component
       // set makes unreachable. Refusing the CALL, not the gate, keeps
       // ROAD-B B4's ordering intact for the objects that do collide.
-      if (!hasActionCollision(o)) continue;
+      if (!walkHears(o)) continue;   // FLAT-WALK (FIELD BUGS 2026-10-21d): and a flat relay is clicked or struck, never walked
       if (o.restOnlyTrigger && o.state !== 'start') continue;   // a mover in flight: bounds stale, and classic triggers on the step, not the ride
       o._colTimer = (o._colTimer ?? COLLISION_TIMEOUT_S) + dt;
       if (o._colTimer < COLLISION_TIMEOUT_S) continue;
@@ -7149,7 +7149,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       // direction beneath the body (WalkOn, every flag), a Collision01's standing ray, or a bump - off the object's own
       // triangles: a mover or a door is its own bucket in `collider`, an effect or relay keeps one in triggerSurfaces.
       // The box above is only the broad phase: a box touched with nothing of the object touched hears nothing. An
-      // acting flat has no triangles and keeps its box's top (standsOnAction).
+      // acting effect or moving flat has no triangles and keeps its box's top (standsOnAction); a flat relay never gets here.
       const touch = o.isFlat
         ? (standsOnAction(o, playerFeet, a, triggerSurfaces) ? 'WalkOn' : 'WalkInto')
         : actionContact(o, playerFeet, playerHeight, o.kind === 'effect' || o.kind === 'relay' ? triggerSurfaces : collider, wish);

@@ -55,6 +55,7 @@ import { hasPortFor } from './travelPorts.js';   // SEAT2b part two: HasPort, or
 import { FATIGUE_MULTIPLIER } from '../statMods.js';
 import { LOCATION_TYPES, CLIMATES, worldCoordToMapPixel } from '../../formats/mapsFile.js';
 import { joinPoint, dryLine as dryLineOf, finalRoadVia } from './travelRoute.js';   // AUDIT OW3 J3: a resume rejoins the road where the start's join did; AUDIT DEEP T2-1's law, one home (OWS2)
+import { seaLegMark } from './seaMark.js';   // FIELD BUGS 2026-10-21d PASSAGE-IN: a sailed leg aimed where she floats
 import { travelRateOf } from '../timeScale.js';   // RATE-LAW: the journey's rate is its ground's
 
 export const TRAVEL_OPTIONS_VENDOR = 'travel-options';
@@ -688,9 +689,13 @@ export function createTravelOptions(deps = {}) {
     const leg = r.legs[Math.min(r.i, r.legs.length - 1)];
     if (!leg) { arriveRoute(r.quiet); return; }
     const o = mapPixelWorldOrigin(leg.x, leg.y);
-    // OWS2: a leg sailed to a water pixel arrives in the middle quarter of it, not a road's width at its heart
+    // OWS2: a leg sailed to a water pixel arrives in the middle quarter of it, not a road's width at its heart -
+    // PASSAGE-IN (FIELD BUGS 2026-10-21d): or, where that middle is the built ground's land, about the water nearest it
+    // that floats her (seaMark.js; `seaWaterAt` the host's reading of the ground the boat floats on)
     // OW-ROADSIDE: the join is a point of the road's own lane
-    const rect = leg.kind === 'sea' || leg.kind === 'embark' ? rectOf(o.x + SEA_LEG_LO, o.z + SEA_LEG_LO, SEA_LEG_SIZE, SEA_LEG_SIZE) : leg.at ? spotRect(leg.at) : rectOf(o.x + MID_LO, o.z + MID_LO, P_SIZE, P_SIZE);
+    const mark = leg.kind === 'sea' ? seaLegMark(o, deps.seaWaterAt) : null;
+    const rect = mark ? rectOf(mark.x - SEA_LEG_SIZE / 2, mark.z - SEA_LEG_SIZE / 2, SEA_LEG_SIZE, SEA_LEG_SIZE)
+      : leg.kind === 'sea' || leg.kind === 'embark' ? rectOf(o.x + SEA_LEG_LO, o.z + SEA_LEG_LO, SEA_LEG_SIZE, SEA_LEG_SIZE) : leg.at ? spotRect(leg.at) : rectOf(o.x + MID_LO, o.z + MID_LO, P_SIZE, P_SIZE);
     const lane = routeLane(r, Math.min(r.i, r.legs.length - 1));   // OW-ROAD-TRUE: a road's leg walks its line
     if (st.autopilot == null) st.autopilot = new TravelAutopilot(leg, rect, routeLegSpeed(leg.kind), { lane });
     else st.autopilot.initTargetRect(leg, rect, routeLegSpeed(leg.kind), { lane });

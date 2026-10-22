@@ -825,8 +825,8 @@
   {
     "name": "CSAL-seam-chord-lingers",
     "file": "src/scenes/world.js",
-    "old": "    csaHelmInput.edges.clear(); csaHelmInput.chord.clear();   // CSA-L: the helm panel's taps were this frame's",
-    "new": "    csaHelmInput.edges.clear();   // CSA-L: the helm panel's taps were this frame's",
+    "old": "    csaHelmInput.edges.clear(); csaHelmInput.chord.clear(); csaJourneyHelm.edges.clear();",
+    "new": "    csaHelmInput.edges.clear(); csaJourneyHelm.edges.clear();",
     "tests": [
       "test/systems/csa_together.test.js"
     ]

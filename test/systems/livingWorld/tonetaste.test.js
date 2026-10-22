@@ -120,7 +120,7 @@ test('TONE-TASTE the courtship: through the real Legacy host, a tone the residen
 test('TONE-TASTE the talk\'s door: the window hears the tone as the one spoken to took it - their group\'s, off the engine\'s own session (a mobile\'s a Commoner\'s) - for the regard and for the Legacy host\'s answer alike (mutants: the group, the answer\'s taste)', () => {
   const tt = rd('src/scenes/townTalk.js');
   assert.match(tt, /const _toneTaste = \(\) => toneTaste\(tone, engine\(\)\?\.session\?\.npcData\?\.socialGroup \?\? 0\);/);
-  assert.match(tt, /const _toneHeard = \(\) => \{ if \(_toneTarget\) livingTone\?\.\(_toneTarget, _toneTaste\(\)\); \};/);
+  assert.match(tt, /const _toneHeard = \(\) => \{\n\s+if \(!_toneTarget\) return;\n[^\n]*\n\s+livingTone\?\.\(_toneTarget, _toneTaste\(\)\);/);   // FIELD BUGS 2026-10-21d REGARD-OWN: a friend made, said
   assert.match(tt, /if \(row\.legacy\) return row\.legacy\.answer\(tone, _toneTaste\(\)\);/);
   const lh = rd('src/scenes/legacyHost.js');
   assert.match(lh, /answer: \(tone, taste\) => answerTopic\(t, res, taste, ctx\)/);

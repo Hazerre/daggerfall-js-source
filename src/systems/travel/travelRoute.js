@@ -466,8 +466,10 @@ export function routeLegs(pixels, kinds = [], { ringAt = null } = {}) {
   // OW-TOWN-RING: a pixel the route passes THROUGH (never its last - the place itself is arrived at) that holds a town
   // is walked round its border ring - the ring's points (`ringAt`: the town's own rects, travelOptions.js
   // ringPassPoints) each a leg of the incoming step's kind, aimed at its own point (`at`) and marked `ring`; the run
-  // before it ends at the pixel before, so no straight leg is aimed across the town
-  const ring = (i) => (ringAt && i < pixels.length - 1
+  // before it ends at the pixel before, so no straight leg is aimed across the town. FIELD BUGS 2026-10-21d PASSAGE-IN: never
+  // a pixel reached or left under sail - the ring's points stand on the town's land, and a sailed leg aimed at one ran
+  // her at the shore (15 of 312 voyages to Wayrest, Daggerfall or Sentinel passed a town on the heightmap's water)
+  const ring = (i) => (ringAt && i < pixels.length - 1 && !SEA_KINDS.includes(kinds[i - 1] ?? 'open') && !SEA_KINDS.includes(kinds[i] ?? 'open')
     ? ringAt(pixels[i].x, pixels[i].y, [pixels[i - 1].x - pixels[i].x, pixels[i - 1].y - pixels[i].y], [pixels[i + 1].x - pixels[i].x, pixels[i + 1].y - pixels[i].y])
     : null);
   const rings = pixels.map((_, i) => (i > 0 ? ring(i) : null));

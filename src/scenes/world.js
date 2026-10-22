@@ -111,8 +111,9 @@ import { LivingTown, LINE_HEAD_M as LIVING_HEAD_M } from '../systems/livingWorld
 import { REGULAR_HEAD_M as CARD_REGULAR_HEAD_M } from '../world/card/cardRegulars.js';   // CARDS4b: a seated regular's line over his head
 import { livingWorldOn } from '../systems/livingWorld/livingSwitch.js';
 import { makeQuarry } from '../systems/livingWorld/quarry.js';   // WATCH-PROTECTS: a townsperson as a monster's quarry
-import { knownCriminal } from '../systems/standing.js';   // WATCH-KNOWS: the living watch's word by the law - one whose face it knows
-import { createRelations, LIVING_WORLD_VENDOR } from '../systems/livingWorld/relations.js';   // LW2: how the living world regards this character (modData `LivingWorld`)
+import { patrolHalts } from '../systems/standing.js';   // WATCH-KNOWS: the living watch's word by the law - one whose face it knows (FIELD BUGS 2026-10-21d PATROL-GRACE: outside the grace an answered law gives)
+import { LIVING_WORLD_VENDOR } from '../systems/livingWorld/relations.js';   // LW2: how the living world regards this character (modData `LivingWorld`)
+import { characterRelations } from '../systems/livingWorld/regardClock.js';   // FIELD BUGS 2026-10-21d REGARD-OWN: counted in the character's own days
 import { firstNameOf } from '../systems/livingWorld/lines.js';
 import { travellerRoster, mintResident } from '../systems/livingWorld/census.js';   // LW3: a town's travellers, off its MAPS row alone; LW4: a newcomer to a place the road emptied
 import { townTrips, visitorsOf as tripVisitorsOf, awayOf as tripAwayOf, placeCycle, setsOut, newsOf, paceScale, NEWS_DAYS, diversAt, cycleOf, handsOn, nativeDry, divesIn, TRIP_REACH_PX, livingNearKey, LIVING_NEAR_KEPT } from '../systems/livingWorld/trips.js';   // LW3: the roads, pure; LW4: the places' cycles, the town's news; LW7: a townsperson's cycle, a trip's hand deaths; LW-DRY: the ground a party stops on
@@ -202,6 +203,7 @@ import { createTravelControlUI, preloadTravelControlArt, stripTakesClick } from 
 import { pointToNative, nativeMetrics } from '../ui/native/nativePanel.js';   // TO1: the travel panel's clicks land in the 320x200 panel's own coordinates
 import { createTravelJunctionMap } from '../ui/travel/travelJunctionMap.js';
 import { drawEnhancedTravelControl, hideEnhancedTravelControl } from '../ui/enhanced/enhancedTravelControl.js';
+import { createJourneyHand, passengerHelm, passengerCard } from './naval/passageHelm.js';   // FIELD BUGS 2026-10-21d PASSAGE-HANDS: a passenger's hands off her helm
 import { drawEnhancedHelm, hideEnhancedHelm, enhancedHelmMounted, enhancedHelmBar, helmPadGesture, helmPadPrompts } from '../ui/enhanced/enhancedHelm.js';   // CSA-L: Come Sail Away's helm on screen (Enhanced Plus); NAV-F: its bar, which the sea's target card stands under
 import { setTimeScale as setWorldTimeScale, timeScale as worldTimeScale, resetTimeScale, MAX_TIME_SCALE } from '../systems/timeScale.js';   // W1's classic art window + U61's overworld, one door
 import { racialRestBlock, racialFastTravelBlock, careerFastTravelBlock, racialSunAverse, cureVampirism } from '../systems/vampirism.js';   // AUDIT 64 F21: the career rung and the racial one show the SAME sunlightDamageFastTravelDay box (DaggerfallUI.cs:619, VampirismEffect.cs:202); VAMP-HOOD: the racial arm's hood; HOOD-CAREER: the career's
@@ -301,6 +303,7 @@ import { createWitchesHost } from './witchesHost.js';   // WITCH1: the Witches' 
 import { createPortHost, PORT_TEXT, stairRefusal, stairFeetY } from './portHost.js';   // SHIPYARDS: every port town's shipyard and lighthouse, their people, their press and the lamp - and the stair's refusals
 import { createShipyardHost } from './shipyardHost.js';   // SHIPYARDS: the shipmaster's window's host half
 import { createPassageHost } from './naval/passageHost.js';   // PASSAGE: a berth's friendly ship, booked and sailed
+import { voyageSails } from '../systems/naval/passage.js';   // FIELD BUGS 2026-10-21d PASSAGE-IN: from her port's roadstead she runs in
 import { createWardenShows } from './wagon/wagonWardenShow.js';   // WARDEN1: the town watch's throw, played
 import { createWagonWarden, wardenTownIn } from './wagon/wagonWardenHost.js';   // WARDEN1: the town watch - my wagon's stamp, the cell's words, the offline clock; AUDIT WARDEN1 D3: the town under a point, one pure home
 import { createWildEscrowHost } from './wildEscrowHost.js';   // PVP-ESCROW: the two-phase handoff's two sides, out of bootWorld (HOST-SPLIT)
@@ -2964,7 +2967,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // and the people with it (`livingRate`); online it moves no shared clock.
   const livingBaseRate = () => (params.has('online') ? skyMinutesPerMsAt(Date.now() + _sharedOffsetMs) * 1000 : CLASSIC_MINUTES_PER_SECOND);
   const livingRate = () => (params.has('online') ? livingBaseRate() : CLASSIC_MINUTES_PER_SECOND * worldTimeScale());
-  let livingRelations = createRelations();   // LW2: how the living world regards this character - the save's `LivingWorld` record
+  let livingRelations = characterRelations(null, ownMinutes, params.has('online'));   // LW2: how the living world regards this character - the save's `LivingWorld` record
   const LEGACY_REMAINS_NEAR = 60 * 40;   // LEGACY4: 60 m in native world units (40 to the metre) - near enough to find the fallen's remains
   const LEGACY_REMAINS_NEAR_DUNGEON = 6;   // AUDIT LEGACY H1: underground, six paces in the scene's metres (the wagon's own access reach is five)
   /** LEGACY7: an online birth's first save - the realm's checkpoint, answered later (legacyRealmBirth) - or null. */
@@ -2987,13 +2990,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // AUDIT LW-II-2 C3: the caravan host's counters written first - what left a shelf reached the record only at its next
     // step, and a save inside that second shelved the piece again beside the one in the pack
     getSaveData: () => { _caravanHost?.flush(); return livingRelations.snapshot(); },
-    restoreSaveData: (rec) => { livingRelations = createRelations(rec); },
+    restoreSaveData: (rec) => { livingRelations = characterRelations(rec, ownMinutes, params.has('online')); },
     // LEGACY6: a new character knows nobody - unless born of the house on this page: the birth's share of the parent's
     // regard (legacyHost.seedRegards), whichever of the birth and this reset lands first
-    newGame: () => { livingRelations = createRelations(); legacyHost?.seedRegards(livingRelations); },
+    newGame: () => { livingRelations = characterRelations(null, ownMinutes, params.has('online')); legacyHost?.seedRegards(livingRelations); },
   });
-  /** The Living World's day of the sky's minute (livingTown.js dayOf: a day starts at 04:00). */
-  const livingRegardDay = () => Math.floor((skyMinutes() - 240) / 1440);
+  /** REGARD-OWN: the regard's day - the character's own (systems/livingWorld/regardClock.js), not the sky's living day. */
+  const livingRegardDay = () => livingRelations.today();
   /** LW16: a resident's regard of the one played - their own where they have one, else (one of the town the street
    *  stands) a stranger's by its repute (systems/livingWorld/carried.js): read, never stored */
   const livingRegardOf = (res, day) => {
@@ -4043,7 +4046,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       say: (text) => townTalk.say(text),
       door: _livingRoadsDoor,
       // LW9: a patrol's knight before a player its region knows for a criminal draws on them, with the law's word
-      wanted: (res, trip) => (res.job === 'patrol' && trip?.from?.region != null && knownCriminal(playerEntity, trip.from.region, { ownNow: ownMinutes(), worldNow: trustedWorldMinutes() })
+      wanted: (res, trip) => (res.job === 'patrol' && trip?.from?.region != null && patrolHalts(playerEntity, trip.from.region, { ownNow: ownMinutes(), worldNow: trustedWorldMinutes() })
         ? PATROL_HALT_LINES[lwSeed(textSeed(res.id)) % PATROL_HALT_LINES.length] : null),
     }),
   }));
@@ -8190,8 +8193,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const csaHelmPress = (action, withHeld = null) => { if (typeof action !== 'string') return; csaHelmInput.edges.add(action); if (typeof withHeld === 'string') csaHelmInput.chord.add(withHeld); };
   const csaHelmHold = (action, on) => { if (typeof action !== 'string') return; if (on) csaHelmInput.held.add(action); else csaHelmInput.held.delete(action); };
   /** OWS2: THE JOURNEY'S HAND ON THE HELM (systems/seaHelm.js) - the rudder keys an Overworld journey holds and the oars
-   *  it pulls, handed to the mod beside the keys' and the panel's own (the one input seam); its taps are the panel's. */
-  const csaJourneyHelm = { held: new Set(), row: false };
+   *  it pulls, handed to the mod beside the keys' and the panel's own (the one input seam); PASSAGE-HANDS: and its taps,
+   *  its own (scenes/naval/passageHelm.js) - on a booked ship hers alone answer. */
+  const csaJourneyHelm = createJourneyHand();
   let _csaAxes = { h: 0, v: 0 };   // CSA-D: InputManager's Horizontal and Vertical this frame (MoveAxes)
   let _csaFootstepsOff = false;   // CSA-D: PlayerFootsteps.enabled = false at the helm
   let _csaMovedPlayer = false;   // CSA-D: the helm wrote the player's transform this frame - the eye follows
@@ -8359,15 +8363,15 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // CSA-D: the helm's seams
     dt: () => _csaDt,
     setting: (key) => { try { return modSetting(COME_SAIL_AWAY_VENDOR, key); } catch { return undefined; } },
-    input: {
+    input: passengerHelm({   // PASSAGE-HANDS (FIELD BUGS 2026-10-21d): on a booked ship, her master's hand alone
       has: (action) => held(keys, action) || csaHelmInput.held.has(action) || csaHelmInput.chord.has(action) || csaJourneyHelm.held.has(action) || (!!HELM_RUDDER_ACTIONS[action] && helmTurnKeys() && held(keys, HELM_RUDDER_ACTIONS[action])),   // InputManager.HasAction: the registry's held read (the mod's keys answer only while it is on); CSA-L: and the helm panel's holds; OWS2: and a journey's; HELM-KEYS: at a helm the turn keys are the rudder's
-      started: (action) => (pressed(latch.edge, keys, action) && !(travelView?.active && [CSA_BOAT_ACTIONS.sailUp, CSA_BOAT_ACTIONS.sailDown, CSA_BOAT_ACTIONS.toggleSail, 'MoveForwards', 'MoveBackwards'].includes(action))) || csaHelmInput.edges.has(action),   // ActionStarted, and GetKeyDown on the mod's registry actions: the frame's down ring; CSA-L: and the helm panel's taps; AUDIT NAV2 F17: the sail keys stand down under the travel view, as the turn keys do (helmTurnKeys) - a journey holds the helm there, and its own press sets her sails; HELM-LADDER: W and S climb the same ladder, so they stand down there too
+      started: (action) => !(travelView?.active && [CSA_BOAT_ACTIONS.sailUp, CSA_BOAT_ACTIONS.sailDown, CSA_BOAT_ACTIONS.toggleSail, 'MoveForwards', 'MoveBackwards'].includes(action)) && (pressed(latch.edge, keys, action) || csaHelmInput.edges.has(action)),   // FIELD BUGS 2026-10-21d PASSAGE-HANDS: the panel's and the pad's sail taps stand down under the view too - the journey's own are its hand's (passageHelm.js); ActionStarted, and GetKeyDown on the mod's registry actions: the frame's down ring; CSA-L: and the helm panel's taps; AUDIT NAV2 F17: the sail keys stand down under the travel view, as the turn keys do (helmTurnKeys) - a journey holds the helm there, and its own press sets her sails; HELM-LADDER: W and S climb the same ladder, so they stand down there too
       horizontal: () => (helmTurnKeys() ? Math.max(-1, Math.min(1, _csaAxes.h + (held(keys, 'TurnRight') ? 1 : 0) - (held(keys, 'TurnLeft') ? 1 : 0))) : _csaAxes.h),   // HELM-KEYS: the rudder's swing answers the turn keys too
       vertical: () => _csaAxes.v,
       get toggleAutorun() { return !!player.toggleAutorun || csaJourneyHelm.row; },   // OWS2: a journey's oars pull as the autorun does
       set toggleAutorun(v) { player.toggleAutorun = v; },
       ...csaInput,   // CSA-I: GetKeyDown / GetKeyUp / GetKey on a KeyCode
-    },
+    }, () => csaRuntime?.state?.CurrentBoat, csaJourneyHelm),
     helm: {
       setPlayerPosition: csaSetPlayerPosition,
       finishBoarding: csaFinishBoarding,
@@ -8800,7 +8804,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       csaRuntime.update({ paused });
       csaRuntime.lateUpdate({ paused, activateComplete: released(latch.edge, keys, 'ActivateCenterObject') || _tapClick });   // AUDIT PRE-MERGE 0928 U2: a finger's tap is ActivateCenterObject to the gate (_tapArmed), never on the ring - its release frame places the boat too
     });
-    csaHelmInput.edges.clear(); csaHelmInput.chord.clear();   // CSA-L: the helm panel's taps were this frame's
+    csaHelmInput.edges.clear(); csaHelmInput.chord.clear(); csaJourneyHelm.edges.clear();   // CSA-L: the helm panel's taps were this frame's (PASSAGE-HANDS: and the journey's)
     csaSyncColliders();
     csaPeersFrame(dt);   // CSA-K: the others' boats posed, and the deck I stand aboard carrying me - after the motor, before the eye
     if (_csaMovedPlayer) cam.pos = player.eyeAt();
@@ -10300,7 +10304,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   function navalHud(dt = 0) {
     if (!navalOn()) return;
     const model = _mode() === 'exterior' ? naval.hudModel() : null;
-    const covered = townTalk.overlayActive || gamePaused() || !!townTalk.hudHidden;
+    // FIELD BUGS 2026-10-21d PASSAGE-PLATE: and under a journey's own controls - the Overworld, or First Person Travel's bar -
+    // as the helm panel is (AUDIT NAV2 F17) and the sea's tags and marks are: the plate stood over the journey's block,
+    // its hull, sails and guns over the route and the time its clock was held to
+    const covered = townTalk.overlayActive || gamePaused() || !!townTalk.hudHidden || !!travelView?.active || !!_travelUIHolder.ui?.isShowing;
     // SEA-TOWN (FIELD BUGS 2026-10-11c): nothing to show (no ship near, the HUD covered) reads its clock and takes the
     // plate down (ui/naval/navalHud.js drawNavalHud returns there) - the keys' names, the HUD's rects and the compass box
     // were made for it every frame ashore, three walks of the bindings among them
@@ -10629,12 +10636,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (!csaRuntime || !csaOn() || !isEnhancedPlus() || typeof document === 'undefined' || !walkMode) { if (enhancedHelmMounted()) hideEnhancedHelm(); csaHelmInput.held.clear(); return; }
     let helm = null;
     csaCall(() => { helm = csaRuntime.helmPanelState(); });
-    if (helm) helm = { ...helm, orders: navalOn(), cargo: holdsCargo(helm.hull), shot: navalOn() ? naval?.shotLabel?.() ?? null : null };   // SHIP-CREW: the Orders button while the naval arc is on; CARGO-ANYWHERE: her Hold; SHOT-KINDS: her guns' load
+    if (helm) helm = passengerCard(csaRuntime.state?.CurrentBoat) ? null : { ...helm, orders: navalOn(), cargo: holdsCargo(helm.hull), shot: navalOn() ? naval?.shotLabel?.() ?? null : null };   // SHIP-CREW: the Orders button while the naval arc is on; CARGO-ANYWHERE: her Hold; SHOT-KINDS: her guns' load
     if (!helm) csaHelmInput.held.clear();
-    const ab = helm ? null : csaAboard.aboard;
+    const ab = helm ? null : passengerCard(csaRuntime.state?.CurrentBoat) ?? csaAboard.aboard;   // PASSAGE-HANDS: a passenger's card at her helm
     if (!helm && !ab) { drawEnhancedHelm({ helm: null, aboard: null }, csaHelmHooks); return; }   // SEA-TOWN (FIELD BUGS 2026-10-11c): no helm, aboard nothing - the panel goes (ui/enhanced/enhancedHelm.js), and the key's name and the cover's reads it never shows are not made every frame ashore
     drawEnhancedHelm({
-      helm, aboard: ab ? { hull: ab.boat.hull, owner: peerName(ab.owner) } : null,
+      helm, aboard: ab?.passage ? ab : ab ? { hull: ab.boat.hull, owner: peerName(ab.owner) } : null,
       covered: townTalk.hudCovered || (modes?.hudCovered ?? false) || gamePaused() || !hudRenderEnabled() || !!travelView?.active || !!_travelUIHolder.ui?.isShowing,   // A first-person journey also owns the helm. AUDIT NAV2 F17: under the travel view a journey holds the helm - its hand sets her sails, the arrows turn the view
       touch: !!touch, mouseFree: cursorActive() || pointerSurfaces.size > 0 || !document.pointerLockElement,
       freeKey: csaKeyLabel('FreeMouse'), keyOf: csaKeyLabel,
@@ -13170,7 +13177,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       showQuestPlace: (modes?.mode ?? 'exterior') === 'exterior' ? (find) => showQuestPlace(find) : undefined,
       // LW7c: THE PEOPLE WHO KNOW YOU - the living world's residents the character has met, by name and town, their
       // standing and their fate (systems/livingWorld/people.js), where the living world is on
-      people: livingWorldOn() ? () => peoplePage(livingRelations, Math.floor((skyMinutes() - 240) / 1440), livingTownOfId) : undefined,
+      people: livingWorldOn() ? () => peoplePage(livingRelations, livingRegardDay(), livingTownOfId) : undefined,
     });
   };
   /** S40: THE REST KEY, OUTDOORS. CanRest's FIRST arm - the one that
@@ -16435,6 +16442,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     roads: () => { const net = terrainGen.roads(); return net?.source === 'basic-roads' ? net : null; },
     onRoad: () => travellerOnRoad(),   // RATE-LAW: a straight walk's ground - the road's rate while it runs along one
     isWater: (x, y) => x < 0 || y < 0 || x >= 1000 || y >= 500 || woods.getHeightMapValue(x, y) <= WATER_BYTE,   // AUDIT DEEP T2-1: a road journey's resume never aims across the sea
+    seaWaterAt: (x, z) => tvSeaWaterAt(...state.localFromWorld(x, z)),   // FIELD BUGS 2026-10-21d PASSAGE-IN: the ground the boat floats on, native units - a sailed leg's mark
     worldPos: () => { const wc = state.worldCoords(walkMode ? player.pos : cam.pos); return { x: wc.x, z: wc.z }; },
     mapPixel: playerTravelPixel,
     yaw: () => (cam.yaw * 180) / Math.PI,   // the port's camera yaw is radians, 0 at +z, clockwise - Unity's own sense
@@ -30623,7 +30631,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (!plan && !net && roadNet) { net = roadNet; plan = planRoute(from, summary.pixel, { roads: net.roads ?? null, tracks: net.tracks ?? null, ...tvRouteGround(), sea: tvSeaAsk(means, 'land') }); if (plan) townTalk.say(TRAVEL_PATH_TEXT.fellBack); }   // OW-PATH
     const dry = tvMooredDry(means, plan, () => planRoute(from, summary.pixel, { roads: net?.roads ?? null, tracks: net?.tracks ?? null, ...tvRouteGround() }));   // AUDIT OW5 S3
     if (dry) { plan = dry; means = null; }
-    if (voyage && !plan?.kinds.includes('sea')) { noWay?.(); return false; }   // PASSAGE: a booked voyage sails, or does not set out
+    if (voyage && !voyageSails(from, summary.pixel, plan)) { noWay?.(); return false; }   // PASSAGE: a booked voyage sails, or does not set out - PASSAGE-IN: but from her port's roadstead she runs in
     if (!plan) { tvSeaNoWay(from, summary.pixel, means, net, 'land', summary); return false; }
     const legs = tvJoinedLegs(from, plan, roads);
     const ok = travelOptions.beginTravelAlongRoute({ legs, summary, name: summary.name }, tvCautious(), { quiet: tvQuiet });
@@ -30964,7 +30972,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (tvSea.phase === 'landing') return;
     tvSeaRelease();
     tvSea.phase = 'landing'; tvSea.boat = boat;
-    csaHelmPress(CSA_BOAT_ACTIONS.disembark);
+    csaJourneyHelm.press(CSA_BOAT_ACTIONS.disembark);
   }
   /** The disembark over: the traveller set ashore - the first dry ground ahead of the bow, else about the boat, within
    *  TV_SEA_ASHORE_M - and the boat packed when it packs and none stands aboard; else left moored where it landed. */
@@ -31033,7 +31041,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (cmd.turn > 0) csaJourneyHelm.held.add('MoveRight');
     else if (cmd.turn < 0) csaJourneyHelm.held.add('MoveLeft');
     csaJourneyHelm.row = cmd.row;
-    if (cmd.sails) csaHelmPress(CSA_BOAT_ACTIONS.toggleSail);
+    if (cmd.sails) csaJourneyHelm.press(CSA_BOAT_ACTIONS.toggleSail);
   }
   /** THE CROSSING'S FRAME - before Travel Options' own, so a launch or a landfall made this frame is what its stops see. */
   function tvSeaFrame(dt) {
@@ -31042,7 +31050,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (!live) {
       if (tvSea.wasLive) {   // the journey over - arrived, stopped, replaced: the hand off the helm, and the sails down
         tvSeaRelease();
-        if (csaRuntime?.isSailing() && csaRuntime.state.sailPosition > 0) csaHelmPress(CSA_BOAT_ACTIONS.toggleSail);
+        if (csaRuntime?.isSailing() && csaRuntime.state.sailPosition > 0) csaJourneyHelm.press(CSA_BOAT_ACTIONS.toggleSail);
       }
       tvSea.wasLive = false;
       tvSea.phase = null; tvSea.boat = null;   // AUDIT OWS A2: a landing the journey's end left behind holds nothing - the ocean stop's stand-down (atSea) reads it

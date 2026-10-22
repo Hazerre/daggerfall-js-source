@@ -899,8 +899,8 @@
   {
     "name": "LW7-talk-tone-unheard",
     "file": "src/scenes/townTalk.js",
-    "old": "  const _toneHeard = () => { if (_toneTarget) livingTone?.(_toneTarget, _toneTaste()); };",
-    "new": "  const _toneHeard = () => {};",
+    "old": "    livingTone?.(_toneTarget, _toneTaste());\n",
+    "new": "",
     "tests": [
       "test/systems/livingWorld/lw7_deeds.test.js"
     ]

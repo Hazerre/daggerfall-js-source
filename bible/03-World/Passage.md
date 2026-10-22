@@ -65,7 +65,13 @@ way there by sea from here.").
 ## The voyage
 
 The voyage is the Overworld's crossing (OWS2), unchanged: the journey's hand on her helm - the rudder, the sails, her
-crew's oars - and Come Sail Away's own sailing moves her. On the enhanced interface the Overworld is raised over it as
+crew's oars - and Come Sail Away's own sailing moves her. THAT HAND ALONE (PASSAGE-HANDS, `01-Overview/bugs/Field-Bugs-2026-10-21d.md`):
+while her boat carries a charter, her rudder, oars, sails, trim and lantern answer her master's hand and nothing the
+passenger presses - keys, the helm panel or the pad (`scenes/naval/passageHelm.js` passengerHelm, the host's seam
+wrapped); the passenger keeps stepping from her helm and the time dial, and her panel is a passenger's card ("The Fair
+Silk, bound for Wayrest - her master steers"). A sailed leg is aimed where the built ground floats her
+(`systems/travel/seaMark.js`), and from her own port's roadstead her master's resume runs her in (`passage.js`
+voyageSails - PASSAGE-IN). On the enhanced interface the Overworld is raised over it as
 over every journey; under First Person Travel it is sailed from her helm. Her hands are aboard (a fresh crew state,
 every hand), so a raider met on the way is met as any ship of mine meets one. Time passes as the journey's does.
 
@@ -142,7 +148,7 @@ harbour ships - no passage there. `scenes/worldModes.js` (interiors) and `scenes
 
 ## Pins
 
-`test/systems/naval/passage.test.js` (the law, and the planner's voyage), `test/scenes/naval/passagehost.test.js` (the
+`test/scenes/naval/fb1021d_passage.test.js` (FIELD BUGS 2026-10-21d: her master's hand alone, the passenger's card, the roadstead, the sea's marks on the real map, the ship's plate under the journey's controls), `test/systems/naval/passage.test.js` (the law, and the planner's voyage), `test/scenes/naval/passagehost.test.js` (the
 booking, the voyage's life, the end, the wiring), `test/scenes/naval/passagesea.test.js` (the ship at her berth, her
 boat, her letting go - the real naval host and pool, two players' rooms), `test/systems/comeSailAway/passage_csa.test.js` (the save and the
 pack, the real runtime), `test/scenes/naval/passageaudit.test.js` (the cabins, the world's audit doors);
