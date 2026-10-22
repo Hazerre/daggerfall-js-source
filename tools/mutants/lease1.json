@@ -696,7 +696,7 @@
   {
     "name": "LEASE1-a-replaced-socket-heard-after-the-wait",
     "file": "server/src/index.js",
-    "old": "    return a.replaced ? null : a;\n",
+    "old": "    return a?.replaced ? null : a;\n",
     "new": "    return a;\n",
     "why": "a frame of a socket a reconnect replaced while it waited at the door is heard, with no id",
     "tests": [
@@ -706,8 +706,8 @@
   {
     "name": "LEASE1-a-closed-socket-unread-past-a-wait",
     "file": "server/src/index.js",
-    "old": "    if (this._dead.has(ws) || this._gone.has(ws)) return null;\n    const a = this._attach(ws);\n    return a.replaced",
-    "new": "    const a = this._attach(ws);\n    return a.replaced",
+    "old": "    const a = this._dead.has(ws) || this._gone.has(ws) ? null : this._attach(ws);\n",
+    "new": "    const a = this._attach(ws);\n",
     "why": "past every wait a closed socket reads as live: its frames are heard after its leave",
     "tests": [
       "test/net/lease1.test.js"

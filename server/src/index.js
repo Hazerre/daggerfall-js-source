@@ -7083,9 +7083,8 @@ export class Room {
   /** LEASE1 (the fourth review of the PR): the socket as it stands past a wait, or null - it closed, or a reconnect took its
    *  id, meanwhile: nothing of it is heard, nor its lease taken, after its leave (`_attach` alone always answers). */
   _pastWait(ws) {
-    if (this._dead.has(ws) || this._gone.has(ws)) return null;
-    const a = this._attach(ws);
-    return a.replaced ? null : a;
+    const a = this._dead.has(ws) || this._gone.has(ws) ? null : this._attach(ws);
+    return a?.replaced ? null : a;
   }
   /** LEASE1: the lease key, derived once from the relay's secret (a CryptoKey cannot be stored; a deploy is a new object). */
   async _leaseKeyOf() {
