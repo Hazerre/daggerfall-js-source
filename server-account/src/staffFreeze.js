@@ -78,8 +78,8 @@ export const STAFF_CHAT_ROUTES = Object.freeze(['/v1/staff-chat/read', '/v1/staf
 export const FREEZE_ALLOWED = Object.freeze(['/v1/auth/logout', '/v1/auth/token', '/v1/account', '/v1/realm', '/v1/realm/join', '/v1/realm/leave', ...STAFF_CHAT_ROUTES]);
 const ALLOWED = new Set(FREEZE_ALLOWED);
 
-/** The panel's refusal words and their status (staff.js STAFF_STATUS takes them in). */
-export const FREEZE_STATUS = Object.freeze({ 'bad-reason': 400, 'bad-text': 400, 'not-frozen': 409, 'no-thread': 404, 'freeze-thread': 409, 'freeze-moved': 409 });
+/** The panel's refusal words and their status (staff.js STAFF_STATUS takes them in) - and `frozen`, the gate's own (403). */
+export const FREEZE_STATUS = Object.freeze({ frozen: 403, 'bad-reason': 400, 'bad-text': 400, 'not-frozen': 409, 'no-thread': 404, 'freeze-thread': 409, 'freeze-moved': 409 });
 /** The player's doors' refusal words and their status. */
 export const STAFF_CHAT_STATUS = Object.freeze({ 'bad-text': 400, 'no-thread': 404, rate: 429 });
 

@@ -171,10 +171,10 @@ export const MINUTE_JOBS = Object.freeze([
   ['rez-holds', (ctx) => rounds(() => settleHolds(ctx), REZ_SETTLE_MAX, ctx.budget)],
   // SAFE5 + SAFE8 (bible/11-Multiplayer/Chat-Safety-Arc.md): the reviewer reads the relay's feed and the reported cases,
   // and each case's card goes to the moderators' channel - nothing a request waits on (safetyClock.js)
-  ['safety', (ctx, env) => safetyMinute(ctx, env)],
-  // STAFF-PANEL5-FREEZE (staffFreeze.js; design doc Weak spots: "A failed push leaves a freeze or unfreeze unapplied"): a
-  // freeze or unfreeze the relay's door did not take, pushed again with a fresh order
-  ['freeze-push', (ctx, env) => retryFreezePushes(ctx, env)],
+  // STAFF-PANEL5-FREEZE (staffFreeze.js; design doc Weak spots: "A failed push leaves a freeze or unfreeze unapplied"): and a
+  // freeze or unfreeze the relay's door did not take, pushed again with a fresh order - the sanctions' own minute, so no
+  // job's share of the firing shrinks (AUDIT SCALE A2); nothing asked while no door is set
+  ['safety', async (ctx, env) => (await safetyMinute(ctx, env)) + (await retryFreezePushes(ctx, env))],
   ['motherlodes', async (ctx, env) => {
     const day = utcDay(ctx.nowS);
     if (profSwitchOf(env?.PROFESSIONS_OPEN) !== 'on' || lodesPicked === day) return 0;

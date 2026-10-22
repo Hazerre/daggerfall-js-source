@@ -835,6 +835,13 @@ const REFUSAL_WORDS = {
   // AUDIT SAFE DOC-4: a moderator's look at a case, and an unban of an account no ban holds
   'no-case': () => t('account.refusal.noCase', 'That player has no open case.'),
   'not-banned': () => t('account.refusal.notBanned', 'That account is not banned.'),
+  // STAFF-PANEL5-FREEZE (server-account/src/staffFreeze.js): a staff freeze - every door but signing out, the account, the
+  // realm's loads, the token and the staff chat; a frozen seller's goods; a fall naming a frozen player; the Staff tab's own
+  frozen: () => t('account.refusal.frozen', 'Your account is frozen by staff. You can still talk to staff in the Staff tab.'),
+  'market-seller-frozen': () => t('account.refusal.marketSellerFrozen', 'That seller\'s goods are on hold for now.'),
+  'fallen-frozen': () => t('account.refusal.fallenFrozen', 'That player is held by staff. Nothing can be taken from them.'),
+  'bad-text': () => t('account.refusal.badText', 'Write something to send.'),
+  'no-thread': () => t('account.refusal.noThread', 'There is no staff chat open for you right now.'),
 };
 /** AUDIT SAFE CLIENT-2 (2026-10-17): THE SERVICE'S LAST WORD ON A BAN - `{ until, reason }` off the newest `banned`
  *  refusal any door answered (`call`), or null. The service refuses a banned account on every door but signing out
