@@ -34,7 +34,7 @@ import { OWN_MW_MODELS, OWN_MW_GILDED, ownWeaponModelFor } from '../../src/chara
 import { MW_WEAPON_TYPE } from '../../src/formats/morrowind/mwFirstPerson.js';
 import { setModSetting, _resetModSettings } from '../../src/systems/modSettings.js';
 import { readPng } from '../../tools/pngIO.mjs';
-import { pistoletArt, SOURCE as ART_SOURCE, OUT as ART_OUT, BAND, dollGrip, DOLL_ANGLE } from '../../tools/pistoletArt.mjs';
+import { pistoletArt, SOURCE as ART_SOURCE, OUT as ART_OUT, BAND, dollGrip, DOLL_ANGLE, HAND_TURN } from '../../tools/pistoletArt.mjs';
 import { bakePistolet, OUT as MW_OUT, SOURCE as MW_SOURCE } from '../../tools/bakePistolet.mjs';
 
 const png = (f) => readPng(readFileSync(f));
@@ -101,27 +101,34 @@ test('the pictures: the owner’s sprite whole in a list, a fist-gapped layer on
   const doll = png(ART_OUT.doll);
   const at = (img, x, y) => img.data[(y * img.width + x) * 4 + 3];
   // A DOWNWARD ANGLE, NOT MIRRORED (the owner, 2026-10-22: "Still wrong. It should be at a downward angle in the right
-  // hand in the picture. Not mirrored"): each hand's layer is the gapped sprite tilted DOLL_ANGLE counter-clockwise by
-  // RotSprite - no colour in it that the sprite does not have - the muzzle down and to the LEFT, as the sprite's points
+  // hand in the picture. Not mirrored"): each hand's layer is the gapped sprite TURNED by RotSprite - no colour in it
+  // that the sprite does not have - its barrel DOLL_ANGLE below level
   assert.equal(DOLL_ANGLE, 45);
   const left = png(ART_OUT.dollLeft);
   const colours = (img) => { const c = new Set(); for (let p = 0; p < img.data.length; p += 4) if (img.data[p + 3]) c.add(img.data.slice(p, p + 4).join()); return c; };
   const own = colours(src);
   for (const img of [doll, left]) for (const c of colours(img)) assert.ok(own.has(c), `no new colour (${c})`);
-  const solid = (img, pred) => { for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) if (at(img, x, y) && pred(x, y)) return true; return false; };
-  const bulk = (img, g) => { let sx = 0, sy = 0, n = 0; for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) if (at(img, x, y)) { sx += x + 0.5; sy += y + 0.5; n++; } return [sx / n - g.x, sy / n - g.y]; };
-  const gripR = dollGrip({ rolled: true }), gripL = dollGrip();
+  const gripR = dollGrip('right'), gripL = dollGrip('left');
+  // where a hand's barrel goes: the layer's pixels more than 10 px from the fist, by quarter
+  const reach = (img, g) => {
+    const q = { dl: 0, dr: 0, ul: 0, ur: 0 };
+    for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
+      const dx = x + 0.5 - g.x, dy = y + 0.5 - g.y;
+      if (at(img, x, y) && Math.hypot(dx, dy) > 10) q[(dy > 0 ? 'd' : 'u') + (dx > 0 ? 'r' : 'l')]++;
+    }
+    return q;
+  };
   for (const [img, g, hand] of [[doll, gripR, 'right'], [left, gripL, 'left']]) {
-    assert.equal(at(img, Math.floor(g.x), Math.floor(g.y)), 0, `${hand}: the fist’s gap at the tilted band’s centre`);
-    assert.ok(solid(img, (x, y) => x < g.x - 10 && y > g.y + 6), `${hand}: the barrel reaches down and to the left of the fist`);
-    assert.ok(!solid(img, (x, y) => x < g.x - 10 && y < g.y - 4), `${hand}: and not level out from it`);
+    assert.equal(at(img, Math.floor(g.x), Math.floor(g.y)), 0, `${hand}: the fist’s gap at the band’s centre`);
   }
-  // THE RIGHT HAND'S IS ROLLED OVER (the owner: "The left gun should be upside down and held in the hand" - the
-  // picture's left): the same tilt of the sprite turned top to bottom, so the gun's bulk hangs BELOW the fist, where a
-  // classic blade leaves the right fist - the upright gun's sits beside it, which is right only for the left fist
-  const [, belowR] = bulk(doll, gripR), [besideL, belowL] = bulk(left, gripL);
-  assert.ok(belowR > 5, `the right hand’s gun hangs below its fist (${belowR.toFixed(1)})`);
-  assert.ok(besideL < -6 && belowL < 4, `the left hand’s reaches out beside its fist (${besideL.toFixed(1)}, ${belowL.toFixed(1)})`);
+  // the LEFT hand's (the picture's right) upright, its barrel down and to the picture's left; the RIGHT hand's (the
+  // picture's left) UPSIDE DOWN, its barrel down and to the picture's right - toward the other gun, as the right fist
+  // holds a classic blade (the owner: "The left gun should be upside down and held in the hand", "the left hand needs to
+  // be angled towards the the right hand gun")
+  const qL = reach(left, gripL), qR = reach(doll, gripR);
+  assert.ok(qL.dl > 0.9 * (qL.dl + qL.dr + qL.ul + qL.ur), `the left hand’s barrel down and out (${JSON.stringify(qL)})`);
+  assert.ok(qR.dr > 0.9 * (qR.dl + qR.dr + qR.ul + qR.ur), `the right hand’s barrel down and toward the other gun (${JSON.stringify(qR)})`);
+  assert.deepEqual(HAND_TURN, { left: 45, right: 135 }, 'turns only: the right hand’s is the left’s turned upside down and tilted the other way');
   let mirrored = true;
   for (let y = 0; y < doll.height && mirrored; y++) for (let x = 0; x < doll.width; x++) if (at(doll, x, y) !== at(left, doll.width - 1 - x, y)) { mirrored = false; break; }
   assert.equal(mirrored, false, 'never the left hand’s in the glass');

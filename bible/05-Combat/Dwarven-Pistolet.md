@@ -65,10 +65,11 @@ doll wears a layer with the fist's gap cut out:
 - `tools/pistoletArt.mjs` cuts it as a band square to the grip (the Thunderlock's `punchBand`, imported - and
   `tools/gunPaperdoll.mjs` gained the `isMain` guard AUDIT 68 asks of a tool another imports).
 - The frame of the gun stays above the fist and the butt below it.
-- Then the layer is tilted 45 degrees, barrel down and to the picture's left (`DOLL_ANGLE`). It is NOT mirrored.
-- The doll's RIGHT hand (the picture's left) wears it ROLLED OVER on its barrel (`rollOver`): the gapped sprite turned
-  top to bottom, then the same tilt. The barrel still points down and left; the grip comes up out of the frame's other
-  side into the fist. The left hand (the picture's right) wears it upright.
+- Then each hand's layer is TURNED - never mirrored (`HAND_TURN`). The doll's left hand (the picture's right) wears
+  it upright, tilted 45 degrees barrel-down to the picture's left (`DOLL_ANGLE`). The doll's RIGHT hand (the
+  picture's left) wears it UPSIDE DOWN - a half turn - tilted the same 45 degrees the other way, barrel down to the
+  picture's right, toward the other gun. The pair mirrors each other in pose while each gun stays the owner's
+  drawing.
 - The tilt is RotSprite (`rotSprite`): Scale2x three times, the turn sampled nearest at 8x, read back at 1x. A nearest
   turn at 1x is the staircase-and-holes the Gun-Lab record warns of. RotSprite adds no colour the sprite does not
   have, and `pistolet.test.js` checks every one.
@@ -82,26 +83,30 @@ doll wears a layer with the fist's gap cut out:
    left.
 4. Read as the doll's left hand, that gun was moved by eye: "Now the right hand is screwed up. Dude stop band aid
    fixing". That move is undone; the picture's right is round 3's, byte for byte.
-5. "The left gun should be upside down and held in the hand" - this cut.
+5. "The left gun should be upside down and held in the hand": that gun rolled over on its barrel, still pointing
+   down and out.
+6. "Not quite, the left hand needs to be angled towards the the right hand gun. Look at how the left hand is
+   positioned": upside down by a half turn instead, the barrel down and in - this cut.
 
 **Two hands on the doll.** A classic Either-hand weapon carries two doll records, TEXTURE.234's base for the left hand
 and +1 for the right (`ui/paperDoll.js`). The Pistolet carries each hand's own layer (`ART_RECORDS`: doll 0, icon 1,
 gold 2 and 3, left 4 and 5), chosen by the slot it is worn in (`pistoletImageRecord`). A single Pistolet is worn in the
-right hand, so it shows rolled over.
+right hand, so it shows upside down, angled in.
 
 **Where they hang: one rule, measured.** The fist's gap in every clean one-handed classic doll record (dagger, mace,
 shortsword, war axe; the player's own ARENA2 via `tools/fetch-data.sh`) closes at panel (27, 96) on the right hand and
 (69, 95) on the left. Each layer's band centre (`dollGrip`) goes on its hand's gap, as a classic hilt does
 (`PAPERDOLL_OFFSET`).
 
-Why the right hand's is rolled. The doll's fists are mirror images; the gun is not. Daggerfall's right fist holds its
-hilts pommel up-left, the weapon leaving the fist down-right (TEXTURE.234's +1 records). The left fist holds them level,
-the weapon leaving toward the body.
-- Upright, the gun's bulk sits beside the fist: right for the left fist, where a blade leaves. On the right fist it put
-  the whole frame on the POMMEL's side - beside the hand, the butt barely on the knuckles (round 3).
-- Rolled, the butt sits where the pommel does and the frame hangs below the fist, where a blade leaves.
-- `pistolet.test.js` holds both landings to the measured gaps, the rolled gun's bulk below its fist and the upright
-  one's beside it, and the two layers never each other's mirror.
+Each hand holds it as Daggerfall's own weapons are held there. The doll's fists are mirror images; the guns are not.
+- The left fist holds its hilts level, the weapon leaving toward the body. The upright gun's barrel goes down and out
+  from it.
+- The right fist holds its hilts pommel up-left, the blade leaving down and INWARD - the classic dagger about 48
+  degrees below level (TEXTURE.234's +1 records). The upside-down gun matches it: the butt up in the fist, the barrel
+  down and in at 45 degrees, toward the other gun.
+- `pistolet.test.js` holds both landings to the measured gaps, each barrel's direction (the layer's pixels beyond the
+  fist: down-left for the left hand's, down-right for the right hand's), `HAND_TURN`, and the two layers never each
+  other's mirror.
 - The rule was checked on six bodies (Breton male and female, Nord male, Dark Elf female, Khajiit male, Argonian
   female): the hands are drawn in the same place, and each holds its gun the same way.
 

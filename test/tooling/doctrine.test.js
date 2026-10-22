@@ -89,7 +89,7 @@ const PUBLIC_ALLOWLIST = new Map([
   ['public/art/gun-fire-sheet.webp', "OURS - Mac's own six-frame fire sheet for the gun lab (2026-09-19); no ARENA2 pixel in it"],
   ['public/art/pistol-frames.png', "OURS - the owner's own six fire frames for the pistol lab (2026-10-21), laid side by side with their pixels unchanged; no ARENA2 pixel in it"],
   ['public/art/pistolet-icon.png', "OURS - the owner's own Dwarven Pistolet sprite (PISTOLET, 2026-10-21), its 24x17 pixels recovered from the owner's screenshot; the inventory picture as it is; no ARENA2 pixel in it"],
-  ['public/art/pistolet-paperdoll.png', "OURS - pistolet-icon.png with the fist's gap cut across its grip, rolled over and tilted barrel-down (RotSprite, no new colour) by tools/pistoletArt.mjs (the right hand's doll layer); no ARENA2 pixel in it"],
+  ['public/art/pistolet-paperdoll.png', "OURS - pistolet-icon.png with the fist's gap cut across its grip, turned upside down and tilted barrel-down toward the other hand (RotSprite, no new colour) by tools/pistoletArt.mjs (the right hand's doll layer); no ARENA2 pixel in it"],
   ['public/art/pistolet-paperdoll-left.png', "OURS - pistolet-icon.png with the fist's gap cut across its grip and tilted barrel-down (RotSprite, no new colour) by tools/pistoletArt.mjs (the left hand's doll layer); no ARENA2 pixel in it"],
   ['public/art/pistolet-icon-gilded.png', "OURS - pistolet-icon.png laid on the gold-leaf ramp by tools/pistoletArt.mjs (tools/gunIcons.mjs gild - the Sunken Sovereign's); no ARENA2 pixel in it"],
   ['public/art/pistolet-paperdoll-gilded.png', "OURS - pistolet-paperdoll.png in gold leaf by tools/pistoletArt.mjs; no ARENA2 pixel in it"],
