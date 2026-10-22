@@ -505,5 +505,204 @@
     "tests": [
       "test/net/arena/arena4_service.test.js"
     ]
+  },
+  {
+    "name": "C2A-questline-another-line",
+    "file": "src/ui/collections/wardrobeCatalogue.js",
+    "old": "  const id = Object.entries(QL_SERVICE_LINES).find(([, l]) => l.title === title)?.[0];",
+    "new": "  const id = Object.entries(QL_SERVICE_LINES).find(([, l]) => l.title !== title)?.[0];",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-the-sprout-obtainable",
+    "file": "src/ui/collections/wardrobeCatalogue.js",
+    "old": "    sprout: E('account', 'auto',",
+    "new": "    sprout: E('account', 'open',",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-the-word-on-the-whole-cell",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "  const plate = el('span', 'coll-plate');",
+    "new": "  const plate = cell;",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-the-grimoire-never-inked",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "    if (globalThis.document?.documentElement?.dataset?.plusDress === GRIMOIRE_DRESS) inkPaint(word);\n",
+    "new": "",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-the-stone-plate-bare",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": ":root[data-plus-theme=\"stone\"] .px-sys .coll-plate { background-color: rgba(10,12,16,0.82); padding: 1px 6px 2px; }\n",
+    "new": "",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-the-stone-theme-never-laid",
+    "file": "src/ui/collectionsPage.js",
+    "old": "  st.textContent = `${COLLECTION_PAGE_CSS}${WARDROBE_PART_CSS}${WARDROBE_THEME_CSS}`;",
+    "new": "  st.textContent = `${COLLECTION_PAGE_CSS}${WARDROBE_PART_CSS}`;",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-no-try-again",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "    p.append(again);\n",
+    "new": "",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-try-again-asks-nothing",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "    again.onclick = () => { Promise.resolve(flow.start?.()).catch(() => {}); };",
+    "new": "    again.onclick = () => {};",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-the-wait-unsaid",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "    if (flow.busy) p.append(el('span', null, ' '), el('span', 'said', t('coll.acct.busy', 'Asking your account…')));\n    else if",
+    "new": "    if",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-the-note-on-every-part",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "    else if (flow.note && _noteKind === kind)",
+    "new": "    else if (flow.note)",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-the-note-never-placed",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "  b.onclick = () => { if (flow.busy) return; _noteKind = e.kind; Promise",
+    "new": "  b.onclick = () => { if (flow.busy) return; Promise",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-held-offered-unread",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "    if (!read && (id === 'held' || id === 'missing')) continue;\n",
+    "new": "",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-a-held-filter-kept-unread",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "  if (!wardrobe && (_filter === 'held' || _filter === 'missing')) _filter = 'all';\n",
+    "new": "",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-the-divider-zero-unread",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "held: wardrobe ? held : '–',",
+    "new": "held,",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-the-seats-counted-nought",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "    detail.append(divider(counted.length ? t(",
+    "new": "    detail.append(divider(true ? t(",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-the-presses-at-the-texts-left",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "  const foot = el('div', 'coll-foot');",
+    "new": "  const foot = text;",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-the-foot-not-across",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": ".px-sys .coll-foot { grid-column: 1 / -1; ",
+    "new": ".px-sys .coll-foot { ",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-a-name-on-top-for-titles-alone",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "  text.append(paintedWord(el, e.kind, e.key, 'coll-bigword'));",
+    "new": "  if (e.kind === 'title') text.append(paintedWord(el, e.kind, e.key, 'coll-bigword'));",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-a-box-opened-below-the-fold",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": " ctx.rerender(); if (_open) revealOpened(); };",
+    "new": " ctx.rerender(); };",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-the-row-out-of-view",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "    row?.scrollIntoView?.({ block: 'start' });",
+    "new": "",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-the-dim-unreadable",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": ".px-sys .coll-row:not(.held) .coll-prev, .px-sys .coll-row:not(.held) .coll-nm { opacity: 0.8; }",
+    "new": ".px-sys .coll-row:not(.held) .coll-prev, .px-sys .coll-row:not(.held) .coll-nm { opacity: 0.55; }",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2A-the-codex-in-english",
+    "file": "src/ui/collectionsPage.js",
+    "old": "divider(t('coll.codex.gilded', 'Gilded - {n} of {total} found', { n: n.gilded, total: n.gildeds }))",
+    "new": "divider(`Gilded - ${n.gilded} of ${n.gildeds} found`)",
+    "tests": [
+      "test/ui/collections2.test.js",
+      "test/systems/l10n4_hardcoded.test.js"
+    ]
   }
 ]

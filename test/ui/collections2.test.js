@@ -17,12 +17,13 @@ import { readFileSync } from 'node:fs';
 import { setPref, _resetForTests } from '../../src/systems/uiPrefs.js';
 import { TITLES, AURAS, ICONS, GLYPHS, SEAT_TITLES, CHAPTER_TITLES } from '../../src/net/identityToken.js';
 import * as W from '../../src/ui/collections/wardrobeCatalogue.js';
+import { setLocale, currentLocale, PSEUDO_LOCALE } from '../../src/systems/textManager.js';
 import { drawWardrobePart, wardrobeFilterPasses, resetWardrobePart, WARDROBE_PART_CSS, WARDROBE_THEME_CSS, auraRingNode } from '../../src/ui/collections/wardrobePart.js';
 import { drawCollectionsPage, resetCollectionsPage, setCollectionsPart, disarmCollectionsPage, rereadCollectionsAccount, partCount, collectionParts, WARDROBE_PARTS, COLLECTION_PAGE_STYLE_ID, COLLECTION_PAGE_CSS } from '../../src/ui/collectionsPage.js';
 import { FRAME_ROLES } from '../../src/ui/enhanced/enhancedFrame.js';
 import { INSIGNIA } from '../../src/net/insignia.js';
 import { FESTIVALS, FESTIVAL_WARES, FESTIVAL_ICONS, HEARTHKEEPER_GIVEN, SOULCAKE_TAKEN } from '../../src/net/festivalLaw.js';
-import { QL_TITLES } from '../../src/net/questlineClaims.js';
+import { QL_SERVICE_LINES } from '../../src/net/questlineClaims.js';
 import { QL_LINES } from '../../src/systems/questlines/qlLines.js';
 import { ARENA_CHAMPION_MIN_BOUTS, ARENA_CHAMPION_MIN_FOES } from '../../src/net/arena/arenaLaw.js';
 import { seasonTitles } from '../../src/net/townSeatLaw.js';
@@ -205,13 +206,15 @@ test('COLLECTIONS-II THE CATALOGUE IS THE SERVICE\'S LAW SAID, ENTRY BY ENTRY (A
   assert.deepEqual(W.TABLE_CHAMPION_FLOOR, { iliacchampion: { games: ILIAC_CHAMPION_MIN_GAMES, foes: ILIAC_CHAMPION_MIN_FOES }, grandmaster: { games: GAMBIT_CHAMPION_MIN_GAMES, foes: GAMBIT_CHAMPION_MIN_FOES } });
   for (const t of ['iliacchampion', 'grandmaster']) assert.match(how('title', t), new RegExp(`at least ${W.TABLE_CHAMPION_FLOOR[t].games} ranked games against ${W.TABLE_CHAMPION_FLOOR[t].foes} different`));
   assert.equal(W.availLine(entry('title', 'arenachampion')), 'Held only while you stay on top.', 'never "passes to whoever takes your place" - a #1 short of the floor holds nothing');
-  // the questlines, each its own line's words
-  for (const t of QL_TITLES) {
-    const l = W.questlineOf(t);
-    assert.ok(l && entry('title', t).src === 'questlines', `${t}: its line`);
+  // the questlines, each its own line's words - the line found by the service's own table, never by the catalogue's
+  // reading of it (AUDIT COLLECTIONS-II lane 5: a reader that found another line said that line's words and the pin agreed)
+  for (const [id, sl] of Object.entries(QL_SERVICE_LINES)) {
+    const t = sl.title;
+    const l = QL_LINES.find((x) => x.id === id);
+    assert.ok(l && W.questlineOf(t)?.id === id && entry('title', t).src === 'questlines', `${t}: its line, ${id}`);
     const said = how('title', t);
     assert.ok(said.includes(l.title()) && said.includes(l.giver()), `${t}: its line's name and giver`);
-    if (l.opens.after) assert.ok(said.includes(QL_LINES.find((x) => x.id === l.opens.after).title()), `${t}: the line it follows`);
+    if (l.opens.after) assert.ok(said.includes(QL_LINES.find((x) => x.id === l.opens.after).title()), `${t}: the line it follows (the client's gate - the service names only the gates it enforces)`);
     else assert.match(said, new RegExp(`level ${l.opens.level}\\b`), `${t}: its level`);
     assert.ok(said.endsWith(`Offered by ${l.giver()}.`), `${t}: the giver last, its office closed by the sentence`);
   }
@@ -350,6 +353,20 @@ test('COLLECTIONS-II THE PAGE: six tiles, each its part\'s name over its count a
   assert.equal(cls(cls(out.root, 'coll-part')[0], 'px-meter')[0].textContent, `0/${TITLES.length - 1}`, 'and an empty meter');
   assert.ok(heads(out.root).includes('The Elite Breach - –/13'), 'a dash in a divider too, unread');
   assert.deepEqual(cls(out.root, 'coll-filter').map((b) => b.attrs['data-focus']), ['coll-filter-all', 'coll-filter-now'], 'Held and Not held only where the account is read');
+  // Held chosen while read, then the read gone (signed out on the card): every row again, never "Nothing here."
+  resetCollectionsPage();
+  const gone = fakeFlow(mintedWardrobe());
+  const gp = page({ flow: gone });
+  focus(gp.root, 'coll-filter-held').onclick();
+  gone.stage = 'out'; gone.wardrobe = null; gp.draw();
+  assert.deepEqual([cls(gp.root, 'coll-row').length, focus(gp.root, 'coll-filter-all').classList.contains('on')], [W.wardrobeEntries('title').length, true], 'the Held filter let go with the read');
+  // the codex's words through the text core (AUDIT COLLECTIONS-II lanes 3 and 5): under the pseudo-locale none is English
+  resetCollectionsPage();
+  const was = currentLocale();
+  setLocale(PSEUDO_LOCALE);
+  let codexHeads;
+  try { const cp = page({ player: me }); setCollectionsPart('codex'); cp.draw(); codexHeads = heads(cp.root); } finally { setLocale(was); }
+  assert.ok(codexHeads.length >= 3 && codexHeads.every((h) => !/^(Gilded|Legendaries|Aetheric) - \d+ of \d+ found$/.test(h)), codexHeads.join(' | '));
   _resetCodexForTests(); resetCollectionsPage();
 });
 
@@ -436,6 +453,7 @@ test('COLLECTIONS-II A KIND\'S PART: every one of the kind a row under its sourc
     rowOf(p.root, kind, key).onclick();
     const b = cls(p.root, 'coll-wear')[0];
     assert.equal(b.textContent, word, `${kind}:${key}`);
+    assert.equal(cls(cls(p.root, 'coll-whole')[0], 'coll-bigword')[0]?.textContent, W.wardrobeName(kind, key), `${kind}:${key}: its name on top, every kind's (AUDIT COLLECTIONS-II lane 3: after a jump the row may be out of view)`);
     b.onclick();
     assert.deepEqual(flow.asked.at(-1), [press, key]);
   }
