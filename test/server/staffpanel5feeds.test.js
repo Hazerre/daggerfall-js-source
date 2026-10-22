@@ -145,6 +145,9 @@ test('STAFF-PANEL5-FEEDS: Network bursts - Admins alone, most urgent first, by w
   ] }));
   // the same player's other room in the same window is the same player
   await s.post(NET_FEED_PATH, netBatch({ q: 'cell:13,40', net: [netRow(s.grim.id, { n: 100, b: 1000, p10: 90, pb10: 900, p60: 95, pb60: 950, k: [100, 0, 0, 0, 0, 0, 0], nr: 1 })] }));
+  // an older window of Grim's, within the read and past its newest's wave: not summed into it
+  s.raw.prepare(`INSERT INTO staff_net_rows (batch, at, sub, frames, bytes, p10, pb10, p60, pb60, k_move, k_act, k_hit, k_trade, k_foe, k_chat, k_other, refused, junk, closes, close_why)
+    VALUES ('old', ?, ?, 5000, 1, 1, 1, 1, 1, 5000, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL)`).run(nowS() - 900, s.grim.id);
   const mod = await s.staff('/v1/staff/net', {}, s.asy);
   assert.equal(mod.status, 403);
   assert.deepEqual(s.audits('refused').map((r) => [r.role, r.outcome, JSON.parse(r.detail).path]), [['moderator', 'denied', '/v1/staff/net']]);
