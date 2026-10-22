@@ -66,6 +66,7 @@ import { chapterSeasonLines, chapterBackChoices, chapterBackedLine } from '../ne
 import { t } from '../systems/textManager.js';   // STANDING-WORDS: the guide's rank and standing, in the player's language
 import { movedFirstText } from '../net/bagLaw.js';   // AUDIT2 BAG1 K8: what went into the Stores before a refusal
 import { createMarketTab } from './marketTab.js';   // PROF5: the Market tab
+import { craftNeedText, craftMadeText, craftPayText, craftHeldText, craftShortText, craftFilledText } from '../net/craftWritLaw.js';   // CRAFT-WRITS: a crafting writ's card, in words
 import { createWorkTab, writWalledText } from './workTab.js';   // PROF6: the Work tab's guild writs and commissions; WRIT-WALL: what no writ may spend, in words
 import { createSeatTab, boardFold } from './seatTab.js';   // SEAT1b: the Seat tab - a seat town's standings, pledges and Tribute
 import { createVendorTab } from './vendor/vendorTab.js';   // HOME-VENDOR: the Vendors tab, and a trader's stall
@@ -208,7 +209,8 @@ function injectSkin(doc = document) {
  *   onExit?: (() => void) | null,
  *   work?: ({ book: any, region: number, regionName: string, countName: (key: string, n: number) => string,
  *     onTaken?: (r: any) => (string|void), sayLate?: (text: string) => void, setFocus?: ((faction: number, focus: string) => Promise<any>) | null, back?: ((faction: number, side: number) => Promise<any>) | null, patron?: ((faction: number, marks: number) => Promise<any>) | null, writs?: any, regionNameOf?: (r: number) => string,
- *     pieces?: (c: any) => any[], settle?: () => any, onList?: (data: any) => void, forgetMarket?: () => void } | null),
+ *     pieces?: (c: any) => any[], settle?: () => any, onList?: (data: any) => void, forgetMarket?: () => void,
+ *     crafts?: ({ held: (w: any) => { pack: number, made: number, ready: boolean }, deliver: (w: any) => Promise<any> } | null) } | null),
  *   market?: (any | null),
  *   guilds?: boolean,
  *   guildOnly?: ({ name: string } | null),
@@ -447,7 +449,7 @@ export function mountNoticeBoard(host, deps) {
    *  once its list is read; null for none. */
   const tabCount = (id) => {
     if (id === 'notices') return noticeCards({ town: deps.town, board, seenAt: seenAtOpen }).filter((c) => c.isNew).length || null;
-    if (id === 'work' && writs) return (writs.writs ?? []).filter((w) => w.state === 'open').length + (writs.writsOpen === true ? (writs.guildWrits ?? []).filter((w) => w.state === 'open').length + (writs.commissions ?? []).filter((c) => c.state === 'open' && c.forMe).length : 0) || null;
+    if (id === 'work' && writs) return (writs.writs ?? []).filter((w) => w.state === 'open').length + (work?.crafts ? (writs.crafts?.writs ?? []).filter((w) => w.state === 'open').length : 0) + (writs.writsOpen === true ? (writs.guildWrits ?? []).filter((w) => w.state === 'open').length + (writs.commissions ?? []).filter((c) => c.state === 'open' && c.forMe).length : 0) || null;
     return null;
   };
   /** The tabs: Notices alone, or Notices and Work while the professions are this account's (PROF1), and Market while
@@ -566,6 +568,62 @@ export function mountNoticeBoard(host, deps) {
       ends: Number(w.expiresAt) || 0, name, words: wordsOf(name, work.countName(w.material, 1), writKindText(w), chapter ? hallPosterName(w.faction) : null), card: () => writNode(w) };
   }
 
+  /** CRAFT-WRITS (bible/06-Systems/Professions-Arc.md section 49): A CRAFTING WRIT'S CARD - the guild's ask, what fills it,
+   *  its pay, its time left, what the character holds toward it (craftWritHost.js held) and Deliver, waiting with its
+   *  reason where something is short or the day's are filled. @param {any} w */
+  function craftNode(w) {
+    const li = el('li', ['notice-card', 'notice-writ', 'notice-craft', 'seal-guild', ...(w.state !== 'open' ? ['done'] : [])].join(' '));
+    li.append(el('span', 'notice-pin'), el('span', 'writ-kind', t('notice.craftWrit.kind', 'Crafting writ')));
+    li.append(el('p', 'writ-need', craftNeedText(w)));
+    li.append(el('p', 'writ-made', craftMadeText(w.product)));
+    li.append(el('p', 'writ-pay', craftPayText(w)));
+    li.append(el('p', 'writ-left', w.state === 'mine' ? t('notice.craftWrit.mine', 'Filled by you') : timeLeftText(w.expiresAt, nowS())));
+    if (w.state === 'open') {
+      const h = work.crafts.held(w);
+      const today = writs?.crafts?.today ?? { filled: 0, max: 3 };
+      const full = today.filled >= today.max;
+      const take = el('div', 'writ-take');
+      const b = button('primary notice-take', t('notice.craftWrit.deliver', 'Deliver'), () => deliverCraft(w));
+      b.disabled = busy || workBusy || !h.ready || full;
+      // why Deliver waits - on its title, its name for a reader, and the card (a phone has no hover): AUDIT CRAFT-WRITS C8,
+      // the day's three filled said on the card too, where only the title said it
+      const why = !h.ready ? craftShortText(w, h) : full ? t('notice.craftWrit.full', 'You have filled today\'s crafting writs') : null;
+      if (why) { b.title = why; b.setAttribute('aria-label', `${t('notice.craftWrit.deliver', 'Deliver')}: ${why}`); }
+      take.append(b, el('span', null, craftHeldText(w, h)));
+      li.append(take);
+      if (why) li.append(el('p', 'writ-walled', `${why}.`));
+    }
+    li.append(el('span', 'notice-seal', ''));
+    return li;
+  }
+
+  /** CRAFT-WRITS: a crafting writ delivered - its goods out of the pack and the record, the balance and the Renown taken
+   *  as a Court writ's are (`onTaken`), the list read again; said in the chat when the board closed first. @param {any} w */
+  async function deliverCraft(w) {
+    if (busy || workBusy || !work.crafts) return;
+    busy = true; render();
+    let r;
+    try { r = await work.crafts.deliver(w); } catch (e) { console.warn('[work] a crafting writ would not deliver', e); r = { ok: false, error: 'server' }; }   // C9: never a board held busy
+    if (r?.ok && r.data) work.onTaken?.(r);
+    const said = r?.ok ? craftFilledText(w, r.data) : craftRefusalText(r);
+    if (!alive) { if (r?.ok) work.sayLate?.(said); return; }
+    busy = false;
+    // AUDIT CRAFT-WRITS C1: the card filled at once - the list read again comes after, and a press on its Deliver meanwhile
+    // asked the service a second time
+    if ((r?.ok || r?.error === 'craft-writ-filled') && writs?.crafts) {
+      writs = { ...writs, crafts: { ...writs.crafts, writs: writs.crafts.writs.map((x) => (x.id === w.id ? { ...x, state: 'mine' } : x)) } };
+    }
+    word = { ok: !!r?.ok, text: said };
+    loadWrits(true);
+  }
+  /** C6: a delivery that did not land, said - the realm's silence (the goods wait with the record a rejoin reads) and a
+   *  character changed before the ask in their own words, every other refusal the service's. @param {any} r */
+  function craftRefusalText(r) {
+    if (r?.unknown) return t('notice.craftWrit.unknown', 'The realm did not answer. Rejoin and look at the board again - the writ shows whether it was filled.');
+    if (r?.elsewhere || r?.error === 'elsewhere') return t('notice.craftWrit.elsewhere', 'You are playing another character now - the writ was not delivered.');
+    return accountRefusalText(r?.error);
+  }
+
   /** GUILD3d (bible/11-Multiplayer/Guilds-Made-Plain.md): A CHAPTER'S CARD - every line of one chapter of the region in one
    *  panel under its guild's name and band, where they stood loose above the cards: its Strength and what its band does to
    *  its halls (chapterBandEffectsLine), the reader's Merit there (CHAP3a), its Master's Focus (CHAP4d), its Season and
@@ -678,6 +736,17 @@ export function mountNoticeBoard(host, deps) {
     const today = writs?.today ?? { filled: work.book.state.writs?.today ?? 0, max: work.book.state.writs?.max ?? 3 };
     // AUDIT CHAP2 C5: "Writs" - the count is every writ the account filled today, the Court's and the halls' (CALL 8)
     body.append(el('p', 'notice-worktoday', `Writs today: ${today.filled} of ${today.max}${writsStale ? ' - the list may be out of date' : ''}`));
+    // CRAFT-WRITS: the character's crafting writs above the Court's - its own three, the day's count beside them. BOARD-SIFT
+    // (at the merge of CRAFT-WRITS): they stand over the bar, never sifted by it - three of the character's own, their own day
+    const crafts = work.crafts ? writs?.crafts?.writs ?? [] : [];
+    if (crafts.length) {
+      body.append(sectionHead(t('notice.craftWrit.head', 'Crafting writs - {filled, number} of {max, number} today', { filled: writs.crafts.today.filled, max: writs.crafts.today.max })));
+      const cg = el('ul', 'notice-grid');
+      cg.setAttribute('role', 'list');
+      for (const w of crafts) cg.append(craftNode(w));
+      body.append(cg);
+      body.append(sectionHead(t('notice.craftWrit.court', 'Court and guild writs')));
+    }
     const grid = el('ul', 'notice-grid');
     grid.setAttribute('role', 'list');
     const list = writs?.writs ?? [];

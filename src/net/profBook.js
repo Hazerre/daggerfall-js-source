@@ -66,6 +66,7 @@ import { accountRefusalText } from './accountClient.js';
 import { ASK_AGAIN_NOW, jittered } from './backoff.js';   // SCALE1: asks again spread out, and never at once into a minute's refusal
 import { t } from '../systems/textManager.js';   // L10N4: the Stores' words in the player's language
 import { noteAct } from '../systems/questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
+import { turnedDayOf } from './dayTurn.js';   // DAY-TURN: a page's day turns at its own moment past midnight
 
 /** Where this device keeps the acts whose answers did not come: { [account|character]: { harvests, withdrawals } }. */
 export const PROF_KEPT_KEY = 'prof1.kept';
@@ -133,7 +134,10 @@ const dayOf = (ms) => Math.floor(ms / 86_400_000);
  *   `stamped`/`unstamp`/`stamps` a deposit's stamp in the save (takeCarried's `stamp` - its id, material, units and
  *   order); `flush` a checkpoint that LANDED (the save holding the take is the realm's before the deposit is asked).
  */
-export function createProfBook({ door, storage = null, character = () => null, now = () => Date.now(), rid = () => mintProfRid(), sleep = (ms) => new Promise((r) => setTimeout(r, ms)), carry = /** @type {CarryHands|null} */ (null) }) {
+export function createProfBook({ door, storage = null, character = () => null, now = () => Date.now(), rid = () => mintProfRid(), sleep = (ms) => new Promise((r) => setTimeout(r, ms)), carry = /** @type {CarryHands|null} */ (null), turnMs = 0 }) {
+  /** DAY-TURN (net/dayTurn.js): the day this book holds its answers for - the UTC day, turned at this page's moment past
+   *  midnight (`turnMs`, the host's; 0 turns at midnight). An answer held is good while its day is not before it. */
+  const heldDay = () => turnedDayOf(now(), turnMs);
   const state = {
     /** whether the professions are this account's: true, false, or null not yet asked */
     open: /** @type {boolean|null} */ (null),
@@ -396,7 +400,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
       if (state.open === false) return account() !== state.account || now() - state.readAt >= PROF_CLOSED_RECHECK_MS;
       if (state.character !== character() || state.account !== account()) return true;
       if (state.reread && now() - state.readAt >= PROF_REFRESH_BACKOFF_MS) return true;   // REFUSALS-LEARNED
-      return state.day !== dayOf(now()) && now() - state.readAt >= PROF_REFRESH_BACKOFF_MS;
+      return state.day < heldDay() && now() - state.readAt >= PROF_REFRESH_BACKOFF_MS;   // DAY-TURN: another day at this page's turn
     },
     /** REFUSALS-LEARNED: whether today a refusal closed `key` for the account - `deep` (its veins in dungeons nobody has
      *  vouched for). CAP-OFF: the account's day in a craft (`account:<profession>`) closes nothing - there is none. */
@@ -469,7 +473,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
 
     // ─── THE PIXELS ─────────────────────────────────────────────────
     /** A streamed pixel's witnessed state today, or null not yet asked. */
-    pixel(x, y) { const p = pixels.get(pixelKey(x, y)); return p && p.day === dayOf(now()) ? p : null; },
+    pixel(x, y) { const p = pixels.get(pixelKey(x, y)); return p && p.day >= heldDay() ? p : null; },   // DAY-TURN: yesterday's until this page's turn
     /** GROUND-STALE: whether the host should ask after a pixel - not yet known today, or a harvest answered on it since. */
     pixelWanted(x, y) { const p = this.pixel(x, y); return !p || p.stale === true; },
     /** Asks after the pixels not yet known today, PROF_PIXELS_MAX at a time, one read in flight. Answers the pixels
@@ -479,7 +483,8 @@ export function createProfBook({ door, storage = null, character = () => null, n
       const c = character();
       const day = dayOf(now());
       const owner = slot();
-      const want = (list ?? []).filter(([x, y]) => { const p = pixels.get(pixelKey(x, y)); return p?.day !== day || p.stale === true; }).slice(0, PROF_PIXELS_MAX);   // GROUND-STALE: and one a harvest answered on
+      const held = heldDay();
+      const want = (list ?? []).filter(([x, y]) => { const p = pixels.get(pixelKey(x, y)); return !(p && p.day >= held) || p.stale === true; }).slice(0, PROF_PIXELS_MAX);   // GROUND-STALE: and one a harvest answered on - DAY-TURN: one held for a day before this page's turn
       if (!c || !want.length) return [];
       _pixelsBusy = (async () => {
         const r = await ask(() => door.pixels(c, want));
@@ -502,7 +507,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
 
     // ─── THE DUNGEONS (PROF2) ───────────────────────────────────────
     /** A dungeon's witnessed state today (its id DFU's MapId & 0xfffff), or null not yet asked. */
-    dungeon(id) { const d = dungeons.get(id); return d && d.day === dayOf(now()) ? d : null; },
+    dungeon(id) { const d = dungeons.get(id); return d && d.day >= heldDay() ? d : null; },   // DAY-TURN: as the pixels
     /** GROUND-STALE: whether the host should ask after a dungeon - not yet known today, or a harvest answered in it since. */
     dungeonWanted(id) { const d = this.dungeon(id); return !d || d.stale === true; },
     /** Asks after a dungeon not yet known today, beside no pixels - one read in flight. Answers whether its state is
@@ -1021,6 +1026,45 @@ export function createProfBook({ door, storage = null, character = () => null, n
       return p;
     },
 
+    /** CRAFT-WRITS (bible/06-Systems/Professions-Arc.md section 49): A CRAFTING WRIT FILLED - its goods out of the realm
+     *  record where it stands (`realm`, the host's realm act: systems/realmSaves.js realmGoldAct asks again itself, so this
+     *  asks once), `pieces` a dish or kit writ's provenance ids. The id is the writ's own until an answer comes, so a press
+     *  after a lost answer is the same delivery. Answers the service's answer; the track and the Work list moved with it -
+     *  the caller takes the goods out of the pack. */
+    async craftDeliver(writId, pieces = null, realm = null) {
+      const c = character();
+      if (!c) return { ok: false, error: 'prof-character' };
+      const origin = slot();
+      const key = `craft|${origin}|${writId}`;
+      const m = idFor(key, PROF_QUEUE_MS);
+      if (m.promise) return m.promise;
+      m.promise = (async () => {
+        const once = () => (origin === slot() ? door.craftWrit(c, writId, m.id, realm, pieces) : Promise.resolve({ ok: false, error: 'elsewhere', elsewhere: true }));
+        const r = await Promise.resolve().then(once).catch(() => ({ ok: false, error: 'offline' }));
+        m.promise = null;
+        if (!keptAnswer(r) && r?.error !== 'elsewhere') ids.delete(key);
+        if (origin !== slot()) return { ...r, elsewhere: true };
+        if (r?.ok) {
+          applyTrack(r.data?.track);
+          // the Work list's own card filled, and the day's count - every region's list of this slot (the writs are the account's)
+          for (const [wk, hit] of writCache) {
+            if (!wk.startsWith(`${slot()}|`) || !hit?.data?.crafts) continue;
+            hit.data = { ...hit.data, crafts: { writs: hit.data.crafts.writs.map((w) => (w.id === writId ? { ...w, state: 'mine' } : w)), today: r.data?.today ?? hit.data.crafts.today } };
+          }
+          writGen++;   // AUDIT CRAFT-WRITS C1: a list read while this was asked shows the writ open - read again
+        } else {
+          shutBy(r);
+          // C4: the record moved under the ask - this act landed with its answer lost, or another's: the track and the list
+          // read again
+          if (r?.error === 'seq') { state.reread = true; writGen++; }
+        }
+        return r;
+      })();
+      const asking = m.promise;   // a throw lets the writ's id go (AUDIT2 BAG1 K13's law)
+      asking.catch(() => { if (m.promise === asking) m.promise = null; });
+      return asking;
+    },
+
     // ─── A SMELT AT A FORGE (PROF2) ─────────────────────────────────
     /** A recipe `count` times at the forge. The id is kept until an answer comes, so a press after a lost answer is the
      *  same smelt, never a second. Answers the service's answer; the Stores and Smithing's track moved with it. PROF11:
@@ -1200,6 +1244,9 @@ export function createProfBook({ door, storage = null, character = () => null, n
       writeKept(kept, key);   // let go BEFORE the pieces are made: a mint that threw is never a second mint
       for (const st of r.data?.stores ?? []) applyStore(st);
       applyTrack(r.data?.track);
+      // AUDIT CRAFT-WRITS C7: a brew, a dish or a kit moves what a crafting writ's card holds (its `brewed`, its `pieces`)
+      const made = w.brew === true ? null : recipeById(w.recipe);
+      if (w.brew === true || made?.kind === 'dish' || made?.product === 'kit') { writCache.clear(); writGen++; }
       if (!had) return { ok: true, data: r.data, elsewhere: true };
       try { mint(r.data, w); } catch (e) { console.warn('[prof] a craft would not mint', e); }   // AUDIT 30 C4: the kept craft its fee
       // AUDIT QUESTLINES ACTS-4: nor a dish - Cooking's recipes are crafts too (recipeLaw.js dishRecipe, kind 'dish'), and a

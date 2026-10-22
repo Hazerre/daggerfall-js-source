@@ -4514,6 +4514,16 @@
   "tr": "7b97bc024c6a",
   "by": "claude-in-session"
  },
+ "features.npcMarks.note": {
+  "en": "9ac4077e0fc2",
+  "tr": "f73c73aca2c6",
+  "by": "claude-in-session"
+ },
+ "features.npcMarks.title": {
+  "en": "a3f85ff33ef4",
+  "tr": "7b614f7f7c60",
+  "by": "claude-in-session"
+ },
  "features.questHerald.note": {
   "en": "96aa445162b4",
   "tr": "6dd7c213ff50",
@@ -11624,6 +11634,21 @@
   "tr": "ca33a260d676",
   "by": "claude-in-session"
  },
+ "sd.through.opens": {
+  "en": "1e72c7ca985d",
+  "tr": "7df257ce6484",
+  "by": "claude-in-session"
+ },
+ "sd.through.title": {
+  "en": "45d79739680d",
+  "tr": "b4506364e23d",
+  "by": "claude-in-session"
+ },
+ "sd.through.to": {
+  "en": "9adecd5690cd",
+  "tr": "90d7aef18aa2",
+  "by": "claude-in-session"
+ },
  "sea.exchange.band": {
   "en": "80c476366bce",
   "tr": "2e3572b589d3",
@@ -12227,6 +12252,16 @@
  "travel.nav.gatesShut": {
   "en": "fd358facc6db",
   "tr": "bd7e505a0a02",
+  "by": "claude-in-session"
+ },
+ "travel.pace.viewFoot": {
+  "en": "e578298f5875",
+  "tr": "db1957eb626e",
+  "by": "claude-in-session"
+ },
+ "travel.pace.viewMount": {
+  "en": "522010f69fee",
+  "tr": "32ded3c096cd",
   "by": "claude-in-session"
  },
  "travelView.tip.weather": {
