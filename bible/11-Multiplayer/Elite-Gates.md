@@ -10333,7 +10333,8 @@ Ledger A's ELITE-GATES row names the file; no row of its own (the lords are no D
 
 **The relay.** world240 (`src/net/wire.js` `RELAY_VERSION`; NOT YET DEPLOYED): `egLordHit` stops a felled lord's walk.
 No word changes and no client gate: a page facing an older relay holds the fall's place itself, and an older page reads the
-stop as any walk's.
+stop as any walk's. Its law row in `test/net/relayversion.test.js` (89a91c15...); the version pins of 43 test files moved to it
+(PIN MOVED), and `tools/mutants/soc1.json`'s S38 re-aimed.
 
 **Pins.** `test/net/eliteGates/eg_lordfall.test.js` (20 - fourteen through `egFight.js`'s own draw path over a recording
 renderer and audio engine, the others the module's law, its pass over a recording WebGL, and the Spire's light seam; the
