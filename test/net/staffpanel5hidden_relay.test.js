@@ -16,7 +16,7 @@ import { mintHideOrder, mintOrder, importPublicKeyB64 } from '../../src/net/iden
 import { privateInteriorPrefix, privateInteriorRoom } from '../../src/net/privateInterior.js';
 import { instanceOwnerOf, instanceRoomOf } from '../../src/net/instanceRoom.js';
 import { openHiddenSeen, HIDDEN_SEEN_SIG_HEADER } from '../../src/net/hiddenSeen.js';
-import { hiddenMay, HIDDEN_RESERVE, HIDDEN_LAPSED, HIDDEN_FRAMES, HIDDEN_CHAT, isHidden } from '../../server/src/staffHidden.js';
+import { hiddenMay, hiddenEntered, HIDDEN_RESERVE, HIDDEN_LAPSED, HIDDEN_FRAMES, HIDDEN_CHAT, isHidden } from '../../server/src/staffHidden.js';
 import worker from '../../server/src/index.js';
 import { SAFE_LAW_PATH } from '../../server/src/relay.js';
 
@@ -147,6 +147,8 @@ test('STAFF-PANEL5-HIDDEN THE ACCEPTANCE, the hub: on its own shard, its account
     // the staff member's own account befriends the game first - its presence is the one thing a friend would see
     const ghost = await link('staffer', kg, { ...HIDE, peer: GHOST_ID });
     assert.equal(welcomeOf(ghost)?.t, 'welcome', 'welcomed on its shard');
+    const onBus = await link('staffer3', SOCIAL_ROOM, { ...HIDE, tokenSub: 'gH0st5ubCCCCCCCCCCCCCCCC', peer: 'ghost-0096', hs: undefined });   // a build from before the shards, hidden on the bus itself
+    assert.equal(welcomeOf(onBus)?.t, 'welcome');
     assert.equal(ofT(ghost, 'social').length, 0, 'never the hub\'s account: no picture, no friends\' presence, no party');
     assert.equal(bus.room._vsocks.size, 3, 'the bus holds its ShardSocket');
     assert.equal(bus.room._busCount(), 3, 'and counts it nowhere');
@@ -178,8 +180,10 @@ test('STAFF-PANEL5-HIDDEN THE ACCEPTANCE, the hub: on its own shard, its account
       assert.deepEqual(all?.l.map((p) => p.id).sort(), [`peer-${gameName}`, `peer-${rawName}`, 'peer-legacy', `peer-${lateName}`].sort(), `the World list, the visible four (${ws.att.id})`);
     }
     await drop(ghost, kg);
+    await drop(onBus, SOCIAL_ROOM);
     assert.equal(bus.room._vsocks.size, 3, 'its ShardSocket gone');
-    for (const ws of [game, raw, old, late]) assert.deepEqual(leaks(ws), [], `${ws.att.id} heard nothing of it`);
+    assert.equal(bus.room._busCount(), 4, 'and the count stands where it stood');
+    for (const ws of [game, raw, old, late]) { assert.deepEqual(leaks(ws), [], `${ws.att.id} heard nothing of it`); assert.deepEqual(leaks(ws, 'ghost-0096', 'gH0st5ubCCCCCCCCCCCCCCCC'), [], `${ws.att.id} heard nothing of the bus's either`); }
     assert.ok(raw.sent.length > 0 && old.sent.length > 0);
   });
 });
@@ -221,19 +225,24 @@ test('STAFF-PANEL5-HIDDEN the cap: a hidden seat (`?hd=1`) is taken from HIDDEN_
     const full = fakeRoom('town:m9');
     for (let i = 0; i < SOCKETS_MAX; i++) { const ws = full.connect(); ws.att = { ...ws.att, id: `p-${i}` }; full.room._adopt(ws, ws.att); }
     assert.equal(await status(full.room.fetch(upgrade())), 503, 'a visible socket: room full');
+    assert.equal(await status(full.room.fetch(upgrade('?hd=0'))), 503, 'and only `hd=1` asks for the reserve');
     pairs = 0;
     for (let i = 0; i < HIDDEN_RESERVE; i++) assert.equal(await status(full.room.fetch(upgrade('?hd=1'))), 101, `hidden seat ${i + 1} of the reserve`);
     assert.equal(pairs, HIDDEN_RESERVE);
     const seats = full.state.getWebSockets().filter((ws) => ws.att?.hs === 1);
     assert.equal(seats.length, HIDDEN_RESERVE, 'each seat marked the reserve\'s (`hs`)');
     assert.equal(await status(full.room.fetch(upgrade('?hd=1'))), 503, 'the reserve full');
-    assert.equal(await status(full.room.fetch(upgrade('?hd=0'))), 503, 'and only `hd=1` asks for it');
     // a room one short of its cap with hidden sockets in it: the visible seat is still there
     const near = fakeRoom('town:m9');
     for (let i = 0; i < SOCKETS_MAX - 1; i++) { const ws = near.connect(); ws.att = { ...ws.att, id: `p-${i}` }; near.room._adopt(ws, ws.att); }
     for (let i = 0; i < 3; i++) { const ws = near.connect(); ws.att = { ...ws.att, id: `g-${i}`, hid: 1 }; near.room._adopt(ws, ws.att); }
     assert.equal(await status(near.room.fetch(upgrade())), 101, 'hidden sockets are out of fullness');
     assert.equal(await status(near.room.fetch(upgrade())), 503, 'and the cap still holds');
+    // an empty room's reserve is bounded the same - a crowd of watchers is never a hidden one
+    const empty = fakeRoom('town:m9');
+    for (let i = 0; i < HIDDEN_RESERVE; i++) assert.equal(await status(empty.room.fetch(upgrade('?hd=1'))), 101);
+    assert.equal(await status(empty.room.fetch(upgrade('?hd=1'))), 503, 'HIDDEN_RESERVE hidden seats at most, however empty the room');
+    assert.equal(await status(empty.room.fetch(upgrade())), 101, 'and a player still comes in');
   } finally { globalThis.WebSocketPair = hadPair; }
 });
 
@@ -283,6 +292,17 @@ test('STAFF-PANEL5-HIDDEN the admissions: a private home admits the hidden spect
     await new Promise((res) => setTimeout(res, 20));
     assert.ok(welcomeOf(g2));
     assert.equal(posted.length, 1, 'no HIDDEN_SEEN_URL, no post');
+    quietRoom.env.GATE_SIGNING_KEY = r.env.GATE_SIGNING_KEY;
+    quietRoom.env.HIDDEN_SEEN_URL = 'http://accounts.test/v1/mod/hidden-seen';
+    const g4 = quietRoom.connect(); await quietRoom.hello(g4, 'ghost-0097', P, { ...HIDE, tokenSub: 'gH0st5ubBBBBBBBBBBBBBBBB' });
+    const cell = fakeRoom('world:3,12');
+    Object.assign(cell.env, { HIDDEN_SEEN_URL: r.env.HIDDEN_SEEN_URL, ACCOUNTS: r.env.ACCOUNTS, GATE_SIGNING_KEY: r.env.GATE_SIGNING_KEY });
+    const g5 = cell.connect(); await cell.hello(g5, GHOST_ID, P, HIDE);
+    await new Promise((res) => setTimeout(res, 20));
+    assert.ok(welcomeOf(g4) && welcomeOf(g5));
+    assert.equal(posted.length, 1, 'never over plain http, never for a room that is no private home');
+    assert.equal(hiddenEntered(cell.room, 'world:3,12', GHOST_SUB), null, 'nothing goes for a room that is no home');
+    assert.ok(hiddenEntered(r.room, owned, GHOST_SUB) instanceof Promise, 'a home\'s note goes');
     // an instance: staff's right, no party mark (no seat, no membership asked again)
     const inst = instanceRoomOf('dungeon:m187853213', { owner: await instanceOwnerOf('acct-alice'), epoch: '89abcdef' });
     const W = fakeRooms();
@@ -302,6 +322,20 @@ test('STAFF-PANEL5-HIDDEN the admissions: a private home admits the hidden spect
   });
 });
 
+test('STAFF-PANEL5-HIDDEN a battle and a realm: a hidden spectator is let into a siege\'s field and a Super dungeon\'s realm without a pass, a side or a place in the realm\'s record - and the player who has none is still refused (mutants: the siege\'s pass asked of it; the realm\'s record asked of it)', async () => {
+  await quiet(async () => {
+    for (const key of ['siege:3021:20', 'sd:1']) {
+      const r = fakeRoom(key);
+      const stranger = r.connect(); await r.hello(stranger, 'strg-0001', P);
+      assert.ok(!welcomeOf(stranger), `${key}: a player with no pass or place is refused`);
+      const ghost = r.connect(); await r.hello(ghost, GHOST_ID, P, HIDE);
+      assert.ok(welcomeOf(ghost), `${key}: the hidden spectator is let in`);
+      assert.equal(ghost.att.sd, undefined, 'on no side');
+      assert.equal(ghost.att.lk, undefined, 'counted by no stone');
+    }
+  });
+});
+
 test('STAFF-PANEL5-HIDDEN the mark lapses: a hide order through the Worker\'s law door closes every hidden hub socket of its subject `hidden lapsed` - never one minted after it, never another subject\'s, never a player - and nobody hears it go; a forged or mis-kinded order closes nothing (mutants: the door refuses the kind; the subject unread; the order\'s time unread; a visible socket closed; the hub hands it to _takeOrder)', async () => {
   await world(async ({ W, link, drop }) => {
     const bus = W.room(SOCIAL_ROOM);
@@ -310,6 +344,8 @@ test('STAFF-PANEL5-HIDDEN the mark lapses: a hide order through the Worker\'s la
     const ghost = await link('staffer', kg, { ...HIDE, peer: GHOST_ID });
     const OTHER = 'oTh3rGh0stAAAAAAAAAAAAA';
     const other = await link('staffer2', H.hubOfSubject(OTHER), { ...HIDE, tokenSub: OTHER, peer: 'ghost-0098' });
+    const TWIN = 'tW1nVisibleAAAAAAAAAAAAA';
+    const twin = await link('twin', H.hubOfSubject(TWIN), { tokenSub: TWIN, peer: 'twin-0001', acct: undefined, asecret: undefined });   // a visible token on a subject a hide order names, as no service mints one
     const kp = await bus.signer();
     const nowS = Math.floor(Date.now() / 1000);
     const order = await mintHideOrder({ s: GHOST_SUB }, kp.privateKey, { subtle, nowS });
@@ -329,6 +365,9 @@ test('STAFF-PANEL5-HIDDEN the mark lapses: a hide order through the Worker\'s la
     assert.equal(ghost.closed?.reason, HIDDEN_LAPSED, 'closed, never shown');
     assert.equal(other.closed, null, 'another subject\'s stands');
     assert.equal(game.closed, null, 'a player stands');
+    assert.equal((await law(await mintHideOrder({ s: TWIN }, kp.privateKey, { subtle, nowS }))).status, 200);
+    for (let i = 0; i < 3; i++) { await W.room(H.hubOfSubject(TWIN)).room._hubPoll(); for (const [k, rr] of W.made) if (H.isChannelBus(k)) await rr.room._downFlush(); }
+    assert.equal(twin.closed, null, 'a visible socket is never closed by a hide order, whatever subject it bears');
     assert.deepEqual(leaks(game), [], 'and nobody heard it go');
     // a token minted after the order is the service's newer word
     const pub = await importPublicKeyB64(bus.env.IDENTITY_PUBLIC_KEY, { subtle });

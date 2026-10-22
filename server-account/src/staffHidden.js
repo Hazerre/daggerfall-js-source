@@ -136,7 +136,7 @@ export async function takeHiddenSeen(ctx, env, bytes, sig) {
   if ('error' in opened) return opened;
   const { s, r } = opened.note;
   // whose session minted it: every staff session's subject (a dozen rows - staff.js deletes a member's dead ones at each sign-in)
-  const rows = (await db.prepare('SELECT s.token_hash AS s_hash, s.key_id AS s_key, p.* FROM staff_sessions s JOIN players p ON p.id = s.player_id').all())?.results ?? [];
+  const rows = (await db.prepare('SELECT s.token_hash AS s_hash, s.key_id AS s_key, p.* FROM staff_sessions s JOIN players p ON p.id = s.player_id LIMIT 500').all())?.results ?? [];
   let actor = null;
   for (const row of rows) if (await hiddenSubOf(row.s_hash, subtle) === s) { actor = row; break; }
   await auditStatement(db, nowS, { actor, role: actor ? staffRole(actor, env) : null, act: 'hidden-home', detail: { sub: s, room: r }, keyId: actor?.s_key ?? null, onceIn: 60 }).run();

@@ -70,7 +70,7 @@ async function stand() {
   /** The hidden subjects `h`'s staff sessions mint - every one, newest first. */
   const subsOf = async (h) => Promise.all(raw.prepare('SELECT token_hash FROM staff_sessions WHERE player_id = ? ORDER BY created_at DESC').all(game[h].id).map((r) => hiddenSubOf(r.token_hash, subtle)));
   const audits = (act) => raw.prepare('SELECT * FROM staff_audit WHERE act = ? ORDER BY id').all(act);
-  return { ...s, raw, staff, mob, asy, tab, game, mint, subsOf, audits, enrol, pushed, restore: () => { globalThis.fetch = real; } };
+  return { ...s, raw, staff, mob, mobKey, asy, tab, game, mint, subsOf, audits, enrol, pushed, restore: () => { globalThis.fetch = real; } };
 }
 
 test('STAFF-PANEL5-HIDDEN: the door is listed among the staff panel\'s and opens for no game session; the claim and the order are the token module\'s own law (mutants: the route unlisted; `hd` any value; a hide order with more; `hd` on another order)', async () => {
@@ -144,6 +144,19 @@ test('STAFF-PANEL5-HIDDEN: HIDE ME, ON BY DEFAULT - an Admin\'s and a Moderator\
     s.raw.prepare('UPDATE staff_sessions SET expires_at = 0 WHERE player_id = ?').run(s.game.Asynian.id);
     assert.equal(claimsOf((await s.mint('Asynian')).body.token).hd, undefined, 'nor one expired');
     assert.equal(s.audits('hidden-token').length, 4, 'and writes no row');
+    // a member the role lists no longer name, their session row still standing: a player's token
+    const mods = s.env.MODERATOR_HANDLES;
+    s.env.MODERATOR_HANDLES = 'Tabbyvish';
+    s.raw.prepare('UPDATE staff_sessions SET expires_at = ?, last_act = ? WHERE player_id = ?').run(nowS() + 600, nowS(), s.game.Asynian.id);
+    assert.equal(claimsOf((await s.mint('Asynian')).body.token).hd, undefined, 'no role, no mark');
+    s.env.MODERATOR_HANDLES = mods;
+    assert.equal(claimsOf((await s.mint('Asynian')).body.token).hd, 1, 'named again, hidden again');
+    // an owner's session by a key the config no longer names stands no more (staff.js staffSession's law)
+    const keys = s.env.OWNER_KEYS;
+    s.env.OWNER_KEYS = 'SirMcMobdon:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+    assert.equal(claimsOf((await s.mint('SirMcMobdon')).body.token).hd, undefined, 'a key out of the config hides nobody');
+    s.env.OWNER_KEYS = keys;
+    assert.equal(claimsOf((await s.mint('SirMcMobdon')).body.token).hd, 1, 'and back in it, hidden again');
   } finally { s.restore(); }
 });
 
@@ -200,14 +213,23 @@ test('STAFF-PANEL5-HIDDEN: THE MARK LAPSES WITH THE SESSION - a sign-out (one se
   } finally { s.restore(); }
 });
 
-test('STAFF-PANEL5-HIDDEN: A SIGN-OUT OF EVERY SESSION pushes an order for each (mutants: `all` read as one)', async () => {
+test('STAFF-PANEL5-HIDDEN: A SIGN-OUT of one session pushes its order alone; of every session, one for each (mutants: one read as all; all read as one)', async () => {
   const s = await stand();
   try {
-    const subs = await s.subsOf('SirMcMobdon');
-    assert.equal(subs.length, 1);
+    const login = async () => (await s.staff('/v1/staff/login', { handle: 'SirMcMobdon', password: PASSWORD, ...(await s.mobKey.proof('login', 'SirMcMobdon')) })).body.session;
+    const subs = async () => new Set(await s.subsOf('SirMcMobdon'));
+    const one = await subs();
+    const two = await login();
+    const both = await subs();
+    assert.equal(both.size, 2, 'two sessions, two subjects');
+    await s.staff('/v1/staff/logout', {}, two);
+    assert.deepEqual(s.pushed.map((o) => claimsOf(o).s), [...both].filter((x) => !one.has(x)), 'the one session\'s subject alone');
+    s.pushed.length = 0;
+    await login();
+    const again = await subs();
+    assert.equal(again.size, 2);
     await s.staff('/v1/staff/logout', { all: true }, s.mob.session);
-    assert.equal(s.pushed.length, 1);
-    assert.equal(claimsOf(s.pushed[0]).s, subs[0]);
+    assert.deepEqual(new Set(s.pushed.map((o) => claimsOf(o).s)), again, 'every session\'s');
   } finally { s.restore(); }
 });
 
