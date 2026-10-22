@@ -10262,7 +10262,7 @@ The site's deploy 1592 (#1126's merge, `d4c96bea7`) was refused by `verify / tes
 shard's 3,948 tests: EG-ZD's THE SPANS' CLOCK in `test/net/eliteGates/egz_return.test.js`, *not re-anchored for a wander
 under the step*. The tree was #1126's head's to the byte (`fb8bde413`), whose check had passed the same pin, and AUDIT
 QUESTLINES had seen it fail once under load and pass alone (`01-Overview/audits/Audit-Questlines.md`, "Not this arc's") -
-named there for this arc, and taken up here.
+named there for this arc.
 
 **Why it failed.** `spanSeconds` reads render/deadlands.js `anchoredClock`, which carries the seconds on the page's clock
 (`performance.now()`) from an anchor on the wall. The pin held the wall (`Date.now`) and not the page's clock: between the
@@ -10271,9 +10271,10 @@ a frame and a ping's answer - and the pin allowed that 50 ms. A busy runner spen
 the law says they should: the pin was wrong, not the clock. Reproduced: a 60 ms stall between the two reads fails it on
 that assertion.
 
-**The fix.** The pin holds the page's clock too (`t.mock.method(performance, 'now', ...)`, held still), so the seconds move
-only when the anchor is taken again: a wander under the step leaves them equal to the bit, where taking the anchor again
-moves them 103 ms. The same stall passes it.
+**The fix** is 52aff580b's (#1124, the staff panel's branch, which had reproduced it under load on its own): the pin holds
+the page's clock still as well, so the seconds move only when the anchor is taken again - a wander under the step leaves
+them where they stood, where taking the anchor again moves them 103 ms, either side of the pin's 50. This record's branch
+made the same fix after the deploy failed and withdrew it at the merge (main's is the file). The same stall passes it.
 
 **The pins.** `tools/mutants/egz_return.json` - 71, every one dead on the held clock, the spans' five among them
 (EGZ-spans-clock-outside, EGZ-reanchor-every-sample, EGZ-reanchor-never, EGZ-host-spans-on-the-welcome and
