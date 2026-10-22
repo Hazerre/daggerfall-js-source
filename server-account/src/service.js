@@ -542,6 +542,9 @@ export const ROUTES = new Set([
   // STAFF-PANEL2: the panel's reports - the open cases, one case, a claim and its release, a strike record, and the acts
   '/v1/staff/cases', '/v1/staff/case', '/v1/staff/claim', '/v1/staff/release', '/v1/staff/strikes',
   '/v1/staff/mute', '/v1/staff/ban', '/v1/staff/unban', '/v1/staff/dismiss',
+  // STAFF-PANEL4-CENSUS: the item and gold census (a kind found, its count and holders, its jumps) and the contested pieces
+  // (the list, one piece's trail, a trail check recorded) - Admin only (staffCensus.js)
+  '/v1/staff/census/find', '/v1/staff/census', '/v1/staff/census/jumps', '/v1/staff/contested', '/v1/staff/contested/piece', '/v1/staff/contested/trail',
   // PROF1: the professions (professions.js) - a character's tracks, Stores and day, the witnessed pixels, a harvest,
   // a specialisation, a withdrawal to the pack, a region's Court writs and a delivery. Every one behind a session, a
   // registered account's alone, and PROFESSIONS_OPEN's.

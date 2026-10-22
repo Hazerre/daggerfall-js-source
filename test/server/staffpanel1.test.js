@@ -79,7 +79,9 @@ test('STAFF-PANEL1: every door is listed once, beside the game\'s, and none is b
   assert.deepEqual([...STAFF_ROUTES].sort(), ['/v1/staff/audit', '/v1/staff/cut', '/v1/staff/enroll', '/v1/staff/invite', '/v1/staff/key/forget',
     '/v1/staff/keys', '/v1/staff/login', '/v1/staff/logout', '/v1/staff/me', '/v1/staff/mod/add', '/v1/staff/mod/remove', '/v1/staff/mods', '/v1/staff/team',
     // STAFF-PANEL2: the reports (staffCases.js)
-    '/v1/staff/ban', '/v1/staff/case', '/v1/staff/cases', '/v1/staff/claim', '/v1/staff/dismiss', '/v1/staff/mute', '/v1/staff/release', '/v1/staff/strikes', '/v1/staff/unban'].sort());
+    '/v1/staff/ban', '/v1/staff/case', '/v1/staff/cases', '/v1/staff/claim', '/v1/staff/dismiss', '/v1/staff/mute', '/v1/staff/release', '/v1/staff/strikes', '/v1/staff/unban',
+    // STAFF-PANEL4-CENSUS: the census and the contested pieces (staffCensus.js)
+    '/v1/staff/census/find', '/v1/staff/census', '/v1/staff/census/jumps', '/v1/staff/contested', '/v1/staff/contested/piece', '/v1/staff/contested/trail'].sort());
   // no secret to set anywhere: the config holds the lists and a public key, and nothing else of the panel's
   const toml = src('server-account/wrangler.toml');
   assert.match(toml, /^OWNER_HANDLES = "Lattymoy,SirMcMobdon"$/m);

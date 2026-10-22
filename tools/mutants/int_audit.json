@@ -1,10 +1,11 @@
 [
   {
     "name": "INTA-the-holder-charged",
+    "reaimed": "STAFF-PANEL4-CENSUS: re-aimed by content - a copy written down keeps its first holder, its claimant and its print (ledger.js copyRows)",
     "file": "server-account/src/ledger.js",
     "note": "AUTO-HOLD (PIN MOVED): re-aimed by content - a contested claim locks the claimant with no strike, `{ strike: false }`",
-    "old": "    steps.push(...copyRows(db, keys, claimant, nowS), ...chargeSteps(db, claimant, keys, nowS, { strike: false }));",
-    "new": "    steps.push(...copyRows(db, keys, claimant, nowS), ...chargeSteps(db, char, keys, nowS, { strike: false }));",
+    "old": "      ...chargeSteps(db, claimant, keys, nowS, { strike: false }));",
+    "new": "      ...chargeSteps(db, char, keys, nowS, { strike: false }));",
     "tests": [
       "test/systems/item/int4_itemids.test.js"
     ]

@@ -561,12 +561,14 @@ export async function checkpointRealm({ db, bucket, rand, nowS }, playerId, { id
   // primary's statements. One snapshot, read before anything is judged, as the reads were
   const keptConfig = budgetKept(db);
   const [rowRes, mineRes, dupesRes, configRes] = await db.batch([
-    // SESSION-SIGN (AUDIT PLAN-1000 E3): and the session the save is asked under, and the account's ban, as they stand
+    // SESSION-SIGN (AUDIT PLAN-1000 E3): and the session the save is asked under, and the account's ban, as they stand;
+    // STAFF-PANEL4-CENSUS: and the census's latest tally, so an unchanged one is written nowhere (staffCensus.js censusStep)
     db.prepare(`SELECT seq, lease, obj, prev, origin_id, summary, dead_at, ${JUDGE_COLUMNS},
     (SELECT played_s FROM players p WHERE p.id = realm_characters.player) AS played_now,
     (SELECT banned_until FROM players p WHERE p.id = realm_characters.player) AS ban_until_now,
     (SELECT ban_reason FROM players p WHERE p.id = realm_characters.player) AS ban_reason_now,
-    (SELECT 1 FROM sessions s WHERE s.id = ?3 AND s.player_id = realm_characters.player) AS session_alive
+    (SELECT 1 FROM sessions s WHERE s.id = ?3 AND s.player_id = realm_characters.player) AS session_alive,
+    (SELECT tally FROM item_census c WHERE c.char_id = realm_characters.id) AS census_tally
     FROM realm_characters WHERE id = ?1 AND player = ?2`).bind(id, playerId, session),
     ...ledgerReads(db, id),
     ...(keptConfig ? [] : [budgetRead(db)]),

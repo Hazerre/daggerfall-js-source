@@ -48,6 +48,7 @@ import { mintId, mintSecret, hashSecret, displayName, overRate, clearRate, overA
 import { isDeveloper, canModerate, handleList, developerHandles, moderatorHandles, TIER_LISTS, MOD_TIERS } from './titles.js';
 import { isBanned } from './sanctions.js';
 import { staffCases, CASE_ROUTES } from './staffCases.js';
+import { staffCensus, CENSUS_ROUTES } from './staffCensus.js';   // STAFF-PANEL4-CENSUS: the item and gold census, the contested pieces
 
 /** The header a staff session rides in - never `authorization`, which is the game's. */
 export const STAFF_SESSION_HEADER = 'x-staff-session';
@@ -88,6 +89,8 @@ export const STAFF_STATUS = Object.freeze({
   // STAFF-PANEL2 (staffCases.js): a case another member holds, a Moderator's second case, and the game's own moderation words
   'staff-claimed': 409, 'staff-one-case': 409, 'no-case': 404, 'not-moderator': 403, protected: 403, ambiguous: 409, 'bad-minutes': 400,
   'bad-days': 400, 'not-banned': 409, 'not-found': 404,
+  // STAFF-PANEL4-CENSUS (staffCensus.js): a contested piece that is not there, and a kind no save tallies (Marks' jumps)
+  'no-piece': 404, 'census-no-tally': 400,
 });
 
 const enc = new TextEncoder();
@@ -333,6 +336,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
 
   // ═══ STAFF-PANEL2: THE REPORTS, Mute, Ban and the claims - Admins and Moderators both (staffCases.js) ═══
   if (CASE_ROUTES.includes(path)) return staffCases(ctx, env, path, body, who, audit);
+  if (CENSUS_ROUTES.includes(path)) return staffCensus(ctx, env, path, body, who, audit);   // STAFF-PANEL4-CENSUS: Admin only
 
   // ═══ THE ADMINS' DOORS: THE PANEL'S MODERATORS (mob, 07:42Z: "add it so admins can add or remove moderatoers") ═══
   // /v1/staff/mods lists them; /v1/staff/mod/add and /mod/remove { handle } - a registered account, not banned, not staff
