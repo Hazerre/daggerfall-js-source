@@ -26,7 +26,7 @@
 // Its own cliff - a frame the sender cannot make land at this room size - is the sender's to chunk, and is recorded.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { byteGate, FOES_ROOM_BYTES_PER_S, ACT_ROOM_BYTES_PER_S, MAX_FRAME_BYTES, SOCKETS_MAX } from '../../src/net/wire.js';
+import { byteGate, FOES_ROOM_BYTES_PER_S, FOES_FULL_RESERVE, ACT_ROOM_BYTES_PER_S, MAX_FRAME_BYTES, SOCKETS_MAX } from '../../src/net/wire.js';
 import * as relay from '../../server/src/relay.js';
 import { fakeRoom } from '../fakeRoom.mjs';
 
@@ -70,7 +70,10 @@ test('SLAM11: THE MEMORY LANDS - a room past the old cliff is handed the dungeon
   try {
     const n = 64;   // past the cliff: ~110 KiB x 63 = 6.8 MiB against a 4 MiB cap - under the OLD law not one socket is handed it
     const ws = [];
-    for (let i = 0; i < n; i++) { if (i % 7 === 6) clock += 1000; const s = r.connect(); await r.hello(s, `p${String(i).padStart(4, '0')}`, at(1, 1)); ws.push(s); }
+    // PIN MOVED (FIELD BUGS 2026-10-18d SEAT-LIVE): the host speaks as a live one does - a dungeon room's host silent past
+    // FOES_STALE_MS with others there to hear it holds the seat no longer (net/seatLive.js), and its stream goes every
+    // FOES_FULL_MS while anyone else is in; here a pose each second the hellos take
+    for (let i = 0; i < n; i++) { if (i % 7 === 6) { clock += 1000; await r.pose(ws[0], at(1, 1)); } const s = r.connect(); await r.hello(s, `p${String(i).padStart(4, '0')}`, at(1, 1)); ws.push(s); }
     const host = ws[0];
     assert.equal(r.room._hostOf(), 'p0000', 'the first in is the host');
     for (const s of ws) s.sent.length = 0;
@@ -148,7 +151,11 @@ test('SLAM11: THE ACT LANDS - an act whose fan costs more than a second of ACT_R
   } finally { Date.now = realNow; }
 });
 
-test('SLAM11: the FOES fan does NOT borrow - a continuous stream drops an oversized frame whole so the next frame is not blocked behind its debt (mutant: borrow on the stream, which stalls live foes for seconds after one big frame)', async () => {
+// PIN MOVED (FOES-FIRST, bible/11-Multiplayer/Scale-Arc.md FOES-FIRST): this held every foes frame to "no borrow", and a
+// DELTA still borrows nothing - it stops at FOES_FULL_RESERVE, above empty. A FULL frame now may borrow, as far as the
+// reserve and no further (wire.js floorGate), so its debt is a quarter-second of the rate, never its own fan's cost:
+// test/net/fb1021_foesfirst.test.js holds that bound past a fan bigger than the reserve.
+test('SLAM11: the FOES fan does NOT borrow - a continuous stream drops an oversized frame whole so the next frame is not blocked behind its debt (mutant: borrow on the stream, which stalls live foes for seconds after one big frame) - FOES-FIRST: a delta, which stops at the reserve; a full frame borrows the reserve at most', async () => {
   const r = fakeRoom('dungeon:m187853213');
   const realNow = Date.now; let clock = realNow(); Date.now = () => clock;
   try {
@@ -156,11 +163,19 @@ test('SLAM11: the FOES fan does NOT borrow - a continuous stream drops an oversi
     for (let i = 0; i < 4; i++) { const s = r.connect(); await r.hello(s, `p${String(i).padStart(4, '0')}`, at(1, 1)); ws.push(s); }
     for (const s of ws) s.sent.length = 0;
     clock += 1000;
+    const records = Array.from({ length: 50 }, (_, i) => ({ i, x: 1, y: 0, z: 1, h: 10 }));
+    await r.raw(ws[0], JSON.stringify({ t: 'foes', data: { n: 1, full: 1, f: records } }));   // the host heard, its full frame's turn spent
+    assert.equal(ws.slice(1).filter((s) => ofType(s, 'foes').length > 0).length, 3, 'heard');
+    clock += 200;
     r.room._roomFoes = { bytes: 100, at: clock };   // nearly spent
-    const big = JSON.stringify({ t: 'foes', data: { n: 1, full: 1, f: Array.from({ length: 50 }, (_, i) => ({ i, x: 1, y: 0, z: 1, h: 10 })) } });
-    await r.raw(ws[0], big);
-    assert.equal(ws.slice(1).filter((s) => ofType(s, 'foes').length > 0).length, 0, 'over the budget: the frame is dropped whole, as before');
+    await r.raw(ws[0], JSON.stringify({ t: 'foes', data: { n: 2, f: records } }));   // a delta
+    assert.equal(ws.slice(1).filter((s) => ofType(s, 'foes').length > 1).length, 0, 'over the budget: the frame is dropped whole, as before');
     assert.ok(r.room._roomFoes.bytes >= 0, 'and the stream\'s bucket is NOT in debt - the next frame is not blocked');
+    clock += 1000;
+    r.room._roomFoes = { bytes: 100, at: clock };
+    await r.raw(ws[0], JSON.stringify({ t: 'foes', data: { n: 3, lc: 50, f: records } }));   // the dungeon host's full frame (its layout count)
+    assert.equal(ws.slice(1).filter((s) => ofType(s, 'foes').at(-1)?.data.n === 3).length, 3, 'a full frame goes on a spent bucket');
+    assert.ok(r.room._roomFoes.bytes < 0 && r.room._roomFoes.bytes >= -FOES_FULL_RESERVE, `and its debt is the reserve's at most (${r.room._roomFoes.bytes})`);
     assert.ok(FOES_ROOM_BYTES_PER_S > 0);
   } finally { Date.now = realNow; }
 });

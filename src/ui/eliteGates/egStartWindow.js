@@ -107,6 +107,35 @@ export function egStartAsk(show, makeBox) {
 }
 
 /**
+ * AUDIT STAKE-ROW (L1-1, L1-U1, L2-3) - THE LIST'S DOORS (the start window's `openList` and `closeList`): the host's list
+ * (`makeList(labels, onPick, onCancel)` - ui/listPicker.js ListPickerWindow) on the mode machine's window slot (`slot`: `top`,
+ * `mount`, `close` - scenes/worldModes.js mountSpellWindow, which refuses while a window holds the screen). A finished
+ * window still in the slot - the question's box, answered: its arm runs before the host drains it (ui/yesNoBox.js answer)
+ * - is given up first, as the boards' door gives it up (egBoardWindow.js createEgBoardDoor). No list to ask with
+ * (`ready()` false) or a mount still refused cancels the window on the next tick, nothing staked. A list taken off the
+ * screen unpicked - another window put in its slot (scenes/townTalk.js showOverlay disposes the outgoing occupant and
+ * tells it nothing) - cancels it once, as the question's box does (egStartAsk).
+ * @param {{ ready: () => boolean, makeList: (labels: string[], onPick: (i: number) => void, onCancel: () => void) => any,
+ *   slot: { top: () => any, mount: (w: any) => any, close: (w: any) => void } }} deps
+ */
+export function egStartListDoors({ ready, makeList, slot }) {
+  return {
+    openList(labels, onPick, onCancel) {
+      if (!ready()) { Promise.resolve().then(onCancel); return null; }   // no list to ask with: nothing staked
+      const top = slot.top();
+      if (top?.done) slot.close(top);
+      const win = makeList(labels, onPick, onCancel);
+      const dispose = typeof win.dispose === 'function' ? win.dispose.bind(win) : () => {};
+      win.dispose = () => { dispose(); if (!win.done) { win.done = true; onCancel(); } };
+      if (slot.mount(win)) return win;
+      Promise.resolve().then(onCancel);
+      return null;
+    },
+    closeList(win) { if (win) slot.close(win); },
+  };
+}
+
+/**
  * THE WINDOW, OPENED: the main list (egStartRows) over the host's `openList(labels, onPick, onCancel) -> handle`, the
  * Wager's list in its place when asked, the one question through `ask(lines, onYes, onNo)`, and the choice handed to
  * `onChoose({ ew, wg, rh })` ONCE. Answers `{ close(), state() }`. EG-ZM: `board(onClosed)` the boards' door (the host's -
@@ -117,9 +146,13 @@ export function egStartAsk(show, makeBox) {
  * @param {{ keys: number, me: string, members: { sub: string, name: string }[], starts: Record<string, number[]|null>, rehearsal?: boolean, questDue?: boolean,
  *   openList: (labels: string[], onPick: (i: number) => void, onCancel: () => void) => any, closeList: (handle: any) => void,
  *   ask: (lines: string[], onYes: () => void, onNo: () => void, onGone?: () => void) => void, say?: (text: string) => void,
- *   onChoose: (c: { ew: number, wg: number[], rh: boolean }) => void, onCancel?: () => void, board?: ((onClosed: () => void) => any) | null }} o
+ *   onChoose: (c: { ew: number, wg: number[], rh: boolean }) => void, onCancel?: () => void, board?: ((onClosed: () => void) => any) | null,
+ *   panel?: { open: (o: any) => any } | null }} o
  */
 export function openEgStartWindow(o) {
+  // EG-PLUS: on Enhanced Plus the host hands the start window's own doors (ui/eliteGates/egStartPanel.js egStartPanelDoors) and
+  // the window is a breach window of its own; the list stands where it cannot open (no page to draw on)
+  if (o.panel) { const p = o.panel.open(o); if (p) return p; }
   let wager = [], handle = null, view = 'main', done = false, rows = [];
   const say = o.say ?? (() => {});
   const shut = () => { const h = handle; handle = null; if (h) o.closeList(h); };   // the slot emptied first
@@ -146,7 +179,11 @@ export function openEgStartWindow(o) {
     if (r.kind === 'rehearse') { choose({ ew: 0, wg: [], rh: true }); return; }
     if (r.kind === 'wager') { shut(); showWager(); return; }
     if (r.kind === 'board') { shut(); let back = false; const again = () => { if (!back && !done) { back = true; showMain(); } }; if (!o.board(again)) again(); return; }   // EG-ZM: the boards, and back
-    if (r.kind !== 'start') return;   // the stake and the warning are words, not choices
+    // the stake, the keyless line and the warning are words, not choices - but the port's picker closed itself on the pick
+    // (ui/listPicker.js _pick; DFU's DaggerfallListPickerWindow leaves the close to its owner), so the list is asked again
+    // (FIELD BUGS 2026-10-18c STAKE-ROW: a bare return left no window and the key answering "already asks" until the
+    // screen let go)
+    if (r.kind !== 'start') { shut(); showMain(); return; }
     if (!r.missing.length) { choose({ ew: r.ew, wg: [...wager], rh: false }); return; }
     // asked once: going on without the members who cannot make this start
     shut();

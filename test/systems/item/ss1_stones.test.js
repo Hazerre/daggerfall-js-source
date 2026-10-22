@@ -55,7 +55,7 @@ test('SS1 the stone is bound by its row: every stone, one minted before the row 
   const stone = sigilStone();
   assert.equal(isLocked(stone), false, 'bound is not locked');
   for (const way of ['drop', 'sell', 'trade']) assert.equal(lockRefuses(stone, way), false, `the lock's ${way} is the player's word alone`);
-  assert.equal(BOUND_LINE, 'Bound - it cannot be dropped, traded or sold.');
+  assert.equal(BOUND_LINE, 'Bound. It cannot be dropped, traded or sold.');
   assert.equal(BOUND_TRADE_TEXT, 'Bound items cannot be traded.');
 });
 
@@ -202,8 +202,8 @@ test('SS3 the law: a bound piece may be put in the player\'s wagon and the playe
   for (const kind of ['ground', 'container', 'reward', 'elsewhere']) assert.equal(boundRefusesPut(stone, kind), true, kind);
   for (const kind of ['wagon', 'storage']) assert.equal(boundRefusesPut(stone, kind), false, kind);
   for (const kind of ['ground', 'container', 'reward', 'wagon', 'storage']) assert.equal(boundRefusesPut(gem, kind), false, `a gem: ${kind}`);
-  assert.equal(boundText('Deadlands Ember'), 'Deadlands Ember is bound to you - it cannot be dropped, traded or sold.');
-  assert.equal(boundText(''), 'That is bound to you - it cannot be dropped, traded or sold.');
+  assert.equal(boundText('Deadlands Ember'), 'Deadlands Ember is bound to you. It cannot be dropped, traded or sold.');
+  assert.equal(boundText(''), 'That is bound to you. It cannot be dropped, traded or sold.');
   assert.deepEqual(unbound([gem, stack(3), stone]), [gem]);
   assert.equal(unbound(null), null);
 });
@@ -311,7 +311,7 @@ test('SS3 what a peer hands over lands without a bound piece: a building\'s cont
   const dc = read('src/scenes/dungeonContext.js');
   assert.match(dc, /const items = peerHanded\(validLootList\(rec\.r\)\);/, 'a dungeon\'s container');   // PIN MOVED (HACKED-GOLD): SS3's peer law rides systems/peerWord.js peerHanded - a bound piece and a letter of credit
   assert.match(dc, /const li = notCarried\(peerHanded\(validLootList\(sf\.items\)\)\);/, 'a body on the wire');   // PIN MOVED (HACKED-GOLD): SS3's peer law rides systems/peerWord.js peerHanded - a bound piece and a letter of credit; PIN MOVED (AUDIT AUTO-HOLD): and never a piece its reader carries, systems/peerWord.js notCarried
-  assert.match(read('src/scenes/exteriorFoes.js'), /const grant = notCarried\(peerHanded\(validLootList\(data\.grant\)\)\);/, 'a peer\'s grant');   // PIN MOVED (HACKED-GOLD): SS3's peer law rides systems/peerWord.js peerHanded - a bound piece and a letter of credit; PIN MOVED (AUDIT AUTO-HOLD): and never a piece its reader carries, systems/peerWord.js notCarried
+  assert.match(read('src/scenes/bodyLootHost.js'), /const grant = notCarried\(peerHanded\(validLootList\(data\.grant\)\)\);/, 'a peer\'s grant');   // PIN MOVED (OUTDOOR-LOOT): the legacy grant's landing is the body block's (scenes/bodyLootHost.js), the line as it was; PIN MOVED (HACKED-GOLD): SS3's peer law rides systems/peerWord.js peerHanded - a bound piece and a letter of credit; PIN MOVED (AUDIT AUTO-HOLD): and never a piece its reader carries, systems/peerWord.js notCarried
 });
 
 // ── SS4 (2026-09-27, Mac: "Also make the items sold by the oblivion vendor bound also. Can't be traded, dropped or
@@ -426,7 +426,7 @@ test('SS4 the enhanced counter: a Deadlands Ember and a Broker ware pressed for 
         assert.ok(bag.includes(item), `${mode}: ${item.name} stays in the pack`);
         assert.equal(item.stackCount ?? 1, item.name === 'Deadlands Ember' ? 3 : 1, 'whole');
         assert.equal(said().length, 1, `${mode}: the counter says why`);
-        assert.match(said()[0], /^.+ is bound to you - it cannot be dropped, traded or sold\.$/);
+        assert.match(said()[0], /^.+ is bound to you\. It cannot be dropped, traded or sold\.$/);
         assert.ok(said()[0].startsWith(item.name), 'naming the piece');
         ok();
         press(gem);

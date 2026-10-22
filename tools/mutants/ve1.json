@@ -217,12 +217,12 @@
   },
   {
     "name": "VE2-world-host-hands-the-count",
-    "file": "src/scenes/world.js",
+    "file": "src/scenes/groundSets.js",
     "tests": [
       "test/systems/ve1_vanillaEnhanced.test.js"
     ],
-    "old": "      const modLayers = await dfmodGroundLayers(groundArchive, groundTex);",
-    "new": "      const modLayers = await dfmodGroundLayers(groundArchive, groundTex.recordCount);"
+    "old": "    const modLayers = await dfmodGroundLayers(archive, tex), classic = [];",
+    "new": "    const modLayers = await dfmodGroundLayers(archive, tex.recordCount), classic = [];"
   },
   {
     "name": "VE2-exterior-host-hands-the-count",

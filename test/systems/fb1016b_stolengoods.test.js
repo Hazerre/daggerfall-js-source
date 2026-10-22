@@ -366,7 +366,7 @@ test('STOLEN-GOODS wired (worldModes.js, by source): both sale arms land a piece
   // PIN MOVED (AUDIT S1): each target hands over the owner's keeping, taken as the window opens - the one Set the mark and
   // the theft's own law (the shelf's tally, the cupboard's basket) read
   assert.match(shelfArm, /if \(b\.insideOpenShop === false\) \{[\s\S]*const shelfBefore = new Set\(shelf\.items\);[^\n]*\n\s*const win = interiorInventory\(\{\n\s*loot: \{ items: \(\) => shelf\.items, stolenFrom: shelfBefore \},[\s\S]{0,300}if \(shopShelfTheft\(shelfBefore, shelf\.items\)\)/, 'a shut shop\'s shelf');
-  assert.match(wm, /const openLoot = \(privateProperty = false\) => \{\n\s*const before = privateProperty \? new Set\(c\.items \?\? \[\]\) : null;[^\n]*\n\s*const win = interiorInventory\(\{\n\s*loot: \{ items: \(\) => c\.items, storage: !privateProperty, stolenFrom: before \},[\s\S]{0,400}basket: theftBasket\(before, c\.items \?\? \[\]\),/, 'a stranger\'s cupboard - the theft arm alone, its basket the same Set');
+  assert.match(wm, /const openLoot = \(privateProperty = false\) => \{\n\s*if \(privateProperty\) interiorLootBirth\(interiorCtx, key, _intShared\);[^\n]*\n\s*const before = privateProperty \? new Set\(c\.items \?\? \[\]\) : null;[^\n]*\n\s*const win = interiorInventory\(\{\n\s*loot: \{ items: \(\) => c\.items, storage: !privateProperty, stolenFrom: before \},[\s\S]{0,400}basket: theftBasket\(before, c\.items \?\? \[\]\),/, 'a stranger\'s cupboard - the theft arm alone, its basket the same Set');   // PIN MOVED (OUTDOOR-LOOT): the Yes mints the room's birth and composes it into the cupboard FIRST - the keeping is taken after, or a first opener's takes would mark nothing
   // the enhanced pack's put-back: it shows a container alone (a body's frame - shipstore.test.js), so no row of the pack
   // can reach a shelf today; its stow still asks the same question the classic window's does, should a layout ever offer it
   assert.match(src('src/ui/enhanced/enhancedInventory.js'), /applyTransfer\(item, \{ \.\.\.plan, amount \}, deps\.items\?\.\(\) \?\? \[\], to, \{ entity: deps\.entity, fromLocal: true, returnTo: theftTarget\(deps, sessionState\(\)\) \}\);/);
@@ -538,8 +538,8 @@ test('STOLEN-GOODS AUDIT S3: no shelf piece is stolen - the room\'s word for a s
     assert.equal(stash.counterBought === true, online, 'and the counter\'s own mark as it was');
   }
   const wm = src('src/scenes/worldModes.js');
-  assert.match(wm, /if \(mode === 'Buy'\) \{\n\s+deductGold\(playerEntity, price\);\n\s+markCounterBought\(staged\);/, 'the counter\'s Buy - the door the clear rides');
-  assert.match(wm, /shelf\.items\.splice\(at, 1\);\n\s+markCounterBought\(\[it\]\);/, 'and the keyed list\'s');
+  assert.match(wm, /if \(mode === 'Buy'\) \{\n\s+deductGold\(playerEntity, price\);\n\s+markCounterBought\(staged, \{ price, \.\.\.asked \}\);/, 'the counter\'s Buy - the door the clear rides');   // PIN MOVED (AUDIT TOWN-ECON 2 PRICE-1)   // PIN MOVED (LAW-3): the lot's price handed in
+  assert.match(wm, /shelf\.items\.splice\(at, 1\);\n\s+markCounterBought\(\[it\], \{ price \}\);/, 'and the keyed list\'s');
 });
 
 /** The real naval host's boarding: a ship struck alongside, boarded from my helm and taken - her hold drawn by the

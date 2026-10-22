@@ -200,7 +200,7 @@ test('PROF2b the kind: a pixel\'s nodes take the Motherlodes standing on it; its
   } finally { setForagingHost(null); }
   const toasts = [];
   k.answered({ motherlode: true, node: n.key, marks: { struck: 10, balance: 60 } }, (t) => toasts.push(t));
-  assert.deepEqual(toasts, ['10 silver struck to your account. You hold 60 silver.']);
+  assert.deepEqual(toasts, ['10 silver added to your account. You now hold 60 silver.']);
   assert.equal(heard.length, 1);
   k.answered({ node: 'vein:1:2:3:4' }, (t) => toasts.push(t));
   assert.equal(toasts.length, 1, 'a vein\'s answer says nothing of silver');
@@ -214,7 +214,7 @@ test('PROF2b the seams by source: the professions\' book sends a harvest\'s Watc
   assert.match(w, /const motherlodeBook = motherlodeDoor \? createMotherlodeBook\(\{/);
   assert.match(w, /nowS: \(\) => Math\.floor\(\(Date\.now\(\) \+ _sharedOffsetMs\) \/ 1000\),/);
   assert.match(w, /onChange: \(l\) => gatherHost\?\.restandAt\(l\.x, l\.y\),/);
-  assert.match(w, /online\.onWatch = \(r\) => \{ seatBook\?\.keepWatch\(r\); motherlodeBook\?\.watch\(r\); \};/);
+  assert.match(w, /online\.onWatch = \(r\) => \{ seatBook\?\.keepWatch\(r\); motherlodeBook\?\.watch\(r\); townEcon\.keepWatch\(r\); \};/);   // PIN MOVED (TOWN-ECON TE2): and the towns' book keeps it where a town stands
   assert.match(w, /motherlodeBook\?\.tick\(\{ sense: profBook\.track\('mining'\)\.specs\?\.\[100\] === 'motherlode-sense' \}\)/);
   assert.match(w, /mineKind\(\{ book: profBook, lodes: motherlodeBook, marks: marksBook \}\)/);
   assert.match(w, /for \(const l of motherlodeBook\.markedAll\(_lodesUp\)\) \{/);   // AUDIT SILVER-WAYS D7 (PIN MOVED): into the frame's own list; FIELD BUGS 2026-10-12g LODE-MARK (PIN MOVED): from its warning on

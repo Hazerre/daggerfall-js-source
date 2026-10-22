@@ -180,7 +180,7 @@ test('CAPTAIN-TREE the exchange: the captain\'s `trade` closes a share of the sp
   assert.deepEqual(exchangeOf(port, day, {}, 9).map((r) => [r.sell, r.buy]), exchangeOf(port, day, {}, TRADE_MOST).map((r) => [r.sell, r.buy]), 'the cap');
   assert.equal(TRADE_MOST, 0.75);
   const office = rd('src/scenes/harbourOffice.js');
-  assert.equal(office.split('exchangeOf(port, day, L.dealtAt(port.key, day), L.stats?.().trade)').length - 1, 3, 'the board, a purchase and a sale read the same prices');
+  assert.equal(office.split('exchangeOf(port, day, L.dealtAt(port.key, day), L.stats?.().trade, townAt(port))').length - 1, 3, 'the board, a purchase and a sale read the same prices');   // PIN MOVED (SEA-TRADE): and the port town's factors
 });
 
 test('CAPTAIN-TREE the hosts read the stars where the ship\'s own numbers are read: the sea fight\'s worth, aim, my shot and its fire, my ram and its foul; Come Sail Away\'s oars and helm through the refit seam; the Fleet\'s refit a ship of mine\'s alone (PIN: the seams)', () => {
@@ -293,7 +293,7 @@ test('REFIT-ORES the refit\'s words, the Fleet page\'s and the shipyard\'s: her 
   assert.equal(w.name, 'Guns III');
   assert.equal(w.gain, 'Broadside damage: +24% now, +28% with the next refit.');
   assert.equal(w.asks, 'Next: 6,000 gold, 4 Steel (you have 4), 10 Iron (you have 12).');
-  assert.match(w.melt, /Melts down weapons and armour you carry for 1 Steel/);
+  assert.match(w.melt, /Melts down weapons and armor you carry for 1 Steel/);
   assert.equal(w.lock, 'Needs captain level 3.');
   const done = refitRowWords({ ...row, tier: 12, share: 0.6, next: null });
   assert.deepEqual(done, { name: 'Guns XII', gain: 'Broadside damage: +60%.', asks: null, melt: null, lock: null });

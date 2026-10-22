@@ -47,7 +47,7 @@ test('GRAIN1: every tile-array sample takes its footprint from the UNWRAPPED coo
 
 test('GRAIN1: the tile array is mipmapped and minified trilinear - and MAGNIFIED nearest, so the ground underfoot keeps its texels', () => {
   const r = read('src/render/renderer.js');
-  const up = r.slice(r.indexOf('  uploadTileArray(archive, layers) {'));
+  const up = r.slice(r.indexOf('  *uploadTileArraySteps(archive, layers) {'));   // PIN MOVED (OW-HITCH): the upload's body is its steps' (uploadTileArray runs them to their end)
   const body = up.slice(0, up.indexOf('\n  }\n'));
   assert.match(body, /gl\.generateMipmap\(gl\.TEXTURE_2D_ARRAY\);/, 'the chain is built');
   assert.match(body, /this\._setGroundSampler\(groundSharpnessTier\(\)\)/, 'GRAIN AUDIT 1: minification is the TIER\u2019s, set by the one method the world load re-applies');
@@ -63,7 +63,7 @@ test('GRAIN1: the tile array is mipmapped and minified trilinear - and MAGNIFIED
 
 test('GRAIN1: anisotropy is asked for, capped, and optional - terrain is read at a grazing angle almost everywhere', () => {
   const r = read('src/render/renderer.js');
-  const up = r.slice(r.indexOf('  uploadTileArray(archive, layers) {'));
+  const up = r.slice(r.indexOf('  *uploadTileArraySteps(archive, layers) {'));   // PIN MOVED (OW-HITCH): the upload's body is its steps' (uploadTileArray runs them to their end)
   const body = up.slice(0, up.indexOf('\n  }\n'));
   const ext = r.slice(r.indexOf('  _anisoExtension() {'), r.indexOf('\n  }\n', r.indexOf('  _anisoExtension() {')));
   assert.match(ext, /getExtension\('EXT_texture_filter_anisotropic'\)/, 'asked for by name');
@@ -79,7 +79,8 @@ test('GRAIN1: the tile array is the ONLY texture this touches - the sprites keep
   // every other generateMipmap in the renderer predates this; the sprite and
   // flat paths must not have acquired one, or every billboard goes soft.
   const mips = [...r.matchAll(/gl\.generateMipmap\(([^)]*)\)/g)].map((m) => m[1]);
-  assert.deepEqual(mips, ['gl.TEXTURE_2D_ARRAY'], `only the tile array is mipmapped (found: ${mips.join(', ')})`);
+  // AUDIT PRECIP GROUND-2: a ground set's twin is uploaded through uploadTileArray itself - the one mipmapped texture still
+  assert.deepEqual(mips, ['gl.TEXTURE_2D_ARRAY'], `only the tile arrays are mipmapped (found: ${mips.join(', ')})`);
 });
 
 test('GRAIN2: the anisotropy is a DIAL, and its tiers never exceed what the driver allows', async () => {
@@ -183,9 +184,9 @@ test('GRAIN AUDIT 1: the tier is sampler state - EXECUTED: one chain per archive
   assert.equal(r2._anisoExt, false);
   assert.deepEqual(calls(log2, 'texParameteri').filter((c) => c[2] === 'TEXTURE_MIN_FILTER').map((c) => c[3]).slice(-2), ['LINEAR_MIPMAP_LINEAR', 'LINEAR_MIPMAP_LINEAR'], 'the filter is still the tier\u2019s');
   // the hosts: both call the re-apply at their world load, AFTER the tile-array guard
-  for (const host of ['src/scenes/world.js', 'src/scenes/exterior.js']) {
+  for (const host of ['src/scenes/groundSets.js', 'src/scenes/exterior.js']) {   // PIN MOVED (OW-HITCH): the streaming host's ground sets are scenes/groundSets.js's
     const h = read(host);
-    const guard = h.indexOf('if (!renderer.tileArrays.has(groundArchive)) {');
+    const guard = Math.max(h.indexOf('if (!renderer.tileArrays.has(groundArchive)) {'), h.indexOf('if (!renderer.tileArrays.has(key)) {'));   // AUDIT PRECIP GROUND-2 (PIN MOVED): world.js guards the set's key - its twin's on the snow lane
     const apply = h.indexOf('renderer.applyGroundSharpness();', guard);
     assert.ok(guard > 0 && apply > guard && apply - guard < 1200, `${host}: the tier is re-applied right after the guard, cached or not`);
   }

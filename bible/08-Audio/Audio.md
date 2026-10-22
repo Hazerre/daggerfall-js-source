@@ -732,6 +732,22 @@ blow on my feet, a critical bus that ducks the score 6 dB for 300 ms through `So
 the fader and the volume untouched), the legion's barks four a kind, nearest first. See `11-Multiplayer/Elite-Gates.md`
 section 26 and its EG-G2 record; `tools/egScoreProbe.mjs`; `test/systems/eliteGates/eglook_score.test.js`.
 
+EG-ROAR (2026-10-18, Mac: "the music and ambience of the elite breach needs to be insanely better. Its way too tame"): A
+SONG'S OWN VOICES - a port departure with no DFU member behind it (the FM bank is the port's own, A5b). The bank plays one
+oscillator pair a note and one sine or one band of noise a drum, and a made score's section was one thin player. A song
+may now carry `voices` (`songVoices`: per channel, gmSynth.js `fmSpec`'s fields over the program's own, each held to
+`VOICE_RANGE`, a field that is not a number dropped) and `kit` (`songKit`: per GM key, `percussionSpec`'s over the kit's,
+held to `KIT_RANGE`). A voice may be a UNISON - `unison` pairs (1-4) `cents` apart either side of the note
+(`unisonCents`), begun a share of a period apart, the peak over the square root of the copies so it is as loud as the
+one pair; a `spread` lays its copies in turn in two envelopes either side of the channel's place - with a SUB (`sub`, a
+sine an octave under in the note's own envelope); a bend reaches every copy with its spread kept. A drum may carry a
+CLICK (`click`, the beater's noise, 3.2 kHz, gone in 15 ms) and a BODY (`body` Hz, a skin's tone under a noise's crack).
+A song that carries voices is high-passed at `SONG_FLOOR_HZ` (30 Hz) before its press - THE FLOOR: a 1:1 FM pair's first
+lower sideband lands on 0 Hz, an offset no speaker plays that the press answers by pressing the whole song (a quarter of
+the Spire's spiccato's energy stood under 40 Hz). Every song MIDI.BSA holds carries neither and plays the bank exactly as
+it always has, through no floor. The Spire's score is the first to carry them (`SPIRE_VOICES`, `SPIRE_KIT`). See
+`11-Multiplayer/Elite-Gates.md` section 26 and its EG-ROAR record; `test/systems/eliteGates/egroar_score.test.js`.
+
 ## FIELD-WIND1 (2026-09-29): the wind was a moan - a bed the port makes
 
 The Discord through Mac: "A repetitive moaning sound in the open world." The port's wind (WIND3, `systems/wind/windAudio.js`;
@@ -874,3 +890,33 @@ Mac: "Do the not done." The record is `06-Systems/Professions-Arc.md` section 45
   heard at the net however its landing was missed (W1).
 - **Not heard here**: the creak, the fall, the logs, a vein's rubble and its chunks are the node's, and the node is each
   character's own - another's tree still stands for you.
+
+## GATE-MIX (2026-10-20): the limiter - every bus to the speakers through one stage
+
+The owner: "in oblivion gates ... while performance is overall good, the game hitches, audio becomes super loud and even
+distorts". Nothing stood between the mix and the speakers: the listener's bus (DW-D) went straight to `ctx.destination`,
+and a sum past full scale was cut square by the browser. The Burning Court reaches it easily - the boss's own clips peak
+at full scale in DAGGER.SND (measured: his bark and attack, records 208 and 209, a body's fall, 15, the fire's cast, 84,
+all at 0 dBFS; the burning loop, 420, at -8.9), his cues play them at 1.3 to 2.2 (`gateBoss.js:"export const BOSS_CUES = Object.freeze({"`),
+a landing sounds two of them in one frame (the slam's land and the quake), and the court's score is pressed to a decibel
+under the clip (WB10a). At the default SoundVolume of 0.5 a single cue at 2.2 already passed 1; at a higher one, most of
+his heavy blows did. The per-target copies that made it worse, and the other players' sounds now 4 dB down in the
+court as in the Spire, are `11-Multiplayer/World-Bosses.md` section 28.
+
+- **The stage** (`audio.js:"  _limiter() {"`): the listener's bus into a DynamicsCompressorNode run as a limiter (LIMITER:
+  -3 dB, no knee, 20:1, 1 ms in, 120 ms out), a trim, and a soft ceiling - a WaveShaper whose curve (`limitAmplitude`) is
+  the signal itself up to LIMIT_LINEAR (0.75) and a tangent's shoulder over it toward LIMIT_CEILING (0.98), reaching 12 dB
+  over full scale (LIMIT_RANGE 4). The compressor holds a loud moment down cleanly; the ceiling rounds off what its attack
+  lets through, so nothing reaches the speakers past 0.98 by construction.
+- **Unity under the threshold.** The Web Audio compressor applies its own make-up gain - (1 / full-range gain)^0.6, the
+  spec's - which would have raised the whole mix 1.7 dB; `limiterTrim` takes it back out, so everything under -3 dBFS
+  plays exactly as before (the curve is straight there and the shaper is not oversampled, so it is exact).
+- **Every bus.** The effects master, the reverb's wet and the music's master all reach the listener's bus already
+  (DW-D), so all of them reach the limiter; the underwater low-pass (`setListenerLowPass`) hangs before it and comes off
+  back onto it. A context with no compressor or no shaper plays straight through, as before.
+- **Not a DFU member.** Unity's mixer clips the same way; this is the port's own stage, past DFU on purpose, and moves no
+  DFU volume - every call site's level is as it was.
+
+Pins: `test/systems/gatemix_limiter.test.js` (4: the ceiling's law; the curve as the WaveShaper reads it; the trim
+against the spec's make-up; the graph - the listener into the limiter, the low-pass before it, an old context straight
+through). `tools/mutants/gatemix.json` (with section 28's: 36 dead, one equivalent as recorded).

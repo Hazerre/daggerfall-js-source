@@ -278,11 +278,12 @@
   {
     "name": "PROF3-svc-uncapped-xp",
     "file": "server-account/src/professions.js",
-    "old": "MAX(0, MIN(?10 + f * ?13, ${Number(cap)} - COALESCE(",
-    "new": "MAX(0, MIN(?10 + f * ?13, ${Number(999999)} - COALESCE(",
+    "old": "MAX(0, MIN(?10 + f * ?13, ${cap} - COALESCE(",
+    "new": "MAX(0, MIN(?10 + f * ?13, 999999 - COALESCE(",
     "tests": [
       "test/net/prof3_service.test.js"
-    ]
+    ],
+    "note": "AUDIT FB1018f L5-1: re-aimed by content - the cap read in the statement (craftCapSql), no longer bound."
   },
   {
     "name": "PROF3-svc-one-kit",
@@ -306,12 +307,12 @@
   {
     "name": "PROF3-svc-product-owner",
     "file": "server-account/src/professions.js",
-    "old": "      SELECT ?4, ?1, ?2, ?6, ?7, ?8, ?9, quality, seed, ?10, at, ?11, dye, ?12, ${boughtWith} FROM prof_crafts",
-    "new": "      SELECT ?4, ?2, ?2, ?6, ?7, ?8, ?9, quality, seed, ?10, at, ?11, dye, ?12, ${boughtWith} FROM prof_crafts",
+    "old": "      SELECT ?4, ?1, ?2, ?6, ?7, ?8, ?9, quality, seed, ?10, at, ?11, dye, ?12, ${boughtWith}, ${looseWall} FROM prof_crafts",
+    "new": "      SELECT ?4, ?2, ?2, ?6, ?7, ?8, ?9, quality, seed, ?10, at, ?11, dye, ?12, ${boughtWith}, ${looseWall} FROM prof_crafts",
     "tests": [
       "test/net/prof3_service.test.js"
     ],
-    "note": "PROF9 (RE-AIMED by content): the fire's code beside it. AUDIT PROF-541 (RE-AIMED by content): bought_with beside it."
+    "note": "FB1020h ESSENCE-LOOSE (RE-AIMED by content): the goods' mark (looseWall) beside bought_with. PROF9 (RE-AIMED by content): the fire's code beside it. AUDIT PROF-541 (RE-AIMED by content): bought_with beside it."
   },
   {
     "name": "PROF3-svc-stock-free",

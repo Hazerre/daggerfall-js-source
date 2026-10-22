@@ -75,10 +75,15 @@ test('WATER-PUDDLE: cleanMask - a small wet patch dries wherever it lies, a smal
 test('WATER-PUDDLE: the pass keeps a puddle record\'s fragment by its layer\'s alpha, read through the tile\'s turn at the record\'s own texel; the hosts write the alpha before the upload; the feet keep DFU\'s whole tile (pins)', () => {
   const fs = waterSurfaceFs('', '');
   assert.match(fs, /bool isPuddleRecord\(uint r\) \{ return r == 8u \|\| r == 9u \|\| r == 23u \|\| r == 33u \|\| r == 34u \|\| r == 35u \|\| r == 36u; \}/);
-  assert.match(fs, /vec2 puv = PUDDLE_ROT\[turn\] \* f \+ PUDDLE_TRANS\[turn\];\n\s+edge \*= smoothstep\(0\.3, 0\.7, textureGrad\(uTileArr, vec3\(puv, float\(rec\)\), PUDDLE_ROT\[turn\] \* wgx, PUDDLE_ROT\[turn\] \* wgy\)\.a\);\n\s+\}\n\s+if \(edge <= 0\.002\) discard;/);
+  // AUDIT PRECIP GROUND-5 (PIN MOVED): under the snow the mask walks to the winter record's (the twin's second half) by the
+  // ground's own cover - the one function the terrain asks (render/snowCoverGlsl.js snowCover), at the sheet's footprint
+  assert.match(fs, /vec2 puv = PUDDLE_ROT\[turn\] \* f \+ PUDDLE_TRANS\[turn\];\n\s+float pa = textureGrad\(uTileArr, vec3\(puv, float\(rec\)\), PUDDLE_ROT\[turn\] \* wgx, PUDDLE_ROT\[turn\] \* wgy\)\.a;\n(?:\s+\/\/[^\n]*\n)*\s+float pc = snowCover\(vLocalXZ, vWorldPos\.y, wgx, wgy\);\n\s+if \(pc > 0\.0\) pa = mix\(pa, textureGrad\(uTileArr, vec3\(puv, float\(rec\) \+ float\(uSnowArr\.x\)\), PUDDLE_ROT\[turn\] \* wgx, PUDDLE_ROT\[turn\] \* wgy\)\.a, pc\);\n\s+edge \*= smoothstep\(0\.3, 0\.7, pa\);\n\s+\}\n\s+if \(edge <= 0\.002\) discard;/);
   assert.match(fs, /const mat2 PUDDLE_ROT\[4\] = mat2\[4\]\(mat2\(1\.0, 0\.0, 0\.0, 1\.0\), mat2\(0\.0, -1\.0, 1\.0, 0\.0\), mat2\(-1\.0, 0\.0, 0\.0, -1\.0\), mat2\(0\.0, 1\.0, -1\.0, 0\.0\)\);/, 'TERRAIN_FS\'s turns');
   assert.match(rd('src/render/renderer.js'), /const mat2 ROT\[4\] = mat2\[4\]\(\n\s+mat2\(1\.0, 0\.0, 0\.0, 1\.0\),\n\s+mat2\(0\.0, -1\.0, 1\.0, 0\.0\),\n\s+mat2\(-1\.0, 0\.0, 0\.0, -1\.0\),\n\s+mat2\(0\.0, 1\.0, -1\.0, 0\.0\)\);/, 'and TERRAIN_FS still turns so');
-  for (const f of ['src/scenes/world.js', 'src/scenes/exterior.js']) {
+  // AUDIT PRECIP GROUND-2 (PIN MOVED): world.js writes it in its one layers' helper, for a set and its twin's winter alike
+  // PIN MOVED (OW-HITCH): that helper's home is scenes/groundSets.js (HOST-SPLIT), marking a record a breath
+  assert.match(rd('src/scenes/groundSets.js'), /return \{ modLayers, layers: modLayers \? await stepsBreathing\(carryPuddleMaskSteps\(modLayers, marked\), breathe\) : marked \};/, 'src/scenes/groundSets.js: the alpha written before the upload');
+  for (const f of ['src/scenes/exterior.js']) {
     assert.match(rd(f), /renderer\.uploadTileArray\(groundArchive, modLayers \? layers : markPuddleWater\(layers\)\);/, `${f}: the alpha written before the upload`);
   }
   for (const r of SHALLOW_WHOLE) assert.equal(waterCorners(r << 2, WATER_MASK_TABLE), 15, `record ${r}: the feet still wade the whole tile`);
@@ -108,7 +113,9 @@ test('WATER-PUDDLE: the CPU\'s turn is the pass\'s, texel for texel, and the gra
   assert.equal(puddleWetAt(pool, 23 << 2, 1, 0.5), false, 'the far edge clamps onto the last texel of its own row, not the next row\'s first');
   // the placer: the corner table first (the rare water tile), then the puddle's own mask, from the layers the pass uploads
   const world = rd('src/scenes/world.js');
-  assert.match(world, /groundPuddles\.set\(groundArchive, markPuddleWater\(layers\)\);/);
+  // PIN MOVED (OW-HITCH): the mask is learned in scenes/groundSets.js (HOST-SPLIT) - the classic records' marks the layers
+  // were made with, kept once a set (and marked there, a record a breath, for a set an earlier scene uploaded)
+  assert.match(rd('src/scenes/groundSets.js'), /const marked = await stepsBreathing\(markPuddleWaterSteps\(classic\), breathe\);\n\s+if \(!groundPuddles\.has\(archive\)\) groundPuddles\.set\(archive, marked\);/);
   // PIN MOVED (ECOTONE1, 2026-10-07): the puddles of the set the root stands in (`ga`, keep's ground archive - at a climate
   // border the neighbour's the ground's border gives the point; the pixel's own everywhere else)
   assert.match(world, /if \(waterCorners\(byte, WATER_DRAW_MASK_TABLE\)\) \{\n\s+const puddle = PUDDLE_RECORDS\.includes\(rec\) \? groundPuddles\.get\(ga\)\?\.\[rec\] : null;\n\s+if \(!puddle \|\| puddleWetAt\(puddle, byte, lx \/ 6\.4 - tx, lz \/ 6\.4 - tz\)\) return null;\n\s+\}/);

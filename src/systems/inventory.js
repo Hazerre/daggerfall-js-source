@@ -27,8 +27,9 @@ import { ammoTemplateFor } from '../characters/thunderlockIds.js';   // what a r
 import { isRriStackable } from './roleplayRealismItems/rriRealism.js';   // RRI2: the IsItemStackable override - an added yes (FormulaHelper.cs:2100-2102)
 import { noteShot } from './shotTally.js';   // ARENA-ARROWS: the shots a bout loosed - a leaf, so no cycle
 import { cardWorth } from '../net/card/cardWorthLaw.js';   // AUDIT CARDS-6 A6: a card split off is worth its card (the law imports nothing of systems/)
-import { PATRON_COUNTER_MARK } from '../net/patronLaw.js';   // AUDIT LW-II-2 S1: a stack keeps the counter's mark (the law imports nothing)
+import { PATRON_COUNTER_MARK, COUNTER_PAID_MARK, COUNTER_VALUE_MARK } from '../net/patronLaw.js';   // AUDIT LW-II-2 S1: a stack keeps the counter's mark (the law imports nothing)
 import { isStolen, markStolen } from './stolenGoods.js';   // STOLEN-GOODS: a stolen piece stacks with stolen kin alone, and a split keeps the mark (a leaf)
+import { sameFoundMark, carryFoundMark } from './item/foundMark.js';   // AUDIT MEND-THIRD: a found stack keeps its mark
 
 /** DaggerfallUnityItem.IsEnchanted verbatim
  *  (DaggerfallUnityItem.cs:266-269): DERIVED from the enchantment
@@ -256,7 +257,10 @@ export function stacksWith(a, b) {
     // STOLEN-GOODS (FIELD BUGS 2026-10-16b; the port's own field, Ledger A): a stolen piece stacks only with stolen kin -
     // three arrows off a shut shop's shelf merged into the pack's twenty were twenty-three honest arrows (or twenty-three
     // stolen ones), and the court took the wrong count
-    isStolen(a) === isStolen(b);
+    isStolen(a) === isStolen(b) &&
+    // AUDIT MEND-THIRD L1-5, L3-3 (SELL-AS-FOUND's mark - the port's own field, Ledger A): a found book stacks only with its
+    // like - a worn found copy merged into a whole one took the held copy's condition and lost its mark, and sold whole
+    sameFoundMark(a, b);
 }
 
 /** ItemCollection.AddItem (ItemCollection.cs:217-252): merge into an
@@ -281,6 +285,10 @@ export function addItem(list, item, position = 'back') {
       // AUDIT LW-II-2 S1 (the port's own field, Ledger A): a counter's piece merged in marks the stack - a patron takes no
       // part of it (net/patronLaw.js PATRON_COUNTER_MARK), or a book bought joined to one found sold as found
       if (item[PATRON_COUNTER_MARK] === true) held[PATRON_COUNTER_MARK] = true;
+      // LAW-3: and what a counter was paid a piece - the lower of two, so a merge never lifts a piece's resale cap
+      if (Number.isInteger(item[COUNTER_PAID_MARK])) held[COUNTER_PAID_MARK] = Number.isInteger(held[COUNTER_PAID_MARK]) ? Math.min(held[COUNTER_PAID_MARK], item[COUNTER_PAID_MARK]) : item[COUNTER_PAID_MARK];
+      // AUDIT TOWN-ECON 2 PRICE-6: and the value it was bought at, the lower of two (one template's value, one stack)
+      if (Number.isInteger(item[COUNTER_VALUE_MARK])) held[COUNTER_VALUE_MARK] = Number.isInteger(held[COUNTER_VALUE_MARK]) ? Math.min(held[COUNTER_VALUE_MARK], item[COUNTER_VALUE_MARK]) : item[COUNTER_VALUE_MARK];
       return held;
     }
   }
@@ -394,7 +402,10 @@ export function splitStack(list, stack, numberToPick, { rolls = Math.random } = 
   }
   if (stack.bound === true) picked.bound = true;   // AUDIT SS: and its binding (systems/item/itemBound.js) - never the Broker's price, which a dismantle pays out of
   if (stack[PATRON_COUNTER_MARK] === true) picked[PATRON_COUNTER_MARK] = true;   // AUDIT LW-II-2 S1: and the counter's mark (net/patronLaw.js) - a split is no way out of it
+  if (Number.isInteger(stack[COUNTER_PAID_MARK])) picked[COUNTER_PAID_MARK] = stack[COUNTER_PAID_MARK];   // LAW-3: and what the counter was paid a piece
+  if (Number.isInteger(stack[COUNTER_VALUE_MARK])) picked[COUNTER_VALUE_MARK] = stack[COUNTER_VALUE_MARK];   // AUDIT TOWN-ECON 2 PRICE-6: and the value it was bought at
   if (isStolen(stack)) markStolen([picked]);   // STOLEN-GOODS: and the theft's (systems/stolenGoods.js) - nor is a split
+  carryFoundMark(stack, picked);   // AUDIT MEND-THIRD L3-3: and a found stack's condition and mark - DFU's fresh mint handed a worn found book over whole
   list.push(picked);                              // AddItem(noStack: true)
   stack.stackCount = count - numberToPick;
   return picked;

@@ -24,7 +24,7 @@ import { buildMeadowAtlas, buildMeadowMips, downsampleMeadow, slotCoverage, mead
   MEADOW_SLOPE_FLOOR, LAB_LEAN_PER_PUSH, LAB_GUST_MAX, MEADOW_BUSH, MEADOW_FLOWERS, MEADOW_DRY, MEADOW_SHORT, MEADOW_TALL } from '../../src/render/grassMeadow.js';
 import { LAB_GRASS_HEAD, GAME_GRASS_FIELD, LAB_GRASS_VS, LAB_GRASS_FS, GAME_GRASS_VS, GAME_GRASS_FS, GRASSPX_VS_EDITS, GRASSPX_FS_EDITS, GRASSFOG_VS_EDITS, GRASSFOG_FS_EDITS,
   GRASSLIT_VS_EDITS, GRASSLIT_FS_EDITS, GRASSMEADOW_VS_EDITS, GRASSMEADOW_FS_EDITS, applyGrassEdits, LabGrassRenderer, GRASS_CELL, GRASS_TONES, GRASS_TONES_CLASSIC,
-  GRASS_MAX_LIGHTS, heightFloor, heightSpan, packHeightSlope, unpackHeightSlope, labBladeCorners, GRASS_FAR_SEGMENTS } from '../../src/render/labGrass.js';
+  GRASS_MAX_LIGHTS, heightFloor, heightSpan, packHeightSlope, unpackHeightSlope, labBladeCorners, GRASS_FAR_SEGMENTS, MEADOW_ART } from '../../src/render/labGrass.js';
 import { SHADOW_POINT_CASTERS } from '../../src/render/shadowPass.js';
 import { EL_MAX_LIGHTS, elDecode3, elDecodeN } from '../../src/render/enhancedLighting.js';
 import { pixelGrass, PX_RAMP_STEPS } from '../../src/render/grassPixelArt.js';
@@ -219,10 +219,10 @@ test('MEADOW1: which sprite a blade wears and how big its card stands - the vert
     for (const t of [0, 0.7, 2.3]) {
       const gust = Math.sin(t * 1.7 - 15 * 0.35) * 0.5 + 0.5;   // the root 15 m down the wind; the phase byte 0
       const [xw] = top(r, 0.5, [6, 0], t);
-      assert.ok(Math.abs((xw - x0) - 6 * (0.55 + gust * 0.75) * LAB_LEAN_PER_PUSH * MEADOW_VARIANTS[v].sway * k) < 1e-9, `${MEADOW_VARIANTS[v].name} at ${t} s: its share of the wind's lean`);
+      assert.ok(Math.abs((xw - x0) - 6 * (0.6 + gust * 0.45) * LAB_LEAN_PER_PUSH * MEADOW_VARIANTS[v].sway * k) < 1e-9, `${MEADOW_VARIANTS[v].name} at ${t} s: its share of the wind's lean`);
     }
   }
-  assert.deepEqual([LAB_LEAN_PER_PUSH, LAB_GUST_MAX], [0.055, 1.3]);
+  assert.deepEqual([LAB_LEAN_PER_PUSH, LAB_GUST_MAX], [0.032, 1.05]);   // SWAY-SOFT: 0.055 and 1.3 before
   // ...and lit by the lean it stands at, not the blade's: a bush leaning 0.25 stands at its third of it, under a sun overhead
   const litBy = (lx) => Math.hypot(0, 1.2) / Math.hypot(lx, 1.2);   // its normal, up off level ground and back off its lean
   const bushLit = vs.run({ aPB: [1, 0.5, 0, 0], aCorner: [0.5, 1], aCard: 0, uWindV: [0, 0], uSunDir: [0, 1, 0], uMoonDir: [0, 1, 0] }).vLam;
@@ -230,7 +230,7 @@ test('MEADOW1: which sprite a blade wears and how big its card stands - the vert
   const bladeLit = vs.run({ uArt: 0 }).vLam;
   assert.ok(Math.abs(bladeLit - litBy(0.25)) < 1e-12, '...the pixel style\'s blade by the whole of it');
   vs.run({ uArt: 1 });
-  assert.ok(GAME_GRASS_VS.includes('float push = length(uWindV) * (0.55 + gust * 0.75);') && GAME_GRASS_VS.includes('vec2 lean = aInst2.xy + wdir * push * 0.055;'), 'the lab\'s own law, whose numbers those are');
+  assert.ok(GAME_GRASS_VS.includes('float push = length(uWindV) * (0.6 + gust * 0.45);') && GAME_GRASS_VS.includes('vec2 lean = aInst2.xy + wdir * push * 0.032;'), 'the lab\'s own law, whose numbers those are');
   // the switch off is the pixel style's blade: no card, no pick
   const off = vs.run({ uArt: 0, aPB: [0.5, 0.5, 0.5, 0], aCorner: [0.5, 1], uWindV: [0, 0] });
   assert.ok(Math.abs(off.gl_Position[1] - h) < 1e-9, 'the pixel style stands the blade its own height');
@@ -407,7 +407,7 @@ test('MEADOW1: the owner\'s colours on any ground - the fragment stage\'s own te
       vT: 1, vTint: 0.5, vFade: 1, vLam: 0, vSnow: 0, vWet: 0, vGround: [...ground], vMoonLam: 0,
       vUV: [0.5, 1], vVar: 0, vWorld: [0, 0, 10], vSun: 1, vFar: 0, vNear: [0, 0, 0], vPoint: [0, 0, 0],
       uAmb: [1, 1, 1], uSunCol: [1, 1, 1], uMoonCol: [0, 0, 0], uDim: 1, uSunScale: 0, uMoonScale: 0,
-      uPixel: 1, uArt: 1, uArtGround: [...artGround], uPxSteps: 2, uPxVariants: MEADOW_SLOTS, uPxTintBands: 3, uLane: 0, uELExposure: 1,
+      uPixel: 1, uArt: 1, uArtGround: [...artGround], uArtHue: MEADOW_ART.hue, uPxSteps: 2, uPxVariants: MEADOW_SLOTS, uPxTintBands: 3, uLane: 0, uELExposure: 1,
       uGrassTone: GRASS_TONES_CLASSIC.map((k) => [...k]),
       uFogColor: [0, 0, 0], uFogMode: 0, uFogDensity: 0, uFogRange: [0, 1], uCamPos: [0, 0, 0], uFocus: [0, 0, 0, 0], uDwFog: zeros(5, 4),
       gl_FragCoord: [3, 5, 0.5, 1], o: [0, 0, 0, 0],
@@ -426,8 +426,10 @@ test('MEADOW1: the owner\'s colours on any ground - the fragment stage\'s own te
     const artGround = meadowArtGround(lane);
     for (const ground of [VE, SWAMP, MOUNTAIN, [0.9, 0.05, 0.9]]) {
       for (const art of [petal, leaf, dry, MEADOW_GREEN]) {
-        const got = fs(art, ground, artGround), want = meadowTexel(art, ground, artGround);
-        assert.ok(got.every((v, i) => Math.abs(v - want[i]) < 1e-5), `the stage's colour is the twin's - two ramp steps band nothing in the meadow: ${got} against ${want}`);
+        for (const hue of [MEADOW_ART.hue, 0, 0.5]) {   // BANTHA2: a set's share of the ground's hue (the meadow's whole, the jungle floor's none)
+          const got = fs(art, ground, artGround, { uArtHue: hue }), want = meadowTexel(art, ground, artGround, hue);
+          assert.ok(got.every((v, i) => Math.abs(v - want[i]) < 1e-5), `the stage's colour is the twin's at the hue ${hue} - two ramp steps band nothing in the meadow: ${got} against ${want}`);
+        }
       }
     }
     // the anchor: the owner's green, on any grass tile, is the tile at the lane's middle tone
@@ -657,11 +659,11 @@ test('MEADOW1: a cell in the meadow is one indexed draw of a third of its blades
   };
   const sunny = { dir: [0, 1], speed: 70, windV: [0, 70 * LAB_WIND_RATE] };
   assert.deepEqual([near(-0.3, WIND, 'pixel'), near(-0.3, WIND, 'meadow')], [0, 1], 'roots behind the near plane: the pixel style\'s quads are not in view, the meadow\'s cards are');
-  const back = -(decoded(0.7) * MEADOW_REACH) - 0.3;   // past the reach standing still, inside it in a clear day's wind
+  const back = -(decoded(0.7) * MEADOW_REACH) - 0.04;   // past the reach standing still, inside it in a clear day's wind (SWAY-SOFT: 0.3 past it before - the wind's reach is under half what it was, and carries a card about 0.075 past it)
   assert.deepEqual([near(back, WIND, 'meadow'), near(back, sunny, 'meadow'), near(back, { ...sunny, sway: false }, 'meadow')], [0, 1, 0], 'the wind\'s reach is the frame\'s - and none while the trees stand still');
   const cb = r._cardBox, box = r.slotBox[4], reach = r.slotCardH[4] * MEADOW_REACH;
   assert.deepEqual([...cb].map((v) => +v.toFixed(9)), [box[0] - reach, box[1], box[2] - reach, box[3] + reach, box[4] + r.slotCardRise[4], box[5] + reach].map((v) => +v.toFixed(9)), 'the widened box: the reach across, the tallest card\'s top over the blades\'');
-  assert.ok(Math.abs(MEADOW_WIND_REACH - 2.25 * 1.25 * 0.055 * 1.3 * 0.6 * (52 / 64) ** 2) < 1e-12, 'a metre a second of wind: the bush\'s reach, the farthest');
+  assert.ok(Math.abs(MEADOW_WIND_REACH - 2.25 * 1.25 * 0.032 * 1.05 * 0.6 * (52 / 64) ** 2) < 1e-12, 'a metre a second of wind: the bush\'s reach, the farthest');
 });
 
 test('AUDIT MEADOW1: the meadow\'s box holds every card the stage draws - every sprite, card and corner at the lush patch\'s size, the steepest standing lean, a full gust at the wind slider\'s top, and a slope - and only just (mutants: the wind\'s reach or the standing reach shrunk, the slope left out)', () => {

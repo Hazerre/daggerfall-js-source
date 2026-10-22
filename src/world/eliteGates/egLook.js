@@ -23,7 +23,7 @@
 // Not a DFU member. Ledger A (ELITE-GATES).
 import { egCircleSpecs, egBandOfCircle, EG_BRINK_HALLS } from '../../net/eliteGates/egLaw.js';
 import { egMistAt } from '../../net/eliteGates/egFragLaw.js';
-import { egTubeBand, egWallBand, egIsleDisc, egToDungeon } from './egHall.js';
+import { egTubeBand, egWallBand, egIsleDisc, egToDungeon, egLaneOpenEnds } from './egHall.js';
 import { SD_ISLAND_SIDES } from '../superDungeon/sdRealm.js';
 import { SD_STEP_THICK, breathSeen } from '../superDungeon/sdSteps.js';
 import { createMeshKit } from './meshKit.js';
@@ -74,6 +74,10 @@ export function egCircleEdges(seed, c, geo = 0) {
     for (const l of spec.lanes ?? []) {
       const dx = l.bx - l.ax, dz = l.bz - l.az, len = Math.hypot(dx, dz) || 1, nx = -dz / len, nz = dx / len, y = (l.y ?? 0) + lift;
       for (const s of [-1, 1]) seg(edge, egToDungeon(spec, l.ax + s * nx * l.hw, y, l.az + s * nz * l.hw), egToDungeon(spec, l.bx + s * nx * l.hw, y, l.bz + s * nz * l.hw));
+      // (THE AUDIT: a lane's end over the void its line across it - world/eliteGates/egHall.js egLaneOpenEnds)
+      const open = egLaneOpenEnds(spec, l);
+      if (open & 1) seg(edge, egToDungeon(spec, l.ax + nx * l.hw, y, l.az + nz * l.hw), egToDungeon(spec, l.ax - nx * l.hw, y, l.az - nz * l.hw));
+      if (open & 2) seg(edge, egToDungeon(spec, l.bx + nx * l.hw, y, l.bz + nz * l.hw), egToDungeon(spec, l.bx - nx * l.hw, y, l.bz - nz * l.hw));
     }
     // THE TRACKS: a Rail's and a Drum's whole travel, under both its sides
     for (const s of spec.steps) {
@@ -91,7 +95,7 @@ export function egCircleEdges(seed, c, geo = 0) {
  *  speed across the course (m/s) and how high over the course they fly. */
 export const EG_STREAMERS = Object.freeze({ n: 7, len: 2.2, mps: 9, lo: 0.5, hi: 1.9, reach: 7 });
 /** Each hall's Gust sections - the stretch its Gust pieces stand in, an island's reach either side - in the hall's frame:
- *  `[{ spec, road, x, y, z0, z1 }]`, the breath's one home (scenes/eliteGates/egSpan.js blows over them, the streamers fly in them).
+ *  `[{ spec, road, span, x, y, z0, z1 }]`, the breath's one home (scenes/eliteGates/egSpan.js blows over them, the streamers fly in them).
  *  EG6a: a RUN of Gust pieces is a section (the pieces between two runs - a decree's Crumbles, a passage - stand in no
  *  breath), on its own road's line (THE FORK's other road, 15 m across and under it, is no span of theirs). The course
  *  sweep found both: a Low Road walker blown off its bridge by the High Road's breath, two runs blown as one. */
@@ -102,7 +106,10 @@ export function egGustSections(specs) {
     for (const q of spec.steps ?? []) {
       if ((q.road ?? 0) !== road) continue;
       if (q.kind !== 'gust') { run = null; continue; }
-      if (!run) { run = { spec, road, x: q.x, y: q.y, y1: q.y, z0: q.z - q.d / 2 - 4, z1: 0 }; out.push(run); }
+      // EG-SWEEP-RED: a run is one span link's - the next link's Gusts (spec law 10 lays two in a row: the first course's at
+      // y 0 on its line, the next 12 m up on another) are its own section, never the first run's line stretched to their height
+      if (run && q.span !== run.span) run = null;
+      if (!run) { run = { spec, road, span: q.span, x: q.x, y: q.y, y1: q.y, z0: q.z - q.d / 2 - 4, z1: 0 }; out.push(run); }
       run.y = Math.min(run.y, q.y); run.y1 = Math.max(run.y1, q.y); run.z1 = q.z + q.d / 2 + 4;   // y1: its top (THE ASCENT's storey, scenes/eliteGates/egSpan.js egGustStorey)
     }
   }

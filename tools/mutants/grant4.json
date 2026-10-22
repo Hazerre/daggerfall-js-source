@@ -275,7 +275,7 @@
     "file": "src/scenes/grantHost.js",
     "old": "const v = verdicts.get(`${from}|${g}`) ?? await heardOf(`${from}|${g}`);",
     "new": "const v = verdicts.get(`${from}|${g}`);",
-    "why": "a grant not yet heard called unsigned",
+    "why": "a grant not yet heard called unheard at once",
     "tests": [
       "test/scenes/grant4_lanes.test.js"
     ]
@@ -439,5 +439,15 @@
     "tests": [
       "test/server/grant7_case.test.js"
     ]
+  },
+  {
+    "name": "GRANT-star-in-a-room",
+    "file": "src/net/grantLaw.js",
+    "old": "'encr', 'star']);",
+    "new": "'encr']);",
+    "tests": [
+      "test/scenes/grant3_pool.test.js"
+    ],
+    "note": "STAR-TUNE: a world room mints a star's kind"
   }
 ]

@@ -134,7 +134,7 @@ test('WEATHER2d the field: a sandstorm seats on the desert tables\' land under a
 
 test('WEATHER2d the sand: the wisps\' program in the sand\'s look - tan, dense, short, a lower box, no floor - the front\'s intensity its strength; the look is a uniform set, the wisps\' own unchanged', () => {
   assert.deepEqual(SAND_LOOK, { color: [0.80, 0.64, 0.40], alpha: [0.28, 0.30], len: [0.8, 1.2], count: 7000, floor: 0, box: 70 });   // WISPS-RETURN: no curl - the sand's streaks were always straight
-  assert.deepEqual(WISP_LOOK, { color: [0.86, 0.89, 0.94], alpha: [0.20, 0.24], len: [1.6, 2.4], count: WISP_MAX, floor: WISP_FLOOR, box: 90 });   // WISPS-RETURN: WIND3's streak length again (WIND5's flourish 2.6, 2.0) and no curl   // DISC17-A: the alpha doubled   // WIND4: the count and the floor are the look's own constants, cut there
+  assert.deepEqual(WISP_LOOK, { color: [0.86, 0.89, 0.94], alpha: [0.09, 0.11], len: [1.2, 1.8], count: WISP_MAX, floor: WISP_FLOOR, box: 90 });   // WISPS-RETURN: WIND3's streak length again (WIND5's flourish 2.6, 2.0) and no curl   // DISC17-A: the alpha doubled   // WIND4: the count and the floor are the look's own constants, cut there
   assert.equal(wispCount(0, SAND_LOOK), 0, 'no sand without a storm'); assert.equal(wispCount(1, SAND_LOOK), 7000);
   assert.ok(wispCount(0.5, SAND_LOOK) > 0 && wispCount(0.5, SAND_LOOK) < 7000);
   assert.equal(wispCount(0), Math.round(WISP_MAX * WISP_FLOOR), 'the wisps keep their floor');
@@ -177,5 +177,5 @@ test('WEATHER2d records: the arc page\'s D and its close, the ledger row, Home\'
   assert.match(rd('bible/07-Rendering/Weather-Arc.md'), /^## D - THE SANDSTORM \(WEATHER2d, 2026-09-14\)/m);
   assert.match(rd('bible/01-Overview/Port-Ledger.md'), /^\| \*\*THE SANDSTORM \(WEATHER2d, 2026-09-14\)\*\*/m);
   assert.match(rd('bible/01-Overview/Page-Index.md'), /D: the sandstorm/);   // PIN MOVED (WALLET1's merge of main, 2026-10-05): Home.md's page index moved, byte for byte, to its own page
-  assert.match(rd('bible/09-Testing/Testing.md'), /^\| weather2d_sandstorm\.test\.js \| \d+ \| WEATHER2d/m);
+  assert.match(rd('bible/09-Testing/Testing-Rows-2026-10-19.md'), /^\| weather2d_sandstorm\.test\.js \| \d+ \| WEATHER2d/m);
 });

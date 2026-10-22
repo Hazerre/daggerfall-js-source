@@ -30,11 +30,13 @@
 // Pure: a record and a beat in, frames out. In the relay bundle. Not a DFU member. Ledger A (ELITE-GATES).
 import { HIT_KINDS, MELEE_REACH, POSE_SLACK, MOVE_RESAY_M, MOVE_RESAY_MS, HP_SEND_MS, HOST_HP_MIN, dpsRef, spendBlow, spendPurse } from '../gate/gateBrain.js';
 import { egKeepOnFight, egOnFight, egFloorTest, EG_BANDS } from './egLaw.js';
-import { egBlowOf, egInBlow, egBlowOn, EG_BLOWS_MAX } from './egShape.js';
+import { egBlowOf, egInBlow, egBlowOn, EG_BLOWS_MAX, EG_OUTLINE_MAX_MS } from './egShape.js';
 import { egUnionHolds, egPlaceLandings, egBlowNear, EG_UNION_HOLD_TICKS } from './egFloor.js';
-import { egZoneLandings, egFloorLess, egBurnsIn } from './egFloor.js';   // AUDIT EG V (lane1 #10): the fight's own zones in the set   // EG-H1: THE UNION FLOOR where the page says it lives, the place's landings in its set, Watchfire's reach
+import { egZoneLandings, egFloorLess, egBurnsIn, egHavenCheck } from './egFloor.js';   // AUDIT EG V (lane1 #10): the fight's own zones in the set   // EG-H1: THE UNION FLOOR where the page says it lives, the place's landings in its set, Watchfire's reach
 import { egFightView, egFeetAt } from './egWalkGraph.js';   // EG-ZJ: the fight ground a body's feet stand on
 import { egByHeight, egFeetY, egOneStorey, egStoreyY } from './egWalkGraph.js';   // THE ASCENT - HEIGHT: a blow on its own storey
+import { egGroundAt, EG_STRIKE_PAD_M } from './egWalkGraph.js';   // FIELD BUGS 2026-10-18f TURNED-BLOW: the fight ground a blow is struck from
+import { egStacked } from './egWalkGraph.js';   // FB1018D BANNER-SHAFT: a shaft or a spell refused another storey's body only through a floor
 
 /** A body's role. */
 export const EG_ROLE = Object.freeze({ lord: 0, add: 1, obj: 2 });
@@ -123,6 +125,14 @@ export function egBodyWire(b, now = 0) {
   return [b.i, b.role, b.k, b.pt ?? 0, r2(x), r2(z), Math.max(0, Math.ceil(b.hp)), Math.ceil(b.max), b.fl | 0, m ? m.tx : r2(x), m ? m.tz : r2(z), m ? m.v : 0, m ? (live ? now : m.at) : 0,
     r2(y), m ? m.ty : r2(y), b.ws ?? 0, b.wsAt ?? 0, b.sz ?? 0, egYawOf(b)];
 }
+/** AUDIT FB1018f L3-4 - A BODY'S RADIUS ON THE WIRE (m, hundredths): its own `r`, the relay's - the reach a blow on it is
+ *  judged to (egHitBody) and the floor an object is asked to stand on within (egStruckOff) - said BESIDE its row in every word
+ *  that stands it (`ead`'s and `efs`'s `r`, one a row, in its order: egRisen, egFightState). Not by its kind: a Wellspring's
+ *  spring is a rift twice a rift's size (net/eliteGates/egBrain.js). Not in the row: a build before this drops a word's field it
+ *  does not know and keeps the word, where a twentieth in the row would have refused every body it heard (net/wire.js egBody). */
+export const egRadiusWire = (b) => r2(Number.isFinite(b?.r) ? b.r : 0.6);
+/** AUDIT FB1018f L3-4: the word that stands `bodies` (`ead`) - their rows, and their radii beside them (egRadiusWire). */
+export const egRisen = (bodies, now) => ({ k: 'ead', a: bodies.map((b) => egBodyWire(b)), r: bodies.map(egRadiusWire), at: now });
 /** EG-ZJ (section 22): A BODY'S STATE as the room says it, kept on the body (`ws`, and since when, `wsAt`) so the whole fight
  *  carries it to a member who joins (egBodyWire): an object's (`eob` - a Grath island cracked 1 and fallen 2, a soul-gem's
  *  souls, a rune lit 1 and stood on 2), a lord's phase once it wakes (`eph`; 0 asleep) - and at its fall, the fall's
@@ -144,14 +154,14 @@ export function egBodyNew(F, role, k, x, z, hp, { pt = 0, r = 0.6, fl = 0, up = 
   const h = Math.max(1, Math.round(hp));
   const b = { i: ++F.seq, role, k, pt, x: r2(x), z: r2(z), y: Number.isFinite(y) ? r2(y) : F.view ? egFeetAt(F.view, x, z) : 0, mv: null, hp: h, max: h, r, fl, up: now + up, atk: null, tg: null, tgAt: 0, next: now, at: now, ...rest };
   F.bodies.push(b);
-  out?.push({ k: 'ead', a: [egBodyWire(b)], at: now });
+  out?.push(egRisen([b], now));   // AUDIT FB1018f L3-4: its radius beside it
   return b;
 }
 /** Several stood in one word (EG-ZJ: a spot `[x, z, y]` stands its body at that height). */
 export function egRaise(F, role, k, spots, hp, now, out, o = {}) {
   const made = [];
   for (const [x, z, y] of spots) { const b = egBodyNew(F, role, k, x, z, hp, { ...o, now, ...(Number.isFinite(y) ? { y } : {}) }); if (b) made.push(b); }
-  if (made.length) out.push({ k: 'ead', a: made.map((b) => egBodyWire(b)), at: now });
+  if (made.length) out.push(egRisen(made, now));   // AUDIT FB1018f L3-4: their radii beside them
   return made;
 }
 /** A body's walk said to (gx, gz), `stop` short of it, at `speed`, kept to the fight floor `inset` in (none - free: a
@@ -254,27 +264,78 @@ export function egAim(F, spec, o, here, now, out, lead = 0) {
  * @param {any} F @param {any} spec @param {any} blow @param {{sub: string, x: number, z: number, y?: number}[]} here @param {number} now @param {any[]} out @param {string[]} told
  */
 function egSay(F, spec, blow, here, now, out, told) {
-  blow.at = Math.max(blow.at, now + blow.wu + (blow.ol ?? 0));   // AUDIT EG V (lane1 #18): a chained shape's outline lead kept whole too - its fill from the first's landing, however late their word
-  if (!blow.ch && here.length) {
-    const onFloor = egFloorLess(egFloorTest(spec), F.zones, now, blow.at), burns = egBurnsIn(F.zones, now, blow.at), pending = [...F.blows.filter((b) => !b.ch && b.at > now), ...egPlaceLandings(spec, F.wokeAt, now, blow.at), ...egZoneLandings(F.zones, now, blow.at)];
-    const byH = egByHeight(spec);
-    for (const m of here) {
-      if (!blow.s.some((s) => s[0] === 'a' || s[0] === 'h' || (s.length >= 3 && Math.hypot(m.x - s[1], m.z - s[2]) < 40))) continue;
-      // THE ASCENT (section 2): a member's union floor is its own storey's - a blow of another storey leaves it its floor, and
-      // only the landings, burns and voids of its own floor take cells of it
-      const H = byH ? egFeetY(spec, m.y) : NaN, st = Number.isFinite(H) ? egStoreyY(F.view ?? spec, m.x, H, m.z) : NaN;
-      if (Number.isFinite(st) && !egOneStorey(st, blow.y)) continue;
-      if (Number.isFinite(st) ? egUnionHolds(pending.filter((b) => egOneStorey(st, b.y)), blow, m.x, m.z, now, egFloorLess(egFloorTest(spec, H), F.zones, now, blow.at, H), egBurnsIn(F.zones, now, blow.at, H)) : egUnionHolds(pending, blow, m.x, m.z, now, onFloor, burns)) {
-        for (const sub of told) out.push({ k: 'untell', to: sub, i: blow.i });
-        F.held.push({ b: blow, ticks: 0, at: now });
-        return false;
-      }
+  // EG-PERFECT (section 13.2, fury's chain): a chained shape (`after` - its first's number) is said only WITH its first: held while
+  // its first is held or not yet said, dropped with it, and once its first is said its outline stands from now and its fill from
+  // the first's landing (the gap its wind-up) - before, a first THE UNION FLOOR held left its chain said alone, a fury chain of one
+  if (blow.after) {
+    const first = F.blows.find((b) => b.i === blow.after);
+    if (!first) {
+      const waits = F.held.some((h) => h.b.i === blow.after) || (F.pend ?? []).some((p) => p.b.i === blow.after);
+      for (const sub of told) out.push({ k: 'untell', to: sub, i: blow.i });
+      F.held.push({ b: blow, ticks: waits ? 0 : EG_UNION_HOLD_TICKS, at: now });
+      return false;
     }
+    const ol = first.at - now;   // (THE AUDIT: a lead only while its first is still to land - the wire carries none at 0, egBlowOf's own rule)
+    if (ol > 0) blow.ol = Math.min(EG_OUTLINE_MAX_MS, Math.round(ol)); else delete blow.ol;
+    blow.at = first.at + blow.wu;
+  }
+  blow.at = Math.max(blow.at, now + blow.wu + (blow.ol ?? 0));   // AUDIT EG V (lane1 #18): a chained shape's outline lead kept whole too - its fill from the first's landing, however late their word
+  if (egUnionHeld(F, spec, blow, here, now)) {
+    for (const sub of told) out.push({ k: 'untell', to: sub, i: blow.i });
+    F.held.push({ b: blow, ticks: 0, at: now });
+    return false;
   }
   F.blows.push(blow);
   if (F.blows.length > EG_BLOWS_MAX) F.blows.shift();
   out.push({ k: 'eb', ...blow });
   return true;
+}
+/** EG-PERFECT (section 13.2): THE DUEL RING's floor - a member a lord's duel challenged (`F.mem.challenge.subs`, a ring standing
+ *  at `F.pg.ring` `[x, z, r]`) is held inside it (the client's ringKeep), so THE UNION FLOOR plans their escape inside it too,
+ *  never over the court beyond the fire (the audit: Garoth's Meteor on a duelist at the ring's heart left no cell and was not
+ *  held). This much inside the rim - the client's keep. */
+export const EG_RING_KEEP_M = 0.3;
+/**
+ * EG-PERFECT (sections 13.2 and 11.7) - WOULD THE UNION FLOOR HOLD `blow` at `now`, for any member it could reach (`here`)? The
+ * pending landings - the fight's blows (a haven CHECK among them - net/eliteGates/egFloor.js egHavenCheck), the place's, the zones
+ * coming down - out to the latest of them; the ground burning at each landing: the fight's burning zones, the pools the pending
+ * blows will leave (`F.mem.pools`, net/eliteGates/egLords.js) and every blow still live past its landing (`sp`: a Burning Bridge, a
+ * Charge's run), the new blow's own pool its own; a duelist's floor its ring (EG_RING_KEEP_M). Read when a blow's word is due
+ * (egSay) and when a lord chooses one (net/eliteGates/egLords.js - a lord never commits to a blow that would be dropped). Pure.
+ * @param {any} F @param {any} spec @param {any} blow @param {{sub: string, x: number, z: number, y?: number}[]} here @param {number} now
+ */
+export function egUnionHeld(F, spec, blow, here, now) {
+  if (blow.ch || !here.length) return false;
+  const live = F.blows.filter((b) => (!b.ch || egHavenCheck(b)) && b.at > now);
+  const until = Math.max(blow.at, ...live.map((b) => b.at));
+  const pending = [...live, ...egPlaceLandings(spec, F.wokeAt, now, until), ...egZoneLandings(F.zones, now, until)];
+  // the ground a blow leaves burning, as zones: its pool (from its landing), and a blow live past its landing over its stamps
+  const left = (b) => {
+    const out = [], pl = F.mem?.pools?.[b.i], y = Number.isFinite(b.y) ? { y: b.y } : {};
+    if (pl) for (const st of b.s) if (st.length >= 3 && st[0] !== 'h' && st[0] !== 'a') out.push({ kind: 'burn', s: ['d', st[1], st[2], pl[0]], from: b.at, until: b.at + pl[1], ...y });
+    if (b.sp > 0 && !b.ch) for (const st of b.s) out.push({ kind: 'burn', s: st, from: b.at, until: b.at + b.sp, ...y });
+    return out;
+  };
+  const stand = [...(F.zones ?? []), ...F.blows.filter((b) => b !== blow && b.at + (b.sp ?? 0) > now).flatMap(left)], mine = left(blow);
+  const ring = F.pg?.ring, duel = ring && ring[2] > 0 ? F.mem?.challenge?.subs ?? [] : [];
+  const byH = egByHeight(spec);
+  for (const m of here) {
+    if (!blow.s.some((s) => s[0] === 'a' || s[0] === 'h' || (s.length >= 3 && Math.hypot(m.x - s[1], m.z - s[2]) < 40))) continue;
+    // THE ASCENT (section 2): a member's union floor is its own storey's - a blow of another storey leaves it its floor, and
+    // only the landings, burns and voids of its own floor take cells of it
+    const H = byH ? egFeetY(spec, m.y) : NaN, st = Number.isFinite(H) ? egStoreyY(F.view ?? spec, m.x, H, m.z) : NaN;
+    if (Number.isFinite(st) && !egOneStorey(st, blow.y)) continue;
+    // EG-PERFECT (the audit): a member THE FINAL EXAMINATION cages (its mark 5 - every screen holds its feet) has no floor but
+    // where it stands until the cage opens: a blow over it there holds
+    const cage = egMarkOf(F, m.sub, 5);
+    if (cage && cage[2] > now && egInBlow(blow, m.x, m.z)) return true;
+    const base = egFloorLess(egFloorTest(spec, H), F.zones, now, until, H);
+    // (THE AUDIT: and a member outside a duel kept out of its ring - every screen's ringKeep - has none of its inside)
+    const onFloor = duel.includes(m.sub) ? (x, z) => base(x, z) && Math.hypot(x - ring[0], z - ring[1]) <= ring[2] - EG_RING_KEEP_M : duel.length ? (x, z) => base(x, z) && Math.hypot(x - ring[0], z - ring[1]) >= ring[2] + EG_RING_KEEP_M : base;
+    const mineHere = Number.isFinite(st) ? pending.filter((b) => egOneStorey(st, b.y)) : pending;
+    if (egUnionHolds(mineHere, blow, m.x, m.z, now, onFloor, egBurnsIn(stand, now, until, H), egBurnsIn(mine, now, until, H))) return true;
+  }
+  return false;
 }
 /**
  * WATCHFIRE'S COMPANY for a committed blow at `now` (section 15): the holders (`watch` - `{sub, x, z, lead, ls}`, `lead` its
@@ -304,7 +365,7 @@ export function egTellTo(blow, watch, here, say, now) {
 export function egBlowsStep(F, spec, now, here, out, watch = []) {
   F.blows = F.blows.filter((b) => now <= b.at + Math.max(1, b.sp ?? 0) + 1500);
   if (F.pend?.length) {
-    const pend = F.pend;
+    const pend = F.pend.sort((a, b) => (a.b.after ? 1 : 0) - (b.b.after ? 1 : 0));   // EG-PERFECT: a chained shape's word after its first's (egSay)
     F.pend = [];
     for (const p of pend) {
       for (const t of egTellTo(p.b, watch, here, p.say, now)) if (!p.told.includes(t.sub)) { p.told.push(t.sub); out.push({ k: 'tell', to: t.sub, sh: t.lead, ...p.b }); }
@@ -326,8 +387,10 @@ export function egBlowsStep(F, spec, now, here, out, watch = []) {
  *  test/net/eliteGates/egint_relay.test.js). The relay's `eb` carries no feint flag, so a modified client cannot read a feint early; an
  *  honest screen sounds a blow's WIND only past this share, uncut (scenes/eliteGates/egFight.js). */
 export const EG_FEINT_AT = 0.55;
-/** A blow cut (a feint, at FEINT_AT - section 13.2): gone, said. */
-export function egCut(F, i, out) { F.blows = F.blows.filter((b) => b.i !== i); out.push({ k: 'ecut', i }); }
+/** A blow cut (a feint, at FEINT_AT - section 13.2): gone, said. EG-PERFECT: with the instant it was cut at (`at` - its
+ *  FEINT_AT, which the relay's beat passes up to EG_BEAT_TRIAL_MS late), so every screen freezes its fill there, at the share
+ *  Feud-Arc section 7.3 cuts it - never at the beat's own (the audit: every cut came at 0.667 of its wind-up). */
+export function egCut(F, i, out, at = NaN) { F.blows = F.blows.filter((b) => b.i !== i); out.push({ k: 'ecut', i, ...(Number.isFinite(at) ? { at: Math.round(at) } : {}) }); }
 /** The members a landed blow struck, by the relay's own reckoning of their poses (the census - section 21). AUDIT EG IV (lane1
  *  #5): a blow that names its members, those of them in the hall (net/eliteGates/egShape.js egBlowOn). */
 export const egStruck = (blow, here) => here.filter((m) => egBlowOn(blow, m.sub, m.x, m.z));
@@ -352,10 +415,73 @@ export function egUnmark(F, sub, mark) { F.marks = F.marks.filter((m) => !(m[0] 
 
 /** THE WHOLE FIGHT (`efs`). EG-ZJ (sections 22 and 23): every body at `now` (egBodyWire - its walk carried there, its feet, its
  *  state as said) and the zones still to burn (`zs` - burning ground, a fallen island's void, a Soul-Pool, a haven: what a
- *  screen draws and judges on its own feet), so a member who joins or reloads mid-fight holds the company's fight at once. */
+ *  screen draws and judges on its own feet), so a member who joins or reloads mid-fight holds the company's fight at once.
+ *  AUDIT FB1018f L3-4: and every body's radius beside its row (`r` - egRadiusWire). */
 export function egFightState(F, now) {
-  return { k: 'efs', h: F.h, wk: F.wokeAt, b: F.bodies.slice(0, EG_BODIES_MAX).map((b) => egBodyWire(b, now)), bl: F.blows.filter((b) => b.at + Math.max(1, b.sp ?? 0) + 400 >= now), tx: F.tethers.map((t) => [...t]), mk: F.marks.map((m) => [...m]), pg: { ...F.pg },
+  const live = F.bodies.slice(0, EG_BODIES_MAX);
+  return { k: 'efs', h: F.h, wk: F.wokeAt, b: live.map((b) => egBodyWire(b, now)), r: live.map(egRadiusWire), bl: F.blows.filter((b) => b.at + Math.max(1, b.sp ?? 0) + 400 >= now), tx: F.tethers.map((t) => [...t]), mk: F.marks.map((m) => [...m]), pg: { ...F.pg },
     zs: (F.zones ?? []).filter((z) => z.until > now).map((z) => ({ ...z, s: [...z.s] })) };
+}
+
+/**
+ * FIELD BUGS 2026-10-18f TURNED-BLOW (Low_Poly_Gaming, "Weir Key Generated Elite Breach bugs": "Imps that follow you around
+ * won't die after hitting several times. Its an exploit for heals if you have a vampiric weapon"): A BLOW STRUCK FROM OFF THE
+ * FIGHT GROUND strikes nothing (EG-ZB, section 11.7 - a span's platform, a step, a ledge: traversal ground), but on an object
+ * standing off it, which is struck from beside it. `view` the hall's fight ground (net/eliteGates/egWalkGraph.js egFightView),
+ * (x, y, z) the striker's feet in the hall's frame. The relay refuses by it (net/eliteGates/egBrain.js egBlow) and every screen
+ * asks it (egStrikeTurned): one law, so a screen never offers a body the relay will take nothing from. Pure.
+ * @param {any} view @param {any} b @param {number} x @param {number} y @param {number} z
+ */
+export function egStruckOff(view, b, x, y, z) {
+  return !egGroundAt(view, x, y, z, EG_STRIKE_PAD_M) && !(b?.role === EG_ROLE.obj && !egGroundAt(view, b.x, egFeetY(view, b.y), b.z, b.r ?? 1));
+}
+/**
+ * AUDIT FB1018f L3-6 - A BODY ON ANOTHER STOREY (THE ASCENT, Elite-Gates-Ascent.md section 2): in a hall that judges by height
+ * a blow struck from feet (x, y, z) reaches no body standing at (bx, by, bz) a storey over or under them - the storey each
+ * stands in (egStoreyY: the fight ground its feet stand on, else the feet) EG_STACK_M or more apart (egOneStorey). Either
+ * height unknown, or a law before THE ASCENT's: never apart. The relay refuses by it (egHitBody) and every screen turns by
+ * it (egStrikeTurned): a Harrier on an island 14 m over mine was offered, sent and leeched, and the relay landed nothing. FB1018D
+ * BANNER-SHAFT: a swing (`melee`) is refused by the storey alone; a shaft or a spell only where the two stand stacked, a floor
+ * between them (egStacked). Pure.
+ * @param {any} view @param {number} x @param {number} y @param {number} z @param {number} bx @param {number} by @param {number} bz
+ * @param {boolean} [melee]
+ */
+export function egStoreyApart(view, x, y, z, bx, by, bz, melee = true) {
+  const H = egFeetY(view, y);
+  if (!Number.isFinite(H) || !Number.isFinite(by)) return false;
+  const sm = egStoreyY(view, x, H, z), sb = egStoreyY(view, bx, by, bz);
+  return !egOneStorey(sm, sb) && (melee || egStacked(view, x, sm, z, bx, sb, bz));   // FB1018D BANNER-SHAFT: a shaft or a spell through a floor alone
+}
+/** AUDIT FB1018f (found merging FB1018D): A BLOW FROM OFF THE FIGHT FLOOR reaches only so far - the feet (x, y, z) on no piece of
+ *  hall `spec`'s own fight floor (a span's island or plate is the fight view's, never the floor's: egOnFight reads `spec.fl`) and
+ *  body `b`'s edge, at (bx, bz), past MELEE_REACH + POSE_SLACK + 4: the relay lands nothing (egHitBody), and every screen turns it
+ *  (egStrikeTurned) - a shaft from one island at a Harrier on another, 26 m off, was offered and leeched where the relay took
+ *  none. Pure. */
+export const egOutOfReach = (spec, x, y, z, b, bx, bz) => !egOnFight(spec, x, z, POSE_SLACK + 6, y) && dist(x, z, bx, bz) - (b?.r ?? 0.6) > MELEE_REACH + POSE_SLACK + 4;
+/** TURNED-BLOW: the flags a body takes no blow through, whatever the blow claims - a friend's and a vanished lord's
+ *  (egHitBody refuses both) and a ward's (egHitBody lands nothing through it, a lord's with it). */
+export const EG_TURNS_FL = EG_FL.friend | EG_FL.hidden | EG_FL.ward;
+/** TURNED-BLOW: a lord asleep (section 8.6: "a lord asleep takes no blow" - net/eliteGates/egLords.js egLordHitX's `up2`), as a
+ *  screen holds it: no phase said yet (net/eliteGates/egLink.js egBodyOf's `ph`, 0 until its wake's word), never a mirror (stood
+ *  awake). Pure. */
+export const egLordAsleep = (b) => b?.role === EG_ROLE.lord && !egHas(b, EG_FL.mirror) && !(b.ph > 0);
+/**
+ * TURNED-BLOW - A BLOW THE LAW TURNS WHOLE, as a screen holds body `b` (net/eliteGates/egLink.js egBodyOf) struck from feet
+ * (x, y, z) in the hall's frame - whatever its kind, its claim or its striker's purse: from off the fight ground (egStruckOff,
+ * the relay's own rule), on a body its flags turn (EG_TURNS_FL), or on a lord asleep. The screen marks the body's stand-in
+ * warded by it (scenes/eliteGates/egFight.js), so nothing a landed blow answers - a leech, a Vampiric Effect, a set's or a
+ * martial power - answers a blow the relay will refuse, and the blow is never sent. AUDIT FB1018f L3-6: and on a body a storey
+ * over or under the feet (egStoreyApart, the relay's own rule in egHitBody), where it stands at `now` (its walk carried as the
+ * relay carries it - egBodyAt, egWalkY; the word's own place with none). Pure.
+ * @param {any} view @param {any} b @param {number} x @param {number} y @param {number} z @param {number} [now] @param {any} [spec] the
+ *  hall itself, whose own fight floor the reach off it is judged from (egOutOfReach); none, unjudged
+ */
+export function egStrikeTurned(view, b, x, y, z, now = 0, spec = null) {
+  if (!b || ((b.fl | 0) & EG_TURNS_FL) !== 0 || egLordAsleep(b) || egStruckOff(view, b, x, y, z)) return true;
+  const [bx, bz] = egBodyAt(b, now);
+  if (spec && egOutOfReach(spec, x, y, z, b, bx, bz)) return true;   // AUDIT FB1018f: off the hall's own floor, past reach (the relay's egHitBody)
+  // by the shaft's and the spell's storey rule: a swing's reach is under EG_STACK_M, so no swing meets a body a storey away
+  return egStoreyApart(view, x, y, z, bx, b.mv ? egWalkY(b.mv, now) : b.y, bz, false);
 }
 
 /**
@@ -370,12 +496,14 @@ export function egHitBody(F, spec, p, i, d, r, pose, now, seq = null, mult = 1, 
   if (!spendBlow(p, now, seq, `e${i}`)) return { got: 0, b: null };
   if (!pose || !Number.isFinite(pose.x) || !Number.isFinite(pose.z)) return { got: 0, b: null };
   const [bx, bz] = egBodyAt(b, now), gap = dist(pose.x, pose.z, bx, bz) - (b.r ?? 0.6);
-  const onFloor = egOnFight(spec, pose.x, pose.z, POSE_SLACK + 6, pose.y);   // THE ASCENT: by the member's feet
-  if (!onFloor && gap > MELEE_REACH + POSE_SLACK + 4) return { got: 0, b: null };
+  if (egOutOfReach(spec, pose.x, pose.y, pose.z, b, bx, bz)) return { got: 0, b: null };   // THE ASCENT: by the member's feet; AUDIT FB1018f: the one law every screen asks too
   // THE ASCENT (Elite-Gates-Ascent.md section 2): in a hall that judges by height, a blow reaches no body a storey over or under
-  // the member (a lord on the floor stacked over the member's, over its plan, is out of its reach)
-  const H = egFeetY(spec, pose.y);
-  if (Number.isFinite(H) && Number.isFinite(b.y) && !egOneStorey(egStoreyY(F.view ?? spec, pose.x, H, pose.z), egStoreyY(F.view ?? spec, bx, b.y, bz))) return { got: 0, b: null };
+  // the member (a lord on the floor stacked over the member's, over its plan, is out of its reach). FB1018D BANNER-SHAFT: a
+  // swing reaches its own storey alone; a shaft or a spell crosses the open air to a body of another storey, and is refused
+  // only where the two stand stacked (egStacked) - so Ilthys's banners on the Rotunda's balconies, 4 m over the court, are
+  // shot from the court as they were before the law judged by height. AUDIT FB1018f L3-6: the one storey law every screen
+  // asks too (egStoreyApart)
+  if (egStoreyApart(F.view ?? spec, pose.x, pose.y, pose.z, bx, b.y, bz, r === HIT_KINDS.Melee)) return { got: 0, b: null };
   if (r === HIT_KINDS.Melee && gap > MELEE_REACH + POSE_SLACK) return { got: 0, b: null };
   if (egHas(b, EG_FL.ward) || !(mult > 0)) return { got: 0, b };
   const got = spendPurse(p, d * mult, b.hp, now, bucketX);

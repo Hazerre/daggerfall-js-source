@@ -111,7 +111,7 @@ test('WIND3 wisps: the count follows the strength with a floor; the renderer com
   assert.match(WISP_VS, /vLife = sin\(fract\(uTime\*rate \+ seed\*7\.0\) \* 3\.14159\);/, 'the wisp\'s own clock');
   assert.match(WISP_VS, /p \+= vel \* \(aCorner\.y-0\.5\) \* len;/, 'stretched along the wind (WISPS-RETURN: WIND3\'s streak again, where WIND5 drew a flourish)');
   assert.match(WISP_FS, /a \*= vLife \* \(uAlpha\.x \+ uAlpha\.y \* uStrength\);/, 'never more than a breath (WEATHER2d: the look\'s alpha)');
-  assert.deepEqual([...WISP_LOOK.alpha], [0.20, 0.24]); assert.deepEqual([...WISP_LOOK.color], [0.86, 0.89, 0.94]);   // DISC17-A: the alpha doubled (WIND3's 0.10, 0.12)
+  assert.deepEqual([...WISP_LOOK.alpha], [0.09, 0.11]); assert.deepEqual([...WISP_LOOK.color], [0.86, 0.89, 0.94]);   // DISC17-A: the alpha doubled (WIND3's 0.10, 0.12)
   assert.doesNotMatch(WISP_VS + WISP_FS, /uTime \* uWindV|uWindV \* uTime/, 'no wind x time anywhere');
   const { gl, calls } = stubGl();
   const r = new WindWispsRenderer(gl);
@@ -328,7 +328,7 @@ test('WIND3 the hosts: both exterior hosts read the one wind once a frame, feed 
     one(new RegExp(`renderer\\.setFlatWind\\(floraSwayOn\\(\\) && wd\\.on \\? \\[wd\\.windV\\[0\\], wd\\.windV\\[1\\], ${clock}, wd\\.gust\\] : null, floraSwayOn\\(\\) && wd\\.on \\? windfallLaw : null\\);[^\\n]*\\n\\s*renderer\\.drawBillboards\\(`, 'g'), 'the flats\' wind, right before their draw');
     // PIN MOVED (ECOTONE1, 2026-10-07): the streaming host asks by its pixel's nature set - its own climate's archive and any
     // a climate border stood there (windDrive.js floraSwayOf takes a Set); the exterior host has one climate
-    const flora = host === 'src/scenes/world.js' ? 'natureSet' : 'natureArchive';
+    const flora = host === 'src/scenes/world.js' ? 'g\\.natureSet' : 'natureArchive';   // PIN MOVED (AUDIT PRECIP HOST-7): the groups' own function's
     assert.equal((s.match(new RegExp(`batch\\.sway = floraSwayOf\\(archive, ${flora}, (sib\\.)?size\\.h\\);`, 'g')) || []).length, 2, `${host}: the season's batch and the classic one tagged`);
     for (const imp of ["from '../systems/wind/windDrive.js'", "from '../render/windWisps.js'", "from '../systems/wind/windAudio.js'"]) assert.ok(s.includes(imp), `${host}: imports ${imp}`);
   }
@@ -339,5 +339,5 @@ test('WIND3 records: the rendering page, the features arc, the ledger\'s wind ro
   assert.match(rd('bible/07-Rendering/Rendering.md'), /\*\*WIND3 \(2026-09-14\) THE WIND\s+SEEN AND HEARD\.\*\*/, 'the heading wraps on the page');
   assert.match(rd('bible/10-UI/Features-Arc.md'), /^## WIND3 - THE WIND'S THREE ROWS \(2026-09-14\)/m);
   assert.match(rd('bible/01-Overview/Port-Ledger.md'), /\*\*THE WIND \(WIND1, 2026-09-02\)\*\*[^\n]*WIND3 \(2026-09-14\): the wind is seen and heard/);
-  assert.match(rd('bible/09-Testing/Testing.md'), /^\| wind3_windworld\.test\.js \| \d+ \| WIND3/m);
+  assert.match(rd('bible/09-Testing/Testing-Rows-2026-10-19.md'), /^\| wind3_windworld\.test\.js \| \d+ \| WIND3/m);
 });

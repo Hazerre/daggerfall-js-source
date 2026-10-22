@@ -116,6 +116,7 @@ export const ITEM_FIELDS = Object.freeze({
   aetheric: str(),   // SET6: an Aetheric piece's record (systems/aetheric.js) - Ruhn's Regalia
   gilded: str(),   // GILDED1: a Gilded piece's record (systems/gilded.js) - the Hourlock
   affixes: list(validAffix),
+  qlNamed: bool(),   // AUDIT QUESTLINES REWARD-5: a questline's named piece - its name stands without a metal before it (itemInfo.js withholdsMaterialPrefix)
   exalted: bool(),   // LOOT2 (bible/06-Systems/Loot-Arc.md section 4): a Legendary minted Exalted - one line more, true or absent
   untaken: bool(),   // LOOT8 (bible/06-Systems/Loot-Arc.md section 10): a piece a source door rolled that no player has taken - true or absent; its first take clears it and counts for the drought
   reforged: int({ min: 0, max: 15 }),   // LOOT9 (bible/06-Systems/Loot-Arc.md section 11): the one line the Reforge has rolled again (its index) - only it may be again
@@ -167,14 +168,29 @@ export const ITEM_FIELDS = Object.freeze({
   // town's patron takes it (net/patronLaw.js patronTakes, PATRON_COUNTER_MARK). Never a receiver's mark: it rides the wire
   // and the market's listing with the piece
   counterBought: bool(),
+  // LAW-3 (Town-Economy-Arc 7.4): what the counter was paid for it, gold a piece (net/patronLaw.js COUNTER_PAID_MARK) -
+  // online no counter pays more for it. Never a receiver's mark, as the counter's mark is not
+  counterPaid: int({ min: 0 }),
+  // AUDIT TOWN-ECON 2 PRICE-6: the value it was bought at (net/patronLaw.js COUNTER_VALUE_MARK) - an improvement since sells
+  // as the player's own work. Never a receiver's mark
+  counterValue: int({ min: 0 }),
+  // AUDIT TOWN-ECON 2 PRICE-2: the sockets whose gem an NPC counter sold online - `[socket, paid a piece or null]` pairs
+  // (systems/reforge.js setGemPiece): the gem's sale on its piece held to what it cost, and an extraction gives it back
+  // marked. Never a receiver's mark
+  socketBought: list((v) => Array.isArray(v) && v.length === 2 && Number.isSafeInteger(v[0]) && v[0] >= 0 && v[0] < 8
+    && (v[1] === null || (Number.isSafeInteger(v[1]) && v[1] >= 0))),
   // STOLEN-GOODS (FIELD BUGS 2026-10-16b): a piece taken from someone else's keeping (systems/stolenGoods.js) - true, or
   // absent: a counter's sale is rid of it, never shelved, and a guilty verdict takes it (court.js confiscateStolen).
   // Never a receiver's mark: it rides the wire and a realm trade with the piece, so a hand-off launders nothing
   stolen: bool(),
   // SELL-AS-FOUND (AUDIT ECON O1): the condition the world handed a piece over at - Roleplay & Realism: Items' rolls on
-  // a pile, a body and a shelf (systems/roleplayRealismItems/rriRealism.js) - which an online counter's sale reads at best (tradeModes.js
-  // saleConditionPercentage); absent on a piece handed over whole
+  // a pile, a body and a shelf (systems/roleplayRealismItems/rriRealism.js) - which an online counter's sale reads with a third of what
+  // was mended past it (tradeModes.js saleConditionPercentage, MEND-THIRD); absent on a piece handed over whole
   foundCondition: int({ min: 0 }),
+  // MEND-THIRD (AUDIT MEND-THIRD, 2026-10-19): the points its owner's OWN mends - a Repair Kit, Repairs Objects, the Varla
+  // Stone - put above a found piece's mark, a third of which an online counter's sale credits (item/foundMark.js); never
+  // what a smith's paid repair did
+  selfMended: int({ min: 0 }),
   // INT4 (bible/06-Systems/Integrity-Arc.md): a valuable piece's id (systems/item/itemIds.js) - 16 hex, minted at a realm
   // checkpoint and the piece's from then on: the wire carries it (never the receiver's, as `acquired` is), and the
   // service's ledger reads it (server-account/src/verdict.js ledgerStep)

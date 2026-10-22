@@ -58,19 +58,15 @@ import { PrefabNode, instantiatePrefab, prefabShapeStamp } from '../../world/pre
 import { applyRuntimeMaterials, bundleSlots, dfMaterial, gameTextureFromName } from './comeSailAwayModels.js';
 import { createAnimator } from '../../world/unityAnimator.js';
 import { instanceParticleSystems } from '../../world/unityParticles.js';
-import { HULL_NAMES, HULL_PRICES, HULL_WEIGHTS, VARIANT_NAMES } from './comeSailAwayHulls.js';   // INT1: the table's leaf - the item law reads it in a Worker
+import { HULL_NAMES, HULL_PRICES, HULL_WEIGHTS, VARIANT_NAMES, PACKED_WEIGHT_MAX, packedHullWeight } from './comeSailAwayHulls.js';   // INT1: the table's leaf - the item law reads it in a Worker
 
 /** ComeSailAway.firstHullModelID - SpawnBoat asks for 112410 + hull. */
 export const FIRST_HULL_MODEL_ID = 112410;
 /** The seven trigger prefabs and what Start registers on them (PlayerActivate.RegisterCustomActivation, 3.2). */
 export const TRIGGER_MODEL = Object.freeze({ drive: 112400, board: 112401, cargo: 112402, door: 112403, variant: 112404, status: 112405, position: 112406 });
 export { HULL_NAMES, HULL_PRICES, HULL_WEIGHTS, VARIANT_NAMES };
-/** SHIP-PACK (2026-10-01, the review before the merge: "Allow larger ships to be picked up, just like smaller vessels"):
- *  what a hull's parts weigh packed - the table's, and never more than the Large Boat's. The three ships' rows (2,400 to
- *  240,000 kg) were never an item's in the mod, whose ships were never packed: in the pack they would hold the bearer
- *  under the water, sink any boat she sailed ("You're going to need a bigger boat") and take nothing more aboard. */
-export const PACKED_WEIGHT_MAX = HULL_WEIGHTS[1];
-export const packedHullWeight = (hull) => Math.min(HULL_WEIGHTS[hull], PACKED_WEIGHT_MAX);
+/** SHIP-PACK: what a hull's parts weigh packed (the leaf's - PARTS-WEIGHT moved it there for the save's repair). */
+export { PACKED_WEIGHT_MAX, packedHullWeight };
 /** AUDIT PRE-MERGE 0928 O1: the variant objects each hull's prefab carries under its `Variants` node (GetVariantCount) -
  *  the Large Boat's seven, and none on the rest, whose SpawnBoat never reads its variant. */
 export const HULL_VARIANT_COUNTS = Object.freeze([0, 7, 0, 0, 0]);
@@ -109,6 +105,7 @@ export class Boat {
     this.crewed = false;
     this.itemValue = null;   // SHIP-PACK (the port's own): the worth of the item that placed her, deed or parts (comeSailAway.js takePlaceItem) - her parts are packed at it
     this.groundAsked = false;   // FIELD BUGS 29h (LOST-BOAT, the port's own): the ground under it asked once (comeSailAway.js recoverLostBoats)
+    /** @type {any} */ this.charter = null;   // PASSAGE (the port's own): a booked ship's voyage (systems/naval/passage.js charterRecord) - none on a boat of mine
     this.modifierMoveSpeedOar = 0; this.modifierMoveAccelerationOar = 0;
     this.modifierMoveSpeedSail = 0; this.modifierMoveAccelerationSail = 0;
     this.modifierTurnSpeedOar = 0; this.modifierTurnAccelerationOar = 0;
@@ -475,15 +472,16 @@ export function setLights(boat, value) {
 
 /** `GetComponent<Animator>()` on a node: its runtime (world/unityAnimator.js), or null. */
 export const animatorOf = (node) => node?.getComponent('Animator')?.animator ?? null;
-/** SEA-TOWN (FIELD BUGS 2026-10-11c): each boat tree's Animators, kept while every tree's shape stands (prefabNode.js
+/** SEA-TOWN (FIELD BUGS 2026-10-11c): each boat tree's Animators, kept while her tree's shape stands (prefabNode.js
  *  prefabShapeStamp - prefabColliders.js keeps a tree's colliders by the same stamp). Read-only: the list is shared. */
 const _animators = new WeakMap();   // root -> { stamp, list }
 /** Every Animator a boat carries, for the frame's step (Unity updates each after the scripts' Update). SEA-TOWN: found
  *  once a tree shape - the walk of every node (a galleon's 1,228) was made for every boat, every frame. A tree's
  *  Animators change only with its shape: a node hung or a component added (each bumps the stamp), a runtime attached
- *  only as an instance is imported, before it is hung under its parent (importCustomGameobject). */
+ *  only as an instance is imported, before it is hung under its parent (importCustomGameobject). BOAT-STAMP: her own
+ *  tree's stamp - another boat built anywhere walked every boat's tree again the next frame. */
 export const boatAnimators = (boat) => {
-  const root = boat.GameObject, stamp = prefabShapeStamp();
+  const root = boat.GameObject, stamp = prefabShapeStamp(root);
   const had = _animators.get(root);
   if (had && had.stamp === stamp) return had.list;
   const list = [...root.walk()].flatMap((n) => n.getComponents('Animator').map((c) => c.animator).filter(Boolean));

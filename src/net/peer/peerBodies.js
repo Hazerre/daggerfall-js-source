@@ -85,6 +85,7 @@ import { gaitShare } from '../../world/horseModel.js';
 import { JUMP_UNITS, stepPeerPace } from './peerPace.js'; import { peerBodyYaw, peerClimbing, peerMoving, PeerClimbTrack } from './peerClimb.js';   // HT-WAIST-BACK: the pace law, lifted - the walkers' lanterns swing off it too; CLIMB5: the climb's facing and pose
 import { gatherActOf, peerGatherTool, peerGatherSwing, peerKneeling, GATHER_POSE_STRIKES } from './peerGather.js';   // PEER-ACTS: a gathering act's tool, blow and kneel
 import { weaponGlowOn, glowFromWord } from '../../systems/weaponGlow.js';   // WEAPON-GLOW1: a peer's weapon, glowing as its look says
+import { fieldOfView } from '../../ui/viewSettings.js';   // HORSE-VIEW (AUDIT): the frame's own lens, the cadence's base (lensOf)
 
 
 /** The most peers in a Morrowind body at once; the rest keep the paperdoll. */
@@ -163,7 +164,8 @@ export const peerBlow = (pace) => (pace == null ? null
 /** The drawn yaw eases toward the pose's at this rate (a second) - a turn the rig can see every frame, not one that stops between poses. */
 export const YAW_EASE = 12;
 /** PEER-CADENCE (2026-09-22, Mac: "look for ways to improve online performance"): how many frames apart a body's
- *  SKIN is re-posed, by its distance from the eye (scene units, metres) - `[within, every]`, the first row that
+ *  SKIN is re-posed, by its distance from the eye (scene units, metres; the camera that draws it, through its lens -
+ *  cadenceD2, HORSE-VIEW's audit) - `[within, every]`, the first row that
  *  holds. The clips advance every frame regardless (the rig's `pose: false`); what waits is poseAssembly, the mesh
  *  upload and the particle step, the whole of a body's CPU cost (PERF-RIG1: ~0.3 ms a body a frame at 3,000
  *  vertices, and eight bodies at once). The pose comes off the wire at POSE_HZ (10 a second) and the body is drawn
@@ -205,6 +207,22 @@ export function poseCadenceFor(d2) {
   for (const [within, every] of POSE_CADENCE) if (d2 <= within * within) return every;
   return POSE_CADENCE[POSE_CADENCE.length - 1][1];
 }
+/** HORSE-VIEW (AUDIT, the boom and the glass): THE CADENCE IS THE PICTURE'S. A body is as large on the screen as it is
+ *  near the camera that draws it, through that camera's lens - and the cadence measured it from the head: zoomed out,
+ *  the third-person camera stands up to 11.4 m behind the head (player/mwCamera.js MAX_DISTANCE), so a body 2 m from
+ *  the lens was 10 m from the head and posed every second frame, and through the spyglass (x2 to x8, world.js glassFov)
+ *  one 80 m off filled the screen and was posed every third. The magnification `proj` draws at: its fy over the fy of
+ *  the frame's own field of view (ui/viewSettings.js fieldOfView - the lens every host builds its projection on, the
+ *  glass narrowing it) - never under 1, so a lens a frame widens (CLIMB4's kick) poses as the frame's own lens does. */
+export function lensOf(proj) {
+  const m = proj?.[5] * Math.tan(fieldOfView() / 2);
+  return m > 1 + 1e-6 ? m : 1;
+}
+/** HORSE-VIEW (AUDIT): the squared distance a pose's cadence (poseCadenceFor) reads for a point `at` - along the ground,
+ *  as PEER-CADENCE measured it (a height is no distance), from `eye`, the camera that draws it, over its `lens`
+ *  (lensOf): how far off the point looks. The peers' bodies and the Horse Cart pool's 3D horses both read it, so a
+ *  rider and a horse the pool stands beside it keep one cadence. */
+export const cadenceD2 = (at, eye, lens = 1) => ((at[0] - eye[0]) ** 2 + (at[2] - eye[2]) ** 2) / (lens * lens);
 
 /** The rig's build options from a peer's look - the same inputs
  *  weaponRig.armBuildOptsOf maps the player's entity onto. `hasAmmo`
@@ -328,7 +346,7 @@ export function seatFor(b, f, yaw, st) {
   return b.seatSpec;
 }
 
-export function peerCamera(shown, feet, speed = 0, cam = null, yaw = peerBodyYaw(shown)) {
+export function peerCamera(shown, feet, speed = 0, cam = null, yaw = peerBodyYaw(shown), travel = null) {
   const c = cam ?? { pos: [0, 0, 0], yaw: 0, pitch: 0, sneaking: false, bob: [0, 0], move: { forward: 0, strafe: 0, running: false, speed: 0, grounded: true, jumping: false, swimming: false, levitating: false } };
   const moving = peerMoving(shown);   // CLIMB5: a shimmy along a lip is no walk
   c.move.grounded = !peerClimbing(shown);   // CLIMB5: on the wall the body is off the ground - the in-air pose the local third person takes there
@@ -337,6 +355,7 @@ export function peerCamera(shown, feet, speed = 0, cam = null, yaw = peerBodyYaw
   c.move.forward = moving ? 1 : 0;
   c.move.running = shown.mv === 2;
   c.move.speed = moving ? speed : 0;
+  c.move.travel = travel;   // AUDIT BODY-MOTION RIG-3: the ground the drawn feet crossed (world, cumulative) - the legs' own travel and its way
   c.sneaking = peerKneeling(shown);   // PEER-ACTS: kneeling at an act (a herb, the Basket's search, the knife at a body) - the rig's crouched idle, Morrowind's own (it has no kneel)
   return c;
 }
@@ -679,6 +698,14 @@ export class PeerBodies {
     // on a moving deck stood in a walk at the ship's speed - and a change of deck (or onto one, or off) starts afresh
     const on = peer.shown.deckKey ?? null, at = on ? peer.shown.deck : f;
     b.speed = stepPeerPace(b.speed, b.paceKey === on ? b.paceAt : null, at, dt);   // HT-WAIST-BACK: net/peer/peerPace.js, the one home
+    // AUDIT BODY-MOTION RIG-3: and the ground itself, as a vector - so the Morrowind body's legs walk the way the body
+    // went (a strafe, a backpedal), not always along its facing. Off a deck only: a deck's place is in the deck's own
+    // turned frame, where the pace alone is read; a jump is a placement, never a stride
+    const prev = b.feet;
+    if (!on && b.paceKey === on && prev && Math.hypot(f[0] - prev[0], f[2] - prev[2]) <= JUMP_UNITS) {
+      b.travel ??= [0, 0, 0];
+      b.travel[0] += f[0] - prev[0]; b.travel[1] += f[1] - prev[1]; b.travel[2] += f[2] - prev[2];
+    } else if (on) b.travel = null;
     b.paceAt = at; b.paceKey = on;
     b.feet = f;
     // the yaw eased toward the pose's (AUDIT MWBODY A8): the rig reads turning off the yaw's change frame to frame,
@@ -690,7 +717,7 @@ export class PeerBodies {
     else b.yaw = Number.isFinite(b.yaw) ? b.yaw + wrapAngle(want - b.yaw) * (dt > 0 ? Math.min(1, dt * YAW_EASE) : 1) : want;   // ...and one born on a bad one takes the first good one
     b.d2 = near ? dist2(f, near) : 0;
     b.far = !!near && b.d2 > this._range * this._range * (b.far ? 1 : this._hyst * this._hyst);   // MWNPC11: a standing body held to the hysteresis past the range, a far one back within it
-    b.cam = peerCamera(peer.shown, f, b.speed, b.cam, b.yaw);
+    b.cam = peerCamera(peer.shown, f, b.speed, b.cam, b.yaw, b.travel ?? null);
     // CLIMB6: the climb the body's limbs take - the hold rebuilt from the pose, a move from its kind, lip and time
     b.cam.climb = (b.climbTrack ??= new PeerClimbTrack()).input(peer.shown, f, b.yaw, this._now(), this._collider());
     // CARDS2b: seated at a card table - the same seated request the sitter's own body takes (player/seatPose.js), at the
@@ -703,15 +730,25 @@ export class PeerBodies {
   /** COATS3D: a peer on a HORSE (the pose's `rd`; never the cart, never a beast) sits the 3D horse - its own, in the look
    *  the pose names (`rc`), stepped at the body's pace under its feet (HORSE-WALK: held under the gallop while the pose's
    *  `hs` says a slow ride), its seat the body's saddle (player/seatPose.js) as the player's own is (player/mwView.js).
-   *  Null, and the horse let go, off one or where the rig is not up. */
+   *  Null, and the horse let go, off one or where the rig is not up.
+   *  HORSE-VIEW: the gait steps here every frame and the pose waits for the rider's (_poseHorse): the horse is in the
+   *  rider's picture, so it is posed on the frames the body's skin is - on the body's cadence, in its view. */
   _saddle(b, shown, f, dt) {
     const rig = this._horses();
     if (!rig?.ready() || shown.rd !== POSE_RIDE.Horse || peerIsWolf(shown) || shown.wb) { this._unhorse(b); return null; }
     b.horse ??= rig.horse(seedOf(b.id));
     if (!b.horse) return null;
-    rig.step(b.horse, { feet: horseFeetUnder(f, b.yaw), yaw: b.yaw, speed: b.speed ?? 0, dt, look: shown.rc | 0, gallops: !shown.hs });   // HORSE-WALK: the pose's slow ride (its `hs` - walked, or under half) never gallops
+    rig.step(b.horse, { feet: horseFeetUnder(f, b.yaw), yaw: b.yaw, speed: b.speed ?? 0, dt, look: shown.rc | 0, gallops: !shown.hs, pose: false });   // HORSE-WALK: the pose's slow ride (its `hs` - walked, or under half) never gallops
     const seat = rig.seat(b.horse);
     return seat ? { feet: [f[0], f[1], f[2]], seat, yaw: b.yaw, lean: gaitShare(b.horse.gait, 'gallop') } : null;
+  }
+  /** HORSE-VIEW: a rider's horse posed with the body - where its gait's clock stands - and the saddle the body is about
+   *  to be posed to taken off that pose (the seat rides the Spine's stride). Called wherever the body's skin is posed. */
+  _poseHorse(b) {
+    const rig = b.horse && b.cam?.saddle ? this._horses() : null;
+    if (!rig?.pose(b.horse)) return;
+    const seat = rig.seat(b.horse);
+    if (seat) b.cam.saddle.seat = seat;
   }
   /** COATS3D: a body's horse let go (its palette). */
   _unhorse(b) {
@@ -736,15 +773,17 @@ export class PeerBodies {
    * body, so bodies on one cadence skin on different frames whenever their builds landed (AUDIT PEER-CADENCE F1: a
    * per-body tick started on the standing frame made the stagger an accident of the build queue - eight bodies landed a
    * frame apart all skinned together). The skipped frames' dt is banked for the particle step, which keeps wall time on
-   * the frame that poses.
+   * the frame that poses. HORSE-VIEW (AUDIT): `every` by how far the body looks from the last pass's camera - its eye,
+   * through its lens (cadenceD2: the zoomed-out boom's, the spyglass's) - not from the head the range is measured from.
    * WB9h: a body out of the view skins nothing (its clocks run; it is posed as it is seen - `stale`), and of the rest
    * wanting a skin at most SKIN_BUDGET pose in a frame, in bySkinRank's order; one left over is owed the next frame.
    */
   _stepDue(dt) {
     const due = this._due;
+    const eye = this._cam?.eye ?? null, lens = this._cam?.lens ?? 1;   // HORSE-VIEW (AUDIT): the last pass's camera, as the view is (cadenceD2); before any - or for a body never placed (ONE-BAD-BODY) - the distance from `near`
     for (const b of due) {
       const must = !b.posed || !(b.rig.thirdActive?.() ?? true);
-      b.rank = must ? 3 : !b.inView ? 0 : (b.owed || b.stale) ? 2 : (this._frame + b.phase) % poseCadenceFor(b.d2) === 0 ? 1 : 0;
+      b.rank = must ? 3 : !b.inView ? 0 : (b.owed || b.stale) ? 2 : (this._frame + b.phase) % poseCadenceFor(eye && b.feet ? cadenceD2(b.feet, eye, lens) : b.d2) === 0 ? 1 : 0;
     }
     if (due.length > 1) due.sort(bySkinRank);
     let skins = 0;
@@ -766,6 +805,7 @@ export class PeerBodies {
     try {
       this._arm(b, peer.shown, peer.look);
       b.bank = Math.min(EFFECTS_BANK_MAX_S, b.bank + dt);   // AUDIT WB9 (bodies F1)
+      if (pose) this._poseHorse(b);   // HORSE-VIEW: astride, its horse first - the skin is posed to the seat of the horse's own new pose
       if (pose) { b.rig.update(dt, { pose: true, effectsDt: b.bank }); b.bank = 0; b.posed = true; b.owed = false; b.stale = false; b.posedAt = this._frame; }
       else b.rig.update(dt, { pose: false });
     } catch (e) { this._fail(b, `update threw: ${e?.message ?? e}`); }
@@ -907,6 +947,7 @@ export class PeerBodies {
     c.scaleOf = scaleOf;   // MWNPC10: a body drawn larger than itself, by its id (the lane's actor `scale`)
     c.anchoredOf = anchoredOf;   // AUDIT MWNPC16-18 A3: a body that never walks, by its id (the lane's) - the lo tier's lamps take its shadow
     c.canvas = canvas; c.proj = proj; c.view = view; c.eye = eye; c.flashOf = flashOf;
+    c.lens = lensOf(proj);   // HORSE-VIEW (AUDIT): this pass's magnification - the next frame's cadence (_stepDue), with its eye
     c.fxOf = fxOf;   // MWNPC5: a body's tells by its id (a foe's glint, elite glow, dissolve - characters/npcBodies.js)
     c.grow = grow; c.up = up;   // OW-PEERS (FIELD BUGS 2026-10-01 #11): under the Overworld each body drawn its grow times about its feet, leaned as the traveller's own is (drawThird's OW-BIG and AUDIT OW3 J6)
     this._planesOk = !!viewPlanes(proj, view, this._planes);   // WB9h: this pass's view - and the next frame's skins
@@ -947,9 +988,10 @@ export class PeerBodies {
       const g = ow * this._scaleOf(b);   // MWNPC10: and its own scale
       // MWNPC16: the body casts its own shape where this lane's do - an open body (a veiled one casts nothing), never one
       // the travel view grows (OW-BIG: no giant's shadow), never one more burnt away than whole (AUDIT MWNPC16-18 R1: the
-      // dissolve's own law, as its flat keeps it - systems/dissolve.js dissolveShadowless)
+      // dissolve's own law, as its flat keeps it - systems/dissolve.js dissolveShadowless), never one whose flat casts
+      // none (AUDIT DEX B2: a NoShadow row's mobile, SetupDemoEnemy.cs:137-140 - characters/foeBodies.js foeFx)
       const fx = this._cam?.fxOf ? this._cam.fxOf(b.id) : null;
-      const cast = this._casts && !veiled && !(ow > 1) && !dissolveShadowless(fx?.dissolve);
+      const cast = this._casts && !veiled && !(ow > 1) && !dissolveShadowless(fx?.dissolve) && !fx?.noShadow;
       const anchored = cast && !!this._cam?.anchoredOf?.(b.id);   // AUDIT MWNPC16-18 A3
       if (this._planesOk) {
         if (!this._sees(b, 0, g)) {
@@ -967,7 +1009,7 @@ export class PeerBodies {
       // WB9h: seen, and its skin behind its clocks (the view swung onto it past the margin since the frame stepped it) -
       // posed now, where its clocks stand, before it is drawn
       if (b.stale) {
-        try { b.rig.update(0, { pose: true, effectsDt: b.bank }); b.bank = 0; b.stale = false; b.owed = false; b.posedAt = this._frame; } catch (e) { this._fail(b, `update threw: ${e?.message ?? e}`); continue; }
+        try { this._poseHorse(b); b.rig.update(0, { pose: true, effectsDt: b.bank }); b.bank = 0; b.stale = false; b.owed = false; b.posedAt = this._frame; } catch (e) { this._fail(b, `update threw: ${e?.message ?? e}`); continue; }   // HORSE-VIEW: and its horse with it
       }
       const horse = b.horse && b.cam?.saddle ? this._horses()?.picture(b.horse, horseFeetUnder(b.feet, b.yaw, g), b.yaw, g) ?? null : null;   // COATS3D: astride, the horse in the body's picture
       try { if (b.rig.drawThird(canvas, { proj, view, eye, feet: b.feet, yaw: b.yaw, hitFlash: flashOf ? flashOf(b.id) : 0, conceal: b.veil ?? null, grow: g, up: this._cam?.up ?? null, fx, cast, anchored, horse })) drawn++; } catch (e) { this._fail(b, `draw threw: ${e?.message ?? e}`); }   // AUDIT MWBODY A1; HITFLASH1: a struck body flashes red; INVIS-LOOK: a concealed one blends; OW-PEERS: grown and leaned under the Overworld; MWNPC16: its own shadow; COATS3D: astride, its horse

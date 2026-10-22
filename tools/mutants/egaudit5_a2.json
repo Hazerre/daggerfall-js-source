@@ -276,7 +276,7 @@
   {
     "name": "EGA5A2-captive-law-ignored",
     "file": "src/net/eliteGates/egBrain.js",
-    "old": "if (law.length >= EG_CHAINS) return law.slice(0, EG_CHAINS).map((q) => [q.x, q.z]);",
+    "old": "if (law.length >= EG_CHAINS && three.every((q) => egOnFight(spec, q.x, q.z, 0, spotY(spec, q)))) return three.map((q) => [q.x, q.z]);",
     "new": "if (law.length > EG_CHAINS) return law;",
     "tests": [
       "test/net/eliteGates/egaudit5_a2.test.js"
@@ -296,8 +296,8 @@
   {
     "name": "EGA5A2-herald-news-no-start",
     "file": "src/net/eliteGates/egBrain.js",
-    "old": "t: secs(now - B.wk), ew: B.ew ?? 0, o: B.o ?? ''",
-    "new": "t: secs(now - B.wk), o: B.o ?? ''",
+    "old": "t: secs(now - B.wk), ew: B.ew ?? 0, ...heraldCompany(B)",
+    "new": "t: secs(now - B.wk), ...heraldCompany(B)",
     "tests": [
       "test/net/eliteGates/egaudit5_a2.test.js"
     ],
@@ -326,8 +326,8 @@
   {
     "name": "EGA5A2-herald-fold-drops-rd",
     "file": "src/net/eliteGates/egHerald.js",
-    "old": "else owe({ kind: 'rd', o: e.o, w: e.w, h: e.h, t: e.t, ew: e.ew ?? 0 });",
-    "new": "else owe({ kind: 'rd', o: e.o, w: e.w, h: e.h, t: e.t });",
+    "old": "else owe({ kind: 'rd', o: e.o, n: e.n ?? 0, w: e.w, h: e.h, t: e.t, ew: e.ew ?? 0 });",
+    "new": "else owe({ kind: 'rd', o: e.o, n: e.n ?? 0, w: e.w, h: e.h, t: e.t });",
     "tests": [
       "test/net/eliteGates/egaudit5_a2.test.js"
     ],

@@ -35,7 +35,7 @@ function rig() {
   const state = { aboard: true, passengers: 0, mode: 'exterior', busy: false, originShift: [0, 0, 0], entered: [] };
   const deps = {
     available: () => true,
-    boats: () => s.rt.AllBoats, sailing: () => s.rt.isSailing(), disembarking: () => !!s.rt.state.disembarking,
+    boats: () => s.rt.AllBoats, csa: () => s.rt,   // FB1020c CABIN-FOES: the helm read off the runtime
     aboard: () => state.aboard, passengers: () => state.passengers, mode: () => state.mode, busy: () => state.busy,
     feet: () => [101, 39, 202], yaw: () => 0.7, nearby: () => true,
     toNative: (p) => p.map((v, i) => v - state.originShift[i]),
@@ -226,6 +226,7 @@ test('worldModes exit caches the cabin, tears down the room, and lands at deck h
     say: (s) => actions.push(s), exteriorLanding: () => assert.fail('cabin must return through its boat'), exitReturn: null,
     player: { pos: [0, 0, 0], spawn: (...p) => actions.push(p) }, cam: { yaw: 0 },
     unleveledLootPreTransition: noop, cacheInteriorScene: () => actions.push('cache'), teardownQuestFlats: noop,
+    interiorLootLeave: noop,   // PIN MOVED (OUTDOOR-LOOT D-1): the building's cupboards hear of the leave ahead of the bag's drop
     interiorCtx: { destroy: () => actions.push('destroy') }, _intShared: null, interiorFoes: null, interiorGuards: null,
     interiorDropped: { restorePiles: noop }, interiorHitEffects: { clear: noop }, interiorBloodMarks: { clear: noop },
     interiorCamps: { destroyAll: noop }, interiorHearths: [], interiorBuilding: {}, interiorHome: null, interiorSeatHall: null,
@@ -422,7 +423,8 @@ test('existing bank Transport callback enters the launched deed boat through the
     cabinLink: { close: () => calls.push('close link') }, _teleporting: false,
     hudFade: { smashHUDToBlack: () => {}, fadeHUDFromBlack: () => calls.push('fade') },
     _teleportToPixel: async (x, y) => calls.push(['pixel', x, y]), state: { worldCoords: (p) => ({ x: p[0], z: p[2] }), compensation: [0, 0, 0] },
-    csaSyncColliders: () => {}, CSA_TRIGGER_MODEL: TRIGGER_MODEL, player, cam, csaLocalOf: localOf, csaDeckPose: deckPose, townTalk: { say: (line) => said.push(line) } };
+    csaSyncColliders: () => {}, CSA_TRIGGER_MODEL: TRIGGER_MODEL, player, cam, csaLocalOf: localOf, csaDeckPose: deckPose, townTalk: { say: (line) => said.push(line) },
+    navalHostileNear: () => false, CABIN_REFUSAL };   // FB1020c CABIN-FOES: no hostile ship near
   const enter = new Function(...Object.keys(args), `return (${worldFunction('enterLinkedBankCabin')});`)(...Object.values(args));
   const saved = JSON.stringify(r.s.rt.getSaveData());
   assert.equal(await enter(), true);

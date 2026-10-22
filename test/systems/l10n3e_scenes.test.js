@@ -248,7 +248,7 @@ test('L10N3e scenes: the town map\'s plates carry the shown pair beside the cano
       .map((t) => generateBuildingName(t === BUILDING_TYPES.GeneralStore ? cnSeed : 9, t, { ...o, palaceName: palace }));
   };
   const show = () => ({
-    world: plates(opts('world.js', { dfLoc: DAGGERFALL, b: { locBlocks: [] } })),
+    world: plates(opts('exteriorAutomapToggle.js', { dfLoc: DAGGERFALL, b: { locBlocks: [] } })),   // PIN MOVED (STAR0): the world host's town map door, moved out of bootWorld by tools/hostMove.mjs (bible/01-Overview/Host-Split.md)
     exterior: plates(opts('exterior.js', { dfLocation: DAGGERFALL, loc: { blocks: [] }, locationName: 'Daggerfall' })),
   });
   const { en, fr } = inFrench(PLACES, show);
@@ -259,7 +259,7 @@ test('L10N3e scenes: the town map\'s plates carry the shown pair beside the cano
   assert.deepEqual(fr.exterior, fr.world);
   // the title: the window's `locationName` is the name as shown, its key the locationId - by source, since the window's
   // bag is built inside the M key's whole arm
-  for (const file of ['world.js', 'exterior.js']) {
+  for (const file of ['exteriorAutomapToggle.js', 'exterior.js']) {   // PIN MOVED (STAR0): the world host's half in its moved module
     assert.match(host(file).text, /locationName: shownLocation,   \/\/ L10N3e: the title, as shown - the key is locationId\n\s*locationId: locId,/, `${file}'s title`);
   }
 });
@@ -491,7 +491,7 @@ test('L10N3e scenes: the plaque over a party mate names my readied spell as the 
 
 test('L10N3e scenes: the dungeon\'s corpse plaque is loot.entityName (GameObjectHelper.cs:701) - corpseEntityName, as the other pools\' plaques read it (World Tooltips .cs:526); dungeonContext.js _dungeonHoverName, run whole', () => {
   const hover = (foes) => mount(`${fnSrc('dungeonContext.js', '_dungeonHoverName')}\nreturn _dungeonHoverName;`, {
-    worldTooltipsOn: () => false, hideInteractTooltip: () => false, foes, lootableBody: (f) => !!f, corpseName, corpseEntityName, enemyDisplayName, championName,
+    worldTooltipsOn: () => false, hideInteractTooltip: () => false, foes, lootableBody: (f) => !!f, _lootUnreadable: new Set(), roomLootKey: () => null, corpseName, corpseEntityName, enemyDisplayName, championName,
   });
   const enemyNames = Array.from({ length: 62 }, (_, i) => (i === 23 ? 'Spectre factice' : `Ennemi ${i}`)).join('\n');
   const { en, fr } = inFrench({ Internal_Strings: [['enemyNames', enemyNames]] }, () => hover([{ mobileType: 23 }])('corpse:0'));

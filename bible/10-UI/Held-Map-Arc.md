@@ -1304,12 +1304,20 @@ still look for the box ENH-NOTICE3 moved onto the notice panel - its own repair,
 
 ## OW-WHO, OW-KIN, OW-HUBS, SEAT-TIP on the travel map (FIELD BUGS 2026-10-04e)
 
+TOWN-ECON (2026-10-16, `06-Systems/Town-Economy-Arc.md` section 3): the seat's card is now every town's - its economy and prices above, a seat's own lines below (a held seat's Charter line left out: its holder line names the guild) - made by `systems/town/townEcon.js` (`tipAt`, and `tipFnAt` for the Overworld's plate); `scenes/world.js` seatTipAt is gone.
+
 The region's travellers are filtered by the Overworld's own Players switches (the key gains a Players row while any are
 in the book) and drawn in their kin's colour (the legend names a friend's and a guild-mate's while one is drawn); a
 carriage town wears a wheel left of its mark, clear of its hub circle and seat ring, at every band, and names keep off
 it; a seat answers its hover with the EVENT-TIP card (who holds it, this week's battle - a seat's lines bounded at 160,
 not 80), and the I box names a held seat's holder - it read "unheld" whoever held it. The record:
 `01-Overview/bugs/Field-Bugs-2026-10-04e.md`.
+
+MAP-PLAYERS (2026-10-20, Dudey: *"add a filter button on the Worldmap not overworld map (theres is already one for it) to
+show and not show players"*): the key's Players row stands wherever players can be drawn, with none in the region too,
+and opens on one switch, Shown / Hidden, that takes every other player off the sheet and its legend. It is the
+Overworld's Travellers switch (`travelViewFilters.js` playersOnMaps - one store, so both maps answer alike); Friends,
+Guild, Others and the Renown floor follow it while players are shown and in the book. My party is drawn either way.
 
 ## TAMRIEL1 - the continent round the Bay (2026-10-08)
 
