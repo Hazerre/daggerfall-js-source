@@ -711,6 +711,9 @@ import { goldPiecesOf as legacyGold, addItem as legacyAddItem, letterOfCredit } 
 import { tabStorage } from '../systems/appStorage.js';   // LEGACY1: a birth crosses the reload in the tab's own store
 import { monthNames } from '../systems/gameDate.js';   // L10N3e: the month's name in the player's language, read when asked
 import { createBountyHost } from './bountyHost.js';   // BOUNTY1: the town's bounty boards - the hunts, their packs, their purse
+import { createWorldPartyPing } from './partyPingHost.js';   // PARTY-PING: a look's point for the party, and the floor route while one follows
+import { pingSubject, pingCrowd } from '../systems/party/partyPingCaption.js';   // PARTY-PING: the name under a look, a person and another player among them
+import { PING_TRAVEL_M } from '../systems/party/partyPing.js';   // PARTY-PING: how far the travel view's look reaches
 import { createBountyFarms, farmSpotLocal, pickFarm } from './bountyFarms.js';   // BOUNTY-FARM: a farm on a farm bounty's pixel, while it is held
 import { questBoardIndices, bountyDungeons } from '../systems/bounty/bountyBoard.js';   // BOUNTY1: which of a town's boards post bounties (half); RVN7: a revenant's lair, in the boards' ring
 import { createBountyOverlay, closeBountyDoor, bountyDoorOpen } from '../ui/bounty/bountyDoor.js';   // BOUNTY1: the board's window and the payday notice
@@ -20171,6 +20174,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let _walkStopWhy = null;   // AUDIT OW4 P4: why Travel Options last stopped my journey (its update's `stopped`), until the walk's step reads it
   let bountyHost = null;   // BOUNTY1: made below, beside the party's marks; read late by the maps, the pose and the boards
   let social = null, _partyComposedAt = -Infinity, _partyPose = null;   // PARTY8-B: the last pose composed, for the party HUD's own "where am I"
+  let partyPing = null, _partyPingTry = -Infinity;   // PARTY-PING: the look's point, wired below
   const chatSafety = createChatSafetyHost({ log: () => chatLog, links: () => [...(chatLinks?.values?.() ?? []), online].filter(Boolean), social: () => social, minter: () => identityMinter, panel: () => chatPanel });   // SAFE1-SAFE7 (bible/11-Multiplayer/Chat-Safety-Arc.md) - AUDIT SAFE CLIENT-2: the minter a ban lets go of; CLIENT-12: the field a slowed line goes back to
   /** CONCEAL-MATE: a peer in my party - the test player/socialPick.js openPeers is handed, so a concealed mate stays
    *  open to the F key, the Nearby list, a page and a gift. A declaration: the street's pick reads it from above. */
@@ -21754,6 +21758,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     link.onSocial = (f) => { social.apply(f); };
     link.onParty = (acct, p) => {
       social.applyParty(acct, p);
+      partyPing?.hear(acct, p);   // PARTY-PING: a mate's point, in this place
       // KEPT-KILL: a member's kills of foes they kept on a partner's word - my copy of that quest counts each, once
       if (p?.qk && social.inMyParty(acct)) creditKeptKills(questBridge?.machine, keptKills, acct, p.qk, Date.now());
     };
@@ -25938,6 +25943,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       ...(social?.leads?.() && mode === 'exterior' && walkMode && playerSpawned && !worldMoveBusy() ? partyFeetOf(player.pos) : {}),
       ...partyFxField(),   // PARTY-BUFFS: my live spell effects, for the party's cards (net/partyBuffs.js)
       ...(bountyHost?.poseField() ?? {}),   // BOUNTY1: my bounties - the shared, the held and today's cleared (validPartyPose `bq`)
+      ...(partyPing?.poseField() ?? {}),   // PARTY-PING: the look's point, while the route is still worth saying (validPartyPose `pg`)
       lv: Math.max(1, Math.min(99, playerEntity.level | 0 || 1)),   // BOUNTY-TIER: my level, so a sharer knows whose tier a bounty shuts out
       ...(!restsWithParty() || (_restAloneNight && playerEntity.isResting) ? { nr: 1 } : {}),   // REST-OPT: I rest alone - no voter, nobody to gather, no rest to mirror (AUDIT C3: and a night granted as my own stays mine to its end)
       ...(playerEntity.isResting ? { rs: 1 } : {}),   // PARTY-BUFFS: resting, mine or followed - what I gain is the night's, no heal to float
@@ -27835,6 +27841,34 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // when I am in no party - ONE HOME for MENTOR MODE's partners and PARTY-LOOT's party level (a room container's base
   // is minted at the group's reference level, systems/roomLoot.js roomBaseLevel)
   const partyMateLevels = () => (social?.party ? social.others().filter((m) => m.online !== false && Number.isInteger(m.p?.cl)).map((m) => m.p.cl) : []);
+  partyPing = createWorldPartyPing({
+    now: () => social?.now?.() ?? Date.now(),
+    pressed: () => pressed(latch.edge, keys, 'PartyPing'),
+    blocked: () => gamePaused() || !playerSpawned,
+    mode: () => modes?.mode ?? 'exterior',
+    identity: () => modes?.roomIdentity?.() ?? null,
+    pixel: () => playerTravelPixel(),
+    collider: () => csaModeCollider(),
+    feet: () => player.feetAt?.() ?? player.pos,
+    worldOf: (p) => { const wc = state.worldCoords(p); return { x: wc.x, y: p[1] - state.compensation[1], z: wc.z }; },
+    sceneOf: (pg) => { const [x, z] = state.localFromWorld(pg.x, pg.z); return [x, pg.y + state.compensation[1], z]; },
+    sound: () => { try { audio.playOneShot(SOUND.MakeItem, 0.275); } catch { /* the clip is not up yet */ } },
+    navMesh: () => modes?.dungeonCtx?.navMesh?.() ?? null,
+    actions: () => modes?.dungeonCtx?.actions ?? null,
+    ground: (x, z) => surfaceAt(x, z),
+    subject: (eye, dir, reach) => pingSubject(eye, dir, {
+      collider: csaModeCollider(), reach,
+      foes: (modes?.mode ?? 'exterior') === 'exterior' ? exteriorFoePool() : (modes?.insideFoes?.() ?? []),
+      objects: (modes?.mode === 'interior' ? modes?.interiorCtx?.actions?.objects : modes?.mode === 'dungeon' ? modes?.dungeonCtx?.actions?.objects : null) ?? null,
+      look: modes?.pingLook?.() ?? null,
+      crowd: pingCrowd(eye, dir, reach, _talkPersons(), openPeers(peersNear(), isPartyMate).filter(crowdDrawnHere), (p) => mobilePersonName(p?.person?.nameNPC), (p) => peerName(p?.id), csaModeCollider()),
+    }),
+    buildings: () => modes?.buildingBoxes?.() ?? [],
+    project: (p) => (_lastProj && _lastView ? projectToScreen(p, canvas.clientWidth, canvas.clientHeight, _lastProj, _lastView, worldViewportRect(canvas.clientWidth, canvas.clientHeight)) : null),
+    travel: () => !!travelView?.active,
+    author: () => (typeof playerEntity?.name === 'string' ? playerEntity.name : ''),
+    mateName: (acct) => social?.party?.members?.find((m) => m.acct === acct)?.name ?? '',
+  });
   const partyFrame = (nowMs) => {
     playerEntity._online = isOnlinePage();   // SOFTCAP3: Master Skills is in force only online (systems/masterSkills.js)
     // SOFTCAP1: MENTOR MODE follows the party every frame - so leaving the group hands my real character back the same frame.
@@ -27853,14 +27887,25 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     social.setClockOffset(hub?.clockRead ? hub.clockOffsetMs : (online?.clockOffsetMs ?? 0));
     partyWalkFrame(nowMs);   // TV8: the party's walk - the leader's halts, a member's steps
     partyMapFrame(nowMs);   // PARTY-MAP: Shared Cartography's batches
-    if (!social.party || nowMs - _partyComposedAt < PARTY_SEND_MS / 2) return;
+    if (!social.party) return;
+    // PARTY-PING: a ping sends on the frame it is pressed. A refused one asks again on the pose's own clock -
+    // never every frame, which would reset partyGate's refill (wire.js tokenGate stamps `at` on a refusal).
+    const pingNow = !!partyPing?.unsent();
+    const due = nowMs - _partyComposedAt >= PARTY_SEND_MS / 2;
+    if (!due && !pingNow) return;
+    if (pingNow && !due && nowMs - _partyPingTry < PARTY_SEND_MS / 2) return;
+    if (pingNow && !due) _partyPingTry = nowMs;
     _partyComposedAt = nowMs;
     _partyPose = composePartyPose();
     // PARTY-TRAVEL: once the pose saying we set out has LEFT, the leader's own journey may begin. AUDIT PARTY-TRAVEL: only a
     // pose the link sent - sendParty refuses one within PARTY_SEND_MS of the last (and a repeat, and one its gate holds),
     // and the session was told of every pose composed, so a leader walking about (a pose a second) set out before the
     // members had read "we set out", and a member whose last open reading found the leader's body gone was left behind.
-    if (socialLink()?.sendParty(_partyPose)) partyTravel?.sent(_partyPose);
+    // PARTY-PING: `urgent` skips that floor for the one pose that carries a new point.
+    if (socialLink()?.sendParty(_partyPose, { urgent: pingNow })) {
+      partyTravel?.sent(_partyPose);
+      if (pingNow) partyPing.sent();
+    }
   };
   // SRV-N (Mac: "a server restart notice whenever we push server
   // updates. Like a notice that pushes in the chat window"): A NOTICE
@@ -29042,7 +29087,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const drawPeerBodies = (proj, view, eye, face = null) => { if (peerBodies) peerBodies.draw(canvas, { proj, view, eye, flashOf: peerFlashOf, grow: face ? peerGrow : null, up: face?.up ?? null }); peerWalkers?.drawLanterns(); (_mode() === 'interior' ? familyRoom : _mode() === 'exterior' ? familyStreet : null)?.draw(canvas, { proj, view, eye }); };   // LEGACY7 part four: and the line's own bodies, in the place they stood   // OW-PEERS: under the Overworld the bodies grown and leaned as the traveller's own   // HT-WAIST-BACK: the walkers' lanterns, each on its own tilted basis, beside the bodies - every mode's pass calls this after the player's own body (the exterior here, the dungeon and the interior through host.drawPeerBodies)
   /** INVIS-LOOK: the concealed peers' Morrowind bodies, translucent - blended with no depth write, so every mode's pass
    *  calls this AFTER its opaque world (net/peer/peerBodies.js drawVeiled), with the camera its body pass took. */
-  const drawVeiledPeerBodies = () => { peerBodies?.drawVeiled(); drawAuras(); nodeGlintPass.draw(travelView?.active ? null : nodeMarksAt(enchantFeet())); };   // WB9g: and the auras, after the opaque world as the veiled are; NODE-MARKS: and the nodes' light - NODE-GLINT's glints, the glow a node with no picture
+  const drawVeiledPeerBodies = () => { peerBodies?.drawVeiled(); drawAuras(); nodeGlintPass.draw(travelView?.active ? null : nodeMarksAt(enchantFeet())); partyPing?.draw(renderer); };   // WB9g: and the auras, after the opaque world as the veiled are; NODE-MARKS: and the nodes' light - NODE-GLINT's glints, the glow a node with no picture
   /** WB9g (2026-09-30, Mac: "an animated burning ground aura that circles the ground where your character stands"):
    *  DAGON'S FIRE AT THE FEET (render/auraRing.js) - mine, as the service signed it (the session's `au`, adopted at each
    *  mint), and every peer's the relay vouched for (their hello's `au`), each kindling as it first stands. Gathered with
@@ -32235,6 +32280,14 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     onPick: (x, y, e) => onTravelViewPick(x, y, e),   // TV2; OW-PATH: the event, for the fine-move key
     onMark: (key, e) => onTravelViewMark(key, e),   // OW-ATTACK: the press, for an enemy's single click
     onContext: (x, y, key) => onTravelViewContext(x, y, key),   // WAYPOINTS: the right click's menu
+    onPing: (x, y) => {   // PARTY-PING: the middle button, from the raised eye
+      const eye = travelView?.eye;
+      if (!eye || !_lastProj || !_lastView) return;
+      const [sx, sy] = canvasPoint(x, y, canvas.getBoundingClientRect());
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      const dir = rayDirFromScreen(sx, sy, w, h, _lastProj, _lastView, eye, worldViewportRect(w, h));
+      if (dir) partyPing?.cast({ eye, dir, reach: PING_TRAVEL_M });
+    },
     onWaypointGo: (id) => travelViewWaypointWalk(id),   // WAYPOINTS: a followed row's Go
     followDist: () => travelViewFollowDist(),   // WAYPOINTS: the followed rows' distances
     marks: travelViewMarks,
@@ -32397,6 +32450,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     meterFor(renderer.gl)?.markCpu('sim');   // PERF-CPU: everything between here and the next mark is the rest of the simulation
     lookGate(gamePaused());   // a window up frees the cursor; closing re-locks
     const fwd = [Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch)];
+    partyPing?.frame({ eye: (travelView?.active && travelView.eye) || cam.pos, dir: (travelView?.active && travelView.fwd) || fwd });   // PARTY-PING: one look, every mode, before the modal return
     const right = [Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)];   // HANDEDNESS (mat4's law): screen-right = (cos, 0, -sin) under the mirrored projection - Unity's own right
     noteLocalPlayer(walkMode && playerSpawned ? player.pos : cam.pos, fwd);   // TACT2: where I stand and face - a foe behind me sees my back (ai/tactics.js)
     tickTactics(foeFrameDt(_questBoxHoldsFoes() || (_mode() === 'dungeon' && !!modes?.dungeonCtx?.uiOverlayActive) ? 0 : dt));   // AUDIT TACT D10/A3: the brain's clock is the foes' own step - held when they are; AUDIT TELL H1: a dungeon's window holds its foes, and their wind-ups with them
