@@ -9401,7 +9401,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   function openEtherChart() {
     // AUDIT CAPTAIN'S SEA X16: the ship's heading at her helm (the camera's yaw is where the captain looks - astern, as often)
     const heading = () => { const boat = csaRuntime?.isSailing?.() ? csaRuntime.state.CurrentBoat : null; if (!boat) return cam.yaw; const f = boatForward(boat); return Math.atan2(f[0], f[2]); };
-    const word = () => { const p = playerTravelPixel(); return etherHost.chart(p.x, p.y, heading()); };
+    const word = () => { const p = playerTravelPixel(); return { ...etherHost.chart(p.x, p.y, heading()), pvp: _onlineWorldSession() && !!online?.wildOk }; };   // ETHER-WILD: the open sea's fights, for the chart's peace
     // ETHER-OW (2026-10-13, the owner: "Also allow the player to zoom out into the overworld like in the Iliac Bay for easy
     // travel"): THE CHART'S OVERWORLD DOOR - the held map's own (TV1: shown where the view can rise, a driver's never),
     // taken once the chart is down and its slot empty (the slot is emptied before the occupant is told)

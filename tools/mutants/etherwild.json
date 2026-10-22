@@ -250,5 +250,68 @@
     "tests": [
       "test/systems/wild/etherwild.test.js"
     ]
+  },
+  {
+    "name": "ETHER-WILD-chart-peace-offline",
+    "file": "src/ui/etherChartWindow.js",
+    "old": "const peace = word.pvp && on(hx, hy",
+    "new": "const peace = on(hx, hy",
+    "tests": [
+      "test/ui/etherchart_peace.test.js"
+    ]
+  },
+  {
+    "name": "ETHER-WILD-chart-peace-unscaled",
+    "file": "src/ui/etherChartWindow.js",
+    "old": "{ x: hx, y: hy, r: ETHER_PEACE_PX * k,",
+    "new": "{ x: hx, y: hy, r: ETHER_PEACE_PX,",
+    "tests": [
+      "test/ui/etherchart_peace.test.js"
+    ]
+  },
+  {
+    "name": "ETHER-WILD-chart-peace-never-named",
+    "file": "src/ui/etherChartWindow.js",
+    "old": "named: ETHER_PEACE_PX * k >= PEACE_NAME_R }",
+    "new": "named: false }",
+    "tests": [
+      "test/ui/etherchart_peace.test.js"
+    ]
+  },
+  {
+    "name": "ETHER-WILD-chart-peace-unpainted",
+    "file": "src/ui/etherChartWindow.js",
+    "old": "  if (m.peace) paintPeace(g, m.peace);",
+    "new": "",
+    "tests": [
+      "test/ui/etherchart_peace.test.js"
+    ]
+  },
+  {
+    "name": "ETHER-WILD-chart-peace-over-isles",
+    "file": "src/ui/etherChartWindow.js",
+    "old": "  g.fillStyle = PEACE_FILL; g.fill();",
+    "new": "  g.fillStyle = PEACE_LINE; g.fill();",
+    "tests": [
+      "test/ui/etherchart_peace.test.js"
+    ]
+  },
+  {
+    "name": "ETHER-WILD-chart-peace-key-always",
+    "file": "src/ui/etherChartWindow.js",
+    "old": "    peaceItem.hidden = !word.pvp;   // ETHER-WILD",
+    "new": "    peaceItem.hidden = false;   // ETHER-WILD",
+    "tests": [
+      "test/ui/etherchart_peace.test.js"
+    ]
+  },
+  {
+    "name": "ETHER-WILD-chart-word-no-pvp",
+    "file": "src/scenes/world.js",
+    "old": "pvp: _onlineWorldSession() && !!online?.wildOk }; };",
+    "new": "pvp: true }; };",
+    "tests": [
+      "test/ui/etherchart_peace.test.js"
+    ]
   }
 ]

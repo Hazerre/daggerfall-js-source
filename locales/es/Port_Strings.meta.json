@@ -28284,6 +28284,11 @@
   "tr": "f6f3198850e6",
   "by": "claude-in-session"
  },
+ "sea.chart.key.peace": {
+  "en": "8123639d5153",
+  "tr": "2e2ec5a355a8",
+  "by": "claude-in-session"
+ },
  "sea.chart.key.port": {
   "en": "fe035157cda2",
   "tr": "095508bab260",
@@ -28312,6 +28317,11 @@
  "sea.chart.key.wild": {
   "en": "08e62f43c014",
   "tr": "bc8ef7feacfc",
+  "by": "claude-in-session"
+ },
+ "sea.chart.peace": {
+  "en": "de4f5d54f2fa",
+  "tr": "864732dfeb96",
   "by": "claude-in-session"
  },
  "sea.chart.rise": {

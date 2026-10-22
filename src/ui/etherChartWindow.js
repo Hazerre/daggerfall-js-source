@@ -51,6 +51,7 @@ import { t } from '../systems/textManager.js';   // L10N4 (at the merge of main)
 import { isleByKey, BANDS, VEIL_X, LEAGUE_PX, KIND_WORDS, ETHER_BOX, compassPoint, veilhaven, ETHER_SEA_NAME } from '../world/ethericSea.js';
 import { hauntOf, legendById, HAUNT_PX } from '../systems/naval/etherShips.js';
 import { isleGood, goodById } from '../systems/naval/tradeGoods.js';   // ISLE-TRADE: a port isle's own good of the Bay, on its card
+import { ETHER_PEACE_PX } from '../systems/wild/etherWild.js';   // ETHER-WILD: Veilhaven's peace, drawn where the open sea's fights begin
 
 /** The zooms: screen pixels a map pixel (819.2 m). */
 export const CHART_ZOOMS = Object.freeze([1, 2, 4, 8, 16]);
@@ -101,6 +102,16 @@ export const CHART_KEY = Object.freeze([
   keyRow('ship', () => t('sea.chart.key.ship', 'Your ship')), keyRow('haunt', () => t('sea.chart.key.haunt', 'A legend\'s haunt')),
   keyRow('sunk', () => t('sea.chart.key.sunk', 'A legend sunk')),
 ]);
+/** ETHER-WILD (2026-10-21): the key's row for Veilhaven's peace - shown while the chart's word says the open sea is an
+ *  open PvP zone (`pvp`: online, at a relay that raises it), beside CHART_KEY's marks. */
+export const CHART_PEACE_KEY = keyRow('peace', () => t('sea.chart.key.peace', 'Veilhaven\'s peace - past it, open PvP'));
+/** ETHER-WILD: the peace's colours - a safe harbour's green over the depths, apart from every isle's and haunt's. */
+export const PEACE_FILL = 'rgba(110,214,170,0.13)';
+export const PEACE_LINE = 'rgba(140,232,190,0.85)';
+/** ETHER-WILD: the peace is named on the chart once its circle is this wide (screen pixels of radius). */
+export const PEACE_NAME_R = 40;
+/** ETHER-WILD: the peace's name on the chart. */
+export const peaceName = () => t('sea.chart.peace', 'VEILHAVEN\'S PEACE');
 /** AUDIT CAPTAIN'S SEA X18: the wheel's travel a zoom step takes (a trackpad's light brush was a step an event). */
 export const CHART_WHEEL_STEP = 100;
 /** AUDIT CAPTAIN'S SEA X6: a press that moves less than this (px) is a tap; two fingers' spread by this share a step. */
@@ -333,8 +344,13 @@ export function chartModel(word, v, w, h, { measure = null, pick = null } = {}) 
     card = { key: named.key, x: named.x, y: named.y, r: named.r, title, words, box: fits.find((b) => ![...placed, ...ring].some((p) => overlaps(b, p))) ?? fits[0] ?? spots[0] };
   }
   const st = word.stats ?? {};
+  // ETHER-WILD: VEILHAVEN'S PEACE - the circle no player fights in (systems/wild/etherWild.js etherInPeace, the Veil's own
+  // water drawn already), while the word says the open sea is an open PvP zone; named on the chart once it is wide enough
+  const haven = veilhaven();
+  const [hx, hy] = toScreen(v, haven.px + 0.5, haven.py + 0.5, w, h);
+  const peace = word.pvp && on(hx, hy, ETHER_PEACE_PX * k) ? { x: hx, y: hy, r: ETHER_PEACE_PX * k, named: ETHER_PEACE_PX * k >= PEACE_NAME_R } : null;
   return {
-    isles, bands, veil: veil <= w ? veil : null, ruler, ship, haunts, depths, edge: [bx0, by0, bx1, by1], grid, scale,
+    isles, bands, veil: veil <= w ? veil : null, ruler, ship, haunts, depths, edge: [bx0, by0, bx1, by1], grid, scale, peace,
     pick: card,
     title: chartTitle(),   // the haunts' `r` the square's half side (X13)
     sub: st.legends
@@ -412,9 +428,18 @@ function paintHaunt(g, t) {
   g.strokeRect(t.x - t.r, t.y - t.r, 2 * t.r, 2 * t.r);   // AUDIT CAPTAIN'S SEA X13: a haunt is a square
   g.setLineDash([]); g.lineWidth = 1;
 }
+/** ETHER-WILD: VEILHAVEN'S PEACE - a safe harbour's wash and a dashed ring (a circle: the peace is read off Veilhaven
+ *  whichever way a captain sails). */
+function paintPeace(g, p) {
+  g.beginPath(); g.arc(p.x, p.y, p.r, 0, TAU);
+  g.fillStyle = PEACE_FILL; g.fill();
+  g.setLineDash([4, 3]); g.lineWidth = 1.5; g.strokeStyle = PEACE_LINE; g.stroke();
+  g.setLineDash([]); g.lineWidth = 1;
+}
 /** A key's mark, on a canvas of its own, about its middle. */
 export function paintKey(g, what, x, y) {
-  if (what === 'ship') paintShip(g, x, y, Math.PI / 4, 0.55);
+  if (what === 'peace') paintPeace(g, { x, y, r: 7 });
+  else if (what === 'ship') paintShip(g, x, y, Math.PI / 4, 0.55);
   else if (what === 'haunt' || what === 'sunk') paintHaunt(g, { x, y, r: 6, sails: what === 'haunt' });
   else paintMark(g, what, x, y, what === 'port' ? 4.5 : 4);
 }
@@ -456,6 +481,7 @@ export function paintChart(g, m, w, h) {
     if (sea[3] < h) { g.moveTo(sea[0], sea[3]); g.lineTo(w, sea[3]); }
     g.stroke(); g.lineWidth = 1;
   }
+  if (m.peace) paintPeace(g, m.peace);   // ETHER-WILD: under the haunts and the isles - water, as the depths are
   for (const t of m.haunts) paintHaunt(g, t);
   // the isles' lands, once a land outgrows its mark - the isle's own size at the zoom
   for (const i of m.isles) {
@@ -486,6 +512,7 @@ export function paintChart(g, m, w, h) {
     g.font = CHART_FONT.name; g.fillStyle = t.sails ? '#ffab98' : '#c4c4d0'; g.fillText(t.name, Math.round(x), Math.round(y + 6));
     g.font = CHART_FONT.small; g.fillStyle = t.sails ? '#e0a194' : '#9c9cab'; g.fillText(t.sub, Math.round(x), Math.round(y + 20));
   }
+  if (m.peace?.named) { g.font = CHART_FONT.small; halo(g, peaceName(), m.peace.x, m.peace.y - m.peace.r + 12, PEACE_LINE, 'center'); }   // ETHER-WILD: inside its ring's top, clear of Veilhaven's own name at its middle
   g.font = CHART_FONT.name;
   for (const i of m.isles) if (i.label && i.box) halo(g, capFirst(i.name), i.box[0], (i.box[1] + i.box[3]) / 2, i.kind === 'port' ? '#f6e2b0' : '#e2dccf');
   if (!s.on && s.edge && s.label) {
@@ -653,6 +680,11 @@ export function mountEtherChartWindow(host, deps) {
     item.append(c, el('span', null, words));
     key.append(item);
   }
+  // ETHER-WILD: Veilhaven's peace, in the key while the open sea is an open PvP zone (asked at every paint, as the door is)
+  const peaceItem = el('span');
+  { const c = /** @type {HTMLCanvasElement} */ (el('canvas')); c.width = c.height = Math.round(18 * dpr0); c.style.cssText = 'width:18px;height:18px;flex:0 0 auto'; c.setAttribute('aria-hidden', 'true');
+    const kg = c.getContext('2d'); if (kg) { kg.setTransform(dpr0, 0, 0, dpr0, 0, 0); paintKey(kg, CHART_PEACE_KEY[0], 9, 9); }
+    peaceItem.append(c, el('span', null, CHART_PEACE_KEY[1])); key.append(peaceItem); }
   const scaleItem = el('span', 'dfchart-scale');
   const scaleBarCanvas = /** @type {HTMLCanvasElement} */ (el('canvas'));
   scaleBarCanvas.setAttribute('aria-hidden', 'true');
@@ -715,6 +747,7 @@ export function mountEtherChartWindow(host, deps) {
     if (!g) return;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     model = chartModel(word, view, w, h, { measure, pick });
+    peaceItem.hidden = !word.pvp;   // ETHER-WILD
     h2.textContent = model.title;
     sub.textContent = model.sub;
     zoomOut.disabled = view.zoom === 0;

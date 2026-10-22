@@ -685,6 +685,14 @@ mountains' own, unchanged. The crossing of a band is said in the sea's words ("D
   (`etherCrossing.js:"export function crossingRows"`, `pvp`; one sentence in every language, broken into the question's own measure by `questionRows`): "Past Veilhaven's peace the open sea is an open PvP zone.
   Other players may attack you there."
 
+**THE CHART** (ETHER-WILD's own, the owner's "build every single bit of this", 2026-10-22): while the chart's word says
+the open sea fights (`pvp` - online, at a relay that raises the zone: `world.js:"return { ...etherHost.chart(p.x, p.y, heading()), pvp:"`),
+Veilhaven's peace is drawn about Veilhaven - a safe harbour's green wash and a dashed ring, `ETHER_PEACE_PX` at the
+chart's scale, under the haunts and the isles as the depths' water is (`chartModel`'s `peace`, `paintPeace`) - named
+VEILHAVEN'S PEACE inside its ring's top once its radius is `PEACE_NAME_R` (40 px - from x4), and keyed beside the marks
+("Veilhaven's peace - past it, open PvP", `CHART_PEACE_KEY`, shown with the word). Offline there is nothing to be safe
+from, and nothing is drawn. Pinned by `test/ui/etherchart_peace.test.js`.
+
 **THE WORDS** are the ground's: the live flag carries its kind (`setWildHere(on, ring, kind)`, `wildZoneKind`), the
 sea's words are registered by its own module (`registerZoneWords`, so the mountains' leaf imports nothing of the sea),
 and `zoneWord`, `zoneName` and `zoneRingName` answer the ground's own - a word the sea does not say its own way is the
@@ -702,8 +710,8 @@ it fights nobody there and drops nothing - INT9's known limit, Wild-Zone.md sect
 **OPEN FOR THE OWNER** (the suggestions that came with it, none built): broadsides between players' ships and a
 captain's hold as a prize - the relay referees no naval fire yet, so a ship is no target of a player's; whether a
 captain's hold gives up a share at a death past the peace (the larger shelter at sea, above); a freeport's bounty board
-on the sea's killers; the Wrothgarian halls' daily elite vaults for the Deep Aether and the Abyss, with their locks and
-crows; and the peace drawn on the chart.
+on the sea's killers; and the Wrothgarian halls' daily elite vaults for the Deep Aether and the Abyss, with their locks
+and crows.
 
 Pinned by `test/systems/wild/etherwild.test.js` (8); `tools/mutants/etherwild.json` (28, all dead).
 
