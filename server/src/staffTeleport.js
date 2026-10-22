@@ -17,7 +17,9 @@ export function routeStaffTeleport(room, ws, a, m, now) {
   const result = (socket, nonce, fields) => room._send(socket, JSON.stringify({ t: 'stp', k: 'result', nonce, ...fields }));
   if (m.k === 'ask') {
     if (!isStaff(a.glyphs)) { result(ws, m.nonce, { error: 'denied' }); return; }
-    const peers = [...room._all()].filter(([other, b]) => b.id && !room._dead.has(other) && !room._gone.has(other));
+    // STAFF-PANEL5-FOLLOW-FIX (the relay review's finding 6): a hidden staff socket (staffHidden.js `hid`) is in no list -
+    // matched here, a Dungeon Master's /tp @Staff member went unanswered where a stranger's said `offline`
+    const peers = [...room._all()].filter(([other, b]) => b.id && !b.hid && !room._dead.has(other) && !room._gone.has(other));
     let hits;
     if (m.id) hits = peers.filter(([, b]) => b.id === m.id);
     else {
