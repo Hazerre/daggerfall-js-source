@@ -14,7 +14,7 @@ import {
   _resetSigilSetsForTests,
 } from '../../../src/systems/sigil/sigilSets.js';
 import {
-  AETHERIC_RECORDS, PANOPLY_SET_PIECES, WYRD_SET_PIECES, STARSPUN_SET_PIECES, STARSPUN_SET_CHANCE, RAID_SET_CHANCE, RAID_SET_POWER, aethericById,
+  AETHERIC_RECORDS, PANOPLY_SET_PIECES, WYRD_SET_PIECES, STARSPUN_SET_PIECES, ELTHERIC_SET_PIECES, STARSPUN_SET_CHANCE, RAID_SET_CHANCE, RAID_SET_POWER, aethericById,
   aethericMaterial, mintAetheric, rollStarspunPiece, validSetMarks, AETHERIC,
 } from '../../../src/systems/aetheric.js';
 import { _resetPlayerHealForTests } from '../../../src/systems/playerHeal.js';
@@ -83,7 +83,7 @@ const seq = (...xs) => { let i = 0; return () => xs[Math.min(i++, xs.length - 1)
 const swing = (e, weapon, target, n = 100) => { const d = setBlow(weapon, n, e, target, {}); setStrike(e, target, d, weapon); return d; };
 
 test('STAR7 THE LAW: the Starspun Weave last of every set - Aetheric, Mephala its patron, the star\'s violet its colour, no raiding party\'s, never a world set; Spinner\'s Thread, Bound in Silk and Mephala\'s Veil at 2, 4 and 6 pieces with the design\'s numbers Faint to Ascendant, every brief inside BRIEF_MAX at every stage (mutants: a tier\'s number; the set\'s place; a world set)', () => {
-  assert.deepEqual(SIGIL_SET_IDS.slice(-1), ['starspun']);
+  assert.deepEqual(SIGIL_SET_IDS.slice(-2), ['starspun', 'eltheric']);   // PIN MOVED (SEA-SET): the Eltheric Tidemail after it
   const s = setById('starspun');
   assert.deepEqual([s.id, s.name, s.prince, s.colour, s.aetheric, 'raid' in s, s.role],
     ['starspun', 'The Starspun Weave', 'Mephala', STAR_VIOLET_CSS, true, false, 'The coven\'s thread, turned on the coven']);
@@ -125,7 +125,7 @@ test('STAR7 THE RECORDS: nine in the places\' order - the seven body pieces, a b
   assert.ok(!resists.includes('poison'), 'never poison - Spinner\'s Thread carries it');
   assert.equal(new Set(resists).size, resists.length);
   for (const r of STARSPUN_SET_PIECES) assert.ok(r.lore.length > 20 && r.lore.length <= 100 && !/\S - \S/.test(r.lore), `${r.id}: a line of lore`);
-  assert.deepEqual(AETHERIC_RECORDS.slice(-STARSPUN_SET_PIECES.length - WYRD_SET_PIECES.length - PANOPLY_SET_PIECES.length), [...PANOPLY_SET_PIECES, ...WYRD_SET_PIECES, ...STARSPUN_SET_PIECES]);   // PIN MOVED (WITCH1): the Wyrd's Raiment between the Panoply and the Weave
+  assert.deepEqual(AETHERIC_RECORDS.slice(-ELTHERIC_SET_PIECES.length - STARSPUN_SET_PIECES.length - WYRD_SET_PIECES.length - PANOPLY_SET_PIECES.length), [...PANOPLY_SET_PIECES, ...WYRD_SET_PIECES, ...STARSPUN_SET_PIECES, ...ELTHERIC_SET_PIECES]);   // PIN MOVED (SEA-SET): the Tidemail's nine after the Weave's   // PIN MOVED (WITCH1): the Wyrd's Raiment between the Panoply and the Weave
   assert.equal(new Set(AETHERIC_RECORDS.map((r) => r.id)).size, AETHERIC_RECORDS.length, 'every id its own');
 });
 

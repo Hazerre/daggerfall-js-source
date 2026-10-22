@@ -113,8 +113,8 @@ boarders on the deck, left the sea for good when the player stepped below and ba
 the journey, the time scale and the yard ask - a hostile ship within the sea's reach of her deck (`navalHost.js`
 hostileNear) - and refuses in its own words, *You cannot enter the cabin with enemies nearby.*
 (`systems/sailingCabin.js:"if (hostile) return CABIN_REFUSAL.enemies;"`), after the helm's and the deck's refusals. Both doors
-ask it: the deck's (`world.js:"csa: () => csaRuntime, hostile: navalHostileNear,"` - the two helm seams folded into the
-runtime's own) and Transport > Ship's to a linked bank cabin
+ask it: the deck's (`world.js:"csa: () => csaRuntime, hostile: () => navalHostileNear() || !!naval?.pvp?.captainNear?.(),"` - the two helm seams folded into the
+runtime's own; AUDIT SEA VENTURES E6A: and a stranger captain's ship near in the open sea, `navalPvp.js` captainNear) and Transport > Ship's to a linked bank cabin
 (`world.js:"if (csaRuntime.isSailing() || navalHostileNear())"`). Another player's cabin has no door
 from the deck (a private room is reached by a staff landing alone), so there is nothing more to ask. DFU keeps the
 exterior waiting behind a door (`PlayerEnterExit.cs` DisableAllParents and EnableExteriorParent set the exterior parent

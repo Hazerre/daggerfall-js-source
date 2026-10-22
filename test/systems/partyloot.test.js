@@ -39,6 +39,7 @@ import { installRestItemLoot, isDeepPileKey } from '../../src/systems/rest/restI
 import { installSurvivalLoot } from '../../src/systems/survival/loot.js';
 import { grantEliteLoot } from '../../src/systems/eliteFoes.js';
 import { wildPileMore } from '../../src/systems/wild/wildZone.js';
+import { seaPileMore } from '../../src/systems/sea/seaSpoils.js';   // PIN MOVED (SEA-SET): the room's base rolls the deep's Tidemail last (roomLootHost.js)
 import { quickLootTake, foldQuickLoot, resetQuickLoot, quickLootWheel } from '../../src/systems/quickLoot.js';
 import { hoverLines } from '../../src/systems/worldHover.js';
 import { asTheRoom, rollingAsTheRoom } from '../../src/systems/online/onlineLane.js';
@@ -160,7 +161,7 @@ function peer(net, { id, level, luck, renown, seed, host, foraging, partners, ch
     onlineRoom: () => true, _wallNow: () => clock.t, respawnDue, validLootList, peerHanded, LOOT_LIST_MAX, LOOT_NEWER_TEXT, ENEMY_BASICS, corpseTextureOf,   // AUDIT DEX A1: the corpse mints read it
     generateLootItems: generateItems, addPileLootExtras, rollLootRarity, pileSource, dungeonRarityTier, dungeonFamily, stampWonWeapons,
     spawnEnemyLoot, wildLootAfter, grantEliteLoot, rollCorpseKit, raiseEnemyDeath, capFoeLoot, rollRoomBonus,
-    wildPileMore, isDeepPileKey, effectiveLevel, liveStat, asTheRoom, CLAIM_KEEP_MS, CLAIMS_KEPT_MAX, SEARCH_COOLDOWN_MINUTES, SEARCH_LOOT_MAX, sharedClassicMinutes, ...RL,
+    wildPileMore, seaPileMore, isDeepPileKey, effectiveLevel, liveStat, asTheRoom, CLAIM_KEEP_MS, CLAIMS_KEPT_MAX, SEARCH_COOLDOWN_MINUTES, SEARCH_LOOT_MAX, sharedClassicMinutes, ...RL,
     eliteLootOpts: () => ({}), searchHeard: () => {}, settleLootFlat: () => {}, _sharedFoe: () => false, fightN: () => 1,
     spawnCorpseNow: async (f) => { f.corpsePos = [...f.ai.feet]; }, renderer: { destroyBillboardBatch: () => {} }, billboardBatches: [], renownFoeRevived: () => {},
     respawnFoe: () => false, camps: { applyOwner: () => {}, activate: () => false }, roomEncounterAsked: () => false, actions: { applyRemote: () => 0 },
