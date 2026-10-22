@@ -2548,10 +2548,16 @@ export function auraBeastStep(w, beast, t) {
   return w;
 }
 
+/** AURA-STALL (bible/07-Rendering/Performance-Priority.md): the pass's one program, as its constructor builds it - what
+ *  the boot's idle starts (render/playPrograms.js) and the host's door waits on (render/glProgram.js compiledPass). Every
+ *  look is in it, 81 KB of fragment shader: a 9-11 s compile on D3D11, which the first build waited on whole. */
+export const AURA_PROGRAMS = /** @type {ReadonlyArray<readonly [string, string]>} */ (Object.freeze([[AURA_VS, AURA_FS]]));
+
 export class AuraRingRenderer {
   constructor(gl) {
     this.gl = gl;
-    this.program = buildProgram(gl, AURA_VS, AURA_FS, 'aura ring');
+    const [ring] = AURA_PROGRAMS;
+    this.program = buildProgram(gl, ring[0], ring[1], 'aura ring');
     this.u = {};
     for (const n of ['uVP', 'uKind', 'uAura', 'uAt', 'uGroundR', 'uRingR', 'uFlameH', 'uLift', 'uTime', 'uSeed', 'uKindle', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos', 'uFocus', 'uJungleHaze', 'uYaw', 'uSide', 'uTorn', 'uSwing', 'uCapeS', 'uCapeH', 'uKneeL', 'uKneeR', 'uTorsoU', 'uTorsoF', 'uWingBack', 'uResLit', 'uWarren', 'uWarrenPrint']) this.u[n] = gl.getUniformLocation(this.program, n);
     this.quadVao = gl.createVertexArray();

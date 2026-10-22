@@ -1493,6 +1493,52 @@ Pins: `test/render/auditshaderstall.test.js` (8), `shaderstall`'s spells' warm p
 the portal's door. Mutants: `tools/mutants/audit_perfpass.json`'s ASS records, all dead; `shaderstall.json`'s four and
 `gatemix.json`'s one re-aimed, dead.
 
+## AURA-STALL — the auras' program, started with the passes play meets
+
+*A player (2026-10-22, #1137): "when I exit overworld travel near a lot of players (>20, usually near a Dagon Breach) my
+client completely freezes for about 5-10 seconds".*
+
+**Found.** The aura pass (`render/auraRing.js`) was built in play at its first use, outside SHADER-STALL's door.
+`drawAuras` made it the first frame a wearer stood within `AURA_RANGE_M` of the eye, and its constructor's
+`buildProgram` read the link, which waits for the whole compile. Its one program carries every look: 81 KB of fragment
+shader, 1,158 lines, 19 loops. The travel view draws no aura (`world.js:"if (!online || travelView?.active) return;"`),
+so a player who rode the Overworld to a crowd met the build on the frame the view came down. A crowd at a Breach nearly
+always holds a wearer. The pass was tried once a page, and Chromium's shader cache answers a source it has compiled
+before (57 ms on a reload), so the freeze came once, on the first session after a change to the aura's shaders.
+
+**The fix.** SHADER-STALL's pattern:
+- `AURA_PROGRAMS` stands beside `AuraRingRenderer`, and the constructor builds from it.
+- `render/playPrograms.js` starts it at the boot's idle with the passes play meets, where the driver compiles beside
+  the frames.
+- The world builds the pass through `compiledPass` (`world.js:"const auraPassOf = compiledPass(renderer.gl, AURA_PROGRAMS,"`)
+  and never asks it as needed. An aura is cosmetic, so a wearer stands without it while its program compiles. The
+  capes' pose and swing are stepped meanwhile. Without the extension, the pass is built at its first wearer as before.
+
+bootWorld lost 3 logical lines (its ceiling 36,256 -> 36,253, `test/scenes/hostceiling.test.js`).
+
+**Measured.** On the player's machine (Windows 11, NVIDIA RTX 5080, ANGLE D3D11, the desktop app's Chromium), each
+build salted so that no cache answered:
+
+| Program | Blocking build (compile, link, the LINK_STATUS read) |
+|---|---|
+| `GATE_PASS_PROGRAMS` (2) | 62-90 ms |
+| `NODE_GLINT_PROGRAMS` (2) | 575-762 ms |
+| `AURA_PROGRAMS` (1) | 8,476-11,108 ms (5 runs) |
+
+Through `KHR_parallel_shader_compile`, the aura's program completed after 9.1-9.6 s. No poll took more than 0.1 ms,
+and the link read after completion took 0.0 ms. A draw and a 1-pixel `readPixels` every 16 ms during that compile:
+p95 0.9 ms, worst 1.9 ms (0.7 ms and 1.2 ms with nothing compiling).
+
+**Not measured.** The live game with a crowd: the link between the report and this build is the code path and the
+timings above. Other GPUs and drivers. A machine with fewer cores, where the background compile shares the CPU with
+the frames.
+
+Pins: `test/render/shaderstall.test.js` (AURA-STALL, and the auras in the list-and-constructor pin). Pins moved:
+`auditshaderstall.test.js` (the passes play meets), `wb9g_insignia.test.js` (a fire that will not build) and
+`shadowcloak.test.js` (the aura's import line). Mutants: `tools/mutants/aurastall.json`, 5, all dead;
+`audit_perfpass.json`'s ASS-a-play-pass-left-out and `hostsplit.json`'s HOST-SPLIT-a-ceiling-under-its-host re-aimed
+by content, both dead.
+
 ## SNOW-BUDGET — the snow the ground keeps holds to its frame budget
 
 *The same capture, handed on by the owner (2026-10-20): "something about our weather system affecting fps".*

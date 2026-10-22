@@ -16,6 +16,8 @@ import { CourtCrystalRenderer, CRYSTAL_PROGRAMS } from '../../src/render/courtCr
 import { NodeGlintRenderer, NODE_GLINT_PROGRAMS, createNodeGlintPass } from '../../src/render/nodeGlint.js';   // NODE-GLINT (main, 2026-10-20) moved the nodes' outline to their glint: the same two-program pass
 import { ComeSailAwayRenderer, CSA_PART_PROGRAMS, CSA_WAVE_PROGRAMS } from '../../src/render/comeSailAwayRender.js';
 import { SpellImpactPass, SPELL_IMPACT_PROGRAMS } from '../../src/render/spellImpactFx.js';
+import { AuraRingRenderer, AURA_PROGRAMS } from '../../src/render/auraRing.js';   // AURA-STALL (#1137): the auras' pass, through the same door
+import { startPlayPrograms } from '../../src/render/playPrograms.js';
 import { buildGateModel, gateArchProfile } from '../../src/world/gate/gateModel.js';
 import { createGatePool } from '../../src/scenes/gate/gatePool.js';
 import { createGateCourt } from '../../src/scenes/gate/gateCourt.js';
@@ -148,6 +150,7 @@ test('SHADER-STALL every pass built through the door compiles nothing its list d
     ['the sea\'s particles', CSA_PART_PROGRAMS, (gl) => new ComeSailAwayRenderer({ gl })._ensurePart()],
     ['the sea\'s waves', CSA_WAVE_PROGRAMS, (gl) => new ComeSailAwayRenderer({ gl })._ensureWave()],
     ['the spells\' impacts', SPELL_IMPACT_PROGRAMS, (gl) => new SpellImpactPass(gl)],
+    ['the auras', AURA_PROGRAMS, (gl) => new AuraRingRenderer(gl)],   // AURA-STALL
   ]) {
     const f = fakeGl();
     startPrograms(f.gl, programs);
@@ -253,4 +256,30 @@ test('SHADER-STALL the wiring: the world\'s sea warm and the spells\' impact pas
   assert.match(eg, /const crystalDoor = \(\) => compiledPass\(gl, CRYSTAL_PROGRAMS, \(\) => new CourtCrystalRenderer\(gl\)/);
   assert.match(eg, /pass = null; crystalPass = null; telegraphOf = telegraphDoor\(\); crystalsOf = crystalDoor\(\);/);
   assert.doesNotMatch(eg, /new GateTelegraphRenderer\(gl, \{ spire: true \}\); \}/, 'no build outside the door');
+});
+
+// AURA-STALL (#1137, bible/07-Rendering/Performance-Priority.md): the auras' one program is 81 KB of fragment shader, and
+// its build at the first wearer in range held the main thread 8.5-11 s on D3D11 - met on the frame the travel view came
+// down near a crowd, since the view draws no aura.
+test('AURA-STALL the auras\' pass: its program started at the boot\'s idle with the passes play meets, and the world\'s door takes that start - no read while it compiles, the first frame after builds it on the started program; without the extension built the frame it is first asked for, as before; the world asks it through the door alone, never as needed (mutants: left out of the boot\'s start; the constructor off its list; asked as needed; built outside the door; the door handed no program)', () => {
+  const f = fakeGl();
+  assert.equal(startPlayPrograms(f.gl), true);
+  const started = f.count('createProgram');
+  const auraPassOf = compiledPass(f.gl, AURA_PROGRAMS, () => new AuraRingRenderer(f.gl));   // the world's door, as it makes it
+  assert.equal(auraPassOf(), null, 'compiling: no pass this frame');
+  assert.equal(f.count('link?'), 0, 'and no read that waits');
+  assert.equal(f.count('createProgram'), started, 'the door asks after the boot\'s start - no compile of its own');
+  f.finish();
+  const pass = auraPassOf();
+  assert.ok(pass instanceof AuraRingRenderer, 'built the first frame after its program is done');
+  assert.equal(f.count('link?'), 1, 'one read, of a link already made');
+  assert.equal(f.count('createProgram'), started, 'on the started program');
+  assert.equal(auraPassOf(), pass, 'the same pass after');
+  const g = fakeGl({ parallel: false });
+  assert.equal(startPlayPrograms(g.gl), false);
+  assert.ok(compiledPass(g.gl, AURA_PROGRAMS, () => new AuraRingRenderer(g.gl))() instanceof AuraRingRenderer, 'no extension: built at the first ask');
+  const w = read('src/scenes/world.js');
+  assert.match(w, /const auraPassOf = compiledPass\(renderer\.gl, AURA_PROGRAMS, \(\) => new AuraRingRenderer\(renderer\.gl\),/);
+  assert.match(w, /const _auraPass = auraPassOf\(\);/, 'never asked as needed: an aura stands a frame late, never a frame frozen');
+  assert.equal((w.match(/new AuraRingRenderer\(/g) ?? []).length, 1, 'built nowhere outside its door');
 });
