@@ -57,8 +57,9 @@ ESCORTING FACES - the quest escorts' portrait column, FE1 - and the CREDITS TABL
 - and STARFALL's FACES (`starfall/starTracker.js`: a fallen star's plate - its name, its town, its coven, how it stands, its light and its deadline, made once and written only where it changed, in every skin; `starfall/starBar.js`: the master's bar on the gate's, its circle's two calls and its ward; `starfall/starMapMark.js`: the star's violet and its held gold, the one leaf every face reads; `11-Multiplayer/Starfall.md` section 8)
 - and the HUD's 2026-10-20 three (`hud/hudTip.js`: the HUD's hover card, the pack's own card; `hud/statusTips.js`: what a buff, a debuff, a need or a disease tile says under the pointer - STATUS-TIPS; `hud/hudAdvance.js`: the two tiles beside the Renown bar, the skills ready and the Firmament's stars not yet placed, clear of the hotbar - SKILL-READY, FIRM-STARS; `UI-Arc.md`)
 - and TRADE-VIRT's LANDING TILES (`enhanced/landingTiles.js`: a picture into the tile that waited on it, one pass a frame - the pack's, the shop counter's and the trade between players' one home; `07-Rendering/Performance-Priority.md` TRADE-VIRT)
-- and BOARD-SIFT's BAR (`workSift.js`: the Notice Board's Work tab sifted and ordered - the kind, a search, Only what I can fill, the order, forty cards at a time; `06-Systems/Professions-Arc.md` 10.13);
-404 modules
+- and BOARD-SIFT's BAR (`workSift.js`: the Notice Board's Work tab sifted and ordered - the kind, a search, Only what I can fill, the order, forty cards at a time; `06-Systems/Professions-Arc.md` 10.13)
+- and COLLECTIONS-II's WARDROBE (`collections/wardrobeCatalogue.js`: every title, aura, profile icon and glyph, where it comes from, whether it can be had now and how; `collections/wardrobePart.js`: the Collections page's part a kind, read off the account and worn from - `10-UI/Collections.md`);
+406 modules
 live under `src/ui/`. Items still routed here are
 collected in `01-Overview/Port-Ledger.md` section C; scope in
 `01-Overview/Port-Doctrine.md` phase plan.
