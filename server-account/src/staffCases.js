@@ -87,6 +87,18 @@ export function caseUrgency(c, { reports, strikes, nowS }) {
   return { level: /** @type {'high'|'medium'|'low'} */ (LEVELS[rank]), why: why.filter(Boolean) };
 }
 
+/** STAFF-PANEL6-STATUS (design doc, "Home: only the top of everything"; mob, 03:23Z): THE REPORTS' WATCH ON HOME
+ *  (staffStatus.js HOME_WATCHES) - the open cases as /v1/staff/cases ranks them, its first `n`, every staff member's
+ *  (Moderators see Reports only). Home writes its own audit row for the read, so this one writes none. */
+export const HOME_WATCH = Object.freeze({
+  id: 'reports', label: 'Reports', role: 'moderator',
+  /** @param {any} ctx @param {any} env @param {{ player: any, role: string }} who @param {number} n */
+  async top(ctx, env, who, n) {
+    const r = /** @type {any} */ (await staffCases(ctx, env, '/v1/staff/cases', {}, who, () => ({ run: async () => null })));
+    return { items: r.cases.slice(0, n).map((/** @type {any} */ c) => ({ level: c.level, why: c.why.join(' · '), sub: c.target, name: c.name })), high: r.high, total: r.total };
+  },
+});
+
 /** Whether a row's claim stands now, held by someone. @param {any} c @param {number} nowS */
 const held = (c, nowS) => !!c?.claimed_by && Number(c.claim_until) > nowS;
 
@@ -134,7 +146,7 @@ export async function staffCases(ctx, env, path, body, who, audit) {
       LEFT JOIN players h ON h.id = c.claimed_by WHERE c.status = 'open' AND c.claim_from = ?1 AND c.claimed_by IS NOT ?1 AND c.claim_until > ?2`).bind(me.id, nowS).all())?.results ?? [])
       .map((c) => ({ id: c.id, target: c.target, name: displayName(c), by: c.holder ?? null }));
     await audit('cases-read', null, { sort }, { onceIn: 10 * 60 }).run();
-    return { cases: page, next: from + CASES_PAGE < ranked.length ? from + CASES_PAGE : null, total: ranked.length, lost };
+    return { cases: page, next: from + CASES_PAGE < ranked.length ? from + CASES_PAGE : null, total: ranked.length, high: ranked.filter((c) => c.level === 'high').length, lost };   // STAFF-PANEL6-STATUS: `high`, the Reports' "N high of M"
   }
 
   // every other door names one account: by its id, or a name (sanctions.js findAccount)
