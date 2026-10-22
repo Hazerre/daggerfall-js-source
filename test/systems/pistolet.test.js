@@ -34,7 +34,7 @@ import { OWN_MW_MODELS, OWN_MW_GILDED, ownWeaponModelFor } from '../../src/chara
 import { MW_WEAPON_TYPE } from '../../src/formats/morrowind/mwFirstPerson.js';
 import { setModSetting, _resetModSettings } from '../../src/systems/modSettings.js';
 import { readPng } from '../../tools/pngIO.mjs';
-import { pistoletArt, SOURCE as ART_SOURCE, OUT as ART_OUT, BAND, dollGrip, DOLL_ANGLE, HAND_TURN } from '../../tools/pistoletArt.mjs';
+import { pistoletArt, SOURCE as ART_SOURCE, OUT as ART_OUT, BAND, dollGrip, DOLL_ANGLE, HAND_POSE } from '../../tools/pistoletArt.mjs';
 import { bakePistolet, OUT as MW_OUT, SOURCE as MW_SOURCE } from '../../tools/bakePistolet.mjs';
 
 const png = (f) => readPng(readFileSync(f));
@@ -101,8 +101,8 @@ test('the pictures: the owner’s sprite whole in a list, a fist-gapped layer on
   const doll = png(ART_OUT.doll);
   const at = (img, x, y) => img.data[(y * img.width + x) * 4 + 3];
   // A DOWNWARD ANGLE, NOT MIRRORED (the owner, 2026-10-22: "Still wrong. It should be at a downward angle in the right
-  // hand in the picture. Not mirrored"): each hand's layer is the gapped sprite TURNED by RotSprite - no colour in it
-  // that the sprite does not have - its barrel DOLL_ANGLE below level
+  // hand in the picture. Not mirrored"): each hand's layer is the gapped sprite turned by RotSprite - no colour in it
+  // that the sprite does not have - the left hand's barrel DOLL_ANGLE below level
   assert.equal(DOLL_ANGLE, 45);
   const left = png(ART_OUT.dollLeft);
   const colours = (img) => { const c = new Set(); for (let p = 0; p < img.data.length; p += 4) if (img.data[p + 3]) c.add(img.data.slice(p, p + 4).join()); return c; };
@@ -121,17 +121,13 @@ test('the pictures: the owner’s sprite whole in a list, a fist-gapped layer on
   for (const [img, g, hand] of [[doll, gripR, 'right'], [left, gripL, 'left']]) {
     assert.equal(at(img, Math.floor(g.x), Math.floor(g.y)), 0, `${hand}: the fist’s gap at the band’s centre`);
   }
-  // the LEFT hand's (the picture's right) upright, its barrel down and to the picture's left; the RIGHT hand's (the
-  // picture's left) UPSIDE DOWN, its barrel down and to the picture's right - toward the other gun, as the right fist
-  // holds a classic blade (the owner: "The left gun should be upside down and held in the hand", "the left hand needs to
-  // be angled towards the the right hand gun")
+  // the LEFT hand's (the picture's right) as drawn, its barrel down and to the picture's left; the RIGHT hand's (the
+  // picture's left) FLIPPED, its barrel down and to the picture's right - toward the other gun (the owner's pick from
+  // rendered options: "#4 is the closest but needs adjusting", "C but lower")
   const qL = reach(left, gripL), qR = reach(doll, gripR);
   assert.ok(qL.dl > 0.9 * (qL.dl + qL.dr + qL.ul + qL.ur), `the left hand’s barrel down and out (${JSON.stringify(qL)})`);
   assert.ok(qR.dr > 0.9 * (qR.dl + qR.dr + qR.ul + qR.ur), `the right hand’s barrel down and toward the other gun (${JSON.stringify(qR)})`);
-  assert.deepEqual(HAND_TURN, { left: 45, right: 135 }, 'turns only: the right hand’s is the left’s turned upside down and tilted the other way');
-  let mirrored = true;
-  for (let y = 0; y < doll.height && mirrored; y++) for (let x = 0; x < doll.width; x++) if (at(doll, x, y) !== at(left, doll.width - 1 - x, y)) { mirrored = false; break; }
-  assert.equal(mirrored, false, 'never the left hand’s in the glass');
+  assert.deepEqual(HAND_POSE, { left: { flip: false, turn: 45 }, right: { flip: true, turn: -60 } }, 'the left hand’s as drawn at 45, the right hand’s flipped at 60');
   // by job and by hand
   const it = createPistolet();
   assert.equal(pistoletImageRecord(it, false), ART_RECORDS.icon);
@@ -152,10 +148,11 @@ test('the pictures: the owner’s sprite whole in a list, a fist-gapped layer on
     assert.ok(doctrine.includes(`'public/art/${r.file}'`), `${r.file} is on the doctrine’s allow-list`);
   }
   // THE HANDS WERE MEASURED (TEXTURE.234's one-handed doll records leave the fist's gap at panel (27, 96) right, (69, 95)
-  // left) and ONE RULE seats both: each layer's band centre on its hand's gap, as a classic hilt's
+  // left). The left hand's band centre is on its gap; the right hand's 2 px below its own, (27, 98) - the owner's pick
+  // ("C but lower", "Sorry I meant #2")
   const centreR = [PAPERDOLL_OFFSET.right.x - 200 + gripR.x, PAPERDOLL_OFFSET.right.y - 8 + gripR.y];
   const centreL = [PAPERDOLL_OFFSET.left.x - 200 + gripL.x, PAPERDOLL_OFFSET.left.y - 8 + gripL.y];
-  assert.ok(Math.hypot(centreR[0] - 27, centreR[1] - 96) < 1.5, `the right hand’s gap on its fist (${centreR})`);
+  assert.ok(Math.hypot(centreR[0] - 27, centreR[1] - 98) < 1, `the right hand’s grip where the owner put it (${centreR})`);
   assert.ok(Math.hypot(centreL[0] - 69, centreL[1] - 95) < 1.5, `the left hand’s gap on its fist (${centreL})`);
 });
 

@@ -10,15 +10,13 @@
 //                                   2026-10-22, on a level cut and then a quarter turn with a mirrored pair: "Still
 //                                   wrong. It should be at a downward angle in the right hand in the picture. Not
 //                                   mirrored" - and of this one, "Much better".
-//   -> pistolet-paperdoll.png       the doll's RIGHT hand's (the picture's left): the same gapped sprite turned UPSIDE
-//                                   DOWN (a half turn - a turn, never a mirror) and tilted DOLL_ANGLE barrel-down, so
-//                                   its barrel points down and to the picture's RIGHT, toward the other hand's gun. The
-//                                   owner: "The left gun should be upside down and held in the hand", then "the left
-//                                   hand needs to be angled towards the the right hand gun. Look at how the left hand is
-//                                   positioned". That is how Daggerfall's own right fist holds a weapon (TEXTURE.234's
-//                                   +1 records: the dagger's blade leaves it about 48 degrees below level, inward), and
-//                                   it makes the pair the picture's mirror image in pose - 45 degrees each, toward each
-//                                   other - while each gun stays the owner's drawing, turned.
+//   -> pistolet-paperdoll.png       the doll's RIGHT hand's (the picture's left): the gapped sprite FLIPPED left to
+//                                   right - right side up, its barrel now to the picture's right - and tilted 60
+//                                   degrees barrel-down, toward the other hand's gun. The owner picked it from rendered
+//                                   options after five rejected cuts of this hand (bible/05-Combat/Dwarven-Pistolet.md):
+//                                   "#4 is the closest but needs adjusting" (the right gun's pose mirrored, 45 degrees),
+//                                   then "C but lower" (60 degrees), "6 px lower" (PAPERDOLL_OFFSET.right). The one
+//                                   doll layer that is a mirror of the owner's drawing, by the owner's choice.
 //   -> pistolet-icon-gilded.png, pistolet-paperdoll-gilded.png, pistolet-paperdoll-left-gilded.png
 //                                   the same three in gold leaf, tools/gunIcons.mjs gild() - the Sunken Sovereign's
 //
@@ -100,22 +98,44 @@ export function rotSprite(img, deg, point = null) {
   return { img: { width: W, height: H, data: out }, at: p && { x: p[0] - x0, y: p[1] - y0 } };
 }
 
-/** How far each hand's layer is turned, counter-clockwise: the left hand's tilted DOLL_ANGLE barrel-down (the barrel
- *  to the picture's left), the right hand's upside down and tilted the same, the other way (the barrel to the
- *  picture's right) - a half turn less the tilt. Turns only: neither is a mirror. */
-export const HAND_TURN = Object.freeze({ left: DOLL_ANGLE, right: 180 - DOLL_ANGLE });
+/** Each hand's pose: whether the sprite is flipped left to right first, and how far it is then turned, counter-clockwise.
+ *  The left hand's (the picture's right) is the sprite as drawn, tilted DOLL_ANGLE barrel-down to the picture's left;
+ *  the right hand's (the picture's left) is the sprite flipped, tilted 60 degrees barrel-down to the picture's right -
+ *  the owner's pick. */
+export const HAND_POSE = Object.freeze({
+  left: Object.freeze({ flip: false, turn: DOLL_ANGLE }),
+  right: Object.freeze({ flip: true, turn: -60 }),
+});
+
+/** The picture flipped left to right, pixel for pixel. */
+export function flipAcross({ width: w, height: h, data }) {
+  const out = new Uint8Array(data.length);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const s = (y * w + x) * 4, d = (y * w + (w - 1 - x)) * 4;
+      out[d] = data[s]; out[d + 1] = data[s + 1]; out[d + 2] = data[s + 2]; out[d + 3] = data[s + 3];
+    }
+  }
+  return { width: w, height: h, data: out };
+}
+
+/** A hand's doll layer from the gapped sprite, its pose applied. `point` (source pixels) is carried through. */
+export function posed(level, hand, point = null) {
+  const { flip, turn } = HAND_POSE[hand];
+  return rotSprite(flip ? flipAcross(level) : level, turn, point && (flip ? [level.width - point[0], point[1]] : point));
+}
 
 /** Where the band's centre - the fist - lands in a hand's layer, in its pixels. src/systems/pistolet.js
  *  PAPERDOLL_OFFSET seats this point on each hand's fist. */
 export const dollGrip = (hand = 'left', { w = 24, h = 17, band = BAND } = {}) =>
-  rotSprite({ width: w, height: h, data: new Uint8Array(w * h * 4) }, HAND_TURN[hand], [band.cx * w, band.cy * h]).at;
+  posed({ width: w, height: h, data: new Uint8Array(w * h * 4) }, hand, [band.cx * w, band.cy * h]).at;
 
 /** The doll layers and the gilded set, from the source picture. Pure: a test re-runs it against the shipped files. */
 export function pistoletArt(src, band = BAND) {
   const level = { width: src.width, height: src.height, data: new Uint8Array(src.data) };
   const cut = punchBand(level, band);   // cut in the source's own frame (the band is measured there), then turned
-  const dollLeft = rotSprite(level, HAND_TURN.left).img;
-  const doll = rotSprite(level, HAND_TURN.right).img;   // the right hand's: upside down, the barrel toward the left hand's
+  const dollLeft = posed(level, 'left').img;
+  const doll = posed(level, 'right').img;   // the right hand's: flipped, the barrel toward the left hand's
   return { doll, dollLeft, iconGilded: gild(src), dollGilded: gild(doll), dollLeftGilded: gild(dollLeft), cut };
 }
 

@@ -79,7 +79,7 @@ export function createPistolet({ material = 4, condition = null } = {}) {
 //
 // ONE PICTURE PER JOB, as the Thunderlock's since THUNDERLOCK-ART: the doll layer carries the fist's gap, the list
 // shows the whole gun. The owner's 24x17 sprite IS the list's picture; tools/pistoletArt.mjs cuts each hand's doll
-// layer from it - tilted barrel-down, never mirrored, the right hand's upside down and toward the left's - and gilds all three
+// layer from it - each tilted barrel-down, the right hand's flipped to point toward the left's - and gilds all three
 // for the Sunken Sovereign (systems/gilded.js).
 //
 // TWO HANDS ON THE DOLL. A classic Either-hand weapon carries two doll records - TEXTURE.234's base for the left hand and
@@ -90,22 +90,21 @@ export function createPistolet({ material = 4, condition = null } = {}) {
  * WHERE EACH HANGS (FIELD-GUN4's question, the Thunderlock's PAPERDOLL_OFFSET, for two hands). The doll's fists were
  * MEASURED, not guessed: the gap a classic one-handed weapon's doll record leaves for the fist (TEXTURE.234, the
  * player's own ARENA2 - dagger, mace, shortsword, war axe, each hand's record) closes at panel (27, 96) for the right
- * hand and (69, 95) for the left. ONE RULE FOR BOTH HANDS: each layer's band centre - the grip's middle, where the
- * fist closes (tools/pistoletArt.mjs dollGrip) - goes on that hand's measured gap, as a classic weapon's hilt does.
- * The right hand's layer (dollGrip('right'), layer pixel (9.9, 9.2)): panel (27 - 9.9, 96 - 9.2). The left hand's
- * (dollGrip('left'), (20.8, 9.9)): panel (69 - 20.8, 95 - 9.9).
+ * hand and (69, 95) for the left.
  *
- * Each hand holds it as Daggerfall's own weapons are held there. The left fist (the picture's right) holds its hilts
- * with the weapon leaving toward the body, and wears the gun upright, tilted 45 degrees barrel-down to the picture's
- * left (the owner, 2026-10-22: "It should be at a downward angle in the right hand in the picture. Not mirrored" - and
- * of it, "Much better"). The right fist (the picture's left) holds its hilts pommel up-left, the blade leaving down
- * and inward (TEXTURE.234's +1 records), and wears the gun UPSIDE DOWN, 45 degrees barrel-down to the picture's right,
- * toward the other gun (the owner: "The left gun should be upside down and held in the hand", "the left hand needs to
- * be angled towards the the right hand gun. Look at how the left hand is positioned"). The owner names hands as the
- * picture shows them. Screen coordinates, the panel's origin (200, 8) written beside them as the Thunderlock's are.
- * The owner's eye is the gate on both.
+ * THE LEFT HAND (the picture's right) wears the sprite as drawn, tilted 45 degrees barrel-down to the picture's left
+ * (the owner, 2026-10-22: "It should be at a downward angle in the right hand in the picture. Not mirrored" - and of
+ * it, "Much better"). Its band centre - the grip's middle, where the fist closes (tools/pistoletArt.mjs
+ * dollGrip('left'), layer pixel (20.8, 9.9)) - goes on the measured gap: panel (69 - 20.8, 95 - 9.9).
+ *
+ * THE RIGHT HAND (the picture's left) wears the sprite FLIPPED, tilted 60 degrees barrel-down to the picture's right,
+ * toward the other gun - the owner's pick from rendered options after five rejected cuts of this hand: "#4 is the
+ * closest but needs adjusting", "C but lower", then 2 px lower ("Sorry I meant #2"). Its band centre (dollGrip('right'),
+ * (9.7, 8.6)) sits 2 px below the measured gap - panel (27, 98), the layer at (27 - 9.7, 98 - 8.6) - the owner's eye,
+ * not a rule: the right fist is not the left's mirror, so no one rule seats both. The owner names hands as the picture
+ * shows them. Screen coordinates, the panel's origin (200, 8) written beside them as the Thunderlock's are.
  */
-export const PAPERDOLL_OFFSET = Object.freeze({ right: Object.freeze({ x: 200 + 17, y: 8 + 87 }), left: Object.freeze({ x: 200 + 48, y: 8 + 85 }) });
+export const PAPERDOLL_OFFSET = Object.freeze({ right: Object.freeze({ x: 200 + 17, y: 8 + 89 }), left: Object.freeze({ x: 200 + 48, y: 8 + 85 }) });
 
 /** The records of archive 562, by job. */
 export const ART_RECORDS = Object.freeze({ doll: 0, icon: 1, gildedDoll: 2, gildedIcon: 3, dollLeft: 4, gildedDollLeft: 5 });

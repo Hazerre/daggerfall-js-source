@@ -65,50 +65,45 @@ doll wears a layer with the fist's gap cut out:
 - `tools/pistoletArt.mjs` cuts it as a band square to the grip (the Thunderlock's `punchBand`, imported - and
   `tools/gunPaperdoll.mjs` gained the `isMain` guard AUDIT 68 asks of a tool another imports).
 - The frame of the gun stays above the fist and the butt below it.
-- Then each hand's layer is TURNED - never mirrored (`HAND_TURN`). The doll's left hand (the picture's right) wears
-  it upright, tilted 45 degrees barrel-down to the picture's left (`DOLL_ANGLE`). The doll's RIGHT hand (the
-  picture's left) wears it UPSIDE DOWN - a half turn - tilted the same 45 degrees the other way, barrel down to the
-  picture's right, toward the other gun. The pair mirrors each other in pose while each gun stays the owner's
-  drawing.
+- Then each hand's layer is posed (`HAND_POSE`). The doll's left hand (the picture's right) wears the sprite as drawn,
+  tilted 45 degrees barrel-down to the picture's left (`DOLL_ANGLE`). The doll's RIGHT hand (the picture's left) wears
+  it FLIPPED left to right, tilted 60 degrees barrel-down to the picture's right, toward the other gun. That one layer
+  is a mirror of the owner's drawing, by the owner's choice (below).
 - The tilt is RotSprite (`rotSprite`): Scale2x three times, the turn sampled nearest at 8x, read back at 1x. A nearest
   turn at 1x is the staircase-and-holes the Gun-Lab record warns of. RotSprite adds no colour the sprite does not
   have, and `pistolet.test.js` checks every one.
 
-**How it got here - the owner's eye, five rounds on 2026-10-22.** The owner names hands as the picture shows them.
+**How it got here - the owner's eye, 2026-10-22.** The owner names hands as the picture shows them.
 1. The gun hung level: "Paperdoll example is not holding them correctly". Each pistol stuck straight out from the hip,
    its grip below the fist.
 2. A quarter turn, straight down, the left hand's a mirror: "Still wrong. It should be at a downward angle in the right
    hand in the picture. Not mirrored".
 3. One 45-degree layer for both hands: "Much better but its not fittest correctly in the left hand" - the picture's
-   left.
+   left. The picture's right has stayed round 3's, byte for byte, ever since.
 4. Read as the doll's left hand, that gun was moved by eye: "Now the right hand is screwed up. Dude stop band aid
-   fixing". That move is undone; the picture's right is round 3's, byte for byte.
-5. "The left gun should be upside down and held in the hand": that gun rolled over on its barrel, still pointing
-   down and out.
-6. "Not quite, the left hand needs to be angled towards the the right hand gun. Look at how the left hand is
-   positioned": upside down by a half turn instead, the barrel down and in - this cut.
+   fixing". Undone.
+5. "The left gun should be upside down and held in the hand": rolled over on its barrel, still pointing down and out.
+6. "Not quite, the left hand needs to be angled towards the the right hand gun": upside down by a half turn, the
+   barrel down and in at 45 degrees. "Still wrong".
+7. Guessing stopped there. The picture's left gun was rendered on the real doll in five ways, then six, then four, and
+   the owner picked: "#4 is the closest but needs adjusting" (right side up - the sprite flipped - at 45 degrees
+   toward the other gun), "C but lower" (60 degrees), "Sorry I meant #2" (2 px lower). This cut.
 
 **Two hands on the doll.** A classic Either-hand weapon carries two doll records, TEXTURE.234's base for the left hand
 and +1 for the right (`ui/paperDoll.js`). The Pistolet carries each hand's own layer (`ART_RECORDS`: doll 0, icon 1,
 gold 2 and 3, left 4 and 5), chosen by the slot it is worn in (`pistoletImageRecord`). A single Pistolet is worn in the
-right hand, so it shows upside down, angled in.
+right hand, so it shows flipped, angled in toward where the other would be.
 
-**Where they hang: one rule, measured.** The fist's gap in every clean one-handed classic doll record (dagger, mace,
-shortsword, war axe; the player's own ARENA2 via `tools/fetch-data.sh`) closes at panel (27, 96) on the right hand and
-(69, 95) on the left. Each layer's band centre (`dollGrip`) goes on its hand's gap, as a classic hilt does
-(`PAPERDOLL_OFFSET`).
-
-Each hand holds it as Daggerfall's own weapons are held there. The doll's fists are mirror images; the guns are not.
-- The left fist holds its hilts level, the weapon leaving toward the body. The upright gun's barrel goes down and out
-  from it.
-- The right fist holds its hilts pommel up-left, the blade leaving down and INWARD - the classic dagger about 48
-  degrees below level (TEXTURE.234's +1 records). The upside-down gun matches it: the butt up in the fist, the barrel
-  down and in at 45 degrees, toward the other gun.
-- `pistolet.test.js` holds both landings to the measured gaps, each barrel's direction (the layer's pixels beyond the
-  fist: down-left for the left hand's, down-right for the right hand's), `HAND_TURN`, and the two layers never each
-  other's mirror.
-- The rule was checked on six bodies (Breton male and female, Nord male, Dark Elf female, Khajiit male, Argonian
-  female): the hands are drawn in the same place, and each holds its gun the same way.
+**Where they hang.** The fist's gap in every clean one-handed classic doll record (dagger, mace, shortsword, war axe;
+the player's own ARENA2 via `tools/fetch-data.sh`) closes at panel (27, 96) on the right hand and (69, 95) on the left.
+- The left hand's band centre (`dollGrip('left')`) is on its gap (`PAPERDOLL_OFFSET.left`).
+- The right hand's sits 2 px below its own, at (27, 98) - the owner's pick, not a rule (`PAPERDOLL_OFFSET.right`). The
+  doll's right fist is not the left's mirror (the right arm hangs straight, the left is bent at the hip), and no one
+  rule seated both: the attempts at one are rounds 4 to 6.
+- `pistolet.test.js` holds both places, each barrel's direction (the layer's pixels beyond the fist: down-left for the
+  left hand's, down-right for the right hand's) and `HAND_POSE`.
+- Checked on six bodies (Breton male and female, Nord male, Dark Elf female, Khajiit male, Argonian female): the hands
+  are drawn in the same place, and each holds its gun the same way.
 
 `tools/pistoletDollProbe.mjs` draws it on the real doll. The owner's eye is the gate, as Mac's was on the
 Thunderlock's FIELD-GUN9.
