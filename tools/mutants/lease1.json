@@ -329,13 +329,13 @@
   {
     "name": "LEASE1-the-frame-not-waiting-on-its-lease",
     "file": "server/src/index.js",
-    "old": "    if (a.ld != null && !(a.ld * 1000 >= Date.now())) { await meter.lp; a = this._attach(ws); if (!a) return null; }\n",
+    "old": "    if (a.ld != null && !(a.ld * 1000 >= Date.now())) { await meter.lp; if (this._dead.has(ws) || this._gone.has(ws)) return null; a = this._attach(ws); }\n",
     "new": "",
     "why": "the honest game's first frame, right behind its lease, dropped while the lease is read",
     "tests": [
       "test/net/lease1.test.js"
     ],
-    "note": "LEASE1 REVIEW IV (2026-10-22, PIN MOVED): the wait at the door is its own method (`_leaseDoor`), behind the socket's own earlier frames (`dq`); an old build asks once in LEASE_OLD_ASK_MS."
+    "note": "LEASE1 REVIEW IV (2026-10-22, PIN MOVED): the wait at the door is its own method (`_leaseDoor`), behind the socket's own earlier frames (`dq`); an old build asks once in LEASE_OLD_ASK_MS. LEASE1 REVIEW IV b (2026-10-22, PIN MOVED): the line after the lease read's wait checks the socket is not closed."
   },
   {
     "name": "LEASE1-the-shards-line-past-the-door",
