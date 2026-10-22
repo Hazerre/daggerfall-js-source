@@ -37,12 +37,13 @@
 //   link() -> OnlineSession | null   the social socket (sendWdun, wdunSeaOk)
 //   ether                   the ether host (scenes/etherHost.js): credit(n), mid(text, s), say(text, s)
 //   session, checkpoint, wallet, character, region   SEA-BOUNTY's (scenes/seaBountyHost.js): the realm session, its
-//                           checkpoint, the record's wallet, the realm character, the region stood in
+//                           checkpoint, the record's wallet, the realm character (its own - systems/characterId.js
+//                           characterIdOf, when none is given), the region stood in
 //   bountyDoor?             the bounty board's service door (its own, when none is given)
 //   seasonDoor?             the season boards' service door (its own, when none is given)
-//   cell() -> OnlineSession | null   SHIP-PVP's: my cell's socket (sendWild, `id`, `acct`, `seaPvpOk`)
+//   cell() -> OnlineSession | null   SHIP-PVP's: my cell's socket (sendWild, `id`, `acct`, `seaPvpOk`, a peer's name)
 //   foe(id) -> bool         SHIP-PVP's: a peer outside my party and guild (world.js wildIsStranger)
-//   name(id) -> string      SHIP-PVP's: a peer's name, as shown
+//   name?(id) -> string     SHIP-PVP's: a peer's name, as shown (its own - the socket's peer's, when none is given)
 // }
 // ═══════════════════════════════════════════════════════════════════
 import { inEther, etherBandAt, compassPoint } from '../world/ethericSea.js';
@@ -62,6 +63,8 @@ import { createSeaWreckHost } from './seaWreckHost.js';
 import { wildHere, wildZoneKind } from '../systems/wild/wildZone.js';
 import { ETHER_KIND } from '../systems/wild/etherWild.js';
 import { t } from '../systems/textManager.js';
+import { characterIdOf } from '../systems/characterId.js';
+import { playerEntity } from '../characters/playerEntity.js';
 
 /** SEA-EVENTS: a storm's wrack site's id - a strand's, so the naval host floats and hauls it as one (`strand:wrack:n:slot`). */
 export const WRACK_SITE = `${STRAND_SITE}wrack:`;
@@ -244,13 +247,15 @@ export function createSeaVentures(deps) {
     return out;
   }
   // ── SEA-BOUNTY ─────────────────────────────────────────────────────────────────────────────────────────────────────
-  const bounty = createSeaBounty({ live, session: deps.session, checkpoint: deps.checkpoint, wallet: deps.wallet, character: deps.character, region: deps.region, door: deps.bountyDoor, now: clock });
+  /** The realm character I play (HOST-SPLIT, SEA VENTURES: its own, unless the host gives it). */
+  const character = deps.character ?? (() => characterIdOf(playerEntity));
+  const bounty = createSeaBounty({ live, session: deps.session, checkpoint: deps.checkpoint, wallet: deps.wallet, character, region: deps.region, door: deps.bountyDoor, now: clock });
   // ── SHIP-PVP ───────────────────────────────────────────────────────────────────────────────────────────────────────
-  const wrecks = createSeaWreckHost({ session: deps.session, checkpoint: deps.checkpoint, character: deps.character, me: () => deps.cell?.()?.acct ?? null, naval: deps.naval, say: (text, s) => say(text, s) });
+  const wrecks = createSeaWreckHost({ session: deps.session, checkpoint: deps.checkpoint, character, me: () => deps.cell?.()?.acct ?? null, naval: deps.naval, say: (text, s) => say(text, s) });
   const broadsides = createSeaBroadsides({
     live: () => live() && !!deps.cell?.()?.seaPvpOk && wildHere() && wildZoneKind() === ETHER_KIND,
     naval: deps.naval, send: (d, o) => deps.cell?.()?.sendWild?.(d, o) === true, me: () => deps.cell?.()?.id ?? null,
-    stranger: (id) => !!deps.foe?.(id), name: (id) => deps.name?.(id) ?? '', receipt: (rc) => wrecks.receipt(rc),
+    stranger: (id) => !!deps.foe?.(id), name: (id) => (deps.name ? deps.name(id) : deps.cell?.()?.peers?.get?.(id)?.name) || '', receipt: (rc) => wrecks.receipt(rc),
     say: (text, s) => say(text, s), mid: (text, s) => mid(text, s),
   });
   let armed = null;   // the naval host the guns are attached to
@@ -262,6 +267,6 @@ export function createSeaVentures(deps) {
     wrecks.frame();
   }
   // ── SEA-SEASON ─────────────────────────────────────────────────────────────────────────────────────────────────────
-  const season = createSeaSeason({ live, session: deps.session, character: deps.character, door: deps.seasonDoor, now: clock });
+  const season = createSeaSeason({ live, session: deps.session, character, door: deps.seasonDoor, now: clock });
   return { vaultsNow, vaultHere, openSeaAt, chartWord: (now) => ({ ...chartWord(now), ...eventsWord() }), crowLine, stormWord, stormTurned, wrackSites, office: () => ({ wanted: bounty.office(), season: season.office() }), wref: (g, room) => broadsides.hear(g, room), gather, step, fleetEnded, hubWord, rumours, fleetList: (now = clock()) => fleetList(now, deps.pixel?.()) };
 }

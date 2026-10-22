@@ -22,7 +22,7 @@
 // THIS FILE IS A LEAF of the zone: the sea's law (pure, worker-safe - world/ethericSea.js imports formats/ alone) and the
 // zone's words on this ground, registered with wildZone.js so the mountains' leaf imports nothing of the sea.
 // ═══════════════════════════════════════════════════════════════════
-import { BANDS, ETHER_WORD, inEther, inVeil, etherBandAt, veilhaven } from '../../world/ethericSea.js';
+import { BANDS, ETHER_WORD, inEther, inVeil, etherBandAt, veilhaven, islesNear } from '../../world/ethericSea.js';
 import { WILD_RINGS, wildRingAt, wildRingBonus, registerZoneWords } from './wildZone.js';
 import { t } from '../textManager.js';
 
@@ -31,6 +31,18 @@ export const ETHER_KIND = 'ether';
 /** VEILHAVEN'S PEACE: no player fights within this many pixels of Veilhaven's own pixel (some 10 km - the landfall, LANDFALL_OFF_PX
  *  east of it, well inside), nor in the Veil itself. */
 export const ETHER_PEACE_PX = 12;
+
+/** AUDIT CAPTAIN'S SEA P4: where a death past the Veil rises - the nearest port isle's town within ETHER_RISE_PX, else
+ *  Veilhaven: the Bay's temples are a crossing away. (HOST-SPLIT, SEA VENTURES: out of world.js bootWorld, with the
+ *  open sea's rise site.) */
+export const ETHER_RISE_PX = 60;
+export const etherRisePort = (x, y) => islesNear(x, y, ETHER_RISE_PX).find((i) => i.kind === 'port') ?? veilhaven();
+/** ETHER-WILD: a death on the open sea - an isle's ruin's too - rises at the nearest freeport's town (etherRisePort): the
+ *  site world.js wildRiseSite answers past the Veil (the sea has no other city to rise in). */
+export function etherRiseSite(x, y) {
+  const port = etherRisePort(x, y);
+  return { mapPixel: { x: port.px, y: port.py }, kind: 'city' };
+}
 
 /** Is pixel (x, y) in Veilhaven's peace - the Veil, or within ETHER_PEACE_PX of Veilhaven? */
 export function etherInPeace(x, y) {

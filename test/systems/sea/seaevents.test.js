@@ -486,7 +486,7 @@ test('SEA-EVENTS the seams by source: the world shows the storm\'s thunder (its 
   assert.match(w, /peak: weatherOverride \? null : seaStormShown\(\) \? 1 : currentWeatherIntensity\(\) \}\);/);
   assert.match(w, /violence: weatherOverride \?\? seaStormShown\(\) \?\? currentWeatherRaw\(\),/);
   assert.match(w, /cloudBase: weatherOverride \|\| seaStormShown\(\) \? null : currentCloudBase\(\),/);
-  assert.match(w, /clock: \(\) => raidNowMs\(\), naval: \(\) => naval, state, link: socialLink, ether: etherHost,/);
+  assert.match(w, /clock: \(\) => raidNowMs\(\), naval: \(\) => naval, state, link: socialLink, ether: etherHost,/);   // V4: raidNowMs is declared below the sea's host - read when called
   assert.match(w, /\{ laneShips\(\); seaVentures\.step\(lightning\?\.strikes \?\? 0\); \}/);
   assert.match(w, /const wdunWord = \(w\) => \{\n\s+const now = Date\.now\(\);\n\s+seaVentures\.hubWord\(w\);/);
   assert.match(w, /gather: \(siteId\) => seaVentures\.gather\(siteId\) \?\? etherHost\.gather\(siteId\),/);

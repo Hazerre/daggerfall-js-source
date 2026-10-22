@@ -10,7 +10,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { ETHER_KIND, ETHER_PEACE_PX, etherInPeace, etherWildRingAt, etherRingName, wildRingAtPlace, ETHER_WILD_TEXT } from '../../../src/systems/wild/etherWild.js';
+import { ETHER_KIND, ETHER_PEACE_PX, etherInPeace, etherWildRingAt, etherRingName, wildRingAtPlace, ETHER_WILD_TEXT, etherRisePort, etherRiseSite, ETHER_RISE_PX } from '../../../src/systems/wild/etherWild.js';
 import { setWildHere, wildHere, wildRing, wildZoneKind, zoneWord, zoneName, zoneRingName, setWildDeath, wildDeathLines, WILD_TEXT, WILD_KIND, WILD_NAME, wildRingLoot } from '../../../src/systems/wild/wildZone.js';
 import { ETHER_BOX, VEIL_X, LEAGUE_PX, BANDS, veilhaven, landfall, ETHER_SEA_NAME } from '../../../src/world/ethericSea.js';
 import { synthesizeEtherLocation } from '../../../src/world/etherPlaces.js';
@@ -136,7 +136,14 @@ test('ETHER-WILD: the hosts\' seams - the frame stands the sea beside the mounta
   assert.match(frame, /zoneWord\('leave', left \|\| undefined\)/, 'the leaving said in the words of the ground left');
   assert.match(w, /setPaceZoneCap\(wildHere\(\) && wildZoneKind\(\) !== ETHER_KIND \? WILD_PACE_CAP : null\)/, 'the mountains\' pace cap never at sea');
   const rise = w.slice(w.indexOf('const wildRiseSite = (px, inDungeon = false) => {'), w.indexOf('const wildClearSpawn = () => {'));
-  assert.match(rise.split('\n')[1], /if \(etherSea && inEther\(px\.x, px\.y\)\) \{ const port = etherRisePort\(px\.x, px\.y\); return \{ mapPixel: \{ x: port\.px, y: port\.py \}, kind: 'city' \}; \}/, 'a death at sea rises at the nearest freeport, before the mountains\' search of the Bay\'s maps');
+  assert.match(rise.split('\n')[1], /if \(etherSea && inEther\(px\.x, px\.y\)\) return etherRiseSite\(px\.x, px\.y\);/, 'a death at sea rises at the nearest freeport, before the mountains\' search of the Bay\'s maps');
+  // the site itself (HOST-SPLIT, SEA VENTURES: out of bootWorld): the nearest freeport's town within ETHER_RISE_PX, else Veilhaven
+  const vh = veilhaven(), far = { x: vh.px + 20 * ETHER_RISE_PX, y: vh.py };
+  for (const [x, y] of [[vh.px + 1, vh.py], [far.x, far.y]]) {
+    const port = etherRisePort(x, y);
+    assert.deepEqual(etherRiseSite(x, y), { mapPixel: { x: port.px, y: port.py }, kind: 'city' });
+  }
+  assert.deepEqual(etherRiseSite(vh.px + 1, vh.py).mapPixel, { x: vh.px, y: vh.py }, 'Veilhaven beside it');
   const tele = w.slice(w.indexOf('const wildTeleportRefused = (to = null) => {'), w.indexOf('const wildTravelGate = '));
   assert.match(tele, /etherWildRingAt\(playerTravelPixel\(\)\?\.x, playerTravelPixel\(\)\?\.y\) > 0 \|\| \(to && etherWildRingAt\(to\.x, to\.y\) > 0\)\)\) \{ townTalk\.say\(ETHER_WILD_TEXT\.teleport\(\)\); return true; \}/);
   assert.ok(tele.indexOf('ETHER_WILD_TEXT.teleport') < tele.indexOf('if (!m) return false;'), 'asked before the mountains\' mask is');

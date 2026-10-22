@@ -1322,7 +1322,7 @@
   },
   {
     "name": "ACS-P4-rise-port",
-    "file": "src/scenes/world.js",
+    "file": "src/systems/wild/etherWild.js",
     "old": "const etherRisePort = (x, y) => islesNear(x, y, ETHER_RISE_PX).find((i) => i.kind === 'port') ?? veilhaven();",
     "new": "const etherRisePort = (x, y) => veilhaven();",
     "tests": [

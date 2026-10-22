@@ -231,8 +231,8 @@ records read it there), or nothing. The Overworld's far reads never clone a spaw
 spawnedMapId's law is the Bay's and throws there). Saved inside a ruin, offline the load rebuilds the pixel and the
 same place stands (its door matched by its header's id); online - where a load never puts a character back inside a
 dungeon - the sleeper wakes at the ruin's own door (the region's search would read the Alik'r's past the map). A death
-past the Veil rises at the nearest port isle's town (`etherRisePort`, ETHER_RISE_PX - P4: Betony's temple a crossing
-away), and no cemetery of the Bay's takes a vampire there. No teleport crosses the Veil - Recall, a portal stone, the
+past the Veil rises at the nearest port isle's town (`systems/wild/etherWild.js` `etherRisePort`, ETHER_RISE_PX - P4:
+Betony's temple a crossing away), and no cemetery of the Bay's takes a vampire there. No teleport crosses the Veil - Recall, a portal stone, the
 Mages Guild's, a party's travel to its leader are refused across it (`veilRefused` - P6) - nor does the Fleet: no
 Summon to the far side, no Send away from it, a ship laid up keeping her side (`veilApart` - P5).
 
@@ -655,7 +655,7 @@ mountains' own, unchanged. The crossing of a band is said in the sea's words ("D
   two-phase handoff), the two minutes' wait ("Past the Veil the dead wait two minutes." - the death keeps the ground it
   fell on, `setWildDeath`'s `kind`), the remains twelve minutes, marked for their owner. THE RISE is the sea's own,
   AUDIT CAPTAIN'S SEA P4's: the nearest freeport's town within ETHER_RISE_PX, else Veilhaven (`wildRiseSite`,
-  `world.js:"const wildRiseSite = (px, inDungeon = false) => {"`) - the mountains' search of the Bay's maps would have
+  `world.js:"const wildRiseSite = (px, inDungeon = false) => {"`, over `etherWild.js` `etherRiseSite`) - the mountains' search of the Bay's maps would have
   woken the dead a crossing away, and the sea has no "outside" near enough to rise in; a ruin's death rises there too,
   never at the ruin's door its killer stands at. The team is called to follow, the risen stood clear of every body.
 - STRANGERS: every other player past the Veil outside my party and my guild is unseen on the maps
@@ -935,7 +935,7 @@ the box, and harmless so: the relay referees no fall there.
   standing, always.
 
 **THE PAGE** (`scenes/seaBountyHost.js`, built by the sea's host - HOST-SPLIT: `world.js` hands `seaVentures` the realm
-session, the checkpoint, the wallet, the character and the region, and the harbourmaster's tab its Wanted section through `seaVentures.office()` - SEA-SEASON's spread).
+session, the checkpoint, the wallet and the region (the character the sea's host's own - `characterIdOf`), and the harbourmaster's tab its Wanted section through `seaVentures.office()` - SEA-SEASON's spread).
 A freeport's harbourmaster's tab grows a WANTED section (`ui/naval/navalYardWindow.js` `wantedText`, `renderWanted`),
 online with a realm character alone: each wanted captain's kills and bounty with a press for each post
 (`SEA_BOUNTY_POSTS`: 500, 2,000, 10,000), the gold owed and its Collect, the bounty on one's own head, and the last
@@ -971,7 +971,8 @@ Spire's), and the boards are read off the service's own judged records.
 the deepest leagues past the Veil a sighting at sea marked in the season (`deepest(d, day)` - the ether host hands it the
 world's day: `etherHost.js:"L.deepest?.(etherDepthAt(px), day());"`), and each legend ended in it (`endLegend`). The
 season is the one the world's day falls in (`net/sea/seaSeasonLaw.js` `seaSeasonOfDay` - online, the shared clock's
-wall time at the day's first minute; the day the season turns in counts for the old one). A new season begins the
+wall time at the day's first minute - an event-clock reader, named in `test/fixtures/time1_census.json`; the day the
+season turns in counts for the old one). A new season begins the
 figures afresh; a day of a season before the one kept counts nothing (a world moved back). The save keeps them, read
 back within the law (`restoreSeason`); NEITHER COPY DOOR CARRIES THEM (`systems/offlineCopy.js` `dropSeason`): an
 offline game's voyages are on its own clock, and a copy brought online starts the season from nothing.

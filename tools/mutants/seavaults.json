@@ -326,8 +326,8 @@
   {
     "name": "SEA-VAULTS-world-host-builds-dark",
     "file": "src/scenes/world.js",
-    "old": "    live: () => etherSea && _onlineWorldSession() && !!online?.wildOk, day: () => wdunDayNow(),",
-    "new": "    live: () => etherSea && _onlineWorldSession(), day: () => wdunDayNow(),",
+    "old": "    live: () => etherSea && _onlineWorldSession() && !!online?.wildOk, day: wdunDayNow,",
+    "new": "    live: () => etherSea && _onlineWorldSession(), day: wdunDayNow,",
     "tests": [
       "test/systems/sea/seavaults.test.js"
     ]

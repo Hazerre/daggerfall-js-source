@@ -196,7 +196,7 @@ test('SEA-VAULTS the chart: every vault on the canvas marked in the halls\' oxbl
 
 test('SEA-VAULTS the seams by source: the world host builds the sea\'s ventures over the halls\' own locks, crows and remains, live with the open sea; the hall here a vault first; the door keeps a vault\'s gate past the mask; the crows told on their own ground; the chart\'s word the sea\'s; the social socket asks a sea key of a hub that reads it alone (mutants: each seam)', () => {
   const w = src('src/scenes/world.js');
-  assert.match(w, /const seaVentures = createSeaVentures\(\{\n\s+live: \(\) => etherSea && _onlineWorldSession\(\) && !!online\?\.wildOk, day: \(\) => wdunDayNow\(\), pixel: playerTravelPixel, locks: _wdunLocks, crows: _wdunCrows, mine: \(\) => _wildMine,\n/);
+  assert.match(w, /const seaVentures = createSeaVentures\(\{\n\s+live: \(\) => etherSea && _onlineWorldSession\(\) && !!online\?\.wildOk, day: wdunDayNow, pixel: playerTravelPixel, locks: _wdunLocks, crows: _wdunCrows, mine: \(\) => _wildMine,\n/);
   assert.match(w, /return seaVentures\.vaultHere\(\) \?\? \(a && p \? wildHallAt\(a, p\.x, p\.y\) : null\);/);
   assert.match(w, /if \(!wildInside\(mask, p\.x, p\.y\) && !seaVentures\.vaultHere\(\)\) return true;/);
   assert.match(w, /const sea = seaVentures\.crowLine\(h\);[^\n]*\n\s*if \(!wildHere\(\) \|\| !!sea !== \(wildZoneKind\(\) === ETHER_KIND\)\) return;/);

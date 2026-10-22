@@ -375,9 +375,10 @@ test('SEA-BOUNTY the seams by source: the relay passes the room and signs it wit
   assert.match(src('server-account/src/service.js'), /'\/v1\/sea\/bounty\/board', '\/v1\/sea\/bounty\/post', '\/v1\/sea\/bounty\/collect',/);
   assert.match(src('.github/workflows/account-deploy.yml'), /- "src\/net\/sea\/seaBountyLaw\.js"/);
   const w = src('src/scenes/world.js');
-  assert.match(w, /session: realmSession, checkpoint: onlineCheckpoint, wallet: realmWallet, character: \(\) => characterIdOf\(playerEntity\), region: _questRegionIndex,/);
+  assert.match(w, /session: realmSession, checkpoint: onlineCheckpoint, wallet: realmWallet, region: _questRegionIndex,/);
+  assert.match(src('src/scenes/seaVenturesHost.js'), /const character = deps\.character \?\? \(\(\) => characterIdOf\(playerEntity\)\);/, 'the character I play, the sea\'s host\'s own (HOST-SPLIT)');
   assert.match(w, /rumours: \[\.\.\.o\.rumours, \.\.\.seaVentures\.rumours\(port\)\], \.\.\.seaVentures\.office\(\),/);   // PIN MOVED (SEA-SEASON): the tab's sections, the Wanted and the season's, spread from the sea's host
   assert.match(src('src/scenes/seaVenturesHost.js'), /office: \(\) => \(\{ wanted: bounty\.office\(\), season: season\.office\(\) \}\),/);
-  assert.match(src('src/scenes/seaVenturesHost.js'), /const bounty = createSeaBounty\(\{ live, session: deps\.session, checkpoint: deps\.checkpoint, wallet: deps\.wallet, character: deps\.character, region: deps\.region, door: deps\.bountyDoor, now: clock \}\);/);
+  assert.match(src('src/scenes/seaVenturesHost.js'), /const bounty = createSeaBounty\(\{ live, session: deps\.session, checkpoint: deps\.checkpoint, wallet: deps\.wallet, character, region: deps\.region, door: deps\.bountyDoor, now: clock \}\);/);
   assert.match(src('src/ui/naval/navalPlunderDoor.js'), /export const repaintNavalYard = \(\) => \{ YARD\.open\?\.repaint\?\.\(\); \};/);
 });

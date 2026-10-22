@@ -970,5 +970,14 @@
     "tests": [
       "test/systems/sea/seabounty.test.js"
     ]
+  },
+  {
+    "name": "SEA-BOUNTY-sea-character-none",
+    "file": "src/scenes/seaVenturesHost.js",
+    "old": "  const character = deps.character ?? (() => characterIdOf(playerEntity));",
+    "new": "  const character = deps.character ?? (() => null);",
+    "tests": [
+      "test/systems/sea/seabounty.test.js"
+    ]
   }
 ]

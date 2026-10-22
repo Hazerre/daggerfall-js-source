@@ -164,7 +164,7 @@
   {
     "name": "ETHER-WILD-rise-searches-the-bay",
     "file": "src/scenes/world.js",
-    "old": "    if (etherSea && inEther(px.x, px.y)) { const port = etherRisePort(px.x, px.y); return { mapPixel: { x: port.px, y: port.py }, kind: 'city' }; }",
+    "old": "    if (etherSea && inEther(px.x, px.y)) return etherRiseSite(px.x, px.y);",
     "new": "",
     "tests": [
       "test/systems/wild/etherwild.test.js"

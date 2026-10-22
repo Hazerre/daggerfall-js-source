@@ -759,9 +759,11 @@ test('SHIP-PVP the seams by source: the naval host\'s guns asked and its seams b
   assert.match(sea, /if \(nv && nv !== armed\) \{ nv\.pvp\?\.attach\?\.\(broadsides\); armed = nv; \}\n\s+broadsides\.step\(\);\n\s+wrecks\.frame\(\);/);
   assert.match(sea, /function step\(strikes = 0\) \{\n\s+pvpStep\(\);/);
   assert.match(sea, /wref: \(g, room\) => broadsides\.hear\(g, room\),/);
+  assert.match(sea, /name: \(id\) => \(deps\.name \? deps\.name\(id\) : deps\.cell\?\.\(\)\?\.peers\?\.get\?\.\(id\)\?\.name\) \|\| '',/, 'a peer\'s name the socket\'s own (HOST-SPLIT)');
+  assert.match(sea, /const wrecks = createSeaWreckHost\(\{ session: deps\.session, checkpoint: deps\.checkpoint, character,/);
   assert.match(sea, /send: \(d, o\) => deps\.cell\?\.\(\)\?\.sendWild\?\.\(d, o\) === true,/);
   const w = src('src/scenes/world.js');
-  assert.match(w, /cell: \(\) => online, foe: \(id\) => wildIsStranger\(id, online\?\.drawable\?\.\(\)\?\.find\(\(d\) => d\.id === id\)\?\.gt\), name: \(id\) => peerName\(id\),/);
+  assert.match(w, /cell: \(\) => online, foe: \(id\) => wildIsStranger\(id, online\?\.drawable\?\.\(\)\?\.find\(\(d\) => d\.id === id\)\?\.gt\),/);
   assert.match(w, /else if \(g\.k === 'rc'\) wildRcIn\(g, room\);\n\s+else seaVentures\.wref\(g, room\);/);
   const on = src('src/net/online.js');
   assert.match(on, /this\.seaPvpOk = relaySupportsSeaPvp\(relayV\);/);

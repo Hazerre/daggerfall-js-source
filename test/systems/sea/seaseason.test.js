@@ -288,7 +288,7 @@ test('SEA-SEASON the seams by source: a clean checkpoint carries the figures in 
   assert.match(src('server-account/src/service.js'), /'\/v1\/sea\/season\/board',/);
   assert.match(src('.github/workflows/account-deploy.yml'), /- "src\/net\/sea\/seaSeasonLaw\.js"/);
   const sea = src('src/scenes/seaVenturesHost.js');
-  assert.match(sea, /const season = createSeaSeason\(\{ live, session: deps\.session, character: deps\.character, door: deps\.seasonDoor, now: clock \}\);/);
+  assert.match(sea, /const season = createSeaSeason\(\{ live, session: deps\.session, character, door: deps\.seasonDoor, now: clock \}\);/);
   assert.match(sea, /office: \(\) => \(\{ wanted: bounty\.office\(\), season: season\.office\(\) \}\),/);
   assert.match(src('src/scenes/world.js'), /\.\.\.seaVentures\.office\(\), buyChart:/);
   assert.match(src('src/scenes/etherHost.js'), /L\.deepest\?\.\(etherDepthAt\(px\), day\(\)\);/);

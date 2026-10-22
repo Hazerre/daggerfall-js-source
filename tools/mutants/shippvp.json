@@ -1613,8 +1613,26 @@
   {
     "name": "SHIP-PVP-world-no-foe",
     "file": "src/scenes/world.js",
-    "old": "foe: (id) => wildIsStranger(id, online?.drawable?.()?.find((d) => d.id === id)?.gt), name:",
-    "new": "foe: () => true, name:",
+    "old": "foe: (id) => wildIsStranger(id, online?.drawable?.()?.find((d) => d.id === id)?.gt),   // SHIP-PVP",
+    "new": "foe: () => true,   // SHIP-PVP",
+    "tests": [
+      "test/systems/sea/shippvp.test.js"
+    ]
+  },
+  {
+    "name": "SHIP-PVP-sea-name-nobody",
+    "file": "src/scenes/seaVenturesHost.js",
+    "old": "deps.cell?.()?.peers?.get?.(id)?.name) || '',",
+    "new": "null) || '',",
+    "tests": [
+      "test/systems/sea/shippvp.test.js"
+    ]
+  },
+  {
+    "name": "SHIP-PVP-sea-wrecks-no-character",
+    "file": "src/scenes/seaVenturesHost.js",
+    "old": "const wrecks = createSeaWreckHost({ session: deps.session, checkpoint: deps.checkpoint, character,",
+    "new": "const wrecks = createSeaWreckHost({ session: deps.session, checkpoint: deps.checkpoint,",
     "tests": [
       "test/systems/sea/shippvp.test.js"
     ]
