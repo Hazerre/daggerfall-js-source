@@ -373,7 +373,7 @@
     "name": "STAFF-PANEL4-CENSUS-trail-found-lost",
     "file": "server-account/src/staffCensus.js",
     "old": "trail_found = ?5",
-    "new": "trail_found = 'unclear'",
+    "new": "trail_found = trail_found",
     "why": "what staff found not kept",
     "tests": [
       "test/server/staffpanel4census.test.js"
