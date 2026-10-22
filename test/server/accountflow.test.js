@@ -111,9 +111,10 @@ test('ACC1e: every refusal word the SERVICE can emit has a sentence here - walke
   // the tree the day somebody adds a file.
   // STAFF-PANEL1: but staff.js answers the staff panel (/v1/staff/*), never this screen, so its words are the
   // panel's to say - walked all the same, below, against the status it answers each with.
-  const files = readdirSync(new URL('../../server-account/src', import.meta.url))
-    .filter((f) => f.endsWith('.js') && f !== 'staff.js').sort();
-  const staffSays = [...src('server-account/src/staff.js').matchAll(/error:\s*'([a-z-]+)'/g)].map((m) => m[1]);
+  // STAFF-PANEL3-REALM: and so do the panel's own modules beside it (staffCases.js, staffRealm.js - every staff*.js)
+  const all = readdirSync(new URL('../../server-account/src', import.meta.url)).filter((f) => f.endsWith('.js')).sort();
+  const files = all.filter((f) => !f.startsWith('staff'));
+  const staffSays = all.filter((f) => f.startsWith('staff')).flatMap((f) => [...src(`server-account/src/${f}`).matchAll(/error:\s*'([a-z-]+)'/g)].map((m) => m[1]));
   assert.ok(staffSays.length >= 5, 'the staff walk found nothing - it has stopped seeing its subject');
   assert.deepEqual(staffSays.filter((w) => !(w in STAFF_STATUS)), [], 'the staff panel can be refused with a word it has no status for');
   assert.ok(files.length >= 4, `the walk found only ${files.length} service files - it has stopped seeing its subject`);

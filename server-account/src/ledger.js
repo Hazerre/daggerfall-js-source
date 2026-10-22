@@ -62,6 +62,12 @@ export const UPSERT_ROWS = 48;
 export const LEDGER_NEW_MAX = 960;
 /** The most keys one checkpoint reads the ledger for (67 reads at most); a save holding more has the rest unfollowed. */
 export const LEDGER_KEYS_MAX = 6000;
+/** STAFF-PANEL3-REALM (design doc weak spots, "Items, census and economy": "Staff-taken ids keep a 'seized' state, so a
+ *  save that shows one again is charged as a copy"): an `escrow` row's `char_id` when staff took the piece (staffRealm.js
+ *  - off the market, or out of a save) - in the service's hands, as escrow is, and no record's. No realm id is shaped
+ *  like it (realm.js REALM_ID_RE), and 0096's CHECK on `state` stands as it is. Put back hands the row back - to the
+ *  market's hands, or to the record it was taken from (staffRealm.js evidence/return). */
+export const SEIZED = 'seized';
 
 const marks = (/** @type {number} */ n, /** @type {number} */ from) => Array.from({ length: n }, (_, i) => `?${from + i}`).join(', ');
 /** `[...list]` in slices of `n`. */
@@ -141,6 +147,8 @@ export async function ledgerStep(db, at, pieces, known = null) {
       if (!rehomedPrint(r.fp, fp)) { forged.push(key); continue; }   // another piece's key: no claim to that piece
       reprint.push([key, fp, r.fp]);   // AUDIT FB1018f L1-1: the piece itself, its base moved home by the load (lootRarity.js)
     }
+    // STAFF-PANEL3-REALM: a piece staff took, shown again - a copy of it, charged to this record (and locked, as every copy)
+    if (r && r.state === 'escrow' && r.char_id === SEIZED) { copies.push(key); continue; }
     if (n > 1) { copies.push(key); if (!r) fresh.push([key, fp]); continue; }   // one piece twice in one record
     if (!r) { if (fresh.length < LEDGER_NEW_MAX) fresh.push([key, fp]); continue; }
     if (r.char_id === char && r.state === 'held') {

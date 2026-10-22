@@ -48,6 +48,7 @@ import { mintId, mintSecret, hashSecret, displayName, overRate, clearRate, overA
 import { isDeveloper, canModerate, handleList, developerHandles, moderatorHandles, TIER_LISTS, MOD_TIERS } from './titles.js';
 import { isBanned } from './sanctions.js';
 import { staffCases, CASE_ROUTES } from './staffCases.js';
+import { staffRealm, REALM_ROUTES } from './staffRealm.js';
 
 /** The header a staff session rides in - never `authorization`, which is the game's. */
 export const STAFF_SESSION_HEADER = 'x-staff-session';
@@ -88,6 +89,12 @@ export const STAFF_STATUS = Object.freeze({
   // STAFF-PANEL2 (staffCases.js): a case another member holds, a Moderator's second case, and the game's own moderation words
   'staff-claimed': 409, 'staff-one-case': 409, 'no-case': 404, 'not-moderator': 403, protected: 403, ambiguous: 409, 'bad-minutes': 400,
   'bad-days': 400, 'not-banned': 409, 'not-found': 404,
+  // STAFF-PANEL3-REALM (staffRealm.js): the review's own words (index.js REVIEW_STATUS), the market's, and the panel's - a
+  // note or a reason not given, a Roll back waiting on a kept removal, a piece not where the panel saw it, a contested
+  // piece whose trail was not checked, a removal not kept (or past its 30 days)
+  'not-developer': 403, 'no-realm-character': 404, 'no-clean': 409, 'service-moved': 409, dead: 409, 'repair-no-faction': 409, 'repair-not-set': 409,
+  seq: 409, 'mend-not-negative': 409, 'mend-moved': 409, 'repair-ticket': 409, 'no-data': 409, 'no-storage': 503, 'market-gone': 409, 'bad-listing': 400,
+  'staff-note': 400, 'staff-reason': 400, 'staff-remove-pending': 409, 'staff-no-piece': 409, 'staff-trail': 409, 'staff-evidence': 404, 'staff-evidence-gone': 409,
 });
 
 const enc = new TextEncoder();
@@ -333,6 +340,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
 
   // ═══ STAFF-PANEL2: THE REPORTS, Mute, Ban and the claims - Admins and Moderators both (staffCases.js) ═══
   if (CASE_ROUTES.includes(path)) return staffCases(ctx, env, path, body, who, audit);
+  if (REALM_ROUTES.includes(path)) return staffRealm(ctx, env, path, body, who, audit);   // STAFF-PANEL3-REALM: trade holds, rollbacks, fixes, gains, removals - Admins'
 
   // ═══ THE ADMINS' DOORS: THE PANEL'S MODERATORS (mob, 07:42Z: "add it so admins can add or remove moderatoers") ═══
   // /v1/staff/mods lists them; /v1/staff/mod/add and /mod/remove { handle } - a registered account, not banned, not staff

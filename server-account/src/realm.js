@@ -701,11 +701,14 @@ export function realmAtOf(/** @type {any} */ v) {
  * 'piece-dupe', whatever the act: no route moves that piece again. INT5: the wealth the change moves is WITNESSED - the
  * row's `witnessed` takes it in the same step, so the budget never charges a gain the service itself made. INT6: the
  * last checkpoint judged clean is never `prev` to drop.
+ * STAFF-PANEL3-REALM: `take` - staff take pieces out (staffRealm.js, the design's "Remove from a player"): a piece leaves
+ * whatever the ledger says of it, a copy above all, so INT4's refusals are not asked (design doc weak spots: "The repair
+ * path refuses to touch copied pieces").
  * @param {any} ctx @param {string} playerId @param {{ id: string, lease: string, seq: number }} at
- * @param {(save: any) => string | null} change @param {{ outbound?: boolean, escrow?: boolean | Set<string>, seize?: boolean }} [opts]
+ * @param {(save: any) => string | null} change @param {{ outbound?: boolean, escrow?: boolean | Set<string>, seize?: boolean, take?: boolean }} [opts]
  *   `escrow`: the pieces leaving in the service's hands (ledger.js ledgerMoves - true all, a Set those keys)
  */
-export async function prepareRealmRecord({ db, bucket, rand, nowS }, playerId, at, change, { outbound = false, escrow = false, seize = false } = {}) {
+export async function prepareRealmRecord({ db, bucket, rand, nowS }, playerId, at, change, { outbound = false, escrow = false, seize = false, take = false } = {}) {
   if (!bucket) return { error: 'no-storage' };
   const row = await db.prepare('SELECT seq, lease, obj, prev, held, judged_seq, clean_obj FROM realm_characters WHERE id = ? AND player = ?').bind(at.id, playerId).first();
   if (!row) return { error: 'no-realm-character' };
@@ -731,7 +734,7 @@ export async function prepareRealmRecord({ db, bucket, rand, nowS }, playerId, a
   const piecesAfter = ledgerPieces(save);
   // AUDIT AUTO-HOLD: a key whose count fell is leaving - one of two the record held is a copy, never handed on
   const { leaving, twice } = leavingKeys(piecesBefore, piecesAfter);
-  const why = twice.length ? 'piece-dupe' : leaving.length ? await piecesRefusal(db, at.id, leaving) : null;
+  const why = take ? null : twice.length ? 'piece-dupe' : leaving.length ? await piecesRefusal(db, at.id, leaving) : null;
   if (why) return { error: why };
   const text = JSON.stringify(save);
   const bytes = new TextEncoder().encode(text).byteLength;
@@ -764,12 +767,12 @@ export async function prepareRealmRecord({ db, bucket, rand, nowS }, playerId, a
  * join reads the new one (the staff rollback's way, review.js). Answers prepareRealmRecord's `{ steps, key, prev, seq }`,
  * guarded on the sequence it read, or `{ error }`.
  * @param {any} ctx @param {string} playerId @param {string} charId
- * @param {(save: any) => string | null} change @param {{ escrow?: boolean | Set<string> }} [opts]
+ * @param {(save: any) => string | null} change @param {{ escrow?: boolean | Set<string>, take?: boolean }} [opts] `take` prepareRealmRecord's
  */
-export async function seizeRealmRecord(ctx, playerId, charId, change, { escrow = true } = {}) {
+export async function seizeRealmRecord(ctx, playerId, charId, change, { escrow = true, take = false } = {}) {
   const row = await ctx.db.prepare('SELECT seq, lease FROM realm_characters WHERE id = ? AND player = ? AND dead_at IS NULL').bind(charId, playerId).first();
   if (!row) return { error: 'no-realm-character' };
-  return prepareRealmRecord(ctx, playerId, { id: charId, lease: row.lease ?? '', seq: row.seq }, change, { escrow, seize: true });
+  return prepareRealmRecord(ctx, playerId, { id: charId, lease: row.lease ?? '', seq: row.seq }, change, { escrow, seize: true, take });
 }
 
 /** AUDIT REALM2 S3: AFTER A BATCH THAT THREW, the object it wrote goes only if the row names it nowhere (`obj` or

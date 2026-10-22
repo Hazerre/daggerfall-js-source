@@ -43,7 +43,7 @@
 import { judgeSave, judgeProducts, STRIKES_FOR_TIMED, JUDGE_VERSION, FINDINGS_KEPT, WEALTH_VERSION } from './judge.js';
 import { ledgerStep, chargeSteps } from './ledger.js';
 import { budgetConfig, bandOf, stepBudget } from './budget.js';
-import { customsAllowance } from '../../src/net/realm/realmGoldLaw.js';
+import { customsAllowance, liquidWealthOf } from '../../src/net/realm/realmGoldLaw.js';
 
 /** INT2's cutover (Mac: "Items judged, wealth baselined"): a character whose first judged wealth stands past this many
  *  of its level's customs allowance (realmGoldLaw.js customsAllowance) is flagged for staff - flagged, never held. */
@@ -188,7 +188,10 @@ export async function verdictOn({ db, nowS }, { player, char, seq, key }, row, s
   if (law > 0 && sig !== row.law_sig) finding('law', { count: law, findings: lawFindings.slice(0, FINDINGS_KEPT), ...(lawHolds ? {} : { excused: true }) });
   // a GAIN that leaves the bucket short is found; a checkpoint that gained nothing while play pays a shortfall back finds
   // nothing new (the hold, under `enforce`, stands until it is paid)
-  if (budget.over > 0 && gain > 0) finding(config.enforce ? 'budget' : 'measure', { gain, over: budget.over, level: lv.level, played: dPlayed, wealth: judged.wealth, ...(first ? { first: true } : {}) });
+  // STAFF-PANEL3-REALM (design doc weak spots: "split gold from item worth"): and the gold of that wealth (realmGoldLaw.js
+  // liquidWealthOf - the purse, the banks, coins, letters and deeds at their gold), so staff read gold apart from goods -
+  // asked only when this finding is written
+  if (budget.over > 0 && gain > 0) finding(config.enforce ? 'budget' : 'measure', { gain, over: budget.over, level: lv.level, played: dPlayed, wealth: judged.wealth, gold: liquidWealthOf(save), ...(first ? { first: true } : {}) });
   if (outlier) finding('outlier', { wealth: judged.wealth, level: lv.level });
   // the hour's measure: what no witness explains, apart by sign, against the seconds played at this level
   const hour = Math.floor(nowS / HOUR_S) * HOUR_S;
