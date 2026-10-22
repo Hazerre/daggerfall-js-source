@@ -248,5 +248,15 @@
     "tests": [
       "test/server/staffpanel2.test.js"
     ]
+  },
+  {
+    "name": "STAFF-PANEL2-staff-still-report",
+    "file": "src/scenes/chatSafetyHost.js",
+    "old": "const rows = staff() ? [] : REPORT_REASONS",
+    "new": "const rows = REPORT_REASONS",
+    "why": "an Admin's or a Moderator's chat menu still offers Report",
+    "tests": [
+      "test/net/safety/safe_client.test.js"
+    ]
   }
 ]

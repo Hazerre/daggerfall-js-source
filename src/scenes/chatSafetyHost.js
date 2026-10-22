@@ -112,7 +112,7 @@ const verdictText = (ai) => (ai && typeof ai === 'object'
  * @param {(fn: () => void, ms: number) => any} [o.setTimer]  AUDIT SAFE CLIENT-8: the block list's retry clock
  * @param {(h: any) => void} [o.clearTimer]
  */
-export function createChatSafetyHost({ log, links, social = () => null, minter = () => null, panel = () => null, touch = isTouchDevice(), doc = globalThis.document, win = globalThis, register = registerOverlay,
+export function createChatSafetyHost({ log, links, social = () => null, minter = () => null, panel = () => null, staff = () => false, touch = isTouchDevice(), doc = globalThis.document, win = globalThis, register = registerOverlay,
   fetch = (u, i) => globalThis.fetch(u, i), storage = null, now = () => Date.now(), setTimer = (fn, ms) => setTimeout(fn, ms), clearTimer = (h) => clearTimeout(h) }) {
   /** @type {Map<string, string>} sub -> the name it was blocked under (the service's: the account's own) */
   const blocked = new Map();
@@ -356,11 +356,13 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
       if (agreedHere && !issued.conduct) return;
       agreed = issued.conduct;
     },
-    /** A spoken line's menu: Report it (a reason each) and Block or Unblock its speaker. */
+    /** A spoken line's menu: Report it (a reason each) and Block or Unblock its speaker. STAFF-PANEL2 (2026-10-22, mob:
+     *  "remove the report buttons iunch for admin and mods as well", "chat they arnt usefu for us"): an Admin or a
+     *  Moderator (`staff`) gets Block alone - they act on a player from the Staff Panel, not by reporting them. */
     lineActions(line) {
       if (!line?.sub || line.mine || line.system) return [];
       const name = String(line.name ?? '');
-      const rows = REPORT_REASONS.map((reason) => ({
+      const rows = staff() ? [] : REPORT_REASONS.map((reason) => ({
         label: t('net.safety.reportAs', 'Report: {reason}', { reason: reportReasonLabel(reason) }),
         run: () => { void report(line.sub, name, reason, log()?.reportLines?.(line.sub, { seq: line.seq }) ?? []); },
       }));

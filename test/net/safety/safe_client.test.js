@@ -204,6 +204,14 @@ test('SAFE1 THE HOST\'S BLOCK: the list is read at the start and the log hears t
   assert.deepEqual(r.host.lineActions({ text: 'x', system: true }), []);
 });
 
+test('STAFF-PANEL2 STAFF REPORT NOTHING FROM CHAT: an Admin\'s or a Moderator\'s line menu is Block alone - no Report row - while a player keeps every reason (mutant: the staff check dropped)', () => {
+  const line = { id: 'p2', name: 'Troll', text: 'gross', at: 2, sub: 'acct-tro', sg: SG };
+  const player = hostRig().host.lineActions(line);
+  assert.equal(player.length, REPORT_REASONS.length + 1);
+  const staff = hostRig({ opts: { staff: () => true } }).host.lineActions(line);
+  assert.deepEqual(staff.map((x) => x.label), ['Block']);
+});
+
 test('SAFE3 THE HOST\'S REPORT: a line\'s own Report carries that line and the stamped lines before it with the reason chosen; /report <name> carries everything the account said here; a report that mutes hands back an order, carried to every room by its kind (mutants: the order dropped; carried to the wrong door)', async () => {
   const r = hostRig();
   r.log.push('world', { id: 'p1', name: 'Sylvia', text: 'happy pride', at: 1, sub: 'acct-syl', sg: SG });
