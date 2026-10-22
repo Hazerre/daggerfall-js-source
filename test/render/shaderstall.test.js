@@ -281,5 +281,5 @@ test('AURA-STALL the auras\' pass: its program started at the boot\'s idle with 
   const w = read('src/scenes/world.js');
   assert.match(w, /const auraPassOf = compiledPass\(renderer\.gl, AURA_PROGRAMS, \(\) => new AuraRingRenderer\(renderer\.gl\),/);
   assert.match(w, /const _auraPass = auraPassOf\(\);/, 'never asked as needed: an aura stands a frame late, never a frame frozen');
-  assert.equal((w.match(/new AuraRingRenderer\(/g) ?? []).length, 1, 'built nowhere outside its door');
+  assert.equal(w.split('\n').filter((l) => l.split('//')[0].includes('new AuraRingRenderer(')).length, 1, 'built nowhere outside its door (a comment that names the build is no build)');
 });

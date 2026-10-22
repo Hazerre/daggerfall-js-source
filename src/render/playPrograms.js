@@ -10,8 +10,8 @@
 // (KHR_parallel_shader_compile) every one of them is started here, at the boot's idle, minutes before a player meets
 // it, and its door finds it done. Where the driver cannot, nothing is started early (a compile queued on its thread
 // would hold the frames that follow it): each pass is built the first time it is asked for, as before the slice.
-// AURA-STALL (#1137): the auras' program is started here too, the one cosmetic pass in the list - its door is never
-// asked as needed, so an aura met inside its compile is late, never a frame frozen.
+// AURA-STALL (#1137): the auras' program is started here too. Like a gate's fire, its door is never asked as needed,
+// so an aura met inside its compile is late, never a frame frozen.
 //
 // Loaded by the renderer's idle warm (lazyWarmSteps), off the boot's static graph - the passes' own modules are the
 // hosts' already.

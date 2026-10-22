@@ -1516,6 +1516,11 @@ before (57 ms on a reload), so the freeze came once, on the first session after 
 
 bootWorld lost 3 logical lines (its ceiling 36,256 -> 36,253, `test/scenes/hostceiling.test.js`).
 
+THE FOUR HOSTS: `scenes/world.js` WIRED - the one host that builds the aura pass. `scenes/worldModes.js` draws the
+interior's and the dungeon's auras through the host's `drawVeiledPeerBodies`, and `scenes/dungeonContext.js` through
+the late-world hook worldModes hands it, so both take the world's door. `scenes/exterior.js` (the fixed city) runs no
+online session and draws no aura.
+
 **Measured.** On the player's machine (Windows 11, NVIDIA RTX 5080, ANGLE D3D11, the desktop app's Chromium), each
 build salted so that no cache answered:
 
