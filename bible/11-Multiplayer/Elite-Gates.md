@@ -10276,7 +10276,7 @@ never went down, and none of the gate's other beats had been carried over - no c
 Burning Court (`world/gate/gateBoss.js` `bossAct`, `scenes/gate/gateCourt.js` `fallEvent`, `drawCorpse` and `lights`).
 It is on the gate's own numbers - `FALL_MS`, `THUD_AT_MS`, `FALL_FLASH_MS`, `FALL_SHAKE`, `COLUMN_BURSTS`,
 `COLUMN_STEP_MS`, `FALL_CRY_LATE_MS`, and the ones the court had written in line, now named there and read here
-(`FALL_BURST_UP`, `FALL_FLASH_Y`, `FALL_FLASH_K`, `FALL_FLASH_RANGE`, `FALL_NEWS_MS` in `gateCourt.js`, `GLOW_SHARE` and
+(`FALL_BURST_UP`, `FALL_FLASH_Y`, `FALL_FLASH_K`, `FALL_FLASH_RANGE`, `FALL_NEWS_MS` in `gateCourt.js`, `GLOW_UP_SHARE` and
 `FALL_GLOW_K` in `gateBoss.js` - AUDIT EG-FALL L2-9, L3-9). Three of them grow with the lord's drawn size over the
 Warden's 3 (`EG_FALL_PER` - Grath at 4.8 sinks 2.4 m): its sink, its corpse's scale, and the height its beats stand at
 (`egFallTallM`, the Warden's `BOSS_H` grown - not the drawn sprite's height); the flash, the glow's reach, the shake and the

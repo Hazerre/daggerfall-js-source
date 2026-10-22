@@ -442,8 +442,8 @@
   {
     "name": "AUDIT-EG-FALL-L1-4-glow-left-aloft",
     "file": "src/scenes/eliteGates/egLordFall.js",
-    "old": "g.y = F[1] + L.hover * egFallAloft(s) + L.tall * GLOW_SHARE",
-    "new": "g.y = F[1] + L.hover + L.tall * GLOW_SHARE",
+    "old": "g.y = F[1] + L.hover * egFallAloft(s) + L.tall * GLOW_UP_SHARE",
+    "new": "g.y = F[1] + L.hover + L.tall * GLOW_UP_SHARE",
     "tests": [
       "test/net/eliteGates/eg_lordfall.test.js",
       "test/net/eliteGates/eg_lordfall_relay.test.js"

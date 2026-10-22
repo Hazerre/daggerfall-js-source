@@ -17,7 +17,7 @@ import { createEgFight, egBodyAct, egLookOf, EG_LORD_HOVER_M } from '../../../sr
 import {
   createEgLordFall, egLordFallAct, egLordEmber, egLordEl, egFallCry, egFallSinkM, egFallTallM, egCorpseScale, EG_FALL_PER, egFallAloft,
 } from '../../../src/scenes/eliteGates/egLordFall.js';
-import { FALL_MS, THUD_AT_MS, FALL_SINK_M, CORPSE_SCALE, BOSS_CUES, ASPECT_COLORS, EMBER_COLOR, GLOW_RANGE, GLOW_SHARE, FALL_GLOW_K } from '../../../src/world/gate/gateBoss.js';
+import { FALL_MS, THUD_AT_MS, FALL_SINK_M, CORPSE_SCALE, BOSS_CUES, ASPECT_COLORS, EMBER_COLOR, GLOW_RANGE, GLOW_UP_SHARE, FALL_GLOW_K } from '../../../src/world/gate/gateBoss.js';
 import { BOSS_H } from '../../../src/net/gate/gateBrain.js';
 import { FALL_FLASH_MS, FALL_SHAKE, COLUMN_BURSTS, COLUMN_STEP_MS, FALL_CRY_LATE_MS, WHITE, FALL_NEWS_MS, FALL_BURST_UP, FALL_FLASH_Y, FALL_FLASH_K, FALL_FLASH_RANGE } from '../../../src/scenes/gate/gateCourt.js';
 import { stateAnims } from '../../../src/characters/mobile/mobileUnit.js';
@@ -80,7 +80,7 @@ const drawnAt = (fight, centre, x, z, archive) => fight.batches().find((q) => q.
 
 test('EG-FALL THE BODY (scenes/eliteGates/egLordFall.js egLordFallAct - world/gate/gateBoss.js bossAct\'s fall): a fallen lord plays its hurt frames to the floor by THUD_AT_MS (five, the last held), sinks FALL_SINK_M grown by its drawn size over the Warden\'s 3 into the stone over the rest of FALL_MS, and is gone past it; a flyer drops out of its hover by the thud; egBodyAct says it so - never its fourth hurt frame held, standing, for the hall\'s life (mutants: the old act; the sink from the end; the sink ungrown; never gone; four frames; the flyer never dropping)', () => {
   assert.deepEqual([FALL_MS, THUD_AT_MS, FALL_SINK_M, CORPSE_SCALE, BOSS_H], [2400, 1500, 1.5, 3, 5.6], 'the gate\'s own numbers');
-  assert.deepEqual([FALL_NEWS_MS, FALL_BURST_UP, FALL_FLASH_Y, FALL_FLASH_K, FALL_FLASH_RANGE, GLOW_SHARE, FALL_GLOW_K], [1000, 0.5, 3, 4, 40, 0.55, 2.2], 'AUDIT EG-FALL (L2-9): the gate\'s fall numbers its court wrote in line, named once and read by the breach');
+  assert.deepEqual([FALL_NEWS_MS, FALL_BURST_UP, FALL_FLASH_Y, FALL_FLASH_K, FALL_FLASH_RANGE, GLOW_UP_SHARE, FALL_GLOW_K], [1000, 0.5, 3, 4, 40, 0.55, 2.2], 'AUDIT EG-FALL (L2-9): the gate\'s fall numbers its court wrote in line, named once and read by the breach');
   const A = 'hurt', at = (since, drawn = 4.8) => egLordFallAct(since, A, drawn);
   assert.deepEqual([0, 299, 300, 600, 900, 1200, 1499, 1500, 2000].map((s) => at(s).frame), [0, 0, 1, 2, 3, 4, 4, 4, 4], 'its hurt frames to the floor');
   assert.deepEqual([0, 750, 1500, 2000].map((s) => at(s).aloft), [1, 0.75, 0, 0], 'a flyer\'s hover under it, gone by the thud');
@@ -358,7 +358,7 @@ test('AUDIT EG-FALL L2-6/L2-7/L2-10 THE BEATS WHERE THEY STAND: the glow and the
   const k = FALL_FLASH_K * (1 - 100 / FALL_FLASH_MS), g = FALL_GLOW_K * (1 - 100 / FALL_MS);
   const lit = () => S.fight.lights().map((l) => ({ x: l.x, y: l.y, z: l.z, range: l.range, color: [...l.color], carried: l.carried }));
   assert.deepEqual(lit(), [
-    { x: F[0], y: F[1] + tall * GLOW_SHARE, z: F[2], range: GLOW_RANGE.landing, color: ember.map((c) => c * g), carried: true },
+    { x: F[0], y: F[1] + tall * GLOW_UP_SHARE, z: F[2], range: GLOW_RANGE.landing, color: ember.map((c) => c * g), carried: true },
     { x: F[0], y: F[1] + FALL_FLASH_Y, z: F[2], range: FALL_FLASH_RANGE, color: WHITE.map((c) => c * k), carried: true },
   ], 'the glow at its chest and the flash over its fall, whole');
   clock.t = FELL + 300; S.fight.frame();
@@ -422,7 +422,7 @@ test('AUDIT EG-FALL L1-4/L1-5 A WINGED LORD FALLS BEATING ITS WINGS, ITS BEATS F
   for (const since of [0, 300, 750, 1200]) {
     clock.t = FELL + since; S.fight.frame();
     const glow = S.fight.lights().find((l) => l.range === GLOW_RANGE.landing);
-    assert.ok(near(glow.y, centre[1] + look.hover * egFallAloft(since) + tall * GLOW_SHARE, 1e-9), `${since} ms in: her glow drops with her`);
+    assert.ok(near(glow.y, centre[1] + look.hover * egFallAloft(since) + tall * GLOW_UP_SHARE, 1e-9), `${since} ms in: her glow drops with her`);
     const q = S.fight.batches().find((x) => x.archive === archive);
     assert.ok(q && winged.has(`${q.record.split('#')[0]}#0`), `her winged table (${q?.record})`);
     framesSeen.push(Number(q.record.split('#')[1]));

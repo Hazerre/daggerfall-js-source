@@ -28,7 +28,7 @@
 // Daggerfall Unity's foe has no fall of its own - at its death EnemyDeath.CompleteDeath sets it inactive at once and lays a
 // lootable corpse marker in its corpse picture, with SoundClips.BodyFall where it lies; this departs from that as the gate
 // does (the fall, the corpse laid at FALL_MS, BodyFall at THUD_AT_MS pitched for its size). Ledger A (ELITE-GATES).
-import { FALL_MS, THUD_AT_MS, FALL_SINK_M, CORPSE_SCALE, BOSS_LOOKS, BOSS_CUES, GLOW_RANGE, GLOW_SHARE, FALL_GLOW_K, emberColor } from '../../world/gate/gateBoss.js';
+import { FALL_MS, THUD_AT_MS, FALL_SINK_M, CORPSE_SCALE, BOSS_LOOKS, BOSS_CUES, GLOW_RANGE, GLOW_UP_SHARE, FALL_GLOW_K, emberColor } from '../../world/gate/gateBoss.js';
 import { BOSS_H } from '../../net/gate/gateBrain.js';
 import { FALL_FLASH_MS, FALL_SHAKE, COLUMN_BURSTS, COLUMN_STEP_MS, FALL_CRY_LATE_MS, FALL_BURST_UP, FALL_FLASH_Y, FALL_FLASH_K, FALL_FLASH_RANGE, FALL_NEWS_MS, WHITE } from '../gate/gateCourt.js';
 import { GateFxRenderer, GATE_FX_PROGRAMS, FX_KINDS, FX_BURST_MS, FX_BURSTS_MAX } from '../../render/gate/gateFx.js';
@@ -182,7 +182,7 @@ export function createEgLordFall({ renderer = null, gl = null, getTexture = null
       // its ember's glow dying over the fall, at its chest as it drops (AUDIT EG-FALL L1-4), the hall's flash at the kill
       if (s < FALL_MS) {
         const g = L.glow, k = FALL_GLOW_K * (1 - s / FALL_MS);
-        g.x = F[0]; g.y = F[1] + L.hover * egFallAloft(s) + L.tall * GLOW_SHARE; g.z = F[2]; g.range = GLOW_RANGE.landing;
+        g.x = F[0]; g.y = F[1] + L.hover * egFallAloft(s) + L.tall * GLOW_UP_SHARE; g.z = F[2]; g.range = GLOW_RANGE.landing;
         g.color[0] = L.ember[0] * k; g.color[1] = L.ember[1] * k; g.color[2] = L.ember[2] * k;
         lights.push(g);
       }
