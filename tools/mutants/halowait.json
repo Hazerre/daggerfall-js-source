@@ -68,5 +68,37 @@
       "test/net/halowait.test.js"
     ],
     "note": "The host calls join every frame of the wait: an asked list cleared there is cleared every frame, and a stranger is asked every frame."
+  },
+  {
+    "name": "HALO-WAIT-8-the-hold-before-the-wait",
+    "file": "src/net/online.js",
+    "old": "  crossesNow(key) { return this.inRoom(key) || this._haloWait(key); }",
+    "new": "  crossesNow(key) { return this.inRoom(key); }",
+    "tests": [
+      "test/net/halowait.test.js"
+    ],
+    "note": "A crossing into a halo still connecting waits out the host's 500 ms hold first, and the host sends no pose during it: every such crossing stands me still for half a second."
+  },
+  {
+    "name": "HALO-WAIT-9-no-hold-at-all",
+    "file": "src/net/online.js",
+    "old": "  crossesNow(key) { return this.inRoom(key) || this._haloWait(key); }",
+    "new": "  crossesNow(key) { return true; }",
+    "tests": [
+      "test/net/halowait.test.js"
+    ],
+    "note": "A crossing with nothing to wait for (a dropped halo) is joined the ordinary way in its first frame: an edge paced at a dropped halo tears every socket down at every step, which the hold exists to prevent (AUDIT ONLINE D11)."
+  },
+  {
+    "name": "HALO-WAIT-10-the-host-asks-inRoom",
+    "file": "src/scenes/world.js",
+    "old": "(isCellRoom(key) && online.crossesNow(key))",
+    "new": "(isCellRoom(key) && online.inRoom(key))",
+    "tests": [
+      "test/net/halowait.test.js",
+      "test/net/auditworld6biiib.test.js",
+      "test/net/world2.test.js"
+    ],
+    "note": "The host's own line: asking inRoom alone, a crossing into a halo still connecting waits out the hold with no pose."
   }
 ]

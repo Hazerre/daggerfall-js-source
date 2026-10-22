@@ -1104,6 +1104,11 @@ export class OnlineSession {
   /** WORLD6b-iii(b): do I hold a socket in this room - my own cell, or a halo's? A foes frame keyed to a halo room is
    *  the world (its owner's cell), one keyed to a room I am not in is not. */
   inRoom(key) { return !!key && ((key === this.room && !!this._ws) || this._halo.get(key)?.status === 'open'); }
+  /** HALO-WAIT (#1134): may a crossing into `key` be joined with no hold - a cell I hold (its halo promotes in place),
+   *  or one whose halo is still connecting (the join waits for it and sends my pose meanwhile)? The world host joins on
+   *  it at once, so no frame of such a crossing goes without my pose; nothing is closed either way, so an edge paced
+   *  back and forth churns nothing (AUDIT ONLINE D11's reason for the hold). */
+  crossesNow(key) { return this.inRoom(key) || this._haloWait(key); }
   /** SLAM6: `told` is whether this frame is the relay's own INTRODUCTION - a welcome's roster entry or a `join`,
    *  which carry the peer's name and look. A pose that stands a stranger is not one, and a peer stood by one is
    *  asked for (`_askWho`) until an introduction arrives. Keyed on the introduction rather than on the look because

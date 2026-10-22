@@ -34,7 +34,7 @@ function traveller() {
 function hostFrame(s, mp, now, state) {
   const key = worldRoom(mp.x, mp.y);
   if (key !== state.key) { state.key = key; state.since = now; }
-  if (key !== s.room) { if (!s.room || (isCellRoom(key) && s.inRoom(key)) || now - state.since >= 500) s.join(key, poseAt(mp)); }
+  if (key !== s.room) { if (!s.room || (isCellRoom(key) && s.crossesNow(key)) || now - state.since >= 500) s.join(key, poseAt(mp)); }
   else s.sendPose(poseAt(mp));
   const want = isCellRoom(s.room) ? cellHaloFor(mp.x, mp.y, { current: s.haloRooms() }) : [];
   if (isCellRoom(s.room) && isCellRoom(key) && key !== s.room) want.push(key);
@@ -57,16 +57,19 @@ async function atTheEdge() {
   return t;
 }
 
-test('HALO-WAIT: a crossing into a cell whose halo is still minting WAITS - nothing closed, nobody wiped, my pose down my own cell all the while - and promotes the halo the frame its hello goes', () => quiet(async () => {
+test('HALO-WAIT: a crossing into a cell whose halo is still minting WAITS from its first frame - nothing closed, nobody wiped, my pose down my own cell all the while, the hold\'s 500 ms included - and promotes the halo the frame its hello goes', () => quiet(async () => {
   const { s, sockets, clock, mints, st } = await atTheEdge();
-  const posesBefore = sockets[0].sent.filter((f) => f.startsWith('{"t":"pose"')).length;
+  const poses = () => sockets[0].sent.filter((f) => f.startsWith('{"t":"pose"')).length;
+  const posesBefore = poses();
   s._who.set('eve-0003', clock.t);   // a stranger asked for in my cell
-  for (const x of [48, 48, 49, 49]) { clock.t += 300; hostFrame(s, { x, y: 200 }, clock.t, st); }   // 1.2 s in cell 3, the 500 ms hold long past
+  clock.t += 100; hostFrame(s, { x: 48, y: 200 }, clock.t, st);   // the crossing frame: the hold has not begun to run out
+  assert.equal(poses(), posesBefore + 1, 'my pose goes out in the crossing frame itself (the hold sent none for 500 ms)');
+  for (const x of [48, 48, 49, 49]) { clock.t += 300; hostFrame(s, { x, y: 200 }, clock.t, st); }   // 1.3 s in cell 3, the 500 ms hold long past
   assert.equal(s.room, 'world:2,12', 'still my old cell'); assert.equal(s._ws, sockets[0]);
   assert.ok(s._who.has('eve-0003'), 'the asked list kept through every frame of the wait - asked before the join\'s clears');
   assert.equal(sockets.length, 2, 'no socket opened'); assert.equal(sockets[0].closed, null); assert.equal(sockets[1].closed, null, 'nothing closed');
   assert.ok(s.peers.has('bob-0002'), 'Bob still stands');
-  assert.ok(sockets[0].sent.filter((f) => f.startsWith('{"t":"pose"')).length > posesBefore, 'my pose went on down the cell I hold');
+  assert.ok(poses() > posesBefore + 1, 'my pose went on down the cell I hold');
   mints[1].answer(); await flush();
   assert.equal(s._halo.get('world:3,12').status, 'open', 'the halo\'s hello went');
   const reconnects = s.stats.reconnects;
@@ -121,7 +124,9 @@ test('HALO-WAIT: only a halo with a socket CONNECTING is waited for - one droppe
     const { s, sockets, clock, mints, st } = await atTheEdge();
     sockets[1].drop(1006);
     assert.equal(s._halo.get('world:3,12').status, 'closed');
+    assert.equal(s.crossesNow('world:3,12'), false, 'a dropped halo is nothing to wait for');
     clock.t += 100; hostFrame(s, { x: 48, y: 200 }, clock.t, st);   // the crossing frame: the hold begins
+    assert.equal(s.room, 'world:2,12', 'the hold kept - an edge paced is not a churn (AUDIT ONLINE D11)'); assert.equal(sockets[0].closed, null);
     clock.t += 500; hostFrame(s, { x: 48, y: 200 }, clock.t, st);
     assert.equal(s.room, 'world:3,12', 'a dropped halo: joined the ordinary way'); assert.deepEqual(sockets[0].closed, { code: 1000, reason: 'leaving' });
     for (const m of mints) m.answer();
@@ -143,12 +148,22 @@ test('HALO-WAIT: only a halo with a socket CONNECTING is waited for - one droppe
   }
 }));
 
-test('HALO-WAIT by source: the wait is asked before the join clears its lists, sends the pose it was handed, and ends no halo of its own; the host\'s note; the record', () => {
+test('HALO-WAIT: an edge paced back and forth while the halo connects churns nothing - each step over waits, each step back is my own cell again, and no socket opens or closes', () => quiet(async () => {
+  const { s, sockets, clock, mints, st } = await atTheEdge();
+  for (const x of [48, 47, 48, 47, 48]) { clock.t += 200; hostFrame(s, { x, y: 200 }, clock.t, st); }
+  assert.equal(s.room, 'world:2,12'); assert.equal(sockets.length, 2, 'no socket opened'); assert.equal(sockets.filter((w) => w.closed).length, 0, 'none closed');
+  assert.deepEqual(s.haloRooms(), ['world:3,12'], 'the halo held throughout');
+  for (const m of mints) m.answer();
+  await flush();
+}));
+
+test('HALO-WAIT by source: the wait is asked before the join clears its lists, sends the pose it was handed, and ends no halo of its own; the host joins at once on crossesNow; the record', () => {
   const o = rd('src/net/online.js');
   assert.match(o, /if \(room === this\.room && this\._ws\) return;\n(?:\s*\/\/[^\n]*\n)+\s*if \(this\._haloWait\(room\)\) \{ if \(pose\) this\.sendPose\(pose\); return; \}\n\s*this\._threwKinds\.clear\(\);/, 'asked before the clears');
   assert.match(o, /return !!h\?\.ws && h\.status === 'connecting' && !!this\._ws && this\.status === 'open' && isCellRoom\(room\) && isCellRoom\(this\.room\)\n\s*&& this\._now\(\) - \(h\.since \?\? -Infinity\) < HALO_WAIT_MS;/);
   assert.match(o, /export const HALO_WAIT_MS = BACKOFF_MAX_MS;/, 'the wait is the halo\'s own connecting life (A7)');
   assert.equal((o.match(/this\._endHalo\(\);/g) ?? []).length, 3, 'leave and the two terminal closes, as AUDIT WORLD6b-iii(b) A4 counts them');
-  assert.match(rd('src/scenes/world.js'), /and past it a halo still connecting is waited for \(net\/online\.js HALO-WAIT\)/);
+  assert.match(o, /crossesNow\(key\) \{ return this\.inRoom\(key\) \|\| this\._haloWait\(key\); \}/, 'a crossing needs no hold into a cell held or waited for');
+  assert.match(rd('src/scenes/world.js'), /\(isCellRoom\(key\) && online\.crossesNow\(key\)\) \|\| now - _onlineKeySince >= ROOM_HOLD_MS/, 'the host joins at once on it, the hold left to everything else');
   assert.match(rd('bible/06-Systems/Online-Arc.md'), /## HALO-WAIT - A CELL CROSSING WAITS FOR ITS HALO \(2026-10-22, #1134\)/, 'the record');
 });
