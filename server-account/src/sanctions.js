@@ -138,9 +138,12 @@ export async function voidAutoMutes({ db, nowS, subtle }, env, { caseId, row, ac
  * button) never shortens a ban that stands longer (AUDIT SAFE DISCORD-5: "Ban 30 days" cut a ban for good) - its act
  * is recorded, the longer end kept; a moderator who names the days by command means them.
  * @param {{ db: any, nowS: number }} ctx @param {any} actor @param {any} env
- * @param {{ target?: unknown, name?: unknown, days?: unknown, reason?: unknown, caseId?: string|null, actorName?: string|null, keepLonger?: boolean }} ask
+ * STAFF-PANEL2-FIX: `also(answer)`, the caller's own statements for the same batch (safety.js modAct: its case closed,
+ * so the ban, its record and the close land together or none does).
+ * @param {{ target?: unknown, name?: unknown, days?: unknown, reason?: unknown, caseId?: string|null, click?: string|null, actorName?: string|null, keepLonger?: boolean,
+ *   also?: ((answer: { ok: true, target: string, name: string, until: number, reason: string|null }) => any[])|null }} ask
  */
-export async function banAccount({ db, nowS }, actor, env, { target, name, days, reason, caseId = null, click = null, actorName = null, keepLonger = false }) {
+export async function banAccount({ db, nowS }, actor, env, { target, name, days, reason, caseId = null, click = null, actorName = null, keepLonger = false, also = null }) {
   if (!canModerate(actor, env)) return { error: 'not-moderator' };
   if (!Number.isSafeInteger(days) || /** @type {number} */ (days) < 0 || /** @type {number} */ (days) > BAN_DAYS_MAX) return { error: 'bad-days' };
   const row = await findAccount(db, { target, name });
@@ -156,12 +159,14 @@ export async function banAccount({ db, nowS }, actor, env, { target, name, days,
   const admin = isDeveloper(actor, env);
   if (adminHeld && !admin && until < bannedUntil(row)) return { error: 'admin-sanction' };
   const keptOld = until !== asked;   // a button's ban that left a longer one standing: its setter stays who set it
+  const done = /** @type {{ ok: true, target: string, name: string, until: number, reason: string|null }} */ ({ ok: true, target: row.id, name: displayName(row), until, reason: why });
   await db.batch([
     db.prepare(`UPDATE players SET banned_until = ?1, ban_reason = ?2, banned_by = CASE WHEN ?5 = 1 THEN banned_by ELSE ?4 END,
       ban_admin = CASE WHEN ?5 = 1 THEN ban_admin ELSE ?6 END WHERE id = ?3`).bind(until, why, row.id, actor.id, keptOld ? 1 : 0, admin || adminHeld ? 1 : 0),
     actionStatement(db, { target: row.id, kind: 'ban', until, reason: why, actor: actor.id, actorName: actorName ?? displayName(actor), caseId, click, at: nowS }),
+    ...(also ? also(done) : []),
   ]);
-  return { ok: true, target: row.id, name: displayName(row), until, reason: why };
+  return done;
 }
 
 /** UNBAN, a moderator's - the ban lifted, the record kept; an account not banned is told so, and nothing is written

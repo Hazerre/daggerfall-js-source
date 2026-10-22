@@ -326,6 +326,8 @@ export const modDismiss = (ctx, actor, env, { target, name, caseId = null }, { f
  * Lifting (an unmute, an unban) is no case's act. Every act lands in the strike history as before (`mod_actions`).
  * STAFF-PANEL2-FIX (the flaw review of PR 1):
  * - THE TAKE IS A LEASE: a refused act and a throw both give the case back; a take older than CASE_ACT_S is any press's.
+ * - ONE BATCH: the act, its record (the strike) and the case's close land together or not at all, so no throw and no
+ *   Worker cut off mid-act leaves a struck case open for a second strike.
  * - ONE PRESS, ONE STRIKE: a click is UNIQUE in `mod_actions` (mod_actions_click, 0156), so the same press sent twice at
  *   once, with no case to take, strikes once - the second's record refused by the index and answered as the first.
  * - THE AUDIT ROW IS WRITTEN HERE (Weak spots: "Audit rows are written inside the shared act code, so in-game and Discord
@@ -384,8 +386,8 @@ export async function modAct(ctx, actor, env, ask, { push, audit } = {}) {
   try { r = await actOnce(ctx, actor, env, ask, push, at); }
   catch (e) {
     // A THROW GIVES THE CASE BACK, as a refusal does (the flaw review: a D1 error mid-act left the case taken until the
-    // 90-day sweep) - unless the act's record landed, when the take stands until its lease lapses (CASE_ACT_S)
-    if (at.take && !at.landed) await giveBack().catch(() => {});
+    // 90-day sweep). The act, its record and the case's close are one batch, so a case still open was never struck
+    if (at.take) await giveBack().catch(() => {});
     // THE SAME PRESS SENT TWICE AT ONCE: the second's record refused by mod_actions_click - answered as the first was
     const first = !at.landed && at.click ? await db.prepare('SELECT 1 AS y FROM mod_actions WHERE click = ?1').bind(at.click).first().catch(() => null) : null;
     if (!first) {
@@ -440,43 +442,48 @@ async function actOnce(ctx, actor, env, ask, push, at) {
   }
   const by = ask.actorName ?? displayName(actor);
   const caseId = c?.id ?? null;
+  // AUDIT SAFE SERVICE-2: a moderator's mute or ban closes the case it answered - as the moderator's act. STAFF-PANEL2-FIX:
+  // in the one batch that writes the act and its record (the flaw review: closed after them, a throw or a Worker cut off
+  // between left a struck case open for a second strike) - all of it lands, or none
+  const closing = (/** @type {any} */ x, /** @type {string} */ said) => (c ? [resolveCase(db, { caseId, status: 'actioned', by: displayName(actor),
+    resolution: ask.resolution?.(x) ?? (ask.from ? `${said} (${ask.from})` : said), nowS })] : []);
+  const mutedTill = (/** @type {any} */ x) => `muted until ${utcMinute(x.until)} UTC`;
   /** @type {any} */
   let r;
   /** @type {string|null} */
   let order = null;
-  let said = '';
   if (ask.act === 'mute') {
     const minutes = ask.minutes;
     if (ask.keepLonger && muteMinutesOk(minutes) && minutes && isMuted(row, nowS) && Number(row.muted_until) >= nowS + minutes * 60) {
       // DISCORD-5: a button never shortens a mute that stands longer - its act recorded at the longer end
       r = canModerate(row, env) ? { error: 'protected' } : { ok: true, target: row.id, name, until: Number(row.muted_until), kept: true };
-      if (!r.error) { await actionStatement(db, { target: row.id, kind: 'mute', until: r.until, reason: reasonOf(ask.reason), actor: actor.id, actorName: by, caseId, click, at: nowS }).run(); at.landed = true; }
-    } else {
-      r = await muteAccount(ctx, actor, env, { target: row.id, minutes });
       if (!r.error) {
-        await actionStatement(db, { target: row.id, kind: r.until ? 'mute' : 'unmute', until: r.until || null, reason: reasonOf(ask.reason), actor: actor.id, actorName: by, caseId, click, at: nowS }).run();
+        await db.batch([actionStatement(db, { target: row.id, kind: 'mute', until: r.until, reason: reasonOf(ask.reason), actor: actor.id, actorName: by, caseId, click, at: nowS }), ...closing(r, mutedTill(r))]);
+        at.landed = true;
+      }
+    } else {
+      r = await muteAccount(ctx, actor, env, { target: row.id, minutes, also: (/** @type {any} */ x) => [
+        actionStatement(db, { target: row.id, kind: x.until ? 'mute' : 'unmute', until: x.until || null, reason: reasonOf(ask.reason), actor: actor.id, actorName: by, caseId, click, at: nowS }),
+        ...closing(x, mutedTill(x))] });   // a lift has no case
+      if (!r.error) {
         at.landed = true;
         order = await lawOrder(env, subtle, nowS, { s: row.id, mu: r.until });
       }
     }
-    said = r.until ? `muted until ${utcMinute(r.until)} UTC` : '';
   } else if (ask.act === 'ban' || ask.act === 'unban') {
     r = ask.act === 'ban'
-      ? await banAccount(ctx, actor, env, { target: row.id, days: ask.days, reason: ask.reason, caseId, click, actorName: by, keepLonger: !!ask.keepLonger })
+      ? await banAccount(ctx, actor, env, { target: row.id, days: ask.days, reason: ask.reason, caseId, click, actorName: by, keepLonger: !!ask.keepLonger, also: (x) => closing(x, 'banned') })
       : await unbanAccount(ctx, actor, env, { target: row.id, actorName: by });
-    at.landed = !r.error;   // the row and its record in one batch (sanctions.js)
+    at.landed = !r.error;   // the row, its record and the case's close in one batch (sanctions.js)
     if (!r.error) order = await lawOrder(env, subtle, nowS, { s: row.id, bn: r.until });
-    said = 'banned';
   } else if (ask.act === 'dismiss') {
-    await resolveCase(db, { caseId, status: 'dismissed', by: displayName(actor), resolution: 'no action', nowS }).run();
-    await actionStatement(db, { target: row.id, kind: 'dismiss', actor: actor.id, actorName: by, caseId, click, at: nowS }).run();
+    await db.batch([resolveCase(db, { caseId, status: 'dismissed', by: displayName(actor), resolution: 'no action', nowS }),
+      actionStatement(db, { target: row.id, kind: 'dismiss', actor: actor.id, actorName: by, caseId, click, at: nowS })]);
     at.landed = true;
     order = await voidAutoMutes(ctx, env, { caseId: /** @type {string} */ (caseId), row, actor, actorName: by });
     r = { ok: true, target: row.id, name };
   } else r = { error: 'not-found' };
   if (r.error) return r;   // modAct gives the case back
-  // AUDIT SAFE SERVICE-2: a moderator's mute or ban closes the case it answered - as the moderator's act
-  if (c && said) await resolveCase(db, { caseId, status: 'actioned', by: displayName(actor), resolution: ask.resolution?.(r) ?? (ask.from ? `${said} (${ask.from})` : said), nowS }).run();
   if (order) await (push ?? ((/** @type {string} */ o) => pushLaw(env, (u, i) => globalThis.fetch(u, i), o)))(order);
   return { ...r, ...(caseId ? { case: caseId } : {}), order };
 }

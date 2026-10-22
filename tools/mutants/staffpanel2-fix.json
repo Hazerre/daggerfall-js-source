@@ -443,19 +443,9 @@
   {
     "name": "STAFF-PANEL2-FIX-R1-throw-keeps-case",
     "file": "server-account/src/safety.js",
-    "old": "    if (at.take && !at.landed) await giveBack().catch(() => {});",
+    "old": "    if (at.take) await giveBack().catch(() => {});",
     "new": "    if (false) await giveBack().catch(() => {});",
     "why": "a throw after the take keeps the case from every door until the 90-day sweep (review finding 1)",
-    "tests": [
-      "test/server/staffpanel2fix.test.js"
-    ]
-  },
-  {
-    "name": "STAFF-PANEL2-FIX-R1-landed-given-back",
-    "file": "server-account/src/safety.js",
-    "old": "if (at.take && !at.landed) await giveBack()",
-    "new": "if (at.take) await giveBack()",
-    "why": "an act whose record landed gives its case back - the next act strikes it again at once",
     "tests": [
       "test/server/staffpanel2fix.test.js"
     ]
@@ -656,6 +646,56 @@
     "old": "caseId, from: 'in the game' }, { push: (o) => pushLaw(env, fetchFn, o) }",
     "new": "caseId }, { push: (o) => pushLaw(env, fetchFn, o) }",
     "why": "the game's dismiss's row names no door",
+    "tests": [
+      "test/server/staffpanel2fix.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL2-FIX-B1-mute-apart",
+    "file": "server-account/src/accounts.js",
+    "old": "  await (also ? db.batch([write, ...also(done)]) : write.run());",
+    "new": "  await write.run(); if (also) for (const st of also(done)) await st.run();",
+    "why": "a mute, its strike and its case's close written one by one - a throw between leaves a struck case open",
+    "tests": [
+      "test/server/staffpanel2fix.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL2-FIX-B2-ban-apart",
+    "file": "server-account/src/sanctions.js",
+    "old": "    ...(also ? also(done) : []),\n  ]);",
+    "new": "  ]);\n  if (also) for (const st of also(done)) await st.run();",
+    "why": "a ban's case closed after its batch - a throw between leaves a struck case open",
+    "tests": [
+      "test/server/staffpanel2fix.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL2-FIX-B3-kept-apart",
+    "file": "server-account/src/safety.js",
+    "old": "await db.batch([actionStatement(db, { target: row.id, kind: 'mute', until: r.until, reason: reasonOf(ask.reason), actor: actor.id, actorName: by, caseId, click, at: nowS }), ...closing(r, mutedTill(r))]);",
+    "new": "await actionStatement(db, { target: row.id, kind: 'mute', until: r.until, reason: reasonOf(ask.reason), actor: actor.id, actorName: by, caseId, click, at: nowS }).run(); await db.batch(closing(r, mutedTill(r)));",
+    "why": "a button's kept mute recorded apart from its case's close",
+    "tests": [
+      "test/server/staffpanel2fix.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL2-FIX-B4-dismiss-apart",
+    "file": "server-account/src/safety.js",
+    "old": "    await db.batch([resolveCase(db, { caseId, status: 'dismissed', by: displayName(actor), resolution: 'no action', nowS }),\n      actionStatement(db, { target: row.id, kind: 'dismiss', actor: actor.id, actorName: by, caseId, click, at: nowS })]);",
+    "new": "    await resolveCase(db, { caseId, status: 'dismissed', by: displayName(actor), resolution: 'no action', nowS }).run();\n    await actionStatement(db, { target: row.id, kind: 'dismiss', actor: actor.id, actorName: by, caseId, click, at: nowS }).run();",
+    "why": "a dismiss closes its case apart from its record",
+    "tests": [
+      "test/server/staffpanel2fix.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL2-FIX-B5-ban-unclosed",
+    "file": "server-account/src/safety.js",
+    "old": "also: (x) => closing(x, 'banned') })",
+    "new": "also: () => [] })",
+    "why": "a ban leaves its case open",
     "tests": [
       "test/server/staffpanel2fix.test.js"
     ]

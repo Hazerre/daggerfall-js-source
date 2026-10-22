@@ -14,6 +14,7 @@ import { SAFE_LAW_PATH } from '../../src/net/wire.js';
 import { verifyOrder, verifyToken } from '../../src/net/identityToken.js';
 import { ACCEPTED } from '../../src/net/legalLaw.js';
 import { SPROUT_S } from '../../server-account/src/titles.js';
+import { banAccount, unbanAccount } from '../../server-account/src/sanctions.js';
 
 const { subtle } = globalThis.crypto;
 const enc = new TextEncoder();
@@ -382,12 +383,16 @@ test('STAFF-PANEL2-FIX 8: A NEW PASSWORD ENDS THE STAFF PANEL\'S SESSIONS - chan
 
 // ═══ THE FLAW REVIEW OF PR 1 (findings 1-3, area "cases"): the take a lease, one press one strike, the act's audit row ═══
 
-/** A database that throws on each statement `re` matches, every other as it is - a D1 error mid-act. */
-const flakyCtx = (s, re) => ({ ...s.ctx(), db: new Proxy(s.env.DB, { get: (t, k) => (k === 'prepare'
-  ? (sql) => (re.test(sql) ? { bind: () => ({ run: async () => { throw new Error('D1_ERROR: overloaded'); } }) } : t.prepare(sql))
-  : typeof t[k] === 'function' ? t[k].bind(t) : t[k]) }) });
+/** A database that throws on each statement `re` matches, every other as it is - a D1 error mid-act, run alone or in a
+ *  batch (which the fake rolls back whole, as D1 does). */
+const flakyCtx = (s, re) => {
+  const fail = () => { throw new Error('D1_ERROR: overloaded'); };
+  const bad = { bind: () => bad, run: async () => fail(), first: async () => fail(), all: async () => fail(), _result: fail };
+  return { ...s.ctx(), db: new Proxy(s.env.DB, { get: (t, k) => (k === 'prepare' ? (sql) => (re.test(sql) ? bad : t.prepare(sql))
+    : typeof t[k] === 'function' ? t[k].bind(t) : t[k]) }) };
+};
 
-test('STAFF-PANEL2-FIX review 1: A THROW MID-ACT GIVES THE CASE BACK, and the take is a lease - a D1 error after the take leaves the case to the next act; one whose record landed keeps the take; a take older than CASE_ACT_S is any press\'s, a fresh one nobody else\'s (mutants: no give-back on a throw; a landed act given back; the lease never lapsing; the lease lapsing at once; a throw unwritten)', async () => {
+test('STAFF-PANEL2-FIX review 1: A THROW MID-ACT GIVES THE CASE BACK, and the take is a lease - a D1 error after the take leaves the case to the next act; a take older than CASE_ACT_S is any press\'s, a fresh one nobody else\'s (mutants: no give-back on a throw; the lease never lapsing; the lease lapsing at once; a throw unwritten)', async () => {
   const s = await stand();
   try {
     const tab = s.row(s.g.Tabbyvish.id);
@@ -400,13 +405,6 @@ test('STAFF-PANEL2-FIX review 1: A THROW MID-ACT GIVES THE CASE BACK, and the ta
     const next = await s.game('/v1/mod/mute', { target: t.id, minutes: 30 }, s.g.Tabbyvish.secret);
     assert.deepEqual([next.status, next.body.case, s.caseRow(c).status], [200, c, 'actioned'], 'the next act, naming no case, takes it');
     assert.equal(s.strikes(t.id), 1);
-    // the record landed and the case's close threw: the strike stands, and so does the take
-    const u = await s.player();
-    const cu = s.caseOn(u);
-    await assert.rejects(modAct(flakyCtx(s, /UPDATE mod_cases SET status/), tab, s.env, { act: 'mute', target: u.id, minutes: 30, click: 'press-r001', from: 'in the game' }), /overloaded/);
-    assert.equal(s.strikes(u.id), 1);
-    assert.deepEqual([s.caseRow(cu).status, s.caseRow(cu).act_click], ['open', 'press-r001'], 'a landed act keeps its take');
-    assert.match(s.raw.prepare("SELECT detail FROM staff_audit WHERE act = 'mute' AND target = ?").get(u.id).detail, /"landed":true/);
     // a take inside its lease holds the case; past it, any press takes it
     const v = await s.player();
     const cv = s.caseOn(v);
@@ -482,5 +480,52 @@ test('STAFF-PANEL2-FIX review 3: EVERY DOOR\'S ACT IS IN THE AUDIT LOG, written 
     // the owners read the game's and Discord's acts in their log
     const log = (await s.staff('/v1/staff/audit', { target: b.id }, s.mob.session)).body.rows;
     assert.deepEqual(log.map((r) => [r.act, r.actorName, r.detail.door]), [['dismiss', 'Tabbyvish', 'Discord']]);
+  } finally { s.restore(); }
+});
+
+test('STAFF-PANEL2-FIX review 4: THE ACT, ITS STRIKE AND ITS CASE\'S CLOSE ARE ONE BATCH - the close failing leaves neither the sanction nor its strike, for a mute, a button\'s mute that keeps a longer one, a ban and a dismiss; the case given back, and the next act strikes once (mutants: each written apart from its close)', async () => {
+  const s = await stand();
+  try {
+    const tab = s.row(s.g.Tabbyvish.id);
+    const closeFails = () => flakyCtx(s, /UPDATE mod_cases SET status/);
+    const acts = (id) => s.raw.prepare('SELECT COUNT(*) AS n FROM mod_actions WHERE target = ?').get(id).n;
+    let n = 0;
+    // the close failing, and the record failing (a dismiss writes its close first)
+    for (const [fails, failing] of [[closeFails, 'the close'], [() => flakyCtx(s, /INSERT INTO mod_actions/), 'the record']]) {
+      for (const [ask, look] of [
+        [{ act: 'mute', minutes: 30 }, (id) => s.row(id).muted_until],
+        [{ act: 'ban', days: 7 }, (id) => s.row(id).banned_until],
+        [{ act: 'dismiss' }, () => null],
+      ]) {
+        const t = await s.player();
+        const c = s.caseOn(t);
+        const press = { ...ask, target: t.id, click: `press-b${String(++n).padStart(5, '0')}`, from: 'in the game' };
+        await assert.rejects(modAct(fails(), tab, s.env, press), /overloaded/, ask.act);
+        assert.deepEqual([look(t.id), acts(t.id), s.caseRow(c).status, s.caseRow(c).act_click], [null, 0, 'open', null], `${ask.act}, ${failing} failing: neither landed, the case given back`);
+        const again = await modAct(s.ctx(), tab, s.env, press);
+        assert.deepEqual([again.ok, again.repeat, again.case, s.caseRow(c).status !== 'open', acts(t.id)], [true, undefined, c, true, 1], `${ask.act}: the same press, acted once`);
+      }
+    }
+    // a button's mute while a longer one stands: its record and the close, one batch
+    const k = await s.player();
+    const ck = s.caseOn(k);
+    s.raw.prepare('UPDATE players SET muted_until = ?, muted_by = ? WHERE id = ?').run(nowS() + 86400, s.g.Asynian.id, k.id);
+    await assert.rejects(modAct(closeFails(), tab, s.env, { act: 'mute', target: k.id, minutes: 30, caseId: ck, keepLonger: true, from: 'Discord' }), /overloaded/);
+    assert.deepEqual([acts(k.id), s.caseRow(ck).status], [0, 'open']);
+    const kept = await modAct(s.ctx(), tab, s.env, { act: 'mute', target: k.id, minutes: 30, caseId: ck, keepLonger: true, from: 'Discord' });
+    assert.deepEqual([kept.kept, acts(k.id), s.caseRow(ck).status], [true, 1, 'actioned']);
+  } finally { s.restore(); }
+});
+
+test('STAFF-PANEL2-FIX review 5: THE SANCTIONS KEEP THEIR OWN ROLE CHECK - modAct asks first, but the ban and the unban still refuse one who is no moderator, called straight (mutants: AUDIT-SAFE-DOC2-anyone-unbans; the ban unguarded)', async () => {
+  const s = await stand();
+  try {
+    const t = await s.player();
+    assert.equal((await s.game('/v1/mod/ban', { target: t.id, days: 7 }, s.g.Tabbyvish.secret)).status, 200);
+    const until = s.row(t.id).banned_until;
+    const nobody = s.row(s.sylvia.id);
+    assert.deepEqual(await unbanAccount(s.ctx(), nobody, s.env, { target: t.id }), { error: 'not-moderator' });
+    assert.deepEqual(await banAccount(s.ctx(), nobody, s.env, { target: s.troll.id, days: 7 }), { error: 'not-moderator' });
+    assert.deepEqual([s.row(t.id).banned_until, s.row(s.troll.id).banned_until], [until, null]);
   } finally { s.restore(); }
 });

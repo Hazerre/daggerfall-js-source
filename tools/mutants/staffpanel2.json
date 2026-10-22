@@ -213,8 +213,8 @@
   {
     "name": "STAFF-PANEL2-mute-case-open",
     "file": "server-account/src/safety.js",
-    "old": "  if (c && said) await resolveCase(",
-    "new": "  if (false) await resolveCase(",
+    "old": "        ...closing(x, mutedTill(x))] });",
+    "new": "        ] });",
     "why": "a muted account's case left open",
     "tests": [
       "test/server/staffpanel2.test.js",
