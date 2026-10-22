@@ -78,25 +78,25 @@ export function createPistolet({ material = 4, condition = null } = {}) {
 // ── THE PICTURES ─────────────────────────────────────────────────────
 //
 // ONE PICTURE PER JOB, as the Thunderlock's since THUNDERLOCK-ART: the doll layer carries the fist's gap, the list
-// shows the whole gun. The owner's 24x17 sprite IS the list's picture; tools/pistoletArt.mjs cuts the doll layers from
-// it, mirrors the left hand's, and gilds all three for the Sunken Sovereign (systems/gilded.js).
+// shows the whole gun. The owner's 24x17 sprite IS the list's picture; tools/pistoletArt.mjs cuts the doll layer from
+// it, tilts it barrel-down (never mirrored - the owner's), and gilds both for the Sunken Sovereign (systems/gilded.js).
 //
 // TWO HANDS ON THE DOLL. A classic Either-hand weapon carries two doll records - TEXTURE.234's base for the left hand and
 // +1 for the right (ui/paperDoll.js: "an Either-hand weapon worn RIGHT uses the +1 record") - because a pair puts one in
-// each hand and they cannot share a place. The Pistolet's two are the right hand's layer and its mirror.
+// each hand and they cannot share a place. The Pistolet's two are ONE layer at two places - each hand's own offset.
 
 /**
  * WHERE EACH HANGS (FIELD-GUN4's question, the Thunderlock's PAPERDOLL_OFFSET, for two hands). The doll's fists were
  * MEASURED, not guessed: the gap a classic one-handed weapon's doll record leaves for the fist (TEXTURE.234, the
  * player's own ARENA2 - dagger, mace, shortsword, war axe, each hand's record) closes at panel (27, 96) for the right
- * hand and (69, 95) for the left. The layers hang BARREL-DOWN (the owner, 2026-10-22: "Paperdoll example is not holding
- * them correctly" - drawn level, each pistol stuck out sideways from the hip with its grip under the fist), so the
- * band's centre is the turned one (tools/pistoletArt.mjs dollGrip, layer pixel (9, 4.3)) and goes on each fist: the
- * right layer at panel (27 - 9, 96 - 4.3), the mirrored left one at (69 - (17 - 9), 95 - 4.3) - each pistol down the
- * OUTSIDE of its thigh, the grip up into the fist. Screen coordinates, the panel's origin (200, 8) written beside them
- * as the Thunderlock's are. The owner's eye is the gate on both, as Mac's was on the Thunderlock's.
+ * hand and (69, 95) for the left. ONE layer serves both hands, tilted barrel-down and NOT mirrored (the owner,
+ * 2026-10-22, after a level cut and then a quarter-turned, mirrored pair: "Still wrong. It should be at a downward angle in
+ * the right hand in the picture. Not mirrored"), so the fist's point is the same in both (tools/pistoletArt.mjs dollGrip,
+ * layer pixel (20.8, 9.9), DOLL_ANGLE 45) and goes on each: the right hand's at panel (27 - 20.8, 96 - 9.9), the left's
+ * at (69 - 20.8, 95 - 9.9). Screen coordinates, the panel's origin (200, 8) written beside them as the Thunderlock's
+ * are. The owner's eye is the gate on both, as Mac's was on the Thunderlock's.
  */
-export const PAPERDOLL_OFFSET = Object.freeze({ right: Object.freeze({ x: 200 + 18, y: 8 + 92 }), left: Object.freeze({ x: 200 + 61, y: 8 + 91 }) });
+export const PAPERDOLL_OFFSET = Object.freeze({ right: Object.freeze({ x: 200 + 6, y: 8 + 86 }), left: Object.freeze({ x: 200 + 48, y: 8 + 85 }) });
 
 /** The records of archive 562, by job. */
 export const ART_RECORDS = Object.freeze({ doll: 0, icon: 1, gildedDoll: 2, gildedIcon: 3, dollLeft: 4, gildedDollLeft: 5 });
@@ -105,8 +105,8 @@ export const ICON_FILES = Object.freeze([
   { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.icon, frame: 0, file: 'pistolet-icon.png' },
   { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.gildedDoll, frame: 0, file: 'pistolet-paperdoll-gilded.png', offset: PAPERDOLL_OFFSET.right },
   { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.gildedIcon, frame: 0, file: 'pistolet-icon-gilded.png' },
-  { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.dollLeft, frame: 0, file: 'pistolet-paperdoll-left.png', offset: PAPERDOLL_OFFSET.left },
-  { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.gildedDollLeft, frame: 0, file: 'pistolet-paperdoll-left-gilded.png', offset: PAPERDOLL_OFFSET.left },
+  { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.dollLeft, frame: 0, file: 'pistolet-paperdoll.png', offset: PAPERDOLL_OFFSET.left },
+  { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.gildedDollLeft, frame: 0, file: 'pistolet-paperdoll-gilded.png', offset: PAPERDOLL_OFFSET.left },
 ]);
 /** Which of them an item wears for a job: on the doll its HAND's layer (the left hand's only when it is worn there - an
  *  unworn one and a right-hand one wear the right's), in a list the whole gun; gold for a Gilded piece. */

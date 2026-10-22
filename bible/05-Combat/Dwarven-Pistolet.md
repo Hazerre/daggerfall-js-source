@@ -65,22 +65,26 @@ doll wears a layer with the fist's gap cut out:
 - `tools/pistoletArt.mjs` cuts it as a band square to the grip (the Thunderlock's `punchBand`, imported - and
   `tools/gunPaperdoll.mjs` gained the `isMain` guard AUDIT 68 asks of a tool another imports).
 - The frame of the gun stays above the fist and the butt below it.
-- Then the layer is turned a quarter, BARREL-DOWN (`quarterTurn`). The first cut hung it level, and the owner's
-  answer was "Paperdoll example is not holding them correctly" (2026-10-22): each pistol stuck straight out from the
-  hip, its grip below the fist. The doll's arms hang, and a hanging fist holds a pistol pointing at the ground.
-- Nothing is resampled: the sprite is native, and a quarter turn moves pixels without resampling them. Every other
-  angle is the staircase the Gun-Lab record warns of.
+- Then the layer is tilted 45 degrees, barrel down and to the picture's left (`DOLL_ANGLE`). It is NOT mirrored,
+  and both hands wear the same layer. Two cuts came before this one:
+  - The first hung the gun level. The owner: "Paperdoll example is not holding them correctly". Each pistol stuck
+    straight out from the hip, its grip below the fist.
+  - The second turned it a quarter, straight down, with the left hand's layer a mirror. The owner: "Still wrong. It
+    should be at a downward angle in the right hand in the picture. Not mirrored".
+- The tilt is RotSprite (`rotSprite`): Scale2x three times, the turn sampled nearest at 8x, read back at 1x. A nearest
+  turn at 1x is the staircase-and-holes the Gun-Lab record warns of. RotSprite adds no colour the sprite does not
+  have, and `pistolet.test.js` checks every one.
 
 **Two hands on the doll.** A classic Either-hand weapon carries two doll records, TEXTURE.234's base for the left hand
-and +1 for the right (`ui/paperDoll.js`). The Pistolet carries the right hand's layer and its mirror (`ART_RECORDS`:
-doll 0, icon 1, gold 2 and 3, left 4 and 5), chosen by the slot it is worn in (`pistoletImageRecord`).
+and +1 for the right (`ui/paperDoll.js`). The Pistolet's are ONE layer at two places (`ART_RECORDS`: doll 0, icon 1,
+gold 2 and 3; left 4 and 5 are the same files at the left hand's offset), chosen by the slot it is worn in
+(`pistoletImageRecord`).
 
 **Where they hang was measured, not guessed.** The fist's gap in every clean one-handed classic doll record (dagger,
 mace, shortsword, war axe; the player's own ARENA2 via `tools/fetch-data.sh`) closes at panel (27, 96) on the right hand
-and (69, 95) on the left. The turned band's centre (`dollGrip`, layer pixel (9, 4.3)) goes on each
-(`PAPERDOLL_OFFSET`), so each pistol hangs down the OUTSIDE of its thigh with the grip up in the fist.
-`pistolet.test.js` holds the two landings to that measurement, and the turn to the layer's shape (17x24, the muzzle
-at its bottom). `tools/pistoletDollProbe.mjs` draws it on the real doll. The owner's eye is the gate, as Mac's was on the Thunderlock's FIELD-GUN9.
+and (69, 95) on the left. The tilted band's centre (`dollGrip`, layer pixel (20.8, 9.9)) goes on each
+(`PAPERDOLL_OFFSET`). `pistolet.test.js` holds the two landings to that measurement, and the tilt to its shape (the
+muzzle below and left of the fist, nothing level out from it). `tools/pistoletDollProbe.mjs` draws it on the real doll. The owner's eye is the gate, as Mac's was on the Thunderlock's FIELD-GUN9.
 
 ## First person - one gun
 
