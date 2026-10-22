@@ -8,11 +8,14 @@
 //
 //     npx vite --port 5199 &
 //     COLL_OUT=/tmp/coll node tools/collectionsProbe.mjs
+//     COLL_LANG=de COLL_OUT=/tmp/coll node tools/collectionsProbe.mjs     the same, in German
 import { chromium, devices } from 'playwright';
 import { mkdirSync } from 'node:fs';
 
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
 const OUT = process.env.COLL_OUT ?? '/tmp/collections-probe';
+/** A language to see the page in (`?lang=`, one visit's - scenes/localeData.js): the drafts' longer words on the tiles and the chips. */
+const LANG = process.env.COLL_LANG ?? '';
 mkdirSync(OUT, { recursive: true });
 
 const results = [];
@@ -48,7 +51,7 @@ async function toPause(page, signedIn) {
     } catch { /* storage off */ }
   }, signedIn);
   // the front door drawn (no game started - the world's boot is not this page's business), then the pause door over it
-  await page.goto(`${BASE}/play/?nointro`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${BASE}/play/?nointro${LANG ? `&lang=${LANG}` : ''}`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.px-menu', { timeout: 120000 });
   if (await page.locator('.px-acctstage').count()) await page.keyboard.press('Escape');
   await page.evaluate(async () => {
@@ -67,7 +70,7 @@ for (const [label, opts] of [['desktop', { viewport: { width: 1280, height: 860 
     page.on('pageerror', (e) => errors.push(e.message));
     if (signedIn) await serve(page);
     await toPause(page, signedIn);
-    const tag = `${label}-${signedIn ? 'in' : 'out'}`;
+    const tag = `${LANG ? `${LANG}-` : ''}${label}-${signedIn ? 'in' : 'out'}`;
     if (signedIn) await page.waitForFunction(() => /\d+ \/ \d+/.test(document.querySelector('.coll-part')?.textContent ?? ''), null, { timeout: 10000 }).catch(() => {});
     const tiles = await page.$$eval('.coll-part', (ns) => ns.map((n) => n.textContent));
     check(`${tag}: the parts' tiles`, tiles.length >= 4, tiles.join(' | '));
