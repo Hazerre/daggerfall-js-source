@@ -522,13 +522,15 @@ export function rollStarspunPiece(rolls = Math.random, always = false) {
 
 /** SEA-SET: THE DEEP'S SHARES - the chance a source in a band of the Eltheric Ocean carries a Tidemail piece: a legend taken
  *  or sunk (the Deep Aether's two a quarter of the time, the Abyss's two every time), a vault of the deep's spoils (SEA
- *  VAULTS - a quarter, half), a ruin's treasure pile (a twentieth, a tenth), the treasure fleet's flagship (every time). The
- *  Shallows and the Reaches carry none: the set is the deep's alone. */
+ *  VAULTS - a quarter, half), a ruin's treasure pile (a twentieth, a tenth), the treasure fleet's flagship (every time), a
+ *  cask of the Aether Storm's wrack (SEA-EVENTS - a fortieth, a twentieth). The Shallows and the Reaches carry none: the set
+ *  is the deep's alone. */
 export const ELTHERIC_CHANCE = Object.freeze({
   legend: Object.freeze({ deep: 1 / 4, abyss: 1 }),
   vault: Object.freeze({ deep: 1 / 4, abyss: 1 / 2 }),
   ruin: Object.freeze({ deep: 1 / 20, abyss: 1 / 10 }),
   fleet: Object.freeze({ deep: 1, abyss: 1 }),
+  storm: Object.freeze({ deep: 1 / 40, abyss: 1 / 20 }),   // SEA-EVENTS: a cask of the Aether Storm's wrack
 });
 /** SEA-SET: the Tidemail roll's own stream, salted off a source's seed (a legend's ship, a vault's day) so it moves no other
  *  roll of that seed. */

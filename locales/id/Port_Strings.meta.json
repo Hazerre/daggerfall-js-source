@@ -28249,6 +28249,16 @@
   "tr": "b83c3ada507d",
   "by": "claude-in-session"
  },
+ "sea.chart.fleet": {
+  "en": "1ba136f13bf0",
+  "tr": "c8640ce3d01e",
+  "by": "claude-in-session"
+ },
+ "sea.chart.fleetSunk": {
+  "en": "4a0a19006e92",
+  "tr": "d44120bcd04f",
+  "by": "claude-in-session"
+ },
  "sea.chart.haunt": {
   "en": "44bc5780cabe",
   "tr": "c26d297b7586",
@@ -28279,6 +28289,11 @@
   "tr": "9a2bb3825b52",
   "by": "claude-in-session"
  },
+ "sea.chart.key.fleet": {
+  "en": "6e672011ec06",
+  "tr": "99f7c3d5ce32",
+  "by": "claude-in-session"
+ },
  "sea.chart.key.haunt": {
   "en": "85d0b187ca01",
   "tr": "3303eb861cb0",
@@ -28307,6 +28322,11 @@
  "sea.chart.key.ship": {
   "en": "5a8a074d275c",
   "tr": "266d5baed216",
+  "by": "claude-in-session"
+ },
+ "sea.chart.key.storm": {
+  "en": "e638b08fa8ac",
+  "tr": "061876c3cbc6",
   "by": "claude-in-session"
  },
  "sea.chart.key.sunk": {
@@ -28384,6 +28404,11 @@
   "tr": "57f3d5a74e3b",
   "by": "claude-in-session"
  },
+ "sea.chart.storm": {
+  "en": "201b1672299d",
+  "tr": "ca0d7cb30d8d",
+  "by": "claude-in-session"
+ },
  "sea.chart.title": {
   "en": "852c9e28237b",
   "tr": "f144c48ee12f",
@@ -28407,6 +28432,91 @@
  "sea.exchange.band": {
   "en": "80c476366bce",
   "tr": "116276f1b67c",
+  "by": "claude-in-session"
+ },
+ "sea.fleet.sails": {
+  "en": "ce733d91c54d",
+  "tr": "36a58194e244",
+  "by": "claude-in-session"
+ },
+ "sea.fleet.scattered": {
+  "en": "9cf7c2a19319",
+  "tr": "b831f213a404",
+  "by": "claude-in-session"
+ },
+ "sea.fleet.sunk": {
+  "en": "6e8bd0280779",
+  "tr": "a81b3db264c7",
+  "by": "claude-in-session"
+ },
+ "sea.fleet.taken": {
+  "en": "372b33ffc836",
+  "tr": "4638834bb111",
+  "by": "claude-in-session"
+ },
+ "sea.rumour.fleet": {
+  "en": "bf809acbf95c",
+  "tr": "9cf638592f89",
+  "by": "claude-in-session"
+ },
+ "sea.rumour.fleetNext": {
+  "en": "2221ea34b5d9",
+  "tr": "8f60e9977370",
+  "by": "claude-in-session"
+ },
+ "sea.rumour.storm": {
+  "en": "385c2f5632fb",
+  "tr": "ccd079411b3b",
+  "by": "claude-in-session"
+ },
+ "sea.rumour.stormNext": {
+  "en": "6cabf64b9b66",
+  "tr": "8b261e62f9d3",
+  "by": "claude-in-session"
+ },
+ "sea.storm.enter": {
+  "en": "565728442b4d",
+  "tr": "d646733aaa98",
+  "by": "claude-in-session"
+ },
+ "sea.storm.gathers": {
+  "en": "f7cd8e64bed8",
+  "tr": "d9460932d462",
+  "by": "claude-in-session"
+ },
+ "sea.storm.leave": {
+  "en": "1ef6c48f578a",
+  "tr": "3d907a63faaf",
+  "by": "claude-in-session"
+ },
+ "sea.storm.strike": {
+  "en": "d15ac35344f7",
+  "tr": "be2093861b73",
+  "by": "claude-in-session"
+ },
+ "sea.storm.strikeFire": {
+  "en": "6016b9c87c9b",
+  "tr": "f8526c4dd2d4",
+  "by": "claude-in-session"
+ },
+ "sea.storm.wrack": {
+  "en": "95a96aaf22c6",
+  "tr": "172338ea2c7e",
+  "by": "claude-in-session"
+ },
+ "sea.storm.wrackHaul": {
+  "en": "ae238c253f02",
+  "tr": "4c364a7498d7",
+  "by": "claude-in-session"
+ },
+ "sea.storm.wrackTidemail": {
+  "en": "2bc3b76d7ecc",
+  "tr": "3d16e50b30e3",
+  "by": "claude-in-session"
+ },
+ "sea.tidemail.fleet": {
+  "en": "b68f91634f6f",
+  "tr": "9283b6ffe1b8",
   "by": "claude-in-session"
  },
  "sea.tidemail.legend": {

@@ -382,9 +382,10 @@ on its own stream, so every earlier roll stays what it was for its seed; the Sha
 | source | the Deep Aether | the Abyss |
 |---|---|---|
 | a legend sunk or taken (`navalHost.js` legendTidemail, off her seed `^ TIDEMAIL_SALT`, into the boat I sail) - the Deep's Ninefold Hunger and Lantern-Eater, the Abyss's Pale Regent and Starless; the Reaches' two carry none | 1 in 4 | every time |
-| a vault of the deep's pile (SEA-VAULTS, `seaVault` on the place) | 1 in 4 | 1 in 2 |
+| a vault of the deep's pile (SEA-VAULTS - the hall's ring the door stamps, `seaSpoils.js` seaPileSource) | 1 in 4 | 1 in 2 |
 | an isle's ruin's treasure pile (`systems/sea/seaSpoils.js` seaPileMore - the layout's pile offline, a pile the room emptied, and the room's seeded base online, on its own dice) | 1 in 20 | 1 in 10 |
-| the treasure fleet's flagship (SEA-EVENTS) | every time | every time |
+| the treasure fleet's flagship sunk or taken (SEA-EVENTS, `scenes/naval/treasureFleet.js` ended, off her seed `^ TIDEMAIL_SALT`, into the boat I sail) | every time | every time |
+| a cask of the Aether Storm's wrack (SEA-EVENTS, `scenes/seaVenturesHost.js` gather, on the cask's own stream - `seaEvents.js` wrackOf) | 1 in 40 | 1 in 20 |
 
 No world drop, shelf or Broker rolls one. These are the client's rolls, as a Legendary's are: no relay or service receipt
 seeds the sea's legends or its ruins (the gate's, the serpent's, a star's and the Spire's sets ride one) - the item law

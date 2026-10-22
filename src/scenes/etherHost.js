@@ -174,5 +174,9 @@ export function createEtherHost(deps) {
     };
   }
 
-  return { waters, sight, sites, gather, legendHere, legendEnded, rumours, chartOffer, buyChart, papers, office, chart, seaName: ETHER_SEA_NAME, leaguePx: LEAGUE_PX };
+  return {
+    waters, sight, sites, gather, legendHere, legendEnded, rumours, chartOffer, buyChart, papers, office, chart, seaName: ETHER_SEA_NAME, leaguePx: LEAGUE_PX,
+    // SEA VENTURES (scenes/seaVenturesHost.js): the purse and the words the sea's other ventures pay and say through
+    credit: (n) => deps.credit?.(n), mid: (text, s) => deps.mid?.(text, s), say: (text, s) => deps.say?.(text, s),
+  };
 }

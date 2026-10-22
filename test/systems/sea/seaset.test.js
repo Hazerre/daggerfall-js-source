@@ -130,7 +130,7 @@ test('SEA-SET MINTED AND CHECKED: each record mints Adamantium, Aetheric, known,
 });
 
 test('SEA-SET THE DEEP\'S SHARES: a legend\'s - the Deep Aether\'s a quarter, the Abyss\'s every time; a vault\'s a quarter and half; a ruin\'s a twentieth and a tenth; the fleet\'s every time; the Shallows and the Reaches none - and the roll: one draw when nothing drops, two when a piece does, one at a share of 1, none at 0, the same seed choosing which (mutants: a share; the always; the draw)', () => {
-  assert.deepEqual(JSON.parse(JSON.stringify(ELTHERIC_CHANCE)), { legend: { deep: 0.25, abyss: 1 }, vault: { deep: 0.25, abyss: 0.5 }, ruin: { deep: 0.05, abyss: 0.1 }, fleet: { deep: 1, abyss: 1 } });
+  assert.deepEqual(JSON.parse(JSON.stringify(ELTHERIC_CHANCE)), { legend: { deep: 0.25, abyss: 1 }, vault: { deep: 0.25, abyss: 0.5 }, ruin: { deep: 0.05, abyss: 0.1 }, fleet: { deep: 1, abyss: 1 }, storm: { deep: 1 / 40, abyss: 1 / 20 } });   // PIN MOVED (SEA-EVENTS): the storm's wrack
   for (const src of ['legend', 'vault', 'ruin', 'fleet']) for (const band of ['shallows', 'reaches']) assert.equal(elthericChance(src, band), 0, `${src} in ${band}`);
   assert.equal(elthericChance('nope', 'abyss'), 0);
   assert.equal(elthericChance('constructor', 'abyss'), 0, 'an own key alone');

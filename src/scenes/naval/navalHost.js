@@ -125,6 +125,8 @@ import { liveryCode } from '../../systems/naval/shipLivery.js';
 import { noteAct } from '../../systems/questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
 import { captainsDue } from '../../systems/sigil/sigilSetPowers.js';
 import { rollElthericPiece, elthericChance, TIDEMAIL_SALT } from '../../systems/aetheric.js';   // SEA-SET: a legend's Tidemail piece
+import { createTreasureFleet } from './treasureFleet.js';   // SEA-EVENTS: the treasure fleet's ships, stood and steered
+import { strikeShip } from '../../systems/sea/seaEvents.js';   // SEA-EVENTS: the Aether Storm's lightning on my ship
 import { setById } from '../../systems/sigil/sigilSets.js';   // SEA-SET: the Eltheric Tidemail's Captain's Due - my ship's guns and hull
 import { createBerthWatch } from './navalBerth.js';   // FIELD BUGS 2026-10-21b VOYAGE-HOLD: the berth, still or not, and the helm let go in port
 
@@ -1504,7 +1506,7 @@ export function createNavalHost(deps) {
         // AUDIT CAPTAIN'S SEA D1: never while her casks float - a strand leaves the list out of reach (the stood mark with
         // it), and each return floated three more until the first was hauled
         if (shots.floaters().some((x) => x.lot === SITE_LOT + site.id)) continue;
-        if (dropSiteCasks(site)) { siteStood.set(site.id, 'casks'); deps.say?.(SITE_WORDS[site.kind], 4); }
+        if (dropSiteCasks(site)) { siteStood.set(site.id, 'casks'); deps.say?.(site.word ?? SITE_WORDS[site.kind], 4); }   // SEA-EVENTS: a storm's wrack says its own
       }
     }
   }
@@ -1719,6 +1721,7 @@ export function createNavalHost(deps) {
     cap.event?.({ type: 'end', act, faction: s.cls.faction, crown: null, bounty: entry.bounty ?? null });
     if (legend) { deps.ether?.legendEnded?.(legend.id, act); legendTidemail(legend, s.seed); }
     else if (s.cls.faction === 'pirate') { const w = where(); deps.ether?.papers?.(s.cls, s.seed, w.px, w.py); }   // a corsair's papers
+    treasureFleet.ended(entry, act);   // SEA-EVENTS: the treasure fleet's flagship - her Tidemail piece, her purse
   }
   /** SEA-SET: A LEGEND ENDED carries a piece of the Eltheric Tidemail on her own band's share (systems/aetheric.js
    *  ELTHERIC_CHANCE.legend - the Deep Aether's two a quarter of the time, the Abyss's two every time, the Reaches' none),
@@ -2485,6 +2488,14 @@ export function createNavalHost(deps) {
     if (r?.kind !== 'lurk') s.errand = { kind: 'lurk', harbour: null, at: [end[0], end[1]], path: null, i: 0, spin: (s.seed % 1000) / 1000 };
   }
 
+  // SEA-EVENTS (scenes/naval/treasureFleet.js): the treasure fleet's sailing about the captain - stood, steered, let go, its
+  // flagship's spoils
+  const treasureFleet = createTreasureFleet({
+    sea, launch: (spec) => (enabled ? launch(spec) : null), retire: (e) => retire(e), busy: (e) => raiderBusy(e), feet: () => deps.feet(),
+    isWater: (x, z, hull) => deps.isWater(x, z, hull), seaY: () => deps.seaY(), launches: () => launchesTraffic(),
+    give: (items) => deps.board?.giveItems?.(items, boatInPlay() ?? null, { force: true }), say: (text, n) => deps.say?.(text, n),
+    fleetEnded: (n, act) => deps.ether?.fleetEnded?.(n, act),
+  });
   // ── NAV-R: Warm Ashes' raiders, stood as ships (systems/naval/navalRaiders.js) ─────────────────────────────────────
   /** A raider of mine busy at sea - fighting, running, boarded or going down: never let go of while it is. */
   const raiderBusy = (e) => e.ship.mode === 'engage' || e.ship.mode === 'board' || e.ship.mode === 'flee' || e.ship.boarded || boarding?.shipId === e.id
@@ -5437,6 +5448,11 @@ export function createNavalHost(deps) {
     get glassUp() { return glassUp; },
     /** GALLEON: a galleon's gun deck as this frame stood it (her sides laid, her guns' places, her shutters) - a probe's reading. */
     gunDeckOf: (boat) => galleonGuns.read(boat, clock),
+    /** SEA-EVENTS: the treasure fleet's sailing about the captain (scenes/naval/treasureFleet.js step), stepped by the world's
+     *  feed; and the Aether Storm's lightning finding the ship I stand aboard (`strike` - systems/sea/seaEvents.js
+     *  stormStrikeOf): hurt by its shares, never under her last timber by it alone. Answers whether it struck her. */
+    fleet: (list, o) => { if (enabled) treasureFleet.step(list, o); },
+    stormStrike: (strike) => strikeShip(enabled && aboardShip() ? myBoatState(boatInPlay())?.damage : null, strike, clock),
     fleetStatus, repairAway, refitBoat, openYard, freeBerth, crewHands, assignRole,   // HOLDINGS: the Fleet page's (scenes/fleetHost.js) - with giveOrder and hostileNear, below
     passageShip, charter, charterSailed,   // PASSAGE: a berth's ship to book, and her boat made the voyage's (scenes/naval/passageHost.js)
     enlistHand, swapHand, releaseHand, forgetBoat, handsAshore,   // SHIPYARDS: the crew hall's recruits signed on (in a hand's place, AUDIT SHIPYARDS) and paid off, a ship sold, her hands ashore

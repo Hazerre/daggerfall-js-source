@@ -330,7 +330,7 @@ import { newTable, topUp as holdemTopUp, sit as holdemSit, sitRefusal as holdemS
 // decides who takes each record - it imports wire.js alone). bible/11-Multiplayer/Wild-Zone.md.
 import { newRemains, foldFall, takeFrom, remainsNamedFor, collectAsk, remainsWords, remainsLive, remainsEmpty, remainsSpent, remainsTakeover, remainsEvict, remainsOf, wildRemainsKey, WILD_REMAINS_PREFIX } from '../../src/net/wild/wildLaw.js';
 import { wildGate, wildDirected, WILD_HZ_MAX, WDUN_HZ_MAX, WDUN_HERE_MS, WDUN_INTERNAL_RESET, WDUN_INTERNAL_KIN, WDUN_INTERNAL_GONE, WILD_INTERNAL_VIT, wdunRoomKey, wdunHall, wdunHallOfRoom, seaRoomCell, WILD_REMAINS_MS as WDUN_PILE_MS } from './relay.js';
-import { WDUN_KEY, wdunOf, wdunPrune, wdunEnter, wdunHere, wdunLeave, wdunDie, wdunGone, wdunState, wdunCrows, wdunBound, wdunGiantDie, wdunGiants } from '../../src/net/wild/wildLaw.js';   // PVPDUNGEONS: the zone's halls, kept by the hub
+import { WDUN_KEY, wdunOf, wdunPrune, wdunEnter, wdunHere, wdunLeave, wdunDie, wdunGone, wdunState, wdunCrows, wdunBound, wdunGiantDie, wdunGiants, wdunFleetSunk, wdunFleets } from '../../src/net/wild/wildLaw.js';   // PVPDUNGEONS: the zone's halls, kept by the hub
 import { validSdRecord, sdRelayGate, validSdFoundTell, chatRegionRoom, SD_INTERNAL_CENSUS, SD_INTERNAL_FOUND, SD_INTERNAL_LIVE, SD_TELL_RETRY_MS, SD_KEY, SD_FOUND_KEY, SD_REALM_KEY, sdDeadKey, SD_REGION_COUNT, SD_FIGHTERS_MAX, sdPzRelayGate, SD_ORRERY_KEY, sdFightRelayGate, SD_BRAIN_MIN, SD_NO_WORDS, SD_FIGHT_KEY, SD_INTERNAL_FELL, validSdFellTell, SD_RC_PREFIX, sdReceiptKey, SD_HERE_HOLD_MS, SD_SLOT_KEY, SD_HELD_KEY } from './relay.js';   // SD3: the Super dungeon's frame, its record and its doors (the wire's, through relay.js)
 import { sdFirst, sdRise, sdFind, sdFell, sdGone, sdDue, pickSdRegion, sdFindBelieved, sdNearSite, sdHolds, sdAdmits, isSdRoom, sdSlotOfRoom, SD_NO_CLOSED, SD_NO_FULL, SD_NO_FALLEN } from '../../src/net/superDungeon/sdLaw.js';   // SD3: the Super dungeon's law - the director's moves, the census's pick, the find, the realm's room
 // SD-HERALD (2026-10-09, the owner: "We need to add discord integration to abyss dungeons"): TWO FILES JOIN THE BUNDLE -
@@ -10417,6 +10417,10 @@ export class Room {
     if (m.k === 'hi') { this._send(ws, JSON.stringify(wdunState(st, acct, now))); return; }
     if (m.k === 'gk') {   // ZONE-GIANTS: a zone giant killed - down for everyone, said to everyone online
       if (wdunGiantDie(st, m.g, now)) { await this._wdunSave(now, true); this._wildFan({ t: 'wdun', k: 'gd', giants: wdunGiants(st, now) }); }
+      return;
+    }
+    if (m.k === 'fk') {   // SEA-EVENTS: a treasure fleet's flagship sunk - its sailing scattered for everyone, said to everyone online
+      if (wdunFleetSunk(st, m.n, now)) { await this._wdunSave(now, true); this._wildFan({ t: 'wdun', k: 'fd', fleets: wdunFleets(st, now) }); }
       return;
     }
     const h = wdunHall(m.h);

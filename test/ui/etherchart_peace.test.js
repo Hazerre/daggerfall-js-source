@@ -69,6 +69,6 @@ test('ETHER-WILD the chart: the peace painted as water - before the haunts and t
   // PIN MOVED (SEA-VAULTS, 2026-10-22): the chart's word of the open sea is the sea's ventures' (scenes/seaVenturesHost.js chartWord) - its pvp their live gate
   const w = readFileSync(new URL('../../src/scenes/world.js', import.meta.url), 'utf8');
   assert.match(w, /return \{ \.\.\.etherHost\.chart\(p\.x, p\.y, heading\(\)\), \.\.\.seaVentures\.chartWord\(\) \};/, 'the word\'s pvp: the sea\'s ventures\'');
-  assert.match(w, /createSeaVentures\(\{ live: \(\) => etherSea && _onlineWorldSession\(\) && !!online\?\.wildOk,/, 'online, at a relay that raises the zone');
+  assert.match(w, /createSeaVentures\(\{\n\s+live: \(\) => etherSea && _onlineWorldSession\(\) && !!online\?\.wildOk,/, 'online, at a relay that raises the zone');
   assert.match(readFileSync(new URL('../../src/scenes/seaVenturesHost.js', import.meta.url), 'utf8'), /^      pvp: live\(\),$/m);
 });

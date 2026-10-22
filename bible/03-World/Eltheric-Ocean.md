@@ -76,7 +76,8 @@ thousand leagues:
 | ETHER-NODES | ITS NODES: the nodes' law knows the sea's ground - an isle's node, a haul and a pixel's witnesses taken by the service as the Bay's | `net/nodeLaw.js` (`pixelOk`, the ids' spelling) - both ends |
 | ETHER-OW | THE OVERWORLD PAST THE VEIL: the chart's Overworld door; an isle's place the view's own (plated, at the edge, TV6's); the governor's ground the stream's; the bands and the raiders seeded on the sea, their chases heard; a raider stood there the sea's own corsair | `ui/etherChartWindow.js` (the door), `scenes/travelView.js` (`TRAVEL_VIEW_BUTTON`), `world/ethericSea.js` (`onBayOrEther`), `world/etherPlaces.js` (`etherPlaceIsle`, `etherPlaceRows`), `scenes/world.js` (`openEtherChart`, `etherPlaceClone`, `tvEtherPlace`, `tvPlaceSummary`, `travelViewFarPlaces`, `tvDungeonRowsAt`, the governor, `bandOk`, `tvRaidOpen`, `tvRaidSea`), `systems/travel/travelBands.js` (`chaserPlaceOk`), `scenes/naval/navalHost.js` (`raiders`) |
 | ETHER-WILD | THE OPEN SEA: past Veilhaven's peace an open PvP zone, its bands the zone's four rings - the fights, the foes and their loot, the packs, the death's drop, the strangers, no teleport; the rise at a freeport; no pace cap; a hand ashore goes back aboard; the crossing's warning; /unstuck to a freeport | `systems/wild/etherWild.js`, `systems/wild/wildZone.js` (the ground on the flag, `registerZoneWords`, `zoneWord`), `scenes/world.js` (`wildFrame`, `wildAtWire`, `wildHidesPlayer`, `wildTeleportRefused`, `wildRiseSite`, `unstuckOutdoors`, `wildBornHere`, the crossing's rows), `scenes/dungeonContext.js` (`_wildRingRaw`), `scenes/grantHost.js` (`wildAbout`), `systems/naval/crewCompanions.js`, `systems/naval/etherCrossing.js`, `ui/hud/statusTips.js` |
-| SEA-SET | THE DEEP'S OWN GEAR: the Eltheric Tidemail, an Aetheric set the Deep Aether and the Abyss alone give up - a legend ended, a vault's pile, a ruin's pile, the fleet's flagship | `systems/sigil/sigilSets.js` (`eltheric`), `systems/sigil/sigilSetPowers.js` (`captainsDue`), `systems/aetheric.js` (`ELTHERIC_SET_PIECES`, `ELTHERIC_CHANCE`, `rollElthericPiece`), `systems/sea/seaSpoils.js`, `scenes/naval/navalHost.js` (`legendTidemail`, `gunsRefit`, `dueOnHull`), `scenes/dungeonContext.js` and `scenes/roomLootHost.js` (the piles), `systems/item/itemLaw.js` (law 10) |
+| SEA-SET | THE DEEP'S OWN GEAR: the Eltheric Tidemail, an Aetheric set the Deep Aether and the Abyss alone give up - a legend ended, a vault's pile, a ruin's pile, the fleet's flagship, the storm's wrack | `systems/sigil/sigilSets.js` (`eltheric`), `systems/sigil/sigilSetPowers.js` (`captainsDue`), `systems/aetheric.js` (`ELTHERIC_SET_PIECES`, `ELTHERIC_CHANCE`, `rollElthericPiece`), `systems/sea/seaSpoils.js`, `scenes/naval/navalHost.js` (`legendTidemail`, `gunsRefit`, `dueOnHull`), `scenes/dungeonContext.js` and `scenes/roomLootHost.js` (the piles), `systems/item/itemLaw.js` (law 10) |
+| SEA-EVENTS | THE SEA'S SHARED CLOCK: the Aether Storm - its thunder, its wrack, its lightning - and the treasure fleet - its sailing, its ships, its flagship's spoils, the hub's word that it is scattered; both on the chart and in a freeport's talk | `systems/sea/seaEvents.js`, `scenes/naval/treasureFleet.js`, `scenes/seaVenturesHost.js` (`stormWord`, `stormTurned`, `seaStormShown`, `wrackSites`, `gather`, `step`, `fleetEnded`, `hubWord`, `rumours`, the chart's word), `scenes/naval/navalHost.js` (`fleet`, `stormStrike`, chargeEther's `treasureFleet.ended`, a site's `word`), `scenes/etherHost.js` (`credit`, `mid`, `say`), `net/wire.js` (`SEA_FLEET_PERIOD_MS`, `seaFleetSailing`, `fk`, `fd`), `net/wild/wildLaw.js` (`wdunFleetSunk`, `wdunFleets`), `server/src/index.js` (`_wdunWord`), `scenes/world.js` (`shownWeather`, the front, the sky, the wind, the sea's step, the hub's word, the sites, the haul, the office), `ui/etherChartWindow.js` (`paintStorm`, `paintFleet`, the keys), `systems/aetheric.js` (`ELTHERIC_CHANCE.storm`) |
 | SEA-VAULTS | THE VAULTS OF THE DEEP: the Wrothgarian halls on water - the day's four ruin isles of the Deep Aether and three of the Abyss, each an elite hall with its hub lock, crows, reset and epoch; marked on the chart; the open sea keeps no instance | `systems/sea/seaVaults.js`, `scenes/seaVenturesHost.js` (`vaultHere`, `openSeaAt`, `chartWord`, `crowLine`), `net/wire.js` (`seaVaultKey`, `seaVaultCell`, `seaVaultMapId`, `seaRoomCell`, `wdunHall`, `wdunRoomKey`, `WDUN_SEA_RELAY_MIN`), `net/online.js` (`wdunSeaOk`), `server/src/index.js` (`_instanceHello`), `scenes/instanceDoor.js` (`keepsNone`), `scenes/world.js` (`wildHallHere`, `wildDungeonGate`, `wdKey`, the crows' news, the chart's word, the door's `wild`), `ui/etherChartWindow.js` (`paintVault`, `CHART_VAULT_KEY`) |
 | (the ledger) | WHAT A CAPTAIN KEEPS OF IT: the isles charted, the legends ended and heard of, the strands gathered, the way out, the crossings - in the Captain save | `systems/naval/captainLedger.js` (`ether`, `chartIsle`, `endLegend`, `gathered`, `setCrossedFrom`, `crossed`, `hearLegend`), `scenes/etherHost.js` |
 
@@ -735,7 +736,8 @@ the time, the Abyss's two every time, into the boat the captain sails (`navalHos
 on her seed's own stream, beside her purse - so the Abyss's legends, the sea's hardest fights, always pay one); a VAULT
 of the deep's pile (a quarter, half - SEA-VAULTS); an isle's RUIN's treasure pile in those bands (a twentieth, a tenth -
 `systems/sea/seaSpoils.js` seaPileMore, the pile's last roll on its own dice: the layout's offline, the room's seeded base
-online, every client's alike); and the treasure fleet's flagship (every time - SEA-EVENTS). Each its source's LAST roll,
+online, every client's alike); the treasure fleet's flagship (every time) and a cask of the Aether Storm's wrack (a
+fortieth, a twentieth - SEA-EVENTS). Each its source's LAST roll,
 so nothing the source rolled before moves.
 
 TRUSTED AS A LEGENDARY IS. The sea's legends and ruins are the client's (no relay or service receipt seeds them, as the
@@ -809,6 +811,84 @@ reads the hall as it reads a mountain hall - WIRED unchanged; `scenes/dungeonCon
 WIRED unchanged; `scenes/exterior.js` (the bench) stands no sea - FLAGGED, as ever.
 
 Pinned by `test/systems/sea/seavaults.test.js` (7); `tools/mutants/seavaults.json` (49, all dead).
+
+## SEA-EVENTS - the sea's shared clock: the Aether Storm and the treasure fleet
+
+The owner's "more of a reason to venture into this zone", and two of the suggestions that came with ETHER-WILD (2026-10-22:
+"Build ever single bit of this"): events on the shared clock - where the relay's clock puts them, every client alike
+online (`raidNowMs`, the relay's offset); offline on this machine's own. DFU has neither: the departure is the sea's own,
+read off the Wrothgarian Mountains' giants (a death kept by the hub for everyone) and the lanes' packets (ships stood
+where the clock puts them).
+
+**THE AETHER STORM** (`systems/sea/seaEvents.js`): one each `STORM_PERIOD_MS` (two hours), blowing the first
+`STORM_LIFE_MS` (fifty minutes) of it. Its eye is born at a point its number's hash draws in the deep waters - the Deep
+Aether and the Abyss's first `STORM_ABYSS_LEAGUES`, `HAUNT_SPREAD.deep` rows either side of Veilhaven's - and drifts
+`STORM_DRIFT_PX` over its life on a heading of its own; it reaches `STORM_R_PX` (some 33 km) about its eye, always inside
+the sea's box. Inside it:
+
+- THE WEATHER IS THUNDER - SHOWN, as the Sun Baby's clear day is (`world.js:"const shownWeather = () => (sunbaby.on ? SUNBABY_WEATHER : seaStormShown()"`):
+  the sim's word, the map and the save stay the world's, and the storm's leave the frame its edge is crossed. Its rain
+  falls whole (the front's `peak` 1 - the map's intensity there is the open sea's), the sky wears its violence and stands
+  its clouds on the worn word (`cloudBase` none), Come Sail Away's wind reads it (`weatherType`), and into it or out of it
+  is a cell's edge - a short front (`world.js:"const crossing = weatherCrossingStamp() !== seenCrossing || seaVentures.stormTurned();"`).
+  The word is the sea's host's module word (`seaStormShown`), so the weather may ask before the host is built. A pinned
+  `?weather` shows none of it, as it shows no sim.
+- ITS LIGHTNING FINDS A SHIP. The world's own `LightningPlayer` strikes (DFU's schedule, 4-35 s apart); each new strike
+  over the player's ship finds her `STORM_STRIKE_CHANCE` of the time (`stormStrikeOf`): `STORM_STRIKE` of her hull and canvas,
+  a fifth of them alight - laid on the ship the captain stands aboard while she floats, never under her last timber by
+  it alone (`strikeShip`, the naval host's `stormStrike`). A fire it sets burns as a gun's does.
+- ITS WRACK. Each `STORM_WRACK_MS` a cask of it floats alongside (`wrackSites` - a strand's site of the naval host's,
+  `strand:wrack:<storm>:<slot>`, floated and hauled as a wild isle's strand is, its own word said): one of the sea's goods
+  (`ETHER_GOODS`, the cask's hash) as many as the band's strand (`STRAND_YIELD`), and on the band's share a piece of the
+  Eltheric Tidemail (`ELTHERIC_CHANCE.storm` - a fortieth, a twentieth). Each slot's cask is hauled once a session.
+- ITS WORDS: the storm gathering, said once to a captain at sea; sailing into it and out of it.
+
+**THE TREASURE FLEET** (`seaEvents.js` `fleetOf`): one sailing each `SEA_FLEET_PERIOD_MS` (three hours - `net/wire.js`,
+the relay's own), under way `FLEET_SAIL_MS` (ninety minutes) from `FLEET_OFFSET_MS` (an hour) into it: a merchant carrack
+(`FLEET_FLAGSHIP`) and her corsair escorts (`FLEET_ESCORTS`: the Deep Aether's two, the Abyss's three), mustered at a point
+its number draws in the Deep Aether or the Abyss's first `FLEET_ABYSS_LEAGUES`, bound east for the Veil, give or take, at
+a convoy's `FLEET_MPS`. Her name (the sea's own merchant names, off her seed), her band, her ships' seeds and stations
+are the sailing's own.
+
+- AT SEA (`scenes/naval/treasureFleet.js` - the naval host constructs it once, out of `createNavalHost`): fed by the
+  sea's host each `FLEET_FEED_MS` - each ship where her station on the route is now and `FLEET_LEAD_MS` on, in the scene
+  - she is stood within `FLEET_STAND_M` of the captain, on water deep enough for her hull, never one already in the sea
+  (mine, or a peer's copy: known by her seed), never one spent this sailing, and only by the captain the sea's traffic is
+  stood by (`launchesTraffic` - two captains near each other meet one fleet). She steers her station while she cruises;
+  one fighting fights; past `FLEET_DROP_M` she sails on and fades unless she fights.
+- HER FLAGSHIP DOWN, sunk or taken by my hand (`chargeEther`'s `treasureFleet.ended`): a piece of the Tidemail every time
+  (`ELTHERIC_CHANCE.fleet`), into the boat I sail and said; her purse (`FLEET_PURSE` - 6,000 gold in the Deep Aether,
+  12,000 in the Abyss) from her strongroom (`fleetEnded`, the ether host's purse); and the hub told (`fk`, online, at a
+  relay that reads it).
+- SCATTERED FOR EVERYONE. The hub keeps a sailing whose flagship is down (`net/wild/wildLaw.js` `wdunFleetSunk`): this
+  sailing's or the last's by its own clock, never another, once, kept till the sailing after it is over; it says so to
+  everyone online (`fd`) and in every hello (`st`'s `fleets`), and a captain at sea hears the fleet scatter. A sailing
+  scattered stands no ship. The ZONE-GIANTS' shape, word for word.
+- ITS WORDS: its sailing, said once to a captain at sea - its band, its flagship's name, which way it lies.
+
+**THE CHART** marks both while the word carries them (`seaVentures.chartWord`'s `storm` and `fleet`): the storm a violet
+wash and dashed ring about its eye with a bolt at its middle, named AETHER STORM once its ring is `STORM_NAME_R` wide; the
+fleet a gold hull on her heading over her route's dashed line, named "Treasure fleet: <her name>", greyed and crossed
+when scattered - each keyed ("The Aether storm, blowing now", "The treasure fleet, under way").
+
+**A FREEPORT'S TALK** (the harbourmaster's tab - `etherHost.js` office's rumours, `seaVentures.rumours`): the fleet under
+way, or the next to sail - its band, its way from here and its minutes; the storm blowing, or the next to gather.
+
+**THE WIRE** rides world241 (SEA-VAULTS' version, undeployed - `fk` in, `fd` out, the hello's `fleets`); an older relay
+is never told, and a fleet sunk there is scattered for its sinker alone.
+
+**KNOWN, NAMED.** A fleet's flagship is the client's to sink (no relay referees the sea's ships), so `fk` is trusted from
+any account at the hub, as `gk` is: a modified client can scatter the sailing under way - once a sailing, never another's,
+never longer (ZONE-GIANTS' own limit). The storm and the fleet are the clock's; a captain with no relay's clock (offline)
+meets this machine's.
+
+**THE FOUR HOSTS.** `scenes/world.js` (the weather, the step, the sites and the haul, the hub, the office) WIRED through
+`scenes/seaVenturesHost.js`; `scenes/naval/navalHost.js` (the ships, the strikes, the spoils) WIRED through
+`scenes/naval/treasureFleet.js`; `scenes/worldModes.js` and `scenes/dungeonContext.js` stand no sea's weather or ships
+(indoors and underground, as every weather) - FLAGGED, nothing to wire; `scenes/exterior.js` (the bench) stands no sea -
+FLAGGED, as ever. HOST-SPLIT: bootWorld's wiring paid in references (the sea's deps, the ether host's purse and words).
+
+Pinned by `test/systems/sea/seaevents.test.js` (12); `tools/mutants/seaevents.json` (86, all dead).
 
 ## The ledger's record
 

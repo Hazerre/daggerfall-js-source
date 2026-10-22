@@ -138,7 +138,7 @@ test('SEA-VAULTS the world host\'s wiring (seaVenturesHost.js): a vault at the p
   assert.equal(sea.vaultHere().ring, 4);
   st.live = false;
   assert.equal(sea.vaultHere(), null, 'offline - or a relay that raises no zone - no vault: the ruin is itself');
-  assert.deepEqual(sea.chartWord(), { pvp: false, vaults: [] });
+  assert.deepEqual((({ pvp, vaults }) => ({ pvp, vaults }))(sea.chartWord()), { pvp: false, vaults: [] });   // SEA-EVENTS: beside the storm's and the fleet's words (test/systems/sea/seaevents.test.js)
   st.live = true;
   const now = 1_800_000_000_000;
   locks.set(v[1].key, now + 60_000); crows.set(v[2].key, now + 9e5);
@@ -196,7 +196,7 @@ test('SEA-VAULTS the chart: every vault on the canvas marked in the halls\' oxbl
 
 test('SEA-VAULTS the seams by source: the world host builds the sea\'s ventures over the halls\' own locks, crows and remains, live with the open sea; the hall here a vault first; the door keeps a vault\'s gate past the mask; the crows told on their own ground; the chart\'s word the sea\'s; the social socket asks a sea key of a hub that reads it alone (mutants: each seam)', () => {
   const w = src('src/scenes/world.js');
-  assert.match(w, /const seaVentures = createSeaVentures\(\{ live: \(\) => etherSea && _onlineWorldSession\(\) && !!online\?\.wildOk, day: \(\) => wdunDayNow\(\), pixel: \(\) => playerTravelPixel\(\), locks: _wdunLocks, crows: _wdunCrows, mine: \(\) => _wildMine \}\);/);
+  assert.match(w, /const seaVentures = createSeaVentures\(\{\n\s+live: \(\) => etherSea && _onlineWorldSession\(\) && !!online\?\.wildOk, day: \(\) => wdunDayNow\(\), pixel: playerTravelPixel, locks: _wdunLocks, crows: _wdunCrows, mine: \(\) => _wildMine,\n/);
   assert.match(w, /return seaVentures\.vaultHere\(\) \?\? \(a && p \? wildHallAt\(a, p\.x, p\.y\) : null\);/);
   assert.match(w, /if \(!wildInside\(mask, p\.x, p\.y\) && !seaVentures\.vaultHere\(\)\) return true;/);
   assert.match(w, /const sea = seaVentures\.crowLine\(h\);[^\n]*\n\s*if \(!wildHere\(\) \|\| !!sea !== \(wildZoneKind\(\) === ETHER_KIND\)\) return;/);

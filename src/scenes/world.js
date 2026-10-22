@@ -930,7 +930,7 @@ import { createPartyTruce } from '../systems/wild/wildZone.js';   // PARTY-TRUCE
 import { GREATER_GIANT_CALL, GREATER_GIANT_CALL_AT } from '../systems/wild/wildZone.js';   // GREATER-GIANT
 import { wildRing, wildRingAt, wildRingName, wildRingBonus, wildZoneKind, zoneWord, zoneRingName, setWildMask, wildMask, WILD_RINGS, wildJourney, WILD_GIANT, WILD_GIANT_CHANCE, WILD_GIANT_MAX, WILD_STRANGER_M, WILD_STRANGER_SEE_M, WILD_STRANGER_SLOW_M, WILD_STRANGER_RGBA } from '../systems/wild/wildZone.js';   // WILD2: the four rings; WILD3: the journeys
 import { etherWildRingAt, ETHER_KIND, ETHER_WILD_TEXT } from '../systems/wild/etherWild.js';   // ETHER-WILD: the Eltheric Ocean past Veilhaven's peace, an open PvP zone
-import { createSeaVentures } from './seaVenturesHost.js';   // SEA VENTURES: the sea's vaults, its events, its bounties and boards - wired here, held there
+import { createSeaVentures, seaStormShown } from './seaVenturesHost.js';   // SEA VENTURES: the sea's vaults, its events, its bounties and boards - wired here, held there
 import { wildTakeTook, wildPacks, wornOffer, wildRecord, wildChunks, wildSpawnSpot, wildFallWords, wildTookAny } from '../systems/wild/wildDeath.js';   // CART-AWAY (FIELD BUGS 2026-10-15d): my wagon away from my death keeps its cargo - and COMPANION-DROP's word that my game reads my companions' packs, one call (wildFallWords)
 import { readWildReceipt, WILD_FALL_GRACE_S } from '../net/wild/wildReceipt.js';   // INT9: the relay's fall, carried to the service
 import { WILD_REF, wildKin, sameGuild } from '../net/wild/wildRef.js';   // INT9: the zone referee's numbers (its mend, for the HUD); MAC (2026-10-14): and its kin, one law with the referee's
@@ -2902,7 +2902,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // and light), and while it is staged the land wears the clear day: the SHOWN weather, never the sim's, which is the
   // world's (rolled, shared on the weather map, saved) and comes back the frame the event ends. Offline nothing sets it.
   const sunbaby = createSunbaby();
-  const shownWeather = () => (sunbaby.on ? SUNBABY_WEATHER : currentWeather());
+  const shownWeather = () => (sunbaby.on ? SUNBABY_WEATHER : seaStormShown() ?? currentWeather());   // SEA-EVENTS: the Aether Storm's thunder over the player at sea (scenes/seaVenturesHost.js), shown as the Sun Baby's clear day is
   let seenSystem = weatherSystemStamp(); const weatherStale = () => shownWeather() !== weather || weatherSystemStamp() !== seenSystem;   // AUDIT PRECIP FALL-2: the word, or the system under it, moved
   // SUNBABY2: THE WRATH'S FIRE - its fireballs on the shared clock, dropped onto the ground under each (the terrain's
   // height there, or my feet's where nothing is streamed) by the spell engine (magic.skyFire)
@@ -8338,7 +8338,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     midScreenText: (text, seconds) => setMidScreenText(text, seconds),
     log: (text) => console.log(text),
     time: () => _csaTime,
-    weatherType: () => WEATHER_TYPES.indexOf(currentWeather()),   // CSA-E: PlayerWeather.WeatherType (the port's eighth word, the sandstorm, is none of UpdateWind's three)
+    weatherType: () => WEATHER_TYPES.indexOf(seaStormShown() ?? currentWeather()),   // SEA-EVENTS: the Aether Storm's wind; CSA-E: PlayerWeather.WeatherType (the port's eighth word, the sandstorm, is none of UpdateWind's three)
     hour: () => Math.floor(minuteNow() / 60),   // CSA-E: WorldTime.Now.Hour
     persistentDungeonBoats: () => { try { return modSetting('come-sail-away', 'Compatibility.PersistentDungeonBoats') === true; } catch { return false; } },
     packedItems: packedItemsCodec,   // SerializeItems / DeserializeItems: the save's own item copy (save.js)
@@ -9401,7 +9401,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // the Fleet page's yard (a ship laid up anywhere) is the shipwright's
     if (model.atQuay) model.office = () => {   // CAPT-BOARD: the harbourmaster's tab - ETHER-SEA: past the Veil a freeport's (etherHost.js office)
       const port = navalPortHere();
-      if (port?.ether) { const o = etherHost.office(port); return o ? { ...o, buyChart: () => { const r = etherHost.buyChart(port); captainSay(); return r; } } : null; }
+      if (port?.ether) { const o = etherHost.office(port); return o ? { ...o, rumours: [...o.rumours, ...seaVentures.rumours(port)], buyChart: () => { const r = etherHost.buyChart(port); captainSay(); return r; } } : null; }   // SEA-EVENTS: the treasure fleet's and the Aether Storm's talk
       return harbourOffice.model({ uid: model.uid ?? null });
     };
     if (model.atQuay) model.exchange = () => harbourOffice.exchange({ uid: model.uid ?? null, cargo: model.cargo?.() ?? null, room: () => model.room?.() ?? null });   // CAPT-TRADE: the exchange's tab - AUDIT CAPTAIN'S SEA B11: and her room
@@ -9494,7 +9494,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     tearMarque: () => captainLedger.tearMarque(),
     // CAPT-BOARD: what the sea did to the contracts held, their waters, and a rank's favours at sea
     event: (ev) => { const r = harbourOffice.event(ev); captainSay(); return r; },
-    sites: () => { const p = playerTravelPixel(); return etherSea && inEther(p.x, p.y) ? [...harbourOffice.sites(), ...etherHost.sites(p.x, p.y)] : harbourOffice.sites(); },   // ETHER-SEA: and a wild isle's strand within reach
+    sites: () => { const p = playerTravelPixel(); return etherSea && inEther(p.x, p.y) ? [...harbourOffice.sites(), ...etherHost.sites(p.x, p.y), ...seaVentures.wrackSites(p.x, p.y)] : harbourOffice.sites(); },   // ETHER-SEA: and a wild isle's strand within reach; SEA-EVENTS: and the Aether Storm's wrack
     yardDiscount: () => harbourOffice.perksHere().yard,
     seasonedHires: () => { const port = navalPortHere(); return !!port && harbourOffice.perksAt(port.crown).seasoned; },   // AUDIT CAPTAIN'S SEA C4: hands hired in a Commodore's harbour - never men pressed at sea
     reliefSure: (crown) => harbourOffice.perksAt(crown).relief,
@@ -9507,7 +9507,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       legendHere: (px, py, o) => etherHost.legendHere(px, py, o),
       legendEnded: (id, act) => { const r = etherHost.legendEnded(id, act); captainSay(); return r; },
       papers: (cls, seed, px, py) => etherHost.papers(cls, seed, px, py),
-      gather: (siteId) => etherHost.gather(siteId),
+      gather: (siteId) => seaVentures.gather(siteId) ?? etherHost.gather(siteId),   // SEA-EVENTS: a cask of the storm's wrack, or a strand's
+      fleetEnded: (n, act) => seaVentures.fleetEnded(n, act),   // SEA-EVENTS: the treasure fleet's flagship down by my hand
     } : null,
     bountyOf: (e) => (e?.bounty ? harbourOffice.bountyWords(e.bounty) : null),   // CAPT-BOARD: a bounty's purse on the glass's card
     sitePoint: (px, py, seed) => navalSitePoint(px, py, seed),   // CAPT-BOARD: a held contract's waters in the scene
@@ -9890,7 +9891,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (on !== _navalWasOn) { _navalWasOn = on; naval.setEnabled(on); if (!on) { navalFlames.clear(); closeNavalPlunder(); closeNavalYard(); drawNavalHud(null); drawNavalTags([]); } }
     if (!on) return;
     if (csa.seaBoats.length || csaRuntime.isSailing()) installNavalSounds(audio);   // once: the first sea (the loader keeps its promise)
-    if (_mode() === 'exterior' && !gamePaused() && !_loading) laneShips();   // SEA-LANES: the Bay's packets about the player, stood and steered before the frame poses them
+    if (_mode() === 'exterior' && !gamePaused() && !_loading) { laneShips(); seaVentures.step(lightning?.strikes ?? 0); }   // SEA-LANES: the Bay's packets about the player, stood and steered before the frame poses them; SEA-EVENTS: the treasure fleet's, the Aether Storm's
     naval.frame(dt * worldTimeScale(), { paused: gamePaused() || _loading, outdoors: _mode() === 'exterior', brace: csaRuntime.isSailing() && (held(keys, 'Crouch') || navalTouchBrace()) });   // the brace: ducking behind the rail - the Crouch action at the helm (AUDIT NAV1: or the plate's Brace under a finger)
     // AUDIT NAV1 (the frame's cost, #12): the sea's ships stand in the world's collider where this frame posed them - the
     // sync in the mod's own step runs before the sea's, so their decks and hulls stood a frame behind the hulls drawn;
@@ -22462,7 +22463,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let _wdunInside = null;         // the hall I stand in: { h, hereAt }
   let _wdunEpoch = new Map();     // hall -> its epoch as the hub last said it (a reset is a new one)
   // SEA VENTURES (scenes/seaVenturesHost.js): the sea's own - SEA-VAULTS' vaults of the deep keep the halls' hub, locks and crows
-  const seaVentures = createSeaVentures({ live: () => etherSea && _onlineWorldSession() && !!online?.wildOk, day: () => wdunDayNow(), pixel: () => playerTravelPixel(), locks: _wdunLocks, crows: _wdunCrows, mine: () => _wildMine });
+  const seaVentures = createSeaVentures({
+    live: () => etherSea && _onlineWorldSession() && !!online?.wildOk, day: () => wdunDayNow(), pixel: playerTravelPixel, locks: _wdunLocks, crows: _wdunCrows, mine: () => _wildMine,
+    clock: () => raidNowMs(), naval: () => naval, state, link: socialLink, ether: etherHost,   // SEA-EVENTS: the shared clock, the naval host, the scene, the hub, the purse and the words (the ether host's)
+  });
   const _giantsDown = new Map();  // ZONE-GIANTS: giant -> when it walks again (this machine's clock)
   const _giantsStood = new Map(); // ZONE-GIANTS: giant -> { foe, promise } - the one stood here
   let _giantsAt = 0;
@@ -22709,6 +22713,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   /** The hub's word on the halls. */
   const wdunWord = (w) => {
     const now = Date.now();
+    seaVentures.hubWord(w);   // SEA-EVENTS: the treasure fleets scattered
     if (w.k === 'st') {
       _wdunHeard = true;
       if (Number.isFinite(w.now)) _wdunSkew = w.now - now;
@@ -33750,10 +33755,10 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     seenJump = weatherJumpStamp();
     if (jump) sky.weatherJump();
     // WEATHER2b: a CROSSING - the player walked into a cell of the field, or it drifted over them: a short front
-    const crossing = weatherCrossingStamp() !== seenCrossing;
+    const crossing = weatherCrossingStamp() !== seenCrossing || seaVentures.stormTurned();   // SEA-EVENTS: into the Aether Storm or out of it - a short front, as a cell's edge
     seenCrossing = weatherCrossingStamp();
     if (crossing && !jump) sky.weatherArrive();
-    const fx = weatherFront.tick({ dt, weather, arrival: enhancedFront ? sky.frontArrival() : 1, nowMinutes: playerTicker.classicMinutes, tsec: now / 1000, jump, peak: weatherOverride ? null : currentWeatherIntensity() });   // WEATHER3b: the map's intensity at the player is the peak
+    const fx = weatherFront.tick({ dt, weather, arrival: enhancedFront ? sky.frontArrival() : 1, nowMinutes: playerTicker.classicMinutes, tsec: now / 1000, jump, peak: weatherOverride ? null : seaStormShown() ? 1 : currentWeatherIntensity() });   // WEATHER3b: the map's intensity at the player is the peak
     if (fx.changed) wxFrom = wxNow;
     wxNow = enhancedFront ? blendTerms(wxFrom, fallTerms(weatherTerms(fx.snow), fx.intensity, weather, FALL_LIGHT), fx.t) : weatherTerms();   // RAIN-SPRINKLE: a sprinkle looks like one
     const wd = windDrive(sky, now / 1000, dt);   // WIND3: the frame's wind in every consumer's units, read once
@@ -33926,7 +33931,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (skyInside) { skyInside = false; sky.setInside(false); }   // DS1: ExteriorTransitionEvent
     sky.use((currentEntry ? currentEntry.skyBase : 16) + (weatherSkyOffset === 0
       ? seasonValue(dateFromClassicMinutes(skyMinutes())) : weatherSkyOffset), minute, weatherSkyOffset === 0,   // TIME1: the sky's season
-    { weather, violence: weatherOverride ?? currentWeatherRaw(), classicMinutes: playerTicker.classicMinutes, skyMinutes: skyMinutes(), sun: wxNow.sun, flash: flash - 1, pos: walkMode ? player.pos : cam.pos, cells: fieldCellsHere(), cloudBase: weatherOverride ? null : currentCloudBase(), approach: weatherOverride ? 0 : currentWindApproach() });   // WEATHER2a: the wind blows by the table's word; WEATHER2b/c: the field's cells are the clouds' cells   // ES1: the sky's clock and weather; VC4: the camera's world position, the clouds' and their shadow's origin; the enhanced sky's clouds and moons; VC3: the strobe lights the clouds; DS1 (AUDIT 61): the ONE sunlight scale the ground takes (the front's blend of the host's SetSunlightScale - pin and latch included; the raw row under ?front=off)
+    { weather, violence: weatherOverride ?? seaStormShown() ?? currentWeatherRaw(), classicMinutes: playerTicker.classicMinutes, skyMinutes: skyMinutes(), sun: wxNow.sun, flash: flash - 1, pos: walkMode ? player.pos : cam.pos, cells: fieldCellsHere(), cloudBase: weatherOverride || seaStormShown() ? null : currentCloudBase(), approach: weatherOverride ? 0 : currentWindApproach() });   // WEATHER2a: the wind blows by the table's word; WEATHER2b/c: the field's cells are the clouds' cells   // ES1: the sky's clock and weather; VC4: the camera's world position, the clouds' and their shadow's origin; the enhanced sky's clouds and moons; VC3: the strobe lights the clouds; DS1 (AUDIT 61): the ONE sunlight scale the ground takes (the front's blend of the host's SetSunlightScale - pin and latch included; the raw row under ?front=off)
     // Verbatim: fog is never disabled (SetFog keeps RenderSettings.fog on);
     // Sunny/Overcast ARE linear fog to 2400 - the classic distance haze.
     // DaggerfallSky.SetSkyFogColor (:318-325): anything denser than
