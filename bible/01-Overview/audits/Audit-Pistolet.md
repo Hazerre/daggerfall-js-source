@@ -32,7 +32,7 @@ branch:
 - a left-handed player's muzzle light came from the wrong side (A9);
 - the gold Sovereign gilded its own muzzle flame (B3).
 
-68 findings, 53 distinct (lanes cross-reported the worst of them). Every one is fixed or recorded below.
+69 findings, 54 distinct (lanes cross-reported the worst of them). Every one is fixed or recorded below.
 
 ## Findings
 
@@ -139,6 +139,7 @@ Morrowind assets parse and resolve; the bakes byte-exact; the account Worker loa
 | M4 | LOW | C9's fix rewrote a line `06-Systems/Loot-Rarity.md` cites by its text - `citeanchor` red, caught at the record's gates before any push | FIXED: re-anchored to the line as it reads, the page saying why |
 | M5 | MED | The fixes' version moves (item law 10, acct168, world242) and A1's two lines left 19 mutant records in 15 earlier lists aimed at text no longer there (`mutantdrift` QS6 F7 red): the laws they alone kill checked by nothing - caught at the record's gates before any push | FIXED: re-aimed by content, the same mutation each, and all 19 run again: dead |
 | M6 | MED | Two server pins of the judge's version (`test/server/fb1017_keylaw_lift.test.js`, `fb1016c_makerkept_lift.test.js`) still said law 9 after A7 moved it to 10 - CI red, and KEY-LAW's mutant no verdict; found by M5's run | FIXED: both moved, KEY-LAW's mutant judged again: dead |
+| M7 | MED | AUDIT 23's host pin (`test/systems/audit23_hosts.test.js` C14) still read A2's line as the unweighed tally - CI red; found by the whole `npm run check` | FIXED: PIN MOVED to the weighed arm |
 
 ## What stands
 
