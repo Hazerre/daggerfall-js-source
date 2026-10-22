@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   PISTOLET_TEMPLATE, PISTOLET_ARCHIVE, PISTOLET_TEMPLATES, PISTOLET_DAMAGE, PISTOLET_SKILL, createPistolet, isPistolet,
-  ICON_FILES, ART_RECORDS, PAPERDOLL_OFFSET, pistoletImageRecord, installPistoletIcons, FIND_WEIGHT,
+  ICON_FILES, ART_RECORDS, PAPERDOLL_OFFSET, pistoletImageRecord, installPistoletIcons, GUN_SHARE,
   SFX, SFX_FILES, installPistoletSounds,
 } from '../../src/systems/pistolet.js';
 import { THUNDERLOCK_TEMPLATE, PELLET_TEMPLATE, createThunderlock, createPellets, FIND_MIN_TIER } from '../../src/systems/thunderlock.js';
@@ -25,10 +25,12 @@ import { loadPistoletArt, cutStrip, pistoletGildKeep, flashPoint, PISTOL_STRIP }
 import { PISTOL_OPENING } from '../../src/tools/pistolLab.js';
 import { uniqueFinds } from '../../src/systems/loot/lootRarity.js';
 import { stockShopShelf, SHOP_ITEM_GROUPS } from '../../src/systems/shopStock.js';
-import { SUNKEN_SOVEREIGN, mintGilded } from '../../src/systems/gilded.js';
+import { SUNKEN_SOVEREIGN, SOVEREIGN_SABER_ERA, mintGilded, gildedRecordOf } from '../../src/systems/gilded.js';
+import { validLootItem } from '../../src/systems/loot/loot.js';
+import { WEAPONS } from '../../src/characters/weapons.js';
 import { techniqueFamily } from '../../src/combat/technique/techniqueRoster.js';
 import { armsTop, siegeIsBow } from '../../src/net/siege/siegeRef.js';
-import { templateGroups } from '../../src/systems/item/itemLaw.js';
+import { templateGroups, itemFindings, ITEM_LAW_VERSION } from '../../src/systems/item/itemLaw.js';
 import { thunderlockMuzzleLight } from '../../src/systems/thunderlock.js';
 import { OWN_MW_MODELS, OWN_MW_GILDED, ownWeaponModelFor } from '../../src/characters/ownModels/ownWeaponModels.js';
 import { MW_WEAPON_TYPE } from '../../src/formats/morrowind/mwFirstPerson.js';
@@ -65,16 +67,26 @@ test('the item: the owner’s name and numbers, one-handed, Archery, the Pellet,
   assert.equal(getItemHands(createThunderlock()), ITEM_HANDS.Both, 'the Thunderlock stays two-handed');
 });
 
-test('the rarity: both guns a unique find at half the Thunderlock’s old weight, tier 4 up, arriving loaded - never on a shelf', () => {
-  assert.equal(FIND_WEIGHT, 0.5, 'the owner: "make the thunderlock in general more rare along with the new hand cannon"');
+test('the rarity: ONE gun find, the Thunderlock’s at its old weight, minting either gun half the time from one draw - tier 4 up, arriving loaded, never on a shelf', () => {
+  // the owner: "make the thunderlock in general more rare along with the new hand cannon" - each "Half as often". AUDIT
+  // PISTOLET (A5, A8, C2, C3, D6): two finds at half weight were not half (each find's cap and Luck unscaled) and moved
+  // every seeded draw; one find at the old weight, splitting its mint, is exactly half of each at every source
+  assert.equal(GUN_SHARE, 0.5);
   const finds = uniqueFinds();
-  const tl = finds.find((f) => f.id === 'dwarven-thunderlock'), pl = finds.find((f) => f.id === 'dwarven-pistolet');
-  assert.ok(tl && pl);
-  assert.equal(tl.weight, 0.5);
-  assert.equal(pl.weight, 0.5);
-  assert.equal(pl.minTier, FIND_MIN_TIER);
-  const minted = pl.mint(() => 0.5);
-  assert.ok(isPistolet(minted[0]) && minted[1].templateIndex === PELLET_TEMPLATE && minted[1].stackCount > 0, 'it arrives loaded');
+  const gun = finds.filter((f) => f.id === 'dwarven-thunderlock' || f.id === 'dwarven-pistolet');
+  assert.deepEqual(gun.map((f) => f.id), ['dwarven-thunderlock'], 'one find for both guns - no second roll to move a seed');
+  assert.equal(gun[0].weight, 1, 'the old weight: the chance, its cap and its Luck the Thunderlock’s own');
+  assert.equal(gun[0].minTier, 4);
+  // one draw picks the gun AND counts the Pellets - the mint draws exactly what it always drew
+  const once = (v) => { let n = 0; return { rolls: () => { n++; return v; }, get n() { return n; } }; };
+  for (const [v, pistol, pellets] of [[0, false, 6], [0.4999, false, 18], [0.5, true, 6], [0.9999, true, 18], [0.25, false, 12], [0.75, true, 12]]) {
+    const d = once(v);
+    const [weapon, ammo] = gun[0].mint(d.rolls);
+    assert.equal(d.n, 1, `${v}: one draw`);
+    assert.equal(isPistolet(weapon), pistol, `${v}: ${pistol ? 'the Pistolet' : 'the Thunderlock'}`);
+    assert.equal(ammo.templateIndex, PELLET_TEMPLATE);
+    assert.equal(ammo.stackCount, pellets, `${v}: ${pellets} Pellets - it arrives loaded`);
+  }
   const shelf = readFileSync('src/systems/shopStock.js', 'utf8');
   assert.ok(!/createPistolet|PISTOLET_TEMPLATE|isPistolet/.test(shelf), 'the shop stock never names it');
   for (const buildingType of Object.keys(SHOP_ITEM_GROUPS).map(Number)) {
@@ -399,6 +411,27 @@ test('the Morrowind model is built and painted (PISTOLET-MODEL) - the bake repro
   assert.equal(row.borrowsAmmo, false);
   assert.equal(row.holdAs, undefined, 'no long-gun stance');
   assert.equal(OWN_MW_GILDED[PISTOLET_TEMPLATE].model, 'pistolet_gilded.nif');
+});
+
+test('AUDIT PISTOLET A7 C1 D8: a Sunken Sovereign minted before PISTOLET - an Ebony Saber with a Long Blade line - stays lawful and reads its own lore; the pistol is lawful; a hybrid is a forgery (mutants: the era dropped; the era\'s template; the era read by every saber)', () => {
+  // the shape GILDED2 minted: the same mint, the record as it stood at the base
+  const saber = mintGilded(SOVEREIGN_SABER_ERA);
+  assert.equal(saber.templateIndex, WEAPONS.Saber);
+  assert.ok(saber.affixes.some((a) => a.id === 'skill' && a.param === SKILLS.LongBlade));
+  assert.deepEqual(itemFindings(saber), [], 'the law finds nothing - no trade hold, no market refusal');
+  assert.ok(validLootItem(saber), 'and the wire keeps it - a trade, a pile, a body');
+  assert.equal(gildedRecordOf(saber), SOVEREIGN_SABER_ERA, 'it reads its own record');
+  assert.match(gildedRecordOf(saber).lore, /saber/);
+  const pistol = mintGilded(SUNKEN_SOVEREIGN);
+  assert.deepEqual(itemFindings(pistol), []);
+  assert.ok(validLootItem(pistol));
+  assert.equal(gildedRecordOf(pistol), SUNKEN_SOVEREIGN);
+  // the two shapes do not mix: a saber with the pistol's line, a pistol with the saber's, are forgeries
+  const hybrid = { ...saber, affixes: pistol.affixes.map((a) => ({ ...a })) };
+  assert.deepEqual(itemFindings(hybrid), ['gilded'], 'a saber with the Archery line');
+  const hybrid2 = { ...pistol, affixes: saber.affixes.map((a) => ({ ...a })) };
+  assert.deepEqual(itemFindings(hybrid2), ['gilded'], 'a pistol with the Long Blade line');
+  assert.equal(ITEM_LAW_VERSION, 10, 'the law that knows both - a finding a law of 9 made is asked again');
 });
 
 test('the pair is equipped through the equip law - one in each hand - and the player weapon reads it as a gun pair', () => {

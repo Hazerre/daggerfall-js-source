@@ -1298,7 +1298,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
     const uv = flip ? MIRROR_UV : undefined;
     renderer.drawScreenQuad(tex, rect, uv, lit ?? undefined);
     const elementGlow = hand ? glowOf(playerWeapon.handItem(hand)) : heldGlowNow();   // WEAPON-GLOW1: the element's outline over the frame, the held weapon's own (PISTOLET: each pistol's)
-    if (elementGlow) renderer.drawScreenQuadGlow?.(tex, rect, uv, elementGlow, { art: [art.unionBox.w, art.unionBox.h], view: [canvas.width, canvas.height] });   // the frame is the union box, in native pixels
+    if (elementGlow) renderer.drawScreenQuadGlow?.(tex, rect, uv, elementGlow, { art: art.native ? [art.native.w, art.native.h] : [art.unionBox.w, art.unionBox.h], view: [canvas.width, canvas.height] });   // the frame is the union box, in native pixels (AUDIT PISTOLET B4: the Pistolet's union is in design pixels, its texture native)
   }
 
   /**

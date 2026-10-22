@@ -304,10 +304,19 @@ export function installThunderlockIcons({ fetchBytes = null } = {}) {
 // with it - few enough that the weapon still sends you looking.
 export const FIND_MIN_TIER = 4;
 export const FIND_PELLETS = Object.freeze({ min: 6, max: 18 });
-// PISTOLET (2026-10-21, the owner: "make the thunderlock in general more rare along with the new hand cannon"): the
-// find's weight, HALF its old 1 - and the Dwarven Pistolet's find (systems/pistolet.js) weighs the same, so the two
-// guns together turn up about as often as the Thunderlock alone did. One number, here with the find's other rules.
-export const FIND_WEIGHT = 0.5;
+// PISTOLET (2026-10-21, the owner: "make the thunderlock in general more rare along with the new hand cannon" - each
+// "Half as often"): ONE GUN FIND, the Thunderlock's own at its old weight, and the gun it mints is either gun, each
+// GUN_SHARE of the time. AUDIT PISTOLET (A5, A8, C2, C3, D6, D29): two finds at half weight were neither half nor stable
+// - the 6 per mille cap and Luck's nudge are each find's, unscaled by the weight (a tier-14 boss turned up a gun TWICE
+// as often, the Thunderlock no rarer at all), and the second find's roll moved every later draw of every seeded loot
+// list (Loot-II-Arc law 9: seed 43 grew a Welkynd Stone). One find draws what the Thunderlock's always drew - its roll,
+// then ONE draw in the mint, which picks the gun and counts the Pellets both - so every seed is its seed, and each gun
+// is exactly half the old chance at every source, cap and Luck included.
+export const GUN_SHARE = 0.5;
+let _secondGun = null;
+/** The second gun the find can mint - systems/pistolet.js hands its own (it imports this file, so this file cannot
+ *  import it); until then the find mints the Thunderlock alone, as it always did. */
+export function setSecondGun(mint) { _secondGun = typeof mint === 'function' ? mint : null; }
 
 // The pellet is AMMUNITION: never rarity-promoted, for the Arrow's own
 // reason - promoting a stack enchants it, and an enchanted item does
@@ -317,10 +326,14 @@ registerAmmunition(PELLET_TEMPLATE);
 registerUniqueFind({
   id: 'dwarven-thunderlock',
   minTier: FIND_MIN_TIER,
-  weight: FIND_WEIGHT,
   mint: (rolls = Math.random) => {
-    const n = FIND_PELLETS.min + Math.floor(rolls() * (FIND_PELLETS.max - FIND_PELLETS.min + 1));
-    return [createThunderlock(), createPellets(n)];
+    // ONE draw: under GUN_SHARE the Thunderlock, at or over it the second gun; what is left of the draw, stretched back
+    // to a whole unit, counts the Pellets - so the mint draws exactly what it always drew
+    const r = rolls();
+    const second = _secondGun && r >= GUN_SHARE;
+    const u = second ? (r - GUN_SHARE) / (1 - GUN_SHARE) : (_secondGun ? r / GUN_SHARE : r);
+    const n = FIND_PELLETS.min + Math.min(FIND_PELLETS.max - FIND_PELLETS.min, Math.floor(u * (FIND_PELLETS.max - FIND_PELLETS.min + 1)));
+    return [second ? _secondGun() : createThunderlock(), createPellets(n)];
   },
 });
 

@@ -233,7 +233,9 @@ test('THE RAREST THING IN THE GAME: impossible below its tier, and never for sal
 
   // IT ARRIVES LOADED: a gun found with no ammunition is a gun that
   // cannot be fired and cannot be bought shot for.
-  const minted = find.mint(() => 0.5);
+  // PIN MOVED (PISTOLET, AUDIT PISTOLET): the find's draw under GUN_SHARE is the Thunderlock's, at or over it the
+  // Pistolet's (systems/thunderlock.js setSecondGun) - this one draws in the Thunderlock's half
+  const minted = find.mint(() => 0.25);
   assert.equal(minted.length, 2);
   assert.ok(isThunderlock(minted[0]) && isPellet(minted[1]));
   assert.ok(minted[1].stackCount >= 6 && minted[1].stackCount <= 18);

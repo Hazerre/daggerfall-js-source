@@ -108,8 +108,11 @@ import '../naval/treasureCharts.js';   // CAPT-CHARTS: the treasure chart
  *  Soul Cake (2000) and Hearth Offering (2001) are templates the law knows headless, and the Wyrd's Raiment's nine
  *  records (systems/aetheric.js WYRD_SET_PIECES) are lawful from it on. SOUL-LAW moved it to 9: a Soul Gem or Azura's
  *  Star holding the soul of one of Daggerfall Enemy Expansion's fifty (an Ogre's, 282) is lawful from it on - law 8 found
- *  each one 'soul' and froze its trapper's trading (FIELD BUGS 2026-10-20h). */
-export const ITEM_LAW_VERSION = 9;
+ *  each one 'soul' and froze its trapper's trading (FIELD BUGS 2026-10-20h). PISTOLET moved it to 10: the Dwarven Pistolet
+ *  (562) is a template the law knows, and the Sunken Sovereign is lawful in both its shapes - the gilded Pistolet it is
+ *  minted as from law 10 on, and the Ebony Saber minted before (systems/gilded.js SOVEREIGN_SABER_ERA; AUDIT PISTOLET A7,
+ *  C1, D8) - so a finding a law of 9 made against either is a finding to ask again. */
+export const ITEM_LAW_VERSION = 10;
 
 const T = ENCHANTMENT_TYPES;
 const TYPE_KEY = Object.freeze(Object.fromEntries(Object.entries(T).map(([k, v]) => [v, k])));

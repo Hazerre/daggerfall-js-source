@@ -169,6 +169,7 @@ export async function loadPistoletArt(renderer, { fetch: fetchStrip = null, deco
     ],
     anchor: { x: (anchor.x - union.x) * scale, y: (anchor.y - union.y) * scale, w: anchorW, h: anchorH },
     unionBox: { x: 0, y: 0, w: union.w * scale, h: union.h * scale },
+    native: { w: union.w, h: union.h },   // AUDIT PISTOLET B4: the textures' own size - the glow's field is laid in it, not in design pixels
     muzzle,
     pose: { widthPct: anchorW / 320, raise: PISTOLET_FEEL.raise },
   };

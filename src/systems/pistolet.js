@@ -20,11 +20,10 @@
 
 import { registerCustomTemplates, mintCondition, setItemFields, registerOwnItemImage } from './item/itemTemplates.js';
 import { addVendorTextures, vendorTextureCount } from './textureReplacement.js';
-import { registerUniqueFind } from './loot/lootRarity.js';
 import { SKILLS } from './skills.js';
 import { APP_ROOT } from './appRoot.js';
 import { PISTOLET_FEEL } from '../combat/gun/gunFeel.js';
-import { createPellets, FIND_MIN_TIER, FIND_PELLETS, FIND_WEIGHT, WEAPON_GROUP } from './thunderlock.js';   // the Pellet's home, and the find's rules - one gun's laws, the other's to read
+import { WEAPON_GROUP, GUN_SHARE, setSecondGun } from './thunderlock.js';   // the Pellet's home, and the find's rules - one gun's laws, the other's to read
 import { EQUIP_SLOTS } from '../characters/paperdoll/paperdoll.js';   // the slot a hand's weapon is worn in
 import { PISTOLET_TEMPLATE, PISTOLET_ARCHIVE, PISTOLET_SPAN } from '../characters/thunderlockIds.js';
 
@@ -149,20 +148,12 @@ export function installPistoletIcons({ fetchBytes = null } = {}) {
 // ── HOW YOU GET ONE ──────────────────────────────────────────────────
 //
 // The Thunderlock's way exactly (its file says why): never on a shelf - a custom template is in no shop's group table,
-// and shopStock.js shelves the Pellet alone - and a UNIQUE FIND of its own, from source tier 4 up, arriving loaded.
-// The owner, the same day: "make the thunderlock in general more rare along with the new hand cannon" - both finds weigh
-// the Thunderlock's FIND_WEIGHT, half its old 1, so the two guns together turn up about as often as the Thunderlock alone
-// did.
-export { FIND_WEIGHT };
-registerUniqueFind({
-  id: 'dwarven-pistolet',
-  minTier: FIND_MIN_TIER,
-  weight: FIND_WEIGHT,
-  mint: (rolls = Math.random) => {
-    const n = FIND_PELLETS.min + Math.floor(rolls() * (FIND_PELLETS.max - FIND_PELLETS.min + 1));
-    return [createPistolet(), createPellets(n)];
-  },
-});
+// and shopStock.js shelves the Pellet alone - and found from source tier 4 up, arriving loaded. The owner, the same day:
+// "make the thunderlock in general more rare along with the new hand cannon" - so it is the SECOND GUN of the
+// Thunderlock's own find, GUN_SHARE of its mints (systems/thunderlock.js says why one find and not two): each gun half
+// as often as the Thunderlock alone was, the two together exactly as often.
+export { GUN_SHARE };
+setSecondGun(() => createPistolet());
 
 // ── THE SOUND ────────────────────────────────────────────────────────
 //

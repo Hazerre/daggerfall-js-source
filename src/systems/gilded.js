@@ -181,14 +181,32 @@ export const SUNKEN_SOVEREIGN = Object.freeze({
   hint: 'Said to lie in the Old Coil\'s belly, once in a long while',
 });
 
+/** AUDIT PISTOLET (A7, C1, D8): THE SOVEREIGN'S SABER ERA. GILDED2 minted the Sunken Sovereign an Ebony Saber with a Long
+ *  Blade line; PISTOLET re-pointed the record at the Pistolet. A save's item keeps its template, so a Sovereign minted
+ *  before is a saber still - and held to the re-pointed record it read as a forgery: the item law found it 'gilded' (the
+ *  account judge's trade hold, the market's refusal), and every peer route dropped it off the wire. It is the record's
+ *  SABER ERA: lawful as it was minted, reading its own lore; never re-minted (MAKER-KEPT's way: an era's piece keeps what
+ *  it was given). */
+export const SOVEREIGN_SABER_ERA = Object.freeze({
+  ...SUNKEN_SOVEREIGN,
+  templateIndex: WEAPONS.Saber,
+  affixes: Object.freeze(SUNKEN_SOVEREIGN.affixes.map((a) => (a.id === 'skill' ? Object.freeze({ ...a, param: SKILLS.LongBlade }) : a))),
+  lore: 'A Sentinel admiral\'s saber, swallowed with her flagship off Stros M\'kai. The Old Coil gave back only the blade, and the sea never touched its gilding.',
+});
+
 /** EVERY GILDED RECORD - the Hourlock, then (GILDED2) the gate's and the serpent's; the one list every reader asks. */
 /** @type {readonly GildedRecord[]} */
 export const GILDED_RECORDS = Object.freeze([HOURLOCK, DRAGONFIRE_OATH, SUNKEN_SOVEREIGN]);
 export const gildedById = (id) => GILDED_RECORDS.find((r) => r.id === id) ?? null;
+/** The record AN ITEM was minted to: its record, or the Sovereign's saber era for one minted a saber (AUDIT PISTOLET). */
+export function gildedRecordOf(item) {
+  const r = gildedById(item?.gilded);
+  return r === SUNKEN_SOVEREIGN && item?.templateIndex === SOVEREIGN_SABER_ERA.templateIndex ? SOVEREIGN_SABER_ERA : r;
+}
 /** Is this a Gilded piece (its tier's own field)? */
 export const isGilded = (item) => item?.rarity === GILDED;
 // the ladder reads a Gilded piece's power and lore through these (it imports nothing of this file - this file imports it)
-registerGildedRecords({ powerOf: (id) => gildedById(id)?.power ?? null, loreOf: (item) => gildedById(item?.gilded)?.lore ?? null });
+registerGildedRecords({ powerOf: (id) => gildedById(id)?.power ?? null, loreOf: (item) => gildedRecordOf(item)?.lore ?? null });   // AUDIT PISTOLET: an era's piece reads its own lore
 
 /** @typedef {{ id: string, name: string, group: string, templateIndex: number, material: number, affixes: readonly any[], power: any, lore: string, hint?: string }} GildedRecord */
 /**
@@ -243,7 +261,7 @@ const NEVER_ON_GILDED = Object.freeze(['sigil', 'legendary', 'aetheric', 'imprin
 export function validGildedMarks(item) {
   if (!item || typeof item !== 'object') return null;
   if (item.rarity !== GILDED && item.gilded == null) return item;
-  const r = gildedById(item.gilded);
+  const r = gildedRecordOf(item);   // AUDIT PISTOLET: the record it was minted to - the Sovereign's saber era for an old one
   if (!r || item.rarity !== GILDED || r.group !== item.group || r.templateIndex !== item.templateIndex || item.material !== r.material) return null;
   const want = r.affixes, have = Array.isArray(item.affixes) ? item.affixes : [];
   if (have.length !== want.length) return null;
