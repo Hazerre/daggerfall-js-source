@@ -1,0 +1,62 @@
+[
+  {
+    "name": "HALO-WAIT-1-no-wait",
+    "file": "src/net/online.js",
+    "old": "    if (this._haloWait(room)) { if (pose) this.sendPose(pose); return; }",
+    "new": "    if (false) { if (pose) this.sendPose(pose); return; }",
+    "tests": [
+      "test/net/halowait.test.js"
+    ],
+    "note": "The bug itself: a crossing into a halo still minting falls through to the ordinary join, which closes my cell and every halo and wipes the roster."
+  },
+  {
+    "name": "HALO-WAIT-2-no-pose-while-waiting",
+    "file": "src/net/online.js",
+    "old": "    if (this._haloWait(room)) { if (pose) this.sendPose(pose); return; }",
+    "new": "    if (this._haloWait(room)) { return; }",
+    "tests": [
+      "test/net/halowait.test.js"
+    ],
+    "note": "The host sends no pose while it calls join, so a wait that sends none stands me still for the others until the halo opens."
+  },
+  {
+    "name": "HALO-WAIT-3-waits-on-an-open-halo-too",
+    "file": "src/net/online.js",
+    "old": "    return !!h?.ws && h.status === 'connecting' && !!this._ws && this.status === 'open' && isCellRoom(room) && isCellRoom(this.room)",
+    "new": "    return !!h?.ws && h.status !== 'closed' && !!this._ws && this.status === 'open' && isCellRoom(room) && isCellRoom(this.room)",
+    "tests": [
+      "test/net/halowait.test.js"
+    ],
+    "note": "An open halo is promoted at once; waiting on it never ends while it stays open, and the crossing is never made."
+  },
+  {
+    "name": "HALO-WAIT-4-waits-with-my-own-cell-down",
+    "file": "src/net/online.js",
+    "old": "    return !!h?.ws && h.status === 'connecting' && !!this._ws && this.status === 'open' && isCellRoom(room) && isCellRoom(this.room)",
+    "new": "    return !!h?.ws && h.status === 'connecting' && !!this._ws && isCellRoom(room) && isCellRoom(this.room)",
+    "tests": [
+      "test/net/halowait.test.js"
+    ],
+    "note": "A cell whose socket is down is no place to wait in: the crossing would hold me in a room that hears nothing from me."
+  },
+  {
+    "name": "HALO-WAIT-5-the-wait-never-ends",
+    "file": "src/net/online.js",
+    "old": "      && this._now() - (h.since ?? -Infinity) < HALO_WAIT_MS;",
+    "new": "      && this._now() - (h.since ?? -Infinity) < Infinity;",
+    "tests": [
+      "test/net/halowait.test.js"
+    ],
+    "note": "Unbounded, a halo stuck connecting holds the crossing until tick's A7 drops it - and a halo whose socket never reports holds it for good."
+  },
+  {
+    "name": "HALO-WAIT-6-the-wait-a-millisecond-short",
+    "file": "src/net/online.js",
+    "old": "      && this._now() - (h.since ?? -Infinity) < HALO_WAIT_MS;",
+    "new": "      && this._now() - (h.since ?? -Infinity) <= HALO_WAIT_MS - 2;",
+    "tests": [
+      "test/net/halowait.test.js"
+    ],
+    "note": "The bound is the halo's own connecting life, to the millisecond; the pin waits to its last."
+  }
+]

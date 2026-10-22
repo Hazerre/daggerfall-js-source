@@ -257,6 +257,10 @@ export const BLOCKED_KINDS = Object.freeze(['trade', 'card', 'page', 'duel', 'we
 /** Reconnect backoff bounds, ms. */
 export const BACKOFF_MIN_MS = 1000;
 export const BACKOFF_MAX_MS = 8000;
+/** HALO-WAIT (#1134): the longest a cell crossing waits for its halo, ms from the halo's opening - the time a halo may
+ *  stand connecting before `tick` drops it (AUDIT WORLD6b-iii(b) A7, BACKOFF_MAX_MS), which spans its mint's own
+ *  TOKEN_WAIT_MS. Past it the halo is retried, and the crossing is joined the ordinary way. */
+export const HALO_WAIT_MS = BACKOFF_MAX_MS;
 /** AURA-LIVE: a badge said again (`rehello`) at most once this often - a player trying aura after aura costs the room's
  *  hello budget one hello a socket per gap, and it is the LATEST badge that goes. */
 export const REHELLO_GAP_MS = 3000;
@@ -938,6 +942,13 @@ export class OnlineSession {
     if (this.superseded) return;   // ONE-SEAT: the seat is another tab's - nothing joins until the player says Play online here (resume)
     if (this.barred) return;   // AUDIT SAFE CLIENT-2: banned - nothing joins until the ban is lifted or the page reloads
     if (room === this.room && this._ws) return;
+    // HALO-WAIT (#1134): A CROSSING WAITS FOR ITS HALO. A halo still connecting (its socket opening, its token minting)
+    // is not promoted, and the ordinary join below closed my cell and every halo, wiped the roster and opened them all
+    // again. The forward halo opens RANGE_PIXELS before the edge, which the Overworld's x60 and x100 cross in 2-4 s, so a
+    // mint slower than that was a teardown. The world host calls this every frame while the key differs and sends no pose
+    // meanwhile, so the wait sends mine down the sockets I hold, and the promotion below takes the halo the frame it opens.
+    // Asked before the clears below: the asked list (`_who`) cleared every frame would ask a stranger every frame.
+    if (this._haloWait(room)) { if (pose) this.sendPose(pose); return; }
     this._threwKinds.clear();   // AUDIT ONCRASH1 A5: a new room says its own throws out loud - the first `world` throw of a session silenced the console for every later dungeon's
     this._who.clear();   // AUDIT WORLD6b-iii(e) B4: a crossing forgets who was asked - an answer lost in the last cell (its socket died, the peer's leave raced the ask) held the stranger unseen for WHO_RETRY_MS in this one
     const h = this._halo.get(room);
@@ -1081,6 +1092,14 @@ export class OnlineSession {
   }
   /** WORLD6b-iii(b): the halo rooms held now (for the next cellHaloFor, its hysteresis). */
   haloRooms() { return [...this._halo.keys()]; }
+  /** HALO-WAIT (#1134): does a crossing into `room` wait for its halo? Only cell to cell, only on a halo whose socket is
+   *  still connecting (a dropped or refused one has none, and is joined at once), only while my own cell's socket is open
+   *  (a cell I no longer hold is no place to wait in), and for HALO_WAIT_MS from the halo's opening at most. */
+  _haloWait(room) {
+    const h = this._halo.get(room);
+    return !!h?.ws && h.status === 'connecting' && !!this._ws && this.status === 'open' && isCellRoom(room) && isCellRoom(this.room)
+      && this._now() - (h.since ?? -Infinity) < HALO_WAIT_MS;
+  }
   /** WORLD6b-iii(b): do I hold a socket in this room - my own cell, or a halo's? A foes frame keyed to a halo room is
    *  the world (its owner's cell), one keyed to a room I am not in is not. */
   inRoom(key) { return !!key && ((key === this.room && !!this._ws) || this._halo.get(key)?.status === 'open'); }
