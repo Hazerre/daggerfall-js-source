@@ -28314,6 +28314,11 @@
   "tr": "3d6d9f6e066b",
   "by": "claude-in-session"
  },
+ "sea.chart.key.vault": {
+  "en": "ae32388589f8",
+  "tr": "28204e4be92c",
+  "by": "claude-in-session"
+ },
  "sea.chart.key.wild": {
   "en": "08e62f43c014",
   "tr": "962c53d84cd4",
@@ -28407,6 +28412,16 @@
  "sea.tidemail.legend": {
   "en": "da668b752ead",
   "tr": "89758e7c40bc",
+  "by": "claude-in-session"
+ },
+ "sea.vault.crows": {
+  "en": "bfd221a7c154",
+  "tr": "036f8a6b122c",
+  "by": "claude-in-session"
+ },
+ "sea.vault.crowsAnon": {
+  "en": "6ca104af99f4",
+  "tr": "9ca4b0ac382a",
   "by": "claude-in-session"
  },
  "sea.wild.band.abyss": {

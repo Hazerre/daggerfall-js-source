@@ -307,9 +307,9 @@
   },
   {
     "name": "ETHER-WILD-chart-word-no-pvp",
-    "file": "src/scenes/world.js",
-    "old": "pvp: _onlineWorldSession() && !!online?.wildOk }; };",
-    "new": "pvp: true }; };",
+    "file": "src/scenes/seaVenturesHost.js",
+    "old": "      pvp: live(),",
+    "new": "      pvp: true,",
     "tests": [
       "test/ui/etherchart_peace.test.js"
     ]

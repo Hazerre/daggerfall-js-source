@@ -66,5 +66,9 @@ test('ETHER-WILD the chart: the peace painted as water - before the haunts and t
   M.paintKey(kg, 'peace', 9, 9);
   assert.deepEqual(kg.log.find((c) => c[0] === 'arc'), ['arc', 9, 9, 7, 0, Math.PI * 2]);
   assert.match(src, /peaceItem\.hidden = !word\.pvp;/, 'the key\'s row stands with the word, asked at every paint');
-  assert.match(readFileSync(new URL('../../src/scenes/world.js', import.meta.url), 'utf8'), /return \{ \.\.\.etherHost\.chart\(p\.x, p\.y, heading\(\)\), pvp: _onlineWorldSession\(\) && !!online\?\.wildOk \};/, 'the word\'s pvp: online, at a relay that raises the zone');
+  // PIN MOVED (SEA-VAULTS, 2026-10-22): the chart's word of the open sea is the sea's ventures' (scenes/seaVenturesHost.js chartWord) - its pvp their live gate
+  const w = readFileSync(new URL('../../src/scenes/world.js', import.meta.url), 'utf8');
+  assert.match(w, /return \{ \.\.\.etherHost\.chart\(p\.x, p\.y, heading\(\)\), \.\.\.seaVentures\.chartWord\(\) \};/, 'the word\'s pvp: the sea\'s ventures\'');
+  assert.match(w, /createSeaVentures\(\{ live: \(\) => etherSea && _onlineWorldSession\(\) && !!online\?\.wildOk,/, 'online, at a relay that raises the zone');
+  assert.match(readFileSync(new URL('../../src/scenes/seaVenturesHost.js', import.meta.url), 'utf8'), /^      pvp: live\(\),$/m);
 });

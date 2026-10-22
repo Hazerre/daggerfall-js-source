@@ -156,7 +156,8 @@ test('SEA-SET THE PILES: an isle\'s place\'s band read off its own longitude and
   assert.equal(seaPlaceBand({ mapTableData: { longitude: 400 * 128, latitude: 380 * 128 } }), null, 'a place of the Bay');
   assert.equal(seaPlaceBand({ ether: '1,1', mapTableData: {} }), null);
   assert.equal(seaPileSource(place(1, 1)), 'ruin');
-  assert.equal(seaPileSource({ seaVault: { key: 'e1,1' } }), 'vault');
+  assert.equal(seaPileSource({ ether: '1,1', wildRing: 4 }), 'vault', 'an isle\'s place the door stamped a vault');
+  assert.equal(seaPileSource({ wildRing: 4 }), 'ruin', 'a mountain hall is no vault of the deep');
   let draws = 0;
   const rolls = (xs) => () => xs[Math.min(draws++, xs.length - 1)];
   const items = [{ templateIndex: 1 }];
@@ -164,8 +165,8 @@ test('SEA-SET THE PILES: an isle\'s place\'s band read off its own longitude and
   draws = 0; assert.equal(seaPileMore([], place(bandX('abyss'), -6000), rolls([0.09, 0.1])).length, 1, 'the abyss ruin: a tenth - 0.09 drops'); assert.equal(draws, 2);
   draws = 0; assert.equal(seaPileMore([], place(bandX('abyss'), -6000), rolls([0.11])).length, 0, '0.11 does not');
   draws = 0; assert.equal(seaPileMore([], place(bandX('deep'), -6000), rolls([0.06])).length, 0, 'the deep ruin: a twentieth - 0.06 does not');
-  draws = 0; assert.equal(seaPileMore([], place(bandX('deep'), -6000, 'ruin', { seaVault: { key: 'e1,1' } }), rolls([0.2, 0.3])).length, 1, 'a deep vault: a quarter - 0.2 drops');
-  draws = 0; assert.equal(seaPileMore([], place(bandX('abyss'), -6000, 'ruin', { seaVault: { key: 'e1,1' } }), rolls([0.45, 0.3])).length, 1, 'an abyss vault: half');
+  draws = 0; assert.equal(seaPileMore([], place(bandX('deep'), -6000, 'ruin', { wildRing: 3 }), rolls([0.2, 0.3])).length, 1, 'a deep vault: a quarter - 0.2 drops');
+  draws = 0; assert.equal(seaPileMore([], place(bandX('abyss'), -6000, 'ruin', { wildRing: 4 }), rolls([0.45, 0.3])).length, 1, 'an abyss vault: half');
   draws = 0; assert.equal(seaPileMore([{ templateIndex: 1 }], { mapTableData: { longitude: 400 * 128, latitude: 380 * 128 } }, rolls([0])).length, 1); assert.equal(draws, 0, 'the Bay: untouched');
   const before = [{ templateIndex: 9 }];
   draws = 0; const after = seaPileMore(before, place(bandX('abyss'), -6000), rolls([0, 0]));

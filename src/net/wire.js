@@ -1576,7 +1576,8 @@ export const KEEPALIVE_FAN_MS = HEARTBEAT_MS / 2;
  *  is deployed by CI and the relay by hand, so a skew between them is the ordinary state of a release day, and until
  *  now nothing on either end could see it. */
 // Integrated Arena spectator visibility with staff teleport, stable boat identity and private ownership; deploy relay before clients.
-export const RELAY_VERSION = 'world240';   // world240: GUILD-CAP (2026-10-21, the Discord's feature-feedback: "May you please increase the guild member cap"; bible/06-Systems/Online-Arc.md GUILD-CAP; NOT YET DEPLOYED): a guild holds 75 (net/guild/guildLaw.js GUILD_MEMBERS_MAX, 50 until now) and the hub's who-of-my-guild answer lists up to 100 (net/hubShards.js HUB_GUILD_WHO_MAX, 64 - a full guild's 74 others would have been cut at 64). No wire shape changed: the relay reads the cap nowhere, and every build reads a longer `found` list as it reads a shorter one (online.js read(HUB_GUILD_WHO_MAX) - an older client keeps its first 64). The account service enforces the cap and deploys with main.
+export const RELAY_VERSION = 'world241';   // world241: SEA VENTURES (2026-10-22, the owner: "Build ever single bit of this and dont return until its perfected" - the Eltheric Ocean's ventures; bible/03-World/Eltheric-Ocean.md SEA-VAULTS and the sections after it; NOT YET DEPLOYED): the hub reads a vault of the deep by its cell (`wdun` keys `"e<cx>,<cy>"` - wdunHall, wdunRoomKey, WDUN_SEA_RELAY_MIN), a fall at another's hand signs its room, and the referee judges a broadside between captains in the open sea. An older client never sends a sea key, and an older relay is never asked one.
+// world240: GUILD-CAP (2026-10-21, the Discord's feature-feedback: "May you please increase the guild member cap"; bible/06-Systems/Online-Arc.md GUILD-CAP; NOT YET DEPLOYED): a guild holds 75 (net/guild/guildLaw.js GUILD_MEMBERS_MAX, 50 until now) and the hub's who-of-my-guild answer lists up to 100 (net/hubShards.js HUB_GUILD_WHO_MAX, 64 - a full guild's 74 others would have been cut at 64). No wire shape changed: the relay reads the cap nowhere, and every build reads a longer `found` list as it reads a shorter one (online.js read(HUB_GUILD_WHO_MAX) - an older client keeps its first 64). The account service enforces the cap and deploys with main.
 // world239: FIELD BUGS 2026-10-21c FOES-FIRST (2026-10-21, players' word of enemy desync; bible/01-Overview/bugs/Field-Bugs-2026-10-21c.md, bible/11-Multiplayer/Scale-Arc.md FOES-FIRST; NOT YET DEPLOYED; past STAR-TUNE's world238, #1090, merged first): a foes or own room spends its byte budget on FULL frames first - a delta only down to FOES_FULL_RESERVE, a full frame (`full` 1, or a dungeon host's `lc`) into a debt of a quarter-second at most, each sender one first a FOES_FIRST_MS and its next frame first once unheard FOES_UNHEARD_MS (server/src/index.js _foesFan, _foesLane, _foesFirst; net/wire.js floorGate) - where the deltas had kept a crowded cell's bucket drained and the full frames, which carry the sweep, the sites, the grants and the handovers, lost first (30 owners of 60 sockets heard 1.2% of them, now 100%); HIT-DROPS - the blows a destination's hit funnels drop counted, with the full frames asked and dropped, in the room's metrics' blobs (server/src/relayScale.js); AUDIT FOES-FIRST: a frame that hands foes on (a record naming its heir - net/wire.js foesFrameHandsOn) goes first on a turn of its own, and a sender's clocks are stamped once its fan is charged, before the re-serialise (a junked frame's sender is heard). FOES-HOLD (2026-10-21, the owner: "No band aids and true improvements"; Scale-Arc.md FOES-HOLD; re-hashed in place): where a room's full frames alone are more than its budget, a first frame the budget refuses is HELD for its turn (server/src/foesHold.js) - one line, one turn a sender, a newer full frame in its sender's place, nothing of a sender overtaking its own, no delta past a held frame; a held sender still streaming is beaten with an empty frame of its own (`{ f: [] }` and its frame's `k` - every reader of every build takes it as the owner heard), a leaving sender's handovers tried before its leave, and the hold counted in blob6 to blob10 - the star's large owner heard 0% -> 44.8% of its full frames. AUDIT FOES-HOLD (re-hashed in place): the beat's `k` a room key's or none (isRoomKey) and charged to the first frames' floor, a held frame kept as its text and room in the hold made from the sender holding the most, a leaving sender's handovers one reserve deeper (FOES_LEFT_FLOOR) - every one heard at a star's doors, 45% before the hold. No client gate: the relay reads `full`, `lc` and the records' heirs, and OWNER-CLOCK's `tm` (the client's, the same release) passes any relay unread. STAR-TUNE's world238 (#1090) merged first and its `star` grant kind is in this law with it; GRANT-SLEEP #1066, open, claimed world238 too and takes the next number at its merge.
 // world238: STAR-TUNE (2026-10-20, the owner, of the Starfall's first run: "the enemies are too few and die too quickly. Does this not have scaling?"; "The time between waves is too long"; bible/11-Multiplayer/Starfall.md section 4; world236 on its branch, renumbered past LONE-HERALD's world236 and FIELD BUGS 2026-10-20f's world237 at the merge; NOT YET DEPLOYED) - the star's law: a wave is four for the first defender and two for each beside it, one more each wave, four to twenty-four (net/starfall/starfallLaw.js starWaveSize - a lone defender's 4 to 7, from 3, 3, 4 and 4; then "we should go beyond the limit": past the camps' grant's nine), and the breath between waves five seconds, from twelve (STAR_BREATH_MS); a spawn grant kind of the star's own (net/grantLaw.js GRANT_KINDS.star - a wave of twenty-four one grant, the open country's alone) and the `st` frame's wave to twenty-four (STAR_WAVE_SIZE_MAX); the foe bounds hold a camp's foe to a fallen star's coven's twice its health (net/foeBounds.js FOE_BOUND.star - STAR_FOE_HEALTH), so the relay never strips the coven the client now stands. Client and relay move together: an older relay refuses the `star` grant kind, an older client drops a ledger of a wave past nine. STAR_RELAY_MIN stays 235 (the star word itself does not change).
 // world237: FIELD BUGS 2026-10-20f (2026-10-20, bible/01-Overview/bugs/Field-Bugs-2026-10-20f.md, from ilovemybonk's word on the Elite Breach in #general; world236 on its branch, renumbered past LONE-HERALD's world236 at the merge; NOT YET DEPLOYED): LANDED-WORD - an Elite Breach's room tells a striker what each of its blows landed (`eland`, to it alone - net/eliteGates/egBrain.js egBlow), and a lord an errand holds at a threshold answers what it lost (net/eliteGates/egLords.js egLordHit), so the word, the recap and a Court's chart count that; FAIR-STILL - the fair trail reads a member's silence from held ground to held ground within the snap as standing still, never blind (net/eliteGates/egFair.js egStillGap); DOOR-WORD - a member at the door on a trail it refuses is told why, once a hall (`efair`, to it alone - egBrain.js doorWord). A page facing a relay before it keeps its claims (EG_LAND_RELAY_MIN); an older page drops both words. Deploy the relay first or with the pages
@@ -4439,6 +4440,10 @@ export const WDUN_GIANTS_RELAY_MIN = 177;
 /** ZONE-GIANTS: may a giant's death be told to this relay (an older one closes the socket on a word it does not know). */
 export const relaySupportsWdunGiants = (v) => { const m = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!m && Number(m[1]) >= WDUN_GIANTS_RELAY_MIN; };
 export const relaySupportsWdun = (v) => { const m = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!m && Number(m[1]) >= WDUN_RELAY_MIN; };
+/** SEA-VAULTS: the first relay whose hub reads a vault of the deep's key (`"e<cx>,<cy>"`) - an older one answers it "bad wdun"
+ *  and closes the socket, so a client asks a vault's lock only of one this new or newer. */
+export const WDUN_SEA_RELAY_MIN = 241;
+export const relaySupportsWdunSea = (v) => { const m = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!m && Number(m[1]) >= WDUN_SEA_RELAY_MIN; };
 export const WDUN_DAY_MS = 24 * 3_600_000;
 export const WDUN_LOCK_MS = 60 * 60_000;
 export const WDUN_RESET_MS = 20 * 60_000;
@@ -4447,8 +4452,42 @@ export const WDUN_STALE_MS = 3 * 60_000;     // a hall's occupant silent this lo
 export const WDUN_FRAME_MAX = 160;
 export const WDUN_HZ_MAX = 2;
 const WDUN_HALL = /^(\d{1,3}),(\d{1,3})$/;
-/** A hall's key, `"px,py"` on the map's grid, or null. */
+/** SEA-VAULTS (2026-10-22, bible/03-World/Eltheric-Ocean.md SEA-VAULTS): a vault of the deep's key, `"e<cx>,<cy>"` - the cell
+ *  of the Eltheric Ocean's lattice its ruin isle stands in (world/ethericSea.js etherCellOf), never negative, never a
+ *  mountain hall's `"px,py"`. The lattice's size and an isle place's map id are the sea's law's (world/ethericSea.js CELLS_W,
+ *  CELLS_H; world/etherPlaces.js etherPlaceId), copied here for the relay's bundle and held equal by
+ *  test/systems/sea/seavaults.test.js. */
+const WDUN_SEA = /^e(\d{1,3}),(\d{1,3})$/;
+export const WDUN_SEA_CELLS_W = 806;
+export const WDUN_SEA_CELLS_H = 499;
+/** A sea vault's world room's map id - its isle's own place's (world/etherPlaces.js etherPlaceId: 0xE7 in the high 12 bits,
+ *  500,000 and the cell's number in the low 20). */
+export const seaVaultMapId = (cx, cy) => (((0xe7 << 20) | (500000 + cy * WDUN_SEA_CELLS_W + cx)) >>> 0);
+/** A sea vault's key of its cell. */
+export const seaVaultKey = (cx, cy) => `e${cx},${cy}`;
+/** The isle cell `[cx, cy]` a sea place's dungeon room names - seaVaultMapId's inverse, the room `dungeon:m<id>` its door
+ *  builds (any isle's, a vault's today or not) - or null. THE OPEN SEA KEEPS NO INSTANCE (SEA-VAULTS): every ruin past
+ *  Veilhaven's peace is a dungeon of the open zone and today's vaults its halls, which the relay cannot tell from the
+ *  rest without drawing the day's picks - so the relay refuses an instance of any isle's dungeon room, as it refuses a
+ *  mountain hall's (wdunHallOfRoom), and the page's door never offers one (scenes/instanceDoor.js keepsNone). */
+export const seaRoomCell = (key) => {
+  const m = typeof key === 'string' ? /^dungeon:m([1-9]\d{0,9})$/.exec(key) : null;
+  const id = m ? Number(m[1]) : 0;
+  if (!id || id > 0xffffffff || id >>> 20 !== 0xe7) return null;
+  const n = (id & 0xfffff) - 500000, cx = n % WDUN_SEA_CELLS_W, cy = Math.floor(n / WDUN_SEA_CELLS_W);
+  return n >= 0 && cy < WDUN_SEA_CELLS_H ? [cx, cy] : null;
+};
+/** A sea vault's cell `[cx, cy]` of its key, or null (a mountain hall's key, or none). */
+export function seaVaultCell(h) {
+  const m = typeof h === 'string' ? WDUN_SEA.exec(h) : null;
+  if (!m) return null;
+  const cx = Number(m[1]), cy = Number(m[2]);
+  return cx < WDUN_SEA_CELLS_W && cy < WDUN_SEA_CELLS_H ? [cx, cy] : null;
+}
+/** A hall's key, `"px,py"` on the map's grid - SEA-VAULTS: or a vault of the deep's, `"e<cx>,<cy>"` - or null. */
 export function wdunHall(h) {
+  const sea = seaVaultCell(h);
+  if (sea) return seaVaultKey(sea[0], sea[1]);
   const m = typeof h === 'string' ? WDUN_HALL.exec(h) : null;
   if (!m) return null;
   const x = Number(m[1]), y = Number(m[2]);
@@ -4496,7 +4535,14 @@ export const WILD_INTERNAL_VIT = '/internal/wild/vit';
 export const WDUN_SALT = 7;
 /** A zone hall's world room, `dungeon:m<mapId>` (wire.js WORLD_ROOM): salt in the high 12 bits, the pixel in the low 20. */
 export const spawnedHallMapId = (x, y) => (((WDUN_SALT << 20) | (y * 1000 + x)) >>> 0);   // world/spawnedDungeons.js spawnedMapId's own law
-export const wdunRoomKey = (h) => { const k = wdunHall(h); if (!k) return null; const [x, y] = k.split(',').map(Number); return `dungeon:m${spawnedHallMapId(x, y)}`; };
+export const wdunRoomKey = (h) => {
+  const k = wdunHall(h);
+  if (!k) return null;
+  const sea = seaVaultCell(k);
+  if (sea) return `dungeon:m${seaVaultMapId(sea[0], sea[1])}`;   // SEA-VAULTS: the ruin isle's own place's room
+  const [x, y] = k.split(',').map(Number);
+  return `dungeon:m${spawnedHallMapId(x, y)}`;
+};
 /** INSTANCES (the audit): the zone hall a world room's key names - wdunRoomKey's inverse, its hall as wdunHall spells it -
  *  or null. A hall keeps no instance (net/instanceRoom.js): its PvP, its locks and the hub's reset (WDUN_INTERNAL_RESET)
  *  are its public room's, and a private copy of one would stand outside all three. */

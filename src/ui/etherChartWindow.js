@@ -52,6 +52,8 @@ import { isleByKey, BANDS, VEIL_X, LEAGUE_PX, KIND_WORDS, ETHER_BOX, compassPoin
 import { hauntOf, legendById, HAUNT_PX } from '../systems/naval/etherShips.js';
 import { isleGood, goodById } from '../systems/naval/tradeGoods.js';   // ISLE-TRADE: a port isle's own good of the Bay, on its card
 import { ETHER_PEACE_PX } from '../systems/wild/etherWild.js';   // ETHER-WILD: Veilhaven's peace, drawn where the open sea's fights begin
+import { paintWildCrows, paintWildLocks } from './wild/wildMapInk.js';   // SEA-VAULTS: the mountains' crows and padlock, on the chart's paper
+import { HALL_INK } from './ink/inkMap.js';   // SEA-VAULTS: a vault's oxblood, the halls' own
 
 /** The zooms: screen pixels a map pixel (819.2 m). */
 export const CHART_ZOOMS = Object.freeze([1, 2, 4, 8, 16]);
@@ -110,6 +112,10 @@ export const PEACE_FILL = 'rgba(110,214,170,0.13)';
 export const PEACE_LINE = 'rgba(140,232,190,0.85)';
 /** ETHER-WILD: the peace is named on the chart once its circle is this wide (screen pixels of radius). */
 export const PEACE_NAME_R = 40;
+/** SEA-VAULTS (2026-10-22): the key's row for the day's vaults of the deep - shown while the word carries any. */
+export const CHART_VAULT_KEY = keyRow('vault', () => t('sea.chart.key.vault', 'A vault of the deep, open today'));
+/** SEA-VAULTS: a vault's name is lettered under its mark from this zoom (x4). */
+export const VAULT_NAME_ZOOM = 2;
 /** ETHER-WILD: the peace's name on the chart. */
 export const peaceName = () => t('sea.chart.peace', 'VEILHAVEN\'S PEACE');
 /** AUDIT CAPTAIN'S SEA X18: the wheel's travel a zoom step takes (a trackpad's light brush was a step an event). */
@@ -349,8 +355,12 @@ export function chartModel(word, v, w, h, { measure = null, pick = null } = {}) 
   const haven = veilhaven();
   const [hx, hy] = toScreen(v, haven.px + 0.5, haven.py + 0.5, w, h);
   const peace = word.pvp && on(hx, hy, ETHER_PEACE_PX * k) ? { x: hx, y: hy, r: ETHER_PEACE_PX * k, named: ETHER_PEACE_PX * k >= PEACE_NAME_R } : null;
+  // SEA-VAULTS: THE DAY'S VAULTS OF THE DEEP - marked for every captain whether the isle is charted or not (the mountains'
+  // halls' law), each with its crows and my padlock as the word says; the paper's view for the mountains' painters
+  const vaults = (word.vaults ?? []).map((t) => { const [x, y] = toScreen(v, t.x + 0.5, t.y + 0.5, w, h); return { ...t, sx: x, sy: y, icon: ICON_PX[v.zoom], named: v.zoom >= VAULT_NAME_ZOOM }; }).filter((t) => on(t.sx, t.sy, 24));
+  const paperView = { ox: v.cx - w / (2 * k), oy: v.cy - h / (2 * k), scale: k };
   return {
-    isles, bands, veil: veil <= w ? veil : null, ruler, ship, haunts, depths, edge: [bx0, by0, bx1, by1], grid, scale, peace,
+    isles, bands, veil: veil <= w ? veil : null, ruler, ship, haunts, depths, edge: [bx0, by0, bx1, by1], grid, scale, peace, vaults, paperView,
     pick: card,
     title: chartTitle(),   // the haunts' `r` the square's half side (X13)
     sub: st.legends
@@ -436,9 +446,20 @@ function paintPeace(g, p) {
   g.setLineDash([4, 3]); g.lineWidth = 1.5; g.strokeStyle = PEACE_LINE; g.stroke();
   g.setLineDash([]); g.lineWidth = 1;
 }
+/** SEA-VAULTS: A VAULT'S MARK - an arched door in the halls' oxblood over the ruin's diamond, bone-edged: the mountains'
+ *  hall's door (ui/ink/inkMap.js HALL_INK), so a vault reads as one at a glance. `s` the isle mark's half side. */
+export function paintVault(g, x, y, s) {
+  const hw = s + 2, top = y - s - 4, base = y + s + 2;
+  g.beginPath(); g.moveTo(x - hw, base); g.lineTo(x - hw, top + hw); g.arc(x, top + hw, hw, Math.PI, 0); g.lineTo(x + hw, base); g.closePath();
+  g.fillStyle = HALL_INK; g.fill();
+  g.lineWidth = 1.5; g.strokeStyle = '#f0e2c4'; g.stroke(); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(x - hw * 0.45, base); g.lineTo(x - hw * 0.45, top + hw); g.arc(x, top + hw, hw * 0.45, Math.PI, 0); g.lineTo(x + hw * 0.45, base);
+  g.strokeStyle = 'rgba(240,226,196,0.7)'; g.stroke();
+}
 /** A key's mark, on a canvas of its own, about its middle. */
 export function paintKey(g, what, x, y) {
-  if (what === 'peace') paintPeace(g, { x, y, r: 7 });
+  if (what === 'vault') paintVault(g, x, y, 3);
+  else if (what === 'peace') paintPeace(g, { x, y, r: 7 });
   else if (what === 'ship') paintShip(g, x, y, Math.PI / 4, 0.55);
   else if (what === 'haunt' || what === 'sunk') paintHaunt(g, { x, y, r: 6, sails: what === 'haunt' });
   else paintMark(g, what, x, y, what === 'port' ? 4.5 : 4);
@@ -495,6 +516,11 @@ export function paintChart(g, m, w, h) {
     paintMark(g, i.kind, i.x, i.y, i.icon);
     if (i.home) { g.beginPath(); g.arc(i.x, i.y, i.icon + 3.5, 0, TAU); g.lineWidth = 1.5; g.strokeStyle = KIND_COLOURS.port; g.stroke(); g.lineWidth = 1; }
   }
+  for (const t of m.vaults ?? []) paintVault(g, t.sx, t.sy, t.icon);   // SEA-VAULTS: over the isles' marks, under every word
+  if (m.vaults?.length) {
+    paintWildLocks(g, m.paperView, m.vaults.filter((t) => t.locked), { paperW: w, paperH: h });
+    paintWildCrows(g, m.paperView, m.vaults.filter((t) => t.crows), { paperW: w, paperH: h });
+  }
   if (s.on) paintShip(g, s.x, s.y, s.yaw);
   if (p) {
     g.beginPath(); g.arc(p.x, p.y, p.r + 5, 0, TAU);
@@ -512,6 +538,8 @@ export function paintChart(g, m, w, h) {
     g.font = CHART_FONT.name; g.fillStyle = t.sails ? '#ffab98' : '#c4c4d0'; g.fillText(t.name, Math.round(x), Math.round(y + 6));
     g.font = CHART_FONT.small; g.fillStyle = t.sails ? '#e0a194' : '#9c9cab'; g.fillText(t.sub, Math.round(x), Math.round(y + 20));
   }
+  g.font = CHART_FONT.small;
+  for (const t of m.vaults ?? []) if (t.named) halo(g, capFirst(t.name), t.sx, t.sy + 16, '#f0b4a6', 'center');   // SEA-VAULTS: under its mark
   if (m.peace?.named) { g.font = CHART_FONT.small; halo(g, peaceName(), m.peace.x, m.peace.y - m.peace.r + 12, PEACE_LINE, 'center'); }   // ETHER-WILD: inside its ring's top, clear of Veilhaven's own name at its middle
   g.font = CHART_FONT.name;
   for (const i of m.isles) if (i.label && i.box) halo(g, capFirst(i.name), i.box[0], (i.box[1] + i.box[3]) / 2, i.kind === 'port' ? '#f6e2b0' : '#e2dccf');
@@ -685,6 +713,11 @@ export function mountEtherChartWindow(host, deps) {
   { const c = /** @type {HTMLCanvasElement} */ (el('canvas')); c.width = c.height = Math.round(18 * dpr0); c.style.cssText = 'width:18px;height:18px;flex:0 0 auto'; c.setAttribute('aria-hidden', 'true');
     const kg = c.getContext('2d'); if (kg) { kg.setTransform(dpr0, 0, 0, dpr0, 0, 0); paintKey(kg, CHART_PEACE_KEY[0], 9, 9); }
     peaceItem.append(c, el('span', null, CHART_PEACE_KEY[1])); key.append(peaceItem); }
+  // SEA-VAULTS: the day's vaults of the deep, in the key while the word carries any
+  const vaultItem = el('span');
+  { const c = /** @type {HTMLCanvasElement} */ (el('canvas')); c.width = c.height = Math.round(18 * dpr0); c.style.cssText = 'width:18px;height:18px;flex:0 0 auto'; c.setAttribute('aria-hidden', 'true');
+    const kg = c.getContext('2d'); if (kg) { kg.setTransform(dpr0, 0, 0, dpr0, 0, 0); paintKey(kg, CHART_VAULT_KEY[0], 9, 10); }
+    vaultItem.append(c, el('span', null, CHART_VAULT_KEY[1])); key.append(vaultItem); }
   const scaleItem = el('span', 'dfchart-scale');
   const scaleBarCanvas = /** @type {HTMLCanvasElement} */ (el('canvas'));
   scaleBarCanvas.setAttribute('aria-hidden', 'true');
@@ -748,6 +781,7 @@ export function mountEtherChartWindow(host, deps) {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     model = chartModel(word, view, w, h, { measure, pick });
     peaceItem.hidden = !word.pvp;   // ETHER-WILD
+    vaultItem.hidden = !word.vaults?.length;   // SEA-VAULTS
     h2.textContent = model.title;
     sub.textContent = model.sub;
     zoomOut.disabled = view.zoom === 0;

@@ -919,12 +919,16 @@ I, the Reaches II, the Deep Aether III, the Abyss IV, at `WILD_RING_LOOT` as the
   it fell on, `setWildDeath`'s `kind`). A word the sea does not say its own way is `WILD_TEXT`'s.
 - WHAT THE SEA KEEPS ITS OWN: no pace cap (its leagues are its price; STRANGER-PACE still holds a journey); the rise at
   the nearest freeport, never the Bay's maps' nearest town (`wildRiseSite`'s first line); a hand ashore goes back
-  aboard (her hold the sea's shelter - section 4's open door); no halls, giants or crows. Eltheric-Ocean.md ETHER-WILD
-  names each.
+  aboard (her hold the sea's shelter - section 4's open door); no giants. Eltheric-Ocean.md ETHER-WILD names each.
+- ITS HALLS ARE THE DAY'S VAULTS OF THE DEEP (SEA-VAULTS, 2026-10-22): four ruin isles of the Deep Aether and three of the
+  Abyss a day keep section 13's door - the hub's lock, the way back, the reset and its epoch, the crows - keyed
+  `"e<cx>,<cy>"` (`wdunHall` reads both forms; `wdunRoomKey` the isle place's own room), world241. The open sea keeps no
+  instance, as the mountains keep none (`seaRoomCell`). Eltheric-Ocean.md SEA-VAULTS.
 - NO WIRE, NO DEPLOY: the relay's zone word and the account service's fall read no map. A client from before it never
   says it stands in the zone at sea - section 22's first limit.
 
-Pinned by `test/systems/wild/etherwild.test.js`; `tools/mutants/etherwild.json` (28, all dead).
+Pinned by `test/systems/wild/etherwild.test.js`; `tools/mutants/etherwild.json` (35, all dead). SEA-VAULTS:
+`test/systems/sea/seavaults.test.js`; `tools/mutants/seavaults.json` (49, all dead).
 
 ## Pins
 

@@ -77,6 +77,7 @@ thousand leagues:
 | ETHER-OW | THE OVERWORLD PAST THE VEIL: the chart's Overworld door; an isle's place the view's own (plated, at the edge, TV6's); the governor's ground the stream's; the bands and the raiders seeded on the sea, their chases heard; a raider stood there the sea's own corsair | `ui/etherChartWindow.js` (the door), `scenes/travelView.js` (`TRAVEL_VIEW_BUTTON`), `world/ethericSea.js` (`onBayOrEther`), `world/etherPlaces.js` (`etherPlaceIsle`, `etherPlaceRows`), `scenes/world.js` (`openEtherChart`, `etherPlaceClone`, `tvEtherPlace`, `tvPlaceSummary`, `travelViewFarPlaces`, `tvDungeonRowsAt`, the governor, `bandOk`, `tvRaidOpen`, `tvRaidSea`), `systems/travel/travelBands.js` (`chaserPlaceOk`), `scenes/naval/navalHost.js` (`raiders`) |
 | ETHER-WILD | THE OPEN SEA: past Veilhaven's peace an open PvP zone, its bands the zone's four rings - the fights, the foes and their loot, the packs, the death's drop, the strangers, no teleport; the rise at a freeport; no pace cap; a hand ashore goes back aboard; the crossing's warning; /unstuck to a freeport | `systems/wild/etherWild.js`, `systems/wild/wildZone.js` (the ground on the flag, `registerZoneWords`, `zoneWord`), `scenes/world.js` (`wildFrame`, `wildAtWire`, `wildHidesPlayer`, `wildTeleportRefused`, `wildRiseSite`, `unstuckOutdoors`, `wildBornHere`, the crossing's rows), `scenes/dungeonContext.js` (`_wildRingRaw`), `scenes/grantHost.js` (`wildAbout`), `systems/naval/crewCompanions.js`, `systems/naval/etherCrossing.js`, `ui/hud/statusTips.js` |
 | SEA-SET | THE DEEP'S OWN GEAR: the Eltheric Tidemail, an Aetheric set the Deep Aether and the Abyss alone give up - a legend ended, a vault's pile, a ruin's pile, the fleet's flagship | `systems/sigil/sigilSets.js` (`eltheric`), `systems/sigil/sigilSetPowers.js` (`captainsDue`), `systems/aetheric.js` (`ELTHERIC_SET_PIECES`, `ELTHERIC_CHANCE`, `rollElthericPiece`), `systems/sea/seaSpoils.js`, `scenes/naval/navalHost.js` (`legendTidemail`, `gunsRefit`, `dueOnHull`), `scenes/dungeonContext.js` and `scenes/roomLootHost.js` (the piles), `systems/item/itemLaw.js` (law 10) |
+| SEA-VAULTS | THE VAULTS OF THE DEEP: the Wrothgarian halls on water - the day's four ruin isles of the Deep Aether and three of the Abyss, each an elite hall with its hub lock, crows, reset and epoch; marked on the chart; the open sea keeps no instance | `systems/sea/seaVaults.js`, `scenes/seaVenturesHost.js` (`vaultHere`, `openSeaAt`, `chartWord`, `crowLine`), `net/wire.js` (`seaVaultKey`, `seaVaultCell`, `seaVaultMapId`, `seaRoomCell`, `wdunHall`, `wdunRoomKey`, `WDUN_SEA_RELAY_MIN`), `net/online.js` (`wdunSeaOk`), `server/src/index.js` (`_instanceHello`), `scenes/instanceDoor.js` (`keepsNone`), `scenes/world.js` (`wildHallHere`, `wildDungeonGate`, `wdKey`, the crows' news, the chart's word, the door's `wild`), `ui/etherChartWindow.js` (`paintVault`, `CHART_VAULT_KEY`) |
 | (the ledger) | WHAT A CAPTAIN KEEPS OF IT: the isles charted, the legends ended and heard of, the strands gathered, the way out, the crossings - in the Captain save | `systems/naval/captainLedger.js` (`ether`, `chartIsle`, `endLegend`, `gathered`, `setCrossedFrom`, `crossed`, `hearLegend`), `scenes/etherHost.js` |
 
 THE FOUR HOSTS (Home.md; AUDIT CAPTAIN'S SEA H12 - the slices named none): the sea, its ships, the crossing, the chart
@@ -683,14 +684,16 @@ mountains' own, unchanged. The crossing of a band is said in the sea's words ("D
 - THE HOLD IS KEPT. A boat on the zone's water keeps her hold through a death there (Wild-Zone.md section 4, "Open for
   the owner") - at sea, where most of what a captain carries is in it, the larger share of the shelter. Named, not
   closed: the owner's call (OPEN FOR THE OWNER, below).
-- No halls, no Greater Giants, no crows: an isle's ruin is open every day and stands where its isle does; the
-  mountains' day-spawned halls and their hub's record are the mountains'.
+- No Greater Giants, and no hall spawned: an isle's ruin stands where its isle does and is open every day - but the
+  day's VAULTS of the deep (SEA-VAULTS, below) keep a hall's door, lock and crows, the hub's record keyed by the isle's
+  cell. Every other ruin of the sea is itself.
 - THE CROSSING SAYS SO. Online, the question at the crossing waters says what lies past the peace
   (`etherCrossing.js:"export function crossingRows"`, `pvp`; one sentence in every language, broken into the question's own measure by `questionRows`): "Past Veilhaven's peace the open sea is an open PvP zone.
   Other players may attack you there."
 
 **THE CHART** (ETHER-WILD's own, the owner's "build every single bit of this", 2026-10-22): while the chart's word says
-the open sea fights (`pvp` - online, at a relay that raises the zone: `world.js:"return { ...etherHost.chart(p.x, p.y, heading()), pvp:"`),
+the open sea fights (`pvp` - online, at a relay that raises the zone: `world.js:"return { ...etherHost.chart(p.x, p.y, heading()), ...seaVentures.chartWord() };"`,
+`seaVenturesHost.js:"      pvp: live(),"`),
 Veilhaven's peace is drawn about Veilhaven - a safe harbour's green wash and a dashed ring, `ETHER_PEACE_PX` at the
 chart's scale, under the haunts and the isles as the depths' water is (`chartModel`'s `peace`, `paintPeace`) - named
 VEILHAVEN'S PEACE inside its ring's top once its radius is `PEACE_NAME_R` (40 px - from x4), and keyed beside the marks
@@ -711,13 +714,13 @@ flag as the mountains' buildings do - no player is struck indoors, its foes and 
 fall reads no map: nothing on either moves. A client from before ETHER-WILD never says it stands in the zone at sea, so
 it fights nobody there and drops nothing - INT9's known limit, Wild-Zone.md section 22.
 
-**OPEN FOR THE OWNER** (the suggestions that came with it, none built): broadsides between players' ships and a
-captain's hold as a prize - the relay referees no naval fire yet, so a ship is no target of a player's; whether a
+**OPEN FOR THE OWNER** (the suggestions that came with it, none built in ETHER-WILD): broadsides between players' ships
+and a captain's hold as a prize - the relay referees no naval fire yet, so a ship is no target of a player's; whether a
 captain's hold gives up a share at a death past the peace (the larger shelter at sea, above); a freeport's bounty board
-on the sea's killers; and the Wrothgarian halls' daily elite vaults for the Deep Aether and the Abyss, with their locks
-and crows.
+on the sea's killers. The Wrothgarian halls' daily elite vaults for the Deep Aether and the Abyss, with their locks and
+crows, are SEA-VAULTS (below).
 
-Pinned by `test/systems/wild/etherwild.test.js` (8); `tools/mutants/etherwild.json` (28, all dead).
+Pinned by `test/systems/wild/etherwild.test.js` (8); `tools/mutants/etherwild.json` (35, all dead).
 
 ## SEA-SET - the deep's own gear: the Eltheric Tidemail
 
@@ -740,7 +743,72 @@ gate's, the serpent's and a star's do), so these are the client's rolls; item la
 its make, its affixes, its sigil - and acct168 carries it. Named, not closed: a modified client can roll a piece the sea
 did not give it, as it can roll a Legendary.
 
-Pinned by `test/systems/sea/seaset.test.js`; `tools/mutants/seaset.json` (29, all dead).
+Pinned by `test/systems/sea/seaset.test.js`; `tools/mutants/seaset.json` (30, all dead).
+
+## SEA-VAULTS - the vaults of the deep: the mountains' halls on water
+
+The owner's "implement some of the wrothgarian mountain open pvp aspects into the procedural Islands", and the
+suggestion that came with ETHER-WILD (2026-10-22: "Build ever single bit of this"): the Wrothgarian Mountains' daily
+elite halls (`11-Multiplayer/Wild-Zone.md` PVPDUNGEONS) for the Deep Aether and the Abyss. DFU has no such thing - the
+departure is the mountains' own, read onto the sea.
+
+**THE DAY'S VAULTS** (`systems/sea/seaVaults.js` `seaVaultPicks`): on the relay's day (`WDUN_DAY_MS`, the halls' own -
+every player sees the same), `SEA_VAULTS` - four of the Deep Aether, three of the Abyss. Each slot is the ruin isle of its
+band nearest a point the day's hash draws (`SEA_VAULT_SALT`) in its band's waters - the legends' haunts' corridor,
+`HAUNT_SPREAD` rows either side of Veilhaven's, the Abyss's first `ABYSS_HAUNT_LEAGUES` (`vaultWaters`) - searched ring by
+ring out to `SEA_VAULT_SEARCH_CELLS`, never within `SEA_VAULT_SPACING_CELLS` (six cells, some fifty kilometres) of one
+already chosen; a slot whose draws find none in `SEA_VAULT_TRIES` gives up (never met over the sea's own law). Its ring is
+its band's: III the Deep Aether, IV the Abyss - the High Crags' and the Heart's. Pure: the day in, the vaults out; kept a
+day.
+
+**A VAULT IS A HALL.** Its door is a hall's (`world.js:"return seaVentures.vaultHere() ?? (a && p"`, `wildHallHere` - a
+vault first; `wildDungeonGate` keeps it past the mountains' mask: `world.js:"if (!wildInside(mask, p.x, p.y) && !seaVentures.vaultHere()) return true;"`):
+the hub's hour's lock on whoever leaves it, lifted while their own remains lie inside; the crows over it while a body
+lies there; wiped twenty minutes empty and its chests keyed by the reset's epoch; an elite dungeon whose foes are its
+ring's high tier (`dungeonContext.js:"if (dfLocation?.wildRing > 0) {"`, wildHallFoes over the isle's own place id). The
+hub's record is the mountains' (`net/wild/wildLaw.js` wdun*), keyed `"e<cx>,<cy>"` (`seaVaultKey`; `wdunHall` reads both
+forms), its world room the isle place's own, `dungeon:m<etherPlaceId>` (`wdunRoomKey` - `seaVaultMapId`, the place id's
+law copied for the relay's bundle and held equal by the pins). A death after a load (which runs no gate) names the vault,
+never its pixel (`world.js:"return seaVentures.vaultHere()?.key ??"`). Every other ruin of the sea stays open and itself -
+ETHER-WILD's dungeon of the open zone. Offline there is no hub and no open zone: no vault, every ruin itself.
+
+**THE CHART** marks every vault - an arched door in the halls' oxblood (`ui/ink/inkMap.js` HALL_INK) over its isle,
+charted or not (`paintVault`, over the isles' marks and under every word), named from x4 (`VAULT_NAME_ZOOM`), my padlock
+and its crows through the mountains' own painters (`ui/wild/wildMapInk.js` paintWildLocks, paintWildCrows) on the
+chart's paper (`chartModel`'s `paperView`) - and keys it ("A vault of the deep, open today", `CHART_VAULT_KEY`) while the
+word carries any. The word is the host's (`scenes/seaVenturesHost.js` `chartWord`: each vault, `locked` while my lock
+holds and no remains of mine lie inside, `crows`).
+
+**THE CROWS' NEWS** of a vault is told at sea, named and banded - "Crows gather over Toranth's Vault (The Abyss). Someone
+has fallen there." (`crowLine`; yesterday's vault too, a body outliving the day's turn) - and a hall's in the mountains
+(`world.js:"if (!wildHere() || !!sea !== (wildZoneKind() === ETHER_KIND)) return;"`). The band in parentheses, not
+"in {band}": the band's name carries its article, which a language that declines it cannot fold into a sentence.
+
+**THE SPOILS**: a vault's pile rolls the Tidemail at the vault's share (SEA-SET - `seaSpoils.js:"export const seaPileSource"`,
+the hall's ring the door stamps).
+
+**THE OPEN SEA KEEPS NO INSTANCE.** FOUND BUILDING IT: the instance door's `wild` read the mountains' mask alone, so at
+sea a party was offered a private copy of a ruin past the peace, or of a vault - out of the open sea's fights, and out
+of a vault's lock, crows and reset. Now the page's door counts the open sea as the zone (`world.js:"|| seaVentures.openSeaAt(p); },"`),
+`keepsNone` refuses any isle's dungeon room (`seaRoomCell`, `seaVaultMapId`'s inverse), and the relay refuses an instance
+hello for one to everyone, as it refuses a mountain hall's (`server/src/index.js` `_instanceHello`). The relay cannot
+tell today's vaults from the other ruins without drawing the day's picks, so it refuses them all; no quest sends a
+player to an isle's place.
+
+**THE WIRE** is world241 (`WDUN_SEA_RELAY_MIN`): an older relay closes the socket on a sea key, so the social socket asks
+one of a hub that reads it alone (`online.js:"if (seaVaultCell(w.h) && !this.wdunSeaOk) return false;"`) - at an older
+relay a vault keeps this session's own lock, as a mountain hall does with no hub.
+
+**KNOWN, NAMED.** The hub keys any cell's vault, as it keys any pixel's hall: it does not draw the day's picks, so a
+modified client can lock itself out of, or raise crows over, a ruin no day named - the mountains' halls' own limit. The
+vault's door and its lock are the page's, as the mountains' are.
+
+**THE FOUR HOSTS.** `scenes/world.js` (the door, the death, the crows, the chart) WIRED through
+`scenes/seaVenturesHost.js` (HOST-SPLIT - the host wires, the module holds); `scenes/worldModes.js` (the door's stamp)
+reads the hall as it reads a mountain hall - WIRED unchanged; `scenes/dungeonContext.js` (the foes, the chests, the piles)
+WIRED unchanged; `scenes/exterior.js` (the bench) stands no sea - FLAGGED, as ever.
+
+Pinned by `test/systems/sea/seavaults.test.js` (7); `tools/mutants/seavaults.json` (49, all dead).
 
 ## The ledger's record
 

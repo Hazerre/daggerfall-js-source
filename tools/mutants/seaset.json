@@ -200,7 +200,7 @@
   {
     "name": "SEA-SET-pile-source",
     "file": "src/systems/sea/seaSpoils.js",
-    "old": "export const seaPileSource = (loc) => (loc?.seaVault ? 'vault' : 'ruin');",
+    "old": "export const seaPileSource = (loc) => (loc?.ether && loc.wildRing > 0 ? 'vault' : 'ruin');",
     "new": "export const seaPileSource = (loc) => 'ruin';",
     "tests": [
       "test/systems/sea/seaset.test.js"
@@ -256,6 +256,15 @@
     "file": "src/systems/aetheric.js",
     "old": "Object.hasOwn(ELTHERIC_CHANCE, source) && Object.hasOwn(ELTHERIC_CHANCE[source], band) ?",
     "new": "Object.hasOwn(ELTHERIC_CHANCE, source) ?",
+    "tests": [
+      "test/systems/sea/seaset.test.js"
+    ]
+  },
+  {
+    "name": "SEA-SET-pile-source-any-hall",
+    "file": "src/systems/sea/seaSpoils.js",
+    "old": "(loc?.ether && loc.wildRing > 0 ? 'vault' : 'ruin');",
+    "new": "(loc?.wildRing > 0 ? 'vault' : 'ruin');",
     "tests": [
       "test/systems/sea/seaset.test.js"
     ]

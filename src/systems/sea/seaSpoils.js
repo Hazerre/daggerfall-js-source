@@ -21,8 +21,9 @@ export function seaPlaceBand(loc) {
   return inEther(px, py) ? etherBandAt(px).id : null;
 }
 
-/** The source a place's pile rolls as: a vault of the deep's (SEA-VAULTS: `seaVault` on the place) or a ruin's. */
-export const seaPileSource = (loc) => (loc?.seaVault ? 'vault' : 'ruin');
+/** The source a place's pile rolls as: a vault of the deep's (SEA-VAULTS - an isle's place entered as today's vault wears
+ *  the hall's ring the door stamps, scenes/worldModes.js `wildRing`) or a ruin's. */
+export const seaPileSource = (loc) => (loc?.ether && loc.wildRing > 0 ? 'vault' : 'ruin');
 
 /**
  * THE PILE'S LAST ROLL: a treasure pile of a place of the sea - its band's share of a Tidemail piece, pushed onto the
