@@ -194,7 +194,9 @@ test('STAFF-PANEL5-HIDDEN: THE MARK LAPSES WITH THE SESSION - a sign-out (one se
     const [tabSub] = await s.subsOf('Tabbyvish');
     s.pushed.length = 0;
     assert.equal((await s.staff('/v1/staff/cut', { handle: 'Tabbyvish' }, s.mob.session)).status, 200);
-    assert.deepEqual(await Promise.all(s.pushed.map(verify)), [tabSub], 'the cut member\'s');
+    // the cut member's hide order, beside the cut's own (STAFF-PANEL2-FIX's staffcut, which closes their visible sockets)
+    assert.deepEqual(await Promise.all(s.pushed.map(verify)), [tabSub, undefined], 'the cut member\'s');
+    assert.equal((await verifyOrder(s.pushed[1], s.identityPublic, { subtle, nowS: nowS(), kind: 'staffcut' })).claims?.s, s.raw.prepare('SELECT id FROM players WHERE handle = ?').get('Tabbyvish').id);
     // a Moderator the panel added, then removed
     assert.equal((await s.staff('/v1/staff/mod/add', { handle: 'Sylvia' }, s.mob.session)).status, 200);
     await s.enrol('Sylvia');
