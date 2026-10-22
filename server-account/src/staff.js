@@ -51,6 +51,7 @@ import { staffCases, CASE_ROUTES } from './staffCases.js';
 import { staffDesk, DESK_ROUTES } from './staffDesk.js';   // STAFF-PANEL3-DESK: notes, the watchlist, your settings, and the Admins' notice, scorecard and reported notes
 import { staffPlayers, PLAYER_ROUTES } from './staffPlayers.js';
 import { staffStatus, STATUS_ROUTES } from './staffStatus.js';   // STAFF-PANEL6-STATUS: server status, its limits, Home
+import { staffRealm, REALM_ROUTES } from './staffRealm.js';
 
 /** The header a staff session rides in - never `authorization`, which is the game's. */
 export const STAFF_SESSION_HEADER = 'x-staff-session';
@@ -96,6 +97,12 @@ export const STAFF_STATUS = Object.freeze({
   // STAFF-PANEL3-PLAYERS (staffPlayers.js): a rename refused - not a name the game takes, the name it has, a role or title
   // list's, another account's, or moved under the act - and an account with no handle or no such character
   'rename-bad': 400, 'rename-same': 409, 'rename-listed': 409, 'rename-taken': 409, 'rename-moved': 409, 'no-handle': 409, 'no-character': 404,
+  // STAFF-PANEL3-REALM (staffRealm.js): the review's own words (index.js REVIEW_STATUS), the market's, and the panel's - a
+  // note or a reason not given, a Roll back waiting on a kept removal, a piece not where the panel saw it, a contested
+  // piece whose trail was not checked, a removal not kept (or past its 30 days)
+  'not-developer': 403, 'no-realm-character': 404, 'no-clean': 409, 'service-moved': 409, dead: 409, 'repair-no-faction': 409, 'repair-not-set': 409,
+  seq: 409, 'mend-not-negative': 409, 'mend-moved': 409, 'repair-ticket': 409, 'no-data': 409, 'no-storage': 503, 'market-gone': 409, 'bad-listing': 400,
+  'staff-note': 400, 'staff-reason': 400, 'staff-remove-pending': 409, 'staff-no-piece': 409, 'staff-trail': 409, 'staff-evidence': 404, 'staff-evidence-gone': 409,
 });
 
 const enc = new TextEncoder();
@@ -344,6 +351,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   if (DESK_ROUTES.includes(path)) return staffDesk(ctx, env, path, body, who, audit);   // STAFF-PANEL3-DESK (staffDesk.js): each door checks its role
   if (PLAYER_ROUTES.includes(path)) return staffPlayers(ctx, env, path, body, who, audit);   // STAFF-PANEL3-PLAYERS: search, profile, devices, rename - Admins'
   if (STATUS_ROUTES.includes(path)) return staffStatus(ctx, env, path, body, who, audit);   // STAFF-PANEL6-STATUS (staffStatus.js)
+  if (REALM_ROUTES.includes(path)) return staffRealm(ctx, env, path, body, who, audit);   // STAFF-PANEL3-REALM: trade holds, rollbacks, fixes, gains, removals - Admins'
 
   // ═══ THE ADMINS' DOORS: THE PANEL'S MODERATORS (mob, 07:42Z: "add it so admins can add or remove moderatoers") ═══
   // /v1/staff/mods lists them; /v1/staff/mod/add and /mod/remove { handle } - a registered account, not banned, not staff
