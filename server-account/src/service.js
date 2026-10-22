@@ -550,6 +550,8 @@ export const ROUTES = new Set([
   // STAFF-PANEL3-PLAYERS: the panel's players (staffPlayers.js) - the search, a profile's tabs, its devices, Sign out
   // everywhere, and a rename - Admins' alone
   '/v1/staff/players', '/v1/staff/player', '/v1/staff/player/devices', '/v1/staff/player/signout', '/v1/staff/player/rename',
+  // STAFF-PANEL6-STATUS: the panel's server status, its Admin-set limits, and Home (staffStatus.js)
+  '/v1/staff/status', '/v1/staff/home', '/v1/staff/limits', '/v1/staff/limit/set',
   // PROF1: the professions (professions.js) - a character's tracks, Stores and day, the witnessed pixels, a harvest,
   // a specialisation, a withdrawal to the pack, a region's Court writs and a delivery. Every one behind a session, a
   // registered account's alone, and PROFESSIONS_OPEN's.

@@ -50,6 +50,7 @@ import { isBanned } from './sanctions.js';
 import { staffCases, CASE_ROUTES } from './staffCases.js';
 import { staffDesk, DESK_ROUTES } from './staffDesk.js';   // STAFF-PANEL3-DESK: notes, the watchlist, your settings, and the Admins' notice, scorecard and reported notes
 import { staffPlayers, PLAYER_ROUTES } from './staffPlayers.js';
+import { staffStatus, STATUS_ROUTES } from './staffStatus.js';   // STAFF-PANEL6-STATUS: server status, its limits, Home
 
 /** The header a staff session rides in - never `authorization`, which is the game's. */
 export const STAFF_SESSION_HEADER = 'x-staff-session';
@@ -342,6 +343,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   if (CASE_ROUTES.includes(path)) return staffCases(ctx, env, path, body, who, audit);
   if (DESK_ROUTES.includes(path)) return staffDesk(ctx, env, path, body, who, audit);   // STAFF-PANEL3-DESK (staffDesk.js): each door checks its role
   if (PLAYER_ROUTES.includes(path)) return staffPlayers(ctx, env, path, body, who, audit);   // STAFF-PANEL3-PLAYERS: search, profile, devices, rename - Admins'
+  if (STATUS_ROUTES.includes(path)) return staffStatus(ctx, env, path, body, who, audit);   // STAFF-PANEL6-STATUS (staffStatus.js)
 
   // ═══ THE ADMINS' DOORS: THE PANEL'S MODERATORS (mob, 07:42Z: "add it so admins can add or remove moderatoers") ═══
   // /v1/staff/mods lists them; /v1/staff/mod/add and /mod/remove { handle } - a registered account, not banned, not staff
