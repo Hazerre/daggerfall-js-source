@@ -670,7 +670,7 @@ it is good and to an earner's seat at the fall; `spent {s}` in, to the hub alone
 bucket; the realm's tell to the hub carries its receipts (`rc`, [account, receipt] each) and who stood in the realm
 (`here`).
 
-SD-THROUGH (`world240` - `world239` on its branch, renumbered past FOES-FIRST's at the merge) shipped the record's `inAt` and the realm's door to the hub, `/internal/sd/in` (`{s}` -
+SD-THROUGH (`world241` - `world239`, then `world240`, on its branch, renumbered past FOES-FIRST's and GUILD-CAP's at the merges) shipped the record's `inAt` and the realm's door to the hub, `/internal/sd/in` (`{s}` -
 `validSdInTell`): the realm tells it from its admission, unawaited, until the hub has answered for the slot; the hub
 stamps the record once (`net/superDungeon/sdLaw.js` `sdEnter`) and fans it. An older client projects `inAt` away; an
 older relay never stamps it, and no Way Through stands.
@@ -3391,7 +3391,7 @@ same word, the same refusals, the same veil, the same realm hello. It shows up b
 spot: for those already inside at the moment someone first goes through, and at the way in for those who enter after.
 A departure from nothing in DFU (Daggerfall has no shared world); Ledger A's SUPER-DUNGEONS row covers it.
 
-**The relay** (`world240` - `world239` on its branch, renumbered past FIELD BUGS 2026-10-21c FOES-FIRST's `world239` at the merge; NOT YET DEPLOYED).
+**The relay** (`world241` - `world239`, then `world240`, on its branch, renumbered past FIELD BUGS 2026-10-21c FOES-FIRST's `world239` and GUILD-CAP's `world240` at the merges; NOT YET DEPLOYED).
 
 - The record keeps `inAt` (`net/wire.js` `validSdRecord` - a relay instant, never on an unfound record), and the hub's
   `ev` frame carries it to every client and every hello.
@@ -3436,7 +3436,7 @@ Pins: `test/net/superDungeon/sdthrough_relay.test.js` (4 - the wire and the law,
 Room, the tell retried and stopped, the relay by source) and `test/world/superDungeon/sdthrough_way.test.js` (6 - the
 law, the place over a model hall, the module over a fake renderer, by the Rift, the veil's pivot, the hosts by source);
 `tools/mutants/sdthrough.json` (42, all dead). PIN MOVED: RELAY_VERSION's pin in 42 files, disc7's list of versions and
-soc1.json's version record (world240); `scale2b`'s count of the calls between rooms (28, each on a deadline); `sd4b_rift`'s hosts (the word, the namer, the press), `sd6c_hall`'s press,
+soc1.json's version record (world241); `scale2b`'s count of the calls between rooms (28, each on a deadline); `sd4b_rift`'s hosts (the word, the namer, the press), `sd6c_hall`'s press,
 `sd25_orrery`'s halos and lights, `sd25_look`'s veil aim, `sd26_render`'s and the two lair tests' probe
 (`sdProbeOf`), `sd10b_audit`'s and `sd11c_page`'s `sdRiftOf` scope, `sd11d_words`' and `sd27_audit`'s pins anchored
 on their own lines (the Way Through repeats the Rift's `say` and `look`); `sd26_dungeon.json`, `sd25_orrery.json`,
