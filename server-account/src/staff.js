@@ -48,6 +48,7 @@ import { mintId, mintSecret, hashSecret, displayName, overRate, clearRate, overA
 import { isDeveloper, canModerate, handleList, developerHandles, moderatorHandles, TIER_LISTS, MOD_TIERS } from './titles.js';
 import { isBanned } from './sanctions.js';
 import { staffCases, CASE_ROUTES } from './staffCases.js';
+import { staffEconomy, ECON_ROUTES } from './staffEconomy.js';   // STAFF-PANEL3-ECON: market and trades, node activity, economy
 
 /** The header a staff session rides in - never `authorization`, which is the game's. */
 export const STAFF_SESSION_HEADER = 'x-staff-session';
@@ -333,6 +334,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
 
   // ═══ STAFF-PANEL2: THE REPORTS, Mute, Ban and the claims - Admins and Moderators both (staffCases.js) ═══
   if (CASE_ROUTES.includes(path)) return staffCases(ctx, env, path, body, who, audit);
+  if (ECON_ROUTES.includes(path)) return staffEconomy(ctx, env, path, body, who, audit);   // STAFF-PANEL3-ECON: an Admin's alone
 
   // ═══ THE ADMINS' DOORS: THE PANEL'S MODERATORS (mob, 07:42Z: "add it so admins can add or remove moderatoers") ═══
   // /v1/staff/mods lists them; /v1/staff/mod/add and /mod/remove { handle } - a registered account, not banned, not staff
