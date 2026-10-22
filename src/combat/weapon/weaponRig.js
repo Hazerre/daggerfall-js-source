@@ -37,7 +37,7 @@ import { spriteGlow, meshGlow } from '../../systems/weaponGlow.js';   // WEAPON-
 import { loadThunderlockArt } from '../thunderlockArt.js';
 import { loadPistoletArt } from '../gun/pistoletArt.js';   // PISTOLET: the second gun's strip
 import { createGunPair } from '../gun/gunPair.js';   // PISTOLET: a pair of guns' own state, the module the rig wires (HOST-SPLIT)
-import { createRecoil, GUN_FEEL, PISTOLET_FEEL, gunPitch, muzzleGlow, GUN_TICK_SECONDS, armGunPose } from '../gun/gunFeel.js';   // AUDIT FIELD-GUN-MW F1: the flash's own clock under the arm; MW-GUN-FEEL: the arm's kick and reload
+import { createRecoil, GUN_FEEL, PISTOLET_FEEL, gunPitch, muzzleGlow, GUN_TICK_SECONDS, armGunPose, RELOAD_CLOSE_LEAD } from '../gun/gunFeel.js';   // AUDIT FIELD-GUN-MW F1: the flash's own clock under the arm; MW-GUN-FEEL: the arm's kick and reload
 import { createGunRig, gunRigStep, gunWidgetSettings, gunMotion, gunFrameRect } from '../gun/gunViewmodel.js';   // FIELD-GUN12: the PROTOTYPE's frame, run rather than resembled
 import { readWidgetSettings } from './weaponWidgetMotion.js';   // FIELD-GUN8: the mod's own reader, so the Thunderlock's Inertia rides its multipliers   // FIELD-GUN6: the lab's own feel, in the game at last
 import { betterAmbience } from '../../systems/betterAmbience.js';   // FIELD-GUN6: the ONE camera shaker in the port, already wired through all four hosts
@@ -1122,7 +1122,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
    *  The number is a judgement about where in the pump the mechanism
    *  should sound, and it is the prototype's, which is the only reason
    *  it is this number and not another. */
-  const TL_CLOSE_LEAD = 0.42;
+  const TL_CLOSE_LEAD = RELOAD_CLOSE_LEAD;   // AUDIT PISTOLET B6: the one number (gunFeel.js), the pair's too
   // AUDIT FIELD-GUN-MW F1 (2026-09-21): the flash's own clock under the arm - seconds since the arm's release,
   // -1 while dark. The classic lane reads the glow curve off the machine's frame, which counts from the CLICK;
   // under the arm the shot is the arm's release key, so the curve counts from that instead, on the same tick.
@@ -1197,7 +1197,9 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
     if (entity) entity._thunderlockFlash = playerWeapon.sheathed ? 0 : (armShoots ? flashFromClock(dt) : muzzleGlow(m.state !== 'Idle', m.frame));
     // PISTOLET: and which side of the body it flashes on - a pair's left pistol throws its light from the left hand
     // (systems/thunderlock.js thunderlockMuzzleLight reads it)
-    if (entity) { entity._thunderlockFlashSide = pair && playerWeapon.activeHand === 'L' ? -1 : 1; entity._thunderlockFlashRange = feel.flashRange; }
+    // AUDIT PISTOLET A9 B1 D14: the light thrown from the side the firing gun is DRAWN on - the draw's own flip (a pair's
+    // hand through gunPair.flipOf, a single gun the Handedness setting), so a left-handed player's shot lights its side
+    if (entity) { entity._thunderlockFlashSide = (pair ? gunPair.flipOf(playerWeapon.activeHand, handedFlip()) : handedFlip()) ? -1 : 1; entity._thunderlockFlashRange = feel.flashRange; }
     _tlState = m.state;
     // PISTOLET: a pair reloads hand by hand - each hand's own two clacks (combat/gun/gunPair.js), never the machine's one
     if (pair) {
@@ -1238,7 +1240,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       canvasW: canvas.width, canvasH: canvas.height,
       anchor: art.anchor, union: art.unionBox, rig: hand ? gunPair.hands[hand].rig : _tlRig,
       ...(hand ? { kick: gunPair.kickOf(hand, art.anchor.h, handedFlip()) } : { kick: _tlKick }), flip,
-      ...(art.pose ? { widthPct: art.pose.widthPct, raise: art.pose.raise } : {}),   // PISTOLET: the art's own pose
+      ...(art.pose ? { widthPct: art.pose.widthPct, raise: art.pose.raise, offset: art.pose.offset ?? 0 } : {}),   // PISTOLET: the art's own pose
     });
     // FIELD-GUN17: the frame the muzzle is measured against, kept as
     // it is DRAWN - with the bob, the sway and the kick already in it.

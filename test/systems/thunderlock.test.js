@@ -1165,8 +1165,11 @@ test('FIELD-GUN15: the weapon plays the HEAD of each candidate list, which is wh
   // AND THE CLOSE'S LEAD IS THE LAB'S, not a clip length. The comment
   // in weaponRig.js used to claim it was "the clip's own length"; the
   // clip it was written for is 98ms and the lead is 420.
+  // PIN MOVED (AUDIT PISTOLET B6): the 420 is ONE number now, gunFeel.js RELOAD_CLOSE_LEAD, which the rig and the pistol
+  // pair both read - it was two literals
   const rig = readFileSync('src/combat/weapon/weaponRig.js', 'utf8');
-  assert.match(rig, /const TL_CLOSE_LEAD = 0\.42;/);
+  assert.match(rig, /const TL_CLOSE_LEAD = RELOAD_CLOSE_LEAD;/);
+  assert.match(readFileSync('src/combat/gun/gunFeel.js', 'utf8'), /export const RELOAD_CLOSE_LEAD = 0\.42;/);
   assert.match(proto, /gun\.cooledMs >= Math\.max\(0, state\.cool - 420\)/, 'the prototype’s own 420ms');
   assert.doesNotMatch(rig, /The close lands this long before the weapon is ready - the clip's\n\s+\*\s+own length/,
     'and the sentence that said otherwise is gone');

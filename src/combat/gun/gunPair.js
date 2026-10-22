@@ -17,14 +17,14 @@
 // The machine is the player weapon's one machine; the striking hand plays its frames, the other rests on its idle.
 
 import { createGunRig, gunRigStep, gunMotion } from './gunViewmodel.js';
-import { createRecoil } from './gunFeel.js';
+import { createRecoil, RELOAD_CLOSE_LEAD } from './gunFeel.js';
 import { guardStep, guardOffset, handOnLeft } from '../twoHands/handsLaw.js';
 
 /** The two hands, R then L. */
 export const PAIR_HANDS = Object.freeze(['R', 'L']);
 
-/** The reload's second clack lands this long before the hand is ready (the rig's TL_CLOSE_LEAD - the lab's 420ms). */
-export const PAIR_CLOSE_LEAD = 0.42;
+/** The reload's second clack lands this long before the hand is ready - the single gun's own (gunFeel.js). */
+export const PAIR_CLOSE_LEAD = RELOAD_CLOSE_LEAD;
 
 export function createGunPair() {
   const hand = () => ({ rig: createGunRig(), recoil: createRecoil(), kick: { x: 0, y: 0 }, guard: 0, opened: false, closed: false, drawn: null });

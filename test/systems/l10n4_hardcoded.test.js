@@ -381,7 +381,7 @@ const HARDCODED = {
   'src/systems/gate/gateOmen.js': 10,
   'src/systems/gate/gateSpoils.js': 3,
   'src/systems/gateTier.js': 4,
-  'src/systems/gilded.js': 15,   // GILDED2: the Dragonfire Oath's and the Sunken Sovereign's names, powers, lore and hints - written as the Hourlock's are
+  'src/systems/gilded.js': 16,   // GILDED2: the Dragonfire Oath's and the Sunken Sovereign's names, powers, lore and hints - written as the Hourlock's are   // AUDIT PISTOLET A7 C1 D8: +1, the Sunken Sovereign's saber-era lore - an item's own story, as the records' are
   'src/systems/gravestoneLore.js': 16,
   'src/systems/guild/guilds.js': 3,
   'src/systems/handheldTorches.js': 12,

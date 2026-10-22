@@ -1939,7 +1939,10 @@ export function resolveOffWeaponParts({ weapon, allWeapons, find, skeletonBytes,
   if (!carries) {
     return { parts: [], info: null, notes: [...notes, noBoneNote('offweapon', OFF_WEAPON_BONE, r.weaponInfo?.name ?? main.slot)] };
   }
-  return { parts: [{ slot: 'offweapon', bones: [OFF_WEAPON_BONE], bytes: main.bytes }], info: { ...r.weaponInfo, bone: OFF_WEAPON_BONE }, notes };
+  // AUDIT PISTOLET C6: and the weapon's own attitude on its bone - the Pistolet's grip through the fist
+  // (ownWeaponModels.js PISTOL_GRIP_ATTITUDE); the pair's left hung in the raw mesh frame without it. A weapon with none
+  // (every Morrowind record's) is the part it always was.
+  return { parts: [{ slot: 'offweapon', bones: [OFF_WEAPON_BONE], bytes: main.bytes, ...(main.preTransform ? { preTransform: main.preTransform } : {}) }], info: { ...r.weaponInfo, bone: OFF_WEAPON_BONE }, notes };
 }
 
 export function resolveWeaponParts({ weapon, hasAmmo = false, allWeapons, find, skeletonBytes, has = null }) {

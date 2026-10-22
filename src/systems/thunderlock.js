@@ -41,7 +41,7 @@ import { GUN_FEEL } from '../combat/gun/gunFeel.js';   // FIELD-GUN13: the flash
 // there would close a cycle through systems/item/itemTemplates.js. Said out
 // loud on the leaf itself.
 import {
-  THUNDERLOCK_TEMPLATE, PELLET_TEMPLATE, THUNDERLOCK_ARCHIVE, PELLET_ARCHIVE,
+  THUNDERLOCK_TEMPLATE, PELLET_TEMPLATE, THUNDERLOCK_ARCHIVE, PELLET_ARCHIVE, PISTOLET_TEMPLATE,
   orbColour,   // FIELD-GUN17: the muzzle light wears the orb's own colour, sampled rather than named
 } from '../characters/thunderlockIds.js';
 
@@ -342,7 +342,9 @@ registerUniqueFind({
  *  own case - it is already the hardest hitter, so its signature is
  *  what it does to the user rather than more damage. */
 registerLegendary({
-  id: 'the-last-lock', name: 'The Last Lock', group: WEAPON_GROUP, templates: [THUNDERLOCK_TEMPLATE],
+  // AUDIT PISTOLET C5: both guns - a Pistolet claimed by no exclusive record rolled up every time as Wyrmbane, "Forged
+  // for a dragon hunt" with Fire Storm (824 of 824), exactly what `exclusive` is for
+  id: 'the-last-lock', name: 'The Last Lock', group: WEAPON_GROUP, templates: [THUNDERLOCK_TEMPLATE, PISTOLET_TEMPLATE],
   exclusive: true,   // a gun does not roll up as a blade forged for a dragon hunt
   affixes: [
     { id: 'damage', value: 20 },

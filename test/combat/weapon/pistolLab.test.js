@@ -174,6 +174,7 @@ test('the owner\u2019s numbers, exactly (PISTOL-LAB 2: "Must be these values/sou
       'Bob.Shape': 0, 'Bob.BobWhileIdle': true,
       'Inertia.Scale': 2, 'Inertia.Speed': 2, 'Inertia.ForwardDepth': 0, 'Inertia.ForwardSpeed': 1,
     },
+    light: 0.6,   // AUDIT PISTOLET B5: the muzzle light the lab opened on as a literal, now the feel's own (PISTOLET_FEEL.flashLight)
   });
   // every pick is a clip the lab offers, and the clip ships
   for (const [slot, name] of [['fire', 'sfxFire'], ['reload-open', 'sfxOpen'], ['reload-close', 'sfxClose']]) {

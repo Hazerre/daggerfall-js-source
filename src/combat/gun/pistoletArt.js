@@ -52,7 +52,50 @@ function pixelClass(d, o) {
 }
 
 /**
- * THE PIXELS A GILDED PISTOLET GILDS, on one frame: the pistol's, never the hand's. The leather bracer and its shadows
+ * THE FLASH'S TEXELS on one frame (AUDIT PISTOLET B3): the white-hot core (FLASH_LUMA, flashPoint's own test) - its
+ * largest connected body only, since a lone highlight elsewhere is the metal's - grown through the flame's glow: the
+ * texels at full red (an additive flame burns the red channel out; the brass does not) and bright, that touch it. The
+ * gold leaf never takes them - "the flash and the smoke stay the flash and the smoke" (GILDED1, the Thunderlock's rule).
+ * Answers a 0/1 mask; empty on a frame with no flash.
+ */
+export function flashMask({ width: w, height: h, data }) {
+  const luma = (i) => data[i * 4] * 0.299 + data[i * 4 + 1] * 0.587 + data[i * 4 + 2] * 0.114;
+  const lit = (i) => data[i * 4 + 3] >= 128;
+  const NB = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+  const flood = (seeds, into, ok) => {
+    const st = [...seeds];
+    for (const i of st) into[i] = 1;
+    while (st.length) {
+      const i = st.pop(), x = i % w, y = (i / w) | 0;
+      for (const [dx, dy] of NB) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const j = ny * w + nx;
+        if (!into[j] && lit(j) && ok(j)) { into[j] = 1; st.push(j); }
+      }
+    }
+    return into;
+  };
+  // the core's bodies, the largest kept
+  const hot = (i) => luma(i) >= FLASH_LUMA;
+  const seen = new Uint8Array(w * h);
+  let body = null, size = 0;
+  for (let i = 0; i < w * h; i++) {
+    if (seen[i] || !lit(i) || !hot(i)) continue;
+    const one = flood([i], new Uint8Array(w * h), hot);
+    let n = 0;
+    for (let k = 0; k < w * h; k++) if (one[k]) { seen[k] = 1; n++; }
+    if (n > size) { size = n; body = one; }
+  }
+  const mask = new Uint8Array(w * h);
+  if (!body) return mask;
+  const seeds = [];
+  for (let k = 0; k < w * h; k++) if (body[k]) seeds.push(k);
+  return flood(seeds, mask, (j) => data[j * 4] >= 245 && luma(j) >= 150);
+}
+
+/**
+ * THE PIXELS A GILDED PISTOLET GILDS, on one frame: the pistol's, never the hand's - nor the flash (flashMask). The leather bracer and its shadows
  * and the fingers are brown and skin, which no part of the pistol is drawn in but its own brass shadows - so those stay
  * as they are, which reads as shadow in gold. The grey sleeve shares the steel's greys, so it is told apart by WHERE it
  * is: the grey reached from the frame's bottom-right corner, where the forearm leaves every frame. Answers a 0/1 mask.
@@ -73,10 +116,11 @@ export function pistoletGildKeep({ width: w, height: h, data }) {
       if (!sleeve[j] && cls[j] === 'g') { sleeve[j] = 1; stack.push(j); }
     }
   }
+  const flame = flashMask({ width: w, height: h, data });
   const keep = new Uint8Array(w * h);
   for (let i = 0; i < w * h; i++) {
     const c = cls[i];
-    keep[i] = c === 'O' || c === 'T' || ((c === 'g' || c === '#' || c === '?') && !sleeve[i]) ? 1 : 0;
+    keep[i] = !flame[i] && (c === 'O' || c === 'T' || ((c === 'g' || c === '#' || c === '?') && !sleeve[i])) ? 1 : 0;
   }
   return keep;
 }
@@ -171,6 +215,6 @@ export async function loadPistoletArt(renderer, { fetch: fetchStrip = null, deco
     unionBox: { x: 0, y: 0, w: union.w * scale, h: union.h * scale },
     native: { w: union.w, h: union.h },   // AUDIT PISTOLET B4: the textures' own size - the glow's field is laid in it, not in design pixels
     muzzle,
-    pose: { widthPct: anchorW / 320, raise: PISTOLET_FEEL.raise },
+    pose: { widthPct: anchorW / 320, raise: PISTOLET_FEEL.raise, offset: PISTOLET_FEEL.offset },   // AUDIT PISTOLET B5: the offset too - a tuned one moves the game, not only the lab
   };
 }

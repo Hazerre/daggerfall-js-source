@@ -145,6 +145,10 @@ export const GUN_FEEL = Object.freeze({
  * Thunderlock's 30, so its room shake is 2 to the Thunderlock's 3; a pistol's flash throws a torch's 14 where the
  * rifle's throws 20.
  */
+/** The reload's second clack lands this long before the gun is ready - the lab's 420ms. One number for the single gun's
+ *  voice (combat/weapon/weaponRig.js) and the pair's (combat/gun/gunPair.js) - AUDIT PISTOLET B6: it was two literals. */
+export const RELOAD_CLOSE_LEAD = 0.42;
+
 export const PISTOLET_FEEL = Object.freeze({
   scale: 1.05, raise: -1, offset: 0,
   fps: 12, reloadMs: 1400, hitFrame: 1,

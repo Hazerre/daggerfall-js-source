@@ -81,8 +81,10 @@ export function widgetDefaults() {
  * Everything rides `readWidgetSettings`, the mod's own reader, so
  * every multiplier it applies is applied here too.
  */
-export function gunWidgetSettings(overrides = null, tuning = null) {
-  if (overrides) return readWidgetSettings(() => ({ ...widgetDefaults(), 'Modules.Inertia': true, ...overrides }));
+export function gunWidgetSettings(overrides = null, tuning = null, { preset = true } = {}) {
+  // AUDIT PISTOLET B2: `preset` false - a lab reading its panel as the game lays a weapon's own tuning, past Diverse
+  // Weapons' preset (below), or a profile with the preset on makes the panel's Bob and Inertia sliders do nothing
+  if (overrides) return readWidgetSettings(() => ({ ...widgetDefaults(), 'Modules.Inertia': true, ...overrides }), { preset });
   const s = readWidgetSettings();
   const own = s.inertia ? s : { ...s, inertia: true };
   if (!tuning) return own;

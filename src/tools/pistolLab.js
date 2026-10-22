@@ -68,6 +68,7 @@ export const PISTOL_OPENING = Object.freeze({
   sfxFire: PISTOLET_FEEL.sfx.fire, sfxOpen: PISTOLET_FEEL.sfx.open, sfxClose: PISTOLET_FEEL.sfx.close,
   sfxVol: PISTOLET_FEEL.sfxVolume, sfxVary: PISTOLET_FEEL.sfxVary,
   widget: PISTOLET_FEEL.widget,
+  light: PISTOLET_FEEL.flashLight,   // AUDIT PISTOLET B5: the muzzle light's opening, the feel's own
 });
 
 /** How the trigger is pulled with a pistol in each hand. */

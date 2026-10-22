@@ -168,7 +168,7 @@ const state = {
   bobSpeedMove: W['Bob.SpeedMove'], bobSpeedState: W['Bob.SpeedState'], bobShape: W['Bob.Shape'], bobIdle: W['Bob.BobWhileIdle'],
   modInertia: true, inScale: W['Inertia.Scale'], inSpeed: W['Inertia.Speed'], inFwd: W['Inertia.ForwardDepth'], inFwdSpeed: W['Inertia.ForwardSpeed'],
   walk: false, run: false, crouch: false, spd: 50,
-  alphaCut: O.alphaCut, light: 0.6, room: 0.62, grid: false,
+  alphaCut: O.alphaCut, light: O.light, room: 0.62, grid: false,
 };
 const NUM = {
   scale:1, offset:1, raise:1, fps:1, cool:1, hit:1, kick:1, back:1, stiff:1, damp:1,
@@ -271,6 +271,7 @@ for (const id of [...CONTROLS, 'alphaCut']) {
 for (const id of CONTROLS) bind(id);
 bind('alphaCut', rebuild);
 
+// AUDIT PISTOLET B2: past Diverse Weapons' preset, as the game lays the Pistolet's own tuning (gunWidgetSettings' `preset`)
 const widgetSettings = () => labWidgetSettings({
   'Modules.Offset': state.modOffset, 'Modules.Bob': state.modBob, 'Modules.Inertia': state.modInertia,
   'Offset.Speed': state.offsetSpeed,
@@ -279,7 +280,7 @@ const widgetSettings = () => labWidgetSettings({
   'Bob.Shape': state.bobShape, 'Bob.BobWhileIdle': state.bobIdle,
   'Inertia.Scale': state.inScale, 'Inertia.Speed': state.inSpeed,
   'Inertia.ForwardDepth': state.inFwd, 'Inertia.ForwardSpeed': state.inFwdSpeed,
-});
+}, null, { preset: false });
 
 /** Every shot, whichever door it came through: the hand's own spring,
  *  one punch of the camera's trauma each (a volley is two), the voice. */
