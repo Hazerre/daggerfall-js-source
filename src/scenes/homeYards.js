@@ -15,8 +15,8 @@
 // from there. THE LOT is the box round the building's own models and
 // YARD_MARGIN round it, never inside the house, never on another building's
 // ground - FB1009 HOME-FOOT: a building's ground is what its models' faces
-// cover seen from above (modelFootRects - its roofs, eaves and steps, never a
-// wall), not its box, so the open corner of an L or the forecourt a
+// cover seen from above (modelFootRects - its roofs and steps, never a wall, never an eave past the walls),
+// not its box, so the open corner of an L or the forecourt a
 // Hammerfell house's door opens onto is its yard - and (FB1001 ROAD-LOT) never on the town's
 // road or a path - the pixel's own road tiles: the client measures it (the
 // service has no town to measure in) and the decorator refuses a piece off
@@ -422,17 +422,30 @@ export function yardRoadsOf(p, at, lot) {
   }
   return out;
 }
+/** Two lots meet along a run of ground, not only at a corner and not across a gap. */
+export function yardLotsAdjacent(a, b, gap = 0.05) {
+  if (!a || !b) return false;
+  const ix = Math.min(a[2], b[2]) - Math.max(a[0], b[0]);
+  const iz = Math.min(a[3], b[3]) - Math.max(a[1], b[1]);
+  return ix >= -gap && iz >= -gap && (ix > gap || iz > gap);
+}
 /**
  * FB1001 ROAD-LOT: THE LOT'S EDGE, WHERE A PIECE MAY STAND - the lot's rect with the road taken out of it (`roads`,
  * yardRoadsOf's squares), as its boundary: segments [ax, az, bx, bz] in the lot's frame, each run so the lot lies on its
  * left (the bands' faces turned in, as the four sides always were), joined end to end into loops and a straight run
- * one segment. With no road it is the lot's four sides, south first.
+ * one segment. With no road it is the lot's four sides, south first. `joins` are lots of the same owner whose ground
+ * meets this one: the edge between them is not drawn.
  */
-export function yardLotEdges(lot, roads = []) {
+export function yardLotEdges(lot, roads = [], joins = []) {
   if (!lot) return [];
   const [X0, Z0, X1, Z1] = lot.lot;
   const holes = (roads ?? []).filter((r) => r[0] < X1 && r[2] > X0 && r[1] < Z1 && r[3] > Z0);
-  const cuts = (lo, hi, i, j) => [...new Set([lo, hi, ...holes.flatMap((r) => [r[i], r[j]]).filter((v) => v > lo && v < hi)])].sort((a, b) => a - b);
+  const shared = (joins ?? []).filter((r) => yardLotsAdjacent(lot.lot, r));
+  const cuts = (lo, hi, i, j) => [...new Set([lo, hi, ...[...holes, ...shared].flatMap((r) => [r[i], r[j]]).filter((v) => v > lo && v < hi)])].sort((a, b) => a - b);
+  const internal = (ax, az, bx, bz) => {
+    const mx = (ax + bx) / 2, mz = (az + bz) / 2;
+    return shared.some((r) => mx >= r[0] - 1e-4 && mx <= r[2] + 1e-4 && mz >= r[1] - 1e-4 && mz <= r[3] + 1e-4);
+  };
   const xs = cuts(X0, X1, 0, 2), zs = cuts(Z0, Z1, 1, 3);
   const open = (i, j) => {
     if (i < 0 || j < 0 || i >= xs.length - 1 || j >= zs.length - 1) return false;
@@ -443,13 +456,19 @@ export function yardLotEdges(lot, roads = []) {
   for (let i = 0; i < xs.length; i++) {
     for (let j = 0; j < zs.length - 1; j++) {
       const w = open(i - 1, j), e = open(i, j);
-      if (w !== e) segs.push(e ? [xs[i], zs[j + 1], xs[i], zs[j]] : [xs[i], zs[j], xs[i], zs[j + 1]]);
+      if (w !== e) {
+        const seg = e ? [xs[i], zs[j + 1], xs[i], zs[j]] : [xs[i], zs[j], xs[i], zs[j + 1]];
+        if (!internal(...seg)) segs.push(seg);
+      }
     }
   }
   for (let j = 0; j < zs.length; j++) {
     for (let i = 0; i < xs.length - 1; i++) {
       const s = open(i, j - 1), n = open(i, j);
-      if (s !== n) segs.push(n ? [xs[i], zs[j], xs[i + 1], zs[j]] : [xs[i + 1], zs[j], xs[i], zs[j]]);
+      if (s !== n) {
+        const seg = n ? [xs[i], zs[j], xs[i + 1], zs[j]] : [xs[i + 1], zs[j], xs[i], zs[j]];
+        if (!internal(...seg)) segs.push(seg);
+      }
     }
   }
   // end to end: from the lowest start (south, then west), each next the one that starts where the last ends; a run in
@@ -481,14 +500,14 @@ export const yardHolds = (lot, origin, p, near = 0) => !!lot && Array.isArray(p)
  * shape), standing on the ground, in the world (`origin` the frame's). FB1001 ROAD-LOT: with the road taken out of it
  * (`roads` - yardRoadsOf), the edge runs along the road's side: the band is where a piece may stand up to.
  */
-export function yardLotQuads(lot, origin, high = YARD_MARK_HIGH, roads = []) {
+export function yardLotQuads(lot, origin, high = YARD_MARK_HIGH, roads = [], joins = []) {
   if (!lot) return [];
   const y = origin[1] + lot.y + high / 2;
   const side = ([ax, az, bx, bz]) => {
     const len = Math.hypot(bx - ax, bz - az);
     return { pos: [origin[0] + (ax + bx) / 2, y, origin[2] + (az + bz) / 2], size: high, stretch: len / high, right: [(bx - ax) / len, 0, (bz - az) / len], up: [0, 1, 0] };
   };
-  return yardLotEdges(lot, roads).map(side);
+  return yardLotEdges(lot, roads, joins).map(side);
 }
 
 /**
@@ -707,20 +726,30 @@ export function createHomeYards(deps) {
     }
     if (!best) return null;
     const { y, home } = best;
-    const others = [], lines = [];
+    return { yard: y, ...splitOf(y, home), hall: !!home.hall };   // FB1001 ROAD-LOT: the road under the lot; GUILD-YARD: a hall's
+  }
+  /** The buildings round a yard, read from the homes the service last gave. A neighbour this character also owns, whose
+   *  lot meets this one, is not a line the ground is split on: the ground between the two is this yard's to furnish,
+   *  and a piece stood there is this house's record. Their walls stay forbidden. A road stays a road. */
+  function splitOf(y, home) {
+    const others = [], lines = [], joins = [];
     const p = deps.built?.()?.get?.(`${y.px},${y.py}`);
+    const mine = home?.character ?? null;
     for (const [bk, f] of p?.homeFrames ?? []) {
       if (bk === y.bk) continue;
-      // FB1009 HOME-FOOT: a neighbour's ground is what its faces cover too (its box, where none are known)
-      const ground = f.rects?.length ? f.rects : [[f.box[0], f.box[2], f.box[3], f.box[5]]];
-      const holds = yardLineHolder(f, bk, deps.homes?.homeAt?.(y.mapId, bk) ?? null);   // YARD-LINE: the midline is a lot's holder's alone
+      const ground = f.rects?.length ? f.rects : [[f.box[0], f.box[2], f.box[3], f.box[5]]];   // FB1009 HOME-FOOT
+      const nHome = deps.homes?.homeAt?.(y.mapId, bk) ?? null;
+      const holds = yardLineHolder(f, bk, nHome);   // YARD-LINE: the midline is a lot's holder's alone
+      const nLot = yardLot(y.frame.at, f.box, YARD_MARGIN, f.rects?.length ? f.rects : null);
+      const joined = !!(mine && nHome?.character === mine && homeOutsideKept(home) && homeOutsideKept(nHome) && nLot && yardLotsAdjacent(y.lot.lot, nLot.lot));
       for (const r of ground) {
         const g = [r[0] - y.frame.at[0], r[1] - y.frame.at[2], r[2] - y.frame.at[0], r[3] - y.frame.at[2]];
         others.push(g);
-        if (holds) lines.push(g);
+        if (holds && !joined) lines.push(g);
       }
+      if (joined) joins.push(nLot.lot);
     }
-    return { yard: y, others, lines, roads: yardRoadsOf(p, y.frame.at, y.lot), hall: !!home.hall };   // FB1001 ROAD-LOT: the road under the lot; GUILD-YARD: a hall's
+    return { others, lines, joins, roads: yardRoadsOf(p, y.frame.at, y.lot) };
   }
 
   // THE DECORATOR OUTSIDE: the room's own tool over the yard the owner stands on - its pool the yard's, its writes the
@@ -752,8 +781,6 @@ export function createHomeYards(deps) {
   const collider = {
     raycastHit: (o, d, m, f = null) => deps.collider?.()?.surfaceHit?.(o, d, m, f) ?? deps.collider?.()?.raycastHit?.(o, d, m, f) ?? null,
   };
-  /** AUDIT GUILD-YARD: a hall's yard says the hall's words, never "your house". */
-  const hallWords = (why) => (cur?.hall && why === YARD_IN_HOUSE ? YARD_IN_HALL : why);
   const tool = createDecorTool({
     doc: deps.doc ?? null, win: deps.win ?? null, canvas: deps.canvas ?? null, touch: !!deps.touch, renderer: deps.renderer, pool, names: new Map(),
     // GUILD-YARD: a hall's yard is `hall` - a piece's half goes to the guild's treasury, never the purse (decorTool.js)
@@ -779,8 +806,19 @@ export function createHomeYards(deps) {
     openSlot: (o) => deps.openSlot?.(o), closeSlot: () => {},
     say: (l) => deps.say?.(l), refusal: (w) => deps.refusal?.(w) ?? null, now,
     // HOME-YARD: the lot - a piece off it refused, its edge marked
-    placeOk: (piece, foot) => (cur ? hallWords(yardWhyNot(piece.pos, cur.yard.lot, cur.others, foot, cur.roads, cur.lines)) : YARD_OFF_LOT),   // FB1001 ROAD-LOT: off the road
-    lot: () => (cur ? yardLotQuads(cur.yard.lot, originOf(cur.yard), YARD_MARK_HIGH, cur.roads) : []),   // FB1001 ROAD-LOT: the edge along the road's side
+    placeOk: (piece, foot) => {   // FB1001 ROAD-LOT: off the road. The neighbour list is read now, so a sale moves the line at once.
+      if (!cur) return YARD_OFF_LOT;
+      const home = deps.homes?.homeAt?.(cur.yard.mapId, cur.yard.bk) ?? null;
+      const s = splitOf(cur.yard, home);
+      const why = yardWhyNot(piece.pos, cur.yard.lot, s.others, foot, s.roads, s.lines);
+      return home?.hall && why === YARD_IN_HOUSE ? YARD_IN_HALL : why;
+    },
+    lot: () => {   // FB1001 ROAD-LOT: the edge along the road's side, and not the edge shared with this owner's other house
+      if (!cur) return [];
+      const home = deps.homes?.homeAt?.(cur.yard.mapId, cur.yard.bk) ?? null;
+      const s = splitOf(cur.yard, home);
+      return yardLotQuads(cur.yard.lot, originOf(cur.yard), YARD_MARK_HIGH, s.roads, s.joins);
+    },
     yardCap: DECOR_YARD_CAP,
     // HOME-LOOK: the house's outside, painted from the yard's panel
     look: () => (cur && deps.look ? lookDoor(cur.yard) : null),
