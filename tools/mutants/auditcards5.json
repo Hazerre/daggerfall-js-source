@@ -1379,8 +1379,8 @@
   {
     "name": "AC5-D-C01-shown-and",
     "file": "src/ui/collectionsPage.js",
-    "old": "lootRarityOn() || cardsPartShown(player);",
-    "new": "lootRarityOn() && cardsPartShown(player);",
+    "old": "export const collectionsPageShown = (_player = null) => true;",
+    "new": "export const collectionsPageShown = (_player = null) => false;",
     "tests": [
       "test/systems/auditcards5_ui.test.js",
       "test/systems/item/cards8_binder.test.js",
@@ -1391,8 +1391,8 @@
   {
     "name": "AC5-D-C02-codex-part-always",
     "file": "src/ui/collectionsPage.js",
-    "old": "(id === 'codex' ? lootRarityOn() : cardsPartShown(player))",
-    "new": "(id === 'codex' ? true : cardsPartShown(player))",
+    "old": "(id === 'codex' ? lootRarityOn() : id === 'cards'",
+    "new": "(id === 'codex' ? true : id === 'cards'",
     "tests": [
       "test/systems/auditcards5_ui.test.js",
       "test/systems/item/cards8_binder.test.js",
@@ -1403,20 +1403,8 @@
   {
     "name": "AC5-D-C04-reset-keeps-part",
     "file": "src/ui/collectionsPage.js",
-    "old": "{ _part = 'codex'; _picked = null; resetCardsPart(); }",
-    "new": "{ _picked = null; resetCardsPart(); }",
-    "tests": [
-      "test/systems/auditcards5_ui.test.js",
-      "test/systems/item/cards8_binder.test.js",
-      "test/systems/horse/holdings.test.js",
-      "test/systems/item/packPages.test.js"
-    ]
-  },
-  {
-    "name": "AC5-D-C07-switch-never",
-    "file": "src/ui/collectionsPage.js",
-    "old": "if (parts.length > 1) {",
-    "new": "if (parts.length > 2) {",
+    "old": "{ _part = 'titles'; _picked = null; resetCardsPart(); resetWardrobePart(); }",
+    "new": "{ _picked = null; resetCardsPart(); resetWardrobePart(); }",
     "tests": [
       "test/systems/auditcards5_ui.test.js",
       "test/systems/item/cards8_binder.test.js",
@@ -1703,8 +1691,8 @@
   {
     "name": "AC5-D-E01-no-player",
     "file": "src/ui/enhanced/enhancedMenu.js",
-    "old": "collections: (d) => drawCollectionsPage(d, render, { ...kit, player: playerEntity }),",
-    "new": "collections: (d) => drawCollectionsPage(d, render, { ...kit }),",
+    "old": "collections: (d) => drawCollectionsPage(d, render, { ...kit, player: playerEntity, account: newAccountFlow }),",
+    "new": "collections: (d) => drawCollectionsPage(d, render, { ...kit, account: newAccountFlow }),",
     "tests": [
       "test/systems/auditcards5_ui.test.js",
       "test/systems/item/cards8_binder.test.js",
@@ -3780,8 +3768,8 @@
   {
     "name": "AC5-D-C03-reset-keeps-cards",
     "file": "src/ui/collectionsPage.js",
-    "old": "{ _part = 'codex'; _picked = null; resetCardsPart(); }",
-    "new": "{ _part = 'codex'; _picked = null; }",
+    "old": "{ _part = 'titles'; _picked = null; resetCardsPart(); resetWardrobePart(); }",
+    "new": "{ _part = 'titles'; _picked = null; resetWardrobePart(); }",
     "tests": [
       "test/systems/auditcards5_ui.test.js",
       "test/systems/item/cards8_binder.test.js",
@@ -3792,8 +3780,8 @@
   {
     "name": "AC5-D-C05-reset-keeps-picked",
     "file": "src/ui/collectionsPage.js",
-    "old": "{ _part = 'codex'; _picked = null; resetCardsPart(); }",
-    "new": "{ _part = 'codex'; resetCardsPart(); }",
+    "old": "{ _part = 'titles'; _picked = null; resetCardsPart(); resetWardrobePart(); }",
+    "new": "{ _part = 'titles'; resetCardsPart(); resetWardrobePart(); }",
     "tests": [
       "test/systems/auditcards5_ui.test.js",
       "test/systems/item/cards8_binder.test.js",

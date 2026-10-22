@@ -1090,16 +1090,13 @@ function closeAccount() {
   acctPaint = null;
   render();
 }
+/** COLLECTIONS-II: THE ONE CONSTRUCTION of an account flow (Home.md, THE ONE CONSTRUCTION SEAM) - the account card's,
+ *  and the Collections page's that reads the wardrobe and wears from it (ui/collections/wardrobePart.js). */
+const newAccountFlow = (onChange) => AccountFlow({ io: { fetch: (...a) => globalThis.fetch(...a), base: serviceBase(appStorage()) }, storage: appStorage(), onChange });
 function accountBody() {
   const host = el('div', 'acctmount');
   const fresh = !acctFlow;
-  if (fresh) {
-    acctFlow = AccountFlow({
-      io: { fetch: (...a) => globalThis.fetch(...a), base: serviceBase(appStorage()) },
-      storage: appStorage(),
-      onChange: () => acctPaint?.(),
-    });
-  }
+  if (fresh) acctFlow = newAccountFlow(() => acctPaint?.());
   // PROFILE-MENU: the card's plate wears the corner mark's portrait and says whose face it is - the same character
   // the mark shows (profileCharacter), its face asked for as a COPY (the mark and a save tile may draw this very face)
   const save = profileCharacter();
@@ -4684,7 +4681,7 @@ function pauseHoldings(body) {
     companions: (d) => drawCompanionsPage(d, render, { ...kit, kindName: enemyDisplayName, here: swornBodyOf, stars: typeof hooks.openRevenantStars === 'function' ? hooks.openRevenantStars : null }),   // COMPANION-ROSTER - RVN-STARS: a sworn one's stars, over this window
     revenants: (d) => drawRevenantsPage(d, render, { ...kit, player: playerEntity, kindName: enemyDisplayName }),   // REVENANT-PAGE
     stores: (d) => drawStoresPage(d, render, kit),   // PROF1
-    collections: (d) => drawCollectionsPage(d, render, { ...kit, player: playerEntity }),   // COLLECTIONS: the codex and the cards
+    collections: (d) => drawCollectionsPage(d, render, { ...kit, player: playerEntity, account: newAccountFlow }),   // COLLECTIONS: the codex and the cards - COLLECTIONS-II: and the account's wardrobe, read through its own flow
   }[holdSec];
   draw?.(detail);
   wrap.append(detail);

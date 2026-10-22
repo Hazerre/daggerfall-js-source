@@ -1,0 +1,228 @@
+[
+  {
+    "name": "C2-an-entry-dropped",
+    "file": "src/ui/collections/wardrobeCatalogue.js",
+    "old": "    ilovelamp: E('world', 'open', () => t('coll.how.ilovelamp', 'Speak with a lamp keeper.')),\n",
+    "new": "",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-a-mapped-tier-dormant",
+    "file": "src/ui/collections/wardrobeCatalogue.js",
+    "old": "    disciple: E('patrons', 'patron', patron('disciple'), { with: ['glyph:disciple'] }),",
+    "new": "    disciple: E('patrons', 'dormant', patron('disciple'), { with: ['glyph:disciple'] }),",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-an-aura-not-granted",
+    "file": "src/ui/collections/wardrobeCatalogue.js",
+    "old": "    kynbane: E('spire', 'open', redoubt('kynbane'), { with: ['aura:beaconlight'] }),",
+    "new": "    kynbane: E('spire', 'open', redoubt('kynbane')),",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-the-remnants-odds",
+    "file": "src/ui/collections/wardrobeCatalogue.js",
+    "old": "Object.freeze({ hourbreaker: 4, turninghour: 8 })",
+    "new": "Object.freeze({ hourbreaker: 4, turninghour: 4 })",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-a-redoubt",
+    "file": "src/ui/collections/wardrobeCatalogue.js",
+    "old": "Object.freeze({ spirewalker: 2, beaconlighter: 5,",
+    "new": "Object.freeze({ spirewalker: 3, beaconlighter: 5,",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-the-chapters-said-open",
+    "file": "src/ui/collections/wardrobeCatalogue.js",
+    "old": "    chaptermaster: E('chapters', 'dormant',",
+    "new": "    chaptermaster: E('chapters', 'open',",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-worn-read-off-held",
+    "file": "src/ui/collections/wardrobeCatalogue.js",
+    "old": "  return wardrobe?.[kind] === key;",
+    "new": "  return true;",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-a-hidden-glyph-shown",
+    "file": "src/ui/collections/wardrobeCatalogue.js",
+    "old": "  if (kind === 'glyph') return !(Array.isArray(wardrobe?.glyphsOff) && wardrobe.glyphsOff.includes(key));",
+    "new": "  if (kind === 'glyph') return true;",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-the-via-counted",
+    "file": "src/ui/collections/wardrobeCatalogue.js",
+    "old": "export const wardrobeCounted = (/** @type {{ via?: string }} */ e) => !e.via;",
+    "new": "export const wardrobeCounted = (/** @type {{ via?: string }} */ e) => true;",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-seasonal-never-resolved",
+    "file": "src/ui/collections/wardrobeCatalogue.js",
+    "old": "  return festivalAt(nowMs) ? 'seasonal' : 'offseason';",
+    "new": "  return 'seasonal';",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-retired-obtainable",
+    "file": "src/ui/collections/wardrobeCatalogue.js",
+    "old": "export const AVAIL_NOW = Object.freeze(['open', 'chance', 'ranked', 'seasonal', 'patron']);",
+    "new": "export const AVAIL_NOW = Object.freeze(['open', 'chance', 'ranked', 'seasonal', 'patron', 'retired']);",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-the-read-inside-the-draw",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "  Promise.resolve().then(() => flow?.start?.()).catch(() => {});",
+    "new": "  flow?.start?.();",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-a-forgotten-read-repaints",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "  const flow = kit.account(() => { if (_flow === flow) rerender(); });",
+    "new": "  const flow = kit.account(() => { rerender(); });",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-the-count-without-the-account",
+    "file": "src/ui/collectionsPage.js",
+    "old": "return { held: wardrobe ? n.held : null, total: n.total };",
+    "new": "return { held: n.held, total: n.total };",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-wear-on-a-thing-not-held",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "  const act = held && !e.via ? wearPress(el, e, wardrobe, ctx.flow) : null;",
+    "new": "  const act = !e.via ? wearPress(el, e, wardrobe, ctx.flow) : null;",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-the-wrong-press-for-a-kind",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "{ title: 'equip', aura: 'wearAura', icon: 'wearIcon', glyph: 'toggleGlyph' }",
+    "new": "{ title: 'equip', aura: 'wearIcon', icon: 'wearAura', glyph: 'toggleGlyph' }",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-a-comes-with-stays-put",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "    b.onclick = () => { openWardrobeRow(kind, key); ctx.goTo(kind); ctx.rerender(); };",
+    "new": "    b.onclick = () => { openWardrobeRow(kind, key); ctx.rerender(); };",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-a-state-chip-not-held",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "  if (held) tags.append(",
+    "new": "  if (held || true) tags.append(",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-the-filter-never-applied",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "  const shown = entries.filter((e) => wardrobeFilterPasses(_filter, e, wardrobe, now));",
+    "new": "  const shown = entries;",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-the-reset-keeps-the-filter",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": "export function resetWardrobePart() { _filter = 'all'; _open = null; _flow = null; }",
+    "new": "export function resetWardrobePart() { _open = null; _flow = null; }",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-a-role-dropped",
+    "file": "src/ui/enhanced/enhancedFrame.js",
+    "old": "    '.px-sys .coll-row',   // COLLECTIONS-II",
+    "new": "    // COLLECTIONS-II",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-the-sheets-own-ground",
+    "file": "src/ui/collections/wardrobePart.js",
+    "old": ".px-sys .coll-row { display: grid;",
+    "new": ".px-sys .coll-row { background: #222; display: grid;",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-the-note-names-the-key",
+    "file": "src/ui/accountFlow.js",
+    "old": "{ what: TITLE_TEXT[want] ?? want }",
+    "new": "{ what: want }",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  },
+  {
+    "name": "C2-the-switch-never-drawn",
+    "file": "src/ui/collectionsPage.js",
+    "old": "  detail.append(partTiles(kit, parts, wardrobeOfFlow(flow), rerender));",
+    "new": "",
+    "tests": [
+      "test/ui/collections2.test.js",
+      "test/systems/auditcards5_ui.test.js"
+    ]
+  },
+  {
+    "name": "C2-disarm-keeps-the-read",
+    "file": "src/ui/collectionsPage.js",
+    "old": "export function disarmCollectionsPage() { disarmCardsPart(); forgetWardrobeAccount(); }",
+    "new": "export function disarmCollectionsPage() { disarmCardsPart(); }",
+    "tests": [
+      "test/ui/collections2.test.js"
+    ]
+  }
+]

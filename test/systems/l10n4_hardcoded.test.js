@@ -591,7 +591,7 @@ const HARDCODED = {
   'src/ui/charsheet.js': 16,
   'src/ui/chatPanel.js': 18,
   'src/ui/classicLootPanel.js': 1,
-  'src/ui/collectionsPage.js': 4,
+  'src/ui/collectionsPage.js': 3,   // COLLECTIONS-II: -1, the empty page's line gone with the page's every-player parts
   'src/ui/companionRoster.js': 19,
   'src/ui/credits.js': 86,
   'src/ui/cursor.js': 1,
