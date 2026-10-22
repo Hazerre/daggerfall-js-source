@@ -632,14 +632,16 @@ export function itemLongName(item, opts) {
   // MAT-SHOW: the metal stays off the front of a name the ladder keeps bare — an unidentified drop, an
   // artifact, and a record's own name (Legendary, Aetheric, Gilded). The part still carries it, so the
   // pack's sub-line can say "Dwarven" under "Wyrmbane" in the same dim line a plain sword uses.
-  if (!material || withholdsMaterialPrefix(item) || namesItsMetal(name, material)) return name;
+  if (!material || withholdsMaterialPrefix(item) || namesItsMetal(item, material)) return name;
   return formatText(item?.group === 'Armor'
     ? localizedText('longArmorNameFormatString', '{0} {1}')
     : localizedText('longWeaponNameFormatString', '{0} {1}'), material, name);
 }
-/** AUDIT PISTOLET C9: a name that already says its metal takes no second one - the Dwarven Pistolet and the Dwarven
- *  Thunderlock are minted Dwarven, and the pack read "Dwarven Dwarven Pistolet". */
-const namesItsMetal = (name, material) => String(name).toLowerCase().startsWith(`${String(material).toLowerCase()} `);
+/** AUDIT PISTOLET C9: an item whose OWN name already says its metal takes no second one - the Dwarven Pistolet and the
+ *  Dwarven Thunderlock are minted Dwarven, and the pack read "Dwarven Dwarven Pistolet". PISTOLET-NAMES (2026-10-22): it
+ *  is the template's name asked (as shown, templateText), never the whole one - a Magic's or a Rare's carries it inside
+ *  its prefix and suffix ("Soldier's Dwarven Pistolet"), and asked whole it took the metal again in front. */
+const namesItsMetal = (item, material) => String(templateText(templateByIndex(item?.templateIndex)) ?? '').toLowerCase().startsWith(`${String(material).toLowerCase()} `);
 /** A name that does not take the material as a prefix (ItemHelper.cs:302's early return, plus the ladder's
  *  own names). The metal, when the pack should say it, rides `itemNameParts().material` instead. AUDIT QUESTLINES
  *  REWARD-5: and a questline's named piece (`qlNamed`, systems/questlines/qlRewards.js rollRewardChoice) - its name is its

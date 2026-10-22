@@ -755,10 +755,28 @@
  {
   "name": "NM-metal-twice",
   "file": "src/systems/item/itemInfo.js",
-  "old": "|| namesItsMetal(name, material)) return name;",
+  "old": "|| namesItsMetal(item, material)) return name;",
   "new": ") return name;",
   "tests": [
    "test/systems/pistolet_pins.test.js"
+  ]
+ },
+ {
+  "name": "NM-the-whole-name-asked",
+  "file": "src/systems/item/itemInfo.js",
+  "old": "String(templateText(templateByIndex(item?.templateIndex)) ?? '').toLowerCase().startsWith(",
+  "new": "String(itemNameParts(item).name ?? '').toLowerCase().startsWith(",
+  "tests": [
+   "test/systems/pistolet_pins.test.js"
+  ]
+ },
+ {
+  "name": "WR-pair-wears-the-held-glow",
+  "file": "src/combat/weapon/weaponRig.js",
+  "old": "const elementGlow = hand ? glowOf(playerWeapon.handItem(hand)) : heldGlowNow();",
+  "new": "const elementGlow = heldGlowNow();",
+  "tests": [
+   "test/combat/weapon/pistoletRig.test.js"
   ]
  }
 ]

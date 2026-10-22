@@ -39,17 +39,18 @@ const { _resetModSettings, setModSetting } = await import('../../../src/systems/
 export const DT = 1 / 60;
 const tick = () => new Promise((res) => setTimeout(res, 5));
 
-/** A rig wearing `right`/`left`, Pellets in the pack, drawn. Answers { r, frame, audio, entity, uploads }. */
+/** A rig wearing `right`/`left`, Pellets in the pack, drawn. Answers { r, frame, audio, entity, uploads, glows } - `glows` each
+ *  frame's element outlines (WEAPON-GLOW1's door: the texture it is drawn over and the look). */
 export async function pistolRig({ right = null, left = null, leftHanded = false, warm = 60, widget = {} } = {}) {
   resetToDefaults(); _resetModSettings();
   setModSetting('weapon-widget', 'Enabled', false);
   for (const [k, v] of Object.entries(widget)) setModSetting('weapon-widget', k, v);   // a module switch the test needs still
   if (leftHanded) setValue('Controls', 'Handedness', 1);
-  const quads = [], uploads = [];
+  const quads = [], uploads = [], glows = [];
   const renderer = {
     uploadTexture: (_k, name) => { uploads.push(name); return name; },
     drawScreenQuad: (tex, rect, uv, tint) => quads.push({ tex, rect: { ...rect }, uv, tint }),
-    drawScreenQuadGlow: () => {},
+    drawScreenQuadGlow: (tex, rect, uv, spec) => glows.push({ tex, look: spec?.look ?? null, level: spec?.level ?? null }),
     setScreenOffset: () => {},
     flatLightAt: () => [0.3, 0.3, 0.3],   // a room's flat light (MAC-I), so a flash has a tint to lift - unlit, every quad's tint is null and no flash can be told
   };
@@ -66,11 +67,11 @@ export async function pistolRig({ right = null, left = null, leftHanded = false,
   r.toggleSheath();   // drawn
   const frame = async () => {
     r.attackInput(0, 0, false);
-    quads.length = 0;
+    quads.length = 0; glows.length = 0;
     r.frame(DT); r.draw();
     await tick();
     return quads.slice();
   };
   for (let i = 0; i < warm; i++) await frame();
-  return { r, frame, audio, entity, uploads, canvas };
+  return { r, frame, audio, entity, uploads, canvas, glows };
 }

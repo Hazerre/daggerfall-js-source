@@ -18,7 +18,8 @@ import { readPng } from '../../tools/pngIO.mjs';
 import { OWN_MW_MODELS, OWN_MW_GILDED, PISTOL_GRIP_ATTITUDE, PISTOL_FIST_UP, GUN_GRIP_ATTITUDE } from '../../src/characters/ownModels/ownWeaponModels.js';
 import { resolveWeaponParts, resolveOffWeaponParts, archiveHas } from '../../src/combat/fpArm.js';
 import { PISTOLET_TEMPLATE, THUNDERLOCK_TEMPLATE } from '../../src/characters/thunderlockIds.js';
-import { legendariesFor } from '../../src/systems/loot/lootRarity.js';
+import { legendariesFor, applyRarity } from '../../src/systems/loot/lootRarity.js';
+import { createWeapon } from '../../src/combat/enemyEquipment.js';
 import { itemLongName } from '../../src/systems/item/itemInfo.js';
 import { createThunderlock } from '../../src/systems/thunderlock.js';
 import { SIEGE_PISTOLET, armsTop } from '../../src/net/siege/siegeRef.js';
@@ -128,10 +129,28 @@ test('C5: a Legendary Pistolet is a GUN\'s - The Last Lock claims both guns, and
   assert.deepEqual(legendariesFor(createThunderlock()).map((l) => l.id), ['the-last-lock']);
 });
 
-test('C9: the pack names it "Dwarven Pistolet", never "Dwarven Dwarven Pistolet" - nor the Thunderlock; a dagger keeps its metal (mutant: the metal said twice)', () => {
+test('C9: the pack names it "Dwarven Pistolet", never "Dwarven Dwarven Pistolet" - nor the Thunderlock, nor a Magic or Rare of either ("Warrior\'s Dwarven Pistolet of the Sage", never "Dwarven Warrior\'s Dwarven ..."); a classic weapon keeps its metal in front, plain and Rare (mutants: the metal said twice; the whole name asked)', () => {
   const p = { ...createPistolet(), isIdentified: true }, t = { ...createThunderlock(), isIdentified: true };
   assert.equal(itemLongName(p), 'Dwarven Pistolet');
   assert.equal(itemLongName(t), 'Dwarven Thunderlock');
+  // PISTOLET-NAMES (2026-10-22, the owner: "just to make sure"): a Magic's or a Rare's name carries the template's
+  // inside its prefix and suffix, and the first cut asked whether the WHOLE name began with the metal - so it took the
+  // metal again in front of the prefix
+  const seeded = (seed) => { let s = seed; return () => ((s = (s * 16807) % 2147483647) / 2147483647); };
+  for (const tier of ['magic', 'rare']) {
+    for (let seed = 1; seed <= 12; seed++) {
+      for (const [make, bare] of [[createPistolet, 'Dwarven Pistolet'], [createThunderlock, 'Dwarven Thunderlock']]) {
+        const it = applyRarity(make(), tier, seeded(seed));
+        it.isIdentified = true;
+        const n = itemLongName(it);
+        assert.ok(n.includes(bare) && n.split('Dwarven').length === 2, `a ${tier} names its metal once: "${n}"`);
+      }
+      const sword = applyRarity(createWeapon(119, 1), tier, seeded(seed));
+      sword.isIdentified = true;
+      assert.match(itemLongName(sword), /^Steel /, `a classic ${tier} keeps its metal in front: "${itemLongName(sword)}"`);
+    }
+  }
+  assert.equal(itemLongName({ ...createWeapon(119, 1), isIdentified: true }), 'Steel Saber', 'and a plain one');
 });
 
 test('A10 D32: the siege\'s top for the Pistolet IS its damage\'s top, pinned equal (mutant: the top off by one)', () => {

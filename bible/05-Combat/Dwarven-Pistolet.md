@@ -50,7 +50,17 @@ AUDIT PISTOLET (A5, A8, C2, C3, D6, D29) found the first cut, two finds at `FIND
 - The siege referee's reach and its "a shot is a bow's blow" (`net/siege/siegeRef.js` SIEGE_PISTOLET).
 - The item law's Weapons group (`systems/item/itemLaw.js`), the pseudo-archive registry, the test room (two rows, a
   pair's worth).
-- The icons' install, beside the Thunderlock's (`systems/worldTick.js`).
+- The icons' install, beside the Thunderlock's (`systems/worldTick.js`), and its own picture in every list - the pack,
+  the Enhanced grid, the hotbar, the pickup feed, the loot banner (`registerOwnItemImage`, THUNDERLOCK-ART's door).
+- **The element** (WEAPON-GLOW1, `systems/weaponGlow.js`, checked 2026-10-22 at the owner's "just to make sure"): an
+  element line - rolled as a Magic's or a Rare's proc line, or a socketed gem's (a Pistolet takes two sockets, a
+  one-hander's; the Thunderlock three) - glows its look in the classic hand and on the Morrowind arm, each pistol of a
+  pair its own, and rides the online look for other players; its damage lands on a shot as on a swing (`lootBlow`).
+  `pistoletRig.test.js` pins each pistol's own outline.
+- **Its name** says its metal once (`systems/item/itemInfo.js` itemLongName): the Dwarven Pistolet is minted Dwarven, and
+  a Magic's or a Rare's name read "Dwarven Soldier's Dwarven Pistolet" - AUDIT PISTOLET C9 asked whether the whole name
+  began with the metal, which a prefix hides; it asks the item's own template name now (PISTOLET-NAMES), and the
+  Thunderlock's names with it. `pistolet_pins.test.js` C9.
 
 ## The pictures
 

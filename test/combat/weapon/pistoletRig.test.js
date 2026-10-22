@@ -12,6 +12,8 @@ import { mintGilded, SUNKEN_SOVEREIGN } from '../../../src/systems/gilded.js';
 import { thunderlockMuzzleLight } from '../../../src/systems/thunderlock.js';
 import { PISTOLET_FEEL, GUN_FEEL, createRecoil, armGunPose } from '../../../src/combat/gun/gunFeel.js';
 import { fpArm } from '../../../src/combat/fpArm.js';
+import { applyRarity, addProcLine } from '../../../src/systems/loot/lootRarity.js';
+import { weaponElement } from '../../../src/systems/weaponGlow.js';
 
 const idleOf = (q) => q.filter((x) => /:0$/.test(String(x.tex)));
 const firingOf = (q) => q.find((x) => !/:0$/.test(String(x.tex)));
@@ -112,6 +114,32 @@ for (const leftHanded of [false, true]) {
     }
   });
 }
+
+/** A Rare Pistolet whose proc line is `element` (the roll a minted Rare takes - lootRarity.js rollProcLine), identified. */
+function elementalPistolet(element) {
+  for (let seed = 1; seed < 5000; seed++) {
+    let s = seed; const rolls = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+    const it = applyRarity(createPistolet(), 'rare', rolls);
+    const line = addProcLine(it, rolls);
+    if (line?.id !== 'elemental' || line.param !== element) continue;
+    it.isIdentified = true;
+    if (weaponElement(it, { ladder: true })?.element === element) return it;
+  }
+  throw new Error(`no ${element} Pistolet`);
+}
+
+test('PISTOLET-NAMES (the owner: "These new weapons get the element effects ... etc"): each pistol wears ITS OWN element\'s outline (WEAPON-GLOW1) - one fire gun burns; a pair of fire and frost each its own, a plain one none (mutant: WR-pair-wears-the-held-glow)', async () => {
+  const fire = elementalPistolet('fire'), frost = elementalPistolet('frost');
+  let { frame, glows } = await pistolRig({ right: fire });
+  await frame();
+  assert.deepEqual(glows.map((g) => g.look), ['fire'], 'one fire Pistolet');
+  ({ frame, glows } = await pistolRig({ right: fire, left: frost }));
+  await frame();
+  assert.deepEqual(glows.map((g) => g.look).sort(), ['fire', 'frost'], 'a pair: each its own');
+  ({ frame, glows } = await pistolRig({ right: fire, left: createPistolet() }));
+  await frame();
+  assert.deepEqual(glows.map((g) => g.look), ['fire'], 'and a plain left none');
+});
 
 test('sheathed, the pair slides away rather than vanishing (mutant: the pair popped off)', async () => {
   const { r, frame } = await pistolRig({ right: createPistolet(), left: createPistolet() });
