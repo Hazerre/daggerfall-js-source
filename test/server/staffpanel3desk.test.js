@@ -108,8 +108,9 @@ test('STAFF-PANEL3-DESK: STAFF NOTES - a Moderator adds, every staff member read
   assert.equal((await s.staff('/v1/staff/notes', { name: 'nobody-at-all' }, s.asy.session)).status, 404);
   // the log: the act and its target, never the note's words; the read once a member in ten minutes
   const adds = s.audits('note-add');
-  assert.equal(adds.length, 3);
-  assert.ok(adds.every((a) => a.target === s.troll.id && a.outcome === 'ok' && a.detail === JSON.stringify({ name: 'Troll' })));
+  // STAFF-PANEL3-DESK FIX: a refused note is written down failed, its word and never its words
+  assert.deepEqual(adds.map((a) => a.outcome), ['ok', 'ok', 'failed', 'failed', 'failed', 'failed', 'ok']);
+  assert.ok(adds.every((a) => a.target === s.troll.id && a.detail === JSON.stringify(a.outcome === 'ok' ? { name: 'Troll' } : { name: 'Troll', error: 'note-text' })));
   await s.staff('/v1/staff/notes', { target: s.troll.id }, s.asy.session);
   assert.equal(s.audits('notes-read').length, 1);
   // paged by `before`
@@ -262,7 +263,8 @@ test('STAFF-PANEL3-DESK: YOUR SETTINGS - the member\'s own document, every key t
   assert.deepEqual((await s.staff('/v1/staff/settings', {}, s.asy.session)).body.settings, mine, 'a refused save changes nothing');
   await s.staff('/v1/staff/settings/save', { settings: { look: '8bit' } }, s.asy.session);
   assert.deepEqual((await s.staff('/v1/staff/settings', {}, s.asy.session)).body.settings, { look: '8bit' }, 'a save is the whole document');
-  assert.equal(s.audits('settings-save').length, 1, 'a save a second is one row in ten minutes');
+  // STAFF-PANEL3-DESK FIX: a refused save written down failed - once in ten minutes, as a save is
+  assert.deepEqual(s.audits('settings-save').map((a) => [a.outcome, a.detail]), [['ok', null], ['failed', JSON.stringify({ error: 'settings-bad' })]], 'a save a second is one row in ten minutes');
 });
 
 test('STAFF-PANEL3-DESK: THE SERVER\'S NOTICE - an Admin\'s, on every board for 1 to NOTICE_DAYS_MAX days through the game\'s own postNotice, asked again it is the one it made, and written down', async () => {
@@ -343,6 +345,8 @@ test('STAFF-PANEL3-DESK: REPORTED NOTES AND LISTINGS - an Admin\'s list, a note 
   assert.equal(s.raw.prepare('SELECT COUNT(*) AS n FROM board_notes WHERE id = ?').get('note-two-reports0').n, 0);
   assert.deepEqual(await s.staff('/v1/staff/board/moderate', { id: 'note-two-reports0', act: 'remove' }, s.mob.session), { status: 404, body: { error: 'no-note' } });
   assert.deepEqual(await s.staff('/v1/staff/board/moderate', { id: 'note-one-report-0', act: 'hide' }, s.mob.session), { status: 400, body: { error: 'bad-act' } });
+  // STAFF-PANEL3-DESK FIX: the refused act written down failed
+  assert.deepEqual(s.audits('board-moderate').map((a) => [a.target, a.outcome, JSON.parse(a.detail)]), [[null, 'failed', { id: 'note-one-report-0', error: 'bad-act' }]]);
   assert.deepEqual(s.audits('board-remove').map((a) => [a.target, a.outcome]), [[s.troll.id, 'ok'], [null, 'failed']]);
   assert.deepEqual(s.audits('board-restore').map((a) => [a.target, a.outcome, a.detail]), [[s.troll.id, 'ok', JSON.stringify({ id: 'note-hidden-00000' })]]);
   // the market: open listings and auctions with reports, the most reported first

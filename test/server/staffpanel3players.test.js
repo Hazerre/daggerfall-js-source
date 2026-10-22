@@ -126,14 +126,15 @@ test('STAFF-PANEL3-PLAYERS: THE SEARCH - every account by its handle or a charac
 });
 
 test('STAFF-PANEL3-PLAYERS: WHAT GOES FIRST - each tab\'s badge counts what is open, at its level, and the profile opens on the most urgent (mutants: each level; the order)', () => {
-  const none = { openCase: false, banned: false, muted: false, frozen: false, holds: 0, charLaw: 0, pieceLaw: 0, copies: 0, claims: 0, reported: 0, refusedHeld: 0, budget: 0, measure: 0, findings: 0 };
+  const none = { openCases: 0, banned: false, muted: false, frozen: false, holds: 0, charLaw: 0, pieceLaw: 0, copies: 0, claims: 0, reported: 0, refusedHeld: 0, budget: 0, measure: 0, findings: 0 };
   const b = (f) => profileBadges({ ...none, ...f });
   const quiet = b({});
   assert.equal(quiet.first, 'overview');
   assert.deepEqual(Object.keys(quiet.tabs), PLAYER_TABS);
   for (const t of PLAYER_TABS) assert.deepEqual(quiet.tabs[t], { count: 0, level: 'low', why: [] }, t);
   // each tab's level
-  assert.deepEqual(b({ openCase: true, holds: 2 }).tabs.overview, { count: 3, level: 'high', why: ['an open case', '2 characters held'] });
+  assert.deepEqual(b({ openCases: 1, holds: 2 }).tabs.overview, { count: 3, level: 'high', why: ['1 open case', '2 characters held'] });
+  assert.deepEqual(b({ openCases: 2 }).tabs.overview, { count: 2, level: 'high', why: ['2 open cases'] }, 'a chat case and a spawn case, both counted');
   for (const k of ['banned', 'frozen']) assert.equal(b({ [k]: true }).tabs.overview.level, 'high', k);
   assert.deepEqual(b({ muted: true }).tabs.overview, { count: 1, level: 'medium', why: ['muted'] });
   assert.deepEqual(b({ charLaw: 1 }).tabs.skills, { count: 1, level: 'high', why: ['1 law finding on the character'] });
@@ -280,12 +281,44 @@ test('STAFF-PANEL3-PLAYERS: A PROFILE - the card, the badges from the judge\'s s
 
   // OVERVIEW
   const ov = await tab('overview');
-  assert.deepEqual([ov.account.handle, ov.devices, ov.openCase, ov.characters[0].held], ['Brisk', 1, null, 'law']);
+  assert.deepEqual([ov.account.handle, ov.devices, ov.openCases, ov.characters[0].held], ['Brisk', 1, [], 'law']);
 
   // every view written down once in ten minutes, whatever its pages and filters
   assert.deepEqual(s.audits('player-read').map((a) => [a.target, JSON.parse(a.detail).tab]),
     [[brisk.id, 'inventories'], [brisk.id, 'skills'], [brisk.id, 'equipment'], [brisk.id, 'market'], [brisk.id, 'trades'], [brisk.id, 'economy'], [brisk.id, 'history'], [brisk.id, 'overview']]);
   assert.deepEqual((await s.staff('/v1/staff/player', { name: 'nobody-here' }, s.mob.session)).status, 404);
+});
+
+test('STAFF-PANEL3-PLAYERS FIX: A PROFILE SHOWS EVERY OPEN CASE - a chat case and a spawn case at once, both on Overview by kind, and both in its badge (mutants: the first case only; the order; the badge a boolean)', async () => {
+  const s = await stand();
+  const t = nowS();
+  const kase = (id, kind, source) => s.raw.prepare(`INSERT INTO mod_cases (id, target, source, status, opened_at, updated_at, reports, credible, ai_state, discord_state, kind)
+    VALUES (?, ?, ?, 'open', ?, ?, ?, 0, 'off', 'off', ?)`).run(id, s.brisk.id, source, t - 60, t - 60, source === 'report' ? 1 : 0, kind);
+  kase('case-spawn-000001', 'spawn', 'review');
+  kase('case-chat-0000001', 'chat', 'report');
+  const open = await s.staff('/v1/staff/player', { target: s.brisk.id }, s.mob.session);
+  assert.equal(open.status, 200, JSON.stringify(open.body));
+  assert.deepEqual(open.body.badges.overview, { count: 2, level: 'high', why: ['2 open cases'] });
+  const ov = (await s.staff('/v1/staff/player', { target: s.brisk.id, tab: 'overview' }, s.mob.session)).body.data;
+  assert.deepEqual(ov.openCases.map((c) => [c.id, c.kind, c.reports, c.claimedBy]), [['case-chat-0000001', 'chat', 1, null], ['case-spawn-000001', 'spawn', 0, null]]);
+});
+
+test('STAFF-PANEL3-PLAYERS FIX: THE ECONOMY\'S GAINS PAGE - every gain in the range reached from `from`, answered `next`, never cut (mutants: the page; the cursor)', async () => {
+  const s = await stand();
+  const t = nowS();
+  const ins = s.raw.prepare("INSERT INTO realm_findings (player, char_id, seq, at, law, kind, detail) VALUES (?, ?, 1, ?, 1, 'measure', ?)");
+  const n = PLAYERS_PAGE * 4 + 3;   // past the hundred the tab once cut at
+  for (let i = 0; i < n; i++) ins.run(s.brisk.id, s.brisk.character, t - 60 - i, JSON.stringify({ gain: i }));
+  const seen = [];
+  let from = 0;
+  for (let pages = 0; from !== null && pages < 10; pages++) {
+    const r = await s.staff('/v1/staff/player', { target: s.brisk.id, tab: 'economy', days: 30, ...(from ? { from } : {}) }, s.mob.session);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.ok(r.body.data.gains.length <= PLAYERS_PAGE, 'a page');
+    seen.push(...r.body.data.gains.map((g) => g.detail.gain));
+    from = r.body.data.next;
+  }
+  assert.deepEqual(seen, Array.from({ length: n }, (_, i) => i), 'every gain once, newest first');
 });
 
 test('STAFF-PANEL3-PLAYERS: THE LEDGER\'S WORD - a copy it locked shown on the piece by its key, and a claim counted both ways: one the character made, one made on its piece (mutants: the locked mark; each half of the claims)', async () => {
@@ -338,6 +371,17 @@ test('STAFF-PANEL3-PLAYERS: DEVICES AND SIGN OUT EVERYWHERE - the player\'s own 
   assert.equal(s.raw.prepare('SELECT COUNT(*) AS n FROM sessions WHERE player_id = ?').get(s.sylvia.id).n, 1, 'another account\'s untouched');
   assert.deepEqual(s.audits('devices-read').map((a) => a.target), [s.brisk.id]);
   assert.deepEqual(s.audits('signout-all').map((a) => [a.target, JSON.parse(a.detail).revoked, a.outcome]), [[s.brisk.id, 1, 'ok']]);
+});
+
+test('STAFF-PANEL3-PLAYERS FIX: SIGN OUT EVERYWHERE REFUSES A GUEST - its sessions are its only way in, so it is never locked out for good; the refusal written down (mutant: the guest guard)', async () => {
+  const s = await stand();
+  const g = await s.guest();
+  const sessions = () => s.raw.prepare('SELECT COUNT(*) AS n FROM sessions WHERE player_id = ?').get(g.id).n;
+  assert.equal(sessions(), 1);
+  assert.deepEqual(await s.staff('/v1/staff/player/signout', { target: g.id }, s.mob.session), { status: 409, body: { error: 'no-handle' } });
+  assert.equal(sessions(), 1, 'the guest keeps its way in');
+  const name = s.raw.prepare('SELECT guest_name FROM players WHERE id = ?').get(g.id).guest_name;
+  assert.deepEqual(s.audits('signout-all').map((a) => [a.target, JSON.parse(a.detail), a.outcome]), [[g.id, { name, error: 'no-handle' }, 'failed']]);
 });
 
 test('STAFF-PANEL3-PLAYERS: A HANDLE RENAMED - migration 0134\'s way, the old name and the new written down; never to or from a role or title list\'s name, never another\'s, never one the game refuses (mutants: each refusal; a copy left unwritten)', async () => {
@@ -416,21 +460,56 @@ test('STAFF-PANEL3-PLAYERS: A CHARACTER RENAMED - its row\'s name, the one the m
   assert.equal(s.audits('rename').filter((a) => a.outcome === 'failed').length, refusals.length);
 });
 
-test('STAFF-PANEL3-PLAYERS: the lists a rename refuses are every role and title list, and a handle\'s copies are migration 0134\'s own', () => {
+test('STAFF-PANEL3-PLAYERS: the lists a rename refuses are every role and title list, and a handle\'s copies are migration 0134\'s own, less the columns that hold no handle', () => {
   const listed = listedHandles({ DEVELOPER_HANDLES: 'A1x', HOURS_FIRST_HANDLES: 'Bee, cee', OWNER_KEYS: 'Own1:abc', DISCORD_MODERATORS: '1:Disc1', OTHER: 'Nope', DB: {} });
   assert.deepEqual([...listed].sort(), ['a1x', 'bee', 'cee', 'disc1', 'own1']);
   const sql = readFileSync(new URL('../../server-account/migrations/0134_handle_rename.sql', import.meta.url), 'utf8');
   const copies = [...sql.matchAll(/^UPDATE (\w+) SET (\w+) = 'SanguinePanguine' WHERE lower/gm)].map((m) => [m[1], m[2]]);
-  assert.deepEqual([...NAME_COPIES].map((c) => c.join('.')).sort(), copies.map((c) => c.join('.')).sort());
+  // STAFF-PANEL3-PLAYERS FIX: a character's name (renown_tracks), an account's id (closed_by) and a guild's (fealty, pacts)
+  const NO_HANDLE = ['renown_tracks.name', 'guild_writs.closed_by', 'guild_contracts.closed_by', 'guild_fealty.offered_by', 'guild_fealty.broken_by', 'guild_pacts.offered_by'];
+  assert.deepEqual([...NAME_COPIES].map((c) => c.slice(0, 2).join('.')).sort(), copies.map((c) => c.join('.')).filter((c) => !NO_HANDLE.includes(c)).sort());
 });
 
-test('STAFF-PANEL3-PLAYERS: SERVER LOAD - the trades read and the search by a character\'s name stand on migration 0151\'s indexes, never a scan of the table', async () => {
+test('STAFF-PANEL3-PLAYERS FIX: A HANDLE RENAMED WRITES ITS OWN COPIES ALONE - never another account\'s row that reads like the old handle, a guild\'s hall named like it, or a character\'s renown track (mutants: each scope; the renown track a copy again)', async () => {
+  const s = await stand();
+  const { raw, brisk, sylvia } = s;
+  const t = nowS();
+  const insert = (table, row) => raw.prepare(`INSERT OR REPLACE INTO ${table} (${Object.keys(row).join(', ')}) VALUES (${Object.keys(row).map(() => '?').join(', ')})`).run(...Object.values(row));
+  // a renown track keeps a character's name as the client sends it: Sylvia's named like the handle, and Brisk's own
+  insert('renown_tracks', { player: sylvia.id, char_id: sylvia.character, name: 'brisk', xp: 10, created_at: t, updated_at: t });
+  insert('renown_tracks', { player: brisk.id, char_id: brisk.character, name: 'Brisk', xp: 10, created_at: t, updated_at: t });
+  // Brisk's own home, and the hall he bought for his guild named Brisk (halls.js: a hall's owner_name the guild's name, its
+  // player the buyer)
+  insert('guilds', { id: 'g-brisk', name: 'Brisk', name_key: 'brisk', tag: 'BRK', ranks: '[]', founded_at: t });
+  insert('homes', { map_id: 1, building_key: 1, player: brisk.id, char_id: brisk.character, owner_name: 'Brisk', region: 1, price: 1, bought_at: t });
+  insert('homes', { map_id: 1, building_key: 2, player: brisk.id, char_id: 'guild:g-brisk', owner_name: 'Brisk', region: 1, price: 1, bought_at: t, guild_id: 'g-brisk' });
+  // a Marks line's `who` is a material or a product on some kinds: Sylvia's reads like the handle; Brisk's own names him
+  insert('marks_ledger', { src_kind: 'mint', dst_kind: 'account', dst_id: sylvia.id, kind: 'stock', amount: 1, day: 1, at: t, actor: sylvia.id, who: 'brisk', rid: 'r-sylvia' });
+  insert('marks_ledger', { src_kind: 'mint', dst_kind: 'account', dst_id: brisk.id, kind: 'tribute', amount: 1, day: 1, at: t, actor: brisk.id, who: 'Brisk', rid: 'r-brisk' });
+  // a letter of Sylvia's under a name like it, and Brisk's own
+  insert('letters', { id: 'lt-sylvia', to_id: brisk.id, from_id: sylvia.id, from_name: 'Brisk', subject: 'hi', body: 'hello', sent_at: t });
+  insert('letters', { id: 'lt-brisk', to_id: sylvia.id, from_id: brisk.id, from_name: 'Brisk', subject: 'hi', body: 'hello', sent_at: t });
+  const ok = await s.staff('/v1/staff/player/rename', { target: brisk.id, to: 'Bristle' }, s.mob.session);
+  assert.deepEqual(ok.body, { ok: true, target: brisk.id, from: 'Brisk', to: 'Bristle' });
+  const one = (sql, ...a) => raw.prepare(sql).get(...a);
+  assert.equal(one('SELECT name FROM renown_tracks WHERE player = ?', sylvia.id).name, 'brisk', 'another account\'s character');
+  assert.equal(one('SELECT name FROM renown_tracks WHERE player = ?', brisk.id).name, 'Brisk', 'a character\'s name is the character\'s - the handle is not it');
+  assert.equal(one('SELECT owner_name FROM homes WHERE building_key = 1').owner_name, 'Bristle', 'the account\'s own home');
+  assert.equal(one('SELECT owner_name FROM homes WHERE building_key = 2').owner_name, 'Brisk', 'a guild\'s hall keeps the guild\'s name, though the account bought it');
+  assert.equal(one("SELECT who FROM marks_ledger WHERE rid = 'r-sylvia'").who, 'brisk', 'another account\'s line');
+  assert.equal(one("SELECT who FROM marks_ledger WHERE rid = 'r-brisk'").who, 'Bristle', 'the account\'s own line');
+  assert.equal(one("SELECT from_name FROM letters WHERE id = 'lt-sylvia'").from_name, 'Brisk', 'another sender\'s letter');
+  assert.equal(one("SELECT from_name FROM letters WHERE id = 'lt-brisk'").from_name, 'Bristle', 'the account\'s own letter');
+});
+
+test('STAFF-PANEL3-PLAYERS: SERVER LOAD - the trades read and the search by a character\'s name stand on migration 0151\'s indexes, and "online now" on the play beat\'s, never a scan of the table (mutant: the online filter beside the handle\'s range)', async () => {
   const s = await stand();
   const seen = [];
   const prepare = s.env.DB.prepare.bind(s.env.DB);
   s.env.DB.prepare = (sql) => { seen.push(sql); return prepare(sql); };
   await s.staff('/v1/staff/player', { target: s.brisk.id, tab: 'trades' }, s.mob.session);
   await s.staff('/v1/staff/players', { q: 'thor' }, s.mob.session);
+  await s.staff('/v1/staff/players', { online: true }, s.mob.session);
   await s.staff('/v1/staff/player', { target: s.brisk.id }, s.mob.session);
   s.env.DB.prepare = prepare;
   const plan = (sql) => s.raw.prepare(`EXPLAIN QUERY PLAN ${sql}`).all().map((r) => r.detail).join(' | ');
@@ -444,4 +523,8 @@ test('STAFF-PANEL3-PLAYERS: SERVER LOAD - the trades read and the search by a ch
   const search = plan(seen.find((q) => /realm_characters WHERE name >=/.test(q)));
   assert.match(search, /realm_characters_name/, search);
   assert.doesNotMatch(search, /SCAN realm_characters\b/, search);
+  // STAFF-PANEL3-PLAYERS FIX: "online now" reads by the last play beat's index, never a walk of every handle
+  const online = plan(seen.find((q) => /played_at >=/.test(q)));
+  assert.match(online, /idx_players_played/, online);
+  assert.doesNotMatch(online, /SCAN players\b/, online);
 });

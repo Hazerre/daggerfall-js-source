@@ -418,5 +418,45 @@
     "tests": [
       "test/server/staffpanel3desk.test.js"
     ]
+  },
+  {
+    "name": "STAFF-PANEL3-DESK-FIX-note-text-unaudited",
+    "file": "server-account/src/staffDesk.js",
+    "old": "        await audit('note-add', row.id, { name: displayName(row), error: 'note-text' }, { outcome: 'failed' }).run();\n",
+    "new": "",
+    "why": "a refused note add leaves no row",
+    "tests": [
+      "test/server/staffpanel3desk.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL3-DESK-FIX-settings-bad-unaudited",
+    "file": "server-account/src/staffDesk.js",
+    "old": "      await audit('settings-save', null, { error: s.error }, { outcome: 'failed', onceIn: READ_ROW_S }).run();\n",
+    "new": "",
+    "why": "a refused settings save leaves no row",
+    "tests": [
+      "test/server/staffpanel3desk.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL3-DESK-FIX-settings-bad-every",
+    "file": "server-account/src/staffDesk.js",
+    "old": "{ error: s.error }, { outcome: 'failed', onceIn: READ_ROW_S }",
+    "new": "{ error: s.error }, { outcome: 'failed' }",
+    "why": "a refused save a second is a row a second",
+    "tests": [
+      "test/server/staffpanel3desk.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL3-DESK-FIX-bad-act-unaudited",
+    "file": "server-account/src/staffDesk.js",
+    "old": "      await audit('board-moderate', null, { ...detail, error: 'bad-act' }, { outcome: 'failed' }).run();\n",
+    "new": "",
+    "why": "a refused board act leaves no row",
+    "tests": [
+      "test/server/staffpanel3desk.test.js"
+    ]
   }
 ]
