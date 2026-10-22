@@ -257,8 +257,8 @@
   {
     "name": "AUDIT-SAFE-D3-no-claim",
     "file": "server-account/src/discord.js",
-    "old": "  if (!claimed?.meta?.changes) return redraw(ctx, caseId);\n",
-    "new": "",
+    "old": "  if (!claimed?.meta?.changes) {\n",
+    "new": "  if (false) {\n",
     "tests": [
       "test/server/safe_audit.test.js"
     ]
