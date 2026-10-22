@@ -911,6 +911,7 @@ import { makeVideoQueue } from '../systems/quest/videoQueue.js';   // CRUX1: the
 import { createPartyPanel } from '../ui/partyPanel.js';   // SOC4: the party HUD - my party's portraits and their health / stamina / magicka
 import { MailBox, mailNoticeText } from '../net/mail.js';   // MAIL1: the letterbox the Letters tab draws and the frame polls
 import { PostBox, postNoticeText } from '../net/serverPost.js';   // SERVER-POST: the server's post the pause face's mailbox draws
+import { lostSpoilsMail } from '../net/lostSpoils.js';   // LOST-SPOILS: a boss's floor's leftovers to the mailbox
 import { GuildBook } from '../net/guild/guildBook.js';   // GUILD1b: the guild the Guild tab draws
 import { sellProceeds } from '../systems/tradeModes.js';   // GUILD-LETTER: a withdrawal weighed as the trade window weighs a sale
 import { realmLetterOfCredit } from '../net/realm/realmGoldLaw.js';   // GUILD-LETTER: the letter the service writes on a realm record, one maker
@@ -1207,6 +1208,15 @@ const boatForward = (boat, yaw) => {
   const l = Math.hypot(fx, fz) || 1;
   return [fx / l, 0, fz / l];
 };
+/** EntityEffectManager.AssignBundle for StartWaterwalking's bundle: its one WaterWalkingSilent on the player, for
+ *  DurationBase + DurationPlus x the level over DurationPerLevel rounds (SetDuration). HOST-SPLIT (at the merge of main
+ *  into SEASON-BOOK): out of bootWorld - it reads the player alone, as the module's imports hand it. */
+function csaAssignBundle(spec) {
+  if (spec.effectKey !== WATER_WALKING_SILENT) return;
+  const perLevel = Math.max(1, spec.durationPerLevel | 0);
+  const rounds = spec.durationBase + spec.durationPlus * Math.floor((playerEntity.level ?? 1) / perLevel);
+  assignModBundle(playerEntity, { name: spec.name, kind: WATER_WALKING_SILENT_KIND, rounds, bundleType: spec.bundleType });
+}
 /** OH-E: the abyss's two loot listeners, held so a second world booted in the page replaces them rather than adding to them. */
 let _ohLootOff = null;
 /** AUDIT PARTY-UI2 1: Internal_Strings.csv `cannotTravelIndoors`, the
@@ -8279,14 +8289,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     _csaMapKeys.held.clear();
     hideEnhancedTextLayer(CSA_MAP_TEXT_LAYER);   // AUDIT FONT3 F1: here, not in dispose alone - the interior and dungeon slots close a window without disposing it
     modes?.closeWindow?.(w);
-  }
-  /** EntityEffectManager.AssignBundle for StartWaterwalking's bundle: its one WaterWalkingSilent on the player, for
-   *  DurationBase + DurationPlus x the level over DurationPerLevel rounds (SetDuration). */
-  function csaAssignBundle(spec) {
-    if (spec.effectKey !== WATER_WALKING_SILENT) return;
-    const perLevel = Math.max(1, spec.durationPerLevel | 0);
-    const rounds = spec.durationBase + spec.durationPlus * Math.floor((playerEntity.level ?? 1) / perLevel);
-    assignModBundle(playerEntity, { name: spec.name, kind: WATER_WALKING_SILENT_KIND, rounds, bundleType: spec.bundleType });
   }
   /** OnGUI's two pictures, built at the map's first draw: record 3 rebuilt from the player's TRAV0I00.IMG (the
    *  port never carries it) and lineTexture, TEXTURE.000's solid record 112. */
@@ -21832,7 +21834,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       onPost: (event) => { chatLog.push(tab.id, { text: postNoticeText(event), system: true }); },
       character: () => characterIdOf(playerEntity),
       realm: realmSession && { act: (o) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), ...o }), abandon: (why) => realmSession.abandon(why) },   // offline, none: no claim
-      pack: { add: (rec) => { addItem((playerEntity.items ??= []), setItemFields(rec), 'back'); }, changed: () => { saveSoon.changed(); } },
+      pack: { add: (rec) => { playerEntity.items ??= []; takeGateSpoil({ kind: 'item', item: setItemFields(rec) }); }, changed: () => { saveSoon.changed(); } },   // LOST-SPOILS: a spoil's own door - a first ember from the Lost and Found brings its book
     });
     heartbeat.add('post', whileLive(postBox.heartbeatPart(), () => performance.now() - _mailFrameAt < FRAME_LIVE_MS));
     // GUILD1b: THE CHARACTER'S GUILD, over the account service (GUILD1a's door). Its gold is the save's: the purse first,
@@ -23856,8 +23858,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  AUDIT WBX2 M1: made online or not - it is also the keeper of the crash's records, which a save that lands clears
    *  (AUDIT WBX S3), and the crash's door hands a record back offline too: made online alone, a boot offline gave the same
    *  spoils again at every boot, since no save could ever clear their record. */
+  /** LOST-SPOILS (net/lostSpoils.js): what a boss's floor still holds as I leave goes to the mailbox - the court's and the
+   *  Hour's pools (the Brass Remnant's arena and a breach's Redoubts); its lines in the chat, beside the post's own. */
+  const lostMail = lostSpoilsMail({ box: () => postBox, say: (text) => chatNotice(text) });
   const spoilsPool = createSpoilsPool({
-    renderer, gl: renderer.gl, getTexture, uploadRecordFrame, audio,
+    renderer, gl: renderer.gl, getTexture, uploadRecordFrame, audio, mail: lostMail,
     ray: (from, dir, len) => { const c = modes?.dungeonCtx?.collider; const h = c?.raycastHit ? c.raycastHit(from, dir, len) : { dist: c?.raycast?.(from, dir, len) ?? Infinity, normal: null }; return Number.isFinite(h?.dist) ? h : null; },
     now: () => Date.now() + _sharedOffsetMs,
     take: takeGateSpoil,
@@ -23920,7 +23925,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     sdVoice.frame();
   };
   const sdSpoilsPool = createSpoilsPool({
-    renderer, gl: renderer.gl, getTexture, uploadRecordFrame, audio,
+    renderer, gl: renderer.gl, getTexture, uploadRecordFrame, audio, mail: lostMail,
     ray: (from, dir, len) => { const c = modes?.dungeonCtx?.collider; const h = c?.raycastHit ? c.raycastHit(from, dir, len) : { dist: c?.raycast?.(from, dir, len) ?? Infinity, normal: null }; return Number.isFinite(h?.dist) ? h : null; },   // the Hour's own floors and pillars
     // AUDIT SD II (L6 F14): what the floor still held, gathered as I leave, said in the chat - over the screen it took the
     // place of the way home's line, or the cast-out's, a frame after it was said

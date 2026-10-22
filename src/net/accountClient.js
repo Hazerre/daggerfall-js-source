@@ -261,6 +261,13 @@ const REFUSAL_WORDS = {
   'post-no-item': () => t('account.refusal.postNoItem', 'That message holds no item to claim.'),
   'post-claimed': () => t('account.refusal.postClaimed', 'That item has already been claimed.'),
   'post-unclaimed': () => t('account.refusal.postUnclaimed', 'Claim the item in that message before you throw it away.'),
+  // LOST-SPOILS: the Lost and Found's (server-account/src/lostSpoils.js) - the spoils pool turns each into its own line, but
+  // every word the service can say has a sentence
+  'lost-pieces': () => t('account.refusal.lostPieces', 'The Lost and Found could not take those spoils.'),
+  'lost-item': () => t('account.refusal.lostItem', 'The Lost and Found will not keep a piece no fight could have dropped.'),
+  'lost-no-kill': () => t('account.refusal.lostNoKill', 'The Lost and Found has no word of that fight yet.'),
+  'lost-spent': () => t('account.refusal.lostSpent', 'Those spoils were left too long ago for the Lost and Found to take.'),
+  'lost-full': () => t('account.refusal.lostFull', 'Your mailbox holds too many unclaimed spoils. Claim some first.'),
   // PRIVATE-REPORT, a player's private report to the developers (server-account/src/reports.js, net/reportLaw.js)
   'report-needs-account': () => t('account.refusal.reportNeedsAccount', 'Private reports need a username and a password, so the developers can follow up with you. Give this account one, then send it.'),
   'report-kind': () => t('account.refusal.reportKind', 'Choose what kind of problem this is.'),
