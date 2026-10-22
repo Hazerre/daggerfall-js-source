@@ -48,6 +48,7 @@ import { mintId, mintSecret, hashSecret, displayName, overRate, clearRate, overA
 import { isDeveloper, canModerate, handleList, developerHandles, moderatorHandles, TIER_LISTS, MOD_TIERS } from './titles.js';
 import { isBanned } from './sanctions.js';
 import { staffCases, CASE_ROUTES } from './staffCases.js';
+import { staffPlayers, PLAYER_ROUTES } from './staffPlayers.js';
 
 /** The header a staff session rides in - never `authorization`, which is the game's. */
 export const STAFF_SESSION_HEADER = 'x-staff-session';
@@ -88,6 +89,9 @@ export const STAFF_STATUS = Object.freeze({
   // STAFF-PANEL2 (staffCases.js): a case another member holds, a Moderator's second case, and the game's own moderation words
   'staff-claimed': 409, 'staff-one-case': 409, 'no-case': 404, 'not-moderator': 403, protected: 403, ambiguous: 409, 'bad-minutes': 400,
   'bad-days': 400, 'not-banned': 409, 'not-found': 404,
+  // STAFF-PANEL3-PLAYERS (staffPlayers.js): a rename refused - not a name the game takes, the name it has, a role or title
+  // list's, another account's, or moved under the act - and an account with no handle or no such character
+  'rename-bad': 400, 'rename-same': 409, 'rename-listed': 409, 'rename-taken': 409, 'rename-moved': 409, 'no-handle': 409, 'no-character': 404,
 });
 
 const enc = new TextEncoder();
@@ -333,6 +337,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
 
   // ═══ STAFF-PANEL2: THE REPORTS, Mute, Ban and the claims - Admins and Moderators both (staffCases.js) ═══
   if (CASE_ROUTES.includes(path)) return staffCases(ctx, env, path, body, who, audit);
+  if (PLAYER_ROUTES.includes(path)) return staffPlayers(ctx, env, path, body, who, audit);   // STAFF-PANEL3-PLAYERS: search, profile, devices, rename - Admins'
 
   // ═══ THE ADMINS' DOORS: THE PANEL'S MODERATORS (mob, 07:42Z: "add it so admins can add or remove moderatoers") ═══
   // /v1/staff/mods lists them; /v1/staff/mod/add and /mod/remove { handle } - a registered account, not banned, not staff
