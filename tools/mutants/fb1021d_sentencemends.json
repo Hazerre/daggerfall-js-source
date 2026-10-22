@@ -157,7 +157,8 @@
     "tests": [
       "test/systems/fb1021d_sentencemends.test.js"
     ],
-    "why": "the prison's mend blind to the grace"
+    "why": "kept as sentenceMends' one contract (both arms hand it the own clock): the prison arm reads it after advanceDays has served at least a day, and every grace that can stand then was granted before the arrest (a release, a fine, a pardon) and runs CHALLENGE_GRACE_MINUTES, one day - so no prison arm ends inside one and nothing can tell it. fb1021d_sentencemends pins the day against the grace, so the record goes stale the day a grace outlasts a sentence; the zero-day arm's read is the live one, pinned there",
+    "equivalent": true
   },
   {
     "name": "CURFEW-REFUND-every-charge-doubled",

@@ -22,8 +22,9 @@ import { BOAT_ACTIONS } from '../../../src/systems/comeSailAway/comeSailAway.js'
 import { seaHelmStep, createSeaHelm, headingOf, squareOnly } from '../../../src/systems/seaHelm.js';
 import { quatRotate } from '../../../src/world/quat.js';
 import { HELM_RUDDER_ACTIONS } from '../../../src/systems/inputActions.js';
-import { createJourneyHand, passengerHelm, passengerCard, PASSENGER_KEYS } from '../../../src/scenes/naval/passageHelm.js';
-import { passengerButtons, helmPadPrompts } from '../../../src/ui/enhanced/enhancedHelm.js';
+import { createJourneyHand, passengerHelm, passengerCard, mastersHelm, PASSENGER_KEYS } from '../../../src/scenes/naval/passageHelm.js';
+import { passengerButtons, helmPadPrompts, drawEnhancedHelm, hideEnhancedHelm } from '../../../src/ui/enhanced/enhancedHelm.js';
+import { fakeDoc, all, one } from '../../decorFakes.mjs';
 import { voyageSails, passageDestinations } from '../../../src/systems/naval/passage.js';
 import { seaLegMark, PIXEL_TILES, SEA_LEG_UNBUILT, SEA_LEG_DRY } from '../../../src/systems/travel/seaMark.js';
 import { routeLegs, planRoute, routeGround, VOYAGE_LANDFALL_PX } from '../../../src/systems/travel/travelRoute.js';
@@ -98,13 +99,16 @@ function voyage({ booked = true, seconds = 160, viewUp = true, autorun = false, 
   return { s, boat, track, sailsUp, rowed, latch: player.toggleAutorun, at: s.rt.state.CurrentBoat === boat && s.rt.isSailing(), end: [...boat.GameObject.position] };
 }
 
-test('PASSAGE-HANDS: the report - a passenger holding D (the strafe key the Overworld leaves them) under a booked ship\'s master - she sails her master\'s course exactly, raises her sails at his word; a boat of mine turns for the same key (mutants: the passenger\'s keys read, the journey\'s taps unread, the wrapper unwired)', () => {
+test('PASSAGE-HANDS: the report - a passenger holding D (the strafe key the Overworld leaves them) under a booked ship\'s master - she sails her master\'s course exactly, raises her sails at his word; a boat of mine turns for the same key (mutants: the passenger\'s keys read, the journey\'s taps unread, the wrapper unwired, the passenger\'s autorun read)', () => {
   const alone = voyage();
   assert.equal(alone.sailsUp, true, 'her master raises her sails - his own tap reaches the mod through the seam');
   const hand = voyage({ play: (t, keys) => { if (t >= 40 && t < 70) keys.add('MoveRight'); } });
   assert.deepEqual(hand.end.map((v) => v.toFixed(3)), alone.end.map((v) => v.toFixed(3)), 'the passenger\'s D moved her not at all');
   const rowing = voyage({ autorun: true });
   assert.deepEqual(rowing.end.map((v) => v.toFixed(3)), alone.end.map((v) => v.toFixed(3)), 'nor their autorun - her oars pull at her master\'s word');
+  // AUDIT FB1021d PS-4: and let go as it is read - under way, never latched to pull her oars the moment her master ships
+  // them with her sails down (with her sails up her oars move her not at all, so the track alone cannot tell)
+  assert.deepEqual([rowing.at, rowing.latch], [true, false], 'under way at her helm, the passenger\'s autorun let go');
   // AUDIT FB1021d PS-2: the voyage halted (a foe near, aground, between his tries: his hand off her helm) - she is the
   // passenger's to handle, as a boat of mine is: their autorun pulls her oars, their D swings her
   const halted = voyage({ master: false, seconds: 40 }), haltedRow = voyage({ master: false, seconds: 40, autorun: true });
@@ -168,6 +172,17 @@ test('PASSAGE-HANDS: the helm panel at a booked ship\'s helm under way is a pass
   assert.deepEqual([drawn.at(-1).helm, drawn.at(-1).aboard], [null, { hull: 1, passage: { ship: 'The Fair Silk', port: 'Wayrest' }, dial: { timeDial: true, timeScale: 2, timeScaleIndex: 1, timeScaleMax: 3 } }], 'a passenger\'s card, the helm\'s dial on it');
   assert.deepEqual(passengerButtons(drawn.at(-1).aboard).map((b) => b.act), ['slower', 'normal', 'faster', 'leave'], 'what a passenger keeps, on the card: the dial and Leave');
   assert.deepEqual(passengerButtons({ dial: { timeDial: false } }).map((b) => b.act), ['leave'], 'online the dial does not turn (HELM-TIME-ONLINE): Leave alone');
+  // and the panel paints the card - its title, and the buttons a mouse or a finger keeps
+  const doc = fakeDoc(), pressed = [];
+  try {
+    const root = drawEnhancedHelm(drawn.at(-1), { press: (a) => pressed.push(a) }, { doc });
+    assert.equal(one(root, 'helmpanel-name').textContent, 'The Fair Silk, bound for Wayrest - her master steers', 'its title says where she is bound');
+    const btns = all(root, 'helmpanel-btn');
+    assert.deepEqual(btns.map((b) => b.dataset.act), ['slower', 'normal', 'faster', 'leave'], 'painted: the dial and Leave');
+    btns.find((b) => b.dataset.act === 'leave').fire('click');
+    btns.find((b) => b.dataset.act === 'faster').fire('click');
+    assert.deepEqual(pressed, [BOAT_ACTIONS.disembark, BOAT_ACTIONS.timeScaleUp], 'Leave steps them off; the dial turns');
+  } finally { hideEnhancedHelm(); }
   scope.csaJourneyHelm.live = false;
   draw();
   assert.equal(drawn.at(-1).helm?.hull, 1, 'the voyage halted: her helm is the passenger\'s, panel and all');
@@ -176,8 +191,28 @@ test('PASSAGE-HANDS: the helm panel at a booked ship\'s helm under way is a pass
   draw();
   assert.equal(drawn.at(-1).helm.hull, 1, 'my own: her helm');
   assert.equal(drawn.at(-1).aboard, null);
-  const helm = readFileSync(join(ROOT, 'src/ui/enhanced/enhancedHelm.js'), 'utf8');
-  assert.match(helm, /: aboard\.passage \? passengerTitle\(aboard\.passage\) :/, 'its title says where she is bound');
+});
+
+test('PASSAGE-HANDS (AUDIT FB1021d PS-2): the crossing\'s own frame marks the journey\'s hand on her helm - on while the Overworld\'s autopilot sails her, off the frame it stops (arrived, a foe near closing the controls, the autopilot let go) - and the passenger\'s keys reach her helm only once it is off (mutants: the hand never marked on, never marked off)', () => {
+  const boat = { charter: { to: { name: 'Wayrest', px: 859, py: 244 }, ship: 'The Fair Silk' } };
+  const csaJourneyHelm = createJourneyHand();
+  const env = {
+    travelOptions: { route: { i: 0, legs: [{ kind: 'sea' }] }, state: { autopilot: {} } }, travelControlUI: { isShowing: true },
+    tvSea: { means: { how: 'helm' }, phase: null, boat: null, wasLive: false, legAt: 0, best: Infinity, bestS: 0, probeAt: 0 },
+    csaRuntime: { isSailing: () => true, state: { CurrentBoat: boat, sailPosition: 1 } }, travelView: { active: true },
+    SEA_KINDS: ['sea', 'embark', 'landfall'], TV_SEA_PROBE_S: 1, CSA_BOAT_ACTIONS: BOAT_ACTIONS, csaJourneyHelm,
+    tvSeaRelease: () => {}, tvSeaLaunch: () => {}, tvSeaLand: () => {}, tvSeaSail: () => {}, tvSeaAshore: () => {},
+  };
+  const frame = mount(env, fn('  function tvSeaFrame(dt) {'), 'tvSeaFrame');
+  const input = passengerHelm({ has: (a) => a === 'MoveRight', started: (a) => a === 'MoveRight', horizontal: () => 1, vertical: () => 0, toggleAutorun: false }, () => boat, csaJourneyHelm);
+  frame(1 / 60);
+  assert.equal(mastersHelm(boat, csaJourneyHelm), true, 'the journey live: her master\'s hand on her helm');
+  assert.deepEqual([input.has('MoveRight'), input.started('MoveRight'), input.horizontal()], [false, false, 0], 'the passenger\'s D reaches her not');
+  env.travelOptions.state.autopilot = null;   // the journey stopped
+  frame(1 / 60);
+  assert.equal(mastersHelm(boat, csaJourneyHelm), false, 'stopped: his hand off');
+  assert.deepEqual([input.has('MoveRight'), input.started('MoveRight'), input.horizontal()], [true, true, 1], 'the passenger\'s D swings her');
+  assert.ok(csaJourneyHelm.edges.has(BOAT_ACTIONS.toggleSail), 'and her sails struck as the journey lets her go');
 });
 
 test('PASSAGE-HANDS (AUDIT FB1021d PS-7): a passenger\'s pad prompts at her helm under way say what reaches it from them - leaving it, held, and the dial where it turns - never her sails, lanterns or trim; the host asks them so (mutants: a passenger told the helm\'s, the host unasked)', () => {
@@ -205,7 +240,7 @@ test('PASSAGE-IN: her master\'s resume from her port\'s roadstead runs in - a pl
   assert.match(WORLD, /if \(voyage && !voyageSails\(from, summary\.pixel, plan\)\) \{ noWay\?\.\(\); return false; \}/);
 });
 
-test('PASSAGE-IN: a pixel reached or left under sail is walked round no town - a ring\'s points stand on the town\'s land; on foot the ring stands, and on the land a party embarks from or makes landfall on (AUDIT FB1021d PS-3) (mutants: the rings back on the sea; every sea kind afloat; either half of the reading alone)', () => {
+test('PASSAGE-IN: a pixel reached or left under sail is walked round no town - a ring\'s points stand on the town\'s land; on foot the ring stands, and on the land a party embarks from or makes landfall on (AUDIT FB1021d PS-3) (mutants: the rings back on the sea; every sea kind afloat; the landfall\'s land afloat; the launch\'s water ashore)', () => {
   const pixels = [{ x: 10, y: 10 }, { x: 11, y: 10 }, { x: 12, y: 10 }, { x: 13, y: 10 }];
   const ringAt = (x) => (x === 11 || x === 12 ? [{ x: x * 32768, z: 0 }, { x: x * 32768 + 100, z: 0 }] : null);
   const sea = routeLegs(pixels, ['sea', 'sea', 'landfall'], { ringAt });

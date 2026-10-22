@@ -273,8 +273,8 @@ THE LAW NOW.
   filtered out.
   (b) `passage.js:"export function voyageSails(from, to, plan) {"`: a voyage's plan may be walked when it sails, or when she
   already lies within VOYAGE_LANDFALL_PX of her port - no quay left is that near a port booked (`passageDestinations`).
-  (c) A pixel reached or left under sail is walked round no town (`travelRoute.js:"const afloat = (i) =>"`) - the land a
-  party embarks from or makes landfall on keeps its ring (AUDIT FB1021d PS-3).
+  (c) A pixel reached under sail or by embarking is walked round no town (`travelRoute.js:"const afloat = (i) =>"`) - the
+  land a party embarks from or makes landfall on keeps its ring (AUDIT FB1021d PS-3).
 - PASSAGE-PLATE: the plate stands down under the Overworld's controls, which stand where it does, bottom right, as the
   helm panel does (`world.js:"!!travelView?.active;   // PASSAGE-PLATE: the Overworld's"`), and stands again when the
   journey ends or stops - a foe near closes them (`travelOptions.js` enemiesStop), so it is up for any fight. Not under
@@ -384,7 +384,8 @@ the water by the ground's height; the measure here is the tile map's.) PS-2, TAK
 off - a foe near, aground, between his tries - nobody steered her: dead in the water through a sea fight, aground again
 every twenty seconds with only stepping off (the fare lost) to end it - halted, her helm and her panel are the
 passenger's. PS-3 (regression): the ring's exclusion took the land a party embarks from and makes landfall on (13 of 432
-of my own crossings; one walked straight across its town) - afloat is reached or left by boat. PS-4 (regression): a
+of my own crossings; one walked straight across its town) - afloat is reached by boat (the step in is the pixel's
+layer in the planner's search; its step out never says otherwise - the campaign below). PS-4 (regression): a
 passenger's autorun outlived the helm - let go there. PS-5 (regression): the plate hid under First Person Travel's bar,
 which never covered it, taking the fight's card and the touch Brace - the Overworld alone. PS-6 (weak pins): her master
 never rowing, the journey's disembark refused, the latch's setter, the reach's `<=`, the time keys and the real map's
@@ -397,5 +398,23 @@ passage's own.
 The pins: the five `fb1021d_*` suites grown, `audit0929_actions` (FW-1), `fb1016b_finepeople`, `seat1d_client`, `lw2`,
 `ows2_crossing`, `travel_report_regressions`, `fb1011c_seatown`, `holddoor`, `shipcrew` moved. The mutants:
 `fb1021d_flatwalk.json` (6), `fb1021d_ravenclose.json`, `fb1021d_sentencemends.json` (21), `fb1021d_regardown.json` (27),
-`fb1021d_passage.json` (38), and `arena2triage`, `fb1014_finemends`, `csa_together`, `helmtime`, `ows2`, `lw7` re-aimed.
+`fb1021d_passage.json` (39), and `arena2triage`, `fb1014_finemends`, `csa_together`, `helmtime`, `ows2`, `lw7` re-aimed.
+
+THE CAMPAIGN, on the audit's tree with main merged: 1,291 mutants - every record in a file the audit changed, the
+`world.js` records on its lines and every record whose tests it moved. 1,275 dead, 2 equivalent as recorded, 14
+survived. Seven were the audit's own, each answered. The passenger's autorun under way (PS-4): her oars do nothing with
+her sails up, so the track alone could not tell it - the latch is pinned let go while she sails. The journey's hand
+marked on and off (PS-2): the harness marked it itself - `tvSeaFrame` is lifted out of `world.js` and driven, the
+passenger's keys read against it. The card's buttons (PS-7): the panel was never painted - it is drawn on a page now,
+Leave and the dial pressed (and a record on its title). PS-3's two halves were each the whole reading on every route
+the planner makes - a step into its afloat layer is a sail or a launch, every step out of it a sail or a landfall
+(37,217 pixels of 2,997 planned crossings, never once another word): one reading now, the step in, and its mutants
+aimed at it. SM-4's grace on the prison arm is recorded equivalent: the arm reads the clock once a day at least is
+served, and any grace standing then was granted before the arrest and runs a day - `fb1021d_sentencemends` pins the
+day against the grace, so the record goes stale the day a grace outlasts a sentence (the zero-day arm's read is the
+live one, pinned there). The other seven survive on main as here and are not this change's: `rep2_sentences`
+REP2-no-charge-coming-quietly, `csa_together` CSAL-pad-bare-dpad and `auditships_sail` AUDIT-SHIPS-A5-the-gain-on-every-coast
+(named after the first campaign), and AUDIT DISC28 AR-1's two and WERE-FRIGHT's two withdrawn-box records, equivalent
+since PLEA-LOOP (2026-10-13b): `talkWindow.js:"if (this.done) return;"` refuses a box already answered, the withdrawal
+marks it so, and every door reaches an arm through `input`, so the arms' own `surrenderBox` reads refuse nothing more.
 

@@ -48,7 +48,7 @@
     "tests": [
       "test/scenes/naval/fb1021d_passage.test.js"
     ],
-    "why": "the passenger's autorun pulls her oars"
+    "why": "AUDIT FB1021d PS-4: the passenger's autorun read under her master's hand - latched the whole voyage, it pulls her oars whenever he ships them with her sails down"
   },
   {
     "name": "PASSAGE-HANDS-host-unwrapped",
@@ -282,6 +282,16 @@
     ]
   },
   {
+    "name": "PASSAGE-HANDS-card-untitled",
+    "file": "src/ui/enhanced/enhancedHelm.js",
+    "old": " : aboard.passage ? passengerTitle(aboard.passage) : ",
+    "new": " : ",
+    "tests": [
+      "test/scenes/naval/fb1021d_passage.test.js"
+    ],
+    "why": "the passenger's card titled as another player's boat - nothing says where she is bound"
+  },
+  {
     "name": "PASSAGE-HANDS-pad-told-the-helm",
     "file": "src/ui/enhanced/enhancedHelm.js",
     "old": "  if (glass.length || passenger) return glassHelmPrompts(h, glass, trims, passenger);",
@@ -304,7 +314,7 @@
   {
     "name": "PASSAGE-IN-every-sea-kind-afloat",
     "file": "src/systems/travel/travelRoute.js",
-    "old": "const afloat = (i) => ['sea', 'embark'].includes(kinds[i - 1]) || ['sea', 'landfall'].includes(kinds[i]);",
+    "old": "const afloat = (i) => ['sea', 'embark'].includes(kinds[i - 1]);",
     "new": "const afloat = (i) => SEA_KINDS.includes(kinds[i - 1]) || SEA_KINDS.includes(kinds[i]);",
     "why": "AUDIT FB1021d PS-3: the land a party embarks from and makes landfall on loses its ring - straight across the town to the water",
     "tests": [
@@ -312,24 +322,24 @@
     ]
   },
   {
-    "name": "PASSAGE-IN-afloat-by-the-step-in-alone",
+    "name": "PASSAGE-IN-the-landfall-s-land-afloat",
     "file": "src/systems/travel/travelRoute.js",
-    "old": " || ['sea', 'landfall'].includes(kinds[i]);",
-    "new": ";",
-    "why": "a pixel left under sail read as land",
+    "old": "const afloat = (i) => ['sea', 'embark'].includes(kinds[i - 1]);",
+    "new": "const afloat = (i) => ['sea', 'embark', 'landfall'].includes(kinds[i - 1]);",
     "tests": [
       "test/scenes/naval/fb1021d_passage.test.js"
-    ]
+    ],
+    "why": "AUDIT FB1021d PS-3: the land a party makes landfall on read as sea - its town walked straight across"
   },
   {
-    "name": "PASSAGE-IN-afloat-by-the-step-out-alone",
+    "name": "PASSAGE-IN-the-launch-s-water-ashore",
     "file": "src/systems/travel/travelRoute.js",
-    "old": "const afloat = (i) => ['sea', 'embark'].includes(kinds[i - 1]) || ",
-    "new": "const afloat = (i) => ",
-    "why": "a pixel reached under sail read as land",
+    "old": "const afloat = (i) => ['sea', 'embark'].includes(kinds[i - 1]);",
+    "new": "const afloat = (i) => kinds[i - 1] === 'sea';",
     "tests": [
       "test/scenes/naval/fb1021d_passage.test.js"
-    ]
+    ],
+    "why": "AUDIT FB1021d PS-3: the water a party embarks into read as land - a sailed leg aimed at a town's ring ashore"
   },
   {
     "name": "PASSAGE-IN-dry-leg-sailed",

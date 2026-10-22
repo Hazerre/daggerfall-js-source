@@ -23,7 +23,10 @@ embarks from; a passenger's autorun outliving the helm; the plate hidden under a
 card with no dial or Leave. Every finding is in the record's own section with what became of it
 (`01-Overview/bugs/Field-Bugs-2026-10-21d.md`, AUDIT FB1021d): fixed and pinned, or taken under the owner's standing
 word (FW-6, RC-1, SM-3, SM-4, RO-3, PS-2), or found and left with its reason (LW-II's open item 6 on the road's sword;
-the unsaved charge; a realm-era build reading the record; my own boat's embark legs).
+the unsaved charge; a realm-era build reading the record; my own boat's embark legs). The campaign, 1,291 mutants on
+the merged tree: 1,275 dead, 2 equivalent, 14 survived - the seven of this change's own answered (four pinned, PS-3's
+reading cut to the half that is the whole of it, SM-4's prison-arm read recorded equivalent with its reason pinned), the
+seven others surviving on main as here (four of them equivalent since PLEA-LOOP), named in the record.
 
 **2026-10-21 - AUDIT STAR-TUNE (pull request #1090, the Starfall from its first run).** The owner: *"Audit this"*. One
 cold lane over the pull request's own diff, read-only, at the head that renumbered it world238 past main's world236 and

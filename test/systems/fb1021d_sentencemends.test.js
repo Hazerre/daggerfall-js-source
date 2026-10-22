@@ -20,7 +20,7 @@ import { createArrestFlow } from '../../src/scenes/arrestFlow.js';
 import { createStandingWatch, STANDING_LOOK_MS, legalNoticeLine } from '../../src/scenes/standingHost.js';
 import { legalRepOf, changeLegalRep, setCrimeRepFactor, setLegalRepNotifier, CRIMES, sentenceRefund, startCourt, REPUTATION_LOSS_PER_CRIME } from '../../src/systems/court.js';
 import { knownCriminal, challengeDue, patrolHalts, sentenceMends, banish, KNOWN_CRIMINAL_BELOW, PENANCE_POINTS, CHALLENGE_GRACE_MINUTES, CHALLENGE_COOLDOWN_MINUTES } from '../../src/systems/standing.js';
-import { ownMinutes, trustedWorldMinutes, setWorldMinutes } from '../../src/systems/worldTick.js';
+import { ownMinutes, trustedWorldMinutes, setWorldMinutes, MINUTES_PER_DAY } from '../../src/systems/worldTick.js';
 import { createRegionConditions } from '../../src/systems/region/regionConditions.js';
 import { setSeed, rand } from '../../src/formats/dfRandom.js';
 
@@ -127,6 +127,9 @@ test('SENTENCE-MENDS: what it is not - a Murder served from a clean name keeps i
   const graced = { legalRep: { [DAGGERFALL]: -20 }, standing: { challengeAt: {}, graceUntil: { [DAGGERFALL]: 5000 }, penance: {}, pardons: {}, warned: {} } };
   assert.equal(sentenceMends(graced, DAGGERFALL, { from: -20, ownNow: 4999 }), 0, 'inside the grace: nothing');
   assert.equal(sentenceMends(graced, DAGGERFALL, { from: -20, ownNow: 5000 }), PENANCE_POINTS, 'the grace run out: the step');
+  // the zero-day arm's read is the live one: the prison arm reads the clock once a day at least is served (advanceDays),
+  // and the grace standing then was granted before the arrest - so it refuses nothing there (its mutant is recorded equivalent)
+  assert.ok(CHALLENGE_GRACE_MINUTES <= MINUTES_PER_DAY, 'a grace outlasts no sentence - lengthened, the prison arm\'s read is live: SENTENCE-MENDS-ownNow-unhanded is no longer equivalent');
   const s = readFileSync(join(ROOT, 'src/systems/standing.js'), 'utf8');
   assert.match(s, /export function settleChallenge\(player, regionIndex\) \{ return mendToLine\(player, regionIndex, 'fine'\); \}/, 'the fine and the sentence share one law');
 });
