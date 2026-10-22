@@ -404,8 +404,9 @@ export async function gainsMeasure(db, nowS, days) {
 }
 
 /** What one side of a settled trade received (realmTradeLaw.js settleRealmTrade's `toA`/`toB`, kept in the row's `result`):
- *  its gold, its letters of credit at their worth, and how many pieces. */
-const receiptOf = (/** @type {any} */ side) => {
+ *  its gold, its letters of credit at their worth, and how many pieces. STAFF-PANEL3-PLAYERS: the panel's Trades tab reads
+ *  a trade's sides by it too (staffPlayers.js). */
+export const receiptOf = (/** @type {any} */ side) => {
   const items = Array.isArray(side?.items) ? side.items : [];
   const letters = items.filter((/** @type {any} */ it) => it?.templateIndex === REALM_LETTER_TEMPLATE).reduce((/** @type {number} */ n, /** @type {any} */ it) => n + (Number(it.value) || 0), 0);
   return { gold: Number(side?.gold) || 0, letters, pieces: items.length };

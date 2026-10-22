@@ -547,6 +547,9 @@ export const ROUTES = new Set([
   '/v1/staff/notes', '/v1/staff/notes/add', '/v1/staff/watch', '/v1/staff/watch/add', '/v1/staff/watch/remove', '/v1/staff/watch/events',
   '/v1/staff/settings', '/v1/staff/settings/save', '/v1/staff/notice', '/v1/staff/ai-score', '/v1/staff/board/reported', '/v1/staff/board/moderate',
   '/v1/staff/market/reported',
+  // STAFF-PANEL3-PLAYERS: the panel's players (staffPlayers.js) - the search, a profile's tabs, its devices, Sign out
+  // everywhere, and a rename - Admins' alone
+  '/v1/staff/players', '/v1/staff/player', '/v1/staff/player/devices', '/v1/staff/player/signout', '/v1/staff/player/rename',
   // PROF1: the professions (professions.js) - a character's tracks, Stores and day, the witnessed pixels, a harvest,
   // a specialisation, a withdrawal to the pack, a region's Court writs and a delivery. Every one behind a session, a
   // registered account's alone, and PROFESSIONS_OPEN's.

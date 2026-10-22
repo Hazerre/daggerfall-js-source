@@ -83,7 +83,9 @@ test('STAFF-PANEL1: every door is listed once, beside the game\'s, and none is b
     // STAFF-PANEL3-DESK: notes, the watchlist, your settings, the notice, the scorecard, the reported notes and listings (staffDesk.js)
     '/v1/staff/notes', '/v1/staff/notes/add', '/v1/staff/watch', '/v1/staff/watch/add', '/v1/staff/watch/remove', '/v1/staff/watch/events',
     '/v1/staff/settings', '/v1/staff/settings/save', '/v1/staff/notice', '/v1/staff/ai-score', '/v1/staff/board/reported', '/v1/staff/board/moderate',
-    '/v1/staff/market/reported'].sort());
+    '/v1/staff/market/reported',
+    // STAFF-PANEL3-PLAYERS: the players (staffPlayers.js)
+    '/v1/staff/players', '/v1/staff/player', '/v1/staff/player/devices', '/v1/staff/player/signout', '/v1/staff/player/rename'].sort());
   // no secret to set anywhere: the config holds the lists and a public key, and nothing else of the panel's
   const toml = src('server-account/wrangler.toml');
   assert.match(toml, /^OWNER_HANDLES = "Lattymoy,SirMcMobdon"$/m);
