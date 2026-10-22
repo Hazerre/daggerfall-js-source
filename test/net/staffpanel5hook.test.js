@@ -1,0 +1,368 @@
+// STAFF-PANEL5-FOLLOW (2026-10-22, design doc "DFO Staff Panel: design", Invisible follow, In game: the staff view; the
+// weak spots "No camera looks through the player's eyes yet" and "The panel must not lean on game internals") - THE GAME'S
+// HALF: the where note's pace on the session, the hub's `fol` door, the staff hook (net/staffHook.js) and its window
+// door, the host's follow (scenes/staffFollowHost.js), and a /tp answered from a note (net/staffTeleport.js notePlace,
+// followStaffPlayer, staffTpLine) - and the TP host's prepare, which loads a note's place without placing anyone.
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { parse } from 'acorn';
+import { OnlineSession } from '../../src/net/online.js';
+import { SOCIAL_ROOM, validPartyPose, cellRoomOfWire } from '../../src/net/wire.js';
+import { FOLLOW_RELAY_MIN, WHERE_NOTE_MOVING_MS, WHERE_NOTE_STILL_MS } from '../../src/net/staffFollow.js';
+import { createStaffHook, staffHookDoor, STAFF_HOOK_VERSION, STAFF_TOKEN_WAIT_MS } from '../../src/net/staffHook.js';
+import { createStaffFollowHost, staffFollowOnPage } from '../../src/scenes/staffFollowHost.js';
+import { notePlace, staffTpLine, followStaffPlayer, staffDestinationKey, quietTeleportAllowed, STAFF_TP_FALLBACKS } from '../../src/net/staffTeleport.js';
+import { fakeSocketClass } from '../fakeSocket.mjs';
+
+const note = (rk = 'world:100,100', more = {}) => ({ px: 100, py: 100, in: 0, loc: 'Daggerfall', h: 50, hm: 60, f: 40, fm: 40, m: 10, mm: 20, rk, ...more });
+
+/** A session on the hub with an account, its clock the test's. */
+function hubSession(v = `world${FOLLOW_RELAY_MIN}`) {
+  const { FakeWS, sockets } = fakeSocketClass();
+  let t = 1_000_000;
+  const s = new OnlineSession({ url: 'wss://relay.test', name: 'Bran', id: 'peer-bran', secret: 'secret-bran', acct: 'acct-bran', asecret: 'asecret-bran', WebSocketImpl: FakeWS, presence: false, now: () => t });
+  s.join(SOCIAL_ROOM); const ws = sockets[0]; ws.open();
+  ws.receive({ t: 'welcome', id: 'peer-bran', peers: [], n: 1, v });
+  const parties = () => ws.sent.map(JSON.parse).filter((m) => m.t === 'party');
+  return { s, ws, parties, tick: (ms) => { t += ms; } };
+}
+
+test('STAFF-PANEL5-FOLLOW session: a where note outside a party - one a 5 s while it changes, a keepalive a minute while it does not, and none to a relay before the follow; a member\'s pose as ever', () => {
+  const { s, parties, tick } = hubSession();
+  assert.equal(s.followOk, true);
+  s.solo = true;
+  assert.equal(s.sendParty(note()), true, 'the first goes at once');
+  assert.equal(parties().at(-1).p.rk, 'world:100,100');
+  tick(WHERE_NOTE_MOVING_MS - 1);
+  assert.equal(s.sendParty(note('world:100,101')), false, 'a change waits the 5 s');
+  tick(1);
+  assert.equal(s.sendParty(note('world:100,101')), true);
+  tick(WHERE_NOTE_STILL_MS - 1);
+  assert.equal(s.sendParty(note('world:100,101'), { urgent: true, force: true }), false, 'still: nothing before the minute, whatever is asked');
+  tick(1);
+  assert.equal(s.sendParty(note('world:100,101')), true, 'the minute\'s keepalive, the same note again');
+  assert.deepEqual(parties().map((m) => m.p.rk), ['world:100,100', 'world:100,101', 'world:100,101']);
+  assert.equal(s.sendParty({ px: 'nowhere' }), false, 'a note the wire refuses never goes');
+  // in a party: the member's pose, once a second when it changed (SOC2), as before
+  s.solo = false;
+  tick(1000);
+  assert.equal(s.sendParty(note('world:100,102')), true);
+  tick(1000);
+  assert.equal(s.sendParty(note('world:100,103')), true, 'a member\'s change a second on');
+  tick(1000);
+  assert.equal(s.sendParty(note('world:100,103')), false, 'and an unchanged one never');
+  s.leave();
+  const old = hubSession(`world${FOLLOW_RELAY_MIN - 1}`);
+  assert.equal(old.s.followOk, false);
+  old.s.solo = true;
+  assert.equal(old.s.sendParty(note()), false, 'a relay before it writes each one at once: none goes there');
+  old.s.solo = false;
+  assert.equal(old.s.sendParty(note()), true, 'a member\'s goes, as ever');
+  old.s.leave();
+});
+
+test('STAFF-PANEL5-FOLLOW session: the hub\'s `fol` reaches onFollow through the wire\'s door, from the hub alone', () => {
+  const { s, ws } = hubSession();
+  const heard = [];
+  s.onFollow = (f) => heard.push(f);
+  ws.receive({ t: 'fol', k: 'on', sub: 'acct-target' });
+  ws.receive({ t: 'fol', k: 'note', sub: 'acct-target', p: note(), ag: 2 });
+  ws.receive({ t: 'fol', k: 'on', sub: 'x' });
+  ws.receive({ t: 'fol', k: 'nope', sub: 'acct-target' });
+  assert.deepEqual(heard, [{ k: 'on', sub: 'acct-target' }, { k: 'note', sub: 'acct-target', p: validPartyPose(note()), ag: 2 }]);
+  s.leave();
+  // a cell's socket saying it is no hub
+  const { FakeWS, sockets } = fakeSocketClass();
+  const cell = new OnlineSession({ url: 'wss://relay.test', name: 'Bran', id: 'peer-c', secret: 'secret-c', WebSocketImpl: FakeWS, presence: true });
+  cell.join('world:100,100', { x: 0, y: 0, z: 0, yaw: 0, pitch: 0 }); sockets[0].open();
+  cell.onFollow = () => assert.fail('a room is not the hub');
+  sockets[0].receive({ t: 'fol', k: 'on', sub: 'acct-target' });
+  cell.leave();
+});
+
+/** A session double: what the hook asks of the sessions it makes. */
+function fakeSessions() {
+  const made = [];
+  class Session {
+    constructor(o) { this.o = o; this.room = null; this.joins = []; this.poses = []; this.ticks = 0; this.left = false; this.peers = new Map(); this.layerHint = 0; made.push(this); }
+    join(room, pose) { this.room = room; this.joins.push([room, pose, this.layerHint]); }
+    leave() { this.left = true; this.room = null; }
+    tick() { this.ticks++; }
+    sendPose(p) { this.poses.push(p); }
+  }
+  return { Session, made };
+}
+
+test('STAFF-PANEL5-FOLLOW hook: a follow holds a hub link on the panel\'s tokens, locks only on the hub\'s own `on`, watches from the room the hub names, and lets go', async () => {
+  const { Session, made } = fakeSessions();
+  const asked = [];
+  const main = { url: 'wss://relay.test' };
+  const hook = createStaffHook({ main: () => main, askToken: async (sub, room) => { asked.push([sub, room]); return 'tok'; }, Session });
+  assert.equal(hook.version, STAFF_HOOK_VERSION);
+  assert.equal(hook.follow('x'), false, 'no account, no follow');
+  hook.tick();
+  assert.equal(made.length, 0, 'nothing followed: no socket');
+  assert.equal(hook.follow('acct-target'), true);
+  hook.tick();
+  const [hub] = made;
+  assert.deepEqual([hub.o.presence, hub.o.name, hub.room, hub.o.url], [false, 'Spectator', SOCIAL_ROOM, 'wss://relay.test']);
+  assert.equal(hub.o.acct, undefined, 'never the staff member\'s account');
+  assert.equal(await hub.o.mintToken(SOCIAL_ROOM), 'tok');
+  assert.deepEqual(asked, [['acct-target', SOCIAL_ROOM]]);
+  assert.equal(hook.locked(), false, 'no camera before the hub says `on`');
+  assert.equal(hook.view(), null);
+  hook.heard({ k: 'on', sub: 'acct-someone-else' });
+  assert.equal(hook.locked(), false, 'another follow\'s word is not mine');
+  hook.heard({ k: 'note', sub: 'acct-target', p: validPartyPose(note('dungeon:m1234', { in: 1, ly: 2 })) });
+  hook.tick();
+  assert.equal(made.length, 1, 'no room before `on`');
+  hub.onFollow({ k: 'on', sub: 'acct-target' });
+  assert.equal(hook.locked(), true);
+  hook.tick();
+  const eye = made[1];
+  assert.deepEqual([eye.o.presence, eye.room, eye.joins[0][2]], [true, 'dungeon:m1234', 2], 'the note\'s room, on its layer');
+  assert.equal(hook.room(), 'dungeon:m1234');
+  assert.equal(hook.place().kind, 'dungeon');
+  // the target seen in that room: the view, and the room link stands on them for range
+  const pose = { x: 5, y: 1, z: 7, yaw: 1.5, pitch: -0.2, mv: 1 };
+  eye.peers.set('peer-t', { sub: 'acct-target', shown: pose });
+  eye.peers.set('peer-o', { sub: 'acct-other', shown: { x: 0, y: 0, z: 0, yaw: 0, pitch: 0 } });
+  assert.deepEqual(hook.view(), pose);
+  hook.tick();
+  assert.deepEqual(eye.poses.at(-1), pose);
+  // a room's own word moves it; `out` waits for the next note
+  hook.heard({ k: 'in', sub: 'acct-target', room: 'interior:m12.345', ly: 0 });
+  hook.tick();
+  assert.equal(eye.room, 'interior:m12.345');
+  hook.heard({ k: 'out', sub: 'acct-target', room: 'interior:m12.345' });
+  assert.equal(hook.room(), 'interior:m12.345');
+  hook.heard({ k: 'gone', sub: 'acct-target' });
+  assert.equal(hook.room(), null, 'offline: the follow waits');
+  assert.equal(hook.locked(), true, 'and still holds - only Unlock or another pick lets go');
+  // another pick: everything let go at once, and a fresh follow
+  assert.equal(hook.follow('acct-second'), true);
+  assert.ok(hub.left && eye.left);
+  assert.equal(hook.locked(), false);
+  hook.tick();
+  assert.equal(made.length, 3);
+  hook.unlock();
+  assert.ok(made[2].left);
+  assert.equal(hook.target(), null);
+  assert.equal(await made[2].o.mintToken('world:1,1'), null, 'a let-go follow\'s link asks for no token');
+  hook.tick();
+  assert.equal(made.length, 3);
+});
+
+test('STAFF-PANEL5-FOLLOW hook: outdoors the target\'s own pose names the next cell before their note does', () => {
+  const { Session, made } = fakeSessions();
+  const hook = createStaffHook({ main: () => ({ url: 'wss://relay.test' }), askToken: async () => 'tok', Session });
+  hook.follow('acct-target'); hook.tick();
+  made[0].onFollow({ k: 'on', sub: 'acct-target' });
+  const a = { x: 100 * 32768 + 10, z: (499 - 100) * 32768 + 10 }, b = { x: 140 * 32768 + 10, z: (499 - 100) * 32768 + 10 };
+  const ca = cellRoomOfWire(a.x, a.z), cb = cellRoomOfWire(b.x, b.z);
+  assert.notEqual(ca, cb);
+  hook.heard({ k: 'note', sub: 'acct-target', p: validPartyPose({ ...note(ca), wx: a.x, wy: 3, wz: a.z }) });
+  hook.tick();
+  const eye = made[1];
+  assert.equal(eye.room, ca);
+  assert.deepEqual(eye.joins[0][1], { x: a.x, y: 3, z: a.z, yaw: 0, pitch: 0, mv: 0 }, 'stood on the note\'s feet before they are seen');
+  eye.peers.set('p', { sub: 'acct-target', shown: { x: b.x, y: 0, z: b.z, yaw: 0, pitch: 0 } });
+  hook.tick();
+  assert.equal(eye.room, cb);
+  assert.equal(hook.room(), ca, 'the note\'s room stands until the hub says another');
+});
+
+test('STAFF-PANEL5-FOLLOW hook door: same window and origin alone; the version, a follow, Unlock, and the panel\'s tokens', async () => {
+  const listeners = [], posted = [], timers = new Map();
+  const win = { location: { origin: 'https://game.test' }, addEventListener: (k, f) => { assert.equal(k, 'message'); listeners.push(f); }, postMessage: (m, o) => posted.push([m, o]) };
+  const calls = [];
+  const hook = { follow: (s) => calls.push(['follow', s]), unlock: () => calls.push(['unlock']) };
+  const door = staffHookDoor(win, () => hook, { setTimer: (f, ms) => { const k = Symbol('t'); timers.set(k, [f, ms]); return k; }, clearTimer: (k) => timers.delete(k) });
+  const say = (data, more = {}) => listeners[0]({ source: win, origin: 'https://game.test', data, ...more });
+  assert.equal(door.panel(), false);
+  say({ dfoStaff: 'hook?' }, { origin: 'https://evil.test' });
+  say({ dfoStaff: 'hook?' }, { source: {} });
+  assert.equal(posted.length, 0, 'another origin or window is not the panel');
+  say({ dfoStaff: 'hook?' });
+  assert.deepEqual(posted.at(-1), [{ dfoStaff: 'hook', v: STAFF_HOOK_VERSION }, 'https://game.test']);
+  assert.equal(door.panel(), true);
+  say({ dfoStaff: 'follow', sub: 'acct-target' });
+  say({ dfoStaff: 'unlock' });
+  say({ dfoStaff: 'act', act: 'freeze', sub: 'acct-target' });
+  assert.deepEqual(calls, [['follow', 'acct-target'], ['unlock']]);
+  // a token asked and answered; my own ask (no `tok`) is never taken for an answer
+  const p = door.askToken('acct-target', 'world:1,1');
+  assert.deepEqual(posted.at(-1), [{ dfoStaff: 'token', sub: 'acct-target', room: 'world:1,1' }, 'https://game.test']);
+  say({ dfoStaff: 'token', sub: 'acct-target', room: 'world:1,1' });
+  say({ dfoStaff: 'token', sub: 'acct-target', room: 'world:9,9', tok: 'other' });
+  say({ dfoStaff: 'token', sub: 'acct-target', room: 'world:1,1', tok: 'v1.abc.def' });
+  assert.equal(await p, 'v1.abc.def');
+  assert.equal(timers.size, 0);
+  // unanswered: null when the wait is out; refused: null
+  const late = door.askToken('acct-target', 'world:2,2');
+  const [[f, ms]] = timers.values();
+  assert.equal(ms, STAFF_TOKEN_WAIT_MS);
+  f();
+  assert.equal(await late, null);
+  const refused = door.askToken('acct-target', 'world:3,3');
+  say({ dfoStaff: 'token', sub: 'acct-target', room: 'world:3,3', tok: null });
+  assert.equal(await refused, null);
+  const long = door.askToken('acct-target', 'world:4,4');
+  say({ dfoStaff: 'token', sub: 'acct-target', room: 'world:4,4', tok: 'x'.repeat(1025) });
+  assert.equal(await long, null, 'longer than any token');
+  // with no window at all the door stands and every ask is no token
+  const none = staffHookDoor(undefined, () => hook);
+  await assert.rejects(none.askToken('acct-target', 'world:1,1'));
+});
+
+test('STAFF-PANEL5-FOLLOW host: a follow leaves the host\'s room, enters the note\'s place once, puts the camera at the target\'s eyes, and let go never shows the body where the target stood', async () => {
+  let locked = false, view = null, place = null, here = 'exterior|10,10', mode = 'exterior';
+  const hook = { ticks: 0, tick() { this.ticks++; }, locked: () => locked, view: () => view, place: () => place };
+  const prepared = [];
+  let release;
+  const host = createStaffFollowHost({ hook, prepare: (d) => { prepared.push(d); return new Promise((r) => { release = r; }); }, mode: () => mode, where: () => here, toScene: (p) => [p.x + 1, p.y + 2, p.z + 3], eyeHeight: (p) => (p.rd ? 2.5 : 1.6) });
+  assert.equal(host.frame(), false, 'no follow: the host\'s room is its own');
+  assert.equal(hook.ticks, 1);
+  locked = true;
+  place = notePlace(validPartyPose(note('dungeon:m1234', { in: 1 })));
+  assert.equal(host.frame(), true);
+  await new Promise((r) => setImmediate(r));
+  assert.equal(prepared.length, 1);
+  assert.equal(host.frame(), true);
+  assert.equal(prepared.length, 1, 'entering: once');
+  const player = { pos: [0, 0, 0] }, cam = { pos: [0, 0, 0], yaw: 0, pitch: 0 };
+  view = { x: 10, y: 20, z: 30, yaw: 1.25, pitch: -0.5 };
+  assert.equal(host.eye(player, cam), false, 'no camera while the place loads');
+  release(); await new Promise((r) => setImmediate(r));
+  assert.equal(host.eye(player, cam), true);
+  assert.deepEqual([player.pos, cam.pos, cam.yaw, cam.pitch], [[11, 22, 33], [11, 23.6, 33], 1.25, -0.5]);
+  view = { ...view, rd: 1 };
+  host.eye(player, cam);
+  assert.equal(cam.pos[1], 22 + 2.5, 'a rider\'s eye');
+  host.frame();
+  assert.equal(prepared.length, 1, 'the same place: not entered again');
+  // outdoors, seen: the camera carries itself
+  place = notePlace({ ...validPartyPose(note('world:1,1')), wx: 1, wy: 2, wz: 3 });
+  host.frame();
+  assert.equal(prepared.length, 1);
+  view = null;
+  host.frame();
+  await new Promise((r) => setImmediate(r));
+  assert.equal(prepared.length, 2, 'outdoors and not seen: entered');
+  release(); await new Promise((r) => setImmediate(r));
+  assert.equal(host.eye(player, cam), false, 'nothing to copy');
+  // let go: out of every room until somewhere else
+  locked = false;
+  assert.equal(host.frame(), true, 'let go where the target stood: still in no room');
+  assert.equal(host.frame(), true);
+  here = 'exterior|10,11';
+  assert.equal(host.frame(), false, 'off that map pixel: the host\'s own room again');
+  assert.equal(host.frame(), false);
+  // a failed enter is said, and tried again only for another place
+  locked = true; view = null; place = notePlace({ ...validPartyPose(note('dungeon:m77', { in: 1 })), rk: 'dungeon:m77' });
+  const failing = createStaffFollowHost({ hook, prepare: async () => { throw new Error('no'); }, mode: () => mode, where: () => here, toScene: () => null, eyeHeight: () => 0 });
+  const warn = console.warn; const warned = []; console.warn = (...a) => warned.push(a.join(' '));
+  try { failing.frame(); await new Promise((r) => setImmediate(r)); failing.frame(); await new Promise((r) => setImmediate(r)); } finally { console.warn = warn; }
+  assert.equal(warned.length, 1);
+});
+
+test('STAFF-PANEL5-FOLLOW page: a /tp follows on only where a Staff Panel spoke on this page; the panel\'s follow drives the one hook', () => {
+  const { Session, made } = fakeSessions();
+  const listeners = [];
+  const win = { location: { origin: 'https://game.test' }, addEventListener: (_k, f) => listeners.push(f), postMessage: () => {} };
+  const page = staffFollowOnPage({ main: () => ({ url: 'wss://relay.test' }), prepare: async () => {}, mode: () => 'exterior', pixel: () => ({ x: 1, y: 2 }), toScene: (p) => [p.x, p.y, p.z], win, Session });
+  assert.equal(page.follow('acct-target'), false, 'no panel: a TP follows nobody');
+  assert.equal(page.hook.target(), null);
+  listeners[0]({ source: win, origin: 'https://game.test', data: { dfoStaff: 'hook?' } });
+  assert.equal(page.follow('acct-target'), true);
+  assert.equal(page.follow(undefined), false, 'a relay that named no account');
+  page.frame();
+  assert.equal(made.length, 1);
+  made[0].onFollow({ k: 'on', sub: 'acct-target' });
+  assert.equal(page.locked(), true);
+  assert.equal(page.frame(), true, 'locked: the host stands in no room');
+  const player = { pos: [0, 0, 0] }, cam = { pos: [0, 0, 0], yaw: 0, pitch: 0 };
+  assert.equal(page.eye(player, cam), false, 'not seen yet');
+  listeners[0]({ source: win, origin: 'https://game.test', data: { dfoStaff: 'unlock' } });
+  assert.equal(page.locked(), false);
+  assert.equal(page.frame(), true, 'let go where it stood: in no room until somewhere else');
+});
+
+test('STAFF-PANEL5-FOLLOW TP law: where a note puts staff, the line a TP says, and who the hub answers from a note', () => {
+  const p = (more) => ({ ...validPartyPose(note('world:207,213', { px: 207, py: 213 })), ...more });
+  assert.deepEqual(notePlace(p({ wx: 1.5, wy: -2, wz: 3.25 })), { kind: 'exterior', pixel: { x: 207, y: 213 }, pos: [1.5, -2, 3.25], yaw: 0, pitch: 0 }, 'outside, on their feet');
+  assert.deepEqual(notePlace(p({})), { kind: 'exterior', pixel: { x: 207, y: 213 }, yaw: 0, pitch: 0, pos: null }, 'outside with no feet: the pixel');
+  assert.equal(notePlace(p({ wx: NaN, wy: 0, wz: 0 })).pos, null);
+  assert.deepEqual(notePlace(p({ in: 1, rk: 'dungeon:m1234' })), { kind: 'dungeon', pixel: { x: 207, y: 213 }, yaw: 0, pitch: 0, mapId: 1234, whole: true, pos: null });
+  assert.equal(notePlace(p({ in: 1, rk: 'dungeon:m1234.s' })).whole, false, 'a small re-lay is the world\'s size for it');
+  const ins = notePlace(p({ in: 1, rk: `dungeon:m1234.i${'0123456789abcdef'}.89abcdef` }));
+  assert.deepEqual([ins.ins, ins.whole], ['0123456789abcdef.89abcdef', true], 'an instance: its word, the dungeon whole');
+  assert.equal(notePlace(p({ in: 1, rk: 'world:1,1' })), null, 'a dungeon with no dungeon room does not match');
+  assert.equal(notePlace(p({ in: 1 })), null);
+  const bk = (5 << 16) + (9 << 8) + 42;
+  assert.deepEqual(notePlace(p({ in: 2, bk, rk: `interior:m99.${bk}` })), { kind: 'interior', pixel: { x: 207, y: 213 }, yaw: 0, pitch: 0, door: { blockIndex: 0, recordIndex: 42, doorIndex: 0, buildingKey: bk }, pos: null });
+  assert.equal(notePlace(p({ in: 2, bk: 0, rk: 'interior:m99.0' })), null, 'no building');
+  assert.equal(notePlace(p({ in: 2, bk })), null, 'a building with no room named');
+  assert.equal(notePlace({ px: 5000, py: 1, in: 0 }), null, 'off the map');
+  assert.equal(notePlace(null), null);
+  assert.equal(staffDestinationKey(notePlace(p({ in: 2, bk, rk: `interior:m99.${bk}` }))), staffDestinationKey(notePlace(p({ in: 2, bk, rk: `interior:m99.${bk}`, h: 1 }))));
+  // the line: the player can see it, every way
+  assert.match(staffTpLine({ name: 'Bran', via: 'note' }), /where note - their game was told nothing, but the player can see you arrive/);
+  assert.match(staffTpLine({ name: 'Bran', fb: 'missing' }), /was missing \(the player can see this\)/);
+  assert.match(staffTpLine({ name: 'Bran', fb: 'mismatch' }), /did not match \(the player can see this\)/);
+  assert.equal(staffTpLine({ name: 'Bran' }), 'Teleported to Bran\'s exact position (the player can see this).');
+  assert.deepEqual(STAFF_TP_FALLBACKS, ['missing', 'mismatch']);
+  for (const [g, ok] of [[['dev'], true], [['shadowfang'], true], [['dm'], false], [['mod'], false], [[], false], [null, false], ['dev', false]]) assert.equal(quietTeleportAllowed(g), ok, JSON.stringify(g));
+});
+
+test('STAFF-PANEL5-FOLLOW TP: a note\'s answer is loaded and, with feet, placed; a place with no spot is loaded alone; a note this build cannot place asks their game, every ask after it too', async () => {
+  const base = validPartyPose(note('world:207,213', { px: 207, py: 213 }));
+  const run = async (answers) => {
+    const asks = [], prepared = [], placed = [];
+    const who = await followStaffPlayer('Bran', { ask: async (t) => { asks.push(t); return answers.shift(); }, prepare: async (d) => prepared.push(d), place: (d) => placed.push(d) });
+    return { who, asks, prepared, placed };
+  };
+  const feet = { id: 'peer-bran', name: 'Bran', via: 'note', note: { ...base, wx: 1, wy: 2, wz: 3 } };
+  let r = await run([feet, feet]);
+  assert.deepEqual(r.asks, [{ name: 'Bran' }, { id: 'peer-bran' }]);
+  assert.deepEqual(r.placed.map((d) => d.pos), [[1, 2, 3]]);
+  const dungeon = { id: 'peer-bran', name: 'Bran', via: 'note', note: { ...base, in: 1, rk: 'dungeon:m1234' } };
+  r = await run([dungeon, dungeon]);
+  assert.equal(r.prepared.length, 1);
+  assert.equal(r.placed.length, 0, 'no spot: loaded, never placed');
+  assert.equal(r.who.via, 'note');
+  const lost = { id: 'peer-bran', name: 'Bran', via: 'note', note: { ...base, in: 2, bk: 7 } };
+  const captured = { id: 'peer-bran', name: 'Bran', dest: { kind: 'exterior', pixel: { x: 207, y: 213 }, pos: [4, 5, 6], yaw: 0.5, pitch: 0 }, fb: 'mismatch' };
+  r = await run([lost, captured, captured]);
+  assert.deepEqual(r.asks, [{ name: 'Bran' }, { id: 'peer-bran', cap: 1 }, { id: 'peer-bran', cap: 1 }]);
+  assert.deepEqual(r.placed.map((d) => d.pos), [[4, 5, 6]]);
+  assert.equal(r.who.fb, 'mismatch');
+  await assert.rejects(run([lost, { ...captured, id: 'peer-other' }]), /target player changed/);
+});
+
+// the TP host's own prepare, run from the source with doubles (as test/net/staffTeleport.test.js runs it)
+const worldSource = readFileSync(new URL('../../src/scenes/world.js', import.meta.url), 'utf8');
+const functions = new Map();
+const walk = (n) => {
+  if (!n || typeof n !== 'object') return;
+  if (n.type === 'FunctionDeclaration' && n.id) functions.set(n.id.name, worldSource.slice(n.start, n.end));
+  for (const v of Object.values(n)) if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === 'object') walk(v);
+};
+walk(parse(worldSource, { ecmaVersion: 'latest', sourceType: 'module' }));
+const hostFunction = (name, supplied) => { const scope = { player: { collider: {}, height: 1.8 }, ...supplied }; return Function(...Object.keys(scope), `return (${functions.get(name)});`)(...Object.values(scope)); };
+
+test('STAFF-PANEL5-FOLLOW TP host: a place a note names no spot in is loaded and nobody is put anywhere - the place\'s own entrance stands', async () => {
+  const placed = [];
+  const calls = [];
+  const modes = { forceExitToExterior: () => calls.push('out'), setPlayerLocalPosition: (p) => placed.push(p), dungeonLocation: { mapTableData: { mapId: 1234 } }, startInDungeon: async () => { calls.push('dungeon'); return true; } };
+  const prepare = hostFunction('prepareStaffDestination', { modes, _wodInside: false, playerSpawned: false, _teleportToPixel: async () => calls.push('pixel'), staffLanding: () => assert.fail('no spot to land on'), capsuleFits: () => assert.fail('no spot to fit'), ohAbyss: null });
+  await prepare(notePlace({ ...validPartyPose(note('dungeon:m1234', { in: 1 })), rk: 'dungeon:m1234' }));
+  await prepare(notePlace(validPartyPose(note('world:100,100'))));
+  assert.deepEqual(placed, []);
+  assert.deepEqual(calls, ['out', 'pixel', 'dungeon', 'out', 'pixel']);
+  // a spot: as ever
+  const withSpot = hostFunction('prepareStaffDestination', { modes, _wodInside: false, playerSpawned: false, _teleportToPixel: async () => {}, staffLanding: (d) => d.pos, capsuleFits: () => true, ohAbyss: null });
+  await withSpot(notePlace({ ...validPartyPose(note('world:100,100')), wx: 1, wy: 2, wz: 3 }));
+  assert.deepEqual(placed, [[1, 2, 3]]);
+});

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { parse } from 'acorn';
-import { validStaffDestination, validStaffTeleportIn, validStaffTeleportOut, staffDestinationKey, followStaffPlayer, createStaffTeleportClient, staffTeleportSupported } from '../../src/net/staffTeleport.js';
+import { validStaffDestination, validStaffTeleportIn, validStaffTeleportOut, staffDestinationKey, followStaffPlayer, createStaffTeleportClient, staffTeleportSupported, staffTpLine } from '../../src/net/staffTeleport.js';
 import { parseClient, SOCIAL_ROOM, RELAY_VERSION } from '../../src/net/wire.js';
 import { OnlineSession } from '../../src/net/online.js';
 import { StreamingWorldState } from '../../src/world/streamingWorld.js';
@@ -227,10 +227,11 @@ test('STAFF-TP dungeon identity selects the target dungeon; interior entry uses 
 });
 
 test('STAFF-TP reported bug: /tp @player invokes exact player travel, never traveller-marker/guild travel', async () => {
-  const calls = [], lines = [];
-  const run = hostFunction('runStaffCommand', { chatLog: { push: (_tab, line) => lines.push(line) }, worldMoveBusy: () => false, modes: {}, staffTeleportClient: {}, teleportToStaffPlayer: async (name) => { calls.push(name); return { name }; }, console });
+  const calls = [], lines = [], follows = [];
+  const run = hostFunction('runStaffCommand', { chatLog: { push: (_tab, line) => lines.push(line) }, worldMoveBusy: () => false, modes: {}, staffTeleportClient: {}, teleportToStaffPlayer: async (name) => { calls.push(name); return { name }; }, console, staffTpLine, staffFollow: { follow: (sub) => follows.push(sub) } });   // STAFF-PANEL5-FOLLOW: the line says the player can see it
   run('world', { cmd: 'tp', player: 'Bran' }); await Promise.resolve();
-  assert.deepEqual(calls, ['Bran']); assert.match(lines.at(-1).text, /exact position/);
+  assert.deepEqual(calls, ['Bran']); assert.match(lines.at(-1).text, /exact position \(the player can see this\)/);
+  assert.deepEqual(follows, [undefined], 'STAFF-PANEL5-FOLLOW: a TP follows on from their view (the page\'s follow takes it only where a panel spoke)');
 });
 
 test('STAFF-TP host: floating origin and vertical compensation are removed and restored without terrain snapping', () => {
