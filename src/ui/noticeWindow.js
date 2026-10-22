@@ -70,7 +70,7 @@ import { createWorkTab, writWalledText } from './workTab.js';   // PROF6: the Wo
 import { createSeatTab, boardFold } from './seatTab.js';   // SEAT1b: the Seat tab - a seat town's standings, pledges and Tribute
 import { createVendorTab } from './vendor/vendorTab.js';   // HOME-VENDOR: the Vendors tab, and a trader's stall
 import { bannerSvg } from './heraldryArt.js';   // GUILD1e: a guild's banner over its notes and its posters
-import { freshSift, siftWork, workSiftBar, workSiftFoot, wordsOf } from './workSift.js';   // BOARD-SIFT: the Work tab's bar
+import { freshSift, siftWork, workSiftBar, workSiftFoot, updateSiftBar, wordsOf } from './workSift.js';   // BOARD-SIFT: the Work tab's bar
 
 /** @param {string} tag @param {string|null} [cls] @param {string|null} [text] */
 const el = (tag, cls = null, text = null) => {
@@ -519,7 +519,7 @@ export function mountNoticeBoard(host, deps) {
     const poster = isChapterWrit(w.kind) ? hallPosterName(w.faction) ?? 'guild' : null;
     const own = w.kind === 'member';
     const li = el('li', `notice-card notice-writ ${poster ? 'seal-guild' : 'seal-court'}${w.state !== 'open' ? ' done' : ''}`);
-    li.append(el('span', 'notice-pin'), el('span', 'writ-kind', own ? 'Your chapter writ' : poster ? 'Chapter writ' : 'Court writ'));
+    li.append(el('span', 'notice-pin'), el('span', 'writ-kind', writKindText(w)));
     li.append(el('p', 'writ-need', own
       ? `Yours to fill: ${w.qty} ${work.countName(w.material, w.qty)}, for the ${poster} in ${work.regionName}`
       : poster
@@ -554,13 +554,16 @@ export function mountNoticeBoard(host, deps) {
 
   /** CHAP2a: today's writs filled - the Court's and the halls' one allowance. */
   const writsFull = () => (work.book.state.writs?.today ?? 0) >= (work.book.state.writs?.max ?? 3);
+  /** GUILD3a: a writ card's kind as it is written on the card - AUDIT BOARD-SIFT: and searched as it is written. */
+  function writKindText(w) { return w.kind === 'member' ? 'Your chapter writ' : isChapterWrit(w.kind) ? 'Chapter writ' : 'Court writ'; }
   /** BOARD-SIFT: a Court or chapter writ as the Work tab's bar sifts it - fillable while its Take would be (writNode's own
-   *  law: open, held whole, today's allowance not spent), its silver its pay, its name its material. */
+   *  law: open, held whole, today's allowance not spent), its silver its pay, its name its material. AUDIT BOARD-SIFT:
+   *  its words its material one and many ("ruby" finds the Rubies), its kind as the card says it and its chapter's guild. */
   function writEntry(w) {
     const chapter = isChapterWrit(w.kind);
     const name = work.countName(w.material, 2), open = w.state === 'open';
     return { kind: chapter ? 'chapter' : 'court', open, fill: open && work.book.held(w.material) >= w.qty && !writsFull(), pay: Number(w.pay) || 0,
-      ends: Number(w.expiresAt) || 0, name, words: wordsOf(name, chapter ? hallPosterName(w.faction) : null), card: () => writNode(w) };
+      ends: Number(w.expiresAt) || 0, name, words: wordsOf(name, work.countName(w.material, 1), writKindText(w), chapter ? hallPosterName(w.faction) : null), card: () => writNode(w) };
   }
 
   /** GUILD3d (bible/11-Multiplayer/Guilds-Made-Plain.md): A CHAPTER'S CARD - every line of one chapter of the region in one
@@ -682,20 +685,32 @@ export function mountNoticeBoard(host, deps) {
     // region's guild writs and commissions in the Court's own grid (AUDIT 31 U14 - the Court's stood alone). BOARD-SIFT:
     // every card an entry the bar sifts and orders, a page of them drawn - the bar over the grid, "Show more" under it
     const entries = [...list.map(writEntry), ...(workMore ? workMore.entries(writs) : [])];
-    const sifted = siftWork(entries, sift);
-    if (entries.length) body.append(workSiftBar(sift, entries, sifted.matched, sifted.rows.length, render));
-    for (const e of sifted.rows) grid.append(e.card());
-    if (writsBusy && !writs) grid.append(el('li', 'notice-empty', BOARD_WORDS.writsReading));
-    else if (!writs && writsError) {
-      const shut = writsError === 'prof-closed' || writsError === 'no-session' || writsError === 'auth';
-      const li = el('li', 'notice-empty', shut ? BOARD_WORDS.writsShut : BOARD_WORDS.writsSlow);   // AUDIT 31 U13: the guilds' and the commissions' too
-      if (!shut) li.append(button('notice-retry', 'Try again', () => loadWrits(true)));   // AUDIT 29 C11: read now, not in a minute
-      grid.append(li);
-    }
-    else if (writs && !list.length) grid.append(el('li', 'notice-empty', BOARD_WORDS.writsNone(work.regionName)));
-    body.append(grid);
-    const foot = workSiftFoot(sift, sifted.matched, sifted.rows.length, entries.length, render);
-    if (foot) body.append(foot);
+    /** The grid's own words: a read under way, a read refused, or no Court writs - AUDIT BOARD-SIFT (lane B L8): that last
+     *  only where the bar sifts nothing away (beside "No work matches." it said the wrong thing). */
+    const gridWords = () => {
+      if (writsBusy && !writs) return [el('li', 'notice-empty', BOARD_WORDS.writsReading)];
+      if (!writs && writsError) {
+        const shut = writsError === 'prof-closed' || writsError === 'no-session' || writsError === 'auth';
+        const li = el('li', 'notice-empty', shut ? BOARD_WORDS.writsShut : BOARD_WORDS.writsSlow);   // AUDIT 31 U13: the guilds' and the commissions' too
+        if (!shut) li.append(button('notice-retry', 'Try again', () => loadWrits(true)));   // AUDIT 29 C11: read now, not in a minute
+        return [li];
+      }
+      const sifting = sift.kind !== 'all' || !!sift.find.trim() || sift.fill;
+      return writs && !list.length && (!entries.length || !sifting) ? [el('li', 'notice-empty', BOARD_WORDS.writsNone(work.regionName))] : [];
+    };
+    // AUDIT BOARD-SIFT (lane B M4): the bar's own changes draw the results alone - the grid, "Show more", the bar's counts
+    const foot = el('div', 'work-sift-foot');
+    const bar = entries.length ? workSiftBar(sift, entries, () => refresh()) : null;
+    const refresh = () => {
+      const sifted = siftWork(entries, sift);
+      grid.replaceChildren(...sifted.rows.map((e) => e.card()), ...gridWords());
+      const more = workSiftFoot(sift, sifted.matched, sifted.rows.length, entries.length, refresh);
+      foot.replaceChildren(...(more ? [more] : []));
+      if (bar) updateSiftBar(bar, sift, entries, sifted.matched, sifted.rows.length);
+    };
+    refresh();
+    if (bar) body.append(bar);
+    body.append(grid, foot);
     const yours = workMore ? workMore.node(writs) : null;   // PROF6: "Yours", the forms
     if (yours) body.append(yours);
     // BOARD-SIFT: the region's chapters after the work, under their own head - their panels stood over the writs, a
@@ -985,7 +1000,8 @@ export function mountNoticeBoard(host, deps) {
     const b = /** @type {any} */ (win.querySelector?.('.notice-cork'));
     if (b && k.top && k.where === `${tab}|${view}`) b.scrollTop = k.top;
     if (!k.key) return;
-    const n = /** @type {any} */ ([...(win.querySelectorAll?.('input, select, textarea') ?? [])].find((x) => x.getAttribute?.('data-focus') === k.key));
+    // AUDIT BOARD-SIFT (lane B L5): and a press that keys its focus (the market's pages) - the focus fell to the page
+    const n = /** @type {any} */ ([...(win.querySelectorAll?.('input, select, textarea, button') ?? [])].find((x) => x.getAttribute?.('data-focus') === k.key));
     if (!n) return;
     try { n.focus?.({ preventScroll: true }); } catch { n.focus?.(); }
     if (k.at && k.at[0] != null) { try { n.setSelectionRange(k.at[0], k.at[1]); } catch { /* none to set */ } }
@@ -996,9 +1012,25 @@ export function mountNoticeBoard(host, deps) {
    *  list (marketTab.js's redraw) repaints on that blur - a second replaceChildren inside the first emptied the window
    *  under it, and the first threw on the node already gone. The inner ask is kept and drawn once the outer is done. */
   let painting = false, paintAgain = false;
+  /** AUDIT BOARD-SIFT (lane B M4): A PAINT WAITS ON A WORD BEING COMPOSED in one of the window's fields (an IME's, a phone
+   *  keyboard's - ui/workSift.js typedField marks it): emptying the window took the field mid-word, and the composition
+   *  landed twice ("mitmithril"). It paints once the word is whole, or the field let go. */
+  let composeWait = false;
+  function composing() {
+    const a = /** @type {any} */ (globalThis.document?.activeElement);
+    if (a?.getAttribute?.('data-composing') !== '1' || !win.contains?.(a)) return false;
+    if (!composeWait) {
+      composeWait = true;
+      const go = () => { if (!composeWait) return; composeWait = false; render(); };
+      a.addEventListener?.('compositionend', go, { once: true });
+      a.addEventListener?.('blur', go, { once: true });
+    }
+    return true;
+  }
   function render() {
     if (!alive) return;
     if (painting) { paintAgain = true; return; }
+    if (composing()) return;
     painting = true;
     try {
       do { paintAgain = false; paint(); } while (paintAgain && alive);

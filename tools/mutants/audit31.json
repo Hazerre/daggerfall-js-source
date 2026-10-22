@@ -554,8 +554,8 @@
   {
     "name": "AUDIT31-tab-two-grids",
     "file": "src/ui/noticeWindow.js",
-    "old": "    for (const e of sifted.rows) grid.append(e.card());",
-    "new": "    const g2 = el('ul', 'notice-grid'); for (const e of sifted.rows) (e.kind === 'court' || e.kind === 'chapter' ? grid : g2).append(e.card()); if (g2.children.length) body.append(g2);",
+    "old": "      grid.replaceChildren(...sifted.rows.map((e) => e.card()), ...gridWords());",
+    "new": "      const g2 = el('ul', 'notice-grid'); grid.replaceChildren(...sifted.rows.filter((e) => e.kind === 'court' || e.kind === 'chapter').map((e) => e.card()), ...gridWords()); g2.replaceChildren(...sifted.rows.filter((e) => e.kind !== 'court' && e.kind !== 'chapter').map((e) => e.card())); if (g2.children.length) body.append(g2);",
     "tests": [
       "test/ui/audit31_tabs.test.js"
     ]

@@ -518,7 +518,9 @@ export function createWorkTab(w, ui) {
    * BOARD-SIFT: this region's guild writs, contracts and commissions, each as the Work tab's bar sifts it (ui/workSift.js
    * WorkEntry) - a guild writ fillable while the reader may deliver to it and has a unit it takes; a contract never at the
    * board (it is earned in a raid); a commission naming the reader while a piece of theirs answers it. Its card is made
-   * only when it is drawn.
+   * only when it is drawn. AUDIT BOARD-SIFT: a writ's words its material one and many, and a seat writ's what its card
+   * says (its kind, its stockpile or Siege Camp - lane B L1: "seat" and "camp" found none); a contract's silver what one
+   * defender is paid (SILVER-WAYS' contracts came best-paying first, `contracts.js` contractBoard - "Most silver" keeps it).
    * @returns {import('./workSift.js').WorkEntry[]}
    */
   function entries(data) {
@@ -527,10 +529,11 @@ export function createWorkTab(w, ui) {
     return [
       ...gws.map((x) => {
         const name = w.countName(x.material, 2), open = x.state === 'open';
+        const seat = x.seat != null ? [t('prof.work.writ.seatKind', 'Seat writ'), seatWritPlace({ name: x.seatName, camp: x.camp })] : [];
         return { kind: 'guild', open, fill: open && mayDeliver(data, x) && guildWritMost(x) > 0, pay: Number(x.pay) * Number(x.left) || 0,
-          ends: Number(x.expiresAt) || 0, name, words: wordsOf(name, guildName(x.guild), x.seatName), card: () => guildWritCard(x, data) };
+          ends: Number(x.expiresAt) || 0, name, words: wordsOf(name, w.countName(x.material, 1), guildName(x.guild), ...seat), card: () => guildWritCard(x, data) };
       }),
-      ...gcs.map((x) => ({ kind: 'contract', open: x.state === 'open', fill: false, pay: Number(x.pay) * Number(x.left) || 0, ends: Number(x.expiresAt) || 0,
+      ...gcs.map((x) => ({ kind: 'contract', open: x.state === 'open', fill: false, pay: Number(x.pay) || 0, ends: Number(x.expiresAt) || 0,
         name: guildName(x.guild), words: wordsOf(guildName(x.guild), w.regionNameOf(x.region)), card: () => contractCard(x, data) })),
       ...cs.map((c) => {
         const open = c.state === 'open';

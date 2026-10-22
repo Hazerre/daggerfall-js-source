@@ -1384,24 +1384,29 @@ FACT, read off the code before anything moved:
 
 - **The Market stopped at a hundred.** Each view answered its first MARKET_SHOWN (100) rows and nothing past them
   (`server-account/src/market.js` marketRead): Crafted, Goods and Auctions read 500 and kept a hundred, Orders a hundred,
-  and nothing said more stood behind them. Materials differs: its search, family and tier choose the materials in the
-  query (AUDIT 30 U2), and a material's cheapest hundred are its front - it is not paged.
-- **The Work tab was one grid in the service's order**: the Court's and the chapters' writs (6 x ceil(active / 100) a
+  and nothing said more stood behind them. Materials differs: its first look is the Bay's cheapest hundred of every
+  material (and this region's fifty), and its search, family and tier choose the materials in the query (AUDIT 30 U2) -
+  any material, each to its own cheapest hundred, its front. It is not paged (AUDIT BOARD-SIFT names what that leaves).
+- **The Work tab was one grid in the service's order**: the Court's and the chapters' writs (6 x max(1, ceil(active / 100)) a
   region a day, section 11, and each chapter's), then up to fifty guild writs, the contracts, up to fifty commissions -
   under a panel for each of the region's chapters. An account fills three a day; finding them meant reading all of them.
 
 What changed:
 
 - **The Market turns pages** - Crafted, Goods, Auctions and Orders (`net/marketLaw.js` MARKET_PAGED_VIEWS). The service
-  reads `page` (marketPageOf: 0 to MARKET_PAGES_MAX - 1, 49; anything else the first) and answers MARKET_SHOWN rows that
+  reads `page` (marketPageOf: 0 to MARKET_PAGES_MAX - 1, 499 - AUDIT BOARD-SIFT: 49 stopped at 5,000 rows; anything
+  else the first) and answers MARKET_SHOWN rows that
   many pages in, with the whole count (`page`, `total` - one COUNT in the view's own batch, so MARKET-SPEED's three round
   trips stand). Every filter is in the query so a page is a page: Crafted's crafted-family filter, which ran after the
   500-row cutoff, is the query's now (`pieceKeys`), and a Goods record goodOf would refuse is left out of the query too.
   Each order ends on the row's id, so no row stands on two pages. Under the rows (`ui/marketTab.js` pagerNode): Previous,
   "Page 2 of 7 · 643 in all", Next; a turn reads that page and brings its first row into view; one page draws none.
-- **A search, a least quality, an order.** Crafted and Auctions take a search of the pieces' names, read by the service
-  as the recipes it names - each word somewhere in the recipe's name (`recipesNamed`: "mithril sword" names the Mithril
-  Shortsword, Broadsword and Longsword; a piece is named by its recipe on both ends). Crafted takes the least quality
+- **A search, a least quality, an order.** Crafted and Auctions take a search of the pieces' names, read by the client
+  as the recipes it names - each word somewhere in the recipe's name or in the name its piece wears on the rows, or in
+  either read without its spaces, hyphens and apostrophes (`recipesNamed` over `ui/marketTab.js` recipeShownName,
+  `wordsIn` - AUDIT BOARD-SIFT: 52 recipes' pieces wear another name than their recipe's) - and sent as those recipes
+  (`recipes`), which the service reads within the view's families (`marketRecipesOf`, `pieceKeys`): "mithril sword" names
+  the Mithril Shortsword, Broadsword and Longsword, "iron staff" the Pine Staff its row calls an Iron Staff. Crafted takes the least quality
   (Standard or better to Masterwork). Crafted, Goods and Auctions take an order (MARKET_SORTS): Cheapest first, the
   default, still sorted by the landed price within its page (AUDIT 30 U16); Dearest first; Newest first; Best quality
   first (Crafted); Ending soonest (Auctions' default). Goods takes no search: a pack piece's name is the client's, from the
@@ -1410,12 +1415,15 @@ What changed:
   always was. The market book's minute's cache is keyed by them too (`net/marketBook.js` keyOf).
 - **The Work tab's bar** (`ui/workSift.js`, wired by `ui/noticeWindow.js` workBody; each card handed in as an entry -
   `writEntry`, `ui/workTab.js` entries): the kind (All work, Court writs, Chapter writs, Guild writs, Guild contracts,
-  Commissions - each with its count, a kind with none not offered); a search, each word among the card's words (its
-  material, guild, crafter or piece) or its kind's name; **Only what I can fill** - a Court or chapter writ whose Take
+  Commissions - each with what it would show, the count the search and Only what I can fill leave, a kind with none not
+  offered); a search, each word among the card's words (its material one and many, its kind as its card writes it, its
+  guild and tag, a seat writ's seat and camp or stockpile, a commission's piece, crafter and poster, a contract's region)
+  or its kind's name on the bar; **Only what I can fill** - a Court or chapter writ whose Take
   would fill it (held whole, the day's three not spent - writNode's own law), a guild writ the reader may deliver to and
   holds a unit of within the guild Stores' room (`guildWritMost`, the card's Deliver's law), a commission naming the
   reader with a piece that answers it, a contract never (it is earned in a raid); and the order - Ending soonest (the
-  default), Most silver (a guild writ's pay a unit by what it still asks), A to Z. The open work stands before the done (a
+  default, for every kind - the contracts too, which SILVER-WAYS showed best-paying first: AUDIT BOARD-SIFT), Most silver (a guild writ's
+  pay a unit by what it still asks, a contract's pay to one defender), A to Z. The open work stands before the done (a
   Court writ taken). Forty cards are drawn at once, "Show 40 more" under the last; where nothing matches, "No work
   matches." and Show all work. The bar's choice is the professions book's for the session (`net/profBook.js`
   state.workSift), so a board opened again opens on it.
@@ -1430,13 +1438,105 @@ DFU has no member here - the board and its market are the port's own (NOTICE1, P
 FOUR HOSTS: none is touched; the board is a window its door mounts (`ui/noticeDoor.js`), and the world host's market
 deps are unchanged - the pager and the controls are the tab's own.
 
-Pins: `test/ui/boardsift.test.js` (5) and `test/net/boardsift_market.test.js` (4). Three pins moved, each marked PIN
-MOVED, for one reason: their fixtures list a five-day guild writ or contract before a two-day one (the service sends
-them soonest first), and the work now stands ending soonest - `test/ui/audit31_tabs.test.js` (U2, U10) picks W2 by its
-guild, `test/net/prof6_client.test.js` and `test/net/silverways_client.test.js` take the two cards the other way about. `test/net/market_recipe_family_limit.test.js` - the plan's index, the odd
-families' answers, Auctions' unknown piece unfiltered - passes unchanged. Mutants: `tools/mutants/boardsift.json`, 38,
-all dead; a 39th written survived and showed the service's paged answer checking its view where only paged views call
-it - the check is gone.
+Pins: `test/ui/boardsift.test.js` (10) and `test/net/boardsift_market.test.js` (4), as AUDIT BOARD-SIFT left them.
+Three pins moved, each marked PIN MOVED, because the work now stands ending soonest whatever order the service sent it
+in: `test/ui/audit31_tabs.test.js` (U2, U10) picks W2 by its guild and `test/net/prof6_client.test.js` takes the two
+guild writs the other way about - their fixtures list a five-day writ before a two-day one, which the service (soonest
+first) never sends; `test/net/silverways_client.test.js` takes the two contracts the other way about - its fixture is the
+service's own order (best-paying first, `contracts.js` contractBoard), which ending soonest departs from (AUDIT
+BOARD-SIFT, below). `test/net/market_recipe_family_limit.test.js` - the plan's index, the odd families' answers, Auctions'
+unknown piece unfiltered - passes unchanged. Mutants: `tools/mutants/boardsift.json` - its 38 all dead as the slice
+shipped (a 39th written survived and showed the service's paged answer checking its view where only paged views call it
+- the check is gone), 89 since its audit; and 16 records over the code the slice moved, re-aimed by content and judged
+again, all dead.
+
+### AUDIT BOARD-SIFT (2026-10-22, the owner: "Audit this")
+
+Two lanes: the author's own adversarial re-read, and three independent passes that read the commit cold - the service,
+the shared law and the market book; the board as a player meets it (in Chromium, with an IME); the record with its pins
+and mutants (its mutants judged on a copy of the tree) - none touching the tree while the others read. No HIGH. FOUND,
+each fixed and pinned (`test/ui/boardsift.test.js`, `test/net/boardsift_market.test.js`, `tools/mutants/boardsift.json`):
+
+- **MEDIUM - a search missed the names on the rows** (every lane). The search read recipe names; a row names its piece as
+  its record mints it (`scenes/world.js` marketPieceName: itemLongName of mintPiece), and 52 of 818 recipes' pieces wear
+  another: every Wakizashi DFU's "Wakazashi", the staves and bows in metal tiers (a Pine Staff is an "Iron Staff", and
+  "iron staff" found the Ironwood staves, which read "Adamantium Staff"), the Warforged pieces "Ebony"; "shortbow" and
+  "daikatana" found nothing ("Short Bow", "Dai-Katana"). FIXED: the client reads a search as the recipes whose name or
+  whose piece's shown name holds its words - each minted once a recipe and a language, 20 ms for all 819
+  (`ui/marketTab.js` recipeShownName) - each word read without spaces, hyphens and apostrophes too (`net/marketLaw.js`
+  wordsIn), and sends those recipes; the service reads them within the view's families (`marketRecipesOf`, `pieceKeys`),
+  AUDIT 30 U2's way for the materials. Every recipe is found by its own row's name (52 missed, now none); the shown name
+  is the player's language's, so a search in that language finds the piece. The record's "a piece is named by its recipe
+  on both ends" is struck where it stood.
+- **MEDIUM - the currency's switch kept the page** (lanes A and B, the author): Silver page 5 of 7, then Gold - "Page 5 of
+  5 · 30 in all" over no rows, and four presses of Previous to see one. FIXED: it reads from the first page, as every
+  other change does.
+- **MEDIUM - a page an act emptied said the market was empty** (lane B, the author): the one order on Orders page 2
+  filled - "Page 2 of 2 · 100 in all" over "No buy orders right now." FIXED (`ui/marketTab.js` load): a read that finds
+  its page past the last that stands reads that one.
+- **MEDIUM - a word composed was taken mid-word** (lane B, Chromium's IME through its DevTools protocol): the Work tab's
+  search redrew the whole window 150 ms after the keys rested, the field with it, and a phone keyboard's "mithril" with
+  one pause landed "mitmithril" ("みすミスリル" in Japanese); a phone's keyboard plausibly dropped at each pause too.
+  FIXED: the bar's own changes draw the results alone - the grid, "Show more", the bar's counts - never the bar, so the
+  field typed in stays (`ui/noticeWindow.js` workBody's `refresh`); a search waits for a composed word to be whole
+  (`ui/workSift.js` typedField - the market's two searches too); and the window's paint waits while a word is composed
+  in any of its fields (`render`'s `composing`).
+- **MEDIUM - a market list's choice stood behind the old rows** (lane B): MARKET-AUDIT holds a redraw while one of the
+  tab's lists has the focus, and a browser keeps the focus on a list after the choice - an answer the minute's cache gave
+  waited for a click elsewhere: "Cheapest first" over 897, 896, 895 silver. The Family list did the same since
+  MARKET-AUDIT. FIXED: a list a choice was made in is let go (`data-chosen`).
+- **MEDIUM - the default order moved the contracts, and the record said otherwise** (lane C): SILVER-WAYS' contracts came
+  best-paying first (`server-account/src/contracts.js` contractBoard), and the record called their fixture's order one
+  the service never sends. KEPT, and named: ending soonest is the bar's one default for every kind; "Most silver" now
+  orders a contract by what one defender is paid - the old order - where it had taken the pool (pay by defenders left).
+  The pin note is corrected above.
+- **MEDIUM - pins that could not fail** (lane C: 36 of 38 candidate mutants survived). Newest was also cheapest and no
+  auction carried a bid, so Newest, Auctions' Dearest and Newest and the standing bid's Cheapest were unpinned; three of
+  the Work tab's five kinds were never built in their producers' shapes, so a chapter writ counted as the Court's, a
+  commission as a guild's, a contract fillable, a commission's piece unasked, the day's allowance and the reader's own
+  guild dropped from the fill law, and the guild's, seat's, crafter's, poster's and region's words could all go unseen;
+  the order's, quality's and family's page reset; a default order sent; the Orders' count without its family; the
+  pager's cap, floor and scroll; the search's bound; a family Crafted does not list; work with no end; the chapters' head
+  over Merit lines alone. FIXED: a fixture whose every order puts a different row first, auctions with standing bids, two
+  families of orders and an arrows listing Crafted never lists, each order judged against a plain model of it; every kind
+  of work in its producer's shape (`writView`, `guildWritView` with a seat writ, `contractView`, `commissionView`), a
+  commission naming the reader with no piece, the day's three spent, the reader's own guild. 39 records became 89 - 88
+  dead, the id tie-break kept as recorded (equivalent: no row on two pages rests on SQLite answering equal keys alike in
+  two reads, which it does for one plan but does not promise); the five records the audit's own moves touched re-aimed by
+  content (`audit31.json` AUDIT31-tab-two-grids, `audit_chap2.json` T-BOARD-KIND-TEXT, `chap3a.json` CHAP3A-CARD-KIND,
+  `guild3.json` GUILD3a-your-writ-again, `marketaudit2.json` MARKET-AUDIT2-redraw-under-list), all dead.
+- **LOW** - a seat writ unfound by "seat", "stockpile" or "camp" (lane B): FIXED, its card's words. "ruby" missing the
+  "Rubies": FIXED, a material one and many. A Court or chapter writ's kind searched in the player's language alone while
+  its card writes it in English (lane B, in German): FIXED, the card's words too. The counts at odds - each kind counted
+  what no filter had left ("Commissions (1)" into "No work matches."), in the browser's numbers: FIXED, what the search
+  and the fill leave, in the player's language's (`currentLocale`); the tab's own count stays the work open to take, as
+  BOARD-UI made it. The focus fell to the page after "Show more" and the pages' presses (lane B): FIXED - the window keeps
+  a press that keys its focus, and Next and Previous take no press while a page is read (disabled, they had lost the
+  focus). "No Court writs in Daggerfall today" under a filter that sifted them away: FIXED. Rows past 5,000 unreachable
+  (every lane): MARKET_PAGES_MAX is 500 - 50,000 rows, past what the Bay holds at thirty listings an account. "Least
+  quality" read as "lowest" in six of the drafts (bg, cs, da, nb, id, ru): redrafted as a minimum. A Merit line's -8px
+  under the chapters' head: FIXED. Stale words - the pager's "none while a page is read", Goods' "cheapest first",
+  section 11's max(1, ...), the commit's "17" records re-aimed (16): corrected.
+
+NOT CHANGED, named:
+- **Pages read by OFFSET, each its own minute's** (lane A): a page cached a minute beside a page read fresh can show a row
+  twice or miss one as listings come and go; a page is whole within one read. A cursor's pages are named, not built.
+- **"Cheapest first" is landed within a page** (lanes A and B): the service pages by the listed price, and the courier's
+  share orders the page it answers (AUDIT 30 U16), so page 2 may begin cheaper landed than page 1 ends. As designed.
+- **A COUNT beside every paged read** (lane A): about twice the rows read for Crafted, Goods and Orders, and Auctions'
+  count walks every open auction where its first page stopped early on its index; every plan is indexed and none scans a
+  table. The count is what says "643 in all".
+- **Materials' first look** (lane C): the Bay's cheapest hundred of every material and this region's fifty - the brief's
+  "stops after a certain number" stands there until a search, a family or a tier is chosen, each of which reaches every
+  material. Its two reads (the Bay's and the region's, MARKET-AUDIT) would page together awkwardly; named.
+- **Goods unsearched**: a pack piece's name comes from the player's own item templates, which the service never holds.
+- **A market list's focus after an answer the cache did not give** (lane B): the window rebuilds the list and the focus
+  falls to the page, as the Family list's did since MARKET-AUDIT; keying the lists would hold every later answer behind
+  MARKET-AUDIT's rule while one keeps the focus.
+- **The live counts rebuilt at each paint** (lane B, plausible): a screen reader may not announce "Showing 40 of 213" or
+  the page's line - the window's whole-paint design (BOARD-UI).
+- **The Work tab's forty at a time is the client's**: the service still sends a region's Court and chapter writs whole,
+  and fifty guild writs and fifty commissions, soonest to end (PROF6's WRIT_SHOWN).
 
 ## 11. Writs - the Work tab
 

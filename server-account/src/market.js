@@ -74,7 +74,7 @@ import { CHAR_ID_RE, readAll } from './service.js';   // MARKET-SPEED: a read's 
 import { MARKS_MAX, MARK_WORTH_GOLD, utcDay } from '../../src/net/marksLaw.js';
 import { STORES_MAX } from '../../src/net/professionLaw.js';
 import { material, regionOk, WITNESS } from '../../src/net/nodeLaw.js';
-import { RECIPES } from '../../src/net/recipeLaw.js';
+import { RECIPES, recipeById } from '../../src/net/recipeLaw.js';
 import {
   MARKET_LISTING_S, MARKET_ORDER_S, MARKET_ORDERS_MAX, MARKET_POSTS_MAX, MARKET_OPS_MAX, MARKET_WINDOW_S,
   MARKET_SHOWN, MARKET_HISTORY_SHOWN, MARKET_TRADES_SHOWN, MARKET_MEDIAN_DAYS, MARKET_KEEP_DAYS, MARKET_RID_RE, MARKET_ID_RE,
@@ -86,7 +86,7 @@ import {
   goodRefusal, goodFamily, GOOD_GROUP_FAMILIES, MARKET_HELD_MAX,   // MARKET-ANY
   fillTaxOn,   // MARKET-AUDIT S2
   wearOf,   // INT19: a crafted piece's wear, its record's
-  marketPageOf, marketSortOf, marketQueryOf, marketQualityOf, recipesNamed,   // BOARD-SIFT: a page, its order, a search
+  marketPageOf, marketSortOf, marketQualityOf, recipesNamed, marketRecipesOf,   // BOARD-SIFT: a page, its order, a search's recipes
 } from '../../src/net/marketLaw.js';
 import { MASTERWORK, PROVENANCE_RE } from '../../src/net/recipeLaw.js';
 import { mintVersionOf } from '../../src/net/productRecord.js';   // CRAFT-PROCS: a piece's mint version, its record's
@@ -213,15 +213,17 @@ const RECIPE_FAMILY_KEYS = new Map([...new Set(RECIPES.map((r) => r.family))]
   .map((family) => [family, JSON.stringify(RECIPES.filter((r) => r.family === family).map((r) => r.id))]));
 const recipeFamilyKeys = (family) => family ? (RECIPE_FAMILY_KEYS.get(family) ?? '[]') : null;
 /** BOARD-SIFT: THE RECIPES A READ OF PIECES ASKS, one bound JSON array, so a page is a page: its family's (a family that is
- *  no string, or not `listed`, names none - recipeFamilyKeys' law), narrowed to those a search names (marketLaw
- *  recipesNamed); `listed` the families a view lists (Crafted's CRAFTED_FAMILIES - the filter that ran after the cutoff),
- *  null for a view that lists every recipe and an unknown one too (Auctions), which is unfiltered (null) where nothing
+ *  no string, or not `listed`, names none - recipeFamilyKeys' law), narrowed to a search's recipes (`recipes`, the
+ *  client's reading of its words - marketLaw recipesNamed over the names the rows wear, AUDIT BOARD-SIFT; null for no
+ *  search); `listed` the families a view lists (Crafted's CRAFTED_FAMILIES - the filter that ran after the cutoff), null
+ *  for a view that lists every recipe and an unknown one too (Auctions), which is unfiltered (null) where nothing
  *  narrows it. */
 const CRAFTED_LISTED = Object.freeze(CRAFTED_FAMILIES.map(([f]) => f));
-function pieceKeys(family, query, listed = null) {
+function pieceKeys(family, recipes, listed = null) {
   if (family && (typeof family !== 'string' || (listed && !listed.includes(family)))) return '[]';
-  if (!query) return family ? recipeFamilyKeys(family) : listed ? JSON.stringify(recipesNamed('', listed)) : null;
-  return JSON.stringify(recipesNamed(query, family ? [family] : listed));
+  if (!recipes) return family ? recipeFamilyKeys(family) : listed ? JSON.stringify(recipesNamed('', listed)) : null;
+  const families = family ? [family] : listed;
+  return JSON.stringify(recipes.filter((id) => !families || families.includes(recipeById(id)?.family ?? '')));
 }
 /** BOARD-SIFT: each view's orders as SQL - source-owned, chosen by marketLaw marketSortOf's word, never a bound value; each
  *  ends on the row's id, so a page never shares a row with the next. */
@@ -634,11 +636,12 @@ function mediansFrom(keys, /** @type {any[]} */ results, today) {
  * THE MARKET TAB: `{ character, region, view, family?, tier?, material?, hubs? }` - the board's region and one of its
  * views (marketLaw MARKET_VIEWS), after the account's own market is settled. Every answer carries what is on its way
  * to the account, its balance and its live counts. BOARD-SIFT: a paged view (MARKET_PAGED_VIEWS) reads its `page`
- * (`page` and `total` in the answer), Crafted, Goods and Auctions their `sort`, Crafted and Auctions a `query` of the
- * pieces' names and Crafted the least `quality` - each read by marketLaw's own word, anything else its default.
+ * (`page` and `total` in the answer), Crafted, Goods and Auctions their `sort`, Crafted and Auctions a search's `recipes`
+ * (AUDIT BOARD-SIFT: the client's reading of its words) and Crafted the least `quality` - each read by marketLaw's own
+ * word, anything else its default.
  */
 export async function marketRead(ctx, player, env, { character, region, view, family = null, tier = null, material: key = null, materials = null, hubs, currency = 'marks', pieces = null, board = null,
-  page: pageAsked = 0, sort: sortAsked = null, query: queryAsked = null, quality: qualityAsked = 0 } = {}) {
+  page: pageAsked = 0, sort: sortAsked = null, recipes: recipesAsked = null, quality: qualityAsked = 0 } = {}) {
   const { db, nowS } = ctx;
   const refused = asks(player, { character, needRid: false });
   if (refused) return refused;
@@ -662,7 +665,7 @@ export async function marketRead(ctx, player, env, { character, region, view, fa
   const own = hubsOf(hubs);
   const moderator = canModerate(player, env);
   // BOARD-SIFT: what the paged views read - each by the law's own word
-  const page = marketPageOf(pageAsked), sort = marketSortOf(view, sortAsked), query = marketQueryOf(queryAsked), quality = marketQualityOf(qualityAsked);
+  const page = marketPageOf(pageAsked), sort = marketSortOf(view, sortAsked), recipes = marketRecipesOf(recipesAsked), quality = marketQualityOf(qualityAsked);
   /** BOARD-SIFT: a paged view's answer's page and its whole count (MARKET_PAGED_VIEWS - each reads its COUNT beside its rows). */
   const paged = (/** @type {any[]} */ [counted] = []) => ({ page, total: Number(counted?.n ?? 0) });
   // AUDIT 30 U1: this character's Stores the settle moved, answered so the pages read them
@@ -752,7 +755,7 @@ export async function marketRead(ctx, player, env, { character, region, view, fa
   if (view === 'crafted') {
     // BOARD-SIFT: every filter in the query - the family, the crafted families alone (they were kept after a 500-row
     // cutoff), a search's recipes and the least quality - so a page of it is a page; and its whole count
-    const keys = pieceKeys(family, query, CRAFTED_LISTED);
+    const keys = pieceKeys(family, recipes, CRAFTED_LISTED);
     const from = `FROM market_listings l JOIN products p ON p.provenance = l.provenance
       WHERE l.state = 'open' AND l.kind = 'piece' AND l.expires_at > ?1 AND l.currency = '${currency}'
         AND p.recipe IN (SELECT value FROM json_each(?2)) AND (?3 = 0 OR p.quality >= ?3)`;   // GOLD-MARKET
@@ -768,7 +771,8 @@ export async function marketRead(ctx, player, env, { character, region, view, fa
     };
   }
   if (view === 'goods') {
-    // MARKET-ANY: every piece listed from a pack, cheapest first, each with its courier to this board - for gold alone
+    // MARKET-ANY: every piece listed from a pack, in the order asked (the cheapest first, its own), each with its courier
+    // to this board - for gold alone
     // Legacy truthy non-string filters match nothing; never pass their objects/arrays to a D1 binding.
     const familyFilter = family ? (typeof family === 'string' ? family : '') : null;
     // BOARD-SIFT: a record goodOf would refuse is left out in the query too (an object's JSON alone), so a page is a page
@@ -785,7 +789,7 @@ export async function marketRead(ctx, player, env, { character, region, view, fa
     // PROF5b: every open auction, ending soonest first, each with its courier to this board (one piece)
     // BOARD-SIFT: a page of them, the family's and a search's recipes in the query (unfiltered, an unknown piece's too,
     // where neither narrows it), in the order asked
-    const keys = pieceKeys(family, query);
+    const keys = pieceKeys(family, recipes);
     const from = `FROM market_auctions a JOIN products p ON p.provenance = a.provenance
       WHERE a.state = 'open' AND a.ends_at > ?1
         AND (?2 IS NULL OR p.recipe IN (SELECT value FROM json_each(?2)))`;

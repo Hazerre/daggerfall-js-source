@@ -1597,6 +1597,8 @@ export const PROF_CSS = `/* ── PROF1: THE PROFESSIONS ── */
 /* CHAP3a: the account's Merit in a chapter here, under the day's count, on the guild seal's strip */
 .notice-merit { margin: -8px 4px 12px; padding: 4px 10px; font-size: 14px; letter-spacing: 0.03em; color: #e9e1cf;
   background: rgba(12,10,8,0.6); border-left: 2px solid rgba(120,150,190,0.6); }
+/* AUDIT BOARD-SIFT: a Merit line under the chapters' head, clear of it (its -8px meant the day's strip above it) */
+.notice-section + .notice-merit { margin-top: 0; }
 /* CHAP3b: a chapter of the region, its band and Strength, under the Merit lines */
 .notice-merit + .notice-chapter, .notice-worktoday + .notice-chapter { margin-top: -8px; }
 .notice-chapter { margin: 0 4px 12px; padding: 4px 10px; font-size: 14px; letter-spacing: 0.03em; color: #d8cfbb;
