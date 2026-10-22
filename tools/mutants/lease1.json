@@ -72,12 +72,13 @@
   {
     "name": "LEASE1-the-renewed-closed",
     "file": "server/src/index.js",
-    "old": "(a.ld ? a.ld * 1000 < Date.now() :",
-    "new": "(a.ld ? true :",
+    "old": "(a.ld != null ? !(a.ld * 1000 >= Date.now()) :",
+    "new": "(a.ld != null ? true :",
     "why": "a renewed socket closed",
     "tests": [
       "test/net/lease1.test.js"
-    ]
+    ],
+    "note": "LEASE1 NO GRACE (PIN MOVED): a bound socket's hello sets `ld` 0, and its first lease sets the lapse."
   },
   {
     "name": "LEASE1-the-door-always-on",
@@ -232,12 +233,13 @@
   {
     "name": "LEASE1-load-the-door-asked-of-every-frame",
     "file": "server/src/index.js",
-    "old": "m.t !== 'ping' && !ws.virtual && (a.ld ? a.ld * 1000 < Date.now() : !!a.id && leaseRoom(a.key ?? this._busKey)) && await this._leaseDoorOn(Date.now())",
-    "new": "m.t !== 'ping' && !ws.virtual && await this._leaseDoorOn(Date.now()) && (a.ld ? a.ld * 1000 < Date.now() : !!a.id && leaseRoom(a.key ?? this._busKey))",
+    "old": "m.t !== 'ping' && !ws.virtual && (a.ld != null ? !(a.ld * 1000 >= Date.now()) : !!a.id && leaseRoom(a.key ?? this._busKey)) && await this._leaseDoorOn(Date.now())",
+    "new": "m.t !== 'ping' && !ws.virtual && await this._leaseDoorOn(Date.now()) && (a.ld != null ? !(a.ld * 1000 >= Date.now()) : !!a.id && leaseRoom(a.key ?? this._busKey))",
     "why": "every frame in a lease room asks after the door, so every lease room asks the hub once a minute",
     "tests": [
       "test/net/lease1.test.js"
-    ]
+    ],
+    "note": "LEASE1 NO GRACE (PIN MOVED): the same door, read for `lb`."
   },
   {
     "name": "LEASE1-load-the-hello-door-awaited",
@@ -285,6 +287,46 @@
     "old": "const LEASE_QUIET_RE = /^\\{\"t\":\"(?:ping|hello|lease)\"/;",
     "new": "const LEASE_QUIET_RE = /^\\{\"t\":\"(?:hello|lease)\"/;",
     "why": "a ping carries a lease, so the room wakes for it",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-a-grace-back",
+    "file": "server/src/index.js",
+    "old": "...(m.ls === 1 && leaseRoom(a.key) ? { ld: 0 } : {}),",
+    "new": "...(m.ls === 1 && leaseRoom(a.key) ? { ld: Math.floor((now + 60_000) / 1000) } : {}),",
+    "why": "a bound socket heard for a minute with no lease: a changed game reconnecting inside it never leased (the PR review)",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-unleased-heard",
+    "file": "server/src/index.js",
+    "old": "(a.ld != null ? !(a.ld * 1000 >= Date.now()) :",
+    "new": "(a.ld != null ? !!a.ld && a.ld * 1000 < Date.now() :",
+    "why": "a bound socket with no lease yet heard in everything",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-unleased-closed",
+    "file": "server/src/index.js",
+    "old": "      else if (a.ld) this._refuse(ws, LEASE_LAPSED, CLOSE_BUSY);",
+    "new": "      else this._refuse(ws, LEASE_LAPSED, CLOSE_BUSY);",
+    "why": "a socket whose first lease is on its way closed",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "LEASE1-the-frame-not-waiting-on-its-lease",
+    "file": "server/src/index.js",
+    "old": "    if (m.t !== 'ping' && !ws.virtual && a.ld === 0) { await this._meterOf(ws).lp; a = this._attach(ws); if (!a) return; }\n",
+    "new": "",
+    "why": "the honest game's first frame, right behind its lease, dropped while the lease is read",
     "tests": [
       "test/net/lease1.test.js"
     ]

@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import { fakeRoom, fakeRooms } from '../fakeRoom.mjs';
 import { fakeSocketClass } from '../fakeSocket.mjs';
 import * as H from '../../src/net/hubShards.js';
-import { leaseKeyOf, mintLease, readLease, leaseRoom, relaySupportsLease, LEASE_MS, LEASE_LIFE_S, LEASE_GRACE_MS, LEASE_FRAME_MIN_MS, LEASE_OLD_REASON, LEASE_LAPSED } from '../../src/net/roomLease.js';
+import { leaseKeyOf, mintLease, readLease, leaseRoom, relaySupportsLease, LEASE_MS, LEASE_LIFE_S, LEASE_FRAME_MIN_MS, LEASE_OLD_REASON, LEASE_LAPSED } from '../../src/net/roomLease.js';
 import { parseClient, cellRoomOfWire, chatRegionRoom, chatLangRoom, CHAT_WORLD_ROOM, CHAT_TRADE_ROOM, CHAT_LFG_ROOM, CLOSE_BUSY, CLOSE_POLICY, PIXEL_UNITS, LEASE_WIRE_MAX, GROUND_LAW, GRANT_HELLO_LAW } from '../../src/net/wire.js';
 import { RELAY_CFG_KEYS, RELAY_INTERNAL_CFG } from '../../src/net/relayCfg.js';
 import { mintOrder, _b64url } from '../../src/net/identityToken.js';
@@ -157,7 +157,7 @@ test('LEASE1 A LEASE ROOM TAKES THE HUB\'S WORD from a lease newer than its own:
   W.tick(1000);
   await W.say(W.trade, fresh, { t: 'chat', text: 'newer token' });
   assert.ok(lines(ear).includes('newer token'), 'an older lease says nothing over a newer token');
-  assert.equal(fresh.att.ld, oldAt + LEASE_LIFE_S, 'yet it renewed the socket\'s lease: past its hello\'s grace, to the lease\'s own lapse');
+  assert.equal(fresh.att.ld, oldAt + LEASE_LIFE_S, 'yet it leased the socket: to the lease\'s own lapse');
 });
 
 test('LEASE1 A FROZEN SOCKET IS HEARD IN NOTHING BUT ITS PING AND ITS LEASE: its poses and lines go nowhere, until a lease lifts it (mutants: the freeze unread; the ping dropped; the lease dropped)', async (t) => {
@@ -183,16 +183,18 @@ test('LEASE1 A FROZEN SOCKET IS HEARD IN NOTHING BUT ITS PING AND ITS LEASE: its
   assert.equal(ice.closed, null);
 });
 
-test('LEASE1 THE DOOR: off, a build that hands on no lease is let in and a lapsed socket stands; on, a lease room refuses such a hello (GROUND-GATE\'s words, CLOSE_POLICY, LEASE_OLD_REASON) and the hub never does, and a bound socket whose lease lapsed is closed CLOSE_BUSY at its own next frame while a renewed one stands - its ping alone heard as ever (mutants: the door always on; the hub bound; the renewed closed; the lapse unread)', async (t) => {
+test('LEASE1 THE DOOR: off, a build that hands on no lease is let in, and a bound socket with no lease yet or a lapsed one stands and is heard; on, a lease room refuses such a hello (GROUND-GATE\'s words, CLOSE_POLICY, LEASE_OLD_REASON) and the hub never does, a bound socket is heard in nothing but its ping until its first lease lands - NO GRACE (a review of the PR: a changed game that reconnected inside one was never leased, and a token carries no freeze) - a frame right behind a lease still being read waits on it and is heard, and a bound socket whose lease lapsed is closed CLOSE_BUSY at its own next frame while a renewed one stands (mutants: the door always on; the hub bound; the renewed closed; the lapse unread; a grace back; the frame not waiting on its lease)', async (t) => {
   const off = await rooms(t);
+  const ear0 = await off.join(off.trade, 'ear-0000', { ls: 1 });
   const old = await off.join(off.trade, 'old-0001');
   const bound = await off.join(off.trade, 'bnd-0001', { ls: 1 });
-  assert.equal(bound.att.ld, off.nowS() + LEASE_GRACE_MS / 1000, 'bound: its first lease due a grace after its hello');
+  assert.equal(bound.att.ld, 0, 'bound, with no lease until its first lands: no grace');
   assert.equal(old.att.ld, undefined, 'an old build is bound to nothing');
-  off.tick(LEASE_GRACE_MS + 1000);
-  await off.say(off.trade, bound, { t: 'chat', text: 'after the grace' });
+  off.tick(LEASE_LIFE_S * 1000);
+  await off.say(off.trade, bound, { t: 'chat', text: 'no lease yet' });
   await off.say(off.trade, old, { t: 'chat', text: 'an old build' });
   assert.deepEqual([old.closed, bound.closed], [null, null], 'off: nobody refused, nobody closed');
+  assert.ok(lines(ear0).includes('no lease yet') && lines(ear0).includes('an old build'), 'off: both heard');
   t.mock.restoreAll();
   const on = await rooms(t, { LEASE_DOOR: 'on' });
   const refused = await on.join(on.trade, 'old-0002');
@@ -200,23 +202,33 @@ test('LEASE1 THE DOOR: off, a build that hands on no lease is let in and a lapse
   assert.match(refused.sent.at(-1).m, /^This copy of the game is older than the world online/);
   assert.deepEqual((await on.join(on.cell, 'old-0003', {})).closed, { code: CLOSE_POLICY, reason: LEASE_OLD_REASON }, 'a cell too');
   assert.equal((await on.join(on.hub, 'old-0004')).closed, null, 'the hub binds nobody: it hands the leases out');
+  const ear = await on.join(on.trade, 'ear-0001', { ls: 1 });
   const kept = await on.join(on.trade, 'kpt-0001', { ls: 1 });
-  const lapses = await on.join(on.trade, 'lps-0001', { ls: 1 });
-  assert.equal(kept.closed, null);
-  on.tick(LEASE_GRACE_MS - 1000);
-  await on.say(on.trade, kept, { t: 'lease', l: await on.lease({ s: 'acct-kpt-0001' }) });
+  const fresh = await on.join(on.trade, 'frs-0001', { ls: 1 });
+  // a changed game that hands on nothing, straight after its hello: nothing it says is heard, and it stands
+  await on.say(on.trade, fresh, { t: 'chat', text: 'straight after my hello' });
+  await on.say(on.trade, fresh, { t: 'ping' });
+  assert.deepEqual(fresh.sent.at(-1), { t: 'pong' }, 'its ping is the runtime\'s answer, as ever');
+  assert.equal(fresh.closed, null, 'not closed: its lease may be on its way');
+  assert.ok(!lines(ear).includes('straight after my hello'), 'no grace: nothing it says is heard before its first lease');
+  // the honest game: its lease rides just ahead of its first frame, and that frame waits on the lease's read
+  const l = await on.lease({ s: 'acct-kpt-0001' });
+  await Promise.all([on.say(on.trade, kept, { t: 'lease', l }), on.say(on.trade, kept, { t: 'chat', text: 'right behind my lease' })]);
+  assert.ok(lines(ear).includes('right behind my lease'), 'the frame behind the lease is heard');
   on.tick(2000);
-  await on.say(on.trade, lapses, { t: 'ping' });
-  assert.equal(lapses.closed, null, 'its ping is the runtime\'s answer, as ever');
-  await on.say(on.trade, kept, { t: 'chat', text: 'still here' });
-  assert.equal(lapses.closed, null, 'another\'s frame closes nobody: the speaker alone is looked at');
-  await on.say(on.trade, lapses, { t: 'chat', text: 'past my grace' });
-  assert.equal(lapses.closed?.code, CLOSE_BUSY, 'past the grace with no lease: closed busy at its own next frame');
-  assert.equal(lapses.closed?.reason, LEASE_LAPSED);
-  assert.equal(kept.closed, null, 'renewed: stands');
-  on.tick(LEASE_LIFE_S * 1000 + 1000);
+  await on.say(on.trade, fresh, { t: 'lease', l: await on.lease({ s: 'acct-frs-0001' }) });
+  await on.say(on.trade, fresh, { t: 'chat', text: 'leased now' });
+  assert.ok(lines(ear).includes('leased now'), 'its first lease landed: heard from then on');
+  on.tick((LEASE_LIFE_S - 10) * 1000);
+  await on.say(on.trade, fresh, { t: 'lease', l: await on.lease({ s: 'acct-frs-0001' }) });
+  on.tick(20_000);
+  await on.say(on.trade, fresh, { t: 'chat', text: 'renewed' });
+  assert.equal(kept.closed, null, 'another\'s frame closes nobody: the speaker alone is looked at');
   await on.say(on.trade, kept, { t: 'chat', text: 'and now' });
-  assert.equal(kept.closed?.code, CLOSE_BUSY, 'its lease lapsed in turn: closed at its next frame');
+  assert.equal(kept.closed?.code, CLOSE_BUSY, 'its lease lapsed: closed busy at its own next frame');
+  assert.equal(kept.closed?.reason, LEASE_LAPSED);
+  assert.equal(fresh.closed, null, 'renewed: stands');
+  assert.ok(lines(ear).includes('renewed'));
 });
 
 test('LEASE1 THE LOAD (mob, 07:57Z: "we need to test if this affected load times", "for players", "if we affected server performasnce"): a lease room whose every socket holds a live lease never asks the hub - not on a fresh object\'s first frame past a hello, not once a minute after; a cold room lets a build that hands on no lease in without waiting on the hub, and turns it away at its next frame once the hub\'s answer says the door is on (mutants: the door asked of every frame; the hello door awaited; the unbound let stand)', async () => {

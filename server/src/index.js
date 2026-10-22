@@ -183,7 +183,7 @@ import { privateInteriorOf, privateInteriorAdmits, caravanKeyOf } from '../../sr
 import { isInstanceRoom, instanceOf, instanceAdmission, partyHoldsOwner, INSTANCE_INTERNAL_KIN, INSTANCE_KIN_KEEP_MS, INSTANCE_DOOR_WORD } from '../../src/net/instanceRoom.js';   // INSTANCES: an instance's room, its door and the hub's party answer (bible/11-Multiplayer/Instances.md)
 import { isStaff } from '../../src/net/staffCommands.js';
 import { RELAY_CFG_TTL_MS, RELAY_INTERNAL_CFG, mayRelayCfg, relayCfgValue } from '../../src/net/relayCfg.js';   // SCALE5b: the relay's settings, at run time
-import { leaseKeyOf, mintLease, readLease, leaseRoom, LEASE_GRACE_MS, LEASE_FRAME_MIN_MS, LEASE_OLD_REASON, LEASE_LAPSED } from '../../src/net/roomLease.js';   // LEASE1: the hub's word on every socket, in every room
+import { leaseKeyOf, mintLease, readLease, leaseRoom, LEASE_FRAME_MIN_MS, LEASE_OLD_REASON, LEASE_LAPSED } from '../../src/net/roomLease.js';   // LEASE1: the hub's word on every socket, in every room
 import { busOf, shardOf, isChannelShard, isChannelBus, isRegionBus, isCourtCopy, courtOfCopy, upOf, HUB_INTERNAL_UP, HUB_INTERNAL_POLL, HUB_POLL_MS, HUB_OUTBOX_MAX, HUB_OUTBOX_BYTES, HUB_BATCH_MS, HUB_SYNC_MS, HUB_COUNT_MS, HUB_BATCH_MAX, CLOSE_HUB, HUB_FIND_MAX, HUB_FIND_ROOM_HZ_MAX, HUB_GUILD_WHO_MAX, HUB_WHO_KEEP_MS, HUB_FRAME_MAX, HUB_UP_HZ_MAX, HUB_UP_BURST, shardKeeps, foldFind, HUB_BATCH_BYTES, HUB_UP_QUEUE_BYTES, HUB_SILENT_MS, SHARD_LAW_KEYS, HUB_KEY_KEY } from '../../src/net/hubShards.js';   // SCALE5c: the hub, sixteen ways
 import { verifyToken, verifyOrder, verifyStakeOrderAnyAge, importPublicKeyB64, MAX_TTL_S, ORDER_TTL_S, renownIssuable, deckDigest, remainsDigest, _b64url } from '../../src/net/identityToken.js';   // MOD1: and the mute order, checked with the same key; AUDIT SAFE RELAY-10: and an order's claims read for its kind (`lawKindOf`)
 /** ACC1d/F8: the most spent signatures one room remembers. Every entry
@@ -3725,7 +3725,7 @@ export class Room {
         // AUDIT SCALE II R2-4: and kept, so a woken instance whose sockets say nothing still knows it
         if (this._hubKeyKept !== this._hubKey) { this._hubKeyKept = this._hubKey; try { await this.state.storage.put(HUB_KEY_KEY, this._hubKey); } catch { this._hubKeyKept = null; } }
       }
-      if (!this._setAttach(ws, { ...a, ...placed, ...shown, ...(shard ? { vid, hm: { acct: m.acct ?? null, as: m.asecret ?? null, ps: m.ps === 1 ? 1 : 0, sc: m.secret } } : copy ? { vid } : {}), ...(m.gv >= GRANT_HELLO_LAW && streamsFoes(a.key) ? { gv: 1 } : {}), id: m.id, name: who.name, title: who.title, ...(who.ts ? { ts: who.ts } : {}), glyphs: who.glyphs, gx: who.gx, au: who.au, ...(who.pi ? { pi: who.pi } : {}), ...(who.rb ? { rb: who.rb } : {}), lv: who.lv, ...guild, ...(who.hn ? { hn: who.hn, hc: who.hc, hb: who.hb, hg: who.hg } : {}), ...(who.ci && !chat && !isSocialRoom(a.key) ? { ci: who.ci } : {}), ...(armsOk(who.wa) && !chat && !isSocialRoom(a.key) ? { wa: who.wa } : {}), gio: who.gio, ...(Number.isSafeInteger(who.lt) ? { lt: who.lt } : {}), ...(m.ls === 1 && leaseRoom(a.key) ? { ld: Math.floor((now + LEASE_GRACE_MS) / 1000) } : {}), sub: who.subject, ...(instParty ? { ip: 1 } : {}), ...(siegeSide ? { sd: siegeSide } : {}), mu: who.mu, pose: chat ? null : m.pose, since: this._seatKeep(replaced, now), ...arena, ...charLv, ...linked, ...(chat && who.kind === 'guest' ? { gu: 1 } : {}), ...(m.w2 === 1 ? { w2: 1 } : {}) })) { this._refuse(ws, 'hello too large'); return; }   // MOD1: `sub` the verified account (what a mute names), `mu` until when it may not talk   // RENOWN1: `lv` the Renown level the token carried   // AUDIT SAFE RELAY-11: `gu`, a guest's socket in a channel - paced as a sprout's (`_newVoiceWait`)
+      if (!this._setAttach(ws, { ...a, ...placed, ...shown, ...(shard ? { vid, hm: { acct: m.acct ?? null, as: m.asecret ?? null, ps: m.ps === 1 ? 1 : 0, sc: m.secret } } : copy ? { vid } : {}), ...(m.gv >= GRANT_HELLO_LAW && streamsFoes(a.key) ? { gv: 1 } : {}), id: m.id, name: who.name, title: who.title, ...(who.ts ? { ts: who.ts } : {}), glyphs: who.glyphs, gx: who.gx, au: who.au, ...(who.pi ? { pi: who.pi } : {}), ...(who.rb ? { rb: who.rb } : {}), lv: who.lv, ...guild, ...(who.hn ? { hn: who.hn, hc: who.hc, hb: who.hb, hg: who.hg } : {}), ...(who.ci && !chat && !isSocialRoom(a.key) ? { ci: who.ci } : {}), ...(armsOk(who.wa) && !chat && !isSocialRoom(a.key) ? { wa: who.wa } : {}), gio: who.gio, ...(Number.isSafeInteger(who.lt) ? { lt: who.lt } : {}), ...(m.ls === 1 && leaseRoom(a.key) ? { ld: 0 } : {}), sub: who.subject, ...(instParty ? { ip: 1 } : {}), ...(siegeSide ? { sd: siegeSide } : {}), mu: who.mu, pose: chat ? null : m.pose, since: this._seatKeep(replaced, now), ...arena, ...charLv, ...linked, ...(chat && who.kind === 'guest' ? { gu: 1 } : {}), ...(m.w2 === 1 ? { w2: 1 } : {}) })) { this._refuse(ws, 'hello too large'); return; }   // MOD1: `sub` the verified account (what a mute names), `mu` until when it may not talk   // RENOWN1: `lv` the Renown level the token carried   // AUDIT SAFE RELAY-11: `gu`, a guest's socket in a channel - paced as a sprout's (`_newVoiceWait`)
       if (!chat && m.pose && this._trailing({ key: a.key, sub: who.subject })) this._trailPose(ws, m.pose, now);   // AUDIT INT11: a fighter's socket new to the room stands where its hello put it, from now - on its trail, or none says when
       // SRV-N: `v` rides EVERY welcome, a channel's included. A player in the enhanced skin holds a presence socket
       // and one chat socket per tab; whichever reconnects first after a hand deploy is the one that notices, and the
@@ -3869,14 +3869,18 @@ export class Room {
       return;
     }
     // LEASE1 (net/roomLease.js): THE HUB'S WORD, IN EVERY ROOM - a lease asked or handed on (a method of its own); while
-    // `leaseDoor` is on, a socket whose lease lapsed is closed `busy` at its own next frame, and one bound to nothing (a
-    // build that hands on no lease, let in by a room that did not know the door was on) is turned away as its hello would
-    // be - the speaker alone is looked at, never the room (a silent socket moves nothing and says nothing); and a socket
-    // the hub holds frozen is heard in nothing it says but its ping and its lease
+    // `leaseDoor` is on, a bound socket (`ld` 0 from its hello) is heard in nothing but its ping and its lease until its first lease lands -
+    // NO GRACE (a review of the PR: a changed game that reconnected inside one would never be leased, and its token carries
+    // no freeze), a frame behind a lease still being read waiting on that read and never on the hub; one whose lease lapsed
+    // is closed `busy` at its own next frame, and one bound to nothing (a build that hands on no lease, let in by a room
+    // that did not know the door was on) is turned away as its hello would be - the speaker alone is looked at, never the
+    // room (a silent socket moves nothing and says nothing); and a socket the hub holds frozen is heard in nothing it says
+    // but its ping and its lease
     if (m.t === 'lease') return this._leaseFrame(ws, a, m, message);
-    if (m.t !== 'ping' && !ws.virtual && (a.ld ? a.ld * 1000 < Date.now() : !!a.id && leaseRoom(a.key ?? this._busKey)) && await this._leaseDoorOn(Date.now())) {
-      if (a.ld) this._refuse(ws, LEASE_LAPSED, CLOSE_BUSY);
-      else this._refuse(ws, GROUND_OLD_WORDS, CLOSE_POLICY, LEASE_OLD_REASON);
+    if (m.t !== 'ping' && !ws.virtual && a.ld === 0) { await this._meterOf(ws).lp; a = this._attach(ws); if (!a) return; }
+    if (m.t !== 'ping' && !ws.virtual && (a.ld != null ? !(a.ld * 1000 >= Date.now()) : !!a.id && leaseRoom(a.key ?? this._busKey)) && await this._leaseDoorOn(Date.now())) {
+      if (a.ld == null) this._refuse(ws, GROUND_OLD_WORDS, CLOSE_POLICY, LEASE_OLD_REASON);
+      else if (a.ld) this._refuse(ws, LEASE_LAPSED, CLOSE_BUSY);
       return;
     }
     if (a.fz && a.fz > Math.floor(Date.now() / 1000) && m.t !== 'ping') return;
@@ -7050,6 +7054,12 @@ export class Room {
     const meter = this._meterOf(ws);   // AUDIT ATTACH: a meter is the instance's, never the attachment's
     if (now - (meter.lq ?? -Infinity) < LEASE_FRAME_MIN_MS) return;
     meter.lq = now;
+    let read = () => {};
+    meter.lp = new Promise((ok) => { read = ok; });   // a frame behind this lease waits on its read (the hub's door above)
+    try { await this._leaseRead(ws, a, m, message, now); } finally { read(); }
+  }
+  /** LEASE1: _leaseFrame's work, past its meter. */
+  async _leaseRead(ws, a, m, message, now) {
     const key = await this._leaseKeyOf();
     if (!key || typeof a.sub !== 'string' || !a.sub) return;
     const room = a.key ?? this._busKey;

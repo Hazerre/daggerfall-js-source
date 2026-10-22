@@ -15,9 +15,12 @@
 //   - a lease room takes a lease for the socket's own account only; one newer than the room's last word on the socket
 //     (its token, a carried order, an earlier lease) sets the socket's mute and freeze - the hub's word wins;
 //   - a socket whose hello said it hands leases on (`ls` 1) is BOUND: while the relay's `leaseDoor` is on (net/relayCfg.js),
-//     a bound socket whose last lease lapsed is closed `busy` at its own next frame - an honest game's hub was away; it
-//     comes back - and a lease room refuses a hello that does not say `ls` (LEASE_OLD_REASON, GRANT-DOOR's own law: off
-//     until the site serves the build that says it, since the relay deploys first), never waiting on the hub to know;
+//     a bound socket is heard in nothing but its ping and its lease until its first lease lands - no grace (a review of
+//     the PR: a changed game that reconnected inside one would never be leased, and a token carries no freeze); the
+//     honest game hands its lease on ahead of its first frame there, and that frame waits on the lease's read - a bound
+//     socket whose last lease lapsed is closed `busy` at its own next frame - an honest game's hub was away; it comes
+//     back - and a lease room refuses a hello that does not say `ls` (LEASE_OLD_REASON, GRANT-DOOR's own law: off until
+//     the site serves the build that says it, since the relay deploys first), never waiting on the hub to know;
 //   - a banned account holds no hub link, so it is handed no lease.
 // The key is the relay's own secret (GATE_SIGNING_KEY) through HKDF with this law's own info - no new secret, and never
 // the key that signs a receipt. A relay without the secret hands out none, and binds nobody.
@@ -29,8 +32,6 @@ import { isChatRoom, isSocialRoom, streamsFoes, LEASE_WIRE_MAX } from './wire.js
 export const LEASE_MS = 30_000;
 /** A lease's life, seconds - three asks, so one lost on the way costs nothing. */
 export const LEASE_LIFE_S = 90;
-/** A bound socket's first lease is due this long after its hello. */
-export const LEASE_GRACE_MS = 60_000;
 /** The fewest ms between two lease frames a room reads from one socket (an ask minted, or a lease checked) - an honest game
  *  says one every LEASE_MS. */
 export const LEASE_FRAME_MIN_MS = 5_000;
