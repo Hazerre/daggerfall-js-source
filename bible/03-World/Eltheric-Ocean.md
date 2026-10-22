@@ -79,6 +79,7 @@ thousand leagues:
 | SEA-SET | THE DEEP'S OWN GEAR: the Eltheric Tidemail, an Aetheric set the Deep Aether and the Abyss alone give up - a legend ended, a vault's pile, a ruin's pile, the fleet's flagship, the storm's wrack | `systems/sigil/sigilSets.js` (`eltheric`), `systems/sigil/sigilSetPowers.js` (`captainsDue`), `systems/aetheric.js` (`ELTHERIC_SET_PIECES`, `ELTHERIC_CHANCE`, `rollElthericPiece`), `systems/sea/seaSpoils.js`, `scenes/naval/navalHost.js` (`legendTidemail`, `gunsRefit`, `dueOnHull`), `scenes/dungeonContext.js` and `scenes/roomLootHost.js` (the piles), `systems/item/itemLaw.js` (law 10) |
 | SEA-EVENTS | THE SEA'S SHARED CLOCK: the Aether Storm - its thunder, its wrack, its lightning - and the treasure fleet - its sailing, its ships, its flagship's spoils, the hub's word that it is scattered; both on the chart and in a freeport's talk | `systems/sea/seaEvents.js`, `scenes/naval/treasureFleet.js`, `scenes/seaVenturesHost.js` (`stormWord`, `stormTurned`, `seaStormShown`, `wrackSites`, `gather`, `step`, `fleetEnded`, `hubWord`, `rumours`, the chart's word), `scenes/naval/navalHost.js` (`fleet`, `stormStrike`, chargeEther's `treasureFleet.ended`, a site's `word`), `scenes/etherHost.js` (`credit`, `mid`, `say`), `net/wire.js` (`SEA_FLEET_PERIOD_MS`, `seaFleetSailing`, `fk`, `fd`), `net/wild/wildLaw.js` (`wdunFleetSunk`, `wdunFleets`), `server/src/index.js` (`_wdunWord`), `scenes/world.js` (`shownWeather`, the front, the sky, the wind, the sea's step, the hub's word, the sites, the haul, the office), `ui/etherChartWindow.js` (`paintStorm`, `paintFleet`, the keys), `systems/aetheric.js` (`ELTHERIC_CHANCE.storm`) |
 | SEA-VAULTS | THE VAULTS OF THE DEEP: the Wrothgarian halls on water - the day's four ruin isles of the Deep Aether and three of the Abyss, each an elite hall with its hub lock, crows, reset and epoch; marked on the chart; the open sea keeps no instance | `systems/sea/seaVaults.js`, `scenes/seaVenturesHost.js` (`vaultHere`, `openSeaAt`, `chartWord`, `crowLine`), `net/wire.js` (`seaVaultKey`, `seaVaultCell`, `seaVaultMapId`, `seaRoomCell`, `wdunHall`, `wdunRoomKey`, `WDUN_SEA_RELAY_MIN`), `net/online.js` (`wdunSeaOk`), `server/src/index.js` (`_instanceHello`), `scenes/instanceDoor.js` (`keepsNone`), `scenes/world.js` (`wildHallHere`, `wildDungeonGate`, `wdKey`, the crows' news, the chart's word, the door's `wild`), `ui/etherChartWindow.js` (`paintVault`, `CHART_VAULT_KEY`) |
+| SEA-BOUNTY | A FREEPORT'S BOUNTY BOARD: a fall at sea signed with its room and its killer's character; the kill, the posts, the claim and the owed at the service, gold never made; the harbourmaster's Wanted section | `net/sea/seaBountyLaw.js`, `server-account/src/seaBounty.js` (`seaKillSteps`, `seaBountyBoard`, `seaBountyPost`, `seaBountyCollect`), `server-account/migrations/0144_sea_bounty.sql`, `server-account/src/wild.js` (wildFall's batch), `net/wild/wildReceipt.js` (`m`, `kc`, `WILD_ROOM_RE`), `net/wild/wildRef.js` (`room`, `kc`), `net/wire.js` (`seaRoomOf`, `WILD_SEA_BOX`, `seaPlaceCell`), `server/src/index.js` (the strike's room, `_wildSign`), `net/accountClient.js` (`accountSeaBounty`, the refusals), `scenes/seaBountyHost.js`, `scenes/seaVenturesHost.js` (`wanted`), `ui/naval/navalYardWindow.js` (`wantedText`, `renderWanted`), `ui/naval/navalPlunderDoor.js` (`repaintNavalYard`), `scenes/world.js` (the sea's deps, the office), `systems/naval/etherCrossing.js` (`createCrossLand`) |
 | (the ledger) | WHAT A CAPTAIN KEEPS OF IT: the isles charted, the legends ended and heard of, the strands gathered, the way out, the crossings - in the Captain save | `systems/naval/captainLedger.js` (`ether`, `chartIsle`, `endLegend`, `gathered`, `setCrossedFrom`, `crossed`, `hearLegend`), `scenes/etherHost.js` |
 
 THE FOUR HOSTS (Home.md; AUDIT CAPTAIN'S SEA H12 - the slices named none): the sea, its ships, the crossing, the chart
@@ -719,7 +720,7 @@ it fights nobody there and drops nothing - INT9's known limit, Wild-Zone.md sect
 and a captain's hold as a prize - the relay referees no naval fire yet, so a ship is no target of a player's; whether a
 captain's hold gives up a share at a death past the peace (the larger shelter at sea, above); a freeport's bounty board
 on the sea's killers. The Wrothgarian halls' daily elite vaults for the Deep Aether and the Abyss, with their locks and
-crows, are SEA-VAULTS (below).
+crows, are SEA-VAULTS (below); the bounty board is SEA-BOUNTY (below).
 
 Pinned by `test/systems/wild/etherwild.test.js` (8); `tools/mutants/etherwild.json` (35, all dead).
 
@@ -889,6 +890,70 @@ meets this machine's.
 FLAGGED, as ever. HOST-SPLIT: bootWorld's wiring paid in references (the sea's deps, the ether host's purse and words).
 
 Pinned by `test/systems/sea/seaevents.test.js` (12); `tools/mutants/seaevents.json` (86, all dead).
+
+## SEA-BOUNTY - a freeport's bounty board on the open sea's killers
+
+The owner's "more of a reason to venture into this zone", and the third of ETHER-WILD's suggestions (2026-10-22: "Build
+ever single bit of this"): a price on the heads of the captains who kill other players at sea, posted by players out of
+their own gold and paid to whoever ends them there. DFU has no players to hunt: the board is the sea's own, read off the
+service's gold acts (a card table's stake, a market's collect) and the open zone's signed fall (INT9).
+
+**A KILL AT SEA** is a fall the relay refereed in a room of the open sea at another player's hand. The relay already
+signs every such fall (`f1` - `06-Systems/Integrity-Arc.md` lane 2); it now signs WHERE - `m`, the room that refereed it
+(`server/src/index.js:"const res = wildBlow(st, a.sub, tb.sub, { d: d.d, r, held, wa: a.wa ?? null, kin, rid, room: a.key }, now);"`)
+- and WHOSE HAND by character - `kc`, the killer's realm character off its hello (`net/wild/wildRef.js` wildBlow, kept
+through a restart by `wildFallOf`). Both are optional in the receipt's law (`WILD_ROOM_RE`, `REALM_CHARACTER_RE`; a
+collect `g1` carries neither), so an older relay's receipt still verifies and simply names no kill at sea;
+`WILD_RECEIPT_MAX` (and `DUEL_REF_RECEIPT_MAX`, `WILD_COLLECT_MAX` with it) is 512, the longest such receipt fitting.
+The service reads the room with the relay's own law (`net/wire.js` `seaRoomOf`): a world cell whose middle lies in the
+sea's box (`WILD_SEA_BOX`, pinned to `ETHER_BOX`), or an isle place's dungeon or building (`dungeon:m<id>`,
+`interior:m<id>...`, its map id in the sea's lane - `seaPlaceCell`, the vaults' inverse). Veilhaven's peace is inside
+the box, and harmless so: the relay referees no fall there.
+
+**THE SERVICE** (`server-account/src/seaBounty.js`; tables `migrations/0144_sea_bounty.sql`; the law both ends read,
+`src/net/sea/seaBountyLaw.js`):
+
+- THE KILL is written in the fall's OWN batch (`server-account/src/wild.js:"...seaKillSteps(ctx.db, sea, ctx.nowS),"`):
+  `sea_kills` once by the remains' id; every bounty standing on the fallen character claimed by that fall (guarded by
+  no kill of it written yet, so two tabs racing one fall claim once); their sum OWED to the killer's character
+  (`sea_bounty_owed`). A fall asked again answers from its first row and writes nothing.
+- WANTED: a living realm character with a kill at sea in the last `SEA_WANTED_DAYS` (14), or with a bounty standing.
+  THE BOARD (`/v1/sea/bounty/board`) lists them by their bounty, then their kills (at most `SEA_BOARD_MAX`, 12), with the
+  gold owed the asking character and the bounty on its own head.
+- A POST (`/v1/sea/bounty/post`) is `SEA_BOUNTY_MIN` to `SEA_BOUNTY_MAX` (100 to 50,000) gold off the poster's record -
+  the wallet's own order (`payFromSave`), and `outbound` (a held record hands no gold toward another's hand) - in one
+  batch with its row. It is a realm character's act alone; one request asked twice is one post (`UNIQUE (poster, rid)`).
+  Refused on a head not wanted, on one's own, or on another character of one's own account (whose hand could collect it).
+- A COLLECT (`/v1/sea/bounty/collect`) pays every sum owed the character into its record - its Empire account, as a
+  market's gold is collected (`creditSave` with the region's bank) - and turns each row paid in the same batch, each
+  exactly once (`mustChange`).
+- NO GOLD IS MADE. Every coin owed was posted, and a post left its poster's record in its own batch: posted = owed +
+  standing, always.
+
+**THE PAGE** (`scenes/seaBountyHost.js`, built by the sea's host - HOST-SPLIT: `world.js` hands `seaVentures` the realm
+session, the checkpoint, the wallet, the character and the region, and the harbourmaster's tab `seaVentures.wanted()`).
+A freeport's harbourmaster's tab grows a WANTED section (`ui/naval/navalYardWindow.js` `wantedText`, `renderWanted`),
+online with a realm character alone: each wanted captain's kills and bounty with a press for each post
+(`SEA_BOUNTY_POSTS`: 500, 2,000, 10,000), the gold owed and its Collect, the bounty on one's own head, and the last
+answer's line. The board is read when the tab is shown and again `SEA_BOARD_FRESH_MS` (30 s) on; a post and a collect
+are the record's gold acts (`realmGoldAct`, as a card table's stake is) - a post's gold held out of the purse while it is
+asked and given back on a refusal, a collect's banked where the service banks it - and the board read again on the answer.
+The presses grey while an answer is awaited.
+
+**THE WIRE AND THE DEPLOY.** The relay's half rides world241 (undeployed); the service's acct168 (from migration 0144,
+the deploy's ledger applies it). An older relay's receipts name no room: its falls pay no bounty and make nobody wanted.
+The account deploy watches the law's file (`account-deploy.yml`).
+
+**KNOWN, NAMED.** A bounty pays the hand that ends its captain AT SEA - a fall in the Wrothgarian Mountains claims none,
+and neither does the Bay's. A captain may be ended by a friend for the bounty (another account's character): the posts
+are other players' gold, and a friend is a player too - as a market's sale to a friend is. Gold, never items, is posted.
+
+**THE FOUR HOSTS.** `scenes/world.js` (the sea's deps, the office's `wanted`) WIRED through `scenes/seaVenturesHost.js`
+and `scenes/seaBountyHost.js`; `scenes/worldModes.js`, `scenes/dungeonContext.js` and `scenes/exterior.js` show no
+harbourmaster - FLAGGED, nothing to wire. bootWorld paid for its four deps by `createCrossLand` leaving it
+(`systems/naval/etherCrossing.js` - the crossing's land ring, ETHER-CROSSING's, built by its own module now).
+
+Pinned by `test/systems/sea/seabounty.test.js` (9); `tools/mutants/seabounty.json` (108, all dead).
 
 ## The ledger's record
 

@@ -10308,7 +10308,7 @@ export class Room {
     const bytes = new Uint8Array(6);
     globalThis.crypto.getRandomValues(bytes);
     const rid = [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
-    const res = wildBlow(st, a.sub, tb.sub, { d: d.d, r, held, wa: a.wa ?? null, kin, rid }, now);
+    const res = wildBlow(st, a.sub, tb.sub, { d: d.d, r, held, wa: a.wa ?? null, kin, rid, room: a.key }, now);   // SEA-BOUNTY: the room it fell in
     if (res.evicted) await this._wildSign(res.evicted, now);   // INT9 (AUDIT): a full room's oldest fall, signed without its pick - never forgotten
     if (!res.ok || !res.dealt) return;
     const word = JSON.stringify({ t: 'wref', k: 'hp', by: a.id, to: tb.id, d: res.dealt, r, h: wildVitals(st, a.sub, tb.sub) });
@@ -10341,7 +10341,7 @@ export class Room {
    *  until its next word on the zone. */
   async _wildSign(fall, now) {
     let rc = null;
-    try { rc = await mintWildReceipt({ f: fall.fallen, c: fall.ci, k: fall.killer, r: fall.r, w: fall.w, wt: fall.wt }, await this._receiptKeyOf(), { subtle: globalThis.crypto.subtle, nowS: Math.floor(now / 1000) }); } catch (e) { console.warn('[wild] receipt failed', e?.message ?? e); }
+    try { rc = await mintWildReceipt({ f: fall.fallen, c: fall.ci, k: fall.killer, r: fall.r, w: fall.w, wt: fall.wt, m: fall.m, kc: fall.kc }, await this._receiptKeyOf(), { subtle: globalThis.crypto.subtle, nowS: Math.floor(now / 1000) }); } catch (e) { console.warn('[wild] receipt failed', e?.message ?? e); }
     wildSigned(this._wildRef, fall.r);
     try { await this.state.storage.delete(`${WILD_FALL_PREFIX}${fall.r}`); } catch { /* read back and signed again: the service takes a fall once */ }
     if (!rc) return;

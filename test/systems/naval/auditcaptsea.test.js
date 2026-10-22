@@ -696,7 +696,7 @@ async function crossingWorld(over = {}) {
   const townTalk = { get overlayActive() { return !!w.overlay && !w.overlay.done; }, say: (t) => log.push(`say: ${t}`), showOverlay: (o) => { w.overlay = o; log.push('asked'); } };
   class YesNoBoxWindow { constructor(o) { Object.assign(this, o); this.done = false; } answer(yes) { if (this.done) return; this.done = true; (yes ? this.onYes : this.onNo)?.(); } withdraw() { this.done = true; log.push('withdrawn'); } }
   const scope = {
-    createCrossingGate: EC.createCrossingGate, CROSS_LAND_PX: ES.CROSS_LAND_PX, seaPixel: () => true,
+    createCrossingGate: EC.createCrossingGate, createCrossLand: EC.createCrossLand, seaPixel: () => true,   // SEA-BOUNTY: the land ring built by its own module
     get etherSea() { return w.etherSea; }, get etherOut() { return w.etherOut; }, csaRuntime, CROSS_CHECK_S: EC.CROSS_CHECK_S,
     gamePaused: () => w.paused, get _loading() { return w.loading; }, townTalk, modes: { get transitioning() { return w.transitioning; } }, _mode: () => w.mode,
     worldMoveBusy: () => w.busy, get _partyArrivalPending() { return w.arriving; },

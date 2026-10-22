@@ -3069,6 +3069,36 @@
   "tr": "0a92e13d7863",
   "by": "claude-in-session"
  },
+ "account.refusal.seaBountyFailed": {
+  "en": "58b2c572bed8",
+  "tr": "e4879cd8a8bb",
+  "by": "claude-in-session"
+ },
+ "account.refusal.seaBountyGold": {
+  "en": "ee5c8b1dc35f",
+  "tr": "2f7aa787dc38",
+  "by": "claude-in-session"
+ },
+ "account.refusal.seaBountyNotWanted": {
+  "en": "dd64602c1c28",
+  "tr": "12a112cb60f2",
+  "by": "claude-in-session"
+ },
+ "account.refusal.seaBountyRealm": {
+  "en": "0e6977cb9a70",
+  "tr": "ebc96dedb128",
+  "by": "claude-in-session"
+ },
+ "account.refusal.seaBountySelf": {
+  "en": "55d77088f289",
+  "tr": "3a0a11258b5b",
+  "by": "claude-in-session"
+ },
+ "account.refusal.seaBountyTarget": {
+  "en": "a2ddeb7b6264",
+  "tr": "de8cafac3d95",
+  "by": "claude-in-session"
+ },
  "account.refusal.season": {
   "en": "124deab3eb3a",
   "tr": "519190849715",
@@ -28217,6 +28247,81 @@
  "sea.board.cargoVoid": {
   "en": "ab24e7cbf348",
   "tr": "164f03d43043",
+  "by": "claude-in-session"
+ },
+ "sea.bounty.asking": {
+  "en": "1b6687d60dc0",
+  "tr": "ec804480815a",
+  "by": "claude-in-session"
+ },
+ "sea.bounty.collect": {
+  "en": "04aac4c04182",
+  "tr": "98d0f01ecb9d",
+  "by": "claude-in-session"
+ },
+ "sea.bounty.collected": {
+  "en": "e87ef4d84e7f",
+  "tr": "0728cdda4360",
+  "by": "claude-in-session"
+ },
+ "sea.bounty.head": {
+  "en": "b568b10aecdd",
+  "tr": "806ca4358513",
+  "by": "claude-in-session"
+ },
+ "sea.bounty.headSub": {
+  "en": "79010e2372ee",
+  "tr": "e571e2f8f296",
+  "by": "claude-in-session"
+ },
+ "sea.bounty.lede": {
+  "en": "5eabc887697d",
+  "tr": "40b830ebbbb9",
+  "by": "claude-in-session"
+ },
+ "sea.bounty.mine": {
+  "en": "342829d34637",
+  "tr": "fa0d1c3cd546",
+  "by": "claude-in-session"
+ },
+ "sea.bounty.none": {
+  "en": "a69fa958f8f2",
+  "tr": "005bbe3fb640",
+  "by": "claude-in-session"
+ },
+ "sea.bounty.nothing": {
+  "en": "374dfad556db",
+  "tr": "b45281b8a78f",
+  "by": "claude-in-session"
+ },
+ "sea.bounty.owed": {
+  "en": "3a6f39f5facf",
+  "tr": "62047badf83f",
+  "by": "claude-in-session"
+ },
+ "sea.bounty.owedTitle": {
+  "en": "ad677091e248",
+  "tr": "ad7a6a139f09",
+  "by": "claude-in-session"
+ },
+ "sea.bounty.post": {
+  "en": "314b215411cf",
+  "tr": "a97e95d1da41",
+  "by": "claude-in-session"
+ },
+ "sea.bounty.posted": {
+  "en": "ad632a3b3d2c",
+  "tr": "8fcfb58fe96d",
+  "by": "claude-in-session"
+ },
+ "sea.bounty.repeat": {
+  "en": "84f779a77d22",
+  "tr": "d6597e1728da",
+  "by": "claude-in-session"
+ },
+ "sea.bounty.row": {
+  "en": "175c8542dde3",
+  "tr": "ca2f84d7e549",
   "by": "claude-in-session"
  },
  "sea.chart.anIsle": {

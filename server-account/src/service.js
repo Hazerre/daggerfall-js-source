@@ -558,6 +558,7 @@ export const ROUTES = new Set([
   '/v1/market/read', '/v1/market/list', '/v1/market/buy', '/v1/market/cancel', '/v1/market/order', '/v1/market/fill',
   '/v1/market/unorder', '/v1/market/collect', '/v1/market/report', '/v1/market/remove', '/v1/market/auction', '/v1/market/bid',
   '/v1/market/gold',
+  '/v1/sea/bounty/board', '/v1/sea/bounty/post', '/v1/sea/bounty/collect',   // SEA-BOUNTY: a freeport's bounty board on the open sea's killers
   '/v1/cards/stake',   // CARDS6: a card table's stake held against the realm record
   '/v1/cards/cashout',   // CARDS6: the relay's cash-out receipt paid back into it
   '/v1/cards/deck',   // CARDS10: a ranked seat's deck vouched for (iliac.js deckOrderOf)

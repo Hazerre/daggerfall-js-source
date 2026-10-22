@@ -242,6 +242,7 @@ import { signingKey, gatePublicKey } from './signing.js';
 import { takeGrantMeasure, GRANT_FEED_PATH } from './grants.js';   // GRANT2: the spawn grants' measure, the relay's door in
 import { GRANT_MEASURE_SIG_HEADER, GRANT_MEASURE_MAX_BYTES } from '../../src/net/grantMeasure.js';
 import { stakeCards, cashoutCards } from './cards.js';   // CARDS6: a card table's stakes, escrowed
+import { seaBountyBoard, seaBountyPost, seaBountyCollect } from './seaBounty.js';   // SEA-BOUNTY: a freeport's bounty board on the open sea's killers
 import { deckOrderOf, claimIliac, iliacBoardOf } from './iliac.js';
 import { claimGambit, gambitBoardOf } from './gambit.js';   // KG6: The King's Gambit's season board and its GRANDMASTER   // CARDS10: a ranked seat's deck vouched for, Iliac Hand's season board and its title
 import { titleWorn, glyphsOf, glyphsHidden, auraWorn, iconWorn } from './titles.js';
@@ -1949,6 +1950,26 @@ const service = {
           const key = await signingKey(env, subtle);
           return json({ ...r, order: key ? await mintRenownOrder({ s: who.player.id, lv: r.renown.level }, key, { subtle, nowS }) : null }, 200, origin);
         }
+        return json(r, 200, origin);
+      }
+
+      // ═══ SEA-BOUNTY: A FREEPORT'S BOUNTY BOARD ══════════════════════════
+      //
+      // bible/03-World/Eltheric-Ocean.md SEA-BOUNTY: the wanted captains of the open sea and the gold on their heads; a post
+      // off the poster's record, a collect into the killer's - each act its own batch, the gold and the row together
+      // (seaBounty.js). The kills are written with their falls (wild.js wildFall).
+      if (path.startsWith('/v1/sea/bounty/')) {
+        if (request.method !== 'POST') return no('method', 405, origin);
+        const sctx = { ...ctx, bucket: env.SAVES };
+        const act = {
+          '/v1/sea/bounty/board': async () => seaBountyBoard(sctx, who.player, body),
+          '/v1/sea/bounty/post': async () => seaBountyPost(sctx, who.player, body),
+          '/v1/sea/bounty/collect': async () => seaBountyCollect(sctx, who.player, body),
+        }[path];
+        if (!act) return no('not-found', 404, origin);
+        const r = await act();
+        if (r.error === 'seq') return json({ error: 'seq', seq: r.seq }, 409, origin);   // the record moved under the act, as a checkpoint's
+        if ('error' in r) return json({ error: r.error }, REALM_STATUS[r.error] ?? JUDGE_STATUS[r.error] ?? 400, origin);
         return json(r, 200, origin);
       }
 

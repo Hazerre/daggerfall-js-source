@@ -74,8 +74,8 @@
   {
     "name": "SEA-VAULTS-room-cell-any-salt",
     "file": "src/net/wire.js",
-    "old": "  if (!id || id > 0xffffffff || id >>> 20 !== 0xe7) return null;",
-    "new": "  if (!id || id > 0xffffffff) return null;",
+    "old": "  if (!Number.isSafeInteger(id) || id <= 0 || id > 0xffffffff || id >>> 20 !== 0xe7) return null;",
+    "new": "  if (!Number.isSafeInteger(id) || id <= 0 || id > 0xffffffff) return null;",
     "tests": [
       "test/systems/sea/seavaults.test.js"
     ]
@@ -83,8 +83,8 @@
   {
     "name": "SEA-VAULTS-room-cell-unbounded",
     "file": "src/net/wire.js",
-    "old": "  return n >= 0 && cy < WDUN_SEA_CELLS_H ? [cx, cy] : null;",
-    "new": "  return [cx, cy];",
+    "old": "  return n >= 0 && cy < WDUN_SEA_CELLS_H ? [n % WDUN_SEA_CELLS_W, cy] : null;",
+    "new": "  return [n % WDUN_SEA_CELLS_W, cy];",
     "tests": [
       "test/systems/sea/seavaults.test.js"
     ]
@@ -92,8 +92,8 @@
   {
     "name": "SEA-VAULTS-room-cell-row-past",
     "file": "src/net/wire.js",
-    "old": "  return n >= 0 && cy < WDUN_SEA_CELLS_H ? [cx, cy] : null;",
-    "new": "  return n >= 0 && cy <= WDUN_SEA_CELLS_H ? [cx, cy] : null;",
+    "old": "  return n >= 0 && cy < WDUN_SEA_CELLS_H ? [n % WDUN_SEA_CELLS_W, cy] : null;",
+    "new": "  return n >= 0 && cy <= WDUN_SEA_CELLS_H ? [n % WDUN_SEA_CELLS_W, cy] : null;",
     "tests": [
       "test/systems/sea/seavaults.test.js"
     ]

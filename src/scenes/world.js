@@ -274,7 +274,7 @@ import { landformsOn, tamrielLandOn, tamrielTraceOn, etherSeaOn, etherCrossOutOn
 import { preloadTamrielTrace } from '../ui/tamrielTrace.js';   // TAMRIEL3: Daggerfall's own map of Tamriel, off the player's two files
 import { fitBayToPicture } from '../world/tamriel/tamrielLand.js';   // TAMRIEL3: where the Bay stands on it
 import { groundWoods, groundClimateIndex } from '../world/tamriel/tamrielGround.js';   // TAMRIEL2: the continent's ground round the Bay, for the kernels and the far ring
-import { etherWoods, etherClimateIndex, etherPoliticIndex, etherFrame, inEther, inEtherLaw, onBayOrEther, isleAt, islesNear, veilhaven, ETHER_HARBOUR_REACH, ETHER_SEA_NAME, ETHER_SEA_TITLE, CROSS_X, CROSS_LAND_PX, etherLight, ETHER_KEY_TINT } from '../world/ethericSea.js';   // ETHER-SEA: the Eltheric Ocean's ground and its box
+import { etherWoods, etherClimateIndex, etherPoliticIndex, etherFrame, inEther, inEtherLaw, onBayOrEther, isleAt, islesNear, veilhaven, ETHER_HARBOUR_REACH, ETHER_SEA_NAME, ETHER_SEA_TITLE, CROSS_X, etherLight, ETHER_KEY_TINT } from '../world/ethericSea.js';   // ETHER-SEA: the Eltheric Ocean's ground and its box
 import { etherTemplates, etherTemplateOf, synthesizeEtherLocation, etherPlaceIsle, etherPlaceRows, ETHER_REGION, ETHER_REGION_NAME } from '../world/etherPlaces.js';   // ETHER-PLACES: the isles' towns and ruins; ETHER-OW: their pixels and far rows, the Overworld's
 import { tamrielFrameInBay } from '../world/tamriel/tamrielFrame.js';   // TAMRIEL2: the frame the world streams over, and the Bay's own ground
 import { createLandforms, landformLiftField, landformSites, landformClimates, cliffFadeAt } from '../world/landforms.js';   // LANDFORM1-3: the shaped ground, and what it lifts a point by; AUDIT LANDFORMS II I1: the lift's fade beside the sea
@@ -647,7 +647,7 @@ import { createCaptainPageHost } from './captainPageHost.js';   // CAPT-LOG / CA
 import { createDeckPlanDoor } from './deckPlanDoor.js';   // DECK-PROPS: the plan of her deck
 import { createHarbourOffice } from './harbourOffice.js';
 import { createEtherHost } from './etherHost.js';   // ETHER-SEA: the Eltheric Ocean's waters, charts, strands and legends
-import { createCrossingGate, crossingWayAt, crossingTarget, crossingRows, crossingWords, CROSS_DAYS, CROSS_CHECK_S, CROSS_REFUSED, CROSS_STALE, CROSS_FAILED } from '../systems/naval/etherCrossing.js';   // ETHER-CROSSING: the voyage across
+import { createCrossingGate, crossingWayAt, crossingTarget, crossingRows, crossingWords, createCrossLand, CROSS_DAYS, CROSS_CHECK_S, CROSS_REFUSED, CROSS_STALE, CROSS_FAILED } from '../systems/naval/etherCrossing.js';   // ETHER-CROSSING: the voyage across
 import { mulberry32 } from '../combat/blood/bloodArt.js';   // CAPT-BOARD: a site's point off its seed
 import { CHART_TEMPLATE } from '../systems/naval/treasureCharts.js';   // CAPT-CHARTS: a treasure chart read   // CAPT-BOARD: the harbourmaster's board, the contracts, the letters
 import { mintDeed } from '../systems/comeSailAway/comeSailAwayItems.js';   // CAPT-BOARD: the Admiralty's carrack's deed, the shelf's own mint   // CAPT-LOG: the captain's ledger - the log, the crowns' regard, the ranks, the letter of marque
@@ -9401,7 +9401,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // the Fleet page's yard (a ship laid up anywhere) is the shipwright's
     if (model.atQuay) model.office = () => {   // CAPT-BOARD: the harbourmaster's tab - ETHER-SEA: past the Veil a freeport's (etherHost.js office)
       const port = navalPortHere();
-      if (port?.ether) { const o = etherHost.office(port); return o ? { ...o, rumours: [...o.rumours, ...seaVentures.rumours(port)], buyChart: () => { const r = etherHost.buyChart(port); captainSay(); return r; } } : null; }   // SEA-EVENTS: the treasure fleet's and the Aether Storm's talk
+      if (port?.ether) { const o = etherHost.office(port); return o ? { ...o, rumours: [...o.rumours, ...seaVentures.rumours(port)], wanted: seaVentures.wanted(), buyChart: () => { const r = etherHost.buyChart(port); captainSay(); return r; } } : null; }   // SEA-EVENTS: the treasure fleet's and the Aether Storm's talk
       return harbourOffice.model({ uid: model.uid ?? null });
     };
     if (model.atQuay) model.exchange = () => harbourOffice.exchange({ uid: model.uid ?? null, cargo: model.cargo?.() ?? null, room: () => model.room?.() ?? null });   // CAPT-TRADE: the exchange's tab - AUDIT CAPTAIN'S SEA B11: and her room
@@ -9747,21 +9747,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // her hold aboard her) and her helm taken again, the voyage's days on the clock.
   const crossGate = createCrossingGate();
   let _crossCheckT = 0;
-  /** A map pixel's distance to the nearest land (Chebyshev, map pixels), out to CROSS_LAND_PX (Infinity past it) - the
-   *  map's one water law (seaPixel), asked once a pixel. */
-  let _crossLandAt = null;
-  const crossLandPx = (px, py) => {
-    const key = `${px},${py}`;
-    if (_crossLandAt?.key === key) return _crossLandAt.d;
-    let d = Infinity;
-    ring: for (let r = 0; r <= CROSS_LAND_PX; r++) {
-      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) === r && !seaPixel(px + dx, py + dy)) { d = r; break ring; }
-      }
-    }
-    _crossLandAt = { key, d };
-    return d;
-  };
+  /** A map pixel's distance to the nearest land (systems/naval/etherCrossing.js createCrossLand - the map's one water law,
+   *  seaPixel; HOST-SPLIT, SEA VENTURES: out of bootWorld). */
+  const crossLandPx = createCrossLand(seaPixel);
   /** The way the helm's waters offer now: 'out' only where the crossing out is this game's (AUDIT CAPTAIN'S SEA G2), 'home'
    *  in the Veil under any skin. */
   const crossWayHere = () => {
@@ -22466,6 +22454,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const seaVentures = createSeaVentures({
     live: () => etherSea && _onlineWorldSession() && !!online?.wildOk, day: () => wdunDayNow(), pixel: playerTravelPixel, locks: _wdunLocks, crows: _wdunCrows, mine: () => _wildMine,
     clock: () => raidNowMs(), naval: () => naval, state, link: socialLink, ether: etherHost,   // SEA-EVENTS: the shared clock, the naval host, the scene, the hub, the purse and the words (the ether host's)
+    session: realmSession, checkpoint: onlineCheckpoint, wallet: realmWallet, character: () => characterIdOf(playerEntity), region: _questRegionIndex,   // SEA-BOUNTY: the record's gold acts
   });
   const _giantsDown = new Map();  // ZONE-GIANTS: giant -> when it walks again (this machine's clock)
   const _giantsStood = new Map(); // ZONE-GIANTS: giant -> { foe, promise } - the one stood here

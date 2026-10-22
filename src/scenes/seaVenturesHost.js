@@ -16,6 +16,8 @@
 //   host (`step`), its flagship's purse and the hub's word that it is down (`fleetEnded`, `hubWord`), its words; both on the
 //   chart (`chartWord`) and in a freeport harbourmaster's talk (`rumours`).
 //
+//   THE BOUNTY BOARD (SEA-BOUNTY, scenes/seaBountyHost.js): a freeport harbourmaster's Wanted section (`wanted`).
+//
 // deps = {
 //   live() -> bool          the open sea is an open zone now (online, at a relay that raises it, the sea standing)
 //   day() -> number         the relay's day (world.js wdunDayNow - the halls' own)
@@ -28,6 +30,9 @@
 //   state                   the streaming world's state (localFromWorld - a map pixel in the scene)
 //   link() -> OnlineSession | null   the social socket (sendWdun, wdunSeaOk)
 //   ether                   the ether host (scenes/etherHost.js): credit(n), mid(text, s), say(text, s)
+//   session, checkpoint, wallet, character, region   SEA-BOUNTY's (scenes/seaBountyHost.js): the realm session, its
+//                           checkpoint, the record's wallet, the realm character, the region stood in
+//   bountyDoor?             the bounty board's service door (its own, when none is given)
 // }
 // ═══════════════════════════════════════════════════════════════════
 import { inEther, etherBandAt, compassPoint } from '../world/ethericSea.js';
@@ -40,6 +45,7 @@ import { setById } from '../systems/sigil/sigilSets.js';
 import { mintGood, goodById } from '../systems/naval/tradeGoods.js';
 import { STRAND_SITE, STRAND_YIELD } from './etherHost.js';
 import { NATIVE_PIXEL } from '../systems/seaRaiders.js';
+import { createSeaBounty } from './seaBountyHost.js';
 import { t } from '../systems/textManager.js';
 
 /** SEA-EVENTS: a storm's wrack site's id - a strand's, so the naval host floats and hauls it as one (`strand:wrack:n:slot`). */
@@ -221,5 +227,7 @@ export function createSeaVentures(deps) {
     else { const g = nextStorm(now); out.push(t('sea.rumour.stormNext', 'Sailors say an Aether storm will gather {way} of here in {min} minutes.', { way: wayTo(port && { x: port.px, y: port.py }, { x: g.x0, y: g.y0 }) || 'north', min: mins(g.start - now) })); }
     return out;
   }
-  return { vaultsNow, vaultHere, openSeaAt, chartWord: (now) => ({ ...chartWord(now), ...eventsWord() }), crowLine, stormWord, stormTurned, wrackSites, gather, step, fleetEnded, hubWord, rumours, fleetList: (now = clock()) => fleetList(now, deps.pixel?.()) };
+  // ── SEA-BOUNTY ─────────────────────────────────────────────────────────────────────────────────────────────────────
+  const bounty = createSeaBounty({ live, session: deps.session, checkpoint: deps.checkpoint, wallet: deps.wallet, character: deps.character, region: deps.region, door: deps.bountyDoor, now: clock });
+  return { vaultsNow, vaultHere, openSeaAt, chartWord: (now) => ({ ...chartWord(now), ...eventsWord() }), crowLine, stormWord, stormTurned, wrackSites, wanted: () => bounty.office(), gather, step, fleetEnded, hubWord, rumours, fleetList: (now = clock()) => fleetList(now, deps.pixel?.()) };
 }

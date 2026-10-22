@@ -65,6 +65,7 @@ import { SERPENT_EMBERS } from './serpent/serpentHoardLaw.js';   // AUDIT 625 P4
 import { HERALDRY_CHANGE_DRAKES } from './heraldryLaw.js';   // GUILD1d: a change's cost, in its refusal's own sentence
 import { t, localizedTable } from '../systems/textManager.js';   // L10N4: the refusals in the player's language, each read when it is said
 import { VENDOR_REFUSAL_WORDS } from './vendorLaw.js';   // HOME-VENDOR: a trader's refusals
+import { SEA_BOUNTY_MIN, SEA_BOUNTY_MAX } from './sea/seaBountyLaw.js';   // SEA-BOUNTY: a post's bounds, in its refusal
 import { busyRead, busyAnswer, busyWaitMs, retryAfterMs, BUSY_HOLD_MS } from './busyLaw.js';   // BUSY-GATE: the reads that stand back while the service is overloaded
 import { ARENA_TEXT } from '../systems/arena/arenaText.js';   // ARENA4b: the arena's refusals, in its own frozen table
 import { cardById } from './iliac/iliacCards.js';   // AUDIT CARDS-6 D7: the card a short deck lacks, said by its name
@@ -767,6 +768,13 @@ const REFUSAL_WORDS = {
   'patron-low': () => t('account.refusal.patronLow', 'A bid for a patronage is at least 1,000 silver, and more than your guild bid before.'),
   // CARDS6: a gold card table's stake and its cash-out (server-account/src/cards.js)
   'cards-realm': () => t('account.refusal.cardsRealm', 'Only an online character of the realm can play a card table for gold.'),
+  // SEA-BOUNTY (server-account/src/seaBounty.js): a freeport's bounty board
+  'sea-bounty-realm': () => t('account.refusal.seaBountyRealm', 'Only an online character of the realm can post or collect a bounty.'),
+  'sea-bounty-gold': () => t('account.refusal.seaBountyGold', 'A bounty is between {min} and {max} gold.', { min: SEA_BOUNTY_MIN.toLocaleString('en-US'), max: SEA_BOUNTY_MAX.toLocaleString('en-US') }),
+  'sea-bounty-target': () => t('account.refusal.seaBountyTarget', 'There is no such captain on the board.'),
+  'sea-bounty-self': () => t('account.refusal.seaBountySelf', 'You cannot put a bounty on your own head, or on a character of your own account.'),
+  'sea-bounty-not-wanted': () => t('account.refusal.seaBountyNotWanted', 'That captain is no longer wanted.'),
+  'sea-bounty-failed': () => t('account.refusal.seaBountyFailed', 'The harbormaster could not record that. Try again in a moment.'),
   'cards-closed': () => t('account.refusal.cardsClosed', 'The realm is not holding stakes for card tables right now. Try again later.'),
   'cards-stake-paid': () => t('account.refusal.cardsStakePaid', 'That stake has already been settled.'),
   'bad-table': () => t('account.refusal.badTable', 'The account service could not read that card table.'),
@@ -2271,6 +2279,18 @@ export function accountCards({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
   return {
     stake: (req) => post('/v1/cards/stake', req),
     cashout: (req) => post('/v1/cards/cashout', req),
+  };
+}
+
+/** SEA-BOUNTY: A FREEPORT'S BOUNTY BOARD'S DOOR (server-account/src/seaBounty.js) - the wanted captains and what is owed the
+ *  asking character (`board`: `{ character }`), gold posted on a wanted head (`post`: `{ character, realm, region, target,
+ *  gold, rid }`) and the owed collected (`collect`: `{ character, realm, region }`). Every answer is `call`'s shape. */
+export function accountSeaBounty({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
+  const post = waitedPost({ fetch, storage }, waitMs);
+  return {
+    board: (req) => post('/v1/sea/bounty/board', req),
+    post: (req) => post('/v1/sea/bounty/post', req),
+    collect: (req) => post('/v1/sea/bounty/collect', req),
   };
 }
 

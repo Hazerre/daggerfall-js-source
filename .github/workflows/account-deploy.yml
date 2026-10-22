@@ -139,6 +139,7 @@ on:
       - "src/net/duel/duelReceipt.js"
       - "src/net/wild/wildReceipt.js"
       - "src/net/wild/wildLaw.js"
+      - "src/net/sea/seaBountyLaw.js"
       - "src/systems/wild/wildDropLaw.js"
       - "src/systems/wild/wildLeaf.js"
       - "src/systems/item/itemKinds.js"

@@ -12,7 +12,7 @@
 // her crew and her hold: out to the open water off Veilhaven's quay, her bow on it; home to the Bay's waters the last
 // crossing out set sail from (the ledger's), or the open Abecean off the Bay's mouth.
 
-import { crossingWaters, inVeil, inEtherLaw, landfall, HOME_WATERS, ETHER_WORD, ETHER_SEA_NAME } from '../../world/ethericSea.js';
+import { crossingWaters, inVeil, inEtherLaw, landfall, HOME_WATERS, ETHER_WORD, ETHER_SEA_NAME, CROSS_LAND_PX } from '../../world/ethericSea.js';
 import { t } from '../textManager.js';   // ETHER-WILD: the open sea's warning, in the player's language (L10N4)
 
 /** The voyage, either way (days). */
@@ -20,6 +20,27 @@ export const CROSS_DAYS = 3;
 /** How often the helm's waters are asked (s). */
 export const CROSS_CHECK_S = 0.5;
 
+/**
+ * A MAP PIXEL'S DISTANCE TO THE NEAREST LAND (Chebyshev, map pixels), out to `reach` (CROSS_LAND_PX; Infinity past it) - by
+ * the map's one water law (`seaPixel(x, y)`: scenes/world.js's), each ring of pixels about it in turn; the last pixel's
+ * answer kept (the helm asks the same pixel every CROSS_CHECK_S). HOST-SPLIT (SEA VENTURES, 2026-10-22): out of bootWorld
+ * whole. Answers `(px, py) => distance`.
+ */
+export function createCrossLand(seaPixel, reach = CROSS_LAND_PX) {
+  let at = null;
+  return (px, py) => {
+    const key = `${px},${py}`;
+    if (at?.key === key) return at.d;
+    let d = Infinity;
+    ring: for (let r = 0; r <= reach; r++) {
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) === r && !seaPixel(px + dx, py + dy)) { d = r; break ring; }
+      }
+    }
+    at = { key, d };
+    return d;
+  };
+}
 /** The way a helm's waters offer: 'out' (the crossing waters), 'home' (the Veil), or null. `landPx` the pixel's distance
  *  to the nearest land (the host's). */
 export function crossingWayAt(px, py, landPx) {
