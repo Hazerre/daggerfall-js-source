@@ -8883,6 +8883,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     randomText: (id) => textRsc?.randomTextById(id, Math.random) ?? '',   // AUDIT 63 F33: TextProvider.GetRandomText (:250-269) - the 8999 pool
     makeAreaHostile,   // AUDIT 63 F33: GameManager.MakeEnemiesHostile over this host's pool
     collider,
+    /** PARTY-PING: the mesh Enhanced AI baked, when it has. A ping's route walks it; null, and the ping host bakes its own. */
+    navMesh: () => enhancedNav.chf,
     texRemap,
     billboardBatches,
     flatAnims,   // FA1: the host ticks the flats it draws

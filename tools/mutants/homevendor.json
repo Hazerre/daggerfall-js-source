@@ -30,8 +30,8 @@
   {
     "name": "HOMEVENDOR-the-goods-view-unfiltered",
     "file": "server-account/src/market.js",
-    "old": "      AND vendor_id IS NULL ORDER BY price, at LIMIT 500`)",
-    "new": "      ORDER BY price, at LIMIT 500`)",
+    "old": "\n      AND vendor_id IS NULL`;",
+    "new": "`;",
     "tests": [
       "test/net/homevendor_service.test.js"
     ]

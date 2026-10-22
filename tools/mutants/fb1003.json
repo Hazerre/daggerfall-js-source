@@ -47,8 +47,8 @@
   {
     "name": "RETROUI-muzzle-in-layer",
     "file": "src/combat/weapon/weaponRig.js",
-    "old": "_tlDrawn = { rect: { ...rect, x: rx, y: ry },",
-    "new": "_tlDrawn = { rect: { ...rect, x: rect.x, y: rect.y },",
+    "old": "const drawn = { rect: { ...rect, x: rx, y: ry },",
+    "new": "const drawn = { rect: { ...rect, x: rect.x, y: rect.y },",
     "tests": [
       "test/systems/fb1003_retroui.test.js"
     ]

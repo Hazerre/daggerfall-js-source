@@ -157,13 +157,15 @@ test('SILVER-WAYS the Work tab\'s contracts: each a card under its guild - what 
   await ticks();
   const cards = byClass(host, 'notice-writ');
   assert.equal(cards.length, 2);
-  assert.match(cards[0].textContent, /Guild contractThe Silver Hand \[SH\] pays the defenders of Daggerfall's towns against raiders/);
-  assert.match(cards[0].textContent, /40 silver each - 7 defenders left of 10/);
-  assert.match(cards[0].textContent, /5 days left/);
-  assert.match(cards[0].textContent, /Officers and the Guildmaster are not paid by their own guild's contracts\./, 'an Officer of the posting guild');   // BOARD-UI (PIN MOVED)
-  assert.match(cards[1].textContent, new RegExp(`paid when the raid is counted, less ${marksText(saleTax(20))} tax`));
-  assert.equal(byClass(cards[1], 'work-withdraw').length, 0, 'another guild\'s: no Withdraw');
-  byClass(cards[0], 'work-withdraw')[0].click();
+  // PIN MOVED (BOARD-SIFT): the work ends soonest first - C2's two days before C1's five
+  const [c2, c1] = cards;
+  assert.match(c1.textContent, /Guild contractThe Silver Hand \[SH\] pays the defenders of Daggerfall's towns against raiders/);
+  assert.match(c1.textContent, /40 silver each - 7 defenders left of 10/);
+  assert.match(c1.textContent, /5 days left/);
+  assert.match(c1.textContent, /Officers and the Guildmaster are not paid by their own guild's contracts\./, 'an Officer of the posting guild');   // BOARD-UI (PIN MOVED)
+  assert.match(c2.textContent, new RegExp(`paid when the raid is counted, less ${marksText(saleTax(20))} tax`));
+  assert.equal(byClass(c2, 'work-withdraw').length, 0, 'another guild\'s: no Withdraw');
+  byClass(c1, 'work-withdraw')[0].click();
   await ticks();
   assert.deepEqual(calls.at(-1), ['withdrawContract', 'C1']);
   assert.match(host.textContent, /The Silver Hand \[SH\]: 10 silver to each of 5 defenders more/);

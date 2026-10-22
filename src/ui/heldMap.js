@@ -114,6 +114,7 @@ import { readVendorMark, vendorMarkKey, VENDOR_MARK_CSS, VENDOR_RIM_CSS, VENDOR_
 import { readQuestMarks, questMarksKey, QUEST_MARK_CSS, QUEST_LEGEND_TEXT, QUEST_HIT_PX, QUEST_MARK_LIFT, QUEST_RAID_LIFT, QUEST_FOLLOWED_TEXT } from './quest/questMarks.js';   // GUIDE5: where the quests point
 import {
   buildInkModel, buildInkMarks, paintInkStatic, paintInkOverlay, zoomBand, clampView, scaleMinOf, SCALE_MAX,   // MAP-FIELD2: placeNames is inkMap's law still, but this sheet no longer inks the names
+  syncMarksLayer,   // MAP-PAN: the place marks, one layer, shifted while the view pans
   viewCentredOn, zoomAt, toPaper, toMap, BAND_MARKS, PARTY_LABEL_STACK, GATE_RING_MIN_PX,
   markKind, markInks, mapKeyGroups, KIND_WORD, paintKeyChip, KEY_CHIP_PX,   // MAP-KEY: the key, and each kind in its classic hue
   PEN,   // AUDIT GUIDE U16: the followed quest's diamond is the pen's ink, in the legend as on the sheet
@@ -661,6 +662,7 @@ export class HeldMapWindow {
     this._marksDirty = true;
     this._marksVersion = 0;
     this._layer = null;         // the kept static ink (a canvas), and its key
+    this._marksLayer = null;    // MAP-PAN: the place marks, baked once and shifted for a pan
     this._staticKey = '';
     this._dirty = true;     // the canvas wants a repaint
     this._layoutKey = '';
@@ -1066,6 +1068,7 @@ export class HeldMapWindow {
     noticeRelease(this);
     noticeRelease(this._infoOwner);
     this._stopWaypoints?.(); this._stopWaypoints = null;   // WAYPOINTS: no listener outlives the window
+    this._marksLayer = null;   // MAP-PAN: the marks' canvas goes with the window
     closeWaypointMenu('heldmap');   // ...nor its menu
     this._unmountChrome();
     // ownership-checked: a second window minted after this one owns
@@ -1257,7 +1260,7 @@ export class HeldMapWindow {
    */
   _worldSheet() {
     const me = () => (this._player ? { x: this._player.x + 0.5, y: this._player.y + 0.5 } : null);   // FINDME-TOWN: my pixel's middle
-    return {
+    const sheet = {
       id: 'world',
       size: () => this._size,
       // TAMRIEL1: the box the view may pan over is the whole continent's frame, in the Bay's own coordinates (the Bay
@@ -1274,6 +1277,22 @@ export class HeldMapWindow {
         tamrielLandVersion(),   // TAMRIEL3: the picture's trace landing after the sheet rose repaints it
       ].join('|'),
       paintStatic: (ctx, env) => {
+        // MAP-PAN: the place marks are one layer. A pan shifts it; a zoom, or a pan that
+        // walks off what was baked, paints them again. The key is everything but the pan.
+        // One opts object, so the bake and the inline ink (no 2D context on the layer) cannot drift.
+        const markOpts = {
+          band: env.band, ports: true,
+          markedMapId: this._it ? -1 : this.markedMapId,   // AUDIT IT1 C1: the mod's maps draw no mark
+          markColor: rgbaCss(this._to?.settings?.markLocationColor),
+          inks: this._markInks(),   // MAP-KEY: each kind in its classic dot's hue, or the pen with no palette
+        };
+        const synced = syncMarksLayer(this._marksLayer, {
+          view: env.view, paperW: env.paperW, paperH: env.paperH, dpr: env.dpr,
+          contentKey: [env.view.scale, env.band, env.dpr, env.paperW, env.paperH, sheet.staticKey()].join('|'),
+          model: env.model, markOpts,
+          createCanvas: () => document.createElement('canvas'),
+        });
+        this._marksLayer = synced.layer;
         // MAP-FIELD2 (Mac, 2026-09-18): "all the town names need to be
         // taken off the map, since its too cluttered". The sheet inks
         // the GLYPHS alone - a place is its mark, and its name is read
@@ -1292,12 +1311,12 @@ export class HeldMapWindow {
           // always - the quays stand at every port, whatever Travel Options
           // says of where a ship may sail from (the Ports filter, the P key,
           // still the mod's: _portsShown)
+          ...markOpts,
+          // PORT-MAP: the quays, whatever Travel Options says of where a ship may sail from
           ports: true,
           // TAMRIEL1: past the Bay's own fit the sheet is on the continent, and the Bay's ink thins for it
           continent: this._tamriel && onContinent(env.view.scale, this._bayFit()),
-          markedMapId: this._it ? -1 : this.markedMapId,   // AUDIT IT1 C1: the mod's maps draw no mark
-          markColor: rgbaCss(this._to?.settings?.markLocationColor),
-          inks: this._markInks(),   // MAP-KEY: each kind in its classic dot's hue, or the pen with no palette
+          marksLayer: synced.layer,   // MAP-PAN: one blit of the marks, or null and they are inked here
           // WILD1 (the owner: "the high risk area is marked with a highquality fog of war on the world map and red lines
           // around it"): the open zone's fog and red line, under the marks (ui/wild/wildMapInk.js)
           // WILD2: and its four rings - their lines and bonuses here, filled and named on the zone map
@@ -1393,6 +1412,7 @@ export class HeldMapWindow {
         this._renderKey();
       },
       unmount: () => {
+        this._marksLayer = null;   // MAP-PAN: the bay's marks bitmap does not outlive the sheet
         this._showChrome(['search', 'ports', 'legend', 'card', 'key'], false);
         this._closePanel?.();
         if (this._zoneMap) this._closeZoneMap({ quiet: true });   // WILD2: the zone map is the world sheet's
@@ -1419,6 +1439,7 @@ export class HeldMapWindow {
         return mask ? zoneMapLimits(mask, { paperW: paper.w, paperH: paper.h }) : null;
       },
     };
+    return sheet;
   }
 
   /** Show or hide the shared chrome a sheet claims. ONE place, so a

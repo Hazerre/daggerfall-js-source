@@ -29,7 +29,7 @@ const HARDCODED = {
   'src/characters/orcBody.js': 3,
   'src/characters/ownModels/ownArmorModels.js': 14,
   'src/characters/ownModels/ownClothingModels.js': 2,
-  'src/characters/ownModels/ownWeaponModels.js': 3,
+  'src/characters/ownModels/ownWeaponModels.js': 6,   // PISTOLET: the Pistolet's and the Sunken Sovereign's rows - a bone name and two record names the Morrowind item map reports, as the Thunderlock's and the Hourlock's (AUDIT PISTOLET M2)
   'src/characters/paperdoll/paperdollPayload.js': 2,
   'src/characters/undeadBody.js': 8,
   'src/characters/villagerDesigns.js': 27,
@@ -206,6 +206,8 @@ const HARDCODED = {
   'src/render/nodeGlint.js': 2,
   'src/render/oceanHolesRender.js': 4,
   'src/render/orderedDither.js': 1,
+  'src/render/partyPingDraw.js': 2,   // PARTY-PING: the route's two shaders - GLSL the scan reads as prose (`in vec3`), weaponGlowGlsl.js's same line
+  'src/render/partyPingLabels.js': 1,   // PARTY-PING: the pin's SVG, markup the scan reads as prose
   'src/render/precipitation.js': 6,
   'src/render/rainCurtains.js': 1,
   'src/render/realWindows.js': 11,
@@ -382,7 +384,7 @@ const HARDCODED = {
   'src/systems/gate/gateOmen.js': 10,
   'src/systems/gate/gateSpoils.js': 3,
   'src/systems/gateTier.js': 4,
-  'src/systems/gilded.js': 15,   // GILDED2: the Dragonfire Oath's and the Sunken Sovereign's names, powers, lore and hints - written as the Hourlock's are
+  'src/systems/gilded.js': 16,   // GILDED2: the Dragonfire Oath's and the Sunken Sovereign's names, powers, lore and hints - written as the Hourlock's are   // AUDIT PISTOLET A7 C1 D8: +1, the Sunken Sovereign's saber-era lore - an item's own story, as the records' are
   'src/systems/gravestoneLore.js': 16,
   'src/systems/guild/guilds.js': 3,
   'src/systems/handheldTorches.js': 12,
@@ -528,8 +530,9 @@ const HARDCODED = {
   'src/systems/survival/tavernMenu.js': 129,
   'src/systems/survival/temperature.js': 13,
   'src/systems/talk/talk.js': 2,
-  'src/systems/testRoom.js': 57,
+  'src/systems/testRoom.js': 59,   // PISTOLET: +2, the test room's two Dwarven Pistolet rows (the Thunderlock's own were counted)
   'src/systems/thunderlock.js': 8,
+  'src/systems/pistolet.js': 1,   // PISTOLET: the template row's name, 'Dwarven Pistolet' - the Thunderlock's row's is counted the same way
   'src/systems/tradePack.js': 10,
   'src/systems/translationPacks.js': 1,
   'src/systems/travel/travelBands.js': 1,
@@ -790,7 +793,7 @@ const HARDCODED = {
   'src/world/oceanHoles.js': 9,
   'src/world/outdoors.js': 2,
   'src/world/passiveFish.js': 5,
-  'src/world/eliteGates/pseudoArchives.js': 46,   // WITCH1: +1, the Witches' Festival's pictures' row (FESTIVAL_ARCHIVE) - the registry's own words for a developer; NAVAL-REFIT: +3, the ship's paint's, her cabin's and her name boards' rows (LIVERY_ARCHIVE, CABIN_ARCHIVE, PLAQUE_ARCHIVE) - the registry's own words for a developer, never a player's; STAR4/STAR7: +2, the star's two archives' rows
+  'src/world/eliteGates/pseudoArchives.js': 47,   // PISTOLET: +1, the Dwarven Pistolet's art row (PISTOLET_ARCHIVE) - the registry's own words for a developer; WITCH1: +1, the Witches' Festival's pictures' row (FESTIVAL_ARCHIVE) - the registry's own words for a developer; NAVAL-REFIT: +3, the ship's paint's, her cabin's and her name boards' rows (LIVERY_ARCHIVE, CABIN_ARCHIVE, PLAQUE_ARCHIVE) - the registry's own words for a developer, never a player's; STAR4/STAR7: +2, the star's two archives' rows
   'src/world/superDungeon/sdDungeon.js': 6,
   'src/world/superDungeon/sdRealm.js': 10,
   'src/world/spawnedDungeons.js': 3,

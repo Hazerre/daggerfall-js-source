@@ -2946,14 +2946,15 @@ export class OnlineSession {
    *  costs the hub nothing; the hub keeps the last on the attachment, and a reopened socket sends the first one whole
    *  because `_helloFrame`'s door forgets the last). `force` sends an unchanged one - the caller's own heartbeat, if it
    *  wants one. False when nothing went. */
-  sendParty(p, { force = false } = {}) {
+  sendParty(p, { force = false, urgent = false } = {}) {
     if (!this.acct) return false;
     const pose = validPartyPose(p);
     if (!pose) return false;
     const now = this._now();
-    if (now - this._lastPartyAt < PARTY_SEND_MS) return false;
+    // PARTY-PING: a ping skips the floor (the marker is a moment) and still spends partyGate. `force` does not.
+    if (!urgent && now - this._lastPartyAt < PARTY_SEND_MS) return false;
     const s = JSON.stringify(pose);
-    if (!force && this._lastParty === s) return false;
+    if (!urgent && !force && this._lastParty === s) return false;
     const gate = partyGate(this._pbucket, now);
     if (!gate.pass) return false;
     if (!this._send({ t: 'party', p: pose })) return false;

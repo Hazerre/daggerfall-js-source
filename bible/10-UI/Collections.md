@@ -146,7 +146,7 @@ the title's key ("Wearing gatebreaker.") - it says its name now, as the aura's a
 service's glyph and icon doors answered a thinner wardrobe than the title's - the arena's, Iliac Hand's, The King's
 Gambit's and the Spire's honours missing (`arena.js` ARENA_HONOUR_PATHS), and the glyph's without a Charter's and a
 chapter's titles - so a Show or a profile icon worn here dropped a champion's title and laurel from the answer the flow
-takes whole (AUDIT COLLECTIONS-II, acct169).
+takes whole (AUDIT COLLECTIONS-II, acct171 - acct169 on its branch, renumbered past CRAFT-PAYS and PISTOLET at the merge).
 
 A host with no flow to give (a lab, a pin) lists the catalogue and holds nothing.
 

@@ -1204,6 +1204,31 @@
   "tr": "43a2e159a418",
   "by": "claude-in-session"
  },
+ "account.refusal.craftGoodsGone": {
+  "en": "b41c788936f4",
+  "tr": "4796876efed1",
+  "by": "claude-in-session"
+ },
+ "account.refusal.craftPieces": {
+  "en": "f032696bcd65",
+  "tr": "23abe32a99d2",
+  "by": "claude-in-session"
+ },
+ "account.refusal.craftUnbrewed": {
+  "en": "d6b221061ab6",
+  "tr": "382c73858eb2",
+  "by": "claude-in-session"
+ },
+ "account.refusal.craftWritCap": {
+  "en": "18d40380fd6d",
+  "tr": "dc66a5d9f473",
+  "by": "claude-in-session"
+ },
+ "account.refusal.craftWritFilled": {
+  "en": "60bbcecd9de4",
+  "tr": "3eed574a5314",
+  "by": "claude-in-session"
+ },
  "account.refusal.customsAllowance": {
   "en": "793153fc9b40",
   "tr": "4729122dbe21",
@@ -12844,16 +12869,6 @@
   "tr": "bad5744642dd",
   "by": "claude-in-session"
  },
- "inventory.store.anyMaterial": {
-  "en": "8177dd78731e",
-  "tr": "96e1d375cac2",
-  "by": "claude-in-session"
- },
- "inventory.store.anyRarity": {
-  "en": "cc8474c6626b",
-  "tr": "d5ad3819e9f1",
-  "by": "claude-in-session"
- },
  "inventory.store.containerFull": {
   "en": "25e48df7aefe",
   "tr": "55c0b4cb33a1",
@@ -12864,9 +12879,19 @@
   "tr": "1c12130fc52f",
   "by": "claude-in-session"
  },
+ "inventory.store.materialMenu": {
+  "en": "d8169782b57c",
+  "tr": "6806d49386f0",
+  "by": "claude-in-session"
+ },
  "inventory.store.rarityIn": {
   "en": "4edd5e0b523a",
   "tr": "89ab658d43d2",
+  "by": "claude-in-session"
+ },
+ "inventory.store.rarityMenu": {
+  "en": "a3e1e99f2620",
+  "tr": "72a838217b91",
   "by": "claude-in-session"
  },
  "inventory.store.stashAll": {
@@ -13397,6 +13422,76 @@
  "lw.econ.thriving.b": {
   "en": "2d8ffddfef34",
   "tr": "1237a28c07b9",
+  "by": "claude-in-session"
+ },
+ "market.page.label": {
+  "en": "600584c2d5cc",
+  "tr": "d0ee22fafc7b",
+  "by": "claude-in-session"
+ },
+ "market.page.next": {
+  "en": "bc981983e7f5",
+  "tr": "807ce3c3414a",
+  "by": "claude-in-session"
+ },
+ "market.page.of": {
+  "en": "f585c1f6cce6",
+  "tr": "4623066896c7",
+  "by": "claude-in-session"
+ },
+ "market.page.prev": {
+  "en": "50f94286ba30",
+  "tr": "a06ac6c0acad",
+  "by": "claude-in-session"
+ },
+ "market.sift.anyQuality": {
+  "en": "fc99c7aa369f",
+  "tr": "bf45972e8992",
+  "by": "claude-in-session"
+ },
+ "market.sift.cheap": {
+  "en": "007824036f1a",
+  "tr": "072b2ffbef00",
+  "by": "claude-in-session"
+ },
+ "market.sift.dear": {
+  "en": "67160369fc5f",
+  "tr": "47adc9bb63af",
+  "by": "claude-in-session"
+ },
+ "market.sift.ending": {
+  "en": "7600e7bc2d7b",
+  "tr": "2e8cef82da22",
+  "by": "claude-in-session"
+ },
+ "market.sift.find": {
+  "en": "28abc0313db1",
+  "tr": "1be2c50a3ead",
+  "by": "claude-in-session"
+ },
+ "market.sift.findLabel": {
+  "en": "6d0ff7b011ca",
+  "tr": "df942ebf0b6f",
+  "by": "claude-in-session"
+ },
+ "market.sift.new": {
+  "en": "f5ec7772ca9b",
+  "tr": "bb2604cd9a97",
+  "by": "claude-in-session"
+ },
+ "market.sift.quality": {
+  "en": "96758730535a",
+  "tr": "d0f605835529",
+  "by": "claude-in-session"
+ },
+ "market.sift.qualityLabel": {
+  "en": "63b91acb3bde",
+  "tr": "fc394b7f6c08",
+  "by": "claude-in-session"
+ },
+ "market.sift.sortLabel": {
+  "en": "1d75774c0f96",
+  "tr": "e96c7de78ed0",
   "by": "claude-in-session"
  },
  "marks.capped.star": {
@@ -20224,6 +20319,11 @@
   "tr": "010062424afa",
   "by": "claude-in-session"
  },
+ "notice.chapters.head": {
+  "en": "74d3bbe40195",
+  "tr": "0ecd60e5d585",
+  "by": "claude-in-session"
+ },
  "notice.chapters.rank.name": {
   "en": "f655d25b4390",
   "tr": "37b20cc550f5",
@@ -20242,6 +20342,136 @@
  "notice.chapters.standing.words": {
   "en": "240755025101",
   "tr": "8b589c3d88d1",
+  "by": "claude-in-session"
+ },
+ "notice.craftWrit.court": {
+  "en": "0e06cb458119",
+  "tr": "de16cc50ec9f",
+  "by": "claude-in-session"
+ },
+ "notice.craftWrit.deliver": {
+  "en": "dcac5d49c54c",
+  "tr": "267643584e84",
+  "by": "claude-in-session"
+ },
+ "notice.craftWrit.elsewhere": {
+  "en": "f7b40c528549",
+  "tr": "fda0a214673d",
+  "by": "claude-in-session"
+ },
+ "notice.craftWrit.full": {
+  "en": "d5cf5f0fc765",
+  "tr": "0f6efccef621",
+  "by": "claude-in-session"
+ },
+ "notice.craftWrit.head": {
+  "en": "2f997704072d",
+  "tr": "2de3a5c17dac",
+  "by": "claude-in-session"
+ },
+ "notice.craftWrit.kind": {
+  "en": "942da43630fa",
+  "tr": "bde2b6687cc8",
+  "by": "claude-in-session"
+ },
+ "notice.craftWrit.mine": {
+  "en": "53c1df74536f",
+  "tr": "8c54c58553f5",
+  "by": "claude-in-session"
+ },
+ "notice.craftWrit.unknown": {
+  "en": "f818ff47bed4",
+  "tr": "378c91fb179c",
+  "by": "claude-in-session"
+ },
+ "notice.sift.all": {
+  "en": "6f936357137b",
+  "tr": "10cb65744d92",
+  "by": "claude-in-session"
+ },
+ "notice.sift.chapter": {
+  "en": "bbcd48f1c075",
+  "tr": "7f38dd4744cd",
+  "by": "claude-in-session"
+ },
+ "notice.sift.clear": {
+  "en": "37699ac85df0",
+  "tr": "111a52a0dcfc",
+  "by": "claude-in-session"
+ },
+ "notice.sift.commission": {
+  "en": "c51e0bc19c90",
+  "tr": "3fab8c55919a",
+  "by": "claude-in-session"
+ },
+ "notice.sift.contract": {
+  "en": "ba6b8b709e83",
+  "tr": "44e15f893394",
+  "by": "claude-in-session"
+ },
+ "notice.sift.count": {
+  "en": "4ec58f7e5222",
+  "tr": "5b3b5ba62f45",
+  "by": "claude-in-session"
+ },
+ "notice.sift.court": {
+  "en": "c412904b14da",
+  "tr": "201090d1170b",
+  "by": "claude-in-session"
+ },
+ "notice.sift.ending": {
+  "en": "7600e7bc2d7b",
+  "tr": "2e8cef82da22",
+  "by": "claude-in-session"
+ },
+ "notice.sift.fill": {
+  "en": "adaec9b2200b",
+  "tr": "3745444c207b",
+  "by": "claude-in-session"
+ },
+ "notice.sift.find": {
+  "en": "bce06414177f",
+  "tr": "d64ed7464855",
+  "by": "claude-in-session"
+ },
+ "notice.sift.findLabel": {
+  "en": "16a34b25f759",
+  "tr": "5fe589219f24",
+  "by": "claude-in-session"
+ },
+ "notice.sift.guild": {
+  "en": "bd6ec6ba7938",
+  "tr": "762be5050aaa",
+  "by": "claude-in-session"
+ },
+ "notice.sift.kindLabel": {
+  "en": "c6b7838e97d5",
+  "tr": "8376a371e11a",
+  "by": "claude-in-session"
+ },
+ "notice.sift.more": {
+  "en": "839d8480b485",
+  "tr": "56cd6a91e958",
+  "by": "claude-in-session"
+ },
+ "notice.sift.name": {
+  "en": "3ae085e5fa14",
+  "tr": "3df1f92b5861",
+  "by": "claude-in-session"
+ },
+ "notice.sift.none": {
+  "en": "c07fa462255f",
+  "tr": "4f983d65e915",
+  "by": "claude-in-session"
+ },
+ "notice.sift.pay": {
+  "en": "33667afe5c3b",
+  "tr": "7a32fb717673",
+  "by": "claude-in-session"
+ },
+ "notice.sift.sortLabel": {
+  "en": "ce1b465685f6",
+  "tr": "a05fb4f2d47f",
   "by": "claude-in-session"
  },
  "notice.skills.improve": {
@@ -23092,6 +23322,81 @@
  "prof.craft.xpTop": {
   "en": "17683031667e",
   "tr": "43b8bf1786da",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.countDish": {
+  "en": "2620ee9d814b",
+  "tr": "0dcf12dc6901",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.countKit": {
+  "en": "1e4295bd6131",
+  "tr": "50242d5fdff8",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.countPotion": {
+  "en": "27ab7fc11ae5",
+  "tr": "24864ac363fb",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.delivered": {
+  "en": "7ab3a53814bd",
+  "tr": "2c522ef1c3ce",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.filled": {
+  "en": "7a872917b93c",
+  "tr": "58bdc82ad128",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.heldPiece": {
+  "en": "64bd61e1ac9d",
+  "tr": "f6786836fbf3",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.heldPotion": {
+  "en": "0df572ce5b27",
+  "tr": "5e15922fb673",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.madeDish": {
+  "en": "b7ce00fd9272",
+  "tr": "0630cc8c6af1",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.madeKit": {
+  "en": "3c1cdeb194b6",
+  "tr": "5822f4153a4b",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.madePotion": {
+  "en": "adc1ccebe8a8",
+  "tr": "6a8e1729412c",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.need": {
+  "en": "a3adc29a7a09",
+  "tr": "836ebda12bb4",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.pay": {
+  "en": "e004c65b52b5",
+  "tr": "dc6ffd0e3185",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.shortBrew": {
+  "en": "5c96920bf78f",
+  "tr": "f3d071b7432e",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.shortCarry": {
+  "en": "05d94ce59133",
+  "tr": "fdd761816b36",
+  "by": "claude-in-session"
+ },
+ "prof.craftWrit.shortMake": {
+  "en": "a102d722f048",
+  "tr": "b82fa5ce6bea",
   "by": "claude-in-session"
  },
  "prof.lode.legend": {

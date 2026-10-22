@@ -699,10 +699,10 @@ export const ESSENCE_TEMPLATES = Object.freeze([ARCANE_ESSENCE]);
  * PROF12 (9.3: "the brewing act at an alchemy station"): WHERE THE ALCHEMY STATION STANDS. DECIDED: 9.3 names a station
  * and no shop - so a home's `alchemy` station (HOME-STATIONS' first, its 50,000 licence; a hall member's as the others'), or
  * an ALCHEMIST's, open for trade (DFU's own potion seller, its insideOpenShop latch - AUDIT 29 D4's law), at every other
- * station's use fee: 50 gold a brew or a transmutation, the purse's. The service cannot see the station (as it cannot see
+ * station's use fee: 50 gold a brew or a transmutation, the purse's (CRAFT-PAYS: 25 since 2026-10-21, below). The service cannot see the station (as it cannot see
  * the forge, PROF0 23): the inputs are the Stores' and their units the bound.
  */
-export const ALCHEMY_FEE = 50;
+export const ALCHEMY_FEE = 25;   // CRAFT-PAYS (Professions-Arc.md section 48): 50 until 2026-10-21 - a brew is a bottle, not a blade; a forge's 50 on a 50-gold potion was the margin's whole
 /**
  * PROF12 (9.3: "Disenchanting (new, at any enchanting station)"): WHERE IT IS DONE. DECIDED: a home's `enchant` station
  * (HOME-STATIONS', its 200,000 licence; a hall member's) or a MAGES GUILD hall - the house of DFU's own item maker - at the
