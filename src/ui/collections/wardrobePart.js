@@ -354,7 +354,7 @@ function withRow(ctx, e) {
   for (const w of e.with) {
     const [kind, key] = w.split(':');
     if (!wardrobeEntry(kind, key)) continue;
-    const b = ctx.el('button', 'coll-with', `${KIND_WORD[/** @type {keyof typeof KIND_WORD} */ (kind)]()}: ${wardrobeName(kind, key)}`);
+    const b = ctx.el('button', 'coll-with', `${WARDROBE_KIND_WORD[/** @type {keyof typeof WARDROBE_KIND_WORD} */ (kind)]()}: ${wardrobeName(kind, key)}`);
     b.type = 'button';
     b.setAttribute('data-focus', `coll-with-${kind}-${key}`);
     b.onclick = () => { openWardrobeRow(kind, key); ctx.goTo(kind); ctx.rerender(); focusRow(kind, key); };
@@ -377,7 +377,7 @@ const revealOpened = () => {
   globalThis.requestAnimationFrame?.(() => globalThis.document?.querySelector?.('.px-sys .coll-whole')?.scrollIntoView?.({ block: 'nearest' }));
 };
 /** Each kind's word, singular (a "comes with" press). */
-export const KIND_WORD = Object.freeze({
+export const WARDROBE_KIND_WORD = Object.freeze({
   title: () => t('coll.kind.title', 'Title'),
   aura: () => t('coll.kind.aura', 'Aura'),
   icon: () => t('coll.kind.icon', 'Icon'),
