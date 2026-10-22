@@ -46,7 +46,7 @@
 import { verifyPassword, mintRecoveryCode, canonicalCode } from './password.js';
 import { mintId, mintSecret, hashSecret, displayName, overRate, clearRate, overAccountRate } from './accounts.js';
 import { isDeveloper, canModerate, handleList, developerHandles, moderatorHandles, staffSuspended, TIER_LISTS, MOD_TIERS } from './titles.js';
-import { isBanned, pushLaw, staffCutOrder } from './sanctions.js';
+import { isBanned } from './sanctions.js';
 import { staffCases, CASE_ROUTES } from './staffCases.js';
 import { staffDesk, DESK_ROUTES } from './staffDesk.js';   // STAFF-PANEL3-DESK: notes, the watchlist, your settings, and the Admins' notice, scorecard and reported notes
 import { staffPlayers, PLAYER_ROUTES } from './staffPlayers.js';
@@ -427,16 +427,15 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
       // STAFF-PANEL2-FIX (design doc, Weak spots: "Cutting off a staff member misses most doors"): the cut is stored
       // (`staff_suspended`, every role path reads it - titles.js), and it ends the member's game sessions as well as
       // their panel's, so no game door and no fresh token is theirs until they sign in again - and that token carries no
-      // staff glyph. The relay is told to close what they hold now (sanctions.js staffCutOrder); `relay` says whether it
-      // took the order (a relay that missed it closes nothing until the member's sockets drop or their lease lapses)
+      // staff glyph. What their open sockets hold now stays until they drop or their lease lapses: the relay's order that
+      // closes them ships with the relay release, not with the service
       await db.batch([
         db.prepare('UPDATE staff_keys SET revoked_at = ? WHERE player_id = ? AND revoked_at IS NULL').bind(nowS, target.id),
         ...['staff_sessions', 'staff_invites', 'sessions'].map((t) => db.prepare(`DELETE FROM ${t} WHERE player_id = ?`).bind(target.id)),
         db.prepare('UPDATE players SET staff_suspended = 1 WHERE id = ?').bind(target.id),
         audit('cut', target.id, { handle: target.handle, role }),
       ]);
-      const relay = await pushLaw(env, (u, i) => globalThis.fetch(u, i), await staffCutOrder(env, subtle, nowS, target.id));
-      return { ok: true, handle: target.handle, relay };
+      return { ok: true, handle: target.handle };
     }
     const code = mintRecoveryCode(rand);
     const canon = canonicalCode(code);

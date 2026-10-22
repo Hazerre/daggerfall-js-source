@@ -29,7 +29,7 @@
 import { canModerate, isDeveloper } from './titles.js';
 import { displayName, isMuted } from './accounts.js';
 import { signingKey } from './signing.js';
-import { mintOrder, mintBanOrder, mintStaffCutOrder, ID_RE } from '../../src/net/identityToken.js';
+import { mintOrder, mintBanOrder, ID_RE } from '../../src/net/identityToken.js';
 import { STRIKE_WINDOW_S, LADDER_BAN_AT, ladderMinutes, BAN_DAYS_MAX, banUntil } from '../../src/net/safety/safetyLaw.js';
 import { MUTE_MAX_MIN } from '../../src/net/moderation.js';
 import { SAFE_LAW_PATH } from '../../src/net/wire.js';
@@ -233,16 +233,4 @@ export async function pushLaw(env, fetchFn, order) {
     if (!res.ok || said?.ok === false) console.warn('[safety] the relay\'s door said', res.status, said?.error ?? '');
     return res.ok && said?.ok !== false;
   } catch (e) { console.warn('[safety] the relay\'s door', /** @type {any} */ (e)?.message ?? e); return false; }
-}
-
-/**
- * STAFF-PANEL2-FIX (design doc, Weak spots: "the cut also ends game sessions and pushes a relay order that strips staff
- * glyphs"): THE CUT'S ORDER FOR THE RELAY - `{o:'staffcut', s, i, e}`, signed (identityToken.js mintStaffCutOrder): the
- * hub closes every socket of account `s` whose token was minted before it, so its staff glyphs leave with them; the
- * account's next token (staff.js /v1/staff/cut ended its game sessions, so only after it signs in again) carries none.
- * null for a service with no key. @param {any} env @param {SubtleCrypto} subtle @param {number} nowS @param {string} s
- */
-export async function staffCutOrder(env, subtle, nowS, s) {
-  const key = await signingKey(env, subtle);
-  return key ? mintStaffCutOrder({ s }, key, { subtle, nowS }) : null;
 }

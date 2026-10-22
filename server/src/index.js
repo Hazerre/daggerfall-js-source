@@ -569,7 +569,7 @@ async function lawDoor(request, env) {
   const order = body?.order;
   if (typeof order !== 'string' || !order || order.length > 1024) return json({ error: 'bad law' }, 400);
   const kind = lawKindOf(order);
-  if (kind !== 'ban' && kind !== 'mute' && kind !== 'staffcut') return json({ error: 'bad law' }, 403);   // no verify spent on what is no mute, ban or staff cut (STAFF-PANEL2-FIX)
+  if (kind !== 'ban' && kind !== 'mute') return json({ error: 'bad law' }, 403);   // no verify spent on what is no mute or ban
   const key = await lawKeyOf(env);
   if (!key) return json({ error: 'unavailable' }, 503);
   const nowS = Math.floor(Date.now() / 1000);
@@ -2966,7 +2966,7 @@ export class Room {
   async _lawInternal(request) {
     let body = null;
     try { body = await request.json(); } catch { body = null; }
-    const ok = await this._takeOrder(body?.order, Date.now(), ['ban', 'mute', 'staffcut'], true);   // STAFF-PANEL2-FIX: and a staff member cut off
+    const ok = await this._takeOrder(body?.order, Date.now(), ['ban', 'mute'], true);
     await this._reap();
     return json({ ok });
   }
@@ -2998,7 +2998,6 @@ export class Room {
     const r = await verifyOrder(order, this._verifyKey, { subtle: crypto.subtle, nowS, kind });
     if (!r.ok) return false;
     const c = r.claims;
-    if (c.o === 'staffcut') return this._staffCut(c);
     const ban = c.o === 'ban';
     const sig = order.slice(order.lastIndexOf('.') + 1);
     if (ban) await this._loadBans(nowS);
@@ -3021,20 +3020,11 @@ export class Room {
     }
     return true;
   }
-  /** STAFF-PANEL2-FIX (design doc "DFO Staff Panel: design", Weak spots: "the cut also ends game sessions and pushes a
-   *  relay order that strips staff glyphs"): A STAFF MEMBER CUT OFF - each of the account's sockets here whose token was
-   *  minted before the order is closed CLOSE_POLICY 'staff-cut', as a ban closes it, so the staff glyphs that token
-   *  carried leave with it; the service ended the account's game sessions in the same cut, so no token comes back until
-   *  it signs in again, and that one carries none. Nothing is kept: a socket whose token is newer is left alone. */
-  _staffCut(c) {
-    for (const [ws, b] of [...this._all()]) if (b.sub === c.s && !(b.gio > c.i)) this._banClose(ws, 'staff-cut');
-    return true;
-  }
   /** AUDIT SAFE RELAY-4: a banned account's socket closed - CLOSE_POLICY, 'banned', after its `law` and its `banned` - and
    *  leaving the room as every socket this object closes does (`_dead`, reaped at the door). A shard's hello the bus
    *  refused before it held its ShardSocket has nothing here to leave: its shard says the leave of the real one. */
-  _banClose(ws, why = 'banned') {
-    try { ws.close(CLOSE_POLICY, why); } catch { /* gone */ }
+  _banClose(ws) {
+    try { ws.close(CLOSE_POLICY, 'banned'); } catch { /* gone */ }
     if (ws.virtual && this._vsocks.get(ws.vid) !== ws) return;
     this._dead.add(ws);
     this._closed(ws);

@@ -591,12 +591,13 @@
   },
   {
     "name": "STAFF-PANEL3-ECON-index-trades-b-gone",
-    "file": "server-account/migrations/0150_staff_economy.sql",
-    "old": "CREATE INDEX IF NOT EXISTS idx_realm_trades_b ON realm_trades (b_player, created_at);",
+    "file": "server-account/migrations/0148_staff_players.sql",
+    "old": "CREATE INDEX IF NOT EXISTS realm_trades_b_player ON realm_trades (b_player, created_at) WHERE b_player IS NOT NULL;",
     "new": "-- gone",
     "why": "a trade's second side walks the table",
     "tests": [
-      "test/server/staffpanel3econ.test.js"
+      "test/server/staffpanel3econ.test.js",
+      "test/server/staffpanel3players.test.js"
     ]
   },
   {
