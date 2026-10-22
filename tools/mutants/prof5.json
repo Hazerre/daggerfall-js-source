@@ -733,8 +733,8 @@
   {
     "name": "PROF5-svc-anyone-removes",
     "file": "server-account/src/market.js",
-    "old": "  if (!isDeveloper(player, env)) return { error: 'not-developer' };\n  if (!idOk(id)) return { error: 'bad-listing' };\n  const nonce = mintId(rand);\n  const kept",
-    "new": "  if (!idOk(id)) return { error: 'bad-listing' };\n  const nonce = mintId(rand);\n  const kept",
+    "old": "  if (!isDeveloper(player, env)) return { error: 'not-developer' };\n  /** @type {(how: { target",
+    "new": "  /** @type {(how: { target",
     "tests": [
       "test/net/prof5_service.test.js"
     ]
