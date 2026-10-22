@@ -29429,6 +29429,11 @@
   "tr": "a0f8d1d7d54e",
   "by": "claude-in-session"
  },
+ "timers.at": {
+  "en": "ed220995fa6d",
+  "tr": "61457df940a8",
+  "by": "claude-in-session"
+ },
  "timers.chip.all": {
   "en": "6a72085653e4",
   "tr": "6b0b09b8a698",
@@ -29459,6 +29464,11 @@
   "tr": "e573f4fefd2c",
   "by": "claude-in-session"
  },
+ "timers.ends": {
+  "en": "cc5475a13439",
+  "tr": "d637db6ea315",
+  "by": "claude-in-session"
+ },
  "timers.group.raids": {
   "en": "fa268924dfcc",
   "tr": "6a3258481e6d",
@@ -29476,7 +29486,7 @@
  },
  "timers.group.spire": {
   "en": "d825a3c3297c",
-  "tr": "6dc5d8d3aa41",
+  "tr": "f8ea26ff6123",
   "by": "claude-in-session"
  },
  "timers.group.world": {
@@ -29485,8 +29495,8 @@
   "by": "claude-in-session"
  },
  "timers.groups": {
-  "en": "d97d1ee339e4",
-  "tr": "5e8020402fa8",
+  "en": "a5e0ac486a11",
+  "tr": "5669dd1ab9be",
   "by": "claude-in-session"
  },
  "timers.now": {

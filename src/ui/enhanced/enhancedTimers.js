@@ -12,8 +12,9 @@
 // TIMERS2 (2026-10-22, the owner: "organize the timer system in the pause menu"): THE WINDOW IN GROUPS. The rows stand
 // under what they are - World events, the Battlespire, Town raids, Seats and battles, Resets (eventTimers.js
 // TIMER_GROUPS) - each group's head saying how many of its rows are under way, and a row under way wears its own "Now"
-// beside its countdown. A bar of buttons over the list shows every group or one alone (All, World, Spire, Raids, Seats,
-// Resets - a group with no row has no button), kept while the game runs; a group that empties hands the list back to All.
+// above its countdown. A bar of buttons over the list shows every group or one alone (All, World, Spire, Raids, Seats,
+// Resets - a group with no row has no button), kept while the game runs; a group that empties hands the list back to All,
+// and All is the choice then. The window stands at one height and its list scrolls under the bar (AUDIT TIMERS2 H1, M6).
 import { eventTimerRows, timerText, localWhenText, timerGroups } from '../../systems/eventTimers.js';
 import { t } from '../../systems/textManager.js';   // TIMERS2: the groups' words in the player's language
 
@@ -126,7 +127,7 @@ export function timersWindow(doc, { read, onClose, every = 1000, door = (fn) => 
   // TIMERS2: the bar - All and a button for each group that has a row, the one shown pressed
   const bar = el('div', 'tm-groups');
   bar.setAttribute('role', 'group');
-  bar.setAttribute('aria-label', t('timers.groups', 'Show'));
+  bar.setAttribute('aria-label', t('timers.groups', 'Which timers to show'));   // AUDIT TIMERS2 L8: "Show" said nothing
   body.append(bar);
   const list = el('div', 'tm-list');
   body.append(list);
@@ -135,38 +136,56 @@ export function timersWindow(doc, { read, onClose, every = 1000, door = (fn) => 
   let showing = group;
   /** @type {Map<string, any>} */
   let cells = new Map();
-  /** @type {Map<string, any>} */
+  /** @type {Map<string, { b: any, count: any }>} */
   let chips = new Map();
   let shape = null;   // never a list's shape, so the first draw always builds (an empty one says so)
-  let barShape = null;
+  let barIds = null;
+  /** AUDIT TIMERS2 M3: a button's words, count, mark and state, written in place - the same buttons while the groups are
+   *  the same groups (a rebuild at a live row's start lost a press caught between its down and its up, and the focus) */
+  const chipSay = ({ b, count }, id, n, live) => {
+    const on = id === showing;
+    b.className = classes('act', 'tm-chip', `tm-chip-${id}`, on && 'on', live && 'live');
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    // AUDIT TIMERS2 L8: the mark that one is under way is in the button's name too, not its colour alone
+    b.setAttribute('aria-label', `${timerGroupChip(id)} ${n}${live ? `, ${t('timers.underWay', '{n} under way', { n: live })}` : ''}`);
+    if (count.textContent !== String(n)) count.textContent = String(n);
+  };
   const draw = () => {
     const src = read();
     const rows = src ? eventTimerRows(src) : [];
     const now = Number(src?.now) || Date.now();
     const offset = now - Date.now();   // the relay's clock against this machine's - the local time is the machine's
     const groups = timerGroups(rows);
-    // a group that empties (its last raid over) hands the list back to All - never a window that shows nothing
-    if (showing !== 'all' && !groups.some((g) => g.id === showing)) showing = 'all';
-    const nextBar = JSON.stringify([showing, groups.map((g) => [g.id, g.rows.length, g.live])]);
-    if (nextBar !== barShape) {
-      barShape = nextBar;
-      const had = [...chips].find(([, b]) => b === doc.activeElement)?.[0] ?? null;   // the press's focus kept through the rebuild
+    // a group that empties (its last raid over) hands the list back to All - never a window that shows nothing. AUDIT
+    // TIMERS2 M4: and the choice is All now, kept as the player's - it was this window's alone, and the next redraw of the
+    // pause face (a quest's clock, a tab) brought the emptied group back when its rows did
+    if (showing !== 'all' && !groups.some((g) => g.id === showing)) { showing = 'all'; shownGroup = 'all'; }
+    const counts = [{ id: 'all', n: rows.length, live: groups.reduce((a, g) => a + g.live, 0) }, ...groups.map((g) => ({ id: g.id, n: g.rows.length, live: g.live }))];
+    const ids = groups.length ? counts.map((c) => c.id).join(' ') : '';
+    if (ids !== barIds) {
+      barIds = ids;
+      const had = [...chips].find(([, c]) => c.b === doc.activeElement)?.[0] ?? null;   // the press's focus kept through the rebuild
       chips = new Map();
       bar.textContent = '';
       // no clock, no bar (the empty list says why); with one, the gate and the resets always stand - two groups at least
       if (groups.length) {
-        for (const { id, n, live } of [{ id: 'all', n: rows.length, live: groups.reduce((a, g) => a + g.live, 0) }, ...groups.map((g) => ({ id: g.id, n: g.rows.length, live: g.live }))]) {
-          const b = el('button', classes('act', 'tm-chip', `tm-chip-${id}`, id === showing && 'on', live && 'live'));
+        for (const { id } of counts) {
+          const b = el('button', 'act tm-chip');
           /** @type {any} */ (b).type = 'button';
-          b.setAttribute('aria-pressed', id === showing ? 'true' : 'false');
-          b.append(el('span', 'tm-chip-name', timerGroupChip(id)), el('span', 'tm-chip-n', String(n)));
-          b.addEventListener('click', () => { showing = id; shownGroup = id; draw(); });
+          b.setAttribute('data-focus', `timers-${id}`);   // the pause face's redraw finds it again (ui/domRepaint.js)
+          const count = el('span', 'tm-chip-n', '');
+          b.append(el('span', 'tm-chip-name', timerGroupChip(id)), count);
+          b.addEventListener('click', () => {
+            if (showing !== id) list.scrollTop = 0;   // another group starts at its top
+            showing = id; shownGroup = id; draw();
+          });
           bar.append(b);
-          chips.set(id, b);
+          chips.set(id, { b, count });
         }
       }
-      if (had) /** @type {any} */ (chips.get(had) ?? chips.get('all'))?.focus?.({ preventScroll: true });
+      if (had) /** @type {any} */ (chips.get(had) ?? chips.get('all'))?.b?.focus?.({ preventScroll: true });
     }
+    for (const { id, n, live } of counts) { const c = chips.get(id); if (c) chipSay(c, id, n, live); }
     const shown = showing === 'all' ? groups : groups.filter((g) => g.id === showing);
     // A cleared raid can change only the detail count while the displayed raid stays the same.
     const nextShape = JSON.stringify([showing, shown.map((g) => [g.id, g.live, g.rows.map((r) => [r.id, r.live, r.title, r.where, r.detail, r.door ?? null])])]);
@@ -192,7 +211,7 @@ export function timersWindow(doc, { read, onClose, every = 1000, door = (fn) => 
           const clock = el('div', 'tm-clock');
           const count = el('span', 'tm-count');
           const when = el('span', 'tm-when');
-          // TIMERS2: a row under way says so beside its countdown (the "Now" heading it stood under is gone)
+          // TIMERS2: a row under way says so above its countdown (the "Now" heading it stood under is gone)
           if (r.live) clock.append(el('span', 'tm-badge', t('timers.now', 'Now')));
           clock.append(count, when);
           row.append(text, clock);
@@ -215,7 +234,8 @@ export function timersWindow(doc, { read, onClose, every = 1000, door = (fn) => 
       if (!c) continue;
       const left = timerText(r.at - now);
       if (c.count.textContent !== left) c.count.textContent = left;
-      const when = `${r.live ? 'ends' : 'at'} ${localWhenText(r.at - offset)}`;
+      // AUDIT TIMERS2 L8: in the player's language, as the "Now" above it is
+      const at = localWhenText(r.at - offset), when = r.live ? t('timers.ends', 'ends {when}', { when: at }) : t('timers.at', 'at {when}', { when: at });
       if (c.when.textContent !== when) c.when.textContent = when;
     }
   };
@@ -224,7 +244,9 @@ export function timersWindow(doc, { read, onClose, every = 1000, door = (fn) => 
   const step = () => { if (win.isConnected === false && tick) { clearInterval(tick); tick = null; return; } draw(); };
   draw();
   tick = setInterval(step, every);
-  // AUDIT TIMERS1 UI-5: the focus goes INTO the window (it had stayed on the hourglass, under the scrim)
-  globalThis.requestAnimationFrame?.(() => close.focus?.());
-  return { root: win, stop: () => { if (tick) clearInterval(tick); tick = null; }, draw, close, show: (id) => { showing = id; shownGroup = id; draw(); } };
+  // AUDIT TIMERS1 UI-5: the focus goes INTO the window (it had stayed on the hourglass, under the scrim). AUDIT TIMERS2 M5:
+  // unless it is in already - the pause face redraws this window whole and puts the focus back where it was (a filter's
+  // button), and Close took it off again a frame later
+  globalThis.requestAnimationFrame?.(() => { if (!win.contains?.(doc.activeElement)) close.focus?.(); });
+  return { root: win, stop: () => { if (tick) clearInterval(tick); tick = null; }, draw, close };
 }

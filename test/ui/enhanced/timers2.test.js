@@ -24,7 +24,8 @@ function fakeDoc() {
   const node = (tag) => {
     const n = { tag, children: [], className: '', textContent: '', attrs: {}, style: {}, listeners: {}, title: '', type: '',
       append(...cs) { for (const c of cs) n.children.push(c); }, setAttribute(k, v) { n.attrs[k] = v; },
-      addEventListener(t, f) { (n.listeners[t] ??= []).push(f); }, focus() { doc.activeElement = n; } };
+      addEventListener(t, f) { (n.listeners[t] ??= []).push(f); }, focus() { doc.activeElement = n; },
+      contains(x) { let found = false; walk(n, (c) => { if (c === x) found = true; }); return found; } };
     Object.defineProperty(n, 'textContent', { get() { return n._t ?? ''; }, set(v) { n._t = v; if (v === '') n.children = []; } });
     return n;
   };
@@ -63,7 +64,7 @@ test('TIMERS2 the layout: the rows by group in TIMER_GROUPS\'s order, each group
   assert.deepEqual(timerGroups(null), []);
 });
 
-test('TIMERS2 the window: a head a group with how many are under way, a row under way saying "Now" beside its countdown and no other row; the countdowns still rewritten in place (mutants: the badge on a coming row; the head\'s count unsaid; the rows rebuilt every tick)', () => {
+test('TIMERS2 the window: a head a group with how many are under way, a row under way saying "Now" above its countdown and no other row; the countdowns still rewritten in place (mutants: the badge on a coming row; the head\'s count unsaid; the rows rebuilt every tick)', () => {
   let now = NOW;
   const view = timersWindow(fakeDoc(), { read: () => ({ now, raids: RAIDS, region: 'Daggerfall' }), onClose() {}, every: 1e9, group: 'all' });
   view.stop();
@@ -112,7 +113,11 @@ test('TIMERS2 the bar: All and a button for each group with a row, each its coun
   lone.stop();
   assert.equal(all(lone.root, 'tm-chip').length, 0);
   assert.equal(all(lone.root, 'tm-empty').length, 1, 'no clock: said so, as TIMERS1 said it');
-  view.show('all');   // the choice back to All for the next test in this process
+  // AUDIT TIMERS2 M4: the fall-back is the choice now - the raids back, the next window (the pause face's redraw) opens on All
+  now = NOW;
+  const again = timersWindow(fakeDoc(), { read, onClose() {}, every: 1e9 });
+  again.stop();
+  assert.deepEqual(all(again.root, 'tm-section-name').map((n) => n.textContent), ['World events', 'Town raids', 'Resets'], 'All, as the player last saw it - not the emptied group come back');
 });
 
 test('TIMERS2 the sheet: the Elite Breach\'s rows in its arch\'s gold (they drew in no colour), the gate\'s red the colour its Discord card wears, the bar and the badge styled, and Stone\'s light ground lifting the badge past 4.5:1 (mutants: the elite\'s colour dropped; the gate\'s a literal again)', () => {
@@ -121,4 +126,68 @@ test('TIMERS2 the sheet: the Elite Breach\'s rows in its arch\'s gold (they drew
   for (const rule of ['.px-timerswin .tm-groups {', '.px-timerswin .tm-chip {', '.px-timerswin .tm-chip.on {', '.px-timerswin .tm-badge {', '.px-timerswin .tm-section-live {']) assert.ok(ENHANCED_CSS.includes(rule), rule);
   assert.match(ENHANCED_CSS, /@media \(max-width: 560px\) \{[^}]*\}\n  \.px-timerswin \.tm-count \{ font-size: 16px; \}\n[^\n]*\n  \.px-timerswin \.tm-row \{ flex-wrap: wrap; \}\n  \.px-timerswin \.tm-text \{ flex: 1 1 0; \}\n  \.px-timerswin \.tm-door \{ flex: 1 0 100%;/, 'a row\'s door on a line of its own on a phone (seen at 390x844: beside the clock it left the words a word a line)');
   assert.match(ENHANCED_CSS, /:root\[data-plus-theme="stone"\] \.px-timerswin \.tm-badge, :root\[data-plus-theme="stone"\] \.px-timerswin \.tm-section-live \{ color: #c8ffd6; \}/, 'TIMERS1\'s live green on Stone (7.1:1 over its panel, as timers1.test.js measures it)');
+});
+
+// ═══ AUDIT TIMERS2 ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+const ROW_DOOR = { board: () => {} };
+
+test('AUDIT TIMERS2 M3: the bar\'s buttons are written in place - the same buttons while the groups are the same, their counts, marks and names moved with the world; a group going rebuilds the bar and the focus that stood on its button goes to All (mutants: the counts left stale; the bar rebuilt every change; the focus dropped)', () => {
+  let now = NOW;
+  const raids = [...RAIDS, { name: 'Glenpoint', region: 'Daggerfall', type: 'orcs', startMs: NOW + 600_000, endMs: NOW + 1_200_000 }];
+  const doc = fakeDoc();
+  const view = timersWindow(doc, { read: () => ({ now, raids, region: 'Daggerfall' }), onClose() {}, every: 1e9, group: 'all' });
+  view.stop();
+  const root = view.root;
+  const button = (id) => all(root, `tm-chip-${id}`)[0];
+  const r0 = button('raids');
+  assert.deepEqual([all(r0, 'tm-chip-n')[0].textContent, r0.attrs['aria-label']], ['3', 'Raids 3, 1 under way'], 'the mark in the name, not the colour alone (L8)');
+  now = NOW + 10_000; view.draw();   // Ashfield's raid over: one row fewer, none under way
+  assert.equal(button('raids'), r0, 'the same button');
+  assert.deepEqual([all(r0, 'tm-chip-n')[0].textContent, r0.attrs['aria-label'], r0.className.split(' ').includes('live')], ['2', 'Raids 2', false]);
+  r0.focus();
+  now = NOW + 2 * 3600_000; view.draw();   // every raid over: the group goes
+  assert.equal(button('raids'), undefined);
+  assert.equal(doc.activeElement, button('all'), 'the focus on a button that went is All\'s');
+  assert.ok(all(root, 'tm-chip').every((b) => b.attrs['data-focus'] === `timers-${b.className.split(' ').find((c) => c.startsWith('tm-chip-')).slice(8)}`), 'each found again by the pause face\'s redraw (ui/domRepaint.js data-focus)');
+});
+
+test('AUDIT TIMERS2 M5, L8: a redraw of the pause face leaves the focus where it put it back - Close takes it only from outside the window; the clock\'s words through the text core; a row under way with a door wears its "Now", a coming one none (mutants: Close taking the focus every draw; "Now" on a coming door row)', () => {
+  const raf = globalThis.requestAnimationFrame;
+  const frame = [];
+  globalThis.requestAnimationFrame = (f) => frame.push(f);   // the browser's order: the draw, then the redraw's focus, then the frame
+  const flush = () => { while (frame.length) frame.shift()(); };
+  try {
+    const doc = fakeDoc();
+    doc.activeElement = doc.createElement('button');   // the hourglass, outside the window
+    const src = () => ({ now: NOW, raids: RAIDS, region: 'Daggerfall' });
+    const first = timersWindow(doc, { read: src, onClose() {}, every: 1e9, group: 'all' });
+    first.stop(); flush();
+    assert.equal(doc.activeElement, first.close, 'opened from outside: Close');
+    const redrawn = timersWindow(doc, { read: src, onClose() {}, every: 1e9, group: 'all' });
+    redrawn.stop();
+    const chip = all(redrawn.root, 'tm-chip-raids')[0];
+    chip.focus();   // ui/domRepaint.js giveFocus - the pause face's redraw puts the focus back on the same button, before the frame
+    flush();
+    assert.equal(doc.activeElement, chip, 'a focus inside the window is the window\'s own to keep');
+  } finally { globalThis.requestAnimationFrame = raf; }
+  const view = timersWindow(fakeDoc(), { read: () => ({ now: NOW, raids: RAIDS, region: 'Daggerfall', elite: { op: NOW - 60_000, h: 0 }, doors: ROW_DOOR }), onClose() {}, every: 1e9, group: 'all' });
+  view.stop();
+  const doorRows = all(view.root, 'tm-elite');
+  assert.deepEqual(doorRows.map((r) => [r.className.split(' ').includes('live'), all(r, 'tm-door').length, all(r, 'tm-badge').length]), [[false, 1, 0], [false, 1, 0]], 'the breach\'s call and the season\'s end, both coming: their doors and no "Now"');
+  assert.ok(all(view.root, 'tm-when').every((w) => /^(at|ends) /.test(w.textContent)), 'the clock\'s words, English here, through the text core');
+});
+
+test('AUDIT TIMERS2 H1, H2, M3, M6, L7, L9: the sheet - the window at one height and its list alone scrolling; a thumb\'s 44px for the bar\'s buttons and the phone\'s door at its own 46px; the live mark drawn under a button, never beside its word, and dark on the pressed one; the count two figures wide in the button\'s own colour; the row\'s mark by its title (mutants: the window sized to its rows; the body scrolling; the 30px buttons; the dot back; the count dimmed)', () => {
+  assert.match(ENHANCED_CSS, /\n\.px-win\.px-timerswin \{ height: min\(680px, 86dvh\); max-height: min\(680px, 86dvh\);/, 'H1: one height - a filter\'s press moves nothing');
+  assert.match(ENHANCED_CSS, /\.px-win\.px-timerswin \.px-body \{ padding: 20px 24px 22px; display: flex; flex-direction: column; overflow: hidden; \}/);
+  assert.match(ENHANCED_CSS, /\.px-timerswin \.tm-list \{ flex: 1 1 auto; min-height: 0; overflow-y: auto;/, 'M6: the list alone scrolls, under a bar that stands');
+  assert.match(ENHANCED_CSS, /@media \(max-width: 860px\), \(pointer: coarse\) \{\n  \.px-timerswin \.tm-chip \{ min-height: 44px; \}\n\}/, 'H2: the sheet\'s 44px query');
+  assert.doesNotMatch(ENHANCED_CSS, /\.tm-door \{[^}]*min-height: 36px/, 'H2: no rule takes the door under its own 46px');
+  assert.doesNotMatch(ENHANCED_CSS, /tm-chip\.live \.tm-chip-name::after/, 'M3: no dot beside a word');
+  assert.match(ENHANCED_CSS, /\.px-timerswin \.tm-chip\.live \{ box-shadow: inset 0 -3px 0 #9fe8b4; \}\n\.px-timerswin \.tm-chip\.on\.live \{ box-shadow: inset 0 -3px 0 #0a0c11; \}/, 'L7: the mark dark on brass');
+  assert.match(ENHANCED_CSS, /\.px-timerswin \.tm-chip-n \{ font-variant-numeric: tabular-nums; min-width: 2ch; text-align: right; \}/, 'M3, L7: two figures\' room, and no opacity');
+  assert.match(ENHANCED_CSS, /\.px-timerswin \.tm-name::before \{ content: '\\25c6'; position: absolute; left: -14px; top: 50%; transform: translateY\(-50%\);/, 'L9: by the title');
+  assert.doesNotMatch(ENHANCED_CSS, /\.tm-row::before/);
+  assert.match(ENHANCED_CSS, /@media \(max-height: 560px\) \{\n  \.px-win\.px-timerswin \{ height: calc\(100dvh - 20px\); \}\n  \.px-timerswin \.tm-lead \{ display: none; \}\n\}/, 'M6: a phone on its side gives the list the lead\'s line');
 });

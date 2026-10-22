@@ -29429,6 +29429,11 @@
   "tr": "dc654147d3f4",
   "by": "claude-in-session"
  },
+ "timers.at": {
+  "en": "ed220995fa6d",
+  "tr": "3b7ecb6d330e",
+  "by": "claude-in-session"
+ },
  "timers.chip.all": {
   "en": "6a72085653e4",
   "tr": "4c7a986ffe2b",
@@ -29459,6 +29464,11 @@
   "tr": "83c0512277b2",
   "by": "claude-in-session"
  },
+ "timers.ends": {
+  "en": "cc5475a13439",
+  "tr": "791ed388183f",
+  "by": "claude-in-session"
+ },
  "timers.group.raids": {
   "en": "fa268924dfcc",
   "tr": "e1e73438af30",
@@ -29476,7 +29486,7 @@
  },
  "timers.group.spire": {
   "en": "d825a3c3297c",
-  "tr": "e897eaffde93",
+  "tr": "fed6bf399943",
   "by": "claude-in-session"
  },
  "timers.group.world": {
@@ -29485,8 +29495,8 @@
   "by": "claude-in-session"
  },
  "timers.groups": {
-  "en": "d97d1ee339e4",
-  "tr": "46a5a62e836b",
+  "en": "a5e0ac486a11",
+  "tr": "124906641e4e",
   "by": "claude-in-session"
  },
  "timers.now": {
@@ -29496,7 +29506,7 @@
  },
  "timers.underWay": {
   "en": "a99050daabf1",
-  "tr": "8e8c87597218",
+  "tr": "9a63ffeb463b",
   "by": "claude-in-session"
  },
  "town.econ.area.crownHeld": {

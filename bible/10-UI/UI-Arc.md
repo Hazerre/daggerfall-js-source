@@ -20007,11 +20007,15 @@ first, then soonest start), and says how many of each are under way; a group wit
   under way (*1 under way*);
 - a row under way says **Now** above its countdown - the Now and Coming up heads are gone, and the live row keeps its
   tint and its green count;
-- a BAR over the list - All and a button for each group with a row, each its count, a green dot where one is under way.
-  A press shows that group alone (the button pressed, `aria-pressed`), and the choice is kept while the game runs: the
-  next window opens on it. A group that empties (its last raid over) hands the list back to All, so the window never
-  shows nothing; with no clock there is no bar, and the empty list says why (AUDIT TIMERS1 UI-8). The focus stays on
-  the pressed button through the bar's rebuild;
+- a BAR over the list - All and a button for each group with a row, each its count, a green mark under it where one is
+  under way (said in its name too). A press shows that group alone (the button pressed, `aria-pressed`), and the choice
+  is kept while the game runs: the next window opens on it. A group that empties (its last raid over) hands the list
+  back to All, and All is the choice then, so the window never shows nothing; with no clock there is no bar, and the
+  empty list says why (AUDIT TIMERS1 UI-8). The buttons are written in place - only a group coming or going builds them
+  again, and the focus on a button that went is All's;
+- the window stands at ONE HEIGHT and its list alone scrolls under the head and the bar - a press moves nothing, and
+  another group starts at its top; on a phone the buttons are a thumb's 44px; a re-render of the pause face keeps the
+  focus where it was (AUDIT TIMERS2, `01-Overview/audits/Audit-Herald-Cards-Timers2.md`);
 - the Elite Breach's rows wear its arch's gold (`ui/eliteGates/egArchMapMark.js` `EG_ARCH_RING_CSS`) - they had drawn
   in no colour, `elite` missing from `TIMER_KINDS`; the gate's red is its herald's family's (`net/herald/heraldCard.js`
   `heraldCss`), the colour its Discord card wears (`11-Multiplayer/World-Bosses.md`, HERALD-CARDS);
@@ -20019,12 +20023,15 @@ first, then soonest start), and says how many of each are under way; a group wit
   had squeezed the row's words to a word a line.
 
 The groups' words go through the text core (`timers.group.*`, `timers.chip.*`, `timers.now`, `timers.underWay`,
-`timers.groups`), drafted in-session for the thirteen whole languages (`tools/l10nInSession.mjs`, recorded as the
-machine's); the window's own older English is as TIMERS1 left it.
+`timers.groups`, and - AUDIT TIMERS2 L8 - the clock's `timers.ends` and `timers.at`), drafted in-session for the
+thirteen whole languages (`tools/l10nInSession.mjs`, recorded as the machine's; the Battlespire's head in each
+language's own name for it, as the questlines say it); the window's title, lead and rows are as TIMERS1 left them.
 
 **Seen in a browser** (Chromium, the real pause face - `mountEnhancedMenu` in pause mode - with a fixture source, no
-ARENA2): at 1280x800 the five groups and the bar stand in the window, the Raids button showing the raids alone; at
-390x844 the bar wraps to two lines, no row runs past the window and nothing scrolls sideways, and the Elite rows'
-Boards sit under their rows. Not seen: the live pause face online. Pins: `test/ui/enhanced/timers2.test.js` (5: the
-law, the layout, the window, the bar, the sheet); `test/ui/enhanced/timers1.test.js`'s window pin moved to the groups;
-`tools/mutants/timers2.json` (15), all dead.
+ARENA2), as AUDIT TIMERS2 measured it after its fixes: at 1280x800 the bar is one line, and a press on Raids leaves the
+window (560x680 at y60) and the button (y162) where they were - a second press there does not close it; the buttons
+stand still as a raid goes live and as a tenth raid arrives; thirty raids scroll 2,495px under a bar that does not move.
+At 390x844 (a touch screen) the bar is two lines of 44px buttons, the Boards 46px on lines of their own, nothing scrolls
+sideways; at 844x390 the bar is one line and the list 216px. Not seen: the live pause face online. Pins:
+`test/ui/enhanced/timers2.test.js` (8: the law, the layout, the window, the bar, the sheet, and the audit's three);
+`test/ui/enhanced/timers1.test.js`'s window pin moved to the groups; `tools/mutants/timers2.json` (28), all dead.

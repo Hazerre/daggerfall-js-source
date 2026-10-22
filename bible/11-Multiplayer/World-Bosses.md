@@ -844,8 +844,8 @@ a reader had to read each to the end to learn when, where and who. Every post is
   `Sea-Serpent.md` section 14, `Super-Dungeons.md` SD-HERALD and `Elite-Gates.md` section 20), the door's secret, the
   votes of where. No frame changes shape.
 
-Relay world243. Pinned in `test/net/herald/heraldcards.test.js` (8); mutants `tools/mutants/heraldcards.json` (17, all
-dead); the four heralds' pins and mutant lists (`discordgates`, `serpent2`, `sdherald`, `egeco_relay`, `fb1020d_loneherald`,
+Relay world243. Pinned in `test/net/herald/heraldcards.test.js` (13); mutants `tools/mutants/heraldcards.json` (28, all
+dead - AUDIT HERALD-CARDS, `01-Overview/audits/Audit-Herald-Cards-Timers2.md`); the four heralds' pins and mutant lists (`discordgates`, `serpent2`, `sdherald`, `egeco_relay`, `fb1020d_loneherald`,
 `egaudit5_a2`, `wb8c`, `wb12a`, `wb12d`, `wb13b`, `wb14b`) read the cards now, every re-aimed mutant dead. Not seen:
 the cards in Discord itself (no webhook here) - the shape is Discord's documented embed, and the first omen after the
 deploy is the eyeball.
