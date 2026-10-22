@@ -8,13 +8,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import worker from '../../server-account/src/index.js';
-import { standService } from '../accountDb.mjs';
+import { standService, d1 } from '../accountDb.mjs';
 import { seatRealm, freshSave, layRecord } from '../realmSeat.mjs';
 import { staffWords, STAFF_SESSION_HEADER } from '../../server-account/src/staff.js';
 import {
   CENSUS_ROUTES, CENSUS_KINDS_MAX, CENSUS_ITEMS_MAX, CENSUS_PAGE, CENSUS_DAY_HOUR, CENSUS_QUIET_HOURS, CENSUS_DAYS_KEEP, CONTESTED_HIGH,
-  TRAIL_NOTE_MAX, censusTally, censusStep, censusHooks, kindOf, findKinds, storeKeysOf, storeTemplateOf, censusDay, censusBackfill,
-  HOME_WATCH, _forgetCensusForTests,
+  TRAIL_NOTE_MAX, CONTESTED_HOME_KEEP_S, CONTESTED_PAGE, censusTally, censusStep, censusHooks, kindOf, findKinds, storeKeysOf, storeTemplateOf, censusDay, censusBackfill,
+  HOME_WATCH, _forgetCensusForTests, contestedPage, staffCensus,
 } from '../../server-account/src/staffCensus.js';
 import { STAFF_ROUTES } from '../../server-account/src/service.js';
 import { runCron, CRON_HOUR, HOUR_JOBS } from '../../server-account/src/cron.js';
@@ -196,7 +196,7 @@ test('STAFF-PANEL4-CENSUS: A CENSUS THAT FAILS NEVER FAILS THE CHECKPOINT - the 
   } finally { s.done(); }
 });
 
-test('STAFF-PANEL4-CENSUS: A KIND\'S CENSUS - carried (the living characters\' latest), the Stores, guild vaults and the market; holders ranked and paged; cached; written down once (mutants: the dead counted; a place dropped; the page\'s next)', async () => {
+test('STAFF-PANEL4-CENSUS: A KIND\'S CENSUS - carried (the living characters\' latest), the Stores, guild vaults (gold: realm gold, the legacy said apart) and the market (all the service holds: listings and auctions till taken back, deliveries uncollected, goods on the road, the ledger\'s Marks escrow); holders ranked and paged; cached; written down once (mutants: the dead counted; a place dropped; the page\'s next; legacy gold counted; a held place dropped)', async () => {
   const s = await stand();
   try {
     const troll = await s.registered('Troll');
@@ -207,7 +207,7 @@ test('STAFF-PANEL4-CENSUS: A KIND\'S CENSUS - carried (the living characters\' l
     const big = s.lay(syl.id, { tally: { g: 5, t71: 500, t113: 2 }, name: 'Big' });
     // the Stores (a character's and a guild's), a guild's vault, and the market (a material, a piece from the pack)
     s.raw.prepare("INSERT INTO prof_stores (player, char_id, material, origin, qty) VALUES (?, ?, 'metal:iron', 'own', 40)").run(syl.id, big);
-    s.raw.prepare("INSERT INTO guilds (id, name, name_key, tag, ranks, treasury, founded_at) VALUES ('g1', 'Iron Fist', 'iron fist', 'IRF', '[]', 700, 1)").run();
+    s.raw.prepare("INSERT INTO guilds (id, name, name_key, tag, ranks, treasury, realm_gold, founded_at) VALUES ('g1', 'Iron Fist', 'iron fist', 'IRF', '[]', 700, 650, 1)").run();
     s.raw.prepare("INSERT INTO guild_prof_stores (guild_id, material, qty, moved_by, moved_at) VALUES ('g1', 'metal:iron', 6, 'x', 1)").run();
     s.raw.prepare(`INSERT INTO guild_vault (guild_id, slot, rec, name, count, dep_player, dep_char, dep_name, at) VALUES ('g1', 0, ?, 'Iron', 3, ?, ?, 'Big', 1)`).run(JSON.stringify(piece(71, { stackCount: 3 })), syl.id, big);
     const listing = (id, cols) => s.raw.prepare(`INSERT INTO market_listings (id, seller, char_id, region, kind, units, price, fee, at, expires_at, rid, n, ${Object.keys(cols).join(', ')})
@@ -215,12 +215,37 @@ test('STAFF-PANEL4-CENSUS: A KIND\'S CENSUS - carried (the living characters\' l
     listing('l1', { kind: 'material', material: 'metal:iron', units: 8 });
     listing('l2', { kind: 'item', item: JSON.stringify(piece(71, { stackCount: 4 })), currency: 'gold' });
     listing('l3', { kind: 'material', material: 'metal:iron', units: 50, state: 'sold' });   // closed: not at the market
+    listing('l4', { kind: 'material', material: 'metal:iron', units: 7, state: 'expired' });   // expired, not yet taken back: the market's still
+    listing('l5', { kind: 'material', material: 'metal:iron', units: 60, state: 'expired', returned: 1 });   // taken back: the seller's
+    // on the road: a couriered sale not yet in its buyer's Stores (one that arrived is the buyer's)
+    const sale = (rid, units, delivered) => s.raw.prepare(`INSERT INTO market_sales (buyer, rid, char_id, listing, seller, kind, material, units, price, total, tax, from_region, to_region, arrives_at, delivered, at, day, n)
+      VALUES (?, ?, ?, 'l0', ?, 'material', 'metal:iron', ?, 1, ?, 0, 1, 2, 9999999999, ?, 1, 1, 'n')`).run(syl.id, rid, big, troll.id, units, units, delivered);
+    sale('s1', 5, 0);
+    sale('s2', 90, 1);
+    // crafted daggers the service holds: an auction open, one unsold not yet taken back, a listing expired likewise, a
+    // delivery uncollected - and a pack's dagger stack delivered, uncollected; none of the closed, returned or collected
+    const made = (prov) => s.raw.prepare("INSERT INTO products (provenance, owner, char_id, recipe, template, material, quality, seed, record, made_at) VALUES (?, ?, ?, 'r', 113, 1, 1, 1, '{}', 1)").run(prov, syl.id, big);
+    const auction = (id, state, returned) => { made(`a${id}`.padEnd(16, '0')); s.raw.prepare(`INSERT INTO market_auctions (id, seller, char_id, region, provenance, wear, opening, fee, at, ends_at, state, returned, rid, n)
+      VALUES (?, ?, ?, 1, ?, 1000, 5, 1, 1, 2, ?, ?, ?, 'n')`).run(id, syl.id, big, `a${id}`.padEnd(16, '0'), state, returned, `rid-${id}`); };
+    auction('1', 'open', 0);
+    auction('2', 'unsold', 0);
+    auction('3', 'unsold', 1);
+    auction('4', 'sold', 1);
+    made('l6'.padEnd(16, '0'));
+    listing('l6', { kind: 'piece', provenance: 'l6'.padEnd(16, '0'), wear: 1000, state: 'expired' });
+    const delivery = (id, cols, collected = 0) => s.raw.prepare(`INSERT INTO market_deliveries (id, player, char_id, why, arrives_at, collected, at, ${Object.keys(cols).join(', ')})
+      VALUES (?, ?, ?, 'bought', 1, ?, 1, ${Object.keys(cols).map(() => '?').join(', ')})`).run(id, syl.id, big, collected, ...Object.values(cols));
+    made('d1'.padEnd(16, '0'));
+    delivery('d1', { provenance: 'd1'.padEnd(16, '0'), wear: 1000 });
+    delivery('d2', { item: JSON.stringify(piece(113, { stackCount: 3 })) });
+    delivery('d3', { item: JSON.stringify(piece(113, { stackCount: 50 })) }, 1);
     s.raw.prepare('INSERT INTO market_gold (player, char_id, gold) VALUES (?, ?, 33)').run(syl.id, big);
     const r = await s.staff('/v1/staff/census', { kind: 't71' }, s.mob.session);
     assert.equal(r.status, 200, JSON.stringify(r.body));
     const carried = 500 + ((CENSUS_PAGE + 2) * (CENSUS_PAGE + 3)) / 2;
-    assert.deepEqual(r.body.where, { carried, stores: 46, vaults: 3, market: 12 });
-    assert.equal(r.body.total, carried + 46 + 3 + 12);
+    assert.deepEqual(r.body.where, { carried, stores: 46, vaults: 3, market: 8 + 4 + 7 + 5 });
+    assert.equal(r.body.total, carried + 46 + 3 + 24);
+    assert.equal(r.body.legacyGold, undefined, 'legacy gold is gold\'s alone');
     assert.equal(r.body.holdersCount, CENSUS_PAGE + 3);
     assert.equal(r.body.name, lawTemplate(71).name);
     assert.deepEqual(r.body.holders[0], { char: big, name: 'Big', player: syl.id, handle: 'Sylvia', n: 500, at: s.now() - 60 });
@@ -238,17 +263,25 @@ test('STAFF-PANEL4-CENSUS: A KIND\'S CENSUS - carried (the living characters\' l
     assert.equal(fresh.body.where.carried, carried + 1000);
     // a kind no store holds: stores null
     const dagger = await s.staff('/v1/staff/census', { kind: 113 }, s.mob.session);
-    assert.deepEqual(dagger.body.where, { carried: 2, stores: null, vaults: 0, market: 0 });
-    // gold: the latest purses and banks, guild treasuries, what sales hold
+    assert.deepEqual(dagger.body.where, { carried: 2, stores: null, vaults: 0, market: 1 + 1 + 1 + 1 + 3 }, 'two auctions, a listing, a delivery, a stack of three');
+    // gold: the latest purses and banks, the treasuries' realm gold (the rest unverified legacy gold, said apart and in no
+    // total - the design's weak spot), what sales hold
     const gold = await s.staff('/v1/staff/census', { kind: 'gold' }, s.mob.session);
-    assert.deepEqual(gold.body.where, { carried: 5 + 10 * ((CENSUS_PAGE + 2) * (CENSUS_PAGE + 3)) / 2, stores: null, vaults: 700, market: 33 });
-    // Marks: the accounts', the guilds', the open orders' escrow
-    s.raw.prepare('INSERT INTO marks (account, balance) VALUES (?, 40), (?, 2)').run(troll.id, syl.id);
+    const purses = 5 + 10 * ((CENSUS_PAGE + 2) * (CENSUS_PAGE + 3)) / 2;
+    assert.deepEqual(gold.body.where, { carried: purses, stores: null, vaults: 650, market: 33 });
+    assert.deepEqual([gold.body.legacyGold, gold.body.total], [50, purses + 650 + 33]);
+    // Marks: the accounts', the guilds', the ledger's escrow - an open order's and a standing bid's alike, less what came back
+    s.raw.prepare('INSERT INTO marks (account, balance) VALUES (?, 62), (?, 2)').run(troll.id, syl.id);   // 40 once its lines below move
     s.raw.prepare("INSERT INTO guild_marks (guild_id, balance) VALUES ('g1', 9)").run();
     s.raw.prepare(`INSERT INTO market_orders (id, poster, char_id, region, material, units, left_units, price, escrow, at, expires_at, rid, n) VALUES
       ('o1', ?, ?, 1, 'metal:iron', 5, 5, 3, 15, 1, 9999999999, 'r1', 'n')`).run(syl.id, big);
+    const ledger = (src, dst, kind, amount) => s.raw.prepare(`INSERT INTO marks_ledger (src_kind, src_id, dst_kind, dst_id, kind, amount, day, at, actor, rid)
+      VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?, ?)`).run(src, src === 'account' ? troll.id : 'b1', dst, dst === 'account' ? troll.id : 'b1', kind, amount, troll.id, kind);
+    ledger('account', 'escrow', 'order-escrow', 15);
+    ledger('account', 'escrow', 'bid-escrow', 12);
+    ledger('escrow', 'account', 'bid-return', 5);
     const marks = await s.staff('/v1/staff/census', { kind: 'marks' }, s.mob.session);
-    assert.deepEqual(marks.body.where, { carried: 42, stores: null, vaults: 9, market: 15 });
+    assert.deepEqual(marks.body.where, { carried: 42, stores: null, vaults: 9, market: 15 + 12 - 5 });
     assert.deepEqual(marks.body.holders.map((h) => [h.player, h.handle, h.n, h.char]), [[troll.id, 'Troll', 40, null], [syl.id, 'Sylvia', 2, null]]);
     // refused words, and the reads written down once a kind in ten minutes
     assert.deepEqual((await s.staff('/v1/staff/census', { kind: 'nope' }, s.mob.session)).status, 400);
@@ -258,7 +291,7 @@ test('STAFF-PANEL4-CENSUS: A KIND\'S CENSUS - carried (the living characters\' l
   } finally { s.done(); }
 });
 
-test('STAFF-PANEL4-CENSUS: THE DAY\'S TOTALS - once a UTC day at the census\'s quiet hour, every kind in every place, old days swept; the read answers the trend (mutants: the hour gate; the once-a-day check; the sweep)', async () => {
+test('STAFF-PANEL4-CENSUS: THE DAY\'S TOTALS - once a UTC day at the census\'s quiet hour, every kind in every place (gold\'s vaults realm gold; the market all the service holds), old days swept; the read answers the trend (mutants: the hour gate; the once-a-day check; the sweep; legacy gold counted; a held place dropped)', async () => {
   const s = await stand();
   try {
     const syl = await s.registered('Sylvia');
@@ -266,8 +299,16 @@ test('STAFF-PANEL4-CENSUS: THE DAY\'S TOTALS - once a UTC day at the census\'s q
     s.lay(syl.id, { tally: { g: 1, t71: 0 } });
     s.lay(syl.id, { tally: { g: 1000, t71: 1000 }, dead: true });
     s.raw.prepare("INSERT INTO prof_stores (player, char_id, material, origin, qty) VALUES (?, ?, 'metal:iron', 'own', 40)").run(syl.id, a);
-    s.raw.prepare("INSERT INTO guilds (id, name, name_key, tag, ranks, treasury, founded_at) VALUES ('g1', 'Iron Fist', 'iron fist', 'IRF', '[]', 700, 1)").run();
+    s.raw.prepare("INSERT INTO guilds (id, name, name_key, tag, ranks, treasury, realm_gold, founded_at) VALUES ('g1', 'Iron Fist', 'iron fist', 'IRF', '[]', 700, 650, 1)").run();
     s.raw.prepare('INSERT INTO marks (account, balance) VALUES (?, 40)').run(syl.id);
+    // what the service holds: iron on the road, a crafted dagger at auction, a dagger stack delivered uncollected, Marks escrowed
+    s.raw.prepare(`INSERT INTO market_sales (buyer, rid, char_id, listing, seller, kind, material, units, price, total, tax, from_region, to_region, arrives_at, delivered, at, day, n)
+      VALUES (?, 's1', ?, 'l0', ?, 'material', 'metal:iron', 5, 1, 5, 0, 1, 2, 9999999999, 0, 1, 1, 'n')`).run(syl.id, a, syl.id);
+    s.raw.prepare("INSERT INTO products (provenance, owner, char_id, recipe, template, material, quality, seed, record, made_at) VALUES ('a100000000000000', ?, ?, 'r', 113, 1, 1, 1, '{}', 1)").run(syl.id, a);
+    s.raw.prepare(`INSERT INTO market_auctions (id, seller, char_id, region, provenance, wear, opening, fee, at, ends_at, rid, n)
+      VALUES ('a1', ?, ?, 1, 'a100000000000000', 1000, 5, 1, 1, 2, 'r', 'n')`).run(syl.id, a);
+    s.raw.prepare("INSERT INTO market_deliveries (id, player, char_id, why, arrives_at, at, item) VALUES ('d1', ?, ?, 'bought', 1, 1, ?)").run(syl.id, a, JSON.stringify(piece(113, { stackCount: 2 })));
+    s.raw.prepare("INSERT INTO marks_ledger (src_kind, src_id, dst_kind, dst_id, kind, amount, day, at, actor, rid) VALUES ('account', 'x', 'escrow', 'b1', 'bid-escrow', 12, 1, 1, ?, 'b1')").run(syl.id);
     const day = utcDay(s.now());
     const at = day * 86400 + CENSUS_DAY_HOUR * 3600 + 41 * 60;
     s.raw.prepare("INSERT INTO item_census_days (kind, day, carried, holders, at) VALUES ('t71', ?, 1, 1, 1), ('t71', ?, 2, 1, 1)").run(day - CENSUS_DAYS_KEEP - 1, day - 3);
@@ -275,14 +316,15 @@ test('STAFF-PANEL4-CENSUS: THE DAY\'S TOTALS - once a UTC day at the census\'s q
     const ran = await runCron(s.env, { cron: CRON_HOUR, nowS: at, jobs: HOUR_JOBS.filter(([name]) => name === 'census-day') });
     assert.deepEqual(ran.map((r) => [r.name, r.ok, r.changed > 0]), [['census-day', true, true]]);
     const row = (kind, d = day) => ({ ...s.raw.prepare('SELECT carried, stores, vaults, market, holders FROM item_census_days WHERE kind = ? AND day = ?').get(kind, d) });
-    assert.deepEqual(row('t71'), { carried: 4, stores: 40, vaults: 0, market: 0, holders: 1 });
-    assert.deepEqual(row('gold'), { carried: 51, stores: null, vaults: 700, market: 0, holders: 2 });
-    assert.deepEqual(row('marks'), { carried: 40, stores: null, vaults: 0, market: 0, holders: 1 });
+    assert.deepEqual(row('t71'), { carried: 4, stores: 40, vaults: 0, market: 5, holders: 1 });
+    assert.deepEqual(row('t113'), { carried: 0, stores: null, vaults: 0, market: 1 + 2, holders: 0 });
+    assert.deepEqual(row('gold'), { carried: 51, stores: null, vaults: 650, market: 0, holders: 2 });
+    assert.deepEqual(row('marks'), { carried: 40, stores: null, vaults: 0, market: 12, holders: 1 });
     assert.equal(s.raw.prepare("SELECT COUNT(*) AS n FROM item_census_days WHERE kind = 'more'").get().n, 0, '`more` is no kind');
     assert.equal(s.raw.prepare('SELECT COUNT(*) AS n FROM item_census_days WHERE day < ?').get(day - CENSUS_DAYS_KEEP).n, 0, 'old days swept');
     assert.equal(await censusDay({ db: s.env.DB, nowS: at + 60 }), 0, 'once a day');
     const r = await s.staff('/v1/staff/census', { kind: 't71', days: 7 }, s.mob.session);
-    assert.deepEqual(r.body.trend.map((d) => [d.day, d.carried, d.total]), [[day - 3, 2, 2], [day, 4, 44]]);
+    assert.deepEqual(r.body.trend.map((d) => [d.day, d.carried, d.total]), [[day - 3, 2, 2], [day, 4, 49]]);
     const one = await s.staff('/v1/staff/census', { kind: 't71', days: 1 }, s.mob.session);
     assert.deepEqual(one.body.trend.map((d) => d.day), [day], 'the range capped by `days`');
   } finally { s.done(); }
@@ -366,7 +408,7 @@ test('STAFF-PANEL4-CENSUS: CONTESTED PIECES - a claim its holder outlasted keeps
     assert.equal(row('5555555555555555', A.id).kind, 'drop');
     const list = await s.staff('/v1/staff/contested', {}, s.mob.session);
     assert.equal(list.status, 200, JSON.stringify(list.body));
-    assert.deepEqual([list.body.total, list.body.next], [2, null]);
+    assert.equal(list.body.next, null);
     const mine = list.body.pieces.find((p) => p.uid === u);
     assert.deepEqual(mine, {
       uid: u, item: { t: 113, m: 1, name: lawTemplate(113).name }, kind: 'claim', foundAt, level: 'medium', why: ['no trail check'],
@@ -392,6 +434,9 @@ test('STAFF-PANEL4-CENSUS: CONTESTED PIECES - a claim its holder outlasted keeps
     assert.deepEqual((await s.staff('/v1/staff/contested', { char: C.id }, s.mob.session)).body.pieces.map((p) => p.uid), [u]);
     assert.deepEqual((await s.staff('/v1/staff/contested', { sort: 'newest' }, s.mob.session)).body.pieces.map((p) => p.uid), [u2, u]);
     assert.equal((await s.staff('/v1/staff/contested', { char: 'x' }, s.mob.session)).status, 400);
+    for (const before of ['nope', 7, '3|1|a|b', '0|x|a|b']) assert.equal((await s.staff('/v1/staff/contested', { before }, s.mob.session)).status, 400, `a place that is none: ${before}`);
+    const one = await s.staff('/v1/staff/contested', { before: `1|${s.now() + 1}|ffffffffffffffff|r`, sort: 'urgent' }, s.mob.session);
+    assert.deepEqual(one.body.pieces.map((p) => p.uid), [u2, u], 'from a place: the rows behind it');
     // one piece's trail: its copies, the ledger now, the findings naming it
     const tr = await s.staff('/v1/staff/contested/piece', { uid: u }, s.mob.session);
     assert.equal(tr.status, 200, JSON.stringify(tr.body));
@@ -417,8 +462,15 @@ test('STAFF-PANEL4-CENSUS: a character holding CONTESTED_HIGH unchecked pieces i
     const list = await s.staff('/v1/staff/contested', {}, s.mob.session);
     assert.deepEqual(list.body.pieces.map((p) => [p.copy.char, p.level]), [[many, 'high'], [many, 'high'], [many, 'high'], [one, 'medium']]);
     assert.match(list.body.pieces[0].why.join(' · '), new RegExp(`${CONTESTED_HIGH} contested pieces on this character`));
-    const home = await HOME_WATCH.top({ db: s.env.DB }, s.env, null, 3);
+    const home = await HOME_WATCH.top({ db: s.env.DB, nowS: s.now() }, s.env, null, 3);
     assert.deepEqual([home.high, home.total, home.items.length], [CONTESTED_HIGH, CONTESTED_HIGH + 1, 3]);
+    // kept a few minutes: a trail check is in Home's counts once the answer is kept no longer, never by reading it again
+    await s.staff('/v1/staff/contested/trail', { uid: 'a000000000000001', char: one, found: 'innocent', note: 'traded' }, s.mob.session);
+    s.wait(CONTESTED_HOME_KEEP_S - 1);
+    assert.deepEqual(await HOME_WATCH.top({ db: s.env.DB, nowS: s.now() }, s.env, null, 3), home, 'kept');
+    s.wait(1);
+    const later = await HOME_WATCH.top({ db: s.env.DB, nowS: s.now() }, s.env, null, 3);
+    assert.deepEqual([later.high, later.total], [CONTESTED_HIGH, CONTESTED_HIGH]);
     assert.deepEqual(home.items[0], { level: 'high', why: `${lawTemplate(113).name} · no trail check · ${CONTESTED_HIGH} contested pieces on this character`, sub: syl.id, name: 'Sylvia' });
     assert.equal(HOME_WATCH.role, 'admin');
     // a piece the service sold on from escrow: the claimant's copy, held first by no record, its times and print off the ledger's row
@@ -435,5 +487,133 @@ test('STAFF-PANEL4-CENSUS: a character holding CONTESTED_HIGH unchecked pieces i
     await s.env.DB.batch(step.steps);
     assert.deepEqual({ ...s.raw.prepare('SELECT char_id, first_char, first_at, claimant, claim_at, kind FROM item_dupes WHERE uid = ?').get(k) },
       { char_id: many, first_char: many, first_at: 50, claimant: one, claim_at: s.now() - DUPE_GRACE_S - 5, kind: 'craft' });
+  } finally { s.done(); }
+});
+
+/** The statements a read asks, each with its plan on the migrated schema (the planner the repo's own pins check). */
+function planned(db) {
+  const asked = [];
+  const rec = new Proxy(db, { get(target, k) { if (k === 'prepare') return (sql) => { asked.push(sql); return target.prepare(sql); }; const v = target[k]; return typeof v === 'function' ? v.bind(target) : v; } });
+  const plans = () => asked.splice(0).map((sql) => [sql, db._raw.prepare(`EXPLAIN QUERY PLAN ${sql}`).all().map((r) => r.detail).join(' | ')]);
+  return { rec, plans };
+}
+
+test('STAFF-PANEL4-CENSUS: THE JUMPS, THE CONTESTED LIST AND HOME STAND ON INDEXES - the jumps on the hours\' index, never the whole of realm_wealth_hours; the list and Home on the listed rows\' own (0154), never a walk of item_dupes, whose drops are in none of them (mutants: the jumps grouped on the bare column; an index lost; the drops indexed)', async () => {
+  const db = d1();
+  const { rec, plans } = planned(db);
+  const nowS = 1_800_000_000;
+  const who = { player: { id: 'p' }, role: 'admin' };
+  const audit = () => ({ run: async () => ({}) });
+  _forgetCensusForTests();
+  await staffCensus({ db: rec, nowS }, {}, '/v1/staff/census/jumps', { kind: 't113' }, who, audit);
+  const jumps = plans();
+  assert.equal(jumps.length, 1);
+  assert.match(jumps[0][1], /^SEARCH h USING INDEX realm_wealth_hours_hour \(hour>\?\)/, jumps[0][1]);
+  assert.doesNotMatch(jumps[0][1], /\bSCAN (h|x|f)\b/, 'no hour row walked whole');
+  const place = { at: nowS, uid: 'ffffffffffffffff', char: 'r'.padEnd(21, 'f') };
+  for (const o of [{ sort: 'newest' }, { sort: 'newest', open: true }, { sort: 'urgent' }, { sort: 'urgent', open: true }, { sort: 'urgent', before: { tier: 1, ...place } },
+    { sort: 'urgent', before: { tier: 2, ...place } }, { sort: 'newest', before: { tier: 0, ...place } }, { sort: 'urgent', char: place.char }]) await contestedPage(rec, o);
+  await HOME_WATCH.top({ db: rec, nowS }, {}, who, 3);
+  const listed = plans();
+  for (const [sql, plan] of listed) {
+    for (const m of plan.matchAll(/\bSCAN (\w+)( USING (COVERING )?INDEX (\w+))?/g)) {
+      assert.ok(['item_dupes_at', 'item_dupes_open', 'item_dupes_open_at'].includes(m[4]), `${m[0]} - item_dupes walked: ${plan}\n${sql}`);
+    }
+    // walked in the list's order - sorted only where the walk is a character's own rows (one character's; the high's few)
+    if (!/^SEARCH d USING INDEX \w+ \(char_id=\?/.test(plan)) assert.doesNotMatch(plan, /TEMP B-TREE/, `a page sorted whole: ${plan}`);
+  }
+  const all = listed.map((p) => p[1]).join('\n');
+  for (const ix of ['item_dupes_at', 'item_dupes_open', 'item_dupes_open_at']) {
+    assert.match(all, new RegExp(`\\b${ix}\\b`), `${ix} unused`);
+    assert.match(String(db._raw.prepare('SELECT sql FROM sqlite_master WHERE name = ?').get(ix).sql), /WHERE .*kind IS NULL OR kind != 'drop'\)?$/, `${ix}: a drop is in none`);
+  }
+  assert.match(all, /SCAN item_dupes USING COVERING INDEX item_dupes_open/, 'Home\'s counts read the index alone');
+});
+
+test('STAFF-PANEL4-CENSUS: THE CONTESTED LIST PAGES BY ITS PLACE, NEVER AN OFFSET - trail checks between pages skip nothing, in either sort, open or not; a tie at a page\'s edge is neither lost nor shown twice; the drops never listed (mutants: the place\'s tier lost; the place dropped; the place one past)', async () => {
+  const db = d1();
+  const raw = db._raw;
+  const chars = Array.from({ length: 9 }, (_, i) => `r${String(i).padStart(20, '0')}`);
+  const uid = (i) => i.toString(16).padStart(16, '0');
+  // 40 pieces, four at each time (a tie at every page's edge): three characters hold nine or ten (high), six hold two
+  // each; drops between
+  const lay = () => {
+    raw.prepare('DELETE FROM item_dupes').run();
+    for (let i = 0; i < 40; i++) raw.prepare("INSERT INTO item_dupes (uid, char_id, at, kind) VALUES (?, ?, ?, 'claim')").run(uid(i), chars[i < 28 ? i % 3 : 3 + (i % 6)], 1000 + Math.floor(i / 4));
+    for (let i = 0; i < 30; i++) raw.prepare("INSERT INTO item_dupes (uid, char_id, at, kind) VALUES (?, ?, ?, 'drop')").run(uid(100 + i), chars[i % 9], 1000 + (i % 10));
+    raw.prepare("UPDATE item_dupes SET trail_at = 5, trail_found = 'innocent' WHERE uid IN (?, ?)").run(uid(7), uid(33));   // checked before the list opened
+  };
+  const P = 8;
+  for (const sort of ['urgent', 'newest']) {
+    for (const open of [false, true]) {
+      lay();
+      const want = raw.prepare(`SELECT uid FROM item_dupes WHERE kind = 'claim' ${open ? 'AND trail_at IS NULL' : ''}`).all().map((r) => r.uid);
+      const seen = [];
+      let before = null;
+      let checked = 0;
+      for (let n = 0; n < 20; n++) {
+        const page = await contestedPage(db, { sort, open, page: P, before });
+        assert.ok(page.pieces.length <= P);
+        seen.push(...page.pieces.map((p) => p.uid));
+        // staff check the first three of each page's trail before the next - the list's own workflow
+        for (const p of page.pieces.slice(0, 3)) { raw.prepare("UPDATE item_dupes SET trail_at = 9, trail_found = 'copier' WHERE uid = ? AND char_id = ?").run(p.uid, p.copy.char); checked++; }
+        if (!page.next) break;
+        const [tier, at, u, c] = page.next.split('|');
+        before = { tier: Number(tier), at: Number(at), uid: u, char: c };
+      }
+      assert.ok(checked > 3, 'more than one page');
+      const missed = want.filter((u) => !seen.includes(u));
+      assert.deepEqual(missed, [], `${sort}${open ? ' open' : ''}: every piece shown`);
+      assert.ok(seen.every((u) => want.includes(u)), 'nothing but the listed');
+      if (sort === 'newest' && !open) assert.equal(new Set(seen).size, seen.length, 'newest, all: each once');
+      if (open) assert.ok(!seen.includes(uid(7)) && !seen.includes(uid(33)), 'open: the checked are not');
+    }
+  }
+  // urgent: the high first, then the rest unchecked, then the checked - each newest first
+  lay();
+  const all = [];
+  let before = null;
+  for (let n = 0; n < 20; n++) {
+    const page = await contestedPage(db, { sort: 'urgent', page: P, before });
+    all.push(...page.pieces);
+    if (!page.next) break;
+    const [tier, at, u, c] = page.next.split('|');
+    before = { tier: Number(tier), at: Number(at), uid: u, char: c };
+  }
+  assert.deepEqual([all.length, new Set(all.map((p) => p.uid)).size], [40, 40], 'a still list: each piece once');
+  const rank = (p) => (p.trail ? 2 : p.level === 'high' ? 0 : 1);
+  assert.deepEqual(all.map(rank), [...all.map(rank)].sort((a, b) => a - b), 'tiers in order');
+  assert.ok(all.some((p) => rank(p) === 0) && all.some((p) => rank(p) === 1) && all.some((p) => rank(p) === 2));
+  for (let i = 1; i < all.length; i++) if (rank(all[i]) === rank(all[i - 1])) assert.ok(all[i].foundAt <= all[i - 1].foundAt, 'newest first within a tier');
+});
+
+test('STAFF-PANEL4-CENSUS: THE BACKFILL RETRIES A RECORD R2 FAILED TO READ - the firing stops just before its character, what it filled is kept, the job is written down failed, and the next firing reads it; only a record R2 has not is passed for good (mutants: the failure taken for no record; the place past it; done though it failed; the failure unsaid)', async () => {
+  const s = await stand();
+  try {
+    const seated = [];
+    for (const h of ['Fay', 'Gil', 'Hal', 'Ivo']) seated.push(await s.seat(h));
+    const ids = seated.map((c) => c.id).sort();
+    for (const c of seated) layRecord(s.env, c.id, freshSave({ name: 'X', items: [piece(71, { stackCount: 2 })] }));
+    s.raw.prepare(`DELETE FROM item_census WHERE char_id IN (${ids.map(() => '?').join(', ')})`).run(...ids);
+    const objOf = (id) => s.raw.prepare('SELECT obj FROM realm_characters WHERE id = ?').get(id).obj;
+    const [, failing, , absent] = ids;
+    let down = true;
+    const gets = [];
+    const SAVES = { get: async (k) => { gets.push(k); if (k === objOf(failing) && down) throw new Error('R2 503'); if (k === objOf(absent)) return null; return s.env.SAVES.get(k); } };
+    const env = { ...s.env, CENSUS_BACKFILL: 'on', SAVES };
+    const quiet = utcDay(s.now()) * 86400 + CENSUS_QUIET_HOURS[0] * 3600;
+    const place = () => JSON.parse(s.raw.prepare("SELECT value FROM realm_config WHERE key = 'census-backfill'").get().value);
+    const ran = await runCron(env, { cron: CRON_HOUR, nowS: quiet, jobs: HOUR_JOBS.filter(([name]) => name === 'census-backfill') });
+    assert.deepEqual(ran.map((r) => r.ok), [false], 'written down failed');
+    assert.equal(s.census(ids[0])?.tally, '{"g":100,"t71":2}', 'what it filled before is kept');
+    assert.equal(s.census(failing), null);
+    assert.deepEqual(place(), { after: ids[0], done: false }, 'its place just before the one that failed');
+    assert.deepEqual(gets, [objOf(ids[0]), objOf(failing)], 'and the firing stopped there');
+    down = false;
+    assert.equal(await censusBackfill({ db: s.env.DB, nowS: quiet + 3600 }, env), 2, 'the next firing reads it, and goes on');
+    assert.equal(s.census(failing).tally, '{"g":100,"t71":2}');
+    assert.equal(s.census(ids[2]).tally, '{"g":100,"t71":2}');
+    assert.equal(s.census(absent), null, 'no record: nothing to tally');
+    assert.equal(place().done, true, 'done - the record R2 has not is passed for good');
   } finally { s.done(); }
 });

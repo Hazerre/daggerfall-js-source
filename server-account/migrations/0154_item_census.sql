@@ -28,8 +28,9 @@ CREATE TABLE IF NOT EXISTS item_census (
 );
 
 -- THE DAILY TREND: each kind's server-wide count once a UTC day, off peak (cron.js census-day) - carried (the living
--- characters' latest tallies), in the Stores (a character's and a guild's), in guild vaults, and at the market (open
--- listings; for Marks, open orders' escrow). `stores` NULL where the kind has no such place. Kept CENSUS_DAYS_KEEP.
+-- characters' latest tallies), in the Stores (a character's and a guild's), in guild vaults (for gold, realm gold only),
+-- and at the market (what the service holds: listings and auctions, deliveries uncollected, goods on the road; for Marks,
+-- the ledger's escrow). `stores` NULL where the kind has no such place. Kept CENSUS_DAYS_KEEP.
 CREATE TABLE IF NOT EXISTS item_census_days (
   kind    TEXT NOT NULL,
   day     INTEGER NOT NULL,
@@ -68,5 +69,15 @@ ALTER TABLE item_dupes ADD COLUMN trail_by TEXT;
 ALTER TABLE item_dupes ADD COLUMN trail_found TEXT CHECK (trail_found IS NULL OR trail_found IN ('copier', 'innocent', 'unclear'));
 ALTER TABLE item_dupes ADD COLUMN trail_note TEXT;
 UPDATE item_dupes SET fp = (SELECT u.fp FROM item_uids u WHERE u.uid = item_dupes.uid) WHERE fp IS NULL;
--- the panel's list, newest first
-CREATE INDEX IF NOT EXISTS item_dupes_at ON item_dupes (at);
+-- THE PANEL'S LIST AND HOME'S COUNTS STAND ON THE LISTED ROWS ALONE: a death's dropped piece ('drop' - a row for every
+-- id-bearing piece in every wild death, never swept) is never listed, so it is in none of these and pays for none of
+-- them. Every listed row newest first (the newest list, the checked ones); the unchecked ones by their character (the
+-- count that makes a row high, Home's counts - trail_at and kind ride along so a count reads the index alone) and newest
+-- first (the urgent list's walk). A list's order and its page's place (staffCensus.js contestedPage) are the key's own.
+CREATE INDEX IF NOT EXISTS item_dupes_at ON item_dupes (at, uid, char_id) WHERE kind IS NULL OR kind != 'drop';
+CREATE INDEX IF NOT EXISTS item_dupes_open ON item_dupes (char_id, trail_at, kind) WHERE trail_at IS NULL AND (kind IS NULL OR kind != 'drop');
+CREATE INDEX IF NOT EXISTS item_dupes_open_at ON item_dupes (at, uid, char_id) WHERE trail_at IS NULL AND (kind IS NULL OR kind != 'drop');
+
+-- THE GOODS ON THE ROAD (the census's market place): a couriered material sale not yet in its buyer's Stores, by material
+-- - only those rows, so the census never walks the sales' history.
+CREATE INDEX IF NOT EXISTS idx_market_sales_on_road ON market_sales (material, units) WHERE kind = 'material' AND delivered = 0;
