@@ -35,18 +35,20 @@ const { EQUIP_SLOTS } = await import('../../../src/systems/equip.js');
 const { createPellets } = await import('../../../src/systems/thunderlock.js');
 const { resetToDefaults, setValue } = await import('../../../src/systems/settings/settings.js');
 const { _resetModSettings, setModSetting } = await import('../../../src/systems/modSettings.js');
+const { walkSpeed } = await import('../../../src/player/motor.js');
 
 export const DT = 1 / 60;
 const tick = () => new Promise((res) => setTimeout(res, 5));
 
 /** A rig wearing `right`/`left`, Pellets in the pack, drawn. Answers { r, frame, audio, entity, uploads, glows } - `glows` each
  *  frame's element outlines (WEAPON-GLOW1's door: the texture it is drawn over and the look). */
-export async function pistolRig({ right = null, left = null, leftHanded = false, warm = 60, widget = {} } = {}) {
+export async function pistolRig({ right = null, left = null, leftHanded = false, warm = 60, widget = {}, size = [320, 200], dts = null } = {}) {
   resetToDefaults(); _resetModSettings();
   setModSetting('weapon-widget', 'Enabled', false);
   for (const [k, v] of Object.entries(widget)) setModSetting('weapon-widget', k, v);   // a module switch the test needs still
   if (leftHanded) setValue('Controls', 'Handedness', 1);
   const quads = [], uploads = [], glows = [];
+  const eye = [0, 1.7, 0], walk = { on: false };   // PISTOL-PORT: the camera the host hands the rig, walking when a pin says
   const renderer = {
     uploadTexture: (_k, name) => { uploads.push(name); return name; },
     drawScreenQuad: (tex, rect, uv, tint) => quads.push({ tex, rect: { ...rect }, uv, tint }),
@@ -54,7 +56,7 @@ export async function pistolRig({ right = null, left = null, leftHanded = false,
     setScreenOffset: () => {},
     flatLightAt: () => [0.3, 0.3, 0.3],   // a room's flat light (MAC-I), so a flash has a tint to lift - unlit, every quad's tint is null and no flash can be told
   };
-  const canvas = { width: 320, height: 200, clientWidth: 320, clientHeight: 200 };
+  const canvas = { width: size[0], height: size[1], clientWidth: size[0], clientHeight: size[1] };   // PISTOL-PORT: a real screen's size too
   const audio = { played: [], playOneShot(k) { audio.played.push(String(k)); }, registerSound: async () => true };
   const entity = {
     items: [createPellets(60)], lightSource: null, equipCountdown: 0,
@@ -63,15 +65,18 @@ export async function pistolRig({ right = null, left = null, leftHanded = false,
   };
   const r = createWeaponRig({ renderer, canvas, entity, audio, palette: { get: () => ({ r: 0, g: 0, b: 0 }) }, say: () => {},
     fetchBytes: async () => { throw new Error('no CIF in this harness'); },
-    camera: () => ({ pos: [0, 1.7, 0], yaw: 0, pitch: 0, climbing: false, move: { grounded: true, running: false, standing: true } }) });
+    camera: () => ({ pos: [...eye], yaw: 0, pitch: 0, climbing: false,
+      move: walk.on ? { grounded: true, running: false, standing: false, baseSpeed: walkSpeed(50), speedRatio: 1 } : { grounded: true, running: false, standing: true } }) });
   r.toggleSheath();   // drawn
-  const frame = async () => {
+  // PISTOL-PORT: a frame of `dt` (a browser's own, when a pin replays one), the eye carried forward at the walk's speed
+  const frame = async (dt = DT) => {
+    if (walk.on) eye[2] += walkSpeed(50) * dt;
     r.attackInput(0, 0, false);
     quads.length = 0; glows.length = 0;
-    r.frame(DT); r.draw();
+    r.frame(dt); r.draw();
     await tick();
     return quads.slice();
   };
-  for (let i = 0; i < warm; i++) await frame();
-  return { r, frame, audio, entity, uploads, canvas, glows };
+  for (const dt of dts ?? Array(warm).fill(DT)) await frame(dt);
+  return { r, frame, audio, entity, uploads, canvas, glows, walk };
 }

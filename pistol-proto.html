@@ -138,9 +138,8 @@
 <script type="module">
 import {
   PISTOL_STRIP, PISTOL_OPENING, PAIR_TRIGGER, stripCellRect, hardenAlpha, nativeWidthPct, createPair,
-  ALIGN, contentBox, unionBox, gunFrameRect, muzzleLight, guardStep, guardOffset,
-  createRecoil, createScreenShake, createWidgetRig, widgetRigStep, labWidgetSettings, labMotion,
-  SFX_CANDIDATES, createSfxPlayer,
+  contentBox, unionBox, muzzleLight, createScreenShake, labMotion, SFX_CANDIDATES, createSfxPlayer,
+  createPistolHands, pistolHandFired, pistolHandsStep, pistolReloadVoice, pistolHandRect, pistolDrawOrder, pistolWidgetSettings,
 } from '/src/tools/pistolLab.js';
 
 const canvas = document.getElementById('c');
@@ -236,11 +235,11 @@ stripImg.onerror = () => { $('note').textContent = `art/${PISTOL_STRIP.file} did
 stripImg.src = new URL(`art/${PISTOL_STRIP.file}`, document.baseURI).href;
 
 // ── the pair, a rig, a spring and a guard per hand, one camera ──────
+// PISTOL-PORT: the pair and every hand's state are the GAME'S (combat/gun/pistolPair.js, combat/gun/pistolViewmodel.js) -
+// this page runs the Dwarven Pistolet's own frame, as gun-proto.html runs the Thunderlock's (FIELD-GUN12)
 const pair = createPair({ fps: state.fps, cooldownMs: state.cool, hitFrame: state.hit });
 const HANDS = ['R', 'L'];
-const rigs = { R: createWidgetRig(), L: createWidgetRig() };
-const recoils = { R: createRecoil(), L: createRecoil() };
-const guards = { R: 0, L: 0 };
+const hands = createPistolHands();
 const shake = createScreenShake();
 
 const sfx = createSfxPlayer();
@@ -272,7 +271,7 @@ for (const id of CONTROLS) bind(id);
 bind('alphaCut', rebuild);
 
 // AUDIT PISTOLET B2: past Diverse Weapons' preset, as the game lays the Pistolet's own tuning (gunWidgetSettings' `preset`)
-const widgetSettings = () => labWidgetSettings({
+const widgetSettings = () => pistolWidgetSettings({
   'Modules.Offset': state.modOffset, 'Modules.Bob': state.modBob, 'Modules.Inertia': state.modInertia,
   'Offset.Speed': state.offsetSpeed,
   'Bob.Length': state.bobLength, 'Bob.SizeX': state.bobSizeX, 'Bob.SizeY': state.bobSizeY,
@@ -280,13 +279,13 @@ const widgetSettings = () => labWidgetSettings({
   'Bob.Shape': state.bobShape, 'Bob.BobWhileIdle': state.bobIdle,
   'Inertia.Scale': state.inScale, 'Inertia.Speed': state.inSpeed,
   'Inertia.ForwardDepth': state.inFwd, 'Inertia.ForwardSpeed': state.inFwdSpeed,
-}, null, { preset: false });
+});
 
 /** Every shot, whichever door it came through: the hand's own spring,
  *  one punch of the camera's trauma each (a volley is two), the voice. */
-const shot = (hands) => {
-  for (const h of hands) { recoils[h].punch(state.kick); shake.punch(); sfx.play(state.sfxFire); }
-  return hands;
+const shot = (fired) => {
+  for (const h of fired) { pistolHandFired(hands, h, state.kick); shake.punch(); sfx.play(state.sfxFire); }
+  return fired;
 };
 let held = null;   // the button held, for auto
 const press = (button) => { held = button; scrub = -1; shot(pair.pull(button)); };
@@ -371,7 +370,6 @@ function drawCrosshair() {
 
 // ── the frame ────────────────────────────────────────────────────────
 let last = performance.now();
-const reloadSfx = { R: { open: false, close: false }, L: { open: false, close: false } };
 
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
@@ -395,27 +393,23 @@ function frame(now) {
 
   const drawn = pair.hands();
   const dual = drawn.length === 2;
-  const per = {};
-  for (const hd of HANDS) {
-    const m = pair[hd];
-    // THE RELOAD'S TWO ENDS, per hand (gun-proto.html's timing)
-    const rs = reloadSfx[hd];
-    if (m.state === 'Cooling' && !rs.open) { rs.open = true; sfx.play(state.sfxOpen, 0.9); }
-    if (m.state === 'Cooling' && !rs.close && m.cooledMs >= Math.max(0, state.cool - 420)) { rs.close = true; sfx.play(state.sfxClose, 0.95); }
-    if (m.state !== 'Cooling') { rs.open = false; rs.close = false; }
-    const rc = recoils[hd];
-    rc.stiff = state.stiff; rc.damp = state.damp; rc.back = state.back;
-    // THE GUARD (handsLaw): while the OTHER pistol fires and this one
-    // does not, this one lowers a share of its own drawn height - a pair
-    // only, and never in a volley, where both hands are the striking hand
-    const other = pair[hd === 'R' ? 'L' : 'R'];
-    guards[hd] = guardStep(guards[hd], dual && state.guard && other.state === 'Firing' && m.state !== 'Firing', dt);
-    per[hd] = { kick: rc.step(dt), frame: m.state === 'Firing' ? m.frame : (scrub >= 0 ? scrub : 0) };
-  }
+  // THE RELOAD'S TWO ENDS, per hand (gun-proto.html's timing) - the game's own (pistolViewmodel.js pistolReloadVoice)
+  pistolReloadVoice(hands, pair, state.cool, (kind, gain) => sfx.play(kind === 'open' ? state.sfxOpen : state.sfxClose, gain));
+  // THE HANDS' FRAME - each hand's spring, its guard (handsLaw: while the OTHER pistol fires and this one does not, a
+  // pair only, never in a volley), its picture, and its rig: the mod's frame, one rig per hand on one clock, the left
+  // stepped flipped, which is Two-Hands' two sway rules for free - Bob OUTWARD, Inertia the screen's direction. The
+  // game's own (pistolViewmodel.js pistolHandsStep); this page only says what its panel holds.
+  const motion = labMotion({ walking: state.walk, running: state.run, crouching: state.crouch, liveSpeed: state.spd });
+  pistolHandsStep(hands, dt, {
+    machines: pair, drawn, guard: state.guard, spring: { stiff: state.stiff, damp: state.damp, back: state.back },
+    restFrame: scrub >= 0 ? scrub : 0, settings: widgetSettings(), screenRect: { width: canvas.width, height: canvas.height },
+    motion, look, liveSpeed: state.spd, cursorActive: document.pointerLockElement !== canvas, hiddenTarget: [0, state.drop],
+  });
 
-  const glow = Math.max(...drawn.map((hd) => muzzleLight(pair[hd].state, per[hd].frame)));
+  const glow = Math.max(...drawn.map((hd) => muzzleLight(pair[hd].state, hands[hd].frame)));
   const lit = state.room * (1 + glow * state.light * 1.9);
   bobWorld = bobWorld * 0.86 - look[0] * canvas.width * 0.18;
+  look = [0, 0];
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.imageSmoothingEnabled = false;
@@ -430,40 +424,20 @@ function frame(now) {
   ctx.restore();
   drawCrosshair();
 
-  // THE MOD'S FRAME, one rig per hand on one clock. The left rig runs
-  // flipped, which is Two-Hands' two sway rules for free: Bob goes
-  // OUTWARD (the mod's flipped sprite takes it mirrored) and Inertia
-  // keeps the screen's direction (inertiaStep pre-signs it for a flip).
-  const s = widgetSettings();
-  const motion = labMotion({ walking: state.walk, running: state.run, crouching: state.crouch, liveSpeed: state.spd });
   const shown = {};
-  for (const hd of HANDS) {
-    widgetRigStep(rigs[hd], s, dt, {
-      screenRect: { width: canvas.width, height: canvas.height }, motion, look,
-      flip: hd === 'L', idle: pair[hd].state === 'Idle',
-      shown: pair[hd].state !== 'Cooling', hiddenTarget: [0, state.drop], liveSpeed: state.spd,
-      cursorActive: document.pointerLockElement !== canvas,
-    });
-  }
-  look = [0, 0];
-
   if (art) {
     const widthPct = nativeWidthPct(art.anchor.w, state.scale);
-    // the striking hand over the other (Two-Hands)
-    for (const hd of pair.order) {
-      if (!drawn.includes(hd)) continue;
+    // the hand that fired last over the other (Two-Hands)
+    for (const hd of pistolDrawOrder(pair.order, drawn)) {
       const flip = hd === 'L';
-      const [, guardY] = guardOffset(guards[hd], flip ? 'left' : 'right', { height: art.anchor.h * state.scale });
-      const k = per[hd].kick;
-      // AUDIT 68 S08's law: the GAME's frame, called - never restated here
-      const { rect, anchorRect } = gunFrameRect({
+      // AUDIT 68 S08's law: the GAME's frame, called - never restated here (pistolViewmodel.js pistolHandRect)
+      const { rect, anchorRect } = pistolHandRect(hands, hd, {
         canvasW: canvas.width, canvasH: canvas.height, anchor: art.anchor, union: art.union,
-        rig: rigs[hd], kick: { x: k.x, y: k.y + guardY }, flip,
-        widthPct, align: ALIGN.Right, offset: state.offset, raise: state.raise,
+        widthPct, offset: state.offset, raise: state.raise, heightPx: art.anchor.h * state.scale, flip,
       });
       ctx.save();
       if (flip) { ctx.translate(rect.x + rect.w / 2, 0); ctx.scale(-1, 1); ctx.translate(-(rect.x + rect.w / 2), 0); }
-      ctx.drawImage(art.frames[per[hd].frame], rect.x, rect.y, rect.w, rect.h);
+      ctx.drawImage(art.frames[hands[hd].frame], rect.x, rect.y, rect.w, rect.h);
       ctx.restore();
       if (state.grid) {
         ctx.strokeStyle = 'rgba(192,138,62,0.9)'; ctx.lineWidth = 1;
@@ -477,10 +451,10 @@ function frame(now) {
 
   // The probe's window on the frame (tools/pistolProtoProbe.mjs).
   const hand = (hd) => ({
-    drawn: drawn.includes(hd), state: pair[hd].state, frame: per[hd].frame, shots: pair[hd].shots,
-    reloading: pair[hd].state === 'Cooling', guard: guards[hd], kick: per[hd].kick,
+    drawn: drawn.includes(hd), state: pair[hd].state, frame: hands[hd].frame, shots: pair[hd].shots,
+    reloading: pair[hd].state === 'Cooling', guard: hands[hd].guard, kick: hands[hd].kick,
     rect: shown[hd]?.rect ?? null, anchorRect: shown[hd]?.anchorRect ?? null,
-    channels: { position: [...rigs[hd].position], scale: [...rigs[hd].scale], offset: [...rigs[hd].offset] },
+    channels: { position: [...hands[hd].rig.position], scale: [...hands[hd].rig.scale], offset: [...hands[hd].rig.offset] },
   });
   globalThis.__pistolLab = {
     ready: !!art, trigger: pair.trigger, lead: pair.lead, order: [...pair.order], lastShot: pair.lastShot,
@@ -489,7 +463,7 @@ function frame(now) {
   };
 
   const cycle = PISTOL_STRIP.frames / state.fps * 1000 + state.cool;
-  const line = (hd) => `${hd} ${(pair[hd].state === 'Cooling' ? 'RELOAD' : pair[hd].state).padEnd(8)} frame ${per[hd].frame + 1}/${PISTOL_STRIP.frames}  shots ${pair[hd].shots}`;
+  const line = (hd) => `${hd} ${(pair[hd].state === 'Cooling' ? 'RELOAD' : pair[hd].state).padEnd(8)} frame ${hands[hd].frame + 1}/${PISTOL_STRIP.frames}  shots ${pair[hd].shots}`;
   const ls = pair.lastShot;
   $('stat').textContent =
     `${state.trigger}${dual ? `, lead ${state.lead}` : ''}\n` +

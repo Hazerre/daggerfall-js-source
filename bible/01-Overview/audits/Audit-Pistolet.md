@@ -106,7 +106,7 @@ Morrowind assets parse and resolve; the bakes byte-exact; the account Worker loa
 | D9 | HIGH | The install test could never fail | FIXED: six records, each a stand-in with its offset; mutants PLD-install-* |
 | D10 | HIGH | The per-hand doll records unpinned (a gold Sovereign in the right hand could show plain) | FIXED: every (record, file, offset) and the gilded right hand; mutants PLD-* |
 | D11 | HIGH | Twelve mutants of the rig's Pistolet paths survived every suite | FIXED: the real rig in Node (`test/combat/weapon/pistolRigHarness.js`, `pistoletRig.test.js`, 7 tests); mutants WR-*, all dead (one after M3) |
-| D12 | MED | `gunPair.js` pinned only for its guard | FIXED: `test/combat/gun/gunPair.test.js` (5) steps a real pair; mutants GP-* |
+| D12 | MED | `gunPair.js` pinned only for its guard | FIXED: `test/combat/gun/gunPair.test.js` (5) steps a real pair; mutants GP-*. RETIRED by PISTOL-PORT (2026-10-22) with the module: the page's own frame is pinned by `test/combat/gun/pistolport.test.js`, mutants in `tools/mutants/pistolport.json` |
 | D13 | MED | No committed mutant record | FIXED: `tools/mutants/pistolet.json` (81) |
 | D14 | MED | The light's side false for a left-handed player | FIXED with A9 |
 | D15 | MED | "24x17, a classic dagger's doll record" - those are 56x17 and 36x45 | FIXED: the page, the tool and the test's message |
@@ -150,7 +150,7 @@ Morrowind assets parse and resolve; the bakes byte-exact; the account Worker loa
 
 ## What stands
 
-- New pins: `test/combat/pistolet_law.test.js` (7), `test/combat/gun/gunPair.test.js` (5),
+- New pins: `test/combat/pistolet_law.test.js` (7), `test/combat/gun/gunPair.test.js` (5, RETIRED by PISTOL-PORT),
   `test/combat/weapon/pistoletRig.test.js` (7, over `pistolRigHarness.js`), `test/systems/pistolet_pins.test.js` (10);
   `pistolet.test.js`, `fieldgunmw.test.js`, `pistolLab.test.js` and `twohands.test.js` extended.
 - `tools/mutants/pistolet.json`: 81 mutants over `pistolet.js`, `thunderlock.js`, `gilded.js`, `playerWeapon.js`,

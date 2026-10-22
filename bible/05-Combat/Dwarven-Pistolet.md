@@ -1,8 +1,8 @@
 # The Dwarven Pistolet - the second gun, and the first a pair of can be carried
 
 `src/systems/pistolet.js` + `characters/thunderlockIds.js` (its numbers) + `combat/gun/pistoletArt.js`,
-`combat/gun/pistolStrip.js`, `combat/gun/gunPair.js` + `tools/pistoletArt.mjs`, `tools/bakePistolet.mjs`
-(PISTOLET, 2026-10-21)
+`combat/gun/pistolStrip.js`, `combat/gun/pistolPair.js` + `combat/gun/pistolViewmodel.js` + `combat/gun/pistolLane.js`
+(PISTOL-PORT: the pistol lab's own code) + `tools/pistoletArt.mjs`, `tools/bakePistolet.mjs` (PISTOLET, 2026-10-21)
 
 The owner, in three steps:
 1. *"this spritesheet is to be for our new weapon type, which can also be duel wielded. Its a dwarven flintlock style
@@ -131,8 +131,8 @@ it drew one body until AUDIT PISTOLET D17. It judges what needs no eye - every b
 ## First person - one gun
 
 Weapon types **Pistolet 19 / Pistolet_Magic 20**, past DFU's enum like the Thunderlock's 17/18. The same table
-(THUNDERLOCK_ANIMS: an idle, six frames on every direction), and the same machine (`combat/playerWeapon.js`: the melee
-one-shot with the ranged cooldown).
+(THUNDERLOCK_ANIMS: an idle, six frames on every direction). Its machine is the pistol lab's own since PISTOL-PORT
+(below): one pistol is the page's single.
 
 Its cadence is the owner's panel (`combat/gun/gunFeel.js` **PISTOLET_FEEL**):
 - 12 fps, a 1400 ms reload, the hit on frame 2.
@@ -177,15 +177,14 @@ two of a kind** - two melee weapons or two Pistolets, never one of each. A swing
 difference, and the sprite lane draws them through two doors. The mixed pair is a later slice's. The Thunderlock is
 two-handed and never in a pair.
 
-**The machine** (`combat/playerWeapon.js` `gunPair`). It is ONE machine, as a sword pair's is: one shot at a time, and
-the hands take turns by the law's flurry (the lead opens, the other answers within FLURRY_WINDOW).
-- What a gun adds is its RELOAD, and a pair's point is that each hand has its own. At a shot's end the machine's ranged
-  cooldown moves onto the hand that fired (`_reload`), and the machine's own gate is left at the soonest either hand is
-  loaded again.
+**The machines** (`combat/playerWeapon.js` `pistols`, the pistol lab's pair - PISTOL-PORT, below). TWO machines, one a
+pistol, each its own six frames and its own reload; the hands take turns by the law's flurry (the lead opens, the other
+answers within FLURRY_WINDOW), and a pull while the first pistol is still mid-shot fires the second at once, as on the
+page. Until PISTOL-PORT the pair was ONE machine, a sword pair's: the second pull waited out the first shot's frames.
 - The pistol lab's one departure, carried: **a pull the law gives to a hand still reloading falls to the loaded one.**
   A sword can always swing; a pistol mid-reload cannot fire.
 - A gun's flurry never starts a frame in (DUAL.FLURRY_FROM_FRAME): its six frames are a mechanism's.
-- The off hand's shot carries DUAL's terms (0.8 damage, Agility's to-hit, its weight's held ticks, 0.8 of a blow),
+- The off hand's shot carries DUAL's terms (0.8 damage, Agility's to-hit, 0.8 of a blow),
   untouched. A shot's damage is rolled where it LANDS, after its strike is over, so the impact asks the gun it left
   (`PlayerWeapon.isOffHandItem`, read in `combat/arrowFlight.js playerArrowHitFoe`), and the duel's roll takes `off`
   for a shot as for a swing (`combat/duelCombat.js`). Every host weighs the shot's skill tally by the hand's blow.
@@ -194,14 +193,13 @@ the hands take turns by the law's flurry (the lead opens, the other answers with
   the pistol left waits out its own reload, and a second pistol drawn beside a reloading one is loaded (AUDIT PISTOLET
   A3/B9). A technique is the lead hand's, never thrown by the off hand while the lead reloads (A6).
 
-**The sprite** (`combat/gun/gunPair.js`, the module the rig wires - HOST-SPLIT). Each hand has its own widget rig,
-spring, guard and reload clacks, on one clock:
+**The sprite** (the page's frame, `combat/gun/pistolViewmodel.js`, through `combat/gun/pistolLane.js`, the module the
+rig wires - HOST-SPLIT). Each hand has its own widget rig, spring, guard and reload clacks, on one clock:
 - The left hand's rig steps FLIPPED, which gives Two-Hands' two sway rules for free: Bob outward, Inertia in the
   screen's direction.
-- The resting pistol lowers GUARD.LOWER of its height while the other fires (the guard's rule is the hand that is not
-  striking - the pistol lab's probe found the lab lowering both, and that rule is what the module carries).
-- The draw is the rig's own `drawThunderlock` with a `hand`: the gun's frame, the left one in the mirror, the striking
-  one drawn over. Each hand keeps its own muzzle record, and the shot leaves the barrel that fired it.
+- The resting pistol lowers GUARD.LOWER of its height while the other fires and it does not.
+- The draw is the rig's own `drawThunderlock` with a `hand`: the page's rect, the left one in the mirror, the hand that
+  fired last drawn over. Each hand keeps its own muzzle record, and the shot leaves the barrel that fired it.
 - The flash's light is thrown from the side the firing gun is DRAWN on (`systems/thunderlock.js
   thunderlockMuzzleLight`, which reads the side and reach the rig parks) - for a left-handed player, whose pair and
   single gun are drawn in the mirror, too (AUDIT PISTOLET A9/B1/D14: the side was the hand's, so a left-handed
@@ -222,6 +220,57 @@ A pair lands about 20% more than the Thunderlock a second (the test holds it und
 than twice its Pellets (64 a minute to 28), and both hands: no shield and no light. One Pistolet is the cheap gun, and
 the pair is its reason. (Until AUDIT PISTOLET A4 the test multiplied by 0.8 itself and touched no damage code, while the
 game landed the off hand's shot whole: 10.1 a second, x1.32, past the ceiling the test held.)
+
+## PISTOL-PORT (2026-10-22): the prototype itself, as the Thunderlock's was
+
+The owner, after playing the merged pair: *"Im pissed because the integrated sprite pistol doesnt match the prototype 1:1
+and i am pissed. Haven't you learned anything from the thunderlock?"*, then *"I want the prototype itself implemented
+just like we did with thunderlock. Fucking get this right"*. He was right, and FIELD-GUN12 (`Dwarven-Thunderlock.md`) is
+the argument: **a prototype is not a specification to copy. It is code to move.** The Pistolet had been built the way
+the Thunderlock's first five rounds were - the lab's numbers carried into a frame the game composed itself
+(`combat/gun/gunPair.js` and the rig's one-gun path) - and the two agreed at rest and nowhere else.
+
+**Measured before the change**, the page in Chromium and the real rig in Node on one script (rest, a shot, a flurry
+pulled mid-shot, both reloads, a walk with a shot in it, a stop), 1280x800:
+- up to **51 px** apart: the game kept Bob and Inertia running on a reloading pistol, which the page holds still (its
+  rig steps `idle` only while its machine is Idle);
+- the order: the game put the lead hand back on top after a shot, where the page draws the hand that fired last over;
+- one machine for the pair: the page fires the second pistol mid-shot, the game refused for half a second;
+- one pistol went through the Thunderlock's path, its frames and dip on the classic machine;
+- the flash tinted to the shock orb's colour, where the page draws the strip's flame as painted.
+
+**What moved** - the page's code, its lines in its order, and the page imports every one back:
+
+| was | is |
+| --- | --- |
+| `gunLab.js` `createGunMachine` | `combat/gun/gunMachine.js` |
+| `pistolLab.js` `createPair`, `PAIR_TRIGGER` | `combat/gun/pistolPair.js` (one door added: `fireHand`, a technique's) |
+| `pistol-proto.html`'s frame: `rigs`, `recoils`, `guards`, `reloadSfx`, the draw block | `combat/gun/pistolViewmodel.js` |
+| `combat/gun/gunPair.js`, the rig's one-gun path for a Pistolet | gone: `combat/gun/pistolLane.js` wires the page's frame |
+| `playerWeapon.js` `_reload`, the classic machine's tick, cooldown and hit frame for a Pistolet | `playerWeapon.pistols`, the page's pair |
+
+`combat/playerWeapon.js` fires a Pistolet - one, or a pair - on the page's pair (`_pistolsFor`): Alternate for a pair,
+the page's Single for one, on the machine of the hand that HOLDS it. The classic machine is kept as the pistols' MIRROR
+(`_pistolsMirror`), so every reader it has is unchanged: a strike while any pistol fires, the latest one's frame, the
+soonest a pistol is loaded; each pistol's 'hit' makes that hand's weapon and strike current for the hosts that fire the
+shot. `combat/weapon/weaponRig.js` asks `pistolLane.js` for each hand's frame, rect, order, clacks and glow.
+
+**The pin is identity, not agreement** (`test/combat/gun/pistolport.test.js`): the lab's machine, pair and frame ARE the
+game's objects; the page composes nothing (no `guardStep`, `gunFrameRect`, `createRecoil` of its own); the real rig and
+the page's own frame, on one browser's clock and one script, draw every hand at the same rect - to the float, worst
+2e-13 px - with the same picture in the same order for 300 frames, a pair and one pistol. `tools/pistolPortProbe.mjs`
+runs the page itself in Chromium against the rig and draws them side by side. `tools/mutants/pistolport.json`, 51
+records; `pistolet.json` retired the 33 whose sites the port removed (their laws are re-aimed there).
+
+**Named departures, each the game's input and never a second composition:**
+- The camera shake stays Better Ambience's `weaponKick` - the port has one camera shaker (the Thunderlock's precedent).
+- The room's light (MAC-I) still tints the sprite - game-wide.
+- The player's own Offset and Bob switches (`pistolWidgetSettings`): every magnitude the page's panel, the switches
+  theirs, as Weapon Widget's are everywhere.
+- The holster: the page has no sheath; the game lowers the pistols to `sheathTarget` on the same rig (`away`).
+- The handedness: the page is right-handed; the game mirrors a left-handed player's (`flipOf`).
+- The off hand's held ticks are gone for a Pistolet: the page's machine has no tick to hold. Its damage, to-hit and
+  blow terms stand.
 
 ## The Sunken Sovereign is a Pistolet
 
@@ -347,7 +396,10 @@ down, a pair's left hand on its own pistol, off when sheathed). `tools/mutants/p
 
 - The arms solved onto the pistol while drawn, not the borrowed throw clip's (PISTOL-STANCE, RIFLE-STANCE's departure).
 - The pair of guns: `DUAL_GUN_TYPES` and two of a kind beside Two-Hands' melee law.
-- A gun pair's reload, hand by hand, and the pull that falls to the loaded pistol.
+- A gun pair's reload, hand by hand, and the pull that falls to the loaded pistol - on the pistol lab's own two machines
+  (PISTOL-PORT).
+- PISTOL-PORT's six: the camera shake, the room's tint, the player's Offset and Bob switches, the holster, the
+  handedness and no off-hand held ticks (above).
 - A weapon's own Weapon Widget tuning laid over Diverse Weapons' preset.
 - The doll's two hands for a custom weapon, by slot.
 

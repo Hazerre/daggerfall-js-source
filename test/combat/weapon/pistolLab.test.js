@@ -23,8 +23,10 @@ test('the lab is a lab: nothing the game runs imports it', () => {
     'src/combat/weapon/weaponWidgetMotion.js', 'src/combat/gun/gunViewmodel.js', 'src/combat/twoHands/handsLaw.js',
     'src/combat/twoHands/twoHands.js', 'src/systems/thunderlock.js',
     // AUDIT PISTOLET D31: and the modules the lab graduated into the game
-    'src/systems/pistolet.js', 'src/combat/gun/gunPair.js', 'src/combat/gun/pistoletArt.js', 'src/combat/gun/pistolStrip.js',
+    'src/systems/pistolet.js', 'src/combat/gun/pistoletArt.js', 'src/combat/gun/pistolStrip.js',
     'src/combat/gun/gunFeel.js', 'src/combat/playerWeapon.js',
+    // PIN MOVED (PISTOL-PORT): combat/gun/gunPair.js is gone - the page's own machine, pair and frame moved into the game
+    'src/combat/gun/gunMachine.js', 'src/combat/gun/pistolPair.js', 'src/combat/gun/pistolViewmodel.js', 'src/combat/gun/pistolLane.js',
   ]) {
     // a side-effect import (`import '...pistolLab.js'`) is an import too
     assert.doesNotMatch(readFileSync(f, 'utf8'), /^\s*import\s+(?:[\s\S]*?from\s+)?'[^']*pistolLab/m, `${f} does not import the lab`);
@@ -37,9 +39,11 @@ test('what it borrows is RUN, not restated: the game’s frame and the Two-Hands
   assert.equal(strikeHandOf, LAW_STRIKE, 'handsLaw.strikeHandOf itself - the flurry the swords obey');
   assert.equal(guardOffset, LAW_GUARD, 'handsLaw.guardOffset itself');
   // AUDIT 68 S08's law, held for the second lab: the page composes its
-  // frame through gunFrameRect and never calls the steps inside it
+  // frame through the game's and never calls the steps inside it
+  // PIN MOVED (PISTOL-PORT): through pistolHandRect, the game's own draw block, which runs gunFrameRect
+  // (test/combat/gun/pistolport.test.js holds the rest of the page to the game's frame)
   const html = page();
-  assert.match(html, /\bgunFrameRect\(\{/);
+  assert.match(html, /\bpistolHandRect\(hands, hd, \{/);
   for (const step of ['placeSprite(', 'widgetTransformRect(', 'unionDrawRect(']) {
     assert.ok(!html.includes(step), `the page calls ${step} itself - a second copy of the frame the game draws`);
   }
