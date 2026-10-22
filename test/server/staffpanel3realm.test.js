@@ -423,9 +423,12 @@ test('STAFF-PANEL3-REALM: REMOVE FROM A PLAYER - previewed, then taken on its ow
   const u = await s.seat('Copyholder', freshSave({ name: 'Copyholder', items: [piece(cuid, 12)] }));
   s.raw.prepare('INSERT INTO item_dupes (uid, char_id, at) VALUES (?, ?, 5)').run(cuid, u.id);
   const cpre = (await s.admin('/v1/staff/item/take', { id: u.id, key: cuid })).body;
-  assert.deepEqual([cpre.contested, cpre.trail.copies], [true, [{ char_id: u.id, at: 5 }]]);
+  assert.deepEqual([cpre.contested, cpre.trail.copies], [true, [{ char_id: u.id, at: 5, trail_at: null }]]);
   const ctake = { id: u.id, key: cuid, seq: s.row(u.id).seq, confirm: true, reason: 'duplicated', note: 'a copy' };
   assert.deepEqual(await s.admin('/v1/staff/item/take', ctake), { status: 409, body: { error: 'staff-trail' } });
+  // ...and a copy written down on this very character waits for its recorded trail check, a confirm alone is not one
+  assert.deepEqual(await s.admin('/v1/staff/item/take', { ...ctake, trail: true }), { status: 409, body: { error: 'staff-trail' } });
+  assert.equal((await s.admin('/v1/staff/contested/trail', { uid: cuid, char: u.id, found: 'copier', note: 'two of one key' })).status, 200);
   const ct = await s.admin('/v1/staff/item/take', { ...ctake, trail: true });
   assert.equal(ct.status, 200, JSON.stringify(ct.body));
   assert.deepEqual(recordOf(s.env, u.id).items, []);
@@ -445,6 +448,8 @@ test('STAFF-PANEL3-REALM: REMOVE FROM A PLAYER - previewed, then taken on its ow
   const rec = recordOf(s.env, v.id);
   const obj = s.row(v.id).obj;
   s.env.SAVES._map.set(obj, new TextEncoder().encode(JSON.stringify({ ...rec, items: [piece('5555666677778888', 14)] })));
+  // ...the ledger's word alone (no copy written down here) still asks the trail confirmed in the preview
+  assert.deepEqual(await s.admin('/v1/staff/item/take', { id: v.id, at: [0, 0], seq: s.row(v.id).seq, confirm: true, reason: 'duplicated', note: 'a copy of Holder\'s' }), { status: 409, body: { error: 'staff-trail' } });
   const vt = await s.admin('/v1/staff/item/take', { id: v.id, at: [0, 0], seq: s.row(v.id).seq, confirm: true, trail: true, reason: 'duplicated', note: 'a copy of Holder\'s' });
   assert.equal(vt.status, 200, JSON.stringify(vt.body));
   assert.deepEqual({ ...s.raw.prepare("SELECT char_id, state, claim_char FROM item_uids WHERE uid = '5555666677778888'").get() }, { char_id: h.id, state: 'held', claim_char: null }, 'the holder\'s, its claim withdrawn');

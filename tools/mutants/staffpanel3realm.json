@@ -62,8 +62,8 @@
   {
     "name": "STAFF-PANEL3-REALM-take-trail-unasked",
     "file": "server-account/src/staffRealm.js",
-    "old": "if (contested && body.trail !== true)",
-    "new": "if (false)",
+    "old": "if (contested && (body.trail !== true || unchecked))",
+    "new": "if (contested && unchecked)",
     "why": "a contested piece taken with no trail check",
     "tests": [
       "test/server/staffpanel3realm.test.js"
@@ -445,6 +445,16 @@
     "old": "WHERE until <= ?1 LIMIT ?2)', ctx.nowS)",
     "new": "WHERE until <= ?1 + 3600 LIMIT ?2)', ctx.nowS)",
     "why": "a removal swept before its 30 days",
+    "tests": [
+      "test/server/staffpanel3realm.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL3-REALM-take-copy-unchecked",
+    "file": "server-account/src/staffRealm.js",
+    "old": "if (contested && (body.trail !== true || unchecked))",
+    "new": "if (contested && body.trail !== true)",
+    "why": "a copy written down on the character taken with no recorded trail check",
     "tests": [
       "test/server/staffpanel3realm.test.js"
     ]

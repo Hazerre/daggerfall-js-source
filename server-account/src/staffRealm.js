@@ -25,7 +25,8 @@
 //     player's game's next save is refused; the piece goes to the 30-day store (staff_evidence, migration 0149) and its
 //     ledger row is marked taken by staff (ledger.js SEIZED), so a save that shows it again is charged as a copy. A piece
 //     the ledger contests (another holds it, or copies are known) needs `trail: true` - the design's "require a trail
-//     check before Remove" - and the preview names the trail.
+//     check before Remove" - and the preview names the trail; a copy written down on the character itself needs its
+//     trail check recorded first (staffCensus.js /v1/staff/contested/trail).
 //   - Remove from market is market.js marketRemove `keep`: the listing ends and its goods are kept, not returned.
 //   - Every removal names a reason and a note, and Put back undoes it within 30 days.
 //
@@ -496,7 +497,7 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
     // before Remove"): who holds the piece's key and since when, a claim on it, and every copy written down
     const [uid, copies] = key ? await Promise.all([
       db.prepare('SELECT char_id, player, state, at, claim_char, claim_at FROM item_uids WHERE uid = ?1').bind(key).first(),
-      db.prepare('SELECT char_id, at FROM item_dupes WHERE uid = ?1 ORDER BY at LIMIT 20').bind(key).all(),
+      db.prepare('SELECT char_id, at, trail_at FROM item_dupes WHERE uid = ?1 ORDER BY at LIMIT 20').bind(key).all(),
     ]) : [null, null];
     const dupes = copies?.results ?? [];
     const twice = key ? lists.flat().filter((it) => ledgerKeyOf(it) === key).length > 1 : false;
@@ -517,7 +518,10 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
     if (!reason) return said('item-take', row.player, detail, { error: 'staff-reason' });
     if (!note) return said('item-take', row.player, detail, { error: 'staff-note' });
     if (body.seq !== row.seq) return said('item-take', row.player, detail, { error: 'seq' });   // the record moved since staff looked
-    if (contested && body.trail !== true) return said('item-take', row.player, detail, { error: 'staff-trail' });
+    // STAFF-PANEL4-CENSUS's contract: a copy written down on THIS character waits for its recorded trail check
+    // (staffCensus.js /v1/staff/contested/trail, item_dupes.trail_at) - a confirm in the preview is not that check
+    const unchecked = dupes.some((/** @type {any} */ d) => d.char_id === row.id && d.trail_at == null);
+    if (contested && (body.trail !== true || unchecked)) return said('item-take', row.player, detail, { error: 'staff-trail' });
     const want = JSON.stringify(piece);
     const where = /** @type {[number, number]} */ (at);
     const prep = await seizeRealmRecord(c, row.player, row.id, (s) => {
