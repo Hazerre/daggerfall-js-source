@@ -5,14 +5,23 @@
 // doll's layer is the owner's pixels, tilted by RotSprite (below), which keeps every pixel one of the sprite's own.
 //
 //   public/art/pistolet-icon.png    THE SOURCE - the owner's sprite, whole. It is the inventory picture as it is.
-//   -> pistolet-paperdoll.png       the doll's layer, for EITHER hand: the fist's gap cut across the grip, then the
-//                                   picture tilted DOLL_ANGLE degrees barrel-down - NOT mirrored. The owner, 2026-10-22,
-//                                   on the first two cuts (level, then a quarter turn with a mirrored left hand): "Still
+//   -> pistolet-paperdoll-left.png  the doll's LEFT hand's (the picture's right): the fist's gap cut across the grip,
+//                                   then the picture tilted DOLL_ANGLE degrees barrel-down - NOT mirrored. The owner,
+//                                   2026-10-22, on a level cut and then a quarter turn with a mirrored pair: "Still
 //                                   wrong. It should be at a downward angle in the right hand in the picture. Not
-//                                   mirrored". Both hands wear the same layer, the barrel down and to the picture's left
-//                                   as the sprite's own barrel points.
-//   -> pistolet-icon-gilded.png, pistolet-paperdoll-gilded.png
-//                                   the same two in gold leaf, tools/gunIcons.mjs gild() - the Sunken Sovereign's
+//                                   mirrored" - and of this one, "Much better".
+//   -> pistolet-paperdoll.png       the doll's RIGHT hand's (the picture's left): the same, ROLLED OVER on its barrel
+//                                   first - the gapped sprite turned top to bottom, then tilted the same way, so the
+//                                   barrel still points down and to the picture's left and the grip comes up out of the
+//                                   other side of the frame. The owner: "The left gun should be upside down and held in
+//                                   the hand". It is why one placement rule holds for both hands (PAPERDOLL_OFFSET, in
+//                                   src/systems/pistolet.js): Daggerfall's own right fist holds its hilts pommel
+//                                   up-left, the weapon leaving the fist down-right (TEXTURE.234's dagger, mace, saber,
+//                                   shortsword, tanto), and the upright gun there put its whole frame on the POMMEL's
+//                                   side - beside the hand, its butt barely on the knuckles. Rolled, the butt is the
+//                                   pommel and the frame leaves where a blade does.
+//   -> pistolet-icon-gilded.png, pistolet-paperdoll-gilded.png, pistolet-paperdoll-left-gilded.png
+//                                   the same three in gold leaf, tools/gunIcons.mjs gild() - the Sunken Sovereign's
 //
 // THE GAP is the Thunderlock's rule (tools/gunPaperdoll.mjs punchBand): a band square to the grip, so the frame of the gun
 // stays above the fist and the butt below it. Its size is a classic weapon's own: the doll's fist leaves an 8-10px gap
@@ -29,8 +38,10 @@ import { isMain } from './lib/isMain.mjs';
 export const SOURCE = 'public/art/pistolet-icon.png';
 export const OUT = Object.freeze({
   doll: 'public/art/pistolet-paperdoll.png',
+  dollLeft: 'public/art/pistolet-paperdoll-left.png',
   iconGilded: 'public/art/pistolet-icon-gilded.png',
   dollGilded: 'public/art/pistolet-paperdoll-gilded.png',
+  dollLeftGilded: 'public/art/pistolet-paperdoll-left-gilded.png',
 });
 
 /** The band, in the SOURCE's pixels: its centre as fractions of the sprite (punchBand's own units), the way it runs (the
@@ -90,17 +101,26 @@ export function rotSprite(img, deg, point = null) {
   return { img: { width: W, height: H, data: out }, at: p && { x: p[0] - x0, y: p[1] - y0 } };
 }
 
-/** Where the band's centre - the fist - lands in the doll's tilted layer, in its pixels. src/systems/pistolet.js
- *  PAPERDOLL_OFFSET seats this point on each fist. */
-export const dollGrip = (w = 24, h = 17, band = BAND, deg = DOLL_ANGLE) =>
-  rotSprite({ width: w, height: h, data: new Uint8Array(w * h * 4) }, deg, [band.cx * w, band.cy * h]).at;
+/** The picture turned top to bottom - the gun ROLLED OVER on its barrel: the barrel still points where it did, the grip
+ *  hangs from the frame's other side. Rows moved whole, never resampled. */
+export function rollOver({ width: w, height: h, data }) {
+  const out = new Uint8Array(data.length);
+  for (let y = 0; y < h; y++) out.set(data.subarray(y * w * 4, (y + 1) * w * 4), (h - 1 - y) * w * 4);
+  return { width: w, height: h, data: out };
+}
+
+/** Where the band's centre - the fist - lands in a hand's tilted layer, in its pixels: `rolled` for the right hand's.
+ *  src/systems/pistolet.js PAPERDOLL_OFFSET seats this point on each hand's fist. */
+export const dollGrip = ({ rolled = false, w = 24, h = 17, band = BAND, deg = DOLL_ANGLE } = {}) =>
+  rotSprite({ width: w, height: h, data: new Uint8Array(w * h * 4) }, deg, [band.cx * w, rolled ? h - band.cy * h : band.cy * h]).at;
 
 /** The doll layers and the gilded set, from the source picture. Pure: a test re-runs it against the shipped files. */
 export function pistoletArt(src, band = BAND) {
   const level = { width: src.width, height: src.height, data: new Uint8Array(src.data) };
   const cut = punchBand(level, band);   // cut in the source's own frame (the band is measured there), then turned
-  const doll = rotSprite(level, DOLL_ANGLE).img;
-  return { doll, iconGilded: gild(src), dollGilded: gild(doll), cut };
+  const dollLeft = rotSprite(level, DOLL_ANGLE).img;
+  const doll = rotSprite(rollOver(level), DOLL_ANGLE).img;   // the right hand's: rolled over, then the same tilt
+  return { doll, dollLeft, iconGilded: gild(src), dollGilded: gild(doll), dollLeftGilded: gild(dollLeft), cut };
 }
 
 if (isMain(import.meta.url)) {

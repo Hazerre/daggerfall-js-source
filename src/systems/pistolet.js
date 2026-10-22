@@ -78,31 +78,34 @@ export function createPistolet({ material = 4, condition = null } = {}) {
 // ── THE PICTURES ─────────────────────────────────────────────────────
 //
 // ONE PICTURE PER JOB, as the Thunderlock's since THUNDERLOCK-ART: the doll layer carries the fist's gap, the list
-// shows the whole gun. The owner's 24x17 sprite IS the list's picture; tools/pistoletArt.mjs cuts the doll layer from
-// it, tilts it barrel-down (never mirrored - the owner's), and gilds both for the Sunken Sovereign (systems/gilded.js).
+// shows the whole gun. The owner's 24x17 sprite IS the list's picture; tools/pistoletArt.mjs cuts each hand's doll
+// layer from it - tilted barrel-down, never mirrored, the right hand's rolled over on its barrel - and gilds all three
+// for the Sunken Sovereign (systems/gilded.js).
 //
 // TWO HANDS ON THE DOLL. A classic Either-hand weapon carries two doll records - TEXTURE.234's base for the left hand and
 // +1 for the right (ui/paperDoll.js: "an Either-hand weapon worn RIGHT uses the +1 record") - because a pair puts one in
-// each hand and they cannot share a place. The Pistolet's two are ONE layer at two places - each hand's own offset.
+// each hand and they cannot share a place. The Pistolet's two are each hand's own layer, at each hand's own offset.
 
 /**
  * WHERE EACH HANGS (FIELD-GUN4's question, the Thunderlock's PAPERDOLL_OFFSET, for two hands). The doll's fists were
  * MEASURED, not guessed: the gap a classic one-handed weapon's doll record leaves for the fist (TEXTURE.234, the
  * player's own ARENA2 - dagger, mace, shortsword, war axe, each hand's record) closes at panel (27, 96) for the right
- * hand and (69, 95) for the left. ONE layer serves both hands, tilted barrel-down and NOT mirrored (the owner,
- * 2026-10-22, after a level cut and then a quarter-turned, mirrored pair: "Still wrong. It should be at a downward angle in
- * the right hand in the picture. Not mirrored"), so the fist's point is the same in both (tools/pistoletArt.mjs dollGrip,
- * layer pixel (20.8, 9.9), DOLL_ANGLE 45). The right hand's goes on its measured fist: panel (27 - 20.8, 96 - 9.9).
- * THE LEFT HAND IS NOT THE RIGHT'S PLACE IN THE GLASS (the owner, 2026-10-22: "its not fittest correctly in the left
- * hand"): the same unmirrored gun crosses the left fist the other way, so seated on (69, 95) its frame lay over the
- * knuckles and its butt stuck out past the hand. Each hand holds it the same way instead - the BUTT in the fist's hole,
- * the dark loop the curled fingers close (the bare ARENA2 doll: (29.5, 100.5) right, (64.5, 97) left), the frame out of
- * the fist's top. On the right that is the measured place. The left's was found by eye against the right's, layer
- * placements tried on the bare doll until its butt sat in the hole as the right's does: band centre (61.8, 94.9), the
- * layer at (61.8 - 20.8, 94.9 - 9.9). Screen coordinates, the panel's origin (200, 8) written beside them as the
+ * hand and (69, 95) for the left. ONE RULE FOR BOTH HANDS: each layer's band centre - the grip's middle, where the
+ * fist closes (tools/pistoletArt.mjs dollGrip) - goes on that hand's measured gap, as a classic weapon's hilt does.
+ * The right hand's layer is rolled over (dollGrip({ rolled: true }), layer pixel (20.1, 9.2)): panel (27 - 20.1,
+ * 96 - 9.2). The left hand's is upright (dollGrip(), (20.8, 9.9)): panel (69 - 20.8, 95 - 9.9).
+ *
+ * Why the right hand's is rolled. Both layers are tilted 45 degrees barrel-down and NOT mirrored (the owner,
+ * 2026-10-22: "It should be at a downward angle in the right hand in the picture. Not mirrored"), and the doll's
+ * fists ARE mirrored. Daggerfall's right fist holds its hilts pommel up-left, the weapon leaving the fist down-right
+ * (TEXTURE.234's +1 records). The upright gun on that gap put its whole frame on the pommel's side - beside the hand,
+ * its butt barely on the knuckles: "its not fittest correctly in the left hand" (the picture's left). Rolled over -
+ * "The left gun should be upside down and held in the hand" - the butt sits where the pommel does and the frame
+ * leaves the fist where a blade does. Moving the upright gun instead fitted no rule (an eye-fitted left placement
+ * broke the hand the owner had passed). Screen coordinates, the panel's origin (200, 8) written beside them as the
  * Thunderlock's are. The owner's eye is the gate on both.
  */
-export const PAPERDOLL_OFFSET = Object.freeze({ right: Object.freeze({ x: 200 + 6, y: 8 + 86 }), left: Object.freeze({ x: 200 + 41, y: 8 + 85 }) });
+export const PAPERDOLL_OFFSET = Object.freeze({ right: Object.freeze({ x: 200 + 7, y: 8 + 87 }), left: Object.freeze({ x: 200 + 48, y: 8 + 85 }) });
 
 /** The records of archive 562, by job. */
 export const ART_RECORDS = Object.freeze({ doll: 0, icon: 1, gildedDoll: 2, gildedIcon: 3, dollLeft: 4, gildedDollLeft: 5 });
@@ -111,8 +114,8 @@ export const ICON_FILES = Object.freeze([
   { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.icon, frame: 0, file: 'pistolet-icon.png' },
   { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.gildedDoll, frame: 0, file: 'pistolet-paperdoll-gilded.png', offset: PAPERDOLL_OFFSET.right },
   { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.gildedIcon, frame: 0, file: 'pistolet-icon-gilded.png' },
-  { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.dollLeft, frame: 0, file: 'pistolet-paperdoll.png', offset: PAPERDOLL_OFFSET.left },
-  { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.gildedDollLeft, frame: 0, file: 'pistolet-paperdoll-gilded.png', offset: PAPERDOLL_OFFSET.left },
+  { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.dollLeft, frame: 0, file: 'pistolet-paperdoll-left.png', offset: PAPERDOLL_OFFSET.left },
+  { archive: PISTOLET_ARCHIVE, record: ART_RECORDS.gildedDollLeft, frame: 0, file: 'pistolet-paperdoll-left-gilded.png', offset: PAPERDOLL_OFFSET.left },
 ]);
 /** Which of them an item wears for a job: on the doll its HAND's layer (the left hand's only when it is worn there - an
  *  unworn one and a right-hand one wear the right's), in a list the whole gun; gold for a Gilded piece. */

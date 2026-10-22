@@ -101,18 +101,30 @@ test('the pictures: the owner’s sprite whole in a list, a fist-gapped layer on
   const doll = png(ART_OUT.doll);
   const at = (img, x, y) => img.data[(y * img.width + x) * 4 + 3];
   // A DOWNWARD ANGLE, NOT MIRRORED (the owner, 2026-10-22: "Still wrong. It should be at a downward angle in the right
-  // hand in the picture. Not mirrored"): the layer is the gapped sprite tilted DOLL_ANGLE counter-clockwise by RotSprite
-  // - no colour in it that the sprite does not have - the muzzle down and to the LEFT, as the sprite's barrel points
+  // hand in the picture. Not mirrored"): each hand's layer is the gapped sprite tilted DOLL_ANGLE counter-clockwise by
+  // RotSprite - no colour in it that the sprite does not have - the muzzle down and to the LEFT, as the sprite's points
   assert.equal(DOLL_ANGLE, 45);
+  const left = png(ART_OUT.dollLeft);
   const colours = (img) => { const c = new Set(); for (let p = 0; p < img.data.length; p += 4) if (img.data[p + 3]) c.add(img.data.slice(p, p + 4).join()); return c; };
   const own = colours(src);
-  for (const c of colours(doll)) assert.ok(own.has(c), `no new colour (${c})`);
+  for (const img of [doll, left]) for (const c of colours(img)) assert.ok(own.has(c), `no new colour (${c})`);
   const solid = (img, pred) => { for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) if (at(img, x, y) && pred(x, y)) return true; return false; };
-  const grip = dollGrip();
-  assert.equal(at(doll, Math.floor(grip.x), Math.floor(grip.y)), 0, 'the fist’s gap at the tilted band’s centre');
-  assert.ok(solid(doll, (x, y) => x < grip.x - 10 && y > grip.y + 6), 'the barrel reaches down and to the left of the fist');
-  assert.ok(!solid(doll, (x, y) => x < grip.x - 10 && y < grip.y - 4), 'and not level out from it');
-  assert.ok(doll.width >= 28 && doll.height >= 28, `tilted: the layer holds the turned sprite (${doll.width}x${doll.height})`);
+  const bulk = (img, g) => { let sx = 0, sy = 0, n = 0; for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) if (at(img, x, y)) { sx += x + 0.5; sy += y + 0.5; n++; } return [sx / n - g.x, sy / n - g.y]; };
+  const gripR = dollGrip({ rolled: true }), gripL = dollGrip();
+  for (const [img, g, hand] of [[doll, gripR, 'right'], [left, gripL, 'left']]) {
+    assert.equal(at(img, Math.floor(g.x), Math.floor(g.y)), 0, `${hand}: the fist’s gap at the tilted band’s centre`);
+    assert.ok(solid(img, (x, y) => x < g.x - 10 && y > g.y + 6), `${hand}: the barrel reaches down and to the left of the fist`);
+    assert.ok(!solid(img, (x, y) => x < g.x - 10 && y < g.y - 4), `${hand}: and not level out from it`);
+  }
+  // THE RIGHT HAND'S IS ROLLED OVER (the owner: "The left gun should be upside down and held in the hand" - the
+  // picture's left): the same tilt of the sprite turned top to bottom, so the gun's bulk hangs BELOW the fist, where a
+  // classic blade leaves the right fist - the upright gun's sits beside it, which is right only for the left fist
+  const [, belowR] = bulk(doll, gripR), [besideL, belowL] = bulk(left, gripL);
+  assert.ok(belowR > 5, `the right hand’s gun hangs below its fist (${belowR.toFixed(1)})`);
+  assert.ok(besideL < -6 && belowL < 4, `the left hand’s reaches out beside its fist (${besideL.toFixed(1)}, ${belowL.toFixed(1)})`);
+  let mirrored = true;
+  for (let y = 0; y < doll.height && mirrored; y++) for (let x = 0; x < doll.width; x++) if (at(doll, x, y) !== at(left, doll.width - 1 - x, y)) { mirrored = false; break; }
+  assert.equal(mirrored, false, 'never the left hand’s in the glass');
   // by job and by hand
   const it = createPistolet();
   assert.equal(pistoletImageRecord(it, false), ART_RECORDS.icon);
@@ -121,10 +133,11 @@ test('the pictures: the owner’s sprite whole in a list, a fist-gapped layer on
   const gold = { ...it, rarity: 'gilded' };
   assert.equal(pistoletImageRecord(gold, false), ART_RECORDS.gildedIcon);
   assert.equal(pistoletImageRecord({ ...gold, equipSlot: EQUIP_SLOTS.LeftHand }, true), ART_RECORDS.gildedDollLeft);
-  // ONE layer, two places: the left hand's records are the right's file, never a mirror
+  // each hand its own layer: the left hand's records are the left layer's files
   const fileOf = (rec) => ICON_FILES.find((r) => r.record === rec).file;
-  assert.equal(fileOf(ART_RECORDS.dollLeft), fileOf(ART_RECORDS.doll));
-  assert.equal(fileOf(ART_RECORDS.gildedDollLeft), fileOf(ART_RECORDS.gildedDoll));
+  assert.equal(`public/art/${fileOf(ART_RECORDS.dollLeft)}`, ART_OUT.dollLeft);
+  assert.equal(`public/art/${fileOf(ART_RECORDS.gildedDollLeft)}`, ART_OUT.dollLeftGilded);
+  assert.equal(`public/art/${fileOf(ART_RECORDS.doll)}`, ART_OUT.doll);
   // every record a file that ships and is allow-listed; the doll's records carry their hand's offset
   const doctrine = readFileSync('test/tooling/doctrine.test.js', 'utf8');
   for (const r of ICON_FILES) {
@@ -132,16 +145,11 @@ test('the pictures: the owner’s sprite whole in a list, a fist-gapped layer on
     assert.ok(doctrine.includes(`'public/art/${r.file}'`), `${r.file} is on the doctrine’s allow-list`);
   }
   // THE HANDS WERE MEASURED (TEXTURE.234's one-handed doll records leave the fist's gap at panel (27, 96) right, (69, 95)
-  // left): the tilted band's centre lands there on each hand
-  const centreR = [PAPERDOLL_OFFSET.right.x - 200 + grip.x, PAPERDOLL_OFFSET.right.y - 8 + grip.y];
-  const centreL = [PAPERDOLL_OFFSET.left.x - 200 + grip.x, PAPERDOLL_OFFSET.left.y - 8 + grip.y];
+  // left) and ONE RULE seats both: each layer's band centre on its hand's gap, as a classic hilt's
+  const centreR = [PAPERDOLL_OFFSET.right.x - 200 + gripR.x, PAPERDOLL_OFFSET.right.y - 8 + gripR.y];
+  const centreL = [PAPERDOLL_OFFSET.left.x - 200 + gripL.x, PAPERDOLL_OFFSET.left.y - 8 + gripL.y];
   assert.ok(Math.hypot(centreR[0] - 27, centreR[1] - 96) < 1.5, `the right hand’s gap on its fist (${centreR})`);
-  // THE LEFT IS NOT THE RIGHT'S PLACE IN THE GLASS (the owner: "its not fittest correctly in the left hand"): its band
-  // centre (61.8, 94.9) was fitted by eye on the bare doll so the butt sits in the fist's hole, (64.5, 97), as the
-  // right's does - up and left of the hole, never past it
-  assert.ok(Math.hypot(centreL[0] - 61.8, centreL[1] - 94.9) < 1, `the left hand’s band where it was fitted (${centreL})`);
-  assert.ok(centreL[0] < 64.5 && centreL[1] < 97, 'the grip runs down-right INTO the left fist’s hole');
-  assert.ok(Math.hypot(centreL[0] - 69, centreL[1] - 95) > 5, 'and the left NOT seated on the classic gap - its frame lay over the knuckles there');
+  assert.ok(Math.hypot(centreL[0] - 69, centreL[1] - 95) < 1.5, `the left hand’s gap on its fist (${centreL})`);
 });
 
 test('the pictures register through the stand-in door, all six', async () => {
