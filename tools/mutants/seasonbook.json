@@ -1,0 +1,433 @@
+[
+  {
+    "name": "SEASON-BOOK-the-realm-day-off-by-one",
+    "file": "src/systems/seasonBook.js",
+    "old": "day: arenaSeasonDay(s), days",
+    "new": "day: arenaSeasonDay(s) + 1, days",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "The window would say day 26 of 56 on the season's 25th day."
+  },
+  {
+    "name": "SEASON-BOOK-the-seat-week-from-zero",
+    "file": "src/systems/seasonBook.js",
+    "old": "week: week - s.start + 1,",
+    "new": "week: week - s.start,",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "A Season's first week would read week 0."
+  },
+  {
+    "name": "SEASON-BOOK-season-zero-not-a-trial",
+    "file": "src/systems/seasonBook.js",
+    "old": "trial: s.n === 0 };",
+    "new": "trial: false };",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "Season 0 would promise crowns, a ribbon and a soft reset its wipe never gives."
+  },
+  {
+    "name": "SEASON-BOOK-a-shut-seat-shown",
+    "file": "src/systems/seasonBook.js",
+    "old": "if (!open || zero == null) return null;",
+    "new": "if (zero == null) return null;",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "An account the seats are shut to would be told of their Season."
+  },
+  {
+    "name": "SEASON-BOOK-the-trial-crowning",
+    "file": "src/systems/seasonBook.js",
+    "old": "...(seat.trial ? [] : [",
+    "new": "...(false ? [] : [",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "Season 0's rows would list the titles it never awards."
+  },
+  {
+    "name": "SEASON-BOOK-the-seat-name-with-its-article",
+    "file": "src/systems/seasonBook.js",
+    "old": "{ name: seat.name.replace(/^the /, '') }",
+    "new": "{ name: seat.name }",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "The section would read The Seats: the Season of Morning Star."
+  },
+  {
+    "name": "SEASON-BOOK-a-host-with-no-reads-reading-forever",
+    "file": "src/systems/seasonBook.js",
+    "old": "  if (!b) return null;\n",
+    "new": "  if (!b) return t('season.book.asking', 'Reading the board...');\n",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "A pause face with no reads would say Reading the board... for ever."
+  },
+  {
+    "name": "SEASON-BOOK-last-seasons-voyage-counted",
+    "file": "src/systems/seasonBook.js",
+    "old": "if (!figures || figures.n !== n || ",
+    "new": "if (!figures || ",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "A captain's last-season voyage would stand as this season's."
+  },
+  {
+    "name": "SEASON-BOOK-the-arena-door-without-its-host",
+    "file": "src/systems/seasonBook.js",
+    "old": "door: src?.doors?.arena ? 'arena' : null",
+    "new": "door: 'arena'",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "An Arena button would stand for a player with no banner - a press opening nothing."
+  },
+  {
+    "name": "SEASON-BOOK-the-spire-door-without-its-host",
+    "file": "src/systems/seasonBook.js",
+    "old": "door: src?.doors?.spire ? 'spire' : null",
+    "new": "door: 'spire'",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "A Boards button would stand where the host has no boards door."
+  },
+  {
+    "name": "SEASON-BOOK-the-festival-end-for-its-opening",
+    "file": "src/systems/seasonBook.js",
+    "old": "at: open ? fest.toMs : fest.fromMs",
+    "new": "at: fest.toMs",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "A festival to come would count to its close."
+  },
+  {
+    "name": "SEASON-BOOK-the-festival-opening-said-as-an-end",
+    "file": "src/systems/seasonBook.js",
+    "old": "atLabel: open ? 'ends' : 'opens'",
+    "new": "atLabel: 'ends'",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "A festival to come would say it ends when it opens."
+  },
+  {
+    "name": "SEASON-BOOK-the-pinned-rank-unread",
+    "file": "src/systems/seasonBook.js",
+    "old": "[...(Array.isArray(data.rows) ? data.rows : []), data.pinned]",
+    "new": "[...(Array.isArray(data.rows) ? data.rows : [])]",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "A player under the top ten would lose their rank on a card or Gambit row."
+  },
+  {
+    "name": "SEASON-BOOK-no-bouts-read-as-rated",
+    "file": "src/systems/seasonBook.js",
+    "old": "const line = !bouts ?",
+    "new": "const line = false ?",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "A player with no ranked bouts would read as ranked."
+  },
+  {
+    "name": "SEASON-BOOK-a-board-asked-every-second",
+    "file": "src/scenes/seasonBookHost.js",
+    "old": "if (r.out || now() - r.at < SEASON_BOARD_FRESH_MS) return;",
+    "new": "if (r.out) return;",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "The open window would ask the service for three boards every second."
+  },
+  {
+    "name": "SEASON-BOOK-the-face-test-asking",
+    "file": "src/scenes/seasonBookHost.js",
+    "old": "if (ask) for (const id of Object.keys(SEASON_BOARDS)) askBoard(w, id);",
+    "new": "for (const id of Object.keys(SEASON_BOARDS)) askBoard(w, id);",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "Every pause, window open or not, would ask the service for the boards."
+  },
+  {
+    "name": "SEASON-BOOK-a-failure-wiping-the-answer",
+    "file": "src/scenes/seasonBookHost.js",
+    "old": "if (a?.ok && a.data) { r.data = a.data; r.state = 'ok'; } else if (!r.data) r.state = 'failed';",
+    "new": "if (a?.ok && a.data) { r.data = a.data; r.state = 'ok'; } else { r.data = null; r.state = 'failed'; }",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "One failed ask would wipe a standing the window had read."
+  },
+  {
+    "name": "SEASON-BOOK-a-thrown-ask-asking-forever",
+    "file": "src/scenes/seasonBookHost.js",
+    "old": "}, () => { if (!r.data) r.state = 'failed'; })",
+    "new": "}, () => {})",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "A board whose ask threw would say Reading the board... for ever."
+  },
+  {
+    "name": "SEASON-BOOK-a-dead-arena-refreshed",
+    "file": "src/scenes/seasonBookHost.js",
+    "old": "if (ask && live) arena.refresh?.();",
+    "new": "if (ask) arena.refresh?.();",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "An arena not live would be asked for its board."
+  },
+  {
+    "name": "SEASON-BOOK-the-arena-never-asking",
+    "file": "src/scenes/seasonBookHost.js",
+    "old": "arenaAsking: live && !board,",
+    "new": "arenaAsking: false,",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "An arena board on its way would read Open the Arena to read your standing."
+  },
+  {
+    "name": "SEASON-BOOK-a-throw-out-of-the-source",
+    "file": "src/scenes/seasonBookHost.js",
+    "old": "const held = () => { try { return world?.() ?? null; } catch { return null; } };",
+    "new": "const held = () => world?.() ?? null;",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "A pause before the boot declared the account doors would throw (AUDIT TIMERS1 D6)."
+  },
+  {
+    "name": "SEASON-BOOK-the-arena-door-for-a-stranger",
+    "file": "src/ui/enhanced/enhancedSeason.js",
+    "old": "hooks.arenaJoined?.() && typeof hooks.openArena === 'function'",
+    "new": "typeof hooks.openArena === 'function'",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "A player with no banner would be offered the Arena's window."
+  },
+  {
+    "name": "SEASON-BOOK-a-window-with-no-clock",
+    "file": "src/ui/enhanced/enhancedSeason.js",
+    "old": "  if (!clock) return null;\n  const reads",
+    "new": "  const reads",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "Offline, the window's read would throw."
+  },
+  {
+    "name": "SEASON-BOOK-the-ask-not-carried",
+    "file": "src/ui/enhanced/enhancedSeason.js",
+    "old": "hooks?.timers?.({ ask: true }) ?? null;",
+    "new": "hooks?.timers?.() ?? null;",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "The window would never refresh the seats' word it reads Season 0's zero from."
+  },
+  {
+    "name": "SEASON-BOOK-a-door-opened-under-the-face",
+    "file": "src/ui/enhanced/enhancedSeason.js",
+    "old": "if (typeof fn === 'function') door(fn); });",
+    "new": "if (typeof fn === 'function') fn(); });",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "A row's door would open its window under the pause face rather than handing it the slot."
+  },
+  {
+    "name": "SEASON-BOOK-rebuilt-every-tick",
+    "file": "src/ui/enhanced/enhancedSeason.js",
+    "old": "    if (nextShape !== shape) {\n",
+    "new": "    if (true) {\n",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "The window would rebuild its whole list every second - the focus and scroll lost."
+  },
+  {
+    "name": "SEASON-BOOK-the-opening-said-as-an-end",
+    "file": "src/ui/enhanced/enhancedSeason.js",
+    "old": "c.atLabel === 'opens' ? t('season.book.opens'",
+    "new": "false ? t('season.book.opens'",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "A festival to come would say ends at its opening."
+  },
+  {
+    "name": "SEASON-BOOK-a-removed-window-ticking",
+    "file": "src/ui/enhanced/enhancedSeason.js",
+    "old": "if (win.isConnected === false && tick)",
+    "new": "if (false && tick)",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "A window taken out of the page without its stop would tick for ever."
+  },
+  {
+    "name": "SEASON-BOOK-the-laurel-beside-the-profile",
+    "file": "src/ui/enhanced/enhancedSeason.js",
+    "old": "placeBeside(m, at, host, gap); at = m;",
+    "new": "placeBeside(m, profile, host, gap); at = m;",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "Every mark would stand on the same spot beside the profile."
+  },
+  {
+    "name": "SEASON-BOOK-a-missing-mark-breaking-the-row",
+    "file": "src/ui/enhanced/enhancedSeason.js",
+    "old": "const marks = [...chain.filter(Boolean), mark];",
+    "new": "const marks = [...chain, mark];",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "With no envelope the laurel would never be placed."
+  },
+  {
+    "name": "SEASON-BOOK-the-laurel-offline",
+    "file": "src/ui/enhanced/enhancedMenu.js",
+    "old": "function seasonLaurel(home, chain) {\n  if (!hooks.timers?.()) return null;\n",
+    "new": "function seasonLaurel(home, chain) {\n",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "Offline the laurel would stand and open a window with no clock."
+  },
+  {
+    "name": "SEASON-BOOK-the-window-without-its-scrim",
+    "file": "src/ui/enhanced/enhancedMenu.js",
+    "old": "      closeOnOutsideTap(home, '.px-seasonwin', closeSeason);\n",
+    "new": "",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js",
+      "test/ui/enhanced/outsideTap.test.js"
+    ],
+    "note": "A tap outside the window would neither close it nor resume."
+  },
+  {
+    "name": "SEASON-BOOK-escape-past-the-window",
+    "file": "src/ui/enhanced/enhancedMenu.js",
+    "old": ": seasonOpen && seasonView ? () => closeSeason()",
+    "new": ": false ? () => closeSeason()",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "Escape would resume the game from under an open season window."
+  },
+  {
+    "name": "SEASON-BOOK-a-door-under-a-growth-ask",
+    "file": "src/ui/enhanced/enhancedMenu.js",
+    "old": "const seasonDoor = (fn) => { if (pauseTab === 'growth' && growthAsks()) { closeSeason(); return; } timersDoor(fn); };",
+    "new": "const seasonDoor = (fn) => { timersDoor(fn); };",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "A season row's door pressed over a Growth face that asks would do nothing - the ask hidden under the window."
+  },
+  {
+    "name": "SEASON-BOOK-the-street-forgets-it",
+    "file": "src/scenes/world.js",
+    "old": "    season: seasonBook.source,   // SEASON-BOOK: the laurel's boards (its clock is the hourglass's)\n",
+    "new": "",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "The street's pause would show no standings."
+  },
+  {
+    "name": "SEASON-BOOK-a-building-forgets-it",
+    "file": "src/scenes/worldModes.js",
+    "old": "    season: host.season,   // SEASON-BOOK: the laurel's boards, the world host's\n",
+    "new": "",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "A building's pause would show no standings."
+  },
+  {
+    "name": "SEASON-BOOK-a-dungeon-forgets-it",
+    "file": "src/scenes/dungeonContext.js",
+    "old": "        season: (o) => opts.season?.(o) ?? null,   // SEASON-BOOK: the laurel's boards, the same way\n",
+    "new": "",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "A dungeon's pause would show no standings."
+  },
+  {
+    "name": "SEASON-BOOK-season-said-to-the-room",
+    "file": "src/net/chatCommands.js",
+    "old": "'bug', 'season', 'seasons', 'breach',",
+    "new": "'bug', 'breach',",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "/season would be sent to the room as an unknown line."
+  },
+  {
+    "name": "SEASON-BOOK-seasons-unread",
+    "file": "src/net/chatCommands.js",
+    "old": "/^\\/seasons?$/i",
+    "new": "/^\\/season$/i",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "/seasons would do nothing."
+  },
+  {
+    "name": "SEASON-BOOK-the-mailbox-refusal-for-the-season",
+    "file": "src/net/chatCommands.js",
+    "old": "(at === 'season'\n  ? t('net.chat.seasonRefused'",
+    "new": "(false\n  ? t('net.chat.seasonRefused'",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "Offline /season would tell the player to sign in to use the mailbox."
+  },
+  {
+    "name": "SEASON-BOOK-season-refused-by-the-mailbox",
+    "file": "src/scenes/world.js",
+    "old": "if (!(at === 'season' ? timersSource() : postSource()))",
+    "new": "if (!postSource())",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "/season would be refused wherever the mailbox is, and opened where the window has no clock."
+  },
+  {
+    "name": "SEASON-BOOK-the-classic-skin-without-a-way-in",
+    "file": "src/ui/pauseDoor.js",
+    "old": " || hooks.at === 'season')",
+    "new": ")",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "On the classic skin /season would open a pause with no laurel."
+  },
+  {
+    "name": "SEASON-BOOK-the-laurel-a-small-target",
+    "file": "src/ui/enhanced/enhancedStyle.js",
+    "old": "right: 420px; z-index: 4; display: flex; align-items: center;\n  min-height: 44px; min-width: 44px;",
+    "new": "right: 420px; z-index: 4; display: flex; align-items: center;\n  min-height: 30px; min-width: 30px;",
+    "tests": [
+      "test/ui/enhanced/seasonbook.test.js"
+    ],
+    "note": "The laurel would be a 30px target on a phone, under the 44px floor."
+  }
+]

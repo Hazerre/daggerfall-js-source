@@ -19981,3 +19981,69 @@ walk and Ctrl+Tab are left alone. The chat's controls over the world (Play onlin
 Social buttons, Show) are never the keyboard's focus (`ui/input.js` neverTheFocus): they are out of the walk, a mouse
 press gives them no focus, and a focus they get another way is given back. The record:
 `01-Overview/bugs/Field-Bugs-2026-10-20h.md`; the pins `test/ui/fb1020h_tabwalk.test.js`.
+
+## SEASON-BOOK - THE LAUREL: THE SEASON AT A GLANCE (2026-10-22, the owner: "I think we need a new pause menu icon, like we did for the timers and mail. A condensed place to see season related content and descriptions")
+
+A third mark on the pause face, online, beside TIMERS1's hourglass and SERVER-POST's envelope: a pixel laurel that opens
+one window of everything seasonal - which season it is, when it ends, the player's own standing on each board, and a
+line on what each thing holds. Not a DFU member (Daggerfall has no seasons, no ranked boards and no other players):
+the port's own, built on the clocks the online game already keeps.
+
+- **Three clocks, kept apart** (`systems/seasonBook.js`, pure). The game has three seasonal calendars and the window names
+  each rather than blurring them into one "season":
+  - THE RANKED SEASON (`net/arena/arenaLaw.js` arenaSeasonOf - eight weeks from Monday 28 September 2026, 00:00 UTC):
+    *Ranked Season 1, Day 25 of 56*, counting to its end. Its rows are the boards that start fresh with it - the Arena
+    (rating, rank, the banner's points), the Spire (the company's deepest hall this season), Iliac Hand and the King's
+    Gambit (rank, rating, games), the Season's Captains (the deepest voyage and the legends ended, off the captain's
+    ledger) - and its foot the champion's law the three title boards share (`seasonBook.js:"export const SEASON_TITLE_GAMES = 10;"`,
+    the arena's ARENA_CHAMPION_MIN_BOUTS and the service's Iliac and Gambit numbers alike; a test holds the arena's).
+  - THE SEATS' SEASON (`net/townSeatLaw.js` seasonOf, off the service's zero): *The Seats: Season 0, Week 3 of 4*, to its
+    last Sunday Turning, for an account the seats are open to (AUDIT TIMERS1 D5's law). Season 0 is said as the trial it
+    is - its end wipes and crowns no one, so its rows leave out the titles, the ribbon and the soft reset; a counted
+    Season lists them (`seatSeasonAt` its week and end; *The Seats: Season of Morning Star* from Season 1).
+  - THE FESTIVAL (`net/festivalLaw.js` FESTIVALS - the real calendar): the Witches' Festival on now or coming, counting to
+    its close or its opening; the section goes once none is to come.
+- **The standings** (`seasonBook.js:"function boardLine("`): each board's line in its state - *Reading the board...*
+  while asked, *The board can't be read right now.* on a failure with nothing kept, *Sign in to be ranked.* where the
+  board has no `me`, and the player's own line otherwise. A host that hands no reads shows no line at all, never
+  "reading" for ever. The sea's line is this season's figures alone (a ledger's last-season figures are not shown as
+  this one's).
+- **The reads** (`scenes/seasonBookHost.js` createSeasonBook): the boards are asked of the account service only by the open
+  window's read (`ask` - the pause face's test of whether to stand the laurel asks nothing), each at most once a minute
+  (`seasonBookHost.js:"export const SEASON_BOARD_FRESH_MS = 60_000;"`), through the doors the host already holds (the Elite
+  Breach's, Iliac Hand's and the Gambit's account clients); the last good answer is kept over a failed ask. The arena's
+  board is the arena online's own, refreshed its way while it is live. HOST-SPLIT: the world host hands ONE getter of
+  what it holds (`world.js:"const seasonBook = createSeasonBook("`), read under a try at each ask - the pause door
+  stands before the boot declares the account doors (AUDIT TIMERS1 D6's law), and a getter not declared yet is none.
+- **The window** (`ui/enhanced/enhancedSeason.js` seasonWindow), on the hourglass's stage (`.px-timersstage
+  .px-seasonstage`), a dialog named by its title: a section a clock - its title, its sub-line and its countdown (the
+  timers' `timerText` and `localWhenText`, *ends* or *opens*, rewritten in place each second); its lead; its rows, each a
+  name, the player's standing in gold beside it, and one line on what it holds; its foot. Rebuilt only when a line
+  changes (a board's answer landing), never each tick. A row with a door carries its button - the Arena's window once a
+  banner is worn, the Spire's boards (the hourglass's own boards door) - handed to the pause face's handoff
+  (`seasonDoor`: the hourglass's `timersDoor`, the window shut first where a Growth face under it asks - AUDIT GROWTH
+  LANE2-3's law) at the press, never kept from the draw. Wider than the timers' window (660px) so a line wraps less; on a
+  phone a door goes under its words; a short screen's window within it.
+- **The source** (`enhancedSeason.js:"export function seasonSource(hooks) {"`): the hourglass's own read
+  (`hooks.timers({ ask: true })` - the relay's clock, the seats' word and zero) under the laurel's reads (`hooks.season`);
+  none without a clock (offline, or before the relay's clock is heard), so no laurel then.
+- **The laurel** (`seasonMark`, `.px-laurel`): a gold wreath with a red ribbon on a 12-pixel grid, the hourglass's and the
+  envelope's weight and palette; at the end of the row of marks (`anchorSeason`: the hourglass beside the profile, the
+  envelope beside it, the laurel beside the last of them - a missing mark skipped), placed again on every resize.
+- **`/season`** (and `/seasons`, `net/chatCommands.js` pauseCommandOf beside the mailbox's lines, HOST_COMMANDS and `/help`):
+  the window from the chat, on either skin (`ui/pauseDoor.js` opens the enhanced face for a `season` door - the classic
+  pause has no laurel) and wherever the player stands (`worldModes.js` openPauseAt). Refused without the hourglass's
+  clock, in its own words (`pauseCommandRefusal` - the mailbox's refusal moved there with it).
+- **The face's laws, kept**: its own scrim (the sixth `closeOnOutsideTap`), the laurel inside the pause face's, the face
+  under the window inert (and the laurel under the timers', the mailbox's and the account windows), Escape closing it
+  before the face resumes, the focus into the window and back to the laurel, its tick stopped on every rebuild and
+  unmount and by itself once out of the page, a visit's window. The FOUR HOSTS: `scenes/world.js` (the reads, the
+  street's bag and the modes host, `/season`), `scenes/worldModes.js` (forwarded to a building's and a dungeon's pause),
+  `scenes/dungeonContext.js` (forwarded) wired; `scenes/exterior.js` FLAGGED as not applicable - the offline exterior
+  door has no clock and no hourglass, so no laurel.
+- **Seen in Chromium** over the real pause face (`openPauseFlow` at `season`, 1280x800, a 390x844 phone, a 900x480 short
+  screen): the laurel 10px left of the envelope at every size, the window centred, the focus on Close and back on the
+  laurel, Escape closing it, the face's marks unmoved.
+- Pins: `test/ui/enhanced/seasonbook.test.js`; mutants `tools/mutants/seasonbook.json`. PIN MOVED:
+  `test/ui/enhanced/outsideTap.test.js` (six scrims, the laurel inside the face), `test/net/serverpost_client.test.js` and
+  `test/net/private_reports_client.test.js` (the laurel in the inert lists; the chat's door through pauseCommandOf).

@@ -19739,6 +19739,11 @@
   "tr": "b0486ca0e70e",
   "by": "claude-in-session"
  },
+ "net.chat.mailRefused": {
+  "en": "48089c6da62c",
+  "tr": "ae60528d844c",
+  "by": "claude-in-session"
+ },
  "net.chat.notJoined": {
   "en": "0bed70ff5a77",
   "tr": "357a2f8dc097",
@@ -19757,6 +19762,16 @@
  "net.chat.rulesHelp": {
   "en": "df532207c337",
   "tr": "52160144d6d8",
+  "by": "claude-in-session"
+ },
+ "net.chat.seasonHelp": {
+  "en": "a66ff20224f7",
+  "tr": "f188607b857f",
+  "by": "claude-in-session"
+ },
+ "net.chat.seasonRefused": {
+  "en": "62ed542d0dd3",
+  "tr": "e81076d4e869",
   "by": "claude-in-session"
  },
  "net.chat.tradeHelp": {
@@ -30087,6 +30102,326 @@
  "search.yourParty": {
   "en": "157a6a9b14df",
   "tr": "49ffda936089",
+  "by": "claude-in-session"
+ },
+ "season.book.arena.about": {
+  "en": "c6fef2115b8a",
+  "tr": "5ddff9f21bb8",
+  "by": "claude-in-session"
+ },
+ "season.book.arena.blue": {
+  "en": "521fd8552f10",
+  "tr": "c7c9eff1aff1",
+  "by": "claude-in-session"
+ },
+ "season.book.arena.name": {
+  "en": "f718846620df",
+  "tr": "128099a41c92",
+  "by": "claude-in-session"
+ },
+ "season.book.arena.none": {
+  "en": "077f846189a0",
+  "tr": "54de1d106dd6",
+  "by": "claude-in-session"
+ },
+ "season.book.arena.ranked": {
+  "en": "da48e0f665d9",
+  "tr": "96f5b89431ae",
+  "by": "claude-in-session"
+ },
+ "season.book.arena.rated": {
+  "en": "309b50ab2419",
+  "tr": "5386bd9766a1",
+  "by": "claude-in-session"
+ },
+ "season.book.arena.red": {
+  "en": "f5a42ee7eb11",
+  "tr": "0d5c34079c17",
+  "by": "claude-in-session"
+ },
+ "season.book.arena.unread": {
+  "en": "22313a23cc18",
+  "tr": "c305bfa8803d",
+  "by": "claude-in-session"
+ },
+ "season.book.arena.withBanner": {
+  "en": "5581deff14f2",
+  "tr": "ea60dcd512ae",
+  "by": "claude-in-session"
+ },
+ "season.book.asking": {
+  "en": "46efb96c091d",
+  "tr": "dabb57e4461b",
+  "by": "claude-in-session"
+ },
+ "season.book.cakes.about": {
+  "en": "e1e37383538a",
+  "tr": "a54769577e70",
+  "by": "claude-in-session"
+ },
+ "season.book.cakes.name": {
+  "en": "ac4a11aeefbc",
+  "tr": "e99449b6bec7",
+  "by": "claude-in-session"
+ },
+ "season.book.chapters.about": {
+  "en": "7e1979f6135b",
+  "tr": "d13f34a4dc79",
+  "by": "claude-in-session"
+ },
+ "season.book.chapters.name": {
+  "en": "d145f84e54c7",
+  "tr": "815bed24dda9",
+  "by": "claude-in-session"
+ },
+ "season.book.close": {
+  "en": "bbfa773e5a63",
+  "tr": "4ae50d30739d",
+  "by": "claude-in-session"
+ },
+ "season.book.crowns.about": {
+  "en": "70fd2fd511e9",
+  "tr": "5f502a4e89e9",
+  "by": "claude-in-session"
+ },
+ "season.book.crowns.name": {
+  "en": "3de00acbc047",
+  "tr": "3e7ad99be473",
+  "by": "claude-in-session"
+ },
+ "season.book.door.arena": {
+  "en": "1a4ba8221918",
+  "tr": "128099a41c92",
+  "by": "claude-in-session"
+ },
+ "season.book.door.spire": {
+  "en": "3d3d9d394f28",
+  "tr": "015dd88c5ae5",
+  "by": "claude-in-session"
+ },
+ "season.book.ends": {
+  "en": "cc5475a13439",
+  "tr": "44e9a5e7a66e",
+  "by": "claude-in-session"
+ },
+ "season.book.festival.coming": {
+  "en": "2f01b8063ec9",
+  "tr": "c914c0224249",
+  "by": "claude-in-session"
+ },
+ "season.book.festival.lead": {
+  "en": "39c177f3d4e3",
+  "tr": "12d2ffe42b2e",
+  "by": "claude-in-session"
+ },
+ "season.book.festival.open": {
+  "en": "59fa6ab3f7a2",
+  "tr": "85afadd734f6",
+  "by": "claude-in-session"
+ },
+ "season.book.festival.title": {
+  "en": "5d441521756e",
+  "tr": "059b81f89cea",
+  "by": "claude-in-session"
+ },
+ "season.book.gambit.about": {
+  "en": "1273ac53e537",
+  "tr": "cb1bf018b7d5",
+  "by": "claude-in-session"
+ },
+ "season.book.gambit.name": {
+  "en": "0a39bd57d669",
+  "tr": "0a39bd57d669",
+  "by": "claude-in-session"
+ },
+ "season.book.iliac.about": {
+  "en": "75365904ef96",
+  "tr": "7ba5df78edf8",
+  "by": "claude-in-session"
+ },
+ "season.book.iliac.name": {
+  "en": "bf584a4ab6ff",
+  "tr": "bf584a4ab6ff",
+  "by": "claude-in-session"
+ },
+ "season.book.ladder.none": {
+  "en": "57237f1a712d",
+  "tr": "6e12f48bb5b5",
+  "by": "claude-in-session"
+ },
+ "season.book.ladder.ranked": {
+  "en": "4d180c605988",
+  "tr": "3b69953707e8",
+  "by": "claude-in-session"
+ },
+ "season.book.ladder.rated": {
+  "en": "bf23b8bbd97d",
+  "tr": "f256aed71287",
+  "by": "claude-in-session"
+ },
+ "season.book.markLabel": {
+  "en": "6274792f5dd1",
+  "tr": "b4f66c12902d",
+  "by": "claude-in-session"
+ },
+ "season.book.noClock": {
+  "en": "04953740e176",
+  "tr": "04dc7c3b4be6",
+  "by": "claude-in-session"
+ },
+ "season.book.once.about": {
+  "en": "fe424314ae86",
+  "tr": "b2a2764cf76a",
+  "by": "claude-in-session"
+ },
+ "season.book.once.name": {
+  "en": "d3484c595a6b",
+  "tr": "26e0e607e7b7",
+  "by": "claude-in-session"
+ },
+ "season.book.opens": {
+  "en": "ede986da625c",
+  "tr": "8477677eac1c",
+  "by": "claude-in-session"
+ },
+ "season.book.realm.foot": {
+  "en": "050efea66347",
+  "tr": "add7107b4c5d",
+  "by": "claude-in-session"
+ },
+ "season.book.realm.lead": {
+  "en": "8d5c53736b09",
+  "tr": "eef44cca3840",
+  "by": "claude-in-session"
+ },
+ "season.book.realm.sub": {
+  "en": "8c1acebf465f",
+  "tr": "15e1b3f8846f",
+  "by": "claude-in-session"
+ },
+ "season.book.realm.title": {
+  "en": "684b34548662",
+  "tr": "7ab2fcbce6f2",
+  "by": "claude-in-session"
+ },
+ "season.book.reset.about": {
+  "en": "b41d8004046f",
+  "tr": "fd1704703228",
+  "by": "claude-in-session"
+ },
+ "season.book.reset.name": {
+  "en": "aa848e66d15c",
+  "tr": "8e69221d7711",
+  "by": "claude-in-session"
+ },
+ "season.book.ribbon.about": {
+  "en": "fcd1ee815202",
+  "tr": "b2eb3b29cfca",
+  "by": "claude-in-session"
+ },
+ "season.book.ribbon.name": {
+  "en": "57180ccdb4dc",
+  "tr": "a8c8e370742f",
+  "by": "claude-in-session"
+ },
+ "season.book.sea.about": {
+  "en": "184e690ba3a7",
+  "tr": "1d0515bf19db",
+  "by": "claude-in-session"
+ },
+ "season.book.sea.figures": {
+  "en": "dd094dc27e2d",
+  "tr": "f8c6cb94a47d",
+  "by": "claude-in-session"
+ },
+ "season.book.sea.name": {
+  "en": "aec1be6a3d55",
+  "tr": "14e3ccf53060",
+  "by": "claude-in-session"
+ },
+ "season.book.sea.none": {
+  "en": "d5730b0f896d",
+  "tr": "7c799e71baf4",
+  "by": "claude-in-session"
+ },
+ "season.book.seats.foot": {
+  "en": "f31dd5b6d659",
+  "tr": "a389d92821d7",
+  "by": "claude-in-session"
+ },
+ "season.book.seats.lead": {
+  "en": "7a5d9635b12f",
+  "tr": "606d05068980",
+  "by": "claude-in-session"
+ },
+ "season.book.seats.sub": {
+  "en": "f8249ef26e6b",
+  "tr": "713177830add",
+  "by": "claude-in-session"
+ },
+ "season.book.seats.title": {
+  "en": "746e582cb975",
+  "tr": "d43fb927afe0",
+  "by": "claude-in-session"
+ },
+ "season.book.seats.trialLead": {
+  "en": "27f2700ed621",
+  "tr": "5fd39804bdf8",
+  "by": "claude-in-session"
+ },
+ "season.book.signin": {
+  "en": "33a41974b465",
+  "tr": "3b9868f02013",
+  "by": "claude-in-session"
+ },
+ "season.book.spire.about": {
+  "en": "b26501a3c72b",
+  "tr": "fc092a8812c7",
+  "by": "claude-in-session"
+ },
+ "season.book.spire.best": {
+  "en": "611539aa494f",
+  "tr": "3314cd40cdd7",
+  "by": "claude-in-session"
+ },
+ "season.book.spire.name": {
+  "en": "a89a378928ea",
+  "tr": "c0aa2beb5d3e",
+  "by": "claude-in-session"
+ },
+ "season.book.spire.none": {
+  "en": "53561a4150b6",
+  "tr": "16627da44f88",
+  "by": "claude-in-session"
+ },
+ "season.book.starfall.about": {
+  "en": "77050d16e51e",
+  "tr": "dbbd7be533ae",
+  "by": "claude-in-session"
+ },
+ "season.book.starfall.name": {
+  "en": "0baa7e295908",
+  "tr": "38348b7e35c5",
+  "by": "claude-in-session"
+ },
+ "season.book.tides.about": {
+  "en": "b6695b1c8190",
+  "tr": "fb337477bbbd",
+  "by": "claude-in-session"
+ },
+ "season.book.tides.name": {
+  "en": "67e1eda0db99",
+  "tr": "f0a62b3769aa",
+  "by": "claude-in-session"
+ },
+ "season.book.title": {
+  "en": "62255f5671e8",
+  "tr": "30701b147176",
+  "by": "claude-in-session"
+ },
+ "season.book.unread": {
+  "en": "716c8ab20fb4",
+  "tr": "0277193c40cd",
   "by": "claude-in-session"
  },
  "serpent.honour.aura": {

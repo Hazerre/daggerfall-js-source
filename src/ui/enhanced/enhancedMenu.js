@@ -237,6 +237,7 @@ import { saveTile, cloudStateOf, saveFromCard, newerBackup } from '../saveTile.j
 import { loadFace } from '../facePortrait.js';
 import { timersMark, timersWindow, anchorBeside } from './enhancedTimers.js';   // TIMERS1: the hourglass beside the profile mark, and its window
 import { postMark, postWindow, watchPostMark, anchorPost } from './enhancedPost.js';   // SERVER-POST: the mailbox beside the hourglass, and its window
+import { seasonMark, seasonWindow, seasonSource, anchorSeason } from './enhancedSeason.js';   // SEASON-BOOK: the laurel beside the envelope, and its window
 import { profileBadge, portraitSave, liveCharacter, characterLine } from '../profileBadge.js';   // PROFILE1: the mark is the last character's portrait   // TILE1: the character's face, the one home chargen also reads
 import { profileIconNode } from '../profileIcons.js';   // WITCH1: a profile icon worn, in the mark's portrait
 import { ownIcon } from '../../systems/ownGlyphs.js';   // WITCH1: the icon the stored session says this device's player wears
@@ -391,6 +392,27 @@ function postEnvelope(home, glass) {
   postWatch = watchPostMark(envelope, () => hooks.post?.() ?? null);
   if (postFocusBack && !postOpen) { postFocusBack = false; globalThis.requestAnimationFrame?.(() => envelope.focus?.()); }
   return envelope;
+}
+/** SEASON-BOOK: the season window over the pause face, its live view and the laurel's placing - the hourglass's way. */
+let seasonOpen = false;
+let seasonView = null;
+let seasonAnchor = null;
+let seasonFocusBack = false;   // a closed window hands the focus back to the laurel
+const stopSeason = () => { seasonView?.stop(); seasonView = null; seasonAnchor?.(); seasonAnchor = null; };
+const closeSeason = () => { seasonOpen = false; seasonFocusBack = true; render(); };
+/** A season row's door - the hourglass's handoff (timersDoor), the season window shut first where a Growth face under it
+ *  asks (AUDIT GROWTH LANE2-3's law: the ask seen, never a press that does nothing). */
+const seasonDoor = (fn) => { if (pauseTab === 'growth' && growthAsks()) { closeSeason(); return; } timersDoor(fn); };
+/** SEASON-BOOK (the owner: "a new pause menu icon, like we did for the timers and mail. A condensed place to see season
+ *  related content and descriptions"): THE LAUREL on the pause face - online, where the hourglass stands (its clock is
+ *  the hourglass's), at the end of the row of marks `chain`. Answers the laurel, or null with no clock. */
+function seasonLaurel(home, chain) {
+  if (!hooks.timers?.()) return null;
+  const laurel = seasonMark(document, { open: seasonOpen, onOpen: () => { seasonOpen = true; render(); } });
+  home.append(laurel);
+  seasonAnchor = anchorSeason(laurel, chain, home.querySelector?.('.px-profile'), home);
+  if (seasonFocusBack && !seasonOpen) { seasonFocusBack = false; globalThis.requestAnimationFrame?.(() => laurel.focus?.()); }
+  return laurel;
 }
 let accountOffered = false;
 // ═══ TILE2/ACC2: WHAT THE CLOUD HOLDS, ASKED ONCE PER VISIT ═══════
@@ -4352,12 +4374,13 @@ function renderHome() {
       if (timersFocusBack && !timersOpen) { timersFocusBack = false; globalThis.requestAnimationFrame?.(() => mark.focus?.()); }   // UI-5: back where the press was
     }
     const envelope = postEnvelope(home, mark);   // SERVER-POST: the mailbox beside the hourglass, online - its count kept live
+    const laurel = seasonLaurel(home, [mark, envelope]);   // SEASON-BOOK: the laurel beside the envelope, online
     if (accountOpen) {
       const acct = el('div', 'px-stage px-acctstage');
       acct.append(accountWindow());
       home.append(acct);
       closeOnOutsideTap(home, '.px-acctwin', closeAccount);   // AUDIT RECOVERY-SET B1: not over codes
-      for (const n of [stage, mark, envelope]) n?.setAttribute?.('inert', '');   // AUDIT SERVER-POST: the face under the account window out of reach, as under the timers'
+      for (const n of [stage, mark, envelope, laurel]) n?.setAttribute?.('inert', '');   // AUDIT SERVER-POST: the face under the account window out of reach, as under the timers' - SEASON-BOOK: the laurel too
     }
     else if (timersOpen && hooks.timers?.()) {
       const tstage = el('div', 'px-stage px-timersstage');
@@ -4370,6 +4393,7 @@ function renderHome() {
       // Resume, no bumper turning its tabs (plusPad's tab strips skip what is not visible to it), no profile window
       for (const n of [stage, home.querySelector?.('.px-profile'), mark]) n?.setAttribute?.('inert', '');
       envelope?.setAttribute?.('inert', '');   // SERVER-POST: and the envelope beside it
+      laurel?.setAttribute?.('inert', '');   // SEASON-BOOK: and the laurel
     }
     else if (postOpen && hooks.post?.()) {
       // SERVER-POST: the mailbox's window, on the hourglass's own stage (centred, its own padding - enhancedStyle.js)
@@ -4378,13 +4402,22 @@ function renderHome() {
       pstage.append(postView.root);
       home.append(pstage);
       closeOnOutsideTap(home, '.px-postwin', () => { postOpen = false; postKeep = {}; postFocusBack = true; render(); });
-      for (const n of [stage, home.querySelector?.('.px-profile'), mark, envelope]) n?.setAttribute?.('inert', '');
+      for (const n of [stage, home.querySelector?.('.px-profile'), mark, envelope, laurel]) n?.setAttribute?.('inert', '');
+    }
+    else if (seasonOpen && laurel) {
+      // SEASON-BOOK: the season window, on the hourglass's own stage; its read asks the boards (the laurel's test does not)
+      const sstage = el('div', 'px-stage px-timersstage px-seasonstage');
+      seasonView = seasonWindow(document, { read: () => seasonSource(hooks), onClose: closeSeason, door: seasonDoor });   // a row's door is a handoff, as the hourglass's
+      sstage.append(seasonView.root);
+      home.append(sstage);
+      closeOnOutsideTap(home, '.px-seasonwin', closeSeason);
+      for (const n of [stage, home.querySelector?.('.px-profile'), mark, envelope, laurel]) n?.setAttribute?.('inert', '');
     }
     // OT1 (Mac: "tapping outside of any UI closes the UI"): a tap on the
     // scrim - outside the window, the clock and the foot - resumes,
     // the way Escape does; the front door has no scrim and no resume.
     // PROFILE2: the mark is inside too (a press on it opens the window), and with the window open the tap is its.
-    else closeOnOutsideTap(home, '.px-win, .px-clock, .px-foot, .px-profile, .px-timersmark, .px-postmark', () => { if (pauseTab === 'growth' && growthAsks()) return; onAction('resume'); });   // SERVER-POST: the envelope inside too - AUDIT GROWTH LANE3-4: a Growth face asked first (GROWTH5)
+    else closeOnOutsideTap(home, '.px-win, .px-clock, .px-foot, .px-profile, .px-timersmark, .px-postmark, .px-seasonmark', () => { if (pauseTab === 'growth' && growthAsks()) return; onAction('resume'); });   // SERVER-POST: the envelope inside too - AUDIT GROWTH LANE3-4: a Growth face asked first (GROWTH5)
     // PX4 (Mac): NO FOOT AT PAUSE - no skin toggle, no About plaque;
     // About is a System-tab row instead, and the skin switch stays on
     // the boot face and the settings shell.
@@ -5839,6 +5872,7 @@ function renderInto() {
   if (questTimer) { clearInterval(questTimer); questTimer = null; }
   stopTimers();   // TIMERS1: a rebuild builds the window again, with its own tick
   stopPost();   // SERVER-POST: and the mailbox's, and the envelope's count
+  stopSeason();   // SEASON-BOOK: and the season window's
   app.innerHTML = '';
   // PX1/PX2: both doors open on the pixel home; every section keeps
   // its shell.
@@ -6040,6 +6074,7 @@ function onKey(e) {
   const back = accountOpen ? () => closeAccount()   // AUDIT RECOVERY-SET B1: Escape is held while the window shows codes
     : timersOpen && timersView ? () => { timersOpen = false; timersFocusBack = true; render(); }   // TIMERS1: the window first, ahead of the pause face's resume (AUDIT UI-11: a window that is drawn)
     : postOpen && postView ? () => { postOpen = false; postKeep = {}; postFocusBack = true; render(); }   // SERVER-POST: the mailbox's window, as the timers'
+    : seasonOpen && seasonView ? () => closeSeason()   // SEASON-BOOK: the season window, as the timers'
     // AUDIT 32 P12: an act under way on the Stores page is set down first (nothing spent, said) - never the window
     : profActUnderWay() ? () => { setDownProfAct(); render(); }
     : confirming ? () => { confirming = null; render(); }
@@ -6193,6 +6228,8 @@ export function mountEnhancedMenu(host, {
   optFilter = 'all';
   pickedFeature = null;
   discardControlsStaging();   // FIX-F: a second visit never inherits the first one's staged binds
+  seasonOpen = false;   // SEASON-BOOK: and the season window's (a visit's, as the timers' and the mailbox's above)
+  seasonFocusBack = false;
   // PROF2: a landing on a professions page - the Stats tab at it (a home forge's press opens the Stores' forge); the
   // draw falls back to the character's own page when the professions are not the account's
   // HOLDINGS: the Professions page is the Stats rail's, the Stores page the Holdings rail's
@@ -6202,6 +6239,7 @@ export function mountEnhancedMenu(host, {
   else if (growthPageAt(at)) pauseTab = 'growth';   // GROWTH1: a Growth page by name (its rail set by resetGrowthTab, above)
   else if (at === 'mailbox') postOpen = true;   // SERVER-POST: the mailbox's door (/mail, either skin) - the pause face with its window open
   else if (at === 'report') { postOpen = true; postKeep = { view: 'report' }; }   // PRIVATE-REPORT: `/bug` - the mailbox's window on its report form
+  else if (at === 'season') seasonOpen = true;   // SEASON-BOOK: `/season` - the pause face with the season window open
   else if (at === 'collections' || COLLECTION_PARTS.some(([id]) => id === at)) { pauseTab = 'holdings'; holdSec = 'collections'; if (at !== 'collections') setCollectionsPart(at); }   // AUDIT CARDS-5 D14: the Collections page by name, or one of its parts - AUDIT COLLECTIONS-II (lanes 2, 5): every part, the wardrobe's four too
   else if (at === 'companions') { pauseTab = 'holdings'; holdSec = 'companions'; }   // RVN-STARS: back from a sworn one's stars
   _eff = null;
@@ -6246,6 +6284,7 @@ export function mountEnhancedMenu(host, {
       releaseShotsPane();   // LOAD1: the gallery's pictures and its listener
       stopPost();   // SERVER-POST: and the mailbox's ticks
       releaseTutorialsPane();   // TUT1: the next visit opens on the first page
+      stopSeason();   // SEASON-BOOK: and the season window's
       releaseGrowthTab();   // GROWTH3: a face on the Growth stage goes with the window (full screen too)
       askUp?.();   // AUDIT GROWTH LANE3-9: and a Yes/No card standing over it
       // FIX-F: and the rebind pane's own capture listener, which is on
