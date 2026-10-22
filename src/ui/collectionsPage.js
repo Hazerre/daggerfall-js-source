@@ -34,7 +34,7 @@ import { cardsPartShown, drawCardsPart, resetCardsPart, disarmCardsPart, deckCar
 import { collectionOf } from '../systems/iliac/iliacItems.js';   // COLLECTIONS-II: the Cards tile's count
 import { t } from '../systems/textManager.js';
 import { wardrobeCount, wordPair } from './collections/wardrobeCatalogue.js';   // COLLECTIONS-II: the wardrobe's parts
-import { drawWardrobePart, wardrobeAccount, wardrobeOfFlow, resetWardrobePart, forgetWardrobeAccount, WARDROBE_PART_CSS } from './collections/wardrobePart.js';
+import { drawWardrobePart, wardrobeAccount, wardrobeOfFlow, resetWardrobePart, rereadWardrobeAccount, WARDROBE_PART_CSS, WARDROBE_THEME_CSS } from './collections/wardrobePart.js';
 
 export const COLLECTION_PAGE_SECTIONS = Object.freeze([Object.freeze(['collections', 'Collections'])]);
 export const COLLECTION_PAGE_STYLE_ID = 'collections-page-css';
@@ -64,18 +64,21 @@ let _picked = null;   // the codex row opened whole
 /** The page forgotten (a load, a new character): back to its first part. COLLECTIONS-II: and the wardrobe's rows, its
  *  filter and its account read. */
 export function resetCollectionsPage() { _part = 'titles'; _picked = null; resetCardsPart(); resetWardrobePart(); }
-/** AUDIT CARDS-5 D5: leaving the page (another rail page, another tab) disarms what was armed on it. COLLECTIONS-II: and
- *  lets the visit's account read go - the page asks again when it is next drawn. */
-export function disarmCollectionsPage() { disarmCardsPart(); forgetWardrobeAccount(); }
+/** AUDIT CARDS-5 D5: leaving the page (another rail page, another tab) disarms what was armed on it. (AUDIT COLLECTIONS-II,
+ *  lane 2: the account's read is the menu visit's, kept across leaving - resetCollectionsPage lets it go.) */
+export function disarmCollectionsPage() { disarmCardsPart(); }
+/** AUDIT COLLECTIONS-II (lane 2): the account card closed - the page's read of the account asked again (a wear, a
+ *  sign-out or another account there is the service's to say). */
+export function rereadCollectionsAccount() { rereadWardrobeAccount(); }
 /** AUDIT CARDS-5 D14: a landing names the part to open on ('codex' | 'cards'; COLLECTIONS-II: or a wardrobe kind's). */
 export function setCollectionsPart(/** @type {string} */ part) { if (COLLECTION_PARTS.some(([id]) => id === part)) _part = part; }
 
 export const COLLECTION_PAGE_CSS = `
-.px-sys .coll-parts { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; margin: 2px 0 12px; }
+.px-sys .coll-parts { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; margin: 2px 0 12px; }
 .px-sys .coll-part { display: flex; flex-direction: column; align-items: stretch; gap: 3px; padding: 6px 9px 7px; border-width: 2px; border-style: solid; text-align: left; color: #b8b0a0; cursor: pointer; }
 .px-sys .coll-part .coll-pname { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; }
 .px-sys .coll-part .coll-pcount { font-size: 11px; color: #8b8578; }
-.px-sys .coll-part .px-meter { height: 5px; margin-top: 1px; }
+.px-sys .coll-part .px-meter { height: 8px; margin-top: 2px; }
 .px-sys .coll-part.on { color: #f3cf86; }
 .px-sys .coll-part.on .coll-pcount { color: #e9e4d9; }
 .px-sys .codex-list { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 10px; }
@@ -83,7 +86,7 @@ export const COLLECTION_PAGE_CSS = `
 .px-sys .codex-line .nm { font-size: 13px; color: #8b8578; }
 .px-sys .codex-line.found .nm { color: #e07a2e; }
 .px-sys .codex-line .sub { font-size: 11px; color: #8b8578; text-align: right; }
-.px-sys .codex-whole { margin: 2px 0 10px 12px; font-size: 12px; color: #e9e4d9; }
+.px-sys .codex-whole { margin: 2px 0 10px; padding: 8px 12px 10px; border-width: 2px; border-style: solid; list-style: none; font-size: 12px; color: #e9e4d9; }
 .px-sys .codex-whole li { margin: 2px 0; }
 .px-sys .codex-set { font-size: 12px; color: #bfe8ff; margin: 2px 0 8px; }
 .px-sys .codex-set .unfound { color: #8b8578; }
@@ -92,7 +95,7 @@ function ensureStyle(doc) {
   if (!doc?.getElementById || doc.getElementById(COLLECTION_PAGE_STYLE_ID)) return;
   const st = doc.createElement('style');
   st.id = COLLECTION_PAGE_STYLE_ID;
-  st.textContent = `${COLLECTION_PAGE_CSS}${WARDROBE_PART_CSS}`;   // COLLECTIONS-II: and the wardrobe's parts' sheet
+  st.textContent = `${COLLECTION_PAGE_CSS}${WARDROBE_PART_CSS}${WARDROBE_THEME_CSS}`;   // COLLECTIONS-II: and the wardrobe's parts' sheet - AUDIT COLLECTIONS-II: and its Stone theme's
   doc.head?.appendChild(st);
 }
 
@@ -152,18 +155,18 @@ function partTiles(/** @type {any} */ kit, /** @type {ReadonlyArray<readonly [st
 function drawCodexPart(detail, rerender, { el, divider }) {
   const n = codexCount();
   const rows = codexRows();
-  detail.append(divider(`Gilded - ${n.gilded} of ${n.gildeds} found`));
+  detail.append(divider(t('coll.codex.gilded', 'Gilded - {n} of {total} found', { n: n.gilded, total: n.gildeds })));   // AUDIT COLLECTIONS-II (lanes 3, 5): the codex's words in the player's language, on a page every player opens
   const gilded = el('div', 'codex-list');
   for (const r of codexGilded()) gilded.append(...codexLine(el, r, rerender));
   detail.append(gilded);
-  detail.append(divider(`Legendaries - ${n.legendary} of ${n.legendaries} found`));
+  detail.append(divider(t('coll.codex.legendaries', 'Legendaries - {n} of {total} found', { n: n.legendary, total: n.legendaries })));
   const list = el('div', 'codex-list');
   for (const r of rows) list.append(...codexLine(el, r, rerender));
   detail.append(list);
-  detail.append(divider(`Aetheric - ${n.aetheric} of ${n.aetherics} found`));
+  detail.append(divider(t('coll.codex.aetheric', 'Aetheric - {n} of {total} found', { n: n.aetheric, total: n.aetherics })));
   for (const s of codexSets()) {
     const p = el('p', 'codex-set');
-    p.append(el('span', null, `${setById(s.set)?.name ?? s.set} - ${s.pieces.filter((x) => x.found).length} of ${s.pieces.length}: `));   // AUDIT CARDS-5 D12: each set's count, as the Reforge's
+    p.append(el('span', null, t('coll.codex.set', '{name} - {n} of {total}:', { name: setById(s.set)?.name ?? s.set, n: s.pieces.filter((x) => x.found).length, total: s.pieces.length })), el('span', null, ' '));   // AUDIT CARDS-5 D12: each set's count, as the Reforge's
     s.pieces.forEach((x, i) => { if (i) p.append(el('span', null, ' · ')); p.append(el('span', x.found ? null : 'unfound', x.found ? x.name : '?')); });
     detail.append(p);
   }
@@ -175,7 +178,7 @@ function codexLine(el, r, rerender) {
     const line = el('button', `codex-line${r.found ? ' found' : ''}${_picked === r.id ? ' on' : ''}`);
     line.type = 'button';
     line.dataset.record = r.id;
-    line.append(el('span', 'nm', r.found ? r.name : 'Unfound'), el('span', 'sub', r.found ? `${r.group} · found on day ${r.day}` : `${r.group} · ${r.hint}`));
+    line.append(el('span', 'nm', r.found ? r.name : t('coll.codex.unfound', 'Unfound')), el('span', 'sub', r.found ? t('coll.codex.foundOn', '{group} · found on day {day}', { group: r.group, day: r.day }) : `${r.group} · ${r.hint}`));
     line.setAttribute('data-focus', `codex-row-${r.id}`);
     line.onclick = () => { _picked = _picked === r.id ? null : r.id; rerender(); };
     if (r.kind === 'gilded' && r.found) line.dataset.rarity = 'gilded';
@@ -193,8 +196,8 @@ function codexWhole(el, r) {
     for (const a of rec?.affixes ?? []) { const line = affixLine({ rarity: r.kind ?? 'legendary', affixes: [a] }, 0); if (line) ul.append(el('li', null, line)); }
     if (r.power) ul.append(el('li', null, powerLine(r.power)));
     if (r.lore) ul.append(el('li', null, r.lore));
-    ul.append(el('li', null, `First found on day ${r.day}`));
-  } else ul.append(el('li', null, 'Not yet found'));
+    ul.append(el('li', null, t('coll.codex.firstFound', 'First found on day {day}', { day: r.day })));
+  } else ul.append(el('li', null, t('coll.codex.notFound', 'Not yet found')));
   if (r.hint) ul.append(el('li', 'codex-hint', r.hint));
   return ul;
 }

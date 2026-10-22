@@ -170,7 +170,7 @@ import { FLEET_PAGE_SECTIONS, fleetPageShown, drawFleetPage, resetFleetPage } fr
 import { CAPTAIN_PAGE_SECTIONS, captainPageShown, drawCaptainPage } from '../captainPage.js';   // CAPT-LOG: the captain's standing and log
 import { drawGrowthTab, resetGrowthTab, releaseGrowthTab, growthBack, growthAsks, growthPageAt, setGrowthSection, growthDue } from '../growth/growthTab.js';   // GROWTH1: the Growth tab - the level, the specialisations, the skies
 import { stageLive } from '../growth/growthStage.js';   // GROWTH3: a face up in the tab - the window's Escape asks it first
-import { COLLECTION_PAGE_SECTIONS, collectionsPageShown, drawCollectionsPage, resetCollectionsPage, disarmCollectionsPage, setCollectionsPart } from '../collectionsPage.js';   // COLLECTIONS: the codex and the cards
+import { COLLECTION_PAGE_SECTIONS, COLLECTION_PARTS, collectionsPageShown, drawCollectionsPage, resetCollectionsPage, disarmCollectionsPage, setCollectionsPart, rereadCollectionsAccount } from '../collectionsPage.js';   // COLLECTIONS: the codex and the cards - AUDIT COLLECTIONS-II: its parts by name, and its read asked again when the account card closes
 import { swornBodyOf } from '../../systems/revenant/revenantCompanions.js';   // COMPANION-ROSTER: a sworn one's live health
 import { enemyDisplayName } from '../../characters/enemy/enemyBasics.js';   // REVENANT-PAGE: a revenant's kind   // REVENANT-PAGE: the foes that have earned your name
 import { affiliations } from '../../systems/affiliations.js';
@@ -1088,6 +1088,7 @@ function closeAccount() {
   accountOpen = false;
   acctFlow = null;
   acctPaint = null;
+  rereadCollectionsAccount();   // AUDIT COLLECTIONS-II (lane 2): what the card did, the Collections page reads again
   render();
 }
 /** COLLECTIONS-II: THE ONE CONSTRUCTION of an account flow (Home.md, THE ONE CONSTRUCTION SEAM) - the account card's,
@@ -4664,14 +4665,9 @@ function pauseHoldings(body) {
   wrap.append(rail);
   const detail = el('div', 'px-qdetail px-sys');   // the system page's dress, as the Stats detail wears it (PLUS4)
   const kit = { el, divider: pxDivider, meter: pxMeter };
-  // AUDIT HOLDINGS C6: a host with no page to show (the standalone dungeon sets no provider) says so - the Stable drawn
-  // there told a player who owns both that they own no horse and no wagon
-  if (!secs.length) {
-    detail.append(el('div', 'px-qverdict', 'Nothing here to hold'), el('p', null, 'Your horse, wagon, ships and companions can\u2019t be shown here.'));
-    wrap.append(detail);
-    body.append(wrap);
-    return;
-  }
+  // AUDIT HOLDINGS C6: a host with no page to show (the standalone dungeon sets no provider) never draws the Stable's "you
+  // own no horse" - AUDIT COLLECTIONS-II (lanes 2, 5): the rail is never empty now, the Collections page every player's
+  // (collectionsPageShown), so such a host opens on it; the empty rail's own words went with their last reader
   const draw = {
     stable: (d) => drawStablePage(d, render, kit),
     // a door the page opens over the world (the shipwright's window, the water's placing click): the pause goes down
@@ -6206,7 +6202,7 @@ export function mountEnhancedMenu(host, {
   else if (growthPageAt(at)) pauseTab = 'growth';   // GROWTH1: a Growth page by name (its rail set by resetGrowthTab, above)
   else if (at === 'mailbox') postOpen = true;   // SERVER-POST: the mailbox's door (/mail, either skin) - the pause face with its window open
   else if (at === 'report') { postOpen = true; postKeep = { view: 'report' }; }   // PRIVATE-REPORT: `/bug` - the mailbox's window on its report form
-  else if (at === 'collections' || at === 'cards' || at === 'codex') { pauseTab = 'holdings'; holdSec = 'collections'; if (at !== 'collections') setCollectionsPart(at); }   // AUDIT CARDS-5 D14: the Collections page by name, or one of its parts
+  else if (at === 'collections' || COLLECTION_PARTS.some(([id]) => id === at)) { pauseTab = 'holdings'; holdSec = 'collections'; if (at !== 'collections') setCollectionsPart(at); }   // AUDIT CARDS-5 D14: the Collections page by name, or one of its parts - AUDIT COLLECTIONS-II (lanes 2, 5): every part, the wardrobe's four too
   else if (at === 'companions') { pauseTab = 'holdings'; holdSec = 'companions'; }   // RVN-STARS: back from a sworn one's stars
   _eff = null;
   render();

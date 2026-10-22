@@ -1427,8 +1427,8 @@
   {
     "name": "AC5-D-C10-leg-count-swap",
     "file": "src/ui/collectionsPage.js",
-    "old": "`Legendaries - ${n.legendary} of ${n.legendaries} found`",
-    "new": "`Legendaries - ${n.legendaries} of ${n.legendary} found`",
+    "old": "{ n: n.legendary, total: n.legendaries }",
+    "new": "{ n: n.legendaries, total: n.legendary }",
     "tests": [
       "test/systems/auditcards5_ui.test.js",
       "test/systems/item/cards8_binder.test.js",
@@ -1439,7 +1439,7 @@
   {
     "name": "AC5-D-C11-unfound-name-leak",
     "file": "src/ui/collectionsPage.js",
-    "old": "r.found ? r.name : 'Unfound'",
+    "old": "r.found ? r.name : t('coll.codex.unfound', 'Unfound')",
     "new": "r.found ? r.name : r.id",
     "tests": [
       "test/systems/auditcards5_ui.test.js",
@@ -1451,7 +1451,7 @@
   {
     "name": "AC5-D-C13-no-day",
     "file": "src/ui/collectionsPage.js",
-    "old": "`${r.group} · found on day ${r.day}`",
+    "old": "t('coll.codex.foundOn', '{group} · found on day {day}', { group: r.group, day: r.day })",
     "new": "`${r.group}`",
     "tests": [
       "test/systems/auditcards5_ui.test.js",
@@ -1487,7 +1487,7 @@
   {
     "name": "AC5-D-C16-whole-no-day",
     "file": "src/ui/collectionsPage.js",
-    "old": "ul.append(el('li', null, `First found on day ${r.day}`));",
+    "old": "ul.append(el('li', null, t('coll.codex.firstFound', 'First found on day {day}', { day: r.day })));",
     "new": "",
     "tests": [
       "test/systems/auditcards5_ui.test.js",
@@ -1511,8 +1511,8 @@
   {
     "name": "AC5-D-C20-aeth-count-swap",
     "file": "src/ui/collectionsPage.js",
-    "old": "`Aetheric - ${n.aetheric} of ${n.aetherics} found`",
-    "new": "`Aetheric - ${n.aetherics} found`",
+    "old": "{ n: n.aetheric, total: n.aetherics }",
+    "new": "{ n: n.aetherics, total: n.aetherics }",
     "tests": [
       "test/systems/auditcards5_ui.test.js",
       "test/systems/item/cards8_binder.test.js",

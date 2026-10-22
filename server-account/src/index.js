@@ -2066,7 +2066,7 @@ const service = {
 
       if (path === '/v1/account/glyph' && request.method === 'POST') {
         // GLYPH-WEAR: SHOW ONE GLYPH, OR HIDE IT - `{ glyph, on }`. 403 for `not-held`, as the title's.
-        const r = await equipGlyph(ctx, who.player, env, body.glyph, body.on !== false);
+        const r = await equipGlyph(ctx, await withSeatTitles(ctx, who.player, env), env, body.glyph, body.on !== false);   // AUDIT COLLECTIONS-II: the wardrobe it answers keeps a Charter's and a chapter's titles, as the title's door does
         return r.error ? no(r.error, r.error === 'not-held' ? 403 : 400, origin) : json(r, 200, origin);
       }
 
