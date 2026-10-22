@@ -92,7 +92,7 @@ export const STAFF_STATUS = Object.freeze({
   'staff-claimed': 409, 'staff-one-case': 409, 'no-case': 404, 'not-moderator': 403, protected: 403, ambiguous: 409, 'bad-minutes': 400,
   'bad-days': 400, 'not-banned': 409, 'not-found': 404,
   // STAFF-PANEL3-DESK (staffDesk.js): a watchlist full, a player not on it, a board note gone
-  'watch-full': 409, 'not-watched': 404, 'no-note': 404,
+  'watch-full': 409, 'not-watched': 404, 'no-note': 404, 'note-text': 400, 'settings-bad': 400, 'bad-act': 400, 'bad-notice-days': 400, 'board-rid': 400,
   // STAFF-PANEL3-PLAYERS (staffPlayers.js): a rename refused - not a name the game takes, the name it has, a role or title
   // list's, another account's, or moved under the act - and an account with no handle or no such character
   'rename-bad': 400, 'rename-same': 409, 'rename-listed': 409, 'rename-taken': 409, 'rename-moved': 409, 'no-handle': 409, 'no-character': 404,
