@@ -27,7 +27,8 @@
 //
 // A PRIVATE HOME ENTERED (takeHiddenSeen): the relay reports a hidden subject entering an `owned:` room, signed with its
 // receipt key (net/hiddenSeen.js); it is written to the audit log (`hidden-home`) as the staff member whose session minted
-// the subject, when one still stands - else as the subject alone, which the `hidden-token` row names.
+// the subject - a Hide me game's or a follow eye's - when one still stands; else as the subject alone, which the
+// `hidden-token` row (or the `follow` row) names.
 import { mintToken, mintHideOrder, MAX_TTL_S, _b64url } from '../../src/net/identityToken.js';
 import { openHiddenSeen } from '../../src/net/hiddenSeen.js';
 import { displayName, accountKind, isMuted, mutedUntil, nameAsOf } from './accounts.js';
@@ -36,6 +37,7 @@ import { glyphsOf } from './titles.js';
 import { signingKey, gatePublicKey } from './signing.js';
 import { pushLaw } from './sanctions.js';
 import { staffRole, auditStatement, configKey, STAFF_IDLE_S } from './staff.js';
+import { followSubject } from './staffFollow.js';
 
 export const HIDDEN_ROUTES = Object.freeze(['/v1/staff/hide']);
 /** The name a hidden token carries - never the account's (wire.js sanitizeName keeps it as it is; a bare "Staff" it does not). */
@@ -58,10 +60,20 @@ export async function hiddenSubOf(tokenHash, subtle) {
 const LIVE_SQL = `SELECT p.staff_hide, s.token_hash, s.key_id, k.cfg, k.pub FROM staff_sessions s JOIN players p ON p.id = s.player_id
   JOIN staff_keys k ON k.id = s.key_id AND k.player_id = s.player_id AND k.revoked_at IS NULL AND k.handle_lc = p.handle_lc
   WHERE s.player_id = ?1 AND s.expires_at > ?2 AND s.last_act > ?3 ORDER BY s.created_at DESC, s.token_hash LIMIT ${SESSIONS_MAX}`;
+/** STAFF-PANEL5-HIDDEN-FIX: whether the account's game was last minted hidden and the staff member has not ended it since -
+ *  its newest `hidden-token` row with no later Show myself, sign-out of every session, or sign-out by that row's own key
+ *  (a session gone idle or past its 8 hours writes no row: it is no word of the staff member's). */
+const LAPSED_SQL = `SELECT 1 AS held FROM (SELECT id, at, key_id FROM staff_audit WHERE actor = ?1 AND act = 'hidden-token' ORDER BY at DESC, id DESC LIMIT 1) h
+  WHERE NOT EXISTS (SELECT 1 FROM staff_audit e WHERE e.actor = ?1 AND e.at >= h.at AND e.id > h.id
+    AND ((e.act = 'hide' AND e.detail = '{"on":false}') OR (e.act = 'logout' AND (e.detail = '{"all":true}' OR e.key_id IS h.key_id))))`;
 
 /**
  * THE GAME'S MINT, FOR A HIDDEN STAFF MEMBER: the spectator's token and the mint's answer, or null - the account is no
- * staff, holds no live staff session, or pressed Show myself - when the mint goes on as it always did.
+ * staff, holds no live staff session, or pressed Show myself - when the mint goes on as it always did; or
+ * `{ error: 'staff-session-lapsed' }` (STAFF-PANEL5-HIDDEN-FIX, mob: "we want the player to have no idea we are wathcing
+ * them"): the staff session the game was hidden by went idle or ran out its 8 hours while the game watched, and nothing
+ * the staff member did since showed them - no token at all then, never a visible one beside the watched player, until
+ * they sign in again (hidden again) or sign out or press Show myself (visible by their own word).
  * @param {any} ctx @param {any} env @param {any} player the mint's account row @param {CryptoKey} key the identity key
  */
 export async function hiddenToken(ctx, env, player, key) {
@@ -71,6 +83,10 @@ export async function hiddenToken(ctx, env, player, key) {
   const db = ctx.primary ?? ctx.db;
   const live = ((await db.prepare(LIVE_SQL).bind(player.id, nowS, nowS - STAFF_IDLE_S).all())?.results ?? [])
     .find((r) => !r.cfg || configKey(player, env, r.pub));
+  if (!live && await db.prepare(LAPSED_SQL).bind(player.id).first()) {
+    await auditStatement(db, nowS, { actor: player, role, act: 'hidden-lapsed', outcome: 'denied', onceIn: 60 }).run();
+    return { error: 'staff-session-lapsed' };
+  }
   if (!live || live.staff_hide !== 1) return null;
   const sub = await hiddenSubOf(live.token_hash, subtle);
   // written BEFORE the token is: a token the log does not name is never handed out
@@ -135,10 +151,12 @@ export async function takeHiddenSeen(ctx, env, bytes, sig) {
   const opened = await openHiddenSeen(bytes, sig, await gatePublicKey(env, subtle), { subtle, nowMs: nowS * 1000 });
   if ('error' in opened) return opened;
   const { s, r } = opened.note;
-  // whose session minted it: every staff session's subject (a dozen rows - staff.js deletes a member's dead ones at each sign-in)
+  // whose session minted it: every staff session's subject (a dozen rows - staff.js deletes a member's dead ones at each sign-in) -
+  // its Hide me game's (hiddenSubOf) or its follow eye's (staffFollow.js followSubject; STAFF-PANEL5-HIDDEN-FIX: a follow
+  // socket's home was written as nobody's)
   const rows = (await db.prepare('SELECT s.token_hash AS s_hash, s.key_id AS s_key, p.* FROM staff_sessions s JOIN players p ON p.id = s.player_id LIMIT 500').all())?.results ?? [];
   let actor = null;
-  for (const row of rows) if (await hiddenSubOf(row.s_hash, subtle) === s) { actor = row; break; }
+  for (const row of rows) if (await hiddenSubOf(row.s_hash, subtle) === s || await followSubject(row.s_hash, subtle) === s) { actor = row; break; }
   await auditStatement(db, nowS, { actor, role: actor ? staffRole(actor, env) : null, act: 'hidden-home', detail: { sub: s, room: r }, keyId: actor?.s_key ?? null, onceIn: 60 }).run();
   return { ok: true };
 }

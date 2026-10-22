@@ -12,8 +12,8 @@
 //
 //   NEVER PASSED ON. Everything it says is dropped at the top of `_message` (`hiddenMay`) but the spectator's allow list
 //   - its pose (kept on its own attachment for range alone, so it hears the room near it - never fanned: `hiddenPose`),
-//   its ping, a staff-channel line, a find, a lease (LEASE1's door would freeze a socket that hands none on) and Message
-//   on screen. A frame dropped is dropped silently: a game in hidden mode may send what a player's sends, and a strike
+//   its ping, a staff-channel line, a find, a lease (LEASE1's door would freeze a socket that hands none on), a /tp ask
+//   (answered from the where note alone - STAFF-PANEL5-HIDDEN-FIX, staffTeleport.js) and Message on screen. A frame dropped is dropped silently: a game in hidden mode may send what a player's sends, and a strike
 //   would close the staff member's own view.
 //   NAMED BY NOBODY. Left out of every walk that names or counts a room's sockets (index.js `_othersOf` - the welcome's
 //   who-is-here and a region's travellers - `_namedCount`, `_busCount`, `_findNames`, `_everyoneSaid` - the World and
@@ -26,7 +26,8 @@
 //   ADMITTED AS STAFF, WRITING NOTHING. A private home (privateInteriorAdmits' staff right), a seat-limited instance
 //   (instanceAdmits' staff right), an Elite Breach and a Super dungeon's realm let a hidden socket in without its
 //   admission's membership or seat written. Entering a private home is reported to the account service's audit log
-//   (`hiddenEntered`, net/hiddenSeen.js) - the subject and the room, signed with the relay's receipt key.
+//   (`hiddenEntered`, net/hiddenSeen.js) - the subject and the room, signed with the relay's receipt key - and a relay
+//   that cannot report one lets no hidden socket into a home (STAFF-PANEL5-HIDDEN-FIX, `hiddenSeenOn`).
 //   CLOSED WHEN THE MARK LAPSES, NEVER SHOWN. The account service pushes a hide order (identityToken.js mintHideOrder) when
 //   the staff member presses Show myself, signs out, is cut or is removed; the hub closes every hidden socket of that
 //   subject whose token is no newer (`hiddenLapse`, HIDDEN_LAPSED). A mark is never taken off a live socket: a socket is
@@ -40,8 +41,8 @@ import { isChatRoom } from './relay.js';
 
 /** The hidden seats a room holds over its cap - a few staff watching, never a crowd. */
 export const HIDDEN_RESERVE = 8;
-/** The frame types a hidden socket is heard in (with a staff-channel line, `hiddenMay`). Message on screen's frame type
- *  joins this list when its builder names it; a follow's the same. */
+/** The frame types a hidden socket is heard in (with a staff-channel line and a staff teleport's ask, `hiddenMay`).
+ *  Message on screen's frame type joins this list when its builder names it; a follow's the same. */
 export const HIDDEN_FRAMES = Object.freeze(['ping', 'pose', 'lease', 'find']);
 /** The chat channel a hidden socket may speak in - the staff's own (assumed from the staff chat builder: net/wire.js
  *  CHAT_LINE_CHANNELS names no such channel yet, so today no hidden line is ever said). */
@@ -61,7 +62,11 @@ export function hiddenMay(message) {
   let m;
   try { m = JSON.parse(message); } catch { return false; }
   if (!m || typeof m !== 'object') return false;
-  return HIDDEN_FRAMES.includes(m.t) || (m.t === 'chat' && m.ch === HIDDEN_CHAT);
+  return HIDDEN_FRAMES.includes(m.t) || (m.t === 'chat' && m.ch === HIDDEN_CHAT)
+    // STAFF-PANEL5-HIDDEN-FIX (design doc, Invisible follow's Silent TP: "Arrive with Hide me on"): a /tp ASK, which the
+    // hub answers a hidden asker from the target's where note alone (staffTeleport.js) - never the answer to a capture,
+    // which only a target sends and a hidden socket is none
+    || (m.t === 'stp' && m.k === 'ask');
 }
 
 /** Whether an upgrade asks for a hidden seat. @param {Request} request */
@@ -95,6 +100,9 @@ export function hiddenHello(room, ws, a, m, who) {
   if (room._hidHellos.has(m)) who.hid = 1;
   if (a.hs && !who.hid) return HIDDEN_LAPSED;
   if (who.hid && room._withId(m.id, ws).some(([, b]) => !isHidden(b))) return 'id taken';
+  // STAFF-PANEL5-HIDDEN-FIX (design doc: "Entering a private home is allowed and written to the audit log"): a private
+  // home a hidden socket could enter unreported is closed to it - a stranger's word, which says nothing more
+  if (who.hid && String(a.key).startsWith('owned:') && !hiddenSeenOn(room.env)) return 'private room';
   return null;
 }
 
@@ -123,16 +131,21 @@ export async function hiddenLapse(room, order, now) {
   return true;
 }
 
+/** Whether this relay reports a hidden socket's private home entry: HIDDEN_SEEN_URL (server/wrangler.toml) over https,
+ *  and the receipt key it signs with. Off, no hidden socket enters a home (`hiddenHello`). @param {any} env */
+export const hiddenSeenOn = (env) => typeof env?.HIDDEN_SEEN_URL === 'string' && env.HIDDEN_SEEN_URL.startsWith('https://') && !!env.GATE_SIGNING_KEY;
+
 /**
  * A HIDDEN SOCKET ENTERED A PRIVATE HOME: its subject and the room, signed with the relay's receipt key and posted to
  * the account service's audit door (HIDDEN_SEEN_URL, through the ACCOUNTS binding where the Worker has it - the feed's
- * way, AUDIT SAFE RELAY S1). Never awaited by the hello; off until HIDDEN_SEEN_URL is set; a post that fails is said in
- * the log. Answers the post's promise (a test's), or null when nothing goes.
+ * way, AUDIT SAFE RELAY S1). Never awaited by the hello; off until HIDDEN_SEEN_URL is set (and then no hidden socket is
+ * let in, `hiddenHello`); a post that fails is said in the log. Answers the post's promise (a test's), or null when
+ * nothing goes.
  * @param {any} room @param {string} key @param {string} sub
  */
 export function hiddenEntered(room, key, sub) {
   const url = room.env?.HIDDEN_SEEN_URL;
-  if (typeof url !== 'string' || !url.startsWith('https://') || !String(key).startsWith('owned:')) return null;
+  if (!hiddenSeenOn(room.env) || !String(key).startsWith('owned:')) return null;
   return (async () => {
     try {
       const id = [...crypto.getRandomValues(new Uint8Array(8))].map((x) => x.toString(16).padStart(2, '0')).join('');

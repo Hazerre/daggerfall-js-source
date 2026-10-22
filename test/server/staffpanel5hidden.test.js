@@ -142,7 +142,8 @@ test('STAFF-PANEL5-HIDDEN: HIDE ME, ON BY DEFAULT - an Admin\'s and a Moderator\
     assert.equal(tab.hd, undefined, 'a session gone idle hides nobody');
     assert.equal(tab.s, s.game.Tabbyvish.id);
     s.raw.prepare('UPDATE staff_sessions SET expires_at = 0 WHERE player_id = ?').run(s.game.Asynian.id);
-    assert.equal(claimsOf((await s.mint('Asynian')).body.token).hd, undefined, 'nor one expired');
+    // STAFF-PANEL5-HIDDEN-FIX: Asynian's game was minted hidden by the session now past its life - no token, never a shown one
+    assert.deepEqual(await s.mint('Asynian'), { status: 409, body: { error: 'staff-session-lapsed' } }, 'nor one expired - and one that hid the game shows nobody');
     assert.equal(s.audits('hidden-token').length, 4, 'and writes no row');
     // a member the role lists no longer name, their session row still standing: a player's token
     const mods = s.env.MODERATOR_HANDLES;
@@ -154,7 +155,7 @@ test('STAFF-PANEL5-HIDDEN: HIDE ME, ON BY DEFAULT - an Admin\'s and a Moderator\
     // an owner's session by a key the config no longer names stands no more (staff.js staffSession's law)
     const keys = s.env.OWNER_KEYS;
     s.env.OWNER_KEYS = 'SirMcMobdon:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-    assert.equal(claimsOf((await s.mint('SirMcMobdon')).body.token).hd, undefined, 'a key out of the config hides nobody');
+    assert.deepEqual(await s.mint('SirMcMobdon'), { status: 409, body: { error: 'staff-session-lapsed' } }, 'a key out of the config hides nobody - and, the game it hid, shows nobody either (STAFF-PANEL5-HIDDEN-FIX)');
     s.env.OWNER_KEYS = keys;
     assert.equal(claimsOf((await s.mint('SirMcMobdon')).body.token).hd, 1, 'and back in it, hidden again');
   } finally { s.restore(); }
@@ -271,5 +272,77 @@ test('STAFF-PANEL5-HIDDEN: A PRIVATE HOME ENTERED - the relay\'s signed note is 
     // the opener's own laws
     assert.deepEqual(await openHiddenSeen(sealed.body, sealed.sig, null, { subtle, nowMs: Date.now() }), { error: 'seen-closed' });
     assert.equal((await openHiddenSeen(new Uint8Array(0), sealed.sig, forger.publicKey, { subtle, nowMs: Date.now() })).error, 'seen-shape');
+  } finally { s.restore(); }
+});
+
+// ═══ STAFF-PANEL5-HIDDEN-FIX (the relay flaw review, findings 4/15 and 14) ═══
+
+test('STAFF-PANEL5-HIDDEN-FIX: A HIDDEN SESSION THAT LAPSES SHOWS NOBODY - the game it hid, its session gone idle, past its 8 hours or deleted by the panel\'s own poll, is minted no token at all (409 staff-session-lapsed, a `hidden-lapsed` row a minute) and never a visible one; signed in again it is hidden again; only the staff member\'s own word shows it - a sign-out by that key, a sign-out of every session, or Show myself (mutants: the lapse unread; the refusal unwritten; the refusal a 200; any key\'s sign-out ends it; a sign-out of all unread; the own key\'s unread; Show myself unread; the oldest row read)', async () => {
+  const s = await stand();
+  try {
+    const login = async () => (await s.staff('/v1/staff/login', { handle: 'SirMcMobdon', password: PASSWORD, ...(await s.mobKey.proof('login', 'SirMcMobdon')) })).body.session;
+    const idle = (h) => s.raw.prepare('UPDATE staff_sessions SET last_act = 0 WHERE player_id = ?').run(s.game[h].id);
+    const LAPSED = { status: 409, body: { error: 'staff-session-lapsed' } };
+    // Tabbyvish: hidden by her first key's session; a second key's session signs out - her first's game stays hidden, then lapses
+    assert.equal(claimsOf((await s.mint('Tabbyvish')).body.token).hd, 1);
+    const tab2 = await s.enrol('Tabbyvish');
+    await s.staff('/v1/staff/logout', {}, tab2.session);
+    idle('Tabbyvish');
+    assert.deepEqual(await s.mint('Tabbyvish'), LAPSED, 'another key\'s sign-out ends nothing of this one\'s');
+    // a sign-out of every session, by any key, ends it
+    const tab3 = await s.enrol('Tabbyvish');
+    await s.staff('/v1/staff/logout', { all: true }, tab3.session);
+    assert.equal(claimsOf((await s.mint('Tabbyvish')).body.token).s, s.game.Tabbyvish.id, 'every session signed out: shown');
+    // mob: hidden, then idle - the panel's own poll deletes the dead session, and the game is still minted nothing
+    assert.equal(claimsOf((await s.mint('SirMcMobdon')).body.token).hd, 1);
+    idle('SirMcMobdon');
+    assert.deepEqual(await s.mint('SirMcMobdon'), LAPSED, 'gone idle: nothing');
+    assert.equal((await s.staff('/v1/staff/me', { poll: true }, s.mob.session)).status, 401);
+    assert.equal(s.raw.prepare('SELECT COUNT(*) AS n FROM staff_sessions WHERE player_id = ?').get(s.game.SirMcMobdon.id).n, 0, 'the dead session deleted');
+    assert.deepEqual(await s.mint('SirMcMobdon'), LAPSED, 'and still nothing');
+    const lapsed = s.audits('hidden-lapsed');
+    assert.deepEqual(lapsed.map((r) => [r.actor, r.role, r.outcome]), [[s.game.Tabbyvish.id, 'moderator', 'denied'], [s.game.SirMcMobdon.id, 'admin', 'denied']], 'written, once a minute a member');
+    // signed in again: hidden again, its new session's subject; its own sign-out shows it
+    const two = await login();
+    const c2 = claimsOf((await s.mint('SirMcMobdon')).body.token);
+    assert.equal(c2.hd, 1, 'hidden again');
+    await s.staff('/v1/staff/logout', {}, two);
+    assert.equal(claimsOf((await s.mint('SirMcMobdon')).body.token).s, s.game.SirMcMobdon.id, 'its own sign-out: shown, by the staff member\'s word');
+    // hidden once more, lapsed: the newest hidden mint is the one read, the sign-out before it ends nothing after it
+    const three = await login();
+    assert.equal(claimsOf((await s.mint('SirMcMobdon')).body.token).hd, 1);
+    idle('SirMcMobdon');
+    assert.deepEqual(await s.mint('SirMcMobdon'), LAPSED, 'an older sign-out ends no newer hiding');
+    void three;
+    // Show myself ends it: signed in, shown, hidden again with no game mint between - then lapsed, the game was shown last
+    const four = await login();
+    await s.staff('/v1/staff/hide', { on: false }, four);
+    await s.staff('/v1/staff/hide', { on: true }, four);
+    idle('SirMcMobdon');
+    assert.equal(claimsOf((await s.mint('SirMcMobdon')).body.token).s, s.game.SirMcMobdon.id, 'Show myself: shown');
+    // never hidden, never held: Asynian's session lapses before any game mint
+    idle('Asynian');
+    assert.equal(claimsOf((await s.mint('Asynian')).body.token).s, s.game.Asynian.id, 'a staff member whose game was never hidden plays as ever');
+    // nobody else reads it
+    assert.equal(claimsOf((await s.mint('Troll')).body.token).s, s.game.Troll.id);
+  } finally { s.restore(); }
+});
+
+test('STAFF-PANEL5-HIDDEN-FIX: A FOLLOW EYE IN A PRIVATE HOME is the staff member\'s - the relay\'s note of the follow token\'s subject is a `hidden-home` row as the Moderator whose session minted it, whatever room the token was asked for; and the follow row names that subject (mutants: the follow subject unmatched; the follow row\'s subject unwritten)', async () => {
+  const s = await stand();
+  try {
+    const f = await s.staff('/v1/staff/follow', { sub: s.game.Troll.id, room: 'world:1,1' }, s.asy.session);
+    assert.equal(f.status, 200, JSON.stringify(f.body));
+    const eye = claimsOf(f.body.token).s;
+    assert.ok(eye.startsWith('hd-'));
+    assert.notEqual(eye, (await s.subsOf('Asynian'))[0], 'a follow eye\'s subject, not the Hide me game\'s');
+    assert.deepEqual(JSON.parse(s.audits('follow')[0].detail), { sub: eye }, 'the follow row names its subject');
+    const room = `owned:${'a'.repeat(32)}.${'b'.repeat(16)}:17.200`;
+    const sealed = await sealHiddenSeen({ v: HIDDEN_SEEN_V, id: '0123456789abcdef', at: Date.now(), s: eye, r: room }, s.gatePriv, { subtle });
+    const res = await s.fetch(`https://accounts.invalid${HIDDEN_SEEN_PATH}`, { method: 'POST', headers: { 'content-type': 'application/json', [HIDDEN_SEEN_SIG_HEADER]: sealed.sig }, body: sealed.body });
+    assert.equal(res.status, 202);
+    const [row] = s.audits('hidden-home');
+    assert.deepEqual([row.actor, row.role, JSON.parse(row.detail)], [s.game.Asynian.id, 'moderator', { sub: eye, room }], 'as the Moderator who followed');
+    assert.ok(row.key_id, 'with the key her session signed in by');
   } finally { s.restore(); }
 });

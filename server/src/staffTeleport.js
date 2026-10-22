@@ -33,6 +33,7 @@ export function routeStaffTeleport(room, ws, a, m, now) {
       const note = b.sub ? noteOf(room, b.sub, now) : null;
       if (note) { result(ws, m.nonce, { id: b.id, name: b.name, ...acct, via: 'note', note: note.p, ag: Math.floor((now - note.at) / 1000) }); return; }
     }
+    if (a.hid) { result(ws, m.nonce, { error: 'unavailable' }); return; }   // STAFF-PANEL5-HIDDEN-FIX: a hidden asker is answered from the note alone - a capture would tell a modded game staff came
     const fb = quiet ? (m.cap === 1 ? 'mismatch' : 'missing') : null;
     if (fb) console.info('[stp] the target\'s game is asked: its where note is', fb);
     for (const [ticket, p] of pending) if (p.from === ws) pending.delete(ticket);

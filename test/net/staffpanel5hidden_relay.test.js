@@ -7,16 +7,17 @@
 // audit note, and the mark's lapse through the Worker's law door. tools/mutants/staff-panel5-hidden.json.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import { fakeRoom, fakeRooms } from '../fakeRoom.mjs';
-import { SOCIAL_ROOM, SOCKETS_MAX, CLOSE_POLICY, chatRegionRoom } from '../../src/net/wire.js';
+import { SOCIAL_ROOM, SOCKETS_MAX, CLOSE_POLICY, chatRegionRoom, FOES_STALE_MS, PIXEL_UNITS, LAYER_HEADER, LAYER_ASK_HEADER, LAYER_EMPTY_HEADER } from '../../src/net/wire.js';
 import { egBreachOfRoom } from '../../src/net/eliteGates/egLaw.js';
 import * as H from '../../src/net/hubShards.js';
 import { mintHideOrder, mintOrder, importPublicKeyB64 } from '../../src/net/identityToken.js';
 import { privateInteriorPrefix, privateInteriorRoom } from '../../src/net/privateInterior.js';
 import { instanceOwnerOf, instanceRoomOf } from '../../src/net/instanceRoom.js';
-import { openHiddenSeen, HIDDEN_SEEN_SIG_HEADER } from '../../src/net/hiddenSeen.js';
-import { hiddenMay, hiddenEntered, HIDDEN_RESERVE, HIDDEN_LAPSED, HIDDEN_FRAMES, HIDDEN_CHAT, isHidden } from '../../server/src/staffHidden.js';
+import { openHiddenSeen, HIDDEN_SEEN_SIG_HEADER, HIDDEN_SEEN_PATH } from '../../src/net/hiddenSeen.js';
+import { hiddenMay, hiddenEntered, hiddenSeenOn, HIDDEN_RESERVE, HIDDEN_LAPSED, HIDDEN_FRAMES, HIDDEN_CHAT, isHidden } from '../../server/src/staffHidden.js';
 import worker from '../../server/src/index.js';
 import { SAFE_LAW_PATH } from '../../server/src/relay.js';
 
@@ -39,6 +40,8 @@ test('STAFF-PANEL5-HIDDEN the allow list: a hidden socket is heard in its ping, 
   assert.equal(HIDDEN_CHAT, 'staff');
   for (const t of HIDDEN_FRAMES) assert.equal(hiddenMay(JSON.stringify({ t })), true, t);
   assert.equal(hiddenMay(JSON.stringify({ t: 'chat', ch: 'staff', text: 'hi' })), true, 'a staff-channel line');
+  assert.equal(hiddenMay(JSON.stringify({ t: 'stp', k: 'ask', name: 'Bran', nonce: 'n1', nt: 1 })), true, 'STAFF-PANEL5-HIDDEN-FIX: a /tp ask');
+  for (const f of [{ t: 'stp', k: 'answer', ticket: 'x', dest: {} }, { t: 'stp', k: 'capture' }, { t: 'stp' }]) assert.equal(hiddenMay(JSON.stringify(f)), false, `never ${JSON.stringify(f)}`);
   for (const f of [{ t: 'chat', text: 'hi' }, { t: 'chat', ch: 'party', text: 'hi' }, { t: 'chat', ch: 'guild', text: 'hi' }, { t: 'social', k: 'friend.request' }, { t: 'trav', p: {} }, { t: 'who', id: 'x' }, { t: 'world', data: {} }, { t: 'foes' }, { t: 'hello' }, { t: 'act' }, { t: 'quest' }, { t: 'roll' }, { t: 'mute' }, { t: 'ban' }, null, 5, []]) assert.equal(hiddenMay(JSON.stringify(f)), false, JSON.stringify(f));
   for (const m of ['{"t":"pose"', 'not json', new ArrayBuffer(4), null]) assert.equal(hiddenMay(m), false, String(m));
   assert.equal(hiddenMay(JSON.stringify({ t: 'pose', pad: 'x'.repeat(4096) })), false, 'a frame past the bound');
@@ -267,7 +270,7 @@ test('STAFF-PANEL5-HIDDEN the hello\'s refusals: a hidden seat said hello with a
   });
 });
 
-test('STAFF-PANEL5-HIDDEN the admissions: a private home admits the hidden spectator as staff and reports it - its subject and the room, signed with the receipt key - only while HIDDEN_SEEN_URL is set; an instance admits it with no party mark; a breach admits it without its company\'s word (mutants: the home refused; the note unsent; the note unsigned; the instance refused; the breach refused)', async () => {
+test('STAFF-PANEL5-HIDDEN the admissions: a private home admits the hidden spectator as staff and reports it - its subject and the room, signed with the receipt key - only while HIDDEN_SEEN_URL is set, and is closed to it while the relay cannot report it (STAFF-PANEL5-HIDDEN-FIX); an instance admits it with no party mark; a breach admits it without its company\'s word (mutants: the home refused; the note unsent; the note unsigned; the instance refused; the breach refused)', async () => {
   await quiet(async () => {
     const owned = privateInteriorRoom(await privateInteriorPrefix('acct-owner', 'char-0001'), 17, 200);
     const kp = await subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
@@ -286,20 +289,27 @@ test('STAFF-PANEL5-HIDDEN the admissions: a private home admits the hidden spect
     const opened = await openHiddenSeen(posted[0].body, posted[0].sig, kp.publicKey, { subtle, nowMs: Date.now() });
     assert.equal(opened.ok, true, 'signed with the relay\'s receipt key');
     assert.equal(opened.note.s, GHOST_SUB); assert.equal(opened.note.r, owned);
+    // STAFF-PANEL5-HIDDEN-FIX: a relay that cannot report the entry lets no hidden socket in - no HIDDEN_SEEN_URL, no
+    // receipt key to sign with, or a URL over plain http - with a stranger's word, and nothing posted
     const quietRoom = fakeRoom(owned);
     quietRoom.env.ACCOUNTS = r.env.ACCOUNTS;
     const g2 = quietRoom.connect(); await quietRoom.hello(g2, GHOST_ID, P, HIDE);
-    await new Promise((res) => setTimeout(res, 20));
-    assert.ok(welcomeOf(g2));
-    assert.equal(posted.length, 1, 'no HIDDEN_SEEN_URL, no post');
+    quietRoom.env.HIDDEN_SEEN_URL = r.env.HIDDEN_SEEN_URL;
+    const g6 = quietRoom.connect(); await quietRoom.hello(g6, 'ghost-0095', P, { ...HIDE, tokenSub: 'gH0st5ubDDDDDDDDDDDDDDDD' });
     quietRoom.env.GATE_SIGNING_KEY = r.env.GATE_SIGNING_KEY;
     quietRoom.env.HIDDEN_SEEN_URL = 'http://accounts.test/v1/mod/hidden-seen';
     const g4 = quietRoom.connect(); await quietRoom.hello(g4, 'ghost-0097', P, { ...HIDE, tokenSub: 'gH0st5ubBBBBBBBBBBBBBBBB' });
+    for (const [g, why] of [[g2, 'no HIDDEN_SEEN_URL'], [g6, 'no receipt key'], [g4, 'plain http']]) {
+      assert.ok(!welcomeOf(g), `${why}: no home`);
+      assert.equal(g.sent.find((f) => f.t === 'error')?.m, 'private room', `${why}: a stranger's word`);
+    }
+    assert.equal(hiddenSeenOn(quietRoom.env), false);
     const cell = fakeRoom('world:3,12');
     Object.assign(cell.env, { HIDDEN_SEEN_URL: r.env.HIDDEN_SEEN_URL, ACCOUNTS: r.env.ACCOUNTS, GATE_SIGNING_KEY: r.env.GATE_SIGNING_KEY });
     const g5 = cell.connect(); await cell.hello(g5, GHOST_ID, P, HIDE);
+    const g7 = fakeRoom('world:3,12'); const g7s = g7.connect(); await g7.hello(g7s, GHOST_ID, P, HIDE);
     await new Promise((res) => setTimeout(res, 20));
-    assert.ok(welcomeOf(g4) && welcomeOf(g5));
+    assert.ok(welcomeOf(g5) && welcomeOf(g7s), 'a room that is no home asks no report');
     assert.equal(posted.length, 1, 'never over plain http, never for a room that is no private home');
     assert.equal(hiddenEntered(cell.room, 'world:3,12', GHOST_SUB), null, 'nothing goes for a room that is no home');
     assert.ok(hiddenEntered(r.room, owned, GHOST_SUB) instanceof Promise, 'a home\'s note goes');
@@ -378,4 +388,97 @@ test('STAFF-PANEL5-HIDDEN the mark lapses: a hide order through the Worker\'s la
     assert.equal(other.closed, null, 'an order older than the token closes nothing');
     await drop(game, H.hubOfSubject('acct-gamer'));
   });
+});
+
+// ═══ STAFF-PANEL5-HIDDEN-FIX (the relay flaw review, findings 3, 16, 17 and 20) ═══
+
+test('STAFF-PANEL5-HIDDEN-FIX the relay is told where to report a home entered: HIDDEN_SEEN_URL in server/wrangler.toml is the account service\'s door, on the host the reviewer\'s feed posts to (mutants: the var gone)', () => {
+  const toml = readFileSync(new URL('../../server/wrangler.toml', import.meta.url), 'utf8');
+  const varOf = (k) => new RegExp(`^${k} = "([^"]*)"$`, 'm').exec(toml)?.[1];
+  const url = varOf('HIDDEN_SEEN_URL');
+  assert.ok(url, 'set');
+  assert.equal(new URL(url).pathname, HIDDEN_SEEN_PATH, 'the service\'s own path');
+  assert.equal(new URL(url).origin, new URL(varOf('MOD_FEED_URL')).origin, 'the service the feed already posts to');
+  assert.equal(hiddenSeenOn({ HIDDEN_SEEN_URL: url, GATE_SIGNING_KEY: 'k' }), true);
+});
+
+test('STAFF-PANEL5-HIDDEN-FIX a hidden Admin\'s /tp, on its hub shard: its ask is heard and answered from the target\'s where note alone, and the target\'s game is never sent a capture - a note unmatched or missing answers `unavailable`; a visible Admin\'s missing note still asks the game (mutants: the ask dropped; the capture asked for a hidden asker)', async () => {
+  await world(async ({ link, say, tick }) => {
+    const NOTE = { px: 100, py: 100, in: 1, loc: 'Daggerfall', h: 50, hm: 60, f: 40, fm: 40, m: 10, mm: 20, rk: 'dungeon:m1234' };
+    const stp = (ws, k) => ws.sent.filter((f) => f.t === 'stp' && f.k === k);
+    const kg = H.hubOfSubject(GHOST_SUB);
+    const ghost = await link('staffer', kg, { ...HIDE, glyphs: ['dev'], peer: GHOST_ID });
+    const bran = await link('bran', H.hubOfSubject('acct-bran'));
+    const cleo = await link('cleo', H.hubOfSubject('acct-cleo'));
+    const dev = await link('devvy', H.hubOfSubject('acct-devvy'), { glyphs: ['dev'] });
+    await say(bran, H.hubOfSubject('acct-bran'), { t: 'party', p: NOTE });
+    const ask = async (ws, key, m) => { tick(3000); await say(ws, key, { t: 'stp', k: 'ask', nt: 1, ...m }); return stp(ws, 'result').at(-1); };
+    const quiet = await ask(ghost, kg, { name: 'bran', nonce: 'h1' });
+    assert.deepEqual([quiet?.via, quiet?.id, quiet?.note?.rk], ['note', 'peer-bran', 'dungeon:m1234'], 'answered from the note');
+    assert.equal(ghost.closed, null);
+    assert.equal((await ask(ghost, kg, { id: 'peer-bran', nonce: 'h2', cap: 1 }))?.error, 'unavailable', 'a note its game could not place: never its game asked');
+    assert.equal((await ask(ghost, kg, { name: 'cleo', nonce: 'h3' }))?.error, 'unavailable', 'no note at all: the same');
+    for (const ws of [bran, cleo]) assert.equal(stp(ws, 'capture').length, 0, `${ws.att.id}'s game was sent nothing`);
+    await ask(dev, H.hubOfSubject('acct-devvy'), { name: 'cleo', nonce: 'v1' });
+    assert.equal(stp(cleo, 'capture').length, 1, 'a visible Admin\'s missing note still falls back to the capture');
+    for (const ws of [bran, cleo, dev]) assert.deepEqual(leaks(ws), [], `${ws.att.id} heard nothing of it`);
+  });
+});
+
+/** A dungeon room on a held clock (the review's probe): `fn` gets the room and the clock. */
+async function onClock(fn) { const real = Date.now; const c = { t: real() }; Date.now = () => c.t; try { return await quiet(() => fn(c)); } finally { Date.now = real; } }
+const at = (k = 0) => ({ x: PIXEL_UNITS + 10 + k, y: 0, z: PIXEL_UNITS + 10, yaw: 0, pitch: 0, mv: 0 });
+
+test('STAFF-PANEL5-HIDDEN-FIX seat-live: a hidden socket is nobody there to hear a dungeon\'s seat - a lone player back from silence is sent no host frame, and a reconnecting host keeps its seat as it would with nobody watching (mutants: the silence walk counts it; the reconnect walk counts it)', async () => {
+  const lone = (watched) => onClock(async (c) => {
+    const r = fakeRoom('dungeon:m1291010263');
+    const p = r.connect(); await r.hello(p, 'pppp-0001', at());
+    c.t += 60_000;
+    if (watched) { const g = r.connect(); await r.hello(g, GHOST_ID, at(1), HIDE); assert.equal(g.att.hid, 1); }
+    c.t += FOES_STALE_MS + 1000;
+    p.sent.length = 0;
+    await r.pose(p, at(2));
+    return ofT(p, 'host');
+  });
+  assert.deepEqual(await lone(false), [], 'alone: nothing');
+  assert.deepEqual(await lone(true), [], 'watched: nothing either');
+  // a host whose page blipped: the ghost in first, then the host, then a player; the host reconnects inside the player's patience
+  const blip = (watched) => onClock(async (c) => {
+    const r = fakeRoom('dungeon:m1291010263');
+    if (watched) { const g = r.connect(); await r.hello(g, GHOST_ID, at(1), HIDE); }
+    c.t += 1000;
+    const a = r.connect(); await r.hello(a, 'aaaa-0001', at());
+    c.t += 1000;
+    const b = r.connect(); await r.hello(b, 'bbbb-0002', at(3));
+    assert.equal(r.room._hostOf(), 'aaaa-0001');
+    c.t += FOES_STALE_MS - 500;
+    b.sent.length = 0;
+    const a2 = r.connect(); await r.hello(a2, 'aaaa-0001', at());
+    return [r.room._hostOf(), ofT(b, 'host').map((f) => f.id)];
+  });
+  assert.deepEqual(await blip(false), ['aaaa-0001', []], 'nobody watching: the host keeps its seat');
+  assert.deepEqual(await blip(true), ['aaaa-0001', []], 'watched: the same');
+});
+
+test('STAFF-PANEL5-HIDDEN-FIX an asked layer holding only hidden sockets is empty, as one holding nobody - a ?ly probe learns nothing; a layer with a player in it is opened (mutants: the hidden sockets counted)', async () => {
+  const had = globalThis.WebSocketPair;
+  globalThis.WebSocketPair = class { constructor() { const att = {}; this[0] = {}; this[1] = { att, serializeAttachment(x) { Object.assign(att, x); }, deserializeAttachment() { return att; }, close() {} }; } };
+  const knock = async (r) => {
+    const res = await r.room.fetch(new Request('https://relay.test/room/world:3,12', { headers: { Upgrade: 'websocket', [LAYER_HEADER]: '1', [LAYER_ASK_HEADER]: '1' } })).catch(() => null);
+    return res ? { status: res.status, empty: res.headers.get(LAYER_EMPTY_HEADER) } : 'admitted';
+  };
+  try {
+    await quiet(async () => {
+      const EMPTY = { status: 503, empty: '1' };
+      assert.deepEqual(await knock(fakeRoom('world:3,12')), EMPTY, 'nobody: empty');
+      const ghosted = fakeRoom('world:3,12');
+      const g = ghosted.connect(); g.att.ly = 1; await ghosted.hello(g, GHOST_ID, at(), HIDE);
+      const seat = ghosted.connect(); seat.att = { ...seat.att, hs: 1, ly: 1 }; ghosted.room._adopt(seat, seat.att);   // a hidden seat not yet said hello
+      assert.deepEqual(await knock(ghosted), EMPTY, 'only hidden sockets: empty');
+      const peopled = fakeRoom('world:3,12');
+      const p = peopled.connect(); p.att.ly = 1; await peopled.hello(p, 'pppp-0001', at());
+      const g2 = peopled.connect(); g2.att.ly = 1; await peopled.hello(g2, GHOST_ID, at(), HIDE);
+      assert.equal(await knock(peopled), 'admitted', 'a player there: opened');
+    });
+  } finally { globalThis.WebSocketPair = had; }
 });

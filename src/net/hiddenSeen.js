@@ -9,7 +9,8 @@
 //
 // THE DOOR IS THE GRANTS' MEASURE'S (net/grantMeasure.js), kept as narrow:
 //   - ONE WAY. The relay posts; the hello never waits on the answer. A post that fails is dropped and said in the log.
-//   - OFF UNTIL ASKED. The relay posts only while its HIDDEN_SEEN_URL is set (server/wrangler.toml).
+//   - OFF UNTIL ASKED. The relay posts only while its HIDDEN_SEEN_URL is set (server/wrangler.toml) - and, while it is
+//     not, lets no hidden socket into a private home at all (STAFF-PANEL5-HIDDEN-FIX: an entry is never unwritten).
 //   - SIGNED with the relay's receipt key over "hidden-seen1\n" + the body's bytes, in HIDDEN_SEEN_SIG_HEADER; the
 //     service checks it with the public half (GATE_PUBLIC_KEY).
 //

@@ -1151,7 +1151,7 @@ const service = {
         // staff session's and no badge, written in the staff audit log - while an Admin or a Moderator holds a live staff
         // session with Hide me on. Every other account reads nothing more here.
         const hidden = await hiddenToken(ctx, env, who.player, key);
-        if (hidden) return json(hidden, 200, origin);
+        if (hidden) return hidden.error ? no(hidden.error, 409, origin) : json(hidden, 200, origin);   // STAFF-PANEL5-HIDDEN-FIX: a lapsed hidden session mints nothing, never a visible token
         // ═══ ACC3: THE BADGE RIDES IN THE TOKEN ══════════════════
         //
         // A title and a glyph are read off the SIGNED claims and never
