@@ -8,7 +8,7 @@
 // to every game. A hidden staff member is never passed on to anyone: the relay drops what the socket says and leaves it out
 // of every roster, list, count, join and leave (server/src/staffHidden.js). This file is the account service's half:
 //
-// HIDE ME, KEPT ON THE ACCOUNT (players.staff_hide, migration 0156): on by default (mob, 05:36Z: "a switch in Your settings,
+// HIDE ME, KEPT ON THE ACCOUNT (players.staff_hide, migration 0159): on by default (mob, 05:36Z: "a switch in Your settings,
 // on by default"); Show myself turns it off (/v1/staff/hide). It is read only for an account a role list names (staff.js
 // staffRole: an Admin or a Moderator) that holds a LIVE staff session, so no other account's token mint reads a thing more.
 //

@@ -26,7 +26,7 @@ import { privateInteriorOf } from './privateInterior.js';
 
 /** The first relay that speaks the follow law (the staff panel's one relay release - integration renumbers it with
  *  RELAY_VERSION). An older relay knows no `hd` or `fo` and would show a spectator, so the game asks this first. */
-export const FOLLOW_RELAY_MIN = 246;
+export const FOLLOW_RELAY_MIN = 247;   // world247 (STAFF-PANEL5: world246 is SEA VENTURES')
 /** Does the relay at version `v` follow? */
 export const followSupported = (/** @type {unknown} */ v) => Number(/^world(\d+)$/.exec(String(v ?? ''))?.[1]) >= FOLLOW_RELAY_MIN;
 
