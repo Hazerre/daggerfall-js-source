@@ -430,7 +430,7 @@ test('AUDIT PISTOLET A7 C1 D8: a Sunken Sovereign minted before PISTOLET - an Eb
   assert.deepEqual(itemFindings(hybrid), ['gilded'], 'a saber with the Archery line');
   const hybrid2 = { ...pistol, affixes: saber.affixes.map((a) => ({ ...a })) };
   assert.deepEqual(itemFindings(hybrid2), ['gilded'], 'a pistol with the Long Blade line');
-  assert.equal(ITEM_LAW_VERSION, 10, 'the law that knows both - a finding a law of 9 made is asked again');
+  assert.equal(ITEM_LAW_VERSION, 11, 'the law that knows both - a finding a law of 9 made is asked again');   // PIN MOVED (SEA-SET, at the merge into SEA VENTURES): law 11 - PISTOLET's 10 and the Eltheric Tidemail's nine records
 });
 
 test('the pair is equipped through the equip law - one in each hand - and the player weapon reads it as a gun pair', () => {

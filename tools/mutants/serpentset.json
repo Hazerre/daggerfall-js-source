@@ -2,8 +2,8 @@
   {
     "name": "SERPENT-SET-set-out-of-the-record",
     "file": "src/systems/sigil/sigil.js",
-    "old": "'thieftaker', 'orcsbane', 'coilscale', 'numidium', 'panoply', 'wyrd', 'starspun']);",
-    "new": "'thieftaker', 'orcsbane', 'numidium', 'panoply', 'wyrd', 'starspun']);",
+    "old": "'thieftaker', 'orcsbane', 'coilscale', 'numidium', 'panoply', 'wyrd', 'starspun', 'eltheric']);",
+    "new": "'thieftaker', 'orcsbane', 'numidium', 'panoply', 'wyrd', 'starspun', 'eltheric']);",
     "why": "the set no sigil may name: every Coilscale piece refused off the wire",
     "tests": [
       "test/systems/serpentset.test.js"
@@ -113,8 +113,8 @@
   {
     "name": "SERPENT-SET-not-a-record",
     "file": "src/systems/aetheric.js",
-    "old": "export const AETHERIC_RECORDS = Object.freeze([...REGALIA, ...RAID_SET_PIECES, ...SERPENT_SET_PIECES, ...NUMIDIUM_SET_PIECES, ...PANOPLY_SET_PIECES, ...WYRD_SET_PIECES, ...STARSPUN_SET_PIECES]);",
-    "new": "export const AETHERIC_RECORDS = Object.freeze([...REGALIA, ...RAID_SET_PIECES, ...NUMIDIUM_SET_PIECES, ...PANOPLY_SET_PIECES, ...WYRD_SET_PIECES, ...STARSPUN_SET_PIECES]);",
+    "old": "export const AETHERIC_RECORDS = Object.freeze([...REGALIA, ...RAID_SET_PIECES, ...SERPENT_SET_PIECES, ...NUMIDIUM_SET_PIECES, ...PANOPLY_SET_PIECES, ...WYRD_SET_PIECES, ...STARSPUN_SET_PIECES, ...ELTHERIC_SET_PIECES]);",
+    "new": "export const AETHERIC_RECORDS = Object.freeze([...REGALIA, ...RAID_SET_PIECES, ...NUMIDIUM_SET_PIECES, ...PANOPLY_SET_PIECES, ...WYRD_SET_PIECES, ...STARSPUN_SET_PIECES, ...ELTHERIC_SET_PIECES]);",
     "why": "a Coilscale piece no reader knows - forged to the wire",
     "tests": [
       "test/systems/serpentset.test.js"
