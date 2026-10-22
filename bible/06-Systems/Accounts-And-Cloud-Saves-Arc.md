@@ -6023,13 +6023,17 @@ city, stands no boss floor. bootWorld takes ten logical lines (36,143, under its
 ### Versions, words, pins
 
 - acct168. No migration (server_post as it stands) and no relay change (the relay bundles none of these files). PIN
-  MOVED: the account version's pins (23 test files) and its ten version records, re-aimed by content, each dead but
-  GATEKEYS-the-empty-var-back, whose own test asked first that the deploy carry the new files: the account Worker now
-  bundles `src/net/lostLaw.js`, and through it `systems/superDungeon/sdSpoils.js`, `systems/eliteGates/egSpoils.js` and
+  MOVED: the account version's pins (20 test files, among them the history `auditscale2_acct.test.js` holds them to) and its ten
+  version records, re-aimed by content, each dead - GATEKEYS-the-empty-var-back once its own test was green, which asked
+  first that the deploy carry the new files: the account Worker now bundles `src/net/lostLaw.js`, and through it `systems/superDungeon/sdSpoils.js`, `systems/eliteGates/egSpoils.js` and
   `systems/eliteGates/egLordArms.js` (the floor's day-key parsers live there - ONE EXPORT), so the account deploy's path
   filter (`.github/workflows/account-deploy.yml`) names all four, or a change to them would never deploy.
-- Four new strings (`spoils.lost.mailed`, `spoils.lost.back`, `post.claimAll`, `post.claimedAll`), drafted in the
-  thirteen whole languages (`tools/l10nInSession.mjs`). The drafting languages wait for them as for every new key.
+- Nine new strings, drafted in the thirteen whole languages (`tools/l10nInSession.mjs`): the pool's two
+  (`spoils.lost.mailed`, `spoils.lost.back`), the window's two (`post.claimAll`, `post.claimedAll`), and a sentence for
+  each word the route can say (`account.refusal.lostPieces`, `lostItem`, `lostNoKill`, `lostSpent`, `lostFull` -
+  `test/server/accountflow.test.js` ACC1e walks the service for them; the pool turns each into its own line). The
+  drafting languages wait for them as for every new key.
+- Port-Ledger A: the ONLINE row names the law, the door and the service's file (LOST-SPOILS, beside MAIL1).
 - Pins: `test/server/lostspoils_service.test.js` (5), `test/scenes/lostspoils_pool.test.js` (7) and
   `test/net/lostspoils_client.test.js` (4). The client's includes the whole road over the real service: a gate's receipt
   claimed, its floor left, each item in the mailbox, the envelope counting them, and Claim all into the realm record.
