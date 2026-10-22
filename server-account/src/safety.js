@@ -314,7 +314,7 @@ export const modDismiss = (ctx, actor, env, { target, name, caseId = null }, { f
  * no route".) A Mute, Ban, Unban or Dismiss is made HERE, whichever door asked - the staff panel (staffCases.js), the
  * game's moderators (index.js /v1/mod/*), Discord's buttons and /mod (discord.js) - so its rules hold at every door:
  * - ONE CASE, ONE SANCTION ("One case can give two strikes"): a Mute, Ban or Dismiss takes its case first (`act_click`,
- *   migration 0153), in the statement that checks nobody took it - two moderators, two doors or two presses on one case
+ *   migration 0156), in the statement that checks nobody took it - two moderators, two doors or two presses on one case
  *   act once, the other refused (`case-acted` while the first is in flight, `case-closed` once it is done). A press's
  *   one-time id (`click`) sent again is answered as the first (`repeat`), never a second strike. A door that names no
  *   case acts on the account's open case modCase shows it (its chat case, else - for a developer - its spawn case).

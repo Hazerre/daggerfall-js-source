@@ -424,7 +424,7 @@ test('STAFF-PANEL3-PLAYERS: the lists a rename refuses are every role and title 
   assert.deepEqual([...NAME_COPIES].map((c) => c.join('.')).sort(), copies.map((c) => c.join('.')).sort());
 });
 
-test('STAFF-PANEL3-PLAYERS: SERVER LOAD - the trades read and the search by a character\'s name stand on migration 0148\'s indexes, never a scan of the table', async () => {
+test('STAFF-PANEL3-PLAYERS: SERVER LOAD - the trades read and the search by a character\'s name stand on migration 0151\'s indexes, never a scan of the table', async () => {
   const s = await stand();
   const seen = [];
   const prepare = s.env.DB.prepare.bind(s.env.DB);

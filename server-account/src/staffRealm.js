@@ -22,7 +22,7 @@
 //     GAINS_KEEP_MS so the panel never re-reads it on every open (design doc "Server load").
 //   - Remove from a player takes the piece on a path of its own (realm.js prepareRealmRecord `take`): the repair path
 //     refuses copied pieces, which are what staff remove. The record moves one save on with its seat taken, so the
-//     player's game's next save is refused; the piece goes to the 30-day store (staff_evidence, migration 0149) and its
+//     player's game's next save is refused; the piece goes to the 30-day store (staff_evidence, migration 0152) and its
 //     ledger row is marked taken by staff (ledger.js SEIZED), so a save that shows it again is charged as a copy. A piece
 //     the ledger contests (another holds it, or copies are known) needs `trail: true` - the design's "require a trail
 //     check before Remove" - and the preview names the trail; a copy written down on the character itself needs its

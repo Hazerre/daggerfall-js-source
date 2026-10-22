@@ -224,7 +224,7 @@ export async function ledgerStep(db, at, pieces, known = null) {
 }
 
 /** @typedef {{ first: string | null, firstAt: number | null, claimant: string | null, claimAt: number | null, fp: string | null }} CopyWho */
-/** Copies written down: `keys`, each a copy `char` holds - STAFF-PANEL4-CENSUS: found as `kind` (migration 0151), and
+/** Copies written down: `keys`, each a copy `char` holds - STAFF-PANEL4-CENSUS: found as `kind` (migration 0154), and
  *  `whoOf(key)` the record the ledger had holding it first and the one that claimed it, each with its time, and its print. */
 const copyRows = (/** @type {any} */ db, /** @type {string[]} */ keys, /** @type {string} */ char, /** @type {number} */ nowS,
   /** @type {string | null} */ kind = null, /** @type {(k: string) => CopyWho | null} */ whoOf = () => null) =>

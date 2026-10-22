@@ -23,9 +23,9 @@
 // or failed one `failed`, with its word.
 //
 // SERVER LOAD (design doc, "Server load"): the search reads by index - the handle's, a character's name's (migration
-// 0148) and the last play beat's (players.played_at) - a profile's facts are one batch, a save is opened once a write
+// 0151) and the last play beat's (players.played_at) - a profile's facts are one batch, a save is opened once a write
 // (`kept`: by its object's key, and every write is a new object, so a kept view never goes stale), the trades read by
-// migration 0148's indexes, and every list pages (`from`, answered `next`).
+// migration 0151's indexes, and every list pages (`from`, answered `next`).
 import { displayName, devicesOf, closeAllSessions, handleRefusal, wornNameRefusal, isMuted } from './accounts.js';
 import { findAccount, strikesOf, isBanned } from './sanctions.js';
 import { canModerate, handleList } from './titles.js';
@@ -408,7 +408,7 @@ async function tabOf(ctx, env, tab, p, chars, body) {
   }
 
   if (tab === 'trades') {
-    // both sides, by migration 0148's indexes; the service keeps a trade REALM_TRADE_KEEP_S (realmTrade.js), so this is the last week's
+    // both sides, by migration 0151's indexes; the service keeps a trade REALM_TRADE_KEEP_S (realmTrade.js), so this is the last week's
     const from = fromOf(body.from);
     const rows = (await db.prepare(`SELECT t.sid, t.created_at AS at, t.state, t.why, t.result, t.a_player, t.a_char, t.b_player, t.b_char,
         ca.name AS a_name, cb.name AS b_name, pa.handle AS a_handle, pb.handle AS b_handle

@@ -216,7 +216,7 @@ test('ACC1b: the migration is the real schema, and applying it twice changes not
   // the key, so a repair asked again mends once; review.js repairAct)
   // CRAFT-WRITS added one (0145): `craft_writs` (one row an account's crafting writ of a UTC day - its product, guild,
   // count and pay, and once filled its request and the goods it took; craftWrits.js)
-  // STAFF-PANEL3 to STAFF-PANEL6 added seven (0147-0152, PIN MOVED): `staff_notes`, `staff_watch` and `staff_settings` (a
+  // STAFF-PANEL3 to STAFF-PANEL6 added seven (0150-0155, PIN MOVED): `staff_notes`, `staff_watch` and `staff_settings` (a
   // staff member's notes on a player, their watchlist and their own settings; staffDesk.js), `staff_evidence` (an item a
   // staff member removed, kept 30 days for Put back; staffRealm.js), `item_census` and `item_census_days` (the day's count
   // of every piece and the days it covers; staffCensus.js), `staff_limits` (the status tiles' lines an Admin sets;
@@ -287,7 +287,7 @@ test('ACC1b: the migration is the real schema, and applying it twice changes not
   // PIN MOVED (WITCH1, 0134): the Soul Cakes, the wares bought, the cakes given and taken, the profile icon worn
   // PIN MOVED (STAFF-PANEL1, 0144): `staff_mod`, 1 for a Moderator an Admin added from the staff panel - a fact about the account,
   // read as the role lists are (titles.js isModerator)
-  // STAFF-PANEL2-FIX added four (0153, PIN MOVED): `banned_by`, `mute_admin` and `ban_admin` (who set a ban, and whether
+  // STAFF-PANEL2-FIX added four (0156, PIN MOVED): `banned_by`, `mute_admin` and `ban_admin` (who set a ban, and whether
   // an Admin set the mute or the ban, which only an Admin lifts or shortens; sanctions.js, accounts.js) and `staff_suspended`
   // (a staff member an owner cut off, read by every role path; titles.js)
   assert.deepEqual(cols.sort(), ['aura', 'ban_admin', 'ban_reason', 'banned_by', 'banned_until', 'conduct_v', 'created_at', 'eg_annals', 'eg_first', 'eg_honours', 'eg_key_miss', 'eg_keys', 'eg_live_b', 'eg_live_until', 'eg_mercy', 'eg_pity', 'eg_rh_day', 'eg_valk_wk', 'email', 'fest_bowls', 'fest_cakes', 'fest_given', 'fest_taken', 'fest_wares', 'first_played_at', 'glyphs_off', 'guest_name', 'handle', 'handle_lc', 'icon', 'id', 'insignia', 'insignia_spent', 'lamp_title', 'last_seen', 'legal_accepted_at', 'mute_admin', 'muted_by', 'muted_until', 'name_as', 'password', 'patreon_at', 'patreon_status', 'patreon_tiers', 'patreon_user', 'played_at', 'played_s', 'privacy_version', 'ql_key', 'ql_titles', 'recovery_hash', 'registered_at', 'renown_hour', 'renown_hour_xp', 'renown_last_credit', 'sd_honours', 'serpent_honours', 'staff_mod', 'staff_suspended', 'terms_version', 'title']);

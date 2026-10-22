@@ -26,7 +26,7 @@ import { maskText } from '../../src/net/nameFilter.js';
 
 /** A staff note's longest words. */
 export const STAFF_NOTE_MAX = 500;
-/** The notes kept a player - the newest; the insert trims past it (the table's retention, 0147). */
+/** The notes kept a player - the newest; the insert trims past it (the table's retention, 0150). */
 export const STAFF_NOTES_KEEP = 200;
 /** Notes one page answers. */
 export const STAFF_NOTES_PAGE = 25;
