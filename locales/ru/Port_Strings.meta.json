@@ -28394,6 +28394,71 @@
   "tr": "12a5e3370bad",
   "by": "claude-in-session"
  },
+ "sea.wild.band.abyss": {
+  "en": "f31d60098f37",
+  "tr": "a4f36b4eb7ce",
+  "by": "claude-in-session"
+ },
+ "sea.wild.band.deep": {
+  "en": "16bce2561520",
+  "tr": "a26c06fe0ab2",
+  "by": "claude-in-session"
+ },
+ "sea.wild.band.reaches": {
+  "en": "0b99da92a300",
+  "tr": "6cd1f09a01e3",
+  "by": "claude-in-session"
+ },
+ "sea.wild.band.shallows": {
+  "en": "b379839ab408",
+  "tr": "a89f1527bc19",
+  "by": "claude-in-session"
+ },
+ "sea.wild.chipTip": {
+  "en": "b40492a06f0d",
+  "tr": "30bd1f37fc23",
+  "by": "claude-in-session"
+ },
+ "sea.wild.crossWarn": {
+  "en": "7160386cb98f",
+  "tr": "238679f23d9f",
+  "by": "claude-in-session"
+ },
+ "sea.wild.deathHold": {
+  "en": "ffab1c13da5b",
+  "tr": "f2dd5b7356a7",
+  "by": "claude-in-session"
+ },
+ "sea.wild.deeper": {
+  "en": "aaccffce7440",
+  "tr": "427ab6f0fd34",
+  "by": "claude-in-session"
+ },
+ "sea.wild.enter": {
+  "en": "b5f46484e3b0",
+  "tr": "f82ec88dcf2b",
+  "by": "claude-in-session"
+ },
+ "sea.wild.leave": {
+  "en": "13cae21476a9",
+  "tr": "c6d6f1877691",
+  "by": "claude-in-session"
+ },
+ "sea.wild.ring": {
+  "en": "0e77f7332ce5",
+  "tr": "0e77f7332ce5",
+  "by": "claude-in-session"
+ },
+ "sea.wild.shallower": {
+  "en": "c869d60b277a",
+  "tr": "460ff617ea81",
+  "by": "claude-in-session"
+ },
+ "sea.wild.teleport": {
+  "en": "cf9b2020138e",
+  "tr": "d21286a6a098",
+  "by": "claude-in-session"
+ },
  "search.searchedBy": {
   "en": "e585f232c88f",
   "tr": "4bfacc00bb26",

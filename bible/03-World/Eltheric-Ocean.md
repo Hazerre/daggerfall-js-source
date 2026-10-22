@@ -1,4 +1,4 @@
-# The Eltheric Ocean - past the Veil (ETHER-SEA, ETHER-PLACES, ETHER-PORTS, ETHER-SHIPS, ETHER-LEGENDS, ETHER-CROSSING, ETHER-CHART, ETHER-LIGHT, 2026-10-11; ETHER-CHART2, ELTHERIC, ETHER-DEEP, ETHER-NODES, 2026-10-12; ETHER-OW, 2026-10-13)
+# The Eltheric Ocean - past the Veil (ETHER-SEA, ETHER-PLACES, ETHER-PORTS, ETHER-SHIPS, ETHER-LEGENDS, ETHER-CROSSING, ETHER-CHART, ETHER-LIGHT, 2026-10-11; ETHER-CHART2, ELTHERIC, ETHER-DEEP, ETHER-NODES, 2026-10-12; ETHER-OW, 2026-10-13; ETHER-WILD, 2026-10-21)
 
 The owner, 2026-10-11: *"A brand new open sea map that allows you to traverse to the etheric sea. Sail far enough and
 you are prompted to travel into the open sea. The etheric sea is a infinite procedural oceanscape with procedural
@@ -14,6 +14,11 @@ is very shallow and has no depth. We also need to implement gathering nodes with
 The owner, 2026-10-13: *"Also allow the player to zoom out into the overworld like in the Iliac Bay for easy travel.
 Enemies should show on the world map just like in the bay"* - ETHER-OW: the Overworld (`06-Systems/Travel-View.md`)
 risen past the Veil, its places the isles' and its enemies the Bay's own, seeded on the sea.
+
+The owner, 2026-10-21: *"I want there to be more of a reason to venture into this zone. Along with your suggestions id
+also like to implement open pvp for this zone specifficaly and implement some of the wrothgarian mountain open pvp
+aspects into the procedural Islands"* - ETHER-WILD: the sea past Veilhaven's peace an open PvP zone, its depth bands the
+Wrothgarian Mountains' four rings.
 
 The pre-merge audit (AUDIT CAPTAIN'S SEA, the owner: "Lets do a comprehensive audit, enaure this is insanely detailed
 and perfection. No exceptions") is `01-Overview/audits/Audit-Captains-Sea.md`: its fixes stand in the sections below, each
@@ -67,6 +72,7 @@ thousand leagues:
 | ETHER-DEEP | ITS DEPTH: Iliac Puddle No More's bake over the sea's own frame - its floor carved, swum and walked as the Bay's; the pits held to the Bay | `world/etherWatersBake.js`, `world/deepWater/deepWatersBake.js` (the frame, the flood, the raw reader's own bytes), `world/deepWater/deepWaterTileData.js` (the frame's clamps), `world/deepWater/deepWatersClient.js`, `world/deepWater/deepWatersWorker.js`, `scenes/deepWater/deepWatersHost.js` (the one gate, the frame's climates), `scenes/oceanHolesHost.js` (the hold), `scenes/world.js` (the places' rects, the near promote) |
 | ETHER-NODES | ITS NODES: the nodes' law knows the sea's ground - an isle's node, a haul and a pixel's witnesses taken by the service as the Bay's | `net/nodeLaw.js` (`pixelOk`, the ids' spelling) - both ends |
 | ETHER-OW | THE OVERWORLD PAST THE VEIL: the chart's Overworld door; an isle's place the view's own (plated, at the edge, TV6's); the governor's ground the stream's; the bands and the raiders seeded on the sea, their chases heard; a raider stood there the sea's own corsair | `ui/etherChartWindow.js` (the door), `scenes/travelView.js` (`TRAVEL_VIEW_BUTTON`), `world/ethericSea.js` (`onBayOrEther`), `world/etherPlaces.js` (`etherPlaceIsle`, `etherPlaceRows`), `scenes/world.js` (`openEtherChart`, `etherPlaceClone`, `tvEtherPlace`, `tvPlaceSummary`, `travelViewFarPlaces`, `tvDungeonRowsAt`, the governor, `bandOk`, `tvRaidOpen`, `tvRaidSea`), `systems/travel/travelBands.js` (`chaserPlaceOk`), `scenes/naval/navalHost.js` (`raiders`) |
+| ETHER-WILD | THE OPEN SEA: past Veilhaven's peace an open PvP zone, its bands the zone's four rings - the fights, the foes and their loot, the packs, the death's drop, the strangers, no teleport; the rise at a freeport; no pace cap; a hand ashore goes back aboard; the crossing's warning; /unstuck to a freeport | `systems/wild/etherWild.js`, `systems/wild/wildZone.js` (the ground on the flag, `registerZoneWords`, `zoneWord`), `scenes/world.js` (`wildFrame`, `wildAtWire`, `wildHidesPlayer`, `wildTeleportRefused`, `wildRiseSite`, `unstuckOutdoors`, `wildBornHere`, the crossing's rows), `scenes/dungeonContext.js` (`_wildRingRaw`), `scenes/grantHost.js` (`wildAbout`), `systems/naval/crewCompanions.js`, `systems/naval/etherCrossing.js`, `ui/hud/statusTips.js` |
 | (the ledger) | WHAT A CAPTAIN KEEPS OF IT: the isles charted, the legends ended and heard of, the strands gathered, the way out, the crossings - in the Captain save | `systems/naval/captainLedger.js` (`ether`, `chartIsle`, `endLegend`, `gathered`, `setCrossedFrom`, `crossed`, `hearLegend`), `scenes/etherHost.js` |
 
 THE FOUR HOSTS (Home.md; AUDIT CAPTAIN'S SEA H12 - the slices named none): the sea, its ships, the crossing, the chart
@@ -597,6 +603,109 @@ as it stood), so the account Worker's law did not move with ETHER-OW (AUDIT ETHE
 Motherlode is sited where a Watch receipt can name its pixel).
 **THE FOUR HOSTS.** The Overworld is the streaming host's alone (`06-Systems/Travel-View.md`): `scenes/world.js` wired;
 `scenes/exterior.js`, `scenes/worldModes.js` and `scenes/dungeonContext.js` raise no view - FLAGGED, as TV's.
+
+## ETHER-WILD - the open sea: past Veilhaven's peace, an open PvP zone
+
+The owner, 2026-10-21: *"The etheric ocean is some amazing content we havent touched in awhile. I want there to be more
+of a reason to venture into this zone. Along with your suggestions id also like to implement open pvp for this zone
+specifficaly and implement some of the wrothgarian mountain open pvp aspects into the procedural Islands"*.
+
+READ AS: the Wrothgarian Mountains' open zone (`11-Multiplayer/Wild-Zone.md`) - its law already one live flag every
+pool, fight, drop and name reads (`wildZone.js:"export function setWildHere"`) - stood on a second ground: the sea. Its
+four rings are the sea's four depth bands, so the band that already made the ships deadlier and the holds richer makes
+the foes and the players so too. Online alone, as the mountains are. Its section in the zone's own page is
+`11-Multiplayer/Wild-Zone.md` section 24; the law is `src/systems/wild/etherWild.js`.
+
+**WHERE.** Every pixel of the box (`inEther`) but **VEILHAVEN'S PEACE** (`etherInPeace`,
+`etherWild.js:"export function etherInPeace"`): the Veil, the way home, the whole length of the sea; and the water
+within `ETHER_PEACE_PX` (12 pixels, some ten kilometres) of Veilhaven's own pixel - the haven, its quay, and the
+landfall four pixels east of it, so a crossing never comes out into a fight. The peace is a circle, not a square: a
+captain reads it off Veilhaven, whichever way she sails. Every other port is a freeport of the open sea - its watch ten
+times as strong, a blow struck at a player in its streets an Assault (ZONE-WATCH, Wild-Zone.md section 3).
+
+**THE RINGS** (`etherWildRingAt`, `etherWild.js:"export function etherWildRingAt"`): a pixel's band is its ring - the
+Shallows I (+25% loot), the Reaches II (+50%), the Deep Aether III (+75%), the Abyss IV (twice) - `WILD_RING_LOOT`, the
+mountains' own, unchanged. The crossing of a band is said in the sea's words ("Deeper - The Deep Aether: +75% loot.",
+"Back toward the Veil - The Shallows: +25% loot.") and the HUD's zone tile names the band.
+
+**WHAT THE MOUNTAINS' LAW BRINGS TO THE ISLES** (the flag is the mountains', so each of these is theirs, unchanged):
+
+- THE FIGHTS: two players past the peace may strike each other - outdoors, on an isle or across a deck, and in an
+  isle's ruin - never kin (a party, its truce, a duel's two, a guild); the relay referees every blow
+  (`wildRef.js`), and its zone word is the client's own, as the mountains' is (`world.js:"online?.setWildZone?.(wildCan() ? 1 : 0)"`).
+  A peer's pose past the peace is fair (`wildAtWire`, `world.js:"const wildAtWire = (p, near = false) => {"`).
+- THE FOES four times as strong and their ring's share more (`applyWildFoe` at a spawn, read off the flag): an isle's
+  wanderers and camps, and - ISLE RUINS - an isle's ruin read by its band at its own pixel
+  (`wildRingAtPlace`, `etherWild.js:"export function wildRingAtPlace"`, moved there from dungeonContext.js so it reads one
+  way; `dungeonContext.js:"const _wildRingRaw = isOnlinePage()"`), over the elite a ruin of the Deep Aether or the Abyss
+  already is (ELITE_BANDS). Their drops, their gold and their piles at the ring's multiplier, the ruins' DUNGEON-RESPAWN
+  the zone's own.
+- THE PACKS: an Overworld band born past the peace is four times its size (`wildBornHere`,
+  `world.js:"function wildBornHere(px, py)"` - online alone at sea; the mountains' read stands as it stood).
+- A DEATH: the bag and half the purse into the room's remains, a killer's pick of one worn piece in the open (the
+  two-phase handoff), the two minutes' wait ("Past the Veil the dead wait two minutes." - the death keeps the ground it
+  fell on, `setWildDeath`'s `kind`), the remains twelve minutes, marked for their owner. THE RISE is the sea's own,
+  AUDIT CAPTAIN'S SEA P4's: the nearest freeport's town within ETHER_RISE_PX, else Veilhaven (`wildRiseSite`,
+  `world.js:"const wildRiseSite = (px, inDungeon = false) => {"`) - the mountains' search of the Bay's maps would have
+  woken the dead a crossing away, and the sea has no "outside" near enough to rise in; a ruin's death rises there too,
+  never at the ruin's door its killer stands at. The team is called to follow, the risen stood clear of every body.
+- STRANGERS: every other player past the Veil outside my party and my guild is unseen on the maps
+  (`wildHidesPlayer` - near the zone is the whole sea, the peace too, as the mountains' band is), a red "Stranger"
+  helm on the Overworld within 1.5 km, said within 600 m, no name over their heads, and a journey slowed by them
+  (STRANGER-PACE).
+- NO TELEPORT into, out of or about the open sea (`wildTeleportRefused`, ETHER_WILD_TEXT.teleport: "You cannot
+  teleport into, out of or about the open Eltheric Ocean. Sail.") - asked before the mountains' mask, beside the Veil's
+  own refusal (`veilRefused`, P6). The way about the sea is the sea.
+- THE COMPANIONS: a hand ashore and a sworn one at the side drop their packs with the player's (COMPANION-DROP).
+- /UNSTUCK (PVPUNSTUCK, the zone's five minutes and its hour): at sea, the walk is to the nearest freeport
+  (`world.js:"const unstuckOutdoors = () => {"`, wildRiseSite's sea). FOUND READING IT: it searched the Bay's maps
+  anywhere, so a captain stuck on an isle woke in a Bay town across the Veil - a teleport over it (P6), and out of the
+  open sea's fights.
+- FOE-BOUNDS (Spawn-Grants section 19): a street foe stood past the Veil may carry the zone's health to a client in
+  Veilhaven's peace (`grantHost.js:"function wildAbout(r, lane) {"`) - the whole sea is near the zone, as the
+  mountains' band is, so an owner's foe a stride over the peace's edge is never taken down as impossible.
+
+**WHAT THE SEA KEEPS ITS OWN** (named, each a reading of the mountains' law on water):
+
+- NO PACE CAP. The mountains' x20 / x40 (`WILD_PACE_CAP`) is never set at sea (`world.js:"setPaceZoneCap(wildHere() && wildZoneKind() !== ETHER_KIND"`):
+  the sea's leagues are its own price (the Abyss is an hour at the helm's top speed), and a stranger near still holds
+  a journey (STRANGER-PACE).
+- A HAND ASHORE GOES BACK ABOARD. COMPANION-DROP's "no send-off in zone" is the mountains' (the owner, 2026-10-19):
+  at sea a hand is sent back to her boat and a hand knocked out gives his pack to her hold
+  (`crewCompanions.js:"export function heldAtSide"`, `packStaysAshore`) - the boat's hold is the sea's own shelter, open
+  from anywhere already (CARGO-ANYWHERE, Wild-Zone.md section 4's open door), and a captain a hundred leagues out could
+  otherwise never send her hands home short of Veilhaven. A sworn one at the side stays, as in the mountains: the
+  roster's "away" is no hold.
+- THE HOLD IS KEPT. A boat on the zone's water keeps her hold through a death there (Wild-Zone.md section 4, "Open for
+  the owner") - at sea, where most of what a captain carries is in it, the larger share of the shelter. Named, not
+  closed: the owner's call (OPEN FOR THE OWNER, below).
+- No halls, no Greater Giants, no crows: an isle's ruin is open every day and stands where its isle does; the
+  mountains' day-spawned halls and their hub's record are the mountains'.
+- THE CROSSING SAYS SO. Online, the question at the crossing waters says what lies past the peace
+  (`etherCrossing.js:"export function crossingRows"`, `pvp`; one sentence in every language, broken into the question's own measure by `questionRows`): "Past Veilhaven's peace the open sea is an open PvP zone.
+  Other players may attack you there."
+
+**THE WORDS** are the ground's: the live flag carries its kind (`setWildHere(on, ring, kind)`, `wildZoneKind`), the
+sea's words are registered by its own module (`registerZoneWords`, so the mountains' leaf imports nothing of the sea),
+and `zoneWord`, `zoneName` and `zoneRingName` answer the ground's own - a word the sea does not say its own way is the
+mountains' (`WILD_TEXT`). Through the text core (L10N4: `sea.wild.*`).
+
+**THE FOUR HOSTS.** `scenes/world.js` (the street, the fights, the death, the frame) WIRED; `scenes/dungeonContext.js`
+(an isle's ruin: its foes, its piles, its fights) WIRED; `scenes/worldModes.js` (an isle town's buildings) reads the
+flag as the mountains' buildings do - no player is struck indoors, its foes and remains the zone's; `scenes/exterior.js`
+(the bench) stands no sea - FLAGGED, as ever.
+
+**NO WIRE, NO DEPLOY.** The relay referees a socket's word (`zone`) wherever its cell lies, and the account service's
+fall reads no map: nothing on either moves. A client from before ETHER-WILD never says it stands in the zone at sea, so
+it fights nobody there and drops nothing - INT9's known limit, Wild-Zone.md section 22.
+
+**OPEN FOR THE OWNER** (the suggestions that came with it, none built): broadsides between players' ships and a
+captain's hold as a prize - the relay referees no naval fire yet, so a ship is no target of a player's; whether a
+captain's hold gives up a share at a death past the peace (the larger shelter at sea, above); a freeport's bounty board
+on the sea's killers; the Wrothgarian halls' daily elite vaults for the Deep Aether and the Abyss, with their locks and
+crows; and the peace drawn on the chart.
+
+Pinned by `test/systems/wild/etherwild.test.js` (8); `tools/mutants/etherwild.json` (28, all dead).
 
 ## The ledger's record
 

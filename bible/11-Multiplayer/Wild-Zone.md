@@ -65,7 +65,7 @@ cut. Every place on what is left - its streets, its buildings, its dungeons - is
 penalty's law). The law is `src/systems/wild/wildZone.js` (a leaf: the region test, the mask and its edge, the numbers, the
 live flag the pools read at a spawn, and the death screen's state); the world host sets the flag each frame
 (`wildFrame`, `world.js:"const wildFrame ="`) from the region under the player AND the ring of the pixel under them
-(`world.js:"const here = _onlineWorldSession"` - region 16 outside the cut is not the zone), and says the crossing. A
+(`world.js:"const here = seaRing > 0"` - region 16 outside the cut is not the zone; ETHER-WILD, section 24, the sea past Veilhaven's peace beside it), and says the crossing. A
 dungeon reads its own map pixel (`dungeonContext.js:"const _wildDungeon"`): one of region 16 outside the cut is an
 ordinary dungeon.
 
@@ -897,6 +897,34 @@ The zone landed without a run of the suite. Four of what it caught were the sour
 - `/unstuck`'s bar stands at the HUD's z 30, not 9999 - over the asset picker (MWFIX 1); the Heal Curse hotkey plays
   the hotkey arm's one click, not a second of its own (AUDIT 26 D1); and the temple's blood curse is `bearsCurse` /
   `healCurseLift`, not the item curse's `isCursed` / `liftCurse` (AUDIT 24, one name one home).
+
+## 24. The open sea past the Veil (ETHER-WILD, 2026-10-21)
+
+The owner: "implement open pvp for this zone specifficaly and implement some of the wrothgarian mountain open pvp aspects
+into the procedural Islands" - of the Eltheric Ocean. The zone stands on a second ground: every pixel of the sea's box
+but Veilhaven's peace (the Veil, and twelve pixels about Veilhaven), its four depth bands the four rings - the Shallows
+I, the Reaches II, the Deep Aether III, the Abyss IV, at `WILD_RING_LOOT` as the mountains' are. The law is
+`src/systems/wild/etherWild.js`; its record, and what the sea keeps its own, is `03-World/Eltheric-Ocean.md` ETHER-WILD.
+
+- THE ONE FLAG. `wildFrame` asks the sea beside the mountains (`world.js:"const seaRing = _onlineWorldSession()"`,
+  online, past a relay that raises the zone, with the sea standing) and sets the flag with its GROUND
+  (`setWildHere(on, ring, kind)`, `wildZoneKind` - 'wroth' or 'ether'): every law of sections 2-11 reads the flag and
+  so stands at sea unchanged - the fights and the referee, the foes and their loot by the ring, the packs, the death's
+  drop, the remains and the worn pick, the wait, the strangers and the maps' hiding, the zone watch in a freeport's
+  streets, the companions' drop, no teleport. An isle's ruin is the zone's by its band at its own pixel
+  (`wildRingAtPlace`, now `etherWild.js`'s, read by `dungeonContext.js:"const _wildRingRaw = isOnlinePage()"`).
+- ITS WORDS are its ground's: `registerZoneWords` (the sea's, registered by its own module so this leaf imports nothing
+  of it), `zoneWord`, `zoneName`, `zoneRingName` - the crossing of the zone and of a ring, the HUD tile and its tip, a
+  companion held at the side ("until you leave the Eltheric Ocean"), and the death's wait (the death keeps the ground
+  it fell on, `setWildDeath`'s `kind`). A word the sea does not say its own way is `WILD_TEXT`'s.
+- WHAT THE SEA KEEPS ITS OWN: no pace cap (its leagues are its price; STRANGER-PACE still holds a journey); the rise at
+  the nearest freeport, never the Bay's maps' nearest town (`wildRiseSite`'s first line); a hand ashore goes back
+  aboard (her hold the sea's shelter - section 4's open door); no halls, giants or crows. Eltheric-Ocean.md ETHER-WILD
+  names each.
+- NO WIRE, NO DEPLOY: the relay's zone word and the account service's fall read no map. A client from before it never
+  says it stands in the zone at sea - section 22's first limit.
+
+Pinned by `test/systems/wild/etherwild.test.js`; `tools/mutants/etherwild.json` (28, all dead).
 
 ## Pins
 

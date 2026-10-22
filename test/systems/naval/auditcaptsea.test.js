@@ -703,6 +703,7 @@ async function crossingWorld(over = {}) {
     playerTravelPixel: () => ({ x: w.px, y: w.py }), crossingWayAt: EC.crossingWayAt, CROSS_X: ES.CROSS_X, inEther: ES.inEther,
     navalHostileNear: () => w.hostile, CROSS_REFUSED: EC.CROSS_REFUSED, CROSS_STALE: EC.CROSS_STALE, CROSS_FAILED: EC.CROSS_FAILED, csaPassengersOn: () => w.passengers, YesNoBoxWindow,
     crossingRows: EC.crossingRows, captainLedger: ledger, crossingTarget: EC.crossingTarget, CROSS_DAYS: EC.CROSS_DAYS,
+    _onlineWorldSession: () => !!w.online, get online() { return w.online ?? null; },   // ETHER-WILD: the question's warning is online's (offline here, as these pins were written)
     hudFade: { smashHUDToBlack: () => log.push('black'), fadeHUDFromBlack: () => log.push('fade in') },
     csaCall: (fn) => fn(), cam: { yaw: 0 },
     _teleportToPixel: async (px, py, local, opts) => {
