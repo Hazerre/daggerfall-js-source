@@ -202,9 +202,29 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-named-unmarked",
     "file": "server/src/index.js",
-    "old": "return { ...(c.hd === 1 ? { hid: 1 } : {}), name: c.n,",
-    "new": "return { ...({}), name: c.n,",
+    "old": "    if (c.hd === 1) this._hidHellos.add(m);",
+    "new": "    if (false) this._hidHellos.add(m);",
     "why": "the verified mark never read",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-named-any",
+    "file": "server/src/index.js",
+    "old": "if (c.hd === 1) this._hidHellos.add(m);",
+    "new": "this._hidHellos.add(m);",
+    "why": "every verified hello marked hidden",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-hello-unmarked",
+    "file": "server/src/staffHidden.js",
+    "old": "  if (room._hidHellos.has(m)) who.hid = 1;\n",
+    "new": "",
+    "why": "the mark never reaches the hello",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
     ]
@@ -222,8 +242,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-others-named",
     "file": "server/src/index.js",
-    "old": "if (other !== ws && b.id && !b.hid && !this._dead.has(other)",
-    "new": "if (other !== ws && b.id && !this._dead.has(other)",
+    "old": "return out.filter((b) => !b.hid);   // STAFF-PANEL5-HIDDEN: a hidden socket is in no roster",
+    "new": "return out;   // STAFF-PANEL5-HIDDEN: a hidden socket is in no roster",
     "why": "the welcome's who-is-here names it",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -242,8 +262,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-target",
     "file": "server/src/index.js",
-    "old": "if (ws === except || isHidden(this._all().get(ws))) continue;",
-    "new": "if (ws === except) continue;",
+    "old": "if (isHidden(this._all().get(ws))) continue; if (q < seq)",
+    "new": "if (q < seq)",
     "why": "a directed frame's target",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -252,8 +272,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-hub-account",
     "file": "server/src/index.js",
-    "old": "if (m.acct && !isHidden(this._attach(ws))) {",
-    "new": "if (m.acct) {",
+    "old": "    if (isHidden(this._attach(ws))) return;   // STAFF-PANEL5-HIDDEN: a hidden socket is never the hub",
+    "new": "    // STAFF-PANEL5-HIDDEN: a hidden socket is never the hub",
     "why": "the hub's account said hello: friends' presence, the party",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -262,8 +282,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-bus-count-shards",
     "file": "server/src/index.js",
-    "old": "let n = this._vsocks.size - this._vhid.size;",
-    "new": "let n = this._vsocks.size;",
+    "old": "return n - this._vhid.size;",
+    "new": "return n;",
     "why": "the hub's count counts a shard's hidden socket",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -312,8 +332,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-find",
     "file": "server/src/index.js",
-    "old": "if (w === ws || !b.id || b.hid || this._dead.has(w)",
-    "new": "if (w === ws || !b.id || this._dead.has(w)",
+    "old": "      if (b.hid) continue;   // STAFF-PANEL5-HIDDEN: never found\n",
+    "new": "",
     "why": "a search finds it",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -352,8 +372,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-law-hub",
     "file": "server/src/index.js",
-    "old": "const ok = lawKindOf(body?.order) === 'hide' ?",
-    "new": "const ok = false ?",
+    "old": "if (lawKindOf(body?.order) === 'hide') { const ok",
+    "new": "if (false) { const ok",
     "why": "the hub hands a hide order to the mute and ban arm",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -382,8 +402,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-fetch-seat-mark",
     "file": "server/src/index.js",
-    "old": "...(hs ? { hs: 1 } : {}) };",
-    "new": "...({}) };",
+    "old": "    if (hs) att.hs = 1;",
+    "new": "    if (false) att.hs = 1;",
     "why": "a reserve seat unmarked",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -392,7 +412,7 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-hello-refusal",
     "file": "server/src/index.js",
-    "old": "{ const no = hiddenRefusal(this, ws, a, m, who);",
+    "old": "{ const no = hiddenHello(this, ws, a, m, who);",
     "new": "{ const no = null;",
     "why": "the hello's hidden refusals never asked",
     "tests": [
@@ -422,7 +442,7 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-realm",
     "file": "server/src/index.js",
-    "old": "if (realmRoom && !who.hid) {",
+    "old": "if (who.hid) { /* STAFF-PANEL5-HIDDEN: a hidden spectator takes no place in the realm's record - no seat, no turner */ } else if (realmRoom) {",
     "new": "if (realmRoom) {",
     "why": "a realm's record asked of the hidden spectator",
     "tests": [
@@ -442,8 +462,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-census",
     "file": "server/src/index.js",
-    "old": "const linked = !who.hid && (isRegionRoom(a.key)",
-    "new": "const linked = (isRegionRoom(a.key)",
+    "old": "...(who.hid ? { hid: 1, lk: 0 } : {})",
+    "new": "...(who.hid ? { hid: 1 } : {})",
     "why": "the census counts it",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -452,7 +472,7 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-attach-unmarked",
     "file": "server/src/index.js",
-    "old": "...(m.w2 === 1 ? { w2: 1 } : {}), ...(who.hid ? { hid: 1 } : {}) }))",
+    "old": "...(m.w2 === 1 ? { w2: 1 } : {}), ...(who.hid ? { hid: 1, lk: 0 } : {}) }))",
     "new": "...(m.w2 === 1 ? { w2: 1 } : {}) }))",
     "why": "the socket never marked",
     "tests": [
@@ -482,8 +502,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-pose-fanned",
     "file": "server/src/index.js",
-    "old": "return a.hid ? hiddenPose(this, ws, a, m) : this._poseFrame(ws, a, m);",
-    "new": "return this._poseFrame(ws, a, m);",
+    "old": "if (a.hid && (m.t === 'pose' || m.t === 'ping')) return hiddenPose(this, ws, a, m);",
+    "new": "if (false) return hiddenPose(this, ws, a, m);",
     "why": "its pose fanned",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -492,8 +512,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-leave",
     "file": "server/src/index.js",
-    "old": "if (!a.hid) { if (isChatRoom(a.key)) this._fanRoster(ws, out); else this._fanBut(ws, out); }",
-    "new": "if (isChatRoom(a.key)) this._fanRoster(ws, out); else this._fanBut(ws, out);",
+    "old": "if (a.hid) { /* STAFF-PANEL5-HIDDEN: a hidden socket's leave said to nobody */ } else if (isChatRoom(a.key))",
+    "new": "if (isChatRoom(a.key))",
     "why": "its leave said",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -502,8 +522,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-leave-seat",
     "file": "server/src/index.js",
-    "old": "if (!a.hid && !isChatRoom(a.key) && this._leaveMovesSeat(a, ws))",
-    "new": "if (!isChatRoom(a.key) && this._leaveMovesSeat(a, ws))",
+    "old": "    if (a.hid) return false;   // STAFF-PANEL5-HIDDEN: a hidden socket never leads",
+    "new": "    // STAFF-PANEL5-HIDDEN: a hidden socket never leads",
     "why": "its leave moves the seat",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"

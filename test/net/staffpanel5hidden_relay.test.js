@@ -200,7 +200,7 @@ test('STAFF-PANEL5-HIDDEN THE ACCEPTANCE, a region: a hidden link on its region 
     const raw = await link('rawreg', RB, { hs: undefined, kind: 'linked' });
     const ghost = await link('staffer', kg, { ...HIDE, peer: GHOST_ID, kind: 'linked' });
     assert.equal(welcomeOf(ghost)?.t, 'welcome');
-    assert.equal(ghost.att.lk, undefined, 'never a registered body the census counts');
+    assert.ok(!ghost.att.lk, 'never a registered body the census counts');
     assert.equal((await (await bus.room._sdCensusInternal()).json()).n, 2, 'the census: the two players');
     await say(ghost, kg, { t: 'trav', p: MARK });
     await say(game, kg, { t: 'trav', p: MARK });
@@ -331,7 +331,7 @@ test('STAFF-PANEL5-HIDDEN a battle and a realm: a hidden spectator is let into a
       const ghost = r.connect(); await r.hello(ghost, GHOST_ID, P, HIDE);
       assert.ok(welcomeOf(ghost), `${key}: the hidden spectator is let in`);
       assert.equal(ghost.att.sd, undefined, 'on no side');
-      assert.equal(ghost.att.lk, undefined, 'counted by no stone');
+      assert.ok(!ghost.att.lk, 'counted by no stone');
     }
   });
 });

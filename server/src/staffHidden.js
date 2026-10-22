@@ -7,7 +7,8 @@
 // NOT THE GAME'S INVISIBILITY (INVIS-NET, INVIS-LOOK, src/net/remotePlayers.js), which still sends the player's place to
 // every game. A socket whose VERIFIED token says `hd: 1` (identityToken.js; minted by the account service for an Admin or
 // a Moderator holding a live staff session with Hide me on - server-account/src/staffHidden.js) is marked `hid` on its
-// attachment at its hello (index.js `_named`), and from then on:
+// attachment at its hello (index.js `_named` marks the hello off the signature, `hiddenHello` the attachment), and from
+// then on:
 //
 //   NEVER PASSED ON. Everything it says is dropped at the top of `_message` (`hiddenMay`) but the spectator's allow list
 //   - its pose (kept on its own attachment for range alone, so it hears the room near it - never fanned: `hiddenPose`),
@@ -21,7 +22,7 @@
 //   Its own name is the token's - HIDDEN_NAME, never the account's - and its subject a staff session's, never an account.
 //   OUTSIDE THE CAP. A hidden seat is asked at the upgrade (`?hd=1`) and taken from HIDDEN_RESERVE over the room's own
 //   cap; a visible socket's fullness leaves hidden ones out (`seatsTaken`). A hidden seat said hello with a visible token
-//   is closed (`hiddenRefusal`): the reserve is the spectator's alone.
+//   is closed (`hiddenHello`): the reserve is the spectator's alone.
 //   ADMITTED AS STAFF, WRITING NOTHING. A private home (privateInteriorAdmits' staff right), a seat-limited instance
 //   (instanceAdmits' staff right), an Elite Breach and a Super dungeon's realm let a hidden socket in without its
 //   admission's membership or seat written. Entering a private home is reported to the account service's audit log
@@ -84,11 +85,14 @@ export function seatsTaken(room, ask, cap) {
   return ask ? cap - HIDDEN_RESERVE + n : all - n;
 }
 
-/** A hello's refusal for being hidden, or null: a hidden seat said hello with a visible token (the reserve is the
- *  spectator's), or a hidden hello naming an id a visible socket holds (a reconnect never turns a player into a watcher -
- *  its old socket would be replaced with no leave said, and stand frozen before everyone).
+/** A hello's hidden word: `who` marked `hid` when `_named` verified a hidden token for it (the room's `_hidHellos`, a
+ *  WeakSet of hello frames - never a field of the frame, which is the client's word), then its refusal for being
+ *  hidden, or null - a hidden seat said hello with a visible token (the reserve is the spectator's), or a hidden hello
+ *  naming an id a visible socket holds (a reconnect never turns a player into a watcher - its old socket would be
+ *  replaced with no leave said, and stand frozen before everyone).
  *  @param {any} room @param {any} ws @param {any} a @param {any} m @param {any} who */
-export function hiddenRefusal(room, ws, a, m, who) {
+export function hiddenHello(room, ws, a, m, who) {
+  if (room._hidHellos.has(m)) who.hid = 1;
   if (a.hs && !who.hid) return HIDDEN_LAPSED;
   if (who.hid && room._withId(m.id, ws).some(([, b]) => !isHidden(b))) return 'id taken';
   return null;
