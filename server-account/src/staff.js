@@ -52,6 +52,7 @@ import { staffDesk, DESK_ROUTES } from './staffDesk.js';   // STAFF-PANEL3-DESK:
 import { staffPlayers, PLAYER_ROUTES } from './staffPlayers.js';
 import { staffStatus, STATUS_ROUTES } from './staffStatus.js';   // STAFF-PANEL6-STATUS: server status, its limits, Home
 import { staffRealm, REALM_ROUTES } from './staffRealm.js';
+import { staffCensus, CENSUS_ROUTES } from './staffCensus.js';   // STAFF-PANEL4-CENSUS: the item and gold census, the contested pieces
 
 /** The header a staff session rides in - never `authorization`, which is the game's. */
 export const STAFF_SESSION_HEADER = 'x-staff-session';
@@ -103,6 +104,8 @@ export const STAFF_STATUS = Object.freeze({
   'not-developer': 403, 'no-realm-character': 404, 'no-clean': 409, 'service-moved': 409, dead: 409, 'repair-no-faction': 409, 'repair-not-set': 409,
   seq: 409, 'mend-not-negative': 409, 'mend-moved': 409, 'repair-ticket': 409, 'no-data': 409, 'no-storage': 503, 'market-gone': 409, 'bad-listing': 400,
   'staff-note': 400, 'staff-reason': 400, 'staff-remove-pending': 409, 'staff-no-piece': 409, 'staff-trail': 409, 'staff-evidence': 404, 'staff-evidence-gone': 409,
+  // STAFF-PANEL4-CENSUS (staffCensus.js): a contested piece that is not there, and a kind no save tallies (Marks' jumps)
+  'no-piece': 404, 'census-no-tally': 400,
 });
 
 const enc = new TextEncoder();
@@ -352,6 +355,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   if (PLAYER_ROUTES.includes(path)) return staffPlayers(ctx, env, path, body, who, audit);   // STAFF-PANEL3-PLAYERS: search, profile, devices, rename - Admins'
   if (STATUS_ROUTES.includes(path)) return staffStatus(ctx, env, path, body, who, audit);   // STAFF-PANEL6-STATUS (staffStatus.js)
   if (REALM_ROUTES.includes(path)) return staffRealm(ctx, env, path, body, who, audit);   // STAFF-PANEL3-REALM: trade holds, rollbacks, fixes, gains, removals - Admins'
+  if (CENSUS_ROUTES.includes(path)) return staffCensus(ctx, env, path, body, who, audit);   // STAFF-PANEL4-CENSUS: Admin only
 
   // ═══ THE ADMINS' DOORS: THE PANEL'S MODERATORS (mob, 07:42Z: "add it so admins can add or remove moderatoers") ═══
   // /v1/staff/mods lists them; /v1/staff/mod/add and /mod/remove { handle } - a registered account, not banned, not staff
