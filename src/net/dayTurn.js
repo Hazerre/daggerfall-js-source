@@ -1,3 +1,4 @@
+// @ts-check
 // DAY-TURN (2026-10-22, the owner: "The servers are on fire right now. We need to do something"; bible/01-Overview/bugs/
 // Field-Bugs-2026-10-22.md DAY-TURN): A PAGE'S DAY TURNS AT ITS OWN MOMENT PAST MIDNIGHT.
 //
