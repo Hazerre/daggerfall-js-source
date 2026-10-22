@@ -188,13 +188,22 @@ export function settleChallenge(player, regionIndex) { return mendToLine(player,
  *  the watch: -20), a report the road carried, an online death's kept charge - walked out of prison as known as it went
  *  in: stopped again a day later, the patrols drawing on it, and the stop's own "come quietly" a closed loop (a
  *  Conspiracy charged, served and given back). Not an acquittal (the court tried nothing to answer), a guild's rescue
- *  (the guild answered, not the prisoner) or a banishment (DFU's state 4 repairs nothing). Answers the points moved. */
-export function sentenceMends(player, regionIndex) { return mendToLine(player, regionIndex, 'served'); }
+ *  (the guild answered, not the prisoner) or a banishment (DFU's state 4 repairs nothing). Answers the points moved.
+ *  AUDIT FB1021d SM-3: it answers the name the prisoner CAME IN WITH - never past what stood under the line before the
+ *  charge (`from`, arrestFlow.js chargeOnce) - so the crime's own mark (REP2's, DFU's: a Murder keeps half its charge) is
+ *  the court's due, as DFU keeps it: a Treason from a clean name stays -18, where the step had worn it to -13.
+ *  SM-4: and once a grace - an answer inside the day's grace the last one gave (`ownNow`) mends nothing more, so a petty
+ *  crime self-reported (a night in the street, given back whole) is no step an hour.
+ *  @param {any} player @param {number} regionIndex @param {{ from?: number | null, ownNow?: number | null }} [at] */
+export function sentenceMends(player, regionIndex, { from = null, ownNow = null } = {}) {
+  if (ownNow != null && ownNow < (standingOf(player).graceUntil[regionIndex] ?? -Infinity)) return 0;
+  return mendToLine(player, regionIndex, 'served', from == null ? Infinity : Math.max(0, KNOWN_CRIMINAL_BELOW - from));
+}
 /** An answer to the law - the watch's fine, a sentence - mends the name by a temple penance's step toward the watch's
- *  line, never past it, and the People's half with it (FINE-PEOPLE). Answers the points moved. */
-function mendToLine(player, regionIndex, kind) {
+ *  line, never past it (nor past `most`), and the People's half with it (FINE-PEOPLE). Answers the points moved. */
+function mendToLine(player, regionIndex, kind, most = Infinity) {
   const rep = legalRepOf(player, regionIndex);
-  const pts = rep < KNOWN_CRIMINAL_BELOW ? Math.min(PENANCE_POINTS, KNOWN_CRIMINAL_BELOW - rep) : 0;
+  const pts = rep < KNOWN_CRIMINAL_BELOW ? Math.min(PENANCE_POINTS, KNOWN_CRIMINAL_BELOW - rep, most) : 0;
   if (pts) { changeLegalRep(player, regionIndex, pts, { kind }); raisePeopleForAnswer(player, regionIndex, pts); }   // FINE-PEOPLE
   return pts;
 }

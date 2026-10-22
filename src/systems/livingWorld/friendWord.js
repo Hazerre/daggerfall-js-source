@@ -3,20 +3,29 @@
 // MOMENT A RESIDENT BECOMES A FRIEND IS SAID. A friend (relations.js FRIEND_AT) is where a courtship begins
 // (legacy/marriage.js topicsFor), and nothing marked it: the Courtship row appeared under Tell me about the next time the
 // list was read, and a player in the classic skin - no regard badge - had no way to know it had happened, nor what had
-// made it. The word, or its tone, that carries a resident's regard into friendship says so on the HUD, and where the
-// house can court them, where to ask.
+// made it. Whatever carries a resident's regard into friendship - a word, its tone, a deed (regardClock.js friendsMade
+// counts them where the regard is written) - is said on the HUD, and where the house can court them, where to ask.
 import { t } from '../textManager.js';
+import { residentOfId } from './people.js';
 
 const FRIEND_TEXT = '{name} counts you a friend now.';
 const FRIEND_COURT_TEXT = '{name} counts you a friend now. You can court them: ask about Courtship under Tell me about.';
 
-/**
- * The line for a regard that a word or its tone moved, or null when it did not make a friend.
- * @param {{ standing?: string } | null} before - the regard badge before the word (people.js regardBadge)
- * @param {{ standing?: string } | null} after - and after it
- * @param {{ name: string, court: boolean }} who - their name, and whether the Courtship row is theirs now
- */
-export function friendWord(before, after, { name, court }) {
-  if (!after || after.standing !== 'friend' || before?.standing === 'friend') return null;
+/** The line for a friend made. @param {{ name: string, court: boolean }} who - their name, and whether the Courtship row
+ *  is theirs now */
+export function friendLine({ name, court }) {
   return court ? t('livingWorld.friend.court', FRIEND_COURT_TEXT, { name }) : t('livingWorld.friend.made', FRIEND_TEXT, { name });
+}
+
+/**
+ * AUDIT FB1021d RO-4: the friends made, as the line names them - each id the relations counted, the resident it names
+ * minted again from their town (people.js residentOfId), and whether the house's Courtship row is theirs. An id that names
+ * no resident of a town known is not said.
+ * @param {string[]} ids @param {(mapId: number) => any} townOf
+ * @param {(res: any) => { topic?: string }[]} topicsOf - the legacy's Tell me about rows for a resident
+ * @returns {{ name: string, court: boolean }[]}
+ */
+export function friendCards(ids, townOf, topicsOf) {
+  return ids.map((id) => residentOfId(id, townOf)).filter(Boolean)
+    .map((res) => ({ name: res.name, court: (topicsOf(res) ?? []).some((r) => r.topic === 'court') }));
 }

@@ -249,8 +249,11 @@ export function normalizeReputations(player, store, { recoveryOnly = false } = {
  *  legal reputation (2 in a Curfew town; 1, DFU's, everywhere else and offline). */
 let _crimeFactor = () => 1;
 export function setCrimeRepFactor(fn) { _crimeFactor = typeof fn === 'function' ? fn : () => 1; }
-export function lowerRepForCrime(player, regionIndex, crime) {
-  const f = Math.max(1, Math.trunc(Number(_crimeFactor()) || 1));   // SEAT1d: a Curfew's doubled cost - the legal loss alone, the People's half as DFU's
+/** AUDIT FB1021d SM-8: `curfew` - a crime the town's watch charges (arrestFlow.js chargeOnce) - takes the Curfew's
+ *  factor; a report the road carried, a loan defaulted or a sea's piracy is no crime in the town the player stands in,
+ *  and was doubled for standing there (and never given back: no court tries it). */
+export function lowerRepForCrime(player, regionIndex, crime, { curfew = false } = {}) {
+  const f = curfew ? Math.max(1, Math.trunc(Number(_crimeFactor()) || 1)) : 1;   // SEAT1d: a Curfew's doubled cost - the legal loss alone, the People's half as DFU's
   changeLegalRep(player, regionIndex, -REPUTATION_LOSS_PER_CRIME[crime] * f, { kind: 'crime', crime });
   // PlayerEntity.cs:2294-2298 - the region's People faction takes HALF
   // the legal loss, propagating out to its allies and enemies. The

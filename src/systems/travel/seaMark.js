@@ -10,8 +10,13 @@
 // the built ground was land - she ran at the shore until "no way on", or aground, beside the docks.
 //
 // The mark is the pixel's middle where it floats her, as ever; where it does not, the nearest water to it that does - a
-// block of 5 by 5 tiles (32 m, room for her hull) - on the built ground. A pixel not built yet reads no water anywhere,
-// and keeps its middle: the leg is aimed again when it begins, and a leg begins once the one before it arrives.
+// block of 5 by 5 tiles (32 m, room for her hull) - on the built ground.
+// AUDIT FB1021d PS-1: and the two this first left aimed at land. A pixel NOT BUILT yet (the host's reader answers null -
+// world.js tvSeaWaterAt) is SEA_LEG_UNBUILT: a leg folds a straight run, so the pixel it is aimed into can stand past the
+// ground built about her (TerrainDistance 3) when it begins - 23 of the 55 legs the mark moved - and Travel Options aims
+// it again once that ground is built. A pixel built where nowhere floats her is SEA_LEG_DRY - 25 of the 527 sailed legs,
+// 14 of them into Daggerfall's approach (207,215), which has no water at all - and the leg is passed: she makes for the
+// next (the landfall's own run in, where it is the last at sea).
 
 import { MP_WORLD_UNITS, T_SIZE as TILE } from './travelPaths.js';
 
@@ -19,13 +24,18 @@ import { MP_WORLD_UNITS, T_SIZE as TILE } from './travelPaths.js';
 export const PIXEL_TILES = MP_WORLD_UNITS / TILE;
 /** Half the block of water a mark must stand in, in tiles: 5 by 5 - 32 m. */
 export const MARK_BLOCK_HALF = 2;
+/** A leg's pixel whose ground is not built yet - aimed at its middle, and again once it is. */
+export const SEA_LEG_UNBUILT = Object.freeze({ unbuilt: true });
+/** A leg's pixel built where nowhere floats her - the leg is passed. */
+export const SEA_LEG_DRY = Object.freeze({ dry: true });
 
 /**
  * The point a leg sailed into a map pixel is aimed at, in native units - or null where its middle floats her (the
- * middle quarter stands) or nothing in it does (unbuilt, or dry).
+ * middle quarter stands), SEA_LEG_UNBUILT where its ground is not built yet, SEA_LEG_DRY where nothing in it floats her.
  * @param {{ x: number, z: number }} origin - the pixel's corner (travelPaths.js mapPixelWorldOrigin)
- * @param {((x: number, z: number) => boolean) | null | undefined} waterAt - the built ground's water, native units
- * @returns {{ x: number, z: number } | null}
+ * @param {((x: number, z: number) => boolean | null) | null | undefined} waterAt - the built ground's water, native
+ *  units: null where no ground is built
+ * @returns {{ x: number, z: number } | typeof SEA_LEG_UNBUILT | typeof SEA_LEG_DRY | null}
  */
 export function seaLegMark(origin, waterAt) {
   if (typeof waterAt !== 'function') return null;
@@ -36,6 +46,7 @@ export function seaLegMark(origin, waterAt) {
   const mid = PIXEL_TILES / 2;
   const at = (/** @type {number} */ i, /** @type {number} */ j) => ({ x: origin.x + (i + 0.5) * TILE, z: origin.z + (j + 0.5) * TILE });
   const centre = { x: origin.x + MP_WORLD_UNITS / 2, z: origin.z + MP_WORLD_UNITS / 2 };
+  if (waterAt(centre.x, centre.z) === null) return SEA_LEG_UNBUILT;
   if (floats(centre.x, centre.z)) return null;
   const lo = MARK_BLOCK_HALF, hi = PIXEL_TILES - 1 - MARK_BLOCK_HALF;
   /** @type {{ x: number, z: number } | null} */
@@ -52,5 +63,5 @@ export function seaLegMark(origin, waterAt) {
       }
     }
   }
-  return best;
+  return best ?? SEA_LEG_DRY;
 }

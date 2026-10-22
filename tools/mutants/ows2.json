@@ -480,8 +480,8 @@
   {
     "name": "AUDIT-OWS-A1-load-keeps-the-hand",
     "file": "src/scenes/world.js",
-    "old": "    csaJourneyHelm.held.clear(); csaJourneyHelm.row = false; tvSea.means = null; tvSea.phase = null; tvSea.boat = null; tvSea.wasLive = false;   // AUDIT OWS A1",
-    "new": "    tvSea.wasLive = false;   // AUDIT OWS A1",
+    "old": "    csaJourneyHelm.held.clear(); csaJourneyHelm.row = false; tvSea.means = null; tvSea.phase = null; tvSea.boat = null; tvSea.wasLive = csaJourneyHelm.live = false;   // AUDIT OWS A1",
+    "new": "    tvSea.wasLive = csaJourneyHelm.live = false;   // AUDIT OWS A1",
     "tests": [
       "test/systems/travel/ows2_crossing.test.js"
     ]

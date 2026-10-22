@@ -468,8 +468,13 @@ export function routeLegs(pixels, kinds = [], { ringAt = null } = {}) {
   // ringPassPoints) each a leg of the incoming step's kind, aimed at its own point (`at`) and marked `ring`; the run
   // before it ends at the pixel before, so no straight leg is aimed across the town. FIELD BUGS 2026-10-21d PASSAGE-IN: never
   // a pixel reached or left under sail - the ring's points stand on the town's land, and a sailed leg aimed at one ran
-  // her at the shore (15 of 312 voyages to Wayrest, Daggerfall or Sentinel passed a town on the heightmap's water)
-  const ring = (i) => (ringAt && i < pixels.length - 1 && !SEA_KINDS.includes(kinds[i - 1] ?? 'open') && !SEA_KINDS.includes(kinds[i] ?? 'open')
+  // her at the shore (15 of 312 voyages to Wayrest, Daggerfall or Sentinel passed a town on the heightmap's water).
+  // AUDIT FB1021d PS-3: afloat is a pixel reached under sail or by embarking, or left under sail or by a landfall - the
+  // pixel a party embarks FROM and the one it makes landfall ON are land, walked, and keep their ring (read as any step
+  // of the sea's three kinds, 13 of 432 crossings of my own boat lost a ring walked on foot, and one embarking walked
+  // straight across its town to the water - OW-TOWN-RING's own fault back)
+  const afloat = (i) => ['sea', 'embark'].includes(kinds[i - 1]) || ['sea', 'landfall'].includes(kinds[i]);
+  const ring = (i) => (ringAt && i < pixels.length - 1 && !afloat(i)
     ? ringAt(pixels[i].x, pixels[i].y, [pixels[i - 1].x - pixels[i].x, pixels[i - 1].y - pixels[i].y], [pixels[i + 1].x - pixels[i].x, pixels[i + 1].y - pixels[i].y])
     : null);
   const rings = pixels.map((_, i) => (i > 0 ? ring(i) : null));

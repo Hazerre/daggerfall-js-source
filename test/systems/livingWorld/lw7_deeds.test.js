@@ -394,7 +394,7 @@ test('LW7 the streaming host: every resident\'s place by the lives (`livingCycle
   assert.match(w, /slay: livingRoadSlay,   \/\/ LW7: a traveller struck down/);
   assert.match(w, /const livingRoadSlay = \(res, t, seen\) => \{ livingSlay\(res, t, seen\); caravanHostOf\(\)\.slain\(res, t\); \};/);
   const tt = rd('src/scenes/townTalk.js');
-  assert.match(tt, /const _toneHeard = \(\) => \{\n\s+if \(!_toneTarget\) return;\n[^\n]*\n\s+livingTone\?\.\(_toneTarget, _toneTaste\(\)\);/);   // PIN MOVED: TONE-TASTE; FIELD BUGS 2026-10-21d REGARD-OWN (a friend made, said)
+  assert.match(tt, /const _toneHeard = \(\) => \{ if \(_toneTarget\) livingTone\?\.\(_toneTarget, _toneTaste\(\)\); \};/);   // PIN MOVED: TONE-TASTE
   assert.match(tt, /_toneTarget = _toneNext;   \/\/ LW7[^\n]*\n\s*_toneNext = null;/, 'the window takes the door\'s resident, and every other door leaves nobody');
   assert.match(tt, /livingTalk\?\.talked\?\.\(target\.person\);[^\n]*\n\s*_toneNext = target\.person\.living \? target\.person : null;/, 'the mobile door names its resident');
   assert.match(tt, /_toneHeard\(\);   \/\/ LW7: the question's tone/);

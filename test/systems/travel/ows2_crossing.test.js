@@ -318,8 +318,8 @@ test('OWS2 host wiring by source: the boat a journey crosses in; the plan asked 
 
 test('AUDIT OWS A1/A2 by source: a load takes the crossing\'s hand off the helm and forgets the crossing (declared above the load - BOOT-TDZ); a journey\'s end forgets a landing it left, so the ocean stop is never held down after it', () => {
   const w = rd('src/scenes/world.js');
-  assert.match(w, /csaJourneyHelm\.held\.clear\(\); csaJourneyHelm\.row = false; tvSea\.means = null; tvSea\.phase = null; tvSea\.boat = null; tvSea\.wasLive = false;   \/\/ AUDIT OWS A1/);
-  const decl = w.indexOf('  const tvSea = { means: null,'), load = w.indexOf('tvSea.wasLive = false;   // AUDIT OWS A1'), reader = w.indexOf("atSea: () => !!tvSea.means && (!!csaBoatUnderMe() || tvSea.phase === 'landing'),");
+  assert.match(w, /csaJourneyHelm\.held\.clear\(\); csaJourneyHelm\.row = false; tvSea\.means = null; tvSea\.phase = null; tvSea\.boat = null; tvSea\.wasLive = csaJourneyHelm\.live = false;   \/\/ AUDIT OWS A1/);   // PIN MOVED (AUDIT FB1021d PS-2): and the hand's live mark
+  const decl = w.indexOf('  const tvSea = { means: null,'), load = w.indexOf('tvSea.wasLive = csaJourneyHelm.live = false;   // AUDIT OWS A1'), reader = w.indexOf("atSea: () => !!tvSea.means && (!!csaBoatUnderMe() || tvSea.phase === 'landing'),");
   assert.ok(decl >= 0 && decl < load && decl < reader, 'BOOT-TDZ: the state above the load that clears it and the stop that reads it');
-  assert.match(w, /tvSea\.wasLive = false;\n\s*tvSea\.phase = null; tvSea\.boat = null;   \/\/ AUDIT OWS A2/);
+  assert.match(w, /tvSea\.wasLive = csaJourneyHelm\.live = false;[^\n]*\n\s*tvSea\.phase = null; tvSea\.boat = null;   \/\/ AUDIT OWS A2/);   // PIN MOVED (AUDIT FB1021d PS-2): and the hand's live mark
 });

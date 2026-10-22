@@ -37,7 +37,7 @@ import {
   TEXT_FREE_TO_GO, TEXT_BANISHED, TEXT_HOW_CONVINCE,
   lowerRepForCrime, surrenderToCityGuards, startCourt, pleaGuilty,
   pleaNotGuilty, resolveGuiltyVerdict, raiseRepForSentence, TEXT_EXECUTED,
-  guildRescue, setCrimeCommitted, confiscateStolen,
+  guildRescue, setCrimeCommitted, confiscateStolen, legalRepOf,
 } from '../systems/court.js';
 import { confiscatedText, piecesOf } from '../systems/stolenGoods.js';   // STOLEN-GOODS: the court's word for what it took
 import { isTransformedLycanthrope, frightenChance, frightenRoar } from '../systems/lycanthropy.js';   // WERE-FRIGHT: the beast cannot surrender
@@ -269,7 +269,8 @@ export function createArrestFlow({
   function chargeOnce() {
     if (playerEntity.chargedCrime === crimeId()) return;
     playerEntity.chargedCrime = crimeId();
-    playerEntity.chargedFactor = lowerRepForCrime(playerEntity, region(), crimeId());   // CURFEW-REFUND: the court gives back what was charged
+    playerEntity.chargedFrom = legalRepOf(playerEntity, region());   // AUDIT FB1021d SM-3: the name it came in with, which a sentence answers
+    playerEntity.chargedFactor = lowerRepForCrime(playerEntity, region(), crimeId(), { curfew: true });   // CURFEW-REFUND: the court gives back what was charged (SM-8: the town's Curfew, this charge's alone)
   }
 
   /** WATCH-KNOWS: the watch's warning, in its words. @param {number} crime @param {string} name */
@@ -437,6 +438,7 @@ export function createArrestFlow({
     const court = startCourt(playerEntity, region(), crimeId(), { rolls });
     if (!court) return;
     court.factor = playerEntity.chargedFactor ?? 1;   // CURFEW-REFUND (FIELD BUGS 2026-10-21d): the charge as it was laid
+    court.from = playerEntity.chargedFrom ?? null;   // AUDIT FB1021d SM-3: and the name it was laid on
     trial = { windows: new Set() };   // AUDIT DISC28 AR-1: this trial's token - its windows and its steps are its own
     // PlayerEntity.CourtWindow (:2341) sets `arrested` immediately before
     // the court window opens, and DaggerfallCourtWindow.OnPop (:435)
@@ -578,7 +580,6 @@ export function createArrestFlow({
       // Harmless while NormalizeReputations was unported; not harmless now
       // that it is.
       raiseRepForSentence(playerEntity, court);
-      sentenceMends(playerEntity, court.regionIndex);   // SENTENCE-MENDS (FIELD BUGS 2026-10-21d): and the name it was priced by
       const days = result.days;
       // SwitchToPrisonScreen (:511-524). DFU swaps the background on
       // the court window itself; the port lays the prison panel at the
@@ -628,6 +629,9 @@ export function createArrestFlow({
           // refill is their price again, as DFU pays it, in both lanes; the
           // floor it replaced is inside the refill (a full pool is above it).
           fillVitalSigns(playerEntity);
+          // SENTENCE-MENDS (FIELD BUGS 2026-10-21d): and the name it was priced by - AUDIT FB1021d SM-1: once the days are
+          // served, never at the sentence: a save under the prison screen (a tab closed) kept a mend no day had paid for
+          sentenceMends(playerEntity, court.regionIndex, { from: court.from, ownNow: ownMinutes() });
           // AUDIT C&C (2026-10-12, N3/H2): AND THE NEEDS LEAVE PRISON FED, WATERED AND RESTED. The days above are a bare
           // move of the clock, so the first frame out walked the sentence's last two days (the needs' catch-up) AFTER this
           // refill, awake and unfed, in the street's weather: a Hard ten-day sentence let out into snow left 5 health, no
@@ -655,7 +659,7 @@ export function createArrestFlow({
     // :347 on the plea, where DFU names the divergence it is fixing
     // ("Oversight in classic: Does not refill vital signs when
     // releasing in this case, so player is left with 1 health").
-    sentenceMends(playerEntity, court.regionIndex);   // SENTENCE-MENDS: the court's fine paid with no days answers the name too
+    sentenceMends(playerEntity, court.regionIndex, { from: court.from, ownNow: ownMinutes() });   // SENTENCE-MENDS: the court's fine paid with no days answers the name too
     fillVitalSigns(playerEntity);
     release();
   }

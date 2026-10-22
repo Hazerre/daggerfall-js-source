@@ -74,7 +74,9 @@ a High Treason or a Treason** keeps half as its mark (rounded toward the player:
 started (DFU: -16). [SENTENCE-MENDS, FIELD BUGS 2026-10-21d: and a sentence served - or the court's fine paid with no days -
 mends the name a penance's step toward the watch's line, as the watch's fine does (FINE-MENDS), the People's half with
 it: the charge alone came back, so a name under the line before the arrest walked out known; a Curfew's doubled charge
-comes back doubled (CURFEW-REFUND), and the road's patrols keep the release's grace (PATROL-GRACE) -
+comes back doubled (CURFEW-REFUND), and the road's patrols keep the release's grace (PATROL-GRACE). AUDIT FB1021d: the
+prison's mend lands when the days are served (SM-1), answers the name the prisoner came in with and never the crime's own
+mark (SM-3), and comes once a grace (SM-4); the Curfew doubles the town watch's own charge alone (SM-8) -
 `01-Overview/bugs/Field-Bugs-2026-10-21d.md`.]
 
 - **One charge per chase** (`arrestFlow.js chargeOnce`): the crime is charged at the first surrender box and not again

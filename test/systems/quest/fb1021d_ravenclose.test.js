@@ -60,7 +60,29 @@ test('RAVEN-CLOSE: B0B81Y02 online, the lich reported and the map never read - t
   assert.equal(q.questComplete, false, 'not in the same breath');
   assert.equal(q.resources.get('2dung').isDeadline, false, 'the success makes `_2dung_` the script closing the quest');
   quiet(() => step(60, SHORT_WAIT_MIN));
-  assert.equal(q.questComplete, true, 'closed within the short wait - its gear rolled, the Order\'s door open (offerFlow reads an open quest\'s questor)');
+  assert.equal(q.questComplete, true, 'closed within the short wait - the Order\'s door open (machine.js lastNPCClickedQuestorOf passes a complete quest by); its gear, the test below');
+});
+
+test('RAVEN-CLOSE (AUDIT FB1021d RC-2): the close rolls the Order\'s gear - the questlines layer settles The Lost Artifact as the lich slain and mints its one offer of three pieces, on the short wait', async () => {
+  const { createQuestlines } = await import('../../../src/systems/questlines/qlLayer.js');
+  const { startStamp } = await import('../../../src/systems/questlines/qlLaw.js');
+  const offers = quiet(() => {
+    const now = { s: 1e6, raised: 0 };
+    const m = machineFor(true, now);
+    const got = [];
+    const ql = createQuestlines({ machine: m, ctx: { offerReward() {}, onQuestlineOffer: (o) => got.push(o) } });
+    m.deps.questlinesStamp = () => { const st = startStamp(true); return st ? { ...st, tier: 1 } : null; };
+    m.deps.questReward = (qq, i, r) => ql.reward(qq, i, r);
+    m.deps.questEnding = (qq) => ql.ending(qq);
+    const q = m.startQuestByName('B0B81Y02');
+    arm(q.resources.get('2dung'), 24 * DAY_S);
+    const step = (n) => { for (let i = 0; i < n; i++) { now.s += 60; m.tick(); ql.look(); } };
+    step(2); q.startTask(new QS('_S.01_')); step(2); q.startTask(new QS('_S.02_')); step(2);
+    assert.equal(got.length, 0, 'nothing rolled at the knight\'s word: the quest is not over');
+    step(SHORT_WAIT_MIN);
+    return got;
+  });
+  assert.deepEqual(offers.map((o) => `${o.title}/${o.outcome}/${o.pieces.length}`), ['The Lost Artifact/slain/3']);
 });
 
 test('RAVEN-CLOSE: a save made stuck - the success standing, `_2dung_` with 37 days to run - loads and closes on the short wait (nothing of the reading is saved)', () => {
@@ -91,6 +113,20 @@ test('RAVEN-CLOSE: what it is NOT - the map read, the artifact hunt keeps `_S.30
   const off = lostArtifact(false);
   quiet(() => off.step(1800, 48));
   assert.equal(off.q.questComplete, false, 'offline: a day on, DFU\'s 24 days still running');
+});
+
+test('RAVEN-CLOSE, its price (AUDIT FB1021d RC-1, put to the owner): online the lich\'s map read AFTER the knight\'s word opens the artifact hunt only inside the short wait - read later, the quest has closed and the wizard\'s branch with it; offline DFU leaves `_2dung_`\'s days for it', () => {
+  const read = (online, gap, n) => quiet(() => {
+    const r = lostArtifact(online);
+    r.step(gap, n);
+    const closed = r.q.questComplete;
+    if (!closed) { r.q.startTask(new QS('_readmap_')); r.step(60, 2); }
+    r.step(60, SHORT_WAIT_MIN);
+    return { closed, hunt: !r.q.questComplete && !!r.q.resources.get('S.30').clockEnabled };
+  });
+  assert.deepEqual(read(true, 60, 10), { closed: false, hunt: true }, 'online, read ten minutes on: the hunt runs');
+  assert.deepEqual(read(true, 60, SHORT_WAIT_MIN), { closed: true, hunt: false }, 'online, read past the short wait: the quest is over');
+  assert.deepEqual(read(false, 3600, 240), { closed: false, hunt: true }, 'offline, read ten days on: DFU\'s, the hunt runs');
 });
 
 test('RAVEN-CLOSE: M0B00Y16 - the giant paid for while the villager\'s escort is under way keeps `_qtime_` (its end, read as the quest stands, says the late line `_S.14_`): open past the short wait, no late line', () => {

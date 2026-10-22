@@ -2,8 +2,8 @@
   {
     "name": "REGARD-OWN-note-on-callers-day",
     "file": "src/systems/livingWorld/regardClock.js",
-    "old": "    note: (id, kind, _day, amount) => rel.note(id, kind, today(), amount),",
-    "new": "    note: (id, kind, _day, amount) => rel.note(id, kind, _day, amount),",
+    "old": "      const r = rel.note(id, kind, today(), amount);",
+    "new": "      const r = rel.note(id, kind, _day, amount);",
     "tests": [
       "test/systems/livingWorld/fb1021d_regardown.test.js"
     ],
@@ -22,7 +22,7 @@
   {
     "name": "REGARD-OWN-rebase-dropped",
     "file": "src/systems/livingWorld/regardClock.js",
-    "old": "  const rel = createRelations(skyStamped ? { ...record, people: rebased(record.people, today()) } : record);",
+    "old": "  const rel = createRelations(skyStampedIs(record, day, online) ? { ...record, people: rebased(record.people, day, regardDayOf(sky())) } : record);",
     "new": "  const rel = createRelations(record);",
     "tests": [
       "test/systems/livingWorld/fb1021d_regardown.test.js"
@@ -40,16 +40,6 @@
     "why": "a marked save forgets how long it was apart"
   },
   {
-    "name": "REGARD-OWN-offline-rebased",
-    "file": "src/systems/livingWorld/regardClock.js",
-    "old": "  const skyStamped = online && record",
-    "new": "  const skyStamped = record",
-    "tests": [
-      "test/systems/livingWorld/fb1021d_regardown.test.js"
-    ],
-    "why": "offline the sky's days were the one clock's - rebased, a quarrel's ease forgotten"
-  },
-  {
     "name": "REGARD-OWN-save-unmarked",
     "file": "src/systems/livingWorld/regardClock.js",
     "old": "    snapshot: () => ({ ...rel.snapshot(), clock: REGARD_CLOCK }),",
@@ -62,7 +52,7 @@
   {
     "name": "REGARD-OWN-host-on-relations",
     "file": "src/scenes/world.js",
-    "old": "    restoreSaveData: (rec) => { livingRelations = characterRelations(rec, ownMinutes, params.has('online')); },",
+    "old": "    restoreSaveData: (rec) => { livingRelations = characterRelations(rec, ownMinutes, params.has('online'), () => skyMinutes()); },",
     "new": "    restoreSaveData: (rec) => { livingRelations = createRelations(rec); },",
     "tests": [
       "test/systems/livingWorld/lw2_livingTown.test.js"
@@ -81,13 +71,13 @@
   },
   {
     "name": "FRIEND-WORD-every-word",
-    "file": "src/systems/livingWorld/friendWord.js",
-    "old": "  if (!after || after.standing !== 'friend' || before?.standing === 'friend') return null;",
-    "new": "  if (!after || after.standing !== 'friend') return null;",
+    "file": "src/systems/livingWorld/regardClock.js",
+    "old": "      if (!was && isFriend(id) && !made.includes(id) && made.length < FRIENDS_SAID_MAX) made.push(id);",
+    "new": "      if (isFriend(id) && !made.includes(id) && made.length < FRIENDS_SAID_MAX) made.push(id);",
     "tests": [
       "test/systems/livingWorld/fb1021d_regardown.test.js"
     ],
-    "why": "said at every word to a friend"
+    "why": "a friend counted at every word, not at the crossing"
   },
   {
     "name": "FRIEND-WORD-court-never",
@@ -100,26 +90,6 @@
     "why": "where a courtship begins never said"
   },
   {
-    "name": "FRIEND-WORD-word-unwired",
-    "file": "src/scenes/townTalk.js",
-    "old": "      sayFriend(target.person, was);\n",
-    "new": "",
-    "tests": [
-      "test/systems/livingWorld/fb1021d_regardown.test.js"
-    ],
-    "why": "the word that made a friend unsaid"
-  },
-  {
-    "name": "FRIEND-WORD-tone-unwired",
-    "file": "src/scenes/townTalk.js",
-    "old": "    sayFriend(_toneTarget, was);\n",
-    "new": "",
-    "tests": [
-      "test/systems/livingWorld/fb1021d_regardown.test.js"
-    ],
-    "why": "the tone that made a friend unsaid"
-  },
-  {
     "name": "FRIEND-WORD-row-unnamed",
     "file": "src/scenes/legacyHost.js",
     "old": "      topic: t,   // FIELD BUGS 2026-10-21d REGARD-OWN",
@@ -128,5 +98,175 @@
       "test/systems/livingWorld/fb1021d_regardown.test.js"
     ],
     "why": "the Courtship row never recognised: the line never says where"
+  },
+  {
+    "name": "REGARD-OWN-offline-rebased",
+    "file": "src/systems/livingWorld/regardClock.js",
+    "old": "  && (online || Object.values(record.people).some((e) => Number(e?.seen) > day || Number(e?.met) > day || Number(e?.talked) > day));",
+    "new": "  && (online || true);",
+    "why": "offline the one clock's days rebased - a quarrel's ease forgotten",
+    "tests": [
+      "test/systems/livingWorld/fb1021d_regardown.test.js"
+    ]
+  },
+  {
+    "name": "REGARD-OWN-offline-copy-unrebased",
+    "file": "src/systems/livingWorld/regardClock.js",
+    "old": "  && (online || Object.values(record.people).some((e) => Number(e?.seen) > day || Number(e?.met) > day || Number(e?.talked) > day));",
+    "new": "  && online;",
+    "why": "AUDIT FB1021d RO-5: an online save copied offline keeps sky stamps ahead of today, every regard frozen",
+    "tests": [
+      "test/systems/livingWorld/fb1021d_regardown.test.js"
+    ]
+  },
+  {
+    "name": "REGARD-OWN-seen-on-callers-day",
+    "file": "src/systems/livingWorld/regardClock.js",
+    "old": "    seen: (id, _day) => rel.seen(id, today()),",
+    "new": "    seen: (id, _day) => rel.seen(id, _day ?? today()),",
+    "why": "AUDIT FB1021d RO-2: the street's greeting hands the sky's day - a +50 eased to nought by one greeting",
+    "tests": [
+      "test/systems/livingWorld/fb1021d_regardown.test.js"
+    ]
+  },
+  {
+    "name": "REGARD-OWN-standing-on-callers-day",
+    "file": "src/systems/livingWorld/regardClock.js",
+    "old": "    standing: (id, _day) => rel.standing(id, today()),",
+    "new": "    standing: (id, _day) => rel.standing(id, _day ?? today()),",
+    "why": "AUDIT FB1021d RO-2: a friend read on the sky's day, a stranger",
+    "tests": [
+      "test/systems/livingWorld/fb1021d_regardown.test.js"
+    ]
+  },
+  {
+    "name": "REGARD-OWN-inherit-on-callers-day",
+    "file": "src/systems/livingWorld/regardClock.js",
+    "old": "    inherit: (id, amount, _day) => rel.inherit(id, amount, today()),",
+    "new": "    inherit: (id, amount, _day) => rel.inherit(id, amount, _day ?? today()),",
+    "why": "AUDIT FB1021d RO-2: a birth's share stamped on the caller's day",
+    "tests": [
+      "test/systems/livingWorld/fb1021d_regardown.test.js"
+    ]
+  },
+  {
+    "name": "REGARD-OWN-grudge-restored-whole",
+    "file": "src/systems/livingWorld/regardClock.js",
+    "old": "  const eased = r < 0 && Number.isFinite(seen) ? Math.min(0, r + Math.max(0, skyDay - seen) * EASE_PER_DAY) : r;",
+    "new": "  const eased = r;",
+    "why": "AUDIT FB1021d RO-3: a slain one's kin, eased to an enemy on the old sky, back hostile the day the update lands",
+    "tests": [
+      "test/systems/livingWorld/fb1021d_regardown.test.js"
+    ]
+  },
+  {
+    "name": "REGARD-OWN-friendship-eased",
+    "file": "src/systems/livingWorld/regardClock.js",
+    "old": "  const eased = r < 0 && Number.isFinite(seen) ? Math.min(0, r + Math.max(0, skyDay - seen) * EASE_PER_DAY) : r;",
+    "new": "  const eased = Number.isFinite(seen) ? Math.min(0, r + Math.max(0, skyDay - seen) * EASE_PER_DAY) : r;",
+    "why": "the reported loss kept: a friendship eased by the sky's days",
+    "tests": [
+      "test/systems/livingWorld/fb1021d_regardown.test.js"
+    ]
+  },
+  {
+    "name": "REGARD-OWN-rebase-sky-unread",
+    "file": "src/systems/livingWorld/regardClock.js",
+    "old": "rebased(record.people, day, regardDayOf(sky()))",
+    "new": "rebased(record.people, day, day)",
+    "why": "AUDIT FB1021d RO-3: the grudge eased by the own day, behind every sky stamp - never eased",
+    "tests": [
+      "test/systems/livingWorld/fb1021d_regardown.test.js"
+    ]
+  },
+  {
+    "name": "FRIEND-WORD-deeds-uncounted",
+    "file": "src/systems/livingWorld/regardClock.js",
+    "old": "      if (!was && isFriend(id) && !made.includes(id) && made.length < FRIENDS_SAID_MAX) made.push(id);",
+    "new": "      if ((kind === 'talk' || kind === 'polite') && !was && isFriend(id) && !made.includes(id) && made.length < FRIENDS_SAID_MAX) made.push(id);",
+    "why": "AUDIT FB1021d RO-4: a friend made by a deed never said",
+    "tests": [
+      "test/systems/livingWorld/fb1021d_regardown.test.js"
+    ]
+  },
+  {
+    "name": "FRIEND-WORD-inherit-counted",
+    "file": "src/systems/livingWorld/regardClock.js",
+    "old": "    inherit: (id, amount, _day) => rel.inherit(id, amount, today()),",
+    "new": "    inherit: (id, amount, _day) => { const r = rel.inherit(id, amount, today()); if (isFriend(id)) made.push(id); return r; },",
+    "why": "a family's friends said as made at a birth",
+    "tests": [
+      "test/systems/livingWorld/fb1021d_regardown.test.js"
+    ]
+  },
+  {
+    "name": "FRIEND-WORD-lapse-unread",
+    "file": "src/systems/livingWorld/regardClock.js",
+    "old": "    friendsMade: () => made.splice(0).filter(isFriend),",
+    "new": "    friendsMade: () => made.splice(0),",
+    "why": "a friend lost again inside the window said all the same",
+    "tests": [
+      "test/systems/livingWorld/fb1021d_regardown.test.js"
+    ]
+  },
+  {
+    "name": "FRIEND-WORD-crowd-uncapped",
+    "file": "src/systems/livingWorld/regardClock.js",
+    "old": " && made.length < FRIENDS_SAID_MAX) made.push(id);",
+    "new": ") made.push(id);",
+    "why": "one deed's crowd said whole",
+    "tests": [
+      "test/systems/livingWorld/fb1021d_regardown.test.js"
+    ]
+  },
+  {
+    "name": "FRIEND-WORD-said-under-the-window",
+    "file": "src/scenes/townTalk.js",
+    "old": "    if (overlay || toastsCovered()) return;",
+    "new": "    if (false) return;",
+    "why": "AUDIT FB1021d RO-1: the line said under the talk window, run out before it closes",
+    "tests": [
+      "test/systems/livingWorld/fb1021d_regardown.test.js"
+    ]
+  },
+  {
+    "name": "FRIEND-WORD-said-under-a-cover",
+    "file": "src/scenes/townTalk.js",
+    "old": "    if (overlay || toastsCovered()) return;",
+    "new": "    if (overlay) return;",
+    "why": "said under another host's window",
+    "tests": [
+      "test/systems/livingWorld/fb1021d_regardown.test.js"
+    ]
+  },
+  {
+    "name": "FRIEND-WORD-frame-unwired",
+    "file": "src/scenes/townTalk.js",
+    "old": "    sayFriends();   // REGARD-OWN: a friend made, once the HUD is clear\n",
+    "new": "",
+    "why": "never said in the street",
+    "tests": [
+      "test/systems/livingWorld/fb1021d_regardown.test.js"
+    ]
+  },
+  {
+    "name": "FRIEND-WORD-indoors-unwired",
+    "file": "src/scenes/townTalk.js",
+    "old": "      sayFriends();   // REGARD-OWN: a friend made indoors, said where it was made\n",
+    "new": "",
+    "why": "a friend made indoors said only in the street",
+    "tests": [
+      "test/systems/livingWorld/fb1021d_regardown.test.js"
+    ]
+  },
+  {
+    "name": "FRIEND-WORD-host-unwired",
+    "file": "src/scenes/world.js",
+    "old": "      friendsMade: () => friendCards(livingRelations.friendsMade(), livingTownOfId, (res) => legacyTopicRows({ living: { res } })),",
+    "new": "",
+    "why": "the host never hands the friends made",
+    "tests": [
+      "test/systems/livingWorld/fb1021d_regardown.test.js"
+    ]
   }
 ]

@@ -66,12 +66,15 @@ way there by sea from here.").
 
 The voyage is the Overworld's crossing (OWS2), unchanged: the journey's hand on her helm - the rudder, the sails, her
 crew's oars - and Come Sail Away's own sailing moves her. THAT HAND ALONE (PASSAGE-HANDS, `01-Overview/bugs/Field-Bugs-2026-10-21d.md`):
-while her boat carries a charter, her rudder, oars, sails, trim and lantern answer her master's hand and nothing the
-passenger presses - keys, the helm panel or the pad (`scenes/naval/passageHelm.js` passengerHelm, the host's seam
-wrapped); the passenger keeps stepping from her helm and the time dial, and her panel is a passenger's card ("The Fair
-Silk, bound for Wayrest - her master steers"). A sailed leg is aimed where the built ground floats her
-(`systems/travel/seaMark.js`), and from her own port's roadstead her master's resume runs her in (`passage.js`
-voyageSails - PASSAGE-IN). On the enhanced interface the Overworld is raised over it as
+while her boat carries a charter and the voyage is under way, her rudder, oars, sails and trim answer her master's hand
+and nothing the passenger presses - keys, the helm panel or the pad (`scenes/naval/passageHelm.js` passengerHelm, the
+host's seam wrapped) - and her lantern stays as it was lit; the passenger keeps stepping from her helm and the time dial,
+and her panel is a passenger's card ("The Fair Silk, bound for Wayrest - her master steers") with those two on it, as the
+pad's prompts say them. When the voyage halts - a foe near, aground, the twenty seconds between her master's tries - her
+helm is the passenger's until he takes her up again (AUDIT FB1021d PS-2), so a raider met on the way is met as any ship
+of mine meets one. A sailed leg is aimed where the built ground floats her (`systems/travel/seaMark.js`): a pixel built
+dry is passed for the next leg, and one not built when its leg begins is aimed again once it is (AUDIT FB1021d PS-1);
+from her own port's roadstead her master's resume runs her in (`passage.js` voyageSails - PASSAGE-IN). On the enhanced interface the Overworld is raised over it as
 over every journey; under First Person Travel it is sailed from her helm. Her hands are aboard (a fresh crew state,
 every hand), so a raider met on the way is met as any ship of mine meets one. Time passes as the journey's does.
 

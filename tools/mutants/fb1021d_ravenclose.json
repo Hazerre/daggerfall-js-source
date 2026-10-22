@@ -28,7 +28,7 @@
       "test/systems/quest/fb1021d_ravenclose.test.js",
       "test/systems/quest/auditrestparty_quests.test.js"
     ],
-    "why": "kept as the table's own word (an entry is never a closing - isDeadline's `_closesOnSuccess` rule): no entry today is a start-up clock, so nothing can tell it",
+    "why": "kept as the table's own word (an entry is never a closing - isDeadline's `_closesOnSuccess` rule): U0C00Y00's `_escapetime_` is the one entry the start-up block starts, and its end is no quiet close (it starts `_1stparton_` and moves `_S.08_`), so closesStartUp refuses it either way and nothing can tell it (AUDIT FB1021d RC-4 corrected the reason)",
     "equivalent": true
   }
 ]

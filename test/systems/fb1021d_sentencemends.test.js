@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { createArrestFlow } from '../../src/scenes/arrestFlow.js';
 import { createStandingWatch, STANDING_LOOK_MS, legalNoticeLine } from '../../src/scenes/standingHost.js';
 import { legalRepOf, changeLegalRep, setCrimeRepFactor, setLegalRepNotifier, CRIMES, sentenceRefund, startCourt, REPUTATION_LOSS_PER_CRIME } from '../../src/systems/court.js';
-import { knownCriminal, challengeDue, patrolHalts, sentenceMends, KNOWN_CRIMINAL_BELOW, PENANCE_POINTS, CHALLENGE_GRACE_MINUTES, CHALLENGE_COOLDOWN_MINUTES } from '../../src/systems/standing.js';
+import { knownCriminal, challengeDue, patrolHalts, sentenceMends, banish, KNOWN_CRIMINAL_BELOW, PENANCE_POINTS, CHALLENGE_GRACE_MINUTES, CHALLENGE_COOLDOWN_MINUTES } from '../../src/systems/standing.js';
 import { ownMinutes, trustedWorldMinutes, setWorldMinutes } from '../../src/systems/worldTick.js';
 import { createRegionConditions } from '../../src/systems/region/regionConditions.js';
 import { setSeed, rand } from '../../src/formats/dfRandom.js';
@@ -51,22 +51,36 @@ function rig({ rep = -20, rolls = () => 0.99 } = {}) {
   });
   const clocks = () => ({ ownNow: ownMinutes(), worldNow: trustedWorldMinutes() });
   /** Stopped by the watch, "S - come quietly", "G - guilty", the sentence served day by day, released. */
-  const comeQuietly = () => {
+  const comeQuietly = ({ between = () => {} } = {}) => {
     ms += STANDING_LOOK_MS;
     if (!watch.frame()) return null;
     stack.at(-1).w.input('KeyS'); drain();
     const charged = legalRepOf(p, DAGGERFALL);
+    between();   // after the charge, before the court's plea
     stack.at(-1).w.input('KeyG'); drain();
     const prison = stack.at(-1)?.w;
-    let days = 0;
-    if (prison?.daysInPrisonLeft != null) { days = prison.daysInPrison; for (let k = 0; k < 500 && !prison.done; k++) prison.tick(1); drain(); }
+    let days = 0, sentenced = null;
+    if (prison?.daysInPrisonLeft != null) {
+      sentenced = legalRepOf(p, DAGGERFALL);   // AUDIT FB1021d SM-1: under the prison screen, no day served yet
+      days = prison.daysInPrison; for (let k = 0; k < 500 && !prison.done; k++) prison.tick(1); drain();
+    }
     while (stack.length) { stack.at(-1).w.done = true; drain(); }
-    return { charged, days, after: legalRepOf(p, DAGGERFALL) };
+    return { charged, days, sentenced, after: legalRepOf(p, DAGGERFALL) };
   };
-  return { p, comeQuietly, clocks, wait: (m) => setWorldMinutes(ownMinutes() + m) };
+  /** A crime the watch caught (`crimeCommitted`), its court: "G - guilty", the sentence served, released. */
+  const tried = (crime) => {
+    p.crimeCommitted = crime;
+    flow.startCourtFlow(); drain();
+    stack.at(-1).w.input('KeyG'); drain();
+    const prison = stack.at(-1)?.w;
+    if (prison?.daysInPrisonLeft != null) { for (let k = 0; k < 500 && !prison.done; k++) prison.tick(1); drain(); }
+    while (stack.length) { stack.at(-1).w.done = true; drain(); }
+    return legalRepOf(p, DAGGERFALL);
+  };
+  return { p, comeQuietly, tried, clocks, wait: (m) => setWorldMinutes(ownMinutes() + m) };
 }
 
-test('SENTENCE-MENDS: the report - the escort\'s -20, stopped, "come quietly", a sentence served: released a penance\'s step better (-15) and said so; the next stop\'s sentence clears the name (-10) - no stop due, no patrol, after the grace (mutants: the prison\'s mend dropped, the mend past the line)', () => {
+test('SENTENCE-MENDS: the report - the escort\'s -20, stopped, "come quietly", a sentence served: released a penance\'s step better (-15) and said so, once its days are served (AUDIT FB1021d SM-1); the next stop\'s sentence clears the name (-10) - no stop due, no patrol, after the grace (mutants: the prison\'s mend dropped, the mend past the line, the mend at the sentence)', () => {
   const notices = [];
   setLegalRepNotifier(({ after, delta, cause }) => notices.push(legalNoticeLine({ name: 'Daggerfall', after, delta, cause })));
   try {
@@ -75,6 +89,7 @@ test('SENTENCE-MENDS: the report - the escort\'s -20, stopped, "come quietly", a
     const one = r.comeQuietly();
     assert.ok(one && one.days > 0, `a sentence with days: ${JSON.stringify(one)}`);
     assert.deepEqual([one.charged, one.after], [-22, -20 + PENANCE_POINTS], 'the Conspiracy charged and given back, and the name mended a step');
+    assert.equal(one.sentenced, -20, 'AUDIT FB1021d SM-1: under the prison screen the charge is given back (DFU\'s state 3) and nothing mended - a save there keeps no mend no day paid for');
     assert.ok(notices.some((n) => /^Time served mends your name in Daggerfall \(\+5\)\./.test(n)), notices.join(' | '));
     assert.equal(patrolHalts(r.p, DAGGERFALL, r.clocks()), false, 'PATROL-GRACE: no knight draws on the courthouse steps');
     r.wait(CHALLENGE_GRACE_MINUTES + CHALLENGE_COOLDOWN_MINUTES);
@@ -88,7 +103,7 @@ test('SENTENCE-MENDS: the report - the escort\'s -20, stopped, "come quietly", a
   } finally { setLegalRepNotifier(null); }
 });
 
-test('SENTENCE-MENDS: what it is not - a Murder served from a clean name keeps its mark at the line (the mend only lifts a name under it, and never past it); a name above the line is not raised; the law is one with the fine\'s (FINE-MENDS\' step)', () => {
+test('SENTENCE-MENDS: what it is not - a Murder served from a clean name keeps its mark at the line (the mend only lifts a name under it, and never past it); a name above the line is not raised; it answers the name the prisoner came in with, never the crime\'s own mark (AUDIT FB1021d SM-3), and once a grace (SM-4); the law is one with the fine\'s (FINE-MENDS\' step) (mutants: the mark worn, the grace unread)', () => {
   const p = { legalRep: {} };
   changeLegalRep(p, DAGGERFALL, -REPUTATION_LOSS_PER_CRIME[CRIMES.Murder]);
   const refund = sentenceRefund(CRIMES.Murder);
@@ -99,8 +114,28 @@ test('SENTENCE-MENDS: what it is not - a Murder served from a clean name keeps i
   assert.deepEqual([sentenceMends(near, DAGGERFALL), legalRepOf(near, DAGGERFALL)], [2, KNOWN_CRIMINAL_BELOW], 'two points under the line: two back, to the line');
   const q = { legalRep: { [DAGGERFALL]: -3 } };
   assert.equal(sentenceMends(q, DAGGERFALL), 0, 'above the line, nothing to mend');
+  // AUDIT FB1021d SM-3: the name the prisoner CAME IN WITH (`from`, the standing before the charge) - never the crime's
+  // own mark, which is the court's due (REP2, DFU's)
+  const treason = { legalRep: { [DAGGERFALL]: -18 } };
+  assert.equal(sentenceMends(treason, DAGGERFALL, { from: 0 }), 0, 'a Treason from a clean name keeps its -18');
+  const murder = { legalRep: { [DAGGERFALL]: -15 } };
+  assert.equal(sentenceMends(murder, DAGGERFALL, { from: -5 }), 0, 'a Murder from -5 keeps its mark (-15): -5 was over the line');
+  const escort = { legalRep: { [DAGGERFALL]: -30 } };
+  assert.equal(sentenceMends(escort, DAGGERFALL, { from: -12 }), 2, 'from -12: two of the name came in under the line, two back');
+  assert.equal(sentenceMends({ legalRep: { [DAGGERFALL]: -20 } }, DAGGERFALL, { from: -20 }), PENANCE_POINTS, 'the escort\'s -20: the step');
+  // SM-4: once a grace - an answer inside the day's grace the last one gave mends nothing more
+  const graced = { legalRep: { [DAGGERFALL]: -20 }, standing: { challengeAt: {}, graceUntil: { [DAGGERFALL]: 5000 }, penance: {}, pardons: {}, warned: {} } };
+  assert.equal(sentenceMends(graced, DAGGERFALL, { from: -20, ownNow: 4999 }), 0, 'inside the grace: nothing');
+  assert.equal(sentenceMends(graced, DAGGERFALL, { from: -20, ownNow: 5000 }), PENANCE_POINTS, 'the grace run out: the step');
   const s = readFileSync(join(ROOT, 'src/systems/standing.js'), 'utf8');
   assert.match(s, /export function settleChallenge\(player, regionIndex\) \{ return mendToLine\(player, regionIndex, 'fine'\); \}/, 'the fine and the sentence share one law');
+});
+
+test('SENTENCE-MENDS (AUDIT FB1021d SM-3): through the court, a Murder tried from -5 keeps REP2\'s mark (-15) - the name the prisoner came in with stood over the line, and the crime\'s own mark is the court\'s due; from the escort\'s -20, the step (mutants: the name it came in with unkept, the mark worn)', () => {
+  const marked = rig({ rep: -5 });
+  assert.equal(marked.tried(CRIMES.Murder), -5 - REPUTATION_LOSS_PER_CRIME[CRIMES.Murder] + sentenceRefund(CRIMES.Murder).legal, 'charged, half given back, no mend');
+  const named = rig({ rep: -20 });
+  assert.equal(named.tried(CRIMES.Murder), -20 - REPUTATION_LOSS_PER_CRIME[CRIMES.Murder] + sentenceRefund(CRIMES.Murder).legal + PENANCE_POINTS, 'the escort\'s name under it: the step');
 });
 
 test('SENTENCE-MENDS: the court\'s fine paid with no days mends as the sentence does; an acquittal gives back the charge and mends nothing (mutants: the zero-day mend dropped)', () => {
@@ -124,17 +159,21 @@ test('SENTENCE-MENDS: the court\'s fine paid with no days mends as the sentence 
   const free = a.slice(a.indexOf("if (r.outcome === 'free') {"), a.indexOf('function finish(result, court) {'));
   assert.ok(free.length > 0 && !free.includes('sentenceMends('), 'the free arm mends nothing');
   const tail = a.slice(a.indexOf('    // AUDIT 39 F98: both of those arms DO refill'));
-  assert.match(tail, /sentenceMends\(playerEntity, court\.regionIndex\);[^\n]*\n\s+fillVitalSigns\(playerEntity\);\n\s+release\(\);/, 'the zero-day arm mends, then refills and releases (F98)');
+  assert.match(tail, /sentenceMends\(playerEntity, court\.regionIndex, \{ from: court\.from, ownNow: ownMinutes\(\) \}\);[^\n]*\n\s+fillVitalSigns\(playerEntity\);\n\s+release\(\);/, 'the zero-day arm mends, then refills and releases (F98)');
+  // AUDIT FB1021d SM-5: a banishment repairs nothing (DFU's state 4) - its arm mends nothing
+  const banished = a.slice(a.indexOf("if (result.outcome === 'banished') {"), a.indexOf("if (result.outcome === 'executed') {"));
+  assert.ok(banished.length > 0 && !banished.includes('sentenceMends('), 'the banishment arm mends nothing');
 });
 
 test('CURFEW-REFUND: a Curfew town\'s Conspiracy, charged double, comes back double - the sentence nets the mend, not -2 a time; the People\'s half was never doubled (mutants: the factor unkept, unread)', () => {
   setCrimeRepFactor(() => 2);
   try {
     const r = rig();
-    const one = r.comeQuietly();
+    const one = r.comeQuietly({ between: () => setCrimeRepFactor(null) });   // AUDIT FB1021d SM-5: the edict lifted between the charge and the court
     assert.equal(one.charged, -24, 'charged double');
-    assert.equal(one.after, -20 + PENANCE_POINTS, 'given back as charged, and mended');
+    assert.equal(one.after, -20 + PENANCE_POINTS, 'given back as charged - the court reads the charge\'s factor, not the town\'s now - and mended');
   } finally { setCrimeRepFactor(null); }
+  assert.equal(sentenceRefund(CRIMES.Criminal_Conspiracy, { acquitted: true, factor: 2 }).legal, 2 * REPUTATION_LOSS_PER_CRIME[CRIMES.Criminal_Conspiracy], 'an acquittal gives back the doubled charge whole');
   assert.deepEqual(sentenceRefund(CRIMES.Criminal_Conspiracy, { factor: 2 }), { legal: 2 * REPUTATION_LOSS_PER_CRIME[CRIMES.Criminal_Conspiracy], people: Math.trunc(REPUTATION_LOSS_PER_CRIME[CRIMES.Criminal_Conspiracy] / 2) });
   assert.equal(sentenceRefund(CRIMES.Murder, { factor: 2 }).legal, REPUTATION_LOSS_PER_CRIME[CRIMES.Murder], 'a marked crime keeps half of what was charged');
 });
@@ -147,6 +186,10 @@ test('PATROL-GRACE: the road\'s patrol asks the grace an answered law gives - wo
   assert.equal(patrolHalts(p, DAGGERFALL, now), false, 'inside the grace');
   assert.equal(patrolHalts(p, DAGGERFALL, { ownNow: 1000 + CHALLENGE_GRACE_MINUTES, worldNow: 0 }), true, 'the grace run out');
   assert.equal(patrolHalts({ legalRep: { [DAGGERFALL]: -5 } }, DAGGERFALL, now), false, 'no criminal');
+  // AUDIT FB1021d SM-5: a banished player, whatever the name, is met
+  const exile = { legalRep: { [DAGGERFALL]: 10 }, regionConditions: createRegionConditions() };
+  assert.equal(banish(exile, DAGGERFALL, 1000), true);
+  assert.equal(patrolHalts(exile, DAGGERFALL, now), true, 'banished: the patrol halts them');
   const w = readFileSync(join(ROOT, 'src/scenes/world.js'), 'utf8');
   assert.match(w, /wanted: \(res, trip\) => \(res\.job === 'patrol' && trip\?\.from\?\.region != null && patrolHalts\(playerEntity, trip\.from\.region,/);
 });

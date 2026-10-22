@@ -166,7 +166,9 @@ Taken at the design, in the request's own order; each is Mac's to overrule.
   `{ v: 1, people }`, a bad one nobody known. [REGARD-OWN, FIELD BUGS 2026-10-21d: its days are the character's own
   (`regardClock.js` characterRelations, the one making), not the sky's living day - online the sky ran on while the
   player was away and eased every regard to nought between evenings; the record says `clock: 'own'`, an older online
-  one rebased once - `01-Overview/bugs/Field-Bugs-2026-10-21d.md`.]
+  one rebased once (a friendship as last written, a grudge as the sky had eased it - AUDIT FB1021d RO-3; and offline too
+  where its stamps run ahead of the character's day, RO-5). A friend made - by a word, its tone or a deed - is said once
+  nothing covers the HUD, never under the talk window (RO-1, RO-4) - `01-Overview/bugs/Field-Bugs-2026-10-21d.md`.]
 
 ## LW2 - the town (2026-10-04)
 

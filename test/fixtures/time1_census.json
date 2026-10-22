@@ -1043,6 +1043,12 @@
   },
   {
    "file": "src/scenes/world.js",
+   "has": "characterRelations(rec, ownMinutes, params.has('online'), () => skyMinutes())",
+   "clock": "sky",
+   "why": "REGARD-OWN, AUDIT FB1021d RO-3: a sky-stamped record's grudges eased as the old sky law had eased them, read once at its load - no stamp is taken on the sky"
+  },
+  {
+   "file": "src/scenes/world.js",
    "has": "day: () => Math.floor((skyMinutes() - 240) / 1440),",
    "clock": "sky",
    "why": "LW6: the living day the dives are read on (FIELD BUGS 2026-10-21d REGARD-OWN: a regard noted there is counted in the character's own day - systems/livingWorld/regardClock.js)"

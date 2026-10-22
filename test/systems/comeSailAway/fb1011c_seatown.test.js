@@ -215,7 +215,7 @@ test('SEA-TOWN HUDS: the naval HUD with no ship near (or the HUD covered) is han
     // PIN MOVED (THE CAPTAIN'S SEA, SPYGLASS - at the merge of main): the plate is handed the glass's state too (its
     // Glass brass while the glass is up), so the host's glass stands in its scope
     spyglass: { up: false },
-    travelView: null, _travelUIHolder: { ui: null },   // PIN MOVED (FIELD BUGS 2026-10-21d PASSAGE-PLATE): the plate goes under a journey's own controls
+    travelView: null,   // PIN MOVED (FIELD BUGS 2026-10-21d PASSAGE-PLATE): the plate goes under the Overworld's controls
   };
   const navalHud = mount(scope, cut(WORLD, 'function navalHud(dt = 0) {', '\n  }\n'), 'navalHud');
   navalHud(0.25);

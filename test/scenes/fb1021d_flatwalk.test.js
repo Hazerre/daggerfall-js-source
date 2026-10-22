@@ -21,7 +21,7 @@ import { loadData } from '../../tools/climbDungeonProbe.mjs';
 import { layoutDungeon } from '../../src/world/dungeon/dungeonLayout.js';
 import { dungeonLocationFor } from '../../src/world/smallerDungeons.js';
 import { ACTION_FLAGS, TRIGGER_FLAGS } from '../../src/world/rdbLayout.js';
-import { ActionSystem, walkHears, COLLISION_TIMEOUT_S, standsOnAction, actionContact, EFFECT_ACTION_FLAGS } from '../../src/world/actionSystem.js';
+import { ActionSystem, walkHears, hasActionCollision, COLLISION_TIMEOUT_S, standsOnAction, actionContact, EFFECT_ACTION_FLAGS } from '../../src/world/actionSystem.js';
 import { objectAabb } from '../../src/player/activate.js';
 import { Collider } from '../../src/player/collider.js';
 import { PlayerMotor, FIXED_DT, CAPSULE_HEIGHT, TELEPORT_FREEZE_S } from '../../src/player/motor.js';
@@ -34,15 +34,17 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const ARENA2 = process.env.ARENA2_PATH;
 const SKIP = !ARENA2 || !existsSync(join(ARENA2, 'BLOCKS.BSA')) ? 'ARENA2_PATH has no BLOCKS.BSA' : false;
 
-/** dungeonContext.js collisionTriggers, as the host has it - lifted out of its source, so the pin reads the host. */
+/** dungeonContext.js collisionTriggers, as the host has it - lifted out of its source, so the pin reads the host. AUDIT
+ *  FB1021d FW-5: with every gate the module offers in scope, so a pass back on hasActionCollision fails by what the walk
+ *  hears, not by a name the lift left out. */
 function hostPass(world) {
   const DC = readFileSync(join(ROOT, 'src/scenes/dungeonContext.js'), 'utf8');
   const at = DC.indexOf('  function collisionTriggers(dt, playerFeet, moveHeld');
   assert.ok(at > 0, 'the host\'s collision pass');
   const src = DC.slice(at, DC.indexOf('\n  }\n', at) + 4);
   // eslint-disable-next-line no-new-func
-  return new Function('actions', 'walkHears', 'COLLISION_TIMEOUT_S', 'objectAabb', 'standsOnAction', 'actionContact', 'triggerSurfaces', 'collider', 'CAPSULE_HEIGHT',
-    `const _wish = [0, 0];\n${src}\nreturn collisionTriggers;`)(world.actions, walkHears, COLLISION_TIMEOUT_S, objectAabb, standsOnAction, actionContact, world.triggerSurfaces, world.collider, CAPSULE_HEIGHT);
+  return new Function('actions', 'walkHears', 'hasActionCollision', 'COLLISION_TIMEOUT_S', 'objectAabb', 'standsOnAction', 'actionContact', 'triggerSurfaces', 'collider', 'CAPSULE_HEIGHT',
+    `const _wish = [0, 0];\n${src}\nreturn collisionTriggers;`)(world.actions, walkHears, hasActionCollision, COLLISION_TIMEOUT_S, objectAabb, standsOnAction, actionContact, world.triggerSurfaces, world.collider, CAPSULE_HEIGHT);
 }
 /** worldModes.js's dungeon arm: where a relay's Teleport lands the body. */
 function hostLanding(ctx, player, cam) {
