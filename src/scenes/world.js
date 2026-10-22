@@ -7147,7 +7147,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const lootLines = createLootLines(renderer.gl);   // LOOT11: the lines of light over a find, one pass for every mode
   // NPC-MARKS (scenes/npcMarksHost.js): a bobbing mark over a street person's body whose click is a quest's or a guild's -
   // the route read in the street (no building); the interior host keeps marks of its own
-  const npcMarks = createNpcMarks(renderer.gl), streetMarkCtx = { get dict() { return _questStore()?.dict ?? null; }, building: null };
+  const npcMarks = createNpcMarks(renderer.gl), streetMarkCtx = { get dict() { return _questStore()?.dict ?? null; }, building: null,
+    offersWork: (pn) => npcSession.isNpcOfferingQuest(pn._mwSeed ??= staticNpcData(pn, { locationIndex: _questLoc()?.locationIndex ?? 0 }).nameSeed) };   // AUDIT NPC-MARKS L2: the work pool's questor, by the seed the street's click mints (worldModes.js staticNpcSceneCtx: no building)
   // FindGroundPosition (CreateDroppedLootContainer): the pile lands
   // on the ground BELOW the player, not at the motor's height
   const dropFeet = () => {

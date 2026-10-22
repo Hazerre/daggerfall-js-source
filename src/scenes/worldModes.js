@@ -2041,7 +2041,8 @@ export function createWorldModes(host) {
   // NPC-MARKS (scenes/npcMarksHost.js): a bobbing mark over a body whose click is a quest's, a merchant's or a guild's - the
   // room's people and the dungeon's; the route read in the place they stand (a building's, or none underground)
   const npcMarks = createNpcMarks(renderer.gl);
-  const npcMarkCtx = { get dict() { return townTalk?.factionDict ?? null; }, get building() { return mode === 'interior' ? interiorBuilding : null; } };
+  const npcMarkCtx = { get dict() { return townTalk?.factionDict ?? null; }, get building() { return mode === 'interior' ? interiorBuilding : null; },
+    offersWork: (pn) => !!npcSession?.isNpcOfferingQuest(pn._mwSeed ??= staticNpcData(pn, staticNpcSceneCtx(pn)).nameSeed) };   // AUDIT NPC-MARKS L2: the work pool's questor - the click's own seed (questBridge.clickNpc's staticNpcData)
   // MWNPC18: what a placed figure is read by - FLATS.CFG and the region's race, asked only when a figure is first looked at.
   // AUDIT MWNPC16-18 D2: the race the room's building's region names (REGION_RACES, the yards' read in world.js) - the
   // quest scene's context is { mapId, locationIndex } and names none, so every room's figure stood a Breton

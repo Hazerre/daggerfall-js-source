@@ -10,22 +10,34 @@
 //                first, PlayerActivate.cs:1523-1528 - worldModes.js openStaticNpc's doClick), and a quest's stood
 //                person (a questor at a marker - worldModes.js offerQuestStands). A quest set aside (QUEST-SHELF),
 //                ended or broken marks no one. Over the other two: what the quest wants first.
+//                AUDIT NPC-MARKS L2: and a townsperson the work pool holds (npcSession.isNpcOfferingQuest - the "any
+//                work?" answer's questor, whose talk opens the quest offer, TalkManager.cs:757-772), where the click
+//                reaches talk.
 //   - 'merchant' a gold coin - StaticNPCClick's merchant arm (systems/guild/guildServiceFlow.js staticNpcRoute: a
 //                Merchants-group person in a shop, a bank or a tavern, or a custom merchant service's).
-//   - 'service'  a blue gem - its guild-service arm and the coven's (a guild's trainer, spell seller or quest giver).
+//   - 'service'  a blue gem - its guild-service arm where a guild answers it (AUDIT NPC-MARKS L3: a service faction
+//                with no guild here is "You get no response." - worldModes.js openGuildService), and the coven's (a
+//                guild's trainer, spell seller or quest giver); AUDIT NPC-MARKS L5: and the arena's officers, whose
+//                presses open their own windows before the click is routed (worldModes.js activateStaticNpc - the
+//                Herald, the banners' recruiters, the bookmaker, the Pit Master, the Keeper of the Hall).
 //
 // The route is staticNpcRoute's own, built by `staticNpcRouteIn` - the one the click takes (worldModes.js openStaticNpc
-// asks it too), so a mark never promises a door the click does not open. A person's route is read once (their room
-// and their faction do not change while they stand); their quest every frame. Only a body standing in the lane is
-// marked - a classic sprite keeps its own picture, so off the Morrowind lane nothing is drawn - the nearest
-// NPC_MARKS_MAX within NPC_MARKS_REACH, hung over the body's own height (its race's). The player's switch is the
-// Features page's 'npc-marks' (`npcMarks`, on by default).
+// asks it too), so a mark never promises a door the click does not open. A person's route is read once their faction's
+// row is in (AUDIT NPC-MARKS L1: FACTION.TXT's dict is an empty Map while it loads - a route read then was talk, kept
+// for good), and again when a mod's merchant service switches (L6); their quest and their work every frame. A person
+// the click cannot reach is no one's (L4: dungeonContext.js npcTargets - no width, or a ShowText action's). Only a body
+// standing in the lane is marked - a classic sprite keeps its own picture, so off the Morrowind lane nothing is drawn -
+// the nearest NPC_MARKS_MAX within NPC_MARKS_REACH, over the body's own height (its race's; under the Billboard Look the
+// upright card's cos(pitch) of it - L7, render/characterSprite.js BODY-CARD). The player's switch is the Features
+// page's 'npc-marks' (`npcMarks`, on by default).
 //
 // A HOST'S WIRING: `begin()` as its frame begins, `consider(holder, ctx)` for each person it offers the people lane (or
 // `gather(ctx, people, stands)` - the begin and both lists in one call), and `draw(proj, view, eye, lane, seconds)` after
 // its billboards (the depth the world wrote hides a mark behind a wall), which lets the frame's candidates go; `ctx` is
-// the host's one object ({ dict, building } - getters, made once). No allocation a frame: the candidates and the marks
-// live in this module's own pools.
+// the host's one object ({ dict, building, offersWork? } - getters and a function, made once). The candidates and the
+// marks live in this module's own pools; the one string a candidate costs a frame is the lane's own id (heightOf ->
+// npcPeerId, as its `has` already does). ONE PASS A CONTEXT (AUDIT NPC-MARKS R3): the world host and its modes share
+// one program, its owner the last host to let go (`dispose`).
 //
 // Not a DFU member. Ledger A row (NPC-MARKS).
 import { NpcMarkRenderer, NPC_MARKS_MAX, markBob } from '../render/npcMarkPass.js';
@@ -35,13 +47,17 @@ import { isShop, isRepairShop } from '../systems/shopStock.js';
 import { BUILDING_TYPES } from '../world/buildingNames.js';
 import { isShelved } from '../systems/quest/quest.js';
 import { getPref } from '../systems/uiPrefs.js';
+import { createGuildForGroup } from '../systems/guild/guildVariants.js';   // L3: the guild openGuildService opens
+import { arenaGatePersonOf } from '../world/arena/arenaCity.js';   // L5: the arena's gate officers
+import { ACTION_FLAGS } from '../world/rdbLayout.js';   // L4: a ShowText action's person is the action's
 
 /** How far from the eye a mark stands (metres) - the people lane's Near range (characters/npcBodies.js NPC_BODY_TIERS). */
 export const NPC_MARKS_REACH = 30;
 /** The share of the reach over which a mark fades out, at its far end. */
 export const NPC_MARKS_FADE = 0.2;
-/** How far over the body's crown the icon's centre hangs (metres). */
-export const MARK_OVER_HEAD_M = 0.38;
+/** How far over the body's crown the icon's bottom stands (metres) - its centre a half-size higher, whatever size it is
+ *  drawn at (render/npcMarkPass.js). */
+export const MARK_OVER_HEAD_M = 0.2;
 /** The most people a frame considers - a hall of people, past which the rest are not asked. */
 export const NPC_MARKS_CANDIDATES = 96;
 
@@ -70,11 +86,29 @@ export function staticNpcRouteIn({ npcFactionId, dict, building = null }) {
   }));
 }
 
-/** The mark a route earns: a merchant's coin, a guild's or the coven's gem, none for talk. Pure. @param {any} route */
-export function routeMark(route) {
+/** The mark a route earns: a merchant's coin, a guild's or the coven's gem, none for talk. A guild-service route marks
+ *  only where a guild answers it (L3: openGuildService's `createGuildForGroup(route.guildGroup,
+ *  route.buildingFactionId, dict)`, null - a temple no divine runs, an order no hall holds - is "You get no
+ *  response."). @param {any} route @param {any} [dict] */
+export function routeMark(route, dict = null) {
   if (route?.kind === 'merchant') return 'merchant';
-  if (route?.kind === 'guildService' || route?.kind === 'witchesCoven') return 'service';
+  if (route?.kind === 'guildService') return createGuildForGroup(route.guildGroup, route.buildingFactionId, dict) ? 'service' : null;
+  if (route?.kind === 'witchesCoven') return 'service';
   return null;
+}
+
+/** L5: the arena's officers, whose press opens their own window before any route (worldModes.js activateStaticNpc). */
+const ARENA_OFFICES = new Set(['herald', 'redRecruiter', 'blueRecruiter', 'bookmaker', 'pitMaster', 'hallKeeper']);
+/** Whether this person holds an arena office. @param {any} holder */
+export const arenaOfficer = (holder) => ARENA_OFFICES.has(holder?.arenaRole) || (holder?.position != null && ARENA_OFFICES.has(arenaGatePersonOf(holder)?.role));
+
+/** L4: whether the click can reach this person at all - dungeonContext.js npcTargets' law: a person with no width takes
+ *  no ray, and one riding a ShowText action is the action's. A record that carries no width (a quest's stand) is not
+ *  held to it. @param {any} holder */
+export function clickable(holder) {
+  if ('width' in holder && !holder.width) return false;
+  const flag = holder.action?.actionFlag;
+  return flag !== ACTION_FLAGS.ShowText && flag !== ACTION_FLAGS.ShowTextWithInput;
 }
 
 /** Whether a quest resource behaviour holds this person for a live quest - one a click would reach first
@@ -87,18 +121,35 @@ export function questMarked(b) {
   return (b.targetResource ?? q.getResource?.(b.targetSymbol) ?? null) != null;
 }
 
-/** A standing person's mark, or null: the quest's first, then their route's (read once, when the faction table is in).
- *  @param {any} holder a person (a StaticNPC record, a quest's stand) @param {{ dict: any, building?: any }} ctx */
+/** A standing person's mark, or null, in the click's own order (activateStaticNpc, then openStaticNpc): an arena
+ *  office's window; the quest's click; the route's door (read once their faction's row is in, again when a mod's
+ *  merchant service switches); and where the click reaches talk, the work pool's offer.
+ *  @param {any} holder a person (a StaticNPC record, a quest's stand)
+ *  @param {{ dict: any, building?: any, offersWork?: (holder: any) => boolean }} ctx */
 export function markKindOf(holder, ctx) {
-  if (!holder || holder.active === false || holder.dead) return null;
+  if (!holder || holder.active === false || holder.dead || !clickable(holder)) return null;
+  if (arenaOfficer(holder)) return 'service';
   if (questMarked(holder.questBehaviour ?? holder.behaviour)) return 'quest';
   if (holder.factionID == null) return null;   // a quest's stand carries no faction of its own: it is the quest's or no one's
-  if (holder._mwMarkRoute === undefined) {
+  const custom = hasCustomMerchantService(holder.factionID);
+  if (holder._mwMarkRoute === undefined || holder._mwMarkCustom !== custom) {
     const dict = ctx?.dict ?? null;
-    if (!dict) return null;   // never before the faction table: asked again
-    holder._mwMarkRoute = routeMark(staticNpcRouteIn({ npcFactionId: holder.factionID, dict, building: ctx?.building ?? null }));
+    if (!dict?.get(holder.factionID)) return null;   // L1: never before the faction's row is in - asked again, nothing kept
+    holder._mwMarkRoute = routeMark(staticNpcRouteIn({ npcFactionId: holder.factionID, dict, building: ctx?.building ?? null }), dict);
+    holder._mwMarkCustom = custom;
   }
-  return holder._mwMarkRoute;
+  if (holder._mwMarkRoute) return holder._mwMarkRoute;
+  return ctx?.offersWork?.(holder) ? 'quest' : null;   // L2: the talk arm's first door
+}
+
+/** L7: how high the body's crown draws - its height, or under the Billboard Look (the upright card) cos(pitch) of it,
+ *  the pitch the eye's ray to the body's middle makes. Pure. @param {number} tall @param {ArrayLike<number>} feet
+ *  @param {ArrayLike<number>} eye @param {boolean} upright */
+export function crownOf(tall, feet, eye, upright) {
+  if (!upright) return tall;
+  const dx = feet[0] - eye[0], dy = feet[1] + tall / 2 - eye[1], dz = feet[2] - eye[2];
+  const flat = Math.hypot(dx, dz), all = Math.hypot(flat, dy);
+  return all > 1e-6 ? tall * (flat / all) : tall;
 }
 
 /** A small stable phase for a holder's bob (0..1), off its lane id - so a room's marks do not rise as one. */
@@ -117,14 +168,33 @@ const reducedMotionReader = () => {
   };
 };
 
+/** R3: ONE PASS A CONTEXT - the renderer each GL context's hosts share, and how many hold it. A pass that would not
+ *  build is kept as none, so the next host does not build it again. */
+const SHARED = new WeakMap();
+const takePass = (gl, build) => {
+  let e = SHARED.get(gl);
+  if (!e) {
+    let pass = null;
+    try { pass = build(gl); } catch (err) { console.warn('[npc-marks] the pass would not build', /** @type {any} */ (err)?.message ?? err); pass = null; }
+    SHARED.set(gl, (e = { pass, users: 0 }));
+  }
+  e.users++;
+  return e.pass;
+};
+const letPassGo = (gl) => {
+  const e = SHARED.get(gl);
+  if (!e || --e.users > 0) return;
+  SHARED.delete(gl);
+  e.pass?.dispose?.();
+};
+
 /**
- * THE HOST'S MARKS - one renderer a GL context, built once (a context that will not build it draws nothing).
+ * THE HOST'S MARKS - one renderer a GL context, shared by its hosts (a context that will not build it draws nothing).
  * @param {WebGL2RenderingContext | null} gl
  * @param {{ build?: (gl: any) => any, reduced?: (nowS: number) => boolean }} [o]
  */
 export function createNpcMarks(gl, { build = (g) => new NpcMarkRenderer(g), reduced = reducedMotionReader() } = {}) {
-  let pass = null;
-  try { pass = gl ? build(gl) : null; } catch (e) { console.warn('[npc-marks] the pass would not build', /** @type {any} */ (e)?.message ?? e); pass = null; }
+  let pass = gl ? takePass(gl, build) : null;
   /** @type {any[]} */
   const holders = [];
   /** @type {string[]} */
@@ -159,12 +229,13 @@ export function createNpcMarks(gl, { build = (g) => new NpcMarkRenderer(g), redu
     draw(proj, view, eye, lane, seconds) {
       shown = 0;
       if (!pass || !n || !lane?.heightOf || !npcMarksOn()) { release(); return false; }
-      const still = reduced(seconds);
+      const still = reduced(seconds), upright = !!getPref('mwBillboardLook');
       for (let i = 0; i < n; i++) {
         const h = holders[i], id = h._mwActor?.id, feet = h._mwFeet;
         if (id == null || !feet) continue;
-        const tall = lane.heightOf(id);
-        if (!(tall > 0)) continue;   // no body stands for them: their own picture is their mark
+        const height = lane.heightOf(id);
+        if (!(height > 0)) continue;   // no body stands for them: their own picture is their mark
+        const tall = crownOf(height, feet, eye, upright);
         const d = Math.hypot(feet[0] - eye[0], feet[1] + tall - eye[1], feet[2] - eye[2]);
         if (!(d <= NPC_MARKS_REACH)) continue;
         // the nearest NPC_MARKS_MAX, kept sorted as they come: a free slot, or the farthest kept's, taken and moved in
@@ -185,5 +256,8 @@ export function createNpcMarks(gl, { build = (g) => new NpcMarkRenderer(g), redu
     },
     /** The marks the last draw stood, nearest first (for the tests). */
     shown() { return marks.slice(0, shown).map(({ at, kind, alpha }) => ({ at: [...at], kind, alpha })); },
+    /** EVERY ALLOCATION HAS AN OWNER: this host lets go of the shared pass (the last to go frees it) and its people. A
+     *  host's life is its page today (the title menu reloads it - scenes/shared.js), as the loot lines' is. */
+    dispose() { release(); if (pass && gl) letPassGo(gl); pass = null; },
   };
 }
