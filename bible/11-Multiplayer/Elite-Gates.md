@@ -10259,7 +10259,9 @@ the next name put on a handle list off the herald is checked against the account
 ### EG-FALL - 2026-10-21 - A LORD'S FALL IS THE GATE'S
 
 The owner: *"I notice in the Elite Breaches, when the boss dies it freezes in place. Oblivion gates do the boss death the
-best way"*.
+best way"*. Audited cold the same day at the owner's word, *"Audit this"* (AUDIT EG-FALL,
+`01-Overview/audits/Audit-EG-FALL.md`: three lanes on a frozen head, 32 findings, 30 distinct, 2 of them bugs); this record reads as
+the audit left it, each correction marked with its finding's id.
 
 **What was there (FACT, at 8089d374f).** A felled lord stays in its hall's fight on the relay's word: `egLordHit`
 (`net/eliteGates/egLords.js`) sets `EG_FL.fell` and the fall's instant, and keeps the body, so the Twins' fifteen seconds
@@ -10268,46 +10270,86 @@ can raise one (`egLink.js` `fellOf` clears it again). The screen drew that body 
 end: the lord played four hurt frames and then stood on the fourth, upright and full size, for as long as the hall stood.
 Section 16.2 promised "the gate's fall beats (WB13e): *FELLED*, the body down"; the card shipped (`beats`), the body
 never went down, and none of the gate's other beats had been carried over - no cry, no thud, no light, no shake.
+(EG-ZJ's record says "a lord's flags fallen lay it down at once": the fold's state, never the picture - AUDIT EG-FALL L3-12.)
 
-**The fall.** `scenes/eliteGates/egLordFall.js` (new; `egFight.js` wires it, and no host is touched) gives every lord the
-Warden's fall from the Burning Court (`world/gate/gateBoss.js` `bossAct`, `scenes/gate/gateCourt.js` `fallEvent`,
-`drawCorpse` and `lights`). It uses the gate's own numbers (`FALL_MS`, `THUD_AT_MS`, `FALL_SINK_M`, `CORPSE_SCALE`,
-`BOSS_H`, `FALL_FLASH_MS`, `FALL_SHAKE`, `COLUMN_BURSTS`, `COLUMN_STEP_MS`, `FALL_CRY_LATE_MS`; `WHITE` is now exported for
-it), each grown by the lord's drawn size over the Warden's 3 (`EG_FALL_PER` - Grath at 4.8 sinks 2.4 m):
-- **The body** (`egLordFallAct`, which `egBodyAct` now answers for a fallen lord): its hurt frames to the floor by 1.5 s,
-  then sunk into the stone over the rest of 2.4 s, then gone. It falls where it fell (`drawBody` stands it at its fall's
-  instant, never on along a walk the relay said before it), and a flyer - the Mother of Dusk, the Wyrm aloft - drops out
-  of its hover by the thud (`aloft`).
+**The fall.** `scenes/eliteGates/egLordFall.js` (new; `egFight.js` wires it) gives every lord the Warden's fall from the
+Burning Court (`world/gate/gateBoss.js` `bossAct`, `scenes/gate/gateCourt.js` `fallEvent`, `drawCorpse` and `lights`).
+It is on the gate's own numbers - `FALL_MS`, `THUD_AT_MS`, `FALL_FLASH_MS`, `FALL_SHAKE`, `COLUMN_BURSTS`,
+`COLUMN_STEP_MS`, `FALL_CRY_LATE_MS`, and the ones the court had written in line, now named there and read here
+(`FALL_BURST_UP`, `FALL_FLASH_Y`, `FALL_FLASH_K`, `FALL_FLASH_RANGE`, `FALL_NEWS_MS` in `gateCourt.js`, `GLOW_SHARE` and
+`FALL_GLOW_K` in `gateBoss.js` - AUDIT EG-FALL L2-9, L3-9). Three of them grow with the lord's drawn size over the
+Warden's 3 (`EG_FALL_PER` - Grath at 4.8 sinks 2.4 m): its sink, its corpse's scale, and the height its beats stand at
+(`egFallTallM`, the Warden's `BOSS_H` grown - not the drawn sprite's height); the flash, the glow's reach, the shake and the
+bursts' size are the gate's as they are (AUDIT EG-FALL L3-1, L3-7):
+- **The body** (`egLordFallAct`, which `egBodyAct` answers for a fallen lord): its hurt picture to the floor by 1.5 s -
+  Daggerfall's hurt records hold one frame each (TEXTURE.270 and 280-291, records 10-14), so the frame index the gate's
+  formula runs is one held picture, as the gate's own is (AUDIT EG-FALL L1-5) - then sunk into the stone over the rest of
+  2.4 s, then gone. A winged body falls beating its wings (the Mother of Dusk aloft: her winged table looped at the flyers'
+  ten a second, as the gate's host's winged fall - L1-5), and a flyer drops out of its hover by the thud (`aloft`). It lies
+  where it fell: the place first seen fallen is held (`placeOf`), never carried on by a walk said before the fall nor moved
+  by a later word, and the relay stops a felled lord's walk at its fall (`egStop` in `egLordHit`, relay world240), so the
+  place the room says once its whole fight is heard is taken and every screen lays it in one place (AUDIT EG-FALL L1-2,
+  L2-2).
 - **The kill**: its death cry (the gate's `fall` cue in the lord's own bark - `egFallCry`; a Daedra Lord's is the gate's
-  own), a burst of Dagon's size out of its chest whose sparks rest on its floor, the hall's light white for 0.4 s, and the
-  camera shaken 4 under the Spire's motion law (`egShakeMotion`: reduced motion none, Technique camera motion its share).
-- **The thud** at 1.5 s, and three embers rising off the floor a quarter second apart; its ember's glow at its chest
-  dies over the fall. The ember is the gate's own under the lord's element's aspect (`egLordEmber`: fire the Burning's,
-  frost the Rime's, shock the Storm's, poison the Venom's; Vael the fire and Isk the frost; no element, its band's).
-- **Its body left**: its mobile's own corpse (`enemyBasics.js` `corpseTexture`, every lord's mobile has one) where it
-  fell, grown as the lord is, with no giant's shadow (OW-BIG's law). It lies there while the fight keeps the lord, and
-  is put away when the Twin is raised (her next fall plays again from its own instant, also when the screen never saw
-  her stand), when the lord leaves the fight, at a new hall even before its fight is heard, and when the breach is left.
+  own), a burst of Dagon's size out of its chest - a flyer's in the air it fell from (L1-4) - whose sparks rest on its
+  floor, the hall's light white for 0.4 s, and the camera shaken 4 under the Spire's motion law (`egShakeMotion`: reduced
+  motion none, Technique camera motion its share).
+- **The thud** at 1.5 s, and three embers rising off the floor a quarter second apart; its ember's glow at its chest dies
+  over the fall, dropping with a flyer. The ember is the gate's own under the lord's element's aspect (`egLordEmber`: fire
+  the Burning's, frost the Rime's, shock the Storm's, poison the Venom's; Vael the fire and Isk the frost; no element, its
+  band's).
+- **Its body left**: its mobile's own corpse (`enemyBasics.js` `corpseTexture`; every lord's mobile has one, and every one
+  stands in Daggerfall's files - TEXTURE.096, 306, 400 and 405) where it fell, grown as the lord is - Grath's 9.0 by 4.2 m -
+  with no giant's shadow (OW-BIG's law). It lies there while the fight keeps the lord, and is put away when the Twin is
+  raised (her next fall plays again from its own instant, also when the screen never saw her stand), when the lord leaves
+  the fight, at a new hall even before its fight is heard, and when the breach is left.
+- **One fall is one fall** (AUDIT EG-FALL L1-1, L2-1): a lord that is not its fight's last to fall (a Twin's first, the
+  Old Masters', Clan Feud's) is told by `efl` alone, which the link stamps at its arrival, and the next whole fight (`efs`,
+  every 2 s) brings the relay's own instant. The moved instant re-anchors the fall (`EG_FALL_SAME_MS`, a fall's span: no
+  lord is raised and felled again inside one), where before it played the whole fall a second time - a second cry, shake,
+  burst, thud and column in five of the eight timings the audit swept.
 - Each beat plays once a fall, and only while news, as the gate's do: a screen that comes to the hall later sees the
   corpse on the floor and hears nothing.
 - The sparks are drawn by the gate's spark pass (`render/gate/gateFx.js`) in the fight's world pass, after the telegraph
-  floors (`egFight.js` `drawPass`). The corpses ride the fight's batches, and the flash and glow - each a record refilled
-  in place, casting no shadow - ride its lights. Two lights for 2.4 s a fall, then none.
+  floors (`egFight.js` `drawPass`), sized by the world image's height as the Hour sizes them (L1-7). The pass is warmed while
+  a lord stands, so the kill's frame links nothing, and freed with the breach (`GateFxRenderer.destroy`, new - L1-6). The
+  corpses ride the fight's batches, and the flash and glow - each a record refilled in place - ride its lights: at most two
+  a fall, the flash's 0.4 s and the glow's 2.4 s (AUDIT EG-FALL L3-2). Neither casts a shadow: the Spire's light seam
+  (`world/eliteGates/egHall.js` `egLightsWith`) now honours a light's `carried` mask as the gate's does; it had dropped it,
+  and the fall's two lights took shadow casters' slots (L1-3).
 
-Not a DFU member: Daggerfall Unity's foes have no fall of their own. The gate's is the port's own (WB13e), and this
-departs from it twice: the cry is the lord's own voice where the gate's is always the Warden's, and the kill's sparks
-rest on the floor where the gate's rest at his chest's height. Ledger A's ELITE-GATES row names the file.
+**The four hosts.** None touched (HOST-SPLIT): the fall rides the fight's own batches, lights and world pass, which
+`scenes/eliteGates/egClient.js` hands on (AUDIT EG-FALL L3-11).
 
-**Pins.** `test/net/eliteGates/eg_lordfall.test.js` (10, through `egFight.js`'s own draw path over a recording renderer,
-a recording audio engine and, for the sparks, a recording WebGL): the act's frames, sink, end and drop; the ember and
-the cry; the fall drawn beat by beat to the corpse and a minute past it; only while news, a second for an ember; the
-flyer; the Twin raised, felled again, raised unseen, and the corpse freed by every way out; the sparks and the shake's
-law; the world pass. `test/scenes/nudedecor.test.js` names the new billboard host (NUDE-HOSTS: a corpse, never a
-person). `tools/mutants/eg_fall.json`: 37, all dead. The first run left three alive - the reset's freeing
-(a new hall's fight not yet heard), an ember's news second, and a fall replayed past a raise this screen never saw - and
-each was pinned.
+**DFU, and the departures.** Not a DFU member. Daggerfall Unity's foe has no fall of its own: `EnemyDeath.CompleteDeath`
+sets it inactive at once (`gameObject.SetActive(false)`), lays a lootable corpse marker in its corpse picture
+(`GameObjectHelper.CreateLootableCorpseMarker`) and plays `SoundClips.BodyFall` where it lies. The gate's fall (WB13e) is
+the port's own and departs from that - the fall itself, the corpse laid at 2.4 s, BodyFall at the thud pitched for his size
+- and this follows the gate (AUDIT EG-FALL L3-3: the record said DaggerfallEnemy, and none of the beats DFU does have).
+It departs from the gate four times: the cry is the lord's own voice where the gate's is always the Warden's; the kill's
+sparks rest on the floor where the gate's rest at his chest's height; the corpse casts no shadow where the gate's does; and
+a Colossal lord's sink and corpse grow with its size where the gate's Colossal Warden keeps 1.5 m and 3 (L1-8, L3-5).
+Ledger A's ELITE-GATES row names the file; no row of its own (the lords are no DFU foes - WB13's precedent).
 
-**Left as it is, said.** Not seen in a running breach: the lords are the player's ARENA2 sprites, which no lab ships.
-The draw path, the renderer's calls and the GL calls are what was read. The FELLED card still stands at the word's
-arrival (the gate's waits 1.7 s, over his spoils). The legion's adds fall as they did (1.2 s, `edie`), and a mirror still
-crumbles. A raised Twin stands at once; she does not climb up out of the floor.
+**The relay.** world240 (`src/net/wire.js` `RELAY_VERSION`; NOT YET DEPLOYED): `egLordHit` stops a felled lord's walk.
+No word changes and no client gate: a page facing an older relay holds the fall's place itself, and an older page reads the
+stop as any walk's.
+
+**Pins.** `test/net/eliteGates/eg_lordfall.test.js` (20 - fourteen through `egFight.js`'s own draw path over a recording
+renderer and audio engine, the others the module's law, its pass over a recording WebGL, and the Spire's light seam; the
+last, Daggerfall's own pictures, runs where ARENA2 stands - `tools/fetch-data.sh` - and skips where it does not) and
+`test/net/eliteGates/eg_lordfall_relay.test.js` (2, the relay's own words: the director runs the Twin Court, `egLordHit`
+fells the lord, each word crosses the wire's check and folds at its own arrival - the two bugs, each failing at the audited
+head). `test/scenes/nudedecor.test.js` names the new billboard host (NUDE-HOSTS: a corpse, never a person).
+`tools/mutants/eg_fall.json`: 78 (the first run's 37, twelve re-aimed where the audit moved their lines; one a fix; L2's
+21 surviving gaps on the new code; the first run of the audit's own records left five alive - the flash moved at a
+re-anchor, the stopped and the walking row's place, the fight's warm, a destroyed pass's draw - and each was pinned), all dead. `tools/mutants/wb13e.json` and `wb8c.json`: one record each re-aimed at the
+gate's named numbers.
+
+**Left as it is, said.** Not seen on a running screen: a breach needs a relay and a company. What was read instead is the
+draw path, the renderer's, the audio's and the GL's calls, and Daggerfall's own pictures measured where ARENA2 stands - the
+reason is the relay, never the data (AUDIT EG-FALL L3-4: this record first gave ARENA2 as the reason, against CLAUDE.md's
+freeware rule). The FELLED card still stands at the word's arrival (the gate's waits 1.7 s, over his spoils). The legion's
+adds fall as they did (1.2 s, `edie`), and a mirror still crumbles. A raised Twin stands at once; she does not climb up out
+of the floor. Under a relay before world240, a screen that comes to the hall after a walking lord fell lays the corpse where
+that relay carried it.

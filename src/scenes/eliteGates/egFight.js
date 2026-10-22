@@ -329,7 +329,7 @@ export function egBodyAct(b, now, mobile, blow, hover = 0, drawn = undefined) {
   const winged = mobile === 29 && hover > 0;
   const tab = (state) => stateAnims(state, mobile, !!ENEMY_BASICS[mobile]?.hasIdle, false, false, true, false, winged);
   if (b.goneAt) { const since = now - b.goneAt; return since >= FALL_MS ? { act: 'gone', anims: tab('hurt'), frame: 0, loop: false, sink: 0 } : { act: 'fall', anims: tab('hurt'), frame: Math.floor((since / FALL_MS) * 4), loop: false, sink: b.w === 2 ? (since / FALL_MS) * 2 : 0 }; }
-  if (b.fellAt && now >= b.fellAt) return egLordFallAct(now - b.fellAt, tab('hurt'), drawn);   // EG-FALL: it held its fourth hurt frame, standing, for the hall's life
+  if (b.fellAt && now >= b.fellAt) return egLordFallAct(now - b.fellAt, tab('hurt'), drawn, winged);   // EG-FALL: it held its fourth hurt frame, standing, for the hall's life
   const since = now - (b.born ?? 0);
   if (since >= 0 && since < 900 && b.role === EG_ROLE.add) return { act: 'rise', anims: tab('idle'), frame: 0, loop: true, sink: 2 * (1 - since / 900) };
   if (blow && now < blow.at) { const t = (now - (blow.at - blow.wu)) / Math.max(1, blow.wu); return { act: 'windup', anims: tab('attack'), frame: t >= 0.5 ? 1 : 0, loop: false, sink: 0 }; }
@@ -734,8 +734,8 @@ export function createEgFight({ renderer = null, gl = null, getTexture = null, u
     if (!T || !renderer?.createBillboardBatch) return;
     const act = egBodyAct(b, t, look.mobile, blow, look.hover, look.drawn);
     if (act.act === 'gone' || ((b.fl & EG_FL.hidden) !== 0 && b.role === EG_ROLE.lord)) return;
-    const tp = b.fellAt > 0 && t > b.fellAt ? b.fellAt : t;   // EG-FALL: a fallen lord falls where it fell, never on along the walk said before it
-    const [x, z] = egBodyPlace(b, tp), bodyY = egBodyHeight(b, tp);   // EG-ZJ (section 11.7): on its own feet, the room's word - never the hall's height
+    const held = b.fellAt > 0 ? lordFall.placeOf(b.i) : null;   // EG-FALL; AUDIT EG-FALL (L1-2, L2-2): a fallen lord where it fell, held - never on along a walk, nor moved by the next whole fight
+    const [x, z] = held ?? egBodyPlace(b, t), bodyY = held ? held[2] : egBodyHeight(b, t);   // EG-ZJ (section 11.7): on its own feet, the room's word - never the hall's height
     const y = bodyY + (act.sink > 0 ? -act.sink : 0) + (look.hover > 0 ? ('aloft' in act ? act.aloft : 1) * (look.hover + HOVER_BOB_M * look.presence * Math.sin(t / 260 + b.i)) : 0);   // EG-LOOK: a flyer's hover and bob its drawn ones; EG-FALL: dropping out of them as it falls
     d.at[0] = centre[0] + x; d.at[1] = centre[1] + y; d.at[2] = centre[2] + z;
     const eye = cam() ?? d.at;
@@ -1260,6 +1260,7 @@ export function createEgFight({ renderer = null, gl = null, getTexture = null, u
       const lordIds = _lordIds;
       lordIds.clear();
       for (const b of F.bodies) if (b.role === EG_ROLE.lord) lordIds.add(b.i);
+      if (lordIds.size) lordFall.warm();   // AUDIT EG-FALL (L1-6): a lord stands - its fall's sparks built before the kill
       _orderIn.length = 0;
       for (const bl of F.blows) if (!bl.cut || t - bl.cut < EG_FEINT_FADE_MS) _orderIn.push(bl);
       const st = f && egByHeight(spec) ? egStoreyY(egFightView(spec), f[0], fy, f[1]) : NaN;   // THE ASCENT (Elite-Gates-Ascent.md section 2): my storey (none known in a hall that judges in plan)
@@ -1463,7 +1464,7 @@ export function createEgFight({ renderer = null, gl = null, getTexture = null, u
       for (const d of drawn.values()) destroy(d);
       drawn.clear(); crystalSlots.clear();
       dropFire(); toldHeard.clear(); mix.peers(false);   // EG-ZH: the flames freed, the peers as they were
-      lordFall.leave();   // EG-FALL: the fallen's bodies freed
+      lordFall.dispose();   // EG-FALL: the fallen's bodies freed; AUDIT EG-FALL (L1-6): and the spark pass with them
       if (cardUp) { drawGateTitleCard(null); cardUp = false; }   // AUDIT EG III (lane4 #2): only a card this fight drew
       if (groundUp) { drawGateGround(null); groundUp = false; }   // EG-ZG: the peril arrow's readout
       if (sigilsUp) { drawEgSigils(null); sigilsUp = false; }
