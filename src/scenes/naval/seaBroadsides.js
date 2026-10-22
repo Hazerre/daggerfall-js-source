@@ -10,9 +10,12 @@
 //     that referees the sea's guns (online.js `seaPvpOk`): my balls meet a stranger captain's ship (never my party's or my
 //     guild's - world.js wildIsStranger), and a peer's are seen to meet another's (seen only: her own game is told).
 //   - MY HELM, said to the referee (`helm`) every SEA_HELM_SAY_MS, and whenever my ship, her hull or her toughness changes
-//     (at most every SEA_HELM_MIN_MS) - and that I have left her when I do.
+//     (at most every SEA_HELM_MIN_MS) - and that I have left her when I do. Wrecked in my own game, she is said at none
+//     (AUDIT SEA VENTURES E6B: she was said LEFT, and the referee's credit to the captain whose shot broke her never came).
+//     The step runs every online frame, paused or below (AUDIT SEA VENTURES E6A: a window open was a helm unsaid).
 //   - MY SHOTS on her ship, gathered (`shot` - the hull and canvas my game reckoned they struck, a fire set) and said each
-//     SEA_SHOT_MS a ship.
+//     SEA_SHOT_MS a ship, within SEA_SHOT_HZ words a second in all - a word not said (the purse spent, the socket shut)
+//     kept for the next (AUDIT SEA VENTURES E6C).
 //   - THE REFEREE'S WORDS (`hear`): a shot landed on mine laid on her (`hull` - in shares of her bar and canvas: her hull no
 //     higher than its bar leaves her); my ship wrecked; one I wrecked - which I board (`board`, to the room that wrecked
 //     her) when my ship comes within SEA_BOARD_NEAR_M of hers, of where I last saw her, or of where she lay when the
@@ -47,6 +50,9 @@ export const SEA_BOARD_NEAR_M = 30;
 export const SEA_BOARD_RETRY_MS = 2_000;
 /** A captain's guns on me, and mine on hers, said once this often a captain (ms). */
 export const SEA_SAID_MS = 60_000;
+/** AUDIT SEA VENTURES E6C: my shot words a second at most, in all - within the referee's SEA_REF.hz, its slack the words'
+ *  bunching on their way (three ships under my guns said twelve a second, and the harm of the refused was dropped). */
+export const SEA_SHOT_HZ = SEA_REF.hz - 2;
 
 /** @param {any} deps */
 export function createSeaBroadsides(deps) {
@@ -54,7 +60,7 @@ export function createSeaBroadsides(deps) {
   const pending = new Map();   // peer -> { d, s, f } gathered since the last word
   const mine = new Map();      // r -> { victim, at, sentAt, name, room, site, seen } - my wrecks, to board
   const saidTo = new Map();    // `${kind}:${peer}` -> when said
-  let shotAt = 0, helmAt = -Infinity, helmKey = 'off', open = false;
+  let shotAt = 0, helmAt = -Infinity, helmKey = 'off', open = false, words = SEA_SHOT_HZ, wordsAt = 0;
   const pvp = () => deps.naval?.()?.pvp ?? null;
   const once = (/** @type {string} */ key, /** @type {() => void} */ fn) => { const at = saidTo.get(key) ?? -Infinity; if (now() - at < SEA_SAID_MS) return; saidTo.set(key, now()); if (saidTo.size > 64) saidTo.delete(saidTo.keys().next().value); fn(); };
   const nameOf = (/** @type {string} */ id) => deps.name?.(id) || t('sea.pvp.someone', 'another captain');
@@ -81,10 +87,10 @@ export function createSeaBroadsides(deps) {
     acc.f = acc.f || !!hurt.fire;
     pending.set(peer, acc);
   }
-  /** My helm said: changed, at most each SEA_HELM_MIN_MS; unchanged, each SEA_HELM_SAY_MS. */
+  /** My helm said: changed, at most each SEA_HELM_MIN_MS; unchanged, each SEA_HELM_SAY_MS. Wrecked, at none (E6B). */
   function sayHelm(/** @type {number} */ at) {
     const h = helm();
-    const word = h && !h.wrecked ? { k: 'helm', hl: h.hl, t: Math.max(100, Math.min(240, Math.round(h.t * 100))), u: h.u, h: Math.max(0, Math.min(1000, Math.round(h.h * 1000))) } : null;
+    const word = h ? { k: 'helm', hl: h.hl, t: Math.max(100, Math.min(240, Math.round(h.t * 100))), u: h.u, h: h.wrecked ? 0 : Math.max(0, Math.min(1000, Math.round(h.h * 1000))) } : null;
     const key = word ? `${word.hl},${word.u},${word.t},${word.h}` : 'off';
     if (key === helmKey ? at - helmAt < SEA_HELM_SAY_MS || key === 'off' : at - helmAt < SEA_HELM_MIN_MS) return;
     if (deps.send?.(word ?? { k: 'helm', hl: -1, t: 100, u: 0, h: 0 })) { helmKey = key; helmAt = at; }
@@ -94,8 +100,10 @@ export function createSeaBroadsides(deps) {
   /** Within boarding reach of my ship `h` - `p` a place in my scene (or none). */
   const alongside = (/** @type {any} */ h, /** @type {unknown} */ p) => Array.isArray(p) && Math.hypot(h.pos[0] - p[0], h.pos[2] - p[2]) <= SEA_BOARD_NEAR_M;
   /**
-   * THE STEP, each exterior frame (the sea's host's): the open sea's gate read; my helm said; my gathered shots said each
-   * SEA_SHOT_MS; a wreck of mine boarded when my ship comes alongside her - or where I last saw her, or where she lay.
+   * THE STEP, every online frame (the sea's host's `guns` - world.js wildFrame; AUDIT SEA VENTURES E6A: paused, a window
+   * open or below, my helm is said all the same): the open sea's gate read; my helm said; my gathered shots said each
+   * SEA_SHOT_MS within SEA_SHOT_HZ words a second (E6C); a wreck of mine boarded when my ship comes alongside her - or
+   * where I last saw her, or where she lay.
    */
   function step() {
     const at = now();
@@ -109,11 +117,14 @@ export function createSeaBroadsides(deps) {
     sayHelm(at);
     if (at - shotAt >= SEA_SHOT_MS && pending.size) {
       shotAt = at;
-      for (const [to, acc] of pending) {
+      words = Math.min(SEA_SHOT_HZ, words + (Math.max(0, at - wordsAt) / 1000) * SEA_SHOT_HZ); wordsAt = at;
+      for (const [to, acc] of pending) {   // a ship said goes to the back of the list: the purse's words go round the ships
         const d = Math.min(SEA_SHOT_MAX, Math.round(acc.d)), s = Math.min(SEA_SHOT_MAX, Math.round(acc.s));
-        if (d > 0 || s > 0 || acc.f) deps.send?.({ k: 'shot', to, d, s, f: acc.f ? 1 : 0 });
+        if (!(d > 0 || s > 0 || acc.f)) continue;   // under a point yet: gathered on
+        if (words < 1) break;   // E6C: the rest kept for the next word
+        if (!deps.send?.({ k: 'shot', to, d, s, f: acc.f ? 1 : 0 })) continue;   // the socket shut: kept
+        words -= 1; pending.delete(to);
       }
-      pending.clear();
     }
     const h = mine.size ? helm() : null;
     for (const [r, w] of mine) {

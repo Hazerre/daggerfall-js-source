@@ -4462,6 +4462,12 @@ export const WDUN_SEA_RELAY_MIN = 242;
 export const SEA_FLEET_PERIOD_MS = 3 * 3_600_000;
 /** The sailing a moment of the relay's clock (ms) falls in. */
 export const seaFleetSailing = (nowMs) => Math.floor(nowMs / SEA_FLEET_PERIOD_MS);
+/** AUDIT SEA VENTURES A7: a sailing weighs anchor this far into its period and is under way this long (systems/sea/
+ *  seaEvents.js FLEET_OFFSET_MS, FLEET_SAIL_MS - copied for the relay's bundle and held equal by test/systems/sea/
+ *  auditsea.test.js); the hub hears her flagship sunk only while she is under way, and a word this late on its way. */
+export const SEA_FLEET_OFFSET_MS = 60 * 60_000;
+export const SEA_FLEET_SAIL_MS = 90 * 60_000;
+export const SEA_FLEET_LATE_MS = 60_000;
 export const relaySupportsWdunSea = (v) => { const m = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!m && Number(m[1]) >= WDUN_SEA_RELAY_MIN; };
 export const WDUN_DAY_MS = 24 * 3_600_000;
 export const WDUN_LOCK_MS = 60 * 60_000;
@@ -4484,13 +4490,27 @@ export const WDUN_SEA_CELLS_H = 499;
 export const seaVaultMapId = (cx, cy) => (((0xe7 << 20) | (500000 + cy * WDUN_SEA_CELLS_W + cx)) >>> 0);
 /** A sea vault's key of its cell. */
 export const seaVaultKey = (cx, cy) => `e${cx},${cy}`;
+/** AUDIT SEA VENTURES D7, D8: A VAULT'S OWN ROOM - its isle's place's map id in a lane of its own (SEA_VAULT_LANE in the high
+ *  12 bits, the same low 20): the room a vault is stood in (world.js, the room key - while the gate let me in, or while I
+ *  stand in the day's vault) and the one the hub wipes (wdunRoomKey). The isle's own room (seaVaultMapId) is its plain
+ *  ruin's every day: the hub wiped ANY ruin's room on a client's word for its key, and at the day's turn a vault and its
+ *  plain ruin shared one room, built two ways. */
+export const SEA_VAULT_LANE = 0xe8;
+export const seaVaultRoomMapId = (cx, cy) => (((SEA_VAULT_LANE << 20) | (500000 + cy * WDUN_SEA_CELLS_W + cx)) >>> 0);
+/** The map id a dungeon's room is named by (world.js roomKeyFor's `mapId`): its isle's vault lane while `hall` - the vault
+ *  the gate let me into, or the day's I stand at - is that isle's; any other dungeon's its own. */
+export function seaVaultRoomId(/** @type {unknown} */ mapId, /** @type {unknown} */ hall) {
+  const sea = seaVaultCell(hall);
+  return sea && Number(mapId) === seaVaultMapId(sea[0], sea[1]) ? seaVaultRoomMapId(sea[0], sea[1]) : mapId;
+}
 /** SEA-BOUNTY (2026-10-22, bible/03-World/Eltheric-Ocean.md SEA-BOUNTY): THE SEA'S BOX on the map, in pixels -
  *  world/ethericSea.js ETHER_BOX, copied for the relay's and the service's bundles and held equal by
  *  test/systems/sea/seabounty.test.js. */
 export const WILD_SEA_BOX = Object.freeze({ x0: 64, x1: 8128, y0: -7680, y1: -2688 });
-/** An isle place's map id, its cell read back (seaVaultMapId's inverse) - or null for any other place's. */
+/** An isle place's map id, its cell read back (seaVaultMapId's inverse) - a vault's own room's lane too (seaVaultRoomMapId)
+ *  - or null for any other place's. */
 const seaPlaceCell = (id) => {
-  if (!Number.isSafeInteger(id) || id <= 0 || id > 0xffffffff || id >>> 20 !== 0xe7) return null;
+  if (!Number.isSafeInteger(id) || id <= 0 || id > 0xffffffff || (id >>> 20 !== 0xe7 && id >>> 20 !== SEA_VAULT_LANE)) return null;
   const n = (id & 0xfffff) - 500000, cy = Math.floor(n / WDUN_SEA_CELLS_W);
   return n >= 0 && cy < WDUN_SEA_CELLS_H ? [n % WDUN_SEA_CELLS_W, cy] : null;
 };
@@ -4585,7 +4605,7 @@ export const wdunRoomKey = (h) => {
   const k = wdunHall(h);
   if (!k) return null;
   const sea = seaVaultCell(k);
-  if (sea) return `dungeon:m${seaVaultMapId(sea[0], sea[1])}`;   // SEA-VAULTS: the ruin isle's own place's room
+  if (sea) return `dungeon:m${seaVaultRoomMapId(sea[0], sea[1])}`;   // SEA-VAULTS: its ruin isle's vault room (AUDIT SEA VENTURES D7, D8 - never the plain ruin's)
   const [x, y] = k.split(',').map(Number);
   return `dungeon:m${spawnedHallMapId(x, y)}`;
 };
@@ -4643,7 +4663,9 @@ export function validWildData(d) {
     out = { k: 'zone', z: d.z };   // INT9: my word on the zone
   } else if (d.k === 'helm') {
     // SHIP-PVP: my word at my helm - my hull (-1: left it), my toughness in hundredths, my boat's uid, my hull per mille
-    if (!intIn(d.hl, -1, 4) || !intIn(d.t, 100, SEA_TOUGH_WIRE_MAX) || !intIn(d.u, 0, 0x7fffffff) || !intIn(d.h, 0, 1000)) return null;
+    // AUDIT SEA VENTURES A4: a ship said is a boat the service can name - a hull with no uid (u 0) was a ship that could be
+    // wrecked and never signed: no prize, no kill at sea
+    if (!intIn(d.hl, -1, 4) || !intIn(d.t, 100, SEA_TOUGH_WIRE_MAX) || !intIn(d.u, d.hl >= 0 ? 1 : 0, 0x7fffffff) || !intIn(d.h, 0, 1000)) return null;
     out = { k: 'helm', hl: d.hl, t: d.t, u: d.u, h: d.h };
   } else if (d.k === 'shot') {
     // SHIP-PVP: my balls on her ship - the hull and canvas my game reckoned they struck, and a fire set

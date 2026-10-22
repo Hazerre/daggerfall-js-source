@@ -1723,7 +1723,7 @@ export class OnlineSession {
   sendWdun(word) {
     const w = validWdunIn(word);
     if (!w || !this.wdunOk || !isSocialRoom(this.room) || this.status !== 'open' || !this._ws) return false;
-    if (seaVaultCell(w.h) && !this.wdunSeaOk) return false;   // SEA-VAULTS: a vault of the deep's key to a hub that reads it alone
+    if ((seaVaultCell(w.h) || w.k === 'fk') && !this.wdunSeaOk) return false;   // SEA-VAULTS: a vault of the deep's key to a hub that reads it alone - AUDIT SEA VENTURES A10: and a fleet's sinking (an older hub closes the socket on it)
     try { this._ws.send(JSON.stringify({ t: 'wdun', ...w })); } catch { return false; }
     this.stats.sent++;
     return true;

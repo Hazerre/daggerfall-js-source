@@ -20,7 +20,6 @@
 // ═══════════════════════════════════════════════════════════════════
 import { itemWorth, classicPiece } from '../../systems/item/itemLaw.js';
 import { isLocked } from '../../systems/item/itemLock.js';
-import { templateByIndex } from '../../systems/item/itemTemplates.js';
 import { wildTookOf } from '../../systems/wild/wildDropLaw.js';
 import { tradeableRecord } from '../realm/realmTradeLaw.js';
 
@@ -35,10 +34,9 @@ export const SEA_HOLD_VENDOR = 'come-sail-away';
 /** Where a prize's piece lay, as her game names the list it takes it from (wildDropLaw.js wildTakeTook's pack word). */
 export const SEA_HOLD_F = 'hold';
 
-/** May a piece of her hold be a prize? - a record of the law's, worth something, never classic, locked or bound, and one
- *  the realm lets pass between players (tradeableRecord - a hold's piece is worn by no one). */
-export const prizeable = (/** @type {any} */ it) => !!it && typeof it === 'object' && !classicPiece(it) && !isLocked(it)
-  && it.bound !== true && templateByIndex(it.templateIndex)?.bound !== true && itemWorth(it) > 0
+/** May a piece of her hold be a prize? - a record of the law's, worth something, never classic or locked, and one the realm
+ *  lets pass between players (tradeableRecord - never bound, by its mark or its row's; a hold's piece is worn by no one). */
+export const prizeable = (/** @type {any} */ it) => !!it && typeof it === 'object' && !classicPiece(it) && !isLocked(it) && itemWorth(it) > 0
   && tradeableRecord({ ...it, equipSlot: undefined });
 
 /** Her hold in a save: the Items of the placed boat whose uid is `uid` - or null. */

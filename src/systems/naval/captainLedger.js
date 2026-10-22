@@ -107,7 +107,12 @@ export const ETHER_CHARTED_MAX = 4096;
 export const ETHER_HARVEST_KEEP = 128;
 /** ETHER-SEA: a new Eltheric record - nothing charted, ended or gathered, no crossing made; SEA-SEASON: no season's
  *  figures (`season`: `{ n, deepest, legends }` - net/sea/seaSeasonLaw.js). */
-export const newEther = () => ({ charted: [], legends: {}, harvested: {}, from: null, crossings: 0, heard: [], season: null });
+export const newEther = () => ({ charted: [], legends: {}, harvested: {}, from: null, crossings: 0, heard: [], season: null, fleets: [], wrack: [] });
+/** AUDIT SEA VENTURES D2, D4: the treasure fleet's sailings whose flagship the captain ended, the newest kept - one is
+ *  three hours' sailing, so the last four are more than a sailing's whole life. */
+export const ETHER_FLEETS_KEEP = 4;
+/** AUDIT SEA VENTURES D6: the storm's wrack casks hauled, the newest kept - a cask floats only in its own ninety seconds. */
+export const ETHER_WRACK_KEEP = 16;
 /** SEA-SEASON: a season's figures as a save may keep them - a season, a depth the sea has and a count - else null. */
 export const restoreSeason = (/** @type {any} */ v) => (v && Number.isSafeInteger(v.n) && v.n >= 1 && Number.isSafeInteger(v.deepest) && v.deepest >= 0 && v.deepest <= SEA_DEEPEST_MAX
   && Number.isSafeInteger(v.legends) && v.legends >= 0 ? { n: v.n, deepest: v.deepest, legends: v.legends } : null);
@@ -380,6 +385,23 @@ export function createCaptainLedger() {
       if (s) s.legends = whole(s.legends + 1);
     },
     legendDay: (id) => (Number.isFinite(ether.legends[id]) ? ether.legends[id] : null),
+    /** SEA-EVENTS: a treasure fleet's sailing whose flagship the captain ended - AUDIT SEA VENTURES D2, D4: her strongroom
+     *  and her piece once a sailing, kept in the save (another's copy of her going down, a second word, a reload that stood
+     *  her again, each paid them again). Answers whether it was new. */
+    endFleet(n) {
+      if (!Number.isSafeInteger(n) || ether.fleets.includes(n)) return false;
+      ether.fleets = [...ether.fleets, n].slice(-ETHER_FLEETS_KEEP);
+      return true;
+    },
+    fleetEnded: (n) => ether.fleets.includes(n),
+    /** SEA-EVENTS: a cask of a storm's wrack hauled (its site's id) - AUDIT SEA VENTURES D6: once, kept in the save (a reload
+     *  floated it again, its goods and its piece with it). Answers whether it was new. */
+    haulWrack(id) {
+      if (typeof id !== 'string' || id.length > 48 || ether.wrack.includes(id)) return false;
+      ether.wrack = [...ether.wrack, id].slice(-ETHER_WRACK_KEEP);
+      return true;
+    },
+    wrackHauled: (id) => ether.wrack.includes(id),
     /** A wild isle's strand gathered on `day` (the newest ETHER_HARVEST_KEEP kept), and the day it last was. */
     gathered(key, day) {
       if (typeof key !== 'string' || !Number.isFinite(day)) return;
@@ -464,6 +486,8 @@ export function createCaptainLedger() {
       ether.crossings = whole(e.crossings);
       ether.heard = [...new Set((Array.isArray(e.heard) ? e.heard : []).filter((id) => typeof id === 'string' && id.length <= 24))].slice(0, LOG_LIST_MAX);
       ether.season = restoreSeason(e.season);   // SEA-SEASON
+      ether.fleets = [...new Set((Array.isArray(e.fleets) ? e.fleets : []).filter((n) => Number.isSafeInteger(n) && n >= 0))].slice(-ETHER_FLEETS_KEEP);   // AUDIT SEA VENTURES D2, D4
+      ether.wrack = [...new Set((Array.isArray(e.wrack) ? e.wrack : []).filter((id) => typeof id === 'string' && id.length <= 48))].slice(-ETHER_WRACK_KEEP);   // AUDIT SEA VENTURES D6
       tree = heldStars(r.tree, captainOf(log).points);   // CAPTAIN-TREE: her stars as the law and her log allow (an older save's: the Helm)
       stats = starStats(tree);
     },

@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  SOCIAL_ROOM, parseClient, validWdunIn, validWdunOut, wdunHall, wdunRoomKey, isWorldRoom, seaVaultKey, seaVaultCell, seaVaultMapId, seaRoomCell,
+  SOCIAL_ROOM, parseClient, validWdunIn, validWdunOut, wdunHall, wdunRoomKey, isWorldRoom, seaVaultKey, seaVaultCell, seaVaultMapId, seaRoomCell, seaVaultRoomMapId,
   WDUN_SEA_CELLS_W, WDUN_SEA_CELLS_H, WDUN_SEA_RELAY_MIN, relaySupportsWdunSea, RELAY_VERSION, WDUN_LOCK_MS, WDUN_RESET_MS, WDUN_DAY_MS,
 } from '../../../src/net/wire.js';
 import { CELLS_W, CELLS_H, isleOfCell, etherBandAt, BANDS, VEIL_X, LEAGUE_PX, veilhaven, etherCellOf } from '../../../src/world/ethericSea.js';
@@ -39,7 +39,9 @@ test('SEA-VAULTS the wire: a vault of the deep is keyed by its cell, `"e<cx>,<cy
   assert.equal(wdunHall('e806,1'), null);
   for (const [cx, cy] of [[723, 240], [0, 0], [805, 498], [400, 13]]) {
     assert.equal(seaVaultMapId(cx, cy), etherPlaceId({ cx, cy }), `${cx},${cy}: the isle's own place's id`);
-    assert.equal(wdunRoomKey(seaVaultKey(cx, cy)), `dungeon:m${etherPlaceId({ cx, cy })}`, 'its world room, the one its door builds');
+    // PIN MOVED (AUDIT SEA VENTURES D7, D8): a vault's room is its isle's lane of its own - never the plain ruin's
+    assert.equal(wdunRoomKey(seaVaultKey(cx, cy)), `dungeon:m${seaVaultRoomMapId(cx, cy)}`, 'its world room, the one its vault is stood in');
+    assert.notEqual(seaVaultRoomMapId(cx, cy), etherPlaceId({ cx, cy }), 'never its plain ruin\'s');
   }
   assert.ok(isWorldRoom(wdunRoomKey('e723,240')));
   assert.notEqual(wdunRoomKey('e723,240'), wdunRoomKey('e724,240'));
@@ -73,11 +75,15 @@ test('SEA-VAULTS the hub, end to end over the fake relay: a sea key\'s lock an h
     assert.equal(got(a, 'lk').at(-1).left, WDUN_LOCK_MS, 'an hour\'s lock on the vault');
     await wd(a, { k: 'in', h: H }); clock += 700;
     assert.equal(got(a, 'no').at(-1).h, H, 'locked out');
-    const dun = world.room(`dungeon:m${etherPlaceId({ cx: 723, cy: 240 })}`);
-    dun.store.set('world:snap', { foes: [1, 2, 3] });
+    // PIN MOVED (AUDIT SEA VENTURES D7, D8, A5): the vault's own room wiped, at every size it is laid at - never the plain ruin's
+    const dun = world.room(`dungeon:m${seaVaultRoomMapId(723, 240)}`), med = world.room(`dungeon:m${seaVaultRoomMapId(723, 240)}.m`);
+    const plain = world.room(`dungeon:m${etherPlaceId({ cx: 723, cy: 240 })}`);
+    for (const r of [dun, med, plain]) r.store.set('world:snap', { foes: [1, 2, 3] });
     clock += WDUN_RESET_MS + 1000;
     await wd(b, { k: 'in', h: H }); clock += 700;
-    assert.equal(dun.store.get('world:snap'), undefined, 'reset: the ruin isle\'s own room wiped');
+    assert.equal(dun.store.get('world:snap'), undefined, 'reset: the vault\'s room wiped');
+    assert.equal(med.store.get('world:snap'), undefined, 'and laid medium');
+    assert.deepEqual(plain.store.get('world:snap'), { foes: [1, 2, 3] }, 'its plain ruin\'s room never');
     assert.equal(got(b, 'ok').at(-1).ep, 1, 'a new epoch');
     await wd(b, { k: 'die', h: H }); clock += 700;
     const cr = got(c, 'cr').at(-1);
@@ -204,7 +210,7 @@ test('SEA-VAULTS the seams by source: the world host builds the sea\'s ventures 
   assert.match(w, /const wdKey = \(\) => \{ const p = playerTravelPixel\(\); return seaVentures\.vaultHere\(\)\?\.key \?\? `\$\{p\.x\},\$\{p\.y\}`; \};/, 'a death after a load names the vault, never its pixel');
   assert.match(w, /return \{ \.\.\.etherHost\.chart\(p\.x, p\.y, heading\(\)\), \.\.\.seaVentures\.chartWord\(\) \};/);
   const o = src('src/net/online.js');
-  assert.match(o, /if \(seaVaultCell\(w\.h\) && !this\.wdunSeaOk\) return false;/);
+  assert.match(o, /if \(\(seaVaultCell\(w\.h\) \|\| w\.k === 'fk'\) && !this\.wdunSeaOk\) return false;/);   // PIN MOVED (AUDIT SEA VENTURES A10): and a fleet's sinking
   assert.match(o, /this\.wdunSeaOk = relaySupportsWdunSea\(relayV\);/);
   assert.match(src('src/systems/sea/seaSpoils.js'), /export const seaPileSource = \(loc\) => \(loc\?\.ether && loc\.wildRing > 0 \? 'vault' : 'ruin'\);/);
 });

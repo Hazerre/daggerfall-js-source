@@ -101,7 +101,7 @@
   {
     "name": "SEA-SEASON-figures-any-season",
     "file": "src/net/sea/seaSeasonLaw.js",
-    "old": "  if (!Number.isSafeInteger(n) || n !== arenaSeasonOf(nowS)) return null;",
+    "old": "  if (!Number.isSafeInteger(n) || (n !== cur && !before)) return null;",
     "new": "  if (!Number.isSafeInteger(n)) return null;",
     "tests": [
       "test/systems/sea/seaseason.test.js"
@@ -137,8 +137,8 @@
   {
     "name": "SEA-SEASON-figures-past-rises",
     "file": "src/net/sea/seaSeasonLaw.js",
-    "old": "  if (!Number.isSafeInteger(legends) || legends < 0 || legends > seaLegendsPossible(nowS)) return null;",
-    "new": "  if (!Number.isSafeInteger(legends) || legends < 0) return null;",
+    "old": "legends < 0 || legends > seaLegendsPossible(before ? turnS - 1 : nowS)) return null;",
+    "new": "legends < 0) return null;",
     "tests": [
       "test/systems/sea/seaseason.test.js"
     ]
@@ -146,8 +146,8 @@
   {
     "name": "SEA-SEASON-figures-negative-legends",
     "file": "src/net/sea/seaSeasonLaw.js",
-    "old": "  if (!Number.isSafeInteger(legends) || legends < 0 || legends > seaLegendsPossible(nowS)) return null;",
-    "new": "  if (!Number.isSafeInteger(legends) || legends > seaLegendsPossible(nowS)) return null;",
+    "old": "  if (!Number.isSafeInteger(legends) || legends < 0 || legends >",
+    "new": "  if (!Number.isSafeInteger(legends) || legends >",
     "tests": [
       "test/systems/sea/seaseason.test.js"
     ]
@@ -542,8 +542,8 @@
   {
     "name": "SEA-SEASON-page-stale-late",
     "file": "src/scenes/seaSeasonHost.js",
-    "old": "    if (!reading && now() - readAt >= SEA_SEASON_FRESH_MS) void read();",
-    "new": "    if (!reading && now() - readAt > SEA_SEASON_FRESH_MS) void read();",
+    "old": "    if (!reading && now() >= nextAt) void read();",
+    "new": "    if (!reading && now() > nextAt) void read();",
     "tests": [
       "test/systems/sea/seaseason.test.js"
     ]
@@ -578,17 +578,17 @@
   {
     "name": "SEA-SEASON-page-refusal-unsaid",
     "file": "src/scenes/seaSeasonHost.js",
-    "old": "if (b) { board = b; line = null; readAt = now(); } else line = { text: accountRefusalText(r?.error), warn: true };",
-    "new": "if (b) { board = b; line = null; readAt = now(); }",
+    "old": "      else { line = { text: accountRefusalText(r?.error), warn: true }; nextAt",
+    "new": "      else { line = null; nextAt",
     "tests": [
       "test/systems/sea/seaseason.test.js"
     ]
   },
   {
-    "name": "SEA-SEASON-page-asking-forever",
+    "name": "SEA-SEASON-page-unread-an-empty-season",
     "file": "src/scenes/seaSeasonHost.js",
-    "old": "    if (!board) return { asking: !line,",
-    "new": "    if (!board) return { asking: true,",
+    "old": "    if (!board) return { asking: true,",
+    "new": "    if (!board) return { asking: false,",
     "tests": [
       "test/systems/sea/seaseason.test.js"
     ]

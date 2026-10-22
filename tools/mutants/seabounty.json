@@ -407,8 +407,8 @@
   {
     "name": "SEA-BOUNTY-board-mine-none",
     "file": "server-account/src/seaBounty.js",
-    "old": "    owed, mine: character ? await standing(db, character) : 0,",
-    "new": "    owed, mine: 0,",
+    "old": "    owed, refund, mine: character ? await standing(db, character) : 0,",
+    "new": "    owed, refund, mine: 0,",
     "tests": [
       "test/systems/sea/seabounty.test.js"
     ]
@@ -542,8 +542,8 @@
   {
     "name": "SEA-BOUNTY-collect-no-realm",
     "file": "server-account/src/seaBounty.js",
-    "old": "  if (!side.at) return { error: 'sea-bounty-realm' };\n  if (!regionOk(region)) return { error: 'bad-region' };\n  const rows",
-    "new": "  if (!regionOk(region)) return { error: 'bad-region' };\n  const rows",
+    "old": "  if (!side.at) return { error: 'sea-bounty-realm' };\n  if (!regionOk(region)) return { error: 'bad-region' };\n  await db.batch(seaRefundSteps",
+    "new": "  if (!regionOk(region)) return { error: 'bad-region' };\n  await db.batch(seaRefundSteps",
     "tests": [
       "test/systems/sea/seabounty.test.js"
     ]
@@ -695,8 +695,8 @@
   {
     "name": "SEA-BOUNTY-page-stale-late",
     "file": "src/scenes/seaBountyHost.js",
-    "old": "    if (!reading && now() - readAt >= SEA_BOARD_FRESH_MS) void read();",
-    "new": "    if (!reading && now() - readAt > SEA_BOARD_FRESH_MS) void read();",
+    "old": "    if (!reading && now() >= nextAt) void read();",
+    "new": "    if (!reading && now() > nextAt) void read();",
     "tests": [
       "test/systems/sea/seabounty.test.js"
     ]
@@ -713,7 +713,7 @@
   {
     "name": "SEA-BOUNTY-page-not-reread",
     "file": "src/scenes/seaBountyHost.js",
-    "old": "    } finally { busy = false; readAt = -Infinity; await read(); }",
+    "old": "    } finally { busy = false; nextAt = -Infinity; await read(); }",
     "new": "    } finally { busy = false; }",
     "tests": [
       "test/systems/sea/seabounty.test.js"
@@ -758,8 +758,8 @@
   {
     "name": "SEA-BOUNTY-page-not-busy",
     "file": "src/scenes/seaBountyHost.js",
-    "old": "busy: busy || reading, line,",
-    "new": "busy: reading, line,",
+    "old": "busy: busy || reading, line: actLine ?? readLine,",
+    "new": "busy: reading, line: actLine ?? readLine,",
     "tests": [
       "test/systems/sea/seabounty.test.js"
     ]
@@ -767,8 +767,8 @@
   {
     "name": "SEA-BOUNTY-page-refusal-unsaid",
     "file": "src/scenes/seaBountyHost.js",
-    "old": "      line = r?.ok ? { text: said(r.data ?? {}), warn: false } : { text: accountRefusalText(r?.error), warn: true };",
-    "new": "      line = r?.ok ? { text: said(r.data ?? {}), warn: false } : null;",
+    "old": "      actLine = r?.ok ? { text: said(r.data ?? {}), warn: false } : { text: accountRefusalText(r?.error), warn: true };",
+    "new": "      actLine = r?.ok ? { text: said(r.data ?? {}), warn: false } : null;",
     "tests": [
       "test/systems/sea/seabounty.test.js"
     ]
@@ -776,8 +776,8 @@
   {
     "name": "SEA-BOUNTY-tab-pressable-busy",
     "file": "src/ui/naval/navalYardWindow.js",
-    "old": "    presses: (w.posts ?? []).map((n) => ({ label: t('sea.bounty.post', 'Post {gold}', { gold: g(n) }), can: !w.busy, n })),",
-    "new": "    presses: (w.posts ?? []).map((n) => ({ label: t('sea.bounty.post', 'Post {gold}', { gold: g(n) }), can: true, n })),",
+    "old": "can: !w.busy && !(w.purse < n), n })),",
+    "new": "can: !(w.purse < n), n })),",
     "tests": [
       "test/systems/sea/seabounty.test.js"
     ]
@@ -785,8 +785,8 @@
   {
     "name": "SEA-BOUNTY-tab-collect-busy",
     "file": "src/ui/naval/navalYardWindow.js",
-    "old": "press: t('sea.bounty.collect', 'Collect'), can: !w.busy } : null,",
-    "new": "press: t('sea.bounty.collect', 'Collect'), can: true } : null,",
+    "old": "{ gold: g(w.owed) }), press: t('sea.bounty.collect', 'Collect'), can: !w.busy } : null,",
+    "new": "{ gold: g(w.owed) }), press: t('sea.bounty.collect', 'Collect'), can: true } : null,",
     "tests": [
       "test/systems/sea/seabounty.test.js"
     ]

@@ -99,10 +99,13 @@ function takeCarry(x, carry, now) {
   if (Number.isFinite(carry.hp) && carry.hp < x.f.max) { x.f.hp = Math.max(1, Math.min(x.f.max, Math.trunc(carry.hp))); x.struckAt = carry.at; }
 }
 
-/** INT9 (AUDIT): a hub's word on a fighter's carry, checked for the shape wildCarry writes - or null. */
+/** INT9 (AUDIT): a hub's word on a fighter's carry, checked for the shape wildCarry writes - or null. AUDIT SEA VENTURES
+ *  F1/A1: with its ship's where it has one (`sea` - net/sea/seaRef.js seaCarry: her bar's share and when a captain last
+ *  struck her). */
 export function wildCarryOf(v) {
   if (!v || typeof v !== 'object' || !Number.isFinite(v.at) || !Number.isFinite(v.hp) || !Number.isFinite(v.max)) return null;
-  return { hp: Math.max(0, Math.trunc(v.hp)), max: Math.max(1, Math.trunc(v.max)), down: v.down === true, downAt: Number.isFinite(v.downAt) ? v.downAt : 0, at: v.at };
+  const sea = v.sea && typeof v.sea === 'object' && Number.isFinite(v.sea.h) && Number.isFinite(v.sea.at) ? { h: Math.max(0, Math.min(1, v.sea.h)), at: v.sea.at } : null;
+  return { hp: Math.max(0, Math.trunc(v.hp)), max: Math.max(1, Math.trunc(v.max)), down: v.down === true, downAt: Number.isFinite(v.downAt) ? v.downAt : 0, at: v.at, ...(sea ? { sea } : {}) };
 }
 
 /** INT9 (AUDIT): A FALL WAITING ON ITS PICK is kept in the room's storage under this prefix (a relay object that restarts

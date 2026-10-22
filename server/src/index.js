@@ -236,8 +236,13 @@ import { isSiegeRoom, newFighter, armsOk, SIEGE_HIT, ROYAL_RING, isSiegeNpcId, s
 import { mintSiegeReceipt, SIEGE_RECEIPT_TTL_S, mintRoyalReceipt } from '../../src/net/siege/siegeReceipt.js';   // SEAT2a: the relay's fourth signature - a fighter's result and Honours
 import { newDuelRef, duelNote, duelOpen, duelBoutOf, duelBlow, duelPose, duelEnd, duelForfeit, duelStep, duelVitals } from '../../src/net/duel/duelRef.js';   // INT8: the duel refereed
 import { newWildRef, wildZone, wildPose, wildBlow, wildKin, sameGuild, wildPick, wildSigned, wildStep, wildVitals, wildGone, wildCarry, wildCarryOf, wildSignNow, wildFallOf, WILD_FALL_PREFIX, WILD_REF } from '../../src/net/wild/wildRef.js';   // INT9: the open zone refereed
-import { mintWildReceipt, mintWildCollect, mintSeaWreck } from '../../src/net/wild/wildReceipt.js';   // INT9: a fall, signed; MAC (2026-10-14): and a killer's collect; SHIP-PVP: and a wreck
-import { seaHelm, seaShot, seaBoard, seaStep, seaGone, seaWreckOf, SEA_WRECK_PREFIX } from '../../src/net/sea/seaRef.js';   // SHIP-PVP: the open sea's guns refereed
+import { mintWildReceipt, mintWildCollect, mintSeaWreck, WILD_RECEIPT_TTL_S, SEA_WRECK_TTL_S } from '../../src/net/wild/wildReceipt.js';   // INT9: a fall, signed; MAC (2026-10-14): and a killer's collect; SHIP-PVP: and a wreck
+import { seaHelm, seaShot, seaBoard, seaStep, seaGone, seaCarry, seaWreckOf, SEA_WRECK_PREFIX, SEA_REF } from '../../src/net/sea/seaRef.js';
+/** AUDIT SEA VENTURES A8: a signed word owed an account that is away (a fall's receipt, a wreck's) kept in the room's storage
+ *  under this prefix as long as a receipt lives - a relay object that slept lost it from its memory, and a captain back
+ *  in the zone was handed nothing. */
+const WILD_OWED_PREFIX = 'wildowed:';
+const WILD_OWED_KEEP_MS = Math.max(WILD_RECEIPT_TTL_S, SEA_WRECK_TTL_S) * 1000;   // SHIP-PVP: the open sea's guns refereed
 import { mintDuelReceipt } from '../../src/net/duel/duelReceipt.js';   // INT8: a duel won, signed
 import { applyCrystalHit, applyHostHit, applyHeal, healRef, earnedBy, receiptPortents, COURT_CENTRE, BRAIN_TICK_MS, CHECKPOINT_MS, GATE_FIGHTERS_MAX, hasPart, COURT_WATCH_ASK_MS } from '../../src/net/gate/gateBrain.js';
 import { mintReceipt, importReceiptKey, readReceipt, RECEIPT_TTL_S } from '../../src/net/gate/gateReceipt.js';
@@ -330,7 +335,7 @@ import { newTable, topUp as holdemTopUp, sit as holdemSit, sitRefusal as holdemS
 // BUNDLE - net/wild/wildLaw.js (a place room's REMAINS: what a body in the open zone dropped, kept here so the room alone
 // decides who takes each record - it imports wire.js alone). bible/11-Multiplayer/Wild-Zone.md.
 import { newRemains, foldFall, takeFrom, remainsNamedFor, collectAsk, remainsWords, remainsLive, remainsEmpty, remainsSpent, remainsTakeover, remainsEvict, remainsOf, wildRemainsKey, WILD_REMAINS_PREFIX } from '../../src/net/wild/wildLaw.js';
-import { wildGate, wildDirected, WILD_HZ_MAX, WDUN_HZ_MAX, WDUN_HERE_MS, WDUN_INTERNAL_RESET, WDUN_INTERNAL_KIN, WDUN_INTERNAL_GONE, WILD_INTERNAL_VIT, wdunRoomKey, wdunHall, wdunHallOfRoom, seaRoomCell, WILD_REMAINS_MS as WDUN_PILE_MS } from './relay.js';
+import { wildGate, wildDirected, WILD_HZ_MAX, WDUN_HZ_MAX, WDUN_HERE_MS, WDUN_INTERNAL_RESET, WDUN_INTERNAL_KIN, WDUN_INTERNAL_GONE, WILD_INTERNAL_VIT, wdunRoomKey, wdunHall, wdunHallOfRoom, seaRoomCell, DUNGEON_ROOM_TAGS, WILD_REMAINS_MS as WDUN_PILE_MS } from './relay.js';
 import { WDUN_KEY, wdunOf, wdunPrune, wdunEnter, wdunHere, wdunLeave, wdunDie, wdunGone, wdunState, wdunCrows, wdunBound, wdunGiantDie, wdunGiants, wdunFleetSunk, wdunFleets } from '../../src/net/wild/wildLaw.js';   // PVPDUNGEONS: the zone's halls, kept by the hub
 import { validSdRecord, sdRelayGate, validSdFoundTell, chatRegionRoom, SD_INTERNAL_CENSUS, SD_INTERNAL_FOUND, SD_INTERNAL_LIVE, SD_TELL_RETRY_MS, SD_KEY, SD_FOUND_KEY, SD_REALM_KEY, sdDeadKey, SD_REGION_COUNT, SD_FIGHTERS_MAX, sdPzRelayGate, SD_ORRERY_KEY, sdFightRelayGate, SD_BRAIN_MIN, SD_NO_WORDS, SD_FIGHT_KEY, SD_INTERNAL_FELL, validSdFellTell, SD_INTERNAL_IN, validSdInTell, SD_RC_PREFIX, sdReceiptKey, SD_HERE_HOLD_MS, SD_SLOT_KEY, SD_HELD_KEY } from './relay.js';   // SD3: the Super dungeon's frame, its record and its doors (the wire's, through relay.js)
 import { sdFirst, sdRise, sdFind, sdEnter, sdFell, sdGone, sdDue, pickSdRegion, sdFindBelieved, sdNearSite, sdHolds, sdAdmits, isSdRoom, sdSlotOfRoom, SD_NO_CLOSED, SD_NO_FULL, SD_NO_FALLEN } from '../../src/net/superDungeon/sdLaw.js';   // SD3: the Super dungeon's law - the director's moves, the census's pick, the find, the realm's room
@@ -3072,6 +3077,7 @@ export class Room {
     // SCALE5d part two: a court's copy syncs as a shard does. AUDIT SCALE II R2-4: its name read back from its storage when
     // its sockets say none, and the alarm kept while anything is still owed the bus (a last leave on a woken instance)
     if (await this._hubKeyOf()) { this._hubSyncAt = 0; await this._hubUpFlush(); this._hubPollEnsure(); if (this.state.getWebSockets().length || this._up.length || this._upRetry) await this.state.storage.setAlarm(Date.now() + HUB_SYNC_MS); return; }
+    await this._seaAlarm(Date.now());   // AUDIT SEA VENTURES A8: a wreck nobody came back to, signed on the room's alarm
     if (await this.state.storage.get('hub')) { await this._relayCfgOf(); await this._sweepHub(Date.now()); await this._heraldBeat(Date.now()); await this._egHeraldBeat(Date.now()); await this._serpentHeraldBeat(Date.now()); await this._sdBeat(Date.now()); await this._sdHeraldBeat(Date.now()); return; }   // AUDIT SOC A3: the hub's alarm is its sweep, whoever is in the room; DISCORD-GATES: and its herald's posts; SERPENT2: and the serpent's; SD3: and the Super dungeon's director; SD-HERALD: and its herald's, after the director's moves; EG-E3: and the Spire's, after the gate's
     // AUDIT 68 X8-park-registry-unbounded: an owner's registry (HCC-PARK) is one object per account and character a
     // client names - its word goes PARK_TTL_MS after it was said, as the cell's record it points at does
@@ -4112,7 +4118,7 @@ export class Room {
       const g = tokenGate(this._wdunRate.get(ws) ?? null, now, WDUN_HZ_MAX, 6);
       this._wdunRate.set(ws, g.bucket);
       if (!g.pass) return;
-      try { await this._wdunWord(ws, a.acct || a.sub, m, now); } catch (e) { console.warn('[wdun] word failed', e?.message ?? e); }
+      try { await this._wdunWord(ws, a.acct || a.sub, m, now, a); } catch (e) { console.warn('[wdun] word failed', e?.message ?? e); }
       return;
     }
     if (m.t === 'wild') {
@@ -5013,7 +5019,7 @@ export class Room {
     if (!a.id) return;   // never said hello, or replaced - the id lives on in another socket
     // INT9 (AUDIT): a fighter whose last socket here went is out of the zone (a closed tab kept its `zone` for good, and a
     // room of them refused every newcomer)
-    if (a.sub && this._wildRef && ![...this._all()].some(([w, b]) => w !== ws && b.id && b.sub === a.sub)) { wildGone(this._wildRef, a.sub, Date.now()); seaGone(this._wildRef, a.sub); }   // SHIP-PVP: and her ship off the referee's list
+    if (a.sub && this._wildRef && ![...this._all()].some(([w, b]) => w !== ws && b.id && b.sub === a.sub)) { wildGone(this._wildRef, a.sub, Date.now()); seaGone(this._wildRef, a.sub, Date.now()); }   // SHIP-PVP: and her ship off the guns (AUDIT SEA VENTURES F1/A1: her bar kept)
     this._looks.delete(a.id);
     if (!last) this._secrets.set(a.id, null);   // SCALE2b: the kept copy goes with the stored one (a drain's sweep clears both)
     this._raidTownsUp.delete(ws);   // SCALE2b: an upload its socket never finished goes with it
@@ -10337,9 +10343,10 @@ export class Room {
     const st = await this._wildSt();
     const was = st.fighters.get(a.sub);
     const carry = z === 1 && (!was || !was.zone) ? await this._wildCarryAsk(a.sub) : null;
-    wildZone(st, a.sub, { id: a.id, lv: a.lv, ci: a.ci ?? '', carry }, z === 1, a.pose, now);
-    const owed = this._wildOwed?.get(a.sub), sk = this._siegeSocketOf(a.sub);
-    if (owed && sk) { for (const w of owed) this._send(sk[0], JSON.stringify(w)); this._wildOwed.delete(a.sub); }
+    const x = wildZone(st, a.sub, { id: a.id, lv: a.lv, ci: a.ci ?? '', carry }, z === 1, a.pose, now);
+    if (x && carry?.sea) x.seaCarry = carry.sea;   // AUDIT SEA VENTURES F1/A1: her ship's bar too, for her next helm word (seaRef.js seaHelm)
+    const owed = await this._wildOwedOf(a.sub, now), sk = this._siegeSocketOf(a.sub);
+    if (owed && sk) { for (const w of owed) this._send(sk[0], JSON.stringify(w)); this._wildOwed?.delete(a.sub); this._wildOwedKeep(a.sub); }
   }
   /** A STRIKE OR A SPELL in the zone: judged (wildRef.js wildBlow - both said they stand in it, never kin: the hub's party
    *  and its truce, nor a duel's two), the vitality left said to both and kept at the hub, a fall said to the room. */
@@ -10373,7 +10380,7 @@ export class Room {
     this._send(target[0], word);
     const mine = this._siegeSocketOf(a.sub);
     if (mine) this._send(mine[0], word);
-    this._wildCarryPut(tb.sub, wildCarry(st, tb.sub, now));   // INT9 (AUDIT): the bar it carries into the next room
+    this._wildCarryPut(tb.sub, this._zoneCarry(st, tb.sub, now));   // INT9 (AUDIT): the bar it carries into the next room
     if (!res.fell) return;
     try { await this.state.storage.put(`${WILD_FALL_PREFIX}${rid}`, res.fall); } catch (e) { console.warn('[wild] fall kept failed', e?.message ?? e); }
     this._wildFan({ t: 'wref', k: 'fell', id: tb.id, by: a.id, r: rid });
@@ -10414,7 +10421,30 @@ export class Room {
       this._wildOwed ??= new Map();
       if (this._wildOwed.size >= 256) this._wildOwed.delete(this._wildOwed.keys().next().value);
       this._wildOwed.set(sub, [...(this._wildOwed.get(sub) ?? []).slice(-3), word]);
+      this._wildOwedKeep(sub);   // AUDIT SEA VENTURES A8: and in storage - a woken object kept nothing
     }
+  }
+  /** AUDIT SEA VENTURES A8: an account's owed words kept in the room's storage as its memory holds them (none: forgotten),
+   *  stamped - unawaited, as a carry's put is. */
+  _wildOwedKeep(sub) {
+    const words = this._wildOwed?.get(sub) ?? [], key = `${WILD_OWED_PREFIX}${sub}`;
+    const p = words.length ? this.state.storage.put(key, { at: Date.now(), words }) : this.state.storage.delete(key);
+    Promise.resolve(p).catch((e) => console.warn('[wild] owed kept', e?.message ?? e));
+  }
+  /** The words owed an account back in the zone - this object's memory, else (once an instance life) its storage while a
+   *  receipt in them could still live - or null. */
+  async _wildOwedOf(sub, now) {
+    const had = this._wildOwed?.get(sub);
+    if (had) return had;
+    this._wildOwedRead ??= new Set();
+    if (this._wildOwedRead.has(sub)) return null;
+    if (this._wildOwedRead.size >= 4096) this._wildOwedRead.clear();
+    this._wildOwedRead.add(sub);
+    let v = null;
+    try { v = await this.state.storage.get(`${WILD_OWED_PREFIX}${sub}`); } catch { return null; }
+    if (!v) return null;
+    if (!Array.isArray(v.words) || !(now - v.at < WILD_OWED_KEEP_MS)) { this._wildOwedKeep(sub); return null; }
+    return v.words.slice(-4);
   }
 
   // ───────────────────────────── SHIP-PVP: THE OPEN SEA'S GUNS REFEREED (net/sea/seaRef.js) ─────────────────────────────
@@ -10450,19 +10480,44 @@ export class Room {
     const kin = wildKin({ guilds: [a.gi, tb.gi], duel: !!bout && (bout.a.sub === tb.sub || bout.b.sub === tb.sub) }) || wildKin({ party: await this._wdunKinOf(a.sub, tb.sub, now) });
     const res = seaShot(st, a.sub, tb.sub, { d: d.d, s: d.s, f: d.f === 1, kin, rid: this._wildRid(), room: a.key }, now);
     if (!res.ok || !(res.frac > 0 || res.sail > 0 || res.fire)) return;
-    const word = JSON.stringify({ t: 'wref', k: 'hull', by: a.id, to: tb.id, d: Math.min(1000, Math.ceil(res.frac * 1000)), s: Math.min(1000, Math.ceil(res.sail * 1000)), f: res.fire ? 1 : 0, h: Math.round(res.left * 1000) });
+    // AUDIT SEA VENTURES A3: what landed rounded DOWN, her bar left rounded UP - a share rounded up was a thousandth of her
+    // bar for a one-point word (ten words a second: her game lost three times the purse); the bar left lays the rest
+    const word = JSON.stringify({ t: 'wref', k: 'hull', by: a.id, to: tb.id, d: Math.min(1000, Math.floor(res.frac * 1000)), s: Math.min(1000, Math.floor(res.sail * 1000)), f: res.fire ? 1 : 0, h: Math.min(1000, Math.ceil(res.left * 1000)) });
     this._send(target[0], word);
     const mine = this._siegeSocketOf(a.sub);
     if (mine) this._send(mine[0], word);
+    if (res.dealt > 0) this._wildCarryPut(tb.sub, this._zoneCarry(st, tb.sub, now));   // F1/A1: her ship's bar into the next room
     if (res.wreck || res.evicted) await this._seaWrecked(res, now);
   }
-  /** A SHIP WRECKED (seaRef.js): kept in the room's storage while her killer may board her, and said to the room - and a full
-   *  room's oldest wreck, put out for it, signed unboarded. */
+  /** A SHIP WRECKED (seaRef.js): kept in the room's storage while her killer may board her, the room's alarm armed for when
+   *  he no longer may (AUDIT SEA VENTURES A8), and said to the room - and a full room's oldest wreck, put out for it, signed
+   *  unboarded. */
   async _seaWrecked({ wreck, evicted }, now) {
     if (evicted) await this._seaSign(evicted, now);
     if (!wreck) return;
     try { await this.state.storage.put(`${SEA_WRECK_PREFIX}${wreck.r}`, wreck); } catch (e) { console.warn('[sea] wreck kept failed', e?.message ?? e); }
+    await this._seaArm(wreck.at + SEA_REF.boardMs + 1000);
     this._wildFan({ t: 'wref', k: 'wreck', id: wreck.fallenId, by: wreck.killerId, r: wreck.r });
+  }
+  /** AUDIT SEA VENTURES A8: the room's alarm no later than `at`. */
+  async _seaArm(at) {
+    try { const had = await this.state.storage.getAlarm(); if (had == null || had > at) await this.state.storage.setAlarm(at); }
+    catch (e) { console.warn('[sea] arm', e?.message ?? e); }
+  }
+  /** AUDIT SEA VENTURES A8: A ROOM'S ALARM BEATS ITS WRECKS - a room nobody came back to took no frame to beat on, and its
+   *  wreck stayed in storage unsigned (her killer's kill at sea never his to carry): each past its boarding signed, the
+   *  alarm armed for the next. A room with none in its memory or its storage asks nothing more. */
+  async _seaAlarm(now) {
+    if (!this._wildRef?.wrecks?.size) {
+      let kept = 0;
+      try { kept = (await this.state.storage.list({ prefix: SEA_WRECK_PREFIX, limit: 1 })).size; } catch { return; }
+      if (!kept) return;
+    }
+    const st = await this._wildSt();
+    for (const w of seaStep(st, now)) await this._seaSign(w, now);
+    let next = Infinity;
+    for (const w of st.wrecks?.values() ?? []) next = Math.min(next, w.at + SEA_REF.boardMs + 1000);
+    if (Number.isFinite(next)) await this._seaArm(next);
   }
   /** A WRECK SIGNED (net/wild/wildReceipt.js `n1`, boarded or not) and handed to its captain and its killer. A ship with no
    *  uid, or a captain or killer with no realm character, is signed never - no prize, and no kill at sea, to carry. */
@@ -10473,6 +10528,12 @@ export class Room {
     }
     try { await this.state.storage.delete(`${SEA_WRECK_PREFIX}${w.r}`); } catch { /* read back and signed again: the service takes a wreck once */ }
     if (rc) this._wildHand([w.fallen, w.killer], { t: 'wref', k: 'wc', r: w.r, rc });
+  }
+  /** What a fighter carries into the next room: its bar (wildRef.js wildCarry) and its ship's (seaRef.js seaCarry - AUDIT SEA
+   *  VENTURES F1/A1: a cell's line was a whole ship), one word at the hub (its newest wins). */
+  _zoneCarry(st, sub, now) {
+    const c = wildCarry(st, sub, now);
+    return c ? { ...c, sea: seaCarry(st, sub) } : null;
   }
   /** INT9 (AUDIT): A FIGHTER'S BAR, KEPT AT THE HUB (wildRef.js wildCarry) - unawaited, as a remains' going is told. */
   _wildCarryPut(sub, carry) {
@@ -10532,7 +10593,7 @@ export class Room {
   }
   _wdunFanCrows(now, who = null) { this._wildFan({ t: 'wdun', k: 'cr', crows: wdunCrows(this._wdun, now), ...(who ? { who } : {}) }); }   // CROW-NEWS: whose death
   /** One account's word on the halls. */
-  async _wdunWord(ws, acct, m, now) {
+  async _wdunWord(ws, acct, m, now, a = null) {
     const st = await this._wdunRec(now);
     if (m.k === 'hi') { this._send(ws, JSON.stringify(wdunState(st, acct, now))); return; }
     if (m.k === 'gk') {   // ZONE-GIANTS: a zone giant killed - down for everyone, said to everyone online
@@ -10540,6 +10601,7 @@ export class Room {
       return;
     }
     if (m.k === 'fk') {   // SEA-EVENTS: a treasure fleet's flagship sunk - its sailing scattered for everyone, said to everyone online
+      if (a?.gu) return;   // AUDIT SEA VENTURES A7: never a guest's word - a guest sails no realm ship
       if (wdunFleetSunk(st, m.n, now)) { await this._wdunSave(now, true); this._wildFan({ t: 'wdun', k: 'fd', fleets: wdunFleets(st, now) }); }
       return;
     }
@@ -10579,13 +10641,17 @@ export class Room {
   async _wdunWipe(h) {
     const key = wdunRoomKey(h), rooms = this.env?.ROOMS;
     if (!key || !rooms?.idFromName || !rooms?.get) return false;
-    const wipe = async (ly) => {
+    const wipe = async (room, ly) => {
       try {
-        const res = await rooms.get(rooms.idFromName(layerName(key, ly))).fetch(new Request(`https://relay.internal${WDUN_INTERNAL_RESET}`, { method: 'POST', body: '{}', signal: AbortSignal.timeout(ROOM_CALL_MS) }));
+        const res = await rooms.get(rooms.idFromName(layerName(room, ly))).fetch(new Request(`https://relay.internal${WDUN_INTERNAL_RESET}`, { method: 'POST', body: '{}', signal: AbortSignal.timeout(ROOM_CALL_MS) }));
         return !!res?.ok;
-      } catch (e) { console.warn('[wdun] wipe', h, ly, e?.message ?? e); return false; }
+      } catch (e) { console.warn('[wdun] wipe', h, room, ly, e?.message ?? e); return false; }
     };
-    return (await Promise.all(Array.from({ length: LAYERS_MAX }, (_, ly) => wipe(ly)))).every(Boolean);
+    // AUDIT SEA VENTURES A5: and at every size it is built at (DUNGEON_ROOM_TAGS - SD-ONLINE: online a dungeon is laid small,
+    // medium or whole by its map id, its room tagged for it) - the plain room alone was wiped, while the halls laid medium or
+    // small (120 of the mountains' 200, 46 of a fortnight's vaults) kept their foes slain and their chests empty for good
+    const sized = [key, ...Object.values(DUNGEON_ROOM_TAGS).map((tag) => `${key}${tag}`)];
+    return (await Promise.all(sized.flatMap((room) => Array.from({ length: LAYERS_MAX }, (_, ly) => wipe(room, ly))))).every(Boolean);
   }
   /** The room's side of the wipe: its stored world forgotten, unless someone is hello'd in it. */
   async _wdunResetInternal(_request) {

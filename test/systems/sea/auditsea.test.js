@@ -28,7 +28,28 @@ import { readFileSync } from 'node:fs';
 import { SEA_REFUND_AFTER_S, SEA_ENDED_KEEP_S, seaSweeps } from '../../../server-account/src/seaBounty.js';
 import { SEA_WANTED_DAYS } from '../../../src/net/sea/seaBountyLaw.js';
 import { seaSeasonFigures, seaSeasonStartS, seaLegendsPossible, SEA_WORLD_DAY_S, SEA_SEASON_VENDOR } from '../../../src/net/sea/seaSeasonLaw.js';
-import { worldRoom } from '../../../src/net/wire.js';
+import { worldRoom, validWildData, PIXEL_UNITS, SOCIAL_ROOM, seaVaultRoomId, seaVaultRoomMapId, seaVaultMapId, seaVaultKey, wdunRoomKey, seaRoomOf, seaRoomCell, SEA_VAULT_LANE, SEA_FLEET_OFFSET_MS, SEA_FLEET_SAIL_MS, SEA_FLEET_PERIOD_MS, spawnedHallMapId, WDUN_RESET_MS } from '../../../src/net/wire.js';
+import { FLEET_OFFSET_MS, FLEET_SAIL_MS } from '../../../src/systems/sea/seaEvents.js';
+import { etherPlaceId } from '../../../src/world/etherPlaces.js';
+import { OnlineSession } from '../../../src/net/online.js';
+import { fakeSocketClass } from '../../fakeSocket.mjs';
+import * as R from '../../../src/net/sea/seaRef.js';
+import { newWildRef, wildZone, wildPose, wildCarryOf, WILD_REF } from '../../../src/net/wild/wildRef.js';
+import { SIEGE_UNITS_PER_M } from '../../../src/net/siege/siegeRef.js';
+import { createSeaBroadsides, SEA_SHOT_HZ, SEA_SHOT_MS } from '../../../src/scenes/naval/seaBroadsides.js';
+import { SEA_CAPTAIN_NEAR_M } from '../../../src/scenes/naval/navalPvp.js';
+import { HOSTILE_NEAR_M } from '../../../src/scenes/naval/navalHost.js';
+import { fakeRooms } from '../../fakeRoom.mjs';
+import { createCaptainLedger, ETHER_FLEETS_KEEP, ETHER_WRACK_KEEP } from '../../../src/systems/naval/captainLedger.js';
+import { createEtherHost } from '../../../src/scenes/etherHost.js';
+import { createSeaVentures, FLEET_TELL_MS } from '../../../src/scenes/seaVenturesHost.js';
+import { createTreasureFleet } from '../../../src/scenes/naval/treasureFleet.js';
+import { legendTidemail, dueOnHull } from '../../../src/scenes/naval/navalSeaSet.js';
+import { classById } from '../../../src/systems/naval/navalShips.js';
+import * as SE from '../../../src/systems/sea/seaEvents.js';
+import { BANDS, VEIL_X, LEAGUE_PX, etherBandAt } from '../../../src/world/ethericSea.js';
+import { legendById } from '../../../src/systems/naval/etherShips.js';
+import { SHIP_STATES } from '../../../src/systems/naval/navalDamage.js';
 import { standService } from '../../accountDb.mjs';
 import { seatRealm, recordOf } from '../../realmSeat.mjs';
 
@@ -360,4 +381,416 @@ test('AUDIT SEA VENTURES B6: the day a season turns in counts for the old one - 
   assert.ok(oldMost > seaLegendsPossible(turn + 60), 'the old season had more legends to end than the new one\'s first day');
   assert.deepEqual(seaSeasonFigures(save(1, 0, oldMost), turn + 60)?.legends, oldMost, 'bounded by the old season\'s whole');
   assert.equal(seaSeasonFigures(save(1, 0, oldMost + 1), turn + 60), null);
+});
+
+/** A room's referee state: two captains in the zone, `gap` metres apart. */
+function seaRoom(gap = 50, now = 1000) {
+  const st = newWildRef();
+  wildZone(st, 'a', { id: 'pa', lv: 10, ci: RK }, true, { x: 0, y: 0, z: 0 }, now);
+  wildZone(st, 'b', { id: 'pb', lv: 10, ci: RC }, true, { x: gap * SIEGE_UNITS_PER_M, y: 0, z: 0 }, now);
+  return st;
+}
+/** Her ship struck to about `share` of her bar by a's guns from `now`, the helms said as the page says them. */
+function batter(st, share, now) {
+  let t = now;
+  R.seaHelm(st, 'a', { id: 'pa', ci: RK, hl: 4, u: 11 }, t); R.seaHelm(st, 'b', { id: 'pb', ci: RC, hl: 1, u: 22 }, t);
+  for (let i = 0; i < 2000 && st.ships.get('b').hp / st.ships.get('b').max > share; i++) {
+    t += 1000;
+    if (i % 5 === 0) { R.seaHelm(st, 'a', { id: 'pa', ci: RK, hl: 4, u: 11 }, t); R.seaHelm(st, 'b', { id: 'pb', ci: RC, hl: 1, u: 22 }, t); }
+    R.seaShot(st, 'a', 'b', { d: 5 }, t);
+  }
+  return t;
+}
+
+test('AUDIT SEA VENTURES E6A, F1/A1, E6B, A6: the referee - her target\'s helm word never asked to be fresh (a window open, a hidden tab, below: at sea all the same), a quiet captain in the zone never forgotten; a captain who leaves her helm, the zone or her socket leaves her ship off the guns with her bar kept until it would be whole, and one who crosses into another room carries it; canvas or a fire alone never claims a ship, and a ship the sea\'s guns broke is out of the fight both ways; a jumper boards nothing (mutants: the shooter\'s word alone, the quiet kept, the off, the carry, the bar\'s credit, the sea\'s wreck, the jump)', () => {
+  // E6A: her page paused - no helm word a minute - my shots land
+  let now = 1000;
+  const st = seaRoom(50, now);
+  R.seaHelm(st, 'a', { id: 'pa', ci: RK, hl: 4, u: 11 }, now); R.seaHelm(st, 'b', { id: 'pb', ci: RC, hl: 1, u: 22 }, now);
+  now += 60_000;
+  R.seaHelm(st, 'a', { id: 'pa', ci: RK, hl: 4, u: 11 }, now);
+  const quiet = R.seaShot(st, 'a', 'b', { d: 5 }, now);
+  assert.ok(quiet.ok && quiet.dealt > 0, `her helm unsaid a minute: ${quiet.why}`);
+  assert.equal(R.seaShot(st, 'a', 'b', { d: 5 }, now + R.SEA_REF.helmMs + 1).why, 'helm', 'the shooter\'s own word stale: no shot');
+  R.seaStep(st, now + 10 * R.SEA_REF.helmMs);
+  assert.deepEqual([st.ships.has('b'), st.ships.get('b').off], [true, false], 'her quiet in the zone: kept, on the guns');
+  // F1/A1: battered, she says she has left her helm - off the guns, her bar kept, back as she was
+  const s1 = seaRoom(20, 1000);
+  now = batter(s1, 0.3, 1000);
+  const bar = s1.ships.get('b').hp;
+  assert.ok(bar / s1.ships.get('b').max <= 0.3 && bar > 0);
+  R.seaHelm(s1, 'b', { id: 'pb', ci: RC, hl: -1 }, now + 100);
+  assert.deepEqual([s1.ships.has('b'), s1.ships.get('b').off], [true, true], 'off her helm: her ship kept, off the guns');
+  assert.equal(R.seaShot(s1, 'a', 'b', { d: 5 }, now + 1100).why, 'ship', 'no shot lands on a ship off the guns');
+  R.seaHelm(s1, 'b', { id: 'pb', ci: RC, hl: 1, u: 22, h: 1 }, now + 1800);
+  assert.deepEqual([s1.ships.get('b').hp, s1.ships.get('b').off], [bar, false], 'back at her helm: her bar as she left it, never whole');
+  R.seaGone(s1, 'b', now + 2000);
+  assert.equal(s1.ships.get('b').off, true, 'her socket gone: off, kept');
+  wildZone(s1, 'b', { id: 'pb' }, false, null, now + 2100);
+  R.seaHelm(s1, 'b', { id: 'pb', ci: RC, hl: 1, u: 22, h: 1 }, now + 2200);
+  assert.equal(s1.ships.get('b').off, true, 'a word out of the zone: off');
+  wildZone(s1, 'b', { id: 'pb' }, true, null, now + 2300);
+  R.seaHelm(s1, 'b', { id: 'pb', ci: RC, hl: 1, u: 22, h: 1 }, now + 2400);
+  assert.equal(s1.ships.get('b').hp, bar, 'back in the zone: as she was');
+  R.seaHelm(s1, 'b', { id: 'pb', ci: RC, hl: -1 }, now + 2500);
+  R.seaStep(s1, now + R.SEA_REF.mendMs - 1);
+  assert.equal(s1.ships.has('b'), true);
+  R.seaStep(s1, now + R.SEA_REF.mendMs);
+  assert.equal(s1.ships.has('b'), false, 'off the guns until her bar would be whole, then forgotten');
+  const s2 = seaRoom(20, 1000);
+  R.seaHelm(s2, 'b', { id: 'pb', ci: RC, hl: 1, u: 22 }, 1000); R.seaHelm(s2, 'b', { id: 'pb', ci: RC, hl: -1 }, 2000);
+  assert.equal(s2.ships.has('b'), false, 'never struck: forgotten at once');
+  // F1/A1: the bar carried into another room - newer than her own there, younger than the mend
+  const s3 = seaRoom(20, 1000);
+  now = batter(s3, 0.5, 1000);
+  const c = R.seaCarry(s3, 'b');
+  assert.deepEqual([Math.round(c.h * 1000), c.at], [Math.round(s3.ships.get('b').hp / s3.ships.get('b').max * 1000), s3.ships.get('b').struckAt]);
+  assert.equal(R.seaCarry(s3, 'a'), null, 'never struck: whole wherever she goes');
+  assert.deepEqual(wildCarryOf(JSON.parse(JSON.stringify({ hp: 5, max: 9, down: false, downAt: 0, at: now, sea: c }))).sea, c, 'kept at the hub with the zone\'s carry');
+  assert.equal(wildCarryOf({ hp: 5, max: 9, at: now, sea: { h: 'x', at: now } }).sea, undefined);
+  assert.equal(wildCarryOf({ hp: 5, max: 9, at: now, sea: { h: 7, at: now } }).sea.h, 1);
+  const next = seaRoom(20, now);
+  next.fighters.get('b').seaCarry = c;
+  R.seaHelm(next, 'b', { id: 'pb', ci: RC, hl: 1, u: 22 }, now + 500);
+  assert.equal(next.ships.get('b').hp, c.h * next.ships.get('b').max, 'her bar as she carried it');
+  assert.equal(next.fighters.get('b').seaCarry, null, 'taken once');
+  const stale = seaRoom(20, now);
+  stale.fighters.get('b').seaCarry = { ...c, at: now - R.SEA_REF.mendMs };
+  R.seaHelm(stale, 'b', { id: 'pb', ci: RC, hl: 1, u: 22 }, now);
+  assert.equal(stale.ships.get('b').hp, stale.ships.get('b').max, 'a carry past the mend: whole');
+  // E6B: canvas and a fire take no bar - and claim no ship the sea's guns broke
+  const s4 = seaRoom(20, 1000);
+  R.seaHelm(s4, 'a', { id: 'pa', ci: RK, hl: 4, u: 11 }, 1000); R.seaHelm(s4, 'b', { id: 'pb', ci: RC, hl: 2, u: 22 }, 1000);
+  const sail = R.seaShot(s4, 'a', 'b', { d: 0, s: 30, f: true }, 20_000);
+  assert.ok(sail.ok && sail.sail > 0 && sail.fire && sail.dealt === 0);
+  assert.equal(s4.ships.get('b').by, null, 'no bar taken: no killer');
+  assert.equal(R.seaHelm(s4, 'b', { id: 'pb', ci: RC, hl: 2, u: 22, h: 0 }, 21_000, { rid: 'aaaaaaaaaaaa' }), null, 'the sea broke her: no captain\'s wreck');
+  assert.deepEqual([R.seaShot(s4, 'a', 'b', { d: 50, s: 5 }, 30_000).why, R.seaShot(s4, 'b', 'a', { d: 50 }, 30_000).why], ['ship', 'ship'], 'at none by the sea: out of the fight both ways');
+  assert.equal(s4.ships.get('b').wrecked, false);
+  R.seaHelm(s4, 'b', { id: 'pb', ci: RC, hl: 2, u: 22, h: 1 }, 20_000 + R.SEA_REF.mendMs); R.seaHelm(s4, 'a', { id: 'pa', ci: RK, hl: 4, u: 11 }, 20_000 + R.SEA_REF.mendMs);
+  assert.ok(R.seaShot(s4, 'a', 'b', { d: 5 }, 21_000 + R.SEA_REF.mendMs).dealt > 0, 'mended: on the guns again');
+  // A6: a jumper boards nothing
+  const s5 = seaRoom(10, 1000);
+  R.seaHelm(s5, 'a', { id: 'pa', ci: RK, hl: 4, u: 11 }, 1000); R.seaHelm(s5, 'b', { id: 'pb', ci: RC, hl: 0, u: 22 }, 1000);
+  let wreck = null;
+  for (let t = 2000; t < 400_000 && !wreck; t += 1000) { if (t % 5000 === 0) { R.seaHelm(s5, 'a', { id: 'pa', ci: RK, hl: 4, u: 11 }, t); R.seaHelm(s5, 'b', { id: 'pb', ci: RC, hl: 0, u: 22 }, t); } wreck = R.seaShot(s5, 'a', 'b', { d: 20, rid: 'bbbbbbbbbbbb' }, t).wreck; now = t; }
+  assert.ok(wreck);
+  wildPose(s5, 'a', { x: -5000 * SIEGE_UNITS_PER_M, y: 0, z: 0 }, now + 100);
+  wildPose(s5, 'a', { x: 10 * SIEGE_UNITS_PER_M, y: 0, z: 0 }, now + 116);
+  assert.equal(R.seaBoard(s5, 'a', 'bbbbbbbbbbbb', now + 116), null, 'beside her in a jump: never');
+  assert.equal(R.seaBoard(s5, 'a', 'bbbbbbbbbbbb', now + 116 + WILD_REF.jumpMs)?.boarded, true, 'the jump spent: boarded');
+});
+
+test('AUDIT SEA VENTURES A3, A4, F1/A1: the relay - what landed is said rounded down and her bar left rounded up, so a one-point word lays no more than it took; a hull said with no uid is no ship; a captain struck in one cell carries her bar into the next, kept at the hub (mutants: the floor, the ceiling, the uid, the carry put, the carry taken)', async () => {
+  assert.equal(validWildData({ k: 'helm', hl: 2, t: 100, u: 0, h: 1000 }), null, 'a hull with no uid');
+  assert.deepEqual(validWildData({ k: 'helm', hl: -1, t: 100, u: 0, h: 0 }), { k: 'helm', hl: -1, t: 100, u: 0, h: 0 }, 'her helm left');
+  const T = 1_800_000_000, realNow = Date.now;
+  let clock = T * 1000; Date.now = () => clock;
+  try {
+    const world = fakeRooms({ now: () => clock });
+    const A = worldRoom(7800, -5000), B = worldRoom(7801, -5000);
+    const base = (key) => { const m = /^world:(-?\d+),(-?\d+)$/.exec(key); return { x: Number(m[1]) * PIXEL_UNITS + 16384, z: (499 - Number(m[2])) * PIXEL_UNITS + 16384 }; };
+    const join = async (key, id, x, ci) => {
+      const r = world.room(key), b0 = base(key), ws = r.connect();
+      await r.hello(ws, id, { x: b0.x + x * SIEGE_UNITS_PER_M, y: 0, z: b0.z, yaw: 0, pitch: 0 }, { lv: 10, look: { race: 'Nord', gender: 'male', faceIndex: 0, items: [] }, rc: 1, ci });
+      await r.raw(ws, JSON.stringify({ t: 'wild', data: { k: 'zone', z: 1 } }));
+      return ws;
+    };
+    const ra = world.room(A);
+    const a = await join(A, 'peer-0001', -5, RK), b = await join(A, 'peer-0002', 5, RC);
+    const helm = (r, ws, hl, u, t = 240) => r.raw(ws, JSON.stringify({ t: 'wild', data: { k: 'helm', hl, t, u, h: 1000 } }));
+    await helm(ra, a, 4, 11); await helm(ra, b, 4, 22);
+    clock += 30_000;
+    await helm(ra, a, 4, 11);
+    for (let i = 0; i < 10; i++) { clock += 100; await ra.raw(a, JSON.stringify({ t: 'wild', data: { k: 'shot', to: 'peer-0002', d: 1, s: 0, f: 0 } })); }
+    const hulls = b.sent.filter((m) => m.t === 'wref' && m.k === 'hull');
+    assert.equal(hulls.length, 10);
+    const ship = ra.room._wildRef.ships.get('acct-peer-0002') ?? [...ra.room._wildRef.ships.values()].find((x) => x.u === 22);
+    assert.deepEqual(hulls.map((h) => h.d), Array(10).fill(0), 'a point of a 2,150-point bar is no thousandth of it');
+    assert.equal(hulls.at(-1).h, Math.ceil(ship.hp / ship.max * 1000), 'her bar left rounded up - she is laid no lower than it');
+    assert.ok(1000 - hulls.at(-1).h <= Math.ceil(10 / ship.max * 1000), 'ten points laid as ten points');
+    // she is battered, and sails into the next cell
+    for (let i = 0; i < 600 && ship.hp / ship.max > 0.6; i++) { clock += 1000; if (i % 5 === 0) { await helm(ra, a, 4, 11); await helm(ra, b, 4, 22); } await ra.raw(a, JSON.stringify({ t: 'wild', data: { k: 'shot', to: 'peer-0002', d: 40, s: 0, f: 0 } })); }
+    const share = ship.hp / ship.max;
+    assert.ok(share < 0.9 && share > 0, `battered: ${share}`);
+    await ra.drop(b);
+    for (let i = 0; i < 6; i++) await new Promise((res) => setImmediate(res));
+    const rb = world.room(B);
+    const b2 = await join(B, 'peer-0002', 5, RC);
+    await helm(rb, b2, 4, 22);
+    const there = [...rb.room._wildRef.ships.values()].find((x) => x.u === 22);
+    assert.ok(Math.abs(there.hp / there.max - share) < 1e-9, `her bar carried across the cell's line: ${there.hp / there.max} for ${share}`);
+  } finally { Date.now = realNow; }
+});
+
+test('AUDIT SEA VENTURES E6A, E6B, E6C: the page\'s guns - stepped every online frame (the zone\'s), never the exterior\'s unpaused alone; a wreck of mine said at her helm at none; my shot words within SEA_SHOT_HZ a second over every ship under my guns, a word unsaid kept and gathered on; no cabin below with a stranger captain\'s ship near (mutants: the frame, the wreck\'s word, the budget, the kept, the cabin)', () => {
+  assert.ok(SEA_SHOT_HZ < R.SEA_REF.hz, 'within the referee\'s word rate, with slack');
+  assert.equal(SEA_CAPTAIN_NEAR_M, HOSTILE_NEAR_M, 'a stranger captain near as near as a hostile ship');
+  const st = { now: 100_000, sent: [], ok: true, helm: { hl: 4, u: 22, t: 1, h: 1, wrecked: false, pos: [0, 0, 0] } };
+  const naval = { pvp: { helm: () => st.helm, peerAt: () => null } };
+  const b = createSeaBroadsides({ live: () => true, naval: () => naval, send: (d) => { if (!st.ok) return false; st.sent.push(d); return true; }, me: () => 'peer-me', stranger: () => true, now: () => st.now });
+  b.step();
+  // three ships under my guns, struck each frame for ten seconds
+  for (let f = 0; f < 600; f++) {
+    st.now += 1000 / 60;
+    for (const p of ['p1', 'p2', 'p3']) b.shot(p, { hull: 1 });
+    b.step();
+  }
+  const shots = st.sent.filter((d) => d.k === 'shot');
+  assert.ok(shots.length <= SEA_SHOT_HZ * 10 + SEA_SHOT_HZ, `${shots.length} words in ten seconds`);
+  assert.ok(shots.length >= SEA_SHOT_HZ * 10 - 2 * 1000 / SEA_SHOT_MS, `the purse spent: ${shots.length}`);
+  for (let f = 0; f < 120; f++) { st.now += 1000 / 60; b.step(); }
+  const laid = st.sent.filter((d) => d.k === 'shot').reduce((n, d) => n + d.d, 0);
+  assert.equal(laid, 1800, 'every point said - a word the purse could not say gathered on, never dropped');
+  // the socket shut: kept, said whole when it opens
+  st.ok = false;
+  b.shot('p1', { hull: 40 });
+  st.now += 1000; b.step();
+  b.shot('p1', { hull: 2 });
+  st.ok = true;
+  st.now += 1000; b.step();
+  assert.equal(st.sent.filter((d) => d.k === 'shot').at(-1).d, 42, 'the word the socket refused, kept');
+  // E6B: wrecked in my own game
+  st.helm = { ...st.helm, wrecked: true, h: 0.3 };
+  st.now += 1000; b.step();
+  assert.deepEqual(st.sent.at(-1), { k: 'helm', hl: 4, t: 100, u: 22, h: 0 });
+  // E6A: by source - the zone's frame steps them, the cabin asks the captains
+  const sea = readFileSync(new URL('../../../src/scenes/seaVenturesHost.js', import.meta.url), 'utf8');
+  const world = readFileSync(new URL('../../../src/scenes/world.js', import.meta.url), 'utf8');
+  assert.match(sea, /gather, step, guns: pvpStep,/);
+  assert.doesNotMatch(sea, /function step\(strikes = 0\) \{\n\s+pvpStep\(\);/);
+  const wf = world.slice(world.indexOf('const wildFrame = () => {'), world.indexOf('const takeSeat = () => {'));
+  assert.match(wf, /\n\s+seaVentures\.guns\(\);/, 'every online frame, the dead\'s and the paused\'s');
+  assert.match(world, /hostile: \(\) => navalHostileNear\(\) \|\| !!naval\?\.pvp\?\.captainNear\?\.\(\),/);
+  // the cabin's captain near
+  const guns = { live: true, open: (peer) => peer !== 'kin' };
+  const peers = [];
+  const pvp = createNavalPvp({ enabled: () => true, boat: () => ({ uid: 9, hull: 2 }), stateOf: () => ({ damage: createShipDamage({ hullHp: 600, sailHp: 200, crew: 10, player: true }) }), build: () => ({ hullHp: 600 }), pose: () => ({ position: [0, 0, 0] }), peers: () => peers, clock: () => 0, due: () => ({ hull: 1 }) });
+  assert.equal(pvp.captainNear(), false, 'no guns attached: no captain');
+  pvp.attach(guns);
+  peers.push({ id: 'p1', pos: [SEA_CAPTAIN_NEAR_M + 1, 0, 0] }, { id: 'kin', pos: [10, 0, 0] });
+  assert.equal(pvp.captainNear(), false, 'my party\'s at hand, a stranger past the reach');
+  peers.push({ id: 'p2', pos: [0, 0, SEA_CAPTAIN_NEAR_M] });
+  assert.equal(pvp.captainNear(), true, 'a stranger captain\'s ship near');
+  guns.live = false;
+  assert.equal(pvp.captainNear(), false, 'the open sea\'s guns shut here: none');
+});
+
+test('AUDIT SEA VENTURES D7, D8, A5: a vault of the deep stands in a room of its own lane - the one its gate let me into, or the day\'s I stand in - never its plain ruin\'s, so the hub\'s wipe on a client\'s word reaches no plain ruin and the day\'s turn never puts a vault and its ruin in one room; the hub wipes a hall at every size it is laid at (mutants: the lane, the room key, the sizes)', async () => {
+  const [cx, cy] = [723, 240], place = etherPlaceId({ cx, cy }), H = seaVaultKey(cx, cy);
+  assert.equal(seaVaultMapId(cx, cy), place);
+  assert.equal(seaVaultRoomMapId(cx, cy) >>> 20, SEA_VAULT_LANE);
+  assert.equal(seaVaultRoomMapId(cx, cy) & 0xfffff, place & 0xfffff, 'the same cell, its own lane');
+  assert.equal(seaVaultRoomId(place, H), seaVaultRoomMapId(cx, cy), 'the vault the gate let me into: its lane');
+  assert.equal(seaVaultRoomId(place, null), place, 'its plain ruin: its own');
+  assert.equal(seaVaultRoomId(place, seaVaultKey(cx + 1, cy)), place, 'another isle\'s vault: its own');
+  assert.equal(seaVaultRoomId(place, '512,88'), place, 'a mountain hall: its own');
+  assert.equal(seaVaultRoomId(777, H), 777, 'another dungeon');
+  assert.equal(wdunRoomKey(H), `dungeon:m${seaVaultRoomMapId(cx, cy)}`, 'the hub wipes the vault\'s room alone');
+  assert.ok(seaRoomOf(`dungeon:m${seaVaultRoomMapId(cx, cy)}.m`), 'a fall in a vault is the open sea\'s');
+  assert.deepEqual(seaRoomCell(`dungeon:m${seaVaultRoomMapId(cx, cy)}`), [cx, cy], 'and keeps no instance');
+  const w = readFileSync(new URL('../../../src/scenes/world.js', import.meta.url), 'utf8');
+  assert.match(w, /mapId: ident\?\.kind === 'dungeon' \? seaVaultRoomId\(ident\.mapId \?\? null, _wdunInside\?\.h \?\? seaVentures\.vaultHere\(\)\?\.key\) :/);
+  // A5: the hub's wipe at every size - a mountain hall laid small, a vault laid medium
+  const realNow = Date.now; let clock = 1e12; Date.now = () => clock;
+  try {
+    const world = fakeRooms({ now: () => clock });
+    const hub = world.room(SOCIAL_ROOM);
+    const ws = hub.connect();
+    await hub.hello(ws, 'peer-a', null, { name: 'a', acct: 'acct-a', asecret: 'secret-a', kind: 'linked' }); clock += 700;
+    for (const h of ['100,50', H]) {
+      const base = wdunRoomKey(h), rooms = ['', '.m', '.s'].map((t) => world.room(`${base}${t}`));
+      for (const r of rooms) r.store.set('world:snap', { foes: [1] });
+      await hub.raw(ws, JSON.stringify({ t: 'wdun', k: 'in', h })); clock += 700;
+      await hub.raw(ws, JSON.stringify({ t: 'wdun', k: 'out', h })); clock += WDUN_RESET_MS + 61 * 60_000;
+      await hub.raw(ws, JSON.stringify({ t: 'wdun', k: 'in', h })); clock += 700;
+      assert.deepEqual(rooms.map((r) => r.store.get('world:snap')), [undefined, undefined, undefined], `${h}: whole, medium and small wiped`);
+    }
+    assert.equal(wdunRoomKey('100,50'), `dungeon:m${spawnedHallMapId(100, 50)}`);
+  } finally { Date.now = realNow; }
+});
+
+test('AUDIT SEA VENTURES A7, A10: the hub hears a treasure fleet\'s flagship sunk only while she is under way (her hour in port and the hour before scattered her before she sailed) and never from a guest; a page asks it only of a hub that reads it (mutants: the window, the guest, the gate)', async () => {
+  assert.deepEqual([SEA_FLEET_OFFSET_MS, SEA_FLEET_SAIL_MS], [FLEET_OFFSET_MS, FLEET_SAIL_MS], 'the relay\'s copy is the sea\'s');
+  const n = 9000, start = n * SEA_FLEET_PERIOD_MS + SEA_FLEET_OFFSET_MS, realNow = Date.now;
+  let clock = start - 60_000; Date.now = () => clock;
+  try {
+    const world = fakeRooms({ now: () => clock });
+    const hub = world.room(SOCIAL_ROOM);
+    const join = async (id, kind) => { const ws = hub.connect(); await hub.hello(ws, id, null, { name: id, acct: `acct-${id}`, asecret: `s-${id}`, kind }); clock += 700; return ws; };
+    const a = await join('peer-a', 'linked'), g = await join('peer-g', 'guest');
+    const fd = () => a.sent.filter((m) => m.t === 'wdun' && m.k === 'fd');
+    await hub.raw(a, JSON.stringify({ t: 'wdun', k: 'fk', n })); clock += 700;
+    assert.equal(fd().length, 0, 'in port: nothing');
+    clock = start + 60_000;
+    await hub.raw(g, JSON.stringify({ t: 'wdun', k: 'fk', n })); clock += 700;
+    assert.equal(fd().length, 0, 'a guest\'s word: nothing');
+    await hub.raw(a, JSON.stringify({ t: 'wdun', k: 'fk', n })); clock += 700;
+    assert.deepEqual(fd().at(-1)?.fleets, [n], 'under way, a registered captain\'s: scattered');
+  } finally { Date.now = realNow; }
+  // A10: never to a hub that would close the socket on it
+  const { FakeWS, sockets } = fakeSocketClass();
+  const s = new OnlineSession({ url: 'wss://relay.test', name: 'Mac', id: 'mac-0001', secret: 'secret-of-mac-0001', WebSocketImpl: FakeWS, now: () => 1000 });
+  s.join(SOCIAL_ROOM);
+  sockets[0].open();
+  sockets[0].receive({ t: 'welcome', id: 'mac-0001', v: 'world241', peers: [], host: null, world: null });
+  assert.equal(s.wdunOk, true);
+  assert.equal(s.sendWdun({ k: 'fk', n }), false, 'an older hub: never said');
+  assert.equal(s.sendWdun({ k: 'hi' }), true);
+});
+
+test('AUDIT SEA VENTURES A8: a receipt owed a captain away is kept in the room\'s storage - an object that slept hands it to her when she is back; a wreck nobody comes back to is signed on the room\'s alarm (mutants: the owed kept, the owed read, the alarm armed, the alarm\'s beat)', async () => {
+  const T = 1_800_000_000, realNow = Date.now;
+  let clock = T * 1000; Date.now = () => clock;
+  try {
+    const world = fakeRooms({ now: () => clock });
+    const key = worldRoom(7800, -5000), r = world.room(key);
+    const kp = await subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
+    r.env.GATE_SIGNING_KEY = Buffer.from(await subtle.exportKey('pkcs8', kp.privateKey)).toString('base64');
+    const b0 = { x: 7800 * PIXEL_UNITS + 16384, z: (499 + 5000) * PIXEL_UNITS + 16384 };
+    const join = async (id, x, ci) => { const ws = r.connect(); await r.hello(ws, id, { x: b0.x + x * SIEGE_UNITS_PER_M, y: 0, z: b0.z, yaw: 0, pitch: 0 }, { lv: 10, look: { race: 'Nord', gender: 'male', faceIndex: 0, items: [] }, rc: 1, ci }); await r.raw(ws, JSON.stringify({ t: 'wild', data: { k: 'zone', z: 1 } })); return ws; };
+    const helm = (ws, hl, u, h = 1000) => r.raw(ws, JSON.stringify({ t: 'wild', data: { k: 'helm', hl, t: 100, u, h } }));
+    const wreckIt = async (a, b) => {
+      let wreck = null;
+      for (let k = 0; k < 600 && !wreck; k++) {
+        clock += 1000;
+        if (k % 5 === 0) { await helm(a, 4, 11); await helm(b, 0, 22); }
+        await r.raw(a, JSON.stringify({ t: 'wild', data: { k: 'shot', to: 'peer-0002', d: 40, s: 0, f: 0 } }));
+        wreck = a.sent.find((m) => m.t === 'wref' && m.k === 'wreck') ?? null;
+      }
+      return wreck;
+    };
+    // boarded with her away; the object sleeps; she comes back
+    let a = await join('peer-0001', -5, RK), b = await join('peer-0002', 5, RC);
+    const w1 = await wreckIt(a, b);
+    assert.ok(w1);
+    await r.drop(b);
+    await r.raw(a, JSON.stringify({ t: 'wild', data: { k: 'board', r: w1.r } }));
+    assert.ok(a.sent.some((m) => m.t === 'wref' && m.k === 'wc'), 'signed for him');
+    for (let i = 0; i < 4; i++) await new Promise((res) => setImmediate(res));
+    assert.ok([...r.store.keys()].some((k) => k.startsWith('wildowed:')), 'hers kept in storage');
+    await r.drop(a);
+    r.wake();
+    const b2 = await join('peer-0002', 5, RC);
+    assert.ok(b2.sent.some((m) => m.t === 'wref' && m.k === 'wc' && m.r === w1.r), 'handed to her, back after a wake');
+    for (let i = 0; i < 4; i++) await new Promise((res) => setImmediate(res));
+    assert.equal([...r.store.keys()].some((k) => k.startsWith('wildowed:')), false, 'and forgotten once handed');
+    // nobody comes back: the alarm signs it
+    a = await join('peer-0001', -5, RK);
+    const w2 = await wreckIt(a, b2), w2End = clock + R.SEA_REF.boardMs + 1000;
+    assert.ok(w2);
+    assert.ok(r.alarm.at != null && r.alarm.at <= clock + R.SEA_REF.boardMs + 1000, 'the room\'s alarm armed for her boarding\'s end');
+    await r.drop(a); await r.drop(b2);
+    r.wake();
+    for (let i = 0; i < 6 && r.alarm.at != null && r.alarm.at <= w2End; i++) { clock = Math.max(clock, r.alarm.at + 1); await r.fire(); }
+    assert.equal([...r.store.keys()].some((k) => k.startsWith('seawreck:')), false, 'signed on the alarm, nobody back');
+    assert.ok([...r.store.keys()].filter((k) => k.startsWith('wildowed:')).length >= 1, 'its receipts owed both, kept');
+  } finally { Date.now = realNow; }
+});
+
+test('AUDIT SEA VENTURES D1, D12: a legend\'s Tidemail comes with her purse alone - another\'s copy of her, sunk again before the aether raises her, gives none; the Captain\'s Due and the piece out of the naval host (mutants: the purse\'s gate)', () => {
+  const legend = legendById('starless') ?? { name: 'a legend', band: 'abyss' };
+  const out = { gave: [], said: [] };
+  const o = { give: (items) => out.gave.push(...items), say: (x) => out.said.push(x) };
+  assert.equal(legendTidemail({ ...legend, band: 'abyss' }, 1111, 0, o), null, 'no purse: no piece');
+  assert.equal(legendTidemail({ ...legend, band: 'abyss' }, 1111, undefined, o), null);
+  assert.deepEqual(out.gave, []);
+  const piece = legendTidemail({ ...legend, band: 'abyss' }, 1111, 12000, o);
+  assert.ok(piece, 'her purse paid: the Abyss\'s piece every time');
+  assert.deepEqual(out.gave, [piece]);
+  assert.deepEqual(dueOnHull({ hull: 10, sail: 4 }, { hull: 0.5 }), { hull: 5, sail: 2 });
+  const n = readFileSync(new URL('../../../src/scenes/naval/navalHost.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(n, /function legendTidemail\(|function dueOnHull\(/, 'never inside createNavalHost');
+});
+
+test('AUDIT SEA VENTURES D2, D4, D5, D9, D10: a treasure fleet\'s flagship pays each captain once a sailing - kept in the save, so a second end, another\'s copy or a reload pays nothing and gives no piece - and a reload never stands her again; the hub\'s hello never puts my own sinking out, and the hub is told until it says so; her piece rolls the sailing\'s band; each ship stands on water deep enough for her own hull (mutants: the once, the save, the piece\'s gate, the stood, the hello, the telling, the band, the hull)', () => {
+  // the ledger keeps them, newest ETHER_FLEETS_KEEP, through the save
+  const L = createCaptainLedger();
+  assert.deepEqual([L.endFleet(7), L.endFleet(7), L.fleetEnded(7), L.fleetEnded(8)], [true, false, true, false]);
+  for (let n = 10; n < 20; n++) L.endFleet(n);
+  assert.equal(L.getSaveData().ether.fleets.length, ETHER_FLEETS_KEEP);
+  const back = createCaptainLedger();
+  back.restoreSaveData(JSON.parse(JSON.stringify({ ...L.getSaveData(), ether: { ...L.getSaveData().ether, fleets: [19, 19, 'x', -1, 18] } })));
+  assert.deepEqual(back.getSaveData().ether.fleets, [19, 18], 'read back: whole sailings, once each');
+  // the sea's host: once a sailing, never put out by the hub, told until it hears
+  let now = 0;
+  for (let k = 9000; k < 9100 && !SE.fleetAt(now); k++) now = k * SEA_FLEET_PERIOD_MS + SEA_FLEET_OFFSET_MS + 60_000;
+  const f = SE.fleetAt(now);
+  assert.ok(f);
+  const ledger = createCaptainLedger(), credits = [], sent = [], fed = [];
+  const host = createEtherHost({ ledger, day: () => 1, credit: (x) => credits.push(x) });
+  const make = () => createSeaVentures({
+    live: () => false, day: () => 0, pixel: () => ({ x: Math.floor(f.from.x), y: Math.floor(f.from.y) }), locks: new Map(), crows: new Map(), mine: () => null,
+    clock: () => now, naval: () => ({ fleet: (list, o) => fed.push(o) }), state: { localFromWorld: (x, z) => [x / 40, z / 40] },
+    link: () => ({ wdunSeaOk: true, status: 'open', sendWdun: (w) => { sent.push(w); return true; } }), ether: host,
+  });
+  const v = make();
+  assert.equal(v.fleetEnded(f.n, 'sink'), f.purse);
+  assert.equal(v.fleetEnded(f.n, 'board'), 0, 'a second end of the sailing: nothing');
+  assert.deepEqual(credits, [f.purse]);
+  const reloaded = make();
+  assert.equal(reloaded.fleetEnded(f.n, 'sink'), 0, 'after a reload: nothing (the save keeps it)');
+  reloaded.step(0);
+  assert.equal(fed.at(-1)?.sunk, true, 'after a reload she is never stood again');
+  reloaded.hubWord({ k: 'st', fleets: [] });
+  assert.equal(reloaded.chartWord().fleet.sunk, true, 'the hub\'s hello puts my own sinking out never');
+  sent.length = 0;
+  now += FLEET_TELL_MS; reloaded.step(0);
+  assert.deepEqual(sent, [{ k: 'fk', n: f.n }], 'the hub not having said it: told again');
+  now += FLEET_TELL_MS - 1; reloaded.step(0);
+  assert.equal(sent.length, 1, 'no sooner than FLEET_TELL_MS');
+  reloaded.hubWord({ k: 'fd', fleets: [f.n] });
+  now += FLEET_TELL_MS; reloaded.step(0);
+  assert.equal(sent.length, 1, 'the hub has it: no more');
+  // the fleet's module: no purse, no piece; the sailing's band; her hull's water
+  const out = { gave: [], said: [], water: [] };
+  let paid = 0;
+  const sea = new Map();
+  const fl = createTreasureFleet({
+    sea, launch: (spec) => { const e = { id: `e${spec.seed}`, owner: null, ship: { seed: spec.seed, pos: spec.pos, names: { name: 'Her' }, damage: { state: SHIP_STATES.afloat } }, ether: spec.ether }; sea.set(e.id, e); return e; },
+    retire: () => {}, busy: () => false, feet: () => [0, 0, 0], isWater: (x, z, hull) => { out.water.push(hull); return true; }, seaY: () => 0, launches: () => true,
+    give: (items) => out.gave.push(...items), say: (x) => out.said.push(x), fleetEnded: () => paid,
+  });
+  const list = { n: f.n, band: f.band, ships: f.ships.map((s, i) => ({ seed: s.seed, classId: s.classId, flag: s.flag, pos: [i * 10, 0, 0], ahead: [i * 10, 0, 100], yaw: 0 })) };
+  fl.step(list);
+  assert.deepEqual(out.water, f.ships.map((s) => classById(s.classId).hull), 'each on water deep enough for her own hull');
+  const flag = [...sea.values()].find((e) => e.fleet?.flag);
+  flag.ether = 'reaches';   // a copy stood in the Reaches' waters
+  assert.equal(fl.ended(flag, 'sink'), null, 'no purse: no piece');
+  assert.deepEqual(out.gave, []);
+  paid = f.purse;
+  const piece = fl.ended(flag, 'sink');
+  assert.ok(f.band === 'abyss' ? piece : true, 'the sailing\'s band rolls it, never the waters her copy stood in');
+  if (piece) assert.deepEqual(out.gave, [piece]);
+});
+
+test('AUDIT SEA VENTURES D6, D11: a storm\'s wrack cask hauled is kept in the save - a reload floats it never again; a storm is born far enough west that its drift and reach never touch the Reaches (mutants: the haul kept, the haul read, the birth)', () => {
+  const L = createCaptainLedger();
+  assert.deepEqual([L.haulWrack('strand:wrack:5:1'), L.haulWrack('strand:wrack:5:1'), L.wrackHauled('strand:wrack:5:1')], [true, false, true]);
+  for (let i = 0; i < 40; i++) L.haulWrack(`strand:wrack:6:${i}`);
+  assert.equal(L.getSaveData().ether.wrack.length, ETHER_WRACK_KEEP);
+  const back = createCaptainLedger();
+  back.restoreSaveData(JSON.parse(JSON.stringify(L.getSaveData())));
+  assert.equal(back.wrackHauled('strand:wrack:6:39'), true, 'read back');
+  // the host over the ledger: hauled once, across a reload
+  let s = null, now = 0;
+  for (let n = 1000; n < 1100 && !s; n++) { s = SE.stormOf(n); now = s.start + 600_000; }
+  const e = SE.stormEye(s, now), px = { x: Math.floor(e.x), y: Math.floor(e.y) };
+  const ledger = createCaptainLedger();
+  const host = createEtherHost({ ledger, day: () => 1 });
+  const make = () => createSeaVentures({ live: () => false, day: () => 0, pixel: () => px, locks: new Map(), crows: new Map(), mine: () => null, clock: () => now, naval: () => null, state: { localFromWorld: (x, z) => [x, z] }, link: () => null, ether: host });
+  const v = make();
+  const site = v.wrackSites(px.x, px.y)[0];
+  assert.ok(site);
+  assert.ok(v.gather(site.id).items.length, 'hauled');
+  const again = make();
+  assert.deepEqual(again.wrackSites(px.x, px.y), [], 'a reload floats it never again');
+  assert.deepEqual(again.gather(site.id).items, []);
+  // D11: the storm's reach, its whole life, west of the Reaches
+  const deepEast = VEIL_X - BANDS.find((b) => b.id === 'deep').from * LEAGUE_PX;
+  for (let n = 0; n < 4000; n++) {
+    const st = SE.stormOf(n);
+    assert.ok(Math.max(st.x0, st.x1) + st.r <= deepEast + 1e-9, `storm ${n} reaches the Reaches`);
+  }
+  assert.equal(etherBandAt(deepEast - 1).id, 'deep');
 });

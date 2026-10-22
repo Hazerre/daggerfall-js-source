@@ -877,7 +877,7 @@ import { partyRosterSource, localRosterSource, guildRosterSource } from '../net/
 import { partyCompassPoints } from '../ui/partyMapMarks.js';   // COMPASS-PARTY: the party's points on the compass
 import { SocialState, accountId, accountSecret } from '../net/social.js';   // SOC2: the friends and the party, as the hub says them; the account the hub's hello carries; SOC3: and the two colours a name wears in the DOM - my party's green, a friend's blue
 import { SOCIAL_ROOM, PARTY_SEND_MS, chatRegionRoom, relaySupportsRite, relaySupportsCage } from '../net/wire.js';   // CHAT-CHAN: a region's channel
-import { cellRoomOfWire } from '../net/wire.js';   // HCC-PARK: the cell a parked team's anchor stands in
+import { cellRoomOfWire, seaVaultRoomId } from '../net/wire.js';   // HCC-PARK: the cell a parked team's anchor stands in; AUDIT SEA VENTURES D7, D8: a vault's own room
 import { parkKeyOf } from '../net/wire.js';   // WAGONS2-VISIT: my caravan's room is named by my park key
 import { caravanRoomOf, caravanKeyOf } from '../net/privateInterior.js';   // WAGONS2-VISIT: a caravan's own room
 import { CARAVAN_TEXT } from '../systems/caravanRoom.js';   // WAGONS2 (FINAL AUDIT): a caravan's save that cannot come back, said
@@ -8010,7 +8010,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const sailingCabins = createSailingCabinAccess({
     available: () => !!csaRuntime && csaOn(),
     boats: () => csaRuntime?.AllBoats ?? [], mode: () => modes?.mode ?? 'exterior', busy: () => worldMoveBusy(),
-    csa: () => csaRuntime, hostile: navalHostileNear,   // FB1020c CABIN-FOES: the helm read off the runtime; no cabin with a hostile ship near (scenes/sailingCabin.js)
+    csa: () => csaRuntime, hostile: () => navalHostileNear() || !!naval?.pvp?.captainNear?.(),   // FB1020c CABIN-FOES: the helm read off the runtime; no cabin with a hostile ship near (scenes/sailingCabin.js) - AUDIT SEA VENTURES E6A: nor a stranger captain's (navalPvp.js captainNear)
     aboard: csaStandsOn,
     peerBoat: (owner, uid) => csaPeers.boatByUid(owner, uid),
     boardPeer: (boat) => csaAboard.board(boat, CSA_ABOARD_GRACE),
@@ -23297,6 +23297,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (!_wildMineRead) { _wildMineRead = true; _wildMine ??= keptMine(Date.now(), wildWho()); }   // WILD-KEEP: back from a crash or a close
     if (_wildMine && Date.now() > _wildMine.until) { _wildMine = null; keepMine(null); }
     remainsMarkTick(Date.now());   // WILD-WAYPOINT: the flag goes with its remains' time
+    seaVentures.guns();   // AUDIT SEA VENTURES E6A: the open sea's guns every online frame - paused, a window open or below, my helm is said
   };
   // WILD3: THE STRANGERS - every other player in the zone with me, outside my party and my guild, within WILD_STRANGER_M
   // (their bodies as the room draws them): enemies to the Overworld (marked in red, "Stranger"), to the journey's pace
@@ -28740,7 +28741,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       const loc = _questLoc();   // the location under the player: an interior's room is named by it
       key = ident?.private ? privateRoomHere(ident) : roomKeyFor({
         host: 'world', mode,
-        mapId: ident?.kind === 'dungeon' ? (ident.mapId ?? null) : (loc?.mapTableData?.mapId ?? null),
+        mapId: ident?.kind === 'dungeon' ? seaVaultRoomId(ident.mapId ?? null, _wdunInside?.h ?? seaVentures.vaultHere()?.key) : (loc?.mapTableData?.mapId ?? null),   // AUDIT SEA VENTURES D7, D8: a vault of the deep's room its own lane (net/wire.js seaVaultRoomId) - the vault the gate let me into, or the day's I stand in
         regionIndex: ident?.kind === 'dungeon' ? ident.regionIndex : (loc?.regionIndex ?? -1),
         locationName: ident?.kind === 'dungeon' ? ident.name : (loc?.name ?? ''),
         buildingKey: ident?.buildingKey ?? 0,

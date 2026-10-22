@@ -28,6 +28,9 @@ import { shutSeaHold } from '../../systems/naval/seaHoldGuard.js';
 
 /** The camera's shake when a captain's shot the referee judged lands on my ship. */
 export const PVP_STRUCK_SHAKE = 1.6;
+/** AUDIT SEA VENTURES E6A: a stranger captain's ship this near mine is a hostile ship near (navalHost.js HOSTILE_NEAR_M,
+ *  pinned equal) - no cabin below, off the guns, with another captain's coming on (metres). */
+export const SEA_CAPTAIN_NEAR_M = 700;
 
 /** @param {any} deps */
 export function createNavalPvp(deps) {
@@ -76,5 +79,11 @@ export function createNavalPvp(deps) {
     shot: (/** @type {string} */ peer, /** @type {any} */ hurt) => guns?.shot(peer, hurt),
     helm, struck, wreck, takeHold,
     peerAt: (/** @type {string} */ id) => (deps.peers?.() ?? []).find((p) => p.id === id)?.pos ?? null,
+    /** AUDIT SEA VENTURES E6A: a stranger captain's ship at her helm within SEA_CAPTAIN_NEAR_M of mine where the open sea's
+     *  guns are open (my balls may meet her - the guns' own word) - the cabin's hostile ship near (world.js sailingCabins). */
+    captainNear() {
+      const h = guns?.live ? helm() : null;
+      return !!h && (deps.peers?.() ?? []).some((p) => Array.isArray(p.pos) && !!guns.open(p.id, null, true) && Math.hypot(p.pos[0] - h.pos[0], p.pos[2] - h.pos[2]) <= SEA_CAPTAIN_NEAR_M);
+    },
   };
 }

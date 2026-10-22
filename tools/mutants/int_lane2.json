@@ -738,8 +738,8 @@
   {
     "name": "INT9-AUDIT-RELAY-THE-GONE-STILL-A-FIGHTER",
     "file": "server/src/index.js",
-    "old": "{ wildGone(this._wildRef, a.sub, Date.now()); seaGone(this._wildRef, a.sub); }   // SHIP-PVP",
-    "new": "{ seaGone(this._wildRef, a.sub); }   // SHIP-PVP",
+    "old": "{ wildGone(this._wildRef, a.sub, Date.now()); seaGone(this._wildRef, a.sub, Date.now()); }   // SHIP-PVP",
+    "new": "{ seaGone(this._wildRef, a.sub, Date.now()); }   // SHIP-PVP",
     "tests": [
       "test/net/int9_wild_ref.test.js"
     ]

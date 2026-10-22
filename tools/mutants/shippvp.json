@@ -92,7 +92,7 @@
   {
     "name": "SHIP-PVP-wreck-grace",
     "file": "src/net/wild/wildReceipt.js",
-    "old": "export const SEA_WRECK_GRACE_S = 30;",
+    "old": "export const SEA_WRECK_GRACE_S = 300;",
     "new": "export const SEA_WRECK_GRACE_S = 0;",
     "tests": [
       "test/systems/sea/shippvp.test.js"
@@ -173,8 +173,8 @@
   {
     "name": "SHIP-PVP-helm-out-of-zone",
     "file": "src/net/sea/seaRef.js",
-    "old": "  if (clampHull(hl) < 0 || !x?.zone) { if (s && !s.wrecked) ships.delete(sub); return null; }",
-    "new": "  if (clampHull(hl) < 0) { if (s && !s.wrecked) ships.delete(sub); return null; }",
+    "old": "  if (clampHull(hl) < 0 || !x?.zone) { offShip(ships, sub, s, now); return null; }",
+    "new": "  if (clampHull(hl) < 0) { offShip(ships, sub, s, now); return null; }",
     "tests": [
       "test/systems/sea/shippvp.test.js"
     ]
@@ -263,7 +263,7 @@
   {
     "name": "SHIP-PVP-shot-no-ship",
     "file": "src/net/sea/seaRef.js",
-    "old": "  if (!me || !her || me.wrecked || her.wrecked) return no('ship');",
+    "old": "  if (!me || !her || me.wrecked || her.wrecked || me.off || her.off || !(me.hp > 1e-6) || !(her.hp > 1e-6)) return no('ship');",
     "new": "  if (!me || !her) return no('ship');",
     "tests": [
       "test/systems/sea/shippvp.test.js"
@@ -272,7 +272,7 @@
   {
     "name": "SHIP-PVP-shot-stale",
     "file": "src/net/sea/seaRef.js",
-    "old": "  if (now - me.at > SEA_REF.helmMs || now - her.at > SEA_REF.helmMs) return no('helm');\n",
+    "old": "  if (now - me.at > SEA_REF.helmMs) return no('helm');   // E6A: the shooter's word alone - her target's page may be paused\n",
     "new": "",
     "tests": [
       "test/systems/sea/shippvp.test.js"
@@ -362,7 +362,7 @@
   {
     "name": "SHIP-PVP-wreck-never",
     "file": "src/net/sea/seaRef.js",
-    "old": "  const [wreck, evicted] = her.hp <= 1e-6 ? wreckOf(st, to, her, by, now, rid, room) : [null, null];",
+    "old": "  const [wreck, evicted] = got > 0 && her.hp <= 1e-6 ? wreckOf(st, to, her, by, now, rid, room) : [null, null];",
     "new": "  const [wreck, evicted] = [null, null];",
     "tests": [
       "test/systems/sea/shippvp.test.js"
@@ -371,8 +371,8 @@
   {
     "name": "SHIP-PVP-wreck-killer-unkept",
     "file": "src/net/sea/seaRef.js",
-    "old": "  her.hp -= got; her.struckAt = now; her.by = by; her.byAt = now;",
-    "new": "  her.hp -= got; her.struckAt = now;",
+    "old": "  if (got > 0) { her.hp -= got; her.by = by; her.byAt = now; }",
+    "new": "  if (got > 0) { her.hp -= got; }",
     "tests": [
       "test/systems/sea/shippvp.test.js"
     ]
@@ -434,8 +434,8 @@
   {
     "name": "SHIP-PVP-board-captain-only",
     "file": "src/net/sea/seaRef.js",
-    "old": "  if (!a?.pose || !(near(her) || near(Number.isFinite(w.x) && Number.isFinite(w.z) ? { x: w.x, z: w.z } : null))) return null;",
-    "new": "  if (!a?.pose || !near(her)) return null;",
+    "old": "  if (!(near(her) || near(Number.isFinite(w.x) && Number.isFinite(w.z) ? { x: w.x, z: w.z } : null))) return null;",
+    "new": "  if (!near(her)) return null;",
     "tests": [
       "test/systems/sea/shippvp.test.js"
     ]
@@ -443,8 +443,8 @@
   {
     "name": "SHIP-PVP-board-where-lay-only",
     "file": "src/net/sea/seaRef.js",
-    "old": "  if (!a?.pose || !(near(her) || near(Number.isFinite(w.x) && Number.isFinite(w.z) ? { x: w.x, z: w.z } : null))) return null;",
-    "new": "  if (!a?.pose || !near(Number.isFinite(w.x) && Number.isFinite(w.z) ? { x: w.x, z: w.z } : null)) return null;",
+    "old": "  if (!(near(her) || near(Number.isFinite(w.x) && Number.isFinite(w.z) ? { x: w.x, z: w.z } : null))) return null;",
+    "new": "  if (!near(Number.isFinite(w.x) && Number.isFinite(w.z) ? { x: w.x, z: w.z } : null)) return null;",
     "tests": [
       "test/systems/sea/shippvp.test.js"
     ]
@@ -497,8 +497,8 @@
   {
     "name": "SHIP-PVP-step-forgets-wrecks",
     "file": "src/net/sea/seaRef.js",
-    "old": "if (s.wrecked ? now - s.wreckAt >= SEA_REF.wreckMs : now - s.at > 4 * SEA_REF.helmMs)",
-    "new": "if (now - s.at > 4 * SEA_REF.helmMs)",
+    "old": "    if (s.wrecked) { if (now - s.wreckAt >= SEA_REF.wreckMs) ships.delete(k); continue; }",
+    "new": "    if (s.wrecked) { ships.delete(k); continue; }",
     "tests": [
       "test/systems/sea/shippvp.test.js"
     ]
@@ -515,8 +515,8 @@
   {
     "name": "SHIP-PVP-gone-wreck",
     "file": "src/net/sea/seaRef.js",
-    "old": "  if (s && !s.wrecked) shipsOf(st).delete(sub);",
-    "new": "  if (s) shipsOf(st).delete(sub);",
+    "old": "  if (!s || s.wrecked) return;",
+    "new": "  if (!s) return;\n  if (s.wrecked) { ships.delete(sub); return; }",
     "tests": [
       "test/systems/sea/shippvp.test.js"
     ]
@@ -641,8 +641,8 @@
   {
     "name": "SHIP-PVP-relay-hull-unsaid",
     "file": "server/src/index.js",
-    "old": "    this._send(target[0], word);\n    const mine = this._siegeSocketOf(a.sub);\n    if (mine) this._send(mine[0], word);\n    if (res.wreck || res.evicted)",
-    "new": "    const mine = this._siegeSocketOf(a.sub);\n    if (mine) this._send(mine[0], word);\n    if (res.wreck || res.evicted)",
+    "old": "    this._send(target[0], word);\n    const mine = this._siegeSocketOf(a.sub);\n    if (mine) this._send(mine[0], word);\n    if (res.dealt > 0)",
+    "new": "    const mine = this._siegeSocketOf(a.sub);\n    if (mine) this._send(mine[0], word);\n    if (res.dealt > 0)",
     "tests": [
       "test/systems/sea/shippvp.test.js"
     ]
@@ -740,8 +740,8 @@
   {
     "name": "SHIP-PVP-prize-bound",
     "file": "src/net/sea/seaPrizeLaw.js",
-    "old": "  && it.bound !== true && templateByIndex(it.templateIndex)?.bound !== true && itemWorth(it) > 0;",
-    "new": "  && templateByIndex(it.templateIndex)?.bound !== true && itemWorth(it) > 0;",
+    "old": "!classicPiece(it) && !isLocked(it) && itemWorth(it) > 0\n  && tradeableRecord({ ...it, equipSlot: undefined });",
+    "new": "!classicPiece(it) && !isLocked(it) && itemWorth(it) > 0;",
     "tests": [
       "test/systems/sea/shippvp.test.js"
     ]
@@ -830,7 +830,7 @@
   {
     "name": "SHIP-PVP-svc-no-grace",
     "file": "server-account/src/seaWreck.js",
-    "old": "  if (seize && ctx.nowS < c.i + SEA_WRECK_GRACE_S) return { error: 'grace' };\n",
+    "old": "  if (!had && seize && ctx.nowS < c.i + SEA_WRECK_GRACE_S) return { error: 'grace' };\n",
     "new": "",
     "tests": [
       "test/systems/sea/shippvp.test.js"
@@ -1199,8 +1199,8 @@
   {
     "name": "SHIP-PVP-guns-unflushed",
     "file": "src/scenes/naval/seaBroadsides.js",
-    "old": "      pending.clear();\n    }\n    const h = mine.size ? helm() : null;",
-    "new": "    }\n    const h = mine.size ? helm() : null;",
+    "old": "        words -= 1; pending.delete(to);",
+    "new": "        words -= 1;",
     "tests": [
       "test/systems/sea/shippvp.test.js"
     ]
@@ -1325,8 +1325,8 @@
   {
     "name": "SHIP-PVP-host-captain-carry",
     "file": "src/scenes/seaWreckHost.js",
-    "old": "    if (c.f === me) { if (deps.session && !deps.session.lost) asCaptain(/** @type {string} */ (rc), c); return; }",
-    "new": "    if (c.f === me) return;",
+    "old": "    const role = c.f === me ? 'captain' : c.k === me ? 'killer' : null;",
+    "new": "    const role = c.k === me ? 'killer' : null;",
     "tests": [
       "test/systems/sea/shippvp.test.js"
     ]
@@ -1334,7 +1334,7 @@
   {
     "name": "SHIP-PVP-host-hold-kept",
     "file": "src/scenes/seaWreckHost.js",
-    "old": "        const out = took.length ? deps.naval?.()?.pvp?.takeHold?.(c.u, took) ?? [] : [];",
+    "old": "        const out = took.length ? deps.naval?.()?.pvp?.takeHold?.(w.c.u, took) ?? [] : [];",
     "new": "        const out = took.length ? took : [];",
     "tests": [
       "test/systems/sea/shippvp.test.js"
@@ -1352,8 +1352,8 @@
   {
     "name": "SHIP-PVP-host-killer-rushes",
     "file": "src/scenes/seaWreckHost.js",
-    "old": "    due.set(c.r, { rc, c, at: now() + (SEA_WRECK_GRACE_S + SEA_WRECK_SLACK_S) * 1000, tries: 0, busy: false });",
-    "new": "    due.set(c.r, { rc, c, at: now(), tries: 0, busy: false });",
+    "old": "at: role === 'killer' && live ? now() + SEA_WRECK_SLACK_S * 1000 : now(),",
+    "new": "at: now(),",
     "tests": [
       "test/systems/sea/shippvp.test.js"
     ]
@@ -1361,17 +1361,17 @@
   {
     "name": "SHIP-PVP-host-killer-uncollected",
     "file": "src/scenes/seaWreckHost.js",
-    "old": "        if (res?.ok) { due.delete(r); return collectSeaPrizes(",
-    "new": "        if (res?.ok) { due.delete(r); return null && collectSeaPrizes(",
+    "old": "    if (res?.ok && w.c.b === 1) await collectSeaPrizes(",
+    "new": "    if (false) await collectSeaPrizes(",
     "tests": [
       "test/systems/sea/shippvp.test.js"
     ]
   },
   {
-    "name": "SHIP-PVP-host-unboarded-carried",
+    "name": "SHIP-PVP-host-unboarded-uncarried",
     "file": "src/scenes/seaWreckHost.js",
-    "old": "    if (c.b !== 1) { say(t('sea.pvp.notBoarded',",
-    "new": "    if (false) { say(t('sea.pvp.notBoarded',",
+    "old": "    const res = await doorNow().wreck({ receipt: w.rc });",
+    "new": "    const res = w.c.b === 1 ? await doorNow().wreck({ receipt: w.rc }) : { ok: true };",
     "tests": [
       "test/systems/sea/shippvp.test.js"
     ]
@@ -1388,8 +1388,8 @@
   {
     "name": "SHIP-PVP-host-carried-twice",
     "file": "src/scenes/seaWreckHost.js",
-    "old": "    if (!c || !me || seen.has(c.r)) return;",
-    "new": "    if (!c || !me) return;",
+    "old": "    if (!role || seen.has(c.r) || now() / 1000 >= c.e) return false;",
+    "new": "    if (!role || now() / 1000 >= c.e) return false;",
     "tests": [
       "test/systems/sea/shippvp.test.js"
     ]
@@ -1397,8 +1397,8 @@
   {
     "name": "SHIP-PVP-host-strangers",
     "file": "src/scenes/seaWreckHost.js",
-    "old": "    if (c.k !== me) return;\n",
-    "new": "",
+    "old": "c.k === me ? 'killer' : null;",
+    "new": "'killer';",
     "tests": [
       "test/systems/sea/shippvp.test.js"
     ]
@@ -1522,8 +1522,8 @@
   },
   {
     "name": "SHIP-PVP-sea-unstepped",
-    "file": "src/scenes/seaVenturesHost.js",
-    "old": "    pvpStep();   // SHIP-PVP: the open sea's guns, before anything of the sea's own\n",
+    "file": "src/scenes/world.js",
+    "old": "    seaVentures.guns();   // AUDIT SEA VENTURES E6A: the open sea's guns every online frame - paused, a window open or below, my helm is said\n",
     "new": "",
     "tests": [
       "test/systems/sea/shippvp.test.js"

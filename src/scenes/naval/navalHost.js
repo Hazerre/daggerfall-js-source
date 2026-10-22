@@ -124,11 +124,10 @@ import { seaLiveryOf, seaFlagsOf } from '../../systems/naval/seaColours.js';   /
 import { liveryCode } from '../../systems/naval/shipLivery.js';
 import { noteAct } from '../../systems/questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
 import { captainsDue } from '../../systems/sigil/sigilSetPowers.js';
-import { rollElthericPiece, elthericChance, TIDEMAIL_SALT } from '../../systems/aetheric.js';   // SEA-SET: a legend's Tidemail piece
+import { dueOnHull, legendTidemail } from './navalSeaSet.js';   // SEA-SET: the Captain's Due on my ship's hull, a legend's Tidemail piece (AUDIT SEA VENTURES D12: out of this host)
 import { createTreasureFleet } from './treasureFleet.js';   // SEA-EVENTS: the treasure fleet's ships, stood and steered
 import { createNavalPvp } from './navalPvp.js';   // SHIP-PVP: the open sea's guns' seams
 import { strikeShip } from '../../systems/sea/seaEvents.js';   // SEA-EVENTS: the Aether Storm's lightning on my ship
-import { setById } from '../../systems/sigil/sigilSets.js';   // SEA-SET: the Eltheric Tidemail's Captain's Due - my ship's guns and hull
 import { createBerthWatch } from './navalBerth.js';   // FIELD BUGS 2026-10-21b VOYAGE-HOLD: the berth, still or not, and the helm let go in port
 
 /** The record's name in the save's per-mod slot (systems/modSaveData.js) - the port's own, as the Sigil Broker's is. */
@@ -1153,13 +1152,6 @@ export function createNavalHost(deps) {
     if (Number.isFinite(hurt.hull)) hurt.hull *= k;
     if (Number.isFinite(hurt.sail)) hurt.sail *= k;
   }
-  /** SEA-SET, THE CAPTAIN'S DUE (systems/sigil/sigilSetPowers.js captainsDue): a ball's hurt on a boat of mine, her hull and
-   *  canvas taking the tier's share less while it is awake on me (her men as the ball takes them). In place; answers it. */
-  function dueOnHull(hurt) {
-    const k = captainsDue().hull;
-    if (k !== 1) { if (Number.isFinite(hurt.hull)) hurt.hull *= k; if (Number.isFinite(hurt.sail)) hurt.sail *= k; }
-    return hurt;
-  }
   /** SEA-EASE: whether a player's ball on this ship is a stray on an aid - a crown's ship afloat, fighting a pirate,
    *  not at odds with them, and what they have struck her for still under ALLY_STRAY_SHARE of her hull (counted here). */
   function strayOnAlly(entry, hurt, by) {
@@ -1732,20 +1724,9 @@ export function createNavalHost(deps) {
     cap.deed?.(act, s.cls, { trade: legend ? 'legend' : 'ether', legend: legend?.name ?? null });
     if (act !== 'sink' && act !== 'board') return;
     cap.event?.({ type: 'end', act, faction: s.cls.faction, crown: null, bounty: entry.bounty ?? null });
-    if (legend) { deps.ether?.legendEnded?.(legend.id, act); legendTidemail(legend, s.seed); }
+    if (legend) legendTidemail(legend, s.seed, deps.ether?.legendEnded?.(legend.id, act), { give: (items) => deps.board?.giveItems?.(items, boatInPlay() ?? null, { force: true }), say: (text, n) => deps.say?.(text, n) });   // SEA-SET (navalSeaSet.js): her piece - AUDIT SEA VENTURES D1: only with her purse
     else if (s.cls.faction === 'pirate') { const w = where(); deps.ether?.papers?.(s.cls, s.seed, w.px, w.py); }   // a corsair's papers
     treasureFleet.ended(entry, act);   // SEA-EVENTS: the treasure fleet's flagship - her Tidemail piece, her purse
-  }
-  /** SEA-SET: A LEGEND ENDED carries a piece of the Eltheric Tidemail on her own band's share (systems/aetheric.js
-   *  ELTHERIC_CHANCE.legend - the Deep Aether's two a quarter of the time, the Abyss's two every time, the Reaches' none),
-   *  on its own stream off her seed: sunk, it floats up from her wreck; taken, it is among her captain's things - into the
-   *  boat I sail, as her chart is (never let go for a full pack). */
-  function legendTidemail(legend, seed) {
-    const piece = rollElthericPiece(mulberry32(((seed >>> 0) ^ TIDEMAIL_SALT) >>> 0), elthericChance('legend', legend.band));
-    if (!piece) return null;
-    deps.board?.giveItems?.([piece], boatInPlay() ?? null, { force: true });
-    deps.say?.(t('sea.tidemail.legend', 'From {ship}: {piece}, a piece of {set}!', { ship: legend.name, piece: piece.name, set: setById('eltheric')?.name ?? '' }), 6);
-    return piece;
   }
   /** The crown whose law a ship answers to: a navy's her own, else the crown of the waters she sails. */
   function crownOfShip(s) {

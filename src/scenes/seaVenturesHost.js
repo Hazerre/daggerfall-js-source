@@ -72,6 +72,8 @@ export const WRACK_SITE = `${STRAND_SITE}wrack:`;
 export const FLEET_FEED_MS = 500;
 /** SEA-EVENTS: each ship of the fleet steers for her station this far on (ms of the clock). */
 export const FLEET_LEAD_MS = 60_000;
+/** AUDIT SEA VENTURES D5: a sinking of mine the hub has not said is told it again this often (ms of the clock). */
+export const FLEET_TELL_MS = 30_000;
 /** A band's name in a sentence: its name, the article as it stands ("The Abyss" - parenthesised, never declined: a
  *  language that declines it cannot fold it into a sentence, as the crows' line found). */
 const bandName = (id) => etherRingName(['shallows', 'reaches', 'deep', 'abyss'].indexOf(id) + 1);
@@ -136,14 +138,15 @@ export function createSeaVentures(deps) {
   /** The shown word moved into the storm or out of it since it was last asked (the world's crossing - a short front);
    *  the word kept for the world's shownWeather (seaStormShown). */
   const stormTurned = () => { const w = stormWord(); if (w === _stormShown) return false; _stormShown = w; return true; };
-  const wracked = new Set();   // the wrack's casks hauled this session - a slot's once
+  const wracked = new Set();   // the wrack's casks hauled this session - a slot's once (AUDIT SEA VENTURES D6: and the save's, the ether host's ledger)
+  const hauled = (id) => wracked.has(id) || !!deps.ether?.wrackHauled?.(id);
   /** THE STORM'S WRACK: inside the storm at sea, a cask alongside each STORM_WRACK_MS (its slot) not yet hauled - a strand's
    *  site of the naval host's (`{ id, kind: 'strand', px, py, seed, n: 1, word }`), floated alongside and hauled as one. */
   function wrackSites(px, py) {
     const now = clock(), s = stormOver({ x: px, y: py }, now);
     if (!s) return [];
     const slot = stormWrackSlot(s, now), id = `${WRACK_SITE}${s.n}:${slot}`;
-    if (wracked.has(id)) return [];
+    if (hauled(id)) return [];
     return [{ id, kind: 'strand', px, py, seed: (s.n * 977 + slot) >>> 0, n: 1, word: t('sea.storm.wrack', 'The storm throws up wrack. A cask bobs in the swell alongside.') }];
   }
   /** A cask of the storm's wrack hauled (the naval host's strand haul): one of the sea's goods by the band it floated in,
@@ -153,8 +156,9 @@ export function createSeaVentures(deps) {
     const m = /^strand:wrack:(\d+):(\d+)$/.exec(String(siteId ?? ''));
     if (!m) return null;
     const id = String(siteId);
-    if (wracked.has(id)) return { items: [], text: '' };
+    if (hauled(id)) return { items: [], text: '' };
     wracked.add(id);
+    deps.ether?.haulWrack?.(id);   // D6: kept in the save - a reload floats it never again
     const p = deps.pixel?.(), band = p && inEther(p.x, p.y) ? etherBandAt(p.x).id : 'deep';
     const w = wrackOf(Number(m[1]), Number(m[2]), band, STRAND_YIELD);
     const g = goodById(w.good), items = [mintGood(w.good, w.n)];
@@ -163,7 +167,13 @@ export function createSeaVentures(deps) {
     const haul = t('sea.storm.wrackHaul', '{n} {unit} of {good} from the storm\'s wrack.', { n: w.n, unit: w.n === 1 ? g?.unit ?? '' : g?.units ?? '', good: String(g?.name ?? '').toLowerCase() });
     return { items, text: piece ? `${haul} ${t('sea.storm.wrackTidemail', 'In the wrack: {piece}, a piece of {set}!', { piece: piece.name, set: setById('eltheric')?.name ?? '' })}` : haul };
   }
-  const sunk = new Set();   // the sailings whose flagship is down (the hub's word, and mine)
+  const sunk = new Set();   // the sailings whose flagship is down, the hub's word
+  const mine = new Set();   // AUDIT SEA VENTURES D5: the sailings whose flagship I ended - never put out by the hub's word, told it until it says so
+  /** A sailing's flagship down: the hub's word, mine, or my ledger's (AUDIT SEA VENTURES D4: a reload stood her again). */
+  const down = (n) => sunk.has(n) || mine.has(n) || !!deps.ether?.fleetDone?.(n);
+  /** My word to the hub that a sailing's flagship went down (online, at a relay that reads it) - whether it left. */
+  const tellHub = (n) => { const link = deps.link?.(); return !!link?.wdunSeaOk && link.status === 'open' && link.sendWdun({ k: 'fk', n }) === true; };
+  let fkAt = -Infinity;
   let fedAt = -Infinity, heardStorm = null, heardFleet = null, inStorm = null, strikesSeen = null;
   /** The way from the player's pixel to a point, in words ("west-north-west"), or '' where they stand on it. */
   const wayTo = (p, q) => (p && q ? compassPoint(q.x - centre(p).x, q.y - centre(p).y) ?? '' : '');
@@ -183,13 +193,14 @@ export function createSeaVentures(deps) {
    *  fed to the naval host (FLEET_FEED_MS apart); the storm's and the fleet's words as they come; the storm's lightning on
    *  the ship I sail. */
   function step(strikes = 0) {
-    pvpStep();   // SHIP-PVP: the open sea's guns, before anything of the sea's own
     const now = clock(), p = deps.pixel?.();
-    if (now - fedAt >= FLEET_FEED_MS) { fedAt = now; const list = fleetList(now, p); deps.naval?.()?.fleet?.(list, { sunk: !!list && sunk.has(list.n) }); }
+    if (now - fedAt >= FLEET_FEED_MS) { fedAt = now; const list = fleetList(now, p); deps.naval?.()?.fleet?.(list, { sunk: !!list && down(list.n) }); }
+    const cur = fleetAt(now);   // AUDIT SEA VENTURES D5: a sinking of mine the hub has not said, told it again (a socket shut when she went down)
+    if (cur && !sunk.has(cur.n) && (mine.has(cur.n) || deps.ether?.fleetDone?.(cur.n)) && now - fkAt >= FLEET_TELL_MS && tellHub(cur.n)) fkAt = now;
     if (!atSea(p)) { inStorm = null; strikesSeen = null; return; }
     const s = stormAt(now), f = fleetAt(now);
     if (s && heardStorm !== s.n) { heardStorm = s.n; const e = stormEye(s, now); mid(t('sea.storm.gathers', 'An Aether storm gathers to the {way} ({band}).', { band: bandName(etherBandAt(e.x).id), way: wayTo(p, e) || 'north' }), 5); }
-    if (f && heardFleet !== f.n && !sunk.has(f.n)) { heardFleet = f.n; const q = fleetPlace(f, now); mid(t('sea.fleet.sails', 'A treasure fleet weighs anchor ({band}): the {ship} and her escorts, bound east. It lies to the {way}.', { band: bandName(f.band), ship: f.name, way: wayTo(p, q) || 'north' }), 6); }
+    if (f && heardFleet !== f.n && !down(f.n)) { heardFleet = f.n; const q = fleetPlace(f, now); mid(t('sea.fleet.sails', 'A treasure fleet weighs anchor ({band}): the {ship} and her escorts, bound east. It lies to the {way}.', { band: bandName(f.band), ship: f.name, way: wayTo(p, q) || 'north' }), 6); }
     const here = stormOver(p, now);
     if ((here?.n ?? null) !== inStorm) {
       if (here) say(t('sea.storm.enter', 'You sail into the Aether storm. Lightning seeks the masts, and wrack rides the swell.'), 5);
@@ -203,23 +214,27 @@ export function createSeaVentures(deps) {
     }
     strikesSeen = here ? n : null;
   }
-  /** THE FLAGSHIP DOWN by my hand (the naval host's treasureFleet.ended): her purse, said; the sailing scattered here and
-   *  told to the hub (online, at a relay that reads it), which tells everyone. */
+  /** THE FLAGSHIP DOWN by my hand (the naval host's treasureFleet.ended): her purse, said - AUDIT SEA VENTURES D2: once a
+   *  sailing, my ledger's (another's copy of her going down, a second word or a reload paid it every time), as a legend's
+   *  is; the sailing scattered here and told to the hub (online, at a relay that reads it), which tells everyone. Answers
+   *  the purse paid (none a second time - and so no piece: treasureFleet.js). */
   function fleetEnded(n, act) {
     const f = fleetOf(n);
-    sunk.add(f.n);
+    const first = !mine.has(f.n) && !deps.ether?.fleetDone?.(f.n);
+    mine.add(f.n);
+    deps.ether?.endFleet?.(f.n);
+    if (tellHub(f.n)) fkAt = clock();   // a word that never left (the socket shut) is said at the next step it can be
+    if (!first) return 0;
     deps.ether?.credit?.(f.purse);
     mid(act === 'board' ? t('sea.fleet.taken', 'The {ship} is taken! {gold} gold from her strongroom.', { ship: f.name, gold: f.purse }) : t('sea.fleet.sunk', 'The {ship} is sunk! {gold} gold floats up from her strongroom.', { ship: f.name, gold: f.purse }), 6);
-    const link = deps.link?.();
-    if (link?.wdunSeaOk && link.status === 'open') link.sendWdun({ k: 'fk', n: f.n });
     return f.purse;
   }
   /** THE HUB'S WORD of the fleets (`st` at hello, `fd` when a flagship goes down): the sailings scattered - one this sailing's
    *  that was not, said ("the fleet scatters") to a player at sea. Answers whether it was the fleet's word alone. */
   function hubWord(w) {
     if (w?.k !== 'st' && w?.k !== 'fd') return false;
-    const now = clock(), cur = fleetAt(now), was = !!cur && sunk.has(cur.n);
-    sunk.clear();
+    const now = clock(), cur = fleetAt(now), was = !!cur && down(cur.n);
+    sunk.clear();   // the hub's word alone - mine kept (AUDIT SEA VENTURES D5: its hello put my own sinking out)
     for (const n of w.fleets ?? []) sunk.add(n);
     if (w.k === 'fd' && cur && !was && sunk.has(cur.n) && atSea()) mid(t('sea.fleet.scattered', 'The treasure fleet\'s flagship has gone down. The fleet scatters.'), 5);
     return w.k === 'fd';
@@ -231,7 +246,7 @@ export function createSeaVentures(deps) {
     const eye = s ? stormEye(s, now) : null, at = f ? fleetPlace(f, now) : null;
     return {
       storm: s ? { n: s.n, x: eye.x, y: eye.y, r: s.r } : null,
-      fleet: f ? { n: f.n, x: at.x, y: at.y, yaw: at.yaw, from: f.from, to: f.to, band: f.band, name: f.name, sunk: sunk.has(f.n) } : null,
+      fleet: f ? { n: f.n, x: at.x, y: at.y, yaw: at.yaw, from: f.from, to: f.to, band: f.band, name: f.name, sunk: down(f.n) } : null,
     };
   }
   /** A FREEPORT HARBOURMASTER'S TALK of the events from the port's pixel: the fleet under way or the next to sail, and the
@@ -239,7 +254,7 @@ export function createSeaVentures(deps) {
   function rumours(port) {
     const now = clock(), out = [], mins = (ms) => Math.max(1, Math.ceil(ms / 60_000));
     const f = fleetAt(now);
-    if (f && !sunk.has(f.n)) out.push(t('sea.rumour.fleet', 'A treasure fleet is under way ({band}): the {ship} and her escorts, {way} of here and bound east. It makes port in {min} minutes.', { band: bandName(f.band), ship: f.name, way: wayTo(port && { x: port.px, y: port.py }, fleetPlace(f, now)) || 'north', min: mins(f.end - now) }));
+    if (f && !down(f.n)) out.push(t('sea.rumour.fleet', 'A treasure fleet is under way ({band}): the {ship} and her escorts, {way} of here and bound east. It makes port in {min} minutes.', { band: bandName(f.band), ship: f.name, way: wayTo(port && { x: port.px, y: port.py }, fleetPlace(f, now)) || 'north', min: mins(f.end - now) }));
     else { const g = nextFleet(now); out.push(t('sea.rumour.fleetNext', 'The next treasure fleet weighs anchor in {min} minutes ({band}), {way} of here.', { band: bandName(g.band), way: wayTo(port && { x: port.px, y: port.py }, g.from) || 'north', min: mins(g.start - now) })); }
     const s = stormAt(now);
     if (s) out.push(t('sea.rumour.storm', 'An Aether storm is blowing {way} of here. It blows itself out in {min} minutes.', { way: wayTo(port && { x: port.px, y: port.py }, stormEye(s, now)) || 'north', min: mins(s.end - now) }));
@@ -259,14 +274,18 @@ export function createSeaVentures(deps) {
     say: (text, s) => say(text, s), mid: (text, s) => mid(text, s),
   });
   let armed = null;   // the naval host the guns are attached to
-  /** The open sea's guns' step: attached to the naval host that stands now, stepped; a wreck's carry come due. */
+  /** The open sea's guns' step, every online frame (world.js wildFrame - AUDIT SEA VENTURES E6A: the exterior's unpaused
+   *  frames alone left a captain with a window open unsaid at her helm, and a wreck's carry unasked below): attached to
+   *  the naval host that stands now, stepped; a wreck's carry come due. */
   function pvpStep() {
-    const nv = deps.naval?.() ?? null;
-    if (nv && nv !== armed) { nv.pvp?.attach?.(broadsides); armed = nv; }
-    broadsides.step();
-    wrecks.frame();
+    try {   // the zone's frame goes on whatever the sea's guns do
+      const nv = deps.naval?.() ?? null;
+      if (nv && nv !== armed) { nv.pvp?.attach?.(broadsides); armed = nv; }
+      broadsides.step();
+      wrecks.frame();
+    } catch (e) { console.warn('[sea] guns', e?.message ?? e); }
   }
   // ── SEA-SEASON ─────────────────────────────────────────────────────────────────────────────────────────────────────
   const season = createSeaSeason({ live, session: deps.session, character, door: deps.seasonDoor, now: clock });
-  return { vaultsNow, vaultHere, openSeaAt, chartWord: (now) => ({ ...chartWord(now), ...eventsWord() }), crowLine, stormWord, stormTurned, wrackSites, office: () => ({ wanted: bounty.office(), season: season.office() }), wref: (g, room) => broadsides.hear(g, room), gather, step, fleetEnded, hubWord, rumours, fleetList: (now = clock()) => fleetList(now, deps.pixel?.()) };
+  return { vaultsNow, vaultHere, openSeaAt, chartWord: (now) => ({ ...chartWord(now), ...eventsWord() }), crowLine, stormWord, stormTurned, wrackSites, office: () => ({ wanted: bounty.office(), season: season.office() }), wref: (g, room) => broadsides.hear(g, room), gather, step, guns: pvpStep, fleetEnded, hubWord, rumours, fleetList: (now = clock()) => fleetList(now, deps.pixel?.()) };
 }

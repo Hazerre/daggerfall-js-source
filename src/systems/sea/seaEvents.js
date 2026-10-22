@@ -7,7 +7,8 @@
 //
 // THE AETHER STORM: one each STORM_PERIOD_MS, blowing the first STORM_LIFE_MS of it - its eye born at a point its number's
 // hash draws in the deep waters (the Deep Aether and the Abyss's first STORM_ABYSS_LEAGUES, HAUNT_SPREAD.deep rows either
-// side of Veilhaven's), drifting STORM_DRIFT_PX over its life on a heading of its own, STORM_R_PX about the eye. Inside it:
+// side of Veilhaven's - and far enough west that its drift and its reach stay out of the Reaches: AUDIT SEA VENTURES D11),
+// drifting STORM_DRIFT_PX over its life on a heading of its own, STORM_R_PX about the eye. Inside it:
 // a thunderstorm (the shown weather), lightning that finds a ship, and its WRACK - a cask alongside each STORM_WRACK_MS.
 //
 // THE TREASURE FLEET: one each SEA_FLEET_PERIOD_MS (net/wire.js - the hub keeps its flagship's sinking), under way
@@ -58,7 +59,9 @@ export function stormOf(n) {
   const r = etherRng(etherHash(STORM_SALT, k));
   const [cx0, cx1] = columns(band('deep').from, band('abyss').from + STORM_ABYSS_LEAGUES);
   const row = veilhaven().py, spread = HAUNT_SPREAD.deep;
-  const x0 = lerp(cx0, cx1, r()), y0 = lerp(row - spread, row + spread, r()), a = r() * Math.PI * 2;
+  // AUDIT SEA VENTURES D11: born far enough west that its drift and its reach never cross into the Reaches - one in fourteen
+  // touched them, and its wrack there, the Reaches' share, never gave a piece of the Tidemail
+  const x0 = lerp(cx0, cx1 - STORM_DRIFT_PX - STORM_R_PX, r()), y0 = lerp(row - spread, row + spread, r()), a = r() * Math.PI * 2;
   return { n: k, start: k * STORM_PERIOD_MS, end: k * STORM_PERIOD_MS + STORM_LIFE_MS, x0, y0, x1: x0 + Math.cos(a) * STORM_DRIFT_PX, y1: y0 + Math.sin(a) * STORM_DRIFT_PX, r: STORM_R_PX };
 }
 /** The storm blowing at `nowMs`, or null (between storms). */

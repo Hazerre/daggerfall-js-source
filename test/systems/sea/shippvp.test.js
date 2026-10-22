@@ -207,14 +207,18 @@ test('SHIP-PVP the wreck (seaRef.js): her bar at none by a captain\'s shot, or b
   st.fighters.get('a').pose = { x: lay.x + (R.SEA_REF.boardM + R.SEA_REF.slackM - 1) * SIEGE_UNITS_PER_M, y: 0, z: 0 };
   assert.equal(R.seaBoard(st, 'a', '0123456789ab', now + R.SEA_REF.boardMs + 1), null, 'never late');
   // she rows off - alongside where her captain is now, never where she was
+  // PIN MOVED (AUDIT SEA VENTURES A6): the boards after the 10 km pose are past its jump - a jumper boards nothing
   st.fighters.get('b').pose = { x: lay.x + 1000 * SIEGE_UNITS_PER_M, y: 0, z: lay.z };
-  st.fighters.get('a').pose = { x: lay.x + (1000 + R.SEA_REF.boardM + R.SEA_REF.slackM + 1) * SIEGE_UNITS_PER_M, y: 0, z: lay.z };
-  assert.equal(R.seaBoard(st, 'a', '0123456789ab', now + 4000), null, 'out of reach of both');
   st.fighters.get('a').pose = { x: lay.x + (1000 + R.SEA_REF.boardM + R.SEA_REF.slackM - 1) * SIEGE_UNITS_PER_M, y: 0, z: lay.z };
-  const w = R.seaBoard(st, 'a', '0123456789ab', now + 4000);
+  assert.equal(R.seaBoard(st, 'a', '0123456789ab', now + 3000 + WILD_REF.jumpMs - 1), null, 'never in a jump (A6)');
+  const past = now + 3000 + WILD_REF.jumpMs;
+  st.fighters.get('a').pose = { x: lay.x + (1000 + R.SEA_REF.boardM + R.SEA_REF.slackM + 1) * SIEGE_UNITS_PER_M, y: 0, z: lay.z };
+  assert.equal(R.seaBoard(st, 'a', '0123456789ab', past), null, 'out of reach of both');
+  st.fighters.get('a').pose = { x: lay.x + (1000 + R.SEA_REF.boardM + R.SEA_REF.slackM - 1) * SIEGE_UNITS_PER_M, y: 0, z: lay.z };
+  const w = R.seaBoard(st, 'a', '0123456789ab', past);
   assert.equal(w?.boarded, true, 'alongside her captain');
   assert.equal(st.wrecks.size, 0, 'off the list, to be signed');
-  assert.equal(R.seaBoard(st, 'a', '0123456789ab', now + 4000), null, 'once');
+  assert.equal(R.seaBoard(st, 'a', '0123456789ab', past), null, 'once');
   // a room that restarted: her captain forgotten, her wreck read back - boarded where she lay
   const back = newWildRef();
   wildZone(back, 'a', { id: 'pa', lv: 10, ci: RK }, true, { x: lay.x + (R.SEA_REF.boardM + R.SEA_REF.slackM + 1) * SIEGE_UNITS_PER_M, y: 0, z: lay.z }, now);
@@ -244,11 +248,18 @@ test('SHIP-PVP the wreck (seaRef.js): her bar at none by a captain\'s shot, or b
   const aAt = s3.ships.get('a').at, wreckAt = s3.ships.get('b').wreckAt;
   assert.deepEqual(R.seaStep(s3, now + R.SEA_REF.creditMs + R.SEA_REF.boardMs).length, 0);
   assert.deepEqual(R.seaStep(s3, now + R.SEA_REF.creditMs + R.SEA_REF.boardMs + 1).map((x) => [x.r, x.boarded]), [['bbbbbbbbbbbb', false]]);
-  const s4 = { fighters: s3.fighters, ships: new Map([['a', { at: aAt, wrecked: false }], ['b', { wrecked: true, wreckAt }]]), wrecks: new Map() };
-  R.seaStep(s4, aAt + 4 * R.SEA_REF.helmMs);
-  assert.equal(s4.ships.has('a'), true);
-  R.seaStep(s4, aAt + 4 * R.SEA_REF.helmMs + 1);
-  assert.equal(s4.ships.has('a'), false, 'a helm unsaid four times over forgotten');
+  // PIN MOVED (AUDIT SEA VENTURES E6A, F1/A1): a quiet ship whose captain stands in the zone is at sea all the same (a
+  // hidden tab, a window open); one whose captain has left the zone is off the guns, forgotten when her bar is whole
+  const struck = aAt + 9 * R.SEA_REF.helmMs;
+  const s4 = { fighters: s3.fighters, ships: new Map([['a', { at: aAt, wrecked: false, struckAt: struck }], ['b', { wrecked: true, wreckAt }]]), wrecks: new Map() };
+  R.seaStep(s4, aAt + 10 * R.SEA_REF.helmMs);
+  assert.deepEqual([s4.ships.has('a'), s4.ships.get('a').off], [true, undefined], 'a quiet captain in the zone: her ship kept, on the guns');
+  s3.fighters.get('a').zone = false;
+  R.seaStep(s4, struck + R.SEA_REF.mendMs - 1);
+  assert.deepEqual([s4.ships.has('a'), s4.ships.get('a').off], [true, true], 'her captain out of the zone: off the guns, her bar kept');
+  R.seaStep(s4, struck + R.SEA_REF.mendMs);
+  assert.equal(s4.ships.has('a'), false, 'forgotten when her bar would be whole');
+  s3.fighters.get('a').zone = true;
   R.seaStep(s4, wreckAt + R.SEA_REF.wreckMs - 1);
   assert.equal(s4.ships.has('b'), true, 'a wreck stays one her while');
   R.seaStep(s4, wreckAt + R.SEA_REF.wreckMs);
@@ -265,8 +276,8 @@ test('SHIP-PVP the wreck (seaRef.js): her bar at none by a captain\'s shot, or b
   assert.deepEqual(R.seaWreckOf({ ...ev.wreck, junk: 1 }), { r: 'cccccccccccc', fallen: 'b', fallenId: 'pb', ci: RC, killer: 'a', killerId: 'pa', kc: RK, u: 22, m: '', x: fb.x, z: fb.z, at: now + 5000, boarded: false });
   assert.deepEqual([R.seaWreckOf({ ...ev.wreck, x: 'far', z: NaN }).x, R.seaWreckOf({ ...ev.wreck, x: 'far', z: NaN }).z], [null, null], 'a place read back a number, or none');
   assert.equal(R.seaWreckOf({ r: 'x' }), null);
-  R.seaGone(full, 'a');
-  R.seaGone(full, 'b');
+  R.seaGone(full, 'a', now + 5000);
+  R.seaGone(full, 'b', now + 5000);
   assert.deepEqual([full.ships.has('a'), full.ships.has('b')], [false, true], 'a wreck stays one when her captain goes');
   assert.equal(R.SEA_WRECK_PREFIX, 'seawreck:');
 });
@@ -609,10 +620,12 @@ test('SHIP-PVP the page\'s guns (seaBroadsides.js): my balls meet a stranger cap
   assert.equal(st.sent.length, n, 'nothing more while closed');
   assert.equal(b.open('peer-her', 'me:1', true), false);
   // a wrecked ship of mine opens no guns
-  const w = guns({ helm: { hl: 2, u: 22, t: 1, h: 0, wrecked: true, pos: [0, 0, 0] } });
+  // PIN MOVED (AUDIT SEA VENTURES E6B): and is said at her helm at none - never left, so the referee's credit to the captain
+  // whose shot broke her comes
+  const w = guns({ helm: { hl: 2, u: 22, t: 1, h: 0.4, wrecked: true, pos: [0, 0, 0] } });
   w.b.step();
   assert.equal(w.b.open('peer-her', 'me:1', true), false);
-  assert.deepEqual(w.st.sent, [], 'a wreck says no helm');
+  assert.deepEqual(w.st.sent, [{ k: 'helm', hl: 2, t: 100, u: 22, h: 0 }], 'a wreck says her helm at none');
 });
 
 test('SHIP-PVP the naval host\'s seams (navalPvp.js): my ship as the referee is told of her - her hull, uid, toughness over the Captain\'s Due and share; the referee\'s word laid in shares, her hull no higher than its bar; her wreck; a prize out of her hold by each piece\'s marks, never its place nor another list\'s; the guns asked through it (mutants: the toughness, the shares, the bar, the wreck, the take)', () => {
@@ -762,7 +775,10 @@ test('SHIP-PVP the seams by source: the naval host\'s guns asked and its seams b
   const sea = src('src/scenes/seaVenturesHost.js');
   assert.match(sea, /live: \(\) => live\(\) && !!deps\.cell\?\.\(\)\?\.seaPvpOk && wildHere\(\) && wildZoneKind\(\) === ETHER_KIND,/);
   assert.match(sea, /if \(nv && nv !== armed\) \{ nv\.pvp\?\.attach\?\.\(broadsides\); armed = nv; \}\n\s+broadsides\.step\(\);\n\s+wrecks\.frame\(\);/);
-  assert.match(sea, /function step\(strikes = 0\) \{\n\s+pvpStep\(\);/);
+  // PIN MOVED (AUDIT SEA VENTURES E6A): the guns stepped every online frame (world.js wildFrame), never the exterior's alone
+  assert.doesNotMatch(sea, /function step\(strikes = 0\) \{\n\s+pvpStep\(\);/);
+  assert.match(sea, /gather, step, guns: pvpStep,/);
+  assert.match(src('src/scenes/world.js'), /remainsMarkTick\(Date\.now\(\)\);[^\n]*\n\s+seaVentures\.guns\(\);/);
   assert.match(sea, /wref: \(g, room\) => broadsides\.hear\(g, room\),/);
   assert.match(sea, /name: \(id\) => \(deps\.name \? deps\.name\(id\) : deps\.cell\?\.\(\)\?\.peers\?\.get\?\.\(id\)\?\.name\) \|\| '',/, 'a peer\'s name the socket\'s own (HOST-SPLIT)');
   assert.match(sea, /const wrecks = createSeaWreckHost\(\{ session: deps\.session, checkpoint: deps\.checkpoint, character,/);
@@ -776,7 +792,7 @@ test('SHIP-PVP the seams by source: the naval host\'s guns asked and its seams b
   const relay = src('server/src/index.js');
   assert.match(relay, /if \(k === 'helm' \|\| k === 'shot' \|\| k === 'board'\) \{ await this\._seaWord\(a, m\.data, now\); return; \}/);
   assert.ok(relay.indexOf('if (d.k === \'board\') { const w = seaBoard(st, a.sub, d.r, now);') < relay.indexOf('const target = this._idFirst(d.to);\n    const tb = target?.[1];\n    if (!tb?.sub) return;\n    const fa = st.fighters.get(a.sub)'), 'a boarding asks nothing of her captain\'s socket');
-  assert.match(relay, /wildGone\(this\._wildRef, a\.sub, Date\.now\(\)\); seaGone\(this\._wildRef, a\.sub\); \}/);
+  assert.match(relay, /wildGone\(this\._wildRef, a\.sub, Date\.now\(\)\); seaGone\(this\._wildRef, a\.sub, Date\.now\(\)\); \}/);
   assert.match(relay, /for \(const w of seaStep\(st, now\)\) await this\._seaSign\(w, now\);/);
   assert.match(relay, /for \(const \[, v\] of await this\.state\.storage\.list\(\{ prefix: SEA_WRECK_PREFIX \}\)\) \{ const w = seaWreckOf\(v\); if \(w\) \(st\.wrecks \?\?= new Map\(\)\)\.set\(w\.r, w\); \}/);
   const idx = src('server-account/src/index.js');

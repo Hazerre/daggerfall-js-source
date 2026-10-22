@@ -25,7 +25,7 @@
 // to takes only when they digest to the order's (`ok`); the killer's piece is the killer's alone. The service fits the
 // drop to the room's own bounds first (remainsFit - the same law foldFall keeps), so an honest deposit always digests.
 // ═══════════════════════════════════════════════════════════════════
-import { WILD_ITEMS_MAX, WILD_REMAINS_ITEMS_MAX, WILD_REMAINS_MS, WILD_ROOM_REMAINS_MAX, sanitizeName, WDUN_DAY_MS, WDUN_LOCK_MS, WDUN_RESET_MS, WDUN_STALE_MS, SEA_FLEET_PERIOD_MS, seaFleetSailing } from '../wire.js';
+import { WILD_ITEMS_MAX, WILD_REMAINS_ITEMS_MAX, WILD_REMAINS_MS, WILD_ROOM_REMAINS_MAX, sanitizeName, WDUN_DAY_MS, WDUN_LOCK_MS, WDUN_RESET_MS, WDUN_STALE_MS, SEA_FLEET_PERIOD_MS, SEA_FLEET_OFFSET_MS, SEA_FLEET_SAIL_MS, SEA_FLEET_LATE_MS } from '../wire.js';
 
 /** A remains' bytes in storage, at most - under the object store's own bound for one value (128 KiB), with room. */
 export const WILD_REMAINS_BYTES_MAX = 100 * 1024;
@@ -321,12 +321,12 @@ export const wdunGiants = (st, now) => Object.entries(st.giants ?? {}).filter(([
 // ── SEA-EVENTS (2026-10-22, the owner: "Build ever single bit of this"; bible/03-World/Eltheric-Ocean.md SEA-EVENTS): the hub
 // keeps which treasure fleet's flagship is down (systems/sea/seaEvents.js - its route and its ships are every client's own
 // pure pick off the sailing's number), so a fleet scattered is scattered for everyone.
-/** A treasure fleet's flagship sunk: sailing `n` - this sailing or the last by the hub's own clock (a word late across the
- *  turn), never another - kept down till the sailing after it is over (a second report moves nothing). Returns whether it
- *  was news. */
+/** A treasure fleet's flagship sunk: sailing `n` - only while she is under way by the hub's own clock, or SEA_FLEET_LATE_MS
+ *  after (AUDIT SEA VENTURES A7: a word in her hour in port, or the hour before, scattered a sailing before she sailed) -
+ *  kept down till the sailing after it is over (a second report moves nothing). Returns whether it was news. */
 export function wdunFleetSunk(st, n, now) {
-  const cur = seaFleetSailing(now);
-  if (!(Number.isSafeInteger(n) && (n === cur || n === cur - 1))) return false;
+  const start = Number.isSafeInteger(n) ? n * SEA_FLEET_PERIOD_MS + SEA_FLEET_OFFSET_MS : NaN;
+  if (!(now >= start && now <= start + SEA_FLEET_SAIL_MS + SEA_FLEET_LATE_MS)) return false;
   st.fleets ??= {};
   if (st.fleets[n] > now) return false;
   st.fleets[n] = (n + 2) * SEA_FLEET_PERIOD_MS;

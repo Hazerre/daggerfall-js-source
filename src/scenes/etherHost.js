@@ -178,5 +178,8 @@ export function createEtherHost(deps) {
     waters, sight, sites, gather, legendHere, legendEnded, rumours, chartOffer, buyChart, papers, office, chart, seaName: ETHER_SEA_NAME, leaguePx: LEAGUE_PX,
     // SEA VENTURES (scenes/seaVenturesHost.js): the purse and the words the sea's other ventures pay and say through
     credit: (n) => deps.credit?.(n), mid: (text, s) => deps.mid?.(text, s), say: (text, s) => deps.say?.(text, s),
+    // AUDIT SEA VENTURES D2, D4, D6: the captain's ledger's word on a sailing's flagship ended and a wrack's cask hauled - the
+    // save's, so a reload neither pays nor floats them again
+    endFleet: (n) => !!L.endFleet?.(n), fleetDone: (n) => !!L.fleetEnded?.(n), haulWrack: (id) => !!L.haulWrack?.(id), wrackHauled: (id) => !!L.wrackHauled?.(id),
   };
 }
