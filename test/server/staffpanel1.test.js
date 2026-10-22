@@ -11,7 +11,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { standService } from '../accountDb.mjs';
-import { staffRole, isOwner, staffWords, STAFF_SESSION_HEADER, STAFF_IDLE_S, STAFF_TRY_MAX, STAFF_KEYS_MAX, STAFF_SIG_S } from '../../server-account/src/staff.js';
+import { staffRole, isOwner, ownerKeys, staffWords, STAFF_SESSION_HEADER, STAFF_IDLE_S, STAFF_TRY_MAX, STAFF_KEYS_MAX, STAFF_SIG_S } from '../../server-account/src/staff.js';
 import { STAFF_ROUTES, ROUTES } from '../../server-account/src/service.js';
 import worker from '../../server-account/src/index.js';
 import { canModerate, glyphsOf } from '../../server-account/src/titles.js';
@@ -80,9 +80,13 @@ test('STAFF-PANEL1: every door is listed once, beside the game\'s, and none is b
   // no secret to set anywhere: the config holds the lists and a public key, and nothing else of the panel's
   const toml = src('server-account/wrangler.toml');
   assert.match(toml, /^OWNER_HANDLES = "Lattymoy,SirMcMobdon"$/m);
-  assert.match(toml, /^OWNER_KEYS = "[^"]*"$/m);
+  // mob pasted the key his panel showed: that pair alone, and every key named a raw 32-byte Ed25519 public key
+  assert.match(toml, /^OWNER_KEYS = "SirMcMobdon:1c9fniJJmmIwXevvrTVajM6SeIFagO8KEzYiAM08mYM"$/m);
+  for (const k of ownerKeys({ OWNER_KEYS: toml.match(/^OWNER_KEYS = "([^"]*)"$/m)?.[1] }).values()) {
+    await crypto.subtle.importKey('raw', Buffer.from(k, 'base64url'), { name: 'Ed25519' }, false, ['verify']);
+  }
   // mob, 06:33Z: "add me to the dev and my shadow fang just becomes vanity and i gain admin as well"
-  assert.match(toml, /^DEVELOPER_HANDLES = "[^"]*SirMcMobdon"$/m);
+  assert.match(toml, /^DEVELOPER_HANDLES = "[^"]*,SirMcMobdon,kpblca_1"$/m);
   assert.match(toml, /^SHADOW_FANG_HANDLES = "SirMcMobdon"$/m);
 });
 
