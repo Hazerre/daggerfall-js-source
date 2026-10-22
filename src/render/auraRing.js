@@ -2550,7 +2550,7 @@ export function auraBeastStep(w, beast, t) {
 
 /** AURA-STALL (bible/07-Rendering/Performance-Priority.md): the pass's one program, as its constructor builds it - what
  *  the boot's idle starts (render/playPrograms.js) and the host's door waits on (render/glProgram.js compiledPass). Every
- *  look is in it, 81 KB of fragment shader: a 9-11 s compile on D3D11, which the first build waited on whole. */
+ *  look is in it, 81 KB of fragment shader: an 8.5-11 s compile on D3D11, which the first build waited on whole. */
 export const AURA_PROGRAMS = /** @type {ReadonlyArray<readonly [string, string]>} */ (Object.freeze([[AURA_VS, AURA_FS]]));
 
 export class AuraRingRenderer {
