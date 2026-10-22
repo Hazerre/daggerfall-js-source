@@ -9,7 +9,8 @@
 //     or a pair. Measured before the port on that script: 51 px apart at 1280x800;
 //   - the pair's two machines in the game: a pull mid-shot fires the other pistol at once, its hit the off hand's;
 //   - one pistol fires on the machine of the hand that holds it, drawn on the Handedness side;
-//   - a Pistolet's flash drawn as painted - the light rises to white, never the orb's colour (the Thunderlock's).
+//   - a Pistolet's flash drawn as painted - the sprite's tint rises to white, never the orb's colour (the Thunderlock's
+//     sprite's; the light thrown on the room is the orb's for both guns - AUDIT PISTOL-PORT D3).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -20,6 +21,7 @@ import * as VM from '../../../src/combat/gun/pistolViewmodel.js';
 import { createPair, PAIR_TRIGGER } from '../../../src/combat/gun/pistolPair.js';
 import { createGunMachine } from '../../../src/combat/gun/gunMachine.js';
 import { gunMotion } from '../../../src/combat/gun/gunViewmodel.js';
+import { LookFilter } from '../../../src/player/lookFilter.js';
 import { PISTOLET_FEEL, RELOAD_CLOSE_LEAD, armGunPose } from '../../../src/combat/gun/gunFeel.js';
 import { cutStrip } from '../../../src/combat/gun/pistoletArt.js';
 import { unionBox } from '../../../src/combat/gun/gunSheet.js';
@@ -43,16 +45,21 @@ test('PISTOL-PORT IDENTITY: the lab\'s machine, pair and frame ARE the game\'s -
 });
 
 test('PISTOL-PORT THE PAGE COMPOSES NOTHING: every hand\'s spring, guard, picture, rig, rect, order, clacks and settings is a call into the game\'s frame; none of the pieces it was built from is called on the page - the camera shake aside, which moves the room (mutants: a page that guards, rigs or places for itself)', () => {
-  for (const call of ['pistolHandsStep(hands, dt, {', 'pistolHandRect(hands, hd, {', 'pistolReloadVoice(hands, pair, state.cool,',
-    'pistolDrawOrder(pair.order, drawn)', 'pistolHandFired(hands, h, state.kick)', 'pistolWidgetSettings({', 'const hands = createPistolHands();',
+  // AUDIT PISTOL-PORT D7: and what its panel feeds the frame is a module the pins run (pistolLab.js) - the page holds no
+  // call into the frame's pieces at all
+  for (const call of ['pistolPageStep(hands, pair, state, dt, {', 'pistolPageRect(hands, hd, state, art, canvas)', 'const state = pistolPageState();',
+    'pistolDrawOrder(pair.order, drawn)', 'pistolHandFired(hands, h, state.kick)', 'const hands = createPistolHands();',
     'const pair = createPair({']) assert.ok(page.includes(call), call);
+  for (const piece of ['pistolHandsStep(', 'pistolHandRect(', 'pistolReloadVoice(', 'pistolWidgetSettings(', 'labMotion(']) {
+    assert.ok(!page.includes(piece), `the page calls ${piece} itself - wiring the pins cannot see`);
+  }
   for (const own of ['guardStep(', 'guardOffset(', 'gunFrameRect(', 'widgetRigStep(', 'createRecoil(', 'createWidgetRig(', 'labWidgetSettings(', 'recoils', '.recoil.']) {
     assert.ok(!page.includes(own), `the page calls ${own} - a frame of its own again`);
   }
 });
 
 // ── the game runs it ────────────────────────────────────────────────────────────────────────────────────────────────
-const W = 1280, H = 800, WARM = 60, FRAMES = 300;
+const W = 1280, H = 800, WARM = 60, FRAMES = 420;
 /** A browser's own clock: rAF's timestamp in ms, its dt read back as the page reads it - (now - last) / 1000 - so the
  *  frame boundaries fall where a real page's do, rounding and all. */
 const browserDts = (n, from = 123456.789) => {
@@ -60,41 +67,47 @@ const browserDts = (n, from = 123456.789) => {
   for (let i = 0; i < n; i++) { const was = t; t += 1000 / 60; out.push(Math.min(0.1, (t - was) / 1000)); }
   return out;
 };
-/** The script: frame -> what happens before it steps. A flurry pull lands 8 frames after the first - mid-shot. */
-const SCRIPT = new Map([[20, 'pull'], [28, 'pull'], [150, 'walk'], [190, 'pull'], [240, 'stop']]);
+/** The script: frame -> what happens before it steps. A flurry pull lands 8 frames after the first - mid-shot. AUDIT
+ *  PISTOL-PORT B1: then a strafe right and a jump with a shot in it, the motions the page could not make before. */
+const SCRIPT = new Map([[20, 'pull'], [28, 'pull'], [150, 'walk'], [190, 'pull'], [240, 'stop'],
+  [260, 'strafe'], [300, 'stop'], [306, 'turn'], [326, 'still'], [340, 'jump'], [346, 'pull']]);
+/** AUDIT PISTOL-PORT D11: the head turned, a frame's yaw in the camera's radians - the look the Inertia lags behind. */
+const TURN = 0.02;
+// a jump: the game motor's own curve (pistolLab.js pistolJumpClimb), the eye's climb on both sides
 
 /** THE PAGE'S FRAME, as pistol-proto.html runs it: its pair, its hands, its order of calls - on the strip's own boxes. */
 function pageRun(kind, dts) {
   const strip = readPng(readFileSync(new URL('../../../public/art/pistol-frames.png', import.meta.url)));
   const { boxes } = cutStrip(strip);
   const anchor = boxes[0], union = unionBox(boxes);
-  const pair = createPair({ fps: PISTOLET_FEEL.fps, cooldownMs: PISTOLET_FEEL.reloadMs, hitFrame: PISTOLET_FEEL.hitFrame });
-  pair.trigger = kind === 'single' ? PAIR_TRIGGER.Single : PAIR_TRIGGER.Alternate;
+  // AUDIT PISTOL-PORT D7: THE PAGE'S OWN WIRING, from the state it opens on (pistolLab.js) - never a transcription of it
+  const state = LAB.pistolPageState();
+  state.trigger = kind === 'single' ? PAIR_TRIGGER.Single : PAIR_TRIGGER.Alternate;
+  const pair = createPair({ fps: state.fps, cooldownMs: state.cool, hitFrame: state.hit });
+  pair.trigger = state.trigger; pair.lead = state.lead;
   const hands = VM.createPistolHands();
-  const settings = VM.pistolWidgetSettings();
-  let walking = false;
+  const art = { anchor, union }, canvas = { width: W, height: H };
+  let vertical = null, look = [0, 0];
   const step = (dt) => {
     pair.step(dt);
     const drawn = pair.hands();
-    VM.pistolHandsStep(hands, dt, {
-      machines: pair, drawn, spring: PISTOLET_FEEL, settings, screenRect: { width: W, height: H },
-      motion: gunMotion({ walking, liveSpeed: 50 }), look: [0, 0], liveSpeed: 50, hiddenTarget: [0, PISTOLET_FEEL.hiddenTarget[1]],
-    });
-    return VM.pistolDrawOrder(pair.order, drawn).map((h) => ({
-      h, frame: hands[h].frame,
-      rect: VM.pistolHandRect(hands, h, {
-        canvasW: W, canvasH: H, anchor, union, widthPct: (anchor.w / 320) * PISTOLET_FEEL.scale,
-        offset: PISTOLET_FEEL.offset, raise: PISTOLET_FEEL.raise, heightPx: anchor.h * PISTOLET_FEEL.scale, flip: h === 'L',
-      }).rect,
-    }));
+    LAB.pistolPageStep(hands, pair, state, dt, { drawn, screen: canvas, vertical, look });
+    return VM.pistolDrawOrder(pair.order, drawn).map((h) => ({ h, frame: hands[h].frame, rect: LAB.pistolPageRect(hands, h, state, art, canvas).rect }));
   };
   for (const dt of dts.slice(0, WARM)) step(dt);
   const rows = [];
+  let jumpT = -1;
   for (let f = 0; f < FRAMES; f++) {
     const e = SCRIPT.get(f);
-    if (e === 'pull') for (const h of pair.pull(0)) VM.pistolHandFired(hands, h, PISTOLET_FEEL.kick);
-    if (e === 'walk') walking = true;
-    if (e === 'stop') walking = false;
+    if (e === 'pull') for (const h of pair.pull(0)) VM.pistolHandFired(hands, h, state.kick);
+    if (e === 'walk') state.walk = true;
+    if (e === 'strafe') state.strafe = 1;
+    if (e === 'stop') { state.walk = false; state.strafe = 0; }
+    if (e === 'jump') jumpT = 0;
+    if (e === 'turn') look = [TURN, 0];
+    if (e === 'still') look = [0, 0];
+    vertical = jumpT >= 0 ? LAB.pistolJumpClimb(jumpT) : null;
+    if (vertical === null) jumpT = -1; else jumpT += dts[WARM + f];
     rows.push(step(dts[WARM + f]));
   }
   return rows;
@@ -103,18 +116,27 @@ function pageRun(kind, dts) {
 async function gameRun(kind, dts) {
   const { r, frame, walk } = await pistolRig({ right: createPistolet(), left: kind === 'pair' ? createPistolet() : null, size: [W, H], dts: dts.slice(0, WARM) });
   const rows = [];
+  let jumpT = -1, turning = false;
+  const head = new LookFilter();   // the camera's look, latched for the rig's reader as the hosts' mouse look latches it
   for (let f = 0; f < FRAMES; f++) {
     const e = SCRIPT.get(f);
+    if (e === 'turn') turning = true;
+    if (e === 'still') turning = false;
+    if (turning) head.add(TURN, 0);
     if (e === 'pull') r.clickAttack();
     if (e === 'walk') walk.on = true;
-    if (e === 'stop') walk.on = false;
+    if (e === 'strafe') walk.strafe = 1;
+    if (e === 'stop') { walk.on = false; walk.strafe = 0; }
+    if (e === 'jump') jumpT = 0;
+    walk.vertical = jumpT >= 0 ? LAB.pistolJumpClimb(jumpT) : null;
+    if (walk.vertical === null) jumpT = -1; else jumpT += dts[WARM + f];
     const q = await frame(dts[WARM + f]);
     rows.push(q.map((x) => ({ h: x.uv ? 'L' : 'R', frame: Number(String(x.tex).split(':').pop()), rect: x.rect })));
   }
   return rows;
 }
 for (const kind of ['pair', 'single']) {
-  test(`PISTOL-PORT THE GAME RUNS IT, ${kind === 'pair' ? 'A PAIR' : 'ONE PISTOL'}: the real rig and the page's own machines and frame, on one browser's clock and one script, draw every hand at the same rect, with the same picture, in the same order - 300 frames (mutants: a pistol bobbing while it fires or reloads; the lead put back on top; one machine for the pair; the guard, the dip, the spring or the picture composed a second way)`, async () => {
+  test(`PISTOL-PORT THE GAME RUNS IT, ${kind === 'pair' ? 'A PAIR' : 'ONE PISTOL'}: the real rig and the page's own machines and frame, on one browser's clock and one script, draw every hand at the same rect, with the same picture, in the same order - 420 frames, a strafe, a jump and a turn of the head among them (mutants: the game feeding the frame a second way - its lane's motion, look, speed, spring or pose; its rig's order, picture or holster; one machine for the pair - and the page's own wiring, its guard, its dip, its look, its Inertia. A law INSIDE the frame both sides run moves both alike: those are 'THE PAGE'S FRAME, ITS LAWS', below, and the audit's)`, async () => {
     const dts = browserDts(WARM + FRAMES);
     const want = pageRun(kind, dts), got = await gameRun(kind, dts);
     let worst = 0, at = -1;
@@ -129,6 +151,8 @@ for (const kind of ['pair', 'single']) {
     }
     assert.ok(worst < 1e-6, `the rects agree to the float (worst ${worst} px, frame ${at})`);
     assert.ok(want.some((row) => row.length && row.some((x) => x.frame > 0)), 'the script fired');
+    const xOf = (row) => row.find((x) => x.h === (kind === 'pair' ? 'R' : want[0][0].h)).rect.x;
+    assert.ok(Math.abs(xOf(want[325]) - xOf(want[305])) > 1, `the turn swayed the pistol (${(xOf(want[325]) - xOf(want[305])).toFixed(1)} px)`);
   });
 }
 

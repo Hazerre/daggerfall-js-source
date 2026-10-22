@@ -48,7 +48,10 @@ export async function pistolRig({ right = null, left = null, leftHanded = false,
   for (const [k, v] of Object.entries(widget)) setModSetting('weapon-widget', k, v);   // a module switch the test needs still
   if (leftHanded) setValue('Controls', 'Handedness', 1);
   const quads = [], uploads = [], glows = [];
-  const eye = [0, 1.7, 0], walk = { on: false };   // PISTOL-PORT: the camera the host hands the rig, walking when a pin says
+  // PISTOL-PORT: the camera the host hands the rig, walking when a pin says; AUDIT PISTOL-PORT B1: strafing (-1 left, 1
+  // right) and in the air (`vertical` the eye's climb, null on the ground) too
+  const eye = [0, 1.7, 0], walk = { on: false, strafe: 0, vertical: null };
+  const events = [];   // AUDIT PISTOL-PORT: the events the rig handed its host on the last frame
   const renderer = {
     uploadTexture: (_k, name) => { uploads.push(name); return name; },
     drawScreenQuad: (tex, rect, uv, tint) => quads.push({ tex, rect: { ...rect }, uv, tint }),
@@ -65,18 +68,22 @@ export async function pistolRig({ right = null, left = null, leftHanded = false,
   };
   const r = createWeaponRig({ renderer, canvas, entity, audio, palette: { get: () => ({ r: 0, g: 0, b: 0 }) }, say: () => {},
     fetchBytes: async () => { throw new Error('no CIF in this harness'); },
+    // AUDIT PISTOL-PORT B8: the motion bag the hosts hand the rig (player/motor.js motionBagOf) - PlayerMotor.Speed as
+    // `speedField`, never a ratio or a base of the harness's own, so a pin runs the rig's own path from it
     camera: () => ({ pos: [...eye], yaw: 0, pitch: 0, climbing: false,
-      move: walk.on ? { grounded: true, running: false, standing: false, baseSpeed: walkSpeed(50), speedRatio: 1 } : { grounded: true, running: false, standing: true } }) });
+      move: { grounded: walk.vertical === null, running: false, crouching: false, standing: !walk.on && !walk.strafe && walk.vertical === null, speedField: walkSpeed(50) } }) });
   r.toggleSheath();   // drawn
   // PISTOL-PORT: a frame of `dt` (a browser's own, when a pin replays one), the eye carried forward at the walk's speed
-  const frame = async (dt = DT) => {
+  const frame = async (dt = DT, held = false) => {   // AUDIT PISTOL-PORT: `held` the attack button, for a pin that holds it
     if (walk.on) eye[2] += walkSpeed(50) * dt;
-    r.attackInput(0, 0, false);
+    if (walk.strafe) eye[0] += walk.strafe * walkSpeed(50) * dt;
+    if (walk.vertical !== null) eye[1] += walk.vertical * dt;
+    r.attackInput(0, 0, held);
     quads.length = 0; glows.length = 0;
-    r.frame(dt); r.draw();
+    events.length = 0; events.push(...(r.frame(dt) ?? [])); r.draw();
     await tick();
     return quads.slice();
   };
   for (const dt of dts ?? Array(warm).fill(DT)) await frame(dt);
-  return { r, frame, audio, entity, uploads, canvas, glows, walk };
+  return { r, frame, audio, entity, uploads, canvas, glows, walk, events };
 }

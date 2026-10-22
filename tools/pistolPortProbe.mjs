@@ -24,10 +24,14 @@ mkdirSync(OUT, { recursive: true });
 const W = 1280, H = 800, WARM = 60;
 const results = [];
 const check = (name, ok, detail = '') => { results.push(!!ok); console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? ` - ${detail}` : ''}`); };
-/** The script: frame -> what happens before it steps - rest, a shot, a flurry 40 frames on, both reloads, a walk with a
- *  shot in it, a stop. */
-const SCRIPT = new Map([[30, ['pull']], [70, ['pull']], [260, ['walk']], [330, ['pull']], [410, ['stop']]]);
-const FRAMES = 470;
+/** The script: frame -> what happens before it steps - rest, a shot and the other pistol pulled MID-SHOT six frames on
+ *  (both firing at once), both reloads, a walk with a shot in it, a stop; then (AUDIT PISTOL-PORT B1 D6) a strafe, a turn
+ *  of the head and a jump, the page's own keys and mouse. (Until the audit the second pull came 40 frames on - after the
+ *  first shot's frames - and no frame of the run had both pistols firing.) */
+const SCRIPT = new Map([[30, ['pull']], [36, ['pull']], [260, ['walk']], [330, ['pull']], [410, ['stop']],
+  [420, ['strafe']], [440, ['stop']], [446, ['turn']], [447, ['turn']], [448, ['turn']], [449, ['turn']], [450, ['turn']], [455, ['jump']]]);
+const FRAMES = 490;
+const TURN_PX = 12;   // a turn: the mouse moved this far in a frame
 /** The fixed clock, laid before either page's scripts run. */
 const CLOCK = () => {
   let T = 0; const q = [];
@@ -36,6 +40,8 @@ const CLOCK = () => {
   window.__dts = [];
   window.__step = () => { const was = T; T += 1000 / 60; window.__dts.push((T - was) / 1000); const cbs = q.splice(0); for (const cb of cbs) cb(T); };
   HTMLCanvasElement.prototype.requestPointerLock = function () {};
+  // the mouse held: the page reads its look only while the canvas has the pointer
+  Object.defineProperty(Document.prototype, 'pointerLockElement', { get: () => document.getElementById('c') });
 };
 
 // AUDIT 68 X2 / U60: the rig's page beside the probe (tools/, ignored as every *.tmp.html is), written inside the try
@@ -51,6 +57,7 @@ import { createWeaponRig } from '/src/combat/weapon/weaponRig.js';
 import { createPistolet } from '/src/systems/pistolet.js';
 import { createPellets } from '/src/systems/thunderlock.js';
 import { equipItem } from '/src/systems/equip.js';
+import { walkSpeed } from '/src/player/motor.js';
 const canvas = document.getElementById('c');
 canvas.width = innerWidth; canvas.height = innerHeight;
 const renderer = new Renderer(canvas);
@@ -59,7 +66,10 @@ const entity = { isPlayer: true, name: 'Probe', level: 10, career: { name: 'Arch
   stats: { strength: 50, intelligence: 50, willpower: 50, agility: 50, endurance: 50, personality: 50, speed: 50, luck: 50 },
   skills: new Array(35).fill(50), health: 100, maxHealth: 100, fatigue: 100, maxFatigue: 100, magicka: 10, maxMagicka: 10,
   items: [], spells: [], activeEffects: [], equipCountdown: 0 };
-const rig = createWeaponRig({ renderer, canvas, fetchBytes: null, palette: null, audio, entity });
+// AUDIT PISTOL-PORT B8: a host's camera, standing - with none the rig reads a walk at speed ratio 1, and its picture bobbed
+// beside a prototype standing still
+const rig = createWeaponRig({ renderer, canvas, fetchBytes: null, palette: null, audio, entity,
+  camera: () => ({ pos: [0, 1.6, 0], yaw: 0, pitch: 0, climbing: false, move: { grounded: true, running: false, standing: true, speedField: walkSpeed(50) } }) });
 globalThis.__wear = (kind) => {
   const items = kind === 'pair' ? [createPistolet(), createPistolet()] : [createPistolet()];
   for (const it of items) entity.items.push(it);
@@ -100,7 +110,10 @@ const event = (page, e) => page.evaluate((what) => {
   if (what === 'pull') { document.getElementById('c').dispatchEvent(new MouseEvent('mousedown', { button: 0, bubbles: true })); dispatchEvent(new MouseEvent('mouseup')); }
   if (what === 'walk') dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW' }));
   if (what === 'stop') dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyS' }));
-}, e);
+  if (what === 'strafe') dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyD' }));
+  if (what === 'jump') dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyJ' }));
+  if (what.turn) dispatchEvent(new MouseEvent('mousemove', { movementX: what.turn }));
+}, e === 'turn' ? { turn: TURN_PX } : e);
 
 /** The prototype's run: its dts from the first frame, and each frame's hands. */
 async function labRun(kind) {
@@ -126,14 +139,24 @@ async function labRun(kind) {
 async function gameRun(kind, lab) {
   const { pistolRig } = await import('../test/combat/weapon/pistolRigHarness.js');
   const { createPistolet } = await import('../src/systems/pistolet.js');
+  const { LookFilter } = await import('../src/player/lookFilter.js');
+  const { lookScale } = await import('../src/ui/lookSettings.js');
+  const { pistolJumpClimb } = await import('../src/tools/pistolLab.js');
   const { r, frame, walk } = await pistolRig({ right: createPistolet(), left: kind === 'pair' ? createPistolet() : null, size: [W, H], dts: lab.warm });
+  const head = new LookFilter();   // the host's mouse look, latched for the rig as the camera's radians
   const rows = [];
+  let jumpT = -1;
   for (let f = 0; f < FRAMES; f++) {
     for (const e of SCRIPT.get(f) ?? []) {
       if (e === 'pull') r.clickAttack();
       if (e === 'walk') walk.on = true;
-      if (e === 'stop') walk.on = false;
+      if (e === 'strafe') walk.strafe = 1;
+      if (e === 'stop') { walk.on = false; walk.strafe = 0; }
+      if (e === 'jump') jumpT = 0;
+      if (e === 'turn') head.add(TURN_PX * lookScale(), 0);
     }
+    walk.vertical = jumpT >= 0 ? pistolJumpClimb(jumpT) : null;
+    if (walk.vertical === null) jumpT = -1; else jumpT += lab.rows[f].dt;
     const q = await frame(lab.rows[f].dt);
     rows.push(q.map((x) => ({ h: x.uv ? 'L' : 'R', frame: Number(String(x.tex).split(':').pop()), rect: x.rect })));
   }
@@ -150,8 +173,10 @@ try {
       const want = lab.rows[f].hands, got = game[f];
       if (want.map((x) => `${x.h}${x.frame}`).join() !== got.map((x) => `${x.h}${x.frame}`).join()) pictures++;
       if (want.some((x) => x.frame > 0)) fired++;
-      for (let i = 0; i < Math.min(want.length, got.length); i++) {
-        for (const k of ['x', 'y', 'w', 'h']) { const d = Math.abs(got[i].rect[k] - want[i].rect[k]); if (d > worst) { worst = d; at = f; } }
+      for (const w of want) {   // AUDIT PISTOL-PORT D6: hand by hand, by NAME - by index a swapped order read as 1,000 px
+        const g = got.find((x) => x.h === w.h);
+        if (!g) continue;
+        for (const k of ['x', 'y', 'w', 'h']) { const d = Math.abs(g.rect[k] - w.rect[k]); if (d > worst) { worst = d; at = f; } }
       }
     }
     check(`${kind}: the script fired on the prototype`, fired > 10, `${fired} frames with a shot drawn`);
@@ -161,7 +186,7 @@ try {
 
   // ── 2. the pictures ──
   await writeFile(RIG_PAGE, RIG_HTML);
-  const SHOTS = { rest: 25, 'right-flash': 32, 'flurry-both-firing': 73, 'both-reloading': 120 };
+  const SHOTS = { rest: 25, 'right-flash': 35, 'flurry-both-firing': 44, 'both-reloading': 100 };
   const lab = await open(`${base}/pistol-proto.html`);
   const game = await open(`${base}/tools/${RIG_PAGE_NAME}`);
   await game.waitForFunction(() => globalThis.__ready, null, { timeout: 600000 });

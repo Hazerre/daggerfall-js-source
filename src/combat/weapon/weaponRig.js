@@ -1171,9 +1171,11 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       }
       if (entity) {
         entity._thunderlockFlash = playerWeapon.sheathed ? 0 : (armShoots ? flashFromClock(dt) : pistols.glow(p));
-        entity._thunderlockFlashSide = pistols.flipOf(p, p.last ?? p.lead, handedFlip()) ? -1 : 1; entity._thunderlockFlashRange = feel.flashRange;
+        entity._thunderlockFlashSide = pistols.flipOf(p, pistols.brightest(p), handedFlip()) ? -1 : 1; entity._thunderlockFlashRange = feel.flashRange;
       }
-      pistols.voice(p, feel, (k, gain) => audio.playOneShot(sfx[k], feel.sfxVolume * gain, gunPitch(undefined, feel)));
+      // AUDIT PISTOL-PORT: under the arm a shot's bang waits for the arm's release (MW-D42) - its breech never opens before
+      // it (MW-GUN-FEEL's law for the Thunderlock): the clacks wait while a hit is held, and come when they are due
+      if (!_heldHit) pistols.voice(p, feel, (k, gain) => audio.playOneShot(sfx[k], feel.sfxVolume * gain, gunPitch(undefined, feel)));
       _tlState = m.state;
       return;
     }
@@ -1302,7 +1304,9 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
     // exactly what this line was before.
     const glow = muzzleGlow(shot.record === 1, shot.frame);   // PISTOLET: a pair's resting pistol does not flash
     // PISTOL-PORT: a Pistolet's flash is drawn AS PAINTED, as the page draws it - the light rises toward white, which leaves
-    // the strip's own flame its own colours. The orb's colour is the Thunderlock's (FIELD-GUN17, the owner's ask for it).
+    // the strip's own flame its own colours. The orb's colour is the Thunderlock's sprite's (FIELD-GUN17, the owner's ask
+    // for it). AUDIT PISTOL-PORT D3: the SPRITE's alone - the light a Pistolet throws on the room still takes the orb's
+    // colour (systems/thunderlock.js thunderlockMuzzleLight, the Pellet's), the owner's call (Audit-Pistol-Port.md).
     const flash = ph ? PAINTED_FLASH : orbColour();
     const lit = (tint && glow > 0)
       ? tint.map((v, i) => v + (flash[i] - v) * Math.min(1, glow * heldFeel().flashLight * heldFeel().flashGain))
@@ -1365,7 +1369,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
         feel, switches: readWidgetSettings(), frame, leftHanded: handedFlip(), sheathed: !!playerWeapon.sheathed,
         liveSpeed: entity ? liveStat(entity, 'speed') : 50, cursorActive: cursorActive(),
       });
-      const h = p.last ?? p.lead, g = p[h];
+      const h = p.hands().includes(p.last) ? p.last : p.lead, g = p[h];   // AUDIT PISTOL-PORT D12: a pistol still held - a pair broken leaves `last` in the pack
       const share = !playerWeapon.gunPair && g.state === 'Cooling' ? g.cooledMs / g.cooldownMs : null;
       fpArm.setGunFeel(playerWeapon.sheathed ? null : armGunPose(-pistols.hands[h].kick.y, share));
       return;
@@ -1441,7 +1445,16 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
    */
   function armCannotDraw() {
     const m = playerWeapon.machine;
-    return !!m.ranged && m.state === 'Idle' && (fpArm.active() || fpArm.thirdActive()) && fpArm.shotBusy();
+    // AUDIT PISTOL-PORT A1: a Pistolet's shot starts with a pistol mid-shot too (its pair's second, on its own machine) -
+    // so under the arm it waits for the arm as any other's does; the arm draws one shot, and holds one hit (MW-D42)
+    return !!m.ranged && (m.state === 'Idle' || !!playerWeapon.pistols) && (fpArm.active() || fpArm.thirdActive()) && fpArm.shotBusy();
+  }
+  /** AUDIT PISTOL-PORT A5: no Pistolet pull without a Pellet for it - each Pellet the pack holds may already be owed to a
+   *  pistol whose hit is still to land (a pair's second shot leaves inside its first, which one machine never allowed: the
+   *  last Pellet fired twice, the second shot a bang and nothing). The pack's own guard (bowArrowGuard) still sheathes. */
+  function pelletsOwed() {
+    if (!entity || !playerWeapon.pistols) return false;
+    return ammoCountFor(entity.items, playerWeapon.weapon) <= playerWeapon.pistolShotsDue() + (_heldHit ? 1 : 0);
   }
   /** MW-D42's hold, as the function the frame decides first (it used to be the frame's own tail). AUDIT
    *  FIELD-GUN-MW F1 (2026-09-21): the gate is `machine.ranged`, not `isBow` - the Thunderlock is a shooter the arm
@@ -1613,7 +1626,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
     /** ClickToAttack for the touch button. */
     clickAttack() {
       if (playerWeapon.sheathed || (entity?.equipCountdown ?? 0) > 0 || _climbing) return;   // CLIMB4: no swing with the hands on the wall
-      if (armCannotDraw()) return;   // BOW-CLOCK: nor a shot the Morrowind arm cannot draw yet
+      if (armCannotDraw() || pelletsOwed()) return;   // BOW-CLOCK: nor a shot the Morrowind arm cannot draw yet; AUDIT PISTOL-PORT A5: nor one with no Pellet left for it
       if (techniqueFlying()) return;   // AUDIT TECH1: nor a touch swing while a technique's leap or dash is in the air - its strike is the landing's
       const strike = playerWeapon.clickAttack();
       if (strike) fpAttack(strike);
@@ -1782,7 +1795,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       const handsClimb = handsLane && _climbLower >= CLIMB_HANDS_AFTER ? (camNow?.climb ?? null) : null;
       const handsLens = handsClimb || climbHands.law.present > 0 ? climbLens(cv(), { fov: fieldOfView(), viewport: renderer?.worldViewportRect ?? null, aspect: renderer?.worldProjAspect ?? null, offsetHeight: weaponOffsetHeight() }) : null;
       climbHands.update(dt, handsClimb, { yaw: camNow?.yaw, pitch: camNow?.pitch, lens: handsLens });
-      const canAttack = !playerWeapon.sheathed && (entity?.equipCountdown ?? 0) <= 0 && !spellArmed() && !fpsSpellCasting.isPlayingAnim && !climbing && !actTool();   // AUDIT 29 D2: no swing behind a gathering act's tool
+      const canAttack = !playerWeapon.sheathed && (entity?.equipCountdown ?? 0) <= 0 && !spellArmed() && !fpsSpellCasting.isPlayingAnim && !climbing && !actTool() && !pelletsOwed();   // AUDIT 29 D2: no swing behind a gathering act's tool; AUDIT PISTOL-PORT A5: nor a shot with no Pellet left for it
       // BOW-CLOCK: no shot starts the arm cannot draw (armLoosing, above) - gesture() is not asked, so its button
       // latch keeps the press made while waiting.
       const armLoosing = armCannotDraw();

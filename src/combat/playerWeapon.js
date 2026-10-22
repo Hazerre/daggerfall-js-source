@@ -307,6 +307,9 @@ export class PlayerWeapon {
      *  was pulled and its direction - null for every other weapon. */
     this.pistols = null;
     this._pistolsAway = null;   // the pistols while another weapon is in use - their reloads run on (AUDIT PISTOLET A3)
+    this._pistolHeld = null;   // AUDIT PISTOL-PORT A3: the items in each hand last frame, so a pistol moved takes its machine
+    this._pistolHits = [];   // AUDIT PISTOL-PORT A2: the hands whose hit is due, handed to the host one an update
+    this._classicCooldown = 0;   // AUDIT PISTOL-PORT C1: what the classic machine was owed when the pistols took it over
     this._pistolStrikes = { R: null, L: null };
     this._pistolDir = { R: 'StrikeDown', L: 'StrikeDown' };
     this.sheathed = true;   // classic starts sheathed; Z readies (WeaponManager.Sheathed)
@@ -435,7 +438,7 @@ export class PlayerWeapon {
   }
   /** PISTOLET: is a hand's pistol loaded - its own machine Idle (a hand with no pistol is never waiting). */
   handLoaded(hand) { return this.pistols ? this.pistols[hand].state === 'Idle' : true; }
-  /** PISTOLET: the machine time a hand of a gun pair is loaded again (0 when it is) - the rig lowers each pistol on it. */
+  /** PISTOLET: the machine time a hand's pistol is loaded again (0 when it is). */
   handReloadUntil(hand) {
     const left = this.pistols ? this._pistolLeft(hand) : 0;
     return left > 0 ? this.machine.now + left : 0;
@@ -455,11 +458,21 @@ export class PlayerWeapon {
   _pistolsFor() {
     const pair = this.gunPair;
     const held = pair ? this.handItem('R') : (this.weapon ?? (this.sheathed ? this.handItem(this.leadHand) : null));
-    if (!isPistoletType(weaponTypeForItem(held))) { this._pistolsAway = this.pistols ?? this._pistolsAway; this.pistols = null; return null; }
+    if (!isPistoletType(weaponTypeForItem(held))) {
+      if (this.pistols) this._pistolsPutBy();
+      return null;
+    }
     const trigger = pair ? PAIR_TRIGGER.Alternate : PAIR_TRIGGER.Single;
+    if (!this.pistols) this._classicCooldown = this.machine.cooldownUntil;   // AUDIT PISTOL-PORT C1: kept for the weapon put by
     this.pistols ??= this._pistolsAway ?? createPair({ trigger, fps: PISTOLET_FEEL.fps, cooldownMs: PISTOLET_FEEL.reloadMs, hitFrame: PISTOLET_FEEL.hitFrame });
     this._pistolsAway = null;
     this.pistols.trigger = trigger;
+    // AUDIT PISTOL-PORT A3: A RELOAD IS THE PISTOL'S, NOT THE HAND'S - a pistol moved to the other hand (unequipped and
+    // worn in the other, its equip delay nought) takes its own machine with it; on the hand's, one Pistolet juggled
+    // between the hands fired a pair's rate at full damage
+    const R = this.handItem('R'), L = this.handItem('L'), was = this._pistolHeld;
+    if (was && ((R && R === was.L && R !== was.R) || (L && L === was.R && L !== was.L))) [this.pistols.R, this.pistols.L] = [this.pistols.L, this.pistols.R];
+    this._pistolHeld = { R, L };
     // one pistol is the page's single, on the machine of the hand that HOLDS it - a pair broken mid-reload keeps the
     // pistol left its own reload (AUDIT PISTOLET A3); where it is drawn is the rig's (pistolLane.js flipOf)
     this.pistols.lead = pair ? this.leadHand : (held === this.handItem('L') && held !== this.handItem('R') ? 'L' : 'R');
@@ -479,6 +492,7 @@ export class PlayerWeapon {
     const h = firing.includes(p.last) ? p.last : firing[0];
     m.state = h ? this._pistolDir[h] : 'Idle';
     m.frame = h ? p[h].frame : 0;
+    m.tick = 1 / p.R.fps; m.hitFrame = p.R.hitFrame;   // AUDIT PISTOL-PORT C4: the pistols' own frame clock - the arm's flash runs on it
     m.cooldownUntil = m.now + Math.min(...hands.map((x) => this._pistolLeft(x)));
   }
   /** PISTOL-PORT: a pull - the page's (`pull`), or a technique's the lead hand's (`fireHand`). True when a pistol fired. */
@@ -494,22 +508,48 @@ export class PlayerWeapon {
     this._pistolsMirror();
     return true;
   }
-  /** PISTOL-PORT: one step of the pistols, on the machine's clock - each pistol's hit, the mirror, and the strike's end. */
+  /** AUDIT PISTOL-PORT A9: the pistols put by for another weapon - their reloads run on (`_pistolsAway`), and the classic
+   *  machine stops mirroring them: no shot of theirs is still to land, nor finished as the new weapon's blow, and the new
+   *  weapon never waits out a pistol's reload. AUDIT PISTOL-PORT C1: but it does wait out its OWN - the classic machine is
+   *  given back what it was owed when the pistols took it (a Thunderlock swapped through a Pistolet for one frame by the
+   *  quickslot key, its equip delay nought, fired again at once: three times its rate). */
+  _pistolsPutBy() {
+    const m = this.machine;
+    this._pistolsAway = this.pistols; this.pistols = null; this._pistolHits.length = 0;
+    m.state = 'Idle'; m.frame = 0; m.cooldownUntil = Math.max(this._classicCooldown, m.now); this.strike = null;
+  }
+  /** AUDIT PISTOL-PORT A5: the pistol shots pulled whose hit is not yet handed to the host - each owes its Pellet. */
+  pistolShotsDue() {
+    const p = this.pistols;
+    return p ? this._pistolHits.length + p.hands().filter((h) => p[h].state === 'Firing' && p[h].frame < p[h].hitFrame).length : 0;
+  }
+  /**
+   * PISTOL-PORT: one step of the pistols, on the machine's clock - each pistol's hit, the mirror, and the strike's end.
+   * AUDIT PISTOL-PORT A2: ONE HIT AN UPDATE. Every host fires a 'hit' with the weapon, strike and blow the player weapon
+   * holds as it reads the event, and two machines can hit in one step (a flurry pulled a frame apart, a 50 ms frame): both
+   * were the second pistol's - its weapon, its off-hand blow, its barrel. So a hit due is queued, in the order the pistols
+   * fired, and handed out one an update with its own hand current; the second lands a frame later, never as the first.
+   * AUDIT PISTOL-PORT A6: a pistol no longer drawn (a pair broken between a pull and its hit) fires nothing.
+   */
   _pistolsStep(dt) {
     const m = this.machine, p = this.pistols;
     m.now += dt;
     m.ranged = true;
-    const was = m.state;
     const ev = p.step(dt);
+    const due = ['R', 'L'].filter((h) => ev[h] === 'hit');
+    if (due.length === 2 && due[0] === p.last) due.reverse();   // the earlier shot first - `last` fired most recently
+    this._pistolHits.push(...due);
     const evs = [];
-    for (const h of ['R', 'L']) {
-      if (ev[h] !== 'hit') continue;
+    while (this._pistolHits.length) {
+      const h = this._pistolHits.shift();
+      if (!p.hands().includes(h)) continue;
       this.strike = this._pistolStrikes[h] ?? this.strike;
       if (this.gunPair) this.weapon = this.handItem(h);
       evs.push('hit');
+      break;
     }
     this._pistolsMirror();
-    if (was !== 'Idle' && m.state === 'Idle') {
+    if (this.strike && m.state === 'Idle' && !this._pistolHits.length) {
       evs.push('done');
       this.strike = null;   // the pistols keep their own flurry clock (pistolPair.js `last`, `lastEnd`) - the classic one is a sword's
     }
@@ -816,7 +856,6 @@ export class PlayerWeapon {
     // the cooldown, and a shot that spends ammunition - through
     // `machine.ranged`. The skill it is scored on is Archery either
     // way; that is weaponSkillUsed's answer, not the machine's.
-    // PISTOLET: either gun - the Thunderlock's machine, the Pistolet's cadence off its own row (gunFeel.js PISTOLET_FEEL)
     const thunderlock = isGunType(t);   // PISTOL-PORT: the Thunderlock - a Pistolet never steps this machine (`_pistolsStep`, above)
     this.machine.ranged = t === WEAPON_TYPES.Bow || thunderlock;
     this.machine.frames = thunderlock ? THUNDERLOCK_NUM_FRAMES : null;

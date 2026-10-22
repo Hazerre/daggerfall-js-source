@@ -78,3 +78,76 @@ export {
 // PISTOL-PORT: THE PAIR IS THE GAME'S NOW (combat/gun/pistolPair.js) - the Dwarven Pistolet fires on it - and the page
 // reads it back from there.
 export { PAIR_TRIGGER, createPair } from '../combat/gun/pistolPair.js';
+
+// AUDIT PISTOL-PORT D7: THE PAGE'S WIRING, IN A MODULE. The page composes no frame, but it does say what its panel feeds
+// the game's: and while that lived in the page's own <script>, nothing the suite runs could see it - the port's pins ran
+// a transcription of it, and a page that stopped guarding, clacked the wrong clip or dipped to the wrong depth passed.
+// So the page's opening state and the three calls it makes from its panel are here, and the page and the port's pins
+// both run them.
+import { SFX_CANDIDATES } from './gunLab.js';
+import { gunMotion } from '../combat/gun/gunViewmodel.js';
+import { pistolHandsStep, pistolReloadVoice, pistolHandRect, pistolWidgetSettings } from '../combat/gun/pistolViewmodel.js';
+import { PAIR_TRIGGER } from '../combat/gun/pistolPair.js';
+import { JUMP_SPEED, GRAVITY } from '../player/motor.js';
+
+/** The panel the page opens on, as its `state`: every number the opening row's (PISTOL_OPENING), each sound pick proven
+ *  among the candidates. */
+export function pistolPageState() {
+  const O = PISTOL_OPENING, W = O.widget;
+  const pickOf = (slot, name) => {
+    if (!SFX_CANDIDATES[slot].some(([n]) => n === name)) throw new Error(`no ${slot} clip ${name}`);
+    return name;
+  };
+  return {
+    trigger: PAIR_TRIGGER.Alternate, lead: 'R', guard: true,
+    scale: O.scale, offset: O.offset, raise: O.raise,
+    fps: O.fps, cool: O.reloadMs, hit: O.hitFrame, auto: false,
+    kick: O.kick, back: O.back, stiff: O.stiff, damp: O.damp,
+    shake: O.shake, shakeRot: O.shakeRot, shakeFreq: O.shakeFreq, shakeDecay: O.shakeDecay,
+    sfxFire: pickOf('fire', O.sfxFire), sfxOpen: pickOf('reload-open', O.sfxOpen), sfxClose: pickOf('reload-close', O.sfxClose),
+    sfxVol: O.sfxVol, sfxVary: O.sfxVary, sfxOn: true,
+    drop: O.drop, offsetSpeed: W['Offset.Speed'], modOffset: true,
+    modBob: true, bobLength: W['Bob.Length'], bobSizeX: W['Bob.SizeX'], bobSizeY: W['Bob.SizeY'],
+    bobSpeedMove: W['Bob.SpeedMove'], bobSpeedState: W['Bob.SpeedState'], bobShape: W['Bob.Shape'], bobIdle: W['Bob.BobWhileIdle'],
+    modInertia: true, inScale: W['Inertia.Scale'], inSpeed: W['Inertia.Speed'], inFwd: W['Inertia.ForwardDepth'], inFwdSpeed: W['Inertia.ForwardSpeed'],
+    walk: false, strafe: 0, run: false, crouch: false, spd: 50,
+    alphaCut: O.alphaCut, light: O.light, room: 0.62, grid: false,
+  };
+}
+
+/** The panel's Weapon Widget settings - past Diverse Weapons' preset, as the game lays the Pistolet's own (AUDIT
+ *  PISTOLET B2; pistolViewmodel.js pistolWidgetSettings). */
+export const pistolPageSettings = (state) => pistolWidgetSettings({
+  'Modules.Offset': state.modOffset, 'Modules.Bob': state.modBob, 'Modules.Inertia': state.modInertia,
+  'Offset.Speed': state.offsetSpeed,
+  'Bob.Length': state.bobLength, 'Bob.SizeX': state.bobSizeX, 'Bob.SizeY': state.bobSizeY,
+  'Bob.SpeedMove': state.bobSpeedMove, 'Bob.SpeedState': state.bobSpeedState,
+  'Bob.Shape': state.bobShape, 'Bob.BobWhileIdle': state.bobIdle,
+  'Inertia.Scale': state.inScale, 'Inertia.Speed': state.inSpeed,
+  'Inertia.ForwardDepth': state.inFwd, 'Inertia.ForwardSpeed': state.inFwdSpeed,
+});
+
+/** AUDIT PISTOL-PORT B1: a jump as the game's motor makes one - the eye's climb `t` seconds in (JUMP_SPEED up, GRAVITY
+ *  down), null once it has landed. */
+export const pistolJumpClimb = (t) => (t >= 0 && t < 2 * JUMP_SPEED / GRAVITY ? JUMP_SPEED - GRAVITY * t : null);
+
+/** ONE FRAME OF THE PAGE'S HANDS: each hand's reload clacks, then the game's frame (pistolHandsStep), fed from the panel -
+ *  `play(clip, gain)` the page's player. Answers the motion, which the page's room sways on too. */
+export function pistolPageStep(hands, pair, state, dt, { drawn, scrub = -1, look = [0, 0], cursorActive = false, screen, vertical = null, play = () => {} }) {
+  pistolReloadVoice(hands, pair, state.cool, (kind, gain) => play(kind === 'open' ? state.sfxOpen : state.sfxClose, gain));
+  const motion = gunMotion({ walking: state.walk, strafe: Number(state.strafe), running: state.run, crouching: state.crouch, liveSpeed: state.spd, vertical });
+  pistolHandsStep(hands, dt, {
+    machines: pair, drawn, guard: state.guard, spring: { stiff: state.stiff, damp: state.damp, back: state.back },
+    restFrame: scrub >= 0 ? scrub : 0, settings: pistolPageSettings(state), screenRect: screen,
+    motion, look, liveSpeed: state.spd, cursorActive, hiddenTarget: [0, state.drop],
+  });
+  return motion;
+}
+
+/** Where the page draws hand `h`: the game's rect (pistolHandRect) at the panel's pose, the art at native size times the
+ *  panel's scale, the left hand in the mirror. */
+export const pistolPageRect = (hands, h, state, art, canvas) => pistolHandRect(hands, h, {
+  canvasW: canvas.width, canvasH: canvas.height, anchor: art.anchor, union: art.union,
+  widthPct: nativeWidthPct(art.anchor.w, state.scale), offset: state.offset, raise: state.raise,
+  heightPx: art.anchor.h * state.scale, flip: h === 'L',
+});

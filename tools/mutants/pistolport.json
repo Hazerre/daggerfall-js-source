@@ -347,7 +347,7 @@
  {
   "name": "WR-flash-always-right",
   "file": "src/combat/weapon/weaponRig.js",
-  "old": "entity._thunderlockFlashSide = pistols.flipOf(p, p.last ?? p.lead, handedFlip()) ? -1 : 1;",
+  "old": "entity._thunderlockFlashSide = pistols.flipOf(p, pistols.brightest(p), handedFlip()) ? -1 : 1;",
   "new": "entity._thunderlockFlashSide = 1;",
   "tests": [
    "test/combat/gun/pistolport.test.js",
@@ -357,8 +357,8 @@
  {
   "name": "WR-flash-handedness-ignored",
   "file": "src/combat/weapon/weaponRig.js",
-  "old": "entity._thunderlockFlashSide = pistols.flipOf(p, p.last ?? p.lead, handedFlip()) ? -1 : 1;",
-  "new": "entity._thunderlockFlashSide = pistols.flipOf(p, p.last ?? p.lead, false) ? -1 : 1;",
+  "old": "entity._thunderlockFlashSide = pistols.flipOf(p, pistols.brightest(p), handedFlip()) ? -1 : 1;",
+  "new": "entity._thunderlockFlashSide = pistols.flipOf(p, pistols.brightest(p), false) ? -1 : 1;",
   "tests": [
    "test/combat/gun/pistolport.test.js",
    "test/combat/weapon/pistoletRig.test.js"
@@ -367,7 +367,7 @@
  {
   "name": "WR-flash-off-the-lead",
   "file": "src/combat/weapon/weaponRig.js",
-  "old": "entity._thunderlockFlashSide = pistols.flipOf(p, p.last ?? p.lead, handedFlip()) ? -1 : 1;",
+  "old": "entity._thunderlockFlashSide = pistols.flipOf(p, pistols.brightest(p), handedFlip()) ? -1 : 1;",
   "new": "entity._thunderlockFlashSide = pistols.flipOf(p, p.lead, handedFlip()) ? -1 : 1;",
   "tests": [
    "test/combat/gun/pistolport.test.js",
@@ -388,8 +388,8 @@
  {
   "name": "WR-pistol-reload-silent",
   "file": "src/combat/weapon/weaponRig.js",
-  "old": "      pistols.voice(p, feel, (k, gain) =>",
-  "new": "      void ((k, gain) =>",
+  "old": "      if (!_heldHit) pistols.voice(p, feel, (k, gain) =>",
+  "new": "      if (!_heldHit) void ((k, gain) =>",
   "tests": [
    "test/combat/gun/pistolport.test.js"
   ]

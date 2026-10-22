@@ -19,6 +19,8 @@ import { handOnLeft } from '../twoHands/handsLaw.js';
 /** Is hand `h` drawn on the screen's left: a pair's left hand (a left-handed player's pair is the mirror - handsLaw.js
  *  handOnLeft); one pistol, where DFU draws the one weapon in use - the Handedness setting's side, whichever hand holds it. */
 const flipFor = (pistols, h, leftHanded) => (pistols.hands().length === 2 ? handOnLeft(h, leftHanded) : leftHanded);
+/** A pistol's muzzle flash this frame - its machine's, the picture it is drawn with. */
+const glowOf = (pistols, h) => muzzleGlow(pistols[h].state === 'Firing', pistols[h].frame);
 
 export function createPistolLane() {
   const hands = createPistolHands();
@@ -63,8 +65,13 @@ export function createPistolLane() {
     },
     /** The hands drawn, in the pair's order: the hand that fired last over the other. */
     order: (pistols) => pistolDrawOrder(pistols.order, pistols.hands()),
-    /** The room's flash: the brightest drawn pistol's - the page's `glow`. */
-    glow: (pistols) => Math.max(0, ...pistols.hands().map((h) => muzzleGlow(hands[h].firing, hands[h].frame))),
+    /** The room's flash: the brightest drawn pistol's - the page's `glow`. AUDIT PISTOL-PORT B4: read off the machines,
+     *  which the frame has already stepped, as the page reads it after its step - the hands' pictures are last frame's
+     *  until the lane steps, and the light ran a frame behind the sprite's flame. */
+    glow: (pistols) => Math.max(0, ...pistols.hands().map((h) => glowOf(pistols, h))),
+    /** AUDIT PISTOL-PORT B4: the hand the room's light is thrown from - the brightest drawn pistol's flash, the last to
+     *  fire on a tie (a flurry's second shot lit the room from its side while the first's flame was the bright one). */
+    brightest: (pistols) => pistols.hands().reduce((best, h) => (glowOf(pistols, h) > glowOf(pistols, best) ? h : best), pistols.last ?? pistols.lead),
     /** Is a drawn pistol still on screen while they are put away - the Offset module easing it off the bottom. */
     sliding: (pistols, feel) => pistols.hands().some((h) => Math.abs(hands[h].rig.offsetCurrent[1]) < Math.abs(feel.sheathTarget[1]) - 1e-3),
   };

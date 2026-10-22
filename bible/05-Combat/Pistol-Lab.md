@@ -139,6 +139,22 @@ cannot open the panel on a different weapon.
 
 "Walking" was ticked in the screenshot. It is a movement toggle (W), not a setting, so the lab still opens standing.
 
+## The page is the game's player (AUDIT PISTOL-PORT, 2026-10-22)
+
+The page could not make three things a player does, so the owner's tuning had never seen them (`Audit-Pistol-Port.md`
+B1 B2 B6):
+- **It strafes and jumps.** A and D strafe (press again to stop; S stops everything), J jumps - on `gunMotion`, the labs'
+  stand-in motor, which now moves as the game's motor does: a crouch at the motor's crouch speed, a strafe on its own at
+  the walk's, a step and a strafe each at the diagonal .7071, a jump at the motor's JUMP_SPEED and GRAVITY
+  (`pistolJumpClimb`), and the speed ratio PlayerMotor.Speed's over the walk, standing or not.
+- **It turns as the game does.** The mouse turns the page's stand-in camera at the game's own MouseLookSensitivity
+  (`ui/lookSettings.js lookScale`, 2.0 out of the box) - it turned at 1.0, so a flick swayed the game's pistols twice as
+  far - and the page draws in CSS pixels, as the game's canvas does (Bob and Inertia move in pixels; a high-DPI screen
+  showed half the sway).
+- **What the panel feeds the frame is a module** (`src/tools/pistolLab.js` `pistolPageState`, `pistolPageStep`,
+  `pistolPageRect`): the page calls them, and the port's pins run them on the page's own opening state. Its keys, its
+  mouse and its canvas size are the page's alone, and `tools/pistolPortProbe.mjs` drives them in Chromium.
+
 ## Running it, and its own deploy
 
     npx vite                # then open /pistol-proto.html
