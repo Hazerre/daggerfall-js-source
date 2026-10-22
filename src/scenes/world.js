@@ -285,7 +285,8 @@ import { huntKind, createBodyStamps, bodiesHere, trackerMarks } from './huntHost
 import { freePull } from '../systems/travel/freePull.js';   // OW-FREE-STRAIGHT, moved out (HOST-SPLIT)
 import { createGrantHost } from './grantHost.js';   // GRANT2-GRANT4: the spawn grants - my stands' and my reading of others' (bible/11-Multiplayer/Spawn-Grants.md)
 import { wireOwnerClock } from './ownerCatchUp.js';   // OWNER-CLOCK: my foes' steps on the clock their frames carry, and the street's kept to my frame's pace while anyone else is in my room
-import { fishKind } from './fishHost.js';   // PROF8: Fishing's casts and schools - a kind in it
+import { fishKind } from './fishHost.js';
+import { createCraftWritHost } from './craftWritHost.js';   // CRAFT-WRITS: the Work tab's crafting writs, handed over from the pack   // PROF8: Fishing's casts and schools - a kind in it
 import { rollNoticeDoors } from './rollNoticeHost.js';   // SEAT-WORDS / STANDING-WORDS: what the Roll's tracker says
 import { utcDayOfMs } from '../net/nodeLaw.js';   // PROF8: a haul's UTC day
 import { registerPlayerKillListener } from '../systems/playerKills.js';   // PROF7: the player's own kill stamps a body
@@ -27364,6 +27365,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // board's). Online, a town's rumour board opens the Notice Board once the service has said it is open to this account
   // (BOARD_OPEN); until it has, and whenever it is not, the board is DFU's own - the rumour box - and the read that
   // settles it is asked (the town's board is read on arrival anyway, for the count over it).
+  // CRAFT-WRITS (bible/06-Systems/Professions-Arc.md section 49): the Work tab's crafting writs, their goods out of the pack and the record
+  const craftWrits = createCraftWritHost({ player: () => playerEntity, session: () => realmSession, checkpoint: () => onlineCheckpoint(), saved: () => saveSoon.changed(), book: () => profBook });
   const openNoticeBoard = (town, rumour) => {
     if (!noticeBook || !town) return false;
     if (noticeBook.open !== true) { noticeBook.read(town.mapId); return false; }
@@ -27373,6 +27376,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const work = profBook?.state.open === true && Number.isInteger(region) ? {
       book: profBook, region, regionName: REGION_NAMES[region] ?? 'the region', countName: materialCountLabel,
       onTaken: (r) => profWritTaken(r),
+      crafts: craftWrits,   // CRAFT-WRITS
       sayLate: (text) => chatNotice(text),   // AUDIT CHAP3 C5: a writ filled after the board closed says its line in the chat
       // CHAP4d: a chapter's Master names its Focus here, for the character playing
       setFocus: hallDoor && realmSession ? (faction, focus) => hallDoor.focus(realmSession.id, faction, region, focus) : null,

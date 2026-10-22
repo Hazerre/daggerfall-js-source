@@ -122,13 +122,16 @@ export async function brewAtStation(ctx, player, env, { character, potion: id, k
     held.push(`${workableSql('?1', '?2', `?${14 + 2 * i}`)} >= ?${15 + 2 * i}`);   // GOLD-MARKET: never gold's units; AUDIT BAG-CRAFT A1: a station's loose ones too
   });
   const decided = 'EXISTS (SELECT 1 FROM prof_brews WHERE player = ?1 AND rid = ?5 AND n = ?6)';
+  // CRAFT-WRITS (migration 0144): WITNESSED WHOLE where the cauldron spent no loose units - a station spends them first
+  // (workStatements), so a brew is a crafting writ's only while none of its inputs had any to spend
+  const loose = `EXISTS (SELECT 1 FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND origin = '${LOOSE_ORIGIN}' AND qty > 0 AND material IN (${inputs.map((_, i) => `?${14 + 2 * i}`).join(', ')}))`;
   await db.batch([
     // THE DECISION: every input held - and the XP what the track can take under the crafter's limit, the first brew's 500
     // laid on when the character has brewed none of the potion
-    db.prepare(`INSERT OR IGNORE INTO prof_brews (player, rid, char_id, potion, keys, count, potent, unbruised, steps, xp, first, at, n)
+    db.prepare(`INSERT OR IGNORE INTO prof_brews (player, rid, char_id, potion, keys, count, potent, unbruised, steps, xp, first, at, n, witnessed)
       SELECT ?1, ?3, ?2, ?4, ?5, ?6, ?7, ?8, ?9,
         MAX(0, MIN(?10 + f * ?11, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = '${trackOf('alchemy')}'), 0))),
-        f, ?12, ?13
+        f, ?12, ?13, CASE WHEN ${loose} THEN 0 ELSE 1 END
       FROM (SELECT CASE WHEN ?11 > 0 AND NOT EXISTS (SELECT 1 FROM prof_brews WHERE player = ?1 AND char_id = ?2 AND potion = ?4) THEN 1 ELSE 0 END AS f)
       WHERE ${held.join(' AND ')}`).bind(...binds),   // AUDIT PROF-541 B6: `first` only where the first time pays (brewFirstPays), as smeltAtForge's
     // the unbruised herbs it reckoned, spent with it - AUDIT PROF12 A1: before the cauldron leaves, so the spends' clamp

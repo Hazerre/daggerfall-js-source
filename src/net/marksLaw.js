@@ -71,6 +71,9 @@ export const MARK_WORTH_GOLD = 10;
  *   star      - STAR7 (2026-10-20; bible/11-Multiplayer/Starfall.md section 6): a fallen star held - its `j1` receipt the relay
  *               signed at its master's fall and the service counted once a (star, account): 30, a raid's worth (a fight
  *               about as long), under the COMBAT cap.
+ *   craftWrit - CRAFT-WRITS (2026-10-22; bible/06-Systems/Professions-Arc.md section 49): a crafting writ filled - goods the
+ *               service saw made (a character's own brews, its own crafted pieces) taken out of its realm record: the
+ *               writ's own pay (craftWritLaw.js, at most CRAFT_WRIT_PAY_MAX), 3 an account a UTC day, beside the Court's.
  */
 export const MARKS_FAUCETS = Object.freeze({
   gate: Object.freeze({ amount: 50 }),
@@ -83,6 +86,7 @@ export const MARKS_FAUCETS = Object.freeze({
   find: Object.freeze({ chance: Object.freeze({ corpse: 0.05, pile: 0.12, search: 0.15 }), amount: Object.freeze([1, 4]), perDay: 20 }),
   eg: Object.freeze({ amount: EG_PAY_MARKS }),   // EG-E1: a Redoubt the week pays (server-account/src/egEconomy.js)
   star: Object.freeze({ amount: 30 }),   // STAR7: a fallen star held (server-account/src/stars.js)
+  craftWrit: Object.freeze({ perDay: 3 }),   // CRAFT-WRITS: the pay is each writ's own (craftWritLaw.js craftWritOf)
 });
 /**
  * SILVER-WAYS: THE DAY'S COMBAT CAP - what the gates and the raids strike an account together, a UTC day. The gate was
@@ -170,6 +174,7 @@ export const MARKS_KINDS = Object.freeze({
   eg: 'mint',                 // EG-E1: a Redoubt of the Elite Breach taken - the relay's receipt, counted once a week (under the day's combat cap)
   star: 'mint',               // STAR7: a fallen star's receipt, counted (bible/11-Multiplayer/Starfall.md section 6)
   firmament: 'burn',          // FIRM1: the Firmament's refunds - silver a star taken back, at Renown 10 and past (firmamentLaw.js refundSilver)
+  'craft-writ': 'mint',       // CRAFT-WRITS: a crafting writ filled - goods the service saw made, out of the realm record (server-account/src/craftWrits.js)
 });
 
 /** The switch the service's config holds (MARKS_OPEN): off, dev (the developers alone), on. */

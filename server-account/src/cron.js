@@ -58,6 +58,7 @@ import { sweepBoard } from './board.js';
 import { safetyMinute, safetySweep } from './safetyClock.js';   // SAFE5 + SAFE8: the reviewer's reads and the moderators' cards; the hour's sweep
 import { sweepGuildNotes } from './guildBoard.js';
 import { sweepHarvests } from './professions.js';
+import { sweepCraftWrits } from './craftWrits.js';   // CRAFT-WRITS: an unfilled crafting writ the day after its own
 import { SESSION_IDLE_S } from './accounts.js';
 import { storeArenaChampion, ARENA_CHAMPION_CLOCK_S } from './arena.js';
 import { iliacChampionClock } from './iliac.js';   // CARDS10: Iliac Hand's season #1, counted the arena's way
@@ -183,6 +184,7 @@ export const HOUR_JOBS = Object.freeze([
   ['board', (ctx) => rounds(() => sweepBoard(ctx.db, ctx.nowS, SWEEP_ROWS), SWEEP_ROWS)],
   ['guild-board', (ctx) => rounds(() => sweepGuildNotes(ctx.db, ctx.nowS, SWEEP_ROWS), SWEEP_ROWS)],
   ['harvests', (ctx) => rounds(() => sweepHarvests(ctx.db, ctx.nowS, SWEEP_ROWS), SWEEP_ROWS)],
+  ['craft-writs', (ctx) => rounds(() => sweepCraftWrits(ctx.db, ctx.nowS, SWEEP_ROWS), SWEEP_ROWS)],   // CRAFT-WRITS: a filled one stays (its brews are counted by it)
   // AUDIT SCALE A5: each table's delete a page, asked again while one took a full page (market.js pruneMarketHistory)
   ['market-history', async (ctx) => {
     let n = 0;

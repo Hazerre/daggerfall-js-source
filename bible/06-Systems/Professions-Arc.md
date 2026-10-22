@@ -1404,6 +1404,9 @@ the records the fixes moved re-aimed by content - 38 dead, AUDIT29-C4 equivalent
   guild writ is delivered at ANY board of its region, on the client's word - the relay's witness is SEAT1b's, where a
   delivery raises influence; until then a lie buys a fast travel's worth, as a listing's does (26).
 
+- **Crafting writs** (CRAFT-WRITS, section 49): a character's own three a day - a potion, a dish and a kit - asked by the
+  guild that wants them, filled by goods the service saw it make.
+
 ## 12. Why a player comes back
 
 A daily round of nodes; three Motherlodes a day; weekly Tides; the seasons' herbs; gate-touched veins after every
@@ -5096,14 +5099,7 @@ change that took a consumable back from the loot so the crafter could supply it;
 
 ### 48.4 Open, for the owner (DECIDED nothing here)
 
-- **Crafting writs** (the post's own proposal). A Court writ today asks only a witnessed **material** (section 11 - a
-  writ's Marks are minted only for a witnessed act, law 8). A writ for a crafted **product** - "6 Potions of Restore Power
-  for the Mages Guild of Daggerfall" - is witnessable the same way: the brew itself is the service's (`/v1/prof/brew`), so a
-  writ could be FILLED AT THE STATION, the brew's potions going to the writ instead of the pack, its pay Marks, silver,
-  the craft's XP and the guild's reputation. It needs a writ kind, a column on the brews (and the anvil's and the fire's
-  products), the Work tab's card, and Appendix C's faucet re-measured - a slice of its own (the hosts untouched: the
-  station is the pages'). Its smallest form is the potions and the dishes alone, the products a writ can never be handed
-  from loot.
+- **Crafting writs** - BUILT the next day, at the owner's word: section 49 (CRAFT-WRITS).
 - **A meal that holds you longer.** The weight was the complaint's either-or; the other half ("it doesnt fill for very
   long") is the needs' ladder, not the meal's satiety (48.1) - a change there is the survival arc's, all foods at once.
 - **The other stations' fee.** The forge, the workbench, the loom, the mason's bench and the jeweller's bench keep 50 gold
@@ -5127,6 +5123,117 @@ change that took a consumable back from the loot so the crafter could supply it;
   `renownloot.json` (79, all dead), `prof12.json` (`PROF12-count-novice-one` - the mutant that WAS a Novice's two is now its
   one; `PROF12-alchemy-fee` back to 50; 209 dead - its one survivor, `PROF12-migration-unique`, survives on main as well).
 - Ledger A: POTION-COMMON's row narrowed to POT-THIN's numbers; CRAFT-PAYS its own row.
+
+## 49. CRAFT-WRITS - the guilds' asks of a crafter, as built (BUILT 2026-10-22)
+
+The owner, of section 48: **"Why dont you actually build this instead of handing me a small fix?"** - the post's own
+proposal (48.4): **"crafting writs instead of only gathering writs. Something like; potions of restore power needed by
+the mages guild. The reward can be crafting xp, silver, and rep."** Every number below is DECIDED here, at that word.
+
+### 49.1 The shape
+
+- **Whose.** Every writ the board posted asked a gathered material from the Stores (section 11). A crafting writ asks what
+  a crafter MAKES, and is the character's own: each living realm character is asked **three a UTC day**, drawn the first
+  time it reads any board that day and written down (`craft_writs`, migration 0144) - so a writ never changes under a
+  rank won mid-day, and two crafters never race for one. Filled whole at any board, by its owner alone, before the day ends.
+  An account fills **three a day** (`CRAFT_WRITS_PER_DAY`, `MARKS_FAUCETS.craftWrit`) - their own allowance, beside the
+  Court's three.
+- **What.** Slot 0 a **potion** and slot 1 a **dish**, of Provisioning's (CRAFT3: Alchemy and Cooking are its); slot 2 a
+  **Repair Kit** of Smithing's where the character has smithed at all, else a second potion (another than slot 0's
+  where Provisioning opens another). Each within the character's rank and **no more than two tiers below the highest it
+  opens** (`craftWritChoices`) - a Master is asked a Master's work, as XP quarters below that. Drawn from the character's
+  own dice (its realm id, the day, the slot - `CRAFT_WRIT_SALT`), as a member's own writ is.
+- **Never** a potion made wholly of the Apothecaries' goods (Water Breathing, Levitation - `brewFirstPays`): silver
+  spent at the counter and brewed would come back as more silver with no hand's work between (AUDIT PROF-541 R2-S1's law).
+- **Who asks** (`CRAFT_GUILDS`, the port's own choice - DFU's guilds post no writs): the **Mages Guild** most potions; the
+  **Temple of Stendarr** (mercy) the five remedies - Healing, Heal True, Cure Disease, Cure Poison, Purification; the
+  **Fighters Guild** Orc Strength, Stamina, the Hunter's Stew, the Fisherman's Supper and every Repair Kit; the **Temple
+  of Mara** the Orchard Tart and the Feast of the Hearth.
+
+### 49.2 What fills one - made, and handed over
+
+A writ's silver is minted only for an act the service witnessed (law 8), and the goods leave the character's realm record
+in the same batch (INT19's law for every crafted act):
+
+- **A potion writ**: the character's own **witnessed brews** of the potion - every potion a station bottled for it
+  (`prof_brews.count`), less what crafting writs already took (`brewedLeftSql`) - cover the count; AND that many bottles
+  of the recipe leave the record's pack (`takeCraftGoods` - the plain before the Potent, a stack giving part of itself;
+  never a worn, quest, summoned or bound one). A potion is a potion: the brews are the witness and the record the goods,
+  so a looted bottle can be handed over only where a brew of the character's own stands behind it.
+- **WITNESSED WHOLE** (migration 0144, `prof_brews.witnessed`): a station spends a cauldron's LOOSE units first (AUDIT
+  BAG-CRAFT A1 - what the pack put in that the service never handed out: a looted herb, a reagent bought for gold), and a
+  potion of them is gold's goods, which never fetch silver (GOLD-MARKET). A brew is witnessed where it spent none
+  (`alchemy.js` brewAtStation writes it in the brew's own decision). Brews before the column read 0 - their units'
+  origins are unknown - so **a crafting writ counts the brews from this release on**.
+- **A dish or kit writ**: the pieces themselves, by provenance (`pieces`, exactly the count) - each this character's own
+  make (`products.char_id`), never sold or bought nor walled to gold (`products.bought_with IS NULL`), on no listing,
+  auction, road or home nor on its way back (`pieceOkSql`, PROF5's and INT19's guards), loose in the record's pack; their
+  `products` rows go with them, as a disenchant's.
+
+### 49.3 The pay
+
+| What | The law (`craftWritLaw.js`) |
+|---|---|
+| **Silver** (Marks, a `craft-writ` mint) | A make's inputs at their Marks values (`cost` - the Apothecaries sell at that value, so a bought reagent counts what it cost), over the units one make gives a Novice (`NOVICE_YIELD`: a brew 2 - CRAFT-PAYS - a dish 1, a kit 1), times **150%** (`CRAFT_PAY_PCT`, the Court's 1.2 for raw goods and a crafter's half again); never under **20 a tier** (`CRAFT_PAY_FLOOR` - a rank's skill is paid for, not only its herbs); never over **200** (`CRAFT_WRIT_PAY_MAX` - the count is lowered first) |
+| **The count** | Potions 4 at tiers 1-2, 3 at 3-4, 2 past; dishes 3, the feast 1; kits 3 at tiers 1-3, 2 at 4-5, 1 past - then fitted under the cap |
+| **XP** | Twice the pay (the Court writ's `writXp`), to the craft's track - Provisioning for potions and dishes, Smithing for kits - under the crafter's limit (`craftCapSql`, read in the decision) |
+| **Renown** | Twice the pay at the rate (`renownRate` - the Court writ's ratio) |
+| **Standing** | `HALL_WRIT_REP` (2) with the asking guild on the character's Roll, where the Roll keeps the guild - a hall writ's own two statements (CHAP2a), while the Chapters are the account's |
+
+So, among the eighteen potions: Restore Power (the post's own) four for **156**, Healing four for **42**, Resist Fire
+four for **90**, Purification two for **140**; three Hunter's Stews **20**, a Feast of the Hearth **120**; three Iron
+Repair Kits **20**, a Daedric one **140** (the whole table is pinned, `craftwrits_law.test.js`). A Novice's Restore Power
+writ asks two brews - 96 silver of reagents and two mined Silver - for 156, 312 Provisioning XP and 234 Renown; a
+Novice's Healing writ two brews of 20 silver at the counter and the gathered rest, for 42.
+
+**The faucet.** At most three a day an account, at most 200 each by the law - and the dearest writ the table makes is
+Restore Power's 156, so a Master's three come to some 400 at most (Purification 140, a feast 120, a Daedric kit 140) and a
+Novice's to about 100. Appendix C's model is not re-run here: the Court's
+three a day pay up to 336 each, so the crafter's faucet sits under the gatherer's at every tier. RECORDED for the owner:
+if the Marks minted outrun the Marks burnt again, `CRAFT_PAY_PCT` and the cap are the two knobs.
+
+### 49.4 Where it is seen
+
+- **The Work tab** (`ui/noticeWindow.js` craftNode): above the Court's writs, under **"Crafting writs - N of 3 today"**,
+  one card a writ - the guild's ask ("The Mages Guild asks you for 4 Potions of Restore Power"), what fills it ("Of your
+  own brewing - the bottles leave your pack."), its pay ("Pays 156 silver, 312 Provisioning experience, 234 Renown and
+  standing with the Mages Guild"), its time left, what the character holds ("3 brewed by you, 5 in your pack"), and
+  **Deliver** - waiting, with its reason on the card (a phone has no hover), where something is short or the day's three
+  are filled. A press says the guild's thanks; the balance and the Renown are taken as a Court writ's (`onTaken`).
+- **The host** (`scenes/craftWritHost.js`, wired in `scenes/world.js` by one statement and one entry - HOST-SPLIT): what
+  the pack holds toward a writ, and its goods out of the pack inside the realm act that takes them out of the record
+  (`realmGoldAct` - the save checkpointed first, the goods out as the service is first asked, back on a refusal; the
+  disenchant's own order). The book's `craftDeliver` (`net/profBook.js`) asks it once - the realm act asks again itself.
+- **The four hosts**: the Notice Board is `scenes/world.js`'s; `worldModes.js` and `dungeonContext.js` stand inside its
+  page and open no board of their own; `scenes/exterior.js` - FLAGGED in `craftWritHost.js`: the fixed-city bench never
+  goes online, so it posts no crafting writ, as no Court writ.
+
+### 49.5 As built
+
+- **The law**: `src/net/craftWritLaw.js` (products, guilds, the draw, the pay, the goods, the words); `src/net/marksLaw.js`
+  (`MARKS_FAUCETS.craftWrit`, `MARKS_KINDS['craft-writ']`).
+- **The service**: `server-account/src/craftWrits.js` (`craftWritBoard`, `deliverCraftWrit`, `sweepCraftWrits`);
+  `server-account/migrations/0144_craft_writs.sql`; `alchemy.js` (a brew's `witnessed`); `index.js` (`/v1/writs/craft`,
+  `crafts` on `/v1/writs/list`, the refusals' statuses); `service.js` (the route listed, acct168 - CRAFT-PAYS and
+  CRAFT-WRITS one release); `progress.js` (INT16-INT17: a progression claim - its XP and Renown); `cron.js` (an unfilled
+  writ swept the day after its own; a filled one stays - a potion writ's brews are counted by it); `professions.js`
+  (`renownAnswer` exported); `realm.js` (a deleted character's open writs go with it - a filled one stays, the brews it
+  took its memory).
+- **The client**: `src/scenes/craftWritHost.js`, `src/net/profBook.js` (`craftDeliver`), `src/net/accountClient.js` (the
+  door, four refusals in words), `src/ui/noticeWindow.js`, `src/scenes/world.js`.
+- **The words**: 25 keys through the text core (`prof.craftWrit.*`, `notice.craftWrit.*`, four `account.refusal.craft*`) -
+  `locales/en/Port_Strings.csv` regenerated (`tools/l10nExtract.mjs`), the thirteen languages drafted whole written in
+  session (`tools/l10nInSession.mjs`, recorded as the machine's), each in the words its catalog already uses for a writ,
+  the pack, silver and Renown; the drafting twelve owe them with the rest.
+- **The deploy**: `.github/workflows/account-deploy.yml`'s path filter names `src/net/craftWritLaw.js` (the Worker bundles
+  it - ACC4's walk).
+- **Pinned**: `test/net/craftwrits_law.test.js` (7), `test/net/craftwrits_service.test.js` (5, through the real Worker),
+  `test/net/craftwrits_client.test.js` (4); `tools/mutants/craftwrits.json` (42: 41 dead, `svc-room` equivalent as
+  recorded - the ledger's own trigger refuses an overfill). PIN MOVED: `marks1`, `prof5_law` (a fourth mint),
+  `auditscale` (the hour's clock 35), `scale4b` (the Work tab's first read of a day writes the day's three), `int16_progress`
+  (the route listed), `accountworker` (the table), and the account version's pins. `fb1013e_writwall` waits on the real
+  Worker's board read by the clock (`performance.now`), not 400 turns - the read does more since the crafting writs ride
+  it, and the count ran out under a loaded suite.
 
 ## Appendix A - a day of a gatherer
 
