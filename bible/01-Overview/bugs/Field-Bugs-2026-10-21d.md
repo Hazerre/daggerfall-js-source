@@ -155,8 +155,11 @@ under it mended two; the court's zero-day fine (driven on DFU's own coin, seeded
 Curfew's doubled Conspiracy given back double; the patrol's predicate and its host. LW9's host pin moved
 (`test/systems/livingWorld/lw9_traffic.test.js`), TIME1's census row moved (`test/fixtures/time1_census.json`).
 `tools/mutants/fb1021d_sentencemends.json` (10, 10 dead); `fb1016b_finepeople.json`'s fine record and `rep2_sentences.json`'s
-half-less-one re-aimed (dead), `arena2triage.json`'s two finish records re-aimed. `rep2_sentences.json`'s
-REP2-no-charge-coming-quietly survives on main as here (AUDIT REP F1's second chargeOnce covers it) - not this change's.
+half-less-one re-aimed (dead), `arena2triage.json`'s two finish records re-aimed. Its
+ARENA2-TRIAGE-4-the-sentence-credited-after-the-days survived on main as here: AUDIT 21 F8 read only that the credit was
+not zero, and SENTENCE-MENDS' step is not zero either. F8 now reads the credit's own -10
+(`test/systems/audit18_systems_social.test.js`), and it dies. `rep2_sentences.json`'s REP2-no-charge-coming-quietly
+survives on main as here (AUDIT REP F1's second chargeOnce covers it) - not this change's.
 
 ## REGARD-OWN: a regard counts the character's own days, and a friend made is said (4)
 
@@ -267,7 +270,9 @@ foe's (OW6) - size themselves by the walking motor's pace (`player.speed`, 4.43 
 of a Small Ship's or a Carrack's on a crossing; with a fast hull the clock can outrun the land being built, and an unbuilt
 pixel reads no water. It did not cause this report (a Large Boat) and its fix threads two names through five suites'
 host rigs; it is the next slice's. Quays, piers and moored ships were not in the trace's voyage simulation.
-`passage.json`'s PASSAGE-sea-stood-again-after-a-door and `csa_together.json`'s CSAL-pad-bare-dpad survive on main as here.
+`passage.json`'s PASSAGE-sea-stood-again-after-a-door and `csa_together.json`'s CSAL-pad-bare-dpad survive on main as here,
+and so does `auditships_sail.json`'s AUDIT-SHIPS-A5-the-gain-on-every-coast (in `comeSailAway.js`, which this change does not
+touch).
 
 `test/scenes/naval/fb1021d_passage.test.js` (9, one ARENA2): on the real runtime and the seam lifted from world.js, a
 passenger's D, autorun, S, sails, lantern and panel and pad taps reach her not at all (her course to the millimetre) while
