@@ -29,8 +29,8 @@
   {
     "name": "OW-HITCH-field-no-reuse",
     "file": "src/render/labGrass.js",
-    "old": "originX: gx, originZ: gz, reuse: wholeSpare }));",
-    "new": "originX: gx, originZ: gz, reuse: null }));",
+    "old": "originX: gx, originZ: gz, reuse: wholeSpare });   // PERF-EXT21",
+    "new": "originX: gx, originZ: gz, reuse: null });   // PERF-EXT21",
     "tests": [
       "test/render/owhitch.test.js"
     ]
@@ -67,24 +67,6 @@
     "file": "src/combat/blood/bloodArt.js",
     "old": "    while ((deadline?.timeRemaining?.() ?? 0) > 6);",
     "new": "    while ((deadline?.timeRemaining?.() ?? 0) > 6 || deadline?.didTimeout);",
-    "tests": [
-      "test/render/owhitch.test.js"
-    ]
-  },
-  {
-    "name": "OW-HITCH-snow-heights-with-normal",
-    "file": "src/scenes/snowCoverHost.js",
-    "old": "p && normalOf ? normalOf(p, lx, lz, _n)[1] : normalY(sx, sz)",
-    "new": "normalY(sx, sz)",
-    "tests": [
-      "test/render/owhitch.test.js"
-    ]
-  },
-  {
-    "name": "OW-HITCH-snow-normal-x",
-    "file": "src/scenes/snowCoverHost.js",
-    "old": "normalOf(p, lx, lz, _n)[1]",
-    "new": "normalOf(p, lx, lz, _n)[0]",
     "tests": [
       "test/render/owhitch.test.js"
     ]

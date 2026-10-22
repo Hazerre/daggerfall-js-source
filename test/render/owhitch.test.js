@@ -4,7 +4,8 @@
 //   1. the grass: a cleared cell uploads nothing, a written one its blades alone, and the field places into two cells'
 //      arrays where it made 343 KB a cell - the same bytes;
 //   2. the blood sheet grows on a page that never idles, a cell a wait, to the byte of the one built whole;
-//   3. the snow under a blade reads the drawn ground's slope (the terrain's normals), not four of the stream's heights;
+//   3. the snow under a blade asks the stream nothing (SNOW-FACE, merged after: no slope, so neither the drawn ground's
+//      normals nor four of the stream's heights);
 //   4. the snowpack's year and the weather's systems: the same answers, with no answer object a system;
 //   5. a ground set's water: the same masks, a record at a time; the set made once a key and uploaded a few layers a breath.
 import { test } from 'node:test';
@@ -142,43 +143,34 @@ test('OW-HITCH blood: the sheet\'s prewarm asks with a wait, and on a page that 
 
 // ─── 3. THE SNOW UNDER A BLADE ──────────────────────────────────────
 
-test('OW-HITCH snow: a blade\'s and the feet\'s snow reads its pixel\'s drawn slope (the host\'s normalOf) and asks the stream no height; a host that hands none reads the heights as before; the world host hands the terrain\'s own normals (mutants: the heights read with a normal handed; the normal\'s x read for its y)', async () => {
+// PIN MOVED (SNOW-FACE, FIELD BUGS 2026-10-21 - bible/01-Overview/bugs/Field-Bugs-2026-10-21.md; merged after this):
+// the snow has no slope now, so the host asks the stream neither a height nor a normal - this test's own end, no lookups
+// for a blade the grass places, held whole - and a cliff under a full cover is buried as level ground is (its tile has no
+// rock to shed to). The normalOf door this test pinned went with the slope.
+test('OW-HITCH snow: a blade\'s and the feet\'s snow asks the stream nothing - no height and no normal, on a cliff or on level ground - and a full cover buries every blade and whitens the feet on both (SNOW-FACE: no slope); the world host hands the snow host no ground reader', async () => {
   const woods = () => CLIMATES.Woodlands;
   setAirGround({ climateAt: woods, groundAt: () => 0, topAt: () => 900 });
   try {
     const t = (406 * 360 + 215) * 1440;
     const state = { compensation: [0, 0, 0], mapOrigin: { x: 200, y: 100 }, current: { x: 200, y: 100 }, pixelTranslation: (px, py, out = [0, 0, 0]) => { out[0] = (px - 200) * 819.2; out[1] = 0; out[2] = -(py - 100) * 819.2; return out; } };
     const p = { px: 200, py: 100 };
-    const rig = (normalOf) => {
-      let heights = 0, normals = 0;
+    for (const name of ['steep', 'flat']) {
+      let asked = 0;
+      const ny = name === 'steep' ? 0.31 : 1;
       const host = createSnowCoverHost({ renderer: { tileArrays: new Map() }, climateAt: woods, mapHeight: 500, stateOf: () => state, builtOf: () => new Map([['200,100', p]]),
-        heightAt: (x) => { heights++; return x * 0.05; }, owns: () => true, markReskin: () => {}, now: () => t, place: () => ({ px: 200, py: 100 }),
-        normalOf: normalOf && ((q, lx, lz, out) => { normals++; return normalOf(q, lx, lz, out); }) });
-      return { host, heights: () => heights, normals: () => normals };
-    };
-    const steep = (q, lx, lz, out) => { out[0] = 0.95; out[1] = 0.31; out[2] = 0; return out; };   // a cliff's face sheds its snow
-    const flat = (q, lx, lz, out) => { out[0] = 0; out[1] = 1; out[2] = 0; return out; };
-    const results = {};
-    for (const [name, n] of [['steep', steep], ['flat', flat], ['none', null]]) {
-      const r = rig(n);
-      await r.host.settle({ left: () => Infinity, breathe: async () => {} });
-      for (const l of r.host._lines.values()) { l.shown = Float32Array.of(-500, -400, -300); l.target = Float32Array.from(l.shown); }
+        heightAt: (x) => { asked++; return x * (name === 'steep' ? 3 : 0); }, normalOf: (q, lx, lz, out) => { asked++; out[0] = 0; out[1] = ny; out[2] = 0; return out; },
+        owns: () => true, markReskin: () => {}, markRebuild: () => {}, now: () => t, place: () => ({ px: 200, py: 100 }) });
+      await host.settle({ left: () => Infinity, breathe: async () => {} });
+      for (const l of host._lines.values()) { l.shown = Float32Array.of(-500, -400, -300); l.target = Float32Array.from(l.shown); }
       let buried = 0;
-      for (let k = 0; k < 40; k++) buried += r.host.buries(p, 100 + k, 200, 100 + k, -200, 10) ? 1 : 0;
-      const feet = r.host.winterAt([5, 10, 5], false);   // in pixel (200, 100) - the built one
-      results[name] = { buried, feet, heights: r.heights(), normals: r.normals() };
+      for (let k = 0; k < 40; k++) buried += host.buries(p, 100 + k, 200, 10) ? 1 : 0;
+      assert.deepEqual([buried, host.winterAt([5, 10, 5], false), asked], [40, true, 0], `${name}: every blade buried, the feet in snow, the stream asked nothing`);
     }
-    assert.deepEqual([results.flat.buried, results.flat.feet], [40, true], 'level ground under a full cover: every blade buried, the feet in snow');
-    assert.deepEqual([results.steep.buried, results.steep.feet], [0, false], 'a cliff sheds it - by the normal handed, not the heights (which say a gentle slope)');
-    for (const name of ['flat', 'steep']) {
-      assert.equal(results[name].heights, 0, `${name}: no height asked`);
-      assert.equal(results[name].normals, 41, `${name}: the slope asked of the pixel, a blade and the feet`);
-    }
-    assert.ok(results.none.heights > 0 && results.none.normals === 0, 'no normalOf: the stream\'s heights, as before');
   } finally { setAirGround(null); }
   const { readFileSync } = await import('node:fs');
   const w = readFileSync(new URL('../../src/scenes/world.js', import.meta.url), 'utf8');
-  assert.ok(w.includes('normalOf: (p, lx, lz, out) => (p.groundNormals && (p._stride ?? 1) === 1 ? surfaceNormalAt(p.groundNormals, lx, lz, out) : surfaceNormalFromSamples(p.samples, lx, lz, p._stride ?? 1, out)) });'), 'the world host hands the terrain\'s own normals (the vertex normals the fragment sheds its snow by)');
+  const call = w.slice(w.indexOf('const snowCover = createSnowCoverHost('), w.indexOf('const trees = createTreesHost('));
+  assert.ok(call.length > 0 && !/heightAt|normalOf/.test(call), 'the world host hands the snow host no ground reader');
 });
 
 // ─── 4. THE SNOWPACK'S YEAR AND THE WEATHER'S SYSTEMS ───────────────

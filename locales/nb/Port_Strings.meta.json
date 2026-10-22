@@ -7319,6 +7319,16 @@
   "tr": "7b26e0804a56",
   "by": "claude-in-session"
  },
+ "chargen.class.skills.major": {
+  "en": "85c39f1a36a9",
+  "tr": "36dfbc9ea521",
+  "by": "claude-in-session"
+ },
+ "chargen.class.skills.primary": {
+  "en": "7bb8fba31082",
+  "tr": "7bb8fba31082",
+  "by": "claude-in-session"
+ },
  "chat.help.breach": {
   "en": "0abe32307fc8",
   "tr": "faef60f1eee0",
@@ -9642,6 +9652,21 @@
  "festival.cakes": {
   "en": "42b5d392c591",
   "tr": "a8a8aad02e3e",
+  "by": "claude-in-session"
+ },
+ "festival.finds.full": {
+  "en": "330c9b302a2c",
+  "tr": "ca32b30d597d",
+  "by": "claude-in-session"
+ },
+ "festival.finds.today": {
+  "en": "93be20c18f10",
+  "tr": "d3a82284973b",
+  "by": "claude-in-session"
+ },
+ "festival.finds.todayFull": {
+  "en": "78bff0d44c1f",
+  "tr": "8e55bf3d6466",
   "by": "claude-in-session"
  },
  "festival.found": {
@@ -26164,6 +26189,16 @@
   "tr": "c1118ea5618b",
   "by": "claude-in-session"
  },
+ "rvn.errand.left.realHours": {
+  "en": "09ae5f9750ec",
+  "tr": "6c423d5c383b",
+  "by": "claude-in-session"
+ },
+ "rvn.errand.left.realMinutes": {
+  "en": "fa15b0cca051",
+  "tr": "0fc198c98f2f",
+  "by": "claude-in-session"
+ },
  "rvn.errand.no.abroad": {
   "en": "3d2f752aa20c",
   "tr": "5f35710ce745",
@@ -26525,8 +26560,8 @@
   "by": "claude-in-session"
  },
  "rvn.roster.abroadLived": {
-  "en": "02ad56e2e2bb",
-  "tr": "48b8199f1aa6",
+  "en": "a57a6cdb3d6f",
+  "tr": "ebf36dbaa4c1",
   "by": "claude-in-session"
  },
  "rvn.roster.broken": {
@@ -28177,6 +28212,21 @@
  "schools.wardwright.spell": {
   "en": "7bfc23d6b57d",
   "tr": "013a945f02fd",
+  "by": "claude-in-session"
+ },
+ "sd.through.opens": {
+  "en": "1e72c7ca985d",
+  "tr": "556a2d96d031",
+  "by": "claude-in-session"
+ },
+ "sd.through.title": {
+  "en": "45d79739680d",
+  "tr": "52a5a234299e",
+  "by": "claude-in-session"
+ },
+ "sd.through.to": {
+  "en": "9adecd5690cd",
+  "tr": "cbe743bdf6cc",
   "by": "claude-in-session"
  },
  "sea.board.cargoVoid": {

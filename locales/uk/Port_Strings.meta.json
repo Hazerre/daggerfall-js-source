@@ -84,6 +84,16 @@
   "tr": "dd7246f17fd4",
   "by": "claude-in-session"
  },
+ "chargen.class.skills.major": {
+  "en": "85c39f1a36a9",
+  "tr": "c910d5b18490",
+  "by": "claude-in-session"
+ },
+ "chargen.class.skills.primary": {
+  "en": "7bb8fba31082",
+  "tr": "7bb8fba31082",
+  "by": "claude-in-session"
+ },
  "combat.leadLeftHand": {
   "en": "9a84e174d1b8",
   "tr": "30c81b0433f6",
@@ -1022,6 +1032,21 @@
  "saddle.hello.none": {
   "en": "c4f18acb1d78",
   "tr": "deb3c07fba7f",
+  "by": "claude-in-session"
+ },
+ "sd.through.opens": {
+  "en": "1e72c7ca985d",
+  "tr": "54a07408d226",
+  "by": "claude-in-session"
+ },
+ "sd.through.title": {
+  "en": "45d79739680d",
+  "tr": "8d9a72cd1c00",
+  "by": "claude-in-session"
+ },
+ "sd.through.to": {
+  "en": "9adecd5690cd",
+  "tr": "08d64ae7297e",
   "by": "claude-in-session"
  },
  "sea.exchange.band": {

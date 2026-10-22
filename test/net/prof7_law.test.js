@@ -185,8 +185,9 @@ test('PROF7 law: the loom cures two hides to a leather (a Tanner\'s two a unit -
     // PIN MOVED (FIELD BUGS 2026-10-20h DEX-HIDES): the Mudcrab Chitin, the Wolf Pelt and the Boar Hide to Cured Leather,
     // each by its tier among the ten's - a leather's cures cheapest first, as a chain plans them
     ['cure:rat', 'leather:cured', '2 hide:rat', 'loom', 1, 'tanner', 2, 50, null], ['cure:mudcrab', 'leather:cured', '2 hide:mudcrab', 'loom', 1, 'tanner', 2, 50, null],
-    ['cure:bat', 'leather:cured', '2 hide:bat', 'loom', 1, 'tanner', 2, 50, null], ['cure:bear', 'leather:cured', '2 hide:bear', 'loom', 1, 'tanner', 2, 50, null],
+    ['cure:bat', 'leather:cured', '2 hide:bat', 'loom', 1, 'tanner', 2, 50, null],
     ['cure:wolf', 'leather:cured', '2 hide:wolf', 'loom', 1, 'tanner', 2, 50, null], ['cure:boar', 'leather:cured', '2 hide:boar', 'loom', 1, 'tanner', 2, 50, null],
+    ['cure:bear', 'leather:cured', '2 hide:bear', 'loom', 1, 'tanner', 2, 50, null],   // PIN MOVED (AUDIT FB1021 L2-1): the Ram Kit's hide last of its tier
     ['cure:tiger', 'leather:cured', '2 hide:tiger', 'loom', 1, 'tanner', 2, 50, null],
     ['cure:scorpion', 'leather:hardened', '2 hide:scorpion', 'loom', 1, 'tanner', 2, 50, null], ['cure:slaughterfish', 'leather:hardened', '2 hide:slaughterfish', 'loom', 1, 'tanner', 2, 50, null],
     ['cure:dreugh', 'leather:hardened', '2 hide:dreugh', 'loom', 1, 'tanner', 2, 50, null], ['cure:dragonling', 'leather:hardened', '2 hide:dragonling', 'loom', 1, 'tanner', 2, 50, null],

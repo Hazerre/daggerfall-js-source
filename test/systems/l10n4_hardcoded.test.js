@@ -455,7 +455,7 @@ const HARDCODED = {
   'src/systems/portPlaces.js': 8,
   'src/systems/portalStone.js': 23,
   'src/systems/potionRecipes.js': 15,
-  'src/systems/professions/profItems.js': 35,
+  'src/systems/professions/profItems.js': 36,   // AUDIT FB1021 (merged onto FB1020h's DEX-HIDES): 'Mudcrab Chitin' a mass, as the Scorpion's
   'src/systems/professions/profTemplates.js': 1,
   'src/systems/quest/actions.js': 11,
   'src/systems/quest/machine.js': 1,

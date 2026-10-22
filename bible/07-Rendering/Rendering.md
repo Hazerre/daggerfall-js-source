@@ -15,7 +15,7 @@ directory by `test/bible/audit18_bible_docs.test.js`:
 - `shipFlagPass.js` - SHIP-COLOURS (`03-World/Naval-Refit.md`): a ship's flag at her masthead - cloth of FLAG_COLS by FLAG_ROWS quads, its hoist nailed at her FlagObject and its fly down its forward (her wind), a wave from the hoist to the fly growing with the wind, the sheet bent whole toward the staff in a light air, its normal the wave's slope; its picture the flag painted once on a canvas (ui/flagArt.js drawFlag), the shape's cut discarded, lit and fogged as the banners; one foreign pass on the world host, after the banners (scenes/shipFlagHost.js the flags)
 - `windfallSway.js` - WINDFALL1 WINDFALL's VERTEX WIND (2026-10-08): the mod's billboard-batch law as BB_VS's chunk (`windfallLean` - the heading's 15% and 85% along the quad's right, the sway and the shiver by the profile, a 12 m cell's phase with a fifth of the flat's own, 0.8-1.2 of it a flat), the eight numbers a frame hands it (`windfallUniforms`), a batch's share under either law (`swayShare`), the shadow's bound (`windfallLeanMax`) and the anchor that carries the floating origin (`windfallAnchorAfterShift`, periodic hashes so a wrap moves no flat). `07-Rendering/Windfall.md`
 - `windfallParticles.js` - WINDFALL1 WINDFALL's PARTICLES: the gust's leaves, the ambient leaves and the winter boughs' snow - the mod's three Unity particle systems (box emitter, velocity over lifetime, noise, spin, an 8 x 8 sheet) run on the CPU and drawn as one instanced cutout each, point-filtered as the mod imports its pictures, lit as the flats round the player are. A foreign pass on both exterior hosts. `07-Rendering/Windfall.md`
-- `snowCoverGlsl.js` - PRECIP4 THE GROUND'S SNOW (2026-10-19, the owner: "If its snowing in one area and raining in the next, the transition should be seamless both in ground texture and everything else"): the chunk both terrain programs are built from right after ECOTONE1's border - each fragment's snowline read between its pixel's corners (`uSnowH10/H50/H90`), its cover off its own height (`snowAtHeight`, systems/weather/snowpack.js `coverAtHeight` term for term), shed on a steep face, broken into patches on the world tile's own lattice, and its own climate's WINTER record of the same tile in that share (the set's twin array's second half, `TWIN_LAYERS` on - renderer.js `makeTwinArray`; a border's neighbours' twins by the ecotone's own weights, `ecoWeights`). No unit of its own. `07-Rendering/Biome-Precipitation.md`.
+- `snowCoverGlsl.js` - PRECIP4 THE GROUND'S SNOW (2026-10-19, the owner: "If its snowing in one area and raining in the next, the transition should be seamless both in ground texture and everything else"): the chunk both terrain programs are built from right after ECOTONE1's border - each fragment's snowline read between its pixel's corners (`uSnowH10/H50/H90`), its cover off its own height (`snowAtHeight`, systems/weather/snowpack.js `coverAtHeight` term for term), a steep face keeping it (SNOW-FACE, `01-Overview/bugs/Field-Bugs-2026-10-21.md`: no slope - AUDIT FB1021 L1-3), broken into patches on the world tile's own lattice, and its own climate's WINTER record of the same tile in that share (the set's twin array's second half, `TWIN_LAYERS` on - renderer.js `makeTwinArray`; a border's neighbours' twins by the ecotone's own weights, `ecoWeights`). No unit of its own. `07-Rendering/Biome-Precipitation.md`.
 - `snowfallGlsl.js` - SNOWFALL1 SNOWFALL's SNOW (2026-10-08, Mac: "These should be on by default and integrate into our enhanced environments seamlessly"): the mod's DynamicSnow shader read back off its DXBC - its vertex law (`SNOW_VS`: the depth a context resolves to, the track mask's erosion, the static mask's lift and surface offset, the tier's edge, inner and outer fades, the middle ring's morph onto the blanket) and its fragment's snow (the coverage, a Basic Roads track tile's edge, the track's remaining snow and its compression darkening over the mod's albedo), spliced into the GROUND'S OWN fragment program in place of its tile decode (`snowTerrainFs` - classic TERRAIN_FS, the lane's EL_TERRAIN_FS, the classic-shadows lane's), so the snow takes every light the ground takes: the sun and its shadow map, the moon, the clouds' shadow, the lanterns, the fog. Its pictures on units 16-20 (`SNOW_UNITS`), above every unit a world program reserves. `03-World/Snowfall.md`.
 - `snowfallSurface.js` - SNOWFALL1 THE SNOW ON THE GPU: the runtime's tiers as meshes and masks (the local window's grid and its three masks, the middle ring's 257 x 257 grid with its history, static and context masks, the far track mask, one 65 x 65 mesh and static mask a blanket tile - shared uv and index), uploaded as the runtime changes them (a track's dirty rectangle, the ring's history at most every 0.1 s, a tile's overlay as it is built or let go) and drawn nearest first through the renderer's `drawSnow`. Its uploads run outdoors alone, before the host's world frame opens (beginFrame forgets every state shadow an upload could move); indoors they wait for the door. Owned by `scenes/snowfallHost.js`, disposed with it.
 - `ecotoneGlsl.js` - ECOTONE1 BLENDED CLIMATES: the ground's share of its neighbours, one GLSL chunk in both terrain programs (renderer.js TERRAIN_FS and the lane's EL_TERRAIN_FS, called right after the tile's own sample) - the twin of `world/ecotone.js` term for term (the hash, the world lattices, the constants), the neighbours' tile sets on units 3-5 (`ECO_UNITS`), each neighbour's slot (`uEcoSide`, `uEcoCorner`) and the pixel's first world tile (`uEcoOrigin`); a pixel with no border is one uniform test. The section ECOTONE1 below
@@ -1511,6 +1511,37 @@ See `Dynamic-Skies.md` for DS1: BadLuckBurt and carademono's Dynamic Skies mod, 
 See `Seasons-Iliac-Bay.md` for SIB1: RosyTheRascal's Seasons of the Iliac Bay mod, ported 1:1 with permission - the woodland's autumn, spring and winter on the nature flats, its textures read from the player's own copy of the mod (2026-09-05).
 
 `EE9-Surface-Field-Design.md` is the surface field's design - snow that builds, deforms and melts, on the chunker's own grid - written before its code, per the arc's law.
+
+## SWAY-SOFT - A GENTLER GRASS SWAY, FAINTER WIND WISPS (2026-10-21)
+
+Mac, 2026-10-21: *"Can we make the grass sway more subtle and the wind
+effect more subtle and transparent?"* Numbers only - neither law changes
+shape. The lab's grass field and its lean are our own (GR2, AUDIT 39
+F1), not a Daggerfall Unity system, so there is no DFU number to keep.
+
+- **The grass.** The lab's lean (`LAB_GRASS_VS`, so the blade, the pixel
+  style and the meadow's cards alike) is `wdir * push * 0.032` where it
+  was 0.055, and the push `|wind| x (0.6 + gust x 0.45)` where it was
+  `0.55 + gust x 0.75`: a blade's top leans under half as far at a full
+  gust (0.032 against 0.0715 a metre a second of wind), and the gust
+  pulses 1.75x over the steady push where it pulsed 2.4x - a field that
+  breathes, not one that whips. `grassMeadow.js`'s `LAB_LEAN_PER_PUSH`
+  and `LAB_GUST_MAX` (0.032, 1.05) follow the shader, so `MEADOW_WIND_REACH`
+  and the cards' culling box shrink with it. The gust's travel (`uTime *
+  1.7`, `along * 0.35`) is untouched. The trees' sway (`BB_VS`) is not
+  the grass's and is not changed.
+- **The wisps.** `WISP_LOOK`'s alpha is 0.09/0.11, under half
+  DISC17-A's 0.20/0.24: a streak at its darkest is 0.20 in a gale and
+  0.09 in a calm (0.44 and 0.20 before). Its length is 1.2 m plus up to
+  1.8 (WIND3's 1.6 plus 2.4), so each mark is shorter as well as fainter.
+  The count (`WISP_MAX` 120, the calm's 10), the colour and the sand's
+  look are unchanged.
+- **Pinned** by `grassmeadow.test.js` (the constants, the shader's lines,
+  the cards' wind lean and reach), `grasspx.test.js` (the lean line),
+  `gr3_wind.test.js` (a blade still visibly moves: about 9% of its height
+  over half a gust, the floor 6%), and `disc17.test.js`,
+  `wind3_windworld.test.js` and `weather2d_sandstorm.test.js` (the look's
+  alpha and length, the darkest streak through both shaders).
 
 ## ECOTONE1 - BLENDED CLIMATES: A BORDER, NOT A LINE (2026-10-07, a port departure)
 
