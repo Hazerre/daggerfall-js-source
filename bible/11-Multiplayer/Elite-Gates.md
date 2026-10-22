@@ -10255,3 +10255,31 @@ SPIRE-FIRST-severide-not-granted re-aimed as SPIRE-FIRST-serveride-not-granted, 
 be seen by their character is seen so in Discord too. A list in config is still a person's edit: Hour's First's names
 came from the clears' claims (`sd-clears.yml`), which carry the account; the Spire's company has no such workflow, so
 the next name put on a handle list off the herald is checked against the account first.
+
+### EG-SPANS-HELD - 2026-10-22 - THE SPANS' CLOCK PIN ON A HELD PAGE CLOCK
+
+The site's deploy 1592 (#1126's merge, `d4c96bea7`) was refused by `verify / tests 8/8`, on the one failure among that
+shard's 3,948 tests: EG-ZD's THE SPANS' CLOCK in `test/net/eliteGates/egz_return.test.js`, *not re-anchored for a wander
+under the step*. The tree was #1126's head's to the byte (`fb8bde413`), whose check had passed the same pin, and AUDIT
+QUESTLINES had seen it fail once under load and pass alone (`01-Overview/audits/Audit-Questlines.md`, "Not this arc's") -
+named there for this arc, and taken up here.
+
+**Why it failed.** `spanSeconds` reads render/deadlands.js `anchoredClock`, which carries the seconds on the page's clock
+(`performance.now()`) from an anchor on the wall. The pin held the wall (`Date.now`) and not the page's clock: between the
+two reads it compared, the wall stepped the round trip's 100 ms and the page's clock moved by whatever the runner spent on
+a frame and a ping's answer - and the pin allowed that 50 ms. A busy runner spent more, and the seconds moved by it, as
+the law says they should: the pin was wrong, not the clock. Reproduced: a 60 ms stall between the two reads fails it on
+that assertion.
+
+**The fix.** The pin holds the page's clock too (`t.mock.method(performance, 'now', ...)`, held still), so the seconds move
+only when the anchor is taken again: a wander under the step leaves them equal to the bit, where taking the anchor again
+moves them 103 ms. The same stall passes it.
+
+**The pins.** `tools/mutants/egz_return.json` - 71, every one dead on the held clock, the spans' five among them
+(EGZ-spans-clock-outside, EGZ-reanchor-every-sample, EGZ-reanchor-never, EGZ-host-spans-on-the-welcome and
+EGZ-host-egnow-on-the-welcome).
+
+**Left, said.** `prof3_client`, the other test the audit named, strikes the Anvil on real 400 ms timers; it is the
+Anvil's arc's, and not touched here.
+
+**The game.** Nothing in `src/` moved. **The four hosts.** None touched (HOST-SPLIT).
