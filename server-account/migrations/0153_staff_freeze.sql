@@ -48,8 +48,10 @@ CREATE TABLE IF NOT EXISTS staff_chat_threads (
 );
 CREATE INDEX IF NOT EXISTS staff_chat_threads_open ON staff_chat_threads (last_at) WHERE closed_at IS NULL;
 
+-- `id` is the rowid - no AUTOINCREMENT, whose sequence table the schema does not carry (0126's mod_actions' reason);
+-- it is the nudge's `sl` and the player's read cursor.
 CREATE TABLE IF NOT EXISTS staff_chat_lines (
-  id      INTEGER PRIMARY KEY AUTOINCREMENT,
+  id      INTEGER PRIMARY KEY,
   player  TEXT NOT NULL,
   at      INTEGER NOT NULL,
   author  TEXT NOT NULL,
