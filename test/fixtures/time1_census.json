@@ -1226,6 +1226,12 @@
    "has": "night: () => deadWalk(dayOfYearFromMinutes(Math.floor(skyMinutes())), nowMs()),",
    "clock": "sky",
    "why": "WITCH1: the Wyrd Sister's window says the night the dead walk"
+  },
+  {
+   "file": "src/net/sea/seaSeasonLaw.js",
+   "has": "arenaSeasonOf(Math.floor(wallMsForClassicMinutes(",
+   "clock": "event",
+   "why": "a voyage's game day as the realm's wall time - the season of the realm's eight weeks it falls in (SEA-SEASON, the arena's)"
   }
  ]
 }

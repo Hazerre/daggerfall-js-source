@@ -42,6 +42,7 @@ import { isNight } from '../world/worldClock.js';
 import { isCellRoom, mapPixelOfWire } from '../net/wire.js';
 import { foeStatsRefusal } from '../net/foeBounds.js';   // FOE-BOUNDS: the most health a streamed foe can legally have
 import { wildHere, wildMask, wildRingAt, WILD_NEAR_PX } from '../systems/wild/wildZone.js';
+import { inEther } from '../world/ethericSea.js';   // ETHER-WILD: the open sea's foes, read from Veilhaven's peace
 import { KNIGHT_CITYWATCH_ID } from '../characters/enemy/enemyEntity.js';
 import { importPublicKeyB64 } from '../net/identityToken.js';
 import { serviceBase } from '../net/accountClient.js';
@@ -413,6 +414,7 @@ export function createGrantHost({ session, climateAt = null, now = () => Date.no
     if (!mask || wildHere()) return true;
     if (lane !== 'street' || !isCellRoom(session()?.room) || !Array.isArray(r?.f)) return false;
     const [px, py] = mapPixelOfWire(r.f[0], r.f[2]);
+    if (inEther(px, py)) return true;   // ETHER-WILD: past the Veil the zone is everywhere but Veilhaven's peace - a foe stood by an owner a stride over its edge is the zone's (a wider bound only allows)
     for (let dy = -WILD_NEAR_PX; dy <= WILD_NEAR_PX; dy++) for (let dx = -WILD_NEAR_PX; dx <= WILD_NEAR_PX; dx++) if (wildRingAt(px + dx, py + dy, mask) > 0) return true;
     return false;
   }
