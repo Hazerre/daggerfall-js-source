@@ -180,7 +180,11 @@ two mountain words C6 and C7 moved through the text core: world.js 346, revenant
   `fb1018b_burntsaid` and `fb1020c_cabinfoes`: all dead.
 - THE TOUCHED RUN: every record of every list that names a file the fixes changed outside the six great hosts, and
   the great hosts' (world.js, the relay's index.js, navalHost.js, wire.js, comeSailAway.js, online.js) records whose text
-  the fixes touched or whose tests they moved - 1,642 records. See What stands.
+  the fixes touched or whose tests they moved - 1,642 records (1,641 by name), run over the fixed tree and, once main
+  was merged in, the rest of them over the merge: 1,633 dead, 7 equivalent as recorded (ACS-B4-mine-not, ACS-D17-fight,
+  ACS-S24-card-gate, ACS-X2-yes-sailing, ACS-X4-mouth-host, HOUSE-LOSS-undo-unspends-under-a-character,
+  INT9-THE-FALLEN-STRUCK - each with its why in its list), and one survivor, INT10-MEND-CLEARS-THE-CASTS (`int_lane2` -
+  a duel's casts kept through a mend), which survives on a clean `main` as well: INT10's to answer, not this audit's.
 
 ## What stands
 
@@ -194,5 +198,9 @@ two mountain words C6 and C7 moved through the text core: world.js 346, revenant
   (the board read's retry beside the boarding's `SEA_BOARD_RETRY_MS`; the compass's word beside the dungeon echo's
   `wayWord`) - renamed `SEA_BOARD_READ_RETRY_MS` and `etherWayWord`. All four mended, their suites and every gate (lint,
   types, the bible's, the cites, the relay's hash, the hosts' ceilings, the l10n ratchet) green after.
+- THE MERGE OF MAIN (LEASE1, PARTY-PING, SPAWN-THIN, STAFF-PANEL1 and the rest): the sea renumbered world245, acct169 and
+  migrations 0145-0147; bootWorld under main's ceiling again (two pure helpers to the module's scope) and the world
+  host's frame under the PERF-V8 tripwire (`frameSnowCover`). The whole suite over the merge - 32,902 tests - failed
+  only that tripwire, mended.
 - Not verified here: two captains' broadsides in real browsers against the deployed relay; the hold's shut door in a
   running world; a fleet's flagship sunk by two captains at once online.
