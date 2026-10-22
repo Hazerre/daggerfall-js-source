@@ -49,7 +49,7 @@ export const CSA_PEER_SNAP_S = 2.5;
 /** AUDIT SHIPS A7: the step (m) past which a boat whose word says way `v` (the scene's, m/s) snaps. */
 export const peerSnapM = (v) => Math.max(CSA_PEER_SNAP_M, Math.hypot(v?.[0] ?? 0, v?.[2] ?? 0) * CSA_PEER_SNAP_S);
 /** CSA-K: how long a word's way leads the boat past its arrival - a word late past that leads no further: the boat
- *  holds where the way took it until the next word. SEA-GLIDE (FIELD BUGS 2026-10-22c, Dahazed: "the boss fight turns into
+ *  holds where the way took it until the next word. SEA-GLIDE (FIELD BUGS 2026-10-22d, Dahazed: "the boss fight turns into
  *  dodging friendly ships while they randomly speed up / warp in front of you"): two full frames' spacing (FOES_FULL_MS) -
  *  the full frame is the one word a crowded cell's relay always carries (FOES-FIRST drops a room's deltas past its
  *  budget), and FOES-HOLD may hold it for its turn. At CSA-K's 0.6 s a boat under way between two full frames stood still
@@ -57,19 +57,19 @@ export const peerSnapM = (v) => Math.max(CSA_PEER_SNAP_M, Math.hypot(v?.[0] ?? 0
  *  ship at 12. Measured on a replica of this law (the record's table): words on the full frames alone, each held up to
  *  1.5 s, stall no frame at 4 s and 1% at the sea's 2.5 (navalHost.js PREDICT_MAX_S). A boat that stops is led on until
  *  her stop's word comes, on the next full frame - up to v x 2 s plus its lateness past where she stopped, and glided
- *  back (AUDIT FB1022c C1, CSA_PEER_LED_SETTLE_M). */
+ *  back (AUDIT FB1022d C1, CSA_PEER_LED_SETTLE_M). */
 export const CSA_PEER_LEAD_MAX = (2 * FOES_FULL_MS) / 1000;
 /** SEA-GLIDE: what the word says a boat UNDER WAY is off by is taken up at CSA_PEER_CATCH a second, never faster than
  *  CSA_PEER_CATCH_MPS plus CSA_PEER_CATCH_SHARE of her way - the sea's PUPPET-GLIDE shape (navalHost.js PUPPET_CATCH,
  *  "Ai ships move very janky and quick", FIELD BUGS 2026-10-02d), so a word late or early is never drawn as a surge; she
- *  is led on her way meanwhile (CSA-K). AUDIT FB1022c C3: the share a quarter, not PUPPET-GLIDE's tenth - that was sized
+ *  is led on her way meanwhile (CSA-K). AUDIT FB1022d C3: the share a quarter, not PUPPET-GLIDE's tenth - that was sized
  *  for a relay's jitter, and a boat whose words come on the full frames alone is left metres off by a hitch, a bumper's
  *  shove or a stop, which a tenth took 10-15 s to take up (a quarter: 4-7 s, drawn at most 1.27 times her way). A boat
  *  lying still eases onto her word as before, and a step past the snap still snaps. */
 export const CSA_PEER_CATCH = 1;
 export const CSA_PEER_CATCH_MPS = 0.3;
 export const CSA_PEER_CATCH_SHARE = 0.25;
-/** AUDIT FB1022c C1: the residual (m) under which a boat led at a way she no longer has is taken up - past it, her snap
+/** AUDIT FB1022d C1: the residual (m) under which a boat led at a way she no longer has is taken up - past it, her snap
  *  and the glide back are judged by the way she was led at (CSA-K's snap by the word's way alone teleported a boat
  *  that stopped between two full frames, and left a passenger on a still copy of her). */
 export const CSA_PEER_LED_SETTLE_M = 1;
@@ -82,7 +82,7 @@ export function glideToward(shown, target, dt, way) {
   const take = off > 1e-9 ? Math.min(off * (1 - Math.exp(-CSA_PEER_CATCH * d)), (CSA_PEER_CATCH_MPS + CSA_PEER_CATCH_SHARE * way) * d) / off : 0;
   return [shown[0] + ex * take, shown[1] + (target[1] - shown[1]) * (1 - Math.exp(-12 * d)), shown[2] + ez * take];   // C7: the level's ease inline
 }
-/** AUDIT FB1022c C2: where a way `v` (a second's, in the wire frame) turning `turn` degrees a second carries her in `t`
+/** AUDIT FB1022d C2: where a way `v` (a second's, in the wire frame) turning `turn` degrees a second carries her in `t`
  *  seconds, on the water's plane - along the turn's ARC, the heading turned as the helm turns it (Rotate(up * turn),
  *  quatAngleAxis's sense: x toward -z); straight when she does not turn. Led straight for CSA_PEER_LEAD_MAX, a boat
  *  circling at 10 degrees a second stood 12 m off her track with her hull 19 degrees off it (20 m at 20). Pure.
@@ -170,7 +170,7 @@ export function createComeSailAwayPeers({ pool, selfId = () => null, log = conso
         if (had[j].hull !== l.boats[i].hull) continue;
         if (l.boats[i].uid && had[j].boat.uid && l.boats[i].uid !== had[j].boat.uid) continue;
         const d = dist2(had[j].wire, l.boats[i].position);
-        if (keepAboard(had[j].boat) && dist2(had[j].boat.GameObject.position, l.toScene(l.boats[i].position)) > peerSnapM([Math.max(Math.hypot(...sceneWay(l.boats[i], l.toScene)), had[j].ledWay ?? 0), 0, 0]) ** 2) continue;   // AUDIT FB1022c C1: by the way she was led at, as her snap
+        if (keepAboard(had[j].boat) && dist2(had[j].boat.GameObject.position, l.toScene(l.boats[i].position)) > peerSnapM([Math.max(Math.hypot(...sceneWay(l.boats[i], l.toScene)), had[j].ledWay ?? 0), 0, 0]) ** 2) continue;   // AUDIT FB1022d C1: by the way she was led at, as her snap
         pairs.push([d, had[j].slot === i ? 0 : 1, i, j]);
       }
     }
@@ -224,7 +224,7 @@ export function createComeSailAwayPeers({ pool, selfId = () => null, log = conso
     const lead = Math.min(Math.max(0, age), CSA_PEER_LEAD_MAX);
     const grow = lead - Math.min(Math.max(0, age - step), CSA_PEER_LEAD_MAX);   // the way's share of this frame: what the lead grew by (none past the cap)
     const v = w.velocity, turn = w.turn ?? 0;
-    const led = v ? wayOver(v, turn, lead) : null;   // AUDIT FB1022c C2: along the turn's arc
+    const led = v ? wayOver(v, turn, lead) : null;   // AUDIT FB1022d C2: along the turn's arc
     const at = led ? [w.position[0] + led[0], w.position[1], w.position[2] + led[1]] : w.position;
     const target = toScene(at);
     let shown = s.shown;
@@ -234,7 +234,7 @@ export function createComeSailAwayPeers({ pool, selfId = () => null, log = conso
       shown = [shown[0] + b[0] - a[0], shown[1] + b[1] - a[1], shown[2] + b[2] - a[2]];
     }
     const way = sceneWay(w, toScene), speed = Math.hypot(way[0], way[2]);
-    // AUDIT FB1022c C1: the way she was led at stands until what she is off by is taken up - a boat that stopped between
+    // AUDIT FB1022d C1: the way she was led at stands until what she is off by is taken up - a boat that stopped between
     // two full frames is judged, snapped and glided back by it, never by a word at rest she ran on past
     const ledWay = Math.max(speed, s.ledWay ?? 0);
     const snap = peerSnapM([ledWay, 0, 0]);   // AUDIT SHIPS A7: by her way
@@ -254,7 +254,7 @@ export function createComeSailAwayPeers({ pool, selfId = () => null, log = conso
     s.jumped = next.jumped;
     s.shown = next.position;
     s.turn = next.rotation;
-    s.ledWay = next.ledWay;   // AUDIT FB1022c C1
+    s.ledWay = next.ledWay;   // AUDIT FB1022d C1
     s.vel = next.way;   // NAV-H: her way over the water as her word says it - what a captain at sea leads his guns by (scenes/naval/navalHost.js contacts); C7: the pose's own
     s.boat.GameObject.position = s.shown;
     s.boat.GameObject.rotation = s.turn;

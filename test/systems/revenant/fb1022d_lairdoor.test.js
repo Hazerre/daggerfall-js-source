@@ -1,4 +1,4 @@
-// FIELD BUGS 2026-10-22c LAIR-DOOR (bible/01-Overview/bugs/Field-Bugs-2026-10-22c.md, report 4): fogs, on Zenako's behalf -
+// FIELD BUGS 2026-10-22d LAIR-DOOR (bible/01-Overview/bugs/Field-Bugs-2026-10-22d.md, report 4): fogs, on Zenako's behalf -
 // "the Revenant lair designated on the Revenants page is inaccessible -- there are no interactable doors, hatches or
 // openings to the marked dungeon ... The Stuvam Graveyard, south of Ceriburea ... approximate coordinates 565, 427". A
 // revenant's lair (RVN7, Revenants.md 18.1) is one of the game's own dungeons in the boards' ring about a deed - and 28 of
@@ -213,7 +213,7 @@ const stuvamRevenant = (p) => {
   return r;
 };
 
-test('AUDIT FB1022c B1: a load\'s first quest tick, before the character\'s mirror is read in, mends nothing - the mirror\'s newer copy would put the lair back for the session; the page, which reads the mirror in, mends it, and the mirror keeps the mend (mutants: mended before the mirror; asked by id across a merge; the mirror not written)', () => {
+test('AUDIT FB1022d B1: a load\'s first quest tick, before the character\'s mirror is read in, mends nothing - the mirror\'s newer copy would put the lair back for the session; the page, which reads the mirror in, mends it, and the mirror keeps the mend (mutants: mended before the mirror; asked by id across a merge; the mirror not written)', () => {
   const p = me();
   const r = stuvamRevenant(p);
   const save = JSON.parse(JSON.stringify(modSaveRecords()[N.REVENANT_SAVE]));
@@ -228,7 +228,7 @@ test('AUDIT FB1022c B1: a load\'s first quest tick, before the character\'s mirr
   assert.equal(mirror.list.find((x) => x.id === r.id).lair.name, "Morarker's Nest", 'and the mirror keeps it');
 });
 
-test('AUDIT FB1022c B3, B4: a deed reads a held lair nobody can enter as every reader does - moved, still known - never dropped unheard; the Dread with no den in reach keeps its lair rather than none (mutants: the deed unmended; the Dread made homeless)', () => {
+test('AUDIT FB1022d B3, B4: a deed reads a held lair nobody can enter as every reader does - moved, still known - never dropped unheard; the Dread with no den in reach keeps its lair rather than none (mutants: the deed unmended; the Dread made homeless)', () => {
   const p = me();
   const r = stuvamRevenant(p);
   setPlayerDoor(doors());
@@ -249,7 +249,7 @@ test('AUDIT FB1022c B3, B4: a deed reads a held lair nobody can enter as every r
   assert.deepEqual([d.lair, d.lairKnown, d.trail], [null, false, 0]);
 });
 
-test('AUDIT FB1022c B5, B6: the mend\'s reach is a rumour\'s (no data needed); the door keyed by the skin; a name cut at 80; the ring laid only when read (mutants: the reach moved; the skin unkeyed; the name uncut; the ring laid eagerly)', () => {
+test('AUDIT FB1022d B5, B6: the mend\'s reach is a rumour\'s (no data needed); the door keyed by the skin; a name cut at 80; the ring laid only when read (mutants: the reach moved; the skin unkeyed; the name uncut; the ring laid eagerly)', () => {
   assert.equal(LAIR_MEND_PX, RUMOR_PX);
   assert.equal(LAIR_MEND_PX, 20);
   let enhanced = false, laid = 0;

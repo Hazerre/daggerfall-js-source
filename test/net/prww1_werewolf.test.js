@@ -185,7 +185,7 @@ test('PR-WW1 hand-off, in world.js\'s order: once the lycanthrope is up the enem
   const LOOK = { race: 'Breton', gender: 'male', faceIndex: 0, items: [], class: 'Warrior' };
   const tex = (archive) => ({ archive, getFrameCount: () => 5, getSize: () => ({ w: 60, h: 100 }), getScale: () => ({ x: 0, y: 0 }) });
   const run = async (urlFor, shown, n = 6) => {
-    // PIN MOVED (FIELD BUGS 2026-10-22c PEER-ART): the cache records what is uploaded, as the renderer's does - the art
+    // PIN MOVED (FIELD BUGS 2026-10-22d PEER-ART): the cache records what is uploaded, as the renderer's does - the art
     // store asks it whether its texture still stands (another store may have let it go under the same key)
     const base = fakeRenderer(), textures = new Map();
     const renderer = { ...base, textures, uploadTexture: (a, rec, img) => { base.uploadTexture(a, rec, img); textures.set(`${a}_${rec}`, {}); } };

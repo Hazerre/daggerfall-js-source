@@ -55,7 +55,7 @@ export const RIDER_RETRY_MS = 30000;
 /** COATS1: how many riders' horse looks' dyed pictures stand at once, and how long a look undrawn is before it may go. */
 export const RIDER_LOOKS_KEPT = 12;
 export const RIDER_LOOK_IDLE_MS = 2000;
-/** PEER-ART (FIELD BUGS 2026-10-22c, Foretold: "an instance out of 7 that is leaking 5gb of ram"): how many sprites'
+/** PEER-ART (FIELD BUGS 2026-10-22d, Foretold: "an instance out of 7 that is leaking 5gb of ram"): how many sprites'
  *  decoded pictures the store keeps for another texture of the same sprite (its mirror) - the most recently asked. Every
  *  one was kept for the session: a worn-armour walker (LAYERED-PEERS) is some 55 frames of its own outfit, and each new
  *  outfit met online kept ~4 MB of decoded pixels that nothing read again. */
@@ -103,7 +103,7 @@ export function createEotbArt({ renderer = null, urlFor = eotbSpriteUrl, decode 
     if (!l) { l = { keys: new Set(), used: 0, frame }; looks.set(code, l); }
     l.keys.add(k); l.used = clock(); l.frame = frame;
   }
-  /** AUDIT FB1022c D1/D2: THE LOOKS LET GO ONCE A FRAME, after every layer drew (createPeerRiders `settle`, the frame's
+  /** AUDIT FB1022d D1/D2: THE LOOKS LET GO ONCE A FRAME, after every layer drew (createPeerRiders `settle`, the frame's
    *  last word on the store) - never while one is drawing. Past RIDER_LOOKS_KEPT, a look undrawn RIDER_LOOK_IDLE_MS AND
    *  this frame and the last goes, the longest undrawn first. The eviction was the draw's own: after a 2 s hitch (a tab
    *  hidden, a scene loaded) every look still to be drawn that frame read idle, so each one drawn let the next go, and a
@@ -298,7 +298,7 @@ export function createPeerRiders({ renderer = null, urlFor = eotbSpriteUrl, deco
 
   /** WEREWOLF1 (AUDIT E4): the beasts `sync` held back, now the other layer has stood what it stands this frame - each
    *  drawn here, or let go where `stands(id)` (its wolf is standing). COATS3D: and the riders it yielded, let go where
-   *  `seated(id)` (their body stands astride the 3D horse), else drawn here as every rider is. AUDIT FB1022c D1: the
+   *  `seated(id)` (their body stands astride the 3D horse), else drawn here as every rider is. AUDIT FB1022d D1: the
    *  frame's last word on the art store too - once a frame, after the walkers' sync, its looks are swept (createEotbArt).
    *  @param {(id: string) => boolean} [stands] @param {(id: string) => boolean} [seated] */
   function settle(stands = () => false, seated = () => false) {
@@ -308,7 +308,7 @@ export function createPeerRiders({ renderer = null, urlFor = eotbSpriteUrl, deco
       one(peer, peer.shown, beast, !beast, hScene, hEye, hRight, hDt);
     }
     deferred.length = 0;
-    store.sweep();   // AUDIT FB1022c D1: the frame's looks all drawn - the walkers' (synced before this) and the riders'
+    store.sweep();   // AUDIT FB1022d D1: the frame's looks all drawn - the walkers' (synced before this) and the riders'
   }
 
   /** One beast or rider, this frame: its claw, its table and frame, its sprite placed. */

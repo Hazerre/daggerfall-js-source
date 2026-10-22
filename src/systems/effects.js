@@ -919,7 +919,7 @@ export function applySpell(spell, casterLevel, target, sinks, rolls = Math.rando
   // round while the item stays worn (DoMagicRound :1733 "item effects
   // are always ticked").
   const heldItem = ctx.heldItem ?? null;
-  // AUDIT FB1022c A1: THIS CAST'S ENTRIES BY WHO THEY ARE, NOT WHERE THEY STAND. A Cure in the same bundle rebuilds the
+  // AUDIT FB1022d A1: THIS CAST'S ENTRIES BY WHO THEY ARE, NOT WHERE THEY STAND. A Cure in the same bundle rebuilds the
   // list (cureAllOfKind's filter), and an older entry it took slid this cast's first entries below the list's old length:
   // a gift of Shield, Cure Paralyzation, Shield over a spider's paralysis stood two pools again, and an entry so slid
   // went untagged - no bundle, and my own next Shield merged into a mate's gift (C2's own bug).
@@ -935,7 +935,7 @@ export function applySpell(spell, casterLevel, target, sinks, rolls = Math.rando
   // DUEL1: a duel opponent's spell (ctx.duelCast, tagged bundleDuel below) - never merged with the target's own either,
   // its damage over time stops at the duel's floor, and the duel's end strips it
   const duelCast = ctx.duelCast === true;
-  // GIFT-ONE (FIELD BUGS 2026-10-22c, PauloHF: "a shield with 6002 strength ... both shields work"): an entry THIS cast
+  // GIFT-ONE (FIELD BUGS 2026-10-22d, PauloHF: "a shield with 6002 strength ... both shields work"): an entry THIS cast
   // pushed is this cast's, tagged at the tail - so it is never read by its missing tag. Read by it, a mate's spell
   // carrying one effect twice found its own first entry untagged and stood a second beside it: two Shield pools a gift,
   // three for three, where the caster's own cast of the same spell merges into one.
@@ -1845,7 +1845,7 @@ export function applySpell(spell, casterLevel, target, sinks, rolls = Math.rando
   // and the fresh 0-round marker the re-fire pushes expires on the
   // next tick exactly as a spell's does.
   if (heldItem && ctx.refire !== true) {
-    for (const a of ownEntries()) {   // AUDIT FB1022c A1: this cast's own, wherever a Cure left them
+    for (const a of ownEntries()) {   // AUDIT FB1022d A1: this cast's own, wherever a Cure left them
       a.heldItem = heldItem;
       if (a.instant && a.effect) {
         a.refire = { spell: { ...spell, effects: [a.effect] }, casterLevel, caster, heldItem };
@@ -1879,7 +1879,7 @@ export function applySpell(spell, casterLevel, target, sinks, rolls = Math.rando
   // reapplied on next recast or when item is unequipped and equipped
   // again", which is why removing them here is not permanent.
   {
-    const list = ownEntries();   // AUDIT FB1022c A1: this cast's own, wherever a Cure left them
+    const list = ownEntries();   // AUDIT FB1022d A1: this cast's own, wherever a Cure left them
     if (list.length) {
       const id = ++_bundleSeq;
       const name = spell?.name ?? '';

@@ -8021,7 +8021,7 @@ was zero; a gift beside my own Fortify; the mate's recast merging with the mate'
 seam by source. `tools/mutants/allycast.json`: 37, 37 dead. RELAY_VERSION world97 with its law row; the relay
 deploys itself on the merge to main. Not verified in a browser: no online session exists in this container.
 
-GIFT-ONE (FIELD BUGS 2026-10-22c, `01-Overview/bugs/Field-Bugs-2026-10-22c.md`; PauloHF, "[Glitch] Overpowered spells":
+GIFT-ONE (FIELD BUGS 2026-10-22d, `01-Overview/bugs/Field-Bugs-2026-10-22d.md`; PauloHF, "[Glitch] Overpowered spells":
 "a shield with 6002 strength, 1600 duration, and AoE (not mine). And yes, both shields work"). C2's tags are stamped at
 the bundle's TAIL (`systems/effects.js` applySpell), and the incumbent law read them on every entry - so a gift carrying
 one effect twice found its own first entry untagged, read it as somebody else's, and stood a second beside it: two
@@ -13619,7 +13619,7 @@ field by field (`validPose`), so nothing rides there:
 - **The way**: `sa`'s `m`, a place for each of `b`'s - the boat at the helm's velocity through the wire frame and its
   turn, on the real clock at the owner's time scale; only while a boat is under way, so a moored fleet's record is the
   one an older reader reads. Readers lead the boat along it (`scenes/comeSailAway/comeSailAwayPeers.js`, up to two full frames'
-  spacing and taken up at a bounded catch - SEA-GLIDE, FIELD BUGS 2026-10-22c, `03-World/Come-Sail-Away.md`).
+  spacing and taken up at a bounded catch - SEA-GLIDE, FIELD BUGS 2026-10-22d, `03-World/Come-Sail-Away.md`).
 - **Aboard**: `ab` on the passenger's own frame - `[owner, place, x, y, z]`, their feet in that boat's own frame to
   the centimetre; a word when it changes and on every full frame, null aboard nothing; the boats' owner law (gone,
   stale, a clear). Every reader - the boat's owner among them - stands the passenger on its own copy of that boat

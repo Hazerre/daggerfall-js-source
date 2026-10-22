@@ -11972,7 +11972,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const magic = createPlayerMagic({
     renderer, audio, getTexture, uploadRecord, uploadRecordFrame,
     // RVN7 (bible/12-Enhanced-AI/Feud-Arc.md 18.1): a deed in the open world - my map pixel (or the one asked: LAIR-DOOR's mend), and the named
-    // dungeons in the boards' ring about it; LAIR-DOOR (FIELD BUGS 2026-10-22c): those the player can go down into (scenes/lairHost.js)
+    // dungeons in the boards' ring about it; LAIR-DOOR (FIELD BUGS 2026-10-22d): those the player can go down into (scenes/lairHost.js)
     lairHere: createLairDoor({ maps, blocks, arch, locations: locationIndex, dungeons: _bountyDungeonPixels, regions: _dungeonRegionPixels, here: playerTravelPixel }),
     allyMarks: (sp) => allyMarksNear(sp),   // AID1 onto ALLY-CAST: the party mates' bodies, for a beneficial touch, missile or blast (declared beside allyTargetPick, below) - SPELL-GIFT: the spell rides, for the strangers its list may reach
     peerBodies: () => peersNear(),   // SPELLFX1: every player's body, where a peer's drawn missile stops (declared below this engine's build)
@@ -19989,7 +19989,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // systems/bounty/bountyJournal.js
   {
     const baseQuestLog = questBridge.questLog.bind(questBridge);
-    questBridge.questLog = (o) => {   // AUDIT FB1022c E8: the lens's `{ windows: false }` reaches the walk (questBridge.js)
+    questBridge.questLog = (o) => {   // AUDIT FB1022d E8: the lens's `{ windows: false }` reaches the walk (questBridge.js)
       const log = baseQuestLog(o);
       const extra = [...(bountyHost?.questLogEntries?.() ?? []), ...revenantHuntEntries(rumorHere()), ...(legacyHost?.questLogEntries() ?? [])];   // LEGACY4: and the death quests   // RVN7c: and each hunt - a lair heard of, the way there from where I stand
       return extra.length ? { ...log, active: [...(log?.active ?? []), ...extra] } : log;

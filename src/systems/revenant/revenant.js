@@ -538,7 +538,7 @@ export function revenantDeed(player, entity, deedName, { mobileType = entity?.mo
   // is no end - the foe fights on, its will read from that ledger (RVN3): it stays whole for the deed that ends the fight
   const ledger = deedName === 'felled' ? null : takeFeud(entity);
   ensureMirror(player);   // AUDIT UNQUIET: the mirror read in before the cap is counted
-  mendRevenantLairs();   // AUDIT FB1022c B3: a lair nobody can enter moved as every reader moves it - known as it was - before the deed reads it
+  mendRevenantLairs();   // AUDIT FB1022d B3: a lair nobody can enter moved as every reader moves it - known as it was - before the deed reads it
   if (!revenantCandidate(entity, rec) || !Number.isInteger(mobileType)) return null;
   const pName = player?.name ?? '';
   let r = entity.revenant?.id ? revenantById(entity.revenant.id) : null;
@@ -1386,15 +1386,15 @@ export function revenantRumor(here, session, { rolls = Math.random } = {}) {
   persist();
   return words;
 }
-/** LAIR-DOOR (FIELD BUGS 2026-10-22c, Zenako through fogs: "the Revenant lair designated on the Revenants page is
+/** LAIR-DOOR (FIELD BUGS 2026-10-22d, Zenako through fogs: "the Revenant lair designated on the Revenants page is
  *  inaccessible ... The Stuvam Graveyard"): A LAIR NOBODY CAN ENTER, MOVED. A revenant that went to ground before the host
  *  asked whether a dungeon has a door may hold one of the 28 graveyards whose blocks place none (scenes/lairHost.js). Each
  *  held lair is asked of the host once a session (`lairHere({ x, y })` about its own pixel); one the player cannot go down
  *  into moves to the enterable dungeon nearest it within a rumour's reach (the host's `nearest`, scenes/lairHost.js
  *  LAIR_MEND_PX; a host without it, the ring's nearest - nearestLair) - known as it was known, so the page, the map's
  *  circle, the hunt and the rumours point where it waits - and with none in reach it roams, unheard of (the Dread, which
- *  never comes on the road, keeps it: AUDIT FB1022c B4). A host that cannot say (underground, none running) is asked again
- *  later. AUDIT FB1022c B1: never before the character's mirror is read in - a load's first quest tick ran before the
+ *  never comes on the road, keeps it: AUDIT FB1022d B4). A host that cannot say (underground, none running) is asked again
+ *  later. AUDIT FB1022d B1: never before the character's mirror is read in - a load's first quest tick ran before the
  *  encounter tick's ensureMirror, and the mirror's newer copy put the lair back for the session; and asked of the RECORD
  *  (a merge makes new ones, which are asked again). Answers how many moved. */
 let _lairsAsked = new WeakMap();   // record -> the lair pixel it was asked about

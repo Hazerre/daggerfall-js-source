@@ -145,8 +145,8 @@ test('RVN7a THE DEED through the door: a deed in the open world picks its lair a
 
 test('RVN7a THE HOSTS: the world host\'s door names my map pixel and the named dungeons in the boards\' ring with their regions; the dungeon\'s names itself; the cast engine publishes it (mutants: unwired)', () => {
   const w = read('src/scenes/world.js');
-  // PIN MOVED (FIELD BUGS 2026-10-22c LAIR-DOOR): the door is scenes/lairHost.js's, over the same index - the boards' ring, the
-  // game's own dungeons, their regions - and asks of my pixel or the one asked (fb1022c_lairdoor.test.js drives it)
+  // PIN MOVED (FIELD BUGS 2026-10-22d LAIR-DOOR): the door is scenes/lairHost.js's, over the same index - the boards' ring, the
+  // game's own dungeons, their regions - and asks of my pixel or the one asked (fb1022d_lairdoor.test.js drives it)
   assert.match(w, /const magic = createPlayerMagic\(\{\n\s*renderer, audio, getTexture, uploadRecord, uploadRecordFrame,\n(?:\s*\/\/[^\n]*\n)*\s*lairHere: createLairDoor\(\{ maps, blocks, arch, locations: locationIndex, dungeons: _bountyDungeonPixels, regions: _dungeonRegionPixels, here: playerTravelPixel \}\),/);
   assert.match(w, /_dungeonRegionPixels\.set\(`\$\{p\.x\},\$\{p\.y\}`, r\);/);
   const d = read('src/scenes/dungeonContext.js');

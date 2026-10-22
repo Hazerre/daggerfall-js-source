@@ -1,4 +1,4 @@
-// FIELD BUGS 2026-10-22c PEER-ART (bible/01-Overview/bugs/Field-Bugs-2026-10-22c.md, report 2): Foretold on the Discord's
+// FIELD BUGS 2026-10-22d PEER-ART (bible/01-Overview/bugs/Field-Bugs-2026-10-22d.md, report 2): Foretold on the Discord's
 // #bug-reports, "Memory Leak": "viewing task manager shows an instance out of 7 that is leaking 5gb of ram"; Xuurath:
 // "Yep massive memory leak on desktop app". The peers' art store (net/peer/peerRiders.js createEotbArt) kept every
 // sprite's decoded pictures for the session, and let a texture go only for a rider's horse look (COATS1) - a worn-armour
@@ -49,7 +49,7 @@ test('PEER-ART a sprite\'s look: a horse\'s its coat; a worn-armour walker\'s it
   assert.equal(spriteLookOf({ key: 'FMRM_0-0', archive: 1, rec: 0 }), null, 'a class sprite every player shares stands');
 });
 
-// PIN MOVED (AUDIT FB1022c D1): the store lets a look go in its once-a-frame sweep (the riders' settle), so each frame here
+// PIN MOVED (AUDIT FB1022d D1): the store lets a look go in its once-a-frame sweep (the riders' settle), so each frame here
 // is swept as the world host's is
 test('PEER-ART the store lets an outfit go: past RIDER_LOOKS_KEPT outfits, one undrawn RIDER_LOOK_IDLE_MS is evicted - every texture of it - and one drawn now is never (mutants: walkers\' looks unkept)', async () => {
   const r = rig();
@@ -109,7 +109,7 @@ test('PEER-ART the store keeps RIDER_PIXELS_KEPT sprites\' pictures, the most re
   assert.equal(r2.decodes(), d2, 'the sprite asked again stayed');
   r2.art.ensure({ ...crowd[0], rec: `${crowd[0].rec}y` }); await flush();
   assert.equal(r2.decodes(), d2 + 1, 'the longest unasked went');
-  // AUDIT FB1022c D3: the bound itself - a sprite with RIDER_PIXELS_KEPT - 1 asked since shares its decode, one with
+  // AUDIT FB1022d D3: the bound itself - a sprite with RIDER_PIXELS_KEPT - 1 asked since shares its decode, one with
   // RIDER_PIXELS_KEPT asked since does not
   const others = OUTFITS.slice(1).flatMap((o) => sprites(o));
   for (const [since, again] of [[RIDER_PIXELS_KEPT - 1, 0], [RIDER_PIXELS_KEPT, 1]]) {
@@ -138,7 +138,7 @@ test('PEER-ART one cache, two stores: a texture the other store let go under the
   assert.deepEqual(art.ensure(s), { w: 4, h: 4 });
   assert.deepEqual(uploads, [key, key], 'uploaded again');
   assert.equal(decodes, 1, 'from the pictures it kept');
-  // AUDIT FB1022c D3: and a rider's horse look the same (COATS1's dyed pictures, keyed by archive and record alone)
+  // AUDIT FB1022d D3: and a rider's horse look the same (COATS1's dyed pictures, keyed by archive and record alone)
   const horse = spriteFor('IdleHorse', 0, 0, { onHorse: 0, horse: horseLookCode({ coat: 2, pattern: 1, legs: 0, seed: 3 }) });
   const hKey = `${horse.archive}_${horse.rec}`;
   art.ensure(horse); await flush();
@@ -148,7 +148,7 @@ test('PEER-ART one cache, two stores: a texture the other store let go under the
   await flush();
   assert.ok(art.ensure(horse) && textures.has(hKey), 'uploaded again');
   // my own body's store asks the same (player/eyeOfTheBeholder/eotbBody.js ensure), driven as the world host drives it -
-  // in the worn armour (the default) and, AUDIT FB1022c D3, in a class skin (any key: a horse's look is no worn armour)
+  // in the worn armour (the default) and, AUDIT FB1022d D3, in a class skin (any key: a horse's look is no worn armour)
   for (const layered of [null, 0]) {
     _resetModSettings();
     if (layered != null) setModSetting('eye-of-the-beholder', 'Graphics.LayeredGear', layered);
@@ -187,7 +187,7 @@ for (const h of MATERIALS) for (const t of MATERIALS) for (const l of MATERIALS)
 /** Walkers in their worn armour (LAYERED-GEAR: the look's `lg` 1, the female body), standing in a row. */
 const crowd = (kits, tag) => kits.map((items, i) => ({ id: `${tag}${i}`, look: { gender: 'female', lg: 1, items }, shown: { x: i, y: 0, z: 9, yaw: 0, pitch: 0, mv: 0, wd: 0, an: 0, sr: 0, cn: 0, ar: 0 } }));
 
-test('AUDIT FB1022c D1/D3: a crowd of 30 outfits on screen through a 2.5 s hitch - the world host\'s frame (riders, walkers, the riders\' settle) - never lets one go nor decodes one again; one missed the frame after it stands; a crowd gone 2 s goes down to RIDER_LOOKS_KEPT (mutants: the sweep unasked; the last frame unguarded)', async () => {
+test('AUDIT FB1022d D1/D3: a crowd of 30 outfits on screen through a 2.5 s hitch - the world host\'s frame (riders, walkers, the riders\' settle) - never lets one go nor decodes one again; one missed the frame after it stands; a crowd gone 2 s goes down to RIDER_LOOKS_KEPT (mutants: the sweep unasked; the last frame unguarded)', async () => {
   assert.ok(KITS.size >= 60, `${KITS.size} outfits`);
   let now = 0, decodes = 0;
   const evicted = [], uploads = [];
@@ -234,7 +234,7 @@ test('AUDIT FB1022c D1/D3: a crowd of 30 outfits on screen through a 2.5 s hitch
   assert.ok([...gone].every((code) => [...KITS.keys()].slice(0, 30).includes(code)), 'the old crowd\'s alone - the five on screen stand');
 });
 
-test('AUDIT FB1022c D4: my own body\'s armour changed lets the last outfit\'s textures and decoded strips go once the new one is up - never before (my body never drawn from nothing); the frames a cloak\'s outfit shares stand; the skin off lets every outfit go (mutants: the old outfit kept; released before the new is up; the cloak\'s plain frames released; decoded strips kept; in-flight strips put back)', async () => {
+test('AUDIT FB1022d D4: my own body\'s armour changed lets the last outfit\'s textures and decoded strips go once the new one is up - never before (my body never drawn from nothing); the frames a cloak\'s outfit shares stand; the skin off lets every outfit go (mutants: the old outfit kept; released before the new is up; the cloak\'s plain frames released; decoded strips kept; in-flight strips put back)', async () => {
   _resetModSettings();
   setModSetting('eye-of-the-beholder', 'Graphics.LayeredGear', 1);   // the female body in the armour worn
   const slots = equipTableOf(playerEntity);
@@ -292,7 +292,7 @@ test('AUDIT FB1022c D4: my own body\'s armour changed lets the last outfit\'s te
   }
 });
 
-test('AUDIT FB1022c D4: an outfit let go while its strips are still decoding keeps none of them - a strip that lands after is not put back (mutants: in-flight strips put back)', async () => {
+test('AUDIT FB1022d D4: an outfit let go while its strips are still decoding keeps none of them - a strip that lands after is not put back (mutants: in-flight strips put back)', async () => {
   _resetModSettings();
   setModSetting('eye-of-the-beholder', 'Graphics.LayeredGear', 1);
   const slots = equipTableOf(playerEntity);

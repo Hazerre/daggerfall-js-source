@@ -505,7 +505,7 @@ export function lairAfter(r, here) {
   if (here.underground) return sanitizeLair(here.underground) ?? kept;
   return (kept && lairEnterable(kept, here) ? kept : null) ?? pickLair(r?.id, here.px, here.py, here.dungeons);
 }
-/** LAIR-DOOR (FIELD BUGS 2026-10-22c): may the player go down into `lair`, by the host's word (`here.enterable`, scenes/
+/** LAIR-DOOR (FIELD BUGS 2026-10-22d): may the player go down into `lair`, by the host's word (`here.enterable`, scenes/
  *  lairHost.js - a place whose blocks place no dungeon-entrance door is no lair: 28 graveyards)? A host that cannot say
  *  keeps it. */
 export const lairEnterable = (lair, here) => typeof here?.enterable !== 'function' || here.enterable(lair.px, lair.py) !== false;

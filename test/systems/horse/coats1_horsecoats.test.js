@@ -379,7 +379,7 @@ test('COATS1 the pool: past HORSE_LOOKS_KEPT looks, the one longest undrawn is l
   assert.ok(evicted.every((k) => k.endsWith(`~${first}`)), 'that look alone');
 });
 
-// PIN MOVED (AUDIT FB1022c D1): a look is let go by the store's once-a-frame sweep (createEotbArt sweep, the riders'
+// PIN MOVED (AUDIT FB1022d D1): a look is let go by the store's once-a-frame sweep (createEotbArt sweep, the riders'
 // settle), never inside a draw - so each ensure here is a frame, swept
 test('COATS1 the others\' riders: each rider\'s horse look is its own dyed pictures, let go once RIDER_LOOKS_KEPT others were drawn since', async () => {
   const evicted = [], uploads = [];

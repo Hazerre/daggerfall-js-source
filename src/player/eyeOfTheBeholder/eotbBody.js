@@ -75,7 +75,7 @@ const FP_DEPTH = -0.25;
 const FP_HEAD = 0.9;
 /** AUDIT COATS3D A6: the mounted sprites fetched in a new look a frame (a dye each, some milliseconds). */
 export const HORSE_PRELOAD_A_FRAME = 3;
-/** AUDIT FB1022c D4: the worn-armour archives (layeredArmor.js), whose textures are an outfit's */
+/** AUDIT FB1022d D4: the worn-armour archives (layeredArmor.js), whose textures are an outfit's */
 const LAYERED_ARCHIVES = new Set(Object.values(LAYERED_ARCHIVE));
 /** [IL] `UpdateMaterial`'s three tints (IL_4f1e, IL_4f5f, IL_4f9f):
  *  invisible white at 0.4, a shade BLACK at 0.6, blending white at 0.8.
@@ -382,7 +382,7 @@ export function createEotbBody({ count = spriteCount, urlFor = eotbSpriteUrl, de
       if (!url) return null;
       p = decode(url);
       decoded.set(key, p);
-      p.then((img) => { if (decoded.get(key) === p) decoded.set(key, img); }, () => { if (decoded.get(key) === p) decoded.delete(key); });   // AUDIT FB1022c D4: let go in flight, gone
+      p.then((img) => { if (decoded.get(key) === p) decoded.set(key, img); }, () => { if (decoded.get(key) === p) decoded.delete(key); });   // AUDIT FB1022d D4: let go in flight, gone
     }
     return p;
   }
@@ -390,7 +390,7 @@ export function createEotbBody({ count = spriteCount, urlFor = eotbSpriteUrl, de
   function ensure(s) {
     if (!renderer || !s) return null;
     let have = tex.get(cacheKey(s));
-    // PEER-ART (FIELD BUGS 2026-10-22c): a texture let go under this key by the peers' store (net/peer/peerRiders.js - a
+    // PEER-ART (FIELD BUGS 2026-10-22d): a texture let go under this key by the peers' store (net/peer/peerRiders.js - a
     // peer's outfit or horse look can be mine too) is uploaded again
     if (have && !(have instanceof Promise) && renderer.textures?.has && !renderer.textures.has(cacheKey(s).replace(':', '_'))) { tex.delete(cacheKey(s)); have = undefined; }
     if (have && !(have instanceof Promise)) return have;
@@ -413,7 +413,7 @@ export function createEotbBody({ count = spriteCount, urlFor = eotbSpriteUrl, de
       () => { if (tex.get(cacheKey(s)) === p) tex.set(cacheKey(s), null); });
     return null;
   }
-  /** AUDIT FB1022c D4: the worn-armour outfit last drawn up - `<archive>|<outfit>` - so armour put on or taken off (or
+  /** AUDIT FB1022d D4: the worn-armour outfit last drawn up - `<archive>|<outfit>` - so armour put on or taken off (or
    *  the body, or the skin off) lets the last outfit's pictures go once the new one is up: its textures and its decoded
    *  strips. The frames the outfit drawn now still shares stand (a cloaked outfit draws the frames with no cloak art
    *  under its plain code). EVERY ALLOCATION HAS AN OWNER: a piece put on is a new outfit, some 55 frames of its own,
@@ -1032,7 +1032,7 @@ export function createEotbBody({ count = spriteCount, urlFor = eotbSpriteUrl, de
       const grow = face && face.grow > 1 ? face.grow : 1;
       const up = ensure(s);
       if (up) {
-        releaseOutfits(s, lk);   // AUDIT FB1022c D4: the new outfit up - the last one goes
+        releaseOutfits(s, lk);   // AUDIT FB1022d D4: the new outfit up - the last one goes
         const xml = spriteOffset(s.archive, s.record);
         const size = spriteSize(up.w, up.h, { riding: last.riding, transformed: last.transformed, scale: cfg.scale }, xml.scale);
         const key = `${cacheKey(s)}|${grow}`;

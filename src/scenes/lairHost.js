@@ -1,5 +1,5 @@
 // @ts-check
-// LAIR-DOOR (FIELD BUGS 2026-10-22c, bible/01-Overview/bugs/Field-Bugs-2026-10-22c.md report 4 - fogs on Zenako's behalf:
+// LAIR-DOOR (FIELD BUGS 2026-10-22d, bible/01-Overview/bugs/Field-Bugs-2026-10-22d.md report 4 - fogs on Zenako's behalf:
 // "the Revenant lair designated on the Revenants page is inaccessible -- there are no interactable doors, hatches or
 // openings to the marked dungeon ... The Stuvam Graveyard, south of Ceriburea ... approximate coordinates 565, 427"):
 // WHERE A REVENANT MAY GO TO GROUND - the world host's `lairHere` door (systems/playerDoor.js, RVN7 bible/12-Enhanced-AI/
@@ -109,7 +109,7 @@ export function createLairDoor({ maps, blocks, arch, locations, dungeons, region
   };
   return function lairHere(at) {
     const { x, y } = at ?? here();
-    // AUDIT FB1022c B6/E10: the ring laid only when it is read - the mend asks `enterable` and `nearest` alone
+    // AUDIT FB1022d B6/E10: the ring laid only when it is read - the mend asks `enterable` and `nearest` alone
     let ring = null;
     return {
       px: x, py: y, enterable, nearest,

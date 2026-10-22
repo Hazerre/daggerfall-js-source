@@ -1,4 +1,4 @@
-// FIELD BUGS 2026-10-22c GIFT-ONE (bible/01-Overview/bugs/Field-Bugs-2026-10-22c.md, report 1): PauloHF on the Discord's
+// FIELD BUGS 2026-10-22d GIFT-ONE (bible/01-Overview/bugs/Field-Bugs-2026-10-22d.md, report 1): PauloHF on the Discord's
 // #bug-reports, "[Glitch] Overpowered spells": "This was a shield with 6002 strength, 1600 duration, and AoE (not mine).
 // And yes, both shields work" - the buff's card reading "Absorbs 2829 more damage." over "Absorbs 3001 more damage." in one
 // bundle, Mega Shield. A party mate's spell carrying one effect twice landed it twice: the tags that keep a mate's bundle
@@ -6,7 +6,7 @@
 // found its first one untagged, read it as somebody else's and stood a second pool beside it. The caster's own cast of the
 // same spell has always merged into one. Driven over the real producers: the spell maker's record, the caster's frame, the
 // wire's projection, the receiver's gift, and the receiver's own apply door (hostMagic applySpellToPlayer, as world.js
-// online.onCast calls it). AUDIT FB1022c A4: no duel pin - nothing has passed `duelCast` since INT8 sent a duel's spells
+// online.onCast calls it). AUDIT FB1022d A4: no duel pin - nothing has passed `duelCast` since INT8 sent a duel's spells
 // to the referee (world.js duelSpellOut), so a pin of it pinned a shape no producer mints.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -85,7 +85,7 @@ test('GIFT-ONE: three Shields in a gift are one pool; a Fortify twice is one For
   assert.deepEqual(shields(mine).map((a) => [a.startingShield, !!a.bundleAlly]), [[31, false], [3001, true]], 'mine beside the mate\'s, the mate\'s one pool');
 });
 
-test('AUDIT FB1022c A1: a Cure in the gift - the list rebuilt under the cast - still lands ONE pool, tagged the mate\'s, in either order; and a weak gift so cast never swallows my own Shield after it (mutants: the cast\'s own by index; the untagged taken for the cast\'s own)', () => {
+test('AUDIT FB1022d A1: a Cure in the gift - the list rebuilt under the cast - still lands ONE pool, tagged the mate\'s, in either order; and a weak gift so cast never swallows my own Shield after it (mutants: the cast\'s own by index; the untagged taken for the cast\'s own)', () => {
   const PARA = { type: 0, subType: 255, settings: { durationBase: 20, durationMod: 1, durationPerLevel: 1, chanceBase: 100, chanceMod: 1, chancePerLevel: 1 } };
   const CURE_PARALYSIS = { type: 3, subType: 2, settings: { chanceBase: 100, chanceMod: 1, chancePerLevel: 1 } };
   const sinks = { hurt() {}, heal() {}, drainMagicka() {}, restoreMagicka() {}, drainFatigue() {}, restoreFatigue() {}, say() {} };

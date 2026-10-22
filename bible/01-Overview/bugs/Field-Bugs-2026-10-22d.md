@@ -1,4 +1,4 @@
-# FIELD BUGS 2026-10-22c - a gift's two Shields, a 5 GB tab, ships that surge, a lair with no door, and the quest marks
+# FIELD BUGS 2026-10-22d - a gift's two Shields, a 5 GB tab, ships that surge, a lair with no door, and the quest marks
 
 Five threads from the Discord's #bug-reports, handed over as phone screenshots with no word beside them: PauloHF's
 "[Glitch] Overpowered spells", Foretold's "Memory Leak" (Xuurath, iamamitten and Mona Polca beneath it), Dahazed's "huge
@@ -8,10 +8,10 @@ freeware's data (`tools/fetch-data.sh`) wherever the map, the blocks or the mode
 `Assets/Scripts` (the parity sparse clone) for the spell law. Every system changed here is the port's own - the gift
 between players (ALLY-CAST), the revenants (RVN7), the peers' boats (CSA-K) and their art (LAYERED-PEERS) - so no DFU
 member moves; the one place the port's spell law stands apart from DFU's (one bundle's like-kind effects merge) had no
-Ledger row, and has one now (Port-Ledger section A, AUDIT FB1022c A3). Where DFU behaves otherwise it is said below.
-Named 22c: main's 22 and 22b were taken first. Then audited (the owner: "Audot this"): five cold lanes, every finding
-fixed, pinned or answered - AUDIT FB1022c, at the foot. The pins are `fb1022c_*` (26 tests in five files), the mutants
-`tools/mutants/fb1022c.json` (64: 63 dead, 1 equivalent as recorded).
+Ledger row, and has one now (Port-Ledger section A, AUDIT FB1022d A3). Where DFU behaves otherwise it is said below.
+Named 22d: main's 22, 22b and 22c were taken first. Then audited (the owner: "Audot this"): five cold lanes, every finding
+fixed, pinned or answered - AUDIT FB1022d, at the foot. The pins are `fb1022d_*` (26 tests in five files), the mutants
+`tools/mutants/fb1022d.json` (64: 63 dead, 1 equivalent as recorded).
 
 | | Report | What it was | Done |
 |---|---|---|---|
@@ -40,20 +40,20 @@ two stacked. The caster's own cast of the same record had always merged into one
 `false`). Not a crafted frame - an honest Mega Shield, made at the spell maker and cast as an area blast on a party.
 
 FIXED: an entry the cast itself pushed is the cast's own, read without its tag - known by WHO it is, not where it stands
-(AUDIT FB1022c A1: `prior`, the list before the cast; as first shipped, by index past the list's length, and a Cure in
+(AUDIT FB1022d A1: `prior`, the list before the cast; as first shipped, by index past the list's length, and a Cure in
 the same gift rebuilds the list under the cast, sliding its own first Shield below that index). One pool a gift, as one a
 cast; a mate's bundle still stands beside mine. DFU, for the record: its AssignBundle adds the instanced bundle to the
 manager only after its loop (`EntityEffectManager.cs:615`), so two like-kind effects of ONE bundle both become
 incumbents there - but only the first Shield ever absorbs: DaggerfallEntity.DecreaseHealth asks FindIncumbentEffect<Shield>
 (`DaggerfallEntity.cs:322`), which answers the first Shield in the list, spent or not (`EntityEffectManager.cs:668-680`),
-so DFU's own Mega Shield absorbs 3,001, as the port's one pool does (AUDIT FB1022c A2; the record had said "both shields
+so DFU's own Mega Shield absorbs 3,001, as the port's one pool does (AUDIT FB1022d A2; the record had said "both shields
 work" was DFU's behaviour). A Fortify twice is twice in DFU and once here - the port's own law, now Ledger A's row.
 
 THE BOSSES. "Maybe it's because some players have found glitches" - a Shield takes nothing from a boss. A world boss's
 damage is held by the relay to a bucket per player (`11-Multiplayer/World-Bosses.md` section 5, "the damage a player
 may deal"), so no spell, crafted or not, kills one faster than that bucket lets it.
 
-PINS. `test/systems/fb1022c_giftone.test.js` (3), over the spell maker's record, the caster's frame, the wire's
+PINS. `test/systems/fb1022d_giftone.test.js` (3), over the spell maker's record, the caster's frame, the wire's
 projection, the receiver's gift and the receiver's own door (hostMagic applySpellToPlayer, as world.js online.onCast calls
 it): Mega Shield's gift is one pool of 3,001 and the report's 172-point blow leaves 2,829 with nothing behind it; three
 Shields one pool; Fortify twice one; mine beside a mate's (C2); and a Cure in the gift over a spider's Paralyze, in
@@ -76,7 +76,7 @@ Knightstale, the same on two trees:
 The growth fits SNOW-HOLD (FIELD BUGS 2026-10-21b, merged 2026-10-21 17:44 EDT): the Snowfall blanket queued every pixel
 the traveller left behind and drained it only while its tier was not recentring - never on the move - each queued tile
 holding its pixel's whole entry (~2 MB a pixel, ~22 MB a column crossed, ~1.5 GB an hour at a gallop). WHAT THE PROBE DID
-NOT SETTLE (AUDIT FB1022c D5): the two trees are 21 first-parent merges apart (the #1106 merge itself, `70797d323`, was
+NOT SETTLE (AUDIT FB1022d D5): the two trees are 21 first-parent merges apart (the #1106 merge itself, `70797d323`, was
 not probed), so the comparison is not isolated; it ran with no other player in sight, so PEER-ART's share was not
 measured; and a JS heap is not the GPU process, which may be the "instance" Task Manager shows. "About 2 days ago" fits
 PRECIP (#1053, 2026-10-19), which ran the Snowfall wherever snow lies within some ten pixels in any season, with the
@@ -91,7 +91,7 @@ player on foot is a walker in the armour they wear - some 55 sprites of their ow
 stood for good: ~4.1 MB of decoded pixels and 55 uploads each, none ever let go (120 outfits kept 497 MB, headless). An
 outfit is a look now (`spriteLookOf`: `LA:<body>:<combo>:<pieces>`, a horse's coat as before), let go with every texture
 of it once more than RIDER_LOOKS_KEPT stand and it has stood undrawn RIDER_LOOK_IDLE_MS - by the store's once-a-frame
-sweep, after every layer drew (`sweep`, from the riders' `settle`), never one drawn this frame or the last (AUDIT FB1022c
+sweep, after every layer drew (`sweep`, from the riders' `settle`), never one drawn this frame or the last (AUDIT FB1022d
 D1: as first shipped the eviction ran inside the draw, so after a 2 s hitch every look still to be drawn that frame read
 idle, and a crowd of 30 outfits lost 29 for five frames and decoded 232 sprites again; D2: and every draw past twelve
 looks copied and sorted them all, 80 us a frame at 30 walkers). The decoded pictures are the RIDER_PIXELS_KEPT (64)
@@ -111,7 +111,7 @@ plus RIDER_LOOKS_KEPT (12) idle, some 55 textures a look; my own body, one outfi
 crowd turning costs more decodes than before (mirrors no longer share across a crowd: 960 to 600 over a minute of 30
 walkers), flat, not a thrash.
 
-PINS. `test/net/peer/fb1022c_peerart.test.js` (7): the look; the outfit let go and one drawn kept; the pictures kept,
+PINS. `test/net/peer/fb1022d_peerart.test.js` (7): the look; the outfit let go and one drawn kept; the pictures kept,
 and the bound itself (one asked 63 sprites since shares its decode, 64 since does not); both stores over one cache - a
 worn-armour sprite and a horse's look in the peers' store, my body in its armour and in a class skin, driven as the world
 host drives it; a crowd of 30 outfits through the world host's frame (riders, walkers, the riders' settle) at 60 fps
@@ -152,12 +152,12 @@ frame held for its turn still stalled 1% of frames), and under way what the word
 bounded catch of the sea's PUPPET-GLIDE shape (`glideToward`: 1 a second, never faster than 0.3 m/s plus a quarter of
 her way - `scenes/naval/navalHost.js` PUPPET_CATCH, the fix for "Ai ships move very janky and quick", FIELD BUGS
 2026-10-02d; the puppets' share is a tenth, sized for a relay's jitter, and a quarter takes up a hitch's, a bumper's or a
-stop's metres in 4-7 s, not 10-15 - AUDIT FB1022c C3). AUDIT FB1022c: she is led along her turn's ARC (`wayOver`, C2 -
+stop's metres in 4-7 s, not 10-15 - AUDIT FB1022d C3). AUDIT FB1022d: she is led along her turn's ARC (`wayOver`, C2 -
 led straight, a boat circling at 10 degrees a second stood 12 m off her track, her hull 19 degrees off it); and the way she
 was led at stands until what she is off by is under CSA_PEER_LED_SETTLE_M (1 m, C1): her snap, her glide back and the
 realign's pairing of a hull with a passenger aboard are judged by it, not by her word at rest. A boat lying still eases
 onto her word as before; past the snap she snaps, under way too. Pinned on the real pool and module
-(`test/scenes/fb1022c_seaglide.test.js`, 6): the numbers; the take; the report's fight (never stopped, never past her way
+(`test/scenes/fb1022d_seaglide.test.js`, 6): the numbers; the take; the report's fight (never stopped, never past her way
 and the catch, within 4 m of her place, within her way times the hold where the full frames are held); the stop (no
 snap, the passenger kept, back on her word); the circles; a teleport under way snaps, a slow boat glides, and a boat
 that stopped and settled is at rest again (a 25 m step of hers snaps). `csa_together.test.js` and AUDIT SHIPS A7's pin
@@ -192,7 +192,7 @@ model it places carries a dungeon-entrance door (DFU's door law, `world/meshRead
 331 past its stone record) - so in the port, as in DFU (PlayerEnterExit goes down only by such a door), nobody walks
 down into it. Its crypt is a static model, as the report says. (A start, a quest's `transfer pc inside`, a respawn, a
 Recall or a vampire's cemetery wake can still set a player inside one - CRUX1's doorless `startInDungeon` arm,
-`dungeonStartDoorFor` - but none of them is a way the player chooses: AUDIT FB1022c B7.)
+`dungeonStartDoorFor` - but none of them is a way the player chooses: AUDIT FB1022d B7.)
 
 THE WORLD. Every location MAPS.BSA flags with a dungeon, its blocks laid as the pixel build lays them and every model's
 mesh read: the 1,500 labyrinths, 843 keeps and 1,112 ruins all place a door; 28 of the 774 graveyards do not, every one
@@ -216,7 +216,7 @@ Graveyard is the one of the 28 whose own ring holds no other dungeon (nothing st
 goes to Morarker's Nest, 14 px south - in Dak'fron, so the towns that tell of it are Dak'fron's, not the Alik'r's (B7).
 Every other of the 28 has one in its ring, and every one of the 28 has an enterable den within 20 px.
 
-PINS. `test/systems/revenant/fb1022c_lairdoor.test.js` (9): the blocks' law; the door (the ring filtered, the regions, the
+PINS. `test/systems/revenant/fb1022d_lairdoor.test.js` (9): the blocks' law; the door (the ring filtered, the regions, the
 nearest, a place laid and a model read once, the unjudged kept); the lair after a deed; the mend (moved and known, asked
 once a record and pixel, roams with none, asked again where the host cannot say); the wiring by source; on the player's
 data the 28, the Stuvam Graveyard among them and never offered from Ceriburea, each with a den within LAIR_MEND_PX; the
@@ -242,10 +242,10 @@ NPC-MARKS (#1121) reads quest people and writes nothing of a quest. The travel m
 on the player's MAPS.BSA, regions interleaved. The quest-mark suites (guide1, 2, 3, 4, 5 and 8, owquest, sd20g's delve:
 66 tests, 104 with audit_guide; the bridge driven with real quests) pass on main.
 
-THE LOOK THE GAME RUNS (AUDIT FB1022c E8). The lens asks the walk for no window rows (`bridge.questLog({ windows: false
+THE LOOK THE GAME RUNS (AUDIT FB1022d E8). The lens asks the walk for no window rows (`bridge.questLog({ windows: false
 })`, AUDIT QUESTLINES LAW-11), and world.js's BOUNTY1 wrapper - the bounties, the revenant hunts and the death quests laid
 on the walk - took no argument, so every look at 10 Hz walked the questlines' and the ladders' rows too. Nothing in the
-window makes those rows throw; the wrapper hands the word on now (`test/scenes/fb1022c_questlook.test.js`, world.js's own
+window makes those rows throw; the wrapper hands the word on now (`test/scenes/fb1022d_questlook.test.js`, world.js's own
 text run).
 
 ONE THING THAT WOULD DO IT: a look that throws on every tick from a load. The bridge tries again each tick and says so
@@ -272,7 +272,7 @@ prints nothing. Nothing found makes the look throw on main.
 
 - QUESTS CAN NAME THE 28. `systems/quest/place.js` `_isDungeonType` takes graveyards as DFU's Place does, so a quest's
   remote dungeon can be one of the 28 graveyards nobody enters - DFU behaves the same. Not the report's.
-- SPAWNED DUNGEONS CAN CLONE THE 28 (AUDIT FB1022c B2). Online, `world/spawnedDungeons.js` spawnTemplates answers all 4,229
+- SPAWNED DUNGEONS CAN CLONE THE 28 (AUDIT FB1022d B2). Online, `world/spawnedDungeons.js` spawnTemplates answers all 4,229
   dungeons, the 28 doorless graveyards among them, and `_spawnCloneAt` clones the template's exterior - so about 0.66% of
   spawned dungeons would stand with no way in (the template list is proved; a doorless spawn was not stood in a session).
   `wildHallTemplateOk` already leaves graveyards out of the wild halls. The spawns' template law is SPAWN's own slice: a
@@ -284,14 +284,14 @@ prints nothing. Nothing found makes the look throw on main.
   ARENA-LADDER-2-revenant-gate (`arenaladder.json`) and HORSEFACE-the-placing-paints-minus-one (`fb1004e.json`), run
   against main's `a61d01901` - their own slices' pins, not this one's.
 
-## AUDIT FB1022c (2026-10-22) - the slice, read cold
+## AUDIT FB1022d (2026-10-22) - the slice, read cold
 
 The owner: "Audot this". Five lanes, each a cold reader of the merged tree (`e80d6f798`) in its own scratch copy - the
 repo untouched while they read (DO NOT FIX WHILE THE VERIFIER IS READING) - each told to prove a finding by a repro over
 the real code before reporting it: A the gift (GIFT-ONE), B the lair (LAIR-DOOR), C the boats (SEA-GLIDE), D the art
 store and the memory (PEER-ART), E the record and the process, then the quest marks from scratch. Every finding was
 reproduced by its lane's own script before it was acted on; every fix is pinned, each pin failing on the code before it.
-The mutants after it: `fb1022c.json`'s 64 (34 of them the audit's) 63 dead and 1 equivalent as recorded; and every
+The mutants after it: `fb1022d.json`'s 64 (34 of them the audit's) 63 dead and 1 equivalent as recorded; and every
 other list's records on the six files the audit touched beside world.js (whose one line, E8, has its own mutant) - 770 of them, from 98 lists - 766 dead, 2 equivalent as
 recorded, 2 surviving that survive on main as well (Found on the way).
 

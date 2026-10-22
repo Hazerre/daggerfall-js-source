@@ -1,4 +1,4 @@
-// FIELD BUGS 2026-10-22c SEA-GLIDE (bible/01-Overview/bugs/Field-Bugs-2026-10-22c.md, report 3): Dahazed on the Discord's
+// FIELD BUGS 2026-10-22d SEA-GLIDE (bible/01-Overview/bugs/Field-Bugs-2026-10-22d.md, report 3): Dahazed on the Discord's
 // #bug-reports, "huge amount of lag and ship warping during sea boss fight": "lot of time the boss fight turns into dodging
 // friendly ships while they randomly speed up / warp in front of you". Another player's boat (Come Sail Away's, CSA-J) is
 // drawn from the `sa` word on her foes frames: a delta every 200 ms, a full frame every 2 s (net/online.js FOES_FULL_MS) -
@@ -69,7 +69,7 @@ async function sail({ v = 12, everyMs = FOES_FULL_MS, lateMs = 300, seconds = 30
   return { speeds, p99: errors[Math.floor(errors.length * 0.99)], max: Math.max(...speeds), min: Math.min(...speeds) };
 }
 
-test('SEA-GLIDE the numbers: the lead two full frames\' spacing - past the sea\'s own prediction (PREDICT_MAX_S); the catch PUPPET-GLIDE\'s rate and floor with a quarter of her way (AUDIT FB1022c C3) (mutants: the lead back at 0.6; any catch moved)', () => {
+test('SEA-GLIDE the numbers: the lead two full frames\' spacing - past the sea\'s own prediction (PREDICT_MAX_S); the catch PUPPET-GLIDE\'s rate and floor with a quarter of her way (AUDIT FB1022d C3) (mutants: the lead back at 0.6; any catch moved)', () => {
   assert.equal(CSA_PEER_LEAD_MAX, 4);
   assert.equal(CSA_PEER_LEAD_MAX * 1000, 2 * FOES_FULL_MS, 'a full frame held for its turn is led over');
   assert.ok(CSA_PEER_LEAD_MAX >= PREDICT_MAX_S);
@@ -104,7 +104,7 @@ test('SEA-GLIDE the report\'s fight: words on the full frames alone, each up to 
   assert.ok(held.p99 < 12 * 1.5 + 1, `held: within her way times the hold (${held.p99.toFixed(2)} m)`);
 });
 
-// ─── AUDIT FB1022c (lane C): a stop, a turn, a teleport under way, a slow boat ───────────────────────────────────
+// ─── AUDIT FB1022d (lane C): a stop, a turn, a teleport under way, a slow boat ───────────────────────────────────
 /** A course: her place, her way and her turn at `t` seconds. Words on the full frames, `late` s late, drawn at 60 fps; a
  *  passenger aboard when `aboard`. Answers the drawn speeds, the errors past `from`, whether she snapped or her hull was
  *  swapped. */
@@ -144,7 +144,7 @@ const circle = (v, w) => (t) => {
   return { x: 10 + (v * Math.sin(h)) / om, z: 20 - (v * (1 - Math.cos(h))) / om, vx: v * Math.cos(h), vz: -v * Math.sin(h), turn: w, heading: 90 + w * t };
 };
 
-test('AUDIT FB1022c C1: she stops dead 0.1 s after a full frame, her words the full frames alone - never snapped, her passenger kept on the one hull, never faster than her way and the catch, and back on her word (mutants: the snap by the word\'s way alone; the glide back by none)', async () => {
+test('AUDIT FB1022d C1: she stops dead 0.1 s after a full frame, her words the full frames alone - never snapped, her passenger kept on the one hull, never faster than her way and the catch, and back on her word (mutants: the snap by the word\'s way alone; the glide back by none)', async () => {
   const r = await voyage(straight(12, 30.1), { aboard: true, seconds: 50 });
   const bound = 12 + CSA_PEER_CATCH_MPS + CSA_PEER_CATCH_SHARE * 12;
   assert.equal(r.snapped, false, 'no teleport');
@@ -153,7 +153,7 @@ test('AUDIT FB1022c C1: she stops dead 0.1 s after a full frame, her words the f
   assert.ok(r.finalErr < CSA_PEER_LED_SETTLE_M, `back on her word: ${r.finalErr.toFixed(2)} m`);
 });
 
-test('AUDIT FB1022c C2: circling at 10 and 20 degrees a second, her words the full frames alone - led along the arc, within 4 m of her place (p99) (mutants: led straight; the arc turned the wrong way)', async () => {
+test('AUDIT FB1022d C2: circling at 10 and 20 degrees a second, her words the full frames alone - led along the arc, within 4 m of her place (p99) (mutants: led straight; the arc turned the wrong way)', async () => {
   for (const w of [10, 20, -15]) {
     const r = await voyage(circle(12, w));
     assert.ok(r.p99 < 4, `${w} deg/s: within ${r.p99.toFixed(2)} m`);
@@ -165,7 +165,7 @@ test('AUDIT FB1022c C2: circling at 10 and 20 degrees a second, her words the fu
   assert.deepEqual(wayOver([3, 0, 4], 0, 2), [6, 8], 'no turn: straight');
 });
 
-test('AUDIT FB1022c C5: a teleport under way still snaps; a slow boat glides as any boat under way (mutants: a boat under way never snapped; a way under 3 m/s eased; the led way never settles)', async () => {
+test('AUDIT FB1022d C5: a teleport under way still snaps; a slow boat glides as any boat under way (mutants: a boat under way never snapped; a way under 3 m/s eased; the led way never settles)', async () => {
   // a jump of 100 m while sailing at 12
   const r = await voyage((t) => ({ ...straight(12)(t), x: 10 + 12 * t + (t >= 20 ? 100 : 0) }), { everyMs: FOES_MS, late: () => 0.05, seconds: 25 });
   assert.equal(r.snapped, true, 'a teleport is one');
