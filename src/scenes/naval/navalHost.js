@@ -105,6 +105,7 @@ import { NAVAL_SFX, NAVAL_CLASSIC, NAVAL_FIRE_LOOP, NAVAL_SINK_LOOP, navalSoundR
 import { raiderPlan, raiderClassOf, RAIDER_DROP_M } from '../../systems/naval/navalRaiders.js';
 import { pursue } from '../../systems/naval/seaLanes.js';   // AUDIT BAY A6: a packet steered along her leg
 import { FADE_FLATS } from '../comeSailAway/comeSailAwayPool.js';   // AUDIT BAY A13/A14: what of a fading ship goes at half
+import { NEAR_LIFE_M, FAR_LIFE_EVERY, farLifeStep } from '../comeSailAway/farLife.js';   // BOAT-FAR: her rigging's life by her range, the pool's law too
 import { segmentOfTarget } from '../serpentHost.js';   // SERPENT1: a sea serpent's segment among the shots' targets
 import { intoDeck, outOfDeck, mainLevel, DECK_STEP } from '../../systems/naval/navalDeck.js';   // AUDIT NAV2 F36: the feet in her deck's frame (aboardShip); QUAYS: her rail where the gangway lands
 import { CAPSULE_RADIUS } from '../../player/motor.js';   // AUDIT GN-D3: aboard under her main deck, a body's own reach (standsOn)
@@ -238,12 +239,10 @@ export const HIT_BURST_MAX = 3;
  *  1.6, under a holed ball's 2.5). */
 export const GUN_KICK = Object.freeze({ long: 1.1, heavy: 1.6, swivel: 0.45, chain: 0.9 });
 export const BLAST_SHAKE = 3.2;
-/** AUDIT NAV1 (the presentation, #17): HER RIGGING'S LIFE BY HER RANGE - past NEAR_LIFE_M of the eye a ship's animators
- *  and particle systems step every FAR_LIFE_EVERY frames with the time they missed: her sails' billow and her flag's
- *  wisps are too small to see there, and the traffic sits 650-1900 m out (five far war galleys cost 5.7 ms a frame on
- *  the CPU, their rigging stepped as a near one's). */
-export const NEAR_LIFE_M = 600;
-export const FAR_LIFE_EVERY = 4;
+/** AUDIT NAV1 (the presentation, #17): HER RIGGING'S LIFE BY HER RANGE - NEAR_LIFE_M and FAR_LIFE_EVERY, born here and
+ *  re-exported: BOAT-FAR moved them and the law's step (farLifeStep) to scenes/comeSailAway/farLife.js, which the Come
+ *  Sail Away pool and the peers' boats read as poseShip does. */
+export { NEAR_LIFE_M, FAR_LIFE_EVERY };
 /** NAV-FAR-AI (2026-10-12, a player's live client walking the coast: the captains of the sea's ships were 12% of the
  *  main thread and some 29% of what it allocated - every ship of mine, every frame, the adopted ones hundreds of km off
  *  among them): A FAR CAPTAIN KEEPS HER WATCH EVERY FAR_LIFE_EVERY FRAMES, on the time she missed (never more than
@@ -2199,12 +2198,12 @@ export function createNavalHost(deps) {
     if (b.LightOn !== lit && (b.Lights?.length ?? 0) > 0) setLights(b, lit);
     // AUDIT NAV1 (the presentation, #17): her animators found once, as her particle systems are (her whole tree was
     // walked for them every frame: 0.44 ms of a far galley's, for her three); past NEAR_LIFE_M both step every
-    // FAR_LIFE_EVERY frames, with the time they missed - each ship on her own frame of the stride (her number's)
-    e.lifeDt += dt;
-    if (!eye || dist2d(s.pos, eye) <= NEAR_LIFE_M || (e.lifeN = (e.lifeN + 1) % FAR_LIFE_EVERY) === 0) {
-      for (const a of (b.animators ??= boatAnimators(b))) a.update(e.lifeDt);
-      for (const ps of (b.particleSystems ??= boatParticleSystems(b))) ps.step(e.lifeDt);
-      e.lifeDt = 0;
+    // FAR_LIFE_EVERY frames, with the time they missed - each ship on her own frame of the stride (her number's).
+    // BOAT-FAR: the law read from scenes/comeSailAway/farLife.js, the one the pool and the peers' boats read
+    const lived = farLifeStep(e, dt, s.pos, eye);
+    if (lived !== null) {
+      for (const a of (b.animators ??= boatAnimators(b))) a.update(lived);
+      for (const ps of (b.particleSystems ??= boatParticleSystems(b))) ps.step(lived);
     }
     // her fires follow her deck as she heels, lists and trims; the burn breathes embers and smoke. AUDIT NAV1 (the
     // presentation): she burns on as she goes down, each fire out as the sea reaches its place on her (FLAME_AWASH) -
