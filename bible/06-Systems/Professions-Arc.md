@@ -1504,7 +1504,9 @@ each fixed and pinned (`test/ui/boardsift.test.js`, `test/net/boardsift_market.t
   dead, the id tie-break kept as recorded (equivalent: no row on two pages rests on SQLite answering equal keys alike in
   two reads, which it does for one plan but does not promise); the five records the audit's own moves touched re-aimed by
   content (`audit31.json` AUDIT31-tab-two-grids, `audit_chap2.json` T-BOARD-KIND-TEXT, `chap3a.json` CHAP3A-CARD-KIND,
-  `guild3.json` GUILD3a-your-writ-again, `marketaudit2.json` MARKET-AUDIT2-redraw-under-list), all dead.
+  `guild3.json` GUILD3a-your-writ-again, `marketaudit2.json` MARKET-AUDIT2-redraw-under-list), all dead; and every record
+  over the files the audit touched, 900, judged again - 886 dead, 13 equivalent as recorded, and one survivor that
+  survives the same on main before BOARD-SIFT (`audit30.json` AUDIT30-S5-a-piece-listed-off-the-road), left to its own arc.
 - **LOW** - a seat writ unfound by "seat", "stockpile" or "camp" (lane B): FIXED, its card's words. "ruby" missing the
   "Rubies": FIXED, a material one and many. A Court or chapter writ's kind searched in the player's language alone while
   its card writes it in English (lane B, in German): FIXED, the card's words too. The counts at odds - each kind counted
