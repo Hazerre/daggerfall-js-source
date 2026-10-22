@@ -45,6 +45,7 @@ import { PIXELIFY_FIVE_FACE, PIXEL_FONT_CSS } from './pixelifyFive.js';
 import { isTextEntryTarget } from './input.js';
 import { registerOverlay } from './enhanced/enhancedOverlays.js';   // PX28b: Tab puts it away, as it puts away every enhanced window
 import { DECOR_KINDS, DECOR_SIZES, decorSize, filterDecor } from '../systems/decor/decorCatalogue.js';
+import { loadDecorFavourites, toggleDecorFavourite } from '../systems/decor/decorFavourites.js';
 import { decorRefund, DECOR_FURNITURE_GROUP, DECOR_STATIONS, DECOR_STATION_FEES, DECOR_STATION_NAMES } from '../net/decorLaw.js';
 import { forgeOffered, PROF_STATIONS } from './professions/profPages.js';
 import { VENDOR_STATION } from '../net/vendorLaw.js';   // HOME-VENDOR: a hired trader
@@ -138,6 +139,10 @@ body .dfdecor-tabs .dfdecor-chip[aria-pressed="true"] { color: #f2c46b; box-shad
 .dfdecor-row-name { font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; }
 .dfdecor-row-sub { font-size: 12px; color: var(--dim, #9a9486); line-height: 1.35; }
 .dfdecor-row-price { font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; color: #f2c46b; }
+.dfdecor-row-end { display: flex; align-items: center; gap: 6px; }
+.dfdecor-fav { width: 28px; min-height: 28px; padding: 0; border: 0; background: transparent; color: var(--dim, #9a9486);
+  font: inherit; font-size: 16px; line-height: 1; cursor: pointer; }
+.dfdecor-fav[aria-pressed="true"] { color: #f2c46b; }
 .dfdecor-empty { padding: 16px; font-size: 14px; color: var(--dim, #9a9486); text-align: center; }
 .dfdecor-side { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow-y: auto; }   /* AUDIT HOME-STATIONS S5: six acts on a short screen */
 .dfdecor-preview { flex: 1 1 auto; min-height: 140px; border: 1px solid var(--iron, #2b323b); border-radius: 3px;
@@ -220,6 +225,7 @@ body .dfdecor-tabs .dfdecor-chip[aria-pressed="true"] { color: #f2c46b; box-shad
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .dfdecor-card[data-view="grid"] .dfdecor-row-sub { display: none; }
 .dfdecor-card[data-view="grid"] .dfdecor-row-price { font-size: 13px; }
+.dfdecor-card[data-view="grid"] .dfdecor-row-end { justify-content: center; }
 .dfdecor-card[data-view="grid"] .dfdecor-empty { grid-column: 1 / -1; }
 /* a side's presses as picture tiles - the glyph over its word */
 .dfdecor-acts-btns > .dfdecor-btn[data-dficon] { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
@@ -289,8 +295,8 @@ export const DECOR_PAINT_WORDS = Object.freeze({
 });
 /** MENU-ORDER: the phone's filter fold, and how many filters it hides that are chosen (a kind each, a size, holding,
  *  light) - "Filters" with none. */
-export function decorFiltersText({ kinds, size, storage, light }) {
-  const n = (kinds?.size ?? 0) + (size != null ? 1 : 0) + (storage != null ? 1 : 0) + (light != null ? 1 : 0);
+export function decorFiltersText({ kinds, size, storage, light, fav = false }) {
+  const n = (kinds?.size ?? 0) + (size != null ? 1 : 0) + (storage != null ? 1 : 0) + (light != null ? 1 : 0) + (fav ? 1 : 0);
   return n ? `${DECOR_FILTERS_WORD} (${n})` : DECOR_FILTERS_WORD;
 }
 
@@ -624,7 +630,7 @@ export function createDecorPanel({
   let unregister = () => {};
   /** @type {any} */
   let view = null;
-  const f = { kinds: new Set(), text: '', size: null, storage: null, light: null, sort: 'common' };
+  const f = { kinds: new Set(), text: '', size: null, storage: null, light: null, fav: false, sort: 'common' };
   let selectedKey = null;
   let hoverKey = null;
   let layout = 'grid';        // MENU-ORDER: 'grid' (pictures) or 'list'
@@ -953,7 +959,8 @@ export function createDecorPanel({
       ...Object.keys(DECOR_SIZES).map((k) => chip(DECOR_SIZES[k], f.size === k, () => { f.size = f.size === k ? null : k; redraw(); }, `size-${k[0]}`)));
     hasChips.replaceChildren(
       chip('Holds things', f.storage === true, () => { f.storage = f.storage ? null : true; redraw(); }, 'storage'),
-      chip('Gives light', f.light === true, () => { f.light = f.light ? null : true; redraw(); }, 'light'));
+      chip('Gives light', f.light === true, () => { f.light = f.light ? null : true; redraw(); }, 'light'),
+      chip('Favourites', f.fav, () => { f.fav = !f.fav; redraw(); }));
     sortChips.replaceChildren(...Object.keys(DECOR_SORTS).map((k) => chip(DECOR_SORTS[k], f.sort === k, () => { f.sort = k; redraw(); })));
     const words = decorFiltersText(f);   // MENU-ORDER: the phone's fold says how many it hides
     if (filterToggle.textContent !== words) filterToggle.textContent = words;
@@ -983,7 +990,19 @@ export function createDecorPanel({
     const main = el('span', 'dfdecor-row-main');
     main.append(el('div', 'dfdecor-row-name', e.name), el('div', 'dfdecor-row-sub', decorRowSub(e, radiusOf(e))),
       badges({ storage: !!e.storage, light: e.light != null }));   // MENU-ORDER
-    r.append(thumb, main, el('span', 'dfdecor-row-price', look ? 'free' : decorPriceText(price)));
+    const priceEl = el('span', 'dfdecor-row-price', look ? 'free' : decorPriceText(price));
+    if (look) r.append(thumb, main, priceEl);
+    else {
+      const on = loadDecorFavourites().has(e.key);
+      const fav = el('button', 'dfdecor-fav', on ? '★' : '☆');
+      fav.type = 'button';
+      fav.setAttribute('aria-pressed', on ? 'true' : 'false');
+      fav.setAttribute('aria-label', on ? 'Remove favourite' : 'Favourite');
+      fav.addEventListener('click', (ev) => { ev.stopPropagation?.(); toggleDecorFavourite(e.key); redraw(); });
+      const end = el('span', 'dfdecor-row-end');
+      end.append(fav, priceEl);
+      r.append(thumb, main, end);
+    }
     r.addEventListener('click', () => { if (look) lookKey = e.key; else selectedKey = e.key; redraw(); });
     r.addEventListener('mouseenter', () => { hoverKey = e.key; paintSide(); });
     r.addEventListener('mouseleave', () => { if (hoverKey === e.key) { hoverKey = null; paintSide(); } });
@@ -1073,7 +1092,7 @@ export function createDecorPanel({
       const look = mode === 'look';   // DECOR2b: the furniture's kinds alone, and neither holding nor light asked
       const shownEntries = look
         ? filterDecor(entries, { kinds: lookOf().looks, text: f.text, size: f.size, sort: f.sort, radiusOf })
-        : filterDecor(entries, { kinds: f.kinds, text: f.text, size: f.size, storage: f.storage, light: f.light, sort: f.sort, radiusOf });
+        : filterDecor(entries, { kinds: f.kinds, text: f.text, size: f.size, storage: f.storage, light: f.light, favourite: f.fav ? loadDecorFavourites() : null, sort: f.sort, radiusOf });
       list.replaceChildren(...(shownEntries.length ? shownEntries.map((e) => row(e, look)) : [el('div', 'dfdecor-empty', 'Nothing matches.')]));
     }
     listSig = signature();

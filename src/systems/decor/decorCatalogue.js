@@ -379,19 +379,21 @@ export function decorSize(radiusMetres) {
 
 /**
  * THE PANEL'S FILTERS over the catalogue: kinds (any of), words (every word found in the name or the kind), a size
- * band, holds-things, gives-light; sorted most common first, by price, or by name. `radiusOf(entry)` is the host's
- * measure (null while unmeasured: such an entry passes no size filter and sorts last by price).
+ * band, holds-things, gives-light, favourites (a set of catalogue ids); sorted most common first, by price, or by
+ * name. `radiusOf(entry)` is the host's measure (null while unmeasured: such an entry passes no size filter and sorts
+ * last by price).
  * @param {readonly any[]} entries
  * @param {{ kinds?: Iterable<string>|null, text?: string, size?: string|null, storage?: boolean|null,
- *   light?: boolean|null, sort?: string, radiusOf?: (entry: any) => (number|null) }} [opts]
+ *   light?: boolean|null, favourite?: Set<string>|null, sort?: string, radiusOf?: (entry: any) => (number|null) }} [opts]
  */
 export function filterDecor(entries, {
-  kinds = null, text = '', size = null, storage = null, light = null, sort = 'common', radiusOf = () => null,
+  kinds = null, text = '', size = null, storage = null, light = null, favourite = null, sort = 'common', radiusOf = () => null,
 } = {}) {
   const want = kinds && [...kinds].length ? new Set(kinds) : null;
   const words = String(text ?? '').toLowerCase().split(/\s+/).filter(Boolean);
   const out = (entries ?? []).filter((e) => {
     if (want && !want.has(e.kind)) return false;
+    if (favourite && !favourite.has(e.key)) return false;
     if (storage !== null && e.storage !== storage) return false;
     if (light !== null && (e.light !== null) !== light) return false;
     if (size !== null && decorSize(radiusOf(e)) !== size) return false;
