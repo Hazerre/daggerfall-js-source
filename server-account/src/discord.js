@@ -283,10 +283,16 @@ async function onPress(ctx, env, body, actor, io) {
   const c = await ctx.db.prepare('SELECT * FROM mod_cases WHERE id = ?1').bind(caseId).first();
   if (!c) return say('That case is gone.');
   if (c.status !== 'open') return redraw(ctx, caseId);
-  // THE CLAIM: one press acts; another inside CASE_CLAIM_S is shown the card as it stands
-  const claimed = await ctx.db.prepare("UPDATE mod_cases SET claimed_at = ?2 WHERE id = ?1 AND status = 'open' AND (claimed_at IS NULL OR claimed_at < ?3)")
-    .bind(caseId, ctx.nowS, ctx.nowS - CASE_CLAIM_S).run();
-  if (!claimed?.meta?.changes) return redraw(ctx, caseId);
+  // STAFF-PANEL2 (staffCases.js): a case another staff member holds in the staff panel is theirs to act on
+  const panelHeld = (/** @type {any} */ r) => !!r?.claimed_by && r.claimed_by !== actor.id && Number(r.claim_until) > ctx.nowS;
+  // THE CLAIM: one press acts; another inside CASE_CLAIM_S is shown the card as it stands - and none while the panel's claim
+  // of another member stands, asked in the same statement
+  const claimed = await ctx.db.prepare(`UPDATE mod_cases SET claimed_at = ?2 WHERE id = ?1 AND status = 'open' AND (claimed_at IS NULL OR claimed_at < ?3)
+    AND (claimed_by IS NULL OR claimed_by = ?4 OR claim_until <= ?2)`).bind(caseId, ctx.nowS, ctx.nowS - CASE_CLAIM_S, actor.id).run();
+  if (!claimed?.meta?.changes) {
+    const now = await ctx.db.prepare('SELECT claimed_by, claim_until FROM mod_cases WHERE id = ?1').bind(caseId).first();
+    return panelHeld(now) ? say('Another staff member has this case in the staff panel.') : redraw(ctx, caseId);
+  }
   const release = () => ctx.db.prepare('UPDATE mod_cases SET claimed_at = NULL WHERE id = ?1').bind(caseId).run();
   const row = await ctx.db.prepare('SELECT * FROM players WHERE id = ?1').bind(c.target).first();
   if (!row) { await release(); return say('That account is gone.'); }

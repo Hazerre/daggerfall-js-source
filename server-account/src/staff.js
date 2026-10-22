@@ -47,6 +47,7 @@ import { verifyPassword, mintRecoveryCode, canonicalCode } from './password.js';
 import { mintId, mintSecret, hashSecret, displayName, overRate, clearRate, overAccountRate } from './accounts.js';
 import { isDeveloper, canModerate, handleList, developerHandles, moderatorHandles, TIER_LISTS, MOD_TIERS } from './titles.js';
 import { isBanned } from './sanctions.js';
+import { staffCases, CASE_ROUTES } from './staffCases.js';
 
 /** The header a staff session rides in - never `authorization`, which is the game's. */
 export const STAFF_SESSION_HEADER = 'x-staff-session';
@@ -84,6 +85,9 @@ export const staffWords = (/** @type {'login'|'enroll'} */ what, /** @type {stri
 export const STAFF_STATUS = Object.freeze({
   'staff-login': 401, 'staff-session': 401, 'staff-owner': 403, 'staff-admin': 403, 'no-staff': 404, 'no-key': 404, 'no-player': 404,
   'staff-self': 409, 'staff-keys-full': 409, 'staff-already': 409, 'staff-banned': 409, 'staff-config': 409, 'rate': 429, 'body': 400,
+  // STAFF-PANEL2 (staffCases.js): a case another member holds, a Moderator's second case, and the game's own moderation words
+  'staff-claimed': 409, 'staff-one-case': 409, 'no-case': 404, 'not-moderator': 403, protected: 403, ambiguous: 409, 'bad-minutes': 400,
+  'bad-days': 400, 'not-banned': 409, 'not-found': 404,
 });
 
 const enc = new TextEncoder();
@@ -326,6 +330,9 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
     ]);
     return gone.meta.changes ? { ok: true, id: body.id } : { error: 'no-key' };
   }
+
+  // ═══ STAFF-PANEL2: THE REPORTS, Mute, Ban and the claims - Admins and Moderators both (staffCases.js) ═══
+  if (CASE_ROUTES.includes(path)) return staffCases(ctx, env, path, body, who, audit);
 
   // ═══ THE ADMINS' DOORS: THE PANEL'S MODERATORS (mob, 07:42Z: "add it so admins can add or remove moderatoers") ═══
   // /v1/staff/mods lists them; /v1/staff/mod/add and /mod/remove { handle } - a registered account, not banned, not staff
