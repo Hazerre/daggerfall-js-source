@@ -1,0 +1,137 @@
+[
+  {
+    "name": "TIMERS2-the-groups-reordered",
+    "file": "src/systems/eventTimers.js",
+    "old": "  Object.freeze({ id: 'world', kinds: Object.freeze(['gate', 'serpent', 'super', 'star']) }),\n  Object.freeze({ id: 'spire', kinds: Object.freeze(['elite']) }),",
+    "new": "  Object.freeze({ id: 'spire', kinds: Object.freeze(['elite']) }),\n  Object.freeze({ id: 'world', kinds: Object.freeze(['gate', 'serpent', 'super', 'star']) }),",
+    "tests": [
+      "test/ui/enhanced/timers2.test.js"
+    ]
+  },
+  {
+    "name": "TIMERS2-a-kind-in-two-groups",
+    "file": "src/systems/eventTimers.js",
+    "old": "Object.freeze(['gate', 'serpent', 'super', 'star'])",
+    "new": "Object.freeze(['gate', 'serpent', 'super', 'star', 'elite'])",
+    "tests": [
+      "test/ui/enhanced/timers2.test.js"
+    ]
+  },
+  {
+    "name": "TIMERS2-an-unknown-kind-lost",
+    "file": "src/systems/eventTimers.js",
+    "old": "?.id ?? 'resets';",
+    "new": "?.id ?? 'lost';",
+    "tests": [
+      "test/ui/enhanced/timers2.test.js"
+    ]
+  },
+  {
+    "name": "TIMERS2-an-empty-group-drawn",
+    "file": "src/systems/eventTimers.js",
+    "old": "  }).filter((g) => g.rows.length);",
+    "new": "  });",
+    "tests": [
+      "test/ui/enhanced/timers2.test.js"
+    ]
+  },
+  {
+    "name": "TIMERS2-the-live-count-off",
+    "file": "src/systems/eventTimers.js",
+    "old": "live: of.filter((r) => r.live).length",
+    "new": "live: of.length",
+    "tests": [
+      "test/ui/enhanced/timers2.test.js"
+    ]
+  },
+  {
+    "name": "TIMERS2-the-badge-on-a-coming-row",
+    "file": "src/ui/enhanced/enhancedTimers.js",
+    "old": "if (r.live) clock.append(el('span', 'tm-badge'",
+    "new": "clock.append(el('span', 'tm-badge'",
+    "tests": [
+      "test/ui/enhanced/timers2.test.js"
+    ]
+  },
+  {
+    "name": "TIMERS2-the-head-count-unsaid",
+    "file": "src/ui/enhanced/enhancedTimers.js",
+    "old": "if (g.live) h.append(",
+    "new": "if (false) h.append(",
+    "tests": [
+      "test/ui/enhanced/timers2.test.js"
+    ]
+  },
+  {
+    "name": "TIMERS2-the-press-ignored",
+    "file": "src/ui/enhanced/enhancedTimers.js",
+    "old": "b.addEventListener('click', () => { showing = id; shownGroup = id; draw(); });",
+    "new": "b.addEventListener('click', () => { draw(); });",
+    "tests": [
+      "test/ui/enhanced/timers2.test.js"
+    ]
+  },
+  {
+    "name": "TIMERS2-the-choice-forgotten",
+    "file": "src/ui/enhanced/enhancedTimers.js",
+    "old": "b.addEventListener('click', () => { showing = id; shownGroup = id; draw(); });",
+    "new": "b.addEventListener('click', () => { showing = id; draw(); });",
+    "tests": [
+      "test/ui/enhanced/timers2.test.js"
+    ]
+  },
+  {
+    "name": "TIMERS2-an-emptied-group-left-showing-nothing",
+    "file": "src/ui/enhanced/enhancedTimers.js",
+    "old": "    if (showing !== 'all' && !groups.some((g) => g.id === showing)) showing = 'all';\n",
+    "new": "",
+    "tests": [
+      "test/ui/enhanced/timers2.test.js"
+    ]
+  },
+  {
+    "name": "TIMERS2-a-bar-with-no-clock",
+    "file": "src/ui/enhanced/enhancedTimers.js",
+    "old": "if (groups.length) {",
+    "new": "if (true) {",
+    "tests": [
+      "test/ui/enhanced/timers2.test.js"
+    ]
+  },
+  {
+    "name": "TIMERS2-the-focus-lost-in-the-rebuild",
+    "file": "src/ui/enhanced/enhancedTimers.js",
+    "old": "      if (had) /** @type {any} */ (chips.get(had) ?? chips.get('all'))?.focus?.({ preventScroll: true });\n",
+    "new": "",
+    "tests": [
+      "test/ui/enhanced/timers2.test.js"
+    ]
+  },
+  {
+    "name": "TIMERS2-the-pressed-state-unsaid",
+    "file": "src/ui/enhanced/enhancedTimers.js",
+    "old": "b.setAttribute('aria-pressed', id === showing ? 'true' : 'false');",
+    "new": "b.setAttribute('aria-pressed', 'false');",
+    "tests": [
+      "test/ui/enhanced/timers2.test.js"
+    ]
+  },
+  {
+    "name": "TIMERS2-the-elite-uncoloured",
+    "file": "src/ui/enhanced/enhancedStyle.js",
+    "old": " .px-timerswin .tm-elite { --tm-kind: ${EG_ARCH_RING_CSS}; }",
+    "new": "",
+    "tests": [
+      "test/ui/enhanced/timers2.test.js"
+    ]
+  },
+  {
+    "name": "TIMERS2-the-door-squeezing-a-phone-row",
+    "file": "src/ui/enhanced/enhancedStyle.js",
+    "old": "  .px-timerswin .tm-door { flex: 1 0 100%;",
+    "new": "  .px-timerswin .tm-door { flex: 0 0 auto;",
+    "tests": [
+      "test/ui/enhanced/timers2.test.js"
+    ]
+  }
+]

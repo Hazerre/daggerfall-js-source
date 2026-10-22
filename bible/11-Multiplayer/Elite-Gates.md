@@ -3164,6 +3164,8 @@ everything"*.)
   `tools/mutants/egeco_relay.json` (72, every one dead). `RELAY_VERSION` `world197` is re-hashed with
   `net/eliteGates/egHerald.js` in its graph.
 
+**HERALD-CARDS (2026-10-22).** These posts are cards now (`net/herald/heraldCard.js`; `World-Bosses.md` THE HERALD, HERALD-CARDS): the family The Battlespire, in its colour, the moment's title, its facts as fields (the tenth Redoubt and First of the Spire: Hall, Time, Began at, Company; the Descent record: Bracket, Company, Deepest hall, Time), and content only on a post that pings. When each is owed is unchanged. Its cards may go to a thread of their own of the channel (the relay setting `egThread`), the gate's else.
+
 ## 21. Integrity - what the relay judges
 
 The gate's trust law, kept whole, and where it was not enough for one life, widened:

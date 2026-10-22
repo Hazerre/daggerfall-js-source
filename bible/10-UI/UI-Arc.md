@@ -19981,3 +19981,50 @@ walk and Ctrl+Tab are left alone. The chat's controls over the world (Play onlin
 Social buttons, Show) are never the keyboard's focus (`ui/input.js` neverTheFocus): they are out of the walk, a mouse
 press gives them no focus, and a focus they get another way is given back. The record:
 `01-Overview/bugs/Field-Bugs-2026-10-20h.md`; the pins `test/ui/fb1020h_tabwalk.test.js`.
+
+## TIMERS2 - THE TIMERS IN GROUPS (2026-10-22, the owner: "organize the timer system in the pause menu")
+
+TIMERS1's window drew one list, live rows first and then the rest by time, under two heads - Now and Coming up. On a
+busy evening that was fifteen rows and more (the gate and the next, the serpent, the Abyss Dungeon, the Starfall, an
+Elite Breach and the Spire's season, the player's region's raids and one row for the rest, the seat week, the battles,
+the two days) with a gate beside a raid beside the UTC day: a player looking for the next raid read them all.
+
+**Where things stand.** Each row stands under what it is (`systems/eventTimers.js` `TIMER_GROUPS`, `timerGroupOf`):
+
+| Group (its head) | Its button | The rows |
+|---|---|---|
+| World events | World | the gate and the next, the sea serpent and the next, an Abyss Dungeon, the Starfall's stars |
+| The Battlespire | Spire | an Elite Breach, the Spire's season |
+| Town raids | Raids | the player's region's raids, the rest's one row |
+| Seats and battles | Seats | the Reckoning, the Turning, a Season's end, the week's battles, the Royal Tourney |
+| Resets | Resets | the new bounty hunts and raids, the daily reset |
+
+`timerGroups` lays the rows out in that order, each group's rows in the list's own order (live first, soonest end
+first, then soonest start), and says how many of each are under way; a group with no row is not drawn.
+
+**The window** (`ui/enhanced/enhancedTimers.js` `timersWindow`):
+- a head a group, its title at the left and, at the right in the live countdowns' green, how many of its rows are
+  under way (*1 under way*);
+- a row under way says **Now** above its countdown - the Now and Coming up heads are gone, and the live row keeps its
+  tint and its green count;
+- a BAR over the list - All and a button for each group with a row, each its count, a green dot where one is under way.
+  A press shows that group alone (the button pressed, `aria-pressed`), and the choice is kept while the game runs: the
+  next window opens on it. A group that empties (its last raid over) hands the list back to All, so the window never
+  shows nothing; with no clock there is no bar, and the empty list says why (AUDIT TIMERS1 UI-8). The focus stays on
+  the pressed button through the bar's rebuild;
+- the Elite Breach's rows wear its arch's gold (`ui/eliteGates/egArchMapMark.js` `EG_ARCH_RING_CSS`) - they had drawn
+  in no colour, `elite` missing from `TIMER_KINDS`; the gate's red is its herald's family's (`net/herald/heraldCard.js`
+  `heraldCss`), the colour its Discord card wears (`11-Multiplayer/World-Bosses.md`, HERALD-CARDS);
+- on a phone (560px and under) a row's door (the Elite rows' Boards) stands on a line of its own - beside the clock it
+  had squeezed the row's words to a word a line.
+
+The groups' words go through the text core (`timers.group.*`, `timers.chip.*`, `timers.now`, `timers.underWay`,
+`timers.groups`), drafted in-session for the thirteen whole languages (`tools/l10nInSession.mjs`, recorded as the
+machine's); the window's own older English is as TIMERS1 left it.
+
+**Seen in a browser** (Chromium, the real pause face - `mountEnhancedMenu` in pause mode - with a fixture source, no
+ARENA2): at 1280x800 the five groups and the bar stand in the window, the Raids button showing the raids alone; at
+390x844 the bar wraps to two lines, no row runs past the window and nothing scrolls sideways, and the Elite rows'
+Boards sit under their rows. Not seen: the live pause face online. Pins: `test/ui/enhanced/timers2.test.js` (5: the
+law, the layout, the window, the bar, the sheet); `test/ui/enhanced/timers1.test.js`'s window pin moved to the groups;
+`tools/mutants/timers2.json` (15), all dead.

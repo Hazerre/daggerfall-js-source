@@ -285,6 +285,11 @@ import { mintCardReceipt, CARD_RECEIPT_TTL_S } from '../../src/net/card/cardRece
 // gateLaw.js and wire.js, both here). The hub posts off its own alarm; bible/11-Multiplayer/World-Bosses.md, "THE
 // HERALD".
 import { heraldWebhook, heraldRole, omenPost, fellPost, ritePost, heraldOmenDue, heraldFellLive, gateSiteDayOk, foldGateSite, agreedGateSite, HERALD_RETRY_MS, HERALD_TIMEOUT_MS } from '../../src/net/gate/gateHerald.js';
+// HERALD-CARDS (2026-10-22, the owner: "overhaul our discord world event notification system to be more organized"):
+// net/herald/heraldCard.js JOINS THE BUNDLE - every herald's post is one card built there (a family's colour, the moment's
+// title, its facts as fields), and each family may post to a thread of its own (a relay setting over its var: gateThread,
+// serpentThread, sdThread, egThread - net/relayCfg.js), the gate's thread else, the channel itself with none.
+import { heraldThread, heraldPostUrl, HERALD_FAMILIES } from '../../src/net/herald/heraldCard.js';
 // OW6L (2026-09-29, the product owner: "Everything needs that persistence between players in the overworld."): ONE FILE
 // JOINS THE BUNDLE - net/overworldLaw.js (a cell's overworld ledger: the bands and raiders spent in it, its spawned
 // dungeons' clocks - pure law; it imports wire.js, gateLaw.js and raidLaw.js, all three here already).
@@ -452,6 +457,7 @@ const relayCfgRefusal = (k, v) => {
   if (k === 'grantStrip') return v === 'on' || v === 'off' ? null : 'grantStrip is on (the relay drops a foe record its grant does not stand) or off';   // GRANT9 (Spawn-Grants.md section 16)
   if (k === 'grantDoor') return v === 'on' || v === 'off' ? null : 'grantDoor is on (a foes room refuses a build that does not stand on spawn grants) or off';   // GRANT-DOOR (Spawn-Grants.md section 20)
   if (k === 'leaseDoor') return v === 'on' || v === 'off' ? null : 'leaseDoor is on (a lease room refuses a build that hands on no lease, and hears a socket in nothing but its ping while it holds no live lease) or off';   // LEASE1 (net/roomLease.js)
+  if (Object.values(HERALD_FAMILIES).some((f) => f.thread === k)) return heraldThread(v) === null ? `${k} is a Discord thread's id, 15 to 21 digits - not its name or its link` : null;   // HERALD-CARDS
   if (k !== 'bossBody') return heraldRole(v) === null ? `${k} is a Discord role's id, 15 to 21 digits - not its name or its mention` : null;
   let o = null;
   try { o = JSON.parse(v); } catch { /* refused below */ }
@@ -7962,17 +7968,21 @@ export class Room {
       // SD-HERALD: and the role the Abyss Dungeon's rise and find ping - SD_DISCORD_ROLE, else the gate's (the serpent's law)
       // SCALE5b: each role the hub's setting when it holds one (net/relayCfg.js), else the var - `_relayCfgOf` read first
       const cfg = this._relayCfg, role = (k) => relayCfgValue(cfg, this.env, k);
-      this._herald = hook ? { hook, role: heraldRole(role('gateRole')), serpentRole: serpentHeraldRole(role('serpentRole'), role('gateRole')), sdRole: serpentHeraldRole(role('sdRole'), role('gateRole')) } : null;
+      // HERALD-CARDS: and the thread each family posts to - its own when the operator names one, else the gate's, else none
+      const gateThread = heraldThread(role('gateThread'));
+      const threads = Object.fromEntries(Object.entries(HERALD_FAMILIES).map(([f, F]) => [f, heraldThread(role(F.thread)) ?? gateThread]));
+      this._herald = hook ? { hook, threads, role: heraldRole(role('gateRole')), serpentRole: serpentHeraldRole(role('serpentRole'), role('gateRole')), sdRole: serpentHeraldRole(role('sdRole'), role('gateRole')) } : null;
     }
     return this._herald;
   }
   /** One post to the channel; true once Discord has taken it - or refused it FOR GOOD (a 4xx but 429: a webhook deleted,
-   *  a body it will never take - posted again every HERALD_RETRY_MS, it would only be refused again). */
-  async _heraldSend(body) {
+   *  a body it will never take - posted again every HERALD_RETRY_MS, it would only be refused again). HERALD-CARDS: into
+   *  the thread its family posts to (`family`, net/herald/heraldCard.js HERALD_FAMILIES). */
+  async _heraldSend(body, family = 'gate') {
     const h = this._heraldOf();
     if (!h) return false;
     try {
-      const res = await fetch(h.hook, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(HERALD_TIMEOUT_MS) });
+      const res = await fetch(heraldPostUrl(h.hook, h.threads?.[family] ?? null), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(HERALD_TIMEOUT_MS) });
       if (res.ok) return true;
       console.warn('[herald] Discord said', res.status);
       return res.status >= 400 && res.status < 500 && res.status !== 429;
@@ -8125,11 +8135,11 @@ export class Room {
       const rec = await this._serpentSiteOf();
       const kill = serpentHeraldKill(await this._serpentFellsOf(), rec, st.fell, now);
       if (kill?.wait) retry = now + HERALD_RETRY_MS;
-      else if (kill) { if (await this._heraldSend(serpentFellPost(kill))) st.fell = kill.day; else retry = now + HERALD_RETRY_MS; }
+      else if (kill) { if (await this._heraldSend(serpentFellPost(kill), 'serpent')) st.fell = kill.day; else retry = now + HERALD_RETRY_MS; }
       const due = serpentHeraldOmenDue(now, st.omen);
       if (due && due.at <= now) {
         const site = agreedSerpentSite(rec, due.day);
-        if (await this._heraldSend(serpentOmenPost({ day: due.day, place: site?.place ?? null, role: h.serpentRole }))) st.omen = due.day;
+        if (await this._heraldSend(serpentOmenPost({ day: due.day, place: site?.place ?? null, role: h.serpentRole }), 'serpent')) st.omen = due.day;
         else retry = now + HERALD_RETRY_MS;
       }
       if (JSON.stringify(st) !== was) await this.state.storage.put('sherald', st);   // the alarm alone writes it (its beats never overlap)
@@ -8167,7 +8177,7 @@ export class Room {
         const due = sdHeraldDue(rec, st, now);
         st = due.st;
         if (!due.kind) break;
-        if (!(await this._heraldSend(sdHeraldPost(due.kind, rec, h.sdRole)))) { retry = now + HERALD_RETRY_MS; break; }
+        if (!(await this._heraldSend(sdHeraldPost(due.kind, rec, h.sdRole), 'abyss'))) { retry = now + HERALD_RETRY_MS; break; }
         st[due.kind === 'fell' || due.kind === 'fade' ? 'end' : due.kind] = rec.s;
       }
       if (JSON.stringify(st) !== was) await this.state.storage.put('sdherald', st);   // the alarm alone writes it (its beats never overlap)
@@ -8206,7 +8216,7 @@ export class Room {
         const { p, gone } = egHeraldNext(readEgHeraldState(await this.state.storage.get(EG_HERALD_KEY)), done, now);
         for (const i of gone) done.add(i);
         if (!p) break;
-        if (!(await this._heraldSend(egHeraldPost(p)))) { retry = now + HERALD_RETRY_MS; break; }
+        if (!(await this._heraldSend(egHeraldPost(p), 'spire'))) { retry = now + HERALD_RETRY_MS; break; }
         done.add(p.i);
       }
       if (done.size) {
