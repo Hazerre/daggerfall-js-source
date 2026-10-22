@@ -59,6 +59,8 @@
 //   POST /v1/safety/block { target }                 -> { ok, blocks }   /v1/safety/unblock { target } the same
 //   POST /v1/safety/report { target, reason, note?, lines: [{ tab, sub, name, at, text, sg }] } -> { ok, case, repeat?, muted?, order? }   (SAFE3: every line's stamp checked)
 //   POST /v1/safety/conduct { v }                    -> { ok, conduct }   (SAFE7: the code of conduct agreed)
+//   POST /v1/safety/staff-messages {}                -> { ok, messages: [{ id, from, text, at }] }   (STAFF-PANEL5-MESSAGE: staff's, waiting)
+//   POST /v1/safety/staff-message-ok { id }          -> { ok, marked }   (STAFF-PANEL5-MESSAGE: the player pressed OK)
 //   POST /v1/mod/ban { target?, name?, days, reason? } -> { ok, target, name, until, reason, order }   (SAFE4: a moderator's; days 0 for good)
 //   POST /v1/mod/unban { target?, name? }            -> { ok, target, name, until: 0, order }
 //   POST /v1/mod/strikes { target?, name? }          -> { ok, target, name, strikes, next, mutedUntil, bannedUntil, banReason, history }
@@ -334,7 +336,8 @@ import { measured, heartbeatPartsOf } from './metrics.js';   // SCALE1: every re
 import { runCron } from './cron.js';   // SCALE4b: the service's own clock
 import { blocksOf, blockAccount, unblockAccount, fileReport, agreeConduct, conductAgreed, takeFeed, bannedAnswer, resolveCase, modCases, modCase, modDismiss, REPORT_BODY_MAX } from './safety.js';   // SAFE1-SAFE7: the chat's safety
 import { banAccount, unbanAccount, strikesLook, isBanned, actionStatement, lawOrder, pushLaw } from './sanctions.js';   // SAFE4: the record, the ladder and the ban
-import { staffRoute, STAFF_STATUS, STAFF_SESSION_HEADER } from './staff.js';   // STAFF-PANEL1: the staff panel's sign-in, sessions, roles and audit log
+import { staffRoute, STAFF_STATUS, STAFF_SESSION_HEADER } from './staff.js';
+import { staffMessagesFor, staffMessageOk } from './staffMessage.js';   // STAFF-PANEL5-MESSAGE: the game's two doors   // STAFF-PANEL1: the staff panel's sign-in, sessions, roles and audit log
 import { discordSigned, discordInteraction, DISCORD_BODY_MAX } from './discord.js';   // SAFE8: the moderators' queue in Discord
 import { FEED_MAX_BYTES, FEED_SIG_HEADER } from '../../src/net/safety/chatFeed.js';   // SAFE5: the relay's feed of public lines
 import { heartbeat } from './heartbeat.js';   // SCALE4c: one request for a tab's three clocks
@@ -2151,6 +2154,8 @@ const service = {
           '/v1/safety/unblock': () => unblockAccount(ctx, who.player, { target: body.target }),
           '/v1/safety/report': () => fileReport(ctx, who.player, env, body),
           '/v1/safety/conduct': () => agreeConduct(ctx, who.player, { v: body.v }),
+          '/v1/safety/staff-messages': () => staffMessagesFor(ctx, who.player),   // STAFF-PANEL5-MESSAGE: Message on screen, read by the player's own game
+          '/v1/safety/staff-message-ok': () => staffMessageOk(ctx, who.player, body),   // ...and its OK (their game's word, never proof)
         }[path];
         if (!act) return no('not-found', 404, origin);
         const r = await act();

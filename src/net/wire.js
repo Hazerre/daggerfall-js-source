@@ -74,6 +74,10 @@ import { HUB_SHARD_ROOMS, isHubShard, HUB_FIND_Q_MAX, REGION_SHARD_ROOMS } from 
 //                                                       to its target's hub sockets so their own client carries it to every room it holds
 //                                                       - each socket's first word of the order (its `muted` or `banned` after it)
 //                    {t:'slowed', ms}                   SAFE6: a new voice's public line refused for its pace - `ms` until the next one
+//                    {t:'smsg', mi}                     STAFF-PANEL5-MESSAGE: a staff message `mi` waits for this account - made only from
+//                                                       the service's signed 'smsg' order at the hub's door, to that account's own hub
+//                                                       sockets whose hello said `sm` (the box); the game reads the words off the
+//                                                       account service with its own session (server/src/staffMessage.js)
 //                    {t:'event', kind, at}              EVENT1: the server-wide live event now, to every hub socket when it is staged
 //                                                       or ended; a late joiner reads it off the hub welcome's `ev` ({kind, at}, absent: none)
 //                    {t:'home', l:[{m, u, d, i}]}       QUEST-HOME: homes that moved - town m's buildings u homes now, d none, i the
@@ -2381,6 +2385,7 @@ export function parseClient(text, { hasHello = false } = {}) {
     if (Number.isSafeInteger(m.gl) && m.gl >= 1 && m.gl <= GROUND_LAW_WIRE_MAX) hello.gl = m.gl;
     if (Number.isSafeInteger(m.gv) && m.gv >= 1 && m.gv <= GRANT_HELLO_LAW_WIRE_MAX) hello.gv = m.gv;   // GRANT-DOOR: the grants this build stands on - read as GROUND-GATE's `gl` is
     if (m.ls === 1) hello.ls = 1;   // LEASE1: this build hands its hub's lease to the room (net/roomLease.js) - 1 or nothing, the `w2` law
+    if (m.sm === 1) hello.sm = 1;   // STAFF-PANEL5-MESSAGE: this build shows a staff message's box (net/staffMessages.js) - 1 or nothing, the `w2` law: a hub socket without it is "old game, not shown"
     return hello;
   }
   if (m.t === 'pose') {

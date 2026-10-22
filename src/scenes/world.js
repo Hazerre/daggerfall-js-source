@@ -862,6 +862,7 @@ import {
 import { createRealmLine } from '../systems/legacy/realmLine.js';   // LEGACY7: online, Project Legacy's lines are the realm's
 import { reclaimFromDevice, reclaimLines, crossLeveling, LEVELING_CROSS_LINE } from '../systems/realmCustoms.js';   // RESTORE: what customs once kept back, given back at the boot; LEVEL-ONLINE-3: the realm's one leveling
 import { appStorage } from '../systems/appStorage.js';   // ACC1d: where that session lives - the app's store, not the tab's (a second tab is the same player)
+import { createStaffMessages } from '../net/staffMessages.js';   // STAFF-PANEL5-MESSAGE: Message on screen, the game's half
 import { skyClassicMinutes, wallMsForSkyMinutes, skyMinutesPerMsAt } from '../net/skyLaw.js';   // TIME1: the sky's own clock, installed beside the event clock
 import { POSE_STRIKES, isWorldRoom, isCellRoom, cellHaloFor, actFrameFits, sharedClassicMinutes, wallMsForClassicMinutes } from '../net/wire.js';   // WORLD6b-iii(b): the cell seam's halo   // MAC7 #1: the swing's kind on the wire; AUDIT WORLD4 A1: whether an act frame can be said at all
 import { WILD_DATA_MAX, WILD_ITEMS_MAX, POSE_RIDE } from '../net/wire.js';   // INT9 (AUDIT): a deposit's chunks, bounded by the wire's frame; COATS3D: POSE_RIDE - a peer on a horse rides the 3D one
@@ -21404,6 +21405,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         const client = createStaffTeleportClient({ send: (m) => link.sendStaffTeleport(m), capture: staffDestination });
         staffTeleportClient = client;
         link.onStaffTeleport = (m) => client.receive(m);
+        link.onStaffMessage = createStaffMessages(chatLog).heard;   // STAFF-PANEL5-MESSAGE: a staff message waits - the box, its OK, and its copy on the Staff tab (net/staffMessages.js)
       }
       if (tab.room === SOCIAL_ROOM) link.onGate = (g) => gateLink?.word(g);   // WB3b: the hub's word of a kill, and a fighter's receipt outside the court
       if (tab.room === SOCIAL_ROOM) link.onEg = (w, room) => egClient?.word(w, room);   // EG-PLAY: the hub's call to my company, and its refusal of an open

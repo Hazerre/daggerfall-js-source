@@ -209,9 +209,12 @@ export async function lawOrder(env, subtle, nowS, { s, mu, bn }) {
  * Worker fetching another's workers.dev address on the same account may be refused outright (Cloudflare's error 1042),
  * and a push that fails is silent by design, so the binding is the door and the address only names the path; a Worker
  * without it (a test, a local run) fetches the address.
+ * STAFF-PANEL5-MESSAGE: `hear`, for a caller that reads more of the door's answer than yes or no - handed the body of an
+ * answer the door took (a staff message's: how many of its target's sockets the hub handed the nudge).
  * @param {any} env @param {(url: string, init: any) => Promise<Response>} fetchFn @param {string|null} order
+ * @param {((said: any) => void)|null} [hear]
  */
-export async function pushLaw(env, fetchFn, order) {
+export async function pushLaw(env, fetchFn, order, hear = null) {
   const url = env?.RELAY_LAW_URL;
   if (!order || typeof url !== 'string' || !url.startsWith('https://') || !url.endsWith(SAFE_LAW_PATH)) return false;
   const init = { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ order }), signal: AbortSignal.timeout(LAW_PUSH_MS) };
@@ -220,6 +223,7 @@ export async function pushLaw(env, fetchFn, order) {
     const said = res.ok ? await res.json().catch(() => null) : null;
     // the hub's own word: the Worker answers 200 only for an order the hub took (AUDIT SAFE RELAY-13)
     if (!res.ok || said?.ok === false) console.warn('[safety] the relay\'s door said', res.status, said?.error ?? '');
+    else hear?.(said);
     return res.ok && said?.ok !== false;
   } catch (e) { console.warn('[safety] the relay\'s door', /** @type {any} */ (e)?.message ?? e); return false; }
 }
