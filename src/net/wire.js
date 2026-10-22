@@ -675,7 +675,7 @@ export const CHAT_ROOMS = Object.freeze(new Set([CHAT_WORLD_ROOM, ...Array.from(
 /** CHAT-CHAN: the channels a LINE may name inside a room (`{t:'chat', text, ch}`). A party's line is said on the hub
  *  link and heard by the party's members alone; a line naming anything else is refused whole - it is never allowed to
  *  fall through to the room's own fan, where a party line said to an old or a confused relay would reach everyone. */
-export const CHAT_LINE_CHANNELS = Object.freeze(['party', 'guild']);   // GUILD1c: a guild's line, said on the hub link and heard by the guild's members online alone
+export const CHAT_LINE_CHANNELS = Object.freeze(['party', 'guild', 'staff']);   // GUILD1c: a guild's line, said on the hub link and heard by the guild's members online alone   // STAFF-PANEL5-FREEZE: a staff chat thread's nudge, said on the hub link by its player and heard by the thread's members alone (server/src/staffFreeze.js) - the line itself is the account service's
 /** CHAT-CHAN: the hub's budget for PARTY lines, lines a second across every party - apart from CHAT_ROOM_HZ_MAX,
  *  which AUDIT CHAT A2 priced for a line whose fan is EVERYONE online. A party line's fan is its party (PARTY_MAX seats,
  *  their tabs), so priced out of the World's budget one talkative party would silence the World channel, and a busy
@@ -2381,6 +2381,7 @@ export function parseClient(text, { hasHello = false } = {}) {
     if (Number.isSafeInteger(m.gl) && m.gl >= 1 && m.gl <= GROUND_LAW_WIRE_MAX) hello.gl = m.gl;
     if (Number.isSafeInteger(m.gv) && m.gv >= 1 && m.gv <= GRANT_HELLO_LAW_WIRE_MAX) hello.gv = m.gv;   // GRANT-DOOR: the grants this build stands on - read as GROUND-GATE's `gl` is
     if (m.ls === 1) hello.ls = 1;   // LEASE1: this build hands its hub's lease to the room (net/roomLease.js) - 1 or nothing, the `w2` law
+    if (m.fv === 1) hello.fv = 1;   // STAFF-PANEL5-FREEZE: this build shows the freeze screen (net/staffFreeze.js) - 1 or nothing; a frozen account's socket from a build without it is closed with the reload words
     return hello;
   }
   if (m.t === 'pose') {

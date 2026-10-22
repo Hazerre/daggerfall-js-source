@@ -73,7 +73,7 @@ test('GUILD1c the token: a character\'s guild rides it as three claims - its id,
 });
 
 test('GUILD1c the orders: `guild` says the carrier\'s guild now (all three or none), `guildout` a member removed (`gm`) or a guild gone (no `gm`) and never a tag; each kind carries its own fields and no other\'s, and the mute and renown orders carry none of a guild\'s; verifyOrder asks for its kind by name (mutants: a guild order read at the renown door; a guildout with a tag; a mute carrying a guild)', async () => {
-  assert.deepEqual([...ORDER_KINDS], ['mute', 'renown', 'guild', 'guildout', 'siege', 'stake', 'deck', 'remains', 'home', 'egopen', 'egadmit', 'ban']);   // SAFE4: a ban's end, the service's word (PIN MOVED)   // EG-PLAY: an Elite Breach's open and admission (PIN MOVED)   // QUEST-HOME: a town's homes moved, the service's word for every page online (PIN MOVED)   // INT9: a death's remains, the service's word on its records (PIN MOVED)   // CARDS10: a ranked seat's deck order (PIN MOVED)   // CARDS6: a gold table's stake (PIN MOVED)   // SEAT2a: a battle's pass (PIN MOVED)
+  assert.deepEqual([...ORDER_KINDS], ['mute', 'renown', 'guild', 'guildout', 'siege', 'stake', 'deck', 'remains', 'home', 'egopen', 'egadmit', 'ban', 'freeze', 'staffline']);   // STAFF-PANEL5-FREEZE: a staff freeze's end and a staff line's nudge; SAFE4: a ban's end, the service's word (PIN MOVED)   // EG-PLAY: an Elite Breach's open and admission (PIN MOVED)   // QUEST-HOME: a town's homes moved, the service's word for every page online (PIN MOVED)   // INT9: a death's remains, the service's word on its records (PIN MOVED)   // CARDS10: a ranked seat's deck order (PIN MOVED)   // CARDS6: a gold table's stake (PIN MOVED)   // SEAT2a: a battle's pass (PIN MOVED)
   const o = { s: 'acct-0001', i: 1000, e: 1000 + ORDER_TTL_S };
   assert.equal(orderValid({ o: 'guild', ...o, gi: G1, gt: 'HND', gm: 'm3' }), true);
   assert.equal(orderValid({ o: 'guild', ...o }), true, 'none: a leave, a disbanding');
@@ -111,7 +111,7 @@ test('GUILD1c the wire: the guild frames are shapes only, as the renown order\'s
   assert.deepEqual(parseClient('{"t":"guild","order":"v1.a.b"}', { hasHello: false }), { error: 'guild before hello' });
   assert.deepEqual(parseClient(JSON.stringify({ t: 'guildout', order: 'x'.repeat(1025) }), { hasHello: true }), { error: 'bad guildout' });
   assert.deepEqual(parseClient(JSON.stringify({ t: 'guild', order: 7 }), { hasHello: true }), { error: 'bad guild' });
-  assert.deepEqual([...CHAT_LINE_CHANNELS], ['party', 'guild']);
+  assert.deepEqual([...CHAT_LINE_CHANNELS], ['party', 'guild', 'staff']);   // STAFF-PANEL5-FREEZE: and a staff chat thread's nudge (test/net/staffpanel5_freeze_relay.test.js)
   assert.deepEqual(parseClient(JSON.stringify({ t: 'chat', text: 'hail', ch: 'guild' }), { hasHello: true }), { t: 'chat', text: 'hail', ch: 'guild' });
   assert.deepEqual(parseClient(JSON.stringify({ t: 'roll', n: 1, m: 6, k: 0, ch: 'guild' }), { hasHello: true }), { t: 'roll', n: 1, m: 6, k: 0, ch: 'guild' });
   assert.deepEqual(badged({ id: 'x' }, { gi: G1, gt: 'HND', gm: 'm3', lv: 4 }), { id: 'x', lv: 4, gt: 'HND' }, 'the tag beside the level, and nothing else of the guild');
