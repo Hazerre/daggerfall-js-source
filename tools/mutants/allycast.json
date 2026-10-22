@@ -273,8 +273,8 @@
   {
     "name": "AAC-effects-gift-merges-with-mine",
     "file": "src/systems/effects.js",
-    "old": "(i >= pinStart || (!!a.bundleAlly === allyCast && !!a.bundleDuel === duelCast)) && pred(a)));",
-    "new": "(i >= pinStart || (!!a.bundleDuel === duelCast)) && pred(a)));",
+    "old": "(!prior.has(a) || (!!a.bundleAlly === allyCast && !!a.bundleDuel === duelCast)) && pred(a)));",
+    "new": "(!prior.has(a) || (!!a.bundleDuel === duelCast)) && pred(a)));",
     "tests": [
       "test/systems/allycast.test.js"
     ]

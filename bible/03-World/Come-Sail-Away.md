@@ -2098,8 +2098,9 @@ storm galleon's whole word from every screen. The change key carries it, so a bo
 once. `scenes/comeSailAway/comeSailAwayPeers.js` LEADS a boat under way instead of
 chasing it: each frame it is carried on by the way's share of the frame
 (what the lead grew by - none past CSA_PEER_LEAD_MAX, so a late
-word leads no further and the boat holds where the way took it) and eased
-the rest of the way to the word led from its arrival; the turn the same,
+word leads no further and the boat holds where the way took it) and taken
+up the rest of the way to the word led from its arrival - under way at
+SEA-GLIDE's bounded catch, lying still eased (below); the turn the same,
 Rotate(up x turn) in the boat's own frame. A step past the snap is a
 teleport: CSA_PEER_SNAP_M (20 m), or what her word's way runs in
 CSA_PEER_SNAP_S (2.5 s) if farther (`peerSnapM` - AUDIT SHIPS A7: at a fixed
@@ -2114,10 +2115,17 @@ dodging friendly ships while they randomly speed up / warp in front of you"): th
 deltas past its budget, FOES-FIRST) stood still 1.4 s of every 2 and then ran 17 m in a fifth of a second (a replica of
 the law: 195 m/s at the worst, 70% of frames stopped). CSA_PEER_LEAD_MAX is two full frames' spacing now (4 s - a full
 frame held for its turn, FOES-HOLD, is led over too), and under way what the word says she is off by is taken up at the
-sea's own PUPPET-GLIDE catch (`glideToward`: CSA_PEER_CATCH 1 a second, never faster than CSA_PEER_CATCH_MPS 0.3 +
-CSA_PEER_CATCH_SHARE 0.1 of her way - `scenes/naval/navalHost.js` PUPPET_CATCH's three); a boat lying still eases onto
-her word at 12 as before, and past the snap she snaps. On the real pool and module, words on the full frames alone each
-up to 300 ms late: never stopped, never past her way and the catch (13.5 m/s at 12), within 3.1 m of her place (p99)
+sea's PUPPET-GLIDE catch in shape (`glideToward`: CSA_PEER_CATCH 1 a second, never faster than CSA_PEER_CATCH_MPS 0.3 +
+CSA_PEER_CATCH_SHARE of her way - `scenes/naval/navalHost.js` PUPPET_CATCH's three, the share a quarter here where the
+puppets' is a tenth: AUDIT FB1022c C3); a boat lying still eases onto her word at 12 as before, and past the snap she
+snaps. AUDIT FB1022c: she is led along her turn's arc (`wayOver`, C2 - led straight, a boat circling at 10 degrees a
+second stood 12 m off her track); and the way she was led at stands until what she is off by is under
+CSA_PEER_LED_SETTLE_M (C1): a boat that stops between two full frames is led on until her stop's word comes, up to v x 2 s
+plus its lateness past where she stopped, and her snap, her glide back and the realign's pairing of a hull with a
+passenger aboard are judged by that way, not by her word at rest (which teleported her back and left the passenger on a
+still copy of her hull). On the real pool and module, words on the full frames alone each up to 300 ms late: never
+stopped, never past her way and the catch (13.5 m/s at 12), within 3.1 m of her place (p99), straight or circling at
+10, 20 or -15 degrees a second; a stop 0.1 s after a full frame never snaps and keeps her passenger on the one hull
 (`test/scenes/fb1022c_seaglide.test.js`).
 
 **Aboard** (`scenes/comeSailAway/comeSailAwayAboard.js`). A player comes aboard another's

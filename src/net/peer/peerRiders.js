@@ -92,20 +92,33 @@ export function createEotbArt({ renderer = null, urlFor = eotbSpriteUrl, decode 
   const pixels = new Map();   // sprite key -> decode promise, the most recently asked last (PEER-ART: RIDER_PIXELS_KEPT of them)
   // COATS1: the riders' horses' looks (systems/horse/horseCoats.js) - each its own dyed pictures, so a look is let go once
   // RIDER_LOOKS_KEPT others were drawn since (EVERY ALLOCATION HAS AN OWNER: every horse is its own look, and a session
-  // meets many riders). PEER-ART: and a walker's worn-armour outfit, the same (spriteLookOf). code -> { keys: Set<tex key>, used: clock() }
+  // meets many riders). PEER-ART: and a walker's worn-armour outfit, the same (spriteLookOf). code -> { keys: Set<tex key>,
+  // used: clock(), frame: the sweep's count when last drawn }
   const looks = new Map();
+  let frame = 0;
   function noteLook(s, k) {
     const code = spriteLookOf(s);
     if (!code) return;
     let l = looks.get(code);
-    if (!l) { l = { keys: new Set(), used: 0 }; looks.set(code, l); }
-    l.keys.add(k); l.used = clock();
+    if (!l) { l = { keys: new Set(), used: 0, frame }; looks.set(code, l); }
+    l.keys.add(k); l.used = clock(); l.frame = frame;
+  }
+  /** AUDIT FB1022c D1/D2: THE LOOKS LET GO ONCE A FRAME, after every layer drew (createPeerRiders `settle`, the frame's
+   *  last word on the store) - never while one is drawing. Past RIDER_LOOKS_KEPT, a look undrawn RIDER_LOOK_IDLE_MS AND
+   *  this frame and the last goes, the longest undrawn first. The eviction was the draw's own: after a 2 s hitch (a tab
+   *  hidden, a scene loaded) every look still to be drawn that frame read idle, so each one drawn let the next go, and a
+   *  crowd's outfits were decoded and uploaded again on screen; and every draw past twelve looks copied and sorted them all. */
+  function sweep() {
+    const was = frame++;
     if (looks.size <= RIDER_LOOKS_KEPT) return;
-    const now = clock();
-    const old = [...looks].filter(([, x]) => now - x.used > RIDER_LOOK_IDLE_MS).sort((a, b) => a[1].used - b[1].used);
-    for (const [code, x] of old.slice(0, looks.size - RIDER_LOOKS_KEPT)) {
+    const now = clock(), idle = (l) => was - l.frame >= 2 && now - l.used > RIDER_LOOK_IDLE_MS;
+    let any = false;
+    for (const l of looks.values()) if (idle(l)) { any = true; break; }
+    if (!any) return;   // a crowd on screen copies nothing
+    const old = [...looks].filter(([, l]) => idle(l)).sort((a, b) => a[1].used - b[1].used);
+    for (const [code, l] of old.slice(0, looks.size - RIDER_LOOKS_KEPT)) {
       looks.delete(code);
-      for (const key of x.keys) { tex.delete(key); renderer?.evictTexture?.(key.replace(':', '_')); }   // the cache's `archive:rec` is the renderer's `archive_rec`
+      for (const key of l.keys) { tex.delete(key); renderer?.evictTexture?.(key.replace(':', '_')); }   // the cache's `archive:rec` is the renderer's `archive_rec`
     }
   }
   function ensure(s) {
@@ -135,7 +148,7 @@ export function createEotbArt({ renderer = null, urlFor = eotbSpriteUrl, decode 
     p.then((r) => { if (tex.get(k) === p) tex.set(k, r); }, () => { if (tex.get(k) === p) tex.set(k, { failedAt: clock() }); });
     return null;
   }
-  return { ensure, renderer, lantern: createLanternArt(() => renderer?.uploadTexture ? renderer : null, loadLantern) };
+  return { ensure, sweep, renderer, lantern: createLanternArt(() => renderer?.uploadTexture ? renderer : null, loadLantern) };
 }
 
 /**
@@ -237,7 +250,8 @@ function faceDrawn(r, view, yaw, feet, eye) {
  * are drawn at all (the art is Eye Of The Beholder's).
  */
 export function createPeerRiders({ renderer = null, urlFor = eotbSpriteUrl, decode = decodeUrl, enabled = () => true, clock = () => Date.now(), art = null } = {}) {
-  const layer = figureLayer(art ?? createEotbArt({ renderer, urlFor, decode, clock }));
+  const store = art ?? createEotbArt({ renderer, urlFor, decode, clock });
+  const layer = figureLayer(store);
   const riders = layer.figs;   // id -> { table, frame, clock, batch, batchKey, size, xml, mirror, an, claw }
   const deferred = [];   // WEREWOLF1 (AUDIT E4): this frame's beasts held for `settle`
   let hScene = null, hEye = null, hRight = null, hDt = 0;   // and the frame's own placing, kept for them (no object a frame)
@@ -284,7 +298,8 @@ export function createPeerRiders({ renderer = null, urlFor = eotbSpriteUrl, deco
 
   /** WEREWOLF1 (AUDIT E4): the beasts `sync` held back, now the other layer has stood what it stands this frame - each
    *  drawn here, or let go where `stands(id)` (its wolf is standing). COATS3D: and the riders it yielded, let go where
-   *  `seated(id)` (their body stands astride the 3D horse), else drawn here as every rider is.
+   *  `seated(id)` (their body stands astride the 3D horse), else drawn here as every rider is. AUDIT FB1022c D1: the
+   *  frame's last word on the art store too - once a frame, after the walkers' sync, its looks are swept (createEotbArt).
    *  @param {(id: string) => boolean} [stands] @param {(id: string) => boolean} [seated] */
   function settle(stands = () => false, seated = () => false) {
     for (const peer of deferred) {
@@ -293,6 +308,7 @@ export function createPeerRiders({ renderer = null, urlFor = eotbSpriteUrl, deco
       one(peer, peer.shown, beast, !beast, hScene, hEye, hRight, hDt);
     }
     deferred.length = 0;
+    store.sweep();   // AUDIT FB1022c D1: the frame's looks all drawn - the walkers' (synced before this) and the riders'
   }
 
   /** One beast or rider, this frame: its claw, its table and frame, its sprite placed. */

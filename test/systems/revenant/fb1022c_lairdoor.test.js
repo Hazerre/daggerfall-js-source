@@ -26,6 +26,8 @@ const { setPlayerDoor } = await import('../../../src/systems/playerDoor.js');
 const { setWorldMinutes } = await import('../../../src/systems/worldTick.js');
 const { MOBILE_TYPES: M } = await import('../../../src/characters/mobile/mobileTypes.js');
 const { LOCATION_TYPES } = await import('../../../src/formats/mapsFile.js');
+const { modSaveRecords, restoreModSaveRecords } = await import('../../../src/systems/modSaveData.js');
+const { RUMOR_PX } = await import('../../../src/systems/revenant/revenantFeud.js');
 
 const read = (p) => readFileSync(new URL(`../../../${p}`, import.meta.url), 'utf8');
 const me = (id = 'char-lairdoor') => ({ isPlayer: true, name: 'Zenako', characterId: id, level: 10, stats: {}, skills: [], career: {}, activeEffects: [], items: [], health: 100, maxHealth: 100 });
@@ -77,8 +79,8 @@ test('LAIR-DOOR the host\'s door: the ring\'s dungeons the player can go down in
   assert.equal(at.enterable(94, 100), false);
   assert.equal(at.enterable(106, 100), true);
   assert.equal(at.enterable(500, 500), true, 'no place known there: not judged');
-  // the mend's den: the enterable dungeon nearest a pixel, never the pixel itself - from the doorless graveyard, the crypt
-  // and the keep both 6 px off (the larger axis), the first found; from the keep, the crypt
+  // the mend's den: the enterable dungeon nearest a pixel, never the pixel itself - from the doorless graveyard the crypt, 6 px
+  // off on the larger axis (the keep is 12), ahead of the ruins as near in the scan's order; from the keep, the crypt
   assert.deepEqual(at.nearest(94, 100), { px: 100, py: 94, name: 'North Crypt', region: 3 });
   assert.deepEqual(at.nearest(106, 100), { px: 100, py: 94, name: 'North Crypt', region: 3 });
   assert.equal(at.nearest(400, 400), null, 'none within reach');
@@ -199,4 +201,70 @@ test('LAIR-DOOR on the player\'s data: of the dungeons the world host indexes, e
   // the report's own ground: from Ceriburea (562, 421), 6 px north of it, the graveyard is never offered as a lair
   assert.ok(lairAt({ x: 562, y: 421 }).dungeons.every((d) => d.name !== 'The Stuvam Graveyard'), 'never offered as a lair');
   assert.equal(LAIR_MEND_PX, 20);
+});
+
+const base = { foes: () => [], feet: () => [0, 0, 0], hurtFoe: () => {}, castOnPlayer: () => {} };
+const foeOf = () => ({ mobileType: M.Orc, level: 6, champion: 'mighty', unquiet: true, health: 5, maxHealth: 50, team: 'Monster' });
+const doors = (nearest = () => D(561, 441, "Morarker's Nest", 11)) => ({ ...base, lairHere: (at) => ({ px: at?.x ?? 559, py: at?.y ?? 427, dungeons: [], enterable: (x, y) => !(x === 565 && y === 427), nearest }) });
+const stuvamRevenant = (p) => {
+  setPlayerDoor({ ...base, lairHere: () => ({ px: 559, py: 427, dungeons: [D(565, 427, 'The Stuvam Graveyard', 0)] }) });
+  const r = N.revenantDeed(p, foeOf(), 'slew', { mobileType: M.Orc, rolls: () => 0 });
+  r.lairKnown = true;
+  return r;
+};
+
+test('AUDIT FB1022c B1: a load\'s first quest tick, before the character\'s mirror is read in, mends nothing - the mirror\'s newer copy would put the lair back for the session; the page, which reads the mirror in, mends it, and the mirror keeps the mend (mutants: mended before the mirror; asked by id across a merge; the mirror not written)', () => {
+  const p = me();
+  const r = stuvamRevenant(p);
+  const save = JSON.parse(JSON.stringify(modSaveRecords()[N.REVENANT_SAVE]));
+  N.revenantDeed(p, { ...foeOf(), revenant: { id: r.id } }, 'slew', { mobileType: M.Orc, rolls: () => 0 });   // played on past the save: the mirror newer
+  restoreModSaveRecords({ [N.REVENANT_SAVE]: JSON.parse(JSON.stringify(save)) });   // a load of that save
+  setPlayerDoor(doors());
+  N.revenantHuntEntries({ px: 560, py: 430 });   // the quest tick's look, first
+  assert.equal(N.revenantById(r.id).lair.name, 'The Stuvam Graveyard', 'not before the mirror');
+  const page = N.revenantsFor(p);
+  assert.equal(page.find((x) => x.id === r.id).lair.name, "Morarker's Nest", 'the page reads the mirror in, then mends');
+  const mirror = JSON.parse(_store.get([..._store.keys()].find((k) => _store.get(k).includes(r.id))));
+  assert.equal(mirror.list.find((x) => x.id === r.id).lair.name, "Morarker's Nest", 'and the mirror keeps it');
+});
+
+test('AUDIT FB1022c B3, B4: a deed reads a held lair nobody can enter as every reader does - moved, still known - never dropped unheard; the Dread with no den in reach keeps its lair rather than none (mutants: the deed unmended; the Dread made homeless)', () => {
+  const p = me();
+  const r = stuvamRevenant(p);
+  setPlayerDoor(doors());
+  N.revenantDeed(p, { ...foeOf(), revenant: { id: r.id } }, 'slew', { mobileType: M.Orc, rolls: () => 0 });
+  assert.equal(r.lair.name, "Morarker's Nest");
+  assert.equal(r.lairKnown, true, 'known as it was known - the hunt stays in the log');
+  // the Dread: no den in reach
+  N._resetRevenantForTests(); _store.clear();
+  const d = stuvamRevenant(me('char-dread'));
+  d.dread = true;
+  setPlayerDoor(doors(() => null));
+  assert.equal(N.mendRevenantLairs(), 0);
+  assert.equal(d.lair.name, 'The Stuvam Graveyard', 'it waits where it is');
+  // and one that is not the Dread roams, its trail cold
+  d.dread = false; d.trail = 99999; d.lair = D(566, 427, 'Another Doorless', 0);
+  setPlayerDoor({ ...base, lairHere: (at) => ({ px: at.x, py: at.y, dungeons: [], enterable: () => false, nearest: () => null }) });
+  assert.equal(N.mendRevenantLairs(), 1);
+  assert.deepEqual([d.lair, d.lairKnown, d.trail], [null, false, 0]);
+});
+
+test('AUDIT FB1022c B5, B6: the mend\'s reach is a rumour\'s (no data needed); the door keyed by the skin; a name cut at 80; the ring laid only when read (mutants: the reach moved; the skin unkeyed; the name uncut; the ring laid eagerly)', () => {
+  assert.equal(LAIR_MEND_PX, RUMOR_PX);
+  assert.equal(LAIR_MEND_PX, 20);
+  let enhanced = false, laid = 0;
+  const long = 'A'.repeat(120);
+  const lairAt = createLairDoor({
+    maps: {}, blocks: {}, arch: fakeArch([]),
+    locations: new Map([['106,100', { exterior: { exteriorData: {} } }], ['100,106', { exterior: { exteriorData: {} } }]]),
+    dungeons: new Map([['106,100', long], ['100,106', 'Shut']]), regions: new Map(),
+    here: () => ({ x: 100, y: 100 }), enhanced: () => enhanced,
+    layout: (loc, m, b, o) => { laid++; return { blocks: [{ layout: { models: [{ modelIdNum: 56, enhancedOnly: true }] } }] }; },
+  });
+  const at = lairAt();
+  assert.equal(laid, 0, 'nothing laid until the ring is read');
+  assert.equal(at.enterable(106, 100), false, 'classic: the enhanced-only door stands nowhere');
+  enhanced = true;
+  assert.equal(at.enterable(106, 100), true, 'enhanced: asked again, under its own key');
+  assert.equal(at.nearest(100, 100).name.length, 80, 'a name cut where sanitizeLair cuts it');
 });

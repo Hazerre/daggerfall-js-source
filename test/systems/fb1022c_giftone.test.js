@@ -6,7 +6,8 @@
 // found its first one untagged, read it as somebody else's and stood a second pool beside it. The caster's own cast of the
 // same spell has always merged into one. Driven over the real producers: the spell maker's record, the caster's frame, the
 // wire's projection, the receiver's gift, and the receiver's own apply door (hostMagic applySpellToPlayer, as world.js
-// online.onCast calls it).
+// online.onCast calls it). AUDIT FB1022c A4: no duel pin - nothing has passed `duelCast` since INT8 sent a duel's spells
+// to the referee (world.js duelSpellOut), so a pin of it pinned a shape no producer mints.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildCustomSpell } from '../../src/systems/spell/spellMaker.js';
@@ -84,10 +85,27 @@ test('GIFT-ONE: three Shields in a gift are one pool; a Fortify twice is one For
   assert.deepEqual(shields(mine).map((a) => [a.startingShield, !!a.bundleAlly]), [[31, false], [3001, true]], 'mine beside the mate\'s, the mate\'s one pool');
 });
 
-test('GIFT-ONE: a duel opponent\'s bundle keeps the same law - one effect twice is one entry, and never merged into mine', () => {
-  const me = mkPlayer();
+test('AUDIT FB1022c A1: a Cure in the gift - the list rebuilt under the cast - still lands ONE pool, tagged the mate\'s, in either order; and a weak gift so cast never swallows my own Shield after it (mutants: the cast\'s own by index; the untagged taken for the cast\'s own)', () => {
+  const PARA = { type: 0, subType: 255, settings: { durationBase: 20, durationMod: 1, durationPerLevel: 1, chanceBase: 100, chanceMod: 1, chancePerLevel: 1 } };
+  const CURE_PARALYSIS = { type: 3, subType: 2, settings: { chanceBase: 100, chanceMod: 1, chancePerLevel: 1 } };
   const sinks = { hurt() {}, heal() {}, drainMagicka() {}, restoreMagicka() {}, drainFatigue() {}, restoreFatigue() {}, say() {} };
-  applySpell(buildCustomSpell({ slots: [SHIELD], rangeType: 0, name: 'Mine' }), 1, me, sinks, () => 0.5, { entity: me, sinks }, {});
-  applySpell(buildCustomSpell({ slots: [SHIELD, SHIELD], rangeType: 0, name: 'Theirs' }), 30, me, sinks, () => 0.5, null, { duelCast: true, bypassSavingThrows: true });
-  assert.deepEqual(shields(me).map((a) => [a.startingShield, !!a.bundleDuel]), [[101, false], [3001, true]]);
+  const paralysed = () => {   // a spider's Paralyze on me, as a foe's cast lands
+    const me = mkPlayer();
+    applySpell(buildCustomSpell({ slots: [PARA], rangeType: 2, name: 'Spider' }), 5, me, sinks, () => 0, { entity: { level: 5, activeEffects: [] }, sinks }, { bypassSavingThrows: true });
+    assert.ok(me.activeEffects.some((a) => a.kind === 'paralyze'), 'paralysed');
+    return me;
+  };
+  for (const slots of [[SHIELD, CURE_PARALYSIS, SHIELD], [CURE_PARALYSIS, SHIELD, SHIELD]]) {
+    const me = paralysed();
+    const g = giftOf(buildCustomSpell({ slots, rangeType: 1, name: 'Unstick' }), 30);
+    receiver(me).applySpellToPlayer(g.spell, g.level, null, { allyCast: true });
+    assert.equal(me.activeEffects.some((a) => a.kind === 'paralyze'), false, 'cured');
+    assert.deepEqual(shields(me).map((a) => [a.startingShield, !!a.bundleAlly, a.bundleName]), [[3001, true, 'Unstick']], `${slots.map((x) => x.type).join(',')}: one pool, the mate's`);
+  }
+  const me = paralysed();
+  const magic = receiver(me);
+  const weak = giftOf(buildCustomSpell({ slots: [{ ...SHIELD, settings: { ...SHIELD.settings, magnitudeLevelBase: 1, magnitudeLevelHigh: 1 } }, CURE_PARALYSIS], rangeType: 1, name: 'Weak Gift' }), 1);
+  magic.applySpellToPlayer(weak.spell, weak.level, null, { allyCast: true });
+  magic.applySpellToPlayer(buildCustomSpell({ slots: [SHIELD], rangeType: 0, name: 'Mine' }), 30, null, {});
+  assert.deepEqual(shields(me).map((a) => [a.startingShield, !!a.bundleAlly, a.bundleName]), [[2, true, 'Weak Gift'], [3001, false, 'Mine']], 'mine beside the gift, never capped at its 2');
 });

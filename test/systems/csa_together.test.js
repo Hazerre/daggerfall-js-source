@@ -107,7 +107,7 @@ test('CSA-K: a word under way LEADS the boat - carried on by its way every frame
   const peers = createComeSailAwayPeers({ pool, selfId: () => 'me' });
   peers.applyOwner('ann', { b: [word({ x: 10 })], m: [[5, 0, 0]] }, (p) => p, 0);
   const xs = [];
-  // PIN MOVED (FIELD BUGS 2026-10-22c SEA-GLIDE): the lead is the sea's 2.5 s (it was 0.6), so the frames run past it
+  // PIN MOVED (FIELD BUGS 2026-10-22c SEA-GLIDE): the lead is two full frames' spacing, 4 s (it was 0.6), so the frames run past it
   const frames = Math.round(CSA_PEER_LEAD_MAX / 0.1) + 6;
   for (let i = 0; i < frames; i++) { peers.frame(0.1); xs.push(pool.peerBoats[0].GameObject.position[0]); }
   const steps = xs.slice(1).map((x, i) => x - xs[i]);
@@ -121,7 +121,7 @@ test('CSA-K: a word under way LEADS the boat - carried on by its way every frame
   peers.frame(0.1);
   const on = pool.peerBoats[0].GameObject.position[0];
   assert.ok(on > held, 'on again');
-  assert.ok(on - held <= 5 * 0.1 + (CSA_PEER_CATCH_MPS + CSA_PEER_CATCH_SHARE * 5) * 0.1 + 1e-9, `no surge: ${on - held} m in a tenth of a second`);
+  assert.ok(on - held <= 5 * 0.1 + (CSA_PEER_CATCH_MPS + CSA_PEER_CATCH_SHARE * 5) * 0.1 + 1e-5, `no surge: ${on - held} m in a tenth of a second`);   // the pose stands in float32
   // no way: the word's place, eased
   const p2 = createComeSailAwayPeers({ pool: await readyPool(), selfId: () => 'me' });
   p2.applyOwner('bob', { b: [word({ x: 10 })] }, (p) => p, 0);

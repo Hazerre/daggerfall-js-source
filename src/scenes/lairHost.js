@@ -109,7 +109,11 @@ export function createLairDoor({ maps, blocks, arch, locations, dungeons, region
   };
   return function lairHere(at) {
     const { x, y } = at ?? here();
-    const ring = bountyDungeons(x, y, dungeonAt).filter((d) => enterable(d.px, d.py)).map((d) => ({ ...d, region: regionAt(d.px, d.py) }));
-    return { px: x, py: y, dungeons: ring, enterable, nearest };
+    // AUDIT FB1022c B6/E10: the ring laid only when it is read - the mend asks `enterable` and `nearest` alone
+    let ring = null;
+    return {
+      px: x, py: y, enterable, nearest,
+      get dungeons() { return (ring ??= bountyDungeons(x, y, dungeonAt).filter((d) => enterable(d.px, d.py)).map((d) => ({ ...d, region: regionAt(d.px, d.py) }))); },
+    };
   };
 }
