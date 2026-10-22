@@ -609,6 +609,11 @@
   "tr": "c5e185ec5bbb",
   "by": "claude-in-session"
  },
+ "account.refusal.adminSanction": {
+  "en": "3b4cddb087c4",
+  "tr": "d2826cb37ca9",
+  "by": "claude-in-session"
+ },
  "account.refusal.alreadyRegistered": {
   "en": "f80ca6f87bfa",
   "tr": "97202b6a971c",
@@ -692,6 +697,11 @@
  "account.refusal.badBuyIn": {
   "en": "65d7432f4410",
   "tr": "3ebcebbe1667",
+  "by": "claude-in-session"
+ },
+ "account.refusal.badClick": {
+  "en": "5197562e0a7c",
+  "tr": "6fa761c457d8",
   "by": "claude-in-session"
  },
  "account.refusal.badCode": {
@@ -1107,6 +1117,16 @@
  "account.refusal.carriedShort": {
   "en": "5ed6e8cc2407",
   "tr": "0ea4eb050f09",
+  "by": "claude-in-session"
+ },
+ "account.refusal.caseActed": {
+  "en": "d55d13fb3eb2",
+  "tr": "fbaaad8a1b74",
+  "by": "claude-in-session"
+ },
+ "account.refusal.caseClosed": {
+  "en": "597749cb2f1a",
+  "tr": "9459919117cf",
   "by": "claude-in-session"
  },
  "account.refusal.chaptersClosed": {
@@ -3212,6 +3232,11 @@
  "account.refusal.spent": {
   "en": "4b7860789ea6",
   "tr": "cae553bd58ee",
+  "by": "claude-in-session"
+ },
+ "account.refusal.staffClaimed": {
+  "en": "63c055c6d79c",
+  "tr": "9a4dc571ac84",
   "by": "claude-in-session"
  },
  "account.refusal.start": {

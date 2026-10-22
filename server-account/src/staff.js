@@ -45,8 +45,8 @@
 // write than a wrong one - a clock to guess a password by, from as many addresses as an attacker holds.
 import { verifyPassword, mintRecoveryCode, canonicalCode } from './password.js';
 import { mintId, mintSecret, hashSecret, displayName, overRate, clearRate, overAccountRate } from './accounts.js';
-import { isDeveloper, canModerate, handleList, developerHandles, moderatorHandles, TIER_LISTS, MOD_TIERS } from './titles.js';
-import { isBanned } from './sanctions.js';
+import { isDeveloper, canModerate, handleList, developerHandles, moderatorHandles, staffSuspended, TIER_LISTS, MOD_TIERS } from './titles.js';
+import { isBanned, pushLaw, staffCutOrder } from './sanctions.js';
 import { staffCases, CASE_ROUTES } from './staffCases.js';
 import { staffDesk, DESK_ROUTES } from './staffDesk.js';   // STAFF-PANEL3-DESK: notes, the watchlist, your settings, and the Admins' notice, scorecard and reported notes
 import { staffPlayers, PLAYER_ROUTES } from './staffPlayers.js';
@@ -107,6 +107,9 @@ export const STAFF_STATUS = Object.freeze({
   'staff-note': 400, 'staff-reason': 400, 'staff-remove-pending': 409, 'staff-no-piece': 409, 'staff-trail': 409, 'staff-evidence': 404, 'staff-evidence-gone': 409,
   // STAFF-PANEL4-CENSUS (staffCensus.js): a contested piece that is not there, and a kind no save tallies (Marks' jumps)
   'no-piece': 404, 'census-no-tally': 400,
+  // STAFF-PANEL2-FIX (safety.js modAct): a case another act took or closed, a spawn case a Moderator asked for, an Admin's
+  // sanction a Moderator would lift, a press with no one-time id, and a cut member an Admin would add back
+  'case-acted': 409, 'case-closed': 409, 'admin-sanction': 403, 'bad-click': 400, 'staff-suspended': 409,
 });
 
 const enc = new TextEncoder();
@@ -375,6 +378,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
     if (!target?.handle) return { error: 'no-player' };
     if (path === '/v1/staff/mod/add') {
       if (staffRole(target, env)) return { error: 'staff-already' };
+      if (staffSuspended(target)) return { error: 'staff-suspended' };   // STAFF-PANEL2-FIX: an owner's cut, an owner's invite to lift
       if (isBanned(target, nowS)) return { error: 'staff-banned' };
       const [, set] = await db.batch([
         audit('mod-add', target.id, { handle: target.handle }, { okIf: { sql: 'EXISTS (SELECT 1 FROM players WHERE id = ? AND staff_mod = 0)', args: [target.id] } }),
@@ -406,23 +410,33 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
     await audit('team-read', null, null, { onceIn: STAFF_READ_ROW_S }).run();
     return {
       team: (r.results ?? []).map((p) => ({
-        id: p.id, handle: p.handle, role: staffRole(p, env), owner: isOwner(p, env), keys: p.keys, sessions: p.live, inviteUntil: p.invite_until ?? null,
+        id: p.id, handle: p.handle, role: staffRole({ ...p, staff_suspended: 0 }, env), owner: isOwner(p, env), keys: p.keys, sessions: p.live, inviteUntil: p.invite_until ?? null,
+        suspended: staffSuspended(p),   // STAFF-PANEL2-FIX: cut off - the role their lists give, held by nobody until an invite
       })),
     };
   }
   if (path === '/v1/staff/invite' || path === '/v1/staff/cut') {
     const lc = handleLc(body.handle);
     const target = lc ? await db.prepare('SELECT * FROM players WHERE handle_lc = ?').bind(lc).first() : null;
-    const role = staffRole(target, env);
+    // STAFF-PANEL2-FIX: a member cut off holds no role, but an owner's invite brings them back - lifting the cut with it
+    const restore = path === '/v1/staff/invite' && staffSuspended(target);
+    const role = staffRole(restore ? { ...target, staff_suspended: 0 } : target, env);
     if (!target || !role) return { error: 'no-staff' };
     if (path === '/v1/staff/cut') {
       if (target.id === me.id) return { error: 'staff-self' };
+      // STAFF-PANEL2-FIX (design doc, Weak spots: "Cutting off a staff member misses most doors"): the cut is stored
+      // (`staff_suspended`, every role path reads it - titles.js), and it ends the member's game sessions as well as
+      // their panel's, so no game door and no fresh token is theirs until they sign in again - and that token carries no
+      // staff glyph. The relay is told to close what they hold now (sanctions.js staffCutOrder); `relay` says whether it
+      // took the order (a relay that missed it closes nothing until the member's sockets drop or their lease lapses)
       await db.batch([
         db.prepare('UPDATE staff_keys SET revoked_at = ? WHERE player_id = ? AND revoked_at IS NULL').bind(nowS, target.id),
-        ...['staff_sessions', 'staff_invites'].map((t) => db.prepare(`DELETE FROM ${t} WHERE player_id = ?`).bind(target.id)),
+        ...['staff_sessions', 'staff_invites', 'sessions'].map((t) => db.prepare(`DELETE FROM ${t} WHERE player_id = ?`).bind(target.id)),
+        db.prepare('UPDATE players SET staff_suspended = 1 WHERE id = ?').bind(target.id),
         audit('cut', target.id, { handle: target.handle, role }),
       ]);
-      return { ok: true, handle: target.handle };
+      const relay = await pushLaw(env, (u, i) => globalThis.fetch(u, i), await staffCutOrder(env, subtle, nowS, target.id));
+      return { ok: true, handle: target.handle, relay };
     }
     const code = mintRecoveryCode(rand);
     const canon = canonicalCode(code);
@@ -432,7 +446,8 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
       db.prepare('DELETE FROM staff_invites WHERE player_id = ?').bind(target.id),   // one live invite a member: a new one replaces it
       db.prepare('INSERT INTO staff_invites (code_hash, player_id, by_id, created_at, expires_at) VALUES (?, ?, ?, ?, ?)')
         .bind(await hashSecret(canon, { subtle }), target.id, me.id, nowS, until),
-      audit('invite', target.id, { handle: target.handle, role }),
+      db.prepare('UPDATE players SET staff_suspended = 0 WHERE id = ?').bind(target.id),
+      audit('invite', target.id, { handle: target.handle, role, ...(restore ? { restored: true } : {}) }),
     ]);
     return { ok: true, handle: target.handle, role, invite: code, expiresAt: until };
   }

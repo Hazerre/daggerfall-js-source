@@ -128,7 +128,8 @@ test('STAFF-PANEL2: WHAT GOES FIRST - a case\'s level and the words that say why
   assert.equal(lv({ reports: 2 }, guests.map((r) => ({ ...r, reason: 'spam' }))), 'low', 'reporters all guests or new');
   assert.match(caseUrgency(c({ reports: 2 }), { reports: guests, strikes: 0, nowS: t }).why.join(' · '), /reporters all guests or new/);
   // before the reviewer reads it, the reporters' reason stands in
-  assert.equal(lv({}, [{ reason: 'threat', counted: 0, at: t }]), 'high');
+  assert.equal(lv({}, [{ reason: 'threat', counted: 0, at: t }]), 'medium', 'STAFF-PANEL2-FIX: one reporter\'s own threat is medium at most');
+  assert.equal(lv({ reports: 2 }, [{ reason: 'threat', counted: 0, at: t }, { reason: 'threat', counted: 0, at: t }]), 'high', 'two who say threat');
   assert.equal(lv({}, [{ reason: 'hate', counted: 0, at: t }]), 'medium');
   assert.equal(lv({}, [{ reason: 'sexual', counted: 0, at: t }]), 'medium');
   assert.equal(lv({}, [{ reason: 'harassment', counted: 1, at: t }]), 'low', 'harassment from one');
@@ -147,14 +148,15 @@ test('STAFF-PANEL2: THE LIST - most urgent first for an Admin and a Moderator al
     const low = s.caseOn(await s.player());
     const high = s.caseOn(await s.player(), { ai_state: 'done', ai_category: 'hate', ai_severity: 3 });
     const med = s.caseOn(await s.player(), { ai_state: 'done', ai_category: 'harassment', ai_severity: 2 });
-    const highHeld = s.caseOn(await s.player(), { ai_state: 'failed' });
-    s.raw.prepare('UPDATE mod_cases SET claimed_by = ?, claim_until = ? WHERE id = ?').run(s.idOf('Tabbyvish'), nowS() + 60, highHeld);
+    const heldOn = await s.player();
+    const highHeld = s.caseOn(heldOn, { ai_state: 'failed' });
+    assert.equal((await s.staff('/v1/staff/claim', { target: heldOn.id }, s.tab.session)).status, 200);   // STAFF-PANEL2-FIX: a claim is its session's
     for (const who of [s.mob, s.asy]) {
       const r = await s.staff('/v1/staff/cases', {}, who.session);
       assert.equal(r.status, 200, JSON.stringify(r.body));
       assert.deepEqual(r.body.cases.map((c) => c.id), [high, highHeld, med, low]);
       assert.deepEqual(r.body.cases.map((c) => c.level), ['high', 'high', 'medium', 'low']);
-      assert.deepEqual(r.body.cases[1].claim, { by: s.idOf('Tabbyvish'), name: 'Tabbyvish', until: r.body.cases[1].claim.until, mine: false });
+      assert.deepEqual(r.body.cases[1].claim, { by: s.idOf('Tabbyvish'), name: 'Tabbyvish', until: r.body.cases[1].claim.until, mine: false, idle: false });
       assert.equal(r.body.next, null);
     }
     const newest = await s.staff('/v1/staff/cases', { sort: 'newest' }, s.asy.session);
@@ -185,7 +187,7 @@ test('STAFF-PANEL2: A CLAIM - a Moderator holds one case at a time, an Admin tak
     assert.equal(take.body.until, s.raw.prepare('SELECT claim_until FROM mod_cases WHERE id = ?').get(ca).claim_until);
     assert.deepEqual((await s.staff('/v1/staff/claim', { target: b.id }, s.asy.session)).body, { error: 'staff-one-case' }, 'a Moderator\'s second case');
     assert.deepEqual((await s.staff('/v1/staff/claim', { target: a.id }, s.tab.session)).body, { error: 'staff-claimed' }, 'another Moderator');
-    assert.deepEqual((await s.staff('/v1/staff/mute', { target: a.id, minutes: 30 }, s.tab.session)).body, { error: 'staff-claimed' });
+    assert.deepEqual((await s.staff('/v1/staff/mute', { target: a.id, minutes: 30, click: 'press-0001' }, s.tab.session)).body, { error: 'staff-claimed' });
     assert.deepEqual((await s.staff('/v1/staff/dismiss', { target: a.id }, s.mob.session)).body, { error: 'staff-claimed' }, 'an Admin takes it first');
     assert.equal(s.raw.prepare('SELECT muted_until FROM players WHERE id = ?').get(a.id).muted_until, null);
     // Discord: the panel's claim of another member stands; the holder's own press goes through
@@ -227,7 +229,7 @@ test('STAFF-PANEL2: THE ACTS are the game\'s moderators\' own - the strike histo
     assert.deepEqual(read.body.case.lines.map((l) => l.text), ['quit the game, nobody likes you']);
     assert.equal(read.body.record.strikes, 0);
     assert.equal(read.body.claim, null);
-    const mute = await s.staff('/v1/staff/mute', { target: s.troll.id, minutes: 30 }, s.asy.session);
+    const mute = await s.staff('/v1/staff/mute', { target: s.troll.id, minutes: 30, click: 'press-0002' }, s.asy.session);
     assert.equal(mute.status, 200, JSON.stringify(mute.body));
     assert.ok(s.raw.prepare('SELECT muted_until FROM players WHERE id = ?').get(s.troll.id).muted_until > nowS() + 1700);
     assert.deepEqual({ ...s.raw.prepare('SELECT kind, actor, actor_name FROM mod_actions WHERE target = ?').get(s.troll.id) }, { kind: 'mute', actor: s.idOf('Asynian'), actor_name: 'Asynian (staff panel)' });
@@ -235,7 +237,7 @@ test('STAFF-PANEL2: THE ACTS are the game\'s moderators\' own - the strike histo
     assert.equal(s.pushed.length, 1, 'the order at the relay\'s door');
     assert.deepEqual({ ...s.raw.prepare("SELECT role, act, target, outcome FROM staff_audit WHERE act = 'mute'").get() }, { role: 'moderator', act: 'mute', target: s.troll.id, outcome: 'ok' });
     // a ban, an unban, by name
-    const ban = await s.staff('/v1/staff/ban', { name: 'troll', days: 7, reason: 'slurs' }, s.asy.session);
+    const ban = await s.staff('/v1/staff/ban', { name: 'troll', days: 7, reason: 'slurs', click: 'press-0003' }, s.asy.session);
     assert.equal(ban.status, 200, JSON.stringify(ban.body));
     assert.equal(ban.body.order, undefined);
     assert.ok(s.raw.prepare('SELECT banned_until FROM players WHERE id = ?').get(s.troll.id).banned_until > nowS() + 6 * 86400);
@@ -249,11 +251,11 @@ test('STAFF-PANEL2: THE ACTS are the game\'s moderators\' own - the strike histo
     assert.equal((await s.staff('/v1/staff/dismiss', { target: other.id }, s.asy.session)).status, 200);
     assert.equal(s.raw.prepare('SELECT status FROM mod_cases WHERE id = ?').get(c).status, 'dismissed');
     // refused as the game refuses, and written down as failed
-    const prot = await s.staff('/v1/staff/mute', { target: s.idOf('Tabbyvish'), minutes: 30 }, s.mob.session);
+    const prot = await s.staff('/v1/staff/mute', { target: s.idOf('Tabbyvish'), minutes: 30, click: 'press-0004' }, s.mob.session);
     assert.deepEqual([prot.status, prot.body], [403, { error: 'protected' }], 'a moderator is never muted');
-    assert.equal((await s.staff('/v1/staff/mute', { target: s.troll.id, minutes: 99999999 }, s.asy.session)).status, 400);
-    assert.equal((await s.staff('/v1/staff/ban', { target: s.troll.id, days: -1 }, s.asy.session)).status, 400);
-    assert.equal((await s.staff('/v1/staff/mute', { name: 'nobody-here', minutes: 30 }, s.asy.session)).status, 404);
+    assert.equal((await s.staff('/v1/staff/mute', { target: s.troll.id, minutes: 99999999, click: 'press-0005' }, s.asy.session)).status, 400);
+    assert.equal((await s.staff('/v1/staff/ban', { target: s.troll.id, days: -1, click: 'press-0006' }, s.asy.session)).status, 400);
+    assert.equal((await s.staff('/v1/staff/mute', { name: 'nobody-here', minutes: 30, click: 'press-0007' }, s.asy.session)).status, 404);
     assert.deepEqual({ ...s.raw.prepare("SELECT outcome, detail FROM staff_audit WHERE act = 'mute' AND target = ?").get(s.idOf('Tabbyvish')) },
       { outcome: 'failed', detail: JSON.stringify({ name: 'Tabbyvish', minutes: 30, error: 'protected' }) });
   } finally { s.restore(); }

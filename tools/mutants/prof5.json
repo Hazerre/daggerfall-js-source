@@ -733,7 +733,7 @@
   {
     "name": "PROF5-svc-anyone-removes",
     "file": "server-account/src/market.js",
-    "old": "  if (!canModerate(player, env)) return { error: 'not-moderator' };\n  if (!idOk(id)) return { error: 'bad-listing' };\n  const nonce = mintId(rand);\n  const kept",
+    "old": "  if (!isDeveloper(player, env)) return { error: 'not-developer' };\n  if (!idOk(id)) return { error: 'bad-listing' };\n  const nonce = mintId(rand);\n  const kept",
     "new": "  if (!idOk(id)) return { error: 'bad-listing' };\n  const nonce = mintId(rand);\n  const kept",
     "tests": [
       "test/net/prof5_service.test.js"

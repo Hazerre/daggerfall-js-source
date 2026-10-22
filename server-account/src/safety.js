@@ -45,10 +45,11 @@
 // back (`conduct`), so the client asks before a first line and again when the code changes.
 // ═══════════════════════════════════════════════════════════════════
 
-import { accountKind, displayName, isMuted, overRate } from './accounts.js';
-import { SPROUT_S, canModerate } from './titles.js';
+import { accountKind, displayName, isMuted, overRate, muteAccount } from './accounts.js';
+import { SPROUT_S, canModerate, isDeveloper } from './titles.js';
 import { gatePublicKey } from './signing.js';
-import { autoMute, autoMutable, lawOrder, pushLaw, bannedUntil, findAccount, actionStatement, voidAutoMutes } from './sanctions.js';
+import { autoMute, autoMutable, lawOrder, pushLaw, bannedUntil, findAccount, actionStatement, voidAutoMutes, banAccount, unbanAccount, reasonOf, muteMinutesOk } from './sanctions.js';
+import { STAFF_IDLE_S } from './staff.js';   // STAFF-PANEL2-FIX: a claim lives while the staff session that took it does (read at a call, never at load)
 import { modAiOn } from './modAi.js';
 import { discordOn } from './discord.js';
 import { ID_RE } from '../../src/net/identityToken.js';
@@ -74,6 +75,10 @@ export const CASE_LINES_MAX = 60;
 export const UNCOUNTED_CASES_HOUR = 60;
 /** How long a moderator's press holds a case before another may act on it, seconds (AUDIT SAFE DISCORD-3). */
 export const CASE_CLAIM_S = 60;
+
+/** STAFF-PANEL2-FIX (design doc, Weak spots: "Spawn cases share one case with chat reports"): a case's kind - `chat`
+ *  (reports, the reviewer's feed) or `spawn` (the spawn grants' count, grants.js). One open case an account a kind. */
+export const CASE_KINDS = Object.freeze(['chat', 'spawn']);
 
 /** A case's id: 16 hex off the service's random source. @param {(b: Uint8Array) => void} rand */
 export const caseIdOf = (rand) => { const b = new Uint8Array(8); rand(b); return [...b].map((x) => x.toString(16).padStart(2, '0')).join(''); };
@@ -133,14 +138,16 @@ export const credibleReporter = (player, nowS) => accountKind(player) === 'linke
  * The account's open case, or a new one. A case opened by a report is the reports'; one the reviewer opened is the
  * reviewer's (`source`). The Discord post starts `due` when it is on, `off` otherwise; the reviewer's read too - but a
  * case the reviewer opened from the feed starts READ (`done`): that read was its verdict (AUDIT SAFE AI-6).
+ * STAFF-PANEL2-FIX: of its `kind` - a spawn grants' case is never a chat report's.
  * @param {{ db: any, nowS: number, rand: (b: Uint8Array) => void }} ctx @param {any} env @param {string} target @param {'report'|'review'} source
+ * @param {'chat'|'spawn'} [kind]
  */
-export async function openCaseFor({ db, nowS, rand }, env, target, source) {
-  // ONE OPEN CASE AN ACCOUNT, by the index (mod_cases_open): two reports at once open one case, the second's insert
-  // ignored and the first's case read back
-  await db.prepare('INSERT OR IGNORE INTO mod_cases (id, target, source, status, opened_at, updated_at, ai_state, discord_state) VALUES (?1, ?2, ?3, \'open\', ?4, ?4, ?5, ?6)')
-    .bind(caseIdOf(rand), target, source, nowS, source === 'review' ? 'done' : modAiOn(env) ? 'due' : 'off', discordOn(env) ? 'due' : 'off').run();
-  const open = await db.prepare("SELECT id FROM mod_cases WHERE target = ?1 AND status = 'open'").bind(target).first();
+export async function openCaseFor({ db, nowS, rand }, env, target, source, kind = 'chat') {
+  // ONE OPEN CASE AN ACCOUNT A KIND, by the index (mod_cases_open): two reports at once open one case, the second's
+  // insert ignored and the first's case read back
+  await db.prepare('INSERT OR IGNORE INTO mod_cases (id, target, source, status, opened_at, updated_at, ai_state, discord_state, kind) VALUES (?1, ?2, ?3, \'open\', ?4, ?4, ?5, ?6, ?7)')
+    .bind(caseIdOf(rand), target, source, nowS, source === 'review' ? 'done' : modAiOn(env) ? 'due' : 'off', discordOn(env) ? 'due' : 'off', kind).run();
+  const open = await db.prepare("SELECT id FROM mod_cases WHERE target = ?1 AND kind = ?2 AND status = 'open'").bind(target, kind).first();
   return String(open.id);
 }
 
@@ -221,7 +228,7 @@ export async function fileReport(ctx, reporter, env, body, { fetchFn = (u, i) =>
   const target = await db.prepare('SELECT * FROM players WHERE id = ?1').bind(shape.target).first();
   if (!target) return { error: 'no-player' };
   const counted = credibleReporter(reporter, nowS) ? 1 : 0;
-  if (!counted && !(await db.prepare("SELECT 1 AS y FROM mod_cases WHERE target = ?1 AND status = 'open'").bind(target.id).first())
+  if (!counted && !(await db.prepare("SELECT 1 AS y FROM mod_cases WHERE target = ?1 AND kind = 'chat' AND status = 'open'").bind(target.id).first())
     && await overRate(ctx, 'safety-uncounted-cases', UNCOUNTED_CASES_HOUR, 3600)) return { error: 'rate' };
   const caseId = await openCaseFor(ctx, env, target.id, 'report');
   const filed = await db.prepare('INSERT OR IGNORE INTO mod_reports (case_id, reporter, reason, note, at, counted) VALUES (?1, ?2, ?3, ?4, ?5, ?6)')
@@ -263,51 +270,159 @@ const verdictOf = (c, full = false) => (c.ai_state === 'done' && c.ai_category
     ...(full ? { reason: c.ai_reason ?? null, line: c.ai_line_at != null ? { at: c.ai_line_at, sub: c.ai_line_sub } : null } : {}) }
   : null);
 
-/** THE OPEN CASES, the most reporters who count first - a moderator's. @param {{ db: any }} ctx @param {any} actor @param {any} env */
+/** THE OPEN CASES, the most reporters who count first - a moderator's: chat cases, and a developer's spawn cases too
+ *  (STAFF-PANEL2-FIX). @param {{ db: any }} ctx @param {any} actor @param {any} env */
 export async function modCases({ db }, actor, env) {
   if (!canModerate(actor, env)) return { error: 'not-moderator' };
   const rows = (await db.prepare(`SELECT c.*, p.handle, p.guest_name FROM mod_cases c JOIN players p ON p.id = c.target WHERE c.status = 'open'
-    ORDER BY c.credible DESC, c.reports DESC, c.updated_at DESC LIMIT ?1`).bind(CASES_LIST_MAX).all())?.results ?? [];
+    AND (c.kind = 'chat' OR ?2 = 1) ORDER BY c.credible DESC, c.reports DESC, c.updated_at DESC LIMIT ?1`).bind(CASES_LIST_MAX, isDeveloper(actor, env) ? 1 : 0).all())?.results ?? [];
   const reasons = rows.length ? (await db.prepare(`SELECT case_id, reason FROM mod_reports WHERE case_id IN (${rows.map((_, i) => `?${i + 1}`).join(', ')})`).bind(...rows.map((r) => r.id)).all())?.results ?? [] : [];
   return {
     ok: true,
-    cases: rows.map((c) => ({ id: c.id, target: c.target, name: displayName(c), reports: c.reports, credible: c.credible,
+    cases: rows.map((c) => ({ id: c.id, target: c.target, kind: c.kind, name: displayName(c), reports: c.reports, credible: c.credible,
       reasons: [...new Set(reasons.filter((r) => r.case_id === c.id).map((r) => String(r.reason)))], ai: verdictOf(c), auto: c.auto ?? null, openedAt: c.opened_at, updatedAt: c.updated_at })),
   };
 }
 
-/** ONE CASE - the account's open one: its lines, reasons and notes, and the reviewer's verdict with the line it flagged. */
-export async function modCase({ db }, actor, env, { target, name }) {
+/** ONE CASE - the account's open one: its lines, reasons and notes, and the reviewer's verdict with the line it flagged.
+ *  STAFF-PANEL2-FIX: the one `caseId` names, else its chat case first - a spawn case a developer's alone. */
+export async function modCase({ db }, actor, env, { target, name, caseId = null }) {
   if (!canModerate(actor, env)) return { error: 'not-moderator' };
   const row = await findAccount(db, { target, name });
   if ('error' in row) return row;
-  const c = await db.prepare("SELECT * FROM mod_cases WHERE target = ?1 AND status = 'open'").bind(row.id).first();
+  const c = await db.prepare(`SELECT * FROM mod_cases WHERE target = ?1 AND status = 'open' AND (?2 IS NULL OR id = ?2) AND (kind = 'chat' OR ?3 = 1)
+    ORDER BY kind = 'chat' DESC LIMIT 1`).bind(row.id, typeof caseId === 'string' ? caseId : null, isDeveloper(actor, env) ? 1 : 0).first();
   if (!c) return { error: 'no-case' };
   const lines = (await db.prepare('SELECT at, sub, name, tab, text FROM mod_case_lines WHERE case_id = ?1 ORDER BY at, sub').bind(c.id).all())?.results ?? [];
   const reports = (await db.prepare('SELECT reason, note FROM mod_reports WHERE case_id = ?1 ORDER BY at').bind(c.id).all())?.results ?? [];
   return {
     ok: true,
-    case: { id: c.id, target: row.id, name: displayName(row), status: c.status, reports: c.reports, credible: c.credible,
+    case: { id: c.id, target: row.id, kind: c.kind, name: displayName(row), status: c.status, reports: c.reports, credible: c.credible,
       reasons: [...new Set(reports.map((r) => String(r.reason)))], notes: reports.map((r) => r.note).filter(Boolean), ai: verdictOf(c, true), auto: c.auto ?? null,
       lines: lines.map((l) => ({ at: l.at, sub: l.sub, name: l.name, tab: l.tab, text: l.text })) },
   };
 }
 
 /** DISMISS the account's open case - a moderator's: the act recorded, the case's automatic mutes voided (one still
- *  running lifted - its unmute order answered, for the moderator's client to carry and pushed to the relay's door). */
-export async function modDismiss(ctx, actor, env, { target, name }, { fetchFn = (u, i) => globalThis.fetch(u, i) } = {}) {
-  const { db, nowS } = ctx;
+ *  running lifted - its unmute order answered, for the moderator's client to carry and pushed to the relay's door).
+ *  STAFF-PANEL2-FIX: modAct's, so the claim and the one act a case are asked as every door's are. */
+export const modDismiss = (ctx, actor, env, { target, name, caseId = null }, { fetchFn = (u, i) => globalThis.fetch(u, i) } = {}) =>
+  modAct(ctx, actor, env, { act: 'dismiss', target, name, caseId }, { push: (o) => pushLaw(env, fetchFn, o) });
+
+/* ═══ STAFF-PANEL2-FIX - ONE ACT, FROM EVERY DOOR ═══
+ * (2026-10-22; design doc "DFO Staff Panel: design", Weak spots "Sanctions, cases and roles" and "Panel Mute and Ban have
+ * no route".) A Mute, Ban, Unban or Dismiss is made HERE, whichever door asked - the staff panel (staffCases.js), the
+ * game's moderators (index.js /v1/mod/*), Discord's buttons and /mod (discord.js) - so its rules hold at every door:
+ * - ONE CASE, ONE SANCTION ("One case can give two strikes"): a Mute, Ban or Dismiss takes its case first (`act_click`,
+ *   migration 0153), in the statement that checks nobody took it - two moderators, two doors or two presses on one case
+ *   act once, the other refused (`case-acted` while the first is in flight, `case-closed` once it is done). A press's
+ *   one-time id (`click`) sent again is answered as the first (`repeat`), never a second strike. A door that names no
+ *   case acts on the account's open case modCase shows it (its chat case, else - for a developer - its spawn case).
+ * - THE CLAIM ("claims are checked only on Discord"): a case another staff member holds in the panel (claimHeldSql) is
+ *   theirs to act on - `staff-claimed`, asked in the same statement that takes the case.
+ * - KINDS ("Moderators see only chat cases"): a spawn case is a developer's (`not-developer`).
+ * - THE ADMIN'S SANCTION ("A Moderator can lift an Admin's ban"): lifting or cutting short what an Admin set needs an Admin
+ *   (accounts.js muteAccount, sanctions.js banAccount and unbanAccount answer `admin-sanction`).
+ * Lifting (an unmute, an unban) is no case's act. Every act lands in the strike history as before (`mod_actions`). */
+
+/** A press's one-time id, as a door sends it (the panel's own, a Discord interaction's id). */
+export const CLICK_RE = /^[\w-]{8,64}$/;
+
+/** SQL true while case row `t`'s staff panel claim stands: held, inside its time, and the staff session that took or last
+ *  kept it still alive (staff.js staffSession's law: not past its whole life nor its idle) - design doc, Weak spots: "a
+ *  claim ends with the claimer's session". `n` the statement's parameter number holding the clock. */
+export const claimHeldSql = (/** @type {string} */ t, /** @type {number} */ n) => `(${t}.claimed_by IS NOT NULL AND ${t}.claim_until > ?${n}
+  AND EXISTS (SELECT 1 FROM staff_sessions cs WHERE cs.token_hash = ${t}.claim_session AND cs.expires_at > ?${n} AND cs.last_act + ${STAFF_IDLE_S} > ?${n}))`;
+
+/** A mute's end as the record says it, to the minute, in UTC. @param {number} until */
+const utcMinute = (until) => new Date(until * 1000).toISOString().slice(0, 16).replace('T', ' ');
+
+/**
+ * ONE MODERATOR'S ACT on an account, found by id or name (findAccount). `act` mute (`minutes`, 0 lifts), ban (`days`,
+ * `reason`), unban, dismiss; `caseId` the case it answers (else the one modCase shows the actor); `click` the press's
+ * one-time id; `actorName` what the record says (the door's words beside the name); `keepLonger` a button's: never
+ * shorten what stands (DISCORD-5); `resolution` the case's closing words from the act's answer, else the act's own with
+ * `from` (the door: 'staff panel', 'in the game') beside them. The order for the rooms
+ * goes to `push` (the relay's door, by default). Answers the act's own answer with `case` and `order`, or `{ error }`.
+ * @param {{ db: any, nowS: number, subtle: SubtleCrypto, rand: (b: Uint8Array) => void }} ctx @param {any} actor @param {any} env
+ * @param {{ act: 'mute'|'ban'|'unban'|'dismiss', target?: unknown, name?: unknown, caseId?: unknown, click?: unknown, minutes?: any, days?: any,
+ *   reason?: unknown, actorName?: string, from?: string, keepLonger?: boolean, resolution?: (r: any) => string }} ask
+ * @param {{ push?: (order: string) => unknown }} [io]
+ */
+export async function modAct(ctx, actor, env, ask, { push } = {}) {
+  const { db, nowS, subtle } = ctx;
   if (!canModerate(actor, env)) return { error: 'not-moderator' };
-  const row = await findAccount(db, { target, name });
+  const row = await findAccount(db, { target: ask.target, name: ask.name });
   if ('error' in row) return row;
-  const c = await db.prepare("SELECT id FROM mod_cases WHERE target = ?1 AND status = 'open'").bind(row.id).first();
-  if (!c) return { error: 'no-case' };
-  const closed = await resolveCase(db, { caseId: c.id, status: 'dismissed', by: displayName(actor), resolution: 'no action', nowS }).run();
-  if (!closed?.meta?.changes) return { error: 'no-case' };
-  await actionStatement(db, { target: row.id, kind: 'dismiss', actor: actor.id, actorName: displayName(actor), caseId: c.id, at: nowS }).run();
-  const order = await voidAutoMutes(ctx, env, { caseId: c.id, row, actor, actorName: displayName(actor) });
-  if (order) await pushLaw(env, fetchFn, order);
-  return { ok: true, case: c.id, name: displayName(row), ...(order ? { order } : {}) };
+  const name = displayName(row);
+  const click = ask.click ?? null;
+  if (click !== null && !(typeof click === 'string' && CLICK_RE.test(click))) return { error: 'bad-click' };
+  if (click && await db.prepare('SELECT 1 AS y FROM mod_actions WHERE click = ?1').bind(click).first()) return { ok: true, repeat: true, target: row.id, name };
+  const lift = ask.act === 'unban' || (ask.act === 'mute' && ask.minutes === 0);
+  /** @type {any} */
+  let c = null;
+  if (!lift && ask.caseId != null) {
+    c = typeof ask.caseId === 'string' ? await db.prepare('SELECT * FROM mod_cases WHERE id = ?1 AND target = ?2').bind(ask.caseId, row.id).first() : null;
+    if (!c) return { error: 'no-case' };
+  } else if (!lift) {
+    // the case modCase shows this actor: the chat case first, a spawn case a developer's alone
+    c = await db.prepare(`SELECT * FROM mod_cases WHERE target = ?1 AND status = 'open' AND (kind = 'chat' OR ?2 = 1)
+      ORDER BY kind = 'chat' DESC LIMIT 1`).bind(row.id, isDeveloper(actor, env) ? 1 : 0).first();
+  }
+  if (ask.act === 'dismiss' && !c) return { error: 'no-case' };
+  const take = click ?? caseIdOf(ctx.rand);
+  if (c) {
+    if (c.status !== 'open') return { error: 'case-closed' };
+    if (c.kind !== 'chat' && !isDeveloper(actor, env)) return { error: 'not-developer' };
+    // THE CASE TAKEN for this act alone - and never one another member holds in the panel - in one statement
+    const took = await db.prepare(`UPDATE mod_cases SET act_click = ?2, act_at = ?3 WHERE id = ?1 AND status = 'open' AND act_click IS NULL
+      AND (claimed_by IS ?4 OR NOT ${claimHeldSql('mod_cases', 3)})`).bind(c.id, take, nowS, actor.id).run();
+    if (!took.meta.changes) {
+      const now = await db.prepare(`SELECT status, claimed_by, ${claimHeldSql('mod_cases', 2)} AS held FROM mod_cases WHERE id = ?1`).bind(c.id, nowS).first();
+      return { error: now?.held && now.claimed_by !== actor.id ? 'staff-claimed' : now?.status === 'open' ? 'case-acted' : 'case-closed' };
+    }
+  }
+  const by = ask.actorName ?? displayName(actor);
+  const caseId = c?.id ?? null;
+  /** @type {any} */
+  let r;
+  /** @type {string|null} */
+  let order = null;
+  let said = '';
+  if (ask.act === 'mute') {
+    const minutes = ask.minutes;
+    if (ask.keepLonger && muteMinutesOk(minutes) && minutes && isMuted(row, nowS) && Number(row.muted_until) >= nowS + minutes * 60) {
+      // DISCORD-5: a button never shortens a mute that stands longer - its act recorded at the longer end
+      r = canModerate(row, env) ? { error: 'protected' } : { ok: true, target: row.id, name, until: Number(row.muted_until), kept: true };
+      if (!r.error) await actionStatement(db, { target: row.id, kind: 'mute', until: r.until, reason: reasonOf(ask.reason), actor: actor.id, actorName: by, caseId, click, at: nowS }).run();
+    } else {
+      r = await muteAccount(ctx, actor, env, { target: row.id, minutes });
+      if (!r.error) {
+        await actionStatement(db, { target: row.id, kind: r.until ? 'mute' : 'unmute', until: r.until || null, reason: reasonOf(ask.reason), actor: actor.id, actorName: by, caseId, click, at: nowS }).run();
+        order = await lawOrder(env, subtle, nowS, { s: row.id, mu: r.until });
+      }
+    }
+    said = r.until ? `muted until ${utcMinute(r.until)} UTC` : '';
+  } else if (ask.act === 'ban' || ask.act === 'unban') {
+    r = ask.act === 'ban'
+      ? await banAccount(ctx, actor, env, { target: row.id, days: ask.days, reason: ask.reason, caseId, click, actorName: by, keepLonger: !!ask.keepLonger })
+      : await unbanAccount(ctx, actor, env, { target: row.id, actorName: by });
+    if (!r.error) order = await lawOrder(env, subtle, nowS, { s: row.id, bn: r.until });
+    said = 'banned';
+  } else if (ask.act === 'dismiss') {
+    await resolveCase(db, { caseId, status: 'dismissed', by: displayName(actor), resolution: 'no action', nowS }).run();
+    await actionStatement(db, { target: row.id, kind: 'dismiss', actor: actor.id, actorName: by, caseId, click, at: nowS }).run();
+    order = await voidAutoMutes(ctx, env, { caseId: /** @type {string} */ (caseId), row, actor, actorName: by });
+    r = { ok: true, target: row.id, name };
+  } else r = { error: 'not-found' };
+  if (r.error) {
+    if (c) await db.prepare('UPDATE mod_cases SET act_click = NULL, act_at = NULL WHERE id = ?1 AND act_click = ?2').bind(c.id, take).run();
+    return r;
+  }
+  // AUDIT SAFE SERVICE-2: a moderator's mute or ban closes the case it answered - as the moderator's act
+  if (c && said) await resolveCase(db, { caseId, status: 'actioned', by: displayName(actor), resolution: ask.resolution?.(r) ?? (ask.from ? `${said} (${ask.from})` : said), nowS }).run();
+  if (order) await (push ?? ((/** @type {string} */ o) => pushLaw(env, (u, i) => globalThis.fetch(u, i), o)))(order);
+  return { ...r, ...(caseId ? { case: caseId } : {}), order };
 }
 
 /* ═══ SAFE5 - THE REVIEWER'S FEED IN ═══ */

@@ -23,9 +23,16 @@
 //
 // EVERY LIST PAGES (mob, 19:25Z: "put inf scroll in anything that pull lists"): `from` the offset of the next page,
 // answered as `next` while more stand.
-import { displayName, muteAccount } from './accounts.js';
-import { modCase, modDismiss, resolveCase } from './safety.js';
-import { banAccount, unbanAccount, strikesLook, findAccount, actionStatement, lawOrder, pushLaw } from './sanctions.js';
+//
+// STAFF-PANEL2-FIX (2026-10-22; design doc, Weak spots "Sanctions, cases and roles" and "Panel Mute and Ban have no
+// route"): the acts are safety.js modAct's, the one code every door shares - one sanction a case (a Mute or Ban carries
+// its case and the press's one-time `click`), the claim asked inside it, a spawn case an Admin's, and an Admin's
+// sanction lifted by an Admin alone. Cases have a kind: Moderators see and act on chat cases only, Admins on both. One
+// reporter's own "threat" makes a case Medium at most; a claimed High case nobody touched for HIGH_IDLE_S returns to the
+// top of its level; a claim ends with the staff session that took it (safety.js claimHeldSql).
+import { displayName } from './accounts.js';
+import { modCase, modAct, claimHeldSql } from './safety.js';
+import { strikesLook, findAccount } from './sanctions.js';
 import { LADDER_BAN_AT, STRIKE_WINDOW_S } from '../../src/net/safety/safetyLaw.js';
 
 /** A claim lets go this long after its holder's last look or act on the case (design doc: "a starting number to tune"). */
@@ -40,6 +47,12 @@ export const AI_WAIT_S = 10 * 60;
 export const STALE_S = 24 * 60 * 60;
 /** Reporters who count, inside one hour, that make a case high. */
 export const CREDIBLE_WAVE = 3;
+/** STAFF-PANEL2-FIX (Weak spots: "One reporter's own 'threat' pick can make a case High. It can raise a case to Medium
+ *  at most"): reporters who must say "threat" before the reviewer reads it for the case to be high. */
+export const THREAT_HIGH = 2;
+/** STAFF-PANEL2-FIX (Weak spots: "A claimed High case returns to the top after 5 minutes with no action"): how long a
+ *  claimed high case may stand untouched by its holder before it sorts as if nobody held it. */
+export const HIGH_IDLE_S = 5 * 60;
 
 export const CASE_ROUTES = Object.freeze(['/v1/staff/cases', '/v1/staff/case', '/v1/staff/claim', '/v1/staff/release',
   '/v1/staff/strikes', '/v1/staff/mute', '/v1/staff/ban', '/v1/staff/unban', '/v1/staff/dismiss']);
@@ -67,7 +80,8 @@ export function caseUrgency(c, { reports, strikes, nowS }) {
   } else {
     // before the reviewer has read it, the reporters' own reason stands in
     const said = new Set(reports.map((r) => r.reason));
-    if (said.has('threat')) raise(2, 'reported as a threat');
+    const threats = reports.filter((r) => r.reason === 'threat').length;
+    if (threats) raise(threats >= THREAT_HIGH ? 2 : 1, 'reported as a threat');
     else if (said.has('hate') || said.has('sexual')) raise(1, `reported as ${said.has('hate') ? 'hate' : 'sexual'}`);
     else if (said.has('harassment') && n >= 2) raise(1, 'reported as harassment');
   }
@@ -99,17 +113,17 @@ export const HOME_WATCH = Object.freeze({
   },
 });
 
-/** Whether a row's claim stands now, held by someone. @param {any} c @param {number} nowS */
-const held = (c, nowS) => !!c?.claimed_by && Number(c.claim_until) > nowS;
+/** Whether a row's claim stands now - held, in time, its session alive: the row's `claim_live` (claimHeldSql). @param {any} c */
+const held = (c) => !!c?.claimed_by && c.claim_live === 1;
 
 /**
  * THE PANEL'S CASE DOORS. Answers the route's body, or `{ error }` (staff.js STAFF_STATUS its status).
  * @param {any} ctx @param {any} env @param {string} path @param {any} body
- * @param {{ player: any, role: string }} who
+ * @param {{ player: any, role: string, hash: string }} who
  * @param {(act: string, target?: string|null, detail?: object|null, how?: object) => any} audit
  */
 export async function staffCases(ctx, env, path, body, who, audit) {
-  const { db, nowS, subtle } = ctx;
+  const { db, nowS } = ctx;
   const me = who.player;
   const admin = who.role === 'admin';
   const asName = `${displayName(me)} (staff panel)`;
@@ -117,9 +131,10 @@ export async function staffCases(ctx, env, path, body, who, audit) {
   if (path === '/v1/staff/cases') {
     const sort = body.sort === 'newest' ? 'newest' : 'urgent';
     const from = Number.isSafeInteger(body.from) && body.from > 0 ? body.from : 0;
-    const rows = (await db.prepare(`SELECT c.*, p.handle, p.guest_name, h.handle AS holder_handle, h.guest_name AS holder_guest
+    // STAFF-PANEL2-FIX: a Moderator's list is the chat cases alone; an Admin's every kind
+    const rows = (await db.prepare(`SELECT c.*, p.handle, p.guest_name, h.handle AS holder_handle, h.guest_name AS holder_guest, ${claimHeldSql('c', 2)} AS claim_live
       FROM mod_cases c JOIN players p ON p.id = c.target LEFT JOIN players h ON h.id = c.claimed_by
-      WHERE c.status = 'open' ORDER BY c.opened_at DESC LIMIT ?1`).bind(CASES_RANKED_MAX).all())?.results ?? [];
+      WHERE c.status = 'open' AND (c.kind = 'chat' OR ?3 = 1) ORDER BY c.opened_at DESC LIMIT ?1`).bind(CASES_RANKED_MAX, nowS, admin ? 1 : 0).all())?.results ?? [];
     const reports = rows.length ? (await db.prepare(`SELECT r.case_id, r.reason, r.counted, r.at FROM mod_reports r JOIN mod_cases c ON c.id = r.case_id
       WHERE c.status = 'open'`).all())?.results ?? [] : [];
     const strikes = rows.length ? (await db.prepare(`SELECT a.target, COUNT(*) AS n FROM mod_actions a WHERE a.kind IN ('mute', 'ban') AND a.at > ?1
@@ -128,47 +143,53 @@ export async function staffCases(ctx, env, path, body, who, audit) {
     const ranked = rows.map((c) => {
       const mine = reports.filter((r) => r.case_id === c.id);
       const u = caseUrgency(c, { reports: mine, strikes: strikesOf.get(c.target) ?? 0, nowS });
-      const claim = held(c, nowS) ? { by: c.claimed_by, name: c.holder_handle ?? c.holder_guest ?? null, until: c.claim_until, mine: c.claimed_by === me.id } : null;
+      // a high case its holder left untouched HIGH_IDLE_S (claim_until is CLAIM_S past their last look or act) is `idle`
+      const claim = held(c) ? { by: c.claimed_by, name: c.holder_handle ?? c.holder_guest ?? null, until: c.claim_until, mine: c.claimed_by === me.id,
+        idle: u.level === 'high' && nowS - (Number(c.claim_until) - CLAIM_S) >= HIGH_IDLE_S } : null;
       return {
-        id: c.id, target: c.target, name: displayName(c), reports: c.reports, credible: c.credible, reasons: [...new Set(mine.map((r) => String(r.reason)))],
+        id: c.id, target: c.target, kind: c.kind, name: displayName(c), reports: c.reports, credible: c.credible, reasons: [...new Set(mine.map((r) => String(r.reason)))],
         level: u.level, why: u.why, ai: c.ai_category ? { category: c.ai_category, severity: c.ai_severity, confidence: c.ai_confidence, state: c.ai_state } : null,
         auto: c.auto ?? null, openedAt: c.opened_at, updatedAt: c.updated_at, lastReport: mine.reduce((a, r) => Math.max(a, r.at), 0), claim,
       };
     });
     const lvl = (/** @type {any} */ x) => LEVELS.indexOf(x.level);
     ranked.sort(sort === 'newest' ? (a, b) => b.openedAt - a.openedAt : (a, b) => lvl(b) - lvl(a)
-      || (a.claim ? 1 : 0) - (b.claim ? 1 : 0)   // a claimed case sorts below the rest of its level
+      || (a.claim && !a.claim.idle ? 1 : 0) - (b.claim && !b.claim.idle ? 1 : 0)   // a claimed case sorts below the rest of its level, unless left idle
       || (b.ai?.confidence ?? 0) - (a.ai?.confidence ?? 0)
       || (nowS - b.lastReport < 3600 ? 1 : 0) - (nowS - a.lastReport < 3600 ? 1 : 0)   // reports still coming in
       || a.openedAt - b.openedAt);
     const page = ranked.slice(from, from + CASES_PAGE);
     const lost = from ? [] : ((await db.prepare(`SELECT c.id, c.target, p.handle, p.guest_name, h.handle AS holder FROM mod_cases c JOIN players p ON p.id = c.target
-      LEFT JOIN players h ON h.id = c.claimed_by WHERE c.status = 'open' AND c.claim_from = ?1 AND c.claimed_by IS NOT ?1 AND c.claim_until > ?2`).bind(me.id, nowS).all())?.results ?? [])
+      LEFT JOIN players h ON h.id = c.claimed_by WHERE c.status = 'open' AND c.claim_from = ?1 AND c.claimed_by IS NOT ?1 AND ${claimHeldSql('c', 2)}`).bind(me.id, nowS).all())?.results ?? [])
       .map((c) => ({ id: c.id, target: c.target, name: displayName(c), by: c.holder ?? null }));
     await audit('cases-read', null, { sort }, { onceIn: 10 * 60 }).run();
     return { cases: page, next: from + CASES_PAGE < ranked.length ? from + CASES_PAGE : null, total: ranked.length, high: ranked.filter((c) => c.level === 'high').length, lost };   // STAFF-PANEL6-STATUS: `high`, the Reports' "N high of M"
   }
 
-  // every other door names one account: by its id, or a name (sanctions.js findAccount)
+  // every other door names one account: by its id, or a name (sanctions.js findAccount) - and its open case: the one
+  // `case` names, else its chat case first; a Moderator's, chat cases alone (STAFF-PANEL2-FIX)
   const row = await findAccount(db, { target: body.target, name: body.name });
   if ('error' in row) return row;
-  const open = await db.prepare("SELECT id, claimed_by, claim_until FROM mod_cases WHERE target = ?1 AND status = 'open'").bind(row.id).first();
-  const theirs = held(open, nowS) && open.claimed_by !== me.id;
-  /** The holder's look or act keeps the claim. */
-  const keep = () => (open && held(open, nowS) && open.claimed_by === me.id
-    ? db.prepare("UPDATE mod_cases SET claim_until = ?3 WHERE id = ?1 AND claimed_by = ?2 AND status = 'open'").bind(open.id, me.id, nowS + CLAIM_S).run() : null);
+  const named = typeof body.case === 'string' ? body.case : null;
+  const open = await db.prepare(`SELECT id, kind, claimed_by, claim_until, ${claimHeldSql('mod_cases', 2)} AS claim_live FROM mod_cases WHERE target = ?1 AND status = 'open'
+    AND (?3 IS NULL OR id = ?3) AND (kind = 'chat' OR ?4 = 1) ORDER BY kind = 'chat' DESC LIMIT 1`).bind(row.id, nowS, named, admin ? 1 : 0).first();
+  const theirs = held(open) && open.claimed_by !== me.id;
+  /** The holder's look or act keeps the claim - and moves it to the session that looked (a claim ends with its session). */
+  const keep = () => (open && held(open) && open.claimed_by === me.id
+    ? db.prepare("UPDATE mod_cases SET claim_until = ?3, claim_session = ?4 WHERE id = ?1 AND claimed_by = ?2 AND status = 'open'").bind(open.id, me.id, nowS + CLAIM_S, who.hash).run() : null);
 
   if (path === '/v1/staff/case' || path === '/v1/staff/strikes') {
     const look = await strikesLook(ctx, me, env, { target: row.id });
     if ('error' in look) return look;
-    const one = path === '/v1/staff/case' ? await modCase(ctx, me, env, { target: row.id }) : null;
+    const one = path === '/v1/staff/case' ? await modCase(ctx, me, env, { target: row.id, caseId: open?.id ?? '' }) : null;
     if (one && 'error' in one) return one;
     await keep();
     await audit(path === '/v1/staff/case' ? 'case-read' : 'strikes-read', row.id, { name: displayName(row) }, { onceIn: 10 * 60 }).run();
-    const c = open ? await db.prepare(`SELECT c.claimed_by, c.claim_until, h.handle, h.guest_name FROM mod_cases c LEFT JOIN players h ON h.id = c.claimed_by WHERE c.id = ?1`).bind(open.id).first() : null;
+    const c = open ? await db.prepare(`SELECT c.claimed_by, c.claim_until, h.handle, h.guest_name, ${claimHeldSql('c', 2)} AS claim_live FROM mod_cases c
+      LEFT JOIN players h ON h.id = c.claimed_by WHERE c.id = ?1`).bind(open.id, nowS).first() : null;
     return {
       ...(one ? { case: one.case } : {}), record: look,
-      claim: held(c, nowS) ? { by: c.claimed_by, name: c.handle ?? c.guest_name ?? null, until: c.claim_until, mine: c.claimed_by === me.id } : null,
+      claim: held(c) ? { by: c.claimed_by, name: c.handle ?? c.guest_name ?? null, until: c.claim_until, mine: c.claimed_by === me.id } : null,
     };
   }
 
@@ -177,19 +198,20 @@ export async function staffCases(ctx, env, path, body, who, audit) {
     if (path === '/v1/staff/release') {
       const [, r] = await db.batch([
         audit('case-release', row.id, { case: open.id }, { okIf: { sql: "EXISTS (SELECT 1 FROM mod_cases WHERE id = ? AND claimed_by = ? AND status = 'open')", args: [open.id, me.id] } }),
-        db.prepare("UPDATE mod_cases SET claimed_by = NULL, claim_until = NULL, claim_from = NULL WHERE id = ?1 AND claimed_by = ?2 AND status = 'open'").bind(open.id, me.id),
+        db.prepare("UPDATE mod_cases SET claimed_by = NULL, claim_until = NULL, claim_from = NULL, claim_session = NULL WHERE id = ?1 AND claimed_by = ?2 AND status = 'open'").bind(open.id, me.id),
       ]);
       return r.meta.changes ? { ok: true, case: open.id } : { error: 'no-case' };
     }
     const until = nowS + CLAIM_S;
     // an Admin takes any open case, and the member it was taken from is told; a Moderator takes one nobody holds, and
-    // only while holding no other - both in the statement that takes it, so two takes at once land one
+    // only while holding no other - both in the statement that takes it, so two takes at once land one. A claim is this
+    // session's (`claim_session`): one whose session ended stands for nobody (claimHeldSql)
     const take = admin
-      ? db.prepare(`UPDATE mod_cases SET claim_from = CASE WHEN claimed_by IS NOT NULL AND claimed_by != ?2 AND claim_until > ?3 THEN claimed_by ELSE NULL END,
-          claimed_by = ?2, claim_until = ?4 WHERE id = ?1 AND status = 'open'`).bind(open.id, me.id, nowS, until)
-      : db.prepare(`UPDATE mod_cases SET claim_from = NULL, claimed_by = ?2, claim_until = ?4 WHERE id = ?1 AND status = 'open'
-          AND (claimed_by IS NULL OR claimed_by = ?2 OR claim_until <= ?3)
-          AND NOT EXISTS (SELECT 1 FROM mod_cases o WHERE o.status = 'open' AND o.claimed_by = ?2 AND o.claim_until > ?3 AND o.id != ?1)`).bind(open.id, me.id, nowS, until);
+      ? db.prepare(`UPDATE mod_cases SET claim_from = CASE WHEN claimed_by != ?2 AND ${claimHeldSql('mod_cases', 3)} THEN claimed_by ELSE NULL END,
+          claimed_by = ?2, claim_until = ?4, claim_session = ?5 WHERE id = ?1 AND status = 'open'`).bind(open.id, me.id, nowS, until, who.hash)
+      : db.prepare(`UPDATE mod_cases SET claim_from = NULL, claimed_by = ?2, claim_until = ?4, claim_session = ?5 WHERE id = ?1 AND status = 'open'
+          AND (claimed_by IS ?2 OR NOT ${claimHeldSql('mod_cases', 3)})
+          AND NOT EXISTS (SELECT 1 FROM mod_cases o WHERE o.status = 'open' AND o.claimed_by = ?2 AND ${claimHeldSql('o', 3)} AND o.id != ?1)`).bind(open.id, me.id, nowS, until, who.hash);
     const r = await take.run();
     if (!r.meta.changes) {
       await audit('case-claim', row.id, { case: open.id, why: theirs ? 'held' : 'one-case' }, { outcome: 'denied' }).run();
@@ -199,39 +221,25 @@ export async function staffCases(ctx, env, path, body, who, audit) {
     return { ok: true, case: open.id, until };
   }
 
-  // ═══ THE ACTS: the game's moderators' own, made as this member, from the panel ═══
-  if (theirs) {
-    await audit(path.slice('/v1/staff/'.length), row.id, { why: 'held' }, { outcome: 'denied' }).run();
-    return { error: 'staff-claimed' };
-  }
+  // ═══ THE ACTS: the game's moderators' own, made as this member, from the panel (safety.js modAct) ═══
+  const act = path.slice('/v1/staff/'.length);
+  if (!['mute', 'ban', 'unban', 'dismiss'].includes(act)) return { error: 'not-found' };
   /** @type {any} */
-  let r;
-  let detail = /** @type {any} */ ({ name: displayName(row) });
-  if (path === '/v1/staff/mute') {
-    r = await muteAccount(ctx, me, env, { target: row.id, minutes: body.minutes });
-    detail = { ...detail, minutes: body.minutes };
-    if (!r.error) {
-      await actionStatement(db, { target: row.id, kind: r.until ? 'mute' : 'unmute', until: r.until || null, actor: me.id, actorName: asName, at: nowS }).run();
-      if (r.until) await resolveCase(db, { target: row.id, status: 'actioned', by: displayName(me), resolution: `muted until ${new Date(r.until * 1000).toISOString().slice(0, 16).replace('T', ' ')} UTC (staff panel)`, nowS }).run();
-      await pushLaw(env, (u, i) => globalThis.fetch(u, i), await lawOrder(env, subtle, nowS, { s: row.id, mu: r.until }));
-    }
-  } else if (path === '/v1/staff/ban' || path === '/v1/staff/unban') {
-    r = path === '/v1/staff/ban'
-      ? await banAccount(ctx, me, env, { target: row.id, days: body.days, reason: body.reason, caseId: open?.id ?? null, actorName: asName })
-      : await unbanAccount(ctx, me, env, { target: row.id, actorName: asName });
-    if (path === '/v1/staff/ban') detail = { ...detail, days: body.days, reason: typeof body.reason === 'string' ? body.reason.slice(0, 200) : null };
-    if (!r.error) {
-      if (path === '/v1/staff/ban') await resolveCase(db, { target: row.id, status: 'actioned', by: displayName(me), resolution: 'banned (staff panel)', nowS }).run();
-      await pushLaw(env, (u, i) => globalThis.fetch(u, i), await lawOrder(env, subtle, nowS, { s: row.id, bn: r.until }));
-    }
-  } else if (path === '/v1/staff/dismiss') {
-    r = await modDismiss(ctx, me, env, { target: row.id });
-  } else return { error: 'not-found' };
+  let detail = { name: displayName(row) };
+  if (act === 'mute') detail = { ...detail, minutes: body.minutes };
+  if (act === 'ban') detail = { ...detail, days: body.days, reason: typeof body.reason === 'string' ? body.reason.slice(0, 200) : null };
+  // a panel's Mute and Ban carry the press's one-time id (the design doc: "Mute and Ban send the case id and a one-time
+  // click id"), so a press sent twice is one strike
+  const r = (act === 'mute' || act === 'ban') && typeof body.click !== 'string' ? { error: 'bad-click' }
+    : await modAct(ctx, me, env, {
+      act: /** @type {'mute'|'ban'|'unban'|'dismiss'} */ (act), target: row.id, caseId: body.case ?? null, click: body.click ?? null,
+      minutes: body.minutes, days: body.days, reason: body.reason, actorName: asName, from: 'staff panel',
+    });
   if (r.error) {
-    await audit(path.slice('/v1/staff/'.length), row.id, { ...detail, error: r.error }, { outcome: 'failed' }).run();
+    await audit(act, row.id, r.error === 'staff-claimed' ? { why: 'held' } : { ...detail, error: r.error }, { outcome: r.error === 'staff-claimed' ? 'denied' : 'failed' }).run();
     return r;
   }
   await keep();
-  await audit(path.slice('/v1/staff/'.length), row.id, detail).run();
+  await audit(act, row.id, { ...detail, ...(r.case ? { case: r.case } : {}), ...(r.repeat ? { repeat: true } : {}) }).run();
   return { ...r, order: undefined };   // no rooms to carry it to: the relay's door has it
 }

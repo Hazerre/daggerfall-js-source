@@ -50,7 +50,7 @@
 // EVERY CLOCK IS AN ARGUMENT, as in accounts.js.
 // ═══════════════════════════════════════════════════════════════════
 import { accountKind, mintId, overRate } from './accounts.js';
-import { canModerate } from './titles.js';
+import { canModerate, isDeveloper } from './titles.js';
 import { marksOpenFor, balanceOf } from './marks.js';
 import { boardOpenFor } from './board.js';
 import { titheAt } from './seatHolding.js';   // SEAT1d: the bailiwick's Tithe
@@ -2055,8 +2055,10 @@ export async function marketReport(ctx, player, env, { listing: id } = {}) {
   return { ok: true };
 }
 
-/** REMOVE: `{ listing }` - a moderator's: the listing off every board, its goods returned on its seller's next read.
+/** REMOVE: `{ listing }` - a developer's: the listing off every board, its goods returned on its seller's next read.
  *  PROF5b: an auction likewise - its standing bid voided (its escrow back on its bidder's read), its piece returned.
+ *  STAFF-PANEL2-FIX (design doc "DFO Staff Panel: design", Weak spots: "/v1/mod/ acts are limited to in-game mute and
+ *  ban, and Market Pull is Admin only"): a Moderator no longer pulls a listing - an Admin (DEVELOPER_HANDLES) does.
  *  STAFF-PANEL3-REALM (design doc "Remove items": "Remove from market: the listing ends and the item does not go back"):
  *  `keep` - the staff panel's removal: the same end, and the goods marked returned in the statement that ends it (`rn` the
  *  removal's nonce), so its seller's settle never hands them back; `also(nonce, table)` the panel's own statements for the
@@ -2064,7 +2066,7 @@ export async function marketReport(ctx, player, env, { listing: id } = {}) {
  *  and the seller's next read settles the goods back as any removal's. */
 export async function marketRemove(ctx, player, env, { listing: id } = {}, { keep = false, also = null } = {}) {
   const { db, nowS, rand } = ctx;
-  if (!canModerate(player, env)) return { error: 'not-moderator' };
+  if (!isDeveloper(player, env)) return { error: 'not-developer' };
   if (!idOk(id)) return { error: 'bad-listing' };
   const nonce = mintId(rand);
   const kept = keep ? ', returned = 1, rn = ?3' : '';

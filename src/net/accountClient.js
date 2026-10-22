@@ -835,6 +835,13 @@ const REFUSAL_WORDS = {
   // AUDIT SAFE DOC-4: a moderator's look at a case, and an unban of an account no ban holds
   'no-case': () => t('account.refusal.noCase', 'That player has no open case.'),
   'not-banned': () => t('account.refusal.notBanned', 'That account is not banned.'),
+  // STAFF-PANEL2-FIX (server-account/src/safety.js modAct, every moderator's door): a case another staff member holds in
+  // the staff panel, a case another act already took or closed, a sanction an Admin set, and a press of the wrong shape
+  'staff-claimed': () => t('account.refusal.staffClaimed', 'Another staff member has taken that case in the staff panel.'),
+  'case-acted': () => t('account.refusal.caseActed', 'Another moderator is acting on that case right now.'),
+  'case-closed': () => t('account.refusal.caseClosed', 'That case is already closed.'),
+  'admin-sanction': () => t('account.refusal.adminSanction', 'An Admin set this. Only an Admin can lift or shorten it.'),
+  'bad-click': () => t('account.refusal.badClick', 'That request was not sent properly. Try again.'),
 };
 /** AUDIT SAFE CLIENT-2 (2026-10-17): THE SERVICE'S LAST WORD ON A BAN - `{ until, reason }` off the newest `banned`
  *  refusal any door answered (`call`), or null. The service refuses a banned account on every door but signing out
