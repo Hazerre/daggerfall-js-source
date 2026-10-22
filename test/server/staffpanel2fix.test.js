@@ -303,7 +303,7 @@ test('STAFF-PANEL2-FIX 6: A CLAIMED HIGH CASE LEFT IDLE returns to the top, and 
   } finally { s.restore(); }
 });
 
-test('STAFF-PANEL2-FIX 8: CUTTING OFF A STAFF MEMBER holds at every door - the stored flag takes every role (the panel, the game\'s /v1/mod doors, Discord, a token\'s staff glyphs), and the cut ends their game sessions; an owner\'s invite brings them back (mutants: each suspended check; the sessions left)', async () => {
+test('STAFF-PANEL2-FIX 8: CUTTING OFF A STAFF MEMBER holds at every door - the stored flag takes every role (the panel, the game\'s /v1/mod doors, Discord, a token\'s staff glyphs), the cut ends their game sessions, and the relay is ordered to close their sockets; an owner\'s invite brings them back (mutants: each suspended check; the sessions left; no order pushed)', async () => {
   const s = await stand();
   try {
     const asyId = s.g.Asynian.id;
@@ -317,8 +317,13 @@ test('STAFF-PANEL2-FIX 8: CUTTING OFF A STAFF MEMBER holds at every door - the s
     assert.ok((await glyphs(s.g.Asynian.secret)).includes('mod'));
     assert.equal((await s.game('/v1/mod/cases', {}, s.g.Asynian.secret)).status, 200);
     const cut = await s.staff('/v1/staff/cut', { handle: 'Asynian' }, s.mob.session);
-    assert.deepEqual([cut.status, cut.body], [200, { ok: true, handle: 'Asynian' }]);
+    assert.deepEqual([cut.status, cut.body], [200, { ok: true, handle: 'Asynian', relay: true }]);
     assert.equal(s.row(asyId).staff_suspended, 1);
+    // the order at the relay's door: the account's sockets closed
+    const r = await verifyOrder(s.pushed.at(-1), s.identityPublic, { subtle, nowS: nowS(), kind: 'staffcut' });
+    assert.ok(r.ok, r.why);
+    assert.deepEqual(Object.keys(r.claims).sort(), ['e', 'i', 'o', 's']);
+    assert.equal(r.claims.s, asyId);
     // every session gone: the panel's, and the game's
     assert.equal((await s.staff('/v1/staff/me', {}, s.asy.session)).status, 401);
     assert.equal((await s.game('/v1/mod/cases', {}, s.g.Asynian.secret)).status, 401);

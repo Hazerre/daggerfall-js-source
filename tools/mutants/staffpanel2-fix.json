@@ -381,6 +381,16 @@
     ]
   },
   {
+    "name": "STAFF-PANEL2-FIX-cut-relay-untold",
+    "file": "server-account/src/staff.js",
+    "old": "      const relay = await pushLaw(env, (u, i) => globalThis.fetch(u, i), await staffCutOrder(env, subtle, nowS, target.id));",
+    "new": "      const relay = true;",
+    "why": "the relay never told of the cut",
+    "tests": [
+      "test/server/staffpanel2fix.test.js"
+    ]
+  },
+  {
     "name": "STAFF-PANEL2-FIX-cut-not-lifted",
     "file": "server-account/src/staff.js",
     "old": "      db.prepare('UPDATE players SET staff_suspended = 0 WHERE id = ?').bind(target.id),\n",
@@ -438,6 +448,66 @@
     "why": "a recovery leaves the panel signed in",
     "tests": [
       "test/server/staffpanel2fix.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL2-FIX-relay-door-refuses-cut",
+    "file": "server/src/index.js",
+    "old": " && kind !== 'staffcut') return json({ error: 'bad law' }, 403);",
+    "new": ") return json({ error: 'bad law' }, 403);",
+    "why": "the relay's door refuses the cut",
+    "tests": [
+      "test/net/safety/safe_staffcut.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL2-FIX-relay-hub-refuses-cut",
+    "file": "server/src/index.js",
+    "old": "['ban', 'mute', 'staffcut'], true);",
+    "new": "['ban', 'mute'], true);",
+    "why": "the hub takes no cut",
+    "tests": [
+      "test/net/safety/safe_staffcut.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL2-FIX-relay-cut-closes-nothing",
+    "file": "server/src/index.js",
+    "old": "    if (c.o === 'staffcut') return this._staffCut(c);",
+    "new": "    if (c.o === 'staffcut') return true;",
+    "why": "the cut closes nothing",
+    "tests": [
+      "test/net/safety/safe_staffcut.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL2-FIX-relay-cut-closes-newer",
+    "file": "server/src/index.js",
+    "old": "if (b.sub === c.s && !(b.gio > c.i)) this._banClose(ws, 'staff-cut');",
+    "new": "if (b.sub === c.s) this._banClose(ws, 'staff-cut');",
+    "why": "a socket on a token newer than the cut closed",
+    "tests": [
+      "test/net/safety/safe_staffcut.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL2-FIX-relay-cut-said-banned",
+    "file": "server/src/index.js",
+    "old": "this._banClose(ws, 'staff-cut');",
+    "new": "this._banClose(ws);",
+    "why": "a cut closed as a ban",
+    "tests": [
+      "test/net/safety/safe_staffcut.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL2-FIX-cut-order-any-fields",
+    "file": "src/net/identityToken.js",
+    "old": "  if (c.o === 'staffcut' && (c.mu !== undefined ||",
+    "new": "  if (false && (c.mu !== undefined ||",
+    "why": "a cut order carrying another kind's fields",
+    "tests": [
+      "test/net/safety/safe_staffcut.test.js"
     ]
   }
 ]
