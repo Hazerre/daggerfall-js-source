@@ -73,8 +73,9 @@ export const GUN_GRIP_ATTITUDE = (() => {
 })();
 
 /** PISTOLET: THE DWARVEN PISTOLET'S GRIP through the fist - GUN_GRIP_ATTITUDE's turn at the pistol's own rake (its grip
- *  runs 12 degrees off square to its barrel, read off the sprite it is built from - tools/pistoletArt.mjs BAND), its
- *  grip's middle already at the mesh's origin (tools/bakePistolet.mjs puts it there), so no offset. */
+ *  runs 12 degrees off square to its barrel - the owner's sprite's slope, tools/pistoletArt.mjs BAND, which the modelled
+ *  grip keeps: tools/modelPistolet.mjs GRIP_RAKE), its grip's middle already at the mesh's origin (the model puts it
+ *  there), so no offset. */
 const PISTOL_GRIP_RAKE = 12;
 export const PISTOL_GRIP_ATTITUDE = (() => {
   const r = (PISTOL_GRIP_RAKE * Math.PI) / 180, c = Math.cos(r), s = Math.sin(r);
@@ -134,9 +135,10 @@ export const OWN_MW_MODELS = Object.freeze({
     holdAs: 'rifle',
     attitude: GUN_GRIP_ATTITUDE,
   }),
-  // PISTOLET (2026-10-21, the owner: "Build one from the sprite"): the Dwarven Pistolet - its own sprite extruded
-  // (tools/bakePistolet.mjs), on the Weapon Bone, and a pair's second on the Weapon Bone Left (fpArm.js
-  // resolveOffWeaponParts reads this table for the left hand as for the right). Morrowind has no pistol either: it
+  // PISTOLET (2026-10-21): the Dwarven Pistolet - modelled part by part and painted (tools/modelPistolet.mjs,
+  // PISTOLET-MODEL: the owner, of the first bake's extruded sprite, "can you make an actual 3d model"), on the Weapon
+  // Bone, and a pair's second on the Weapon Bone Left (fpArm.js resolveOffWeaponParts reads this table for the left hand
+  // as for the right). Morrowind has no pistol either: it
   // borrows MarksmanThrown (11, weapontype.hpp) - Morrowind's ONE ONE-HANDED RANGED act: it shoots rather than swings
   // (the shot rides the arm's "shoot release", MW-D42's hold, as the Thunderlock's does) and has no ammunition arm, so
   // nothing is drawn through the pistol. Its clip is a throw, not a pistol's raise - a pistol's own stance (RIFLE-STANCE's

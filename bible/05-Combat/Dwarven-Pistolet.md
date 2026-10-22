@@ -203,13 +203,27 @@ the pair is its reason.
 
 ## The Morrowind arm
 
-The model is **the sprite, extruded** (`tools/bakePistolet.mjs`):
-- Every drawn pixel becomes a block 2 pixels thick, with faces only where a neighbour is empty.
-- Each face is coloured by its own pixel through a texture that is the sprite itself, so the pixel look is kept in
-  three dimensions.
-- 1,256 triangles, 36 cm long; the Thunderlock's frame (+Y the barrel, +Z up); the grip's middle at the origin.
-- The same NIF and DDS writers, the gold twin through the Gilded ramp.
-- The bake is deterministic and `pistolet.test.js` re-runs it against the committed bytes.
+The model is **built part by part and painted** (`tools/modelPistolet.mjs`, PISTOLET-MODEL, 2026-10-22). The first bake
+extruded the inventory sprite a block deep, and the owner's answer was: "Uhhh can you make an actual 3d model and
+texture it. This is bad".
+- Every part is lofted from its own cross-sections, read off the owner's first-person frames:
+  - an octagonal steel barrel with a muzzle swell and a dark bore, three brass bands and three steel bosses;
+  - a ramrod in two brass pipes, under a brass reinforce at the breech;
+  - a rounded brass lock with a teal enamel medallion (a Dwemer wheel) in a bezel on each side;
+  - the pan, the frizzen and a curled hammer holding its flint;
+  - a brass trigger guard and a steel trigger;
+  - a teal grip raked 12 degrees back, a brass wrist band and a flared brass butt.
+- Each surface is its own island in a 256x256 atlas (the Thunderlock's size), packed at one texel density.
+- The texture is painted texel by texel from the surface it covers (`meshTexture.mjs bakeAttributes`: the texel's place,
+  normal and baked occlusion). The paint has engraved brass (a Dwemer key pattern and rivets on the lock, the butt and
+  the reinforce; a groove at each part's ends), brushed steel, teal enamel under brass scrollwork, and the dark bore.
+- The Sunken Sovereign's texture is the same paint in gold leaf: every metal gold, and the enamel a deep gold under
+  brighter scrolls.
+- 2,226 triangles and 29 cm long - a stout horse pistol. The frame is the one the arm holds: +Y the barrel, +Z up, the
+  grip's middle at the origin.
+- The same NIF and DDS writers as the Thunderlock's bake. The bake is deterministic, and `pistolet.test.js` re-runs it
+  against the committed bytes. It also checks that every part is modelled, every material painted, no two islands
+  overlap, and the gold paint holds no teal.
 
 Its rows (`characters/ownModels/ownWeaponModels.js`):
 - It hangs on the Weapon Bone, and a pair's second on the Weapon Bone Left (`fpArm.js resolveOffWeaponParts` reads the

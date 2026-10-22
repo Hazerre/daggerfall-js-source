@@ -35,7 +35,8 @@ import { MW_WEAPON_TYPE } from '../../src/formats/morrowind/mwFirstPerson.js';
 import { setModSetting, _resetModSettings } from '../../src/systems/modSettings.js';
 import { readPng } from '../../tools/pngIO.mjs';
 import { pistoletArt, SOURCE as ART_SOURCE, OUT as ART_OUT, BAND, dollGrip, DOLL_ANGLE, HAND_POSE } from '../../tools/pistoletArt.mjs';
-import { bakePistolet, OUT as MW_OUT, SOURCE as MW_SOURCE } from '../../tools/bakePistolet.mjs';
+import { bakePistolet, OUT as MW_OUT } from '../../tools/bakePistolet.mjs';
+import { TEX_SIZE, GRIP_RAKE } from '../../tools/modelPistolet.mjs';
 
 const png = (f) => readPng(readFileSync(f));
 const pixelsEqual = (a, b) => a.width === b.width && a.height === b.height && Buffer.compare(Buffer.from(a.data), Buffer.from(b.data)) === 0;
@@ -360,15 +361,39 @@ test('the Sunken Sovereign is a gilded Pistolet: the owner’s "replace the serp
   assert.equal(ownWeaponModelFor(it)?.model, 'pistolet_gilded.nif');
 });
 
-test('the Morrowind model is the sprite extruded - the bake reproduces the shipped bytes, and the row borrows the one-handed ranged act', () => {
-  const r = bakePistolet(readFileSync(MW_SOURCE));
+test('the Morrowind model is built and painted (PISTOLET-MODEL) - the bake reproduces the shipped bytes, and the row borrows the one-handed ranged act', () => {
+  const r = bakePistolet();
   assert.equal(Buffer.compare(r.nif, readFileSync(MW_OUT.mesh)), 0, 'pistolet.nif is the bake’s');
   assert.equal(Buffer.compare(r.dds, readFileSync(MW_OUT.texture)), 0);
   assert.equal(Buffer.compare(r.gildedNif, readFileSync(MW_OUT.gildedMesh)), 0);
   assert.equal(Buffer.compare(r.gildedDds, readFileSync(MW_OUT.gildedTexture)), 0);
   const b = r.mesh.bounds;
-  assert.ok(Math.abs((b.max[1] - b.min[1]) / 69.99125109 - 0.36) < 0.02, '36 cm long');
+  assert.ok(Math.abs((b.max[1] - b.min[1]) / 69.99125109 - 0.29) < 0.02, '29 cm long - a stout horse pistol');
   assert.ok(b.max[1] > 15 && b.min[1] < 0, 'the barrel forward of the grip, the butt behind it');
+  // THE OWNER: "can you make an actual 3d model and texture it" - a modelled gun, not the sprite a block deep: its parts
+  // are their own islands, it is as wide as a gun is (the old extrusion was 2.1 units thin, flat), and its texture is a
+  // painted atlas at the Thunderlock's size with every material in it
+  const names = new Set(r.model.islands.map((i) => i.name.split(':')[0]));
+  for (const part of ['barrel', 'muzzle', 'lock', 'hammer', 'frizzen', 'pan', 'guard', 'trigger', 'grip', 'butt', 'ramrod', 'medallionR', 'medallionL']) assert.ok(names.has(part), `the ${part} is modelled`);
+  assert.ok(r.mesh.indices.length / 3 > 1500 && r.mesh.indices.length / 3 < 4000, 'a Morrowind weapon’s budget');
+  assert.ok(b.max[0] - b.min[0] > 2.2, 'round, not a slab');
+  assert.equal(r.atlas.width, TEX_SIZE); assert.equal(TEX_SIZE, 256);
+  const mats = new Set(r.model.islands.map((i) => i.mat));
+  for (const m of ['brass', 'steel', 'teal', 'bore', 'flint']) assert.ok(mats.has(m), `${m} is painted`);
+  // the grip through the fist: the arm's attitude is the model's own rake, and the grip's middle is the origin
+  assert.equal(GRIP_RAKE, 12, 'ownWeaponModels.js PISTOL_GRIP_RAKE - the turn the fist gives it');
+  const grip = r.model.islands.find((i) => i.name === 'grip');
+  assert.ok(grip, 'the grip island');
+  // every UV inside the atlas and every island apart
+  for (const v of r.mesh.uvs) assert.ok(v >= 0 && v <= 1);
+  const rects = r.model.islands;
+  for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
+    const a = rects[i], c = rects[j];
+    assert.ok(a.x + a.w <= c.x || c.x + c.w <= a.x || a.y + a.h <= c.y || c.y + c.h <= a.y, `${a.name} and ${c.name} do not overlap`);
+  }
+  // the gilded paint is the same model in gold - its teal is gone
+  const teal = (img) => { let n = 0; for (let i = 0; i < img.data.length; i += 4) if (img.data[i + 2] > img.data[i] + 30 && img.data[i + 1] > img.data[i] + 30) n++; return n; };
+  assert.ok(teal(r.atlas) > 2000 && teal(r.gildedAtlas) === 0, 'the Sovereign’s enamel is gold');
   const row = OWN_MW_MODELS[PISTOLET_TEMPLATE];
   assert.equal(row.animateAs, MW_WEAPON_TYPE.MarksmanThrown, 'the one-handed ranged act Morrowind has');
   assert.equal(row.borrowsAmmo, false);
