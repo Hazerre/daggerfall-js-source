@@ -395,6 +395,7 @@ on:
       - "src/poi/poiLaw.js"
       - "src/poi/poiMesh.js"
       - "src/poi/poiImage.js"
+      - "server/src/staffFeedLaw.js"
   workflow_dispatch:
 
 permissions:

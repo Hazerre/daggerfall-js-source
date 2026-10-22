@@ -393,6 +393,7 @@ export const ROUTES = new Set([
   '/v1/mod/realm-bodies',   // INT14: the boss fights' count, measured (review.js bodiesMeasure)
   '/v1/mod/realm-grants',   // GRANT2: the spawn grants' asks, measured (grants.js grantsMeasure)
   '/v1/mod/grant-feed',     // GRANT2: the relay's door in - a cell's window of asks, proven by its signature (grants.js)
+  '/v1/mod/reaction-feed',  // STAFF-PANEL5-FEEDS: the relay's door in - the bot check's episodes, by its signature (staffReactions.js)
   '/v1/mod/realm-gains',    // HACKED-GOLD: who gained past the bucket (review.js gainsMeasure)
   '/v1/mod/realm-progress', // INT17: the progression claims' measure and their line (review.js progressMeasure)
   '/v1/mod/realm-trades',   // HACKED-GOLD: a character's realm trades, whom it traded with (review.js tradesOf)
@@ -542,6 +543,9 @@ export const ROUTES = new Set([
   // STAFF-PANEL2: the panel's reports - the open cases, one case, a claim and its release, a strike record, and the acts
   '/v1/staff/cases', '/v1/staff/case', '/v1/staff/claim', '/v1/staff/release', '/v1/staff/strikes',
   '/v1/staff/mute', '/v1/staff/ban', '/v1/staff/unban', '/v1/staff/dismiss',
+  // STAFF-PANEL5-FEEDS: the relay's counts - Network bursts, Monster watch and its Flag, the bot check's Reactions and
+  // their keeping (staffNet.js, staffMonsters.js, staffReactions.js); and the relay's net feed in, by its signature
+  '/v1/staff/net', '/v1/staff/monsters', '/v1/staff/monster/flag', '/v1/staff/reactions', '/v1/staff/reactions/keep', '/v1/staff/net-feed',
   // PROF1: the professions (professions.js) - a character's tracks, Stores and day, the witnessed pixels, a harvest,
   // a specialisation, a withdrawal to the pack, a region's Court writs and a delivery. Every one behind a session, a
   // registered account's alone, and PROFESSIONS_OPEN's.
@@ -646,4 +650,4 @@ export const SAFE_OPEN_ROUTES = new Set(['/v1/mod/feed', '/v1/discord/interactio
 
 /** STAFF-PANEL1: the staff panel's doors (staff.js), NOT the JSON ladder's - none takes a game session. Two prove themselves by
  *  a password and an extension's signature (login, enroll); the rest by a staff session in `x-staff-session`. */
-export const STAFF_ROUTES = new Set([...ROUTES].filter((r) => r.startsWith('/v1/staff/')));
+export const STAFF_ROUTES = new Set([...ROUTES].filter((r) => r.startsWith('/v1/staff/') && r !== '/v1/staff/net-feed'));   // STAFF-PANEL5-FEEDS: the relay's feed, by its signature, takes no session

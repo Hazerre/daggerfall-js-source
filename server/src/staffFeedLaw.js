@@ -47,6 +47,15 @@ export const STAFF_FEED_POST_MS = 8_000;
 /** The kinds a frame is counted under (design doc, Network bursts: "movement, actions, hits, trades, monster records,
  *  chat"), and the rest. */
 export const NET_KINDS = Object.freeze(['move', 'act', 'hit', 'trade', 'foe', 'chat', 'other']);
+/** A net window's length, ms - a room posts once a window at most (Server load: "post every few minutes at most"). The
+ *  panel's 10-minute figure is a window's whole. */
+export const NET_FEED_MS = 10 * 60_000;
+/** OVER A LIMIT (starting numbers to tune, not measured ones): frames or bytes in one 10 s - past what the pose gate (20 a
+ *  second) and a busy foes stream let an honest game send - or any frame a meter refused, any junk, any close. */
+export const NET_HOT = Object.freeze({ frames10: 400, bytes10: 1_500_000 });
+/** OVER A LIMIT, monsters: live ones a sender owns outdoors (a band's 24 and room), or hosts indoors (a dungeon's
+ *  layout), or any record the relay stripped. Starting numbers to tune. */
+export const FOE_HOT = Object.freeze({ own: 32, host: 96 });
 /** The grants that start an episode: a natural encounter, the one the player's own game rolls (grantLaw.js `enc`, and
  *  `encr` while grantRoll is on). */
 export const REACT_KINDS = Object.freeze(['enc', 'encr']);

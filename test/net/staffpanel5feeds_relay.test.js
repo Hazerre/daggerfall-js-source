@@ -8,8 +8,8 @@ import assert from 'node:assert/strict';
 import { fakeRoom } from '../fakeRoom.mjs';
 import { cellRoomOfWire, PIXEL_UNITS, DROP_STRIKES_MAX } from '../../src/net/wire.js';
 import { validGrantOut } from '../../src/net/grantLaw.js';
-import { openStaffFeed, sealStaffFeed, netBatchValid, reactBatchValid, NET_FEED_V, REACT_FEED_V, NET_KINDS, STAFF_FEED_SIG_HEADER, STAFF_FEED_ROWS, STAFF_FEED_AGE_MAX_MS, REACT_EPISODE_MS } from '../../server/src/staffFeedLaw.js';
-import { staffNetFlush, staffReactFlush, staffReactTick, staffFeedsStop, netHot, foeHot, NET_FEED_MS, NET_HOT, FOE_HOT, REACT_OPEN_MAX } from '../../server/src/staffFeeds.js';
+import { openStaffFeed, sealStaffFeed, netBatchValid, reactBatchValid, NET_FEED_V, REACT_FEED_V, NET_KINDS, STAFF_FEED_SIG_HEADER, STAFF_FEED_ROWS, STAFF_FEED_AGE_MAX_MS, REACT_EPISODE_MS, NET_FEED_MS, NET_HOT, FOE_HOT } from '../../server/src/staffFeedLaw.js';
+import { staffNetFlush, staffReactFlush, staffReactTick, staffFeedsStop, netHot, foeHot, REACT_OPEN_MAX } from '../../server/src/staffFeeds.js';
 
 const { subtle } = globalThis.crypto;
 const T = 1_800_000_000;

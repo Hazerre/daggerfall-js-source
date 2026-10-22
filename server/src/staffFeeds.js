@@ -32,21 +32,12 @@ import { ID_RE } from '../../src/net/identityToken.js';
 import { relayCfgValue } from '../../src/net/relayCfg.js';
 import { wrapAngle } from '../../src/world/mat4.js';
 import { isCellRoom, foesFrameFull } from './relay.js';
-import { NET_FEED_V, REACT_FEED_V, NET_KINDS, REACT_KINDS, REACT_EPISODE_MS, REACT_FIRST_MS, STAFF_FEED_ROWS, STAFF_FEED_SIG_HEADER, STAFF_FEED_POST_MS, STAFF_FEED_AGE_MAX_MS, sealStaffFeed } from './staffFeedLaw.js';
+import { NET_FEED_MS, NET_FEED_V, REACT_FEED_V, NET_KINDS, REACT_KINDS, REACT_EPISODE_MS, REACT_FIRST_MS, STAFF_FEED_ROWS, STAFF_FEED_SIG_HEADER, STAFF_FEED_POST_MS, STAFF_FEED_AGE_MAX_MS, NET_HOT, FOE_HOT, sealStaffFeed } from './staffFeedLaw.js';
 
-/** A net window's length, ms - a room posts once a window at most (Server load: "post every few minutes at most"). The
- *  panel's 10-minute figure is the window's whole. */
-export const NET_FEED_MS = 10 * 60_000;
 /** How long past its window's end a room posts it, ms - a frame a breath late is in it. */
 export const NET_SLACK_MS = 2_000;
 const SLOT_MS = 10_000;
 const MINUTE_MS = 60_000;
-/** OVER A LIMIT (starting numbers to tune, not measured ones): frames or bytes in one 10 s - past what the pose gate (20 a
- *  second) and a busy foes stream let an honest game send - or any frame a meter refused, any junk, any close. */
-export const NET_HOT = Object.freeze({ frames10: 400, bytes10: 1_500_000 });
-/** OVER A LIMIT, monsters: live ones a sender owns outdoors (a band's 24 and room), or hosts indoors (a dungeon's
- *  layout), or any record the relay stripped. Starting numbers to tune. */
-export const FOE_HOT = Object.freeze({ own: 32, host: 96 });
 /** The sea's monsters (characters/mobile/mobileTypes.js: Slaughterfish 11, Dreugh 41, Lamia 42). */
 export const FOE_SEA_TYPES = Object.freeze([11, 41, 42]);
 /** A greater giant's type (net/foeBounds.js FOE_BOUND.giantType). */
