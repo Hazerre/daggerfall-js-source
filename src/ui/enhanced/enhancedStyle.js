@@ -2710,7 +2710,7 @@ ${SUPPORT_MARKS_CSS}
 .px-timerswin .tm-chip.live .tm-chip-name::after { content: ''; display: inline-block; width: 6px; height: 6px; margin-left: 6px;
   vertical-align: middle; border-radius: 50%; background: #9fe8b4; }
 /* TIMERS2: a row under way says "Now" beside its countdown */
-.px-timerswin .tm-badge { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #9fe8b4; }
+.px-timerswin .tm-badge { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #9fe8b4; }
 .px-timerswin .tm-row { display: flex; align-items: center; gap: 12px; padding: 9px 10px 9px 14px; position: relative;
   border-bottom: 1px solid rgba(125,116,96,0.25); }
 .px-timerswin .tm-row::before { content: '\\25c6'; position: absolute; left: 0; top: 12px; font-size: 9px; color: var(--tm-kind, #9c937d); }
