@@ -509,6 +509,9 @@ export const WILD_TEXT = Object.freeze({
   // PARTY-TRUCE: a party left in the zone, and a walk that leads into it
   truce: `No longer in your party. In the ${WILD_NAME} you and they cannot fight for ten minutes. Then you are strangers.`,
   walkInto: `It leads into the ${WILD_NAME}, an open PvP zone. Other players may kill you there and take what you carry.`,
+  // AUDIT SEA VENTURES C6, C7: two more of the zone's own, so a ground of its own says them its way (zoneWord)
+  unstuckOut: '/unstuck does not work outdoors in the mountains.',
+  revenantOne: 'Only one revenant may walk at your side in the Wrothgarian Mountains.',
   // WILD3: the strangers
   stranger: 'Stranger',
   strangerNear: (m) => `A stranger is near - ${Math.max(10, Math.round(m / 10) * 10)} m.`,

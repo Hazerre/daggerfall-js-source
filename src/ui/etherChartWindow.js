@@ -367,7 +367,8 @@ export function chartModel(word, v, w, h, { measure = null, pick = null } = {}) 
   // water drawn already), while the word says the open sea is an open PvP zone; named on the chart once it is wide enough
   const haven = veilhaven();
   const [hx, hy] = toScreen(v, haven.px + 0.5, haven.py + 0.5, w, h);
-  const peace = word.pvp && on(hx, hy, ETHER_PEACE_PX * k) ? { x: hx, y: hy, r: ETHER_PEACE_PX * k, named: ETHER_PEACE_PX * k >= PEACE_NAME_R } : null;
+  const [px1] = toScreen(v, VEIL_X + 0.5, 0, w, h);   // AUDIT SEA VENTURES C2: and the way home east of her, to the Veil
+  const peace = word.pvp && on((hx + px1) / 2, hy, (px1 - hx) / 2 + ETHER_PEACE_PX * k) ? { x: hx, y: hy, r: ETHER_PEACE_PX * k, vx: px1, named: ETHER_PEACE_PX * k >= PEACE_NAME_R } : null;
   // SEA-VAULTS: THE DAY'S VAULTS OF THE DEEP - marked for every captain whether the isle is charted or not (the mountains'
   // halls' law), each with its crows and my padlock as the word says; the paper's view for the mountains' painters
   const vaults = (word.vaults ?? []).map((t) => { const [x, y] = toScreen(v, t.x + 0.5, t.y + 0.5, w, h); return { ...t, sx: x, sy: y, icon: ICON_PX[v.zoom], named: v.zoom >= VAULT_NAME_ZOOM }; }).filter((t) => on(t.sx, t.sy, 24));
@@ -458,9 +459,14 @@ function paintHaunt(g, t) {
   g.setLineDash([]); g.lineWidth = 1;
 }
 /** ETHER-WILD: VEILHAVEN'S PEACE - a safe harbour's wash and a dashed ring (a circle: the peace is read off Veilhaven
- *  whichever way a captain sails). */
-function paintPeace(g, p) {
-  g.beginPath(); g.arc(p.x, p.y, p.r, 0, TAU);
+ *  whichever way a captain sails) - AUDIT SEA VENTURES C2: and, `vx` given, the way home east of her to the Veil, her own
+ *  rows (systems/wild/etherWild.js etherInPeace): the ring's west half and the band to the Veil, one shape. */
+export function paintPeace(g, p) {
+  g.beginPath();
+  if (Number.isFinite(p.vx) && p.vx > p.x) {
+    g.moveTo(p.x, p.y - p.r); g.lineTo(p.vx, p.y - p.r); g.lineTo(p.vx, p.y + p.r); g.lineTo(p.x, p.y + p.r);
+    g.arc(p.x, p.y, p.r, Math.PI / 2, Math.PI * 1.5); g.closePath();
+  } else g.arc(p.x, p.y, p.r, 0, TAU);
   g.fillStyle = PEACE_FILL; g.fill();
   g.setLineDash([4, 3]); g.lineWidth = 1.5; g.strokeStyle = PEACE_LINE; g.stroke();
   g.setLineDash([]); g.lineWidth = 1;

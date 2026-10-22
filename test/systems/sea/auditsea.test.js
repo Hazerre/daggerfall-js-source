@@ -50,6 +50,13 @@ import * as SE from '../../../src/systems/sea/seaEvents.js';
 import { BANDS, VEIL_X, LEAGUE_PX, etherBandAt } from '../../../src/world/ethericSea.js';
 import { legendById } from '../../../src/systems/naval/etherShips.js';
 import { SHIP_STATES } from '../../../src/systems/naval/navalDamage.js';
+import { etherInPeace, etherWildRingAt, etherRisePort, ETHER_PEACE_PX, ETHER_RISE_PX, ETHER_KIND, ETHER_WILD_TEXT } from '../../../src/systems/wild/etherWild.js';
+import { zoneWord, WILD_TEXT, wildMaskOf, WILD_REGION } from '../../../src/systems/wild/wildZone.js';
+import { wildCartAway } from '../../../src/systems/wild/wildCart.js';
+import { WAGON_MODE } from '../../../src/systems/horse/horseCartLaw.js';
+import { worldCoordToMapPixel } from '../../../src/world/streamingWorld.js';
+import { veilhaven, islesNear, inEther, inVeil } from '../../../src/world/ethericSea.js';
+import * as CHART from '../../../src/ui/etherChartWindow.js';
 import { standService } from '../../accountDb.mjs';
 import { seatRealm, recordOf } from '../../realmSeat.mjs';
 
@@ -793,4 +800,89 @@ test('AUDIT SEA VENTURES D6, D11: a storm\'s wrack cask hauled is kept in the sa
     assert.ok(Math.max(st.x0, st.x1) + st.r <= deepEast + 1e-9, `storm ${n} reaches the Reaches`);
   }
   assert.equal(etherBandAt(deepEast - 1).id, 'deep');
+});
+
+test('AUDIT SEA VENTURES C2: Veilhaven\'s peace holds the way home - her own rows east of her to the Veil, so a captain reaches the crossing without a pixel of open zone; the chart draws that shape and no other (mutants: the corridor, the chart\'s band)', () => {
+  const h = veilhaven();
+  for (let x = h.px; x <= h.px + 60; x++) assert.equal(etherWildRingAt(x, h.py), 0, `her row at ${x}: peace`);
+  for (const dy of [-ETHER_PEACE_PX, ETHER_PEACE_PX]) assert.equal(etherInPeace(h.px + 30, h.py + dy), true);
+  for (const dy of [-ETHER_PEACE_PX - 1, ETHER_PEACE_PX + 1]) assert.equal(etherInPeace(h.px + 30, h.py + dy), false, 'a row past the band: open');
+  assert.equal(etherInPeace(h.px - ETHER_PEACE_PX - 1, h.py), false, 'west of her: the ring alone');
+  // reached from Veilhaven without leaving the peace: the Veil
+  const seen = new Set([`${h.px},${h.py}`]), q = [[h.px, h.py]];
+  let veil = false;
+  while (q.length && !veil) {
+    const [x, y] = q.shift();
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx, ny = y + dy, k = `${nx},${ny}`;
+      if (seen.has(k) || !inEther(nx, ny) || !etherInPeace(nx, ny)) continue;
+      if (inVeil(nx, ny)) veil = true;
+      seen.add(k); q.push([nx, ny]);
+    }
+  }
+  assert.ok(veil, 'the Veil, by the peace alone');
+  // the chart's shape is the peace's: each pixel's middle inside the ring or the band exactly when the pixel is peace
+  for (const zoom of [1, 2, 4]) {
+    const m = CHART.chartModel({ px: h.px - 18, py: h.py + 3, yaw: 0, charted: [h.key], legends: [], stats: {}, pvp: true }, { cx: h.px + 20.5, cy: h.py + 0.5, zoom }, 1064, 550);
+    const k = CHART.CHART_ZOOMS[zoom], p = m.peace;
+    const shape = (sx, sy) => Math.hypot(sx - p.x, sy - p.y) <= p.r + 1e-9 || (sx >= p.x && sx <= p.vx && Math.abs(sy - p.y) <= p.r + 1e-9);
+    for (let x = h.px - 14; x < VEIL_X; x++) for (let y = h.py - 14; y <= h.py + 14; y++) {
+      const sx = p.x + (x - h.px) * k, sy = p.y + (y - h.py) * k;
+      assert.equal(shape(sx, sy), etherInPeace(x, y), `zoom ${zoom}: pixel ${x},${y}`);
+    }
+  }
+});
+
+test('AUDIT SEA VENTURES C1, C3, C4, C5/F2: the linked bank cabin is a teleport like any - never into, out of or about the open sea, nor across the Veil; a party\'s walk onto the open sea warns as one into the mountains does; a wagon parked on the open sea\'s ground is with its owner at a death there; a death past the Veil rises at the nearest freeport, however far (mutants: the cabin\'s refusals, the walk, the cart, the rise)', () => {
+  const w = readFileSync(new URL('../../../src/scenes/world.js', import.meta.url), 'utf8');
+  const cab = w.slice(w.indexOf('async function enterLinkedBankCabin('), w.indexOf('async function boardOrDisembark('));
+  const refuse = cab.indexOf('if (!loading && (wildTeleportRefused(boatPixelOf(boat)) || veilRefused(boatPixelOf(boat)))) return true;');
+  assert.ok(refuse > 0 && refuse < cab.indexOf('await _teleportToPixel(boat.MapPixel.X, boat.MapPixel.Y);'), 'refused before the teleport');
+  assert.match(w, /const boatPixelOf = \(boat\) => \(\{ x: boat\.MapPixel\.X, y: boat\.MapPixel\.Y \}\);/);
+  assert.match(w, /const wildWalkRow = \(x, y\) => \{ const m = wildMask\(\); return !online\?\.wildOk \? null : etherSea && etherWildRingAt\(x, y\) > 0 \? zoneWord\('walkInto', ETHER_KIND\) : m && wildNear\(m, x, y\) \? WILD_TEXT\.walkInto : null; \};/);
+  assert.equal(zoneWord('walkInto', ETHER_KIND), ETHER_WILD_TEXT.walkInto());
+  assert.match(zoneWord('walkInto', ETHER_KIND), /open Eltheric Ocean past Veilhaven's peace, an open PvP zone/);
+  // C4: a wagon parked on the open sea's ground is with its owner; one parked outside every zone is away
+  const blob = (x, y) => { const dx = (x - 520) / 38, dy = (y - 110) / 24; return dx * dx + dy * dy < 1; };
+  const mask = wildMaskOf({ getRegionIndexAt: (x, y) => (blob(x, y) ? WILD_REGION : 3), getLocationByName: () => null });
+  const parked = (px) => ({ Mode: WAGON_MODE.Deployed, WorldX: px.x * 32768 + 16384, WorldZ: (499 - px.y) * 32768 + 16384 });
+  const h = veilhaven(), isle = islesNear(h.px - 300, h.py, 40).find((i) => i.kind === 'wild' || i.kind === 'ruin');
+  const at = { x: isle.px, y: isle.py };
+  assert.deepEqual(worldCoordToMapPixel(parked(at).WorldX, parked(at).WorldZ), at);
+  assert.ok(etherWildRingAt(at.x, at.y) > 0);
+  assert.equal(wildCartAway(parked(at), mask), false, 'on the open sea: with its owner');
+  assert.equal(wildCartAway(parked({ x: 200, y: 300 }), mask), true, 'in the Bay: away');
+  let heart = null;
+  for (let i = 0; i < mask.inside.length && !heart; i++) if (mask.inside[i]) heart = { x: i % mask.width, y: Math.floor(i / mask.width) };
+  assert.equal(wildCartAway(parked(heart), mask), false, 'in the mountains: with its owner, as ever');
+  // C5/F2: the nearest freeport, by distance, however far - Veilhaven only when she is the nearest
+  for (const [x, y] of [[6900, -5108], [7699, -4976], [7000, -5400], [6950, -4800], [7500, -5600]]) {
+    const port = etherRisePort(x, y);
+    let best = null;
+    for (const i of islesNear(x, y, 1400)) if (i.kind === 'port' && (!best || Math.hypot(i.px - x, i.py - y) < Math.hypot(best.px - x, best.py - y))) best = i;
+    assert.equal(port.key, best.key, `${x},${y}: the nearest, ${Math.round(Math.hypot(best.px - x, best.py - y))} px`);
+  }
+  assert.equal(etherRisePort(h.px + 3, h.py).key, h.key, 'at Veilhaven: her');
+  assert.equal(etherRisePort(NaN, 0).key, h.key, 'nowhere: Veilhaven');
+  assert.equal(ETHER_RISE_PX, 60);
+});
+
+test('AUDIT SEA VENTURES C6, C7: the open sea says its own words - /unstuck outdoors, a second revenant, a party left, a drop answered after the rise (by the room the fall was in), and the zone gone while still past the peace (never "Veilhaven\'s peace" where she is not) (mutants: each word, each call)', () => {
+  const sea = (k) => zoneWord(k, ETHER_KIND), hills = (k) => zoneWord(k, null);
+  assert.equal(hills('unstuckOut'), '/unstuck does not work outdoors in the mountains.');
+  assert.equal(sea('unstuckOut'), '/unstuck does not work outdoors on the open Eltheric Ocean.');
+  assert.equal(hills('revenantOne'), 'Only one revenant may walk at your side in the Wrothgarian Mountains.');
+  assert.equal(sea('revenantOne'), 'Only one revenant may walk at your side on the open Eltheric Ocean.');
+  assert.equal(hills('truce'), WILD_TEXT.truce);
+  assert.match(sea('truce'), /^No longer in your party\. On the open Eltheric Ocean/);
+  assert.equal(hills('dropLate'), WILD_TEXT.dropLate);
+  assert.match(sea('dropLate'), /when you died at sea/);
+  assert.match(sea('burntLate')(), /when you died at sea .* frozen/);
+  assert.equal(sea('quiet'), 'You are out of the open Eltheric Ocean\'s PvP zone. No player may attack you here.');
+  const w = readFileSync(new URL('../../../src/scenes/world.js', import.meta.url), 'utf8');
+  assert.match(w, /say\(zoneWord\('unstuckOut'\)\); return true; \}/);
+  assert.match(w, /townTalk\.say\(zoneWord\('truce'\)\);/);
+  assert.match(w, /townTalk\.say\(d\.burnt \? zoneWord\('burntLate', seaRoomOf\(room\) \? ETHER_KIND : null\)\(\) : zoneWord\('dropLate', seaRoomOf\(room\) \? ETHER_KIND : null\)\);/);
+  assert.match(w, /zoneWord\(left === ETHER_KIND && !etherInPeace\(playerTravelPixel\(\)\?\.x, playerTravelPixel\(\)\?\.y\) \? 'quiet' : 'leave', left \|\| undefined\)/);
+  assert.match(readFileSync(new URL('../../../src/systems/revenant/revenantCompanions.js', import.meta.url), 'utf8'), /revenantsWithYou\(\)\.length >= WILD_REVENANTS_MAX\) return zoneWord\('revenantOne'\);/);
 });

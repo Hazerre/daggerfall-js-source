@@ -76,7 +76,9 @@ test('ETHER-WILD: the live flag carries its ground - the zone\'s words are the s
     assert.equal(zoneWord('ringCross')(3, true), 'Deeper - The Deep Aether: +75% loot.');
     assert.equal(zoneWord('ringCross')(1, false), 'Back toward the Veil - The Shallows: +25% loot.');
     assert.match(zoneWord('chipTip'), /Eltheric Ocean past Veilhaven's peace/);
-    assert.equal(zoneWord('truce'), WILD_TEXT.truce, 'a word the sea does not say its own way is the mountains\'');
+    // PIN MOVED (AUDIT SEA VENTURES C7): the truce is the sea's own now - a word the sea does not say its own way is still the mountains'
+    assert.equal(zoneWord('truce'), ETHER_WILD_TEXT.truce());
+    assert.equal(zoneWord('noFight'), WILD_TEXT.noFight, 'a word the sea does not say its own way is the mountains\'');
     assert.match(WILD_TEXT.companionStays('Bran'), /until you leave the Eltheric Ocean/, 'a companion held at my side says the sea');
     assert.equal(zoneWord('leave', ETHER_KIND), ETHER_WILD_TEXT.leave(), 'the words of the ground left, asked by name');
     // the mountains
@@ -133,7 +135,7 @@ test('ETHER-WILD: the hosts\' seams - the frame stands the sea beside the mounta
   assert.match(frame, /ring = seaRing \|\| wildRingAt\(/, 'the sea\'s band is the ring');
   assert.match(frame, /setWildHere\(here, ring, seaRing \? ETHER_KIND : undefined\)/, 'the ground on the flag');
   assert.match(frame, /zoneWord\('enter'\)/);
-  assert.match(frame, /zoneWord\('leave', left \|\| undefined\)/, 'the leaving said in the words of the ground left');
+  assert.match(frame, /: 'leave', left \|\| undefined\)/, 'the leaving said in the words of the ground left');   // PIN MOVED (AUDIT SEA VENTURES C7): 'quiet' while still past the peace
   assert.match(w, /setPaceZoneCap\(wildHere\(\) && wildZoneKind\(\) !== ETHER_KIND \? WILD_PACE_CAP : null\)/, 'the mountains\' pace cap never at sea');
   const rise = w.slice(w.indexOf('const wildRiseSite = (px, inDungeon = false) => {'), w.indexOf('const wildClearSpawn = () => {'));
   assert.match(rise.split('\n')[1], /if \(etherSea && inEther\(px\.x, px\.y\)\) return etherRiseSite\(px\.x, px\.y\);/, 'a death at sea rises at the nearest freeport, before the mountains\' search of the Bay\'s maps');

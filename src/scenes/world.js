@@ -877,7 +877,7 @@ import { partyRosterSource, localRosterSource, guildRosterSource } from '../net/
 import { partyCompassPoints } from '../ui/partyMapMarks.js';   // COMPASS-PARTY: the party's points on the compass
 import { SocialState, accountId, accountSecret } from '../net/social.js';   // SOC2: the friends and the party, as the hub says them; the account the hub's hello carries; SOC3: and the two colours a name wears in the DOM - my party's green, a friend's blue
 import { SOCIAL_ROOM, PARTY_SEND_MS, chatRegionRoom, relaySupportsRite, relaySupportsCage } from '../net/wire.js';   // CHAT-CHAN: a region's channel
-import { cellRoomOfWire, seaVaultRoomId } from '../net/wire.js';   // HCC-PARK: the cell a parked team's anchor stands in; AUDIT SEA VENTURES D7, D8: a vault's own room
+import { cellRoomOfWire, seaVaultRoomId, seaRoomOf } from '../net/wire.js';   // HCC-PARK: the cell a parked team's anchor stands in; AUDIT SEA VENTURES D7, D8: a vault's own room
 import { parkKeyOf } from '../net/wire.js';   // WAGONS2-VISIT: my caravan's room is named by my park key
 import { caravanRoomOf, caravanKeyOf } from '../net/privateInterior.js';   // WAGONS2-VISIT: a caravan's own room
 import { CARAVAN_TEXT } from '../systems/caravanRoom.js';   // WAGONS2 (FINAL AUDIT): a caravan's save that cannot come back, said
@@ -931,7 +931,7 @@ import { setWildHere, wildHere, isWildRegion, wildMaskOf, wildInside, wildNear, 
 import { createPartyTruce } from '../systems/wild/wildZone.js';   // PARTY-TRUCE (FIELD BUGS 2026-10-09b)
 import { GREATER_GIANT_CALL, GREATER_GIANT_CALL_AT } from '../systems/wild/wildZone.js';   // GREATER-GIANT
 import { wildRing, wildRingAt, wildRingName, wildRingBonus, wildZoneKind, zoneWord, zoneRingName, setWildMask, wildMask, WILD_RINGS, wildJourney, WILD_GIANT, WILD_GIANT_CHANCE, WILD_GIANT_MAX, WILD_STRANGER_M, WILD_STRANGER_SEE_M, WILD_STRANGER_SLOW_M, WILD_STRANGER_RGBA } from '../systems/wild/wildZone.js';   // WILD2: the four rings; WILD3: the journeys
-import { etherWildRingAt, etherRisePort, etherRiseSite, ETHER_KIND, ETHER_WILD_TEXT } from '../systems/wild/etherWild.js';   // ETHER-WILD: the Eltheric Ocean past Veilhaven's peace, an open PvP zone
+import { etherWildRingAt, etherRisePort, etherRiseSite, etherInPeace, ETHER_KIND, ETHER_WILD_TEXT } from '../systems/wild/etherWild.js';   // ETHER-WILD: the Eltheric Ocean past Veilhaven's peace, an open PvP zone
 import { createSeaVentures, seaStormShown } from './seaVenturesHost.js';   // SEA VENTURES: the sea's vaults, its events, its bounties and boards - wired here, held there
 import { wildTakeTook, wildPacks, wornOffer, wildRecord, wildChunks, wildSpawnSpot, wildFallWords, wildTookAny } from '../systems/wild/wildDeath.js';   // CART-AWAY (FIELD BUGS 2026-10-15d): my wagon away from my death keeps its cargo - and COMPANION-DROP's word that my game reads my companions' packs, one call (wildFallWords)
 import { readWildReceipt, WILD_FALL_GRACE_S } from '../net/wild/wildReceipt.js';   // INT9: the relay's fall, carried to the service
@@ -1174,6 +1174,8 @@ const REVEAL_NOTE_TEXT = localizedStrings({
  *  puts in a MessageBox when the travel map is asked for with enemies
  *  about. Verbatim - it is the refusal, not a paraphrase of it. */
 const CANNOT_TRAVEL_ENEMIES_TEXT = 'You cannot travel with enemies nearby.';
+/** AUDIT SEA VENTURES C1: a Come Sail Away boat's map pixel (`MapPixel` - its X and Y) as the teleport refusals read one. */
+const boatPixelOf = (boat) => ({ x: boat.MapPixel.X, y: boat.MapPixel.Y });
 /** OH-E: the abyss's two loot listeners, held so a second world booted in the page replaces them rather than adding to them. */
 let _ohLootOff = null;
 /** AUDIT PARTY-UI2 1: Internal_Strings.csv `cannotTravelIndoors`, the
@@ -14040,6 +14042,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (link.type !== playerEntity.ownedShip) return false;
     const boat = csaRuntime.AllBoats.find((b) => b.uid === link.uid && b.hull === link.hull && !b.inside);
     if (!boat?.MapPixel) { townTalk.say('Summon your linked ship from Holdings > Fleet, or place its parts, first.'); return true; }
+    if (!loading && (wildTeleportRefused(boatPixelOf(boat)) || veilRefused(boatPixelOf(boat)))) return true;   // AUDIT SEA VENTURES C1: a teleport to her like any - never into, out of or about the open zone, nor across the Veil (each says its own refusal)
     if (csaRuntime.isSailing() || navalHostileNear()) { townTalk.say(csaRuntime.isSailing() ? CABIN_REFUSAL.helm : CABIN_REFUSAL.enemies); return true; }   // FB1020c CABIN-FOES: nor below from a deck a hostile ship is near - the door's own law (systems/sailingCabin.js)
     modes?.forceExitToExterior({ cacheScene: !loading });
     cabinLink.close();
@@ -21444,7 +21447,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
           if (madeUnstuck === 'refused') { say(madeSaysHere('unstuck')); return true; }
           const inZone = wildHere() && !(TEST_GODMODE && staffPowers().god);   // TESTBUILD: god mode - /unstuck at once, no cooldown
           const _godU = TEST_GODMODE && staffPowers().god;
-          if (inZone && (modes?.mode ?? 'exterior') === 'exterior') { say('/unstuck does not work outdoors in the mountains.'); return true; }   // PVPDUNGEONS
+          if (inZone && (modes?.mode ?? 'exterior') === 'exterior') { say(zoneWord('unstuckOut')); return true; }   // PVPDUNGEONS - AUDIT SEA VENTURES C6: the ground's own words
           const cool = inZone ? UNSTUCK_COOLDOWN_ZONE_MS : UNSTUCK_COOLDOWN_MS;
           const wait = cool - (Date.now() - _unstuckAt);
           if (!_godU && _unstuckAt && wait > 0) { say(`/unstuck can be used again in ${Math.ceil(wait / 60000)} minute${Math.ceil(wait / 60000) === 1 ? '' : 's'}.`); return true; }
@@ -22851,7 +22854,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   };
   /** PARTY-TRUCE: the row a party's walk asks with when it ends in the zone or at its edge - the walk is the one door
    *  into it no journey's gate asks (wildJourney: "The Overworld map's journeys are walked, never asked"). */
-  const wildWalkRow = (x, y) => { const m = wildMask(); return online?.wildOk && m && wildNear(m, x, y) ? WILD_TEXT.walkInto : null; };   // wildNear: inside, or within its band
+  const wildWalkRow = (x, y) => { const m = wildMask(); return !online?.wildOk ? null : etherSea && etherWildRingAt(x, y) > 0 ? zoneWord('walkInto', ETHER_KIND) : m && wildNear(m, x, y) ? WILD_TEXT.walkInto : null; };   // wildNear: inside, or within its band - AUDIT SEA VENTURES C3: and the open sea past Veilhaven's peace
   /** The fair players' bodies in this scene (peersNear's { id, feet, height }). */
   const wildBodiesNow = () => {
     if (!wildCan()) return NO_BODIES;
@@ -23113,7 +23116,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // MAC (2026-10-14, the two-phase handoff): the piece my killer claimed is in the service's escrow until they collect it
     const held = d.wi === 0 && !!d.escrow?.r;
     if (dd) setWildDeath({ killer: dd.killer, dropped: d.order ? n : 0, claimed, held, burnt: d.burnt ? n : 0, letters: out });   // BURNT-SAID (FIELD BUGS 2026-10-18b): a held record's drop said, and the letters by their worth
-    else if (wildTookAny(out, d.gold)) townTalk.say(d.burnt ? WILD_TEXT.burntLate() : WILD_TEXT.dropLate);   // AUDIT INT9: a receipt that found me risen - AUDIT FB1019f B5: a companion's coin alone said too (systems/wild/wildDeath.js wildTookAny)
+    else if (wildTookAny(out, d.gold)) townTalk.say(d.burnt ? zoneWord('burntLate', seaRoomOf(room) ? ETHER_KIND : null)() : zoneWord('dropLate', seaRoomOf(room) ? ETHER_KIND : null));   // AUDIT SEA VENTURES C7: in the words of the ground the fall was on   // AUDIT INT9: a receipt that found me risen - AUDIT FB1019f B5: a companion's coin alone said too (systems/wild/wildDeath.js wildTookAny)
     if (held) wildEscrow.held(d.escrow, { killer: dd?.killer ?? null, name: claimed });
     if (d.order && n && body) wildDeposit({ r: d.r, items: d.items, o: d.order, p: body.p, room, mine: body });
   };
@@ -23248,7 +23251,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const seaRing = _onlineWorldSession() && !!online?.wildOk && etherSea && playerSpawned ? etherWildRingAt(playerTravelPixel()?.x, playerTravelPixel()?.y) : 0;   // ETHER-WILD: the sea past Veilhaven's peace, its band the ring
     const here = seaRing > 0 || (_onlineWorldSession() && !!online?.wildOk && isWildRegion(_questRegionIndex()) && playerSpawned && (() => { const px = playerTravelPixel(); return !!px && wildRingAt(px.x, px.y) > 0; })());   // the cut zone, not the whole region
     if (false) void 0;   // WILD2: the rings' mask, for the hosts with no map of their own
-    if (_wildTruce.frame(social?.partyPeers?.() ?? new Set(), Date.now()).length && here) townTalk.say(WILD_TEXT.truce);   // PARTY-TRUCE
+    if (_wildTruce.frame(social?.partyPeers?.() ?? new Set(), Date.now()).length && here) townTalk.say(zoneWord('truce'));   // PARTY-TRUCE
     if (playerEntity.health > 0 && !modes?.deathUp?.()) {
       // WILD2: the ring under my feet (a building's or a dungeon's: its door's pixel) - 1 the outer, 4 the heart
       let ring = 0;
@@ -23258,7 +23261,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         const left = _wildWas;
         _wildWas = here && wildZoneKind();
         _wildRingWas = ring;
-        const line = here ? `${zoneWord('enter')} ${zoneWord('ring')(ring)}` : zoneWord('leave', left || undefined);
+        const line = here ? `${zoneWord('enter')} ${zoneWord('ring')(ring)}` : zoneWord(left === ETHER_KIND && !etherInPeace(playerTravelPixel()?.x, playerTravelPixel()?.y) ? 'quiet' : 'leave', left || undefined);   // AUDIT SEA VENTURES C7: "Veilhaven's peace" only where it is
         if (here) noteFirstUse('wild-zone');   // TUT1: the first step into the open zone
         setMidScreenText(line);
         townTalk.say(line);

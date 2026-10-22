@@ -34,7 +34,8 @@ test('ETHER-WILD the chart: Veilhaven\'s peace a circle about Veilhaven, ETHER_P
   for (const zoom of [0, 1, 2, 3, 4]) {
     const m = M.chartModel(word({ pvp: true }), at(zoom), W, H);
     const k = M.CHART_ZOOMS[zoom];
-    assert.deepEqual(m.peace, { x: W / 2, y: H / 2, r: ETHER_PEACE_PX * k, named: ETHER_PEACE_PX * k >= M.PEACE_NAME_R }, `zoom x${k}`);
+    // PIN MOVED (AUDIT SEA VENTURES C2): and the way home east of her to the Veil (`vx`, the Veil's screen x)
+    assert.deepEqual(m.peace, { x: W / 2, y: H / 2, r: ETHER_PEACE_PX * k, vx: W / 2 + (ES.VEIL_X - h.px) * k, named: ETHER_PEACE_PX * k >= M.PEACE_NAME_R }, `zoom x${k}`);
   }
   assert.deepEqual([0, 1, 2, 3, 4].map((z) => M.chartModel(word({ pvp: true }), at(z), W, H).peace.named), [false, false, true, true, true], 'named from x4 (48 px of radius) - x2\'s 24 px holds Veilhaven\'s own name and no more');
   assert.equal(M.PEACE_NAME_R, 40);
@@ -50,7 +51,10 @@ test('ETHER-WILD the chart: the peace painted as water - before the haunts and t
   M.paintChart(g, m, W, H);
   const ring = g.log.findIndex((c) => c[0] === 'arc' && c[1] === m.peace.x && c[2] === m.peace.y && c[3] === m.peace.r);
   assert.ok(ring > 0, 'the circle');
-  assert.deepEqual(g.log[ring + 1], ['=', 'fillStyle', M.PEACE_FILL]);
+  // PIN MOVED (AUDIT SEA VENTURES C2): the ring's west half and the band to the Veil, one shape, then its wash
+  assert.deepEqual(g.log.slice(ring - 4, ring + 3).map((c) => c[0] === '=' ? c.slice(0, 3) : c), [
+    ['moveTo', m.peace.x, m.peace.y - m.peace.r], ['lineTo', m.peace.vx, m.peace.y - m.peace.r], ['lineTo', m.peace.vx, m.peace.y + m.peace.r], ['lineTo', m.peace.x, m.peace.y + m.peace.r],
+    ['arc', m.peace.x, m.peace.y, m.peace.r, Math.PI / 2, Math.PI * 1.5], ['closePath'], ['=', 'fillStyle', M.PEACE_FILL]]);
   assert.ok(g.log.slice(ring, ring + 6).some((c) => c[0] === 'setLineDash' && c[1].length === 2), 'its ring dashed');
   const firstIsle = g.log.findIndex((c) => c[0] === 'arc' && c[3] !== m.peace.r && c[1] !== m.peace.x);
   assert.ok(ring < firstIsle, 'under the isles\' marks');

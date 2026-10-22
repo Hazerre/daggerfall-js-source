@@ -621,7 +621,8 @@ test('AUDIT CAPTAIN\'S SEA P3/P12: an isle\'s place is never a spawn\'s template
 test('AUDIT CAPTAIN\'S SEA P4/P6/P8/P9/P10: a death past the Veil rises at the nearest port isle (never a Bay temple a crossing away) and no Bay cemetery takes a vampire there; no teleport crosses the Veil; an isle\'s quest site resolves by its region\'s own name; an isle town\'s house is no deed\'s and none is sold there; an isle\'s port is a port for ship boarding whatever Travel Options says (mutants: each seam)', async () => {
   const w = hostText('src/scenes/world.js');
   assert.match(w, /else if \(etherSea && inEther\(px\.x, px\.y\)\) \{\n(?:\s*\/\/[^\n]*\n)*\s+const port = etherRisePort\(px\.x, px\.y\);\n\s+land = \{ x: port\.px, y: port\.py \}; kind = 'city';/);
-  assert.match(rd('src/systems/wild/etherWild.js'), /export const etherRisePort = \(x, y\) => islesNear\(x, y, ETHER_RISE_PX\)\.find\(\(i\) => i\.kind === 'port'\) \?\? veilhaven\(\);/);   // HOST-SPLIT (SEA VENTURES): out of bootWorld
+  // PIN MOVED (AUDIT SEA VENTURES C5/F2): the nearest port by distance, sought from ETHER_RISE_PX out until one stands within reach (Veilhaven the farthest)
+  assert.match(rd('src/systems/wild/etherWild.js'), /export function etherRisePort\(x, y\) \{\n  const h = veilhaven\(\), far = Math\.hypot\(h\.px - x, h\.py - y\);/);   // HOST-SPLIT (SEA VENTURES): out of bootWorld
   const { islesNear, veilhaven, inEther } = await import('../../../src/world/ethericSea.js');
   const rise = islesNear(7900, -5300, 60).find((i) => i.kind === 'port') ?? veilhaven();
   assert.ok(rise.kind === 'port' && inEther(rise.px, rise.py), 'a port isle of the sea');
