@@ -173,6 +173,11 @@ body .dfdecor-tabs .dfdecor-chip[aria-pressed="true"] { color: #f2c46b; box-shad
 .dfdecor-foot { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 13px; color: var(--dim, #9a9486);
   padding-top: 6px; border-top: 1px solid var(--iron, #2b323b); }
 .dfdecor-foot > span:empty { display: none; }
+.dfdecor-look { position: fixed; left: 50%; top: calc(50% + 36px); transform: translateX(-50%); z-index: 9; display: none;
+  flex-direction: column; gap: 4px; padding: 8px; width: max-content; background: rgba(14, 16, 19, .92);
+  border: 1px solid #b8943f; border-radius: 6px; ${PIXEL_FONT_CSS} color: var(--bone, #e9e4d9); }
+.dfdecor-look[data-up="1"] { display: flex; }
+.dfdecor-look-name { font-size: 14px; }
 .dfdecor-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   z-index: 8; display: none; flex-direction: column; gap: 6px; padding: 8px 12px; width: max-content; max-width: min(1120px, calc(100vw - 24px));
   box-sizing: border-box; background: rgba(14, 16, 19, .92); border: 1px solid #b8943f; border-radius: 6px;
@@ -1369,6 +1374,45 @@ export function decorBarKeys(touch, sized = true) {
  * clear of the stick and the layer's buttons along the bottom.
  * @param {{ on: Record<string, (dir?: number) => void>, touch?: boolean, doc?: any }} opts
  */
+/** The crosshair's menu while the free camera flies: Move, Duplicate, Remove, only the ones this aim allows. */
+export function createDecorLookMenu({ on, doc = document }) {
+  injectStyle(doc);
+  const el = maker(doc);
+  const root = el('div', 'dfdecor-look');
+  root.dataset.up = '0';
+  const name = el('div', 'dfdecor-look-name');
+  const btn = (label, key, icon) => {
+    const n = el('button', 'dfdecor-btn', label);
+    n.type = 'button';
+    n.dataset.dficon = icon;
+    n.addEventListener('click', () => { if (n.style.display !== 'none') on[key]?.(); });
+    return n;
+  };
+  const move = btn('Move', 'move', 'move');
+  const duplicate = btn('Duplicate', 'duplicate', 'place');
+  const remove = btn('Remove', 'remove', 'remove');
+  remove.className += ' warn';
+  root.append(name, move, duplicate, remove);
+  swallowPresses(root);
+  doc.body?.append(root);
+  let alive = true;
+  return {
+    root,
+    show(aim) {
+      if (!alive) return;
+      if (!aim || (!aim.move && !aim.duplicate && !aim.remove)) { this.hide(); return; }
+      if (name.textContent !== aim.name) name.textContent = aim.name;
+      move.style.display = aim.move ? '' : 'none';
+      duplicate.style.display = aim.duplicate ? '' : 'none';
+      remove.style.display = aim.remove ? '' : 'none';
+      if (root.dataset.up !== '1') root.dataset.up = '1';
+    },
+    hide() { if (alive && root.dataset.up !== '0') root.dataset.up = '0'; },
+    isUp: () => root.dataset.up === '1',
+    destroy() { if (!alive) return; alive = false; root.remove?.(); },
+  };
+}
+
 export function createDecorBar({ on, touch = false, doc = document }) {
   injectStyle(doc);
   const el = maker(doc);

@@ -87,13 +87,15 @@ import { writeDecalQuad, clearDecalQuad, DECAL_FLOATS } from '../../combat/blood
 import { rentRoomsView, rentAnchorOfRoom } from '../../systems/homeRent.js';   // HOME-RENT: the owner's rooms, offered to rent
 import { goldSum, EMPIRE_ACCOUNT_WORDS } from '../../systems/homeWords.js';   // AUDIT HOME-PRICE E4: the rent's sums and account, as the door says them
 import { createDecorPlacer, decorEntrySized, DECOR_TURN_STEP, DECOR_TURN_FINE, DECOR_RAISE_STEP, DECOR_RAISE_FINE, wrapTurn } from '../../systems/decor/decorPlacer.js';   // DECOR-FIGURE: whether a piece takes a size step
-import { createDecorButton, createDecorPanel, createDecorBar, decorWhyNot } from '../../ui/decorPanel.js';
+import { createDecorButton, createDecorPanel, createDecorBar, createDecorLookMenu, decorWhyNot } from '../../ui/decorPanel.js';
+import { decorLookOffers, decorAimKind } from '../../systems/decor/decorLook.js';
+import { pickActivatable } from '../../player/activate.js';
 import { DECOR_CAP, DECOR_PRICE_PER_METRE, DECOR_HIDDEN_CAP, decorPrice, decorPieceOf, decorRefund, decorRescale, mintDecorId, DECOR_STATIONS, DECOR_STATION_FEES, DECOR_STATION_NAMES } from '../../net/decorLaw.js';
 import { decorKey, DECOR_KINDS, decorFlatLight, modelKind, flatKind, decorRoomEntries } from '../../systems/decor/decorCatalogue.js';
 import { decorOwnEntry, decorItemName, decorMountDye, decorMountDyeTarget } from '../../systems/decor/decorItems.js';
 import { decorFurnishingEntry, isFurnishing } from '../../systems/decor/decorFurnish.js';
 import { itemLongName } from '../../systems/item/itemInfo.js';
-import { decorMatrix, decorKeyOf, loadMountPicture, decorMountQuad, decorMountFloats, DECOR_MODEL_RETRY_MS, MW_STAND_ARCHIVE } from './decorRoom.js';
+import { decorMatrix, decorKeyOf, decorIdOfKey, loadMountPicture, decorMountQuad, decorMountFloats, DECOR_MODEL_RETRY_MS, MW_STAND_ARCHIVE } from './decorRoom.js';
 import { decorIsMount, decorFlatMirrored, decorIsFigure, decorDrawnScale } from '../../net/decorLaw.js';   // AUDIT DECOR-FIGURE C1, C2: a figure's change and its ground
 import { SEAT_HALL_TEXT } from '../../net/townSeatLaw.js';   // SEAT-HALL: the Charter Room's rule, in its words
 import { forgeOffered, PROF_STATIONS, stationColdLine } from '../../ui/professions/profPages.js';   // AUDIT 29 B2; PROF4: the workbench too
@@ -402,6 +404,8 @@ export function createDecorTool(deps) {
   /** @type {any} */ let button = null;
   /** @type {any} */ let panel = null;
   /** @type {any} */ let bar = null;
+  /** @type {any} */ let lookMenu = null;
+  /** @type {any} */ let looked = null;
   /** @type {any} */ let scan = null;
   /** @type {any} */ let slot = null;
   /** @type {any} */ let placing = null;
@@ -495,6 +499,14 @@ export function createDecorTool(deps) {
       onRoom: (id) => { roomPick = id; if (panel?.isOpen()) panel.update(view()); },   // DECOR-ROOMS
       onRent: (what, row, price) => { rentAct(what, row, price); },   // HOME-RENT
       onPaint: (what, look) => { paintAct(what, look); },   // HOME-LOOK
+    });
+    lookMenu = createDecorLookMenu({
+      doc,
+      on: {
+        move: () => applyLookAction('move'),
+        duplicate: () => applyLookAction('duplicate'),
+        remove: () => applyLookAction('remove'),
+      },
     });
     bar = createDecorBar({
       doc, touch,
@@ -947,8 +959,35 @@ export function createDecorTool(deps) {
     listen(true);
   }
 
-  /** A new piece with this one's model, turn, scale, light and whether it holds - never its contents, its craft, or
-   *  that it is the player's own. The copy is placed and paid as any new piece; leaving the placement writes nothing. */
+  /** The placed piece the free camera looks at, or null. The building's own furniture is not in this list. */
+  function pieceUnderLook(eye, dir) {
+    const key = pickActivatable(eye, dir, pool.targets?.() ?? [], { raycast: () => Infinity });
+    const id = decorIdOfKey(key);
+    const piece = id ? pool.pieceOf?.(id) : null;
+    if (!piece || piece.id === placing?.editing?.id || piece.id === placing?.id) return null;
+    return piece;
+  }
+  /** Move, duplicate or remove the piece under the crosshair. Run now; nothing is charged until a placement confirms. */
+  function applyLookAction(action) {
+    const piece = looked;
+    const offers = decorLookOffers(piece ? { kind: decorAimKind(decorKeyOf(piece.id), piece), piece, holds: !!pool.holdsAny?.(piece.id), mayEdit: !!deps.room?.() } : null);
+    if (!offers[action]) return false;
+    if (action === 'remove') { removePiece(piece); return true; }
+    endPlacing();
+    if (action === 'move') beginPlacing(entryOf(piece), piece);
+    else beginDuplicate(piece);
+    return true;
+  }
+  function refreshLook(eye, dir) {
+    const piece = pieceUnderLook(eye, dir);
+    looked = piece;
+    if (!piece) { lookMenu?.hide(); return; }
+    lookMenu?.show({
+      name: entryOf(piece).name,
+      ...decorLookOffers({ kind: decorAimKind(decorKeyOf(piece.id), piece), piece, holds: !!pool.holdsAny?.(piece.id), mayEdit: !!deps.room?.() }),
+    });
+  }
+
   function beginDuplicate(piece) {
     if (!piece || piece.item) return false;
     const known = entryOf(piece);
@@ -1007,6 +1046,8 @@ export function createDecorTool(deps) {
     if (p?.lotMarks) renderer?.destroyDecalBatch?.(p.lotMarks);   // HOME-YARD
     p?.release?.();   // DECOR-LPT: what the host's picture held (a tree's far picture)
     bar?.hide();
+    lookMenu?.hide();
+    looked = null;
     listen(false);
   }
 
@@ -1476,6 +1517,7 @@ export function createDecorTool(deps) {
     if (!r) {
       if (placing) endPlacing();
       if (panel?.isOpen()) panel.close();
+      lookMenu?.hide();
       button?.render(false);
       return;
     }
@@ -1492,9 +1534,9 @@ export function createDecorTool(deps) {
       const pointed = panel.pointed();
       if (pointed?.model != null) modelFor(pointed.model);
     }
-    if (!placing) return;
+    if (!placing) { lookMenu?.hide(); return; }
     placing.suspended = overlayUp;
-    if (overlayUp) { bar?.hide(); return; }
+    if (overlayUp) { bar?.hide(); lookMenu?.hide(); return; }
     const p = placing;
     if (p.entry.model != null && !p.placer) {
       const m = modelFor(p.entry.model);
@@ -1529,6 +1571,7 @@ export function createDecorTool(deps) {
       snap: !!p.placer?.state().snap, why: placingWhy(p, price),
       sized: decorEntrySized(p.entry),   // DECOR-FIGURE: no Smaller or Bigger for one of Daggerfall's people
     });
+    refreshLook(p.fly, lookDir(cam.yaw, cam.pitch));
     if (p.batch && p.piece && p.flatSize) {
       const sc = p.piece.scale;
       p.batch.origin = [origin[0] + p.piece.pos[0], origin[1] + p.piece.pos[1], origin[2] + p.piece.pos[2]];
@@ -1801,8 +1844,8 @@ export function createDecorTool(deps) {
       close();
       listen(false);
       offRefresh?.();
-      button?.destroy(); panel?.destroy(); bar?.destroy();
-      button = panel = bar = null;
+      button?.destroy(); panel?.destroy(); bar?.destroy(); lookMenu?.destroy();
+      button = panel = bar = lookMenu = null;
     },
   };
 }

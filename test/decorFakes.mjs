@@ -148,6 +148,7 @@ export function toolRig({ room = { kind: 'house', where: 'Your house' }, gold = 
   const entries = decorCatalogue(collectDecor([rmb([41000, 41000, 41001, 41811], [[210, 3], [209, 0]]), rmb([41000], [[209, 0]], doors, extraPeople)]));
   const standing = [];
   const holds = new Set();
+  const aim = [];
   const owned = new Map();   // DECOR2a: the owner's own items by piece id (scenes/decor/decorRoom.js keepOwn and its kin)
   const solid = (p) => {
     if (!collider?.addMesh) return;
@@ -165,6 +166,8 @@ export function toolRig({ room = { kind: 'house', where: 'Your house' }, gold = 
     list: () => standing.map((p) => ({ ...p })),
     size: () => standing.length,
     holdsAny: (id) => holds.has(id),
+    pieceOf: (id) => standing.find((p) => p.id === id) ?? null,
+    targets: () => aim,
     ownOf: (id) => owned.get(id) ?? null,
     keepOwn: (id, item) => { if (item) owned.set(id, item); },
     takeOwn: (id) => { const it = owned.get(id) ?? null; owned.delete(id); return it; },
@@ -249,7 +252,7 @@ export function toolRig({ room = { kind: 'house', where: 'Your house' }, gold = 
   const cam = { pos: [10, 1.6, 10], yaw: 0, pitch: 0 };
   const frame = (over = {}) => tool.frame({ dt: 0.1, cam, overlayUp: false, interior: true, ...over });
   return {
-    tool, doc, win, entries, standing, holds, owned, hand, rays, pack, furnishings, names, slots, said, w, cam, frame, draws, state, decals, textures, renderer,
+    tool, doc, win, entries, standing, holds, aim, owned, hand, rays, pack, furnishings, names, slots, said, w, cam, frame, draws, state, decals, textures, renderer,
     setVisit: (v) => { visit = v; }, cursorOffs: () => cursorOff,
   };
 }
