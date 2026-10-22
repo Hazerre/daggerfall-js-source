@@ -356,5 +356,12 @@
  "the game’s staff": "lo staff del gioco",
  "questline": "catena di missioni",
  "Warden of, Protector of, Keeper of, Champion of (seat title prefixes, kept in English as the game shows them)": "«Warden of» seguito dal nome (non tradotto)",
- "title and aura names (Chapter Master, The Turning Hour; shown in English)": "restano in inglese (il titolo Chapter Master)"
+ "title and aura names (Chapter Master, The Turning Hour; shown in English)": "restano in inglese (il titolo Chapter Master)",
+ "Chapter Master (the title's name, as the Collections page draws it)": "Chapter Master",
+ "The Turning Hour (the aura's name, as the Collections page draws it)": "The Turning Hour",
+ "Gilded / Legendary / Aetheric (the Codex dividers)": "Dorati / Leggendari / Eterici (pezzi)",
+ "By chance / Automatic / Closed / Per character (Collections availability chips)": "A sorte / Automatico / Chiuso / Per personaggio",
+ "Try again (button)": "Riprova",
+ "sprout (the New account glyph)": "germoglio",
+ "unwagered (a breach)": "senza scommessa"
 }

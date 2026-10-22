@@ -370,5 +370,12 @@
  "granted by name": "выдаётся лично",
  "kept for good": "остаётся навсегда",
  "Warden of / Protector of / Keeper of / Champion of (worn titles - kept in English)": "«Warden of» / «Protector of» / «Keeper of» / «Champion of»",
- "Wear / Take off / Show / Hide (Collections buttons)": "Выбрать / Снять / Показать / Скрыть"
+ "Wear / Take off / Show / Hide (Collections buttons)": "Выбрать / Снять / Показать / Скрыть",
+ "Chapter Master (the title's name, as the Collections page draws it)": "Chapter Master",
+ "The Turning Hour (the aura's name, as the Collections page draws it)": "The Turning Hour",
+ "Gilded / Legendary / Aetheric (the Codex dividers)": "Позолоченные / Легендарные / Эфирные",
+ "By chance / Automatic / Closed / Per character (Collections availability chips)": "Случайно / Автоматически / Закрыто / У персонажа",
+ "Try again (button)": "Повторить",
+ "sprout (the New account glyph)": "росток",
+ "unwagered (a breach)": "без указов"
 }

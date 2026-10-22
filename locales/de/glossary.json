@@ -238,5 +238,14 @@
  "the game’s staff": "das Team des Spiels",
  "questline": "Questreihe",
  "Warden of, Protector of, Keeper of, Champion of (seat title prefixes, kept in English as the game shows them)": "„Warden of“ mit dem Namen (unübersetzt)",
- "title and aura names (Chapter Master, The Turning Hour; shown in English)": "bleiben englisch (der Titel Chapter Master)"
+ "title and aura names (Chapter Master, The Turning Hour; shown in English)": "bleiben englisch (der Titel Chapter Master)",
+ "Chapter Master (the title's name, as the Collections page draws it)": "Chapter Master",
+ "The Turning Hour (the aura's name, as the Collections page draws it)": "The Turning Hour",
+ "Gilded / Legendary / Aetheric (the Codex dividers)": "Vergoldete / Legendäre / Ätherische",
+ "By chance / Automatic / Closed / Per character (Collections availability chips)": "Per Zufall / Automatisch / Geschlossen / Pro Charakter",
+ "Try again (button)": "Erneut versuchen",
+ "sprout (the New account glyph)": "Spross",
+ "unwagered (a breach)": "ohne Einsatz",
+ "Guildmaster": "Gildenmeister",
+ "Offered by {giver} (a questline's giver, the journal's label)": "Questgeber: {giver}"
 }
