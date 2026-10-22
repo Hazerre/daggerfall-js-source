@@ -99,7 +99,9 @@ test('STAFF-PANEL1: every door is listed once, beside the game\'s, and none is b
     // STAFF-PANEL5-FOLLOW: a follow token (staffFollow.js)
     '/v1/staff/follow',
     // STAFF-PANEL5-MESSAGE: Message on screen (staffMessage.js)
-    '/v1/staff/message', '/v1/staff/messages'].sort());
+    '/v1/staff/message', '/v1/staff/messages',
+    // STAFF-PANEL5-FEEDS: Network bursts, Monster watch and its Flag, the bot check (the relay's /v1/staff/net-feed takes no session)
+    '/v1/staff/net', '/v1/staff/monsters', '/v1/staff/monster/flag', '/v1/staff/reactions', '/v1/staff/reactions/keep'].sort());
   // no secret to set anywhere: the config holds the lists and a public key, and nothing else of the panel's
   const toml = src('server-account/wrangler.toml');
   assert.match(toml, /^OWNER_HANDLES = "Lattymoy,SirMcMobdon"$/m);

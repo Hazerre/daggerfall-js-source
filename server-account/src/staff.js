@@ -56,6 +56,9 @@ import { staffCensus, CENSUS_ROUTES } from './staffCensus.js';   // STAFF-PANEL4
 import { staffEconomy, ECON_ROUTES } from './staffEconomy.js';   // STAFF-PANEL3-ECON: market and trades, node activity, economy
 import { staffFollow, FOLLOW_ROUTES } from './staffFollow.js';   // STAFF-PANEL5-FOLLOW: a follow token, minted and written down
 import { staffMessage, MESSAGE_ROUTES } from './staffMessage.js';
+import { staffNet, NET_ROUTES } from './staffNet.js';   // STAFF-PANEL5-FEEDS: Network bursts
+import { staffMonsters, MONSTER_ROUTES } from './staffMonsters.js';   // STAFF-PANEL5-FEEDS: Monster watch
+import { staffReactions, REACTION_ROUTES } from './staffReactions.js';   // STAFF-PANEL5-FEEDS: the bot check
 
 /** The header a staff session rides in - never `authorization`, which is the game's. */
 export const STAFF_SESSION_HEADER = 'x-staff-session';
@@ -115,6 +118,8 @@ export const STAFF_STATUS = Object.freeze({
   'no-signing-key': 503,   // STAFF-PANEL5-FOLLOW (staffFollow.js): a service with no key mints no follow token
   // STAFF-PANEL5-MESSAGE (staffMessage.js): a message past 200 characters, and a second inside a staff member's 5 seconds
   'staff-message-long': 400, 'staff-message-rate': 429,
+  // STAFF-PANEL5-FEEDS (staffMonsters.js): a Flag whose spawn case did not open
+  'flag-failed': 500,
 });
 
 const enc = new TextEncoder();
@@ -369,6 +374,9 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   if (FOLLOW_ROUTES.includes(path)) return staffFollow(ctx, env, path, body, who, audit);   // STAFF-PANEL5-FOLLOW: Admins and Moderators
   // ═══ STAFF-PANEL5-MESSAGE: Message on screen, and each message's state - Admins and Moderators both (staffMessage.js) ═══
   if (MESSAGE_ROUTES.includes(path)) return staffMessage(ctx, env, path, body, who, audit);
+  if (NET_ROUTES.includes(path)) return staffNet(ctx, env, path, body, who, audit);
+  if (MONSTER_ROUTES.includes(path)) return staffMonsters(ctx, env, path, body, who, audit);
+  if (REACTION_ROUTES.includes(path)) return staffReactions(ctx, env, path, body, who, audit);
 
   // ═══ THE ADMINS' DOORS: THE PANEL'S MODERATORS (mob, 07:42Z: "add it so admins can add or remove moderatoers") ═══
   // /v1/staff/mods lists them; /v1/staff/mod/add and /mod/remove { handle } - a registered account, not banned, not staff
