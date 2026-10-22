@@ -70,7 +70,7 @@ async function brewAnswer(db, player, row, nowS, extra = {}) {
  * steps (professions.js seatStepsFor; alchemyLaw potentChance: +10 a step).
  * POTENT is rolled here, once a brew: the rank's chance (10 at Expert, 20 at Master), +5 an unbruised herb the brew spends
  * (prof_unbruised, its units reckoned against the OWN units spent - bought ones are spent first), a Distiller's +10, the
- * hall's; its share +25, a Master Alchemist's +40. The potions a brew makes: brewCount (1; 2 at Journeyman, a Brewer's 3;
+ * hall's; its share +25, a Master Alchemist's +40. The potions a brew makes: brewCount (2 - CRAFT-PAYS's, it was 1; 2 at Journeyman, a Brewer's 3;
  * 3 at Master - AUDIT PROF-541 R2-S1: one whatever the rank for a potion wholly of the Apothecaries' goods). XP 20 x the potion's tier, +500 the character's first of it (not for one made wholly of the Apothecaries'
  * goods - brewFirstPays), under the crafter's limit. Decided by the brew's own INSERT: every input held (never gold's).
  * Then the unbruised count down by what it reckoned, the inputs out (bought first - the count clamped to the own units

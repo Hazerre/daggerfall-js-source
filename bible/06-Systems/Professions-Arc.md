@@ -5041,6 +5041,93 @@ hours; `flatLightAt`'s `out`; the draw asking each node's light at its place and
 at the night's by the floor; far, at night, no sheen at any moment it crossed by day - `renderer.flatLightAt` itself
 over the probe's scene); `tools/mutants/nodeglint.json` 107, all dead.
 
+## 48. CRAFT-PAYS and POT-THIN - a crafter's bottle worth brewing, the flood of drops turned down, a cooked meal that weighs what it should (BUILT 2026-10-21)
+
+The Discord's #feature-feedback, TheBard, "Crafting seems unrewarding" (2026-10-21): **"It requires a great deal of
+gathering and then sinking money at the stations. The item I make I can loot with ease"**; Potions: **"I collect so many
+potions from enemy drops that I never need to make potions. I only make them to level the provisioning skill. The profit
+margin is also extremely low or even a loss ... who needs to buy pots when you find them everywhere?"**; Crafting Quests:
+**"crafting writs instead of only gathering writs ... potions of restore power needed by the mages guild. The reward can
+be crafting xp, silver, and rep"**; Food Weight: **"2 kilos per meat ... Or meat should reduce in weight once cooked"**;
+and **"whats the end goal for crafting?"**. The owner, passing it on: **"I definitely want to decrease pot drops on top of
+whatever you suggest relating to the posts"**.
+
+### 48.1 What stood (MEASURED, 2026-10-21)
+
+- **The drops.** A looting foe rolled DFU's random potion (3 in 100, `loot.js` addEnemyLootExtras), then POTION-COMMON's
+  Potion of Healing and MAGICKA-COMMON's Restore Power (`systems/healingSupply.js`) - 10 and 6 in 100 at Renown 20, 12 and
+  9 at Renown 40 (RENOWN-LOOT). **19 potions in 100 looting foes** at Renown 20, 24 at Renown 40; a J-O pile 18 + 10 + DFU's
+  4. The two potions a player drinks most were the two the loot gave most.
+- **The brew.** A Novice's brew (`alchemyLaw.js` brewCount) made **one** potion, for the alchemist's station fee of **50
+  gold** (`professionLaw.js` ALCHEMY_FEE, every station's) and a cauldron of three or four ingredients. A Potion of Healing
+  is DFU's 50 gold and half that at an online counter (ESSENTIALS-HALF): the brew lost money before its herbs were
+  counted, on exactly the rungs a brewer climbs by brewing.
+- **The food.** Climates & Calories' rows (`survival/items.js`, the mod's own `ItemTemplates.json`): a Raw Meat and a Raw
+  Fish **2 kg** each, the cooked Meat **2 kg** and the Cooked Fish **1.5** - the fire took no weight. A cooked meal feeds
+  240 minutes (`survival/food.js` FOOD); a meal eaten never banks past the clock (`eatLaw`'s "never a meal in the
+  future", AUDIT SURV-TIERS), so the hours a meal holds are the needs' own ladder - Peckish at 4 hours, Hungry at 12
+  (`needs.js` NEED) - whatever the meal weighs.
+
+### 48.2 What was done
+
+| Slice | What | The numbers |
+|---|---|---|
+| **POT-THIN** | The two potion faucets of `healingSupply.js` cut; DFU's random potion and the counter's shelf untouched | A foe's healing potion 4 in 100 at Renown 20 (it was 10), its Restore Power 2 (6); a J-O pile's 8 (18) and 4 (10). RENOWN-LOOT's ladder on new ends: a foe's healing 3 / 3.5 / 4 / 4.5 / 5 by stage (8-12), its Restore Power 1 to 3 (3-9); a pile's 6 to 10 (15-21) and 2 to 6 (5-15) - `HEALING_ENEMY_CHANCE_BEFORE` 2 and `HEALING_PILE_CHANCE_BEFORE` 4 the step's start. **9 potions in 100 looting foes** at Renown 20, 11 at Renown 40 - half what they were |
+| **CRAFT-PAYS: the brew** | A Novice's brew two potions; the alchemist's station 25 gold a brew | `brewCount` 2 below Journeyman (1); the rungs above stand - two at Journeyman, a Brewer's three, three at Master - because `prof_brews.count` is CHECKed 1 to 3 (migration 0070), and a fourth is a table's rebuild, not a number's change. The counter's goods still brew one (AUDIT PROF-541 R2-S1). `ALCHEMY_FEE` 25 (50): a brew is a bottle, not a blade - the forge's 50 on a Longsword is a sliver, on a 50-gold potion it was the margin. A home's station stays free |
+| **CRAFT-PAYS: the food** | A cut weighs a kilo, and cooking takes its water | Raw Meat and Raw Fish 1 kg (2), Meat 0.5 (2), Cooked Fish 0.5 (1.5); the dishes stand on these rows (`profTemplates.js` DISH_TEMPLATE_ROWS) - the Stew and the Supper 0.5 (2 and 1.5), the Feast 2 (8); the Tart stays the Bread's 1.5. Weight is read at the template (`inventory.js` unitWeightInKg), so every food already in a pack lightens with it |
+
+Arithmetic at a Novice's station, a Potion of Healing (Red Berries, Mercury, the Apothecaries' Troll's Blood and Elixir
+Vitae - 10 silver at the counter): before, 50 gold and a cauldron for one potion; now 25 gold and the cauldron for two, the
+fee a bottle 12.5 gold where it was 50, and a Brewer at Journeyman 8 a bottle. A brewer's own potions are now the steady
+supply and the drop a windfall - which is what the record already said a crafter's work is for (41.1, "what already
+works: what wears out or is eaten").
+
+**The service.** `brewCount` is the service's law too (`server-account/src/alchemy.js` brewAtStation): a Novice's brew is
+answered two. `ACCOUNT_VERSION` acct168. No migration.
+
+### 48.3 What it is for (the record's answer to "whats the end goal for crafting?")
+
+The record has one, and it was never said where a player reads it: **law 7** (section 1) - a craft reaches Rare at most, so
+a crafted piece is never the best a slot holds; loot is the ceiling. Crafting's telos is everything the ceiling is not:
+**what wears out or is eaten** (potions, dishes and the party's Feast, Repair Kits and the tempering that mends what loot
+gives, arrows, a Standard tool's harvests); **the seats' works** (a fortification is stone and timber, SEAT0 7.5); **the
+market** (a Masterwork with your name, commissions, regional prices); and the **Renown** a writ pays. POT-THIN is the first
+change that took a consumable back from the loot so the crafter could supply it; the next ones are 48.4's.
+
+### 48.4 Open, for the owner (DECIDED nothing here)
+
+- **Crafting writs** (the post's own proposal). A Court writ today asks only a witnessed **material** (section 11 - a
+  writ's Marks are minted only for a witnessed act, law 8). A writ for a crafted **product** - "6 Potions of Restore Power
+  for the Mages Guild of Daggerfall" - is witnessable the same way: the brew itself is the service's (`/v1/prof/brew`), so a
+  writ could be FILLED AT THE STATION, the brew's potions going to the writ instead of the pack, its pay Marks, silver,
+  the craft's XP and the guild's reputation. It needs a writ kind, a column on the brews (and the anvil's and the fire's
+  products), the Work tab's card, and Appendix C's faucet re-measured - a slice of its own (the hosts untouched: the
+  station is the pages'). Its smallest form is the potions and the dishes alone, the products a writ can never be handed
+  from loot.
+- **A meal that holds you longer.** The weight was the complaint's either-or; the other half ("it doesnt fill for very
+  long") is the needs' ladder, not the meal's satiety (48.1) - a change there is the survival arc's, all foods at once.
+- **The other stations' fee.** The forge, the workbench, the loom, the mason's bench and the jeweller's bench keep 50 gold
+  a craft; on their products it is a sliver, so they were left.
+- **The counter's half price** (ESSENTIALS-HALF) still sells a Potion of Healing for 25 gold online - the crafter's floor
+  and ceiling at once. Raising it is the economy arc's call.
+
+### 48.5 As built
+
+- `src/systems/healingSupply.js` (the four chances, the two steps' start), `src/systems/renownLoot.js` (the stage table's
+  two potion columns, a comment).
+- `src/net/alchemyLaw.js` (`brewCount`), `src/net/professionLaw.js` (`ALCHEMY_FEE`), `server-account/src/alchemy.js` (its
+  docblock), `server-account/src/service.js` and `wrangler.toml` (acct168), `src/ui/professions/profPages.js` (a docblock).
+- `src/systems/survival/items.js` (four rows), `vendor/climates-calories/README.md` (nine columns the port changes, not five).
+- **The four hosts**: none touched - the loot hooks are the shared rolls' on every host (`scenes/shared.js`
+  installHealingSupply), the station the pages', the weights the template's.
+- PIN MOVED: `test/systems/potion_common.test.js`, `test/systems/renownloot.test.js` (the potion numbers);
+  `test/systems/prof12_law.test.js`, `test/net/prof12_service.test.js`, `test/systems/prof12_client.test.js` (a Novice's two,
+  25 gold); `test/systems/survival/auditcc_items.test.js`, `test/systems/prof9_client.test.js` (the weights); the account
+  version's pins (acct168). Mutants re-aimed by content: `tools/mutants/potioncommon.json`, `lootease.json`,
+  `renownloot.json` (79, all dead), `prof12.json` (`PROF12-count-novice-one` - the mutant that WAS a Novice's two is now its
+  one; `PROF12-alchemy-fee` back to 50; 209 dead - its one survivor, `PROF12-migration-unique`, survives on main as well).
+- Ledger A: POTION-COMMON's row narrowed to POT-THIN's numbers; CRAFT-PAYS its own row.
+
 ## Appendix A - a day of a gatherer
 
 Ilsa, a Journeyman herbalist and Apprentice miner in Anticlere (a march), sets out at seven (ANY-HOUR: the wilderness keeps no hours now - seven is her habit). The board's Work tab has a

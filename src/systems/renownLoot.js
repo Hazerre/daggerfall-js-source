@@ -9,11 +9,13 @@
 // ROLLER'S RENOWN, in the sigils' own five stages (systems/sigil/sigil.js renownSigilStage: Renown 1, 10, 20, 30 and 40):
 //
 //     stage      Renown   the buff      items kept   blue at level 0   healing (a foe)   Restore Power (a foe)
-//     Faint        1-9    half             62.5%          4.5%               8%                 3%
-//     Kindled     10-19   three quarters   68.75%         4.75%              9%                 4.5%
-//     Bright      20-29   all              75%            5%                10%                 6%
-//     Radiant     30-39   five quarters    81.25%         5.25%             11%                 7.5%
-//     Ascendant   40-50   half again       87.5%          5.5%              12%                 9%
+//     Faint        1-9    half             62.5%          4.5%               3%                 1%
+//     Kindled     10-19   three quarters   68.75%         4.75%              3.5%               1.5%
+//     Bright      20-29   all              75%            5%                 4%                 2%
+//     Radiant     30-39   five quarters    81.25%         5.25%              4.5%               2.5%
+//     Ascendant   40-50   half again       87.5%          5.5%               5%                 3%
+//
+// (POT-THIN, 2026-10-21: the two potion columns were 8 to 12 and 3 to 9 - systems/healingSupply.js.)
 //
 // Every LOOT-EASE knob moves by the same share of its own step (`lootEased`): the keep, each tier of the plain ladder
 // (its base, its step a tier and its cap), the healing and Restore Power chances of a foe and a pile, and the rest
