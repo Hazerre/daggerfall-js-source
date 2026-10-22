@@ -520,5 +520,15 @@
     "tests": [
       "test/server/staffpanel5feeds.test.js"
     ]
+  },
+  {
+    "name": "STAFF-PANEL5-FEEDS-flag-chat-case",
+    "file": "server-account/src/staffMonsters.js",
+    "old": "openCaseFor(ctx, env, row.id, 'review', 'spawn')",
+    "new": "openCaseFor(ctx, env, row.id, 'review')",
+    "why": "a Flag answered with a chat case beside the spawn case its line went to",
+    "tests": [
+      "test/server/staffpanel5feeds.test.js"
+    ]
   }
 ]

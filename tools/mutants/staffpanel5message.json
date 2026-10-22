@@ -292,8 +292,8 @@
   {
     "name": "STAFF-PANEL5-MESSAGE-door-refuses-kind",
     "file": "server/src/index.js",
-    "old": "if (kind !== 'ban' && kind !== 'mute' && kind !== 'smsg') return json({ error: 'bad law' }, 403);",
-    "new": "if (kind !== 'ban' && kind !== 'mute') return json({ error: 'bad law' }, 403);",
+    "old": "if (kind !== 'ban' && kind !== 'mute' && kind !== 'smsg' && kind !== 'staffcut') return json({ error: 'bad law' }, 403);",
+    "new": "if (kind !== 'ban' && kind !== 'mute' && kind !== 'staffcut') return json({ error: 'bad law' }, 403);",
     "why": "the relay's door refuses a staff message",
     "tests": [
       "test/net/staffpanel5message.test.js"

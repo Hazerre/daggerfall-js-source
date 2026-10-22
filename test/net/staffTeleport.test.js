@@ -240,13 +240,13 @@ test('STAFF-PANEL2-CHATMENU a chat line\'s TP asks by the socket the relay stamp
     staffTeleportClient: { ask: async (target) => { asks.push(target); return { id: 'peer-bran', name: 'Bran', dest: ext }; } }, hudFade: { smashHUDToBlack() {}, fadeHUDFromBlack() {} },
     followStaffPlayer, staffDestinationKey, prepareStaffDestination: async () => {}, placeStaffDestination: () => {}, _teleporting: false, staffTeleportHeld: false };
   assert.equal((await hostFunction('teleportToStaffPlayer', scope)({ id: 'peer-bran' })).name, 'Bran');
-  assert.deepEqual(asks, [{ id: 'peer-bran' }, { id: 'peer-bran' }], 'by the socket, from the first ask');
+  assert.deepEqual(asks, [{ id: 'peer-bran', nt: 1 }, { id: 'peer-bran', nt: 1 }], 'by the socket, from the first ask - asked silent (STAFF-PANEL5-FOLLOW nt), as every staff TP');
   asks.length = 0;
   await hostFunction('teleportToStaffPlayer', scope)('Bran');
-  assert.deepEqual(asks, [{ name: 'Bran' }, { id: 'peer-bran' }], '/tp @NAME is as it was');
+  assert.deepEqual(asks, [{ name: 'Bran', nt: 1 }, { id: 'peer-bran', nt: 1 }], '/tp @NAME is as it was');
   assert.deepEqual(validStaffTeleportIn({ k: 'ask', nonce: 'tp-1', id: 'peer-bran' }), { k: 'ask', nonce: 'tp-1', id: 'peer-bran' });
   const calls = [], lines = [];
-  const run = hostFunction('runStaffCommand', { chatLog: { push: (_tab, line) => lines.push(line) }, worldMoveBusy: () => false, modes: {}, staffTeleportClient: {}, teleportToStaffPlayer: async (who) => { calls.push(who); return { name: 'Bran' }; }, console });
+  const run = hostFunction('runStaffCommand', { chatLog: { push: (_tab, line) => lines.push(line) }, worldMoveBusy: () => false, modes: {}, staffTeleportClient: {}, teleportToStaffPlayer: async (who) => { calls.push(who); return { name: 'Bran' }; }, staffTpLine, staffFollow: { follow() {} }, console });
   run('world', { cmd: 'tp', player: { id: 'peer-bran' } }); await Promise.resolve();
   assert.deepEqual(calls, [{ id: 'peer-bran' }]); assert.match(lines.at(-1).text, /Teleported to Bran's exact position/);
 });

@@ -212,8 +212,10 @@ test('STAFF-PANEL5-FEEDS: Monster watch - owners outdoors, hosts never owners, "
   assert.equal((await s.staff('/v1/staff/monster/flag', { name: 'Nobody' }, s.mob)).status, 404);
   const f = await s.staff('/v1/staff/monster/flag', { name: 'Troll', note: 'forty outdoors\u0007, two bosses' }, s.mob);
   assert.equal(f.status, 200, JSON.stringify(f.body));
-  const c = s.raw.prepare('SELECT id, target, source, status FROM mod_cases WHERE target = ?').get(s.troll.id);
-  assert.deepEqual({ ...c }, { id: f.body.case, target: s.troll.id, source: 'review', status: 'open' });
+  // one case, the spawn case an Admin reads (STAFF-PANEL2-FIX: a Moderator never sees it), the line in it
+  const cs = s.raw.prepare('SELECT id, target, source, status, kind FROM mod_cases WHERE target = ?').all(s.troll.id);
+  assert.deepEqual(cs.map((x) => ({ ...x })), [{ id: f.body.case, target: s.troll.id, source: 'review', status: 'open', kind: 'spawn' }]);
+  const c = cs[0];
   const line = s.raw.prepare('SELECT tab, text FROM mod_case_lines WHERE case_id = ?').get(c.id);
   assert.equal(line.text, "flagged from the staff panel's Monster watch by SirMcMobdon: forty outdoors , two bosses");
   assert.deepEqual(s.audits('monster-flag').map((a) => [a.target, a.outcome, JSON.parse(a.detail)]), [[s.troll.id, 'ok', { name: 'Troll', note: 'forty outdoors , two bosses', case: c.id }]]);

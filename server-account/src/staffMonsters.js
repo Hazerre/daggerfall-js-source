@@ -141,7 +141,7 @@ export async function staffMonsters(ctx, env, path, body, who, audit) {
   const detail = { name: displayName(row), ...(note ? { note } : {}) };
   try {
     await grantCaseLines(ctx, env, new Map([[row.id, { texts: [`flagged from the staff panel's Monster watch by ${displayName(who.player)}${note ? `: ${note}` : ''}`], readers: true }]]));
-    const caseId = await openCaseFor(ctx, env, row.id, 'review');   // the case the line went to - or, inside its window, the one open already
+    const caseId = await openCaseFor(ctx, env, row.id, 'review', 'spawn');   // the spawn case the line went to (STAFF-PANEL2-FIX: a spawn case, an Admin's, never a chat report's) - or, inside its window, the one open already
     await audit('monster-flag', row.id, { ...detail, case: caseId }).run();
     return { ok: true, case: caseId };
   } catch (e) {
