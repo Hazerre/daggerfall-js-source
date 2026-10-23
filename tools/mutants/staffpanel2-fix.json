@@ -383,8 +383,8 @@
   {
     "name": "STAFF-PANEL2-FIX-cut-relay-untold",
     "file": "server-account/src/staff.js",
-    "old": "await staffCutOrder(env, subtle, at, playerId)];",
-    "new": "null];",
+    "old": "[await staffCutOrder(env, subtle, at, playerId)]",
+    "new": "[null]",
     "why": "the relay never told of the cut",
     "tests": [
       "test/server/staffpanel2fix.test.js"

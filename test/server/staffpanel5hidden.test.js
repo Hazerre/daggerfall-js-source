@@ -61,7 +61,7 @@ async function stand() {
     const key = await extensionKey();
     const r = await staff('/v1/staff/enroll', { handle, password: PASSWORD, invite: inv.body.invite, ...(await key.proof('enroll', handle)) });
     assert.equal(r.status, 200, JSON.stringify(r.body));
-    return r.body;
+    return { ...r.body, key };
   };
   const asy = await enrol('Asynian');
   const tab = await enrol('Tabbyvish');
@@ -344,5 +344,95 @@ test('STAFF-PANEL5-HIDDEN-FIX: A FOLLOW EYE IN A PRIVATE HOME is the staff membe
     const [row] = s.audits('hidden-home');
     assert.deepEqual([row.actor, row.role, JSON.parse(row.detail)], [s.game.Asynian.id, 'moderator', { sub: eye, room }], 'as the Moderator who followed');
     assert.ok(row.key_id, 'with the key her session signed in by');
+  } finally { s.restore(); }
+});
+
+// ═══ STAFF-PANEL5-HIDDEN-R2 (the relay fixes' second round: finding 14's regression and gap, finding 28's second half,
+// the cut's follow eyes) ═══
+
+test('STAFF-PANEL5-HIDDEN-R2: THE STAFF MEMBER\'S OWN WORD ENDS A HIDING, SESSION BY SESSION - the key that hid the game forgotten, from its own session, brings the game back as a normal player (never refused for good); another key forgotten ends nothing; of two sessions on one key, the older signing out ends nothing of the newer\'s, which lapsed is refused (mutants: the forget unread; any key\'s forget; a sign-out read by its key)', async () => {
+  const s = await stand();
+  try {
+    const LAPSED = { status: 409, body: { error: 'staff-session-lapsed' } };
+    const idle = (h) => s.raw.prepare('UPDATE staff_sessions SET last_act = 0 WHERE player_id = ?').run(s.game[h].id);
+    // Asynian: hidden by her one key's session, which forgets that key - a normal player at once
+    assert.equal(claimsOf((await s.mint('Asynian')).body.token).hd, 1);
+    assert.equal((await s.staff('/v1/staff/key/forget', { id: s.asy.keyId }, s.asy.session)).status, 200);
+    const back = await s.mint('Asynian');
+    assert.equal(back.status, 200, JSON.stringify(back.body));
+    assert.equal(claimsOf(back.body.token).s, s.game.Asynian.id, 'her key forgotten: shown, by her own word');
+    // Tabbyvish: hidden by her first key's session; a second key forgotten ends nothing of the first's, which then lapses
+    assert.equal(claimsOf((await s.mint('Tabbyvish')).body.token).hd, 1);
+    const tab2 = await s.enrol('Tabbyvish');
+    assert.equal((await s.staff('/v1/staff/key/forget', { id: tab2.keyId }, tab2.session)).status, 200);
+    idle('Tabbyvish');
+    assert.deepEqual(await s.mint('Tabbyvish'), LAPSED, 'another key forgotten: still nothing');
+    // mob: two sessions on one key, the newer hid the game; the older signs out - its own subject's order alone
+    s.raw.prepare('UPDATE staff_sessions SET created_at = created_at - 100 WHERE player_id = ?').run(s.game.SirMcMobdon.id);
+    const [older] = await s.subsOf('SirMcMobdon');
+    const newer = (await s.staff('/v1/staff/login', { handle: 'SirMcMobdon', password: PASSWORD, ...(await s.mobKey.proof('login', 'SirMcMobdon')) })).body.session;
+    assert.ok(newer);
+    const c = claimsOf((await s.mint('SirMcMobdon')).body.token);
+    assert.equal(c.hd, 1);
+    assert.equal(c.s, (await s.subsOf('SirMcMobdon'))[0], 'hidden by the newer session');
+    s.pushed.length = 0;
+    await s.staff('/v1/staff/logout', {}, s.mob.session);
+    assert.deepEqual(s.pushed.map((o) => claimsOf(o).s), [older], 'the older session\'s subject alone');
+    idle('SirMcMobdon');
+    assert.deepEqual(await s.mint('SirMcMobdon'), LAPSED, 'the newer session lapsed: no visible token beside its open hidden sockets');
+  } finally { s.restore(); }
+});
+
+test('STAFF-PANEL5-HIDDEN-R2: A MODERATOR REMOVED AND A STAFF MEMBER CUT ARE ORDERED OUT OF EVERY HIDDEN SOCKET THEY COULD HOLD - each Hide me game\'s and each follow eye\'s subject the log names, its staff session deleted by the panel\'s poll, a sign-in\'s prune or a new password, as one still live; a removal pushes no staffcut (mutants: the removal reads live sessions alone; the follow rows unread; the follow-home rows unread; a removal\'s staffcut)', async () => {
+  const s = await stand();
+  try {
+    const hides = () => s.pushed.map(claimsOf).filter((o) => o.o === 'hide').map((o) => o.s);
+    const SYL = s.game.Sylvia;
+    assert.equal((await s.staff('/v1/staff/mod/add', { handle: 'Sylvia' }, s.mob.session)).status, 200);
+    const syl = await s.enrol('Sylvia');
+    const login = async () => {
+      const r = await s.staff('/v1/staff/login', { handle: 'Sylvia', password: PASSWORD, ...(await syl.key.proof('login', 'Sylvia')) });
+      assert.equal(r.status, 200, JSON.stringify(r.body));
+      return r.body.session;
+    };
+    const idle = () => s.raw.prepare('UPDATE staff_sessions SET last_act = 0 WHERE player_id = ?').run(SYL.id);
+    const subjects = [];
+    const hid = async () => { const c = claimsOf((await s.mint('Sylvia')).body.token); assert.equal(c.hd, 1); subjects.push(c.s); };
+    const follow = async (session, room) => {
+      const f = await s.staff('/v1/staff/follow', { sub: s.game.Troll.id, room }, session);
+      assert.equal(f.status, 200, JSON.stringify(f.body));
+      subjects.push(claimsOf(f.body.token).s);
+    };
+    // her first session hides her game and follows Troll; gone idle, the panel's own poll deletes it
+    await hid();
+    await follow(syl.session, 'world:1,1');
+    idle();
+    assert.equal((await s.staff('/v1/staff/me', { poll: true }, syl.session)).status, 401);
+    // her second: hidden, following Troll into his home (a `follow-home` row alone); idle, the next sign-in prunes it
+    const second = await login();
+    await hid();
+    await follow(second, `owned:${'a'.repeat(32)}.${'b'.repeat(16)}:17.200`);
+    idle();
+    const third = await login();
+    // her third: hidden; a new password ends it
+    await hid();
+    assert.equal((await s.call('/v1/account/password', { oldPassword: PASSWORD, password: 'another good long one' }, SYL.secret)).status, 200);
+    assert.equal(s.raw.prepare('SELECT COUNT(*) AS n FROM staff_sessions WHERE player_id = ?').get(SYL.id).n, 0, 'every row deleted, each by its own door');
+    void third;
+    assert.equal(new Set(subjects).size, 5, 'three Hide me subjects and two follow eyes');
+    s.pushed.length = 0;
+    assert.equal((await s.staff('/v1/staff/mod/remove', { handle: 'Sylvia' }, s.mob.session)).status, 200);
+    assert.deepEqual(new Set(hides()), new Set(subjects), 'each ordered closed');
+    assert.equal(s.pushed.length, subjects.length, 'and nothing else: a removal is no cut');
+    // a cut: Asynian's Hide me game and her follow eye, her session deleted by the panel's poll before it
+    const asyHid = claimsOf((await s.mint('Asynian')).body.token).s;
+    const f = await s.staff('/v1/staff/follow', { sub: s.game.Troll.id }, s.asy.session);
+    const eye = claimsOf(f.body.token).s;
+    s.raw.prepare('UPDATE staff_sessions SET last_act = 0 WHERE player_id = ?').run(s.game.Asynian.id);
+    assert.equal((await s.staff('/v1/staff/me', { poll: true }, s.asy.session)).status, 401);
+    s.pushed.length = 0;
+    assert.equal((await s.staff('/v1/staff/cut', { handle: 'Asynian' }, s.mob.session)).status, 200);
+    assert.deepEqual(new Set(hides()), new Set([asyHid, eye]), 'her hidden game\'s and her follow eye\'s');
+    assert.deepEqual(s.pushed.map(claimsOf).filter((o) => o.o !== 'hide').map((o) => [o.o, o.s]), [['staffcut', s.game.Asynian.id]]);
   } finally { s.restore(); }
 });

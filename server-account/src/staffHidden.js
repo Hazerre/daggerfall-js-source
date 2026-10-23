@@ -63,11 +63,15 @@ const LIVE_SQL = `SELECT p.staff_hide, s.token_hash, s.key_id, k.cfg, k.pub FROM
   JOIN staff_keys k ON k.id = s.key_id AND k.player_id = s.player_id AND k.revoked_at IS NULL AND k.handle_lc = p.handle_lc
   WHERE s.player_id = ?1 AND s.expires_at > ?2 AND s.last_act > ?3 ORDER BY s.created_at DESC, s.token_hash LIMIT ${SESSIONS_MAX}`;
 /** STAFF-PANEL5-HIDDEN-FIX: whether the account's game was last minted hidden and the staff member has not ended it since -
- *  its newest `hidden-token` row with no later Show myself, sign-out of every session, or sign-out by that row's own key
- *  (a session gone idle or past its 8 hours writes no row: it is no word of the staff member's). */
-const LAPSED_SQL = `SELECT 1 AS held FROM (SELECT id, at, key_id FROM staff_audit WHERE actor = ?1 AND act = 'hidden-token' ORDER BY at DESC, id DESC LIMIT 1) h
+ *  its newest `hidden-token` row with no later Show myself, sign-out of every session, sign-out of that row's own session
+ *  (STAFF-PANEL5-HIDDEN-R2: its subject, staff.js's logout row - a key's other session signing out ends nothing of this
+ *  one's), or the row's key forgotten (STAFF-PANEL5-HIDDEN-R2: hiddenEnd closed that key's sessions' sockets, and the
+ *  game comes back as a normal player - a staff member's only key forgotten was refused for good). A session gone idle
+ *  or past its 8 hours writes no row: it is no word of the staff member's. */
+const LAPSED_SQL = `SELECT 1 AS held FROM (SELECT id, at, key_id, json_extract(detail, '$.sub') AS sub FROM staff_audit WHERE actor = ?1 AND act = 'hidden-token' ORDER BY at DESC, id DESC LIMIT 1) h
   WHERE NOT EXISTS (SELECT 1 FROM staff_audit e WHERE e.actor = ?1 AND e.at >= h.at AND e.id > h.id
-    AND ((e.act = 'hide' AND e.detail = '{"on":false}') OR (e.act = 'logout' AND (e.detail = '{"all":true}' OR e.key_id IS h.key_id))))`;
+    AND ((e.act = 'hide' AND e.detail = '{"on":false}') OR (e.act = 'logout' AND (e.detail = '{"all":true}' OR json_extract(e.detail, '$.sub') = h.sub))
+      OR (e.act = 'key-forget' AND json_extract(e.detail, '$.id') = h.key_id)))`;
 
 /**
  * THE GAME'S MINT, FOR A HIDDEN STAFF MEMBER: the spectator's token and the mint's answer, or null - the account is no

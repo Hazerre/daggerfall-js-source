@@ -217,7 +217,7 @@ test('STAFF-PANEL5-HIDDEN THE ACCEPTANCE, a region: a hidden link on its region 
   });
 });
 
-test('STAFF-PANEL5-HIDDEN the cap: a hidden seat (`?hd=1`) is taken from HIDDEN_RESERVE over a full room\'s cap, a full reserve refuses the next, and a visible socket\'s fullness counts no hidden one (mutants: the reserve unread; no bound on it; hidden sockets counted full)', async () => {
+test('STAFF-PANEL5-HIDDEN the cap: a hidden seat (`?hd=1`) is taken from HIDDEN_RESERVE over a full room\'s cap, a full reserve refuses the next, and a visible socket\'s fullness counts no hidden one; STAFF-PANEL5-HIDDEN-R2: a hidden ask takes a free seat first, however many watch (mutants: the reserve unread; no bound on it; hidden sockets counted full; a hidden ask\'s visible seats unread; the reserve a hidden ask\'s only seats)', async () => {
   let pairs = 0;
   const hadPair = globalThis.WebSocketPair;
   globalThis.WebSocketPair = class { constructor() { pairs++; const att = {}; this[0] = {}; this[1] = { att, serializeAttachment(a) { Object.assign(att, a); }, deserializeAttachment() { return att; }, close() {} }; } };
@@ -241,10 +241,20 @@ test('STAFF-PANEL5-HIDDEN the cap: a hidden seat (`?hd=1`) is taken from HIDDEN_
     for (let i = 0; i < 3; i++) { const ws = near.connect(); ws.att = { ...ws.att, id: `g-${i}`, hid: 1 }; near.room._adopt(ws, ws.att); }
     assert.equal(await status(near.room.fetch(upgrade())), 101, 'hidden sockets are out of fullness');
     assert.equal(await status(near.room.fetch(upgrade())), 503, 'and the cap still holds');
-    // an empty room's reserve is bounded the same - a crowd of watchers is never a hidden one
+    // STAFF-PANEL5-HIDDEN-R2: a hidden ask takes a free seat first - a near-empty layered cell with HIDDEN_RESERVE hidden
+    // sockets in it seats the follow eye on its target's layer, never 503 with LAYER_FULL (the Worker's walk to another)
+    const cell = fakeRoom('world:100,100');
+    const cellUp = (q = '') => new Request(`https://relay.test/room/world:100,100${q}`, { headers: { Upgrade: 'websocket' } });
+    for (let i = 0; i < 3; i++) { const ws = cell.connect(); ws.att = { ...ws.att, id: `p-${i}` }; cell.room._adopt(ws, ws.att); }
+    for (let i = 0; i < HIDDEN_RESERVE; i++) { const ws = cell.connect(); ws.att = { ...ws.att, id: `g-${i}`, hid: 1 }; cell.room._adopt(ws, ws.att); }
+    assert.equal(await status(cell.room.fetch(cellUp('?hd=1'))), 101, 'a free seat, however many watch already');
+    // and the reserve is still bounded: an empty room takes hidden asks into its free seats, then HIDDEN_RESERVE over its
+    // cap, and no more - a player still comes in, the hidden sockets out of the count
     const empty = fakeRoom('town:m9');
-    for (let i = 0; i < HIDDEN_RESERVE; i++) assert.equal(await status(empty.room.fetch(upgrade('?hd=1'))), 101);
-    assert.equal(await status(empty.room.fetch(upgrade('?hd=1'))), 503, 'HIDDEN_RESERVE hidden seats at most, however empty the room');
+    pairs = 0;
+    for (let i = 0; i < SOCKETS_MAX + HIDDEN_RESERVE; i++) assert.equal(await status(empty.room.fetch(upgrade('?hd=1'))), 101, `hidden ask ${i + 1}`);
+    assert.equal(pairs, SOCKETS_MAX + HIDDEN_RESERVE);
+    assert.equal(await status(empty.room.fetch(upgrade('?hd=1'))), 503, 'cap + HIDDEN_RESERVE sockets: a hidden ask refused');
     assert.equal(await status(empty.room.fetch(upgrade())), 101, 'and a player still comes in');
   } finally { globalThis.WebSocketPair = hadPair; }
 });
@@ -354,6 +364,10 @@ test('STAFF-PANEL5-HIDDEN the mark lapses: a hide order through the Worker\'s la
     const ghost = await link('staffer', kg, { ...HIDE, peer: GHOST_ID });
     const OTHER = 'oTh3rGh0stAAAAAAAAAAAAA';
     const other = await link('staffer2', H.hubOfSubject(OTHER), { ...HIDE, tokenSub: OTHER, peer: 'ghost-0098' });
+    // STAFF-PANEL5-HIDDEN-R2: a follow eye's hub link, its subject the follow token's (staffFollow.js followSubject) - the
+    // account service's cut and removal push its hide order too (staff.js cutPush)
+    const EYE = `hd-${'0a'.repeat(12)}`;
+    const eye = await link('eye', H.hubOfSubject(EYE), { ...HIDE, tokenSub: EYE, name: 'Spectator', peer: 'eye-0001' });
     const TWIN = 'tW1nVisibleAAAAAAAAAAAAA';
     const twin = await link('twin', H.hubOfSubject(TWIN), { tokenSub: TWIN, peer: 'twin-0001', acct: undefined, asecret: undefined });   // a visible token on a subject a hide order names, as no service mints one
     const kp = await bus.signer();
@@ -373,6 +387,10 @@ test('STAFF-PANEL5-HIDDEN the mark lapses: a hide order through the Worker\'s la
     await W.room(kg).room._hubPoll();
     for (let i = 0; i < 3; i++) { await W.room(kg).room._hubPoll(); for (const [k, rr] of W.made) if (H.isChannelBus(k)) await rr.room._downFlush(); }
     assert.equal(ghost.closed?.reason, HIDDEN_LAPSED, 'closed, never shown');
+    assert.equal(eye.closed, null, 'a follow eye stands on another subject\'s order');
+    assert.equal((await law(await mintHideOrder({ s: EYE }, kp.privateKey, { subtle, nowS }))).status, 200);
+    for (let i = 0; i < 3; i++) { await W.room(H.hubOfSubject(EYE)).room._hubPoll(); for (const [k, rr] of W.made) if (H.isChannelBus(k)) await rr.room._downFlush(); }
+    assert.equal(eye.closed?.reason, HIDDEN_LAPSED, 'and is closed by its own');
     assert.equal(other.closed, null, 'another subject\'s stands');
     assert.equal(game.closed, null, 'a player stands');
     assert.equal((await law(await mintHideOrder({ s: TWIN }, kp.privateKey, { subtle, nowS }))).status, 200);
