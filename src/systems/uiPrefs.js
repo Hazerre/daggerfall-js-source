@@ -168,8 +168,9 @@ export const PREF_DEFAULTS = Object.freeze({
   peerAttackSounds: true,   // PEER-FS2: other players' swing sounds - on by default
   monsterVolume: 1,   // MONSTER-VOL: a monster's calls, attack sounds and pain cries, 0..1 (systems/monsterVolume.js)
   peerFootsteps: true,   // PEER-FS1: other players' footstep sounds - on by default
-  // GATE-CROWD (2026-10-07, Mac: "some type of filter when there are too many people"): how many other players an
-  // Oblivion Gate's court draws at once - the nearest, the party always (net/gate/gateCrowd.js GATE_CROWD_TIERS; 0 everyone,
+  // GATE-CROWD (2026-10-07, Mac: "some type of filter when there are too many people"): how many other players are drawn
+  // at once - the nearest, the party and the duel's opponent always; everywhere but where a stranger can fight me since
+  // CROWD-WIDE (2026-10-23), a gate's court alone before it (net/gate/gateCrowd.js GATE_CROWD_TIERS; 0 everyone,
   // the default - Mac: "The default other setting should be everyone"). Its GATE_CROWD_DEFAULT, pinned equal by
   // test/systems/gatecrowd.test.js and not imported: the shelf is on the boot path, and the import made net/gate/gateCrowd.js the
   // entry's 69th file, past BOOT2's ceiling (test/render/boot2.test.js)

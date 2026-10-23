@@ -173,8 +173,71 @@
   {
     "name": "GATECROWD-frame-cut-everywhere",
     "file": "src/scenes/world.js",
-    "old": "{ on: modes?.gateArenaDay?.() != null, me: player.pos,",
+    "old": "{ on: modes?.gateArenaDay?.() != null || !(travelView?.active || wildHere() || siegeSession?.active() || royalSession?.active() || modes?.roomIdentity?.()?.kind === 'arena'), me: player.pos,",
     "new": "{ on: true, me: player.pos,",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "CROWDWIDE-court-alone",
+    "file": "src/scenes/world.js",
+    "old": "{ on: modes?.gateArenaDay?.() != null || !(travelView?.active || wildHere() || siegeSession?.active() || royalSession?.active() || modes?.roomIdentity?.()?.kind === 'arena'), me: player.pos,",
+    "new": "{ on: modes?.gateArenaDay?.() != null, me: player.pos,",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "CROWDWIDE-zone-cut",
+    "file": "src/scenes/world.js",
+    "old": "!(travelView?.active || wildHere() || siegeSession",
+    "new": "!(travelView?.active || siegeSession",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "CROWDWIDE-siege-cut",
+    "file": "src/scenes/world.js",
+    "old": "wildHere() || siegeSession?.active() || royalSession",
+    "new": "wildHere() || royalSession",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "CROWDWIDE-tourney-cut",
+    "file": "src/scenes/world.js",
+    "old": "siegeSession?.active() || royalSession?.active() || modes?.roomIdentity?.()?.kind === 'arena'), me: player.pos,",
+    "new": "siegeSession?.active() || modes?.roomIdentity?.()?.kind === 'arena'), me: player.pos,",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "CROWDWIDE-arena-cut",
+    "file": "src/scenes/world.js",
+    "old": "royalSession?.active() || modes?.roomIdentity?.()?.kind === 'arena'), me: player.pos,",
+    "new": "royalSession?.active()), me: player.pos,",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "CROWDWIDE-overhead-cut",
+    "file": "src/scenes/world.js",
+    "old": "!(travelView?.active || wildHere() ||",
+    "new": "!(wildHere() ||",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "CROWDWIDE-court-lost-in-zone",
+    "file": "src/scenes/world.js",
+    "old": "{ on: modes?.gateArenaDay?.() != null || !(travelView?.active",
+    "new": "{ on: !(travelView?.active",
     "tests": [
       "test/systems/gatecrowd.test.js"
     ]
@@ -191,8 +254,17 @@
   {
     "name": "GATECROWD-frame-party-unasked",
     "file": "src/scenes/world.js",
-    "old": "mate: (id) => !!social?.isPartyPeer(id) });   // GATE-CROWD",
-    "new": "mate: () => false });   // GATE-CROWD",
+    "old": "mate: (id) => !!social?.isPartyPeer(id) || id === duelMgr.opponent });   // GATE-CROWD",
+    "new": "mate: (id) => id === duelMgr.opponent });   // GATE-CROWD",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "CROWDWIDE-duel-unasked",
+    "file": "src/scenes/world.js",
+    "old": "mate: (id) => !!social?.isPartyPeer(id) || id === duelMgr.opponent });   // GATE-CROWD",
+    "new": "mate: (id) => !!social?.isPartyPeer(id) });   // GATE-CROWD",
     "tests": [
       "test/systems/gatecrowd.test.js"
     ]
@@ -209,8 +281,8 @@
   {
     "name": "GATECROWD-row-gone",
     "file": "src/ui/enhanced/enhancedMenu.js",
-    "old": "  c.append(choiceRow('gateCrowd', t('menu.peers.crowd', 'Crowd in the Burning Court'),",
-    "new": "  void (choiceRow('gateCrowd', t('menu.peers.crowd', 'Crowd in the Burning Court'),",
+    "old": "  c.append(choiceRow('gateCrowd', t('menu.peers.crowd', 'Players shown at once'),",
+    "new": "  void (choiceRow('gateCrowd', t('menu.peers.crowd', 'Players shown at once'),",
     "tests": [
       "test/systems/gatecrowd.test.js"
     ]
@@ -218,8 +290,8 @@
   {
     "name": "GATECROWD-row-key",
     "file": "src/ui/enhanced/enhancedMenu.js",
-    "old": "choiceRow('gateCrowd', t('menu.peers.crowd', 'Crowd in the Burning Court'),",
-    "new": "choiceRow('gateCrowds', t('menu.peers.crowd', 'Crowd in the Burning Court'),",
+    "old": "choiceRow('gateCrowd', t('menu.peers.crowd', 'Players shown at once'),",
+    "new": "choiceRow('gateCrowds', t('menu.peers.crowd', 'Players shown at once'),",
     "tests": [
       "test/systems/gatecrowd.test.js"
     ]

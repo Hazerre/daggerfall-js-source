@@ -2434,7 +2434,7 @@ telegraphs. Now:
 and forty round one boss were forty bodies, names, lights, spells and footsteps over his telegraphs. WB9h made the
 crowd's Morrowind bodies affordable; it did not make the fight readable. Now, in a gate's court, past the count chosen
 on the Other players card - **Crowd in the Burning Court** (the court by its own name: WB12a's guard holds every shipped
-string to the breach's words): everyone by default, or the nearest 12 or 24 - only that many other players are drawn:
+string to the breach's words; **Players shown at once** since CROWD-WIDE, below): everyone by default, or the nearest 12 or 24 - only that many other players are drawn:
 every party mate, then the nearest across the floor (`net/gate/gateCrowd.js crowdDrawn`). The rest stand nowhere on this
 screen - no body, sprite, name, light, aura, spell's flight or step - until they are among the nearest again.
 
@@ -2458,11 +2458,39 @@ so a stored value that is none of them shows as Everyone on the card and reads a
   aimed past them landing on them, and their cries heard. The party panel, the Nearby list and the chat still name them.
 - THE SHELF'S DEFAULT is a literal (`systems/uiPrefs.js` `gateCrowd: 0`), pinned equal to the law's: the shelf is on
   the boot path, and importing the law made `net/gate/gateCrowd.js` the entry's 69th file, past BOOT2's ceiling of 68.
-- THE COURT ALONE. The street, a building and a dungeon hold duels, arena bouts and battles, where the player cut from
-  the screen could be the one fighting me. In a court nobody fights anybody but him, so the count is applied nowhere
-  else. (PEER-RANGE, 2026-10-10, `07-Rendering/Performance-Priority.md`: a player past the Other players card's draw
-  distance is cut everywhere but under the travel view - by distance, never by count, my party and my duel always, 300 m
-  by default and past another player's shot (200 m) - and the court's count is taken from the players within it.)
+- WHERE IT CUTS. In a gate's court, wherever its gate stands; since CROWD-WIDE (below) everywhere else a stranger cannot
+  fight me too. (PEER-RANGE, 2026-10-10, `07-Rendering/Performance-Priority.md`: a player past the Other players card's
+  draw distance is cut everywhere but under the travel view - by distance, never by count, my party and my duel always,
+  300 m by default and past another player's shot (200 m) - and the count is taken from the players within it.)
+
+**Everywhere a stranger cannot fight me (CROWD-WIDE, 2026-10-23).** The owner: *"Can we implement the player toggle we
+have for the oblivion gate into the entire game? Like being able to see how many players you want to see at one time"*.
+The count cut a court alone because the street, a building and a dungeon hold duels, arena bouts and battles, where the
+player cut from the screen could be the one fighting me. It cuts everywhere now but where that can be so - the same cut,
+the same held places, the same doors asking it (`scenes/world.js` `visiblePeers`):
+
+- NEVER CUT: the open zone (`wildHere()` - WILD1's fair ground anywhere in it: its towns and roofs, its sea where ships
+  fight (SHIP-PVP), its dungeons (PVPDUNGEON)), a siege's battle and a Royal Tourney's bout (`siegeSession`,
+  `royalSession` active), an arena's room (`roomIdentity().kind === 'arena'` - my bout, or one watched from the stands),
+  and under the travel view (OW-PEERS grows every player to be seen from overhead, as PEER-RANGE cuts nobody there).
+  There every player within the draw distance is drawn.
+- A COURT IS CUT WHEREVER ITS GATE STANDS, a gate risen in the zone too: nobody fights anybody there but him.
+- MY DUEL'S OPPONENT is drawn whatever the count, from its count on (`duelMgr.opponent`, as PEER-RANGE draws them), and
+  counts toward the number as a party mate does.
+- THE ROW is the card's **Players shown at once** - its key (`menu.peers.crowd`) and the shelf's (`gateCrowd`) kept, so a
+  count chosen for the court carries over: *"How many other players are drawn at once, the nearest first. Your party and
+  your duel opponent always show, and nobody is hidden in a PvP zone, a battle or the arena."* (the zone's own words,
+  `systems/wild/wildZone.js` WILD_TEXT.walkInto: "an open PvP zone"). Its tiers and its default are GATE-CROWD's -
+  everyone, the nearest 12 or 24.
+- The law's module keeps its name (`net/gate/gateCrowd.js`): the cut is the one GATE-CROWD made. Not a DFU member:
+  Daggerfall has no other players.
+
+Pinned: `test/systems/gatecrowd.test.js` (9; its online-frame test widened - the street, a building and a dungeon cut, the
+zone, a siege, a tourney, an arena's room and the travel view never, a court in the zone cut, the duel's opponent drawn;
+the card's row by its new name). Moved with it: the drawn list's pins in `test/net/invisnet.test.js` and
+`test/net/peer/mwbody1.test.js`. Mutants `tools/mutants/gatecrowd.json` (53, all dead): eight new - the court alone, each
+of the five places cut, the court's own cut lost in the zone, the duel's opponent unasked - and four re-aimed. No relay
+change, no account change. Not yet seen in a browser over a real crowd.
 
 Pinned: `test/systems/gatecrowd.test.js` (9) - the law and its held places, the host's crowd and who it shows, the online
 frame's cut (lifted and evaluated) and the doors that ask it, the card and the shelf's literal, `companionPlace` (lifted
@@ -3399,6 +3427,13 @@ once.
 - No relay or account change.
 - Pins `test/systems/gatecrowd.test.js` (9), with auditwatchkit_net, invisnet, mwbody1, peerplaque, soc5_interact and audit27d
   re-pinned; mutants `tools/mutants/gatecrowd.json` (45).
+
+**CROWD-WIDE (2026-10-23) - the crowd's count, everywhere a stranger cannot fight me.** Section 21 above:
+- The Other players card's count (renamed **Players shown at once**) cuts everywhere, not the court alone - never in the
+  open zone, a siege's or a tourney's battle, an arena's room or under the travel view; a court wherever its gate stands.
+- My duel's opponent drawn whatever the count, as my party is.
+- No relay or account change. Pins `test/systems/gatecrowd.test.js` (9), invisnet and mwbody1 re-pinned; mutants
+  `tools/mutants/gatecrowd.json` (53).
 
 ## At sea - the sea serpent (SERPENT1, 2026-10-04)
 
