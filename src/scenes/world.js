@@ -972,7 +972,7 @@ import { createSeatBanners } from './seatBanners.js';   // SEAT1a: a seat town's
 import { createFestivalStage } from './seatFestival.js';   // FESTIVAL-STAGE: a Festival's music, banners and lanterns
 import { drawBanner } from '../ui/heraldryArt.js';   // GUILD1d: ...its heraldry painted on it
 import { heraldryLookup } from '../ui/heraldrySwatch.js';   // HERALDRY-SHOWN: a guild's heraldry by its tag, off what this client holds
-import { AuraRingRenderer, auraWearers, auraLookOf, auraBeastStep, auraMotionStep, auraCapeStep, auraSpriteBones, auraSpritePosed, auraWingLights, CLOAK_BONES, AURA_KINDLE_S, AURA_FORGET_S } from '../render/auraRing.js'; import { peerBodyYaw } from '../net/peer/peerClimb.js';   // WB9g: Dagon's Fire at a wearer's feet; SHADOW-CLOAK: a peer's facing, the cloak's front (on this line, so no cite below it moves)
+import { AuraRingRenderer, auraWearers, auraLookOf, auraBeastStep, auraMotionStep, auraCapeStep, auraSpriteBones, auraSpritePosed, auraWingLights, CLOAK_BONES, AURA_KINDLE_S, AURA_FORGET_S } from '../render/auraRing.js'; import { peerBodyYaw } from '../net/peer/peerClimb.js'; import { compiledPass } from '../render/glProgram.js';   // WB9g: Dagon's Fire at a wearer's feet; SHADOW-CLOAK: a peer's facing, the cloak's front (on this line, so no cite below it moves); AURA-STALL: its pass built once its program is done
 import { duelAttackerOf, duelWeaponOf, duelSwingOf, resolveDuelStrike, duelWearDamage, duelStandIn } from '../combat/duelCombat.js';   // DUEL1: the blow between two duellists - INT8/INT9: the striker's half alone, the relay referees (AUDIT C&C H5: against the neutral stand-in)
 import { createPageWindow, pageView } from '../ui/pageWindow.js';   // JOURNAL1: a page another player holds out, read and kept
 import { PageOffers, pageOfferText, pageShownText, pageTooFarText, keptPageTokens, keptLetterTokens, letterOfPage, PAGE_UNSUPPORTED_TEXT, PAGE_NO_READERS_TEXT, PAGE_GONE_TEXT } from '../net/journalPage.js';   // JOURNAL1: a page of the journal shown, and one shown to me kept
@@ -29118,7 +29118,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  fire is concealed with them. */
   const _auraWearers = [], _auraDraw = [], _auraPool = new Map(), _auraLights = [];
   const _auraSelf = { id: 'self', at: [0, 0, 0], aura: null, seed: 0.37, kindle: 1, since: 0, yaw: 0 };   // SHADOW-CLOAK: `yaw` the facing the cloak's opening faces
-  let _auraPass = null, _auraTried = false;
+  // AURA-STALL (bible/07-Rendering/Performance-Priority.md): built at the first wearer, the aura's program froze the game
+  // 8.5-11 s on D3D11, and the travel view draws no aura, so it met a player on the frame the view came down near a crowd.
+  // AURA-SPLIT (#1143): the pass compiles nothing of its own - each look's program is built at its own door once it is
+  // compiled (render/auraRing.js programOf), started at the boot's idle (render/playPrograms.js) - so the pass's door
+  // waits on no program: it is built at the first wearer in range, and a throw costs the auras, never the game.
+  const auraPassOf = compiledPass(renderer.gl, [], () => new AuraRingRenderer(renderer.gl), (e) => console.warn('[online] the aura would not build', e?.message ?? e));
   const auraSeedOf = (id) => { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return ((h >>> 0) % 997) / 997; };
   function auraFrame(seen) {
     _auraWearers.length = 0;
@@ -29150,7 +29155,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (!_auraWearers.length) return;
     const proj = renderer._proj, view = renderer._view, eye = renderer._camPos;   // the frame's camera, the world's own
     if (proj && view && eye && auraWearers(_auraWearers, eye, _auraDraw).length) {
-      if (!_auraTried) { _auraTried = true; try { _auraPass = new AuraRingRenderer(renderer.gl); } catch (e) { console.warn('[online] the aura would not build', e?.message ?? e); _auraPass = null; } }
+      const _auraPass = auraPassOf();   // AURA-STALL: null while its program compiles - the capes still hang and swing below
       const auraNow = performance.now() / 1000; for (const w of _auraDraw) if (auraLookOf(w.aura).mesh) { auraCapeStep(w, w === _auraSelf ? { feet: player.bodyFeetAt(), yaw: mwViewSpriteFacing()?.yaw ?? player.bodyYawFor(cam.yaw), turn: mwViewSpriteFacing()?.turn, bones: mwViewBodyBones(CLOAK_BONES) ?? auraSpriteBones(mwViewSpriteFigure()) } : peerBodies?.bonesOf(w.id, CLOAK_BONES) ?? auraSpritePosed(w, peerWalkers?.figureOf(w.id) ?? peerRiders?.figureOf?.(w.id), peerWalkers?.faceOf?.(w.id) ?? peerRiders?.faceOf?.(w.id)), w === _auraSelf ? player.height / CAPSULE_HEIGHT : 1); auraMotionStep(w, auraNow); } _auraPass?.draw(_auraDraw, proj, view, eye, auraNow, { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze });   // SHADOW-CLOAK: each cape hung on its body as drawn this frame - its bones posed by now (mine, or a peer's), else at rest, crouched with a crouch - and swung by how it moves where it is drawn; SPRITE-FACE (Mac: "The sprite rotation on character input is a little finicky and make the aura misallign"): a sprite's faced as its PICTURE is (the eight-way view drawn, mine after the mod's delayed repaint has landed - mwViewSpriteFacing, a peer's faceOf), in the saddle too, and swung by the way the body turns (`turn`)
       if (_auraPass?.drawn) renderer.markForeignPass();
     }

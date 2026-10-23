@@ -405,6 +405,7 @@ on:
       - "src/poi/poiMesh.js"
       - "src/poi/poiImage.js"
       - "server/src/staffFeedLaw.js"
+      - "src/ui/touch/touchDevice.js"
   workflow_dispatch:
 
 permissions:

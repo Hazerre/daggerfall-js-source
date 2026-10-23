@@ -317,7 +317,7 @@ test('SERAPH-WINGS the draw: the wings\' mesh uploaded; a wearer of them drawn i
   calls.length = 0;
   r.draw([{ at: [0, 0, 0], aura: 'seraphwings', yaw: 0 }, { at: [3, 0, 3], aura: 'dagonfire' }], new Float32Array(I), new Float32Array(I), [0, 1.5, -5], 10);
   assert.equal(r.drawn, 2);
-  const seq = calls.filter((c) => c[0] === 'drawArrays' || (c[0] === 'uniform1i' && c[1] === 'uAura') || ((c[0] === 'enable' || c[0] === 'disable') && c[1] === 12)).map((c) => c[0] === 'drawArrays' ? c[3] : c[0] === 'uniform1i' ? `aura ${c[2]}` : `${c[0]} offset`);
+  const seq = calls.filter((c) => c[0] === 'drawArrays' || c[0] === 'useProgram' || ((c[0] === 'enable' || c[0] === 'disable') && c[1] === 12)).map((c) => c[0] === 'drawArrays' ? c[3] : c[0] === 'useProgram' ? `aura ${r.kindOf(c[1])}` : `${c[0]} offset`);
   assert.deepEqual(seq, ['enable offset', 'aura 0', 6, AURA_STEPS * 6, 'aura 4', 6, 'disable offset', WING_VERTS, WING_CARDS * 6, 'enable offset', 'disable offset'], 'farthest first: the fire, then the wings - their pool with the offset, their strands, sparks and backlight without it, the offset back');
   assert.ok(!calls.some((c) => c[0] === 'blendFunc' && c[2] === 13), 'added whole - never premultiplied');
   calls.length = 0;
