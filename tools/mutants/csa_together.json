@@ -113,7 +113,7 @@
   {
     "name": "CSAK-peers-target-unled",
     "file": "src/scenes/comeSailAway/comeSailAwayPeers.js",
-    "old": "const at = v ? [w.position[0] + v[0] * lead, w.position[1], w.position[2] + v[2] * lead] : w.position;",
+    "old": "const at = led ? [w.position[0] + led[0], w.position[1], w.position[2] + led[1]] : w.position;",
     "new": "const at = w.position;",
     "tests": [
       "test/systems/csa_together.test.js"
