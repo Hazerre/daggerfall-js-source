@@ -109,7 +109,8 @@ import { SD_SKY_STEPS } from '../../render/superDungeon/sdSky.js';
 import { egAccessNow } from '../../ui/eliteGates/egAccess.js';   // EG-ZL: the danger palette's hazard on a Beat's warning; reduced motion stills the shakes
 import { isTouchDevice } from '../../ui/touch/touchDevice.js';
 import { createMeshKit } from '../../world/eliteGates/meshKit.js';
-import { compiledPass, parallelCompile, startPrograms } from '../../render/glProgram.js'; import { startEgLookPrograms } from './egLookDraw.js';   // FIRST-USE (#1144): the ghosts built once their program is done, and the look's programs started with the hall
+import { compiledPass, parallelCompile, startPrograms } from '../../render/glProgram.js';   // FIRST-USE (#1144): the ghosts built once their program is done
+import { startEgLookPrograms } from './egLookDraw.js';   // FIRST-USE (#1144): and the look's programs started with the hall
 import { EG_FOG_FLOOR, egGustSections } from '../../world/eliteGates/egLook.js';   // EG6a: the breath's sections, its one home (the streamers' too)
 import { EG_RIDE_DOWN_M, EG_RIDE_UP_M } from '../../net/eliteGates/egFair.js';
 import { egTubeEdgeIn, egVoidStep } from '../../net/eliteGates/egFair.js';   // EG-PERFECT: a routed hall's tube from the company at its mouth; the void zones

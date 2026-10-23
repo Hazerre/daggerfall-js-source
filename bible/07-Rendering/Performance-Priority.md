@@ -1604,7 +1604,8 @@ for the next breach's doors.
 
 THE FOUR HOSTS: none is wired here - each pass is a module's. `scenes/world.js` makes the rite's host and Starfall's;
 `scenes/dungeonContext.js` makes the Steps and the Spans at the realm's and the hall's load; the look is made by
-`scenes/eliteGates/egClient.js` for the Spire's frames, which `scenes/worldModes.js` draws; `scenes/exterior.js` (the
+`scenes/eliteGates/egClient.js`, whose draws `scenes/world.js` hands the dungeon mode (its `drawEgSky` hook and the late
+pass); `scenes/worldModes.js` builds none of them; `scenes/exterior.js` (the
 fixed city) stands none of them.
 
 **Not measured.** The real game's first-use frames, and other GPUs and drivers. The Spans' ghosts with their own options.
