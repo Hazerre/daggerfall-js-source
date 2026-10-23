@@ -48,10 +48,11 @@ import { buildStarModel, rimAt, STAR_BARE_R, STAR_STONE_H, STAR_RIM_H } from '..
 import { lateSolidsOf } from '../../player/lateSolid.js';   // STAR-TUNE: the crater a late solid - never closed on a body standing in it
 import { starArt, STAR_ARCHIVE, STAR_GLASS_RECORD, STAR_GOLD_RECORD, STAR_DARK_RECORD } from '../../world/starfall/starArt.js';
 import {
-  StarfallPassRenderer, streakAt, omenAt, skyClamp, shockRingAt, STAR_TRAIL_M, STAR_HEAD_W, STAR_FLASH_W, STAR_FLASH_MS, STAR_FALL_COLOR,
+  StarfallPassRenderer, STARFALL_PROGRAMS, streakAt, omenAt, skyClamp, shockRingAt, STAR_TRAIL_M, STAR_HEAD_W, STAR_FLASH_W, STAR_FLASH_MS, STAR_FALL_COLOR,
   STAR_RING_SEGS, STAR_RING_WIDTH_M,
 } from '../../render/starfall/starfallPass.js';
 import { warmPrograms } from '../../render/warmPrograms.js';
+import { startPrograms } from '../../render/glProgram.js';   // FIRST-USE (#1144): the warm's step names its programs
 import { findGateSite } from '../../systems/gate/gateSite.js';
 import { thunderOf, thunderSourceAt, THUNDER_SOURCE_M } from '../../systems/distantStorms.js';
 import { renownStruckAt } from '../../net/renownTracker.js';
@@ -210,12 +211,14 @@ export function createStarfallHost(host) {
   }
   /** AUDIT STARFALL R9 (PERF-COMPILE1's law, render/warmPrograms.js): the pass's three programs built at idle - while the
    *  festival stands, and again as a night's first star comes - never inside the frame of the first omen. A page with no
-   *  idle queue (node's tests) builds it there, as the draw always could. */
+   *  idle queue (node's tests) builds it there, as the draw always could. FIRST-USE (#1144): a bare step's build waited
+   *  out the whole compile inside its idle task (SHADER-STALL's finding); the step names its programs, so it builds only
+   *  once the driver says they are done, and stands down once the draw has built the pass. */
   function warmPass() {
     if (pass || passTried || passWarming || !renderer?.gl) return;
     if (!globalThis.requestIdleCallback) { ensurePass(); return; }
     passWarming = true;
-    void warmPrograms([ensurePass]);   // a step that finds it built builds nothing (ensurePass)
+    void warmPrograms([{ start: () => startPrograms(renderer.gl, STARFALL_PROGRAMS), run: ensurePass, need: () => !pass && !passTried }]);   // a step that finds it built builds nothing (ensurePass)
   }
   if (starfallStands(now())) warmPass();
 

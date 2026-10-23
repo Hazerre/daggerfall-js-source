@@ -429,13 +429,14 @@ test('AEGIS the ward\'s draw: each wearer in its own aura\'s look - the fire for
     },
   });
   const r = new AuraRingRenderer(gl);
-  assert.equal(calls.filter((c) => c[0] === 'createProgram').length, 1, 'one program for both auras');
+  // PIN MOVED (AURA-SPLIT, #1143): a look is its own program - no program at the build, each look's at its first draw, and a wearer's look the program bound (kindOf)
+  assert.equal(calls.filter((c) => c[0] === 'createProgram').length, 0, 'no program at the build');
   const I = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
   calls.length = 0;
   r.draw([{ at: [1, 0, 1] }, { at: [5, 0, 5], aura: 'oblivionward' }, { at: [9, 0, 9], aura: 'dagonfire' }], I, I, [0, 0, 0], 10);
   assert.equal(r.drawn, 3);
   const per = (name, kind) => calls.filter((c) => c[0] === kind && c[1] === name).map((c) => c[2]);
-  assert.deepEqual(per('uAura', 'uniform1i'), [0, 1, 0], 'the fire, the ward, the fire');
+  assert.deepEqual(calls.filter((c) => c[0] === 'useProgram').map((c) => r.kindOf(c[1])), [0, 1, 0], 'the fire, the ward, the fire');
   assert.deepEqual(per('uRingR', 'uniform1f'), [AURA_RING_R, WARD_RING_R, AURA_RING_R], 'each ring at its own radius');
   assert.deepEqual(per('uFlameH', 'uniform1f'), [AURA_FLAME_H, WARD_WALL_H, AURA_FLAME_H], 'each wall at its own height');
   const draws = calls.filter((c) => c[0] === 'drawArrays').map((c) => c[3]);
@@ -443,14 +444,16 @@ test('AEGIS the ward\'s draw: each wearer in its own aura\'s look - the fire for
   // what each draw was drawn with: the newest uAura and uRingR set before it
   const seen = []; let kind = null, ringR = null;
   for (const c of calls) {
-    if (c[0] === 'uniform1i' && c[1] === 'uAura') kind = c[2];
+    if (c[0] === 'useProgram') kind = r.kindOf(c[1]);
     if (c[0] === 'uniform1f' && c[1] === 'uRingR') ringR = c[2];
     if (c[0] === 'drawArrays') seen.push([kind, ringR]);
   }
   assert.deepEqual(seen, [[0, AURA_RING_R], [0, AURA_RING_R], [1, WARD_RING_R], [1, WARD_RING_R], [1, WARD_RING_R], [0, AURA_RING_R], [0, AURA_RING_R]], 'each wearer\'s ground, wall and symbols drawn in its own look');
   const kinds = calls.filter((c) => (c[0] === 'uniform1i' && c[1] === 'uKind') || c[0] === 'drawArrays').map((c) => (c[0] === 'drawArrays' ? `draw${c[3]}` : c[2]));
   assert.deepEqual(kinds, [0, 'draw6', 1, `draw${AURA_STEPS * 6}`, 0, 'draw6', 1, `draw${AURA_STEPS * 6}`, 2, `draw${WARD_GLYPHS * 6}`, 0, 'draw6', 1, `draw${AURA_STEPS * 6}`], 'the symbols drawn as the third kind');
-  assert.equal(calls.filter((c) => c[0] === 'useProgram').length, 1, 'the program bound once for the frame');
+  // PIN MOVED (AURA-SPLIT, #1143): a program a look - bound where the look changes, and handed the frame's uniforms once each
+  const boundLooks = calls.filter((c) => c[0] === 'useProgram').map((c) => r.kindOf(c[1]));
+  assert.equal(calls.filter((c) => c[0] === 'uniformMatrix4fv' && c[1] === 'uVP').length, new Set(boundLooks).size, 'each look\'s program handed the frame once');
 });
 
 // ── THE FLOATING SYMBOLS (the owner: "Can you add like symbols that float and dissipate") ──
