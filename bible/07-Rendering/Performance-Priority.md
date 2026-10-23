@@ -2415,6 +2415,30 @@ Mutants: `tools/mutants/snowsweep.json`, 6, all dead. PIN MOVED: re-aimed by con
   AUDIT-PRECIP-HOST-6-a-flat-s-decision-unread;
 - `tools/mutants/precip1.json`: PRECIP4-the-sweep-farthest-first and PRECIP4-the-step-unread.
 
+## SEA-DROPS — a boat's collider buckets are asked only where she stands
+
+*The owner, 2026-10-23: "while at sea players encounter on and off persistent frame drops".*
+
+**Measured in the real game** (SwiftShader, 160 x 90, the freeware ARENA2, under sail off the coast with the sea's ships
+about): the collider's rays were the frame's own script cost at sea. A boat's buckets move and turn (AUDIT NAV1 #12, the
+world host's `csaSyncColliders`), so none was filed by place and every ray and sphere was handed every one of them - my
+boat's ~45 and ~19 for each ship within the naval host's COLLIDE_RANGE, 101 at the heavy frame - each turned into its own
+frame and asked there. The deep's foes hundreds of metres off cast 1,100-1,200 rays a frame, and 2,400-3,200 while a
+fresh water's spawns settle (`enemyMotor.js` obstacle and clear-path casts). That is the "on and off": a ship coming into
+range, a water's spawns, and the frames drop until they are gone; 12-83 ms a frame of rays there.
+
+**The change** (`player/collider.js`): a mover's bucket is handed to a query only where its box, as it stands, reaches the
+query's (`moverReaches`: its own box carried by its translation and bounded through its turn, grown by the skins). The
+boats' buckets are laid posed (`addMesh`'s last argument), their world boxes made once a move - the sync tells the
+collider (`posesMoved`) - and kept between. Every answer is the old walk's, in the same order.
+
+**After**, the heavy frame's 3,161 rays replayed on the live collider captured at sea (140 buckets, 101 movers): 16.2 ms
+-> 4.2 ms (median of 9), every answer the same; the floor, with no mover at all, 1.2 ms.
+
+Pins: `test/player/seadrops.test.js`; PIN MOVED: `test/scenes/perfcol2.test.js` (a mover is handed where it stands, not
+always), `test/world/navaudit_frame.test.js` (the sync's buckets laid posed). Mutants: `tools/mutants/seadrops.json` (8: 7 dead, 1 equivalent as recorded); two
+`tools/mutants/perfcol2.json` records re-aimed by content (j, k), all 20 dead. `bootWorld` took one logical line (`01-Overview/Host-Split.md`).
+
 ## For the owner
 
 - **The A/B this branch owes**: on a machine with the data, `ARENA2_PATH=... node tools/frameProbe.mjs knight night`

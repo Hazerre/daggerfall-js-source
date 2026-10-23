@@ -7792,11 +7792,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         const inv = invertAffine(m);
         if (!tri || !inv || !col?.addMesh) { _csaBuckets.delete(key); continue; }
         const b = { col, m: Float64Array.from(m), inv, c, shape, R: null, Rs: new Float64Array(9), T: [0, 0, 0], boat };
-        col.addMesh(key, tri.positions, tri.indices, m, () => b.T, () => b.R);
+        col.addMesh(key, tri.positions, tri.indices, m, () => b.T, () => b.R, true);   // SEA-DROPS: posed - its box kept between the syncs that move it (player/collider.js posesMoved)
         _csaBuckets.set(key, b);
       }
     }
     for (const [key, b] of _csaBuckets) if (!want.has(key)) { b.col?.removeBucket?.(key); _csaBuckets.delete(key); }
+    col?.posesMoved?.();   // SEA-DROPS: every boat's bucket carried where she stands - the collider's posed boxes made again at its next query
   }
   const _csaSlab = [0, 0, 0], _csaSweepSkip = new Set();   // FIELD BUGS 2026-10-02b: the sweep's scratch - the sweeping boat's own buckets
   /**
