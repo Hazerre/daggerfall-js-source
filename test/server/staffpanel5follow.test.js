@@ -92,7 +92,7 @@ test('STAFF-PANEL5-FOLLOW: an Admin\'s follow token - hidden, naming its target,
   assert.equal((await s.claims(again.body.token)).s, c.s);
   const rows = s.rows('follow');
   assert.equal(rows.length, 1);
-  assert.deepEqual([rows[0].actor, rows[0].role, rows[0].target, rows[0].outcome, rows[0].detail], [s.idOf('SirMcMobdon'), 'admin', s.troll.id, 'ok', null]);
+  assert.deepEqual([rows[0].actor, rows[0].role, rows[0].target, rows[0].outcome, JSON.parse(rows[0].detail)], [s.idOf('SirMcMobdon'), 'admin', s.troll.id, 'ok', { sub: c.s }], 'STAFF-PANEL5-HIDDEN-FIX: with the subject a home entered names');
   // a minute on (the log is append-only: the clock moves instead), another row
   const real = Date.now;
   Date.now = () => real() + (FOLLOW_AUDIT_S + 1) * 1000;

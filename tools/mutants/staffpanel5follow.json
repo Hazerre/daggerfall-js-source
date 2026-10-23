@@ -122,8 +122,8 @@
   {
     "name": "STAFF-PANEL5-FOLLOW-acct-own-subject",
     "file": "server-account/src/staffFollow.js",
-    "old": "s: await followSubject(who.hash, subtle)",
-    "new": "s: who.player.id",
+    "old": "const eye = await followSubject(who.hash, subtle);",
+    "new": "const eye = who.player.id;",
     "why": "the staff member's own account on a hidden socket",
     "tests": [
       "test/server/staffpanel5follow.test.js"
