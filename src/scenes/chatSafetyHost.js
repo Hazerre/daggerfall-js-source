@@ -193,8 +193,9 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
   const carry = (order) => {
     const kind = orderKindOf(order);
     if (!kind) return 0;
+    if (kind === 'staffcut') try { minter()?.forget?.(); } catch { /* each room's own close holds without it */ }   // STAFF-PANEL5-CUT-FIX: a staff cut - the token held from before it opens no room more
     let n = 0;
-    for (const l of allLinks()) if (kind === 'ban' ? l?.sendBanOrder?.(order) : l?.sendMuteOrder?.(order)) n++;
+    for (const l of allLinks()) if (kind === 'mute' ? l?.sendMuteOrder?.(order) : l?.sendBanOrder?.(order)) n++;
     return n;
   };
   const adoptList = (list) => {

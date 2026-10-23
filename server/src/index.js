@@ -2984,7 +2984,7 @@ export class Room {
   async _banFrame(ws, m) {
     const now = Date.now();
     if (!this._spend(ws, now, muteGate, 'mbucket', 'mdrops', 'too many mute orders')) return;
-    await this._takeOrder(m.order, now, ['ban'], false);
+    await this._takeOrder(m.order, now, ['ban', 'staffcut'], false);   // STAFF-PANEL5-CUT-FIX: and a staff cut, the hub's `law` its own client carries to every room it holds
   }
   /** SAFE4: the Worker's door - an order the account service pushed, for this hub to apply and hand on. AUDIT SAFE
    *  RELAY-4: the sockets a ban closed leave the room here - this door is no socket's, and nothing reaps after it. */
@@ -3026,7 +3026,7 @@ export class Room {
     const r = await verifyOrder(order, this._verifyKey, { subtle: crypto.subtle, nowS, kind });
     if (!r.ok) return false;
     const c = r.claims;
-    if (c.o === 'staffcut') return this._staffCut(c);
+    if (c.o === 'staffcut') return this._staffCut(c, hand ? order : null);
     if (STAFF_ORDER_KINDS.includes(c.o)) return takeStaffOrder(this, c, order, now, GROUND_OLD_WORDS);   // STAFF-PANEL5-FREEZE (staffFreeze.js)
     const ban = c.o === 'ban';
     const sig = order.slice(order.lastIndexOf('.') + 1);
@@ -3054,9 +3054,20 @@ export class Room {
    *  relay order that strips staff glyphs"): A STAFF MEMBER CUT OFF - each of the account's sockets here whose token was
    *  minted before the order is closed CLOSE_POLICY 'staff-cut', as a ban closes it, so the staff glyphs that token
    *  carried leave with it; the service ended the account's game sessions in the same cut, so no token comes back until
-   *  it signs in again, and that one carries none. Nothing is kept: a socket whose token is newer is left alone. */
-  _staffCut(c) {
-    for (const [ws, b] of [...this._all()]) if (b.sub === c.s && !(b.gio > c.i)) this._banClose(ws, 'staff-cut');
+   *  it signs in again, and that one carries none. A socket whose token is newer is left alone.
+   *  STAFF-PANEL5-CUT-FIX (mob: after a cut the member keeps "no staff glyph ... and no staff power anywhere"): the
+   *  service's door (`order`) hands each socket the order first (`law`), so its own client carries it to every room it
+   *  holds (scenes/chatSafetyHost.js carry, the ban's door); and the cut is kept beside the bans (`cut:` and the account,
+   *  BAN_KEEP_S, in storage), so a token minted before it - one the client still holds - is refused at a hello
+   *  (`_bannedHello`) here, the hub's leases with it. */
+  async _staffCut(c, order) {
+    const nowS = Math.floor(Date.now() / 1000);
+    await this._loadBans(nowS);
+    const kept = !(this._bans.get(`cut:${c.s}`)?.i >= c.i);   // the newest cut kept, the same one twice once
+    if (kept) this._bans.set(`cut:${c.s}`, { i: c.i, bn: 0, sig: '' });
+    const law = order ? JSON.stringify({ t: 'law', order }) : null;
+    for (const [ws, b] of [...this._all()]) if (b.sub === c.s && !(b.gio > c.i)) { if (law) this._send(ws, law); this._banClose(ws, 'staff-cut'); }
+    if (kept) await this._saveBans(nowS);
     return true;
   }
   /** AUDIT SAFE RELAY-4: a banned account's socket closed - CLOSE_POLICY, 'banned', after its `law` and its `banned` - and
@@ -3077,6 +3088,7 @@ export class Room {
     if (typeof sub !== 'string' || !sub) return false;
     const nowS = Math.floor(now / 1000);
     await this._loadBans(nowS);
+    if (this._bans.get(`cut:${sub}`)?.i >= (Number.isSafeInteger(ti) ? ti : 0)) { this._metrics.c.refusals++; this._banClose(ws, 'staff-cut'); return true; }   // STAFF-PANEL5-CUT-FIX: a staff cut this room took after the token was minted (`_staffCut`)
     const ban = this._bans.get(sub);
     if (!ban || !(ban.bn > nowS) || ban.i < (Number.isSafeInteger(ti) ? ti : 0)) return false;
     this._metrics.c.refusals++;
