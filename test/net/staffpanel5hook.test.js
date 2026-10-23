@@ -339,6 +339,88 @@ test('STAFF-PANEL5-FOLLOW-R2 hook, on real sessions: once locked on, a fast trav
   }
 });
 
+/** STAFF-PANEL5-FOLLOW-R3: a follow on real sessions, its hub and its eye, and the target at the seam of world:6,6 and
+ *  world:7,6 - the room's welcome shows them by the socket id the hub's `in` said. */
+async function seamFollow() {
+  const flush = async () => { for (let i = 0; i < 8; i++) await new Promise((r) => setImmediate(r)); };
+  const v = `world${FOLLOW_RELAY_MIN}`;
+  const { FakeWS, sockets } = fakeSocketClass();
+  const counts = { mints: 0 };
+  const hook = createStaffHook({ main: () => ({ url: 'wss://relay.test' }), askToken: async () => { counts.mints++; return 'tok'; }, WS: FakeWS });
+  const idOf = (ws) => ws.sent.map(JSON.parse).find((m) => m.t === 'hello').id;
+  const roomOf = (ws) => ws.url.replace('wss://relay.test/room/', '').replace('?hd=1', '');
+  const at = (px) => ({ x: px * 32768 + 10, y: 3, z: (499 - 100) * 32768 + 10, yaw: 0, pitch: 0 });
+  const A = at(111), B = at(112), cellA = cellRoomOfWire(A.x, A.z), cellB = cellRoomOfWire(B.x, B.z);
+  assert.deepEqual([cellA, cellB], ['world:6,6', 'world:7,6']);
+  hook.follow('acct-target'); hook.tick();
+  const [hub] = sockets;
+  hub.open(); await flush();
+  hub.receive({ t: 'welcome', id: idOf(hub), peers: [], n: 1, v });
+  hub.receive({ t: 'fol', k: 'on', sub: 'acct-target' });
+  const say = (f) => hub.receive({ t: 'fol', sub: 'acct-target', ...f });
+  const noteAt = (p) => say({ k: 'note', p: note(cellRoomOfWire(p.x, p.z), { px: Math.trunc(p.x / 32768), wx: p.x, wy: p.y, wz: p.z }), ag: 0 });
+  /** The eye's room opens and welcomes it, the target in it at `pose` (or not there). */
+  const welcome = async (pose) => {
+    const eye = sockets.at(-1);
+    eye.open(); await flush();
+    eye.receive({ t: 'welcome', id: idOf(eye), peers: pose ? rosterFor([{ id: 'peer-t', name: 'Bran', look: null, pose }], idOf(eye)) : [], n: pose ? 2 : 1, v });
+    hook.tick(); await flush();
+  };
+  const step = async () => { hook.tick(); await flush(); };
+  const eyes = () => sockets.slice(1).map(roomOf);
+  return { hook, sockets, counts, A, B, cellA, cellB, say, noteAt, welcome, step, eyes };
+}
+
+test('STAFF-PANEL5-FOLLOW-R3 hook, on real sessions: a target at a seam - the eye\'s own `in` from the cell it just left, said through the bus a few frames behind, no longer sends it back: it locks on, one socket a cell', async () => {
+  const { hook, sockets, counts, A, B, cellA, cellB, say, noteAt, welcome, step, eyes } = await seamFollow();
+  noteAt(B); await step();
+  await welcome(B);
+  say({ k: 'in', room: cellB, id: 'peer-t' }); await step();
+  assert.ok(hook.view(), 'locked on in their cell');
+  // they step over the seam into A: B (their halo now) shows them there, and the eye goes to A
+  sockets.at(-1).receive({ t: 'pose', id: 'peer-t', p: { ...A, ts: 1 } }); await step();
+  assert.deepEqual(eyes(), [cellB, cellA]);
+  // and back: A's welcome (their halo) shows them in B, and the eye goes back to B...
+  await welcome(B);
+  assert.deepEqual(eyes(), [cellB, cellA, cellB]);
+  // ...while A's word for the eye's own hello there, through the bus, lands after: no newer than the pose A showed
+  say({ k: 'in', room: cellA, id: 'peer-t' });
+  for (let i = 0; i < 4; i++) await step();
+  assert.deepEqual(eyes(), [cellB, cellA, cellB], 'the eye stays on its way to B - no flip back to A');
+  await welcome(B);
+  say({ k: 'in', room: cellB, id: 'peer-t' });
+  for (let i = 0; i < 4; i++) await step();
+  assert.deepEqual([hook.view()?.x, hook.room()], [B.x, cellB], 'locked on in B');
+  assert.deepEqual([sockets.length - 1, counts.mints], [3, 4], 'three eye sockets, four tokens (the hub\'s and one a room joined)');
+  hook.unlock();
+});
+
+test('STAFF-PANEL5-FOLLOW-R3 hook, on real sessions: a note sent before the crossing, naming the cell the eye just left on their pose, keeps it on its way; a note still wins once the cell it went to welcomed it without them', async () => {
+  const { hook, sockets, A, B, cellA, cellB, say, noteAt, welcome, step, eyes } = await seamFollow();
+  noteAt(A); await step();
+  await welcome(A);
+  say({ k: 'in', room: cellA, id: 'peer-t' }); await step();
+  assert.ok(hook.view(), 'locked on in their cell');
+  // they cross into B: A shows them there, and the eye goes on to B
+  sockets.at(-1).receive({ t: 'pose', id: 'peer-t', p: { ...B, ts: 1 } }); await step();
+  assert.deepEqual(eyes(), [cellA, cellB]);
+  // their last note from A, written before the crossing, lands now
+  noteAt(A);
+  for (let i = 0; i < 4; i++) await step();
+  assert.deepEqual(eyes(), [cellA, cellB], 'a late note naming the cell the pose was seen in sends the eye back nowhere');
+  await welcome(B);
+  assert.deepEqual([hook.view()?.x, hook.room()], [B.x, cellA], 'locked on in B, the note\'s room standing until the hub says another');
+  // they step back into A: B shows them there, the eye goes - and before A welcomes it they recall to the far side of B
+  sockets.at(-1).receive({ t: 'pose', id: 'peer-t', p: { ...A, ts: 2 } }); await step();
+  assert.deepEqual(eyes(), [cellA, cellB, cellA]);
+  await welcome(null);
+  assert.deepEqual(eyes(), [cellA, cellB, cellA], 'on its way, the pose that led holds');
+  noteAt(B);
+  for (let i = 0; i < 4; i++) await step();
+  assert.deepEqual(eyes(), [cellA, cellB, cellA, cellB], 'A welcomed the eye without them: their note naming B wins, though B is where the pose was seen');
+  hook.unlock();
+});
+
 test('STAFF-PANEL5-FOLLOW-FIX hook: a lease the hub hands after the eye is made reaches it too (finding 5); a follow into a home asks that room, and the place is the home (finding 2)', async () => {
   const { Session, made } = fakeSessions();
   const asked = [];

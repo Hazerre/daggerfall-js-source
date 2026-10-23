@@ -64,8 +64,12 @@ export function createStaffHook({ main, askToken, Session = OnlineSession, WS = 
     if (f.k === 'on') on = true;
     // STAFF-PANEL5-FOLLOW-R2: the hub's newer word on their room wins over the pose seen before it (a fast travel, a door
     // out) - a pose seen after it leads again (tick)
-    else if (f.k === 'note') { note = f.p; const r = noteRoom(f.p); if (r) { room = r.room; ly = r.ly; seen = null; } }
-    else if (f.k === 'in') { room = f.room; ly = f.ly ?? 0; pid = f.id ?? pid; seen = null; }
+    // STAFF-PANEL5-FOLLOW-R3: but a word naming the room that pose was seen in is no newer than it - the eye's own `in`
+    // from the cell it just left, or a note sent before the crossing; dropping the pose on it sent the eye back while it
+    // was on its way (a seam: two cells, every few frames, a token and a hello each). A note still wins once the eye's
+    // new room has welcomed it and not shown them (gone back by a recall, say)
+    else if (f.k === 'note') { note = f.p; const r = noteRoom(f.p); if (r) { room = r.room; ly = r.ly; if (r.room !== seenIn || eye?.welcomed) seen = null; } }
+    else if (f.k === 'in') { room = f.room; ly = f.ly ?? 0; pid = f.id ?? pid; if (f.room !== seenIn) seen = null; }
     else if (f.k === 'gone') { room = null; seen = null; pid = null; }   // offline: the follow stands, and waits for their next note
     // 'out': the room keeps its socket until the hub's next note says where they went
   }

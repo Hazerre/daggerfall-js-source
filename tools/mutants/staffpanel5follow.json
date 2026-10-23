@@ -975,8 +975,8 @@
   {
     "name": "STAFF-PANEL5-FOLLOW-FIX-hook-in-id-unkept",
     "file": "src/net/staffHook.js",
-    "old": "ly = f.ly ?? 0; pid = f.id ?? pid; seen",
-    "new": "ly = f.ly ?? 0; seen",
+    "old": "ly = f.ly ?? 0; pid = f.id ?? pid; if",
+    "new": "ly = f.ly ?? 0; if",
     "why": "finding 1: the id a room said is thrown away",
     "tests": [
       "test/net/staffpanel5hook.test.js"
@@ -1075,7 +1075,7 @@
   {
     "name": "STAFF-PANEL5-FOLLOW-R2-hook-note-keeps-pose",
     "file": "src/net/staffHook.js",
-    "old": "ly = r.ly; seen = null; } }",
+    "old": "ly = r.ly; if (r.room !== seenIn || eye?.welcomed) seen = null; } }",
     "new": "ly = r.ly; } }",
     "why": "round 2: a newer note loses to the pose seen before it - a fast travel while the eye was on its way leaves it in the old cell",
     "tests": [
@@ -1085,7 +1085,7 @@
   {
     "name": "STAFF-PANEL5-FOLLOW-R2-hook-in-keeps-pose",
     "file": "src/net/staffHook.js",
-    "old": "pid = f.id ?? pid; seen = null; }",
+    "old": "pid = f.id ?? pid; if (f.room !== seenIn) seen = null; }",
     "new": "pid = f.id ?? pid; }",
     "why": "round 2: a room's newer word loses to the pose seen before it",
     "tests": [
@@ -1138,6 +1138,36 @@
     "old": "seen = v; seenIn = eye.room; }",
     "new": "seen = v; }",
     "why": "round 2: the room a pose was seen in is not kept, so its going is never noticed",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-R3-hook-in-own-room-drops-pose",
+    "file": "src/net/staffHook.js",
+    "old": "if (f.room !== seenIn) seen = null; }",
+    "new": "seen = null; }",
+    "why": "round 3: the eye's own `in` from the cell it just left drops the pose that led it on - at a seam the eye flips between two cells, a token and a hello each",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-R3-hook-note-own-room-drops-pose",
+    "file": "src/net/staffHook.js",
+    "old": "if (r.room !== seenIn || eye?.welcomed) seen = null",
+    "new": "seen = null",
+    "why": "round 3: a note sent before the crossing, naming the cell the pose was seen in, sends the eye back while it is on its way",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-R3-hook-note-welcomed-unread",
+    "file": "src/net/staffHook.js",
+    "old": "r.room !== seenIn || eye?.welcomed",
+    "new": "r.room !== seenIn",
+    "why": "round 3: a pose that led to a cell that welcomed the eye without them holds it there against every note naming the room it was seen in (a recall back)",
     "tests": [
       "test/net/staffpanel5hook.test.js"
     ]
