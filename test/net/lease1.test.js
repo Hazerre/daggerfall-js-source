@@ -56,8 +56,10 @@ test('LEASE1 THE LEASE: minted with the relay\'s key and read back whole; anothe
   assert.equal(hello(1).ls, 1);
   for (const v of [undefined, 0, 2, '1', true]) assert.equal(hello(v).ls, undefined, String(v));
   // the rooms
-  for (const key of [CHAT_TRADE_ROOM, CHAT_LFG_ROOM, chatRegionRoom(3), H.regionShardRoom(3, 1), chatLangRoom('de'), CELL, 'dungeon:m123', 'interior:m123456.7']) assert.equal(leaseRoom(key), true, key);
-  for (const key of [CHAT_WORLD_ROOM, H.hubOfSubject('acct-mac-0001'), 'nowhere', null]) assert.equal(leaseRoom(key), false, String(key));
+  // PIN MOVED (STAFF-PANEL5-FREEZE-FIX, mob: "freeze they can only talk to staff while frozen"): every room but the hub's
+  // binds - a town, a home, a caravan, a siege, an arena, a gate, a breach and a Super dungeon realm too
+  for (const key of [CHAT_TRADE_ROOM, CHAT_LFG_ROOM, chatRegionRoom(3), H.regionShardRoom(3, 1), chatLangRoom('de'), CELL, 'dungeon:m123', 'interior:m123456.7', 'town:m9', 'owned:x', 'caravan:x', 'siege:x', 'arena:x', 'gate:x', 'eg:x', 'sd:x', 'nowhere']) assert.equal(leaseRoom(key), true, key);
+  for (const key of [CHAT_WORLD_ROOM, H.hubOfSubject('acct-mac-0001'), null, undefined]) assert.equal(leaseRoom(key), false, String(key));
   assert.deepEqual([relaySupportsLease('world241'), relaySupportsLease('world242'), relaySupportsLease('world300'), relaySupportsLease(null), relaySupportsLease('world')], [false, true, true, false, false]);
   assert.ok(RELAY_CFG_KEYS.includes('leaseDoor'));
   assert.ok(new TextEncoder().encode(LEASE_OLD_REASON).length <= 123);
@@ -223,7 +225,7 @@ test('LEASE1 A FROZEN SOCKET IS HEARD IN NOTHING BUT ITS PING AND ITS LEASE (STA
   assert.ok(!lines(ear).includes('right behind a freeze'), 'judged under the freeze it waited on');
 });
 
-test('LEASE1 THE DOOR: off, a build that hands on no lease is let in, and a bound socket with no lease yet or a lapsed one stands and is heard; on, a lease room refuses such a hello (GROUND-GATE\'s words, CLOSE_POLICY, LEASE_OLD_REASON) and the hub never does, a bound socket is heard in nothing but its ping until its first lease lands - NO GRACE (a review of the PR: a changed game that reconnected inside one was never leased, and a token carries no freeze) - a frame right behind a lease still being read waits on it and is heard, a bound socket whose lease lapsed has its ping answered and is heard in nothing - never closed (the third review: a close bought an honest game back from a hidden tab nothing but a reconnect) - until its next lease lands, a renewed one stands, an idle socket\'s renewal right ahead of its next frame is waited on too, and a room no lease binds (a town, the hub) hears a build that hands on none (mutants: the door always on; the hub bound; the renewed unheard; the lease not renewed; the unleased heard; the unleased closed; a grace back; the frame not waiting on its lease; a lapsed socket unheard with the door off; a lapsed socket closed; a lapsed socket\'s ping dropped; a renewal after a lapse not waited on; a town bound; a hub\'s frame bound)', async (t) => {
+test('LEASE1 THE DOOR: off, a build that hands on no lease is let in, and a bound socket with no lease yet or a lapsed one stands and is heard; on, a lease room refuses such a hello (GROUND-GATE\'s words, CLOSE_POLICY, LEASE_OLD_REASON) and the hub never does, a bound socket is heard in nothing but its ping until its first lease lands - NO GRACE (a review of the PR: a changed game that reconnected inside one was never leased, and a token carries no freeze) - a frame right behind a lease still being read waits on it and is heard, a bound socket whose lease lapsed has its ping answered and is heard in nothing - never closed (the third review: a close bought an honest game back from a hidden tab nothing but a reconnect) - until its next lease lands, a renewed one stands, an idle socket\'s renewal right ahead of its next frame is waited on too, and the hub, the one room no lease binds, hears a build that hands on none - a town is a lease room (STAFF-PANEL5-FREEZE-FIX) (mutants: the door always on; the hub bound; the renewed unheard; the lease not renewed; the unleased heard; the unleased closed; a grace back; the frame not waiting on its lease; a lapsed socket unheard with the door off; a lapsed socket closed; a lapsed socket\'s ping dropped; a renewal after a lapse not waited on; a town bound; a hub\'s frame bound)', async (t) => {
   const off = await rooms(t);
   const ear0 = await off.join(off.trade, 'ear-0000', { ls: 1 });
   const old = await off.join(off.trade, 'old-0001');
@@ -287,14 +289,11 @@ test('LEASE1 THE DOOR: off, a build that hands on no lease is let in, and a boun
   await Promise.all([on.say(on.trade, fresh, { t: 'lease', l: renewal }), on.say(on.trade, fresh, { t: 'chat', text: 'back from idle' })]);
   assert.equal(fresh.closed, null, 'its renewal was waited on: not closed');
   assert.ok(lines(ear).includes('back from idle'), 'and its line heard');
-  // a room no lease binds hears a build that hands on none, the door on all the same: a town, and the hub itself
+  // PIN MOVED (STAFF-PANEL5-FREEZE-FIX: every room but the hub's is a lease room): a town turns such a build away as a
+  // cell does; the hub alone, the door on all the same, hears a build that hands on none
   const town = on.make('town:m9');
-  const tEar = await on.join(town, 'ear-0002', { ls: 1 }), tOld = await on.join(town, 'old-0005');
-  const tHeard = tEar.sent.length;
-  on.tick(1000);
-  await on.say(town, tOld, { t: 'chat', text: 'a town' });
-  assert.equal(tOld.closed, null, 'a town is no lease room: not turned away');
-  assert.ok(tEar.sent.length > tHeard, 'and heard');
+  const tOld = await on.join(town, 'old-0005');
+  assert.equal(tOld.closed?.reason, LEASE_OLD_REASON, 'a town is a lease room: turned away');
   const hEar = await on.join(on.hub, 'ear-0003'), hOld = await on.join(on.hub, 'old-0006');
   on.tick(1000);
   await on.say(on.hub, hOld, { t: 'chat', text: 'the hub' });
@@ -736,7 +735,7 @@ test('LEASE1 THE GAME: a hello to a lease room says `ls` 1 and to the hub none; 
   gate.open();
   await settle();
   gate.receive({ t: 'welcome', id: 'me-00001', peers: [], n: 1, v: 'world242' });
-  assert.equal(cell.s.sendLease('roam.mac'), false, 'a gate is no lease room: nothing to hand it to now');
+  assert.equal(cell.s.sendLease('roam.mac'), true, 'PIN MOVED (STAFF-PANEL5-FREEZE-FIX): a gate is a lease room too');
   now += 20_000;
   cell.s.join(CELL, P0);
   const back = sockets.at(-1);

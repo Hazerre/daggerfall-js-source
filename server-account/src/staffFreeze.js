@@ -117,11 +117,11 @@ export function discordInvite(env) {
  * A FREEZE ACT'S ORDER, PUSHED: a fresh `freeze` order for the row as it stands (its end, or 0 lifted) to the relay's law
  * door, and the act marked live when the door took it - its own revision alone. Answers whether it went.
  * STAFF-PANEL5-FREEZE-FIX (a review): the hub keeps the newest order by its time, and a tie by the later arrival. So the
- * order's time is its mint's (a request's or a clock firing's own second can be older than an act that committed before
- * the mint), and a push whose revision moved on while it went - a newer act committed, whose own order may have landed
- * first - reads the row again and pushes it as it stands, after its own (`tries` such pushes at most; one that fails
- * leaves that act waiting for the minute's clock).
- * @param {{ db: any, nowS: number, subtle: SubtleCrypto }} ctx @param {any} env @param {{ id: string, frozen_until: any, freeze_rev: any }} row
+ * order's time is its mint's (the request's second, or the clock firing's, can be older than another act committed
+ * before this mint), and a push whose revision moved on while it went - a newer act committed, whose own order may have
+ * landed first - reads the row again and pushes it as it stands, after its own (`tries` such pushes at most; one that
+ * fails leaves that act waiting for the minute's clock).
+ * @param {{ db: any, nowS: number, subtle: SubtleCrypto }} ctx @param {any} env @param {{ id: string, frozen_until: any, freeze_rev: any }} row @param {number} [tries]
  */
 export async function pushFreeze({ db, nowS, subtle }, env, row, tries = 3) {
   const key = await signingKey(env, subtle);

@@ -492,12 +492,13 @@
   {
     "name": "STAFF-PANEL5-FREEZE-members-all",
     "file": "server/src/staffFreeze.js",
-    "old": "if (b.id && (b.sub === sub || b.hd === 1)) room._send(other, out);",
+    "old": "if (b.id && (b.sub === sub || isHidden(b))) room._send(other, out);",
     "new": "if (b.id) room._send(other, out);",
     "why": "a nudge to everyone",
     "tests": [
       "test/net/staffpanel5_freeze_relay.test.js"
-    ]
+    ],
+    "note": "STAFF-PANEL5-FREEZE-FIX (re-aimed by content): staff sockets are the hidden ones (isHidden), never `hd` 1."
   },
   {
     "name": "STAFF-PANEL5-FREEZE-no-thread-nudges",
@@ -707,6 +708,146 @@
     "why": "a freeze that lost its race opens a thread",
     "tests": [
       "test/server/staffpanel5_freeze.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-old-lease-rooms",
+    "file": "src/net/roomLease.js",
+    "old": "export const leaseRoom = (key) => typeof key === 'string' && !isSocialRoom(key);",
+    "new": "export const leaseRoom = (key) => typeof key === 'string' && !isSocialRoom(key) && /^(chat|world|dungeon|interior):/.test(key);",
+    "why": "finding 21: a home, a caravan, a siege, an arena, a gate, a breach and a Super dungeon realm out of the leases again - a freeze never reaches them",
+    "tests": [
+      "test/net/staffpanel5_freeze_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-hello-pose-taken",
+    "file": "server/src/staffFreeze.js",
+    "old": "if (who.fz && !isChatRoom(key)) m.pose = posedHere(room, who.subject);",
+    "new": "if (false) m.pose = posedHere(room, who.subject);",
+    "why": "finding 22: a frozen hello stands where it says - a reconnect is a step",
+    "tests": [
+      "test/net/staffpanel5_freeze_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-pose-of-anyone",
+    "file": "server/src/staffFreeze.js",
+    "old": "if (b.sub === sub && b.pose && typeof b.pose === 'object') return",
+    "new": "if (b.pose && typeof b.pose === 'object') return",
+    "why": "finding 22: a frozen hello stands where anyone in the room stands",
+    "tests": [
+      "test/net/staffpanel5_freeze_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-pose-walking",
+    "file": "server/src/staffFreeze.js",
+    "old": "return { ...b.pose, mv: 0 };",
+    "new": "return b.pose;",
+    "why": "finding 22: a frozen reconnect stands walking",
+    "tests": [
+      "test/net/staffpanel5_freeze_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-staff-by-hd",
+    "file": "server/src/staffFreeze.js",
+    "old": "if (b.id && (b.sub === sub || isHidden(b))) room._send(other, out);",
+    "new": "if (b.id && (b.sub === sub || b.hd === 1)) room._send(other, out);",
+    "why": "findings 19, 24, 30: staff matched on `hd` 1, which no attachment carries - no staff socket nudged",
+    "tests": [
+      "test/net/staffpanel5_freeze_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-shard-mints-own",
+    "file": "server/src/index.js",
+    "old": "if (a.vid && isChannelShard(room)) { this._hubForward(ws, a, message); return; }",
+    "new": "if (false) { this._hubForward(ws, a, message); return; }",
+    "why": "finding 25: a hub shard mints a lease from its own copy before the bus's book reaches a fresh hello",
+    "tests": [
+      "test/net/staffpanel5_freeze_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-no-push-after",
+    "file": "server-account/src/staffFreeze.js",
+    "old": "if (set.meta.changes || tries < 1) return true;",
+    "new": "return true;",
+    "why": "finding 23: a push whose revision moved on is the last word - a stale freeze held at the hub",
+    "tests": [
+      "test/server/staffpanel5_freeze.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-push-after-own-rev",
+    "file": "server-account/src/staffFreeze.js",
+    "old": "if (!cur || Number(cur.freeze_rev) === Number(row.freeze_rev)) return true;",
+    "new": "if (!cur) return true;",
+    "why": "finding 23: a push of a revision live already pushes it again, and again",
+    "tests": [
+      "test/server/staffpanel5_freeze.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-failed-after-live",
+    "file": "server-account/src/staffFreeze.js",
+    "old": "if (!(await pushFreeze({ db, nowS: at, subtle }, env, cur, tries - 1))) await db.prepare(",
+    "new": "await pushFreeze({ db, nowS: at, subtle }, env, cur, tries - 1); if (false) await db.prepare(",
+    "why": "finding 23: a failed push after leaves the newer act said live, never tried again",
+    "tests": [
+      "test/server/staffpanel5_freeze.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-order-time-request",
+    "file": "server-account/src/staffFreeze.js",
+    "old": "const at = Math.max(nowS, Math.floor(Date.now() / 1000));",
+    "new": "const at = nowS;",
+    "why": "finding 23: an order's time is its request's - older than an act committed before its mint",
+    "tests": [
+      "test/server/staffpanel5_freeze.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-firing-read-pushed",
+    "file": "server-account/src/staffFreeze.js",
+    "old": "for (const { id } of rows) {\n    const r = await db.prepare('SELECT id, frozen_until, freeze_rev FROM players WHERE id = ?1 AND freeze_live = 0').bind(id).first();",
+    "new": "for (const r of rows) {",
+    "why": "finding 23: the clock pushes each row as its firing read it",
+    "tests": [
+      "test/server/staffpanel5_freeze.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-tries",
+    "file": "server-account/src/staffFreeze.js",
+    "old": "export async function pushFreeze({ db, nowS, subtle }, env, row, tries = 3) {",
+    "new": "export async function pushFreeze({ db, nowS, subtle }, env, row, tries = 1) {",
+    "why": "finding 23: the bound on pushes after",
+    "tests": [
+      "test/server/staffpanel5_freeze.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-read-raises-only",
+    "file": "src/net/staffChat.js",
+    "old": "until = f ? f.until : 0;",
+    "new": "if (f && f.until > until) until = f.until;",
+    "why": "finding 26: a read never lowers the freeze - a lift the relay never said holds the motor",
+    "tests": [
+      "test/net/staffpanel5_freeze_client.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-relay-word-overruled",
+    "file": "src/net/staffChat.js",
+    "old": "if (word === heard) {",
+    "new": "if (true) {",
+    "why": "finding 26: a read begun before the relay's lift puts the freeze back",
+    "tests": [
+      "test/net/staffpanel5_freeze_client.test.js"
     ]
   }
 ]
