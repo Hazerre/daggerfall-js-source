@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import { fakeRoom, fakeRooms } from '../fakeRoom.mjs';
-import { SOCIAL_ROOM, SOCKETS_MAX, CLOSE_POLICY, chatRegionRoom, FOES_STALE_MS, PIXEL_UNITS, LAYER_HEADER, LAYER_ASK_HEADER, LAYER_EMPTY_HEADER } from '../../src/net/wire.js';
+import { SOCIAL_ROOM, SOCKETS_MAX, CLOSE_POLICY, CLOSE_BUSY, HELLO_WAIT_MS, chatRegionRoom, FOES_STALE_MS, PIXEL_UNITS, LAYER_HEADER, LAYER_ASK_HEADER, LAYER_EMPTY_HEADER } from '../../src/net/wire.js';
 import { egBreachOfRoom } from '../../src/net/eliteGates/egLaw.js';
 import * as H from '../../src/net/hubShards.js';
 import { mintHideOrder, mintOrder, importPublicKeyB64 } from '../../src/net/identityToken.js';
@@ -217,7 +217,7 @@ test('STAFF-PANEL5-HIDDEN THE ACCEPTANCE, a region: a hidden link on its region 
   });
 });
 
-test('STAFF-PANEL5-HIDDEN the cap: a hidden seat (`?hd=1`) is taken from HIDDEN_RESERVE over a full room\'s cap, a full reserve refuses the next, and a visible socket\'s fullness counts no hidden one; STAFF-PANEL5-HIDDEN-R2: a hidden ask takes a free seat first, however many watch (mutants: the reserve unread; no bound on it; hidden sockets counted full; a hidden ask\'s visible seats unread; the reserve a hidden ask\'s only seats)', async () => {
+test('STAFF-PANEL5-HIDDEN the cap: a hidden seat (`?hd=1`) is taken from HIDDEN_RESERVE over a full room\'s cap, a full reserve refuses the next, and a visible socket\'s fullness counts no hidden one; STAFF-PANEL5-HIDDEN-R2: a hidden ask takes a free seat first, however many watch (mutants: the reserve unread; no bound on it; hidden sockets counted full; a hidden ask\'s visible seats unread; the reserve a hidden ask\'s only seats; R3: a hello\'d hidden socket counted as a pending seat)', async () => {
   let pairs = 0;
   const hadPair = globalThis.WebSocketPair;
   globalThis.WebSocketPair = class { constructor() { pairs++; const att = {}; this[0] = {}; this[1] = { att, serializeAttachment(a) { Object.assign(att, a); }, deserializeAttachment() { return att; }, close() {} }; } };
@@ -235,6 +235,11 @@ test('STAFF-PANEL5-HIDDEN the cap: a hidden seat (`?hd=1`) is taken from HIDDEN_
     const seats = full.state.getWebSockets().filter((ws) => ws.att?.hs === 1);
     assert.equal(seats.length, HIDDEN_RESERVE, 'each seat marked the reserve\'s (`hs`)');
     assert.equal(await status(full.room.fetch(upgrade('?hd=1'))), 503, 'the reserve full');
+    // the reserve over a full room's cap is HIDDEN_RESERVE sockets, hello'd or not
+    const fullV = fakeRoom('town:m9');
+    for (let i = 0; i < SOCKETS_MAX; i++) { const ws = fullV.connect(); ws.att = { ...ws.att, id: `p-${i}` }; fullV.room._adopt(ws, ws.att); }
+    for (let i = 0; i < HIDDEN_RESERVE; i++) { const ws = fullV.connect(); ws.att = { ...ws.att, id: `g-${i}`, hs: 1, hid: 1 }; fullV.room._adopt(ws, ws.att); }
+    assert.equal(await status(fullV.room.fetch(upgrade('?hd=1'))), 503, 'HIDDEN_RESERVE hidden sockets over a full room: the next refused');
     // a room one short of its cap with hidden sockets in it: the visible seat is still there
     const near = fakeRoom('town:m9');
     for (let i = 0; i < SOCKETS_MAX - 1; i++) { const ws = near.connect(); ws.att = { ...ws.att, id: `p-${i}` }; near.room._adopt(ws, ws.att); }
@@ -246,17 +251,46 @@ test('STAFF-PANEL5-HIDDEN the cap: a hidden seat (`?hd=1`) is taken from HIDDEN_
     const cell = fakeRoom('world:100,100');
     const cellUp = (q = '') => new Request(`https://relay.test/room/world:100,100${q}`, { headers: { Upgrade: 'websocket' } });
     for (let i = 0; i < 3; i++) { const ws = cell.connect(); ws.att = { ...ws.att, id: `p-${i}` }; cell.room._adopt(ws, ws.att); }
-    for (let i = 0; i < HIDDEN_RESERVE; i++) { const ws = cell.connect(); ws.att = { ...ws.att, id: `g-${i}`, hid: 1 }; cell.room._adopt(ws, ws.att); }
+    for (let i = 0; i < HIDDEN_RESERVE; i++) { const ws = cell.connect(); ws.att = { ...ws.att, id: `g-${i}`, hs: 1, hid: 1 }; cell.room._adopt(ws, ws.att); }   // each came by a hidden seat and said its hidden hello
     assert.equal(await status(cell.room.fetch(cellUp('?hd=1'))), 101, 'a free seat, however many watch already');
-    // and the reserve is still bounded: an empty room takes hidden asks into its free seats, then HIDDEN_RESERVE over its
-    // cap, and no more - a player still comes in, the hidden sockets out of the count
+    // and the reserve is still bounded: hello'd hidden sockets take an empty room's free seats, then HIDDEN_RESERVE over its
+    // cap, and no more - a player still comes in, the hidden sockets out of the count (STAFF-PANEL5-HIDDEN-R3: the seats
+    // asked and not yet hello'd are bounded on their own, the next test)
     const empty = fakeRoom('town:m9');
+    for (let i = 0; i < SOCKETS_MAX + HIDDEN_RESERVE - 1; i++) { const ws = empty.connect(); ws.att = { ...ws.att, id: `g-${i}`, hs: 1, hid: 1 }; empty.room._adopt(ws, ws.att); }
     pairs = 0;
-    for (let i = 0; i < SOCKETS_MAX + HIDDEN_RESERVE; i++) assert.equal(await status(empty.room.fetch(upgrade('?hd=1'))), 101, `hidden ask ${i + 1}`);
-    assert.equal(pairs, SOCKETS_MAX + HIDDEN_RESERVE);
+    assert.equal(await status(empty.room.fetch(upgrade('?hd=1'))), 101, 'the last seat of cap + HIDDEN_RESERVE');
+    assert.equal(pairs, 1);
     assert.equal(await status(empty.room.fetch(upgrade('?hd=1'))), 503, 'cap + HIDDEN_RESERVE sockets: a hidden ask refused');
     assert.equal(await status(empty.room.fetch(upgrade())), 101, 'and a player still comes in');
   } finally { globalThis.WebSocketPair = hadPair; }
+});
+
+test('STAFF-PANEL5-HIDDEN-R3 anonymous parking: the hidden ask is no one\'s word until its hello, so seats asked and never hello\'d are HIDDEN_RESERVE at most, however empty the room; player traffic finds no more; past HELLO_WAIT_MS the next hidden ask closes them `no hello` and is seated - the eye on its target\'s layer (mutants: the pending seats unbounded; bounded one late; a closed one still counted)', async () => {
+  const hadPair = globalThis.WebSocketPair;
+  globalThis.WebSocketPair = class { constructor() { const att = {}; this[0] = {}; this[1] = { att, closed: null, serializeAttachment(a) { Object.assign(att, a); }, deserializeAttachment() { return att; }, close(code, reason) { this.closed = { code, reason }; } }; } };
+  const realNow = Date.now; let skew = 0; Date.now = () => realNow() + skew;
+  const status = (p) => p.then((x) => x.status, () => 101);   // node mints no 101 - a throw is the upgrade gone on to the pair
+  try {
+    for (const key of ['town:m9', 'world:100,100']) {
+      const r = fakeRoom(key);
+      const upgrade = (q = '') => new Request(`https://relay.test/room/${key}${q}`, { headers: { Upgrade: 'websocket' } });
+      const live = () => r.state.getWebSockets().filter((w) => !r.room._dead.has(w));
+      let parked = 0;
+      for (let i = 0; i < SOCKETS_MAX * 3; i++) { if (await status(r.room.fetch(upgrade('?hd=1'))) === 101) parked++; else break; }
+      assert.equal(parked, HIDDEN_RESERVE, `${key}: an anonymous page parks HIDDEN_RESERVE silent hidden seats, never cap + HIDDEN_RESERVE`);
+      const silent = live();
+      skew += HELLO_WAIT_MS * 5;
+      let players = 0;
+      for (let i = 0; i < 20; i++) if (await status(r.room.fetch(upgrade())) === 101) players++;
+      assert.equal(players, 20, 'players come in');
+      assert.equal(live().length, HIDDEN_RESERVE + 20, 'and find no more parked');
+      assert.equal(await status(r.room.fetch(upgrade('?hd=1'))), 101, 'past HELLO_WAIT_MS a hidden ask (the eye) is seated');
+      assert.deepEqual(silent.map((w) => w.closed), silent.map(() => ({ code: CLOSE_BUSY, reason: 'no hello' })), 'the silent hidden seats closed on the room\'s own timer');
+      assert.equal(live().length, 20 + 1);
+      skew = 0;
+    }
+  } finally { globalThis.WebSocketPair = hadPair; Date.now = realNow; }
 });
 
 test('STAFF-PANEL5-HIDDEN the hello\'s refusals: a hidden seat said hello with a visible token is closed `hidden lapsed`, and a hidden hello on an id a visible socket holds is `id taken` - before anything is written; a visible hello on a hidden socket\'s id replaces it with no leave said (mutants: the reserve\'s seat let a visible token in; the visible id replaced)', async () => {

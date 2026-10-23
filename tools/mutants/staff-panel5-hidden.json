@@ -62,8 +62,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-reserve-unbounded",
     "file": "server/src/staffHidden.js",
-    "old": "if (ask) return all - HIDDEN_RESERVE;",
-    "new": "if (ask) return 0;",
+    "old": "  const seats = all - HIDDEN_RESERVE;",
+    "new": "  const seats = 0;",
     "why": "no bound on the hidden reserve",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -72,8 +72,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-reserve-empty-unbounded",
     "file": "server/src/staffHidden.js",
-    "old": "if (ask) return all - HIDDEN_RESERVE;",
-    "new": "if (ask) return cap - HIDDEN_RESERVE + hiddenSeats(room);",
+    "old": "  const seats = all - HIDDEN_RESERVE;",
+    "new": "  const seats = cap - HIDDEN_RESERVE + hiddenSeats(room);",
     "why": "an under-cap room takes any number of hidden seats",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -1155,8 +1155,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-R2-seat-visible-unread",
     "file": "server/src/staffHidden.js",
-    "old": "if (ask) return all - HIDDEN_RESERVE;",
-    "new": "if (ask) return hiddenSeats(room) - HIDDEN_RESERVE;",
+    "old": "  const seats = all - HIDDEN_RESERVE;",
+    "new": "  const seats = hiddenSeats(room) - HIDDEN_RESERVE;",
     "why": "item 3: a hidden ask counts the hidden sockets alone - a full room's reserve unbounded",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -1165,9 +1165,49 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-R2-seat-reserve-unread",
     "file": "server/src/staffHidden.js",
-    "old": "if (ask) return all - HIDDEN_RESERVE;",
-    "new": "if (ask) return all;",
+    "old": "  const seats = all - HIDDEN_RESERVE;",
+    "new": "  const seats = all;",
     "why": "item 3: no reserve over a full room's cap - the eye walked to another layer",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R3-pending-unbounded",
+    "file": "server/src/staffHidden.js",
+    "old": "return seats < cap && hiddenPending(room) >= HIDDEN_RESERVE ? cap : seats;",
+    "new": "return seats;",
+    "why": "round 2 verifier: an anonymous page parks cap + HIDDEN_RESERVE silent hidden seats that player traffic never reaps",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R3-pending-one-late",
+    "file": "server/src/staffHidden.js",
+    "old": "hiddenPending(room) >= HIDDEN_RESERVE ? cap : seats;",
+    "new": "hiddenPending(room) > HIDDEN_RESERVE ? cap : seats;",
+    "why": "HIDDEN_RESERVE + 1 silent hidden seats parked",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R3-pending-counts-hello",
+    "file": "server/src/staffHidden.js",
+    "old": "if (b.hs && !b.hid && !room._dead.has(ws)",
+    "new": "if (b.hs && !room._dead.has(ws)",
+    "why": "a hello'd hidden socket counted as a pending seat - HIDDEN_RESERVE watchers walk the eye off its target's layer again",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R3-pending-dead-counted",
+    "file": "server/src/staffHidden.js",
+    "old": "if (b.hs && !b.hid && !room._dead.has(ws) && ",
+    "new": "if (b.hs && !b.hid && ",
+    "why": "a silent seat the full path closed still counted - the eye refused after the reap",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
     ]
