@@ -38,20 +38,21 @@ import { FlcPlayer } from './flcPlayer.js';
 import { DFPalette } from '../formats/dfPalette.js';   // U18: CHGN00I0's own palette
 import { TextRsc } from '../formats/textRsc.js';   // U11: the race description
 import { generateBackstory } from '../systems/biography.js';   // U13
-import { bitmapToColor32 } from '../formats/color32Order.js';
-import { drawImg, drawRect, shadowText, DEFAULT_TEXT_COLOR, DEFAULT_SHADOW_COLOR, SCREEN_DIM } from './nativePanel.js';
+import { bitmapToColor32, toScreenOrder } from '../formats/color32Order.js';   // PORTRAIT3D: toScreenOrder - a head's picture is top-down
+import { drawImg, drawRect, shadowText, DEFAULT_TEXT_COLOR, DEFAULT_SHADOW_COLOR, SCREEN_DIM } from './native/nativePanel.js';
 import { thumbSpan, drawScrollThumb } from './verticalScrollBar.js';   // ROAD-D2: the list picker's thumb, DFU's own slices
 import { drawText, measureText, makeFont } from './text.js';   // U15: the RANDOM button label; U18: the black scroll text; AUDIT 18: SmallFont
 import { FntFile } from '../formats/fntFile.js';   // AUDIT 18: FONT0002, DaggerfallUI.SmallFont
 import { layoutMessageBox, drawMessageBox, messageBoxHit, MB_BUTTONS } from './messageBox.js';   // U11
 import { FACES_PER_RACE, raceById, raceArt } from '../systems/races.js';
 import { SKILL_NAMES } from '../systems/skills.js';
+import { reviseClassDescription } from '../systems/stockClasses.js';   // CLASS-USE: the description names the revised skills
 import { daggerY, tickDaggerTrails, REP_GREEN, REP_RED, REP_EXIT, REP_BAR_TOP, REP_BAR_BOTTOM, REP_GROUPS, HELP_TOPICS } from '../systems/customClass.js';   // U20a; CG1 the trail machine
 import { labelRows, labelFor, LABEL_ORIGIN, LABEL_HIT_HEIGHT } from '../systems/specialAdvantages.js';   // U20b
 import { STAT_KEYS_ORDER } from '../systems/chargen.js';
 import { packImgTexture } from './packArt.js';   // OVH2: the worn UI pack's picture
 import { localizedText } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
-import { raceDisplayName } from '../systems/talkSession.js';   // L10N3d: RaceTemplate.Name, read in the player's language
+import { raceDisplayName } from '../systems/talk/talkSession.js';   // L10N3d: RaceTemplate.Name, read in the player's language
 
 // DaggerfallUI.cs:52-62 - the colours these windows actually use.
 /** CreateCharNameSelect.cs:79-81 - the RANDOM button's own colours. */
@@ -258,7 +259,7 @@ const QUESTION_TEXT_COLOR = [0, 0, 0, 1];
 /** The rows a class-description box carries, or null. */
 export function classDescriptionLines(classIndex) {
   const rows = _art?.textRsc?.linesById(CLASS_DESCRIPTION_TEXT_ID + classIndex) ?? [];
-  return rows.length ? rows : null;
+  return rows.length ? reviseClassDescription(classIndex, rows) : null;
 }
 
 /** U20a: a bare TEXT.RSC record as box rows, or null - the builder's
@@ -482,10 +483,28 @@ export async function loadFaceSet(raceKey, gender) {
       }
       if (_facePending !== want) continue;   // a newer identity arrived mid-load
       _faces = set;
+      headFaces(set, wantRace, wantGender);   // PORTRAIT3D
       break;
     }
   } catch (e) { console.warn('[chargen] FACE CIF unavailable; the portrait stays bare', e); }
   finally { _facePending = null; }
+}
+
+/** PORTRAIT3D (2026-10-15, the owner: "#2 is exactly I wanted"): with Morrowind's data attached, each of the ten faces
+ *  becomes the Morrowind head the player's body would wear for it (characters/headPortraits.js playerHeadImage), drawn
+ *  in the record's own place at the record's own size - its picture that shape at four times its pixels. The records
+ *  stand until each head lands, and for good where none is drawn; a set no longer shown takes nothing. */
+async function headFaces(set, race, gender) {
+  try {
+    const { playerHeadImage } = await import('../characters/headPortraits.js');
+    for (let i = 0; i < set.tex.length; i++) {
+      if (_faces !== set) return;
+      const [w, h] = set.size[i];
+      if (!(w > 0 && h > 0)) continue;
+      const img = await playerHeadImage({ race, gender, faceIndex: i }, { px: w * 4, ph: h * 4, renderer: _deps.renderer }).catch(() => null);
+      if (img && _faces === set) set.tex[i] = _deps.renderer.uploadTexture('img', `face:mw:${set.key}:${i}`, toScreenOrder(img));
+    }
+  } catch (e) { console.warn('[chargen] the Morrowind heads would not draw; the portraits stand', e?.message ?? e); }
 }
 export const faceSetLoaded = () => !!_faces;
 

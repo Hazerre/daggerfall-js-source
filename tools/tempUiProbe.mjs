@@ -1,10 +1,10 @@
 // TEMP-UI (2026-10-12, the owner: "add a tempurature widget to the UI") - THE TEMPERATURE PLATE, DRAWN AND MEASURED.
 //
-// The REAL HUD (ui/enhancedHud.js over the real sheets, the enhanced skin) under a character reading freezing, then
+// The REAL HUD (ui/enhanced/enhancedHud.js over the real sheets, the enhanced skin) under a character reading freezing, then
 // comfortable, then scorching, beside the quest card (.qtrack, the right edge 92px down), a foe's bar under the compass
 // and the status widget at the left edge - at a desktop, two laptops, HUD scales 1.5 and 2, and a phone both ways up -
 // in Enhanced Plus and in the DFO Grimoire dress. For each it reads:
-//   - THE PLATE STANDS: shown, wholly on the screen, at the compass's right end and on the compass's middle;
+//   - THE PLATE STANDS: shown, wholly on the screen, (UI-CALM) in the bottom-left corner - the quick block's caption;
 //   - NOTHING MET: it meets none of the quest card, the foe's bar, the status widget or the compass's own strip;
 //   - IT SAYS IT: the number and the word the reading has (the phone the number alone, and a screen where the whole
 //     plate would run off the edge - a large HUD scale - steps down to it, while a desktop at its own scale never
@@ -30,7 +30,7 @@ const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewp
 <style>html,body{margin:0;height:100%;overflow:hidden;background:repeating-linear-gradient(45deg,#3b4a3a 0 14px,#324031 14px 28px)}</style></head><body>
 <script type="module">
 import { setPref } from '/src/systems/uiPrefs.js';
-import { drawEnhancedHud } from '/src/ui/enhancedHud.js';
+import { drawEnhancedHud } from '/src/ui/enhanced/enhancedHud.js';
 import { survivalOf } from '/src/systems/survival/needs.js';
 import { worldMinutes } from '/src/systems/worldTick.js';
 const q = new URLSearchParams(location.search);
@@ -42,7 +42,7 @@ const now = Math.floor(worldMinutes());
 const s = survivalOf(e, now);
 Object.assign(s, { lastAte: now - 800, thirst: 85, felt: -40 });
 globalThis.__felt = (f) => { s.felt = f; };
-// the quest card at its own place (ui/questTracker.js - the sheet's .qtrack rule stands it), with a title and a line
+// the quest card at its own place (ui/quest/questTracker.js - the sheet's .qtrack rule stands it), with a title and a line
 const card = document.createElement('div'); card.className = 'qtrack';
 card.innerHTML = '<div class="qtrack-title">The Lord\\u2019s Ransom</div><div class="qtrack-line">Find the courier at the Wayrest docks.</div>';
 document.body.append(card);
@@ -102,8 +102,8 @@ try {
       check(!!m.plate, `${tag}: the plate is not shown`);
       if (!m.plate) continue;
       check(m.plate.x >= 0 && m.plate.y >= 0 && m.plate.r <= m.vw + 0.5 && m.plate.b <= m.vh + 0.5, `${tag}: the plate runs off the screen (${JSON.stringify(m.plate)})`);
-      check(m.plate.x >= m.compass.r - 0.5, `${tag}: the plate stands inside the compass (${m.plate.x.toFixed(0)} < ${m.compass.r.toFixed(0)})`);
-      check(Math.abs((m.plate.y + m.plate.h / 2) - (m.compass.y + m.compass.h / 2)) <= 2, `${tag}: the plate is off the compass's middle`);
+      // UI-CALM (2026-10-14): the plate stands in the BOTTOM-LEFT corner, the quick block's caption - no longer off the compass's end
+      check(m.plate.x < m.vw / 2 && m.plate.y > m.vh / 2, `${tag}: the plate is not in the bottom-left corner (${JSON.stringify(m.plate)})`);
       check(!meets(m.plate, m.card), `${tag}: the plate meets the quest card`);
       check(!meets(m.plate, m.foe), `${tag}: the plate meets the foe's bar`);
       check(!meets(m.plate, m.stat), `${tag}: the plate meets the status widget`);
@@ -113,7 +113,7 @@ try {
       check(m.side === side, `${tag}: the side is ${m.side}`);
       const phone = v.viewport.width <= 860;
       if (!phone && !v.scale) check(!m.compact, `${tag}: a desktop at its own scale stepped down to the compact plate`);
-      if (phone || m.compact) check(m.word == null && !m.scale, `${tag}: a ${phone ? 'phone' : 'compact plate'} shows the word or the scale`);
+      if (phone || m.compact || word === 'Comfortable') check(m.word == null && !m.scale, `${tag}: a ${phone ? 'phone' : word === 'Comfortable' ? 'comfortable plate (UI-CALM)' : 'compact plate'} shows the word or the scale`);
       else {
         check(m.word === word, `${tag}: the word says "${m.word}"`);
         const at = Math.min(1, Math.max(0, (felt + 60) / 120));
@@ -122,9 +122,9 @@ try {
       if (felt === -40 && !foe) {
         await page.screenshot({ path: join(OUT, `tempui-${dress}-${v.name}.png`) });
         const pad = 16;
-        const clip = { x: Math.max(0, m.compass.x - pad), y: Math.max(0, m.compass.y - pad) };
+        const clip = { x: Math.max(0, m.plate.x - pad), y: Math.max(0, m.plate.y - pad) };
         clip.width = Math.min(m.vw - clip.x, m.plate.r - clip.x + pad);
-        clip.height = Math.min(m.vh - clip.y, Math.max(m.plate.b, m.compass.b) - clip.y + pad);
+        clip.height = Math.min(m.vh - clip.y, m.plate.b - clip.y + pad);
         await page.screenshot({ path: join(OUT, `tempui-${dress}-${v.name}-plate.png`), clip });
       }
     }

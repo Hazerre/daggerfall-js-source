@@ -7,16 +7,16 @@
 // client, so every player rolls the same pixels, sees the same dungeons and enters the same room - and a pixel holds
 // at most one, however many players stand in it. No relay word is needed for any of that.
 //
-// THE ID keeps DFU's own law: MapId & 0xfffff IS the map pixel (systems/mapDirectory.js, systems/discovery.js key
+// THE ID keeps DFU's own law: MapId & 0xfffff IS the map pixel (systems/map/mapDirectory.js, systems/discovery.js key
 // on it), so the low 20 bits are this pixel's id and the high 12 are the salt - unique per (salt, pixel), an unsigned
 // 32-bit number the relay's room law admits (wire.js WORLD_ROOM, `dungeon:m<1-10 digits>`), and it cannot equal a real
 // location's id because a spawn only ever stands on a pixel that has no location.
 
 import { mapPixelToLongitudeLatitude } from '../formats/mapsFile.js';
 import { MINUTES_PER_DAY } from '../systems/gameDate.js';   // TTL1: a day is the clock's own, never a second 1440
-import { TERRAIN_SIZE, HEIGHTMAP_DIMENSION, MAX_TERRAIN_HEIGHT, SCALED_BEACH_ELEVATION, sampleKernel } from './terrainSampler.js';   // SPAWNED-DUNGEONS3: a pixel is 819.2 metres on a side; SPAWN-SHORE: the ground a ruin is flattened to
-import { getLocationTerrainTileOrigin, WORLD_MAP_TILE_DIM, BEACH_JITTER } from './terrainTiles.js';   // SPAWNED-DUNGEONS3: where a location stands in its pixel
-import { dataPoint, PATH_KEYS } from '../systems/travelPaths.js';   // SPAWN-ROADS: the network's own byte per pixel
+import { TERRAIN_SIZE, HEIGHTMAP_DIMENSION, MAX_TERRAIN_HEIGHT, SCALED_BEACH_ELEVATION, sampleKernel } from './terrain/terrainSampler.js';   // SPAWNED-DUNGEONS3: a pixel is 819.2 metres on a side; SPAWN-SHORE: the ground a ruin is flattened to
+import { getLocationTerrainTileOrigin, WORLD_MAP_TILE_DIM, BEACH_JITTER } from './terrain/terrainTiles.js';   // SPAWNED-DUNGEONS3: where a location stands in its pixel
+import { dataPoint, PATH_KEYS } from '../systems/travel/travelPaths.js';   // SPAWN-ROADS: the network's own byte per pixel
 
 /** The chance a pixel holds a NORMAL spawned dungeon. */
 export const SPAWN_CHANCE = 0.30;
@@ -26,13 +26,20 @@ export const SPAWN_CHANCE = 0.30;
 // A spawned dungeon may be ELITE: the same template, the same look, but three foes stand at
 // every enemy marker and each foe has double health and deals double damage. Elite and normal
 // share ONE hash lane and split it: [0, SPAWN_CHANCE) is a normal dungeon, the next ELITE_CHANCE
-// is an elite one, the rest is empty land. So the rates are exactly 30% and 10%, a pixel never
+// is an elite one, the rest is empty land. So the bands are exactly 30% and 10%, a pixel never
 // holds both, every client agrees which spawns are elite, and a reload never flips one.
+// SPAWN-THIN then keeps three quarters of whichever band a pixel fell in (SPAWN_KEEP), on a second
+// lane, so the world is a quarter thinner and a survivor's kind does not change.
 
 /** The chance a pixel holds an ELITE spawned dungeon (on top of SPAWN_CHANCE, never the same pixel). */
 export const ELITE_CHANCE = 0.10;
-/** Either kind: the chance a pixel holds any spawned dungeon at all. */
+/** Either kind: the chance a pixel's roll falls in a spawn band. SPAWN-THIN (below) then keeps three quarters of those. */
 export const ANY_SPAWN_CHANCE = SPAWN_CHANCE + ELITE_CHANCE;
+/** SPAWN-THIN (2026-10-19, the owner: "Reduce the density of spawning dungeons by 25%"): a second roll, on its own
+ *  hash lane, keeps this share of the pixels the band already chose. The band is not narrowed, so a dungeon that
+ *  remains is the same kind on the same pixel - a normal stays normal, an elite stays elite - and one the keep
+ *  drops is simply absent. Changing WORLD_SALT would have moved every dungeon; this does not. */
+export const SPAWN_KEEP = 0.75;
 /** Foes per enemy marker in an elite dungeon (a normal dungeon has one). */
 export const ELITE_FOE_MULTIPLIER = 3;
 /** Health multiplier for an elite dungeon's foes. */
@@ -67,8 +74,17 @@ export function hash32(...ns) {
 /** The pixel's spawn roll, [0, 1). Deterministic in (salt, px, py). */
 export const spawnRoll = (salt, px, py) => hash32(salt, px, py, 1) / 4294967296;
 
-/** Does this pixel hold a spawned dungeon of either kind? Deterministic in (salt, px, py). */
-export const spawnsDungeon = (salt, px, py, chance = ANY_SPAWN_CHANCE) => spawnRoll(salt, px, py) < chance;
+/** SPAWN-THIN: does the keep roll spare this pixel? Its own lane (the kind band is lane 1, the template lane 2), so
+ *  thinning never moves a survivor from one kind to the other. */
+export const spawnKept = (salt, px, py, keep = SPAWN_KEEP) => hash32(salt, px, py, 3) / 4294967296 < keep;
+
+/** Does this pixel hold a spawned dungeon of either kind? Deterministic in (salt, px, py). An explicit `chance` other
+ *  than the world's band is a probe of that band alone (the pins pass 0 and 1) and is not thinned. */
+export function spawnsDungeon(salt, px, py, chance = ANY_SPAWN_CHANCE) {
+  if (!(spawnRoll(salt, px, py) < chance)) return false;
+  if (chance !== ANY_SPAWN_CHANCE) return true;
+  return spawnKept(salt, px, py);
+}
 
 /** SPAWN-ROADS (2026-09-25, Mac: "Anyway to have things avoid being on a road?"): does no path cross this pixel?
  *  Every path in the network runs from its pixel's CENTRE out to the edges its compass byte names
@@ -105,7 +121,7 @@ export function spawnPlateauFloor(woods, px, py) {
 
 /**
  * WILD-DRY (2026-10-12, a player's live client: the map's first open froze 6.7 s - the zone's giants' walking ground,
- * systems/wildGiants.js cellsOf, asks every pixel of the zone whether it is dry, and each answer read the whole
+ * systems/wild/wildGiants.js cellsOf, asks every pixel of the zone whether it is dry, and each answer read the whole
  * 129 x 129 kernel): WHETHER THE PLATEAU ON (px, py) STANDS OVER SPAWN_DRY_ELEVATION - `spawnPlateauFloor(...) >
  * SPAWN_DRY_ELEVATION` to the bit, read only until it is certain. Every sample is in [0, 1] (sampleKernel's clamp01),
  * so the running sum never falls - and a float sum of non-negatives never falls either, nor do the division and the
@@ -136,10 +152,14 @@ export function createSpawnGround(woods) {
   };
 }
 
-/** Is this pixel's spawned dungeon elite? The slice of the same roll just above the normal share. */
+/** Is this pixel's spawned dungeon elite? The slice of the same roll just above the normal share. SPAWN-THIN: the
+ *  world's own band stands only where the keep spares the pixel, so an elite answer is a dungeon that stands. A probe
+ *  that names another band is that band alone, and is not thinned. */
 export const isEliteSpawn = (salt, px, py, normal = SPAWN_CHANCE, elite = ELITE_CHANCE) => {
   const r = spawnRoll(salt, px, py);
-  return r >= normal && r < normal + elite;
+  if (!(r >= normal && r < normal + elite)) return false;
+  if (normal !== SPAWN_CHANCE || elite !== ELITE_CHANCE) return true;
+  return spawnKept(salt, px, py);
 };
 
 /** The spawned dungeon's MapId: salt in the high 12 bits, MapsFile.getMapPixelID in the low 20. */
@@ -184,7 +204,7 @@ export function synthesizeDungeonLocation(template, { salt, px, py, where = {}, 
 
 /**
  * The real locations a spawn may clone: a dungeon with blocks and an exterior, never a main-story one (`isMain`, by
- * MapId - world/dungeonTextures.js), and - to keep every spawned exterior as cheap as the smallest real ones - a
+ * MapId - world/dungeon/dungeonTextures.js), and - to keep every spawned exterior as cheap as the smallest real ones - a
  * one-block exterior when any exist.
  */
 export function spawnTemplates(locations, isMain = () => false) {
@@ -242,10 +262,16 @@ export function spawnedLocationCentreLocal(loc) {
 
 /** The line, with the distance to the nearest ten metres and the compass word the host resolved. */
 export function dungeonSightLine(metres, direction, tier = 'regular') {
-  const m = Math.max(10, Math.round(metres / 10) * 10);
   // TIER1 (Super-Dungeons.md section 12): the tier's words - an Elite's and (SD2) a Super's; a regular spawn is "a Dungeon"
   const what = tier === 'super' ? 'an Abyss Dungeon' : tier === 'elite' ? 'an Elite Dungeon' : 'a Dungeon';
-  return `You see ${what} ${m} metres to the ${direction}!`;
+  return sightLineOf(what, metres, direction);
+}
+/** EG-F (bible/11-Multiplayer/Elite-Gates.md section 2, the sight line): the line's law for any thing seen - `what` (its
+ *  article with it), the distance to the nearest ten metres (never under ten), the host's compass word. An Elite Breach's
+ *  arch says it (scenes/eliteGates/egArch.js): "You see an Elite Breach 140 metres to the North!" */
+export function sightLineOf(what, metres, direction) {
+  const m = Math.max(10, Math.round(metres / 10) * 10);
+  return `You see ${what} ${m} meters to the ${direction}!`;
 }
 
 // ---------------------------------------------------------------- TTL1

@@ -59,8 +59,15 @@ const SUBSTEP_LEN = CAPSULE_RADIUS * 0.75;
  *  whole motion, however long. */
 export const EXACT_SWEEP_MAX = SUBSTEPS_MAX * SUBSTEP_LEN;
 const GROUND_NY = Math.cos((SLOPE_LIMIT_DEG * Math.PI) / 180);
+/** DOOR-JAM (FIELD BUGS 2026-10-14b): the least push the sideways pass's resolve gives a body for move() to report a
+ *  side contact (`sides`, CharacterController.collisionFlags' CollidedSides), metres - under it the body only rested
+ *  against what it touches. */
+export const SIDE_CONTACT = 1e-4;
 const TAN_SLOPE_LIMIT = Math.tan((SLOPE_LIMIT_DEG * Math.PI) / 180);   // AUDIT LANDFORMS II I3: the terrain floor snap's reach
-const SKIN = 0.02;
+/** The resolve's contact skin: a face within a sphere's radius + SKIN is met (it grounds, it is leaned on), and pushed
+ *  out only to the radius (_resolveSphere). DECOR-CLEAR (player/lateSolid.js): a face deeper in than the skin is one a
+ *  body is IN, not one it rests on. */
+export const SKIN = 0.02;
 
 /** The slack on the broad-phase box, in world units: the triangles' own arithmetic is float, so the box is grown by
  *  a hair rather than trusted to the last bit. Far below CELL, so it costs nothing in rejects. */
@@ -118,7 +125,7 @@ function rayMarks(bucket) {
   if (bucket.markEpoch !== MARK_EPOCH) { m.fill(0); bucket.markEpoch = MARK_EPOCH; }
   return m;
 }
-/** FB0930-FRAME: the pin's door to the stamp - test/fb0930_frame.test.js walks a bucket across the wrap. */
+/** FB0930-FRAME: the pin's door to the stamp - test/player/fb0930_frame.test.js walks a bucket across the wrap. */
 export function _setRayStampForTest(n) { RAY_STAMP = n; }
 /** PERF-CLIMB: the resolve's fixed-point stop (_resolveCapsule), on unless a pin turns it off to hold the answers the
  *  same with it and without it. */
@@ -430,7 +437,7 @@ function wideOnRay(bucket, ox, oy, oz, dir, reach) {
   return out;
 }
 /** OW-WOD-LAG: how many wide faces the tree hands a sphere of radius `r` at a WORLD point in bucket `key` (no mover's
- *  turn) - the query's own walk, counted: the pin that the tree culls (test/ow_wod.test.js). */
+ *  turn) - the query's own walk, counted: the pin that the tree culls (test/world/worldOfDaggerfall/ow_wod.test.js). */
 export function wideCandidates(collider, key, p, r) {
   const bucket = collider._buckets.get(key);
   if (!bucket || !bucket.wide.length) return 0;
@@ -608,6 +615,9 @@ export class Collider {
     this._broad = null;   // FB0930-FRAME: the buckets filed by broad cell (buildBroad), dropped by every addMesh and removeBucket
     /** @type {any} TACT1: the billboards' cover (ai/cover.js createCoverIndex) - beside the meshes, never in them; null for none */
     this.cover = null;
+    /** @type {any} ROCK-CLEAR: the gate its late solids go through (player/lateSolid.js lateSolidsOf, which sets it) - the
+     *  parts it holds back from the body are a bucket's not yet stood, and leave with the bucket; null for none */
+    this.late = null;
   }
 
   /** FB0930-FRAME: the buckets a query whose WORLD box is [x0, x1] x [z0, z1] (y unbounded) can reach, in the walk's
@@ -809,6 +819,7 @@ export class Collider {
   removeBucket(bucketKey) {
     if (this._buckets.delete(bucketKey)) this._broad = null;   // FB0930-FRAME: the filing is dropped with it
     this.cover?.remove(bucketKey);   // TACT1: a bucket's cover leaves with it
+    this.late?.forget(bucketKey);   // ROCK-CLEAR: and its parts held back from the body - a pixel streamed out stands none of them later
   }
 
   /** AUDIT CLIMB1 F5: where a bucket stands now - `{ t, r }`, its translation and its turn (r null for an unturned
@@ -876,7 +887,7 @@ export class Collider {
    * the caller's own - which is written and returned in place of a fresh
    * result, the normal into the caller's array ([0, 0, 0] on a miss).
    * The travel steering casts a dozen feelers a frame through here
-   * (systems/travelSteer.js createColliderProbe) and owns one result for
+   * (systems/travel/travelSteer.js createColliderProbe) and owns one result for
    * all of them. Without it the answer is the one it always was.
    */
   raycastHit(origin, dirW, maxDist, filter = null, out = null) {
@@ -1433,7 +1444,7 @@ export class Collider {
     // ground-ness and whether any ceiling-ish contact happened.
     // AUDIT DECOR-SHELL 1: `skip`, a Set of bucket keys the sphere
     // passes through - the ray's own filter, for the decorator's flying
-    // eye (scenes/decorTool.js flyClip), which looks through a piece
+    // eye (scenes/decor/decorTool.js flyClip), which looks through a piece
     // being moved. Null (every body) is the resolve exactly as it was.
     // SH1 (2026-09-12, Mac: "you can immediately walk over things (like
     // interior tables, tree trunks, etc)"): `standCeil` is the highest
@@ -1853,7 +1864,8 @@ export class Collider {
    * so no component ever exceeds a fraction of the radius - a sphere
    * displaced past a surface in one step never contacts it (tunneling;
    * surfaced by starved-frame dt spikes in the headless harness).
-   * @returns {{grounded:boolean, hitCeiling:boolean}}
+   * @returns {{grounded:boolean, hitCeiling:boolean, sides?:boolean}} `sides`: the sweep met something on the body's
+   *   sides (CollisionFlags.CollidedSides - DOOR-JAM, _moveStep)
    */
   /** AUDIT (the pre-merge audit, S2): `keepFloor` - a FOE's move (enemyMotor passes it): a body held down by a ceiling
    *  keeps the floor its lower sphere was set on (SQUEEZE1), whatever its height. The player's stances never pass it.
@@ -1877,12 +1889,13 @@ export class Collider {
       // here says no. Past the cap the remainder is taken as a single step, which is what a teleport is: the sweep
       // stops being exact for a motion no frame can produce anyway, and no number can buy an unbounded loop.
       const n = Math.min(SUBSTEPS_MAX, Math.ceil(maxComp / maxStep));
-      const out = { grounded: false, hitCeiling: false, pushedDown: false, groundKey: null };
+      const out = { grounded: false, hitCeiling: false, pushedDown: false, groundKey: null, sides: false };
       for (let i = 0; i < n; i++) {
         const r = this._moveStep(feet, dx / n, dy / n, dz / n, height, snap);
         out.grounded = r.grounded;
         out.groundKey = r.groundKey ?? null;
         out.hitCeiling = out.hitCeiling || r.hitCeiling;
+        out.sides = out.sides || r.sides;   // DOOR-JAM: one Move's CollidedSides is any contact along the whole of it
       }
       return out;
     }
@@ -1933,7 +1946,7 @@ export class Collider {
     //      RISING capsule off its pre-jump horizontal resolve, and
     //      the motor's velY clamp then killed every jump at one frame
     //      (apex 0.069 = one tick of 4.5/60 - the live "can't jump").
-    const out = { grounded: false, hitCeiling: false, pushedDown: false };
+    const out = { grounded: false, hitCeiling: false, pushedDown: false, sides: false };
 
     // Horizontal (phase-local flags; only the block test reads them).
     const beforeX = feet[0];
@@ -1953,6 +1966,14 @@ export class Collider {
     if (hOut.refused) { feet[0] = beforeX; feet[2] = beforeZ; }
     const movedSq = (feet[0] - beforeX) ** 2 + (feet[2] - beforeZ) ** 2;
     const wantedSq = dx * dx + dz * dz;
+    // DOOR-JAM (FIELD BUGS 2026-10-14b): CharacterController.collisionFlags' CollidedSides - the sideways pass met
+    // something on the body's sides: the resolve pushed the pass off where the motion put it by more than SIDE_CONTACT,
+    // along a face steeper than the slope limit (the collider's own wall law, GROUND_NY) - never a floor or a walkable
+    // slope the lower sphere rides. A pass the resolve refused is back where it began, the whole motion off. Read by
+    // EnemyMotor.HeightAdjust (characters/enemy/enemyMotor.js _heightAdjust).
+    const sideX = feet[0] - (beforeX + dx), sideY = feet[1] - entryY, sideZ = feet[2] - (beforeZ + dz);
+    const sideSq = sideX * sideX + sideZ * sideZ;
+    let sides = sideSq > SIDE_CONTACT * SIDE_CONTACT && sideY / Math.sqrt(sideSq + sideY * sideY) < GROUND_NY;
 
     // Step-up: only while not rising (Unity steps a grounded/falling
     // controller). The ASCENDING lift ladder takes the SMALLEST clear
@@ -2020,12 +2041,16 @@ export class Collider {
           if (probeY <= entryY) break;
         }
         if (!landed) continue;
+        // DOOR-JAM: a step climbed is the controller's own up-forward-down, no side contact - a rung that carried the
+        // body on along its motion. One the resolve threw back as far (a head under a lintel's edge) is not a step.
+        if ((landed[0] - beforeX) * dx + (landed[2] - beforeZ) * dz >= 0.5 * wantedSq) sides = false;
         feet[0] = landed[0];
         feet[1] = landed[1];
         feet[2] = landed[2];
         break;
       }
     }
+    out.sides = sides;
 
     // Vertical - the frame's TRUTH for grounded/ceiling.
     const vx0 = feet[0], vy0 = feet[1], vz0 = feet[2];

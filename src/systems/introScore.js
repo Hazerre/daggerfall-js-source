@@ -1,10 +1,10 @@
 // @ts-check
 // INTRO3 (2026-10-14, Mac: "With the main menu music, is there anyway to recreate it using the sound system daggerfall's
 // music uses", then "you do it and it's for both"): THE MAIN THEME, WRITTEN AS NOTES - the film's score and the menu's
-// music, played by the game's own song player and FM voice bank (systems/songPlayer.js, gmSynth.js) as every MIDI.BSA
+// music, played by the game's own song player and FM voice bank (systems/song/songPlayer.js, gmSynth.js) as every MIDI.BSA
 // song is, in place of the recorded master (INTRO2's assets/intro/theme.mp3) that played through a decoder of its own.
 //
-// MADE THE WAY THE WARDEN'S SCORE IS (systems/gateScore.js - the precedent): a song in the shape an HMI song decodes to
+// MADE THE WAY THE WARDEN'S SCORE IS (systems/gate/gateScore.js - the precedent): a song in the shape an HMI song decodes to
 // (formats/hmiFile.js - tick-ordered `events`, one tempo, notes that carry their own durations), so it sounds like the
 // rest of the soundtrack, follows MusicVolume and the mute by the same master, and loops on its bar line.
 //
@@ -22,15 +22,15 @@
 // The taiko-like drums are cinematic - low drums in a 3-3-2, no backbeat but the big sections' - and the low strings
 // pulse the root under all of it, which is how the recording drives.
 //
-// THE TEMPO IS THE FILM'S. The intro is cut to two landmarks of the recording (ui/introCue.js): the cloud break at
+// THE TEMPO IS THE FILM'S. The intro is cut to two landmarks of the recording (ui/intro/introCue.js): the cloud break at
 // CLOUD_REVEAL_TIME and the logo's landing at TITLE_IMPACT_TIME, four bars apart and both downbeats. The song's one tempo
 // is the one that puts those two bar lines exactly there (128.76 BPM, a hair over the recording's opening), after a
 // lead of INTRO_LEAD_TICKS of quiet - so the film's cue sheet stands as it was, and the score answers to it.
 //
 // Not a DFU member. Ledger A (INTRO3).
 
-import { midiNote } from './gateScore.js';
-import { CLOUD_REVEAL_TIME, TITLE_IMPACT_TIME } from '../ui/introCue.js';
+import { midiNote } from './gate/gateScore.js';
+import { CLOUD_REVEAL_TIME, TITLE_IMPACT_TIME } from '../ui/intro/introCue.js';
 
 /** The song's name - its own, beside MIDI.BSA's (no record there is called this). */
 export const INTRO_SONG = 'DFOTHEME.HMI';
@@ -41,7 +41,7 @@ const BAR = 4 * INTRO_SCORE_TPQ;
  *  opening are -4 to -1, the last bar is 80 (its G at 159 s), and two bars of ring follow it. */
 export const FIRST_BAR = -4;
 export const LAST_BAR = 82;
-/** The two bars the film is cut to (ui/introCue.js): the cloud break and the logo's landing. */
+/** The two bars the film is cut to (ui/intro/introCue.js): the cloud break and the logo's landing. */
 export const CLOUD_BAR = 2;
 export const IMPACT_BAR = 6;
 /** The last bar played: the close's G, left to ring to LAST_BAR. */
@@ -74,7 +74,7 @@ const MIX = Object.freeze({
   pad: [90, 64], hit: [100, 64],
 });
 const KIT_LEVEL = 112;
-/** The song at the player's own level (systems/songPlayer.js `song.level`) through a press (songPress) - lighter than
+/** The song at the player's own level (systems/song/songPlayer.js `song.level`) through a press (songPress) - lighter than
  *  the gate score's (3:1 from -14 dB, a ceiling a decibel under the clip), its drive after it, so the theme stands as
  *  loud as the recording it replaces (about -22 dBFS as the intro played it at MusicVolume 0.5) and keeps the
  *  recording's rise and fall: the swell from nothing, the dip before the impact, the breakdown at 118 s. Measured
@@ -119,7 +119,7 @@ const HARMONY = Object.freeze({
 });
 
 /** THE MELODY, bar by bar: [note, beats], 'r' a rest - transcribed from the recording's lead and checked against each
- *  bar's chord. Every bar's beats sum to four (test/intro3_score.test.js). */
+ *  bar's chord. Every bar's beats sum to four (test/systems/intro3_score.test.js). */
 /** @type {Readonly<Record<number, ReadonlyArray<[string, number]>>>} */
 const MELODY = Object.freeze({
   // the opening's sighs, then the rise

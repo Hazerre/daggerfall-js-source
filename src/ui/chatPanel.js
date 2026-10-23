@@ -151,21 +151,22 @@
 // bar under the list (`N new - jump to newest`) that takes them there.
 //
 // Not a DFU member: Daggerfall Unity has no chat. Ledger A row (ONLINE).
-import { isTextEntryTarget, swallowBrowserKey, bindings } from './input.js';
+import { isTextEntryTarget, swallowBrowserKey, bindings, neverTheFocus } from './input.js';   // FB1020h HUD-FOCUS: the controls over the world keep no focus
 import { actionForCode, codeMeans } from '../systems/inputActions.js';
-import { overlayOpen } from './enhancedOverlays.js';
+import { overlayOpen } from './enhanced/enhancedOverlays.js';
 import { claimCursorKey } from '../player/pointerLock.js';   // KB1: while the panel stands, ActivateCursor's key is its open key and not the cursor toggle
-import { isTouchDevice } from './touch.js';
+import { isTouchDevice } from './touch/touch.js';
 import { CHAT_MAX } from '../net/wire.js';
-import { tagOf, findQuery, findLines, playerFound, CHAT_FIND_MAX } from '../net/chat.js';   // CHAT-FIND: the search's own law
-import { guildTagText } from '../net/guildLaw.js';   // GUILD1c: the guild's tag beside a name, as over a head
+import { tagOf, findQuery, findLines, playerFound, CHAT_FIND_MAX, copyText } from '../net/chat.js';   // CHAT-FIND: the search's own law
+import { guildTagText } from '../net/guild/guildLaw.js';   // GUILD1c: the guild's tag beside a name, as over a head
 import { glyphBadges, glyphSvgNode, cssRgba, TITLE_RGBA } from './playerBadge.js';   // ACC3c: the same table the name over a head reads - a name wears its glyphs everywhere it is drawn (TITLE-C: its title over the head alone, never in the chat); cssRgba comes from HERE and not ui/nameLayer.js, which would pull the whole remote-player pass into this panel
 import { rosterRows, rosterTitle } from '../net/roster.js';   // CHAT-R1: who is online, in order (the cap is the model's own - AUDIT-CHATR F4: this file imported it and never used it, and lint could not see that: no-unused-vars is on for server/src and not for src)
 import { PARTY_GREEN_CSS } from '../net/social.js';   // CHAT-CHAN: the Party tab's mark wears the party's one green
 import { SHORTCODE_LIST, findCommandOf } from '../net/chatCommands.js';   // EMOTE1: the picker offers the shortcodes' own emoji, in their order, so a pick and a :code: say the same thing
 import { getPref, setPref } from '../systems/uiPrefs.js';   // CHAT-R2: the hidden state outlives the session
-import { CHANNEL_COLOURS, NAME_COLOURS, PING_COLOURS, channelRules, pipRules } from './chatColours.js';   // CHAT-COLOURS, NAME-INK, PING1
+import { CHANNEL_COLOURS, NAME_COLOURS, PING_COLOURS, RP_COLOURS, channelRules, pipRules } from './chatColours.js';   // CHAT-COLOURS, NAME-INK, PING1
 import { PIXELIFY_FIVE_FACE, PIXEL_FONT_CSS, PIXEL_TEXT_SHADOW } from './pixelifyFive.js';   // FONT1: the enhanced skin's own face, unsmoothed, with Silkscreen's five
+import { t } from '../systems/textManager.js';   // CHAT-TRADE: the channel picker's words in the player's language
 import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 /** The action whose key opens the chat: DFU's own cursor key (Enter by default), since opening frees the cursor. */
@@ -208,7 +209,7 @@ export const CHAT_STYLE_ID = 'dagger-chat-style';
  *  SKIN'S, NOT THE LAUNCHER'S. This sheet set `--data` (Barlow Semi Condensed) - which is the MENU's face, the one
  *  the boot screens and the settings pages are set in - so the chat stood over an enhanced world in a font nothing
  *  else in that world uses. In-game the enhanced skin is the pixel stack (ui/pixelifyFive.js PIXEL_STACK, the same
- *  face ui/enhancedHud.js and every floating window wear), unsmoothed, and text laid over the world takes the HUD's
+ *  face ui/enhanced/enhancedHud.js and every floating window wear), unsmoothed, and text laid over the world takes the HUD's
  *  hard shadow pair rather than a blur: a blurred drop shadow under a pixel glyph reads as a rendering fault.
  *  The @font-face for the FIVE rides this sheet too (FIX-D), because this sheet is injected on its own and a
  *  document that never mounted the skin's stylesheet would otherwise draw Pixelify's 5 - the glyph that reads as 8.
@@ -249,6 +250,8 @@ ${PIXELIFY_FIVE_FACE}
 @container (width < ${CHAT_WIDTH_MIN - 2 * CHAT_BOX_BORDER}px) { .dfchat-emoji { display: none; } }
 /* EMOTE1: an action - "Bran waves at Ann." - the words leaning after the name, in the name's own warmth */
 .dfchat-line.me .dfchat-text { font-style: italic; color: #dccfae; }
+/* CHAT-RP: a line of roleplay - *its mark* is the speaker's own - green and leaning, on every tab */
+.dfchat-line.rp .dfchat-text { font-style: italic; color: ${RP_COLOURS.light}; }
 /* DICE1: a roll the relay made - its own colour, which no typed line can wear (the kind is set from the FRAME's type) */
 .dfchat-line.roll .dfchat-text { color: #e7c46a; }
 /* CHAT-CHAN: the channel a peek line came from, when it is not the tab the chat opens on */
@@ -433,6 +436,24 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
 .dfchat-social-out { display: inline-flex; pointer-events: auto; margin-top: 4px; }
 .dfchat[data-state="open"] .dfchat-social-out { display: none; }
 .dfchat-social-tab { display: inline-flex; margin: 2px 4px 4px auto; }
+/* CHAT-TRADE (Mac: "There must be a better way to handle the new channels instead of a text command"): THE CHANNEL
+   PICKER - one small + beside the tabs, before Social, so the bar a new player sees gains a single glyph and no tab; it
+   opens a short list of the channels joined by choice, each a row with its mark, a click joining or leaving it. */
+.dfchat-tabs { position: relative; }
+.dfchat-chan-add { background: none; border: 0; border-radius: 3px; color: var(--dim, #9a9486); font: inherit; font-size: 16px; line-height: 1;
+  padding: 4px 8px; margin: 2px 0 4px 2px; cursor: pointer; flex: none; }
+.dfchat-chan-add:hover, .dfchat-chan-add:focus-visible, .dfchat-chan-add[aria-expanded="true"] { color: var(--bone, #e9e4d9); background: var(--iron, #2b323b); }
+.dfchat-chans { display: none; position: absolute; top: 100%; right: 4px; z-index: 3; flex-direction: column; gap: 1px; padding: 4px;
+  width: min(280px, calc(100% - 8px)); box-sizing: border-box; background: rgba(14, 16, 19, .96); border: 1px solid var(--iron, #2b323b); border-radius: 4px; }
+.dfchat-chans.on { display: flex; }
+.dfchat-chan-row { display: flex; align-items: flex-start; gap: 8px; background: none; border: 0; border-radius: 3px; color: var(--bone, #e9e4d9);
+  font: inherit; font-size: 13px; text-align: left; padding: 7px 8px; cursor: pointer; }
+.dfchat-chan-row:hover, .dfchat-chan-row:focus-visible { background: var(--iron, #2b323b); }
+.dfchat-chan-mark { flex: none; width: 1em; color: var(--brass, #c08a3e); }
+.dfchat-chan-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }   /* the name over what the channel is for */
+.dfchat-chan-name { font-weight: 600; }
+.dfchat-chan-hint { color: var(--dim, #9a9486); font-size: 11px; }
+.dfchat.touch .dfchat-chan-row { padding: 10px 8px; }
 /* a request waiting on YOU is not an unread line: its own colour, so the two badges never read as one count */
 .dfchat-social .dfchat-badge { background: #c8503c; color: #f6efe2; }
 
@@ -445,7 +466,7 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
    MAC-J (2026-09-17, Mac: "the online section where player's names are
    shown are too large and shouldn't be large rectangles"): the marker
    class is dfchat-act, and the prefix is the whole fix. It was a bare
-   "act" - and .act is the ENHANCED SKIN'S BUTTON (ui/enhancedStyle.js:
+   "act" - and .act is the ENHANCED SKIN'S BUTTON (ui/enhanced/enhancedStyle.js:
    padding 12px 20px, a 1px iron border, min-height 46px), which is
    loaded in every online game because online forces the enhanced lane
    (OL1). So every name a player could click wore a 46px bordered
@@ -458,6 +479,9 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
    grow the name. */
 .dfchat-who-row.dfchat-act { cursor: pointer; }
 .dfchat-rowmenu { display: flex; flex-direction: column; gap: 2px; padding: 3px 0 4px; }
+/* SAFE1 + SAFE3: a spoken line's own menu - Report and Block - under the line whose speaker's name was pressed */
+.dfchat-name.dfchat-act { cursor: pointer; }
+.dfchat-rowmenu.dfchat-linemenu { flex-direction: row; flex-wrap: wrap; padding: 3px 0 2px; }
 .dfchat-rowbtn { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; background: var(--iron, #2b323b); color: var(--bone, #e9e4d9); border: 0; border-radius: 3px; font: inherit;
   font-size: 11px; text-align: left; padding: 3px 6px; cursor: pointer; }
 /* THE LABEL AND ITS REASON WRAP (tools/font1Probe.mjs's touch spill, older than the community arc): a row button is one
@@ -527,6 +551,11 @@ export function isOpenKey(e, { canOpen = () => true, overlay = overlayOpen, acti
  * `rowActions(peerId)` is `[{ label, enabled, why, run }]` - the menu a
  * click on a roster row opens.
  *
+ * CHAT-TRADE: `channels` is `{ list, set }` - `list()` the channels a
+ * player joins by choice, `[{ id, name, hint, joined }]`, and `set(id,
+ * on)` the host's one door that joins or leaves one (the + beside the
+ * tabs opens the list; without `channels` there is no +).
+ *
  * AUDIT SOC C2/C14: `above()` is the host's word on whether a social
  * surface stands OVER the chat (the friends panel, the F-menu). All
  * three listen for Escape on the window in capture, so ONE press used
@@ -535,7 +564,7 @@ export function isOpenKey(e, { canOpen = () => true, overlay = overlayOpen, acti
  * key - and when it does handle one it calls stopImmediatePropagation,
  * so neither a sibling surface nor the host's pause door sees it.
  */
-export function createChatPanel({ log, onSend, roster = null, canOpen = () => true, onOpen = null, onClose = null, above = () => false, action = actionOfKey, overlay = overlayOpen, doc = document, win = globalThis, touch = isTouchDevice(), social = null, nameColor = null, rowActions = null, badgeOf = null } = {}) {
+export function createChatPanel({ log, onSend, roster = null, canOpen = () => true, onOpen = null, onClose = null, above = () => false, action = actionOfKey, overlay = overlayOpen, doc = document, win = globalThis, touch = isTouchDevice(), social = null, nameColor = null, rowActions = null, badgeOf = null, channels = null, lineActions = null } = {}) {
   injectChatStyle(doc);
   const el = (tag, cls, text) => { const n = doc.createElement(tag); n.className = cls; if (text != null) n.textContent = text; return n; };
   const root = el('div', `dfchat${touch ? ' touch' : ''}`);
@@ -569,7 +598,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   grip.tabIndex = 0;
   grip.setAttribute('role', 'button');
   grip.setAttribute('aria-label', 'Resize chat');
-  grip.setAttribute('title', 'Drag to resize - wider is larger text, taller is more lines. Double-click for the usual size.');
+  grip.setAttribute('title', 'Drag to resize. Wider gives larger text, taller shows more lines. Double-click to reset.');
   const hide = el('button', 'dfchat-hide', 'Hide'); hide.type = 'button';
   hide.setAttribute('aria-label', 'Hide chat');
   const show = el('button', 'dfchat-show', 'Chat'); show.type = 'button';
@@ -578,7 +607,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   // listener is the element's own (the panel keeps its one window listener, AUDIT CHAT D5): a pick lands at the caret
   // and closes the grid, the button toggles it, and Escape in the field and the panel's close take it down.
   const emojiBtn = el('button', 'dfchat-emoji', '\u{1F642}'); emojiBtn.type = 'button';
-  emojiBtn.setAttribute('aria-label', 'Emoji'); emojiBtn.title = 'Emoji - or type a shortcode like :smile:';
+  emojiBtn.setAttribute('aria-label', 'Emoji'); emojiBtn.title = 'Emoji, or type a shortcode like :smile:';
   const emojiGrid = el('div', 'dfchat-emojis');
   emojiGrid.setAttribute('role', 'group'); emojiGrid.setAttribute('aria-label', 'Emoji');   // a set of buttons - a listbox's children would have to be options
   const picked = new Set();
@@ -636,6 +665,42 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     tabButtons.set(tab.id, { b, badge, name: null });
   }
   tabs.append(tabList);
+  // CHAT-TRADE: THE CHANNEL PICKER, built only when the host hands `channels` ({ list, set } - see the header): the +
+  // toggles the list, a row joins or leaves its channel through the host's one door, and the caret goes back to the
+  // field (EMOTE1's picker law: Escape in the field takes the list down first, the panel's close takes it with it).
+  let chanOpen = false;
+  const chanBtn = channels ? el('button', 'dfchat-chan-add', '+') : null;
+  const chanMenu = channels ? el('div', 'dfchat-chans') : null;
+  const chanRows = () => {
+    chanMenu.replaceChildren(...(channels.list?.() ?? []).map((c) => {
+      const row = el('button', 'dfchat-chan-row');
+      row.type = 'button'; row.dataset.chan = c.id;
+      row.setAttribute('aria-pressed', c.joined ? 'true' : 'false');   // AUDIT CHAT-TRADE A2: a toggle button - the list claims no menu's keys it does not have
+      const text = el('span', 'dfchat-chan-text');
+      text.append(el('span', 'dfchat-chan-name', c.name), el('span', 'dfchat-chan-hint', c.hint ?? ''));
+      row.append(el('span', 'dfchat-chan-mark', c.joined ? '\u2713' : ''), text);
+      row.addEventListener('click', () => { channels.set?.(c.id, !c.joined); chanRows(); paint(true); input.focus?.(); });
+      return row;
+    }));
+  };
+  const setChanOpen = (on) => {
+    if (!chanMenu) return;
+    chanOpen = !!on;
+    if (chanOpen) chanRows();
+    const cls = chanOpen ? 'dfchat-chans on' : 'dfchat-chans';
+    if (chanMenu.className !== cls) chanMenu.className = cls;
+    chanBtn.setAttribute('aria-expanded', chanOpen ? 'true' : 'false');
+  };
+  if (chanBtn) {
+    chanBtn.type = 'button';
+    chanBtn.setAttribute('aria-label', t('net.chat.channels', 'Channels'));
+    chanBtn.setAttribute('aria-expanded', 'false');
+    chanBtn.title = t('net.chat.channelsTitle', 'Join or leave a chat channel');
+    chanMenu.setAttribute('role', 'group');   // the emoji grid's role: a set of buttons
+    chanMenu.setAttribute('aria-label', t('net.chat.channels', 'Channels'));
+    chanBtn.addEventListener('click', () => { setChanOpen(!chanOpen); input.focus?.(); });
+    tabs.append(chanBtn, chanMenu);
+  }
   // TAB-WHEEL: the wheel over the strip turns it sideways (either wheel axis - a mouse's turns Y, a pad's X), and the
   // page under it does not scroll while the strip still can; each edge with tabs past it fades (tabEdges, the sheet).
   const tabEdges = () => {
@@ -669,6 +734,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     // "Friends and party" and nothing else. The word stays a title for the mouse; the badge names ITSELF, and the
     // button's accessible name becomes "Social 3" the moment there is a 3.
     b.setAttribute('title', 'Friends and party');
+    neverTheFocus(b);   // FB1020h HUD-FOCUS: a Tab walked onto it and the next Space (the game's Jump) pressed it
     const badge = el('span', 'dfchat-badge');
     b.append(badge); socialBadges.push(badge);
     b.addEventListener('click', () => social.onToggle?.());
@@ -686,7 +752,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   search.type = 'text'; search.maxLength = CHAT_FIND_MAX; search.placeholder = 'Find a player'; search.autocomplete = 'off'; search.spellcheck = false;
   search.setAttribute('role', 'searchbox');
   search.setAttribute('aria-label', 'Find a player in the chat');
-  search.title = 'A name, or part of one - every tab\'s lines from or about them, and who is online by that name. #tag finds one player of a shared name.';
+  search.title = 'Type a name or part of one to find lines from or about them on every tab, and who is online. Add a #tag for one player of a shared name.';
   const findCount = el('span', 'dfchat-find-count');
   findCount.setAttribute('aria-live', 'polite');   // the one live word in the box: how many lines the search found
   const findClear = el('button', 'dfchat-find-clear', '✕'); findClear.type = 'button';
@@ -706,6 +772,9 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   };
   box.append(tabs, cols, grip);   // CHAT-SIZE: the grip stands at the BOX's corner, over both columns
   // the Social button follows the Chat button (they share a line when both are drawn); `show` and the box keep their places
+  // FB1020h HUD-FOCUS: what stands over the world while the chat is shut is never the keyboard's focus (ui/input.js
+  // neverTheFocus) - Play online here, the touch skin's Chat, the Social button (above) and Show
+  for (const b of [here, openBtn, show]) neverTheFocus(b);
   root.append(peek, hint, status, here, openBtn, ...(socialOut ? [socialOut] : []), show, box);
   doc.body.append(root);
 
@@ -714,6 +783,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   let peekNodes = [];
   let listNodes = [];      // the open list's rows, in order: [{ seq, node }] - grown, not rebuilt (AUDIT CHAT C8)
   let listTab = null;
+  let listRemoved = 0;     // AUDIT SAFE CLIENT-4: the log's `removed` the open list was drawn at - rows taken from its middle rebuild it
   let alive = true;
   // CHAT-R2: hidden across sessions - a player who puts the chat away
   // wants it away next time too, not one reload later.
@@ -737,7 +807,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   /** CHAT-SCROLL: the bar under the list - drawn only while there is something below the reader. */
   const paintJump = () => {
     const on = log.open && unseen > 0;
-    const text = on ? `${unseen} new - jump to newest` : '';
+    const text = on ? `${unseen} new. Jump to newest` : '';
     if (jump.textContent !== text) jump.textContent = text;
     const cls = on ? 'dfchat-jump on' : 'dfchat-jump';
     if (jump.className !== cls) jump.className = cls;
@@ -853,8 +923,46 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     if (at < text.length) out.push(plain(text.slice(at)));
     return out;
   };
+  /** SAFE1 + SAFE3 (bible/11-Multiplayer/Chat-Safety-Arc.md): A SPOKEN LINE'S OWN MENU - the host's `lineActions(line)`
+   *  (Report, with its reasons; Block or Unblock), opened by pressing the speaker's name under the line and closed by
+   *  pressing it again, by a choice, or by opening another line's. Never on my own line, nor on one nobody spoke. */
+  let lineMenu = null;
+  const armLineMenu = (n, nameEl, line) => {
+    nameEl.className += ' dfchat-act';
+    nameEl.addEventListener('click', (e) => {
+      e.stopPropagation?.();
+      const was = lineMenu;
+      lineMenu?.menu.remove?.();
+      lineMenu = null;
+      if (was?.line === n) return;
+      const acts = lineActions(line) ?? [];
+      if (!acts.length) return;
+      const menu = el('div', 'dfchat-rowmenu dfchat-linemenu');
+      // STAFF-PANEL2-CHATMENU (2026-10-22): a row with its own `menu` opens that level in place of this one (a mute's
+      // lengths, a ban's and its confirm) and closes nothing; `title` is the row's tooltip
+      const fill = (rows) => menu.replaceChildren(...rows.map((a) => {
+        const b = el('button', 'dfchat-rowbtn', String(a.label ?? ''));
+        b.type = 'button';
+        if (a.title) b.title = String(a.title);
+        if (a.enabled === false) b.disabled = true;
+        else b.addEventListener('click', (ev) => { ev.stopPropagation?.(); if (Array.isArray(a.menu)) { fill(a.menu); return; } menu.remove?.(); lineMenu = null; a.run?.(); });
+        return b;
+      }));
+      fill(acts);
+      n.append(menu);
+      lineMenu = { line: n, menu };
+    });
+  };
+  /** STAFF-PANEL5-FREEZE: a line's Copy button (the Staff tab's Discord invite) - the browser's clipboard; one that refuses
+   *  leaves the words on the line to select. */
+  const copyButton = (words) => {
+    const b = el('button', 'dfchat-rowbtn dfchat-copy', copyText());
+    b.type = 'button';
+    b.addEventListener('click', (e) => { e.stopPropagation?.(); try { win.navigator?.clipboard?.writeText?.(words)?.catch?.(() => {}); } catch { /* the words stay on the line */ } });
+    return b;
+  };
   const lineNode = (line, withTime, withChan = false, hit = '') => {
-    const n = el('div', `dfchat-line${line.mine ? ' mine' : ''}${line.system ? ' system' : ''}${line.red ? ' red' : ''}${line.dm ? ' dm' : ''}${line.kind === 'ooc' ? ' ooc' : ''}${line.kind === 'roll' ? ' roll' : ''}${line.kind === 'me' ? ' me' : ''}${line.ping ? ' ping' : ''}`);
+    const n = el('div', `dfchat-line${line.mine ? ' mine' : ''}${line.system ? ' system' : ''}${line.red ? ' red' : ''}${line.dm ? ' dm' : ''}${line.kind === 'ooc' ? ' ooc' : ''}${line.kind === 'roll' ? ' roll' : ''}${line.kind === 'me' ? ' me' : ''}${line.kind === 'rp' ? ' rp' : ''}${line.ping ? ' ping' : ''}`);
     if (line.tab) n.dataset.ch = line.tab;   // CHAT-COLOURS: the channel it was said on - its colour is the sheet's
     const chan = withChan ? chanOf(line) : null;
     if (chan) n.append(chan);
@@ -867,7 +975,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     // hash off an empty id, identical on every notice and therefore
     // exactly the thing a player could be fooled by. Its own colour
     // instead, which is a mark no player's line can wear.
-    if (line.system) { const text = el('span', 'dfchat-text', line.text); n.append(text); return { node: n, chan, time, nameEl: null, tag: null, text }; }
+    if (line.system) { const text = el('span', 'dfchat-text', line.text); n.append(text); if (line.copy) n.append(copyButton(line.copy)); return { node: n, chan, time, nameEl: null, tag: null, text }; }   // STAFF-PANEL5-FREEZE: a game's line that offers its words to copy
     const nameEl = el('span', 'dfchat-name', line.name || '?'), tag = el('span', 'dfchat-tag', `#${tagOf(line.id)}`), text = el('span', 'dfchat-text', line.ping ? null : line.text);
     if (line.ping) text.append(...mentionParts(line.text, log.self));   // PING1: my @name picked out in the words
     if (hit) {   // CHAT-FIND: a search's result wears where the query stands - in the name, in the words, or (a '#' query) the tag
@@ -875,6 +983,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
       if (hit.startsWith('#') && playerFound(line.name, line.id, hit)) tag.replaceChildren(el('mark', 'dfchat-hit', tag.textContent));
     }
     n.append(nameEl, tag, text);
+    if (lineActions && !line.mine) armLineMenu(n, nameEl, line);   // SAFE1 + SAFE3
     return { node: n, chan, time, nameEl, tag, text };
   };
   /** One drawn row of the two line lists: the node, its parts, and the record the colour and badge passes walk.
@@ -966,7 +1075,9 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     const tab = log.tab(log.active);
     const msgs = tab ? tab.messages : [];
     const follow = newest || listTab !== log.active || !listNodes.length || atNewest();
-    const contiguous = listTab === log.active && listNodes.length && msgs.length && msgs.some((m) => m.seq === listNodes[listNodes.length - 1].seq);
+    // AUDIT SAFE CLIENT-4: and no row taken out of the middle since it was drawn (a block's forgetSpeaker) - the grow below
+    // trims the front and appends at the back, so a blocked account's rows stood drawn between the others'
+    const contiguous = listRemoved === (log.removed ?? 0) && listTab === log.active && listNodes.length && msgs.length && msgs.some((m) => m.seq === listNodes[listNodes.length - 1].seq);
     let arrived = 0;
     if (!contiguous) {
       listNodes = msgs.map((line) => lineRow(line, true, { seq: line.seq }));
@@ -977,6 +1088,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
       for (const line of msgs) if (line.seq > lastSeq) { const row = lineRow(line, true, { seq: line.seq }); listNodes.push(row); list.append(row.node); arrived++; }
     }
     listTab = log.active;
+    listRemoved = log.removed ?? 0;
     if (!follow) unseen += arrived;   // C8 stands: the reader keeps their place, and the bar counts what came in under it
     return follow;
   };
@@ -1054,7 +1166,12 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
    */
   const paintWho = () => {
     if (!roster) { who.style.display = 'none'; return; }
-    const { rows: all, all: everyone = all, total, shown, label } = rosterRows(roster());   // CHAT-FIND-ALL: `everyone` uncut, for the search
+    const src = roster();
+    // CHAT-FIND-HUB: past what this client knows (a shard's link, past CHAT_ROSTER_MAX online) the World tab's link asks
+    // the hub's own search while the box holds a query (net/online.js askFind - its own clock bounds it; '' lets the
+    // answer go), and the players it found ride in `everyone` (net/roster.js)
+    src?.askFind?.(query);
+    const { rows: all, all: everyone = all, total, shown, label } = rosterRows(src);   // CHAT-FIND-ALL: `everyone` uncut, for the search
     // PERF-ON3: THE SAME LIST IS NO NEWS. net/roster.js answers the very (frozen) array it answered last frame while
     // nothing it is made of moved, so with the heading's word, the count and the open menu also as they were, the key
     // below could only come out as it did - and building it was a string over every row, every frame the chat is open.
@@ -1185,6 +1302,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   const closePanel = () => {
     if (!alive || !log.open) return false;
     setEmojiOpen(false);   // EMOTE1: the picker goes with the panel
+    setChanOpen(false);   // CHAT-TRADE: and the channel list
     log.setOpen(false);
     setQuery('');   // CHAT-FIND: a search is a look at the log, not a state of it - the next open is the conversation
     search.blur?.();
@@ -1221,7 +1339,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
       // the field's key (CG2): stopped here, so the host's ring never fills from a chat line
       if (e.isComposing || e.keyCode === 229) { e.stopPropagation(); return; }   // C3: the IME's own Enter commits a candidate, not a line
       // AUDIT SOC C2/C14: a surface OVER the chat owns Escape - the key is left whole for it, and the field keeps its line
-      if (e.code === 'Escape') { if (above()) { e.stopPropagation(); return; } e.preventDefault(); e.stopImmediatePropagation(); if (emojiOpen) { setEmojiOpen(false); return; } closePanel(); return; }   // EMOTE1: the picker is the innermost surface - its Escape first
+      if (e.code === 'Escape') { if (above()) { e.stopPropagation(); return; } e.preventDefault(); e.stopImmediatePropagation(); if (emojiOpen) { setEmojiOpen(false); return; } if (chanOpen) { setChanOpen(false); return; } closePanel(); return; }   // EMOTE1: the picker is the innermost surface - its Escape first; CHAT-TRADE: then the channel list
       else if (e.code === 'Enter' && !e.shiftKey && !e.repeat) { e.preventDefault(); submit(); }   // C6: a held Enter opened once; its repeats send nothing
       else if (e.code === 'Tab') e.preventDefault();   // C7: focus stays in the field - Tab walked it onto Send and gave the keyboard back to the game
       else swallowBrowserKey(e);
@@ -1333,6 +1451,16 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     root, input,
     open, close: closePanel, toggle: () => (log.open ? closePanel() : open()),
     isOpen: () => log.open,
+    /** AUDIT SAFE CLIENT-12 (2026-10-17): A LINE THE RELAY REFUSED, BACK IN THE FIELD - a new voice's public line too soon
+     *  for its pace (`slowed`) left the field when it was sent, and the relay's word on it is said once in a while
+     *  (scenes/chatSafetyHost.js), so inside the quiet window it vanished. Put back only into an EMPTY field: whatever the
+     *  player has typed since is theirs. True when it went back. */
+    restore: (text) => {
+      const line = String(text ?? '');
+      if (!line || String(input.value ?? '') !== '') return false;
+      input.value = line;
+      return true;
+    },
     /** CHAT-FIND: the search - set it (the chat opened for it) and read it back ('' none). */
     find: (name) => { if (!log.open) open(); setQuery(name); return query; },
     query: () => query,

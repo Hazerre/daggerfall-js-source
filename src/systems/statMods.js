@@ -87,6 +87,7 @@ export function liveStat(entity, statName, skipKind = null) {   // AUDIT SURV-TI
   // every equip change and every magic round) - a field read, so this
   // leaf stays import-free; empty with every switch off.
   mod += entity._mods?.stats?.[statName] ?? 0;
+  maxMod += entity._mods?.statMax?.[statName] ?? 0;   // FIRM-MAX: a channel's lift of the ceiling (entityMods.js statMax)
   // VAMP-DAY: THE CURSE'S DAY NEVER KILLS. A live 0 is death (killIfAnyLiveStatZero below), and a vampire's -20 by
   // day on a stat of twenty or less would have killed at dawn - so its penalty stops at a live 1, against the stat
   // without it, here where every read sees it (as DFU's DrainEffect stops at 1).

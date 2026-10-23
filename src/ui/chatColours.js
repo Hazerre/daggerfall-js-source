@@ -6,13 +6,13 @@
 // ONE TABLE, TWO GROUNDS. Every colour comes twice: `light` for the dark grounds - Enhanced Plus's chat box, and the
 // lines that stand over the world while the chat is shut (each under the HUD's hard outline) - and `dark` for DFO
 // Grimoire's page, where the chat is written in ink. Each pair is tuned to read at 4.5:1 or better on its own ground
-// (test/chatcolours1.test.js measures every one against the grounds below), and the hues stay apart: a line's channel
+// (test/ui/chatcolours1.test.js measures every one against the grounds below), and the hues stay apart: a line's channel
 // is its words' colour, a speaker is their name's, and a line that names me wears the mention's gold.
 //
 // The channels the request named keep the colours it named; the three it did not (Language, Party) take hues none of
 // the others or the names use.
 
-/** The grounds the colours are read on - the darkest each can be (test/chatcolours1.test.js). Plus: the box's own
+/** The grounds the colours are read on - the darkest each can be (test/ui/chatcolours1.test.js). Plus: the box's own
  *  rgba(14,16,19,.84) over a white sky, its lightest; Grimoire: the cream page's darkest tenth, as measured off the
  *  rendered chat (the darkest twentieth of the cream page behind its lines). */
 export const CHAT_GROUNDS = Object.freeze({ light: '#343638', dark: '#c9a864' });
@@ -25,7 +25,14 @@ export const CHANNEL_COLOURS = Object.freeze({
   party: Object.freeze({ light: '#6fe6d4', dark: '#0a4641' }),    // teal
   guild: Object.freeze({ light: '#d2b6ff', dark: '#4e1f8f' }),    // purple
   local: Object.freeze({ light: '#c4beb2', dark: '#443e39' }),    // grey
+  trade: Object.freeze({ light: '#f0dc5a', dark: '#3f3300' }),    // CHAT-TRADE: gold - the coin's
+  lfg: Object.freeze({ light: '#98c4ff', dark: '#173478' }),      // CHAT-TRADE: blue
 });
+
+/** CHAT-RP (2026-10-14, Mac: "/rp Italicizes and makes text color green. For roleplay purposes"): a line of roleplay's
+ *  words - green and leaning on every tab, whatever the channel's colour (its kind keeps its own, as an action's does);
+ *  a yellower green than the Region's, so the lean is not the only thing that tells them apart. */
+export const RP_COLOURS = Object.freeze({ light: '#a8e66e', dark: '#1d420a' });
 
 /** A speaker's name - never the words' colour (NAME-INK). A stranger's in brass (the page's red on Grimoire), my own a
  *  paler gold (a brown gold), a party member's green and a friend's blue (net/social.js cssColorOf - the light pair is
@@ -45,8 +52,9 @@ export const PING_COLOURS = Object.freeze({
   bar: Object.freeze({ light: '#ffc845', dark: '#a8620a' }),
 });
 
-/** The plain kinds a channel colours - a system line, a server's, the DM's, an aside, an action and a roll keep their own. */
-export const COLOURED_LINE = ':not(.system):not(.red):not(.dm):not(.ooc):not(.me):not(.roll)';
+/** The plain kinds a channel colours - a system line, a server's, the DM's, an aside, an action, a roll and (CHAT-RP) a
+ *  line of roleplay keep their own. */
+export const COLOURED_LINE = ':not(.system):not(.red):not(.dm):not(.ooc):not(.me):not(.roll):not(.rp)';
 
 /** The sheet's rules for one ground: `scope` the selector a rule's line sits under (with the switch on), `tone` 'light' or
  *  'dark', `imp` whether the rules must say !important (Grimoire's ink pass re-says the chat's own colours). */

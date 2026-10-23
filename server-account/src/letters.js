@@ -42,7 +42,9 @@ import { mintId, accountKind, displayName, isMuted, overRate } from './accounts.
 import { ID_RE } from '../../src/net/identityToken.js';   // NAME-AS: a friend's letter, addressed by account
 import { titleWorn, glyphsShown } from './titles.js';
 import { withIliacHonours, withIliacHonoursAll } from './iliac.js';   // CARDS10: and Iliac Hand's season #1's title
+import { withGambitHonours, withGambitHonoursAll } from './gambit.js';   // KG6: and The King's Gambit's GRANDMASTER
 import { withArenaHonours, withArenaHonoursAll } from './arena.js';   // AUDIT PRE-MERGE 1003 S8: the arena's honours on a sender's badge
+import { withEgHonours, withEgHonoursAll } from './egHonours.js';   // EG-E2: and the Spire Champions
 import { HANDLE_RE } from '../../src/net/handleShape.js';
 import {
   letterWords, LETTERS_INBOX_MAX, LETTERS_SENT_MAX, LETTERS_SENT_WINDOW_S, LETTERS_PAIR_MAX, LETTER_ID_RE,
@@ -83,6 +85,10 @@ export async function sendLetter({ db, rand, nowS }, sender, { to, toAccount, su
   if (reader.id === sender.id) return { error: 'to-self' };
   if (await overRate({ db, nowS }, `mail:${sender.id}>${reader.id}`, LETTERS_PAIR_MAX, LETTERS_SENT_WINDOW_S)) return { error: 'mail-rate' };
   const id = mintId(rand);
+  // AUDIT SAFE CLIENT-7 (bible/11-Multiplayer/Chat-Safety-Arc.md section 2): A READER WHO BLOCKED THE SENDER never gets
+  // the letter - its subject was a line in their chat - and the sender is answered as if it went: a block is never told
+  // to the blocked (safety.js SAFE1). The rates above are spent all the same.
+  if (await db.prepare('SELECT 1 AS y FROM blocks WHERE player = ?1 AND blocked = ?2').bind(reader.id, sender.id).first()) return { ok: true, id, to: account ? displayName(reader) : reader.handle };
   const r = await db.prepare(`INSERT INTO letters (id, to_id, from_id, from_name, subject, body, sent_at)
     SELECT ?, ?, ?, ?, ?, ?, ? WHERE (SELECT COUNT(*) FROM letters WHERE to_id = ?) < ?`)
     .bind(id, reader.id, sender.id, displayName(sender), words.subject, words.body, nowS, reader.id, LETTERS_INBOX_MAX).run();
@@ -113,6 +119,8 @@ export async function inboxOf({ db, nowS, primary = db }, reader, env) {   // SC
     // SCALE4g: ON THE BINDING - a #1 found stale is counted again and STORED (arena.js championNow), never off a replica
     // (AUDIT SCALE4d A1's law, where the heartbeat's session reads the rest)
     for (const p of await withIliacHonoursAll({ db: primary }, await withArenaHonoursAll({ db: primary }, found, nowS), nowS)) rows.set(p.id, p);   // AUDIT PRE-MERGE 1003 S8: the Grand Champion's title, the #1's laurel
+    for (const p of await withEgHonoursAll({ db: primary }, [...rows.values()], nowS)) rows.set(p.id, p);   // EG-E2: and Spire Champion (egHonours.js)
+    for (const p of await withGambitHonoursAll({ db: primary }, [...rows.values()], nowS)) rows.set(p.id, p);   // KG6: and The King's Gambit's GRANDMASTER
   }
   const letters = results.map((l) => ({
     id: l.id, from: l.from_name, ...badgeOf(rows.get(l.from_id), env, nowS),
@@ -135,7 +143,7 @@ export async function readLetter({ db, nowS }, reader, env, id) {
   const row = await withIliacHonours({ db }, await withArenaHonours({ db }, await db.prepare('SELECT * FROM players WHERE id = ?').bind(l.from_id).first(), nowS), nowS);   // AUDIT PRE-MERGE 1003 S8; CARDS10: and Iliac Hand's
   return {
     letter: {
-      id: l.id, from: l.from_name, ...badgeOf(row, env, nowS), subject: l.subject, body: l.body,
+      id: l.id, from: l.from_name, ...badgeOf(await withGambitHonours({ db }, await withEgHonours({ db }, row, nowS), nowS), env, nowS), subject: l.subject, body: l.body,   // EG-E2: and Spire Champion; KG6: the GRANDMASTER's too
       sentAt: l.sent_at, readAt: l.read_at ?? nowS,
     },
   };

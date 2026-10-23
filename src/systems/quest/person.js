@@ -34,16 +34,16 @@ import { raceFromFactionRace, factionRaceFromRace, ZERO_NPC_DATA } from '../../c
 import { raceById } from '../races.js';
 import { Place, SITE_TYPES, townBlockGrid } from './place.js';
 import { stampLayout, layoutStampOfMapId, recordStands, recordHeldBack } from '../layoutPins.js';   // WD3 (AUDIT WD3 S3): a questor's building keeps its town's layout
-import { questorCandidateBuildings } from '../talkTopics.js';   // QUESTOR-MOVED: the town's buildings and their people, as the questor pool reads them
-import { hasGuildService } from '../guildServices.js';   // QUEST-AUDIT II HOUSE-HALL: a guild's questor known by its service
+import { questorCandidateBuildings } from '../talk/talkTopics.js';   // QUESTOR-MOVED: the town's buildings and their people, as the questor pool reads them
+import { hasGuildService } from '../guild/guildServices.js';   // QUEST-AUDIT II HOUSE-HALL: a guild's questor known by its service
 import { FACTION_TYPES } from '../../formats/factionFile.js';
 import { getNameBankOfRegion, fullName, GENDERS } from '../../characters/nameHelper.js';
 import { srand } from '../../formats/dfRandom.js';
-import { ORDERS } from '../guildVariants.js';
+import { ORDERS } from '../guild/guildVariants.js';
 import { getLocalizedLocationName, getLocalizedRegionName } from '../textManager.js';   // L10N3e: the place names shown
 import { getLocalizedFactionName, GrammarManager } from '../textManager.js';   // L10N3e: the faction names shown; L10N3g: the NPC's gender, for the grammar
 import { localizedText, TextCollections } from '../textManager.js';   // L10N3e: the flat's caption, from the flats table
-import { raceDisplayName } from '../talkSession.js';   // L10N3d: RaceTemplate.Name, in the player's language
+import { raceDisplayName } from '../talk/talkSession.js';   // L10N3d: RaceTemplate.Name, in the player's language
 
 const DECL = /(Person|person) (?<symbol>[a-zA-Z0-9'_.-]+)/;
 const OPTIONS = /named (?<individualNPCName>[a-zA-Z0-9'_.-]+)|face (?<faceIndex>\d+)|(factionType|factiontype) (?<factionType>[a-zA-Z0-9'_.-]+)|faction (?<factionAlliance>[a-zA-Z0-9'_.-]+)|group (?<careerAlliance>[a-zA-Z0-9'_.-]+)|(?<gender>female|male)|(?<locationScope>local|remote)|(?<atHome>atHome|athome)/g;
@@ -87,6 +87,15 @@ const namedByFaction = (fd) => (fd?.type === FACTION_TYPES.Individual || fd?.typ
  *  up here, where it is shown, by the record's id. A drawn name stands. */
 export const shownPersonName = (person) => (namedByFaction(person?.factionData)
   ? getLocalizedFactionName(person.factionData.id, person.displayName) : person?.displayName);
+
+/** QUEST-NAME-ONE (FIELD BUGS 2026-10-20, Harlander: "the name mentioned in the quest text doesn't match the name of
+ *  the NPC you talk to to progress it"): THE NAME A QUEST PERSON'S NPC ANSWERS TO - the Person's own, drawn or given
+ *  (`ql name`, systems/questlines/qlActions.js QlName), or null for one named after its faction record (an Individual
+ *  or a Daedra), whom the NPC's own faction path names. DFU re-draws a quest NPC's name from the Person's seed with the
+ *  bank of the region it stands in (StaticNPC.GetDisplayName), which is the Person's name only while nothing renamed
+ *  the Person and the two banks agree - the questlines' givers were renamed, so their NPCs answered to a stranger's
+ *  name. Read by characters/staticNpc.js staticNpcName, the departure named there. */
+export const personOwnName = (person) => (person?.isPerson === true && !namedByFaction(person.factionData) && person.displayName) || null;
 
 /** KnightlyOrder.Orders in C# Enum.GetValues order - sorted by VALUE
  *  (KnightlyOrder.cs:49-61). */

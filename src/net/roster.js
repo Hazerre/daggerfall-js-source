@@ -68,7 +68,8 @@ export const ROSTER_ROWS_MAX = 200;
  *             peers?: Map<string, { id?: string|null, name?: string|null, gt?: string|null }>|null,
  *             roomCount?: number|null, label?: string|null,
  *             guildOnline?: Map<string, { id?: string|null, name?: string|null, gt?: string|null }>|null,
- *             hubOnline?: Map<string, { id?: string|null, name?: string|null, gt?: string|null }>|null }} RosterSource
+ *             hubOnline?: Map<string, { id?: string|null, name?: string|null, gt?: string|null }>|null,
+ *             hubFound?: { q?: string, l?: any[] }|null }} RosterSource   // CHAT-FIND-HUB: the hub's answer to the search box
  */
 
 // PERF-ON3 (2026-10-06, Mac: "I wanna look into how we can continue to improve performance, including for online"):
@@ -200,7 +201,32 @@ export function rosterRows(session) {
   // list"): `all` is every row this client knows, sorted and UNCUT - the panel's search filters it, not the first
   // ROSTER_ROWS_MAX the column draws. The same frozen array while nothing moved (PERF-ON3), so the panel's key holds.
   // non-enumerable: the answer's shape (rows, total, shown, label) is what its callers and pins compare; `all` rides beside it
-  return Object.defineProperty({ rows: _lastOut, total, shown: Math.min(rows.length, ROSTER_ROWS_MAX), label }, 'all', { value: _lastAll });
+  // CHAT-FIND-HUB: and the players the hub's own search found (`hubFound`) that this client does not know
+  return Object.defineProperty({ rows: _lastOut, total, shown: Math.min(rows.length, ROSTER_ROWS_MAX), label }, 'all', { value: withHubFound(_lastAll, session) });
+}
+
+let _hubOf = /** @type {any} */ (null), _hubBase = /** @type {readonly RosterRow[]|null} */ (null), _hubOut = _lastAll;
+/** CHAT-FIND-HUB (2026-10-15, Mac: "player search isnt working properly. Even in world tab I try to search for someone
+ *  and they can't be found cause it only shows like 25 ppl out of 600"): past CHAT_ROSTER_MAX online the hub lets the
+ *  World tab's everyone go (net/online.js sendHubWho) and a shard's link knows its own shard alone, so the search -
+ *  which filters `all` (CHAT-FIND-ALL) - found nobody on the other fifteen. The hub's answer to the box's query
+ *  (net/online.js askFind, `hubFound`) joins `all`: each player once (my own row is my session's), by name.
+ *  The panel's filter is the box's law as ever, so an answer to "jo" serves "joh" until its own lands. `base` itself
+ *  when the hub adds nobody; the same frozen array while the answer and the list stand. */
+function withHubFound(base, session) {
+  const f = session?.hubFound;
+  if (!f || !Array.isArray(f.l) || !f.l.length) return base;
+  if (f === _hubOf && base === _hubBase) return _hubOut;
+  const have = new Set(base.map((r) => r.id));
+  const more = [];
+  for (const p of f.l) {
+    if (!p || typeof p.id !== 'string' || have.has(p.id)) continue;   // my own row is in `base` already
+    have.add(p.id);
+    more.push(freezeRow({ id: p.id, name: sanitizeName(p.name), tag: tagOf(p.id), me: false, ...readBadge(p), gt: readGuildTag(p) }));
+  }
+  _hubOf = f; _hubBase = base;
+  _hubOut = more.length ? Object.freeze(base.concat(more).sort(byNameThenTag)) : base;
+  return _hubOut;
 }
 
 /** The heading the panel shows: "Online - 3". A roster of one is

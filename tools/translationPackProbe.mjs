@@ -1,6 +1,6 @@
 // L10N3b (2026-09-27): A REAL DFU TRANSLATION PACK, INSTALLED THROUGH THE SETTINGS ROW, IN A REAL BROWSER.
 //
-// test/l10n3b.test.js runs the store and the loader over an in-memory IndexedDB; this installs a pack the way a player
+// test/systems/l10n3b.test.js runs the store and the loader over an in-memory IndexedDB; this installs a pack the way a player
 // does - the Translation pack row's Install, its folder picked (then its .zip) - into Chromium's own IndexedDB, and
 // reads the game's tables back: the pack's Internal_Strings and Internal_RSC words live, its font registered for its
 // language, all of it still there after a reload, and gone again after Remove.
@@ -46,7 +46,7 @@ const open = async () => {
   await page.goto(`${BASE}/play/?nointro&lang=${LANG}`, { waitUntil: 'networkidle' });
   await page.waitForSelector('.px-menu button', { timeout: 20000 });
   if (await page.locator('.px-acctstage').count()) await page.locator('.px-acctstage').click({ position: { x: 2, y: 2 } });
-  await page.locator('.px-menu .door-settings').click();
+  await page.locator(':is(.px-menu, .px-foot) .door-settings').click();
   await page.locator('#enhanced-menu .subbtn').filter({ hasText: /^Interface/ }).first().click();
 };
 const tables = () => page.evaluate(async () => {

@@ -6,7 +6,7 @@
 // face, read out of the player's ARENA2 when the dial is raised - nothing of the game's art ships with the port:
 //   SKILLS  the character's face - the head the large HUD and the sheet wear (the race's FACE??I0.CIF at the chosen
 //           face, or the curse's override: the werewolf's, the wereboar's, the vampire's - systems/vampirism.js)
-//   MAGIC   the spellbook button's star        } MAIN00I0.IMG, the 320x46 bar (ui/hudLarge.js), each cut off the
+//   MAGIC   the spellbook button's star        } MAIN00I0.IMG, the 320x46 bar (ui/hud/hudLarge.js), each cut off the
 //   ITEMS   the inventory button's sack        } stone it is painted on along its own outline - the masks below are
 //   MAP     the map button's scroll            } the icons' pixels, in or out, worked once off the bar
 // THE SIZES MATCH: the three bar icons at four screen pixels to each of their own (76-80 px tall) and every face at
@@ -16,6 +16,11 @@
 // as Mac asked ("check all heads if they match like the red haired here") - every pixel square. Only a head longer than
 // 36 pixels a side is fitted down to CLASSIC_FACE_MAX, so no door outgrows the rose.
 //
+// PORTRAIT3D (2026-10-15, the owner: "5. Do this" - the tab dial's door among the faces still Daggerfall's): with
+// Morrowind's data attached SKILLS is the player's Morrowind head, as the large HUD's (characters/headPortraits.js
+// playerHeadImage - the helm worn, the curse's head; the wereboar's Daggerfall's), trimmed to its painted pixels and
+// drawn at CLASSIC_FACE_MAX at most, smooth (`smooth`: data-grim-dial-face="head" lifts the pixels' squaring off it).
+//
 // The pack's paintings stay the dial's until the player's art is read (the front menu has no data), and wherever it
 // cannot be. A leaf of the dial: the hosts hand it their data door (setClassicDialSource) and the dial asks it to wear
 // the art each time it rises (pixelDial.js setDialOpenHook).
@@ -24,6 +29,7 @@ import { CifRciFile } from '../formats/cifRciFile.js';
 import { bitmapToColor32 } from '../formats/color32Order.js';
 import { raceArt } from '../systems/races.js';
 import { racialOverrideHeadArt } from '../systems/vampirism.js';
+import { playerHeadImage, playerHeadKey } from '../characters/headPortraits.js';   // PORTRAIT3D
 
 /** The bar the three icons are cut from, and each icon's box on it [x, y, w, h] and its pixels' spans along each row
  *  of the box ([from, to) pairs, left to right) - the icon and its own dark outline, the stone left out. */
@@ -82,7 +88,34 @@ export function faceSourceOf(entity) {
   if (ov) return ov;
   return { file: raceArt(entity?.race ?? 'Breton', entity?.gender ?? 'male').heads, record: Math.max(0, entity?.faceIndex ?? 0) };
 }
-const faceKey = (entity) => { const f = faceSourceOf(entity); return `${f.file}#${f.record}`; };
+const faceKey = (entity) => { const f = faceSourceOf(entity); return `${f.file}#${f.record}|mw${playerHeadKey(entity)}`; };   // PORTRAIT3D: and the Morrowind head's
+
+/** PORTRAIT3D: the picture a Morrowind head is taken at - twice the longest side a face is drawn at. */
+export const HEAD_DIAL_PX = CLASSIC_FACE_MAX * 2;
+/** The painted box of an RGBA picture - every pixel not clear - [x, y, w, h], or null for an empty one. */
+export function alphaBox(img) {
+  let x0 = Infinity, y0 = Infinity, x1 = -1, y1 = -1;
+  for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
+    if (img.data[(y * img.width + x) * 4 + 3] === 0) continue;
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  return x1 < 0 ? null : [x0, y0, x1 - x0 + 1, y1 - y0 + 1];
+}
+/** PORTRAIT3D: a Morrowind head's picture as the SKILLS door wears it - trimmed to its painted pixels, drawn
+ *  CLASSIC_FACE_MAX / HEAD_DIAL_PX of its own (its longer side CLASSIC_FACE_MAX at most), smooth; null for an empty one.
+ *  @param {{ width: number, height: number, data: Uint8Array|Uint8ClampedArray } | null} img */
+export function headDialPicture(img) {
+  const box = img ? alphaBox(img) : null;
+  if (!box) return null;
+  const [bx, by, bw, bh] = box;
+  const rgba = new Uint8ClampedArray(bw * bh * 4);
+  for (let y = 0; y < bh; y++) rgba.set(img.data.subarray(((by + y) * img.width + bx) * 4, ((by + y) * img.width + bx + bw) * 4), y * bw * 4);
+  return { width: bw, height: bh, rgba, scale: CLASSIC_FACE_MAX / HEAD_DIAL_PX, smooth: true };
+}
+/** PORTRAIT3D: the player's Morrowind head as the SKILLS door wears it, or null where none is drawn. */
+export async function readHeadDial(entity) {
+  return headDialPicture(await playerHeadImage(entity, { px: HEAD_DIAL_PX, ph: HEAD_DIAL_PX }).catch(() => null));
+}
 
 /** Read the four pictures: `fetchBytes(name)` the data door, `palette` the game's. Answers { skills, magic, items,
  *  map }, each { width, height, rgba, scale }; a picture that cannot be read is left out (the pack's stands). */
@@ -94,6 +127,8 @@ export async function readClassicDial({ fetchBytes, palette }, entity) {
     const bmp = bar.getDFBitmap();
     for (const name of Object.keys(CLASSIC_DIAL)) out[name] = cutBarIcon(bmp, palette, name);
   } catch { /* no bar: the pack's three stand */ }
+  const head = await readHeadDial(entity);   // PORTRAIT3D: the Morrowind head first
+  if (head) { out.skills = head; return out; }
   try {
     const f = faceSourceOf(entity);
     let bmp;
@@ -130,6 +165,8 @@ export function wearClassicDial(doc, pics) {
     n++;
   }
   if (n) root.dataset.grimDialArt = 'classic';
+  if (pics.skills?.smooth) root.dataset.grimDialFace = 'head';   // PORTRAIT3D: a Morrowind head is drawn smooth
+  else delete root.dataset.grimDialFace;
   return n;
 }
 

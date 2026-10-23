@@ -3,16 +3,16 @@
 // Make it mark the motherlode spots with a waypoint on the travel map or something, an extra 20 minutes of heads up
 // doesn't do anything considering its damn near impossible to find these anyway"): A MOTHERLODE SENSE'S MAP MARKS - the
 // day's Motherlodes, each a circle on its pixel from the day's start until it is spent or gone, its ore and, while it
-// is still to rise, when it rises beside it, on both maps (and on the Overworld, scenes/world.js travelViewMarks).
+// is still to rise, when it rises beside it, on both maps (and on the Overworld, scenes/travelViewMarks.js - HOST-SPLIT 1 moved it out of world.js).
 //
 // The host hands the maps a FUNCTION (`lodes: () => marks[]`, beside BOUNTY1's `bounties` and RVN7c's `revenants`) and
 // neither map learns what a Motherlode is: a mark is the bounty's circle in map pixels - `{cx, cy, r, label}` - read by
-// the bounty's own reader (ui/bountyMapMark.js readBountyMarks) and painted by its own painter (ui/inkMap.js
+// the bounty's own reader (ui/bounty/bountyMapMark.js readBountyMarks) and painted by its own painter (ui/ink/inkMap.js
 // paintBountyRing; the classic page's bountyRingTexels).
 //
 // Not a DFU member. Ledger A (MINE-PERKS).
 import { MOTHERLODE_MARK_CSS } from './nodeMarks.js';
-import { BOUNTY_RING_R } from './bountyMapMark.js';
+import { BOUNTY_RING_R } from './bounty/bountyMapMark.js';
 import { t } from '../systems/textManager.js';   // L10N4: the words through the text core (tools/l10n/ROUTE-BRIEF.md)
 
 /** The held map's ink - a deep teal, the compass's aqua (LODE-MARK, MOTHERLODE_MARK_CSS) darkened to be read: the

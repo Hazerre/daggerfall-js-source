@@ -4,7 +4,7 @@
 // standing in its collider, its horses and its keeper on the flats' axis, its wagons on show drawn as a parked wagon is,
 // the eye's boxes and their names, and the press - the trade (systems/merchantYards.js).
 //
-// WHERE: the host says (`sites`: each yard of every town built, its middle in the scene's x, z - world/merchantYardSites.js
+// WHERE: the host says (`sites`: each yard of every town built, its middle in the scene's x, z - world/merchantYards/merchantYardSites.js
 // placed it, carried by the host's own frame - its turn, its name and its keeper), and the ground there is the host's
 // (`groundAt`), read when a yard moves (a floating-origin recentre, across or up) and every YARD_GROUND_EVERY frames,
 // never every frame. A yard's collider bucket - its timber, its wagons' boxes, its horses' and its keeper's - is stood
@@ -14,7 +14,7 @@
 //
 // WHO STANDS IN IT: the Stable's three horses (Horse Cart and Cargo's own standing horse, eight views - its art the
 // pool's, `horseArt`), turned to the eye as a standing horse turns; the keeper, a person of the town's own race in its
-// idle record (characters/mobilePerson.js PERSON_TEXTURES, PERSON_IDLE_RECORD at PERSON_IDLE_FPS); in the Wagon Yard a
+// idle record (characters/mobile/mobilePerson.js PERSON_TEXTURES, PERSON_IDLE_RECORD at PERSON_IDLE_FPS); in the Wagon Yard a
 // Small Cart, an Open Wagon and a Caravan, Mac's own wagons (`showWagon` - scenes/horseCartPool.js drawShowWagon), each
 // its own box's middle on its place, its front to the street, its wheels on the ground.
 //
@@ -42,11 +42,13 @@
 //
 // Not a DFU member. Ledger A (MERCHANT-YARDS).
 import { YARD_KINDS, YARD_TEXT, YARD_ROWS, YARD_BENCH_ROW, CARPENTER_STEAL_TEXT, yardName, validYardKind, yardRowsFor } from '../systems/merchantYards.js';
-import { WAGON_KINDS } from '../systems/wagonKinds.js';
-import { YARD_FOOT } from '../world/merchantYardSites.js';
-import { buildYardModel, signBoxOf, yardPoints } from '../world/merchantYardModels.js';
-import { yardArt, YARD_ARCHIVE } from '../world/merchantYardArt.js';
-import { PERSON_TEXTURES, PERSON_IDLE_RECORD, PERSON_IDLE_FPS } from '../characters/mobilePerson.js';
+import { WAGON_KINDS } from '../systems/wagon/wagonKinds.js';
+import { YARD_FOOT } from '../world/merchantYards/merchantYardSites.js';
+import { buildYardModel, signBoxOf, yardPoints } from '../world/merchantYards/merchantYardModels.js';
+import { yardArt, YARD_ARCHIVE } from '../world/merchantYards/merchantYardArt.js';
+import { dfLook, lookSeed } from '../world/dfLook.js';   // DF-LOOK: the yards' pictures in Daggerfall's colours
+import { wearPainted } from '../systems/studioArt/studioArt.js';   // STUDIO1: the studio's pictures over the painted ones (their rows top-down, as the yards' are)
+import { PERSON_TEXTURES, PERSON_IDLE_RECORD, PERSON_IDLE_FPS } from '../characters/mobile/mobilePerson.js';
 import { mobileBillboardSize } from '../world/rmbFlats.js';
 import { folkLookOf } from '../characters/folkBodies.js';   // AUDIT MW-NPC II P1: a keeper's body, in the outfit their picture wears
 import { personActor } from '../characters/peopleBodies.js';   // AUDIT MW-NPC II P1: and turned to the eye as a standing person is
@@ -55,10 +57,10 @@ import { textSeed } from '../systems/livingWorld/seed.js';
 import { RAY_DISTANCE, STATIC_NPC_ACTIVATION_DISTANCE, presentNpcInfoText } from '../player/activate.js';
 import { trs } from '../world/mat4.js';
 import { quatAngleAxis } from '../world/quat.js';
-import { calculateHorseOrientation, horseViewFor, HORSE_BOX_CENTER, HORSE_BOX_SIZE } from '../systems/horseCartLaw.js';
+import { calculateHorseOrientation, horseViewFor, HORSE_BOX_CENTER, HORSE_BOX_SIZE } from '../systems/horse/horseCartLaw.js';
 import { HORSE_ARCHIVE, horseStillRecord, HORSE_BILLBOARD_WIDTH, HORSE_BILLBOARD_HEIGHT, boxTriangles } from './horseCartPool.js';
 import { localAabb, transformedAabb } from '../render/frustum.js';   // PERF-YARD (AUDIT): a yard's box for the street's view test
-import { DECOR_DRAW, DECOR_SHADOW, DECOR_SKIP, castOnly } from './decorRoom.js';   // PERF-WAGON: the cast-only renderer the wagons' pool shares
+import { DECOR_DRAW, DECOR_SHADOW, DECOR_SKIP, castOnly } from './decor/decorRoom.js';   // PERF-WAGON: the cast-only renderer the wagons' pool shares
 
 /** The ground under a yard is read again every this many frames (a pixel built finer moves it). */
 export const YARD_GROUND_EVERY = 30;
@@ -75,8 +77,8 @@ export const YARD_MARK_LIFT = 4;
 /** What a wagon on show says it carries (its hover's line). */
 export const WAGON_SHOW_LINE = Object.freeze({
   cart: 'Carries 750 kg',
-  openWagon: 'Carries 1,500 kg - seats four in its back',
-  caravan: 'Carries 2,000 kg - a room to live in',
+  openWagon: 'Carries 1,500 kg and seats four in the back',
+  caravan: 'Carries 2,000 kg, with a room to live in',
 });
 const NONE = Object.freeze([]);
 
@@ -172,7 +174,7 @@ export function createMerchantYards({
     if (meshes.has(kind)) return meshes.get(kind);
     if (!renderer?.createMesh) return null;
     try {
-      if (!artUp) { for (const [rec, art] of yardArt()) renderer.uploadTexture?.(YARD_ARCHIVE, rec, art); artUp = true; }
+      if (!artUp) { for (const [rec, art] of yardArt()) wearPainted(YARD_ARCHIVE, rec, () => dfLook(art, lookSeed(YARD_ARCHIVE, rec)), (pic, { late }) => { if (late) renderer.releaseTexture?.(YARD_ARCHIVE, rec); renderer.uploadTexture?.(YARD_ARCHIVE, rec, pic); }, { topDown: true }); artUp = true; }
       meshes.set(kind, renderer.createMesh(modelOf(kind)));
     } catch (e) { meshes.set(kind, null); console.warn('[yards] a yard would not build', e?.message ?? e); }
     return meshes.get(kind);
@@ -292,6 +294,22 @@ export function createMerchantYards({
     }
   }
 
+  /** A standing yard's boxes for the eye - its keeper, its signboard, a joinery's workbench, its horses and its wagons on
+   *  show - each its reach a static NPC's beside the ray's; made once a placing (`y.targets`, dropped as the yard moves).
+   *  FB1020c BENCH-DOORS: the press's boxes and the street's workbench question's (workbenchNear) are these same ones. */
+  function targetsOf(y) {
+    y.targets ??= (() => {
+      const out = [], P = yardPoints(y.site.kind), k = P.keeper;
+      const add = (what, b) => out.push({ key: `yard:${y.key}|${what}`, aabb: yardBoxToScene(y.at, y.site.yaw, b), distance: RAY_DISTANCE, reach: YARD_REACH });
+      add('keeper', [k[0] - KEEPER_HALF, 0, k[1] - KEEPER_HALF, k[0] + KEEPER_HALF, KEEPER_HEIGHT, k[1] + KEEPER_HALF]);
+      add('sign', signBoxOf(y.site.kind));
+      if (P.bench) add('bench', P.bench);   // CARP-YARD: the joinery's workbench
+      P.horses.forEach((h, i) => { const r = Math.max(HORSE_BOX_SIZE[0], HORSE_BOX_SIZE[2]) / 2; add(`horse.${i}`, [h[0] - r, 0, h[1] - r, h[0] + r, HORSE_BOX_SIZE[1], h[1] + r]); });
+      y.wagons.forEach((w, i) => { if (w.box) add(`wagon.${i}`, w.box); });
+      return out;
+    })();
+    return y.targets;
+  }
   /** The key's yard and what of it the key names: 'keeper', 'sign', 'horse' or 'wagon' (with its index). */
   function partOf(key) {
     if (typeof key !== 'string' || !key.startsWith('yard:')) return null;
@@ -400,17 +418,7 @@ export function createMerchantYards({
       _targets.length = 0;
       for (const y of yards.values()) {
         if (!y.at) continue;
-        y.targets ??= (() => {
-          const out = [], P = yardPoints(y.site.kind), k = P.keeper;
-          const add = (what, b) => out.push({ key: `yard:${y.key}|${what}`, aabb: yardBoxToScene(y.at, y.site.yaw, b), distance: RAY_DISTANCE, reach: YARD_REACH });
-          add('keeper', [k[0] - KEEPER_HALF, 0, k[1] - KEEPER_HALF, k[0] + KEEPER_HALF, KEEPER_HEIGHT, k[1] + KEEPER_HALF]);
-          add('sign', signBoxOf(y.site.kind));
-          if (P.bench) add('bench', P.bench);   // CARP-YARD: the joinery's workbench
-          P.horses.forEach((h, i) => { const r = Math.max(HORSE_BOX_SIZE[0], HORSE_BOX_SIZE[2]) / 2; add(`horse.${i}`, [h[0] - r, 0, h[1] - r, h[0] + r, HORSE_BOX_SIZE[1], h[1] + r]); });
-          y.wagons.forEach((w, i) => { if (w.box) add(`wagon.${i}`, w.box); });
-          return out;
-        })();
-        for (const tg of y.targets) _targets.push(tg);
+        for (const tg of targetsOf(y)) _targets.push(tg);
       }
       return _targets;
     },
@@ -449,8 +457,8 @@ export function createMerchantYards({
     /**
      * YARDS-FOUND (2026-10-10, from play: "The new stable and transport merchant shops dont show on town
      * maps/overworld"): EACH YARD STANDING, AS AN OVERWORLD MARK - its name over its ground (YARD_MARK_LIFT up), its kind
-     * the look's (`yard stable`, `yard transport` - ui/travelViewHud.js yardGlyph: its signboard's emblem) and the
-     * Towns switch's (systems/travelViewFilters.js markGroup). The yards of every town built about the player, as the
+     * the look's (`yard stable`, `yard transport` - ui/travel/travelViewHud.js yardGlyph: its signboard's emblem) and the
+     * Towns switch's (systems/travel/travelViewFilters.js markGroup). The yards of every town built about the player, as the
      * pool stands them - a town out of the build stands none, and is marked by its own plate.
      */
     overworldMarks() {
@@ -462,19 +470,26 @@ export function createMerchantYards({
       return out;
     },
     /**
-     * CARP-YARD: THE JOINERY WHOSE WORKBENCH THE FEET `f` (the scene's) STAND AT - its bench's middle within YARD_REACH
-     * across the ground and the feet no more than YARD_BENCH_RISE over or under its floor - or null. The station the
+     * CARP-YARD: THE JOINERY WHOSE WORKBENCH THE FEET `f` (the scene's) STAND AT - the feet within YARD_REACH across the
+     * ground of one of its doors and no more than YARD_BENCH_RISE over or under its floor - or null. The station the
      * Stores page asks after in the street (scenes/world.js workbenchHere).
+     * FB1020c BENCH-DOORS: THE STATION IS WHERE ITS DOORS ANSWER. A press on any box of a joinery opens the Stores page
+     * on its workbench (activate's carpenter arm reads no part, and a joinery stands no horse and no wagon - yardPoints:
+     * its boxes are its carpenter, its board and its bench), so every one of them is a door. This was measured from the
+     * bench's middle alone, which the carpenter stands 8.55 m from and the board 9.55 m - past YARD_REACH (6.4 m) - so a
+     * press on either opened a page whose workbench was Away: no saw, no craft, only the Stores' own Put in and Take out.
+     * The nearest point of each box is measured, as the press's ray meets the box: a press answered from where the feet
+     * stand (its ray within YARD_REACH from an eye over them) is a station answered there.
      * @param {number[]|null} f
      */
     workbenchNear(f) {
       if (!f) return null;
       for (const y of yards.values()) {
-        const b = y.at ? yardPoints(y.site.kind).bench : null;
-        if (!b) continue;
-        const m = yardToScene(y.at, y.site.yaw, (b[0] + b[3]) / 2, 0, (b[2] + b[5]) / 2);
-        const dx = f[0] - m[0], dz = f[2] - m[2];
-        if (dx * dx + dz * dz <= YARD_REACH * YARD_REACH && Math.abs(f[1] - y.at[1]) <= YARD_BENCH_RISE) return y.site;
+        if (!y.at || !yardPoints(y.site.kind).bench || Math.abs(f[1] - y.at[1]) > YARD_BENCH_RISE) continue;
+        for (const { aabb: b } of targetsOf(y)) {
+          const dx = Math.max(b.min[0] - f[0], 0, f[0] - b.max[0]), dz = Math.max(b.min[2] - f[2], 0, f[2] - b.max[2]);
+          if (dx * dx + dz * dz <= YARD_REACH * YARD_REACH) return y.site;
+        }
       }
       return null;
     },

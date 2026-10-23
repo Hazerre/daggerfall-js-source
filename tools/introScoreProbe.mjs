@@ -1,9 +1,9 @@
 // INTRO3 - THE MAIN THEME, PLAYED BY THE GAME'S OWN PLAYER IN A REAL BROWSER, RENDERED AND MEASURED.
 //
-// node holds the score's shape (test/intro3_score.test.js); what node cannot answer is what it SOUNDS like through the
+// node holds the score's shape (test/systems/intro3_score.test.js); what node cannot answer is what it SOUNDS like through the
 // game's own song player and FM bank: whether the whole of it sounds, whether it clips, whether it stands as loud as
 // the recording it replaced, and whether the film's two landmarks are heard where the cue sheet puts them. So: the
-// repo's own modules served as they are, the theme played by systems/songPlayer.js into an OfflineAudioContext (the
+// repo's own modules served as they are, the theme played by systems/song/songPlayer.js into an OfflineAudioContext (the
 // player's clock carried through the song window by window, as its own pump carries it, as tools/gateScoreProbe.mjs
 // does), the render read back and measured.
 //
@@ -17,7 +17,7 @@ import http from 'node:http';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CLOUD_REVEAL_TIME, TITLE_IMPACT_TIME } from '../src/ui/introCue.js';
+import { CLOUD_REVEAL_TIME, TITLE_IMPACT_TIME } from '../src/ui/intro/introCue.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const arg = (k) => (process.argv.includes(k) ? process.argv[process.argv.indexOf(k) + 1] : null);
@@ -31,7 +31,7 @@ const out = []; const check = (n, ok, d = '') => { out.push(ok); console.log(`${
 const RECORDING_DB = -22.4;
 
 const PAGE = `<!doctype html><html><body><script type=module>
-import { SongPlayer } from '/src/systems/songPlayer.js';
+import { SongPlayer } from '/src/systems/song/songPlayer.js';
 import { introThemeSong, INTRO_PRESS } from '/src/systems/introScore.js';
 import { INTRO_THEME_GAIN } from '/src/systems/introTheme.js';
 const RATE = 44100;

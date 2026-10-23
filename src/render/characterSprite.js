@@ -11,9 +11,13 @@
 // estimates disagree with the true projection at high pitch.
 import { multiply, ortho, lookAt, perspective, transformPoint, trs } from '../world/mat4.js';
 import { CHAR_PIXEL, CHAR_SPRITE_RT_SIZE } from './renderer.js';
+import { getPref } from '../systems/uiPrefs.js';   // BODY-CARD: the billboard look, read where the card is stood
+import { glowPad } from './weaponGlowGlsl.js';   // WEAPON-GLOW1 (AUDIT MW-3): a glowing weapon's outline's room - a leaf
 
-/** World up - landAnchor's vertical when it is handed none (BODY-LEAN: drawRigSpriteBox always hands its own). */
+/** World up - landAnchor's vertical when it is handed none, and the upright card's (BODY-CARD). */
 const WORLD_UP = Object.freeze([0, 1, 0]);
+/** BODY-DEPTH: the picture's near plane (its far is twice its reach - drawRigSpriteBox). */
+export const PICTURE_NEAR = 0.1;
 
 /**
  * @returns diagnostics {center, halfW, halfH, pw, ph} for probes
@@ -79,7 +83,7 @@ export function bodyFxPad(fx) {
 /** COATS3D: `also`, optional - more meshes in the same picture ({ mesh, model } each: the horse under a rider), drawn
  *  after `mesh` under the same camera and depth (renderer.js _renderCharacterSprite, and a batch's tiles). The box is the caller's, and holds
  *  them all. */
-export function drawRigSpriteBox(renderer, canvas, mesh, rigMat, { center, halfW: boxW, halfH: boxH, anchor = null, hitFlash = 0, conceal = null, up = null, fx = null, also = null }, proj, view, eye, pixel = CHAR_PIXEL) {
+export function drawRigSpriteBox(renderer, canvas, mesh, rigMat, { center, halfW: boxW, halfH: boxH, anchor = null, hitFlash = 0, conceal = null, up = null, fx = null, also = null, glowLook = null }, proj, view, eye, pixel = CHAR_PIXEL) {   // WEAPON-GLOW1: `glowLook` the held weapon's glow, whose outline needs room
   const aim = anchor && Math.hypot(anchor[0] - eye[0], anchor[1] - eye[1], anchor[2] - eye[2]) > 1e-6 ? anchor : center;   // PR-BOW1: the ray the picture is taken along
   const dx = aim[0] - eye[0], dy = aim[1] - eye[1], dz = aim[2] - eye[2];
   const dist = Math.max(0.5, Math.hypot(dx, dy, dz));
@@ -108,7 +112,9 @@ export function drawRigSpriteBox(renderer, canvas, mesh, rigMat, { center, halfW
   // a camera 50 degrees above it, 0.34 at 70, so a body grew and shrank as the camera rose and fell or walked up to it.
   // Leaned by lookAt's own y for the ray, the quad stands square to it and the body draws its true size from any eye.
   // The travel view's lean (AUDIT OW4 J6) is the view's own, the flats' with it, and stands where it is handed.
-  const qUp = up ?? pictureUp(camDir);   // AUDIT OW4 J6: the quad's vertical
+  // BODY-CARD (2026-10-14, the owner: "Reimplement the billboard morrowind look as a toggle"): the Billboard Look
+  // (features.js mw-billboard-look, off by default) stands the card upright again, as before BODY-LEAN - the flats' way.
+  const qUp = up ?? (getPref('mwBillboardLook') ? WORLD_UP : pictureUp(camDir));   // AUDIT OW4 J6: the quad's vertical
   const at = aim === center ? center : landAnchor(center, anchor, camDir, right, qUp);   // PR-BOW1: where the quad stands
   const pvS = multiply(proj, view);
   const prjY = (x, y, z) => { const w = pvS[3]*x + pvS[7]*y + pvS[11]*z + pvS[15]; return (pvS[1]*x + pvS[5]*y + pvS[9]*z + pvS[13]) / w; };
@@ -121,8 +127,9 @@ export function drawRigSpriteBox(renderer, canvas, mesh, rigMat, { center, halfW
   const screenPxH = Math.abs(prjY(at[0] + qUp[0] * halfH, at[1] + qUp[1] * halfH, at[2] + qUp[2] * halfH) - prjY(at[0] - qUp[0] * halfH, at[1] - qUp[1] * halfH, at[2] - qUp[2] * halfH)) * (span ? span[0] : canvas.clientHeight) / 2;
   let ph = Math.min(CHAR_SPRITE_RT_SIZE, Math.max(2, Math.round(screenPxH / texel)));
   // MWNPC5: the tells' room - `pad` texels a side, the world half-extents grown by the same texels (one texel the
-  // picture's 2 halfH / ph), so a texel stays the size it was
-  const pad = bodyFxPad(fx);
+  // picture's 2 halfH / ph), so a texel stays the size it was. AUDIT WEAPON-GLOW MW-3: and a glowing weapon's outline's
+  // (render/weaponGlowGlsl.js glowPad) - the larger of the two, as both stand off the same silhouette
+  const pad = Math.max(bodyFxPad(fx), ...(Array.isArray(glowLook) ? glowLook : glowLook ? [glowLook] : []).map((l) => glowPad(l, ph)), 0);   // TWO-HANDS: a pair's two blades, each its own look
   if (pad) {
     const grow = (2 * pad) / ph;
     halfW += halfH * grow; halfH *= 1 + grow;
@@ -134,16 +141,40 @@ export function drawRigSpriteBox(renderer, canvas, mesh, rigMat, { center, halfW
   // two - the 4 m that always stood; a body the travel view grows (OW-BIG, up to x12) was sliced by the fixed planes
   const reach = Math.max(4, halfW + boxH + 1);
   const miniEye = [center[0] - camDir[0] * reach, center[1] - camDir[1] * reach, center[2] - camDir[2] * reach];
-  const sProj = ortho(halfW, halfH, 0.1, 2 * reach), sView = lookAt(miniEye, center, [0, 1, 0]);
+  const sProj = ortho(halfW, halfH, PICTURE_NEAR, 2 * reach), sView = lookAt(miniEye, center, [0, 1, 0]);
+  // BODY-DEPTH: where its texels stand - only for a quad square to the ray (BODY-LEAN's); a card of its own vertical keeps
+  // its own depth
+  const depth = up == null && qUp !== WORLD_UP ? pictureDepth(camDir, center, at, reach) : null;
   // MWNPC2: an open batch (renderer.js beginCharacterSpriteBatch) takes the picture as measured, and the flush draws it
   // in its own tile of the one bind; a lone call takes its own pass, as every call did
   if (renderer.characterSpriteBatchOpen) {
-    renderer.queueCharacterSprite({ mesh, model: rigMat, also, proj: sProj, view: sView, pw, ph, tx: 0, ty: 0, quad: { at, halfW, halfH, right, hitFlash, conceal, up: qUp, fx } });
+    renderer.queueCharacterSprite({ mesh, model: rigMat, also, proj: sProj, view: sView, pw, ph, tx: 0, ty: 0, quad: { at, halfW, halfH, right, hitFlash, conceal, up: qUp, fx, depth } });
     return { center: at, halfW, halfH, pw, ph };
   }
   const sTex = also ? renderer.renderCharacterSprite(mesh, rigMat, sProj, sView, pw, ph, { also }) : renderer.renderCharacterSprite(mesh, rigMat, sProj, sView, pw, ph);
-  renderer.drawCharacterSpriteQuad(sTex, at, halfW, halfH, right, pw / CHAR_SPRITE_RT_SIZE, ph / CHAR_SPRITE_RT_SIZE, hitFlash, conceal, qUp, null, fx);   // MWNPC5: and a foe's tells   // HITFLASH1: a struck body's red; INVIS-LOOK: a concealed peer's body blends; AUDIT OW4 J6: leaned by `up`   // sample the sub-rect (fixed RT, audit fix)
+  renderer.drawCharacterSpriteQuad(sTex, at, halfW, halfH, right, pw / CHAR_SPRITE_RT_SIZE, ph / CHAR_SPRITE_RT_SIZE, hitFlash, conceal, qUp, null, fx, depth);   // MWNPC5: and a foe's tells   // HITFLASH1: a struck body's red; INVIS-LOOK: a concealed peer's body blends; AUDIT OW4 J6: leaned by `up`; BODY-DEPTH: where its texels stand   // sample the sub-rect (fixed RT, audit fix)
   return { center: at, halfW, halfH, pw, ph };
+}
+
+/**
+ * BODY-DEPTH (2026-10-15, the owner: "The models also clip through geometry"): WHERE A PICTURE'S TEXELS STAND. Every
+ * body is a picture composited as one quad, and the quad was depth-tested as itself - a flat card through the body's
+ * middle: a corpse lying toward the eye had its near half under the floor's depth and was cut off by it, and a body at a
+ * wall was cut where the card crossed the wall, whatever the body itself was doing. The picture is an ortho down `dir`
+ * from `reach` behind `center` (lookAt from `center - dir * reach`), so a texel of depth d stands `near + d (far - near)`
+ * along the ray from that eye; a quad square to the ray (BODY-LEAN's) through `at` stands `base` along it, so the texel's
+ * point is the quad's own moved `near + d (far - near) - base` along the ray - and the quad writes that point's depth
+ * (renderer.js drawCharacterSpriteQuad `depth`). `dir` is short of unit for an eye inside half a metre of the aim
+ * (drawRigSpriteBox floors the distance), so the eye stands |dir| x reach back. Null for a ray of no length.
+ * @param {number[]} dir @param {number[]} center @param {number[]} at @param {number} reach
+ * @returns {{ dir: number[], near: number, range: number, base: number } | null}
+ */
+export function pictureDepth(dir, center, at, reach, near = PICTURE_NEAR, far = 2 * reach) {
+  const l = Math.hypot(dir[0], dir[1], dir[2]);
+  if (!(l > 0) || !(reach > 0)) return null;
+  const u = [dir[0] / l, dir[1] / l, dir[2] / l];
+  const base = l * reach + u[0] * (at[0] - center[0]) + u[1] * (at[1] - center[1]) + u[2] * (at[2] - center[2]);
+  return { dir: u, near, range: far - near, base };
 }
 
 /** BODY-LEAN: the picture's own up - (-dir) x right, lookAt's y for a camera looking along `dir` (any length). Level, it

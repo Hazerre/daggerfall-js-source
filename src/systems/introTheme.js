@@ -6,16 +6,16 @@
 //
 // INTRO3 (2026-10-14, Mac: "you do it and it's for both"): the source is the
 // main theme WRITTEN AS NOTES (systems/introScore.js), played by the game's
-// own song player and FM bank (systems/songPlayer.js) on this session's
+// own song player and FM bank (systems/song/songPlayer.js) on this session's
 // context - no recording is fetched or decoded. The player schedules the song
 // on the context's clock from an origin it sets as it starts; that origin is
 // the film's time zero, so time() reads the device clock against it exactly
 // as it read the decoded buffer's start. The volume law is the player's own -
 // MUSIC_GAIN under MusicVolume and the video mute, as every song plays - and
 // this session's gain is the film's and the menu's level alone.
-import { SongPlayer } from './songPlayer.js';
+import { SongPlayer } from './song/songPlayer.js';
 import { introThemeSong } from './introScore.js';
-import { onSettingChange } from './settings.js';
+import { onSettingChange } from './settings/settings.js';
 
 export const INTRO_THEME_GAIN = 0.82;
 export const MENU_THEME_GAIN = 0.26;

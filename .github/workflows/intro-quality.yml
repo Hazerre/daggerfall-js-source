@@ -5,16 +5,16 @@ on:
     branches: [codex/cinematic-intro-overhaul]
   pull_request:
     paths:
-      - 'src/ui/intro*.js'
+      - 'src/ui/intro/**'
       - 'src/systems/introTheme.js'
       - 'src/systems/introScore.js'
-      - 'src/systems/songPlayer.js'
+      - 'src/systems/song/songPlayer.js'
       - 'src/systems/gmSynth.js'
       - 'src/assets/intro/**'
       - 'src/assets/branding/**'
       - 'tools/intro*.mjs'
-      - 'test/intro.test.js'
-      - 'test/intro3_score.test.js'
+      - 'test/ui/intro.test.js'
+      - 'test/systems/intro3_score.test.js'
       - '.github/workflows/intro-quality.yml'
 
 permissions:

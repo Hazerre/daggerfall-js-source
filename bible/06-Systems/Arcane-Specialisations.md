@@ -26,6 +26,9 @@ Measured first (section 2), then four questions put to the owner, and the owner 
 - **Below 100:** *as it is* - identity comes from what is mastered and specialised; reaching 100 everywhere stays.
 - **Scope:** *everything at once* - all fifteen and all six in one pull request.
 
+Its sibling for the weapons is `05-Combat/Martial-Specialisations.md` (MARTIAL, 2026-10-17): fifteen martial paths from the
+six weapon skills, held beside an arcane path (the owner: "Yes, one of each").
+
 Six schools make fifteen pairs (6 choose 2), not twenty-one; with the six schools' own perks past 100 the count is the
 post's twenty-one, and that is how this page reads it.
 
@@ -55,18 +58,27 @@ could see or play. That is where the identity goes.
 
 - **Who.** A player with Master Skills in force (online always; offline the switch - SOFTCAP3) and at least two of
   the six schools mastered. A school can only be mastered as a career skill, so a class whose career holds fewer than
-  two of the six never meets a path - the masteries' own law (`pathPossible`; the enhanced page shows such a class no
-  Specialisation card at all - AUDIT SCHOOLS L4 8).
+  two of the six never meets a path - the masteries' own law (`pathPossible`; AUDIT SCHOOLS L4 8: the enhanced page
+  shows such a class nothing to choose - since GROWTH2 the Growth tab's guide says so in its headline and the Master
+  Skills page draws no specialisation line for it, AUDIT GROWTH LANE5-6). AUDIT MARTIAL L4 L3 (found on the sibling, fixed in both): the
+  count is of what the 2/2/1 slots can still master (`masterSkills.js` masterableCount) - two schools that were both
+  minor skills share one slot, and the card showed for good. And Yes says one short line, "Specialisation chosen:
+  {name}." (AUDIT MARTIAL L4 M1: the spell's sentence ran the line past the classic screen's 312 px; where the spell is
+  sold is the card's and the OK box's own line, `schools.sheet.sold`).
 - **The choice.** Any pair of the player's mastered schools names one path (section 5); with three or more mastered,
-  the player picks among their pairs. `entity.arcanePath` holds the path's id. **PERMANENT** - nothing undoes it, as
-  nothing undoes a mastery. Asked ONCE on the first quiet pass after the second school is mastered (the mastery box's
+  the player picks among their pairs. `entity.arcanePath` holds the path's id. **Held until given up for 200,000 gold**
+  (SPEC-RESET, `10-UI/Growth.md` section 10) - nothing else undoes it; a mastery is never undone. Asked ONCE on the first quiet pass after the second school is mastered (the mastery box's
   own door, `scenes/shared.js` raisePlayerSkills - after the mastery choices, never over them, one box a pass): ONE
   path open is asked about in a Yes/No box; SEVERAL are named in an OK box that sends the player to the skill screen,
   where each is offered (AUDIT SCHOOLS L4 M1 - a permanent Yes on whichever stood first in the table was no choice).
   Any time after, on the skill screen: classic, the S row under the Master Skills row on each skill page (S asks about
   an open path; No, then S, the next - the plate stays behind the box so the key it names reaches it, AUDIT SCHOOLS
   L4 H1; a chosen path's S says what it is); enhanced, the Master Skills page's Specialisation card (each path with its
-  two schools, the door's count beside Master Skills).
+  two schools, the door's count beside Master Skills). GROWTH2 (2026-10-17, `10-UI/Growth.md` section 5) moved the card
+  to the pause window's Growth tab: a guide to all fifteen paths, open or not - each one's state on this character,
+  what opens it, its passive, its signature spell read as the spellbook reads it, and Choose through this law; Master
+  Skills keeps one line and a door to it, and the classic sheet's S row stands whenever the class can meet a path and
+  opens the same guide (GROWTH4). The one ask's No names the Growth tab on the enhanced skin.
 - **Held and awake.** A path is HELD (`pathHeld`) by my own player entity (never a peer's stand-in) with Master Skills
   in force and both its schools mastered - what its signature spell is priced, taught and sold by (section 6). It is
   AWAKE (`pathAwake`), and its powers act, while it is held and I am not mentoring (SOFTCAP2 reads no climb either) -
@@ -78,7 +90,8 @@ could see or play. That is where the identity goes.
   Offline with the switch off, the path is neither and its signature spell casts as the plain bundle it is - nothing
   is lost, as Master Skills keeps a skill past 100 while off.
 - **Never at a player.** A rider or passive that strikes reaches foes only (`ownSpellAt`, BAL9's gate); a signature
-  spell cast at a duel opponent or given to a party mate lands as its plain classic bundle.
+  spell cast at a duel opponent or given to a party mate lands as its plain classic bundle. SKILL-SWAP (2026-10-19, `10-UI/Growth.md` section 11):
+  such a class can now change one unmastered class skill for a school, for gold, and a line under the guide's headline says so where one swap would open a path (AUDIT SUGGESTIONS-1019 L5-1).
 
 ## 4. SCHOOLS2 - the schools past 100
 
@@ -183,8 +196,11 @@ judged (AUDIT SCHOOLS L3 F2): one without its path is the plain bundle the spell
 schools), so flagging it protected nothing - and it froze the trade of an honest player whose save an older build had
 carried (that build saves made spells whole and writes no `arcanePath`). That same save keeps its path: a restore of a
 save with no `arcanePath` key whose book's signature spells name ONE path, both its schools mastered, gives that path
-back, already asked (`save.js`, `arcanePaths.js` pathWitnessed) - a permanent choice an older build dropped, never a
-respecialisation door; a newer save's own `null` is a choice of none and restores none. An honest save can never break
+back, already asked (`save.js`, `arcanePaths.js` pathWitnessed) - a choice an older build dropped, never a
+respecialisation door; a newer save's own `null` is a choice of none and restores none. Since AUDIT SPEC-RESET L2-1 the
+career carries an arcane mirror as it does a martial one - the path, or none, written on every save - and a carried save
+that keeps it is read by the mirror, never the book: SPEC-RESET leaves a path given up's signature spell in the book, and
+the witness had handed the path back with its 200,000 still spent. An honest save can never break
 the check (nothing writes the field but the choice and that witness, and both refuse what this refuses), so it costs
 no honest player a frozen trade. The masteries
 themselves are not judged here: a save from before SOFTCAP4 can hold a skill past 100 with no mastery listed, and the
@@ -210,14 +226,14 @@ BUSY-GATE and CRAFT-PROCS at the merge of main).
   (dungeons). It tells the landed listeners (`applySpellToFoe` for my spell at a foe, `applySpellToPlayer` for my own
   cast on me - with `took`, what the target could lose, and `cast`, the cast's TOKEN: `{ cost }`, minted at the release
   and carried by every landing of that one cast, a missile's, each foe an area sweeps, the court's boss) and tallies by
-  castSchool. The relay's stand-ins tell them too (`scenes/dungeonContext.js` tellStandIn - the Burning Court's Warden,
-  its crystals, its host; `scenes/world.js` serpentSpellOn - the serpent's hide), with no foe record: the relay holds
+  castSchool. The relay's stand-ins tell them too (`scenes/gate/standInSpell.js` tellStandIn - the Burning Court's Warden,
+  its crystals, its host; its createSerpentSpell - the serpent's hide), with no foe record: the relay holds
   the body (AUDIT SCHOOLS L2 F4). `arcanePowers.js` is imported by `scenes/hostMagic.js` itself, so every page that
   builds the engine has the paths' powers - the standalone dungeon page had their price and none of their powers
   (AUDIT SCHOOLS L2 F8).
 - `scenes/worldModes.js` - the shelf (section 6).
-- `scenes/shared.js` - the ask; `ui/charsheet.js` and `ui/enhancedCharSheet.js` / `ui/enhancedMenu.js` - the choice.
-- `systems/save.js` - `arcanePath` and `pathPrompted`.
+- `scenes/shared.js` - the ask; `ui/charsheet.js` and `ui/enhanced/enhancedCharSheet.js` / `ui/enhanced/enhancedMenu.js` - the choice.
+- `systems/save/save.js` - `arcanePath` and `pathPrompted`.
 
 ## 9. Departures, and what is recorded rather than built
 
@@ -225,13 +241,14 @@ BUSY-GATE and CRAFT-PROCS at the merge of main).
   the arc.
 - **The masteries are not judged online** (section 7) - recorded, the owner's call: holding a pre-SOFTCAP4 save's
   skills past 100 against a mastery list it never had would freeze honest players' trade.
-- **No respecialisation.** Permanent, as a mastery is (Mac, SOFTCAP4: "this decision can not be undone"). A paid
-  change, as a profession's specialisation has (Professions-Arc 3.3), is the owner's call if players ask for one.
+- **A respecialisation costs 200,000 gold** (SPEC-RESET, 2026-10-18 - the owner's call this page left open:
+  `10-UI/Growth.md` section 10). The path is given up and chosen again among the pairs the masteries open; a mastery
+  is still permanent.
 - **Offline the schools past 100 stay Daggerfall's** (section 4) - the paths themselves work offline with the switch on.
 - **The numbers are a first cut.** Every one is a constant in `arcanePaths.js` (`PATH_NUMBERS`, and the signature
-  records' slots in `PATH_ROWS`), named and pinned on both sides of its line (`test/audit_schools.test.js`), so a
+  records' slots in `PATH_ROWS`), named and pinned on both sides of its line (`test/systems/audit_schools.test.js`), so a
   balance pass moves one number and one pin.
-- **Recorded by the audit, not changed** (`01-Overview/Audit-Schools.md`):
+- **Recorded by the audit, not changed** (`01-Overview/audits/Audit-Schools.md`):
   - The powers' memory (recoveries, Conflux, the guard and ward windows, the Seer's marks) is the session's, as the
     sets' and the loot's: it outlives a character switch by its windows' seconds (L1 L3).
   - "No refereed fight" is `sigil.js` sigilDueling - a duel and arena PvP. In a siege or the Wild Zone the price and
@@ -246,12 +263,12 @@ BUSY-GATE and CRAFT-PROCS at the merge of main).
 
 ## 10. Pinned
 
-`test/schools_arcane.test.js` (11) - the law (the fifteen pairs whole and distinct, the choice and its refusals,
+`test/systems/schools_arcane.test.js` (11) - the law (the fifteen pairs whole and distinct, the choice and its refusals,
 permanence, held, awake and asleep), the save's round trip, the shelf, the price and the tally by the path's schools,
 the six schools past 100 through the real `applySpell`, every rider through the real cast engine's landing doors,
 every passive through its own seam, and the judge's finding. The shelf's wiring (`worldModes.js`) and the tally's
 (`hostMagic.js` tallyCastSkills) are pinned by their text, beside the executed price and shelf.
-`test/audit_schools.test.js` (28) - the audit's (`01-Overview/Audit-Schools.md`), by execution through the producers
+`test/systems/audit_schools.test.js` (28) - the audit's (`01-Overview/audits/Audit-Schools.md`), by execution through the producers
 that mint the shapes in play: the real cast engine's release, missiles and doors (`createPlayerMagic` - its cast
 token, its area sweep, its own door to me), real foes (`makeEnemyEntity` over `enemyBasics.js`: the class foes a
 Lightbringer once read as undead), the save, the magic round (`runMagicRoundsFor` - Steadfast at its seam), the

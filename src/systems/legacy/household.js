@@ -22,7 +22,7 @@
 //    the family lives in it meanwhile, and it is the taker's with the save that holds it (`syncHouses`' `taken`).
 import { CLASS_CAREERS } from '../chargen.js';
 import { isAlive, personOf, fullNameOf, isCustomCareer } from './family.js';
-import { PERSON_TEXTURES, PERSON_FACE_RECORDS } from '../../characters/mobilePerson.js';
+import { PERSON_TEXTURES, PERSON_FACE_RECORDS } from '../../characters/mobile/mobilePerson.js';
 import { GENDERS } from '../../characters/nameHelper.js';
 import { raceArt, FACES_PER_RACE } from '../races.js';
 
@@ -168,7 +168,8 @@ export function residentOf(family, p, home) {
   const set = PERSON_TEXTURES[outfitRace][sex];
   const variant = pick % set.length;
   const faces = PERSON_FACE_RECORDS[outfitRace][sex];
-  const stock = Number.isInteger(p.careerIndex) && p.careerIndex >= 0 && p.careerIndex < CLASS_CAREERS.length && !isCustomCareer(p);
+  // AUDIT SUGGESTIONS-1019 L5-4: a stock class with a class skill changed still wears its class (isCustomCareer counts it, for the heir's copy)
+  const stock = Number.isInteger(p.careerIndex) && p.careerIndex >= 0 && p.careerIndex < CLASS_CAREERS.length && (!isCustomCareer(p) || (p.career?.swapped === true && String(p.career.name ?? '') === CLASS_CAREERS[p.careerIndex]));
   return {
     id: familyResId(family.id, p.id), town: home.mapId >>> 0, slot: FAMILY_SLOT_BASE + p.id, roll: FAMILY_ROLL,
     name: fullNameOf(p.given, p.surname), gender: sex === 'female' ? GENDERS.Female : GENDERS.Male, sex, race: p.race,
@@ -177,7 +178,7 @@ export function residentOf(family, p, home) {
     cls: stock ? CLASS_MOBILE_BASE + p.careerIndex : null, level: Math.max(1, p.level | 0), faction: 0,
     legacy: { familyId: family.id, personId: p.id },
     household: `F${family.id}`,   // AUDIT LEGACY II B2: their own household, never the census house they may be lent (livingTown.js householdKeyOf)
-    portrait: { archive: raceArt(p.race, sex).heads, record: Math.max(0, Math.min(FACES_PER_RACE - 1, p.face | 0)) },   // their own chargen head in the talk window (ui/nativeTalk.js setNpcPortrait)
+    portrait: { archive: raceArt(p.race, sex).heads, record: Math.max(0, Math.min(FACES_PER_RACE - 1, p.face | 0)) },   // their own chargen head in the talk window (ui/native/nativeTalk.js setNpcPortrait)
     look: p.look ?? null,   // LEGACY7 part four: what they wore at their newest save - drawn in it, as an online peer is (world/familyBodies.js); none, the town's outfit
   };
 }

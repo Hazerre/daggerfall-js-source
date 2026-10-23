@@ -62,12 +62,12 @@
 // One owner: the host builds it online, and disposes it with the page.
 // ═══════════════════════════════════════════════════════════════════
 import { utcDayOfMs, pixelKey, parseNodeKey } from '../net/nodeLaw.js';
-import { TERRAIN_SIZE } from '../world/terrainSampler.js';
+import { TERRAIN_SIZE } from '../world/terrain/terrainSampler.js';
 /** A map pixel's side in the scene (metres). */
 const PIXEL_M = TERRAIN_SIZE;
 import { rankName, professionName, DEEP_UNCONFIRMED_PER_DAY } from '../net/professionLaw.js';
-import { wearForagingTool } from '../systems/foragingInstall.js';
-import { materialCountLabel } from '../systems/profItems.js';
+import { wearForagingTool } from '../systems/foraging/foragingInstall.js';
+import { materialCountLabel } from '../systems/professions/profItems.js';
 import { accountRefusalText } from '../net/accountClient.js';
 import { DEFAULT_ACTIVATION_DISTANCE } from '../player/activate.js';
 import { harvestHauls } from '../ui/haulCards.js';   // HAUL-CARDS: a harvest's goods and XP as one card, on the enhanced skin
@@ -77,7 +77,7 @@ import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first tou
 import { createGatherEar } from '../systems/gatherSounds.js';   // GATHER-FEEL: the gathering's ear
 import { gatherBlowFeel, landedBlow, chunksFor, shedChunks, stepChunk, chunkSink, chunkBox, VEIN_CHUNKS } from '../systems/gatherBlow.js';   // GATHER-FEEL II: what a landed blow does besides its sound
 import { setBatchCrack, crackSeedOf } from '../systems/veinCrack.js';   // VEIN-CRACKS: a worked vein's cracks, on its own batch
-import { createGatherPose } from '../net/peerGather.js';   // PEER-ACTS: the act and its beats, on the pose the others draw
+import { createGatherPose } from '../net/peer/peerGather.js';   // PEER-ACTS: the act and its beats, on the pose the others draw
 
 /** A node answers E within DFU's activation distance, and within this many degrees of the look. */
 export const NODE_REACH = DEFAULT_ACTIVATION_DISTANCE;
@@ -119,6 +119,11 @@ export const ACT_POINTER = Object.freeze({ basket: 'cursor', mine: 'look', trace
  *  needs nothing; the net's gentle throw still lands where the look sends it (its state carries no `gentle`, and is
  *  named here so it never will by accident). */
 export const actPointer = (st) => (st?.gentle === true && st.kind !== 'fish' ? null : ACT_POINTER[st?.kind] ?? null);
+/** SKIN-PLAQUE (FIELD BUGS 2026-10-16c, "Quick loot is not suppressed when skinning"): WHILE AN ACT PLAYS THE LOOK IS
+ *  THE ACT'S - hoverHit's pick names nothing (systems/worldHover.js resolveHover: `if (key == null) return null`), so
+ *  the hosts' `?? ray` keeps it and the race's winner behind it (the body under the knife, its loot and its tooltip) is
+ *  not the plaque's either: E is the act's (AUDIT 29 D3), and the plaque never names what the press ignores. */
+export const ACT_OWNS_LOOK = Object.freeze({ key: null, distance: 0, reach: 0 });
 /** NODE-MARKS: the stood pixels walked for the marks - those within this many metres, past every kind's reach but a
  *  wider one a kind names for the player (`markReach` - AUDIT MINE-PERKS: a Prospector's 500 m alone walks further; a
  *  512 m walk for everyone was nine stood pixels' nodes asked a frame from a pixel's middle, where 256 is one). */
@@ -130,6 +135,8 @@ export const OW_ONE_MAX = 24;
  *  Float32Array (player/motor.js), which `Array.isArray` refuses, and every mark was refused with them. */
 const isVec3 = (v) => v != null && typeof v === 'object' && v.length >= 3;
 
+/** NODE-OUTLINE: a node's pictures in `m` (its key's list, made the first time). */
+const pictureOf = (m, key) => { let l = m.get(key); if (!l) m.set(key, (l = [])); return l; };
 /**
  * VEIN-NEED (FIELD BUGS 2026-09-29h): WHAT E SAYS AT A NODE THAT CANNOT BE WORKED, when the press opened nothing else -
  * the prompt's own words, and where a rank is what is short (the kind's `needsRank`), the player's own rank beside it:
@@ -178,9 +185,9 @@ export function leftWords(d) {
 // AUDIT HOLDINGS C7: the Stores page is on the pause menu's Holdings tab now - the Professions key lands on the Stats
 // tab's Professions page, and the line said it opened the Stores
 export const storesWhereLine = (key, carrying = false) => (carrying ? BAG_WORDS.where   // BAG1: into the bag, then the pack
-  : `Gathered goods go to your Stores, not your pack: the pause menu's Holdings > Stores${key ? ` (${key} opens your Professions)` : ''}.`);
+  : `Gathered goods go straight to your Stores, under Holdings in the pause menu.${key ? ` ${key} opens your Professions.` : ''}`);
 /** GATHER-SAID: an act that ended before its end - let go, walked off, a window over it, the dungeon left - nothing asked. */
-export const ACT_STOPPED_LINE = 'The gathering stopped before its end - nothing was taken.';
+export const ACT_STOPPED_LINE = 'The gathering stopped early. Nothing was taken.';
 /** A harvest the service did not answer, kept and asked again (net/profBook.js PROF_QUEUE_MS: ten minutes). */
 /** AUDIT PACK-OVER C: the over-weight line, said at most once in this long (ms). */
 export const OVER_SAID_MS = 10_000;
@@ -188,7 +195,7 @@ export const KEPT_LINE = 'The counting-house is slow to answer. Your gathering i
 /** GATHER-SAID: kept because the account is signed out ('auth', 'no-session') - asked again once there is a session. */
 export const KEPT_SIGNED_OUT_LINE = 'You are signed out. Your gathering is kept for ten minutes, and counted once you sign in.';
 /** A kept harvest let go unanswered: its ten minutes out, or the UTC day turned under it. */
-export const LAPSED_LINE = 'A gathering the counting-house never answered has lapsed - it was not counted.';
+export const LAPSED_LINE = 'A gathering the counting-house never answered has lapsed and was not counted.';
 
 /** The shortest signed angle a - b, degrees in (-180, 180]. */
 export const wrapDeg = (d) => { let x = d % 360; if (x > 180) x -= 360; if (x <= -180) x += 360; return x; };
@@ -250,6 +257,9 @@ export function aimAt(eyePos, at, view) {
  *   NODE-MARKS: the node on the compass and in the glow - its footprint about its base (`w` across, `h` up, metres) and
  *   how far off the compass marks it (`reach`, NODE_MARK_M without one); null for a node never marked. Without it, a
  *   node is marked at NODE_MARK_SIZE while it is not gone for the day.
+ * @property {(node: any, entry: any) => (Array<{ batch: any, first: number, count: number, centers?: number[][]|null, center?: number[]|null, entry?: any }>|null)} [picturesOf]
+ *   NODE-OUTLINE (render/nodeGlint.js): the node's pictures where they are not the flats the host stood for it (a tree:
+ *   its forest's flat, and its centre - the 3D tree that stands for it near the eye); without it, the host's own
  * @property {(node: any) => (string|null)} [where] SETTLE-SAID: the act's check of the ground the node stands on, in the
  *   prompt's words (GROUND_WHERE_WORDS) - a ready plan there is no ready plan; null where it passes
  * @property {boolean} [marksLoose] NODE-MARKS: its loose nodes are walked for the marks (Hunting's bodies); without it
@@ -333,7 +343,7 @@ export function createGatherHost(deps) {
   let swings = [];
   /** GATHER-FEEL II: the view's answer to a landed blow (systems/gatherBlow.js gatherBlowFeel - BLOW-SHAKE) */
   const feel = deps.feel ?? gatherBlowFeel;
-  /** PEER-ACTS (GATHER-FEEL II): the act and its beats as the others see and hear them (net/peerGather.js) - fed each
+  /** PEER-ACTS (GATHER-FEEL II): the act and its beats as the others see and hear them (net/peer/peerGather.js) - fed each
    *  frame of an act beside the ear (a new act is heard afresh), read by the online frame's pose (`poseAct`) */
   const pose = createGatherPose();
   /** VEIN-CRACKS (GATHER-FEEL II): the node a cracking kind's act works (its flats a batch of their own while it does);
@@ -562,7 +572,7 @@ export function createGatherHost(deps) {
     const gen = (standGen.get(key) ?? 0) + 1;   // AUDIT GATHER-FEEL V1: the newest stand of a pixel alone swaps its flats in
     standGen.set(key, gen);
     const info = book.state.open === true ? deps.pixelInfo(entry.px, entry.py) : null;
-    const rec = { entry, info, nodes: /** @type {any[]} */ ([]), batches: /** @type {any[]} */ ([]) };
+    const rec = { entry, info, nodes: /** @type {any[]} */ ([]), batches: /** @type {any[]} */ ([]), pictures: /** @type {Map<string, any[]>} */ (new Map()) };   // NODE-OUTLINE: each node's flats, by its key
     // AUDIT 30 A7: a pixel that stands no nodes - the switch shut, no ground to read, the witnesses' other word - stands
     // its forest whole: the day's turn under a shut switch left yesterday's felled tree sunk, and its herbs standing
     const bare = () => { unstand(entry); stood.set(key, rec); for (const k of kinds) k.stood?.(entry, []); };
@@ -591,8 +601,10 @@ export function createGatherHost(deps) {
         if (!groups.has(f.archive)) groups.set(f.archive, new Map());
         const g = groups.get(f.archive);
         const gk = `${f.record}:${f.scale}:${f.tint ?? ''}:${f.dye ?? 0}${lone ? `#${n.key}` : ''}`;
-        if (!g.has(gk)) g.set(gk, { record: f.record, scale: f.scale, tint: f.tint ?? null, dye: f.dye ?? 0, centers: [], node: lone ? n.key : null });
-        g.get(gk).centers.push(...f.centers);
+        if (!g.has(gk)) g.set(gk, { record: f.record, scale: f.scale, tint: f.tint ?? null, dye: f.dye ?? 0, centers: [], node: lone ? n.key : null, owners: [] });
+        const grp = g.get(gk);
+        grp.owners.push(n.key, grp.centers.length, f.centers);   // NODE-OUTLINE: whose flats these are, and where in the batch
+        grp.centers.push(...f.centers);
       }
     }
     // AUDIT GATHER-FEEL V1: the textures first, the pixel's flats standing while they come; then the old down and the new
@@ -606,7 +618,7 @@ export function createGatherHost(deps) {
     for (const k of kinds) k.stood?.(entry, rec.nodes.filter((n) => n.kind === k.id), landingOn);   // PROF4: the felled trees sunk - AUDIT GATHER-FEEL F1: never one whose felling chop is still in the air
     for (const [archive, byRecord] of groups) {
       const t = textures.get(archive);
-      for (const { record, scale, tint, dye, centers, node } of byRecord.values()) {
+      for (const { record, scale, tint, dye, centers, node, owners } of byRecord.values()) {
         if (!t || record >= t.recordCount) continue;
         deps.uploadRecord(archive, record);
         const base = deps.billboardSize(t, record);
@@ -618,6 +630,7 @@ export function createGatherHost(deps) {
         entry.batches.push(batch);
         rec.batches.push(batch);
         if (node) holdCrack(node, batch);   // VEIN-CRACKS: a worked node's own batch, cracked as it is
+        for (let i = 0; i < owners.length; i += 3) pictureOf(rec.pictures, owners[i]).push({ batch, first: owners[i + 1], count: owners[i + 2].length, centers: owners[i + 2] });   // NODE-OUTLINE
       }
     }
   }
@@ -632,6 +645,7 @@ export function createGatherHost(deps) {
     for (const b of d.batches) d.drop(b);
     d.batches = [];
     d.nodes = [];
+    d.pictures = new Map();   // NODE-OUTLINE: each deep vein's own batches
     if (book.state.open !== true) return;
     const fact = book.dungeon(d.id);
     const confirmed = fact?.state === 'confirmed' || fact?.state === 'disputed';
@@ -648,6 +662,7 @@ export function createGatherHost(deps) {
         if (b && f.tint && f.dye) b.dye = f.dye;   // VEIN-HUE: its colour too
         if (dungeon !== d || d.gen !== gen) { if (b) d.drop(b); return; }   // left, entered another, or stood again, during the await
         if (b) d.batches.push(b);
+        if (b) pictureOf(d.pictures, n.key).push({ batch: b, first: 0, count: f.centers.length, centers: f.centers });   // NODE-OUTLINE
         if (b && k.cracks) holdCrack(n.key, b);   // VEIN-CRACKS: a deep vein is its own batch already, cracked as it is
       }
     }
@@ -928,7 +943,7 @@ export function createGatherHost(deps) {
         if (crossed.length) {
           const at = crossed[crossed.length - 1];
           hud.banner(`${rankName(at)} ${k?.title(profession) ?? professionName(profession)}`);
-          if (at === 50 || at === 100) hud.toast('A specialisation may be chosen on the Professions page (the pause menu\'s Stats).');
+          if (at === 50 || at === 100) hud.toast('You can now choose a specialization on the Professions page (pause menu > Stats).');
         }
       }
       try { k?.answered?.(d, (t) => hud.toast(t), { hauled }); } catch (e) { console.warn('[gather] an answer', e); }   // PROF8: a trophy into the pack; HAUL-CARDS: `hauled` - its card said the goods (a Motherlode's silver on it)
@@ -1061,7 +1076,7 @@ export function createGatherHost(deps) {
       clickHeld = !!down && taken;
       return taken;
     },
-    /** The tool in the hand for the rig (combat/weaponRig.js actTool): the act's, as DFU's own sprite. */
+    /** The tool in the hand for the rig (combat/weapon/weaponRig.js actTool): the act's, as DFU's own sprite. */
     handTool: () => (act?.hand ? act.hand(act) : follow?.hand ? follow.hand(follow) : null),   // GATHER-FEEL: and a finished act's last swing, until it runs out
     /** PEER-ACTS (GATHER-FEEL II): the pose's gathering fields (net/wire.js validPose `ga`, `gb`, `gm`) - the act the hand
      *  is on, as `handTool` holds it (the one playing, or a finished one's last swing), and the beats counted. */
@@ -1082,7 +1097,7 @@ export function createGatherHost(deps) {
       if (act) return !click;   // AUDIT 29 D3: E during an act is the act's - never a door's or a loot's behind it (a click is clickTaken's)
       if (!target || !live() || book.state.open !== true) return false;
       const t = target;
-      noteFirstUse('foraging'); noteFirstUse('professions');   // TUT1: the first gather, and the trades it feeds
+      noteFirstUse('foraging'); noteFirstUse('professions'); noteFirstUse('crafting');   // TUT1: the first gather, and the trades it feeds - FB1018D CRAFT-HOWTO: and where its goods are worked
       const rows = rowsFor(t);
       const lit = deps.lit?.(menuKey(t)) ?? null;
       const chosen = lit != null ? rows.find((r) => r.id === lit) ?? null : null;
@@ -1107,10 +1122,12 @@ export function createGatherHost(deps) {
      * PROF-MENU: THE NODE AS THE PLAQUE'S PICK - the target, while nothing plays, as a hit the plaque resolves to the
      * node's list (`hoverName`). A node with nothing to press yields to the ray's own winner in reach - the press goes
      * there (AUDIT 29 C1), and so does the plaque; with none, its refused rows are listed, their reasons said.
+     * While an act plays, ACT_OWNS_LOOK - a hit naming nothing, never null, so no winner behind it is named (SKIN-PLAQUE).
      * @param {any} [ray] the host's own race's winner this frame
      */
     hoverHit(ray = null) {
-      if (act || !target || book.state.open !== true || !live()) return null;
+      if (act) return ACT_OWNS_LOOK;   // SKIN-PLAQUE: the act's look, no plaque over it
+      if (!target || book.state.open !== true || !live()) return null;
       const rows = rowsFor(target);
       if (!rows.length) return null;
       if (!rows.some(pressable) && ray && ray.distance <= ray.reach) return null;
@@ -1313,7 +1330,8 @@ export function createGatherHost(deps) {
      * should also stand out with a detailed slight glow"): THE NODES STANDING NEAR `pos` - underground the dungeon's,
      * above ground the stood pixels', and the loose ones (Hunting's bodies) where they lie - each its kind's mark says
      * stands within its reach: `{ key, profession, at: [x, y, z] its base in the scene, w, h, d, reach }`, `d` its
-     * distance on the ground, nearest first, at most NODE_MARK_MAX. One list, refilled each call (AUDIT WB D10's law): the
+     * distance on the ground, nearest first, at most NODE_MARK_MAX - and (AUDIT NODE-GLINT) `quiet` the node an act works,
+     * `origin` its pictures' frame in the scene. One list, refilled each call (AUDIT WB D10's law): the
      * compass and the glow read it at once and keep none of it. The professions shut, none.
      * @param {number[]} pos the player's feet, in the place's own frame
      */
@@ -1326,36 +1344,42 @@ export function createGatherHost(deps) {
         const r = k.markReach?.(markCtx);
         if (r) { walk = Math.max(walk, r.walk); max = Math.max(max, r.max); }
       }
-      const add = (k, n, x, y, z) => {
+      const add = (k, n, x, y, z, src, ox = 0, oy = 0, oz = 0) => {   // AUDIT NODE-GLINT: and the frame its pictures stand in (`o`)
         const m = k.mark ? k.mark(n, markCtx) : (k.gone(n) ? null : NODE_MARK_SIZE);
         if (!m) return;
         const reach = m.reach ?? NODE_MARK_M;
         const d = Math.hypot(x - pos[0], z - pos[2]);
         if (!(d <= reach)) return;
-        const r = _markPool[used] ??= { key: '', profession: '', at: [0, 0, 0], w: 0, h: 0, d: 0, reach: 0 };
+        const r = _markPool[used] ??= { key: '', profession: '', at: [0, 0, 0], w: 0, h: 0, d: 0, reach: 0, pull: null, quiet: false, origin: [0, 0, 0], pictures: null, node: null, kind: null, src: null };
         used++;
-        r.key = n.key; r.profession = k.professions[0]; r.at[0] = x; r.at[1] = y; r.at[2] = z; r.w = m.w; r.h = m.h; r.d = d; r.reach = reach;
+        r.key = n.key; r.profession = k.professions[0]; r.at[0] = x; r.at[1] = y; r.at[2] = z; r.w = m.w; r.h = m.h; r.d = d; r.reach = reach; r.pull = m.pull ?? null;   // AUDIT BANTHA1 TREE-3: a mark's own pull
+        r.quiet = act?.node?.key === n.key;   // AUDIT NODE-GLINT: the node an act works lights nothing of its own - the act's glint is the one to watch
+        r.origin[0] = ox; r.origin[1] = oy; r.origin[2] = oz;   // AUDIT NODE-GLINT: its pictures' frame in the scene (its pixel's translation; underground none) - a batch the walk has not reached has no origin of its own
+        r.node = n; r.kind = k; r.src = src;   // NODE-OUTLINE: where its pictures are found, once the list is cut
         out.push(r);
       };
       const under = !!dungeon;
       if (under) {
-        for (const n of dungeon.nodes) { const k = kindOf(n); if (k) add(k, n, n.local[0], n.local[1], n.local[2]); }
+        for (const n of dungeon.nodes) { const k = kindOf(n); if (k) add(k, n, n.local[0], n.local[1], n.local[2], dungeon); }
       } else {
         for (const s of nearPixels(pos, walk)) {
           const tr = deps.pixelTranslation(s.entry.px, s.entry.py, _t);
           const tx = tr[0], ty = tr[1], tz = tr[2];
-          for (const n of s.nodes) { const k = kindOf(n); if (k) add(k, n, n.local[0] + tx, n.local[1] + ty, n.local[2] + tz); }
+          for (const n of s.nodes) { const k = kindOf(n); if (k) add(k, n, n.local[0] + tx, n.local[1] + ty, n.local[2] + tz, s, tx, ty, tz); }
         }
       }
       for (const k of kinds) {
         if (!k.looseNodesOf || !k.marksLoose) continue;
         for (const n of k.looseNodesOf({ entity: deps.entity(), dungeon: under })) {
           const w = n.at?.();
-          if (isVec3(w)) add(k, n, w[0], w[1], w[2]);
+          if (isVec3(w)) add(k, n, w[0], w[1], w[2], null);
         }
       }
       out.sort((a, b) => a.d - b.d);
       if (out.length > max) out.length = max;
+      // NODE-OUTLINE (render/nodeGlint.js): each mark's pictures - its kind's own (a tree is its forest's flat and the 3D
+      // tree that stands for it), else the flats its place stood for it; a loose node's (a body) none, and the glow
+      for (const r of out) r.pictures = r.kind.picturesOf?.(r.node, r.src?.entry ?? null) ?? r.src?.pictures?.get(r.key) ?? null;
       return out;
     },
     /**

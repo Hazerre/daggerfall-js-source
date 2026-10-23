@@ -54,12 +54,12 @@
 //   its "-- Taverns menu" block (:175-179) puts EXIT on G, not on the
 //   E the port had assumed.
 
-import { loadImg, nativeMetrics, drawImg } from './nativePanel.js';
+import { loadImg, nativeMetrics, drawImg } from './native/nativePanel.js';
 import { drawMenuBackdrop } from './chargenArt.js';
 import { ServiceFlowWindow, macroRows } from './guildServiceWindows.js';
 import { goldAmount, totalGoldAmount, deductGold } from '../systems/court.js';
 import { dayOfYearFromMinutes } from '../systems/gameDate.js';
-import { raceDisplayName, honorificOf } from '../systems/talkSession.js';
+import { raceDisplayName, honorificOf } from '../systems/talk/talkSession.js';
 import { audio } from '../systems/audio.js';   // F145: the ButtonClick roster
 import { SOUND } from '../systems/soundClips.js';
 import { firstHotkey } from '../systems/dialogShortcuts.js';   // A8: the DaggerfallShortcut table
@@ -120,7 +120,7 @@ const line = (text) => [{ text, center: true }];
  *  AUDIT LIVED1b U8: "logging off" - a tab left hidden still runs the character's clock (Audit-Lived1's For Mac 5),
  *  so "time away" promised what only a logout keeps; the note measures what the old one did on the parchment. */
 export const OWN_TIME_ROOM = 'The room is yours for';
-export const OWN_TIME_ROOM_NOTE = ' - a rest spends it, logging off does not.';
+export const OWN_TIME_ROOM_NOTE = '. Resting uses it; logging off does not.';
 
 /**
  * hooks:

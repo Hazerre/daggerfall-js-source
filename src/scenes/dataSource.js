@@ -13,10 +13,10 @@
 // it 404s and the picker is the source. Names are normalized to
 // UPPERCASE basenames - real ARENA2 ships uppercase, user folders vary.
 
-import { isTouchDevice } from '../ui/touchDevice.js';   // TI3
+import { isTouchDevice } from '../ui/touch/touchDevice.js';   // TI3
 import { isEnhanced } from '../systems/uiSkin.js';   // FONT3: the asset picker's face follows the skin
 import { PIXEL_FONT_CSS } from '../ui/pixelifyFive.js';   // FONT3
-import { optionPath } from '../ui/settingsMap.js';   // ORG2
+import { optionPath } from '../ui/settings/settingsMap.js';   // ORG2
 
 const DB_NAME = 'project-dagger';
 const STORE = 'arena2';
@@ -121,7 +121,7 @@ const mem = new Map(); // NAME -> Uint8Array
 // fell back to the in-page picker used to ingest the sky-less lean
 // set with no way out of it from the app. The shell's presence
 // (daggerShell, the preload bridge) outranks the touch sniff.
-// TI3: ...and the touch sniff is ui/touchDevice.js's law - a finger as
+// TI3: ...and the touch sniff is ui/touch/touchDevice.js's law - a finger as
 // the PRIMARY pointer - so a touchscreen laptop in a browser is not lean
 // either.
 const LEAN = typeof window !== 'undefined' && !window.daggerShell && isTouchDevice();
@@ -232,8 +232,27 @@ async function idbPutAll(db, entries, onProgress) {
 
 let db = null;
 async function getDb() {
-  if (!db) db = await openDb();
+  if (!db) {
+    const d = await openDb();
+    // BUILD-RETRY (bible/06-Systems/Travel-View.md LOAD-OWED): A CONNECTION THE BROWSER CLOSES IS NEVER ASKED AGAIN. It
+    // was kept for the page, and once the browser closed it under the game (its `close`: the storage failing, or the
+    // site's data cleared) every read threw on it and fell through to the server - which on the deployed site holds no
+    // game data - so every file not read yet failed for the rest of the session, a pixel build with it. The next read
+    // opens another (getBytes, idbRead)
+    d.onclose = () => { if (db === d) db = null; };
+    db = d;
+  }
   return db;
+}
+
+/** BUILD-RETRY: one stored file's bytes - asked again once on a fresh connection when the one in hand is closing (an
+ *  InvalidStateError, raised before its `close` is heard). */
+async function idbRead(key) {
+  try { return await idbGet(await getDb(), key); } catch (e) {
+    if (e?.name !== 'InvalidStateError') throw e;
+    db = null;
+    return idbGet(await getDb(), key);
+  }
 }
 
 async function idbPut(db, key, val) {
@@ -276,7 +295,7 @@ async function finishIngest(entries, msg) {
     for (const e of entries) if (e) { mem.set(e[0], new Uint8Array(e[1])); kept++; }
     if (kept === entries.length) return null;
     mem.clear();
-    return `storage failed (${err?.name || err}) - your device may be low on space. Freed the partial data; clear some space and pick again.`;
+    return `storage failed (${err?.name || err}). Your device may be low on space. Clear some space and pick again.`;
   }
 }
 
@@ -667,7 +686,7 @@ export const loadMorrowindArmRecords = async (fileName) => {
   if (cache.files.has(fileName)) return cache.files.get(fileName);
   const blob = await assetBlob(MW_STORE, fileName);
   if (!blob) return null;
-  const { extractArmRecords, isArmRecords, ARM_RECORDS_VERSION } = await import('../formats/mwFirstPerson.js');
+  const { extractArmRecords, isArmRecords, ARM_RECORDS_VERSION } = await import('../formats/morrowind/mwFirstPerson.js');
   const key = `${ARM_RECORDS_PREFIX}:v${ARM_RECORDS_VERSION}:${fileName}:${blob.size}:${await sampleStamp(blob)}`;
   const cached = await loadDerivedJson(key);
   let records = isArmRecords(cached) ? cached : null;
@@ -704,7 +723,7 @@ export async function loadMorrowindArchives() {
 }
 
 async function _openMorrowindArchives(gen) {
-  const { MwBsaFile } = await import('../formats/mwBsaFile.js');
+  const { MwBsaFile } = await import('../formats/morrowind/mwBsaFile.js');
   const names = (await storedMorrowindNames()).filter((n) => /\.bsa$/i.test(n));
   const rank = (n) => {
     const l = n.toLowerCase();
@@ -911,13 +930,13 @@ export async function pickMorrowindFiles() {
   return pickAssetFolder({
     title: 'Your Morrowind data',
     blurb: `<p>Pick your Morrowind <b>Data Files</b> folder (or just
-      <b>Morrowind.bsa</b>). Nothing is uploaded - it is stored in this
-      browser, exactly like the ARENA2 pick.</p>
-      <p style="color:#999">Powers the opt-in 3D asset layer. You need
-      to own Morrowind; Tribunal.bsa and Bloodmoon.bsa join in if
-      they're in the folder. Loose mod files (meshes, textures,
-      sounds - a mod folder like Pegas Horse Ranch's) join too and
-      override the archives, engine-style.</p>`,
+      <b>Morrowind.bsa</b>). Nothing is uploaded. It is stored in this
+      browser, like your ARENA2 folder.</p>
+      <p style="color:#999">Used for the optional 3D models. You need
+      to own Morrowind. Tribunal.bsa and Bloodmoon.bsa are used too if
+      they are in the folder. So are loose mod files (meshes, textures
+      and sounds, such as a Pegas Horse Ranch folder), and they take
+      priority over the archives.</p>`,
     store: storeMorrowindFiles,
     register: registerMorrowindData,
   });
@@ -995,7 +1014,7 @@ export const ASSET_PICKER_Z = 40;
 /** MWFIX: is the asset picker on screen? A modal opened FROM another
  *  overlay has to be able to say so, because the opener may own the
  *  keyboard - the enhanced shell takes Escape on `globalThis` in
- *  CAPTURE and stops it (ui/enhancedMenu.js:"globalThis.addEventListener('keydown', keyHandler, { capture: true })"), which is right for a
+ *  CAPTURE and stops it (ui/enhanced/enhancedMenu.js:"globalThis.addEventListener('keydown', keyHandler, { capture: true })"), which is right for a
  *  screen with nothing above it and wrong the moment something is.
  *  Its own stated law is that a modal overlay owns its input; this is
  *  how the one above it says "that's me". */
@@ -1077,10 +1096,10 @@ export async function pickTranslationPack(code, languageName = code) {
   let used = 0;
   return pickAssetFolder({
     title: `A translation for ${languageName}`,
-    blurb: `<p>Pick a <b>Daggerfall Unity translation</b> - its folder, or the .zip it came in. Its text takes the place
-      of the machine translation wherever it has some. Nothing is uploaded - it is stored in this browser.</p>
-      <p style="color:#999">It is read the way Daggerfall Unity reads it: the string tables and the quests and books
-      under <b>Text</b>, the fonts under <b>Fonts</b>.</p>`,
+    blurb: `<p>Pick a <b>Daggerfall Unity translation</b>: its folder, or the .zip it came in. Its text replaces
+      the machine translation wherever it can. Nothing is uploaded. It is stored in this browser.</p>
+      <p style="color:#999">As in Daggerfall Unity, the string tables, quests and books are read from <b>Text</b>,
+      and the fonts from <b>Fonts</b>.</p>`,
     store: async (files) => {
       const record = await installTranslationPack(code, packEntriesFromFiles(files));
       used = Object.values(record.counts).reduce((a, b) => a + b, 0);
@@ -1095,11 +1114,11 @@ export async function pickMusicFolder() {
   return pickAssetFolder({
     title: 'Your own music',
     blurb: `<p>Pick a folder of audio to play instead of the original game's
-      built-in songs. Nothing is uploaded - it is stored in this
+      built-in songs. Nothing is uploaded. It is stored in this
       browser.</p>
       <p style="color:#999">A <b>Daggerfall Unity music pack works
-      as-is</b> - its <b>song_*.ogg</b> names are already the ones this
-      looks for.</p>`,
+      as it is</b>: its <b>song_*.ogg</b> files already have the names
+      the game looks for.</p>`,
     store: storeMusicFiles,
     register: async () => setMusicReplacements(await storedMusicNames(), loadMusicFile),
   });
@@ -1110,10 +1129,10 @@ export async function pickSoundFolder() {
   return pickAssetFolder({
     title: 'Your own sounds',
     blurb: `<p>Pick a folder of WAVs to play instead of the original game's
-      built-in sounds. Nothing is uploaded - it is stored in this
+      built-in sounds. Nothing is uploaded. It is stored in this
       browser.</p>
       <p style="color:#999">A <b>Daggerfall Unity sound mod works
-      as-is</b> - pick its <b>StreamingAssets/Sound</b> folder. Supported
+      as it is</b>: pick its <b>StreamingAssets/Sound</b> folder. Supported
       so far: <b>AmbientCrickets.wav</b> (the night crickets) and
       <b>AmbientDistantHowl.wav</b> (the distant howl).</p>`,
     store: storeSoundFiles,
@@ -1150,10 +1169,10 @@ export const textureStoreSettled = () => _textureStoreSettled;
 async function registerTextureStoreNow({ warm }) {
   const { setTextureReplacements } = await import('../systems/textureReplacement.js');
   const { setSeasonsSources } = await import('../systems/seasonsIliacBayAssets.js');
-  const { setWeaponWidgetSources } = await import('../combat/weaponWidgetAssets.js');   // WW1
-  const { setDiverseWeaponsSources } = await import('../combat/diverseWeaponsAssets.js');   // DW1
+  const { setWeaponWidgetSources } = await import('../combat/weapon/weaponWidgetAssets.js');   // WW1
+  const { setDiverseWeaponsSources } = await import('../combat/diverseWeapons/diverseWeaponsAssets.js');   // DW1
   const { setDfmodSources, setDfmodDetailSource } = await import('../systems/dfmodTextures.js');   // DFMOD1
-  const { installVanillaEnhancedPack } = await import('../systems/vanillaEnhancedPack.js');   // VE4
+  const { installVanillaEnhancedPack } = await import('../systems/vanillaEnhanced/vanillaEnhancedPack.js');   // VE4
   const { getPref } = await import('../systems/uiPrefs.js');
   setDfmodDetailSource(() => getPref('dfmodTextureDetail'));   // DFMOD2: the packs card's detail choice
   installVanillaEnhancedPack();   // VE4: the shipped mods, in one load order with the attached
@@ -1210,10 +1229,10 @@ export async function pickLightingModFiles() {
   const { isIilMod } = await import('../systems/improvedInteriorLighting.js');
   return pickAssetFolder({
     title: 'Attach lighting mod',
-    blurb: `<p>Pick the <b>Improved Interior Lighting</b> <b>.dfmod</b> file -
-      in its download it is inside the <b>Mods</b> folder (the original by
-      ShortBeard, or the fixed version by BlazeBlue32). Nothing is uploaded -
-      it is stored in this browser.</p>
+    blurb: `<p>Pick the <b>Improved Interior Lighting</b> <b>.dfmod</b> file.
+      It is in the <b>Mods</b> folder of its download (the original by
+      ShortBeard, or the fixed version by BlazeBlue32). Nothing is uploaded.
+      It is stored in this browser.</p>
       <p style="color:#999">Then choose how it lights in ${optionPath('feat:modded-lighting').replaceAll(' \u203a ', ' &rarr; ')}
       &rarr; Modded lighting: On, or With shadows.</p>`,   // ORG2: where the map puts it
     store: async (files, progress) => {
@@ -1231,22 +1250,21 @@ export async function pickLightingModFiles() {
     register: registerTextureStore,
     directory: false,
     accept: '.dfmod',
-    doneText: `Improved Interior Lighting attached - choose On or With shadows on Modded lighting (${optionPath('feat:modded-lighting')})`,   // ORG2
+    doneText: `Improved Interior Lighting attached. Choose On or With shadows under Modded lighting (${optionPath('feat:modded-lighting')}).`,   // ORG2
   });
 }
 
 export async function pickDfmodFiles() {
   return pickAssetFolder({
     title: 'Add texture mods',
-    blurb: `<p>Pick one or more Daggerfall Unity <b>.dfmod</b> files - texture
-      mods like <b>DREAM</b> (sprites, NPCs, mobs, paperdoll, portraits,
-      backgrounds, world textures). Nothing is uploaded - they are stored
+    blurb: `<p>Pick one or more Daggerfall Unity <b>.dfmod</b> files: texture
+      mods like <b>DREAM</b> (sprites, NPCs, monsters, paperdoll, portraits,
+      backgrounds and world textures). Nothing is uploaded. They are stored
       in this browser.</p>
-      <p style="color:#999">Textures, billboard sizes (the mod's xml),
-      paperdoll pieces by dye, heads, bodies, backgrounds and talk
-      portraits are used. Mod scripts are not run, and normal/height/
-      emission maps are skipped. Big mods take a while to read the first
-      time.</p>`,
+      <p style="color:#999">Textures, sprite sizes, paperdoll pieces, heads,
+      bodies, backgrounds and talk portraits are used. Mod scripts do not
+      run, and normal, height and emission maps are skipped. Big mods take
+      a while to read the first time.</p>`,
     store: storeDfmodFiles,
     register: registerTextureStore,
     directory: false,
@@ -1282,21 +1300,20 @@ export async function pickTextureFolder() {
   return pickAssetFolder({
     title: 'Your own textures',
     blurb: `<p>Pick a folder of PNGs to draw instead of the original game's
-      built-in textures. Nothing is uploaded - it is stored in this
+      built-in textures. Nothing is uploaded. It is stored in this
       browser.</p>
       <p style="color:#999">A <b>Daggerfall Unity texture pack works
-      as-is</b>: its <b>003_5-0.png</b> names are already the ones this
-      looks for. Anything you skip keeps the classic art.</p>
-      <p style="color:#999"><b>Seasons of the Iliac Bay</b> works from
-      the same pick: a folder holding its <b>.dfmod</b>, or its
-      <b>Textures</b> folders, gives the woodland its autumn, spring
-      and winter.</p>
-      <p style="color:#999"><b>Weapon Widget</b> too: a folder holding
+      as it is</b>: its <b>003_5-0.png</b> files already have the names
+      the game looks for. Anything you leave out keeps the classic art.</p>
+      <p style="color:#999"><b>Seasons of the Iliac Bay</b> works here
+      too: a folder with its <b>.dfmod</b> or its <b>Textures</b> folders
+      gives the woodland its autumn, spring and winter.</p>
+      <p style="color:#999"><b>Weapon Widget</b> too: a folder with
       its <b>.dfmod</b> gives its DoubleScaleTextures module the mod's
       own double-size weapon art.</p>
-      <p style="color:#999">And <b>Diverse Weapons</b>: its sprites ship
-      with the port; a folder holding a newer version's <b>.dfmod</b>
-      makes that version's art win over the shipped set.</p>`,
+      <p style="color:#999"><b>Diverse Weapons</b> comes with the game.
+      A folder with a newer version's <b>.dfmod</b> uses that version's
+      art instead.</p>`,
     store: storeTextureFiles,
     register: registerTextureStore,   // DFMOD1: one seam for every registry the store feeds
   });
@@ -1313,7 +1330,7 @@ export async function getBytes(name) {
   const hit = mem.get(key);
   if (hit) return hit;
   try {
-    const stored = await idbGet(await getDb(), key);
+    const stored = await idbRead(key);
     if (stored) { const u8 = new Uint8Array(stored); mem.set(key, u8); return u8; }
   } catch { /* no IDB (private mode etc.) - fall through to network */ }
   const res = await fetch(`./arena2/${name}`);
@@ -1355,7 +1372,7 @@ async function readPicked(files, progress = null) {
  *  "no usable files" with no way forward. Both now say what happened
  *  and name the route that works on that setup: the zip, or the folder
  *  dropped onto the screen. */
-export const FOLDER_PICK_HINT = 'Some Linux browsers (Snap or Flatpak builds, where the file dialog is the desktop portal\u2019s) cannot hand a whole folder over. '
+export const FOLDER_PICK_HINT = 'Some Linux browsers (Snap or Flatpak builds) cannot hand over a whole folder. '
   + 'Pick a .zip of the ARENA2 folder below instead, or drag the folder onto this screen.';
 
 const PROBE = 'ART_PAL.COL'; // small, universally present, first thing most scenes touch
@@ -1388,7 +1405,7 @@ export const missingArena2 = (names) => {
 /** What the picker says about an incomplete folder - which files, and
  *  the two ways to a whole one. */
 export const incompleteArena2Text = (missing) =>
-  `That is not a complete ARENA2 folder - it has no ${missing.join(', ')}. `
+  `That is not a complete ARENA2 folder. It is missing ${missing.join(', ')}. `
   + 'Pick the ARENA2 folder inside your Daggerfall install (on Steam it is under DF/DAGGER/ARENA2; on GOG it is in the game\'s own folder), '
   + 'or use DaggerfallGameFiles.zip below.';
 
@@ -1407,8 +1424,15 @@ export const incompleteArena2Text = (missing) =>
  *  ones to inflate, so a caller's filter runs BEFORE any bytes are
  *  decompressed, the skip-before-inflate readZip has always done.
  *  Answers `[{ name, data }]` in archive order, `data` an ArrayBuffer;
- *  directory entries and methods other than 0/8 are skipped. */
-export async function readZipEntries(file, { pick = (names) => names, onProgress } = {}) {
+ *  directory entries and methods other than 0/8 are skipped.
+ *  AUDIT POI P5: `limit(name, size)`, when a caller gives one, bounds
+ *  what each picked entry may become - asked of every one, with the
+ *  size the directory declares, BEFORE any is inflated (a declared size
+ *  past its bound refuses the archive), and held while each inflates (an
+ *  entry that inflates past what it declared is stopped there). A
+ *  refusal throws an Error whose `code` is 'zip-too-large'. Without one,
+ *  nothing below changes. */
+export async function readZipEntries(file, { pick = (names) => names, onProgress, limit = null } = {}) {
   const buf = new Uint8Array(await file.arrayBuffer());
   const dv = new DataView(buf.buffer);
   // EOCD: scan the tail for PK\x05\x06 (comment can pad up to 64KB)
@@ -1424,16 +1448,19 @@ export async function readZipEntries(file, { pick = (names) => names, onProgress
     if (dv.getUint32(off, true) !== 0x02014b50) throw new Error('bad central directory');
     const method = dv.getUint16(off + 10, true);
     const compSize = dv.getUint32(off + 20, true);
+    const size = dv.getUint32(off + 24, true);
     const nameLen = dv.getUint16(off + 28, true);
     const extraLen = dv.getUint16(off + 30, true);
     const commentLen = dv.getUint16(off + 32, true);
     const localOff = dv.getUint32(off + 42, true);
     const name = new TextDecoder().decode(buf.subarray(off + 46, off + 46 + nameLen));
-    if (!name.endsWith('/')) dirs.push({ name, method, compSize, localOff });
+    if (!name.endsWith('/')) dirs.push({ name, method, compSize, size, localOff });
     off += 46 + nameLen + extraLen + commentLen;
   }
   const wanted = new Set(pick(dirs.map((d) => d.name)));
   const picked = dirs.filter((d) => wanted.has(d.name));
+  // AUDIT POI P5: every bound asked before a byte is inflated (a stored entry is its own size: one longer lies)
+  if (limit) for (const d of picked) if (!(d.size <= limit(d.name, d.size)) || (d.method === 0 && d.compSize > d.size)) throw zipTooLarge(d.name);
   const entries = [];
   let seen = 0;
   for (const d of picked) {
@@ -1446,12 +1473,31 @@ export async function readZipEntries(file, { pick = (names) => names, onProgress
       entries.push({ name: d.name, data: data.slice().buffer });
     } else if (d.method === 8) {
       const ds = new DecompressionStream('deflate-raw');
-      const out = await new Response(new Blob([data]).stream().pipeThrough(ds)).arrayBuffer();
+      const out = limit ? await inflatedTo(new Blob([data]).stream().pipeThrough(ds), d.size, d.name)
+        : await new Response(new Blob([data]).stream().pipeThrough(ds)).arrayBuffer();
       entries.push({ name: d.name, data: out });
     }
     // other methods: skip (classic zips are 0/8 only)
   }
   return entries;
+}
+const zipTooLarge = (name) => Object.assign(new Error(`zip entry past its bound: ${name}`), { code: 'zip-too-large' });
+/** AUDIT POI P5: an inflating entry read to its end - and stopped, refused, the moment it passes `max` bytes. */
+async function inflatedTo(stream, max, name) {
+  const reader = stream.getReader();
+  const chunks = [];
+  let n = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    n += value.byteLength;
+    if (n > max) { await reader.cancel().catch(() => {}); throw zipTooLarge(name); }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(n);
+  let at = 0;
+  for (const c of chunks) { out.set(c, at); at += c.byteLength; }
+  return out.buffer;
 }
 
 /** The ARENA2 ingest over the walk above: the arena2/ folder alone when
@@ -1523,11 +1569,11 @@ export async function ensureArena2() {
       <div style="max-width:460px;text-align:center;border:1px solid #444;padding:24px" id="dz">
         <h2 style="margin-top:0">DFO Online</h2>
         <p>Daggerfall's game data is freeware but can't be bundled.</p>
-        <p>Select your <b>ARENA2</b> folder (or drop it here) - it's stored
-        locally in your browser, picked once.</p>
+        <p>Select your <b>ARENA2</b> folder, or drop it here. It is stored
+        in your browser, so you only pick it once.</p>
         <input type="file" id="pick" webkitdirectory multiple style="margin:8px">
-        <p style="margin:4px 0">on a phone: pick a <b>.zip</b> instead
-        (DaggerfallGameFiles.zip or a zipped arena2 folder)</p>
+        <p style="margin:4px 0">On a phone, pick a <b>.zip</b> instead
+        (DaggerfallGameFiles.zip or a zipped ARENA2 folder).</p>
         <input type="file" id="pickzip" accept=".zip,application/zip" style="margin:8px">
         <p id="msg" style="color:#8a8"></p>
       </div>`;

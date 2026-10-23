@@ -37,13 +37,14 @@ import {
   TEXT_FREE_TO_GO, TEXT_BANISHED, TEXT_HOW_CONVINCE,
   lowerRepForCrime, surrenderToCityGuards, startCourt, pleaGuilty,
   pleaNotGuilty, resolveGuiltyVerdict, raiseRepForSentence, TEXT_EXECUTED,
-  guildRescue, setCrimeCommitted,
+  guildRescue, setCrimeCommitted, confiscateStolen, legalRepOf,
 } from '../systems/court.js';
+import { confiscatedText, piecesOf } from '../systems/stolenGoods.js';   // STOLEN-GOODS: the court's word for what it took
 import { isTransformedLycanthrope, frightenChance, frightenRoar } from '../systems/lycanthropy.js';   // WERE-FRIGHT: the beast cannot surrender
-import { guildOfFaction, membershipOf, activeMemberships } from '../systems/guilds.js';   // CR1: the rescue arms' member reads
-import { resolveVariantGuild } from '../systems/guildVariants.js';
+import { guildOfFaction, membershipOf, activeMemberships } from '../systems/guild/guilds.js';   // CR1: the rescue arms' member reads
+import { resolveVariantGuild } from '../systems/guild/guildVariants.js';
 import { advanceOwnMinutes, MINUTES_PER_DAY, ownMinutes, trustedWorldMinutes } from '../systems/worldTick.js';   // LIVED1: a sentence is served on the prisoner's own clock, online too
-import { banish, grantGrace, warningDue, noteWarning } from '../systems/standing.js';   // REP3: a banishment's term; REP1: the grace an answered law gives; WATCH-KNOWS: a first offence warned
+import { banish, grantGrace, warningDue, noteWarning, sentenceMends } from '../systems/standing.js';   // REP3: a banishment's term; REP1: the grace an answered law gives; WATCH-KNOWS: a first offence warned
 import { setSyntheticTimeIncrease } from '../systems/effectBroker.js';   // AUDIT 63 F13: DaggerfallCourtWindow_OnEndPrisonTime (EntityEffectBroker.cs:841-842)
 import { fillVitalSigns } from '../systems/statMods.js';
 import { alignSurvival } from '../systems/survival/needs.js';   // AUDIT C&C N3/H2: the prison feeds, waters and rests its prisoner
@@ -268,7 +269,8 @@ export function createArrestFlow({
   function chargeOnce() {
     if (playerEntity.chargedCrime === crimeId()) return;
     playerEntity.chargedCrime = crimeId();
-    lowerRepForCrime(playerEntity, region(), crimeId());
+    playerEntity.chargedFrom = legalRepOf(playerEntity, region());   // AUDIT FB1021d SM-3: the name it came in with, which a sentence answers
+    playerEntity.chargedFactor = lowerRepForCrime(playerEntity, region(), crimeId(), { curfew: true });   // CURFEW-REFUND: the court gives back what was charged (SM-8: the town's Curfew, this charge's alone)
   }
 
   /** WATCH-KNOWS: the watch's warning, in its words. @param {number} crime @param {string} name */
@@ -435,6 +437,8 @@ export function createArrestFlow({
     // courtroom with no box and `arrested` standing, which is every damage veto on and nothing that can close it.
     const court = startCourt(playerEntity, region(), crimeId(), { rolls });
     if (!court) return;
+    court.factor = playerEntity.chargedFactor ?? 1;   // CURFEW-REFUND (FIELD BUGS 2026-10-21d): the charge as it was laid
+    court.from = playerEntity.chargedFrom ?? null;   // AUDIT FB1021d SM-3: and the name it was laid on
     trial = { windows: new Set() };   // AUDIT DISC28 AR-1: this trial's token - its windows and its steps are its own
     // PlayerEntity.CourtWindow (:2341) sets `arrested` immediately before
     // the court window opens, and DaggerfallCourtWindow.OnPop (:435)
@@ -517,6 +521,12 @@ export function createArrestFlow({
   }
 
   function finish(result, court) {
+    // STOLEN-GOODS (FIELD BUGS 2026-10-16b): EVERY GUILTY EXIT ENDS HERE - the plea's (a fine paid, a sentence, banishment),
+    // the failed defence's (state 2's verdict and its banishment) - and the court takes the stolen goods the prisoner
+    // carries (court.js confiscateStolen), at the verdict. An acquittal (verdict's `free` arm) and a guild's rescue
+    // (startCourtFlow) release without coming here: nothing is taken, the guild got you out. The line is said at the
+    // release (release, below), so a sentence's days do not run it off the screen before the prisoner walks out.
+    if (trial) trial.taken = confiscateStolen(playerEntity);
     if (result.outcome === 'banished') {
       // AUDIT 17e F22: state 4 (Banished) does NOT call
       // RaiseReputationForDoingSentence (DaggerfallCourtWindow.cs:263-278)
@@ -619,6 +629,9 @@ export function createArrestFlow({
           // refill is their price again, as DFU pays it, in both lanes; the
           // floor it replaced is inside the refill (a full pool is above it).
           fillVitalSigns(playerEntity);
+          // SENTENCE-MENDS (FIELD BUGS 2026-10-21d): and the name it was priced by - AUDIT FB1021d SM-1: once the days are
+          // served, never at the sentence: a save under the prison screen (a tab closed) kept a mend no day had paid for
+          sentenceMends(playerEntity, court.regionIndex, { from: court.from, ownNow: ownMinutes() });
           // AUDIT C&C (2026-10-12, N3/H2): AND THE NEEDS LEAVE PRISON FED, WATERED AND RESTED. The days above are a bare
           // move of the clock, so the first frame out walked the sentence's last two days (the needs' catch-up) AFTER this
           // refill, awake and unfed, in the street's weather: a Hard ten-day sentence let out into snow left 5 health, no
@@ -646,6 +659,7 @@ export function createArrestFlow({
     // :347 on the plea, where DFU names the divergence it is fixing
     // ("Oversight in classic: Does not refill vital signs when
     // releasing in this case, so player is left with 1 health").
+    sentenceMends(playerEntity, court.regionIndex, { from: court.from, ownNow: ownMinutes() });   // SENTENCE-MENDS: the court's fine paid with no days answers the name too
     fillVitalSigns(playerEntity);
     release();
   }
@@ -741,6 +755,7 @@ export function createArrestFlow({
     if (reposition) positionPlayerAtLocationEntrance();
     clearEnemies();
     playerEntity.health = Math.max(1, playerEntity.health);   // the port's own floor, not DFU's
+    if (trial?.taken?.length) say(confiscatedText(piecesOf(trial.taken)));   // STOLEN-GOODS: what the verdict took (finish)
   }
 
   /** ARREST-SHIELD: a host that tears this flow down takes its veto

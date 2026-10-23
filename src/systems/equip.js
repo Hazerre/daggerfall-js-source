@@ -1,6 +1,6 @@
 // U8f: EQUIP MECHANICS - DFU ItemEquipTable's equip/unequip half
 // (MIT Daggerfall Workshop) over the EXISTING C5a/C5c foundation
-// (characters/paperdoll.js EQUIP_SLOTS + characters/equipTable.js's
+// (characters/paperdoll/paperdoll.js EQUIP_SLOTS + characters/equipTable.js's
 // verbatim GetEquipSlot/GetItemHands assignment layer, whose header
 // defers "equip/unequip mechanics (unequip lists, prohibitions)"
 // to this Systems module). Bag items carry STRING groups (the
@@ -20,11 +20,11 @@
 // directly, which is the port's shape of DFU's playEquipSounds=false
 // load arm.
 
-import { mintCondition, templateByIndex } from './itemTemplates.js';   // AUDIT 23
+import { mintCondition, templateByIndex } from './item/itemTemplates.js';   // AUDIT 23
 import { repoolWeapon } from './conditionRepair.js';   // AUDIT WEAPON-POOL P2: a weapon on its row's pool moves before it wears
-import { EQUIP_SLOTS } from '../characters/paperdoll.js';
+import { EQUIP_SLOTS } from '../characters/paperdoll/paperdoll.js';
 import { ITEM_GROUPS, SLOT_RULES } from '../characters/equipRules.js';
-import { customItemClass, rriNativeMaterialValue, rriEquipSound } from './rriItems.js';
+import { customItemClass, rriNativeMaterialValue, rriEquipSound } from './roleplayRealismItems/rriItems.js';
 import { SOUND } from './soundClips.js';   // AUDIT-RR F8: the class's equip sound, by name   // RRI1: a custom armor's slot, for the body part its value lands on; AUDIT-RR F7/F8: the class's two virtuals
 import { createEquipTable, getItemHands as handsOf, ITEM_HANDS } from '../characters/equipTable.js';
 import { BODY_PARTS, NUMBER_BODY_PARTS, materialArmorValue, itemArmorValue, SHIELD_VALUES, SHIELD_PARTS, isShieldTemplate } from './armorMaterials.js';
@@ -34,6 +34,7 @@ import { EQUIP_DELAY_TIMES } from '../characters/weaponStates.js';   // CH3 (cha
 import { startingProvisions } from './survival/items.js';   // SURV2: the new character's kit
 import { survivalOn } from './survival/switch.js';   // SURV2: the one switch
 import { localizedText } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { ARMOR_BITS_SHIFT } from './specialAdvantages.js';   // the armour field's place, one home
 
 export { EQUIP_SLOTS, ITEM_HANDS };
 
@@ -166,7 +167,7 @@ export function unequipItem(entity, item) {
  *  could never put back on. Ported at the same seam, deliberately. */
 export function isForbiddenEquip(career, item) {
   if (!career || !item) return false;
-  const forbiddenArmors = (career.weaponArmorShieldsBitfield >>> 6) & 0x07;
+  const forbiddenArmors = (career.weaponArmorShieldsBitfield >>> ARMOR_BITS_SHIFT) & 0x07;
   const forbiddenShields = (career.weaponArmorShieldsBitfield >>> 9) & 0x0f;
   const forbiddenProficiencies = career.weaponArmorShieldsBitfield & 0x3f;
   const forbiddenMaterials = career.forbiddenMaterialsFlags ?? 0;
@@ -232,8 +233,8 @@ export const ITEM_BROKEN_TEXT_ID = 29;
  *  ABOVE the prohibition chain), and ItemEquipTable.EquipItem
  *  (ItemEquipTable.cs:94-154) has no condition test at any point.
  *  This predicate is therefore for the two WINDOW callers
- *  (ui/nativeInventory.js's _refuseForbidden and
- *  ui/enhancedInventory.js's wear) and for nobody below them - the
+ *  (ui/native/nativeInventory.js's _refuseForbidden and
+ *  ui/enhanced/enhancedInventory.js's wear) and for nobody below them - the
  *  port had it inside equipItem, at the table seam, and every caller
  *  DFU lets equip past the window paid for it. The one that showed:
  *  PlayerEntity.cs:959 imports a classic save's worn gear with
@@ -585,6 +586,10 @@ export function lowerCondition(item, amount, owner = null, say = null, removeFro
   // own corpse's loot is not hidden from every inventory tab), and
   // the mark-keyed call could never take a broken foe's shield off.
   if (owner) unequipItem(owner, item);
+  // AUDIT RVN G4: and out of a foe's hand - the port's foe swings `entity.weapon`, where DFU's EnemyAttack reads the right
+  // hand's slot (MeleeDamage: ItemEquipTable.GetItem(RightHand)), which the unequip just emptied: a broken blade is no
+  // blade, and a sworn one's given weapon, broken, was swung on (and broke again) at every blow
+  if (owner && owner.weapon === item) owner.weapon = null;
   // PCO1: LowerCondition's third parameter, `removeFromCollectionWhenBreaks`
   // (DaggerfallUnityItem.cs) - ItemBreaks removes the item from that
   // collection. The port's one caller is the mod's fading enchanted
