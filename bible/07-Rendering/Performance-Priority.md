@@ -1493,6 +1493,101 @@ Pins: `test/render/auditshaderstall.test.js` (8), `shaderstall`'s spells' warm p
 the portal's door. Mutants: `tools/mutants/audit_perfpass.json`'s ASS records, all dead; `shaderstall.json`'s four and
 `gatemix.json`'s one re-aimed, dead.
 
+## AURA-STALL — the auras' program, started with the passes play meets
+
+*A player (2026-10-22, #1137): "when I exit overworld travel near a lot of players (>20, usually near a Dagon Breach) my
+client completely freezes for about 5-10 seconds".*
+
+**Found.** The aura pass (`render/auraRing.js`) was built in play at its first use, outside SHADER-STALL's door.
+`drawAuras` made it the first frame a wearer stood within `AURA_RANGE_M` of the eye, and its constructor's
+`buildProgram` read the link, which waits for the whole compile. Its one program carries every look: 81 KB of fragment
+shader, 1,158 lines, 19 loops. The travel view draws no aura (`world.js:"if (!online || travelView?.active) return;"`),
+so a player who rode the Overworld to a crowd met the build on the frame the view came down. A crowd at a Breach nearly
+always holds a wearer. The pass was tried once a page, and Chromium's shader cache answers a source it has compiled
+before (57 ms on a reload), so the freeze came once, on the first session after a change to the aura's shaders.
+
+**The fix.** SHADER-STALL's pattern:
+- `AURA_PROGRAMS` stands beside `AuraRingRenderer`, and the constructor builds from it. SUPERSEDED at AURA-SPLIT
+  (below): the list is every look's program, and the constructor builds none.
+- `render/playPrograms.js` starts it at the boot's idle with the passes play meets, where the driver compiles beside
+  the frames.
+- The world builds the pass through `compiledPass` and never asks it as needed. An aura is cosmetic, so a wearer stands
+  without it while its program compiles. The capes' pose and swing are stepped meanwhile. Without the extension, the
+  pass is built at its first wearer as before. SUPERSEDED in part at AURA-SPLIT: the world's door
+  (`world.js:"const auraPassOf = compiledPass(renderer.gl, [],"`) waits on no program, and each look's waits at its own.
+
+bootWorld lost 3 logical lines (its ceiling 36,256 -> 36,253, `test/scenes/hostceiling.test.js`; 36,287 -> 36,284 at the
+merge of main past STAFF-PANEL5's wiring).
+
+THE FOUR HOSTS: `scenes/world.js` WIRED - the one host that builds the aura pass. `scenes/worldModes.js` draws the
+interior's and the dungeon's auras through the host's `drawVeiledPeerBodies`, and `scenes/dungeonContext.js` through
+the late-world hook worldModes hands it, so both take the world's door. `scenes/exterior.js` (the fixed city) runs no
+online session and draws no aura.
+
+**Measured.** On the player's machine (Windows 11, NVIDIA RTX 5080, ANGLE D3D11, the desktop app's Chromium), each
+build salted so that no cache answered:
+
+| Program | Blocking build (compile, link, the LINK_STATUS read) |
+|---|---|
+| `GATE_PASS_PROGRAMS` (2) | 62-90 ms |
+| `NODE_GLINT_PROGRAMS` (2) | 575-762 ms |
+| `AURA_PROGRAMS` (1) | 8,476-11,108 ms (5 runs) |
+
+Through `KHR_parallel_shader_compile`, the aura's program completed after 9.1-9.6 s. No poll took more than 0.1 ms,
+and the link read after completion took 0.0 ms. A draw and a 1-pixel `readPixels` every 16 ms during that compile:
+p95 0.9 ms, worst 1.9 ms (0.7 ms and 1.2 ms with nothing compiling).
+
+**Not measured.** The live game with a crowd: the link between the report and this build is the code path and the
+timings above. Other GPUs and drivers. A machine with fewer cores, where the background compile shares the CPU with
+the frames, and where ANGLE's compile threads are few: a pass a fight asks as needed (`get(true)`) inside the aura's
+compile could wait behind it. A player who never goes online still pays the background compile at a boot the shader
+cache misses; starting it at the first welcome instead is left for a measurement that shows the cost.
+
+Pins: `test/render/shaderstall.test.js` (AURA-STALL, and the auras in the list-and-constructor pin). Pins moved:
+`auditshaderstall.test.js` (the passes play meets), `wb9g_insignia.test.js` (a fire that will not build) and
+`shadowcloak.test.js` (the aura's import line). Mutants: `tools/mutants/aurastall.json`, 5, all dead;
+`audit_perfpass.json`'s ASS-a-play-pass-left-out and `hostsplit.json`'s HOST-SPLIT-a-ceiling-under-its-host re-aimed
+by content, both dead.
+
+## AURA-SPLIT — one program a look
+
+*#1143 (2026-10-22): after AURA-STALL the aura's one program still took 8.5-11.6 s to compile, off the main thread.*
+
+**Found.** The aura pass's one program held every look in `AURA_LOOK`, picked per wearer by the `uAura` uniform. On
+AURA-STALL's machine (ANGLE D3D11, RTX 5080, each build salted) the whole source compiled in 10.9 s. The same source with
+`uAura` declared one look's constant compiled in 67-472 ms a look, and 1.65 s for the Holo Shadow Cloak: 4.1 s for all
+fourteen. Once the kind is a constant, the compiler drops every other look's code. A change to any one look also changed
+the one program that every player's shader cache keyed.
+
+**The fix.**
+- `auraPrograms(kind)` is the whole source with `uniform int uAura;` declared `const int uAura = <kind>;`. `AURA_PROGRAMS`
+  is every look's, started at the boot's idle as before (`render/playPrograms.js`).
+- The pass compiles nothing when it is built. `programOf(kind)` builds a look's program at its own door
+  (`compiledPass`) once the driver says it is compiled. A wearer whose look still compiles stands without the aura that
+  frame; the capes' pose and swing are stepped meanwhile.
+- The wearers are drawn farthest first, as before. A look's program is bound again only where the look changes, and is
+  handed the draw's camera, clock and fog once a draw (`_bind`).
+- The world's door waits on no program (`world.js:"const auraPassOf = compiledPass(renderer.gl, [],"`): it builds the
+  pass at the first wearer in range, and a throw costs the auras, never the game.
+- Without `KHR_parallel_shader_compile`, each look is built at its first draw and waits for that look's compile alone.
+
+`tools/auraProbe.mjs` asks every look's program built and linked. bootWorld's logical lines are unchanged.
+
+THE FOUR HOSTS: as AURA-STALL's. `scenes/world.js` WIRED; `scenes/worldModes.js` and `scenes/dungeonContext.js` draw
+through its hooks; `scenes/exterior.js` draws no aura.
+
+**Not measured.** The real game, other GPUs and drivers, and how ANGLE's threads share the fourteen compiles at the boot.
+
+Pins: `test/render/shaderstall.test.js` (AURA-SPLIT, which takes AURA-STALL's test and the auras' row of the
+list-and-constructor pin). Pins moved: `aegis`, `crystalfist`, `primarch`, `seraphwings`, `shadowcloak` and `wikimaid`
+(a wearer's look is the program bound, read through `kindOf`, and each look's program is handed the draw once), and
+`wb9g_insignia` (the world's door). The AURA-SPLIT pin also holds a look that will not build: told once, its wearers
+stand without it, and the other looks are drawn. `shadowcloak.test.js`'s import line is main's again. Mutants:
+`tools/mutants/aurasplit.json`, 4, all dead. Re-aimed by content, all dead: `aurastall.json`'s AS-a-look-off-its-list,
+AS-a-look-asked-as-needed and AS-the-door-waits-on-the-looks, `aegis.json`'s AEGIS-the-kind-never-set and
+`shadowcloak.json`'s SHADOWCLOAK-the-strip-not-the-cloth. The 41 records the other aura lists (`aegis`, `crystalfist`,
+`primarch`, `seraphwings`, `shadowcloak`, `wb9g`, `wikimaid`) hold on the pass: 41 dead.
+
 ## SNOW-BUDGET — the snow the ground keeps holds to its frame budget
 
 *The same capture, handed on by the owner (2026-10-20): "something about our weather system affecting fps".*
@@ -1568,6 +1663,52 @@ What it found, and what was done:
   packs; a moving window and a clock set back; `settle` and `force`; steady play.
 Pins: `test/systems/weather/snowbudget.test.js` (+2: lock-step to the 560th step of the lane's own window, and the kept
 lines across a move). Mutants: `tools/mutants/audit_perfpass.json`'s ASB records, all dead.
+
+## FIRST-USE — the passes still built at first use, through SHADER-STALL's door
+
+*#1144 (2026-10-22): the passes SHADER-STALL left building in play, measured.*
+
+**Found.** Ten passes were still built behind a try-once latch the first frame they were wanted, each `buildProgram`'s
+LINK_STATUS read holding that frame for the whole compile: Starfall's sky (`scenes/starfall/starfallHost.js`, at its idle
+warm - a bare step, which waited out the compile inside its idle task), the rite's smoke (`scenes/riteHost.js`, the first
+frame the smoke fades in), the Steps' ghosts (`scenes/superDungeon/sdSteps.js`) and the Spans' (`scenes/eliteGates/egSpan.js`)
+at the first ghost drawn, and the Elite Breach's look (`scenes/eliteGates/egLookDraw.js`) - its lines, sky, mist, motes,
+lights and halos - in the first frame drawn in the Spire, where the look is made. On the player's machine of AURA-STALL
+(ANGLE D3D11, RTX 5080, each build salted), each held its frame 12-86 ms, the look's six 293 ms together on a first run.
+The gate's fire took 62-90 ms there and 11.43 s on a player's driver before SHADER-STALL, so a slower driver pays many
+times these figures.
+
+**The fix.** SHADER-STALL's pattern, a pass at a time:
+- Each pass lists its programs beside its constructor, which builds from the list: `STARFALL_PROGRAMS` (its beacon the
+  gate's own, started with the passes play meets), `RITE_SMOKE_PROGRAMS`, `sdStepsPrograms(opts)` (the Spans' options are
+  sources of their own), `EG_LINE_PROGRAMS`, `EG_SKY_PROGRAMS`, `EG_MIST_PROGRAMS`, `EG_MOTES_PROGRAMS`,
+  `EG_LIGHT_PROGRAMS` and `SD_HALO_PROGRAMS`.
+- The passes the game is played by are started at their owner's load and asked as needed: the Steps' ghosts as the realm
+  loads (`createSdSteps`), the Spans' and the look's six (`EG_LOOK_PROGRAMS`, `startEgLookPrograms`) as the hall does
+  (`createEgSpan`). A ghost is where a step returns and the lines are where a player falls, so the frame one is first
+  drawn builds it whatever the driver says; by then its compile is done.
+- The rest are asked through their doors and never as needed: the look's sky, mist, motes, lights and halos, and the
+  rite's smoke stand a few frames late while their programs compile. Starfall's warm is a step that names its programs
+  (`{ start, run, need }`, as the spells' impact pass has it), so its idle builds only once they are done.
+- Where the driver cannot say (no `KHR_parallel_shader_compile`), nothing is started early and each pass is built the
+  first time it is asked for, as before.
+
+A door is made again where its pass was freed (the look's release, the Steps' and the Spans' clears). Programs the hall
+started that no look takes - a circle changed under a look that already stands - wait in the started map, one a source,
+for the next breach's doors.
+
+THE FOUR HOSTS: none is wired here - each pass is a module's. `scenes/world.js` makes the rite's host and Starfall's;
+`scenes/dungeonContext.js` makes the Steps and the Spans at the realm's and the hall's load; the look is made by
+`scenes/eliteGates/egClient.js`, whose draws `scenes/world.js` hands the dungeon mode (its `drawEgSky` hook and the late
+pass); `scenes/worldModes.js` builds none of them; `scenes/exterior.js` (the
+fixed city) stands none of them.
+
+**Not measured.** The real game's first-use frames, and other GPUs and drivers. The Spans' ghosts with their own options.
+
+Pins: `test/render/firstuse.test.js` (3). Pin moved: `egz_tells.test.js` (the ghosts' pass built once - the hall now
+starts the look's six programs beside the ghosts'). Mutants: `tools/mutants/firstuse.json`, 14, all dead;
+`egz_stair.json`'s EGZ-the-lights-pass-rebuilt and `wb12d.json`'s AUDIT-WB12d-the-smoke-built-in-the-draw re-aimed by
+content, both dead.
 
 ## HORSE-VIEW — a 3D horse is posed where it is seen
 
@@ -2192,6 +2333,87 @@ key, the music's window against its old walk. Mutants: `tools/mutants/owhitch.js
 code they read (the ground sets' home: `audit68_worldjs`, `bantha2_floor`, `dfmod1`, `ecotone1`, `fb1004d_placelru`,
 `grain1_terrainmip`, `grasslit2`, `iil1`, `labGrass`, `precip4_snowground`, `ve1_vanillaEnhanced`, `waterpuddle`; the clump held to its
 composition; `grasslit2`'s recorders keep a cell as handed), and 28 mutant records of fourteen lists re-aimed by content, every one dead where it now stands.
+
+## SNOW-SWEEP — the snow's sweep walks the standing pixels at the snow's frame budget
+
+*After OW-HITCH's re-measure in the real game (2026-10-23): "spread snowCoverHost's sweep across frames under the snow
+budget".*
+
+**Re-measured.** OW-HITCH's "Not measured" (its fixes' frames in the real game) was run at `a61d01901` on a machine with
+a GPU: an RTX 5080 and an i9-12900KF, headless Edge on ANGLE D3D11, at 1920 x 1080.
+- The journey: Knightstale at 15:00 on the freeware ARENA2, then a view journey by the roads to Kambria (637,56), 100 s
+  a pace.
+- Random encounters were off and foes calm (probe-only edits). A foe at the rider's feet stops a Travel Options journey
+  every few seconds.
+- The journey's stops are left out.
+- The driver is a scratch script over `tools/frameProbe.mjs`'s `editsPlugin`, outside the tree, like OW-HITCH's.
+- This CPU is fast. The figures rank costs; they are not a player's milliseconds.
+
+| | foot x10 | horse x20 | horse x60 | horse x100 |
+|---|---|---|---|---|
+| seconds a map pixel | 24.8 | 4.8 | 2.4 | 1.76 |
+| frame p50 / p95 / p99, ms | 16.6 / 20.8 / 29.2 | 16.7 / 29.3 / 41.6 | 29.2 / 45.8 / 83.3 | 20.8 / 37.5 / 66.8 |
+| frames over 50 ms in 100 s | 5 | 24 | 94 | 73 |
+| of them the snow's sweep | 3 | 12 | 29 | 29 |
+| GC on the main thread, ms/s | 11.5 | 19.4 | 35.4 | 37.5 |
+
+Three things made the frames over 50 ms:
+- **The snow's sweep.** The most frequent at x10, x20 and x100, and the second at x60. About one per two map pixels
+  crossed.
+- **Major GC cycles: the longest frames.** The finalize was 76-138 ms. At x60 and up, incremental marking piled into
+  one frame, giving frames of up to 330 ms. Each cycle marks a live heap of 1.1-1.4 GB. Half of the cycles started on
+  V8's global limit (the JS heap and the memory outside it) rather than the old generation's.
+- **From x60 up, the build-bound frames.** Each is OW-BUILD's 30 Hz slice, plus a crossing's re-stride, plus the
+  Overworld's readout. Its route line costs 2.7-8.5 ms every frame of a far journey.
+
+**Found.** `snowCoverHost.js` `tick` swept whenever `buildGen` moved. That is at every step of the snowpack's grid, and
+also at every lattice cell walked (two map pixels), because `windowAbout` resets `buildAt` when the window moves. The
+sweep checked every flat of every standing pixel in that one frame: 40-70 ms of script on the i9. It ran outside
+SNOW-BUDGET's 3 ms, which covers the lattice's `advance` alone.
+
+**The fix** (`snowCoverHost.js` `beginSweep`, `sweepUntil`):
+- A sweep is begun: the standing pixels the snow dresses, nearest first.
+- Each frame walks it as far as the frame's shared snow budget allows (`budgetFor`). The walk reads its deadline between
+  pixels, and every `SWEEP_FLATS_A_READ` (64) flats within one: a forest pixel stands thousands.
+- A pixel found due is re-skinned as it is found. The nearest are still the first marked, and the marks are the whole
+  sweep's.
+- Marks now arrive over several frames, and this changes nothing downstream. The skin queue is a set
+  (`world/seasonReskin.js` `skin`), so a pixel marked again while its skin is pending is skinned once. `runSkin` takes
+  the nearest standing pixel when it runs, whatever order the marks came in. The whole sweep re-marked pending pixels at
+  every window move too.
+- A call moves at least one pixel's first flats.
+- The walk waits while the window catches up after a move. The move resets the window's step marker, so the sweep
+  begins again on the lines the window then reads.
+- A pixel let go is passed. One built again is checked from its first flat.
+- `sweep()` stays the whole walk at once, and takes over any sweep in hand.
+
+**Measured.** In the real game, the same journey on a horse on this branch and on its base (`556956bf1`), one run each.
+The runs had 8, 5, 11 and 11 stops, left out as above.
+
+| | x60 base | x60 SNOW-SWEEP | x100 base | x100 SNOW-SWEEP |
+|---|---|---|---|---|
+| frame p50 / p95 / p99, ms | 20.9 / 37.5 / 70.9 | 20.9 / 33.5 / 45.9 | 24.9 / 37.5 / 70.8 | 25.0 / 37.5 / 49.9 |
+| frames over 50 ms in 100 s | 65 | 26 | 64 | 25 |
+| of them the snow's sweep | 35 | 0 | 39 | 0 |
+| the sweep's script, ms/s (`sweep` / `sweepUntil` inclusive) | 15.6 | 16.2 | 15.1 | 13.8 |
+| longest frame, ms (a major GC cycle) | 354 | 396 | 363 | 408 |
+
+Compare within a table, not across them. The re-measure's x60 (one run at `a61d01901`, 2 stops) and this base's x60 (8
+stops) differ in tree and in the stretch of the route the stops left.
+
+The sweep does the same work, spread: no frame over 50 ms is the sweep's now. The frames over 50 ms that are left are
+the build-bound frames (12-17 a run) and the GC's (4-5 a run, the longest). This slice moves neither.
+
+**The four hosts.** `scenes/world.js` wired: it alone streams pixels and keeps the snow cover host (`snowCover.tick`).
+`scenes/exterior.js` (one fixed city), `scenes/worldModes.js` (a building) and `scenes/dungeonContext.js` (a dungeon)
+keep no snow cover host.
+
+Pins: `test/render/snowsweep.test.js` (5): the walk a slice a frame against the whole sweep; a forest pixel's flats past
+the deadline; a pixel built again part-way; two asks in a frame sharing its budget; the window's move holding the walk.
+Mutants: `tools/mutants/snowsweep.json`, 6, all dead. PIN MOVED: re-aimed by content at the walk's lines, all dead:
+- `tools/mutants/audit_precip.json`: AUDIT-PRECIP-HOST-3-the-sweep-capped, -farthest-first and
+  AUDIT-PRECIP-HOST-6-a-flat-s-decision-unread;
+- `tools/mutants/precip1.json`: PRECIP4-the-sweep-farthest-first and PRECIP4-the-step-unread.
 
 ## For the owner
 

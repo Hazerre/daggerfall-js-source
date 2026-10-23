@@ -584,14 +584,15 @@ test('WIKIMAID the warren\'s draw: drawn premultiplied and the blend handed back
     },
   });
   const r = new AuraRingRenderer(gl);
-  assert.equal(calls.filter((c) => c[0] === 'createProgram').length, 1, 'one program for every aura');
+  // PIN MOVED (AURA-SPLIT, #1143): a look is its own program - no program at the build, each look's at its first draw, and a wearer's look the program bound (kindOf)
+  assert.equal(calls.filter((c) => c[0] === 'createProgram').length, 0, 'no program at the build');
   const I = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
   calls.length = 0;
   const eye = [4, 1.6, 2];
   r.draw([{ at: [1, 0, 1], aura: 'lilacwarren', seed: 0.3, kindle: 0.7 }, { at: [5, 0, 5], aura: 'radiance' }], I, I, eye, 10);
   assert.equal(r.drawn, 2);
   const per = (name, kind) => calls.filter((c) => c[0] === kind && c[1] === name).map((c) => c[2]);
-  assert.deepEqual(per('uAura', 'uniform1i'), [2, 12], 'farthest first: the radiance, then the warren');
+  assert.deepEqual(calls.filter((c) => c[0] === 'useProgram').map((c) => r.kindOf(c[1])), [2, 12], 'farthest first: the radiance, then the warren');
   assert.deepEqual(per('uRingR', 'uniform1f'), [RADIANCE_R, WARREN_R], 'each at its own radius');
   assert.deepEqual(per('uFlameH', 'uniform1f'), [RADIANCE_H, WARREN_H], 'each wall at its own height');
   const handed = calls.filter((c) => c[0] === 'uniform4fv' && c[1] === 'uWarren');
@@ -601,9 +602,11 @@ test('WIKIMAID the warren\'s draw: drawn premultiplied and the blend handed back
   const prints = calls.filter((c) => c[0] === 'uniform2fv' && c[1] === 'uWarrenPrint');
   assert.equal(prints.length, 1, 'and their tracks');
   assert.deepEqual([...prints[0][2]], [...warrenPrintsInto(new Float32Array(WARREN_BUNNIES * WARREN_PRINTS * 2), warrenClock(10, 0.3))]);
-  const blends = calls.filter((c) => c[0] === 'blendFunc' || c[0] === 'uniform1i' && c[1] === 'uAura').map((c) => (c[0] === 'blendFunc' ? c.slice(1).join('/') : `aura${c[2]}`));
+  const blends = calls.filter((c) => c[0] === 'blendFunc' || c[0] === 'useProgram').map((c) => (c[0] === 'blendFunc' ? c.slice(1).join('/') : `aura${r.kindOf(c[1])}`));
   assert.deepEqual(blends.slice(0, 5), ['10/10', 'aura2', 'aura12', '10/13', '10/10'], 'added for the radiance; the warren premultiplied (ONE, ONE_MINUS_SRC_ALPHA) and the blend handed back');
   const draws = calls.filter((c) => c[0] === 'drawArrays').map((c) => c[3]);
   assert.deepEqual(draws, [6, AURA_STEPS * 6, 6, AURA_STEPS * 6, WARREN_BUNNIES * 6], 'the warren\'s ground, its strip and a card a rabbit');
-  assert.equal(calls.filter((c) => c[0] === 'useProgram').length, 1, 'the program bound once for the frame');
+  // PIN MOVED (AURA-SPLIT, #1143): a program a look - bound where the look changes, and handed the frame's uniforms once each
+  const boundLooks = calls.filter((c) => c[0] === 'useProgram').map((c) => r.kindOf(c[1]));
+  assert.equal(calls.filter((c) => c[0] === 'uniformMatrix4fv' && c[1] === 'uVP').length, new Set(boundLooks).size, 'each look\'s program handed the frame once');
 });

@@ -504,7 +504,8 @@ test('SHADOW-CLOAK the draw: FARTHEST FIRST, so a nearer cloak\'s shadow lies ov
     },
   });
   const r = new AuraRingRenderer(gl);
-  assert.equal(calls.filter((c) => c[0] === 'createProgram').length, 1, 'one program for the four auras');
+  // PIN MOVED (AURA-SPLIT, #1143): a look is its own program - no program at the build, each look's at its first draw, and a wearer's look the program bound (kindOf)
+  assert.equal(calls.filter((c) => c[0] === 'createProgram').length, 0, 'no program at the build');
   const meshData = calls.filter((c) => c[0] === 'bufferData').map((c) => c[2].length);
   assert.ok(meshData.includes(CLOAK_ROUND * CLOAK_ROWS * 12), 'the cloak\'s mesh uploaded');
   assert.ok(meshData.includes(AURA_CARDS * 12), 'cards enough for the emblems and the shreds');
@@ -516,7 +517,7 @@ test('SHADOW-CLOAK the draw: FARTHEST FIRST, so a nearer cloak\'s shadow lies ov
   calls.length = 0;
   r.draw([{ at: [1, 0, 1], aura: 'shadowcloak', yaw: 0.75 }, { at: [5, 0, 5], aura: 'radiance', yaw: 2 }, { at: [9, 0, 9], aura: 'dagonfire' }], M, M, [0, 0, 0], 10);
   assert.equal(r.drawn, 3);
-  assert.deepEqual(per('uAura', 'uniform1i'), [0, 2, 3], 'the farthest first, the nearest last');
+  assert.deepEqual(calls.filter((c) => c[0] === 'useProgram').map((c) => r.kindOf(c[1])), [0, 2, 3], 'the farthest first, the nearest last');
   assert.deepEqual(per('uYaw', 'uniform1f'), [0, 2, 0.75], 'each wearer\'s facing - none given, none turned');
   assert.deepEqual(per('uTorn', 'uniform1f'), [-1, -1, -1], 'none torn');
   assert.deepEqual(per('uRingR', 'uniform1f'), [AURA_RING_R, RADIANCE_R, CLOAK_HEM_R]);
@@ -525,7 +526,9 @@ test('SHADOW-CLOAK the draw: FARTHEST FIRST, so a nearer cloak\'s shadow lies ov
   const seq = calls.filter((c) => ['blendFunc', 'drawArrays', 'cullFace', 'enable', 'disable'].includes(c[0]) && !(c[0] !== 'blendFunc' && c[0] !== 'drawArrays' && c[0] !== 'cullFace' && c[1] !== 11)).map((c) => (c[0] === 'blendFunc' ? `blend ${c[1]},${c[2]}` : c[0] === 'cullFace' ? `cull ${c[1] === 14 ? 'front' : 'back'}` : c[0] === 'drawArrays' ? 'draw' : `${c[0]} cull`));
   assert.deepEqual(seq, ['blend 10,10', 'disable cull', 'draw', 'draw', 'draw', 'draw', 'blend 10,13', 'draw', 'enable cull', 'cull front', 'draw', 'cull back', 'draw', 'disable cull', 'cull back', 'draw', 'blend 10,10', 'cull back', 'enable cull', 'blend 10,10'], 'added; premultiplied for the cloak - its lining with its front faces culled, then its outside with its back faces culled; handed back added, culling back on');
   assert.deepEqual(per('uSide', 'uniform1i'), [0, 1], 'its lining, then its outside');
-  assert.equal(calls.filter((c) => c[0] === 'useProgram').length, 1, 'the program bound once for the frame');
+  // PIN MOVED (AURA-SPLIT, #1143): a program a look - bound where the look changes, and handed the frame's uniforms once each
+  const boundLooks = calls.filter((c) => c[0] === 'useProgram').map((c) => r.kindOf(c[1]));
+  assert.equal(calls.filter((c) => c[0] === 'uniformMatrix4fv' && c[1] === 'uVP').length, new Set(boundLooks).size, 'each look\'s program handed the frame once');
   assert.deepEqual(calls.filter((c) => c[0] === 'uniform4f' && c[1] === 'uSwing').map((c) => c.slice(2)), [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], 'no swing given, none drawn - a wearer each');
   assert.deepEqual([...calls.filter((c) => c[0] === 'uniform4fv' && c[1] === 'uCapeS')[2][2]], [...CLOAK_REST_POSE.shoulders], 'no pose given: at rest');
   // the eye IN FRONT of the wearer: its emblems behind the cloth, so laid before it
