@@ -192,7 +192,7 @@ test('STAFF-PANEL-SPEED: the census - gold and an item in 2 trips each, where th
   assert.ok(contested.trips <= 2, `contested: ${contested.trips} trips`);
 });
 
-test('STAFF-PANEL-SPEED: Home, cold, in 6 trips where it was 13 - every watch\'s first reads and the audit row together, the gains\' and the bursts\' in one, the monsters\' in two; the status tiles still 2 (mutants: each fold undone)', async () => {
+test('STAFF-PANEL-SPEED: Home, cold, in 5 trips where it was 13 - every watch\'s first reads and the audit row together, the gains\' and the bursts\' in one, the monsters\' in two; the status tiles still 2 (mutants: each fold undone)', async () => {
   const s = await stand();
   const home = await s.trips('/v1/staff/home');
   const by = Object.fromEntries(home.body.watches.map((w) => [w.id, w]));
@@ -200,7 +200,7 @@ test('STAFF-PANEL-SPEED: Home, cold, in 6 trips where it was 13 - every watch\'s
   assert.deepEqual([by.gains.total, by.contested.total, by.bursts.total, by.monsters.total, by.monsters.high], [3, 1, 1, 2, 2]);
   assert.ok(by.economy.items.some((i) => i.name === 'Brond'), 'the one-sided trade');
   assert.equal(s.rows('home-read'), 1);
-  assert.ok(home.trips <= 6, `home: ${home.trips} trips`);
+  assert.ok(home.trips <= 5, `home: ${home.trips} trips`);
   _resetStatusForTests();   // Home read the tiles: the status page's own read, cold
   const status = await s.trips('/v1/staff/status', { poll: true });
   assert.deepEqual(status.body.tiles.map((t) => t.id), ['players', 'load', 'activity', 'health']);
