@@ -303,9 +303,9 @@ export function createLowPolyTrees({ renderer, getTexture = async () => null, se
             pics.set(s.atlas, await paintPic(a));
             a.picAt = now();
           }
-          // JUNGLE-ROADSIDE (world/jungle/jungleRoadside.js): A NEAR-ONLY PROTOTYPE - a roadside pair, whose trees stand
-          // again as their species' own far off - is a handle for the near set alone: its atlases ready, no far picture
-          // drawn or uploaded (`record` null, `size` null - no batch stands it)
+          // JUNGLE-ROADSIDE (world/jungle/jungleRoadside.js): A NEAR-ONLY PROTOTYPE - a roadside pair's half, whose tree
+          // stands again as its species' own far off - is a handle for the near set alone: its atlases ready, no far
+          // picture drawn or uploaded (`record` null, `size` null - no batch stands it)
           if (proto.nearOnly) {
             if (handles.get(key) !== e) return null;
             e.handle = { proto, source, key, archive: proto.archive, record: null, atlasKeys: protoAtlases, refs: 0, idleAt: now(), size: null };

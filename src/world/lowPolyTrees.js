@@ -368,6 +368,10 @@ export function readLowPolyTrees(json, treesBin, atlasesBin) {
 /** The prototype standing for (archive, record), or null - a record the mod leaves a flat. */
 export const lptProto = (lpt, archive, record) => lpt?.protos.get(`${archive}_${record}`) ?? null;
 
+/** Whether a frame's `cut` holds a far picture's batch's `lptProto` - a handle, or JUNGLE-ROADSIDE: any of several (a
+ *  jungle species' batch, its roadside pairs' halves with it - scenes/roadsidePairs.js). */
+export const lptCuts = (cut, proto) => (Array.isArray(proto) ? proto.some((h) => cut.has(h)) : cut.has(proto));
+
 // ---- the far picture ------------------------------------------------------------------------------------------------
 
 /** The far picture's texels a metre of the tree's height (the classic flats run about 7-14), and its bounds. */

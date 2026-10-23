@@ -203,25 +203,44 @@ export function gladeField(px, py) {
 }
 
 /**
+ * JUNGLE-ROADSIDE: WHERE A ROADSIDE PAIR'S TRUNK MAY STAND - a tile (tx, ty) its tree would stand on as the jungle's
+ * own: the jungle whole (`share`), a ground that grows (`groundOf` - and no track, clearing or beach), no steeper than
+ * the trees' maxSteep (`g2Of`, its gradient squared), no place's fields (`openOf`). The layout's own tile arrays (below).
+ * @param {Float32Array} share @param {Float32Array} groundOf @param {Float32Array} g2Of @param {Float32Array} openOf
+ */
+export const pairTile = (share, groundOf, g2Of, openOf) => (tx, ty) => {
+  const ti = ty * WORLD_MAP_TILE_DIM + tx;
+  return share[ti] >= 1 && groundOf[ti] > 0 && g2Of[ti] <= TAN_MAX_SQ && openOf[ti] === 0;
+};
+
+/**
  * THE JUNGLE OVER A PIXEL'S LAYOUT. `own` - layoutNature's flats; `opts` - its options with `jungle`: `{ nine, pois,
  * paths, net }` (the field's 3x3 - world/jungle/jungleRegion.js jungleNine - FOREST1's places, the road painter's track
  * mask, null for none, and JUNGLE-ROADSIDE: the road network the painter painted with, null for none). Answers the
  * pixel's flats: its own on every tile the jungle does not own, the jungle's on the tiles it does. A pixel the jungle
- * cannot reach answers `own` itself.
- * JUNGLE-ROADSIDE: a roadside pair's two trees are jungle trees with `pair` (its kind, JUNGLE_PAIRS's index), `pi` (its
- * place in the pixel's pairs), `side` (0 its first tree, the mahogany), and the pair's own `turn`, `ax`/`az` (its
- * anchor) and `ay` (where it stands, sunk) - world/jungle/jungleRoadside.js standPairs.
+ * cannot reach answers `own` itself. jungleLayout's flats alone.
  * @param {Array<any>} own
  * @param {Float32Array} heightmapData @param {Uint8Array} tilemapData
  * @param {{ mapPixelX: number, mapPixelY: number, locationRect: any, beach?: ?Float32Array,
  *   jungle?: ?{ nine: ArrayLike<number>, pois?: any[], paths?: ?Uint8Array, net?: any } }} opts
  */
-export function withJungle(own, heightmapData, tilemapData, opts) {
+export const withJungle = (own, heightmapData, tilemapData, opts) => jungleLayout(own, heightmapData, tilemapData, opts).flats;
+
+/**
+ * THE JUNGLE OVER A PIXEL'S LAYOUT, WITH ITS ROADS' PAIRS: `{ flats, pairs }` - withJungle's flats, and JUNGLE-ROADSIDE:
+ * the pixel's roadside pairs (world/jungle/jungleRoadside.js standPairs), beside the flats and never among them (AUDIT
+ * JUNGLE-ROADSIDE PERF-2: carried as seven of the flats' columns they grew the wire 88% for 0.2% of its flats).
+ * @param {Array<any>} own
+ * @param {Float32Array} heightmapData @param {Uint8Array} tilemapData
+ * @param {Parameters<typeof withJungle>[3]} opts
+ * @returns {{ flats: Array<any>, pairs: ReturnType<typeof standPairs> }}
+ */
+export function jungleLayout(own, heightmapData, tilemapData, opts) {
   const jg = opts.jungle;
-  if (!jg?.nine) return own;
+  if (!jg?.nine) return { flats: own, pairs: [] };
   let hi = -Infinity;
   for (let k = 0; k < 9; k++) hi = Math.max(hi, jg.nine[k]);
-  if (hi * TERRAIN_SIZE + JUNGLE_WANDER_MAX <= -JUNGLE_EDGE.out) return own;   // the line, wander and all, cannot reach a tile
+  if (hi * TERRAIN_SIZE + JUNGLE_WANDER_MAX <= -JUNGLE_EDGE.out) return { flats: own, pairs: [] };   // the line, wander and all, cannot reach a tile
   const whole = jungleWhole(jg.nine);   // ...nor leave one: every tile the jungle's
   const tDim = WORLD_MAP_TILE_DIM, hDim = HEIGHTMAP_DIMENSION, scale = TERRAIN_SIZE / tDim;
   const px = opts.mapPixelX, py = opts.mapPixelY;
@@ -239,7 +258,7 @@ export function withJungle(own, heightmapData, tilemapData, opts) {
       if (j >= 1 || jungleStandNoise(origin, x + 0.5, y + 0.5) < j) { mine[y * tDim + x] = 1; any = true; }   // LAY-9: by stands
     }
   }
-  if (!any) return own;
+  if (!any) return { flats: own, pairs: [] };
 
   const yScale = MAX_TERRAIN_HEIGHT * STREAMING_TERRAIN_SCALE;
   const cell = TERRAIN_SIZE / (hDim - 1);
@@ -289,10 +308,11 @@ export function withJungle(own, heightmapData, tilemapData, opts) {
   // JUNGLE-ROADSIDE: the owner's pairs astride the roads, stood before the storeys - on whole jungle, off the roads and
   // the trails by their feet, sunk to the lowest ground under them (world/jungle/jungleRoadside.js standPairs) - and
   // every tree and plant after them keeping its trunk JUNGLE_ROADSIDE.clear (the floor JUNGLE.coverClear) off theirs,
-  // as off a canopy trunk; `nearPairTile` marks the tiles a pair's clearance can reach, so a pixel with none asks nothing
+  // as off a canopy trunk; `nearPairTile` marks the tiles a pair's clearance can reach, so a spot off them - every spot
+  // of a pixel with none - is answered at once
   const pairs = jg.net ? standPairs({
     px, py, net: jg.net, heightmapData,
-    tileOk: (tx, ty) => { const ti = ty * tDim + tx; return share[ti] >= 1 && groundOf[ti] > 0 && g2Of[ti] <= TAN_MAX_SQ && openOf[ti] === 0; },
+    tileOk: pairTile(share, groundOf, g2Of, openOf),
     trailOk: (x, z, r) => !trails || trailClear(px, py, x, z, r),
   }) : [];
   const pairTrunks = [], nearPairTile = pairs.length ? new Uint8Array(tDim * tDim) : null;
@@ -316,11 +336,6 @@ export function withJungle(own, heightmapData, tilemapData, opts) {
 
   // the pixel's own flats, but those on the jungle's tiles
   const out = own.filter((f) => !mine[Math.min(tDim - 1, Math.floor(f.z / scale + 1e-6)) * tDim + Math.min(tDim - 1, Math.floor(f.x / scale + 1e-6))]);
-  // JUNGLE-ROADSIDE: each pair's two trees, the pair's own on both
-  pairs.forEach((p, pi) => p.trees.forEach((t, side) => out.push({
-    record: JUNGLE_SPECIES[t.species].record, x: t.x, y: t.y, z: t.z, wood: 1, archive: JUNGLE_ARCHIVE, jungle: t.species, js: p.js,
-    pair: p.kind, pi, side, turn: p.turn, ax: p.ax, ay: p.y, az: p.az,
-  })));
 
   // THE CANOPY, a cell at a time - and each cell's tree kept for the storeys under it
   const C = JUNGLE.cell, cells = tDim / C;
@@ -428,5 +443,5 @@ export function withJungle(own, heightmapData, tilemapData, opts) {
       out.push({ record: JUNGLE_COVER[Math.floor(tileDraw(wx, wz, 36) * JUNGLE_COVER.length)], x: mx, y: placeAt(mx, mz, g2Of[ti]), z: mz, wood: 1, archive: JUNGLE_ARCHIVE });
     }
   }
-  return out;
+  return { flats: out, pairs };
 }

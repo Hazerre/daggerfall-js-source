@@ -34,9 +34,9 @@
 // the road on a client that draws none.
 // ═══════════════════════════════════════════════════════════════════
 
-import { pathsDataPoint, MP_WORLD_UNITS } from '../../systems/travel/travelPaths.js';
+import { MP_WORLD_UNITS } from './pathData.js';
 import { UNITS_PER_METRE } from './roadClearance.js';
-import { bandRoom } from './roadBand.js';   // JUNGLE-ROADSIDE: VERGE1's band, one home for both threads
+import { roadRoom } from './roadBand.js';
 import { LPT_CROWNS } from '../lptCrowns.js';
 import { lptVariety } from '../lowPolyTrees.js';
 import { getNatureArchive, SEASON } from '../climateSwaps.js';
@@ -46,17 +46,7 @@ import { TILE } from './roadPainter.js';
 const PIXEL_M = MP_WORLD_UNITS / UNITS_PER_METRE;
 // JUNGLE-ROADSIDE: the band itself - its half width, its arms and the room beside it - lives in world/road/roadBand.js,
 // one home the terrain worker reaches too (it stands the jungle's roadside pairs off it)
-export { PATH_HALF_M, ARMS } from './roadBand.js';
-
-/**
- * THE ROOM BESIDE THE ROAD: how far (m) a pixel-local point - x east, z north, from the pixel's south-west corner, the
- * frame the nature flats and roadClearance.js share - stands from the nearest edge of a road's or a track's band, in its
- * own pixel or any other a band within `reach` of it runs through; `reach` when none comes nearer, 0 on one (roadBand.js
- * bandRoom, each pixel's bits read off the network by GetPathsDataPoint's port).
- * @param {object|null} net terrainGen.roads() - null answers `reach` (nothing is painted)
- * @param {number} px @param {number} py the pixel @param {number} x @param {number} z @param {number} reach (m)
- */
-export const roadRoom = (net, px, py, x, z, reach) => bandRoom(net ? (mx, my) => pathsDataPoint(net, mx, my) : null, px, py, x, z, reach);
+export { PATH_HALF_M, ARMS, roadRoom } from './roadBand.js';
 
 /** Does a disc of `radius` (m) about the pixel-local point stand clear of every road and track? */
 export const vergeClear = (net, px, py, x, z, radius) => roadRoom(net, px, py, x, z, radius) >= radius;

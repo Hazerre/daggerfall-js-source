@@ -312,16 +312,21 @@ export const JUNGLE_CROWN_COVER = 0.7;
  * archive JUNGLE_ARCHIVE keyed `500_${jungleRecord(s)}` (so the door's `proto(archive, record)` finds it), drawn on
  * both faces, cut at a half (the picture's alpha is 0 or 255), at its own size (scale 1). `size` is LPT1's: w its
  * whole reach about the root across, h its height above the ground.
- * JUNGLE-ROADSIDE: and the owner's roadside pairs after them - `withPairs(pictures, low)` answers them read (world/jungle/
- * jungleRoadside.js readPair, handed each species' picture and its tree's lowest point, as only these five know them):
- * each `{ record, mesh }` a prototype keyed `500_${record}` with a run of faces a picture, each run the atlas of the
- * species whose picture it wears, `nearOnly` - its trees stand again as the species' own far off, so it has no far picture
- * of its own (systems/lowPolyTreesAssets.js farPicture).
+ * JUNGLE-ROADSIDE: packJungleTrees packs the owner's roadside pairs' halves after them.
  * @param {{ obj: string, mtl: string }[]} sources each species' OBJ and MTL text, JUNGLE_SPECIES's order
- * @param {((pictures: string[], low: number[]) => { record: string, mesh: { vertices: Float32Array, indices: Uint16Array,
- *   subs: { at: number, count: number, picture: string }[], min: number[], max: number[] } }[]) | null} [withPairs]
  */
-export function readJungleTrees(sources, withPairs = null) {
+export function readJungleTrees(sources) {
+  return packJungleTrees(readJungleSpecies(sources));
+}
+
+/**
+ * THE FIVE TREES, READ (readJungleTrees' first half - JUNGLE-ROADSIDE: the jungle's door reads the roadside pairs after
+ * these, a breath each - AUDIT JUNGLE-ROADSIDE PERF-3): each species' mesh (jungleMesh) and its picture (its MTL's
+ * map_Kd) - what a pair's reader is handed (world/jungle/jungleRoadside.js readPair: the pictures, and each mesh's lowest
+ * point).
+ * @param {{ obj: string, mtl: string }[]} sources each species' OBJ and MTL text, JUNGLE_SPECIES's order
+ */
+export function readJungleSpecies(sources) {
   if (sources.length !== JUNGLE_SPECIES.length) throw new Error(`jungle: ${JUNGLE_SPECIES.length} trees expected, ${sources.length} handed`);
   const meshes = sources.map((s) => jungleMesh(parseObj(s.obj)));
   const pictures = meshes.map((m, k) => {
@@ -330,7 +335,20 @@ export function readJungleTrees(sources, withPairs = null) {
     if (!mat?.mapKd) throw new Error(`jungle: ${JUNGLE_SPECIES[k].file}.mtl names no picture`);
     return mat.mapKd;
   });
-  const pairs = withPairs ? withPairs(pictures, meshes.map((m) => m.min[1])) : [];
+  return { meshes, pictures };
+}
+
+/**
+ * THE JUNGLE PACKED IN LOW POLY TREES' SHAPE (readJungleTrees' second half): the five trees read (readJungleSpecies) and,
+ * JUNGLE-ROADSIDE, the owner's roadside pairs' HALVES after them (world/jungle/jungleRoadside.js readPair's `halves`):
+ * each `{ record, mesh }` a prototype keyed `500_${record}` with a run of faces a picture, each run the atlas of the
+ * species whose picture it wears, `nearOnly` - its tree stands again as the species' own far off, so it has no far
+ * picture of its own (systems/lowPolyTreesAssets.js farPicture).
+ * @param {ReturnType<typeof readJungleSpecies>} species
+ * @param {{ record: string, mesh: { vertices: Float32Array, indices: Uint16Array, subs: { at: number, count: number,
+ *   picture: string }[], min: number[], max: number[] } }[]} [pairs]
+ */
+export function packJungleTrees({ meshes, pictures }, pairs = []) {
   const all = [...meshes.map((m) => ({ ...m, subs: [{ at: 0, count: m.indices.length, picture: '' }] })), ...pairs.map((p) => p.mesh)];
   let vCount = 0, iCount = 0;
   for (const m of all) { vCount += m.vertices.length / 8; iCount += m.indices.length; }

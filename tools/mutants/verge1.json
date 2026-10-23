@@ -2,8 +2,8 @@
   {
     "name": "VERGE1-half-width-halved",
     "file": "src/world/road/roadBand.js",
-    "old": "export const PATH_HALF_M = TERRAIN_SIZE / 128;",
-    "new": "export const PATH_HALF_M = TERRAIN_SIZE / 256;",
+    "old": "export const PATH_HALF_M = PATH_HALF_WIDTH / UNITS_PER_METRE;",
+    "new": "export const PATH_HALF_M = PATH_HALF_WIDTH / UNITS_PER_METRE / 2;",
     "tests": [
       "test/world/road/verge1.test.js"
     ]
@@ -29,8 +29,8 @@
   {
     "name": "VERGE1-north-the-row-below",
     "file": "src/world/road/roadBand.js",
-    "old": "const bits = bitsAt(px + ix, py - iz);",
-    "new": "const bits = bitsAt(px + ix, py + iz);",
+    "old": "const bits = pathsDataPoint(net, px + ix, py - iz);",
+    "new": "const bits = pathsDataPoint(net, px + ix, py + iz);",
     "tests": [
       "test/world/road/verge1.test.js"
     ]
