@@ -6901,7 +6901,6 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
     const gl = this.gl;
     const count = centers.length;
     const verts = new Float32Array(count * 4 * 5);
-    const indices = new Uint32Array(count * 6);
     const corners = BB_CORNERS;
     for (let f = 0; f < count; f++) {
       const [cx, cy, cz] = centers[f];
@@ -6914,14 +6913,6 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
         verts[o + 3] = bbCornerX(corners[c][0], fs);
         verts[o + 4] = corners[c][1];
       }
-      const b = f * 4;
-      const io = f * 6;
-      indices[io] = b;
-      indices[io + 1] = b + 2;
-      indices[io + 2] = b + 1;
-      indices[io + 3] = b;
-      indices[io + 4] = b + 3;
-      indices[io + 5] = b + 2;
     }
 
     // PERF-ARENA: a still batch takes a range of an arena's quads - its corners written where the range starts, its
@@ -6947,6 +6938,19 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
       gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 20, 0);
       gl.enableVertexAttribArray(1);
       gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 20, 12);
+      // MEM-AUDIT (2026-10-23): the quads' indices written for the batch that owns its buffers alone - an arena's batch reads
+      // the arena's (above), and every streamed pixel's still flats made this array to drop it
+      const indices = new Uint32Array(count * 6);
+      for (let f = 0; f < count; f++) {
+        const b = f * 4;
+        const io = f * 6;
+        indices[io] = b;
+        indices[io + 1] = b + 2;
+        indices[io + 2] = b + 1;
+        indices[io + 3] = b;
+        indices[io + 4] = b + 3;
+        indices[io + 5] = b + 2;
+      }
       const ib = gl.createBuffer();
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
