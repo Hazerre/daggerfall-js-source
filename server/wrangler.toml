@@ -168,8 +168,8 @@ HIDDEN_SEEN_URL = "https://daggerfall-accounts.mackcothran.workers.dev/v1/mod/hi
 # is counted and nothing is posted. The monster counts are read only
 # while grantStrip is on (GRANT9) - a separate switch, not set here.
 # Only these vars change, so RELAY_VERSION does not move: the relay deploy
-# is the workflow's `workflow_dispatch` (a wrangler config change), which
-# drops every connected player once.
+# is a manual run of relay-deploy.yml with `redeploy` ticked (a plain
+# dispatch deploys only on drift), which drops every connected player once.
 STAFF_NET_FEED_URL = "https://daggerfall-accounts.mackcothran.workers.dev/v1/staff/net-feed"
 REACTION_FEED_URL = "https://daggerfall-accounts.mackcothran.workers.dev/v1/mod/reaction-feed"
 # ═══ INT11-INT14: THE LINE THE BOSS FIGHTS' COUNT RUNS BY ════════════
