@@ -7,7 +7,9 @@
 import { frozenTitleText, frozenBodyText, frozenUntilText, frozenReasonText, staffInviteText } from '../net/staffChat.js';
 import { copyText } from '../net/chat.js';
 
-const CSS = `.dffreeze{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:60;max-width:min(560px,calc(100vw - 32px));
+// z 34: over the HUD's banners and title cards (30-32), under the game's windows and boxes (35-39) and the asset picker
+// above every overlay (scenes/dataSource.js ASSET_PICKER_Z, test/scenes/mwattach.test.js MWFIX 1); no other overlay stands at 34
+const CSS = `.dffreeze{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:34;max-width:min(560px,calc(100vw - 32px));
 padding:10px 16px;border:1px solid #8fb4d8;border-radius:6px;background:rgba(14,22,34,.88);color:#e8eef6;font:14px/1.4 system-ui,sans-serif;
 text-align:center;pointer-events:none}
 .dffreeze[hidden]{display:none}.dffreeze h2{margin:0 0 4px;font-size:18px;color:#b9d8ff}.dffreeze p{margin:2px 0}

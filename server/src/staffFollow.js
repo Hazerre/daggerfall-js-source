@@ -72,6 +72,11 @@ export function followNoted(room, a, p) {
   return fan;
 }
 
+/** (the bus) A member's note as its party's view says it (index.js `_partyView`): a copy without its room (`rk`), the
+ *  staff's to read and never a member's - so index.js never names `rk` (the relay reads nothing inside a foes
+ *  frame, test/systems/raid2_raidsOnline.test.js: `rk` is a raid's word there). @param {any} p */
+export const withoutRoom = (p) => { const { rk, ...rest } = p; void rk; return rest; };
+
 /** (the bus) A HUB LINK'S HELLO - a spectator's (its verified `fo`) is held as one following that account, at most
  *  FOLLOWERS_MAX to an account and FOLLOWED_MAX accounts, and told `on`, then the note the hub holds - or `gone`.
  *  @param {FollowRoom} room @param {any} ws @param {number} now */

@@ -276,7 +276,7 @@
     "new": "    if (room._send(ws, frame)) n++;",
     "why": "an old build sent the nudge and never counted",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -286,7 +286,7 @@
     "new": "for (const ws of [...room._all().keys()]) {",
     "why": "every hub socket nudged",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -296,7 +296,7 @@
     "new": "kind !== 'mute' && kind !== 'staffcut' && kind !== 'hide'",
     "why": "the relay's door refuses a staff message",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -306,7 +306,7 @@
     "new": "return json({ ok: true });",
     "why": "the door says no count",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -316,7 +316,7 @@
     "new": "",
     "why": "the hub takes a staff message as no order",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -326,7 +326,7 @@
     "new": ", ...(who.hid ? { hid: 1, lk: 0 } : {}) }))",
     "why": "the hello's `sm` never kept: every socket an old build",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -336,7 +336,7 @@
     "new": "",
     "why": "the wire drops the hello's `sm`",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -346,7 +346,7 @@
     "new": "",
     "why": "another kind carries a message id",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -356,7 +356,7 @@
     "new": "if (c.o === 'smsg' && (c.mu !== undefined",
     "why": "a staff message's order names no message",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -366,7 +366,7 @@
     "new": "!ID_RE.test(c.mi) || c.lv !== undefined || c.dh !== undefined || c.bn !== undefined ||",
     "why": "a staff message's order carries a mute",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -376,7 +376,7 @@
     "new": "if (!primary || typeof m.mi !== 'string' || m.mi.length > 64) return;",
     "why": "a cell room's nudge heard",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -386,7 +386,7 @@
     "new": "    frame.sm = 1;",
     "why": "every room's hello says the box",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -396,7 +396,7 @@
     "new": "if (typeof m?.id !== 'string' ||",
     "why": "a message shown again at every ask",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -406,7 +406,7 @@
     "new": "",
     "why": "the OK never said",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -416,7 +416,7 @@
     "new": "    if (false) {",
     "why": "every nudge an ask",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -426,7 +426,7 @@
     "new": "",
     "why": "no copy on the Staff tab",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -436,7 +436,7 @@
     "new": "ok.onclick = () => { done = true;",
     "why": "OK pressed twice is two OKs",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -446,7 +446,7 @@
     "new": "el('div', 'notice-row center inputbox-label', '')",
     "why": "the staff member's name not shown",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   }
 ]

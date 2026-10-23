@@ -156,7 +156,7 @@
     "new": "if (b.pm && !pm) pm = b.pm;",
     "why": "the first tab's note read, not the newest",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -166,7 +166,7 @@
     "new": "if (!pm || !(now - pm.at < NOTE_STALE_MS)) return null;",
     "why": "a note of exactly the limit read as none",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -176,7 +176,7 @@
     "new": "if (!pm) return null;",
     "why": "an old note read as fresh",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -186,7 +186,7 @@
     "new": "if (b.pm && (!pm || b.pm.at < pm.at)) pm = b.pm;",
     "why": "the older tab's note read",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -196,7 +196,7 @@
     "new": "true) tell(",
     "why": "a spectator told every note",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -206,7 +206,7 @@
     "new": "  return p;",
     "why": "a party member reads the room",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -216,7 +216,7 @@
     "new": "if (set.size > FOLLOWERS_MAX) return;",
     "why": "one follower past the cap",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -226,7 +226,7 @@
     "new": "if (follows.size > FOLLOWED_MAX) return;",
     "why": "one account past the cap",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -236,7 +236,7 @@
     "new": "if (typeof a?.fo !== 'string') return;",
     "why": "a room holds followers",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -246,7 +246,7 @@
     "new": "",
     "why": "an offline target never said",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -256,7 +256,7 @@
     "new": "",
     "why": "a gone follower holds its place",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -266,7 +266,7 @@
     "new": "if (false) say(room, a.fo, 'in', room._attach(here));",
     "why": "a spectator arriving beside its target hears nothing",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -276,7 +276,7 @@
     "new": "if (a.sub && socketsOf(room, a.sub, ws).length === 0) say(",
     "why": "every join told to the bus",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -286,7 +286,7 @@
     "new": "if (!a.sub || socketsOf(room, a.sub, ws).length) return;",
     "why": "every leave told to the bus",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -296,7 +296,7 @@
     "new": "if (false) tell(room, a.sub, { k: 'gone', sub: a.sub });",
     "why": "the target offline, never said",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -306,7 +306,7 @@
     "new": "room._fol?.set(a.fo, n - 1);",
     "why": "a room keeps saying an account nobody follows there",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -316,7 +316,7 @@
     "new": "if (false) return Response.json({ error: 'bad' }, { status: 400 });",
     "why": "a malformed word at the bus",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -326,7 +326,7 @@
     "new": "    void 0;   // STAFF-PANEL5-FOLLOW",
     "why": "the hub never holds a follower",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -336,7 +336,7 @@
     "new": "      void 0;",
     "why": "a room never says a follow",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -346,7 +346,7 @@
     "new": "    void 0;   // STAFF-PANEL5-FOLLOW",
     "why": "a leave never said",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -356,7 +356,7 @@
     "new": "    if (false) return followSayInternal(this, request);",
     "why": "the bus deaf to rooms",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -366,17 +366,17 @@
     "new": "    if (false) house.fo = c.fo;",
     "why": "the token's target read by nobody",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
     "name": "STAFF-PANEL5-FOLLOW-relay-view-keeps-room",
     "file": "server/src/index.js",
-    "old": "if (pm) { p = { ...pm }; delete p.at; delete p.rk; }",
+    "old": "if (pm) { p = withoutRoom(pm); delete p.at; }",
     "new": "if (pm) { p = { ...pm }; delete p.at; }",
     "why": "a joiner reads a member's room",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -386,7 +386,7 @@
     "new": "const fan = followNoted(this, this._attach(ws), m.p);",
     "why": "the room change read off the note just written: never told",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -396,7 +396,7 @@
     "new": "const quiet = quietTeleportAllowed(a.glyphs);",
     "why": "an old build answered a note it cannot read",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -406,7 +406,7 @@
     "new": "const quiet = m.nt === 1;",
     "why": "a Dungeon Master answered from a note",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -416,7 +416,7 @@
     "new": "if (quiet) {",
     "why": "an unmatched note answered again",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -426,7 +426,7 @@
     "new": "(m.cap === 1 ? 'missing' : 'mismatch')",
     "why": "the wrong flag",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -436,7 +436,7 @@
     "new": ", dest: m.dest }",
     "why": "a fallback unflagged",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -446,7 +446,7 @@
     "new": "glyphs.includes('dev')",
     "why": "the Shadow Fang asks the game",
     "tests": [
-      "test/net/staffpanel5follow.test.js",
+      "test/net/staffpanel5follow_client.test.js",
       "test/net/staffpanel5hook.test.js"
     ]
   },
@@ -457,7 +457,7 @@
     "new": "now - lastAt > (changed ?",
     "why": "a note one ms late",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -467,7 +467,7 @@
     "new": "(changed ? WHERE_NOTE_STILL_MS : WHERE_NOTE_MOVING_MS)",
     "why": "a still player sends every 5 s",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -477,7 +477,7 @@
     "new": "${p?.bk ?? ''}",
     "why": "a building key outside read as a move",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -487,7 +487,7 @@
     "new": "b.ly > 0 && b.ly < 65",
     "why": "a layer past the relay's",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -497,7 +497,7 @@
     "new": "b.room.length > 129",
     "why": "a room past any key",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -507,7 +507,7 @@
     "new": "said",
     "why": "a spectator sent to a channel",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -517,7 +517,7 @@
     "new": "Number.isSafeInteger(m.ag) ? m.ag : 0",
     "why": "a negative age",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -527,7 +527,7 @@
     "new": ")?.[1]) > FOLLOW_RELAY_MIN;",
     "why": "the follow's relay refused",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -537,7 +537,7 @@
     "new": "!(typeof c.fo === 'string'",
     "why": "a player's token naming a follow",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -547,7 +547,7 @@
     "new": "ID_RE.test(c.fo)))",
     "why": "a follow of itself",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -557,7 +557,7 @@
     "new": "if (typeof p.rk === 'string') out.rk = p.rk;",
     "why": "a home's key in a note",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -637,7 +637,7 @@
     "new": "id: m.id, ...nt };",
     "why": "the relay never told the note did not match",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
