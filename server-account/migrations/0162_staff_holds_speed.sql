@@ -12,4 +12,7 @@
 -- read walks the holds alone. Its condition is the statement's own, spelled the same, or the planner never uses it. A
 -- checkpoint's verdict sets the hold and the review on every save (verdict.js verdictWrite), but only a character this
 -- index holds - a held or flagged one, a few - has an entry to write; every other character's save writes it nothing.
-CREATE INDEX IF NOT EXISTS realm_characters_holds ON realm_characters (held_at) WHERE held IS NOT NULL OR review IS NOT NULL;
+-- Newest first (`held_at DESC`), as the list reads it: walked forward, two holds of one second come in the table's own
+-- order, as the old scan's sort gave them, so every statement that lists the holds this way answers as it did and sorts
+-- nothing (an ascending index walked backwards gives a tie the other way round).
+CREATE INDEX IF NOT EXISTS realm_characters_holds ON realm_characters (held_at DESC) WHERE held IS NOT NULL OR review IS NOT NULL;

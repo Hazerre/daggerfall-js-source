@@ -259,13 +259,13 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
   if (path === '/v1/staff/trade-holds') {
     const sort = body.sort === 'newest' ? 'newest' : 'urgent';
     const from = fromOf(body.from);
-    // STAFF-PANEL-SPEED: the read and its audit row in one batch; on 0162's index, `c.rowid` the order its old scan gave a tie
+    // STAFF-PANEL-SPEED: the read and its audit row in one batch; 0162's index walks the holds newest first, a tie as its old scan gave it
     const [read] = await db.batch([db.prepare(`SELECT c.id, c.name, c.player, p.handle, p.guest_name, c.held, c.held_at, c.held_until, c.strikes, c.law_holds, c.dupes, c.review,
         c.wealth, c.allowance, c.lease, c.lease_at, c.dead_at,
         (SELECT json_object('kind', f.kind, 'at', f.at, 'detail', json(f.detail)) FROM realm_findings f WHERE f.char_id = c.id AND f.kind != 'staff' ORDER BY f.id DESC LIMIT 1) AS finding,
         (SELECT json_object('at', f.at, 'detail', json(f.detail)) FROM realm_findings f WHERE f.char_id = c.id AND f.kind = 'staff' AND json_extract(f.detail, '$.act') = 'hold' ORDER BY f.id DESC LIMIT 1) AS staff
       FROM realm_characters c LEFT JOIN players p ON p.id = c.player
-      WHERE c.held IS NOT NULL OR c.review IS NOT NULL ORDER BY c.held_at DESC, c.rowid LIMIT ?1`).bind(HOLDS_RANKED_MAX),
+      WHERE c.held IS NOT NULL OR c.review IS NOT NULL ORDER BY c.held_at DESC LIMIT ?1`).bind(HOLDS_RANKED_MAX),
     audit('trade-holds-read', null, { sort }, { onceIn: READ_ROW_S })]);
     const rows = read?.results ?? [];
     const ranked = rows.map((r) => {

@@ -10,11 +10,11 @@
     ]
   },
   {
-    "name": "STAFF-PANEL-SPEED-realm-trade-holds-tie-unpinned",
-    "file": "server-account/src/staffRealm.js",
-    "old": "ORDER BY c.held_at DESC, c.rowid LIMIT ?1",
-    "new": "ORDER BY c.held_at DESC LIMIT ?1",
-    "why": "on the new index, two holds of one second listed in the reverse of the order the old scan gave them",
+    "name": "STAFF-PANEL-SPEED-realm-trade-holds-index-ascending",
+    "file": "server-account/migrations/0162_staff_holds_speed.sql",
+    "old": "ON realm_characters (held_at DESC) WHERE",
+    "new": "ON realm_characters (held_at) WHERE",
+    "why": "the index ascending, walked backwards for the newest first: two holds of one second listed in the reverse of the order the old scan gave them",
     "tests": [
       "test/server/staffpanelspeedrealm.test.js"
     ]
@@ -22,7 +22,7 @@
   {
     "name": "STAFF-PANEL-SPEED-realm-trade-holds-index-gone",
     "file": "server-account/migrations/0162_staff_holds_speed.sql",
-    "old": "CREATE INDEX IF NOT EXISTS realm_characters_holds ON realm_characters (held_at) WHERE held IS NOT NULL OR review IS NOT NULL;",
+    "old": "CREATE INDEX IF NOT EXISTS realm_characters_holds ON realm_characters (held_at DESC) WHERE held IS NOT NULL OR review IS NOT NULL;",
     "new": "",
     "why": "no index of the holds' own: the read walks every realm character again",
     "tests": [
