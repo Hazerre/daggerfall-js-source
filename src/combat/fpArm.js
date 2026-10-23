@@ -5035,6 +5035,9 @@ export function createFpArm() {
     if (blowType != null) { blowType = null; refreshWeaponGroup(); }   // MIXED-PAIR: the arm's own group again
     if (resetIdleOnAttackEnd) { resetIdleOnAttackEnd = false; resetIdle(); }
   }
+  /** MIXED-PAIR: and a blow cut short by something else - a sheathe, a weapon swapped in the hand, a death - hands the arm
+   *  its own group back as its end does, so the stance that follows is never the struck hand's. */
+  function dropBlowType() { if (blowType != null) { blowType = null; refreshWeaponGroup(); } }
 
   /**
    * MWNPC9: A NON-BIPED CREATURE'S BLOW (character.cpp:1355-1363 and :1529-1532): "Randomize attacks for non-bipedal
@@ -5369,6 +5372,7 @@ export function createFpArm() {
         // per-frame sync starts the unequip on the next frame, exactly
         // as the reference's per-frame updateWeaponState does.
         if (upper === UPPER_BODY.AttackRelease || upper === UPPER_BODY.AttackEnd) return false;
+        dropBlowType();   // MIXED-PAIR: a wind-up put away unequips in the arm's own group
         if (upper === UPPER_BODY.None || !weaponGroup) {
           sheathed = true; weaponShown = false; arrowShown = false;
           refreshWeaponGroup(); refreshIdle(true);
@@ -5617,6 +5621,7 @@ export function createFpArm() {
           packed = null;
           // The old action clip belonged to the old weapon's group.
           actionState = null; actionSource = null; attackType = null; holdWindUp = false;
+          blowType = null;   // MIXED-PAIR: and the blow's group with it (both branches below re-resolve the group)
           wornKey = key;
           wornWeaponKey = fpWeaponKey(item, false);   // WEAPON-GLOW1 (AUDIT NET-1): the hand the mesh now holds
           if (lastBuildOpts) { lastBuildOpts.weapon = item; lastBuildOpts.hasAmmo = hasAmmo; lastBuildOpts.ammoCount = ammoCount; }   // AUDIT MW-TORCH F5: setWorn's rebuild carries the hand that is IN it (AUDIT 68 S08-fparm-ammocount-dropped: and its quiver)
@@ -6178,6 +6183,7 @@ export function createFpArm() {
       const pick = g ? pickAnimSource(rig().sources, g, resetClip, { startPoint, loopCount: 0 }) : null;   // playDeath's loops: 0
       dead = true;
       actionState = null; actionSource = null; holdWindUp = false; attackType = null; blowPlan = null;
+      dropBlowType();   // MIXED-PAIR
       upper = sheathed ? UPPER_BODY.None : UPPER_BODY.WeaponEquipped;
       movementState = null; movementSource = null; movementGroup = null;
       jumpState = null; jumpSource = null; jumpKind = null;

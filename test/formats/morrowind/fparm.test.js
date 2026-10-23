@@ -3049,7 +3049,9 @@ test('MW-D39: readySpell and castSpell are the two doors, and neither gates the 
   // the stance re-composes on ready, and the three group readers take the flag
   // PIN MOVED (MWNPC9, bible/04-Characters/Morrowind-NPCs.md section 14b): the idle, the jump and the movement read it
   // through `stanceOf()` - the stance a non-biped creature takes bare - which reads it once
-  assert.equal((src.match(/animWeaponType\(built\.mwType, sheathed, spellReady\)/g) || []).length, 3,
+  // PIN MOVED (MIXED-PAIR): the weapon group reads the blow's own type first - a mixed pair's off-hand blow plays its
+  // own weapon's group (was: `animWeaponType(built.mwType, ...)` at all three)
+  assert.equal((src.match(/animWeaponType\((?:blowType \?\? )?built\.mwType, sheathed, spellReady\)/g) || []).length, 3,
     'stanceOf, the weapon group and the torch\'s carried-left rule (MW-D51) must all read the spell stance');
   assert.equal((src.match(/= stanceOf\(\);/g) || []).length, 3, 'the idle, the jump and the movement through stanceOf');
   assert.match(src, /readySpell\(ready\) \{[\s\S]*?refreshWeaponGroup\(\);\n      resetIdle\(\);\n      resetMovement\(\);/);

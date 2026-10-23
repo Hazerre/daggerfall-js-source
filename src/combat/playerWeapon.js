@@ -307,6 +307,7 @@ export class PlayerWeapon {
      *  was pulled and its direction - null for every other weapon. */
     this.pistols = null;
     this._pistolsAway = null;   // the pistols while another weapon is in use - their reloads run on (AUDIT PISTOLET A3)
+    this._bladeTurn = false;   // MIXED-PAIR: the classic machine stepped as the pair's blade's last update, not as the pistols' mirror
     this._pistolHeld = null;   // AUDIT PISTOL-PORT A3: the items in each hand last frame, so a pistol moved takes its machine
     this._pistolHits = [];   // AUDIT PISTOL-PORT A2: the hands whose hit is due, handed to the host one an update
     this._classicCooldown = 0;   // AUDIT PISTOL-PORT C1: what the classic machine was owed when the pistols took it over
@@ -315,6 +316,9 @@ export class PlayerWeapon {
     /** MIXED-PAIR: may a mixed pair's gun fire a pull - the rig's word (a Pellet for the shot, combat/weapon/weaponRig.js
      *  pelletsOwed); a pull it refuses falls to the blade (handsLaw.js mixedStrike). */
     this.gunReady = () => true;
+    /** MIXED-PAIR: is a shot's hit still held for the Morrowind arm's release (MW-D42) - the rig's word; the gun's strike
+     *  is not over, and the classic machine not the blade's, until it lands. */
+    this.shotHeld = () => false;
     this.sheathed = true;   // classic starts sheathed; Z readies (WeaponManager.Sheathed)
     this.lastDrawMs = 0;   // PCO1: the last bow shot's weaponAnimTime (_bowAnimTimeMs)
     // TECH1 (bible/05-Combat/Weapon-Techniques.md): the swing in flight is a technique's - its blow (combat/technique/techniqueBlow.js:
@@ -446,8 +450,8 @@ export class PlayerWeapon {
   /** MIXED-PAIR: a blade in one hand and a Pistolet in the other. */
   get mixedPair() { return this.gunHand !== null; }
   /** MIXED-PAIR: the strike in flight is the mixed pair's gun's - its shot on the pistol's machine, mirrored on the classic
-   *  one until its frames end (`_pistolsStep`'s 'done'). */
-  _gunStriking() { const gh = this.gunHand; return !!gh && !!this.strike && this.strike.hand === gh; }
+   *  one until its frames end (`_pistolsStep`'s 'done') - or its hit still held for the arm's release (`shotHeld`). */
+  _gunStriking() { const gh = this.gunHand; return !!gh && ((!!this.strike && this.strike.hand === gh) || this.shotHeld() === true); }
   /** PISTOLET: is a hand's pistol loaded - its own machine Idle (a hand with no pistol is never waiting). */
   handLoaded(hand) { return this.pistols ? this.pistols[hand].state === 'Idle' : true; }
   /** PISTOLET: the machine time a hand's pistol is loaded again (0 when it is). */
@@ -534,6 +538,7 @@ export class PlayerWeapon {
   _pistolsPutBy() {
     const m = this.machine;
     this._pistolsAway = this.pistols; this.pistols = null; this._pistolHits.length = 0;
+    if (this._bladeTurn) return;   // MIXED-PAIR: a blade-and-gun pair's gun put by mid-blow - the machine is the blade's, its blow lands as a swap never cut one
     m.state = 'Idle'; m.frame = 0; m.cooldownUntil = Math.max(this._classicCooldown, m.now); this.strike = null;
   }
   /** AUDIT PISTOL-PORT A5: the pistol shots pulled whose hit is not yet handed to the host - each owes its Pellet. */
@@ -896,6 +901,7 @@ export class PlayerWeapon {
     // ARROW2: the bow's idle frame is the setting's (FPSWeapon.cs:533-534) - read per step, as DFU reads Settings there
     this.machine.bowIdleDrawn = this.machine.isBow && !getBool('Controls', 'BowDrawback');
     const pistols = this._pistolsFor();
+    this._bladeTurn = !!blade;
     if (pistols && !blade) return this._pistolsStep(dt);   // PISTOL-PORT: a Pistolet steps on the pistol lab's machines
     (pistols ?? this._pistolsAway)?.step(dt);   // and pistols put by for another weapon reload on (MIXED-PAIR: the pair's gun beside its blade)
     this._tuneClassic(t);

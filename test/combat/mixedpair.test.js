@@ -18,6 +18,8 @@ import {
 } from '../../src/combat/twoHands/handsLaw.js';
 import { PISTOLET_FEEL } from '../../src/combat/gun/gunFeel.js';
 import { pistolRig } from './weapon/pistolRigHarness.js';
+import { fpArm } from '../../src/combat/fpArm.js';
+import { isBowWeapon } from '../../src/scenes/hostCombat.js';
 
 const weapon = (templateIndex, name) => ({ name, group: 'Weapons', templateIndex, material: 0, currentCondition: 100000, maxCondition: 100000 });
 const LONGSWORD = () => weapon(120, 'Longsword');
@@ -290,4 +292,90 @@ test('MIXED-PAIR THE RIG, THE GUN HAND\'S CLONE RESTS: under the Weapon Widget t
   }
   assert.equal(gunCloneSwung, false, 'the gun hand\'s clone never swings');
   assert.equal(bladeCloneSwung, true, 'the blade\'s clone plays its blows');
+});
+
+test('MIXED-PAIR UNDER THE MORROWIND ARM THE SHOT IS NOT LOST: the gun\'s hit held for the arm\'s release (MW-D42) keeps the gun\'s turn - the classic machine stays the shooter\'s past the pistol\'s six frames, so the hit is handed to the host at the release, as a shot - and the blade swings only after it (mutant: the blade\'s turn blind to the held hit)', async () => {
+  const saved = {};
+  for (const k of Object.keys(fpArm)) if (typeof fpArm[k] === 'function') { saved[k] = fpArm[k]; fpArm[k] = () => undefined; }
+  let clock = 0, at = -Infinity, released = true;
+  fpArm.ready = () => true; fpArm.active = () => true; fpArm.thirdActive = () => false;
+  fpArm.shotBusy = () => clock - at < 1.0;
+  fpArm.attack = () => { if (clock - at < 1.0) return false; at = clock; released = false; return true; };
+  fpArm.takeShootRelease = () => { if (!released && clock - at >= 0.7) { released = true; return true; } return false; };   // later than the pistol's six frames (0.5 s)
+  fpArm.weaponMuzzle = () => null;
+  try {
+    const rig = await pistolRig({ right: createPistolet(), left: LONGSWORD(), cif: MELEE, warm: 30 });
+    const pw = rig.r.playerWeapon;
+    assert.equal(pw.gunHand, 'R');
+    rig.r.clickAttack();
+    assert.equal(pw.pistols.R.state, 'Firing', 'the lead gun takes the pull');
+    const hits = [];
+    let rangedAtSixFrames = null;
+    for (let i = 0; i < 150; i++) {
+      await rig.frame();
+      clock += DT;
+      if (rangedAtSixFrames === null && clock > 0.6) rangedAtSixFrames = !!pw.machine.ranged;
+      if (rig.events.includes('hit')) hits.push({ t: clock, shot: isBowWeapon(pw.weapon) });
+    }
+    assert.equal(rangedAtSixFrames, true, 'past the pistol\'s frames, still the shooter\'s machine while its hit is held');
+    assert.equal(hits.length, 1, `one hit (${JSON.stringify(hits)})`);
+    assert.ok(hits[0].t >= 0.7 - 1e-9 && hits[0].t < 0.8, `handed to the host at the release (${hits[0].t.toFixed(3)} s)`);
+    assert.equal(hits[0].shot, true, 'as a shot, off the gun');
+    assert.equal(pw.pistols.R.shots, 1);
+  } finally {
+    Object.assign(fpArm, saved);
+  }
+});
+
+test('MIXED-PAIR THE GUN PUT BY MID-BLOW: a blade-and-gun pair\'s gun unequipped while the blade swings leaves the blade\'s blow to land - the machine is the blade\'s, and a swap never cut a blow (applyWeapon); the gun\'s pistol put by reloads on as any (mutant: the put-by resetting the blade\'s machine)', () => {
+  const sword = LONGSWORD();
+  const pw = pairOf(sword, createPistolet());
+  assert.ok(pw._attack('StrikeDown'), 'the lead blade swings');
+  assert.equal(pw.strike.hand, 'R');
+  step(pw, 3);
+  assert.notEqual(pw.machine.state, 'Idle', 'mid-blow');
+  pw.updateHands(sword, null); pw.applyWeapon();   // the Pistolet unequipped
+  const evs = [];
+  for (let i = 0; i < 120 && (pw.machine.state !== 'Idle' || pw.strike); i++) evs.push(...pw.update(DT));
+  assert.ok(evs.includes('hit'), 'the blade\'s blow still lands');
+  assert.equal(pw.pistols, null, 'the gun is put by');
+  // and the classic Pistolet's own put-by (a lone gun swapped for a sword mid-shot) still clears the shot's mirror
+  const gun = createPistolet();
+  const lone = pairOf(gun, null);
+  assert.ok(lone._attack('StrikeDown'));
+  step(lone, 1);
+  lone.updateHands(sword, null); lone.applyWeapon();
+  lone.update(DT);
+  assert.equal(lone.machine.state, 'Idle', 'a lone gun swapped mid-shot: no shot finished as the sword\'s blow');
+});
+
+test('MIXED-PAIR THE TOUCH BUTTON ON A DRY PAIR: with no Pellet in the pack the touch button\'s pull is the blade\'s, as the drag\'s is (gunReady) - never refused whole (mutant: the click door\'s Pellet guard blind to the pair)', async () => {
+  const dry = await pistolRig({ right: LONGSWORD(), left: createPistolet(), cif: MELEE, pellets: 0 });
+  for (let i = 0; i < 30; i++) await dry.frame();
+  dry.r.clickAttack();
+  assert.notEqual(dry.r.playerWeapon.machine.state, 'Idle', 'the blade swings');
+  assert.equal(dry.r.playerWeapon.strike?.hand, 'R');
+  assert.equal(dry.r.playerWeapon.pistols.L.shots, 0, 'the gun never fires dry');
+});
+
+test('MIXED-PAIR UNDER THE MORROWIND ARM THE HANDS TAKE TURNS ON THE ARM: while it still draws, winds up or looses the last strike (fpArm.shotBusy) neither hand\'s strike starts - the blade\'s no more than the gun\'s; free, the pull is taken (mutant: the blade\'s turn blind to the arm)', async () => {
+  const saved = {};
+  for (const k of Object.keys(fpArm)) if (typeof fpArm[k] === 'function') { saved[k] = fpArm[k]; fpArm[k] = () => undefined; }
+  let busy = true;
+  fpArm.ready = () => true; fpArm.active = () => true; fpArm.thirdActive = () => false;
+  fpArm.shotBusy = () => busy;
+  fpArm.attack = () => true;
+  try {
+    const rig = await pistolRig({ right: LONGSWORD(), left: createPistolet(), cif: MELEE, warm: 30 });
+    const pw = rig.r.playerWeapon;
+    assert.equal(pw.gunHand, 'L');
+    rig.r.clickAttack();
+    for (let i = 0; i < 5; i++) await rig.frame(DT, true);
+    assert.equal(pw.machine.state, 'Idle', 'the lead blade waits for the arm');
+    busy = false;
+    rig.r.clickAttack();
+    assert.notEqual(pw.machine.state, 'Idle', 'the arm free: the blade swings');
+  } finally {
+    Object.assign(fpArm, saved);
+  }
 });

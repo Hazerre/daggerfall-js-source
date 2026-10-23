@@ -130,7 +130,7 @@
  {
   "name": "AP-A5-click-door-ungated",
   "file": "src/combat/weapon/weaponRig.js",
-  "old": "      if (armCannotDraw() || pelletsOwed()) return;",
+  "old": "      if (armCannotDraw() || (pelletsOwed() && !playerWeapon.mixedPair)) return;",
   "new": "      if (armCannotDraw()) return;",
   "tests": [
    "test/combat/gun/pistolport_audit.test.js"

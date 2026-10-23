@@ -138,8 +138,8 @@
   {
     "name": "SPELLHAND-swing-refused",
     "file": "src/combat/weapon/weaponRig.js",
-    "old": "(!spellArmed() || _spellHand) && !fpsSpellCasting.isPlayingAnim",
-    "new": "!spellArmed() && !fpsSpellCasting.isPlayingAnim",
+    "old": "(!spellArmed() || _spellHand) && !(_spellHand && armCasting())",
+    "new": "!spellArmed() && !(_spellHand && armCasting())",
     "tests": [
       "test/combat/spellhand.test.js"
     ]
@@ -147,8 +147,8 @@
   {
     "name": "SPELLHAND-swing-under-the-cast",
     "file": "src/combat/weapon/weaponRig.js",
-    "old": "(!spellArmed() || _spellHand) && !fpsSpellCasting.isPlayingAnim",
-    "new": "(!spellArmed() || _spellHand)",
+    "old": "!(_spellHand && armCasting()) && !fpsSpellCasting.isPlayingAnim",
+    "new": "!(_spellHand && armCasting())",
     "tests": [
       "test/combat/spellhand.test.js"
     ]
@@ -229,8 +229,8 @@
   {
     "name": "SPELLHAND-word-never-told",
     "file": "src/combat/weapon/weaponRig.js",
-    "old": "      tellSpellHand({ up: _spellHand, busy: playerWeapon.machine.state !== 'Idle' });",
-    "new": "      tellSpellHand({ up: false, busy: playerWeapon.machine.state !== 'Idle' });",
+    "old": "      tellSpellHand({ up: _spellHand, busy: handsBusy() });",
+    "new": "      tellSpellHand({ up: false, busy: handsBusy() });",
     "tests": [
       "test/combat/spellhand.test.js"
     ]
@@ -240,6 +240,78 @@
     "file": "src/combat/weapon/weaponRig.js",
     "old": "left: playerWeapon.holdingShield ? SHIELD_DESC : handDesc(playerWeapon.handItem('L')),",
     "new": "left: handDesc(playerWeapon.handItem('L')),",
+    "tests": [
+      "test/combat/spellhand.test.js"
+    ]
+  },
+  {
+    "name": "SPELLHAND-arm-cast-tail-drops",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "  const castPlaying = () => fpsSpellCasting.isPlayingAnim || (_spellHand && armCasting());",
+    "new": "  const castPlaying = () => fpsSpellCasting.isPlayingAnim;",
+    "tests": [
+      "test/combat/spellhand.test.js"
+    ]
+  },
+  {
+    "name": "SPELLHAND-arm-cast-unread",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "  const armCasting = () => (fpArm.active() || fpArm.thirdActive()) && !!fpArm.castInFlight();",
+    "new": "  const armCasting = () => false;",
+    "tests": [
+      "test/combat/spellhand.test.js"
+    ]
+  },
+  {
+    "name": "SPELLHAND-hand-up-on-the-classic-frames",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "    && (spellArmed() || castPlaying()) && !!spellHandHands();",
+    "new": "    && (spellArmed() || fpsSpellCasting.isPlayingAnim) && !!spellHandHands();",
+    "tests": [
+      "test/combat/spellhand.test.js"
+    ]
+  },
+  {
+    "name": "SPELLHAND-swing-over-the-arms-cast",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "(!spellArmed() || _spellHand) && !(_spellHand && armCasting()) && ",
+    "new": "(!spellArmed() || _spellHand) && ",
+    "tests": [
+      "test/combat/spellhand.test.js"
+    ]
+  },
+  {
+    "name": "SPELLHAND-touch-over-the-cast",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "      if (_spellHand && castPlaying()) return;",
+    "new": "",
+    "tests": [
+      "test/combat/spellhand.test.js"
+    ]
+  },
+  {
+    "name": "SPELLHAND-z-over-the-arms-cast",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "      if (_spellHand && armCasting()) return false;",
+    "new": "",
+    "tests": [
+      "test/combat/spellhand.test.js"
+    ]
+  },
+  {
+    "name": "SPELLHAND-word-at-the-top-alone",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "    tellSpellHand({ up: _spellHand, busy: true });",
+    "new": "",
+    "tests": [
+      "test/combat/spellhand.test.js"
+    ]
+  },
+  {
+    "name": "SPELLHAND-arm-blow-unread",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": " || _heldHit || ((fpArm.active() || fpArm.thirdActive()) && !!fpArm.shotBusy());",
+    "new": " || _heldHit;",
     "tests": [
       "test/combat/spellhand.test.js"
     ]

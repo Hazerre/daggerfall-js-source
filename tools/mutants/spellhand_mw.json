@@ -169,5 +169,32 @@
     "tests": [
       "test/combat/spellhand_mw.test.js"
     ]
+  },
+  {
+    "name": "MIXEDMW-sheathe-keeps-the-blow",
+    "file": "src/combat/fpArm.js",
+    "old": "        dropBlowType();   // MIXED-PAIR: a wind-up put away unequips in the arm's own group\n",
+    "new": "",
+    "tests": [
+      "test/combat/spellhand_mw.test.js"
+    ]
+  },
+  {
+    "name": "MIXEDMW-death-keeps-the-blow",
+    "file": "src/combat/fpArm.js",
+    "old": "      dropBlowType();   // MIXED-PAIR\n",
+    "new": "",
+    "tests": [
+      "test/combat/spellhand_mw.test.js"
+    ]
+  },
+  {
+    "name": "MIXEDMW-swap-keeps-the-blow",
+    "file": "src/combat/fpArm.js",
+    "old": "          blowType = null;   // MIXED-PAIR: and the blow's group with it (both branches below re-resolve the group)\n",
+    "new": "",
+    "tests": [
+      "test/combat/spellhand_mw.test.js"
+    ]
   }
 ]

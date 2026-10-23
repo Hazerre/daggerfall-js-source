@@ -16,6 +16,7 @@ import { spellHandOf, spellHandUp, spellHandBusy, tellSpellHand, _resetSpellHand
 import { fpsSpellCasting, RIGHT_HAND_UV } from '../../src/combat/fpsSpellCasting.js';
 import { createPlayerMagic } from '../../src/scenes/hostMagic.js';
 import { pistolRig } from './weapon/pistolRigHarness.js';
+import { fpArm } from '../../src/combat/fpArm.js';
 
 const src = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const weapon = (templateIndex, name) => ({ name, group: 'Weapons', templateIndex, material: 0 });
@@ -257,4 +258,72 @@ test('SPELL-HAND THE RIG, THE SIDES: a left-handed player\'s weapon is on the le
     for (let i = 0; i < 20; i++) { g = await gun.frame(); low = Math.max(low, g.find(isWeapon)?.rect.y ?? -Infinity); }
     assert.ok(low > rest + 2, `the pistol lowers under the cast (${rest.toFixed(1)} -> ${low.toFixed(1)})`);
   } finally { _resetSpellHand(); }
+});
+
+/** The Morrowind arm stubbed to the contract the rig reads (fpArm.js castSpell/castInFlight/takeCastRelease/shotBusy/
+ *  setSpellHand): `arm.casting` its spellcast section, `arm.release` its "<type> release" key, `arm.busy` a blow or draw. */
+function stubArm() {
+  const saved = {}, arm = { casting: false, release: false, busy: false, told: [] };
+  for (const k of Object.keys(fpArm)) if (typeof fpArm[k] === 'function') { saved[k] = fpArm[k]; fpArm[k] = () => undefined; }
+  fpArm.ready = () => true; fpArm.active = () => true; fpArm.thirdActive = () => false;
+  fpArm.castSpell = () => { arm.casting = true; return true; };
+  fpArm.castInFlight = () => arm.casting;
+  fpArm.takeCastRelease = () => { const r = arm.release; arm.release = false; return r; };
+  fpArm.shotBusy = () => arm.busy;
+  fpArm.setSpellHand = (on) => { arm.told.push(!!on); };
+  fpArm.attack = () => true;
+  arm.restore = () => Object.assign(fpArm, saved);
+  return arm;
+}
+
+test('SPELL-HAND UNDER THE MORROWIND ARM THE HANDS TAKE TURNS ON THE ARM\'S CLOCK: its cast outlasts the classic frames (the spell leaves on its "<type> release", MW-CAST1) - the spell hand stays up and the weapon in hand to the cast\'s end, and no blow (drag or touch) and no Z starts until the arm\'s hands are free; then the hand goes down and the weapon swings (mutants: the hand dropped at the classic frames\' end; a swing, a touch blow or a Z over the arm\'s cast)', async () => {
+  const arm = stubArm();
+  try {
+    const { r, frame, ready } = await spellRig();
+    ready.spell = FIRE;
+    await settle(frame);
+    assert.equal(arm.told.at(-1), true, 'the arm told: the spell in the free hand');
+    assert.equal(r.castSpellAnim(2, 0, () => { ready.spell = null; }), true);
+    for (let i = 0; i < 60 && fpsSpellCasting.isPlayingAnim; i++) await frame();
+    assert.equal(fpsSpellCasting.isPlayingAnim, false, 'the classic frames are over');
+    assert.equal(fpsSpellCasting.releaseHeld, true, 'the spell still waits on the arm\'s key');
+    arm.release = true;
+    await frame();
+    assert.equal(ready.spell, null, 'the spell left on the arm\'s release - nothing but the arm\'s cast holds the hand now');
+    for (let i = 0; i < 10; i++) await frame(1 / 60, true);
+    assert.equal(arm.told.at(-1), true, 'the weapon kept in hand through the arm\'s cast');
+    assert.equal(spellHandUp(), true);
+    assert.equal(r.playerWeapon.machine.state, 'Idle', 'the drag waits for the arm');
+    r.clickAttack();
+    assert.equal(r.playerWeapon.machine.state, 'Idle', 'the touch button waits');
+    assert.equal(r.readyWeapon(), false, 'Z waits');
+    arm.casting = false;
+    await frame(1 / 60, true);
+    assert.equal(arm.told.at(-1), false, 'the cast over: the spell hand down');
+    let swung = false;
+    for (let i = 0; i < 10; i++) { await frame(1 / 60, true); if (r.playerWeapon.machine.state !== 'Idle') swung = true; }
+    assert.ok(swung, 'and the weapon swings');
+  } finally { arm.restore(); _resetSpellHand(); }
+});
+
+test('SPELL-HAND THE BUSY WORD IS THE HANDS\' WHOLE STRIKE: a blow begun this frame is in flight for the cast door the hosts ask before the next, and under the Morrowind arm its blow or draw still playing past the machine holds a cast too (mutants: the word told only at the frame\'s top; the arm\'s blow unread)', async () => {
+  const arm = stubArm();
+  try {
+    const { r, frame, ready } = await spellRig();
+    ready.spell = FIRE;
+    await settle(frame);
+    assert.equal(spellHandBusy(), false);
+    await frame(1 / 60, true);
+    assert.notEqual(r.playerWeapon.machine.state, 'Idle', 'the swing began this frame');
+    assert.equal(spellHandBusy(), true, 'told at once - the hosts\' next cast door waits');
+    await settle(frame, 150);
+    assert.equal(r.playerWeapon.machine.state, 'Idle');
+    assert.equal(spellHandBusy(), false, 'the blow over');
+    arm.busy = true;
+    await frame();
+    assert.equal(spellHandBusy(), true, 'the arm\'s blow still playing holds the cast');
+    arm.busy = false;
+    await frame();
+    assert.equal(spellHandBusy(), false);
+  } finally { arm.restore(); _resetSpellHand(); }
 });

@@ -259,5 +259,59 @@
     "tests": [
       "test/combat/mixedpair.test.js"
     ]
+  },
+  {
+    "name": "MIXEDPAIR-held-shot-unread",
+    "file": "src/combat/playerWeapon.js",
+    "old": "((!!this.strike && this.strike.hand === gh) || this.shotHeld() === true)",
+    "new": "(!!this.strike && this.strike.hand === gh)",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "MIXEDPAIR-held-shot-never-told",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "  playerWeapon.shotHeld = () => _heldHit;",
+    "new": "  playerWeapon.shotHeld = () => false;",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "MIXEDPAIR-putby-cuts-the-blow",
+    "file": "src/combat/playerWeapon.js",
+    "old": "    if (this._bladeTurn) return;",
+    "new": "    if (false) return;",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "MIXEDPAIR-blade-turn-never-kept",
+    "file": "src/combat/playerWeapon.js",
+    "old": "    this._bladeTurn = !!blade;\n",
+    "new": "",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "MIXEDPAIR-touch-door-dry",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "(pelletsOwed() && !playerWeapon.mixedPair)) return;",
+    "new": "pelletsOwed()) return;",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "MIXEDPAIR-arm-turns-unread",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "    if (playerWeapon.mixedPair && (fpArm.active() || fpArm.thirdActive()) && fpArm.shotBusy()) return true;",
+    "new": "",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
   }
 ]

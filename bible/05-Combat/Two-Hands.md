@@ -497,7 +497,10 @@ the gun's reload and never rides over its shot. A gun pair overlaps its two shot
   it, a gun pair and a lone gun keep the free hand's 1.4 s, and a blade put away mid-reload loads at the free pace from there;
   the reload's two clacks are each machine's own (`pistolReloadVoice`).
 - **No Pellet** puts nothing away: a lone gun with none is sheathed (`bowArrowGuard`), a pair's blade still fights - the gun
-  refuses its own pull and the blade takes it.
+  refuses its own pull and the blade takes it, the touch button's pull as much as the drag's (`clickAttack`).
+- **The gun put by mid-blow** (`_pistolsPutBy`, `_bladeTurn`): unequipping the gun while the blade swings leaves the blade's
+  blow to land - the classic machine is the blade's, and a swap never cut a blow (`applyWeapon`); the pistol put by reloads
+  on as any. A lone Pistolet swapped mid-shot still clears the shot's mirror (AUDIT PISTOL-PORT A9).
 
 **The balance, measured** (`test/combat/mixedpair.test.js`, through the machine and `calculateAttackDamage` - the mean landed
 blow at Speed 50, Strength 50, struck every time, 120 s held):
@@ -537,7 +540,14 @@ group, PISTOL-STANCE). So:
 - **the off arm holds its own weapon's idle** in the mirror (`'dual:mixed'`), never the right weapon's;
 - **the gun is held as a gun, on its own hand alone** (`gunHoldOf`, the pistol stance's `only`): the gun hand solved onto its
   pistol - a left gun on Weapon Bone Left, the single stance's row in the mirror - the blade's arm left to the composition;
-  its aim comes up for its own hand's shot, never the blade's swing.
+  its aim comes up for its own hand's shot, never the blade's swing;
+- **the hands take turns on the arm's clock too**: a shot whose hit is held for the arm's "shoot release" (MW-D42) is the
+  gun's turn until it lands (`playerWeapon.shotHeld`, the rig's `_heldHit`) - the classic machine stays the shooter's, so
+  the hit reaches the host as a shot, never dropped as the blade's turn begins; and no strike of either hand starts while the
+  arm still draws, winds up or looses the last (`armCannotDraw`'s mixed leg, `fpArm.shotBusy`), the blade's blow as much as
+  the gun's shot;
+- **a blow cut short hands the arm its own group back** (`dropBlowType`): a sheathe mid wind-up unequips in the right hand's
+  group, a death or a weapon swapped into the hand mid-blow re-resolves without the struck hand's.
 
 ## The spell hand (SPELL-HAND, 2026-10-23)
 
@@ -561,9 +571,13 @@ spell is no more two-handed in the picture than a touch.
   lets it through) and the spell leaves on a cast's own press - ActivateCenterObject's (EntityEffectManager's own, Mouse0),
   the touch layer's, the hotbar's (`{ cast: true }`, every host's - THE FOUR HOSTS RULE: `world.js`, `exterior.js`,
   `worldModes.js` indoors and in the dungeon, `dungeon.js`, `quickslots.js`; a cast's press in the dungeon never swings).
-- **The hands take turns**: no swing starts while the cast's hands play (the rig's `canAttack`, DFU's IsPlayingAnim leg kept),
-  and a cast pressed while the weapon is mid-blow WAITS (`firePending` keeps the press while `spellHandBusy`) and leaves when
-  the blow ends - kept, never dropped.
+- **The hands take turns**: no swing starts while the cast's hands play (the rig's `canAttack`, DFU's IsPlayingAnim leg kept;
+  the touch button's `clickAttack` the same), and a cast pressed while the weapon is mid-blow WAITS (`firePending` keeps the
+  press while `spellHandBusy`) and leaves when the blow ends - kept, never dropped. Under the Morrowind arm both turns run to
+  the ARM's clock: its cast plays past the classic frames (the spell leaves on its "<type> release", MW-CAST1), so the spell
+  hand stays up and the weapon in hand until `fpArm.castInFlight` ends (`castPlaying`) - no blow, drag or touch, and no Z
+  before - and a cast waits for the arm's own blow or draw (`fpArm.shotBusy`) and for a shot's held hit as it does for the
+  machine (`handsBusy`).
 - **Z keeps the spell**: with the hands able to hold it, sheathing the weapon leaves the spell readied in DFU's two hands,
   and drawing again puts it back in the free hand (never mid-cast); where they cannot, DFU's AbortReadySpell.
 - **The guard** (a pair's law, Mac's "the other weapon in hand should lower slightly"): while one hand strikes the other
@@ -571,7 +585,8 @@ spell is no more two-handed in the picture than a touch.
   Pistolet's own guard), the readied hand under a blow.
 
 **The live word** (`spellHandUp`, `spellHandBusy`): the rig that steps the frame says once a frame whether the spell hand is
-up and whether its weapon is mid-blow (`tellSpellHand`), and the cast's doors read it - a singleton for the reason
+up and whether its weapon is mid-blow (`tellSpellHand`) - and again the moment a strike begins (`fpAttack`), so the hosts'
+cast door, asked before the next frame, never sees the blow begun after the frame's word - and the cast's doors read it - a singleton for the reason
 FPSSpellCasting is one: one player, one pair of hands, four hosts each with a rig.
 
 **The classic lane** (`weaponRig.js`): `shown()`'s spell leg stands down while the spell hand is up, so the weapon is drawn
@@ -590,7 +605,7 @@ the right hand (MW-HAND), so its spell hand is the left arm.
   spell's, never placed at the side.
 
 HOST-SPLIT: both slices' Morrowind laws live in their modules (`spellHandArm.js`, `mixedArm.js`); `createFpArm` grows by
-the wiring that reads its own state into them - 2,855 -> 2,931 logical lines, under its 3,252 ceiling
+the wiring that reads its own state into them - 2,855 -> 2,938 logical lines, under its 3,252 ceiling
 (`test/scenes/hostceiling.test.js`). No host grows: the cast presses change in place.
 
 ## Departures from DFU (Port-Ledger A, TWO-HANDS)
@@ -667,14 +682,27 @@ the wiring that reads its own state into them - 2,855 -> 2,931 logical lines, un
   `bladeInnerEdge` share), `TWOHANDSMW-AUDIT2-guard-memo-blind` onto `pairBladeMeasure` (the memo the guard and the spread
   share), `TWOHANDSMW-AUDIT2-dip-drawn-unkept` and `TWOHANDSMW-AUDIT2-idle-key-reads-the-plan` onto the mirror's `keep` and
   its idle key's early answer, which read the spread beside the dip.
-- MIXED-PAIR and SPELL-HAND: `test/combat/mixedpair.test.js` (11 - the law, the fall, the turns and their counts, the
+- MIXED-PAIR and SPELL-HAND: `test/combat/mixedpair.test.js` (15 - the law, the fall, the turns and their counts, the
   one-handed reload, the off hand's terms on either kind, a flurry's blade on its own tick, the balance measured, and the
-  rig: the sides and the order, each guard, no Pellets, the gun hand's clone at rest), `test/combat/spellhand.test.js` (9 -
+  rig: the sides and the order, each guard, no Pellets, the gun hand's clone at rest; the review's: a held shot under the
+  arm, the gun put by mid-blow, the touch button on a dry pair, the turns on the arm), `test/combat/spellhand.test.js` (11 -
   the law, the live word, the cast's doors, the four hosts' cast presses, and the rig: one hand beside the weapon, the swing
-  with the spell readied, the cast and the weapon's guard, Z, DFU where the hands are full, the sides and a Pistolet's guard),
-  `test/combat/spellhand_mw.test.js` (6 - the arm's limbs, the live arm's spell hand and its blade-and-gun pair, the arm's law,
-  the pistol stance's one hand, the body on retail's bones). `tools/mutants/mixedpair.json` (29), `spellhand.json` (27) and
-  `spellhand_mw.json` (19), all dead. PIN MOVED: `fpsspellcasting` (the weapon's hide reads the spell hand; both hands
+  with the spell readied, the cast and the weapon's guard, Z, DFU where the hands are full, the sides and a Pistolet's guard;
+  the review's: the turns on the arm's clock, the busy word told as a strike begins),
+  `test/combat/spellhand_mw.test.js` (7 - the arm's limbs, the live arm's spell hand and its blade-and-gun pair, the arm's law,
+  the pistol stance's one hand, the body on retail's bones; the review's: a blow cut short). `tools/mutants/mixedpair.json`
+  (35), `spellhand.json` (35) and `spellhand_mw.json` (22), all dead.
+- MIXED-PAIR and SPELL-HAND's cold review (2026-10-23), each finding fixed with its pin and its mutants: a mixed pair's shot
+  held for the Morrowind arm's release was dropped as the blade's turn began (`shotHeld`); the arm's cast tail took the
+  weapon out of the hand and let a blow, a touch blow or Z in (`castPlaying`, `armCasting`); the cast door read a blow the
+  arm still played, or one begun after the frame's word, as no blow (`handsBusy`, `fpAttack`'s word); the gun put by
+  mid-blow cut the blade's blow (`_bladeTurn`); a blow cut short left the struck hand's group on the arm (`dropBlowType`);
+  and the touch button refused a dry pair whole (`clickAttack`). PIN MOVED, each with its note: `ww1_weaponwidget` WW1 and
+  `ht1_handheldtorches` HT1 (the gate's gun leg `gunUp()`; the clone's draw with the guard's transform), WW4 and `mwattach`
+  (the clone's draw), `fparm` MW-D39 (the weapon group reads the blow's own type), `eotb_audit2` EOTB-IL (the hands' one
+  draw), `audit39_worldstate` #130 and `deckfield` GUN-HOLD (the cast press's `{ cast: true }`), `tech1_hosts` (the strike
+  `_swing` is handed). Re-aimed by content and re-run (dead): `spellhand` (three: SPELLHAND-word-never-told, -swing-refused,
+  -swing-under-the-cast), `audit_pistolport` AP-A5-click-door-ungated, `fb1009g_bowclock` (two). PIN MOVED: `fpsspellcasting` (the weapon's hide reads the spell hand; both hands
   through `castHands`); `audit29_host` (the swing gate's Pellet leg, the street's cast press), `machij_sprites_and_chat`
   (the tint through `castHands`, the clone's guard, the sprite's `m`), `thunderlock` FIELD-GUN8 (no forced Inertia for a
   mixed pair's blade); `test/systems/pistolet.test.js`'s pair law (two of a kind - a blade and a Pistolet are a pair now),

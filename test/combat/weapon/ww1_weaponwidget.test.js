@@ -593,7 +593,9 @@ test('WW1: the rig runs the clone beside the machine - the late update after the
   // Widget's step is counted at the gate, just above it, with its reason.
   // What the pin holds is the ORDER - the machine steps, then the clone's
   // LateUpdate - and that is untouched.
-  assert.match(rig, /playerWeapon\.update\(dt\);[\s\S]{0,4800}?if \(widgetOn\(\) \|\| _torchesOn \|\| shieldOn\(\) \|\| thunderlockHeld\(\)\) \{[\s\S]{0,5200}if \(widgetOn\(\)\) widget\.lateUpdate\(dt, \{/, 'LateUpdate after the machine\'s Update (HT1: the torch component shares the frame\'s inputs; SW1b: the shield opens the block too)');
+  // PIN MOVED (MIXED-PAIR): the gate's gun leg is `gunUp()` - a Pistolet in either hand, a blade's partner included
+  // (was: `thunderlockHeld()`, the right hand's alone)
+  assert.match(rig, /playerWeapon\.update\(dt\);[\s\S]{0,4800}?if \(widgetOn\(\) \|\| _torchesOn \|\| shieldOn\(\) \|\| gunUp\(\)\) \{[\s\S]{0,5200}if \(widgetOn\(\)\) widget\.lateUpdate\(dt, \{/, 'LateUpdate after the machine\'s Update (HT1: the torch component shares the frame\'s inputs; SW1b: the shield opens the block too)');
   assert.match(rig, /const look = takeFrameLook\(\);/, 'the look read once a frame'); assert.match(rig, /look: lookAxes, swingHeld: _held, cursorActive: cursorActive\(\), camera: camThunk,/, 'WIDGET-LOOK: as DFU\'s look axes (test/combat/weapon/fb1003_widgetlook.test.js)');
   // SW1: the shield's coroutines resume on the same edge, in the same finally
   // PIN MOVED (TWO-HANDS): and the left hand's clone resumes on it too (was: the right's and the shield's alone)
@@ -608,7 +610,9 @@ test('WW1: the rig runs the clone beside the machine - the late update after the
   // (the arm's branch has returned above it, so the held-sheet pose is
   // untouched). The ORDER of the four is what this pin holds, and it did
   // not move.
-  assert.match(rig, /if \(fpArm\.active\(\)\) \{[^}]*fpArm\.draw\(c\);[^}]*return; \}\s*(?:\/\/[^\n]*\n\s*)*if \(sheetWindowUp\(\)\) return;\s*(?:\/\/[^\n]*\n\s*)*if \(shieldRect\) shield\.draw\(\(index, rect, uv\) => drawShieldSprite\(index, rect, uv, fpTint\)\);\s*if \(handheldOn\(\) && c\) handheld\.draw\(renderer, c, fpTint\);\s*if \(torchOnly && !gunSliding\) return;[^\n]*\n\s*(?:\/\/[^\n]*\n\s*)*if \(!shown\(\) && !gunSliding\) return;[^\n]*\n\s*(?:\/\/[^\n]*\n\s*)*const tlArt = c && thunderlockHeld\(\) \? artFor\(playerWeapon\.weapon\) : null;\s*if \(tlArt\?\.anchor && tlArt\.unionBox\) \{ drawThunderlock\(tlArt, c, fpTint\); return; \}\s*(?:\/\/[^\n]*\n\s*)*if \(gunSliding && !shown\(\)\) return;\s*if \(widgetOn\(\) && c && widget\.draw\(renderer, c, fpTint\)\) return;/, 'the arms first, MAP-WEAPON\\u2019s map gate, SW1\\u2019s shield (the off hand, behind both), the torch, the clone, the classic sprite last');
+  // PIN MOVED (SPELL-HAND): the clone's draw passes the spell hand's guard, under its own comment (was:
+  // `widget.draw(renderer, c, fpTint)`); the order did not move
+  assert.match(rig, /if \(fpArm\.active\(\)\) \{[^}]*fpArm\.draw\(c\);[^}]*return; \}\s*(?:\/\/[^\n]*\n\s*)*if \(sheetWindowUp\(\)\) return;\s*(?:\/\/[^\n]*\n\s*)*if \(shieldRect\) shield\.draw\(\(index, rect, uv\) => drawShieldSprite\(index, rect, uv, fpTint\)\);\s*if \(handheldOn\(\) && c\) handheld\.draw\(renderer, c, fpTint\);\s*if \(torchOnly && !gunSliding\) return;[^\n]*\n\s*(?:\/\/[^\n]*\n\s*)*if \(!shown\(\) && !gunSliding\) return;[^\n]*\n\s*(?:\/\/[^\n]*\n\s*)*const tlArt = c && thunderlockHeld\(\) \? artFor\(playerWeapon\.weapon\) : null;\s*if \(tlArt\?\.anchor && tlArt\.unionBox\) \{ drawThunderlock\(tlArt, c, fpTint\); return; \}\s*(?:\/\/[^\n]*\n\s*)*if \(gunSliding && !shown\(\)\) return;\s*(?:\/\/[^\n]*\n\s*)*if \(widgetOn\(\) && c && widget\.draw\(renderer, c, fpTint, [^\n]*\)\) return;/, 'the arms first, MAP-WEAPON\\u2019s map gate, SW1\\u2019s shield (the off hand, behind both), the torch, the clone, the classic sprite last');
   assert.match(rig, /const envCast = envHit \?\? \(\(reach\) => \{/, 'CheckForEnvDamage\'s cast from the host\'s collider');
   const pw = rd('src/combat/playerWeapon.js');
   assert.match(pw, /this\.onAttackResult\?\.\(\{ foe, damage \}\);/, 'OnAttackDamageCalculated\'s one consumer');
@@ -712,7 +716,8 @@ test('WW4 (Mac\'s curated fix): a clone that chooses silence OWNS the draw seam 
   const none = bench({ weaponType: T.None }); none.frame();
   assert.equal(none.widget.draw(none.renderer, none.ctx.canvas), false, 'no weapon type: not the clone\'s');
   // and the rig's seam reads the answer exactly that way
-  assert.match(rd('src/combat/weapon/weaponRig.js'), /if \(widgetOn\(\) && c && widget\.draw\(renderer, c, fpTint\)\) return;/);
+  // PIN MOVED (SPELL-HAND): the seam passes the spell hand's guard as a transform (was: `widget.draw(renderer, c, fpTint)`)
+  assert.match(rd('src/combat/weapon/weaponRig.js'), /if \(widgetOn\(\) && c && widget\.draw\(renderer, c, fpTint, [^\n]*\)\) return;/);
 });
 
 test('WW4b (Mac\'s curated fix): after a swing under Recovery = Hide the melee idle re-enters on a DRAWABLE frame, so it slides back into view instead of staying at -1 for ever', () => {

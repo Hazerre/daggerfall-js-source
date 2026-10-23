@@ -206,6 +206,41 @@ test('MIXED-PAIR THE LIVE ARM, A BLADE AND THE PISTOLET: the left hand\'s blow p
   a.unload();
 });
 
+test('MIXED-PAIR A BLOW CUT SHORT HANDS THE ARM ITS OWN GROUP BACK: the left hand\'s shot put away mid wind-up unequips in the blade\'s group, a death mid-shot leaves the blade\'s, and a weapon swapped into the hand mid-shot re-resolves without it - never the struck hand\'s group left standing (mutants: the sheathe, the death, the swap blind to the blow\'s group)', async () => {
+  const sheathe = (await arm()).a;
+  sheathe.setHands({ mode: 'dual', lead: 'R' });
+  await sheathe.setOffWeapon(GUN);
+  run(sheathe, 0.3);
+  assert.equal(sheathe.attack('StrikeDown', { hand: 'L' }), 'shoot');
+  assert.equal(sheathe.status().weaponGroup, 'throwweapon');
+  assert.equal(sheathe.status().upper, UPPER_BODY.AttackWindUp, 'mid wind-up');
+  assert.equal(sheathe.setSheathed(true), true, 'put away');
+  assert.equal(sheathe.status().weaponGroup, 'weapononehand', 'the unequip plays in the blade\'s group');
+  run(sheathe, 3);
+  sheathe.setSheathed(false);
+  run(sheathe, 3);
+  assert.equal(sheathe.status().weaponGroup, 'weapononehand', 'and drawn again, the blade\'s');
+  sheathe.unload();
+  const death = (await arm()).a;
+  death.setHands({ mode: 'dual', lead: 'R' });
+  await death.setOffWeapon(GUN);
+  run(death, 0.3);
+  death.attack('StrikeDown', { hand: 'L' });
+  death.die();
+  assert.equal(death.status().weaponGroup, 'weapononehand', 'a death mid-shot');
+  death.unload();
+  const swap = (await arm()).a;
+  swap.setHands({ mode: 'dual', lead: 'R' });
+  await swap.setOffWeapon(GUN);
+  run(swap, 0.3);
+  swap.attack('StrikeDown', { hand: 'L' });
+  await swap.setWeapon(null);
+  swap.setSheathed(false);
+  run(swap, 3);
+  assert.notEqual(swap.status().weaponGroup, 'throwweapon', `the hand swapped mid-shot (${swap.status().weaponGroup})`);
+  swap.unload();
+});
+
 test('MIXED-PAIR THE BODY ON RETAIL\'S BONES (third person): a longsword in the right hand and the Pistolet in the left - the gun\'s hold comes on for the LEFT hand alone, on its own pistol, and the right arm is left to its blade (never solved onto a gun); sheathed, the hold goes (mutants: the hold for a gun in the right only; the stance\'s one hand not handed on)', async () => {
   const kf = new Uint8Array(armClip());
   const weap = wpdtRec('iron longsword', 'w/blade.nif', MW_WEAPON_TYPE.LongBladeOneHand);
