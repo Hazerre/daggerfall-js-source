@@ -1786,7 +1786,7 @@ function featureValue(id) {
 
 /** ORG2: whether an item stands away from how the game ships - a DFU key off its default, a Features row off its
  *  default segment, a port row's pref off the shelf's default. The Changed filter and the row's mark read it. */
-function itemChanged(item, pool) {
+export function itemChanged(item, pool) {   // AUDIT MEM-AUDIT G1: exported for the pins
   if (isSettingItem(item)) {
     const [sec, k] = item.split('/');
     const d = defaultOf(sec, k);
@@ -1797,7 +1797,10 @@ function itemChanged(item, pool) {
     const st = f && tileStates(f);
     if (!st || st.locked) return false;
     const d = defaultSegment(f, st);
-    return d >= 0 && d !== st.at;
+    if (d >= 0 && d !== st.at) return true;
+    // AUDIT MEM-AUDIT G1: and a part of its drawer off its default (featuresDefaults' own walk) - the preset reads Steady
+    // shadows, and a part turned off read Custom on a tab that said nothing was changed
+    return (resolveControl(f)?.parts ?? []).some((pt) => Object.hasOwn(PREF_DEFAULTS, pt.key) && onlineForcedPref(pt.key) === undefined && String(getPref(pt.key)) !== String(PREF_DEFAULTS[pt.key]));
   }
   if (item.startsWith('port:')) {
     const pref = pool?.get(item.slice(5))?.dataset?.pref;
@@ -1821,7 +1824,7 @@ function itemText(item, pool) {
   if (isSettingItem(item)) return `${labelOf(item)} ${helpOf(item)} ${item}`;
   if (item.startsWith('feat:')) { const f = FEATURES.find((x) => x.id === item.slice(5)); return f ? featureSearchText(f) : ''; }
   if (item.startsWith('port:')) return pool.get(item.slice(5))?.textContent ?? '';
-  if (item === 'preset:graphics') return 'quality preset graphics low medium high ultra performance';
+  if (item === 'preset:graphics') return presetSearchText();
   if (item === 'link:overhauls') return 'overhauls looks textures vanilla enhanced sounds interface';
   if (item === 'bindings') return 'key bindings keys keyboard rebind controls';
   if (item.startsWith('card:')) return { morrowind: 'morrowind files data body 3d attach', packs: 'packs textures music replacement folder',
@@ -2138,29 +2141,48 @@ function categoryCard({ pool = portPool(), pause = false } = {}) {
 
 // ── ORG2: THE SCREEN'S OWN PIECES ────────────────────────────────
 
-/** ORG2: THE GRAPHICS PRESET - one bar over the five rows that cost the most (systems/graphicsPresets.js), reading
+/** AUDIT MEM-AUDIT G4/G5/G6: the preset row's words, one home and in the player's language - its note names what it
+ *  sets, its effect when, and its search finds it by either (in English too) and by the rows' own titles: a fixed list
+ *  of English words did not know its own note, and the row was the one on the tab no language reached. */
+const PRESET_WORDS = {
+  name: () => t('menu.settings.preset.name', 'Quality preset'),
+  note: () => t('menu.settings.preset.note', 'View distance, grass, clouds, ground sharpness, water, windows and steady shadows.'),
+  effect: () => t('menu.settings.preset.effect', 'Steady shadows and the windows change at once; the rest when the world next loads.'),
+  custom: () => t('menu.settings.preset.custom', 'Custom'),
+};
+const PRESET_LABELS = {
+  low: () => t('menu.settings.preset.low', 'Low'), medium: () => t('menu.settings.preset.medium', 'Medium'),
+  high: () => t('menu.settings.preset.high', 'High'), ultra: () => t('menu.settings.preset.ultra', 'Ultra'),
+};
+export const presetSearchText = () => ['quality preset graphics low medium high ultra performance frame rate slow',
+  'View distance, grass, clouds, ground sharpness, water, windows and steady shadows.', PRESET_WORDS.name(), PRESET_WORDS.note(), PRESET_WORDS.effect(),
+  ...GRAPHICS_PRESETS.map((p) => PRESET_LABELS[p.id]?.() ?? p.label),
+  ...PRESET_ROWS.map((id) => FEATURES.find((f) => f.id === id)?.title ?? ''),
+  ...PRESET_PARTS.map((k) => FEATURES.flatMap((f) => resolveControl(f)?.parts ?? []).find((pt) => pt.key === k)?.label ?? k)].join(' ');
+/** ORG2: THE GRAPHICS PRESET - one bar over the six rows that cost the most and its parts (systems/graphicsPresets.js), reading
  *  the preset they stand at or Custom. A press writes each row through its own door, so a lane's second store moves
  *  with it and a row the room decides is left as it is. */
-function graphicsPresetRow() {
+export function graphicsPresetRow() {   // AUDIT MEM-AUDIT G3: exported for the pins - the bar as drawn
   const now = presetNow(featureValue, getPref);
   const row = el('div', 'row opt-preset');
   row.dataset.opt = 'graphicsPreset';
   const main = el('div', 'row-main');
-  main.append(el('div', 'row-name', 'Quality preset'));
-  main.append(el('div', 'row-note', 'View distance, grass, clouds, ground sharpness, water, windows and steady shadows.'));   // RW1: and the real windows; MEM-AUDIT: and Steady shadows
+  main.append(el('div', 'row-name', PRESET_WORDS.name()));
+  main.append(el('div', 'row-note', PRESET_WORDS.note()));   // RW1: and the real windows; MEM-AUDIT: and Steady shadows
+  main.append(el('div', 'row-sub', PRESET_WORDS.effect()));   // AUDIT MEM-AUDIT G6: when it takes effect, as every other row says
   row.append(main);
   const ctl = el('div', 'ctl');
   const seg = el('div', 'ft-seg');
   seg.setAttribute('role', 'group');
-  seg.setAttribute('aria-label', 'Quality preset');
+  seg.setAttribute('aria-label', PRESET_WORDS.name());
   for (const p of GRAPHICS_PRESETS) {
-    const b = el('button', 'ft-segb', p.label);
+    const b = el('button', 'ft-segb', PRESET_LABELS[p.id]?.() ?? p.label);
     b.type = 'button';
     b.setAttribute('aria-pressed', String(now?.id === p.id));
     b.onclick = (e) => { e.stopPropagation(); applyGraphicsPreset(p); render(); };
     seg.append(b);
   }
-  if (!now) { const c = el('span', 'ft-segb custom', 'Custom'); c.setAttribute('aria-current', 'true'); seg.append(c); }
+  if (!now) { const c = el('span', 'ft-segb custom', PRESET_WORDS.custom()); c.setAttribute('aria-current', 'true'); seg.append(c); }
   ctl.append(seg);
   row.append(ctl);
   return row;
@@ -2173,7 +2195,7 @@ export function applyGraphicsPreset(p) {
     const st = f && tileStates(f);
     if (!st || st.locked || !c?.tiers) continue;
     const i = c.tiers.findIndex(([v]) => String(v) === String(p.values[id]));
-    if (i >= 0 && i !== st.at) st.set(i);
+    if (i >= 0 && (i !== st.at || c.write)) st.set(i);   // AUDIT MEM-AUDIT G2: a lane's row written whole - its bar reads one store (land view off the enhanced outdoors: DFU's 1..4), and Low left the other at 5
   }
   // MEM-AUDIT: and its parts, each written straight as its drawer writes it - one the room decides is left as it is
   for (const k of PRESET_PARTS) if (onlineForcedPref(k) === undefined && String(getPref(k)) !== String(p.parts[k])) setPref(k, p.parts[k]);
@@ -6174,7 +6196,7 @@ export function mountEnhancedMenu(host, {
   // PROFILE2: and the profile window is a visit's too - the pause screen mounts this module again, and a window left
   // open on the door (or on the last pause) must not be standing over the next one before the player asks for it
   accountOpen = false;
-  acctFlow = null; acctPaint = null; acctOff?.(); acctOff = null;
+  acctFlow = null; acctPaint = null;
   timersOpen = false;   // TIMERS1: and the timers window the same
   timersFocusBack = false;
   postOpen = false;   // SERVER-POST: and the mailbox's

@@ -20,7 +20,7 @@ import { getPref, setPref, PREF_DEFAULTS, _resetForTests as resetPrefs } from '.
 import { _resetModSettings } from '../../src/systems/modSettings.js';
 import { _resetRenderScaleDoor } from '../../src/systems/renderScale.js';
 import { restAloneText } from '../../src/systems/party/partyRestLaw.js';
-import { tileStates, defaultSegment, applyGraphicsPreset, portPool, restoreTabDefaults } from '../../src/ui/enhanced/enhancedMenu.js';
+import { tileStates, defaultSegment, applyGraphicsPreset, portPool, restoreTabDefaults, itemChanged, presetSearchText, graphicsPresetRow } from '../../src/ui/enhanced/enhancedMenu.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(root, p), 'utf8');
@@ -169,6 +169,55 @@ test('ORG2: the graphics preset - High is how the game ships, every value is one
   } finally { delete globalThis.location; fresh(); }
 });
 
+test('AUDIT MEM-AUDIT G1-G6: the preset - every row and part in cost order; High and Ultra chosen off the enhanced outdoors too, and a lane row written whole; a part off its default wears Changed; the bar as drawn presses the preset the rows stand at; its search finds what its note names; it says when it takes effect (mutants: an order turned, the lane unread, a lane row skipped, a part unmarked, the bar\'s read, the words fixed)', () => {
+  // G3: each row's values from Low to Ultra never cost less - each row's own order, cheapest first
+  const COST = { 'land-view-distance': [3, 4, 5, 6], grass: [0, 0.25, 0.5, 1], 'cloud-quality': ['lo', 'default', 'hi'], 'ground-sharpness': ['off', 'default', 'max'], 'water-quality': ['simple', 'full'], 'real-windows': ['off', 'rooms', 'full'] };
+  assert.deepEqual(Object.keys(COST).sort(), [...PRESET_ROWS].sort(), 'every row has its order here');
+  for (const id of PRESET_ROWS) {
+    const ranks = GRAPHICS_PRESETS.map((p) => COST[id].indexOf(p.values[id]));
+    assert.ok(ranks.every((r) => r >= 0), `${id}: every value ranked`);
+    assert.deepEqual([...ranks].sort((a, b) => a - b), ranks, `${id} costs no less from Low to Ultra (${ranks})`);
+  }
+  assert.deepEqual(GRAPHICS_PRESETS.map((p) => p.parts.steadyShadows), [false, true, true, true]);
+  fresh();
+  try {
+    globalThis.location = { search: '' };
+    // G2: off the enhanced outdoors land view reads DFU's 1..4 - High and Ultra still read as themselves, and Low writes both stores
+    setPref('enhancedEnvironments', false);
+    for (const p of GRAPHICS_PRESETS) {
+      applyGraphicsPreset(p);
+      assert.equal(presetNow(valueOf, getPref)?.id, p.id, `${p.id} reads back as itself with the outdoors off`);
+    }
+    applyGraphicsPreset(GRAPHICS_PRESETS[0]);
+    assert.equal(getPref('landViewDistance'), 3, 'Low wrote the enhanced lane\'s store too');
+    setPref('enhancedEnvironments', true);
+    assert.equal(presetNow(valueOf, getPref)?.id, 'low', 'and reads Low with the outdoors on again');
+    fresh();
+    globalThis.location = { search: '' };
+    // G1: a part off its default is a change the row wears
+    const lighting = 'feat:enhanced-lighting';
+    assert.equal(itemChanged(lighting, null), false, 'a fresh shelf: nothing changed');
+    setPref('steadyShadows', false);
+    assert.equal(itemChanged(lighting, null), true, 'Steady shadows off: the lighting row wears Changed');
+    assert.equal(presetNow(valueOf, getPref), null, 'and the bar reads Custom beside it');
+    fresh();
+    globalThis.location = { search: '' };
+    // G3: the bar as drawn presses the preset the rows stand at, through the screen's own read
+    const pressed = () => withRows(() => {
+      const row = graphicsPresetRow();
+      const walk = (n) => [n, ...(n.children ?? []).flatMap(walk)];
+      return walk(row).filter((n) => n.attrs?.['aria-pressed'] === 'true').map((n) => n.textContent);
+    });
+    assert.deepEqual(pressed(), ['High'], 'an untouched shelf: High pressed');
+    applyGraphicsPreset(GRAPHICS_PRESETS[0]);
+    assert.deepEqual(pressed(), ['Low']);
+  } finally { delete globalThis.location; fresh(); }
+  // G4/G6: the search finds what the note names, and the row says when it takes effect
+  const words = presetSearchText().toLowerCase();
+  for (const w of ['steady shadows', 'windows', 'water', 'grass', 'clouds', 'land view distance', 'ground sharpness', 'frame rate']) assert.ok(words.includes(w), `the preset is found by "${w}"`);
+  assert.match(read('src/ui/enhanced/enhancedMenu.js'), /main\.append\(el\('div', 'row-sub', PRESET_WORDS\.effect\(\)\)\);/);
+});
+
 test('ORG2: a tab restores its own defaults and leaves every other tab as it is - its DFU keys, its Features rows and its port rows (mutant: one kind left, or another tab restored)', () => {
   fresh();
   try {
@@ -209,7 +258,7 @@ test('ORG2 by source: one screen - the rail is the tabs and counts what each dra
   // the preset writes through the rows' own states, so a row the room decides is left as it is
   const apply = menu.slice(menu.indexOf('export function applyGraphicsPreset('), menu.indexOf('\n}\n', menu.indexOf('export function applyGraphicsPreset(')));
   assert.match(apply, /if \(!st \|\| st\.locked \|\| !c\?\.tiers\) continue;/);
-  assert.match(apply, /if \(i >= 0 && i !== st\.at\) st\.set\(i\);/);
+  assert.match(apply, /if \(i >= 0 && \(i !== st\.at \|\| c\.write\)\) st\.set\(i\);/);   // PIN MOVED (AUDIT MEM-AUDIT G2): a lane's row written whole, whatever its bar reads
   // one tab's restore leaves what the room decides, and the All off keep for Restore
   const restore = menu.slice(menu.indexOf('export function restoreTabDefaults('), menu.indexOf('\n}\n', menu.indexOf('export function restoreTabDefaults(')));
   assert.match(restore, /if \(onlineForcedSetting\(sec, k\) !== undefined\) continue;/);

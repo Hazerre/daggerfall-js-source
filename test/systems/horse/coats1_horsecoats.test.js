@@ -22,7 +22,7 @@ import { ridingLook, loadRidingArt } from '../../../src/systems/riding.js';
 import { TRANSPORT_MODES } from '../../../src/systems/transport.js';
 import { createHorseCartPool, horseStillRecord, horseWalkRecord, HORSE_ARCHIVE, HORSE_LOOKS_KEPT, HORSE_DYE_PICTURES } from '../../../src/scenes/horseCartPool.js';
 import { HORSE_SPRITE_WIDTH, HORSE_SPRITE_HEIGHT, HORSE_VIEWS, HORSE_WALK_FRAMES } from '../../../src/systems/horse/horseCartLaw.js';
-import { createEotbArt, RIDER_LOOKS_KEPT, RIDER_LOOK_IDLE_MS } from '../../../src/net/peer/peerRiders.js';
+import { createEotbArt, RIDER_LOOKS_KEPT, RIDER_LOOK_IDLE_MS, PEER_OWN_REC } from '../../../src/net/peer/peerRiders.js';
 import { stableProviderFor } from '../../../src/ui/holdingsPages.js';
 
 const horseItem = (extra = {}) => ({ templateIndex: TRANSPORT_HORSE, group: 'Transportation', name: 'Horse', ...extra });
@@ -392,7 +392,7 @@ test('COATS1 the others\' riders: each rider\'s horse look is its own dyed pictu
   assert.equal(uploads.length, RIDER_LOOKS_KEPT); assert.equal(evicted.length, 0);
   art.ensure(sprite(code(2, 1, 0, 999)));
   const first = sprite(code(2, 1, 0, 1));
-  assert.deepEqual(evicted, [`${first.archive}_${first.rec}`], 'the look longest undrawn');
+  assert.deepEqual(evicted, [`${first.archive}_${first.rec}${PEER_OWN_REC}`], 'the look longest undrawn - under the store\'s own record (PIN MOVED, AUDIT MEM-AUDIT U1: a look shared with my own rider\'s keys was let go from under it)');
   assert.equal(art.ensure(first), null, 'asked again, fetched again');
 });
 

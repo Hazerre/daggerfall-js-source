@@ -114,22 +114,19 @@ const _lo = [0, 0, 0];   // AUDIT TACT D11: the ray in a set's frame - one scrat
 const cellKey = (gx, gz) => (gx + 32768) * 65536 + (gz + 32768);
 /** MEM-AUDIT (2026-10-23): A CELL IS HELD AT ITS SIZE WHILE IT IS SMALL. The index was the largest thing a streamed world
  *  kept - ~290 MB of the 1.16 GB live heap at Knightstale's 121 pixels (V8's sampling profile, `fill` and the proxies) -
- *  and most of it air: a cell grown by push from [] reserves sixteen slots at its first, and most cells hold one to three
- *  proxies. Below CELL_EXACT a cell is copied one longer, in the same order, so it holds exactly its own; past it, pushed.
+ *  and most of it air: a cell grown by push from [] has seventeen slots from its first (AUDIT C4), and most cells hold
+ *  one to three proxies. Below CELL_EXACT a cell is copied one longer, in the same order, so it holds exactly its own; past it, pushed.
  *  A ray, a body's query and the probes read the same proxies in the same order. */
 export const CELL_EXACT = 16;
 function fileIn(grid, k, it) {
   const cell = grid.get(k);
   if (!cell) { grid.set(k, [it]); return; }
-  const n = cell.length;
-  if (n >= CELL_EXACT) { cell.push(it); return; }
-  const next = new Array(n + 1);
-  for (let i = 0; i < n; i++) next[i] = cell[i];
-  next[n] = it;
-  grid.set(k, next);
+  if (cell.length >= CELL_EXACT) { cell.push(it); return; }
+  grid.set(k, cell.concat([it]));   // AUDIT MEM-AUDIT C3: packed and exact - one array shape, as the pushed cells were (a holey copy made the ray's loop polymorphic)
 }
-// MEM-AUDIT: and every proxy's maker gives it the index's `_mark` at birth (coverProxy, coverProxies, propBodies.js, the
-// jungle's) - set first by `fill`, it was a property store more a proxy, a million and a half of them at Knightstale.
+// MEM-AUDIT: and every proxy's maker gives it the index's `_mark` at birth, last of its keys (coverProxy, coverProxies,
+// propBodies.js, the jungle's) - added first by `fill` (which still zeroes it: a proxy may be filed in two indexes), it was
+// a map transition and an out-of-line property array a proxy (AUDIT C4), a million and a half of them at Knightstale.
 
 /** TACT1: cover is read with the Enhanced AI switch on - this module is the switch's one reader for it, so a host
  *  stands its index without seeing the switch (enhancedAI4's AUDIT 55 holds who may). */

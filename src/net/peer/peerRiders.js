@@ -60,8 +60,18 @@ export const RIDER_LOOK_IDLE_MS = 2000;
  *  were never let go. Longer than a horse's look: a walker asked again pays a decode before it draws, so only one gone
  *  from the view a minute goes. */
 export const WALKER_OUTFITS_KEPT = 24;
-export const WALKER_OUTFIT_IDLE_MS = 60000;
-/** MEM-AUDIT: a layered sprite's outfit - its key (`LA:<body>:<combo>:<record>-<frame>:<code>`) less the frame. */
+/** AUDIT MEM-AUDIT U2: an outfit's idleness is counted in the walkers' syncs, never the clock - a tab hidden a minute (no
+ *  frames) aged every outfit at once, and the first walker noted after it let every one in view go, one by one, each
+ *  re-noted pushing the book over its cap again. A minute's frames at 60 a second; every walker in view was noted the
+ *  sync before. */
+export const WALKER_OUTFIT_IDLE_SYNCS = 3600;
+/** AUDIT MEM-AUDIT U1: THE PICTURES THIS STORE LETS GO ARE ITS OWN. A horse's look and a layered outfit are evicted here,
+ *  and the local body draws the same pictures under the same keys (player/eyeOfTheBeholder/eotbBody.js, one renderer):
+ *  a peer in my outfit let go took my own sprite's frames with it until a reload - and the other way, my rider's look let
+ *  go took a peer's horse in the same look (COATS1's, from before). So what this store may evict it uploads and draws
+ *  under a record of its own, `rec` + PEER_OWN_REC; the art it keeps for good (the sets, the class skins) stays shared. */
+export const PEER_OWN_REC = '@peer';
+/** MEM-AUDIT: a layered sprite's outfit - its key (`LA:<body>:<combo>:<record>-<frame>:<code>`) less its record and frame. */
 export const outfitOfLayeredKey = (key) => { const p = key.split(':'); return `${p[0]}:${p[1]}:${p[2]}:${p[4]}`; };
 
 async function decodeUrl(url) {
@@ -91,13 +101,17 @@ export function createEotbArt({ renderer = null, urlFor = eotbSpriteUrl, decode 
   // MEM-AUDIT: and the layered walkers' outfits, by the same law - each outfit's decodes (`pixels`, keyed by the outfit's
   // own sprite keys) go with it. code -> { keys, sprites: Set<sprite key>, used }
   const outfits = new Map();
-  function keepLook(book, code, k, sprite, kept, idleMs) {
+  let walkerSync = 0;   // AUDIT MEM-AUDIT U2: the walkers' syncs, the outfits' clock
+  /** A look or an outfit noted: its texture key, its sprite key (an outfit's decodes go with it), when. */
+  function keepLook(book, code, k, sprite, used) {
     let l = book.get(code);
     if (!l) { l = { keys: new Set(), sprites: new Set(), used: 0 }; book.set(code, l); }
-    l.keys.add(k); if (sprite) l.sprites.add(sprite); l.used = clock();
+    l.keys.add(k); if (sprite) l.sprites.add(sprite); l.used = used;
+  }
+  /** Let the longest undrawn go, down to `kept`, of those undrawn longer than `idle` (in the book's own clock). */
+  function settleBook(book, kept, now, idle) {
     if (book.size <= kept) return;
-    const now = clock();
-    const old = [...book].filter(([, x]) => now - x.used > idleMs).sort((a, b) => a[1].used - b[1].used);
+    const old = [...book].filter(([, x]) => now - x.used > idle).sort((a, b) => a[1].used - b[1].used);
     for (const [c, x] of old.slice(0, book.size - kept)) {
       book.delete(c);
       for (const key of x.keys) { tex.delete(key); renderer?.evictTexture?.(key.replace(':', '_')); }   // the cache's `archive:rec` is the renderer's `archive_rec`
@@ -105,11 +119,14 @@ export function createEotbArt({ renderer = null, urlFor = eotbSpriteUrl, decode 
     }
   }
   function noteLook(s, k) {
-    if (s.horse) keepLook(looks, s.horse, k, null, RIDER_LOOKS_KEPT, RIDER_LOOK_IDLE_MS);   // a horse's pictures are its art's, dyed: the decode is kept
-    else if (isLayeredKey(s.key)) keepLook(outfits, outfitOfLayeredKey(s.key), k, s.key, WALKER_OUTFITS_KEPT, WALKER_OUTFIT_IDLE_MS);
+    if (s.horse) { keepLook(looks, s.horse, k, null, clock()); settleBook(looks, RIDER_LOOKS_KEPT, clock(), RIDER_LOOK_IDLE_MS); }   // COATS1's law, as it was; a horse's pictures are its art's, dyed: the decode is kept
+    else if (isLayeredKey(s.key)) keepLook(outfits, outfitOfLayeredKey(s.key), k, s.key, walkerSync);   // let go at the walkers' next sync (settleOutfits)
   }
+  /** AUDIT MEM-AUDIT U1: the record this store uploads and draws `s` under - its own for what it may let go. */
+  const recOf = (s) => (s.horse || isLayeredKey(s.key) ? `${s.rec}${PEER_OWN_REC}` : s.rec);
   function ensure(s) {
-    const k = `${s.archive}:${s.rec}`;
+    const rec = recOf(s);
+    const k = `${s.archive}:${rec}`;
     noteLook(s, k);
     const have = tex.get(k);
     if (have && !(have instanceof Promise) && !('failedAt' in have)) return have;
@@ -122,14 +139,20 @@ export function createEotbArt({ renderer = null, urlFor = eotbSpriteUrl, decode 
     const p = img.then((raw) => {
       if (tex.get(k) !== p) return null;   // COATS1: let go while in flight - never uploaded
       const { width, height, colors } = lookedPixels(s, raw);   // COATS1: a rider's mount in its look
-      renderer.uploadTexture(s.archive, s.rec, { width, height, colors: s.mirror ? flipRows(colors, width, height) : colors });
+      renderer.uploadTexture(s.archive, rec, { width, height, colors: s.mirror ? flipRows(colors, width, height) : colors });
       return { w: width, h: height };
     });
     tex.set(k, p);
     p.then((r) => { if (tex.get(k) === p) tex.set(k, r); }, () => { if (tex.get(k) === p) tex.set(k, { failedAt: clock() }); });
     return null;
   }
-  return { ensure, renderer, lantern: createLanternArt(() => renderer?.uploadTexture ? renderer : null, loadLantern) };
+  return {
+    ensure, renderer, recOf,
+    /** AUDIT MEM-AUDIT U2: the walkers' sync begins - the outfits undrawn WALKER_OUTFIT_IDLE_SYNCS syncs, past the cap,
+     *  go; every walker drawn the sync before was noted then. */
+    settleOutfits() { walkerSync += 1; settleBook(outfits, WALKER_OUTFITS_KEPT, walkerSync, WALKER_OUTFIT_IDLE_SYNCS); },
+    lantern: createLanternArt(() => renderer?.uploadTexture ? renderer : null, loadLantern),
+  };
 }
 
 /**
@@ -156,9 +179,10 @@ function figureLayer(art) {
       const xml = spriteOffset(s.archive, s.record);
       const own = spriteSize(up.w, up.h, mode, xml.scale);
       const size = g > 1 ? { w: own.w * g, h: own.h * g } : own;
-      const key = `${s.archive}:${s.rec}`;
+      const rec = art.recOf ? art.recOf(s) : s.rec;   // AUDIT MEM-AUDIT U1: the record the store uploaded it under
+      const key = `${s.archive}:${rec}`;
       if (!r.batch) {
-        r.batch = renderer.createBillboardBatch(s.archive, s.rec, size, [[0, 0, 0]]);
+        r.batch = renderer.createBillboardBatch(s.archive, rec, size, [[0, 0, 0]]);
         r.batch.origin = [0, 0, 0];
         r.batch.conceal = r.veil ?? null;   // INVIS-LOOK: a new sprite keeps the figure's draw
         r.batchKey = key;
@@ -167,7 +191,7 @@ function figureLayer(art) {
         // destroyed and made again at every animation frame (a rider's every 1/16 s) in the update, after the frame's
         // records were taken and before the next frame replays them: the replay met a dead batch and the figure cast
         // no shadow on each such frame - a rider's shadow strobing, and every lamp's static cache rebuilt twice a frame
-        r.batch.archive = s.archive; r.batch.record = s.rec; r.batch.size = size;
+        r.batch.archive = s.archive; r.batch.record = rec; r.batch.size = size;
         if (r.batch.bounds) r.batch.bounds[3] = quadHalfDiagonal(size);
         r.batchKey = key;
       }
@@ -427,6 +451,7 @@ export function createPeerWalkers({ renderer = null, urlFor = eotbSpriteUrl, dec
     const all = on && layeredAll();   // LAYERED-PEERS: read once a frame
     const seen = new Set();
     lit.length = 0;
+    store.settleOutfits?.();   // AUDIT MEM-AUDIT U2: before any is noted - every walker drawn last sync was noted then
     for (const peer of on ? peers ?? [] : []) {
       const pose = peer?.shown;
       const set = peer?.look?.eo;

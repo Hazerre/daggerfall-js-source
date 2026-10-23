@@ -36,15 +36,16 @@ const _images = new WeakMap();
  *  and a quarter of the stars twinkle on their own seeded phases. The
  *  default 0 draws the same still frame every prior caller got. The
  *  caller owns the clock: this module never schedules anything. */
-export function drawPixelGround(canvas, w, h, t = 0) {
+export function drawPixelGround(canvas, w, h, t = 0, { keep = true } = {}) {
   const W = Math.max(4, Math.ceil((w * OVER) / SCALE));
   const H = Math.max(4, Math.ceil((h * OVER) / SCALE));
   // MEM-AUDIT: a size set only when it changes - setting it clears the canvas, which putImageData overwrites whole anyway
   if (canvas.width !== W) canvas.width = W;
   if (canvas.height !== H) canvas.height = H;
   const g = canvas.getContext('2d');
-  let img = _images.get(canvas);
-  if (!img || img.width !== W || img.height !== H) { img = g.createImageData(W, H); _images.set(canvas, img); }
+  // AUDIT MEM-AUDIT P9: `keep` false for a one-off draw (the loading screen's still, kept a session) - its image is not held
+  let img = keep ? _images.get(canvas) : null;
+  if (!img || img.width !== W || img.height !== H) { img = g.createImageData(W, H); if (keep) _images.set(canvas, img); else _images.delete(canvas); }
   const data = img.data;
   let seed = 0xda66e4;
   const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 0x100000000;

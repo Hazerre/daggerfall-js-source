@@ -343,6 +343,7 @@ export function createSkyController(gl, params) {
   // past the heap. One asked again is read again: the same bytes, the same panorama.
   const SKY_FILES_KEPT = 2;
   const skyFiles = new Map();
+  const skyMissing = new Set();   // AUDIT MEM-AUDIT M2: the sky indices with no file (the lean diet) - kept apart, never let go: asked again, each was fetched again and warned again
   let activeKey = '';
   let pending = null;
   // DaggerfallSky.cs:74 - ONE System.Random(0) for the component's
@@ -375,6 +376,7 @@ export function createSkyController(gl, params) {
       }
     }
     if (!skyFiles.has(skyIndex)) {
+      if (skyMissing.has(skyIndex)) return buildFallbackSkyPanorama();
       const name = SkyFile.indexToFileName(skyIndex);
       try {
         const f = new SkyFile();
@@ -385,11 +387,11 @@ export function createSkyController(gl, params) {
         // SKY??.DAT degrades to the gradient, never to a crash
         // (2026-08-14; full desktop sets never hit this).
         console.warn(`${name} unavailable - gradient sky fallback`);
-        skyFiles.set(skyIndex, null);
+        skyMissing.add(skyIndex);
       }
     }
     const sf = skyFiles.get(skyIndex);
-    skyFiles.delete(skyIndex); skyFiles.set(skyIndex, sf);   // MEM-AUDIT: the newest last
+    if (sf) { skyFiles.delete(skyIndex); skyFiles.set(skyIndex, sf); }   // MEM-AUDIT: the newest last
     while (skyFiles.size > SKY_FILES_KEPT) {
       const [old] = skyFiles.keys();
       skyFiles.delete(old);

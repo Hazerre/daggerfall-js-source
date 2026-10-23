@@ -11,8 +11,8 @@
   {
     "name": "MA-the-blanket-pruned-active-alone",
     "file": "src/systems/snowfallRuntime.js",
-    "old": "      if (B.overlays.size || B.building) this._blanketPrune(f, this.world.terrainsNear(Math.max(1, Math.min(4, this.world.terrainDistance ?? 3))));\n",
-    "new": "",
+    "old": "        this._blanketPrune(f, near);\n        this._midLetGo(near);\n",
+    "new": "        this._midLetGo(near);\n",
     "tests": [
       "test/systems/memaudit.test.js"
     ]
@@ -65,8 +65,8 @@
   {
     "name": "MA-an-outfit-never-let-go",
     "file": "src/net/peer/peerRiders.js",
-    "old": "    else if (isLayeredKey(s.key)) keepLook(outfits, outfitOfLayeredKey(s.key), k, s.key, WALKER_OUTFITS_KEPT, WALKER_OUTFIT_IDLE_MS);\n",
-    "new": "",
+    "old": "    else if (isLayeredKey(s.key)) keepLook(outfits, outfitOfLayeredKey(s.key), k, s.key, walkerSync);",
+    "new": "    else if (false) keepLook(outfits, outfitOfLayeredKey(s.key), k, s.key, walkerSync);",
     "tests": [
       "test/systems/memaudit.test.js"
     ]
@@ -198,10 +198,10 @@
     ]
   },
   {
-    "name": "MA-a-cover-cell-pushed-from-its-first",
+    "name": "MA-a-grown-cover-cell-pushed",
     "file": "src/ai/cover.js",
-    "old": "  if (n >= CELL_EXACT) { cell.push(it); return; }",
-    "new": "  if (n >= 0) { cell.push(it); return; }",
+    "old": "  if (cell.length >= CELL_EXACT) { cell.push(it); return; }",
+    "new": "  if (cell.length >= 0) { cell.push(it); return; }",
     "tests": [
       "test/systems/memaudit.test.js"
     ]
@@ -209,8 +209,8 @@
   {
     "name": "MA-a-cover-cell-s-order-turned",
     "file": "src/ai/cover.js",
-    "old": "  for (let i = 0; i < n; i++) next[i] = cell[i];\n  next[n] = it;",
-    "new": "  for (let i = 0; i < n; i++) next[i + 1] = cell[i];\n  next[0] = it;",
+    "old": "  grid.set(k, cell.concat([it]));",
+    "new": "  grid.set(k, [it].concat(cell));",
     "tests": [
       "test/systems/memaudit.test.js"
     ]
@@ -272,8 +272,316 @@
   {
     "name": "MA-forgetBytes-forgets-nothing",
     "file": "src/scenes/dataSource.js",
-    "old": "export function forgetBytes(name) { mem.delete(normalizeName(name)); }",
+    "old": "export function forgetBytes(name) { const key = normalizeName(name); if (readAgain.delete(key)) mem.delete(key); }",
     "new": "export function forgetBytes(name) { void name; }",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-U1-the-shared-record",
+    "file": "src/net/peer/peerRiders.js",
+    "old": "const recOf = (s) => (s.horse || isLayeredKey(s.key) ? `${s.rec}${PEER_OWN_REC}` : s.rec);",
+    "new": "const recOf = (s) => s.rec;",
+    "tests": [
+      "test/systems/memaudit.test.js",
+      "test/systems/horse/coats1_horsecoats.test.js"
+    ]
+  },
+  {
+    "name": "MA-U1-the-outfits-shared",
+    "file": "src/net/peer/peerRiders.js",
+    "old": "const recOf = (s) => (s.horse || isLayeredKey(s.key) ? `${s.rec}${PEER_OWN_REC}` : s.rec);",
+    "new": "const recOf = (s) => (s.horse ? `${s.rec}${PEER_OWN_REC}` : s.rec);",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-U2-the-outfits-by-the-clock",
+    "file": "src/net/peer/peerRiders.js",
+    "old": "    else if (isLayeredKey(s.key)) keepLook(outfits, outfitOfLayeredKey(s.key), k, s.key, walkerSync);",
+    "new": "    else if (isLayeredKey(s.key)) { keepLook(outfits, outfitOfLayeredKey(s.key), k, s.key, walkerSync); settleBook(outfits, WALKER_OUTFITS_KEPT, walkerSync + 1, 0); }",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-U2-settled-at-no-sync",
+    "file": "src/net/peer/peerRiders.js",
+    "old": "    store.settleOutfits?.();",
+    "new": "    void \"settled nowhere\";",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-U3-a-hit-not-the-newest",
+    "file": "src/net/marketBook.js",
+    "old": "    const hit = touch(key);",
+    "new": "    const hit = cache.get(key);",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-M1-the-only-copy-forgotten",
+    "file": "src/scenes/dataSource.js",
+    "old": "export function keepOnlyInMemory(name, u8) { mem.set(name, u8); readAgain.delete(name); }",
+    "new": "export function keepOnlyInMemory(name, u8) { mem.set(name, u8); readAgain.add(name); }",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-M2-the-missing-let-go",
+    "file": "src/scenes/shared.js",
+    "old": "      if (skyMissing.has(skyIndex)) return buildFallbackSkyPanorama();\n",
+    "new": "",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-M3-the-mid-ring-kept",
+    "file": "src/systems/snowfallRuntime.js",
+    "old": "        this._midLetGo(near);\n",
+    "new": "",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-M3-the-mid-build-kept",
+    "file": "src/systems/snowfallRuntime.js",
+    "old": "    M.tiles = []; M.buildTiles = []; M.blankets = new Map(); M.source = null; M.reuse = null;",
+    "new": "    M.tiles = []; M.blankets = new Map(); M.source = null; M.reuse = null;",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-M4-the-ring-asked-a-frame",
+    "file": "src/systems/snowfallRuntime.js",
+    "old": "M.buildTiles.length) && !(B.nextPrune && f.now < B.nextPrune)) {",
+    "new": "M.buildTiles.length)) {",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-U3-cached-not-a-use",
+    "file": "src/net/marketBook.js",
+    "old": "    cached: (view, q) => touch(keyOf(view, q))?.data ?? null,",
+    "new": "    cached: (view, q) => cache.get(keyOf(view, q))?.data ?? null,",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-G1-a-part-unmarked",
+    "file": "src/ui/enhanced/enhancedMenu.js",
+    "old": "    return (resolveControl(f)?.parts ?? []).some((pt) => Object.hasOwn(PREF_DEFAULTS, pt.key) && onlineForcedPref(pt.key) === undefined && String(getPref(pt.key)) !== String(PREF_DEFAULTS[pt.key]));",
+    "new": "    return false;",
+    "tests": [
+      "test/systems/org2_options.test.js"
+    ]
+  },
+  {
+    "name": "MA-G2-the-lane-unread",
+    "file": "src/systems/graphicsPresets.js",
+    "old": "  return typeof c?.readOf === 'function' ? c.readOf(v) : v;",
+    "new": "  return v;",
+    "tests": [
+      "test/systems/org2_options.test.js"
+    ]
+  },
+  {
+    "name": "MA-G2-a-lane-row-skipped",
+    "file": "src/ui/enhanced/enhancedMenu.js",
+    "old": "    if (i >= 0 && (i !== st.at || c.write)) st.set(i);",
+    "new": "    if (i >= 0 && i !== st.at) st.set(i);",
+    "tests": [
+      "test/systems/org2_options.test.js"
+    ]
+  },
+  {
+    "name": "MA-G2-the-cap-unread",
+    "file": "src/world/landView.js",
+    "old": "  return landViewDistance({ enhanced, pref: n, setting: Math.min(n, LAND_VIEW_DFU_MAX) });",
+    "new": "  return n;",
+    "tests": [
+      "test/systems/org2_options.test.js"
+    ]
+  },
+  {
+    "name": "MA-G3-the-bar-s-read",
+    "file": "src/ui/enhanced/enhancedMenu.js",
+    "old": "  const now = presetNow(featureValue, getPref);",
+    "new": "  const now = presetNow(featureValue, String);",
+    "tests": [
+      "test/systems/org2_options.test.js"
+    ]
+  },
+  {
+    "name": "MA-G3-medium-s-clouds-high",
+    "file": "src/systems/graphicsPresets.js",
+    "old": "grass: 0.5, 'cloud-quality': 'lo',",
+    "new": "grass: 0.5, 'cloud-quality': 'hi',",
+    "tests": [
+      "test/systems/org2_options.test.js"
+    ]
+  },
+  {
+    "name": "MA-G4-the-words-fixed",
+    "file": "src/ui/enhanced/enhancedMenu.js",
+    "old": "  ...PRESET_ROWS.map((id) => FEATURES.find((f) => f.id === id)?.title ?? ''),\n",
+    "new": "",
+    "tests": [
+      "test/systems/org2_options.test.js"
+    ]
+  },
+  {
+    "name": "MA-G6-no-effect-said",
+    "file": "src/ui/enhanced/enhancedMenu.js",
+    "old": "  main.append(el('div', 'row-sub', PRESET_WORDS.effect()));",
+    "new": "",
+    "tests": [
+      "test/systems/org2_options.test.js"
+    ]
+  },
+  {
+    "name": "MA-C1-a-cell-of-one-pushed-from-empty",
+    "file": "src/ai/cover.js",
+    "old": "  if (!cell) { grid.set(k, [it]); return; }",
+    "new": "  if (!cell) { const a = []; a.push(it); grid.set(k, a); return; }",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-C1-the-bodies-grid-pushed",
+    "file": "src/ai/cover.js",
+    "old": "fileIn(set.bodies, cellKey(gx, gz), it);",
+    "new": "{ const k = cellKey(gx, gz); let c = set.bodies.get(k); if (!c) set.bodies.set(k, c = []); c.push(it); }",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-C1-the-wide-grid-pushed",
+    "file": "src/ai/cover.js",
+    "old": "        fileIn(set.wide, cellKey(Math.floor(x / COVER_WIDE), Math.floor(z / COVER_WIDE)), it);",
+    "new": "        { const k = cellKey(Math.floor(x / COVER_WIDE), Math.floor(z / COVER_WIDE)); let c = set.wide.get(k); if (!c) set.wide.set(k, c = []); c.push(it); }",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-C2-the-mark-born-first",
+    "file": "src/ai/cover.js",
+    "old": "  return { c: base, r: size.w * COVER_RADIUS_FRAC, h: size.h * COVER_HEIGHT_FRAC, lift: 0, _mark: 0 };",
+    "new": "  return { _mark: 0, c: base, r: size.w * COVER_RADIUS_FRAC, h: size.h * COVER_HEIGHT_FRAC, lift: 0 };",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-C2-a-jungle-body-born-without-its-mark",
+    "file": "src/world/propBodies.js",
+    "old": "  return { c, r: m.trunk * scale, h: m.crownFrom * scale, lift: 0, body: true, _mark: 0 };",
+    "new": "  return { c, r: m.trunk * scale, h: m.crownFrom * scale, lift: 0, body: true };",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-P5-the-outfits-never-idle-checked",
+    "file": "src/net/peer/peerRiders.js",
+    "old": "    const old = [...book].filter(([, x]) => now - x.used > idle).sort((a, b) => a[1].used - b[1].used);",
+    "new": "    const old = [...book].sort((a, b) => a[1].used - b[1].used);",
+    "tests": [
+      "test/systems/memaudit.test.js",
+      "test/systems/horse/coats1_horsecoats.test.js"
+    ]
+  },
+  {
+    "name": "MA-P5-the-outfits-idle-at-once",
+    "file": "src/net/peer/peerRiders.js",
+    "old": "settleBook(outfits, WALKER_OUTFITS_KEPT, walkerSync, WALKER_OUTFIT_IDLE_SYNCS); },",
+    "new": "settleBook(outfits, WALKER_OUTFITS_KEPT, walkerSync, 0); },",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-P6-the-market-cap-one-short",
+    "file": "src/net/marketBook.js",
+    "old": "      if (cache.size > MARKET_CACHE_KEPT) cache.delete(cache.keys().next().value);",
+    "new": "      if (cache.size >= MARKET_CACHE_KEPT) cache.delete(cache.keys().next().value);",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-P6-a-rewrite-left-where-it-stood",
+    "file": "src/net/marketBook.js",
+    "old": "      cache.delete(key); cache.set(key, e);",
+    "new": "      cache.set(key, e);",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-P6-the-cap-not-256",
+    "file": "src/net/marketBook.js",
+    "old": "export const MARKET_CACHE_KEPT = 256;",
+    "new": "export const MARKET_CACHE_KEPT = 257;",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-P7-the-close-keeps-the-listener",
+    "file": "src/ui/enhanced/enhancedMenu.js",
+    "old": "  acctOff?.(); acctOff = null;\n  acctPaint = null;\n  rereadCollectionsAccount();",
+    "new": "  acctOff = null;\n  acctPaint = null;\n  rereadCollectionsAccount();",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-P7-the-card-keeps-its-listener",
+    "file": "src/ui/enhanced/enhancedAccount.js",
+    "old": "    off = () => win.removeEventListener('focus', onFocus);",
+    "new": "    off = () => {};",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-P7-the-item-menu-s-timer-not-its-own",
+    "file": "src/ui/enhanced/enhancedInventory.js",
+    "old": "  const timer = setTimeout(() => { if (!menuEl) return; document.addEventListener('pointerdown', away, true);",
+    "new": "  const timer = 0; setTimeout(() => { if (!menuEl) return; document.addEventListener('pointerdown', away, true);",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-P9-a-one-side-resize-unchecked",
+    "file": "src/ui/pixelGround.js",
+    "old": "if (!img || img.width !== W || img.height !== H) {",
+    "new": "if (!img || img.width !== W) {",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-P9-a-one-off-draw-kept",
+    "file": "src/ui/pixelGround.js",
+    "old": "  let img = keep ? _images.get(canvas) : null;",
+    "new": "  let img = _images.get(canvas);",
     "tests": [
       "test/systems/memaudit.test.js"
     ]

@@ -2436,7 +2436,8 @@ The drivers live in the session's scratch, outside the tree, like OW-HITCH's.
 
 **Measured: the live set is the standing world, not growth.** At 121 pixels standing (land view 5), 1,165 MB of live JS
 heap. That is SNOW-SWEEP's 1.1-1.4 GB. Offline, warping a pixel a step over 60 pixels (660 built and torn down), the heap
-after collection stayed within 1,163-1,207 MB. What holds it, from the sampling profile (812 MB of 1,164 sampled):
+after collection stayed within 1,163-1,207 MB. What holds it, the largest the sampling profile names (it sampled 812 MB as
+live; the rest stands in many small holders - AUDIT P11):
 - the cover index (`ai/cover.js`), 290 MB: its grids (`fill`) 224 MB, the proxies 65 MB;
 - the streamed pixels' flats (`pixelBuild.js` `addFlat` 76 MB, `buildPixelNow` 46 MB);
 - World of Daggerfall's replacement blocks, parsed (`worldDataReplacement.js`, ~100 MB, its cache capped at 192 blocks);
@@ -2447,19 +2448,24 @@ after collection stayed within 1,163-1,207 MB. What holds it, from the sampling 
    pixel's `{ entry, nodes }` and nothing let one go. Its entry is the pixel's whole build (ground samples and normals,
    tilemaps, flats, townsfolk), ~2 MB of heap. Online the professions' book stands every built pixel, a bare one too, so
    every pixel a journey streamed stood for the session. The world lane measured ~26 MB a map pixel travelled, about 1 GB
-   after 40 pixels: a couple of minutes at x60, and the black screens of FIELD BUGS 2026-10-21b's travellers had room in
-   it. A torn-down pixel's schools are now forgotten. `schoolPlaces` already passed any entry the gather host no longer
+   after 40 pixels: a couple of minutes at x60. (AUDIT P11: whether FIELD BUGS 2026-10-21b's travellers were online, that
+   page does not say - this is no claim about their black screens.) A torn-down pixel's schools are now forgotten. `schoolPlaces` already passed any entry the gather host no longer
    stood.
 2. **The cover index's cells** (`ai/cover.js` `fileIn`, CELL_EXACT). The census at Knightstale counted 964k cover proxies
    and 523k bodies in 2.07M cells:
    - 63% of the cover grid's cells and 97% of the bodies' hold one proxy;
-   - a cell grown by push from `[]` reserves sixteen slots at its first.
+   - a cell grown by push from `[]` has seventeen slots from its first push (AUDIT C4).
 
-   Below CELL_EXACT (16) a cell is now copied one longer in the same order, so it holds exactly its own. Past it, it is
-   pushed. Every maker gives a proxy the index's `_mark` at birth (`coverProxy`, `coverProxies`, `propBodies.js`, the
-   jungle's): `fill` set it first, a property store more for each of 1.5M proxies. A ray, a body's query and the probes
-   read the same proxies in the same order, and the index is quicker for it in node (a forest pixel's fill 21-26 ->
-   9-14 ms; 20,000 sight rays 317-379 -> 258-303 ms, the same hits).
+   Below CELL_EXACT (16) a cell is now copied one longer in the same order (`concat`: packed and exact, so every cell
+   keeps the one array shape the pushed cells had - AUDIT C3: a holey copy made the ray's loop polymorphic), so it holds
+   exactly its own. Past it, it is pushed. Every maker gives a proxy the index's `_mark` at birth, last of its keys
+   (`coverProxy`, `coverProxies`, `propBodies.js`' two, the jungle's): `fill` added it first, a map transition and an
+   out-of-line property array for each of 1.5M proxies (AUDIT C4; `fill` still zeroes it - a proxy may stand in two
+   indexes). A ray, a body's query and the probes read the same proxies in the same order (lane C fuzzed 12,000
+   sequences against the old index: 1.73M rays bit for bit, 650k body queries in order). In node a forest pixel's fill
+   went 21-26 -> 9-14 ms, but most of that is the collector's work that had landed in it (AUDIT C5: a 121-pixel build
+   allocates 825 -> 595 MB and promotes 463 -> 233 MB; the fill's own work is ~15% less); 20,000 sight rays 7-23% faster,
+   the same hits.
    **Measured in the real game**, the same boot on this branch: **1,165 -> 1,017.5 MB of live heap**, the cover index's
    share 290 -> 155 MB - an eighth less for every major collection to mark, which made the longest frames of SNOW-SWEEP's
    journeys.
@@ -2473,15 +2479,26 @@ after collection stayed within 1,163-1,207 MB. What holds it, from the sampling 
 5. **The snow's blanket, idle** (`systems/snowfallRuntime.js` `_blanketPrune`, `_blanketDrop`). Its 5 s prune ran only
    while the tier was active, so indoors or under the travel view the last ring's overlays held their tiles. Each tile
    held its map pixel's whole entry long after the world destroyed it: 49 at the default view, 11 MB of overlays and the
-   entries behind them. The prune now runs idle too. A dropped overlay lets go of its tile and arrays at once, since its
-   GPU half waits for the surface's next sync (the door or the view coming down).
+   entries behind them. The prune now runs idle too, on its own five seconds (AUDIT M4: the ring was asked every idle
+   frame before the schedule was read). A dropped overlay lets go of its tile and arrays at once, since its GPU half
+   waits for the surface's next sync (the door or the view coming down); and the mid ring's tiles go once one is no
+   longer standing (AUDIT M3, `_midLetGo`: up to four pixels' entries a journey kept - such a ring can never be reused,
+   and the player is pixels from it). A departure from the mod, whose Tick prunes nothing while inactive (AUDIT P10;
+   SNOW-HOLD's Port-Ledger A row, narrowed).
 6. **The others' layered walkers, online** (`net/peer/peerRiders.js` `keepLook`). Every outfit (LAYERED-GEAR's head, top,
    legs and cloak) is its own decoded pictures and textures, and only a horse's look was ever let go. An outfit is now let
-   go by the horse looks' law: WALKER_OUTFITS_KEPT 24, and only one undrawn for WALKER_OUTFIT_IDLE_MS (a minute), with its
-   decodes. A walker in view is never let go.
+   go past WALKER_OUTFITS_KEPT 24, and only one undrawn WALKER_OUTFIT_IDLE_SYNCS (3,600) of the walkers' syncs, with its
+   decodes - counted in syncs, settled at a sync's start (AUDIT U2: by the clock, a tab hidden a minute let every walker
+   in view go, one by one). What the store may let go - a horse's look, an outfit - it uploads and draws under records of
+   its own (PEER_OWN_REC, AUDIT U1): the local body draws the same pictures under the same keys, and an eviction took my
+   own sprite's frames with it until a reload (and, from COATS1, my rider's look let go took a peer's horse in it). A
+   peer in my outfit now costs a second copy of its frames on the GPU.
 7. **The classic sky's files** (`scenes/shared.js` SKY_FILES_KEPT, `dataSource.js` `forgetBytes`). Each SKY??.DAT is
    7.8 MB, and the parsed files and their bytes stood for the session, up to 248 MB past the heap. The two last asked are
-   kept. One asked again is read again: the same bytes, the same panorama. The enhanced skies read none.
+   kept. One asked again is read again: the same bytes, the same panorama - only where they can be read again (AUDIT M1,
+   `keepOnlyInMemory`: a memory-only session, the ingest's no-IDB arm, keeps its only copy, which forgetting turned the
+   sky to the gradient). A sky with no file (the lean diet) is asked once (AUDIT M2, `skyMissing`). The enhanced skies
+   read none.
 8. **The menus' sky** (`ui/pixelGround.js`). It is redrawn eight times a second at the home, chargen and level-up, at
    62-132 ms a draw in node (at 1440p, longer than its tick). Now:
    - the ramp is read as bytes once;
@@ -2489,22 +2506,37 @@ after collection stayed within 1,163-1,207 MB. What holds it, from the sampling 
    - the canvas is sized only when its size moves;
    - the fog's `Math.hypot` is skipped where it cannot reach (`hypot >= max(|dx|, |dy|) >= r`).
 
-   18 ms at 1080p, 28 at 1440p, PX1's bytes to the byte.
+   18 ms at 1080p, 28 at 1440p, PX1's bytes to the byte (lane U: 15,262 draws against the old, none differing). A one-off
+   draw keeps no image (AUDIT P9, `keep: false`: the loading screen's still, kept a session, 1.2 MB at 1080p).
 9. **The small owners:**
-   - the account card's focus listener, a card a render;
+   - the account card's focus listener, a card a render (let go by the repaint, the close and the unmount - AUDIT P1:
+     not the mount's line, whose length MAC1 holds);
    - the menu's foot observer and card at unmount;
    - an item menu's listener pair, laid by a timer its close did not clear, so a second menu opened first swallowed every
      Escape after;
    - the icon data-URL cache, a WeakMap;
-   - the market's read cache, 64 kept, the oldest written first (its old answers are a failed read's stale fallback);
+   - the market's read cache, 256 kept, the least recent first - a read, a `cached()` and a write each make an entry the
+     newest (AUDIT U3: 64, the oldest written first, dropped a view the player came back to after 70 pages, and its
+     stale fallback with it);
    - a still billboard batch in an arena, no index array of its own.
 
 **The Graphics preset.** Every row's own note was read against what it does and what it costs. The four presets stand in
 order on every row, and High is every default. The DFU keys nothing reads fold under "Saved for later" and say so.
-Steady shadows (Enhanced lighting's part, FLICKER-FIX) was the one knob whose note says it costs frame rate that the
-preset left alone: it redraws every far caster and swaying wood's shadow every frame (42 lantern face passes a frame at
-Knightstale by day, Performance-Next item 9). The preset now sets it as a part (`PRESET_PARTS`): off on Low, on from
-Medium up. High is unchanged, so an untouched shelf still reads High (`10-UI/Settings-Screen-Spec.md`).
+Steady shadows (Enhanced lighting's part, FLICKER-FIX) costs frame rate by its own note and the preset left it alone
+(render scale's note says so too, and is a choice of its own by the spec - AUDIT G7): it redraws every far caster and
+swaying wood's shadow every frame (42 lantern face passes a frame at Knightstale by day, Performance-Next item 9). The
+preset now sets it as a part (`PRESET_PARTS`): off on Low, on from Medium up - read live each frame (lane G: off is EL8's
+schedule back, a few more caster swaps). High is unchanged, so an untouched shelf still reads High
+(`10-UI/Settings-Screen-Spec.md`); a player who pressed Low before reads Custom until they press it again (AUDIT P13). The
+audit's fixes on the same bar:
+- a row wears Changed when a part of its drawer is off its default (AUDIT G1: a part turned off read Custom on a tab that
+  said nothing was changed);
+- High and Ultra read as themselves off the enhanced outdoors and on the classic skin, where land view reads DFU's 1..4
+  (AUDIT G2, before this pass: a preset compares a row through its lane's `readOf`, world/landView.js landViewAsRead, and
+  writes a lane's row whole - Low had left the enhanced lane's store at 5);
+- the row is found by what its note names and the rows' own titles (AUDIT G4), says when it takes effect (G6: Steady
+  shadows and the windows at once, the rest at the world's next load), and is in the player's language (G5: its name,
+  note, effect, Custom and four labels, drafted for the twenty languages that hold the catalog).
 
 **Not changed, and why.**
 - A flat's `[x, y, z]` is one array, shared by its batch, its cover and its body. FELLED and `noCover` know a flat by it,
@@ -2516,18 +2548,29 @@ Medium up. High is unchanged, so an untouched shelf still reads High (`10-UI/Set
 - The per-frame arrays of the Morrowind bodies' sprite quads are eight small arrays a frame at most.
 - A cell of one proxy could hold the proxy itself, not an array of one (1.5M of the 2.07M cells, ~42 MB more): every
   reader of a cell then asks which it holds, in the sight ray's own loop. Left for a pass that measures the ray's frame.
+- From the audit, the same before this pass: the cover index's `near()` bumps its stamp once a set with bodies, uncull'd
+  (121 a frame) - after ~1.07e9 stamps (hours of play) every `_mark` widens to a double; `hit(..., Infinity)` would loop
+  for ever, and no caller asks it. `tools/enhancedMenuProbe.mjs` is stale against the front door (its doors moved). The
+  Real windows row and the Steady shadows part's own label are English (RW1's, FLICKER-FIX's).
 
 **The four hosts.** `scenes/world.js` streams the pixels the fishing host, the cover and the blanket hold; its own code is
-unchanged. `scenes/worldModes.js` is wired (`setMode`). `scenes/dungeonContext.js` and the interior context build through
+unchanged. `scenes/worldModes.js` is wired (`setMode`: `createWorldModes` 10,974 -> 10,985 logical lines under its
+ceiling of 10,998, a fix's room - AUDIT P12). `scenes/dungeonContext.js` and the interior context build through
 `StaticBatchBuilder`, so the merge's spend is theirs. `scenes/exterior.js` (one fixed city) streams nothing, and its cover
 and batches are made once a page.
 
-Pins: `test/systems/memaudit.test.js` (11): one for each fix above but the per-frame arrays, driving the module that owned
-the leak or reading the host's one line. The preset's pin is `org2_options.test.js` (PIN MOVED: `presetNow` reads the
-parts). Mutants: `tools/mutants/memaudit.json`, 31, all dead. Records re-aimed by content, all dead:
+Pins: `test/systems/memaudit.test.js` (13), driving the module that owned the leak - the host's one line read where the
+host is the owner (`setMode`, the menu's wiring, the item menu's timer). The preset's are `org2_options.test.js`'s (PIN
+MOVED: `presetNow` reads the parts and the lanes, the apply line a lane's row whole; and the audit's G1-G6), COATS1's
+(PIN MOVED: a look let go under the store's own record), RF4's (PIN MOVED: the land view lane's `readOf`) and L10N4's
+ratchet (enhancedMenu.js 60 -> 58). Mutants: `tools/mutants/memaudit.json`, 65, all dead. Records re-aimed by content,
+all dead:
 - `fb1021b_snowhold.json`: SNOW-HOLD-queue-unpruned and SNOW-HOLD-queue-kept-inactive;
 - `worldhover.json`: the setMode pair;
-- `audittact.json`: ATACT-B2-fat-trunk and ATACT-B2-crown-grounded.
+- `audittact.json`: ATACT-B2-fat-trunk and ATACT-B2-crown-grounded;
+- `audit_flicker.json`: AUDIT-FLICKER-R1-a-new-batch-each-frame; `org2.json`: ORG2-the-preset-past-the-lane.
+
+The audit: `01-Overview/audits/Audit-Mem-Audit.md`.
 
 ## For the owner
 

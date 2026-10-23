@@ -7554,6 +7554,46 @@
   "tr": "f676f06f5498",
   "by": "claude-in-session"
  },
+ "menu.settings.preset.custom": {
+  "en": "081ae3fdc403",
+  "tr": "00c780a4fec3",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.effect": {
+  "en": "14ce279f662a",
+  "tr": "33352d2009f2",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.high": {
+  "en": "b1a5954a483f",
+  "tr": "deae611aba72",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.low": {
+  "en": "a124947cbd2d",
+  "tr": "295311331dd1",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.medium": {
+  "en": "d404968ea90b",
+  "tr": "d12b32dd0980",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.name": {
+  "en": "c841c65b2bd6",
+  "tr": "fcf35e3cac78",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.note": {
+  "en": "e8f57263fb6e",
+  "tr": "e95c763078a2",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.ultra": {
+  "en": "50050d5b621c",
+  "tr": "50050d5b621c",
+  "by": "claude-in-session"
+ },
  "menu.settings.reset": {
   "en": "52af1c1f0024",
   "tr": "d8582bd02fe8",

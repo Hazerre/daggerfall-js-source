@@ -1,22 +1,27 @@
 // MEM-AUDIT (2026-10-23, the owner: "a comprehensive performance audit, looking for memory leaks"): what a place, a map
 // pixel, a menu or a session online left standing after its life (bible/07-Rendering/Performance-Priority.md MEM-AUDIT).
-// Each pin drives the module that owned the leak, or reads the host's one line where the host is the owner; each names
-// its mutant (tools/mutants/memaudit.json).
+// Each pin drives the module that owned the leak; where the owner is a host's or a window's wiring (setMode, the menu's
+// account card and foot, the item menu's timer, the classic sky's bound) it reads that one line. Each names its mutants
+// (tools/mutants/memaudit.json). AUDIT MEM-AUDIT (01-Overview/audits/Audit-Mem-Audit.md) widened them.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { setFlagsFromString } from 'node:v8';
+import { runInNewContext } from 'node:vm';
 import { StaticBatchBuilder, keyResolver } from '../../src/render/staticBatch.js';
 import { createCoverIndex, coverProxy, coverProxies, CELL_EXACT, COVER_CELL } from '../../src/ai/cover.js';
-import { flatBodies } from '../../src/world/propBodies.js';
+import { flatBodies, jungleBody } from '../../src/world/propBodies.js';
 import { jungleCover } from '../../src/world/jungle/jungleModels.js';
 import { trs } from '../../src/world/mat4.js';
 import { SnowCoverage } from '../../src/systems/snowfall.js';
 import { SnowfallRuntime } from '../../src/systems/snowfallRuntime.js';
 import { snowPixelBox } from '../../src/scenes/snowfallHost.js';
 import { drawPixelGround } from '../../src/ui/pixelGround.js';
-import { createEotbArt, WALKER_OUTFITS_KEPT, WALKER_OUTFIT_IDLE_MS, outfitOfLayeredKey } from '../../src/net/peer/peerRiders.js';
+import { createEotbArt, createPeerWalkers, WALKER_OUTFITS_KEPT, WALKER_OUTFIT_IDLE_SYNCS, PEER_OWN_REC, outfitOfLayeredKey } from '../../src/net/peer/peerRiders.js';
 import { createMarketBook, MARKET_CACHE_KEPT, MARKET_CACHE_MS } from '../../src/net/marketBook.js';
 import { hostText } from '../hostText.mjs';
+import { accountCard } from '../../src/ui/enhanced/enhancedAccount.js';
+import { AccountFlow } from '../../src/ui/accountFlow.js';
 import { fishKind } from '../../src/scenes/fishHost.js';
 import { setForagingHost } from '../../src/systems/foraging/foragingInstall.js';
 import { WORLD_MAP_TILE_DIM } from '../../src/world/terrain/terrainTiles.js';
@@ -51,7 +56,7 @@ test('MEM-AUDIT the static batch: the merge spends its inputs - the builder a ho
 
 // ─── THE COVER INDEX ─────────────────────────────────────────────────
 
-test('MEM-AUDIT the cover index: a cell is held at its size while small - the same proxies in the same order as the pushes filed them, a cell copied one longer below CELL_EXACT and pushed past it; every proxy born with its mark (mutants: a cell pushed from its first, the order turned, a maker without the mark)', () => {
+test('MEM-AUDIT the cover index: a cell is held at its size while small - the same proxies in the same order as the pushes filed them, on every grid (the cover\'s, the bodies\', the wide); a cell copied one longer below CELL_EXACT and pushed past it; a cell of one proxy at its size; every proxy born with its mark, last of its keys (AUDIT C1/C2, P4) (mutants: a cell pushed from its first, the order turned, a grid pushed, a maker without the mark)', () => {
   const idx = createCoverIndex({ enabled: () => true });
   const set = idx.staged();
   let seed = 7;
@@ -59,33 +64,56 @@ test('MEM-AUDIT the cover index: a cell is held at its size while small - the sa
   const items = [];
   for (let i = 0; i < 4000; i++) items.push(...coverProxies([rnd() * 300, 0, rnd() * 300], { w: 1 + rnd() * 8, h: 3 + rnd() * 9 }, { tree: rnd() < 0.5 }));
   for (let i = 0; i < 60; i++) items.push(coverProxy([150 + rnd(), 0, 150 + rnd()], { w: 2, h: 2 }));   // one crowded corner: cells past CELL_EXACT
-  const bodies = flatBodies(null, 504, 3, { w: 3, h: 9 }, items.slice(0, 500).map((p) => p.c), { tree: true });
-  // the pushes' own grid, restated: every cell its proxies in the order they were filed
-  const ref = new Map(), refBodies = new Map();
-  const file = (m, k, it) => { let c = m.get(k); if (!c) m.set(k, c = []); c.push(it); };
+  for (let i = 0; i < 400; i++) items.push(...jungleCover([rnd() * 300, 0, rnd() * 300], 0, 1 + rnd()));   // the wide grid's: crowns past a cell
+  for (let i = 0; i < 40; i++) items.push(...jungleCover([40 + rnd() * 4, 0, 40 + rnd() * 4], 0, 1));   // a wide cell past CELL_EXACT
+  const bodies = [...flatBodies(null, 504, 3, { w: 3, h: 9 }, items.slice(0, 500).map((p) => p.c), { tree: true }), ...Array.from({ length: 40 }, () => jungleBody([60 + rnd(), 0, 60 + rnd()], 0, 1))];
+  assert.ok(items.some((p) => p.r > COVER_CELL), 'wide proxies among them');
+  // the pushes' own grids, restated: every cell its proxies in the order they were filed
   const key = (gx, gz) => (gx + 32768) * 65536 + (gz + 32768);
-  for (const [list, m] of [[items, ref], [bodies, refBodies]]) for (const it of list) {
-    if (it.r > COVER_CELL) continue;
+  const file = (m, k, it) => { let c = m.get(k); if (!c) m.set(k, c = []); c.push(it); };
+  const ref = { grid: new Map(), wide: new Map(), bodies: new Map() };
+  const order = [...items, ...bodies].map((it) => [rnd(), it]).sort((a, b) => a[0] - b[0]).map(([, it]) => it);
+  for (const it of order) {
     const [x, , z] = it.c;
+    if (!it.body && it.r > COVER_CELL) { file(ref.wide, key(Math.floor(x / 32), Math.floor(z / 32)), it); continue; }
+    const m = it.body ? ref.bodies : ref.grid;
     for (let gx = Math.floor((x - it.r) / COVER_CELL); gx <= Math.floor((x + it.r) / COVER_CELL); gx++) for (let gz = Math.floor((z - it.r) / COVER_CELL); gz <= Math.floor((z + it.r) / COVER_CELL); gz++) file(m, key(gx, gz), it);
   }
-  let copied = 0, pushed = 0;
-  for (let i = 0; i < items.length; i += 997) {   // filled a slice at a time, as a streamed pixel's is
-    const before = new Map([...set.grid].map(([k, c]) => [k, [c, c.length]]));
-    idx.fill(set, items.slice(i, i + 997));
-    for (const [k, [was, n]] of before) {
-      const now = set.grid.get(k);
-      if (now.length === n) continue;
-      if (n < CELL_EXACT) { assert.notEqual(now, was, 'a small cell grown is a new array, its own size'); copied++; } else { assert.equal(now, was, 'a cell past CELL_EXACT is pushed'); pushed++; }
+  const tally = { grid: [0, 0], wide: [0, 0], bodies: [0, 0] };
+  const all = order;   // seeded: every grid grows across slices
+  for (let i = 0; i < all.length; i += 997) {   // filled a slice at a time, as a streamed pixel's is
+    const before = Object.fromEntries(Object.keys(tally).map((g) => [g, new Map([...set[g]].map(([k, c]) => [k, [c, c.length]]))]));
+    idx.fill(set, all.slice(i, i + 997));
+    for (const g of Object.keys(tally)) {
+      for (const [k, [was, n]] of before[g]) {
+        const now = set[g].get(k);
+        if (now.length === n) continue;
+        if (n < CELL_EXACT) { assert.notEqual(now, was, `${g}: a small cell grown is a new array, its own size`); tally[g][0]++; } else { assert.equal(now, was, `${g}: a cell past CELL_EXACT is pushed`); tally[g][1]++; }
+      }
     }
   }
-  idx.fill(set, bodies);
-  assert.deepEqual([...set.grid.keys()].sort((a, b) => a - b), [...ref.keys()].sort((a, b) => a - b), 'the same cells');
-  for (const [k, c] of ref) assert.deepEqual(set.grid.get(k), c, 'each its proxies, in the order filed');
-  for (const [k, c] of refBodies) assert.deepEqual(set.bodies.get(k), c, 'and the bodies\' grid the same');
-  assert.ok(copied > 100 && pushed > 0, `both arms met (${copied} copied, ${pushed} pushed)`);
-  const born = [coverProxy([0, 0, 0], { w: 2, h: 2 }), ...coverProxies([0, 0, 0], { w: 2, h: 9 }, { tree: true }), ...jungleCover([0, 0, 0], 0, 1), ...flatBodies(null, 504, 3, { w: 3, h: 9 }, [[0, 0, 0]], { tree: true })];   // fresh: `fill` marks what it files
-  for (const p of born) assert.ok(Object.hasOwn(p, '_mark'), `a proxy born with its mark (${Object.keys(p).join(',')})`);
+  for (const g of Object.keys(ref)) {
+    assert.deepEqual([...set[g].keys()].sort((a, b) => a - b), [...ref[g].keys()].sort((a, b) => a - b), `${g}: the same cells`);
+    for (const [k, c] of ref[g]) assert.deepEqual(set[g].get(k), c, `${g}: each its proxies, in the order filed`);
+  }
+  for (const g of ['grid', 'wide']) assert.ok(tally[g][0] > 0 && tally[g][1] > 0, `${g}: both arms met (${tally[g]})`);
+  assert.ok(tally.bodies[0] > 0, `bodies: copied (${tally.bodies})`);
+  // every maker, fresh (`fill` marks what it files), the same keys in the same order - one shape for the ray's loop
+  const COVER_KEYS = ['c', 'r', 'h', 'lift', '_mark'], BODY_KEYS = ['c', 'r', 'h', 'lift', 'body', '_mark'];
+  for (const p of [coverProxy([0, 0, 0], { w: 2, h: 2 }), ...coverProxies([0, 0, 0], { w: 2, h: 9 }, { tree: true }), ...jungleCover([0, 0, 0], 0, 1)]) assert.deepEqual(Object.keys(p), COVER_KEYS, 'a cover proxy');
+  for (const p of [...flatBodies(null, 504, 3, { w: 3, h: 9 }, [[0, 0, 0]], { tree: true }), jungleBody([0, 0, 0], 0, 1)]) assert.deepEqual(Object.keys(p), BODY_KEYS, 'a body');
+  // a cell of one proxy at its size: measured on the heap - 100,000 cells of one, each its own
+  setFlagsFromString('--expose-gc');
+  const gc = runInNewContext('gc');
+  const one = createCoverIndex({ enabled: () => true });
+  const lone = Array.from({ length: 100000 }, (_, i) => coverProxy([(i % 1000) * 8 + 2, 0, Math.floor(i / 1000) * 8 + 2], { w: 1.5, h: 2 }));
+  gc(); gc();
+  const h0 = process.memoryUsage().heapUsed;
+  one.add('one', lone);
+  gc(); gc();
+  const perCell = (process.memoryUsage().heapUsed - h0) / 100000;
+  assert.equal(one.refs(), 100000, 'a cell each');
+  assert.ok(perCell < 120, `a cell of one proxy and its entry: ${perCell.toFixed(0)} B (pushed from [], ~250)`);
 });
 
 // ─── THE SNOW'S BLANKET ──────────────────────────────────────────────
@@ -118,7 +146,7 @@ function streamingWorld() {
   return { world, dead, bind: (r) => { rt = r; }, move: (x, z, t) => { now = t; at = [X0 + Math.floor(x / SIZE), Y0 - Math.floor(z / SIZE)]; stream(); } };
 }
 
-test('MEM-AUDIT the snow\'s blanket: idle (the travel view up, a door), its overlays are pruned still - a journey keeps no tile the world destroyed, a dropped overlay holds neither its tile nor its arrays, and a tile still standing keeps its own (mutants: the prune active alone, the drop keeping the tile)', () => {
+test('MEM-AUDIT the snow\'s blanket: idle (the travel view up, a door), its overlays are pruned still - a journey keeps no tile the world destroyed, a dropped overlay holds neither its tile nor its arrays, and a tile still standing keeps its own (mutants: the prune active alone, the drop keeping the tile, the ring asked a frame, the mid ring kept)', () => {
   const s = streamingWorld();
   const rt = new SnowfallRuntime({ world: s.world, coverage: new SnowCoverage(MASKS), frameBudgetMs: 50 });
   s.bind(rt);
@@ -132,13 +160,37 @@ test('MEM-AUDIT the snow\'s blanket: idle (the travel view up, a door), its over
   quiet(() => { for (let i = 0; i < 300; i++) { st.now += 1 / 30; frame(null); } });
   assert.equal(rt.blanket.active, false);
   assert.ok(laid.every((o) => rt.blanket.overlays.get(o.t) === o && !o.dead), 'a tile still standing keeps its overlay for the door');
+  assert.ok(rt.mid.tiles.length > 0, 'the mid ring laid on its tiles');
+  // AUDIT P3: a tile's ground rebuilt - its old overlay goes, holding nothing, its GPU half queued for the sync
+  const tile = laid[0].t, old = rt.blanket.overlays.get(tile), fresh = { ...tile, stamp: 2 };
+  rt.dirty.blanket.clear();   // the surface's sync took what was laid
+  rt.terrainPromoted(fresh, st.now, tile);
+  assert.ok(old.dead && old.t === null && old.pos === null && rt.dirty.blanket.has(old), 'the replaced tile\'s overlay dropped whole and queued for its GPU free');
+  rt.terrainPromoted(tile, st.now, fresh);   // and back, so the world's own tile stands again
+  // the view comes up mid-build: the blanket's overlay of that tile part-made (AUDIT P3), then a mid rebuild begun (M3)
+  quiet(() => { for (let i = 0; i < 400 && !(rt.blanket.building?.cursor > 0 && !rt.mid.building); i++) { st.now += 1 / 30; frame(standing()); } });
+  assert.ok(rt.blanket.building?.cursor > 0, 'a blanket overlay under way');
+  rt.mid.rebuildPending = true;
+  quiet(() => { for (let i = 0; i < 20 && !rt.mid.building; i++) { st.now += 1 / 30; frame(standing()); } });
+  assert.ok(rt.mid.building && rt.mid.buildTiles.length > 0, 'a mid build under way');
+  assert.ok(rt.blanket.building, 'the blanket\'s still in hand');
+  rt.dirty.blanket.clear();   // the surface's sync took everything so far: what the journey drops must be queued again
+  const standingBefore = [...rt.blanket.overlays.values()];
   // the travel view: the world streams on under a player who is not drawn
+  const near = s.world.terrainsNear;
+  let asked = 0;
+  s.world.terrainsNear = (r) => { asked++; return near(r); };
   quiet(() => { for (let i = 0; i < 1500; i++) { st.now += 1 / 30; st.x += 3000 / 30; s.move(st.x, st.z, st.now); frame(null); } });
-  const B = rt.blanket;
+  s.world.terrainsNear = near;
+  assert.ok(asked <= 12, `the ring asked on the prune's schedule, not a frame (${asked} in 1,500 frames - AUDIT M4)`);
+  const B = rt.blanket, M = rt.mid;
   const held = [...B.overlays.keys(), ...B.live, ...(B.building ? [B.building.t] : [])];
   assert.equal(held.filter((t) => s.dead.has(t)).length, 0, 'no destroyed tile held by the blanket');
+  const midHeld = [...M.tiles, ...M.buildTiles, ...(M.source?.tiles ?? []), ...M.blankets.keys(), ...[...M.blankets.values()].map((b) => b?.t)];
+  assert.equal(midHeld.filter((t) => t && s.dead.has(t)).length, 0, 'nor by the mid ring (AUDIT M3)');
   const dropped = [...rt.dirty.blanket].filter((o) => o.dead);
-  assert.ok(dropped.length >= laid.length - (2 * RING + 1) ** 2 + 1 || dropped.length > 0, 'the old ring dropped, its GPU halves waiting on the sync');
+  const goneOnTheWay = standingBefore.filter((o) => o.dead);
+  assert.ok(goneOnTheWay.length > 0 && goneOnTheWay.every((o) => rt.dirty.blanket.has(o)), 'the old ring dropped, each GPU half queued for the sync (AUDIT P3)');
   assert.ok(dropped.every((o) => o.t === null && o.pos === null && o.nrm === null && o.ctx === null && o.statics === null), 'and holding nothing of their tiles');
 });
 
@@ -206,43 +258,72 @@ test('MEM-AUDIT the menus\' sky: the same bytes as PX1\'s every draw, its image 
   const ctx = { createImageData: (w, h) => { made++; return { width: w, height: h, data: new Uint8ClampedArray(w * h * 4) }; }, putImageData(img) { last = img.data; } };
   let w = 300, h = 150;
   const canvas = { get width() { return w; }, set width(v) { sized++; w = v; }, get height() { return h; }, set height(v) { sized++; h = v; }, getContext: () => ctx };
-  for (const [vw, vh] of [[1280, 720], [390, 844], [1280, 720]]) {
+  for (const [vw, vh] of [[1280, 720], [390, 844], [1280, 720], [1280, 900], [1600, 900]]) {   // AUDIT P9: one side at a time too
     for (const t of [0, 0.125, 41.2, 1234.5]) {
       drawPixelGround(canvas, vw, vh, t);
       assert.deepEqual(last, oldSky(w, h, t), `${vw}x${vh} at ${t}: PX1's bytes`);
     }
   }
-  assert.equal(made, 3, 'one image a size the canvas took (the third the first size again)');
-  assert.equal(sized, 6, 'the canvas sized three times, both sides');
+  assert.equal(made, 5, 'one image a size the canvas took (the third the first size again)');
+  assert.equal(sized, 8, 'the canvas sized only on the sides that moved');
+  drawPixelGround(canvas, 1600, 900, 0, { keep: false });
+  drawPixelGround(canvas, 1600, 900, 0, { keep: false });
+  assert.equal(made, 7, 'a one-off draw keeps no image (AUDIT P9)');
+  assert.deepEqual(last, oldSky(w, h, 0));
 });
 
 // ─── THE OTHERS' LAYERED WALKERS ─────────────────────────────────────
 
-test('MEM-AUDIT the others\' layered walkers: each outfit is its own pictures and decodes, let go once WALKER_OUTFITS_KEPT others were drawn since and it stood undrawn a minute - a walker drawn is never let go (mutant: an outfit never let go)', async () => {
-  const evicted = [], decoded = [];
-  let now = 0;
+test('MEM-AUDIT the others\' layered walkers: each outfit is its own pictures and decodes, let go once WALKER_OUTFITS_KEPT others were drawn since and it stood undrawn WALKER_OUTFIT_IDLE_SYNCS of the walkers\' syncs - under records of the store\'s own, never the local body\'s keys (AUDIT U1), and never one drawn the sync before, however long the gap between syncs (AUDIT U2) (mutants: an outfit never let go, its decodes kept, the shared record, the clock\'s idleness)', async () => {
+  const evicted = [], decoded = [], uploads = [];
   const art = createEotbArt({
-    renderer: { uploadTexture: () => {}, evictTexture: (k) => evicted.push(k) },
-    urlFor: (k) => k, decode: async (u) => { decoded.push(u); return { width: 4, height: 4, colors: new Uint8Array(64).fill(9) }; }, clock: () => now,
+    renderer: { uploadTexture: (a, rec) => uploads.push(`${a}_${rec}`), evictTexture: (k) => evicted.push(k) },
+    urlFor: (k) => k, decode: async (u) => { decoded.push(u); return { width: 4, height: 4, colors: new Uint8Array(64).fill(9) }; }, clock: () => 0,
   });
   const sprite = (code, f = 0) => ({ archive: 9100, record: 10, frame: f, mirror: false, key: `LA:m:2:10-${f}:${code}`, rec: `${code}_10-${f}` });
   assert.equal(outfitOfLayeredKey(sprite('123~4', 3).key), 'LA:m:2:123~4');
   const worn = sprite('000');
+  const sync = (...drawn) => { art.settleOutfits(); for (const s of drawn) art.ensure(s); };
   for (let i = 1; i < WALKER_OUTFITS_KEPT; i++) {   // with the walker in view, WALKER_OUTFITS_KEPT outfits
-    art.ensure(sprite(`${i}`)); art.ensure(sprite(`${i}`, 1));
-    art.ensure(worn);   // one walker stays in view throughout
-    now += WALKER_OUTFIT_IDLE_MS + 1;
+    sync(sprite(`${i}`), sprite(`${i}`, 1), worn);
+    for (let n = 0; n <= WALKER_OUTFIT_IDLE_SYNCS; n++) sync(worn);   // each drawn once, then undrawn its idleness
   }
   await flush();
   assert.equal(evicted.length, 0, `${WALKER_OUTFITS_KEPT} outfits, all kept until one past the cap`);
-  art.ensure(sprite('999'));
+  sync(sprite('999'), worn);
+  sync(worn);
   await flush();
-  assert.deepEqual(evicted.sort(), ['9100_1_10-0', '9100_1_10-1'], 'the outfit longest undrawn, every frame of it');
+  assert.deepEqual(evicted.sort(), [`9100_1_10-0${PEER_OWN_REC}`, `9100_1_10-1${PEER_OWN_REC}`], 'the outfit longest undrawn, every frame of it - under the store\'s own records');
+  assert.ok(uploads.length > 0 && uploads.every((k) => k.endsWith(PEER_OWN_REC)), 'what the store may let go it uploads under its own records: never a key the local body draws');
   assert.ok(art.ensure(worn), 'the walker in view stands');
   const before = decoded.filter((u) => u.endsWith(':1')).length;
   assert.equal(art.ensure(sprite('1')), null, 'asked again, decoded again');
   await flush();
   assert.equal(decoded.filter((u) => u.endsWith(':1')).length, before + 1, 'its decode went with it');
+  // AUDIT U2: a crowd past the cap, all in view - a tab hidden for any time is no sync, so none ages
+  const crowd = Array.from({ length: WALKER_OUTFITS_KEPT + 6 }, (_, i) => sprite(`c${i}`));
+  for (let n = 0; n < 3; n++) sync(...crowd);
+  const had = evicted.length;
+  for (let n = 0; n < 3; n++) sync(...crowd);
+  assert.equal(evicted.length - had, 0, 'every walker in view kept, whatever the clock read between syncs');
+});
+
+test('MEM-AUDIT the walkers\' sync settles the outfits first, once a sync - before any walker is noted, so every one drawn the sync before was noted then (AUDIT U2) (mutant: settled at no sync)', async () => {
+  const art = createEotbArt({
+    renderer: { uploadTexture() {}, evictTexture() {}, createBillboardBatch: (archive, record, size) => ({ archive, record, size, origin: null }), destroyBillboardBatch() {} },
+    urlFor: (k) => `u:${k}`, decode: async () => ({ width: 50, height: 110, colors: new Uint32Array(50 * 110) }),
+  });
+  const calls = [];
+  const settleOutfits = art.settleOutfits, ensure = art.ensure;
+  art.settleOutfits = () => { calls.push('settle'); settleOutfits(); };
+  art.ensure = (sp) => { calls.push('ensure'); return ensure(sp); };
+  const w = createPeerWalkers({ art, layeredAll: () => true });
+  const pose = (x) => ({ x, y: 0, z: 9, yaw: 0, pitch: 0, mv: 0, wd: 0, an: 0, sr: 0, cn: 0, ar: 0 });
+  const peers = [{ id: 'a', look: { gender: 'male', items: [] }, shown: pose(4) }, { id: 'b', look: { gender: 'female', items: [] }, shown: pose(6) }];
+  for (let n = 0; n < 2; n++) { w.sync(peers, (p) => [p.x, p.y, p.z], { eye: [4, 1, 20], dt: 0.01 }); await flush(); }
+  assert.deepEqual(calls.filter((c) => c === 'settle').length, 2, 'once a sync');
+  assert.equal(calls[0], 'settle', 'first');
+  assert.ok(calls.indexOf('ensure') > 0 && calls.lastIndexOf('settle') < calls.lastIndexOf('ensure'), 'before the walkers are noted');
 });
 
 // ─── THE MARKET'S READS ──────────────────────────────────────────────
@@ -257,7 +338,48 @@ test('MEM-AUDIT the market\'s reads: the cache keeps MARKET_CACHE_KEPT, the olde
   assert.equal(reads.length, MARKET_CACHE_KEPT + 1, 'the newest answered from the cache, inside its minute');
   await book.read('materials', { region: 17, page: 0 });
   assert.equal(reads.length, MARKET_CACHE_KEPT + 2, 'the oldest gone - asked again');
+  // AUDIT U3: a view asked again is the newest - the one a player comes back to stays past the cap
+  const n0 = reads.length;
+  await book.read('materials', { region: 17, page: 3 });   // a hit: page 3 the newest now
+  assert.equal(reads.length, n0, 'a hit');
+  assert.equal(book.cached('materials', { region: 17, page: 4 })?.page, 4, 'cached() answers, and is a use too');
+  for (let p = 1000; p < 1000 + MARKET_CACHE_KEPT - 2; p++) await book.read('materials', { region: 17, page: p });
+  const n = reads.length;
+  await book.read('materials', { region: 17, page: 3 });
+  await book.read('materials', { region: 17, page: 4 });
+  assert.equal(reads.length, n, 'the views come back to still answered from the cache');
   assert.ok(MARKET_CACHE_MS >= 1000);
+});
+
+test('MEM-AUDIT the market\'s cache holds exactly MARKET_CACHE_KEPT (256), the least recent going first - a view read again past its minute is written again as the newest (AUDIT P6) (mutants: the cap off by one, a rewrite left where it stood)', async () => {
+  assert.equal(MARKET_CACHE_KEPT, 256);
+  let clock = 0;
+  const reads = [];
+  const door = { account: () => 'acct-1', read: async (b) => { reads.push(b.page); return { ok: true, status: 200, data: { listings: [], page: b.page } }; } };
+  const book = createMarketBook({ door, character: () => 'c-1', now: () => clock, sleep: async () => {} });
+  const page = (p) => book.read('materials', { region: 17, page: p });
+  for (let p = 0; p < MARKET_CACHE_KEPT; p++) await page(p);   // exactly the cap
+  clock += MARKET_CACHE_MS + 1;
+  await page(0);   // past its minute: read again, written again - the newest
+  assert.equal(reads.length, MARKET_CACHE_KEPT + 1);
+  await page(5000);   // one past the cap: the least recent (page 1) goes, not page 0
+  assert.equal(book.cached('materials', { region: 17, page: 1 }), null, 'page 1 let go');
+  for (const p of [0, 2, MARKET_CACHE_KEPT - 1, 5000]) assert.equal(book.cached('materials', { region: 17, page: p })?.page, p, `page ${p} kept`);
+  // a read's answer is written as the newest when it lands, past one that landed while it was out
+  let release = null;
+  const held = { account: () => 'acct-1', read: async (b) => { if (b.page === 0 && release === null) await new Promise((r) => { release = r; }); return { ok: true, status: 200, data: { listings: [], page: b.page } }; } };
+  const late = createMarketBook({ door: held, character: () => 'c-1', now: () => clock, sleep: async () => {} });
+  const at = (p) => late.read('materials', { region: 17, page: p });
+  for (let p = 0; p < MARKET_CACHE_KEPT; p++) { if (p === 0) { release = 'filled'; await at(0); release = null; } else await at(p); }
+  clock += MARKET_CACHE_MS + 1;
+  const p0 = at(0);   // stale: asked again, its answer held
+  await new Promise((r) => setTimeout(r, 0));
+  await at(1);   // stale too, answered at once
+  release(); await p0;   // page 0's answer lands last - the newest
+  for (let p = 6000; p < 6000 + MARKET_CACHE_KEPT - 2; p++) await at(p);   // the rest of the old pages go
+  await at(9999);   // and one more: the least recent of 0 and 1
+  assert.equal(late.cached('materials', { region: 17, page: 1 }), null, 'page 1, written first, let go');
+  assert.equal(late.cached('materials', { region: 17, page: 0 })?.page, 0, 'page 0, written last, kept');
 });
 
 // ─── THE HOSTS' AND THE WINDOWS' OWN LINES ───────────────────────────
@@ -269,34 +391,61 @@ test('MEM-AUDIT the place left is let go: setMode clears what latched the last r
   assert.match(line, /if \(next !== 'dungeon'\) \{ _crownTried = null; arenaWall = null; _arenaStage = _arenaStageCtx = null; _pitStage = _pitStageCtx = null; \}/);
 });
 
-test('MEM-AUDIT the windows\' listeners and caches: the account card\'s focus listener goes with its card, the menu\'s foot observer with the menu, an item menu\'s pair with its menu, the icons\' encodings with their pictures (mutants: each kept)', () => {
-  const acct = rd('ui/enhanced/enhancedAccount.js'), menu = rd('ui/enhanced/enhancedMenu.js'), inv = rd('ui/enhanced/enhancedInventory.js');
-  assert.match(acct, /off = \(\) => win\.removeEventListener\('focus', onFocus\);/);
-  assert.match(acct, /return \{ root, paint, off \};/);
+test('MEM-AUDIT the windows\' listeners and caches: the account card\'s focus listener goes with its card (driven: a card made, then let go), and the menu lets each go - a repaint\'s card, the close, the unmount, with the foot\'s observer; an item menu\'s pair with its menu, its timer its own; the icons\' encodings with their pictures (AUDIT P7) (mutants: each kept)', () => {
+  const live = new Set();
+  const win = { addEventListener: (t, f) => { if (t === 'focus') live.add(f); }, removeEventListener: (t, f) => { if (t === 'focus') live.delete(f); } };
+  const mk = (tag) => {
+    const n = { tag, className: '', type: null, value: '', disabled: false, children: [], isConnected: true, append: (...kids) => n.children.push(...kids.filter(Boolean)), setAttribute() {} };
+    Object.defineProperty(n, 'textContent', { get() { return n._txt ?? null; }, set(v) { n._txt = v; if (v === '') n.children.length = 0; } });
+    return n;
+  };
+  const flow = AccountFlow({ io: { fetch: async () => { throw new Error('no network'); } }, storage: { getItem: () => null, setItem() {}, removeItem() {} } });
+  const card = accountCard({ createElement: mk, defaultView: win }, flow);
+  assert.equal(live.size, 1, 'the card listens for the window\'s focus');
+  card.off();
+  assert.equal(live.size, 0, 'and lets it go when told');
+  const menu = rd('ui/enhanced/enhancedMenu.js'), inv = rd('ui/enhanced/enhancedInventory.js');
   assert.match(menu, /acctPaint = card\.paint;\n {2}acctOff\?\.\(\); acctOff = card\.off \?\? null;/, 'the card drawn before is let go');
+  assert.match(menu, /acctOff\?\.\(\); acctOff = null;\n {2}acctPaint = null;\n {2}rereadCollectionsAccount\(\);/, 'the close');
   assert.match(menu, /footObs\?\.disconnect\?\.\(\); footObs = null;\n {6}acctPaint = null; acctOff\?\.\(\); acctOff = null;/, 'the unmount');
-  assert.match(inv, /menuOff = \(\) => \{ clearTimeout\(timer\); document\.removeEventListener\('pointerdown', away, true\);/);
+  assert.match(inv, /const timer = setTimeout\(\(\) => \{ if \(!menuEl\) return; document\.addEventListener\('pointerdown', away, true\);[^\n]*\n {2}menuOff = \(\) => \{ clearTimeout\(timer\); document\.removeEventListener\('pointerdown', away, true\);/, 'the item menu\'s pair laid by its own timer, which its close clears');
   assert.match(rd('ui/item/itemIconUrl.js'), /const _iconUrls = new WeakMap\(\);/);
 });
 
-test('MEM-AUDIT the classic sky keeps its two last sky files, and their bytes go with the rest - forgetBytes lets a file go from the memory cache, read again the next time it is asked (mutants: the sky files unbounded, the bytes kept)', async () => {
+test('MEM-AUDIT the classic sky keeps its two last sky files, and their bytes go with the rest - forgetBytes lets go only of bytes that can be read again (AUDIT M1: a memory-only session\'s are its only copy), and a sky with no file is asked once (AUDIT M2) (mutants: the sky files unbounded, the bytes kept, the only copy forgotten, the missing let go)', async () => {
   const shared = rd('scenes/shared.js');
   assert.match(shared, /const SKY_FILES_KEPT = 2;/);
-  assert.match(shared, /skyFiles\.delete\(skyIndex\); skyFiles\.set\(skyIndex, sf\);[^\n]*\n {4}while \(skyFiles\.size > SKY_FILES_KEPT\) \{\n {6}const \[old\] = skyFiles\.keys\(\);\n {6}skyFiles\.delete\(old\);\n {6}forgetBytes\(SkyFile\.indexToFileName\(old\)\);/);
-  const { getBytes, forgetBytes } = await import('../../src/scenes/dataSource.js');
-  const was = globalThis.fetch;
-  let asked = 0;
-  globalThis.fetch = async () => { asked++; return { ok: true, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer }; };
+  assert.match(shared, /if \(sf\) \{ skyFiles\.delete\(skyIndex\); skyFiles\.set\(skyIndex, sf\); \}[^\n]*\n {4}while \(skyFiles\.size > SKY_FILES_KEPT\) \{\n {6}const \[old\] = skyFiles\.keys\(\);\n {6}skyFiles\.delete\(old\);\n {6}forgetBytes\(SkyFile\.indexToFileName\(old\)\);/);
+  const { getBytes, forgetBytes, keepOnlyInMemory } = await import('../../src/scenes/dataSource.js');
+  const { createSkyController } = await import('../../src/scenes/shared.js');
+  const was = globalThis.fetch, warn = console.warn;
+  const asked = new Map();
+  globalThis.fetch = async (url) => {
+    const name = String(url).split('/').pop();
+    asked.set(name, (asked.get(name) ?? 0) + 1);
+    const ok = name === 'MEMAUDIT.TST';
+    return { ok, status: ok ? 200 : 404, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer };
+  };
+  console.warn = () => {};
   try {
-    const name = 'MEMAUDIT.TST';
-    assert.deepEqual([...await getBytes(name)], [1, 2, 3]);
-    await getBytes(name);
-    assert.equal(asked, 1, 'kept');
-    forgetBytes(name);
-    assert.deepEqual([...await getBytes(name)], [1, 2, 3]);
-    assert.equal(asked, 2, 'let go: read again, the same bytes');
-    forgetBytes(name);
-  } finally { globalThis.fetch = was; }
+    assert.deepEqual([...await getBytes('MEMAUDIT.TST')], [1, 2, 3]);
+    await getBytes('MEMAUDIT.TST');
+    assert.equal(asked.get('MEMAUDIT.TST'), 1, 'kept');
+    forgetBytes('MEMAUDIT.TST');
+    assert.deepEqual([...await getBytes('MEMAUDIT.TST')], [1, 2, 3]);
+    assert.equal(asked.get('MEMAUDIT.TST'), 2, 'let go: read again, the same bytes');
+    forgetBytes('MEMAUDIT.TST');
+    keepOnlyInMemory('MEMAUDIT.ONE', new Uint8Array([7]));
+    forgetBytes('MEMAUDIT.ONE');
+    assert.deepEqual([...await getBytes('MEMAUDIT.ONE')], [7], 'a memory-only session\'s bytes are its only copy: never forgotten');
+    assert.equal(asked.get('MEMAUDIT.ONE') ?? 0, 0, 'and never asked of the network, which has none');
+    // the lean diet: no SKY file at all - each sky index asked once, however often the bound turns over
+    const gl = new Proxy({}, { get: (t, k) => (k in t ? t[k] : (typeof k === 'string' && /^[A-Z_0-9]+$/.test(k) ? 1 : (k === 'drawingBufferWidth' || k === 'drawingBufferHeight' ? 64 : () => ({})))) });
+    const ctl = createSkyController(gl, new URLSearchParams('sky=classic'));
+    try { ctl.renderer.setPanorama = () => {}; } catch { /* a getter-only renderer: its panorama is not what this reads */ }
+    for (const [idx, hour] of [[16, 9], [20, 10], [22, 11], [16, 12], [20, 13], [22, 14]]) { ctl.use(idx, hour * 60, true, null); await new Promise((r) => setTimeout(r, 5)); }
+    assert.deepEqual(['SKY16.DAT', 'SKY20.DAT', 'SKY22.DAT'].map((n) => asked.get(n)), [1, 1, 1], 'each missing sky file asked once');
+  } finally { globalThis.fetch = was; console.warn = warn; }
 });
 
 test('MEM-AUDIT a still batch in an arena makes no indices of its own - the batch with its own buffers alone writes them (mutant: the indices a batch again)', () => {
