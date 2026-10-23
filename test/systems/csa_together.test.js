@@ -13,7 +13,7 @@ import { quietFoesGate } from '../../src/net/foesQuiet.js';   // SCALE2c
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createComeSailAwayPool } from '../../src/scenes/comeSailAway/comeSailAwayPool.js';
-import { createComeSailAwayPeers, CSA_PEER_LEAD_MAX, CSA_PEER_SNAP_M } from '../../src/scenes/comeSailAway/comeSailAwayPeers.js';
+import { createComeSailAwayPeers, CSA_PEER_LEAD_MAX, CSA_PEER_CATCH_MPS, CSA_PEER_CATCH_SHARE, CSA_PEER_SNAP_M } from '../../src/scenes/comeSailAway/comeSailAwayPeers.js';
 import {
   createComeSailAwayAboard, validAboardWord, localOf, worldOf, poseMatrix, CSA_ABOARD_BELOW, CSA_ABOARD_STEP, CSA_ABOARD_NEAR, CSA_ABOARD_GRACE, CSA_ABOARD_LOCAL_MAX,
   deckPose,
@@ -107,17 +107,21 @@ test('CSA-K: a word under way LEADS the boat - carried on by its way every frame
   const peers = createComeSailAwayPeers({ pool, selfId: () => 'me' });
   peers.applyOwner('ann', { b: [word({ x: 10 })], m: [[5, 0, 0]] }, (p) => p, 0);
   const xs = [];
-  for (let i = 0; i < 10; i++) { peers.frame(0.1); xs.push(pool.peerBoats[0].GameObject.position[0]); }
+  // PIN MOVED (FIELD BUGS 2026-10-22d SEA-GLIDE): the lead is two full frames' spacing, 4 s (it was 0.6), so the frames run past it
+  const frames = Math.round(CSA_PEER_LEAD_MAX / 0.1) + 6;
+  for (let i = 0; i < frames; i++) { peers.frame(0.1); xs.push(pool.peerBoats[0].GameObject.position[0]); }
   const steps = xs.slice(1).map((x, i) => x - xs[i]);
   nearV(steps.slice(0, 4), [0.5, 0.5, 0.5, 0.5], 1e-9, 'half a metre each tenth of a second');
   nearV([xs[0]], [10.5], 1e-9, 'the first frame stands it on its word led one frame');
   const held = xs[Math.round(CSA_PEER_LEAD_MAX / 0.1) + 2];
   nearV([held], [10 + 5 * CSA_PEER_LEAD_MAX], 1e-6, `led no further than ${CSA_PEER_LEAD_MAX} s`);
-  nearV([xs[9]], [held], 1e-6, 'and held there until the next word');
-  // the next word, a lead's worth on: no jump, no stall
-  peers.applyOwner('ann', { b: [word({ x: 10 + 5 * 0.9 })], m: [[5, 0, 0]] }, (p) => p, 900);
+  nearV([xs[frames - 1]], [held], 1e-6, 'and held there until the next word');
+  // the next word, a lead's worth on: no jump, no stall - and SEA-GLIDE: never a surge, the step its way and the catch
+  peers.applyOwner('ann', { b: [word({ x: 10 + 5 * frames * 0.1 })], m: [[5, 0, 0]] }, (p) => p, frames * 100);
   peers.frame(0.1);
-  assert.ok(pool.peerBoats[0].GameObject.position[0] > held, 'on again');
+  const on = pool.peerBoats[0].GameObject.position[0];
+  assert.ok(on > held, 'on again');
+  assert.ok(on - held <= 5 * 0.1 + (CSA_PEER_CATCH_MPS + CSA_PEER_CATCH_SHARE * 5) * 0.1 + 1e-5, `no surge: ${on - held} m in a tenth of a second`);   // the pose stands in float32
   // no way: the word's place, eased
   const p2 = createComeSailAwayPeers({ pool: await readyPool(), selfId: () => 'me' });
   p2.applyOwner('bob', { b: [word({ x: 10 })] }, (p) => p, 0);
