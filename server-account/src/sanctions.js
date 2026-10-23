@@ -186,15 +186,17 @@ export async function unbanAccount({ db, nowS }, actor, env, { target, name, act
 
 /**
  * A MODERATOR'S LOOK at an account: its strikes, the next rung (a mute's minutes, or 'ban' past the ladder), whether it
- * is muted or banned now, and its last HISTORY_MAX acts.
- * @param {{ db: any, nowS: number }} ctx @param {any} actor @param {any} env @param {{ target?: unknown, name?: unknown }} who
+ * is muted or banned now, and its last HISTORY_MAX acts. STAFF-PANEL-SPEED: `row` the account's row, from a door that
+ * found it already (staffCases.js).
+ * @param {{ db: any, nowS: number }} ctx @param {any} actor @param {any} env @param {{ target?: unknown, name?: unknown, row?: any }} who
  */
-export async function strikesLook({ db, nowS }, actor, env, { target, name }) {
+export async function strikesLook({ db, nowS }, actor, env, { target, name, row: found = null }) {
   if (!canModerate(actor, env)) return { error: 'not-moderator' };
-  const row = await findAccount(db, { target, name });
+  const row = found ?? await findAccount(db, { target, name });
   if ('error' in row) return row;
-  const strikes = await strikesOf(db, row.id, nowS);
-  const acts = (await db.prepare('SELECT kind, until, reason, actor_name, case_id, at, void_at FROM mod_actions WHERE target = ?1 ORDER BY at DESC, id DESC LIMIT ?2').bind(row.id, HISTORY_MAX).all())?.results ?? [];
+  // STAFF-PANEL-SPEED (mob: "The click takes a while before the new page shows"): the strikes and the history, one trip
+  const [strikes, acts] = await Promise.all([strikesOf(db, row.id, nowS),
+    db.prepare('SELECT kind, until, reason, actor_name, case_id, at, void_at FROM mod_actions WHERE target = ?1 ORDER BY at DESC, id DESC LIMIT ?2').bind(row.id, HISTORY_MAX).all().then((/** @type {any} */ r) => r?.results ?? [])]);
   return {
     ok: true, target: row.id, name: displayName(row), strikes,
     next: strikes >= LADDER_BAN_AT ? 'ban' : ladderMinutes(strikes),

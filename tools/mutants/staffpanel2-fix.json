@@ -12,8 +12,8 @@
   {
     "name": "STAFF-PANEL2-FIX-repeat-unread",
     "file": "server-account/src/safety.js",
-    "old": "  if (click && await db.prepare('SELECT 1 AS y FROM mod_actions WHERE click = ?1')",
-    "new": "  if (false && await db.prepare('SELECT 1 AS y FROM mod_actions WHERE click = ?1')",
+    "old": "    click ? db.prepare('SELECT 1 AS y FROM mod_actions WHERE click = ?1')",
+    "new": "    false ? db.prepare('SELECT 1 AS y FROM mod_actions WHERE click = ?1')",
     "why": "a press sent twice is not known for the first",
     "tests": [
       "test/server/staffpanel2fix.test.js"
@@ -142,8 +142,8 @@
   {
     "name": "STAFF-PANEL2-FIX-fallback-no-dev",
     "file": "server-account/src/safety.js",
-    "old": "      ORDER BY kind = 'chat' DESC LIMIT 1`).bind(row.id, isDeveloper(actor, env) ? 1 : 0).first();",
-    "new": "      ORDER BY kind = 'chat' DESC LIMIT 1`).bind(row.id, 0).first();",
+    "old": "      ORDER BY kind = 'chat' DESC LIMIT 1`).bind(row.id, isDeveloper(actor, env) ? 1 : 0).first(),",
+    "new": "      ORDER BY kind = 'chat' DESC LIMIT 1`).bind(row.id, 0).first(),",
     "why": "an Admin's act in the game misses the spawn case it was shown",
     "tests": [
       "test/server/staffpanel2fix.test.js"
