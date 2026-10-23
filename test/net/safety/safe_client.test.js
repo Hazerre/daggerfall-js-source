@@ -352,6 +352,19 @@ test('STAFF-PANEL2-CHATMENU FOLLOW AND TP: Follow calls the staff hook with the 
   rowOf(fail.host.lineActions(STAFF_LINE), 'Follow').run();
   await settle(); await settle();
   assert.equal(fail.log.tab(fail.log.active).messages.at(-1).text, 'Follow needs the Staff Panel.');
+  // STAFF-PANEL5-FOLLOW (mob 2026-10-23: "why doesnt follow work?"): no Staff Panel over the game - the hook's follow says
+  // false - is said as the panel's other acts say it, never silence
+  const none = staffRig(['dev'], { opts: { follow: () => () => false } });
+  rowOf(none.host.lineActions(STAFF_LINE), 'Follow').run();
+  await settle(); await settle();
+  assert.match(none.log.tab(none.log.active).messages.at(-1).text, /^Staff Panel: Follow Troll\. Nothing opens without the Staff Panel extension\.$/);
+  const said = none.log.tab(none.log.active).messages.length;
+  const on = staffRig(['dev'], { opts: { follow: () => () => true } });
+  const before = on.log.tab(on.log.active).messages.length;
+  rowOf(on.host.lineActions(STAFF_LINE), 'Follow').run();
+  await settle(); await settle();
+  assert.equal(on.log.tab(on.log.active).messages.length, before, 'a follow that started says nothing');
+  assert.ok(said > 0);
   const moved = staffRig(['shadowfang'], { peers: [['p2', { id: 'p2', name: 'Troll', sub: 'acct-new' }]], opts });
   tps.length = 0;
   rowOf(moved.host.lineActions(STAFF_LINE), 'TP').run();
@@ -359,7 +372,8 @@ test('STAFF-PANEL2-CHATMENU FOLLOW AND TP: Follow calls the staff hook with the 
   assert.equal(moved.log.tab(moved.log.active).messages.at(-1).text, 'That player is not online.');
   assert.equal(rowOf(staffRig(['dev'], { opts }).host.lineActions({ ...STAFF_LINE, id: '' }), 'TP'), undefined, 'no socket on the line, no TP');
   const w = readFileSync(new URL('../../../src/scenes/world.js', import.meta.url), 'utf8');
-  assert.match(w, /createChatSafetyHost\(\{[^\n]*, glyphs: \(\) => _staffGlyphs, teleport: \(id\) => runStaffCommand\(chatLog\?\.active, \{ cmd: 'tp', player: \{ id \} \}\) \}\);/, 'world.js: my glyphs as issued, and TP through /tp\'s own door by the socket');
+  assert.match(w, /createChatSafetyHost\(\{[^\n]*, glyphs: \(\) => _staffGlyphs, teleport: \(id\) => runStaffCommand\(chatLog\?\.active, \{ cmd: 'tp', player: \{ id \} \}\), follow: \(\) => staffFollow\.follow \}\);/, 'world.js: my glyphs as issued, TP through /tp\'s own door by the socket, and Follow through the page\'s staff hook');
+  assert.match(w, /\n  const staffFollow = staffFollowOnPage\(/, 'world.js: the follow the row calls is the page\'s one');
 });
 
 test('SAFE3 THE HOST\'S REPORT: a line\'s own Report carries that line and the stamped lines before it with the reason chosen; /report <name> carries everything the account said here; a report that mutes hands back an order, carried to every room by its kind (mutants: the order dropped; carried to the wrong door)', async () => {
