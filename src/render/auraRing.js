@@ -2561,7 +2561,8 @@ const _lookPrograms = new Map();
 export function auraPrograms(kind) {
   let p = _lookPrograms.get(kind);
   if (!p) {
-    const one = (src) => { const out = src.replace('uniform int uAura;', `const int uAura = ${kind | 0};`); if (out === src) throw new Error('aura ring: no uAura to fix'); return out; };
+    // exactly one declaration: a second (a comment quoting it) would be swapped in its place, the uniform left at 0
+    const one = (src) => { if (src.split('uniform int uAura;').length !== 2) throw new Error('aura ring: uAura not declared exactly once'); return src.replace('uniform int uAura;', `const int uAura = ${kind | 0};`); };
     _lookPrograms.set(kind, (p = Object.freeze([Object.freeze([one(AURA_VS), one(AURA_FS)])])));
   }
   return p;
@@ -2575,7 +2576,7 @@ export class AuraRingRenderer {
     this.gl = gl;
     /** AURA-SPLIT: each look's door (programOf), by its kind */
     this._looks = new Map();
-    this._frame = 0;   // AURA-SPLIT: the draw's count - a look's program is handed the frame's uniforms once a frame
+    this._frame = 0;   // AURA-SPLIT: the draws' count - a look's program is handed the draw's camera, clock and fog once a draw
     this.quadVao = gl.createVertexArray();
     gl.bindVertexArray(this.quadVao);
     this.quadBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuf);
@@ -2636,7 +2637,8 @@ export class AuraRingRenderer {
     return null;
   }
 
-  /** AURA-SPLIT: a look's program bound - and handed the frame's camera, clock and fog the first time it is this frame. */
+  /** AURA-SPLIT: a look's program bound - and handed the draw's camera, clock and fog the first time it is in this draw
+   *  (each draw its own: a frame that draws the auras under two cameras hands each its own). */
   _bind(P, eye, seconds, fog) {
     const gl = this.gl, U = P.u;
     gl.useProgram(P.prog);

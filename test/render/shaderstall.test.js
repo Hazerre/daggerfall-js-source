@@ -299,4 +299,16 @@ test('AURA-SPLIT the auras\' looks: one program a look - the whole source with `
   assert.match(w, /const _auraPass = auraPassOf\(\);/);
   assert.equal(w.split('\n').filter((l) => l.split('//')[0].includes('new AuraRingRenderer(')).length, 1, 'built nowhere outside its door (a comment that names the build is no build)');
   assert.match(read('src/render/auraRing.js'), /const P = this\.programOf\(look\.kind\);/, 'a look never asked as needed in the draw');
+  // a look that will not build: told once, its wearers stand without it, and the other looks are drawn
+  const bad = fakeGl({ parallel: false, fails: [auraPrograms(1)[0][1]] });
+  const rb = new AuraRingRenderer(bad.gl), warns = [], warn = console.warn;
+  console.warn = (...a) => warns.push(a.join(' '));
+  try {
+    rb.draw([{ at: [1, 0, 1] }, { at: [5, 0, 5], aura: 'oblivionward' }, { at: [9, 0, 9], aura: 'radiance' }], I, I, [0, 0, 0], 1);
+    assert.equal(rb.drawn, 2, 'the fire and the radiance drawn, the ward not');
+    rb.draw([{ at: [5, 0, 5], aura: 'oblivionward' }], I, I, [0, 0, 0], 1);
+    assert.equal(rb.drawn, 0);
+  } finally { console.warn = warn; }
+  assert.equal(warns.length, 1, 'told once');
+  assert.match(warns[0], /\[aura\] look 1 would not build/);
 });

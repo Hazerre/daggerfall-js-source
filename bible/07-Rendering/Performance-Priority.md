@@ -1565,7 +1565,7 @@ the one program that every player's shader cache keyed.
   (`compiledPass`) once the driver says it is compiled. A wearer whose look still compiles stands without the aura that
   frame; the capes' pose and swing are stepped meanwhile.
 - The wearers are drawn farthest first, as before. A look's program is bound again only where the look changes, and is
-  handed the frame's camera, clock and fog once a frame (`_bind`).
+  handed the draw's camera, clock and fog once a draw (`_bind`).
 - The world's door waits on no program (`world.js:"const auraPassOf = compiledPass(renderer.gl, [],"`): it builds the
   pass at the first wearer in range, and a throw costs the auras, never the game.
 - Without `KHR_parallel_shader_compile`, each look is built at its first draw and waits for that look's compile alone.
@@ -1579,8 +1579,9 @@ through its hooks; `scenes/exterior.js` draws no aura.
 
 Pins: `test/render/shaderstall.test.js` (AURA-SPLIT, which takes AURA-STALL's test and the auras' row of the
 list-and-constructor pin). Pins moved: `aegis`, `crystalfist`, `primarch`, `seraphwings`, `shadowcloak` and `wikimaid`
-(a wearer's look is the program bound, read through `kindOf`, and each look's program is handed the frame once), and
-`wb9g_insignia` (the world's door). `shadowcloak.test.js`'s import line is main's again. Mutants:
+(a wearer's look is the program bound, read through `kindOf`, and each look's program is handed the draw once), and
+`wb9g_insignia` (the world's door). The AURA-SPLIT pin also holds a look that will not build: told once, its wearers
+stand without it, and the other looks are drawn. `shadowcloak.test.js`'s import line is main's again. Mutants:
 `tools/mutants/aurasplit.json`, 4, all dead. Re-aimed by content, all dead: `aurastall.json`'s AS-a-look-off-its-list,
 AS-a-look-asked-as-needed and AS-the-door-waits-on-the-looks, `aegis.json`'s AEGIS-the-kind-never-set and
 `shadowcloak.json`'s SHADOWCLOAK-the-strip-not-the-cloth. The 41 records the other aura lists (`aegis`, `crystalfist`,
