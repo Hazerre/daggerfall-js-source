@@ -590,7 +590,7 @@ and GRANT_STRIP), each the plan's condition for its own (sections 4.10 and 4.11)
   from a socket that has stood on a grant here - a live record with no grant that is not its ally (`al`, `cw`, `cp`); a
   body and a standing foe's delta pass (`_grantStripped`, a Room method, on `_foesFan`'s path). Off, the relay strips
   no foe record (section 4.6). Turn it on only when the measure shows the fan can afford the walk (section 6).
-  STAFF-PANEL5-MONSTERS (2026-10-23, world248): the Staff Panel's Monster watch reads a full frame's records as it fans,
+  STAFF-PANEL5-MONSTERS (2026-10-23, world249): the Staff Panel's Monster watch reads a full frame's records as it fans,
   on or off - while STAFF_NET_FEED_URL is set, and only to count them (`server/src/staffFeeds.js` staffFoesSeen); it
   drops, changes and holds nothing.
 

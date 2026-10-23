@@ -165,7 +165,7 @@ HIDDEN_SEEN_URL = "https://daggerfall-accounts.mackcothran.workers.dev/v1/mod/hi
 # Sealed with the relay's receipt key (GATE_SIGNING_KEY), proven by the
 # service with the gate's public key: the grant feed's door; no new
 # secret. Posted through the ACCOUNTS binding below. EMPTY IS OFF: nothing
-# is counted and nothing is posted. STAFF-PANEL5-MONSTERS (world248):
+# is counted and nothing is posted. STAFF-PANEL5-MONSTERS (world249):
 # the monster counts are read whatever grantStrip (GRANT9) says - a
 # separate switch, not set here, that stays off; the count reads a full
 # foes frame as it fans and never changes it.
