@@ -165,8 +165,7 @@ import { preloadInventoryArt, WAGON_ACCESS_DISTANCE } from '../ui/native/nativeI
 import { createInventoryWindow } from '../ui/inventoryDoor.js';   // U53: the pack's ONE seam, and the skin fork in front of it
 import { preloadPaperDollForEntity } from '../ui/paperDoll.js';   // U26: the doll the keyed window never had
 import { createDroppedLoot, droppedLootHooks, containerDropPos } from './droppedLoot.js';   // U8e, mounted here at U26; G5: the pile's DaggerfallLoot identity
-import { createPlayerMagic } from './hostMagic.js';   // M3: the ONE cast engine
-import { CAST_PRESS } from '../combat/twoHands/spellHand.js';   // SPELL-HAND: a cast's own press, one imported word (HOST-SPLIT)
+import { createPlayerMagic, CAST_PRESS } from './hostMagic.js';   // M3: the ONE cast engine
 import { tallySkill, skillValue, SKILLS } from '../systems/skills.js';
 import { FALL_DAMAGE_THRESHOLD, FALL_HP_PER_METRE, CAPSULE_HEIGHT, EYE_HEIGHT, startRestGroundedCheck } from '../player/motor.js';   // the rest gate's grounded input, one home
 import { applyLevelUp } from '../systems/advancement.js';

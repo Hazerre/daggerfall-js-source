@@ -1844,6 +1844,16 @@ export function wire2Batch(items) {
   return f.length === 1 ? f[0] : `{"t":"fb","f":[${f.join(',')}]}`;
 }
 
+/**
+ * AUDIT MIXED-PAIR L4-3: THE POSE'S HANDS - what a peer needs to draw them (net/peer/peerBodies.js peerHandsOf): `lh` the
+ * LEFT hand leads (DISC12, WeaponManager.UsingRightHand false), `ah` the last strike was a pair's LEFT hand's - each omitted
+ * at 0 (the wire's omission law). One spread at the pose's sender (scenes/world.js), so the host grows no entry for it; the wire's,
+ * so the host reads no two-hands module (TWO-HANDS, THE FOUR HOSTS).
+ * @param {boolean} usingRightHand
+ * @param {'R'|'L'|null} strikeHand the last strike's hand in a pair, else null
+ */
+export const poseHandsOf = (usingRightHand, strikeHand) => ({ ...(usingRightHand ? {} : { lh: 1 }), ...(strikeHand === 'L' ? { ah: 1 } : {}) });
+
 /** A pose the room will relay, or null. */
 export function validPose(p) {
   if (!p || typeof p !== 'object') return null;

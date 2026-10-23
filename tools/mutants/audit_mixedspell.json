@@ -67,6 +67,8 @@
     "file": "src/combat/playerWeapon.js",
     "old": "    if (this._bladeTurn) { m.cooldownUntil = Math.max(this._classicCooldown, m.cooldownUntil); return; }",
     "new": "    if (this._bladeTurn) return;",
+    "equivalent": true,
+    "why": "Belt-and-braces: while the pistols hold the machine nothing lowers its cooldown below _classicCooldown - the mirror keeps it (AUDITMS-L1-5-mirror-wipes-owed, pinned) and the blade's own blow cannot start before it - so the put-by's max restates a bound that already holds.",
     "tests": [
       "test/combat/mixedpair.test.js"
     ]
@@ -497,7 +499,7 @@
   },
   {
     "name": "AUDITMS-L4-3-pose-hands-no-ah",
-    "file": "src/combat/twoHands/handsLaw.js",
+    "file": "src/net/wire.js",
     "old": "...(strikeHand === 'L' ? { ah: 1 } : {})",
     "new": "...{}",
     "tests": [
@@ -569,6 +571,15 @@
     "tests": [
       "test/combat/pistolstance.test.js",
       "test/combat/spellhand_mw.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L4-4-tutorial-names-the-swing",
+    "file": "src/systems/tutorialCatalogue.js",
+    "old": "Choose a spell, then aim and cast it with {ActivateCenterObject}.",
+    "new": "Choose a spell, then aim and cast it with {SwingWeapon}.",
+    "tests": [
+      "test/combat/spellhand.test.js"
     ]
   }
 ]

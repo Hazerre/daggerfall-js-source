@@ -104,7 +104,7 @@ test('SPELL-HAND THE ARM\'S LIMBS (spellHandArm.js): the cast lends the RIGHT ar
   assert.equal(held.clip({ sources: [] }, 'idlespell', 0).time, 1, 'a new rig its own clock');
 });
 
-test('SPELL-HAND THE LIVE ARM: with the spell in the free hand the arm keeps the WEAPON\'s stance - the weapon in hand, its group the weapon\'s, its left arm the Spell idle - and still swings; the cast plays the spellcast group with the weapon in hand, its right arm the weapon\'s idle; the stance the cast latched lets go when it ends; without the spell hand Morrowind\'s own Spell stance (mutants: readySpell\'s spell-hand door; weaponInHand\'s; the cast\'s latch kept; the compositions\' keys)', async () => {
+test('SPELL-HAND THE LIVE ARM: with the spell in the free hand the arm keeps the WEAPON\'s stance - the weapon in hand, its group the weapon\'s, its left arm the Spell idle - and still swings; the cast plays the spellcast group with the weapon in hand, its right arm the weapon\'s idle; the stance the cast latched lets go when it ends; without the spell hand Morrowind\'s own Spell stance (mutants: readySpell\'s spell-hand door; weaponInHand\'s; the cast\'s latch kept; the compositions\' keys; the body never told)', async () => {
   const { a } = await arm();
   a.setSpellHand(true);
   a.readySpell(true);
@@ -114,6 +114,9 @@ test('SPELL-HAND THE LIVE ARM: with the spell in the free hand the arm keeps the
   assert.equal(s.weaponInHand, true, 'the weapon in its hand');
   assert.equal(s.weaponGroup, 'weapononehand');
   assert.equal(a.handsState().composed, 'spellhand:ready', 'the left arm the Spell idle\'s');
+  // AUDIT SPELL-HAND L3-5: and the arm tells the body so - its layer leaves the left arm to the clip, the right its own
+  const carried = a.status().motion.arms;
+  assert.ok(carried.L < 0.1 && carried.R > 0.5, `the body's left arm the clip's, its right the layer's (${carried.L.toFixed(3)}, ${carried.R.toFixed(3)})`);
   assert.ok(a.attack('StrikeDown'), 'the weapon still swings with the spell readied');
   run(a, 2);
   assert.equal(a.status().upper, UPPER_BODY.WeaponEquipped);
@@ -168,7 +171,7 @@ test('MIXED-PAIR THE ARM\'S LAW (mixedArm.js): gunArmOf names the gun\'s arm bes
   assert.equal(gunHoldOf({ weapon: blade, offWeapon: gun, dual: true, offShown: false }), null, 'the left gun not shown: no hold');
 });
 
-test('MIXED-PAIR THE PISTOL STANCE\'S ONE HAND (`only`): the gun hand alone - the right on Weapon Bone, the left on Weapon Bone Left in the single stance\'s mirror - the other hand left to what holds it; the default keeps the pair\'s two and the single\'s free hand (mutants: `only` unread; the left gun on the right\'s bone)', async () => {
+test('MIXED-PAIR THE PISTOL STANCE\'S ONE HAND (`only`): the gun hand alone - the right on Weapon Bone, the left on Weapon Bone Left in the single stance\'s mirror - the other hand left to what holds it; the default keeps the pair\'s two and the single\'s free hand (mutants: `only` unread; the left gun on the right\'s bone; the free hand\'s weight unread)', async () => {
   // retail's bones in the steel plate, a pistol in each hand (pistolstance.test.js's own assembly), posed at rest
   const skeletonBytes = retailSkeleton();
   const files = new Map([[`meshes/${OWN_MW_MODELS[PISTOLET_TEMPLATE].model}`, onDisk('src/assets/mw/meshes/pistolet.nif')]]);
@@ -187,6 +190,11 @@ test('MIXED-PAIR THE PISTOL STANCE\'S ONE HAND (`only`): the gun hand alone - th
   assert.equal(keys(pistolStanceRequest(asm.skeleton, mats, { pair: true })), 'LR', 'a pair: both on their guns');
   assert.equal(keys(pistolStanceRequest(asm.skeleton, mats, { only: 'R' })), 'R', 'the right gun alone');
   assert.equal(keys(pistolStanceRequest(asm.skeleton, mats, { only: 'L' })), 'L', 'the left gun alone');
+  // AUDIT SPELL-HAND L3-10: a lone gun's free hand at the weight the hold hands it (`free`), easing out under a spell -
+  // placed while it has any, left to the spell at none
+  assert.equal(pistolStanceRequest(asm.skeleton, mats, { only: 'R', free: 0.4 })?.hands.L?.w, 0.4, 'the free hand at its weight');
+  assert.equal(keys(pistolStanceRequest(asm.skeleton, mats, { only: 'R', free: 0 })), 'R', 'at none: the spell\'s');
+  assert.equal(pistolStanceRequest(asm.skeleton, mats, {})?.hands.L?.w, 1, 'unasked: whole');
   const both = pistolStanceRequest(asm.skeleton, mats, { pair: false }), left = pistolStanceRequest(asm.skeleton, mats, { only: 'L' });
   assert.notDeepEqual(left.hands.L.at, both.hands.L.at, 'the left gun\'s hand is on its gun, not the free hand\'s place');
 });

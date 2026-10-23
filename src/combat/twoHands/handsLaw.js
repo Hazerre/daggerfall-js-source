@@ -521,12 +521,3 @@ export function runWeightStep(w, wanted, punching, dt) {
   if (punching) return easeTo(w, 0, RUN_PUMP.PUNCH_TAU, dt);
   return easeTo(w, wanted ? 1 : 0, wanted ? RUN_PUMP.IN_TAU : RUN_PUMP.OUT_TAU, dt);
 }
-
-/**
- * AUDIT MIXED-PAIR L4-3: THE POSE'S HANDS - what a peer needs to draw them (net/peer/peerBodies.js peerHandsOf): `lh` the
- * LEFT hand leads (DISC12, WeaponManager.UsingRightHand false), `ah` the last strike was a pair's LEFT hand's - each omitted
- * at 0 (the wire's omission law). One spread at the pose's sender (scenes/world.js), so the host grows no entry for it.
- * @param {boolean} usingRightHand
- * @param {'R'|'L'|null} strikeHand the last strike's hand in a pair, else null
- */
-export const poseHandsOf = (usingRightHand, strikeHand) => ({ ...(usingRightHand ? {} : { lh: 1 }), ...(strikeHand === 'L' ? { ah: 1 } : {}) });

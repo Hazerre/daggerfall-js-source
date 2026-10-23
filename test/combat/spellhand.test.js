@@ -18,6 +18,7 @@ import { createPlayerMagic } from '../../src/scenes/hostMagic.js';
 import { TEMPLATES } from '../../src/systems/useItem.js';
 import { pistolRig } from './weapon/pistolRigHarness.js';
 import { fpArm } from '../../src/combat/fpArm.js';
+import { TUTORIALS } from '../../src/systems/tutorialCatalogue.js';
 
 const src = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const weapon = (templateIndex, name) => ({ name, group: 'Weapons', templateIndex, material: 0 });
@@ -89,7 +90,7 @@ test('SPELL-HAND THE CAST\'S DOORS (scenes/hostMagic.js): with the spell hand up
 });
 
 test('SPELL-HAND THE FOUR HOSTS RULE: every cast press is a cast\'s own - ActivateCenterObject\'s in the street (world.js, exterior.js), indoors and in the dungeon (worldModes.js), the fixed dungeon (dungeon.js) and the hotbar - and the dungeon\'s attack door never swings on one; no swing button says it is a cast (mutants: a host\'s cast press unsaid; the dungeon swinging on a cast press)', () => {
-  // PIN MOVED (AUDIT SPELL-HAND, HOST-SPLIT): the press is the imported word CAST_PRESS (combat/twoHands/spellHand.js) and the
+  // PIN MOVED (AUDIT SPELL-HAND, HOST-SPLIT): the press is the imported word CAST_PRESS (combat/twoHands/spellHand.js, handed to the hosts by scenes/hostMagic.js - TWO-HANDS' FOUR HOSTS read no two-hands module) and the
   // dungeon's door takes its `cast` positionally - an option object was an entry each host grew by (was: `{ cast: true }`)
   const casts = (file) => (src(file).match(/interceptAttack\?*\.?\(true, CAST_PRESS\)/g) ?? []).length;
   assert.equal(casts('src/scenes/world.js'), 1, 'world.js: the activate press');
@@ -322,7 +323,7 @@ test('SPELL-HAND UNDER THE MORROWIND ARM THE HANDS TAKE TURNS ON THE ARM\'S CLOC
   } finally { arm.restore(); _resetSpellHand(); }
 });
 
-test('SPELL-HAND THE BUSY WORD IS THE HANDS\' WHOLE STRIKE: a blow begun this frame is in flight for the cast door the hosts ask before the next, and under the Morrowind arm its blow or draw still playing past the machine holds a cast too (mutants: the word told only at the frame\'s top; the arm\'s blow unread)', async () => {
+test('SPELL-HAND THE BUSY WORD IS THE HANDS\' WHOLE STRIKE: a blow begun this frame is in flight for the cast door the hosts ask before the next, and under the Morrowind arm its blow or draw still playing past the machine holds a cast too (mutants: the word told only at the frame\'s top; the arm\'s blow unread; the frame\'s word blind to hands that fit)', async () => {
   const arm = stubArm();
   try {
     const { r, frame, ready } = await spellRig();
@@ -341,6 +342,15 @@ test('SPELL-HAND THE BUSY WORD IS THE HANDS\' WHOLE STRIKE: a blow begun this fr
     arm.busy = false;
     await frame();
     assert.equal(spellHandBusy(), false);
+    // AUDIT SPELL-HAND L2-2: no spell readied yet, the hands FIT - a blow is busy on every frame of it, not only its
+    // first: the hotbar's ready-and-cast and CasterOnly's instant cast, coming mid-blow, wait on it
+    ready.spell = null;
+    await settle(frame, 30);
+    await frame(1 / 60, true);
+    await frame(); await frame();
+    assert.notEqual(r.playerWeapon.machine.state, 'Idle', 'still mid-blow');
+    assert.equal(spellHandUp(), false, 'no spell in the hand');
+    assert.equal(spellHandBusy(), true, 'the frame\'s own word says the fitting hands are busy');
   } finally { arm.restore(); _resetSpellHand(); }
 });
 
@@ -444,7 +454,8 @@ test('SPELL-HAND AUDIT L2-4 / L2-5 / L4-5, THE CAST\'S HANDS ARE ITS OWN: decide
     one.ready.spell = FIRE;
     await settle(one.frame);
     await one.frame(1 / 60, true);   // a blow, so the readied hand carries its guard into the cast
-    for (let i = 0; i < 60 && one.r.playerWeapon.machine.state !== 'Idle'; i++) await one.frame();
+    for (let i = 0; i < 240 && one.r.playerWeapon.machine.state !== 'Idle'; i++) await one.frame();
+    assert.equal(one.r.playerWeapon.machine.state, 'Idle', 'the blow ended - H is the cast\'s to refuse, not the blow\'s');
     assert.equal(one.r.castSpellAnim(2, 0, () => {}), true);
     let q = await one.frame();
     assert.equal(one.r.switchHand(), false, 'H mid-cast: refused');
@@ -543,4 +554,11 @@ test('SPELL-HAND AUDIT L3-4 / L4-7, THE ARM\'S CAST HOLDS EVERY HAND, AND A LEAP
     assert.ok(swung, 'its hands free: the blow');
   } finally { arm.restore(); _resetSpellHand(); }
   assert.match(src('src/combat/weapon/weaponRig.js'), /const handsBusy = \(\) => [^\n]*\|\| techniqueFlying\(\);/, 'L4-7: a technique\'s leap or dash is a strike in flight (its landing blow paid for at the launch)');
+});
+
+test('SPELL-HAND AUDIT L4-4 THE TUTORIAL NAMES THE CAST\'S OWN PRESS: the spellbook page casts with ActivateCenterObject (EntityEffectManager\'s own, which casts whatever the hands) and says the swing button swings the weapon beside a spell in the free hand - never the swing button as the cast\'s (mutant: the page back to the swing button)', () => {
+  const page = TUTORIALS.find((p) => p.id === 'spellbook');
+  assert.match(page.body[0], /cast it with \{ActivateCenterObject\}\./);
+  assert.match(page.body[0], /the spell waits in that hand and \{SwingWeapon\} still swings the weapon\./);
+  assert.doesNotMatch(page.body[0], /cast it with \{SwingWeapon\}/);
 });

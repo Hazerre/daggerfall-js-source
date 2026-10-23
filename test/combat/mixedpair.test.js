@@ -238,7 +238,9 @@ test('MIXED-PAIR THE BALANCE, MEASURED in the game\'s own swing (the rig\'s swin
   // AUDIT MIXED-PAIR L1-2: measured with the pair's own ctx - the first measure handed every weapon a bare hand's heft
   const run = (R, L, { speed = 50, fps = 60, reload = null } = {}) => {
     const pw = realPair(R, L, { speed });
-    if (reload != null) { const was = pw._pistolsFor.bind(pw); pw._pistolsFor = () => { const p = was(); if (p && pw.gunHand) p[pw.gunHand].cooldownMs = PISTOLET_FEEL.reloadMs * reload; return p; }; }
+    // the free hand's pace for the comparison - its loaded share rescaled as the machine's own (L1-6), so the next frame's
+    // rescale back to MIXED.RELOAD and this one cancel
+    if (reload != null) { const was = pw._pistolsFor.bind(pw); pw._pistolsFor = () => { const p = was(); const g = p && pw.gunHand ? p[pw.gunHand] : null; const ms = PISTOLET_FEEL.reloadMs * reload; if (g && g.cooldownMs !== ms) { if (g.state === 'Cooling') g._cool *= ms / g.cooldownMs; g.cooldownMs = ms; } return p; }; }
     let d = 0, shots = 0;
     const dt = 1 / fps;
     for (let t = 0; t < 120; t += dt) {
@@ -486,7 +488,7 @@ test('MIXED-PAIR UNDER THE MORROWIND ARM THE HANDS TAKE TURNS ON THE ARM: while 
   }
 });
 
-test('MIXED-PAIR AUDIT, THE SHOT IS THE GUN\'S TO ITS END (L1-4, L1-5): a gun pair\'s lead pistol swapped for a longsword mid-shot lands nothing - never a blade\'s blow out of the pistol\'s mirror; a mixed pair\'s gun moved hand to hand mid-shot lands its one shot, as a shot; and the cooldown a Thunderlock owed is kept through a mixed pair\'s shot (AUDIT PISTOL-PORT C1) (mutants: the gun\'s strike read off its hand; the mixed mirror wiping the owed cooldown)', () => {
+test('MIXED-PAIR AUDIT, THE SHOT IS THE GUN\'S TO ITS END (L1-4, L1-5): a gun pair\'s lead pistol swapped for a longsword mid-shot lands nothing - never a blade\'s blow out of the pistol\'s mirror; a mixed pair\'s gun moved hand to hand mid-shot lands its one shot, as a shot; and the cooldown a Thunderlock owed is kept through a mixed pair\'s shot (AUDIT PISTOL-PORT C1) (mutants: the gun\'s strike read off its hand; the mixed mirror wiping the owed cooldown, under the blade too)', () => {
   const sword = LONGSWORD();
   const pair = pairOf(createPistolet(), createPistolet());
   assert.ok(pair._attack('StrikeDown')); step(pair, 3);
@@ -517,6 +519,19 @@ test('MIXED-PAIR AUDIT, THE SHOT IS THE GUN\'S TO ITS END (L1-4, L1-5): a gun pa
   let again = null;
   for (let i = 0; i < 300 && again == null; i++) if (frame(true)) again = pw.machine.now - fired;
   assert.ok(again >= 1.7, `the Thunderlock's cooldown kept (${again?.toFixed(3)} s after its shot)`);
+  // ...and while the pair is still in the hands: the gun's shot never hands the blade beside it the owed time (the mirror's
+  // own keep - the put-by's restates it)
+  const pw2 = new PlayerWeapon(); pw2.sheathed = false;
+  const h2 = { R: createThunderlock(), L: null }, blows = [];
+  const frame2 = (attack) => { pw2.updateHands(h2.R, h2.L); pw2.applyWeapon(); if (attack) pw2.clickAttack(() => 0.5); for (const e of pw2.update(DT)) if (e === 'hit') blows.push({ t: pw2.machine.now, ranged: pw2.machine.ranged }); };
+  frame2(true);
+  const shot = pw2.machine.now;
+  for (let i = 0; i < 40; i++) frame2(false);
+  h2.R = sword; h2.L = createPistolet(); pw2.usingRightHand = false;
+  for (let i = 0; i < 200; i++) frame2(true);
+  const blade = blows.find((b) => !b.ranged && b.t > shot + 0.1);
+  assert.ok(blows.some((b) => b.ranged && b.t > shot + 0.1), 'the pair\'s gun fired');
+  assert.ok(blade && blade.t - shot > 1.7, `the blade waits out the Thunderlock's cooldown too (${blade ? (blade.t - shot).toFixed(2) : 'none'} s after its shot)`);
 });
 
 test('MIXED-PAIR AUDIT L5-4 / L5-6 / L5-8, THE GUN BESIDE THE BLADE\'S TURN: its voice is its own through the blade\'s blows - the bang, the breech open, and the close a one-handed reload on (never the Thunderlock\'s clip, never a free hand\'s pace); its frame steps through the reload with every mod off; it slides into the holster on Z; at rest the classic machine is the BLADE\'s, whatever leads; and a light carried in the hand makes no pair (mutants: the voice\'s gate the right hand\'s gun; the gun read as no pistol on the blade\'s turn; the reload voice at the free pace; the frame gate; the slide; the classic machine on the gun\'s type; the pair blind to the mode)', async () => {

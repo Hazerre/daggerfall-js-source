@@ -196,7 +196,7 @@ test('MAC7: the hosts by source - weaponRig counts every strike it starts before
   // gesture door hands its frame's, the click door none (the machine's tick, unquantised)
   assert.equal((rig.match(/fpAttack\(strike(?:, dt(?: = 0)?)?\)/g) ?? []).length, 3, 'the one counter sits under both strike doors (the click and the gesture)');
   const w = rd('src/scenes/world.js');
-  // PIN MOVED (AUDIT MIXED-PAIR L4-3): DISC12's `lh` rides a spread with `ah` (combat/twoHands/handsLaw.js poseHandsOf), the
+  // PIN MOVED (AUDIT MIXED-PAIR L4-3): DISC12's `lh` rides a spread with `ah` (net/wire.js poseHandsOf), the
   // pose's hands from one module (was: `lh: rig.playerWeapon.usingRightHand ? undefined : 1,`); the order did not move
   assert.match(w, /import \{ POSE_STRIKES, isWorldRoom, isCellRoom, cellHaloFor, actFrameFits, sharedClassicMinutes, wallMsForClassicMinutes \} from '\.\.\/net\/wire\.js';/);   // WORLD6b: the cell's law rides the same import; WORLD6b-iii(b): and the seam's
   assert.match(w, /import \{ hasDaggerfallArrows \} from '\.\.\/combat\/fpArm\.js';/, 'the arrow read weaponRig\'s own per-frame read takes');
