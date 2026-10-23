@@ -1462,19 +1462,6 @@ export const FEATURES = Object.freeze([
       tiers: Object.freeze([['shots', 'Your screenshots'], ['art', 'Night sky'], ['off', 'Off']]),
     }),
   }),
-  // GUIDE3 (2026-09-29, Mac: "...make it more accessible", then "This is your baby"): THE HERALD - a quest's news as
-  // a notice in the enhanced stack (ui/quest/questHerald.js), fed by the quest bridge's tick. On by default (the arc's
-  // DECISIONS: the silence it answers is DISC6's report); the player's own online, since news is no one else's.
-  Object.freeze({
-    id: 'quest-herald',
-    group: 'interface',
-    get title() { return t('features.questHerald.title', 'Quest news'); },
-    get note() { return t('features.questHerald.note', 'A notice slides in when a quest begins, when its journal gains an entry, when one of its deadlines is '
-      + 'less than a day away, and when it ends. Off updates the journal without a notice.'); },   // AUDIT GUIDE H1
-    get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
-    kinds: Object.freeze(['enhanced']),
-    control: Object.freeze({ store: 'prefs', key: 'questHerald', initial: true, online: 'player' }),   // ui/quest/questHerald.js HERALD_PREF
-  }),
   // EVENTS1 (2026-10-23, the owner: "Instead of stuffing these in the chat menu, there must be a less obstructive and more
   // detailed way to handle them"): THE EVENT BOARD - the shared events a player can still reach, at the HUD's left edge,
   // and the news at its head that announces them and carries their lines (ui/eventBoard.js, bible/10-UI/Event-Board.md). On by default;
@@ -1490,6 +1477,19 @@ export const FEATURES = Object.freeze([
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced', 'classic']),
     control: Object.freeze({ store: 'prefs', key: 'eventBoard', initial: true, online: 'player' }),   // systems/eventNotices.js EVENT_BOARD_PREF
+  }),
+  // GUIDE3 (2026-09-29, Mac: "...make it more accessible", then "This is your baby"): THE HERALD - a quest's news as
+  // a notice in the enhanced stack (ui/quest/questHerald.js), fed by the quest bridge's tick. On by default (the arc's
+  // DECISIONS: the silence it answers is DISC6's report); the player's own online, since news is no one else's.
+  Object.freeze({
+    id: 'quest-herald',
+    group: 'interface',
+    get title() { return t('features.questHerald.title', 'Quest news'); },
+    get note() { return t('features.questHerald.note', 'A notice slides in when a quest begins, when its journal gains an entry, when one of its deadlines is '
+      + 'less than a day away, and when it ends. Off updates the journal without a notice.'); },   // AUDIT GUIDE H1
+    get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
+    kinds: Object.freeze(['enhanced']),
+    control: Object.freeze({ store: 'prefs', key: 'questHerald', initial: true, online: 'player' }),   // ui/quest/questHerald.js HERALD_PREF
   }),
   // GUIDE4 (2026-09-29): THE TRACKER - the quest you follow as a card at the HUD's right-upper edge (ui/quest/questTracker.js),
   // fed by the same look. On by default but quiet (DECISIONS 2): it follows the quest the journal last changed until
