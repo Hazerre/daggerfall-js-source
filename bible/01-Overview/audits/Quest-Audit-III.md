@@ -340,6 +340,13 @@ says the law as it now stands under the finding's id.
 | F10 | LOW | THE FOUR HOSTS were not named for this change's seams; `?exterior`'s quest bridge reads no carried item at all | FIXED, below; `?exterior` RECORDED |
 | F11 | LOW | Seven departures had no ledger row | FIXED: Port-Ledger A, THE QUEST ENGINE'S OTHER DEPARTURES |
 
+**THE FIXES' OWN AUDIT.** The lanes that pinned these fixes found three holes in them, each fixed and pinned in
+`auditqa3_share.test.js`: the share memory was written only when it held something, so a copy that left the party's
+step and nothing else (the sharer's own, nobody heard; a receipt with no sender) was put back in step by a load from
+its share identity - a copy ever shared now writes it (A6); an older save's received copy, no sharer named, waited at
+its questline's choice on nobody - it is its holder's to answer, as after a load before (E1); and a deliberate Share of
+a copy unchanged since it came was merged in full by a member holding it - it is a held word too (E4).
+
 **THE FOUR HOSTS (F10).** The share's seams - `partyHas` (E1), `keepsQuestItem` (SHELF-TWIN, B8), the receipt's `from`,
 the kill credit's owner (E3), the sender's own line - are `scenes/world.js`'s alone: the party is the online page's, and
 the other three hosts receive no share (their bridge's `keepsQuestItem` falls back to the pack). The stand's free
@@ -358,6 +365,8 @@ and no carried item: its quest machine reads none, as before this change.
   fresh one the mount stands (as at main); only the fresh one counts.
 - **E3 across a reload.** A kill whose envelope came, then a reload, then its credit, counts twice, as at main: a learned
   kill is no save state.
+- **E7's fallback.** A quest REPUTE-GATE names with no catalog row would read the envelope's faction; both gated quests
+  have rows.
 - **#982's messenger.** The lanes did not check whether S0000012's messenger stands where the quest says; a restart
   of a step whose placement is broken fails the same way again.
 - **An old save more than a week past a refusal at the offer.** A refusal files no journal entry and its tombstone is

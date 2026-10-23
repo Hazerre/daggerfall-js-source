@@ -1184,7 +1184,10 @@ export class QuestMachine {
       if (q._holdersHeard?.size) holders.push([q.uid, [...q._holdersHeard]]);
       if (q._sentBy != null) sharers.push([q.uid, q._sentBy]);
     }
-    if (!this.sharedQuestNames.size && !this.finishedShareIds.size && !this.finishedSharedQuestNames.size && !holders.length && !sharers.length) return {};
+    // a copy that was ever shared writes it too, empty or not: an empty memory read from its identity put a copy set aside
+    // and reclaimed back in step (the sharer's own, nobody heard; a receipt with no sender)
+    if (!this.sharedQuestNames.size && !this.finishedShareIds.size && !this.finishedSharedQuestNames.size && !holders.length && !sharers.length
+      && ![...this.quests.values()].some((q) => typeof q.shareId === 'string' && q.shareId)) return {};
     return { shareMemory: { inStep: [...this.sharedQuestNames], finishedIds: [...this.finishedShareIds], finishedNames: [...this.finishedSharedQuestNames], holders, sharers } };
   }
 
@@ -1281,6 +1284,9 @@ export class QuestMachine {
       if (typeof q.shareId !== 'string' || !q.shareId) continue;
       if (q.questComplete || q.questTombstoned) this.finishedShareIds.add(q.shareId);
       else if (!isShelved(q)) this.sharedQuestNames.add(q.questName);
+      // AUDIT QA3 E1: an older save names no sharer - its received copy is its holder's to answer, as it was after a load
+      // (AUDIT QUESTLINES BRANCH-1), never one waiting on nobody at its questline's choice
+      if (q.ql?.received) q.ql.received = false;
     }
     // STORY-AGAIN (#982): the story's record as saved, and what the quests restored say of it - an envelope from before
     // the record (`storyLegacy`) knows only these, and the bridge reads the journal's archive for the rest (seedStory)

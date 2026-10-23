@@ -305,8 +305,10 @@ export function canReceiveSharedQuest(machine, questLists, questName, { membersh
  *  on which arm ran to read the outcome. */
 export function receiveSharedQuest(machine, questLists, questName, data, ctx = {}) {
   const check = canReceiveSharedQuest(machine, questLists, questName, { ...ctx, shareId: data?.shareId ?? null, factionId: data?.factionId ?? 0 });   // DISC22-F: the copy being offered; REPUTE-SHARE: its faction
-  const held = data?.sync === 1 && data?.held === 1;   // AUDIT QA3 E2/E4: a partner's word that it holds the copy (prepareQuestShare)
-  if (!check.ok) return held ? { ...check, quiet: true } : check;   // a member who refused the share is not told so again by each answer
+  // AUDIT QA3 E2/E4: a partner's word that it holds the copy (prepareQuestShare) - on a sync, or a deliberate Share of a
+  // copy unchanged since it came: either way nothing in it is news to a member who holds the copy
+  const held = data?.held === 1;
+  if (!check.ok) return held && data.sync === 1 ? { ...check, quiet: true } : check;   // a member who refused the share is not told so again by each answer
   if (held && check.resync) {
     machine.noteShareHolder?.(questName, ctx.from);
     const quest = machine.sharedCandidateNamed?.(questName) ?? null;

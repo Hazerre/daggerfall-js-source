@@ -63,9 +63,9 @@
     ]
   },
   {
-    "name": "QA3S-SHARER-GONE-quiet-unread",
+    "name": "QA3S-SHARER-GONE-sharer-unread",
     "file": "src/systems/questlines/qlActions.js",
-    "old": " && quest.hooks?.sharerHeard?.(quest) !== false;",
+    "old": " && quest.hooks?.sharerHere?.(quest) !== false;",
     "new": ";",
     "tests": [
       "test/systems/quest/questaudit3_share.test.js"
@@ -81,37 +81,37 @@
     ]
   },
   {
-    "name": "QA3S-SHARER-GONE-receipt-unheard",
-    "file": "src/systems/quest/machine.js",
-    "old": "    quest._partyHeardBeat = this.beat;   // QUEST-AUDIT III SHARER-GONE: the party heard on it\n    this.sharedQuestNames.add(quest.questName);",
-    "new": "    this.sharedQuestNames.add(quest.questName);",
-    "tests": [
-      "test/systems/quest/questaudit3_share.test.js"
-    ]
-  },
-  {
-    "name": "QA3S-SHARER-GONE-resync-unheard",
-    "file": "src/systems/quest/machine.js",
-    "old": "the holder's reward its own\n    quest._partyHeardBeat = this.beat;",
-    "new": "the holder's reward its own\n",
-    "tests": [
-      "test/systems/quest/questaudit3_share.test.js"
-    ]
-  },
-  {
-    "name": "QA3S-SHARER-GONE-share-on-waits",
-    "file": "src/systems/quest/machine.js",
-    "old": "    if (quest?.ql?.received) quest.ql.received = false;\n",
+    "name": "QA3S-SHARER-GONE-receipt-sender-unkept",
+    "file": "src/systems/quest/questShare.js",
+    "old": "  quest._sentBy = ctx.from ?? null;   // AUDIT QA3 E1: who shared it - its questline choices wait while they are in the party\n",
     "new": "",
     "tests": [
       "test/systems/quest/questaudit3_share.test.js"
     ]
   },
   {
-    "name": "QA3S-SHARER-GONE-never-heard-is-heard",
+    "name": "QA3S-SHARER-GONE-party-unread",
     "file": "src/systems/quest/machine.js",
-    "old": "(quest?._partyHeardBeat ?? -Infinity)",
-    "new": "(quest?._partyHeardBeat ?? 0)",
+    "old": "sharerHere: (quest) => !quest?._sentBy || (this.deps.partyHas?.(quest._sentBy) ?? true),",
+    "new": "sharerHere: (quest) => !!quest,",
+    "tests": [
+      "test/systems/quest/questaudit3_share.test.js"
+    ]
+  },
+  {
+    "name": "QA3S-SHARER-GONE-share-on-chooses",
+    "file": "src/systems/quest/machine.js",
+    "old": "  markQuestShared(questName) {\n    this.sharedQuestNames.add(questName);\n  }",
+    "new": "  markQuestShared(questName) {\n    this.sharedQuestNames.add(questName);\n    const quest = this.sharedCandidateNamed(questName);\n    if (quest?.ql?.received) quest.ql.received = false;\n  }",
+    "tests": [
+      "test/systems/quest/questaudit3_share.test.js"
+    ]
+  },
+  {
+    "name": "QA3S-SHARER-GONE-unknown-sharer-gone",
+    "file": "src/systems/quest/machine.js",
+    "old": "!quest?._sentBy || (this.deps.partyHas",
+    "new": "(this.deps.partyHas",
     "tests": [
       "test/systems/quest/questaudit3_share.test.js"
     ]
@@ -182,7 +182,7 @@
   {
     "name": "QA3S-PROGRESS-KEPT-host-baseline",
     "file": "src/scenes/world.js",
-    "old": "if (q) _questSyncSeen.set(quest.questName, syncBaselineAfter(q, result));",
+    "old": "if (q) _questSyncSeen.set(quest.questName, syncBaselineAfter(q, result, _questSyncSeen.get(quest.questName)));",
     "new": "if (q) _questSyncSeen.set(quest.questName, shareSignature(q));",
     "tests": [
       "test/systems/quest/questaudit3_share.test.js"
@@ -308,7 +308,7 @@
   {
     "name": "QA3S-KILL-ONCE-credit-unspent",
     "file": "src/systems/quest/foe.js",
-    "old": "    if (this.learnedKills > 0) { this.learnedKills--; return false; }\n",
+    "old": "    if (n > 0) { this.learnedKills.set(key, n - 1); return false; }\n",
     "new": "",
     "tests": [
       "test/systems/quest/questaudit3_share.test.js"
@@ -317,7 +317,7 @@
   {
     "name": "QA3S-KILL-ONCE-learned-uncounted",
     "file": "src/systems/quest/machine.js",
-    "old": "      r.learnedKills = was.learned + Math.max(0, brought - was.killCount);\n",
+    "old": "      if (brought > was.killCount) r.learnedKills.set(from, (r.learnedKills.get(from) ?? 0) + brought - was.killCount);\n",
     "new": "",
     "tests": [
       "test/systems/quest/questaudit3_share.test.js"
@@ -326,8 +326,8 @@
   {
     "name": "QA3S-KILL-ONCE-learned-not-carried",
     "file": "src/systems/quest/machine.js",
-    "old": "r.learnedKills = was.learned + Math.max(0, brought - was.killCount);",
-    "new": "r.learnedKills = Math.max(0, brought - was.killCount);",
+    "old": "r.learnedKills = was.learned;",
+    "new": "r.learnedKills = new Map();",
     "tests": [
       "test/systems/quest/questaudit3_share.test.js"
     ]
@@ -335,8 +335,8 @@
   {
     "name": "QA3S-KILL-ONCE-learned-unread",
     "file": "src/systems/quest/machine.js",
-    "old": "itemQueue: r.itemQueue ?? null, learned: r.learnedKills | 0 });",
-    "new": "itemQueue: r.itemQueue ?? null });",
+    "old": "itemQueue: r.itemQueue ?? null, learned: new Map(r.learnedKills ?? []) });",
+    "new": "itemQueue: r.itemQueue ?? null, learned: new Map() });",
     "tests": [
       "test/systems/quest/questaudit3_share.test.js"
     ]
@@ -344,8 +344,8 @@
   {
     "name": "QA3S-KILL-ONCE-host-credit",
     "file": "src/scenes/quest/questFoeHost.js",
-    "old": "    foe.creditPartnerKill?.();   // QUEST-AUDIT III KILL-ONCE (quest/foe.js)",
-    "new": "    foe.incrementKills?.();",
+    "old": "    foe.creditPartnerKill?.(owner);   // QUEST-AUDIT III KILL-ONCE (quest/foe.js)",
+    "new": "    foe.incrementKills?.();   // QUEST-AUDIT III KILL-ONCE (quest/foe.js)",
     "tests": [
       "test/systems/quest/questaudit3_share.test.js"
     ]
@@ -353,7 +353,7 @@
   {
     "name": "QA3S-REPUTE-SHARE-gate-gone",
     "file": "src/systems/quest/questShare.js",
-    "old": "  if (need != null && isOnlinePage() && (machine.deps?.getReputation?.(Number(factionId) || 0) ?? 0) < need) return { ok: false, reason: 'repute', need };\n",
+    "old": "  if (need != null && isOnlinePage() && (machine.deps?.getReputation?.(fid) ?? 0) < need) return { ok: false, reason: 'repute', need };\n",
     "new": "",
     "tests": [
       "test/systems/quest/questaudit3_share.test.js"
@@ -380,8 +380,8 @@
   {
     "name": "QA3S-REPUTE-SHARE-faction-dropped",
     "file": "src/systems/quest/questShare.js",
-    "old": "shareId: data?.shareId ?? null, factionId: data?.factionId ?? 0 });",
-    "new": "shareId: data?.shareId ?? null });",
+    "old": "const fid = Object.values(GUILDS).find((g) => g.guildGroup === meta?.group)?.factionId ?? (Number(factionId) || 0);",
+    "new": "const fid = 0;",
     "tests": [
       "test/systems/quest/questaudit3_share.test.js"
     ]
