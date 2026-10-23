@@ -18,7 +18,9 @@
 -- A CLAIM ENDS WITH ITS SESSION (Weak spots: "a claim ends with the claimer's session"). `claim_session` the staff
 -- session (staff_sessions.token_hash) that took or last kept the claim; the claim stands only while that session lives.
 --
--- mod_actions.click   the one-time id of the press that made the act - a press sent twice is one act.
+-- mod_actions.click   the one-time id of the press that made the act - a press sent twice is one act: UNIQUE
+--                     (mod_actions_click), so two sent at once with no case to take strike once, the second's record
+--                     refused (the flaw review of PR 1: a plain index let both write a strike).
 -- players.banned_by   who set the ban that stands (`muted_by`, MOD1's, says who set the mute).
 -- players.mute_admin, players.ban_admin   1 when an Admin set the mute or ban that stands (Weak spots: "A Moderator
 --                     can lift an Admin's ban") - lifting or shortening it then needs an Admin.
@@ -36,7 +38,7 @@ DROP INDEX IF EXISTS mod_cases_open;
 CREATE UNIQUE INDEX IF NOT EXISTS mod_cases_open ON mod_cases (target, kind) WHERE status = 'open';
 
 ALTER TABLE mod_actions ADD COLUMN click TEXT;
-CREATE INDEX IF NOT EXISTS mod_actions_click ON mod_actions (click) WHERE click IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS mod_actions_click ON mod_actions (click) WHERE click IS NOT NULL;
 
 ALTER TABLE players ADD COLUMN banned_by TEXT;
 ALTER TABLE players ADD COLUMN mute_admin INTEGER;

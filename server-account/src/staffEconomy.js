@@ -115,7 +115,7 @@ const GUILD_SORTS = Object.freeze({ gold: 'treasury', realm: 'realm_gold', legac
 const keptBy = new WeakMap();
 /** An answer kept `ttl` seconds in this isolate, per database binding (a request's counted Proxy names its binding,
  *  service.js DB_ROOT) - the promise itself, so a burst of opens reads once; a failed read is forgotten. */
-function kept(/** @type {any} */ db, /** @type {string} */ key, /** @type {number} */ nowS, /** @type {number} */ ttl, /** @type {() => Promise<any>} */ make) {
+export function kept(/** @type {any} */ db, /** @type {string} */ key, /** @type {number} */ nowS, /** @type {number} */ ttl, /** @type {() => Promise<any>} */ make) {
   const root = db?.[DB_ROOT] ?? db;
   let m = keptBy.get(root);
   if (!m) { m = new Map(); keptBy.set(root, m); }

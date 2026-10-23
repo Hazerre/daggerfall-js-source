@@ -142,8 +142,8 @@
   {
     "name": "STAFF-PANEL4-CENSUS-market-items-dropped",
     "file": "server-account/src/staffCensus.js",
-    "old": "market: num(items) + num(crafted) + (keys.length ? num(mats) : 0)",
-    "new": "market: num(crafted) + (keys.length ? num(mats) : 0)",
+    "old": "market: num(items) + num(crafted) + num(auctions)",
+    "new": "market: num(crafted) + num(auctions)",
     "why": "a pack's piece listed uncounted",
     "tests": [
       "test/server/staffpanel4census.test.js"
@@ -152,8 +152,8 @@
   {
     "name": "STAFF-PANEL4-CENSUS-vaults-dropped",
     "file": "server-account/src/staffCensus.js",
-    "old": "vaults: num(vault), market:",
-    "new": "vaults: 0, market:",
+    "old": "vaults: num(vault),",
+    "new": "vaults: 0,",
     "why": "a guild vault uncounted",
     "tests": [
       "test/server/staffpanel4census.test.js"
@@ -172,8 +172,8 @@
   {
     "name": "STAFF-PANEL4-CENSUS-marks-escrow-dropped",
     "file": "server-account/src/staffCensus.js",
-    "old": "\"SELECT COALESCE(SUM(escrow), 0) AS n FROM market_orders WHERE state = 'open'\"",
-    "new": "'SELECT 0 AS n'",
+    "old": "db.prepare(MARKS_ESCROW));",
+    "new": "db.prepare('SELECT 0 AS n'));",
     "why": "the Marks orders hold uncounted",
     "tests": [
       "test/server/staffpanel4census.test.js"
@@ -262,8 +262,8 @@
   {
     "name": "STAFF-PANEL4-CENSUS-drop-listed",
     "file": "server-account/src/staffCensus.js",
-    "old": "WHERE (d.kind IS NULL OR d.kind != 'drop') AND (?1 IS NULL",
-    "new": "WHERE 1 AND (?1 IS NULL",
+    "old": "const LISTED = \"(d.kind IS NULL OR d.kind != 'drop')\";",
+    "new": "const LISTED = '1';",
     "why": "a death's dropped piece listed as contested",
     "tests": [
       "test/server/staffpanel4census.test.js"
@@ -272,9 +272,9 @@
   {
     "name": "STAFF-PANEL4-CENSUS-open-filter",
     "file": "server-account/src/staffCensus.js",
-    "old": "(?2 = 0 OR d.trail_at IS NULL)",
-    "new": "(1 OR d.trail_at IS NULL)",
-    "why": "a checked piece among the unchecked",
+    "old": "...(open ? [] : ['d.trail_at IS NOT NULL'])",
+    "new": "...(false ? [] : ['d.trail_at IS NOT NULL'])",
+    "why": "a checked piece among the unchecked (the urgent list)",
     "tests": [
       "test/server/staffpanel4census.test.js"
     ]
@@ -302,9 +302,9 @@
   {
     "name": "STAFF-PANEL4-CENSUS-checked-first",
     "file": "server-account/src/staffCensus.js",
-    "old": "(d.trail_at IS NULL) DESC, (${OPEN_SQL}",
-    "new": "(d.trail_at IS NULL) ASC, (${OPEN_SQL}",
-    "why": "checked pieces sorted first",
+    "old": "['d.trail_at IS NOT NULL']",
+    "new": "['1']",
+    "why": "the checked tier takes every piece - the unchecked shown twice",
     "tests": [
       "test/server/staffpanel4census.test.js"
     ]
@@ -312,9 +312,9 @@
   {
     "name": "STAFF-PANEL4-CENSUS-high-not-first",
     "file": "server-account/src/staffCensus.js",
-    "old": "(${OPEN_SQL} >= ${CONTESTED_HIGH}) DESC, d.at DESC",
-    "new": "d.at DESC",
-    "why": "a repeat holder's pieces below a newer single",
+    "old": "HAVING COUNT(*) >= ${CONTESTED_HIGH}`;",
+    "new": "HAVING COUNT(*) > ${CONTESTED_HIGH}`;",
+    "why": "a repeat holder at the line not first - its pieces in neither tier",
     "tests": [
       "test/server/staffpanel4census.test.js"
     ]
@@ -322,9 +322,9 @@
   {
     "name": "STAFF-PANEL4-CENSUS-home-high",
     "file": "server-account/src/staffCensus.js",
-    "old": "AND ${OPEN_SQL} >= ?1`).bind(CONTESTED_HIGH)",
-    "new": "AND ${OPEN_SQL} >= ?1`).bind(CONTESTED_HIGH + 1)",
-    "why": "the roll-up counts no high",
+    "old": "THEN n ELSE 0 END), 0) AS high",
+    "new": "THEN 1 ELSE 0 END), 0) AS high",
+    "why": "the roll-up counts high characters, not their pieces",
     "tests": [
       "test/server/staffpanel4census.test.js"
     ]
@@ -402,8 +402,8 @@
   {
     "name": "STAFF-PANEL4-CENSUS-backfill-over-own",
     "file": "server-account/src/staffCensus.js",
-    "old": "if (r.has || r.dead_at != null || !r.obj) continue;",
-    "new": "if (r.dead_at != null || !r.obj) continue;",
+    "old": "if (!(r.has || r.dead_at != null || !r.obj)) {",
+    "new": "if (!(r.dead_at != null || !r.obj)) {",
     "why": "a checkpoint's tally read again from R2",
     "tests": [
       "test/server/staffpanel4census.test.js"
@@ -412,8 +412,8 @@
   {
     "name": "STAFF-PANEL4-CENSUS-backfill-dead",
     "file": "server-account/src/staffCensus.js",
-    "old": "|| r.dead_at != null || !r.obj) continue;",
-    "new": "|| !r.obj) continue;",
+    "old": "|| r.dead_at != null || !r.obj)) {",
+    "new": "|| !r.obj)) {",
     "why": "the dead filled",
     "tests": [
       "test/server/staffpanel4census.test.js"
@@ -422,7 +422,7 @@
   {
     "name": "STAFF-PANEL4-CENSUS-backfill-never-done",
     "file": "server-account/src/staffCensus.js",
-    "old": "done: page.length < CENSUS_BACKFILL_PAGE",
+    "old": "done: !failed && page.length < CENSUS_BACKFILL_PAGE",
     "new": "done: false",
     "why": "the backfill walks the realm every quiet hour for good",
     "tests": [
@@ -545,6 +545,346 @@
     "old": "copyRows(db, keys, char, nowS, 'drop',",
     "new": "copyRows(db, keys, char, nowS, null,",
     "why": "a death's drop listed as contested",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-jumps-grouped-bare",
+    "file": "server-account/src/staffCensus.js",
+    "old": "GROUP BY +w.char_id",
+    "new": "GROUP BY w.char_id",
+    "why": "the jumps walk every hour row in key order (finding 16)",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-open-filter-newest",
+    "file": "server-account/src/staffCensus.js",
+    "old": "[open ? 'd.trail_at IS NULL' : null]",
+    "new": "[null]",
+    "why": "a checked piece among the unchecked (the newest list)",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-high-twice",
+    "file": "server-account/src/staffCensus.js",
+    "old": "${OPEN_SQL} < ${CONTESTED_HIGH}`",
+    "new": "${OPEN_SQL} <= ${CONTESTED_HIGH}`",
+    "why": "a repeat holder at the line in both tiers - shown twice",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-home-total",
+    "file": "server-account/src/staffCensus.js",
+    "old": "COALESCE(SUM(n), 0) AS total",
+    "new": "COUNT(*) AS total",
+    "why": "Home counts characters, not their unchecked pieces",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-place-tier-lost",
+    "file": "server-account/src/staffCensus.js",
+    "old": "const first = before ? before.tier : 0;",
+    "new": "const first = 0;",
+    "why": "a page past the first tier starts again at the top (finding 17)",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-place-dropped",
+    "file": "server-account/src/staffCensus.js",
+    "old": "if (before && tier === first) {",
+    "new": "if (false) {",
+    "why": "every page the first page",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-place-one-past",
+    "file": "server-account/src/staffCensus.js",
+    "old": "const last = rows.length > page ? rows[page - 1] : null;",
+    "new": "const last = rows.length > page ? rows[page] : null;",
+    "why": "each page's place one row past it - a row skipped a page",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-drops-indexed",
+    "file": "server-account/migrations/0154_item_census.sql",
+    "old": "CREATE INDEX IF NOT EXISTS item_dupes_at ON item_dupes (at, uid, char_id) WHERE kind IS NULL OR kind != 'drop';",
+    "new": "CREATE INDEX IF NOT EXISTS item_dupes_at ON item_dupes (at, uid, char_id);",
+    "why": "every death's drops written into the list's index (finding 18)",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-open-at-index-lost",
+    "file": "server-account/migrations/0154_item_census.sql",
+    "old": "CREATE INDEX IF NOT EXISTS item_dupes_open_at ON item_dupes (at, uid, char_id) WHERE trail_at IS NULL AND (kind IS NULL OR kind != 'drop');",
+    "new": "",
+    "why": "the urgent list walks the checked pieces too",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-open-index-uncovered",
+    "file": "server-account/migrations/0154_item_census.sql",
+    "old": "CREATE INDEX IF NOT EXISTS item_dupes_open ON item_dupes (char_id, trail_at, kind)",
+    "new": "CREATE INDEX IF NOT EXISTS item_dupes_open ON item_dupes (char_id)",
+    "why": "a count reads every row it counts",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-home-uncached",
+    "file": "server-account/src/staffCensus.js",
+    "old": "const got = await keptAnswer(ctx.db, 'contested-home', ctx.nowS, CONTESTED_HOME_KEEP_S, async () => {",
+    "new": "const got = await ((_db, _k, _n, _t, f) => f())(ctx.db, 'contested-home', ctx.nowS, CONTESTED_HOME_KEEP_S, async () => {",
+    "why": "every Home open reads the contested pieces again (finding 18)",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-home-kept-long",
+    "file": "server-account/src/staffCensus.js",
+    "old": "export const CONTESTED_HOME_KEEP_S = 5 * 60;",
+    "new": "export const CONTESTED_HOME_KEEP_S = 50 * 60;",
+    "why": "Home keeps a stale count long past a few minutes",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-auctions-dropped",
+    "file": "server-account/src/staffCensus.js",
+    "old": "num(crafted) + num(auctions) + num(deliveries)",
+    "new": "num(crafted) + num(deliveries)",
+    "why": "a piece at auction counted nowhere (finding 19)",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-deliveries-dropped",
+    "file": "server-account/src/staffCensus.js",
+    "old": "num(auctions) + num(deliveries) +",
+    "new": "num(auctions) +",
+    "why": "a delivery uncollected counted nowhere",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-road-dropped",
+    "file": "server-account/src/staffCensus.js",
+    "old": "num(mats) + num(road)",
+    "new": "num(mats)",
+    "why": "goods on the road counted nowhere",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-auction-unreturned-dropped",
+    "file": "server-account/src/staffCensus.js",
+    "old": "\"(a.state = 'open' OR (a.state IN ('unsold', 'removed') AND a.returned = 0))\"",
+    "new": "\"(a.state = 'open')\"",
+    "why": "an unsold piece not yet taken back counted nowhere",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-auction-returned-counted",
+    "file": "server-account/src/staffCensus.js",
+    "old": "AND a.returned = 0))\"",
+    "new": "))\"",
+    "why": "a piece back with its seller counted twice",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-listing-unreturned-dropped",
+    "file": "server-account/src/staffCensus.js",
+    "old": "`(${l}state = 'open' OR (${l}state IN ('expired', 'removed') AND ${l}returned = 0))`",
+    "new": "`(${l}state = 'open')`",
+    "why": "an expired listing's goods not yet taken back counted nowhere",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-listing-returned-counted",
+    "file": "server-account/src/staffCensus.js",
+    "old": "AND ${l}returned = 0))`",
+    "new": "))`",
+    "why": "goods back with their seller counted twice",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-delivery-collected-counted",
+    "file": "server-account/src/staffCensus.js",
+    "old": "WHERE d.collected = 0'",
+    "new": "WHERE 1'",
+    "why": "a collected delivery counted twice",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-delivery-stack-one",
+    "file": "server-account/src/staffCensus.js",
+    "old": "ELSE MAX(1, COALESCE(json_extract(d.item, '$.stackCount'), 1)) END)",
+    "new": "ELSE 1 END)",
+    "why": "a stack delivered counted one",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-delivery-craft-lost",
+    "file": "server-account/src/staffCensus.js",
+    "old": "COALESCE(p.template, CAST(",
+    "new": "COALESCE(NULL, CAST(",
+    "why": "a crafted piece delivered counted nowhere",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-road-delivered-counted",
+    "file": "server-account/src/staffCensus.js",
+    "old": "FROM market_sales WHERE kind = 'material' AND delivered = 0 AND material IN",
+    "new": "FROM market_sales WHERE kind = 'material' AND material IN",
+    "why": "goods already in the Stores counted twice",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-marks-escrow-out-ignored",
+    "file": "server-account/src/staffCensus.js",
+    "old": "- COALESCE(SUM(CASE WHEN src_kind = 'escrow' THEN amount ELSE 0 END), 0) AS n",
+    "new": " AS n",
+    "why": "Marks given back from escrow still counted held",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-day-held-dropped",
+    "file": "server-account/src/staffCensus.js",
+    "old": "...(crafted?.results ?? []), ...(auctions?.results ?? []), ...(deliveries?.results ?? [])]",
+    "new": "...(crafted?.results ?? [])]",
+    "why": "the day's totals miss auctions and deliveries",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-day-road-dropped",
+    "file": "server-account/src/staffCensus.js",
+    "old": "[...(mats?.results ?? []), ...(road?.results ?? [])]",
+    "new": "[...(mats?.results ?? [])]",
+    "why": "the day's totals miss goods on the road",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-day-marks-escrow-dropped",
+    "file": "server-account/src/staffCensus.js",
+    "old": "(${MARKS_ESCROW}) AS market",
+    "new": "0 AS market",
+    "why": "the day's Marks escrow uncounted",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-gold-legacy-counted",
+    "file": "server-account/src/staffCensus.js",
+    "old": "SELECT COALESCE(SUM(realm_gold), 0) AS n, COALESCE",
+    "new": "SELECT COALESCE(SUM(treasury), 0) AS n, COALESCE",
+    "why": "unverified legacy gold in the census's gold (finding 21)",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-gold-legacy-unsaid",
+    "file": "server-account/src/staffCensus.js",
+    "old": "...(kind === 'gold' ? { legacyGold: c.legacy } : {}),",
+    "new": "",
+    "why": "the legacy amount not said",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-day-gold-legacy-counted",
+    "file": "server-account/src/staffCensus.js",
+    "old": "(SELECT COALESCE(SUM(realm_gold), 0) FROM guilds) AS vaults",
+    "new": "(SELECT COALESCE(SUM(treasury), 0) FROM guilds) AS vaults",
+    "why": "the trend counts legacy gold",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-backfill-failure-as-none",
+    "file": "server-account/src/staffCensus.js",
+    "old": "catch (e) { failed = e; break; }",
+    "new": "catch { text = null; }",
+    "why": "a record R2 failed to read skipped for good (finding 20)",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-backfill-place-past-failure",
+    "file": "server-account/src/staffCensus.js",
+    "old": "failed = e; break; }",
+    "new": "failed = e; after = r.id; break; }",
+    "why": "the place kept past the character that failed",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-backfill-failed-done",
+    "file": "server-account/src/staffCensus.js",
+    "old": "done: !failed && page.length",
+    "new": "done: page.length",
+    "why": "a last page that failed is done for good",
+    "tests": [
+      "test/server/staffpanel4census.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL4-CENSUS-backfill-failure-unsaid",
+    "file": "server-account/src/staffCensus.js",
+    "old": "    if (failed) throw failed;",
+    "new": "",
+    "why": "a failed firing written down as fine",
     "tests": [
       "test/server/staffpanel4census.test.js"
     ]

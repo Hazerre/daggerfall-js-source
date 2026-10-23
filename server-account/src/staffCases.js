@@ -9,6 +9,7 @@
 // muteAccount, SAFE4's banAccount and unbanAccount, AUDIT SAFE DOC-4's modCase and modDismiss - so a panel act lands in the
 // same strike history (`mod_actions`), closes the case as an in-game act does, and its order reaches the relay's door
 // (pushLaw) as one does. What the panel adds is who acted from where ("(staff panel)"), the audit row, and the claim.
+// STAFF-PANEL2-FIX: an act's audit row is written in modAct, as every door's is, by the panel's own writer - once.
 //
 // WHAT GOES FIRST (design doc, "What goes first"; mob, 04:05Z: "prioty of reports"): each case a level - high, medium or
 // low - and the words that say why, from what mod_cases and mod_reports already hold (caseUrgency). The reviewer's
@@ -224,22 +225,14 @@ export async function staffCases(ctx, env, path, body, who, audit) {
   // ═══ THE ACTS: the game's moderators' own, made as this member, from the panel (safety.js modAct) ═══
   const act = path.slice('/v1/staff/'.length);
   if (!['mute', 'ban', 'unban', 'dismiss'].includes(act)) return { error: 'not-found' };
-  /** @type {any} */
-  let detail = { name: displayName(row) };
-  if (act === 'mute') detail = { ...detail, minutes: body.minutes };
-  if (act === 'ban') detail = { ...detail, days: body.days, reason: typeof body.reason === 'string' ? body.reason.slice(0, 200) : null };
   // a panel's Mute and Ban carry the press's one-time id (the design doc: "Mute and Ban send the case id and a one-time
-  // click id"), so a press sent twice is one strike
-  const r = (act === 'mute' || act === 'ban') && typeof body.click !== 'string' ? { error: 'bad-click' }
-    : await modAct(ctx, me, env, {
-      act: /** @type {'mute'|'ban'|'unban'|'dismiss'} */ (act), target: row.id, caseId: body.case ?? null, click: body.click ?? null,
-      minutes: body.minutes, days: body.days, reason: body.reason, actorName: asName, from: 'staff panel',
-    });
-  if (r.error) {
-    await audit(act, row.id, r.error === 'staff-claimed' ? { why: 'held' } : { ...detail, error: r.error }, { outcome: r.error === 'staff-claimed' ? 'denied' : 'failed' }).run();
-    return r;
-  }
+  // click id"), so a press sent twice is one strike - one sent with none is refused by modAct as a bad one, and written
+  const r = await modAct(ctx, me, env, {
+    act: /** @type {'mute'|'ban'|'unban'|'dismiss'} */ (act), target: row.id, caseId: body.case ?? null,
+    click: (act === 'mute' || act === 'ban') && typeof body.click !== 'string' ? '' : body.click ?? null,
+    minutes: body.minutes, days: body.days, reason: body.reason, actorName: asName, from: 'staff panel',
+  }, { audit });
+  if (r.error) return r;
   await keep();
-  await audit(act, row.id, { ...detail, ...(r.case ? { case: r.case } : {}), ...(r.repeat ? { repeat: true } : {}) }).run();
   return { ...r, order: undefined };   // no rooms to carry it to: the relay's door has it
 }

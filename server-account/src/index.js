@@ -2207,7 +2207,7 @@ const service = {
         const who2 = { target: body.target, name: body.name };
         const r = path === '/v1/mod/strikes' ? await strikesLook(ctx, who.player, env, who2)
           : path === '/v1/mod/ban' ? await modAct(ctx, who.player, env, { act: 'ban', ...who2, days: body.days, reason: body.reason, from: 'in the game' })
-            : await modAct(ctx, who.player, env, { act: 'unban', ...who2 });
+            : await modAct(ctx, who.player, env, { act: 'unban', ...who2, from: 'in the game' });
         return 'error' in r ? no(r.error, SAFETY_STATUS[r.error] ?? 400, origin) : json(r, 200, origin);
       }
 
