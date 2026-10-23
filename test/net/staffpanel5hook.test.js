@@ -8,10 +8,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { parse } from 'acorn';
 import { OnlineSession } from '../../src/net/online.js';
-import { SOCIAL_ROOM, validPartyPose, cellRoomOfWire, rosterFor } from '../../src/net/wire.js';
+import { SOCIAL_ROOM, CLOSE_POLICY, validPartyPose, cellRoomOfWire, rosterFor } from '../../src/net/wire.js';
 import { FOLLOW_RELAY_MIN, WHERE_NOTE_MOVING_MS, WHERE_NOTE_STILL_MS } from '../../src/net/staffFollow.js';
-import { createStaffHook, staffHookDoor, hiddenSeat, STAFF_HOOK_VERSION, STAFF_TOKEN_WAIT_MS } from '../../src/net/staffHook.js';
-import { createStaffFollowHost, staffFollowOnPage } from '../../src/scenes/staffFollowHost.js';
+import { createStaffHook, staffHookDoor, hiddenSeat, STAFF_HOOK_VERSION, STAFF_TOKEN_WAIT_MS, STAFF_RELINK_GAP_MS } from '../../src/net/staffHook.js';
+import { createStaffFollowHost, staffFollowOnPage, relinkGame } from '../../src/scenes/staffFollowHost.js';
+import { accountTokenMinter, SESSION_KEY, SERVICE_KEY } from '../../src/net/accountClient.js';
 import { notePlace, staffTpLine, followStaffPlayer, staffDestinationKey, quietTeleportAllowed, STAFF_TP_FALLBACKS, validStaffDestination } from '../../src/net/staffTeleport.js';
 import { fakeSocketClass } from '../fakeSocket.mjs';
 
@@ -650,4 +651,122 @@ test('STAFF-PANEL5-FOLLOW host: outside a party the pose goes on as the where no
   assert.match(worldSource, /\.\.\.\(!social\?\.party && mode === 'exterior' && walkMode && playerSpawned && !worldMoveBusy\(\) && partyFeetOf\(player\.pos\)\),/, 'my feet outside a party');
   assert.match(worldSource, /\.\.\.\(online\?\.room \? \{ rk: online\.room \} : \{\}\),/, 'the room I stand in');
   assert.match(worldSource, /if \(socialLink\(\)\) socialLink\(\)\.solo = !social\.party;/, 'sent outside a party, at the note\'s pace');
+});
+
+// ═══ STAFF-HIDE-TOGGLE (2026-10-23, mob: "i cant talk in chat?", "need hide to be a toggle") - Hide me and Show myself take
+// effect at once: the panel's `relink` word (net/staffHook.js), the game's own links remade on a fresh token
+// (scenes/staffFollowHost.js relinkGame), and the minter letting go of a mint on its way (net/accountClient.js `forget`).
+// tools/mutants/staff-hide-toggle.json ═══
+
+/** A device signed in (net/accountClient.js storedSession's shape). */
+const signedIn = () => {
+  const mem = new Map([[SESSION_KEY, JSON.stringify({ secret: 's3cret', id: 'acct-mob', name: 'SirMcMobdon' })], [SERVICE_KEY, 'https://accounts.test']]);
+  return { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, String(v)), removeItem: (k) => mem.delete(k) };
+};
+const minted = (token) => new Response(JSON.stringify({ token, name: 'SirMcMobdon', kind: 'account', glyphs: ['dev'] }), { status: 200, headers: { 'content-type': 'application/json' } });
+const settle = async () => { for (let i = 0; i < 20; i++) await new Promise((r) => setImmediate(r)); };
+const helloTok = (ws) => ws.sent.map((x) => JSON.parse(x)).find((f) => f.t === 'hello')?.tok ?? null;
+
+test('STAFF-HIDE-TOGGLE hook door: `relink` runs the host\'s relink - from the panel\'s window and origin alone; at most once a STAFF_RELINK_GAP_MS, one asked inside the gap run at its end and never two waiting; a door with no relink takes the word for nothing (mutants: the word unread; the gap unread; a second waiting)', () => {
+  const listeners = [], timers = new Map();
+  let t = 1_000_000, relinks = 0;
+  const win = { location: { origin: 'https://game.test' }, addEventListener: (_k, f) => listeners.push(f), postMessage: () => {} };
+  staffHookDoor(win, () => null, { relink: () => relinks++, now: () => t, setTimer: (f, ms) => { const k = Symbol('t'); timers.set(k, [f, ms]); return k; }, clearTimer: (k) => timers.delete(k) });
+  const say = (data, more = {}) => listeners[0]({ source: win, origin: 'https://game.test', data, ...more });
+  say({ dfoStaff: 'relink' }, { origin: 'https://evil.test' });
+  say({ dfoStaff: 'relink' }, { source: {} });
+  assert.equal(relinks, 0, 'another origin or window is not the panel');
+  say({ dfoStaff: 'relink' });
+  assert.equal(relinks, 1, 'at once');
+  t += 1000;
+  say({ dfoStaff: 'relink' });
+  say({ dfoStaff: 'relink' });
+  assert.equal(relinks, 1, 'inside the gap: it waits');
+  assert.equal(timers.size, 1, 'one waiting, however many asked');
+  const [[f, ms]] = timers.values();
+  assert.equal(ms, STAFF_RELINK_GAP_MS - 1000, 'until the gap\'s end');
+  timers.clear();
+  t += ms;
+  f();
+  assert.equal(relinks, 2, 'run at the gap\'s end');
+  t += STAFF_RELINK_GAP_MS;
+  say({ dfoStaff: 'relink' });
+  assert.equal(relinks, 3, 'a gap on: at once again');
+  assert.equal(timers.size, 0);
+  const bare = [];
+  const win2 = { location: { origin: 'https://game.test' }, addEventListener: (_k, f2) => bare.push(f2), postMessage: () => {} };
+  staffHookDoor(win2, () => null);
+  bare[0]({ source: win2, origin: 'https://game.test', data: { dfoStaff: 'relink' } });   // no throw, nothing run
+});
+
+test('STAFF-HIDE-TOGGLE relink, on real sessions and the real minter: the held token let go; the presence room left for the world frame to join again; each chat link left and opened again at once on a fresh mint - the hub link a hide order closed `hidden lapsed` too, its terminal wait cleared; a link in no room opens nothing and keeps its word (one out of the seat says so still); the next room joined mints afresh though TOKEN_REUSE_MS has not run (mutants: the token kept; the presence room kept; a chat link left and not opened; a link in no room left again)', async () => {
+  const { FakeWS, sockets } = fakeSocketClass();
+  let hidden = false, mints = 0;
+  const minter = accountTokenMinter({ fetch: async () => minted(`v1.${hidden ? 'hidden' : 'shown'}${++mints}.sig`), storage: signedIn() });
+  const session = (presence) => { const x = new OnlineSession({ url: 'wss://relay.test', name: 'SirMcMobdon', id: 'peer-mob1', secret: 'secret-mob1', presence, WebSocketImpl: FakeWS }); x.mintToken = minter; return x; };
+  const main = session(true), hub = session(false), region = session(false), gone = session(false);
+  main.join('world:3,12');
+  hub.join(SOCIAL_ROOM);
+  for (const ws of sockets) ws.open();
+  gone.supersede();   // ONE-SEAT: another tab holds the seat - this link waits for its player, in no room
+  await settle();
+  assert.deepEqual(sockets.map(helloTok), ['v1.shown1.sig', 'v1.shown1.sig'], 'shown: one mint for the sockets that opened together');
+  sockets[1].drop(CLOSE_POLICY, 'hidden lapsed');   // a hide order's close: terminal, a rejoin would wait CHAT_REJOIN_MS
+  assert.equal(hub.terminal, true);
+  hidden = true;   // Hide me pressed: the service mints hidden from now
+  const goneWas = [gone.status, gone.error];
+  relinkGame(minter, main, [hub, region, gone]);
+  assert.equal(minter.holds('chat:region:7'), false, 'the token from before the press let go - no room it never opened is handed it');
+  assert.deepEqual([gone.room, gone.status, gone.error], [null, ...goneWas], 'a link out of the seat left as it was - its word on screen too');
+  assert.equal(main.room, null, 'the presence room left - the world frame joins a session in no room at once');
+  assert.deepEqual(sockets[0].closed, { code: 1000, reason: 'leaving' }, 'its socket closed first');
+  assert.deepEqual([hub.room, hub.terminal, sockets.length], [SOCIAL_ROOM, false, 3], 'the hub link opened again at once, its wait cleared; the region link, in no room, opens nothing');
+  sockets[2].open();
+  await settle();
+  assert.equal(helloTok(sockets[2]), 'v1.hidden2.sig', 'on a fresh mint: the switch as it stands now');
+  main.join('world:3,12');   // the world frame's join
+  sockets[3].open();
+  await settle();
+  assert.equal(helloTok(sockets[3]), 'v1.hidden2.sig');
+  region.join('chat:region:7');   // a room the shown token never opened, inside TOKEN_REUSE_MS of it
+  sockets[4].open();
+  await settle();
+  assert.equal(helloTok(sockets[4]), 'v1.hidden2.sig', 'never the token from before the press');
+  // and back: Show myself
+  hidden = false;
+  relinkGame(minter, main, [hub, region]);
+  assert.deepEqual([sockets[2].closed, sockets[3].closed, sockets[4].closed], [{ code: 1000, reason: 'leaving' }, { code: 1000, reason: 'leaving' }, { code: 1000, reason: 'leaving' }]);
+  assert.deepEqual([main.room, hub.room, region.room], [null, SOCIAL_ROOM, 'chat:region:7']);
+  sockets[5].open(); sockets[6].open();
+  await settle();
+  assert.deepEqual([helloTok(sockets[5]), helloTok(sockets[6])], ['v1.shown3.sig', 'v1.shown3.sig'], 'shown at once');
+});
+
+test('STAFF-HIDE-TOGGLE minter: a mint on its way when forget() is said is its own asker\'s and held for no other room - the next room asks the service, which reads the switch as it stands (mutants: the mint on its way held)', async () => {
+  const waiting = [];
+  const minter = accountTokenMinter({ fetch: () => new Promise((r) => waiting.push(r)), storage: signedIn() });
+  const first = minter('world:1,1');
+  await settle();
+  assert.equal(waiting.length, 1, 'on its way');
+  minter.forget();
+  waiting.shift()(minted('v1.before.sig'));
+  assert.equal(await first, 'v1.before.sig', 'its own asker');
+  assert.equal(minter.holds('chat:world'), false, 'held for nobody');
+  const next = minter('chat:world');
+  await settle();
+  assert.equal(waiting.length, 1, 'the next room asks the service');
+  waiting.shift()(minted('v1.after.sig'));
+  assert.equal(await next, 'v1.after.sig');
+  assert.equal(minter.holds('cell:1.1'), true, 'a mint after the forget is held as ever');
+});
+
+test('STAFF-HIDE-TOGGLE page: the door\'s relink is the host\'s - and the host hands it its minter, its presence session and its chat links (mutants: the door handed no relink)', () => {
+  const listeners = [];
+  const win = { location: { origin: 'https://game.test' }, addEventListener: (_k, f) => listeners.push(f), postMessage: () => {} };
+  let relinks = 0;
+  staffFollowOnPage({ main: () => null, prepare: async () => {}, mode: () => 'exterior', pixel: () => ({ x: 1, y: 2 }), toScene: () => null, relink: () => relinks++, win, Session: fakeSessions().Session });
+  listeners[0]({ source: win, origin: 'https://game.test', data: { dfoStaff: 'relink' } });
+  assert.equal(relinks, 1);
+  assert.ok(worldSource.includes("relink: () => relinkGame(identityMinter, online, chatLinks?.values())"), 'world.js hands the page its minter, presence session and chat links');
+  assert.match(worldSource, /else if \(key !== online\.room\) \{ if \(!online\.room \|\| /, 'and the world frame joins a presence session in no room at once');
 });
