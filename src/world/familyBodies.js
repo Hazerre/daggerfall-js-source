@@ -7,7 +7,7 @@
 // renderer - that is LEGACY7's to bring". This brings it. A member of the line standing in the world whose newest save
 // wrote down their LOOK (scenes/legacyHost.js writeCurrent - the hello's own recipe, systems/legacy/family.js
 // memberLook) is drawn as an online peer is drawn on this screen: a Morrowind body where this client stands those
-// (net/peerBodies.js - the enhanced lane with the data attached), else their class's sprite or their paperdoll as the
+// (net/peer/peerBodies.js - the enhanced lane with the data attached), else their class's sprite or their paperdoll as the
 // 'Other players' card says (net/remotePlayers.js). A member never played has no look and wears the town's outfit, as
 // before. Each is drawn by layers of their own - no footstep, no swing heard: a townsperson's steps are the town's.
 //
@@ -20,7 +20,7 @@ export const familyPeerId = (resId) => `fam:${resId}`;
 
 /** A member's pose as the peer layers read one: the scene's own point (the layers' `toScene` is the identity here), the
  *  yaw, the move bit. */
-export const familyShown = (feet, yaw, moving) => ({ x: feet[0], y: feet[1], z: feet[2], yaw: Number.isFinite(yaw) ? yaw : 0, mv: moving ? 1 : 0 });
+export const familyShown = (feet, yaw, moving, st = 0) => ({ x: feet[0], y: feet[1], z: feet[2], yaw: Number.isFinite(yaw) ? yaw : 0, mv: moving ? 1 : 0, ...(st > 0 ? { st } : {}) });   // CARDS4b: `st` seated (a card table's regular), the pose's own byte
 const sceneOf = (/** @type {any} */ s) => [s.x, s.y, s.z];
 
 /**
@@ -36,11 +36,11 @@ export function createFamilyBodies({ dolls, bodies = null }) {
     /**
      * One of the line at `feet` (the scene's frame), facing `yaw`, walking or not. True when they are drawn here - the
      * caller draws its own sprite for them no more this frame. A resident with no look is not.
-     * @param {any} res @param {number[]} feet @param {number} yaw @param {boolean} moving
+     * @param {any} res @param {number[]} feet @param {number} yaw @param {boolean} moving @param {number} [st] seated - the pose's seat byte
      */
-    stand(res, feet, yaw, moving) {
+    stand(res, feet, yaw, moving, st = 0) {
       if (!res?.look || !feet) return false;
-      peers.push({ id: familyPeerId(res.id), look: res.look, shown: familyShown(feet, yaw, moving) });
+      peers.push({ id: familyPeerId(res.id), look: res.look, shown: familyShown(feet, yaw, moving, st) });
       return true;
     },
     /** The frame ends: the Morrowind bodies first, then a class sprite or a paperdoll for whoever stands in none. */
@@ -59,13 +59,16 @@ export function createFamilyBodies({ dolls, bodies = null }) {
     },
     /** Everything freed (the place left). */
     clear() { peers.length = 0; dolls.sync([], sceneOf); bodies?.destroy(); },
+    /** AUDIT CARDS-3 B10: the layer let go for good - every doll texture released too (clear keeps the dolls' cache for
+     *  the next stand; a layer dropped after clear took its textures with it, an evening's regulars at a time). */
+    destroy() { peers.length = 0; dolls.destroy?.(); bodies?.destroy(); },
     /** How many of the line stood this frame. */
     get size() { return peers.length; },
   };
 }
 
 /**
- * A ROOM'S SPRITES WITH THE LINE IN ITS OWN BODY (scenes/livingIndoors.js's `sprites`): one of the line with a look is
+ * A ROOM'S SPRITES WITH THE LINE IN ITS OWN BODY (scenes/livingWorld/livingIndoors.js's `sprites`): one of the line with a look is
  * stood in `family` and keeps a talk seat of its own here (the room's own shape: `nameNPC`, `personFaceRecordId`,
  * `_talkSeed`, `living`); everyone else goes to the room's own sprites (world/travellerSprites.js) as before.
  * @param {any} sprites - the room's createTravellerSprites @param {ReturnType<typeof createFamilyBodies>} family
@@ -108,6 +111,8 @@ export function familyRoomSprites(sprites, family, living = null) {
     batches: () => [...sprites.batches(), ...family.batches()],
     persons: () => [...sprites.persons(), ...seats],
     bodyOf: (/** @type {string} */ key) => sprites.bodyOf?.(key) ?? null,
+    /** MWNPC10c: the rest's Morrowind bodies (the line's are the family's). */
+    drawBodies(canvas, proj, view, eye, dt) { sprites.drawBodies?.(canvas, proj, view, eye, dt); },
     clear() { sprites.clear(); family.clear(); seats.length = 0; persons.clear(); },
     get size() { return (sprites.size ?? 0) + family.size; },
   };

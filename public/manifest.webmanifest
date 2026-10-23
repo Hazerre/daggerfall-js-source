@@ -1,7 +1,7 @@
 {
-  "name": "Daggerfall Online",
-  "short_name": "Daggerfall",
-  "description": "An open-source reimplementation of The Elder Scrolls II: Daggerfall, from your own game files.",
+  "name": "DFO Online",
+  "short_name": "DFO",
+  "description": "An open-source reimplementation of a classic 1996 RPG, played from your own copy of The Elder Scrolls II: Daggerfall.",
   "start_url": "./play/",
   "scope": "./",
   "display": "fullscreen",

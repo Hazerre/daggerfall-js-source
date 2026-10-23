@@ -52,14 +52,16 @@ import { QUEST_MESSAGES } from './quest.js';
 import { customParseInt, isPlayerAtBuildingType, isPlayerAtDungeonType, MARKER_PREFERENCE } from './place.js';
 import { getIndividualFactionID, getFactionDataOrThrow } from './person.js';
 import { markerScenePosition } from './sceneMount.js';
-import { isSongFileDefined, songFileToRecordName } from '../songFiles.js';
-import { MOBILE_TEAMS } from '../../characters/enemyTargets.js';   // MT-iii: ChangeFoeTeam's enum door
-import { dfuEffectKeyOf } from '../spellEffects.js';   // QG1: CastEffectDo's key vocabulary, one home
+import { isSongFileDefined, songFileToRecordName } from '../song/songFiles.js';
+import { MOBILE_TEAMS } from '../../characters/enemy/enemyTargets.js';   // MT-iii: ChangeFoeTeam's enum door
+import { dfuEffectKeyOf } from '../spell/spellEffects.js';   // QG1: CastEffectDo's key vocabulary, one home
 import { setLocationVariant, setNewLocationVariant, setBlockVariant, setBuildingVariant, makeLocationKey, NO_VARIANT } from '../worldDataVariants.js';   // RR3: WorldUpdate's registry
 import { ONLINE_GUARD_WINDOWS, guardWindowStep } from './onlineGuard.js';   // GUARD-ONLINE: a guarded quest's window online is its arrival's
+import { localizedText } from '../textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { raisedSince } from './questStamps.js';   // TIME3: a wave's interval charges a raise whole
+import { waveIsAwaited, questWaitsShort, ONLINE_DELAY_SECONDS } from './clock.js';   // WAVE-WAIT: a wave the quest waits on comes on the short wait online
 import { stringHash } from '../../formats/netRuntime.js';   // VERMIN-SHARED: a shared copy's pick, seeded (a leaf)
-import { seededFirst } from '../wind.js';   // VERMIN-SHARED: the port's one seeded die (imports nothing)
+import { seededFirst } from '../wind/wind.js';   // VERMIN-SHARED: the port's one seeded die (imports nothing)
 /** TIME3 (bible/06-Systems/Online-Time-Arc.md 6.3): the SKY a quest reads an hour, a date or a season on - its own
  *  seam, and the quest's clock where none is given (offline, a headless quest: DFU's one clock). */
 const skySecondsOf = (quest) => (quest?.skySeconds ?? quest?.nowSeconds)?.() ?? 0;
@@ -394,7 +396,7 @@ export class RemoveLogMessage extends ActionTemplate {
 /** VERMIN-SHARED (FIELD BUGS 2026-10-03b; Port-Ledger A, VERMIN-SHARED): the draw a `pick one of` takes in a copy of a
  *  quest kept in step with the party - one uniform per share, task and action (the copy's `shareId`, the task's symbol
  *  name, the action's place in it), the port's one string hash (formats/netRuntime.js) through its one seeded die
- *  (systems/wind.js). Every copy draws the same number, so every copy starts the same task. Pure. */
+ *  (systems/wind/wind.js). Every copy draws the same number, so every copy starts the same task. Pure. */
 export const sharedPickRoll = (shareId, taskName, index) => seededFirst(stringHash(`${shareId}|${taskName}|${index}`));
 
 /** PickOneOf.cs: "pick one of _a_ _b_ ..." - starts one at random (UnityEngine.Random.Range: the quest's rolls).
@@ -700,6 +702,37 @@ export class DailyFrom extends ActionTemplate {
   }
 }
 
+/** QUEST-AUDIT III PROMPT-HELD: A QUESTION IS SPENT BY ITS ANSWER, NOT BY ITS BOX. Prompt.cs and PromptMulti.cs complete
+ *  at Show, and the answer lives only in the box's callback - so a save taken while the box was up (online the
+ *  checkpoints write under any window: the five-minute save, the page-hide save as a tab closes) loaded a quest whose
+ *  question was spent and never answered: The Lost Child's child never asked again, a main-story offer at start-up
+ *  (S0000003's `prompt QuestorOffer`) left a quest with no row and no way on. Now the box's place - its task and its
+ *  index there, so a party's resync, which rebuilds every action, finds it held (QlAsk's own latch, qlActions.js) - is
+ *  held while the box is up, and the action completes on the answer; a load forgets the hold and asks again. A host with
+ *  no box completes it at once, as before. Not DFU's (Port-Ledger A, PROMPT-HELD). */
+const promptsUp = new WeakMap();   // quest -> the places (`task#index`) whose box is up
+const promptPlace = (action, caller) => `${caller?.symbol?.name ?? ''}#${caller?.actions?.indexOf?.(action) ?? -1}`;
+/** Is this prompt's box up (its place held)? */
+const promptUp = (action, caller) => promptsUp.get(action.parentQuest)?.has(promptPlace(action, caller)) ?? false;
+/** AUDIT QA3 A1: the places (`task#index`) of `quest` whose box is up here - the envelope this copy hands on writes them
+ *  asked (machine.js getShareableQuestData), so a party member's copy never asks the question this player's box holds. */
+export const heldPromptPlaces = (quest) => [...(promptsUp.get(quest) ?? [])];
+/** Hold the prompt's place while its box is up; answers the answer's own door - the hold let go, the prompt complete
+ *  (and the one a resync stood at its place since, which the hold kept from asking). */
+function holdPrompt(action, caller) {
+  const quest = action.parentQuest, key = promptPlace(action, caller);
+  let up = promptsUp.get(quest);
+  if (!up) promptsUp.set(quest, (up = new Set()));
+  up.add(key);
+  const taskSymbol = caller?.symbol ?? null, at = caller?.actions?.indexOf?.(action) ?? -1;
+  return () => {
+    up.delete(key);
+    action.setComplete();
+    const now = taskSymbol && at >= 0 ? quest.getTask?.(taskSymbol)?.actions?.[at] : null;
+    if (now && now !== action && now.typeName === action.typeName) now.setComplete();
+  };
+}
+
 /** Prompt.cs: a yes/no box over a quest message - Yes starts the yes
  *  task, anything else the no task. The box itself is the machine's
  *  showPrompt hook (Q4 wires the parchment prompt; tests capture);
@@ -725,16 +758,19 @@ export class Prompt extends ActionTemplate {
     }
     return prompt;
   }
-  update(_caller) {
+  update(caller) {
     // QuestMachine.CreateMessagePrompt answers null for a missing
     // message - no box shows, but the action still completes.
+    if (promptUp(this, caller)) return;   // PROMPT-HELD: asked, not yet answered
     const message = this.parentQuest.getMessage(this.id);
-    if (message) {
-      this.parentQuest.hooks?.showPrompt?.(this.parentQuest, message, (isYes) => {
-        this.parentQuest.startTask(isYes ? this.yesTaskSymbol : this.noTaskSymbol);
-      });
-    }
-    this.setComplete();
+    const show = this.parentQuest.hooks?.showPrompt;
+    if (!message || !show) { this.setComplete(); return; }
+    const answered = holdPrompt(this, caller);
+    const shown = show(this.parentQuest, message, (isYes) => {
+      answered();
+      this.parentQuest.startTask(isYes ? this.yesTaskSymbol : this.noTaskSymbol);
+    });
+    if (shown === false) answered();   // no box to answer it (a host with none): spent at once, as before
   }
 }
 
@@ -794,15 +830,20 @@ export class PromptMulti extends ActionTemplate {
     }
     return prompt;
   }
-  update(_caller) {
+  update(caller) {
+    if (promptUp(this, caller)) return;   // PROMPT-HELD: asked, not yet answered
     const message = this.parentQuest.getMessage(this.id);
-    if (message) {
+    const show = this.parentQuest.hooks?.showPromptMulti;
+    if (!message || !show) { this.setComplete(); return; }
+    {
       // 2-4 buttons in declaration order; the 3rd and 4th ride their
       // symbols' presence, exactly as the C# AddButton arms (:93-100)
       const buttons = [this.opt1button, this.opt2button];
       if (this.opt3TaskSymbol) buttons.push(this.opt3button);
       if (this.opt4TaskSymbol) buttons.push(this.opt4button);
-      this.parentQuest.hooks?.showPromptMulti?.(this.parentQuest, message, buttons, (button) => {
+      const answered = holdPrompt(this, caller);
+      const shown = show(this.parentQuest, message, buttons, (button) => {
+        answered();
         // MessageBox_OnButtonClick's else-if chain, verbatim - first
         // matching VALUE wins on duplicates, and no symbol is tested
         // (:111-118; only a SHOWN button can arrive here, and every
@@ -812,8 +853,8 @@ export class PromptMulti extends ActionTemplate {
         else if (button === this.opt3button) this.parentQuest.startTask(this.opt3TaskSymbol);
         else if (button === this.opt4button) this.parentQuest.startTask(this.opt4TaskSymbol);
       });
+      if (shown === false) answered();   // PROMPT-HELD: no box - spent at once, as before
     }
-    this.setComplete();
   }
 }
 
@@ -1020,11 +1061,15 @@ export class MuteNpc extends ActionTemplate {
     person.isMuted = true;
     this.setComplete();
   }
-  rearmAction() {
+  rearmAction({ persist = false } = {}) {
     super.rearmAction();
     const person = this.parentQuest.getPerson(this.npcSymbol);
     if (!person) { this.setComplete(); return; }
-    person.isMuted = false;
+    // QUEST-AUDIT III MUTE-HELD: an `until _x_ performed:` body re-arms at the end of every tick (task.js), and the unmute
+    // here left the person unmuted between ticks - where a click lands. S0000018's Gortwog took the click at once, the
+    // thirty days, the tenth level and Medora's vision its mute holds him behind skipped. The persisting re-arm keeps
+    // the mute; the task's own clear (its target performed) lifts it
+    if (!persist) person.isMuted = false;
   }
 }
 
@@ -1234,7 +1279,7 @@ export class DialogLink extends ActionTemplate {
   static typeName = 'DialogLink';
   get saveShape() { return [['placeSymbol', 'sym'], ['npcSymbol', 'sym'], ['itemSymbol', 'sym']]; }
   get pattern() {
-    return /dialog link for location (?<aSite>\w+) person (?<anNPC>\w+) item (?<anItem>\w+)|dialog link for location (?<aSite2>\w+) person (?<anNPC2>\w+)|dialog link for location (?<aSite3>\w+) item (?<anItem3>\w+)|dialog link for location (?<aSite4>\w+)|dialog link for person (?<anNPC5>\w+) item (?<anItem5>\w+)|dialog link for person (?<anNPC6>\w+)|dialog link for item (?<anItem7>\w+)/;
+    return /dialog link for location (?<aSite>[a-zA-Z0-9_.-]+) person (?<anNPC>[a-zA-Z0-9_.-]+) item (?<anItem>[a-zA-Z0-9_.-]+)|dialog link for location (?<aSite2>[a-zA-Z0-9_.-]+) person (?<anNPC2>[a-zA-Z0-9_.-]+)|dialog link for location (?<aSite3>[a-zA-Z0-9_.-]+) item (?<anItem3>[a-zA-Z0-9_.-]+)|dialog link for location (?<aSite4>[a-zA-Z0-9_.-]+)|dialog link for person (?<anNPC5>[a-zA-Z0-9_.-]+) item (?<anItem5>[a-zA-Z0-9_.-]+)|dialog link for person (?<anNPC6>[a-zA-Z0-9_.-]+)|dialog link for item (?<anItem7>[a-zA-Z0-9_.-]+)/;
   }
   createNew(source, parentQuest) {
     const match = this.test(source);
@@ -1293,7 +1338,7 @@ export class AddDialog extends ActionTemplate {
   static typeName = 'AddDialog';
   get saveShape() { return [['placeSymbol', 'sym'], ['npcSymbol', 'sym'], ['itemSymbol', 'sym']]; }
   get pattern() {
-    return /add dialog for location (?<aPlace>\w+) person (?<anNPC>\w+) item (?<anItem>\w+)|add dialog for person (?<anNPC2>\w+) item (?<anItem2>\w+)|add dialog for location (?<aPlace3>\w+) person (?<anNPC3>\w+)|add dialog for location (?<aPlace4>\w+) item (?<anItem4>\w+)|add dialog for location (?<aPlace5>\w+)|add dialog for person (?<anNPC6>\w+)|add dialog for item (?<anItem7>\w+)/;
+    return /add dialog for location (?<aPlace>[a-zA-Z0-9_.-]+) person (?<anNPC>[a-zA-Z0-9_.-]+) item (?<anItem>[a-zA-Z0-9_.-]+)|add dialog for person (?<anNPC2>[a-zA-Z0-9_.-]+) item (?<anItem2>[a-zA-Z0-9_.-]+)|add dialog for location (?<aPlace3>[a-zA-Z0-9_.-]+) person (?<anNPC3>[a-zA-Z0-9_.-]+)|add dialog for location (?<aPlace4>[a-zA-Z0-9_.-]+) item (?<anItem4>[a-zA-Z0-9_.-]+)|add dialog for location (?<aPlace5>[a-zA-Z0-9_.-]+)|add dialog for person (?<anNPC6>[a-zA-Z0-9_.-]+)|add dialog for item (?<anItem7>[a-zA-Z0-9_.-]+)/;
   }
   createNew(source, parentQuest) {
     const match = this.test(source);
@@ -1479,6 +1524,7 @@ export class GivePc extends ActionTemplate {
     if (this.ticksUntilFire > 0) { this.ticksUntilFire--; return; }
 
     if (this.isNothing) {
+      this.parentQuest.hooks?.questReward?.(this.parentQuest, null);   // QL3: the outcome's reward, at the script's own moment
       this._offerWithQuestComplete(null);
       this.setComplete();
       return;
@@ -1488,6 +1534,21 @@ export class GivePc extends ActionTemplate {
       console.warn(`[quest] Could not find Item resource symbol ${this.itemSymbol?.name}`);
       return;
     }
+    // QL3 (bible/06-Systems/Questlines-Arc.md section 5.2): a stamped quest's outcome settled and paid - its gold by the
+    // outcome's factor, its choice of gear set waiting (systems/questlines/qlLayer.js reward). DFU's quest: nothing.
+    // AUDIT QUESTLINES REWARD-11: before the party's split - split first, the HUD named the share of the unscaled purse
+    // ("309 gold") and the pile held the scaled one (386)
+    // QUEST-AUDIT III GOLD-ONCE: gold this holder was already paid (a `get item` of it) is not offered again - the
+    // QuestComplete box stands, with nothing in it
+    if (item.goldPaid && isGoldPieces(item.daggerfallUnityItem)) {
+      this.parentQuest.hooks?.questReward?.(this.parentQuest, null);
+      this._offerWithQuestComplete(null);
+      this.offerImmediately = false;
+      this.setComplete();
+      return;
+    }
+    if (isGoldPieces(item.daggerfallUnityItem)) item.goldPaid = true;
+    this.parentQuest.hooks?.questReward?.(this.parentQuest, item.daggerfallUnityItem, item);
     shareQuestGold(this.parentQuest, item.daggerfallUnityItem);   // REALM P0.4: a party's quest pays one reward
     if (this.textId !== 0) {
       this.parentQuest.hooks?.giveItemToPlayer?.(item.daggerfallUnityItem, true);   // AddPosition.Front
@@ -1552,9 +1613,22 @@ export class GetItem extends ActionTemplate {
     hooks?.releaseQuestItem?.(this.parentQuest.uid, item);
     const dfItem = item.daggerfallUnityItem;
     if (dfItem && isGoldPieces(dfItem)) {   // GetItem.cs:73 - IsOfTemplate, both terms
-      const amount = dfItem.stackCount ?? 0;
-      hooks?.addGold?.(amount);
-      hooks?.addHUDText?.(YOU_RECEIVE_GOLD_PIECES.replace('%s', String(amount)));
+      // QUEST-AUDIT III GOLD-ONCE: a quest's gold Item pays its holder once. GetItem re-arms with its task (allowRearm), so
+      // S0000009's `_S.02_ when _foilGone_ and _npcclicked_`, set again every dusk, paid its 87 gold every night, and
+      // N0B21Y14's `get item _gold_` then `give pc _gold_` paid one pile twice; an item, a second time, is the
+      // inventory's dedupe's to drop - gold had none
+      if (!item.goldPaid) {
+        item.goldPaid = true;
+        // AUDIT QA3 A3: a stamped quest's reward gold is its outcome's (QL3, qlLayer.js reward) here as at GivePc when
+        // this is the reward - the gold its script's `give pc` hands over too (N0B21Y14's rescue paid its purse unscaled
+        // here, and the `give pc` of it after, paid already, settled nothing). An advance at start-up is no reward: its
+        // own Item, never given by `give pc`, is paid as it stands, and the reward after it is scaled
+        const theReward = [...this.parentQuest.tasks.values()].some((t) => t.actions?.some((a) => a?.typeName === 'GivePc' && a.itemSymbol?.name === this.itemSymbol?.name));
+        if (theReward) hooks?.questReward?.(this.parentQuest, dfItem, item);
+        const amount = dfItem.stackCount ?? 0;
+        hooks?.addGold?.(amount);
+        hooks?.addHUDText?.(localizedText('youReceiveGoldPieces', YOU_RECEIVE_GOLD_PIECES).replaceAll('%s', String(amount)));
+      }
     } else {
       hooks?.giveItemToPlayer?.(dfItem, true);   // AddPosition.Front
     }
@@ -1745,7 +1819,7 @@ export class PlaceNpc extends ActionTemplate {
   static typeName = 'PlaceNpc';
   get saveShape() { return [['npcSymbol', 'sym'], ['placeSymbol', 'sym'], ['marker']]; }
   get pattern() {
-    return /place npc (?<anNPC>[a-zA-Z0-9_.-]+) at (?<aPlace>\w+) marker (?<marker>\d+)|place npc (?<anNPC2>[a-zA-Z0-9_.-]+) at (?<aPlace2>\w+)/;
+    return /place npc (?<anNPC>[a-zA-Z0-9_.-]+) at (?<aPlace>[a-zA-Z0-9_.-]+) marker (?<marker>\d+)|place npc (?<anNPC2>[a-zA-Z0-9_.-]+) at (?<aPlace2>[a-zA-Z0-9_.-]+)/;
   }
   createNew(source, parentQuest) {
     const match = this.test(source);
@@ -1876,7 +1950,7 @@ export class PcAt extends ActionTemplate {
   static typeName = 'PcAt';
   get saveShape() { return [['placeSymbol', 'sym'], ['taskSymbol', 'sym'], ['textId'], ['textShown'], ['p1'], ['p2'], ['p3']]; }
   get pattern() {
-    return /pc at (?<aPlace>\w+) set (?<aTask>[a-zA-Z0-9_.]+) saying (?<id>\d+)|pc at (?<aPlace2>\w+) set (?<aTask2>[a-zA-Z0-9_.]+)|pc at (?<aPlace3>\w+) do (?<aTask3>[a-zA-Z0-9_.]+) saying (?<id2>\d+)|pc at (?<aPlace4>\w+) do (?<aTask4>[a-zA-Z0-9_.]+)|pc at any (?<placeType>\w+) set (?<aTask5>[a-zA-Z0-9_.]+) saying (?<id3>\d+)|pc at any (?<placeType2>\w+) set (?<aTask6>[a-zA-Z0-9_.]+)|pc at any (?<placeType3>\w+) do (?<aTask7>[a-zA-Z0-9_.]+) saying (?<id4>\d+)|pc at any (?<placeType4>\w+) do (?<aTask8>[a-zA-Z0-9_.]+)/;
+    return /pc at (?<aPlace>[a-zA-Z0-9_.-]+) set (?<aTask>[a-zA-Z0-9_.]+) saying (?<id>\d+)|pc at (?<aPlace2>[a-zA-Z0-9_.-]+) set (?<aTask2>[a-zA-Z0-9_.]+)|pc at (?<aPlace3>[a-zA-Z0-9_.-]+) do (?<aTask3>[a-zA-Z0-9_.]+) saying (?<id2>\d+)|pc at (?<aPlace4>[a-zA-Z0-9_.-]+) do (?<aTask4>[a-zA-Z0-9_.]+)|pc at any (?<placeType>\w+) set (?<aTask5>[a-zA-Z0-9_.]+) saying (?<id3>\d+)|pc at any (?<placeType2>\w+) set (?<aTask6>[a-zA-Z0-9_.]+)|pc at any (?<placeType3>\w+) do (?<aTask7>[a-zA-Z0-9_.]+) saying (?<id4>\d+)|pc at any (?<placeType4>\w+) do (?<aTask8>[a-zA-Z0-9_.]+)/;
   }
   createNew(source, parentQuest) {
     const match = this.test(source);
@@ -1930,7 +2004,7 @@ export class PcAt extends ActionTemplate {
 export class RevealLocation extends ActionTemplate {
   static typeName = 'RevealLocation';
   get saveShape() { return [['placeSymbol', 'sym'], ['readMap']]; }
-  get pattern() { return /reveal (?<aPlace>\w+) (?<readMap>readmap)|reveal (?<aPlace2>\w+)/; }
+  get pattern() { return /reveal (?<aPlace>[a-zA-Z0-9_.-]+) (?<readMap>readmap)|reveal (?<aPlace2>[a-zA-Z0-9_.-]+)/; }
   createNew(source, parentQuest) {
     const match = this.test(source);
     if (!match) return null;
@@ -1946,7 +2020,7 @@ export class RevealLocation extends ActionTemplate {
     const world = this.parentQuest.hooks?.world;
     world?.discoverLocation?.(place.siteDetails?.regionName, place.siteDetails?.locationName);
     if (this.readMap) {
-      world?.addNote?.(READ_MAP_NOTE.replace('%map', place.siteDetails?.locationName ?? ''));
+      world?.addNote?.(localizedText('readMap', READ_MAP_NOTE).replaceAll('%map', place.siteDetails?.locationName ?? ''));
     }
     this.setComplete();
   }
@@ -2203,6 +2277,8 @@ export class CreateFoe extends ActionTemplate {
     this.isSendAction = false;
     this._lastTick = null;   // WORLD7: the last tick's world seconds - transient, so a resume forgives the time since the save to one played step
     this._lastRaised = null;   // TIME3: the session's raised seconds at that tick - transient with it
+    this._awaited = null;   // WAVE-WAIT: whether the quest waits on this wave (clock.js waveIsAwaited) - read once, transient
+    this._arrived = false;   // AUDIT WAITS W3: a wave of it has come this session - transient, and a re-set does not clear it
     // transient scene state (CreateFoe.cs:37-39) - NOT save state:
     // an in-flight wave is lost on save/load, as in DFU
     this.spawnInProgress = false;
@@ -2282,6 +2358,25 @@ export class CreateFoe extends ActionTemplate {
    *  draw is unconditional; floor(r * 0) is 0 either way. */
   _range(n) { return Math.floor((this.parentQuest?.rolls ?? Math.random)() * n); }
 
+  /** WAVE-WAIT (bible/06-Systems/Online-Waits.md WAIT2): how long the wave's first arrival may wait - its interval
+   *  (DFU's Range(0, interval) backdate, below), or, online and until the wave has come, the short wait
+   *  (ONLINE_DELAY_SECONDS: 24 of the character's minutes, about two real minutes of play) for a wave the quest waits
+   *  on (clock.js waveIsAwaited, read once). The waves after it keep the script's interval - once the messenger has
+   *  come, the gap is the script's pacing again. Offline, and for every wave the quest does not wait on, the interval:
+   *  DFU's draw whole. AUDIT WAITS W3: "has come" outlives a re-set. A task set again re-arms its wave whole
+   *  (InitialiseOnSet, CreateFoe.cs:61-65) - N0B20Y02's `pc at` clears and sets `_S.01_` each time the guard steps out
+   *  of the hall and back - and read off the counter it reset, every return was a first arrival: a guard stepping out
+   *  of the hall for a minute every twenty met twice the waves of Nightblades online that the same guard meets offline
+   *  (6.1 to 2.8 over 400 rolls; 3.3 now, the first come sooner). A wave has come once its arming counted one
+   *  (spawnCounter - saved, and zeroed by a re-set), one arrived this session (`_arrived` - a re-set leaves it, a load
+   *  forgets it), or its foe has a kill on record (Foe.killCount, saved with the quest: a load never forgets it). */
+  _firstArrivalSeconds() {
+    if (this.spawnCounter > 0 || this._arrived || !questWaitsShort(this.parentQuest)) return this.spawnInterval;
+    this._awaited ??= waveIsAwaited(this.parentQuest, this.foeSymbol?.name);
+    if (!this._awaited || (this.parentQuest.getFoe(this.foeSymbol)?.killCount ?? 0) > 0) return this.spawnInterval;
+    return Math.min(this.spawnInterval, ONLINE_DELAY_SECONDS);
+  }
+
   update(_caller) {
     const world = this.parentQuest.hooks?.world;
     if (!world?.createFoeGameObjects) return;   // headless / spawn seam absent - the charter
@@ -2302,7 +2397,9 @@ export class CreateFoe extends ActionTemplate {
     // spends the world's played time alone, the Clock's own law (quest/clock.js chargeSeconds) [SUPERSEDES TIME3's raise
     // spent whole]
     const raisedNow = this.parentQuest.raisedSeconds?.() ?? null;
-    if (this.lastSpawnTime === 0) { this.lastSpawnTime = gameSeconds - this._range(this.spawnInterval); this._lastTick = gameSeconds; }
+    // WAVE-WAIT: the wave's first arrival - its interval, or online the short wait for a wave the quest waits on
+    const first = this._firstArrivalSeconds();
+    if (this.lastSpawnTime === 0) { this.lastSpawnTime = gameSeconds - (this.spawnInterval - first) - this._range(first); this._lastTick = gameSeconds; }
     // AUDIT WORLD7/8 A3: a marker AHEAD of the world (an offline save loaded online is game-weeks past the shared
     // calendar; the relay's welcome can correct the clock backwards) spawned nothing for the whole offset - a
     // backward gap online is a resume too: the marker stands here. A6: the marker moves on the in-flight path as well
@@ -2310,6 +2407,10 @@ export class CreateFoe extends ActionTemplate {
     else if (this._lastTick == null) { if (Number.isFinite(step) && (gameSeconds - this.lastSpawnTime > step || gameSeconds < this.lastSpawnTime)) this.lastSpawnTime = gameSeconds; this._lastTick = gameSeconds; }   // a resume past a step: the time away is forgiven whole and the first wave waits a full interval from here (OL3's standing-up arm)
     else if (Number.isFinite(step) && gameSeconds < this._lastTick) { this.lastSpawnTime = gameSeconds; this._lastTick = gameSeconds; }
     else { const raised = Number.isFinite(step) ? Math.min(raisedSince(raisedNow, this._lastRaised), gameSeconds - this._lastTick) : 0; const forgiven = Math.max(0, gameSeconds - this._lastTick - raised - step) + raised; if (forgiven > 0) this.lastSpawnTime += forgiven; this._lastTick = gameSeconds; }
+    // WAVE-WAIT: until it has come, an awaited wave is never further away than the short wait - after a resume, a load
+    // that stamped `now` (restoreSaveData's quirk: a full interval), or an attempt that brought nothing (a failed roll, a
+    // hidden foe, a wave kept off, a wave lost in flight) it comes inside one, not a whole interval on (AUDIT WAITS W7)
+    if (first < this.spawnInterval && !this.spawnInProgress) this.lastSpawnTime = Math.min(this.lastSpawnTime, gameSeconds - (this.spawnInterval - first));   // (never while one is in flight: it is coming)
     this._lastRaised = raisedNow;
 
     // Max spawns reached - cleared only by a set/rearm
@@ -2319,6 +2420,7 @@ export class CreateFoe extends ActionTemplate {
     if (this.spawnInProgress && this.pendingFoesSpawned >= this.pendingFoes.length) {
       this.spawnInProgress = false;
       this.spawnCounter++;
+      this._arrived = true;   // AUDIT WAITS W3: come - a re-set's re-arm is the script's pacing from here
       return;
     }
 
@@ -2337,7 +2439,7 @@ export class CreateFoe extends ActionTemplate {
         throw new Error(`create foe could not find Foe with symbol name ${this.symbol?.name}`);
       }
       if (foe.isHidden) return;   // hidden blocks the spawn; the interval is already spent
-      // CURSE-OFF-SAND (FIELD BUGS 2026-10-04e): a wave the host keeps off where the player stands (systems/arenaGround.js
+      // CURSE-OFF-SAND (FIELD BUGS 2026-10-04e): a wave the host keeps off where the player stands (systems/arena/arenaGround.js
       // - the curse's dead off the arena's grounds) passes as a hidden Foe's does: the interval spent, NO wave pending. A
       // refusal at placement instead left the wave pending, and every tick of a pending wave raises the encounter event
       // below - a rest on the grounds broken each hour by a foe that never came
@@ -2347,6 +2449,11 @@ export class CreateFoe extends ActionTemplate {
 
     // One placement attempt per tick while a wave is pending
     if (this.spawnInProgress) {
+      // QUEST-AUDIT III SEND-HELD: a `send` wave waits for a town (_tryPlacement) - and every tick it waited raised the
+      // encounter, which breaks a rest and stops a journey: out of town, S0000021's zombies (and S0000009/10/12's, and
+      // K0C30Y03's) turned every rest and every Travel Options trip back until the player walked into a town, with no foe
+      // ever there. A held wave raises nothing, as CURSE-OFF-SAND's kept-off wave does not
+      if (this.isSendAction && !world.isPlayerInLocationRect?.()) return;
       this._tryPlacement(world);
       world.raiseOnEncounterEvent?.();
     }
@@ -2667,12 +2774,22 @@ export class WhenReputeWith extends ActionTemplate {
 /** MakePcDiseased.cs: the Quests-Diseases id at parse (a miss
  *  THROWS), CreateDisease + AssignBundle(BypassSavingThrows) through
  *  the makePcDiseased seam at update. The corpus's one "saying N"
- *  tail is NOT in C#'s pattern - the tail is silently dropped and no
- *  popup fires, verbatim. */
+ *  tail is NOT in C#'s pattern - C# drops it and no popup fires; the
+ *  port reads it (QUEST-AUDIT III ILL-SAYING, below). */
 export class MakePcDiseased extends ActionTemplate {
   static typeName = 'MakePcDiseased';
-  get saveShape() { return [['diseaseType']]; }
-  get pattern() { return /make pc ill with (?<aDisease>[a-zA-Z0-9_.']+)/; }
+  // AUDIT QA3 C1/A4: `textId` is saved only where a `saying` gave one - written always, every bare `make pc ill` (C0C00Y10,
+  // A0C00Y11, C0B10Y05, Q0C0XY02) wrote a field a copy begun before it, and an older build's, has not, and each share and
+  // sync between the two was refused as forged. S0000007's, the one `saying`, is the main story's and never shared.
+  get saveShape() { return this.textId ? [['diseaseType'], ['textId']] : [['diseaseType']]; }
+  constructor(parentQuest) { super(parentQuest); this.diseaseType = -1; this.textId = 0; }
+  restoreSaveData(dataIn) {
+    super.restoreSaveData(dataIn);
+    if (dataIn?.textId) this.textId = dataIn.textId;   // a restore builds the action bare - its `saying` from the save
+  }
+  // QUEST-AUDIT III ILL-SAYING: `... saying N` - S0000007's "You feel a sickening jolt as the _relic_ vanishes." (1027) was
+  // read past and never shown; the curse landed with no word
+  get pattern() { return /make pc ill with (?<aDisease>[a-zA-Z0-9_.']+)(?: saying (?<id>\d+))?/; }
   createNew(source, parentQuest) {
     const match = this.test(source);
     if (!match) return null;
@@ -2683,12 +2800,14 @@ export class MakePcDiseased extends ActionTemplate {
     }
     const action = new MakePcDiseased(parentQuest);
     action.diseaseType = questParseInt(table.getValue('id', name));
+    action.textId = questParseInt(match.groups.id ?? '');
     return action;
   }
   update(_caller) {
     if (this.diseaseType !== -1) {
       this.parentQuest.hooks?.makePcDiseased?.(this.diseaseType);
     }
+    if (this.textId) this.parentQuest.showMessagePopup(this.textId);
     this.setComplete();
   }
 }
@@ -2826,6 +2945,9 @@ export class CastSpellDo extends ActionTemplate {
   }
   update(_caller) {
     const world = this.parentQuest.hooks?.world;
+    // QUEST-AUDIT III CAST-SHARE: a copy read headless (a party member's shared copy) holds no effects - read them here,
+    // from this world's own spell records
+    if (this.spellID !== -1 && !this.classicEffects) this.classicEffects = world?.getClassicSpellEffects?.(this.spellID) ?? null;
     // Validate - and note C# clears the latch on the way out of this
     // arm too, so an unresolvable action eats every ready it is handed
     if (this.spellID === -1 || !this.classicEffects?.length || !this.taskSymbol || !this.lastReadySpell) {
@@ -2929,7 +3051,7 @@ export class CastEffectDo extends ActionTemplate {
 export class CreateNpcAt extends ActionTemplate {
   static typeName = 'CreateNpcAt';
   get saveShape() { return [['placeSymbol', 'sym']]; }
-  get pattern() { return /create npc at (?<aPlace>\w+)/; }
+  get pattern() { return /create npc at (?<aPlace>[a-zA-Z0-9_.-]+)/; }
   createNew(source, parentQuest) {
     const match = this.test(source);
     if (!match) return null;
@@ -3095,14 +3217,12 @@ export class ClimateCondition extends ActionTemplate {
     this.climate = -1;       // MapsFile.Climates value, or -1
     this.climateBase = '';   // 'desert'|'mountain'|'temperate'|'swamp', or ''
   }
-  /** C#'s alternative ORDER is load-bearing and must not be sorted
-   *  longest-first: both engines take the leftmost alternative that
-   *  matches at the earliest start, and Test() is unanchored, so
-   *  `climate desert2` binds desert (224) with the trailing '2' left
-   *  unconsumed, and `climate mountainwoods` binds mountain (226).
-   *  Bug-for-bug, verbatim. */
+  /** C#'s alternative order binds `climate desert2` to desert (224) and `climate mountainwoods` to mountain (226) - the
+   *  leftmost alternative that matches wins, and Test() is unanchored - so neither ever meant its own climate (Foraging's
+   *  MiningQuest's rich seam never read 225 or 230). QUEST-AUDIT III CLIMATE-NAMES: the longer name first, so each reads
+   *  its own; a departure from DFU's bug. */
   get pattern() {
-    return /climate (?<climate>desert|desert2|mountain|mountainwoods|rainforest|ocean|swamp|subtropical|woodlands|hauntedwoodlands)|climate (?<base>base) (?<climatebase>desert|mountain|temperate|swamp)/;
+    return /climate (?<climate>desert2|desert|mountainwoods|mountain|rainforest|ocean|swamp|subtropical|hauntedwoodlands|woodlands)|climate (?<base>base) (?<climatebase>desert|mountain|temperate|swamp)/;
   }
   createNew(source, parentQuest) {
     const match = this.test(source);

@@ -24,7 +24,7 @@
 // seconds of LZ4 (DREAM's textures are 383 MB), so at attach time the
 // bundle is opened once, its names written beside it as a small JSON
 // (`dfmod-index/<file>`), and closed. A boot registers from the JSON
-// alone; a bundle is opened - in a worker, formats/unityBundleClient.js
+// alone; a bundle is opened - in a worker, formats/unity/unityBundleClient.js
 // - the first time one of its pictures is asked for. The paperdoll's
 // 330 MB is never opened by a player who never looks at the doll.
 //
@@ -38,19 +38,20 @@
 // and read no dependency at all, so the add-ons lost to their own base.
 //
 // VE4 - MODS THAT SHIP WITH THE PORT. Vanilla Enhanced's Base, Masked Roads and Snowless Swamps and Jungles ship with
-// the port (systems/vanillaEnhancedPack.js, Mac 2026-10-05) and register HERE, beside the attached mods - one load
+// the port (systems/vanillaEnhanced/vanillaEnhancedPack.js, Mac 2026-10-05) and register HERE, beside the attached mods - one load
 // order, one walk, one set of doors; only where a picture comes from differs. An attached .dfmod under the same key
 // shadows the shipped one (the player's copy - a newer version - is the one read).
 //
 // Nothing here touches the DOM: the store and the opener are handed in.
 
-import { openUnityBundle } from '../formats/unityBundleClient.js';
-import { createBundlePool } from '../formats/unityBundlePool.js';   // DFMOD3: a few shared workers, not one per mod
+import { openUnityBundle } from '../formats/unity/unityBundleClient.js';
+import { createBundlePool } from '../formats/unity/unityBundlePool.js';   // DFMOD3: a few shared workers, not one per mod
 import { resampleRgba } from '../formats/resample.js';
-import { textureEntry, textureKey, setBundleTextures, textureReplacementEnabled, looseTextureExists, looseTextureBytes, looseTextureGeneration, decodePng, PRELOAD_CONCURRENCY } from './textureReplacement.js';
+import { textureEntry, textureKey, setBundleTextures, textureReplacementEnabled, looseTextureExists, looseTextureBytes, looseTextureGeneration, decodePng, PRELOAD_CONCURRENCY, studioRecordsOf, preloadTextureRecord, textureTierEpoch } from './textureReplacement.js';
 import { toColor32 } from '../formats/color32Order.js';   // GROUND1: the terrain's layers are world texels, bottom row first
 import { registerBillboardXml, unregisterBillboardXml } from '../world/billboardXml.js';
 import { getPref, setPref } from './uiPrefs.js';   // VE3: which attached mods are switched off - the port's prefs shelf
+import { setSnowlessGround } from '../world/climateSwaps.js';   // SNOWLESS1: the door's word on a snowless winter set, for the weather and Snowfall
 
 export const DFMOD_PREFIX = 'dfmod/';               // the stored key of a bundle (seasonsIliacBayAssets' DFMOD_KEY_PREFIX)
 export const DFMOD_INDEX_PREFIX = 'dfmod-index/';   // the stored key of its name index
@@ -346,8 +347,8 @@ async function readIndex(key, load) {
 }
 /** Why a stored bundle would not open or index, in the packs card's words. */
 const openWords = (e) => (e?.name === 'NotReadableError' || /could not be read/i.test(e?.message ?? '')
-  ? 'the browser could not read the stored file - remove it and add it again'
-  : /allocation failed|out of memory/i.test(e?.message ?? '') ? 'ran out of memory - lower Texture detail, or attach fewer mods'
+  ? 'the browser could not read the stored file; remove it and add it again'
+  : /allocation failed|out of memory/i.test(e?.message ?? '') ? 'ran out of memory; lower Texture detail or attach fewer mods'
     : String(e?.message ?? e));
 
 /**
@@ -459,7 +460,7 @@ function install() {
     const rects = new Map();
     for (const [name, text] of Object.entries(index.xml ?? {})) {
       const rect = xmlRect(text);
-      if (rect) rects.set(name, rect);
+      if (rect) { rects.set(name, rect); rects.set(name.toUpperCase(), rect); }   // FACE-RECT: a CIF/RCI picture is keyed by its upper-cased name
       const scale = xmlScale(text);
       const e = scale && textureEntry(`${name}.png`);
       if (e && e.map === 'Albedo' && !e.dye) ((table[e.archive] ??= {})[e.record] ??= scale);
@@ -485,9 +486,11 @@ function install() {
       }
       const up = name.toUpperCase();
       if (/\.IMG$/.test(up)) { if (!_img.has(up)) _img.set(up, { key, name }); continue; }
-      if (/\.(CIF|RCI)_\d+-\d+(_[A-Z]+)?$/.test(up) && !_cifRci.has(up)) _cifRci.set(up, { key, name });   // DFMOD2: with a metal suffix too (a handheld weapon's frames)
+      // FACE-RECT (issue #639): and its xml's <rect> - PaperDollRenderer.DrawTexture(head) runs OverridePaperdollItemRect
+      // too (item null, MakeName's CIF arm), so a replaced face is drawn into the rect its sidecar gives, not the classic box
+      if (/\.(CIF|RCI)_\d+-\d+(_[A-Z]+)?$/.test(up) && !_cifRci.has(up)) _cifRci.set(up, { key, name, rect: rects.get(name) ?? rects.get(up) ?? null });   // DFMOD2: with a metal suffix too (a handheld weapon's frames)
     }
-    _prio.push({ key, names, arrays });
+    _prio.push({ key, names, arrays, looseGround: new Set(index.looseGround ?? []) });   // ALIKR1: the archives a loose pack's ground decides (groundSource)
   }
   const n = setBundleTextures(entries);
   if (Object.keys(table).length) registerBillboardXml('dfmod', table); else unregisterBillboardXml('dfmod');
@@ -618,6 +621,10 @@ export const dfmodCifRciImage = (file, record, frame = 0) => {
   return cached(`cif:${k}`, _cifRci.get(k));
 };
 
+/** FACE-RECT (issue #639): the `<rect>` an attached mod's xml gives one CIF/RCI record's picture - in the doll's own
+ *  space, as xmlRect reads it (TextureReplacement.OverridePaperdollItemRect) - or null for the classic record's box. */
+export const dfmodCifRciRect = (file, record, frame = 0) => _cifRci.get(`${String(file).toUpperCase()}_${record}-${frame}`)?.rect ?? null;
+
 /** DFMOD2: an attached mod's CIF/RCI picture by its whole TryImportCifRci name (`WEAPON03.CIF_0-4_Iron`) - the
  *  first-person weapon's ask - top-down RGBA, or null. */
 export const dfmodCifRciNamed = (name) => {
@@ -652,24 +659,43 @@ export function groundSource(archive) {
   const a = Number(archive);
   if (looseTextureExists(a, 0, 0)) return { kind: 'records' };
   for (const m of _prio) {
+    // ALIKR1 (2026-10-08, Mac: "These should be on by default and integrate into our enhanced environments seamlessly"):
+    // A PACK THAT IS A LOOSE FOLDER IN DFU. Sands of the Alik'r is a folder of loose pictures in Daggerfall Unity - no
+    // bundle, no array, no record 0 - and DFU builds TEXTURE.002 out of loose records only while no mod's array claims
+    // the archive (TryImportTextureArray asks the mods first, and Vanilla Enhanced's Base carries `002-TexArray`): a pack
+    // shipped on by default under a Base on by default would never be seen. So a shipped pack whose index names the
+    // archive in `looseGround` decides it, at its place in the walk, as DFU's loose folder would with no array over it:
+    // the set is made of the records - the player's own loose file first, then the pack's, then Daggerfall's own - at
+    // the classic size (groundLayers: no record 0 replaced). A mod loaded after it still decides first.
+    if (m.looseGround.has(a)) return { kind: 'records', pack: m.key };
     const arr = m.arrays.get(a);
     if (arr) return { kind: 'array', key: m.key, name: arr.name, depth: arr.depth };
     if (m.names.has(textureKey(a, 0, 0))) return { kind: 'records' };
   }
   return null;
 }
+/** SNOWLESS1: Vanilla Enhanced's Snowless Swamps and Jungles (its Mod.FileName). */
+export const SNOWLESS_FILE_NAME = 'vanilla enhanced - snowless swamps and jungles';
+/** SNOWLESS1: the winter ground `archive` is drawn without snow - the door's own decision for it (groundSource) is
+ *  Snowless Swamps and Jungles' array. False behind a shut gate, with the add-on off, or under a mod loaded after it. */
+export function winterGroundSnowless(archive) {
+  const s = groundSource(archive);
+  return s?.kind === 'array' && dfmodFileName(s.key) === SNOWLESS_FILE_NAME;
+}
+setSnowlessGround(winterGroundSnowless);   // SNOWLESS1: the weather's ground law and Snowfall read the door through climateSwaps
 /** A mod or a loose pack dresses the archive's ground in some way (its array, or any of its records), behind the gate. */
 export const hasDfmodGround = (archive, recordCount = 56) => !!groundSource(archive) || recordOwners(archive, recordCount).some(Boolean);
 
 /** VE2: TryImportTexture(archive, record, 0) for each record: the loose file, else the first mod switched on - in
- *  TryGetAsset's order - that carries the name. Null where neither does. */
-function recordOwners(archive, recordCount) {
+ *  TryGetAsset's order - that carries the name. Null where neither does. ALIKR1: `pack`, a loose pack's set - its own
+ *  records alone after the loose file's (groundSource), Daggerfall's own where it carries none. */
+function recordOwners(archive, recordCount, pack = null) {
   if (!textureReplacementEnabled()) return [];
   const a = Number(archive);
   return Array.from({ length: recordCount }, (_, r) => {
     if (looseTextureExists(a, r, 0)) return { loose: true };
     const k = textureKey(a, r, 0);
-    const m = _prio.find((p) => p.names.has(k));
+    const m = _prio.find((p) => (pack === null || p.key === pack) && p.names.has(k));
     return m ? { key: m.key, name: m.names.get(k) } : null;
   });
 }
@@ -713,15 +739,16 @@ const classicLayer = (tex, r) => tex.getColor32(tex.getDFBitmap(r, 0), 0);
  */
 export function dfmodGroundLayers(archive, tex, { decode = decodePng } = {}) {
   const n = tex?.recordCount ?? 0;
-  if (!n || !textureReplacementEnabled()) return Promise.resolve(null);
-  const id = `${Number(archive)}:${n}:${looseTextureGeneration()}`;
+  const studio = n ? studioRecordsOf(archive).filter((r) => r < n) : [];   // STUDIO1: the studio's records, worn with the gate shut too
+  if (!n || (!textureReplacementEnabled() && !studio.length)) return Promise.resolve(null);
+  const id = `${Number(archive)}:${n}:${looseTextureGeneration()}${studio.length ? `:${textureTierEpoch()}` : ''}`;
   const hit = _groundCache.get(id);
   _groundCache.delete(id);   // AUDIT VE P2: re-entered last - the Map's order is the cache's recency
   if (hit) { _groundCache.set(id, hit); return hit; }
   for (const k of _groundCache.keys()) if (k.startsWith(`${Number(archive)}:`)) _groundCache.delete(k);   // a set built off an older loose pick
   // AUDIT VE R12: a set that lost a picture to a failure (a dropped fetch, a decode that threw) is answered, not kept -
   // the next ask builds it again rather than the failure standing for the page
-  const answer = groundLayers(Number(archive), tex, decode).then(({ layers, whole }) => {
+  const answer = groundLayers(Number(archive), tex, decode).then((set) => (studio.length ? studioGround(Number(archive), tex, set, studio, decode) : set)).then(({ layers, whole }) => {
     if (!whole && _groundCache.get(id) === answer) _groundCache.delete(id);
     return layers;
   });
@@ -754,7 +781,7 @@ async function groundLayers(archive, tex, decode) {
     }
     console.warn(`[dfmod] ${src.name}: expected depth ${n} but got ${src.depth} - the records are sought instead`);
   }
-  const owners = recordOwners(archive, n);
+  const owners = recordOwners(archive, n, src?.pack ?? null);   // ALIKR1: a loose pack's set is its own records
   if (!owners.some(Boolean)) return { layers: null, whole: true };
   // the records decode a few at once, as an archive's preload does (PRELOAD_CONCURRENCY) - 56 PNGs of an HD pack
   // decoded together would hold every one of them at once
@@ -766,6 +793,26 @@ async function groundLayers(archive, tex, decode) {
   if (!pics.some(Boolean)) return { layers: null, whole };
   const size = pics[0] ?? classicLayer(tex, 0);
   return { layers: pics.map((p, r) => (p && p.width === size.width && p.height === size.height ? p : classicAt(classicLayer(tex, r), size.width, size.height))), whole };
+}
+
+/**
+ * STUDIO1 (bible/07-Rendering/Studio-Art.md): THE STUDIO'S RECORDS LAID IN A GROUND SET. The ground is drawn from a tile
+ * set built here, never through the texture door's uploads, so the studio's pictures of a ground archive's records
+ * (textureReplacement.js studioRecordsOf) are laid over the set this door built - a mod's array, a pack's records, or
+ * Daggerfall's own when nothing dresses it - each where its record is. A set is one size, so the set takes the size of
+ * its largest picture (an artist's 256 x 256 grass keeps its detail; the rest are each texel a block of it) and every
+ * layer is laid at it. A studio picture that will not load leaves its record as the set had it, and the set is answered
+ * but not kept (AUDIT VE R12's law: the next ask builds it again).
+ */
+async function studioGround(archive, tex, { layers, whole }, records, decode) {
+  const pics = await Promise.all(records.map((r) => preloadTextureRecord(archive, r, 0, 'Albedo', null, { decode })));
+  if (!pics.some(Boolean)) return { layers, whole: false };
+  const base = layers ?? Array.from({ length: tex.recordCount }, (_, r) => classicLayer(tex, r));
+  let { width, height } = base[0];
+  for (const p of pics) if (p && p.width * p.height > width * height) ({ width, height } = p);
+  const out = base.map((l) => classicAt(l, width, height));
+  records.forEach((r, k) => { if (pics[k]) out[r] = classicAt(pics[k], width, height); });
+  return { layers: out, whole: whole && pics.every(Boolean) };
 }
 
 export { resampleRgba };   // DFMOD2: its home is formats/resample.js (the worker downscales with it too)

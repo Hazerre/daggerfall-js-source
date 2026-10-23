@@ -1,0 +1,356 @@
+[
+  {
+    "name": "BR5-landing-title-old-name",
+    "file": "index.html",
+    "old": "<title>DFO Online</title>",
+    "new": "<title>Daggerfall Online</title>",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-landing-wordmark-split",
+    "file": "index.html",
+    "old": "<h1 class=\"wordmark\"><img src=\"./src/assets/branding/dfo-online.png\" alt=\"DFO Online\"",
+    "new": "<h1 class=\"wordmark\"><img src=\"./src/assets/branding/dfo-online.png\" alt=\"Daggerfall Online\"",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11). AUDIT BR5 (re-aimed by content): the wordmark is the logo, and its alt carries the name."
+  },
+  {
+    "name": "BR5-short-name-back",
+    "file": "public/manifest.webmanifest",
+    "old": "\"short_name\": \"DFO\",",
+    "new": "\"short_name\": \"Daggerfall\",",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-iphone-title-back",
+    "file": "play/index.html",
+    "old": "<meta name=\"apple-mobile-web-app-title\" content=\"DFO\" />",
+    "new": "<meta name=\"apple-mobile-web-app-title\" content=\"Daggerfall\" />",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-download-old-name",
+    "file": "app/package.json",
+    "old": "\"artifactName\": \"DFO-Online-${os}-${arch}.${ext}\"",
+    "new": "\"artifactName\": \"DaggerfallOnline-${os}-${arch}.${ext}\"",
+    "tests": [
+      "test/ui/brand.test.js",
+      "test/tooling/relwin1.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-chargen-masthead-back",
+    "file": "src/ui/enhanced/enhancedChargen.js",
+    "old": "brand.append(el('div', 'sub', 'DFO Online'));",
+    "new": "brand.append(el('div', 'sub', 'Daggerfall'));",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-launcher-wordmark-split",
+    "file": "app/launcher/index.html",
+    "old": "<h1 class=\"wordmark\"><img src=\"dfo-online.png\" alt=\"DFO Online\"",
+    "new": "<h1 class=\"wordmark\"><img src=\"dfo-online.png\" alt=\"Daggerfall Online\"",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11). AUDIT BR5 (re-aimed by content): the wordmark is the logo, and its alt carries the name."
+  },
+  {
+    "name": "BR5-alt-names-a-game",
+    "file": "src/ui/brandMark.js",
+    "old": "export const BRAND_LOGO_ALT = 'DFO Online';",
+    "new": "export const BRAND_LOGO_ALT = 'The Elder Scrolls II: DFO Online';",
+    "tests": [
+      "test/ui/brand.test.js",
+      "test/ui/intro.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-readme-old-name",
+    "file": "README.md",
+    "old": "# DFO Online\n",
+    "new": "# Daggerfall Online\n",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-door-width-at-the-old-ratio",
+    "file": "src/ui/enhanced/enhancedStyle.js",
+    "old": ".px-wordmark:has(.brand-logo) { width: min(321px, 50vw);",
+    "new": ".px-wordmark:has(.brand-logo) { width: min(540px, 84vw);",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-short-screen-width-at-the-old-ratio",
+    "file": "src/ui/enhanced/enhancedStyle.js",
+    "old": ".px-wordmark:has(.brand-logo) { width: min(234px, 33.3vw); }",
+    "new": ".px-wordmark:has(.brand-logo) { width: min(394px, 56vw); }",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-masthead-full-width",
+    "file": "src/ui/enhanced/enhancedStyle.js",
+    "old": ".brand-home .brand-logo { width: 59.5%; margin: 0 auto; }",
+    "new": ".brand-home .brand-logo { width: 100%; margin: 0 auto; }",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-empty-rows-pulled-again",
+    "file": "src/ui/enhanced/enhancedStyle.js",
+    "old": ".brand-home .brand-logo { width: 59.5%; margin: 0 auto; }",
+    "new": ".brand-home .brand-logo { width: 59.5%; margin: 0 auto; }\n.px-wordmark .brand-logo, .brand-home .brand-logo { margin-bottom: calc(-100% * 81 / 2112); }",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-film-box-at-the-old-ratio",
+    "file": "src/ui/intro/introScreen.js",
+    "old": "width:min(56.5vw,815px);",
+    "new": "width:min(86vw,1240px);",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-film-short-box-at-the-old-ratio",
+    "file": "src/ui/intro/introScreen.js",
+    "old": ".intro-title{width:min(48.7vw,657px)}",
+    "new": ".intro-title{width:min(74vw,1000px)}",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-setting-names-the-game",
+    "file": "src/systems/features.js",
+    "old": "+ 'Off spreads the trees evenly, like the original.'); },",
+    "new": "+ 'Off spreads the trees evenly, as Daggerfall does.'); },",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-overhaul-by-the-game",
+    "file": "src/systems/overhauls.js",
+    "old": "by: 'The original game',\n        blurb: 'The original game\\u2019s own textures, for the classic look.'",
+    "new": "by: 'Daggerfall',\n        blurb: 'The original game\\u2019s own textures, for the classic look.'",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-leveling-title-the-game",
+    "file": "src/ui/levelingChoice.js",
+    "old": "title: 'Classic',",
+    "new": "title: 'Daggerfall',",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-cross-line-the-game",
+    "file": "src/systems/realmCustoms.js",
+    "old": "after: 'Online, this character levels the classic way, by its skills.',",
+    "new": "after: 'Online, this character levels the Daggerfall way, by its skills.',",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-instead-the-game",
+    "file": "src/ui/settings/settingsCopy.js",
+    "old": "\"You get the original game's climbing.\"",
+    "new": "\"You get Daggerfall's climbing.\"",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-foot-shelf-the-game",
+    "file": "src/ui/skinCard.js",
+    "old": "label: 'Original classes'",
+    "new": "label: 'Daggerfall classes'",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-land-tier-the-game",
+    "file": "src/world/landView.js",
+    "old": "[3, 'Classic (3)']",
+    "new": "[3, 'Daggerfall\\u2019s (3)']",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-mod-switch-the-game",
+    "file": "src/systems/modSettings.js",
+    "old": "which the original game never shows.",
+    "new": "which classic Daggerfall never shows.",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-classic-door-the-game",
+    "file": "src/ui/enhanced/enhancedMenu.js",
+    "old": "c.append(el('h3', null, t('menu.begin.title', 'Classic')));\n  c.append(el('p', 'meta', t('menu.begin.blurb', 'The classic start:",
+    "new": "c.append(el('h3', null, t('menu.begin.title', 'Daggerfall')));\n  c.append(el('p', 'meta', t('menu.begin.blurb', 'The classic start:",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-about-tagline-the-game",
+    "file": "src/ui/enhanced/enhancedMenu.js",
+    "old": "'An open-source reimplementation of a classic 1996 RPG.'",
+    "new": "'An open-source reimplementation of The Elder Scrolls II: Daggerfall.'",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-trademark-notice-dropped",
+    "file": "index.html",
+    "old": " The Elder Scrolls and Daggerfall are trademarks of ZeniMax Media Inc.</dd>",
+    "new": "</dd>",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-the-copy-unnamed",
+    "file": "index.html",
+    "old": "of The Elder Scrolls II: Daggerfall, free since 2009.",
+    "new": "of it, free since 2009.",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-relay-address-moved",
+    "file": "src/net/online.js",
+    "old": "export const DEFAULT_SERVER = 'wss://daggerfall-online.mackcothran.workers.dev';",
+    "new": "export const DEFAULT_SERVER = 'wss://dfo-online.mackcothran.workers.dev';",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-patreon-salt-moved",
+    "file": "server-account/src/patreon.js",
+    "old": "salt: enc.encode('daggerfall-accounts patreon-link')",
+    "new": "salt: enc.encode('dfo-accounts patreon-link')",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-kofi-moved",
+    "file": "src/ui/supportAsks.js",
+    "old": "url: 'https://ko-fi.com/daggerfallonline'",
+    "new": "url: 'https://ko-fi.com/dfoonline'",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-screenshot-old-name",
+    "file": "src/ui/screenshot.js",
+    "old": "return `dfo-${d.getFullYear()}",
+    "new": "return `daggerfall-${d.getFullYear()}",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-loading-shot-old-name",
+    "file": "src/ui/shotsPane.js",
+    "old": "a.download = `dfo-shot-${s.id}.jpg`;",
+    "new": "a.download = `daggerfall-shot-${s.id}.jpg`;",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-patreon-page-old-name",
+    "file": "server-account/src/patreon.js",
+    "old": "+ `<title>${esc(heading)} - DFO Online</title><style>`",
+    "new": "+ `<title>${esc(heading)} - Daggerfall</title><style>`",
+    "tests": [
+      "test/ui/brand.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-terms-heading-old-name",
+    "file": "terms/index.html",
+    "old": "<h1>DFO ONLINE MULTIPLAYER — ",
+    "new": "<h1>DAGGERFALL ONLINE MULTIPLAYER — ",
+    "tests": [
+      "test/ui/brand.test.js",
+      "test/ui/enhanced/terms1.test.js"
+    ],
+    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+  },
+  {
+    "name": "BR5-account-version-unmoved",
+    "file": "server-account/src/service.js",
+    "old": "export const ACCOUNT_VERSION = 'acct177';",
+    "new": "export const ACCOUNT_VERSION = 'acct123';",
+    "tests": [
+      "test/server/legacy7_service.test.js",
+      "test/server/founder5.test.js"
+    ],
+    "note": "LOST-SPOILS (PIN MOVED): acct173 (acct168 on its branch, renumbered past STAFF-PANEL1, CRAFT-PAYS, PISTOLET, AUDIT COLLECTIONS-II and SEA VENTURES at the merge), no migration. SEA VENTURES (PIN MOVED): acct172 (acct168 on its branch, then acct169, renumbered past STAFF-PANEL1, CRAFT-PAYS, PISTOLET and AUDIT COLLECTIONS-II at the merges). CRAFT-PAYS and CRAFT-WRITS (PIN MOVED): acct169 (acct168 and migration 0144 on its branch, renumbered past STAFF-PANEL1 at the merge). STAFF-PANEL1 (PIN MOVED): acct168, the staff panel sign-in (migration 0144). CAKE-CAP-SAID (PIN MOVED): acct167 (acct166 on its branch, renumbered past ESSENCE-LOOSE and SOUL-LAW at the merge). ESSENCE-LOOSE and SOUL-LAW (PIN MOVED): acct166, one release, and item law 9 (FIELD BUGS 2026-10-20h: a soul of Daggerfall Enemy Expansion's fifty lawful in a gem; migration 0143). LEAN-READS (PIN MOVED): acct164 (acct159, acct160, acct161, acct162 then acct163 on its branch, renumbered past QL12, WB14, JUNGLE-WOODS, NAME-WORDS and PURSE-MEND at the merges). PURSE-MEND and COMPANION-DROP (PIN MOVED): acct163 (acct162 on its branch, renumbered past NAME-WORDS at the merge). JUNGLE-WOODS (PIN MOVED): acct161 (acct159 then acct160 on its branch, renumbered past QL12 and WB14 at the merges). QL12 (PIN MOVED): acct159. EG-PLAY (PIN MOVED): acct124 (acct116, acct118, acct119, acct121 then acct122 on its branch, renumbered past CRAFT-HOLD, YARD-SWEEP + HANDLE-EMAIL, SEAT-LEASE, GATHER-SPEED + MARKET-SPEED, D1-LOAD, BAL9, NAME-AS and HACKED-GOLD at the merges); HACKED-GOLD (PIN MOVED): acct123; NAME-AS (PIN MOVED): acct122; BAL9 (PIN MOVED): acct121. YARD-SWEEP + HANDLE-EMAIL (PIN MOVED): acct117, and the mutant is the version main left. CRAFT-HOLD (PIN MOVED, acct115 on its branch, renumbered past BR5 at the merge): acct116. BR5: the rebrand to DFO Online (2026-10-11). acct113 on its branch, renumbered past GUILD-SEEN and GUILD3 at the merge (PIN MOVED): acct115, and the mutant is the version main left. GATHER-SPEED + MARKET-SPEED (PIN MOVED): acct119, the version moved on (acct118 on its branch, renumbered past SEAT-LEASE at the merge). NAME-AS (PIN MOVED): acct122 (acct121 on its branch, renumbered past BAL9 at the merge), and the mutant is the version main left."
+  }
+]

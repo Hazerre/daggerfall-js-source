@@ -5,7 +5,7 @@
     "old": "  if (!houseNameOk(c.hn)) return false;\n",
     "new": "",
     "tests": [
-      "test/legacy7_house.test.js"
+      "test/net/legacy7_house.test.js"
     ]
   },
   {
@@ -14,7 +14,7 @@
     "old": "  if (c?.hn === undefined) return c?.hc === undefined && c?.hb === undefined && c?.hg === undefined;",
     "new": "  if (c?.hn === undefined) return true;",
     "tests": [
-      "test/legacy7_house.test.js"
+      "test/net/legacy7_house.test.js"
     ]
   },
   {
@@ -23,7 +23,7 @@
     "old": "before > 0 && houseGivenOk(given) ? { hg:",
     "new": "before >= 0 && houseGivenOk(given) ? { hg:",
     "tests": [
-      "test/legacy7_house.test.js"
+      "test/net/legacy7_house.test.js"
     ]
   },
   {
@@ -32,7 +32,7 @@
     "old": "x.id < p.id && (x.kind ?? 'member') === 'member' &&",
     "new": "x.id < p.id &&",
     "tests": [
-      "test/legacy7_house.test.js"
+      "test/net/legacy7_house.test.js"
     ]
   },
   {
@@ -41,7 +41,7 @@
     "old": "return `${h.hb === 1 ? `${BLOODLINE_MARK} ` : ''}${who}${house}`;",
     "new": "return `${who}${house}`;",
     "tests": [
-      "test/legacy7_house.test.js"
+      "test/net/legacy7_house.test.js"
     ]
   },
   {
@@ -50,7 +50,7 @@
     "old": "  const house = /^of /i.test(h.hn) ? h.hn : `of House ${h.hn}`;",
     "new": "  const house = `of House ${h.hn}`;",
     "tests": [
-      "test/legacy7_house.test.js"
+      "test/net/legacy7_house.test.js"
     ]
   },
   {
@@ -59,7 +59,7 @@
     "old": "  if (!houseClaimOk(c)) return false;   // LEGACY7",
     "new": "  if (false) return false;   // LEGACY7",
     "tests": [
-      "test/legacy7_house.test.js"
+      "test/net/legacy7_house.test.js"
     ]
   },
   {
@@ -68,7 +68,7 @@
     "old": "  if (who?.hn !== undefined) { claims.hn = who.hn;",
     "new": "  if (false) { claims.hn = who.hn;",
     "tests": [
-      "test/legacy7_house.test.js"
+      "test/net/legacy7_house.test.js"
     ]
   },
   {
@@ -77,17 +77,18 @@
     "old": "  if (house) Object.assign(row, house);",
     "new": "",
     "tests": [
-      "test/legacy7_house.test.js"
+      "test/net/legacy7_house.test.js"
     ]
   },
   {
     "name": "LEGACY7-mint-no-house",
     "file": "server-account/src/index.js",
-    "old": "        const house = rc ? await realmHouseOf(ctx, who.player.id, body.character) : null;",
+    "old": "        const house = facts.house;",
     "new": "        const house = null;",
     "tests": [
-      "test/legacy7_house.test.js"
-    ]
+      "test/net/legacy7_house.test.js"
+    ],
+    "note": " SCALE4f (2026-10-10) re-aimed it by content: the four reads of the realm row are one (realm.js realmMintFacts)."
   },
   {
     "name": "LEGACY7-house-unfiltered",
@@ -95,17 +96,19 @@
     "old": "  if (!h || !checkName(h.hn).ok) return null;\n  if (h.hc",
     "new": "  if (!h) return null;\n  if (h.hc",
     "tests": [
-      "test/legacy7_house.test.js"
+      "test/net/legacy7_house.test.js"
     ]
   },
   {
     "name": "LEGACY7-tomb-wears-house",
-    "file": "server-account/src/legacy.js",
-    "old": "    + ' WHERE r.id = ? AND r.player = ? AND r.dead_at IS NULL').bind(id, playerId).first();",
-    "new": "    + ' WHERE r.id = ? AND r.player = ?').bind(id, playerId).first();",
+    "file": "server-account/src/realm.js",
+    "old": "  if (!row || row.dead_at != null || row.lease == null) return none;",
+    "new": "  if (!row || (row.lease == null && row.dead_at == null)) return none;",
     "tests": [
-      "test/legacy7_house.test.js"
-    ]
+      "test/net/legacy7_house.test.js",
+      "test/server/scale4f.test.js"
+    ],
+    "note": "SCALE4f (2026-10-10) re-aimed it by content: the four reads of the realm row are one (realm.js realmMintFacts)."
   },
   {
     "name": "LEGACY7-tile-no-house",
@@ -113,7 +116,7 @@
     "old": "    house: r.line ? houseOn(r.line, r.person_id) : null,",
     "new": "    house: null,",
     "tests": [
-      "test/legacy7_house.test.js"
+      "test/net/legacy7_house.test.js"
     ]
   },
   {
@@ -122,7 +125,7 @@
     "old": "    house: houseLine(peer?.house),",
     "new": "    house: null,",
     "tests": [
-      "test/legacy7_house.test.js"
+      "test/net/legacy7_house.test.js"
     ]
   }
 ]

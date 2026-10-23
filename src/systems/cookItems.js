@@ -5,7 +5,7 @@
 // Professions-Arc.md 9.3, 35): the piece a craft at the fire mints, and
 // what eating it does.
 //
-// THE PIECE. Template 685-688 (systems/profTemplates.js - a Climates &
+// THE PIECE. Template 685-688 (systems/professions/profTemplates.js - a Climates &
 // Calories food's row under its own name), DFU's miscellany, one a
 // serving, its provenance the service's and its maker the cook; its
 // COOK'S HAND the record's (recipeLaw dishHand): a Chef's feast lasts
@@ -33,16 +33,16 @@
 // earns nothing - the service never sees it.
 // ═══════════════════════════════════════════════════════════════════
 import {
-  recipeById, dishOf, dishMinutes, DISHES, DISH_TEMPLATES, DISH_ICON, HAND_CHEF, HAND_PROVISIONER, PROVENANCE_RE, makerName, dishSpell,
+  recipeById, dishOf, dishMinutes, DISHES, DISH_TEMPLATES, DISH_ICON, HAND_CHEF, HAND_PROVISIONER, PROVENANCE_RE, makerMark, dishSpell,
 } from '../net/recipeLaw.js';
-import { setItemFields, mintCondition, registerItemUseHandler } from './itemTemplates.js';
+import { setItemFields, mintCondition, registerItemUseHandler } from './item/itemTemplates.js';
 import { eatFood } from './survival/items.js';
 import { foodName } from './survival/food.js';
 import { survivalOn, survivalRules } from './survival/switch.js';
 import { SURVIVAL_RULES } from './survival/difficulty.js';
 import { inflictDisease } from './diseases.js';
 import { assignModBundle, rollDuration, settingsKeyOf } from './effects.js';
-import { PROF_ITEM_GROUP } from './profTemplates.js';
+import { PROF_ITEM_GROUP } from './professions/profTemplates.js';
 
 /** The Tart's effect's kind (9.3: "stamina regained +20%"): the port's own - no DFU effect lengthens a stamina. */
 export const DISH_STAMINA_KIND = 'dishStamina';
@@ -62,7 +62,7 @@ export function mintDish({ recipe, maker = null, hand = null }, provenance) {
   item.name = dishOf(r.id)?.name ?? item.name;
   item.recipe = r.id;
   item.provenance = provenance;
-  const mark = makerName(maker);
+  const mark = makerMark(maker);   // TEXT-F1
   if (mark) item.maker = mark;
   if (hand === HAND_PROVISIONER) item.noRot = true;   // 3.3: a Provisioner's dish never spoils
   if (hand === HAND_CHEF && dishOf(r.id)?.effect.party === true) item.chef = true;   // 3.3: a Chef's feast lasts half again
@@ -153,7 +153,7 @@ function dishEntry(a, name) {
 }
 /** AUDIT PROF-541 K3/K4: WHAT A FEAST'S GIFT DOES (world.js online.onCast, before the cast lands): a spell that is no
  *  party dish's passes untouched (true); a feast from a STRANGER is dropped (false - a feast is the party's at the table,
- *  and a stranger's landed beside my party's own, its rounds added to it: effects.js like-kind stacking); a party mate's
+ *  and a stranger's landed beside my party's own, merged into it: effects.js like-kind incumbency); a party mate's
  *  renews mine (renewDish, its rounds the cast's own at `level`) - dropped when mine has as many left. */
 export function takeFeastGift(entity, spell, level, mate) {
   if (!isPartyDishSpell(spell?.name)) return true;

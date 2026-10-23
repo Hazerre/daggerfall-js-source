@@ -32,13 +32,23 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import {
-  corpseSource, rarityRank, lootRarityOn, rarityEligible, rollRarity, applyRarity, lastPass, legendaryFindMult,
-} from './lootRarity.js';
-import { isGoldPieces } from './inventory.js';
+  corpseSource, rarityRank, lootRarityOn, rarityEligible, rollRarity, applyRarity, lastPass, legendaryFindMult, isGarment, RARITIES,
+  cursePass,   // LOOT16
+  damnPass,   // TRUE-CURSE
+  socketPass,   // LOOT20
+  weaponSocketPass,   // GEM1
+  techniquePass,   // TECH1
+} from './loot/lootRarity.js';
+import { isGoldPieces, ARROW_TEMPLATE } from './inventory.js';   // STUCK-ARROWS: the quiver rides past the cap
+import { wildFoeLoot } from './wild/wildZone.js';   // WILD1: a foe of the open zone carries twice as much past its cap
 import { isPotion } from './useItem.js';   // CAP-SUPPLIES: a potion IS the glass bottle - DFU's IsPotion, its one export (AUDIT 625 L7)
-import { ENEMY_BASICS } from '../characters/enemyBasics.js';   // KIT-ROLL: the row every host hands its spawn
-import { renownLootQuarters, lootEased } from './renownLoot.js';   // RENOWN-LOOT: the plain ladder by the roller's Renown
+import { ENEMY_BASICS } from '../characters/enemy/enemyBasics.js';   // KIT-ROLL: the row every host hands its spawn
+import { renownLootQuarters, lootEased } from './renownLoot.js';
+import { isCardRecord } from '../net/card/cardWorthLaw.js';   // CARDS9: a foe's card   // RENOWN-LOOT: the plain ladder by the roller's Renown
 
+/** CARDS9 (Tavern-Cards section 32): A FOE'S CARD IS KEPT AS A MAGIC PIECE - its one rare draw is never thrown away for a
+ *  common blade (rank 2: past a supply's 1 and a Common piece's 0, level with a Magic piece's). */
+export const CARD_CAP_RANK = 2;
 /** The most a plain foe's body carries, gold included. */
 export const PLAIN_FOE_LOOT_CAP = 3;
 /** ...and a plain foe's in an Elite Dungeon. */
@@ -89,7 +99,8 @@ export function plainFoeLootRule(entity, basics = null) {
   if (!entity || titledFoe(entity)) return null;
   if (corpseSource(basics, entity.level, entity.mobileType).boss) return null;
   const eliteDungeon = !!entity.elite;
-  return { cap: eliteDungeon ? ELITE_DUNGEON_FOE_LOOT_CAP : PLAIN_FOE_LOOT_CAP, plainLadder: !eliteDungeon };
+  const wide = wildFoeLoot(entity);   // WILD1: a foe of the open zone - "double drops" (WILD2: its ring's share), carried past the cap
+  return { cap: Math.ceil((eliteDungeon ? ELITE_DUNGEON_FOE_LOOT_CAP : PLAIN_FOE_LOOT_CAP) * wide), plainLadder: !eliteDungeon };
 }
 
 /** CAP-SUPPLIES (LOOT-EASE, 2026-10-05, Mac: the rest items, "majicka potions" and "health pots" "should be more common
@@ -106,17 +117,32 @@ export function isLootSupply(item) {
   return false;
 }
 /** The cap's order, best first: a Magic-or-better piece by its tier, then a supply, then the rest. */
-const capRank = (it) => { const r = rarityRank(it); return r > 0 ? 1 + r : (isLootSupply(it) ? 1 : 0); };
+// LOOT14 (the Loot arc II, bible/06-Systems/Loot-II-Arc.md section 6): a GARMENT below Legendary ranks under a supply
+// and over a plain piece - a Magic shirt never pushes a Potion of Healing off a three-piece body (LOOT-EASE's call)
+const GARMENT_UNDER_SUPPLY = 0.5;
+// AUDIT LOOT II A9: with the ladder on - off, a garment ranks as it always did (a DFU magic shirt, Magic by its
+// enchantment, over a potion: law 6)
+const garmentRank = (it) => (lootRarityOn() && isGarment(it) && rarityRank(it) > 0 && rarityRank(it) < RARITIES.legendary.rank ? GARMENT_UNDER_SUPPLY : null);
+const capRank = (it) => { if (isCardRecord(it)) return CARD_CAP_RANK; const r = rarityRank(it); const g = garmentRank(it); if (g != null) return g; return r > 0 ? 1 + r : (isLootSupply(it) ? 1 : 0); };
+
+/** STUCK-ARROWS (bible/05-Combat/Arrow-Supply.md, Mac: "Allow arrows to sometimes be retrieved from enemies"): AN ARROW
+ *  IS NO FIND. The shafts the player put into a body (combat/arrowFlight.js playerArrowHitFoe) and an archer's own quiver
+ *  are ammunition, not the body's loot - and the cheapest Common thing on it, so the cap threw them away FIRST: a plain
+ *  foe at its three pieces gave back none of the arrows it was shot with. They ride past the cap now, uncounted. */
+const isQuiverArrow = (it) => it?.group === 'Weapons' && it.templateIndex === ARROW_TEMPLATE;
 
 /**
  * CAP A LIST IN PLACE: gold first (every coin stack folded into the first - one item, its count the sum), then a quest's
  * items (never thrown away, even past the cap), then the rest best first until the cap: a Magic-or-better piece by its
- * tier, then a supply (CAP-SUPPLIES), then the rest - the dearer first within each. Answers the items dropped.
+ * tier, then a supply (CAP-SUPPLIES), then the rest - the dearer first within each. Arrows are kept and not counted
+ * (STUCK-ARROWS, above). Answers the items dropped.
  * @param {any[]} items
  * @param {number} cap
  */
 export function capLootList(items, cap) {
-  if (!Array.isArray(items) || !(cap >= 0) || items.length <= cap) return [];
+  if (!Array.isArray(items) || !(cap >= 0)) return [];
+  const quiver = items.filter(isQuiverArrow);   // STUCK-ARROWS: kept, uncounted
+  if (items.length - quiver.length <= cap) return [];
   let gold = null;
   for (const it of items) {
     if (!isGoldPieces(it)) continue;
@@ -124,13 +150,13 @@ export function capLootList(items, cap) {
     else gold.stackCount = (gold.stackCount | 0) + (it.stackCount | 0);
   }
   const quest = items.filter((it) => it?.questItem && it !== gold);
-  const rest = items.filter((it) => it && it !== gold && !isGoldPieces(it) && !it.questItem)
+  const rest = items.filter((it) => it && it !== gold && !isGoldPieces(it) && !it.questItem && !isQuiverArrow(it))
     .map((it, i) => ({ it, i }))
     .sort((a, b) => (capRank(b.it) - capRank(a.it)) || ((b.it.value ?? 0) - (a.it.value ?? 0)) || (a.i - b.i))
     .map((r) => r.it);
   const keep = [...(gold ? [gold] : []), ...quest];
   for (const it of rest) { if (keep.length >= cap) break; keep.push(it); }
-  const kept = new Set(keep);
+  const kept = new Set([...keep, ...quiver]);
   const dropped = items.filter((it) => !kept.has(it));
   // in place, in the list's own order (the inventory window reads it as it stands)
   const order = items.filter((it) => kept.has(it));
@@ -174,12 +200,23 @@ export function capFoeLoot(entity) {
  *    foe's kit rolls the plain ladder now, never a boss's multiplied one (`boss: false`) or an Elite Dungeon's quality;
  *    their better ladders stay their carried loot's. A revenant never: its list holds a player's own pieces.
  */
-export function rollCorpseKit(entity, { rolls = Math.random, luck = 50 } = {}) {
+export function rollCorpseKit(entity, opts = {}) {
+  const kit = [...rollKitPieces(entity, opts), ...rollKitGarments(entity, opts)];   // LOOT14: the garments after every draw the kit made
+  cursePass(kit, opts.rolls ?? Math.random);   // LOOT16: a body's own Rares and Legendaries, one in twelve cursed - after all of it
+  socketPass(kit, opts.rolls ?? Math.random);   // LOOT20: and a socket, after the curse
+  weaponSocketPass(kit, opts.rolls ?? Math.random);   // GEM1: and a weapon's own sockets, after that (law 9)
+  damnPass(kit, opts.rolls ?? Math.random);   // TRUE-CURSE: a cursed Legendary weapon damned, after every draw the kit made (law 9)
+  techniquePass(kit, opts.rolls ?? Math.random);   // TECH1: and a weapon's technique, LAST of the kit's draws (law 9)
+  return kit;
+}
+/** The first arc's kit roll, whole: every piece of the kit but its garments. */
+function rollKitPieces(entity, { rolls = Math.random, luck = 50, quarters = undefined, find: findIn = undefined } = {}) {   // PARTY-LOOT: the roll's RENOWN-LOOT share and finders when named (a room's base), else the roller's
   if (!lootRarityOn() || !entity || !Array.isArray(entity.items) || entity.revenant) return [];
-  const source = { ...corpseSource(ENEMY_BASICS[entity.mobileType] ?? null, entity.level, entity.mobileType), boss: false, weights: plainFoeRarityWeights() };   // RENOWN-LOOT: the death's roller's Renown; AUDIT 625 L3: the plain ladder for every foe
-  const find = legendaryFindMult();
+  const source = { ...corpseSource(ENEMY_BASICS[entity.mobileType] ?? null, entity.level, entity.mobileType), boss: false, weights: plainFoeRarityWeights(quarters) };   // RENOWN-LOOT: the death's roller's Renown; AUDIT 625 L3: the plain ladder for every foe
+  const find = findIn ?? legendaryFindMult();
   const minted = [];
   entity.items.forEach((it, i) => {
+    if (isGarment(it)) return;   // LOOT14: the kit's garments roll after all of this (rollKitGarments)
     if (!it || it.untaken === true || !rarityEligible(it)) return;   // AUDIT 625 L1: no mark - the kit the spawn's roll passed by
     const piece = { ...it, untaken: true };   // AUDIT 625 L2: a copy in the body; the table's piece stays as it was minted
     entity.items[i] = piece;
@@ -188,4 +225,25 @@ export function rollCorpseKit(entity, { rolls = Math.random, luck = 50 } = {}) {
   });
   lastPass(minted, rolls);
   return minted;
+}
+/** LOOT14 (the Loot arc II, bible/06-Systems/Loot-II-Arc.md section 6): THE KIT'S GARMENTS - the shirt, the breeches, the
+ *  cloak a foe wore, on the same ladder and source as its kit (AUDIT 625's laws whole: unmarked is kit, a COPY laddered,
+ *  every foe's, never a revenant's), each copy marked; then their own last pass. After every draw the kit made. */
+function rollKitGarments(entity, { rolls = Math.random, luck = 50, quarters = undefined, find: findIn = undefined } = {}) {   // PARTY-LOOT: as rollKitPieces
+  if (!lootRarityOn() || entity?.revenant || !Array.isArray(entity?.items)) return [];
+  // the kit's own source, as its pieces' (AUDIT 625 L3: the plain ladder at the roller's Renown, never a boss's)
+  const kit = corpseSource(ENEMY_BASICS[entity.mobileType] ?? null, entity.level, entity.mobileType);
+  kit.boss = false;
+  kit.weights = plainFoeRarityWeights(quarters);
+  const find = findIn ?? legendaryFindMult();
+  const dressed = [];
+  entity.items.forEach((g, i) => {
+    if (!isGarment(g) || g.untaken === true || !rarityEligible(g)) return;
+    const copy = { ...g, untaken: true };
+    entity.items[i] = copy;
+    const rung = rollRarity({ ...kit, luck, find }, rolls);
+    if (rung !== 'common') { applyRarity(copy, rung, rolls, null, { family: kit.family ?? null }); dressed.push(copy); }
+  });
+  lastPass(dressed, rolls);
+  return dressed;
 }

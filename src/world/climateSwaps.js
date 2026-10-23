@@ -135,6 +135,15 @@ const INTERIOR_SETS = new Set([
   SET.Interior_TavernInt, SET.Interior_TempleInt, SET.Interior_VillageInt,
   SET.Interior_Sewer,
 ]);
+/** RW1 (render/realWindows.js): the Interior_* sets a BUILDING is laid out from - the nine a house, a shop, a tavern,
+ *  a temple, a guild hall, a manor, a farm or a castle wears inside (DFLocation.ClimateTextureSet's own values,
+ *  read through the same SET table). Not the crypts, the dungeons, the mines, the caves, the sewers, the paintings or
+ *  the marble floors: a window to the street stands in none of those. */
+export const BUILDING_INTERIOR_SETS = Object.freeze(new Set([
+  SET.Interior_CastleInt, SET.Interior_CityInt, SET.Interior_FarmInt, SET.Interior_MagesGuildInt,
+  SET.Interior_ManorInt, SET.Interior_MerchantHomesInt, SET.Interior_TavernInt, SET.Interior_TempleInt,
+  SET.Interior_VillageInt,
+]));
 const NATURE_WINTER_SETS = new Set([
   SET.Nature_TemperateWoodland, SET.Nature_WoodlandHills,
   SET.Nature_HauntedWoodlands, SET.Nature_Mountains,
@@ -291,6 +300,17 @@ export function getTerrainGroundArchive(climateSettings, season) {
  *  rain on a ground that answers true here is the fault Mac saw. */
 export function groundIsSnowy(climateSettings, season) {
   return climateSettings.climateType !== BASE.Desert && season === SEASON.Winter;
+}
+
+/** SNOWLESS1: the texture door's word on a winter ground archive whose DRAWN set wears no snow - Vanilla Enhanced's
+ *  Snowless Swamps and Jungles deciding 403 (systems/dfmodTextures.js winterGroundSnowless registers it). None by default. */
+let _snowlessGround = null;
+export function setSnowlessGround(fn) { _snowlessGround = typeof fn === 'function' ? fn : null; }
+/** SNOWLESS1: THE GROUND AS DRAWN WEARS SNOW - groundIsSnowy (the archive law the terrain keys its +1 on, unchanged: the
+ *  pack dresses 403, it does not move the terrain off it), unless the set drawn for that winter archive is a snowless
+ *  one. What the weather's ground law and Snowfall ask. */
+export function groundWearsSnow(climateSettings, season) {
+  return groundIsSnowy(climateSettings, season) && !(_snowlessGround?.(climateSettings.groundArchive + 1) ?? false);
 }
 
 export function getGroundArchive(climateBase, season) {

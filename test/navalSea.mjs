@@ -1,12 +1,12 @@
 // AUDIT NAV1 (2026-09-29) - the naval audit suites' one sea: createNavalHost over Come Sail Away's real pool (the
-// vendored hulls, a stand-in renderer and pipeline - test/nav_h_host.test.js's), every other seam a recording stand-in.
+// vendored hulls, a stand-in renderer and pipeline - test/systems/naval/nav_h_host.test.js's), every other seam a recording stand-in.
 // Its own module so the audit's suites (test/navaudit_*.test.js) stand the same sea.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { createNavalHost } from '../src/scenes/navalHost.js';
-import { createComeSailAwayPool } from '../src/scenes/comeSailAwayPool.js';
-import { Boat } from '../src/systems/comeSailAwayBoat.js';
+import { createNavalHost } from '../src/scenes/naval/navalHost.js';
+import { createComeSailAwayPool } from '../src/scenes/comeSailAway/comeSailAwayPool.js';
+import { Boat } from '../src/systems/comeSailAway/comeSailAwayBoat.js';
 
 const fileFetch = async (url) => {
   const bytes = readFileSync(fileURLToPath(url));
@@ -23,6 +23,10 @@ function standInPipeline() {
   const texture = () => ({ recordCount: 100, getSize: () => ({ width: 40, height: 64 }), getScale: () => ({ width: 0, height: 0 }) });
   return { getTexture: async () => texture(), uploadRecord() {}, getGpuMesh: async (id) => ({ classic: id }) };
 }
+/** SPYGLASS (2026-10-11): every ship in the sea made out to `level` (systems/naval/shipKnowledge.js KNOW - her colours
+ *  by default), as a glass held on each would - for the suites about a ship's tag and card rather than the glass. An
+ *  unknown hull wears no tag. Answers the host. */
+export const knowAll = (host, level = 1) => { for (const e of host._sea.values()) e.known = Math.max(e.known ?? 0, level); return host; };
 export const seeded = (seed = 1) => { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = Math.imul(a ^ (a >>> 15), a | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
 
 let _pool = null;
@@ -30,6 +34,21 @@ export async function readyPool() {
   if (_pool) return _pool;
   _pool = await freshPool();
   return _pool;
+}
+/**
+ * SHIPS-2 (2026-10-07): THE MOD'S OWN SHIPS FALLEN BACK - a pool whose new carrack's and new large boat's models do not
+ * load, so hulls 4 and 1 are Come Sail Away's own Carrack and Large Boat, as the game stands them then
+ * (systems/comeSailAway/comeSailAwayModels.js) - the hulls the deck's and the boarding's laws were found on (the Carrack's cargo
+ * doors, her forecastle's stair, her five doors). Its preload stands the builds with it (navalShips.js setShipStanding);
+ * `restore()` stands the new ships' again. A pool of its own, never the shared one.
+ */
+export async function modShipsPool() {
+  const { CARRACK_MODEL_URL, LARGE_BOAT_MODEL_URL } = await import('../src/systems/comeSailAway/comeSailAwayModels.js');
+  const { setShipStanding } = await import('../src/systems/naval/navalShips.js');
+  const fetchFn = async (url) => (url === CARRACK_MODEL_URL || url === LARGE_BOAT_MODEL_URL ? { ok: false, status: 404 } : fileFetch(url));
+  const pool = createComeSailAwayPool({ renderer: standInRenderer(), pipeline: standInPipeline(), fetchFn, log: { warn() {} } });
+  assert.equal(await pool.preload(), true);
+  return { pool, restore: () => { setShipStanding(4, true); setShipStanding(1, true); } };
 }
 /** A pool of its own - one client's, in a room of several (test/navalRoom.mjs). */
 export async function freshPool() {

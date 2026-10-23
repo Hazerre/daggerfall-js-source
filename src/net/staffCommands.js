@@ -11,6 +11,7 @@
 //   /heal                health, fatigue and magicka full
 //   /pos                 where I stand: the map pixel, the place, native world units
 //   /staff               this list
+//   /relay <setting> <v> a relay setting, at run time - the Developer's alone (SCALE5b, net/relayCfg.js)
 //
 // WHO MAY: a player whose OWN glyphs say `dev`, `dm` or `shadowfang` - the Developer's, the Dungeon Master's and Shadow
 // Fang's (identityToken.js TITLES/GLYPHS). Commands move/change only the typer.
@@ -20,13 +21,15 @@
 // Not a DFU member: DFU's GodMode / teleport console verbs are Wenzil console commands (Ledger A: the console window is
 // a departure); these ride the chat, the one text field the port has. Ledger A row (ONLINE).
 
+import { parseRelayCfgCommand } from './relayCfg.js';   // SCALE5b: /relay's words
+
 /** The glyphs that open the staff's commands. */
 export const STAFF_GLYPHS = Object.freeze(['dev', 'dm', 'shadowfang']);
 /** Whether a player wearing `glyphs` is staff. */
 export const isStaff = (glyphs) => Array.isArray(glyphs) && glyphs.some((g) => STAFF_GLYPHS.includes(g));
 
 /** The staff's command names (lowercase). */
-export const STAFF_COMMANDS = Object.freeze(['tp', 'god', 'fly', 'heal', 'pos', 'staff']);
+export const STAFF_COMMANDS = Object.freeze(['tp', 'god', 'fly', 'heal', 'pos', 'staff', 'relay']);   // SCALE5b: `relay`, a developer's (net/relayCfg.js)
 /** The travel map's grid: MapsFile's 1000 x 500 pixels. */
 export const TP_MAP_W = 1000;
 export const TP_MAP_H = 500;
@@ -39,8 +42,9 @@ export const STAFF_HELP_LINES = Object.freeze([
   '/tp @<player> - to their exact live position',
   '/god [on|off] - take no damage',
   '/fly [on|off] - levitate',
-  '/heal - health, fatigue and magicka full',
-  '/pos - where you stand',
+  '/heal - restore health, fatigue and magicka',
+  '/pos - show your position',
+  '/relay [<setting> <value>|-] - server settings (developers only)',
 ]);
 
 const onOff = (word, was) => (word === 'on' ? true : word === 'off' ? false : word === undefined ? !was : null);
@@ -79,6 +83,7 @@ export function parseStaffCommand(text, now = {}) {
     const on = onOff(words[0]?.toLowerCase(), !!now[name]);
     return on === null ? { error: `Usage: /${name} [on|off].` } : { cmd: name, on };
   }
+  if (name === 'relay') return parseRelayCfgCommand(rest);   // SCALE5b
   if (words.length) return { error: `/${name} takes nothing after it.` };
   return { cmd: name };
 }

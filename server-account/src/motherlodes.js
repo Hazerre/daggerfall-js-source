@@ -68,11 +68,21 @@ const rowView = (r) => ({
  * and every strike of it read them all again (ground confirmed before the day began never changes, so the first pick
  * is the day's). The picks are written only under the mark THIS read made, so two first reads racing the day's turn
  * never keep a mix of two picks.
- * @param {{ db: any, rand?: () => number }} ctx
+ * AUDIT SCALE II A-5 (2026-10-11; Mac: "Lets do an audit on everything. Ensure perfection"): THE PICK IS THE PRIMARY'S.
+ * SCALE4g put the motherlodes' read on a session started from the tab's bookmark, which a replica as old as that
+ * bookmark may serve - and the day keeps whatever its first read picked. A pixel confirmed in the old day's last moment,
+ * read off a replica that had not heard it yet, was never picked, all day. So a day found kept is read where the request
+ * reads (a replica holding the mark holds the picks written beside it), and a day found unpicked - on whatever the
+ * session answered - is read again, picked and kept on `primary` (the binding, index.js ctx), the mark asked there
+ * first. A caller with no `primary` (the cron's, on the binding) is its own.
+ * @param {{ db: any, primary?: any, rand?: () => number }} ctx
  */
-export async function motherlodesOf({ db, rand }, day) {
-  const keptOf = async () => ((await db.prepare('SELECT * FROM motherlodes WHERE day = ?1 ORDER BY k').bind(day).all())?.results ?? []).map(rowView);
-  if (await db.prepare('SELECT 1 FROM motherlode_days WHERE day = ?1').bind(day).first()) return keptOf();
+export async function motherlodesOf({ db: read, primary = read, rand }, day) {
+  const keptOf = async (/** @type {any} */ db) => ((await db.prepare('SELECT * FROM motherlodes WHERE day = ?1 ORDER BY k').bind(day).all())?.results ?? []).map(rowView);
+  const marked = async (/** @type {any} */ db) => !!(await db.prepare('SELECT 1 FROM motherlode_days WHERE day = ?1').bind(day).first());
+  if (await marked(read)) return keptOf(read);
+  const db = primary;
+  if (db !== read && await marked(db)) return keptOf(db);
   const before = day * 86400;
   const { results = [] } = await db.prepare(`SELECT key, account, report, at FROM world_witness
     WHERE kind = 'pixel' AND at < ?1 AND key IN (SELECT key FROM world_witness WHERE kind = 'pixel' AND at < ?1
@@ -94,7 +104,7 @@ export async function motherlodesOf({ db, rand }, day) {
       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9 WHERE EXISTS (SELECT 1 FROM motherlode_days WHERE day = ?1 AND n = ?10)`)
       .bind(day, s.k, s.x, s.y, s.climate, s.region, s.material, s.opensAt, s.closesAt, n)),
   ]);
-  return keptOf();
+  return keptOf(db);
 }
 
 /**

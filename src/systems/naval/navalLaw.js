@@ -20,6 +20,11 @@
 // A PIRATE'S END IS REWARDED as Warm Ashes rewards it (WAQ_SHIP_ATTACK_PIRATE's `_killcommanderknights_`: legal
 // repute +3, the knightly order +3, the temple +1) - scaled to the pirate: a sloop's end is `PIRATE_REWARD.sunk`, a
 // flagship's the quest's own numbers.
+//
+// CAPT-PAY (2026-10-11, bible/03-World/Captains-Sea.md): BOARDERS THROWN BACK are a pirate's end too - the act 'repel'
+// (navalHost.js winBoarding), rewarded as a sinking is (`PIRATE_REWARD.repelled`): a raid fought off a captain's own deck
+// had paid nothing - Warm Ashes' small raid declares its `_victory_` and never gives it, and the sea's own party
+// returned before the law was asked.
 
 import { CRIMES } from '../crimes.js';
 import { CROWNS } from './navalShips.js';
@@ -32,6 +37,7 @@ export const PIRATE_REWARD = Object.freeze({
   sunk: Object.freeze({ legal: 1, knightly: 1, temple: 0 }),
   taken: Object.freeze({ legal: 1, knightly: 2, temple: 0 }),
   flagship: Object.freeze({ legal: 3, knightly: 3, temple: 1 }),
+  repelled: Object.freeze({ legal: 1, knightly: 1, temple: 0 }),   // CAPT-PAY: boarders thrown back off my own deck
 });
 /** DFU's two factions WAQ_SHIP_ATTACK_PIRATE rewards: Generic_Knightly_Order and Generic_Temple (factionRep.js). */
 export const KNIGHTLY_FACTION = 844;
@@ -77,7 +83,7 @@ export function createNotoriety() {
 /**
  * What the law makes of an act, as the host applies it: `{ crimes: [{ region, crime }], notoriety: [{ crown, add }],
  * rewards: [{ legal, knightly, temple, region }] }`.
- * @param {'fire'|'sink'|'board'} act
+ * @param {'fire'|'sink'|'board'|'repel'} act
  * @param {{ faction: string, flagship?: boolean }} ship - the class struck
  * @param {{ crown: string, firstStrike?: boolean }} where - the crown whose waters (a navy ship: its own), and whether
  *   this is the first of the player's shots to land on this ship
@@ -98,6 +104,8 @@ export function lawOf(act, ship, { crown, firstStrike = false }) {
   } else if (ship.faction === 'pirate' && (act === 'sink' || act === 'board')) {
     const r = ship.flagship ? PIRATE_REWARD.flagship : act === 'board' ? PIRATE_REWARD.taken : PIRATE_REWARD.sunk;
     out.rewards.push({ ...r, region });
+  } else if (ship.faction === 'pirate' && act === 'repel') {
+    out.rewards.push({ ...(ship.flagship ? PIRATE_REWARD.flagship : PIRATE_REWARD.repelled), region });   // CAPT-PAY: a flagship's raid beaten is her end
   }
   return out;
 }

@@ -14,6 +14,7 @@
 // gate only without re-scaling).
 
 import { CAPSULE_RADIUS, CAPSULE_HEIGHT } from '../player/motor.js';
+import { t } from '../systems/textManager.js';   // VOID-DUNGEON: the failsafe's line underground, in the player's language
 
 export const ENTER_DOOR_OFFSET = CAPSULE_RADIUS + 0.4; // 0.75
 export const EXIT_DOOR_OFFSET = CAPSULE_RADIUS * 3; // 1.05
@@ -95,8 +96,12 @@ export const NOTHING_OF_VALUE_TEXT = 'This house has nothing of value.';
  *  below everything a building stands on is stood again at the door it came in by. */
 export const INTERIOR_VOID_TEXT = 'There was no floor beneath you. You are back at the door.';
 /** FIELD BUGS 2026-10-04d VOID-ENTRY: how far under the lowest triangle a building has a body may be before it is in
- *  the void - nothing can stand it there, and a room's collider has no ground of its own to catch it. */
+ *  the void - nothing can stand it there, and a room's collider has no ground of its own to catch it. A dungeon's
+ *  collider has none either (VOID-DUNGEON, dungeonVoidRescue). */
 export const INTERIOR_VOID_DROP = 10;
+/** FIELD BUGS 2026-10-19f VOID-DUNGEON: the failsafe's line underground (the port's - DFU has no failsafe). */
+export const DUNGEON_VOID_TEXT = 'There was no floor beneath you. You are back at the entrance.';
+export const dungeonVoidText = () => t('player.dungeonVoid', DUNGEON_VOID_TEXT);
 
 /**
  * Verbatim TransitionInterior landing: exterior door world pos ->
@@ -112,9 +117,11 @@ export const INTERIOR_VOID_DROP = 10;
  * nearest the enter marker, DFU's landing stands 0.75 outside the room
  * over nothing (SetStanding's ray finds no floor, PlayerEnterExit.cs
  * :1240-1254, and the room has no ground): 146 of the 10,309 entries of
- * both packs (Warvale's GENRAS00 #1, #2 and #7), 18 of Daggerfall's own
- * 11,452 (the desert blocks' floorless halves - ALCHAS00/01/03 and their
- * kin). Handed `standsAt`, each of DFU's two arms takes only a spot it
+ * both packs (Warvale's GENRAS00 #1, #2 and #7), 16 of Daggerfall's own
+ * 11,452 (floorless halves of rooms in ten blocks no location places -
+ * ALCHAS00/01/03 and their kin, AUDIT FB1007b T1; FIELD BUGS 2026-10-07b
+ * TOWER-FLOORS stood two more on their floors - interiorLayout.js
+ * FLOOR_MODEL_TYPE). Handed `standsAt`, each of DFU's two arms takes only a spot it
  * stands: the doors in FindClosestInteriorDoor's order (nearest the
  * check first), then the markers in FindClosestEnterMarker's (nearest
  * the exterior door first) - every landing DFU makes on a floor is
@@ -378,6 +385,41 @@ export function floorLanding(collider, pos, maxDist = 10, extraHeight = 0) {
   return [pos[0], bestFloorY, pos[2]];
 }
 
+/**
+ * UNSTUCK-OUT (FIELD BUGS 2026-10-08, SaberGGaming: "Invisible walls around mountains often gets you stuck ... unstuck
+ * didn't work"; Sahh: "I got stuck inside a mountain during fast travel"): THE NEAREST OPEN GROUND. World of
+ * Daggerfall's mountain rocks are meshes scaled by hundreds, reaching past their pixel, and the collider holds both
+ * faces of a skin while the renderer culls the back ones - so from inside a rock its walls are invisible and hold the
+ * body in. Here: the terrain's own floor (`heightAt`) at the point and then on rings out from it, the first spot where
+ * no static solid holds the body's feet or head (`insideSolid`, the collider's parity law - a rock open beneath holds
+ * what stands under its crown) and its torso's sphere touches no mesh - and, where the host asks, `dry(floor)` (the
+ * sea's floor is no ground to stand a body on). The feet of that spot, or null (nothing built there - `heightAt`
+ * answers no floor - or no open ground within the last ring). Pure over the collider's queries.
+ */
+export const OPEN_GROUND_RINGS = Object.freeze([0, 4, 8, 16, 32, 64, 128, 256]);
+/** UNSTUCK-OUT: the spacing of the spots on a ring (metres along it), and the body's points asked of the solids. */
+export const OPEN_GROUND_STEP = 8;
+export function openGroundNear(collider, x, z, { rings = OPEN_GROUND_RINGS, step = OPEN_GROUND_STEP, dry = null } = {}) {
+  for (const r of rings) {
+    const n = r === 0 ? 1 : Math.max(8, Math.round((2 * Math.PI * r) / step));
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * 2 * Math.PI;
+      const px = x + r * Math.cos(a), pz = z + r * Math.sin(a);
+      const h = collider.heightAt?.(px, pz);
+      if (!Number.isFinite(h) || (dry && !dry(h))) continue;
+      if (heldInSolid(collider, [px, h, pz])) continue;
+      if (collider.sphereOverlaps([px, h + CAPSULE_HEIGHT / 2, pz], CAPSULE_RADIUS)) continue;
+      return [px, h, pz];
+    }
+  }
+  return null;
+}
+/** UNSTUCK-OUT: whether a body standing with its feet at `feet` is held by a static solid (its feet or its head).
+ *  DECOR-CLEAR (player/lateSolid.js): `height`, the body's own - a crouched one's head is lower. */
+export function heldInSolid(collider, feet, height = CAPSULE_HEIGHT) {
+  return collider.insideSolid([feet[0], feet[1] + CAPSULE_RADIUS, feet[2]]) || collider.insideSolid([feet[0], feet[1] + height - CAPSULE_RADIUS, feet[2]]);
+}
+
 /** floorLanding's footprint sweep: the highest floor its five rays (the centre and a ring at ~half the capsule's
  *  radius, each from 0.2 above `pos`) meet within `maxDist`, or -Infinity. */
 function footprintFloorY(collider, pos, maxDist) {
@@ -407,9 +449,26 @@ export function interiorVoidRescue(collider, at) {
   return box ? { at, belowY: box.min[1] - INTERIOR_VOID_DROP } : null;
 }
 
+/** FIELD BUGS 2026-10-19f VOID-DUNGEON: VOID-ENTRY's record for a dungeon, as its context keeps it - a function that
+ *  answers it, made the first time a frame asks (so every floor a host stands into the dungeon after its build, the
+ *  court's, is under it) and kept: `at()`, where the dungeon stands a body it places (the context's startSpawn - the
+ *  start marker's landing, by the way in, else the enter marker's), and `belowY` INTERIOR_VOID_DROP under its lowest
+ *  triangle. A dungeon had no failsafe: its collider has no ground (heightAt -Infinity), so a body out of its floor - a
+ *  mover's work before MOVER-BODY, a swimmer under the floor, a save made there - fell or swam on for good, and
+ *  /unstuck, the one way out, waits out its cooldown. Null with no such spot or a collider with nothing in it - and in
+ *  a realm that casts its own void back (`ownsVoid`: the Hour's Unmoored Steps, SD7b; an Elite Breach's spans, EG
+ *  section 8), whose fall costs what its own law says. */
+export function dungeonVoidRescue(collider, at, ownsVoid = false) {
+  let rescue;
+  return () => {
+    if (rescue === undefined) { const spot = ownsVoid ? null : at(); rescue = spot ? interiorVoidRescue(collider, spot) : null; }
+    return rescue;
+  };
+}
+
 /** FIELD BUGS 2026-10-04d VOID-ENTRY: THE FAILSAFE. A body below `rescue.belowY` is under everything the building
  *  stands on - nothing can catch it there, and it falls for good, in the black, every door and light out of reach
- *  ("Complete darkness and possibly stuck"): a floorless half of a room walked off (Daggerfall's own desert blocks),
+ *  ("Complete darkness and possibly stuck"): a floorless half of a room walked off (in blocks of Daggerfall's own),
  *  a save or a Recall anchor made in the void (RestorePosition lands it there raw). It stands again where the door
  *  landed it - the spawn clears the fall a load carried in - and the answer is whether it did. */
 export function standFromVoid(rescue, player) {

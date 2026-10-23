@@ -41,10 +41,14 @@
 // ═════════════════════════════════════════════════════════════════════
 import { mintId, accountKind, displayName, isMuted, overRate } from './accounts.js';
 import { isDeveloper, canModerate, titleWorn, glyphsShown, SPROUT_S } from './titles.js';
+import { withIliacHonoursAll } from './iliac.js';   // CARDS10: and Iliac Hand's season #1's title
+import { withGambitHonoursAll } from './gambit.js';   // KG6: and The King's Gambit's GRANDMASTER
 import { withArenaHonoursAll } from './arena.js';   // AUDIT PRE-MERGE 1003 S8: the arena's honours on an author's badge
+import { withEgHonoursAll } from './egHonours.js';   // EG-E2: and the Spire Champions
 import { guildActorOf } from './guilds.js';
 import { heraldryOfRow } from './halls.js';   // GUILD1e: a recruitment note's guild's banner
-import { guildMay } from '../../src/net/guildLaw.js';
+import { guildMay } from '../../src/net/guild/guildLaw.js';
+import { maskText } from '../../src/net/nameFilter.js';   // TEXT-F1: a note kept before the filter, starred as it is read
 import {
   NOTES_LIVE_MAX, NOTE_DAY_S, BOARD_NOTES_SHOWN, BOARD_NOTICES_SHOWN, NOTES_PINNED_MAX, BOARD_OPS_MAX, BOARD_WINDOW_S,
   NOTE_REPORTS_HIDE, NOTE_ID_RE, BOARD_RID_RE, boardSwitchOf, boardKeyOk, noteWords, noticeWords,
@@ -59,10 +63,14 @@ export function boardOpenFor(player, env) {
 /** The author's badge as the service would sign it NOW (letters.js's rule): a title worn only while held. */
 const badgeOf = (row, env, nowS) => (row ? { title: titleWorn(row, env) ?? null, glyphs: glyphsShown(row, env, nowS) } : { title: null, glyphs: [] });
 
-/** The expired rows, gone - on the board's own reads, a bounded sweep (PROF0 20: "notes deleted on expiry"). */
-async function sweep(db, nowS) {
-  await db.prepare('DELETE FROM board_notes WHERE id IN (SELECT id FROM board_notes WHERE expires_at <= ? LIMIT 200)').bind(nowS).run();
-  await db.prepare('DELETE FROM board_notices WHERE id IN (SELECT id FROM board_notices WHERE expires_at <= ? LIMIT 50)').bind(nowS).run();
+/** The expired rows, gone (PROF0 20: "notes deleted on expiry") - `limit` of each table at once, answering how many went.
+ *  SCALE4b (2026-10-08): THE SERVICE'S CLOCK'S, never a read's - every board read swept first, two writes on the
+ *  busiest read the board has, and every reader racing every other to run them; server-account/src/cron.js runs it each
+ *  hour. Nothing a read answers waits on it: every read of a note or a notice asks `expires_at > now` itself. */
+export async function sweepBoard(db, nowS, limit = 200) {
+  const a = await db.prepare('DELETE FROM board_notes WHERE id IN (SELECT id FROM board_notes WHERE expires_at <= ? LIMIT ?)').bind(nowS, limit).run();
+  const b = await db.prepare('DELETE FROM board_notices WHERE id IN (SELECT id FROM board_notices WHERE expires_at <= ? LIMIT ?)').bind(nowS, limit).run();
+  return Number(a?.meta?.changes ?? 0) + Number(b?.meta?.changes ?? 0);
 }
 
 /** Whether a recruitment note still recruits: its guild stands, and the author's character is still in it at a rank
@@ -74,7 +82,11 @@ const recruits = (n) => !!n.guild_name && n.author_rank != null && guildMay(Numb
 function noteView(n, row, env, nowS, { mine = false, mod = false, reports = 0 } = {}) {
   const guildOk = recruits(n);
   return {
-    id: n.id, from: n.author_name, ...badgeOf(row, env, nowS), subject: n.subject, body: n.body,
+    // TEXT-F1: the words starred as they are read - a note pinned before the filter reads as one pinned after it
+    // NAME-AS: and its author's ACCOUNT (`by`) beside the name it was signed with - the room may know them by their
+    // character's name, so a note's duel finds its author among the players here by account (the relay's `sub`), never
+    // by name (scenes/world.js answerNote); an account id is what every chat line already carries
+    id: n.id, from: n.author_name, by: n.author, ...badgeOf(row, env, nowS), subject: maskText(n.subject), body: maskText(n.body),
     // a recruitment note whose guild is gone - or whose author can no longer invite to it - keeps its words and loses
     // its button and its seal (0026_board.sql)
     button: n.button === 'guild' && !guildOk ? null : (n.button ?? null),
@@ -94,11 +106,10 @@ function noteView(n, row, env, nowS, { mine = false, mod = false, reports = 0 } 
  * @param {any} env
  * @param {unknown} map the town's map id
  */
-export async function readBoard({ db, nowS }, reader, env, map) {
+export async function readBoard({ db, nowS, primary = db }, reader, env, map) {   // SCALE4g: `primary` the binding - the honours below store a #1
   if (!boardOpenFor(reader, env)) return { error: 'board-closed' };
   const mapId = Number(map);
   if (!boardKeyOk(mapId)) return { error: 'bad-board' };
-  await sweep(db, nowS);
   const mod = canModerate(reader, env);
   // the author's own notes always (AUDIT 28 N2: muted or hidden, they still hold the author's places)
   const { results: notes = [] } = await db.prepare(`SELECT n.*, g.name AS guild_name, g.tag AS guild_tag, g.heraldry AS guild_heraldry, gm.rank AS author_rank,
@@ -117,12 +128,16 @@ export async function readBoard({ db, nowS }, reader, env, map) {
   const rows = new Map();
   if (authors.length) {
     const { results: found = [] } = await db.prepare(`SELECT * FROM players WHERE id IN (${authors.map(() => '?').join(', ')})`).bind(...authors).all();
-    for (const p of await withArenaHonoursAll({ db }, found, nowS)) rows.set(p.id, p);   // AUDIT PRE-MERGE 1003 S8: the Grand Champion's title, the #1's laurel
+    // SCALE4g: ON THE BINDING - a #1 found stale is counted again and STORED (arena.js championNow), never off a replica
+    // (AUDIT SCALE4d A1's law, where the heartbeat's session reads the rest)
+    for (const p of await withIliacHonoursAll({ db: primary }, await withArenaHonoursAll({ db: primary }, found, nowS), nowS)) rows.set(p.id, p);   // AUDIT PRE-MERGE 1003 S8: the Grand Champion's title, the #1's laurel
+    for (const p of await withEgHonoursAll({ db: primary }, [...rows.values()], nowS)) rows.set(p.id, p);   // EG-E2: and Spire Champion (egHonours.js)
+    for (const p of await withGambitHonoursAll({ db: primary }, [...rows.values()], nowS)) rows.set(p.id, p);   // KG6: and The King's Gambit's GRANDMASTER
   }
   const live = await liveCount(db, reader.id, nowS);
   return {
     map: mapId,
-    notices: notices.map((x) => ({ id: x.id, from: x.author_name, subject: x.subject, body: x.body, at: x.at, expiresAt: x.expires_at })),
+    notices: notices.map((x) => ({ id: x.id, from: x.author_name, subject: maskText(x.subject), body: maskText(x.body), at: x.at, expiresAt: x.expires_at })),   // TEXT-F1
     notes: notes.map((n) => noteView(n, rows.get(n.author), env, nowS, { mine: n.author === reader.id, mod, reports: Number(n.reports ?? 0) })),
     me: {
       canPin: accountKind(reader) === 'linked' && !isMuted(reader, nowS),

@@ -42,9 +42,9 @@ import { displayName, overRate } from './accounts.js';
 import { guildActorOf } from './guilds.js';
 import { marksOpenFor } from './marks.js';
 import { mustChange } from './realm.js';
-import { GUILD_TREASURY_MAX, GUILD_OPS_MAX, GUILD_OPS_WINDOW_S } from '../../src/net/guildLaw.js';
+import { GUILD_TREASURY_MAX, GUILD_OPS_MAX, GUILD_OPS_WINDOW_S } from '../../src/net/guild/guildLaw.js';
 import { GUILD_HALL_ENTRY_DEFAULT, HALL_POWERS, hallMay, guildHallPrice, guildHallEntryOk, guildHallOwner } from '../../src/net/hallLaw.js';
-import { HOME_CLAIMS_MAX, HOME_CLAIMS_WINDOW_S, homeMapIdOk, homeBuildingKeyOk, homeRegionOk, homePriceOk, homeSaleRefund, homeInArenaCell, homeLayoutOk } from '../../src/net/homeLaw.js';   // ARENA4b: the arena's cell
+import { HOME_CLAIMS_MAX, HOME_CLAIMS_WINDOW_S, homeMapIdOk, homeBuildingKeyOk, homeRegionOk, homePriceOk, homeSaleRefund, homeInArenaCell, homeLayoutOk, homeMoved } from '../../src/net/homeLaw.js';   // ARENA4b: the arena's cell; QUEST-HOME: what a hall's buy or sale moved
 import { HERALDRY_CHANGE_DRAKES, heraldryOf, heraldrySame } from '../../src/net/heraldryLaw.js';
 import { MARKS_RID_RE, utcDay } from '../../src/net/marksLaw.js';
 import { seatWeekOf } from '../../src/net/townSeatLaw.js';   // AUDIT-SEATS S10: a siege week refuses a change
@@ -133,7 +133,7 @@ export async function buyHall(ctx, player, body = {}) {
     return { error: 'guild-rank' };   // the guild was handed on meanwhile
   }
   const t = await db.prepare('SELECT treasury FROM guilds WHERE id = ?').bind(gid).first();
-  return { ok: true, hall: await hallViewOf(db, gid), cost, treasury: t?.treasury ?? 0 };
+  return { ok: true, hall: await hallViewOf(db, gid), cost, treasury: t?.treasury ?? 0, moved: homeMoved(mapId, [buildingKey]) };   // QUEST-HOME: a hall is a home to every page online
 }
 
 /**
@@ -184,7 +184,7 @@ export async function sellHall(ctx, player, { character, mapId = null, buildingK
     return { error: 'guild-hall-moved' };   // a piece placed or moved, or the guild handed on, meanwhile: look again
   }
   const t = await db.prepare('SELECT treasury FROM guilds WHERE id = ?').bind(gid).first();
-  return { ok: true, refund, decorCount: Number(p?.n) || 0, decorBack: piecesBack, back, treasury: t?.treasury ?? 0 };
+  return { ok: true, refund, decorCount: Number(p?.n) || 0, decorBack: piecesBack, back, treasury: t?.treasury ?? 0, moved: homeMoved(h.map_id, [], [h.building_key]) };   // QUEST-HOME: sold, a house again
 }
 
 /**

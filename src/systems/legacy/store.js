@@ -12,8 +12,9 @@
 //
 // Storage is handed in (systems/appStorage.js appStorage / tabStorage), so this is headless-testable; every read and
 // write is shielded, because storage throws under some privacy modes and a family must never cost the player a game.
-import { readFamily, FAMILY_VERSION, nameAtSeat, leanRecord } from './family.js';
+import { readFamily, FAMILY_VERSION, nameAtSeat, nameHouse, leanRecord } from './family.js';
 import { mergeNews, mergeHeard } from './influence.js';   // LEGACY6; AUDIT LEGACY III A8: a reader's heard news
+import { takeRevived } from './revived.js';   // REVIVE: a death taken back is a fact as a death is
 
 export const FAMILY_KEY_PREFIX = 'dagger.legacy.family.';
 export const BIRTH_KEY = 'dagger.legacy.birth';
@@ -71,7 +72,7 @@ export function storeFamily(storage, family, base = seenRevOf(family)) {
 /** AUDIT LEGACY III P5: what a member's own save writes of them (legacyHost.js writeCurrent - writePlayer, their
  *  standing, their look, where they were saved) - kept, as a whole, from the copy that saved that member LAST. */
 export const MEMBER_SAVE_FIELDS = Object.freeze(['given', 'surname', 'gender', 'race', 'raceId', 'face', 'careerIndex', 'className', 'career', 'groups',
-  'level', 'stats', 'skills', 'leveling', 'standing', 'look', 'parked']);
+  'level', 'stats', 'skills', 'leveling', 'standing', 'look', 'parked', 'deedsTaken']);   // PERMADEATH-HOUSES: the dead's deeds their save took up
 
 /** AUDIT LEGACY III A3/P3: whether two copies' persons of one id are ONE person. Ids are minted by each copy's own
  *  counter (nextId), so two copies that each minted someone - a child here, a spouse there - gave two people one id. One
@@ -113,7 +114,7 @@ export function rekeyClashes(mine, other) {
     if (Number.isInteger(r.of) && moved.has(r.of)) { r.of = to(r.of); r.id = `r${r.of}`; }
     if (Number.isInteger(r.by)) r.by = to(r.by);
   }
-  for (const h of mine.houses ?? []) if (Number.isInteger(h.by)) h.by = to(h.by);
+  for (const h of mine.houses ?? []) { if (Number.isInteger(h.by)) h.by = to(h.by); if (Number.isInteger(h.from)) h.from = to(h.from); }   // PERMADEATH-HOUSES: and who left it
   mine.nextId = next;
   return moved;
 }
@@ -173,11 +174,22 @@ export function mergeFacts(mine, other) {
     if (!(mine.houses ??= []).some(same)) mine.houses.push({ ...h });
   }
   if (!mine.pending && other.pending && knew.get(other.pending.fallenId) === false) mine.pending = JSON.parse(JSON.stringify(other.pending));
-  if (!mine.seat && other.seat) mine.seat = { ...other.seat };
+  // FAMILY-SEAT (FIELD BUGS 2026-10-07b): a seat the player moved carries when (`at`), and the later move stands -
+  // whichever copy is the base by rev: a stale tab's or device's write carried the old seat back over the move. A seat
+  // neither copy moved is the base's, or the other's when the base has none (the first town noted, as ever)
+  if (other.seat && (!mine.seat || (Number(other.seat.at) || 0) > (Number(mine.seat.at) || 0))) mine.seat = { ...other.seat };
+  // AUDIT FB1007b S1: THE NAME IS THE HOUSE'S, never its seat's - the seat moves now, and a copy that never learned the
+  // name (a tab still in Privateer's Hold) named itself for the moved seat: the house's name flipped, the founder's with
+  // it. It takes the name the other copy holds; and a member of the blood a stale save left nameless takes the house's
+  const houseName = String(mine.surname ?? '').trim() || String(other.surname ?? '').trim();
+  if (houseName) nameHouse(mine, houseName);
   nameAtSeat(mine);   // LEGACY-NAME: a nameless house is named with the seat it learned - here, from the copy that saw it
   if (!mine.home && other.home) mine.home = { ...other.home };
   mine.news = mergeNews(mine.news, other.news);   // LEGACY6: what the towns heard is never unheard
   mine.nextId = Math.max(mine.nextId | 0, other.nextId | 0, ...mine.people.map((p) => p.id + 1));
+  // REVIVE: and a death either copy says was TAKEN BACK goes, with its remains and its Succession - taken in above from
+  // a stale copy (a device that never heard of the revival), it would have killed the revived member again
+  takeRevived(mine, other);
   return mine;
 }
 
@@ -231,7 +243,7 @@ function birthOf(b, personId, now) {
 }
 
 /** A played member's newest save: the key whose card names their character id and was written last
- *  (systems/saveSlots.js enumerateSaves' `info`, key -> card). -1 when they have none. */
+ *  (systems/save/saveSlots.js enumerateSaves' `info`, key -> card). -1 when they have none. */
 export function newestSaveOf(info, characterId) {
   let best = -1;
   let bestT = -Infinity;

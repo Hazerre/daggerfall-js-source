@@ -1,6 +1,6 @@
 // @ts-check
 // SHIP-LIFE (2026-09-30, Mac's item 1 of the six-part sea ask: ships that berth at ports, depart, voyage and keep
-// their own errands; `01-Overview/Handoff-Naval-Crew-and-Ship-Life.md` slice E) - A SHIP GOING SOMEWHERE. The port's
+// their own errands; `01-Overview/handoffs/Handoff-Naval-Crew-and-Ship-Life.md` slice E) - A SHIP GOING SOMEWHERE. The port's
 // own; pure - the host hands the water, a town's footprint and the ships' clocks, and gets back berths, paths and the
 // plan a captain sails by when no fight is hers.
 //
@@ -35,8 +35,8 @@
 // of the dark, where the last ships in of the evening pass.
 
 import { hash32 } from '../../world/spawnedDungeons.js';
-import { mulberry32 } from '../../combat/bloodArt.js';
-import { hullBuild } from './navalShips.js';
+import { mulberry32 } from '../../combat/blood/bloodArt.js';
+import { hullBuild, MOD_CARRACK_BUILD } from './navalShips.js';
 
 /** How far past the town's rect a berth may lie (m), the shore scan's grid (m), the water kept between a berth's hull
  *  and the shore (m), a berth's spacing (her lengths), and the most berths a harbour holds. */
@@ -62,6 +62,10 @@ export const HULL_DRAFT = Object.freeze([0.8, 1.4, null, 2.8, 3.2]);
 export const DRAFT_SPARE = 0.06;
 export const draftOf = (hull) => {
   const h = Math.min(HULL_DRAFT.length - 1, Math.max(0, hull | 0));
+  // SHIPS-2: the new carrack's is her keel's too (4.65 m - the table's 3.2 sailed her 4.59 m keel over a 3.3 m floor),
+  // the table's while the mod's own carrack stands in for her; under the galleon's 4.7, so the deepest that berths is the
+  // galleon still and no harbour is sounded anew
+  if (h === 4 && hullBuild(4) !== MOD_CARRACK_BUILD) return DRAFT_SPARE - hullBuild(4).keel;
   return h === 2 ? DRAFT_SPARE - hullBuild(2).keel : /** @type {number} */ (HULL_DRAFT[h]);
 };
 /** AUDIT GN2-GN1: the deepest keel of BERTH_HULLS as the hulls stand. */
@@ -122,22 +126,58 @@ export function hullSize(hull) {
   const b = hullBuild(hull);
   return { length: b.bowZ - b.aftZ, halfWidth: b.halfWidth, bowZ: b.bowZ, aftZ: b.aftZ };
 }
+/** SHIPS-2: THE SHIP A HARBOUR'S BERTHS ARE SIZED FOR - the mod's own Carrack's footprint (MOD_CARRACK_BUILD: 51.95 m by
+ *  8.43 a side), whatever stands as BERTH_HULL. Mac's carrack is 49.45 m by 6.70: sized off her, every port's berths
+ *  would stand anew and its quays with them. So a berth is sounded, spaced, approached and quayed for the template, and
+ *  a hull lies alongside it by her own half beam against the template's (`alongside`). Any other hull its own size. */
+export const BERTH_TEMPLATE = MOD_CARRACK_BUILD;
+export function berthSize(hull) {
+  if (hull !== BERTH_HULL) return hullSize(hull);
+  const b = BERTH_TEMPLATE;
+  return { length: b.bowZ - b.aftZ, halfWidth: b.halfWidth, bowZ: b.bowZ, aftZ: b.aftZ };
+}
 
 /** QUAYS (systems/naval/quays.js): where a hull lies alongside a berth's quay - the berth is sounded for `harbourHull`
  *  (BERTH_HULL, the Carrack) and its quay stands off that hull's side, so a narrower one lies in toward it by the
  *  difference and a wider one out from it: her side always the quay's gap off its face. `[x, z]`. */
 export function alongside(berth, hull, harbourHull = BERTH_HULL) {
-  const off = hullSize(hull).halfWidth - hullSize(harbourHull).halfWidth;
+  const off = hullSize(hull).halfWidth - berthSize(harbourHull).halfWidth;
   return [berth.pos[0] + berth.normal[0] * off, berth.pos[1] + berth.normal[1] * off];
 }
 
-/** Whether her whole footprint at `pos` ([x, z]) heading `yaw` floats: her centreline bow to stern and both sides. */
+/** Whether her whole footprint at `pos` ([x, z]) heading `yaw` floats: her centreline bow to stern and both sides - a
+ *  berth's (BERTH_HULL's) the berths' template's (SHIPS-2: berthSize). */
 export function footprintClear(pos, yaw, hull, isWater) {
-  const { halfWidth, bowZ, aftZ } = hullSize(hull);
+  const { halfWidth, bowZ, aftZ } = berthSize(hull);
   const fx = Math.sin(yaw), fz = Math.cos(yaw), sx = fz, sz = -fx;
   for (let z = aftZ; z <= bowZ + 1e-6; z += Math.max(4, (bowZ - aftZ) / 8)) {
     for (const s of [-halfWidth, 0, halfWidth]) {
       if (!isWater(pos[0] + fx * z + sx * s, pos[1] + fz * z + sz * s, hull)) return false;
+    }
+  }
+  return true;
+}
+
+/** QUAY-CROSSING: how far a berth's quay stands in from her side (quays.js QUAY_GAP + QUAY_WIDTH) and past her ends
+ *  (quays.js QUAY_ENDS) (m) - `quayBox`'s. */
+export const BERTH_QUAY_IN = 5.3;
+export const BERTH_QUAY_ENDS = 3;
+/** QUAY-CROSSING: a berth's ship and her quay in the scene - four corners [x, z], in order round them: her seaward side
+ *  to the quay's back, its ends past her bow and her stern. */
+export function quayBox(pos, yaw, normal, hull = BERTH_HULL) {
+  const { halfWidth, bowZ, aftZ } = berthSize(hull);
+  const fx = Math.sin(yaw), fz = Math.cos(yaw), lx = -normal[0], lz = -normal[1];
+  return [[aftZ - BERTH_QUAY_ENDS, -halfWidth], [bowZ + BERTH_QUAY_ENDS, -halfWidth], [bowZ + BERTH_QUAY_ENDS, halfWidth + BERTH_QUAY_IN], [aftZ - BERTH_QUAY_ENDS, halfWidth + BERTH_QUAY_IN]]
+    .map(([z, x]) => [pos[0] + fx * z + lx * x, pos[1] + fz * z + lz * x]);
+}
+/** Whether two convex quads overlap (separating axes; touching is apart). */
+export function boxesMeet(a, b) {
+  for (const box of [a, b]) {
+    for (let i = 0; i < 4; i++) {
+      const [px, pz] = box[i], [qx, qz] = box[(i + 1) % 4], ax = pz - qz, az = qx - px;
+      const span = (q) => q.map(([x, z]) => x * ax + z * az);
+      const sa = span(a), sb = span(b);
+      if (Math.max(...sa) <= Math.min(...sb) || Math.max(...sb) <= Math.min(...sa)) return false;
     }
   }
   return true;
@@ -149,12 +189,12 @@ export function footprintClear(pos, yaw, hull, isWater) {
  * hull }`, the berths nearest the town first - or null where the town has no shore to berth at or no way out to sea.
  * AUDIT GN2-GN1: sounded for `hull`'s footprint in `deep`'s water too - the deepest keel that berths (BERTH_HULLS).
  */
-export function findHarbour({ rect, isWater: own, hull = BERTH_HULL, deep = deepestBerther(), max = HARBOUR_BERTHS }) {
-  const { length, halfWidth } = hullSize(hull);
+export function findHarbour({ rect, isWater: own, hull = BERTH_HULL, deep = deepestBerther(), max = HARBOUR_BERTHS, reach = HARBOUR_REACH }) {
+  const { length, halfWidth } = berthSize(hull);   // SHIPS-2: the berths' template's
   const isWater = (x, z, h) => !!own(x, z, h) && (h === deep || !!own(x, z, deep));
   const water = (x, z) => isWater(x, z, hull);
   const cx = (rect.minX + rect.maxX) / 2, cz = (rect.minZ + rect.maxZ) / 2;
-  const x0 = rect.minX - HARBOUR_REACH, x1 = rect.maxX + HARBOUR_REACH, z0 = rect.minZ - HARBOUR_REACH, z1 = rect.maxZ + HARBOUR_REACH;
+  const x0 = rect.minX - reach, x1 = rect.maxX + reach, z0 = rect.minZ - reach, z1 = rect.maxZ + reach;
   const cands = [];
   for (let x = x0; x <= x1; x += SHORE_STEP) {
     for (let z = z0; z <= z1; z += SHORE_STEP) {
@@ -173,12 +213,12 @@ export function findHarbour({ rect, isWater: own, hull = BERTH_HULL, deep = deep
       const off = halfWidth + BERTH_MARGIN;
       const pos = [x + nx * off, z + nz * off];
       const dx = Math.max(rect.minX - pos[0], 0, pos[0] - rect.maxX), dz = Math.max(rect.minZ - pos[1], 0, pos[1] - rect.maxZ);
-      if (Math.hypot(dx, dz) > HARBOUR_REACH) continue;
+      if (Math.hypot(dx, dz) > reach) continue;
       cands.push({ pos, normal: [nx, nz], d: Math.hypot(pos[0] - cx, pos[1] - cz) });
     }
   }
   cands.sort((a, b) => a.d - b.d || a.pos[0] - b.pos[0] || a.pos[1] - b.pos[1]);
-  const berths = [];
+  const berths = [], boxes = [];
   for (const c of cands) {
     if (berths.length >= max) break;
     if (berths.some((b) => dist2(b.pos, c.pos) < length * BERTH_SPACING)) continue;
@@ -189,6 +229,11 @@ export function findHarbour({ rect, isWater: own, hull = BERTH_HULL, deep = deep
       const back = length * APPROACH_LENGTHS;
       const approach = [c.pos[0] - Math.sin(yaw) * back + c.normal[0] * APPROACH_OUT, c.pos[1] - Math.cos(yaw) * back + c.normal[1] * APPROACH_OUT];
       if (!footprintClear(approach, yaw, hull, isWater)) continue;
+      // QUAY-CROSSING: her quay never laid across another berth's - round a point of land two berths BERTH_SPACING
+      // apart turned to each other stood their quays' ends one over the other
+      const box = quayBox(c.pos, yaw, c.normal, hull);
+      if (boxes.some((o) => boxesMeet(o, box))) continue;
+      boxes.push(box);
       berths.push({ pos: c.pos, yaw, normal: c.normal, approach });
       break;
     }

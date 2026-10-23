@@ -9,7 +9,7 @@
 // walker - the talk ray, the pickpocket, the watch's conversion, the trample - takes it unchanged.
 //
 // LW3: ARMED (`arm`). A resident walking out to the road, or home from it, in their gear (LW0 decision 5) wears their
-// class's sprite instead - the enemy's own eight-way MobileUnit (characters/mobileUnit.js, the band's and the crew's
+// class's sprite instead - the enemy's own eight-way MobileUnit (characters/mobile/mobileUnit.js, the band's and the crew's
 // body) on its class archive - and their own outfit again when the walk is done.
 //
 // LW-LOOKS (2026-10-06, "Class looks + still flats"): IN TOWN TOO - one whose calling is a class's walks the town in its
@@ -22,8 +22,8 @@
 // front view: every talker in a circle faced the camera, never the one they talked to (88,358 of 88,358 standing
 // frames), and the watch's post the street, never the road. The idle record is the politeness gate's alone - DFU's own
 // use of it: one who stops for the player turns to face them.
-import { MobilePerson, MOVE_RECORDS, MOVE_FLIPS, PERSON_MOVE_FPS, PERSON_IDLE_FPS, PERSON_IDLE_RECORD, PERSON_GUARD_IDLE_RECORD } from './mobilePerson.js';
-import { mobileOrientation, MobileUnit } from './mobileUnit.js';
+import { MobilePerson, MOVE_RECORDS, MOVE_FLIPS, PERSON_MOVE_FPS, PERSON_IDLE_FPS, PERSON_IDLE_RECORD, PERSON_GUARD_IDLE_RECORD } from './mobile/mobilePerson.js';
+import { mobileOrientation, MobileUnit } from './mobile/mobileUnit.js';
 import { FlatAnim } from '../render/flatAnimation.js';
 
 /** LW-TALK: the walk record's frame a standing resident holds. */
@@ -58,6 +58,9 @@ export class ResidentWalker extends MobilePerson {
     this.classArchive = opts.archive;
     /** @type {{ archive: number, record: number, frameCount: number } | null} */
     this.stillLook = null;
+    /** AUDIT MW-NPC II K1: the still picture's kind (looks.js stillRoleOf - 'beggar', a stall's, 'priest'), null with none:
+     *  what the Morrowind body reads (characters/rosterBodies.js residentWalkerActor). @type {string|null} */
+    this.stillRole = null;
     /** @type {FlatAnim|null} */
     this._stillAnim = null;
     /** WATCH-PROTECTS: the walk wheel's cadence as a share of the walk's - the living town's run, twice (livingTown.js
@@ -75,7 +78,7 @@ export class ResidentWalker extends MobilePerson {
   release() {}
 
   /** A resident's own outfit (the body is dressed as another resident - livingTown.js `_dress`). @param {number} archive @param {boolean} guard */
-  setIdentity(archive, guard) { super.setIdentity(archive, guard); this.ownArchive = archive; this.classArchive = archive; this.unit = null; this.armed = false; this.cls = null; this.stillLook = null; this._stillAnim = null; }
+  setIdentity(archive, guard) { super.setIdentity(archive, guard); this.ownArchive = archive; this.classArchive = archive; this.unit = null; this.armed = false; this.cls = null; this.stillLook = null; this.stillRole = null; this._stillAnim = null; }
 
   /**
    * LW3: into their gear - `look` the class sprite ({ mobileType, basics, archive, frameCount, sex }) - or, null, out of
@@ -100,10 +103,11 @@ export class ResidentWalker extends MobilePerson {
 
   /**
    * LW-LOOKS: standing as a still picture - `look` an NPC flat ({ archive, record, frameCount }) - or, null, themselves
-   * again (their class's sprite, or their outfit).
-   * @param {{ archive: number, record: number, frameCount: number } | null} look
+   * again (their class's sprite, or their outfit). AUDIT MW-NPC II K1: `role` the picture's kind.
+   * @param {{ archive: number, record: number, frameCount: number } | null} look @param {string|null} [role]
    */
-  still(look) {
+  still(look, role = null) {
+    this.stillRole = look ? role : null;
     if (look) {
       this.stillLook = look;
       this._stillAnim = new FlatAnim(look.archive, look.frameCount);

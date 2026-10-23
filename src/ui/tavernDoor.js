@@ -7,9 +7,10 @@
 // tavernWindow.js) and hands it here.
 
 import { isEnhanced } from '../systems/uiSkin.js';
-import { mountEnhancedChunk } from './enhancedChunk.js';
-import { registerOverlay } from './enhancedOverlays.js';
+import { mountEnhancedChunk } from './enhanced/enhancedChunk.js';
+import { registerOverlay } from './enhanced/enhancedOverlays.js';
 import { TavernWindow, preloadTavernArt, tavernArtLoaded } from './tavernWindow.js';
+import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 export { preloadTavernArt };
 
@@ -23,6 +24,7 @@ export function tavernDoorReady() {
 /** Build the panel this skin wears. `hooks` is tavernWindow.js's own
  *  hooks bag, unchanged. */
 export function createTavernWindow(hooks = {}) {
+  noteFirstUse('tavern');   // TUT1
   if (isEnhanced() && typeof document !== 'undefined') {
     return enhancedTavernOverlay(hooks);
   }
@@ -71,7 +73,7 @@ function enhancedTavernOverlay(hooks) {
   };
 
   mountEnhancedChunk({
-    load: () => import('./enhancedTavern.js'),
+    load: () => import('./enhanced/enhancedTavern.js'),
     mount: ({ mountEnhancedTavern }) => {
       view = mountEnhancedTavern(host, hooks);
     },

@@ -37,7 +37,7 @@
 // (`shellRelock` below, app/main.cjs).
 
 import { isTextEntryTarget } from '../ui/input.js';   // PL2: a typed field's Enter is the field's (CG2)
-import { overlayOpen } from '../ui/enhancedOverlays.js';   // PL3: an enhanced overlay up (the dial, the pack) owns Enter too
+import { overlayOpen } from '../ui/enhanced/enhancedOverlays.js';   // PL3: an enhanced overlay up (the dial, the pack) owns Enter too
 
 let _errBound = false;
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
@@ -53,6 +53,13 @@ export const ESCAPE_DELIVERY_MS = 60;
 /** A real Escape keydown this close to the loss was delivered - the
  *  page has it, and a second would close what the first opened. */
 export const REAL_ESCAPE_MS = 300;
+/** TOUCH-UNLOCK (FIELD BUGS 2026-10-09c, "Touching anywhere onscreen in mobile opens the system menu", Firefox and its
+ *  forks on Android): a lock loss this close to a touch event is the finger's, never an Escape. Gecko GRANTS a tap's
+ *  lock (a tap is a user activation) and ends ANY lock on the next touch event (PresShell.cpp, Unlock("TouchEvent")),
+ *  posting the change after that touch's own dispatch - so every tap read as the swallowed Escape and opened the
+ *  pause, and the pause's close relocked for the next tap to end. Blink never ends a lock on a touch. */
+export const TOUCH_UNLOCK_MS = 500;
+const TOUCH_TYPES = ['touchstart', 'touchmove', 'touchend', 'touchcancel'];
 
 // U45 - PlayerMouseLook.cursorActive (:32, :185-213), THE TOGGLE THAT
 // HAD NO CONSUMER. `ActivateCursor` has been bound to Enter in the
@@ -227,6 +234,9 @@ export function bindCursorToggle(canvas, isWindowUp = () => false, actionsOf = n
   // own Escape - that one is not delivered twice.
   let held = typeof document !== 'undefined' && document.pointerLockElement === canvas;
   let pending = null;
+  let lastTouch = -Infinity;   // TOUCH-UNLOCK: the last touch event, on the capture phase - before Gecko's unlock posts
+  const onTouch = () => { lastTouch = nowMs(); };
+  const fingered = () => nowMs() - lastTouch < TOUCH_UNLOCK_MS;
   const quiet = () => isWindowUp() || overlayOpen() || _cursorActive || !pageHasFocus();
   const onLockChange = () => {
     const now = typeof document !== 'undefined' && document.pointerLockElement === canvas;
@@ -238,18 +248,22 @@ export function bindCursorToggle(canvas, isWindowUp = () => false, actionsOf = n
     if (pending) clearTimeout(pending);
     pending = setTimeout(() => {
       pending = null;
-      if (held || quiet() || nowMs() - lastRealEscape < REAL_ESCAPE_MS + ESCAPE_DELIVERY_MS) return;
+      if (held || quiet() || fingered() || nowMs() - lastRealEscape < REAL_ESCAPE_MS + ESCAPE_DELIVERY_MS) return;
       deliverEscape();
     }, ESCAPE_DELIVERY_MS);
   };
-  if (typeof document !== 'undefined') document.addEventListener?.('pointerlockchange', onLockChange);
+  if (typeof document !== 'undefined') {
+    document.addEventListener?.('pointerlockchange', onLockChange);
+    for (const t of TOUCH_TYPES) document.addEventListener?.(t, onTouch, { capture: true, passive: true });
+  }
   // PL3: THE NET. A click that lands on the page itself - the canvas,
   // or the body beside it - with nothing up, no cursor activated and no
   // lock held is the player asking for the game back; take the lock
   // inside that gesture whatever swallowed the canvas arm (a DOM
   // element the hosts never knew, a host without the arm). A click on
   // any element of the page's UI is that element's and is left alone,
-  // and a finger never holds a lock (ui/touch.js).
+  // and a finger never holds a lock (ui/touch/touch.js; on Gecko it holds one
+  // only until its next touch event - TOUCH-UNLOCK above).
   const onDown = (e) => {
     if (e.pointerType === 'touch') return;
     if (typeof document === 'undefined' || document.pointerLockElement) return;
@@ -265,6 +279,7 @@ export function bindCursorToggle(canvas, isWindowUp = () => false, actionsOf = n
     if (typeof document !== 'undefined') {
       document.removeEventListener?.('pointerdown', onDown, true);
       document.removeEventListener?.('pointerlockchange', onLockChange);
+      for (const t of TOUCH_TYPES) document.removeEventListener?.(t, onTouch, true);
     }
   };
 }
@@ -332,6 +347,10 @@ export function requestLook(canvas) {
     document.addEventListener('pointerlockchange', () => { if ((_cursorActive || _cursorHolds.size) && document.pointerLockElement) releaseLook(); }, false);
     _errBound = true;
   }
+  // CLICK-STUTTER (2026-10-13): every world click lands here (the hosts' canvas pointerdown), and asking for a lock the
+  // canvas already holds is not free - the browser answers each one with a pointerlockchange (every listener on it runs)
+  // and, with unadjustedMovement, may re-take the lock, dropping that frame's mouse deltas. Held already: nothing to ask.
+  if (typeof document !== 'undefined' && document.pointerLockElement === canvas) return;
   try {
     // MAC1 (Mac, 2026-09-10: "camera turning being very jumpy"). The
     // bare request hands the look the OS pointer's ACCELERATED deltas

@@ -3,7 +3,7 @@
 // map for these type of events. I think we should fold in the raid PR in the repo, since it has a new type of world
 // event also"): THE WORLD'S EVENTS ON THE HELD MAP, AND THE CARD EACH ANSWERS A HOVER WITH.
 //
-// Two kinds stand on the enhanced map: the Oblivion Gate's ring (WB1, ui/gateMapMark.js) and a TOWN UNDER ATTACK
+// Two kinds stand on the enhanced map: the Oblivion Gate's ring (WB1, ui/gate/gateMapMark.js) and a TOWN UNDER ATTACK
 // (RAID1, systems/raidingParties.js) - a raided town while its raid runs: begun, not withdrawn, not cleansed. Each
 // answers the pointer with a TIP: a small card at the cursor saying what it is, where, and when it ends - the words the
 // chat said once, kept where the player can ask again (the field's player, looking at a ring that said only "Oblivion
@@ -35,6 +35,12 @@ export const TIP_TEXT_MAX = 80;
 /** SEAT-TIP (FIELD BUGS 2026-10-04e): a seat's card says whole sentences - its holder's and its battle's each name two
  *  guilds and run past 80 - so its lines are bounded here instead (the card wraps them in its 320 px). */
 export const SEAT_TIP_TEXT_MAX = 160;
+/** TOWN-ECON (bible/06-Systems/Town-Economy-Arc.md 3): a town's card holds its economy's lines above a held seat's own
+ *  four (net/townEconLaw.js townTipOf: the economy, the prices, one reason, then the guild's lines - AUDIT TOWN-ECON UI-1:
+ *  a held seat's Charter line left out, its holder line naming the guild), so it is bounded here. TE3's patrons' line
+ *  comes last and only where the card has room for it (townEconLaw.js TOWN_TIP_PATRONS_ROOM - AUDIT TOWN-ECON 2 LIV-3,
+ *  REC-17: it had been an eighth line this bound cut). */
+export const TOWN_TIP_LINES_MAX = 7;
 /** How near the pointer a raided town answers, paper pixels - the location marks' own 16 (_markerAt): the raid's ring
  *  stands on the town's mark, so pointing at either is pointing at the raid. */
 export const RAID_HIT_PX = 16;
@@ -58,16 +64,23 @@ export const raidPartyWord = (type) => { const w = raidTypeName(type); return w[
  * player sees turns at its own rate, so the event clock's game time would contradict the clock in front of them.
  * Offline, or with no local time to say, the game clock's, as before: offline the sky is the one clock.
  * @param {number} nowMinutes
- * @param {{regionName?: (r: number) => string, localTime?: ((minute: number) => string|null)|null}} [o]
+ * FIELD BUGS 2026-10-11g RAID-WORD: `relay` (systems/raidingParties.js raidRelayState) - the town's ledger at a raid
+ * relay, `{ n, tg }`; its count and target are the card's, where it has one.
+ * @param {{regionName?: (r: number) => string, localTime?: ((minute: number) => string|null)|null, relay?: ((key: string) => any)|null}} [o]
  */
-export function raidMapMarks(raids, nowMinutes, { regionName = () => '', localTime = null } = {}) {
+export function raidMapMarks(raids, nowMinutes, { regionName = () => '', localTime = null, relay = null } = {}) {
   const out = [];
   for (const r of raids ?? []) {
     if (!r || !raidActive(r, nowMinutes) || !Number.isInteger(r.px) || !Number.isInteger(r.py)) continue;
     const town = String(r.locationName ?? '') || 'A town';
     const region = String(regionName(r.regionIndex) ?? '');
     const lines = [region ? `${town}, ${region}` : town, `${raidPartyWord(r.type)} attacking`];
-    if (r.killed > 0 && r.attackAmount > 0) lines.push(`${Math.min(r.killed, r.attackAmount)} of ${r.attackAmount} driven off`);
+    // FIELD BUGS 2026-10-11g RAID-WORD: at a raid relay the town's count is the ledger's (every defender's deaths, its
+    // target the day's roll of 15 to 25), not this machine's share - "20 kills, and nothing pops up" read a share
+    const led = typeof relay === 'function' ? relay(raidKey(r)) : null;
+    const killed = Number.isInteger(led?.n) ? led.n : r.killed;
+    const target = Number.isInteger(led?.tg) && led.tg > 0 ? led.tg : r.attackAmount;
+    if (killed > 0 && target > 0) lines.push(`${Math.min(killed, target)} of ${target} driven off`);
     const local = typeof localTime === 'function' ? localTime(r.endMinute) : null;
     lines.push(local ? `Withdraws at ${local} your time` : `Withdraws at ${clockText(r.endMinute)}`);
     out.push({ key: raidKey(r), px: r.px, py: r.py, label: `${town} - under attack`, tip: { title: RAID_TIP_TITLE, lines } });
@@ -76,12 +89,13 @@ export function raidMapMarks(raids, nowMinutes, { regionName = () => '', localTi
 }
 
 /** A tip read and checked: a title and its lines as bounded text (each line at most `textMax` - TIP_TEXT_MAX, or a seat's
- *  SEAT_TIP_TEXT_MAX), or null for anything else. */
-export function readTip(tip, { textMax = TIP_TEXT_MAX } = {}) {
+ *  SEAT_TIP_TEXT_MAX; at most `linesMax` of them - TIP_LINES_MAX, or a town's TOWN_TIP_LINES_MAX), or null for anything
+ *  else. */
+export function readTip(tip, { textMax = TIP_TEXT_MAX, linesMax = TIP_LINES_MAX } = {}) {
   if (!tip || typeof tip !== 'object') return null;
   const title = String(tip.title ?? '').slice(0, TIP_TEXT_MAX);
   if (!title) return null;
-  const lines = (Array.isArray(tip.lines) ? tip.lines : []).slice(0, TIP_LINES_MAX).map((l) => String(l ?? '').slice(0, textMax)).filter(Boolean);
+  const lines = (Array.isArray(tip.lines) ? tip.lines : []).slice(0, linesMax).map((l) => String(l ?? '').slice(0, textMax)).filter(Boolean);
   return Object.freeze({ title, lines: Object.freeze(lines) });
 }
 

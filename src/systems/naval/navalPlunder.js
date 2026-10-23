@@ -1,13 +1,13 @@
 // @ts-check
 // NAV-D (2026-09-28, Mac: "actual sailing ships to the world that players can encounter and pillage") - THE PRIZE:
 // what a taken ship's hold gives up, and what her captor can make of her. The port's own; pure - the host draws the
-// items through DFU's own loot tables (systems/loot.js generateItems, LootTables.GenerateRandomLoot).
+// items through DFU's own loot tables (systems/loot/loot.js generateItems, LootTables.GenerateRandomLoot).
 //
 // A HOLD IS LOTS. A ship carries one lot for each tier of its class's cargo (navalShips.js `cargo`, 1-4), each lot a
 // draw of DFU's treasure tables under a key that fits her trade (HOLD_KEYS): a pirate's plunder is gold, jewels and
 // arms ('S', 'E', 'Q'), a merchantman's cloth, spices and books ('Q', 'N', 'P', 'J'), a navy's its armoury ('T', 'F',
-// 'J'). A flagship's last lot is the captain's strongbox - 'J', whatever her trade. The keys are drawn from the
-// ship's seed, so the hold is the same whoever takes her.
+// 'J'). A flagship's last lot is the captain's strongbox - 'J', whatever her trade; a legend's last two (ETHER-LEGENDS).
+// The keys are drawn from the ship's seed, so the hold is the same whoever takes her.
 //
 // THE CAPTOR'S CHOICE is Black Flag's, in Daggerfall's words - one of:
 //   Repair   - her timber and cordage to your own ship: REPAIR_SHARE of your hull and sails made good
@@ -26,9 +26,9 @@
 // least one; and her dry powder as SALVAGE_BARRELS fire barrels, for a stern that rolls them. What the yard sold, the sea
 // now gives back: a captain who sinks what she meets mends her ship and fills her barrels without making port.
 
-import { mulberry32 } from '../../combat/bloodArt.js';
+import { mulberry32 } from '../../combat/blood/bloodArt.js';
 import { NOTORIETY } from './navalLaw.js';
-import { HULL_PRICES } from '../comeSailAwayBoat.js';   // SHIP-CLAIM: a claimed prize's deed, at a share of her hull's price
+import { HULL_PRICES } from '../comeSailAway/comeSailAwayBoat.js';   // SHIP-CLAIM: a claimed prize's deed, at a share of her hull's price
 import { hullBuild } from './navalShips.js';
 import { STORE_POINTS } from './navalYard.js';
 
@@ -39,6 +39,11 @@ export const HOLD_KEYS = Object.freeze({
 });
 /** The flagship's strongbox. */
 export const STRONGBOX_KEY = 'J';
+/** ETHER-LEGENDS (AUDIT CAPTAIN'S SEA D15): a legend's last lots are her captain's strongboxes - two to a flagship's one,
+ *  the richest hold at sea (a flagship's beat hers). */
+export const LEGEND_STRONGBOXES = 2;
+/** How many of a ship's last lots are strongboxes: a legend's LEGEND_STRONGBOXES, a flagship's one, else none. */
+export const strongboxesOf = (shipClass) => (shipClass?.legend ? LEGEND_STRONGBOXES : shipClass?.flagship ? 1 : 0);
 /** AUDIT NAV1 (online #15): every key a lot can be drawn under, once - a cask says its lot on the wire by its row here. */
 export const LOT_KEYS = Object.freeze([...new Set([...Object.values(HOLD_KEYS).flat(), STRONGBOX_KEY])]);
 /** The captor's choices (AUDIT NAV1 B13: her papers the fourth). @type {readonly ('repair'|'powder'|'press'|'papers')[]} */
@@ -55,7 +60,7 @@ export const PRESS_SHARE = 0.6;
 export const FLOTSAM_OF = 0.5;
 /**
  * SHIP-CLAIM (2026-10-01, Mac: "Claim captured prizes - Keep a ship you take by boarding as your own boat") - HER
- * PAPERS: a prize claimed is the captor's own boat on a Come Sail Away deed (scenes/navalHost.js claimPrize), and the
+ * PAPERS: a prize claimed is the captor's own boat on a Come Sail Away deed (scenes/naval/navalHost.js claimPrize), and the
  * deed is worth PRIZE_DEED_SHARE of what her hull's deed costs on the shelf (comeSailAwayBoat.js HULL_PRICES) - a taken
  * ship is no bought one, and a full-price deed would make every pirate a fortune to sell.
  */
@@ -63,7 +68,7 @@ export const PRIZE_DEED_SHARE = 0.25;
 /** A claimed prize's deed's value: PRIZE_DEED_SHARE of her hull's price, in whole gold. */
 export const prizeDeedValue = (hull) => Math.round(HULL_PRICES[hull] * PRIZE_DEED_SHARE);
 /**
- * The rarity tier a lot is rolled at (systems/lootRarity.js pileSource - the dungeon tiers' own scale, 3 a cemetery to
+ * The rarity tier a lot is rolled at (systems/loot/lootRarity.js pileSource - the dungeon tiers' own scale, 3 a cemetery to
  * 18 a dragon's den): a merchantman's cargo a mine's (5), a pirate's plunder a human stronghold's (6), a navy's armoury
  * a giant's hold's (8), a flagship's strongbox a barbarian chief's (11).
  */
@@ -79,7 +84,7 @@ export function holdKeys(shipClass, seed) {
   const lots = Math.max(1, Math.min(4, shipClass.cargo | 0));
   const out = [];
   for (let i = 0; i < lots; i++) out.push(keys[Math.floor(rng() * keys.length) % keys.length]);
-  if (shipClass.flagship) out[out.length - 1] = STRONGBOX_KEY;
+  for (let i = Math.max(0, lots - strongboxesOf(shipClass)); i < lots; i++) out[i] = STRONGBOX_KEY;
   return out;
 }
 
@@ -114,9 +119,9 @@ export function flotsamKeys(shipClass, seed) {
  */
 export function drawHold(shipClass, seed, generate) {
   const items = [];
-  const keys = holdKeys(shipClass, seed);
+  const keys = holdKeys(shipClass, seed), boxes = strongboxesOf(shipClass);
   keys.forEach((key, i) => {
-    const strongbox = !!shipClass.flagship && i === keys.length - 1;
+    const strongbox = i >= keys.length - boxes;
     for (const it of generate(key, holdTier(shipClass, strongbox)) ?? []) items.push(it);
   });
   return items;
@@ -138,9 +143,9 @@ export function choiceEffect(choice, mine, { barrelStock = 0, notoriety = 0 } = 
 }
 
 /** The choices' names, as the plunder window says them (the papers' by her trade - choiceOffer). */
-export const CHOICE_TITLES = Object.freeze({ repair: 'Timber and cordage', powder: 'Powder and shot', press: 'Press her crew', papers: 'Burn her papers' });
+export const CHOICE_TITLES = Object.freeze({ repair: 'Timber and cordage', powder: 'Powder and shot', press: 'Press the crew', papers: 'Burn the papers' });
 /** AUDIT NAV1 (B13): a pirate prize's papers are her crew, given up to the crown. */
-export const PIRATE_PAPERS_TITLE = 'Hand her to the crown';
+export const PIRATE_PAPERS_TITLE = 'Hand the crew to the crown';
 
 /**
  * A choice as the window offers it: `{ id, title, detail, useful }` - what it would make good on the captor's ship

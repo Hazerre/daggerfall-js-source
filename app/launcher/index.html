@@ -7,16 +7,19 @@
        no remote request, no inline code. The one thing it can say to the
        shell is window.daggerLauncher (app/launcherPreload.cjs).
        DA10: the game's front door - the patch notes, the player's options,
-       the update in the bar, and Play. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self' data:">
-  <title>Daggerfall Online</title>
+       the update in the bar, and Play.
+       DA12: and a controller - the game's own front-door pad loop (pad.js).
+       AUDIT BR5: and the product's logo, the game's own file (dfo-online.png,
+       served by the shell out of src/assets/branding). -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self' data:; img-src 'self'">
+  <title>DFO Online</title>
   <link rel="stylesheet" href="launcher.css">
 </head>
 <body data-busy>
   <div class="night" aria-hidden="true"></div>
   <div class="launcher">
     <header class="top">
-      <h1 class="wordmark">Daggerfall<small>Online</small></h1>
+      <h1 class="wordmark"><img src="dfo-online.png" alt="DFO Online" width="526" height="322"></h1>
       <nav class="links caps" aria-label="Links">
         <button class="link" type="button" data-open="site">daggerfalljs.dev</button>
         <button class="link" type="button" data-open="discord">Discord</button>
@@ -74,5 +77,6 @@
     </footer>
   </div>
   <script src="launcher.js"></script>
+  <script type="module" src="pad.js"></script>
 </body>
 </html>

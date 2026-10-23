@@ -2,10 +2,10 @@
   {
     "name": "ARENA5-UNDERCROFT-SHRINKS",
     "file": "src/world/smallerDungeons.js",
-    "old": "  if (isArenaUndercroft(dfLocation)) return false;\n",
+    "old": "  if (isArenaUndercroft(dfLocation)) return 'full';\n",
     "new": "",
     "tests": [
-      "test/arena5_audit.test.js"
+      "test/world/arena5_audit.test.js"
     ]
   }
 ]

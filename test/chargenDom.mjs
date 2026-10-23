@@ -5,7 +5,18 @@ class Node_ {
   append(...ns) { for (const raw of ns) { const n = toNode(raw); n.parentNode = this; this.children.push(n); } }   // AUDIT 68 X2-chargendom-append-throws: a string used to reassign the loop's const and throw
   appendChild(n) { this.append(n); return n; }
   prepend(...ns) { const nodes = ns.map(toNode); for (const n of nodes) n.parentNode = this; this.children.unshift(...nodes); }
-  replaceChildren(...ns) { for (const c of this.children) { unfocus(c); c.parentNode = null; } this.children = []; this._text = ''; this.append(...ns); }   // AUDIT 28: the Notice Board's window repaints so
+  replaceChildren(...ns) {   // AUDIT 28: the Notice Board's window repaints so
+    // CRASH-BLUR: as Chromium's - the focus inside the children is blurred BEFORE any is taken out (the document is told
+    // the children will go), and a child a blur handler moved since is a NotFoundError (the crash a player hit: a
+    // repaint inside a repaint's blur)
+    const going = [...this.children];
+    for (const c of going) unfocus(c);
+    for (const c of going) {
+      if (c.parentNode !== this) throw Object.assign(new Error("Failed to execute 'replaceChildren' on 'Element': The node to be removed is no longer a child of this node. Perhaps it was moved in a 'blur' event handler?"), { name: 'NotFoundError' });
+      c.parentNode = null;
+    }
+    this.children = []; this._text = ''; this.append(...ns);
+  }
   remove() { if (this.parentNode) { unfocus(this); this.parentNode.children = this.parentNode.children.filter((c) => c !== this); this.parentNode = null; } }
   set textContent(t) { for (const c of this.children) unfocus(c); this.children = []; this._text = String(t); }
   get textContent() { return this._text + this.children.map((c) => c.textContent).join(''); }
@@ -15,6 +26,8 @@ class Node_ {
   get isConnected() { let x = this; while (x.parentNode) x = x.parentNode; return x === globalThis.document.body || x === globalThis.document.head; }
   setAttribute(k, v) { this.attrs[k] = v; if (k === 'class') this.className = v; }
   getAttribute(k) { return this.attrs[k]; }
+  removeAttribute(k) { delete this.attrs[k]; if (k === 'class') this.className = ''; }   // L10N merge: the enhanced hotbar empties a slot's icon so
+  hasAttribute(k) { return k in this.attrs; }
   addEventListener(t, f) { (this.listeners[t] ??= []).push(f); }
   removeEventListener(t, f) { this.listeners[t] = (this.listeners[t] ?? []).filter((x) => x !== f); }
   querySelectorAll(sel) { const out = []; const walk = (n) => { for (const c of n.children) { if (c instanceof Node_) { out.push(c); walk(c); } } }; walk(this); return sel === '*' ? out : out.filter((n) => matches(n, sel)); }
@@ -26,6 +39,8 @@ class Node_ {
   getContext() { return new Proxy({}, { get: (t, k) => k === 'createImageData' ? (w, h) => ({ data: new Uint8ClampedArray(w * h * 4), width: w, height: h }) : k === 'getImageData' ? (x, y, w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }) : k === 'measureText' ? () => ({ width: 1 }) : (typeof k === 'string' ? () => {} : undefined), set: () => true }); }
   getBoundingClientRect() { return { left: 0, top: 0, width: 100, height: 100 }; }
   get childNodes() { return this.children; }   // GUIDE2: the pause journal's PX22 meta line asks it (a real node's live NodeList)
+  get dataset() { return (this._dataset ??= {}); }   // L10N merge: the enhanced hotbar's slots (enhancedHotbar.js) tag themselves, as a real node's DOMStringMap
+  set dataset(v) { this._dataset = v; }   // ...and a test that hands a node its own keeps it
   get classList() { const n = this; return { add: (c) => { n.className += ' ' + c; }, remove() {}, toggle() {}, contains: (c) => n.className.split(/\s+/).includes(c) }; }
 }
 /** AUDIT 31 U1: A NODE TAKEN OUT OF THE DOCUMENT TAKES THE FOCUS WITH IT, as a browser's does - the focus falls to the
@@ -34,7 +49,10 @@ class Node_ {
 function unfocus(n) {
   const d = globalThis.document;
   const a = d?.activeElement;
-  if (a && typeof n?.contains === 'function' && n.contains(a)) d.activeElement = d.body;
+  if (a && typeof n?.contains === 'function' && (n === a || n.contains(a))) {
+    d.activeElement = d.body;
+    for (const f of [...(a.listeners?.blur ?? [])]) f({ type: 'blur', target: a });   // CRASH-BLUR: the browser blurs it as it goes
+  }
 }
 class Text_ { constructor(t) { this._t = t; this.children = []; this.parentNode = null; } get textContent() { return this._t; } }
 /** A string child is a text node, as the DOM's append/prepend make it. */

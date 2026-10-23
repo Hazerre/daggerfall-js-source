@@ -39,13 +39,14 @@
 
 import { CRIMES } from './court.js';
 import { BUILDING_TYPES, isResidence } from '../world/buildingNames.js';   // H1: the houses-for-sale filter
-import { isOnlinePage } from './onlineLane.js';   // EMPIRE-BANK: online, the Empire lends a tenth
+import { isOnlinePage } from './online/onlineLane.js';   // EMPIRE-BANK: online, the Empire lends a tenth
 import { stampLayout, layoutStampOfMapId, recordStands } from './layoutPins.js';   // WD3: a deed keeps the layout its town was bought in
 import { GOLD_PIECE_WEIGHT_KG, letterOfCredit } from './inventory.js';
 import {
   DAYS_PER_YEAR, DAYS_PER_MONTH, MINUTES_PER_DAY,
   dateString, dateFromClassicMinutes,   // AUDIT 64 F28: GetLoanDueDateString's two halves
 } from './gameDate.js';
+import { localizedText, getLocalizedRegionName } from './textManager.js';   // L10N3d: the status box's words; L10N3e: the region names shown
 
 /** TransactionResult (:29-51). The values ARE TEXT.RSC record ids for
  *  everything the bank says out loud - 0282-0299 is one contiguous
@@ -212,7 +213,9 @@ export function allocateHouseToPlayer(houses, regionIndex, { buildingKey, mapId,
   stampLayout(slot, layoutStampOfMapId(mapId));   // WD3: the layout the town stands in, which a load keeps it in (systems/layoutPins.js)
   discoverBuilding?.(buildingKey, `${playerName}'s residence`);
   addPermanentScene?.(mapId, buildingKey);
-  addNote?.(`Deed to a house in ${location}, ${regionName}.`);
+  // L10N3e: the deed names its region as shown - GetLocalizedRegionName
+  // (DaggerfallBankManager.cs:447); the town stays location.Name there too
+  addNote?.(`Deed to a house in ${location}, ${getLocalizedRegionName(regionIndex, () => regionName)}.`);
   return slot;
 }
 
@@ -300,7 +303,7 @@ export function sellHouse(accounts, houses, regionIndex, { meshRadius = 0, found
  */
 /** shipInteriorSceneNames' two mapIds (:103-106). Both interiors are
  *  keyed with BuildingDirectory.buildingKey0, which already has a home
- *  in systems/talkTopics.js - a ship is not in any building directory,
+ *  in systems/talk/talkTopics.js - a ship is not in any building directory,
  *  so it takes the no-key key. */
 export const SHIP_INTERIOR_MAP_IDS = Object.freeze([1050578, 2102157]);
 
@@ -453,7 +456,7 @@ const mustValidate = (accounts, regionIndex) => {
  *  became the bank of the Empire). Gold paid in at any branch is drawn at any branch, and every deed, sale and wallet
  *  pays from it and into it. A LOAN STILL STANDS WHERE IT WAS TAKEN - its due date, its default and the reputation a
  *  default costs are that region's - but the gold it lends and the gold that repays it are the Empire account's.
- *  Offline, Daggerfall's sixty-two accounts stand. The service pays a realm record the same way (net/realmGoldLaw.js
+ *  Offline, Daggerfall's sixty-two accounts stand. The service pays a realm record the same way (net/realm/realmGoldLaw.js
  *  REALM_EMPIRE_ACCOUNT, pinned equal). */
 export const EMPIRE_ACCOUNT_REGION = 17;
 /** The index whose `accountGold` region `regionIndex`'s gold moves in: the Empire's online, the region's own offline (or
@@ -545,7 +548,7 @@ export function registerMaxBankLoan(fn) { _maxLoanOverride = typeof fn === 'func
  *  is (DFU's level x 50,000, or Roleplay & Realism's per-level choice, which the lane keeps on online), rounded down.
  *  The interest and the year to repay are the classic ones; offline the law is untouched. A departure (Port-Ledger A). */
 export const EMPIRE_LOAN_DIVISOR = 10;
-export const calculateMaxBankLoan = (level, online = isOnlinePage()) => {   // SHIP-CREDIT: `online` a caller's own word, as borrowDecision's
+export const calculateMaxBankLoan = (level, online = isOnlinePage()) => {
   const cap = _maxLoanOverride?.(level) ?? level * LOAN_MAX_PER_LEVEL;
   return online ? Math.floor(cap / EMPIRE_LOAN_DIVISOR) : cap;
 };
@@ -919,45 +922,6 @@ export function borrowDecision(accounts, regionIndex, { online = isOnlinePage() 
   return { kind: 'input', transactionType: TRANSACTION_TYPE.Borrowing_loan };
 }
 
-/**
- * SHIP-CREDIT (2026-10-01, Mac: "make ship prices more reasonable and provide more accessibility options to acquiring";
- * his pick, "Buy on credit - Pay part now; the bank lends you the rest under Daggerfall's own loan rules") - A BOAT
- * BOUGHT ON CREDIT at a shop's counter (the shelf's Come Sail Away deed or parts). The purse pays what it holds - at
- * least CREDIT_DOWN_SHARE of the price - and the bank of the shop's region lends the rest under BorrowLoan's own law:
- * borrowDecision's refusals (a loan or a default standing there; online the Empire's one loan a character), the loan
- * LOAN_MINIMUM at least (a shortfall under it borrows the minimum and the purse pays the less) and CalculateMaxBankLoan
- * at most, repaid with its 10% within LOAN_REPAY_MINUTES - LoanChecker's reminders and default as for any loan. The
- * lent gold goes to the shop: never into the account (`takeCredit`).
- */
-export const CREDIT_DOWN_SHARE = 0.2;
-/**
- * SHIP-CREDIT: what a purchase of `price` with `purse` in hand can be on credit - `{ kind: 'none' }` (the purse pays
- * it), `{ kind: 'credit', loan, pay, owed }` (the purse pays `pay`, the bank lends `loan`, `owed` repaid), or
- * `{ kind: 'refuse', result, ... }` - borrowDecision's refusal (with `empireRegion` online), NOT_ENOUGH_GOLD with the
- * `down` payment the purse lacks, or LOAN_REQUEST_TOO_HIGH with the `max` the bank lends.
- */
-export function creditDecision(accounts, regionIndex, { price = 0, purse = 0, level = 1, online = isOnlinePage() } = {}) {
-  mustValidate(accounts, regionIndex);
-  const cost = Math.max(0, Math.trunc(price)), have = Math.max(0, Math.trunc(purse));
-  if (have >= cost) return { kind: 'none' };
-  const gate = borrowDecision(accounts, regionIndex, { online });
-  if (gate.kind === 'refuse') return { ...gate };
-  const down = Math.ceil(cost * CREDIT_DOWN_SHARE);
-  if (have < down) return { kind: 'refuse', result: TRANSACTION_RESULT.NOT_ENOUGH_GOLD, down };
-  const loan = Math.max(LOAN_MINIMUM, cost - have);
-  const max = calculateMaxBankLoan(level, online);
-  if (loan > max) return { kind: 'refuse', result: TRANSACTION_RESULT.LOAN_REQUEST_TOO_HIGH, max };
-  return { kind: 'credit', loan, pay: cost - loan, owed: calculateBankLoanRepayment(loan) };
-}
-/** SHIP-CREDIT: the loan a credit purchase takes - BorrowLoan's debt and its year (:542-556), with no gold into the
- *  account: the bank paid the shop. */
-export function takeCredit(accounts, regionIndex, loan, { nowMinutes = 0 } = {}) {
-  mustValidate(accounts, regionIndex);
-  const account = accounts[regionIndex];
-  account.loanTotal += calculateBankLoanRepayment(loan);
-  account.loanDueDate = nowMinutes + LOAN_REPAY_MINUTES;
-}
-
 /** BuyHouseButton (:417-436) and BuyShipButton (:453-464). Both refuse
  *  what you already own; the ship additionally refuses OUTSIDE A PORT
  *  TOWN, which is the one place PortTownAndUnknown is read. */
@@ -1016,7 +980,8 @@ export function sellDecision(kind, { owns = false, price = 0 } = {}) {
  */
 export const BANKING_STATUS_COLUMNS = Object.freeze([0, 60, 120, 180]);
 /** Internal_Strings.csv:856-859 - region/account/loan/dueDate. */
-export const BANKING_STATUS_HEADERS = Object.freeze(['Region', 'Account', 'Loan', 'Loan Due Date']);
+const HEADER_REGION = 'Region', HEADER_ACCOUNT = 'Account', HEADER_LOAN = 'Loan', HEADER_DUE_DATE = 'Loan Due Date';
+export const BANKING_STATUS_HEADERS = Object.freeze([HEADER_REGION, HEADER_ACCOUNT, HEADER_LOAN, HEADER_DUE_DATE]);
 /** Internal_Strings.csv:860 - the empty case is one word. */
 export const NO_ACCOUNT_TEXT = 'None';
 
@@ -1033,13 +998,19 @@ const loansLine = (cells, highlight = false) => ({
 });
 
 export function bankingStatusRows(accounts, { regionName = () => '', dueText = null } = {}) {
-  const rows = [loansLine(BANKING_STATUS_HEADERS), { text: '', center: false }];
+  // L10N3d: the four headers and the empty row are GetLocalizedText'd as
+  // the box is made (:526-530, :543), so they read in the player's language
+  const headers = [localizedText('region', HEADER_REGION), localizedText('account', HEADER_ACCOUNT),
+    localizedText('loan', HEADER_LOAN), localizedText('dueDate', HEADER_DUE_DATE)];
+  const rows = [loansLine(headers), { text: '', center: false }];
   let found = false;
   for (let i = 0; i < (accounts?.length ?? 0); i++) {
     if (!(accountTotal(accounts, i) > 0 || hasLoan(accounts, i))) continue;
     const due = loanDueDate(accounts, i);
     rows.push(loansLine([
-      shortenName(regionName(i), 12),
+      // L10N3e: GetLocalizedRegionName(regionIndex) (:537), the host's
+      // canonical name its fallback
+      shortenName(getLocalizedRegionName(i, regionName), 12),
       String(accountTotal(accounts, i)),
       String(loanedTotal(accounts, i)),
       // GetLoanDueDateString (:573-582) - the same expression the bank
@@ -1051,7 +1022,7 @@ export function bankingStatusRows(accounts, { regionName = () => '', dueText = n
     ], hasDefaulted(accounts, i)));
     found = true;
   }
-  if (!found) rows.push({ text: NO_ACCOUNT_TEXT, center: false });
+  if (!found) rows.push({ text: localizedText('noAccount', NO_ACCOUNT_TEXT), center: false });
   return rows;
 }
 

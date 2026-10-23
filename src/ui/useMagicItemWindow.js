@@ -22,7 +22,17 @@
 //     and left the toggle to a host that never had one, so nothing but
 //     USING an item closed it - no key, no touch X, no pad Back.
 //   - ParentPanel.BackgroundColor = Color.clear (:33): no backdrop.
-//   - Refresh() lists LongName per item (:50-57).
+//   - Refresh() lists LongName per item (:50-57) - DaggerfallUnityItem.LongName,
+//     which is ItemHelper.ResolveItemLongName (systems/item/itemInfo.js
+//     itemLongName). UMI-NAMES (2026-10-07, the field: "Use Magic Item
+//     Menu is crowded"): the factory listed the raw `name` field, so
+//     every potion read its template's "Glass Bottle" (or nothing, off
+//     createPotion's own mint) and a MAGIC.DEF item its unfilled
+//     "%it of Venom Spitting". A potion now names its recipe ("Potion
+//     of Healing") and a magic item fills %it, as DFU's list does. One
+//     row per ITEM stays DFU's: identical potions are one row because
+//     they are one STACK (ItemCollection.AddItem), not because the
+//     window folds them.
 //   - DaggerfallUI :581-583 pushes the window ONLY when
 //     UpdateUsableMagicItems() > 0: with nothing usable, no window
 //     opens at all rather than an empty list.
@@ -36,11 +46,14 @@ import { ListPickerWindow } from './listPicker.js';
 import { ENCHANTMENT_TYPES } from '../formats/magicDef.js';
 import { isPotion } from '../systems/useItem.js';
 import { isEnchanted as defaultIsEnchanted } from '../systems/inventory.js';
+import { itemLongName } from '../systems/item/itemInfo.js';   // UMI-NAMES: Refresh's LongName (:50-57); L10N3e: its names in the player's language
 import { audio } from '../systems/audio.js';   // AUDIT 64 F43: MagicItemPicker_OnItemPicked's ButtonClick
 import { SOUND } from '../systems/soundClips.js';
+import { localizedText } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { bindings } from './input.js';
 import { codeMeans } from '../systems/inputActions.js';   // UXB1-S: its own key, shared or not
 import { normalizeCode } from '../systems/dialogShortcuts.js';
+import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 /**
  * UpdateUsableMagicItems (:58-81), verbatim: walk the pack in order;
@@ -68,16 +81,22 @@ export function usableMagicItems(items = [], { isEnchanted = defaultIsEnchanted 
 /** DISC12: DaggerfallUI.cs:584-585 - with nothing usable, `AddHUDText(GetLocalizedText("noItemToActivate"))`,
  *  Internal_Strings.csv:959 verbatim. The port opened nothing and said nothing: a U press that looked dead. */
 export const NO_ITEM_TO_ACTIVATE_TEXT = 'You have no usable magic item';
+/** L10N3d: the refusal as the hosts say it (DaggerfallUI.cs:585), in the player's language. */
+export const noItemToActivateText = () => localizedText('noItemToActivate', NO_ITEM_TO_ACTIVATE_TEXT);
 
 /**
  * DaggerfallUI's `dfuiOpenUseMagicItemWindow` arm (:581-583): the
- * window opens only when something is usable.
+ * window opens only when something is usable. A row reads `nameOf`,
+ * by default the item's LongName (UMI-NAMES) - its names as shown
+ * (L10N3e, itemInfo's shownItemName and templateText - in the
+ * player's language).
  * @returns {ListPickerWindow|null} the window, or null when nothing is
  */
 export function createUseMagicItemWindow({ items = [], onUse = null, onClose = null,
-  isEnchanted = defaultIsEnchanted, nameOf = (it) => it?.name ?? '' } = {}) {
+  isEnchanted = defaultIsEnchanted, nameOf = (it) => itemLongName(it) } = {}) {
   const usable = usableMagicItems(items, { isEnchanted });
   if (usable.length === 0) return null;
+  noteFirstUse('magic-items');   // TUT1
   const win = new ListPickerWindow({
     items: usable.map(nameOf),
     backdrop: 'none',   // :33 ParentPanel.BackgroundColor = Color.clear

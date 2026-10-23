@@ -108,6 +108,20 @@ export function transformedAabb(box, m, out = [0, 0, 0, 0, 0, 0]) {
   return out;
 }
 
+/** PERF-WAGON: the AABB round a mesh's measured sphere (renderer.createMesh's `bounds` - [x, y, z, r] in the mesh's
+ *  own frame) under a 4x4 (column-major): the centre carried, the radius grown by the matrix's longest axis (a grown
+ *  wagon's scale). Conservative the safe way round, as the sphere is. Null for a mesh with no sphere. */
+export function sphereAabb(s, m, out = [0, 0, 0, 0, 0, 0]) {
+  if (!s || !(s.length >= 4) || !m) return null;
+  const x = m[0] * s[0] + m[4] * s[1] + m[8] * s[2] + m[12];
+  const y = m[1] * s[0] + m[5] * s[1] + m[9] * s[2] + m[13];
+  const z = m[2] * s[0] + m[6] * s[1] + m[10] * s[2] + m[14];
+  const r = s[3] * Math.sqrt(Math.max(m[0] * m[0] + m[1] * m[1] + m[2] * m[2], m[4] * m[4] + m[5] * m[5] + m[6] * m[6], m[8] * m[8] + m[9] * m[9] + m[10] * m[10]));
+  out[0] = x - r; out[1] = y - r; out[2] = z - r;
+  out[3] = x + r; out[4] = y + r; out[5] = z + r;
+  return out;
+}
+
 /** The AABB of a billboard batch. Centers are the flat's BASE
  *  (the renderer's own law - createBillboardBatch: "centers describe
  *  the billboard BASE; the shader lifts by half height"), so the box

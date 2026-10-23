@@ -15,9 +15,10 @@
 // it without Vite and assert the tokens on the page ARE the skin's.
 import { readFileSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { ENHANCED_TOKENS, ENHANCED_FONTS_URL } from '../src/ui/enhancedStyle.js';
+import { ENHANCED_TOKENS, ENHANCED_FONTS_URL } from '../src/ui/enhanced/enhancedStyle.js';
 import { PIXELIFY_FIVE_FACE } from '../src/ui/pixelifyFive.js';   // TERMS1: the documents take the five from its home
 import { SUPPORT_MARKS_CSS } from '../src/ui/supportAsks.js';   // SUPPORT1: the asks' marks, the game door's own pixels
+import { SITE_KIT_CSS } from '../src/ui/enhanced/enhancedFrame.js';   // PLUS-SITE: the game's stone and brass, cut without a picture
 
 /** U63: the landing page asks for THE SKIN'S OWN REQUEST, not a subset.
  *  It used to load the brand + data faces, because the site was set in
@@ -61,13 +62,11 @@ export function readBuildSha(read = (p) => readFileSync(p, 'utf8')) {
    the size of the suite and the size of the port. Both come from the
    tree the build is made of, the way the sha does, so the page can
    never claim a number the repository does not hold. The test count
-   uses the manifest gate's own definition (test/manifest.test.js:
-   top-of-line `test(` calls in test/*.test.js), which that gate pins
-   equal to bible/09-Testing/Testing.md - so the strip, the doc and
-   the runner agree or the suite is red. */
+   is the declared tests: top-of-line `test(` calls in every *.test.js
+   under test/ (test/ui/enhanced/landing.test.js walks the tree to hold it). */
 export function countTests(dir = 'test', read = (p) => readFileSync(p, 'utf8')) {
   let n = 0;
-  for (const f of readdirSync(dir)) {
+  for (const f of readdirSync(dir, { recursive: true })) {   // TIDY5: every folder under test/
     if (!f.endsWith('.test.js')) continue;
     n += (read(`${dir}/${f}`).match(/^test\(/gm) || []).length;
   }
@@ -75,10 +74,17 @@ export function countTests(dir = 'test', read = (p) => readFileSync(p, 'utf8')) 
 }
 
 /** Lines of JavaScript under src/ - TRACKED files only (`git ls-files`),
- *  so a scratch file or the build's own stamp cannot inflate it. */
+ *  so a scratch file or the build's own stamp cannot inflate it.
+ *  NO-GIT (2026-10-10, Dudey's dev serve from a downloaded zip: "fatal: not a git repository" - the landing page an
+ *  Internal server error): a tree with no git counts every .js under src/ instead - the zip's own files. */
 export function countSrcLines(read = (p) => readFileSync(p, 'utf8')) {
-  const files = execFileSync('git', ['ls-files', 'src'], { encoding: 'utf8' })
-    .split('\n').filter((f) => f.endsWith('.js'));
+  let files;
+  try {
+    files = execFileSync('git', ['ls-files', 'src'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).split('\n');
+  } catch {
+    files = readdirSync('src', { recursive: true }).map((f) => `src/${String(f).replace(/\\/g, '/')}`);
+  }
+  files = files.filter((f) => f.endsWith('.js'));
   let n = 0;
   for (const f of files) n += read(f).split('\n').length - 1;
   return n;
@@ -183,6 +189,9 @@ export function transformLanding(html, {
       // SUPPORT1: the corner asks' marks - the same rules the game's door draws its two icons with, so the page
       // cannot ask under a drawing the menu does not have (the page's own style holds only the plaques around them)
       { tag: 'style', attrs: { id: 'support-marks' }, children: SUPPORT_MARKS_CSS, injectTo: 'head' },
+      // PLUS-SITE: the kit's roles, after the page's own sheet - the page gives each box its edge and room, the kit its
+      // stone and brass, winning by order at the same weight as it does in the game
+      { tag: 'style', attrs: { id: 'plus-kit' }, children: SITE_KIT_CSS, injectTo: 'head' },
       ...skinTags(tokens, fonts),
     ],
   };

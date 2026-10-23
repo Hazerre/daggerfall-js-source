@@ -41,17 +41,18 @@
 // moved past it drops it unread. The copy is the save's text; its put
 // packs it as every checkpoint rides (REALM-GZIP, below).
 //
-// REALM-GZIP: IT RIDES PACKED (net/realmSaveCodec.js). A long life's
+// REALM-GZIP: IT RIDES PACKED (net/realm/realmSaveCodec.js). A long life's
 // JSON grew past the request's 4 MiB and every checkpoint was refused
 // for good; a put packs the text when the service said it opens a packed
 // save (`gzip` on the join, create and customs answers), and a read asks
 // for the save as stored and opens it here.
 // ═══════════════════════════════════════════════════════════════════
 
-import { storedSession, serviceBase, forgetSession, accountRefusalText } from '../net/accountClient.js';
-import { realmTradeRefusalText } from '../net/realmTradeLaw.js';   // REALM P2.1: a trade the realm settles
+import { storedSession, serviceBase, forgetSession, accountRefusalText, forgetD1Bookmark, sessionPassFor, noteSessionPass, forgetSessionPass, passKeptThrough } from '../net/accountClient.js';   // AUDIT SCALE II A-2: a write forgets the page's D1 bookmark; SESSION-SIGN: the checkpoint carries the session's pass
+import { realmTradeRefusalText, LOCKED_SAID_MAX } from '../net/realm/realmTradeLaw.js';   // REALM P2.1: a trade the realm settles
 import { REALM_DOOR_WORD } from '../net/wire.js';   // REALM-DOOR: the relay's word for a token that names no realm character
-import { gzipText, gunzipText, saveTextOf, canGzip, canGunzip } from '../net/realmSaveCodec.js';   // REALM-GZIP: a save rides packed
+import { SESSION_PASS_HEADER } from '../net/sessionPassLaw.js';   // SESSION-SIGN: the pass's one name on the wire
+import { gzipText, gunzipText, saveTextOf, canGzip, canGunzip } from '../net/realm/realmSaveCodec.js';   // REALM-GZIP: a save rides packed
 import { houseLine } from '../net/houseLaw.js';   // LEGACY7: the house on the roster's tile
 
 
@@ -77,16 +78,28 @@ async function realmAsk(io, path, { method = 'GET', json = null, raw = null, hea
   if (!io) return { ok: false, error: 'signed-out' };
   /** @type {Record<string, string>} */
   const headers = { accept: 'application/json', authorization: `Bearer ${io.secret}`, ...extra };
+  const pass = sessionPassFor(io.secret);   // SESSION-SIGN: the checkpoint is a hot route - its pass, as the one door sends it
+  if (pass) headers[SESSION_PASS_HEADER] = pass;
   if (json) headers['content-type'] = 'application/json';
   if (raw != null) headers['content-type'] = 'application/octet-stream';
+  // AUDIT SCALE II A-2 (2026-10-11; Mac: "Lets do an audit on everything. Ensure perfection"): A WRITE FORGETS THE PAGE'S
+  // D1 BOOKMARK, before it is sent and once it is answered (net/accountClient.js D1_BOOKMARK_READS: a join, a create, a
+  // checkpoint answer no bookmark, so the next read after one - the account view, the heartbeat - must start at the
+  // primary, never at a position from before it)
+  const writes = method !== 'GET';
+  if (writes) forgetD1Bookmark();
   let res;
   try {
     res = await io.fetch(`${io.base}${path}`, {
       method, headers, body: json ? JSON.stringify(json) : (raw ?? undefined), ...(keepalive ? { keepalive: true } : {}),
     });
-  } catch {
+  } catch (e) {
+    if (writes) forgetD1Bookmark();
+    if (!passKeptThrough(e)) forgetSessionPass();   // SESSION-SIGN: a call that could not be made forgets the pass (accountClient.js call's law)
     return { ok: false, error: 'offline' };
   }
+  if (writes) forgetD1Bookmark();
+  noteSessionPass(io.secret, res);
   const type = res.headers?.get?.('content-type') ?? '';
   if (!res.ok) {
     let data = null;
@@ -126,9 +139,15 @@ export const realmLineages = async (/** @type {any} */ io) => {
 export const realmLineagePut = (/** @type {any} */ io, /** @type {string} */ id, /** @type {any} */ record, /** @type {number|null} */ base = null) =>
   realmAsk(io, '/v1/realm/lineage', { method: 'POST', json: base == null ? { id, record } : { id, record, base } });
 /** LEGACY7: THE TOMBSTONE - the playing tab's character fallen for good, under its lease. Part three: `why` 'retired' -
- *  an elder's mantle passed, which keeps a union with another player's character (a death ends it). */
-export const realmDie = (/** @type {any} */ io, /** @type {string} */ id, /** @type {string} */ lease, /** @type {'fell'|'retired'} */ why = 'fell') =>
-  realmAsk(io, '/v1/realm/die', { method: 'POST', json: why === 'retired' ? { id, lease, why } : { id, lease } });
+ *  an elder's mantle passed, which keeps a union with another player's character (a death ends it). REZ-BLOODLINE AUDIT
+ *  R1: `hold` - the death door's fall, held for a party's Resurrect (server-account/src/legacy.js realmDie). */
+export const realmDie = (/** @type {any} */ io, /** @type {string} */ id, /** @type {string} */ lease, /** @type {'fell'|'retired'} */ why = 'fell', { keepalive = false, hold = false } = {}) =>
+  realmAsk(io, '/v1/realm/die', { method: 'POST', json: why === 'retired' ? { id, lease, why } : hold ? { id, lease, hold: true } : { id, lease }, keepalive });   // REZ-BLOODLINE: `keepalive` for the page's going, as a leave
+/** REZ-BLOODLINE AUDIT R1: A PARTY'S RESURRECT, ASKED OF THE REALM - the death at `diedAt` (the line's `died.at`) of the
+ *  character under the lease that fell, taken back inside the hold (server-account/src/legacy.js realmRaise): `{ ok, data:
+ *  { held } }` or a refusal ('raise-late', 'lease', 'not-dead', 'raise-no-line'). */
+export const realmRaise = (/** @type {any} */ io, /** @type {string} */ id, /** @type {string} */ lease, /** @type {number} */ diedAt) =>
+  realmAsk(io, '/v1/realm/raise', { method: 'POST', json: { id, lease, diedAt } });
 /** LEGACY7 part three: MY HALF OF ONE WEDDING - my character under its lease, the handshake `sid`, the other's account
  *  and realm character as the relay stamped them (AUDIT LEGACY III O1): `{ ok, data: { wed: false } }` (mine waits for
  *  theirs), `{ ok, data: { wed: true, union } }`, or a refusal (server-account/src/legacy.js realmWed). AUDIT LEGACY III
@@ -187,6 +206,24 @@ export const realmTradeCall = (/** @type {any} */ io, /** @type {any} */ half) =
 
 /** The answers that end a session: the character is not this tab's to write any more. */
 export const REALM_LOST = Object.freeze(['lease', 'no-realm-character', 'auth', 'signed-out']);
+/** AUTO-HOLD: a ledger key as a checkpoint's answer names a locked piece (an item's uid or a craft's provenance, sixteen
+ *  hex either way - systems/item/itemIds.js ledgerKeyOf; pinned equal to both, test/server/autohold.test.js). */
+export const LEDGER_KEY_RE = /^[0-9a-f]{16}$/;
+/** AUDIT AUTO-HOLD: the locked pieces this device has told its player of, by character - so each is told once, not at
+ *  every join ("was found" again and again), beside the character's other records on the device. */
+export const REALM_LOCKED_PREFIX = 'dagger.realm.locked.';
+const lockedTold = (/** @type {any} */ storage, /** @type {string} */ id) => {
+  try {
+    const v = JSON.parse(storage?.getItem?.(`${REALM_LOCKED_PREFIX}${id}`) ?? '[]');
+    return Array.isArray(v) ? v.filter((k) => typeof k === 'string' && LEDGER_KEY_RE.test(k)).slice(0, LOCKED_SAID_MAX) : [];
+  } catch { return []; }
+};
+const keepLockedTold = (/** @type {any} */ storage, /** @type {string} */ id, /** @type {string[]} */ keys) => {
+  try {
+    if (keys.length) storage?.setItem?.(`${REALM_LOCKED_PREFIX}${id}`, JSON.stringify(keys));
+    else storage?.removeItem?.(`${REALM_LOCKED_PREFIX}${id}`);
+  } catch { /* a device that keeps nothing tells again at the next join - no worse than before */ }
+};
 
 // ── RESCUE-SAVE: THE DEVICE'S COPY OF A SAVE THE SERVICE HAS NOT TAKEN ──
 
@@ -453,6 +490,7 @@ export function createRealmSession({
   /** @type {string | null} */
   let lost = null;
   let holding = false;   // REALM P2: a transaction is in flight - no checkpoint goes until it is answered
+  let rezHeld = false;   // REZ-BLOODLINE AUDIT R1: the realm holds this tab's fall for a Resurrect (die's `hold` landed)
   // AUDIT REALM L1-F2 / L2-F1: a put of this session whose answer never came (offline, the service's own error) - it may
   // have landed. Only then is the service one ahead of us our own write: any other move of the record is one this tab
   // does not hold (a settle it read as refused, an act it read as undone), and a checkpoint over it would destroy it.
@@ -462,6 +500,54 @@ export function createRealmSession({
     lost = error;
     try { onLost(error); } catch (e) { console.warn('[realm] the lost handler failed', e); }
   };
+  // INT3 (bible/06-Systems/Integrity-Arc.md): THE JUDGE'S HOLD, as the last landed checkpoint said it - null for none,
+  // undefined before any answer said (a service from before the judge says nothing). `session.onTradeHeld(prev, now,
+  // why)` is told each time it moves - `why` the first thing the law found (`{ code, t }`, its template), when the law
+  // holds it (AUDIT INT: an honest player held over a piece was never told which); the answer a checkpoint's callers get
+  // stays `{ ok, seq }`.
+  /** @type {string | null | undefined} */
+  let tradeHeld;
+  /** The law's word on the hold standing (`{ code, t }` - a piece's template - or AUTO-HOLD's timed hold, `{ code:
+   *  'until', t, until }`), kept for a trade's refusal to say again (the Ring report: the refusal said "something").
+   *  @type {{ code: string, t: number | null, until?: number } | null} */
+  let tradeHeldWhy = null;
+  const heard = (/** @type {unknown} */ v, /** @type {unknown} */ why = null) => {
+    if (v === undefined) return;
+    const now = typeof v === 'string' ? v : null;
+    const w = /** @type {any} */ (why);
+    const until = w && typeof w === 'object' && w.code === 'until' && Number.isSafeInteger(w.until) ? /** @type {number} */ (w.until) : null;
+    const what = w && typeof w === 'object' && (Number.isInteger(w.t) || until != null) ? { code: String(w.code ?? ''), t: Number.isInteger(w.t) ? w.t : null, ...(until != null ? { until } : {}) } : null;
+    const moved = now !== tradeHeld || (what?.until ?? null) !== (tradeHeldWhy?.until ?? null);
+    const wasTimed = tradeHeldWhy?.until != null;
+    tradeHeldWhy = what;
+    if (!moved) return;
+    const prev = tradeHeld;
+    tradeHeld = now;
+    // AUDIT AUTO-HOLD: a timed hold run out while the law still finds a piece is a law hold as any other - said as one,
+    // the piece named (it stood on, and the player was told nothing)
+    const ranOut = prev === 'law' && now === 'law' && wasTimed && until == null;
+    try { session.onTradeHeld?.(ranOut ? null : prev ?? null, now, what); } catch (e) { console.warn('[realm] the hold handler failed', e); }
+  };
+  /** AUTO-HOLD: THE LOCKED PIECES - copies the ledger found, locked piece by piece (server-account/src/ledger.js) - as a
+   *  landed checkpoint names them (`locked`, their keys; an answer naming none: none locked). `session.lockedKeys` is the
+   *  set standing, told to `session.onLockedKeys(keys)` as each answer lands (the client's lock reads it -
+   *  systems/item/itemBound.js, through scenes/realmHoldHost.js); `session.onPiecesLocked(keys)` is told the ones this device
+   *  never told its player (AUDIT AUTO-HOLD: every join told them all again). */
+  let lockedKeys = lockedTold(storage, id);
+  const heardLocked = (/** @type {unknown} */ v) => {
+    if (v === undefined) return;   // AUDIT AUTO-HOLD: an answer saying nothing of them (a service mid-deploy) leaves them as they stand - every answer names them, `[]` for none
+    const keys = Array.isArray(v) ? [...new Set(v)].filter((k) => typeof k === 'string' && LEDGER_KEY_RE.test(k)).slice(0, LOCKED_SAID_MAX) : [];
+    const fresh = keys.filter((k) => !lockedKeys.includes(k));
+    lockedKeys = keys;
+    keepLockedTold(storage, id, keys);
+    try { session.onLockedKeys?.(keys); } catch (e) { console.warn('[realm] the locked handler failed', e); }
+    if (!fresh.length) return;
+    try { session.onPiecesLocked?.(fresh); } catch (e) { console.warn('[realm] the locked handler failed', e); }
+  };
+  /** AUDIT AUTO-HOLD: the last save the realm took, as it was sent - the pieces the character holds beyond its own lists
+   *  are read off it (scenes/realmHoldHost.js), so a stale shelf never hands back one it stowed. */
+  /** @type {string | null} */
+  let landedText = null;
   /** AUDIT REALM2 C4: a save's callers told how the put that carried it went - once. */
   const answer = (/** @type {{ waiters: Array<(r: any) => void> }} */ job, /** @type {any} */ r) => { for (const settle of job.waiters.splice(0)) settle(r); };
   async function drain() {
@@ -481,6 +567,9 @@ export function createRealmSession({
         }
         if (r.ok) {
           unsure = false; current = r.data?.seq ?? current + 1; last = { ok: true, seq: current }; answer(job, last);
+          heard(r.data?.tradeHeld, r.data?.tradeHeldWhy);
+          heardLocked(r.data?.locked);
+          landedText = job.text;
           landedKey = idleKeyOf(job.text, job.summary); landedAt = now();   // SCALE2b
           // RESCUE-SAVE: the newest save landed - no copy; or a newer one waits, its copy at the sequence now held
           missed = false;
@@ -518,8 +607,26 @@ export function createRealmSession({
   const session = {
     id,
     get seq() { return current; },
+    /** INT3: the judge's hold the last landed checkpoint said - a reason, null for none, undefined before any said. */
+    get tradeHeld() { return tradeHeld; },
+    /** The law's word on that hold (`{ code, t }`, or a timed hold's `{ code: 'until', t, until }`), or null. */
+    get tradeHeldWhy() { return tradeHeldWhy; },
+    /** AUTO-HOLD: the keys of the locked pieces standing, as the last answer named them (or this device last heard). */
+    get lockedKeys() { return lockedKeys; },
+    /** AUDIT AUTO-HOLD: the last save the realm took (its text), or null. */
+    get landedText() { return landedText; },
+    /** INT3: told `(prev, now, why)` each time the hold moves - `why` the law's first piece (`{ code, t }`), a timed hold's end (`until`), or null; the host's to set. @type {((prev: string | null, now: string | null, why: { code: string, t: number | null, until?: number } | null) => void) | null} */
+    onTradeHeld: null,
+    /** AUTO-HOLD: told the keys of locked pieces (copies the ledger found) a landed checkpoint names for the first time
+     *  this session; the host's to set. @type {((keys: string[]) => void) | null} */
+    onPiecesLocked: null,
+    /** AUTO-HOLD: told every landed answer's whole set of locked keys; the host's to set. @type {((keys: string[]) => void) | null} */
+    onLockedKeys: null,
     get lost() { return lost; },
     get waiting() { return !!pending; },
+    /** CHAP1: the lease this tab plays under - the Roll's acts ride it (net/npcRollTracker.js) - or null once the
+     *  session is lost. Read, never set: only `rejoin` moves it. */
+    get lease() { return lost ? null : lease; },
     /** A checkpoint of this save text; answers a promise of the outcome - the put that carried it, or a newer one's. */
     checkpoint(/** @type {string} */ text, /** @type {any} */ summary = null) {
       if (lost) return Promise.resolve({ ok: false, error: lost });
@@ -580,17 +687,38 @@ export function createRealmSession({
     /** LEGACY7: THE CHARACTER FELL FOR GOOD (Project Legacy) - its tombstone under this session's lease
      *  (server-account/src/legacy.js realmDie). The session ends with it, quietly - nothing of the dead is written
      *  again, and the page stays for the Succession. Answers whether the realm took it (a refusal - unheard, offline -
-     *  leaves the session as it was, to be asked again). Part three: `why` 'retired' for an elder's mantle passed. */
-    async die(/** @type {'fell'|'retired'} */ why = 'fell') {
+     *  leaves the session as it was, to be asked again). Part three: `why` 'retired' for an elder's mantle passed.
+     *  REZ-BLOODLINE (FIELD BUGS 2026-10-16b): `keepalive` - THE PAGE IS GOING over a death Project Legacy held for a
+     *  Resurrect (scenes/legacyHost.js pageGone): the tombstone alone, at once - no put waited for, the page will not
+     *  wait - by keepalive, so the browser finishes it after the page; the lease goes with it, so the session is the
+     *  dead's from here and the realm's leave behind it sends nothing.
+     *  REZ-BLOODLINE AUDIT R1: `hold` - THE DEATH DOOR'S FALL, stamped at once and held for a party's Resurrect (`raise`,
+     *  below); the session is the dead's all the same until one takes it back. Asked again WITHOUT `hold`, the hold's
+     *  window is closed - the player went on - and the realm is told so (what a tombstone takes with it goes now). */
+    async die(/** @type {'fell'|'retired'} */ why = 'fell', { keepalive = false, hold = false } = {}) {
       if (lost && lost !== 'dead') return false;
-      if (lost === 'dead') return true;
-      if (running) { try { await running; } catch { /* the last put's answer does not matter now */ } }
-      const r = await realmDie(io, id, lease, why);
+      if (lost === 'dead' && !(rezHeld && !hold)) return true;   // stamped already - or held, and asked to hold again
+      const closing = lost === 'dead';   // a held fall's window closed: its tombstone stamped already, no put to wait for
+      if (keepalive) { lost = 'dead'; rezHeld = false; pending = null; dropUnsent(storage, id); return realmDie(io, id, lease, why, { keepalive: true }).then((r) => !!r.ok, () => false); }
+      if (running && !closing) { try { await running; } catch { /* the last put's answer does not matter now */ } }
+      const r = await realmDie(io, id, lease, why, { hold: hold && !closing });
       if (!r.ok) return false;
       lost = 'dead';
+      rezHeld = hold && !closing && why === 'fell';
       pending = null;
       dropUnsent(storage, id);   // RESCUE-SAVE: no copy of the dead is offered again
       return true;
+    },
+    /** REZ-BLOODLINE AUDIT R1: A PARTY'S RESURRECT, TAKEN TO THE REALM (realmRaise) - the death at `diedAt` under this
+     *  session's lease, the one that fell. Yes: the session plays on from where it stood (its lease handed back, its
+     *  sequence the record's - nothing was checkpointed over the dead). Answers `{ ok }` or `{ ok: false, error }` - a
+     *  session that left or lost its lease raises nobody. */
+    async raise(/** @type {number} */ diedAt) {
+      if (lost && lost !== 'dead') return { ok: false, error: lost };
+      const r = await realmRaise(io, id, lease, diedAt);
+      if (!r.ok) return { ok: false, error: r.error };
+      if (lost === 'dead') { lost = null; rezHeld = false; }
+      return { ok: true, held: r.data?.held === true };
     },
     /** LEGACY7 part three: THIS CHARACTER'S HALF OF ONE WEDDING (realmWedHalf), under this session's lease - `{ ok, wed,
      *  union }` or `{ ok: false, error }`. A session that ended weds nobody (and its halves end with its lease's life). */
@@ -750,7 +878,7 @@ export function takeRealmNotice(/** @type {any} */ storage) {
  * beside these three (main.js's front door). A born character reaches that host by a reload (scenes/world.js
  * realmBirth), and main.js boots a game only on a scene door: this address had none, so it was the front door's, which
  * clears every door key, the realm id with them, and shows the menu. The make and the save had landed, so the Online
- * door played the character fine. test/fb0930_realmbirth.test.js holds the two boots to each other.
+ * door played the character fine. test/systems/fb0930_realmbirth.test.js holds the two boots to each other.
  * @param {string} search @param {string} id @param {readonly string[]} doorKeys
  */
 export function realmBootSearch(search, id, doorKeys) {
@@ -780,23 +908,23 @@ export function sayRealmSave(/** @type {any} */ outcome, /** @type {(text: strin
 
 /** A realm refusal in the Online door's words: the two this side names itself, the service's own through its table. */
 export function realmRefusalText(/** @type {string} */ error) {
-  if (error === 'signed-out') return 'Sign in - or continue as a guest - to play online.';
+  if (error === 'signed-out') return 'Sign in, or continue as a guest, to play online.';
   // HOUSE-LOSS: "Delete it and make it again" was said of a character brought in too, and its delete took the home
   // customs had carried. One brought in is finished from its offline tile, or undone - never made again.
-  if (error === 'no-data') return 'That online character was never saved. One you brought in: press Bring online on it again, or undo it. One made online: delete it and make it again.';
+  if (error === 'no-data') return 'That online character was never saved. If you brought it in, press Bring online on it again or undo it. If you made it online, delete it and make it again.';
   if (error === 'left') return 'You left the realm.';
-  if (error === 'held') return 'A trade or a purchase is being settled - the save follows it.';   // AUDIT REALM2 C2: F9 mid-transaction
-  if (error === 'too-large') return 'This character\'s save is too big for the realm to take. The realm keeps the last save it took.';   // AUDIT REALM2 C8
+  if (error === 'held') return 'A trade or purchase is being settled. The save will follow.';   // AUDIT REALM2 C2: F9 mid-transaction
+  if (error === 'too-large') return 'This character\'s save is too big for the realm. The realm keeps the last save it accepted.';   // AUDIT REALM2 C8
   if (error === 'customs-load-once') return 'Load this character once offline, then it can be brought online.';
   if (error === 'test-room') return 'A Test Room character plays offline only.';
   if (error === 'no-room') return 'This device has no room for another save. Delete one, then copy again.';
-  if (error === 'unknown') return 'The realm did not answer about a trade in flight. Join again - the realm holds how it ended.';   // REALM P2.1
+  if (error === 'unknown') return 'The realm did not answer about a trade in progress. Join again to see how it ended.';   // REALM P2.1
   return accountRefusalText(error);
 }
 /** RESCUE-SAVE: said once the world stands, when the join played the device's copy of a save the realm never took. */
-export const REALM_RESTORED_TEXT = 'Your last save had not reached the realm when you left. This device kept it, and you play on from it.';
+export const REALM_RESTORED_TEXT = 'Your last save had not reached the realm when you left. This device kept it, and you continue from it.';
 /** Said once the world stands, when an online boot carried no realm character (a stale address, a local save). */
-export const REALM_OFFLINE_TEXT = 'Online characters live in the realm now, so this one plays offline. The Online door brings it in, once.';
+export const REALM_OFFLINE_TEXT = 'Online characters live in the realm now, so this one plays offline. Use the Online door to bring it in. You can do this once.';
 
 /** REALM-DOOR: HAS THE RELAY SHUT ITS DOOR ON THIS SESSION AS NO REALM CHARACTER'S? - a socket closed for good with the
  *  relay's own word (net/wire.js REALM_DOOR_WORD). The words are written for a build from before the realm, which prints
@@ -835,9 +963,11 @@ export const REALM_TRADE_POLL_MS = 1_500;
  * this call, and the half follows once the goods are reserved (a null half abandons it). Answers `{ ok, seq, items,
  * gold }` (what this side received), `{ ok: false, why, text }` (refused: nothing moved) or `{ ok: false, unknown: true }`
  * (no answer - the session ends).
- * @param {{ session: any, half: any, wait?: (ms: number) => Promise<void>, now?: () => number }} at
+ * `heldSaid`, the host's: the hold's notice as this session stands (systems/item/itemIds.js tradeHeldNotice), said again by a
+ * refusal over my own hold - the piece named, or a timed hold's end (AUTO-HOLD; the Ring report: it said "something").
+ * @param {{ session: any, half: any, wait?: (ms: number) => Promise<void>, now?: () => number, heldSaid?: (() => string | null) | null }} at
  */
-export async function settleRealmTradeHalf({ session, half, wait = (ms) => new Promise((r) => { setTimeout(r, ms); }), now = () => Date.now() }) {
+export async function settleRealmTradeHalf({ session, half, wait = (ms) => new Promise((r) => { setTimeout(r, ms); }), now = () => Date.now(), heldSaid = null }) {
   const r = await session.transact(async (/** @type {any} */ at) => {
     const h = await half;
     if (!h) return { ok: false, why: 'abandoned' };
@@ -845,7 +975,7 @@ export async function settleRealmTradeHalf({ session, half, wait = (ms) => new P
     for (;;) {
       const a = await realmTradeCall(at.io, { id: at.id, lease: at.lease, seq: at.seq, sid: h.sid, give: h.give, get: h.get, pick: h.pick });
       if (a.ok && a.data?.state === 'done') return { ok: true, seq: a.data.seq, items: Array.isArray(a.data.items) ? a.data.items : [], gold: a.data.gold ?? 0 };
-      if (a.ok && a.data?.state === 'refused') return { ok: false, why: a.data.why ?? 'refused' };
+      if (a.ok && a.data?.state === 'refused') return { ok: false, why: a.data.why ?? 'refused', ...(a.data.held === 'mine' || a.data.held === 'theirs' ? { held: a.data.held } : {}) };   // FIELD BUGS 2026-10-11g HELD-SIDE: whose hold it was
       if (!a.ok && REALM_LOST.includes(a.error)) return { ok: false, error: a.error, why: a.error };
       // AUDIT REALM L2-F1: a record off the half's sequence - the service answers a settled trade's outcome before it looks
       // at the sequence (server-account/src/realmTrade.js), so this is a move this tab never made: only a join reads it
@@ -857,7 +987,7 @@ export async function settleRealmTradeHalf({ session, half, wait = (ms) => new P
       await wait(REALM_TRADE_POLL_MS);
     }
   });
-  return r.ok || r.unknown ? r : { ...r, text: realmTradeRefusalText(r.why ?? r.error ?? 'refused') };
+  return r.ok || r.unknown ? r : { ...r, text: realmTradeRefusalText(r.why ?? r.error ?? 'refused', r.held ?? null, session.tradeHeld, heldSaid?.() ?? null) };   // HELD-SIDE: mine, said with my hold's reason
 }
 
 /**
@@ -867,9 +997,9 @@ export async function settleRealmTradeHalf({ session, half, wait = (ms) => new P
  * (onlineCheckpoint.js checkpointedTradePack), a timer's or a hidden page's never goes: a record with the goods out and
  * nothing received would be what the service read. `settle(half)` sends the half; `release()` abandons a hold whose
  * goods could not be reserved.
- * @param {{ session: any, checkpoint: () => any, wait?: (ms: number) => Promise<void>, now?: () => number }} at
+ * @param {{ session: any, checkpoint: () => any, wait?: (ms: number) => Promise<void>, now?: () => number, heldSaid?: (() => string | null) | null }} at
  */
-export function realmTradeEscrow({ session, checkpoint, wait, now }) {
+export function realmTradeEscrow({ session, checkpoint, wait, now, heldSaid = null }) {
   return {
     hold() {
       // AUDIT REALM L1-F1: the service settles against the save composed HERE (its records are what the half picks) - a
@@ -878,7 +1008,7 @@ export function realmTradeEscrow({ session, checkpoint, wait, now }) {
       /** @type {(half: any) => void} */
       let hand = () => {};
       const half = new Promise((resolve) => { hand = resolve; });
-      const outcome = settleRealmTradeHalf({ session, half, wait, now });   // the session holds from this line
+      const outcome = settleRealmTradeHalf({ session, half, wait, now, heldSaid });   // the session holds from this line
       return {
         settle: (/** @type {any} */ h) => { hand(h); return outcome; },
         release: () => { hand(null); },
@@ -910,11 +1040,17 @@ export const REALM_ACT_TRANSIENT = Object.freeze(['offline', 'server', 'rate']);
  * (`unknown`) with the gold where it is - only a join reads how the act ended.
  * `apply(answer)` gets the service's answer; an act whose client needs it (`needsAnswer` - a sale, whose refund the
  * service's price decides) cannot take a landed act without it, and ends the session instead.
+ * AUDIT CARDS-6 E6: A READ (`read` - an ask that moves nothing on the record, a ranked seat's deck order: the service
+ * reads the record where it stands and answers, server-account/src/iliac.js deckOrderOf) NEVER ENDS THE SESSION on an
+ * answer it did not get. Nothing of the record can be unknown after it - its answer lost every time, or a `seq` (never
+ * this ask, landed: it lands nothing; a move this tab never made is its own checkpoint's to meet), is the realm not
+ * answering: `{ ok: false, error: 'offline', why: 'offline' }`. Asked as an act, `unknown` sent the player to the title.
  * @param {{ session: any, checkpoint: () => any, reserve?: (() => (() => void)) | null, apply?: ((answer: any) => void) | null,
- *   call: (at: { id: string, lease: string, seq: number }) => Promise<any>, wait?: (ms: number) => Promise<void>, needsAnswer?: boolean }} at
+ *   call: (at: { id: string, lease: string, seq: number }) => Promise<any>, wait?: (ms: number) => Promise<void>, needsAnswer?: boolean, read?: boolean }} at
  */
-export async function realmGoldAct({ session, checkpoint, reserve = null, apply = null, call, wait = (ms) => new Promise((r) => { setTimeout(r, ms); }), needsAnswer = false }) {
+export async function realmGoldAct({ session, checkpoint, reserve = null, apply = null, call, wait = (ms) => new Promise((r) => { setTimeout(r, ms); }), needsAnswer = false, read = false }) {
   checkpoint();
+  const unanswered = read ? { ok: false, error: 'offline', why: 'offline' } : { ok: false, error: 'offline', unknown: true };   // AUDIT CARDS-6 E6
   const outcome = session.transact(async (/** @type {any} */ at) => {
     const where = { id: at.id, lease: at.lease, seq: at.seq };
     for (let i = 0; i < REALM_ACT_TRIES; i++) {
@@ -923,11 +1059,11 @@ export async function realmGoldAct({ session, checkpoint, reserve = null, apply 
       // AUDIT REALM L1-F2: every realm act answers where the record stands before any other word (server-account/src/
       // realm.js realmActFirst) - so a record one on, when this act was asked before and its answer lost, is this act,
       // landed; on its first asking, or any further on, it is a move nothing this tab sent made: only a join reads it
-      if (r?.error === 'seq') return i > 0 && r.seq === at.seq + 1 && !needsAnswer ? { ok: true, landed: true, seq: r.seq } : { ok: false, error: 'offline', unknown: true };
+      if (r?.error === 'seq') return i > 0 && r.seq === at.seq + 1 && !needsAnswer && !read ? { ok: true, landed: true, seq: r.seq } : unanswered;
       if (!REALM_ACT_TRANSIENT.includes(r?.error)) return r;   // the service's own word, asked where the record stands: nothing moved
       await wait(REALM_ACT_RETRY_MS * (i + 1));
     }
-    return { ok: false, error: 'offline', unknown: true };
+    return unanswered;
   });
   const undo = reserve ? reserve() : null;   // the hold began above: no checkpoint of the purse with it out goes
   const r = await outcome;

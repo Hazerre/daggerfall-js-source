@@ -28,7 +28,7 @@ Five manifests stand in its tree:
 Its pictures are Daggerfall's own, repainted. The manifest calls them
 "Remastered vanilla textures", and its flats' readme says "repainted by me,
 keeping as close to the original art as possible". That is Port-Doctrine's
-own case (A RENDER OF GAME DATA IS GAME DATA; `test/doctrine.test.js` holds
+own case (A RENDER OF GAME DATA IS GAME DATA; `test/tooling/doctrine.test.js` holds
 `public/` to it). An author's permission cannot answer it alone, because the
 art underneath is not the author's to give. Nor can the port BUILD the
 pictures, the way DS1 and LPT1 rebuilt their borrowed pictures from the
@@ -131,6 +131,9 @@ Base's arrays decide all eleven archives. Masked Roads' arrays decide over
 the Base's when it is on - but its 403 array is 57 deep and refused, so 403 is
 made of records: its own three road records (46, 47, 55) and the Base's.
 Snowless Swamps' 402/403 decide over both.
+SNOWLESS1 (FIELD BUGS 2026-10-09 #1): the add-on deciding 403 is also the word the enhanced weather and Snowfall ask
+(`systems/dfmodTextures.js` winterGroundSnowless, registered on `world/climateSwaps.js` groundWearsSnow) - before it,
+the ground went green while the snow still fell on it and Snowfall still laid it there.
 Winter Tracks carries neither `103-TexArray` nor `103_0-0` (its records
 start at 10), so TryGetAsset passes it and meets the Base's array: over
 this Base its records are never asked - in DFU as here. Kokey's Temperate
@@ -149,7 +152,7 @@ reaches them through the texture door whose order VE1 set.
 **THE EXCEPTION.** Port-Doctrine's A RENDER OF GAME DATA IS GAME DATA now
 carries one paragraph, THE ONE EXCEPTION - VANILLA ENHANCED. It records Mac's
 approval and names one directory, `public/art/vanilla-enhanced/`.
-`test/doctrine.test.js` lists the pack's three directories as BUNDLE_ART rows
+`test/tooling/doctrine.test.js` lists the pack's three directories as BUNDLE_ART rows
 like every vendored bundle, each answering both ways to a listing. They are
 the first rows whose pixels are a render of game data, so each carries the
 mark `derived`. The gate fails in four cases: a derived row outside the
@@ -192,13 +195,13 @@ Game Artwork, after the loose folder, in the order their manifests'
 dependencies make. So they register IN the texture-mod door beside the
 attached mods, in one AutoSortMods order and one TryGetAsset walk. An add-on
 the player attaches that is built on the shipped Base loads after it.
-`systems/vanillaEnhancedPack.js` hands the door each mod's index and a client
+`systems/vanillaEnhanced/vanillaEnhancedPack.js` hands the door each mod's index and a client
 in unityBundleClient's shape:
 - `rgba` fetches the port's own file and decodes it at the texture detail as
   the mip a bundle would pick (`mipFitSize`, mipLevelFor's halving).
 - `layers` answers an array from its slices, `PRELOAD_CONCURRENCY` at once.
 - **The decode is a worker's** (AUDIT VE P1,
-  `systems/vanillaEnhancedDecodeWorker.js`): the fetch, the readback and the
+  `systems/vanillaEnhanced/vanillaEnhancedDecodeWorker.js`): the fetch, the readback and the
   detail's fit run off the main thread, as an attached bundle's decode does in
   its own worker, and the pixels come back moved, not copied. A browser with no
   OffscreenCanvas in a worker decodes on the page's thread instead - the same
@@ -230,7 +233,7 @@ ones, which carry no doll art.
 ## VE3/VE4 - the Texture Overhaul card
 
 OVH1b left the card standing empty "until the first texture pack". Vanilla
-Enhanced is that pack, beside **Classic** (`systems/vanillaEnhanced.js`,
+Enhanced is that pack, beside **Classic** (`systems/vanillaEnhanced/vanillaEnhanced.js`,
 `systems/overhauls.js`):
 
 - **Classic** is in use when Replace Game Artwork is off, or when no texture
@@ -319,16 +322,16 @@ and nothing of it reaches the wire.
 ## Pins
 
 **Tests:**
-- `test/ve1_vanillaEnhanced.test.js` (9): the load order against DFU's laws
+- `test/systems/ve1_vanillaEnhanced.test.js` (9): the load order against DFU's laws
   and Vanilla Enhanced's own manifests, the index, the walk on every door,
   the switch, the ground's decision and its records' set, the hosts, the card
   with the player's own copies shadowing the shipped ones, and the menu.
-- `test/ve4_vanillaEnhancedShipped.test.js` (7): the pack's files, bytes and
+- `test/systems/ve4_vanillaEnhancedShipped.test.js` (7): the pack's files, bytes and
   proofs; the index; the door's shipped mods, shadowing and load order; the
   ground over the REAL index, slice by slice, down to which file drew each
   one; the client's detail and concurrency; the card's add-ons; and the
   wiring.
-- `test/doctrine.test.js`: two pins on the exception's bound.
+- `test/tooling/doctrine.test.js`: two pins on the exception's bound.
 - Re-aimed: DFMOD1's door pin (it pinned the first mod by name), its wiring
   pin, GROUND1's door pin (the classic file handed in, the depth law),
   GRASS-LIT2's host pin, OVH1's panel pin and the credits' reachability.

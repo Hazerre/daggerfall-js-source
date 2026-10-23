@@ -32,7 +32,7 @@
 //    model - and the shell never asked again, because the path it had
 //    was "valid". Every folder is held to REQUIRED_ARENA2 now, the same
 //    list the game boots against (pinned equal to
-//    src/scenes/dataSource.js by test/da9_arena2detect.test.js).
+//    src/scenes/dataSource.js by test/tooling/da9_arena2detect.test.js).
 //
 // Read-only, bounded (a capped walk, a capped depth), and it never
 // throws: a detector that can crash the first launch is worse than none.
@@ -77,7 +77,7 @@ const SEARCH_DEPTH = 4;
 const SEARCH_DIRS_MAX = 400;
 
 const DAGGERFALL_DIR_RE = /daggerfall/i;
-/** A macOS bundle is an app, never an install folder - "Daggerfall Online.app" is this one. */
+/** A macOS bundle is an app, never an install folder - "DFO Online.app" is this one. */
 const BUNDLE_RE = /\.app$/i;
 
 /** name UPPERCASE -> on-disk name, or null when the folder is unreadable. */
@@ -325,7 +325,7 @@ function steamRoots({ platform, home, env }, regQuery) {
 
 /** Where GOG puts games, to look for a Daggerfall folder in. GOG sells
  *  Daggerfall for Windows only: a Mac has no GOG copy to find (and its
- *  /Applications holds "Daggerfall Online.app", this app - lane 4 #10). */
+ *  /Applications holds "DFO Online.app", this app - lane 4 #10). */
 function gogRoots({ platform, home, env }) {
   if (platform === 'win32') {
     const pf = [env['ProgramFiles(x86)'], env.ProgramFiles].filter(Boolean);

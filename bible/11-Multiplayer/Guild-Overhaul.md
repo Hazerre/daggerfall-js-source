@@ -3,9 +3,9 @@
 The port's own (DFU's guilds are its factions; a player's guild is GUILD1's, `06-Systems/Online-Arc.md` GUILD1 to
 GUILD1e). Four parts: **GUILD2a** a new name for a price, **GUILD2b** the guild's vault and who may use it, **GUILD2c**
 arms worth choosing that every banner draws, and **GUILD2d** the Guild tab in pages. The laws are
-`src/net/guildLaw.js`, `src/net/guildVaultLaw.js` and `src/net/heraldryLaw.js`; the service is
+`src/net/guild/guildLaw.js`, `src/net/guild/guildVaultLaw.js` and `src/net/heraldryLaw.js`; the service is
 `server-account/src/guilds.js` and `server-account/src/guildVault.js` (migration `0077_guild_overhaul.sql`); the client
-`src/net/guildBook.js`, `src/ui/socialPanel.js` and `src/ui/heraldryArt.js`.
+`src/net/guild/guildBook.js`, `src/ui/socialPanel.js` and `src/ui/heraldryArt.js`.
 
 ## Asked
 
@@ -136,17 +136,54 @@ Stores, the rank names and leaving, every section under the one before. It is pa
 
 | Page | What it holds |
 |---|---|
-| Overview | the arms in words, where the reader stands at the vault, the hall |
-| Members | the roster and what the reader's rank may do to each; the guildmaster's grants; invitations |
-| Treasury | the gold and its ledger, the silver and its lines |
+| Overview | the arms in words, where the reader stands at the vault, the hall (GUILD3c: and where the rest of the guild is run, "Elsewhere") |
+| Members | the roster - each member's rank and when they were last online (GUILD-SEEN, below) - and what the reader's rank may do to each; the guildmaster's grants; invitations (GUILD3c: and, folded, what each rank may do) |
+| Treasury | the gold and its ledger, the silver and its lines (GUILD3c: which of the gold buys a hall or a new name; GUILD3b: each silver line by its kind and way) |
 | Vault | the pieces, Take and Take one, Put in from the pack, the lines |
 | Stores | the guild Stores and the writ budget - where the professions are this account's |
 | Arms | the arms, and the guildmaster's choosing |
-| Settings | a new name, the rank names, leaving and disbanding |
+| Settings | a new name, the rank names, leaving and disbanding (GUILD3c: and, before the press, everything that still holds the guild) |
 
 Each page keeps every control and sentence the section it took over had, so a refusal still says its reason beside its
 button. `openGuild(page)` opens the tab at a page (the hall's chest: the Vault). A page turned keeps the keyboard's
 focus on its own tab (the second audit's U9).
+
+## GUILD-SEEN - when each member was last online (2026-10-11)
+
+The owner: "the guild member list needs a 'last online' info, just like the friend list does". Each row of the Members
+page says it the way a friend's row does (SOC3): a dot, lit while the member is at play, and under the rank a line -
+"Online", or "Last online 3 h ago" in the friends list's own words (`net/social.js` lastOnlineText, the one ladder).
+
+- **The stamp is the play beat's, and nothing new is written.** The guild's view (`server-account/src/guilds.js`
+  viewOf) says each member's `seenAt`, in the service's seconds: the account's last play beat (ACC4's `played_at`,
+  knocked once at entry and every PLAY_BEAT_S, five minutes, while a tab is in the world and visible), or - for an
+  account that has never beaten - its last authenticated call (`last_seen`, touched hourly: SCALE4h). It is read in
+  the roster's own statement, the players row found by its key; no write, no migration (acct113).
+- **Online is the service's sitting.** A member is online while no wider gap than PLAY_GRACE_S (ten minutes) has
+  passed since their beat - the gap `creditPlay` counts as one sitting - and the reader's own row always: they are
+  playing it (`net/guild/guildBook.js` guildMemberOnline, guildSeenText). The service's seconds are read against this
+  machine's clock, as the letterbox reads its stamps. A row the service said no stamp for (a Worker before acct113)
+  says nothing of presence.
+- **Read on the live pass, painted never.** "Last online 5 min ago" moves on the clock alone, and a sitting that
+  lapses puts the dot out without a look: both are read again each frame (AUDIT SOC B8's law), off the book's
+  freshest roster by the member's id. A look that moved only stamps moves no version (`pictureOf`), so the page is
+  not painted again under the Invite field or a grant being chosen - every member's beat moves a stamp every five
+  minutes.
+- **What it is not.** The friends list's presence is the hub's, to the second; a guild member's is the beat's - a
+  member who quits reads Online until their sitting lapses (up to ten minutes after their last beat), and "last
+  online" is their last beat, up to five minutes before they left. The account's, not the character's: the roster
+  names each member by the account's handle, and a member playing another character of theirs is at play. A guild's
+  members are each other's by an invitation accepted, which is what a friendship grants presence on (AUDIT ONLINE A6).
+
+Pins: `test/net/guildseen.test.js` (the service through the real Worker, the law, the book, the page);
+`tools/mutants/guildseen.json`, 14 of 14 dead.
+
+| Host | GUILD-SEEN |
+|---|---|
+| `scenes/world.js` | the Guild tab's book and panel, unchanged: the rows read what the book holds |
+| `scenes/worldModes.js` | nothing to wire: an interior opens the same panel (the hall's chest, the Vault page) |
+| `scenes/exterior.js` | FLAGGED, nothing to wire: the single-location dev host has no online guild |
+| `scenes/dungeonContext.js` | nothing to wire: the Guild tab is world.js's on every face |
 
 ## The threats, and the answers
 
@@ -159,9 +196,18 @@ focus on its own tab (the second audit's U9).
 | A name that reads as a slur or as the server's | The name filter, word by word, at a founding and a rename |
 | A name changed to dodge a siege's record | Refused in a week the guild fights for a seat; a fortnight between renames |
 
+**GUILD3 (2026-10-11, `Guilds-Made-Plain.md`) grew the pages, each said there:** the Members page folds what each rank
+may do (the four power tables in words); the Treasury page says which of its gold buys a hall or a new name, and its
+silver lines say which way they went (a Tribute, an upkeep, a patron's bid never "put in"); the Settings page lists
+everything that holds a guild that would go before the press, the guildmaster's view carrying it (one read); the Overview says where the
+rest is run; a character in no guild is told what a guild is for. AUDIT GUILD3 (`01-Overview/audits/Audit-Guild3.md`) made each
+truer: the rank list says what a rank may not do and every act the service gates by rank; a silver line the service made
+is the guild's; the list of holds is the gate's own (one list), an open writ no "treasury full", the silver's room said
+before the press, and a refusal's word the page cannot read again never a lock.
+
 ## Pins
 
-`test/guild2_service.test.js` (the service, through the real Worker) and `test/guild2_client.test.js` (the laws, the
+`test/net/guild2_service.test.js` (the service, through the real Worker) and `test/net/guild/guild2_client.test.js` (the laws, the
 art, the book, the door, the pages); `tools/mutants/guild2.json`.
 
 ## The audit (2026-10-03, Mac: "Audit this")

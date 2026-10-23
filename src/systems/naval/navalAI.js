@@ -80,8 +80,8 @@
 // host forgives the player's stray ball on her (navalHost.js ALLY_STRAY_SHARE). And the bay is gentler: a quarter of
 // the pirates bold (BOLD_SHARE), and a boat lying still grappled only after GRAPPLE_STILL_S.
 
-import { classById, batteryOf, hullBuild, GUNS, HULL, SHIP_CLASSES, buildsStamp, SHIP_TOUGHNESS, playerBatteryWeight } from './navalShips.js';
-import { mulberry32 } from '../../combat/bloodArt.js';   // SEA-PEACE: the temper's draw (navalShips.js names on the same stream kind)
+import { classById, batteryOf, hullBuild, GUNS, HULL, SHIP_CLASSES, buildsStamp, SHIP_TOUGHNESS, shipBatteryWeight } from './navalShips.js';
+import { mulberry32 } from '../../combat/blood/bloodArt.js';   // SEA-PEACE: the temper's draw (navalShips.js names on the same stream kind)
 import { createShipDamage, SHIP_STATES, STRUCK_AT, HOLED_BONUS, WATERLINE_BAND } from './navalDamage.js';
 import { createGunDeck, aimSolution, reloadSeconds } from './navalGunnery.js';
 import { NAVAL_DEG, rangeAt, SHOT_GRAVITY } from './navalBallistics.js';
@@ -90,6 +90,9 @@ import { wrapAngle } from '../../world/mat4.js';   // ONCRASH1: the port's one a
 import { steerage, HULL_HELM, HELM_WAY, WIND_RATED, WIND_SHARE, windShare } from '../helmWay.js';   // HELM-WAY: the player's own helm, the captains' too; SAIL-FREE: and the wind's share, one home
 import { stepErrand, MOOR_EASE_S } from './shipLife.js';   // SHIP-LIFE: a ship going somewhere
 import { nightSight } from './shipWatch.js';   // SHIP-WATCH: by night a lit ship is seen far, a dark one close
+import { legendOfClass, LEGEND_RELOAD_K } from './etherShips.js';   // ETHER-LEGENDS: a `gunnery` legend's quicker guns
+import { holdFouled } from './navalFoul.js';   // RAM-BOARD: a fouled ship's way held
+import { shotGun, naturalShot } from './shotKinds.js';   // SHOT-KINDS: a captain's loads
 
 /** A galley's oars: its least way, as a share of its best. */
 export const OARS_FLOOR = 0.55;
@@ -367,7 +370,7 @@ export function createSeaShip({ id, seed, classId, variant = 0, pos, yaw = 0, na
     /** SHIP-LIFE: what she is about when no fight is hers (shipLife.js errandFor: moored, depart, voyage, arrive, patrol,
      *  lurk; null: her own cruise) */
     errand,
-    guns: createGunDeck(cls.hull, { crewed: true, crewShare: () => damage.crewShare() }),
+    guns: createGunDeck(cls.hull, { crewed: true, crewShare: () => damage.crewShare(), reloadScale: () => (legendOfClass(cls.id)?.trait === 'gunnery' ? LEGEND_RELOAD_K : 1) }),   // AUDIT CAPTAIN'S SEA D11: the Pale Regent's gunners (LEGEND_RELOAD_K had no reader)
     /** attacker id -> the time of its last blow */
     provoked: new Map(),
     /** contact id -> seconds it has lain still */
@@ -451,15 +454,18 @@ function sizeUp(c) {
 
 /**
  * SEA-PEACE: a captain's temper off her class and seed - a merchant peaceful, a navy dutiful, a pirate flagship bold,
- * and any other pirate bold on BOLD_SHARE of her seed's own draw, else wary (the host makes a raider bold).
+ * and any other pirate bold on BOLD_SHARE of her seed's own draw, else wary (the host makes a raider bold). CAPT-WATERS:
+ * `bold` the share of the deep waters' (navalDirector.js DEEP_BOLD) - the same draw, so a pirate bold on the coast is bold
+ * in the deep too.
  * @param {{ faction: string, flagship?: boolean }} cls
  * @param {number} seed
+ * @param {{ bold?: number }} [o]
  */
-export function temperOf(cls, seed) {
+export function temperOf(cls, seed, { bold = BOLD_SHARE } = {}) {
   if (cls.faction === 'merchant') return TEMPERS.peaceful;
   if (cls.faction === 'navy') return TEMPERS.dutiful;
   if (cls.flagship) return TEMPERS.bold;
-  return mulberry32(((seed >>> 0) ^ TEMPER_SALT) >>> 0)() < BOLD_SHARE ? TEMPERS.bold : TEMPERS.wary;
+  return mulberry32(((seed >>> 0) ^ TEMPER_SALT) >>> 0)() < bold ? TEMPERS.bold : TEMPERS.wary;
 }
 
 /** AUDIT NAV2 F25: a ship's measure (fightingPower's answer).
@@ -517,7 +523,7 @@ export function strikeTime(a, b) {
     const g = GUNS[bat.gun];
     const balls = bat.muzzles.length / sides.length / (reloadSeconds(bat.gun, a.crewShare, a.crewed) + TURN_PER_VOLLEY / Math.max(1, a.turn));
     const hits = balls * hitShare(bat, a.skill, b.hull);
-    const w = a.player ? playerBatteryWeight(a.hull, side) : 1;   // GALLEON-WEIGHT: a player's galleon's broadside, six guns' weight
+    const w = shipBatteryWeight(a.hull, side, !!a.player);   // GALLEON-WEIGHT: a player's galleon's broadside, six guns' weight (SHIPS-2: a carrack's, the mod's seven)
     hull += hits * g.hull * w * (1 + HOLED_BONUS * Math.min(1, WATERLINE_BAND / hullBuild(b.hull).top));   // a low hull is holed at the waterline
     men += (hits * g.crew) / SHIP_TOUGHNESS;   // TOUGHER-SHIPS: a ball's men (navalDamage.js ballMen), as her hull's points
   }
@@ -849,15 +855,18 @@ export function stepCaptain(ship, world) {
     const held = c.id === ship.target && (ship.mode === 'engage' || ship.mode === 'board');
     const lit = !!c.lit || !!flashed?.has(c.id);
     const see = nightSight(sight, { night: !!world.night, lit });   // SHIP-WATCH: by night, by her lanterns (or her guns)
-    if (hostile(ship, c, world) && !((ship.spare.get(c.id) ?? -Infinity) > ship.clock)) {
+    // NAV-COST (2026-10-12): her sight asked FIRST - `hostile` (a wary pirate sizing a quarry up: shipPower, fightingPower)
+    // was asked of every ship in the sea, every frame, for each of mine, and nearly all of them hundreds of km off. Both
+    // halves read nothing they change, so the answer is the one it was.
+    if (dist < (held ? see * DISENGAGE : see) && hostile(ship, c, world) && !((ship.spare.get(c.id) ?? -Infinity) > ship.clock)) {
       // SEA-EASE: a pirate fighting a player she stands by is hers first
       const rank = (held ? dist * 0.8 : dist) * (aids && fightsAny(c, aids) ? AID_PRIORITY : 1);
-      if (dist < (held ? see * DISENGAGE : see) && rank < enemyD) { enemy = c; enemyD = rank; }
+      if (rank < enemyD) { enemy = c; enemyD = rank; }
     }
     // a threat is anything hostile that would take US - SEA-PEACE: sized up by her own power, and a player who fired on
     // her a threat to a pirate too (a wary one runs from a stronger one; a bold one fights it out, as she did)
-    const theyTakeUs = c.kind === 'ship' ? c.ship && hostile(c.ship, { kind: 'ship', faction: ship.cls.faction, id: ship.id, ship }, world) : (ship.provoked.get(c.id) ?? -Infinity) > world.now - PROVOKED_S;
-    if (theyTakeUs && dist < nightSight(FLEE_RANGE, { night: !!world.night, lit }) && dist < threatD) { threat = c; threatD = dist; }   // SHIP-WATCH: a threat seen
+    if (dist < threatD && dist < nightSight(FLEE_RANGE, { night: !!world.night, lit })
+      && (c.kind === 'ship' ? c.ship && hostile(c.ship, { kind: 'ship', faction: ship.cls.faction, id: ship.id, ship }, world) : (ship.provoked.get(c.id) ?? -Infinity) > world.now - PROVOKED_S)) { threat = c; threatD = dist; }   // SHIP-WATCH: a threat seen
   }
   if (enemy) enemyD = bearingTo(ship, enemy.pos).dist;
   for (const c of world.contacts ?? []) {
@@ -933,11 +942,14 @@ export function stepCaptain(ship, world) {
   ship.sailsWant = ship.avoid.heading != null ? Math.min(plan.sails, BOXED_SAILS) : plan.sails;
   ship.sails = clamp(ship.sails + clamp(ship.sailsWant - ship.sails, -0.5 * dt, 0.4 * dt), 0, 1);
   helm(ship, want, dt, world, 1, plan.track ? trackRate(ship, want, dt) : (ship.wantPrev = null, ship.wantRate = 0));
+  holdFouled(ship, dt, world.now);   // RAM-BOARD (navalFoul.js): fouled by a stem, her way held under FOUL_WAY - her guns still answer
   moveShip(ship, dt, isWater);
 
-  // the guns - held at a wreck, and all but the chasers while she comes alongside
+  // the guns - held at a wreck, and all but the chasers while she comes alongside - SHOT-KINDS: unless her broadsides
+  // hold grape, which sweeps the deck she means to take and leaves its timbers whole (captainLoads)
+  captainLoads(ship, enemy);
   if (!ship.guns.braced && !(enemy?.crippled && enemy.kind === 'player')) {
-    gunnery(ship, world, enemy ?? (ship.cls.faction === 'merchant' ? threat : null), out, { broadsides: ship.mode !== 'board' });
+    gunnery(ship, world, enemy ?? (ship.cls.faction === 'merchant' ? threat : null), out, { broadsides: boarderBroadsides(ship) });
   } else ship.runOut.clear();
 
   // the grapple: a pirate with men to send, alongside a crippled, holed or stopped boat - GRAPPLE_GAP of water between
@@ -949,6 +961,37 @@ export function stepCaptain(ship, world) {
   }
   return out;
 }
+
+/** SHOT-KINDS: grapeshot's fighting range (m) - its men whole for shotKinds.js GRAPE_FULL_S of flight, some 60 m, spent by
+ *  130 - and how far a fight may open past it (its share) before a captain still loaded with grape draws it for her own. */
+export const GRAPE_CLOSE_M = 120;
+export const GRAPE_KEEP = 1.5;
+/** SHOT-KINDS: the load groups a captain loads (the barrels carry none). */
+const CAPTAIN_GROUPS = Object.freeze(['starboard', 'bow']);
+/**
+ * SHOT-KINDS (bible/03-World/Naval-Refit.md) - A CAPTAIN'S LOADS. Every captain fights her bores' own loads (navalShips.js
+ * GUNS: round shot, her chasers' chain), but a PIRATE who means to board loads her broadsides and her chasers with GRAPE
+ * the moment she decides to (mode `board` - the guns drawn and loaded again while she closes, navalGunnery.js
+ * SHOT_SWITCH): Black Flag's boarders sweep the deck they will take, and grape (shotKinds.js SHOT.grape: a fifth of a
+ * ball's harm to her timbers) leaves the prize whole: her chasers fire it as they bear, and so do the broadsides a
+ * boarder held while they threw round shot (`boarderBroadsides`). She keeps it while the fight stands (`engage` and
+ * `board` by turns) within GRAPE_KEEP of GRAPE_CLOSE_M, and draws it for her bores' own once the fight is done or opened
+ * past that.
+ */
+export function captainLoads(ship, enemy = null) {
+  const d = enemy?.pos ? Math.hypot(enemy.pos[0] - ship.pos[0], enemy.pos[2] - ship.pos[2]) : Infinity;
+  const boards = ship.cls.faction === 'pirate' && ship.mode === 'board';
+  const done = !(ship.mode === 'engage' || ship.mode === 'board') || (ship.mode === 'engage' && d > GRAPE_CLOSE_M * GRAPE_KEEP);
+  for (const side of CAPTAIN_GROUPS) {
+    const bat = batteryOf(ship.hull, side);
+    if (!bat || bat.gun === 'barrel') continue;
+    if (boards) ship.guns.setLoad(side, 'grape');
+    else if (done) ship.guns.setLoad(side, naturalShot(bat.gun));
+  }
+}
+/** SHOT-KINDS: whether a captain's broadsides fire this step - always but coming alongside to board, and then only
+ *  loaded with grape: round shot into a prize she means to take, never (AUDIT NAV1 M1/G3's held broadsides). */
+export const boarderBroadsides = (ship) => ship.mode !== 'board' || ship.guns.load('starboard') === 'grape';
 
 /** SEA-EASE: the players a crown's ship stands by - every player in her contacts she does not take for an enemy - or
  *  null (she is no crown's ship, or stands by no one). */
@@ -1160,7 +1203,7 @@ export const BOW_SWING = 60;
 export function batteryReach(ship, side, seaY = 0) {
   const bat = batteryOf(ship.hull, side);
   if (!bat || bat.gun === 'barrel') return 0;
-  const g = GUNS[bat.gun];
+  const g = shotGun(bat.gun, GUNS[bat.gun], ship.guns?.load?.(side) ?? null);   // SHOT-KINDS: as she is loaded
   return rangeAt(g.maxEl * DEG, g.speed, bat.muzzles[0][1] + (ship.pos[1] - seaY));
 }
 export const broadsideReach = (ship, seaY = 0) => batteryReach(ship, 'starboard', seaY);
@@ -1550,7 +1593,8 @@ function gunnery(ship, world, enemy, out, { broadsides = true } = {}) {
   const battery = (side, bearingWant, arc, bear) => {
     const bat = batteryOf(ship.hull, side);
     if (!bat || bat.gun === 'barrel' || (!broadsides && (side === 'starboard' || side === 'port'))) { ship.runOut.delete(side); return; }
-    const g = GUNS[bat.gun];
+    const shot = ship.guns.load(side);   // SHOT-KINDS: laid and led for her load (captainLoads)
+    const g = shotGun(bat.gun, GUNS[bat.gun], shot);
     const lead = leadPoint(ship.pos, enemy.pos, rel, g.speed);
     const toLead = bearingTo(ship, lead);
     const err = Math.abs(wrapAngle(toLead.bearing - bearingWant * DEG)) / DEG;
@@ -1558,10 +1602,10 @@ function gunnery(ship, world, enemy, out, { broadsides = true } = {}) {
     const reach = batteryReach(ship, side, world.seaY);
     const inReach = toLead.dist <= reach * 1.02;
     // the height the lay meets her at, and the band it must pass through to strike her there
-    const rig = bat.gun === 'chain' && build.rig.length ? rigBand(build).map((y) => world.seaY + y) : null;
+    const rig = shot === 'chain' && build.rig.length ? rigBand(build).map((y) => world.seaY + y) : null;
     const band = rig ?? [world.seaY, world.seaY + build.top];
     const aimY = rig ? (rig[0] + rig[1]) / 2 : world.seaY + build.top * AIM_FREEBOARD;
-    const lay = (k) => aimSolution(pose, side, null, world.seaY, { target: [ship.pos[0] + (lead[0] - ship.pos[0]) * k, lead[1], ship.pos[2] + (lead[2] - ship.pos[2]) * k], targetY: aimY });
+    const lay = (k) => aimSolution(pose, side, null, world.seaY, { target: [ship.pos[0] + (lead[0] - ship.pos[0]) * k, lead[1], ship.pos[2] + (lead[2] - ship.pos[2]) * k], targetY: aimY, shot });
     const clear = !lineFoul(ship, bat, lead, enemy, world);
     const strikes = () => { const sol = lay(1); return !!sol && layPasses(sol, lead, band); };
     const window = fireWindow(ship, enemy, lead, bat.gun, bear);

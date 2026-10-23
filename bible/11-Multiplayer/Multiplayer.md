@@ -14,9 +14,9 @@
 > next slices. This page is the co-op design the arc grows into; where
 > the two disagree, the arc is what runs.
 
-Co-op for Daggerfall Online (BR4; the page was written while the
-public name was Daggerfall JavaScript, and BR1 renamed it Daggerfall
-Enhanced). Locked with Mac on 2026-09-01
+Co-op for DFO Online (BR5; the page was written while the
+public name was Daggerfall JavaScript, BR1 renamed it Daggerfall
+Enhanced and BR4 Daggerfall Online). Locked with Mac on 2026-09-01
 after a survey of what the port actually has; the three decisions below
 are his, the reasoning under each is why they are the version that
 ships.
@@ -30,7 +30,13 @@ fighting beside each other against NPCs.
 
 **It is not** PvP, an MMO, or a shared campaign - with ONE door through the first: a DUEL (DUEL1, 2026-09-24, Mac:
 "I want to be the foundation of pvp"), consensual and bounded - two players who both said yes, in a ring of light,
-until one falls to 1 health, and both are healed after (`06-Systems/Community-Arc.md` DUEL1). Nobody's save changes
+until one falls (INT8, 2026-10-09: the relay referees it on its own vitality and signs its result - the save's health
+is never touched, nobody drops to 1 health and nothing is healed: `06-Systems/Integrity-Arc.md` 5;
+`06-Systems/Community-Arc.md` DUEL1) - and, since WILD1
+(2026-10-07), ONE PLACE where it is not consensual: the Wrothgarian Mountains, an open zone where players may fight,
+a death drops the bag and the cart (the cart only while the wagon is with them - CART-AWAY, 2026-10-15) and a killer
+takes one worn piece (`11-Multiplayer/Wild-Zone.md`; INT9: the relay
+referees its fights and the account service takes the drop off the record). Nobody's save changes
 shape because they played with a friend - and the one online progression, RENOWN (RENOWN1, 2026-09-24,
 Mac: "seperate unique to online but compatible"; named: "Lets officially call this Renown"), is a second level per character kept by the account service, never
 in the save, adding health and magicka only while online (`06-Systems/Accounts-And-Cloud-Saves-Arc.md` RENOWN1). It IS, since WORLD1
@@ -38,7 +44,9 @@ in the save, adding health and magicka only while online (`06-Systems/Accounts-A
 inhabit that world while also being able to continue their progress
 ... True persistance"), a persistent shared world one room at a time:
 a dungeon's dead stay dead for whoever comes next, kept by the relay
-and not by anyone's save.
+and not by anyone's save. (Privateer's Hold among them: HOLD-SOLO keyed it no room from
+2026-10-07 until HOLD-SHARED reverted it, 2026-10-12; online it is entered once, by the new game's start -
+HOLD-ONCE, `06-Systems/Online-Arc.md`.)
 
 ## The three locked decisions
 
@@ -47,7 +55,7 @@ and not by anyone's save.
 Each player's quest state, dialogue state, travel map and history are
 their own. You walk together; the story you are in is yours.
 
-Why: the save envelope (`systems/save.js:"so a save from before"`) already splits the world
+Why: the save envelope (`systems/save/save.js:"so a save from before"`) already splits the world
 from the player - `position, pose, classicMinutes, world, locationKey`
 on one side; `quest, talk, travelMap, escortingFaces, interior` on the
 other. That line IS the replication boundary. A shared campaign would
@@ -68,7 +76,7 @@ In the open air, in a building and in a dungeon, and a host who leaves hands the
 marker's foe stands once for the party). And a kill of one counts for every copy of the quest, wherever its member
 stands - KEPT-KILL (2026-10-01, Mac: "If someone kills a quest target regardless of relation then it should ping the
 quest for the players involved regardless"): a foe handed to a member whose copy holds no such quest says its fall in
-that member's party pose (`qk`), and every linked copy counts it once (`01-Overview/Field-Bugs-2026-10-01.md`).
+that member's party pose (`qk`), and every linked copy counts it once (`01-Overview/bugs/Field-Bugs-2026-10-01.md`).
 `06-Systems/Online-Arc.md` (QUEST-PARTY).
 
 **And a world quest's - CURSE-SYNC (2026-09-27).** S0000977, the Curse of Daggerfall, is no player's story: every character runs it and no task counts its foes, so the ghosts and wraiths it stands in Daggerfall's streets at night ride the cell as an encounter's do - everyone sees them, strikes them and is hunted by them. `06-Systems/Online-Arc.md` (CURSE-SYNC).
@@ -92,7 +100,8 @@ be a second copy of the game in a Worker.
 
 The cost as designed: when the host leaves, the session ends. WORLD1
 (2026-09-12) shipped the relay's own answer to the seat - it passes to
-the player in the room longest, said in a host frame - and WORLD2
+the player in the room longest (in a dungeon, the longest still heard -
+Online-Arc SEAT-LIVE), said in a host frame - and WORLD2
 (2026-09-12) handed the live simulation of a dungeon's foes over with
 it: the puppets go live from the pose the stream left them in.
 
@@ -156,12 +165,48 @@ oversight.
 PVP-REF (2026-10-01, `06-Systems/Online-Arc.md` PVP-REF): the one room
 where that stops being true is a SIEGE's (`siege:<seat>:<week>`), where a
 town's Charter changes hands - there the relay holds every fighter's
-vitality and judges every blow, cast and step (`src/net/siegeRef.js`,
+vitality and judges every blow, cast and step (`src/net/siege/siegeRef.js`,
 `11-Multiplayer/Seats-Arc.md` 6.1). Everywhere else this section stands.
+
+INT1-INT6 (2026-10-09, `06-Systems/Integrity-Arc.md`, Mac: "I want to do
+everything and do it properly"): what a REALM character carries away from
+any room is judged at its checkpoint - the item law over every piece, the
+ids' ledger, the wealth budget - and a breach holds its trade, so an
+impossible piece, or a copy that keeps its id, reaches no other player
+through the service. Lawful loot past what play earns is the budget's: it
+measures first, and holds once staff turn it on.
+
+INT7-INT10 (2026-10-09, the same arc's lane 2): a DUEL's room and the OPEN
+ZONE's are the next exceptions - there too the relay holds both fighters'
+vitality and judges every blow, cast and step against the arms the judged
+pack holds; a duel's result and a fall in the zone are its signed
+receipts, and a death's drop in the zone is taken by the account service
+off the fallen's judged record, never handed over by the fallen's game.
+Every spell between players is capped by a referee. The bosses (lane 3)
+are next.
+
+INT11-INT15 (2026-10-10, the same arc's lane 3; Mac: "Measure, then
+enforce"): in a GATE's court, an ABYSS DUNGEON's realm and a SERPENT's
+waters the relay now judges the boss's blows itself on the poses it holds
+(`src/net/bossRef.js`, each fight's own strike law) and keeps its own
+count of each fighter's body - a ship's hull at sea (`src/net/bossBody.js`).
+The client's word of its body is believed as a mend out of a budget. The
+count MEASURES first: each boss receipt carries what it saw, and nobody
+falls by it until staff set the relay's line. The world itself - the
+boss's blow on this screen, the potion, the save - is still the client's.
+
+GRANT0 (2026-10-17, `11-Multiplayer/Spawn-Grants.md`; PROPOSED, nothing
+built): a foe that rides to another player would exist only on a grant
+the relay rolls and signs when the foe is made. Its elite and champion
+are the relay's roll; its species comes from the grant's seed, which
+every reader checks against its own map files. The relay never reads
+the foe stream (revised 2026-10-18, for its cost). The simulation stays
+on the owner's machine, as decision 2 has it: the relay rolls a foe's
+identity, not its life.
 
 ### The state model is the save
 
-`systems/save.js` already knows how to snapshot the world and restore
+`systems/save/save.js` already knows how to snapshot the world and restore
 it. **A joining client receives the host's world snapshot through the
 same envelope a save file uses**, restores it the way `restore` does,
 and is then in the host's world at the host's time. The player half of
@@ -271,7 +316,7 @@ rows were in the DOM the whole time and the lines were in the log; they
 were drawn zero pixels tall. `flex: none` on the row is the fix: a chat
 line does not shrink, the list scrolls.
 
-**Why no pin caught it.** `test/chat1.test.js` drives the panel against
+**Why no pin caught it.** `test/net/chat1.test.js` drives the panel against
 a fake document, and a fake document has no layout - its boxes are
 whatever the fake says they are. That is the right tool for the panel's
 BEHAVIOUR (the keys, the IME, the grown list, the badge) and it can
@@ -282,7 +327,7 @@ actually hold:
   server and no game data - the panel's own sheet is the subject. It
   fails on the old CSS and passes on the new, and it checks the closed
   peek too, so a fix to the list cannot quietly break the overlay.
-- `test/chat1.test.js` holds the **law**, and states it over the SHEET
+- `test/net/chat1.test.js` holds the **law**, and states it over the SHEET
   rather than over `.dfchat-line`: the sheet still contains a
   fixed-height flex-column scroller (so the rule cannot go vacuous),
   and nothing in the sheet hides its overflow without also refusing to

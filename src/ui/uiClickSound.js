@@ -38,6 +38,24 @@ const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Da
 
 let installed = false;
 
+/** SND2 (Dudey: "give the main menu button presses the same sound as ingame"): THE FRONT DOOR'S CLICK. Only a game host
+ *  boots the sound engine (scenes/shared.js ensureAudio), so on the main menu every press above was silent - the bank
+ *  was never read. The front door (main.js) hands its data gate's reader in, and the bank is read from the player's own
+ *  stored data and the engine booted with it - but only when the bank is THERE: a boot on a missing file would leave the
+ *  engine off for the game that boots it later (audio.ensure keeps its first answer), so with no data the host boots it
+ *  with the game, as it always did. The reader is handed in, never imported: the HUD imports this module (through
+ *  enhancedStyle.js), and a data module named here, even lazily, puts the quest machine in the HUD's reach (GUIDE3's
+ *  walk, test/ui/quest/guide3_herald.test.js). */
+export async function wakeUiClickSound(getBytes) {
+  if (!isEnhanced() || audio.enabled || audio._booted) return false;   // the click sounds only under the enhanced skin
+  try {
+    const bank = await getBytes('DAGGER.SND');
+    if (!bank || !(bank.byteLength ?? bank.length) || audio.enabled || audio._booted) return false;
+    await audio.ensure(async (name) => (name === 'DAGGER.SND' ? bank : getBytes(name)));
+    return !!audio.enabled;
+  } catch { return false; }   // no data yet: the game's host boots the sound with the game
+}
+
 export function installUiClickSound(doc = globalThis.document) {
   const win = doc?.defaultView;
   if (installed || !win) return;

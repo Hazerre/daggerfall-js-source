@@ -45,7 +45,7 @@ arrays, the same in every arm of an A/B).
 | allocated a frame (collected objects included) | - | 2.1 MB, 1.1 MB of it in the shadow replays |
 
 Outside the frame, on their own timers (a cost a second, not a frame - at ~0.4 fps here they read as a frame's): the
-music synth (~2.2 ms a second here), and the movable HUD's sweep (`ui/hudLayout.js`, ~31 `querySelectorAll` a sweep,
+music synth (~2.2 ms a second here), and the movable HUD's sweep (`ui/hud/hudLayout.js`, ~31 `querySelectorAll` a sweep,
 on a 250 ms interval AND from the HUD's frame tick, so about eight sweeps a second where four were meant).
 
 ## PERF-ON3 — the chat roster, derived once and not once a frame
@@ -73,7 +73,7 @@ online while the chat was open, for a list that had not changed.
   with the count, the tab's word and the open menu, before it builds its repaint key.
 
 After: 0.03 ms a frame at 500 online, 0.08 at 1,000 (a join every 30 frames: 0.04 and 0.12). Pins:
-`test/perfon3.test.js` (3) - the old rosterRows is the oracle over six seeded 260-step stories through every tab's
+`test/net/perfon3.test.js` (3) - the old rosterRows is the oracle over six seeded 260-step stories through every tab's
 source; the savings by identity and by count (no localeCompare); the panel repaints on every change it repainted on
 before. Mutants: `tools/mutants/perfon3.json`, 14, all dead; ACC3c-11 and GUILD1c's row mutants re-aimed by content.
 
@@ -101,7 +101,7 @@ no dynamic record no lantern's dynamic scan is asked: built every frame, a still
 2,000 flats paid 0.31 -> 0.78 ms a frame for lists nobody read (the audit's own measure). A lantern ABOUT TO DRAW
 a face then asks its placed batches of their quads, once a frame (`_candidateQuads`: none in that grown cube, and the
 batch leaves its lists - and a record left with no flat leaves them too). Never in the walk: the PERF-EXT review's law
-is that a still room drawn whole reads no placement a frame (`test/perfexta.test.js`), and the first cut of this slice,
+is that a still room drawn whole reads no placement a frame (`test/render/perfexta.test.js`), and the first cut of this slice,
 which asked every lantern's quads in the walk, broke it - its own suite said so. The faces and `_dynamicNear` then walk
 only the candidates, in the records' own order, and ask every question they asked before - so a face draws exactly
 what it drew. A sphere with a NaN on any axis is always a candidate (the planes never cull one; `cubeKeeps` carries the
@@ -110,7 +110,7 @@ and a lantern placed by a NaN gets none (its faces walk everything, as before). 
 axes or more is kept too (B5 - a plane meets it as a NaN), a negative radius reaches far + r (B6), and discard() empties
 every lantern's lists, so none holds a batch past the frame (B4).
 
-**Held.** `test/perfshadow1.test.js` (4): every draw of every frame - program, VAO, framebuffer, count, offset, order -
+**Held.** `test/render/perfshadow1.test.js` (4): every draw of every frame - program, VAO, framebuffer, count, offset, order -
 against the same pass with the pre-pass off, over random towns by night and day, steady and not; the saving by count (a
 far moving wood is read by the main pass and the air pass alone; a wood whose sphere holds four lanterns' cubes and no
 tree of it is dropped by one cube query a lantern, where every face walked its placements and bound its program); and
@@ -118,7 +118,7 @@ the cube against the real float32 planes at the edge of a face, near the origin 
 `tools/mutants/perfshadow1.json`: 19, all dead; and PERF-EXT's and WEEDS1's 98 records (`perfexta.json` 54,
 `perfextb.json` 36, `weeds1.json` 8 - 45 of them aimed at the replay, the rest at the renderer, the bounds, the world
 host and the flats' distance; AUDIT 637 D10: this line called them all the replay's) still die over it - 97 dead,
-PERF-EXT11-9 equivalent as recorded, re-run over the audited code. AUDIT 637's pins are `test/audit637_shadow.test.js`
+PERF-EXT11-9 equivalent as recorded, re-run over the audited code. AUDIT 637's pins are `test/render/audit637_shadow.test.js`
 (10): every far a light has, the far-96 case end to end, a 40-scene differential fuzz, a corner tree kept with its lean,
 the quads asked under the static cache, still and mixed frames by walk count, discard, and the degenerate edges -
 `tools/mutants/audit637.json` B1a-B6, all dead.
@@ -136,7 +136,7 @@ real-game A/B on a quiet machine.
 of PERF-URL's memo) before looking the key up in a table that forces a handful of keys (nine once the features load).
 0.09 ms a frame of `isOnlinePage` under it, offline, by the profile. The table first now, as `onlineForcedSetting` has
 asked it since AUDIT RETRO1 G2 (AUDIT 637 D8: not "always" - it read the page first at DISC22-A): two pure reads, the
-same answer. `test/perfurl2.test.js` (2); 3 mutants, dead. (A forced key - the sea's own switch is one - still reads the
+same answer. `test/systems/online/perfurl2.test.js` (2); 3 mutants, dead. (A forced key - the sea's own switch is one - still reads the
 page on every read: the rest of that door is item 4 below.)
 
 ## V8'S CEILING — the functions too big to optimize
@@ -152,10 +152,11 @@ trace over the same window: the shadow pass's functions (`replay`, `_casterCandi
 the placement queries) reach TurboFan within the window; the world host's `frame` is never marked. On the relay,
 `Room._message` is over the line too (69,858 bytes, node 22).
 
-Whether the world host's frame is brought under the line is open (item 22): a prototype in this pass's scratch moved
-its largest self-contained blocks into functions of their own (24 lines, the text between untouched), and its A/B under
-a long session's tiering (V8's invocation thresholds lowered for both arms, since a once-a-frame function never reaches
-them at SwiftShader's ~0.4 fps) was stopped unfinished with the rest (AUDIT 637 D4: this paragraph said "running now").
+The world host's frame was brought under the line on 2026-10-10 (item 22, PERF-V8: `Performance-Priority.md`); this
+pass's prototype moved its largest self-contained blocks into functions of their own (24 lines, the text between
+untouched), and its A/B under a long session's tiering (V8's invocation thresholds lowered for both arms, since a
+once-a-frame function never reaches them at SwiftShader's ~0.4 fps) was stopped unfinished with the rest (AUDIT 637
+D4: this paragraph said "running now").
 
 ## Online, measured
 
@@ -185,9 +186,9 @@ Each with what was measured, the lever, and whether it moves what a player sees 
 container's CPU, or node/Chromium micro-benchmarks over the real modules where named.
 
 **The client's CPU (measured here).**
-1. **The sun's three cascades walk the frame each** - 1.8 ms a frame by day at Knightstale, three walks of every
+1. ~~**The sun's three cascades walk the frame each** - 1.8 ms a frame by day at Knightstale, three walks of every
    record and flat. One shared walk (each flat's sphere once, tested against the three volumes) is the cascades' half
-   of PERF-SHADOW1. Nothing a player sees.
+   of PERF-SHADOW1. Nothing a player sees.~~ SHIPPED 2026-10-09: PERF-SUN3 (`Performance-Online.md`).
 2. **Input polls allocate** - `ui/input.js` actionDown walks the binding Maps with destructured entries for every
    action asked, every frame: ~80 KB of garbage a frame (night, Knightstale). An action -> codes index rebuilt on a
    rebind would end it, but codeDown carries DFU's modifier-assignment order (InputManager :1695-1711): its own slice,
@@ -199,13 +200,14 @@ container's CPU, or node/Chromium micro-benchmarks over the real modules where n
    here) and on every `isEnhanced()` (the skin's door). The one in-page writer of the URL is publishBootParams, so a
    cache it invalidates would end the reads - but that overturns PERF-URL's "not a latch" rule, so it is Mac's call (For
    Mac; AUDIT 637 D15e: this line said the arc's).
-5. **The movable HUD sweeps twice as often as it means to** - a 250 ms interval AND the HUD's frame tick, each on its
-   own clock: ~8 sweeps a second of ~31 `querySelectorAll`. Small (~0.1 ms a sweep on a desktop core); one clock.
-6. **A per-frame closure as a call target** - `renderer._renderPasses` mints `bindVao` every frame and hands it to the
+5. ~~**The movable HUD sweeps twice as often as it means to** - a 250 ms interval AND the HUD's frame tick, each on its
+   own clock: ~8 sweeps a second of ~31 `querySelectorAll`. Small (~0.1 ms a sweep on a desktop core); one clock.~~
+   SHIPPED 2026-10-09: PERF-HUD1 (`Performance-Online.md`; 34 asks a sweep on that tree).
+6. ~~**A per-frame closure as a call target** - `renderer._renderPasses` mints `bindVao` every frame and hands it to the
    shadow and air passes; V8 deoptimized the shadow replay once on it in node ("wrong call target"). A bound method
-   kept on the renderer is the same call.
+   kept on the renderer is the same call.~~ SHIPPED 2026-10-09: PERF-VAO1 (`Performance-Online.md`; no gain measured).
 
-7. **The spell effects' first use, per engine** (IMPACTFX; `01-Overview/Field-Bugs-2026-10-06b.md`) - the light's pass
+7. **The spell effects' first use, per engine** (IMPACTFX; `01-Overview/bugs/Field-Bugs-2026-10-06b.md`) - the light's pass
    is compiled inside the frame of the first landing an engine draws (6.8 ms on SwiftShader), not warmed at idle as the
    renderer's own on-demand programs are (PERF-WARM - AUDIT 637 D9: not every program is; the aura ring and the gate
    court's passes build in their first frame too), and each look's sound is baked on its first play (3-8 ms in node).
@@ -228,19 +230,26 @@ container's CPU, or node/Chromium micro-benchmarks over the real modules where n
 13. **Inbound messages** - JSON.parse is most of a message's 19-21 us; a new frame type for bundled poses needs a relay
     deploy (SCALE5's slimmer poses).
 14. **The realm checkpoint** - the idle key from the object, not three passes over the whole save: no behaviour change.
+    MEASURED 2026-10-09 (`Performance-Online.md`): a new character's save is 103 KB, about a millisecond of passes every
+    two minutes - left, as not worth the composers' seam it would move; a long life's save is the case that would.
 
 **Online - the relay (each a deploy that drops every player once - batched, announced).**
 15. **`_message` under the ceiling and the pose arm tightened** - 108.5 -> 39.3 us a moving pose at 200 in one pixel,
     measured on a prototype in this pass's scratch, no behaviour change. Not committed: its own pull request, in an
-    announced window.
+    announced window. BUILT 2026-10-09 as PERF-RELAY1 (`11-Multiplayer/Scale-Arc.md`; relay world184 on its own branch,
+    NOT YET DEPLOYED): the arm a method of its own, the index walked in place and the sender's pixel derived once a fan
+    (`net/wire.js inRangeOf`) - two of the arm's lines changed, the rest as it was.
 16. **The foes lane** fan-bounded, and no full frame with no foes - tiering far listeners as poses are tiered changes
     what they see: a design call.
 17. **Slimmer poses** - quantised, defaults omitted, -35% bytes measured; binary later. SCALE5.
-18. **SCALE3's load harness** still does not exist; the benches this pass used (a Room over a counting fake, the client
-    session over a fake socket) are its measuring half.
+18. **SCALE3's load harness** exists now (2026-10-08, `tools/loadHarness.mjs`, `npm run load`;
+    `11-Multiplayer/Scale-Arc.md` SCALE3): both Workers in local workerd under a fleet of the client's own modules. At 100
+    bots in one cell over three threads a pose's age is p50 19 ms, p99 78 ms, with 132 frames a bot-second heard; one
+    thread is the harness's own queue. The staging pair is left; the benches this pass used (a Room over a counting
+    fake, the client session over a fake socket) stay its microscope.
 19. **`net/wire.js`'s POSE_FAR_SHARE doc** says the far interval is clamped at GAP_MAX_MS - true for an arrival
     interval, no longer for a timed one (AUDIT 637 C2). The file's bytes are the relay's version (SLAM8), so its
-    correction rides the next relay deploy, with no behaviour of its own.
+    correction rides the next relay deploy, with no behaviour of its own. Written with PERF-RELAY1 (world184).
 
 **Tooling.**
 20. `npm run perf`'s dungeon row (`/play/?shot&class=0&fps`) now stands on the New Character window and never readies;
@@ -249,9 +258,11 @@ container's CPU, or node/Chromium micro-benchmarks over the real modules where n
     `__streamIdle()` there.
 
 **V8.**
-22. **The world host's `frame` over the ceiling** (99,547 bytes of bytecode; 61,440 is the line) never leaves the
-    interpreter. Moving its largest blocks into functions of their own brings it under; unmeasured in the real game, and
-    it moves every cite into world.js below the first block - its own pull request, if its A/B shows a gain.
+22. **The world host's `frame` over the ceiling** (99,547 bytes of bytecode in Chromium; by node 22's V8 compiled eagerly,
+    `--no-lazy --print-bytecode`, 100,806 at this pass's merge and 105,613 on 2026-10-09 - `Performance-Online.md`;
+    61,440 is the line). BUILT 2026-10-10 as PERF-V8 (`Performance-Priority.md`): twenty-one statements closures of
+    their own, made in place - lines inserted only, so no cite moved - and the frame 39,965 bytes; the real game's A/B
+    is still owed.
 
 ## For Mac
 

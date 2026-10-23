@@ -1,5 +1,6 @@
 import { addItem, isGoldPieces, addGoldPieces } from '../inventory.js';
-import { planTake, applyTransfer } from '../itemTransfer.js';
+import { itemValueOf } from '../item/itemTemplates.js';
+import { planTake, applyTransfer } from '../item/itemTransfer.js';
 
 /** Plunder and returning crew use the same carry rules; forced returns keep every item. */
 export function giveNavalItems(items, boat, entity, { force = false } = {}) {
@@ -23,4 +24,16 @@ export function giveNavalItems(items, boat, entity, { force = false } = {}) {
     } else left.push(item);
   }
   return { left, over };
+}
+
+/** CAPT-LOG (bible/03-World/Captains-Sea.md): what plunder is worth to the captain's log - gold pieces their count, every
+ *  other thing its value (itemTemplates.js itemValueOf) a piece of its stack. */
+export function navalLootWorth(items) {
+  let worth = 0;
+  for (const it of items ?? []) {
+    if (!it) continue;
+    const n = Math.max(1, it.stackCount | 0 || 1);
+    worth += isGoldPieces(it) ? n : Math.max(0, Number(itemValueOf(it)) || 0) * n;
+  }
+  return Math.round(worth);
 }

@@ -35,14 +35,19 @@ export const YARD_ORDER = Object.freeze(['hull', 'sail', 'crew', 'barrels']);
 /** Each row's price a piece. */
 export const YARD_PRICE = Object.freeze({ hull: REPAIR_PRICE.hull, sail: REPAIR_PRICE.sail, crew: REPAIR_PRICE.crew, barrels: BARREL_PRICE });
 
+/** CAPT-BOARD: a rank's favour off the yard's prices is never more than this. */
+export const YARD_DISCOUNT_MAX = 0.5;
 /**
  * What the yard offers a boat: each row's pieces missing, its price, what the whole of it costs, and how much of it the
- * purse pays for (and that for how much) - with the whole bill and the purse.
+ * purse pays for (and that for how much) - with the whole bill and the purse. CAPT-BOARD: `discount` a captain's rank's
+ * share off every price (captainLedger.js RANK_PERKS `yard`), a price kept to the copper.
  * @param {{ hull: number, maxHull: number, sail: number, maxSail: number, crew: number, maxCrew: number }} damage
  * @param {number} barrels - the barrels aboard
  * @param {number} gold - the purse
+ * @param {{ discount?: number }} [o]
  */
-export function yardOffer(damage, barrels, gold) {
+export function yardOffer(damage, barrels, gold, { discount = 0 } = {}) {
+  const k = 1 - Math.max(0, Math.min(YARD_DISCOUNT_MAX, Number(discount) || 0));
   const purse = Math.max(0, Math.floor(Number(gold) || 0));
   const missing = {
     hull: Math.max(0, Math.ceil(damage.maxHull - damage.hull - 1e-9)),
@@ -51,22 +56,23 @@ export function yardOffer(damage, barrels, gold) {
     barrels: Math.max(0, BARREL.stock - Math.max(0, barrels | 0)),
   };
   const rows = YARD_ORDER.map((id) => {
-    const n = missing[id], price = YARD_PRICE[id];
+    const n = missing[id], price = Math.round(YARD_PRICE[id] * k * 100) / 100;
     const afford = Math.min(n, Math.floor(purse / price));
-    return { id, missing: n, price, whole: n * price, afford, cost: afford * price };
+    return { id, missing: n, price, whole: Math.ceil(n * price - 1e-9), afford, cost: Math.ceil(afford * price - 1e-9) };
   });
   return { rows, whole: rows.reduce((sum, r) => sum + r.whole, 0), gold: purse };
 }
 
 /** MAKE HER WHOLE: each row in YARD_ORDER as far as the purse goes - `[{ id, n, cost }]`, the rows it can pay for. */
-export function yardAll(damage, barrels, gold) {
+export function yardAll(damage, barrels, gold, { discount = 0 } = {}) {
   let purse = Math.max(0, Math.floor(Number(gold) || 0));
   const out = [];
-  for (const r of yardOffer(damage, barrels, purse).rows) {
+  for (const r of yardOffer(damage, barrels, purse, { discount }).rows) {
     const n = Math.min(r.missing, Math.floor(purse / r.price));
     if (n <= 0) continue;
-    out.push({ id: r.id, n, cost: n * r.price });
-    purse -= n * r.price;
+    const cost = Math.ceil(n * r.price - 1e-9);
+    out.push({ id: r.id, n, cost });
+    purse -= cost;
   }
   return out;
 }
@@ -148,7 +154,9 @@ export function provisionOffer({ stores, stock = STORES_STOCK, morale, crew, cre
   rows.push({ id: 'stores', missing: n, price: STORE_PRICE, whole: n * STORE_PRICE, afford: Math.min(n, Math.floor(purse / STORE_PRICE)), have: Math.max(0, stores | 0) });
   if (crewed && morale != null) {
     const price = grogPrice(crew), want = morale < 100 && !grogToday ? 1 : 0;
-    rows.push({ id: 'grog', missing: want, price, whole: want * price, afford: Math.min(want, Math.floor(purse / price)), have: morale });
+    // FIELD BUGS 2026-10-14 GROG-WORD: `drunk` - no round wanted because the day's is drunk, not because her spirits are
+    // at the top (the window said "as high as they go" over a crew the helm called low)
+    rows.push({ id: 'grog', missing: want, price, whole: want * price, afford: Math.min(want, Math.floor(purse / price)), have: morale, drunk: morale < 100 && !!grogToday });
   }
   for (const r of rows) r.cost = r.afford * r.price;
   return { rows, gold: purse };

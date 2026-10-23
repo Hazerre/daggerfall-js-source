@@ -1,6 +1,6 @@
 // U8f: EQUIP MECHANICS - DFU ItemEquipTable's equip/unequip half
 // (MIT Daggerfall Workshop) over the EXISTING C5a/C5c foundation
-// (characters/paperdoll.js EQUIP_SLOTS + characters/equipTable.js's
+// (characters/paperdoll/paperdoll.js EQUIP_SLOTS + characters/equipTable.js's
 // verbatim GetEquipSlot/GetItemHands assignment layer, whose header
 // defers "equip/unequip mechanics (unequip lists, prohibitions)"
 // to this Systems module). Bag items carry STRING groups (the
@@ -20,10 +20,11 @@
 // directly, which is the port's shape of DFU's playEquipSounds=false
 // load arm.
 
-import { mintCondition, templateByIndex } from './itemTemplates.js';   // AUDIT 23
-import { EQUIP_SLOTS } from '../characters/paperdoll.js';
+import { mintCondition, templateByIndex } from './item/itemTemplates.js';   // AUDIT 23
+import { repoolWeapon } from './conditionRepair.js';   // AUDIT WEAPON-POOL P2: a weapon on its row's pool moves before it wears
+import { EQUIP_SLOTS } from '../characters/paperdoll/paperdoll.js';
 import { ITEM_GROUPS, SLOT_RULES } from '../characters/equipRules.js';
-import { customItemClass, rriNativeMaterialValue, rriEquipSound } from './rriItems.js';
+import { customItemClass, rriNativeMaterialValue, rriEquipSound } from './roleplayRealismItems/rriItems.js';
 import { SOUND } from './soundClips.js';   // AUDIT-RR F8: the class's equip sound, by name   // RRI1: a custom armor's slot, for the body part its value lands on; AUDIT-RR F7/F8: the class's two virtuals
 import { createEquipTable, getItemHands as handsOf, ITEM_HANDS } from '../characters/equipTable.js';
 import { BODY_PARTS, NUMBER_BODY_PARTS, materialArmorValue, itemArmorValue, SHIELD_VALUES, SHIELD_PARTS, isShieldTemplate } from './armorMaterials.js';
@@ -32,6 +33,8 @@ import { SKILLS, WEAPON_SKILL } from './skills.js';   // S23: the weapon partiti
 import { EQUIP_DELAY_TIMES } from '../characters/weaponStates.js';   // CH3 (characters-13): the swap-pause table gains its consumer
 import { startingProvisions } from './survival/items.js';   // SURV2: the new character's kit
 import { survivalOn } from './survival/switch.js';   // SURV2: the one switch
+import { localizedText } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { ARMOR_BITS_SHIFT } from './specialAdvantages.js';   // the armour field's place, one home
 
 export { EQUIP_SLOTS, ITEM_HANDS };
 
@@ -164,7 +167,7 @@ export function unequipItem(entity, item) {
  *  could never put back on. Ported at the same seam, deliberately. */
 export function isForbiddenEquip(career, item) {
   if (!career || !item) return false;
-  const forbiddenArmors = (career.weaponArmorShieldsBitfield >>> 6) & 0x07;
+  const forbiddenArmors = (career.weaponArmorShieldsBitfield >>> ARMOR_BITS_SHIFT) & 0x07;
   const forbiddenShields = (career.weaponArmorShieldsBitfield >>> 9) & 0x0f;
   const forbiddenProficiencies = career.weaponArmorShieldsBitfield & 0x3f;
   const forbiddenMaterials = career.forbiddenMaterialsFlags ?? 0;
@@ -230,8 +233,8 @@ export const ITEM_BROKEN_TEXT_ID = 29;
  *  ABOVE the prohibition chain), and ItemEquipTable.EquipItem
  *  (ItemEquipTable.cs:94-154) has no condition test at any point.
  *  This predicate is therefore for the two WINDOW callers
- *  (ui/nativeInventory.js's _refuseForbidden and
- *  ui/enhancedInventory.js's wear) and for nobody below them - the
+ *  (ui/native/nativeInventory.js's _refuseForbidden and
+ *  ui/enhanced/enhancedInventory.js's wear) and for nobody below them - the
  *  port had it inside equipItem, at the table seam, and every caller
  *  DFU lets equip past the window paid for it. The one that showed:
  *  PlayerEntity.cs:959 imports a classic save's worn gear with
@@ -280,6 +283,39 @@ export function equipItem(entity, item) {
 }
 
 export const isEquipped = (item) => item.equipSlot != null;
+
+/** SWAP-HANDS (2026-10-08, the owner: "the game should also let you swap out left and right hand in the inventory (right
+ *  now you have to put both in the inventory again and requip it)"): the pieces in the two hands change hands - each by
+ *  the hand law the equip table itself keeps (characters/equipTable.js getItemHands): a piece held in EITHER hand may go
+ *  to the other, a shield (LeftOnly) never leaves the left, a right-only or two-handed weapon never the right. One held
+ *  piece that may change hands crosses to the empty one. Answers `{ ok: true }` or `{ ok: false, why }` - words for the
+ *  pack. One equip act (oneEquipAct), so every listener hears the table once, settled. */
+export function canSwapHands(entity) {
+  const slots = equipTableOf(entity);
+  const R = slots[EQUIP_SLOTS.RightHand], L = slots[EQUIP_SLOTS.LeftHand];
+  if (!R && !L) return { ok: false, why: 'Your hands are empty.' };
+  const may = (item, to) => {
+    const h = getItemHands(numeric(item));
+    return h === ITEM_HANDS.Either || (to === EQUIP_SLOTS.LeftHand ? h === ITEM_HANDS.LeftOnly : h === ITEM_HANDS.RightOnly || h === ITEM_HANDS.Both);
+  };
+  if (R && !may(R, EQUIP_SLOTS.LeftHand)) return { ok: false, why: `${R.name ?? 'That'} can only be held in the right hand.` };
+  if (L && !may(L, EQUIP_SLOTS.RightHand)) return { ok: false, why: `${L.name ?? 'That'} can only be held in the left hand.` };
+  return { ok: true };
+}
+export function swapHands(entity) {
+  const can = canSwapHands(entity);
+  if (!can.ok) return can;
+  const slots = equipTableOf(entity);
+  const R = slots[EQUIP_SLOTS.RightHand], L = slots[EQUIP_SLOTS.LeftHand];
+  oneEquipAct(() => {
+    slots[EQUIP_SLOTS.RightHand] = L ?? null;
+    slots[EQUIP_SLOTS.LeftHand] = R ?? null;
+    if (L) L.equipSlot = EQUIP_SLOTS.RightHand;
+    if (R) R.equipSlot = EQUIP_SLOTS.LeftHand;
+    equipChanged(entity);
+  });
+  return { ok: true };
+}
 
 /** AUDIT 17e C1 - SerializablePlayer.RestoreItems verbatim
  *  (SerializablePlayer.cs:301, :355-368): after items are restored,
@@ -344,10 +380,10 @@ export function seedStartingEquipment(entity) {
   entity.items.push(dagger);
   equipItem(entity, dagger);
   // SURV2: a new character sets out with provisions - two sacks of
-  // rations, a full waterskin, worn camping gear and a fire kit with
-  // two lights left (survival/items.js startingProvisions; the mod's
-  // own OnStartGame kit, plus the port's fire). Casual and Hard alone, by decision (Mac, 2026-09-23: "No, not off.. theres no reason to have it in off" - SURV-KIT, withdrawn).
-  if (survivalOn()) for (const it of startingProvisions()) entity.items.push(it);
+  // rations, a full waterskin, the road's cloak and shoes, worn camping
+  // gear and a full Campfire (survival/items.js startingProvisions; the
+  // mod's own start, plus the port's fire). Every tier with the arc on - Boons, Casual and Hard - never Off, by decision (Mac, 2026-09-23: "No, not off.. theres no reason to have it in off" - SURV-KIT, withdrawn). AUDIT C&C I7: it said a fire kit with two lights left (REST2 made it a full Campfire) and "Casual and Hard alone" (Boons has the kit).
+  if (survivalOn()) for (const it of startingProvisions(entity)) entity.items.push(it);
 }
 
 /** AC-COMPARE (FIELD BUGS 2026-09-29d): WHAT A WEAR TAKES OFF - EquipItem's three unequip arms
@@ -464,7 +500,11 @@ export const bodyPartForSlot = (slot) => SLOT_BODY_PART.get(slot) ?? -1;
  *  from the owner, which restores the armor table through
  *  unequipSlot. A broken MUNDANE item stays in the pack; DFU removes
  *  only an ENCHANTED player item, and that arm rides the enchantment
- *  arc with the rest of the payloads. Returns true on a break. */
+ *  arc with the rest of the payloads. Returns true on a break.
+ *
+ *  L10N3e: `nameOf(item)` is the caller's name AS SHOWN (shownItemName -
+ *  itemInfo.js imports this module, so it cannot import that back); the
+ *  line names the item by it, and by the canonical name without one. */
 const PLURAL_BREAK_TEMPLATES = new Set([103, 104, 108]);   // Armor.Gauntlets, Greaves, Boots
 
 /** THE SCALE ON A BLOW'S WEAR - 1, Daggerfall Unity's own. BALANCE1
@@ -519,14 +559,19 @@ export function blowWear(amount, rolls = Math.random) {
   return x > n && rolls() < x - n ? n + 1 : n;
 }
 
-export function lowerCondition(item, amount, owner = null, say = null, removeFrom = null) {
+export function lowerCondition(item, amount, owner = null, say = null, removeFrom = null, nameOf = null) {
   mintCondition(item);
+  // AUDIT WEAPON-POOL P2: a weapon still on its row's pool - back from a store the load does not walk (hung in a room, a
+  // revenant's take, a quest's prize, an heir's bequest, a market or vault record) - moves to the one pool before it wears
+  repoolWeapon(item);
   if ((item.maxCondition ?? 0) <= 0) return false;   // no condition to lower: the frozen stand-ins and 0-hitPoint templates cannot break
   item.currentCondition -= amount;
   if (item.currentCondition > 0) return false;
   item.currentCondition = 0;
-  const name = item.name ?? templateByIndex(item.templateIndex)?.name ?? 'Item';
-  say?.(`${name} ${PLURAL_BREAK_TEMPLATES.has(item.templateIndex) ? 'have' : 'has'} broken.`);
+  const name = nameOf?.(item) ?? item.name ?? templateByIndex(item.templateIndex)?.name ?? 'Item';
+  // L10N3d: ItemBreaks' rows (DaggerfallUnityItem.cs:1203-1207), %s filled after the lookup - here with the port's
+  // short name, where DFU passes LongName
+  say?.((PLURAL_BREAK_TEMPLATES.has(item.templateIndex) ? localizedText('itemHasBrokenPlural', '%s have broken.') : localizedText('itemHasBroken', '%s has broken.')).replace('%s', name));
   // E2 corrected E1's order to ItemBreaks' own (DaggerfallUnityItem):
   // the popup, THEN the unequip (which fires the Unequipped payloads
   // and strips any held bundle), THEN the Breaks payload - both
@@ -541,6 +586,10 @@ export function lowerCondition(item, amount, owner = null, say = null, removeFro
   // own corpse's loot is not hidden from every inventory tab), and
   // the mark-keyed call could never take a broken foe's shield off.
   if (owner) unequipItem(owner, item);
+  // AUDIT RVN G4: and out of a foe's hand - the port's foe swings `entity.weapon`, where DFU's EnemyAttack reads the right
+  // hand's slot (MeleeDamage: ItemEquipTable.GetItem(RightHand)), which the unequip just emptied: a broken blade is no
+  // blade, and a sworn one's given weapon, broken, was swung on (and broke again) at every blow
+  if (owner && owner.weapon === item) owner.weapon = null;
   // PCO1: LowerCondition's third parameter, `removeFromCollectionWhenBreaks`
   // (DaggerfallUnityItem.cs) - ItemBreaks removes the item from that
   // collection. The port's one caller is the mod's fading enchanted

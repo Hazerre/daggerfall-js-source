@@ -17,7 +17,7 @@ author's own art and carry no licence line of their own.]**
 - `grimoire-ui.files.json` - the archive's own listing, every file in the order
   the zip stores it, with the zip's name and sha256. A loose-file pack ships no
   `.dfmod` and so no manifest of its own; this listing was generated from the
-  zip, not written by hand, and it is the authority test/doctrine.test.js and
+  zip, not written by hand, and it is the authority test/tooling/doctrine.test.js and
   src/systems/uiPack.js both read.
 - The files themselves stand under `public/art/grimoire-ui/`, byte for byte:
   `Img/*.IMG.png` (93 whole screens at 3x), `CifRci/BUTTONS.RCI_<r>-0.png`
@@ -32,3 +32,7 @@ GrimoireUI is the classic skin with the pack worn over it, as Daggerfall Unity's
 loose-file injection does: every classic screen keeps its 320x200 layout and hit
 rects, only the texture behind it is the pack's (src/ui/packArt.js), and the two
 fonts draw through DFU's SDF arm (src/ui/text.js) when GUI/SDFFontRendering is on.
+
+DFO Grimoire (GRIM1, 2026-10-09) is the pack's second use: the ENHANCED skin dressed in these same pictures, cut at run
+time by src/ui/grimoireArt.js (nothing derived is committed) and painted by src/ui/grimoireDress.js - the UI panel's
+fourth look. See bible/10-UI/Overhauls.md, GRIM1.

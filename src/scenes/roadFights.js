@@ -4,7 +4,7 @@
 // real and the player's to turn. Mac: NPCs "can encounter enemies in the overworld ... make friends or enemies".
 //
 // The trouble is pure (systems/livingWorld/trouble.js): every reader's world holds the same caravan beset at the same
-// bend by the same foes, with the same end, and the roads' layer shows it fought (scenes/livingRoads.js). A player ON
+// bend by the same foes, with the same end, and the roads' layer shows it fought (scenes/livingWorld/livingRoads.js). A player ON
 // THE GROUND within LIVE_M of a party at its fight, and the one standing it (the camps' own election online - the
 // lowest id near it, campEncounters.js amGroupRollOwner; offline always), stands it LIVE:
 //  - THE FOES as the encounter pool's own (exteriorFoes.js spawnFoe - loose, transient: never a save's), each its kind,
@@ -27,6 +27,8 @@
 import { membersAt } from '../systems/livingWorld/trips.js';
 import { NATIVE_PER_M } from '../systems/livingWorld/trips.js';
 import { lwSeed, textSeed } from '../systems/livingWorld/seed.js';
+import { clearOfTeam } from '../systems/livingWorld/wagons.js';
+import { killed } from './hideouts.js';   // AUDIT LW-III: a body gone from the pool is a fall only where it was killed   // AUDIT LW-III: a fight's bodies clear of the beset party's team
 
 /** A fight this near the player (m, on the ground) is stood live. */
 export const LIVE_M = 150;
@@ -77,8 +79,11 @@ export function createRoadFights(deps) {
     fights.delete(id);
   }
 
-  /** Stand a fight: its foes about the party's place, the party's armed where they stand. */
-  function stand(trip, at, t) {
+  /** Stand a fight: its foes about the party's place, the party's armed where they stand. AUDIT LW-III: `team` the
+   *  party's wagons and horses where they stand (the roads' layer's) - every body rises clear of them (wagons.js
+   *  clearOfTeam): a foe rose inside a second wagon's box on the collider, an ally in its horse. */
+  function stand(trip, at, t, team = null) {
+    const clear = (/** @type {number} */ x, /** @type {number} */ z) => (team ? clearOfTeam(x, z, team) : { x, z });
     const enc = trip.enc;
     /** @type {{ trip: any, enc: any, at: number[], foes: any[], allies: Map<string, any>, state: 'standing'|'live'|'won'|'lost', fell: Set<string> }} */
     const f = { trip, enc, at: deps.sceneOf(at.x, at.z), foes: [], allies: new Map(), state: 'standing', fell: new Set() };
@@ -89,7 +94,7 @@ export function createRoadFights(deps) {
     enc.foes.forEach((type, i) => {
       const a = ((i + 0.5) / enc.foes.length) * Math.PI * 2 + turn;
       const r = (near + ((lwSeed(textSeed(enc.id), i, 0x72) % 1000) / 1000) * (far - near)) * NATIVE_PER_M;
-      const nx = at.x + Math.sin(a) * r, nz = at.z + Math.cos(a) * r;
+      const { x: nx, z: nz } = clear(at.x + Math.sin(a) * r, at.z + Math.cos(a) * r);
       const feet = deps.sceneOf(nx, nz);
       stands.push(Promise.resolve(deps.spawn(type, feet, { yaw: Math.atan2(f.at[0] - feet[0], f.at[2] - feet[2]), level: enc.level, allied: false, gender: 'male' }))
         .then((rec) => { if (rec) { if (fights.get(enc.id) !== f) takeOut(rec); else { rec._lwFight = enc.id; f.foes.push(rec); } } }));
@@ -101,7 +106,8 @@ export function createRoadFights(deps) {
       const standing = rel?.standing(m.id, day());
       if (standing === 'enemy' || standing === 'hostile') return;   // LW7b: no enemy of the player's fights beside them - they keep the ring
       const a = (i / Math.max(1, members.length)) * Math.PI * 2;
-      const feet = deps.sceneOf(at.x + Math.sin(a) * 64, at.z + Math.cos(a) * 64);
+      const c = clear(at.x + Math.sin(a) * 64, at.z + Math.cos(a) * 64);
+      const feet = deps.sceneOf(c.x, c.z);
       stands.push(Promise.resolve(deps.spawn(m.cls, feet, { yaw: a, level: m.level ?? 1, allied: true, gender: m.sex ?? 'male' }))
         .then((rec) => {
           if (!rec) return;
@@ -127,16 +133,20 @@ export function createRoadFights(deps) {
     if (deps.died) { deps.died(res, t); deps.onTurn?.(); } else turn('fallen', deps.turnKeyOf(res, trip));
   }
 
-  /** Read a live fight: the fallen, the won, the lost. */
+  /** Read a live fight: the fallen, the won, the lost. AUDIT LW-III (KILLED, NOT GONE): a body is down only where it was
+   *  killed (hideouts.js `killed`: dead with a corpse, or executed) - the pool's relevance cull (exteriorFoes.js
+   *  ENCOUNTER_CULL_DISTANCE, 120 m) marked a fight's bodies dead at a distance the fight is stood at (LIVE_M, 150 m) and
+   *  kept at (LIVE_KEEP_M): every ally a hand death, the foes "fallen", the fight won without a blow. The host spawns them
+   *  managed now (the cull passes them by); a body still gone without a kill is neither a fall nor a win. */
   function judge(f, t) {
     if (f.state !== 'live') return;
     for (const [id, rec] of f.allies) {
-      if (!rec.dead || f.fell.has(id)) continue;
+      if (!killed(rec) || f.fell.has(id)) continue;
       f.fell.add(id);
       fell(rec.living.res, f.trip, t);   // cut down beside the player: the lives read it
     }
     const foesStanding = f.foes.filter((rec) => !rec.dead && deps.inPool(rec));
-    const foesFell = f.foes.filter((rec) => rec.dead).length;
+    const foesFell = f.foes.filter((rec) => killed(rec)).length;
     if (!foesStanding.length && foesFell > 0) {
       f.state = 'won';
       turn('won', f.enc.id);
@@ -145,7 +155,7 @@ export function createRoadFights(deps) {
       // fated ally stood before the road's minute for their fall, alive at the win, is spared (read off the road alone
       // they were already its dead, never spared - and their body drawn beside them)
       const standing = new Map(membersAt(f.trip, t).map((m) => [m.id, m]));
-      for (const [id, rec] of f.allies) if (!rec.dead && rec.living?.res) standing.set(id, rec.living.res);
+      for (const [id, rec] of f.allies) if (!rec.dead && deps.inPool(rec) && rec.living?.res) standing.set(id, rec.living.res);
       for (const m of standing.values()) {
         if (f.fell.has(m.id)) continue;
         const fated = deps.dies(m, f.trip);
@@ -155,7 +165,7 @@ export function createRoadFights(deps) {
       return;
     }
     const armed = [...f.allies.values()];
-    if (armed.length && armed.every((rec) => rec.dead) && foesStanding.length) {
+    if (armed.length && armed.every((rec) => killed(rec)) && foesStanding.length) {
       f.state = 'lost';
       turn('lost', f.enc.id);
     }
@@ -166,17 +176,18 @@ export function createRoadFights(deps) {
      * One frame: each beset party near the player stood live where this player stands it, each live fight read, each
      * fight done or left let go. `parties` the roads' own ({ trip, at } at the clock's minute), `here` the player's
      * native place, `ground` whether the player is on the ground (the Overworld down).
-     * @param {{ trip: any, at: any }[]} parties @param {{ x: number, z: number } | null} here @param {number} t @param {{ ground?: boolean }} [o]
+     * AUDIT LW-III: each with its `team` where it stands (the roads' layer's, at a fight), its bodies stood clear of it.
+     * @param {{ trip: any, at: any, team?: { wagons: any[], horses: any[] } | null }[]} parties @param {{ x: number, z: number } | null} here @param {number} t @param {{ ground?: boolean }} [o]
      */
     frame(parties, here, t, { ground = true } = {}) {
       const can = !!here && deps.ready();
       if (can && ground) {
         for (const p of parties) {
-          const { trip, at } = p;
+          const { trip, at, team = null } = p;
           if (!at?.fight || !trip?.enc?.foes?.length || fights.has(trip.enc.id) || ended.has(trip.enc.id)) continue;
           if (Math.hypot(at.x - here.x, at.z - here.z) / NATIVE_PER_M > LIVE_M) continue;
           if (!deps.owner(deps.sceneOf(at.x, at.z))) continue;
-          stand(trip, at, t);
+          stand(trip, at, t, team);
         }
       }
       for (const [id, f] of [...fights]) {

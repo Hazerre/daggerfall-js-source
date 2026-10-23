@@ -15,21 +15,21 @@
 // The duel wall's law (render/duelWall.js): fixed geometry placed by uniforms, ADDED onto the frame (ONE, ONE) so it only
 // ever brightens what stands behind it, no depth written, tested against the depth the world wrote (the sprite itself and
 // the floor hide what stands behind them), fogged, and every rate a whole number of cycles over the wrapped clock. One
-// quad a piece, turned about the upright to face the eye. The colours are Loot Rarity's own (systems/lootRarity.js
+// quad a piece, turned about the upright to face the eye. The colours are Loot Rarity's own (systems/loot/lootRarity.js
 // RARITIES), display-encoded.
 //
 // Not a DFU member. Ledger A (WB).
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { buildProgram } from './glProgram.js';
 import { duelClock } from './duelWall.js';
-import { RARITIES } from '../systems/lootRarity.js';
+import { RARITIES } from '../systems/loot/lootRarity.js';
 
 /** The most pieces one frame draws (three pieces, a Regalia piece when one drops, the gold and the Sigil Stone - and
  *  room for more). */
 export const SPOILS_GLOW_MAX = 8;
 /** WBX3: how tall the line stands out of the sprite, by tier (metres), and how wide it is. SET6: the Aetheric's between
- *  the Legendary's and the Artifact's, as its rung is. */
-export const SPOILS_LINE_H = Object.freeze({ common: 0.7, magic: 1.0, rare: 1.4, legendary: 1.9, aetheric: 2.1, artifact: 2.3 });
+ *  the Legendary's and the Artifact's, as its rung is; GILDED1: the Gilded's the tallest, at the line's own cap. */
+export const SPOILS_LINE_H = Object.freeze({ common: 0.7, magic: 1.0, rare: 1.4, legendary: 1.9, aetheric: 2.1, artifact: 2.3, gilded: 2.5 });
 export const SPOILS_LINE_W = 0.07;
 /** The narrowest the line may stand on the screen, as an angle of the eye's view (radians): about two pixels of a
  *  1080-line screen at the port's field of view - a piece across the court keeps a line the eye can find. */
@@ -111,6 +111,7 @@ function mat4Multiply(out, a, b) {
 }
 
 const NO_FOG_RANGE = new Float32Array([0, 1]);
+const NO_HAZE = new Float32Array(8);   // AUDIT BANTHA1 HAZE-3: uJungleHaze off ([1].x 0)
 
 export class SpoilsGlowRenderer {
   constructor(gl) {
@@ -118,7 +119,7 @@ export class SpoilsGlowRenderer {
     const prog = buildProgram(gl, SPOILS_GLOW_VS, SPOILS_GLOW_FS);
     this.program = prog;
     this.u = {};
-    for (const n of ['uVP', 'uRoot', 'uHeight', 'uWidth', 'uMinRad', 'uEye', 'uColor', 'uAlpha', 'uPulse', 'uTime', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos']) this.u[n] = gl.getUniformLocation(prog, n);
+    for (const n of ['uVP', 'uRoot', 'uHeight', 'uWidth', 'uMinRad', 'uEye', 'uColor', 'uAlpha', 'uPulse', 'uTime', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos', 'uJungleHaze']) this.u[n] = gl.getUniformLocation(prog, n);
     const verts = spoilsLineVertices();
     this.count = verts.length / 2;
     const vao = gl.createVertexArray();
@@ -156,6 +157,7 @@ export class SpoilsGlowRenderer {
     gl.uniform1f(U.uFogDensity, fog?.density ?? 0);
     gl.uniform2fv(U.uFogRange, fog?.range ?? NO_FOG_RANGE);
     gl.uniform3fv(U.uCamPos, fog?.camPos ?? at);
+    if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);   // BANTHA1 (AUDIT BANTHA1 HAZE-3): the jungle's haze (renderer.setJungleHaze); none handed, off
     gl.bindVertexArray(this.vao);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
     gl.depthMask(false);
@@ -163,10 +165,11 @@ export class SpoilsGlowRenderer {
     for (const g of list) {
       const tier = RARITIES[g.tier] ? g.tier : 'common';
       gl.uniform3f(U.uRoot, g.root[0], g.root[1], g.root[2]);
-      gl.uniform1f(U.uHeight, lineHeight(tier));
-      gl.uniform3fv(U.uColor, tierColour(tier));
+      // WILD1: a line may wear its own colour, height and pulse (scenes/lootLines.js `mark` - my remains in the open zone)
+      gl.uniform1f(U.uHeight, Number.isFinite(g.h) ? g.h : lineHeight(tier));
+      gl.uniform3fv(U.uColor, Array.isArray(g.colour) && g.colour.length === 3 ? g.colour : tierColour(tier));
       gl.uniform1f(U.uAlpha, Math.min(1, g.alpha));
-      gl.uniform1f(U.uPulse, RARITIES[tier].rank >= RARITIES.legendary.rank ? 1 : 0);
+      gl.uniform1f(U.uPulse, g.pulse != null ? (g.pulse ? 1 : 0) : RARITIES[tier].rank >= RARITIES.legendary.rank ? 1 : 0);
       gl.drawArrays(gl.TRIANGLES, 0, this.count);
       this.drawn++;
     }

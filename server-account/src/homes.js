@@ -48,19 +48,24 @@
 import { accountKind, displayName, overRate } from './accounts.js';
 import { CHAR_ID_RE, DB_ROOT } from './service.js';
 import { prepareRealmRecord, realmActFirst, realmAtOf, recordMovedOf, mustChange, dropObjects, dropIfUnnamed, REALM_ID_RE, getRealmBlob, realmSaveTextOf } from './realm.js';   // REALM P2.2b; AUDIT REALM L1-F2: the record asked first; AUDIT REALM2 S3: a landed batch's object kept; FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed read off the record
-import { payFromSave, creditSave } from '../../src/net/realmGoldLaw.js';   // REALM P2.2b: the wallet's own order, over the record
+import { payFromSave, creditSave } from '../../src/net/realm/realmGoldLaw.js';   // REALM P2.2b: the wallet's own order, over the record
 import {
   HOME_CAP, HOME_ENTRY_DEFAULT, HOME_CLAIMS_MAX, HOME_CLAIMS_WINDOW_S, HOME_TOWN_MAX, HOME_LAYOUTS_MAX,
+  HOME_KEYS_MAX,   // FIELD BUGS 2026-10-14 QUEST-HOME: the homes the layouts read names by building
+  homeMoved,   // QUEST-HOME (Mac, 2026-10-15: "Close both"): what an act moved, signed for every page online
   homeMapIdOk, homeBuildingKeyOk, homeRegionOk, homePriceOk, homeEntryOk, homeSaleRefund, homeLookOf, homeLayoutOk, homeLayoutsMatch,
   homeInArenaCell, RENT_ANCHOR_MOVED,   // ARENA4b: the arena's cell, and a tenancy's point the move carries
   homeDeedOf,   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: the deed a record holds to a building, as the door reads it
 } from '../../src/net/homeLaw.js';
-import { GUILD_TREASURY_MAX } from '../../src/net/guildLaw.js';   // ARENA4b: a hall's pieces paid back, into a treasury under its cap
+import { PATRON_HOUR_S } from '../../src/net/patronLaw.js';   // AUDIT LW-II P7: a door opened marks its trader's patrons' hours
+import { reckonPatrons } from './market.js';   // AUDIT LW-II-2 S4: a door leaving public reckons its town first
+import { GUILD_TREASURY_MAX } from '../../src/net/guild/guildLaw.js';   // ARENA4b: a hall's pieces paid back, into a treasury under its cap
 import { DECOR_OPS_MAX, DECOR_OPS_WINDOW_S } from '../../src/net/decorLaw.js';   // HOME-LOOK: a repaint counts as a decorator's write
 import { hallMay } from '../../src/net/hallLaw.js';   // GUILD1d: a hall's keepers
 import { heraldryOfRow } from './halls.js';   // GUILD1d: a hall's heraldry, on its door
-import { openGatesAt } from './seatHolding.js';   // SEAT1d: Open Gates, where the town's holder proclaims it
+import { openGatesRead } from './seatHolding.js';   // SEAT1d: Open Gates, where the town's holder proclaims it
 import { OWNS } from './decor.js';   // GUILD-YARD: a home's character, or a hall's keeper - as its decor asks
+import { homeMyVoteOf, homeShunned } from '../../src/net/homeVoteLaw.js';   // HOME-VOTE: the caller's own vote, as the law reads one; AUDIT A3: a shunned home
 import { LAYOUT_MATCH_SQL, layoutMatchBinds, TOWN_LAYOUT_SQL, townLayoutRefusal } from './townLayout.js';   // WD3: a town's homes in one layout (AUDIT PRE-MERGE 1003 WD1: a hall's too)
 
 const homeOf = (row) => ({
@@ -129,7 +134,7 @@ async function realmClaim(ctx, player, at, claim) {
   }
   await dropObjects(bucket, [prep.prev]);
   const row = await db.prepare('SELECT * FROM homes WHERE map_id = ? AND building_key = ?').bind(claim.mapId, claim.buildingKey).first();
-  return { ok: true, home: homeOf(row), ...realmSaleOf(row), realm: { seq: prep.seq } };   // AUDIT HOME-PRICE C2
+  return { ok: true, home: homeOf(row), ...realmSaleOf(row), realm: { seq: prep.seq }, moved: homeMoved(claim.mapId, [claim.buildingKey]) };   // AUDIT HOME-PRICE C2; QUEST-HOME: a home now, for every page online
 }
 
 /**
@@ -230,8 +235,37 @@ export async function holdDeed(ctx, player, body = {}) {
   if (!deed || !homeLayoutsMatch(deed.layout ?? null, layout ?? null)) return { error: 'no-deed' };
   await deedStatement(db, player, { mapId, buildingKey, region, character, layout: layout ?? null }, nowS).run();
   const row = await db.prepare('SELECT * FROM homes WHERE map_id = ? AND building_key = ?').bind(mapId, buildingKey).first();
-  if (row) return row.player === player.id && row.char_id === character ? { ok: true, home: homeOf(row) } : { error: 'home-taken' };   // a claim landed first
+  if (row) return row.player === player.id && row.char_id === character ? { ok: true, home: homeOf(row), moved: homeMoved(mapId, [buildingKey]) } : { error: 'home-taken' };   // a claim landed first; QUEST-HOME: held, a home to every page
   return (await townLayoutRefusal(db, mapId, layout ?? null)) ?? { error: 'home-taken' };   // a first home of the town, in another layout, landed first
+}
+
+/**
+ * PERMADEATH-HOUSES (2026-10-09, the owner: "what happens to houses owned by dead permadeath characters" - the heir
+ * inherits; bible/06-Systems/Legacy-Arc.md section 10c): A FALLEN MEMBER'S HOME PASSES TO THE ONE WHO CARRIES THE LINE.
+ * A realm character a Bloodline's fall (or an Enduring line's last death) made a tombstone (legacy.js entomb, `dead_why`
+ * 'fell') holds its homes for good - a building taken out of the world, its door locked to its own family. The account's
+ * LIVING realm character of the SAME LINE (`lineage_id`) takes one up: the row's character moves, and with it everything
+ * the row's owner owns (its decor, its rooms and rent, its entry - each keyed by the house, owned through the row).
+ * Never a retired elder's (they keep their house), never another account's, never a guild's hall. One statement decides:
+ * the UPDATE names the fallen as the holder, so two takers race to one answer. Answers `{ ok, home }` (`repeat` when it
+ * is the taker's already), or `not-heir`, `no-home` (the fallen holds it no more), `bad-home`, `realm-only`.
+ * @param {{db: any}} ctx @param {any} player
+ * @param {{mapId?: unknown, buildingKey?: unknown, character?: unknown, from?: unknown}} body
+ */
+export async function inheritHome({ db }, player, body = {}) {
+  const { mapId, buildingKey, character, from } = body ?? {};
+  if (accountKind(player) !== 'linked') return { error: 'homes-need-account' };
+  if (!homeMapIdOk(mapId) || !homeBuildingKeyOk(buildingKey)) return { error: 'bad-home' };
+  if (typeof character !== 'string' || !REALM_ID_RE.test(character) || typeof from !== 'string' || !REALM_ID_RE.test(from) || from === character) return { error: 'realm-only' };
+  const kin = await db.prepare(`SELECT 1 FROM realm_characters h JOIN realm_characters d ON d.player = h.player AND d.lineage_id = h.lineage_id
+      WHERE h.id = ? AND d.id = ? AND h.player = ? AND h.lineage_id IS NOT NULL AND h.dead_at IS NULL AND d.dead_at IS NOT NULL AND d.dead_why = 'fell'`)
+    .bind(character, from, player.id).first();
+  if (!kin) return { error: 'not-heir' };
+  const took = await db.prepare('UPDATE homes SET char_id = ? WHERE map_id = ? AND building_key = ? AND player = ? AND char_id = ? AND guild_id IS NULL')
+    .bind(character, mapId, buildingKey, player.id, from).run();
+  const row = await db.prepare('SELECT * FROM homes WHERE map_id = ? AND building_key = ? AND player = ? AND char_id = ? AND guild_id IS NULL').bind(mapId, buildingKey, player.id, character).first();
+  if (!row) return { error: 'no-home' };
+  return { ok: true, home: homeOf(row), ...(took?.meta?.changes ? {} : { repeat: true }) };
 }
 
 /** DECOR1e: a home's placed pieces and half of what they cost - what its sale gives back for them. */
@@ -285,7 +319,7 @@ async function realmRelease(ctx, player, at, home) {
     return (await recordMovedOf(db, player.id, at)) || { error: 'no-home' };
   }
   await dropObjects(bucket, [prep.prev]);
-  return { ok: true, price: home.price, refund, decorCount, decorBack, ...(rentDue ? { rent: rentDue } : {}), realm: { seq: prep.seq } };
+  return { ok: true, price: home.price, refund, decorCount, decorBack, ...(rentDue ? { rent: rentDue } : {}), realm: { seq: prep.seq }, moved: homeMoved(home.map_id, [], [home.building_key]) };   // QUEST-HOME: sold, a house again
 }
 
 /**
@@ -304,7 +338,7 @@ export async function releaseHome(ctx, player, { mapId, buildingKey, realm = nul
   // (`deed`), never a home bought at a door; and a deed's row is never sold as a home (below: no record paid for it)
   if (deed === true) {
     const gone = await db.prepare('DELETE FROM homes WHERE map_id = ? AND building_key = ? AND player = ? AND deed = 1').bind(mapId, buildingKey, player.id).run();
-    return gone?.meta?.changes ? { ok: true, price: 0, decorCount: 0, decorBack: 0 } : { error: 'no-home' };
+    return gone?.meta?.changes ? { ok: true, price: 0, decorCount: 0, decorBack: 0, moved: homeMoved(mapId, [], [buildingKey]) } : { error: 'no-home' };   // QUEST-HOME: a house again
   }
   const at = realm != null ? realmAtOf(realm) : null;
   if (at) {
@@ -336,16 +370,33 @@ export async function releaseHome(ctx, player, { mapId, buildingKey, realm = nul
   const row = gone?.results?.[0];
   if (!row) return { error: 'no-home' };
   const d = pieces?.results?.[0];
-  return { ok: true, price: row.price, decorCount: Number(d?.n) || 0, decorBack: Math.max(0, Number(d?.back) || 0) };
+  return { ok: true, price: row.price, decorCount: Number(d?.n) || 0, decorBack: Math.max(0, Number(d?.back) || 0), moved: homeMoved(mapId, [], [buildingKey]) };   // QUEST-HOME
 }
 
 /**
  * WHO MAY WALK IN, as the owner sets it (homeLaw.js HOME_ENTRIES).
- * @param {{db: any}} ctx
+ * AUDIT LW-II P7 (LW15): A DOOR OPENED TO THE TOWN opens its trader to its patrons FROM NOW - the trader's listings are
+ * marked reckoned to the last whole hour (market.js reckonPatrons; never back) before the door moves, so the hours it
+ * stood shut are never paid when it opens (twenty pieces stocked behind a private door all sold, at its opening, in the
+ * hours before it). Asked only where it was not open already: a door set public again leaves its hours to reckon.
+ * AUDIT LW-II-2 S4: to the hour it opens IN - to the one before, a door kept shut and opened at :59 of every hour (shut
+ * again a minute later) was paid each hour as a door open all of it. And a door LEAVING public reckons its town first
+ * (market.js reckonPatrons), so the whole hours it stood open are paid before it shuts, and none after.
+ * @param {{db: any, nowS?: number}} ctx @param {any} player @param {any} [body] @param {any} [env]
  */
-export async function setHomeEntry({ db }, player, { mapId, buildingKey, entry } = {}) {
+export async function setHomeEntry(ctx, player, { mapId, buildingKey, entry } = {}, env = null) {
+  const { db, nowS } = ctx;
   if (!homeEntryOk(entry)) return { error: 'bad-entry' };
   if (!homeMapIdOk(mapId) || !homeBuildingKeyOk(buildingKey)) return { error: 'no-home' };
+  if (entry === 'public' && Number.isSafeInteger(nowS)) {
+    await db.prepare(`UPDATE market_listings SET patron_hour = ?4 WHERE vendor_map = ?1 AND seller = ?3 AND state = 'open'
+      AND vendor_id IN (SELECT id FROM home_decor WHERE map_id = ?1 AND building_key = ?2) AND (patron_hour IS NULL OR patron_hour < ?4)
+      AND EXISTS (SELECT 1 FROM homes WHERE map_id = ?1 AND building_key = ?2 AND player = ?3 AND guild_id IS NULL AND entry != 'public')`)
+      .bind(mapId, buildingKey, player.id, Math.floor(/** @type {number} */ (nowS) / PATRON_HOUR_S)).run();
+  } else if (Number.isSafeInteger(nowS) && await db.prepare("SELECT 1 FROM homes WHERE map_id = ?1 AND building_key = ?2 AND player = ?3 AND guild_id IS NULL AND entry = 'public'")
+    .bind(mapId, buildingKey, player.id).first()) {
+    await reckonPatrons(ctx, { maps: [mapId] }, env).catch(() => null);
+  }
   const r = await db.prepare('UPDATE homes SET entry = ? WHERE map_id = ? AND building_key = ? AND player = ? AND guild_id IS NULL')
     .bind(entry, mapId, buildingKey, player.id).run();   // GUILD1d: a hall's entry is its guild's (halls.js setHallEntry)
   return r?.meta?.changes ? { ok: true, entry } : { error: 'no-home' };
@@ -386,15 +437,12 @@ const lookOfRow = (h) => { const look = h.look ? homeLookOf(h.look) : null; retu
  */
 export async function homesInTown({ db, nowS = Math.floor(Date.now() / 1000) }, player, { mapId, character = null } = {}, { seats = false } = {}) {
   if (!homeMapIdOk(mapId)) return { error: 'bad-home' };
-  // SEAT1d (Seats-Arc 7.6): OPEN GATES - while the town's holder proclaims it, every home there stands open to all (a
-  // reader the seats are open to); each owner's own choice is kept, and its own view shows it
-  const open = seats && await openGatesAt(db, nowS, mapId);
   // HOME-RENT: each home's rooms still free to rent (how many, and the cheapest a day), and - for the character the
   // caller names - the end of its own tenancy there, which opens the door to it
   const me = typeof character === 'string' && CHAR_ID_RE.test(character) ? character : '';
   // GUILD1d: a hall's guild (its name, tag and heraldry) and the named character's rank in it; a home whose owner opened
   // it to their guild, whether the named character is in that guild with them
-  const { results = [] } = await db.prepare(`SELECT h.building_key, h.player, h.char_id, h.owner_name, h.entry, h.paid, h.rent_due, h.look, h.guild_id, h.deed,
+  const homesRead = db.prepare(`SELECT h.building_key, h.player, h.char_id, h.owner_name, h.entry, h.paid, h.rent_due, h.look, h.guild_id, h.deed, h.score,
       g.name AS guild_name, g.tag AS guild_tag, g.heraldry AS guild_heraldry,
       (SELECT COUNT(*) FROM home_rooms r WHERE r.map_id = h.map_id AND r.building_key = h.building_key AND r.listed = 1 AND (r.tenant IS NULL OR r.until <= ?1)) AS vacant,
       (SELECT MIN(r.price) FROM home_rooms r WHERE r.map_id = h.map_id AND r.building_key = h.building_key AND r.listed = 1 AND (r.tenant IS NULL OR r.until <= ?1)) AS rent_from,
@@ -402,8 +450,21 @@ export async function homesInTown({ db, nowS = Math.floor(Date.now() / 1000) }, 
       (SELECT m.rank FROM guild_members m WHERE m.guild_id = h.guild_id AND m.player = ?2 AND m.char_id = ?3) AS my_rank,
       (h.guild_id IS NULL AND h.entry = 'guild' AND EXISTS (SELECT 1 FROM guild_members a JOIN guild_members b ON b.guild_id = a.guild_id
         WHERE a.player = h.player AND b.player = ?2 AND b.char_id = ?3)) AS guildmate,
-      EXISTS (SELECT 1 FROM realm_characters rc WHERE rc.id = ?3 AND rc.player = ?2) AS me_realm
-    FROM homes h LEFT JOIN guilds g ON g.id = h.guild_id WHERE h.map_id = ?4 ORDER BY h.building_key LIMIT ?5`).bind(nowS, player.id, me, mapId, HOME_TOWN_MAX).all();
+      EXISTS (SELECT 1 FROM realm_characters rc WHERE rc.id = ?3 AND rc.player = ?2) AS me_realm,
+      (SELECT v.vote FROM home_votes v WHERE v.map_id = h.map_id AND v.building_key = h.building_key AND v.player = ?2) AS my_vote,
+      (h.guild_id IS NOT NULL AND EXISTS (SELECT 1 FROM guild_members k WHERE k.guild_id = h.guild_id AND k.player = ?2)) AS kin
+    FROM homes h LEFT JOIN guilds g ON g.id = h.guild_id WHERE h.map_id = ?4 ORDER BY h.building_key LIMIT ?5`).bind(nowS, player.id, me, mapId, HOME_TOWN_MAX);
+  // SEAT1d (Seats-Arc 7.6): OPEN GATES - while the town's holder proclaims it, every home there stands open to all (a
+  // reader the seats are open to); each owner's own choice is kept, and its own view shows it. HOMES-SHED (2026-10-13,
+  // the database overloaded from 14:11 UTC; this route the service's busiest, 88,079 asks in its hour): its read rides
+  // the homes read's one request - a batch - where it was a round trip of its own before it on every ask
+  const [{ results = [] }, gates] = seats ? await db.batch([homesRead, openGatesRead(db, nowS, mapId)]) : [await homesRead.all(), null];
+  const open = !!gates?.results?.length;
+  // HOME-VOTE (homeVotes.js): each home's score - its votes summed, kept on its row (AUDIT A2) - and the caller's own vote,
+  // said where there is one
+  const votesOf = (h) => ({ ...(Number(h.score) ? { score: Number(h.score) } : {}), ...(homeMyVoteOf(h.my_vote) ? { vote: homeMyVoteOf(h.my_vote) } : {}) });
+  // AUDIT HOME-VOTE A3: a shunned home's paint is its insiders' alone - said to nobody else (homeVotes.js homeShownTo's law)
+  const lookFor = (h, insider) => (insider || !homeShunned(Number(h.score)) ? lookOfRow(h) : {});
   return {
     mapId, ...(open ? { openGates: true } : {}),
     // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed held for the named character is no online home to it - its door, storage
@@ -426,7 +487,9 @@ export async function homesInTown({ db, nowS = Math.floor(Date.now() / 1000) }, 
           // it at its door, as sellHall asks it - the rank alone - and the deed share of what the treasury paid, which the
           // sale pays back into it (with half of what records paid for its pieces, which the door says in words)
           ...(rank != null && hallMay(rank, 'hall') ? { hallSell: true, refund: homeSaleRefund(Math.max(0, Number(h.paid) || 0)) } : {}),
-          ...lookOfRow(h),   // GUILD-YARD: how its keepers painted it, to everyone
+          ...(h.kin === 1 && rank == null ? { insider: true } : {}),   // AUDIT HOME-VOTE A5: the account has another character in its guild - no vote, its decor always (a `member` is one already)
+          ...lookFor(h, h.kin === 1),   // GUILD-YARD: how its keepers painted it, to everyone (AUDIT HOME-VOTE A3: but a shunned hall's)
+          ...votesOf(h),   // HOME-VOTE
         };
       }
       const mine = h.player === player.id;
@@ -443,9 +506,10 @@ export async function homesInTown({ db, nowS = Math.floor(Date.now() / 1000) }, 
         ...sale,
         ...(Number(h.vacant) > 0 ? { rent: { vacant: Number(h.vacant), from: Number(h.rent_from) } } : {}),
         ...(Number.isSafeInteger(h.tenancy) && h.tenancy > nowS ? { tenant: h.tenancy } : {}),
-        ...lookOfRow(h),   // HOME-LOOK: how its owner painted it
+        ...lookFor(h, mine),   // HOME-LOOK: how its owner painted it (AUDIT HOME-VOTE A3: a shunned home's to its owner alone)
         ...(h.guildmate === 1 ? { guildmate: true } : {}),   // GUILD1d: the named character is in the guild of one of the owner's characters (ACCOUNT-HOMES: any of the account's)
         ...(h.deed === 1 ? { deed: true } : {}),   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed held, never bought
+        ...votesOf(h),   // HOME-VOTE
       };
     }),
   };
@@ -465,13 +529,33 @@ export async function homesOf({ db }, player) {
  * WD3: EVERY TOWN THAT HOLDS A HOME, AND THE LAYOUT IT KEEPS - its oldest home's (null: Daggerfall's own town). Read by
  * every session at its online boot (a guest's too: the towns are everyone's to walk), so each client stands each such
  * town as its homes were bought in it (src/systems/layoutPins.js), one town for the whole room. `[mapId, layout]` rows.
+ *
+ * FIELD BUGS 2026-10-14 QUEST-HOME (Discord: "Travel to the second town named by the poisonmaker ... NO Houses, except
+ * for a player house which is marked as the residence I need for the quest"): AND THE BUILDINGS EACH TOWN'S HOMES ARE,
+ * `homes`: `[mapId, [buildingKey, ...]]` a town, keys ascending - every home, hall and deed held, up to HOME_KEYS_MAX. A
+ * quest picks its residence in a town its player has never walked into (Place.cs's `remote house`), and the client knew
+ * a town's homes only once it had asked that town at its gate or a door - so "no quest picks a player's home" held in
+ * the player's own town alone, and a remote farmstead's only house, a player's home, was the quest's. A town's homes are
+ * any session's to read already (homesInTown); this is the building of each, and nothing else of it. Read beside the
+ * towns, and kept with them under the generation read before both (homeLayoutsKept) - a home made between the two
+ * reads moves the generation, so the next ask reads both again.
  * @param {{db: any}} ctx
  */
 export async function homeLayouts({ db }) {
-  const { results = [] } = await db.prepare(`SELECT h.map_id, h.layout FROM homes h
+  const [{ results = [] }, { results: keyed = [] }] = await Promise.all([
+    db.prepare(`SELECT h.map_id, h.layout FROM homes h
     WHERE NOT EXISTS (SELECT 1 FROM homes o WHERE o.map_id = h.map_id AND (o.bought_at < h.bought_at OR (o.bought_at = h.bought_at AND o.building_key < h.building_key)))
-    ORDER BY h.map_id LIMIT ?`).bind(HOME_LAYOUTS_MAX).all();
-  return { towns: results.map((r) => [r.map_id, homeLayoutOk(r.layout) ? r.layout ?? null : null]) };
+    ORDER BY h.map_id LIMIT ?`).bind(HOME_LAYOUTS_MAX).all(),
+    db.prepare('SELECT map_id, building_key FROM homes ORDER BY map_id, building_key LIMIT ?').bind(HOME_KEYS_MAX).all(),
+  ]);
+  /** @type {Array<[number, number[]]>} */
+  const homes = [];
+  for (const r of keyed) {
+    const town = homes[homes.length - 1];
+    if (town?.[0] === r.map_id) town[1].push(r.building_key);
+    else homes.push([r.map_id, [r.building_key]]);
+  }
+  return { towns: results.map((r) => [r.map_id, homeLayoutOk(r.layout) ? r.layout ?? null : null]), homes };
 }
 
 /** STORM-SHED 2 (2026-10-06, the account database's follow-ups): THE TOWNS' LAYOUTS, READ AGAIN ONLY ONCE A TOWN'S HOMES
@@ -526,7 +610,7 @@ export async function homeLayoutsKept(ctx) {
 // never opens again and the new key's is any house's.
 
 /** Every column of a home's row the move carries to the new key, beside the key itself and the hall's guild (set after
- *  the old row goes) - pinned against the table's own columns (test/arena4b_homes.test.js), so a column added to `homes`
+ *  the old row goes) - pinned against the table's own columns (test/net/arena4b_homes.test.js), so a column added to `homes`
  *  later is carried or the pin says why not. */
 export const HOME_MOVE_CARRIED = Object.freeze(['player', 'char_id', 'owner_name', 'region', 'entry', 'price', 'bought_at', 'paid', 'rent_due', 'look', 'layout', 'deed']);   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed's hold stays one (none stands in the cell: holdDeed refuses it)
 /** The most moves one read of a character's lists. */
@@ -628,6 +712,7 @@ export async function arenaMoveHome(ctx, player, { mapId, from, to, character, r
   return {
     ok: true, mapId, from, to, refund, pieces, items: n - pieces, tenancies, withdrawn, hidden,
     ...(gid != null ? { hall: true } : {}), ...(prep ? { realm: { seq: prep.seq } } : {}),
+    moved: homeMoved(mapId, [to], [from]),   // QUEST-HOME: the new house a home, the old one a house again
   };
 }
 

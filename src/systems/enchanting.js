@@ -41,15 +41,17 @@
 
 import { doEnchantedPayloads, classicEnchantmentType } from './enchantments.js';   // SetEnchantments' created-payload callback (:1289-1300) and its ClassicType store (:1316-1320)
 import { unequipItem } from './equip.js';   // DaggerfallUnityItem.UnequipItem (:1183-1196)
-import { templateByIndex } from './itemTemplates.js';
+import { templateByIndex } from './item/itemTemplates.js';
 import { ARMOR_MATERIAL } from './armorMaterials.js';
 import { WEAPON_MATERIALS } from '../characters/weapons.js';
-import { customItemClass } from './rriItems.js';   // RRI1: GetEnchantmentPower is a virtual the armor classes answer
+import { customItemClass } from './roleplayRealismItems/rriItems.js';   // RRI1: GetEnchantmentPower is a virtual the armor classes answer
+import { localizedText } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { enchantGold } from '../net/alchemyLaw.js';   // PROF12: Enchanting's layer - the gold with the rank's share off
 import { recipeById, jewelPoints } from '../net/recipeLaw.js';   // AUDIT PROF10 J1: the most a crafted piece's recipe mints
 import { enchantmentSettings } from './enchantmentCatalogue.js';   // AUDIT PROF10 J2: a crafted piece's own enchantments, costed as the maker costs a row
 import { ENCHANTMENT_TYPES } from '../formats/magicDef.js';   // and their classic type back to the catalogue's key
 import { isAetheric } from './aetheric.js';   // AETHERIC-MAKER: an Aetheric piece is the port's own tier, never the maker's
+import { isGilded } from './gilded.js';   // GILDED1: nor a Gilded one - a static roll takes no enchantment
 
 /** SetEnchantments' `maxEnchantments` (:1273) - and the same ten the
  *  two picker buttons test against (DaggerfallItemMakerWindow.cs:629,
@@ -162,9 +164,11 @@ export function keptEnchantments(item) {
   }
   return out;
 }
-export function itemEnchantmentPower(item) {
+/** INT1: `lookup` the template reader - the item law's (systems/item/itemLaw.js lawTemplate) knows the rows a headless reader
+ *  never registers. */
+export function itemEnchantmentPower(item, lookup = templateByIndex) {
   if (!item) throw new Error('itemEnchantmentPower: item is null');
-  const basePower = craftedJewelPoints(item) ?? templateByIndex(item.templateIndex)?.enchantmentPoints ?? 0;
+  const basePower = craftedJewelPoints(item) ?? lookup(item.templateIndex)?.enchantmentPoints ?? 0;
   const cls = customItemClass(item.templateIndex);
   if (cls?.enchantmentPower) return cls.enchantmentPower(item, { enchantmentPoints: basePower, armorEnchantmentMultiplier });
   let multiplier = 0;
@@ -213,7 +217,7 @@ export const NO_MORE_SIDE_EFFECTS = 'No further side-effects may be enchanted in
  * budget over its powers. It is refused as the port's other services refuse it (reforge.js salvageRefusal,
  * reforgePrice). The line is the port's own.
  */
-export const itemMakerRefuses = (item) => isAetheric(item);
+export const itemMakerRefuses = (item) => isAetheric(item) || isGilded(item);
 export const AETHERIC_TAKES_NO_ENCHANTMENT = 'An Aetheric piece takes no enchantment.';
 
 /**
@@ -254,7 +258,7 @@ export function enchantDecision(item, powers = [], sideEffects = [], { gold = 0,
   if (!item) return { kind: 'noItem', text: ITEM_MUST_BE_SELECTED };
   if (itemMakerRefuses(item)) return { kind: 'refused', text: AETHERIC_TAKES_NO_ENCHANTMENT };   // AETHERIC-MAKER
   if (powers.length === 0 && sideEffects.length === 0) {
-    return { kind: 'noEnchantments', text: NO_ENCHANTMENTS_PREPARED };
+    return { kind: 'noEnchantments', text: localizedText('noEnchantments', NO_ENCHANTMENTS_PREPARED) };   // L10N3d: DaggerfallItemMakerWindow.cs:724
   }
   // AUDIT PROF10 J2: a crafted piece's kept enchantments count against its points (GetTotalEnchantmentCost's own walk), and
   // cost no gold - they are on it already
@@ -340,4 +344,4 @@ export const enchantmentCostLabel = (cost, power) => `${cost}/${power}`;
 
 // M4 closed both of M3's flags: systems/enchantmentCatalogue.js
 // gathers every effect's EnchantmentSettings and SoulBound's forced
-// sets, and ui/itemMakerWindow.js is the window.
+// sets, and ui/item/itemMakerWindow.js is the window.

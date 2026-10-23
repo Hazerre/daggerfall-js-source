@@ -28,6 +28,8 @@
 import { frustumPlanes, aabbOutside } from './frustum.js';   // PERF2: the field draws only the cells in view
 import { smoothstep } from '../systems/mathf.js';   // GRASS2: the host's blade budget is a bound on the shader's fade, so the two must be the SAME curve
 import { buildTuftMips, buildTuftSheet, pixelGrass, PX_RAMP_STEPS, PX_TINT_BANDS, PX_BLADES_PER_TUFT } from './grassPixelArt.js';   // GRASS-PX: the tuft sheet and the pixel style's numbers
+import { meadowGrass, buildMeadowMips, meadowCardCorners, meadowCardIndices, MEADOW_SLOTS, MEADOW_CARDS, MEADOW_CARDS_FAR, MEADOW_NEAR_AT, MEADOW_BLADES_PER_TUFT, MEADOW_VARIANTS, MEADOW_LUSH, MEADOW_SHARES, MEADOW_PATCH_SCALE,
+  MEADOW_FACE, meadowArtGround, MEADOW_GREEN, MEADOW_SHIFT, MEADOW_GREEN_EDGE, MEADOW_TOP, MEADOW_REACH, MEADOW_WIND_REACH, MEADOW_BOXES, MEADOW_SEED, MEADOW_NEAR_BAND, MEADOW_SLOPE_FLOOR, MEADOW_CELL, MEADOW_BUSH, MEADOW_FLOWERS, MEADOW_DRY, MEADOW_SHORT, MEADOW_TALL } from './grassMeadow.js';   // MEADOW1: the owner's sprites on crossed cards
 import { buildProgram } from './glProgram.js';   // AUDIT 68 S17-gl-program-dup: the one compile and link
 import { FOG_GLSL } from './fogGlsl.js';   // AUDIT 68 S17-fog-glsl-dup: fogFactorAt's one home - the terrain's own text, not a tenth copy
 import { CLOUD_SHADOW_GLSL } from './cloudShadow.js';   // GRASS-LIT: the deck's shadow, the reader the terrain takes
@@ -40,7 +42,8 @@ import { EL_CODEC_GLSL, EL_TONEMAP_GLSL, EL_ATTEN_GLSL, EL_MAX_LIGHTS, elDecode,
  *
  * GR1's law was that the shaders are the lab's text byte for byte, and
  * the pin enforced it by slicing `grass-proto.html` at test time. That
- * law has been broken deliberately, three times, and the honest way to
+ * law has been broken deliberately, three times (SWAY-SOFT made it a
+ * fifth edit, GRASS6 having taken one back), and the honest way to
  * break it is to say exactly where rather than to loosen the pin: the
  * lab's text plus THESE edits, and nothing else, is what the game
  * compiles. Any other drift still fails the pin, which is the whole
@@ -97,6 +100,11 @@ export const GRASS2_VS_EDITS = Object.freeze([
   // hashes) for a value that never changed. The lab's own line,
   // `vTint = aInst2.z;`, is what compiles again; the lane carries the
   // patched tint from the placer.
+  Object.freeze({
+    why: 'SWAY-SOFT (2026-10-21, Mac: "make the grass sway more subtle"): a gentler gust and a smaller lean - LAB_LEAN_PER_PUSH and LAB_GUST_MAX in grassMeadow.js',
+    from: '  float push = length(uWindV) * (0.55 + gust * 0.75);\n  vec2 lean = aInst2.xy + wdir * push * 0.055;',
+    to: '  float push = length(uWindV) * (0.6 + gust * 0.45);\n  vec2 lean = aInst2.xy + wdir * push * 0.032;',
+  }),
 ]);
 
 export const LAB_GRASS_HEAD = `#version 300 es
@@ -222,8 +230,9 @@ void main(){
   vec2 wdir = length(uWindV) > 1e-4 ? normalize(uWindV) : vec2(1.0, 0.0);
   float along = dot(root, wdir);
   float gust = sin(uTime*1.7 - along*0.35 + aInst.w*0.6) * 0.5 + 0.5;
-  float push = length(uWindV) * (0.55 + gust * 0.75);
-  vec2 lean = aInst2.xy + wdir * push * 0.055;
+  // SWAY-SOFT (2026-10-21): a gentler gust and a subtler lean - 0.55 + 0.75 and 0.055 before (GRASS2_VS_EDITS)
+  float push = length(uWindV) * (0.6 + gust * 0.45);
+  vec2 lean = aInst2.xy + wdir * push * 0.032;
   vec3 p;
   p.xz = root + lean * (vT*vT) * h;
   // GR2 (Mac: from the side the blades are completely flat). A blade's
@@ -253,10 +262,12 @@ const UP = new Float32Array([0, 1, 0]);
 const WHITE = new Float32Array([1, 1, 1]);
 const NO_FOG_RANGE = new Float32Array([0, 1]);   // DISC20-A: a range for the unfogged draw (mode 0 never reads it)
 const NO_WATER_FOG = new Float32Array(20);   // DW-C: uDwFog off ([0].x 0)
+const NO_HAZE = new Float32Array(8);   // BANTHA1: uJungleHaze off ([1].x 0)
 const NO_DECK = new Float32Array(4);   // GRASS-LIT: a vec4 of zeros - no deck, no sun map, no player's light
 const NO_CASTERS = new Int32Array(SHADOW_CASTER_TABLE).fill(-1);   // AUDIT GRASS-LIT2 A2: every light without a map
 const NO_CASTER_PARAMS = new Float32Array(SHADOW_POINT_CASTERS * 4);   // AUDIT GRASS-LIT2 A2: and every slot off (far 0)
 const ZERO3 = new Float32Array(3);
+const NO_WIND = Object.freeze([0, 0]);   // AUDIT MEADOW1: the wind a field the trees' switch holds still takes
 /** GRASS-LIT: the eye's adaptation rides the far ring's unit (render/farRing.js), the deck the renderer's reserved one
  *  (renderer.js CLOUD_SHADOW_UNIT - the same map it binds there) */
 export const GRASS_ADAPT_UNIT = 11;
@@ -321,7 +332,7 @@ void main(){
  * own text (plus GRASS2's five). The pixel style is a SECOND list of
  * edits laid on top of them, and what the game compiles is
  * `GAME_GRASS_VS` / `GAME_GRASS_FS` = the lab's text with both lists
- * applied. The pin in test/grasspx.test.js re-applies the list and
+ * applied. The pin in test/render/grasspx.test.js re-applies the list and
  * compares, and holds that every `from` is found exactly once - so a
  * lab line that moved cannot turn an edit into a silent no-op, and a
  * change to the compiled text that is not on a list still fails.
@@ -359,11 +370,11 @@ export const GRASSPX_VS_EDITS = Object.freeze([
     to: '  p.xz += side * (aCorner.x-0.5) * mix(aInst2.w * (1.0 - vT*0.75), h * 0.5, uPixel);   // GRASS-PX; GRASS AUDIT 1: the width is the height\'s, per blade',
   }),
   Object.freeze({
-    why: 'the texel is the corner, and the tuft is chosen by a hash of the root - NOT the phase, which is the gust\'s, or every tuft of one sprite would hop in unison',
+    why: 'the texel is the corner, and the tuft is chosen by a hash of the root - NOT the phase, which is the gust\'s, or every tuft of one sprite would hop in unison; AUDIT MEADOW1: of the root\'s place in its CELL, which no shift of the floating origin moves',
     from: '  vGround = aGround;                      // GR4: carried to the root',
     to: '  vGround = aGround;                      // GR4: carried to the root\n'
       + '  vUV = aCorner;                          // GRASS-PX\n'
-      + '  vVar = min(floor(hash(root * 0.37) * uPxVariants), uPxVariants - 1.0);   // GRASS AUDIT 1: the prelude\'s hash, scaled to keep its float32 fract honest',
+      + '  vVar = min(floor(hash(aPA.xy * 64.0) * uPxVariants), uPxVariants - 1.0);   // GRASS AUDIT 1: the prelude\'s hash, its float32 fract honest; AUDIT MEADOW1: of the cell\'s lane, not the scene\'s root - every tuft re-rolled at each map pixel crossed',
   }),
 ]);
 
@@ -634,7 +645,7 @@ export const GRASSLIT_VS_EDITS = Object.freeze([
     from: '  vec4 aInst = vec4(uCellFrame.xy + aPA.xy * uCellSize,\n',
     to: '  // GRASS-LIT2: THE HEIGHT LANE\'S SIXTEEN BITS - the height\'s high six, then the ground normal\'s x and z, five each\n'
       + '  // (codes 0..30, 15 the level, stored XOR 15 so a zero word - a pad, a cleared slot - is level; writeSlot): the terrain\'s\n'
-      + '  // own normal under the root (world/terrainSurface.js surfaceNormalAt)\n'
+      + '  // own normal under the root (world/terrain/terrainSurface.js surfaceNormalAt)\n'
       + '  uint hw = uint(aPA.w * 65535.0 + 0.5);\n'
       + `  vec2 slope = (vec2(float(((hw >> 5u) & 31u) ^ ${GRASS_SLOPE_STEPS}u), float((hw & 31u) ^ ${GRASS_SLOPE_STEPS}u)) - ${GRASS_SLOPE_STEPS.toFixed(1)}) * ${GRASS_SLOPE_SPAN / GRASS_SLOPE_STEPS};   // AUDIT A3: stored ^ 15, so a zero word is level\n`
       + '  vec3 gN = vec3(slope.x, sqrt(max(1.0 - dot(slope, slope), 0.0)), slope.y);\n'
@@ -732,10 +743,183 @@ export const GRASSLIT_FS_EDITS = Object.freeze([
   }),
 ]);
 
+// ═══════════════════════════════════════════════════════════════════
+// MEADOW1 (2026-10-06, Mac: "These are 4 textures I want to blend into our grass system, all with varying sizes so its
+// not monotonous everywhere" - and a bush - "instead of billboarding, these should have a sort of low poly look to
+// them, like the trees"): THE OWNER'S SPRITES ON CROSSED CARDS, the fifth list of declared edits, laid last. The
+// meadow is a pixel style (uPixel 1: a hard alpha, the dithered fade, a share of each cell) that wears the owner's
+// atlas on the sheet's unit, and three things in it are its own, behind `uArt`: which sprite a blade wears and how big
+// its card is, the cards themselves - fixed in the world at the tuft's own yaw, each lit by its own face - and the
+// texel being the colour. The law and its numbers are render/grassMeadow.js's; the GLSL below is written from them.
+// ═══════════════════════════════════════════════════════════════════
+
+/** a JS number as a GLSL float literal - a whole number keeps its point */
+const glf = (v) => (Number.isInteger(v) ? v.toFixed(1) : String(v));
+const share = (pair) => `mix(${glf(pair[0])}, ${glf(pair[1])}, mLush)`;
+/** AUDIT MEADOW1: the sprite's drawn box by `mVar` - u0, u1, v0, v1 (render/grassMeadow.js MEADOW_BOXES) */
+const box4 = (b) => `vec4(${glf(b.u0)}, ${glf(b.u1)}, ${glf(b.v0)}, ${glf(b.v1)})`;
+/**
+ * BANTHA2: A SET OF SPRITES THE MEADOW'S PROGRAM WEARS - the meadow's own (MEADOW_ART), or the jungle floor's
+ * (render/jungleFloorArt.js): its variants (scale, stiff, sway) and their sprites' boxes, written into the vertex stage as
+ * ladders on `mVar`; `pick` the GLSL that takes a blade's variant off its width byte `mR` and its patch `mLush`; `green`
+ * the colour its art is anchored by (meadowArtGround) and `hue` the share of the ground's hue its green texels take
+ * (the meadow's whole; uArtHue); `top`, `reach`, `windReach` its cards' measures (cardMeasures);
+ * `mips` its atlas's chain. One program a set: the ladders are the set's constants.
+ */
+const MEADOW_PICK = `    float mB = ${share(MEADOW_SHARES.bush)}, mF = ${share(MEADOW_SHARES.flowers)}, mD = ${share(MEADOW_SHARES.dry)};\n`
+  + '    float mR = aPB.w;\n'
+  + `    mVar = mR < mB ? ${glf(MEADOW_BUSH)} : (mR < mB + mF ? ${glf(MEADOW_FLOWERS)} : (mR < mB + mF + mD ? ${glf(MEADOW_DRY)}`
+  + ` : ((mR - mB - mF - mD) / (1.0 - mB - mF - mD) < ${share(MEADOW_SHARES.short)} ? ${glf(MEADOW_SHORT)} : ${glf(MEADOW_TALL)})));\n`;
+/** @typedef {{ name: string, variants: readonly { name: string, scale: number, stiff: number, sway: number }[],
+ *    boxes: readonly { u0: number, u1: number, v0: number, v1: number }[], pick: string, green: readonly number[], hue: number,
+ *    top: number, reach: number, windReach: number, mips: () => any[] }} GrassArt */
+/** @type {GrassArt} */
+export const MEADOW_ART = Object.freeze({
+  name: 'meadow', variants: MEADOW_VARIANTS, boxes: MEADOW_BOXES, pick: MEADOW_PICK, green: MEADOW_GREEN, hue: 1,
+  top: MEADOW_TOP, reach: MEADOW_REACH, windReach: MEADOW_WIND_REACH, mips: () => buildMeadowMips(),
+});
+/** BANTHA2: a set's pick as a ladder - `shares` [variant, poor share, lush share] taken off the width byte in order (each
+ *  mixed by the patch, as the meadow's are), the last variant's the rest. Its JS twin: render/jungleFloorArt.js floorPick. */
+export function ladderPick(shares) {
+  let at = '0.0', out = '    float mR = aPB.w;\n', ladder = '';
+  shares.slice(0, -1).forEach(([v, poor, lush], i) => {
+    out += `    float mS${i} = ${at} + ${share([poor, lush])};\n`;
+    ladder += `mR < mS${i} ? ${glf(v)} : `;
+    at = `mS${i}`;
+  });
+  return `${out}    mVar = ${ladder}${glf(shares.at(-1)[0])};\n`;
+}
+/** the meadow program's vertex edits for a sprite set (MEADOW_ART's are the shipped meadow's) */
+export function meadowVsEdits(art) {
+  /** a per-variant value chosen by `mVar`, as a ternary ladder (a const array indexed at runtime is the kind of thing a
+   *  driver gets wrong - GRASS-PX's bayer4 says why) */
+  const byVariant = (key) => art.variants.slice(0, -1).map((v, i) => `mVar < ${glf(i + 0.5)} ? ${glf(v[key])} : `).join('') + glf(art.variants.at(-1)[key]);
+  const byBox = () => art.boxes.slice(0, -1).map((b, i) => `mVar < ${glf(i + 0.5)} ? ${box4(b)} : `).join('') + box4(art.boxes.at(-1));
+  return Object.freeze([
+  Object.freeze({
+    why: 'the card a vertex stands on - the meadow\'s corner arrays carry its turn; the blade arrays leave the attribute unset, which reads 0',
+    from: '// GRASS5: u8 ground.rgb, phase\n',
+    to: '// GRASS5: u8 ground.rgb, phase\n'
+      + 'layout(location=3) in float aCard;       // MEADOW1: the card\'s turn, a share of a half-turn, +1 when mirrored (render/grassMeadow.js meadowCardCorners)\n',
+  }),
+  Object.freeze({
+    why: 'the switch: the owner\'s art on crossed cards',
+    from: 'uniform float uPixel, uPxVariants;',
+    to: 'uniform float uArt;                  // MEADOW1: 1 in the meadow - the owner\'s sprites on crossed cards\n'
+      + 'uniform float uPixel, uPxVariants;',
+  }),
+  Object.freeze({
+    why: 'which sprite, how big its card, and which way its cards face - before the sway, the quad and the root read the height',
+    from: '  float h = max(0.0, trueH - snowSurf);\n',
+    to: '  float h = max(0.0, trueH - snowSurf);\n'
+      + '  // MEADOW1: WHICH SPRITE, HOW BIG, AND WHICH WAY. The width byte is a uniform random the sprite styles never draw a\n'
+      + '  // width with (their quad is the sprite\'s); the patch is the tint GRASS6 bakes. The card\'s side is the blade\'s height\n'
+      + '  // times its sprite\'s scale and the patch\'s, and everything below that reads the height reads the card\'s.\n'
+      + '  float mVar = 0.0, mStiff = 1.0, mSway = 1.0; vec2 mC = aCorner, mDir = vec2(1.0, 0.0), mLean = vec2(0.0);\n'
+      + '  if (uArt > 0.5) {\n'
+      + `    float mLush = smoothstep(${glf(MEADOW_LUSH[0])}, ${glf(MEADOW_LUSH[1])}, aInst2.z);\n`
+      + art.pick
+      + `    h *= (${byVariant('scale')}) * mix(${glf(MEADOW_PATCH_SCALE[0])}, ${glf(MEADOW_PATCH_SCALE[1])}, mLush);\n`
+      + `    mStiff = ${byVariant('stiff')};\n`
+      + `    mSway = ${byVariant('sway')};   // AUDIT MEADOW1: its share of the wind - the trees' own\n`
+      + `    vec4 mBox = ${byBox()};   // AUDIT MEADOW1: its sprite's drawn box (MEADOW_BOXES) - the card is cut to it\n`
+      + '    mC = mix(mBox.xz, mBox.yw, aCorner);\n'
+      + `    float mYaw = hash(aPA.xy * ${glf(MEADOW_SEED)});   // the tuft's own turn, fixed in the world - AUDIT MEADOW1: off its place in its cell, which no shift of the origin moves\n`
+      + '    float mA = (mYaw + fract(aCard)) * 3.141592653589793;   // the card\'s turn off the tuft\'s\n'
+      + '    mDir = vec2(cos(mA), sin(mA));\n'
+      + '    if ((fract(mYaw * 8.0) >= 0.5) != (aCard >= 1.0)) mDir = -mDir;   // mirrored, by tuft and by every other card - AUDIT MEADOW1: the card turned, so its box holds\n'
+      + `    if (fract(aCard) > 0.5 && d > uRange * (${glf(MEADOW_NEAR_AT)} + ${glf(MEADOW_NEAR_BAND)} * fract(mYaw * 64.0))) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }   // AUDIT MEADOW1: the third card goes tuft by tuft across the band\n`
+      + '  }\n',
+  }),
+  Object.freeze({
+    why: 'the card: square (the sprite\'s texels are), at the tuft\'s own yaw and fixed in the world - no billboard - cut to its sprite, leaning its own share of the lab\'s lean and swaying its share of the wind',
+    from: ', h * 0.5, uPixel);   // GRASS-PX; GRASS AUDIT 1: the width is the height\'s, per blade\n',
+    to: ', h * 0.5, uPixel);   // GRASS-PX; GRASS AUDIT 1: the width is the height\'s, per blade\n'
+      + '  if (uArt > 0.5) { vT = mC.y; mLean = aInst2.xy * mStiff + (lean - aInst2.xy) * mSway; p.xz = root + mLean * (vT*vT) * h + mDir * (mC.x - 0.5) * h; }   // MEADOW1: the card\n',
+  }),
+  Object.freeze({
+    why: 'AUDIT MEADOW1: the card\'s foot on the ground\'s own slope - a level foot hung the downhill end of a bush a quarter-metre over a hillside',
+    from: '  p.y = terrain(root) + snowSurf + vT * h;\n',
+    to: '  p.y = terrain(root) + snowSurf + vT * h;\n'
+      + `  if (uArt > 0.5) p.y += dot(p.xz - root, -gN.xz) / max(gN.y, ${glf(MEADOW_SLOPE_FLOOR)});   // AUDIT MEADOW1: sheared to the ground under it\n`,
+  }),
+  Object.freeze({
+    why: 'the sprite the law picked, and the texel its cut corner stands on',
+    from: 'every tuft re-rolled at each map pixel crossed\n',
+    to: 'every tuft re-rolled at each map pixel crossed\n'
+      + '  if (uArt > 0.5) { vVar = mVar; vUV = mC; }   // MEADOW1\n',
+  }),
+  Object.freeze({
+    why: 'AUDIT MEADOW1: the card is lit by the lean it stands at - its own share of the standing lean and of the wind - so a meadow the trees\' switch holds still is lit still',
+    from: 'level ground\'s is the up the blade stood about\n',
+    to: 'level ground\'s is the up the blade stood about\n'
+      + '  if (uArt > 0.5) nrm = normalize(vec3(-mLean.y, 0.0, mLean.x) + 1.2 * gN);   // AUDIT MEADOW1: its own lean\n',
+  }),
+  Object.freeze({
+    why: 'each card shaded by its own face - the side the eye sees - by the low-poly trees\' own face law, on the sun\'s light and the moon\'s: a low sun picks the facets out',
+    from: 'vMoonLam = max(dot(nrm, normalize(uMoonDir)), 0.0);   // WIND4\n',
+    to: 'vMoonLam = max(dot(nrm, normalize(uMoonDir)), 0.0);   // WIND4\n'
+      + '  if (uArt > 0.5) {   // MEADOW1: THE CARD\'S FACE, as a low-poly tree\'s (render/renderer.js BB_VS): its light times a shade of\n'
+      + '    // its face against the light, never under half - the blade\'s own lambert about the ground stays under it\n'
+      + '    // AUDIT MEADOW1: by the light\'s HEIGHT - every card is upright, so the trees\' law alone took 0.28 off the whole\n'
+      + '    // meadow at noon (a tree\'s up-turned faces take it whole); a light overhead lights the cards as their ground\n'
+      + '    vec2 mN = vec2(-mDir.y, mDir.x); if (dot(mN, uEye.xz - root) < 0.0) mN = -mN;\n'
+      + '    vec3 mSun = normalize(uSunDir), mMoon = normalize(uMoonDir);\n'
+      + `    vLam *= mix(1.0, clamp(${glf(MEADOW_FACE.base)} + ${glf(MEADOW_FACE.span)} * dot(vec3(mN.x, 0.0, mN.y), mSun), ${glf(MEADOW_FACE.floor)}, 1.0), length(mSun.xz));\n`
+      + `    vMoonLam *= mix(1.0, clamp(${glf(MEADOW_FACE.base)} + ${glf(MEADOW_FACE.span)} * dot(vec3(mN.x, 0.0, mN.y), mMoon), ${glf(MEADOW_FACE.floor)}, 1.0), length(mMoon.xz));\n`
+      + '  }\n',
+  }),
+  ]);
+}
+export const GRASSMEADOW_VS_EDITS = meadowVsEdits(MEADOW_ART);
+export const GRASSMEADOW_FS_EDITS = Object.freeze([
+  Object.freeze({
+    why: 'the switch, the ground the owner\'s colours were drawn for, and how much of its hue a set takes (BANTHA2: the meadow all, the jungle floor none - its own greens under the ground\'s light)',
+    from: 'uniform vec3 uGrassTone[4];',
+    to: 'uniform float uArt; uniform vec3 uArtGround; uniform float uArtHue;   // MEADOW1: the owner\'s art, and the ground its colours are drawn for (meadowArtGround); BANTHA2: its hue\'s share\n'
+      + 'uniform vec3 uGrassTone[4];',
+  }),
+  Object.freeze({
+    why: 'the sprite\'s own colour, kept from the sample',
+    from: '  float t = vT; float pxTone = 0.0; float pxBlade = 0.0;\n',
+    to: '  float t = vT; float pxTone = 0.0; float pxBlade = 0.0;\n'
+      + '  vec3 art = vec3(0.0);   // MEADOW1: the owner\'s colour\n',
+  }),
+  Object.freeze({
+    why: 'AUDIT MEADOW1: a card\'s mip level by its HEIGHT on screen - an upright card turned edge-on is squeezed across, and the GPU\'s level by the squeezed axis filled it to a solid needle',
+    from: '    vec4 px = texture(uPxSheet, vec2((vVar + vUV.x) / uPxVariants, vUV.y));\n',
+    to: '    vec2 pxUv = vec2((vVar + vUV.x) / uPxVariants, vUV.y);\n'
+      + '    vec4 px;\n'
+      + `    if (uArt > 0.5) { float mLod = log2(max(max(abs(dFdx(vUV.y)), abs(dFdy(vUV.y))) * ${glf(MEADOW_CELL)}, 1.0)); px = textureLod(uPxSheet, pxUv, mLod); }   // MEADOW1: the cell's texels down a pixel - the switch a uniform, so the derivatives stand in uniform control\n`
+      + '    else px = texture(uPxSheet, pxUv);\n',
+  }),
+  Object.freeze({
+    why: 'in the meadow the texel IS the colour, and the sward\'s shade climbs the card',
+    from: 't = px.g; pxBlade = px.b;\n',
+    to: 't = px.g; pxBlade = px.b;\n'
+      + '    if (uArt > 0.5) { art = px.rgb; t = vUV.y; pxTone = 0.0; }   // MEADOW1: no tone, so no rim texel\n',
+  }),
+  Object.freeze({
+    why: 'the owner\'s colours, moved by the ground they stand on - the tile\'s mean over the ground they are drawn for (his green at the lane\'s middle tone), per channel, held to a span; a texel takes that hue as far as it is green, and a petal or a dry stalk only its brightness',
+    from: 'three flat tones, and the tuft\'s blades a shade apart\n',
+    to: 'three flat tones, and the tuft\'s blades a shade apart\n'
+      + `  if (uArt > 0.5) { vec3 mS = clamp(vGround / uArtGround, ${glf(MEADOW_SHIFT[0])}, ${glf(MEADOW_SHIFT[1])}); `
+      + `c = art * mix(vec3(dot(mS, vec3(0.299, 0.587, 0.114))), mS, clamp((art.g - max(art.r, art.b)) * ${glf(MEADOW_GREEN_EDGE)}, 0.0, 1.0) * uArtHue); }   // MEADOW1: his green, the tile's own; his petals his own\n`,
+  }),
+  Object.freeze({
+    why: 'AUDIT MEADOW1: no ramp in the meadow - its palette is the owner\'s own shading, and banding its light folded his shades a rung apart into one (and cost two pow a fragment)',
+    from: '  if (uPixel > 0.5) { float l = max(dot(c, vec3(0.299, 0.587, 0.114)), 1e-4);',
+    to: '  if (uPixel > 0.5 && uArt < 0.5) { float l = max(dot(c, vec3(0.299, 0.587, 0.114)), 1e-4);',
+  }),
+]);
+
 /** what the game compiles: the lab's stages under the pixel style's edits, then the fog's (DISC20-A), then the
- *  ground's colour and light (GRASS-LIT) */
-export const GAME_GRASS_VS = applyGrassEdits(applyGrassEdits(applyGrassEdits(LAB_GRASS_VS, GRASSPX_VS_EDITS), GRASSFOG_VS_EDITS), GRASSLIT_VS_EDITS);
-export const GAME_GRASS_FS = applyGrassEdits(applyGrassEdits(applyGrassEdits(LAB_GRASS_FS, GRASSPX_FS_EDITS), GRASSFOG_FS_EDITS), GRASSLIT_FS_EDITS);
+ *  ground's colour and light (GRASS-LIT), then the meadow's (MEADOW1) */
+export const GAME_GRASS_VS = applyGrassEdits(applyGrassEdits(applyGrassEdits(applyGrassEdits(LAB_GRASS_VS, GRASSPX_VS_EDITS), GRASSFOG_VS_EDITS), GRASSLIT_VS_EDITS), GRASSMEADOW_VS_EDITS);
+export const GAME_GRASS_FS = applyGrassEdits(applyGrassEdits(applyGrassEdits(applyGrassEdits(LAB_GRASS_FS, GRASSPX_FS_EDITS), GRASSFOG_FS_EDITS), GRASSLIT_FS_EDITS), GRASSMEADOW_FS_EDITS);
+/** BANTHA2: the stages a sprite set's renderer compiles - the game's, with the set's vertex edits in the meadow's place */
+export const grassStagesOf = (art) => (art === MEADOW_ART ? { vs: GAME_GRASS_VS, fs: GAME_GRASS_FS }
+  : { vs: applyGrassEdits(applyGrassEdits(applyGrassEdits(applyGrassEdits(LAB_GRASS_VS, GRASSPX_VS_EDITS), GRASSFOG_VS_EDITS), GRASSLIT_VS_EDITS), meadowVsEdits(art)), fs: GAME_GRASS_FS });
 
 /**
  * GRASS-LIT: THE FRAGMENT'S COLOUR IN JS, term for term (the smooth style, at a blade's height `t`, no patch tint,
@@ -828,6 +1012,7 @@ export function grassLit(ground, t, light, lane = false, adapt = 1, tones = null
 // correctly - it just churns cells it did not need to, which is the
 // hitch GR5 was built to remove. The lab's 210 was a multiple by luck
 // (420 = 14 x 30); this one is by intent.
+/** @type {Readonly<{ density: number, height: number, range: number, span: number, densitySpan: number, seed: number }>} */
 export const LAB_GRASS = Object.freeze({ density: 1200000, height: 38, range: 300, span: 315, densitySpan: 210, seed: 0x2f6e2b1 });
 
 /**
@@ -1163,7 +1348,32 @@ export function grassVnoise(x, z) {
  *  whatever map pixel the player was in (GRASS2 had it too; the GPU
  *  hash is 0 there as well). The offsets are arbitrary fractions of a
  *  lattice cell, so no lattice corner of either octave lands on 0. */
-export const grassClump = (x, z) => grassVnoise(x * 0.055 + 0.317, z * 0.055 + 0.713) * 0.66 + grassVnoise(x * 0.017 + 0.531, z * 0.017 + 0.279) * 0.34;
+export function grassClump(x, z) {
+  // OW-HITCH (2026-10-21, the owner: "Theres still a lot of hitching in the overworld"): grassVnoise of each octave with
+  // its four grassHash corners written out in it - the same operations in the same order, so the same number to the
+  // bit (test/render/owhitch.test.js holds it to `grassVnoise(...) * 0.66 + grassVnoise(...) * 0.34`). Asked once a
+  // blade that stands, the ten calls under it were each a number made and dropped (a call's answer is an object unless
+  // it is inlined, and the placer's loop is past the inliner's budget): a fifth of a gigabyte a field's refill.
+  let sum = 0;
+  for (let o = 0; o < 2; o++) {
+    const vx = o === 0 ? x * 0.055 + 0.317 : x * 0.017 + 0.531, vz = o === 0 ? z * 0.055 + 0.713 : z * 0.017 + 0.279;
+    const ix = Math.floor(vx), iz = Math.floor(vz);
+    let fx = vx - ix, fz = vz - iz;
+    fx = fx * fx * (3 - 2 * fx); fz = fz * fz * (3 - 2 * fz);
+    let a = 0, b = 0, c = 0, d = 0;
+    for (let k = 0; k < 4; k++) {   // grassHash at (ix, iz), (ix + 1, iz), (ix, iz + 1), (ix + 1, iz + 1)
+      let px = (ix + (k & 1)) * 123.34, pz = (iz + (k >> 1)) * 456.21;
+      px -= Math.floor(px); pz -= Math.floor(pz);
+      const dd = px * (px + 45.32) + pz * (pz + 45.32);
+      px += dd; pz += dd;
+      const pp = px * pz, h = pp - Math.floor(pp);
+      if (k === 0) a = h; else if (k === 1) b = h; else if (k === 2) c = h; else d = h;
+    }
+    const v = (a + (b - a) * fx) + ((c + (d - c) * fx) - (a + (b - a) * fx)) * fz;
+    sum = o === 0 ? v * 0.66 : sum + v * 0.34;
+  }
+  return sum;
+}
 /** the lane's tint: the lab's per-blade random, pulled 0.55 of the way to its patch */
 export const bakedTint = (rnd, x, z) => Math.max(0, Math.min(1, rnd + (grassClump(x, z) - rnd) * 0.55));
 
@@ -1182,7 +1392,7 @@ export const bakedTint = (rnd, x, z) => Math.max(0, Math.min(1, rnd + (grassClum
  * end - the one loop, which a field on the move runs a slice at a time.
  */
 export function placeLabGrassCell(cx, cz, opts) {
-  const st = beginGrassCell(cx, cz, opts);
+  const st = beginGrassCell(cx, cz, opts);   // OW-HITCH: `opts.reuse` - a spent cell's arrays, placed into again
   stepGrassCell(st, st.perCell, opts);
   return { inst: st.inst, inst2: st.inst2, rootY: st.rootY, ground: st.ground, slope: st.slope, count: st.count, perCell: st.perCell };
 }
@@ -1202,28 +1412,44 @@ export function placeLabGrassCell(cx, cz, opts) {
  * the lanes are the same bytes (pinned at 1, 1,500 and the whole cell).
  * The arrays are the cell's own, handed to writeSlot when it is done,
  * exactly as placeLabGrassCell's were.
+ *
+ * OW-HITCH (2026-10-21, the owner: "Theres still a lot of hitching in the overworld"): `reuse` - a cell's state whose
+ * arrays writeSlot has already packed and let go - is placed into again, zeroed first, so a cell begun on it is the
+ * bytes a new one is. The five arrays are 343 KB a cell at the shipped density, and a field filling after a teleport or
+ * the Overworld's landing places some 360 cells: 120 MB of garbage the collector then stopped frames for. The field
+ * keeps two (createGrassField: the cell placed whole, and the rim cell in slices); a caller that keeps what it was
+ * handed (a test's recorder) passes none and is handed new arrays as before.
  */
-export function beginGrassCell(cx, cz, { perCell, seed = LAB_GRASS.seed, cell = GRASS_CELL, originX = 0, originZ = 0 }) {
+export function beginGrassCell(cx, cz, { perCell, seed = LAB_GRASS.seed, cell = GRASS_CELL, originX = 0, originZ = 0, reuse = null }) {
+  const again = reuse && reuse.perCell === perCell;
+  if (again) { reuse.inst.fill(0); reuse.inst2.fill(0); reuse.rootY.fill(0); reuse.ground.fill(0); reuse.slope.fill(0); }
   return {
     cx, cz, cell, originX, originZ, perCell,
     s: grassCellSeed(cx, cz, seed),   // the xorshift word
     i: 0,                             // the next candidate
     n: 0,                             // the blades that stood so far
     count: 0,                         // writeSlot's name for n
-    inst: new Float32Array(perCell * 4), inst2: new Float32Array(perCell * 4),
-    rootY: new Float32Array(perCell), ground: new Float32Array(perCell * 3),
-    slope: new Float32Array(perCell * 2),   // GRASS-LIT2: the ground normal's x and z under each root (0, 0: level)
+    inst: again ? reuse.inst : new Float32Array(perCell * 4), inst2: again ? reuse.inst2 : new Float32Array(perCell * 4),
+    rootY: again ? reuse.rootY : new Float32Array(perCell), ground: again ? reuse.ground : new Float32Array(perCell * 3),
+    slope: again ? reuse.slope : new Float32Array(perCell * 2),   // GRASS-LIT2: the ground normal's x and z under each root (0, 0: level)
   };
 }
 
+/** OW-HITCH: stepGrassCell's xorshift word while a slice runs (one slice at a time: the placer is synchronous). */
+const _xs = new Uint32Array(1);
 /** PERF-EXT22: `budget` more candidates of a begun cell; true once the
  *  last one is placed. `keep`/`ground` are this frame's - a slice asks
  *  the world as it stands when the slice runs. */
 export function stepGrassCell(st, budget, { keep, ground = null, slope = null, height = LAB_GRASS.height }) {
   const { inst, inst2, rootY, cell, originX, originZ } = st;
   const groundCol = st.ground;
-  let s = st.s;
-  const rnd = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+  // OW-HITCH (2026-10-21, the owner: "Theres still a lot of hitching in the overworld"): THE WORD IN A TYPED SLOT. A
+  // `let` a closure writes lives in the closure's context, and a context holds a number past a small integer as an
+  // object - so every step of the xorshift (four writes a draw, ten draws a candidate, 6,122 candidates a cell) made one:
+  // some 2 MB a cell of garbage, a field's refill after the Overworld 0.7 GB of it. The word lives in a Uint32Array
+  // now and the steps are the same integer operations on the same number: the same draws, bit for bit.
+  _xs[0] = st.s;
+  const rnd = () => { let s = _xs[0]; s ^= s << 13; s ^= s >>> 17; s ^= s << 5; s >>>= 0; _xs[0] = s; return s / 4294967296; };
   const ox = st.cx * cell, oz = st.cz * cell;
   let n = st.n;
   const end = Math.min(st.perCell, st.i + budget);
@@ -1249,7 +1475,7 @@ export function stepGrassCell(st, budget, { keep, ground = null, slope = null, h
     st.slope[n * 2] = gn ? gn[0] : 0; st.slope[n * 2 + 1] = gn ? gn[2] : 0;
     n++;
   }
-  st.s = s; st.i = end; st.n = n; st.count = n;
+  st.s = _xs[0]; st.i = end; st.n = n; st.count = n;
   // the pad: height 0 draws nothing (the vertex stage collapses h=0)
   return end >= st.perCell;
 }
@@ -1261,12 +1487,20 @@ export const GRASS_SLICE = 1500;
  *  placed WHOLE - the shader's own fade start (`smoothstep(uRange*0.55,
  *  uRange, d)`, the lab's), inside which every blade of a cell draws. */
 export const GRASS_WHOLE_AT = 0.55;
-/** PERF-EXT22: more cells than this waiting and the field is catching up
- *  (a boot, a teleport, a pixel re-read under the eye), and fills whole
- *  cells at the pace it always did; this many or fewer, and it is a walk.
- *  Eight holds a 15 m/s ride to slices (four did not - `grassWalkKeep.mjs`),
- *  and costs a boot the last eight rim cells a slice at a time, at 300 m. */
-export const GRASS_CATCH_UP = 8;
+/** FB1021B (FIELD BUGS 2026-10-21c row 6): the fraction of the range a rim cell must stand placed by - the eye's
+ *  approach is its deadline. Out here the shader's fade (`smoothstep(uRange*0.55, uRange, d)`) leaves a blade 12.6%
+ *  of itself, at the rim 0. A cell nearer than this and missing is due now: a birth's, an invalidate's. */
+export const GRASS_DUE_AT = 0.9;
+/** FB1021B: the field's time a frame for the cells due now - a birth's, an invalidate's - past the frame's first
+ *  whole cell: 3 ms of a 60 Hz frame, and that share of a longer one (GRASS_FRAME_SHARE), so a birth fills in the
+ *  same seconds at any frame rate. On the field's own clock; a whole cell's cost is the one it just placed. */
+export const GRASS_FRAME_MS = 3;
+/** FB1021B: the share of the frame - the time between two updates on the field's clock - its catch-up may take. */
+export const GRASS_FRAME_SHARE = GRASS_FRAME_MS * 60 / 1000;
+/** FB1021B: the longest frame that share is taken of - a 20 fps frame; a hitch past it grants no more. */
+export const GRASS_FRAME_GAP_MS = 50;
+/** FB1021B: candidates between two reads of that clock - the most a budget is overrun by, past a pack. */
+export const GRASS_STEP = 250;
 
 /**
  * The field: which cells stand around the eye, each in its own slot.
@@ -1274,8 +1508,15 @@ export const GRASS_CATCH_UP = 8;
  * most `perFrame` new ones - a cell is a few thousand blades and a
  * few thousand keep() lookups, milliseconds. PERF-EXT22: and on a walk
  * that is the spike - a rim cell is placed a slice a frame (see update).
+ * FB1021B: and past the slice at the eye's own pace, a birth inside a share
+ * of the frame's time (see update).
  */
-export function createGrassField(renderer, { keep, ground = null, slope = null, span = LAB_GRASS.span, density = LAB_GRASS.density, height = LAB_GRASS.height, seed = LAB_GRASS.seed, cell = GRASS_CELL, range = LAB_GRASS.range, perFrame = 2, slots: slotsOverride = 0 }) {
+/**
+ * @param {LabGrassRenderer} renderer
+ * @param {{ keep: (x: number, z: number) => number | null | undefined, ground?: any, slope?: any, span?: number, density?: number,
+ *   height?: number, seed?: number, cell?: number, range?: number, perFrame?: number, slots?: number, frameMs?: number, clock?: () => number }} o
+ */
+export function createGrassField(renderer, { keep, ground = null, slope = null, span = LAB_GRASS.span, density = LAB_GRASS.density, height = LAB_GRASS.height, seed = LAB_GRASS.seed, cell = GRASS_CELL, range = LAB_GRASS.range, perFrame = 2, slots: slotsOverride = 0, frameMs = GRASS_FRAME_MS, clock = () => performance.now() }) {   // FB1021B: `clock` a test seam - the game passes neither
   const perCell = grassPerCell(density);   // GRASS2: the RATE, off the lab's own span - `span` below is the window, and the two are not the same question
   // PERF10 (2026-09-19, Mac: "when youre further out in the wilderniss
   // it loaded many chunks and grass the performance still degrades"):
@@ -1328,6 +1569,14 @@ export function createGrassField(renderer, { keep, ground = null, slope = null, 
   /** PERF-EXT22: the rim cell being placed a slice a frame - { d, cx,
    *  cz, key, st } - or null. Not live and holding no slot until done. */
   let pending = null;
+  /** FB1021B: where the last update's eye stood (the field's scene, moved with it at a shift) - its step is the
+   *  approach every rim cell's deadline is reckoned on - and when the last update began, on the field's clock. */
+  let lastX = NaN, lastZ = NaN, lastT = NaN;
+  /** OW-HITCH: the two cells' arrays the field places into again (beginGrassCell `reuse`) - the last cell placed whole
+   *  and the last rim cell begun. A renderer packs a cell in writeSlot and holds none of it after (LabGrassRenderer
+   *  copies it into its lanes' scratch), so a cell's arrays are free the moment it is written; the rim cell's are the
+   *  pending cell's until it is written or let go, and a rim cell is begun only when none is pending. */
+  let wholeSpare = null, rimSpare = null;
   /** PERF10: the square distance from the eye to a cell's nearest point -
    *  _drawVisibleSlots' own test, so what is filled is what is drawn.
    *  PERF-EXT21: the cell's edges stood in the field's frame, the eye
@@ -1346,6 +1595,7 @@ export function createGrassField(renderer, { keep, ground = null, slope = null, 
      *  packed lanes are cell-local and never knew where the scene was. */
     shiftOrigin(offset) {
       gx += offset[0]; gz += offset[2];
+      lastX += offset[0]; lastZ += offset[2];   // FB1021B: the eye moved with the scene - a shift is no step
       renderer.shiftSlots(offset);
       pending = null;   // PERF-EXT22: a half-placed cell holds scene positions of the old frame - it starts again in the new one
     },
@@ -1401,76 +1651,147 @@ export function createGrassField(renderer, { keep, ground = null, slope = null, 
         if (nearSq(held.cx, held.cz, ex, ez) > keepR2) { renderer.clearSlot(held.slot); live.delete(key); free.push(held.slot); }
       }
       if (pending && nearSq(pending.cx, pending.cz, ex, ez) > fillR2) pending = null;   // PERF-EXT22: walked out of reach before it was done - it would not be begun now either
-      // fill what came into range, nearest first, a few a frame
-      let budget = perFrame;
-      /** @type {{ d:number, cx:number, cz:number, key:number, st?:object }[]} */
+      // FB1021B (FIELD BUGS 2026-10-21c row 6, a player's CPU profile: grass streaming 11-24% of the main thread): THE
+      // RIM IS PLACED BY THE EYE'S APPROACH, NOT BY THE FRAME. PERF-EXT22 placed a rim cell GRASS_SLICE candidates a
+      // frame and, with more than eight cells waiting, every cell whole, two a frame. A slice a frame is a cell every
+      // five frames, so the rim's pace was the FRAME RATE's while its arrivals are the eye's speed's - and at 20 fps a
+      // DFU ride (10.8 m/s) fell eight cells behind on 13% of its frames, a gallop on 25%, a run and a cart on 5%, at
+      // 30 fps a ride on 3.5% and a gallop on 13%, at 60 a strong gallop (22 m/s) on 4%: each of those frames two whole
+      // cells, eight to ten times its neighbours - the spike PERF-EXT22 had removed, back on the slowest machines, the
+      // ones least able to pay it (tools/grassMoveProbe.mjs). Now:
+      // - a cell's DEADLINE is the frames the eye, coming straight at it at this frame's step, would take to bring its
+      //   nearest point inside GRASS_DUE_AT of the range - 0 if it stands there already (a birth's, an invalidate's),
+      //   never while the eye stands, nor for a cell past the fade's start the step is leaving behind - and the cells
+      //   are placed nearest first, as they always were, those behind the step after the rest: a birth on the move
+      //   fills the way the eye is going, and what it leaves the hysteresis takes, most of it never placed;
+      // - a cell inside the fade's start still comes whole - the frame's first always, so a hole the eye sees is
+      //   closed on the frame it is missed, the next while it fits the frame's time (GRASS_FRAME_MS, or its share of
+      //   a longer frame) at the cost of the whole cell just placed;
+      // - the rim takes one slice a frame, as it did (a frame a whole cell took, none), and past it what the deadlines
+      //   ask: the least pace that has every rim cell placed by its own (earliest deadline first: the nearest) - the
+      //   eye's own speed's work, spread over the frames it has, never capped below it, or the grass would stand holes
+      //   the old catch-up never left - and, with a cell due now (inside already), the frame's time past that pace,
+      //   GRASS_STEP candidates at a time.
+      // A walk that keeps up is PERF-EXT22's walk to the candidate. A ride the slice cannot keep up with is paced to
+      // the eye, frame for frame, and never two whole cells; a birth fills nearest first inside the frame's time.
+      // AUDIT FB1021B F1 (the owner: "no band aids and true improvements"): the cells due now took the frame's time
+      // INSTEAD of the pace, and before the cells it was owed to - so one cell due now (a birth on the move: the jungle
+      // floor's re-made meadow on a ride, an Overworld journey's end, a publish over the disc; a band cell re-read the
+      // step leaves behind) turned the deadlines off, and where the frame's time placed less than the eye brought in
+      // (a slow machine, a fast ride) the cells ahead missed theirs, came due now themselves, and kept it so: the bench's
+      // slow machine (a candidate 1/256 ms) born on a 20 fps DFU ride stood holes inside GRASS_DUE_AT for 1,006 frames,
+      // 342 cells crossing it unplaced; a strong gallop with one band cell re-read behind it never recovered. Now the
+      // pace is spent first on the cells whose deadlines ask it, the cells due now take the frame's time past it, and
+      // the rest wait: no cell with a deadline is let cross GRASS_DUE_AT for a backlog's sake, and a birth on the move
+      // fills in the frames a standing one does (597 there).
+      const ux = Number.isFinite(lastX) ? ex - lastX : 0, uz = Number.isFinite(lastZ) ? ez - lastZ : 0;   // the eye's step this frame
+      const step = Math.hypot(ux, uz);
+      lastX = ex; lastZ = ez;
+      const wholeR = range * GRASS_WHOLE_AT, dueR = range * GRASS_DUE_AT;
+      const wholeR2 = wholeR * wholeR, dueR2 = dueR * dueR;
+      // AUDIT FB1021B F2: a cell in progress the eye has brought inside the fade's start is an inner cell, let go so the
+      // loop below places it whole as one never begun - held, it was in no list but its own, and stood unplaced inside
+      // 165 m (as near as 141) while cells farther out were placed
+      if (pending && nearSq(pending.cx, pending.cz, ex, ez) <= wholeR2) pending = null;
+      /** FB1021B: 1 for a cell past the fade's start whose nearest point the step moves away from, else 0 */
+      const behind = (cx, cz, d2) => (d2 > wholeR2 && (Math.min(Math.max(ex, cx * cell + gx), (cx + 1) * cell + gx) - ex) * ux
+        + (Math.min(Math.max(ez, cz * cell + gz), (cz + 1) * cell + gz) - ez) * uz < 0 ? 1 : 0);
+      /** FB1021B: a cell's deadline in frames: 0 inside dueR, Infinity while the eye leaves it behind - or stands (a step of 0) */
+      const dueIn = (d2, back) => { const d = Math.sqrt(d2); return d <= dueR ? 0 : back ? Infinity : (d - dueR) / step; };
+      /** @type {{ d:number, cx:number, cz:number, key:number, back:number }[]} */
       const want = [];   // HARD3: a NAMED shape, because a mixed [number, number, number, string] literal widens to (number|string)[] and `a[0] - b[0]` stops type-checking
       for (let cz = ecz - k; cz <= ecz + k; cz++) for (let cx = ecx - k; cx <= ecx + k; cx++) {
         const d = nearSq(cx, cz, ex, ez);
         if (d > fillR2) continue;
         const key = cellKey(cx, cz);
-        if (!live.has(key) && key !== pending?.key) want.push({ d, cx, cz, key });
+        if (!live.has(key) && key !== pending?.key) want.push({ d, cx, cz, key, back: behind(cx, cz, d) });
       }
-      want.sort((a, b) => a.d - b.d);
+      want.sort((a, b) => a.back - b.back || a.d - b.d);   // nearest first - FB1021B: the earliest deadline first, what the step leaves behind last
       const missing = want.length + (pending ? 1 : 0);
-      // PERF-EXT22: A WALK PLACES ITS RIM A SLICE A FRAME. A walking eye
-      // brings cells in at the rim - their nearest point just inside the
-      // 300 m range, where the draw keeps 0-2% of a cell's blades - one
-      // every ~11 frames at a run, and each was a whole cell on the frame
-      // it arrived: a 4-8 ms spike on 5-17% of frames. With a few cells
-      // waiting, a rim cell (past GRASS_WHOLE_AT of the range, where the
-      // fade begins) is begun and placed GRASS_SLICE candidates a frame,
-      // written the frame it is done; it lands ~4 frames later, a metre
-      // at a gallop, 300 m out. A cell inside the fade's start still
-      // comes whole, and with more than GRASS_CATCH_UP waiting - a boot,
-      // a teleport, a near pixel re-read - every cell does, two a frame,
-      // at the pace the field always filled at.
-      const catchUp = missing > GRASS_CATCH_UP;
-      const wholeR2 = (range * GRASS_WHOLE_AT) * (range * GRASS_WHOLE_AT);
-      const ask = { keep: keepNow, ground: groundNow, slope: slopeNow, height };
-      let sliced = false;
-      if (pending) {
-        sliced = !catchUp;
-        if (stepGrassCell(pending.st, catchUp ? perCell : GRASS_SLICE, ask)) {
-          want.unshift({ ...pending, d: nearSq(pending.cx, pending.cz, ex, ez) });   // done: it takes its slot below, first
-          pending = null;
+      // AUDIT PERF10 F1: A BOUND CAN BE WRONG; A HOLE MUST NOT BE
+      // ABLE TO SURVIVE IT. `slots` is discSlotCount's swept answer,
+      // and the first draft of that sweep was two cells short - at
+      // which point this loop simply broke and the cell stayed
+      // unplaced for as long as the eye stood there. `want` is
+      // sorted nearest-first (FB1021B: what the step leaves behind
+      // after the rest), so the nearest waiting cell takes the
+      // farthest standing one's slot; when every slot already holds
+      // something nearer there is nothing to gain and the walk
+      // stops. The invariant is not "the bound is right" but THE
+      // FIELD HOLDS THE NEAREST `slots` CELLS, which no bound can
+      // break. FB1021B: asked before a cell is begun as well as when
+      // it is written, so no slice is spent on a cell no slot takes.
+      const slotFor = (d, take) => {
+        if (free.length) return take ? free.pop() : free[free.length - 1];
+        let far = null, farKey = 0, farD = d;
+        for (const [k, held] of live) {
+          const hd = nearSq(held.cx, held.cz, ex, ez);
+          if (hd > farD) { farD = hd; far = held; farKey = k; }
         }
-      }
-      for (const item of want) {
-        const { d, cx, cz, key } = item;
-        if (budget <= 0) break;
-        if (!item.st && !catchUp && d > wholeR2) {   // PERF-EXT22: a rim cell on a walk
-          if (pending || sliced) continue;           // one slice a frame
-          const st = beginGrassCell(cx, cz, { perCell, seed, cell, originX: gx, originZ: gz });
-          sliced = true;
-          if (!stepGrassCell(st, GRASS_SLICE, ask)) { pending = { d, cx, cz, key, st }; continue; }
-          item.st = st;   // a cell no bigger than a slice is done in one
-        }
-        let slot = free.pop();
-        if (slot === undefined) {
-          // AUDIT PERF10 F1: A BOUND CAN BE WRONG; A HOLE MUST NOT BE
-          // ABLE TO SURVIVE IT. `slots` is discSlotCount's swept answer,
-          // and the first draft of that sweep was two cells short - at
-          // which point this loop simply broke and the cell stayed
-          // unplaced for as long as the eye stood there. `want` is
-          // sorted nearest-first, so the nearest waiting cell takes the
-          // farthest standing one's slot; when every slot already holds
-          // something nearer there is nothing to gain and the walk
-          // stops. The invariant is not "the bound is right" but THE
-          // FIELD HOLDS THE NEAREST `slots` CELLS, which no bound can
-          // break.
-          let far = null, farKey = 0, farD = d;
-          for (const [k, held] of live) {
-            const hd = nearSq(held.cx, held.cz, ex, ez);
-            if (hd > farD) { farD = hd; far = held; farKey = k; }
-          }
-          if (!far) break;
-          renderer.clearSlot(far.slot); live.delete(farKey); slot = far.slot;
-        }
+        if (!far) return undefined;
+        if (take) { renderer.clearSlot(far.slot); live.delete(farKey); }
+        return far.slot;
+      };
+      const t0 = clock();
+      const gap = Number.isFinite(lastT) ? Math.min(t0 - lastT, GRASS_FRAME_GAP_MS) : 0;   // the frame, measured
+      lastT = t0;
+      const budgetMs = Math.max(frameMs, gap * GRASS_FRAME_SHARE);   // the time the due may take this frame
+      let budget = perFrame, wholeMs = 0;   // the cells written this frame, at most; what its last whole cell cost, placed and written
+      const write = ({ key, cx, cz }, slot, placed) => {
         budget--;
-        renderer.writeSlot(slot, item.st ?? placeLabGrassCell(cx, cz, { keep: keepNow, ground: groundNow, slope: slopeNow, perCell, height, seed, cell, originX: gx, originZ: gz }));   // PERF-EXT21; PERF-EXT22: or the rim cell its slices finished
+        renderer.writeSlot(slot, placed);   // PERF-EXT22: a whole cell, or the rim cell its slices finished
         live.set(key, { slot, cx, cz });
+      };
+      // the cells inside the fade's start: whole - the frame's first always, the next while it fits
+      for (const item of want) {
+        if (item.d > wholeR2 || budget <= 0) break;   // nearest first, and none behind: the inner cells are the sort's head
+        if (budget < perFrame && clock() - t0 + wholeMs > budgetMs) break;
+        const slot = slotFor(item.d, true);
+        if (slot === undefined) return missing;   // every slot holds a nearer cell
+        const s = clock();
+        wholeSpare = placeLabGrassCell(item.cx, item.cz, { keep: keepNow, ground: groundNow, slope: slopeNow, perCell, height, seed, cell, originX: gx, originZ: gz, reuse: wholeSpare });   // PERF-EXT21; OW-HITCH: into the last whole cell's arrays (written below before the next is placed)
+        write(item, slot, wholeSpare);
+        wholeMs = clock() - s;
       }
+      // the rim: the cell in progress, the cells the deadlines' pace reaches, the cells due now, then the rest by deadline
+      // (an inner cell the frame's time left waits for the next frame, whole)
+      const ask = { keep: keepNow, ground: groundNow, slope: slopeNow, height };
+      const late = want.filter((w) => w.d > wholeR2 && w.d <= dueR2 && !w.back);   // due now, and the step not leaving them
+      const rim = want.filter((w) => w.d > dueR2 || (w.d > wholeR2 && w.back));   // a deadline to come, or none: what the step leaves
+      let owed = 0, need = 0, now = late.length > 0;   // the candidates owed in this order, the least pace meeting every deadline, a cell due now
+      // a deadline of `due` frames leaves ceil(due) updates before the step that brings the cell inside - this one
+      // and the rest - so the pace is the owed over those; a cell inside already is due now
+      const owe = (d2, back, n) => { owed += n; const due = dueIn(d2, back); if (due === 0) now = true; else need = Math.max(need, owed / Math.ceil(due)); };
+      if (pending) { const pd = nearSq(pending.cx, pending.cz, ex, ez); owe(pd, behind(pending.cx, pending.cz, pd), perCell - pending.st.i); }
+      for (const w of rim) owe(w.d, w.back, perCell);
+      // AUDIT FB1021B F1: the cells due now come after the rim cells this frame's pace reaches - the cell in progress's
+      // rest and as many whole cells as the pace's candidates - and before the rest, so the pace lands where it is owed
+      let head = 0;
+      for (let o = pending ? perCell - pending.st.i : 0; head < rim.length && o < need; head++) o += perCell;
+      rim.splice(head, 0, ...late);
+      let cur = pending, ri = 0, done = 0, first = budget === perFrame, paced = 0;   // the slice a frame - on a frame no whole cell took; the time the pace past it took
+      pending = null;
+      while (budget > 0) {
+        if (!first && done >= need && !(now && clock() - t0 - paced < budgetMs)) break;   // one slice a frame; past it the deadlines' pace - with a cell due now, the frame's time past it
+        if (!cur) {
+          if (ri >= rim.length || slotFor(rim[ri].d, false) === undefined) break;   // AUDIT PERF10 F1: nothing begun that no slot would take
+          const w = rim[ri++];
+          rimSpare = beginGrassCell(w.cx, w.cz, { perCell, seed, cell, originX: gx, originZ: gz, reuse: rimSpare });   // OW-HITCH: into the last rim cell's arrays - begun only when none is in progress
+          cur = { ...w, st: rimSpare };
+        }
+        const st = cur.st, i0 = st.i;
+        const timed = now && !first && done < need, s = timed ? clock() : 0;   // a step of the pace while a cell is due now: not the frame's time's
+        const finished = stepGrassCell(st, first ? GRASS_SLICE : now ? GRASS_STEP : Math.min(GRASS_STEP, Math.ceil(need - done)), ask);
+        first = false;
+        done += st.i - i0;
+        if (timed) paced += clock() - s;
+        if (!finished) continue;
+        const slot = slotFor(nearSq(cur.cx, cur.cz, ex, ez), true);
+        if (slot === undefined) { cur = null; break; }   // a nearer cell took the last slot meanwhile: begun again from the world as it stands
+        write(cur, slot, st);
+        cur = null;
+      }
+      pending = cur;   // the cell begun and not done, carried to the next frame
       // AUDIT PERF10 F5: what was MISSING when this update began - not
       // what is still missing now. GR5's comment said "pending" and the
       // number never meant that; the one caller ignores it and the pin
@@ -1524,6 +1845,15 @@ export function labBladeCorners(segments = 5) {
     corners.push(0, a, 1, a, 1, b, 0, a, 1, b, 0, b);
   }
   return new Float32Array(corners);
+}
+
+/** GRASS-ON: a triangle list with each triangle turned to BEGIN on the corner it ended on - (a, b, c) to (c, a, b), the
+ *  same winding - so the corner that provokes under GL's last-vertex convention provokes under the first-vertex one
+ *  (WEBGL_provoking_vertex; LabGrassRenderer's constructor says why the field asks for it). */
+export function provokeFirst(indices) {
+  const out = new Uint16Array(indices.length);
+  for (let t = 0; t + 2 < indices.length; t += 3) { out[t] = indices[t + 2]; out[t + 1] = indices[t]; out[t + 2] = indices[t + 1]; }
+  return out;
 }
 
 /** GRASS2: THE FAR BLADE IS ONE QUAD. The lab's blade is five stacked
@@ -1610,6 +1940,33 @@ export function grassRecordsOf(layers, { roadRecords = new Set([46, 47, 55]) } =
 }
 
 /**
+ * BANTHA2: WHICH RECORDS OF A GROUND ARCHIVE THE JUNGLE'S FLOOR STANDS ON. DFU's tile bases are by PLACE - 0 water, 1
+ * dirt, 2 grass, 3 stone (world/terrain/terrainTiles.js: the generator writes them and their blends) - and the floor
+ * stands on dirt and grass whatever their colour, as the jungle's own layout reads them (world/terrain/jungleNature.js
+ * JUNGLE.ground): the Rainforest's ground is the Swamp's (402), whose grass is an olive mud and whose stone a green moss,
+ * so a colour's test (grassRecordsOf's, the meadow's) took its stone and refused its grass - and the floor stood on the
+ * odd patch of dirt and nowhere else. A blend, or a place's own tile, is the floor's when more than half its texels are
+ * nearest the dirt's or the grass's mean (and near it); stone, roads and water stand none.
+ */
+export function floorRecordsOf(layers, { roadRecords = new Set([46, 47, 55]) } = {}) {
+  if (!layers || layers.length < 4) return new Set();
+  const means = [0, 1, 2, 3].map((i) => meanRgb(layers[i]));
+  const out = new Set([1, 2]);   // the dirt and the grass, by their place
+  for (let rec = 4; rec < layers.length; rec++) {
+    if (roadRecords.has(rec)) continue;
+    const l = layers[rec]; const n = l.width * l.height; let g = 0;
+    for (let k = 0; k < n; k++) {
+      const r = l.colors[k * 4], gg = l.colors[k * 4 + 1], b = l.colors[k * 4 + 2];
+      let best = 0, bd = Infinity;
+      for (let i = 0; i < 4; i++) { const d = (r - means[i][0]) ** 2 + (gg - means[i][1]) ** 2 + (b - means[i][2]) ** 2; if (d < bd) { bd = d; best = i; } }
+      if ((best === 1 || best === 2) && bd < 42 * 42) g++;
+    }
+    if (g / n > 0.5) out.add(rec);
+  }
+  return out;
+}
+
+/**
  * GR1: the lab's grass pass, as a renderer of its own beside the world
  * renderer - the same shape as PrecipitationRenderer. Owns its program,
  * its blade quad, its instance buffers and a 1x1 zero field texture.
@@ -1626,15 +1983,18 @@ export class LabGrassRenderer {
    *  until GRASS-LIT painted the game's field in the ground's colours;
    *  and the lab's text reads the height lane as GRASS5 packed it (a
    *  u16 height), so since GRASS-LIT2 its blades stand up to 7 mm off
-   *  the game's - the lab's pair draws the lab's look, not the game's. */
-  constructor(gl, { stages = { vs: GAME_GRASS_VS, fs: GAME_GRASS_FS }, tuft = null } = {}) {   // GRASS-PX4: `tuft` ({ w, h }) lays the sheet at another size - the probe photographs the old 16x32 beside the shipped 8x16 through it
+   *  the game's - the lab's pair draws the lab's look, not the game's.
+   *  @param {WebGL2RenderingContext} gl
+   *  @param {{ art?: GrassArt, stages?: { vs: string, fs: string }, tuft?: { w: number, h: number } | null, provoke?: boolean }} [o] */
+  constructor(gl, { art = MEADOW_ART, stages = grassStagesOf(art), tuft = null, provoke = true } = {}) {   // BANTHA2: `art` the sprite set the meadow wears (MEADOW_ART; the jungle floor's)   // GRASS-PX4: `tuft` ({ w, h }) lays the sheet at another size - the probe photographs the old 16x32 beside the shipped 8x16 through it; GRASS-ON: `provoke` false keeps GL's convention (below)
     this.gl = gl;
     const prog = buildProgram(gl, LAB_GRASS_HEAD + GAME_GRASS_FIELD + stages.vs, LAB_GRASS_HEAD + stages.fs);   // GRASS-PX: the lab's text under the declared edits
     this.program = prog;
     this.u = {};
     for (const n of ['uVP', 'uTime', 'uWind', 'uRange', 'uEye', 'uSunDir', 'uWindDir', 'uSnowFull', 'uSlotN', 'uCellFrame', 'uBladeScale', 'uCellSize', 'uGField', 'uGFieldOrigin', 'uGFieldM', 'uSnowGlobal', 'uWindV', 'uAmb', 'uSunCol', 'uDim', 'uSunScale', 'uMoonDir', 'uMoonScale', 'uMoonCol',
       'uPixel', 'uPxVariants', 'uPxSteps', 'uPxTintBands', 'uPxSheet',   // GRASS-PX: the pixel style's five (GRASS-PX3 took the sway's two)
-      'uFogColor', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos', 'uDwFog',   // DISC20-A: the terrain's fog; DW-C: and the sea's
+      'uArt', 'uArtGround', 'uArtHue',   // MEADOW1: the meadow's switch and the ground its art was drawn for; BANTHA2: the share of its hue it takes
+      'uFogColor', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos', 'uDwFog', 'uJungleHaze',   // DISC20-A: the terrain's fog; DW-C: and the sea's; BANTHA1: and the jungle's haze
       'uLane', 'uELExposure', 'uAdapt', 'uIndirect', 'uIndirectColor', 'uCloudShadowMap', 'uCloudShadowRect', 'uGrassTone',   // GRASS-LIT: the lane, the eye, the player's light, the deck
       'uPointCount', 'uPointLights', 'uPointColors', 'uPointIdx']) this.u[n] = gl.getUniformLocation(prog, n);   // GRASS-LIT2: the lanterns; AUDIT A1: a cell's
     // GRASS-LIT: the sun map's block, by the names ShadowPass.upload binds (the receiver the terrain takes)
@@ -1648,6 +2008,10 @@ export class LabGrassRenderer {
     this.tones = new Float32Array(GRASS_TONES.flat());
     /** GRASS-LIT2: and on the classic lane (GRASS_TONES_CLASSIC) */
     this.tonesClassic = new Float32Array(GRASS_TONES_CLASSIC.flat());
+    /** MEADOW1: the ground the owner's art is drawn for on each lane - his green at the lane's middle tone */
+    this.art = art;
+    this.artGround = new Float32Array(meadowArtGround(GRASS_TONES[1], art.green));
+    this.artGroundClassic = new Float32Array(meadowArtGround(GRASS_TONES_CLASSIC[1], art.green));
     // AUDIT GRASS-LIT2 A1: a cell's lantern list, its distances, and the list last uploaded
     this._cellIdx = new Int32Array(GRASS_CELL_LIGHTS); this._cellDist = new Float64Array(GRASS_CELL_LIGHTS);
     this._cellLast = new Int32Array(GRASS_CELL_LIGHTS); this._cellN = -1; this._pn = 0; this._pts = null;
@@ -1668,14 +2032,37 @@ export class LabGrassRenderer {
       Object.freeze({ loc: 2, type: gl.UNSIGNED_BYTE, bytes: 4 }),
       Object.freeze({ loc: 4, type: gl.UNSIGNED_BYTE, bytes: 4 }),
     ]);
-    /** one vertex array over a corner buffer of `segments` quads */
-    const buildVao = (segments) => {
+    // GRASS-ON (2026-10-07, Mac: "Can you please turn grass on by default", then "People are also saying it really has
+    // bad performance"): THE FIELD DRAWS UNDER THE FIRST-VERTEX CONVENTION WHERE THE BROWSER OFFERS IT. vVar, vSun and
+    // vPoint go down `flat`, read in each triangle's provoking vertex alone (GRASS-LIT's law) - GL's LAST, WebGL's
+    // default. Direct3D provokes from the FIRST, so ANGLE on Windows (every browser there, and the desktop app) keeps
+    // GL's convention for a program with a flat varying by drawing it through a geometry shader that copies the last
+    // vertex's flats onto the other two, every triangle of every draw - and the field is the heaviest geometry outdoors
+    // (Metal's backend rewrites the indices instead). WEBGL_provoking_vertex is how a page takes the native one. Under
+    // it each triangle is listed provoking corner first (provokeFirst: the cards' own indices turned, a blade's corners
+    // through a turned list of them in order), so the corner the stage reads (`gl_VertexID % 3 == 2`) is the one that
+    // provokes under either convention and the stage's text is unchanged. A browser without it draws as it always did,
+    // and so does `provoke` false - the world host's `?provoke=last`, so a machine can time the field both ways on its
+    // own GPU (`?perf=zones`, its `grass` span).
+    this._pv = provoke ? (gl.getExtension('WEBGL_provoking_vertex') ?? null) : null;
+    const first = !!this._pv;
+    /** one vertex array over a corner buffer - labBladeCorners' quads, two floats a vertex; MEADOW1: or the meadow's
+     *  cards, three floats a vertex, the third the card's turn on attribute 3 - AUDIT MEADOW1: drawn through their
+     *  `indices` (meadowCardIndices), so `verts` is what a tuft SHADES (each corner once) and `count` what it submits;
+     *  GRASS-ON: under the first-vertex convention every array is drawn through indices, each triangle turned */
+    const buildVao = (corners, cardIndices = null) => {
+      const cards = !!cardIndices;
+      const n = cards ? 0 : corners.length / 2;   // a blade's corners (a card's count is its indices')
+      const indices = cards ? (first ? provokeFirst(cardIndices) : cardIndices) : (first ? provokeFirst(Uint16Array.from({ length: n }, (_, i) => i)) : null);
       const vao = gl.createVertexArray();
       gl.bindVertexArray(vao);
       const cb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, cb);
-      const corners = labBladeCorners(segments);
       gl.bufferData(gl.ARRAY_BUFFER, corners, gl.STATIC_DRAW);
-      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+      const stride = cards ? 12 : 0;
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, stride, 0);
+      if (cards) { gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, stride, 8); }
+      const ib = indices ? gl.createBuffer() : null;   // AUDIT MEADOW1: the index buffer is the array's own state
+      if (ib) { gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW); }
       // GRASS5: NORMALIZED integer attributes - the GPU does the unpack,
       // so the shader reads floats in 0..1 and the decode is two
       // multiply-adds rather than a fetch per field.
@@ -1686,12 +2073,16 @@ export class LabGrassRenderer {
         gl.vertexAttribDivisor(L.loc, 1);
       }
       gl.bindVertexArray(null);
-      return { vao, verts: corners.length / 2, cb };
+      return { vao, verts: cards ? new Set(cardIndices).size : n, count: cards ? cardIndices.length : n, cb, ib };
     };
-    const near = buildVao(5), far = buildVao(GRASS_FAR_SEGMENTS);
+    const near = buildVao(labBladeCorners(5)), far = buildVao(labBladeCorners(GRASS_FAR_SEGMENTS));
+    const cards = buildVao(meadowCardCorners(MEADOW_CARDS), meadowCardIndices(MEADOW_CARDS));   // MEADOW1: the tuft's cards, near and far
+    const cardsFar = buildVao(meadowCardCorners(MEADOW_CARDS_FAR, MEADOW_CARDS), meadowCardIndices(MEADOW_CARDS_FAR));   // AUDIT MEADOW1: the near set's first two, so nothing turns at the handover
     this.vao = near.vao; this.verts = near.verts;
     this.vaoFar = far.vao; this.vertsFar = far.verts;
-    this._cornerBufs = [near.cb, far.cb];
+    this.vaoCards = cards.vao; this.vertsCards = cards.verts; this.countCards = cards.count;   // MEADOW1; AUDIT MEADOW1: shaded, and submitted
+    this.vaoCardsFar = cardsFar.vao; this.vertsCardsFar = cardsFar.verts; this.countCardsFar = cardsFar.count;
+    this._cornerBufs = [near.cb, far.cb, cards.cb, cardsFar.cb, cards.ib, cardsFar.ib, near.ib, far.ib].filter((b) => b !== null);   // GRASS-ON: the blades' two lists only under the first-vertex convention
     gl.bindVertexArray(null);
     // the field the lab's grass reads: nothing, so the snow and wet terms are zero
     this.zeroField = gl.createTexture();
@@ -1708,22 +2099,42 @@ export class LabGrassRenderer {
     // stop at 3 and its reserved units start at 11, and the host marks
     // the grass a foreign pass after every draw, so nothing counts on 4
     // holding across it.
-    this.pxSheet = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, this.pxSheet);
     const mips = buildTuftMips(tuft ? buildTuftSheet({ w: tuft.w, h: tuft.h }) : undefined);   // GRASS-PX4
     this.pxVariants = mips[0].variants;
+    this.pxSheet = this._sheet(mips);
+    // MEADOW1: THE OWNER'S ATLAS, up the same way - its own coverage chain (render/grassMeadow.js buildMeadowMips),
+    // bound on the sheet's unit when the meadow draws
+    this.meadowSheet = this._sheet(art.mips());   // BANTHA2: its set's
+    this.count = 0;
+    this._vp = new Float32Array(16);
+    this._planes = new Float32Array(24);   // PERF2
+    this._cardBox = new Float64Array(6);   // AUDIT MEADOW1: the meadow's widened box, asked of the frustum - one, reused every slot
+    this._cardReach = art.reach;           // AUDIT MEADOW1: the cards' reach over a blade's height, this frame's (draw)
+    this.slotBox = null;                    // PERF2: per slot, the cell's world box, or null while empty
+    this.slotCount = null;                  // GRASS2: per slot, the blades that actually STOOD - the rest of the slot is pad
+    this.drawn = { slots: 0, blades: 0, kept: 0 };   // PERF2: what the last draw actually submitted; GRASS2: and how much of it was not pad
+  }
+
+  /** AUDIT MEADOW1: a palette for the field (tools/grassLookProbe.mjs, through world.js __grassTones) - the four tones of
+   *  a lane, and the ground the meadow's art is drawn for, which is anchored to the middle one (meadowArtGround): a
+   *  palette study that moved the tones alone left the meadow on the shipped middle tone */
+  setTones(tones, classic = false) {
+    this[classic ? 'tonesClassic' : 'tones'] = new Float32Array(tones.flat());
+    this[classic ? 'artGroundClassic' : 'artGround'] = new Float32Array(meadowArtGround(tones[1], this.art.green));
+  }
+
+  /** GRASS-PX: a sheet and its hand-built chain on a texture of its own - every level uploaded, NEAREST both ways,
+   *  clamped (the constructor says why). MEADOW1: the meadow's atlas goes up through the same door. */
+  _sheet(mips) {
+    const gl = this.gl, tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
     for (let i = 0; i < mips.length; i++) gl.texImage2D(gl.TEXTURE_2D, i, gl.RGBA, mips[i].width, mips[i].height, 0, gl.RGBA, gl.UNSIGNED_BYTE, mips[i].data);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.bindTexture(gl.TEXTURE_2D, null);
-    this.count = 0;
-    this._vp = new Float32Array(16);
-    this._planes = new Float32Array(24);   // PERF2
-    this.slotBox = null;                    // PERF2: per slot, the cell's world box, or null while empty
-    this.slotCount = null;                  // GRASS2: per slot, the blades that actually STOOD - the rest of the slot is pad
-    this.drawn = { slots: 0, blades: 0, kept: 0 };   // PERF2: what the last draw actually submitted; GRASS2: and how much of it was not pad
+    return tex;
   }
 
   /** GR5: size the buffers for `slots` cells of `perCell` blades each,
@@ -1753,6 +2164,9 @@ export class LabGrassRenderer {
     // frame rounded before. Written unshifted, it uploads the same bits.
     this.slotFrame = new Float64Array(slots * 4);
     this.slotSpan = new Float32Array(slots);   // GRASS5: the cell's own xz extent, which is NOT the cell size
+    this.slotCardH = new Float64Array(slots);      // AUDIT MEADOW1: the tallest blade the meadow stands a card on (writeSlot)
+    this.slotCardRise = new Float64Array(slots);   // AUDIT MEADOW1: how far its tallest card's top stands over the box's
+    this.slotCardTilt = new Float64Array(slots);   // AUDIT MEADOW1: the steepest slope (rise over run) a card of it is sheared to
     this._packA = new Uint16Array(perCell * 4);   // the scratch a cell is packed through, reused
     this._packB = new Uint8Array(perCell * 4);
     this._packC = new Uint8Array(perCell * 4);
@@ -1797,15 +2211,31 @@ export class LabGrassRenderer {
     if (this.slotSpan) this.slotSpan[slot] = xSpan;
     const hFloor = heightFloor(this.height), hSpan = Math.max(1e-6, heightSpan(this.height));
     const A = this._packA, B = this._packB, C = this._packC;
-    A.fill(0); B.fill(0); C.fill(0);
     const u16 = (v) => Math.max(0, Math.min(65535, Math.round(v * 65535)));
     const u8 = (v) => Math.max(0, Math.min(255, Math.round(v * 255)));
+    // AUDIT MEADOW1: THE MEADOW'S CARDS, which stand taller and reach wider than any blade: the tallest blade of the run
+    // the meadow draws (its first MEADOW_BLADES_PER_TUFT-th) and the top of its tallest card, on the height the vertex
+    // stage DECODES off the word below - not on the placer's, which the lane holds to the law's own span. The culling
+    // box above is the blades' own again, so the pixel and smooth styles cull as they did; _drawVisibleSlots widens it
+    // for the meadow alone, by these and by the frame's wind.
+    const tufts = Math.ceil(n / MEADOW_BLADES_PER_TUFT), hTop = 2 ** GRASS_HEIGHT_BITS - 1, slopeStep = GRASS_SLOPE_SPAN / GRASS_SLOPE_STEPS;
+    let cardH = 0, cardTop = -Infinity, cardTilt = 0;
+    const artTop = this.art.top;   // BANTHA2: its set's tallest card
     for (let i = 0; i < n; i++) {
       const x = placed.inst[i * 4], z = placed.inst[i * 4 + 1], h = placed.inst[i * 4 + 2], ph = placed.inst[i * 4 + 3];
       A[i * 4] = u16((x - ox) / xSpan);
       A[i * 4 + 1] = u16((z - oz) / xSpan);
       A[i * 4 + 2] = u16((placed.rootY[i] - yBase) / ySpan);
       A[i * 4 + 3] = packHeightSlope((h - hFloor) / hSpan, placed.slope ? placed.slope[i * 2] : 0, placed.slope ? placed.slope[i * 2 + 1] : 0, i);   // GRASS-LIT2
+      if (i < tufts) {
+        const hd = hFloor + (A[i * 4 + 3] >> 10) / hTop * hSpan;
+        if (hd > cardH) cardH = hd;
+        if (placed.rootY[i] + hd * artTop > cardTop) cardTop = placed.rootY[i] + hd * artTop;
+        const w = A[i * 4 + 3];   // the normal the stage decodes off this word (unpackHeightSlope's law, unrolled: no object a blade)
+        const gx = ((((w >> 5) & 31) ^ GRASS_SLOPE_STEPS) - GRASS_SLOPE_STEPS) * slopeStep, gz = (((w & 31) ^ GRASS_SLOPE_STEPS) - GRASS_SLOPE_STEPS) * slopeStep;
+        const tilt = Math.hypot(gx, gz) / Math.max(Math.sqrt(Math.max(1 - gx * gx - gz * gz, 0)), MEADOW_SLOPE_FLOOR);
+        if (tilt > cardTilt) cardTilt = tilt;
+      }
       B[i * 4] = u8((placed.inst2[i * 4] + LEAN_SPAN / 2) / LEAN_SPAN);
       B[i * 4 + 1] = u8((placed.inst2[i * 4 + 1] + LEAN_SPAN / 2) / LEAN_SPAN);
       B[i * 4 + 2] = u8(placed.inst2[i * 4 + 2]);
@@ -1815,11 +2245,19 @@ export class LabGrassRenderer {
       C[i * 4 + 2] = u8(placed.ground[i * 3 + 2]);
       C[i * 4 + 3] = u8(ph / 6.283185307179586);
     }
-    for (let k = 0; k < this._lanes.length; k++) {
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.bufs[k]);
-      gl.bufferSubData(gl.ARRAY_BUFFER, slot * p * this._lanes[k].bytes, this._packs[k]);
+    if (this.slotCardH) { this.slotCardH[slot] = cardH; this.slotCardRise[slot] = n > 0 ? Math.max(0, cardTop - y1) : 0; this.slotCardTilt[slot] = cardTilt; }   // AUDIT MEADOW1: over the box's own top, so a shift moves nothing here; and the steepest ground a card of it is sheared to
+    // OW-HITCH (2026-10-21, the owner: "Theres still a lot of hitching in the overworld"): ONLY THE BLADES THAT STOOD GO
+    // UP. A slot draws its first `slotCount` blades and never one past them (_drawVisibleSlots instances the count, and
+    // the prefix inside it), so the pad behind them is bytes no draw reads - and a write into a buffer the last frame
+    // drew from is one the driver may have to wait on or copy. A cell on a road or a shore is mostly pad; an empty one
+    // uploads nothing. The lanes the draw reads are the bytes they were.
+    if (n > 0) {
+      for (let k = 0; k < this._lanes.length; k++) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.bufs[k]);
+        gl.bufferSubData(gl.ARRAY_BUFFER, slot * p * this._lanes[k].bytes, this._packs[k], 0, n * 4);
+      }
+      gl.bindBuffer(gl.ARRAY_BUFFER, null);
     }
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
   }
 
   /** PERF-EXT21: the floating origin moved by `offset` - every standing
@@ -1837,32 +2275,34 @@ export class LabGrassRenderer {
     }
   }
 
-  /** GR5: a cell leaves - its heights go to zero, and h=0 draws nothing. */
+  /** GR5: a cell leaves - its slot draws nothing from here. OW-HITCH: and nothing is uploaded for it. A slot is drawn
+   *  only with a box and a count (_drawVisibleSlots: no box, no draw; GRASS2: no blade past `slotCount`), so the zeros
+   *  this wrote over its heights were never read - GRASS5 had already said the count, not the zeros, kept it off the
+   *  GPU. They were a bufferSubData a cell: the Overworld coming down frees every cell the journey left behind in one
+   *  frame (the eye is kilometres on), and the real game stood 4.6 s in that frame's zeros. The next cell written into
+   *  the slot writes every blade it draws (writeSlot). */
   clearSlot(slot) {
-    const gl = this.gl; const p = this.perCell;
     if (this.slotBox) this.slotBox[slot] = null;   // PERF2
     if (this.slotCount) this.slotCount[slot] = 0;   // GRASS2
-    // GRASS5: zeroing A zeroes the packed HEIGHT, and a blade of the
-    // cell's height FLOOR still draws - so a cleared slot is also
-    // dropped by slotCount, which is what really keeps it off the GPU.
-    // AUDIT GRASS-LIT2 A3: and the zero word's slope is level (stored XOR 15).
-    if (!this._zeros || this._zeros.length !== p * 4) this._zeros = new Uint16Array(p * 4);
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.bufs[0]);
-    gl.bufferSubData(gl.ARRAY_BUFFER, slot * p * 8, this._zeros);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
   }
 
-  /** the lab's draw. `light` = {sunDir, amb, sunCol, dim}; `wind` = {dir, speed, windV};
+  /** the lab's draw. `light` = {sunDir, amb, sunCol, dim}; `wind` = {dir, speed, windV, sway} (AUDIT MEADOW1: `sway`
+   *  false holds the field still - the trees' switch);
    *  `style` (GRASS-PX) is the grass-style row's word - 'smooth' is the
    *  lab's blade, anything else the tuft sprite. */
   draw(proj, view, eye, timeSeconds, light, wind, range = LAB_GRASS.range, style = 'smooth') {
+    this.frame = [proj, view, eye, timeSeconds, light, wind, range];   // BANTHA2: the frame's draw as asked - a field drawn beside this one under its light and wind (scenes/jungleFloorHost.js drawBeside)
     if (!this.count || !this.slotBox) return;   // AUDIT 68 S16-grass-set-broken-dead: the field's slots are the one thing it draws
     const gl = this.gl; const u = this.u;
     // out = proj * view, column-major
     const o = this._vp;
     for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) o[c * 4 + r] = proj[r] * view[c * 4] + proj[4 + r] * view[c * 4 + 1] + proj[8 + r] * view[c * 4 + 2] + proj[12 + r] * view[c * 4 + 3];
     gl.useProgram(this.program);
-    gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    // AUDIT MEADOW1: blended in the smooth style alone - a sprite style's every kept fragment has an alpha of exactly 1
+    // (the fragment stage's mix(.., 1.0, uPixel)), so blending it was the same picture for a read of the target a pixel
+    const pixel = pixelGrass(style);
+    if (!pixel) gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     // AUDIT 49 F1: the lab never enables CULL_FACE - a blade is one quad
     // seen from both sides - and the world renderer enables it at every
     // frame. Drawn with culling on, every blade whose winding faced away
@@ -1881,28 +2321,40 @@ export class LabGrassRenderer {
     gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, this.zeroField);
     gl.uniform1i(u.uGField, 3);
     gl.activeTexture(gl.TEXTURE0);
-    gl.uniform2f(u.uWindV, wind.windV[0], wind.windV[1]);
+    // AUDIT MEADOW1 (Mac: "have the wind sway effect the new foilage, like it does the trees"): THE FIELD SWAYS WHILE
+    // THE TREES DO - the host hands the trees' own switch (floraSwayOn and a sky with a wind, as setFlatWind takes it),
+    // and a field it holds still takes no wind at all: its standing lean only, as a tree's crown. A host that hands none
+    // sways. The wind is the lean's alone in the vertex stage (uWind and uWindDir are the lab's, and read nowhere)
+    const windV = wind.sway === false ? NO_WIND : wind.windV;
+    gl.uniform2f(u.uWindV, windV[0], windV[1]);
     gl.uniform1f(u.uRange, range);
     // GRASS-PX: the style is a uniform, so the row flips live and the
     // program never recompiles; the sheet rides unit 4 (see the constructor)
-    const pixel = pixelGrass(style);
     gl.uniform1f(u.uPixel, pixel ? 1 : 0);
+    // MEADOW1: the meadow is a pixel style - a hard alpha, the dithered fade, a share of each cell - wearing the owner's
+    // atlas, and the switch for what is its own (the law, the cards, the colour) is a uniform too: the row flips live
+    const meadow = meadowGrass(style);
+    gl.uniform1f(u.uArt, meadow ? 1 : 0);
+    // AUDIT MEADOW1: the cards a cell's box must hold lean as far as this frame's wind carries them (MEADOW_WIND_REACH)
+    this._cardReach = this.art.reach + this.art.windReach * Math.hypot(windV[0], windV[1]);
     // GRASS-PX2: THE TUFT IS ONE QUAD. The lab's near blade is five
     // stacked quads so that it can CURVE; the sprite carries its own
     // curve, so in the pixel style every cell draws the one-quad blade
     // the far cells already use - a fifth of the vertices on the near
     // cells, which hold most of the blades that survive the fade.
     this._oneQuad = pixel;
+    this._meadow = meadow;   // MEADOW1: ...and the meadow draws its cards in the quad's place (_drawVisibleSlots)
     // The numbers go up in EVERY style: a step count of zero is a divide
     // by zero in the pixel arm of a mix(), and mix(lab, NaN, 0.0) is NaN
     // - the whole field vanished the moment these were gated (GRASS
     // AUDIT 1 found that by drawing it). Only the sheet's bind is the
     // pixel style's own, so the smooth style never touches unit 4.
-    gl.uniform1f(u.uPxVariants, this.pxVariants);
+    // MEADOW1: the meadow's atlas has MEADOW_SLOTS cells (and AUDIT MEADOW1: no ramp - the fragment stage skips it)
+    gl.uniform1f(u.uPxVariants, meadow ? MEADOW_SLOTS : this.pxVariants);
     gl.uniform1f(u.uPxSteps, PX_RAMP_STEPS);
     gl.uniform1f(u.uPxTintBands, PX_TINT_BANDS);
     if (pixel) {
-      gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, this.pxSheet);
+      gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, meadow ? this.meadowSheet : this.pxSheet);
       gl.uniform1i(u.uPxSheet, 4);
       gl.activeTexture(gl.TEXTURE0);
     } else gl.uniform1i(u.uPxSheet, 4);   // AUDIT RETRO1 B1: the smooth style reads the sampler too (the mix at 0) - left on unit 0 it read whatever was bound there, and a frame image still bound there is a WebGL feedback loop; unit 4, which this style never binds
@@ -1921,6 +2373,8 @@ export class LabGrassRenderer {
     gl.uniform1f(u.uDim, light.dim ?? 1);
     gl.uniform1f(u.uLane, lane ? 1 : 0);
     gl.uniform3fv(u.uGrassTone, lane ? this.tones : this.tonesClassic);   // GRASS-LIT2: each lane its own
+    gl.uniform3fv(u.uArtGround, lane ? this.artGround : this.artGroundClassic);   // MEADOW1: and the meadow's art its own ground
+    gl.uniform1f(u.uArtHue, this.art.hue);   // BANTHA2: its set's share of the ground's hue
     gl.uniform1f(u.uELExposure, light.exposure ?? EL_EXPOSURE);
     gl.activeTexture(gl.TEXTURE0 + GRASS_ADAPT_UNIT);   // the far ring's unit for the eye; a frame with no air pass reads a 1
     gl.bindTexture(gl.TEXTURE_2D, light.adaptTex ?? this._adaptOne());
@@ -1976,8 +2430,12 @@ export class LabGrassRenderer {
     gl.uniform3fv(u.uFogColor, fog?.color ?? WHITE);
     gl.uniform3fv(u.uCamPos, fog?.camPos ?? eye);
     if (u.uDwFog) gl.uniform4fv(u.uDwFog, fog?.dw ?? NO_WATER_FOG);   // DW-C: the frame's (renderer.setWaterFog); none handed, off
+    if (u.uJungleHaze) gl.uniform4fv(u.uJungleHaze, fog?.haze ?? NO_HAZE);   // BANTHA1: the frame's (renderer.setJungleHaze); none handed, off
     gl.bindVertexArray(this.vao);
+    const pv = this._pv;
+    if (pv) pv.provokingVertexWEBGL(pv.FIRST_VERTEX_CONVENTION_WEBGL);   // GRASS-ON: the native convention for the field's draws (the constructor says why)
     this._drawVisibleSlots(o, eye, range);   // PERF2: the field, culled by cell
+    if (pv) pv.provokingVertexWEBGL(pv.LAST_VERTEX_CONVENTION_WEBGL);   // GRASS-ON: and WebGL's own back, for every pass after the field
     gl.bindVertexArray(null);
     gl.disable(gl.BLEND);
     if (culled) gl.enable(gl.CULL_FACE);
@@ -2012,15 +2470,51 @@ export class LabGrassRenderer {
   _drawVisibleSlots(vp, eye, range) {
     const gl = this.gl; const p = this.perCell;
     const planes = frustumPlanes(vp, this._planes);
-    let slots = 0, blades = 0, kept = 0, verts_ = 0, farSlots = 0, wasFar = false;
+    let slots = 0, blades = 0, kept = 0, verts_ = 0, farSlots = 0, cardSlots = 0, cardsFarSlots = 0;
     gl.bindVertexArray(this.vao);   // GRASS2: the near array is the one the caller bound; the loop tracks it from here
-    for (let slot = 0; slot < this.slotBox.length; slot++) {
+    let wasVao = this.vao;   // MEADOW1: which array is bound - the blade's, the far blade's, or the meadow's near or far cards
+    // GRASS-ON: THE CELLS IN VIEW ARE FOUND FIRST AND DRAWN AFTER - in a sprite style NEAREST FIRST. A sprite style is
+    // opaque (every fragment it keeps has an alpha of exactly 1, drawn unblended - AUDIT MEADOW1), so its picture is the
+    // nearest fragment whatever the order; in the slots' order a far cell's tufts were shaded behind near ones the
+    // depth test could only have thrown away had those been drawn first. The smooth style blends, so its order is its
+    // picture: it keeps the slots'. An insertion over the cells in view - a hundred or so - is stable, so cells at one
+    // distance keep the slots' order, and allocates nothing a frame. Nearest first also draws a level of detail's
+    // cells together (it is a cell's by its distance), so the arrays are bound once each.
+    const S = this.slotBox.length;
+    if (!this._order || this._order.length < S) { this._order = new Int32Array(S); this._near = new Float64Array(S); }
+    const order = this._order, near = this._near;
+    let shown = 0;
+    for (let slot = 0; slot < S; slot++) {
       const box = this.slotBox[slot];
       if (!box) continue;
       const dx = Math.max(box[0] - eye[0], 0, eye[0] - box[3]);
       const dz = Math.max(box[2] - eye[2], 0, eye[2] - box[5]);
       if (dx * dx + dz * dz > range * range) continue;   // wholly past the fade
-      if (aabbOutside(planes, box)) continue;
+      // AUDIT MEADOW1: the frustum is asked of what the cell DRAWS - the blades' own box, or in the meadow that box
+      // widened by its cards' reach in this frame's wind and raised to its tallest card's top (writeSlot). The fade and
+      // the range above stay the roots', which is what the vertex stage measures them by.
+      let seen = box;
+      if (this._meadow) {
+        const r = this.slotCardH[slot] * this._cardReach, cb = this._cardBox;
+        const t = r * this.slotCardTilt[slot];   // a card sheared to its slope stands that much under its root or over its top
+        cb[0] = box[0] - r; cb[1] = box[1] - t; cb[2] = box[2] - r; cb[3] = box[3] + r; cb[4] = box[4] + this.slotCardRise[slot] + t; cb[5] = box[5] + r;
+        seen = cb;
+      }
+      if (aabbOutside(planes, seen)) continue;
+      if ((this.slotCount ? this.slotCount[slot] : p) <= 0) continue;   // GRASS2: a slot no blade stood in (below)
+      near[slot] = Math.sqrt(dx * dx + dz * dz);
+      order[shown++] = slot;
+    }
+    if (this._oneQuad) {
+      for (let i = 1; i < shown; i++) {
+        const s = order[i], d = near[s];
+        let j = i - 1;
+        for (; j >= 0 && near[order[j]] > d; j--) order[j + 1] = order[j];
+        order[j + 1] = s;
+      }
+    }
+    for (let i = 0; i < shown; i++) {
+      const slot = order[i], box = this.slotBox[slot], dn = near[slot];
       // GRASS2: A SLOT IS NOT A CELL. `perCell` is the slot's SIZE; the
       // blades that actually stood in it is `slotCount` - every candidate
       // the placer dropped for standing on a road, in water, off grass or
@@ -2031,7 +2525,6 @@ export class LabGrassRenderer {
       // picture for less work - the kept blades are the run's FRONT,
       // because the placer appends and the pad is what is left over.
       const n = this.slotCount ? this.slotCount[slot] : p;
-      if (n <= 0) continue;
       // GRASS2: THE PREFIX THAT CAN SURVIVE. The shader keeps a blade
       // when its index fraction is under `vFade * 1.15`, and vFade only
       // ever FALLS with distance - so no blade in this cell can beat the
@@ -2050,13 +2543,13 @@ export class LabGrassRenderer {
       // density, the same look and the same statistics, but a different
       // individual blade here and there. The probe measures that: the
       // lit pixel count moved by 8 in 67,800.
-      const dn = Math.sqrt(dx * dx + dz * dz);
       const fade = 1 - smoothstep(range * 0.55, range, dn);
       // GRASS AUDIT 1: a tuft stands in for two of the lab's blades, so
       // the pixel style submits HALF the cell - the placer's order is
       // random, so the first half is a uniform half - and the fade law
-      // runs over that half, the way it ran over the whole.
-      const m = this._oneQuad ? Math.ceil(n / PX_BLADES_PER_TUFT) : n;
+      // runs over that half, the way it ran over the whole. MEADOW1: a
+      // meadow sprite is a whole tuft, and stands for MEADOW_BLADES_PER_TUFT.
+      const m = this._oneQuad ? Math.ceil(n / (this._meadow ? MEADOW_BLADES_PER_TUFT : PX_BLADES_PER_TUFT)) : n;
       const budget = Math.min(m, Math.ceil(m * fade * 1.15));
       if (budget <= 0) continue;
       gl.uniform1f(this.u.uSlotN, m);   // the fraction is over the CELL (or its half), not over the prefix
@@ -2070,16 +2563,24 @@ export class LabGrassRenderer {
       // blade's - one bind for six thousand blades rather than a branch
       // inside every one of them.
       const far = this._oneQuad || dn > range * GRASS_FAR_AT;   // GRASS-PX2: the pixel style is one quad everywhere
-      if (far !== wasFar) { gl.bindVertexArray(far ? this.vaoFar : this.vao); wasFar = far; }
-      const verts = far ? this.vertsFar : this.verts;
+      // MEADOW1: the meadow's cards at every distance - three near, two past MEADOW_NEAR_AT of the range, the far
+      // blade's law one level up: a cell's, by its nearest point
+      const cardsFar = dn > range * (MEADOW_NEAR_AT + MEADOW_NEAR_BAND);   // AUDIT MEADOW1: past the band, where no tuft keeps its third card
+      const vao = this._meadow ? (cardsFar ? this.vaoCardsFar : this.vaoCards) : (far ? this.vaoFar : this.vao);
+      if (vao !== wasVao) { gl.bindVertexArray(vao); wasVao = vao; }
+      const verts = this._meadow ? (cardsFar ? this.vertsCardsFar : this.vertsCards) : (far ? this.vertsFar : this.verts);
       if (this._pn > 0) this._cellLights(box);   // AUDIT GRASS-LIT2 A1
       this._point(slot);
-      gl.drawArraysInstanced(gl.TRIANGLES, 0, verts, budget);
-      slots++; blades += budget; kept += n; verts_ += verts * budget; if (far) farSlots++;
+      if (this._meadow) gl.drawElementsInstanced(gl.TRIANGLES, cardsFar ? this.countCardsFar : this.countCards, gl.UNSIGNED_SHORT, 0, budget);   // AUDIT MEADOW1: indexed - each corner shaded once
+      else if (this._pv) gl.drawElementsInstanced(gl.TRIANGLES, verts, gl.UNSIGNED_SHORT, 0, budget);   // GRASS-ON: a blade's corners in order, through its turned list
+      else gl.drawArraysInstanced(gl.TRIANGLES, 0, verts, budget);
+      slots++; blades += budget; kept += n; verts_ += verts * budget;
+      if (this._meadow) { cardSlots++; if (cardsFar) cardsFarSlots++; } else if (far) farSlots++;
     }
     this.drawn.slots = slots; this.drawn.blades = blades; this.drawn.kept = kept;
     this.drawn.slotCapacity = slots * p;   // GRASS2: what the same frame cost before the pad came off
     this.drawn.verts = verts_; this.drawn.farSlots = farSlots;   // GRASS2: the vertex work, counted rather than inferred from one blade shape
+    this.drawn.cardSlots = cardSlots; this.drawn.cardsFarSlots = cardsFarSlots;   // MEADOW1: the slots drawn on the meadow's cards, and of them on its far two
   }
 
   /** AUDIT GRASS-LIT2 A1: THE CELL'S LANTERNS. The frame's lights whose reach meets the cell's box (its roots' lowest to
@@ -2126,8 +2627,11 @@ export class LabGrassRenderer {
     for (const b of this._cornerBufs ?? []) gl.deleteBuffer(b);
     gl.deleteVertexArray(this.vao);
     if (this.vaoFar) gl.deleteVertexArray(this.vaoFar);
+    if (this.vaoCards) gl.deleteVertexArray(this.vaoCards);   // MEADOW1 (their corner and index buffers are the last four of _cornerBufs)
+    if (this.vaoCardsFar) gl.deleteVertexArray(this.vaoCardsFar);
     gl.deleteTexture(this.zeroField);
     gl.deleteTexture(this.pxSheet);   // GRASS-PX
+    gl.deleteTexture(this.meadowSheet);   // MEADOW1
     gl.deleteProgram(this.program);
   }
 }

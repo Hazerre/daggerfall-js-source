@@ -1,7 +1,7 @@
 /* DA8 - THE LAUNCHER'S FACE. The brand's own: the landing page's night,
    wordmark, rule and gem, and its plaques - every colour here is one the
-   Enhanced skin already uses (src/ui/enhancedStyle.js), and
-   test/da8_launcher.test.js holds it to that the way landing.test.js
+   Enhanced skin already uses (src/ui/enhanced/enhancedStyle.js), and
+   test/tooling/da8_launcher.test.js holds it to that the way landing.test.js
    holds the site. The two faces are on disk (fonts/README.md): this window
    runs before anything is known about the network.
    DA10 - THE FRONT DOOR: the patch notes on the left, the player's
@@ -10,8 +10,9 @@
    read #a89f88 (7.2:1 on the night); #7d7460 (4.1-4.4:1, under WCAG AA's
    4.5) is for rules, borders and a held Play (AUDIT INSTALL L5-23). The
    NEW badge's words read #e8e0c8 on the ruby (5.0:1 - #d8cfae there was
-   4.26, R2-E3); test/audit_install2.test.js computes every pair. */
+   4.26, R2-E3); test/tooling/audit_install2.test.js computes every pair. */
 @font-face { font-family: 'Pixelify Five'; unicode-range: U+0035; font-display: block; src: url(data:font/woff2;base64,d09GMgABAAAAAAIIAA0AAAAABKQAAAG5AAEAQgAAAAAAAAAAAAAAAAAAAAAAAAAAGyAcIAZgADQRCAo8UQE2AiQDCAsGAAQgBYQEByAb0gMRFZQRZF8mbyrtyKnsmUtW0uh5eajRkkYiwmd9zzwevvZ7PXd3A4jjU0BFqJDHE1p0Mq4uqiyrUX1VpBcA/QCAwLv/sfo5F6Rn9t09Ls65/8pEjkFdE/m2A84AIXIHmiZwJJFm0pbQC2cFlGjCRS2xqAUWJRAZpScLgtmEN4H2INg9T6DZqHGxacuuvRoVqAhYvaSloI70IIWdVRLHLfgNBOxl356deyxZYUWpr+rJNb8JiK/pmJSRkNErC/QqJlEUgRWVXLV6ESBEVQESKEjoRA+gAFJrOROtuU2rFi1ORpsvt1y9+lW3f3N7TL8NBMKGS6Nj8yes/za5Bg8HfwuvHq+zWX05l2uol0Dwz5V3RP1cQJeUzrud3rstkMyqCwJGSQINDsuiNGGRJvRaJGn3iGytlxSz0U6dvbHww+rNxh0babDbhyLLJzB13YBvnsCnqKuRDUnSwnPAMmETnOcpx2EEPp+mbgw1LSumfKYqw0bLELM6SbGdRm08TAsa7XeSzTUZDFX+dPS7X+6RR5RVmJvg9p8MY4EtHAlMk2kyC+YFf/8E/GKovmqrnuLEDhW0/Ak2MwEAAA==) format('woff2'); }
+@font-face { font-family: 'Pixelify Five'; unicode-range: U+0032, U+005A; font-display: block; src: url(data:font/woff2;base64,d09GMgABAAAAAAGgAAoAAAAAAxAAAAFVAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAABmAAPAqBJIEfATYCJAMKCwgABCAFaQcoG08CEK4G7CZ4Jq7VZnqPaS6YXuWQw1RbJh6+H/t27nvrmtQMbRCLt0hnKJGdvlT+z5/rbZqg29elVx1WpXCJB/CNL2EDTlNMNbGZr4i7wsrKf1Qlsx1PdmMc+kB2w92NINLQ3/I4DzSggLvLbQzxeALBIZ3X3J0op6mYYkWkA21shWnP+fr/hfwzOID4lQKdICGjSRZoUmQQJYqEZNpzAflL4Y8FADIoQSVGsQwoApTJRWg/BOVjEKpJt/zRejXl4RPResYon4PypSPKH6ezwgzNirNnNhfmUC4f5rlc/pHOPd3f5P95UE+t19nX6YofP9MAgeB3e0qV0f6R8wv8LSXHVguvqTEFZAkEBz1d7mKtI1ileMUFqwJZpzKQABWZFyBUUDgpVSGLonKhSX2hpEbfbhBlI6P9rLf8Vr0BeAJRrAMjezM9SwltXWsjdQs4kyybrQEAAAA=) format('woff2'); }
 @font-face { font-family: 'Pixelify Sans'; font-weight: 400 700; font-display: block; src: url(fonts/PixelifySans-latin.woff2) format('woff2'); }
 @font-face { font-family: 'Jacquard 12'; font-display: block; src: url(fonts/Jacquard12-latin.woff2) format('woff2'); }
 
@@ -48,14 +49,12 @@ button { font: inherit; color: inherit; }
 
 /* THE MARK, left, as a game's own launcher wears it; the two doors out, right. */
 .top { flex: none; display: flex; align-items: flex-end; justify-content: space-between; }
+/* AUDIT BR5: the mark is the product's logo, the game's own file; the face stays on the heading for its alt */
 .wordmark {
   margin: 0; font-family: 'Jacquard 12', serif; font-weight: 400; font-size: 58px; line-height: 0.9;
   text-shadow: 4px 4px 0 rgba(0,0,0,0.7);
 }
-.wordmark small {
-  display: block; margin-top: 6px; font-family: 'Pixelify Five', 'Pixelify Sans', monospace; font-size: 12px;
-  letter-spacing: 0.5em; text-transform: uppercase; color: #a89f88; text-shadow: 2px 2px 0 rgba(0,0,0,0.7);
-}
+.wordmark img { display: block; width: auto; height: 76px; }
 .links { display: flex; gap: 18px; padding-bottom: 4px; }
 .rule { flex: none; display: flex; align-items: center; gap: 16px; margin: 12px 0 14px; }
 .rule::before, .rule::after { content: ''; flex: 1; height: 2px; background: #7d7460; opacity: 0.55; }
@@ -178,3 +177,11 @@ body[data-busy] .gem { animation: gleam 1.6s steps(8) infinite; }
   body[data-busy] .gem { animation: none; }
   .progress .track i { transition: none; }
 }
+
+/* DA12: the controller's focus (app/launcher/pad.js) - the game's own pad loop marks what it focused .pad-focus,
+   drawn as the keyboard's focus is above. */
+.feed.pad-focus { outline: 2px solid rgba(192,138,62,0.5); outline-offset: -2px; }
+.check input.pad-focus { outline: none; border-color: var(--brass); }
+.plaque.pad-focus, .link.pad-focus { outline: none; color: rgb(243,239,44); text-shadow: 2px 2px 0 rgb(93,77,12); }
+.plaque.pad-focus { border-color: var(--brass); }
+.play:not(:disabled).pad-focus { outline: none; color: rgb(243,239,44); background: rgba(192,138,62,0.25); text-shadow: 2px 2px 0 rgb(93,77,12); }

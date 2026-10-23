@@ -35,7 +35,8 @@
 
 import { CifRciFile } from '../formats/cifRciFile.js';
 import { frameToColor32 } from './fpsWeapon.js';   // the ONE indexed-bitmap bake
-import { weaponOffsetHeight } from '../ui/hudLarge.js';
+import { weaponOffsetHeight } from '../ui/hud/hudLarge.js';
+import { validCastRate } from '../systems/castSpeed.js';   // CAST-SPEED: the rate a cast runs at
 
 /** nativeScreenWidth / nativeScreenHeight (:44-45). NOT 320x200: the
  *  hands are laid out against a 300-wide surface, which is why they
@@ -54,8 +55,32 @@ export const RELEASE_FRAME = 5;
 export const SMALL_FRAME_ADJUST = 0.134;
 
 /** animSpeed (:48) - "Set slower than classic for now", DFU's own
- *  note. Seven steps at 0.04s is a 0.28s cast. */
+ *  note. Seven steps at 0.04s is a 0.28s cast. The port's hands no
+ *  longer step at it - see CAST_FRAME_PERIOD. */
 export const ANIM_SPEED = 0.04;
+
+/** CAST-SPEED (2026-10-08, Mac: "nerf the animation of the regular sprite spellcasting to fall in line with the
+ *  morrowind model"): THE PERIOD THE HANDS STEP AT, at rate 1 - two and a half times DFU's animSpeed. The release
+ *  (frame 5) lands at 0.5 s and the hands come down at 0.7 s, where at DFU's 0.2 s and 0.28 s a classic caster cast
+ *  three times for every Morrowind hand's one. Divided by the cast's rate (systems/castSpeed.js: the live Speed and the
+ *  castSpeed loot line), which the Morrowind arm's spellcast group plays at too. */
+// CAST-QUICK (2026-10-09, the owner: "the casting got slowed in a update i think"): back to DFU's own clock
+// (ANIM_SPEED, 0.04 s - the release at 0.2 s, the hands down at 0.28 s). Speed and the castSpeed loot line still scale it.
+export const CAST_FRAME_PERIOD = 0.04;
+
+/** CAST-RECOVER (2026-10-09, the owner: "i can spam the spell way more than before the fix"): THE QUICK HANDS, THE OLD
+ *  PACE. CAST-QUICK gave the hands DFU's clock back (the spell leaves 0.2 s after the click), and with it the next cast
+ *  0.28 s after the last - the spam CAST-SPEED's slower clock had closed. The two are split now: the hands and the
+ *  release keep the quick clock, and the NEXT cast waits out this recovery from the click before it may start - the
+ *  0.7 s a whole cast took at CAST-SPEED's 0.1 s step (seven steps), over the cast's rate as the hands are (Speed and
+ *  the castSpeed loot line still quicken it). Casting feels as it did; it repeats no faster than before the fix. */
+export const CAST_RECOVER_S = 0.7;
+
+/** MW-CAST1: the longest a release HELD for the Morrowind arm's own key waits (seconds from the cast) before it goes
+ *  anyway - NEVER-TRAPS, the bow's HELD_HIT_MAX_S law (combat/weapon/weaponRig.js, MW-D42): a .kf with no "<type> release",
+ *  an arm that loses its build mid-cast, and the spell still leaves, late rather than never. Morrowind's own casts
+ *  release well inside it. */
+export const HELD_RELEASE_MAX_S = 1.5;
 
 /** frameIndices (:50) - "Animation starts and ends with frame 0". */
 export const FRAME_INDICES = Object.freeze([0, 1, 2, 3, 4, 5, 0]);
@@ -124,7 +149,7 @@ export async function loadSpellCastArt(getBytes, palette, renderer, element) {
     records.push({
       width: size.width,
       height: size.height,
-      tex: renderer.uploadTexture('img', `fpsc:${fileName}:${r}`, c32),
+      tex: renderer.uploadTexture('img', `fpsc:${fileName}:${r}`, c32, { clamp: true }),   // HAND-SEAM: one quad, never tiled - no wrap onto the far edge (render/renderer.js textureParams)
     });
   }
   return { element, records };
@@ -148,7 +173,17 @@ export class SpellCastAnim {
     this.currentFrame = -1;
     this._acc = 0;
     this._onRelease = null;   // the OnReleaseFrame subscriber (see playOneShot)
+    this._hold = null;        // MW-CAST1: the release held for the Morrowind arm's key (see playOneShot)
+    this._heldAge = 0;
+    this._period = CAST_FRAME_PERIOD;   // CAST-SPEED: this cast's step, CAST_FRAME_PERIOD over its rate
+    this._recover = 0;   // CAST-RECOVER: seconds before the next cast may start
   }
+
+  /** CAST-RECOVER: is the last cast's recovery still running (the hands may already be down)? */
+  get recovering() { return this._recover > 0; }
+
+  /** MW-CAST1: is a release waiting on the Morrowind arm's own key? */
+  get releaseHeld() { return !!this._hold; }
 
   /** IsPlayingAnim (:71-74). */
   get isPlayingAnim() { return this.currentFrame >= 0; }
@@ -178,15 +213,27 @@ export class SpellCastAnim {
    * animation - and its pending release - untouched.
    *
    * @param {?Function} onRelease raised on the release frame (:284).
+   * @param {{hold?: ?Function, rate?: number}} [opts] CAST-SPEED: `rate` is the cast's own (systems/castSpeed.js),
+   *   fixed for the cast as it starts.
    * @returns true when a cast actually started.
    */
-  playOneShot(element, onRelease = null) {
-    if (this.isPlayingAnim) return false;
+  playOneShot(element, onRelease = null, { hold = null, rate = 1 } = {}) {
+    if (this.isPlayingAnim || this._hold || this._recover > 0) return false;   // CAST-RECOVER: nor inside the last cast's recovery
     if (!magicAnimFilename(element)) return false;
     this.element = element;
     this.currentFrame = 0;
     this._acc = 0;
     this._onRelease = onRelease;
+    // MW-CAST1 (Mac: "We need to implement morrowind spell casting effects and animations"): THE SPELL LEAVES ON THE
+    // ARM'S KEY. With the Morrowind arm casting, the release waits for its "<type> release" (`hold` answers true once
+    // the arm has crossed it, or once it no longer casts) - OpenMW casts there (character.cpp handleTextKey:
+    // `groupname == "spellcast" && action == mAttackType + " release"`), as the bow's shot waits for "shoot release"
+    // (MW-D42). The classic frames still run - their IsPlayingAnim is DFU's gate, and frame 5 is simply not the
+    // release - and the hold has a ceiling, HELD_RELEASE_MAX_S, so nothing waits for ever.
+    this._hold = typeof hold === 'function' ? hold : null;
+    this._heldAge = 0;
+    this._period = CAST_FRAME_PERIOD / validCastRate(rate);
+    this._recover = CAST_RECOVER_S / validCastRate(rate);   // CAST-RECOVER: from the click, at the cast's rate
     return true;
   }
 
@@ -201,7 +248,8 @@ export class SpellCastAnim {
   }
 
   /**
-   * AnimateSpellCast's body (:267-283). Steps at ANIM_SPEED, raises
+   * AnimateSpellCast's body (:267-283). Steps at the cast's period (CAST-SPEED: CAST_FRAME_PERIOD over its rate, where
+   * DFU steps at ANIM_SPEED), raises
    * the release on the step that reaches releaseFrame, and ends the
    * animation past the last index.
    *
@@ -211,7 +259,7 @@ export class SpellCastAnim {
    * is what tallies, plays the cast sound, assigns the bundle or
    * launches the missile, raises OnCastReadySpell and clears the ready
    * - five frames (RELEASE_FRAME x ANIM_SPEED = 0.2s) into the hand
-   * motion. `scenes/hostMagic.js`'s castInput now runs DFU's split:
+   * motion (CAST-SPEED: the port's five are 0.5 s at rate 1). `scenes/hostMagic.js`'s castInput now runs DFU's split:
    * the gates and the magicka spend at the CAST (CastReadySpell
    * :402-435, where DecreaseMagicka sits BEFORE PlayOneShot), the
    * resolution parked on this raise. The return value is still the
@@ -220,15 +268,21 @@ export class SpellCastAnim {
    * @returns true on the step that crossed the release frame.
    */
   tick(dt) {
-    if (!this.isPlayingAnim) { this._acc = 0; return false; }
-    this._acc += dt;
     let released = false;
-    while (this._acc >= ANIM_SPEED && this.currentFrame >= 0) {
-      this._acc -= ANIM_SPEED;
+    if (this._recover > 0) this._recover = Math.max(0, this._recover - (Number.isFinite(dt) && dt > 0 ? dt : 0));   // CAST-RECOVER
+    // MW-CAST1: a held release goes on the arm's key, or at the ceiling - whether or not the classic frames still run
+    if (this._hold) {
+      this._heldAge += dt;
+      if (this._hold() || this._heldAge >= HELD_RELEASE_MAX_S) { this._hold = null; released = true; this._raiseRelease(); }
+    }
+    if (!this.isPlayingAnim) { this._acc = 0; return released; }
+    this._acc += dt;
+    while (this._acc >= this._period && this.currentFrame >= 0) {
+      this._acc -= this._period;
       this.currentFrame++;
       // :283-284 - the raise happens ON the step, before the end-of-
       // frames wrap, and the handler runs inside the coroutine.
-      if (this.currentFrame === RELEASE_FRAME) { released = true; this._raiseRelease(); }
+      if (this.currentFrame === RELEASE_FRAME && !this._hold) { released = true; this._raiseRelease(); }
       if (this.currentFrame >= FRAME_INDICES.length) this.currentFrame = -1;
     }
     return released;
@@ -297,4 +351,28 @@ export function drawSpellCastHands(renderer, canvas, art, frameIndex, {
   renderer.drawScreenQuad(rec.tex, left, undefined, tint ?? undefined);
   renderer.drawScreenQuad(rec.tex, right, RIGHT_HAND_UV, tint ?? undefined);
   return true;
+}
+
+/**
+ * RSH1 (2026-10-11, Mac: "can we implement this mod into the source"): READIED SPELLCASTING HANDS 1.3 (jefetienne,
+ * vendor/readied-spellcasting-hands/, MIT). The mod's whole change is AnimateSpellCast
+ * (Modded_FPSSpellCasting_Ready.cs, the coroutine): every step it shows FRAME 0 of the readied spell's element while
+ *
+ *   `pef.HasReadySpell && pef.ReadySpell.Settings.TargetType != TargetTypes.CasterOnly && !psc.IsPlayingAnim`
+ *
+ * and nothing (`currentFrame = -1`) otherwise. Its SetCurrentAnims, UpdateSpellCast and the two aligns are DFU's own,
+ * unchanged - the port's (above) - so the hands it draws are drawSpellCastHands at this frame, with the element's own
+ * archive. This answers that frame: 0, or -1 for no hands.
+ *
+ *   - `spell` is the readied spell record (scenes/hostMagic.js readiedSpell), or null for HasReadySpell false;
+ *   - CasterOnly is the port's rangeType 0 (spellcast.js, the classic range byte DFU's TargetTypes is read from);
+ *   - `castPlaying` is PlayerSpellCasting.IsPlayingAnim - the real cast owns the hands while it plays, from frame 0;
+ *   - an element with no archive (ElementTypes.None: GetMagicAnimFilename throws in DFU) draws nothing, as for the cast.
+ */
+export const READIED_HANDS_FRAME = 0;
+export function readiedHandsFrame(spell, castPlaying) {
+  if (!spell || castPlaying) return -1;
+  if (spell.rangeType === 0) return -1;   // TargetTypes.CasterOnly: cast the moment it is readied - nothing to hold
+  if (!magicAnimFilename(spell.element)) return -1;
+  return READIED_HANDS_FRAME;
 }

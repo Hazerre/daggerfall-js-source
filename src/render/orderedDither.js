@@ -32,7 +32,7 @@ export const BAYER_GLSL = `
 // sixteen-float local array in every fragment that dithers - the lane's five programs, the resolve, the AO's
 // rotation, the glow's jitter, the skies' band - to read one element of it. A 4x4 Bayer matrix IS a bit interleave:
 // with z = x ^ y its value's four bits, high to low, are z's low bit, y's low bit, z's high bit, y's high bit. The same
-// sixteen numbers the table held (0 8 2 10 / 12 4 14 6 / 3 11 1 9 / 15 7 13 5), which test/la_cost.test.js checks cell
+// sixteen numbers the table held (0 8 2 10 / 12 4 14 6 / 3 11 1 9 / 15 7 13 5), which test/render/la_cost.test.js checks cell
 // by cell by running this very text.
 float bayer4(vec2 p) {
   int x = int(mod(p.x, 4.0)), y = int(mod(p.y, 4.0));
@@ -92,3 +92,16 @@ ${BAYER_GLSL}`;
  *  a step. Anything that must not move a quantizer's MEAN subtracts this
  *  instead. */
 export const BAYER_MEAN = 0.46875;
+
+/** SD-LOOK (2026-10-08, bible/11-Multiplayer/Super-Dungeons-Look.md "The pixel law"): THE HOUR'S SHADER SURFACES AS PIXEL
+ *  ART - `sdPixel(c, cell, steps)` posterizes a display colour's brightness (its brightest channel, so its hue holds) to
+ *  `steps` levels through the ordered dither at the integer `cell` (a texel of the surface's own grid, never the screen's
+ *  pixel - a surface snapped to its texels dithers as one). Needs BAYER_GLSL beside it. */
+export const SD_PIXEL_GLSL = `
+vec3 sdPixel(vec3 c, vec2 cell, float steps) {
+  float l = max(max(c.r, c.g), c.b);
+  if (l <= 1e-5) return vec3(0.0);
+  float q = floor(l * steps + bayer4(cell) + 0.03125) / steps;
+  return c * (q / l);
+}
+`;

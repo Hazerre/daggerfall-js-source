@@ -66,7 +66,11 @@ export function collectInteriorPeople(recordData) {
  * The non-shop arm is gated on `buildingType <= House4`, which is not
  * a tidy "residences only": Temple (14), Tavern (15) and Palace (16)
  * are all under it, so a Palace's people keep its 10:00-16:00 hours
- * while a House5 (21) or a Ship (24) is never gated at all.
+ * while a House5 (21) or a Ship (24) is never gated at all. The hours
+ * are isBuildingOpen's EFFECTIVE ones: online the relief shift
+ * (buildingLocks.js onlineReliefBuilding - OL5's guild hall, OL6's
+ * bank, library and palace) keeps their people standing at night, as
+ * its door stays open.
  *
  * @param building - { buildingType, factionId, buildingKey }
  * @param ctx.hour              - the classic hour (0-23)
@@ -118,10 +122,14 @@ export function peopleAreVisible(building, {
  *    shop around you - the sleeper gains company, never loses it.
  *  - It does NOT consult house ownership. AddPeople's tail hides the
  *    people of a house you bought (:1209-1212); this member never asks,
- *    so its arms are reached for an owned house too. Harmless in
- *    practice (an owned house is a residence, and every residence's
- *    hours still have to pass) and left exactly as written rather than
- *    tidied into the visibility law next door.
+ *    so its arms are reached for an owned house too - and they PASS for
+ *    a House2-4 by day (open 6-18; House1's row never opens), so a
+ *    bought House2-4 rested in by day takes its people back. DFU's own,
+ *    left exactly as written for the bank's deed rather than tidied
+ *    into the visibility law next door. A player's room ONLINE (an
+ *    online home, a guild's hall, a private room) never reaches this
+ *    law: the host's re-roll refuses it first (FIELD BUGS 2026-10-07
+ *    HALL-FOLK, worldModes.js interiorRestDeps.updateNpcPresence).
  *  - The shop arm is the NEGATION of AddPeople's: there, a shop shows
  *    its people when the player walked into an OPEN one; here, the arm
  *    is taken when they did NOT - which is precisely the case worth
@@ -129,10 +137,12 @@ export function peopleAreVisible(building, {
  *  - HouseForSale is excluded BY NAME (:349) even though its type (1)
  *    is under the House4 bound and its hours are ordinary. An empty
  *    house on the market stays empty.
- *  - The clock test is IsBuildingOpen (:352) - the same
- *    PlayerActivate.cs:102-106 hours buildingLocks.js already owns, and
- *    it sits INSIDE the gate rather than beside it, so a building that
- *    fails both arms is never asked about the hour at all.
+ *  - The clock test is IsBuildingOpen (:352) - the effective hours
+ *    buildingLocks.js already owns: PlayerActivate.cs:102-106's offline,
+ *    and online the relief shift's for a relieved building (OL4-OL6; AUDIT
+ *    WAITS O4), as the people above. It sits INSIDE the gate rather than
+ *    beside it, so a building that fails both arms is never asked about
+ *    the hour at all.
  *
  * Answers whether the interior's people should now be made present;
  * the host does the SetActive walk over its own billboard list.

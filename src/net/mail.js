@@ -39,7 +39,7 @@
 // ═══════════════════════════════════════════════════════════════════
 import { call, forgetSession, handleShapeOk } from './accountClient.js';
 import { letterWords, LETTER_ID_RE, LETTER_SUBJECT_MAX, LETTER_BODY_MAX, LETTERS_INBOX_MAX } from './letterLaw.js';
-import { GLYPHS_MAX } from './identityToken.js';   // AUDIT B7 (SHADOW-FANG): a letter's glyphs are bounded as a token's
+import { GLYPHS_MAX, ID_RE } from './identityToken.js';   // AUDIT B7 (SHADOW-FANG): a letter's glyphs are bounded as a token's; NAME-AS: a friend's account, by its id's own shape
 import { agoLadder } from './social.js';   // AUDIT 68 S14-ago-text-duplicated: the friends list's own ladder, not a copy of it
 
 /** How often the host looks at the box while the game runs. */
@@ -50,8 +50,10 @@ export const MAIL_POLL_MS = 3 * 60 * 1000;
 
 /** The box: `{ letters: [{ id, from, title, glyphs, subject, sentAt, read }], unread, max }`, newest first. */
 export const inboxCall = (io) => call(io, '/v1/mail/inbox');
-/** Send one: `{ ok, id, to }`, `to` the reader's handle as they spell it. */
-export const sendCall = (io, { to, subject, body }) => call(io, '/v1/mail/send', { to, subject, body });
+/** Send one: `{ ok, id, to }`, `to` the reader's handle as they spell it. NAME-AS: or to an account (`toAccount` - a
+ *  friend's), `to` then the name the world reads their account by. The name goes beside the account: a service from
+ *  before NAME-AS reads `to` alone, and every name it signed is an account's - the handle the friend's row shows. */
+export const sendCall = (io, { to, toAccount, subject, body }) => call(io, '/v1/mail/send', toAccount ? { to, toAccount, subject, body } : { to, subject, body });
 /** Open one of mine: `{ letter: { id, from, title, glyphs, subject, body, sentAt, readAt } }` - and it is read now. */
 export const readCall = (io, id) => call(io, '/v1/mail/read', { id });
 /** Throw one away: `{ ok, id }`. */
@@ -161,7 +163,7 @@ export class MailBox {
   /** A refusal the whole box answers to: `auth` forgets the session (accountClient's rule), a guest is a guest. True
    *  when it was one of those. */
   _boxRefusal(io, error) {
-    if (error === 'auth') { forgetSession(io.storage); this.state = 'signed-out'; this.letters = []; this.unread = 0; this.opened.clear(); this._known = null; this.error = error; this._changed(); return true; }
+    if (error === 'auth') { forgetSession(io?.storage); this.state = 'signed-out'; this.letters = []; this.unread = 0; this.opened.clear(); this._known = null; this.error = error; this._changed(); return true; }
     if (error === 'mail-needs-account') { this.state = 'guest'; this.letters = []; this.unread = 0; this.error = error; this._changed(); return true; }
     return false;
   }
@@ -183,8 +185,14 @@ export class MailBox {
     this.at = this.now();
     const io = this._io();
     if (!io) return { ok: false, error: 'signed-out' };
-    const r = await inboxCall(io);
-    this.at = this.now();
+    return this._take(await inboxCall(io), io);
+  }
+
+  /** What a look does with the box's answer - its own call's, or (SCALE4c) a heartbeat's mail part, the same answer
+   *  under another request. `restamp` false: the look's clock stays counted from its send (AUDIT SCALE B4 - the
+   *  heartbeat's parts count their clocks from the send, so a slow answer never pushes the box out of step). */
+  _take(r, io = this.ioOf?.() ?? null, restamp = true) {
+    if (restamp) this.at = this.now();
     if (!r.ok) {
       if (!this._boxRefusal(io, r.error)) { this.state = 'error'; this.error = r.error ?? 'server'; this._changed(); }
       return { ok: false, error: r.error };
@@ -209,6 +217,41 @@ export class MailBox {
   /** The host's frame: a look when one is due. Never awaited by a frame - it lands on its own. */
   poll(nowMs = this.now()) { if (this.due(nowMs)) this.refresh(); }
 
+  /**
+   * SCALE4c: THE BOX AS A HEARTBEAT'S PART (net/heartbeat.js) - due when a look is (MAIL_POLL_MS since the last), riding
+   * a heartbeat that goes anyway when it would be due within `early` ms; stamped as it sets out, as a look is, so the
+   * box is never asked twice for one look; its answer taken as a look takes its own.
+   * AUDIT SCALE B3: IN FLIGHT IT IS THE BOX'S LOOK (`_looking`), as `refresh` keeps its own - the Letters tab opened
+   * meanwhile takes the heartbeat's answer rather than asking again, where two looks at once let the older answer land
+   * last, roll the box back and announce a letter twice.
+   * @returns {import('./heartbeat.js').HeartbeatPart}
+   */
+  heartbeatPart() {
+    // the stamp at `body` is what keeps a look from going twice: the box is not due again for MAIL_POLL_MS (and a
+    // heartbeat's tick waits while one is out)
+    const ready = (/** @type {number} */ nowMs, /** @type {number} */ early) => !this._looking && (this.at === 0 || nowMs - this.at >= MAIL_POLL_MS - early);
+    /** @type {((v: any) => void)|null} */
+    let settle = null;
+    return {
+      due: (nowMs) => ready(nowMs, 0),
+      soon: (nowMs, early) => ready(nowMs, early),
+      every: MAIL_POLL_MS,
+      body: () => {
+        this.at = this.now();   // MAIL1: stamped even when there is no session (`_refresh`'s own rule)
+        if (!this._io()) return undefined;   // signed out: the box says so, and nothing rides
+        this._looking = new Promise((r) => { settle = r; });
+        return true;
+      },
+      take: (r) => {
+        const done = settle;
+        settle = null;
+        this._looking = null;
+        const out = this._take(r, undefined, false);
+        done?.(out);
+      },
+    };
+  }
+
   /** OPEN ONE: the whole letter, from this sitting's copy or the service - which marks it read. */
   async open(id) {
     const kept = this.opened.get(id);
@@ -230,15 +273,18 @@ export class MailBox {
     return { ok: true, letter };
   }
 
-  /** SEND ONE - checked here by the letter's own law first, so a refusal the service would give is given at once. */
-  async send({ to, subject, body }) {
+  /** SEND ONE - checked here by the letter's own law first, so a refusal the service would give is given at once.
+   *  NAME-AS (2026-10-12): `account`, a friend's account id - the letter goes to the account itself (the friends list's
+   *  name is the one the room reads, which may be their character's), and no username shape is asked of `to`. */
+  async send({ to, account = null, subject, body }) {
+    const toAccount = typeof account === 'string' && ID_RE.test(account) ? account : null;
     const handle = typeof to === 'string' ? to.trim() : '';
-    if (!handleShapeOk(handle)) return { ok: false, error: 'no-reader' };
+    if (!toAccount && !handleShapeOk(handle)) return { ok: false, error: 'no-reader' };
     const words = letterWords({ subject, body });
     if ('error' in words) return { ok: false, error: words.error };
     const io = this._io();
     if (!io) return { ok: false, error: 'signed-out' };
-    const r = await sendCall(io, { to: handle, subject: words.subject, body: words.body });
+    const r = await sendCall(io, { to: handle, toAccount, subject: words.subject, body: words.body });
     if (!r.ok) { this._boxRefusal(io, r.error); return { ok: false, error: r.error }; }
     return { ok: true, to: typeof r.data?.to === 'string' ? r.data.to : handle };
   }

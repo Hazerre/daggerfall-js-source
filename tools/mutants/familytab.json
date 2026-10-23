@@ -5,7 +5,7 @@
     "old": "export const familyTabShown = (prov = _provider) => !!prov?.on?.() && !!(prov.family?.() || prov.past?.());",
     "new": "export const familyTabShown = (prov = _provider) => !!prov?.on?.();",
     "tests": [
-      "test/legacy3_familytab.test.js"
+      "test/systems/legacy3_familytab.test.js"
     ],
     "note": "FAMILY-TAB: the tab drawn for a game played without a house (the mod's switch alone - LEGACY3's gate)."
   },
@@ -15,7 +15,7 @@
     "old": "export const familyTabShown = (prov = _provider) => !!prov?.on?.() && !!(prov.family?.() || prov.past?.());",
     "new": "export const familyTabShown = (prov = _provider) => !!prov?.on?.() && !!prov.family?.();",
     "tests": [
-      "test/legacy3_familytab.test.js"
+      "test/systems/legacy3_familytab.test.js"
     ],
     "note": "FAMILY-TAB: the past played back (a dead or retired member's save) lost its tab."
   },
@@ -25,7 +25,7 @@
     "old": "export const familyTabShown = (prov = _provider) => !!prov?.on?.() && !!(prov.family?.() || prov.past?.());",
     "new": "export const familyTabShown = (prov = _provider) => !!(prov?.family?.() || prov?.past?.());",
     "tests": [
-      "test/legacy3_familytab.test.js"
+      "test/systems/legacy3_familytab.test.js"
     ],
     "note": "FAMILY-TAB: a house drew the tab with the mod switched off."
   },
@@ -35,7 +35,7 @@
     "old": "    if (!familyTabShown()) { hudText(noFamilyLine(familyProvider())); return null; }\n",
     "new": "",
     "tests": [
-      "test/legacy3_familytab.test.js"
+      "test/systems/legacy3_familytab.test.js"
     ],
     "note": "FAMILY-TAB: the Family key with no house opened the pause (landing on System) and said nothing."
   },
@@ -45,7 +45,7 @@
     "old": "    if (!familyTabShown()) { hudText(noFamilyLine(familyProvider())); return null; }\n",
     "new": "    if (!familyTabShown()) { return null; }\n",
     "tests": [
-      "test/legacy3_familytab.test.js"
+      "test/systems/legacy3_familytab.test.js"
     ],
     "note": "FAMILY-TAB: the key opened nothing and never said why."
   }

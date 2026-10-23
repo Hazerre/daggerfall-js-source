@@ -10,8 +10,8 @@
 //   FORAGE0 6.4 - in water, swimming, or at sea), a cast stands just
 //   ahead of the look, keyed `haul:<x>:<y>:<day>:<id>` - the pixel, the
 //   UTC day, and twelve hex digits drawn here (net/nodeLaw.js haulKey).
-//   A new key after each haul. Fishing is bounded, not witnessed: forty
-//   hauls an account a day.
+//   A new key after each haul. Fishing is bounded, not witnessed: by the
+//   hour's writes (CAP-OFF: its forty hauls an account a day are gone).
 //   THE SCHOOLS. Two a pixel a day where the first water their spots find
 //   is (nodeLaw schoolSpots), stood as the Fish item's own world picture
 //   on the water (Foraging's Fish, 1605 - DFU's TEXTURE.211) -
@@ -28,20 +28,22 @@
 //   species' own item, into the pack once.
 // ═══════════════════════════════════════════════════════════════════
 import { haulKey, parseNodeKey, schoolSpots, SCHOOLS_PER_PIXEL, SCHOOL_R, pixelKey } from '../net/nodeLaw.js';
-import { HAULS_PER_DAY, FISH_KEY, actBand, PEARL, storesFullIn, fullWordsIn } from '../net/professionLaw.js';
+import { FISH_KEY, actBand, PEARL, storesFullIn, goneIn, fullWordsIn } from '../net/professionLaw.js';
 import { goodsWhere } from '../net/bagLaw.js';   // BAG1: where the haul went
 import { createFishAct } from '../systems/fishAct.js';
-import { FT, attributeAverage } from '../systems/foragingLaw.js';
-import { foragingActRefusal, actChecksRefusal, foragingToolIn, foragingHost } from '../systems/foragingInstall.js';
-import { materialCountLabel } from '../systems/profItems.js';
+import { FT, attributeAverage } from '../systems/foraging/foragingLaw.js';
+import { foragingActRefusal, actChecksRefusal, foragingToolIn, foragingHost } from '../systems/foraging/foragingInstall.js';
+import { materialCountLabel } from '../systems/professions/profItems.js';
 import { liveStat, maxFatigue } from '../systems/statMods.js';
 import { getPref } from '../systems/uiPrefs.js';
 import { PASSIVE_FISH_SPECIES, pickSpecies } from '../world/passiveFish.js';
-import { templateByIndex } from '../systems/itemTemplates.js';
-import { groundAt } from '../world/terrainNature.js';
-import { isOutdoorWaterTile } from '../world/terrainSurface.js';
-import { WORLD_MAP_TILE_DIM } from '../world/terrainTiles.js';
-import { TERRAIN_SIZE } from '../world/terrainSampler.js';
+import { templateByIndex } from '../systems/item/itemTemplates.js';
+import { groundAt } from '../world/terrain/terrainNature.js';
+import { isOutdoorWaterTile } from '../world/terrain/terrainSurface.js';
+import { WORLD_MAP_TILE_DIM } from '../world/terrain/terrainTiles.js';
+import { TERRAIN_SIZE } from '../world/terrain/terrainSampler.js';
+import { sceneCompassWord } from '../systems/compassWords.js';   // AUDIT DELVE C8: the eight ways, one home
+import { noteAct } from '../systems/questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
 
 /** The cast stands this far ahead of the look (m), and is reached from this far. */
 export const CAST_AHEAD_M = 3;
@@ -51,6 +53,19 @@ export const CAST_REACH_M = 6;
  *  over the level: looking out over the water there was no prompt, E went to the door behind, and the net's Use told an
  *  angler in the water to "stand in it". */
 export const CAST_RISE_M = 4.5;
+/** HIGH-CAST (FIELD BUGS 2026-10-07, the Discord: "fishing popup shows up wayy too early" - "miles above the water" on the
+ *  high ground under Daggerfall; and "I couldn't get it off my screen when on my ship"): SHORE-CAST asked whether the
+ *  cast's point is over water in the ground's plane alone, so a cliff over the sea, or a deck, stood "Open Water" at any
+ *  height and at any look. The cast's point stands no higher than this over the water's surface under it: the
+ *  carrack's main deck is the highest a ship carries (world/ships/carrackModel.js MEASURED.mainDeckY, 7.81 m over her
+ *  waterline), and from it, the eye 1.7 m up (player/motor.js EYE_HEIGHT), a look straight down stands the cast
+ *  CAST_RISE_M under the eye - 5.01 m over the sea; half a metre more rides her swell. So every deck fishes looking down
+ *  over the side, and a level look from a ship's high deck, or any look from a cliff, does not; at the water's edge a
+ *  level look stands 1.7 m over it. */
+export const CAST_OVER_WATER_M = 5.5;
+/** HIGH-CAST: whether a cast's point stands too high over the water to be cast on - `surfaceY` the water's surface under
+ *  it (the host's `waterY`); unknown (null, off the built ground) is not refused, as SHORE-CAST's. */
+export const castOverWater = (at, surfaceY) => surfaceY != null && Number.isFinite(surfaceY) && at[1] - surfaceY > CAST_OVER_WATER_M;
 /** The prompt says a school rises within this far of the angler (m). */
 export const SCHOOL_SAID_M = 40;
 /** A school's flats: three of its species' fish, small, a metre apart on the water. */
@@ -71,11 +86,11 @@ export const NET_WHERE_WORDS = Object.freeze({ inside: 'not in here', town: 'not
 /** FISH-TIRED (FIELD BUGS 2026-09-30b: "you can get instakilled when fishing"). The minute's band charges an angler
  *  treading water the swim's price, 8 or 33 fatigue every five real seconds (systems/worldTick.js; FATIGUE-IDLE spares
  *  dry ground only), and in the water a collapse was DFU's death whatever the health - now a tenth of the health a game
- *  minute (SWIM-SPENT, systems/rest.js exhaustionOutcome). Either way no net is cast in the water on the last quarter of
+ *  minute (SWIM-SPENT, systems/rest/rest.js exhaustionOutcome). Either way no net is cast in the water on the last quarter of
  *  the fatigue bar, and an act there ends when the bar falls into it: the prompt says why, with minutes left to swim out
  *  and rest. */
 export const NET_TIRED_SHARE = 0.25;
-export const NET_TIRED_WORDS = 'too tired to fish in the water - get out and rest';
+export const NET_TIRED_WORDS = 'too tired to fish in the water: get out and rest';
 /** Whether the angler swims (the collapse's own test, PlayerEnterExit.IsPlayerSwimming, as Foraging's world answers it)
  *  on the last quarter of the fatigue pool. */
 export function tooTiredForTheWater(entity) {
@@ -121,17 +136,16 @@ export function haulLine(d, species) {
 
 /**
  * WHAT E DOES AT THE WATER, and the prompt that says it: `{ harvest, verb, rest, ready }` - `ready` false with `rest`
- * naming what is missing (the ground the net never works, the account's day, the Stores' room). `school` - a school's
- * words (where one rises near), said beside a ready cast.
- * @param {{ taken: boolean, counting: boolean, hauls: number, cap?: number, rank: number, storesFull: boolean,
- *   where?: string|null, school?: string, fullWords?: string }} o
+ * naming what is missing (the ground the net never works, the Stores' room - CAP-OFF: no day's hauls). `school` - a
+ * school's words (where one rises near), said beside a ready cast.
+ * @param {{ taken: boolean, counting: boolean, rank: number, storesFull: boolean, where?: string|null, school?: string,
+ *   fullWords?: string }} o
  */
-export function fishPlan({ taken, counting, hauls, cap = HAULS_PER_DAY, rank, storesFull, where = null, school = '', fullWords = 'Stores full' }) {   // BAG1: `fullWords` the book's (professionLaw fullWordsIn)
+export function fishPlan({ taken, counting, rank, storesFull, where = null, school = '', fullWords = 'Stores full' }) {   // BAG1: `fullWords` the book's (professionLaw fullWordsIn)
   const harvest = 'fish';
   const verb = 'Cast the net';
   if (taken || counting) return { harvest, verb, rest: 'being counted', ready: false };
   if (where) return { harvest, verb, rest: where, ready: false };
-  if (hauls >= cap) return { harvest, verb, rest: `Fishing ${rank} - ${hauls} of ${cap} hauls today`, ready: false, full: true };
   if (storesFull) return { harvest, verb, rest: `${fullWords} - ${materialCountLabel(FISH_KEY, 2)}`, ready: false };
   return { harvest, verb, rest: `Fishing ${rank}${school ? ` - ${school}` : ''}`, ready: true };
 }
@@ -145,12 +159,9 @@ export function castAt({ pos, dir }) {
   return [pos[0] + (dir[0] / l) * CAST_AHEAD_M, pos[1] + rise, pos[2] + (dir[2] / l) * CAST_AHEAD_M];
 }
 
-/** A bearing's word, from the angler to a school (scene XZ: +x east, +z north). */
-export function bearingWord(dx, dz) {
-  const words = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
-  const a = (Math.atan2(dx, dz) * 180) / Math.PI;
-  return words[((Math.round(a / 45) % 8) + 8) % 8];
-}
+/** A bearing's word, from the angler to a school (scene XZ: +x east, +z north) - AUDIT DELVE C8: the scene's one
+ *  compass law (systems/compassWords.js), which the dungeon's echo reads too. */
+export const bearingWord = (dx, dz) => sceneCompassWord(dx, dz);
 
 /**
  * A PIXEL'S SCHOOLS AS THE CLIENT STANDS THEM: each of the day's two at the first of its spots on a water tile -
@@ -181,10 +192,11 @@ export function standSchools({ px, py, day, samples, tilemap }) {
  *   eye: () => ({ pos: number[], dir: number[] }), feet: () => number[], hour: () => number, storm: () => boolean,
  *   climateAt: (x: number, y: number) => number|null, trophy: (species: any) => boolean,
  *   day: () => number, rand?: () => number, tug?: () => void, busy?: () => boolean,
- *   waterAt?: (pos: ArrayLike<number>) => boolean|null } }} deps `tug` - the floats dip (the
- *   touch layer's buzz); `busy` - the hands are the ship's (HELM-NET: at a helm, the guns laid, a boarding): no cast;
- *   `waterAt` - whether a scene point is over water the feet would swim in, null where the ground is not built
- *   (FIELD BUGS 2026-10-05 SHORE-CAST)
+ *   waterAt?: (pos: ArrayLike<number>) => boolean|null, waterY?: (pos: ArrayLike<number>) => number|null } }} deps
+ *   `tug` - the floats dip (the touch layer's buzz); `busy` - the hands are the ship's (HELM-NET: at a helm, the guns
+ *   laid, a boarding): no cast; `waterAt` - whether a scene point is over water the feet would swim in, null where the
+ *   ground is not built (FIELD BUGS 2026-10-05 SHORE-CAST); `waterY` - the height of the water's surface under a scene
+ *   point (the sea's top over a carved seabed), null where the ground is not built (HIGH-CAST)
  * @returns {import('./gatherHost.js').GatherKind}
  */
 export function fishKind({ book, host }) {
@@ -271,6 +283,9 @@ export function fishKind({ book, host }) {
       // onto the sand (AUDIT FB1005 W3).
       const acting = !!live && !live.act.state.done && !live.act.state.cancelled && live.act.state.phase !== 'wind';
       if (!acting && host.waterAt?.(castAt(host.eye())) === false) return [];
+      // HIGH-CAST (FIELD BUGS 2026-10-07): and at the water's level - waterAt reads the ground's plane alone, so the cast
+      // stood over the sea from a cliff tens of metres up, and on a deck at every look (the deck, the mast, the crew)
+      if (!acting && host.waterY && castOverWater(castAt(host.eye()), host.waterY(castAt(host.eye())))) return [];
       const c = castNow();
       if (!c) return [];
       // CAST-LOOK: on the look at its distance ahead, at any pitch to CAST_RISE_M - and the look itself, so a node in the
@@ -278,7 +293,7 @@ export function fishKind({ book, host }) {
       return [{ key: c.key, at: () => castAt(host.eye()), lift: 0, reach: CAST_REACH_M, yields: true }];
     },
     /** A school is never a target; the cast is gone once its haul is asked (a new one stands). */
-    gone: (n) => !!n.school || book.taken(n.key, 'fish'),
+    gone: (n) => !!n.school || goneIn(book, n.key, 'fish'),   // GATHER-SPEED: or being counted
     /** NODE-MARKS: the day's schools are Fishing's marks - where the fish are; the cast (the look itself) none. */
     mark: (n) => (n.school ? SCHOOL_MARK : null),
     /** TOOL-USE: the Fishing-Net's Use at the cast is E there - a tap of it: no wind held, the net flies its shortest,
@@ -292,7 +307,7 @@ export function fishKind({ book, host }) {
     nodeName: () => 'Open Water',
     plan(n, { rank, entity }) {
       const plan = fishPlan({
-        taken: book.taken(n.key, 'fish'), counting: book.counting(n.key, 'fish'), hauls: book.state.hauls ?? 0, cap: book.state.caps?.hauls ?? HAULS_PER_DAY,
+        taken: book.taken(n.key, 'fish'), counting: book.counting(n.key, 'fish'),
         rank: rank('fishing'), storesFull: storesFullIn(book, FISH_KEY) /* STORES-ROOM: every origin, as the service counts */, fullWords: fullWordsIn(book), where: actChecksRefusal(NET_WHERE, NET_WHERE_WORDS) ?? (tooTiredForTheWater(entity) ? NET_TIRED_WORDS : null), school: schoolWords(),
       });
       return { ...plan, profession: 'fishing' };
@@ -318,26 +333,28 @@ export function fishKind({ book, host }) {
         hand: () => null,
       };
     },
-    /** The account's day, as the chip says it: its hauls against the day's forty. */
-    tally: () => ({ n: book.state.hauls ?? 0, cap: book.state.caps?.hauls ?? HAULS_PER_DAY }),
+    /** The account's day, as the chip says it: its hauls today (CAP-OFF: against no cap). */
+    tally: () => ({ n: book.state.hauls ?? 0 }),
     cleanNote: () => ' (a full net)',
     actNote: (rep) => {
       if (!rep) return '';
       if (rep.clean) return ' (a full net)';
-      if (rep.why === 'missed') return ' (the tug missed - a plain haul)';
-      if (rep.why === 'slipped') return ' (the net slipped - a plain haul)';
-      if (rep.why === 'slow') return ' (hauled in slowly - a plain haul)';
+      if (rep.why === 'missed') return ' (the tug missed: a plain haul)';
+      if (rep.why === 'slipped') return ' (the net slipped: a plain haul)';
+      if (rep.why === 'slow') return ' (hauled in slowly: a plain haul)';
       return '';
     },
     /** The goods, the species named. */
     storesLine: (d) => haulLine(d, speciesOfHaul(d.node, climateOf(d.node))),
     haulName: (d) => speciesOfHaul(d.node, climateOf(d.node))?.itemName ?? null,   // HAUL-CARDS: the catch's species on its card, the Raw Fish its sub
-    /** A trophy: the species' own item, into the pack once (every answer to the haul says it). */
+    /** A trophy: the species' own item, into the pack once (every answer to the haul says it). QL11: and every haul the
+     *  service answered is a catch. */
     answered(d, toast) {
+      noteAct('fish-caught');   // QL11: a fish caught - the net's haul, in the Stores or the bag
       if (!d?.trophy || trophied.has(d.node)) return;
       trophied.add(d.node);
       const species = speciesOfHaul(d.node, climateOf(d.node));
-      if (species && host.trophy(species)) toast(`A trophy ${species.itemName} - it is in your pack.`);
+      if (species && host.trophy(species)) toast(`A trophy ${species.itemName}. It is in your pack.`);
     },
     title: () => 'Angler',
   };

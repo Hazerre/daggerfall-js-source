@@ -2,28 +2,28 @@
   {
     "name": "MH1-window-ignores-the-pitch",
     "file": "src/render/characterSprite.js",
-    "old": "  const halfH = boxH * Math.sqrt(1 - tilt * tilt) + halfW * tilt;",
-    "new": "  const halfH = boxH;",
+    "old": "  let halfH = boxH * Math.sqrt(1 - tilt * tilt) + halfW * tilt;",
+    "new": "  let halfH = boxH;",
     "tests": [
-      "test/mwhead1_window.test.js"
+      "test/world/mwhead1_window.test.js"
     ]
   },
   {
     "name": "MH1-depth-not-lifted",
     "file": "src/render/characterSprite.js",
-    "old": "  const halfH = boxH * Math.sqrt(1 - tilt * tilt) + halfW * tilt;",
-    "new": "  const halfH = boxH * Math.sqrt(1 - tilt * tilt);",
+    "old": "  let halfH = boxH * Math.sqrt(1 - tilt * tilt) + halfW * tilt;",
+    "new": "  let halfH = boxH * Math.sqrt(1 - tilt * tilt);",
     "tests": [
-      "test/mwhead1_window.test.js"
+      "test/world/mwhead1_window.test.js"
     ]
   },
   {
     "name": "MH1-height-not-foreshortened",
     "file": "src/render/characterSprite.js",
-    "old": "  const halfH = boxH * Math.sqrt(1 - tilt * tilt) + halfW * tilt;",
-    "new": "  const halfH = boxH + halfW * tilt;",
+    "old": "  let halfH = boxH * Math.sqrt(1 - tilt * tilt) + halfW * tilt;",
+    "new": "  let halfH = boxH + halfW * tilt;",
     "tests": [
-      "test/mwhead1_window.test.js"
+      "test/world/mwhead1_window.test.js"
     ]
   },
   {
@@ -32,7 +32,7 @@
     "old": "  const tilt = Math.min(1, Math.abs(dy) / (Math.hypot(dx, dy, dz) || 1));",
     "new": "  const tilt = Math.min(1, Math.abs(camDir[1]));",
     "tests": [
-      "test/mwhead1_window.test.js"
+      "test/world/mwhead1_window.test.js"
     ]
   },
   {
@@ -41,7 +41,7 @@
     "old": "  const tilt = Math.min(1, Math.abs(dy) / (Math.hypot(dx, dy, dz) || 1));",
     "new": "  const tilt = Math.min(1, -dy / (Math.hypot(dx, dy, dz) || 1));",
     "tests": [
-      "test/mwhead1_window.test.js"
+      "test/world/mwhead1_window.test.js"
     ]
   }
 ]

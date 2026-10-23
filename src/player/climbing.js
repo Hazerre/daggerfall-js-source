@@ -27,6 +27,7 @@
 // the wall probe live in the motor - they own the capsule.
 
 import { SYSTEM_TIMER_UPDATES_DIVISOR } from './motor.js';
+import { localizedText } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { overcapClimbSpeed } from '../systems/skillSoftcap.js';   // CLIMB-PAST: a leaf (its one import, masterSkills.js, imports nothing)
 
 // ClimbingMotor.cs:75-84, verbatim.
@@ -125,7 +126,7 @@ export class ClimbingState {
 
   /** ClimbingCheck (:307-488), the classic arms, per fixed step.
    *  c = { forward, back, anyMove, falling, grounded, levitating,
-   *  riding, touchingSides, horizontalPos: [x, z], slowFalling,
+   *  riding, touchingSides, horizontalPos: [x, z], slowFalling, travelling,
    *  tooCloseToGround: () => bool (thunk - short-circuit, :319) }.
    *  Returns isClimbing. */
   step(dt, c) {
@@ -146,6 +147,7 @@ export class ClimbingState {
         || !c.touchingSides
         || c.levitating
         || c.riding
+        || c.travelling   // CLIMB-TRAVEL (FIELD BUGS 2026-10-07b): no climb at a journey's pace - at x60 the 0.77 s start and 0.82 s checks fell due every step or two, a roll and a tally each
         || (airborneGraspWall && c.slowFalling)   // SLOW-GRASP (FIELD BUGS 2026-10-01): a slow fall is not grasped onto a wall (the spell makes the 0.77 s timer 1.6 m of descent, re-rolled all the way down)
         || slippedToGround
         || tooClose
@@ -184,7 +186,7 @@ export class ClimbingState {
       // the climbingMode HUD line, once per attempt (:601-605) -
       // AddHUDText takes the row verbatim, Internal_Strings.csv:371
       if (this.showModeMessage) {
-        this.deps.say?.(CLIMBING_MODE_TEXT);
+        this.deps.say?.(localizedText('climbingMode', CLIMBING_MODE_TEXT));
         this.showModeMessage = false;
       }
     } else {

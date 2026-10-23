@@ -60,7 +60,7 @@ import { mustChange } from './realm.js';
 import { seatsOpenFor, confirmedSeats } from './townSeats.js';
 import { marksOpenFor } from './marks.js';
 import { verifyWatchReceipt } from '../../src/net/watchReceipt.js';
-import { gateTimes, gameDayAt } from '../../src/net/gateLaw.js';
+import { gateTimes, gameDayAt } from '../../src/net/gate/gateLaw.js';
 import { shrineGateInfluence, towersSee } from '../../src/net/fortLaw.js';   // SEAT2b part two (7.5): a Shrine's gates, the Watchtowers' word
 import { fortTierAt } from './seatForts.js';   // SEAT2b part two: the Shrine standing, read without a write
 import { MARKS_RID_RE, utcDay } from '../../src/net/marksLaw.js';
@@ -223,7 +223,7 @@ export async function claimWatch({ db, nowS, subtle }, player, env, { character,
   if (!seatsOpenFor(player, env)) return { error: 'seats-closed' };
   if (!Array.isArray(receipts) || receipts.length < 1 || receipts.length > SEAT_WATCH_CLAIM_MAX) return { error: 'bad-watch' };
   if (!publicKey) return { error: 'no-gate-key' };
-  const seats = await confirmedSeats(db, nowS, { kept: true });   // STORM-SHED: the isolate's kept witness rows
+  const seats = await confirmedSeats(db, nowS);   // STORM-SHED: the isolate's kept witness rows
   const byPixel = new Map([...seats.values()].map((s) => [`${s.pixel[0]},${s.pixel[1]}`, s]));
   const week = weekAt(nowS);
   let counted = 0;
@@ -461,29 +461,46 @@ export async function shrineOf(db, seat, week, nowS) {
   const gates = await gatesFelledIn(db, week, seat.region, nowS);
   return gates > 0 ? { guild: h.guild_id, influence: per * gates, gates } : null;
 }
+/** D1's bound on a statement's parameters, less a margin. */
+export const IN_CHUNK = 90;
+/**
+ * SEAT-CAP (from play, 2026-10-11: "charter seats are broken. Time to take a castle and nothing happens"): THE ROWS OF A
+ * STATEMENT WHOSE IN LIST IS EVERY ONE OF `ids`, asked IN_CHUNK at a time - `sql(marks)` the statement around the list's
+ * marks, `before` and `after` the binds either side of them. D1 refuses a statement of more than 100 parameters, so the
+ * Turning's one read of every guild pledged anywhere threw once 101 were, and settleDue runs before every seat route:
+ * every seat read answered `server`, and no Charter was ever claimed. Each row stands alone - never a sum across the list.
+ * @param {any} db @param {any[]} ids @param {(marks: string) => string} sql @param {any[]} [before] @param {any[]} [after]
+ */
+export async function allIn(db, ids, sql, before = [], after = []) {
+  const out = [];
+  for (let i = 0; i < ids.length; i += IN_CHUNK) {
+    const part = ids.slice(i, i + IN_CHUNK);
+    const { results = [] } = await db.prepare(sql(part.map(() => '?').join(', '))).bind(...before, ...part, ...after).all();
+    out.push(...results);
+  }
+  return out;
+}
 /** Each pledged guild's week at a seat (standingsOf), the rows gathered. Exported for the Turning (seatTurning.js).
  *  SEASON1 part two: `counted` whether a Season is counted that week - the Tides roll only then. */
 export async function gatherStandings(db, seat, week, nowS, counted = false) {
   const guilds = [...(await seatGuildsOf(db, seat.key, week)).keys()];
   if (!guilds.length) return [];
-  const qs = guilds.map(() => '?').join(', ');
   // AUDIT-SEATS S11: summed in SQL - one row a guild, account, source, region and game or UTC day (its amount the sum, `n`
   // its rows), never one a Watch tick (some 210,000 a read at 500 accounts); everything standingsOf asks of a row is in
   // its group's key, so the caps read the same. S9: a barred challenger's rows voided, kept for the caps, never counted.
   const { results: rows = [] } = await db.prepare(`SELECT guild_id, account, source, region, day, SUM(amount) AS amount, COUNT(*) AS n FROM town_seat_influence
     WHERE week = ? AND key = ? AND voided = 0 GROUP BY guild_id, account, source, region, day`).bind(week, seat.key).all();
-  const { results: bindRows = [] } = await db.prepare(`SELECT account, guild_id FROM town_seat_binds WHERE week = ? AND guild_id IN (${qs})`).bind(week, ...guilds).all();
+  const bindRows = await allIn(db, guilds, (qs) => `SELECT account, guild_id FROM town_seat_binds WHERE week = ? AND guild_id IN (${qs})`, [week]);   // SEAT-CAP
   const binds = new Map(bindRows.map((b) => [b.account, b.guild_id]));
   const { results: renown = [] } = await db.prepare('SELECT account, xp FROM town_seat_renown WHERE week = ? AND region = ?').bind(week, seat.region).all();
   // the town's homes whose owning character is a 7-day member of a pledged guild (a guild's hall is no member's home)
-  const { results: homes = [] } = await db.prepare(`SELECT h.player, h.bought_at, m.guild_id FROM homes h
+  const homes = await allIn(db, guilds, (qs) => `SELECT h.player, h.bought_at, m.guild_id FROM homes h
     JOIN guild_members m ON m.player = h.player AND m.char_id = h.char_id
-    WHERE h.map_id = ? AND h.guild_id IS NULL AND m.guild_id IN (${qs}) AND m.joined_at <= ?`).bind(seat.key, ...guilds, nowS - SEAT_MEMBER_WAIT_S).all();
+    WHERE h.map_id = ? AND h.guild_id IS NULL AND m.guild_id IN (${qs}) AND m.joined_at <= ?`, [seat.key], [nowS - SEAT_MEMBER_WAIT_S]);
   const days = [...new Set(rows.filter((r) => r.source === 'gate').map((r) => Number(r.day)))];
   const agreed = await agreedGateRegions(db, days);
   // CROWN1 (4.3): each guild's reach here - the crowns it holds, at a palace seat of their kingdom or March
-  const { results: crownRows = [] } = seat.tier === 'palace'
-    ? await db.prepare(`SELECT guild_id, tier, region FROM town_seat_holds WHERE tier = 'crown' AND guild_id IN (${qs})`).bind(...guilds).all() : { results: [] };
+  const crownRows = seat.tier === 'palace' ? await allIn(db, guilds, (qs) => `SELECT guild_id, tier, region FROM town_seat_holds WHERE tier = 'crown' AND guild_id IN (${qs})`) : [];
   const reach = new Map(guilds.map((g) => [g, seatReach(seat, crownsHeld(crownRows.filter((h) => h.guild_id === g).map((h) => ({ tier: h.tier, region: Number(h.region) }))))]));
   return standingsOf({ guilds, rows, renown, homes, binds, agreed, weekStartS: Math.floor(seatWeekStartMs(week) / 1000), nowS, reach, freeLand: isFreeLand(seat.region), tide: tideAt(week, seat.region, counted),
     shrine: await shrineOf(db, seat, week, nowS) });   // SEAT2b part two: the holder's Shrine
@@ -521,8 +538,7 @@ export async function readStandings({ db, nowS }, player, env, { key, character 
   const liegeReach = fits ? seatReach(seat, crownsHeld(liegeHolds)) : 0;
   const defence = holder ? seatDefence({ influence: own?.total ?? 0, legacy: legacy.get(holder.guild.id) ?? 0 }, holder.standing, overreachOf(tiers.map((t) => t.tier)), held, liegeReach) : null;
   const ids = list.map((s) => s.guild);
-  const { results: gs = [] } = ids.length
-    ? await db.prepare(`SELECT id, name, tag, heraldry FROM guilds WHERE id IN (${ids.map(() => '?').join(', ')})`).bind(...ids).all() : { results: [] };
+  const gs = await allIn(db, ids, (qs) => `SELECT id, name, tag, heraldry FROM guilds WHERE id IN (${qs})`);   // SEAT-CAP
   const byId = new Map(gs.map((g) => [g.id, g]));
   const start = seatWeekStartMs(week);
   let mine = null;
@@ -579,29 +595,38 @@ export async function readStandings({ db, nowS }, player, env, { key, character 
 const guildView = (id, name, tag, heraldry) => ({ id, name: name ?? '', tag: tag ?? '', heraldry: heraldryOfRow(heraldry) });
 /** EVERY CHARTER HELD, by key: `{ guild: { id, name, tag, heraldry }, since, standing, tithe }` (SEAT1d: its Tithe). */
 export async function holdsOf(db) {
-  const { results = [] } = await db.prepare(`SELECT h.key, h.guild_id, h.since_week, h.standing, h.tithe, g.name, g.tag, g.heraldry FROM town_seat_holds h
-    JOIN guilds g ON g.id = h.guild_id`).all();
-  return new Map(results.map((h) => [Number(h.key), {
-    guild: guildView(h.guild_id, h.name, h.tag, h.heraldry), since: Number(h.since_week), standing: Number(h.standing), tithe: Number(h.tithe ?? 0),
-  }]));
+  return holdsFrom((await holdsRead(db).all()).results);
 }
+/** SEAT-BATCH (2026-10-16): holdsOf's statement and its answer apart, so the seats' list sends it in one batch. */
+export const holdsRead = (/** @type {any} */ db) => db.prepare(`SELECT h.key, h.guild_id, h.since_week, h.standing, h.tithe, g.name, g.tag, g.heraldry FROM town_seat_holds h
+    JOIN guilds g ON g.id = h.guild_id`);
+export const holdsFrom = (/** @type {any[]} */ results = []) => new Map(results.map((h) => [Number(h.key), {
+  guild: guildView(h.guild_id, h.name, h.tag, h.heraldry), since: Number(h.since_week), standing: Number(h.standing), tithe: Number(h.tithe ?? 0),
+}]));
 /** THE WEEK'S BATTLES the last Turning named, by key: `{ kind, guild, against, startsAt, endsAt, moved, state }` - a
  *  Right of Siege's challenger and holder, or a Contested seat's two contenders; AUDIT-SEATS G2: and when the schedule
  *  placed it (seconds, as the standings' `fight` - null for a battle no hour could hold), whether it was moved and its
  *  state, so the arrival line can call the siege (3.3) and the client's herald say it (G1) without a standings read. */
 export async function battlesOf(db, week) {
-  const { results = [] } = await db.prepare(`SELECT r.key, r.kind, r.guild_id, r.against, a.name AS an, a.tag AS at, a.heraldry AS ah,
+  const [rights, revolts] = battlesRead(db, week);
+  return battlesFrom((await rights.all()).results, (await revolts.all()).results);
+}
+/** SEAT-BATCH: battlesOf's two statements (the week's Rights, its revolts) and their answer apart. */
+export const battlesRead = (/** @type {any} */ db, /** @type {number} */ week) => [
+  db.prepare(`SELECT r.key, r.kind, r.guild_id, r.against, a.name AS an, a.tag AS at, a.heraldry AS ah,
       b.name AS bn, b.tag AS bt, b.heraldry AS bh, x.starts_at, x.ends_at, x.moved, x.state FROM town_seat_rights r JOIN guilds a ON a.id = r.guild_id
       LEFT JOIN guilds b ON b.id = r.against LEFT JOIN town_seat_battles x ON x.week = r.week AND x.key = r.key
-    WHERE r.week = ?`).bind(week).all();
+    WHERE r.week = ?`).bind(week),
+  // SEAT2b part two (c) (7.7): a revolt is no Right - its battle row alone names it, the holder it rises against `against`
+  db.prepare(`SELECT x.key, x.defender, b.name AS bn, b.tag AS bt, b.heraldry AS bh, x.starts_at, x.ends_at, x.moved, x.state
+    FROM town_seat_battles x LEFT JOIN guilds b ON b.id = x.defender WHERE x.week = ? AND x.kind = 'revolt'`).bind(week),
+];
+export function battlesFrom(/** @type {any[]} */ results = [], /** @type {any[]} */ revolts = []) {
   const out = new Map(results.map((r) => [Number(r.key), {
     kind: r.kind, guild: guildView(r.guild_id, r.an, r.at, r.ah), against: r.against ? guildView(r.against, r.bn, r.bt, r.bh) : null,
     startsAt: r.starts_at == null ? null : Number(r.starts_at), endsAt: r.ends_at == null ? null : Number(r.ends_at),
     moved: Number(r.moved ?? 0) === 1, state: r.state ?? null,
   }]));
-  // SEAT2b part two (c) (7.7): a revolt is no Right - its battle row alone names it, the holder it rises against `against`
-  const { results: revolts = [] } = await db.prepare(`SELECT x.key, x.defender, b.name AS bn, b.tag AS bt, b.heraldry AS bh, x.starts_at, x.ends_at, x.moved, x.state
-    FROM town_seat_battles x LEFT JOIN guilds b ON b.id = x.defender WHERE x.week = ? AND x.kind = 'revolt'`).bind(week).all();
   for (const r of revolts) {
     out.set(Number(r.key), { kind: 'revolt', guild: null, against: guildView(r.defender, r.bn, r.bt, r.bh), startsAt: Number(r.starts_at), endsAt: Number(r.ends_at),
       moved: Number(r.moved ?? 0) === 1, state: r.state ?? null });
@@ -617,8 +642,6 @@ async function chronicleOf(db, key, max = SEAT_CHRONICLE_SHOWN) {
   return rows.map(({ kind, week, data }) => ({ kind, week, data }));
 }
 
-/** D1's bound on a statement's parameters, less a margin. */
-const IN_CHUNK = 90;
 /**
  * AUDIT2 GUILD2 G1: A CHRONICLE ROW'S GUILD AS IT IS NOW. A row names each guild as it was that day (`{ name, tag }`), and
  * the client finds a guild's arms by its tag and name now (net/heraldryIndex.js armsNamed) - so a guild renamed since
@@ -635,12 +658,7 @@ async function renamedSince(db, rows) {
     }
   }
   const tags = [...new Set(named.map(([, g]) => g.tag))];
-  const renames = [];
-  for (let i = 0; i < tags.length; i += IN_CHUNK) {
-    const part = tags.slice(i, i + IN_CHUNK);
-    const { results = [] } = await db.prepare(`SELECT guild_id, at, old_name, old_tag FROM guild_renames WHERE old_tag IN (${part.map(() => '?').join(', ')}) ORDER BY at, seq`).bind(...part).all();
-    renames.push(...results);
-  }
+  const renames = await allIn(db, tags, (qs) => `SELECT guild_id, at, old_name, old_tag FROM guild_renames WHERE old_tag IN (${qs}) ORDER BY at, seq`);
   if (!renames.length) return;
   const whose = new Map();
   for (const [r, g] of named) {
@@ -648,12 +666,7 @@ async function renamedSince(db, rows) {
     if (hit) whose.set(g, hit.guild_id);
   }
   const ids = [...new Set(whose.values())];
-  const byId = new Map();
-  for (let i = 0; i < ids.length; i += IN_CHUNK) {
-    const part = ids.slice(i, i + IN_CHUNK);
-    const { results = [] } = await db.prepare(`SELECT id, name, tag FROM guilds WHERE id IN (${part.map(() => '?').join(', ')})`).bind(...part).all();
-    for (const x of results) byId.set(x.id, x);
-  }
+  const byId = new Map((await allIn(db, ids, (qs) => `SELECT id, name, tag FROM guilds WHERE id IN (${qs})`)).map((x) => [x.id, x]));
   for (const [g, id] of whose) {
     const n = byId.get(id);
     if (n && (n.name !== g.name || n.tag !== g.tag)) g.now = { name: n.name, tag: n.tag };

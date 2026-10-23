@@ -35,19 +35,21 @@
 // EVERY CLOCK IS AN ARGUMENT, as in accounts.js.
 // ═════════════════════════════════════════════════════════════════════
 import { confirmedSeats, seatsOpenFor } from './townSeats.js';
-import { gatherStandings, seatGuildsOf, holdsOf, battlesOf, agreedGateRegions } from './seatInfluence.js';
-import { activeIn, edictsOf } from './seatHolding.js';
+import { gatherStandings, seatGuildsOf, agreedGateRegions, allIn, holdsRead, holdsFrom, battlesRead, battlesFrom } from './seatInfluence.js';   // SEAT-CAP: allIn, every guild list read IN_CHUNK at a time
+import { activeIn, edictsOf, edictsRead, edictsFrom } from './seatHolding.js';
+import { redRead, redFrom } from './seatPolitics.js';   // SEAT-BATCH: the list's red lines, in its one batch
 import { windowOf } from './seatBattles.js';   // SEAT2a: the holder's window, frozen into its battle
 import { royalTurning } from './seatRoyal.js';   // CROWN1 part two: a Royal Tourney's champion named
 import { incursionStatements } from './seatIncursion.js';   // AUDIT-SEATS: a Daedric Incursion's Marks
 import { fortsSeasonStatements, campsSpent, fortTiersOf, fortsLapsedStatements, campsWorn } from './seatForts.js';   // SEAT2b: a Season's wear, the Siege Camps spent; part two: a holder's Shrine; AUDIT SEATS-2 S5, S4: a lapse's projects fallen, the worn gate's Rams
 import { shrineStanding, marketHallTitheCap } from '../../src/net/fortLaw.js';   // SEAT2b part two (7.5): the Shrine's Standing a week
+import { weekSettled, keepWeekSettled } from './weekKept.js';   // PRIMARY-FOLD: a week read settled, kept
 import { swordsSettled } from './seatSiege.js';   // AUDIT-SEATS S3: a void battle's Sellsword escrow home
-import { gameDayAt, gateTimes } from '../../src/net/gateLaw.js';
+import { gameDayAt, gateTimes } from '../../src/net/gate/gateLaw.js';
 import { guildActorOf } from './guilds.js';
 import { mustChange } from './realm.js';
 import { utcDay } from '../../src/net/marksLaw.js';
-import { GUILD_RANK_MASTER } from '../../src/net/guildLaw.js';
+import { GUILD_RANK_MASTER } from '../../src/net/guild/guildLaw.js';
 import { seatWeekOf, seatWeekStartMs, seatKeyOk, turningPlan, seatGlyphsOf, seatTitleOf, SEAT_WEEK_MS, STANDING_START, placeBattles, atSiegeWindow, CROWN_SEAT_REGIONS, conscriptionDue,
   fealtyReckoning, fealtyTribute, TITHE_CAP, seasonEndingAt, seasonStanding, seasonTitles, seasonOf, seasonRibbons, keptWholeSeason } from '../../src/net/townSeatLaw.js';
 import { tideAt } from '../../src/net/tideLaw.js';   // SEASON1 part two: the Tides
@@ -82,7 +84,7 @@ const turningOf = (week) => Math.floor((seatWeekStartMs(week) + SEAT_WEEK_MS) / 
 async function namesOf(db, ids) {
   const list = [...new Set(ids)].filter(Boolean);
   if (!list.length) return new Map();
-  const { results = [] } = await db.prepare(`SELECT id, name, tag FROM guilds WHERE id IN (${list.map(() => '?').join(', ')})`).bind(...list).all();
+  const results = await allIn(db, list, (qs) => `SELECT id, name, tag FROM guilds WHERE id IN (${qs})`);
   return new Map(results.map((g) => [g.id, { name: g.name, tag: g.tag }]));
 }
 
@@ -101,7 +103,7 @@ async function namesOf(db, ids) {
 export async function settleWeek(db, week, nowS, zero = null) {
   if (await db.prepare('SELECT 1 FROM town_seat_weeks WHERE week = ?').bind(week).first()) return { settled: false };
   const atS = turningOf(week);
-  const registry = await confirmedSeats(db, nowS);
+  const registry = await confirmedSeats(db, nowS, { fresh: true });   // D1-LOAD: the Turning reads the table as it stands
   const { results: pledgedKeys = [] } = await db.prepare('SELECT DISTINCT key FROM town_seat_pledges WHERE week = ?').bind(week).all();
   const { results: holdRows = [] } = await db.prepare('SELECT key, guild_id, region, tier, standing, truce_week, tithe, owed, since_week FROM town_seat_holds').all();
   const holds = new Map(holdRows.map((h) => [Number(h.key), h]));
@@ -201,8 +203,7 @@ export async function settleWeek(db, week, nowS, zero = null) {
   const guildIds = [...new Set(seats.flatMap((s) => s.guilds.map((g) => g.guild)))];
   // the holders' treasuries too - a holder nobody else pledged against still pays its upkeep
   const purseIds = [...new Set([...guildIds, ...holdRows.map((h) => h.guild_id)])];
-  const { results: purses = [] } = purseIds.length
-    ? await db.prepare(`SELECT guild_id, balance FROM guild_marks WHERE guild_id IN (${purseIds.map(() => '?').join(', ')})`).bind(...purseIds).all() : { results: [] };
+  const purses = await allIn(db, purseIds, (qs) => `SELECT guild_id, balance FROM guild_marks WHERE guild_id IN (${qs})`);   // SEAT-CAP: every guild pledged anywhere
   const reckonedPlan = turningPlan({ week, seats, treasuries: new Map(purses.map((p) => [p.guild_id, Number(p.balance)])), active: await activeIn(db, week) });
   // SEASON1 (9.1, 18): the Season this Turning ends, if it ends one - Season 0's end settles its own week and sets nothing
   // up for the next (no Charter claimed, no Right, no battle, no Edict, no Legacy), then wipes the seats
@@ -433,28 +434,32 @@ export async function settleWeek(db, week, nowS, zero = null) {
 /** SEASON1: each guild's guildmaster's account, by guild. */
 async function guildmastersOf(db, guilds) {
   if (!guilds.length) return new Map();
-  const { results = [] } = await db.prepare(`SELECT guild_id, player FROM guild_members WHERE rank = ? AND guild_id IN (${guilds.map(() => '?').join(', ')})`).bind(GUILD_RANK_MASTER, ...guilds).all();
+  const results = await allIn(db, guilds, (qs) => `SELECT guild_id, player FROM guild_members WHERE rank = ? AND guild_id IN (${qs})`, [GUILD_RANK_MASTER]);
   return new Map(results.map((r) => [r.guild_id, r.player]));
 }
 
 /** THE SEATS AS THE MAP AND THE ARRIVAL NEED THEM: each listed seat with its holder and this week's battle at it (a
  *  Contested seat's Tourney, a held seat's siege), or null. SEAT1d: the holder with the Edict that rules this week (the
- *  client's shops, its arrival and its Festival read it), or null. */
-export async function seatsWithHolders(db, seats, nowS) {
-  const holds = await holdsOf(db);
-  const battles = await battlesOf(db, weekAt(nowS));
-  const edicts = await edictsOf(db, weekAt(nowS));
+ *  client's shops, its arrival and its Festival read it), or null. And the day's red lines (seatPolitics.js redOf).
+ *  SEAT-BATCH (2026-10-16, the account database's primary at its ceiling of round trips - bible/11-Multiplayer/
+ *  Scale-Arc.md SEAT-BATCH): the six reads in ONE batch, where each was a round trip of its own - every list asked the
+ *  primary seven times past its session's lookup, and the primary's ceiling is its round trips, not its rows. Answers
+ *  `{ seats, red }`. */
+export async function seatsBoard(db, seats, nowS) {
+  const week = weekAt(nowS);
   // SEAT2b part two (7.5): each seat's works standing now - a project whose day has come counts (seatForts.js fortTierAt's
   // rule, read and never written) - so every client knows a members' Harbour, the Watchtowers and the crafting halls
-  const { results: fortRows = [] } = await db.prepare(`SELECT key, work, CASE WHEN building IS NOT NULL AND stands_at IS NOT NULL AND stands_at <= ?1
-    THEN building ELSE tier END AS t FROM town_seat_forts WHERE tier > 0 OR (building IS NOT NULL AND stands_at IS NOT NULL AND stands_at <= ?1)`).bind(nowS).all();
+  const fortsRead = db.prepare(`SELECT key, work, CASE WHEN building IS NOT NULL AND stands_at IS NOT NULL AND stands_at <= ?1
+    THEN building ELSE tier END AS t FROM town_seat_forts WHERE tier > 0 OR (building IS NOT NULL AND stands_at IS NOT NULL AND stands_at <= ?1)`).bind(nowS);
+  const [heldRes, rightsRes, revoltsRes, edictsRes, fortsRes, redRes] = await db.batch([holdsRead(db), ...battlesRead(db, week), edictsRead(db, week), fortsRead, redRead(db, nowS)]);
+  const holds = holdsFrom(heldRes?.results), battles = battlesFrom(rightsRes?.results, revoltsRes?.results), edicts = edictsFrom(edictsRes?.results);
   const forts = new Map();
-  for (const r of fortRows) if (Number(r.t) > 0) { const k = Number(r.key); forts.set(k, { ...(forts.get(k) ?? {}), [r.work]: Number(r.t) }); }
-  return seats.map((s) => {
+  for (const r of fortsRes?.results ?? []) if (Number(r.t) > 0) { const k = Number(r.key); forts.set(k, { ...(forts.get(k) ?? {}), [r.work]: Number(r.t) }); }
+  return { red: redFrom(redRes?.results), seats: seats.map((s) => {
     const h = holds.get(s.key) ?? null;
     const e = edicts.get(s.key);
     return { ...s, holder: h ? { ...h, edict: e && e.guild === h.guild.id ? e.edict : null } : null, battle: battles.get(s.key) ?? null, ...(forts.has(s.key) ? { forts: forts.get(s.key) } : {}) };
-  });
+  }) };
 }
 
 /**
@@ -478,6 +483,39 @@ export async function settleDue(db, nowS, zero = null) {
     else if (r.failed) break;
   }
   return n;
+}
+
+/** SEAT-LEASE: how long one settler holds the Turning before another may take it, s - a settle takes seconds; one cut
+ *  off (its client gone, its isolate lost) frees the Turning when this runs out. */
+export const SETTLE_LEASE_S = 60;
+/**
+ * SEAT-LEASE (from play, 2026-10-11: the service swamped an hour after seat week 2's Turning): THE TURNINGS DUE, ONE
+ * SETTLER AT A TIME. settleDue awaited by every seat route ran the whole settle in every request while a week was due -
+ * hundreds of reads each, all at once; under load a settle outlasted its client's wait, the request was cancelled before
+ * its batch committed, and the next began another, so the week never settled and the database drowned with it. Here a
+ * caller that finds a week due takes the one lease (`town_seat_settling`, SETTLE_LEASE_S) and settles, freeing it after;
+ * a caller that finds the lease held settles nothing and is told so - `{ settled, pending }`, `pending` while another
+ * holds the Turning. Nothing due costs the one read it always did - once a week an isolate, since PRIMARY-FOLD (weekKept.js).
+ * @param {any} db @param {number} nowS @param {number|null} [zero]
+ */
+export async function settleDueOnce(db, nowS, zero = null) {
+  if (weekSettled(db, 'seats', weekAt(nowS))) return { settled: 0, pending: false };   // PRIMARY-FOLD: this isolate read the week settled (weekKept.js)
+  const last = (await db.prepare('SELECT MAX(week) AS w FROM town_seat_weeks').first())?.w;
+  if (last != null && Number(last) + 1 >= weekAt(nowS)) { keepWeekSettled(db, 'seats', weekAt(nowS)); return { settled: 0, pending: false }; }
+  // D1-LOAD: a lease held is READ, never asked of the one writer - every seat request that finds the week due while
+  // another settles (every client's list at the Turning) asked an INSERT that changed nothing, each one the writer's turn
+  const held = await db.prepare('SELECT until FROM town_seat_settling WHERE id = 1').first();
+  if (held && Number(held.until) > nowS) return { settled: 0, pending: true };
+  const holder = crypto.randomUUID();
+  const took = await db.prepare(`INSERT INTO town_seat_settling (id, holder, until) VALUES (1, ?1, ?2)
+    ON CONFLICT (id) DO UPDATE SET holder = ?1, until = ?2 WHERE until <= ?3`).bind(holder, nowS + SETTLE_LEASE_S, nowS).run();
+  if (!Number(took?.meta?.changes)) return { settled: 0, pending: true };
+  try {
+    return { settled: await settleDue(db, nowS, zero), pending: false };
+  } finally {
+    // a release that fails is the lease's own end, SETTLE_LEASE_S on - never the settle's answer lost
+    try { await db.prepare('DELETE FROM town_seat_settling WHERE id = 1 AND holder = ?').bind(holder).run(); } catch { /* it runs out */ }
+  }
 }
 
 /**
@@ -508,8 +546,8 @@ export async function relinquishSeat({ db, nowS }, player, env, { character, key
  * (seatGlyphsOf), its guildmaster the title (seatTitleOf). `{ glyphs, title, ts }` - empty and null for a character in no
  * guild, or one holding none.
  */
-export async function seatBadgeOf(db, playerId, character, season = 0) {   // SEASON1: the Season counted, on the title's claim
-  const m = typeof character === 'string'
+export async function seatBadgeOf(db, playerId, character, season = 0, member = undefined) {   // SEASON1: the Season counted, on the title's claim; SCALE4f part two: the mint's one membership read (guilds.js mintMemberOf)
+  const m = member !== undefined ? member : typeof character === 'string'
     ? await db.prepare('SELECT guild_id, rank FROM guild_members WHERE player = ? AND char_id = ?').bind(playerId, character).first() : null;
   if (!m) return { glyphs: [], title: null, ts: null };
   const { results = [] } = await db.prepare('SELECT key, tier, region FROM town_seat_holds WHERE guild_id = ? ORDER BY key').bind(m.guild_id).all();

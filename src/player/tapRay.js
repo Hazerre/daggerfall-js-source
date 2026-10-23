@@ -12,13 +12,13 @@
 // milestones because a sign was DERIVED instead of measured. Nothing
 // here derives one. The ray is the numerical inverse of the SAME
 // proj*view the frame drew with, the dot is the same product forward,
-// and test/touchinput.test.js pins both against the real
+// and test/player/touchinput.test.js pins both against the real
 // perspective/mirrorProjectionX/lookAt with an ABSOLUTE anchor (at
 // yaw 0, +x lands screen-right and +y screen-up) as well as the
 // round-trip - a round-trip alone would bless two matching mistakes.
 //
 // THE RECT. ROAD-E E5: the world pass draws into the strip ABOVE a
-// docked large HUD (ui/hudLarge.js largeHudViewportRect - a normalized
+// docked large HUD (ui/hud/hudLarge.js largeHudViewportRect - a normalized
 // GL rect, y from the bottom), so screen<->NDC maps through that rect,
 // not the canvas. A finger in the bar's strip is no world tap at all:
 // the ray answers null and the host leaves the tap alone.
@@ -28,7 +28,7 @@ import { multiply } from '../world/mat4.js';
 /** Column-major 4x4 inverse (gl-matrix's layout - mat4.js's own), or
  *  null for a singular matrix; the automap's pick reads it too (AUDIT 68
  *  S15-invert4-duplicate). It lives here, not in mat4.js, because mat4.js
- *  is in the relay's bundle (test/relayversion.test.js). */
+ *  is in the relay's bundle (test/net/relayversion.test.js). */
 export function invert4(m, out = new Float32Array(16)) {
   const a00 = m[0], a01 = m[1], a02 = m[2], a03 = m[3];
   const a10 = m[4], a11 = m[5], a12 = m[6], a13 = m[7];
@@ -106,8 +106,8 @@ export function rayDirFromScreen(sx, sy, w, h, proj, view, eye, rect = null) {
  * negative w, `front` still false) - the travel view holds a mark behind the
  * eye at the screen's edge, pointing its way, and needs to know which way.
  */
-export function projectToScreen(p, w, h, proj, view, rect = null, behind = false) {
-  const pv = multiply(proj, view);
+export function projectToScreen(p, w, h, proj, view, rect = null, behind = false, pvIn = null) {
+  const pv = pvIn ?? multiply(proj, view);   // PERF-PEERS2: a caller projecting many points hands the product it made once (the same float32 product)
   const [x, y, z] = p;
   let cw = pv[3] * x + pv[7] * y + pv[11] * z + pv[15];
   const front = cw > 0;

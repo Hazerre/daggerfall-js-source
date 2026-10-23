@@ -17,7 +17,7 @@
 //
 // ═══ A SLOT IS (character, save name) ══════════════════════════════
 //
-// NOT the local integer key. `systems/saveSlots.js` files a slot under
+// NOT the local integer key. `systems/save/saveSlots.js` files a slot under
 // the FIRST FREE integer (SAV4, from DFU's CreateNewSavePath), and that
 // integer is a fact about ONE store: two devices that saved in a
 // different order hold the same character's QuickSave under different
@@ -44,6 +44,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { SAVES_MAX, SAVE_NAME_MAX, saveKey } from './service.js';
+import { linkFirstPlay } from './founderLink.js';   // FOUNDER5: a character arriving on an account links its first play
 
 /** How many characters of a player-typed character NAME are kept. It is
  *  display only — CHARID1's whole point is that the name is not the
@@ -145,6 +146,7 @@ export async function putCard({ db, nowS }, playerId, { characterId, saveName, c
     playerId, characterId, saveName, playerId, SAVES_MAX,
   ).run();
   if (!wrote.meta.changes) return { error: 'too-many-saves' };
+  if (!have) await linkFirstPlay({ db }, playerId, characterId);   // FOUNDER5: a new slot - the character may have arrived
   return { ok: true, created: !have };
 }
 

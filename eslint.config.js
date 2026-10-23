@@ -10,7 +10,7 @@ export default [
     files: ['server/src/**/*.js', 'server-account/src/**/*.js'],
     languageOptions: {
       ecmaVersion: 'latest', sourceType: 'module',
-      globals: { console: 'readonly', Response: 'readonly', Request: 'readonly', URL: 'readonly', WebSocketPair: 'readonly', WebSocketRequestResponsePair: 'readonly', crypto: 'readonly', TextEncoder: 'readonly', TextDecoder: 'readonly', atob: 'readonly', btoa: 'readonly', fetch: 'readonly', AbortSignal: 'readonly', URLSearchParams: 'readonly' },   // DISCORD-GATES: the hub posts to a Discord webhook; PATREON-LINK: the account service speaks Patreon's OAuth forms
+      globals: { console: 'readonly', Response: 'readonly', Request: 'readonly', URL: 'readonly', WebSocketPair: 'readonly', WebSocketRequestResponsePair: 'readonly', crypto: 'readonly', TextEncoder: 'readonly', TextDecoder: 'readonly', atob: 'readonly', btoa: 'readonly', fetch: 'readonly', AbortSignal: 'readonly', URLSearchParams: 'readonly', setTimeout: 'readonly', clearTimeout: 'readonly' },   // DISCORD-GATES: the hub posts to a Discord webhook; PATREON-LINK: the account service speaks Patreon's OAuth forms; SCALE5b: a room's batch of poses is flushed on a timer (a Durable Object's own, while it is awake)
     },
     rules: { 'no-undef': 'error', 'no-unused-vars': ['error', { argsIgnorePattern: '^_', caughtErrors: 'none' }], 'no-dupe-keys': 'error', 'no-dupe-class-members': 'error' },
   },
@@ -39,7 +39,7 @@ export default [
         Image: 'readonly', ImageData: 'readonly', OffscreenCanvas: 'readonly', FileReader: 'readonly',
         WebGL2RenderingContext: 'readonly', AudioContext: 'readonly', createImageBitmap: 'readonly',
         TextDecoder: 'readonly', TextEncoder: 'readonly', DecompressionStream: 'readonly', Response: 'readonly', Blob: 'readonly',
-        // REALM-GZIP: a realm save rides packed (src/net/realmSaveCodec.js) - every browser this port targets, Node 18+ and
+        // REALM-GZIP: a realm save rides packed (src/net/realm/realmSaveCodec.js) - every browser this port targets, Node 18+ and
         // workerd; the codec asks for it before it packs.
         CompressionStream: 'readonly',
         KeyboardEvent: 'readonly', Touch: 'readonly', TouchEvent: 'readonly', innerWidth: 'readonly',

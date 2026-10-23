@@ -21,16 +21,20 @@
 // via restorePiles below (AUDIT 23).
 
 import { lootCrown } from './lootLines.js';   // LOOT11: a pile's line of light
+/** WILD1 (net/wild/wildRemains.js): the line over MY remains in the open zone - the zone's red, tall, pulsing, seen from
+ *  twice a find's reach: "marked for you to get them back". */
+export const WILD_MINE_MARK = Object.freeze({ colour: Object.freeze([0.95, 0.24, 0.16]), h: 9, pulse: true, reach: 80 });
 import { FlatAnimator, armFlatAnim } from '../render/flatAnimation.js';   // FA1 slice 3
 import { billboardSize } from '../world/rmbFlats.js';
-import { RANDOM_TREASURE_ARCHIVE, RANDOM_TREASURE_ICONS } from '../systems/loot.js';
+import { RANDOM_TREASURE_ARCHIVE, RANDOM_TREASURE_ICONS } from '../systems/loot/loot.js';
 import { CONTAINER_IMAGES } from '../ui/targetIconPanel.js';   // AUDIT 63 F22: InventoryContainerImages, the picture both makers hand CreateLootContainer
 import { RAY_DISTANCE, TREASURE_ACTIVATION_DISTANCE } from '../player/activate.js';   // AUDIT 65 MC-2: the ray's reach, the handler's own
+import { createPhysicalItems } from './physicalItemsLayer.js';   // PI1: Physical Items - every pool stands its own layer
 
 // AUDIT 17e F34 / ONE DFU MEMBER, ONE EXPORT: this file re-declared
 // randomTreasureArchive and randomTreasureIconIndices, regressing the
 // single-sourcing the 2026-07-06b audit had already done in
-// systems/loot.js. Re-exported so existing importers keep working.
+// systems/loot/loot.js. Re-exported so existing importers keep working.
 export { RANDOM_TREASURE_ARCHIVE, RANDOM_TREASURE_ICONS };
 
 /** ROAD-G G5: what a player-dropped pile IS to the inventory window -
@@ -62,6 +66,9 @@ export const droppedLootHooks = (pile) => ({
   // would have given it.
   containerImage: () => CONTAINER_IMAGES.Chest,
   pos: [...pile.pos],
+  // WILD1: a body's remains in the open zone (net/wild/wildRemains.js) take nothing - the room keeps them, and a piece put on
+  // them would be a piece no one else could ever see (COMPANION-WEIGHT's capacity door, at nothing)
+  ...(pile.noStore ? { capacity: () => pile.noStore } : {}),
 });
 
 /** OnPop's re-position (:710-714): a container minted to replace a
@@ -70,10 +77,38 @@ export const droppedLootHooks = (pile) => ({
 export const containerDropPos = (at, feet) => (at ? [at[0], feet[1], at[2]] : feet);
 
 /** deps = { renderer, getTexture, uploadRecordFrame, pick? } (pick
- *  is the icon roll seam - UnityEngine.Random.Range over the list). */
-export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pick }) {
+ *  is the icon roll seam - UnityEngine.Random.Range over the list).
+ *  PI1: `physical` the Physical Items layer's own deps (the pins'). */
+export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pick, physical: physicalDeps = {} }) {
   const piles = [];
+  // PI1 (Physical Items, scenes/physicalItemsLayer.js): THE ONE CONSTRUCTION SEAM - the pool every host builds stands the
+  // layer for it, and its draw, its ray, its plaque, its lines and its recentre ride this pool's own doors below. The
+  // host attaches its half (`physical.attach` - its collider, its bodies, the take's hooks); a shift-dropped item is a
+  // pile of its own (`dropPhysical`) the layer presents as itself, its bag drawn only when the mod is off.
+  const physical = createPhysicalItems({ renderer, ...physicalDeps });
+  // AUDIT PI1 H8: a shift-drop pressed empty is that pile freed - not every emptied container of the pool (releaseEmptied
+  // would deactivate a scene's unopened, empty treasure too)
+  physical.attach({ emptied: (backing) => { if (backing?.kind === 'pile' && backing.pile && !backing.pile.items.length) removePile(backing.pile); } });
+  const presented = (p) => p.physical === true && physical.presents(p);
   const flatAnims = new FlatAnimator();   // FA1 slice 3: the rule lives in ONE place
+  /** FIELD BUGS 2026-10-18 LOOT-FLATS: A PILE'S BATCH IS FREED ONE WAY - out of the animator, then off the GPU. Five of the
+   *  nine frees (both restores, the scene's sweep) destroyed the batch and left its animator entry, so every room left and
+   *  every load kept ticking the dead batches of every animated pile it had held (EVERY ALLOCATION HAS AN OWNER). */
+  function freeBatch(p) {
+    if (!p.batch) return;
+    flatAnims.remove(p.batch);
+    renderer.destroyBillboardBatch(p.batch);
+  }
+  /** LOOT-FLATS: a pile's batch reminted where the pile now lies (a recentre, a moved ground) - its animator entry follows
+   *  it (the animator kept the old batch, and an animated pile stood still from its first recentre on). */
+  function remintBatch(p) {
+    const was = p.batch;
+    renderer.destroyBillboardBatch(was);
+    p.batch = renderer.createBillboardBatch(p.archive, p.record, p.size, [[p.pos[0], p.pos[1], p.pos[2]]]);
+    p.batch.noShadow = true;   // F2
+    p.batch.frame = 0;
+    flatAnims.rebind(was, p.batch);
+  }
   let _nextId = 0;   // AUDIT 17e F28: stable ids - keys must survive releaseEmptied's splice
   const roll = pick ?? (() => Math.floor(Math.random() * RANDOM_TREASURE_ICONS.length));
 
@@ -130,6 +165,21 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
     return pile;
   }
 
+  /** PI1: THE SHIFT-DROP (QueueInventoryPhysicalDrop, vendor/physical-items [IL_34b8]) - each item its own pile (the
+   *  mod's one-item Independent container), laid out on the spiral ahead of `feet` along `forward`
+   *  (physicalItemsLayer.js placeDrops), a DroppedLoot container in every other way (the bag rolled as dropPile rolls
+   *  it - worn when the mod is off - the pixel, the save). Answers the piles. */
+  function dropPhysical(items, feet, forward, pixelKey = null) {
+    const list = (items ?? []).filter(Boolean);
+    if (!list.length) return [];
+    const at = physical.placeDrops(list, feet, forward, piles.filter((p) => p.physical === true && alive(p)));
+    return list.map((it, i) => {
+      const pile = dropPile([it], at[i], pixelKey);
+      pile.physical = true;
+      return pile;
+    });
+  }
+
   /** AUDIT 63 F22: the SCENE-BUILT container, beside the player's own
    *  pile above. GameObjectHelper.CreateLootContainer
    *  (GameObjectHelper.cs:658-700) is a different member from
@@ -171,7 +221,7 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
     const i = piles.indexOf(pile);
     if (i < 0) return;
     pile.dead = true;   // AUDIT 24: an in-flight mount must not publish onto this
-    if (pile.batch) { flatAnims.remove(pile.batch); renderer.destroyBillboardBatch(pile.batch); }
+    freeBatch(pile);
     pile.batch = null;
     piles.splice(i, 1);
   }
@@ -186,7 +236,7 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
       const p = piles[i];
       if (p.pixelKey !== pixelKey) continue;
       p.dead = true;   // AUDIT 24: an in-flight mount must not publish onto this
-      if (p.batch) { flatAnims.remove(p.batch); renderer.destroyBillboardBatch(p.batch); }   // FA1: the clock goes with the batch
+      freeBatch(p);   // FA1: the clock goes with the batch
       piles.splice(i, 1);
     }
   }
@@ -200,9 +250,9 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
       const p = piles[i];
       if (p.pixelKey !== pixelKey || !keep(p)) continue;
       p.dead = true;   // AUDIT 24: an in-flight mount must not publish onto this
-      if (p.batch) { flatAnims.remove(p.batch); renderer.destroyBillboardBatch(p.batch); }
+      freeBatch(p);
       piles.splice(i, 1);
-      out.unshift({ items: p.items, pos: [...p.pos], archive: p.archive, record: p.record });
+      out.unshift({ items: p.items, pos: [...p.pos], archive: p.archive, record: p.record, ...(p.physical ? { physical: true } : {}) });   // PI1
     }
     return out;
   }
@@ -219,18 +269,19 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
       // LootContainerData_v1 carries BOTH (textureArchive/textureRecord,
       // SerializableGameObject.cs:396-416) - the pair, never the record
       // alone.
-      return { nativeX: wc.x, nativeZ: wc.z, y: p.pos[1], archive: p.archive, record: p.record, pixelKey: p.pixelKey ?? null, items: p.items.map((it) => ({ ...it })) };
+      return { nativeX: wc.x, nativeZ: wc.z, y: p.pos[1], archive: p.archive, record: p.record, pixelKey: p.pixelKey ?? null, items: p.items.map((it) => ({ ...it })), ...(p.physical ? { physical: true } : {}) };   // PI1: a shift-drop stays one
     });
   }
   function restoreWorld(saved, fromNative, yOffset = 0) {
-    for (const p of piles) { p.dead = true; if (p.batch) renderer.destroyBillboardBatch(p.batch); }   // AUDIT 24: mark first - an in-flight mount reads it
+    for (const p of piles) { p.dead = true; freeBatch(p); }   // AUDIT 24: mark first - an in-flight mount reads it
     piles.length = 0;
+    physical.clear();   // PI1: a load is a new world - its bodies' items are laid down again, not thrown
     for (const s of saved ?? []) {
       if (!s.items?.length) continue;
       const [lx, lz] = fromNative(s.nativeX, s.nativeZ);
       // `?? RANDOM_TREASURE_ARCHIVE` keeps a save written before G5
       // loadable: every pile in one was 216.
-      const pile = { id: ++_nextId, items: s.items.map((it) => ({ ...it })), pos: [lx, s.y + yOffset, lz], archive: s.archive ?? RANDOM_TREASURE_ARCHIVE, record: s.record, batch: null, pixelKey: s.pixelKey ?? null };
+      const pile = { id: ++_nextId, items: s.items.map((it) => ({ ...it })), pos: [lx, s.y + yOffset, lz], archive: s.archive ?? RANDOM_TREASURE_ARCHIVE, record: s.record, batch: null, pixelKey: s.pixelKey ?? null, ...(s.physical ? { physical: true, settled: true } : {}) };   // PI1: a shift-drop lies where it was saved
       piles.push(pile);
       mount(pile);
     }
@@ -250,10 +301,11 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
    *  container's identity travels beside them, DFU's loadID
    *  (DaggerfallInterior.cs:885-889). */
   function snapshotScene() {
-    return piles.filter((p) => p.items.length || p.container).map((p) => ({
+    return piles.filter((p) => (p.items.length || p.container) && p.owner !== 'wild' && !p.unsaved).map((p) => ({   // STUCK-ARROWS: nor a LoadID-0 container (WOD5: "no save and no scene cache carries it") - a stuck shaft   // WILD1: a body's remains are the room's (net/wild/wildRemains.js), never a scene cache's - a copy at every re-entry
       pos: [...p.pos], archive: p.archive, record: p.record,
       container: !!p.container, containerKey: p.containerKey ?? null,
       items: p.items.map((it) => ({ ...it })),
+      ...(p.physical ? { physical: true } : {}),   // PI1: a shift-drop stays one
     }));
   }
 
@@ -264,8 +316,9 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
    *  record - a restore must not reroll the icon. A snapshot with no
    *  piles clears, matching DFU's rebuild-from-save. */
   function restorePiles(saved) {
-    for (const p of piles) { p.dead = true; if (p.batch) renderer.destroyBillboardBatch(p.batch); }   // AUDIT 24: mark first - an in-flight mount reads it
+    for (const p of piles) { p.dead = true; freeBatch(p); }   // AUDIT 24: mark first - an in-flight mount reads it
     piles.length = 0;
+    physical.clear();   // PI1: the scene went (or came back from its cache) - its items stand again with it
     for (const s of saved ?? []) {
       // AUDIT 63 F22 (review round): the EMPTY guard is a player-pile
       // rule and cannot be spent on a scene-built container.
@@ -281,7 +334,7 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
       // AUDIT 63 F22: a scene-built container keeps its identity and
       // its not-player-owned flag across the cache, so the marker pass
       // can tell a restored pile from one it still owes.
-      const pile = { id: ++_nextId, items: s.items?.map((it) => ({ ...it })) ?? [], pos: [s.pos[0], s.pos[1], s.pos[2]], archive: s.archive ?? RANDOM_TREASURE_ARCHIVE, record: s.record, batch: null, container: !!s.container, containerKey: s.containerKey ?? null, inactive: false };
+      const pile = { id: ++_nextId, items: s.items?.map((it) => ({ ...it })) ?? [], pos: [s.pos[0], s.pos[1], s.pos[2]], archive: s.archive ?? RANDOM_TREASURE_ARCHIVE, record: s.record, batch: null, container: !!s.container, containerKey: s.containerKey ?? null, inactive: false, ...(s.physical ? { physical: true, settled: true } : {}), ...(typeof s.remainsKey === 'string' ? { remainsKey: s.remainsKey } : {}) };   // PI1; AUDIT LW-III: a remains' pile keeps its key
       piles.push(pile);
       // RestoreSaveData:157-160 - `if (loot.Items.Count == 0)
       // RemoveLootContainer(loot)`, which is SetActive(false) for a
@@ -301,7 +354,7 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
    *  emptied treasure pile stays emptied across a re-entry. */
   function deactivate(pile) {
     pile.inactive = true;
-    if (pile.batch) { flatAnims.remove(pile.batch); renderer.destroyBillboardBatch(pile.batch); }
+    freeBatch(pile);
     pile.batch = null;
   }
 
@@ -309,7 +362,8 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
   /** FA1 slice 3: `tick` is separate from `batches` on purpose - a
    *  getter that also advanced a clock would run at whatever rate its
    *  callers happened to ask, and two hosts ask twice in one frame. */
-  const tickFlats = (dt) => flatAnims.tick(dt);
+  // PI1: and the Physical Items layer's frame - its bodies, its piles, its flights - once a frame on the same clock
+  const tickFlats = (dt) => { flatAnims.tick(dt); physical.frame(dt, piles.filter((p) => p.physical === true && alive(p))); };
   // AUDIT 63 F22: a scene-built container is drawn and activatable
   // while it is EMPTY - DFU creates it before generating into it and
   // removes it only when the inventory window closes on an emptied
@@ -317,7 +371,11 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
   // below is). A player-dropped pile has no such state: it is minted
   // from the items it holds.
   const alive = (p) => !p.inactive && (p.items.length > 0 || p.container === true);
-  const batches = () => piles.filter((p) => alive(p) && p.batch).map((p) => p.batch);
+  const batches = () => {
+    const out = piles.filter((p) => alive(p) && p.batch && !presented(p)).map((p) => p.batch);   // PI1: a presented shift-drop wears its item, not its bag
+    for (const b of physical.batches()) out.push(b);
+    return out;
+  };
   // AUDIT 65 MC-2: a pile is a DaggerfallLoot and ActivateLootContainer
   // refuses out loud - `hit.distance > TreasureActivationDistance` ->
   // SetMidScreenText(youAreTooFarAway), PlayerActivate.cs:868-873 -
@@ -327,9 +385,10 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
   function lootTargets() {
     const out = [];
     piles.forEach((p) => {
-      if (!alive(p)) return;
+      if (!alive(p) || presented(p)) return;   // PI1: a presented shift-drop is pressed as its item (the layer's own target)
       out.push({ key: `droppedLoot:${p.id}`, aabb: { min: [p.pos[0] - 0.5, p.pos[1], p.pos[2] - 0.5], max: [p.pos[0] + 0.5, p.pos[1] + 0.6, p.pos[2] + 0.5] }, distance: RAY_DISTANCE, reach: TREASURE_ACTIVATION_DISTANCE });
     });
+    for (const t of physical.targets()) out.push(t);   // PI1: every item standing as itself
     return out;
   }
   const pileFor = (key) => piles.find((p) => p.id === Number(key.split(':')[1]) && alive(p)) ?? null;
@@ -370,7 +429,7 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
       // port's owner rule (AUDIT 17e F28).
       if (p.container) { deactivate(p); continue; }
       p.dead = true;   // AUDIT 24: an in-flight mount must not publish onto this
-      if (p.batch) renderer.destroyBillboardBatch(p.batch);
+      freeBatch(p);
       piles.splice(i, 1);
     }
   }
@@ -380,25 +439,39 @@ export function createDroppedLoot({ renderer, getTexture, uploadRecordFrame, pic
    *  or they drift 819.2 units away from where they were dropped. */
   function offsetAll(offset) {
     const [dx, dy, dz] = offset;
+    physical.offsetAll(offset);   // PI1
     for (const p of piles) {
       p.pos[0] += dx; p.pos[1] += dy; p.pos[2] += dz;
       // the centers are baked into a STATIC_DRAW buffer - rebuild
-      if (p.batch) {
-        renderer.destroyBillboardBatch(p.batch);
-        p.batch = renderer.createBillboardBatch(p.archive, p.record, p.size, [[p.pos[0], p.pos[1], p.pos[2]]]);
-        p.batch.noShadow = true;   // F2
-        p.batch.frame = 0;
-      }
+      if (p.batch) remintBatch(p);
+    }
+  }
+
+  /** AUDIT LANDFORMS II G1: THE GROUND MOVED UNDER A PIXEL - a rebuild the reference never makes (the road network
+   *  landing, which the landforms cut metres into the land; a late World of Daggerfall pack; the gate's clearing) -
+   *  and what lies in its box [x0, x1) x [z0, z1) rides it by `dy(x, z)`, the ground's own move under it (world.js's
+   *  publish). Left where it lay, a pile hung over a cut or lay buried in a fill - up to 28 m - and the next save kept it so. */
+  function groundMoved(x0, z0, x1, z1, dy) {
+    physical.groundMoved(x0, z0, x1, z1, dy);   // PI1
+    for (const p of piles) {
+      if (!(p.pos[0] >= x0 && p.pos[0] < x1 && p.pos[2] >= z0 && p.pos[2] < z1)) continue;
+      const d = dy(p.pos[0], p.pos[2]);
+      if (!d) continue;
+      p.pos[1] += d;
+      if (p.batch) remintBatch(p);
     }
   }
 
   /** PX21c: what a pile HOLDS, by the same key lootTargets emits -
    *  read-only, for the hover plaque. */
-  const contents = (key) => piles.find((p) => `droppedLoot:${p.id}` === key && !p.dead)?.items ?? null;
+  const contents = (key) => (physical.owns(key) ? physical.contents(key) : piles.find((p) => `droppedLoot:${p.id}` === key && !p.dead)?.items ?? null);   // PI1: a standing item is a pile of one
+  /** WILD1: a pile's own name, when one was given it (a body's remains in the open zone - net/wild/wildRemains.js), else null
+   *  and the plaque's pile word stands. */
+  const labelFor = (key) => piles.find((p) => `droppedLoot:${p.id}` === key && !p.dead)?.label ?? null;
   /** DW-E5: a live, drawable-elsewhere pile (not emptied into its deactivation) - the other pass's draw list. */
   const undrawnPiles = () => piles.filter((p) => p.drawn === false && alive(p));
   /** LOOT11 (the Loot arc): the piles a line of light may stand over - a dropped pile, a house's or a camp's treasure - each
    *  its crown and its list, read live (scenes/lootLines.js picks the Rare-or-better). */
-  const lootFinds = () => piles.filter((p) => alive(p) && p.items?.length).map((p) => ({ root: lootCrown(p.pos, p.size), items: p.items }));
-  return { contents, dropPile, seedPile, removePile, restorePiles, collectPixel, takePixel, snapshotWorld, restoreWorld, batches, tickFlats, lootTargets, pileFor, activePiles, undrawnPiles, containerSeeded, snapshotScene, releaseEmptied, offsetAll, lootFinds, _piles: piles };
+  const lootFinds = () => [...piles.filter((p) => alive(p) && p.items?.length && !presented(p)).map((p) => (p.wild?.mine ? { root: lootCrown(p.pos, p.size), items: p.items, mark: WILD_MINE_MARK } : p.mark ? { root: lootCrown(p.pos, p.size), items: p.items, mark: p.mark } : { root: lootCrown(p.pos, p.size), items: p.items })), ...physical.finds()];   // PI1: and each standing item's own; WILD1: my remains, their own line; FB1013d: a pile that carries its own (the house's fallen - scenes/legacyRemainsStand.js)
+  return { contents, labelFor, dropPile, dropPhysical, physical, seedPile, removePile, restorePiles, collectPixel, takePixel, snapshotWorld, restoreWorld, batches, tickFlats, lootTargets, pileFor, activePiles, undrawnPiles, containerSeeded, snapshotScene, releaseEmptied, offsetAll, groundMoved, lootFinds, _piles: piles };
 }

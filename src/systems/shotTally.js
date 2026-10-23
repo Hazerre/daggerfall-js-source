@@ -1,5 +1,5 @@
 // @ts-check
-// ARENA-ARROWS (FIELD BUGS 2026-10-04e, systems/arenaQuiver.js): THE SHOTS A BOUT LOOSED, counted as they leave the bow.
+// ARENA-ARROWS (FIELD BUGS 2026-10-04e, systems/arena/arenaQuiver.js): THE SHOTS A BOUT LOOSED, counted as they leave the bow.
 // The quiver's mark alone read every arrow missing at the healers' heal as spent on the sand - so an arrow DROPPED in a
 // bout (or sold, or given away) came back with the healers and the dropped stack still lay where it fell: a duplicate.
 // Now the refund is the fewer of what is missing and what was loosed - the shots inventory.js spendAmmoFor took from
@@ -21,6 +21,10 @@ export function stopShotTally() {
   watching = null;
   return w ? w.shots : null;
 }
+
+/** STUCK-ARROWS (combat/arrowFlight.js stickable): is a bout counting now? A shaft loosed on the sand keeps the classic
+ *  LOST law, so the healers' refund stays the whole account of it. */
+export const shotTallyOpen = () => watching !== null;
 
 /** A real round of `template` spent from `list` - counted when `list` is the pack watched.
  *  @param {any[] | null | undefined} list @param {number} template */

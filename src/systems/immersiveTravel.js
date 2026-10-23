@@ -14,17 +14,19 @@
 //
 // THE PORT'S LAW IS THE ASSEMBLY. The bundle carries ImmersiveTravel.dll and no C# source; every rule here is read off
 // its IL (vendor/immersive-travel/il/ImmersiveTravel.il.txt, `tools/ilDump.py`), cited `IL_xxxx`, the mod's own bugs
-// carried as it ships them and named where they stand. DFU's own popup is ui/travelPopUp.js; this module is what the
-// mod changes about it, as pure functions both map skins run (ui/travelMapWindow.js + ui/travelPopUp.js, the classic
+// carried as it ships them and named where they stand. DFU's own popup is ui/travel/travelPopUp.js; this module is what the
+// mod changes about it, as pure functions both map skins run (ui/travel/travelMapWindow.js + ui/travel/travelPopUp.js, the classic
 // window; ui/heldMap.js, the enhanced one).
 //
 // A LEAF apart from the settings store: no DOM, no world - the hosts hand in what PlayerGPS and the maps answer.
 
 import { modSetting, latchModLoaded, modLatchedOn } from './modSettings.js';
 import { registerCustomFaction } from '../formats/factionFile.js';
-import { registerMerchantService } from './guildServices.js';
+import { registerMerchantService } from './guild/guildServices.js';
 import { LOCATION_TYPES } from '../formats/mapsFile.js';
 import { CAPITAL_MAP_IDS, LARGE_DOCK_MAP_IDS, DOCK_PIXEL_IDS } from './immersiveTravelTables.js';
+import { setFlatFaceOverride } from '../characters/staticNpc.js';   // DRIVER-FACE: FLATS.CFG's dictionary, as Roleplay & Realism writes it
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 export { CAPITAL_MAP_IDS, LARGE_DOCK_MAP_IDS, DOCK_PIXEL_IDS };
 
@@ -69,7 +71,7 @@ export const IT_TEXT = Object.freeze({
 
 // ── the settings ───────────────────────────────────────────────────────────────────────────────────────────────────
 /** The mod's eighteen keys (vendor/immersive-travel/modsettings.json), read through the store - the room's value
- *  online where systems/onlineLane.js says so. `get` is injectable for the pins. */
+ *  online where systems/online/onlineLane.js says so. `get` is injectable for the pins. */
 export function readImmersiveTravelSettings(get = modSetting) {
   const v = (k) => get(IMMERSIVE_TRAVEL_VENDOR, k);
   return {
@@ -164,12 +166,12 @@ export function carriageRefusal(settings, { here, dest, politicAt }) {
 }
 
 /** CarriageMap.IsLocationLarge (IL_1468-1483) - a city or a hamlet, or every place with ClearerMapDots off. Travel
- *  Options' own rule over its own switch (ui/travelPathsOverlay.js isLocationLarge), the mod's copy of it. */
+ *  Options' own rule over its own switch (ui/travel/travelPathsOverlay.js isLocationLarge), the mod's copy of it. */
 export const carriageLocationLarge = (locationType, settings) =>
   locationType === T.TownCity || locationType === T.TownHamlet || !settings?.clearerMapDots;
 
 /** ImmersiveTravelCalculator.CalculateTripCost (IL_1d44-1e46) - TravelTimeCalculator.CalculateTripCost
- *  (systems/travel.js calculateTripCost) with the carriage's fee: the inn nights as DFU bills them, then
+ *  (systems/travel/travel.js calculateTripCost) with the carriage's fee: the inn nights as DFU bills them, then
  *  DailyCarriageFee for every whole day of the trip off the ocean, plus one more; the ship toggle pays the ship (unless
  *  the player has one) and her captain for every day at sea plus one. CARRIED (AUDIT IT1 L5): with NO ocean guard
  *  (IL_1dfb tests the toggle alone, where DFU asks `pixelsTraveledOnOcean > 0`), so a trip over land on the ship toggle
@@ -269,7 +271,7 @@ export function itMapRefusal(kind, settings, { here, summary, politicAt }) {
 }
 
 /** The carriage map's roads and tracks (CarriageMap..cctor IL_1538-1579): each drawn only with Basic Roads loaded and
- *  its own switch on - in the five-texel page's path order (ui/travelMapOptions.js: roads, tracks, rivers, streams;
+ *  its own switch on - in the five-texel page's path order (ui/travel/travelMapOptions.js: roads, tracks, rivers, streams;
  *  the mod draws no water). */
 export const itMapPaths = (settings) => [!!(settings?.basicRoads && settings.drawRoads), !!(settings?.basicRoads && settings.drawTracks), false, false];
 
@@ -298,7 +300,7 @@ export function playerPopUpRefusal(settings, destLocationType) {
 
 /**
  * The popup's three toggles under the mod's overrides, as one decision over the state - DFU's handlers
- * (ui/travelPopUp.js) are the `base` the overrides fall through to. `press`:
+ * (ui/travel/travelPopUp.js) are the `base` the overrides fall through to. `press`:
  *   - 'transportClick' with `ship` (the button: true the ship row, false foot/horse) - TransportModeButtonOnClickHandler
  *   - 'transportToggle' - ToggleTransportModeButtonOnScrollHandler, which is also the T hotkey's (DFU routes the
  *     footHorse button's keyboard event to it)
@@ -335,7 +337,7 @@ export function itTogglePress(kind, st, settings, press, { ship = false, inn = f
  * the mod's own calculator's fare. NOT Travel Options' scaled fare (TravelTimeCalculatorTO is Travel Options' popup's
  * calculator, and the mod's popup is DFU's with its own) and NOT online's half-price fare (ESSENTIALS-HALF), which is
  * the port's word on DFU's and Travel Options' fares: a driver's price is the mod's, and online the room's.
- * `calc` is { calculateTravelTime, guildFastTravel } off the host (systems/travel.js, systems/guildVariants.js).
+ * `calc` is { calculateTravelTime, guildFastTravel } off the host (systems/travel/travel.js, systems/guild/guildVariants.js).
  */
 export function itTrip(kind, settings, { start, end, opts, hasHorse = false, hasCart = false, hasShip = false, freeTavernRooms = false, getClimateIndex, playerEntity = null, calc }) {
   const t = kind === IT_POPUP.seafarer
@@ -359,13 +361,23 @@ export const immersiveTravelLoaded = () => modLatchedOn(IMMERSIVE_TRAVEL_VENDOR)
 /**
  * The mod's Init, once, at the boot every host shares (scenes/shared.js): the mod latched loaded for the game or not
  * (AUDIT IT1 W4 - the dictionary is built at the load once a page, so a switch reaches the next start), then while it
- * is loaded the two factions and the two services. A service's body is `service(door, entity)` (systems/guildServices.js); the door the hosts hand it answers
+ * is loaded the two factions and the two services. A service's body is `service(door, entity)` (systems/guild/guildServices.js); the door the hosts hand it answers
  * `enemiesNearby()` - GameManager.AreEnemiesNearby(false, false) - `messageBox(text)` and `openImmersiveMap(kind)`,
  * the CarriageMap / SeafarersMap push (CarriageTravelService IL_0574-05b3, ShipTravelService IL_05c0-05fe).
  *
  * The window-type registrations (IL_03bf-03f9: CarriageMap for DFU's travel map while Travel Options is off,
  * ImmersiveTravelPopUp for its popup with DisableNormalTravel) are the hosts' and ui/ - an IT kind on the map's bag.
  */
+/** DRIVER-FACE (FIELD BUGS 2026-10-09b, "NPC Shrarton in Tasoparet face sprite missing."): THE ONE DRIVER WITH NO
+ *  FACE. The mod stands a carriage driver at each of the four city gates (WorldDataPatches WALLAA08-11); WALLAA09's is
+ *  the flat TEXTURE.357 record 3, a bearded man, which FLATS.CFG has no row for (it lists 357's princes and queen
+ *  alone), and the Carriage Drivers' faction carries no flat of its own (IL_040f clears the record). So
+ *  GetPortraitIndexFromStaticNPCBillboard stood its starting record - 410, TFAC00I0's grey "OOPS! Tell Mack NOW!" - on
+ *  every walled city's WALLAA09 driver, in DFU with the mod as here. A departure from DFU and the mod: the flat is given
+ *  the face FLATS.CFG gives classic's own bearded man (182.3, 429), as a mod writes the dictionary (staticNpc.js
+ *  setFlatFaceOverride, rrVariants.js's own). The other three drivers' flats have rows, and keep them. */
+export const IT_DRIVER_FACE = Object.freeze({ archive: 357, record: 3, faceIndex: 429 });
+
 export function installImmersiveTravel() {
   if (_installed) return false;
   _installed = true;
@@ -377,6 +389,7 @@ export function installImmersiveTravel() {
     console.warn('[ImmersiveTravel] Error: could not register custom factions!');
     return true;
   }
+  setFlatFaceOverride(IT_DRIVER_FACE.archive, IT_DRIVER_FACE.record, IT_DRIVER_FACE.faceIndex);   // DRIVER-FACE
   registerMerchantService(CARRIAGE_DRIVERS_FACTION_ID, (door) => immersiveTravelService(door, IT_POPUP.carriage), IT_SERVICE_LABEL, immersiveTravelLoaded);
   registerMerchantService(SAILORS_FACTION_ID, (door) => immersiveTravelService(door, IT_POPUP.seafarer), IT_SERVICE_LABEL, immersiveTravelLoaded);
   return true;
@@ -385,6 +398,7 @@ export function installImmersiveTravel() {
  *  otherwise the driver's (or the captain's) map. Nothing else is asked - not the sun, not a quest's offer: those are
  *  DaggerfallUI's travel-map door (DaggerfallUI.cs:604-626), which a service's PushWindow never passes. */
 export function immersiveTravelService(door, kind) {
+  noteFirstUse('carriages');   // TUT1
   if (door?.enemiesNearby?.()) { door.messageBox?.(door.enemiesText ?? 'You cannot travel with enemies nearby.'); return false; }
   return !!door?.openImmersiveMap?.(kind);
 }

@@ -7,7 +7,7 @@
 // inventory shows, minus its panel background, cropped to the figure and
 // stood on the ground as a billboard at the peer's feet, the name over
 // its head. With the Morrowind layer on, the
-// body instead (MWBODY1, net/peerBodies.js: one rig instance per
+// body instead (MWBODY1, net/peer/peerBodies.js: one rig instance per
 // peer), the doll standing wherever a body does not. Recorded in
 // Online-Arc.md.
 //
@@ -26,10 +26,11 @@ import { createEquipTable } from '../characters/equipTable.js';
 import { CAPSULE_HEIGHT } from '../player/motor.js';
 import { drawText, measureText } from '../ui/text.js';
 import { titleBadge, glyphMarks, gradientAt } from '../ui/playerBadge.js';   // ACC3: what a title and a glyph LOOK like - one home, both faces (the DOM layer reads the same module)
-import { projectToScreen } from '../player/tapRay.js';   // one home (audit24 onehome): the touch layer's own projection
-import { LOOK_ITEM_FIELDS, LOOK_GROUPS } from './wire.js';   // the look's vocabulary: the wire's own
+import { projectToScreen } from '../player/tapRay.js'; import { multiply } from '../world/mat4.js';   // one home (audit24 onehome): the touch layer's own projection
+import { LOOK_ITEM_FIELDS, LOOK_GROUPS, LOOK_GLOW_SLOTS, lookGlowOk } from './wire.js';   // the look's vocabulary: the wire's own; WEAPON-GLOW1: and a weapon's glow
+import { meshGlow, glowWord } from '../systems/weaponGlow.js';   // WEAPON-GLOW1: a held weapon's glow, said on the look
 import { renownText } from './renown.js';   // RENOWN1: Renown's words, left of the name in the bitmap face too
-import { guildTagText } from './guildLaw.js';   // GUILD1c: the guild's tag, right of the name in the bitmap face too
+import { guildTagText } from './guild/guildLaw.js';   // GUILD1c: the guild's tag, right of the name in the bitmap face too
 import { ribbonRgba } from './heraldryLaw.js';   // SEASON1 part two: a Season's banner ribbon, under the name in the bitmap face too
 /** AUDIT-SEATS C12: each ribbon's two tints, parsed once - by its claim's two colour indexes (one number, no string made),
  *  for every ribboned name every frame; anything that is no claim is asked of the law itself (it answers null). */
@@ -41,26 +42,30 @@ export function ribbonTints(rb) {
   if (t === undefined) { t = ribbonRgba(rb); _ribbonTints.set(k, t); }
   return t;
 }
-// 2026-09-17 (per-request, the NON-Morrowind peer only - net/peerBodies.js and its Morrowind body are untouched):
+// 2026-09-17 (per-request, the NON-Morrowind peer only - net/peer/peerBodies.js and its Morrowind body are untouched):
 // the same class-enemy sprite classic dungeon humanoids already use (Warrior, Mage, Knight, ...), driven by simple
 // moving/striking flags off the peer's synced pose instead of AI - the reusable pieces dungeonContext.js already
 // builds a foe's OWN mobile unit from (MobileUnit.update takes the same flags EnemyMotor's AI would set).
-import { MobileUnit } from '../characters/mobileUnit.js';
-import { ENEMY_BASICS, ENEMY_NAMES } from '../characters/enemyBasics.js';
-import { MOBILE_TYPES } from '../characters/mobileTypes.js';   // DISC12: the beast a peer in beast form stands as
+import { MobileUnit } from '../characters/mobile/mobileUnit.js';
+import { ENEMY_BASICS, ENEMY_NAMES } from '../characters/enemy/enemyBasics.js';
+import { MOBILE_TYPES } from '../characters/mobile/mobileTypes.js';   // DISC12: the beast a peer in beast form stands as
 import { mobileBillboardSize } from '../world/rmbFlats.js';
 import { quadHalfDiagonal } from '../render/bounds.js';   // OW-PEERS: a grown sprite's reach, as the batch is made with
+import { LAYERED_OWN } from '../player/eyeOfTheBeholder/layeredArmor.js';   // LAYERED-GEAR-ON: the own-body choice, resolved before it is sent
 import { modSetting, storedModSetting } from '../systems/modSettings.js';   // DISC23-B: the Eye Of The Beholder set the look carries
 import { getPref } from '../systems/uiPrefs.js';   // 2026-09-17: the 'peerClassSprites' on/off, read once a sync (Other players, enhancedMenu.js peerSpritesCard)
 import { CLASS_CAREERS } from '../systems/chargen.js';   // 2026-09-17 (bugfix): a stock class's CFG-loaded career carries no `.name` of its own - chargenSession.js's own class list already falls back to this array by careerIndex (`cf.career.name || CLASS_CAREERS[i]`), and composeLook needs the same fallback or every stock-class peer sends class:null
-import { EQUIP_SLOTS } from '../characters/paperdoll.js';   // AUDIT DROPS E6: the hand a swing sound is read off
+import { EQUIP_SLOTS } from '../characters/paperdoll/paperdoll.js';   // AUDIT DROPS E6: the hand a swing sound is read off
 import { FootstepMachine, FOOTSTEP_CLIP_SETS } from '../systems/footsteps.js';   // PEER-FS1: peer footsteps off the pose's own `fk`
 import { RidingAnimator, RIDING_VOLUME_SCALE, nextNeighDelay } from '../systems/riding.js';   // RIDE-SOUND: a peer's hooves are TransportManager's own loop, clip swap and neigh
 import { TRANSPORT_MODES } from '../systems/transport.js';   // RIDE-SOUND: the pose's `rd` as the animator's mode
 import { swingSoundFor, SOUND } from '../systems/soundClips.js';   // PEER-FS2: a peer's own swing sound, off the pose's `an` edge and their equipped weapon
 import { billboardSize } from '../world/rmbFlats.js';   // PCORPSE1: a corpse stands as the dungeon's own corpses stand
 import { raceGenderPain3Sound, CLASSIC_PLAYER_DEATH_SOUND } from '../systems/playerDeath.js';   // PCORPSE1: the fallen player's own cry
-import { RACES } from '../systems/races.js'; import { PeerClimbSounds, peerBodyYaw, peerMoving } from './peerClimb.js';   // CLIMB5: a peer on the wall faces it, takes no stride, and is heard climbing
+import { SEAT_HIP_DROP } from '../player/seatPose.js';   // CARDS2c: a seated sprite sinks by the seat's own drop
+import { RACES } from '../systems/races.js'; import { PeerClimbSounds, peerBodyYaw, peerMoving } from './peer/peerClimb.js';   // CLIMB5: a peer on the wall faces it, takes no stride, and is heard climbing
+import { peerHeard } from './peer/peerFx.js';   // EG-ZH: every peer sound through the place's scope (Elite-Gates.md section 26)
+import { PeerGatherSounds, peerGatherSwing, peerKneeling } from './peer/peerGather.js';   // PEER-ACTS: a peer gathering is seen at it and heard
 
 // ── PCORPSE1: THE FALLEN ──────────────────────────────────────────
 //
@@ -81,6 +86,9 @@ import { RACES } from '../systems/races.js'; import { PeerClimbSounds, peerBodyY
 export const CORPSE_MS = 60_000;
 /** Bodies kept at once - a massacre is bounded like every other peer cache. */
 export const CORPSES_MAX = 32;
+/** RESURRECT1: how near a body (scene metres, on the ground) a player stands to be the one lying there - the rise rule's
+ *  reach, and an introduction's test for a body already laid (AUDIT ONLINE 3, the second read: `peerDeath`). */
+export const CORPSE_SAME_M = 2.5;
 /** The corpse row for a look: the class's own, else the Thief's (the class sprite's default). */
 export function corpseTextureFor(look) {
   const t = classMobileType(look?.class) ?? THIEF_MOBILE_TYPE;
@@ -105,7 +113,7 @@ function careerName(entity) {
 const THIEF_MOBILE_TYPE = 138;
 
 /** A career name ("Warrior", "Mage", ...) to the matching class-enemy MobileType (128+). `ENEMY_NAMES` is
- *  generated straight off DFU's own EnemyBasics table (see characters/enemyBasics.js's header) - class rows start
+ *  generated straight off DFU's own EnemyBasics table (see characters/enemy/enemyBasics.js's header) - class rows start
  *  at array index 43, mobileType 128 - so this reads the SAME data dungeonContext.js's own class-enemy foes render
  *  from, rather than a second, hand-kept copy of the mapping (the Unity co-op mod this was ported from keeps its
  *  own switch statement for exactly this; a data-driven lookup here cannot drift out of sync with the sprite table
@@ -188,7 +196,7 @@ export const NAME_BASE_PX = 16;
 //
 // THEY ARE KEPT APART from `nameScaleFor` on purpose. The depth law is the one number BOTH faces read off the
 // point; the terms below are measured in each face's OWN pixels - the DOM face in CSS px (so it takes the viewport
-// term by value) and the classic bitmap face in drawing-buffer px, where the host's own `hudScale` (ui/hud.js: the
+// term by value) and the classic bitmap face in drawing-buffer px, where the host's own `hudScale` (ui/hud/hud.js: the
 // 320x200 fit) is already that term. The LENS term belongs to neither face in particular - it is the lens both of
 // them drew the sprite through - so it rides the point itself.
 /** The viewport height, in a face's own pixels, the size law is normalised at. */
@@ -358,6 +366,8 @@ export const DOLL_RETRY_MS = 5000;
  *  failing outright (missing deps, no texture row for that mobileType) - a real cost, but a bounded and small one:
  *  only peers CURRENTLY on the paperdoll retry at all, never the whole roster. */
 export const MOBILE_RETRY_MS = 1000;
+/** PERF-PEERS4: the frames a class sprite stands as its peer before its whole archive is warmed at idle. */
+export const WARM_AFTER_FRAMES = 30;
 
 /** DISC23-B: the Eye Of The Beholder on-foot set this player CHOSE, or null - what the look's `eo` says (wire.js
  *  validLook). Null while their mod is off, and null while they have never chosen one: the mod ships on, so a set read
@@ -371,8 +381,21 @@ export function ownEotbSet() {
   } catch { return null; }   // not vendored: no set
 }
 
-/** The player's look, as the hello carries it. DISC23-B: `eotbSet` the chosen sprite set (ownEotbSet, the host's read). */
-export function composeLook(entity, { eotbSet = ownEotbSet() } = {}) {
+/** LAYERED-GEAR: the On foot Layered Gearing Skin this player chose on the profile - 1 female, 2 male - or null: off, or
+ *  their Eye Of The Beholder off (no sprite body to dress). What the look's `lg` says (wire.js validLook).
+ *  LAYERED-GEAR-ON: the default, the character's own body, is sent as the body `entity` has. */
+export function ownLayeredGear(entity = null) {
+  try {
+    if (!modSetting('eye-of-the-beholder', 'Enabled')) return null;
+    const v = modSetting('eye-of-the-beholder', 'Graphics.LayeredGear');
+    if (v === LAYERED_OWN) return entity?.gender === 'female' ? 1 : 2;
+    return v === 1 || v === 2 ? v : null;
+  } catch { return null; }   // not vendored, or the key not declared: off
+}
+
+/** The player's look, as the hello carries it. DISC23-B: `eotbSet` the chosen sprite set (ownEotbSet, the host's read).
+ *  LAYERED-GEAR: `layered` the On foot Layered Gearing Skin chosen (ownLayeredGear). */
+export function composeLook(entity, { eotbSet = ownEotbSet(), layered = ownLayeredGear(entity) } = {}) {
   const items = [];
   const table = entity ? equipTableOf(entity) : [];
   for (let slot = 0; slot < table.length; slot++) {
@@ -381,6 +404,11 @@ export function composeLook(entity, { eotbSet = ownEotbSet() } = {}) {
     const o = {};
     for (const k of LOOK_ITEM_FIELDS) if (it[k] != null) o[k] = it[k];
     if (o.equipSlot == null) o.equipSlot = slot;
+    // WEAPON-GLOW1: a weapon's glow as its owner's card knows it, whatever the owner's own switch says - each viewer's
+    // switch is theirs (net/peer/peerBodies.js); OMITTED when none, so a plain weapon's item keeps its bytes. A PLAYER's look
+    // alone: a foe's kit is said on its record (characters/foeBodies.js encodeWorn), which carries no glow, so a foe's
+    // weapon glowing on the host's screen alone would be one fight seen two ways
+    if (it.group === 'Weapons' && entity?.isPlayer === true && LOOK_GLOW_SLOTS.includes(o.equipSlot)) { const g = glowWord(meshGlow(it, { on: true })); if (g) o.glow = g; }   // AUDIT WEAPON-GLOW NET-4: a weapon in a hand
     items.push(o);
   }
   // 2026-09-17: `class` rides the look alongside race/gender/face so a peer without a Morrowind body can be drawn
@@ -392,7 +420,8 @@ export function composeLook(entity, { eotbSet = ownEotbSet() } = {}) {
   // serialize to the bytes it always did.
   const klass = careerName(entity);
   // DISC23-B: `eo` OMITTED while the mod is off, `class`'s law - a look without it keeps the bytes it always had
-  return { race: entity?.race ?? 'Breton', gender: entity?.gender ?? 'male', faceIndex: entity?.faceIndex ?? 0, ...(klass ? { class: klass } : {}), ...(Number.isInteger(eotbSet) ? { eo: eotbSet } : {}), items };
+  // LAYERED-GEAR: `lg` OMITTED while the skin is off, the same law
+  return { race: entity?.race ?? 'Breton', gender: entity?.gender ?? 'male', faceIndex: entity?.faceIndex ?? 0, ...(klass ? { class: klass } : {}), ...(Number.isInteger(eotbSet) ? { eo: eotbSet } : {}), ...(layered === 1 || layered === 2 ? { lg: layered } : {}), items };
 }
 
 /** One string per distinct look: the doll cache's key.
@@ -430,6 +459,7 @@ export function peerStubEntity(look) {
     if (templateIndex == null || slot == null || slot >= slots || !LOOK_GROUPS.includes(it.group)) continue;   // a slot past the table is dropped, not clamped onto another
     const item = { templateIndex, group: it.group, equipSlot: slot };
     for (const k of ['material', 'dye', 'variant']) { const v = uint(it[k], 4095); if (v != null) item[k] = v; }
+    if (lookGlowOk({ ...item, glow: it.glow })) item.glow = it.glow;   // WEAPON-GLOW1: the word, as validLookItem keeps it - one law, net/wire.js
     entity.items.push(item);
     if (!entity.equip.slots[slot]) entity.equip.slots[slot] = item;
   }
@@ -479,13 +509,30 @@ export const PEER_SOUND_PROFILE = Object.freeze({ refDistance: 6, maxDistance: 3
 /** Past the far edge nothing is made at all (a panner and a source per step for a peer nobody can hear). */
 export const peerInEarshot = (f, eye) => !(eye && eye.length === 3) || Math.hypot(f[0] - eye[0], f[1] - eye[1], f[2] - eye[2]) < PEER_SOUND_PROFILE.maxDistance;
 function peerSound(audio, clip, at, volume) {
-  if (audio.play3d) audio.play3d(clip, at, volume, PEER_SOUND_PROFILE);
-  else audio.playOneShot?.(clip, volume);
+  peerHeard(() => {   // EG-ZH: a peer's sound, as the place hears it (net/peer/peerFx.js - 4 dB down in the Spire)
+    if (audio.play3d) audio.play3d(clip, at, volume, PEER_SOUND_PROFILE);
+    else audio.playOneShot?.(clip, volume);
+  });
 }
 export const ridingLoopName = (id) => `peerRide:${id}`;
 /** AUDIT DISC7 B3: a mounted peer whose newest pose is older than this is standing still for the riding loop - a
  *  rider in motion sends at POSE_HZ, so a second of silence is a stall, not a gallop. */
 export const PEER_RIDE_STALE_MS = 1000;
+
+/**
+ * CARDS2c (2026-10-08, bible/11-Multiplayer/Tavern-Cards.md section 34; Mac: "Lets build every inch of this"): THE SPRITE
+ * LANE SEATED. Eye Of The Beholder's walkers and the paperdoll have no sitting art, so a peer seated at a card table
+ * (the pose's `st`, CARDS2b's table top) stood at the seat. A sprite cannot bend; it SINKS - its feet lowered by the
+ * seat's own hip drop (player/seatPose.js SEAT_HIP_DROP, the Morrowind body's), so its hips stand where the seated rig's
+ * do and its head at the seated eye. AUDIT CARDS-6 E16 (measured on TAVERN-TABLE's prop and its six seats): the floor
+ * hides its lowest SEAT_HIP_DROP - the feet; the table hides more only from a chair with the table between: the far
+ * side's (from about 0.7 m over the floor down) or, for a long side's chair, the far end's (0.5 m). From a chair on its
+ * own side or at its near end, and from anyone standing, it shows from its shins up - a standing figure cut off by the
+ * floor. A sprite with no sitting art has no better pose; it was said to be hidden behind the table, and mostly it is not.
+ * The name over it comes down with it. Answers how far a pose's sprite sinks (0 standing).
+ * @param {any} shown
+ */
+export const seatedSink = (shown) => (Number.isInteger(shown?.st) && shown.st > 0 ? SEAT_HIP_DROP : 0);
 
 /** The peers of a session, as billboards and names. */
 export class RemotePlayers {
@@ -500,11 +547,15 @@ export class RemotePlayers {
     this.renderer = renderer;
     this.deps = deps;
     this._compose = compose;
+    /** PERF-PEERS1: the class archives whose pictures are going up at idle, and the stop for a warm still queued. */
+    this._warmedArchives = new Set();
+    this._destroyed = false;
     this._now = now;
     this._dolls = new Map();     // lookKey -> { rec, w, h } ready | Promise composing | { failedUntil } (insertion-ordered: the oldest first)
     this._footsteps = new Map(); // PEER-FS1: peer id -> FootstepMachine (the stride timing off their own pose)
     this._attackAn = new Map();  // PEER-FS2: peer id -> the last `an` heard, so a new swing count is a swing
     this._climbSounds = new PeerClimbSounds({ audio: deps?.audio ?? null, profile: PEER_SOUND_PROFILE });   // CLIMB5: peer id -> their climb's last state and place, heard at them
+    this._gatherSounds = new PeerGatherSounds({ audio: deps?.audio ?? null, profile: PEER_SOUND_PROFILE });   // PEER-ACTS: peer id -> their act's last state, its blows in the air - heard at them
     this._riding = new Map();
     this._onFoot = new Set();    // AUDIT DISC7 B4: peer ids last seen on foot - their next mount is a mount (the neigh soon after)    // RIDE-SOUND: peer id -> { anim: RidingAnimator, rd } - the mounted peer's hooves
     this._batches = new Map();   // peer id -> { batch, key, doll, peer } (doll kind) | { batch, kind: 'mobile', mobileType, gender, mobileUnit, archive, tex, height, lastAn, lastCn, peer } (mobile kind)
@@ -535,8 +586,30 @@ export class RemotePlayers {
         const d = Math.hypot(f[0] - eye[0], f[1] - eye[1], f[2] - eye[2]);
         falloff = d <= 8 ? 1 : d >= 45 ? 0 : 1 - (d - 8) / 37;
       }
-      if (falloff > 0) audio.playOneShot(peerDeathSound(peer?.look), falloff);
+      if (falloff > 0) peerHeard(() => audio.playOneShot(peerDeathSound(peer?.look), falloff));   // EG-ZH: as the place hears it
     }
+  }
+
+  /** PCORPSE1 + AUDIT ONLINE 3 F5: ANOTHER PLAYER'S DEATH AS THE SESSION DELIVERS IT (net/online.js onPeerDeath; `how`
+   *  { intro: true } when an introduction said it - a body already lying when I came, laid without its cry).
+   *  AUDIT ONLINE 3 (the second read) A1/A2: AN INTRODUCTION'S DEATH IS OFTEN ONE ALREADY LAID. A leave forgets the
+   *  session's deaths, so a building walked into and out of while a Wild ghost lay - or a crossing before the halo was
+   *  open - had the next roster lay its body again over the one lying: a second body, a fresh minute, the party pick's
+   *  marks doubled; and a party mate's body PCORPSE3 laid from the party pose was laid again by its cell's roster. An
+   *  introduction lays a body only where none of this person's lies; a death heard as it happens is laid, and cried. */
+  peerDeath(peer, pose, room = null, how = undefined) {
+    if (!pose) return;
+    if (how?.intro && this._corpseNear(peer, pose)) return;
+    this.addCorpse(peer, pose, room, { quiet: !!how?.intro });
+  }
+  _corpseNear(peer, pose) {
+    const toScene = this._lastToScene ?? ((p) => [p.x, p.y, p.z]);
+    const b = toScene(pose);
+    return this._corpses.some((c) => {
+      if (c.dead || !((peer?.acct && c.acct === peer.acct) || (peer?.id && c.id === peer.id))) return false;
+      const a = toScene(c.pose);
+      return Math.hypot(a[0] - b[0], a[2] - b[2]) < CORPSE_SAME_M;
+    });
   }
 
   /** PCORPSE1: bodies whose room the player has left for another kind of space are not this scene's to draw - a
@@ -550,6 +623,9 @@ export class RemotePlayers {
   corpseMarks(toScene = (p) => [p.x, p.y, p.z]) {
     return this._corpses.filter((c) => !c.dead && (c.id || c.acct)).map((c) => ({ id: c.id, acct: c.acct, feet: toScene(c.pose), height: 0.9 }));
   }
+  /** WILD1 (net/wild/wildFight.js): a body in the open zone lies the zone's two minutes - its time moved on to at least `ms`
+   *  from now (the killer's game hears of the death from the body's own offer). */
+  holdCorpse(id, ms) { for (const c of this._corpses) if (!c.dead && id && c.id === id) c.until = Math.max(c.until, this._now() + ms); }
   /** PCORPSE3: is a body already lying for this account (or peer)? */
   hasCorpseOf(acct, id = null) { return this._corpses.some((c) => !c.dead && ((acct && c.acct === acct) || (id && c.id === id))); }
   /** PCORPSE3: the body of a member who got up (a respawn, a rise) - gone. */
@@ -679,10 +755,41 @@ export class RemotePlayers {
     this._mobiles.set(peerId, p);
     p.then((bundle) => {
       if (this._mobiles.get(peerId) !== p) return;   // SLAM12's own race: a peer released or rebuilt while this was in flight
-      if (bundle) this._mobiles.set(peerId, bundle);
+      if (bundle) this._mobiles.set(peerId, bundle);   // PERF-PEERS4: its archive warmed once it has STOOD as the peer (_syncMobilePeer), not on landing
       else this._mobiles.set(peerId, { failedUntil: this._now() + MOBILE_RETRY_MS });
     });
     return p;
+  }
+
+  /**
+   * PERF-PEERS1 (2026-10-10, Mac: "its still stuttering very slightly when looking to west where a lot of players are
+   * but far away"): A CLASS SPRITE'S PICTURES, UPLOADED AT IDLE. A peer drawn as its class's sprite (no Morrowind
+   * assets) shows one of eight directional records and its frame, and each (record, frame) was uploaded the first time
+   * a frame needed it (_syncMobilePeer) - a decode and a texture upload inside the frame. Turning toward a crowd turns
+   * every one of them onto a direction not yet seen, so the uploads landed together, on the frames of the turn. Once a
+   * class's archive is in hand, every one of its pictures goes up in idle time instead, a few at a time and once an
+   * archive (the draw path still uploads whatever the warm has not reached). A browser's idle queue only.
+   */
+  _warmArchive(bundle) {
+    const idle = globalThis.requestIdleCallback;
+    const { archive, tex } = bundle ?? {};
+    if (typeof idle !== 'function' || !tex || typeof this.deps?.uploadRecordFrame !== 'function') return;
+    const warmed = this._warmedArchives;
+    if (warmed.has(archive)) return;
+    warmed.add(archive);
+    const todo = [];
+    const records = Number(tex.recordCount) || 0;
+    for (let r = 0; r < records; r++) { const n = tex.getFrameCount(r); for (let f = 0; f < n; f++) todo.push([r, f]); }
+    const step = (deadline) => {
+      if (this._destroyed) return;
+      while (todo.length && (deadline?.timeRemaining?.() ?? 0) > 2) {
+        const [r, f] = todo.shift();
+        if (this.renderer.textures?.has?.(`${archive}_${r}#${f}`)) continue;
+        try { this.deps.uploadRecordFrame(archive, r, f); } catch { /* the draw path uploads it, and reports, as before */ }
+      }
+      if (todo.length) idle(step, { timeout: 2000 });
+    };
+    idle(step, { timeout: 2000 });
   }
 
   async _buildMobile(mobileType, gender) {
@@ -783,9 +890,9 @@ export class RemotePlayers {
    * answers 0 for every peer.
    * @param {Iterable<any>} peers
    * @param {(p: any) => number[]} [toScene]
-   * @param {{bodyHeight?: (id: any) => number, dt?: number, eye?: number[]|null, poseAgeMs?: ((peer: any) => number)|null, conceal?: (id: any) => object|null, hidden?: (id: any) => boolean, grow?: ((feet: number[]) => number)|null}} [opts]  PEER-FS1: `eye` is the listener, for the falloff; INVIS-LOOK: `conceal` a concealed peer's draw (ECV1's visual) or null
+   * @param {{bodyHeight?: (id: any) => number, dt?: number, eye?: number[]|null, poseAgeMs?: ((peer: any) => number)|null, conceal?: (id: any) => object|null, hidden?: (id: any) => boolean, grow?: ((feet: number[]) => number)|null, room?: Iterable<any>|null}} [opts]  PEER-FS1: `eye` is the listener, for the falloff; INVIS-LOOK: `conceal` a concealed peer's draw (ECV1's visual) or null; AUDIT PEER-RANGE A L1/L6: `room` every peer the room draws before a screen's cut (the draw distance's, the court's) - a resurrection is seen in it, and a peer in it keeps its class sprite's bundle while it is cut (`peers` when absent)
    */
-  sync(peers, toScene = (p) => [p.x, p.y, p.z], { bodyHeight = () => 0, dt = 0, eye = null, poseAgeMs = null, conceal = () => null, hidden = () => false, grow = null } = {}) {
+  sync(peers, toScene = (p) => [p.x, p.y, p.z], { bodyHeight = () => 0, dt = 0, eye = null, poseAgeMs = null, conceal = () => null, hidden = () => false, grow = null, room = null } = {}) {
     const live = new Set();
     this._grow = grow;   // OW-PEERS (FIELD BUGS 2026-10-01 #11): under the Overworld, feet -> how many times its size a sprite is drawn
     // PCORPSE1: the fallen lie on whatever the living do - placed, aged out, drawn
@@ -801,9 +908,11 @@ export class RemotePlayers {
     for (const peer of peers) {
       if (!peer?.shown) continue;
       seen.add(peer.id);
+      this._fFor = null;   // PERF-PEERS2: this peer's feet, asked of toScene once (_feet) however many of the layers below read them
       this._syncFootsteps(peer, toScene, eye);
       this._syncClimbSound(peer, toScene, eye);   // CLIMB5
       this._syncAttackSound(peer, toScene, eye);
+      this._syncGatherSound(peer, toScene, eye);   // PEER-ACTS
       this._syncRidingSound(peer, toScene, dt, eye, poseAgeMs);
       // AUDIT (the pre-merge audit, I-G): a peer the classic lane stands NOWHERE (INVIS-NET) is still heard - DFU turns a
       // concealed entity's renderer off, not its sounds - but has no sprite, no doll and no name here
@@ -811,9 +920,9 @@ export class RemotePlayers {
       // INVIS-LOOK (2026-09-27): a CONCEALED peer (the host hands ECV1's visual) is drawn translucent, as a concealed foe
       // is on the enhanced lane - and carries no name: a name over an invisible player is the player, found
       const veil = conceal(peer.id) ?? null;
-      // MWBODY1: a peer standing in a Morrowind body (net/peerBodies.js) draws no doll/mobile; its name still rides this pass, at the body's own head
+      // MWBODY1: a peer standing in a Morrowind body (net/peer/peerBodies.js) draws no doll/mobile; its name still rides this pass, at the body's own head
       const bodyH = bodyHeight(peer.id);
-      if (bodyH > 0) { if (!veil) this._shown.push({ peer, height: bodyH }); continue; }
+      if (bodyH > 0) { if (!veil || /** @type {any} */ (veil).named) this._shown.push({ peer, height: bodyH }); continue; }   // AUDIT EG V (h): a veil that keeps the name (an ally drawn at 60% on the Spire's traversal ground - scenes/eliteGates/egClient.js allyVeil)
       live.add(peer.id);
       // 2026-09-17: a peer whose class maps onto a class-enemy sprite (classMobileType) is drawn as that sprite,
       // animated off their synced pose (_syncMobilePeer) - the same billboard a hostile Warrior/Mage/etc. already
@@ -826,7 +935,7 @@ export class RemotePlayers {
       // (LycanthropyTypes 1 werewolf, 2 wereboar); the sprite is the enemy's own (MobileTypes 9 / 14), puppeted off the
       // pose like any class sprite - whatever the 'Other players' card says, since a person drawn there is a lie.
       // PR-WW1 (2026-09-24, player report: "Werewolf morrowind sprite not showing online"): THE FALLBACK now. A beast
-      // is drawn as Eye Of The Beholder's lycanthrope by net/peerRiders.js - the art the transformed player sees on
+      // is drawn as Eye Of The Beholder's lycanthrope by net/peer/peerRiders.js - the art the transformed player sees on
       // themselves - and reaches here only while that art is not up (loading, failed, or a build without it), when
       // `bodyHeight` answers 0: the enemy sprite stands for them then, so a beast is never nothing
       const beast = peer.shown.wb | 0;
@@ -845,6 +954,7 @@ export class RemotePlayers {
       if (beast) { this._dropDoll(peer.id); continue; }
       this._syncDollPeer(peer, toScene, veil);
     }
+    this._fFor = null;   // PERF-PEERS2: no feet outlive the sync that asked for them
     for (const [id, entry] of this._batches) {
       if (live.has(id)) continue;
       this.renderer.destroyBillboardBatch?.(entry.batch);
@@ -855,27 +965,33 @@ export class RemotePlayers {
     // AUDIT DROPS E4: a peer drawn as a Morrowind BODY holds no batch, so the sweep above never reached their
     // stride machine or their swing edge - the entries stayed for the life of the session (SLAM4's class), and a
     // stale `an` played a phantom swing when that peer came back
-    // RESURRECT1: a fallen player standing again where they fell (a resurrection) takes their body with them
+    // RESURRECT1: a fallen player standing again where they fell (a resurrection) takes their body with them - seen in the
+    // whole room (AUDIT PEER-RANGE A L1: one raised past the draw distance left the body lying its full minute)
     if (this._corpses.length) {
       const up = new Map();
-      for (const peer of peers) if (peer?.shown && peer.id) up.set(peer.id, peer.shown);
+      for (const peer of room ?? peers) if (peer?.shown && peer.id) up.set(peer.id, peer.shown);
       for (const c of [...this._corpses]) {
         const s = up.get(c.id);
         if (!s) continue;
         if (this._now() - (c.until - CORPSE_MS) < 2000) continue;   // PCORPSE2: a body's first two seconds - the fallen figure's last frames are not a rise
         const a = toScene(s), b = toScene(c.pose);
-        if (Math.hypot(a[0] - b[0], a[2] - b[2]) < 2.5) this._dropCorpse(c);
+        if (Math.hypot(a[0] - b[0], a[2] - b[2]) < CORPSE_SAME_M) this._dropCorpse(c);
       }
     }
     for (const id of this._footsteps.keys()) if (!seen.has(id)) this._footsteps.delete(id);
     for (const id of [...this._climbSounds.peers.keys()]) if (!seen.has(id)) this._climbSounds.forget(id);   // CLIMB5: a peer gone - their next climb seen is a first
+    for (const id of [...this._gatherSounds.peers.keys()]) if (!seen.has(id)) this._gatherSounds.forget(id);   // PEER-ACTS: and their next act - its blows in the air with them
     for (const id of this._attackAn.keys()) if (!seen.has(id)) this._attackAn.delete(id);
     for (const id of [...this._riding.keys()]) if (!seen.has(id)) this._stopRidingSound(id);   // RIDE-SOUND: a peer gone (or every peer, on the dead's empty sync) takes their hooves with them
     for (const id of [...this._onFoot]) if (!seen.has(id)) this._onFoot.delete(id);   // AUDIT DISC7 B4: and what they were last seen on
     // 2026-09-17: a departed peer's mobile bundle (or its in-flight build) goes with it. AUDIT 68
     // S14-remoteplayers-mobiles-unswept: swept against `live`, not inside the batch sweep - a peer gone before its build
     // landed held no batch, and the build then stored a whole bundle for nobody (`_mobileFor`'s own race check drops it now)
-    for (const id of this._mobiles.keys()) if (!live.has(id)) this._mobiles.delete(id);
+    // AUDIT PEER-RANGE A L6: but a peer the screen's cut leaves undrawn who is still in the room keeps its bundle - one walking
+    // back inside the draw distance stood on the doll path a frame, and composed a paperdoll for it, at every crossing
+    let inRoom = null;
+    if (room) { inRoom = new Set(); for (const peer of room) if (peer?.id) inRoom.add(peer.id); }
+    for (const id of this._mobiles.keys()) if (!live.has(id) && !inRoom?.has(id)) this._mobiles.delete(id);
   }
 
   /** PEER-FS1 (Mac, 2026-09-18: "footstep sounds depending where they walk
@@ -887,12 +1003,23 @@ export class RemotePlayers {
    *  step plays AT them (`peerSound`, the panner's linear falloff of
    *  PEER_SOUND_PROFILE - full inside 6 m, silent past 30), where PEER-FS1
    *  once faked that falloff on a flat one-shot. */
+  /** PERF-PEERS2 (2026-10-10, Dudey: "big problems are caused by many players causing severe stutter"): A PEER'S FEET,
+   *  ONCE A SYNC. Six layers of this pass (the steps, the climb, the swing, the hooves, the doll, the class sprite) each
+   *  asked `toScene(peer.shown)` for the same pose - a new triple each, and the host's own frame conversion each - for
+   *  every peer every frame. The first to ask works them out and the rest read that answer, until the sync turns to
+   *  the next peer (`sync` clears the memo at each peer and at its end). The same numbers: toScene is a pure reading
+   *  of the pose, and no reader writes into the triple (the hooves keep it as their place, as they kept their own). */
+  _feet(peer, toScene) {
+    if (this._fFor !== peer || this._fTo !== toScene) { this._fFor = peer; this._fTo = toScene; this._fAt = toScene(peer.shown); }
+    return this._fAt;
+  }
+
   _syncFootsteps(peer, toScene, eye) {
     if (!this.deps?.audio?.playOneShot || getPref('peerFootsteps') === false) return;
     let fm = this._footsteps.get(peer.id);
     if (!fm) { fm = new FootstepMachine(); this._footsteps.set(peer.id, fm); }
     const shown = peer.shown;
-    const f = toScene(shown);
+    const f = this._feet(peer, toScene);
     const set = FOOTSTEP_CLIP_SETS[shown.fk ?? 0] ?? FOOTSTEP_CLIP_SETS[0];
     // PEER-BUZZ (2026-09-22, Discord: "footstep sounds are broken" - a recording of a continuous buzz while a peer
     // walked): AUDIT DROPS E5 measured the stride in the WIRE's frame to dodge the floating-origin shift, and in
@@ -908,11 +1035,11 @@ export class RemotePlayers {
     peerSound(this.deps.audio, step.clip, f, step.volume);
   }
 
-  /** CLIMB5: a peer's climb, heard at them (net/peerClimb.js) - its changes and its rhythm, within earshot, behind the
+  /** CLIMB5: a peer's climb, heard at them (net/peer/peerClimb.js) - its changes and its rhythm, within earshot, behind the
    *  peers' own sounds' switch as their stride is. */
   _syncClimbSound(peer, toScene, eye) {
     if (!this.deps?.audio?.play3d) return;
-    const f = toScene(peer.shown);
+    const f = this._feet(peer, toScene);
     // AUDIT CLIMB-ARC N5: the switch silences, it does not blind - the law is told every change with the sound off, so
     // switching it back on plays no catch nor let-go that happened while it was off
     this._climbSounds.update(peer.id, peer.shown, f, getPref('peerFootsteps') !== false && peerInEarshot(f, eye));
@@ -940,7 +1067,7 @@ export class RemotePlayers {
     const last = this._attackAn.get(peer.id);
     this._attackAn.set(peer.id, an);
     if (last == null || an === last) return;   // first sighting of this peer, or no new swing since
-    const f = toScene(peer.shown);
+    const f = this._feet(peer, toScene);
     if (!peerInEarshot(f, eye)) return;
     // AUDIT DROPS E6: the weapon IN HAND (the look's right-hand slot), and none at all while the pose says sheathed
     // (`wd` 0 - a fist swings as a fist), not the first weapon anywhere in the look
@@ -950,6 +1077,16 @@ export class RemotePlayers {
     peerSound(this.deps.audio, swingSoundFor(weapon), f, 1.1);
   }
 
+  /** PEER-ACTS (GATHER-FEEL II): a peer's gathering, heard at them (net/peer/peerGather.js PeerGatherSounds) - the act's
+   *  beats within earshot, behind the swings' switch ('peerAttackSounds' - a tool's blow is a swing, the rest its hands'
+   *  work). Told every change with the switch off, as the climb is (AUDIT CLIMB-ARC N5), so switching it back on replays
+   *  nothing. */
+  _syncGatherSound(peer, toScene, eye) {
+    if (!this.deps?.audio?.play3d) return;
+    const f = this._feet(peer, toScene);
+    this._gatherSounds.update(peer.id, peer.shown, f, getPref('peerAttackSounds') !== false && peerInEarshot(f, eye));
+  }
+
   /** RIDE-SOUND (Mac: the known limit - "other players' horses make no hoof sounds yet"): A PEER IN THE SADDLE IS
    *  HEARD. TransportManager's riding half (systems/riding.js RidingAnimator) runs for them as it does for me - the
    *  loop's clip (the fast clop, the cart's own rattle), its 0.2 s stop, its volume and its neigh - off their pose
@@ -957,7 +1094,7 @@ export class RemotePlayers {
    *  the peers' own falloff. Gated with their footsteps ('peerFootsteps' - hooves are a mount's steps). */
   _syncRidingSound(peer, toScene, dt, eye = null, poseAgeMs = null) {
     const audio = this.deps?.audio;
-    const rd = peer.shown?.rd | 0;
+    const rd = (peer.shown?.rd | 0) || (peer.shown?.bench === 2 ? 2 : 0);   // WAGONS3: a driver glued onto their bench (scenes/horseCartPool.js driverGlue) still drives the cart
     if (!audio?.setLoop3d || !rd || getPref('peerFootsteps') === false) {
       this._stopRidingSound(peer.id);
       if (!rd) this._onFoot.add(peer.id);   // AUDIT DISC7 B4: seen on foot - a mount after this is a real one
@@ -980,10 +1117,16 @@ export class RemotePlayers {
     // AUDIT DISC7 B3: a rider whose poses stopped (a tab in the background, a crash, a stall) stands - `visible` keeps
     // them for up to PEER_TIMEOUT_MS on their last pose, and a frozen gallop clopped in place for all of it
     const stale = typeof poseAgeMs === 'function' && poseAgeMs(peer) > PEER_RIDE_STALE_MS;
-    // DISC7: the rider's own half-speed flag off the pose (`hs`) - standing reads true, as the motor's own does
+    // DISC7: the rider's own half-speed flag off the pose (`hs`) - standing reads true, as the motor's own does (AUDIT
+    // HORSE-WALK: the bit is read once, as the slow ride's state, below)
     const moving = !!peer.shown.mv && !stale;
-    const out = r.anim.update(Math.max(0, dt), { mode, standingStill: !moving, movingLessThanHalfSpeed: !moving || !!peer.shown.hs });
-    const at = toScene(peer.shown);
+    // AUDIT HORSE-WALK: `hs` is the rider's SLOW RIDE (player/motor.js slowRide - walked, or under half its base), which
+    // their own animator plays as a state, not the edge (systems/riding.js `walking`) - so here too: on the edge alone a
+    // peer first seen at a walk, or mounting into one, never crossed it and clopped fast for as long as they walked. And
+    // the gallop's pitch off the pose's gallop bit (mv 2), as the rider's own run gives theirs - every peer's gallop was
+    // heard at 1.0 since horse care made the gallop reachable (STEED1)
+    const out = r.anim.update(Math.max(0, dt), { mode, standingStill: !moving, movingLessThanHalfSpeed: !moving, walking: !!peer.shown.hs, running: peer.shown.mv === 2 });
+    const at = this._feet(peer, toScene);
     r.at = at;
     // AUDIT DISC7 B4: past earshot nothing is made - no panner and no source for a rider nobody can hear (the
     // animator keeps its clock, so the loop comes back in step when they ride into range)
@@ -995,6 +1138,7 @@ export class RemotePlayers {
    *  is (the sync above ran before the recentre, so its panners stood in the old frame for one frame: a click). */
   rebaseSounds(offset) {
     if (!offset) return;
+    this._gatherSounds.rebase(offset);   // PEER-ACTS (AUDIT GATHER-FEEL W1): a net's place and a blow in the air move with the land
     for (const [id, r] of this._riding) {
       if (!r.at) continue;
       r.at = [r.at[0] + offset[0], r.at[1] + offset[1], r.at[2] + offset[2]];
@@ -1030,17 +1174,18 @@ export class RemotePlayers {
       entry = { kind: 'doll', batch, key, doll, peer };
       this._batches.set(peer.id, entry);
     }
-    const f = toScene(peer.shown);
-    entry.batch.origin[0] = f[0]; entry.batch.origin[1] = f[1]; entry.batch.origin[2] = f[2];
+    const f = this._feet(peer, toScene);
+    const sink = seatedSink(peer.shown);   // CARDS2c: seated, sunk by the seat's drop
+    entry.batch.origin[0] = f[0]; entry.batch.origin[1] = f[1] - sink; entry.batch.origin[2] = f[2];
     entry.batch.conceal = veil;   // INVIS-LOOK: the renderer's blended phase, or plain
     entry.peer = peer;
     const g = this._growAt(f);
     if (entry.g !== g) { entry.g = g; this._sizeBatch(entry.batch, { w: entry.doll.w * g, h: entry.doll.h * g }, g); }   // OW-PEERS
-    if (!veil) this._shown.push({ peer, height: entry.doll.h * g });
+    if (!veil || veil.named) this._shown.push({ peer, height: entry.doll.h * g - sink });
   }
 
   /** The class-enemy billboard path: `bundle.mobileUnit.update` is fed simple flags off the peer's OWN synced pose
-   *  (`shown`), the same wire fields net/peerBodies.js already reads to drive its own (Morrowind) rig - `mv` for
+   *  (`shown`), the same wire fields net/peer/peerBodies.js already reads to drive its own (Morrowind) rig - `mv` for
    *  moving/running, `an`'s change for the striking edge - rather than anything new added to the wire protocol.
    *  `striking` only fires from the SECOND frame a given peer is seen onward (`entry.lastAn` starts null): a peer's
    *  attack counter is whatever it already was when they were first drawn, and comparing against nothing would
@@ -1050,13 +1195,16 @@ export class RemotePlayers {
     let entry = this._batches.get(peer.id);
     if (entry && (entry.kind !== 'mobile' || entry.mobileUnit !== bundle.mobileUnit)) { this.renderer.destroyBillboardBatch?.(entry.batch); this._batches.delete(peer.id); entry = null; }
     const shown = peer.shown;
-    const f = toScene(shown);
+    const f = this._feet(peer, toScene);
     const moving = peerMoving(shown);   // CLIMB5: a shimmy along a lip is no walk
     const an = shown.an | 0;
-    const striking = entry != null && entry.lastAn != null && an !== entry.lastAn;
+    // PEER-ACTS: a gathering tool's blow, and the net's throw, are its strike too - the first sight of an act none
+    const gather = entry?.gather ?? {};
+    const acted = peerGatherSwing(gather, shown);
+    const striking = (entry != null && entry.lastAn != null && an !== entry.lastAn) || acted != null;
     const face = peerBodyYaw(shown);   // CLIMB5: on the wall, facing it
     const yaw = Number.isFinite(face) ? face : 0;
-    // BUGFIX (2026-09-17): mobileOrientation (characters/mobileUnit.js) reads cameraPos[0]/[2] unconditionally to
+    // BUGFIX (2026-09-17): mobileOrientation (characters/mobile/mobileUnit.js) reads cameraPos[0]/[2] unconditionally to
     // work out which of the 8 directional frames faces the viewer - it was never optional the way `null` assumed,
     // and crashed the moment a sprite actually built successfully. `eye` is the local player's own position, passed
     // in from world.js's onlineFrame (the same call site already reading `player.pos` for peerBodies.sync); the `f`
@@ -1068,7 +1216,11 @@ export class RemotePlayers {
     // plain Array. So this always failed and silently substituted the peer's OWN feet as "the viewer", making every
     // peer face a coincident (zero-distance) point forever - orientation frozen regardless of anyone's real yaw or
     // position. `eye.length === 3` accepts either array kind.
-    const out = bundle.mobileUnit.update(dt, { moving, striking }, yaw, f, eye && eye.length === 3 ? eye : f);
+    const viewer = eye && eye.length === 3 ? eye : f;
+    const stepped = bundle.mobileUnit.update(dt, { moving, striking }, yaw, f, viewer);
+    // PEER-ACTS: kneeling at an act - a herb, the Basket's search, the knife at a body - the sprite kneels as a yielding foe
+    // kneels (REVENANT-FATE's held hurt frame, systems/revenant/revenantFate.js), its own clock untouched; a one-shot plays through
+    const out = peerKneeling(shown) && !moving && !bundle.mobileUnit.isPlayingOneShot() ? bundle.mobileUnit.heldPose('hurt', -1, yaw, f, viewer) : stepped;
     const rkey = `${out.record}#${out.frame}`;
     if (!this.renderer.textures?.has?.(`${bundle.archive}_${rkey}`)) this.deps.uploadRecordFrame(bundle.archive, out.record, out.frame);
     const sz = mobileBillboardSize(bundle.tex, out.record);
@@ -1077,7 +1229,7 @@ export class RemotePlayers {
     if (!entry) {
       const batch = this.renderer.createBillboardBatch(bundle.archive, rkey, size, [[0, 0, 0]]);
       batch.origin = [0, 0, 0];
-      entry = { kind: 'mobile', batch, mobileUnit: bundle.mobileUnit, archive: bundle.archive, tex: bundle.tex, height: sz.h * g, lastAn: an, peer, g: 1 };
+      entry = { kind: 'mobile', batch, mobileUnit: bundle.mobileUnit, archive: bundle.archive, tex: bundle.tex, height: sz.h * g, lastAn: an, gather, peer, g: 1, drawnFrames: 0 };   // PEER-ACTS: `gather` the act as last seen
       this._batches.set(peer.id, entry);
     } else {
       entry.batch.record = rkey;
@@ -1086,10 +1238,20 @@ export class RemotePlayers {
       entry.lastAn = an;
       entry.peer = peer;
     }
+    // PERF-PEERS4 (2026-10-10, Dudey: "Eye of the Beholder / class skin sprites" - "a lot if not most of the players play
+    // with morrowind assets"): A CLASS SPRITE'S ARCHIVE IS WARMED ONCE IT STANDS AS THE PEER. PERF-PEERS1 put every
+    // picture of a class's archive up at idle the moment its bundle landed - and a bundle lands for every peer, the
+    // ones the viewer draws in an Eye Of The Beholder set or a Morrowind body included, for whom the class sprite is at
+    // most a stand-in for the frames their own art takes to arrive. The peer lab's forty arrivals in sets: 1,191 uploads,
+    // most of them whole class archives decoded and sent up for figures drawn in the sets, and the garbage of every
+    // decode in the collector's pauses. A sprite that has stood WARM_AFTER_FRAMES frames is the peer's picture, and its
+    // archive goes up at idle as before; until then the draw path uploads the frame it shows, as it always could.
+    if (++entry.drawnFrames === WARM_AFTER_FRAMES) this._warmArchive(bundle);
     if (entry.g !== g) { entry.g = g; this._sizeBatch(entry.batch, size, g); }
-    entry.batch.origin[0] = f[0]; entry.batch.origin[1] = f[1]; entry.batch.origin[2] = f[2];
+    const sink = seatedSink(shown);   // CARDS2c: seated, sunk by the seat's drop
+    entry.batch.origin[0] = f[0]; entry.batch.origin[1] = f[1] - sink; entry.batch.origin[2] = f[2];
     entry.batch.conceal = veil;   // INVIS-LOOK
-    if (!veil) this._shown.push({ peer, height: entry.height });
+    if (!veil || veil.named) this._shown.push({ peer, height: entry.height - sink });
   }
 
   /** OW-PEERS: the Overworld's grow at a peer's feet (1 off the view). */
@@ -1144,11 +1306,12 @@ export class RemotePlayers {
     // AUDIT NAME1 F3: the frame's lens, once - it is the same for every point and it is read off the matrix the
     // sprites were projected by (nameLensScale), so a wide FOV shrinks the name exactly as it shrank the body.
     const lens = nameLensScale(proj);
+    let pv = null;   // PERF-PEERS2: the frame's proj x view, made once for every head (projectToScreen made it a head)
     for (const e of this._shown ?? []) {
       const f = toScene(e.peer.shown);
       if (eye) { const dx = f[0] - eye[0], dz = f[2] - eye[2]; if (dx * dx + dz * dz > NAME_RANGE * NAME_RANGE) continue; }
       const head = [f[0], f[1] + e.height, f[2]];
-      const s = projectToScreen(head, w, h, proj, view, rect);
+      const s = projectToScreen(head, w, h, proj, view, rect, false, pv ??= multiply(proj, view));
       if (!s.front || s.x < -200 || s.x > w + 200 || s.y < -50 || s.y > h + 50) continue;
       // AUDIT NAME1 F2/F5: the peer's ID rides the sight test, because the answer is CACHED per peer and
       // hysteresised (createSightCache) - a head point alone has no identity to remember an answer under. Purely
@@ -1174,7 +1337,7 @@ export class RemotePlayers {
    * rule is the same, nothing ahead of it moved), because a name's colour is not this module's business to know. A peer is a tab in a room; whether that tab belongs to somebody in my party (PARTY_MAX seats) is the social
    * picture's question (net/social.js colorOf -> PARTY_GREEN or null), and the host asks it. Nothing is passed on
    * the probe hosts and on every caller written before the party existed, so the default path stays exactly what it
-   * was: white, byte for byte (test/online.test.js pins it).
+   * was: white, byte for byte (test/net/online.test.js pins it).
    * @param {((id: string) => number[]|null)|null} colorOf peer id -> an RGBA array, or null for the plain name
    */
   /**
@@ -1216,7 +1379,7 @@ export class RemotePlayers {
       const run = `${lead ? `[${lead}] ` : ''}${marks ? `${named} ${marks}` : named}`;
       const tw = measureText(font.fnt, run) * s;
       // AUDIT NAME1 F13: the gap takes the HOST's scale, and only that one. NAME_GAP_PX is a clearance in SCREEN
-      // pixels and this face draws in the drawing buffer's, where `scale` (ui/hud.js hudScale, the 320x200 fit) is
+      // pixels and this face draws in the drawing buffer's, where `scale` (ui/hud/hud.js hudScale, the 320x200 fit) is
       // what carries one into the other - the same number the glyph box takes before the point's own perspective
       // term multiplies it. Unscaled, the classic face put a 5-buffer-pixel gap under a label drawn five times
       // over, which is a fifth of the clearance the DOM face leaves at the same size: the two faces disagreeing
@@ -1287,7 +1450,8 @@ export class RemotePlayers {
    *          layer?: any, log?: any, colorOf?: ((id: string) => number[]|null)|null,
    *          blocked?: ((head: number[], id: string) => boolean)|null,
    *          renderer?: any, font?: any, scale?: number, hudScale?: number,
-   *          extra?: ((o: {proj: any, view: any, w: number, h: number, eye: any, rect: any, blocked: any}) => any[])|null}} [opts]
+   *          extra?: ((o: {proj: any, view: any, w: number, h: number, eye: any, rect: any, blocked: any}) => any[])|null,
+   *          mask?: ((p: any) => any)|null}} [opts]   WILD3: `mask` - each name kept, replaced (a tint rides it) or taken
    *   `extra` - NOTICE1: the host's own labels in the names' face and law (a Notice Board's "3 new"), asked with the
    *   face's own pixels and never on a covered frame
    * @returns {number} how many names the frame drew
@@ -1295,15 +1459,22 @@ export class RemotePlayers {
   nameFrame({
     proj, view, w, h, eye, toScene = (p) => [p.x, p.y, p.z], rect = null, covered = false,
     layer = null, log = null, colorOf = null, blocked = null,
-    renderer = null, font = null, scale = 1, hudScale = 1, extra = null,
+    renderer = null, font = null, scale = 1, hudScale = 1, extra = null, mask = null,
   } = {}) {
-    const points = covered ? [] : this.namePoints(proj, view, w, h, eye, toScene, rect, blocked);
+    let points = covered ? [] : this.namePoints(proj, view, w, h, eye, toScene, rect, blocked);
+    // WILD3: the host's word on each player's name - kept, put in another's place (the open zone's "Stranger"), or taken
+    if (typeof mask === 'function' && points.length) {
+      points = points.map((p) => { try { return mask(p); } catch { return p; } }).filter(Boolean);
+      // a point the mask tinted wears its tint in both faces, over the social picture's colour
+      const tints = new Map(points.filter((p) => p.tint).map((p) => [p.id, p.tint]));
+      if (tints.size) { const base = colorOf; colorOf = (id) => tints.get(id) ?? base?.(id) ?? null; }
+    }
     if (!covered && typeof extra === 'function') {
       try { points.push(...(extra({ proj, view, w, h, eye, rect, blocked }) ?? [])); } catch { /* a label is never worth the names */ }
     }
     if (layer) {
       // the world viewport's own height where the docked HUD shrinks it (E5) - the name is sized by the frame it
-      // is drawn into, not by the page (AUDIT NAME1 F3). The rect is NORMALISED (ui/hudLarge.js
+      // is drawn into, not by the page (AUDIT NAME1 F3). The rect is NORMALISED (ui/hud/hudLarge.js
       // largeHudViewportRect: `{ x: 0, y: hudHeight, w: 1, h: 1 - hudHeight }`), so its height is a SHARE of the
       // canvas and the pixels are that share of it.
       layer.render({ points, log, covered, colorOf, viewport: (Number.isFinite(rect?.h) ? rect.h : 1) * h, hudScale });
@@ -1315,6 +1486,7 @@ export class RemotePlayers {
 
   /** Every batch and every doll texture released - the host's teardown. */
   destroy() {
+    this._destroyed = true;   // PERF-PEERS1: a warm still queued stops
     for (const id of [...this._riding.keys()]) this._stopRidingSound(id);   // RIDE-SOUND
     for (const e of this._batches.values()) this.renderer.destroyBillboardBatch?.(e.batch);
     this._batches.clear();

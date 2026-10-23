@@ -39,19 +39,20 @@
 // at `(Screen.height - largeHUD.Rectangle.height) / 2` under a docked
 // large HUD (vendor .cs:1097-1112) - so ROAD-E E5's law, that a docked
 // bar moves the reticle, moves the plaque with it for free.
-import { injectEnhancedStyle, PLAQUE_MAX_W, STATS_W, STATS_GAP, STATS_MARGIN } from './enhancedStyle.js';   // QUICK-LOOT-STATS: the layout numbers live with the dress that draws them
+import { injectEnhancedStyle, PLAQUE_MAX_W, STATS_W, STATS_GAP, STATS_MARGIN } from './enhanced/enhancedStyle.js';   // QUICK-LOOT-STATS: the layout numbers live with the dress that draws them
 import { isEnhanced } from '../systems/uiSkin.js';
-import { isTouchDevice } from './touchDevice.js';
-import { crosshairCentreY, CROSSHAIR_ARM } from './hudCrosshair.js';
-import { hudReticle } from './hud.js';   // the reticle's own two terms, from their home
+import { isTouchDevice } from './touch/touchDevice.js';
+import { crosshairCentreY, CROSSHAIR_ARM } from './hud/hudCrosshair.js';
+import { hudReticle } from './hud/hud.js';   // the reticle's own two terms, from their home
 import { pickActivatableHit } from '../player/activate.js';
 import { getSeed, setSeed } from '../formats/dfRandom.js';   // CAT-MEOW: the readout keeps the classic stream
 import { frameMark } from '../systems/frameClock.js';   // AUDIT-WH P3: the frame in flight, so the gate's two terms are computed once in it
-import { resolveHover, frameSignature } from '../systems/worldHover.js';
+import { resolveHover, frameSignature, plaqueWindow } from '../systems/worldHover.js';   // LOOT-SCROLL: the drawn window
 import { foldQuickLoot, quickLootRow, quickLootStats, resetQuickLoot, quickLootOn } from '../systems/quickLoot.js';
 import { setClassicLootFrame } from '../systems/classicLootFrame.js';   // DISC22-C: the classic panel's frame, a leaf hud.js can read   // QUICK-LOOT B3: the highlight is the FEATURE's - this draws it and frees it, it does not own it; QUICK-LOOT-STATS: and the lit row's own numbers
 import { bodyStackMark, resetBodyStack } from '../player/lootStack.js';   // LOOT-STACK: the plaque counts the pile the pick noted
 import { armDrawWatchdog, disarmDraw } from './drawWatchdog.js'; import { destroyPickupFeed, clearPickupFeed } from './pickupFeed.js';   // DISC29-D: the watchdog counts frames, not milliseconds; PICKUP-FEED: the take's cards, freed with this teardown
+import { PLAQUE_MINE_TAG } from '../systems/roomLoot.js';   // PARTY-LOOT: a row of this player's own bonus says so
 
 /** The gap in CSS pixels between the cross's lower arm tip and the
  *  plaque's top edge. Large enough that the two never read as one
@@ -93,7 +94,7 @@ export function statsSide(anchorX, viewportWidth) {
 
 /** AUDIT-WH2 L3-F2: a plaque that has not been drawn for this long is
  *  gone - take it down. ENH-NOTICE1's own constant and its own reason
- *  (ui/enhancedNotice.js NOTICE_WATCHDOG_MS), at the same 400ms: long
+ *  (ui/enhanced/enhancedNotice.js NOTICE_WATCHDOG_MS), at the same 400ms: long
  *  enough that no honest frame rate trips it, short enough that a
  *  stranded name is a blink and not a fixture. */
 export const PLAQUE_WATCHDOG_MS = 400;
@@ -102,6 +103,15 @@ let node = null;
 let shownSig = null;
 let lastX = null;
 let lastTop = null;
+let _winKey = null;     // LOOT-SCROLL: the key the drawn window is over...
+let _winFrom = 0;       // ...and its top row
+/** LOOT-SCROLL: the window over `frame`'s rows that shows its lit row - kept per key, so a notch inside it lights the
+ *  next row and a notch past its edge moves it one. */
+function windowOf(frame, lit) {
+  const w = plaqueWindow(frame, lit, frame?.key != null && frame.key === _winKey ? _winFrom : 0);
+  _winKey = frame?.key ?? null; _winFrom = w.from;
+  return w;
+}
 let _faults = 0;        // AUDIT-WH L1: contained frames, counted
 let _faultSaid = false; // ...and said once, not once a frame
 let _watchdog = null;   // AUDIT-WH2 L3-F2: the heartbeat's handle - owned here, freed at every door out
@@ -174,7 +184,7 @@ function blankDom() { if (node && shownSig !== null) { shownSig = null; blank(no
  * or the plaque hangs off it.
  *
  * Canvas pixels over the device ratio, the arithmetic
- * ui/enhancedHudText.js midTextTopPx already spells.
+ * ui/enhanced/enhancedHudText.js midTextTopPx already spells.
  */
 export function plaqueAnchor(canvas) {
   if (!canvas?.width || !canvas?.height) return null;
@@ -264,6 +274,12 @@ function paint(n, f, sel = -1, stats = []) {
     p.textContent = 'Empty';
     list.append(p);
   }
+  if (f.above > 0) {   // LOOT-SCROLL: what the window leaves above it
+    const up = document.createElement('div');
+    up.className = 'wplaque-row wplaque-more';
+    up.textContent = `${f.above} more above`;
+    list.append(up);
+  }
   for (let i = 0; i < f.rows.length; i++) {
     const r = f.rows[i];
     const row = document.createElement('div');
@@ -285,6 +301,14 @@ function paint(n, f, sel = -1, stats = []) {
       c.className = 'wplaque-count';
       c.textContent = `×${r.stack}`;
       row.append(c);
+    }
+    // PARTY-LOOT: this player's own bonus says so - the rows without the tag are the room's, the same for everyone
+    if (r.mine) {
+      row.classList.add('mine');
+      const m = document.createElement('span');
+      m.className = 'wplaque-mine';
+      m.textContent = PLAQUE_MINE_TAG;
+      row.append(m);
     }
     list.append(row);
   }
@@ -427,9 +451,11 @@ export function showWorldPlaque(frame, anchor = null) {
   // is, and neither is in the frame. A resize with the crosshair held
   // still would otherwise leave the panel off the screen edge it was
   // laid out against.
-  const stats = quickLootStats(frame);
+  const stats = quickLootStats(frame);   // the WHOLE frame's lit row - as the take reads it
+  const lit = quickLootRow(frame);
+  const win = windowOf(frame, lit);   // LOOT-SCROLL: HOVER_MAX rows about the lit one
   const actionLayout = frame?.kind === 'actions' ? `${lastTop}|${globalThis.innerWidth ?? 0}|${globalThis.innerHeight ?? 0}` : '';
-  const sig = `${frameSignature(frame)}|${quickLootRow(frame)}|${statsSide(lastX, globalThis.innerWidth ?? 0)}|${actionLayout}`;
+  const sig = `${frameSignature(frame)}|${lit}|${win.from}|${statsSide(lastX, globalThis.innerWidth ?? 0)}|${actionLayout}`;
   if (sig === shownSig) return;
   shownSig = sig;
   if (!frame) {
@@ -440,7 +466,7 @@ export function showWorldPlaque(frame, anchor = null) {
     blank(n);
     return;
   }
-  paint(n, frame, quickLootRow(frame), stats);
+  paint(n, win.frame, lit >= 0 ? lit - win.from : -1, stats);   // LOOT-SCROLL: the window, its lit row counted from its top
   n.classList.add('on');
   // Keep the selected action readable in the bounded list; selection and activation stay with quickLoot.
   const list = n.querySelector?.('.wplaque-acts');
@@ -553,7 +579,7 @@ export function worldHoverFrame({
     // looking at a door does not arrive later at a chest.
     foldQuickLoot(frame);
     if (dom) showWorldPlaque(frame, plaqueAnchor(canvas));
-    else setClassicLootFrame(frame, frameMark(), quickLootRow(frame));   // DISC22-C: drawHud draws it, this frame, its lit row with it
+    else { const lit = quickLootRow(frame), w = windowOf(frame, lit); setClassicLootFrame(w.frame, frameMark(), lit >= 0 ? lit - w.from : -1); }   // DISC22-C: drawHud draws it, this frame, its lit row with it - LOOT-SCROLL: the same window the plaque draws
     return frame;
   } catch (e) {
     _faults += 1;
@@ -598,6 +624,7 @@ export function destroyWorldPlaque() {
   try { node?.remove(); } catch { /* already gone */ }
   node = null;
   shownSig = null;
+  _winKey = null; _winFrom = 0;   // LOOT-SCROLL
   lastX = null;
   lastTop = null;
   _faults = 0;

@@ -4,7 +4,7 @@
 //
 // ═══ WHY THIS EXISTS ═══════════════════════════════════════════════
 //
-// `test/accountworker.test.js` runs the service's own functions in node
+// `test/server/accountworker.test.js` runs the service's own functions in node
 // against a real SQLite, and it is a good suite - it caught the guest
 // name alphabet, the modulo bias, the recovery-code folding. What it
 // cannot do is START THE WORKER, and the day this probe was written
@@ -64,7 +64,7 @@ import { verifyToken, importPublicKeyB64 } from '../src/net/identityToken.js';
 import { PBKDF2_ITERS } from '../server-account/src/password.js';
 import { ACCOUNT_VERSION, SHOT_MAX_BYTES } from '../server-account/src/service.js';
 import { ACCEPTED } from '../src/net/legalLaw.js';   // TERMS1: every request that makes an account carries the versions ticked
-import { gzipText, REALM_TEXT_MAX_BYTES } from '../src/net/realmSaveCodec.js';   // REALM-GZIP: a realm save rides packed
+import { gzipText, REALM_TEXT_MAX_BYTES } from '../src/net/realm/realmSaveCodec.js';   // REALM-GZIP: a realm save rides packed
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const acct = join(root, 'server-account');
@@ -186,7 +186,9 @@ try {
 
   console.log('== applying the real migrations to a local D1, through wrangler\'s ledger');
   const [migBin, migArgs] = cmd(['d1', 'migrations', 'apply', 'daggerfall-accounts', '--local', '--persist-to', STATE]);
-  const mig = await run(migBin, migArgs, { cwd: acct, timeout: 300_000 });
+  // SCALE3 (2026-10-08): its own buffer - wrangler reprints the summary once a migration (below), so the output grows
+  // with the square of the count, and at 89 migrations it passed execFile's 1 MiB default and the probe died here.
+  const mig = await run(migBin, migArgs, { cwd: acct, timeout: 300_000, maxBuffer: 64 * 1024 * 1024 });
   // wrangler reprints its whole summary table once per migration, so
   // the names repeat - dedupe before comparing, and compare against
   // what is actually in the directory rather than against itself.
@@ -351,7 +353,7 @@ try {
   // are unavailable right now" for ever, with a green suite and a green
   // deploy behind it.
   //
-  // `test/cloudsaves.test.js` drives these routes over a Map behind an
+  // `test/server/cloudsaves.test.js` drives these routes over a Map behind an
   // R2-shaped face. THIS drives them over workerd's own R2, which is
   // the half a Map cannot answer for.
   console.log('== the cloud saves, against real local R2');
@@ -407,7 +409,7 @@ try {
 
   // ═══ REALM-GZIP: A REALM SAVE RIDES PACKED ═════════════════════
   //
-  // test/realm_gzip.test.js drives these over Node's streams and a Map.
+  // test/net/realm_gzip.test.js drives these over Node's streams and a Map.
   // THIS asks workerd's own: that its DecompressionStream opens what a
   // browser's CompressionStream packs, that a Response carries the bytes
   // it is handed, and that the object R2 keeps is the one sent.

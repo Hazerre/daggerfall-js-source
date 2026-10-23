@@ -1,4 +1,4 @@
-// A MORROWIND NIF, WRITTEN. The other end of src/formats/mwNifFile.js.
+// A MORROWIND NIF, WRITTEN. The other end of src/formats/morrowind/mwNifFile.js.
 //
 //     node tools/nifWrite.mjs <mesh.json> <out.nif> [--texture=NAME.dds]
 //                             [--node=NAME] [--keep-v]
@@ -209,7 +209,117 @@ export const WRITERS = {
     o.u32(rec.failAction ?? 0).u32(rec.zfailAction ?? 0).u32(rec.zpassAction ?? 0);
     o.u32(rec.drawMode ?? 0);
   },
+
+  // MW-STEEL2: A SKIN, so a test can stand a SKINNED body - a retail body part's own records - on a skeleton whose
+  // rest is not its bind pose, which is what the plate's T-pose fault needed and no rigid fixture can show. The
+  // reader's field order exactly (mwNifFile.js NiSkinInstance / NiSkinData): the instance names its data, its
+  // skeleton root and its bones; the data carries the skin's own transform, the bone count, the 4.0.0.2 partition ref,
+  // and per bone its inverse bind, a bounding sphere and its (vertex, weight) list.
+  NiSkinInstance(o, rec) {
+    o.ref(rec.data);
+    o.ref(rec.skeletonRoot ?? -1);
+    o.refList(rec.bones ?? []);
+  },
+
+  // MW-CAST1: AN EXTERNAL .KF, so a test can stand an arm whose clips carry a group no committed fixture has (the
+  // spellcast group). The reader's field order exactly (mwNifFile.js): the helper is a bare NiObjectNET whose extra
+  // chain is the text keys and then one bone name per controller, and whose controller chain is the keyframe
+  // controllers in the same order. Held to the reader by a round trip: armfpweapon.kf parsed and written back is the
+  // same bytes.
+  NiSequenceStreamHelper(o, rec) {
+    objectNET(o, rec);
+  },
+
+  NiStringExtraData(o, rec) {
+    o.ref(rec.next ?? -1);
+    o.u32(rec.recordSize ?? 4 + Buffer.byteLength(String(rec.string ?? ''), 'latin1'));
+    o.string(rec.string);
+  },
+
+  NiTextKeyExtraData(o, rec) {
+    o.ref(rec.next ?? -1);
+    o.u32(rec.recordSize ?? 0);
+    o.u32(rec.keys.length);
+    for (const k of rec.keys) o.f32(k.time).string(k.text);
+  },
+
+  NiKeyframeController(o, rec) {
+    o.ref(rec.next ?? -1).u16(rec.flags ?? 8).f32(rec.frequency ?? 1).f32(rec.phase ?? 0);
+    o.f32(rec.startTime ?? 0).f32(rec.stopTime ?? 0).ref(rec.target ?? -1);
+    o.ref(rec.data);
+  },
+
+  NiKeyframeData(o, rec) {
+    const rot = rec.rotationKeys ?? [];
+    o.u32(rot.length);
+    if (rot.length) {
+      if ((rec.rotationType ?? 1) === 4) throw new Error('NiKeyframeData: XYZ rotation keys are not written');
+      o.u32(rec.rotationType ?? 1);
+      for (const k of rot) {
+        o.f32(k.time).f32Array(k.value);
+        if ((rec.rotationType ?? 1) === 3) o.f32Array(k.tbc);
+      }
+    }
+    keyGroup(o, rec.translations, 3);
+    keyGroup(o, rec.scales, 1);
+  },
+
+  // MW-BOW1: a bow's limbs and string, drawn - the reader's NiGeomMorpherController (the time controller, the data,
+  // `alwaysUpdate`) and NiMorphData (the morph count, the vertex count, the relative-targets byte, then each morph's
+  // float keys - a quadratic key's tangents after its value, a TBC key's three floats - and its vectors).
+  NiGeomMorpherController(o, rec) {
+    o.ref(rec.next ?? -1).u16(rec.flags ?? 8).f32(rec.frequency ?? 1).f32(rec.phase ?? 0);
+    o.f32(rec.startTime ?? 0).f32(rec.stopTime ?? 0).ref(rec.target ?? -1);
+    o.ref(rec.data).u8(rec.alwaysUpdate ?? 0);
+  },
+
+  NiMorphData(o, rec) {
+    o.u32(rec.morphs.length).u32(rec.numVertices).u8(rec.relativeTargets ?? 1);
+    for (const m of rec.morphs) {
+      const keys = m.keys?.keys ?? [];
+      const type = m.keys?.type ?? 1;
+      o.u32(keys.length).u32(type);
+      for (const k of keys) {
+        o.f32(k.time).f32(k.value);
+        if (type === 2) o.f32(k.inTan).f32(k.outTan);
+        else if (type === 3) o.f32Array(k.tbc);
+      }
+      o.f32Array(m.vectors);
+    }
+  },
+
+  NiSkinData(o, rec) {
+    const tr = rec.transform ?? {};
+    o.mat33(tr.rotation ?? IDENTITY3).vec3(tr.translation ?? [0, 0, 0]).f32(tr.scale ?? 1);
+    o.u32(rec.bones.length);
+    o.ref(rec.partitions ?? -1);
+    for (const b of rec.bones) {
+      const t = b.transform ?? {};
+      o.mat33(t.rotation ?? IDENTITY3).vec3(t.translation ?? [0, 0, 0]).f32(t.scale ?? 1);
+      o.vec3(b.center ?? [0, 0, 0]).f32(b.radius ?? 0);
+      o.u16(b.indices.length);
+      for (let v = 0; v < b.indices.length; v++) o.u16(b.indices[v]).f32(b.weights[v]);
+    }
+  },
 };
+
+/** MW-CAST1: a KeyGroup<T> as the reader takes it (mwNifFile.js readKeyGroupOf): the count, then - only when there are
+ *  keys - the interpolation type and the keys, a quadratic key's two tangents and a TBC key's three floats after its
+ *  value. `dim` is 1 for a float group, 3 for a vector. */
+function keyGroup(o, group, dim) {
+  const keys = group?.keys ?? [];
+  o.u32(keys.length);
+  if (!keys.length) return;
+  const type = group.type ?? 1;
+  o.u32(type);
+  const val = (v) => (dim === 1 ? o.f32(v) : o.f32Array(v));
+  for (const k of keys) {
+    o.f32(k.time);
+    val(k.value);
+    if (type === 2) { val(k.inTan); val(k.outTan); }
+    else if (type === 3) o.f32Array(k.tbc);
+  }
+}
 
 /** The sphere the exporter writes beside the vertices. */
 export function boundingSphere(positions) {
@@ -269,24 +379,105 @@ export function meshesToNif(shapes, { node = null, keepV = false } = {}) {
   if (!shapes?.length) throw new Error('no meshes to write');
   // 0: the root. Rule 34 wipes its transform in the parser anyway.
   const records = [{ type: 'NiNode', name: node ?? shapes[0].mesh?.name ?? 'Root', children: [] }];
-  for (const { mesh, texture = null } of shapes) {
-    if (!mesh?.positions?.length) throw new Error('this mesh has no positions');
-    if (!mesh.indices?.length) throw new Error('this mesh has no triangles');
-    // V GOES DOWN in a NIF. See the header.
-    const uvs = mesh.uvs
-      ? mesh.uvs.map((v, i) => (i % 2 === 1 && !keepV ? 1 - v : v))
-      : null;
-    const at = records.length;
-    records[0].children.push(at);
-    records.push(
-      // the shape. NAMELESS - see the header's MW-D6 note.
-      { type: 'NiTriShape', name: '', data: at + 1, properties: [at + 2, at + 3, at + 4] },
-      { type: 'NiTriShapeData', positions: mesh.positions, normals: mesh.normals, uvs, indices: mesh.indices },
-      { type: 'NiMaterialProperty', name: `${mesh.name ?? 'mesh'}Material` },
-      { type: 'NiTexturingProperty', textures: [texture ? { source: at + 5 } : null] },
-      { type: 'NiStencilProperty', drawMode: 3 },       // rule 65: Both
-    );
-    if (texture) records.push({ type: 'NiSourceTexture', fileName: texture });
+  for (const shape of shapes) shapeRecords(records, shape, keepV);
+  return writeNif(records, [0]);
+}
+
+/** One shape's records under root 0 - the shape, its data, material, texturing, stencil and source - and, for a
+ *  skinned one (MW-STEEL4), its skin instance and data after them. A rigid shape is the records meshesToNif always
+ *  wrote, in the same order. */
+function shapeRecords(records, { mesh, texture = null, name = '', skin = null }, keepV) {
+  if (!mesh?.positions?.length) throw new Error('this mesh has no positions');
+  if (!mesh.indices?.length) throw new Error('this mesh has no triangles');
+  // V GOES DOWN in a NIF. See the header.
+  const uvs = mesh.uvs
+    ? mesh.uvs.map((v, i) => (i % 2 === 1 && !keepV ? 1 - v : v))
+    : null;
+  const at = records.length;
+  records[0].children.push(at);
+  const skinAt = at + (texture ? 6 : 5);
+  records.push(
+    // the shape. NAMELESS unless named - see the header's MW-D6 note; a skinned part's shape is named for rule 15
+    { type: 'NiTriShape', name, data: at + 1, properties: [at + 2, at + 3, at + 4], ...(skin ? { skin: skinAt } : {}) },
+    { type: 'NiTriShapeData', positions: mesh.positions, normals: mesh.normals, uvs, indices: mesh.indices },
+    { type: 'NiMaterialProperty', name: `${mesh.name ?? 'mesh'}Material` },
+    { type: 'NiTexturingProperty', textures: [texture ? { source: at + 5 } : null] },
+    { type: 'NiStencilProperty', drawMode: 3 },       // rule 65: Both
+  );
+  if (texture) records.push({ type: 'NiSourceTexture', fileName: texture });
+  if (skin) records.push({ type: 'NiSkinInstance', data: skinAt + 1, skeletonRoot: 0, bones: skin.bones }, { type: 'NiSkinData', bones: skin.data });
+}
+
+/** An affine's inverse, for the rigid transforms a skeleton's bind is made of: (R^T, -R^T t). */
+function rigidInverse({ a, t }) {
+  const r = [a[0], a[3], a[6], a[1], a[4], a[7], a[2], a[5], a[8]];
+  return { a: r, t: [-(r[0] * t[0] + r[1] * t[1] + r[2] * t[2]), -(r[3] * t[0] + r[4] * t[1] + r[5] * t[2]), -(r[6] * t[0] + r[7] * t[1] + r[8] * t[2])] };
+}
+
+/**
+ * MW-STEEL4: SEVERAL baked meshes as ONE SKINNED part, the shape a retail body part or armour piece has - each shape
+ * a NiSkinInstance over named bones and a NiSkinData of their inverse binds and weights, so the reader takes it on
+ * the very path it takes Morrowind's own (bindPart's skinned branch, rule 12: rebound onto the wearer's skeleton by
+ * the bones' NAMES, never parented to a bone; drawn by skinBatch, rule 20).
+ *
+ * `bones` is `[{ name, bind: { a, t } }]`: where each bone stood in the BIND POSE, in the frame the meshes are
+ * authored in (`a` row-major, as mwAffine's affines are). Each shape is `{ mesh, texture, name, weights }`, `name`
+ * the shape's own (rule 15's filter picks a skinned part's geometry by it: "Tri Right Hand 0" for the right hand),
+ * and `weights` one `[[boneName, weight], ...]` list per vertex. What is written for each:
+ *
+ *   NiSkinInstance  its data, the root (0) as its skeleton root, and the bones the shape weights, in `bones` order
+ *   NiSkinData      an identity skin transform, and per bone its INVERSE BIND - the bind undone, mesh space to bone
+ *                   space, as rule 19 reads it (no inversion at load) - its vertices' bounding sphere in that bone's
+ *                   space, and its (vertex, weight) list
+ *
+ * and the bones themselves, as NiNodes under the root standing at their binds, after every shape: the file is its own
+ * bind pose, so a tool that skins it against its own nodes (NifSkope) draws it where it was authored. The port never
+ * reads them - a rebound part's bones are the wearer's (rule 12) - and so their order costs a shape's records nothing:
+ * a rigid shape here would be the records meshesToNif writes.
+ */
+export function skinnedMeshesToNif(shapes, { node, bones, keepV = false }) {
+  if (!shapes?.length) throw new Error('no meshes to write');
+  if (!bones?.length) throw new Error('a skinned part needs its bones');
+  const records = [{ type: 'NiNode', name: node ?? 'Root', children: [] }];
+  const boneAt = new Map();
+  const nodeOf = new Map(bones.map((b, i) => [b.name, i]));
+  const shapeSkins = shapes.map(({ mesh, weights }) => {
+    const n = mesh.positions.length / 3;
+    if (weights?.length !== n) throw new Error(`${n} vertices and ${weights?.length ?? 0} weight lists`);
+    const per = new Map();
+    weights.forEach((list, v) => {
+      if (!list.length) throw new Error(`vertex ${v} carries no weight`);
+      for (const [name, w] of list) {
+        if (!nodeOf.has(name)) throw new Error(`vertex ${v} is weighted to "${name}", which is not one of the part's bones`);
+        if (!per.has(name)) per.set(name, { indices: [], weights: [] });
+        per.get(name).indices.push(v);
+        per.get(name).weights.push(w);
+      }
+    });
+    return bones.filter((b) => per.has(b.name)).map((b) => {
+      const inv = rigidInverse(b.bind);
+      const { indices, weights: ws } = per.get(b.name);
+      const local = [];
+      for (const v of indices) {
+        const x = mesh.positions[v * 3], y = mesh.positions[v * 3 + 1], z = mesh.positions[v * 3 + 2];
+        local.push(inv.a[0] * x + inv.a[1] * y + inv.a[2] * z + inv.t[0], inv.a[3] * x + inv.a[4] * y + inv.a[5] * z + inv.t[1], inv.a[6] * x + inv.a[7] * y + inv.a[8] * z + inv.t[2]);
+      }
+      const sphere = boundingSphere(local);
+      return { name: b.name, data: { transform: { rotation: inv.a, translation: inv.t, scale: 1 }, center: sphere.center, radius: sphere.radius, indices, weights: ws } };
+    });
+  });
+  // the bones' records come after every shape's, so their indices are known once the shapes are laid out
+  let next = 1;
+  for (const s of shapes) next += (s.texture ? 6 : 5) + 2;
+  for (const b of bones) if (shapeSkins.some((list) => list.some((x) => x.name === b.name))) boneAt.set(b.name, next++);
+  shapes.forEach((shape, i) => shapeRecords(records, {
+    mesh: shape.mesh, texture: shape.texture ?? null, name: shape.name ?? '',
+    skin: { bones: shapeSkins[i].map((x) => boneAt.get(x.name)), data: shapeSkins[i].map((x) => x.data) },
+  }, keepV));
+  for (const b of bones) {
+    if (!boneAt.has(b.name)) continue;
+    records[0].children.push(records.length);
+    records.push({ type: 'NiNode', name: b.name, translation: [...b.bind.t], rotation: [...b.bind.a], scale: 1, children: [] });
   }
   return writeNif(records, [0]);
 }

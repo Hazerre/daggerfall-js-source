@@ -1,13 +1,16 @@
 // INTRO2: live browser/audio integration, independent of the rendered preview.
 // Run: node tools/introProbe.mjs [output-directory]. Starts its own Vite server.
 import assert from 'node:assert/strict';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { chromium, devices } from 'playwright';
 import { createServer } from 'vite';
-import { TITLE_IMPACT_TIME, TITLE_ENTER_TIME, TITLE_READY_TIME } from '../src/ui/introCue.js';
+import { TITLE_IMPACT_TIME, TITLE_ENTER_TIME, TITLE_READY_TIME } from '../src/ui/intro/introCue.js';
 import { MENU_THEME_GAIN } from '../src/systems/introTheme.js';
 
 const out = process.argv[2] ?? 'test-harness/intro';
+// BR5: the logo's own size, off its IHDR - this probe wrote BR4's 2112 x 850 in, and a new mark failed it for that alone
+const LOGO_PNG = readFileSync(new URL('../src/assets/branding/dfo-online.png', import.meta.url));
+const LOGO_W = LOGO_PNG.readUInt32BE(16), LOGO_H = LOGO_PNG.readUInt32BE(20);
 mkdirSync(out, { recursive: true });
 const server = await createServer({ server: { port: 5201, strictPort: true }, logLevel: 'error' });
 await server.listen();
@@ -87,9 +90,9 @@ try {
     return t.source === window.__sourceBefore && t.time() > time && t.level === gain && t.gain.gain.value < 0.3 && t.context.state === 'running';
   }, { time: beforeMenuTime, gain: MENU_THEME_GAIN }));
   check('transition input cannot activate a menu action', await page.locator('#pick').count() === 0 && await page.locator('#enhanced-menu').count() === 1);
-  check('shared supplied logo loads in the main menu', await page.locator('.px-wordmark .brand-logo').evaluate(img => img.complete && img.naturalWidth === 2112));
+  check('shared supplied logo loads in the main menu', await page.locator('.px-wordmark .brand-logo').evaluate((img, w) => img.complete && img.naturalWidth === w, LOGO_W));
   await shot(page, '07-main-menu');
-  await page.evaluate(async () => { const { setValue } = await import('/src/systems/settings.js'); setValue('Controls', 'MusicVolume', 0); });
+  await page.evaluate(async () => { const { setValue } = await import('/src/systems/settings/settings.js'); setValue('Controls', 'MusicVolume', 0); });
   await page.waitForFunction(() => window.__intro.theme.gain.gain.value < 0.001);
   check('menu music obeys live volume settings', true);
   await closeAccount(page);
@@ -160,12 +163,12 @@ try {
       for (const [t, label] of [[3, '02-interkarma'], [7, '03-nexus'], [12.5, '04-cloud-rise'], [17.6, '05-bay']]) { await seek(p, t); await shot(p, label); }
     }
     await seek(p, 24);
-    const layout = await p.evaluate(() => {
+    const layout = await p.evaluate((w) => {
       const logo = document.querySelector('.intro-title img'), button = document.querySelector('.intro-continue');
       const a = logo.getBoundingClientRect(), b = button.getBoundingClientRect();
-      return { width: innerWidth, height: innerHeight, logo: { x: a.x, y: a.y, width: a.width, height: a.height, bottom: a.bottom, right: a.right }, button: { y: b.y, bottom: b.bottom, height: b.height }, loaded: logo.naturalWidth === 2112 };
-    });
-    check(`${name}: logo fits at its natural aspect and clears the tap target`, layout.loaded && layout.logo.x >= 0 && layout.logo.right <= layout.width + 1 && Math.abs(layout.logo.width / layout.logo.height - 2112 / 850) < 0.01 && layout.logo.bottom < layout.button.y && layout.button.bottom < layout.height && layout.button.height >= 44, layout);
+      return { width: innerWidth, height: innerHeight, logo: { x: a.x, y: a.y, width: a.width, height: a.height, bottom: a.bottom, right: a.right }, button: { y: b.y, bottom: b.bottom, height: b.height }, loaded: logo.naturalWidth === w };
+    }, LOGO_W);
+    check(`${name}: logo fits at its natural aspect and clears the tap target`, layout.loaded && layout.logo.x >= 0 && layout.logo.right <= layout.width + 1 && Math.abs(layout.logo.width / layout.logo.height - LOGO_W / LOGO_H) < 0.01 && layout.logo.bottom < layout.button.y && layout.button.bottom < layout.height && layout.button.height >= 44, layout);
     await shot(p, `title-${name}`);
     await p.locator('.intro-continue').click(); await p.waitForSelector('#intro', { state: 'detached' });
     await shot(p, `menu-${name}`);

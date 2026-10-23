@@ -16,7 +16,7 @@
 //     EXCLUDES index 0 - so a coven can never draw Hircine, who is
 //     Glenmoril's alone. The stored index and day live on the player.
 //   - EVERYONE ELSE (temples, the Mages Guild) summons whoever's
-//     summoning day it is, and nobody at all on the other 349.
+//     summoning day it is, and nobody at all on the other 344.
 //
 // THE COST IS THE SUMMONER'S REPUTATION, INVERTED: 200000 - rep*1000.
 // At rep 0 that is two hundred thousand gold; at the +100 ceiling it
@@ -40,8 +40,10 @@
 // over it in four-line chunks - the file names this table carried
 // were, as promised, all it had to look up.
 
-import { FACTION_FLAGS } from './factionRep.js';
+import { FACTION_FLAGS } from './faction/factionRep.js';
 import { FACTION_TYPES, GUILD_GROUPS } from '../formats/factionFile.js';
+import { getLocalizedFactionName, t } from './textManager.js';   // L10N3e: %dae, the prince's name in the player's language; SUMMON-OFFER: the summoner's word when no quest can be made
+import { noteFirstUse } from './tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 
 /** The sixteen princes, in DFU's own array order - the order is
  *  load-bearing twice: index 0 is Hircine (Glenmoril's, and excluded
@@ -81,6 +83,65 @@ export const SUMMON_TEXT = Object.freeze({
   notToday: 480, areYouSure: 481, before: 482, failed: 484,
 });
 
+/**
+ * SUMMON-NAME (2026-10-07, bible/06-Systems/Online-Waits.md WAIT3; Mac: "Take care of this", over the sweep of the
+ * waits still long online). DFU's temple and Mages Guild answer one prince on his own day of the year and nobody on the
+ * other 344 (`daedraForSummoner` below, unchanged); a single player rests out the days to his, minutes of it. Online
+ * the day is the sky's (TIME1) and no rest moves the sky: since SKY-SLOW a sky year is fifteen real days, so a prince
+ * answered for one real hour in fifteen days, and between Vaernima's day (190) and Nocturnal's (248) no temple and no
+ * Mages Guild answered for 57 real hours (a coven still draws its prince of the day). For the reason OL4 gave the shops
+ * their night shift - a schedule no player can wait out by resting is a real-time lockout - online the summoner calls
+ * the prince the player NAMES, on any day. The rest is DFU's whole: the price off the summoner's own regard, the chance
+ * off the prince's (and his weather's favour), Sheogorath's gatecrash, the prince met before, the gold gone whatever the
+ * roll, the quest he offers (SUMMON-OFFER, attemptSummoning: the gold and the flag only once it is made). A witches'
+ * coven keeps its own law - one prince a day, drawn (the event clock's day online, TIME1), Glenmoril's always Hircine -
+ * and offline nothing moves.
+ */
+export const summonsByName = ({ factionId = 0, factionType = null, online = false } = {}) => !!online
+  && factionId !== GLENMORIL_WITCHES && factionType !== WITCHES_COVEN_TYPE;
+/** SUMMON-NAME: the sixteen as the online summoner lists them - by name, the way a player looks for one. */
+export const PRINCES_BY_NAME = Object.freeze([...DAEDRA].sort((a, b) => a.name.localeCompare(b.name)));
+/** SUMMON-NAME: the question online. Record 481 opens "Today is %dat, the day of summoning for %dae", which online
+ *  is false on every day but his; its own next words ask the question, and are the box - DFU's rows from "Do you",
+ *  its breaks and its "you life" kept. The vendored record's words, for a record that has no second sentence. */
+export const SUMMON_BY_NAME_ROWS = Object.freeze([
+  Object.freeze({ text: 'Do you, %pcn, wish', center: true }),
+  Object.freeze({ text: 'to risk you life and very soul by summoning', center: true }),
+  Object.freeze({ text: '%dae into our mundane world?', center: true }),
+]);
+/** SUMMON-NAME (AUDIT WAITS S4): the question as the game's own record 481 words it - its rows from the end of its first
+ *  sentence on, breaks and alignment kept, so the box says what the record says wherever the record was read from (a
+ *  translation's TEXT.RSC); SUMMON_BY_NAME_ROWS, the vendored record's own, when it has no second sentence. Rows are
+ *  the reader's (`{ text, center }`, or a plain string) and read before %dae is resolved - the first sentence holds
+ *  only %dat and %dae, neither of which writes a full stop. */
+export function summonQuestionRows(record) {
+  const rows = Array.isArray(record) ? record : [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const text = typeof row === 'string' ? row : String(row?.text ?? '');
+    const end = /[.!?](?:\s+|$)/.exec(text);
+    if (!end) continue;
+    const rest = text.slice(end.index + end[0].length);
+    const tail = [...(rest ? [typeof row === 'string' ? rest : { ...row, text: rest }] : []), ...rows.slice(i + 1)];
+    return tail.length ? tail : SUMMON_BY_NAME_ROWS;
+  }
+  return SUMMON_BY_NAME_ROWS;
+}
+/** SUMMON-NAME: the online flow's boxes (guildServiceWindows.js ServiceFlowWindow's shapes) - the sixteen by name, then
+ *  the question about the one picked. `summon(daedra)` is the host's Yes, the popup's own answer (a box, or null once a
+ *  window is dispatched), wrapped into the flow's list; `ask(daedra)` is the question's rows about him, read and walked
+ *  once for its box (the host's: record 481 cut by summonQuestionRows, then %dae and %pcn resolved). */
+export function summonByNameBoxes(summon, ask = () => SUMMON_BY_NAME_ROWS) {
+  return [{
+    picker: PRINCES_BY_NAME.map((d) => d.name),
+    onPick: (i) => [{
+      rows: ask(PRINCES_BY_NAME[i]),
+      buttons: 'YesNo',
+      onYes: () => { const next = summon(PRINCES_BY_NAME[i]); return next ? [next] : null; },
+    }],
+  }];
+}
+
 /** DAEDRA1 - THE SUMMONING'S OWN MACRO, and the reason it needs one.
  *  Record 481 reads "Today is %dat, the day of summoning for %dae. Do
  *  you, %pcn, wish to risk you life and very soul by summoning %dae
@@ -97,8 +158,14 @@ export const SUMMON_TEXT = Object.freeze({
  *  A null daedra - the "not a summoning day" record, which names none -
  *  answers null, and `expandMacroValues` leaves the token verbatim
  *  rather than printing an empty hole. That record does not carry %dae
- *  anyway; the posture is the guard, not a case. */
-export const summonMacroValues = (daedra) => Object.freeze({ dae: daedra?.name ?? null });
+ *  anyway; the posture is the guard, not a case.
+ *
+ *  L10N3e: DFU's Daedra() reads the prince's faction through
+ *  GetFactionData (DaggerfallGuildServicePopupWindow.cs:739-740,
+ *  DaggerfallWitchesCovenPopupWindow.cs:266-267), whose name is a
+ *  translation's for the faction id (PersistentFactionData.cs:176). The
+ *  table's `name` is FACTION.TXT's for that id, and stays the key. */
+export const summonMacroValues = (daedra) => Object.freeze({ dae: daedra?.name != null ? getLocalizedFactionName(daedra.factionId, daedra.name) : null });
 
 /** The five daedric foes a FAILED coven summoning spawns (:70-72) -
  *  Range(0, 5) over a five-entry array, so every one is reachable. */
@@ -166,18 +233,41 @@ export function weatherBonus(daedra, { raining = false, storming = false } = {})
  *                                                daedric foes on you
  *   { kind: 'greeting', daedra, cost, textId } - already summoned this
  *                                                prince before
- *   { kind: 'quest', daedra, cost, quest }     - the offer
+ *   { kind: 'noQuest', daedra, cost, quest }   - he answered, but his
+ *                                                quest cannot be made here
+ *                                                (SUMMON-OFFER, below)
+ *   { kind: 'quest', daedra, cost, quest, flag, offered } - the offer
  *
- * The gold is spent BEFORE the roll and is not refunded on a failure:
- * you paid for the summoning, not for the prince turning up.
+ * The gold pays for the summoning, not for the prince turning up, so a
+ * failure is not refunded: the caller spends `cost` on 'failed',
+ * 'greeting' and 'quest' alike, and records `flag` on 'quest' alone.
+ *
+ * SUMMON-OFFER (FIELD BUGS 2026-10-14, "Daedra Summoning bugged"; a
+ * departure, Port-Ledger section A). DFU spends the gold, then records
+ * the Summoned flag, and only THEN asks QuestListsManager.GetQuest for
+ * the prince's quest (DaggerfallQuestPopupWindow.ConfirmSummon_OnButtonClick).
+ * GetQuest answers null whenever the quest's parse throws - ParseQuest
+ * swallows it (QuestMachine.cs) - and a remote Place or Person that
+ * finds no site in the player's region is exactly such a throw
+ * (Place.SetupRemoteSite, "Search failed to locate matching remote
+ * site"): Hermaeus Mora's W0C00Y00 and Mephala's Z0C00Y00 want a
+ * palace. So a summoning in a region without one took the gold and the
+ * flag and showed nothing, and the flag answers every later summoning
+ * of him with "You have summoned %dae once" - his quest never offered
+ * again. Here the quest is asked for where DFU asks (after the roll,
+ * for a prince not met before) through `offerQuest(questName)` - the
+ * offer flow's step, or null when no quest could be made - and the
+ * decision is that step's: no step, no 'quest', so nothing is spent and
+ * nothing recorded.
  */
 export function attemptSummoning({
   daedra, summonerRep = 0, summonerGuildGroup = null, gold = 0,
-  daedraRep = () => 0, hasSummoned = () => false,
+  daedraRep = () => 0, hasSummoned = () => false, offerQuest = () => null,
   raining = false, storming = false, rolls = Math.random,
 } = {}) {
   const cost = summoningCost(summonerRep);
   if (gold < cost) return { kind: 'poor', cost };
+  noteFirstUse('daedra-summoning');   // TUT1: a summoning the purse can pay for (AUDIT TUT1: not the purse's refusal)
 
   // Sheogorath's 5% (15% storming) hijack, rolled BEFORE the summoning
   // chance - so the chance that follows is HIS, not the one you paid
@@ -198,5 +288,14 @@ export function attemptSummoning({
   if (hasSummoned(called.factionId)) {
     return { kind: 'greeting', daedra: called, cost, textId: SUMMON_TEXT.before };
   }
-  return { kind: 'quest', daedra: called, cost, quest: called.quest, flag: FACTION_FLAGS.Summoned };
+  // SUMMON-OFFER: GetQuest(daedraToSummon.quest, summonerFactionData.id), before the gold and the flag
+  const offered = offerQuest(called.quest);
+  if (!offered) return { kind: 'noQuest', daedra: called, cost, quest: called.quest };
+  return { kind: 'quest', daedra: called, cost, quest: called.quest, flag: FACTION_FLAGS.Summoned, offered };
 }
+
+/** SUMMON-OFFER: the summoner's word when the prince who answered has no quest that can be made in this region - the
+ *  prince as %dae shows him (L10N3e, PersistentFactionData.cs:176). The port's own: DFU says nothing here. */
+export const noQuestText = (daedra) => t('summon.noQuest',
+  '{prince} answers, but has no task for you in this region. You keep your gold. Try summoning in another region.',
+  { prince: getLocalizedFactionName(daedra.factionId, daedra.name) });

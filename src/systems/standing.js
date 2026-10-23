@@ -22,12 +22,16 @@
 //
 // Node-pure: every clock read is the caller's `now` - the character's own minutes for the watch's stops and graces
 // (LIVED1: the standing is the character's), the WORLD's for a banishment's term (a sentence of the realm, on its
-// calendar - online it lifts after about two and a half real days whether or not the player plays).
+// calendar, whether or not the player plays). BANISH-SKY: the term is thirty days of the calendar the player SEES -
+// online the sky's (about thirty real hours since SKY-SLOW), stamped on the world's event clock as every term is, and
+// measured across with the sky's own law (skyCalendar.js, which the shared clock switches on with the sky it installs).
 import { CRIMES } from './crimes.js';
 import {
   legalRepOf, changeLegalRep, LEGAL_REP_MAX, BASE_PENALTY, PENALTY_PER_LEGAL_REP_POINT, MIN_PENALTY, MAX_PENALTY,
+  raisePeopleForAnswer,   // FIELD BUGS 2026-10-16b FINE-PEOPLE: a fine and a penance give back the People's half too
 } from './court.js';
 import { SEVERE_PUNISHMENT_BANISHED } from './encounters.js';
+import { skyMinuteOfEvent, eventMinuteOfSky } from './skyCalendar.js';   // BANISH-SKY: the calendar the player sees, against the event clock's stamps
 
 /** DFU's own line (PlayerEntity.cs:500, `LegalRep < -10`): below it the watch knows your face. */
 export const KNOWN_CRIMINAL_BELOW = -10;
@@ -35,8 +39,24 @@ export const KNOWN_CRIMINAL_BELOW = -10;
 export const CHALLENGE_COOLDOWN_MINUTES = 120;
 /** A game day's grace once the law has been answered: nobody stops a criminal on the courthouse steps. */
 export const CHALLENGE_GRACE_MINUTES = 1440;
-/** A banishment's term: thirty days of the world's calendar. */
+/** A banishment's term: thirty days of the world's calendar - offline DFU's one clock; online the days of the sky the
+ *  player sees (BANISH-SKY, banishmentEnd below). */
 export const BANISHMENT_MINUTES = 30 * 1440;
+/**
+ * BANISH-SKY (2026-10-07, bible/06-Systems/Online-Waits.md WAIT4; Mac: "Take care of this", over the sweep of the waits
+ * still long online). REP3's thirty days were counted on the world's event clock (TimeScale 12): sixty real hours. But
+ * the calendar every menu shows online is the sky's (TIME1), whose day is one real hour since SKY-SLOW - so a player told
+ * "banished for 28 more days" watched twenty-eight days go by on the calendar and was still banished for as long again.
+ * The term is now thirty days of the calendar the player sees: stamped, as every term, in the event clock's minutes
+ * (TIME's rule - no stamp is taken on the sky), at the event minute the sky reads thirty days on - measured with the
+ * sky's own law (skyCalendar.js), so it is exact across any change of the sky's rate (AUDIT WAITS B4: a rate read at
+ * the stamp would have sized a term begun near a switch on the wrong rate). With no sky standing - offline, or a shared
+ * clock installed without one - the calendar is the one clock: REP3's thirty days whole.
+ */
+export const banishmentEnd = (worldNow) => eventMinuteOfSky(skyMinuteOfEvent(worldNow) + BANISHMENT_MINUTES);
+/** BANISH-SKY: a thousandth of a game minute - the two laws' round trip is exact to a few millionths, and a days-left
+ *  count must not read 31 at the stamp for the float's sake. */
+const CALENDAR_EPSILON_MINUTES = 1e-3;
 /** A temple's penance: five points of a region's law back toward zero, never past it. */
 export const PENANCE_POINTS = 5;
 /** The first penance's price in a region; the nth costs n times it. */
@@ -73,14 +93,14 @@ export function restoreStanding(player, snap) {
 
 // ---- REP3: banishment, timed or pardoned ------------------------------------------------------------------------
 
-/** Banish the character from a region for BANISHMENT_MINUTES of the world's calendar (the court's state 4). The flag
+/** Banish the character from a region for the calendar's thirty days (banishmentEnd; the court's state 4). The flag
  *  bit is DFU's own field (`SeverePunishmentFlags |= 1`), kept for the classic save and every reader of it. */
 export function banish(player, regionIndex, worldNow) {
   const r = player.regionConditions?.[regionIndex];
   if (!r) return false;
   r.severePunishmentFlags |= SEVERE_PUNISHMENT_BANISHED;
   // AUDIT REP F2: an untrusted clock (worldTick.js trustedWorldMinutes' NaN) stamps nothing - the first trusted read does
-  r.banishedUntil = Number.isFinite(worldNow) ? worldNow + BANISHMENT_MINUTES : null;
+  r.banishedUntil = Number.isFinite(worldNow) ? banishmentEnd(worldNow) : null;   // BANISH-SKY: the calendar's thirty days
   return true;
 }
 /** Lift a region's banishment (its term run out, or a pardon). */
@@ -98,7 +118,7 @@ export function isBanished(player, regionIndex, worldNow) {
   if (!r || (r.severePunishmentFlags & SEVERE_PUNISHMENT_BANISHED) === 0) return false;
   // AUDIT REP F2: the world's calendar not yet trusted (online, the relay unheard): banished, and nothing stamped or lifted
   if (!Number.isFinite(worldNow)) return true;
-  if (!Number.isFinite(r.banishedUntil)) r.banishedUntil = worldNow + BANISHMENT_MINUTES;
+  if (!Number.isFinite(r.banishedUntil)) r.banishedUntil = banishmentEnd(worldNow);   // BANISH-SKY: the calendar's thirty days
   if (worldNow >= r.banishedUntil) { liftBanishment(player, regionIndex); return false; }
   return true;
 }
@@ -107,6 +127,15 @@ export function banishmentLeft(player, regionIndex, worldNow) {
   if (!isBanished(player, regionIndex, worldNow)) return 0;
   if (!Number.isFinite(worldNow)) return NaN;   // AUDIT REP F2: not known until the world's calendar is trusted
   return player.regionConditions[regionIndex].banishedUntil - worldNow;
+}
+/** BANISH-SKY: the days a banishment has left in the calendar the player sees (the sky's, online), rounded up - its last
+ *  hour is still a day - 0 when none, NaN while the term is not known (AUDIT REP F2). The priest and the Standing page
+ *  say these; the span is measured with the sky's law, end against now. */
+export function banishmentDaysLeft(player, regionIndex, worldNow) {
+  const left = banishmentLeft(player, regionIndex, worldNow);
+  if (!Number.isFinite(left) || left <= 0) return left;
+  const span = skyMinuteOfEvent(worldNow + left) - skyMinuteOfEvent(worldNow);
+  return Math.max(1, Math.ceil((span - CALENDAR_EPSILON_MINUTES) / 1440));
 }
 export function pardonPrice(player, regionIndex) {
   return PARDON_BASE_PRICE * ((standingOf(player).pardons[regionIndex] ?? 0) + 1);
@@ -136,6 +165,48 @@ export function challengeDue(player, regionIndex, { ownNow, worldNow = ownNow })
 }
 export function noteChallenge(player, regionIndex, ownNow) { standingOf(player).challengeAt[regionIndex] = ownNow; }
 export function grantGrace(player, regionIndex, ownNow) { standingOf(player).graceUntil[regionIndex] = ownNow + CHALLENGE_GRACE_MINUTES; }
+/** FIELD BUGS 2026-10-21d PATROL-GRACE: whether a road patrol's knight draws on the character (LW9) - a known criminal
+ *  in the patrol's region, and no grace standing there. The grace an answered law gives (a sentence served, a fine paid:
+ *  "nobody stops a criminal on the courthouse steps") held the town's watch alone: a prisoner let out was met on the
+ *  road outside by a knight who drew at once, could not be surrendered to, and whose death in the fight the road carried
+ *  to the town as a Murder - a charge no court ever tried, so none could give it back. */
+export function patrolHalts(player, regionIndex, { ownNow, worldNow = ownNow }) {
+  return knownCriminal(player, regionIndex, { ownNow, worldNow }) && ownNow >= (standingOf(player).graceUntil[regionIndex] ?? -Infinity);
+}
+/** FIELD BUGS 2026-10-14 FINE-MENDS (Dweme... on the Discord: stopped for 560 gold three times with no new crime; Mac:
+ *  "Fine raises standing"). A fine paid on the spot mends the payer's name by a temple penance's step (PENANCE_POINTS),
+ *  never past the watch's line - a fine bought a day's grace and nothing else, so the same standing stopped the player
+ *  again the day after for the same sum. A name a step or two under the line is clear in a fine or two; one far under it
+ *  pays more fines, each its standing's price. Answers the points moved. */
+export function settleChallenge(player, regionIndex) { return mendToLine(player, regionIndex, 'fine'); }
+/** FIELD BUGS 2026-10-21d SENTENCE-MENDS (the "Retaining criminal status even after going to prison and serving
+ *  sentence" thread: "Guards will still chase you down and kill you, even if you have already been to prison"; today,
+ *  "Does serving time NOT count as 'doing penance'?"). A sentence the court passed and the prisoner answered - days
+ *  served, or the court's fine paid with none - mends the name as the watch's fine does (FINE-MENDS' step, never past the
+ *  line, the People's half with it). The court gave back the charge it tried (REP2) and nothing of the name it priced the
+ *  sentence by, so a standing under the line before the arrest - a quest's `legal repute` (A0C00Y17's escort refused to
+ *  the watch: -20), a report the road carried, an online death's kept charge - walked out of prison as known as it went
+ *  in: stopped again a day later, the patrols drawing on it, and the stop's own "come quietly" a closed loop (a
+ *  Conspiracy charged, served and given back). Not an acquittal (the court tried nothing to answer), a guild's rescue
+ *  (the guild answered, not the prisoner) or a banishment (DFU's state 4 repairs nothing). Answers the points moved.
+ *  AUDIT FB1021d SM-3: it answers the name the prisoner CAME IN WITH - never past what stood under the line before the
+ *  charge (`from`, arrestFlow.js chargeOnce) - so the crime's own mark (REP2's, DFU's: a Murder keeps half its charge) is
+ *  the court's due, as DFU keeps it: a Treason from a clean name stays -18, where the step had worn it to -13.
+ *  SM-4: and once a grace - an answer inside the day's grace the last one gave (`ownNow`) mends nothing more, so a petty
+ *  crime self-reported (a night in the street, given back whole) is no step an hour.
+ *  @param {any} player @param {number} regionIndex @param {{ from?: number | null, ownNow?: number | null }} [at] */
+export function sentenceMends(player, regionIndex, { from = null, ownNow = null } = {}) {
+  if (ownNow != null && ownNow < (standingOf(player).graceUntil[regionIndex] ?? -Infinity)) return 0;
+  return mendToLine(player, regionIndex, 'served', from == null ? Infinity : Math.max(0, KNOWN_CRIMINAL_BELOW - from));
+}
+/** An answer to the law - the watch's fine, a sentence - mends the name by a temple penance's step toward the watch's
+ *  line, never past it (nor past `most`), and the People's half with it (FINE-PEOPLE). Answers the points moved. */
+function mendToLine(player, regionIndex, kind, most = Infinity) {
+  const rep = legalRepOf(player, regionIndex);
+  const pts = rep < KNOWN_CRIMINAL_BELOW ? Math.min(PENANCE_POINTS, KNOWN_CRIMINAL_BELOW - rep, most) : 0;
+  if (pts) { changeLegalRep(player, regionIndex, pts, { kind }); raisePeopleForAnswer(player, regionIndex, pts); }   // FINE-PEOPLE
+  return pts;
+}
 /** The fine the watch asks on the spot: the court's own Criminal Conspiracy penalty at this standing, every unit in coin
  *  and no days (the court would split it between both, and halve it for a guilty plea) - double for a banished one. */
 export function challengeFine(player, regionIndex, { ownNow = 0, worldNow = ownNow } = {}) {
@@ -173,7 +244,7 @@ export const penanceHelps = (player, regionIndex) => legalRepOf(player, regionIn
 export function doPenance(player, regionIndex) {
   const rep = legalRepOf(player, regionIndex);
   const points = rep < 0 ? Math.min(PENANCE_POINTS, -rep) : 0;
-  if (points) changeLegalRep(player, regionIndex, points, { kind: 'penance' });
+  if (points) { changeLegalRep(player, regionIndex, points, { kind: 'penance' }); raisePeopleForAnswer(player, regionIndex, points); }   // FINE-PEOPLE
   const s = standingOf(player);
   s.penance[regionIndex] = (s.penance[regionIndex] ?? 0) + 1;
   return points;

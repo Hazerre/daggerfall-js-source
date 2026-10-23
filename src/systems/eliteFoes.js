@@ -15,14 +15,20 @@
 //   - outdoors the foe's owner rolls the 5% and the foe record carries it (`z`, net/wire.js), so a puppet stands as the
 //     same elite: the size, the glow and the blows it lands at me (its owner's maximum health rides `k` already).
 //
+// RENOWN-GATE (2026-10-12, bible/06-Systems/Revenants.md section 39): ONLINE, AN ELITE OF MY OWN WAITS FOR RENOWN 5 -
+// the open world's roll and a search's (ELITE_FOE_MIN_RENOWN); a shared dungeon's pick stays every client's, and
+// offline every roll stands as BAL4 has it.
+//
 // PURE but for the item minters - the hosts call in.
-import { createRandomWeapon, createRandomArmor } from './loot.js';
-import { mintCondition, setItemFields } from './itemTemplates.js';
-import { applyRarity, rarityEligible, rarityChances, championSource, corpseSource } from './lootRarity.js';   // ELITE-RARE: the champion's blue the elite's Rare is read off
+import { createRandomWeapon, createRandomArmor } from './loot/loot.js';
+import { mintCondition, setItemFields } from './item/itemTemplates.js';
+import { applyRarity, rarityEligible, rarityChances, championSource, corpseSource, lootRarityOn } from './loot/lootRarity.js';   // ELITE-RARE: the champion's blue the elite's Rare is read off; BAL4: the ladder's switch, offline
 import { goldStack } from './inventory.js';
-import { isAmmunition } from './itemTemplates.js';
-import { KNIGHT_CITY_WATCH } from '../characters/mobileTypes.js';   // ELITE-FLOOR: the watch is never an elite
-import { ENEMY_BASICS } from '../characters/enemyBasics.js';   // ELITE-FLOOR: a kind's own level, the same on every client
+import { isAmmunition } from './item/itemTemplates.js';
+import { KNIGHT_CITY_WATCH } from '../characters/mobile/mobileTypes.js';   // ELITE-FLOOR: the watch is never an elite
+import { ENEMY_BASICS, isClassEnemyId } from '../characters/enemy/enemyBasics.js';   // ELITE-FLOOR: a kind's own level, the same on every client
+import { renownOpens } from './sigil/sigil.js';   // RENOWN-GATE: the page's Renown, the door every Renown-woken power reads
+import { markUnquiet } from './revenant/unquietMark.js';   // UNQUIET (Revenants.md section 46): one elite in four carries the mark - its own, never a puppet's
 
 /** Health and damage, times the foe's own (rolled, before any Elite Dungeon doubling - an elite is 5x, not 10x). */
 export const ELITE_FOE_HEALTH_MULT = 5;
@@ -30,6 +36,12 @@ export const ELITE_FOE_DAMAGE_MULT = 3;
 /** ...and in an Elite Dungeon, where every foe is already doubled: a partial stack, not 10x / 6x. */
 export const ELITE_FOE_ELITE_DUNGEON_HEALTH_MULT = 7;
 export const ELITE_FOE_ELITE_DUNGEON_DAMAGE_MULT = 4;
+/** SD4a (bible/11-Multiplayer/Super-Dungeons.md section 5): ...and in a Super dungeon, where every foe is x4 / x2.5
+ *  already - the Elite Dungeon's stack read the same way: the health the dungeon's and the elite's added (2 + 5 = 7
+ *  there, 4 + 5 = 9 here), the damage the dungeon's and the elite's extra over a plain blow (2 + 2 = 4 there, 2.5 + 2 =
+ *  4.5 here). */
+export const ELITE_FOE_SUPER_DUNGEON_HEALTH_MULT = 9;
+export const ELITE_FOE_SUPER_DUNGEON_DAMAGE_MULT = 4.5;
 /** How much larger the sprite is drawn. */
 export const ELITE_FOE_SIZE = 1.25;
 /** The chance a foe in the open world stands as an elite. ELITE-RATES (2026-10-03, Mac: "Feel like they are too
@@ -44,7 +56,7 @@ export const ELITE_FOE_NORMAL_DUNGEON_CHANCE = 0.2;
 export const ELITE_FOE_LOOT = Object.freeze({ magic: 2, common: 1, legendaryChance: 0.06, goldPerLevel: [20, 60] });   // ELITE-RARE: the Rare's chance is eliteRareChance's, by level
 /** ELITE-RARE (2026-10-03, Mac: an elite's Rare "should be half of" a champion's blue): the elite's extra Rare roll, at a
  *  level - half the chance a champion's body of that level carries a Magic or better, with ELITE_RARE_PIECES eligible
- *  pieces on it (systems/lootRarity.js championSource: its Magic at half a plain foe's), at Luck 50. It was a flat 25%. */
+ *  pieces on it (systems/loot/lootRarity.js championSource: its Magic at half a plain foe's), at Luck 50. It was a flat 25%. */
 export const ELITE_RARE_PIECES = 2;
 export const ELITE_RARE_SHARE = 0.5;
 export function eliteRareChance(level = 1) {
@@ -57,6 +69,17 @@ export const ELITE_FOE_PREFIX = 'Elite ';
 /** ELITE-FLOOR (2026-10-02): an elite is a foe of this level or more - LOOT7's champion floor (systems/champions.js
  *  CHAMPION_MIN_LEVEL), so a new character's first road is never a five-times foe that hits three times as hard. */
 export const ELITE_FOE_MIN_LEVEL = 3;
+/** RENOWN-GATE (2026-10-12, the owner: "gate elite/revenant spawns behind renown level"; asked, "Elites 5, revenants 10",
+ *  offline "Unchanged offline", a shared dungeon "Room's pick stands"): ONLINE, AN ELITE OF MY OWN WAITS FOR THIS RENOWN -
+ *  the open world's roll (rollOverworldElite) and a search's (searchables.js rollSearchElite), each a foe its roller
+ *  stands as its own, so the roller's Renown is the word (a street puppet reads it off `z`). Not a shared dungeon's pick
+ *  (pickDungeonElites): every client builds that alike and the room's memory carries no word of an elite (wire.js
+ *  validSharedFoe), so one client's Renown would split the room - it stays the room's, as ELITE-FLOOR's class level
+ *  does online. A returning revenant stands as what it was (its record's `elite`), never a fresh roll. */
+export const ELITE_FOE_MIN_RENOWN = 5;
+/** RENOWN-GATE: does the page's Renown open an elite of its own? Offline always (sigil.js renownOpens).
+ *  @param {{ online?: boolean, renown?: number|null }} [o] */
+export const eliteRenownOpen = (o) => renownOpens(ELITE_FOE_MIN_RENOWN, o);
 
 /** ELITE-FLOOR: may this freshly built foe stand as an elite? Never under ELITE_FOE_MIN_LEVEL, never the city watch,
  *  never an ally - LOOT7's own exclusions (systems/champions.js applyChampion). */
@@ -65,9 +88,12 @@ export const eliteEligible = (entity, { checkLevel = true } = {}) => !!entity
   && entity.mobileType !== KNIGHT_CITY_WATCH
   && entity.team !== 'PlayerAlly' && entity.mobileTeam !== 'PlayerAlly';
 
-/** ONLINE ONLY (Mac: "elite enemies are online mode only"): elites stand in online play alone - an online page, or a
- *  host in a room. Offline and single-player, no foe is ever an elite. */
-export const elitesAllowed = ({ onlinePage = false, inRoom = false } = {}) => !!(onlinePage || inRoom);
+/** Where elites stand: online - an online page, or a host in a room - always; and BAL4 (bible/05-Combat/Balance-Arc.md
+ *  section 6; Mac, 2026-10-10: "Do everything", of "smarter AI and elites offline") offline too, wherever the loot ladder
+ *  is on - an elite's drop is the ladder's (eliteLoot's tiers), so with the ladder off no foe is ever one and the 1:1
+ *  lane is DFU exactly, as a champion's is (systems/champions.js). It was online only (Mac's word, as this comment
+ *  carried it: "elite enemies are online mode only"), until offline was found to field nothing past DFU's own foes. */
+export const elitesAllowed = ({ onlinePage = false, inRoom = false } = {}) => !!(onlinePage || inRoom) || lootRarityOn();
 
 /** Is this entity an elite foe? */
 export const isEliteFoe = (entity) => !!entity?.eliteFoe;
@@ -76,7 +102,7 @@ export const isEliteFoe = (entity) => !!entity?.eliteFoe;
  *  word (the record's `k`), so only the blows, the size and the glow are stood here (and its owner already asked
  *  eliteEligible). Idempotent. ELITE-FLOOR: answers whether it stands as an elite - false for a foe eliteEligible
  *  refuses, which is then built as it would have been. */
-export function promoteEliteFoe(entity, { own = true, eliteDungeon = false, checkLevel = true } = {}) {
+export function promoteEliteFoe(entity, { own = true, eliteDungeon = false, superDungeon = false, checkLevel = true } = {}) {
   if (!entity) return false;
   if (entity.eliteFoe) return true;
   if (own && !eliteEligible(entity, { checkLevel })) return false;
@@ -84,13 +110,14 @@ export function promoteEliteFoe(entity, { own = true, eliteDungeon = false, chec
   // the hosts promote BEFORE any other scaling (and in place of the Elite Dungeon's doubling), so this is the foe's own
   // roll: an elite is 5x, not 10x
   if (own) {
-    const hm = eliteDungeon ? ELITE_FOE_ELITE_DUNGEON_HEALTH_MULT : ELITE_FOE_HEALTH_MULT;
+    const hm = superDungeon ? ELITE_FOE_SUPER_DUNGEON_HEALTH_MULT : eliteDungeon ? ELITE_FOE_ELITE_DUNGEON_HEALTH_MULT : ELITE_FOE_HEALTH_MULT;   // SD4a: a Super dungeon's
     entity.maxHealth = Math.max(1, Math.round((entity.maxHealth || 1) * hm));
     entity.health = entity.maxHealth;
     entity.healthMult = (entity.healthMult ?? 1) * hm;   // TELL1: what was stood on the kind's own health (ai/tells.js kindHealth - its poise)
   }
   const prior = Number.isFinite(entity.damageScale) && entity.damageScale > 0 ? entity.damageScale : 1;
-  entity.damageScale = prior * (eliteDungeon ? ELITE_FOE_ELITE_DUNGEON_DAMAGE_MULT : ELITE_FOE_DAMAGE_MULT);
+  entity.damageScale = prior * (superDungeon ? ELITE_FOE_SUPER_DUNGEON_DAMAGE_MULT : eliteDungeon ? ELITE_FOE_ELITE_DUNGEON_DAMAGE_MULT : ELITE_FOE_DAMAGE_MULT);   // SD4a: a Super dungeon's
+  if (own) markUnquiet(entity);   // UNQUIET: the mark that lets it rise, drawn on its own
   return true;
 }
 
@@ -119,19 +146,23 @@ export function eliteRng(seed) {
 /**
  * THE DUNGEON'S PICK (normal dungeons: 0 or 1, see below): which records of the dungeon's (already expanded) foe list are elites - 3 or 4 of them,
  * never an ally or a passive foe, the same on every client (seeded by `key`, the dungeon's location id). Marks them
- * `eliteFoe: true` in place and answers how many.
+ * `eliteFoe: true` in place and answers how many. SD4a: `count` a number of the caller's own - a Super dungeon's
+ * SUPER_ELITE_FOES (world/superDungeon/sdDungeon.js).
  */
-export function pickDungeonElites(enemies, key, { elite = true } = {}) {
+export function pickDungeonElites(enemies, key, { elite = true, count = null, classLevel = Infinity } = {}) {
   if (!Array.isArray(enemies) || !enemies.length) return 0;
   const rng = eliteRng(eliteHash(elite ? 'elite-dungeon' : 'normal-dungeon', key));
-  // an Elite Dungeon: 3 or 4; a normal one: at most 1, one time in five
-  const want = elite
+  // an Elite Dungeon: 3 or 4; a normal one: at most 1, one time in five; SD4a: a Super dungeon its own `count` (six)
+  const want = Number.isInteger(count) ? Math.max(0, count) : elite
     ? ELITE_FOE_DUNGEON_MIN + Math.floor(rng() * (ELITE_FOE_DUNGEON_MAX - ELITE_FOE_DUNGEON_MIN + 1))
     : (rng() < ELITE_FOE_NORMAL_DUNGEON_CHANCE ? 1 : 0);
   const pool = [];
   // ELITE-FLOOR, the same on every client: a kind under the floor by its OWN level never stands as one (a class foe's
-  // level is the party's, built per client, so the floor is the pick's here and promoteEliteFoe is told not to re-ask)
-  const kindLevel = (t) => (t >= 128 ? Infinity : (ENEMY_BASICS[t]?.level ?? 0));
+  // level is the party's, built per client, so the floor is the pick's here and promoteEliteFoe is told not to re-ask).
+  // AUDIT BAL (bible/05-Combat/Balance-Arc.md section 10): `classLevel` the level this dungeon's class foes are built
+  // at - offline one client builds them, so the host hands it and a new character's level-1 Knight is no elite; online
+  // it stays Infinity (each client builds its own, and the pick must be every client's)
+  const kindLevel = (t) => (isClassEnemyId(t) ? classLevel : (ENEMY_BASICS[t]?.level ?? 0));
   enemies.forEach((e, i) => { if (e && !e.allied && e.reaction !== 'passive' && e.champion == null && kindLevel(e.mobileType) >= ELITE_FOE_MIN_LEVEL) pool.push(i); });   // never a LOOT7 champion (systems/champions.js; its trait index, 0 a trait too) - one or the other
   let n = 0;
   while (n < want && pool.length) {
@@ -143,8 +174,9 @@ export function pickDungeonElites(enemies, key, { elite = true } = {}) {
   return n;
 }
 
-/** THE OPEN WORLD'S ROLL: is this new foe an elite? */
-export const rollOverworldElite = (rolls = Math.random) => rolls() < ELITE_FOE_OVERWORLD_CHANCE;
+/** THE OPEN WORLD'S ROLL: is this new foe an elite? RENOWN-GATE: the roll drawn first, then the Renown's word - the
+ *  same draw either way. */
+export const rollOverworldElite = (rolls = Math.random) => rolls() < ELITE_FOE_OVERWORLD_CHANCE && eliteRenownOpen();
 
 function gearPiece(level, rolls) {
   for (let tries = 0; tries < 6; tries++) {

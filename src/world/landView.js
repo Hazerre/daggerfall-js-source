@@ -37,7 +37,7 @@
 // with TerrainDistance 2 shows 2 on the classic skin).
 
 import { getPref, setPref } from '../systems/uiPrefs.js';
-import { getInt, setValue, saveSettings } from '../systems/settings.js';
+import { getInt, setValue, saveSettings } from '../systems/settings/settings.js';
 import { isEnhanced } from '../systems/uiSkin.js';
 import { registerFeatureLane } from '../systems/features.js';   // RF4: the row's lane is this module's
 
@@ -49,7 +49,7 @@ export const LAND_VIEW_DEFAULT = 5;     // the Enhanced pane's default (uiPrefs 
 /** The row's tiers: value and label, DFU's whole 1..4 and the enhanced
  *  lane's 5..6 (FT2), Daggerfall's own 3 named. */
 export const LAND_VIEW_TIERS = Object.freeze([
-  [1, '1'], [2, '2'], [3, 'Daggerfall\u2019s (3)'], [4, '4'], [5, '5'], [6, 'Furthest (6)'],
+  [1, '1'], [2, '2'], [3, 'Classic (3)'], [4, '4'], [5, '5'], [6, 'Furthest (6)'],
 ]);
 
 const clampInt = (v, lo, hi, fallback) => {

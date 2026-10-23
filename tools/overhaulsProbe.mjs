@@ -27,7 +27,7 @@ const open = async (page) => {
   await page.goto(`${BASE}/play/?nointro`, { waitUntil: 'networkidle' });
   await page.waitForSelector('.px-menu button', { timeout: 20000 });
   await closeAccount(page);
-  await page.locator('.px-menu .door-overhauls').click();
+  await page.locator(':is(.px-menu, .px-foot) .door-overhauls').click();
   await page.waitForSelector('#enhanced-menu .look-panel', { timeout: 10000 });
 };
 /** The first-run account prompt stands over the doors on a fresh profile - put it away. */
@@ -60,7 +60,7 @@ const spills = (page) => page.evaluate(() => {
   check('...side by side at a desktop', new Set(cs.map((c) => Math.round(c.box.top))).size === 1 && cs[0].box.right <= cs[1].box.left, JSON.stringify(cs.map((c) => c.box)));
   // AUDIT VE: the Texture card holds Classic and Vanilla Enhanced - the pack that ships, ON by default
   const veBy = await page.$eval('.look-panel[data-panel="texture"] .look-by', (b) => b.textContent);
-  const shelf = () => page.evaluate(async () => { const p = await import('/src/systems/uiPrefs.js'); return { shipped: p.getPref('dfmodShipped'), kept: p.getPref('veAddons'), inject: (await import('/src/systems/settings.js')).getBool('Enhancements', 'AssetInjection') }; });
+  const shelf = () => page.evaluate(async () => { const p = await import('/src/systems/uiPrefs.js'); return { shipped: p.getPref('dfmodShipped'), kept: p.getPref('veAddons'), inject: (await import('/src/systems/settings/settings.js')).getBool('Enhancements', 'AssetInjection') }; });
   let sh = await shelf();
   check('a fresh game wears Vanilla Enhanced: the card reads it in use, the shipped version named, no choice on the shelf', cs[0].state === 'on' && cs[0].name === 'Vanilla Enhanced' && cs[0].disabled && veBy === 'carademono, version 3.4.7' && JSON.stringify(sh.shipped ?? {}) === '{}' && sh.inject === true, `${JSON.stringify(cs[0])} ${veBy} ${JSON.stringify(sh)}`);
   const rows = () => page.$$eval('.look-panel[data-panel="texture"] .look-colours', (rs) => rs.map((r) => `${r.getAttribute('aria-label')}:${[...r.querySelectorAll('button')].map((b) => `${b.textContent}=${b.getAttribute('aria-pressed')}`).join(',')}`));
@@ -72,7 +72,7 @@ const spills = (page) => page.evaluate(() => {
   const decodeWorkers = [];
   page.on('worker', (w) => { if (/vanillaEnhancedDecodeWorker/.test(w.url())) decodeWorkers.push(w.url()); });
   const served = await page.evaluate(async () => {
-    const pack = await import('/src/systems/vanillaEnhancedPack.js');
+    const pack = await import('/src/systems/vanillaEnhanced/vanillaEnhancedPack.js');
     const masked = pack.VE_PACK_MODS.find((m) => m.dir === 'masked-roads');
     const url = pack.vePackUrl(masked.slices['302-TexArray'][46]);
     const tiles = await pack.vePackClient(masked).layers('302-TexArray');
@@ -112,10 +112,10 @@ const spills = (page) => page.evaluate(() => {
   check('...and the card reads Classic in use', cs.find((c) => c.panel === 'sound').state === 'on' && cs.find((c) => c.panel === 'sound').name === 'Classic');
   // a mix of the player's own reads Custom
   await page.evaluate(async () => (await import('/src/systems/uiPrefs.js')).setPref('soundEnhancements', true));
-  await page.locator('#enhanced-menu .railbtn', { hasText: 'Features' }).click(); await page.waitForTimeout(80);
+  await page.locator('#enhanced-menu .railbtn', { hasText: 'Settings' }).click(); await page.waitForTimeout(80);   // ORG2: the rows are Settings' tabs
   await page.locator('#enhanced-menu .railbtn', { hasText: 'Overhauls' }).click(); await page.waitForTimeout(80);
   cs = await cards(page);
-  check('one row turned back on Features: the Sound card reads Custom', cs.find((c) => c.panel === 'sound').state === 'custom' && (await page.locator('.look-panel[data-panel="sound"] .look-note', { hasText: 'Custom' }).count()) === 1);
+  check('one row turned back on in Settings: the Sound card reads Custom', cs.find((c) => c.panel === 'sound').state === 'custom' && (await page.locator('.look-panel[data-panel="sound"] .look-note', { hasText: 'Custom' }).count()) === 1);
   await page.evaluate(async () => { (await import('/src/systems/uiPrefs.js')).setPref('soundEnhancements', true); (await import('/src/systems/modSettings.js')).setModSetting('immersive-footsteps', 'Enabled', true); });
 
   // GrimoireUI's card: the pack's own art, served and decoded

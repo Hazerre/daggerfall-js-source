@@ -9,7 +9,7 @@
 // So the buttons, the default (what Enter presses) and the cancel (what
 // Escape and the window's close press) are data here, the answer that
 // DOES the thing is one predicate beside them, and
-// test/audit_install.test.js holds both: the safe answer is always the
+// test/tooling/audit_install.test.js holds both: the safe answer is always the
 // cancel, and on UNLOAD-ASK the default too - Enter must not throw an
 // evening away.
 //
@@ -33,7 +33,7 @@ const leaves = (choice) => choice === 0;
 const restartAsk = (version) => ({
   type: 'question',
   message: `Restart to install v${version}?`,
-  detail: 'Daggerfall Online closes, installs the update and reopens by itself. Save your game first - progress since your last save is lost.',
+  detail: 'DFO Online closes, installs the update and reopens by itself. Save your game first - progress since your last save is lost.',
   buttons: ['Restart', 'Not now'],
   defaultId: 0,
   cancelId: 1,
@@ -42,7 +42,7 @@ const restartAsk = (version) => ({
 /** The launcher's Reinstall. */
 const reinstallAsk = () => ({
   type: 'question',
-  message: 'Reinstall Daggerfall Online?',
+  message: 'Reinstall DFO Online?',
   detail: 'The newest installer downloads in your browser. Install it over this copy - your saves, settings and game files stay where they are.',
   buttons: ['Download', 'Cancel'],
   defaultId: 0,
@@ -53,7 +53,7 @@ const reinstallAsk = () => ({
 const installFailedAsk = () => ({
   type: 'warning',
   message: 'The update could not be installed',
-  detail: 'Daggerfall Online stays open on this version. Get the installer and run it yourself - your saves, settings and game files stay where they are.',
+  detail: 'DFO Online stays open on this version. Get the installer and run it yourself - your saves, settings and game files stay where they are.',
   buttons: ['Get the installer', 'Not now'],
   defaultId: 0,
   cancelId: 1,

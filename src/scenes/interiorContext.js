@@ -18,23 +18,28 @@
 
 import { IIL_FIREPLACE_MODELS } from '../systems/improvedInteriorLighting.js';   // IIL1
 import { FlatAnimator, armFlatAnim } from '../render/flatAnimation.js';   // FA1: the flats that move
-import { layoutInterior, INTERIOR_MARKER, PROP_MODEL_TYPE } from '../world/interiorLayout.js';
+import { layoutInterior, INTERIOR_MARKER, PROP_MODEL_TYPE } from '../world/interior/interiorLayout.js';
 import { multiply, transformPoint, identity } from '../world/mat4.js';
 import { StaticBatchBuilder, keyResolver } from '../render/staticBatch.js';   // PERF6: the room's static models as one mesh
-import { collectInteriorLights } from '../world/interiorLights.js';
+import { collectInteriorLights } from '../world/interior/interiorLights.js';
 import { applyClimate } from '../world/climateSwaps.js';
-import { remapSubMeshes } from '../world/texRemap.js';   // WM3: the one climate/dungeon remap seam
+import { remapSubMeshes, markRemapLaw } from '../world/texRemap.js';   // WM3: the one climate/dungeon remap seam; AUDIT MENU-ORDER C3: a table named by its law
 import { unityMaterialName } from '../systems/immersiveFootsteps.js';   // IF1: MaterialReader's material name, for the mod's floor walk
 import { billboardSize } from '../world/rmbFlats.js';
 import { preloadTextureRecord } from '../systems/textureReplacement.js';   // LAMP-KEEPER: a re-materialised person's art, decoded before it is drawn
+import { LAMP_ARCHIVE, LAMP_CLASSIC } from '../systems/lampKeeper.js';   // LAMP-KEEPER II: a keeper standing as the lamp, on purpose
+import { isChairModel } from '../world/chairSeat.js';   // SIT1: the seats a player sits on
 import { Collider } from '../player/collider.js';
 import { isHouseContainerModel } from '../systems/containers.js';
 import { isShopShelfModel } from '../systems/shopStock.js';   // E2
-import { isBedModel } from '../systems/rrRealism.js';   // RR1: the three bed models a click may rest on
+import { isBedModel } from '../systems/roleplayRealism/rrRealism.js';   // RR1: the three bed models a click may rest on
+import { placedTableSpot, TAVERN_CARD_TABLES } from '../world/placedCardTable.js';   // TAVERN-TABLE: where a tavern's card table stands; TAVERN-TABLES: and how many
+import { cardTablePropModel, paintFelt, paintWood, CARD_TABLE_BOX, CARD_TABLE_ARCHIVE, FELT_RECORD, WOOD_RECORD, FELT_RGB, GOLD_FELT_RECORD, GOLD_FELT_RGB } from '../world/card/cardTableProp.js';   // TAVERN-TABLE: the card table's own prop; TAVERN-TABLES: the gold table's red felt
+import { holdemGoldTable } from '../net/holdemTable.js';   // TAVERN-TABLES: which of them plays for gold - the relay's own index
 import { classicModelIdOf } from '../world/customModels.js';   // WD3: an alias is its classic model to the beds' test
-import { LADDER_MODEL_ID } from '../player/enterExit.js';
+import { LADDER_MODEL_ID, doorWorldPosition } from '../player/enterExit.js';   // TAVERN-TABLE: a static door's place, for the card table to keep clear of
 import { MACHINERY_MODEL_ID } from '../world/windmillMesh.js';   // WM4b: the mill's machinery and its moving parts
-import { createBaseRoom, baseBucketOf } from './decorBase.js';   // BASE-HIDE: a furnishable room's own pieces, one at a time
+import { createBaseRoom, baseBucketOf } from './decor/decorBase.js';   // BASE-HIDE: a furnishable room's own pieces, one at a time
 import { decorBaseModelKey, decorBaseFlatKey } from '../net/decorLaw.js';   // BASE-HIDE: the layout's names for them
 import { mountMachineryChild } from '../world/windmills.js';
 import { collectInteriorPeople } from '../characters/interiorPeople.js';
@@ -49,16 +54,17 @@ import { ActionSystem } from '../world/actionSystem.js';
 import { audio } from '../systems/audio.js';
 import { SOUND } from '../systems/soundClips.js';
 import { worldAabb } from '../player/activate.js';   // ROAD-C c2/S9: the automap rows' world bounds
-import { enterInteriorAutomap, exitInteriorAutomap, buildRevealIndex, bindAutomapLayout, automapRevealTick, automapEntranceTick, automapTrailTick, SCAN_INTERVAL_S, registerAutomapConsoleCommands, capsuleCentreFromEye } from '../systems/automap.js';   // ROAD-C c2/S9; ROAD-E E3 the console verbs
-import { INTERIOR_ELEMENT_NAMES } from '../systems/automapModel.js';   // ROAD-C c2/S9
+import { enterInteriorAutomap, exitInteriorAutomap, buildRevealIndex, bindAutomapLayout, automapRevealTick, automapEntranceTick, automapTrailTick, SCAN_INTERVAL_S, registerAutomapConsoleCommands, capsuleCentreFromEye } from '../systems/automap/automap.js';   // ROAD-C c2/S9; ROAD-E E3 the console verbs
+import { INTERIOR_ELEMENT_NAMES } from '../systems/automap/automapModel.js';   // ROAD-C c2/S9
 // AUDIT 63 F22: AddFlats' own RandomTreasure arm - the gate, the
 // picture and the table index all live with the walk that finds the
 // markers, which is the member DFU puts them in.
 import { BUILDING_TYPES } from '../world/buildingNames.js';
 import { THIEVES_GUILD_FACTION_ID, DARK_BROTHERHOOD_FACTION_ID } from '../systems/crimeGuilds.js';   // FactionFile.cs:91/:135
-import { rollLootRarity, pileSource, INTERIOR_RARITY_TIER, stampWonWeapons } from '../systems/lootRarity.js';   // LR1: a tavern's pile rolls at the town's tier; SIGIL1: its weapons' sigils
-import { generateItems as generateLootItems, addPileLootExtras, DUNGEON_LOOT_KEYS, DROP_ICON_ARCHIVES } from '../systems/loot.js';
+import { rollLootRarity, pileSource, INTERIOR_RARITY_TIER, stampWonWeapons } from '../systems/loot/lootRarity.js';   // LR1: a tavern's pile rolls at the town's tier; SIGIL1: its weapons' sigils
+import { generateItems as generateLootItems, addPileLootExtras, DUNGEON_LOOT_KEYS, DROP_ICON_ARCHIVES } from '../systems/loot/loot.js';
 import { createCoverIndex, isCoverFlat, coverProxy } from '../ai/cover.js';   // TACT1: billboards are cover
+import { flatBodies } from '../world/propBodies.js';   // PROP-BODIES: the solid flats' bodies, beside their cover
 // TACT1: the Enhanced AI switch is ai/cover.js's to read (createCoverIndex's default), not this host's
 
 /** AUDIT 63 F22: DaggerfallInterior.AddFlats' treasure arm
@@ -237,12 +243,16 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   await Promise.all([...ids].map(collect));
 
   const interior = layoutInterior(dfBlock, blockIndex, recordIndex, (id) => pending.get(id));
+  // WAGONS2: a flat HUNG from a ceiling (the caravan's lantern - systems/caravanRoom.js caravanRoomBlock): its y is the
+  // ceiling it hangs from, and the flat (drawn about its middle) stands half its own height below it
+  for (const f of interior.flats) if (f.hang) { const t = await getTexture(f.archive); if (t && f.record < t.recordCount) f.y -= billboardSize(t, f.record).h / 2; }
   await Promise.all(interior.actionDoors.map((d) => collect(d.modelIdNum)));
 
   // Climate swap table over the interior's submeshes, pruned like the
   // standalone scene when the swapped archive lacks the record.
   const texRemap = new Map();
   const resolveTexKey = keyResolver(texRemap);   // PERF6: drawMesh's own remap resolution (every model is remapped above, before the list is built)
+  markRemapLaw(texRemap, `climate:${climateBase}.${season}`);   // AUDIT MENU-ORDER C3: the table named by the law it is built in
   const climateArchive = (archive, record) => applyClimate(archive, record, climateBase, season);
   for (const id of pending.keys()) {
     // The undefined submesh list is the seam's to survive, not this
@@ -252,6 +262,9 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
     // guard below could ever run.
     await remapSubMeshes(cpuModels.get(id)?.subMeshes, texRemap, climateArchive, deps);
   }
+  // CABIN-LOOK (scenes/cabinLook.js): a room its owner restyled - each picture given its twin over the climate's, before a
+  // model is added to the room's batch (its keys resolved at the add)
+  if (typeof opts.restyle === 'function') await opts.restyle(texRemap, [...pending.keys()].map((id) => cpuModels.get(id)?.subMeshes ?? []), { renderer, getTexture, palette });
 
   const drawList = [];
   // PERF6: THE ROOM'S STATIC MODELS AS ONE MESH - PERF5's batch for the
@@ -259,7 +272,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   // rotors; every other placement stands still. Built lazily on the
   // first read, freed by destroy(); drawList stays whole for the automap.
   let staticBatch = null, staticBuilt = false;
-  const staticBuilder = new StaticBatchBuilder();
+  const staticBuilder = new StaticBatchBuilder({ pieces: true });   // RW1: a sphere a model per merged sub-mesh - a window measured on the screen is its own model's, not the room's (render/realWindows.js)
   // ROAD-C c2/S9: THE INTERIOR AUTOMAP'S ROWS, minted at the ONE push
   // site every building entry runs through.
   //
@@ -318,7 +331,9 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   // Library/Guild/Temple bookshelves route at activation (BS1), and
   // the OWNED-house arm lands below (HC1).
   const shelves = [];
+  const tables = [];   // CARDS2: the room's card tables (world/card/cardTables.js) - TAVERN-TABLE: the props a tavern stands (below; TAVERN-TABLES: the chips table, then the gold); the host seats them
   const beds = [];   // RR1: models 41000-41002 (RoleplayRealism.cs:126-128), listed always, activated under bedSleeping
+  const chairs = [];   // SIT1 (world/chairSeat.js): the chairs, benches and thrones a player sits on - by model id, whatever its ObjectType
   // IF1: the combined mesh's materials, as Immersive Footsteps reads them
   // off `CombinedModels` (Main.cs:237-308) - one name per texture in
   // first-appearance order over the models' submeshes, through the
@@ -335,7 +350,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   // BASE-HIDE (2026-09-26, Mac: "Remove bought houses decor"): A ROOM ITS OWNER MAY FURNISH (`opts.baseEditable` - an
   // online home, anyone's, or the player's own house or ship) STANDS ITS OWN FURNITURE PIECE BY PIECE - each prop model
   // its own draw (never the merge) and collider bucket, each flat its own batch and light - so a piece can be taken out
-  // and put back while the room stands (scenes/decorBase.js). Every other room is built as it always was. The ladder and
+  // and put back while the room stands (scenes/decor/decorBase.js). Every other room is built as it always was. The ladder and
   // the mill's machinery are the building's workings, not its furniture.
   const base = opts.baseEditable ? createBaseRoom({ drawList, batches: () => billboardBatches, lights: () => lights, collider }) : null;
   const iilFireplaces = [];   // IIL1: the fireplace models' centres (Improved Interior Lighting)
@@ -426,7 +441,22 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
     // DFU's separate map-layout run, which this port has no counterpart
     // for, so it is not ported.) A non-prop shelf/wardrobe model was a
     // lootable container here where DFU leaves it as geometry.
-    if (p.objectType !== PROP_MODEL_TYPE) continue;
+    // FIELD BUGS 2026-10-14 INN-BEDS: a bed is not furniture's action - Roleplay Realism's BedActivation is keyed on the
+    // model id alone (RoleplayRealism.cs:126-128), and DFU stands a custom-activation model on its own whatever its
+    // ObjectType (the CombineRMB note above), so a bed written as scenery (ObjectType 0 or 4: a dormitory's, a ship's
+    // bunks) rests as a prop's does. The furniture chain below stays the prop's alone.
+    // SIT1 (world/chairSeat.js; Mac: "Implement the ability to interact and sit on chairs"): a chair is the port's own
+    // activation, keyed on the model id alone as a bed is (INN-BEDS), a prop or scenery; taken out of a furnished room
+    // with its piece (BASE-HIDE - it is the piece's furniture)
+    if (isChairModel(classicModelIdOf(p.modelIdNum))) {
+      const chair = { cpu, matrix, modelId: classicModelIdOf(p.modelIdNum), aabb };   // AUDIT FIVE-ASKS C7: its world box, as the build measured it
+      chairs.push(chair);
+      if (baseKey) base.furnish(baseKey, chair);
+    }
+    if (p.objectType !== PROP_MODEL_TYPE) {
+      if (isBedModel(classicModelIdOf(p.modelIdNum))) beds.push({ cpu, matrix });
+      continue;
+    }
     const had = [containers.length, shelves.length, beds.length];   // BASE-HIDE: which list this piece lands in, if any
     if (isShopShelfModel(p.modelIdNum)) {
       if (opts.houseOwned) {
@@ -477,6 +507,59 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
     dynamicDraws.push({ gpu, object: actions.addDoor(cpu, parent(d.matrix)) });
   }
 
+  // TAVERN-TABLE (world/card/cardTableProp.js, world/placedCardTable.js; the owner: "Lets instead place a specific table in
+  // each inn. A new property specifficaly used for the card table"): THE TAVERN'S CARD TABLE, ITS OWN PROP, where the host
+  // asks for one (`opts.placeCardTable` - a tavern, scenes/worldModes.js). Its floor is found from the room's FIRST enter
+  // marker - the record's, not the door walked through, so every client stands it in the same place - with the room's
+  // whole collider built (its closed doors stop the walk), keeping clear of the doors, the people, the flats and the
+  // markers. Then it is one of the room's models - drawn, collided, on the automap (its key the next placement index,
+  // past the record's own) - and the room's card table, seated round the TABLE's own box (its stools apart). NOT in
+  // the merge (AUDIT TAVERN-TABLE H1): staticBatch.js reads a key's archive as a number, and the prop's string archive
+  // came out NaN - the table collided, seated and dealt, and was never drawn; its own mesh draws it, one draw. Its mesh
+  // is this context's (freed by destroy); its two painted textures the renderer's, uploaded once. A room with no enter
+  // marker or no such floor stands none - nor one whose only floor for it is in the way (WAY-ROUND: a corridor, a
+  // doorway, the mouth of an opening).
+  // TAVERN-TABLES (section 30; the owner, told one table let its first sitter shut the other kind out: "Two tables per
+  // tavern"): AND A SECOND - the GOLD table, at the index the relay holds every staked sit to (net/holdemTable.js
+  // HOLDEM_GOLD_TABLE), its felt red. Found by the same walk with the first already stood (in the collider, so the walk
+  // goes round it) and its ring kept off the first's (an avoid box, the first's ring's own); a room with floor for one
+  // stands the chips table alone, every client the same (the walk is the same walk, the first table the same table).
+  const propMeshes = [];
+  if (opts.placeCardTable) {
+    const enter = interior.markers.find((m) => m.type === INTERIOR_MARKER.ENTER) ?? interior.markers.find((m) => m.type === INTERIOR_MARKER.REST);
+    const probe = {
+      floor: (x, y, z) => { const d = collider.raycast(parentPt(x, y, z), [0, -1, 0], 3); return Number.isFinite(d) ? y - d : null; },
+      open: (x, y, z, r) => !collider.sphereOverlaps(parentPt(x, y, z), r),
+    };
+    const avoid = [
+      ...interior.doors.map((d) => [...doorWorldPosition(d), 1.5]),
+      ...interior.actionDoors.map((d) => [d.matrix[12], d.matrix[13], d.matrix[14], 1.5]),   // the hinge; the swing is within
+      ...collectInteriorPeople(recordData).map((pn) => [pn.x, pn.y, pn.z, 0.6]),
+      ...interior.flats.map((f) => [f.x, f.y, f.z, 0.5]),
+      ...interior.markers.map((m) => [m.x, m.y, m.z, 0.5]),
+    ];
+    while (tables.length < TAVERN_CARD_TABLES) {
+      const gold = holdemGoldTable(tables.length), felt = gold ? GOLD_FELT_RECORD : FELT_RECORD;
+      const spot = enter ? placedTableSpot(CARD_TABLE_BOX, [enter.x, enter.y, enter.z], probe, avoid) : null;
+      if (!spot) { console.warn(`[interior] no ${gold ? 'gold ' : ''}card table stood: ` + (!enter ? 'the room has no enter marker' : `no clear floor near the entrance${gold ? ' for a second' : ''} out of the way`)); break; }
+      if (!propMeshes.length) renderer.uploadTexture(CARD_TABLE_ARCHIVE, WOOD_RECORD, paintWood(), { mips: true, opaque: true });   // a model's material: opaque, with its mip chain, as a TEXTURE archive's
+      renderer.uploadTexture(CARD_TABLE_ARCHIVE, felt, paintFelt(gold ? GOLD_FELT_RGB : FELT_RGB), { mips: true, opaque: true });
+      const cpu = cardTablePropModel({ felt });
+      const mesh = renderer.createMesh(cpu);
+      propMeshes.push(mesh);
+      const matrix = parent(trs(spot.x, spot.y, spot.z, 0, spot.yawDeg, 0));   // along x, or turned a quarter where only across does it fit
+      const aabb = worldAabb(cpu.positions, matrix);   // the whole prop's, its stools in it - the draw's and the map's
+      const key = `int:${interior.placements.length + tables.length}`;   // the next placement index, past the record's own
+      drawList.push({ mesh, matrix, key, aabb });
+      automapEntries.push({ key, aabb, blockIndex: 0, blockName: amapBlockName, elementIndex: 0, elementName: INTERIOR_ELEMENT_NAMES[0], modelIndex: amapModelCount[0]++, waterLevel: null, positions: cpu.positions, indices: cpu.indices, normals: cpu.normals, matrix });
+      collider.addMesh('interior', cpu.positions, cpu.indices, matrix);
+      const { min, max } = CARD_TABLE_BOX;
+      const corners = [min[0], max[0]].flatMap((x) => [min[1], max[1]].flatMap((y) => [min[2], max[2]].flatMap((z) => [x, y, z])));   // all eight: a building turned turns them
+      tables.push({ aabb: worldAabb(corners, matrix), box: { min: [...min], max: [...max] }, matrix, ...(gold ? { gold: true } : {}) });   // the table's own, its stools apart: its seats, its frame, its press
+      avoid.push([spot.cx, spot.y, spot.cz, spot.hx, spot.hz]);   // the next keeps its ring off this one's
+    }
+  }
+
   // People (C1): AddPeople's data layer - base positions batch through
   // the same billboard path as flats; the StaticNPC inputs ride on the
   // returned people list (parent-frame, like everything else here).
@@ -504,6 +587,9 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
     const redrawn = v || da !== pn.textureArchive || dr !== pn.textureRecord;
     return { ...pn, x, y, z, active: visible, questBehaviour: null, ...(redrawn ? { drawArchive: da, drawRecord: dr } : {}) };
   });
+  // LAMP-KEEPER II (systems/lampKeeper.js): the host's pick - a shop's keeper standing as the lamp today keeps its born identity
+  // (its name, its shop) and stands as the lamp; no Morrowind body is read for it (MWNPC8a's look, null)
+  for (const pn of people) if (opts.lampPerson?.(pn)) Object.assign(pn, { lamp: true, _mwLook: null });
   // AUDIT 24 (wave 20): AddPeople's LAST act on every person it stands
   // is `QuestMachine.Instance.SetupIndividualStaticNPC(go, obj.FactionID)`
   // (DaggerfallInterior.cs:1224) - inline, at the GameObject, BEFORE
@@ -565,6 +651,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   const standPerson = (pn) => {
     if (pn.stood) return null;
     pn.stood = true;
+    if (pn.lamp) return standLamp(pn);   // LAMP-KEEPER II: the lamp, whatever body the room's people wear
     if (_rigFor) {
       const rg = _rigFor(raceOfArchive(pn.textureArchive));
       // AUDIT 39 (#76): the person's FLOOR position rides with the draw
@@ -594,6 +681,23 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
       billboardBatches.push(pn.standBatch);
     })().catch((e) => console.error('[interior] person stand failed:', e));
   };
+  // LAMP-KEEPER II (systems/lampKeeper.js): THE LAMP - the classic TEXTURE.197 record 6 whatever a pack replaces it
+  // with (its own pixels, getColor32's, never the replacement's), uploaded under the port's own key so a keeper a mod
+  // draws on 197_6 is not touched, at the record's size through the one billboard-size door (with Roleplay & Realism's
+  // XML scale, the bug's own stretch). Uploaded at every stand, the same key each time: the session's own one small
+  // picture, never a place's - the place-LRU never holds nor frees it (AUDIT FIVE-ASKS D5: bounded at one, its owner the
+  // page).
+  const standLamp = (pn) => (async () => {
+    const t = await getTexture(LAMP_CLASSIC.archive);
+    if (!t || LAMP_CLASSIC.record >= t.recordCount) return;
+    const size = billboardSize(t, LAMP_CLASSIC.record);
+    pn.width = size.w;
+    pn.height = size.h;
+    if (!peopleBuilt || !pn.stood || pn.standBatch) return;
+    renderer.uploadTexture(LAMP_ARCHIVE, 0, t.getColor32(t.getDFBitmap(LAMP_CLASSIC.record, 0), 0));
+    pn.standBatch = renderer.createBillboardBatch(LAMP_ARCHIVE, 0, size, [[pn.x, pn.y, pn.z]]);
+    billboardBatches.push(pn.standBatch);
+  })().catch((e) => console.error('[interior] lamp stand failed:', e));
   // The mirror: any stood person can be taken back out.
   const unstandPerson = (pn) => {
     if (!pn.stood) return;
@@ -683,6 +787,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
     armFlatAnim(batch, t, archive, record, flatAnims, uploadRecordFrame);
     billboardBatches.push(batch);
     if (isCoverFlat(archive, record, size)) collider.cover.add('tact1:flats', centers.map((c) => coverProxy(c, size)));   // TACT1 (a furnishable room's own pieces, which can be taken out, are not)
+    collider.cover.add('prop-bodies', flatBodies(t, archive, record, size, centers));   // PROP-BODIES
   }
 
   // The build's stand: from this line SetActive is live (makeInteriorPersonHost), so a flip that lands while these
@@ -757,7 +862,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   // InitWhenInInteriorOrDungeon's BUILDING arm (Automap.cs:2482-2487),
   // in the one place both interior hosts build their room. The record
   // is minted here and dropped in destroy(): it is a session object,
-  // never a save's - see systems/automap.js's interior block for the
+  // never a save's - see systems/automap/automap.js's interior block for the
   // four DFU facts it reproduces and the one arm it declines.
   const automapModel = buildRevealIndex(automapEntries);
   const automapRec = enterInteriorAutomap({
@@ -846,8 +951,10 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
     ladders,
     containers,
     shelves,   // E2: shop shelf models (stocked lazily by the mode host)
+    tables,    // CARDS2: the card tables
     beds,      // RR1: the bed models
-    base,      // BASE-HIDE: a furnishable room's own pieces (scenes/decorBase.js), null in any other room
+    chairs,    // SIT1: the chairs, benches and thrones sat on (world/chairSeat.js)
+    base,      // BASE-HIDE: a furnishable room's own pieces (scenes/decor/decorBase.js), null in any other room
     enterMarkers,
     treasureMarkers,   // AUDIT 63 F22: AddFlats' RandomTreasure arm, gated by the host
     spawnPoints,
@@ -872,6 +979,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
       for (const b of billboardBatches) renderer.destroyBatch(b);
       for (const b of base?.outBatches() ?? []) renderer.destroyBatch(b);   // BASE-HIDE: the flats taken out, out of that list
       if (staticBatch) { renderer.destroyMesh(staticBatch); staticBatch = null; }   // PERF6
+      for (const mesh of propMeshes.splice(0)) renderer.destroyMesh(mesh);   // TAVERN-TABLE: the card table's mesh is this room's (TAVERN-TABLES: each of them)
       // AUDIT 23 (hosts-16): the ?voxelfolk per-race rigs mint real GPU
       // meshes per context - every interior exit leaked them.
       for (const rg of _raceMeshes?.values?.() ?? []) renderer.destroyMesh(rg.mesh);

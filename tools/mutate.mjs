@@ -10,7 +10,7 @@
 // A list is a JSON array of { name, file, old, new, tests[], equivalent?, why?, syntax? }. For each: copy the file aside,
 // replace the FIRST occurrence of `old` with `new` (the record must be exact - a mutant that does not apply is
 // reported, not skipped silently - and name ONE site: a text that stands twice is aimed at whichever copy is higher
-// up, so a copy added above the one it was written for takes its mutant; test/mutantdrift.test.js's MUT-AIM holds
+// up, so a copy added above the one it was written for takes its mutant; test/tooling/mutantdrift.test.js's MUT-AIM holds
 // every record to one), run the named tests, restore the file byte-for-byte, and say whether the mutant
 // SURVIVED (the pins cannot fail it) or died. A survivor is a finding. A mutant marked `equivalent: true` is one the
 // slice DECIDED to leave alive - redundant code kept as belt-and-braces, say - and `why` says so; it is expected to
@@ -27,6 +27,11 @@
 // repository's own git, say) or whose file lives in a linked directory is judged here, in place, as a serial run judges
 // it - so a death is always the mutant's, never the workspace's. Output and exit codes are the serial run's, in list
 // order. Without --jobs (or with --jobs 1) nothing below the flag parse changes.
+// AUDIT SCALE M1 (2026-10-08): A DEATH IS THE MUTANT'S ONLY WHERE ITS TESTS PASS WITHOUT IT. A test file that failed in a
+// workspace was judged in place on trust, and one that did not parse at all (a title's apostrophe unescaped) failed in
+// place as well: its twenty records read "dead" against a file that could not run. Before any mutant, every test a
+// record names runs here, unmutated (serially, only those that failed in a workspace with --jobs); a record any of
+// whose tests fails is no verdict, said so, and the run fails.
 import { readFileSync, writeFileSync, copyFileSync, unlinkSync, existsSync, cpSync, mkdtempSync, symlinkSync, rmSync, readdirSync, mkdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -116,8 +121,9 @@ const tally = (v) => { counts[v.kind]++; console.log(v.text); };
 
 /** Linked into a workspace, never copied (and never mutated there): the dependencies and the data. */
 const LINKED = new Set(['node_modules', 'public', 'vendor', 'bible']);
-/** Left out of a workspace: the repository's own history and build output. */
-const LEFT_OUT = (name) => name === '.git' || name === 'dist' || name.startsWith('dist-') || name === '.wrangler';
+/** Left out of a workspace: the repository's own history and build output, and the agents' worktrees under `.claude` (each
+ *  a whole tree - copied once a job they filled a disk). */
+const LEFT_OUT = (name) => name === '.git' || name === 'dist' || name.startsWith('dist-') || name === '.wrangler' || name === '.claude';
 
 /** A copy of this tree's code in a new temporary directory, its data linked; its own TMPDIR inside it. */
 function workspace() {
@@ -145,6 +151,22 @@ async function judgeIn(ws, m) {
   try { return await verdict(m, ws, envOf(ws)); } finally { writeFileSync(path, src); }
 }
 
+/** The tests among `tests` that fail HERE with no mutant in place, run one at a time (AUDIT SCALE M1). */
+async function failingHere(tests) {
+  const bad = new Set();
+  for (const f of tests) {
+    const r = await run(['--test', '--test-reporter=tap', f]);
+    if (interrupted) { console.log(`\ninterrupted (${interrupted}) - nothing was mutated here`); process.exit(130); }
+    if (r.status !== 0) bad.add(f);
+  }
+  return bad;
+}
+/** No verdict for a record whose tests fail with no mutant (AUDIT SCALE M1), else null. */
+const unrunnable = (m, broken) => {
+  const bad = m.tests.filter((f) => broken.has(f));
+  return bad.length ? { kind: 'noapply', text: `  ${m.name}: ITS TESTS FAIL UNMUTATED (${bad.join(', ')}) - not a verdict; make them pass first` } : null;
+};
+
 async function parallel(n) {
   // one entry a mutant, in list order; an empty list is an entry of its own so its header prints in its place
   const all = lists.flatMap(([listPath, list]) => (list.length ? list.map((m, i) => ({ listPath, first: i === 0, count: list.length, m })) : [{ listPath, first: true, count: 0, m: null }]));
@@ -166,6 +188,9 @@ async function parallel(n) {
   const inPlace = (m) => !!m && (m.tests.some((f) => fails.has(f)) || LINKED.has(m.file.split(/[\\/]/)[0]));
   const mutants = all.filter((e) => e.m).length;
   console.log(`(${n} workspaces; ${all.filter((e) => inPlace(e.m)).length} of ${mutants} mutants judged in place${fails.size ? ` - their tests do not pass outside this tree: ${[...fails].join(', ')}` : ''})`);
+  // AUDIT SCALE M1: and a test that fails outside this tree must pass in it, or its records are no verdict
+  const broken = await failingHere([...fails]);
+  if (broken.size) console.log(`(no verdict for their records - these fail here too, with no mutant: ${[...broken].join(', ')})`);
   // the verdicts print in list order as they land
   const out = all.map((e) => (e.m ? null : { kind: null }));
   let printed = 0;
@@ -193,7 +218,7 @@ async function parallel(n) {
   const here = (async () => {
     for (let k = 0; k < all.length && !interrupted; k++) {
       if (!all[k].m || !inPlace(all[k].m)) continue;
-      out[k] = await judgeInPlace(all[k].m); flush();
+      out[k] = unrunnable(all[k].m, broken) ?? await judgeInPlace(all[k].m); flush();
     }
   })();
   await Promise.all([...workers, here]);
@@ -204,9 +229,12 @@ async function parallel(n) {
 // ---- the run ----------------------------------------------------------------------------------------------------
 
 if (jobs <= 1) {
+  // AUDIT SCALE M1: the tests the records name, unmutated, before any mutant
+  const broken = await failingHere([...new Set(lists.flatMap(([, list]) => list.flatMap((m) => m.tests)))]);
+  if (broken.size) console.log(`(no verdict for their records - these fail with no mutant: ${[...broken].join(', ')})`);
   for (const [listPath, list] of lists) {
     console.log(`\n== ${listPath} (${list.length} mutants)`);
-    for (const m of list) tally(await judgeInPlace(m));
+    for (const m of list) tally(unrunnable(m, broken) ?? await judgeInPlace(m));
   }
 } else {
   await parallel(jobs);

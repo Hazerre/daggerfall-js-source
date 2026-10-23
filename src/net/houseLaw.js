@@ -1,11 +1,11 @@
 // @ts-check
 // LEGACY7 part two (2026-10-06, bible/06-Systems/Legacy-Arc.md section 9; Mac: "online integration with permadeath
 // (Bloodline) or non-permadeath (Enduring)"): A HOUSE NAME ONLINE - the law both ends share. The account service reads
-// the house off the realm character's line (server-account/src/legacy.js realmHouseOf) and signs it into the identity
-// token beside the guild's tag (identityToken.js claimsValid): `hn` the house, `hc` the member's given name, `hb` 1 for a
-// Bloodline, `hg` the generation's numeral when two of the house have borne that name. The relay stamps it on every row
-// as it stamps the Renown (wire.js badged); a client reads it back (`readHouse`) and draws one line under a name -
-// "☠ Ysolde II of House Hlaalu" - over the head, on the inspect card and on the roster's tile.
+// the house off the realm character's line (server-account/src/realm.js realmMintFacts, by legacy.js houseOn) and signs
+// it into the identity token beside the guild's tag (identityToken.js claimsValid): `hn` the house, `hc` the member's
+// given name, `hb` 1 for a Bloodline, `hg` the generation's numeral when two of the house have borne that name. The relay
+// stamps it on every row as it stamps the Renown (wire.js badged); a client reads it back (`readHouse`) and draws one
+// line under a name - "☠ Ysolde II of House Hlaalu" - over the head, on the inspect card and on the roster's tile.
 
 export const HOUSE_NAME_MAX = 24;
 export const HOUSE_GIVEN_MAX = 20;

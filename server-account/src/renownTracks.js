@@ -148,7 +148,7 @@ export async function reportRenownXp({ db, nowS }, player, { character, xp, name
          renown_hour_xp = CASE WHEN renown_hour >= ?6 THEN renown_hour_xp + ${credit} ELSE ${credit} END,
          renown_hour = MAX(renown_hour, ?6)
        WHERE id = ?1
-       RETURNING renown_last_credit AS credit, (${track}) AS before, ${repeat} AS repeat, ${refused} AS refused`,
+       RETURNING renown_last_credit AS credit, (${track}) AS before, ${repeat} AS repeat, ${refused} AS refused, renown_hour_xp AS hour_xp`,
     ).bind(player.id, character, xp, RENOWN_XP_MAX, RENOWN_XP_HOUR_MAX, hour, RENOWN_TRACKS_MAX, id),
     // A TRACK THAT EXISTS grows by the credit (never past the cap's total) and is the character last played.
     db.prepare(
@@ -177,8 +177,12 @@ export async function reportRenownXp({ db, nowS }, player, { character, xp, name
   // `rose` against the total this report found, inside the same transaction - so two reports never both say so.
   // `max` when the track now holds the cap's total: nothing more is earned, and the client says so rather than
   // reading a credit of nothing as the hour's bound.
+  // SCALE4h: and what the open hour still takes - RETURNING reads the row as it now stands, this report's credit spent -
+  // so the page reports at the minute's pace as the bound nears and at its own slower one otherwise (net/renownTracker.js
+  // renownReportSoon)
+  const hourLeft = Math.max(0, RENOWN_XP_HOUR_MAX - int(d.hour_xp));
   return {
-    character, xp: total, level, credited, rose: level > renownForXp(before),
+    character, xp: total, level, credited, rose: level > renownForXp(before), room: hourLeft,
     ...(total >= RENOWN_XP_MAX ? { max: true } : {}),
     ...(Number(d.repeat) === 1 ? { repeat: true } : {}),
   };

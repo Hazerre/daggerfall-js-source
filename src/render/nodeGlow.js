@@ -1,8 +1,10 @@
 // @ts-check
 // NODE-MARKS (2026-10-01, Mac: "Any profession node, like herbs, should appear on the compass. The node itself should
-// also stand out with a detailed slight glow or something"): A NODE'S GLOW - every gathering node standing near the
-// player (a herb patch, a vein, a boulder, a tree, a school, a body: scenes/gatherHost.js marks) lit softly in its
-// profession's colour (ui/nodeMarks.js - the colour its compass mark wears), so the eye finds what the compass points at.
+// also stand out with a detailed slight glow or something"): A NODE'S GLOW - a gathering node standing near the player
+// (scenes/gatherHost.js marks) lit softly in its profession's colour (ui/nodeMarks.js - the colour its compass mark wears),
+// so the eye finds what the compass points at. It lit every node until NODE-OUTLINE (2026-10-19); since then a node with
+// a picture is lit on that picture (render/nodeGlint.js - NODE-GLINT's glints since 2026-10-20), and the glow lights a node
+// with none (a body drawn as a 3D character) and SENSE1's finds (systems/dungeon/dungeonSense.js).
 //
 // ONE CARD A NODE, turned about the upright to face the eye and stood a little toward it (NODE_GLOW_PULL), so the light
 // lies over the node's own picture rather than behind it. Three things in it, each answered per pixel from where the
@@ -21,7 +23,7 @@
 // at the wrap is the picture at zero. Pure where it can be: `nodeGlows` (who is drawn, how bright) and `nodeGlowClock`.
 //
 // AUDIT NODE-MARKS (Mac: "Audit this"): UNDER REDUCED MOTION IT STANDS STILL - the halo steady, no shimmer, the motes
-// held where they are (`uStill`), the professions' own law (ui/profHud.js: every act has a still form); its program is
+// held where they are (`uStill`), the professions' own law (ui/professions/profHud.js: every act has a still form); its program is
 // built at idle once a node is first marked, never on the frame that first lights one (PERF-WARM's law); and a pass that
 // ran is a foreign pass whatever it drew.
 //
@@ -48,6 +50,9 @@ export const NODE_GLOW_MOTES = 6;
 export const NODE_GLOW_MOTE_R = 0.045;
 /** How much light each part adds at its brightest: the halo's body, the shimmer's band, a mote's heart. */
 export const NODE_GLOW_GAIN = Object.freeze({ halo: 0.3, shimmer: 0.14, mote: 0.85 });
+/** AUDIT DELVE D6: a glow's FORM - each part's share, [halo, shimmer, motes]: a node's is all three, whole; a sense
+ *  mark carries its kind's (systems/dungeon/dungeonSense.js SENSE_FORM), so the kinds differ in shape as well as colour. */
+export const NODE_GLOW_FORM = Object.freeze([1, 1, 1]);
 
 /** The clock, wrapped: whole cycles of every rate over its period, so no stutter at the wrap. Pure. */
 export const nodeGlowClock = (seconds) => ((seconds % NODE_GLOW_PERIOD) + NODE_GLOW_PERIOD) % NODE_GLOW_PERIOD;
@@ -70,7 +75,7 @@ const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a
 const isVec3 = (v) => v != null && typeof v === 'object' && v.length >= 3;
 
 /**
- * @typedef {{ at: number[], w: number, h: number, rgb: readonly number[], alpha: number, seed: number }} NodeGlow
+ * @typedef {{ at: number[], w: number, h: number, rgb: readonly number[], alpha: number, seed: number, form: readonly number[], pull?: number, mark?: any }} NodeGlow
  * @typedef {{ nodes: Map<string, { kindle: number, seen: number, seed: number }>, frame: number, lastS: number|null, pool: NodeGlow[] }} NodeGlowState
  */
 /** A fresh state for `nodeGlows` - each node's kindling, by its key, and the records `out` is refilled from. */
@@ -81,8 +86,10 @@ export const createNodeGlowState = () => /** @type {NodeGlowState} */ ({ nodes: 
  * those within NODE_GLOW_M of `eye`, at most NODE_GLOW_MAX - each kindling from nothing over NODE_GLOW_KINDLE_S when it
  * first stands near and fading toward nothing from NODE_GLOW_FADE_M to NODE_GLOW_M - written into `out` (one list,
  * refilled from the state's own records - AUDIT NODE-MARKS: none made a frame) and answered. A node no longer marked is
- * forgotten (it kindles again when it next stands near). `nowS` any clock in seconds. Pure but for `state` and `out`.
- * @param {ReadonlyArray<{ key: string, profession: string, at: number[], w: number, h: number }>|null|undefined} marks
+ * forgotten (it kindles again when it next stands near). A mark that is `quiet` (AUDIT NODE-GLINT: the node an act works -
+ * the act's own glint is the one to watch) dims over NODE_GLOW_KINDLE_S as it kindled, and kindles again when it is not.
+ * `nowS` any clock in seconds. Pure but for `state` and `out`.
+ * @param {ReadonlyArray<{ key: string, profession?: string, at: number[], w: number, h: number, rgb?: readonly number[], gain?: number, form?: readonly number[], quiet?: boolean }>|null|undefined} marks
  * @param {number[]|null|undefined} eye @param {number} nowS @param {NodeGlowState} state @param {NodeGlow[]} out
  */
 export function nodeGlows(marks, eye, nowS, state, out) {
@@ -97,12 +104,18 @@ export function nodeGlows(marks, eye, nowS, state, out) {
       const d = Math.hypot(m.at[0] - eye[0], m.at[1] - eye[1], m.at[2] - eye[2]);
       if (!(d <= NODE_GLOW_M)) continue;
       let n = state.nodes.get(m.key);
-      if (!n) { n = { kindle: 0, seen: frame, seed: nodeGlowSeed(m.key) }; state.nodes.set(m.key, n); } else n.kindle = Math.min(1, n.kindle + dt / NODE_GLOW_KINDLE_S);
+      if (!n) { n = { kindle: 0, seen: frame, seed: nodeGlowSeed(m.key) }; state.nodes.set(m.key, n); } else n.kindle = m.quiet === true ? Math.max(0, n.kindle - dt / NODE_GLOW_KINDLE_S) : Math.min(1, n.kindle + dt / NODE_GLOW_KINDLE_S);   // AUDIT NODE-GLINT: a quiet mark dims as it kindled
       n.seen = frame;
-      const alpha = n.kindle * (1 - smooth(NODE_GLOW_FADE_M, NODE_GLOW_M, d));
+      // SENSE1: a mark may carry its own colour (`rgb`) and a gain over its kindling (`gain`, 0..1 - the sense pulse's
+      // fade); a node carries neither and is lit as it always was
+      const alpha = n.kindle * (1 - smooth(NODE_GLOW_FADE_M, NODE_GLOW_M, d)) * (Number.isFinite(m.gain) ? Math.min(1, Math.max(0, m.gain)) : 1);
       if (!(alpha > 0.001)) continue;
-      const g = state.pool[out.length] ??= { at: m.at, w: 0, h: 0, rgb: nodeMarkRgb(m.profession), alpha: 0, seed: 0 };
-      g.at = m.at; g.w = m.w; g.h = m.h; g.rgb = nodeMarkRgb(m.profession); g.alpha = alpha; g.seed = n.seed;
+      const rgb = m.rgb ?? nodeMarkRgb(m.profession);
+      const g = state.pool[out.length] ??= { at: m.at, w: 0, h: 0, rgb, alpha: 0, seed: 0, form: NODE_GLOW_FORM, pull: NODE_GLOW_PULL, mark: m };
+      g.at = m.at; g.w = m.w; g.h = m.h; g.rgb = rgb; g.alpha = alpha; g.seed = n.seed;
+      g.mark = m;   // NODE-OUTLINE: the mark it is - its pictures, which the glint lights (render/nodeGlint.js)
+      g.pull = Number.isFinite(m.pull) ? m.pull : NODE_GLOW_PULL;   // AUDIT BANTHA1 TREE-3: a mark may stand its card further out (a jungle trunk's)
+      g.form = m.form ?? NODE_GLOW_FORM;   // AUDIT DELVE D6: a sense mark's own form (systems/dungeon/dungeonSense.js SENSE_FORM); a node's is whole
       out.push(g);
     }
   }
@@ -144,6 +157,7 @@ uniform float uAlpha;   // its kindling and its distance's fade
 uniform float uSeed;
 uniform float uTime;    // nodeGlowClock's seconds
 uniform float uStill;   // AUDIT NODE-MARKS: 1 under reduced motion - the halo steady, no shimmer, the motes held
+uniform vec3 uForm;     // AUDIT DELVE D6: each part's share - the halo, the shimmer, the motes
 uniform int uFogMode;
 uniform float uFogDensity;
 uniform vec2 uFogRange;
@@ -177,7 +191,7 @@ void main() {
     float twinkle = 0.65 + 0.35 * sin(TAU * (tm * ${f(NODE_GLOW_RATES.twinkle)} + s));
     motes += exp(-dot(d, d) / (r * r)) * sin(life * 3.141592653589793) * twinkle;
   }
-  float light = ${f(NODE_GLOW_GAIN.halo)} * halo + ${f(NODE_GLOW_GAIN.shimmer)} * band + ${f(NODE_GLOW_GAIN.mote)} * motes;
+  float light = uForm.x * ${f(NODE_GLOW_GAIN.halo)} * halo + uForm.y * ${f(NODE_GLOW_GAIN.shimmer)} * band + uForm.z * ${f(NODE_GLOW_GAIN.mote)} * motes;
   o = vec4(uColor * light * uAlpha * fogFactorAt(vWorld), 1.0);
 }`;
 
@@ -188,6 +202,7 @@ export function nodeGlowVertices() {
 
 const NO_FOG_RANGE = new Float32Array([0, 1]);
 const NO_FOCUS = new Float32Array(4);   // no travel view - w 0, the fog measures from the camera
+const NO_HAZE = new Float32Array(8);   // AUDIT BANTHA1 HAZE-3: uJungleHaze off ([1].x 0)
 function mat4Multiply(out, a, b) {
   for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) out[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
   return out;
@@ -198,7 +213,7 @@ export class NodeGlowRenderer {
     this.gl = gl;
     this.program = buildProgram(gl, NODE_GLOW_VS, NODE_GLOW_FS, 'node glow');
     this.u = {};
-    for (const n of ['uVP', 'uAt', 'uSize', 'uEye', 'uPull', 'uColor', 'uAlpha', 'uSeed', 'uTime', 'uStill', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos', 'uFocus']) this.u[n] = gl.getUniformLocation(this.program, n);
+    for (const n of ['uVP', 'uAt', 'uSize', 'uEye', 'uPull', 'uColor', 'uAlpha', 'uSeed', 'uTime', 'uStill', 'uForm', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos', 'uFocus', 'uJungleHaze']) this.u[n] = gl.getUniformLocation(this.program, n);
     const verts = nodeGlowVertices();
     this.count = verts.length / 2;
     this.vao = gl.createVertexArray();
@@ -229,12 +244,13 @@ export class NodeGlowRenderer {
     gl.uniform1f(U.uTime, nodeGlowClock(seconds));
     gl.uniform1f(U.uStill, still ? 1 : 0);
     gl.uniform3f(U.uEye, eye[0], eye[1], eye[2]);
-    gl.uniform1f(U.uPull, NODE_GLOW_PULL);
+    let pull = NaN;   // AUDIT BANTHA1 TREE-3: the card's pull a glow's own, sent as it changes
     gl.uniform1i(U.uFogMode, fog ? fog.mode : 0);
     gl.uniform1f(U.uFogDensity, fog?.density ?? 0);
     gl.uniform2fv(U.uFogRange, fog?.range ?? NO_FOG_RANGE);
     gl.uniform3fv(U.uCamPos, fog?.camPos ?? eye);
     if (U.uFocus) gl.uniform4fv(U.uFocus, fog?.focus ?? NO_FOCUS);
+    if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);   // BANTHA1 (AUDIT BANTHA1 HAZE-3): the jungle's haze (renderer.setJungleHaze); none handed, off
     gl.bindVertexArray(this.vao);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
     gl.depthMask(false);
@@ -244,9 +260,12 @@ export class NodeGlowRenderer {
       if (!g || !isVec3(g.at) || !(g.alpha > 0.001)) continue;
       gl.uniform3f(U.uAt, g.at[0], g.at[1], g.at[2]);
       gl.uniform2f(U.uSize, g.w, g.h);
+      if (g.pull !== pull) { pull = g.pull ?? NODE_GLOW_PULL; gl.uniform1f(U.uPull, pull); }
       gl.uniform3f(U.uColor, g.rgb[0], g.rgb[1], g.rgb[2]);
       gl.uniform1f(U.uAlpha, Math.min(1, g.alpha));
       gl.uniform1f(U.uSeed, Number.isFinite(g.seed) ? g.seed : 0);
+      const form = g.form ?? NODE_GLOW_FORM;
+      gl.uniform3f(U.uForm, form[0], form[1], form[2]);
       gl.drawArrays(gl.TRIANGLES, 0, this.count);
       this.drawn++;
     }
@@ -255,9 +274,17 @@ export class NodeGlowRenderer {
     gl.depthMask(true);
     gl.disable(gl.BLEND);
   }
+
+  /** SENSE1 (EVERY ALLOCATION HAS AN OWNER): the program, the VAO and the buffer, freed - a dungeon's pass ends with
+   *  its dungeon (the world host's lives as long as the page). */
+  dispose() {
+    const gl = this.gl;
+    gl.deleteProgram(this.program); gl.deleteVertexArray(this.vao); gl.deleteBuffer(this.vbo);
+    this.program = null; this.vao = null; this.vbo = null;
+  }
 }
 
-/** AUDIT NODE-MARKS: the system's reduced motion, asked once a second at most - ui/profHud.js's own reading. */
+/** AUDIT NODE-MARKS: the system's reduced motion, asked once a second at most - ui/professions/profHud.js's own reading. */
 function reducedMotionReader() {
   let at = -Infinity, reduced = false;
   return (nowS) => {
@@ -281,8 +308,8 @@ const idleCall = (fn) => (globalThis.requestIdleCallback ? globalThis.requestIdl
  */
 export function createNodeGlowPass(renderer, { now = () => performance.now() / 1000, build = (gl) => new NodeGlowRenderer(gl), idle = idleCall, reduced = reducedMotionReader() } = {}) {
   const state = createNodeGlowState(), list = /** @type {NodeGlow[]} */ ([]);
-  let pass = /** @type {NodeGlowRenderer|null} */ (null), asked = false;
-  const make = () => { try { pass = build(renderer.gl); } catch (e) { console.warn('[prof] the nodes\' glow would not build', e?.message ?? e); pass = null; } };
+  let pass = /** @type {NodeGlowRenderer|null} */ (null), asked = false, dead = false;
+  const make = () => { if (dead) return; try { pass = build(renderer.gl); } catch (e) { console.warn('[prof] the nodes\' glow would not build', e?.message ?? e); pass = null; } };   // SENSE1: an idle build after the end builds nothing
   return {
     /** @param {Parameters<typeof nodeGlows>[0]} marks */
     draw(marks) {
@@ -290,9 +317,11 @@ export function createNodeGlowPass(renderer, { now = () => performance.now() / 1
       const t = now();
       if (!asked && marks?.length) { asked = true; idle(make); }   // the first node marked: the compile, at idle
       if (!nodeGlows(marks, eye, t, state, list).length || !proj || !view || !pass) return 0;
-      pass.draw(list, proj, view, eye, t, { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, camPos: renderer._camPos, focus: renderer._focus }, reduced(t));
+      pass.draw(list, proj, view, eye, t, { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze }, reduced(t));
       renderer.markForeignPass();
       return pass.drawn;
     },
+    /** SENSE1: the pass's end - its program freed, and never built again (an idle build still waiting builds nothing). */
+    dispose() { dead = true; asked = true; pass?.dispose?.(); pass = null; },
   };
 }

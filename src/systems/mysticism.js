@@ -29,7 +29,7 @@
 // classic key (19,255) is now a BUFF_KIND and isSilenced folds over the
 // active effects, so the gates below have something to gate on.
 //
-// The pin that let this through is worth naming: test/mysticism.test.js read
+// The pin that let this through is worth naming: test/scenes/mysticism.test.js read
 // dungeonContext.js with readFileSync and matched /silenceBlocksCast\(...\)/.
 // A source regex cannot see that the value the gate reads is never produced.
 //
@@ -59,10 +59,15 @@
 // contexts that own an ActionSystem, dungeonContext.js and
 // interiorContext.js. Neither exterior host owns doors. That is the
 // next slice, and those are its seams.
+// PVPFIX (the owner: "Undeniable Access/lockpicking should actually
+// work on locked crates"): ONE host call - dungeonContext.js's crate
+// search (activateSearchable) fires an armed Open on a crate's own lock;
+// a crate is no ActionSystem door. Lock stays a door's alone.
 import { EFFECT_FLAGS } from './spellcast.js';
 import { isSilencedEffect, BUFF_START_TEXT, WATER_WALKING_SILENT_KIND, BUFF_KINDS } from './effects.js';   // BUFF-END: the duration buffs are the kinds a player may end
 import { hasArtifactSubtype, ARTIFACTS } from './artifactEffects.js';   // ROAD-U: ContainsEnchantment, the way SoulTrap.cs asks
 import { setEnchantmentEffectDoors } from './enchantments.js';   // AUDIT 63 F14: SoulBound's Enchanted arm reaches RemoveFilledTrap through the doors bag (this leaf cannot be imported BY enchantments.js - effects.js sits between them)
+import { localizedStrings, localizedText } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { DISH_STAMINA_KIND } from './cookItems.js';   // AUDIT PROF-541 K6: the Orchard Tart's stamina, a dish the player may end as the others
 
 /** The ten, with the classic key DFU registers and which of the three
@@ -261,7 +266,7 @@ export function liveBundles(entity) {
     if (a.ended || a.bundleId == null) continue;
     let b = byId.get(a.bundleId);
     if (!b) {
-      b = { bundleId: a.bundleId, name: a.bundleName ?? '', bundleType: a.bundleType ?? 'Spell',
+      b = { bundleId: a.bundleId, name: a.bundleName ?? '', spellIndex: a.bundleSpellIndex ?? null, bundleType: a.bundleType ?? 'Spell',   // L10N3e: the index a window shows the name by
         icon: a.bundleIcon ?? 0, selfCast: !!a.bundleSelfCast,   // U46: the HUD's icon and its buff/debuff row
         ally: !!a.bundleAlly,   // AUDIT ALLY-CAST C4: a party mate's gift - the target dispels it as their own, no roll
         entries: [], showIcon: false };
@@ -301,8 +306,9 @@ export function dispelBundle(entity, bundleId, { selfCast = false, roll01 = 0, c
  * BUFF-END (2026-09-27, Leafen on Discord: "Could there be a way to dispel magic for non-magic users? It's a bit of a
  * buzzkill just having something on me that will take irl months of game time to wear off" - a Shield Group at 11397
  * rounds, casts stacked the way DFU's Shield.AddState stacks them; Zerofyre: "An option to right click cancel buffs on
- * yourself like most RPGs"). NEVER DFU'S: its one way off is Dispel Magic, a spell a warrior has none of, and the
- * stacking law stands - ending one is the player's own choice, not a cap on anyone's cast.
+ * yourself like most RPGs"). NEVER DFU'S: its one way off is Dispel Magic, a spell a warrior has none of. STACK-CAP
+ * (2026-10-11) has since retired the stacking itself - a re-cast renews its incumbent and never adds to it
+ * (effects.js renewRounds) - and ending one stays the player's own choice.
  *
  * What may be ended is a SPELL of the kinds that only help: never a held item's magic (it is back the moment the item
  * is read again), a duel's, an armed Open or Lock, a disease or a poison (neither is a bundle), and never anything with
@@ -335,7 +341,7 @@ export function endBundle(entity, bundleId) {
 export const endedSpellText = (name) => `${name} ends.`;
 
 /** Internal_Strings.csv - the two outcome lines. */
-export const DISPEL_MAGIC_TEXT = Object.freeze({
+export const DISPEL_MAGIC_TEXT = localizedStrings({
   dispelMagicSuccess: 'Dispel magic was a success...',   // :1054
   dispelMagicFailed: 'Dispel magic failed...',           // :1055
 });
@@ -460,7 +466,7 @@ export function removeFilledTrap(items, monsterID, {
 }
 
 /** The five Soul Trap HUD lines (Internal_Strings.csv :658-662). */
-export const SOUL_TRAP_TEXT = Object.freeze({
+export const SOUL_TRAP_TEXT = localizedStrings({
   trapActive: 'Trap active.',                        // :658
   trapHumanoid: 'Trap will not work on humanoids.',  // :659
   trapSuccess: 'Trapped soul.',                      // :660
@@ -578,7 +584,7 @@ export function silenceBlocksCast(entity, { costsSpellPoints = true } = {}) {
  *                                says this same string. The row stays
  *                                as the record of DFU's own
  *                                Open.cs:87 AddHUDText call. */
-export const DOOR_SPELL_TEXT = Object.freeze({
+export const DOOR_SPELL_TEXT = localizedStrings({
   readyToOpen: 'Ready to open.',            // :652
   openFailed: 'Lock is too powerful.',      // :655
   readyToLock: 'Ready to lock.',            // :651
@@ -595,15 +601,18 @@ export const DOOR_SPELL_TEXT = Object.freeze({
  *  (the direction of the import is forced - effects.js is under this
  *  file, not over it) and this is the cast gate's name for it. */
 export const SILENCED_TEXT = BUFF_START_TEXT.silenced;
+/** L10N3d: the cast gate's line as the player reads it, read where it is said. */
+export const silencedText = () => BUFF_START_TEXT.silenced;
 // SetReadySpell's HUD line (EntityEffectManager.cs:355) -
 // GetLocalizedText('pressButtonToFireSpell'), Internal_Strings_en
 // m_Id 211. AUDIT 24: the port had invented "<spell> readied."
 export const PRESS_BUTTON_TO_FIRE_SPELL = 'Press button to fire spell.';
+export const pressButtonToFireSpellText = () => localizedText('pressButtonToFireSpell', PRESS_BUTTON_TO_FIRE_SPELL);
 
 // AUDIT 63 F14: the SoulBound Enchanted payload's one door
 // (SoulBound.cs:90-96 -> RemoveFilledTrap :129-155). Registered upward,
 // the setEnchantmentEffectDoors shape effects.js already uses at its own
 // tail: enchantments.js is a leaf under effects.js and cannot import this
 // file back. Every host imports mysticism.js, and so does the item
-// maker's own path (ui/itemMakerWindow.js -> systems/enchanting.js).
+// maker's own path (ui/item/itemMakerWindow.js -> systems/enchanting.js).
 setEnchantmentEffectDoors({ removeFilledTrap });

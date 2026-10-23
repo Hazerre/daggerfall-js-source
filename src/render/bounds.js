@@ -85,7 +85,7 @@ export const BOUNDS_RANGE = 8192;
  * same law as boundsOf's, spelled for ranges, and it stands beside it
  * rather than inside it on purpose: boundsOf also runs every frame for
  * an animated rig (renderer.js), and cut into range helpers it measured a
- * third slower there. test/publishtail.test.js holds the two to the same
+ * third slower there. test/render/publishtail.test.js holds the two to the same
  * bytes on meshes of every shape, so neither can drift alone.
  */
 export function* boundsSteps(positions, range = BOUNDS_RANGE) {
@@ -336,7 +336,7 @@ export function placementGrid(centers) {
     for (let i = a; i < e; i += 3) { const dx = byCell[i] - cx, dy = byCell[i + 1] - cy, dz = byCell[i + 2] - cz; if (dx * dx + dy * dy + dz * dz > r2) r2 = dx * dx + dy * dy + dz * dz; }
     cs[k * 4] = cx; cs[k * 4 + 1] = cy; cs[k * 4 + 2] = cz; cs[k * 4 + 3] = Math.sqrt(r2) * (1 + 1e-6) + 1e-4;
   }
-  return { G, x0, z0, x1, z1, sx, sz, start, pts: byCell, cs, hw: NaN, hh: NaN, half: 0 };   // the review: the half-diagonal's memo (placedHalfDiagonal), born empty
+  return { G, x0, z0, x1, z1, sx, sz, start, pts: byCell, cs, hw: NaN, hh: NaN, half: 0, vol: null };   // the review: the half-diagonal's memo (placedHalfDiagonal), born empty; PERF-VOL: the volume answers' (placementsInVolumeOf)
 }
 /** PERF-EXT1: the radius that bounds one quad of a batch - its half-diagonal `half` plus WIND3's `lean` at the crown -
  *  a hair wide, so the float32 the GPU places a corner in can never land outside the double this is compared in. */
@@ -367,10 +367,21 @@ function cellRange(q, x0, z0, x1, z1) {
   _cells[3] = Math.max(0, Math.min(top, Math.floor((z1 - q.z0) / q.sz)));
   return true;
 }
+const _cubeArgs = new Float64Array(5);
 /** PERF-EXT1: does any quad of batch `b` (its `_place`, its origin and size, a quad radius `rad` from
  *  placementRadius) reach a lantern's CUBE [pos - far, pos + far]? The six faces' frusta tile that cube, so a quad
  *  outside it rasterises into none of them - the cube, not the far SPHERE, whose corners a face still draws. */
 export function placementsInCube(b, rad, px, py, pz, far) {
+  const c = _cubeArgs;
+  c[0] = rad; c[1] = px; c[2] = py; c[3] = pz; c[4] = far;
+  return placementsInCubeOf(b, c);
+}
+/** PERF-ALLOC2 (2026-10-10): placementsInCube with its cube in a Float64Array - [rad, px, py, pz, far] - the same test
+ *  from the same doubles (a Float64Array holds a double exactly). A double handed to a call V8 does not inline is a
+ *  heap number: the shadow pass's lantern walk (_candidateQuads) asks this once a placed batch a lantern a frame, and its
+ *  five numbers were 153 KB of the 1.4 MB the real game's night frame allocated at Knightstale. */
+export function placementsInCubeOf(b, c) {
+  const rad = c[0], px = c[1], py = c[2], pz = c[3], far = c[4];
   const q = b._place, o = b.origin || ZERO_ORIGIN, R = far + rad;
   const lx = px - o[0], ly = py - o[1] - batchLift(b), lz = pz - o[2];   // the light in the batch's frame, the lift folded in
   if (!cellRange(q, lx - R, lz - R, lx + R, lz + R)) return false;
@@ -402,4 +413,81 @@ export function placementsInVolume(b, rad, planes) {
     }
   }
   return false;
+}
+
+/** PERF-VOL: how many named plane sets the table holds (and how many first sights it remembers), and how many answers a
+ *  grid keeps, before each starts over. */
+export const VOLUME_TABLE_MAX = 512;
+export const VOLUME_MEMO_MAX = 128;
+let _volNamed = new Map(), _volNamedCount = 0, _volNext = 1;
+const _volSeen = new Set();
+const _volBits = new WeakMap();
+/** PERF-VOL: the hash a set of plane words is filed under - FNV-1a over the 24 words, each step folded down
+ *  (AUDIT PERF-ARENA V3: `imul` carries a difference only upward, so plain FNV-1a over words let sign-only differences
+ *  cancel - a lamp's opposite faces at the origin, or lamps on the axes, hashed alike). A hash only files: a hit is the
+ *  words compared. Exported for the pins, which build two sets of one hash from it. */
+export function volumeHash(u) {
+  let h = 2166136261;
+  for (let i = 0; i < 24; i++) { h = Math.imul(h ^ u[i], 16777619); h ^= h >>> 15; }
+  return h;
+}
+/**
+ * PERF-VOL (2026-10-11, Mac: "Lets do the biggest remaining lever"): the NAME of a replay's six planes, so the answers
+ * of placementsInVolume can be kept across frames. Measured in the real game (Knightstale by night, the freeware
+ * ARENA2, its inputs captured over three frames): 542 asks a frame and every one the frame before's to the bit - the
+ * town's eleven swaying placed batches, each asked by the twelve lanterns' six faces again every frame under Steady
+ * shadows (FLICKER-FIX: every map is redrawn every frame). The answer is a pure function of the planes, the grid, the
+ * batch's origin and height and the quad's radius; this names the planes by their BITS (the float32 words), so two
+ * sets with one name are the same numbers and give the same arithmetic.
+ *
+ * 0 - no name, ask afresh - for a set seen for the FIRST time, and for anything but a Float32Array(24). A first sight
+ * keeps only its hash (AUDIT PERF-ARENA R4/O4: it kept a copy of the words, ~0.4-0.7 KB, for a carried lantern's faces
+ * that never come again); the second sight of that hash is named and its words kept. A hash two sets share only names
+ * the second of them early - the words decide every hit. Names are never reused: the named table starts over past
+ * VOLUME_TABLE_MAX sets with the count going on, so an old name a grid still holds can never match a new set; the
+ * first sights start over on their own, past as many hashes, and forget no name.
+ * @param {ArrayLike<number>} planes
+ */
+export function volumeName(planes) {
+  if (!(planes instanceof Float32Array) || planes.length !== 24) return 0;
+  let u = _volBits.get(planes);
+  if (u === undefined) { u = new Uint32Array(planes.buffer, planes.byteOffset, 24); _volBits.set(planes, u); }
+  const h = volumeHash(u);
+  const list = _volNamed.get(h);
+  if (list !== undefined) {
+    find: for (let j = 0; j < list.length; j++) {
+      const e = list[j];
+      for (let i = 0; i < 24; i++) if (e.bits[i] !== u[i]) continue find;
+      return e.id;
+    }
+  }
+  if (!_volSeen.has(h)) {   // the first sight: its hash alone
+    if (_volSeen.size >= VOLUME_TABLE_MAX) _volSeen.clear();
+    _volSeen.add(h);
+    return 0;
+  }
+  _volSeen.delete(h);   // the second: named from now on
+  if (_volNamedCount >= VOLUME_TABLE_MAX) { _volNamed = new Map(); _volNamedCount = 0; }
+  const e = { bits: Uint32Array.from(u), id: _volNext++ };
+  const into = _volNamed.get(h);
+  if (into !== undefined) into.push(e); else _volNamed.set(h, [e]);
+  _volNamedCount++;
+  return e.id;
+}
+/** PERF-VOL: placementsInVolume through the grid's kept answers. `name` is volumeName(planes) - 0 asks afresh. An answer
+ *  is kept on the batch's own grid (a move mints a new grid, so the old answers go with the old placements) against
+ *  every other number the test reads: the radius, the origin's three and the height its lift is half of. Any one
+ *  different - or NaN, which equals nothing - and it is asked afresh and kept again. */
+export function placementsInVolumeOf(b, rad, planes, name) {
+  if (name === 0) return placementsInVolume(b, rad, planes);
+  const q = b._place, o = b.origin || ZERO_ORIGIN, h = b.size?.h ?? 0;
+  let m = q.vol;
+  if (m === null || m === undefined) m = q.vol = new Map();
+  const e = m.get(name);
+  if (e !== undefined && e.rad === rad && e.ox === o[0] && e.oy === o[1] && e.oz === o[2] && e.h === h) return e.ans;
+  const ans = placementsInVolume(b, rad, planes);
+  if (e !== undefined) { e.rad = rad; e.ox = o[0]; e.oy = o[1]; e.oz = o[2]; e.h = h; e.ans = ans; return ans; }
+  if (m.size >= VOLUME_MEMO_MAX) m.clear();
+  m.set(name, { rad, ox: o[0], oy: o[1], oz: o[2], h, ans });
+  return ans;
 }

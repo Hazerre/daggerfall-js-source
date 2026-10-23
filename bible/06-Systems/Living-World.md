@@ -9,7 +9,11 @@ be recieving and I want this to be absolutely perfect. A masterpiece".
 
 The port's own. Daggerfall's townsfolk are DFU's PopulationManager: a pool of identity-less shells around the player,
 each re-rolled into a stranger at every spawn, wandering the navgrid by tile weights and gone at dusk
-(`systems/townPopulation.js`, verbatim). Nothing in Daggerfall travels, sleeps, works or remembers.
+(`systems/town/townPopulation.js`, verbatim). Nothing in Daggerfall travels, sleeps, works or remembers.
+
+LW9-LW16 (the road's traffic, the wagon train, the caravan's door, the outlaws, the companies, the deep's own, the
+patrons, the word travels) are designed and built on `06-Systems/Living-World-II.md` (2026-10-09; audited 2026-10-10,
+`01-Overview/audits/Audit-LivingWorld-II.md`).
 
 ## LW0 - the decisions
 
@@ -23,12 +27,24 @@ Taken at the design, in the request's own order; each is Mac's to overrule.
    hour). Every resident, every plan, trip, caravan, camp, encounter and dive is a PURE FUNCTION of the world's own data
    (MAPS, BLOCKS, the roads), a seed and that clock - so every player on a page sees the same baker walk to the same
    oven at the same minute, and not a byte crosses the relay. A rest, a wait, a fast travel or a prison sentence moves
-   the clock and the world with it: the people are where their day has taken them.
+   the clock and the world with it: the people are where their day has taken them. CHAP5b (2026-10-09; Chapters-Arc 9)
+   NARROWS IT BY ONE INPUT: online, the chapter sheet the playing tab holds (`net/chapterSheet.js`, the service's) - a
+   guild's evenings at its hall by its chapter's band, the town's talk of a chapter not Steady - so every player reading
+   one sheet sees one hall; with no sheet (offline, the sheet unread, a chapter it does not name) it is the world above.
+   TOWN-ECON TE3 (2026-10-18; `06-Systems/Town-Economy-Arc.md` section 5) NARROWS IT BY ONE INPUT MORE: online, a town's
+   economy band (`net/townEconLaw.js` townBandOf - its seat's rule the seat list, its players' share the account
+   service's, both read by every tab within minutes of one another) - the town's talk of its trade, read live, and a
+   market town's market days (the band at its first asking, kept a town a day, so a day's plans never change under it;
+   kept only once the shares and the seat list have answered - AUDIT TOWN-ECON 2 CLI-1 - so two tabs agree on the days
+   both first asked after the same reads, and a band's crossing reaches a carter's market days at the next cycle he
+   plans, an hour of real time a sky day online); offline there is no band and it is the world above.
 3. **PEOPLE WALK AT THEIR OWN PACE.** On the street a resident walks DFU's 1.3 m/s (`PERSON_MOVE_SPEED`); the clock's
    rate turns it into the clock's minutes (`CLASSIC_MINUTES_PER_SECOND`, twelve a real minute; the sky's
    `skyMinutesPerMsAt`, twenty-four), so a resident beside the player keeps pace with them and every day is lived at
    walking speed. A journey's time scale speeds the calendar and the people with it.
-4. **A RESIDENT IS A DFU TOWNSPERSON WHO KEEPS THEIR IDENTITY FOR LIFE.** The billboard race is the climate's people,
+4. **A RESIDENT IS A DFU TOWNSPERSON WHO KEEPS THEIR IDENTITY FOR LIFE.** The billboard race is the climate's people
+   (REGIONAL-FOLK, `01-Overview/bugs/Field-Bugs-2026-10-10.md`: a Redguard region's are Redguards - its residents were
+   re-dressed once, at that update, their names and days kept),
    the outfit one of `PERSON_TEXTURES`' four, the talk portrait `PERSON_FACE_RECORDS`' own law, the name `fullName` on
    the region's bank with DFRandom's state saved and put back (`shipCrew.js handName`'s pattern) - every part DFU's, but
    drawn once from the resident's seed instead of at every spawn.
@@ -104,7 +120,7 @@ Taken at the design, in the request's own order; each is Mac's to overrule.
   homemakers, a city's beggars); `CENSUS_MAX` 260, the common hands trimmed first. `townCensus` gives the watch the
   palace and every traveller a house (an adventurer the tavern a quarter of the time) - LW-WALLS: of the buildings whose
   doors open onto the town's street, where the town knows them. Identity is `mintResident`'s:
-  the climate's people (`raceOfPeople`), half female, an outfit of `PERSON_TEXTURES`, a face of
+  the climate's people - a Redguard region's Redguard (`walkerRace`, REGIONAL-FOLK) - half female, an outfit of `PERSON_TEXTURES`, a face of
   `PERSON_FACE_RECORDS` + 0..23, a name on the region's bank (`residentName`), the watch GUARD_TEXTURE male outfit 0
   (RandomiseNPC's arms, every part); a temper (lark, day, owl) weighted by the job, three leanings (company, piety,
   drink), a class for the armed (an adventurer any of the eighteen, a sellsword the fighting seven, a courier the
@@ -144,9 +160,15 @@ Taken at the design, in the request's own order; each is Mac's to overrule.
   the morning's, the day's (LW-TALK, the street's), the evening's and the night's; tokens with fallbacks; LIVING_GREETINGS
   by regard.
 - **`relations.js`.** A regard per resident (-100..100), a stranger 0: a word +3 once a day, a polite word +1, a gift
-  +8, help +20, a life saved +35, a blow -45, a crime -15, one of theirs slain -60, a blunt word -6; friend at 40, enemy
+  +8, help +20, a life saved +35, a blow -45, a crime -15, one of theirs slain -60, a blunt word -6 (TONE-TASTE: the
+  +1 and the -6 are a tone taken kindly and one taken ill, by the resident's own taste - section TONE-TASTE); friend at 40, enemy
   at -40, hostile at -70; eased toward zero half a point a day unseen and never across; 600 kept; the save's record
-  `{ v: 1, people }`, a bad one nobody known.
+  `{ v: 1, people }`, a bad one nobody known. [REGARD-OWN, FIELD BUGS 2026-10-21d: its days are the character's own
+  (`regardClock.js` characterRelations, the one making), not the sky's living day - online the sky ran on while the
+  player was away and eased every regard to nought between evenings; the record says `clock: 'own'`, an older online
+  one rebased once (a friendship as last written, a grudge as the sky had eased it - AUDIT FB1021d RO-3; and offline too
+  where its stamps run ahead of the character's day, RO-5). A friend made - by a word, its tone or a deed - is said once
+  nothing covers the HUD, never under the talk window (RO-1, RO-4) - `01-Overview/bugs/Field-Bugs-2026-10-21d.md`.]
 
 ## LW2 - the town (2026-10-04)
 
@@ -191,7 +213,7 @@ the trample (`retire`), the probes.
 
 ## LW3 - the roads (2026-10-04)
 
-`systems/livingWorld/trips.js`, pure; `scenes/livingRoads.js` and `world/travellerSprites.js`, the host's.
+`systems/livingWorld/trips.js`, pure; `scenes/livingWorld/livingRoads.js` and `world/travellerSprites.js`, the host's.
 
 - **The travellers.** The census's roster off the MAPS row gains the PEDLAR (every town one, one more each six blocks,
   to six): the small places' own traffic. Merchants, adventurers, pilgrims, couriers and pedlars travel; sellswords
@@ -211,10 +233,13 @@ the trample (`retire`), the probes.
   (`systems/livingWorld/ways.js createWayBook`) - not by the host, whose one construction seam is the player's journey
   (TO-ROADS) - on the game's own ground alone (the climate and the heightmap: never a player's attached World of
   Daggerfall massifs, which only that player has). Once a pair in ONE direction - the lower map id first, the other its
-  reverse - so every client walks the same way, `WAYS_PER_FRAME` (2) new pairs a frame; a new network clears the book
+  reverse - so every client walks the same way, `WAYS_PER_FRAME` (2) new pairs a frame at the least, and more while the
+  frame's asking has taken under 2 ms (PERF-WAYS1, below); a new network clears the book
   and the host's trips with it (`generation`). Two players on different road networks see their travellers on their
-  own roads. `wayOf` lays it through its pixels' centres, which is the road itself; each end is trimmed by the town's
-  half-width and a block (`townTrim`), so a party walks out of the town's edge.
+  own roads. `wayOf` lays it through its pixels' centres, which is the road itself; each end is trimmed where the way
+  leaves the town's grid grown by half a block (`wayTrims`, `townExit` - WALL-WAY, `01-Overview/bugs/Field-Bugs-2026-10-12b.md`:
+  the radius `townTrim` set a diagonal way's party down inside the walls), so a party walks out past the town's walls;
+  the two ends are held to 0.4 of the way each only where they would meet.
 - **Caravans** (`formCaravans`), each a law of the trips alone: a merchant takes the town's sellswords UNDER CONTRACT
   to them - the town's sellswords dealt to its merchants in slot order, the first to the first, round again - their
   trip's own roll of up to `HIRE_MAX` (3) of them; a merchant's trips never overlap, so neither do their sellswords'.
@@ -253,7 +278,7 @@ the trample (`retire`), the probes.
 ## LW4 - trouble on the road (2026-10-04)
 
 `systems/livingWorld/lives.js` and `trouble.js`, pure; `trips.js` carries them; the host composes them
-(`scenes/world.js`), the roads' layer shows them (`scenes/livingRoads.js`), the town tells them.
+(`scenes/world.js`), the roads' layer shows them (`scenes/livingWorld/livingRoads.js`), the town tells them.
 
 - **The lives** (`lives.js`). Each traveller's PLACE rolls its fate once a cycle - its own cycle, a sellsword's its
   contract merchant's (`trips.js placeCycle`) - against its job's `HAZARD` (a merchant 0.006, a sellsword 0.01, an
@@ -424,7 +449,7 @@ index (`scenes/world.js`).
 
 ## LW6b - the fallen in the deep (2026-10-05)
 
-`trips.js` (`fallenIn`, `DEEP_REMAINS_MIN`), `relations.js` (`MARK_KINDS`: `laid`), `scenes/deepRemains.js`
+`trips.js` (`fallenIn`, `DEEP_REMAINS_MIN`), `relations.js` (`MARK_KINDS`: `laid`), `scenes/livingWorld/deepRemains.js`
 (`createDeepRemains`, `restAt`, `DEEP_NOTICE_M`, `DEEP_LAY_M`), `dungeonDivers.js stood`, the dungeon's resting places and
 pile (`dungeonContext.js` `restingSpots`, `layRemains`, `pileNear`) and the host's step (`scenes/world.js
 livingRemainsStep`). Mac: "You can find them dungeon diving ... explore a dynamic world" - a company that never came up
@@ -439,9 +464,13 @@ leaves its dead below, and the town says so (DIVE_NEWS); now a player can go dow
 - **Where they lie**: at one of the places the dungeon's own foes stand - its random enemy markers, each on the floor
   under it (`restingSpots`, the layout's order) - the one their key deals (`restAt`): every reader the same.
 - **What lies there**: their body, their class's own corpse picture, as a pile of the dungeon's own (`layRemains`) with
-  what they carried - their class's loot table at their level, a weapon, a piece of armour and their purse. Laid ONCE in
-  the character's world (the relations' `laid` mark, written into the save only once there is one); the dungeon's pile
-  from then - the scene's cache keeps it, the player loots it. On the way in they are simply there (the dungeon as it
+  what they carried - their class's loot table at their level, a weapon, a piece of armour and their purse. Laid each
+  visit until the player has taken from them (AUDIT-C5, LW-FIX5: the relations' `laid` mark, spent once taken from); the
+  dungeon's pile from then - kept while the dungeon stands and in a save made inside it, as any of its piles is, and
+  AUDIT LW-III: tagged with the remains' key (`layRemains`, the save's row, `restorePiles`), so the load's pile is
+  theirs, adopted (`pileOf`), never a second laid beside it (each save and load laid another set). A dungeon keeps no
+  scene cache: left, the pile is gone. The player loots it. On
+  the way in they are simply there (the dungeon as it
   is); one the deep takes while the player is below lies where the player is not (beyond `DEEP_LAY_M`, 15 m).
 - **Found**: the player coming within `DEEP_NOTICE_M` (4 m) of remains still lying there hears whose they are ("The
   remains of Ada Lark, of Wayrest.") - once a visit.
@@ -481,7 +510,7 @@ Mac: "make friends or enemies" - a kindness is talked of, as a deed is.
 ## LW7 - the deeds (2026-10-05)
 
 `relations.js` (the hand deaths, a word's tone), `lives.js` (`handDeath`, `roadHits`), `trips.js handsOn`, `lines.js`
-(`SLAIN_NEWS`, `DIED_NEWS`, `HELPED_NEWS`), pure; `livingTown.js` and `scenes/livingRoads.js` (the deeds), the host's
+(`SLAIN_NEWS`, `DIED_NEWS`, `HELPED_NEWS`), pure; `livingTown.js` and `scenes/livingWorld/livingRoads.js` (the deeds), the host's
 seams (`scenes/world.js`, `scenes/townTalk.js`). Mac: "make friends or enemies".
 
 - **A hand's death** (`relations.js HAND_KINDS`). A resident the player STRUCK DOWN (`slain`) and one who died fighting
@@ -553,7 +582,7 @@ by name, an enemy will not talk, and an armed one draws on you beyond the walls"
 
 ## LW7c - the people who know you (2026-10-05)
 
-`systems/livingWorld/people.js` (`residentOfId`, `peoplePage`, `personWords`), pure; `ui/enhancedChronicle.js` (the
+`systems/livingWorld/people.js` (`residentOfId`, `peoplePage`, `personWords`), pure; `ui/enhanced/enhancedChronicle.js` (the
 People section), `ui/chronicleDoor.js` (the `people` door), the host's (`scenes/world.js`).
 
 - **Nothing new is saved.** A resident's id names their town, roll, slot and generation, and the census's mint is a
@@ -573,7 +602,7 @@ People section), `ui/chronicleDoor.js` (the `people` door), the host's (`scenes/
 
 ## LW8 - the doors open (2026-10-05)
 
-`livingTown.js insideAt`; `scenes/livingIndoors.js` (`createLivingIndoors`, `soundRoom`); the building mode's two hooks
+`livingTown.js insideAt`; `scenes/livingWorld/livingIndoors.js` (`createLivingIndoors`, `soundRoom`); the building mode's two hooks
 (`scenes/worldModes.js`: the press, the billboard pass) and the host's layer (`scenes/world.js`). Mac: NPCs "dynamically
 all have tasks ... perform activities" - LW2 shut the door behind a resident; this stands what is behind it.
 
@@ -584,18 +613,20 @@ all have tasks ... perform activities" - LW2 shut the door behind a resident; th
   or one still in the street (a walk running late); in the order of their ids.
 - **Where** (`soundRoom`). A room has no grid to walk: it is SOUNDED once from its way in (LW-FIX6: the landing of
   the building's first door, whichever door was taken - every reader and every way in the same room) - a fan of
-  `INDOOR_FAN` (12) directions walked out to `INDOOR_SPREAD_M` (2.4 to 6.6 m) through the room's own collider (never
+  `INDOOR_FAN` (12) directions walked out to `INDOOR_SPREAD_M` (2.4 to 6.6 m; LW-ROOMS: its floor walked now, cell by
+  cell from the floor under the way in, to `INDOOR_REACH_M` - the fan kept a tavern's twelve by its door) through the room's own collider (never
   through a wall), each landing on this room's floor (no floor, or another - a stair's foot - no spot), kept
   `INDOOR_APART_M` (1.3 m) from every other, `INDOOR_CLEAR_M` (1.1 m) from the building's static people and
   `INDOOR_DOOR_M` (1.8 m) from every way in (LW-FIX6: each door's landing). Each resident takes a spot in the order of their ids over an order the
   building's key deals, facing into the room, in their own clothes (indoors no one is armed - LW-LOOKS: but one whose
-  calling is a class's in it), to `INDOOR_MAX` (12).
+  calling is a class's in it), to `INDOOR_MAX` (12) (LW-ROOMS: and no more than its floor holds).
 - **Coming and going**: who is inside is read every `INDOOR_TICK_S` (1 s); on the way in the room is as the day has it,
   all at once (LW2's arrival law); after it one who comes or goes waits for the player to look away (or be
-  `INDOOR_SEEN_M`, 14 m, off).
+  `INDOOR_SEEN_M`, 14 m, off - AUDIT LW-ROOMS: and hidden there by the room, `inView`).
 - **Talk** (the building mode's press, `host.livingPersonsAct`): a resident in the room is offered the press before the
   ladder's own winner - the street's own talk ray (`townTalk.tryActivate`) on the room's talk seats - and their regard
-  hears it through the room's door (a refusal from an enemy, a word, a tone). A hand caught in a purse here is seen by
+  hears it through the room's door (a refusal from an enemy, a word, a tone) - AUDIT LW-ROOMS: never through the room's
+  walls (the interior collider's ray the nearer). A hand caught in a purse here is seen by
   those in the room within `WITNESS_M`. Drawn on the building's own billboard pass (`host.livingBillboards`).
 - **The host** stands the layer in a building of a living town (the room's collider and floor, its static people, the
   sky's clock), steps it in the modal frame and frees it in the street. EVERY ALLOCATION HAS AN OWNER: each body is the
@@ -604,7 +635,7 @@ all have tasks ... perform activities" - LW2 shut the door behind a resident; th
 
 ## LW8b - the room's talk (2026-10-05)
 
-`scenes/livingIndoors.js` (`tablesOf`, `TABLE_M`, `TABLE_MAX`; the layer's tables, circles, words and `speech`),
+`scenes/livingWorld/livingIndoors.js` (`tablesOf`, `TABLE_M`, `TABLE_MAX`; the layer's tables, circles, words and `speech`),
 `lines.js` (`ROOM_TALKS`, `roomKindOf`, `pickScript`'s `room`), `meetups.js circleLine`'s `room`, the LivingTown's doors for
 a room (`livingTown.js` `lineCtx`, `talkBeat`, `typeOf`, `greetingFor`), the building mode's HUD pass
 (`scenes/worldModes.js` `host.livingSpeech`) and the host's layer (`scenes/world.js livingRoomLines`). Mac: NPCs "have
@@ -613,7 +644,8 @@ conversations with each other ... much like the crew on board ships" - LW8 stood
 - **The tables** (`tablesOf`). The room's sounded spots are grouped where people stand together: in the building's
   deal, each spot not yet at a table opens one and takes the nearest of the rest within `TABLE_M` (2.2 m) of every one
   already at it, to `TABLE_MAX` (3). The room fills TABLE BY TABLE (the tables in the deal, each its spots in turn), so
-  those inside stand in twos and threes; those at a table face its middle, one alone faces the room.
+  those inside stand in twos and threes; those at a table face its middle, one alone faces the room (AUDIT LW-ROOMS:
+  their table's middle, or the room's open way there - `faceOf`).
 - **The circles.** LW-TALK: a table's company - those standing at it - meets from the minute it sat down as it is, a
   round of the street's at a time (`ROUND_S`, on the town's clock: `talkBeat`) while it stays the same, dealt as the
   street's circles are (`dealCircles` on `in:<building>:<table>:<the minute>`) and talking in the street's exchanges.
@@ -636,13 +668,13 @@ conversations with each other ... much like the crew on board ships" - LW8 stood
 
 ## LW8c - the room astir (2026-10-05)
 
-`scenes/livingIndoors.js` (`stirPlace`, `INDOOR_STIR_S`, `INDOOR_WALK_M`, `INDOOR_WALK_SPEED`; the layer's stirring and walks).
+`scenes/livingWorld/livingIndoors.js` (`stirPlace`, `INDOOR_STIR_S`, `INDOOR_WALK_M`, `INDOOR_WALK_SPEED`; the layer's stirring and walks).
 Mac: NPCs "perform activities" - the room's residents no longer stand where they came in all evening.
 
 - **Who stirs**: one in no TALKING circle (a quiet one may get up), once their own wait is up - `INDOOR_STIR_S`, 30 to 90
   real seconds, their id's own between - and again after each walk.
 - **Where to** (`stirPlace`, pure): a free place of the room within `INDOOR_WALK_M` (7 m) - a table where one stands alone
-  first (never one of two, one walking or their own; its nearest free place: company), else one their own dice pick - along a line the room's own collider lets them walk (sounded as the
+  first (never one of two, one walking or their own; its nearest free place: company), else one their own dice pick (LW-ROOMS: a place of their own first) - along a line the room's own collider lets them walk (sounded as the
   room was: never through a wall, a counter or a table). None: they stay, and try again after another wait.
 - **The walk**: at `INDOOR_WALK_SPEED` (1.2 m a second), facing the way they go, moving; the place they make for is
   theirs from the moment they set out (no newcomer takes it). Between tables they are at none - no circle, no table to
@@ -652,7 +684,7 @@ Mac: NPCs "perform activities" - the room's residents no longer stand where they
 ## LW-FIX1 - the review's six (2026-10-05)
 
 An independent read of LW6 to LW8c (a reviewing agent, its findings verified against the code before any fix) found six
-defects; each is fixed and pinned (`test/lwfix1_review.test.js`, `tools/mutants/lwfix1.json`, and LW6's own host pin).
+defects; each is fixed and pinned (`test/systems/livingWorld/lwfix1_review.test.js`, `tools/mutants/lwfix1.json`, and LW6's own host pin).
 
 - **The dungeon the player is in** (`world.js livingDungeonHere`) was read off `dungeonCtx.location()`, a seam the
   dungeon's context does not carry - its summary is the abyss seam's (`dungeonCtx.abyss.location()`, DungeonSummary.
@@ -677,9 +709,9 @@ defects; each is fixed and pinned (`test/lwfix1_review.test.js`, `tools/mutants/
 ## LW-FIX2 - the seams' three (2026-10-05)
 
 A second read (an agent auditing every member the living world's host reads off another module, each finding verified
-before the fix) found three more; each is fixed and pinned (`test/lwfix2_watch.test.js`, `tools/mutants/lwfix2.json`).
+before the fix) found three more; each is fixed and pinned (`test/systems/livingWorld/lwfix2_watch.test.js`, `tools/mutants/lwfix2.json`).
 
-- **The turned watch** (`scenes/livingWatch.js watchStep`). A struck watchman's guard, cut down, was ended through
+- **The turned watch** (`scenes/livingWorld/livingWatch.js watchStep`). A struck watchman's guard, cut down, was ended through
   `town.slay(...)`, a method no LivingTown has (`slay` is the host's option): a TypeError the moment he fell, in the
   frame with no catch - the world's loop stopped. Now the town's whole deed, `slain` (the hand's turn at that minute,
   his household turned, the witnesses' crime at the place he was struck).
@@ -695,7 +727,7 @@ before the fix) found three more; each is fixed and pinned (`test/lwfix2_watch.t
 ## LW-FIX3 - the town's five (2026-10-05)
 
 The deep audit of everything the branch made (seven agents, each finding verified against the code before the fix)
-found five in the town core; each is fixed and pinned (`test/lwfix3_town.test.js`, `tools/mutants/lwfix3.json`).
+found five in the town core; each is fixed and pinned (`test/systems/livingWorld/lwfix3_town.test.js`, `tools/mutants/lwfix3.json`).
 
 - **The walks coming near** (`livingTown.js _tick`, CENSUS_PATHS, WALK_STRAY_M, `walkGap`). The census read a walk
   whose path was not searched yet at its start, and only a row on the street searches its own path - so a walk begun
@@ -712,7 +744,7 @@ found five in the town core; each is fixed and pinned (`test/lwfix3_town.test.js
   last noted, so a crowd's crime (every witness -15), long eased to nothing, outweighed every new acquaintance: once
   the bound was reached a word to a stranger was forgotten as it was said, and no new friend could be made. It reads
   the regard as it stands today, and never the one just noted.
-- **The chronicle's keys** (`ui/enhancedChronicle.js` onKey). The arrow keys walked the four old sections: LW7c's People
+- **The chronicle's keys** (`ui/enhanced/enhancedChronicle.js` onKey). The arrow keys walked the four old sections: LW7c's People
   was never reached from the History, and an arrow from it jumped. They walk the sections the window shows.
 - **A walk home cut at 04:00** (`dayPlan.js schedule`, an away window). A walk home after an away window that closed in
   the last minutes before the day's end ran past it, and the next day's plan - which drops that window - had the
@@ -721,7 +753,7 @@ found five in the town core; each is fixed and pinned (`test/lwfix3_town.test.js
 
 ## LW-FIX4 - the turns' eleven (2026-10-05)
 
-The deep audit's road and deep findings; each is fixed and pinned (`test/lwfix4_turns.test.js`,
+The deep audit's road and deep findings; each is fixed and pinned (`test/systems/livingWorld/lwfix4_turns.test.js`,
 `tools/mutants/lwfix4.json`).
 
 - **A turn never re-rolls the pure world** (`lives.js placeAt` `diced`; `trouble.js` the shape and the end; the host's
@@ -758,7 +790,7 @@ The deep audit's road and deep findings; each is fixed and pinned (`test/lwfix4_
 
 ## LW-FIX5 - the deep's four (2026-10-05)
 
-The deep audit's deep and deed findings; each is fixed and pinned (`test/lwfix5_deep.test.js`,
+The deep audit's deep and deed findings; each is fixed and pinned (`test/systems/livingWorld/lwfix5_deep.test.js`,
 `tools/mutants/lwfix5.json`).
 
 - **A keepsake carried home** (`keepsake.js keepsakeFor`'s `homeOf`; `livingTown.js _homeOfPlace`). The deep's dead are
@@ -780,7 +812,7 @@ The deep audit's deep and deed findings; each is fixed and pinned (`test/lwfix5_
 
 ## LW-FIX6 - the rooms' seven (2026-10-05)
 
-The deep audit's indoor and host findings; each is fixed and pinned (`test/lwfix6_rooms.test.js`,
+The deep audit's indoor and host findings; each is fixed and pinned (`test/systems/livingWorld/lwfix6_rooms.test.js`,
 `tools/mutants/lwfix6.json`).
 
 - **A player's own room stands nobody** (`worldModes.js` `ctx.ownedRoom`; the host's `building()`). DFU's AddPeople
@@ -816,7 +848,7 @@ The deep audit's indoor and host findings; each is fixed and pinned (`test/lwfix
 
 Mac: "how is performance after we integrate this?" - then "Do it". The living world's own script time a frame,
 measured on V8 with the synthetic towns and map and Hazelnut's road bytes (`tools/livingPerfProbe.mjs`; no GPU, no
-ARENA2 - its numbers are the CPU's, comparable before and after). Pinned by `test/lwperf_cost.test.js` and
+ARENA2 - its numbers are the CPU's, comparable before and after). Pinned by `test/systems/livingWorld/lwperf_cost.test.js` and
 `tools/mutants/lwperf.json`.
 
 | | before | after |
@@ -870,11 +902,11 @@ ARENA2 - its numbers are the CPU's, comparable before and after). Pinned by `tes
 ## LW-STAND - the street's own (2026-10-05)
 
 Mac, from play: "I also noticed sometimes NPC's will get stuck over bodies of water, or be stuck running into walls".
-Three causes in the town, each fixed and pinned (`test/lwstand_street.test.js`, `tools/mutants/lwstand.json`, 15
+Three causes in the town, each fixed and pinned (`test/systems/livingWorld/lwstand_street.test.js`, `tools/mutants/lwstand.json`, 15
 dead); the audit the same day (the last item) re-cut how a stand is found.
 
 - **The street** (`places.js` `streetGeometry`, STAND_REACH_M). The street net's cells - a building's footprint and the
-  water are none (`world/cityNavigation.js`), nor is the grid's outside - and a body the square of STAND_REACH_M
+  water are none (`world/city/cityNavigation.js`), nor is the grid's outside - and a body the square of STAND_REACH_M
   (0.4 m) about its middle. A body stands where the square overlaps no cell off the net (`holds`); a straight way holds
   it where the square swept along it overlaps none (`clear`, and `reach`: how far along the way it does) - the off-net
   cells grown by the reach, against the way. Exact, so any part of a way the street holds it holds too. Pure in the
@@ -928,7 +960,7 @@ dead); the audit the same day (the last item) re-cut how a stand is found.
 
 ## LW-DRY - a party stops on dry ground (2026-10-05)
 
-The same report's other half, on the roads ("stuck over bodies of water"). Pinned by `test/lwdry_ground.test.js` and
+The same report's other half, on the roads ("stuck over bodies of water"). Pinned by `test/systems/livingWorld/lwdry_ground.test.js` and
 `tools/mutants/lwdry.json` (24 dead); PIN MOVED: `terrain` (WATER1's compare, its one home). The audit the same day
 (the last item) re-cut the night and the trouble.
 
@@ -991,7 +1023,7 @@ often the watch should call, "Once, then rarely". A recorded departure from DFU 
 alone (`livingWorldOn`: the enhanced skin with the Features row on); the classic lane keeps DFU's cadence, pinned
 call for call.
 
-- **The cause** (DFU-faithful, `characters/enemySounds.js`, EnemySounds.cs:78-100, 196-226). Every watchman within
+- **The cause** (DFU-faithful, `characters/enemy/enemySounds.js`, EnemySounds.cs:78-100, 196-226). Every watchman within
   16 m of the player sounds his attract clock every 3 to 9 seconds, the bark 80% of the time - and the city watch's
   bark is "Halt!" (clip 456). Eight a minute a watchman, hostile or not; a crime's five, forty a minute; a squad
   arriving after its walk, four at once on one frame. The port added more mouths: the town's defenders (DISC19-F) and a
@@ -1014,7 +1046,7 @@ call for call.
   the lane, for a peer's watchman). `scenes/worldModes.js` - WIRED (a building's watch, called in by a crime indoors).
   `scenes/exterior.js` - FLAGGED: the fixed-city page has no living town, and keeps DFU's watch. `scenes/dungeonContext.js`
   - no watch stands there.
-- **Pinned** by `test/haltone_watch.test.js` (the voice; the real pool driven frame by frame against DFU's cadence; who
+- **Pinned** by `test/scenes/haltone_watch.test.js` (the voice; the real pool driven frame by frame against DFU's cadence; who
   calls; the incident and the wall; the tells; beyond the pool; the hosts) and `tools/mutants/haltone.json`.
 
 
@@ -1023,7 +1055,7 @@ call for call.
 Mac: "improve the guards" - and every bug the investigation found in the watch fixed before the merge. Four, each at
 its root; the classic lane's DFU watch is untouched but for the race (DFU's own order restored in both lanes).
 
-- **A false slain** (`scenes/livingWatch.js`). The turned watch read ANY `dead` guard as a kill - and the crime
+- **A false slain** (`scenes/livingWorld/livingWatch.js`). The turned watch read ANY `dead` guard as a kill - and the crime
   watch walking off when the crime clears is `dead` with no body (`cityGuards.js`, DFU's despawn), as is a watchman
   run off by a beast or taken by a spell. So striking a watchman and paying the fine slew him by the player's hand:
   the palace household turned against the player and every witness counted a crime (`walkAwaySlain`, the
@@ -1063,7 +1095,7 @@ its root; the classic lane's DFU watch is untouched but for the race (DFU's own 
   WIRED for the race alone (its pool's `live()`; the fixed-city page has no living town). `scenes/worldModes.js` - no
   conversion: a building's watch comes through its door, its pool empty (PlayerEntity.cs:653-654).
   `scenes/dungeonContext.js` - no watch stands there.
-- **Pinned** by `test/watchfix_watch.test.js` (the race on the real pool; the one law and whose hand; a load; the
+- **Pinned** by `test/systems/livingWorld/watchfix_watch.test.js` (the race on the real pool; the one law and whose hand; a load; the
   walk-away; the ends; a load's resident; the town's side; online; the hosts) and `tools/mutants/watchfix.json`.
   PIN MOVED: `lwfix2_watch`, `lwfix5_deep`, `lw7_deeds` (the first cut's model, `dead` read as a kill, and its
   wiring), and every relay pin to world172.
@@ -1121,7 +1153,7 @@ stop, so at five in the evening more "guards" walked the street than mid-shift.
   drawing (`world/travellerSprites.js`): `scenes/world.js` stands the street that dresses him; `scenes/worldModes.js`
   the rooms (LW8, through the sprites); `scenes/exterior.js` - the fixed-city page has no living town;
   `scenes/dungeonContext.js` - no watch stands there.
-- **Pinned** by `test/watchday_watch.test.js` (the strength; the duty; round the clock; the night over the turn; the pair;
+- **Pinned** by `test/systems/livingWorld/watchday_watch.test.js` (the strength; the duty; round the clock; the night over the turn; the pair;
   the uniform; the post; a great city) and `tools/mutants/watchday.json`. PIN MOVED: `lw1_livingWorld` (the census's watch, the
   shifts), `lwfix3_town` (the beat to the shift's end), `watchfix_watch` (the census full, a returning resident comes on
   as the player turns; his patrol's mate a witness).
@@ -1172,7 +1204,7 @@ street and the rooms, and ranked what the player saw.
 - **Every reader deals alike.** The deal is the plans': one taken off this street alone (the trample) or struck down
   here is dealt and left out after - their partner to their own counsel, the spot's other circles as every reader has
   them (the first cut dealt the street's own, and one gone re-paired the whole spot on that reader, round after round).
-- **The rooms** (`scenes/livingIndoors.js`). A table's company meets from the minute it sat down as it is (see LW8b);
+- **The rooms** (`scenes/livingWorld/livingIndoors.js`). A table's company meets from the minute it sat down as it is (see LW8b);
   one who comes while an exchange is on waits for its last line; its people stay put while an exchange is on and
   through their first round together (one in a quiet circle got up mid-talk; a temple's two parted the moment their
   talk ended, one three-line talk in three quarters of an hour).
@@ -1187,12 +1219,12 @@ street and the rooms, and ranked what the player saw.
   half the time: "The baker's bread is getting smaller." opened a fifth of the town's talk, "Hauled stone since dawn."
   a sixth); the morning's, the day's, the evening's and the night's pools wide enough that no opener is three in a
   hundred of a day's. A third line that undid its question is the asker's comeback now.
-- **The road's parties** (`scenes/livingRoads.js`) talk in exchanges from their round's start (nobody gathers: a party
+- **The road's parties** (`scenes/livingWorld/livingRoads.js`) talk in exchanges from their round's start (nobody gathers: a party
   walks together).
 - **The four hosts.** `scenes/world.js` - WIRED (the street's town; the towns of the road for {place}).
   `scenes/worldModes.js` - WIRED (the rooms, through `livingIndoors.js`). `scenes/exterior.js` - FLAGGED as LW2 has it:
   the fixed-city page keeps DFU's walkers. `scenes/dungeonContext.js` - no town.
-- **Pinned** by `test/lwtalk_town.test.js` (the facing; the meeting; the exchanges; the street; every reader alike; the
+- **Pinned** by `test/systems/livingWorld/lwtalk_town.test.js` (the facing; the meeting; the exchanges; the street; every reader alike; the
   word to the player; the words; the hosts) and `tools/mutants/lwtalk.json`. PIN MOVED: `lw1_livingWorld` (the meeting's
   phase and exchanges), `lw2_livingTown` (the gate's idle record; the churn under a cap waits on a round's turn),
   `lw3_roads` (an armed traveller standing: the class sprite's idle, the outfit's own on the wheel),
@@ -1228,7 +1260,7 @@ WATCH-KNOWS) - classic play keeps DFU's watch.
   `livingWorldOn` - the region's name and the world's calendar a banishment runs on). `scenes/worldModes.js` - WIRED (a
   building's watch strikes through the host's arrest flow). `scenes/exterior.js` - FLAGGED as LW2 has it: the
   fixed-city page keeps DFU's watch (its arrest flow hands no `warnsFirst`). `scenes/dungeonContext.js` - no town.
-- **Pinned** by `test/watchknows_watch.test.js` (the word by the law; the first offence warned; the hosts) and
+- **Pinned** by `test/systems/livingWorld/watchknows_watch.test.js` (the word by the law; the first offence warned; the hosts) and
   `tools/mutants/watchknows.json`.
 
 ## WATCH-PROTECTS - the watch protects the town's people (2026-10-06)
@@ -1270,7 +1302,7 @@ departure (Port-Ledger WATCH-PROTECTS) - classic play keeps DFU's street.
   street's `dangers`, `livingDangers`). `scenes/exterior.js` - FLAGGED as LW2 has it: the fixed-city page keeps DFU's
   street (no quarry, no dangers). `scenes/worldModes.js` - none: indoors the street's people are nobody's quarry
   (`livingQuarry` is the exterior's alone). `scenes/dungeonContext.js` - no town.
-- **Pinned** by `test/watchprotects_watch.test.js` (who hunts; the one blow; the watch comes; the street runs, cornered,
+- **Pinned** by `test/systems/livingWorld/watchprotects_watch.test.js` (who hunts; the one blow; the watch comes; the street runs, cornered,
   chased; the frightened silent; the run's body; struck down; the hosts) and `tools/mutants/watchprotects.json`.
 
 ## LW-WALLS - the city behind its walls (2026-10-06)
@@ -1321,7 +1353,7 @@ location frame, the buildings' summaries - the population block's own text, pinn
   and numbers its people knowing it - no host change. `scenes/exterior.js` - FLAGGED as LW2 has it: the fixed-city page
   keeps DFU's pool. `scenes/worldModes.js` - through the town (LW8): a room's people are the same census's.
   `scenes/dungeonContext.js` - no town.
-- **Pinned** by `test/lwwalls_city.test.js` (the doors' street - smaller or not, a building once, the ties, no doors;
+- **Pinned** by `test/systems/livingWorld/lwwalls_city.test.js` (the doors' street - smaller or not, a building once, the ties, no doors;
   the synthetic walled city, `test/lwTown.mjs walledTown`, its streets and fields, doors, gates and square, its street
   by day and the farmhouse in its fields; the watch at doors onto the street; the host's build replayed word for word;
   and, where ARENA2_PATH names the data, Ripmarket and every one of the game's 410 cities) and
@@ -1336,7 +1368,7 @@ below): at midday and in the evening 12-54% of the bodies in view stood within h
 walked inside each other for seconds on end. DFU's walkers keep off one another by the tiles they
 claim (`mobilePerson.js _setTarget`, CityNavigation's Occupied flag, MobilePersonMotor.cs SetTargetPosition); a
 resident claims none (LW2: its day lays its walk), and nothing else kept them apart. Three causes, each fixed at its
-root (`test/lwspace_street.test.js`, `tools/mutants/lwspace.json`).
+root (`test/systems/livingWorld/lwspace_street.test.js`, `tools/mutants/lwspace.json`).
 
 - **Those alone at a spot** (`meetups.js aloneStands`, SPACE_M, SPACE_STEP_M, SPACE_FAR_M; `livingTown.js _spaceAlone`).
   One alone stood at a place drawn off their id - a bearing and a distance, 1 to 3.5 m out (LW-STAND) - so at a busy
@@ -1390,7 +1422,7 @@ root (`test/lwspace_street.test.js`, `tools/mutants/lwspace.json`).
   street it runs (no host change); `scenes/worldModes.js` - the rooms keep their own places (LW8, `livingIndoors.js`
   INDOOR_APART_M, never on one another); `scenes/exterior.js` - FLAGGED as LW2 has it: the fixed-city page keeps DFU's
   walkers, who claim their tiles; `scenes/dungeonContext.js` - no town.
-- **Pinned** by `test/lwspace_street.test.js` (the alone places' law; the town's day - apart, alike on two readers, kept
+- **Pinned** by `test/systems/livingWorld/lwspace_street.test.js` (the alone places' law; the town's day - apart, alike on two readers, kept
   as others come; the circles laid together, and those alone about them, in the close-built town's lanes; in file and
   its chain; the step aside - round one standing, two coming at each other, two going one way, the trail, the stand and
   the hold; the street through the day; and, where ARENA2_PATH names the data, Ripmarket, Wayrest and Daggerfall at one
@@ -1407,7 +1439,7 @@ place". Measured on the game's own towns (LW-SPACE's probe, `tools/livingCrowdPr
 of a town stood out of doors at 8-28 spots, 30-64 of them about one point - the square's (Bubyrydata: 64 of its 161, at
 eight spots); through the day, the most of a town at one spot was 41 on average over a sample of thirty-four towns, and
 70 at the most - Kirkcester's every homemaker at its one shop's front at twenty past nine. Three causes, each fixed at
-its root (`test/lwspread_town.test.js`, `tools/mutants/lwspread.json`).
+its root (`test/systems/livingWorld/lwspread_town.test.js`, `tools/mutants/lwspread.json`).
 
 - **The square was one point.** Six in ten of a town kept it for their first social spot (84-85% for one of their two),
   and every stall stood there, a mercenary's morning, an adventurer's afternoon, a visitor's and a courtier's talk. The
@@ -1455,11 +1487,11 @@ its root (`test/lwspread_town.test.js`, `tools/mutants/lwspread.json`).
   runs the town it lays (no host change); `scenes/worldModes.js` - the rooms keep their own places (LW8, untouched);
   `scenes/exterior.js` - FLAGGED as LW2 has it: the fixed-city page keeps DFU's walkers; `scenes/dungeonContext.js` - no
   town.
-- **Pinned** by `test/lwspread_town.test.js` (the square's points - and a plaza behind a wall within its reach none of
+- **Pinned** by `test/systems/livingWorld/lwspread_town.test.js` (the square's points - and a plaza behind a wall within its reach none of
   them; the corners - and a plaza across two blocks' border one of them, a lane none; one's own point; the favourites -
   the same whatever order the town's spots stand in; the day - whatever takes one to the square their own point, the
   watch's beat its own, the evening and the market at their own minute; the synthetic towns' crowds; and, where
-  ARENA2_PATH names the data, the sample of thirty-four towns) and `test/lwspace_street.test.js` (the hold: held aside,
+  ARENA2_PATH names the data, the sample of thirty-four towns) and `test/systems/livingWorld/lwspace_street.test.js` (the hold: held aside,
   still aside; a held body trailing its walk's point stands), `tools/mutants/lwspread.json` (26, all dead). PIN MOVED:
   `lw1_livingWorld` (a social favourite a corner or one's own point of the square), `lwperf_cost` (the favourites
   written the slow way, to LW-SPREAD's law; the arrival's window at eight), `lw2_livingTown` (the one waiting to be
@@ -1481,7 +1513,7 @@ plans, the visits a day into a building not one's home nor one's work): a guild 
 sellsword's or an adventurer's hour - one of the two halls nearest their home, whatever its guild (a sorcerer at the
 Fighters Guild, Daggerfall's knightly halls eight a day of them) - and nobody else, 10-12 a day in a city of three
 hundred; an errand went into one of the four shops nearest home, or stood at a market, half and half, whatever the
-trade - a city's banks saw 1-6 a day, its library 0-4. Two causes, each fixed at its root (`test/lwerrands_town.test.js`,
+trade - a city's banks saw 1-6 a day, its library 0-4. Two causes, each fixed at its root (`test/systems/livingWorld/lwerrands_town.test.js`,
 `tools/mutants/lwerrands.json`).
 
 - **Nobody belonged to a guild.** A resident keeps a guild now by their trade or their class (`dayPlan.js guildHallOf`,
@@ -1501,7 +1533,7 @@ trade - a city's banks saw 1-6 a day, its library 0-4. Two causes, each fixed at
   trade needs ERRAND_NEED_SHARE (0.6) of the time - by its weight among the kinds the town keeps, the nearer of its two
   nearest home - else one of the four shops nearest home (`errandShop`; the first cut's every errand). A merchant's two
   afternoon shops and a visitor's are theirs too.
-- **Measured** (before / after; each town's day by its plans, as `test/lwerrands_town.test.js` reads it):
+- **Measured** (before / after; each town's day by its plans, as `test/systems/livingWorld/lwerrands_town.test.js` reads it):
 
   | | into the guild halls | of them a knightly hall's | into the banks | into the shops |
   |---|---|---|---|---|
@@ -1516,7 +1548,7 @@ trade - a city's banks saw 1-6 a day, its library 0-4. Two causes, each fixed at
   it lays (no host change); `scenes/worldModes.js` - the rooms show whoever their plans put inside (LW8, untouched: the
   guild halls, the banks and the shops now see their visitors); `scenes/exterior.js` - FLAGGED as LW2 has it;
   `scenes/dungeonContext.js` - no town.
-- **Pinned** by `test/lwerrands_town.test.js` (the factions; a resident's guild - by trade, by class, by hand, the nearest
+- **Pinned** by `test/systems/livingWorld/lwerrands_town.test.js` (the factions; a resident's guild - by trade, by class, by hand, the nearest
   hall, none without one; the guild's days; the evenings - kept at their hour, never a hall's own members, the
   travellers' own guild; an errand's shop - by need at its weights and its share, the nearer two, the browse; the day's
   errands - into a shop two in three, every shop one `errandShop` can give; and, where ARENA2_PATH names the data,
@@ -1542,7 +1574,7 @@ nearest their home (their own or the next), and they had no breakfast.
   stay at home); they sup at their own tavern in the evening (a visitor's and an adventurer's evening there), till 20-60
   minutes before bed at the latest, and go up to their room till bed; asleep there. The staff - the innkeeper and the
   servers, who live where they work - are no lodgers.
-- **The rooms** (`livingTown.js lodgersAt`; `scenes/livingIndoors.js bedsOf`, `bedStand`, BED_STEP_M, BED_FAN,
+- **The rooms** (`livingTown.js lodgersAt`; `scenes/livingWorld/livingIndoors.js bedsOf`, `bedStand`, BED_STEP_M, BED_FAN,
   BED_LEVEL_M, BED_DROP_M). A tavern's lodgers today are its visitors and a packet's hands lodged there (`_lodging`) and
   those of the town whose home is its door, its staff aside, in the order of their ids - no other building has any (a
   house's household is its own). Its beds (its Rest markers - RentRoom's own list) are dealt to them: each, in that order,
@@ -1559,7 +1591,7 @@ nearest their home (their own or the next), and they had no breakfast.
   Rest markers) and the bed of the room the player rents there (`rentedBedHere`); `scenes/world.js` - WIRED: it hands
   them to the room's residents (`beds`, `rented`); `scenes/exterior.js` - FLAGGED as LW2 has it (no living town);
   `scenes/dungeonContext.js` - no town.
-- **Pinned** by `test/lwlodge_tavern.test.js` (the lodger's day - breakfast, supper at their own, up before bed, a
+- **Pinned** by `test/systems/livingWorld/lwlodge_tavern.test.js` (the lodger's day - breakfast, supper at their own, up before bed, a
   visitor and an adventurer homed there, never the staff; who lodges where; the rooms dealt and the rented one; by their
   bed in a mock room with a bed in it - off it, a corner's, a closet's, a bed on the floor, a stair; in the tavern - by
   the bed, no table, no stirring, the rented bed, the going up; the hosts) and `tools/mutants/lwlodge.json` (29, all
@@ -1617,18 +1649,373 @@ class's sprite was a fighter's on the road alone (LW3's armed walk, LW0 decision
   draws it as any person (its archive, record and frame); `scenes/worldModes.js` - WIRED through the host (the
   building's billboard pass draws the room's residents, LW8); `scenes/exterior.js` - FLAGGED as LW2 has it (no living
   town); `scenes/dungeonContext.js` - no town.
-- **Pinned** by `test/lwlooks_town.test.js` (8: the town's class; the still pictures' kinds, sexes and seeds; the game's
+- **Pinned** by `test/systems/livingWorld/lwlooks_town.test.js` (8: the town's class; the still pictures' kinds, sexes and seeds; the game's
   own in FLATS.CFG - their sexes, none censored, their heights; the walker as a picture - its frames, armed under it,
   dressed as another; on the street - come on as it, a picture never walking up out of sight, in view never changed,
   looked away from the picture, walking on themselves; the street's classes and the art come late; indoors - the
   court's on the way in, in a circle herself (the room's circles of the frame), in view never changed, in no other
   building, a talk target, the fallen no one; the host) and `tools/mutants/lwlooks.json` (36, all dead); the court read
   after the frame's circles are dealt is checked by hand (read before them, a courtier in a circle stood as the picture
-  a frame). PIN MOVED: `test/lw8_indoors.test.js` (indoors one whose calling is a class's wears it - a priest the
+  a frame). PIN MOVED: `test/systems/livingWorld/lw8_indoors.test.js` (indoors one whose calling is a class's wears it - a priest the
   healer's robes); `tools/mutants/lw3.json` LW3-never-armed and LW3-host-tripless-town and `lw8.json` LW8-unarmed
   re-aimed by content. The 376 records of the lists on the files LW-LOOKS touched (`livingTown.js`, `livingIndoors.js`,
   `residentWalker.js`, `travellerSprites.js`), of `lw3` and `lw8` whole, and naming `lw8_indoors`, re-judged: 374 dead,
   two equivalent as recorded.
+
+## LW-DAWN - a day's cache keeps the day beside it (2026-10-07)
+
+A screenshot in Daggerfall - 1 fps, "script 6179.8 ms", the game's own frame 6377 ms of it ("in frame"; "before" 1.6,
+"stream" 0.0, so neither the browser nor the world's build) - and the ask: "Something is killing CPU performance".
+
+- **The storm** (`livingTown.js` `_plans`, `_roadsOf`, `peopleOf`, `_walksFrom`). The town's plans, the roads' word
+  for a day (the host's `tripsOf`, world.js `livingTripsOf`: the town's trips, its visitors, its holders and its news
+  of NEWS_DAYS), its people and its walks by their door (LW-SPACE's file) each kept ONE day. From the day's turn at
+  four a reader asks two. WATCH-DAY's morning walk out (`dayPlan.js morningWalk`) is a watchman's first entry of the
+  day and leaves before the turn, and a company's file is read off the day a walk leaves in (`_fileOf`, by
+  `dayOf(e.t0)`: the walk both days carry is matched by its walker and its minute), so while the street read today
+  that watchman's walk read yesterday's walks - for the whole town, each plan asked for yesterday, its roads read
+  again; and the next walker read today's, and all of it again. A walker owing minutes across the turn (the
+  politeness gate's, a pause) reads yesterday's plan as well. On the synthetic great city carried across four
+  (`tools/livingPerfProbe.mjs`, THE DAY'S TURN) that was 605 plans made a frame and 5.8 road reads from five past
+  four to six, with the road read stubbed to nothing; in the game each read is the host's whole read, and a great
+  city's plans are its own. Offline a slow frame moves the clock a tenth of a second at most (world.js's frame), so
+  the two hours lasted as long as the frames were slow; online the sky's dawn comes every real hour (TIME1), and its
+  two hours are five real minutes.
+- **The day beside it** (`swapDay`, `besideDay`). Each of the four keeps the day it replaced beside it (`other`, one
+  deep - a third day lets the first go), and a read of that day is a swap: no plan made, no road read, the same plan,
+  word, list and walks as before. A day made again (a home moved, a crew's arrival moved) keeps its neighbour. A day
+  planned before its roads were known is planned again once they are, at the front as before or kept beside another
+  day (`_roadsOf`: the kept one let go), and the other day it kept stays.
+- **A berth no street comes near** (`dockSpot`, `_harbourMiss`). LW5's dock of a port with no Ship building is the
+  street nearest its harbour's berth within HARBOUR_RING, and a berth with none was sounded again at every census and
+  every sailor's plan - the whole ring, cell by cell (8 ms on the synthetic great city), four times a second. A miss
+  is the berth's cell's (the ring is the cell's): sounded once; another cell afresh.
+- **Measured** (`tools/livingPerfProbe.mjs`, THE DAY'S TURN - the great city built at ten to four, half a minute a
+  frame, its census read every frame, the player at the square; frames from five past four to six, before / after):
+
+  | | before | after |
+  |---|---|---|
+  | plans made a frame | 605 | 0 |
+  | the roads' word read a frame (stubbed: no cost) | 5.8 | 0 |
+  | the frame, mean / p99 / worst | 9.2 / 17.6 / 25.5 ms | 2.7 / 4.2 / 5.4 ms |
+
+  The street is the same, frame for frame: seat by seat, hashed, before and after, across the turn at thirty times
+  the clock, at half past four, at six and at noon, the politeness gate holding some.
+- **Recorded, not changed: a crowded spot's places** (LW-SPACE, `meetups.js aloneStands`). One alone whose own place
+  is taken searches the rings about the spot out to SPACE_FAR_M, each place against every one placed before, so a
+  spot's laying grows as the cube of its crowd: measured alone, 100 at one spot 33 ms, 200 0.27 s, 400 1.7 s (in a lane
+  whose street refuses most of the ring, 0.2, 1.1 and 4.0 s). It is laid again whenever the spot's people change, on
+  the census's beat. Since LW-SPREAD the most of a town at one spot is 11.6 on average over its sample and 24 at the
+  most (Daggerfall's evening, 6 at a point of its square), and the synthetic great city lays 4 ms a beat at the worst,
+  so it is not this report's; it is the next one's if a spot ever gathers hundreds.
+- **The four hosts.** LW-DAWN is the living town's core (`livingTown.js`): `scenes/world.js` stands the street it runs
+  (no host change; its frame's clock is the cap above); `scenes/worldModes.js` - the rooms read the town's people, its
+  lodgers and who is inside (`lodgersAt`, `insideAt`) through the same caches, kept the same; `scenes/exterior.js` -
+  FLAGGED as LW2 has it: the fixed-city page keeps DFU's walkers; `scenes/dungeonContext.js` - no town.
+- **Pinned** by `test/systems/livingWorld/lwdawn_caches.test.js` (5: the two doors; the great city across the turn - the turn plans the
+  day once, the morning walk read off the day before, then no plan and no road read a frame; each cache's other day
+  kept and served as it was; a day planned before its roads planned again wherever it is kept; the berth sounded
+  once) and `tools/mutants/lwdawn.json` (19, all dead); the probe's row fails before the change. The 206 records of
+  the lists on `livingTown.js` re-judged on it: 205 dead, one equivalent as recorded (LW8-inside-outdoor).
+
+## LW-ROOMS - the whole room (2026-10-08)
+
+Mac: "With living world integration, NPCs still group up in taverns". Measured with no game data (`tools/livingRoomProbe.mjs`:
+the synthetic towns, each with one tavern, and a synthetic tavern hall on the port's own collider, `test/lwRoom.mjs`):
+every one the day had in a room stood within a few strides of its door, and a room's twelve chained into one crowd (the
+biggest crowd - the places stood at within CROWD_M, 2.5 m, of one another, chained - 12 of the 12 on the way in, 9.0-9.7
+on average through ten minutes of the room astir); and the day sat people in the tavern for hours they never meant to
+spend there (the town of sixteen blocks: 23 inside before noon; twelve stays of four hours and more in five days). Five
+causes, each fixed at its root, and the one risk the first fix made, closed (`test/systems/livingWorld/lwrooms_tavern.test.js`,
+`tools/mutants/lwrooms.json`). AUDIT LW-ROOMS (2026-10-08, Mac: "Audit this"; the record is
+`01-Overview/audits/Audit-LW-Rooms.md`) measured it on the game's own rooms and towns and changed these laws - each below.
+
+- **The room was a fan by its door.** LW8's sounding walked twelve ways out to 6.6 m from the way in and no farther - a
+  hall of 24 by 18 m kept 26 places, every one within 6.6 m of its door - and walked them at the way in's own height:
+  the host's landing (`interiorCtx.landing`, interiorLanding's) is the door's middle, a metre up, so in a house or a shop
+  the capsule passed over a table or a counter and a fan's end over one read its top for its floor (AUDIT LW-ROOMS:
+  2,705 places in 1,765 of the game's 5,797 houses, 50 in 41 of its 628 shops; one tavern of 290). The room's floor is
+  walked now (`livingIndoors.js soundRoom`): from the floor under the way in, cell by cell on a lattice of
+  INDOOR_APART_M, onto a floor within INDOOR_LEVEL_M of the one it left (never a stair's step, a table's top or a hole)
+  and within 1.2 m of the way in's, to INDOOR_REACH_M and INDOOR_CELLS cells; every cell walked to a place, apart (to a
+  centimetre: the lattice's own step, as its sums round it), clear of the static people and the ways in as before.
+  AUDIT LW-ROOMS: LW-ROOMS's walk took the lattice's four ways and kept a step only where it reached its own lattice
+  point, as a body that never steps up, so it stopped at every doorway off its lines and in a door's jamb - 81 of the
+  game's 290 taverns walked to under ten places, fifteen to one, and 622 of 1,494 houses. It takes the eight ways
+  (`ROOM_STEPS`) now, each step walked as the room's people walk theirs (the collider's own step up, LW8c's
+  `walkable`'s) and kept wherever it slides, in the cell it slid to - never a second place in a cell walked to already;
+  a cell where the body stood up on an edge, the floor under its middle beside it, walked through and never stood at.
+  The game's taverns: none under ten places (the median 51 -> 67); houses 204 under ten. The hall: 179 places, to 19.8
+  m. And the room is measured as its build hung it (`deps.doorsShut`, `ActionSystem.withDoorsShut`): every door shut,
+  the building's own people every one, at their post at the hour or not, and every bed's stand kept clear, the reader's
+  own quest's people kept clear only when one is placed - a door left open, the hour or one reader's quest laid out
+  every reader's room anew.
+- **The room filled side by side.** It filled the deal's tables as they came, and two of them side by side stood as one
+  crowd. It fills them apart now (`spreadTables`): in the building's deal, each next the first whose middle stands
+  TABLE_GAP_M (4 m) from every table before it, while any does, then the rest in the deal's order.
+- **A table across a wall** - the risk the whole floor brings: two places a lattice step apart stand either side of a
+  wall wherever the floor goes on round it (an inner wall with a doorway), and a table takes the nearest. A table's
+  people see one another now (`tablesOf`'s `sees`, `inSight`): the line between them TABLE_SIGHT_M (1.4 m) over the floor
+  clear of the room's collider - over its tables and counters, never through a wall (a collider that casts no ray hides
+  nothing). Measured on the synthetic hall with a partition: some 200 rays a room, under a millisecond.
+- **Any room held up to twelve.** The first cut stood as many as its fan found places, to INDOOR_MAX, whatever the floor
+  (a 6 by 5 room's ten). A room's floor holds one to every INDOOR_FLOOR_M2 (8 m²) of its places now (a lattice cell
+  each), INDOOR_MAX in all - AUDIT LW-ROOMS: and a household, INDOOR_HOLD_MIN (3), at the least (a house of nine places
+  held two of its family of three); one up in their room by their bed (LW-LODGE) is on none of the floor.
+- **A stir made for anywhere.** LW8c's dice took any free place within INDOOR_WALK_M, beside a table of strangers too,
+  so the room's stirs drew it back into one crowd. One who stirs with no company to go to makes for a place of their
+  own now (`stirPlace`): TABLE_GAP_M from everyone else's (where they stand, or make for), their dice's pick of those;
+  where none in reach is, as far from everyone as the farthest they can walk to (AUDIT LW-ROOMS: the farthest of all,
+  round a corner, left them none to walk to and the dice picked of any - in the game's taverns 49 of 290 stood a crowd
+  of five or more astir). Company only at a table CROWD_M from every other table's people (two tables stood as one
+  crowd through a lone drinker's table between them). A lodger up by their bed has no place of the room (`spot` -1) and
+  counts nowhere - this slice's first reading of everyone's places threw on one, and `lwlodge_tavern` caught it.
+- **AUDIT LW-ROOMS: the room's people, as the room shows them.** One alone faces their table's middle, or the room's most
+  open way where their table is theirs alone (`faceOf`) - they faced the middle of the whole floor's places, a point in
+  another room (a wall within a metre of the face for 807 of 12,389 tavern places; 53 of 21,766 now). A coming or a
+  going past INDOOR_SEEN_M waits while the room shows it the player (`inView` - past it, anything went, 110 tavern places
+  in plain view of the way in). A word only to one the room shows the player, on their floor; the talk ray never
+  through the room's walls (`scenes/world.js livingPersonsAct`).
+- **The day sat people in the tavern.** A long gap between two stays at ONE place was waited out at it: the schedule's
+  "a long gap is spent at home" (`dayPlan.js schedule`) held between two places only, so a sellsword whose guild keeps
+  no hall in the town sat in the tavern from one o'clock to the evening's drink, a labourer from their lunch to it. A
+  long gap at one place indoors is spent at home now, as one between two is - AUDIT LW-ROOMS: out of doors one stands on
+  there as ever (LW-ROOMS sent those home too: the game's towns' street at 17:00 stood a quarter thinner, its talk a
+  fifth quieter). And a labourer's and a courier's lunch at the tavern was laid after the stint at nine, before the one
+  at eleven (the stints at seven, nine, eleven, one and three; the lunch on `i === 1`): the three in ten who lunch there
+  walked on from the stint at nine and waited in the tavern for noon wherever home was too far to go between, then did
+  the stint at eleven at half past twelve. The lunch comes after the stint at eleven now - AUDIT LW-ROOMS: from that
+  stint's own end, its half hour from their coming in (laid at noon, those done at 11:25 waited for it), its three in
+  ten drawn where the first cut drew them.
+- **Measured** (the first cut / now; `tools/livingRoomProbe.mjs`). The room - twelve the day has inside the synthetic
+  hall, the player at the way in, ten real minutes of the room astir; the crowd is of the places stood at (a walker's
+  where they make for), read every ten seconds:
+
+  | hall | places (the farthest) | the biggest crowd, on the way in | astir, the most / on average | the way in, on average |
+  |---|---|---|---|---|
+  | 24 x 18 m | 26 (6.6 m) / 179 (19.8 m) | 12 / 3 | 12, 9.7 / 3, 2.8 | 4.6 / 8.6 m |
+  | 12 x 10 m | 24 (6.6 m) / 36 (9.8 m) | 12 / 3 (it holds 8) | 12, 9.7 / 3, 2.3 | 4.6 / 6.3 m |
+  | 40 x 30 m | 26 (6.6 m) / 346 (19.9 m) | 12 / 3 | 12, 9.0 / 3, 2.6 | 4.6 / 11.4 m |
+
+  A table's own crowd at the most at every hall size from 12 by 10 to 30 by 20 (AUDIT LW-ROOMS: LW-ROOMS's 13 by 11 stood
+  ten of ten in one). On the game's 290 taverns (AUDIT LW-ROOMS), twelve inside: on the way in at most 3; astir the most
+  a median 3, at most 6, 3 taverns at five or more. A sounding, once a room on its first frame inside, on the game's
+  taverns: a median 135 ms, at most 273 (the first cut's fan 96-112 and 203-333). The tavern's day - the most inside at
+  once over five days by its plans (`insideAt`), read every minute (AUDIT LW-ROOMS: the quarter-hour reads missed those
+  who waited for the noon lunch), and its stays of four hours and more by those who neither work nor lodge there:
+
+  | town (its people) | before noon | noon | afternoon | evening | stays of four hours |
+  |---|---|---|---|---|---|
+  | 3 x 3 blocks (134) | 6 / 5 | 14 / 11 | 4 / 2 | 25 / 25 | 6 / 0 |
+  | 4 x 4 (256) | 23 / 9 | 34 / 19 | 6 / 4 | 32 / 32 | 12 / 0 |
+  | 6 x 6 (303) | 27 / 8 | 35 / 22 | 11 / 9 | 32 / 32 | 28 / 17 |
+  | walled (84) | 4 / 6 | 12 / 11 | 5 / 3 | 23 / 23 | 12 / 2 |
+
+  Before noon now every one is at their lunch from the stint at eleven, none waiting for noon (the walled town's 6, its
+  lunches begun before twelve). The great town's stays left are its one tavern's: 13 of its 17 a gap waited out because
+  home and back - two hours' walk and more from much of the town - is longer than it, 4 an adventurer's own evening of
+  three to five hours (AUDIT LW-ROOMS). A real city keeps a tavern near home (`favourites`: one of the two nearest).
+- **Recorded, not changed: the evening.** A third of a town drinks at its tavern of an evening (LW1: a drink over 0.55,
+  three evenings in four), so a town of one tavern has 23-32 in it at once of an evening: the room stands what its floor
+  holds of them, the first by their ids, as LW8 stood its twelve. AUDIT LW-ROOMS recorded more (`Audit-LW-Rooms.md`):
+  the wait at the next place where home is too far (C2), one in view holding every arrival (B7), the room's talk (B6).
+- **The four hosts.** LW-ROOMS is the living town's plan and the room's layer (`dayPlan.js`, `scenes/livingWorld/livingIndoors.js`;
+  AUDIT LW-ROOMS: `world/actionSystem.js`'s doors measured shut): `scenes/worldModes.js` - WIRED through the host as LW8
+  has it (the building's collider, its landing and ways in, its beds: no change - its scene restore still swings the
+  doors, which the measure no longer reads); `scenes/world.js` - runs the layer and the plans it lays, and AUDIT LW-ROOMS
+  hands it the doors' measure, every one of the building's people, the quest's apart, and stops the talk ray at the
+  room's walls; `scenes/exterior.js` - FLAGGED as LW2 has it: the fixed-city page keeps DFU's walkers and stands nobody
+  of the living world in a room; `scenes/dungeonContext.js` - no town.
+- **Pinned** by `test/systems/livingWorld/lwrooms_tavern.test.js` (9: a long gap at one place indoors spent at home, a short one waited out
+  there, out of doors stood out there between, the small town's tavern sitting no afternoon out; the lunch after the
+  stint at eleven from its end, one a day, the great town's tavern before noon, read every minute; the floor walked -
+  the eight ways, a long hall to its far wall and every corner, the reach, the cells, the floor under the way in, a
+  narrow doorway off the lattice's lines on the port's collider; level - off a stair, up a ramp to 1.2 m and no
+  farther, a step stopped short kept where it came to, none in a cell walked already; apart to a centimetre, the
+  lattice's own and one a wall drew in; the tables apart - the deal's, the rest after, twelve at four tables four
+  metres apart in a dozen buildings' deals - and in sight, over a table and never through a wall, a partitioned hall's
+  none across it in six; the hold - a small room's three, a closet's household, a great hall's twelve, a lodger by
+  their bed on none of the floor; a place of their own - the dice's, the farthest, its ties the dice's, a lodger
+  counting nowhere; the synthetic hall on the port's collider - on the floor, in no table, clear of the way in, a
+  table's own crowd at the most), `test/systems/livingWorld/auditlwrooms.test.js` (8, AUDIT LW-ROOMS's) and `tools/mutants/lwrooms.json`
+  (27, all dead) and `tools/mutants/auditlwrooms.json` (40: 37 dead, 3 equivalent as recorded). PIN MOVED:
+  `lw8_indoors` (the room sounded: the lattice's, apart to a centimetre), `lw8b_talk` (the word to the player: they come
+  in from out of reach of every place), `lw8c_astir` (where they make for: not drawn to their own table, a place of
+  their own), `lwlooks_town` (the court's still pictures on the way in: her place looked at), `lwtalk_town` (the facing
+  at half past six; every reader alike in the town of sixteen blocks - a long gap at one place spent at home, the small
+  town has no pair in the square's sight at a spot of three circles); `tools/mutants/lw8.json` (LW8-fan the lattice's
+  ways, LW8-spread the reach, LW8-walls, LW8-floor-unread, LW8-other-floor, LW8-door-crowded, LW8-apart-unchecked,
+  LW8-clear-unchecked, LW8-cap), `lw8b.json` LW8b-fill-deal and LW8b-every-one and `lw8c.json` LW8c-dice and LW8c-line
+  re-aimed by content. The 299 records of the lists on the files LW-ROOMS touched (`dayPlan.js`, `livingIndoors.js`)
+  and naming the pins it moved, re-judged: all dead but one equivalent as recorded (LW8-inside-outdoor) and two it left
+  unkilled - `lw8b.json` LW8b-greet-circle and `lwlooks.json` LW-LOOKS-court-way-in, their pins' scenes moved, then the
+  86 records naming those two files judged again, all dead; and after the sight, the 106 records on `livingIndoors.js`
+  judged again, all dead. AUDIT LW-ROOMS's pins and re-judge: `Audit-LW-Rooms.md`.
+
+## LW-STIR - the street stirs (2026-10-08)
+
+Mac: "While we're at it. I say we improve the living world and go deeper. Having spontaneous interactions, like a
+traveller being hostile with a guard and other smaller details that make the world feel more alive". The street's people
+stood alone or talked in circles (LW-TALK), and greeted the player; nobody spoke to anyone in any other way, and the
+street had no voice of its own. LW-STIR deals THE DAY'S INCIDENTS AT EACH SPOT from the plans - every stay of the day at
+it, the spot's key, the day and the clock's rate (`systems/livingWorld/stir.js spotIncidents`) - and THE SMALL VOICES
+from the plan entry one is in and the clock (`smallVoice`): every reader alike, nothing sent - dealt again whenever the
+plans are made again, those lent to the watch dealt and left out as the struck down are, and none of a household living
+here beyond the census, which another reader has not (AUDIT LW-STIR B1, B2: `livingTown.js _stirOf`). The words are
+`systems/livingWorld/lines.js`'s (GATE_SCRIPTS, CHALLENGE_SCRIPTS, QUARREL_SCRIPTS, BREAK_UP_LINES, HAGGLE_SCRIPTS,
+PLEA_SCRIPTS, WATCH_CALLS, STALL_CRIES, BEGGAR_CRIES, DRINKING_SONGS).
+
+- **The gate.** Mac's own: a stranger come in at a gate the watch keeps halts there - GATE_SHARE (0.6) of the arrivals,
+  a party together (`gateHalt`: the gate's, the day's and the second's draw) - as long as the gate's longest word
+  (GATE_LINES) whole in one round of the gate's, waiting for the next round's start when theirs is too short (their
+  turn); one party's word a round of the gate's, a party come in for a word in a round an earlier one's holds waved
+  through at once, and one whose halt would leave no time to walk out by their leaving (AUDIT LW-STIR A2, C2:
+  `livingTown.js _gateOf`). The plans hold it (`dayPlan.js schedule`: a `gate` stay at the exit before the walk in, a kind of the street's)
+  where one of the town's watch posted at that gate keeps it through the halt (`livingTown.js _gateHalt`; WATCH-DAY: a
+  gate's post for each nine blocks past nine - a town of nine blocks posts none and halts nobody), never off a ship. The
+  post questions one of the party, the draw's: their answer by their humour that day (`humourOf`: civil, curt or
+  hostile by HUMOURS - a stranger's 0.5, 0.3 and 0.2, a sellsword's and a sailor's 0.3, 0.35 and 0.35), the hostile
+  shouting. Found first: the watch never met a stranger. A patrol keeps its district all shift (WATCH-DAY's beat) and the
+  strangers stand at the square of an afternoon and the market of a morning - in two days of Daggerfall, Wayrest and
+  Ripmarket with twelve visitors a day, not one stop of a patrol's met one; a city of 45 blocks or more posts its four
+  gates round the clock (fewer below it - a city of 36 three, of 25 one, of 16 none: AUDIT LW-STIR C's count), and every
+  stranger the roads bring comes in by one (off a ship, by the dock).
+- **The watch on its rounds.** A stop of a patrol's where a stranger stands - CHALLENGE_SHARE (0.5) of the stops, the
+  stranger the draw's - stops them (CHALLENGE_SCRIPTS); the second of a pair never speaks for it, a stranger is stopped
+  once a day at a spot, and one halted at a gate is the gate's. Rare, by the districts: one in three days of three
+  cities.
+- **Two of the town.** One of the town at a spot falls out with another of it there, the draw's: QUARREL_SHARE (0.03) of
+  their stays there, QUARREL_EVENING (4) times it from six between two who drink (DRINKER); never a stranger, the watch,
+  nor one working a stall or begging. Each one's own draw, so a busy spot's falling out grows with its people, not their
+  pairs: dealt by the pair, an evening's spot of ten in the synthetic town fell out three times in half an hour. The
+  watch on duty standing there through it steps in (BREAK_UP_LINES) - whichever of it does, never the second of a pair
+  (AUDIT LW-STIR A3, A7) - the one who began it having the last word. One come
+  to a spot with stalls haggles at one of them (HAGGLE_SHARE 0.2), at the stall - one who does not may still fall out
+  there (the first cut's haggle sent every one at a spot with a stall past the quarrel's draw); a beggar asks one
+  standing near - a stall's keeper at the stall, the beggar come to it (AUDIT LW-STIR A4), a stranger by no name (A5) -
+  (PLEA_SHARE 0.1 of each; AUDIT LW-STIR D11: the first cut's reason for halving it - "at 0.2 one more on the open
+  town's square stood two a metre apart across a walker's lane, past LW-SPACE's measure" - does not reproduce:
+  `lwspace_street`'s own measure reads 0.338% at 0.1 and at 0.2 alike, and the measure that showed it is not in the
+  tree). One a day between the same two at a spot.
+- **One at a spot a round, the round's places as they were.** An incident falls whole in a round of its spot
+  (`meetups.js spotRound`) - from the next round's start when the one they meet in is too short - one at a spot a round,
+  the gate's first. The street takes its two out of the round's circles (their places there left empty, as the struck
+  down's: the round's deal and its circles' places are the ones they were) and stands them with those alone at the spot
+  (`_spaceAlone`): the one who keeps their stand - the watch at its post, a beggar, a stall's keeper, else the one there
+  first (`anchor`) - where they stand, the other FACE_M (CIRCLE_APART, 1.25 m) before them (`meetups.js besideStand`,
+  `aloneStands`' `beside`: at their own turn, or just after the one they come to where that one comes later), the two
+  turned to each other - and drawn as themselves while it runs, never a still picture that faces nobody (AUDIT LW-STIR
+  B4). Where a spot is crowded past it, the street holds no place before the one who keeps their stand, and the other
+  speaks from their own (AUDIT LW-STIR B5, recorded: a close-built spot of 22 or more). The first cut laid the two as one more circle after the round's: when one began within a round
+  the places of those alone at the spot moved (LW-SPACE's "kept their place as others came" caught it), and a stall's
+  keeper left the stall for the pair's place, the two walking through each other on the way (the open town's walkers
+  inside another 0.34% -> 0.48%, LW-SPACE's limit 0.5%). Laid so, 0.34%, as before LW-STIR; and the post keeps their stand
+  to the centimetre (a stranger halted at a gate was bound for it since their time away began, laid before the post -
+  bound since they came now: `_spaceAlone` reads no stay out of town).
+- **Said aloud.** An incident's line every LINE from its first, by its part (`stirLine`: a and b its two, g the watch
+  stepping in), said while both its two stand on this street (as a circle's are); a shouted line a shout (`speech` kind
+  `shout`); the watch stepping in by its own voice (`_stirVoice`). While it is shouted (`stirLoud`) the spot's circles
+  hush and its others turn to look (`_stirAt`, `where`: a post keeps the road). Its two are its own from their coming
+  together to its end, and their own again after: walking on in the round, they greet the player (AUDIT LW-STIR B7).
+- **The small voices** (`smallVoice`, each now and then on their own draws of the clock, a word up VOICE_S; by the plan
+  entry where the body is - a walker held by the politeness gate owes its minutes, AUDIT LW-STIR B6): the night
+  watch on duty calls the hour (WATCH_HOURS, nine at night to five; CALL_SHARE 0.6 of the hours, within CALL_SPREAD_MIN
+  of it, by the weather - WATCH_CALLS), the first of a pair (AUDIT LW-STIR A6); a stall cries its wares eight to six (CRY_EVERY_MIN, CRY_SHARE); a beggar calls
+  (BEG_EVERY_MIN, BEG_SHARE); one who drinks deep (SONG_DRINK 0.8) sings on a walk from a tavern's door nine to three
+  (SONG_EVERY_MIN, SONG_SHARE 0.35 - the first cut's 0.7 and 0.5 sang 150 to 250 songs a night in a city).
+- **Measured** (`stir.js` over the day's plans, three days; twelve visitors a day of another town in at the four gates
+  through the day; a day's count):
+
+  | town (its people) | at the gate | a patrol's stop | quarrels | haggles | pleas | hostile of the strangers | songs | stall cries | beggar calls | the hour called |
+  |---|---|---|---|---|---|---|---|---|---|---|
+  | synthetic 3 x 3, 9 blocks (151) | - (no post) | - | 6.3 | 11.7 | - | - | 80 | 283 | - | 2.7 |
+  | synthetic 3 x 3, 45 blocks (185) | 2.3 | 0 | 5 | 18.3 | 5 | 0.3 of 2.3 | 119 | 448 | 138 | 25 |
+  | Daggerfall (329) | 9 | 0 | 6.3 | 11 | 1 | 7 of 27 | 65 | 558 | 61 | 30 |
+  | Wayrest (329) | 9 | 0.3 | 3.3 | 15 | 1 | 7 of 28 | 80 | 594 | 97 | 24 |
+  | Ripmarket (317) | 6.7 | 0 | 7 | 19 | 3.3 | 4 of 20 | 105 | 739 | 149 | 23 |
+
+  Every halt questioned (Daggerfall, four days of twelve: 36 halted, 36 questioned, each by the post keeping its gate);
+  every incident's two FACE_M apart in the middle of it. A word runs 14 to 24 real seconds, a quarrel the watch steps
+  into 27 (AUDIT LW-STIR D14: "some 25" was its longest). The synthetic rows are AUDIT LW-STIR's, after it, by
+  `tools/livingStirProbe.mjs` (D10: no harness or day was named - days 100-102, twelve visitors in twos at the four
+  gates, `node tools/livingStirProbe.mjs 9` and `45`); LW-STIR's own synthetic row read 5.3 quarrels, 13 haggles, 83
+  songs, 283 cries and 5 calls of the hour. The real towns' rows are LW-STIR's, before its audit - the hour called
+  counted both men of a pair (A6 halves a pair's) and a second party in a round stood its halt out (A2 waves it
+  through) - not measured again (no ARENA2 in the audit's container).
+- **Recorded, not changed.** How many strangers a town has a day is the roads' (LW3's trips) - twelve is the measure's.
+  The step aside (LW-SPACE's `_dodge`) crosses its own line through one standing on it where the only side free is the
+  far one - two standing a metre apart across a walker's lane, as the plea at 0.2 stood them (a scene AUDIT LW-STIR D11
+  could not stand again): LW-SPACE's to settle.
+- **The four hosts.** LW-STIR is the living town's (`stir.js`, `lines.js`, `livingTown.js`, `meetups.js`,
+  `dayPlan.js`): `scenes/world.js` - WIRED: its line layer passes each line's kind through (`livingLinePoints`: a shout
+  a shout, a song a song - `ui/naval/navalHud.js` draws each its own way; the street's lines were all talk);
+  `scenes/worldModes.js` - FLAGGED: no incident indoors yet (a room's talk is LW8b's, all talk); `scenes/exterior.js` -
+  FLAGGED as LW2 has it (no living town); `scenes/dungeonContext.js` - no town.
+- **Pinned** by `test/systems/livingWorld/lwstir_street.test.js` (11: the gate - the halt's share, length and round, the plan's stay, the
+  post's word to one of a party, none without a post through it, off duty, nor one of the town, the gate's word first in
+  its round; the town at its gates - the plans' halt where a post keeps the gate, none where a post would leave within
+  it, nor in a town of nine blocks, nor off a ship, every halt's word by its post, the post's stand kept, the two turned
+  to each other, the party turned to the shouting; the watch on its rounds - its share, the second of a pair, the town's
+  own, once a day, the one there first; two of the town - the quarrel's day, evening and drinkers, by the person (ten
+  fall out some five times as two, not forty-five), never a stranger, the watch, a stall or a beggar, the watch
+  stepping in, the haggle and the plea at their stands, once a day, one a round, any order; the humour and the words;
+  the small voices; on the street - out of the circles, FACE_M before, SPACE_M from the rest, said by its speaker while
+  both stand, shouted, the hush, the turn, the watch's own voice, a circle's gather waiting for none of the two; the
+  places before; every reader alike; the host; the game's own cities, where ARENA2_PATH names the data) and
+  `tools/mutants/lwstir.json` (55, all dead; 56 with AUDIT LW-STIR's LW-STIR-line-time). PIN MOVED:
+  `lwtalk_town` (the facing at half past six counts the two of an incident, turned to each other - an evening's quarrel
+  takes its two out of their circles; the census keeps an incident's two whole, `keepUnits`) and `lwspace_street` (a
+  round's places: an incident's two are the round's too).
+  `tools/mutants/lw1.json` LW1-fields-seen, `lwfix3.json` LW-FIX3-walk-held, `lwspace.json` LW-SPACE-alone-space-unread,
+  -alone-earlier-unkept, -host-circles-not-taken, -host-since-the-stay and -host-circles-laid-one-by-one, `lwtalk.json`
+  LW-TALK-not-dropped and -keep-street-first and `watchday.json` WATCH-DAY-post-not-out and -post-faces-in re-aimed by
+  content, each dead. The 1,164 records of the 37 lists on the files LW-STIR touched (`livingTown.js`, `meetups.js`,
+  `dayPlan.js`, `lines.js`) re-judged: 1,156 dead, 7 equivalent as recorded, and one it left unkilled -
+  `lwspace.json` LW-SPACE-alone-turns-untried, whose pin was the street's own measure of bodies inside another, its
+  scene moved by the incidents: pinned now in `lwspace_street`'s aloneStands (one whose own place is taken stands on
+  another bearing), dead; `lwtalk.json` and `lwstir.json` judged again after the last edits, all dead.
+
+## PERF-WAYS1 - the ways asked while the asking is cheap (2026-10-09)
+
+Mac: "I want to continue working to increase performance across the board, especially for online". The real game
+measured online for the first time (`tools/onlineFrameProbe.mjs`, `07-Rendering/Performance-Online.md`): at
+Knightstale with nobody else there, the world host's frame was 36.5 ms of this container's CPU against 13.5 offline,
+and 17 ms of the difference was this arc's. Offline at the same town the probe found the town's trips already known
+when it measured (its street and its roads' layer ran, its trips were not planned again); online they were not, all the
+quarter hour it watched. The Living World is on by default in both lanes; the online probe measured fifty frames after
+its boot, the offline one after its grass settled (AUDIT PERF-ON4 - `07-Rendering/Performance-Online.md`).
+
+- **The waiting was the dear part.** `livingTown.js _roadsOf` asks the host's `tripsOf` each frame until a day's word
+  comes, and `world.js livingTripsOf` answers undefined while any way a trip needs is unasked (LW3). Each of those
+  frames planned every trip of every town within reach again - `visitorsOf` over the towns within TRIP_REACH_PX, their
+  rosters, `ownTrip`'s weights and picks for every traveller still waiting - and the roads' layer (`livingRoads.js
+  sweepOn`, `partiesOfTown`, `remainsOfTown`) did the same for its towns: the two readers 14.4 ms and 3.0 ms of the
+  frame, 16.8 of it the trips planned again, with 3.5 MB allocated, frame after frame. The ways came at WAYS_PER_FRAME (2) a frame, and a region asks hundreds of pairs: at the
+  probe's half a frame a second the town waited the whole quarter hour it was watched (16.8 ms, 12.2 at six minutes, 8.2
+  at fourteen); at 60 fps the same pairs are seconds of such frames on every arrival. The planner itself is not dear:
+  on the real map's ground (AUDIT PERF-ON4, 20,000 of the 231,819 town pairs within 18 pixels) a pair is 0.16 ms on
+  Hazelnut's roads and 0.22 on the generated network on average, p99 0.8 and 1.1, one in a thousand on the roads and
+  three on the generated network over 2 ms (the dearest 18), and a network's first unroutable pair about 180 (its land
+  pieces folded, once) - so a frame's asking can run past its time by one pair, as LW3's two could.
+- **The two stay the floor; past them, the frame's time.** `ways.js createWayBook` asks LW3's two a frame whatever they
+  cost, then asks on while the frame's asking has taken under WAYS_MS_PER_FRAME (2 ms, the book's own clock, `now`) and
+  never past WAYS_MAX_PER_FRAME (32 - a browser's clock is coarse, and a pair it read as nothing would let a frame ask
+  without end). The same pairs, planned by the same planner on the same network in the same direction: every way is the
+  one it was, and every reader's trips, visitors and parties with it. Over a synthetic region of 81 towns
+  (`test/lwRoads.mjs synthMap`, a tenth of a millisecond a pair) a town's trips and visitors were known in 64 frames
+  where they took 656, its 1,311 pairs the same pairs, and the frames' work 0.8 s against 7.4 s of this container's CPU.
+  Online, the same boot and save: the ways and the trips known by the first window measured, the Living World 17.4 ->
+  1.4 ms of the frame and the frame 36.5 -> 19.4 alone (39.5 -> 28.3 with sixty round the player).
+- **Left:** a frame that waits still plans every trip near again - shorter now, not gone. Keeping a waiting traveller's
+  work beside the pair it waits on would end it, and is its own slice.
+
+Pinned by `test/systems/livingWorld/perfways1.test.js` (3) and `tools/mutants/perfways1.json` (13, all dead - AUDIT PERF-ON4 added the
+calls past the floor held to the floor's direction, network and ground, the time's edge, the cap's exact value, and the
+shipped clock, `performance.now`, which no pin had run); `test/systems/livingWorld/lw3_roads.test.js`'s
+budget pin moved onto a clock where a pair takes the frame's whole asking time (`tools/mutants/lw3.json`
+LW3-ways-budget-unspent re-aimed by content). The four hosts: `world.js` holds the book and calls its `frame()` (both
+arms, unchanged); `exterior.js` keeps DFU's pool and has no roads; `worldModes.js` and `dungeonContext.js` reach the
+ways only through world.js.
 
 ## The four hosts
 
@@ -1642,3 +2029,46 @@ class's sprite was a fighter's on the road alone (LW3's armed walk, LW0 decision
 - `scenes/dungeonContext.js` - WIRED through the host (LW6): its own loose stand (`spawnLooseFoe` allied, `removeLooseFoe`)
   and its abyss seam's `location()` (LW-FIX1) carry the companies met in it; (LW6b) its resting places (`restingSpots`) and its pile
   (`layRemains`, `pileNear`) the fallen of a dive; it keeps no town population.
+
+## PLAIN-UI - the regard on the talk panel (2026-10-12)
+
+A player: "Where's the UI for relationship in the talk window?" The enhanced talk panel shows a living resident's regard under their name - the standing in the People page's words, a bar from -100 to +100 and the number - and, on a press, what it is and what moves it (`src/systems/livingWorld/people.js` `regardBadge`; the card the body's own door's - `src/systems/livingWorld/livingTown.js` `regardCard` on the street, the indoor door's at home, `src/scenes/livingWorld/livingRoads.js` `regardCard` on the road and below, AUDIT PLAIN-UI C2). The classic face is DFU's window and draws none. The record: `10-UI/Plain-Words.md`.
+
+## TONE-TASTE - a tone counts as it was taken (2026-10-15)
+
+Mac, of a stream: "someone who didnt like etiquette still went up". The talk's answer reads DFU's tone tables
+(`src/systems/talk/talkTopics.js` `ETIQUETTE_REACTION_MODS`, `STREETWISE_REACTION_MODS`, TalkManager.cs:663-667): a Commoner
+takes a Polite question at -10, the Underworld at -15, a Noble a Blunt one at -15. LW7's regard and LEGACY5's courtship
+did not. They went by the tone's name: a Polite word +1 and a Blunt one -6 to everyone, and a courtship +3 Polite and -3
+Blunt. Every resident is a Commoner to the talk (a mobile's group is DFU's own literal, `npcSession.js`
+`setTargetMobileNPC`), so the Polite word a Commoner refuses still raised their regard on the panel (PLAIN-UI). Mac's
+choice, of three put to him: **a tone they like raises both; a tone they dislike lowers both.**
+
+- **The law** (`talkTopics.js` `toneTaste`): the sign of the tone's row in DFU's own tables - 1 a tone the group takes
+  kindly (Polite: Merchants, Scholars, Nobles; Blunt: Commoners, Merchants, the Underworld), -1 one it takes ill, 0 the
+  Normal tone; groups 5 and up fold to the Merchants as the reaction folds them; a group off the tables takes nothing.
+- **The door** (`scenes/townTalk.js` `_toneTaste`): the window reads the group off the engine's own session
+  (`npcData.socialGroup` - with no engine, a Commoner's) and hands the taste, never the tone, to the regard's door
+  (`livingTone`) and to the Legacy host's answer (`row.legacy.answer(tone, taste)`).
+- **The regard** (`livingTown.js` and `livingRoads.js` `toned(person, taste)`, `relations.js` `EVENTS`): a tone taken
+  kindly is `polite` (+1), one taken ill `insulted` (-6), each once a day as before. The save's day fields keep their
+  names (`polite`, `blunt`); they now mean the kind word's day and the ill word's. A Polite question to a townsperson,
+  the day's first word: +3 for the word, -6 for the tone - -3, where it was +4.
+- **The courtship** (`systems/legacy/marriage.js` `courtGain`, `court`; `scenes/legacyHost.js` `answerTopic`): a tone
+  taken kindly adds `COURT_TASTE` (3) to the day's affection as Polite did; the Normal tone nothing; a tone taken ill
+  COSTS `COURT_TASTE` whatever else, never below nothing, the day spent on it (`cooled`), said
+  `MARRIAGE_TEXT.cooled` ("{name} stiffens. ..." - `legacy.court.cooled`, drafted in the thirteen whole languages).
+  LEGACY5's `COURT_TONE` is gone. The Etiquette term (a point per twenty) is unmoved: Mac's call named the tone.
+- **The panel's words** (`people.js` `regardBadge`): "a word in a tone they like ... a tone they dislike ... Townsfolk
+  like a Blunt word, not a Polite one."
+- **Not moved**: the answer's own reaction (DFU's, already by taste); the skill tally (DFU tallies the tone's skill on
+  its first use in a conversation, liked or not - `reactionTier012` `onTally`).
+- **The four hosts**: `scenes/world.js` WIRED (the street's, the room's and the road's doors pass the taste through:
+  `livingTone`, `_livingIndoorsDoor.toned`, `_livingRoadsDoor.toned`); `scenes/exterior.js`, `scenes/worldModes.js` and
+  `scenes/dungeonContext.js` FLAGGED - none holds a talk door of its own (the room's residents are the street's talk,
+  LW8).
+
+Pinned by `test/systems/livingWorld/tonetaste.test.js` (4: the law over every group, the real town's regard, the real Legacy host's
+courtship, the talk's door); pins moved by intent, each a PIN MOVED note (`legacy5_marriage`, `lw7_deeds`,
+`lwfix2_watch`, `lw8_indoors`); `tools/mutants/tonetaste.json` (11, all dead) and six LW7/LW8 records re-aimed at the
+taste, dead.

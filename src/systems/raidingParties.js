@@ -63,10 +63,10 @@
 // race) keeps its share and the next counts on from it. A player who struck one of a raid's raiders - its own or a
 // puppet - fought it, and the reward is RAID1's, on the town's pixel.
 //
-// RAID3, THE RELAY HOLDS THE RAID (net/raidLaw.js, Mac's "1. Server"): where the relay speaks raids, every player
+// RAID3, THE RELAY HOLDS THE RAID (net/raid/raidLaw.js, Mac's "1. Server"): where the relay speaks raids, every player
 // standing in a raided town says its word to the town's cell (its own raiders' deaths, its strike) and the cell keeps
 // the raid's ledger - the count, kept when everyone leaves; the cleanse, stamped once; a signed receipt to each player
-// who earned it (net/raidReceipt.js). The count and the cleanse are then the relay's alone: no sum of words here
+// who earned it (net/raid/raidReceipt.js). The count and the cleanse are then the relay's alone: no sum of words here
 // cleanses a town, and the hub's word closes a raid on every machine in the Bay (a cleanse said in its region, never
 // a withdrawal). RAID2's words still elect the runner; offline, and at a relay before it, nothing here changes.
 //
@@ -81,17 +81,19 @@ import { sharedClockOn, worldMinutes } from './worldTick.js';
 import { MINUTES_PER_DAY } from './gameDate.js';
 import { LOCATION_TYPES, longitudeLatitudeToMapPixel } from '../formats/mapsFile.js';
 import { FACTION_TYPES, GUILD_GROUPS } from '../formats/factionFile.js';
-import { MOBILE_TYPES } from '../characters/mobileTypes.js';
-import { findFactionByTypeAndRegion } from './talk.js';
-import { changeReputation } from './factionRep.js';
+import { MOBILE_TYPES } from '../characters/mobile/mobileTypes.js';
+import { findFactionByTypeAndRegion } from './talk/talk.js';
+import { changeReputation } from './faction/factionRep.js';
 import { legalRepOf, changeLegalRep, LEGAL_REP_MIN, LEGAL_REP_MAX } from './court.js';
-import { ORDERS } from './guildVariants.js';
-import { GUILDS } from './guilds.js';
+import { ORDERS } from './guild/guildVariants.js';
+import { GUILDS } from './guild/guilds.js';
 import { renownStruckAt } from '../net/renownTracker.js';
 import { raidRunnerOf, validRaidWords, RAID_WORD_STALE_MS, RAID_WORDS_MAX } from '../world/raidShared.js';   // RAID2: the online arm's law, shared with the foes pool
-import { RAID_WORD_MS, RAID_WORD_KILLS_MAX, raidSig, rollRaidTowns, raidDayRandom, raidsPerDay, raidTownsCanon, raidTownsHash } from '../net/raidLaw.js';   // RAID3: the relay's ledger's law; RAID-ROLL: the day's roll, the relay's too
-import { readRaidReceipt } from '../net/raidReceipt.js';
+import { RAID_WORD_MS, RAID_WORD_KILLS_MAX, raidSig, rollRaidTowns, raidDayRandom, raidsPerDay, raidTownsCanon, raidTownsHash } from '../net/raid/raidLaw.js';   // RAID3: the relay's ledger's law; RAID-ROLL: the day's roll, the relay's too
+import { readRaidReceipt } from '../net/raid/raidReceipt.js';
 import { worldRoom, isCellRoom } from '../net/wire.js';
+import { isWildRegion } from './wild/wildZone.js';   // PVPDUNGEONS: no world event in the open zone
+import { noteAct } from './questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
 
 export const RAIDING_PARTIES_VENDOR = 'world-events-raiding-parties';
 export const raidingPartiesOn = () => modSetting(RAIDING_PARTIES_VENDOR, 'Enabled') === true;
@@ -137,7 +139,7 @@ export const raidTypeAdjective = (type) => (type === 1 ? 'bandit' : type === 0 ?
 export const RAID_REGION_REAL_HOURS = 4;
 /** DFU's WorldTime.TimeScale 12: a game day is two real hours. */
 export const GAME_DAY_REAL_HOURS = 24 / 12;
-/** The day's count: half a raid for each region the roll can pick (RAID-ROLL: net/raidLaw.js's, the relay's one copy -
+/** The day's count: half a raid for each region the roll can pick (RAID-ROLL: net/raid/raidLaw.js's, the relay's one copy -
  *  re-exported, never declared twice: audit24's one-home ratchet). */
 export { raidsPerDay };
 
@@ -175,7 +177,7 @@ export function chooseRaider(type, random = Math.random) {
  * in [0, RegionCount)), in index order, that holds a raidable town - each with its towns in MapTable order: the
  * index, the name (`MapNames`), and the map pixel PlayerIsAtRaidPixel compares [IL_11ff]. The game's own rows only
  * (`baseLocationCount`): a world-data mod appends rows past them on one client and not another - the gate scan's law
- * (systems/gateSite.js), and the one RAID2's shared roll needs. Null without the picker's bytes.
+ * (systems/gate/gateSite.js), and the one RAID2's shared roll needs. Null without the picker's bytes.
  * @param {{regionCount:number, getRegion:(r:number)=>any, baseLocationCount?:(r:number)=>number}|null} maps
  * @param {ArrayLike<number>|null} pickerData
  */
@@ -210,7 +212,7 @@ export function raidRegions(maps, pickerData) {
 /**
  * SelectRaids' roll [IL_0cda-IL_0dc5]: `count` raids, each a region evenly among those with a town left, a town
  * evenly in it and struck off (a region with none left is struck off too), a start, a party, two hours and a kill
- * target - in the IL's draw order (region, town, start, party, target). RAID-ROLL: the draws are net/raidLaw.js
+ * target - in the IL's draw order (region, town, start, party, target). RAID-ROLL: the draws are net/raid/raidLaw.js
  * rollRaidTowns' - the one copy the relay reads a word against.
  */
 export function rollRaids(day, regions, count, random) {
@@ -223,7 +225,7 @@ export function rollRaids(day, regions, count, random) {
   }));
 }
 
-/** Fix 1: THE DAY'S raids - the roll off the day's own generator (RAID-ROLL: net/raidLaw.js raidDayRandom, worldTick's
+/** Fix 1: THE DAY'S raids - the roll off the day's own generator (RAID-ROLL: net/raid/raidLaw.js raidDayRandom, worldTick's
  *  dayRng for the raids' salt - the relay's one copy), the count off the pace. */
 export const raidsForDay = (day, regions) => rollRaids(day, regions, raidsPerDay(regions?.length ?? 0), raidDayRandom(day));
 
@@ -376,7 +378,7 @@ let _unclaimedSince = new Map();
 export const RAID_CLAIM_GRACE_MS = 10000;
 /** RAID3: the relay's word on each raid's ledger - key -> { n, tg, c } (c: the cleanse's moment on its clock, 0: none). */
 let _relay = new Map();
-/** RAID3: the receipts the relay handed this player - key -> the receipt (net/raidReceipt.js), RAID_RECEIPTS_KEPT at most. */
+/** RAID3: the receipts the relay handed this player - key -> the receipt (net/raid/raidReceipt.js), RAID_RECEIPTS_KEPT at most. */
 let _receipts = new Map();
 export const RAID_RECEIPTS_KEPT = 32;
 /** RAID3: my last word to the relay - { key, n, s, at } (at: the local clock). */
@@ -410,6 +412,23 @@ function routRaid(raid) {
 }
 
 const liveRaiders = (key) => _live.filter((e) => e.key === key && e.kind === 'raider' && !e.routed && !e.foe.dead && (e.foe.entity?.health ?? 1) > 0);
+/** FIELD BUGS 2026-10-11g RAID-WORD: the raid on the map pixel I stand on that I fought (a death tallied, or a blow
+ *  struck) - the word the relay credits from anywhere on the town's pixel, rect or not. */
+function raidOnMyPixel(now) {
+  const px = host().playerPixel?.();
+  if (!px) return null;
+  return state.raids.find((r) => raidActive(r, now) && r.px === px.x && r.py === px.y && (r.killed > 0 || r.struck)) ?? null;
+}
+/**
+ * FIELD BUGS 2026-10-11g RAID-WORD: a jump's sweep (scenes/world.js `exteriorFoes.clearLive()` - a death's respawn, a
+ * fast travel, Recall, /unstuck) empties the foe pool and marks no one dead, so every raider and defender it took stood
+ * on here alive: the raid's 25 places held by nobody, and a player back in the town stood no raider for the rest of it -
+ * the raid stalled short of its target and withdrew. They are let go here, a death not yet tallied kept for the tally.
+ */
+export function raidPoolCleared() {
+  cancelPending();
+  _live = _live.filter((e) => e.kind === 'raider' && e.foe.dead && !e.counted);
+}
 /** Is a raid on in the town the player stands in? The host's watch reads it (the raid brings its defenders
  *  whatever the watch's own switch says). */
 export function raidDefendingHere(now = (host().now ?? worldMinutes)()) {
@@ -424,7 +443,10 @@ function cleanse(raid, { said = true, top = [], n = 0 } = {}) {
   raid.cleansed = true;
   routRaid(raid);
   const px = host().playerPixel?.();
-  if (raid.struck && px && px.x === raid.px && px.y === raid.py) grantRaidReputation(host().reputation?.() ?? null, raid.regionIndex);
+  if (raid.struck && px && px.x === raid.px && px.y === raid.py) {
+    grantRaidReputation(host().reputation?.() ?? null, raid.regionIndex);
+    noteAct('raid-repelled');   // QL11: a raid driven off - one I fought, in the town as it was cleansed (a cleanse comes once a raid)
+  }
   if (!said) return;
   const who = defendedLine(top, n);   // RAID3: the relay's cleanse names who held the town
   say(who ? `${cleansedLine(raid.locationName, regionName(raid.regionIndex), raid.type)} ${who}` : cleansedLine(raid.locationName, regionName(raid.regionIndex), raid.type));
@@ -465,7 +487,7 @@ function spawn(raid, kind, mobileType) {
     if (_pending === p) _pending = null;
     if (!foe) return;
     if (p.cancelled && kind === 'raider') { h.removeFoe?.(foe); return; }
-    _live.push({ foe, key: p.key, kind, routed: false, counted: false });
+    if (!_live.some((e) => e.foe === foe)) _live.push({ foe, key: p.key, kind, routed: false, counted: false });   // WATCH-LEAVES: a defender called back from his walk off is the one already held
     if (kind === 'raider') foe.raidKey = p.key;   // RAID2: it rides my frame tagged with its raid
   }, () => { if (_pending === p) _pending = null; });
 }
@@ -509,7 +531,7 @@ export function raidFrame(dt = 0) {
     expire(now, region);
     for (const r of state.raids) routRaid(r);
     state.lastSelectedDay = day;
-    state.raids = raidsForDay(day, regions);
+    state.raids = raidsForDay(day, regions).filter((r) => !isWildRegion(r.regionIndex));   // PVPDUNGEONS (the owner: "Do not spawn world events in the PVP zone!"): every client drops the zone's towns from the day's roll alike
     cancelPending();
     scheduleNextSpawn(-1);
     scheduleNextDefender();
@@ -531,8 +553,14 @@ export function raidFrame(dt = 0) {
   // F. is the player standing in a raid [IL_0de4]?
   const town = h.townHere?.() ?? null;
   const raid = town ? state.raids.find((r) => raidActive(r, now) && r.regionIndex === town.regionIndex && r.locationIndex === town.locationIndex) : null;
+  // RAID3: my word to the town's ledger, whoever runs the raid. FIELD BUGS 2026-10-11g RAID-WORD ("Doesn't register raid
+  // 20%ish of the time"): the relay credits a word said from the town's PIXEL (server/src/index.js _raidWord's `here`,
+  // the mod's own reward test), and the rect is narrower - a hamlet's ~300 m in an 819 m pixel. A fight that drifted past
+  // the rect tallied its deaths here and never said them: the town's count stood short of its target, nothing was
+  // cleansed, and the raid withdrew. Past the rect, on the pixel, a raid I fought is still said; it stands no one there.
+  const said = raid ?? (relay ? raidOnMyPixel(now) : null);
+  if (relay && said) sayToRelay(said);
   if (!raid) { cancelPending(); _myClaims.clear(); return 'idle'; }
-  if (relay) sayToRelay(raid);   // RAID3: my word to the town's ledger, whoever runs the raid
   // RAID2: online, the one who runs it stands its foes - every other player here stands them as puppets
   if (sharedClockOn() && !runsRaid(raid)) { cancelPending(); return 'standing-by'; }
   // G. one foe in flight [IL_0661-IL_06d1]
@@ -704,7 +732,7 @@ export function installRaidingParties() {
 
 /**
  * RAID-ROLL: THIS WORLD'S TOWNS TABLE for the hub that asks for one by its operator's pinned hash (`raid` `tw`) - the
- * table in its one spelling (net/raidLaw.js raidTownsCanon) when it hashes to `h`, else null (a world whose towns are
+ * table in its one spelling (net/raid/raidLaw.js raidTownsCanon) when it hashes to `h`, else null (a world whose towns are
  * not the operator's - a data mod - or whose picker has not loaded yet). The first time it is spelled its hash is said
  * to the console once: the value an operator pins as RAID_TOWNS_SHA256 (tools/raidTowns.mjs says it too).
  * @param {string} h @returns {Promise<string|null>}

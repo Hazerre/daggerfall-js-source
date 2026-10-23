@@ -62,7 +62,8 @@ async function landing(label, ctxOpts) {
     (gem.tips.match(/rgb\(192, 138, 62\)/g) ?? []).length === 4, gem.tips);
   const face = await page.locator('h1.wordmark').evaluate((el) => getComputedStyle(el).fontFamily);
   check(`${label}: the wordmark is the MENU's face`, /Jacquard 12/.test(face), face);
-  check(`${label}: ...and it loaded`, await page.evaluate(() => document.fonts.check("40px 'Jacquard 12'")));
+  // AUDIT BR5: no "...and it loaded" now - the wordmark is the logo, so no glyph is set in the face (it stands on the
+  // heading for the alt), and a face no glyph uses is never fetched. The picture's own check is below.
   const body = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
   check(`${label}: the body is the menu's list face`, /Pixelify Sans/.test(body), body);
   // U63: the night is the menu's own - a fixed layer with the ramp, the
@@ -91,7 +92,13 @@ async function landing(label, ctxOpts) {
     (await page.locator('script:not([src^="/@vite/"]), canvas, video').count()) === 0);   // vite's own HMR client is the dev server's, not the page's
   // The DA site cleanup retired the pictures: the page draws in CSS
   // alone, and a returning <img> is a regression, not a decoration.
-  check(`${label}: the page carries no pictures at all`, (await page.locator('img').count()) === 0);
+  // AUDIT BR5: but for ONE - the product's logo as the wordmark, the
+  // game's own file - loaded whole, at the size its markup reserves.
+  const pics = await page.locator('img').evaluateAll((els) => els.map((e) => ({
+    alt: e.alt, inWordmark: !!e.closest('h1.wordmark'), loaded: e.complete && e.naturalWidth > 0 && e.naturalWidth === Number(e.getAttribute('width')),
+  })));
+  check(`${label}: the page's one picture is the logo, as its wordmark, loaded`,
+    pics.length === 1 && pics[0].inWordmark && pics[0].loaded && pics[0].alt === 'DFO Online', JSON.stringify(pics));
   const strip = await page.locator('.foot .stat').evaluateAll((els) => els.map((e) => e.textContent));
   check(`${label}: the foot carries two figures`, strip.length === 2 && strip.every((t) => /^[\d,]{4,}$/.test(t)), strip.join(' / '));
   // The door's three: Play into the browser, Install onto the desk, Discord for the people (DISC1).
@@ -102,7 +109,7 @@ async function landing(label, ctxOpts) {
     && plaques[1][0] === 'Install' && plaques[1][1] === '#desktop' && plaques[2][0] === 'Discord', JSON.stringify(plaques));
   const downloads = await page.locator('#desktop + dd .dl a').evaluateAll((els) => els.map((e) => [e.textContent, e.getAttribute('href')]));
   check(`${label}: Install lands on three direct downloads`,
-    downloads.length === 3 && downloads.every(([, h]) => /\/releases\/latest\/download\/DaggerfallOnline-[\w-]+\.(exe|dmg|AppImage)$/.test(h)), JSON.stringify(downloads));
+    downloads.length === 3 && downloads.every(([, h]) => /\/releases\/latest\/download\/DFO-Online-[\w-]+\.(exe|dmg|AppImage)$/.test(h)), JSON.stringify(downloads));
   // SUPPORT1: the asks - the addresses, the order, the marks the game draws, a thumb's target, gold under the pointer
   const asks = await page.locator('.asks a.ask').evaluateAll((els) => els.map((e) => {
     const mark = e.querySelector('.supmark'), b = e.getBoundingClientRect(), m = mark?.getBoundingClientRect();

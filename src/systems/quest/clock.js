@@ -14,7 +14,7 @@
 // machine (Q2).
 
 import { QuestResource, matchFirst } from './questResource.js';
-import { calculateTravelTime } from '../travel.js';
+import { calculateTravelTime } from '../travel/travel.js';
 import { worldCoordToMapPixel } from '../../formats/mapsFile.js';
 import { Symbol as QuestSymbol } from './symbol.js';
 import { parseInt as questParseInt } from './parseUtils.js';
@@ -38,7 +38,7 @@ const getTimeInSeconds = (days, hours, minutes) => days * 86400 + hours * 3600 +
 /** TIME3: the quest clock's WHOLE seconds - DFU's sample is WorldTime.Now.ToSeconds(), whole seconds of a clock that
  *  keeps its fraction, so the gap between two samples loses nothing. The port sampled the fractional reading and cut
  *  the GAP to whole seconds instead, dropping the fraction at every tick: ten ticks a real second at TimeScale 12 left
- *  a fifth to a third of every countdown played uncharged (test/time3_quests.test.js). */
+ *  a fifth to a third of every countdown played uncharged (test/systems/quest/time3_quests.test.js). */
 const wholeSeconds = (caller) => Math.floor(caller?.nowSeconds?.() ?? 0);
 
 /** Clock.cs GetTravelTimeInSeconds (:422-460), Q3-i: the flag&16 /
@@ -145,7 +145,7 @@ export function clockCounts(quest, clock) {
  * 128 now, the main quest's deadlines 32. THE EDGE: a deadline read as a delay fires its end - a failure - two minutes in (as under TIMEFREE, whose
  * delays were cut the same); a delay read as a deadline now only waits its played days, where TIMEFREE froze it for
  * ever. The one harmful misreading is the first (R1's two were it, and AUDIT REST II's three), so the pins hold the
- * split, the table and the main quest's 32 deadlines, and test/rest8_questwaits.test.js ticks every vendored clock past
+ * split, the table and the main quest's 32 deadlines, and test/systems/quest/rest8_questwaits.test.js ticks every vendored clock past
  * the short wait. Offline none of it - DFU's clock. [SUPERSEDES QCLOCK-WORLD's delays on played time; TIMEFREE's frozen
  * deadlines stay reverted.]
  */
@@ -163,7 +163,7 @@ const NEGATED = new Set(['whenNot', 'andNot', 'orNot']);
  *  the success too) or the next quest started. A clock it starts is NOT followed: Brisienna's invitation (a delay)
  *  starts her fortnight (a deadline), and each is asked on its own - followed, the invitation read as the deadline and
  *  never came. */
-function reached(quest, name, { conditional = true, alone = false } = {}) {
+function reached(quest, name, { conditional = true, alone = false, live = false } = {}) {
   const seen = new Set([name]);
   const queue = [name];
   const types = new Set();
@@ -188,7 +188,9 @@ function reached(quest, name, { conditional = true, alone = false } = {}) {
       // condition (WhenTask._checkEvals), with what this end has set so far true and every other task not set:
       // `when _firsttimer_ and not _S.03_` fires on the time-out alone; `when _S.01_ and _S.02_ and _delay_` waits on
       // the story too, and is a beat after it, not a loss
-      if (alone && !reader._checkEvals?.call({ evaluations: reader.evaluations, _isTaskSet: (sym) => seen.has(sym.name) })) continue;
+      // RAVEN-CLOSE: `live` reads it as the quest stands - a task set now is set too
+      const isSet = (sym) => seen.has(sym.name) || (live && !!quest.tasks.get(sym.name)?.getTriggerValue?.());
+      if (alone && !reader._checkEvals?.call({ evaluations: reader.evaluations, _isTaskSet: isSet })) continue;
       visit(tn);
     }
   }
@@ -270,13 +272,24 @@ const QUIET_CLOSE = new Set(['EndQuest', 'MakePermanent', 'DropAsQuestor']);
  *  online under TIMEFREE, it stood paid and open for ever (under REST8 it would have closed only after its day and three
  *  hours played). The run-time half is the Clock's `isDeadline`, as T1's: still a deadline until the quest is a success.
  *  An end that costs a standing or says or sends anything (R0C10Y01's -20 beside its own `_delay_`, A0C10Y05's "too
- *  late" line) is a loss even then, and stays a deadline, on played time (it was frozen under TIMEFREE). */
+ *  late" line) is a loss even then, and stays a deadline, on played time (it was frozen under TIMEFREE).
+ *  RAVEN-CLOSE (FIELD BUGS 2026-10-21d, DiabeticCat: "Quest wont complete even after a real life day"): THE END IS READ
+ *  AS THE QUEST STANDS - the clock's own task and every `when` its end sets off alone with what is set NOW (`live`).
+ *  BODYGUARD-CLOSE read the clock's own task alone, once: a `when` on the clock was invisible to it, whether it closed
+ *  the quest or said a line. B0B81Y02's `_2dung_` (The Lost Artifact, the Knights' lich) is a bare `variable` - its own
+ *  task does nothing, its `end quest` is `_questdone_: when _2dung_ and not _readmap_` - so the knight's `give pc
+ *  nothing` left it a deadline of its travel days, 21 to 38, which online are played (QCLOCK-WORLD): two to three days of
+ *  a player's life with both objectives done, the reward unrolled and the Order's door shut (offerFlow's busy questor).
+ *  Read as the script reads (every `when` the end alone sets off, nothing else set), M0B00Y16's escort - the giant paid
+ *  while the villager walks - would close with its "too late" line (`when _yes_ and not _escortComplete_ and _qtime_`);
+ *  as it stands, that reader fires and says, and the clock stays a deadline. So it is asked at run time, on the success
+ *  (the Clock's isDeadline), not cached with the script's reading. */
 function closesStartUp(quest, name) {
   const startUp = [...(quest.tasks?.keys() ?? [])].filter((tn) => /^\d+$/.test(tn));
   const starts = (tn) => quest.tasks.get(tn)?.actions.some((a) => a.constructor?.typeName === 'StartStopTimer' && a.isStartTimer && a.targetSymbol?.name === name);
   if (!startUp.some(starts)) return false;
   if (startUp.some((tn) => reached(quest, tn, { conditional: false }).settles)) return false;
-  const end = reached(quest, name, { conditional: false });
+  const end = reached(quest, name, { alone: true, live: true });
   return end.types.has('EndQuest') && !end.lowers && [...end.types].every((t) => QUIET_CLOSE.has(t));
 }
 
@@ -286,6 +299,33 @@ export function clockIsDeadline(quest, clock) {
   const name = clock?.symbol?.name;
   if (!name || !quest?.tasks) return false;
   return readsAsDeadline(quest, name) && !closes(quest, name);
+}
+
+/** WAVE-WAIT (2026-10-07, bible/06-Systems/Online-Waits.md WAIT2; Mac: "Take care of this", over the sweep of the waits
+ *  still long online): A WAVE THE QUEST WAITS ON. A wave (`create foe` / `send ... every N minutes`) runs on played
+ *  time online (WORLD7's step, QCLOCK-WORLD's lived charge - a rest spends none of it), and REST8 left its interval
+ *  whole as pacing. Pacing it is, for a wave that harasses: its gap is the player's breathing space, and the corpus's
+ *  long ones are nearly all of that kind - K'avar's archers (2000 minutes), the knights on the totem (1300), the Sx100
+ *  ambushes, the thieves and the posses. But a wave can be the quest's next page instead: the King of Worms (S0000021)
+ *  makes his offer only once his zombie messenger is killed (`killed 1 _zombie_` -> `when _S.02_ and _S.15_` -> the
+ *  prompt; his mute ends earlier, when `_S.06_` sends it), and it is sent `every 1410 minutes` - up to 117.5 real
+ *  minutes of play, about an hour on average, before a main-quest giver would offer, and nothing the player could do
+ *  brought it sooner. THE READING: a wave whose foe's KILL a quest waits on - the `killed` task, and what it reaches
+ *  through a positive `when` (`reached`, the clock reading's own walk), offers the quest (a Prompt) or settles it (a
+ *  reward, TrainPc, the next quest). Of the corpus's 241 waves 27 read so, and 25 of them already come inside the short
+ *  wait (every one to fifteen minutes); the two longer are S0000021's messenger and N0B20Y02's Nightblades (the guard's
+ *  reward waits on their three deaths - 55 minutes, inside the guard's three hours). Every longer wave the reading
+ *  leaves (42) is pacing: 39 have no `killed` reader at all, and the other three's kills only say a line or end their
+ *  own wave - the posse's, the bribe path's knights and barbarians (`when _S.07_ and _yes_` says a line). An `injured`
+ *  reader is the foe's own cry, not the quest's page, and is not read. */
+export function waveIsAwaited(quest, foeName) {
+  if (!foeName || !quest?.tasks) return false;
+  for (const [tn, t] of quest.tasks) {
+    if (!t.actions.some((a) => a.isTriggerCondition && a.constructor?.typeName === 'KilledFoe' && a.foeSymbol?.name === foeName)) continue;
+    const r = reached(quest, tn);
+    if (r.settles || r.types.has('Prompt')) return true;
+  }
+  return false;
 }
 
 /** TIMEFREE: the clocks whose end is a PENALTY the reading above cannot see - the end does not lose the quest or cost
@@ -323,10 +363,11 @@ export function clockIsDeadline(quest, clock) {
  *  guard %g2 for 3 hours starting immediately"). Its end only hides the sleeping mage, and the reward waits on it
  *  (`when _S.03_ and _S.12_`), so it reads as "a reward after a wait"; but the three hours are the guard itself: `until
  *  _S.12_ performed: pc at _magesguild_ set _S.01_`, and `_S.01_` sends the three Nightblades once, at a random point in
- *  their first 55 minutes. Cut to the short wait the guard lasted 24 minutes - the mage was gone before the attack more
- *  often than not, and a guard who stepped out of the hall in those two real minutes had `_S.01_` cleared by the `pc at`
- *  for good (it is never set again once the window shuts): the killers never came and the quest could not be finished.
- *  A deadline, it keeps its three hours, played. 272 and 127. */
+ *  their first 55 minutes (online, since WAVE-WAIT above, inside the short wait). Cut to the short wait the guard lasted
+ *  24 minutes - the mage was gone before the attack more often than not, and a guard who stepped out of the hall in
+ *  those two real minutes had `_S.01_` cleared by the `pc at` for good (it is never set again once the window shuts):
+ *  the killers never came and the quest could not be finished. A deadline, it keeps its three hours, played. 272 and
+ *  127. */
 export const ONLINE_DEADLINES = Object.freeze({
   $CUREWER: Object.freeze(['huntstart']),
   $CUREVAM: Object.freeze(['huntstart']),
@@ -430,7 +471,7 @@ export class Clock extends QuestResource {
    *  closing the quest - S0000009's two days after the contact, whose reward a `when` on the same click pays. A clock the
    *  start-up block started stays a deadline: A0C41Y18 is a success from its first lines and keeps its finger and its
    *  gold for its 1001 days, as DFU does - but for a start-up closing (closesStartUp, BODYGUARD-CLOSE: the start-up block
-   *  settles nothing and the end only closes; The Bodyguard's `_timer_`). AUDIT TIMEFREE T5: and so does one started
+   *  settles nothing and the end, as the quest stands, only closes; The Bodyguard's `_timer_`, RAVEN-CLOSE's `_2dung_`). AUDIT TIMEFREE T5: and so does one started
    *  AFTER the success - a new limit, not a close: M0B11Y18 pays for the raid, then offers the traitor's hunt and "will
    *  wait =gettraitor_ days"; closed on the success, that hunt ended a couple of minutes after the player took it. */
   get isDeadline() {
@@ -443,8 +484,11 @@ export class Clock extends QuestResource {
       // AUDIT REST-PARTY D1/D4: never a table entry - the hand's word stands through the success (B0B81Y02's artifact
       // hunt outlives the knight's reward), and until D4 nothing failed when the exemption went
       this._closesOnSuccess = this._deadline && !(ONLINE_DEADLINES[q?.questName] ?? []).includes(name)
-        && !!q?.tasks && (startersOf(q, name).length > 0 || closesStartUp(q, name));   // BODYGUARD-CLOSE: a start-up closing too
+        && !!q?.tasks && startersOf(q, name).length > 0;
     }
+    // BODYGUARD-CLOSE, RAVEN-CLOSE: a start-up closing - its end, as the quest stands, a quiet close - on the success
+    if (this._deadline && !this._closesOnSuccess && q?.questSuccess
+      && !(ONLINE_DEADLINES[q?.questName] ?? []).includes(this.symbol?.name) && closesStartUp(q, this.symbol?.name)) return false;
     return this._deadline && !(this._closesOnSuccess && q?.questSuccess && !this.startedAfterSuccess);
   }
 

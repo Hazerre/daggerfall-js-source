@@ -18,9 +18,11 @@
 //    and a face of the town's tables in the street, and their own chargen head in the talk window.
 //  - A HOUSE OF THE FAMILY'S holds the line and no one else (scenes/world.js livingIndoors' `only`); a kin struck down
 //    dies in the record (legacyHost.js kinSlain), never in the town's lives.
+//  - PERMADEATH-HOUSES: A DEAD MEMBER'S HOUSE PASSES to whoever carries the line (`deedsDue`; legacyHost.js takeDeeds) -
+//    the family lives in it meanwhile, and it is the taker's with the save that holds it (`syncHouses`' `taken`).
 import { CLASS_CAREERS } from '../chargen.js';
 import { isAlive, personOf, fullNameOf, isCustomCareer } from './family.js';
-import { PERSON_TEXTURES, PERSON_FACE_RECORDS } from '../../characters/mobilePerson.js';
+import { PERSON_TEXTURES, PERSON_FACE_RECORDS } from '../../characters/mobile/mobilePerson.js';
 import { GENDERS } from '../../characters/nameHelper.js';
 import { raceArt, FACES_PER_RACE } from '../races.js';
 
@@ -44,32 +46,67 @@ export const FAMILY_SLOT_BASE = 9000;
 /** Stock careers draw as their class's own sprite - the class enemies' 128 + index (net/remotePlayers.js classMobileType). */
 export const CLASS_MOBILE_BASE = 128;
 
-/** A house row: where it stands and whose deed it is. */
-const houseKey = (h) => `${h?.mapId | 0}:${h?.buildingKey | 0}`;
-export const sameHouse = (a, b) => !!a && !!b && houseKey(a) === houseKey(b);
+/** A house row: where it stands and whose deed it is - its key `<mapId>:<buildingKey>`, what a member's `deedsTaken`
+ *  names (PERMADEATH-HOUSES). */
+export const houseKeyOf = (h) => `${h?.mapId | 0}:${h?.buildingKey | 0}`;
+export const sameHouse = (a, b) => !!a && !!b && houseKeyOf(a) === houseKeyOf(b);
+/** PERMADEATH-HOUSES: whether a row's holder is one of the line's dead. */
+export const heldByDead = (family, h) => !!personOf(family, h?.by)?.died;
 
 /**
  * THE FAMILY'S HOUSES, as the one played holds them now: their own rows replaced by what they hold (a deed bought,
  * sold or slept away - banking.js deedStands - changes the line's houses with it), every other member's kept. Answers
- * whether anything changed. ACCOUNT-HOMES: `whole` - what is held is the line's every house (online, the account's
- * homes), and nothing another member learned is kept past it.
- * @param {any} family @param {number} personId @param {{ regionIndex:number, mapId:number, buildingKey:number, location?:string }[]} held
+ * whether anything changed.
+ * PERMADEATH-HOUSES: `taken` - the dead's deeds this member took up (their save's `deedsTaken`, house keys). A row of
+ * the dead's they took and hold is theirs from here (`from` the dead, so a rewind can hand it back); one they took and
+ * no longer hold (sold before the save) goes. A row they were LEFT (`from`) that they no longer hold, by a save that
+ * never took it (an older save loaded), goes back to the dead - and is theirs to take up again.
+ * ACCOUNT-HOMES: `whole` - what is held is the line's every house (online, the account's homes), and nothing another
+ * member learned is kept past it.
+ * @param {any} family @param {number} personId @param {{ regionIndex:number, mapId:number, buildingKey:number, location?:string, layout?:string }[]} held
+ * @param {string[]} [taken]
  * @param {{ whole?: boolean }} [opts]
  */
-export function syncHouses(family, personId, held, { whole = false } = {}) {
+export function syncHouses(family, personId, held, taken = [], { whole = false } = {}) {
   const mine = (held ?? []).filter((h) => (h?.buildingKey | 0) > 0 && (h?.mapId | 0) !== 0)
-    .map((h) => ({ regionIndex: h.regionIndex | 0, mapId: h.mapId | 0, buildingKey: h.buildingKey | 0, location: String(h.location ?? ''), by: personId }));
+    .map((h) => ({
+      regionIndex: h.regionIndex | 0, mapId: h.mapId | 0, buildingKey: h.buildingKey | 0, location: String(h.location ?? ''),
+      ...(typeof h.layout === 'string' && h.layout ? { layout: h.layout } : {}),   // PERMADEATH-HOUSES: the layout the deed names its building in (WD3)
+      by: personId,
+    }));
+  const holds = (h) => mine.some((m) => sameHouse(m, h));
+  const took = (h) => taken.includes(houseKeyOf(h)) && heldByDead(family, h);
   // AUDIT LEGACY II A5: the rows keep their places - one sold leaves its place, one bought joins at the end. Rebuilt
   // with the one played's rows last, "the first house" (the family home with none marked and none in the seat) was
   // always another member's, and the line moved house at every switch
   // ACCOUNT-HOMES (2026-10-06): `whole` - the held are every house of the line (online: the account's homes, each every
   // member's), so a row any member learned goes once it is not among them (another character of the account sold it)
   const was = family.houses ?? [];
-  const next = was.filter((h) => (!whole && h.by !== personId) || mine.some((m) => sameHouse(m, h)));
+  const next = [];
+  for (const h of was) {
+    if (h.by === personId) {
+      if (holds(h)) next.push(h);
+      else if (Number.isInteger(h.from) && !taken.includes(houseKeyOf(h))) { const { from, ...row } = h; next.push({ ...row, by: from }); }
+    } else if (!took(h)) { if (!whole || holds(h)) next.push(h); }
+    else if (holds(h)) next.push({ ...h, by: personId, from: h.by });
+  }
   for (const m of mine) if (!next.some((h) => sameHouse(h, m))) next.push(m);
   if (JSON.stringify(next) === JSON.stringify(was)) return false;
   family.houses = next;
   return true;
+}
+
+/**
+ * PERMADEATH-HOUSES (2026-10-09, the owner: "what happens to houses owned by dead permadeath characters" - the heir
+ * inherits): THE DEAD'S DEEDS DUE TO `p` - every house of the line's whose holder is dead and which `p`'s save has not
+ * taken up. Whoever carries the line takes them: the Succession's heir, or the one played when one of the line dies in
+ * the street. Rows, copied.
+ * @param {any} family @param {any} p
+ */
+export function deedsDue(family, p) {
+  if (!family || !p || !isAlive(p)) return [];
+  const taken = p.deedsTaken ?? [];
+  return (family.houses ?? []).filter((h) => heldByDead(family, h) && !taken.includes(houseKeyOf(h))).map((h) => ({ ...h }));
 }
 
 /** THE FAMILY HOME: the house the player marked, else the one in the family's seat, else the first; null with none. */
@@ -136,7 +173,8 @@ export function residentOf(family, p, home) {
   const set = PERSON_TEXTURES[outfitRace][sex];
   const variant = pick % set.length;
   const faces = PERSON_FACE_RECORDS[outfitRace][sex];
-  const stock = Number.isInteger(p.careerIndex) && p.careerIndex >= 0 && p.careerIndex < CLASS_CAREERS.length && !isCustomCareer(p);
+  // AUDIT SUGGESTIONS-1019 L5-4: a stock class with a class skill changed still wears its class (isCustomCareer counts it, for the heir's copy)
+  const stock = Number.isInteger(p.careerIndex) && p.careerIndex >= 0 && p.careerIndex < CLASS_CAREERS.length && (!isCustomCareer(p) || (p.career?.swapped === true && String(p.career.name ?? '') === CLASS_CAREERS[p.careerIndex]));
   return {
     id: familyResId(family.id, p.id), town: home.mapId >>> 0, slot: FAMILY_SLOT_BASE + p.id, roll: FAMILY_ROLL,
     name: fullNameOf(p.given, p.surname), gender: sex === 'female' ? GENDERS.Female : GENDERS.Male, sex, race: p.race,
@@ -145,7 +183,7 @@ export function residentOf(family, p, home) {
     cls: stock ? CLASS_MOBILE_BASE + p.careerIndex : null, level: Math.max(1, p.level | 0), faction: 0,
     legacy: { familyId: family.id, personId: p.id },
     household: `F${family.id}`,   // AUDIT LEGACY II B2: their own household, never the census house they may be lent (livingTown.js householdKeyOf)
-    portrait: { archive: raceArt(p.race, sex).heads, record: Math.max(0, Math.min(FACES_PER_RACE - 1, p.face | 0)) },   // their own chargen head in the talk window (ui/nativeTalk.js setNpcPortrait)
+    portrait: { archive: raceArt(p.race, sex).heads, record: Math.max(0, Math.min(FACES_PER_RACE - 1, p.face | 0)) },   // their own chargen head in the talk window (ui/native/nativeTalk.js setNpcPortrait)
     look: p.look ?? null,   // LEGACY7 part four: what they wore at their newest save - drawn in it, as an online peer is (world/familyBodies.js); none, the town's outfit
   };
 }

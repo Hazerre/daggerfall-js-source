@@ -7,7 +7,7 @@
 // (bible/11-Multiplayer/Seats-Arc.md 3.2: "A client standing in a seat
 // town online reports {key, name, region, tier, pixel} once a day").
 //
-// A seat is DRAWN off the client's own derivation (systems/townSeats.js):
+// A seat is DRAWN off the client's own derivation (systems/town/townSeats.js):
 // "a client never draws, lists or honours a seat its own derivation
 // lacks" - the service's list says which of them the witnesses confirmed
 // (what a pledge and a claim will need, SEAT1b-c). The service keeps the
@@ -62,6 +62,10 @@ export const SEAT_RED_SEEN_KEY = 'crown2.redSeen';
 export const SEAT_RED_SEEN_MAX = 100;
 /** CROWN2: how often an online client reads the seats' list again for the server's red lines, ms. */
 export const SEAT_RED_READ_MS = 15 * 60_000;
+/** D1-LOAD (2026-10-11, the service slow after SEAT-LEASE): THE TURNING'S READ SPREAD - each client asks its list once the
+ *  seat week turns (AUDIT FESTIVAL S1), and every client online asked it in the same second; each now waits its own
+ *  share of this window, drawn once a book, so the reads arrive over two minutes. */
+export const SEAT_TURN_READ_SPREAD_MS = 120_000;
 /** AUDIT SEATS-3 C5: how long after a list read that FAILED (offline, a timeout, the service's fault - never a refusal)
  *  the frame asks again, ms. */
 export const SEAT_LIST_RETRY_MS = 60_000;
@@ -74,7 +78,7 @@ export const SEAT_TOWERS_EVERY_MS = 10 * 60_000;
  *  each receipt's fate in its `why`, and none of them is mended by asking again). AUDIT-SEATS C10: and the seats shut to
  *  this account - but never `auth` or `no-session`: a session run out is mended by signing in again, and the ticks it
  *  held were dropped with it. */
-const WATCH_SETTLED = Object.freeze(['bad-watch', 'seats-need-account', 'seats-closed']);
+const WATCH_SETTLED = Object.freeze(['bad-watch', 'seats-need-account', 'seats-closed', 'progress-seat', 'trade-held']);   // INT16: a tab not seated here, or a character whose trade is held, is owed no tick
 /** AUDIT-SEATS C9: THE STANDINGS' CACHE, whose every clear (an act, a claim, a Tribute) moves its generation - so a read
  *  asked BEFORE an act and answered after it is not kept as the seat's standings (it was the seat before the act: the
  *  Edict just proclaimed read as none for the cache's thirty seconds). */
@@ -115,13 +119,15 @@ export function parseSiegeCommand(text) {
  *   me?: () => (string|null), character?: () => (string|null), rid?: () => string,
  *   isSeatPixel?: (x: number, y: number) => boolean, relayNowS?: () => (number|null),
  *   onRed?: ((line: { text: string, at: number }) => boolean)|null,
- *   rand?: () => number,
+ *   rand?: () => number, turnMs?: number,
  * }} deps SEAT1b: `me` the signed-in account's id, `character` the character standing here, `rid` a fresh request id
  *   (the Marks' own shape), `isSeatPixel` whether this client's own derivation holds a seat at a map pixel, `relayNowS`
  *   the relay's clock (null unheard - a receipt's life is the relay's); CROWN2: `onRed` says a red line (false: not yet);
- *   STORM-SHED: `rand` Math.random's shape, a failed Watch claim's jitter
+ *   STORM-SHED: `rand` Math.random's shape, a failed Watch claim's jitter; DAY-TURN: `turnMs` this page's moment past
+ *   midnight (net/dayTurn.js)
  */
-export function createTownSeatBook({ door, storage = null, nowMs = () => Date.now(), me = () => null, character = () => null, rid = () => mintMarksRid(), isSeatPixel = () => false, relayNowS = () => null, onRed = null, rand = Math.random }) {
+export function createTownSeatBook({ door, storage = null, nowMs = () => Date.now(), me = () => null, character = () => null, rid = () => mintMarksRid(), isSeatPixel = () => false, relayNowS = () => null, onRed = null, rand = Math.random, turnMs = 0 }) {
+  const turnSpreadMs = Math.floor(rand() * SEAT_TURN_READ_SPREAD_MS);   // D1-LOAD: this client's share of the Turning's read
   /** CROWN2: the red lines already said, by id - read from the device once */
   let redSeen = null;
   const redSeenList = () => {
@@ -168,7 +174,7 @@ export function createTownSeatBook({ door, storage = null, nowMs = () => Date.no
     reported = Object.fromEntries(keep);
     try { storage?.setItem?.(SEAT_REPORTED_KEY, JSON.stringify(reported)); } catch { /* this page keeps it */ }
   };
-  const dayNow = () => Math.floor(nowMs() / 1000 / SEAT_REPORT_EVERY_S);
+  const dayNow = () => Math.floor((nowMs() - turnMs) / 1000 / SEAT_REPORT_EVERY_S);   // DAY-TURN: the report's day turned at this page's moment
   /** SEAT1b: each seat's standings as last read, `{ at, data }` by key (AUDIT-SEATS C9: cleared by generation); the
    *  Tribute asked and its one request id */
   const standingsAt = new StandingsCache();
@@ -268,7 +274,7 @@ export function createTownSeatBook({ door, storage = null, nowMs = () => Date.no
     /**
      * THE SEAT THIS CLIENT STANDS IN, REPORTED - once a UTC day a seat (this device's), only while the seats are open to
      * this account. Answers whether a report was sent. A refusal is quiet: the town is the same town either way.
-     * @param {any} seat the client's own derivation (systems/townSeats.js)
+     * @param {any} seat the client's own derivation (systems/town/townSeats.js)
      */
     async witness(seat) {
       const s = seatReportOf(seat);
@@ -342,7 +348,7 @@ export function createTownSeatBook({ door, storage = null, nowMs = () => Date.no
       let r;
       try { r = await door.claimSiege(receipt, character()); } catch { r = { ok: false, error: 'offline' }; }
       standingsAt.clear();
-      if (!r?.ok) return { ok: false, error: r?.error ?? 'offline', ...(r?.why ? { why: r.why } : {}), text: accountRefusalText(r?.error) };   // the rung, which the carrier reads (net/siegeClaims.js)
+      if (!r?.ok) return { ok: false, error: r?.error ?? 'offline', ...(r?.why ? { why: r.why } : {}), text: accountRefusalText(r?.error) };   // the rung, which the carrier reads (net/siege/siegeClaims.js)
       const d = r.data ?? {};
       return { ok: true, result: d.result, winner: d.winner ?? null, honours: d.honours ?? null };
     },
@@ -409,7 +415,8 @@ export function createTownSeatBook({ door, storage = null, nowMs = () => Date.no
       if (!pending && (open === true || failed) && nowMs() - at >= (failed ? SEAT_LIST_RETRY_MS : SEAT_RED_READ_MS)) read({ force: true });
       // AUDIT FESTIVAL S1: and once when the seat week turns - a player who stays in a town sees the Festival (or Curfew)
       // that ended at the Turning end, and the one that became law begin (the read is this week's: asked once)
-      else if (!pending && open === true && seatWeekOf(at) !== seatWeekOf(nowMs())) read({ force: true });
+      // D1-LOAD: this client's share of SEAT_TURN_READ_SPREAD_MS past the boundary - never every client in one second
+      else if (!pending && open === true && seatWeekOf(at) !== seatWeekOf(nowMs() - turnSpreadMs)) read({ force: true });
     },
     // ─── SEASON1 part two: THE TIDES AS THIS CLIENT READS THEM ───────
     /** The week Season 0 began, as the seats' list last said - or null (no Season counted: every land is Calm). */
@@ -491,7 +498,7 @@ export function createTownSeatBook({ door, storage = null, nowMs = () => Date.no
       const name = fortWork(work)?.name ?? 'work';
       const forts = r.data?.forts ?? null;
       if (r.data?.repeat) return { ok: true, text: `Work on the ${name} at ${seat.name} was already begun.`, forts };
-      return { ok: true, text: `Work on the ${name} at ${seat.name} is begun toward tier ${r.data?.tier}: ${Number(r.data?.marks ?? 0).toLocaleString('en-US')} silver from the treasury. Seat writs deliver what they need.`, forts };
+      return { ok: true, text: `Work on the ${name} at ${seat.name} is begun toward grade ${r.data?.tier}: ${Number(r.data?.marks ?? 0).toLocaleString('en-US')} silver from the treasury. Seat writs deliver what they need.`, forts };
     },
     /** A pledge to `seat` for this week (an Officer's or the guildmaster's) - `{ ok, text }`, the standings read afresh after. */
     async pledge(seat) {
@@ -519,7 +526,7 @@ export function createTownSeatBook({ door, storage = null, nowMs = () => Date.no
       if (r?.ok || (r?.error && !['offline', 'server', 'timeout'].includes(r.error))) { if (tributeAsk?.rid === id) tributeAsk = null; }
       standingsAt.clear();
       if (!r?.ok) return { ok: false, text: accountRefusalText(r?.error) };
-      return { ok: true, text: r.data?.repeat ? 'That Tribute was already paid.' : `Tribute paid to ${seat.name}: ${marks} silver burnt, ${r.data?.influence ?? marks / 10} influence.` };
+      return { ok: true, text: r.data?.repeat ? 'That Tribute was already paid.' : `Tribute paid to ${seat.name}: ${marks} silver burned, ${r.data?.influence ?? marks / 10} influence.` };
     },
     /**
      * THE WATCH'S TICK, KEPT (net/online.js `onWatch`): a signed receipt for the signed-in account, in a seat's own pixel as

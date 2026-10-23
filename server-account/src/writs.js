@@ -41,18 +41,20 @@ import { guildActorOf } from './guilds.js';
 import { marksOpenFor, balanceOf, guildBalanceOf } from './marks.js';
 import { profOpenFor, spendStatements, spendableSql, storeOf } from './professions.js';
 import { CHAR_ID_RE } from './service.js';
+import { realmHoldOf, realmActFirst, mustChange, dropIfUnnamed, recordMovedOf, dropObjects } from './realm.js';   // CRAFT-HOLD: a commission filled hands a crafted piece to another player
+import { prepareCraftedPiece, pieceComingBack } from './craftedPiece.js';   // INT19: and the piece leaves the crafter's realm record
 import { MARKS_MAX, utcDay } from '../../src/net/marksLaw.js';
 import { STORES_MAX } from '../../src/net/professionLaw.js';
 import { material, regionOk } from '../../src/net/nodeLaw.js';
 import { HANDLE_RE } from '../../src/net/handleShape.js';
-import { GUILD_RANK_MASTER } from '../../src/net/guildLaw.js';
+import { GUILD_RANK_MASTER } from '../../src/net/guild/guildLaw.js';
 import { fortMaterialOk, RAM_KIT_KEY } from '../../src/net/fortLaw.js';   // SEAT2b: what a seat writ may ask; part two: a Siege Camp's Ram Kits
 import { seatKeyOk } from '../../src/net/townSeatLaw.js';
 import { confirmedSeats } from './townSeats.js';
 import { supplyForts } from './seatForts.js';   // SEAT2b: a stockpile's delivery moved into its projects
 import { heraldryOfRow } from './halls.js';   // AUDIT-SEATS G11: a writ's guild's banner
 import { creditSeatWrit } from './seatInfluence.js';   // SEAT2b: a seat writ's delivery as influence
-import { saleTax, saleTaxOn, provenanceOk, pieceListable, UNYIELDED, WEAR_WHOLE } from '../../src/net/marketLaw.js';
+import { saleTax, saleTaxOn, provenanceOk, pieceListable, UNYIELDED, WEAR_WHOLE, wearOf } from '../../src/net/marketLaw.js';
 import {
   WRIT_S, GUILD_WRITS_MAX, WRIT_POSTS_MAX, WRIT_OPS_MAX, WRIT_WINDOW_S, WRIT_SETTLE_MAX, WRIT_SHOWN, WRIT_RECENT_S, WRIT_RID_RE,
   WRIT_ID_RE, GUILD_STORES_MAX, GUILD_STORE_MOVES_SHOWN, COMMISSIONS_MAX, COMMISSIONS_FOR_MAX,
@@ -164,26 +166,39 @@ function commissionReturn(db, id, nowS) {
 
 /** THE GUILD WRITS PAST THEIR DAYS, closed, and every closed writ's escrow home - anyone's Work read runs it; at most
  *  WRIT_SETTLE_MAX a read, one batch each; a treasury the cap cannot take waits. */
-async function closeGuildWrits({ db, nowS }) {
+export async function closeGuildWrits(ctx) {
+  const { db, nowS } = ctx;
   const { results: due = [] } = await db.prepare(`SELECT id FROM guild_writs WHERE (state = 'open' AND expires_at <= ?1)
       OR (state != 'open' AND returned = 0 AND (escrow = 0 OR COALESCE((SELECT balance FROM guild_marks WHERE guild_id = guild_writs.guild_id), 0) + escrow <= ?2))
     ORDER BY expires_at LIMIT ${WRIT_SETTLE_MAX}`).bind(nowS, MARKS_MAX).all();
+  let moved = 0;
   for (const w of due) {
-    await db.batch([
+    if (ctx.budget && !ctx.budget()) break;   // AUDIT SCALE A2: the clock's firing keeps under D1's statements an invocation
+    const out = await db.batch([
       db.prepare(`UPDATE guild_writs SET state = 'expired', closed_at = ?2 WHERE id = ?1 AND state = 'open' AND expires_at <= ?2`).bind(w.id, nowS),
       ...guildWritReturn(db, w.id, nowS),
     ]);
+    if (out.some((r) => Number(r?.meta?.changes ?? 0) > 0)) moved++;
   }
+  // SCALE4b: the service's clock asks again while a full page closed. AUDIT SCALE A2: the writs MOVED - closed or
+  // returned - never the ones picked, so a page that changed nothing is not asked again
+  return moved;
 }
 /** An account's own commissions settled: those past their days closed - those it posted and (AUDIT 31 L1) those naming
  *  it, so a crafter's Yours never shows one open that cannot be filled - those whose crafter is gone declined, and the
  *  escrow of each closed one it posted (not filled) back, under the Marks cap. */
 async function settleCommissions({ db, nowS }, me) {
-  await db.batch([
-    db.prepare(`UPDATE commissions SET state = 'expired', closed_at = ?2 WHERE (poster = ?1 OR crafter = ?1) AND state = 'open' AND expires_at <= ?2`)
-      .bind(me, nowS),
-    db.prepare(`UPDATE commissions SET state = 'declined', closed_at = ?2 WHERE poster = ?1 AND state = 'open' AND crafter IS NULL`).bind(me, nowS),
-  ]);
+  // SCALE4b (2026-10-08): ASKED BEFORE IT IS WRITTEN - both updates went on every Work read, nearly always changing
+  // nothing; one read says whether either has a row to move, and only then do the same two go (market.js settle's law)
+  const due = await db.prepare(`SELECT EXISTS (SELECT 1 FROM commissions WHERE (poster = ?1 OR crafter = ?1) AND state = 'open' AND expires_at <= ?2)
+      OR EXISTS (SELECT 1 FROM commissions WHERE poster = ?1 AND state = 'open' AND crafter IS NULL) AS due`).bind(me, nowS).first();
+  if (Number(due?.due)) {
+    await db.batch([
+      db.prepare(`UPDATE commissions SET state = 'expired', closed_at = ?2 WHERE (poster = ?1 OR crafter = ?1) AND state = 'open' AND expires_at <= ?2`)
+        .bind(me, nowS),
+      db.prepare(`UPDATE commissions SET state = 'declined', closed_at = ?2 WHERE poster = ?1 AND state = 'open' AND crafter IS NULL`).bind(me, nowS),
+    ]);
+  }
   const { results: back = [] } = await db.prepare(`SELECT id FROM commissions WHERE poster = ?1 AND state IN ('withdrawn', 'declined', 'expired') AND returned = 0
       AND COALESCE((SELECT balance FROM marks WHERE account = ?1), 0) + pay <= ?2
     ORDER BY closed_at LIMIT ${WRIT_SETTLE_MAX}`).bind(me, MARKS_MAX).all();
@@ -398,6 +413,10 @@ export async function supplyGuildWrit(ctx, player, env, { character, region, wri
   if (Number(w.region) !== region) return { error: 'writ-elsewhere' };
   if (units > Number(w.left_units)) return { error: 'writ-short' };
   if (!(await deliverMay(db, me, w.guild_id))) return { error: 'writ-own-guild' };
+  // AUDIT CRAFT-HOLD (the exploit audit): a held character's Stores fill no guild's writ - its units handed to another
+  // player's guild for Drakes, as a listing and a buy order (INT3) already refuse
+  const frozen = await realmHoldOf(db, me, character);
+  if (frozen) return frozen;
   const total = units * Number(w.pay);
   // SEAT2b: what of the delivery is bought (spent first) - a seat writ's influence counts its own and its bought apart
   const boughtSpent = w.seat != null ? Math.min(units, Math.max(0, Number((await storeOf(db, me, character, w.material)).bought ?? 0))) : 0;
@@ -620,14 +639,24 @@ export async function postCommission(ctx, player, env, { character, region, craf
  * commission's region, hands over a piece of their own make: theirs, crafted by their account, the recipe asked, at
  * least the quality asked, on no other sale, unworn. Its owner moves to the poster and it reaches them as a delivery at
  * once; the crafter is paid the pay less the tax.
+ * INT19 (the INTEGRITY arc's lane 1, its open item): the piece leaves the crafter's realm record in the fill's own batch
+ * (`realm`, where it stands, asked before any other word; server-account/src/craftedPiece.js) - unworn by the record's
+ * own word - and the ledger lets it go, handed on (the poster's piece is the craft's record's, as ever).
  */
-export async function fulfilCommission(ctx, player, env, { character, region, commission: id, provenance, wear, rid } = {}) {
-  const { db, nowS, rand } = ctx;
+export async function fulfilCommission(ctx, player, env, { character, region, commission: id, provenance, wear, rid, realm = null } = {}) {
+  const { db, bucket, nowS, rand } = ctx;
   const refused = asks(player, { character, rid });
   if (refused) return refused;
   const me = player.id;
   const answer = async (row, extra = {}) => ({ ok: true, ...extra, commission: await commissionOf(db, row.id, me), balance: await balanceOf(db, me) });
-  const prior = await db.prepare('SELECT * FROM commissions WHERE crafter = ?1 AND fill_rid = ?2').bind(me, rid).first();
+  const priorOf = () => db.prepare('SELECT * FROM commissions WHERE crafter = ?1 AND fill_rid = ?2').bind(me, rid).first();
+  // INT19: a fill asked again with no record (kept by a tab from before) answered as it landed
+  if (realm == null) { const prior = await priorOf(); if (prior) return answer(prior, { repeat: true }); }
+  const side = await realmActFirst(db, me, character, realm);
+  if (side.error) return side;
+  if (!side.at) return { error: 'realm-needed' };   // a crafted piece is handed on out of a realm record alone
+  const at = side.at;
+  const prior = await priorOf();
   if (prior) return answer(prior, { repeat: true });
   const closed = shut(player, env);
   if (closed) return closed;
@@ -644,14 +673,25 @@ export async function fulfilCommission(ctx, player, env, { character, region, co
   const p = await db.prepare('SELECT * FROM products WHERE provenance = ?1').bind(provenance).first();
   if (!p) return { error: 'market-no-record' };   // AUDIT 31 H1: no record at all - never "another owner's"
   if (p.owner !== me) return { error: 'market-not-yours' };
+  // CRAFT-HOLD (the exploit audit): a commission filled hands the piece to its poster, as a sale does - and it asked no
+  // hold at all: a held character (INT3) filled for Drakes what it could neither list nor auction. INT19: the record
+  // proves the piece the acting record's own - the maker's hold, asked where no record was, retired here
+  const held = await realmHoldOf(db, me, character);
+  if (held) return held;
   if (!commissionFilledBy({ recipe: c.recipe, quality: c.quality == null ? null : Number(c.quality) }, { recipe: p.recipe, quality: Number(p.quality) })) {
     return { error: 'commission-piece' };
   }
   const tax = saleTax(Number(c.pay));
   const pay = Number(c.pay) - tax;
+  const busy = await pieceBusy(db, me, provenance);   // INT19: a piece another act holds said so, before the record moves
+  if (busy) return { error: busy };
+  // INT19: THE RECORD'S OWN PIECE, out of it in the fill's own batch (GUARDED: no fill, no piece out) - whole by its record
+  const prep = await prepareCraftedPiece(ctx, me, at, provenance, false, (moved) => (wearOf(moved) === WEAR_WHOLE ? null : 'commission-worn'));
+  if (prep.error) return prep;
   const nonce = mintId(rand);
   const day = utcDay(nowS);
-  await db.batch([
+  const batch = [
+    ...prep.steps,
     // THE DECISION: the commission open and this crafter's, here; the piece theirs, of their make, the recipe and the
     // quality, on no other sale (PROF5's guards); the crafter's room under the cap; the id unspent
     db.prepare(`UPDATE commissions SET state = 'filled', closed_at = ?3, provenance = ?4, filled_char = ?5, tax = ?6, fill_rid = ?7, fn = ?8
@@ -667,8 +707,9 @@ export async function fulfilCommission(ctx, player, env, { character, region, co
         AND NOT EXISTS (SELECT 1 FROM marks_ledger WHERE actor = ?2 AND rid = ?7 || ':cpay')
         AND COALESCE((SELECT balance FROM marks WHERE account = ?2), 0) + ?10 <= ?11`)
       .bind(id, me, nowS, provenance, character, tax, rid, nonce, region, pay, MARKS_MAX),
+    mustChange(db),   // INT19: no fill, no piece out of the record - the record's step rolls back with it
     // the piece the poster's, on its way to them at once (a delivery, PROF5's)
-    db.prepare(`UPDATE products SET owner = (SELECT poster FROM commissions WHERE id = ?1 AND fn = ?2), listed = 0, bought_with = 'marks'
+    db.prepare(`UPDATE products SET credited = 0, owner = (SELECT poster FROM commissions WHERE id = ?1 AND fn = ?2), listed = 0, bought_with = 'marks'
       WHERE provenance = (SELECT provenance FROM commissions WHERE id = ?1 AND fn = ?2)`).bind(id, nonce),   // GOLD-MARKET: bought with Drakes
     db.prepare(`INSERT OR IGNORE INTO market_deliveries (id, player, char_id, provenance, wear, why, from_region, arrives_at, at)
       SELECT id, poster, poster_char, provenance, ?3, 'bought', region, ?4, ?4 FROM commissions WHERE id = ?1 AND fn = ?2`).bind(id, nonce, WEAR_WHOLE, nowS),
@@ -677,26 +718,43 @@ export async function fulfilCommission(ctx, player, env, { character, region, co
       FROM commissions WHERE id = ?1 AND fn = ?2 AND pay - tax > 0`).bind(id, nonce, day, nowS),
     db.prepare(`${INSERT_LINE} SELECT 'escrow', id, 'burn', NULL, 'market-tax', tax, ?3, ?4, crafter, recipe, fill_rid || ':ctax'
       FROM commissions WHERE id = ?1 AND fn = ?2 AND tax > 0`).bind(id, nonce, day, nowS),
-  ]);
+  ];
+  try {
+    await db.batch(batch);
+    await dropObjects(bucket, [prep.prev]);
+  } catch {
+    await dropIfUnnamed(db, bucket, me, at.id, prep.key);   // AUDIT REALM2 S3: a batch that landed keeps its save
+    const moved = await recordMovedOf(db, me, at);
+    if (moved && !(moved.error === 'seq' && moved.seq === prep.seq)) return moved;
+  }
   const made = await db.prepare('SELECT * FROM commissions WHERE crafter = ?1 AND fill_rid = ?2').bind(me, rid).first();
-  if (made?.fn === nonce) return answer(made);
+  if (made?.fn === nonce) return answer(made, { realm: { seq: prep.seq } });
   if (made) return answer(made, { repeat: true });
   if (await spent(db, me, rid, ':cpay')) return { error: 'prof-rid' };
   const now = await db.prepare('SELECT state FROM commissions WHERE id = ?1').bind(id).first();
   if (now?.state !== 'open') return { error: 'writ-gone' };
-  const q = await db.prepare('SELECT owner, listed, bought_with FROM products WHERE provenance = ?1').bind(provenance).first();
+  const q = await db.prepare('SELECT owner FROM products WHERE provenance = ?1').bind(provenance).first();
   if (!q) return { error: 'market-no-record' };
   if (q.owner !== me) return { error: 'market-not-yours' };
-  if (q.bought_with === 'gold') return { error: 'market-gold-goods' };   // GOLD-MARKET: the wall's own word
-  if (!(await db.prepare('SELECT 1 FROM prof_crafts WHERE player = ?1 AND (provenance = ?2 OR provenance2 = ?2)').bind(me, provenance).first())) {
-    return { error: 'commission-not-made' };
-  }
-  // AUDIT 31 S5: why the piece is held, each in its own word (a delivery waiting read "stands in a home")
-  if (Number(q.listed) === 1) return { error: 'market-listed' };
-  if (await db.prepare('SELECT 1 FROM market_deliveries WHERE provenance = ?1 AND collected = 0').bind(provenance).first()) return { error: 'market-uncollected' };
-  if (await db.prepare("SELECT 1 FROM home_decor WHERE json_extract(item, '$.pv') = ?1").bind(provenance).first()) return { error: 'market-standing' };
+  const why = await pieceBusy(db, me, provenance);
+  if (why) return { error: why };
   if ((await balanceOf(db, me)) + pay > MARKS_MAX) return { error: 'marks-full' };
   return { error: 'writ-gone' };
+}
+/** Why a crafter's piece may not fill a commission - bought with gold (GOLD-MARKET: the wall's own word), not of the
+ *  crafter's make, or held by another act (AUDIT 31 S5: each in its own word - a delivery waiting read "stands in a
+ *  home") - or null. INT19: asked before the record moves too, so a piece another act holds is said so, never "your
+ *  record lacks it". */
+async function pieceBusy(db, me, provenance) {
+  const q = await db.prepare('SELECT listed, bought_with FROM products WHERE provenance = ?1').bind(provenance).first();
+  if (q?.bought_with === 'gold') return 'market-gold-goods';
+  if (!(await db.prepare('SELECT 1 FROM prof_crafts WHERE player = ?1 AND (provenance = ?2 OR provenance2 = ?2)').bind(me, provenance).first())) return 'commission-not-made';
+  if (Number(q?.listed) === 1 || await db.prepare("SELECT 1 FROM market_listings WHERE provenance = ?1 AND state = 'open'").bind(provenance).first()
+    || await db.prepare("SELECT 1 FROM market_auctions WHERE provenance = ?1 AND state = 'open'").bind(provenance).first()) return 'market-listed';
+  if (await db.prepare('SELECT 1 FROM market_deliveries WHERE provenance = ?1 AND collected = 0').bind(provenance).first()) return 'market-uncollected';
+  if (await pieceComingBack(db, me, provenance)) return 'market-uncollected';   // INT19: back as its record, still to collect
+  if (await db.prepare("SELECT 1 FROM home_decor WHERE json_extract(item, '$.pv') = ?1").bind(provenance).first()) return 'market-standing';
+  return null;
 }
 
 /** A commission closed - `withdrawn` by its poster or `declined` by its crafter - while it stands; its pay back to the
@@ -796,6 +854,9 @@ async function moveGuildStores(ctx, player, env, { character, material: key, uni
   const g = a.me.guild_id;
   // AUDIT 31 R1: any member takes back their own deposit; the rest is an Officer's or the Guildmaster's
   if (kind === 'withdraw' && !guildTakeMay(rank, units, await ownDeposit(db, g, key, me, character))) return { error: 'guild-stores-mine' };
+  // AUDIT CRAFT-HOLD (the exploit audit): nor go into its guild's Stores - where an Officer, another of the account's
+  // characters among them, takes them out as bought units its own
+  if (kind === 'deposit') { const held = await realmHoldOf(db, me, character); if (held) return held; }
   if (await acting(ctx, player)) return { error: 'writ-rate' };
   const who = displayName(player);
   const nonce = mintId(rand);

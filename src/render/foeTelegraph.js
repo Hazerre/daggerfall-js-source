@@ -1,9 +1,9 @@
 // @ts-check
 // TACT4 - A FOE'S TELEGRAPH ON THE GROUND (bible/12-Enhanced-AI/Tactics-Arc.md): the world boss's floor telegraph
-// (render/gateTelegraph.js) at a foe's scale - one flat quad at the foe's feet, the shape the fragment's question
+// (render/gate/gateTelegraph.js) at a foe's scale - one flat quad at the foe's feet, the shape the fragment's question
 // against ai/foeBlows.js inBlow (the pins hold `blowField` to it point for point, and the shader's text to it): a dim
 // outline at once, filling outward as the wind-up runs, a bright flash at the landing. Depth-tested and never
-// depth-written, lifted and offset off the ground. TELL2 (bible/12-Enhanced-AI/Feud-Arc.md 4.4): drawn in the boss's
+// depth-written, lifted and offset off the ground (SNOW-TELL: and over the deep snow). TELL2 (bible/12-Enhanced-AI/Feud-Arc.md 4.4): drawn in the boss's
 // readable line (render/telegraphStyle.js), premultiplied over the frame (ONE, ONE_MINUS_SRC_ALPHA) - it was added on
 // (ONE, ONE), which could only brighten; TELL3: an iron blow's second rim and hatch; TELL5: a cut feint fades dashed;
 // TELL9: the player's telegraph contrast (a part of the Enhanced AI row) bolder over all of it.
@@ -26,7 +26,24 @@ const REACH = Object.freeze({ lunge: BLOW.lunge.len, sweep: BLOW.sweep.r, slam: 
 export const quadHalf = (kind, ahead = null) => (Number.isFinite(ahead) && (kind === 'leap' || kind === 'aimed' || kind === 'pyre') ? ahead + (kind === 'leap' ? BLOW.leap.r : kind === 'pyre' ? BLOW.pyre.r : 0) : REACH[kind] ?? BLOW_QUAD_HALF) + 0.6;   // the aimed line: its own length; RVN5: a pyre's by its point
 /** The quad's half-extent about the foe's feet - every shape fits (TELL6: the charge's lane is the longest). */
 export const BLOW_QUAD_HALF = Math.max(...Object.values(REACH)) + 0.3;
+
+/** TECH1 (bible/05-Combat/Weapon-Techniques.md): THE PLAYER'S OWN MARK (combat/techniques.js techniqueMarks - `technique`
+ *  on the record): drawn by this pass in the player's colour, each at ITS OWN size - a Volley's disc, a leap's landing, a
+ *  shot's lane, a dash's - where a foe's blow reads its kind's fixed numbers (BLOW). The shader's `uP` for it (the lane's
+ *  length and half-width; the disc's radius and its point along the yaw), and its quad's half-extent. */
+export function techniqueUniform(b) {
+  if (b.kind === 'lunge' || b.kind === 'charge') return [b.len ?? 0, b.halfW ?? 0, 0, 0];
+  if (b.kind === 'aimed') return [b.ahead ?? 0, b.halfW ?? 0, 0, 0];
+  return [b.r ?? 0, b.ahead ?? 0, 0, 0];
+}
+export const techniqueQuadHalf = (b) => (b.kind === 'lunge' || b.kind === 'charge' ? (b.len ?? 0) + (b.halfW ?? 0) : b.kind === 'aimed' ? (b.ahead ?? 0) + (b.halfW ?? 0) : (b.ahead ?? 0) + (b.r ?? 0)) + 0.6;
 export const BLOW_LIFT = 0.06;
+/** SNOW-TELL (2026-10-11, from play: "Can't see any boss ground attack overlays with heavy snow"): how far over its
+ *  fitted ground a mark lies - BLOW_LIFT, and over the frame's deep snow (render/snowfallGlsl.js snowSurfaceRise, the
+ *  renderer's `_snowRise`) when it drew any. The blow is fitted to the bare ground (ai/foeBlows.js fitBlowToGround: the
+ *  colliders know no snow), and the snow - up to 0.8 m of it in the wild, drawn before the ground and depth-written -
+ *  buried every mark 0.06 m over it: a revenant's pyre landed on a player who never saw it. */
+export const telegraphLift = (snowRise = 0) => BLOW_LIFT + (snowRise > 0 ? snowRise : 0);
 const OUTLINE = 0.12;   // metres of rim
 
 /**
@@ -158,13 +175,14 @@ const QUAD = new Float32Array([-1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1]);
 const NO_FOG_RANGE = new Float32Array([0, 1]);
 const NO_FOG_RANGE3 = new Float32Array([0, 0, 0]);
 const NO_FOCUS = new Float32Array([0, 0, 0, 0]);
+const NO_HAZE = new Float32Array(8);   // AUDIT BANTHA1 HAZE-3: uJungleHaze off ([1].x 0)
 
 export class FoeTelegraphPass {
   constructor(gl) {
     this.gl = gl;
     this.program = buildProgram(gl, VS, FS, 'foeTelegraph');
     this.u = {};
-    for (const n of ['uVP', 'uOrigin', 'uYaw', 'uHalf', 'uLift', 'uKind', 'uT', 'uFlash', 'uColor', 'uP', 'uSlope', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos', 'uFocus', 'uNow', 'uNearFloor', 'uIron', 'uCut', 'uContrast', 'uShatter']) this.u[n] = gl.getUniformLocation(this.program, n);
+    for (const n of ['uVP', 'uOrigin', 'uYaw', 'uHalf', 'uLift', 'uKind', 'uT', 'uFlash', 'uColor', 'uP', 'uSlope', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos', 'uFocus', 'uJungleHaze', 'uNow', 'uNearFloor', 'uIron', 'uCut', 'uContrast', 'uShatter']) this.u[n] = gl.getUniformLocation(this.program, n);
     this.vao = gl.createVertexArray();
     gl.bindVertexArray(this.vao);
     this.vbo = gl.createBuffer();
@@ -179,20 +197,21 @@ export class FoeTelegraphPass {
 
   /** Draw each { blow, phase, nearFloor } (ai/foeBlows.js drawableBlows) under the camera `proj` x `view`, in the frame's
    *  `fog` ({ mode, density, range, camPos }; none draws unfogged). TELL9: `contrast` the bold look (the preference's
-   *  by default). */
-  draw(list, proj, view, fog = null, { contrast = telegraphContrastOn() } = {}) {
+   *  by default). SNOW-TELL: `snowRise` the frame's snow over the ground (telegraphLift). */
+  draw(list, proj, view, fog = null, { contrast = telegraphContrastOn(), snowRise = 0 } = {}) {
     this.drawn = 0;
     if (!list?.length || !proj || !view) return 0;
     const gl = this.gl, U = this.u;
     mul(this._vp, proj, view);
     gl.useProgram(this.program);
     gl.uniformMatrix4fv(U.uVP, false, this._vp);
-    gl.uniform1f(U.uLift, BLOW_LIFT);
+    gl.uniform1f(U.uLift, telegraphLift(snowRise));   // SNOW-TELL: over the deep snow, where the frame drew it
     gl.uniform1f(U.uContrast, contrast ? 1 : 0);   // TELL9
     gl.uniform1i(U.uFogMode, fog ? fog.mode : 0);
     gl.uniform1f(U.uFogDensity, fog?.density ?? 0);
     gl.uniform2fv(U.uFogRange, fog?.range ?? NO_FOG_RANGE);
     gl.uniform3fv(U.uCamPos, fog?.camPos ?? NO_FOG_RANGE3);
+    if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);   // BANTHA1 (AUDIT BANTHA1 HAZE-3): the jungle's haze (renderer.setJungleHaze); none handed, off
     if (U.uFocus) gl.uniform4fv(U.uFocus, fog?.focus ?? NO_FOCUS);   // AUDIT DEEP R-1's law: under the travel view the fog is the traveller's
     gl.bindVertexArray(this.vao);
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);   // TELL2: premultiplied - the keyline darkens the floor, the line and the fill light it
@@ -212,6 +231,10 @@ export class FoeTelegraphPass {
       else if (b.kind === 'leap' || b.kind === 'pyre') gl.uniform4f(U.uP, P.r, b.ahead ?? 0, 0, 0);   // RVN5: the pyre's disc at its point
       else if (b.kind === 'aimed') gl.uniform4f(U.uP, b.ahead ?? 0, P.halfW, 0, 0);
       else gl.uniform4f(U.uP, P.r, P.ahead, 0, 0);
+      if (b.technique) {   // TECH1: the player's own mark - its quad and its numbers its own, over its kind's fixed ones
+        gl.uniform1f(U.uHalf, techniqueQuadHalf(b));
+        gl.uniform4f(U.uP, ...techniqueUniform(b));
+      }
       gl.uniform1f(U.uT, phase.t);
       gl.uniform1f(U.uFlash, phase.flash);
       gl.uniform1f(U.uNow, phase.flash > 0 ? 0 : nowShare(b, phase));   // TELL2

@@ -42,7 +42,7 @@
 import { accountKind, displayName, overRate } from './accounts.js';
 import { CHAR_ID_RE } from './service.js';
 import { prepareRealmRecord, realmActFirst, recordMovedOf, mustChange, dropObjects, dropIfUnnamed, REALM_ID_RE } from './realm.js';
-import { payFromSave, creditSave } from '../../src/net/realmGoldLaw.js';
+import { payFromSave, creditSave } from '../../src/net/realm/realmGoldLaw.js';
 import {
   homeMapIdOk, homeBuildingKeyOk, RENT_ROOMS_MAX, RENT_HELD_MAX, RENT_WRITES_MAX, RENT_WRITES_WINDOW_S,
   rentRoomOk, rentPriceOk, rentDaysOk, rentAnchorOf, rentCost, rentUntil, RENT_ANCHOR_MOVED,
@@ -186,7 +186,7 @@ export async function rentRoom(ctx, player, { mapId, buildingKey, character, roo
     if ((held?.n ?? 0) >= RENT_HELD_MAX) return { error: 'rent-held' };
   }
   const cost = rentCost(price, days);
-  const prep = await prepareRealmRecord(ctx, player.id, side.at, (save) => (payFromSave(save, cost, row.region) ? null : 'realm-gold'));
+  const prep = await prepareRealmRecord(ctx, player.id, side.at, (save) => (payFromSave(save, cost, row.region) ? null : 'realm-gold'), { outbound: true });   // INT3: a rent pays the owner
   if (prep.error) return prep;
   try {
     await db.batch([

@@ -18,6 +18,7 @@ import { firstName, surname as bankSurname, getNameBank, GENDERS } from '../../c
 import { getSeed, setSeed } from '../../formats/dfRandom.js';
 import { startAgeOf } from './age.js';
 import { readStanding, readNews, readHeard } from './influence.js';   // LEGACY6; AUDIT LEGACY III A8: a reader's heard news
+import { BLOOD_MAX, HEARTH_MAX, ESTATE_SHARE, ESTATE_MAX } from './legacyLaw.js';   // INT18: the family law's bounds, the realm's to ask too
 import { readHouse } from '../../net/houseLaw.js';   // LEGACY7 part three: a player spouse's house
 import { validLook } from '../../net/wire.js';   // LEGACY7 part four: a member's look, the hello's own recipe
 
@@ -52,16 +53,9 @@ export const RACE_INHERIT_CHANCE = 0.7;
 export const SURNAME_KEEP_CHANCE = 0.9;
 /** The arc's section 5: half the time the parent's career. */
 export const CAREER_INHERIT_CHANCE = 0.5;
-/** THE BLOOD: a stat's gift is `round((parent - 50) / 10)`, held to 0..3. */
-export const BLOOD_MAX = 3;
-/** THE HEARTH: a primary or major skill's gift is `floor(parent / 20)`, held to 0..3. */
-export const HEARTH_MAX = 3;
-/** THE ESTATE: a quarter of the purse the dead carried, at most what fits under the online birth's liquid ceiling
- *  beside the gold every birth carries (net/realmGoldLaw.js REALM_BIRTH_WEALTH_MAX less systems/startingGear.js
- *  STARTING_GOLD - restated, and pinned equal, so this leaf imports no net code). AUDIT LEGACY H7: it was the ceiling
- *  itself, and a born heir's first save would have carried 10,100. */
-export const ESTATE_SHARE = 0.25;
-export const ESTATE_MAX = 9_900;
+/** THE BLOOD (0..BLOOD_MAX), THE HEARTH (0..HEARTH_MAX) and THE ESTATE (ESTATE_SHARE of the purse, at most ESTATE_MAX) -
+ *  INT18: their home is legacyLaw.js, the leaf the account service asks a line's copy by; said here as they always were. */
+export { BLOOD_MAX, HEARTH_MAX, ESTATE_SHARE, ESTATE_MAX };
 
 const RACE_KEYS = Object.freeze(Object.keys(RACES));
 
@@ -126,10 +120,11 @@ export const fullNameOf = (given, sur) => (sur ? `${given} ${sur}` : given);
  *   parked?:{mapId:number, buildingKey:number}|null, courting?:Record<string, any>, wedAt?:number|null,
  *   childDay?:number|null, minor?:boolean, residentFace?:number|null, mapId?:number,
  *   standing?:import('./influence.js').Standing|null,
- *   realm?:{ sid:string, player:string, char:string, house:any }|null, look?:any
+ *   realm?:{ sid:string, player:string, char:string, house:any }|null, look?:any, deedsTaken?:string[]
  * }} Person - LEGACY7 part three: `kind: 'player'` another player's realm character wed to a member, `realm` the union.
  *   LEGACY7 part four: `look` what the member wore at their newest save (memberLook) - how the world draws them
- * @typedef {{ v:number, id:string, surname:string, model:string, seat:{region:string, loc:string, mapId?:number}|null, rev:number,
+ *   PERMADEATH-HOUSES: `deedsTaken` the dead's deeds their save took up, by house key (household.js deedsDue)
+ * @typedef {{ v:number, id:string, surname:string, model:string, seat:{region:string, loc:string, mapId?:number, at?:number}|null, rev:number,
  *   nextId:number, currentId:number, founded:number, ended:number|null, people:Person[], remains:any[], settings?:any,
  *   pending:Pending|null, houses?:any[], home?:{mapId:number, buildingKey:number}|null,
  *   news?:import('./influence.js').News[] }} Family
@@ -148,6 +143,7 @@ function blankPerson(id) {
     groups: { primary: [], major: [], minor: [] }, blood: {}, hearth: {}, estate: 0,
     parents: [], children: [], spouse: null, born: 0, died: null, heir: null, characterId: null, leveling: null,
     kind: 'member', residentId: null, startAge: 20, toll: 0, bornOwn: 0, lived: 0, retired: null, bequest: [], parked: null,
+    deedsTaken: [],
   });
 }
 
@@ -186,13 +182,14 @@ function careerFields(entity) {
     // AUDIT LEGACY III O10/P1: a stock career is its index's (its CLASS*.CFG is read fresh at a birth - bornResult); only
     // a custom one is kept whole, as isCustomCareer and inheritCareer read it. Every played member carried six hundred
     // bytes of a career the game ships
-    career: career && String(career.name ?? '') !== CLASS_CAREERS[idx] ? JSON.parse(JSON.stringify(career)) : null,
+    // AUDIT SUGGESTIONS-1019 L5-4: and a stock class with a class skill changed (skillSwap.js) is no longer its index's
+    career: career && (career.swapped === true || String(career.name ?? '') !== CLASS_CAREERS[idx]) ? JSON.parse(JSON.stringify(career)) : null,
     groups: groupsOf(career),
   };
 }
 
 /** Is a person's career a custom one - a career object whose name is not its index's stock name. */
-export const isCustomCareer = (person) => !!person?.career && String(person.career.name ?? '') !== CLASS_CAREERS[person.careerIndex];
+export const isCustomCareer = (person) => !!person?.career && (person.career.swapped === true || String(person.career.name ?? '') !== CLASS_CAREERS[person.careerIndex]);   // AUDIT SUGGESTIONS-1019 L5-4: a swapped class too
 
 /** Write the PLAYED character into their person: identity, level, the permanent eight and thirty-five, the career and
  *  the character id. The mod's `SaveCurrentCharacter` / `SaveCharacterData`, the parts the port keeps (D8: no kit -
@@ -242,16 +239,25 @@ export function foundFamily(entity, { model = MODELS.enduring, seat = null, at =
  * LEGACY-NAME - THE HOUSE NAMED FOR ITS SEAT (section 5's naming): a founder with no surname of their own founds a house
  * named for its seat ("of Sentinel"). The seat is the first town the house stands in, and a new character founds in
  * Privateer's Hold, where none stands - so a house founded nameless is named when its seat is noted (the host's tick),
- * or when a copy that knows the seat merges in (store.js mergeFacts); every member of the blood born under the nameless
- * house takes the name (a spouse keeps their own). A house with a name, or with no seat yet, is left as it is.
+ * or when a copy that knows the seat merges in (store.js mergeFacts; a copy that knows the NAME hands the name itself,
+ * AUDIT FB1007b S1); every member of the blood born under the nameless house takes the name (a spouse keeps their own).
+ * A house with a name, or with no seat yet, is left as it is.
  * Answers whether it named the house.
  */
 export function nameAtSeat(family) {
   if (!family || String(family.surname ?? '').trim() || !family.seat?.loc) return false;
-  const sur = `of ${family.seat.loc}`;
+  nameHouse(family, `of ${family.seat.loc}`);
+  return true;
+}
+
+/**
+ * The house takes the name `sur`, and every member of its blood with none yet takes it with the house (a spouse keeps
+ * their own). AUDIT FB1007b S1: the merge names a house this way too (store.js mergeFacts) - with the name the other
+ * copy holds, never its seat's, since the seat moves (FAMILY-SEAT) and a house named for its first seat stays that house.
+ */
+export function nameHouse(family, sur) {
   family.surname = sur;
   for (const p of family.people ?? []) if ((p.kind ?? 'member') === 'member' && !String(p.surname ?? '').trim()) p.surname = sur;
-  return true;
 }
 
 /** B12: the heir answer, rolled once per person at birth - "Always" is true, "Random" the mod's 50%. */
@@ -523,7 +529,11 @@ export function readFamily(rec) {
     p.hearth = raw.hearth && typeof raw.hearth === 'object' ? raw.hearth : {};
     p.estate = Math.max(0, Math.floor(Number(raw.estate) || 0));
     p.bequest = Array.isArray(raw.bequest) ? raw.bequest.filter((it) => it && typeof it === 'object') : [];
+    // PERMADEATH-HOUSES: the dead's deeds this member's save took up (household.js deedsDue), by house key
+    p.deedsTaken = Array.isArray(raw.deedsTaken) ? [...new Set(raw.deedsTaken.filter((k) => typeof k === 'string' && /^-?\d+:\d+$/.test(k)))] : [];
     p.died = raw.died && typeof raw.died === 'object' ? { at: Number(raw.died.at) || 0, cause: String(raw.died.cause ?? 'unknown'), place: raw.died.place ?? null, by: raw.died.by ?? null } : null;
+    // REVIVE (revived.js): the deaths taken back on them, by `died.at` - held to its shape, never dropped
+    p.revived = Array.isArray(raw.revived) ? raw.revived.filter((n) => Number.isFinite(n)) : [];
     // LEGACY5: courtships, a wedding, children's clock, a minor, a spouse's own face - held to their shape
     p.courting = raw.courting && typeof raw.courting === 'object' && !Array.isArray(raw.courting)
       ? Object.fromEntries(Object.entries(raw.courting).filter(([k, c]) => typeof k === 'string' && c && typeof c === 'object')
@@ -564,7 +574,8 @@ export function readFamily(rec) {
   const maxId = Math.max(...people.map((p) => p.id));
   return {
     v: FAMILY_VERSION, id: rec.id, surname: String(rec.surname ?? ''), model: isModel(rec.model) ? rec.model : MODELS.enduring,
-    seat: rec.seat && typeof rec.seat === 'object' ? { region: String(rec.seat.region ?? ''), loc: String(rec.seat.loc ?? ''), ...(Number.isInteger(rec.seat.mapId) ? { mapId: rec.seat.mapId } : {}) } : null,
+    seat: rec.seat && typeof rec.seat === 'object' ? { region: String(rec.seat.region ?? ''), loc: String(rec.seat.loc ?? ''), ...(Number.isInteger(rec.seat.mapId) ? { mapId: rec.seat.mapId } : {}),
+      ...(Number(rec.seat.at) > 0 ? { at: Math.floor(Number(rec.seat.at)) } : {}) } : null,   // FAMILY-SEAT: a seat the player moved, when (legacyHost.js moveFamilySeat)
     rev: Math.max(1, rec.rev | 0), nextId: Math.max(maxId + 1, rec.nextId | 0),   // D4: ids from the record's own counter, never a constant
     currentId: people.some((p) => p.id === rec.currentId) ? rec.currentId : people[0].id,
     founded: Number(rec.founded) || 0, ended: rec.ended == null ? null : Number(rec.ended), people,
@@ -572,7 +583,10 @@ export function readFamily(rec) {
     pending: readPending(rec.pending, people),
     // LEGACY-HOME: the family's houses (each its holder's deed) and the one marked its home
     houses: Array.isArray(rec.houses) ? rec.houses.filter((h) => h && Number.isInteger(h.mapId) && (h.buildingKey | 0) > 0)
-      .map((h) => ({ regionIndex: h.regionIndex | 0, mapId: h.mapId, buildingKey: h.buildingKey | 0, location: String(h.location ?? ''), by: Number.isInteger(h.by) ? h.by : null })) : [],
+      .map((h) => ({ regionIndex: h.regionIndex | 0, mapId: h.mapId, buildingKey: h.buildingKey | 0, location: String(h.location ?? ''),
+        ...(typeof h.layout === 'string' && h.layout ? { layout: h.layout } : {}),   // PERMADEATH-HOUSES: the layout its deed names the building in
+        by: Number.isInteger(h.by) ? h.by : null,
+        ...(Number.isInteger(h.from) ? { from: h.from } : {}) })) : [],   // PERMADEATH-HOUSES: left to its holder by one of the line's dead
     home: rec.home && Number.isInteger(rec.home.mapId) ? { mapId: rec.home.mapId, buildingKey: rec.home.buildingKey | 0 } : null,
     news: readNews(rec.news),   // LEGACY6: what the house's towns talk of (influence.js)
   };

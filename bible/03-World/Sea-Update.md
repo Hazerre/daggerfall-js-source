@@ -44,7 +44,7 @@ way in.
 
 Every landed mod is on by default, registered (settings, Features,
 credits, `01-Overview/Mod-Registry.md`) and placed in the online lane
-(`systems/onlineLane.js`).
+(`systems/online/onlineLane.js`).
 
 ## Left
 
@@ -62,8 +62,10 @@ until the sky's texture next changes), (12) the swim's odometer riding the
 recentre; and (3) now reaching DFU's billboards (the deep's foes, their
 corpses, a pile dropped in the sea). Seen, not the mod's: past the
 streamed grid the far ring (EV8) holds its haze at 85% through the middle
-distance, so its sea reads a shade darker than the fully fogged edge of
-the streamed world - EV8's own, over land and sea alike.
+distance - EV8's own, not the mod's. Its sea read a shade darker than the
+fully fogged edge of the streamed world until FAR-SEA1 (2026-10-10,
+`07-Rendering/Water-Arc.md`): the streamed sea holds the same haze now, and
+the ring's sea is the water's own, so they meet; over land the step stands.
 
 ### 3. There's a Hole in the Bottom of the Ocean 1.1.0 (jet082) - OH-A to OH-F LANDED
 
@@ -123,7 +125,7 @@ the Unity asset decoders (mesh, animation, animator, prefab, bundle, and
 FSB5 to Ogg) was written in a scratch worktree during this branch and
 NOT kept - the container was ephemeral - so it is redone from the mod's
 archive. What is already waiting for it in the port: Deep Waters' swim
-check knows its boat (`world/deepWaterSwim.js` `isBoatEffectBundle`,
+check knows its boat (`world/deepWater/deepWaterSwim.js` `isBoatEffectBundle`,
 the effect bundle "ImOnABoat" / "I'm On A Boat" suppresses the swim),
 and item template indices 1320/1321 are free. Online: a boat syncs most
 cheaply as sidecar keys on the foes frame (`scenes/world.js`'s foes

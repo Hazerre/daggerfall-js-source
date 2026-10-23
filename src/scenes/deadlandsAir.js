@@ -3,9 +3,10 @@
 // DEADLANDS' AIR - what the Burning Court sounds like under its sky. Design: bible/11-Multiplayer/World-Bosses.md
 // section 4 ("The Deadlands").
 //
-// THE BEDS, always under the court: the deep moan of the wind over the fire (a named loop - audio.setLoop, the riding
-// loop's shape - its gain breathing on the Deadlands' clock), the sea's roar (the fire's own clip pitched down to a
-// rumble), and each brazier burning where it stands (a positional loop with the short linear reach DFU gives a torch).
+// THE BEDS, always under the court: the deep moan of the wind over the fire (a named bed - audio.setBed, looped by the
+// engine itself: AUDIT SD III, A3 - on the riding loop's shape, re-armed as each pass ended, every seam was a gap - its
+// gain breathing on the Deadlands' clock), the sea's roar (the fire's own clip pitched down to a rumble), and each
+// brazier burning where it stands (a positional bed with the short linear reach DFU gives a torch).
 //
 // THE EVENTS, pure of everything but the clock (`deadlandsAirEvents`): the THUNDER of every strike the sky draws - the
 // same slot, the same quarter (render/deadlands.js flashOfSlot) - late by its distance at the speed of sound, the crack
@@ -110,6 +111,8 @@ export function airWindGain(seconds) {
  *  pause menu starts a new host on the same page, and the old host's loop dies where it stands, never calling stop)
  *  silences the old one's loops as it is made. */
 let _heard = null;
+/** AUDIT SD IV (A5): the name the court's far events are played under (audio.js fadeFar lets them go with it). */
+export const AIR_FAR = 'deadlandsAir';
 
 /**
  * The court's air on the engine: `frame(seconds, ear, braziers)` once a frame while the court stands under the player
@@ -126,15 +129,15 @@ export function createDeadlandsAir(engine = defaultAudio) {
     frame(seconds, ear, braziers = []) {
       if (!Number.isFinite(seconds) || !Array.isArray(ear) || ear.length !== 3) return;
       try {
-        engine.setLoop(AIR_WIND.loop, AIR_WIND.clip, { volume: airWindGain(seconds), pitch: AIR_WIND.pitch });
-        engine.setLoop(AIR_SEA.loop, AIR_SEA.clip, { volume: AIR_SEA.volume, pitch: AIR_SEA.pitch });
+        engine.setBed(AIR_WIND.loop, AIR_WIND.clip, { volume: airWindGain(seconds), pitch: AIR_WIND.pitch });
+        engine.setBed(AIR_SEA.loop, AIR_SEA.clip, { volume: AIR_SEA.volume, pitch: AIR_SEA.pitch });
         const lit = (Array.isArray(braziers) ? braziers : []).filter((p) => Array.isArray(p) && p.length === 3 && p.every(Number.isFinite)).slice(0, LIFE_BRAZIERS_MAX);
-        lit.forEach((p, i) => engine.setLoop3d(AIR_BRAZIER.loop + i, AIR_BRAZIER.clip, p, { volume: AIR_BRAZIER.volume, pitch: AIR_BRAZIER.pitch, refDistance: AIR_BRAZIER.refDistance, maxDistance: AIR_BRAZIER.maxDistance, distanceModel: AIR_BRAZIER.distanceModel }));
-        for (let i = lit.length; i < beds; i++) engine.setLoop3d(AIR_BRAZIER.loop + i, null, null);
+        lit.forEach((p, i) => engine.setBed3d(AIR_BRAZIER.loop + i, AIR_BRAZIER.clip, p, { volume: AIR_BRAZIER.volume, pitch: AIR_BRAZIER.pitch, refDistance: AIR_BRAZIER.refDistance, maxDistance: AIR_BRAZIER.maxDistance, distanceModel: AIR_BRAZIER.distanceModel }));
+        for (let i = lit.length; i < beds; i++) engine.setBed3d(AIR_BRAZIER.loop + i, null, null);
         beds = lit.length;
         on = true;
         if (last != null && seconds > last && seconds - last <= AIR_BACKLOG_S) {
-          for (const e of deadlandsAirEvents(last, seconds)) engine.play3d(e.clip, airSourceAt(ear, e.az, e.lift), e.volume, { refDistance: THUNDER_SOURCE_M, pitch: e.pitch, far: true });
+          for (const e of deadlandsAirEvents(last, seconds)) engine.play3d(e.clip, airSourceAt(ear, e.az, e.lift), e.volume, { refDistance: THUNDER_SOURCE_M, pitch: e.pitch, far: AIR_FAR });
         }
       } catch { /* a sound is never the fight */ }
       last = seconds;
@@ -144,9 +147,10 @@ export function createDeadlandsAir(engine = defaultAudio) {
       if (!on) return;
       on = false;
       try {
-        engine.setLoop(AIR_WIND.loop, null);
-        engine.setLoop(AIR_SEA.loop, null);
-        for (let i = 0; i < beds; i++) engine.setLoop3d(AIR_BRAZIER.loop + i, null, null);
+        engine.setBed(AIR_WIND.loop, null);
+        engine.setBed(AIR_SEA.loop, null);
+        for (let i = 0; i < beds; i++) engine.setBed3d(AIR_BRAZIER.loop + i, null, null);
+        engine.fadeFar?.(AIR_FAR);   // AUDIT SD IV (A5): and its events still sounding, with them
       } catch { /* nothing left to stop */ }
       beds = 0;
     },

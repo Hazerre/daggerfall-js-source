@@ -2,28 +2,28 @@
   {
     "name": "VAMPDAY-the-day-is-the-night-the-defect",
     "file": "src/systems/vampirism.js",
-    "old": "export const vampireStatMod = (clockMinutes) => (playerInSunlight(clockMinutes) ? -VAMPIRE_STAT_MOD : VAMPIRE_STAT_MOD);",
-    "new": "export const vampireStatMod = (clockMinutes) => VAMPIRE_STAT_MOD;",
+    "old": "(playerInSunlight(clockMinutes) ? (sunAverse ? -VAMPIRE_STAT_MOD : 0) : VAMPIRE_STAT_MOD)",
+    "new": "(VAMPIRE_STAT_MOD)",
     "tests": [
-      "test/vampday.test.js"
+      "test/systems/vampday.test.js"
     ]
   },
   {
     "name": "VAMPDAY-the-day-is-merely-plain",
     "file": "src/systems/vampirism.js",
-    "old": "export const vampireStatMod = (clockMinutes) => (playerInSunlight(clockMinutes) ? -VAMPIRE_STAT_MOD : VAMPIRE_STAT_MOD);",
-    "new": "export const vampireStatMod = (clockMinutes) => (playerInSunlight(clockMinutes) ? 0 : VAMPIRE_STAT_MOD);",
+    "old": "(playerInSunlight(clockMinutes) ? (sunAverse ? -VAMPIRE_STAT_MOD : 0) : VAMPIRE_STAT_MOD)",
+    "new": "(playerInSunlight(clockMinutes) ? (sunAverse ? 0 : 0) : VAMPIRE_STAT_MOD)",
     "tests": [
-      "test/vampday.test.js"
+      "test/systems/vampday.test.js"
     ]
   },
   {
     "name": "VAMPDAY-the-round-ignores-the-hour",
     "file": "src/systems/vampirism.js",
-    "old": "  const mod = vampireStatMod(skyMinutes);",
+    "old": "  const mod = vampireStatMod(skyMinutes, racialSunAverse(entity));",
     "new": "  const mod = VAMPIRE_STAT_MOD;",
     "tests": [
-      "test/vampday.test.js"
+      "test/systems/vampday.test.js"
     ]
   },
   {
@@ -32,16 +32,16 @@
     "old": "  if (entry.clan === VAMPIRE_CLANS.Anthotis) entry.statMods.intelligence = mod;",
     "new": "  if (entry.clan === VAMPIRE_CLANS.Anthotis) entry.statMods.intelligence = VAMPIRE_STAT_MOD;",
     "tests": [
-      "test/vampday.test.js"
+      "test/systems/vampday.test.js"
     ]
   },
   {
     "name": "VAMPDAY-the-sun-still-burns",
     "file": "src/systems/passiveSpecials.js",
-    "old": "    && careerSunDamage(career)\n",
-    "new": "    && (careerSunDamage(career) || override?.sunDamage)\n",
+    "old": "    && careerSunAverse(entity)\n",
+    "new": "    && (careerSunAverse(entity) || override?.sunDamage)\n",
     "tests": [
-      "test/vampday.test.js"
+      "test/systems/vampday.test.js"
     ]
   },
   {
@@ -50,7 +50,7 @@
     "old": "      specialAbilities: (base.specialAbilities ?? 0) | SPECIAL_ABILITY_BITS.holyDamage,",
     "new": "      specialAbilities: (base.specialAbilities ?? 0) | SPECIAL_ABILITY_BITS.sunDamage | SPECIAL_ABILITY_BITS.holyDamage,",
     "tests": [
-      "test/vampday.test.js"
+      "test/systems/vampday.test.js"
     ]
   },
   {
@@ -59,7 +59,7 @@
     "old": "  if (curse < 0) curse = -Math.min(-curse, Math.max(0, Math.min(Math.max(base + mod, 0), MAX_STAT_VALUE) - 1));\n",
     "new": "",
     "tests": [
-      "test/vampday.test.js"
+      "test/systems/vampday.test.js"
     ]
   },
   {
@@ -68,7 +68,7 @@
     "old": "MAX_STAT_VALUE) - 1));\n  mod += curse;",
     "new": "MAX_STAT_VALUE) - 0));\n  mod += curse;",
     "tests": [
-      "test/vampday.test.js"
+      "test/systems/vampday.test.js"
     ]
   },
   {
@@ -77,7 +77,7 @@
     "old": "  mod += curse;\n",
     "new": "\n",
     "tests": [
-      "test/vampday.test.js"
+      "test/systems/vampday.test.js"
     ]
   }
 ]

@@ -32,6 +32,7 @@ import { mintId, isMuted, overRate } from './accounts.js';
 import { guildActorOf } from './guilds.js';
 import { boardOpenFor } from './board.js';
 import { heraldryOfRow } from './halls.js';
+import { maskText } from '../../src/net/nameFilter.js';   // TEXT-F1: a guild note kept before the filter, starred as it is read
 import { HALL_POWERS, hallMay } from '../../src/net/hallLaw.js';
 import {
   GUILD_NOTES_LIVE_MAX, GUILD_NOTES_SHOWN, NOTE_DAY_S, NOTES_PINNED_MAX, BOARD_OPS_MAX, BOARD_WINDOW_S, NOTE_ID_RE,
@@ -54,9 +55,17 @@ async function liveCount(db, guildId, author, nowS) {
 
 /** A note as a member sees it: never its account, only the member who pinned it. */
 const noteView = (n, me) => ({
-  id: n.id, from: n.author_name, subject: n.subject, body: n.body, at: n.at, expiresAt: n.expires_at,
+  id: n.id, from: n.author_name, subject: maskText(n.subject), body: maskText(n.body), at: n.at, expiresAt: n.expires_at,   // TEXT-F1
   mine: n.author === me.player,
 });
+
+/** A guild's expired notes, gone - `limit` at once, answering how many went. SCALE4b (2026-10-08): the service's clock's
+ *  (server-account/src/cron.js, each hour), never a read's - the board's read swept first, a write on every look at a
+ *  guild's board; nothing it answers waits on it, its notes are read `expires_at > now`. */
+export async function sweepGuildNotes(db, nowS, limit = 200) {
+  const r = await db.prepare('DELETE FROM guild_notes WHERE id IN (SELECT id FROM guild_notes WHERE expires_at <= ? LIMIT ?)').bind(nowS, limit).run();
+  return Number(r?.meta?.changes ?? 0);
+}
 
 /**
  * THE GUILD'S BOARD, as this member sees it: the guild (its name, tag and heraldry), its live notes newest first - a
@@ -68,7 +77,6 @@ export async function readGuildBoard({ db, nowS }, player, env, { character } = 
   const a = await memberOf(db, player, env, character);
   if ('error' in a) return a;
   const { me } = a;
-  await db.prepare('DELETE FROM guild_notes WHERE id IN (SELECT id FROM guild_notes WHERE expires_at <= ? LIMIT 200)').bind(nowS).run();
   const g = await db.prepare('SELECT id, name, tag, heraldry FROM guilds WHERE id = ?').bind(me.guild_id).first();
   if (!g) return { error: 'no-guild' };
   const { results: notes = [] } = await db.prepare(`SELECT n.* FROM guild_notes n JOIN players p ON p.id = n.author

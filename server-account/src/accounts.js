@@ -36,18 +36,24 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { guestName, isHandleShaped, isGuestShaped } from './guestName.js';
-import { wardrobeOf, equipRefusal, canModerate, auraRefusal, glyphRefusal, glyphsHidden } from './titles.js';   // ACC3: what a player holds, wears and is true of - all four derived; WB9g: and the aura worn
+import { handleLooksLikeEmail } from '../../src/net/handleShape.js';   // HANDLE-EMAIL: a username is never an address
+import { NAME_MAX } from '../../src/net/wire.js';   // NAME-AS: the wire's bound on a name, a worn character's among them
+import { checkName } from '../../src/net/nameFilter.js';   // NAME-AS: which word a character's name was refused for (NAME-F: a refusal names it)
+import { wardrobeOf, equipRefusal, canModerate, isDeveloper, auraRefusal, glyphRefusal, glyphsHidden, iconRefusal } from './titles.js';   // ACC3: what a player holds, wears and is true of - all four derived; WB9g: and the aura worn
 import { insigniaById, insigniaHeld } from '../../src/net/insignia.js';   // WB9g: the Broker's insignia - one law both ends
 import { ID_RE, nameIsIssuable } from '../../src/net/identityToken.js';
 import { PLAY_GRACE_S } from '../../src/net/playClock.js';   // ACC4: the widest gap one beat may credit - one home both ends
 import { MUTE_MAX_MIN } from '../../src/net/moderation.js';   // MOD1: the longest mute - the command and the service agree in one place
-import { verifyReceipt } from '../../src/net/gateReceipt.js';   // WB5b: the relay's kill receipt, verified with its public half
+import { verifyReceipt } from '../../src/net/gate/gateReceipt.js';   // WB5b: the relay's kill receipt, verified with its public half
+import { verifyDuelReceipt } from '../../src/net/duel/duelReceipt.js';   // INT8: a duel's result, the relay's
 import { TERMS_VERSION, PRIVACY_VERSION, LEGAL_VERSION_RE } from '../../src/net/legalLaw.js';   // TERMS1: the documents a new account agrees to - one home both ends
 import {
   hashPassword, verifyPassword, needsRehash, passwordRefusal,
   mintRecoveryCode, codeForHashing,
+  mintRecoverySet, hashRecoverySet, joinRecoverySet, matchRecoveryCode, recoveryLeft,   // RECOVERY-SET: eight codes, each spent alone
 } from './password.js';
 import { seatRegionOk } from '../../src/net/townSeatLaw.js';   // SEAT1b: a gate claim's region
+import { DB_ANY, DB_ROOT } from './service.js';   // BOOKMARK-SPIRAL: a session started at any instance, and the binding behind it
 
 /** A session's raw secret, in bytes. 32 bytes of CSPRNG is the whole
  *  of the credential; nothing about the player is encoded in it. */
@@ -59,8 +65,9 @@ export const SESSION_IDLE_S = 365 * 24 * 60 * 60;
 /** SCALE1 (2026-09-30, the scaling audit - Mac: "set the stage for a larger player base"): HOW STALE `last_seen` MAY
  *  GROW before a request writes it again. Every authenticated call wrote both rows, two of its three D1 writes, and
  *  D1 has one writer for the whole service. Nothing reads the column finer than this: the idle bound is a year, and
- *  the device list orders by it. */
-export const SESSION_TOUCH_S = 10 * 60;
+ *  the device list orders by it. SCALE4h (2026-10-11, "10k writes"): an hour, not ten minutes - still nothing reads it
+ *  finer, and a session's touch is one hot row the plan named (bible/11-Multiplayer/Scale-Arc.md SCALE4h). */
+export const SESSION_TOUCH_S = 60 * 60;
 
 const b64url = (bytes) => {
   let bin = '';
@@ -106,7 +113,7 @@ export async function hashSecret(secret, { subtle }) {
  */
 export function displayName(row) {
   const handle = row?.handle;
-  if (typeof handle === 'string' && handle.length > 0) return handle;
+  if (typeof handle === 'string' && handle.length > 0 && !handleLooksLikeEmail(handle)) return handle;   // HANDLE-EMAIL: an address is never read out
   return String(row?.guest_name ?? '');
 }
 
@@ -115,6 +122,82 @@ export function displayName(row) {
  *  first day rather than a second one bolted on beside it. */
 export function accountKind(row) {
   return row?.handle ? 'linked' : 'guest';
+}
+
+/**
+ * NAME-AS (2026-10-12, Mac: "I want to add an option to the profile menu where players can toggle to use their account
+ * name or character name for ingame use"): WHICH NAME THE ROOM READS - the account's (displayName, above) or the realm
+ * character's the token is minted for (wornNameOf, below). The row stores the second alone (`name_as` 'character',
+ * migration 0111), so a row that never chose reads as the account, as every player read before.
+ */
+export const NAME_AS = Object.freeze(['account', 'character']);
+/** NAME-AS: the choice this row holds - 'character', or the account's for anything else (null, a word no build wrote). */
+export const nameAsOf = (/** @type {any} */ row) => (row?.name_as === 'character' ? 'character' : 'account');
+
+/**
+ * NAME-AS: WHY A CHARACTER'S NAME CANNOT BE WORN AS IT STANDS - null where it can. The token's own law asked as a
+ * question (identityToken.js nameIsIssuable: the wire carries the name unchanged - claimsValid refuses a token whose `n`
+ * it would not, so a name signed past it is a player who cannot connect), its refusals told apart so the player can be
+ * told which: 'email' (HANDLE-EMAIL's law, worn as it is chosen - an address is never read out, and a character's name is
+ * read out to everyone), 'long' (past NAME_MAX), 'refused' (the name filter's, with the word it caught - NAME-F: a
+ * refusal names it), 'letters' (characters the wire does not carry - an accent, a symbol past plain text - or no letters
+ * at all). A realm name is trimmed and printable already (realm.js realmNameOf); this is the wire's narrower law.
+ * @param {unknown} name
+ * @returns {{ why: 'email'|'long'|'refused'|'letters', word?: string } | null}
+ */
+export function wornNameRefusal(name) {
+  const s = typeof name === 'string' ? name : '';
+  if (handleLooksLikeEmail(s)) return { why: 'email' };
+  if (nameIsIssuable(s)) return null;
+  if (s.length > NAME_MAX) return { why: 'long' };
+  const verdict = checkName(s);
+  if (!verdict.ok && verdict.kind !== 'empty') return { why: 'refused', word: verdict.word };
+  return { why: 'letters' };
+}
+
+/**
+ * NAME-AS: THE NAME THE MINT SIGNS (the token's `n`) - `{ name }`, and `why` (with `word`, for the filter's) where the row
+ * chose its character's and that name cannot be worn, so the account's stands in its place and the mint's answer says
+ * why (`nameWhy` - the player is told once, scenes/world.js adoptIssued).
+ *
+ * THE CHARACTER'S NAME IS THE SERVICE'S, NEVER THE CLIENT'S: `character` is the realm character's own name, off the row
+ * the token is minted for (realm.js realmMintFacts - a realm character of this account, standing and in play), never a
+ * word of the request (test/server/accountworker.test.js: a name in the body never reaches the token). None - no character
+ * named, an offline one, another account's, a tombstone - is the account's, and silently: there is nothing to wear.
+ *
+ * AND NEVER ANOTHER ACCOUNT'S USERNAME. A handle is unique (0001's handle_lc index) and is how an account is found - a
+ * letter, an invitation, a commission are each addressed by username - and handleShape.js keeps the guests' generated
+ * names out of that space by their shape alone. A character's name is chosen at chargen, so its shape promises nothing:
+ * one that is another account's username would walk every room wearing that account's name. So it is asked here, ONE
+ * read of the unique index, and only of a name that could be a handle at all (one word, HANDLE_RE - a name with a space
+ * in it never can). The player's own handle is theirs to wear as their character's name.
+ * @param {{db: any}} ctx @param {any} player the session's row @param {unknown} character
+ * @returns {Promise<{ name: string, why?: string, word?: string }>}
+ */
+export async function wornNameOf({ db }, player, character) {
+  const account = displayName(player);
+  if (nameAsOf(player) !== 'character' || typeof character !== 'string' || !character) return { name: account };
+  const refused = wornNameRefusal(character);
+  if (refused) return { name: account, ...refused };
+  if (isHandleShaped(character)) {
+    const other = await db.prepare('SELECT 1 AS taken FROM players WHERE handle_lc = ? AND id != ?').bind(character.toLowerCase(), player.id).first();
+    if (other) return { name: account, why: 'taken' };
+  }
+  return { name: character };
+}
+
+/**
+ * NAME-AS: CHOOSE WHICH NAME THE ROOM READS - 'account' or 'character' (NAME_AS); any other word is refused
+ * `no-name-as`. Either is always allowed: a player may always wear their account's name, and a character's is vetted
+ * where it is worn (wornNameOf, at every mint) rather than here - the character it names is whichever the next mint is
+ * for. The row keeps the second alone ('character'; the account's is null, as every row that never chose). Answers the
+ * choice as the row now holds it, so the caller never re-reads to know what it did.
+ * @param {{db: any, nowS: number}} ctx @param {any} player @param {unknown} as
+ */
+export async function chooseNameAs({ db, nowS }, player, as) {
+  if (!NAME_AS.includes(/** @type {any} */ (as))) return { error: 'no-name-as' };
+  await db.prepare('UPDATE players SET name_as = ?, last_seen = ? WHERE id = ?').bind(as === 'character' ? 'character' : null, nowS, player.id).run();
+  return { ok: true, nameAs: as };
 }
 
 /**
@@ -168,6 +251,18 @@ export async function openSession({ db, subtle, rand, nowS }, playerId, deviceLa
   return { sessionId, secret };
 }
 
+/** SCALE4a (2026-10-08, Mac: "Do 1 2 and 3" - the session and its player were two reads in a row, 4.86 and 4.73 million
+ *  of the database's 17.4 million the day before YARD-SHED): THE SESSION'S COLUMNS, named, each read under a `s.` prefix
+ *  no column of `players` can carry, so one row holds both without a name in common (`id`, `created_at`, `last_seen`).
+ *  The table's own six (0001_accounts.sql; no migration has altered it) - test/server/scale4a.test.js holds this list to the
+ *  migrations' table, so a column added there is a pin that fails until it is named here. */
+export const SESSION_COLUMNS = Object.freeze(['id', 'player_id', 'secret_hash', 'device_label', 'created_at', 'last_seen']);
+/** SCALE4a: the session by its hash and its player beside it, in ONE statement. LEFT, so a session whose player is gone
+ *  still comes back (its player's columns NULL) and meets the same exits it met as two reads: the idle one is deleted
+ *  first, the orphan refused. */
+const WHO_SQL = `SELECT ${SESSION_COLUMNS.map((c) => `s.${c} AS "s.${c}"`).join(', ')}, p.*
+  FROM sessions s LEFT JOIN players p ON p.id = s.player_id WHERE s.secret_hash = ?`;
+
 /**
  * WHO IS THIS? Resolved by the secret alone, in ONE indexed lookup -
  * the caller has not proved a player id yet, so it cannot be part of
@@ -176,13 +271,26 @@ export async function openSession({ db, subtle, rand, nowS }, playerId, deviceLa
  * Answers the player row plus the session, or null. Never throws on a
  * bad secret, because a bad secret is the ordinary case.
  *
+ * SCALE4a: the lookup is one STATEMENT now, the player read with it
+ * (WHO_SQL) - the same two rows `SELECT * FROM sessions` and `SELECT *
+ * FROM players` answered, from one consistent read.
+ *
  * @returns {Promise<{player: any, session: any}|null>}
  */
 export async function resolveSession({ db, subtle, nowS }, secret) {
   if (typeof secret !== 'string' || secret.length < 16 || secret.length > 128) return null;
   const hash = await hashSecret(secret, { subtle });
-  const session = await db.prepare('SELECT * FROM sessions WHERE secret_hash = ?').bind(hash).first();
-  if (!session) return null;
+  let row = await db.prepare(WHO_SQL).bind(hash).first();
+  // BOOKMARK-SPIRAL (service.js ANY_REPLICA_ROUTES): a session started at any instance may stand on a replica that has
+  // not yet heard of a session minted a moment ago - its miss asks the primary before it is a refusal
+  if (!row && db?.[DB_ANY] === true) row = await (db[DB_ROOT] ?? db).prepare(WHO_SQL).bind(hash).first();
+  if (!row) return null;
+  /** @type {any} */ const session = {};
+  /** @type {any} */ const found = {};
+  for (const [k, v] of Object.entries(row)) {
+    if (k.startsWith('s.')) session[k.slice(2)] = v;
+    else found[k] = v;
+  }
 
   // ═══ AUDIT-ACC F9: AN IDLE SESSION IS DEAD, AND IT IS DELETED ════
   //
@@ -206,7 +314,9 @@ export async function resolveSession({ db, subtle, nowS }, secret) {
     return null;
   }
 
-  const player = await db.prepare('SELECT * FROM players WHERE id = ?').bind(session.player_id).first();
+  // SCALE4a: the player came with the session (WHO_SQL's LEFT JOIN) -
+  // its `id` NULL when no row of `players` stood behind it.
+  const player = found.id == null ? null : found;
   // A session whose player is gone is not a session. It cannot happen
   // through the cascade, and it is checked because "cannot happen" is
   // how a null reaches a caller that reads `.handle` off it.
@@ -254,6 +364,10 @@ export async function closeAllSessions({ db }, playerId) {
   return { revoked: r?.meta?.changes ?? 0 };
 }
 
+/** STAFF-PANEL2-FIX (design doc, Weak spots: "a password change ends staff sessions too"): every staff panel session of
+ *  the account (staff.js) ended - a password changed or recovered is somebody who may have held the old one. */
+export const closeStaffSessions = ({ db }, playerId) => db.prepare('DELETE FROM staff_sessions WHERE player_id = ?').bind(playerId).run();
+
 /** The device list a player sees. No secrets and no hashes leave here -
  *  a hash is a credential's shadow and there is no reason to ship one. */
 export async function devicesOf({ db }, playerId) {
@@ -286,7 +400,7 @@ export const isMuted = (row, nowS) => mutedUntil(row) > nowS;
  * `muted_by` is written beside it, so a mute always says who did it -
  * a power with no record is a power nobody can review.
  */
-export async function muteAccount({ db, nowS }, actor, env, { target, minutes }) {
+export async function muteAccount({ db, nowS }, actor, env, { target, minutes, also = null }) {
   if (!canModerate(actor, env)) return { error: 'not-moderator' };
   if (typeof target !== 'string' || !ID_RE.test(target)) return { error: 'no-player' };
   if (!Number.isSafeInteger(minutes) || minutes < 0 || minutes > MUTE_MAX_MIN) return { error: 'bad-minutes' };
@@ -295,9 +409,19 @@ export async function muteAccount({ db, nowS }, actor, env, { target, minutes })
   if (!row) return { error: 'no-player' };
   if (canModerate(row, env)) return { error: 'protected' };
   const until = minutes ? nowS + minutes * 60 : null;
-  await db.prepare('UPDATE players SET muted_until = ?, muted_by = ? WHERE id = ?')
-    .bind(until, until ? actor.id : null, target).run();
-  return { ok: true, target, name: displayName(row), until: until ?? 0 };
+  // STAFF-PANEL2-FIX (design doc, Weak spots: "A Moderator can lift an Admin's ban" - "Store who set each sanction;
+  // lifting an Admin's needs an Admin"): a mute an Admin set (`mute_admin`, 0156) is lifted or cut short by an Admin
+  // alone, and stays the Admin's when another moderator lengthens it
+  const adminHeld = row.mute_admin === 1 && isMuted(row, nowS);
+  const admin = isDeveloper(actor, env);
+  if (adminHeld && !admin && (until ?? 0) < Number(row.muted_until)) return { error: 'admin-sanction' };
+  const write = db.prepare('UPDATE players SET muted_until = ?, muted_by = ?, mute_admin = ? WHERE id = ?')
+    .bind(until, until ? actor.id : null, until ? (admin || adminHeld ? 1 : 0) : null, target);
+  const done = { ok: true, target, name: displayName(row), until: until ?? 0 };
+  // STAFF-PANEL2-FIX: `also(answer)`, the caller's own statements for this write's batch (safety.js modAct: the act's
+  // record and its case closed, so they land with the mute or none does); without it the one write, as before
+  await (also ? db.batch([write, ...also(done)]) : write.run());
+  return done;
 }
 
 /**
@@ -323,6 +447,10 @@ export function accountView(player, nowS) {
     registeredAt: Number.isSafeInteger(player.registered_at) ? player.registered_at : null,
     playedS: Number.isSafeInteger(player.played_s) ? player.played_s : 0,
     muted: isMuted(player, nowS),
+    // NAME-AS: which name the room reads - the profile card's choice, as the row holds it
+    nameAs: nameAsOf(player),
+    // RECOVERY-SET: how many recovery codes still open this account - a COUNT, never a code or its hash (null for a guest)
+    recoveryLeft: recoveryLeft(player.recovery_hash),
   };
 }
 
@@ -341,16 +469,20 @@ export function accountView(player, nowS) {
  * two tabs count the wall clock once. `MAX` keeps a beat that arrives
  * out of order from dragging the clock backwards.
  */
-export async function creditPlay({ db, nowS }, playerId) {
+export async function creditPlay({ db, nowS }, playerId, sessionId = null) {
+  // SESSION-SIGN (AUDIT PLAN-1000 E3; sessionPass.js): a beat is a write, and asks in its own statement that the session it
+  // came under still stands and the account is not banned - a hot route believes a pass for its reads alone
   const row = await db.prepare(
     `UPDATE players SET
        played_s = played_s + CASE
          WHEN played_at IS NOT NULL AND ?1 > played_at AND ?1 - played_at <= ?2 THEN ?1 - played_at
          ELSE 0 END,
        played_at = MAX(COALESCE(played_at, ?1), ?1)
-     WHERE id = ?3
+     WHERE id = ?3 AND COALESCE(banned_until, 0) <= ?1
+       AND COALESCE(frozen_until, 0) <= ?1   -- STAFF-PANEL5-FREEZE: a frozen account's beat credits nothing (a pass minted before the freeze)
+       AND (?4 IS NULL OR EXISTS (SELECT 1 FROM sessions s WHERE s.id = ?4 AND s.player_id = ?3))
      RETURNING played_s`,
-  ).bind(nowS, PLAY_GRACE_S, playerId).first();
+  ).bind(nowS, PLAY_GRACE_S, playerId, sessionId).first();
   return { playedS: Number.isSafeInteger(row?.played_s) ? row.played_s : 0 };
 }
 
@@ -398,6 +530,17 @@ export async function equipAura({ db, nowS }, player, env, aura) {
 }
 
 /**
+ * WITCH1 (bible/06-Systems/Witches-Festival.md) - WEAR ONE PROFILE ICON, OR NONE (the character's face): the aura's law,
+ * in the portrait well. Answers the wardrobe after the write; `not-held` for one the account does not hold.
+ */
+export async function equipIcon({ db, nowS }, player, env, icon) {
+  const why = iconRefusal(icon, player);
+  if (why) return { error: why };
+  await db.prepare('UPDATE players SET icon = ?, last_seen = ? WHERE id = ?').bind(icon, nowS, player.id).run();
+  return { ok: true, ...wardrobeOf({ ...player, icon }, env, nowS) };
+}
+
+/**
  * GLYPH-WEAR - SHOW ONE GLYPH, OR HIDE IT. Mac: "players can also equip/unequip their glyphs". Refused for a glyph
  * that is not true of the player now (`not-held`), as a title is. `on` true shows it, false hides it. The stored
  * list is rewritten from what is hidden now, so a lapsed glyph drops out of it on the next write. Answers the
@@ -414,8 +557,10 @@ export async function equipGlyph({ db, nowS }, player, env, glyph, on) {
 }
 
 /** SERPENT-SET: every ember account ?1's kills paid, in SQL - its gates' rows' `stones` and (migration 0083) its serpents'
- *  (SERPENT_EMBERS a receipt): the gate's currency is a serpent's hoard's too, and the purse below counts both. */
-const EMBERS_EARNED_SQL = '((SELECT COALESCE(SUM(stones), 0) FROM gate_kills WHERE account = ?1) + (SELECT COALESCE(SUM(stones), 0) FROM serpent_kills WHERE account = ?1))';
+ *  (SERPENT_EMBERS a receipt): the gate's currency is a serpent's hoard's too, and the purse below counts both. EG-E1
+ *  (bible/11-Multiplayer/Elite-Gates.md section 19): and the Redoubts' the week paid (eg_redoubts `stones` - egEconomy.js),
+ *  so the insignia and the Broker's Panoply sink (egEconomy.js egSink) spend the Spire's embers from the one purse. */
+export const EMBERS_EARNED_SQL = '((SELECT COALESCE(SUM(stones), 0) FROM gate_kills WHERE account = ?1) + (SELECT COALESCE(SUM(stones), 0) FROM serpent_kills WHERE account = ?1) + (SELECT COALESCE(SUM(stones), 0) FROM eg_redoubts WHERE account = ?1))';
 /** WB9g: what the account's own closed gates could still pay for - one Sigil Stone a gate closed (gate_kills, WB5b),
  *  less what its insignia already cost (`insignia_spent`). Never below 0. WB12d: a row's own `stones` - two with the
  *  faithful's rite broken, one for the rite alone (migration 0066). SERPENT-SET: and a serpent's (EMBERS_EARNED_SQL). */
@@ -470,6 +615,7 @@ export function handleRefusal(handle) {
   if (h !== handle) return 'shape';
   if (!isHandleShaped(h)) return 'shape';
   if (isGuestShaped(h)) return 'shape';         // belt and braces: the two spaces cannot overlap
+  if (handleLooksLikeEmail(h)) return 'email';  // HANDLE-EMAIL: a username is never an email address
   if (!nameIsIssuable(h)) return 'refused';     // NAME-F1/F2, at entry
   return null;
 }
@@ -608,6 +754,12 @@ export function overAccountRate(id, nowS, max = ACCOUNT_MAX, windowS = ACCOUNT_W
   w.count++;
   return w.count > max;
 }
+/** AUDIT PLAN-1000 C4: whether the account's next request in this window is past its rate - overAccountRate's answer,
+ *  asked WITHOUT counting: the door asks a progression claim's reads of no request the rate will refuse (index.js). */
+export function accountRateFull(id, nowS, max = ACCOUNT_MAX, windowS = ACCOUNT_WINDOW_S) {
+  const w = accountWindows.get(id);
+  return !!w && w.start >= Math.floor(nowS / windowS) * windowS && w.count + 1 > max;
+}
 /** The accounts counted in this isolate (the pins' window). */
 export const accountRateKeys = () => accountWindows.size;
 
@@ -625,13 +777,19 @@ export async function clearRate({ db }, key) {
  *
  * Returns `{ recoveryCode }` - THE ONLY TIME IT IS EVER READABLE.
  *
+ * RECOVERY-SET: a build that has the set asks for one (`set: true`) and
+ * is answered `{ recoveryCodes }`, eight. A build from before it asks for
+ * nothing and is minted the one code it can show (AUDIT RECOVERY-SET A2:
+ * the first cut minted it eight and showed it the first, so its player
+ * held one code of eight and, after one recovery, none).
+ *
  * TERMS1: `legal` is the agreement ticked on the form that named it,
  * which the route has already required (`legalRefusal`) - written with
  * the name, so an account made before the boxes existed carries one from
  * the moment it registers. It never ERASES one: a caller that passes
  * none leaves the row's own.
  */
-export async function register({ db, subtle, rand, nowS }, playerId, { handle, password, legal = null }) {
+export async function register({ db, subtle, rand, nowS }, playerId, { handle, password, legal = null, set = false }) {
   const hRefusal = handleRefusal(handle);
   if (hRefusal) return { error: `handle-${hRefusal}` };
   const pRefusal = passwordRefusal(password);
@@ -641,10 +799,10 @@ export async function register({ db, subtle, rand, nowS }, playerId, { handle, p
   if (!player) return { error: 'no-account' };
   if (player.handle) return { error: 'already-registered' };
 
-  const code = mintRecoveryCode(rand);
+  const codes = set ? mintRecoverySet(rand) : [mintRecoveryCode(rand)];
   const [pw, rc] = await Promise.all([
     hashPassword(password, { subtle, rand }),
-    hashPassword(codeForHashing(code), { subtle, rand }),
+    set ? hashRecoverySet(codes, { subtle, rand }) : hashPassword(codeForHashing(codes[0]), { subtle, rand }),
   ]);
   let wrote;
   try {
@@ -664,8 +822,12 @@ export async function register({ db, subtle, rand, nowS }, playerId, { handle, p
     throw e;
   }
   if (!wrote.meta.changes) return { error: 'already-registered' };
-  return { recoveryCode: code, handle };
+  return set ? { recoveryCodes: codes, handle } : { recoveryCode: codes[0], handle };
 }
+
+/** SAFE4: whether the row is banned now - sanctions.js isBanned's law, here where signing in asks it (sanctions.js imports
+ *  this module). @param {any} row @param {number} nowS */
+const bannedNow = (row, nowS) => Number.isSafeInteger(row?.banned_until) && row.banned_until > nowS;
 
 /**
  * LOG IN with a username and password, and mint this device a session.
@@ -688,6 +850,9 @@ export async function login({ db, subtle, rand, nowS }, { handle, password, devi
   if (!player || !ok) return { error: 'bad-login' };
 
   await clearRate({ db }, `login:${lc}`);
+  // AUDIT SAFE SERVICE-7 (bible/11-Multiplayer/Chat-Safety-Arc.md section 5): A BANNED ACCOUNT IS TOLD SO, and minted no
+  // session - told only once the password is right, so the word says nothing to a stranger guessing at a handle
+  if (bannedNow(player, nowS)) return { error: 'banned', until: player.banned_until, reason: player.ban_reason ?? null };
   // The cost of a hash goes up over the years. The only moment the
   // plaintext is in hand is a correct login, so that is when a row is
   // rewritten at the current count.
@@ -700,11 +865,20 @@ export async function login({ db, subtle, rand, nowS }, { handle, password, devi
 }
 
 /**
- * THE WAY BACK IN. The code sets a new password, mints a NEW code, and
- * SIGNS EVERY DEVICE OUT - because the reason somebody is standing here
- * may be that another person has their password.
+ * THE WAY BACK IN. The code sets a new password and SIGNS EVERY DEVICE
+ * OUT - because the reason somebody is standing here may be that another
+ * person has their password.
+ *
+ * RECOVERY-SET: for a build that has the set (`set: true`), the code
+ * typed is SPENT and the set's others still work (`codesLeft` says how
+ * many); a single code from before the set, or the last of one, mints a
+ * fresh set in its place (`recoveryCodes`) - a player who spends their
+ * only way in is never left with none. A build from before the set asks
+ * for nothing and is answered as ACC1c answered it: ONE new code, which
+ * replaces whatever the row held (AUDIT RECOVERY-SET A2 - it can show no
+ * other, and a set it cannot show is a set its player does not have).
  */
-export async function recover({ db, subtle, rand, nowS }, { handle, code, password }) {
+export async function recover({ db, subtle, rand, nowS }, { handle, code, password, set = false }) {
   const lc = String(handle ?? '').toLowerCase();
   if (await overRate({ db, nowS }, `recover:${lc}`)) return { error: 'rate' };
   const pRefusal = passwordRefusal(password);
@@ -712,24 +886,32 @@ export async function recover({ db, subtle, rand, nowS }, { handle, code, passwo
 
   const canon = codeForHashing(code);
   const player = lc ? await db.prepare('SELECT * FROM players WHERE handle_lc = ?').bind(lc).first() : null;
-  // Same shape as login: the derivation happens whether or not there is
-  // anything to compare it against.
-  const ok = await verifyPassword(canon ?? '', player?.recovery_hash ?? null, { subtle });
+  // Same shape as login: the derivations happen whether or not there is
+  // anything to compare them against (password.js matchRecoveryCode).
+  const { ok, rest } = await matchRecoveryCode(canon, player?.recovery_hash ?? null, { subtle });
   if (!player || !canon || !ok) return { error: 'bad-code' };
+  // AUDIT SAFE SERVICE-7: a banned account is told so before its code is spent - it is not signed back in
+  if (bannedNow(player, nowS)) return { error: 'banned', until: player.banned_until, reason: player.ban_reason ?? null };
 
-  const next = mintRecoveryCode(rand);
+  const one = set ? null : mintRecoveryCode(rand);
+  const fresh = set && !rest?.length ? mintRecoverySet(rand) : null;
   const [pw, rc] = await Promise.all([
     hashPassword(password, { subtle, rand }),
-    hashPassword(codeForHashing(next), { subtle, rand }),
+    one ? hashPassword(codeForHashing(one), { subtle, rand }) : fresh ? hashRecoverySet(fresh, { subtle, rand }) : joinRecoverySet(rest),
   ]);
   // AUDIT 68 S01-register-recover-lost-update: the code is SPENT by the write that replaces it - two recoveries racing
   // on one code both verified it, and the first one's new code and session were dead on arrival
   const spent = await db.prepare('UPDATE players SET password = ?, recovery_hash = ? WHERE id = ? AND recovery_hash = ?').bind(pw, rc, player.id, player.recovery_hash).run();
-  if (!spent.meta.changes) return { error: 'bad-code' };
+  // AUDIT RECOVERY-SET A4: a code that WAS right and lost the race (two of one set's codes typed at once) is told to try
+  // again, not that it was wrong - the caller has already shown a code, so the word leaks nothing
+  if (!spent.meta.changes) return { error: 'codes-moved' };
   await closeAllSessions({ db }, player.id);
+  await closeStaffSessions({ db }, player.id);   // STAFF-PANEL2-FIX: a new password ends the staff panel's sessions too
   await clearRate({ db }, `recover:${lc}`);
   const session = await openSession({ db, subtle, rand, nowS }, player.id, null);
-  return { id: player.id, name: displayName(player), recoveryCode: next, ...session };
+  // AUDIT RECOVERY-SET B6: and the handle as the row holds it - the saved file names the account, not its typing
+  const left = one ? { recoveryCode: one } : fresh ? { recoveryCodes: fresh, codesLeft: fresh.length, handle: player.handle } : { codesLeft: rest.length, handle: player.handle };
+  return { id: player.id, name: displayName(player), ...left, ...session };
 }
 
 /** Change a password from inside a session, which needs the OLD one -
@@ -749,7 +931,53 @@ export async function changePassword({ db, subtle, rand, nowS }, player, session
   const pw = await hashPassword(password, { subtle, rand });
   await db.prepare('UPDATE players SET password = ? WHERE id = ?').bind(pw, player.id).run();
   await db.prepare('DELETE FROM sessions WHERE player_id = ? AND id != ?').bind(player.id, session.id).run();
+  await closeStaffSessions({ db }, player.id);   // STAFF-PANEL2-FIX: and every staff panel session
   return { ok: true };
+}
+
+/**
+ * RECOVERY-SET - A NEW SET OF RECOVERY CODES, from the profile. The
+ * request: players "click and see their account recovery code in their
+ * profile". A code is never readable again, so the profile asks for a
+ * NEW set - the PASSWORD first, as `changePassword` asks for the old one
+ * (a stolen device must not mint itself the account's way back in), and
+ * a guess at it spends LOGIN's bucket by that route's own law (AUDIT 68
+ * S01-changepw-unthrottled-oracle). The old set dies with the write, and
+ * no device is signed out: nothing about who holds the account moved.
+ *
+ * AUDIT RECOVERY-SET A1 - AND ONE OF THE CODES IT REPLACES. With the
+ * password alone, whoever STOLE the password could kill the owner's
+ * codes and then change the password: the account theirs for good, the
+ * one thing a recovery code exists to undo (Mac, asked: "Password + one
+ * code"). So a row that holds codes asks for one of them as well, spent
+ * by the same write; a row that holds none asks for the password alone,
+ * having nothing to kill. A player who has lost every code is where they
+ * were before the set - their password, and RECOVER-OP.
+ *
+ * THE WRITE IS THE AUTHORITY (AUDIT 68 S01-register-recover-lost-update):
+ * it lands only on the row as it was read, so two presses racing (two
+ * tabs) cannot both answer a set while only the second's works - the
+ * loser is told `codes-moved`, and a code spent in between is noticed the
+ * same way.
+ */
+export async function newRecoveryCodes({ db, subtle, rand, nowS }, player, { password, code }) {
+  if (!player.password) return { error: 'not-registered' };
+  if (await overRate({ db, nowS }, `login:${player.handle_lc}`)) return { error: 'rate' };
+  if (!await verifyPassword(password, player.password, { subtle })) return { error: 'bad-login' };
+  await clearRate({ db }, `login:${player.handle_lc}`);
+  if (recoveryLeft(player.recovery_hash) !== null) {
+    // a guess at a code is a guess at a code, whichever door: RECOVER's bucket, as `recover` spends it
+    if (await overRate({ db, nowS }, `recover:${player.handle_lc}`)) return { error: 'rate' };
+    const canon = codeForHashing(code);
+    const { ok } = await matchRecoveryCode(canon, player.recovery_hash, { subtle });
+    if (!canon || !ok) return { error: 'bad-code' };
+    await clearRate({ db }, `recover:${player.handle_lc}`);
+  }
+  const codes = mintRecoverySet(rand);
+  const rc = await hashRecoverySet(codes, { subtle, rand });
+  const wrote = await db.prepare('UPDATE players SET recovery_hash = ? WHERE id = ? AND recovery_hash IS ?').bind(rc, player.id, player.recovery_hash ?? null).run();
+  if (!wrote.meta.changes) return { error: 'codes-moved' };
+  return { recoveryCodes: codes, codesLeft: codes.length };
 }
 
 /** An address, or none at all. COMPLETELY OPTIONAL (Mac) - nothing is
@@ -764,43 +992,22 @@ export async function setEmail({ db }, playerId, email) {
 // ═══ DUEL1 (2026-09-24) - THE DUELLING RECORD ════════════════════════
 //
 // Mac: "Add a dueling K/D to the profile menu and player inspect
-// profile", per account. A duel is fought between two clients over the
-// relay (src/net/duelSession.js); THE LOSER'S OWN CLIENT reports it,
-// naming the winner by the account the relay verified off the winner's
-// token and stamped on the winner's frames. So this service is told a
-// loss by the account that took it - never a win by the account that
-// claims it - and the one thing a lying client can do to the record is
-// hand somebody else wins at the cost of its own losses. The bounds
-// keep even that honest: a loser reports at most once a
-// DUEL_REPORT_GAP_S (a duel has a count and a fight in it before it
-// can end), one pair's results are capped at DUEL_PAIR_DAY_MAX a day,
-// so two friends cannot mint a hundred wins an evening, and one
-// winner's at DUEL_WINNER_DAY_MAX a day, from anyone.
+// profile", per account. A player's wins are the rows of duel_results
+// naming them the winner, and their losses the rows naming them the
+// loser. DUEL1 wrote a row on the LOSER's own report, naming the winner
+// by the account the relay stamped on the winner's frames; INT8 (below)
+// writes it on the relay's signed receipt instead, and the report
+// retired with the defender-resolved blow (the route answers `retired`).
 //
-// AUDIT DUEL1 A1: AND A RECORD IS BETWEEN TWO REGISTERED ACCOUNTS. A
-// guest costs nothing to make (a POST, sixty an address a quarter of an
-// hour), so with guests counted, five of them posting a loss each every
-// sixteen seconds gave any account they named fifty wins in a quarter
-// of an hour - no duel, no relay. A registered account is a handle and
-// a password; a guest's duel is fought, and simply not counted.
-//
-// ONE STATEMENT IS THE WRITE, AND THE BOUNDS ARE IN IT. The INSERT
-// lands only when the winner exists, the gap has passed and the pair is
-// under its bound - measured inside the same statement, so two tabs
-// reporting at once cannot both slip under a bound that a read-then-
-// write would have checked twice against the same state.
-export const DUEL_REPORT_GAP_S = 15;
+// AUDIT DUEL1 A1: A RECORD IS BETWEEN TWO REGISTERED ACCOUNTS. A guest
+// costs nothing to make, so a guest's duel is fought, and simply not
+// counted. One pair's results are capped at DUEL_PAIR_DAY_MAX a day, so
+// two friends cannot mint a hundred wins an evening, and one winner's at
+// DUEL_WINNER_DAY_MAX a day, from anyone - measured inside the one
+// INSERT that is the write, so two claims at once cannot both slip under
+// a bound a read-then-write would have checked twice.
 export const DUEL_PAIR_DAY_MAX = 10;
 export const DUEL_WINNER_DAY_MAX = 20;
-/** AUDIT DUEL1 B5: a DOUBLE KNOCKOUT is a draw. Each side's own fall ends
- *  its own duel as lost, so both losers report, and each report names
- *  the other. Two reports in opposite directions this close together are
- *  one exchange: the second finds the first and takes it away, and
- *  neither counts. Closer than any second duel between the two could
- *  follow (the heal's hold, an ask, an answer and the 3 s count). The
- *  one row a report can remove names ITS OWN SENDER the winner, so all
- *  a lying client can take away is a win of its own. */
-export const DUEL_MUTUAL_S = 4;
 const DAY_S = 24 * 3600;
 
 /** An account's record: `{ wins, losses }`, counted off the results. */
@@ -811,45 +1018,56 @@ export async function duelRecordOf({ db }, playerId) {
   return { wins: n(w), losses: n(l) };
 }
 
+// ═══ INT8 (2026-10-09) - A DUEL'S RESULT, THE RELAY'S ═════════════════
+//
+// The INTEGRITY arc's lane 2 (bible/06-Systems/Integrity-Arc.md; Mac: "I
+// want to do everything and do it properly"). DUEL1's record was the
+// LOSER's own report - a client that never said it lost never did, and
+// a double knockout was two reports racing. Now the relay that refereed
+// the bout (src/net/duel/duelRef.js) hands BOTH fighters a receipt naming the
+// winner (src/net/duel/duelReceipt.js `d1`), signed with the key the gates'
+// receipts are; either fighter carries it here, and it is counted ONCE -
+// its bout's id is the row's (`rk`, unique). A draw mints nothing.
+//
+// DUEL1's bounds stand, inside the one INSERT: two registered accounts
+// (AUDIT DUEL1 A1), the same winner over the same loser at most
+// DUEL_PAIR_DAY_MAX a day, one winner's at most DUEL_WINNER_DAY_MAX a
+// day. The report's gap and the mutual draw retire with the report: the
+// relay paces the bouts and says a draw itself.
 /**
- * The loser's report: `winner` the account the relay stamped on the
- * winner's frames. `{ recorded, wins, losses }` - the loser's own record
- * after it - or `{ error }` for a winner that is no account's shape or
- * is the loser themselves. A report a bound refuses is `recorded: false`
- * with `why` - 'guest' (either side has no handle), 'draw' (the winner's
- * own loss to this loser came in DUEL_MUTUAL_S ago: a double knockout,
- * and that row is gone too), 'gap', 'pair' or 'winner' - not an error:
- * the duel was fought, it simply does not count.
+ * A duel's receipt carried by one of its two fighters (the session's
+ * account must be one of `f`). `{ recorded, wins, losses }` - the
+ * caller's own record after it; `recorded` true where the bout is
+ * counted, by this claim or by its other fighter's - or `{ recorded:
+ * false, why }` ('guest', 'pair', 'winner'): the duel was fought, and
+ * simply does not count. `{ error }`: 'no-gate-key', 'receipt' (with
+ * its `why`), 'not-yours'.
  */
-export async function reportDuelLoss({ db, nowS }, loser, winner) {
-  if (typeof winner !== 'string' || !ID_RE.test(winner)) return { error: 'no-player' };
-  if (winner === loser.id) return { error: 'self' };
-  if (!loser.handle) {
-    const w = await db.prepare('SELECT 1 AS x FROM players WHERE id = ?1').bind(winner).first();
-    if (!w) return { error: 'no-player' };
-    return { recorded: false, why: 'guest', ...(await duelRecordOf({ db }, loser.id)) };
-  }
-  const mutual = await db.prepare('DELETE FROM duel_results WHERE loser = ?1 AND winner = ?2 AND at >= ?3 - ?4')
-    .bind(winner, loser.id, nowS, DUEL_MUTUAL_S).run();
-  if (Number(mutual?.meta?.changes ?? 0) > 0) return { recorded: false, why: 'draw', ...(await duelRecordOf({ db }, loser.id)) };
+export async function claimDuel({ db, nowS, subtle }, player, receipt, publicKey) {
+  if (!publicKey) return { error: 'no-gate-key' };
+  const v = await verifyDuelReceipt(receipt, publicKey, { subtle, nowS });
+  if (!v.ok) return { error: 'receipt', why: v.why };
+  const c = v.claims;
+  if (!c.f.includes(player.id)) return { error: 'not-yours' };
+  const winner = c.f[c.w], loser = c.f[1 - c.w];
   const r = await db.prepare(
-    `INSERT INTO duel_results (loser, winner, at)
-     SELECT ?1, ?2, ?3
-     WHERE EXISTS (SELECT 1 FROM players WHERE id = ?2 AND handle IS NOT NULL)
-       AND NOT EXISTS (SELECT 1 FROM duel_results WHERE loser = ?1 AND at > ?3 - ?4)
+    `INSERT INTO duel_results (loser, winner, at, rk)
+     SELECT ?1, ?2, ?3, ?4
+     WHERE EXISTS (SELECT 1 FROM players WHERE id = ?1 AND handle IS NOT NULL)
+       AND EXISTS (SELECT 1 FROM players WHERE id = ?2 AND handle IS NOT NULL)
+       AND NOT EXISTS (SELECT 1 FROM duel_results WHERE rk = ?4)
        AND (SELECT COUNT(*) FROM duel_results WHERE loser = ?1 AND winner = ?2 AND at > ?3 - ?5) < ?6
        AND (SELECT COUNT(*) FROM duel_results WHERE winner = ?2 AND at > ?3 - ?5) < ?7`,
-  ).bind(loser.id, winner, nowS, DUEL_REPORT_GAP_S, DAY_S, DUEL_PAIR_DAY_MAX, DUEL_WINNER_DAY_MAX).run();
-  const recorded = Number(r?.meta?.changes ?? 0) > 0;
-  if (recorded) return { recorded, ...(await duelRecordOf({ db }, loser.id)) };
-  // Refused: which bound, read after the fact - the INSERT above is still the only write, so this can only name one
-  const w = await db.prepare('SELECT handle FROM players WHERE id = ?1').bind(winner).first();
-  if (!w) return { error: 'no-player' };
+  ).bind(loser, winner, c.i, c.n, DAY_S, DUEL_PAIR_DAY_MAX, DUEL_WINNER_DAY_MAX).run();
+  const mine = () => duelRecordOf({ db }, player.id);
+  if (Number(r?.meta?.changes ?? 0) > 0) return { recorded: true, ...(await mine()) };
+  // Refused or already counted: which, read after the fact - the INSERT above is still the only write
+  if (await db.prepare('SELECT 1 AS x FROM duel_results WHERE rk = ?1').bind(c.n).first()) return { recorded: true, ...(await mine()) };
+  const handles = await db.prepare('SELECT COUNT(*) AS n FROM players WHERE id IN (?1, ?2) AND handle IS NOT NULL').bind(loser, winner).first();
   const n = (row) => Number(row?.n ?? 0);
-  const gap = n(await db.prepare('SELECT COUNT(*) AS n FROM duel_results WHERE loser = ?1 AND at > ?2 - ?3').bind(loser.id, nowS, DUEL_REPORT_GAP_S).first());
-  const pair = n(await db.prepare('SELECT COUNT(*) AS n FROM duel_results WHERE loser = ?1 AND winner = ?2 AND at > ?3 - ?4').bind(loser.id, winner, nowS, DAY_S).first());
-  const why = !w.handle ? 'guest' : gap > 0 ? 'gap' : pair >= DUEL_PAIR_DAY_MAX ? 'pair' : 'winner';
-  return { recorded, why, ...(await duelRecordOf({ db }, loser.id)) };
+  const pair = n(await db.prepare('SELECT COUNT(*) AS n FROM duel_results WHERE loser = ?1 AND winner = ?2 AND at > ?3 - ?4').bind(loser, winner, c.i, DAY_S).first());
+  const why = n(handles) < 2 ? 'guest' : pair >= DUEL_PAIR_DAY_MAX ? 'pair' : 'winner';
+  return { recorded: false, why, ...(await mine()) };
 }
 
 // ═══ WB5b (2026-09-25) - THE GATES CLOSED ════════════════════════════
@@ -857,7 +1075,7 @@ export async function reportDuelLoss({ db, nowS }, loser, winner) {
 // Mac: "a gate of oblivion which takes place in a large boss arena", and
 // Option B - the relay's object is the authority over the boss, stamps
 // the kill and signs a receipt for each account that earned it
-// (src/net/gateReceipt.js: dealt its share of the health its own level
+// (src/net/gate/gateReceipt.js: dealt its share of the health its own level
 // claim brought, or stood half the fight). THE ACCOUNT THE RECEIPT NAMES
 // carries it here and it is counted: the relay is the only party that
 // saw the kill, so its signature - verified with the public half this
@@ -887,12 +1105,14 @@ export async function gateRecordOf({ db }, playerId) {
  * `struck` beside a Drakes strike), `{ recorded: false, why: 'claimed', stones, closed }` (AUDIT WB12d A1: the row's
  * embers, a fighter's `r` made good), `{ recorded: false, why: 'guest', closed }`, or `{ error }` -
  * `no-gate-key` (this service holds no public half), `receipt` (not a receipt the relay signed, or expired - `why`
- * says which rung), `not-yours` (another account's).
+ * says which rung), `not-yours` (another account's). AUDIT EG IV (lane3 #16): `weir` the Weir Key's statement for the claims
+ * (eg.js egGateWeir), set in the batch directly after the row - the row it answered rides a recorded kill's answer as
+ * `weirRow` (null where it rolled nothing); never for the rite alone.
  * @param {{ db: any, nowS: number, subtle: SubtleCrypto }} ctx
  * @param {{ id: string, handle?: string|null }} player the session's account
  * @param {unknown} receipt @param {CryptoKey|null} publicKey
  */
-export async function claimGate({ db, nowS, subtle }, player, receipt, publicKey, { strike = null, region = null, deeds = null } = {}) {
+export async function claimGate({ db, nowS, subtle }, player, receipt, publicKey, { strike = null, region = null, deeds = null, weir = null } = {}) {
   if (!publicKey) return { error: 'no-gate-key' };
   const v = await verifyReceipt(receipt, publicKey, { subtle, nowS });
   if (!v.ok) return { error: 'receipt', why: v.why };
@@ -904,8 +1124,8 @@ export async function claimGate({ db, nowS, subtle }, player, receipt, publicKey
   // at least three of its claims agree on (seatInfluence.js), null where the claim named none, and on the rite's own
   // row, which is no kill
   const embers = c.r === 1 ? 2 : 1;
-  const kill = db.prepare('INSERT OR IGNORE INTO gate_kills (day, account, boss, earned, at, region, stones) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)')
-    .bind(c.d, player.id, c.b, c.x, nowS, c.x !== 'rite' && seatRegionOk(region) ? region : null, embers);
+  const kill = db.prepare('INSERT OR IGNORE INTO gate_kills (day, account, boss, earned, at, region, stones, body) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)')
+    .bind(c.d, player.id, c.b, c.x, nowS, c.x !== 'rite' && seatRegionOk(region) ? region : null, embers, c.m ? JSON.stringify(c.m) : null);   // INT14: the relay's count, kept
   // MARKS1 / AUDIT 28 M4: the gate's Marks (marks.js gateStrikeStatement) IN THE SAME BATCH as the row - one transaction,
   // so a strike that fails takes the row with it and the retry claims afresh; `strike` null where Marks are not this
   // account's, and the row is written alone. WB12d: the rite alone is no breach closed - no strike
@@ -913,11 +1133,15 @@ export async function claimGate({ db, nowS, subtle }, player, receipt, publicKey
   // SILVER-WAYS: the guild's deed (marks.js deedStatements - its mark and its strike, by the gate_kills row this claim
   // wrote), in the same batch; never for the rite alone, which is no breach closed
   const deed = c.x === 'rite' ? null : deeds?.(c.d) ?? null;
-  const [r, m, ...d] = stmt || deed ? await db.batch([kill, ...(stmt ? [stmt] : [db.prepare('SELECT 0')]), ...(deed ?? [])]) : [await kill.run(), null];
+  // AUDIT EG IV (lane3 #16): the Weir Key's roll directly after the row, in its transaction (eg.js egGateWeir - `changes()`
+  // the row's): never the rite's
+  const roll = c.x === 'rite' ? null : weir?.(c) ?? null;
+  const [r, ...rest] = stmt || deed || roll ? await db.batch([kill, ...(roll ? [roll] : []), ...(stmt ? [stmt] : [db.prepare('SELECT 0')]), ...(deed ?? [])]) : [await kill.run(), null];
+  const w = roll ? rest.shift() : null, [m, ...d] = rest;
   const recorded = Number(r?.meta?.changes ?? 0) > 0;
   const struck = !!stmt && Number(m?.meta?.changes ?? 0) > 0;
   const deedStruck = !!deed && Number(d[1]?.meta?.changes ?? 0) > 0;
-  if (recorded) return { recorded, day: c.d, stones: embers, ...(c.x === 'rite' ? { rite: true } : {}), ...(stmt ? { struck } : {}), ...(deed ? { deedStruck } : {}), ...(await gateRecordOf({ db }, player.id)) };
+  if (recorded) return { recorded, day: c.d, stones: embers, ...(c.p > 0 ? { portent: c.p } : {}), ...(c.x === 'rite' ? { rite: true } : {}), ...(stmt ? { struck } : {}), ...(deed ? { deedStruck } : {}), ...(roll ? { weirRow: w?.results?.[0] ?? null } : {}), ...(await gateRecordOf({ db }, player.id)) };
   // AUDIT WB12d (A1): A FIGHTER'S `r` COUNTED AT ONE EMBER - a service from before acct62 took the receipt as a plain one
   // and kept its row - is made good when the receipt is claimed again (the game keeps an `r` receipt until a service
   // that answers its embers has counted it). One row a (day, account), one receipt a kill: the row is this receipt's

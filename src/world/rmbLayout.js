@@ -22,6 +22,7 @@ import { PLACEMENTS as WINDMILL_PLACEMENTS } from './windmillMesh.js';   // WM2d
 import { WINDMILL_INTERIOR } from './windmillInterior.js';   // WM2g: and the inside of one
 import { GLOBAL_SCALE } from './meshReader.js';
 import { trs, multiply } from './mat4.js';
+import { GROUND_RECORD_LIMIT } from './terrain/terrainTiles.js';   // AUDIT WATER-NEXT m8: MeshReader.cs:487's marker, one home
 
 /** RMBLayout.propsOffsetY (:37): a misc model stands this far (RMB units) under its record - a prefab standing in for
  *  one too, the crop fields' batches among them (world/rmbFlats.js, FIELD BUGS 2026-10-04d CROPS). */
@@ -35,7 +36,7 @@ export const GROUND_TILE_DIM = 16;
  *  DFU treats them alike: both are forced STANDALONE out of the block
  *  combiner (:857) so AddStandaloneModel can hang a component on them -
  *  DaggerfallCityGate at :959-963, DaggerfallBulletinBoard at :965-969.
- *  The gate component's whole law is world/cityGate.js. */
+ *  The gate component's whole law is world/city/cityGate.js. */
 export const CITY_GATE_OPEN_MODEL_ID = 446;
 export const CITY_GATE_CLOSED_MODEL_ID = 447;
 /** IsCityGate (RMBLayout.cs:1007-1011) - "Two variants of City Gate
@@ -313,7 +314,7 @@ export function buildGroundTilemap(dfBlock) {
     tiles[y] = new Array(GROUND_TILE_DIM);
     for (let x = 0; x < GROUND_TILE_DIM; x++) {
       const tile = src[x][GROUND_TILE_DIM - 1 - y];
-      if (tile.textureRecord < 56) {
+      if (tile.textureRecord < GROUND_RECORD_LIMIT) {
         tiles[y][x] = {
           record: tile.textureRecord,
           rotated: tile.isRotated,

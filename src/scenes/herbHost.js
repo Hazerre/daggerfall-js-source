@@ -23,16 +23,17 @@
 //   Sickle's steady hand draws DFU's Tanto in the hand.
 // ═══════════════════════════════════════════════════════════════════
 import { herbPatches, nodeKey, HERB_TABLES } from '../net/nodeLaw.js';
-import { tierOpen, TIER_RANKS, actBand, PROF_RANK_MAX, herbKey, storesFullIn, fullWordsIn, GROUND_WHERE, GROUND_WHERE_WORDS } from '../net/professionLaw.js';
-import { natureStandsAt, insideRocks } from '../world/terrainNature.js';
+import { tierOpen, TIER_RANKS, actBand, PROF_RANK_MAX, herbKey, storesFullIn, goneIn, fullWordsIn, GROUND_WHERE, GROUND_WHERE_WORDS } from '../net/professionLaw.js';
+import { natureStandsAt, insideRocks } from '../world/terrain/terrainNature.js';
 import { createHerbAct } from '../systems/herbAct.js';
-import { FT } from '../systems/foragingLaw.js';
-import { foragingActRefusal, foragingToolIn, actChecksRefusal } from '../systems/foragingInstall.js';
-import { materialLabel } from '../systems/profItems.js';
-import { templateByIndex } from '../systems/itemTemplates.js';
+import { FT } from '../systems/foraging/foragingLaw.js';
+import { foragingActRefusal, foragingToolIn, actChecksRefusal } from '../systems/foraging/foragingInstall.js';
+import { materialLabel } from '../systems/professions/profItems.js';
+import { templateByIndex } from '../systems/item/itemTemplates.js';
 import { liveStat } from '../systems/statMods.js';
 import { getPref } from '../systems/uiPrefs.js';
-import { WORLD_MAP_TILE_DIM } from '../world/terrainTiles.js';
+import { WORLD_MAP_TILE_DIM } from '../world/terrain/terrainTiles.js';
+import { noteAct } from '../systems/questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
 
 /** The item flats' archive - every plant's world picture is in it (its template's worldTextureRecord). */
 export const HERB_FLAT_ARCHIVE = 254;
@@ -48,16 +49,20 @@ export const PATCH_MARK = Object.freeze({ w: 2.2, h: 1.3 });
  * where DFU's nature would stand there - `{ key, slot, herb, tier, offSeason, local }`, `local` pixel-local metres.
  * NODE-CLEAR (AUDIT 2026-10-01 part four): never inside a rock piece (`rocks`, the pixel's) - one stood there, on the compass
  * and glowing, and no look reached it; it stands nowhere, as VEIN-CLEAR's last vein does.
+ * VERGE1: `verge` (`(x, z, reach) => boolean`, the pixel's - world/road/roadVerge.js vergeClear), when handed, keeps a patch's
+ * glow off the roads: a patch whose ring (PATCH_MARK's width) would reach one stands nowhere that day.
  * @param {{ px: number, py: number, day: number, climate: number, confirmed?: boolean, seasonalEye?: boolean,
- *   samples: Float32Array, tilemap: Uint8Array, locationRect?: any, rocks?: number[][] }} p
+ *   samples: Float32Array, tilemap: Uint8Array, locationRect?: any, rocks?: number[][],
+ *   verge?: ((x: number, z: number, reach: number) => boolean)|null, beach?: ?Float32Array }} p
  */
-export function standPatches({ px, py, day, climate, confirmed = false, seasonalEye = false, samples, tilemap, locationRect = null, rocks = [] }) {
+export function standPatches({ px, py, day, climate, confirmed = false, seasonalEye = false, samples, tilemap, locationRect = null, rocks = [], verge = null, beach = null }) {
   const out = [];
   if (!HERB_TABLES[climate]) return out;
+  const clear = verge ? (x, z) => verge(x, z, PATCH_MARK.w / 2) : null;
   for (const p of herbPatches({ x: px, y: py, day, climate, confirmed, seasonalEye })) {
     const tx = Math.min(WORLD_MAP_TILE_DIM - 1, Math.floor(p.u * WORLD_MAP_TILE_DIM));
     const ty = Math.min(WORLD_MAP_TILE_DIM - 1, Math.floor(p.v * WORLD_MAP_TILE_DIM));
-    const base = natureStandsAt(samples, tilemap, locationRect, tx, ty);
+    const base = natureStandsAt(samples, tilemap, locationRect, tx, ty, clear, beach);   // AUDIT LANDFORMS II H2
     if (!base || insideRocks(rocks, base.x, base.z)) continue;   // NODE-CLEAR
     out.push({ key: nodeKey({ kind: 'herb', x: px, y: py, day, slot: p.slot }), slot: p.slot, herb: p.herb, tier: p.tier, offSeason: p.offSeason, local: [base.x, base.y, base.z] });
   }
@@ -79,12 +84,12 @@ export function patchFlats(patch) {
  * WHAT E DOES AT A PATCH, and the prompt that says it: `{ kind, verb, rest, ready, needsRank? }` - `kind` 'herbs' or 'food'
  * (the choice key's pick, the herbs first while untaken); `ready` false with `rest` naming what is missing, and a rank
  * short the rank it needs (VEIN-NEED). TOOL-USE: `only` - a tool's Use asks `basket`'s harvest alone (the Sickle the
- * herbs, the Basket the food): taken, it says so, never the other harvest's act.
+ * herbs, the Basket the food): taken, it says so, never the other harvest's act. CAP-OFF: no day's cap.
  * @param {{ patch: any, taken: (k: string) => boolean, counting: (k: string) => boolean, basket: boolean, rank: number,
  *   sickle: boolean, basketTool: boolean, storesFull: (key: string) => boolean, herbKeyOf: (t: number) => string,
- *   today: number, cap: number, only?: boolean, fullWords?: string }} o
+ *   only?: boolean, fullWords?: string }} o
  */
-export function patchPlan({ patch, taken, counting, basket, rank, sickle, basketTool, storesFull, herbKeyOf, today, cap, only = false, fullWords = 'Stores full' }) {   // BAG1: `fullWords` the book's
+export function patchPlan({ patch, taken, counting, basket, rank, sickle, basketTool, storesFull, herbKeyOf, only = false, fullWords = 'Stores full' }) {   // BAG1: `fullWords` the book's
   const herbsLeft = !taken('herbs') && !counting('herbs');
   const foodLeft = !taken('food') && !counting('food');
   let kind = basket ? 'food' : 'herbs';
@@ -96,7 +101,6 @@ export function patchPlan({ patch, taken, counting, basket, rank, sickle, basket
   if (!herbsLeft && !foodLeft) return { kind, verb: `${name} - gathered today`, rest: counting('herbs') || counting('food') ? 'being counted' : '', ready: false, both: false };
   // TOOL-USE: the tool's own harvest gone, the other left
   if (!(kind === 'food' ? foodLeft : herbsLeft)) return { kind, verb: kind === 'food' ? 'Search with the Basket' : `Pick ${name}`, rest: counting(kind) ? 'being counted' : 'gathered today', ready: false, both };
-  if (today >= cap) return { kind, verb: kind === 'food' ? 'Search with the Basket' : `Pick ${name}`, rest: `${rankWord} - ${today} of ${cap} today`, ready: false, both, full: true };
   if (kind === 'food') {
     if (!basketTool) return { kind, verb: 'Search with the Basket', rest: 'needs a Basket', ready: false, both };
     return { kind, verb: 'Search with the Basket', rest: rankWord, ready: true, both };
@@ -117,26 +121,27 @@ export const SICKLE_HAND = Object.freeze({ group: 'Weapons', templateIndex: 114,
  * @returns {import('./gatherHost.js').GatherKind}
  */
 export function herbKind({ book }) {
-  const gone = (p) => book.taken(p.key, 'herbs') && book.taken(p.key, 'food');
+  const gone = (p) => goneIn(book, p.key, 'herbs') && goneIn(book, p.key, 'food');   // GATHER-SPEED: or being counted
   /** The patch's plan for its herbs (`basket` false) or its food, `only` that harvest (a tool's Use, a menu's row). */
   const planOf = (p, { entity, info, rank }, basket, only) => {
     const plan = patchPlan({
       patch: p, taken: (k) => book.taken(p.key, k), counting: (k) => book.counting(p.key, k), basket, only,
       rank: rank('herbalism'), sickle: !!foragingToolIn(entity, FT.Sickle), basketTool: !!foragingToolIn(entity, FT.Basket),
       storesFull: (key) => storesFullIn(book, key), fullWords: fullWordsIn(book), herbKeyOf: (h) => herbKey(h, info?.region ?? 0),   // STORES-ROOM: every origin, as the service counts
-      today: book.state.today?.herbalism ?? 0, cap: book.state.caps?.harvests ?? 60,
     });
     return { ...plan, harvest: plan.kind, profession: 'herbalism' };
   };
   return {
     id: 'herb',
     professions: Object.freeze(['herbalism']),
-    nodesOf({ px, py, day, info, confirmed, specs, entry }) {
+    nodesOf({ px, py, day, info, confirmed, specs, entry, near }) {
       if (!HERB_TABLES[info.climate]) return [];
       return standPatches({
         px, py, day, climate: info.climate, confirmed, seasonalEye: specs('herbalism')[100] === 'seasonal-eye',
         samples: entry.samples, tilemap: entry.tilemap, locationRect: entry.locationRect ?? entry.wodSite ?? null,   // AUDIT 29 C8: a WoD site's rect, as nature keeps off it (terrainGen.js)
-        rocks: entry.rocks ?? [],   // NODE-CLEAR: and never inside a rock piece
+        rocks: [...(entry.rocks ?? []), ...(near ?? [])],   // NODE-CLEAR: and never inside a rock piece; ROCK-NEAR: a neighbour's reaching in too
+        verge: entry.verge ?? null,   // VERGE1: nor over a road
+        beach: entry.beach ?? null,   // AUDIT LANDFORMS II H2: the beach line DFU's own blend draws in a town's pixel
       });
     },
     flatsOf(p) {
@@ -183,6 +188,9 @@ export function herbKind({ book }) {
       };
     },
     cleanNote: (a) => (a.harvest === 'food' ? ' (every find)' : ' (unbruised)'),
+    /** QL11: a harvest the service answered - its herbs or the Basket's food, in the Stores or the bag (the host's one
+     *  answer to it: the act's own, or a kept one's through the pump). */
+    answered() { noteAct('herb-gathered'); },   // QL11: a plant gathered
     title: () => 'Herbalist',
   };
 }

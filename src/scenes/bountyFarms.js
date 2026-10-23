@@ -1,7 +1,7 @@
 // @ts-check
 // BOUNTY-FARM (2026-09-28, Mac: "can you spawn some farmhouses there it says the granary is overrun? the thing is how
 // do those farmhouses despawn again"): A FARM ON A FARM BOUNTY'S PIXEL - the world host's props pool, on the gate's
-// and the camps' shape (scenes/gatePool.js, scenes/camps.js): models through the host's pipeline, a collider bucket of
+// and the camps' shape (scenes/gate/gatePool.js, scenes/camps.js): models through the host's pipeline, a collider bucket of
 // its own, drawn in the host's world pass.
 //
 // WHAT STANDS: a real farmstead - every model of the first RMB block of one of the game's eight nearest HomeFarms
@@ -24,8 +24,9 @@
 //   - a fast travel, a dungeon, a building, a load: every farm comes down (`destroyAll`, or the mode test in sync).
 //
 // Not a DFU member. Ledger A (BOUNTY-FARM).
-import { bountyHash } from '../systems/bountyBoard.js';
+import { bountyHash } from '../systems/bounty/bountyBoard.js';
 import { trs, multiply } from '../world/mat4.js';
+import { onFloatingFrame } from '../player/collider.js';   // PERF-COL2 (AUDIT): a farm's bucket rides the floating origin
 
 /** How far from a farm whose bounty is over the player must be before it comes down, metres. */
 export const FARM_LINGER_M = 200;
@@ -90,6 +91,7 @@ export function farmSpotLocal(id, k = 0) {
  * @param {{
  *   collider: () => any,                                   // the exterior collider (addMesh / removeBucket / heightAt)
  *   pixelTranslation: (px:number, py:number) => number[],  // the pixel's scene translation, live under the floating origin
+ *   floatingFrame?: () => any,                             // PERF-COL2 (AUDIT): the frame it rides (player/collider.js onFloatingFrame)
  *   pixelBuilt: (px:number, py:number) => any,             // the built pixel's record (texRemap, season), or null
  *   farmBlockNear: (px:number, py:number, key:string) => ({ models: Array<{modelIdNum:number, matrix:any, enhancedOnly?:boolean}>, side:number } | null),
  *   getGpuMesh: (id:number) => Promise<any>,
@@ -174,7 +176,8 @@ export function createBountyFarms(deps) {
     if (!models.length) { f.failed = true; return; }
     const live = deps.collider();
     if (live?.addMesh) {
-      const tr = () => deps.pixelTranslation(f.px, f.py);   // the pixel's own buckets' law: the translation rides the ray
+      const tr0 = () => deps.pixelTranslation(f.px, f.py);   // the pixel's own buckets' law: the translation rides the ray
+      const tr = deps.floatingFrame ? onFloatingFrame(deps.floatingFrame(), tr0) : tr0;   // PERF-COL2 (AUDIT): filed by place, as the pixel's own
       for (const m of models) {
         const cpu = deps.cpuModel(m.id);
         if (cpu?.positions && cpu.indices) live.addMesh(f.bucket, cpu.positions, cpu.indices, m.local, tr);

@@ -1,17 +1,17 @@
 // DECOR1e: THE DECORATOR PINS' FAKES - ONE home (fakeRoom.mjs's lesson, AUDIT WORLD D10: copies had to grow in
 // lockstep, and a fake that lies makes a pin pass that production would fail). A parsed block's room, the blocks file,
 // a document and a window headless enough for the three surfaces (ui/decorPanel.js), a small catalogue, the panel on
-// its own, and the tool (scenes/decorTool.js) over fakes of every seam the host hands it - its pool the room's own
-// shape (scenes/decorRoom.js: a piece put again by its id stands in its place; list, remove, holdsAny), its wallet
+// its own, and the tool (scenes/decor/decorTool.js) over fakes of every seam the host hands it - its pool the room's own
+// shape (scenes/decor/decorRoom.js: a piece put again by its id stands in its place; list, remove, holdsAny), its wallet
 // the purse's (pay, and credit for what comes back), its stick the host's.
 import assert from 'node:assert/strict';
 import { createDecorPanel } from '../src/ui/decorPanel.js';
-import { createDecorTool } from '../src/scenes/decorTool.js';
-import { decorCatalogue, collectDecor } from '../src/systems/decorCatalogue.js';
+import { createDecorTool } from '../src/scenes/decor/decorTool.js';
+import { decorCatalogue, collectDecor } from '../src/systems/decor/decorCatalogue.js';
 import { DECOR_CAP, decorPrice } from '../src/net/decorLaw.js';
-import { PROP_MODEL_TYPE } from '../src/world/interiorLayout.js';
-import { isFurnishing } from '../src/systems/decorFurnish.js';
-import { decorMatrix, decorKeyOf } from '../src/scenes/decorRoom.js';
+import { PROP_MODEL_TYPE } from '../src/world/interior/interiorLayout.js';
+import { isFurnishing } from '../src/systems/decor/decorFurnish.js';
+import { decorMatrix, decorKeyOf } from '../src/scenes/decor/decorRoom.js';
 import { localAabb } from '../src/render/frustum.js';
 import { createHomeYards } from '../src/scenes/homeYards.js';
 import { applyClimate, SEASON } from '../src/world/climateSwaps.js';
@@ -115,7 +115,7 @@ export const ACTIONS = new Map([['KeyW', 'MoveForwards'], ['KeyS', 'MoveBackward
   ['KeyC', 'Crouch'], ['ShiftLeft', 'Run'], ['ArrowLeft', 'TurnLeft'], ['ArrowRight', 'TurnRight'], ['PageUp', 'FloatUp'],
   ['PageDown', 'FloatDown'], ['KeyE', 'Interact'], ['Escape', 'Escape'], ['KeyI', 'Status'], ['Enter', 'ActivateCursor']]);
 /**
- * The tool over fakes of every seam the host hands it. The pool is the room's own shape (scenes/decorRoom.js): a piece
+ * The tool over fakes of every seam the host hands it. The pool is the room's own shape (scenes/decor/decorRoom.js): a piece
  * put again by its id stands in its place, `holds` the ids of the pieces holding something. The wallet pays from and
  * credits `w.gold`, `hand.stick` is the host's stickAxes reading (null: no stick in hand), and `rays` each eye ray's
  * bucket filter. `radius(model)` the scan's measure of a model (null: unread). DECOR2a: `pack` the items carried -
@@ -129,7 +129,7 @@ export const ACTIONS = new Map([['KeyW', 'MoveForwards'], ['KeyS', 'MoveBackward
  * AUDIT DYE-ICON 1: `iconUrl(a, r, dye, dyeTarget)` the host's picture door for the panel's thumbnails (none, as before).
  * AUDIT DECOR-SHELL 3: `getGpuMesh` the pipeline's mesh door (one that loads every model, as before), and `now` the
  * tool's clock (0, as before). AUDIT2 DECOR-SHELL 8: with a real `collider`, a model piece put stands SOLID in it as the
- * room stands it (scenes/decorRoom.js put) - its model's box, closed, under the piece's own matrix, in its own bucket.
+ * room stands it (scenes/decor/decorRoom.js put) - its model's box, closed, under the piece's own matrix, in its own bucket.
  * HOME-DOORS: `doors` the door records the scan's second block holds (model indices: door model 9000 + each), a door
  * model's box a door's own (a metre wide along x from its hinge, 2.1 high, 10 cm thick); `doorsHere` the host's doors,
  * `walls` its walls' filter - neither unless a pin hands one. HOME-RENT: `rent` the host's rooms door (none unless handed).
@@ -142,13 +142,13 @@ export const ACTIONS = new Map([['KeyW', 'MoveForwards'], ['KeyS', 'MoveBackward
  * the pipeline's texture door over the rig's, and `flatPicture` the host's picture door for a flat (none unless handed).
  * DECOR-TURN (AUDIT Y1): `later(fn, ms)` the host's clock a turn's write waits on (the page's setTimeout unless handed).
  */
-export function toolRig({ room = { kind: 'house', where: 'Your house' }, gold = 1000, homeDecor = null, locked = true, touch = false, radius = () => 0.8, base = null, mwPicture = null, collider = null, iconUrl = async () => null, getGpuMesh = async (id) => ({ gpu: id }), now = () => 0, extraFlats = [], extraPeople = [], recordSize = () => ({ width: 16, height: 32 }), realm = null, doors = [], doorsHere = null, walls = null, rent = null, look = null, placeOk = null, lot = null, yardCap = null, charterClear = null, scan = {}, prepareModel = null, getTexture = null, flatPicture = null, later = null } = {}) {
+export function toolRig({ room = { kind: 'house', where: 'Your house' }, gold = 1000, homeDecor = null, locked = true, touch = false, radius = () => 0.8, base = null, mwPicture = null, collider = null, iconUrl = async () => null, getGpuMesh = async (id) => ({ gpu: id }), now = () => 0, extraFlats = [], extraPeople = [], recordSize = () => ({ width: 16, height: 32 }), realm = null, doors = [], doorsHere = null, walls = null, rent = null, look = null, placeOk = null, lot = null, yardCap = null, charterClear = null, scan = {}, prepareModel = null, getTexture = null, flatPicture = null, later = null, thumbHold = null } = {}) {
   const doc = fakeDoc();
   const win = fakeWin();
   const entries = decorCatalogue(collectDecor([rmb([41000, 41000, 41001, 41811], [[210, 3], [209, 0]]), rmb([41000], [[209, 0]], doors, extraPeople)]));
   const standing = [];
   const holds = new Set();
-  const owned = new Map();   // DECOR2a: the owner's own items by piece id (scenes/decorRoom.js keepOwn and its kin)
+  const owned = new Map();   // DECOR2a: the owner's own items by piece id (scenes/decor/decorRoom.js keepOwn and its kin)
   const solid = (p) => {
     if (!collider?.addMesh) return;
     collider.removeBucket?.(decorKeyOf(p.id));
@@ -203,7 +203,7 @@ export function toolRig({ room = { kind: 'house', where: 'Your house' }, gold = 
     doc, win, touch, renderer, pool, names,
     canvas: { width: 1600, height: 900, getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 450 }) },
     room: () => state.room,
-    base: () => base,   // BASE-HIDE: the room's own furniture (scenes/decorBase.js), none unless a pin hands one
+    base: () => base,   // BASE-HIDE: the room's own furniture (scenes/decor/decorBase.js), none unless a pin hands one
     scanDeps: () => ({
       blocks: fakeBlocks([{ type: TOWN, block: rmb([41000, 41000, 41001, 41811], [[210, 3], [209, 0]]) }, { type: TOWN, block: rmb([41000], [[209, 0], ...extraFlats], doors, extraPeople) }]),   // DECOR-MODFLATS: `extraFlats`, a pin's own; HOME-DOORS: `doors`; NUDE-DECOR: `extraPeople`
       isTownBlock: (t) => t === TOWN, modelRadius: radius, flatRadius: async () => 0.2,
@@ -244,6 +244,7 @@ export function toolRig({ room = { kind: 'house', where: 'Your house' }, gold = 
     ...(prepareModel ? { prepareModel } : {}),   // AUDIT 05b A5
     ...(flatPicture ? { flatPicture } : {}),   // AUDIT 05b A6
     ...(later ? { later } : {}),   // DECOR-TURN (AUDIT Y1): the host's clock for a turn's settling, a pin's own
+    ...(thumbHold ? { thumbHold } : {}),   // AUDIT MENU-ORDER R4: the tiles' models' hold, a pin's own
   });
   const cam = { pos: [10, 1.6, 10], yaw: 0, pitch: 0 };
   const frame = (over = {}) => tool.frame({ dt: 0.1, cam, overlayUp: false, interior: true, ...over });
@@ -280,8 +281,10 @@ export const yardPiece = (over = {}) => ({ id: 'p1', model: null, flat: [504, 12
  *  `shift` is where the pixel stands in the scene (written in place, then `yards.rebase()` - a recentre). AUDIT 05b A4:
  *  `town.pieces` the service's answer for the home (written in place - another writer's), `clock.t` the host's clock (ms:
  *  the town asked again past YARD_TOWN_TTL_MS). AUDIT 05b A5: every model a metre's box (the pipeline's cpu copy - the
- *  decorator's ghost reads its box), and `meshDraws` each model drawn with the table it was drawn with, as it stood then. */
-export function yardWorld({ pieces, season = SEASON.Summer, climate = WOODS, seasonal = null, own = false, iconUrl = async () => null, trees = null, sizes: own_sizes = {} } = {}) {
+ *  decorator's ghost reads its box), and `meshDraws` each model drawn with the table it was drawn with, as it stood then.
+ *  AUDIT YARD-LIGHT: `neighbours` more homes in the same pixel - { [buildingKey]: { at, box, pieces } } - another's yards.
+ *  HOME-VOTE: `home` more of home 300's registry row (its `score`, `mine`), read at every ask - written in place, a vote. */
+export function yardWorld({ pieces, season = SEASON.Summer, climate = WOODS, seasonal = null, own = false, iconUrl = async () => null, trees = null, sizes: own_sizes = {}, neighbours = {}, home = {} } = {}) {
   const made = [];
   const uploads = [];
   const animated = [];
@@ -294,15 +297,15 @@ export function yardWorld({ pieces, season = SEASON.Summer, climate = WOODS, sea
   const box = { positions: new Float32Array([-0.5, 0, -0.5, 0.5, 1, 0.5]) };
   const pixel = (s) => ({
     px: 0, py: 0, homeTown: 7, homeRegion: 17, season: s, townClimate: climate,
-    homeFrames: new Map([[300, { at: [10, 0, 10], box: [6, 0, 7, 14, 6, 13] }]]),
+    homeFrames: new Map([[300, { at: [10, 0, 10], box: [6, 0, 7, 14, 6, 13] }], ...Object.entries(neighbours).map(([k, n]) => [Number(k), { at: n.at, box: n.box }])]),
     texRemap: new Map(), forest: { base: 504, archive: s === SEASON.Winter ? 505 : 504 },
     flatAnims: { add: (b, a, n) => animated.push([b, a, n]), remove() {} },
   });
   const built = new Map([['0,0', pixel(season)]]);
   const sizes = { 504: [40, 120], 505: [44, 130], 201: [30, 20], ...own_sizes };
   const yards = createHomeYards({
-    api: { yards: async () => ({ ok: true, data: { yards: [{ buildingKey: 300, pieces: town.pieces }] } }) },
-    homes: { homeAt: (m, k) => (k === 300 ? { owner: 'Tomas', own, look: null } : null) },
+    api: { yards: async () => ({ ok: true, data: { yards: [{ buildingKey: 300, pieces: town.pieces }, ...Object.entries(neighbours).map(([k, n]) => ({ buildingKey: Number(k), pieces: n.pieces }))] } }) },
+    homes: { homeAt: (m, k) => (k === 300 ? { owner: 'Tomas', own, look: null, ...home } : neighbours[k] ? { owner: 'Ilsa', own: false, look: null } : null) },
     built: () => built, translation: () => shift, feet: () => (own ? [18, 0, 10] : [100, 0, 100]), outside: () => true, eye: () => (own ? [18, 1.6, 10] : [100, 1.6, 100]),
     collider: () => ({ addMesh() {}, removeBucket() {} }),
     meshes: { getGpuMesh: async (id) => ({ id, subMeshes: [{ textureArchive: SWAPPED, textureRecord: 0 }] }), cpuModels: { get: () => box } },

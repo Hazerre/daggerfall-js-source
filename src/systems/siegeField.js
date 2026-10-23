@@ -26,7 +26,8 @@
 //
 // Pure. Not a DFU member. Ledger A (EVERY PALACE A SEAT's row).
 import { PIXEL_UNITS } from '../net/wire.js';
-import { SIEGE_UNITS_PER_M } from '../net/siegeRef.js';
+import { SIEGE_UNITS_PER_M } from '../net/siege/siegeRef.js';
+import { noticeBoardIndex } from './bounty/bountyBoard.js';
 
 /** The building keys of a laid-out town's records of one type (world/buildingNames.js BUILDING_TYPES) - its blocks' own
  *  building data, the key every building of the pixel carries (scenes/seatBanners.js palaceKeysOf's walk). Pure. */
@@ -123,13 +124,10 @@ export function siegeFieldOf({ frames = null, palaceKeys = [], templeKeys = [], 
     gateBanner = step(centre, away, SIEGE_FIELD.openGateM);
     attack = step(centre, away, SIEGE_FIELD.openCampM);
   }
-  // the Market: the rumour board nearest the middle
-  let market = centre, near = Infinity;
-  boards.forEach((b, i) => {
-    if (bounty.has(i) || !Array.isArray(b?.box) || b.box.length < 6) return;
-    const m = boxMid(b.box), d = Math.hypot(m[0] - centre[0], m[1] - centre[1]);
-    if (d < near) { near = d; market = m; }
-  });
+  // the Market: the rumour board nearest the middle (bountyBoard.js noticeBoardIndex - AUDIT 657 B7: one law, its tie
+  // broken by the boards' position, never their order)
+  const at = noticeBoardIndex(boards, bounty, centre);
+  const market = at >= 0 && boards[at].box.length >= 6 ? boxMid(boards[at].box) : centre;
   // the Temple: its door, else the largest guild hall's, else the middle
   let temple = null;
   for (const k of templeKeys) { const f = doorFace(frames?.get?.(k)); if (f) { temple = step(f.at, f.out, SIEGE_FIELD.templePaceM); break; } }
