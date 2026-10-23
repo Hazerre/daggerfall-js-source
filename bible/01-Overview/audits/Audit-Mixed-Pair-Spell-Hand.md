@@ -143,9 +143,11 @@ changed nothing. At 2 it is a blow more at every Speed: 8.53 (x1.19) with the bl
 
 - Pins: `test/combat/mixedpair.test.js` (20), `test/combat/spellhand.test.js` (19), `test/combat/spellhand_mw.test.js`
   (13), `test/net/mixedspell_peers.test.js` (3, new), `test/characters/bodyMotion/bodymotion_audit.test.js`'s L3-5.
-- `tools/mutants/audit_mixedspell.json`: the audit's mutants - each fix reverted and each L5 scratch mutant re-aimed -
-  judged with the slice's own records (`mixedpair.json`, `spellhand.json`, `spellhand_mw.json`) and every record the
-  fixes moved, re-aimed by content.
+- `tools/mutants/audit_mixedspell.json`: 101 mutants - each fix reverted (64) and the record lane's scratch mutants of
+  the slice's new lines re-aimed (36), and the wall's gun (1). Run whole with the slice's own records
+  (`mixedpair.json` 35, `spellhand.json` 35, `spellhand_mw.json` 22) at 42fdce1b2: 193 mutants, 188 dead, 5 equivalent
+  as recorded (each with its reason), 0 survived, none judged in place. Every record the fixes moved re-aimed by
+  content and re-run, all dead.
 - PIN MOVED, each with its note: `fieldgunmwaudit` (the muzzle names its hand), `riflestance` (the state's `free`),
   `audit23_magic` magic-14 and `allycast` A1 (CasterOnly's instant cast waits for a blow), `auditclimbarc` F10/F11 (the dungeon's `firePending` hears the window), `disc12`, `mac7`, `fparm`, `audit39_worldstate`,
   `deckfield`, `tech1_hosts`, `hostmagic_wiring`, `weaponglow1`, `audit29_host`, and the relay's version pins (world249).

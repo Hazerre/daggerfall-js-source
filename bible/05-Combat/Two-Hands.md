@@ -767,7 +767,8 @@ the dungeon door's `cast` a positional argument.
 - AUDIT MIXED-PAIR / SPELL-HAND (2026-10-23, `01-Overview/audits/Audit-Mixed-Pair-Spell-Hand.md`): every finding's fix
   pinned and its mutants in `tools/mutants/audit_mixedspell.json` - each fix reverted (`AUDITMS-L1-*` to `AUDITMS-L4-*`)
   and the record lane's scratch mutants of the slice's new lines re-aimed (`AUDITMS-L5-*`); the ones that cannot fail a
-  pin recorded `equivalent` with their reason. PIN MOVED, each with its note: `fieldgunmwaudit` (the muzzle names its
+  pin recorded `equivalent` with their reason - 101 mutants, run whole with the slice's three lists: 188 dead, 5
+  equivalent as recorded, 0 survived. PIN MOVED, each with its note: `fieldgunmwaudit` (the muzzle names its
   hand), `riflestance` (the hold's `free`), `audit23_magic` magic-14 and `allycast` A1 (CasterOnly's instant cast waits for a blow), `auditclimbarc` F10/F11 (the dungeon's `firePending` hears the window),
   `disc12` and `mac7` (`lh` beside `ah` in `poseHandsOf`), `fparm` (one door, CasterOnly), `audit39_worldstate`,
   `deckfield`, `audit29_host`, `tech1_hosts`, `hostmagic_wiring` (the cast press `CAST_PRESS`), `weaponglow1` (a pair's
