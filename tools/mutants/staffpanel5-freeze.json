@@ -623,7 +623,7 @@
   {
     "name": "STAFF-PANEL5-FREEZE-tab-unshown",
     "file": "src/net/staffChat.js",
-    "old": "const shown = () => log.setShown(STAFF_TAB, frozen() || open);",
+    "old": "const shown = () => log.setShown(STAFF_TAB, frozen() || open || copied.has(log));",
     "new": "const shown = () => log.setShown(STAFF_TAB, false);",
     "why": "the Staff tab never on the bar",
     "tests": [

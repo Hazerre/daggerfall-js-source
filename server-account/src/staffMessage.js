@@ -131,12 +131,15 @@ export async function staffMessage(ctx, env, path, body, who, audit) {
 /**
  * THE GAME'S TWO DOORS, behind the player's own game session (index.js, the safety doors): the messages waiting for this
  * account - not pressed OK, and newer than STAFF_MESSAGE_SHOW_S - oldest first; and one pressed OK.
+ * STAFF-PANEL5-MESSAGE-FIX: `more` - more wait past the STAFF_MESSAGE_ASK_MAX answered, so the game asks again once the
+ * player has pressed OK on these (net/staffMessages.js): a nudge for the sixth answered the five still up, and it was never shown.
  * @param {{ db: any, nowS: number }} ctx @param {any} player
  */
 export async function staffMessagesFor({ db, nowS }, player) {
   const r = await db.prepare('SELECT id, staff_name, text, at FROM staff_messages WHERE target = ?1 AND ok_at IS NULL AND at > ?2 ORDER BY rowid LIMIT ?3')
-    .bind(player.id, nowS - STAFF_MESSAGE_SHOW_S, STAFF_MESSAGE_ASK_MAX).all();
-  return { ok: true, messages: (r.results ?? []).map((m) => ({ id: m.id, from: m.staff_name, text: m.text, at: m.at })) };
+    .bind(player.id, nowS - STAFF_MESSAGE_SHOW_S, STAFF_MESSAGE_ASK_MAX + 1).all();
+  const rows = r.results ?? [];
+  return { ok: true, messages: rows.slice(0, STAFF_MESSAGE_ASK_MAX).map((m) => ({ id: m.id, from: m.staff_name, text: m.text, at: m.at })), more: rows.length > STAFF_MESSAGE_ASK_MAX };
 }
 /** @param {{ db: any, nowS: number }} ctx @param {any} player @param {any} body `{ id }` - `marked` false for one already marked */
 export async function staffMessageOk({ db, nowS }, player, body) {

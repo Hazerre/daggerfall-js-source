@@ -16,6 +16,8 @@ import { SESSION_KEY } from '../../src/net/accountClient.js';
 import { SOCIAL_ROOM, SAFE_LAW_PATH, parseClient } from '../../src/net/wire.js';
 import { mintStaffMessageOrder, mintOrder, mintBanOrder, orderValid, verifyOrder, ORDER_KINDS } from '../../src/net/identityToken.js';
 import { createStaffMessages, STAFF_ASK_GAP_MS, STAFF_TAB, staffMessageLine } from '../../src/net/staffMessages.js';
+import { createStaffChat } from '../../src/net/staffChat.js';
+import { ChatLog } from '../../src/net/chat.js';
 import { showStaffMessageBox, STAFF_MESSAGE_BOX_ID } from '../../src/ui/staffMessageBox.js';
 import { staffWords, STAFF_SESSION_HEADER } from '../../server-account/src/staff.js';
 import * as H from '../../src/net/hubShards.js';
@@ -191,7 +193,7 @@ test('STAFF-PANEL5-MESSAGE THE GAME\'S HALF: a nudge asks the service, each mess
   const shown = [];
   const show = (m) => { shown.push(m); };
   const lines = [];
-  const log = { push: (tab, line) => { lines.push([tab, line]); return line; } };
+  const log = { push: (tab, line) => { lines.push([tab, line]); return line; }, setShown: () => true };
   const timers = [];
   const box = createStaffMessages(log, { fetch, storage: sessionStorageOf(SESSION_KEY, { secret: 'sess-secret', id: 'acct-1' }), show, now: () => now, wait: (fn, ms) => timers.push([fn, ms]) });
   box.heard('m1-000001');
@@ -227,6 +229,71 @@ test('STAFF-PANEL5-MESSAGE THE GAME\'S HALF: a nudge asks the service, each mess
   assert.equal(asked.length, before);
 });
 
+/** The service's game doors over a list, by their rule (server-account/src/staffMessage.js staffMessagesFor and
+ *  staffMessageOk): the five oldest not pressed OK, and `more` when more wait. */
+function serviceOf(rows) {
+  const asked = [];
+  const fetch = async (url, init) => {
+    const path = new URL(url).pathname;
+    const body = init.body ? JSON.parse(init.body) : null;
+    asked.push(path);
+    if (path.endsWith('/staff-message-ok')) { const m = rows.find((x) => x.id === body.id && !x.ok); if (m) m.ok = true; return Response.json({ ok: true, marked: !!m }); }
+    const waiting = rows.filter((x) => !x.ok);
+    return Response.json({ ok: true, messages: waiting.slice(0, 5).map(({ id, from, text, at }) => ({ id, from, text, at })), more: waiting.length > 5 });
+  };
+  return { fetch, asked };
+}
+const turns = async (n = 20) => { for (let i = 0; i < n; i++) await new Promise((r) => setImmediate(r)); };
+
+test('STAFF-PANEL5-MESSAGE-FIX 7: SIX MESSAGES ALL SHOWN - an answer is the service\'s five oldest, so a nudge for the sixth while the five are up finds nothing new; when the answer said `more`, the game asks again once the last box is OK\'d and its OK is in, and the sixth is shown (mutants: `more` unread; no ask after the OKs)', async () => {
+  let now = 1_000_000;
+  const rows = [1, 2, 3, 4, 5, 6].map((i) => ({ id: `m${i}-00000${i}`, from: 'Asynian', text: `message ${i}`, at: 100 + i }));
+  const { fetch, asked } = serviceOf(rows);
+  const shown = [];
+  const timers = [];
+  const box = createStaffMessages({ push: () => ({}), setShown: () => true }, { fetch, storage: sessionStorageOf(SESSION_KEY, { secret: 'sess-secret', id: 'acct-1' }), show: (m) => shown.push(m), now: () => now, wait: (fn, ms) => timers.push(fn) });
+  box.heard(rows[0].id);
+  await turns();
+  assert.deepEqual(shown.map((m) => m.text), ['message 1']);
+  box.heard(rows[5].id);   // the sixth's nudge, while the five are still up
+  now += STAFF_ASK_GAP_MS;
+  timers.shift()?.();
+  await turns();
+  assert.equal(asked.filter((p) => p.endsWith('/staff-messages')).length, 2, 'asked, and answered the same five');
+  for (let i = 0; i < 5; i++) { now += 1000; shown[i].onOk(); await turns(); }
+  now += STAFF_ASK_GAP_MS;
+  while (timers.length) timers.shift()();
+  await turns();
+  assert.deepEqual(shown.map((m) => m.text), rows.map((r) => r.text), 'all six shown, oldest first');
+  shown[5].onOk();
+  await turns();
+  const asks = asked.filter((p) => p.endsWith('/staff-messages')).length;
+  assert.equal(asks, 3, 'and nothing asked after the last, which said no more');
+});
+
+test('STAFF-PANEL5-MESSAGE-FIX 8: THE COPY CAN BE READ AGAIN - the Staff tab is off the bar for a player neither frozen nor talking to staff; a message\'s copy puts it on the bar, and the staff chat\'s own word (a read with no thread open, a freeze lifted) leaves it there (mutants: the copy left off the bar; the staff chat taking it off)', async () => {
+  const log = new ChatLog({ now: () => 1_000_000 });
+  const chat = createStaffChat({ log, read: async () => ({ ok: true, data: { open: false, lines: [] } }), send: async () => ({ ok: false }), nudge: () => false, onFrozen: () => {}, now: () => 1_000_000 });
+  assert.equal(log.tab(STAFF_TAB).shown, false, 'off the bar before');
+  const { fetch } = serviceOf([{ id: 'm1-000001', from: 'Asynian', text: 'Are you there?', at: 100 }]);
+  const box = createStaffMessages(log, { fetch, storage: sessionStorageOf(SESSION_KEY, { secret: 'sess-secret', id: 'acct-1' }), show: () => {}, now: () => 1_000_000, wait: () => {} });
+  box.heard('m1-000001');
+  await turns();
+  assert.equal(log.tab(STAFF_TAB).shown, true, 'on the bar with its copy');
+  assert.deepEqual(log.tab(STAFF_TAB).messages.map((l) => l.text), ['Message from staff (Asynian): Are you there?']);
+  assert.equal(log.unreadTotal(), 1, 'and counted on the Chat button');
+  await chat.refresh();
+  chat.heardFrozen(0);
+  assert.equal(log.tab(STAFF_TAB).shown, true, 'the staff chat leaves it there');
+  // a log with no copy: the staff chat's own rule as it stood
+  const bare = new ChatLog({ now: () => 1_000_000 });
+  const other = createStaffChat({ log: bare, read: async () => ({ ok: true, data: { open: false, lines: [] } }), send: async () => ({ ok: false }), nudge: () => false, onFrozen: () => {}, now: () => 1_000_000 });
+  other.heardFrozen(2_000_000);
+  assert.equal(bare.tab(STAFF_TAB).shown, true, 'frozen: on the bar');
+  other.heardFrozen(0);
+  assert.equal(bare.tab(STAFF_TAB).shown, false, 'lifted, and no copy: off again');
+});
+
 /** The panel signed in, as test/server/staffpanel5message.test.js stands it - its relay door the REAL relay's. */
 async function panelOverRelay() {
   const { hub, kp, env } = await hubWithDoor();
@@ -257,7 +324,7 @@ test('STAFF-PANEL5-MESSAGE END TO END, offline: the panel sends Troll a message 
     const room = hub.connect(); await hub.hello(room, 'trol-0002', null, { tokenSub: troll.id, sm: link._helloFrame(null).sm });   // the hub's socket, saying what this build's hello says
     const shown = [];
     const lines = [];
-    const game = createStaffMessages({ push: (tab, l) => lines.push([tab, l.text]) }, { fetch: s.fetch, storage: sessionStorageOf(SESSION_KEY, troll), show: (m) => shown.push(m) });
+    const game = createStaffMessages({ push: (tab, l) => lines.push([tab, l.text]), setShown: () => true }, { fetch: s.fetch, storage: sessionStorageOf(SESSION_KEY, troll), show: (m) => shown.push(m) });
     link.onStaffMessage = game.heard;   // as scenes/world.js hangs it on the hub link
     const sent = await staff('/v1/staff/message', { target: troll.id, text: 'Hello from staff.' }, mob.session);
     assert.equal(sent.message.state, 'delivered', JSON.stringify(sent));

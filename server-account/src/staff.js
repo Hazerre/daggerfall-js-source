@@ -59,7 +59,9 @@ import { staffMessage, MESSAGE_ROUTES } from './staffMessage.js';
 import { staffNet, NET_ROUTES } from './staffNet.js';   // STAFF-PANEL5-FEEDS: Network bursts
 import { staffMonsters, MONSTER_ROUTES } from './staffMonsters.js';   // STAFF-PANEL5-FEEDS: Monster watch
 import { staffReactions, REACTION_ROUTES } from './staffReactions.js';   // STAFF-PANEL5-FEEDS: the bot check
-import { staffHidden, HIDDEN_ROUTES, hiddenEnd } from './staffHidden.js';   // STAFF-PANEL5-HIDDEN: Hide me, and the mark's end
+import { staffHidden, HIDDEN_ROUTES, hiddenEnd, hiddenSubOf } from './staffHidden.js';   // STAFF-PANEL5-HIDDEN: Hide me, and the mark's end
+import { signingKey } from './signing.js';
+import { mintHideOrder, ID_RE } from '../../src/net/identityToken.js';   // STAFF-PANEL5-CUT-FIX: a cut's hide orders
 import { staffFreeze, FREEZE_ROUTES, FREEZE_STATUS } from './staffFreeze.js';   // STAFF-PANEL5-FREEZE
 
 /** The header a staff session rides in - never `authorization`, which is the game's. */
@@ -68,6 +70,12 @@ export const STAFF_SESSION_HEADER = 'x-staff-session';
 export const STAFF_IDLE_S = 30 * 60;
 /** ...and this long after it opened, acts or not. */
 export const STAFF_MAX_S = 8 * 60 * 60;
+/** STAFF-PANEL5-CUT-FIX: how far back a cut reads the audit log for the hidden subjects its member was minted tokens for.
+ *  shortcut: a hidden socket open longer than this on a token minted before it is missed; upgrade when the relay asks a
+ *  hidden socket's session again after its hello. */
+export const CUT_HIDDEN_S = 24 * 60 * 60;
+/** The most hidden subjects one cut orders closed (one a staff session). */
+const CUT_SUBS_MAX = 50;
 /** How stale `last_act` may grow before an act writes it again (one write a minute at most). */
 export const STAFF_TOUCH_S = 60;
 /** How far a signature's second may stand from the service's clock, either way. */
@@ -299,6 +307,27 @@ const STAFF_WHO_SQL = `SELECT s.key_id AS s_key, s.last_act AS s_act, s.expires_
   WHERE s.token_hash = ?`;
 
 /**
+ * STAFF-PANEL5-CUT-FIX: THE CUT'S ORDERS, pushed after its batch. A hide order for every hidden subject the member could
+ * hold - their staff sessions' (`hashes`, read before the batch deleted them) and every subject the audit log says a hidden
+ * token was minted for in CUT_HIDDEN_S (staffHidden.js `hidden-token`, written before the token is handed out): a session
+ * deleted before the cut (an idle-out, a sign-in's prune, a new password) left its hidden sockets open, and its subject is
+ * no account the staffcut names. Then the staffcut. Every order is stamped with the clock read after the batch, so a token
+ * minted while the request ran is no newer than them. Answers `{ orders, took, hidden }`.
+ * @param {any} ctx @param {any} env @param {string} playerId @param {string[]} hashes
+ */
+async function cutPush(ctx, env, playerId, hashes) {
+  const { db, subtle } = ctx;
+  const at = Math.max(ctx.nowS, Math.floor(Date.now() / 1000));
+  const minted = (await db.prepare(`SELECT json_extract(detail, '$.sub') AS sub, MAX(at) AS t FROM staff_audit WHERE actor = ?1 AND act = 'hidden-token' AND at > ?2
+    GROUP BY sub ORDER BY t DESC LIMIT ?3`).bind(playerId, at - CUT_HIDDEN_S, CUT_SUBS_MAX).all())?.results ?? [];
+  const subs = [...new Set([...(await Promise.all(hashes.map((h) => hiddenSubOf(h, subtle)))), ...minted.map((r) => r.sub)])].filter((x) => typeof x === 'string' && ID_RE.test(x));
+  const key = await signingKey(env, subtle);
+  const orders = [...(key ? await Promise.all(subs.map((x) => mintHideOrder({ s: x }, key, { subtle, nowS: at }))) : []), await staffCutOrder(env, subtle, at, playerId)];
+  const took = await Promise.all(orders.map((o) => pushLaw(env, (u, i) => globalThis.fetch(u, i), o)));
+  return { orders: orders.length, took: took.filter(Boolean).length, hidden: subs.length };
+}
+
+/**
  * WHO IS THIS STAFF MEMBER? One read: the session, its account and its key. Dead - and deleted - when it is past its
  * idle or its whole life, when the account is off every list or banned, when its key was forgotten or cut (or is a config
  * key the config no longer names), or when the account no longer holds the handle the key was registered under. `act` false (a poll) does not count as being there.
@@ -443,25 +472,29 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   if (path === '/v1/staff/invite' || path === '/v1/staff/cut') {
     const lc = handleLc(body.handle);
     const target = lc ? await db.prepare('SELECT * FROM players WHERE handle_lc = ?').bind(lc).first() : null;
-    // STAFF-PANEL2-FIX: a member cut off holds no role, but an owner's invite brings them back - lifting the cut with it
-    const restore = path === '/v1/staff/invite' && staffSuspended(target);
-    const role = staffRole(restore ? { ...target, staff_suspended: 0 } : target, env);
+    // STAFF-PANEL2-FIX: a member cut off holds no role, but an owner's invite brings them back - lifting the cut with it.
+    // STAFF-PANEL5-CUT-FIX (mob: "a failed push must be retryable and audited"): and cut again, the relay's orders are pushed again
+    const cutOff = staffSuspended(target);
+    const restore = path === '/v1/staff/invite' && cutOff;
+    const role = staffRole(cutOff ? { ...target, staff_suspended: 0 } : target, env);
     if (!target || !role) return { error: 'no-staff' };
     if (path === '/v1/staff/cut') {
       if (target.id === me.id) return { error: 'staff-self' };
       // STAFF-PANEL2-FIX (design doc, Weak spots: "Cutting off a staff member misses most doors"): the cut is stored
       // (`staff_suspended`, every role path reads it - titles.js), and it ends the member's game sessions as well as
       // their panel's, so no game door and no fresh token is theirs until they sign in again - and that token carries no
-      // staff glyph. The relay is told to close what they hold now (sanctions.js staffCutOrder); `relay` says whether it
-      // took the order (a relay that missed it closes nothing until the member's sockets drop or their lease lapses)
-      await hiddenEnd(ctx, env, target.id);   // STAFF-PANEL5-HIDDEN: their hidden sockets closed with their sessions
+      // staff glyph. The relay is told to close what they hold now (sanctions.js staffCutOrder; the hub hands it on to every
+      // room their game holds); `relay` says whether it took every order, and the log says it too (`cut-relay`)
+      const hashes = ((await db.prepare('SELECT token_hash FROM staff_sessions WHERE player_id = ? LIMIT 20').bind(target.id).all())?.results ?? []).map((r) => r.token_hash);
       await db.batch([
         db.prepare('UPDATE staff_keys SET revoked_at = ? WHERE player_id = ? AND revoked_at IS NULL').bind(nowS, target.id),
         ...['staff_sessions', 'staff_invites', 'sessions'].map((t) => db.prepare(`DELETE FROM ${t} WHERE player_id = ?`).bind(target.id)),
         db.prepare('UPDATE players SET staff_suspended = 1 WHERE id = ?').bind(target.id),
-        audit('cut', target.id, { handle: target.handle, role }),
+        audit('cut', target.id, { handle: target.handle, role, ...(cutOff ? { again: true } : {}) }),
       ]);
-      const relay = await pushLaw(env, (u, i) => globalThis.fetch(u, i), await staffCutOrder(env, subtle, nowS, target.id));
+      const pushed = await cutPush(ctx, env, target.id, hashes);
+      const relay = pushed.took === pushed.orders;
+      await audit('cut-relay', target.id, pushed, { outcome: relay ? 'ok' : 'failed' }).run();   // failed: `took` short of `orders`
       return { ok: true, handle: target.handle, relay };
     }
     const code = mintRecoveryCode(rand);
