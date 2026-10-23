@@ -10,19 +10,19 @@
     ]
   },
   {
-    "name": "AS-the-constructor-off-its-list",
+    "name": "AS-a-look-off-its-list",
     "file": "src/render/auraRing.js",
-    "old": "    this.program = buildProgram(gl, ring[0], ring[1], 'aura ring');",
-    "new": "    this.program = buildProgram(gl, ring[0], `${ring[1]}\\n`, 'aura ring');",
+    "old": "        const prog = buildProgram(gl, vs, fs, 'aura ring');",
+    "new": "        const prog = buildProgram(gl, vs, `${fs}\\n`, 'aura ring');",
     "tests": [
       "test/render/shaderstall.test.js"
     ]
   },
   {
-    "name": "AS-asked-as-needed",
-    "file": "src/scenes/world.js",
-    "old": "const _auraPass = auraPassOf();",
-    "new": "const _auraPass = auraPassOf(true);",
+    "name": "AS-a-look-asked-as-needed",
+    "file": "src/render/auraRing.js",
+    "old": "        const P = this.programOf(look.kind);",
+    "new": "        const P = this.programOf(look.kind, true);",
     "tests": [
       "test/render/shaderstall.test.js"
     ]
@@ -37,10 +37,10 @@
     ]
   },
   {
-    "name": "AS-the-door-handed-no-program",
+    "name": "AS-the-door-waits-on-the-looks",
     "file": "src/scenes/world.js",
-    "old": "compiledPass(renderer.gl, AURA_PROGRAMS,",
-    "new": "compiledPass(renderer.gl, [],",
+    "old": "compiledPass(renderer.gl, [], () => new AuraRingRenderer(renderer.gl),",
+    "new": "compiledPass(renderer.gl, AURA_PROGRAMS, () => new AuraRingRenderer(renderer.gl),",
     "tests": [
       "test/render/shaderstall.test.js",
       "test/net/wb9g_insignia.test.js"
