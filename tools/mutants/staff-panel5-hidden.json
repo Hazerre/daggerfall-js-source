@@ -1251,5 +1251,15 @@
     "tests": [
       "test/server/staffpanel5hidden.test.js"
     ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R2-lapsed-status-unlisted",
+    "file": "server-account/src/staff.js",
+    "old": "  'staff-session-lapsed': 409,",
+    "new": "",
+    "why": "the lapsed mint's word in no STAFF_STATUS - a staff module's refusal with no status (accountflow ACC1e)",
+    "tests": [
+      "test/server/accountflow.test.js"
+    ]
   }
 ]

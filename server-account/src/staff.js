@@ -126,6 +126,7 @@ export const STAFF_STATUS = Object.freeze({
   // sanction a Moderator would lift, a press with no one-time id, and a cut member an Admin would add back
   'case-acted': 409, 'case-closed': 409, 'admin-sanction': 403, 'bad-click': 400, 'staff-suspended': 409,
   'no-signing-key': 503,   // STAFF-PANEL5-FOLLOW (staffFollow.js): a service with no key mints no follow token
+  'staff-session-lapsed': 409,   // STAFF-PANEL5-HIDDEN-R2 (staffHidden.js hiddenToken): the game's mint, its hiding lapsed - /v1/auth/token's 409
   // STAFF-PANEL5-MESSAGE (staffMessage.js): a message past 200 characters, and a second inside a staff member's 5 seconds
   'staff-message-long': 400, 'staff-message-rate': 429,
   // STAFF-PANEL5-FEEDS (staffMonsters.js): a Flag whose spawn case did not open
