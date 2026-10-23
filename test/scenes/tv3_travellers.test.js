@@ -424,7 +424,7 @@ test('AUDIT DEEP T1-1: through the host\'s REAL lens (mirrored, 52 degrees down)
   // AUDIT DEEP T3-4/T3-7: the switch says what it shares, and with whom, truly
   assert.match(rd('src/ui/enhanced/enhancedMenu.js'), /players in your region see you on the overworld and the map/);
   assert.match(rd('src/ui/enhanced/enhancedMenu.js'), /Kept on this device\./);
-  assert.match(rd('src/scenes/world.js'), /project: frameProject\.behind,   \/\/ PERF-TV-PROJ/, 'the view\'s own projection asks for the mirror');
+  assert.match(rd('src/scenes/world.js'), /project: frameProject\.behind,/, 'the view\'s own projection asks for the mirror');
   const fp = createFrameProjector({ clientWidth: W, clientHeight: H }, () => null, (take) => take(proj, view));
   assert.deepEqual(fp.behind([-800, 0, -2000]), at([-800, 0, -2000]), 'its `behind` is the mirror');
   // the default stays the hide: every other caller never draws a mirror
