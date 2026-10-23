@@ -1061,6 +1061,7 @@ import { createSunbaby, sunbabyLight, SUNBABY_WEATHER, sunbabyKey, createSunbaby
 import { relayKnowsLiveEvent } from '../net/wire.js';   // SUNBABY1: a word staged only on a relay that knows it
 import { createStaffTeleportClient, validStaffDestination, staffDestinationKey, followStaffPlayer, staffTpLine } from '../net/staffTeleport.js';   // STAFF-PANEL5-FOLLOW: and the line a /tp @player ends on
 import { staffFollowOnPage, relinkGame } from './staffFollowHost.js';   // STAFF-PANEL5-FOLLOW: the game's staff hook (net/staffHook.js) and the host's half of a follow; STAFF-HIDE-TOGGLE: and the panel's relink
+import { createStaffViewHost } from './staffViewHost.js';   // STAFF-VIEW1: the staff tags, Shift+M and a tag's follow
 import { privateInteriorPrefix, privateInteriorRoom, privateBoatRoom, privateInteriorOf } from '../net/privateInterior.js';
 import { createInstanceDoor } from './instanceDoor.js';   // INSTANCES: public or an instance, at the door (bible/11-Multiplayer/Instances.md)
 // TESTBUILD: every player may use the staff's /god (/godmode), /fly, /heal, /tp - god mode also lifts the zone's travel law and makes map journeys instant
@@ -17475,7 +17476,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // (the chat, the friends panel, the F-menu: they pause nothing, and take keys). The keys are its from there: a key
     // shared by two windows' doors opens the first, not both stacked, and nothing after a door is done behind it.
     if (!_worldKeysLive) return;   // KEY-BOOT: the ladder's arms read bindings the boot has not reached yet
-    if (!e.repeat && !gamePaused() && egClient?.key(e)) { e.preventDefault(); return; }   // EG-FULL: the Spire's panel (a Vestige's card, the company's word) and the witness's Q and E - no window up
+    if ((!e.repeat && !gamePaused() && egClient?.key(e)) || (!gamePaused() && staffView.key(e))) { e.preventDefault(); return; }   // EG-FULL: the Spire's panel (a Vestige's card, the company's word) and the witness's Q and E - no window up; STAFF-VIEW1: a staff member's Shift+M is the Overworld's (outdoors), its held repeat nothing, never the automap's - a player's is the automap's as ever (past the latch: KEY-BOOT)
     const windowUp = () => gamePaused() || (modes?.modalWindowUp?.() ?? false) || pointerSurfaces.size > 0;
     const upBefore = windowUp();
     const pass = acts.length ? acts : [null];
@@ -22362,6 +22363,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // STAFF-HIDE-TOGGLE (mob, 2026-10-23: "need hide to be a toggle"): and the panel's `relink` - Hide me or Show myself pressed,
   // every link of the game's own remade on a fresh token at once (staffFollowHost.js relinkGame)
   const staffFollow = staffFollowOnPage({ main: () => online, prepare: (d) => prepareStaffDestination(d, () => staffFollow.locked()), mode: () => modes?.mode ?? 'exterior', pixel: () => state.current, toScene: (p) => onlineToScene(p), relink: () => relinkGame(identityMinter, online, chatLinks?.values()) });
+  // STAFF-VIEW1 (mob: "np player esp in staff panel?", "i need staff panel to have esp"; design doc, In game: the staff
+  // view): THE STAFF TAGS - every player this game receives tagged for an Admin or a Moderator where a Staff Panel spoke,
+  // on the ground and on the Overworld (the travel view, Shift+M), a click a follow at once (scenes/staffViewHost.js)
+  const staffView = createStaffViewHost({
+    follow: staffFollow, glyphs: staffGlyphs, links: () => chatLinks, book: travellerBook, foes: exteriorFoes,
+    overworld: travelViewKey, up: () => !!travelView?.active, canvas, say: townTalk.say,
+  });
   registerFreeFlight(() => spectatingHere());   // AUDIT-SEATS G4: the spectator's camera is free - the motor's own flight over the town
   /** AUDIT-SEATS G4: where the spectator stood when its camera went free, in the wire's frame (the floating origin moves
    *  under a flight) - the watching ended out on the street, it is set back on its feet there, no fall billed; ended any
@@ -29168,6 +29176,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // OVERWORLD NAMES: under the travel view the names over the heads stand down - the readout's marks name the players,
     // as they read in play (travelViewMarks); drawn both, a player near the traveller wore two names
     const namesOff = covered || !!travelView?.active;
+    staffView.frame(proj, view, eye, covered);   // STAFF-VIEW1: the staff tags - through walls, past the names' reach (a player's page: one boolean)
     // NAME1 (Mac: "...are able to be seen through walls"): THE SIGHT TEST, over `player.collider` - the LIVE one.
     // worldModes re-points that field at every door (the street's, the building's, the dungeon's), so this is the
     // same triangles the player cannot walk through and the same raycast the activation ladder rejects a target
@@ -32294,7 +32303,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     touch: !!touch,
     alive: () => frameAlive(_frameToken),   // the heartbeat's question: a loop a later boot killed is left quietly
     onPick: (x, y, e) => onTravelViewPick(x, y, e),   // TV2; OW-PATH: the event, for the fine-move key
-    onMark: (key, e) => onTravelViewMark(key, e),   // OW-ATTACK: the press, for an enemy's single click
+    onMark: (key, e) => staffView.mark(key) || onTravelViewMark(key, e),   // OW-ATTACK: the press, for an enemy's single click; STAFF-VIEW1: a player's mark, for staff, is a follow at once
     onContext: (x, y, key) => onTravelViewContext(x, y, key),   // WAYPOINTS: the right click's menu
     onPing: (x, y) => {   // PARTY-PING: the middle button, from the raised eye
       const eye = travelView?.eye;
@@ -32306,7 +32315,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     },
     onWaypointGo: (id) => travelViewWaypointWalk(id),   // WAYPOINTS: a followed row's Go
     followDist: () => travelViewFollowDist(),   // WAYPOINTS: the followed rows' distances
-    marks: travelViewMarks,
+    marks: () => staffView.marks(travelViewMarks()),   // STAFF-VIEW1: for staff every player's mark, named truly and flagged, takes a click
     route: travelViewRoute,
     sky: () => owForecast.line(performance.now()),   // OW-FORECAST: the weather ahead - the way's while a journey runs, else here
     trip: () => (tvWalking ? TRAVEL_VIEW_TEXT.travelling(tvWalking, tvHeld) : tvTripLive() ? tvTrip.line : ''),   // TV-WASD: the keys' travel says its speed - AUDIT OW5 G3: first, as it runs only with no journey driving (a stopped route kept for the Resume read "To X, by the road" over it)

@@ -10,7 +10,7 @@ import { parse } from 'acorn';
 import { OnlineSession } from '../../src/net/online.js';
 import { SOCIAL_ROOM, CLOSE_POLICY, validPartyPose, cellRoomOfWire, rosterFor } from '../../src/net/wire.js';
 import { FOLLOW_RELAY_MIN, WHERE_NOTE_MOVING_MS, WHERE_NOTE_STILL_MS } from '../../src/net/staffFollow.js';
-import { createStaffHook, staffHookDoor, hiddenSeat, STAFF_HOOK_VERSION, STAFF_TOKEN_WAIT_MS, STAFF_RELINK_GAP_MS } from '../../src/net/staffHook.js';
+import { createStaffHook, staffHookDoor, hiddenSeat, validTags, STAFF_HOOK_VERSION, STAFF_TOKEN_WAIT_MS, STAFF_RELINK_GAP_MS, TAGS_MAX, TAG_WHY_MAX, NAMEPLATE_DIST } from '../../src/net/staffHook.js';
 import { createStaffFollowHost, staffFollowOnPage, relinkGame } from '../../src/scenes/staffFollowHost.js';
 import { accountTokenMinter, SESSION_KEY, SERVICE_KEY } from '../../src/net/accountClient.js';
 import { notePlace, staffTpLine, followStaffPlayer, staffDestinationKey, quietTeleportAllowed, STAFF_TP_FALLBACKS, validStaffDestination } from '../../src/net/staffTeleport.js';
@@ -97,6 +97,7 @@ function fakeSessions() {
     // LEASE1's two doors, as online.js keeps them: a lease handed on is kept; a lane takes another's kept one
     sendLease(l) { this._lease = l; (this.leases ??= []).push(l); }
     leaseFrom(s) { if (typeof s?._lease === 'string') this._lease = s._lease; }
+    drawable() { return [...this.peers.values()].filter((p) => p.shown); }   // STAFF-VIEW1: online.js's, of the peers this fake holds
   }
   return { Session, made };
 }
@@ -485,6 +486,71 @@ test('STAFF-PANEL5-FOLLOW hook door: same window and origin alone; the version, 
   // with no window at all the door stands and every ask is no token
   const none = staffHookDoor(undefined, () => hook);
   await assert.rejects(none.askToken('acct-target', 'world:1,1'));
+});
+
+test('STAFF-VIEW1 hook: peers() is the followed room\'s players as the eye draws them - nobody before the eye stands, and nobody once let go (the host\'s own room is left while a follow is locked, so these are the only players the staff view can tag)', () => {
+  const { Session, made } = fakeSessions();
+  const hook = createStaffHook({ main: () => ({ url: 'wss://relay.test' }), askToken: async () => 'tok', Session });
+  assert.deepEqual(hook.peers(), [], 'no follow');
+  hook.follow('acct-target'); hook.tick();
+  made[0].onFollow({ k: 'on', sub: 'acct-target' });
+  hook.heard({ k: 'note', sub: 'acct-target', p: validPartyPose(note('dungeon:m1234', { in: 1 })) });
+  assert.deepEqual(hook.peers(), [], 'the hub\'s link alone: no room yet');
+  hook.tick();
+  const eye = made[1];
+  const t = { id: 'peer-t', sub: 'acct-target', shown: { x: 1, y: 2, z: 3, yaw: 0, pitch: 0 } }, o = { id: 'peer-o', shown: { x: 4, y: 5, z: 6, yaw: 0, pitch: 0 } };
+  eye.peers.set('peer-t', t); eye.peers.set('peer-o', o); eye.peers.set('peer-gone', { id: 'peer-gone' });
+  assert.deepEqual(hook.peers(), [t, o], 'the eye\'s drawable');
+  hook.unlock();
+  assert.deepEqual(hook.peers(), [], 'let go');
+});
+
+test('STAFF-VIEW1 hook door: `tags?` to this page\'s own origin; a `tags` answer kept as validTags reads it - from this window and origin alone, an account that is an account id, a known level, words of TAG_WHY_MAX at most, TAGS_MAX rows, a distance Your settings offers - and an answer with no list keeps the last (mutants: each check dropped, the ask to \'*\')', () => {
+  const listeners = [], posted = [];
+  const win = { location: { origin: 'https://game.test' }, addEventListener: (_k, f) => listeners.push(f), postMessage: (m, o) => posted.push([m, o]) };
+  const door = staffHookDoor(win, () => null);
+  const say = (data, more = {}) => listeners[0]({ source: win, origin: 'https://game.test', data, ...more });
+  assert.equal(door.tags(), null, 'none before an answer');
+  door.askTags();
+  assert.deepEqual(posted, [[{ dfoStaff: 'tags?' }, 'https://game.test']]);
+  assert.equal(door.panel(), false, 'an ask is not the panel speaking');
+  const good = { dfoStaff: 'tags', dist: 200, list: [{ sub: 'acct-a', level: 'high', why: '4 reports' }] };
+  say(good, { origin: 'https://evil.test' });
+  say(good, { source: {} });
+  assert.equal(door.tags(), null, 'another origin or window is not the panel');
+  say(good);
+  assert.deepEqual([door.tags().dist, [...door.tags().flags]], [200, [['acct-a', { level: 'high', why: '4 reports', watch: false }]]]);
+  say({ dfoStaff: 'tags', dist: 200 });
+  assert.equal(door.tags().flags.size, 1, 'no list: the last answer stands');
+  say({ dfoStaff: 'tags', list: [] });
+  assert.deepEqual([door.tags().dist, door.tags().flags.size], [NAMEPLATE_DIST, 0], 'an empty answer is an answer');
+  // row by row
+  const read = (list, dist = 100) => validTags({ list, dist });
+  assert.deepEqual([...read([{ sub: 'x', level: 'high', why: 'w' }, { sub: 'acct a', level: 'high' }, { sub: 7, level: 'high' }, { sub: 'acct-b'.repeat(8), level: 'high' }]).flags], [], 'no account id, no row');
+  assert.deepEqual([...read([{ sub: 'acct-a', level: 'urgent', why: 'w' }, { sub: 'acct-b', why: 'w' }]).flags], [], 'no known level and no watch: nothing to show');
+  assert.deepEqual(read([{ sub: 'acct-a', level: 'low', why: 'x'.repeat(TAG_WHY_MAX + 1) }, { sub: 'acct-b', level: 'low', why: 'x'.repeat(TAG_WHY_MAX) }, { sub: 'acct-c', level: 'low', why: 12 }]).flags, new Map([['acct-a', { level: 'low', why: '', watch: false }], ['acct-b', { level: 'low', why: 'x'.repeat(TAG_WHY_MAX), watch: false }], ['acct-c', { level: 'low', why: '', watch: false }]]), 'long or odd words are no words');
+  assert.deepEqual([...read([{ sub: 'acct-a', watch: 'yes', level: 'low', why: 'w' }, { sub: 'acct-b', watch: 1 }]).flags], [['acct-a', { level: 'low', why: 'w', watch: false }]], 'a watch is `true` alone');
+  const big = read(Array.from({ length: TAGS_MAX + 50 }, (_, i) => ({ sub: `acct-${String(i).padStart(4, '0')}`, level: 'low' })));
+  assert.equal(big.flags.size, TAGS_MAX, 'an oversize list: its first TAGS_MAX rows');
+  assert.equal(big.flags.has(`acct-${String(TAGS_MAX).padStart(4, '0')}`), false);
+  for (const [dist, kept] of [[50, 50], [100, 100], [200, 200], [5000, NAMEPLATE_DIST], [75, NAMEPLATE_DIST], ['200', NAMEPLATE_DIST], [undefined, NAMEPLATE_DIST]]) assert.equal(read([], dist).dist, kept, String(dist));
+  for (const m of [null, {}, { list: 'x' }, { list: {} }]) assert.equal(validTags(m), null);
+});
+
+test('STAFF-VIEW1 page: what the staff view reads of the page\'s follow - whether a panel spoke, the eye\'s players, the game\'s session, its frame and mode, the tags and their ask', () => {
+  const { Session } = fakeSessions();
+  const listeners = [], posted = [];
+  const main = { url: 'wss://relay.test' };
+  const win = { location: { origin: 'https://game.test' }, addEventListener: (_k, f) => listeners.push(f), postMessage: (m, o) => posted.push([m, o]) };
+  const page = staffFollowOnPage({ main: () => main, prepare: async () => {}, mode: () => 'interior', pixel: () => ({ x: 1, y: 2 }), toScene: (p) => [p.x, 9, p.z], win, Session });
+  assert.equal(page.panel(), false);
+  listeners[0]({ source: win, origin: 'https://game.test', data: { dfoStaff: 'hook?' } });
+  assert.equal(page.panel(), true);
+  assert.deepEqual([page.main(), page.mode(), page.toScene({ x: 1, z: 3 }), page.peers()], [main, 'interior', [1, 9, 3], []]);
+  page.askTags();
+  assert.deepEqual(posted.at(-1), [{ dfoStaff: 'tags?' }, 'https://game.test']);
+  listeners[0]({ source: win, origin: 'https://game.test', data: { dfoStaff: 'tags', dist: 50, list: [{ sub: 'acct-a', watch: true }] } });
+  assert.deepEqual(page.tags().flags.get('acct-a'), { level: null, why: '', watch: true });
 });
 
 test('STAFF-PANEL5-FOLLOW host: a follow leaves the host\'s room, enters the note\'s place once, puts the camera at the target\'s eyes, and let go never shows the body where the target stood', async () => {
