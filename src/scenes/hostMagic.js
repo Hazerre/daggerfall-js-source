@@ -270,7 +270,7 @@ export function createPlayerMagic({
     clear: (a, b) => burstClear(collider, a, b),   // AUDIT SET M4
     say: (line) => say?.(line),   // RVN3: a line the scene's HUD speaks (a revenant's weakness found, on the classic skin)
     sfx: (id, at) => audio?.play3d?.(id, at, 1, { maxDistance: 16 }),   // RVN3: a sound where a foe stands (its hiss)
-    lairHere: () => { try { return lairHere?.() ?? null; } catch { return null; } },   // RVN7: the host's word on where a deed is done
+    lairHere: (at) => { try { return lairHere?.(at) ?? null; } catch { return null; } },   // RVN7: the host's word on where a deed is done (LAIR-DOOR: or on a pixel asked)
     isPuppet: (f) => !!f?.puppet || (typeof isPuppet === 'function' && !!isPuppet(f)),   // AUDIT FEUD 2: run by another client - no deed of mine (a rout)
     fx: (recipe, at, o) => { try { fx.technique(recipe, at, o); } catch { /* no effects drawn here */ } },   // UNQUIET (Revenants.md section 46): a revenant's flight craft - its leaving puff
   });
