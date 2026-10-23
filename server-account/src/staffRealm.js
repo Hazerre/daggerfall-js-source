@@ -7,7 +7,8 @@
 // it live.
 //
 // NOTHING NEW IS JUDGED (mob, 09:22Z: "use the validators the server already has"). The holds, findings, clear, hold,
-// rollback, repair and mend are review.js's own acts (reviewAct, the developers' /v1/mod/realm-* doors a script reached),
+// rollback, repair, mend and (STAFF-SET-BANK) bank are review.js's own acts (reviewAct, the developers' /v1/mod/realm-*
+// doors a script reached),
 // made as this Admin - a developer, as titles.js isDeveloper reads the same list - so a panel act lands in the character's
 // findings exactly as a script's did. What the panel adds is the audit row, a required note where the design asks one, a
 // preview before an act that cannot be taken back, and the weak spots' fixes:
@@ -72,8 +73,8 @@ export const REMOVE_REASONS = Object.freeze(['duplicated', 'duped-gold', 'bug-re
 const READ_ROW_S = 10 * 60;
 
 export const REALM_ROUTES = Object.freeze(['/v1/staff/trade-holds', '/v1/staff/findings', '/v1/staff/trade-hold', '/v1/staff/trade-unhold',
-  '/v1/staff/rollback', '/v1/staff/fix/repair', '/v1/staff/fix/mend', '/v1/staff/gains', '/v1/staff/market/pull', '/v1/staff/market/remove',
-  '/v1/staff/item/take', '/v1/staff/evidence', '/v1/staff/evidence/return']);
+  '/v1/staff/rollback', '/v1/staff/fix/repair', '/v1/staff/fix/mend', '/v1/staff/fix/bank', '/v1/staff/gains', '/v1/staff/market/pull',
+  '/v1/staff/market/remove', '/v1/staff/item/take', '/v1/staff/evidence', '/v1/staff/evidence/return']);
 
 const LEVELS = Object.freeze(['low', 'medium', 'high']);
 const parse = (/** @type {unknown} */ t) => { try { return typeof t === 'string' ? JSON.parse(t) : null; } catch { return null; } };
@@ -515,15 +516,20 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
     };
   }
 
-  if (path === '/v1/staff/fix/repair' || path === '/v1/staff/fix/mend') {
-    // review.js `repair` and `mend`, as buttons with a note instead of scripts (design doc "Fix account")
-    const act = path === '/v1/staff/fix/repair' ? 'repair' : 'mend';
+  if (path === '/v1/staff/fix/repair' || path === '/v1/staff/fix/mend' || path === '/v1/staff/fix/bank') {
+    // review.js `repair` and `mend`, as buttons with a note instead of scripts (design doc "Fix account"). STAFF-SET-BANK
+    // (2026-10-23, mob: "we need a set bank setting"): and `bank` - the bank the profile says (`banks`, the total it was
+    // read as) set to the gold named, `{ ticket, was, gold, note }` as the mend's; the playing tab's seat taken as a mend's
+    const act = path === '/v1/staff/fix/repair' ? 'repair' : path === '/v1/staff/fix/mend' ? 'mend' : 'bank';
     const note = noteOf(body.note);
     if (!note) return said(`fix-${act}`, row.player, ch, { error: 'staff-note' });
     const { ticket, faction, flag, gold, was } = body;
     const r = await reviewAct(c, me, env, act, act === 'repair' ? { id: row.id, note, ticket, faction, flag, gold } : { id: row.id, note, ticket, was, gold });
     const detail = { ...ch, note, ticket: typeof ticket === 'string' ? ticket.slice(0, 64) : null, gold: Number.isSafeInteger(gold) ? gold : null, ...(act === 'repair' ? { faction, flag } : { was }) };
-    return said(`fix-${act}`, row.player, detail, r.error ? r : { ...r, playing: playing(row) });
+    // STAFF-SET-BANK REVIEW (2026-10-23): a fix that landed is written as its row holds it, and whether it was a repeat - a
+    // ticket asked again with other values moves nothing, and its row once named the body's values as done
+    const landed = r.error ? {} : { gold: r.gold, ...(act === 'repair' ? { faction: r.faction, flag: r.flag } : { was: r.was }), repeat: r.repeat };
+    return said(`fix-${act}`, row.player, { ...detail, ...landed }, r.error ? r : { ...r, playing: playing(row) });
   }
 
   if (path === '/v1/staff/item/take') return takeAct();

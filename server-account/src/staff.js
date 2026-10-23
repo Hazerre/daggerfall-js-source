@@ -120,6 +120,8 @@ export const STAFF_STATUS = Object.freeze({
   'not-developer': 403, 'no-realm-character': 404, 'no-clean': 409, 'service-moved': 409, dead: 409, 'repair-no-faction': 409, 'repair-not-set': 409,
   seq: 409, 'mend-not-negative': 409, 'mend-moved': 409, 'repair-ticket': 409, 'no-data': 409, 'no-storage': 503, 'market-gone': 409, 'bad-listing': 400,
   'staff-note': 400, 'staff-reason': 400, 'staff-remove-pending': 409, 'staff-no-piece': 409, 'staff-trail': 409, 'staff-evidence': 404, 'staff-evidence-gone': 409,
+  // STAFF-SET-BANK (net/repairLaw.js applyBankSet): a record that keeps no Empire account, and a bank not the total staff read
+  'bank-none': 409, 'bank-moved': 409,
   // STAFF-PANEL4-CENSUS (staffCensus.js): a contested piece that is not there, and a kind no save tallies (Marks' jumps)
   'no-piece': 404, 'census-no-tally': 400,
   // STAFF-PANEL2-FIX (safety.js modAct): a case another act took or closed, a spawn case a Moderator asked for, an Admin's
