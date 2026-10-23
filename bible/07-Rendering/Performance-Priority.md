@@ -1514,7 +1514,8 @@ before (57 ms on a reload), so the freeze came once, on the first session after 
   and never asks it as needed. An aura is cosmetic, so a wearer stands without it while its program compiles. The
   capes' pose and swing are stepped meanwhile. Without the extension, the pass is built at its first wearer as before.
 
-bootWorld lost 3 logical lines (its ceiling 36,256 -> 36,253, `test/scenes/hostceiling.test.js`).
+bootWorld lost 3 logical lines (its ceiling 36,256 -> 36,253, `test/scenes/hostceiling.test.js`; 36,264 -> 36,261 at the
+merge of main past STAFF-PANEL2's eight).
 
 THE FOUR HOSTS: `scenes/world.js` WIRED - the one host that builds the aura pass. `scenes/worldModes.js` draws the
 interior's and the dungeon's auras through the host's `drawVeiledPeerBodies`, and `scenes/dungeonContext.js` through
