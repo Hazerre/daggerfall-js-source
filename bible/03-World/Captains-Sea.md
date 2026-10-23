@@ -1,4 +1,4 @@
-# The Captain's Sea - reasons to sail (CAPT-CREW, CAPT-LOG, CAPT-PAY, CAPT-MARQUE, CAPT-WATERS, SPYGLASS, CAPT-BOARD, CAPT-TRADE, CAPT-CHARTS, 2026-10-11)
+# The Captain's Sea - reasons to sail (CAPT-CREW, CAPT-LOG, CAPT-PAY, CAPT-MARQUE, CAPT-WATERS, SPYGLASS, CAPT-BOARD, CAPT-TRADE, CAPT-CHARTS, 2026-10-11; CREW-TRADE, 2026-10-23)
 
 The owner, 2026-10-11: *"I want to talk about enhancing the naval experience and polishing it more, making it rewarding
 and giving a reason to players to experience it"* - and then: *"I want you to make the decisions and completely make
@@ -48,6 +48,7 @@ a captain did added up. Now:
 | CAPT-WATERS | THE DEEP WATERS: DEEP_PX map pixels and more from every port - pirates DEEP_PIRATE_K as likely, the trade DEEP_TRADE_K, classes DEEP_LEVEL levels up, a pirate bold DEEP_BOLD of the time, holds and casks DEEP_TIER tiers richer; the plate says the deep | `systems/naval/navalDirector.js` (`watersOf`, `factionWeights`), `systems/naval/navalAI.js` (`temperOf`'s `bold`), `systems/naval/navalShots.js` (a cask's `deep`), `scenes/naval/navalHost.js`, `ui/naval/navalHud.js`, `scenes/world.js` (`navalPortPx`) |
 | CAPT-BOARD | THE HARBOURMASTER'S BOARD: five kinds of contract a port posts a day, held on the captain's clock, their sites stood at sea; the letter of marque and the Admiralty's carrack for sale; a rank's favours at the yard, among the hands and in the relief | `systems/naval/harbourBoard.js`, `scenes/harbourOffice.js`, `systems/naval/captainLedger.js` (the contracts), `scenes/naval/navalHost.js` (THE SITES, the events), `systems/naval/navalYard.js` (`discount`), `systems/naval/navalDirector.js` (`reliefSure`), `ui/naval/navalYardWindow.js` (the Harbourmaster tab), `scenes/world.js` (the office, the ports, a site's point) |
 | CAPT-TRADE | THE EXCHANGE: eleven goods, a crown's ports' makes and wants and a port's own twist, a day's drift, the exchange's spread and a day's stock; the goods as items in a hold | `systems/naval/tradeGoods.js`, `scenes/harbourOffice.js` (`exchange`), `ui/naval/navalYardWindow.js` (the Exchange tab), `systems/item/itemLaw.js` |
+| CREW-TRADE | CREW AT THE EXCHANGE (2026-10-23): a port's stand to sailors, a man priced as a good, signed on to the ship at the quay and off her by the head, a gold under the shipwright's man at most | `systems/naval/tradeGoods.js` (`CREW`, `crewStandOf`, `exchangeOf`'s `crew`), `systems/naval/crewTrade.js`, `scenes/naval/crewDeal.js`, `scenes/naval/navalHost.js` (yardModel's `crewDeal`), `scenes/harbourOffice.js` (`buyCrew`, `sellCrew`), `ui/naval/navalYardWindow.js` (the crew row), `scenes/world.js` (`navalOpenYard`) |
 | CAPT-CHARTS | TREASURE CHARTS: a chart among a pirate's papers, read and marked, its cache floated and raised | `systems/naval/treasureCharts.js`, `scenes/harbourOffice.js`, `scenes/naval/navalHost.js` (`pickCache`), `scenes/world.js` (the chart's use), `ui/captainPage.js` |
 | SPYGLASS | WHAT A CAPTAIN KNOWS OF A SHIP, AND THE GLASS: her hull at any range, her colours and name by the eye, a Lookout, the glass or her guns, the rest through the glass close; no tag on an unknown hull; false colours; the Spyglass action, its lens and its window | `systems/naval/shipKnowledge.js`, `scenes/naval/navalHost.js` (`knowStep`, `glass`, `glassCardOf`, the tags, cards, hails and cries), `ui/spyglassView.js`, `ui/naval/navalHud.js` (the plate's Glass), `player/mwView.js` (`mwViewHoldFirst`), `systems/inputActions.js`, `ui/touch/touchButtons.js`, `ui/plus/plusPadBinds.js`, `ui/plus/plusPad.js`, `scenes/world.js` (`spyglassStep`, `spyglassWheel`, the lens) |
 
@@ -410,6 +411,53 @@ counter's mark (LAW-3; no patron takes it). Each dealing is told to the town eco
 stood the captain at the port, counts in its players' share; a port town's packet lanes lift its Prosperity. Offline,
 and on an isle past the Veil, the exchange is as above.
 
+## CREW-TRADE - crew at the exchange (2026-10-23)
+
+The owner, 2026-10-23: "If you could, please add crew as a resource that can be sold and traded." Asked how, the owner
+chose the exchange alone ("Exchange good only": crew bought and sold at the port exchange straight into and out of the
+ship at the quay, priced per port like the other goods - no trade between players), a headcount ("Headcount only": a
+named hand's record never travels with him) and a port's own price ("Port price, varies").
+
+CREW is a row of the exchange that is no item (`tradeGoods.js CREW` - a man, CREW_BASE 15 gold: half the shipwright's
+REPAIR_PRICE.crew, pinned equal, since the item law's graph, which the account service reads, does not carry the sea's).
+A port has SAILORS TO SPARE, is SHORT OF THEM, or neither - a third of the Bay's ports each, off its key on its own
+scrambled draw (`crewStandOf`, isleGood's way: a plain hash bunches neighbours) - and every isle of the Veil is short of
+them. A man is priced as a good (`priceOf`: MADE_K where men are to spare, WANT_K where they are short - a man of either
+sea's own, never EXOTIC_K - drifting within PRICE_DRIFT a day), bought and sold at the exchange's SPREAD (the captain's
+stars and, online, the port town's factors as a good's) and dealt at DAY_STOCK's day (`exchangeOf`'s `crew`: the row
+first; without it every other row as it was). The Exchange tab lists it first for a crewed ship at the quay
+(`harbourOffice.js exchange`): whether the port has sailors to spare or is short of them, a man's two prices and how many
+today, her crew aboard against her whole, and Buy 1, Buy 10, Sell 1, Sell all (`navalYardWindow.js exchangeText`). A
+Rowboat or a Large Boat carries no crew and lists none.
+
+WHAT A MAN FETCHES (`crewTrade.js crewPayMost`, `crewRowOf`): a gold under what the shipwright asks for one at most - his
+own price for a hand (`navalYard.js yardOffer`'s crew row) at this captain's rank's discount (`harbourOffice.js
+perksHere`, where the shipwright reads it) - or men hired at the yard would sell at the exchange for something, as often
+as its day allows. The cap holds a short port's price at a high rank; everywhere else the port's own price stands. Where
+sailors are to spare the exchange signs men on at well under the yard's price, so it is the cheaper way to fill her
+there; where they are short, a captain carrying more men than she needs sells them dear.
+
+SIGNED ON (`scenes/naval/crewDeal.js signOn`, `harbourOffice.js buyCrew`): as many as the exchange signs on today and the
+purse pays for, her crew raised to her whole at most (`navalDamage.js muster` - no blow, no fire put out, a wreck a
+wreck), her new hands named quietly by her roster's own sync (`navalHost.js crewHands`: a Commodore's harbour's come
+Seasoned, as every sign-on), no loss on her spirits' books (`lastCrew`). SIGNED OFF (`signOff`, `sellCrew`): as many as
+may leave her (`crewTrade.js crewSpare`) and the exchange takes today - never her last man (crewHall.js releasePlan's
+law), never so many that a named hand ashore at the player's side loses his place on her deck, and none of a ship that
+came into the realm through customs (`fleet.js fleetCrossed` - RESTORE's "Keep all, can't sell": her men are an offline
+save's; men may still sign on to her). Her named hands past what her deck then stands are paid off the crew hall's way,
+the last to join first (`shipCrew.js release` - a hall's recruit takes the spirits he lifted with him, AUDIT SHIPYARDS
+L2-4), and nobody is said fallen. Never in a fight. Each dealing is the ledger's day's (`captainLedger.js deal`, id
+`crew`), a sale's gold the log's `traded`, and online each is told to the town economy, as a good's is.
+
+Not a DFU member - Daggerfall has no ships, and Come Sail Away's crew is a count its shipwright refills. A man is never
+an item: never in a pack or a hold, never at a shop, a stall, the market or a trade between players. A prize's pressed
+men (navalPlunder.js `press`) are hers like any others, and sell like any others: men won in a fight are worth their
+port's price. WIRING (HOST-SPLIT): the naval host hands her state, its roster's sync and its crew companions to
+`crewDealOf` as the yard's model's `crewDeal` (one entry in createNavalHost's yardModel); the world hands the Exchange
+tab that model itself (`world.js navalOpenYard`), four logical lines out of bootWorld where it had built a second object
+of three of the model's fields. THE FOUR HOSTS: the sea is `scenes/world.js`'s; `scenes/exterior.js` (the bench),
+`scenes/worldModes.js` (a building) and `scenes/dungeonContext.js` (a dungeon) stand no exchange - FLAGGED, nothing wired.
+
 ## CAPT-CHARTS - treasure charts
 
 A pirate the captain ends - sunk or taken - carries a TREASURE CHART among her papers CHART_CHANCE of the time (more in
@@ -436,6 +484,11 @@ the crew card's line, the Holdings tabs, the tags and the hails now knowing a sh
 the action tables, the lens, the sky's and the far ring's lens narrowed with the world's (`test/player/climb4.test.js`,
 `test/systems/hudlarge.test.js` E5), the wheel's rung for the glass (`test/scenes/audit24_wave37.test.js`). The harbour office's day is
 a reader of the event clock, named in `test/fixtures/time1_census.json`.
+
+CREW-TRADE: `test/systems/naval/crewtrade.test.js` (10 tests; `tools/mutants/crewtrade.json`, 41 records, all dead). Its pins
+moved say so (PIN MOVED): the Exchange tab handed the yard's model itself (`test/systems/naval/capttrade.test.js` "the
+exchange's tab", `test/systems/naval/auditcaptsea.test.js` B9/B11/B13); two records re-aimed by content (ACS-B11-world-room,
+HOST-SPLIT-a-ceiling-under-its-host - bootWorld's ceiling down by the four logical lines it took out).
 
 GLASS-SPOT and GLASS-CLEAR: `test/systems/naval/glassclear.test.js` (9 tests; `tools/mutants/glassclear.json`, 41 records, all
 dead). Their pins moved say so (PIN MOVED): the look's card on an unknown hull (`test/systems/naval/spyglass.test.js` "at sea, the
