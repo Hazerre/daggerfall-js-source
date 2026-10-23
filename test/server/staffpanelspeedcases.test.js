@@ -126,7 +126,7 @@ test('STAFF-PANEL-SPEED: the open cases - urgent, newest and a later page - in 2
   } finally { s.restore(); }
 });
 
-test('STAFF-PANEL-SPEED: one case - its record, lines and reports, the holder\'s claim kept and the audit row - in 4 trips, where it was 13 (mutants: each fold undone)', async () => {
+test('STAFF-PANEL-SPEED: one case - its record, lines and reports, the holder\'s claim kept and the audit row - in 3 trips, where it was 13 (mutants: each fold undone)', async () => {
   const s = await stand();
   try {
     const id = s.caseOn(s.troll);
@@ -139,16 +139,16 @@ test('STAFF-PANEL-SPEED: one case - its record, lines and reports, the holder\'s
     assert.ok(one.body.claim.until >= nowS() + CLAIM_S - 5, 'the holder\'s look kept the claim, and the answer reads it back');
     assert.equal(s.raw.prepare('SELECT claim_until FROM mod_cases WHERE id = ?').get(id).claim_until, one.body.claim.until);
     assert.equal(rowsOf(s, 'SirMcMobdon', 'case-read'), 1);
-    assert.ok(one.trips <= 4, `a case: ${one.trips} trips`);
+    assert.ok(one.trips <= 3, `a case: ${one.trips} trips`);
     const byName = await s.trips('/v1/staff/case', { name: 'Troll' }, s.asy.session);
     assert.deepEqual([byName.body.case.id, byName.body.claim.mine, byName.body.claim.name], [id, false, 'SirMcMobdon']);
-    assert.ok(byName.trips <= 5, `a case by name: ${byName.trips} trips`);
+    assert.ok(byName.trips <= 4, `a case by name: ${byName.trips} trips`);
     const strikes = await s.trips('/v1/staff/strikes', { target: s.troll.id }, s.asy.session);
     assert.deepEqual([strikes.body.case, strikes.body.record.strikes, strikes.body.claim.name], [undefined, 0, 'SirMcMobdon']);
-    assert.ok(strikes.trips <= 4, `strikes: ${strikes.trips} trips`);
+    assert.ok(strikes.trips <= 3, `strikes: ${strikes.trips} trips`);
     const none = await s.trips('/v1/staff/case', { target: s.sylvia.id }, s.asy.session);
     assert.deepEqual([none.status, none.body], [404, { error: 'no-case' }]);
-    assert.ok(none.trips <= 3, `no case: ${none.trips} trips`);
+    assert.ok(none.trips <= 2, `no case: ${none.trips} trips`);
     // the game's own doors share the folds (safety.js modCase, sanctions.js strikesLook)
     const game = await s.trips('/v1/mod/case', { target: s.troll.id });
     assert.deepEqual([game.status, game.body.case.lines.length, game.body.case.notes], [200, 1, ['said so']]);

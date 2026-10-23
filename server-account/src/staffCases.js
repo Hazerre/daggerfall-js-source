@@ -34,6 +34,7 @@
 import { displayName } from './accounts.js';
 import { caseReads, caseView, modAct, claimHeldSql } from './safety.js';
 import { strikesLook, findAccount } from './sanctions.js';
+import { canModerate } from './titles.js';
 import { LADDER_BAN_AT, STRIKE_WINDOW_S } from '../../src/net/safety/safetyLaw.js';
 import { ID_RE } from '../../src/net/identityToken.js';
 
@@ -193,17 +194,19 @@ export async function staffCases(ctx, env, path, body, who, audit) {
     ? db.prepare("UPDATE mod_cases SET claim_until = ?3, claim_session = ?4 WHERE id = ?1 AND claimed_by = ?2 AND status = 'open'").bind(open.id, me.id, nowS + CLAIM_S, who.hash) : null);
 
   if (path === '/v1/staff/case' || path === '/v1/staff/strikes') {
-    const look = await strikesLook(ctx, me, env, { target: row.id, row });
-    if ('error' in look) return look;
+    if (!canModerate(me, env)) return { error: 'not-moderator' };   // strikesLook's own refusal, asked before the batch below writes
     const one = path === '/v1/staff/case';
     if (one && !open) return { error: 'no-case' };   // safety.js modCase's answer: the account has no open case this member may read
     // STAFF-PANEL-SPEED: the case's lines and reports, the claim kept, the audit row and the claim read back - one batch,
-    // in the order they were made one after another, so the page is never shown without its row
+    // in the order they were made one after another, so the page is never shown without its row - and beside it the
+    // record's reads (strikesLook: mod_actions alone, which the batch never writes), the same trip
     const k = keep();
-    const out = await db.batch([...(one ? caseReads(db, open.id) : []), ...(k ? [k] : []),
-      audit(one ? 'case-read' : 'strikes-read', row.id, { name: displayName(row) }, { onceIn: 10 * 60 }),
-      ...(open ? [db.prepare(`SELECT c.claimed_by, c.claim_until, h.handle, h.guest_name, ${claimHeldSql('c', 2)} AS claim_live FROM mod_cases c
-      LEFT JOIN players h ON h.id = c.claimed_by WHERE c.id = ?1`).bind(open.id, nowS)] : [])]);
+    const [look, out] = await Promise.all([strikesLook(ctx, me, env, { target: row.id, row }),
+      db.batch([...(one ? caseReads(db, open.id) : []), ...(k ? [k] : []),
+        audit(one ? 'case-read' : 'strikes-read', row.id, { name: displayName(row) }, { onceIn: 10 * 60 }),
+        ...(open ? [db.prepare(`SELECT c.claimed_by, c.claim_until, h.handle, h.guest_name, ${claimHeldSql('c', 2)} AS claim_live FROM mod_cases c
+        LEFT JOIN players h ON h.id = c.claimed_by WHERE c.id = ?1`).bind(open.id, nowS)] : [])])]);
+    if ('error' in look) return look;
     const c = open ? out[out.length - 1]?.results?.[0] ?? null : null;
     return {
       ...(one ? { case: caseView(row, open, out[0]?.results ?? [], out[1]?.results ?? []) } : {}), record: look,

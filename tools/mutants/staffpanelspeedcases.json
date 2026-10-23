@@ -22,8 +22,8 @@
   {
     "name": "STAFF-PANEL-SPEED-cases-case-row-again",
     "file": "server-account/src/staffCases.js",
-    "old": "const look = await strikesLook(ctx, me, env, { target: row.id, row });",
-    "new": "const look = await strikesLook(ctx, me, env, { target: row.id });",
+    "old": "Promise.all([strikesLook(ctx, me, env, { target: row.id, row }),",
+    "new": "Promise.all([strikesLook(ctx, me, env, { target: row.id }),",
     "why": "a case read finds its account again inside strikesLook (a trip more)",
     "tests": [
       "test/server/staffpanelspeedcases.test.js"
@@ -32,12 +32,33 @@
   {
     "name": "STAFF-PANEL-SPEED-cases-case-batch-apart",
     "file": "server-account/src/staffCases.js",
-    "old": "const out = await db.batch([",
-    "new": "const out = await (async (l) => { const o = []; for (const st of l) o.push((await db.batch([st]))[0]); return o; })([",
+    "old": "      db.batch([...(one ? caseReads(db, open.id) : []),",
+    "new": "      (async (l) => { const o = []; for (const st of l) o.push((await db.batch([st]))[0]); return o; })([...(one ? caseReads(db, open.id) : []),",
     "why": "a case's lines, reports, kept claim, audit row and claim read back awaited one after another",
     "tests": [
       "test/server/staffpanelspeedcases.test.js"
     ]
+  },
+  {
+    "name": "STAFF-PANEL-SPEED-cases-look-then-batch",
+    "file": "server-account/src/staffCases.js",
+    "old": "const [look, out] = await Promise.all([strikesLook(",
+    "new": "const [look, out] = await Promise.all([await strikesLook(",
+    "why": "a case's or strikes' record (strikesLook) read first, its batch sent after (a trip more on both doors)",
+    "tests": [
+      "test/server/staffpanelspeedcases.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL-SPEED-cases-look-refusal-first",
+    "file": "server-account/src/staffCases.js",
+    "old": "    if (!canModerate(me, env)) return { error: 'not-moderator' };   // strikesLook's own refusal",
+    "new": "    if (false) return { error: 'not-moderator' };   // strikesLook's own refusal",
+    "why": "a staff session's member always moderates (staff.js staffRole: Admin or Moderator, both canModerate), so strikesLook never refuses here today; the check is kept so a change to staffRole can never write a look's claim keep and audit row before the refusal",
+    "tests": [
+      "test/server/staffpanelspeedcases.test.js"
+    ],
+    "equivalent": true
   },
   {
     "name": "STAFF-PANEL-SPEED-cases-no-case-read",
