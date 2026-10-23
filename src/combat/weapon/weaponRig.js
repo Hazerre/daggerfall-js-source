@@ -1792,7 +1792,12 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       // CLIMB-HANDS: the hold, the shimmy, the free climb, the moves and the look off the wall - CLIMB-HANDS II: seen
       // through the frame's own world lens (the setting's field of view on the strip the world was drawn into, the bar
       // the hands stand on), so the fists stay on the stone as the view turns; asked only while there are hands to lay out
-      const handsClimb = handsLane && _climbLower >= CLIMB_HANDS_AFTER ? (camNow?.climb ?? null) : null;
+      // SPELL-CLIMB (#bug-reports, "Spell+Climbing=4 arms"): A CAST TAKES THE HANDS OFF THE STONE. DFU casts on its climb
+      // (EntityEffectManager.Update reads no climb) and its cast's hands play on the climb's empty screen; here the wall
+      // holds two fists, so while the cast's hands play the law is handed no climb - they are not drawn under the cast
+      // (drawLayer) and come back up onto the stone after it, eased, not popped back whole
+      const castTakesHands = fpsSpellCasting.isPlayingAnim && !eotbHidesSpellHands();
+      const handsClimb = handsLane && _climbLower >= CLIMB_HANDS_AFTER && !castTakesHands ? (camNow?.climb ?? null) : null;
       const handsLens = handsClimb || climbHands.law.present > 0 ? climbLens(cv(), { fov: fieldOfView(), viewport: renderer?.worldViewportRect ?? null, aspect: renderer?.worldProjAspect ?? null, offsetHeight: weaponOffsetHeight() }) : null;
       climbHands.update(dt, handsClimb, { yaw: camNow?.yaw, pitch: camNow?.pitch, lens: handsLens });
       const canAttack = !playerWeapon.sheathed && (entity?.equipCountdown ?? 0) <= 0 && !spellArmed() && !fpsSpellCasting.isPlayingAnim && !climbing && !actTool() && !pelletsOwed();   // AUDIT 29 D2: no swing behind a gathering act's tool; AUDIT PISTOL-PORT A5: nor a shot with no Pellet left for it
@@ -2179,7 +2184,11 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
         // the same layout, the same light, under the same two lane gates the cast's hands stand under (the Morrowind arm
         // holds its own spell stance, MW-D39; the Beholder's third person hides both). The weapon is already down here:
         // shown()'s HasReadySpell leg hides it, which is what left the screen empty until the click.
-        if (readiedHandsOn() && !fpsSpellCasting.isPlayingAnim) {
+        // SPELL-CLIMB (#bug-reports, "Spell+Climbing=4 arms"): AND THEY YIELD TO THE HANDS ON THE WALL. The mod reads no
+        // climb - DFU's climb screen is empty, so nothing stood beside them - but the enhanced climb puts two fists on the
+        // stone (CLIMB-HANDS), and both pairs stood at once. The spell stays readied (a click on the wall still casts it);
+        // its hands stand down while the fists show and come back once they are off the screen.
+        if (readiedHandsOn() && !fpsSpellCasting.isPlayingAnim && !climbHands.showing()) {
           const sp = readiedSpell();
           const f = readiedHandsFrame(sp, fpsSpellCasting.isPlayingAnim);
           if (f >= 0) { drawSpellCastHands(renderer, c, spellArtFor(sp.element), f, { tint: fpTint }); spellHandsDrawn = true; }
@@ -2203,7 +2212,9 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       // WALL. The classic sprite is lowered out of the screen for the climb (CLIMB4, below); the sprite lane's two fists
       // (or a fist and the reaching arm, looked off the wall) come up in its place. Above every sheathe gate - the hands
       // hold the stone whatever is drawn - and under the same vetoes the spell's hands take, and the held map's.
-      if (c && !paralyzed && !fpArm.active() && !eotbHidesWeapon() && !sheetWindowUp()) climbHands.draw(c, { tint: fpTint });
+      // SPELL-CLIMB: and never under a spell's hands - a cast in flight has them off the stone (frame(), castTakesHands),
+      // and a readied spell's stand down while the fists show (above): one pair of arms on the screen.
+      if (c && !paralyzed && !spellHandsDrawn && !fpArm.active() && !eotbHidesWeapon() && !sheetWindowUp()) climbHands.draw(c, { tint: fpTint });
       // TORCH-VIS (2026-09-18, Mac: "if you only have the torch equipped and no weapon, it doesn't show you
       // holding it in first person (morrowind)"): THE TORCH IS NOT THE WEAPON'S TO HIDE, and a SHEATHED STANCE IS
       // NOT A STOWED LIGHT. `shown()` is the WEAPON's visibility - this file says so itself a few lines up, where
