@@ -30,6 +30,27 @@
     ]
   },
   {
+    "name": "STAFF-SPEED-CORE-touch-wakes-idle",
+    "file": "server-account/src/staff.js",
+    "old": "AND last_act > ?4 AND expires_at > ?1')",
+    "new": "AND (last_act > ?4 OR 1) AND expires_at > ?1')",
+    "why": "the folded touch, landing before the lookup, brings a session past its idle back to life",
+    "tests": [
+      "test/server/staffspeed_core.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-SPEED-CORE-touch-spent-life",
+    "file": "server-account/src/staff.js",
+    "old": "AND last_act > ?4 AND expires_at > ?1')",
+    "new": "AND last_act > ?4 AND (expires_at > ?1 OR 1)')",
+    "tests": [
+      "test/server/staffspeed_core.test.js"
+    ],
+    "equivalent": true,
+    "why": "the touch never moves expires_at, so a session past its 8 hours is still refused and deleted below whichever lands first, and every reader of last_act (staffHidden.js LIVE_SQL, safety.js claims, the Team page) asks expires_at too. Kept so the touch never writes a dead row."
+  },
+  {
     "name": "STAFF-SPEED-CORE-mods-row-after",
     "file": "server-account/src/staff.js",
     "old": "ORDER BY handle_lc LIMIT 500'), audit('mods-read', null, null, { onceIn: STAFF_READ_ROW_S })]);",

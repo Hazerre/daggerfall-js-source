@@ -78,3 +78,22 @@ test('STAFF-PANEL-SPEED core: the folded touch writes what the touch wrote - an 
   assert.equal((await s.staff('/v1/staff/me', {}, s.token)).status, 401, 'past its idle');
   assert.equal(act(), undefined, 'and gone, never touched alive');
 });
+
+test('STAFF-PANEL-SPEED core: the touch landing BEFORE the lookup answers the same - D1 runs two statements sent together in either order, and this database ran the lookup first every time, so its guard was never held (mutant: the touch\'s idle guard gone)', async () => {
+  const s = await stand();
+  const prepare = s.env.DB.prepare;
+  s.env.DB.prepare = (/** @type {string} */ sql) => {
+    const st = prepare.call(s.env.DB, sql);
+    if (sql.includes('s.last_act AS s_act')) { const first = st.first.bind(st); st.first = async () => { await new Promise((r) => setImmediate(r)); return first(); }; }
+    return st;
+  };
+  const act = () => s.raw.prepare('SELECT last_act FROM staff_sessions').get()?.last_act;
+  s.raw.prepare('UPDATE staff_sessions SET last_act = ?').run(nowS() - STAFF_TOUCH_S - 5);
+  const me = await s.staff('/v1/staff/me', {}, s.token);
+  assert.equal(me.status, 200);
+  assert.ok(act() >= nowS() - 1, 'a stale act writes now');
+  assert.equal(me.body.idleAt, act() + STAFF_IDLE_S, 'and answers the idle it wrote');
+  s.raw.prepare('UPDATE staff_sessions SET last_act = ?').run(nowS() - STAFF_IDLE_S - 1);
+  assert.equal((await s.staff('/v1/staff/mods', {}, s.token)).status, 401, 'past its idle, never brought back by its own touch');
+  assert.equal(act(), undefined, 'and gone');
+});
