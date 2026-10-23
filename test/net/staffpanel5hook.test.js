@@ -10,7 +10,7 @@ import { parse } from 'acorn';
 import { OnlineSession } from '../../src/net/online.js';
 import { SOCIAL_ROOM, validPartyPose, cellRoomOfWire, rosterFor } from '../../src/net/wire.js';
 import { FOLLOW_RELAY_MIN, WHERE_NOTE_MOVING_MS, WHERE_NOTE_STILL_MS } from '../../src/net/staffFollow.js';
-import { createStaffHook, staffHookDoor, STAFF_HOOK_VERSION, STAFF_TOKEN_WAIT_MS } from '../../src/net/staffHook.js';
+import { createStaffHook, staffHookDoor, hiddenSeat, STAFF_HOOK_VERSION, STAFF_TOKEN_WAIT_MS } from '../../src/net/staffHook.js';
 import { createStaffFollowHost, staffFollowOnPage } from '../../src/scenes/staffFollowHost.js';
 import { notePlace, staffTpLine, followStaffPlayer, staffDestinationKey, quietTeleportAllowed, STAFF_TP_FALLBACKS, validStaffDestination } from '../../src/net/staffTeleport.js';
 import { fakeSocketClass } from '../fakeSocket.mjs';
@@ -199,6 +199,9 @@ test('STAFF-PANEL5-FOLLOW-FIX hook, on real sessions: a place room names no acco
   hook.tick();
   const eye = sockets[1];
   assert.equal(eye.url, `wss://relay.test/room/${cell}?hd=1`, 'a hidden seat, from the reserve over a full layer');
+  const Seat = hiddenSeat(FakeWS);
+  assert.equal(new Seat('wss://relay.test/room/world:1,1?ly=2').url, 'wss://relay.test/room/world:1,1?ly=2&hd=1', 'beside a layer asked');
+  assert.ok(new Seat('wss://relay.test/room/x') instanceof FakeWS);
   eye.open(); await flush();
   // the cell's welcome as the relay writes it (wire.js rosterFor): the target's row carries no account
   const pose = { x: a.x + 5, y: 3, z: a.z + 7, yaw: 1.5, pitch: -0.2 };
