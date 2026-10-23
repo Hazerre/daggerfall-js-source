@@ -88,9 +88,11 @@ export function netUrgency(r) {
  */
 export async function netRanked(db, nowS, { window = '10s', kind = 'all', sort = 'urgent' } = {}) {
   const [fCol, bCol, span] = WINDOWS[/** @type {keyof typeof WINDOWS} */ (window)] ?? WINDOWS['10s'];
-  const rows = (await db.prepare(`SELECT r.*, p.handle, p.guest_name FROM staff_net_rows r LEFT JOIN players p ON p.id = r.sub
-    WHERE r.at > ?1 ORDER BY r.at DESC LIMIT ?2`).bind(nowS - NET_READ_S, NET_READ_MAX).all())?.results ?? [];
-  const asOf = (await db.prepare('SELECT MAX(at) AS at FROM staff_net_batches').first())?.at ?? null;
+  // STAFF-PANEL-SPEED: the rows and the last window's time asked together
+  const [read, last] = await Promise.all([db.prepare(`SELECT r.*, p.handle, p.guest_name FROM staff_net_rows r LEFT JOIN players p ON p.id = r.sub
+    WHERE r.at > ?1 ORDER BY r.at DESC LIMIT ?2`).bind(nowS - NET_READ_S, NET_READ_MAX).all(), db.prepare('SELECT MAX(at) AS at FROM staff_net_batches').first()]);
+  const rows = read?.results ?? [];
+  const asOf = last?.at ?? null;
   /** @type {Map<string, any>} */
   const by = new Map();
   for (const r of rows) {
@@ -127,8 +129,8 @@ export async function staffNet(ctx, env, path, body, who, audit) {
   const kind = NET_KINDS.includes(body.kind) ? body.kind : 'all';
   const sort = body.sort === 'newest' ? 'newest' : 'urgent';
   const from = Number.isSafeInteger(body.from) && body.from > 0 ? body.from : 0;
-  const { ranked, asOf } = await netRanked(ctx.db, ctx.nowS, { window, kind, sort });
-  await audit('net-read', null, { window, kind }, { onceIn: 10 * 60 }).run();
+  // STAFF-PANEL-SPEED: the audit row with the reads, one trip
+  const [{ ranked, asOf }] = await Promise.all([netRanked(ctx.db, ctx.nowS, { window, kind, sort }), audit('net-read', null, { window, kind }, { onceIn: 10 * 60 }).run()]);
   return { players: ranked.slice(from, from + NET_PAGE), next: from + NET_PAGE < ranked.length ? from + NET_PAGE : null, total: ranked.length,
     high: ranked.filter((p) => p.level === 'high').length, asOf, windowS: WINDOWS[/** @type {keyof typeof WINDOWS} */ (window)][2] };
 }

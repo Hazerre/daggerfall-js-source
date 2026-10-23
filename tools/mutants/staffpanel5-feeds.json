@@ -453,8 +453,8 @@
   {
     "name": "STAFF-PANEL5-FEEDS-read-unaudited",
     "file": "server-account/src/staffReactions.js",
-    "old": "await audit('reactions-read', row.id, { name }, { onceIn: 10 * 60 }).run();",
-    "new": "void name;",
+    "old": "    audit('reactions-read', row.id, { name }, { onceIn: 10 * 60 }).run(),",
+    "new": "    void name,",
     "why": "a Reactions read not in the audit log",
     "tests": [
       "test/server/staffpanel5feeds.test.js"
