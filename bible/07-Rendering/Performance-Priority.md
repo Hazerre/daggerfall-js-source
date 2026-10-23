@@ -2334,6 +2334,87 @@ code they read (the ground sets' home: `audit68_worldjs`, `bantha2_floor`, `dfmo
 `grain1_terrainmip`, `grasslit2`, `iil1`, `labGrass`, `precip4_snowground`, `ve1_vanillaEnhanced`, `waterpuddle`; the clump held to its
 composition; `grasslit2`'s recorders keep a cell as handed), and 28 mutant records of fourteen lists re-aimed by content, every one dead where it now stands.
 
+## SNOW-SWEEP — the snow's sweep walks the standing pixels at the snow's frame budget
+
+*After OW-HITCH's re-measure in the real game (2026-10-23): "spread snowCoverHost's sweep across frames under the snow
+budget".*
+
+**Re-measured.** OW-HITCH's "Not measured" (its fixes' frames in the real game) was run at `a61d01901` on a machine with
+a GPU: an RTX 5080 and an i9-12900KF, headless Edge on ANGLE D3D11, at 1920 x 1080.
+- The journey: Knightstale at 15:00 on the freeware ARENA2, then a view journey by the roads to Kambria (637,56), 100 s
+  a pace.
+- Random encounters were off and foes calm (probe-only edits). A foe at the rider's feet stops a Travel Options journey
+  every few seconds.
+- The journey's stops are left out.
+- The driver is a scratch script over `tools/frameProbe.mjs`'s `editsPlugin`, outside the tree, like OW-HITCH's.
+- This CPU is fast. The figures rank costs; they are not a player's milliseconds.
+
+| | foot x10 | horse x20 | horse x60 | horse x100 |
+|---|---|---|---|---|
+| seconds a map pixel | 24.8 | 4.8 | 2.4 | 1.76 |
+| frame p50 / p95 / p99, ms | 16.6 / 20.8 / 29.2 | 16.7 / 29.3 / 41.6 | 29.2 / 45.8 / 83.3 | 20.8 / 37.5 / 66.8 |
+| frames over 50 ms in 100 s | 5 | 24 | 94 | 73 |
+| of them the snow's sweep | 3 | 12 | 29 | 29 |
+| GC on the main thread, ms/s | 11.5 | 19.4 | 35.4 | 37.5 |
+
+Three things made the frames over 50 ms:
+- **The snow's sweep.** The most frequent at x10, x20 and x100, and the second at x60. About one per two map pixels
+  crossed.
+- **Major GC cycles: the longest frames.** The finalize was 76-138 ms. At x60 and up, incremental marking piled into
+  one frame, giving frames of up to 330 ms. Each cycle marks a live heap of 1.1-1.4 GB. Half of the cycles started on
+  V8's global limit (the JS heap and the memory outside it) rather than the old generation's.
+- **From x60 up, the build-bound frames.** Each is OW-BUILD's 30 Hz slice, plus a crossing's re-stride, plus the
+  Overworld's readout. Its route line costs 2.7-8.5 ms every frame of a far journey.
+
+**Found.** `snowCoverHost.js` `tick` swept whenever `buildGen` moved. That is at every step of the snowpack's grid, and
+also at every lattice cell walked (two map pixels), because `windowAbout` resets `buildAt` when the window moves. The
+sweep checked every flat of every standing pixel in that one frame: 40-70 ms of script on the i9. It ran outside
+SNOW-BUDGET's 3 ms, which covers the lattice's `advance` alone.
+
+**The fix** (`snowCoverHost.js` `beginSweep`, `sweepUntil`):
+- A sweep is begun: the standing pixels the snow dresses, nearest first.
+- Each frame walks it as far as the frame's shared snow budget allows (`budgetFor`). The walk reads its deadline between
+  pixels, and every `SWEEP_FLATS_A_READ` (64) flats within one: a forest pixel stands thousands.
+- A pixel found due is re-skinned as it is found. The nearest are still the first marked, and the marks are the whole
+  sweep's.
+- Marks now arrive over several frames, and this changes nothing downstream. The skin queue is a set
+  (`world/seasonReskin.js` `skin`), so a pixel marked again while its skin is pending is skinned once. `runSkin` takes
+  the nearest standing pixel when it runs, whatever order the marks came in. The whole sweep re-marked pending pixels at
+  every window move too.
+- A call moves at least one pixel's first flats.
+- The walk waits while the window catches up after a move. The move resets the window's step marker, so the sweep
+  begins again on the lines the window then reads.
+- A pixel let go is passed. One built again is checked from its first flat.
+- `sweep()` stays the whole walk at once, and takes over any sweep in hand.
+
+**Measured.** In the real game, the same journey on a horse on this branch and on its base (`556956bf1`), one run each.
+The runs had 8, 5, 11 and 11 stops, left out as above.
+
+| | x60 base | x60 SNOW-SWEEP | x100 base | x100 SNOW-SWEEP |
+|---|---|---|---|---|
+| frame p50 / p95 / p99, ms | 20.9 / 37.5 / 70.9 | 20.9 / 33.5 / 45.9 | 24.9 / 37.5 / 70.8 | 25.0 / 37.5 / 49.9 |
+| frames over 50 ms in 100 s | 65 | 26 | 64 | 25 |
+| of them the snow's sweep | 35 | 0 | 39 | 0 |
+| the sweep's script, ms/s (`sweep` / `sweepUntil` inclusive) | 15.6 | 16.2 | 15.1 | 13.8 |
+| longest frame, ms (a major GC cycle) | 354 | 396 | 363 | 408 |
+
+Compare within a table, not across them. The re-measure's x60 (one run at `a61d01901`, 2 stops) and this base's x60 (8
+stops) differ in tree and in the stretch of the route the stops left.
+
+The sweep does the same work, spread: no frame over 50 ms is the sweep's now. The frames over 50 ms that are left are
+the build-bound frames (12-17 a run) and the GC's (4-5 a run, the longest). This slice moves neither.
+
+**The four hosts.** `scenes/world.js` wired: it alone streams pixels and keeps the snow cover host (`snowCover.tick`).
+`scenes/exterior.js` (one fixed city), `scenes/worldModes.js` (a building) and `scenes/dungeonContext.js` (a dungeon)
+keep no snow cover host.
+
+Pins: `test/render/snowsweep.test.js` (5): the walk a slice a frame against the whole sweep; a forest pixel's flats past
+the deadline; a pixel built again part-way; two asks in a frame sharing its budget; the window's move holding the walk.
+Mutants: `tools/mutants/snowsweep.json`, 6, all dead. PIN MOVED: re-aimed by content at the walk's lines, all dead:
+- `tools/mutants/audit_precip.json`: AUDIT-PRECIP-HOST-3-the-sweep-capped, -farthest-first and
+  AUDIT-PRECIP-HOST-6-a-flat-s-decision-unread;
+- `tools/mutants/precip1.json`: PRECIP4-the-sweep-farthest-first and PRECIP4-the-step-unread.
+
 ## For the owner
 
 - **The A/B this branch owes**: on a machine with the data, `ARENA2_PATH=... node tools/frameProbe.mjs knight night`
