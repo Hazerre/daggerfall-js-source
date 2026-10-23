@@ -359,6 +359,7 @@ export function lerpPose(from, to, t) {
     ...(to.cl ? { cl: to.cl, ...(Number.isFinite(to.cw) ? { cw: to.cw } : {}), ...(to.ck ? { ck: to.ck, ...(Number.isFinite(to.cy) ? { cy: to.cy } : {}), ...(to.cd ? { cd: to.cd } : {}) } : {}) } : {}),   // CLIMB6: the move's kind, lip and time, whole   // CLIMB5: the climb and its facing - whole (the body eases its own yaw), omitted off the wall as the wire omits it
     ...(to.ga ? { ga: to.ga, ...(to.gm ? { gm: to.gm } : {}) } : {}), ...(to.gb ? { gb: to.gb } : {}),   // PEER-ACTS: the gathering act and the net's throw, and the beats on their own - discrete, omitted at none as the wire omits them
     ...(to.ab ? { ab: aboardAlong(from.ab, to.ab, k) } : {}),   // DECK-POSE: the place aboard, eased along its deck as the feet are - omitted ashore as the wire omits it
+    ...(to.pl ? { pl: rideAlong(from.pl, to.pl, k) } : {}),   // EG-H1 (RIDE-PLAY): the ride on a breach's moving piece, eased on one piece as the feet are - dropped here, no ridden peer ever reached rideAt
   };
 }
 /** DECK-POSE (net/wire.js validAboard): a place aboard drawn between two poses' - on one deck, the feet in her frame eased
@@ -367,6 +368,14 @@ export function lerpPose(from, to, t) {
 export function aboardAlong(from, to, k) {
   if (!Array.isArray(from) || from[0] !== to[0] || from[1] !== to[1]) return [...to];
   return [to[0], to[1], from[2] + (to[2] - from[2]) * k, from[3] + (to[3] - from[3]) * k, from[4] + (to[4] - from[4]) * k];
+}
+/** EG-H1 RIDE-PLAY (FIELD BUGS 2026-10-23, net/wire.js riddenOf): a ridden pose's `pl` - [piece, dx, dy, dz] - drawn
+ *  between two poses' - on one piece its offset eased as the feet are; onto a piece, or onto another, the newer whole. The
+ *  play-out carried no `pl` at all, so the session's drawn pose never had one and `rideAt` stood no peer on its piece: a
+ *  rider on a swinging Drift was drawn in world space, 160-550 ms behind it (Elite-Gates.md section 10.8). Pure. */
+export function rideAlong(from, to, k) {
+  if (!Array.isArray(from) || from[0] !== to[0]) return [...to];
+  return [to[0], from[1] + (to[1] - from[1]) * k, from[2] + (to[2] - from[2]) * k, from[3] + (to[3] - from[3]) * k];
 }
 
 /** The distance between two poses on the ground. */

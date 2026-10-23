@@ -4,11 +4,13 @@ One report, from the owner: "I notice with sailing. Players on board the ship ji
 Other players also slide when on board your ship/npc ships". Read on main's `dab1e710d`. Every system it touches is the
 port's own (Come Sail Away is single-player and DFU has no second player to stand on a deck - `03-World/Come-Sail-Away.md`
 "Sailing together (CSA-K)"), so no DFU member moves and no Ledger row is owed. The pins are
-`test/net/peer/deckpose.test.js`, the mutants `tools/mutants/deckpose.json` (16, all dead).
+`test/net/peer/deckpose.test.js` and `test/net/eliteGates/ridepose_play.test.js`, the mutants `tools/mutants/deckpose.json`
+(16, all dead) and `tools/mutants/ridepose_play.json` (5, all dead).
 
 | | Report | What it was | Done |
 |---|---|---|---|
 | 1 | "Players on board the ship jitter while sailing instead of staying put. Other players also slide when on board your ship/npc ships" | Another player aboard a boat - mine, another's, a booked passage's ship - was stood on her deck by the foes frame's `ab` alone: five words a second at most, only when it changed, the full frames alone (one in two seconds) through a crowded cell's relay, each eased toward. A body walking her deck lurched and slid on after it stopped | DECK-POSE |
+| 2 | (the owner, after DECK-POSE: "Do the not fixed items") - found beside 1: the Elite Breach's riders | The session's play-out (`net/online.js` lerpPose) carried no `pl`, so a peer standing on a moving piece was never drawn on it | RIDE-PLAY |
 
 ## DECK-POSE (1) - `src/net/wire.js`, `src/net/online.js`, `src/scenes/comeSailAway/comeSailAwayAboard.js`
 
@@ -63,11 +65,24 @@ her passengers and her helm are this path's. The sea's own ships under sail - a 
 stands on their decks: they stand in the player's collider (`navalHost.js` collidable) but no deck carries a body by
 their move, here or on another's screen. Not changed here.
 
-FOUND BESIDE IT, NOT CHANGED: `net/online.js` lerpPose carries no `pl` (EG-H1's ridden pose, `11-Multiplayer/Elite-Gates.md`
-section 10.8), so the session's play-out drops it and `rideAt` never meets a ridden peer through the tick - the same gap
-as this one, on the Spire's moving pieces. Its pins drive `rideAt` directly.
-
 PINS MOVED: `test/net/peer/fbsea_deck.test.js` and `test/systems/csa_together.test.js` (the place said is world.js's
 csaDeckWord); `test/net/eliteGates/egint_client.test.js` (sendPose lays the ride and the place); the RELAY_VERSION pins
 (world250) and SLAM8's law row (`test/net/relayversion.test.js`); five mutant records re-aimed by content
 (`csa_together.json` - the door's bounds now `wire.js`'s - `fbsea.json`, `soc1.json`).
+
+## RIDE-PLAY (2) - `src/net/online.js`
+
+FOUND reading DECK-POSE's play-out: EG-H1's ridden pose (`11-Multiplayer/Elite-Gates.md` section 10.8 - a pose on an Elite
+Breach's moving piece carries `pl`, the piece and the body's offset from its top, so a reader stands the rider on the
+piece at its own clock through the session's `rideAt`, `scenes/eliteGates/egClient.js` rideDraw). The session draws a peer
+from its play-out (`poseAlong` over `lerpPose`), and `lerpPose` builds the drawn pose field by field - with no `pl`. So the
+drawn pose never had one, the session's `if (s.pl && this.rideAt)` never held, `rideAt` was told every rider was on no
+ride, and a rider on a swinging Drift stood in world space 160-550 ms behind it, as the section's own reason says it must
+not. EG-H1's pins called `rideAt` by hand on a pose that had a ride, so nothing read the seam between.
+
+THE CHANGE: `lerpPose` carries the ride (`rideAlong`): on one piece its offset eased as the feet are; onto a piece, onto
+another, or from no ride, the newer whole; off every piece, none; the drawn ride its own copy. No wire change - the field
+has been on the pose since EG8. Pins: `test/net/eliteGates/ridepose_play.test.js` - through a real session, a rider handed
+to `rideAt` with her ride every frame and drawn where it stood her, her offset walked evenly; mutants
+`tools/mutants/ridepose_play.json` (5, all dead).
+
