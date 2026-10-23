@@ -21,7 +21,7 @@
 //   the hook asks { dfoStaff: 'token', sub, room } and the panel answers { dfoStaff: 'token', sub, room, tok } - a
 //   follow token for that room (a token opens each room once), or tok null when the staff session refuses it.
 import { OnlineSession } from './online.js';
-import { SOCIAL_ROOM, cellRoomOfWire, isCellRoom } from './wire.js';
+import { SOCIAL_ROOM, cellRoomOfWire, isCellRoom, isSocialRoom } from './wire.js';
 import { ID_RE, TOKEN_MAX_CHARS } from './identityToken.js';
 import { noteRoom } from './staffFollow.js';
 import { notePlace } from './staffTeleport.js';
@@ -111,7 +111,10 @@ export function createStaffHook({ main, askToken, Session = OnlineSession, WS = 
         // (as chatSafetyHost does for the game's own links) - with leaseDoor on, a lease room hears nothing else from it
         h.onLease = (/** @type {string} */ l) => { h.sendLease(l); eye?.sendLease(l); };
       }
-      if (hub.room !== SOCIAL_ROOM) hub.join(SOCIAL_ROOM, null);
+      // STAFF-FOLLOW-SHARD (mob, 2026-10-23: "follow does not work"): the bus hops a hub link to its own shard
+      // (net/hubShards.js), and a link on its shard is the hub's - asked back to the bus each frame, it hopped and came back
+      // for ever, a token a hop, and was never told `on`
+      if (!isSocialRoom(hub.room)) hub.join(SOCIAL_ROOM, null);
       hub.tick();
       if (!on) return;
       const v = peer();

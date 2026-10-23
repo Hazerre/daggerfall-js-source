@@ -834,7 +834,8 @@ import { createTownSeatBook, parseSeatCommand, parseSiegeCommand } from '../net/
 import { hasCarriageGate } from '../world/immersiveTravelGates.js';   // OW-HUBS: a town with a carriage at its gate
 import { seatArrivalLine, seatHallOf, seatBannerOf, boardTithePct } from '../net/townSeatLaw.js';   // SEAT1a: the seat's arrival line; SEAT-HALL: whose hall a palace is; CROWN-HALL: the throne room's banners; AUDIT SEATS-3 D3: a board's Tithe
 import { hallMay } from '../net/hallLaw.js';   // SEAT-HALL: a palace's keepers are a hall's
-import { createOnlineHomes, moveArenaHomes, homeSceneName, homeTownBlocks, holdRealmDeeds, homeClaimLayout, checkpointLanded, HOME_RETRY_MS } from '../systems/online/onlineHomes.js';   // HOME1: the account service's homes, one town at a time; ARENA4b: the ones the arena displaced, moved; HOME-PRICE: a town's size; FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed the realm gave, held
+import { createOnlineHomes, moveArenaHomes, homeSceneName, homeTownBlocks, homeClaimLayout, checkpointLanded, HOME_RETRY_MS } from '../systems/online/onlineHomes.js';   // HOME1: the account service's homes, one town at a time; ARENA4b: the ones the arena displaced, moved; HOME-PRICE: a town's size; FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed the realm gave, held
+import { createHomesBoot } from './homesBootHost.js';   // KNIGHT-HOUSE's deed holds and ACCOUNT-HOMES' sweep, once a boot
 import { townBoardRows } from '../ui/town/townMapMarks.js';   // TOWN-MARKS: the Notice Boards and the player housing on the town map
 import { setVendorWaypoint, clearVendorWaypoint, vendorWaypoint, vendorWaypointKey, isVendorWaypoint } from '../systems/vendorWaypoint.js';   // HOME-VENDOR: the trader's waypoint
 import { setVendorPage } from '../ui/vendor/vendorPage.js';   // HOME-VENDOR: the Vendor page, under the Professions
@@ -1849,20 +1850,21 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // off `params`: `onlineOn` is declared far below, and a quest can be set up before it is. (Its door, `homesApi`, stands
   // above the data's read - BOOT-OVERLAP.)
   const onlineHomes = homesApi ? createOnlineHomes({ api: homesApi, character: () => characterIdOf(playerEntity), onWrote: () => legacyOnlineHomesRead(), onHomes: () => homesLearned() }) : null;   // QUEST-HOME: and a home learned of, a quest site not yet reached in it chosen again   // LEGACY7 part five: a home of mine bought, sold or changed - the line's to learn again
-  /** LEGACY7 part five: ONLINE, THE LINE'S HOUSES ARE ITS MEMBERS' ONLINE HOMES (Legacy-Arc 10b) - this realm character's
-   *  rows of the account's homes (/v1/homes/mine; HOME1: a home is a realm character's), each named by its town. Read at
-   *  the boot and after each home of mine changed (the registry's `onWrote`); the house's save takes the last read - null
-   *  until one landed, which learns nothing and drops nothing (legacyHost.js syncHousesNow). */
+  /** LEGACY7 part five: ONLINE, THE LINE'S HOUSES ARE ITS MEMBERS' ONLINE HOMES (Legacy-Arc 10b) - ACCOUNT-HOMES
+   *  (2026-10-06): a home is its account's, every member's, so they are the account's rows of /v1/homes/mine (its homes
+   *  and the deeds the realm gave its characters), each named by its town, and the line learns them WHOLE (heldHousesWhole:
+   *  a home any character of the account sold leaves it). Read at the boot and after each home of mine changed (the
+   *  registry's `onWrote`); the house's save takes the last read - null until one landed, which learns nothing and drops
+   *  nothing (legacyHost.js syncHousesNow). */
   let _legacyOnlineHomes = null;
   /** AUDIT LEGACY III W5: the read asked last - an older answer landing after it changes nothing (_pinsGen's law). */
   let _legacyHomesGen = 0;
   function legacyOnlineHomesRead() {
     if (!homesApi || !realmSession) return;
-    const me = realmSession.id;
     const gen = ++_legacyHomesGen;
     homesApi.mine().then((r) => {
       if (gen !== _legacyHomesGen || !r?.ok || !Array.isArray(r.data?.homes)) return;
-      _legacyOnlineHomes = r.data.homes.filter((h) => h?.character === me).map((h) => ({
+      _legacyOnlineHomes = r.data.homes.filter((h) => h && typeof h === 'object').map((h) => ({
         regionIndex: h.region | 0, mapId: h.mapId >>> 0, buildingKey: h.buildingKey | 0,
         // AUDIT LEGACY III W1: named off the boot's own complete table, the town's by its map id
         location: _townOfMapId.get(h.mapId >>> 0)?.name ?? '',
@@ -1881,7 +1883,14 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let _pinsDroppedSaid = false;   // AUDIT WD3 B6   // AUDIT WD3 R3: the latest applyLayoutPins - an older one overtaken sets nothing
   let _homeLayoutsAsk = bootHomeLayoutsAsk;
   let _arenaHomesAsked = false;   // ARENA4b: the online homes the arena displaced, moved once a boot (moveArenaHomesOnline) - here, above the boot's first landing
-  let _deedsHeldAsked = false;   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: the deeds the realm gave, held once a boot (holdRealmDeedsOnline) - here, beside it
+  // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: the deeds the realm gave, held once a boot; ACCOUNT-HOMES: the homes this save
+  // keeps things in that the account holds no more, swept once a boot (scenes/homesBootHost.js) - built here, beside
+  // them, above the boot's first landing
+  const homesBoot = createHomesBoot({
+    homesApi, onlineHomes, realm: realmSession, giveOwn: arenaGiveOwn, player: () => playerEntity,
+    loaded: () => playerSpawned && _bootLoaded && !_loading, stands: () => !!modes,   // `modes` is declared far below: read only once the world stands
+    say: (line) => townTalk.say(line),
+  });
   let playerSpawned = false, _bootLoaded = false;   // HOTFIX 1003: here, above the boot's first landing - moveArenaHomesOnline reads it when the homes' towns land, which can be before the boot walk reached its old line (a TDZ ReferenceError live)
   // HOME-LOOK (2026-09-30, asked: "The ability to choose the texture for the roof, walls, door, windows, etc"): A PLAYER'S
   // HOME IS DRAWN OUT OF ITS PIXEL'S MERGE, with its OWN texture table - the pixel's climate swaps and its owner's look
@@ -7793,11 +7802,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         const inv = invertAffine(m);
         if (!tri || !inv || !col?.addMesh) { _csaBuckets.delete(key); continue; }
         const b = { col, m: Float64Array.from(m), inv, c, shape, R: null, Rs: new Float64Array(9), T: [0, 0, 0], boat };
-        col.addMesh(key, tri.positions, tri.indices, m, () => b.T, () => b.R);
+        col.addMesh(key, tri.positions, tri.indices, m, () => b.T, () => b.R, true);   // SEA-DROPS: posed - its box kept between the syncs that move it (player/collider.js posesMoved)
         _csaBuckets.set(key, b);
       }
     }
     for (const [key, b] of _csaBuckets) if (!want.has(key)) { b.col?.removeBucket?.(key); _csaBuckets.delete(key); }
+    col?.posesMoved?.();   // SEA-DROPS: every boat's bucket carried where she stands - the collider's posed boxes made again at its next query
   }
   const _csaSlab = [0, 0, 0], _csaSweepSkip = new Set();   // FIELD BUGS 2026-10-02b: the sweep's scratch - the sweeping boat's own buckets
   /**
@@ -8932,16 +8942,24 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    * the pool's frame. A mode's frame (a building, a dungeon) stands no one's boat and puts me off any.
    */
   let _csaPeersPosed = false;
+  /** CSA-K / SEA-DECK: ME ON A DECK - whether a deck may carry me this frame (walking the street, alive, not mid-teleport: a
+   *  mode's frame - a building, a dungeon - stands no ship), what my motor stands on (that boat's own buckets, anything
+   *  else, or nothing), and the carry itself: the body and both ends of its render span by the deck's move, the facing
+   *  turned with it (the helm's turnPlayer). One answer for another player's boat (csaPeersFrame, in the mod's step) and
+   *  the sea's own ships (scenes/naval/seaDecks.js, after the sea poses them - naval.frame's `deck`). */
+  const deckMayCarry = () => walkMode && playerSpawned && !_teleporting && !_traveling && (modes?.mode ?? 'exterior') === 'exterior' && !(playerEntity.health <= 0 || modes?.deathUp?.());   // a death puts me off (DC1: the body does not move while the camera dies)
+  const deckGround = (b) => (!player.grounded ? null : typeof player.groundKey === 'string' && player.groundKey.startsWith(`csaBoat:${csaBoatId(b)}:`) ? 'boat' : 'other');
+  const deckCarry = (d, yawDeg) => { player.carryBy(d[0], d[1], d[2]); cam.yaw += (yawDeg * Math.PI) / 180; player.carryTurn?.((yawDeg * Math.PI) / 180); _csaMovedPlayer = true; };   // the helm's turnPlayer: the child's world yaw turned with its parent's
   function csaPeersFrame(dt) {
     if (_csaPeersPosed) return;
     _csaPeersPosed = true;
     csaPeers.setEnabled(csaOn());   // CSA-J: a disabled mod is one DFU never loaded - nothing of a peer's stands (AUDIT HCC O8's law)
     if (csaOn()) csaPeers.frame(dt);
     const boat = csaAboard.frame({
-      allowed: csaOn() && !!online && walkMode && playerSpawned && !_teleporting && !_traveling && (modes?.mode ?? 'exterior') === 'exterior' && !(playerEntity.health <= 0 || modes?.deathUp?.()),   // a death puts me off (DC1: the body does not move while the camera dies)
+      allowed: csaOn() && !!online && deckMayCarry(),
       feet: () => player.pos, height: player.height ?? CAPSULE_HEIGHT, swimming: !!player.isPlayerSwimming,
-      ground: (b) => (!player.grounded ? null : typeof player.groundKey === 'string' && player.groundKey.startsWith(`csaBoat:${csaBoatId(b)}:`) ? 'boat' : 'other'),
-      carry: (d, yawDeg) => { player.carryBy(d[0], d[1], d[2]); cam.yaw += (yawDeg * Math.PI) / 180; player.carryTurn?.((yawDeg * Math.PI) / 180); _csaMovedPlayer = true; },   // the helm's turnPlayer: the child's world yaw turned with its parent's
+      ground: deckGround,
+      carry: deckCarry,
     });
     if (boat || _csaBuckets.size) csaSyncColliders();   // the boats where they stand now (FIELD BUGS 2026-10-01b: every peer's, aboard or not - the one I left stands on)
   }
@@ -8999,8 +9017,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const slot = csaRuntime.AllBoats.filter((b) => b.GameObject?.activeSelf).indexOf(boat);
     return slot < 0 ? null : csaHelmWordOf(id, slot, boat, player.height);
   }
+  /** CSA-K / #1: my place aboard another's boat, or at my own helm - DECK-POSE: one place, two streams (this foes frame's
+   *  `ab`, and every pose I send - net/online.js poseAboard). */
+  const csaDeckWord = () => (csaOn() ? (csaAboard.word(player.pos) ?? csaHelmWord() ?? naval?.deckWord?.(player.pos) ?? null) : null);   // SEA-DECK: or aboard a ship of the sea's
   function csaAboardWord(frame, full) {
-    const w = csaOn() ? (csaAboard.word(player.pos) ?? csaHelmWord()) : null;   // #1: or where I stand at my own helm
+    const w = csaDeckWord();   // #1: or where I stand at my own helm
     const key = w ? JSON.stringify(w) : '';
     if (!full && key === _csaAboardKey) return false;
     if (frame) { frame.ab = w; _csaAboardKey = key; }
@@ -9581,6 +9602,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       legal: (region, n) => { changeLegalRep(playerEntity, region, n); surfacePlayer(); },
       faction: (id, n) => { if (playerEntity.factionRep) changeReputation(playerEntity.factionRep, id, n, true); },
     },
+    // SEA-DECK (scenes/naval/seaDecks.js): the sea's own ships carry whoever stands on their decks - carried after the eye
+    // was taken (the sea poses its ships after the mod's step), so the eye is taken again
+    deck: { allowed: deckMayCarry, ground: deckGround, carry: (d, yawDeg) => { deckCarry(d, yawDeg); cam.pos = player.eyeAt(); } },
     board: {
       leaveHelm: () => { if (csaRuntime?.isSailing?.()) csaCall(() => csaRuntime.StopSailing?.()); },
       placePlayer: (feet, yaw) => { player.spawn(feet[0], feet[1], feet[2]); cam.yaw = yaw; lookFilter.settle(); },
@@ -15358,7 +15382,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       _homeLayoutsApplied = true;
       modes?.homeLayoutsLanded?.();   // AUDIT WD3 R7: a home's room the player stands in is furnished now
       void moveArenaHomesOnline();   // ARENA4b: Daggerfall stands in its homes' layout now - a home the arena displaced is picked in it
-      void holdRealmDeedsOnline();   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed's town stands in the room's layout now - its hold names its building
+      void homesBoot.holdDeeds();   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed's town stands in the room's layout now - its hold names its building
+      void homesBoot.sweepGone();   // ACCOUNT-HOMES: and a home another character of the account sold (or took with its delete) gives back this one's things
     }).catch((e) => {
       console.warn('[layout] the homes\' towns:', e?.message ?? e);
       _serverLayoutRecords = null;   // not applied: asked again
@@ -15491,29 +15516,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       return moved;
     } catch (e) {
       console.warn('[arena] the displaced online home could not be moved:', e?.message ?? e);
-      return null;
-    }
-  }
-  /**
-   * FIELD BUGS 2026-10-04d KNIGHT-HOUSE (the Discord: "Houses earned through Knightly Orders still possibly purchaseable?
-   * ... I don't want to risk my Knight House being bought out from under me"): ONLINE, EVERY DEED THE REALM GAVE THIS
-   * CHARACTER (a Knightly Order's house - systems/online/onlineHomes.js realmDeedsOf) IS HELD BY THE ACCOUNT SERVICE, so no other
-   * player may claim its building - once a boot, after the homes' towns land (a hold names its building in its town's
-   * layout) and once the world stands with the character loaded (moveArenaHomesOnline's gates); the service reads the deed
-   * off the record the boot loaded. A house given before the hold existed, and one whose hold at the grant was lost, are
-   * held here; a hold made already answers `repeat`.
-   */
-  async function holdRealmDeedsOnline() {
-    if (_deedsHeldAsked || !onlineHomes) return null;
-    _deedsHeldAsked = true;
-    for (let i = 0; !(playerSpawned && modes && _bootLoaded && !_loading) && i < 1200; i++) await new Promise((r) => { setTimeout(r, 250); });   // `modes` is declared far below: read only once the world stands
-    if (!playerSpawned || !_bootLoaded || _loading) { _deedsHeldAsked = false; return null; }   // never the boot's stand-in character - asked again at the next landing
-    try {
-      const held = await holdRealmDeeds(onlineHomes, { houses: playerEntity.houses });
-      for (const d of held) if (!d.r?.ok) console.warn(`[homes] the deed to house ${d.buildingKey} is not held: ${d.r?.error}`);
-      return held;
-    } catch (e) {
-      console.warn('[homes] the deeds could not be held:', e?.message ?? e);
       return null;
     }
   }
@@ -21063,6 +21065,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       wire2: true,   // SCALE5b: the second wire - this build reads a relay's batched poses and its channel's roster deltas
     });
     online.onArena = (w, room) => arenaOnline?.word(w, room);   // ARENA4: a relay's bout's words, to the bout on this screen
+    online.poseAboard = csaDeckWord;   // DECK-POSE: my place on a deck rides every pose - the others play it out with my walk (scenes/comeSailAway/comeSailAwayAboard.js glue)
     // ONE-SEAT: the browser's arm - this tab goes online, so any other tab of this browser that is online gives its seat
     // up (net/oneSeat.js); the hub's arm is the World link's claim (chatStart)
     seatLock = createSeatLock({ onLost: () => seatLostNow() });
@@ -27346,7 +27349,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       return true;
     },
     // LEGACY-HOME: the houses the one played holds (a deed that stands - banking.js deedStands), and the house they are in
-    heldHouses: () => (isOnlinePage() ? (realmSession ? _legacyOnlineHomes : null) : (playerEntity.houses ?? []).filter((h) => (h?.buildingKey | 0) > 0 && deedStands(h))),   // LEGACY7 part five: online, this realm character's online homes (null until read)
+    heldHouses: () => (isOnlinePage() ? (realmSession ? _legacyOnlineHomes : null) : (playerEntity.houses ?? []).filter((h) => (h?.buildingKey | 0) > 0 && deedStands(h))),   // LEGACY7 part five: online, the account's online homes (null until read)
+    heldHousesWhole: () => isOnlinePage(),   // ACCOUNT-HOMES: online they are the line's whole - every member owns each, and one sold leaves
     inheritHouse: legacyInheritHouse,   // PERMADEATH-HOUSES: a house of the line's dead, the one played's
     // LEGACY6: what the world remembers - the town's regard of the one played and its day, the towns' minute for the
     // house's news, and the killer a fallen kinsman's mirror names, handed to the heir (revenant.js)
@@ -28880,7 +28884,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // walking, and the others drew a walk on a still body. Measured in that boat's frame as her bob carries it
     // (scenes/comeSailAway/comeSailAwayAboard.js deckPose), at the body's centre - the transform the helm pins; a new carrier (aboard,
     // ashore, a boat changed) measures from the next frame
-    const carrier = csaOn() ? (csaAboard.aboard?.boat ?? (csaRuntime?.isSailing() ? csaRuntime.state.CurrentBoat : null) ?? null) : null;
+    const carrier = csaOn() ? (csaAboard.aboard?.boat ?? (csaRuntime?.isSailing() ? csaRuntime.state.CurrentBoat : null) ?? naval?.deckBoat?.() ?? null) : null;   // SEA-DECK: or a ship of the sea's
     const here = (carrier && csaLocalOf(csaDeckPose(carrier), [player.pos[0], player.pos[1] + player.height / 2, player.pos[2]])) || player.pos;
     const movedThisFrame = _onlineLast && _onlineLastOn === carrier ? (here[0] - _onlineLast[0]) ** 2 + (here[2] - _onlineLast[2]) ** 2 > 1e-6 : false;
     if (movedThisFrame) { _onlineMovingUntil = now + ONLINE_MOVE_HOLD_MS; _hsLatch = player.slowRide; }   // HORSE-WALK: the slow ride - under half its base, or walked (motor.js slowRide) - the slow clop theirs as mine
@@ -29008,7 +29012,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const peerYaw = travelView?.active && travelView.camera ? travelView.camera.yaw : cam.yaw;
     const peerEye = travelView?.eye ?? cam.pos, peerRight = [Math.cos(peerYaw), 0, -Math.sin(peerYaw)];
     const tvGrow = travelView?.active ? peerGrow : null;   // OW-PEERS: the others grown under the Overworld, as the traveller is
-    const drawable = isCellRoom(online.room) && csaOn() ? csaAboard.glue(online.drawable(), { poseOf: (o, i) => csaPoseAhead(o, i, dt), toWire: campToWire, dt }) : online.drawable(); if (hccOn()) hcc.seatGlue(drawable, { toWire: campToWire });   // WAGONS2: the others seated in a wagon's back drawn on its seats as it is drawn here   // CSA-K: a peer aboard a boat stands on its deck as it is drawn here - its owner's (mine among them) or the one led here - never a stride behind it
+    const drawable = isCellRoom(online.room) && csaOn() ? csaAboard.glue(online.drawable(), { poseOf: (o, i) => csaPoseAhead(o, i, dt) ?? naval?.deckAhead?.(o, gamePaused() ? 0 : dt * worldTimeScale()) ?? null, toWire: campToWire, dt }) : online.drawable(); if (hccOn()) hcc.seatGlue(drawable, { toWire: campToWire });   // WAGONS2: the others seated in a wagon's back drawn on its seats as it is drawn here   // CSA-K: a peer aboard a boat stands on its deck as it is drawn here - its owner's (mine among them) or the one led here - never a stride behind it
     _peerMapPoses.clear();
     for (const d of drawable) if (d?.shown) _peerMapPoses.set(d.id, d.shown);
     if (hccOn()) hcc.driverGlue(drawable, { toWire: campToWire });   // WAGONS3: a driver on their bench, drawn seated there - after the map's poses, where `peerAnchor` reads the puller their wagon hangs from
@@ -29863,6 +29867,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       },
       buy: (o) => (guildBook ? guildBook.buyHall(o) : Promise.resolve({ ok: false, error: 'no-guild' })),
       setEntry: (e) => (guildBook ? guildBook.setHallEntry(e) : Promise.resolve({ ok: false, error: 'no-guild' })),
+      sell: (at) => (guildBook ? guildBook.sellHall(at) : Promise.resolve({ ok: false, error: 'no-guild' })),   // GUILD-HALL-SALE: at its door - the building the door names
       openStores: () => socialPanel?.openGuild?.('vault') === true,   // GUILD2b: the hall's chest is the guild's vault (its Stores a page beside it)
       // GUILD1e: the board standing in the hall - the guild's own notes, its members' (the Notice Board's window, its
       // Guilds tab alone); false where it cannot open (offline, no board book, another window up)
@@ -30313,7 +30318,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   if (!_loadedGame) upkeep.reset();   // AUDIT STEED1: a new character, no keep to catch up
   if (!_loadedGame) newGameModSaveRecords();   // WA1: a new character starts from every mod's NewSaveData (systems/modSaveData.js - a recorded departure)
   legacyHost?.afterBoot();   // LEGACY1 (D9): a loaded character with no family founded offline into its own answer or its Features tile's model - online never (LEGACY-CHOICE); a born or new one's is its own
-  if (legacyRealmLine) legacyOnlineHomesRead();   // LEGACY7 part five: the realm's homes of the one played, for the line's houses
+  if (legacyRealmLine) legacyOnlineHomesRead();   // LEGACY7 part five: the account's online homes (ACCOUNT-HOMES), for the line's houses
   // E3 - THE CONSOLE. ExteriorAutomap.Start (:417) and
   // DaggerfallTravelMapWindow's ctor (:229) each register their own
   // console commands; both surfaces are THIS host's, so both

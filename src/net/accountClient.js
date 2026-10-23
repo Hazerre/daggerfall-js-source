@@ -305,7 +305,7 @@ const REFUSAL_WORDS = {
   'home-update': () => t('account.refusal.homeUpdate', 'This game is out of date. Reload it to buy a home.'),   // WD3 (AUDIT WD3 B2): a build from before the town mods
   'home-towns': () => t('account.refusal.homeTowns', 'This town did not load the way other players see it. Reload the game to buy a home.'),   // WD3 (AUDIT WD3 B1): a town mod's pack did not load
   'home-layout': () => t('account.refusal.homeLayout', 'This town is still loading. Try again in a moment.'),   // WD3: the town is built again as the room's (scenes/world.js hearHomeLayouts)
-  'home-cap': () => t('account.refusal.homeCap', 'A character can own at most {max} homes. Sell one to buy another.', { max: HOME_CAP }),
+  'home-cap': () => t('account.refusal.homeCap', 'A character can buy at most {max} homes. Sell one it bought to buy another.', { max: HOME_CAP }),   // ACCOUNT-HOMES: the account owns them all; the cap counts what each character bought
   'home-rate': () => t('account.refusal.homeRate', 'You have bought and sold a lot of homes this hour. Try again later.'),
   'no-home': () => t('account.refusal.noHome', 'That home is not yours any more.'),
   'not-heir': () => t('account.refusal.notHeir', 'Only a living character of the same line as its fallen owner can take up that home.'),   // PERMADEATH-HOUSES: server-account/src/homes.js inheritHome
@@ -2076,7 +2076,7 @@ export function accountGuilds({ fetch, storage }) {
     // after the first burns Drakes, and a change asked twice is one line)
     // AUDIT PRE-MERGE 1003 WD1: a hall is a home - the layout its town stands in, always said (null: Daggerfall's), as a claim
     hallBuy: ({ character, mapId, buildingKey, region, price, layout = null }) => post('/v1/guilds/hall/buy', { character, mapId, buildingKey, region, price, layout: layout || null }),
-    hallSell: (character) => post('/v1/guilds/hall/sell', { character }),
+    hallSell: (character, at = null) => post('/v1/guilds/hall/sell', { character, ...(at ? { mapId: at.mapId, buildingKey: at.buildingKey } : {}) }),   // GUILD-HALL-SALE: at its door, the door's building
     hallEntry: (character, entry) => post('/v1/guilds/hall/entry', { character, entry }),
     heraldry: (character, heraldry, rid = null) => post('/v1/guilds/heraldry', { character, heraldry, ...(rid ? { rid } : {}) }),
     // GUILD2 (bible/11-Multiplayer/Guild-Overhaul.md): a new name for a price; the vault - read, a piece put in and taken

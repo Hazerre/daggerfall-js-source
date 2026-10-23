@@ -52,12 +52,13 @@
   {
     "name": "KNIGHT-HOUSE-own-deed-an-online-home",
     "file": "src/systems/online/onlineHomes.js",
-    "old": "    if (own && row.deed) return null;\n",
+    "old": "    if (row.mine && row.deed && typeof me === 'string' && row.character === me) return null;\n",
     "new": "",
     "tests": [
-      "test/systems/fb1004d_knight_house.test.js"
+      "test/systems/fb1004d_knight_house.test.js",
+      "test/server/home1.test.js"
     ],
-    "note": "A read made before the character was known names the knight's own deed row: the door took it for an online home (another scene, its things gone from view)."
+    "note": "A read made before the character was known names the knight's own deed row: the door took it for an online home (another scene, its things gone from view). ACCOUNT-HOMES (PIN MOVED): re-aimed by content - the knight's own deed, by its character."
   },
   {
     "name": "KNIGHT-HOUSE-client-blind-to-deed",
@@ -282,7 +283,7 @@
   {
     "name": "KNIGHT-HOUSE-version-unmoved",
     "file": "server-account/src/service.js",
-    "old": "export const ACCOUNT_VERSION = 'acct176';",
+    "old": "export const ACCOUNT_VERSION = 'acct178';",
     "new": "export const ACCOUNT_VERSION = 'acct76';",
     "tests": [
       "test/systems/fb1004d_knight_house.test.js"
@@ -372,12 +373,12 @@
   {
     "name": "KNIGHT-HOUSE-boot-unheld",
     "file": "src/scenes/world.js",
-    "old": "      void holdRealmDeedsOnline();   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed's town stands in the room's layout now - its hold names its building\n",
+    "old": "      void homesBoot.holdDeeds();   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed's town stands in the room's layout now - its hold names its building\n",
     "new": "",
     "tests": [
       "test/systems/fb1004d_knight_house.test.js"
     ],
-    "note": "A house given before the hold existed is never held: Arde's, as the field found it."
+    "note": "A house given before the hold existed is never held: Arde's, as the field found it. ACCOUNT-HOMES (PIN MOVED, HOST-SPLIT): re-aimed by content - the holds are scenes/homesBootHost.js's, the host calls them."
   },
   {
     "name": "KNIGHT-HOUSE-hold-before-save",
