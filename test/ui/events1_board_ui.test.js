@@ -186,7 +186,7 @@ test('EVENTS1 THE SEAMS: the gate\'s, the serpent\'s, the Abyss Dungeon\'s, the 
   assert.match(read('src/systems/raidingParties.js'), /const say = \(line\) => \(host\(\)\.say \?\? \(\(l\) => eventNotice\('raid', l\)\)\)\(line\);/);
   assert.match(read('src/scenes/witchesHost.js'), /const herald = \(\/\*\* @type \{string\} \*\/ l\) => \(deps\.eventNotice \?\? eventNotice\)\('festival', l\);/);
   const hud = read('src/ui/hud/hud.js');
-  assert.match(hud, /drawEventBoard\(\{ hidden: true \}\);/, 'the hide door');
-  assert.match(hud, /drawEventBoard\(\{ hidden: cursorActive \|\| !hudRenderEnabled\(\), dt \}\);/, 'the frame, on every skin');
+  assert.match(hud, /drawEventBoard\(\{ hidden: true \}\);[^\n]*\n  drawQuestHerald\(\{ hidden: true \}\);/, 'the hide door');
+  assert.match(hud, /\n  drawEventBoard\(\{ hidden: cursorActive \|\| !hudRenderEnabled\(\), dt \}\);\n  drawQuestHerald\(/, 'the frame, beside the herald and outside the skin\'s gate - on every skin');
   assert.match(read('src/ui/enhanced/enhancedHud.js'), /const STAT_ABOVE = '[^']*, \.evboard';/, 'the status widget stands under it');
 });

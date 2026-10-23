@@ -388,5 +388,5 @@ test('SERPENT2 timers: the serpent\'s row through its day - its rising counted d
   assert.ok(ENHANCED_CSS.includes(`.px-timerswin .tm-serpent { --tm-kind: ${SERPENT_RING_MAP_CSS}; }`));
   assert.match(rd('src/ui/enhanced/enhancedTimers.js'), /'Timers: gates, the sea serpent, the Abyss Dungeon, the Starfall, raids, battles and resets'/);   // PIN MOVED (SD2c): the Super dungeon's row beside the serpent's; ABYSS-NAME: named the player's way; STAR6: the Starfall's
   const w = rd('src/scenes/world.js');
-  assert.match(w, /serpent: \{ place: serpentOmen\?\.current\?\.\(\)\?\.site\?\.near \?\? null, fellAt: \(day\) => \{ const site = serpentOmen\?\.current\?\.\(\)\?\.site; return site && site\.day === day \? serpentLink\?\.fellAt\?\.\(day, site\) \?\? null : null; \} \},/, 'the host hands the omen\'s port and its own site\'s kill');
+  assert.match(w, /serpent: \{ place: serpentOmen\?\.current\?\.\(\)\?\.site\?\.near \?\? null, site: serpentOmen\?\.current\?\.\(\)\?\.site \?\? null, fellAt: \(day\) => \{ const site = serpentOmen\?\.current\?\.\(\)\?\.site; return site && site\.day === day \? serpentLink\?\.fellAt\?\.\(day, site\) \?\? null : null; \} \},/, 'the host hands the omen\'s port and its own site\'s kill (EVENTS1: and the site itself, the event board\'s way to it)');
 });

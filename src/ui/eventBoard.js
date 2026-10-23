@@ -124,6 +124,8 @@ function ensureStyle(doc) {
 }
 const part = (doc, cls, text = '') => { const n = doc.createElement('div'); n.className = cls; if (text) n.textContent = text; return n; };
 const set = (n, v) => { const s = v ?? ''; if (n.textContent !== s) n.textContent = s; };
+/** A class list from its parts, the false ones left out. */
+const classes = (...parts) => parts.filter(Boolean).join(' ');
 
 function build(doc) {
   ensureStyle(doc);
@@ -162,7 +164,7 @@ function drawRows(doc, now, inNews) {
     rowNodes = new Map();
     list.textContent = '';
     for (const r of rows) {
-      const row = part(doc, `evrow ev-${r.kind}${r.live ? ' live' : ''}`);
+      const row = part(doc, classes('evrow', `ev-${r.kind}`, r.live && 'live'));
       const top = part(doc, 'evrow-top');
       const p = { title: part(doc, 'evrow-title'), clock: part(doc, 'evrow-clock'), where: part(doc, 'evrow-where'), detail: part(doc, 'evrow-detail') };
       top.append(p.title, p.clock);
@@ -189,7 +191,7 @@ function drawNews(doc, now, inNews) {
   for (const c of shown) {
     let n = newsNodes.get(c.key);
     if (!n) {
-      n = { root: part(doc, `evnews ev-${c.kind} enter`), kind: part(doc, 'evnews-kind'), title: part(doc, 'evnews-title'), where: part(doc, 'evnews-where'), clock: part(doc, 'evnews-clock'), detail: part(doc, 'evnews-detail'), notes: part(doc, 'evnews-notes'), said: '', entering: true };
+      n = { root: part(doc, classes('evnews', `ev-${c.kind}`, 'enter')), kind: part(doc, 'evnews-kind'), title: part(doc, 'evnews-title'), where: part(doc, 'evnews-where'), clock: part(doc, 'evnews-clock'), detail: part(doc, 'evnews-detail'), notes: part(doc, 'evnews-notes'), said: '', entering: true };
       const top = part(doc, 'evnews-top');
       top.append(n.title, n.clock);
       n.root.append(n.kind, top, n.where, n.detail, n.notes);
@@ -206,7 +208,7 @@ function drawNews(doc, now, inNews) {
     set(n.where, whereOf(r));
     set(n.clock, r ? clockOf(r, now) : '');
     set(n.detail, r?.detail ?? '');
-    const cls = `evnews ev-${c.kind}${r?.live ? ' live' : ''}${n.entering ? ' enter' : ''}`;
+    const cls = classes('evnews', `ev-${c.kind}`, r?.live && 'live', n.entering && 'enter');
     if (n.root.className !== cls) n.root.className = cls;
     const said = c.notes.join('\n');
     if (said !== n.said) {

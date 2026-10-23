@@ -509,11 +509,11 @@ export function hideHudTextSurfaces(hudText = null) {
   horseNameTooltip.hide();   // AUDIT HCC U6: the mod's HUD label, the same door
   // AUDIT GUIDE O1/T7/H9: the quest guide's two HUD faces, the same door - the herald's notices hide (their clock
   // stopped) and the card hides and gives the party list its line back, as they do under a street window
+  drawEventBoard({ hidden: true });   // EVENTS1: the event board, the same door
   drawQuestHerald({ hidden: true });
   drawQuestTracker({ hidden: true });
   drawRevenantCards({ hidden: true });   // REVENANT-CARD: the same door
   drawLootBanners({ hidden: true });   // LOOT-BANNER: the same door
-  drawEventBoard({ hidden: true });   // EVENTS1: the same door
 }
 
 export function drawHud(renderer, canvas, art, vitals, heading01, dt = 0,
@@ -685,6 +685,9 @@ export function drawHud(renderer, canvas, art, vitals, heading01, dt = 0,
   // it answers that itself (ui/quest/questHerald.js). Its clock is the frame's
   // real seconds and stops under the HUD's hide gate - DFU's HUD does not
   // Update under a window (DaggerfallUI.cs:429-433).
+  // EVENTS1 (bible/10-UI/Event-Board.md): and the event board just before it, under the herald's own gate and clock, on
+  // every skin - the events' lines come to it instead of the chat, so the classic skin must show them too
+  drawEventBoard({ hidden: cursorActive || !hudRenderEnabled(), dt });
   drawQuestHerald({ hidden: cursorActive || !hudRenderEnabled(), dt });
   drawQuestTracker({ hidden: cursorActive || !hudRenderEnabled() });   // GUIDE4: the tracker's card, the same gate and the same hide door
   drawRevenantCards({ hidden: cursorActive || !hudRenderEnabled(), dt });   // REVENANT-CARD: the same gate, its clock the frame's - no card stands on the classic skin, so this is outside its gate as the herald is
@@ -692,9 +695,6 @@ export function drawHud(renderer, canvas, art, vitals, heading01, dt = 0,
   // pack on EVERY skin (the four hosts hand drawHud the player entity as `vitals`), so a piece found on the classic skin
   // is not announced when the player switches to Enhanced Plus; only Plus draws a banner
   drawLootBanners({ entity: vitals, hidden: cursorActive || !hudRenderEnabled(), dt });
-  // EVENTS1 (bible/10-UI/Event-Board.md): the same gate and clock, on every skin - the events' lines come to it instead
-  // of the chat, so the classic skin must show them too
-  drawEventBoard({ hidden: cursorActive || !hudRenderEnabled(), dt });
   if (isEnhanced() && typeof document !== 'undefined') {
     drawLevelNotices({ hidden: cursorActive || !hudRenderEnabled() });
     drawEnhancedHud(vitals, heading01, dt, {
