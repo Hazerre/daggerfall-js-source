@@ -2458,7 +2458,11 @@ after collection stayed within 1,163-1,207 MB. What holds it, from the sampling 
    Below CELL_EXACT (16) a cell is now copied one longer in the same order, so it holds exactly its own. Past it, it is
    pushed. Every maker gives a proxy the index's `_mark` at birth (`coverProxy`, `coverProxies`, `propBodies.js`, the
    jungle's): `fill` set it first, a property store more for each of 1.5M proxies. A ray, a body's query and the probes
-   read the same proxies in the same order.
+   read the same proxies in the same order, and the index is quicker for it in node (a forest pixel's fill 21-26 ->
+   9-14 ms; 20,000 sight rays 317-379 -> 258-303 ms, the same hits).
+   **Measured in the real game**, the same boot on this branch: **1,165 -> 1,017.5 MB of live heap**, the cover index's
+   share 290 -> 155 MB - an eighth less for every major collection to mark, which made the longest frames of SNOW-SWEEP's
+   journeys.
 3. **The merge spends its inputs** (`render/staticBatch.js` `_spend`). A builder outlives its merge in its host's build
    scope: a closure made beside it keeps the scope (a pixel's colliders, a room's or a dungeon's frame). Every model's
    transformed copy stood with it, ~18 MB on a synthetic city pixel and a castle's 2-4 MB through its visit.
@@ -2510,6 +2514,8 @@ Medium up. High is unchanged, so an untouched shelf still reads High (`10-UI/Set
 - The decoded TEXTURE frames (80 MB measured over all 472 files) are each a file's, kept while the file is.
 - The weather's births memo (40,000 a lookup, ~27 MB at its cap) is bounded.
 - The per-frame arrays of the Morrowind bodies' sprite quads are eight small arrays a frame at most.
+- A cell of one proxy could hold the proxy itself, not an array of one (1.5M of the 2.07M cells, ~42 MB more): every
+  reader of a cell then asks which it holds, in the sight ray's own loop. Left for a pass that measures the ray's frame.
 
 **The four hosts.** `scenes/world.js` streams the pixels the fishing host, the cover and the blanket hold; its own code is
 unchanged. `scenes/worldModes.js` is wired (`setMode`). `scenes/dungeonContext.js` and the interior context build through
