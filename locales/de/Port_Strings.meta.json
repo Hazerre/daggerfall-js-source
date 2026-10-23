@@ -31050,8 +31050,48 @@
   "by": "claude-in-session"
  },
  "social.guild.backLabel": {
-  "en": "7d781b74cd02",
-  "tr": "8152ba53c893",
+  "en": "18cf66d0d490",
+  "tr": "d88ae992b452",
+  "by": "claude-in-session"
+ },
+ "social.guild.close": {
+  "en": "0c826194bde9",
+  "tr": "b7661433ba3f",
+  "by": "claude-in-session"
+ },
+ "social.guild.name.arms": {
+  "en": "047072f53ca8",
+  "tr": "b4e06b53530b",
+  "by": "claude-in-session"
+ },
+ "social.guild.name.members": {
+  "en": "1cb449c11266",
+  "tr": "69e762b2bd61",
+  "by": "claude-in-session"
+ },
+ "social.guild.name.overview": {
+  "en": "0efc2e6be4c2",
+  "tr": "cb27327d0207",
+  "by": "claude-in-session"
+ },
+ "social.guild.name.settings": {
+  "en": "c7f73bb54d92",
+  "tr": "3e5af3d1b00c",
+  "by": "claude-in-session"
+ },
+ "social.guild.name.stores": {
+  "en": "983fd7bc323e",
+  "tr": "f6e8cb089c81",
+  "by": "claude-in-session"
+ },
+ "social.guild.name.treasury": {
+  "en": "286378bf777f",
+  "tr": "299a2287b97c",
+  "by": "claude-in-session"
+ },
+ "social.guild.name.vault": {
+  "en": "fb46e3745fd3",
+  "tr": "4657bd37deb6",
   "by": "claude-in-session"
  },
  "social.guild.online": {
@@ -31071,7 +31111,7 @@
  },
  "social.guild.page.overview": {
   "en": "d6b1bafdcfb1",
-  "tr": "9533d603e421",
+  "tr": "963d6ffa705e",
   "by": "claude-in-session"
  },
  "social.guild.page.settings": {
@@ -31081,7 +31121,7 @@
  },
  "social.guild.page.stores": {
   "en": "987096e938d2",
-  "tr": "755dee3410ce",
+  "tr": "6a07b06ea298",
   "by": "claude-in-session"
  },
  "social.guild.page.treasury": {
@@ -31106,7 +31146,7 @@
  },
  "social.guild.stat.hall": {
   "en": "a3b092bbf0db",
-  "tr": "29828d7f5233",
+  "tr": "6187f174cbe4",
   "by": "claude-in-session"
  },
  "social.guild.stat.members": {
