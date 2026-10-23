@@ -1619,9 +1619,12 @@ export class GetItem extends ActionTemplate {
       // inventory's dedupe's to drop - gold had none
       if (!item.goldPaid) {
         item.goldPaid = true;
-        // AUDIT QA3 A3: a stamped quest's gold is its outcome's (QL3, qlLayer.js reward) here as at GivePc - paid here,
-        // N0B21Y14's rescue paid its purse unscaled and the `give pc` of it after, paid already, settled nothing
-        hooks?.questReward?.(this.parentQuest, dfItem, item);
+        // AUDIT QA3 A3: a stamped quest's reward gold is its outcome's (QL3, qlLayer.js reward) here as at GivePc when
+        // this is the reward - the gold its script's `give pc` hands over too (N0B21Y14's rescue paid its purse unscaled
+        // here, and the `give pc` of it after, paid already, settled nothing). An advance at start-up is no reward: its
+        // own Item, never given by `give pc`, is paid as it stands, and the reward after it is scaled
+        const theReward = [...this.parentQuest.tasks.values()].some((t) => t.actions?.some((a) => a?.typeName === 'GivePc' && a.itemSymbol?.name === this.itemSymbol?.name));
+        if (theReward) hooks?.questReward?.(this.parentQuest, dfItem, item);
         const amount = dfItem.stackCount ?? 0;
         hooks?.addGold?.(amount);
         hooks?.addHUDText?.(localizedText('youReceiveGoldPieces', YOU_RECEIVE_GOLD_PIECES).replaceAll('%s', String(amount)));

@@ -216,10 +216,10 @@
     ]
   },
   {
-    "name": "QA3L-RESTART-PAID-success-unread",
+    "name": "QA3L-RESTART-PAID-success-read-as-paid",
     "file": "src/systems/quest/machine.js",
-    "old": "  if (quest?.questSuccess) return true;\n",
-    "new": "",
+    "old": "export function questPaidOut(quest) {\n  for (const task",
+    "new": "export function questPaidOut(quest) {\n  if (quest?.questSuccess) return true;\n  for (const task",
     "tests": [
       "test/systems/quest/questaudit3_life.test.js"
     ]
@@ -236,17 +236,17 @@
   {
     "name": "QA3L-RESTART-PAID-trainer-unread",
     "file": "src/systems/quest/machine.js",
-    "old": "if (a.typeName === 'TrainPc' || a.typeName === 'MakePermanent') return true;",
-    "new": "if (a.typeName === 'MakePermanent') return true;",
+    "old": "      if (a.typeName === 'TrainPc') return true;\n",
+    "new": "",
     "tests": [
       "test/systems/quest/questaudit3_life.test.js"
     ]
   },
   {
-    "name": "QA3L-RESTART-PAID-make-permanent-unread",
+    "name": "QA3L-RESTART-PAID-make-permanent-read-as-paid",
     "file": "src/systems/quest/machine.js",
-    "old": "if (a.typeName === 'TrainPc' || a.typeName === 'MakePermanent') return true;",
-    "new": "if (a.typeName === 'TrainPc') return true;",
+    "old": "if (a.typeName === 'TrainPc') return true;",
+    "new": "if (a.typeName === 'TrainPc' || a.typeName === 'MakePermanent') return true;",
     "tests": [
       "test/systems/quest/questaudit3_life.test.js"
     ]
@@ -254,8 +254,8 @@
   {
     "name": "QA3L-RESTART-PAID-give-pc-unread",
     "file": "src/systems/quest/machine.js",
-    "old": "if ((a.typeName === 'GivePc' || a.typeName === 'GetItem') && paidItem(a.itemSymbol)) return true;",
-    "new": "if (a.typeName === 'GetItem' && paidItem(a.itemSymbol)) return true;",
+    "old": "if (!((a.typeName === 'GivePc' && !a.isNothing) || a.typeName === 'GetItem')) continue;",
+    "new": "if (!(a.typeName === 'GetItem')) continue;",
     "tests": [
       "test/systems/quest/questaudit3_life.test.js"
     ]
@@ -263,17 +263,17 @@
   {
     "name": "QA3L-RESTART-PAID-get-item-unread",
     "file": "src/systems/quest/machine.js",
-    "old": "if ((a.typeName === 'GivePc' || a.typeName === 'GetItem') && paidItem(a.itemSymbol)) return true;",
-    "new": "if (a.typeName === 'GivePc' && paidItem(a.itemSymbol)) return true;",
+    "old": "if (!((a.typeName === 'GivePc' && !a.isNothing) || a.typeName === 'GetItem')) continue;",
+    "new": "if (!(a.typeName === 'GivePc' && !a.isNothing)) continue;",
     "tests": [
       "test/systems/quest/questaudit3_life.test.js"
     ]
   },
   {
-    "name": "QA3L-RESTART-PAID-gold-paid-unread",
+    "name": "QA3L-RESTART-PAID-nothing-read-as-paid",
     "file": "src/systems/quest/machine.js",
-    "old": "return !!(it && (it.goldPaid || it.madePermanent ||",
-    "new": "return !!(it && (it.madePermanent ||",
+    "old": "(a.typeName === 'GivePc' && !a.isNothing) ||",
+    "new": "(a.typeName === 'GivePc') ||",
     "tests": [
       "test/systems/quest/questaudit3_life.test.js"
     ]
@@ -281,17 +281,17 @@
   {
     "name": "QA3L-RESTART-PAID-item-permanent-unread",
     "file": "src/systems/quest/machine.js",
-    "old": "return !!(it && (it.goldPaid || it.madePermanent ||",
-    "new": "return !!(it && (it.goldPaid ||",
+    "old": "(it.madePermanent || (df && !df.questItem))",
+    "new": "((df && !df.questItem))",
     "tests": [
       "test/systems/quest/questaudit3_life.test.js"
     ]
   },
   {
-    "name": "QA3L-RESTART-PAID-gold-unread",
+    "name": "QA3L-RESTART-PAID-gold-read-as-paid",
     "file": "src/systems/quest/machine.js",
-    "old": "it.madePermanent || (it.daggerfallUnityItem && isGoldPieces(it.daggerfallUnityItem))));",
-    "new": "it.madePermanent));",
+    "old": "if (it && !(df && isGoldPieces(df)) && (it.madePermanent",
+    "new": "if (it && (it.madePermanent",
     "tests": [
       "test/systems/quest/questaudit3_life.test.js"
     ]
@@ -299,44 +299,44 @@
   {
     "name": "QA3L-RESTART-PAID-any-item-paid",
     "file": "src/systems/quest/machine.js",
-    "old": "&& paidItem(a.itemSymbol)) return true;",
-    "new": ") return true;",
+    "old": "if (it && !(df && isGoldPieces(df)) && (it.madePermanent || (df && !df.questItem))) return true;",
+    "new": "if (it) return true;",
     "tests": [
       "test/systems/quest/questaudit3_life.test.js"
     ]
   },
   {
-    "name": "QA3L-RESTART-PAID-standing-lost-read-as-paid",
+    "name": "QA3L-RESTART-PAID-released-unread",
     "file": "src/systems/quest/machine.js",
-    "old": "a.typeName === 'LegalRepute') && a.amount > 0) return true;",
-    "new": "a.typeName === 'LegalRepute')) return true;",
+    "old": "(it.madePermanent || (df && !df.questItem))",
+    "new": "(it.madePermanent)",
     "tests": [
       "test/systems/quest/questaudit3_life.test.js"
     ]
   },
   {
-    "name": "QA3L-RESTART-PAID-repute-with-unread",
+    "name": "QA3L-RESTART-PAID-quest-item-read-as-paid",
     "file": "src/systems/quest/machine.js",
-    "old": "if ((a.typeName === 'ChangeReputeWith' || a.typeName === 'LegalRepute') && a.amount > 0) return true;",
-    "new": "if (a.typeName === 'LegalRepute' && a.amount > 0) return true;",
+    "old": "(it.madePermanent || (df && !df.questItem))",
+    "new": "(it.madePermanent || (df))",
     "tests": [
       "test/systems/quest/questaudit3_life.test.js"
     ]
   },
   {
-    "name": "QA3L-RESTART-PAID-legal-repute-unread",
+    "name": "QA3L-RESTART-PAID-standing-read-as-paid",
     "file": "src/systems/quest/machine.js",
-    "old": "if ((a.typeName === 'ChangeReputeWith' || a.typeName === 'LegalRepute') && a.amount > 0) return true;",
-    "new": "if (a.typeName === 'ChangeReputeWith' && a.amount > 0) return true;",
+    "old": "      if (a.typeName === 'TrainPc') return true;\n",
+    "new": "      if (a.typeName === 'TrainPc') return true;\n      if ((a.typeName === 'ChangeReputeWith' || a.typeName === 'LegalRepute') && a.amount > 0) return true;\n",
     "tests": [
       "test/systems/quest/questaudit3_life.test.js"
     ]
   },
   {
-    "name": "QA3L-RESTART-PAID-permanent-resource-unread",
+    "name": "QA3L-RESTART-PAID-permanent-resource-read-as-paid",
     "file": "src/systems/quest/machine.js",
-    "old": "  return [...(quest?.resources?.values?.() ?? [])].some((r) => r?.isItem && r.madePermanent);",
-    "new": "  return false;",
+    "old": "(it.madePermanent || (df && !df.questItem))) return true;\n    }\n  }\n  return false;\n}",
+    "new": "(it.madePermanent || (df && !df.questItem))) return true;\n    }\n  }\n  return [...(quest?.resources?.values?.() ?? [])].some((r) => r?.isItem && r.madePermanent);\n}",
     "tests": [
       "test/systems/quest/questaudit3_life.test.js"
     ]
@@ -504,10 +504,10 @@
     ]
   },
   {
-    "name": "QA3L-SHELF-TWIN-host-reads-the-pack",
+    "name": "QA3L-SHELF-TWIN-host-carries-every-keeping",
     "file": "src/scenes/world.js",
-    "old": "carriesQuestItem: (res) => keepsQuestItem(playerEntity, res),   // QUEST-AUDIT III SHELF-TWIN: every keeping, the wagon",
-    "new": "carriesQuestItem: (res) => (playerEntity.items ?? []).some((it) => it.questItem && it.questUID === res.parentQuest?.uid && it.questSymbol?.name === res.symbol?.name),   // QUEST-AUDIT III SHELF-TWIN: every keeping, the wagon",
+    "old": "    carriesQuestItem: (res) => (playerEntity.items ?? []).some((it) =>\n",
+    "new": "    carriesQuestItem: (res) => keepsQuestItem(playerEntity, res) || (playerEntity.items ?? []).some((it) =>\n",
     "tests": [
       "test/systems/quest/questaudit3_life.test.js"
     ]
@@ -670,6 +670,15 @@
     "file": "src/systems/quest/questPatches.js",
     "old": "new: ' _inn_ in ___inn_ in six hours.'",
     "new": "new: ' _inn_ in ___giver_ in six hours.'",
+    "tests": [
+      "test/systems/quest/questaudit3_life.test.js"
+    ]
+  },
+  {
+    "name": "QA3L-SHELF-TWIN-host-keeps-the-pack",
+    "file": "src/scenes/world.js",
+    "old": "    keepsQuestItem: (res) => keepsQuestItem(playerEntity, res),   // QUEST-AUDIT III SHELF-TWIN, AUDIT QA3 B8",
+    "new": "    keepsQuestItem: (res) => (playerEntity.items ?? []).some((it) => it.questItem && it.questUID === res.parentQuest?.uid && it.questSymbol?.name === res.symbol?.name),   // QUEST-AUDIT III SHELF-TWIN, AUDIT QA3 B8",
     "tests": [
       "test/systems/quest/questaudit3_life.test.js"
     ]

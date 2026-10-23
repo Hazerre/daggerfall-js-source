@@ -67,6 +67,7 @@ export class QuestResourceBehaviour {
     this.targetResource = null;
     this.enemy = null;               // enemyEntityBehaviour - cached for Foe targets
     this.individualHome = false;     // QUEST-SHELF (its audit): a named NPC's own home copy (machine.setupIndividualStaticNPC)
+    this.questorHost = false;        // AUDIT QA3 D2: a clicked questor's own body (machine.assignQuestResourceBehaviour)
     // AUDIT 63 F2: Unity's `Destroy(component)` stops the component
     // dead - it never Updates again and never receives activation.
     // The port's behaviour object survives its own destroy event
@@ -158,7 +159,7 @@ export class QuestResourceBehaviour {
     // AUDIT QA3 D2: nor a quest the machine no longer holds at all - the journal's Restart threw it away (removeQuest),
     // and its things and people stood on, drawn and answering nothing, until the player left
     if (this.questUID != null && this.machine?.getQuest && !this.machine.getQuest(this.questUID) && !this.enemy) {
-      if (!this.individualHome) this.setGameObjectActive(false);
+      if (!this.individualHome && !this.questorHost) this.setGameObjectActive(false);   // a guild's questor stays at their post
       return;
     }
     // Ensure target resource has this behaviour assigned - coupling

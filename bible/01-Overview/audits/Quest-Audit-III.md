@@ -103,7 +103,8 @@ Pinned by `test/systems/quest/questaudit3_life.test.js`; `tools/mutants/questaud
 - **DOTTED-SYMBOLS.** Six actions captured a symbol with `\w+`, and a symbol with a dot or a dash fell to the
   unknown-action path. Those are DialogLink, AddDialog, PlaceNpc, PcAt, RevealLocation and CreateNpcAt. M0B11Y18's
   `pc at _L.00_ set _S.12_`, read at last, cleared `_S.12_` on every exit and began K'avar's five archer waves anew;
-  it is patched to `do`, so the waves stop for good once the player reaches L.00 (AUDIT QA3 C3).
+  it is patched so the place sets a task of its own that starts `_S.12_`, which nothing clears: the waves stop for good
+  once the player reaches L.00 (AUDIT QA3 C3).
 - **CLIMATE-NAMES.** C#'s alternation bound `climate desert2` to desert and `climate mountainwoods` to mountain, so
   Foraging's MiningQuest's rich seam never read 225 or 230. The longer name is tried first. A copy begun before, holding
   224 or 226, still shares: the old binding is accepted and the receiver's own stands (AUDIT QA3 C1).
@@ -323,7 +324,7 @@ says the law as it now stands under the finding's id.
 | B7 | LOW | A pending offer orphaned by a party's resync kept the press | FIXED |
 | B8 | LOW | The widened `carriesQuestItem` let a wagon's lich dust finish S0000022 and stay behind | FIXED: the pack for `toting`/`have`, every keeping for the reclaim |
 | B9 | LOW | "Take it up again"'s words landed at the foot of another quest's page | FIXED: said at the tab's head |
-| C3 | LOW | M0B11Y18's newly read `pc at _L.00_ set` re-armed K'avar's archers at every exit | FIXED: patched to `do` |
+| C3 | LOW | M0B11Y18's newly read `pc at _L.00_ set` re-armed K'avar's archers at every exit | FIXED: the place sets a task that starts `_S.12_` (the first patch, `do`, changed nothing: this port's `do` toggles as `set` does) |
 | C4 | LOW | "Over at the The Mole and Jug" | FIXED |
 | D3 | LOW | The freed Person lost the stand's 2% lift | FIXED |
 | E4 | LOW | A new copy's answer carried the sharer's old state back over what the sharer did since | FIXED: it answers "held", merged by nobody |
@@ -345,7 +346,12 @@ says the law as it now stands under the finding's id.
 step and nothing else (the sharer's own, nobody heard; a receipt with no sender) was put back in step by a load from
 its share identity - a copy ever shared now writes it (A6); an older save's received copy, no sharer named, waited at
 its questline's choice on nobody - it is its holder's to answer, as after a load before (E1); and a deliberate Share of
-a copy unchanged since it came was merged in full by a member holding it - it is a held word too (E4).
+a copy unchanged since it came was merged in full by a member holding it - it is a held word too (E4). The lifecycle
+lane found four more, each fixed and pinned in `auditqa3_life.test.js`: C3's first patch (`do`) changed nothing, PcAt's
+`do` arm toggling as `set` does; D2's put-away hid a guild's questor whose quest the machine dropped (an error on its
+first tick, its tombstone's week out) - the clicked NPC's own body is marked and stays at its post; A3's scale caught a
+start-up advance, paid it by the fallback outcome and marked the quest paid so its reward was never scaled - only gold
+the script's `give pc` hands over too is the reward; and C4's article test read "breathe the" as "the".
 
 **THE FOUR HOSTS (F10).** The share's seams - `partyHas` (E1), `keepsQuestItem` (SHELF-TWIN, B8), the receipt's `from`,
 the kill credit's owner (E3), the sender's own line - are `scenes/world.js`'s alone: the party is the online page's, and

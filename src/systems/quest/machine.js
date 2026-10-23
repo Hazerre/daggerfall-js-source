@@ -929,6 +929,7 @@ export class QuestMachine {
     if (questorPerson == null) return null;
     if (host?.questBehaviour) return null;
     const behaviour = new QuestResourceBehaviour(this, host ?? null);
+    behaviour.questorHost = true;   // AUDIT QA3 D2: the clicked NPC's own body - never put away with its quest
     behaviour.assignResource(questorPerson);
     behaviour.start();
     if (host) host.questBehaviour = behaviour;

@@ -595,7 +595,7 @@ const HANDLERS = {
       if (tok === '%jok' || !HANDLERS[tok]) return tok;
       const v = getMacroValue(tok, mcp, hooks);
       if (typeof v !== 'string' || v.startsWith(`${tok}[`)) return tok;
-      return /\bthe $/i.test(joke.slice(Math.max(0, at - 4), at)) ? v.replace(/^the /i, '') : v;
+      return /(^|[^a-z])the $/i.test(joke.slice(0, at)) ? v.replace(/^the /i, '') : v;
     });
   },
   // L10N3e: CityName (MacroHelper.cs:567-574) shows the location by its

@@ -23,8 +23,8 @@
   {
     "name": "QA3A-GOLD-the-gets-mark",
     "file": "src/systems/quest/actions.js",
-    "old": "        item.goldPaid = true;\n        const amount = dfItem.stackCount ?? 0;",
-    "new": "        const amount = dfItem.stackCount ?? 0;",
+    "old": "      if (!item.goldPaid) {\n        item.goldPaid = true;\n        // AUDIT QA3 A3",
+    "new": "      if (!item.goldPaid) {\n        // AUDIT QA3 A3",
     "tests": ["test/systems/quest/questaudit3_acts.test.js"]
   },
   {
@@ -135,7 +135,7 @@
   {
     "name": "QA3A-ILL-the-saying-saved",
     "file": "src/systems/quest/actions.js",
-    "old": "  get saveShape() { return [['diseaseType'], ['textId']]; }",
+    "old": "  get saveShape() { return this.textId ? [['diseaseType'], ['textId']] : [['diseaseType']]; }",
     "new": "  get saveShape() { return [['diseaseType']]; }",
     "tests": ["test/systems/quest/questaudit3_acts.test.js"]
   },
@@ -359,15 +359,15 @@
   {
     "name": "QA3A-JOKE-the-walk",
     "file": "src/systems/quest/questMacros.js",
-    "old": "    return joke.replace(/%[a-zA-Z][a-zA-Z0-9]*/g, (tok) => {",
-    "new": "    return joke.replace(/(?!)/g, (tok) => {",
+    "old": "    return joke.replace(/%[a-zA-Z][a-zA-Z0-9]*/g, (tok, at) => {",
+    "new": "    return joke.replace(/(?!)/g, (tok, at) => {",
     "tests": ["test/systems/quest/questaudit3_acts.test.js"]
   },
   {
     "name": "QA3A-JOKE-the-error-test",
     "file": "src/systems/quest/questMacros.js",
-    "old": "      return typeof v === 'string' && !v.startsWith(`${tok}[`) ? v : tok;",
-    "new": "      return typeof v === 'string' ? v : tok;",
+    "old": "      if (typeof v !== 'string' || v.startsWith(`${tok}[`)) return tok;",
+    "new": "      if (typeof v !== 'string') return tok;",
     "tests": ["test/systems/quest/questaudit3_acts.test.js"]
   },
   {
@@ -380,8 +380,8 @@
   {
     "name": "QA3A-JOKE-the-context",
     "file": "src/systems/quest/questMacros.js",
-    "old": "      const v = getMacroValue(tok, mcp, hooks);\n      return typeof v",
-    "new": "      const v = getMacroValue(tok, null, hooks);\n      return typeof v",
+    "old": "      const v = getMacroValue(tok, mcp, hooks);\n      if (typeof v",
+    "new": "      const v = getMacroValue(tok, null, hooks);\n      if (typeof v",
     "tests": ["test/systems/quest/questaudit3_acts.test.js"]
   },
   {

@@ -101,7 +101,7 @@
   {
     "name": "AUDITQA3-SHARE-E2-written-when-empty",
     "file": "src/systems/quest/machine.js",
-    "old": "    if (!this.sharedQuestNames.size && !this.finishedShareIds.size && !this.finishedSharedQuestNames.size && !holders.length && !sharers.length) return {};\n",
+    "old": "    if (!this.sharedQuestNames.size && !this.finishedShareIds.size && !this.finishedSharedQuestNames.size && !holders.length && !sharers.length\n      && ![...this.quests.values()].some((q) => typeof q.shareId === 'string' && q.shareId)) return {};\n",
     "new": "",
     "tests": [
       "test/systems/quest/auditqa3_share.test.js"
@@ -184,17 +184,17 @@
   {
     "name": "AUDITQA3-SHARE-E4-mark-unread",
     "file": "src/systems/quest/questShare.js",
-    "old": "const held = data?.sync === 1 && data?.held === 1;",
-    "new": "const held = false;",
+    "old": "  const held = data?.held === 1;",
+    "new": "  const held = false;",
     "tests": [
       "test/systems/quest/auditqa3_share.test.js"
     ]
   },
   {
-    "name": "AUDITQA3-SHARE-E4-deliberate-share-read-as-held",
+    "name": "AUDITQA3-SHARE-E4-deliberate-share-merged",
     "file": "src/systems/quest/questShare.js",
-    "old": "const held = data?.sync === 1 && data?.held === 1;",
-    "new": "const held = data?.held === 1;",
+    "old": "  const held = data?.held === 1;",
+    "new": "  const held = data?.sync === 1 && data?.held === 1;",
     "tests": [
       "test/systems/quest/auditqa3_share.test.js"
     ]
@@ -202,7 +202,7 @@
   {
     "name": "AUDITQA3-SHARE-E4-refusal-not-quiet",
     "file": "src/systems/quest/questShare.js",
-    "old": "if (!check.ok) return held ? { ...check, quiet: true } : check;",
+    "old": "if (!check.ok) return held && data.sync === 1 ? { ...check, quiet: true } : check;",
     "new": "if (!check.ok) return check;",
     "tests": [
       "test/systems/quest/auditqa3_share.test.js"
@@ -416,10 +416,10 @@
     ]
   },
   {
-    "name": "AQA3S-deliberate-held-merged",
+    "name": "AUDITQA3-SHARE-E4-deliberate-refusal-quiet",
     "file": "src/systems/quest/questShare.js",
-    "old": "  const held = data?.held === 1;",
-    "new": "  const held = data?.sync === 1 && data?.held === 1;",
+    "old": "if (!check.ok) return held && data.sync === 1 ? { ...check, quiet: true } : check;",
+    "new": "if (!check.ok) return held ? { ...check, quiet: true } : check;",
     "tests": [
       "test/systems/quest/auditqa3_share.test.js"
     ]

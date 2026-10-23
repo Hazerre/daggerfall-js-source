@@ -243,11 +243,18 @@ test('PROMPT-HELD: a party\'s resync, which rebuilds every action, finds the box
   assert.match(bridge, /showPromptMulti: \(q, message, buttons, respond\) => \(ctx\.showPromptMulti \? ctx\.showPromptMulti\(q, message, buttons, respond\) \?\? true : false\),/);
 });
 
-test('RESTART-PAID: questPaidOut\'s arms - a success, a trainer, a `make permanent`, gold or a permanent item given or got, standing gained, an Item made permanent; never an action not yet run, a quest item handed over, standing lost (mutants: each arm)', () => {
+// PIN MOVED (AUDIT QA3 A2/B3): "paid" is narrowed to what a restart cannot take back and would pay again - a trainer's
+// lesson, or an item handed over (a `give pc` that is no `give pc nothing`, a `get item`) that is not gold and is the
+// player's for good (made permanent, or released: its item no quest item). Gold is not (restartQuest carries the old
+// copy's goldPaid marks to the new copy - auditqa3_life.test.js A2), standing is not (P0B00L01's errand), the
+// QuestComplete box alone is not (A0C41Y18's `give pc nothing`), a permanent item nobody handed over is not (M0B00Y16).
+test('RESTART-PAID: questPaidOut\'s arms - a trainer, an item handed over (given or got) that is the player\'s for good, made permanent or released; never gold, standing, the box alone, `give pc nothing`, a `make permanent` of an item nobody handed over, an action not yet run, a quest item handed over (mutants: each arm)', () => {
   const m = rig();
   const parsed = m.parseQuestShape('__END');
   const gold = parsed.getItem({ name: 'gold' }).daggerfallUnityItem;
   const letter = parsed.getItem({ name: 'letter' }).daggerfallUnityItem;
+  assert.equal(letter.questItem, true, 'the fixture: the letter is a quest item until it is released');
+  const released = { ...letter, questItem: false };
   /** A quest of one task holding `actions`, its Items `items` by symbol name (its resources too, unless `listed` is false -
    *  the Item an action names, read by that action alone). */
   const quest = (actions, items = {}, extra = {}, listed = true) => ({
@@ -256,33 +263,38 @@ test('RESTART-PAID: questPaidOut\'s arms - a success, a trainer, a `make permane
   });
   const did = (typeName, more = {}) => ({ typeName, isComplete: true, ...more });
   const sym = { name: 'x' };
-  assert.equal(questPaidOut(quest([], {}, { questSuccess: true })), true, 'the QuestComplete box');
+  assert.equal(questPaidOut(quest([], {}, { questSuccess: true })), false, 'the QuestComplete box alone (`give pc nothing`) pays nothing');
   assert.equal(questPaidOut(quest([did('TrainPc')])), true, 'a trainer');
-  assert.equal(questPaidOut(quest([did('MakePermanent')])), true, '`make _x_ permanent`');
+  assert.equal(questPaidOut(quest([did('MakePermanent')])), false, '`make _x_ permanent` alone: nobody handed it over');
   for (const typeName of ['GivePc', 'GetItem']) {
-    assert.equal(questPaidOut(quest([did(typeName, { itemSymbol: sym })], { x: { daggerfallUnityItem: gold } })), true, `${typeName}: gold`);
-    assert.equal(questPaidOut(quest([did(typeName, { itemSymbol: sym })], { x: { daggerfallUnityItem: letter, goldPaid: true } })), true, `${typeName}: gold paid`);
+    assert.equal(questPaidOut(quest([did(typeName, { itemSymbol: sym })], { x: { daggerfallUnityItem: gold } })), false, `${typeName}: gold rides the restart as paid`);
+    assert.equal(questPaidOut(quest([did(typeName, { itemSymbol: sym })], { x: { daggerfallUnityItem: gold, goldPaid: true, madePermanent: true } })), false, `${typeName}: gold, paid and made permanent`);
     assert.equal(questPaidOut(quest([did(typeName, { itemSymbol: sym })], { x: { daggerfallUnityItem: letter, madePermanent: true } }, {}, false)), true, `${typeName}: an item made permanent`);
+    assert.equal(questPaidOut(quest([did(typeName, { itemSymbol: sym })], { x: { daggerfallUnityItem: released } }, {}, false)), true, `${typeName}: an item released, no quest item`);
     assert.equal(questPaidOut(quest([did(typeName, { itemSymbol: sym })], { x: { daggerfallUnityItem: letter } })), false, `${typeName}: a quest item, taken back`);
-    assert.equal(questPaidOut(quest([{ ...did(typeName, { itemSymbol: sym }), isComplete: false }], { x: { daggerfallUnityItem: gold } })), false, `${typeName}: not yet run`);
+    assert.equal(questPaidOut(quest([did(typeName, { itemSymbol: sym })], {})), false, `${typeName}: an Item the quest does not hold`);
+    assert.equal(questPaidOut(quest([{ ...did(typeName, { itemSymbol: sym }), isComplete: false }], { x: { daggerfallUnityItem: released } })), false, `${typeName}: not yet run`);
   }
+  assert.equal(questPaidOut(quest([did('GivePc', { isNothing: true, itemSymbol: sym })], { x: { daggerfallUnityItem: released } })), false, '`give pc nothing` is an empty box');
   for (const typeName of ['ChangeReputeWith', 'LegalRepute']) {
-    assert.equal(questPaidOut(quest([did(typeName, { amount: 5 })])), true, `${typeName}: standing gained`);
+    assert.equal(questPaidOut(quest([did(typeName, { amount: 5 })])), false, `${typeName}: standing is no purse`);
     assert.equal(questPaidOut(quest([did(typeName, { amount: -5 })])), false, `${typeName}: standing lost`);
-    assert.equal(questPaidOut(quest([did(typeName, { amount: 0 })])), false, `${typeName}: none`);
   }
   assert.equal(questPaidOut(quest([{ ...did('TrainPc'), isComplete: false }, { ...did('MakePermanent'), isComplete: false }])), false, 'not yet run');
-  assert.equal(questPaidOut(quest([did('GiveItem', { itemSymbol: sym })], { x: { daggerfallUnityItem: gold } })), false, 'gold taken from the player is not paid');
-  assert.equal(questPaidOut(quest([], { x: { daggerfallUnityItem: letter, madePermanent: true } })), true, 'an Item made permanent by any door');
+  assert.equal(questPaidOut(quest([did('GiveItem', { itemSymbol: sym })], { x: { daggerfallUnityItem: released } })), false, 'an item handed to a foe is not paid');
+  assert.equal(questPaidOut(quest([], { x: { daggerfallUnityItem: letter, madePermanent: true } })), false, 'an Item made permanent that nobody handed over');
   assert.equal(questPaidOut(quest([], { x: { daggerfallUnityItem: letter } })), false);
   assert.equal(questPaidOut(null), false);
 });
 
-test('RESTART-PAID: a running quest that paid its player - gold got, a reward box, a permanent item, a trainer, standing - refuses the journal\'s Restart (\'paid\', in words) and runs on; one that handed only a quest item, lost standing, or has not paid yet restarts (mutants: the rung)', () => {
+// PIN MOVED (AUDIT QA3 A2/B3/B1): gold got, the box alone and standing gained restart now (their verdicts null); a
+// `make permanent` with no hand-over restarts; a quest whose `start quest` has run refuses 'started', after 'paid'.
+test('RESTART-PAID: a running quest that paid its player - a reward box\'s item, an item made permanent, a trainer - refuses the journal\'s Restart (\'paid\', in words) and runs on; one that paid only gold, the box alone or standing, handed only a quest item, made permanent an item it never handed over, lost standing, or has not paid yet restarts; one whose `start quest` ran refuses \'started\' (mutants: the rung)', () => {
   const PAY = {
     __GOLD: ['\tget item _gold_'], __GIVE: ['\tgive pc _letter_'], __NOTHING: ['\tgive pc nothing'], __PERM: ['\tget item _letter_', '\tmake _letter_ permanent'],
-    __TRAIN: ['\ttrain pc Medical'], __UP: ['\tlegal repute +5'],
+    __TRAIN: ['\ttrain pc Medical'], __UP: ['\tlegal repute +5'], __LOOT: ['\tmake _letter_ permanent'],
     __LETTER: ['\tget item _letter_'], __DOWN: ['\tlegal repute -5'], __LATER: ['\tlog 1011 step 0', '', '_S.00_ task:', '\twhen _S.01_', '\tget item _gold_', '', 'variable _S.01_'],
+    __MOM: ['\tstart quest __KID', '\tlog 1011 step 0'],
   };
   const m = rig({}, Object.fromEntries(Object.entries(PAY).map(([k, v]) => [k, script(k, v)])));
   const verdicts = {};
@@ -292,8 +304,8 @@ test('RESTART-PAID: a running quest that paid its player - gold got, a reward bo
     assert.equal(q.questComplete, false, `${name} runs`);
     verdicts[name] = m.restartRefusal(q.uid);
   }
-  assert.deepEqual(verdicts, { __GOLD: 'paid', __GIVE: 'paid', __NOTHING: 'paid', __PERM: 'paid', __TRAIN: 'paid', __UP: 'paid', __LETTER: null, __DOWN: null, __LATER: null });
-  const paid = [...m.quests.values()].find((q) => q.questName === '__GOLD');
+  assert.deepEqual(verdicts, { __GOLD: null, __GIVE: 'paid', __NOTHING: null, __PERM: 'paid', __TRAIN: 'paid', __UP: null, __LOOT: null, __LETTER: null, __DOWN: null, __LATER: null, __MOM: 'started' });
+  const paid = [...m.quests.values()].find((q) => q.questName === '__GIVE');
   assert.deepEqual(m.restartQuest(paid.uid), { ok: false, reason: 'paid' });
   assert.equal(m.getQuest(paid.uid), paid, 'it runs on to its end');
   assert.equal(restartRefusalText('paid'), 'That quest has already paid you, so it cannot be started again.');
@@ -328,7 +340,10 @@ test('SHELF-TWIN: a quest item is never taken while another copy of it is kept -
   assert.equal(holdsQuestTwin([null, [qi(7, 'letter')]], item), true);
 });
 
-test('SHELF-TWIN: keepsQuestItem - the reclaim\'s "is it kept" - reads every keeping: the pack, the wagon, the Materials Bag, a repairer\'s hands; never a permanent copy; the hosts\' carriesQuestItem is it (mutants: each keeping, the quest test; source pins: both hosts)', () => {
+// PIN MOVED (AUDIT QA3 B8): the host's carriesQuestItem is the pack again (main's expression) - `toting` and `have` read
+// it, and widened, the wagon's dust ran S0000022's step - and its own keepsQuestItem dep serves the reclaim (machine.js
+// reclaimQuest); the share's relay keeps every keeping. The behaviour is auditqa3_life.test.js B8's.
+test('SHELF-TWIN: keepsQuestItem - the reclaim\'s "is it kept" - reads every keeping: the pack, the wagon, the Materials Bag, a repairer\'s hands; never a permanent copy; the host hands it to the machine as keepsQuestItem and to the share\'s relay, its carriesQuestItem the pack alone (mutants: each keeping, the quest test; source pins: the host\'s three seams)', () => {
   const res = { parentQuest: { uid: 7 }, symbol: { name: 'letter' } };
   const kept = { questItem: true, questUID: 7, questSymbol: { name: 'letter' } };
   for (const where of ['items', 'wagonItems', 'bagItems', 'otherItems']) {
@@ -340,8 +355,9 @@ test('SHELF-TWIN: keepsQuestItem - the reclaim\'s "is it kept" - reads every kee
   assert.equal(keepsQuestItem({}, res), false);
   assert.equal(keepsQuestItem(null, res), false);
   const world = src('src/scenes/world.js');
-  assert.equal((world.match(/carriesQuestItem: \(res\) => keepsQuestItem\(playerEntity, res\),/g) ?? []).length, 2, 'the machine\'s seam and the share\'s');
-  assert.doesNotMatch(world, /carriesQuestItem: \(res\) => \(playerEntity\.items/);
+  assert.equal((world.match(/carriesQuestItem: \(res\) => keepsQuestItem\(playerEntity, res\),/g) ?? []).length, 1, 'the share\'s relay: every keeping');
+  assert.equal((world.match(/keepsQuestItem: \(res\) => keepsQuestItem\(playerEntity, res\),/g) ?? []).length, 1, 'the machine\'s reclaim: every keeping');
+  assert.match(world, /carriesQuestItem: \(res\) => \(playerEntity\.items \?\? \[\]\)\.some\(\(it\) =>\n\s*it\.questItem && it\.questUID === res\.parentQuest\?\.uid && it\.questSymbol\?\.name === res\.symbol\?\.name\),\n\s*keepsQuestItem: \(res\) => keepsQuestItem\(playerEntity, res\),/, 'the machine\'s `toting` and `have`: the pack');
 });
 
 test('RESTART-WORDS: a questline step the journal restarted is no stall - its end lets the drop\'s "could not begin" go, and the runner\'s next look, the step running again, lets go its day of waiting; a step that truly could not begin is still said, and tried again a day later, never every look (mutants: the end\'s clear, the look\'s clear, its wait, its running test)', () => {

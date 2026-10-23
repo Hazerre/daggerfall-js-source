@@ -319,7 +319,9 @@ test('JOKE-MACROS: %jok\'s joke reads its own macros through the table, in the c
 });
 
 const RSC = process.env.ARENA2_PATH ? join(process.env.ARENA2_PATH, 'TEXT.RSC') : null;
-test('JOKE-MACROS over the real data: none of TEXT.RSC 200\'s 23 jokes (K0C00Y05\'s child and eight quests\' rumors tell them) leaves a macro raw (needs ARENA2)', { skip: RSC && existsSync(RSC) ? false : 'no ARENA2 - sh tools/fetch-data.sh, then ARENA2_PATH' }, () => {
+// PIN MOVED (AUDIT QA3 C4, F7): thirteen quests' rumors tell a joke, not eight; and the tavern's name drops its own "The"
+// after the joke's "the " - "Over at the Mole and Jug", never "the The Mole and Jug".
+test('JOKE-MACROS over the real data: none of TEXT.RSC 200\'s 23 jokes (K0C00Y05\'s child and thirteen quests\' rumors tell them) leaves a macro raw, nor says "the The" (needs ARENA2)', { skip: RSC && existsSync(RSC) ? false : 'no ARENA2 - sh tools/fetch-data.sh, then ARENA2_PATH' }, () => {
   const rsc = new TextRsc().load(new Uint8Array(readFileSync(RSC)));
   const jokes = new Set();
   for (let i = 0; i < 400; i++) jokes.add(rsc.randomTextById(200, () => i / 400));
@@ -334,7 +336,8 @@ test('JOKE-MACROS over the real data: none of TEXT.RSC 200\'s 23 jokes (K0C00Y05
   for (const joke of jokes) {
     const told = getMacroValue('%jok', null, { playerRaceName: () => 'Breton', world: { ...world, getRandomText: () => joke } });
     assert.doesNotMatch(told, /%[a-z]/i, joke);
-    assert.match(told, /Breton|The Mole and Jug/, joke);
+    assert.match(told, /Breton|Mole and Jug/, joke);
+    assert.doesNotMatch(told, /\bthe the\b/i, joke);
   }
 });
 
@@ -342,7 +345,9 @@ test('JOKE-MACROS over the real data: none of TEXT.RSC 200\'s 23 jokes (K0C00Y05
 
 const sited = (scope, locationName, buildingKey = 0) => ({ scope, siteDetails: { locationName, buildingKey } });
 const PLACES = { home: sited('remote', 'Wickfield'), tavern: sited('remote', 'Mole and Jug'), limbo: { scope: 'remote', siteDetails: null }, shop: sited('local', 'Bigtown', 7) };
-const standsAt = (place) => ({ isPerson: true, assignedPlaceSymbol: place ? { name: place } : null });
+// PIN MOVED (AUDIT QA3 C2): %di reads a Person's dialog place (person.js getDialogPlace: where it stands, else its home) -
+// each Person here answers the Place it stands at
+const standsAt = (place) => ({ isPerson: true, assignedPlaceSymbol: place ? { name: place } : null, getDialogPlace: () => (place ? PLACES[place] ?? null : null) });
 /** A quest as %di reads it: its resources in declaration order, its places, and the Place last referenced (none after a load). */
 const diQuest = (persons, referenced = null) => ({
   uid: 1, lastPlaceReferenced: referenced,
