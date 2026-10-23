@@ -346,7 +346,7 @@
   {
     "name": "AUDITMS-L3-8-the-rights-pace",
     "file": "src/combat/fpArm.js",
-    "old": "        const striking = strikingWeaponOf({ hand: attackHand, weapon: built.weapon, offWeapon: built.offWeapon });",
+    "old": "        const striking = blowWeaponOf({ hand: attackHand, weapon: built.weapon, offWeapon: built.offWeapon });",
     "new": "        const striking = built.weapon;",
     "tests": [
       "test/combat/spellhand_mw.test.js"
@@ -580,6 +580,348 @@
     "new": "Choose a spell, then aim and cast it with {SwingWeapon}.",
     "tests": [
       "test/combat/spellhand.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-gunHandOf-and",
+    "file": "src/combat/twoHands/handsLaw.js",
+    "old": "  if (!dualEligible(right) || !dualEligible(left)) return null;\n  const r = dualGun(right)",
+    "new": "  if (!dualEligible(right) && !dualEligible(left)) return null;\n  const r = dualGun(right)",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-mixedStrike-blade-falls",
+    "file": "src/combat/twoHands/handsLaw.js",
+    "old": "  if (!gunHand || strike.hand !== gunHand || gunReady) return strike;",
+    "new": "  if (!gunHand || gunReady) return strike;",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-gunHand-any-mode",
+    "file": "src/combat/playerWeapon.js",
+    "old": "return this.handsMode === HANDS_MODE.Dual ? gunHandOf(handDesc(this.handItem('R')), handDesc(this.handItem('L'))) : null;",
+    "new": "return gunHandOf(handDesc(this.handItem('R')), handDesc(this.handItem('L')));",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-pistolsFor-blade-held",
+    "file": "src/combat/playerWeapon.js",
+    "old": "const held = pair ? this.handItem('R') : gh ? this.handItem(gh) : (",
+    "new": "const held = pair ? this.handItem('R') : (",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-pistolShot-strike-unread",
+    "file": "src/combat/playerWeapon.js",
+    "old": "this._pistolStrikes[h] = s ?? {",
+    "new": "this._pistolStrikes[h] = {",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-pistolShot-weapon-unset",
+    "file": "src/combat/playerWeapon.js",
+    "old": "if (pair || s) this.weapon = this.handItem(h);",
+    "new": "if (pair) this.weapon = this.handItem(h);",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-mixedAttack-gunReady-unasked",
+    "file": "src/combat/playerWeapon.js",
+    "old": "if (s.hand === gh) return gunReady && this._pistolShot(state, true, s);",
+    "new": "if (s.hand === gh) return this._pistolShot(state, true, s);",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-mixedAttack-held-shot-unasked",
+    "file": "src/combat/playerWeapon.js",
+    "old": "if (this.machine.state !== 'Idle' || this._gunStriking()) return false;",
+    "new": "if (this.machine.state !== 'Idle') return false;",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-update-type-of-weapon",
+    "file": "src/combat/playerWeapon.js",
+    "old": "const t = weaponTypeForItem(blade ?? this.weapon);",
+    "new": "const t = weaponTypeForItem(this.weapon);",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-update-blade-on-pistol-step",
+    "file": "src/combat/playerWeapon.js",
+    "old": "if (pistols && !blade) return this._pistolsStep(dt);",
+    "new": "if (pistols) return this._pistolsStep(dt);",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-pistoletHeld-blade-turn",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": " || !!playerWeapon.pistols;   // MIXED-PAIR: a blade-and-gun pair's Pistolet whichever hand strikes",
+    "new": ";",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-voice-blade-turn",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "    if (!gunUp()) {   // PISTOLET: any gun",
+    "new": "    if (!thunderlockHeld()) {   // PISTOLET: any gun",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-feel-blade-turn",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "    if (!gunUp()) return;   // PISTOLET: any gun",
+    "new": "    if (!thunderlockHeld()) return;   // PISTOLET: any gun",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-frame-gate-blade-turn",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "      if (widgetOn() || _torchesOn || shieldOn() || gunUp()) {",
+    "new": "      if (widgetOn() || _torchesOn || shieldOn() || thunderlockHeld()) {",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-gunSliding-blade-turn",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "      const gunSliding = !!c && gunUp() && thunderlockSliding()",
+    "new": "      const gunSliding = !!c && thunderlockHeld() && thunderlockSliding()",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-mixed-branch-no-slide",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "playerWeapon.mixedPair && pairUp() && !eotbHidesWeapon() && !fpArm.active() && !sheetWindowUp() && (shown() || gunSliding)) {",
+    "new": "playerWeapon.mixedPair && pairUp() && !eotbHidesWeapon() && !fpArm.active() && !sheetWindowUp() && shown()) {",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-mixed-branch-no-climb",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "tint: fpTint, offsetHeight: weaponOffsetHeight() - climbDrop(_climbLower, c.height), running: false };",
+    "new": "tint: fpTint, offsetHeight: weaponOffsetHeight(), running: false };",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-share-mixed-pumps",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "const share = !playerWeapon.gunPair && !playerWeapon.mixedPair && g.state === 'Cooling'",
+    "new": "const share = !playerWeapon.gunPair && g.state === 'Cooling'",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-spellhand-under-equip",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "!playerWeapon.sheathed && (entity?.equipCountdown ?? 0) <= 0 && !_climbing && !!spellHandHands();",
+    "new": "!playerWeapon.sheathed && !_climbing && !!spellHandHands();",
+    "tests": [
+      "test/combat/spellhand.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-handsBusy-held-hit",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "const handsBusy = () => playerWeapon.machine.state !== 'Idle' || _heldHit || (",
+    "new": "const handsBusy = () => playerWeapon.machine.state !== 'Idle' || (",
+    "tests": [
+      "test/combat/spellhand.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-spellside-widget-unread",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": ": widgetOn() && widget.applies() ? !!widget.flipHorizontal : handedFlip();",
+    "new": ": handedFlip();",
+    "tests": [
+      "test/combat/spellhand.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-spellside-pistol-unread",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "const weaponLeft = pistolsUp() ? pistols.flipOf(p, p.lead, handedFlip()) : widgetOn()",
+    "new": "const weaponLeft = widgetOn()",
+    "equivalent": true,
+    "why": "Dead code by the pistol lane's own law: the spell hand needs the other hand free, so the pistol is a lone one, and a lone pistol's flipFor answers the Handedness side (AUDIT PISTOL-PORT B7) - handedFlip(), the leg this mutant falls to. Kept so the side stays the pistol lane's if that law moves.",
+    "tests": [
+      "test/combat/spellhand.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-widget-clone-unlowered",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "widget.draw(renderer, c, fpTint, _spellGuard.weapon > 0 ? { transform: (r) => ({ ...r, y: r.y + guardDrop(_spellGuard.weapon, r.h) }) } : undefined)",
+    "new": "widget.draw(renderer, c, fpTint, undefined)",
+    "tests": [
+      "test/combat/spellhand.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-reload-voice-free-pace",
+    "file": "src/combat/gun/pistolViewmodel.js",
+    "old": "(m.cooldownMs ?? cooldownMs) - RELOAD_CLOSE_LEAD * 1000",
+    "new": "cooldownMs - RELOAD_CLOSE_LEAD * 1000",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-stance-only-R-needs-L",
+    "file": "src/combat/gun/pistolStance.js",
+    "old": "if ((needR && !R) || (needL && !L)) return null;",
+    "new": "if ((needR && !R) || !L) return null;",
+    "tests": [
+      "test/combat/spellhand_mw.test.js",
+      "test/combat/pistolstance.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-rifle-aim-for-the-blade",
+    "file": "src/combat/fpArm.js",
+    "old": "shooting: gunAimShooting({ attacking: attackingNow(), hold: g, dual: handsMode === 'dual', hand: attackHand }),",
+    "new": "shooting: attackingNow(),",
+    "tests": [
+      "test/combat/spellhand_mw.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-offclip-right-idle-under-blow",
+    "file": "src/combat/fpArm.js",
+    "old": "        const offClip = offIdle ?? idle;",
+    "new": "        const offClip = idle;",
+    "tests": [
+      "test/combat/spellhand_mw.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-spellarm-over-sheet-and-climb",
+    "file": "src/combat/fpArm.js",
+    "old": "(spellHand && !(!r || !r.ok || dead || nonBiped() || held || climbHands || r.werewolf) ?",
+    "new": "(spellHand && !(!r || !r.ok || dead || nonBiped() || r.werewolf) ?",
+    "tests": [
+      "test/combat/spellhand_mw.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-spellarm-when-dead",
+    "file": "src/combat/fpArm.js",
+    "old": "(spellHand && !(!r || !r.ok || dead || nonBiped() || held || climbHands || r.werewolf) ?",
+    "new": "(spellHand && !(!r || !r.ok || nonBiped() || held || climbHands || r.werewolf) ?",
+    "equivalent": true,
+    "why": "A dead arm is not composed again (MWNPC4: the reference stops refreshing a dead actor) - the composition stands as it was at the death either way (probed: 'spellhand:ready' before and after, fix and mutant alike); the leg guards a future caller.",
+    "tests": [
+      "test/combat/spellhand_mw.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-attack-null-keeps-blowtype",
+    "file": "src/combat/fpArm.js",
+    "old": "      if (!type) { if (blowType != null) { blowType = null; refreshWeaponGroup(); } return null; }",
+    "new": "      if (!type) return null;",
+    "equivalent": true,
+    "why": "Unreachable from the game: the machine sends only strikes DF_STRIKE_TO_MW_ATTACK maps, and a left GUN's blow is always a shoot (shootsRatherThanSwings) - mwAttackType never answers null after the left hand's group is set. The reset is the door's defence for a caller that names no strike.",
+    "tests": [
+      "test/combat/spellhand_mw.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-attack-abort-keeps-blowtype",
+    "file": "src/combat/fpArm.js",
+    "old": "        if (blowType != null) { blowType = null; refreshWeaponGroup(); }   // MIXED-PAIR\n",
+    "new": "",
+    "tests": [
+      "test/combat/spellhand_mw.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-spellHandReady-cast-latch-on-ready",
+    "file": "src/combat/fpArm.js",
+    "old": "    if (step === 'afterCast') unreadyAfterCast = true;",
+    "new": "    if (step === 'afterCast') unreadyAfterCast = !want;",
+    "equivalent": true,
+    "why": "In the game's flow the ready is always cleared at the release (EntityEffectManager clears it on the release frame) and the release comes before the cast ends, so the last call before the end is want false - true either way; a spell readied again inside the cast tail ends in the same stance one frame later (the next spellHandReady's 'drop').",
+    "tests": [
+      "test/combat/spellhand_mw.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-worldModes-interior-cast-unsaid",
+    "file": "src/scenes/worldModes.js",
+    "old": "      else magic?.interceptAttack(true, CAST_PRESS);",
+    "new": "      else magic?.interceptAttack(true);",
+    "tests": [
+      "test/combat/spellhand.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-dungeon-cast-unsaid",
+    "file": "src/scenes/dungeon.js",
+    "old": "if (_act.cast) ctx.playerAttackInput(0, 0, true, true);",
+    "new": "if (_act.cast) ctx.playerAttackInput(0, 0, true);",
+    "tests": [
+      "test/combat/spellhand.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-worldModes-dungeon-cast-unsaid",
+    "file": "src/scenes/worldModes.js",
+    "old": "dungeonCtx?.playerAttackInput?.(0, 0, true, true);",
+    "new": "dungeonCtx?.playerAttackInput?.(0, 0, true);",
+    "tests": [
+      "test/combat/spellhand.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-gun-hidden-under-widget",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "          if (art?.anchor && art.unionBox && _climbLower < 0.5) drawThunderlock(art, c, fpTint, gh);",
+    "new": "          if (art?.anchor && art.unionBox && _climbLower < 0.5 && !widgetOn()) drawThunderlock(art, c, fpTint, gh);",
+    "tests": [
+      "test/combat/mixedpair.test.js"
+    ]
+  },
+  {
+    "name": "AUDITMS-L5-wall-gun-hung",
+    "file": "src/combat/weapon/weaponRig.js",
+    "old": "if (art?.anchor && art.unionBox && _climbLower < 0.5) drawThunderlock(art, c, fpTint, gh);",
+    "new": "if (art?.anchor && art.unionBox) drawThunderlock(art, c, fpTint, gh);",
+    "tests": [
+      "test/combat/mixedpair.test.js"
     ]
   }
 ]

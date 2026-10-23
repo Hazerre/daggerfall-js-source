@@ -72,10 +72,10 @@ changed nothing. At 2 it is a blow more at every Speed: 8.53 (x1.19) with the bl
 | L3-5 | MAJOR | On the third-person retail body the spell hand's left arm was the layer's carry, not the Spell idle: the body was never told | FIXED: the arm's word carries `spellHand` and the carry leaves the left arm to the clip, as a torch's (`bodyMotion.js`); pinned (`bodymotion_audit.test.js`, and through the live arm), mutants AUDITMS-L3-5-* |
 | L3-6 | MAJOR | Under the arm a left-hand gun's shot left from the right blade's tip | FIXED: `weaponMuzzle(hand)` takes the hand's own piece (`muzzlePieceOf`); the rig asks with the striking hand; pinned, mutants AUDITMS-L3-6-* |
 | L3-7 | MINOR | A blow cut short by a rebuild or a view switch kept the struck hand's group | FIXED: both reset `blowType` and `attackHand`; pinned ("A BLOW CUT SHORT"), mutant AUDITMS-L3-7-rebuild-keeps-the-blow |
-| L3-8 | MINOR | The left hand's blow played at the right weapon's record speed (OpenMW plays the striking weapon's own `mSpeed`, character.cpp:1322) | FIXED: `strikingWeaponOf`; pinned, mutants AUDITMS-L3-8-the-rights-pace, AUDITMS-L3-11-striking-always-right |
+| L3-8 | MINOR | The left hand's blow played at the right weapon's record speed (OpenMW plays the striking weapon's own `mSpeed`, character.cpp:1322) | FIXED: `blowWeaponOf`; pinned, mutants AUDITMS-L3-8-the-rights-pace, AUDITMS-L3-11-striking-always-right |
 | L3-9 | MINOR | A weapon swapped mid-cast cut the cast and let the spell go early (OpenMW lets the cast finish, character.cpp:1420) | FIXED: `setWeapon` waits while Casting; pinned, mutant AUDITMS-L3-9-swap-cuts-the-cast |
 | L3-10 | MINOR | A Pistolet with the spell hand: the free hand snapped in one frame as the spell hand came up or went down | FIXED: the hold eases the free hand's own weight (`rifleStanceStep` `free`) and the stance places it at that weight (`pistolStanceRequest` `free`); pinned, mutants AUDITMS-L3-10-* |
-| L3-11 | MINOR | "Both slices' Morrowind laws live in their modules" was overstated: the spell hand's stance law and the off arm's composition were inline in `createFpArm` | FIXED: `spellHandStanceStep`, `drawsIntoSpellHand` (spellHandArm.js), `offStanceTypeOf`, `gunAimShooting`, `strikingWeaponOf`, `muzzlePieceOf` (mixedArm.js); pinned ("THE ARM'S LAWS IN THEIR MODULES"), mutants AUDITMS-L3-11-* |
+| L3-11 | MINOR | "Both slices' Morrowind laws live in their modules" was overstated: the spell hand's stance law and the off arm's composition were inline in `createFpArm` | FIXED: `spellHandStanceStep`, `drawsIntoSpellHand` (spellHandArm.js), `offStanceTypeOf`, `gunAimShooting`, `blowWeaponOf`, `muzzlePieceOf` (mixedArm.js); pinned ("THE ARM'S LAWS IN THEIR MODULES"), mutants AUDITMS-L3-11-* |
 
 ### Lane L4 - the hosts, the wire, the integration
 
@@ -103,8 +103,8 @@ changed nothing. At 2 it is a blow more at every Speed: 8.53 (x1.19) with the bl
 | L5-4 | MAJOR | Survivors on the gun's voice during the blade's turn (the close clack lost; the Thunderlock's clip; the close at the free pace) | FIXED: the sound sequence pinned ("THE GUN BESIDE THE BLADE'S TURN"); mutants AUDITMS-L5-voice-*, -pistoletHeld-*, -reload-voice-free-pace |
 | L5-5 | MINOR | Survivor: a pair's technique fired a gun with no Pellet | FIXED: pinned (a dry lead gun refuses its technique); mutant AUDITMS-L5-mixedAttack-gunReady-unasked |
 | L5-6 | MINOR | Survivors on the holster slide | FIXED: the slide pinned; mutants AUDITMS-L5-gunSliding-*, -mixed-branch-no-slide |
-| L5-7 | MINOR | Morrowind-lane survivors (the gun's aim for the blade's swing; the stance re-composed every frame; the arm's reload pump; the off arm's idle under a blow) | FIXED: pinned; mutants AUDITMS-L5-rifle-aim-for-the-blade, -offclip-right-idle-under-blow, -share-mixed-pumps, AUDITMS-L3-11-stance-always-drop |
-| L5-8 | MINOR | Survivors in corners (the frame gate with every mod off; the classic machine on the gun's type at rest; a pair's law on a one-handed player; the spell hand under the swap delay) | FIXED: each pinned; the unproven and the equivalent recorded with their reason (`tools/mutants/audit_mixedspell.json`) |
+| L5-7 | MINOR | Morrowind-lane survivors (the gun's aim for the blade's swing; the stance re-composed every frame; the arm's reload pump; the off arm's idle under a blow) | FIXED: pinned on the live arm (under the right blade's blow the aim stays down and the left arm keeps its own weapon's idle) and on the rig (no pump over the arm); mutants AUDITMS-L5-rifle-aim-for-the-blade, -offclip-right-idle-under-blow, -share-mixed-pumps, AUDITMS-L3-11-stance-always-drop |
+| L5-8 | MINOR | Survivors in corners (the frame gate with every mod off; the classic machine on the gun's type at rest; a pair's law on a one-handed player; the spell hand under the swap delay) | FIXED: each pinned; of the lane's unproven survivors four were reachable and are pinned too - the machine itself waits out a held shot (not only the rig's door), a shot's hit held past the arm's blow (a `.kf` with no "shoot release", NEVER-TRAPS) keeps a cast waiting, a `.kf` with no "shoot start" leaves the arm in the blade's group, a held map sheet takes the spell hand's arm - and the pair's blade slides down on a wall; four are equivalent, each recorded with its reason (`tools/mutants/audit_mixedspell.json`: the pistol leg of the spell hand's side, an unmapped strike, a dead arm's composition, the cast latch's want) |
 | L5-9 | MINOR | Moved pins loosened past their notes (`[^\n]*` taking any guard, optional lines) | FIXED: each pins the full new text - the guard's transform, the `castHands` call, the strike's hand |
 | L5-10 | MINOR | Vacuous asserts in `spellhand.test.js` (the beast's line a copy of the fists'; "the swing button the cast's" never pressed) | FIXED: the beast's copy removed and said why (MorphSelf empties both hand slots: the fists' line is the beast's); the swing button pressed, and it never swings |
 | L5-11 | MINOR | `Active-Arcs.md`'s counts stale | FIXED: the counts as they stand |
@@ -128,18 +128,26 @@ changed nothing. At 2 it is a blow more at every Speed: 8.53 (x1.19) with the bl
   (`net/wire.js`, beside `validPose` - the pose's own law); no host reads a two-hands module.
 - **The balance test's free-hand comparison** set the reload's length after `_pistolsFor` rescaled it (L1-6), so the
   free hand's count was inflated by a share doubling each frame. FIXED: the comparison rescales as the machine does.
+- **The pair's gun hung on a wall**: climbing, the blade slid out of the view (CLIMB4) while the gun stood at rest the
+  whole slide and then vanished - the early return that hides a gun halfway reads the RIGHT hand's gun. FIXED: the mixed
+  branch draws its gun only while the climb's lowering is under half, as a lone gun; pinned ("ON A WALL", against a lone
+  Pistolet frame for frame), mutant AUDITMS-L5-wall-gun-hung.
+- **ONE HOME and the catalog** (the whole suite): the arm's `strikingWeaponOf` named a different function than
+  `combatStats.js`'s (audit24's one-home gate) - renamed `blowWeaponOf`; and L4-8's line (`combat.noPellets`) is a new
+  catalog key: the English catalog regenerated (`tools/l10nExtract.mjs`) and the thirteen whole languages' drafts merged
+  in-session (`tools/l10nInSession.mjs`, recorded as the machine's).
 - **H mid-cast's pin** pressed H while the blow still played, so the machine's own gate refused it; it waits for the blow
   now, and the cast is what refuses (mutant AUDITMS-L2-4-h-mid-cast).
 
 ## What stands
 
-- Pins: `test/combat/mixedpair.test.js` (18), `test/combat/spellhand.test.js` (18), `test/combat/spellhand_mw.test.js`
-  (11), `test/net/mixedspell_peers.test.js` (3, new), `test/characters/bodyMotion/bodymotion_audit.test.js`'s L3-5.
+- Pins: `test/combat/mixedpair.test.js` (20), `test/combat/spellhand.test.js` (19), `test/combat/spellhand_mw.test.js`
+  (13), `test/net/mixedspell_peers.test.js` (3, new), `test/characters/bodyMotion/bodymotion_audit.test.js`'s L3-5.
 - `tools/mutants/audit_mixedspell.json`: the audit's mutants - each fix reverted and each L5 scratch mutant re-aimed -
   judged with the slice's own records (`mixedpair.json`, `spellhand.json`, `spellhand_mw.json`) and every record the
   fixes moved, re-aimed by content.
 - PIN MOVED, each with its note: `fieldgunmwaudit` (the muzzle names its hand), `riflestance` (the state's `free`),
-  `audit23_magic` magic-14 and `allycast` A1 (CasterOnly's instant cast waits for a blow), `disc12`, `mac7`, `fparm`, `audit39_worldstate`,
+  `audit23_magic` magic-14 and `allycast` A1 (CasterOnly's instant cast waits for a blow), `auditclimbarc` F10/F11 (the dungeon's `firePending` hears the window), `disc12`, `mac7`, `fparm`, `audit39_worldstate`,
   `deckfield`, `tech1_hosts`, `hostmagic_wiring`, `weaponglow1`, `audit29_host`, and the relay's version pins (world249).
 - To deploy: the relay (**world249**: `ah`). An older relay strips the field and the socket stays open - its peers play
   every strike of a pair with the right hand's weapon, as before.

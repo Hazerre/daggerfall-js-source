@@ -562,3 +562,24 @@ test('SPELL-HAND AUDIT L4-4 THE TUTORIAL NAMES THE CAST\'S OWN PRESS: the spellb
   assert.match(page.body[0], /the spell waits in that hand and \{SwingWeapon\} still swings the weapon\./);
   assert.doesNotMatch(page.body[0], /cast it with \{SwingWeapon\}/);
 });
+
+test('SPELL-HAND AUDIT L5-8 A SHOT\'S HIT STILL HELD IS A BLOW IN FLIGHT: under the Morrowind arm a Pistolet\'s hit waits for the arm\'s "shoot release" (MW-D42) - and where the .kf carries none (NEVER-TRAPS: it lands on its own after HELD_HIT_MAX_S), the shot is the hand\'s until it lands, its machine Idle and the arm\'s blow over: a cast beside it waits (mutant: the held hit unread by the busy word)', async () => {
+  const arm = stubArm();
+  try {
+    const { r, frame, ready } = await spellRig({ right: createPistolet() });
+    ready.spell = FIRE;
+    await settle(frame);
+    assert.equal(spellHandUp(), true, 'the spell beside the Pistolet');
+    await frame(1 / 60, true);
+    let i = 0;
+    for (; i < 120 && (r.playerWeapon.machine.state !== 'Idle' || !r.playerWeapon.shotHeld()); i++) await frame();
+    assert.equal(r.playerWeapon.machine.state, 'Idle', 'the shot\'s frames done');
+    assert.equal(r.playerWeapon.shotHeld(), true, 'its hit held for a release that never comes');
+    await frame();
+    assert.equal(spellHandBusy(), true, 'held: the cast waits');
+    for (let j = 0; j < 120 && r.playerWeapon.shotHeld(); j++) await frame();
+    assert.equal(r.playerWeapon.shotHeld(), false, 'landed on its own');
+    await frame();
+    assert.equal(spellHandBusy(), false, 'and the hands are free');
+  } finally { arm.restore(); _resetSpellHand(); }
+});

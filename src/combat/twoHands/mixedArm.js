@@ -61,7 +61,7 @@ export const gunAimShooting = ({ attacking = false, hold = null, dual = false, h
 
 /** AUDIT MIXED-PAIR L3-6 / L3-8: the weapon that strikes - a pair's LEFT blow is its left weapon's (its record's pace, its
  *  barrel), any other the right's (the arm draws one weapon in the right hand, MW-HAND). */
-export const strikingWeaponOf = ({ hand = null, weapon = null, offWeapon = null } = {}) => (hand === 'L' && offWeapon ? offWeapon : weapon);
+export const blowWeaponOf = ({ hand = null, weapon = null, offWeapon = null } = {}) => (hand === 'L' && offWeapon ? offWeapon : weapon);
 
 /** AUDIT MIXED-PAIR L3-6: the piece a shot leaves from - a pair's LEFT hand's own (the left weapon, on Weapon Bone Left),
  *  else the right weapon's; the right's where the rig bound no left. */

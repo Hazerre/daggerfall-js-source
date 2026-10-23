@@ -595,3 +595,39 @@ test('MIXED-PAIR AUDIT L3-6 / L5-7, THE GUN ON THE MORROWIND ARM: a left gun\'s 
     Object.assign(fpArm, saved);
   }
 });
+
+test('MIXED-PAIR AUDIT L5-8 THE MACHINE WAITS OUT A HELD SHOT: the gun\'s hit held for the arm\'s release (`shotHeld`, MW-D42) is the gun\'s turn on the machine itself - its frames done and the machine Idle, a pull starts no blade until the hit lands (the rig\'s door - armCannotDraw - is a second guard, not the only one) (mutant: the machine blind to the held shot)', () => {
+  const pw = pairOf(LONGSWORD(), createPistolet(), { lead: 'L' });
+  pw.sheathed = false;
+  let held = false;
+  pw.shotHeld = () => held;
+  assert.ok(pw._attack('StrikeDown'), 'the lead gun fires');
+  held = true;
+  const evs = step(pw, 90);
+  assert.deepEqual(evs, ['hit', 'done'], 'its frames end, its hit handed to the rig to hold');
+  assert.equal(pw.machine.state, 'Idle');
+  assert.equal(pw._attack('StrikeDown'), false, 'the hit still held: no blade');
+  assert.equal(pw.activeHand, 'L', 'the gun\'s hand, for the host that reads `weapon` at the hit');
+  held = false;
+  assert.equal(pw._attack('StrikeDown'), true, 'landed: the blade');
+  assert.equal(pw.strike.hand, 'R');
+});
+
+test('MIXED-PAIR AUDIT L5-8 ON A WALL (CLIMB4): the blade slides down out of the view as a lone blade does, and the gun - which has no slide to lend - is gone halfway, as a lone gun is, never hung at rest over the blade\'s slide (mutants: the pair\'s blade unlowered for the climb; the gun drawn the whole way down)', async () => {
+  const rig = await pistolRig({ right: LONGSWORD(), left: createPistolet(), cif: MELEE });
+  let q = await rig.frame();
+  const blade = (q) => q.find((x) => String(x.tex).startsWith('fpw:'));
+  const y0 = blade(q).rect.y;
+  rig.walk.climbing = true;
+  const ys = [], guns = [];
+  for (let i = 0; i < 14; i++) { q = await rig.frame(); ys.push(blade(q)?.rect.y ?? null); guns.push(q.some(isGun)); }
+  assert.ok(ys.every((y, i) => y != null && y >= (i ? ys[i - 1] : y0)), `the blade slides down each frame (${ys.map((y) => Math.round(y)).join(', ')})`);
+  assert.ok(ys.at(-1) - y0 > 150, 'out of the view');
+  assert.ok(guns.slice(4).every((g) => !g), `the gun gone halfway (${guns.map(Number).join('')})`);
+  const lone = await pistolRig({ right: createPistolet(), cif: MELEE });
+  await lone.frame();
+  lone.walk.climbing = true;
+  const loneGuns = [];
+  for (let i = 0; i < 14; i++) loneGuns.push((await lone.frame()).some(isGun));
+  assert.deepEqual(guns, loneGuns, 'the pair\'s gun leaves the view as a lone gun does');
+});

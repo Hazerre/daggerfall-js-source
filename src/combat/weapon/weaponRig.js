@@ -2503,7 +2503,9 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
         for (const h of twoHands.drawOrder()) {
           if (h !== gh) { twoHands.drawPair(renderer, c, { ...o, only: h, artFor: (hand) => artFor(playerWeapon.handItem(hand)), glowFor: (hand) => glowOf(playerWeapon.handItem(hand)) }); continue; }
           const art = artFor(playerWeapon.handItem(gh));
-          if (art?.anchor && art.unionBox) drawThunderlock(art, c, fpTint, gh);
+          // CLIMB4: the gun has no slide to lend - halfway down the climb's lowering it is gone, as a lone gun is (the
+          // early return's `thunderlockHeld` leg is the right hand's gun), while the blade slides the whole way
+          if (art?.anchor && art.unionBox && _climbLower < 0.5) drawThunderlock(art, c, fpTint, gh);
         }
         return;
       }

@@ -503,6 +503,8 @@ the gun's reload and never rides over its shot. A gun pair overlaps its two shot
 - **The gun put by mid-blow** (`_pistolsPutBy`, `_bladeTurn`): unequipping the gun while the blade swings leaves the blade's
   blow to land - the classic machine is the blade's, and a swap never cut a blow (`applyWeapon`); the pistol put by reloads
   on as any. A lone Pistolet swapped mid-shot still clears the shot's mirror (AUDIT PISTOL-PORT A9).
+- **On a wall** (CLIMB4): the blade slides down out of the view as a lone blade does, and the gun - which has no slide to
+  lend - is gone halfway, as a lone gun is.
 - **The shot is the gun's to its end** (AUDIT MIXED-PAIR L1-4, L1-5): the shot marks the machine its mirror (`_shotMirror`)
   until its frames end, so a gun moved hand to hand mid-shot lands its one shot as a shot and a swapped pistol's is lost
   whole, never a blade's blow; the cooldown a Thunderlock owed when the pistols took the machine (AUDIT PISTOL-PORT C1) is
@@ -561,7 +563,7 @@ group, PISTOL-STANCE). So:
 - **a blow cut short hands the arm its own group back** (`dropBlowType`): a sheathe mid wind-up unequips in the right hand's
   group, a death or a weapon swapped into the hand mid-blow re-resolves without the struck hand's - and a rebuild or a view
   switch mid-blow resets the struck hand and its group with the blow (AUDIT MIXED-PAIR L3-7);
-- **each blow at its own weapon's pace** (`strikingWeaponOf`, AUDIT MIXED-PAIR L3-8): the left hand's blow plays at the
+- **each blow at its own weapon's pace** (`blowWeaponOf`, AUDIT MIXED-PAIR L3-8): the left hand's blow plays at the
   left weapon's record speed, as OpenMW plays the striking weapon's own `mSpeed` (character.cpp:1322);
 - **each shot from its own barrel** (`weaponMuzzle(hand)`, `muzzlePieceOf`, AUDIT MIXED-PAIR L3-6): a left gun's shot -
   beside a blade or a gun pair's left pistol - leaves its own piece on Weapon Bone Left, never the right weapon's tip; the
@@ -569,7 +571,7 @@ group, PISTOL-STANCE). So:
   hit is held (L1-1, `_gunStriking`).
 
 The arm's laws are `mixedArm.js`'s (`gunArmOf`, `blowTypeOf`, `gunHoldOf`, `offStanceTypeOf`, `gunAimShooting`,
-`strikingWeaponOf`, `muzzlePieceOf` - AUDIT MIXED-PAIR L3-11); `fpArm.js` reads its own state into them.
+`blowWeaponOf`, `muzzlePieceOf` - AUDIT MIXED-PAIR L3-11); `fpArm.js` reads its own state into them.
 
 ## The spell hand (SPELL-HAND, 2026-10-23)
 
@@ -751,22 +753,22 @@ the dungeon door's `cast` a positional argument.
   `bladeInnerEdge` share), `TWOHANDSMW-AUDIT2-guard-memo-blind` onto `pairBladeMeasure` (the memo the guard and the spread
   share), `TWOHANDSMW-AUDIT2-dip-drawn-unkept` and `TWOHANDSMW-AUDIT2-idle-key-reads-the-plan` onto the mirror's `keep` and
   its idle key's early answer, which read the spread beside the dip.
-- MIXED-PAIR and SPELL-HAND: `test/combat/mixedpair.test.js` (18 - the law, the fall, the turns and their counts, the
+- MIXED-PAIR and SPELL-HAND: `test/combat/mixedpair.test.js` (20 - the law, the fall, the turns and their counts, the
   one-handed reload, the off hand's terms on either kind, a flurry's blade on its own tick, the balance measured, and the
   rig: the sides and the order, each guard, no Pellets, the gun hand's clone at rest; the review's: a held shot under the
-  arm, the gun put by mid-blow, the touch button on a dry pair, the turns on the arm; the audit's three), `test/combat/spellhand.test.js` (18 -
+  arm, the gun put by mid-blow, the touch button on a dry pair, the turns on the arm; the audit's five), `test/combat/spellhand.test.js` (19 -
   the law, the live word, the cast's doors, the four hosts' cast presses, and the rig: one hand beside the weapon, the swing
   with the spell readied, the cast and the weapon's guard, Z, DFU where the hands are full, the sides and a Pistolet's guard;
-  the review's: the turns on the arm's clock, the busy word told as a strike begins; the audit's seven),
-  `test/combat/spellhand_mw.test.js` (11 - the arm's limbs, the live arm's spell hand and its blade-and-gun pair, the arm's law,
-  the pistol stance's one hand, the body on retail's bones; the review's: a blow cut short; the audit's four),
+  the review's: the turns on the arm's clock, the busy word told as a strike begins; the audit's eight),
+  `test/combat/spellhand_mw.test.js` (13 - the arm's limbs, the live arm's spell hand and its blade-and-gun pair, the arm's law,
+  the pistol stance's one hand, the body on retail's bones; the review's: a blow cut short; the audit's six),
   `test/net/mixedspell_peers.test.js` (3 - the audit's: `ah` on the wire, the peer's hands, the peer's body).
   `tools/mutants/mixedpair.json` (35), `spellhand.json` (35) and `spellhand_mw.json` (22), all dead.
 - AUDIT MIXED-PAIR / SPELL-HAND (2026-10-23, `01-Overview/audits/Audit-Mixed-Pair-Spell-Hand.md`): every finding's fix
   pinned and its mutants in `tools/mutants/audit_mixedspell.json` - each fix reverted (`AUDITMS-L1-*` to `AUDITMS-L4-*`)
   and the record lane's scratch mutants of the slice's new lines re-aimed (`AUDITMS-L5-*`); the ones that cannot fail a
   pin recorded `equivalent` with their reason. PIN MOVED, each with its note: `fieldgunmwaudit` (the muzzle names its
-  hand), `riflestance` (the hold's `free`), `audit23_magic` magic-14 and `allycast` A1 (CasterOnly's instant cast waits for a blow),
+  hand), `riflestance` (the hold's `free`), `audit23_magic` magic-14 and `allycast` A1 (CasterOnly's instant cast waits for a blow), `auditclimbarc` F10/F11 (the dungeon's `firePending` hears the window),
   `disc12` and `mac7` (`lh` beside `ah` in `poseHandsOf`), `fparm` (one door, CasterOnly), `audit39_worldstate`,
   `deckfield`, `audit29_host`, `tech1_hosts`, `hostmagic_wiring` (the cast press `CAST_PRESS`), `weaponglow1` (a pair's
   glow on the peer), and the relay's version pins (world249, `relayversion.test.js`'s hash row).
