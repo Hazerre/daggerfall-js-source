@@ -20,6 +20,9 @@
 //   { dfoStaff: 'unlock' }                         let go
 //   the hook asks { dfoStaff: 'token', sub, room } and the panel answers { dfoStaff: 'token', sub, room, tok } - a
 //   follow token for that room (a token opens each room once), or tok null when the staff session refuses it.
+//   the game asks { dfoStaff: 'hide', on: false } and the panel answers { dfoStaff: 'hide', on: false, ok } - Hide me
+//   turned off on the staff session, the panel's own Show myself (STAFF-CHAT-RED, `staffShowMe` below). Optional: a
+//   panel older than it ignores the ask, and the game hears no answer.
 import { OnlineSession } from './online.js';
 import { SOCIAL_ROOM, cellRoomOfWire, isCellRoom } from './wire.js';
 import { ID_RE, TOKEN_MAX_CHARS } from './identityToken.js';
@@ -160,4 +163,26 @@ export function staffHookDoor(win, hookOf, { setTimer = setTimeout, clearTimer =
     post({ dfoStaff: 'token', sub, room });
   });
   return { askToken, panel: () => seen };
+}
+
+/** STAFF-CHAT-RED (2026-10-23, mob: "give me a option next to chat to chat as /red or myself at all times"): THE GAME'S
+ *  ASK THAT HIDE ME GO OFF - an Admin hidden by the Staff Panel picked Me on the chat's switch (net/chatVoice.js) and
+ *  said yes, and only the panel holds the staff session that can say Show myself (/v1/staff/hide { on: false }). Posted
+ *  on this window to its own origin, as the door's own words are; the panel answers { dfoStaff: 'hide', on: false, ok }
+ *  once the service has. Resolves the panel's ok - false when the service refused, or when no answer came in
+ *  STAFF_TOKEN_WAIT_MS: no panel on this page, or one older than this ask, which ignores it.
+ *  @param {any} [win] @param {{ setTimer?: typeof setTimeout, clearTimer?: typeof clearTimeout }} [t] @returns {Promise<boolean>} */
+export function staffShowMe(win = globalThis.window, { setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
+  const origin = win?.location?.origin;
+  if (typeof origin !== 'string' || !origin || origin === 'null' || typeof win.postMessage !== 'function') return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const heard = (/** @type {any} */ e) => {
+      const m = e?.data;
+      if (e?.source === win && e?.origin === origin && m?.dfoStaff === 'hide' && 'ok' in m) done(m.ok === true);
+    };
+    const done = (/** @type {boolean} */ ok) => { clearTimer(timer); win.removeEventListener?.('message', heard); resolve(ok); };
+    const timer = setTimer(() => done(false), STAFF_TOKEN_WAIT_MS);
+    win.addEventListener?.('message', heard);
+    win.postMessage({ dfoStaff: 'hide', on: false }, origin);
+  });
 }

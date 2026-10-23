@@ -1663,7 +1663,11 @@ export function accountTokenMinter({ fetch, storage, onIssued = null, character 
           // AUDIT SAFE CLIENT-1 (2026-10-17): SAFE7's word - whether this account has agreed to the code of conduct as it
           // stands. Built field by field, `who` dropped it, so the code's card never stood for anyone: every first line
           // went unread-code. Absent from a service before acct150, which says nothing (heard as yes - chatSafetyHost adopt)
-          ...('conduct' in answer.data ? { conduct: answer.data.conduct === true } : {}) };
+          ...('conduct' in answer.data ? { conduct: answer.data.conduct === true } : {}),
+          // STAFF-CHAT-RED (mob, 2026-10-23: "give me a option next to chat to chat as /red or myself at all times"): the
+          // service's word that this token is a hidden staff member's (server-account/src/staffHidden.js hiddenToken,
+          // `hidden: 1`), so the chat's switch knows Me says nothing to players (net/chatVoice.js) - absent for everyone else
+          ...(answer.data.hidden === 1 ? { hidden: true } : {}) };
         // AUDIT B4: into the session that asked. NAME-AS: the stored session is the ACCOUNT's picture (the profile mark's
         // name), so it keeps the account's name - the room's, which may be my character's, goes to the live sessions
         adoptIdentity(storage, { ...who, name: who.accountName ?? who.name, secret: session.secret });
