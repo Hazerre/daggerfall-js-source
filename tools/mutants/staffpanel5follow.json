@@ -897,7 +897,7 @@
     "new": "b.id && !room._dead.has(other)",
     "why": "finding 6: a hidden socket matched by /tp, detectable by a Dungeon Master",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -907,7 +907,7 @@
     "new": "if (isWorldRoom(p.rk) || isCellRoom(p.rk)) out.rk = p.rk;",
     "why": "finding 2: a note from a home names no room, so no follow enters it",
     "tests": [
-      "test/net/staffpanel5follow.test.js",
+      "test/net/staffpanel5follow_client.test.js",
       "test/net/staffpanel5hook.test.js"
     ]
   },
@@ -918,7 +918,7 @@
     "new": "if (!p || !(isWorldRoom(p.rk) || isCellRoom(p.rk))) return null;",
     "why": "finding 2: the follow never takes a home for its room",
     "tests": [
-      "test/net/staffpanel5follow.test.js",
+      "test/net/staffpanel5follow_client.test.js",
       "test/net/staffpanel5hook.test.js"
     ]
   },
@@ -949,7 +949,7 @@
     "new": "...(a.ly ? { ly: a.ly } : {}) });",
     "why": "finding 1: a room's word names no socket, so the spectator never finds the target",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -959,7 +959,7 @@
     "new": "...{}",
     "why": "finding 1: the bus and the game drop the target's id",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {
@@ -969,7 +969,7 @@
     "new": "typeof b.id === 'string' ? { id: b.id }",
     "why": "finding 1: an id of any shape carried on",
     "tests": [
-      "test/net/staffpanel5follow.test.js"
+      "test/net/staffpanel5follow_client.test.js"
     ]
   },
   {

@@ -456,7 +456,7 @@
     "new": "      more = false;",
     "why": "finding 7: the service's `more` unread - a sixth message never asked for",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -466,7 +466,7 @@
     "new": "      void said;",
     "why": "finding 7: nothing asked after the last box is OK'd",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -476,7 +476,7 @@
     "new": ".then(() => { if (!up) void ask(); });",
     "why": "finding 7: an ask after every OK, though the service said no more",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -506,7 +506,7 @@
     "new": ")) void 0;   // on the bar, to be read again",
     "why": "finding 8: the copy lands on a Staff tab nobody can open",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -516,7 +516,7 @@
     "new": "{ copied.add(log); };",
     "why": "finding 8: a copy kept but its tab left off the bar",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   },
   {
@@ -526,7 +526,7 @@
     "new": "frozen() || open);",
     "why": "finding 8: the staff chat's next read (or a freeze lifted) takes the copy's tab off the bar",
     "tests": [
-      "test/net/staffpanel5message.test.js"
+      "test/net/staffpanel5message_client.test.js"
     ]
   }
 ]
