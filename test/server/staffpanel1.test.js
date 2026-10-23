@@ -80,6 +80,8 @@ test('STAFF-PANEL1: every door is listed once, beside the game\'s, and none is b
     '/v1/staff/keys', '/v1/staff/login', '/v1/staff/logout', '/v1/staff/me', '/v1/staff/mod/add', '/v1/staff/mod/remove', '/v1/staff/mods', '/v1/staff/team',
     // STAFF-PANEL2: the reports (staffCases.js)
     '/v1/staff/ban', '/v1/staff/case', '/v1/staff/cases', '/v1/staff/claim', '/v1/staff/dismiss', '/v1/staff/mute', '/v1/staff/release', '/v1/staff/strikes', '/v1/staff/unban',
+    // STAFF-BANNED: the Banned tab (staffCases.js)
+    '/v1/staff/banned',
     // STAFF-PANEL3-DESK: notes, the watchlist, your settings, the notice, the scorecard, the reported notes and listings (staffDesk.js)
     '/v1/staff/notes', '/v1/staff/notes/add', '/v1/staff/watch', '/v1/staff/watch/add', '/v1/staff/watch/remove', '/v1/staff/watch/events',
     '/v1/staff/settings', '/v1/staff/settings/save', '/v1/staff/notice', '/v1/staff/ai-score', '/v1/staff/board/reported', '/v1/staff/board/moderate',
