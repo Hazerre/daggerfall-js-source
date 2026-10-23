@@ -41,6 +41,7 @@ import { realmSaveTextOf, REALM_ID_RE } from './realm.js';
 import { lawTemplate, itemWorth, ITEM_UID_RE } from '../../src/systems/item/itemLaw.js';
 import { MINED_KEYS, minedMaterial, PLANT_GROUP_TEMPLATES } from '../../src/net/professionLaw.js';
 import { utcDay } from '../../src/net/marksLaw.js';
+import { kept as keptAnswer } from './staffEconomy.js';   // Home's watch kept as the economy's own is
 
 /** The most item kinds one tally keeps - the dearest by worth, when a save holds more (`more` says how many were left). */
 export const CENSUS_KINDS_MAX = 100;
@@ -70,6 +71,8 @@ export const CENSUS_BACKFILL_MAX = 400;
 /** Contested pieces one page answers; a character holding this many unchecked is the most urgent. */
 export const CONTESTED_PAGE = 25;
 export const CONTESTED_HIGH = 3;
+/** How long Home keeps the contested watch's answer ("a few minutes", as the economy's watch keeps its own). */
+export const CONTESTED_HOME_KEEP_S = 5 * 60;
 /** What a trail check may find, and its note's bound. */
 export const TRAIL_FOUND = Object.freeze(['copier', 'innocent', 'unclear']);
 export const TRAIL_NOTE_MAX = 500;
@@ -211,12 +214,27 @@ async function keptRead(/** @type {string} */ key, /** @type {number} */ nowS, /
 }
 const num = (/** @type {any} */ r, k = 'n') => Number(r?.results?.[0]?.[k] ?? 0) || 0;
 
+// ─── WHAT THE SERVICE HOLDS (the market place - in no save, so in no tally: censusNow and censusDay alike) ───
+/** A listing's goods are the market's while it stands, and after it closed unsold until its seller takes them back
+ *  (market.js settleBackRead); an auction's piece likewise (one sold goes to its winner's deliveries at the close). */
+const heldListing = (/** @type {string} */ l = '') => `(${l}state = 'open' OR (${l}state IN ('expired', 'removed') AND ${l}returned = 0))`;
+const HELD_AUCTION = "(a.state = 'open' OR (a.state IN ('unsold', 'removed') AND a.returned = 0))";
+/** A delivery not yet collected: a crafted piece (its template the craft's record's) or a pack's piece (its own record). */
+const DELIVERY_T = "COALESCE(p.template, CAST(json_extract(d.item, '$.templateIndex') AS INTEGER))";
+const DELIVERY_N = "SUM(CASE WHEN d.item IS NULL THEN 1 ELSE MAX(1, COALESCE(json_extract(d.item, '$.stackCount'), 1)) END)";
+const DELIVERIES = 'FROM market_deliveries d LEFT JOIN products p ON p.provenance = d.provenance WHERE d.collected = 0';
+/** Marks the market holds: the ledger's escrow end, what went in less what came out - open orders' and standing bids'
+ *  alike (marks.js marksReport's measure, the economy screen's, on 0153's covering index). */
+const MARKS_ESCROW = `SELECT COALESCE(SUM(CASE WHEN dst_kind = 'escrow' THEN amount ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN src_kind = 'escrow' THEN amount ELSE 0 END), 0) AS n
+  FROM marks_ledger WHERE dst_kind = 'escrow' OR src_kind = 'escrow'`;
+
 /**
  * ONE KIND'S CENSUS, server wide, as it stands: the holders ranked (CENSUS_RANK_MAX), how many hold it, and where it sits
  * - carried (the living characters' latest tallies; for Marks, the accounts' balances), in the Stores (a character's and
- * a guild's), in guild vaults (for gold the treasuries, for Marks the guilds' balances), at the market (open listings;
- * for gold what sales hold uncollected, for Marks the open orders' escrow). `stores` null where the kind has none. One
- * round trip.
+ * a guild's), in guild vaults (for gold the treasuries' realm gold - the rest is `legacy`, unverified, never counted: the
+ * design's weak spot "Guild treasury mixes in unverified gold"; for Marks the guilds' balances), at the market (what the
+ * service holds: listings and auctions, deliveries uncollected, materials on the road; for gold what sales hold
+ * uncollected, for Marks the ledger's escrow). `stores` null where the kind has none. One round trip.
  * @param {any} db @param {string} kind
  */
 async function censusNow(db, kind) {
@@ -230,13 +248,14 @@ async function censusNow(db, kind) {
         WHERE r.dead_at IS NULL AND CAST(json_extract(c.tally, ?1) AS INTEGER) > 0 ORDER BY n DESC, c.char_id LIMIT ?2`).bind(pathOf(kind), CENSUS_RANK_MAX);
   /** @type {any[]} */
   const places = [];
-  /** @type {(rs: any[]) => { stores: number | null, vaults: number, market: number }} */
+  /** @type {(rs: any[]) => { stores: number | null, vaults: number, market: number, legacy?: number }} */
   let whereOf;
   if (kind === 'gold') {
-    places.push(db.prepare('SELECT COALESCE(SUM(treasury), 0) AS n FROM guilds'), db.prepare('SELECT COALESCE(SUM(gold), 0) AS n FROM market_gold'));
-    whereOf = ([vaults, market]) => ({ stores: null, vaults: num(vaults), market: num(market) });
+    places.push(db.prepare('SELECT COALESCE(SUM(realm_gold), 0) AS n, COALESCE(SUM(MAX(treasury - realm_gold, 0)), 0) AS legacy FROM guilds'),
+      db.prepare('SELECT COALESCE(SUM(gold), 0) AS n FROM market_gold'));
+    whereOf = ([vaults, market]) => ({ stores: null, vaults: num(vaults), market: num(market), legacy: num(vaults, 'legacy') });
   } else if (kind === 'marks') {
-    places.push(db.prepare('SELECT COALESCE(SUM(balance), 0) AS n FROM guild_marks'), db.prepare("SELECT COALESCE(SUM(escrow), 0) AS n FROM market_orders WHERE state = 'open'"));
+    places.push(db.prepare('SELECT COALESCE(SUM(balance), 0) AS n FROM guild_marks'), db.prepare(MARKS_ESCROW));
     whereOf = ([vaults, market]) => ({ stores: null, vaults: num(vaults), market: num(market) });
   } else {
     const t = /** @type {number} */ (templateOfKind(kind));
@@ -245,9 +264,11 @@ async function censusNow(db, kind) {
     places.push(
       db.prepare("SELECT COALESCE(SUM(count), 0) AS n FROM guild_vault WHERE json_extract(rec, '$.templateIndex') = ?1").bind(t),
       db.prepare(`SELECT COALESCE(SUM(MAX(1, COALESCE(json_extract(item, '$.stackCount'), 1))), 0) AS n FROM market_listings
-        WHERE state = 'open' AND kind = 'item' AND json_extract(item, '$.templateIndex') = ?1`).bind(t),
+        WHERE ${heldListing()} AND kind = 'item' AND json_extract(item, '$.templateIndex') = ?1`).bind(t),
       db.prepare(`SELECT COUNT(*) AS n FROM market_listings l JOIN products p ON p.provenance = l.provenance
-        WHERE l.state = 'open' AND l.kind = 'piece' AND p.template = ?1`).bind(t),
+        WHERE ${heldListing('l.')} AND l.kind = 'piece' AND p.template = ?1`).bind(t),
+      db.prepare(`SELECT COUNT(*) AS n FROM market_auctions a JOIN products p ON p.provenance = a.provenance WHERE ${HELD_AUCTION} AND p.template = ?1`).bind(t),
+      db.prepare(`SELECT COALESCE(${DELIVERY_N}, 0) AS n ${DELIVERIES} AND ${DELIVERY_T} = ?1`).bind(t),
     );
     if (keys.length) {
       // shortcut: prof_stores is read by material over no index of its own - Admin only, cached, never auto-refreshed; an
@@ -255,11 +276,13 @@ async function censusNow(db, kind) {
       places.push(
         db.prepare(`SELECT COALESCE(SUM(qty), 0) AS n FROM prof_stores WHERE material IN (${m})`).bind(...keys),
         db.prepare(`SELECT COALESCE(SUM(qty), 0) AS n FROM guild_prof_stores WHERE material IN (${m})`).bind(...keys),
-        db.prepare(`SELECT COALESCE(SUM(units), 0) AS n FROM market_listings WHERE state = 'open' AND kind = 'material' AND material IN (${m})`).bind(...keys),
+        db.prepare(`SELECT COALESCE(SUM(units), 0) AS n FROM market_listings WHERE ${heldListing()} AND kind = 'material' AND material IN (${m})`).bind(...keys),
+        db.prepare(`SELECT COALESCE(SUM(units), 0) AS n FROM market_sales WHERE kind = 'material' AND delivered = 0 AND material IN (${m})`).bind(...keys),
       );
     }
-    whereOf = ([vault, items, crafted, own, guild, mats]) => ({
-      stores: keys.length ? num(own) + num(guild) : null, vaults: num(vault), market: num(items) + num(crafted) + (keys.length ? num(mats) : 0),
+    whereOf = ([vault, items, crafted, auctions, deliveries, own, guild, mats, road]) => ({
+      stores: keys.length ? num(own) + num(guild) : null, vaults: num(vault),
+      market: num(items) + num(crafted) + num(auctions) + num(deliveries) + (keys.length ? num(mats) + num(road) : 0),
     });
   }
   const [ranked, ...rest] = await db.batch([rank, ...places]);
@@ -282,7 +305,8 @@ async function trendOf(/** @type {any} */ db, /** @type {string} */ kind, /** @t
 /**
  * CENSUS JUMPS (the weak spot's "hunt dupes through ... census jumps"): the characters whose count of `kind` rose most in
  * the last `hours` - from the hourly rows' tallies (realm_wealth_hours, its hour index; each character's count before the
- * window, or its first in it, read by its own key). A hint, never proof: a find, a craft or a trade rises too.
+ * window, or its first in it, read by its own key). A hint, never proof: a find, a craft or a trade rises too. The `+` on
+ * GROUP BY keeps the hour index: grouped on the bare column, the planner walks the whole table in key order to skip a sort.
  * @param {any} db @param {string} kind @param {number} nowS @param {number} hours
  */
 async function jumpsOf(db, kind, nowS, hours) {
@@ -293,7 +317,7 @@ async function jumpsOf(db, kind, nowS, hours) {
         (SELECT ${n('f')} FROM realm_wealth_hours f WHERE f.char_id = w.char_id AND f.hour >= ?2 AND f.tally IS NOT NULL ORDER BY f.hour LIMIT 1)) AS base
     FROM (SELECT h.char_id, h.player, ${n('h')} AS n FROM realm_wealth_hours h WHERE h.hour >= ?2 AND h.tally IS NOT NULL) w
     JOIN realm_characters r ON r.id = w.char_id JOIN players p ON p.id = w.player
-    GROUP BY w.char_id HAVING high - base > 0 ORDER BY high - base DESC, w.char_id LIMIT ?3`).bind(pathOf(kind), from, CENSUS_JUMPS_MAX).all();
+    GROUP BY +w.char_id HAVING high - base > 0 ORDER BY high - base DESC, w.char_id LIMIT ?3`).bind(pathOf(kind), from, CENSUS_JUMPS_MAX).all();
   return (r?.results ?? []).map((/** @type {any} */ x) => ({
     char: x.char_id, name: x.name, player: x.player, handle: displayName(x), from: Number(x.base), to: Number(x.high), rise: Number(x.high) - Number(x.base),
   }));
@@ -311,9 +335,14 @@ const recordOf = (/** @type {any} */ d, /** @type {string} */ p, /** @type {unkn
   ? { char: id || null, name: d[`${p}_name`] ?? null, player: d[`${p}_player`] ?? null, handle: d[`${p}_player`] ? displayName({ handle: d[`${p}_handle`], guest_name: d[`${p}_guest`] }) : null, at: at ?? null }
   : null);
 
-/** Unchecked contested pieces on the copy holder's character - the count that makes a row high. */
+/** A listed row: a death's dropped piece (`drop`) is the ledger's own bookkeeping, never listed - and in none of the
+ *  list's indexes (0154 item_dupes_at, item_dupes_open, item_dupes_open_at), so no read here walks the drops. */
+const LISTED = "(d.kind IS NULL OR d.kind != 'drop')";
+/** Unchecked contested pieces on the copy holder's character - the count that makes a row high (item_dupes_open). */
 const OPEN_SQL = "(SELECT COUNT(*) FROM item_dupes x WHERE x.char_id = d.char_id AND x.trail_at IS NULL AND (x.kind IS NULL OR x.kind != 'drop'))";
-const contestedSelect = (/** @type {string} */ more = '') => `SELECT ${more}d.uid, d.char_id, d.at, d.first_char, d.first_at, d.claimant, d.claim_at, d.fp, d.kind,
+/** The characters holding CONTESTED_HIGH or more unchecked - one walk of item_dupes_open, covered. */
+const HIGH_CHARS = `SELECT x.char_id FROM item_dupes x WHERE x.trail_at IS NULL AND (x.kind IS NULL OR x.kind != 'drop') GROUP BY x.char_id HAVING COUNT(*) >= ${CONTESTED_HIGH}`;
+const contestedSelect = () => `SELECT d.uid, d.char_id, d.at, d.first_char, d.first_at, d.claimant, d.claim_at, d.fp, d.kind,
     d.trail_at, d.trail_by, d.trail_found, d.trail_note, ${OPEN_SQL} AS open_n,
     c.name AS c_name, c.player AS c_player, pc.handle AS c_handle, pc.guest_name AS c_guest,
     f.name AS f_name, f.player AS f_player, pf.handle AS f_handle, pf.guest_name AS f_guest,
@@ -342,20 +371,36 @@ function contestedOf(d) {
 
 /**
  * THE CONTESTED PIECES, a page: most urgent first (unchecked before checked, a character holding CONTESTED_HIGH or more
- * unchecked first among those, then newest) or newest first. A death's dropped piece (`drop`) is the ledger's own
- * bookkeeping, never listed. `char` one character's; `open` only those with no trail check yet.
- * @param {any} db @param {{ sort?: string, from?: number, char?: string | null, open?: boolean, page?: number }} o
+ * unchecked first among those, then newest) or newest first. `char` one character's; `open` only those with no trail
+ * check yet. A KEYSET, never an offset: `before` is the last row's place (its tier, time, piece and character) and `next`
+ * this page's - so a trail check landing between pages moves a row behind the place (seen again, checked), never the
+ * place past rows not yet seen. Each tier is its own walk, newest first on an index (a row's open count read for the
+ * rows walked alone), one round trip. shortcut: a piece found while the list is open - and a character it lifts to
+ * high - is in the next load, not this scroll.
+ * @param {any} db @param {{ sort?: string, before?: { tier: number, at: number, uid: string, char: string } | null, char?: string | null, open?: boolean, page?: number }} o
  */
-export async function contestedPage(db, { sort = 'urgent', from = 0, char = null, open = false, page = CONTESTED_PAGE }) {
-  const order = sort === 'newest' ? 'd.at DESC, d.uid, d.char_id'
-    : `(d.trail_at IS NULL) DESC, (${OPEN_SQL} >= ${CONTESTED_HIGH}) DESC, d.at DESC, d.uid, d.char_id`;
-  const r = await db.prepare(`${contestedSelect('COUNT(*) OVER () AS total, ')}
-    WHERE (d.kind IS NULL OR d.kind != 'drop') AND (?1 IS NULL OR d.char_id = ?1) AND (?2 = 0 OR d.trail_at IS NULL)
-    ORDER BY ${order} LIMIT ?3 OFFSET ?4`).bind(char, open ? 1 : 0, page, from).all();
-  const rows = r?.results ?? [];
-  const total = Number(rows[0]?.total ?? 0);
-  return { pieces: rows.map(contestedOf), next: from + rows.length < total ? from + rows.length : null, total };
+export async function contestedPage(db, { sort = 'urgent', before = null, char = null, open = false, page = CONTESTED_PAGE }) {
+  const tiers = sort === 'newest' ? [open ? 'd.trail_at IS NULL' : null]
+    : [`d.trail_at IS NULL AND d.char_id IN (${HIGH_CHARS})`, `d.trail_at IS NULL AND ${OPEN_SQL} < ${CONTESTED_HIGH}`, ...(open ? [] : ['d.trail_at IS NOT NULL'])];
+  const first = before ? before.tier : 0;
+  const reads = [];
+  for (let tier = first; tier < tiers.length; tier++) {
+    const where = [LISTED, ...(tiers[tier] ? [tiers[tier]] : [])];
+    const args = [];
+    if (char) { where.push('d.char_id = ?'); args.push(char); }
+    if (before && tier === first) { where.push('(d.at, d.uid, d.char_id) < (?, ?, ?)'); args.push(before.at, before.uid, before.char); }
+    reads.push(db.prepare(`${contestedSelect()} WHERE ${where.join(' AND ')} ORDER BY d.at DESC, d.uid DESC, d.char_id DESC LIMIT ?`).bind(...args, page + 1));
+  }
+  const got = reads.length ? await db.batch(reads) : [];
+  const rows = got.flatMap((/** @type {any} */ r, /** @type {number} */ i) => (r?.results ?? []).map((/** @type {any} */ d) => ({ ...d, tier: first + i })));
+  const last = rows.length > page ? rows[page - 1] : null;
+  return { pieces: rows.slice(0, page).map(contestedOf), next: last ? `${last.tier}|${last.at}|${last.uid}|${last.char_id}` : null };
 }
+/** A page's place as the panel hands it back (`tier|at|uid|char`), or null. */
+const placeOf = (/** @type {unknown} */ v) => {
+  const m = typeof v === 'string' ? /^([0-2])\|(\d{1,12})\|([\w-]{1,64})\|([\w-]{1,64})$/.exec(v) : null;
+  return m ? { tier: Number(m[1]), at: Number(m[2]), uid: m[3], char: m[4] } : null;
+};
 
 /**
  * ONE PIECE'S TRAIL, for the check a Remove needs: every copy of it written down, where the ledger has it now (and who
@@ -435,6 +480,7 @@ export async function staffCensus(ctx, env, path, body, who, audit) {
     return {
       kind, name: kindName(kind), at: got.at, total: c.carried + (c.stores ?? 0) + c.vaults + c.market,
       where: { carried: c.carried, stores: c.stores, vaults: c.vaults, market: c.market },
+      ...(kind === 'gold' ? { legacyGold: c.legacy } : {}),   // guild gold from before the realm: unverified, in no total
       holdersCount: c.holders, holders: c.ranked.slice(from, from + CENSUS_PAGE), next: from + CENSUS_PAGE < c.ranked.length ? from + CENSUS_PAGE : null, trend,
     };
   }
@@ -442,8 +488,10 @@ export async function staffCensus(ctx, env, path, body, who, audit) {
   if (path === '/v1/staff/contested') {
     const char = body.char == null ? null : typeof body.char === 'string' && REALM_ID_RE.test(body.char) ? body.char : undefined;
     if (char === undefined) return { error: 'body' };
+    const before = body.before == null ? null : placeOf(body.before);
+    if (before === null && body.before != null) return { error: 'body' };
     const sort = body.sort === 'newest' ? 'newest' : 'urgent';
-    const page = await contestedPage(db, { sort, from: offsetOf(body.from), char, open: body.open === true });
+    const page = await contestedPage(db, { sort, before, char, open: body.open === true });
     await audit('contested-read', null, { sort, ...(char ? { char } : {}) }, { onceIn: CENSUS_CACHE_S }).run();
     return page;
   }
@@ -477,17 +525,24 @@ export async function staffCensus(ctx, env, path, body, who, audit) {
 }
 
 /** THE HOME ROLL-UP's watch (status builder's registry): the contested pieces nobody has checked the trail of, most urgent
- *  first - each one line, its account and name. */
+ *  first - each one line, its account and name - and how many, high and all. Kept CONTESTED_HOME_KEEP_S (staffEconomy.js
+ *  kept, as its own watch is): Home opens never read it twice in that time. */
 export const HOME_WATCH = Object.freeze({
   id: 'contested', label: 'Contested pieces', role: 'admin',
   /** @param {any} ctx @param {any} env @param {any} who @param {number} n */
   async top(ctx, env, who, n) {
-    const page = await contestedPage(ctx.db, { sort: 'urgent', open: true, page: Math.max(1, Math.min(10, Number(n) || 3)) });
-    const high = Number((await ctx.db.prepare(`SELECT COUNT(*) AS n FROM item_dupes d WHERE d.trail_at IS NULL AND (d.kind IS NULL OR d.kind != 'drop') AND ${OPEN_SQL} >= ?1`).bind(CONTESTED_HIGH).first())?.n ?? 0);
-    return {
-      items: page.pieces.map((p) => ({ level: p.level, why: [p.item.name ?? 'a piece', ...p.why].join(' · '), sub: p.copy?.player ?? null, name: p.copy?.handle ?? null })),
-      high, total: page.total,
-    };
+    const got = await keptAnswer(ctx.db, 'contested-home', ctx.nowS, CONTESTED_HOME_KEEP_S, async () => {
+      const [page, counts] = await Promise.all([
+        contestedPage(ctx.db, { sort: 'urgent', open: true, page: 10 }),
+        ctx.db.prepare(`SELECT COALESCE(SUM(n), 0) AS total, COALESCE(SUM(CASE WHEN n >= ${CONTESTED_HIGH} THEN n ELSE 0 END), 0) AS high
+          FROM (SELECT COUNT(*) AS n FROM item_dupes WHERE trail_at IS NULL AND (kind IS NULL OR kind != 'drop') GROUP BY char_id)`).first(),
+      ]);
+      return {
+        items: page.pieces.map((p) => ({ level: p.level, why: [p.item.name ?? 'a piece', ...p.why].join(' · '), sub: p.copy?.player ?? null, name: p.copy?.handle ?? null })),
+        high: Number(counts?.high ?? 0), total: Number(counts?.total ?? 0),
+      };
+    });
+    return { ...got, items: got.items.slice(0, Math.max(1, Math.min(10, Number(n) || 3))) };
   },
 });
 
@@ -497,27 +552,31 @@ const utcHourOf = (/** @type {number} */ nowS) => new Date(nowS * 1000).getUTCHo
 
 /**
  * THE DAY'S TOTALS, once a UTC day at CENSUS_DAY_HOUR: every kind's count in each place (censusNow's places, summed for
- * all kinds at once), into item_census_days - and the days past CENSUS_DAYS_KEEP swept. Answers the rows written.
+ * all kinds at once - gold's vaults realm gold only, as there), into item_census_days - and the days past CENSUS_DAYS_KEEP
+ * swept. Answers the rows written.
  * @param {{ db: any, nowS: number }} ctx
  */
 export async function censusDay({ db, nowS }) {
   if (utcHourOf(nowS) !== CENSUS_DAY_HOUR) return 0;
   const day = utcDay(nowS);
   if (await db.prepare("SELECT 1 FROM item_census_days WHERE kind = 'gold' AND day = ?1").bind(day).first()) return 0;
-  const [carried, own, guild, vault, mats, items, crafted, gold, marks] = await db.batch([
+  const [carried, own, guild, vault, mats, road, items, crafted, auctions, deliveries, gold, marks] = await db.batch([
     db.prepare(`SELECT j.key AS k, SUM(CAST(j.value AS INTEGER)) AS n, SUM(CASE WHEN CAST(j.value AS INTEGER) > 0 THEN 1 ELSE 0 END) AS h
       FROM item_census c JOIN realm_characters r ON r.id = c.char_id, json_each(c.tally) j WHERE r.dead_at IS NULL AND j.key != 'more' GROUP BY j.key`),
     db.prepare('SELECT material AS k, SUM(qty) AS n FROM prof_stores GROUP BY material'),
     db.prepare('SELECT material AS k, SUM(qty) AS n FROM guild_prof_stores GROUP BY material'),
     db.prepare("SELECT CAST(json_extract(rec, '$.templateIndex') AS INTEGER) AS t, SUM(count) AS n FROM guild_vault GROUP BY t"),
-    db.prepare("SELECT material AS k, SUM(units) AS n FROM market_listings WHERE state = 'open' AND kind = 'material' GROUP BY material"),
+    db.prepare(`SELECT material AS k, SUM(units) AS n FROM market_listings WHERE ${heldListing()} AND kind = 'material' GROUP BY material`),
+    db.prepare("SELECT material AS k, SUM(units) AS n FROM market_sales WHERE kind = 'material' AND delivered = 0 GROUP BY material"),
     db.prepare(`SELECT CAST(json_extract(item, '$.templateIndex') AS INTEGER) AS t, SUM(MAX(1, COALESCE(json_extract(item, '$.stackCount'), 1))) AS n
-      FROM market_listings WHERE state = 'open' AND kind = 'item' GROUP BY t`),
+      FROM market_listings WHERE ${heldListing()} AND kind = 'item' GROUP BY t`),
     db.prepare(`SELECT p.template AS t, COUNT(*) AS n FROM market_listings l JOIN products p ON p.provenance = l.provenance
-      WHERE l.state = 'open' AND l.kind = 'piece' GROUP BY p.template`),
-    db.prepare('SELECT (SELECT COALESCE(SUM(treasury), 0) FROM guilds) AS vaults, (SELECT COALESCE(SUM(gold), 0) FROM market_gold) AS market'),
+      WHERE ${heldListing('l.')} AND l.kind = 'piece' GROUP BY p.template`),
+    db.prepare(`SELECT p.template AS t, COUNT(*) AS n FROM market_auctions a JOIN products p ON p.provenance = a.provenance WHERE ${HELD_AUCTION} GROUP BY p.template`),
+    db.prepare(`SELECT ${DELIVERY_T} AS t, ${DELIVERY_N} AS n ${DELIVERIES} GROUP BY t`),
+    db.prepare('SELECT (SELECT COALESCE(SUM(realm_gold), 0) FROM guilds) AS vaults, (SELECT COALESCE(SUM(gold), 0) FROM market_gold) AS market'),
     db.prepare(`SELECT (SELECT COALESCE(SUM(balance), 0) FROM marks) AS carried, (SELECT COUNT(*) FROM marks WHERE balance > 0) AS holders,
-      (SELECT COALESCE(SUM(balance), 0) FROM guild_marks) AS vaults, (SELECT COALESCE(SUM(escrow), 0) FROM market_orders WHERE state = 'open') AS market`),
+      (SELECT COALESCE(SUM(balance), 0) FROM guild_marks) AS vaults, (${MARKS_ESCROW}) AS market`),
   ]);
   /** @type {Map<string, { carried: number, stores: number | null, vaults: number, market: number, holders: number }>} */
   const rows = new Map();
@@ -536,8 +595,8 @@ export async function censusDay({ db, nowS }) {
   }
   for (const x of [...(own?.results ?? []), ...(guild?.results ?? [])]) { const r = kindAt(storeTemplateOf(x.k)); if (r) r.stores = (r.stores ?? 0) + (Number(x.n) || 0); }
   for (const x of vault?.results ?? []) { const r = kindAt(x.t); if (r) r.vaults += Number(x.n) || 0; }
-  for (const x of mats?.results ?? []) { const r = kindAt(storeTemplateOf(x.k)); if (r) r.market += Number(x.n) || 0; }
-  for (const x of [...(items?.results ?? []), ...(crafted?.results ?? [])]) { const r = kindAt(x.t); if (r) r.market += Number(x.n) || 0; }
+  for (const x of [...(mats?.results ?? []), ...(road?.results ?? [])]) { const r = kindAt(storeTemplateOf(x.k)); if (r) r.market += Number(x.n) || 0; }
+  for (const x of [...(items?.results ?? []), ...(crafted?.results ?? []), ...(auctions?.results ?? []), ...(deliveries?.results ?? [])]) { const r = kindAt(x.t); if (r) r.market += Number(x.n) || 0; }
   const g = at('gold');
   g.vaults = Number(gold?.results?.[0]?.vaults ?? 0);
   g.market = Number(gold?.results?.[0]?.market ?? 0);
@@ -558,7 +617,9 @@ export async function censusDay({ db, nowS }) {
  * living character with a stored record and no latest tally gets one, from its record in R2 - a page at a time, through
  * the realm's characters in id order, its place kept in realm_config ('census-backfill') and done for good once it
  * reaches the end. Runs only with CENSUS_BACKFILL 'on' and only in CENSUS_QUIET_HOURS. A character that checkpoints
- * meanwhile writes its own (the backfill never writes over one). Answers the tallies written.
+ * meanwhile writes its own (the backfill never writes over one). A record R2 failed to read stops the firing just before
+ * its character, so the next firing reads it again; only one R2 has not (or one that will not open) is passed for good.
+ * Answers the tallies written.
  * @param {{ db: any, nowS: number, budget?: () => boolean }} ctx @param {any} env
  */
 export async function censusBackfill({ db, nowS, budget = () => true }, env) {
@@ -573,14 +634,21 @@ export async function censusBackfill({ db, nowS, budget = () => true }, env) {
       FROM realm_characters r WHERE r.id > ?1 ORDER BY r.id LIMIT ?2`).bind(cur.after, CENSUS_BACKFILL_PAGE).all())?.results ?? [];
     /** @type {any[]} */
     const rows = [];
+    /** @type {unknown} a read that failed: the page stops before its character, tried again next firing */
+    let failed = null;
+    let after = cur.after;
     for (const r of page) {
-      if (r.has || r.dead_at != null || !r.obj) continue;
-      let save = null;
-      try { save = JSON.parse((await realmSaveTextOf(await env.SAVES.get(r.obj))) ?? 'null'); } catch { save = null; }
-      const tally = censusTally(save);
-      if (tally) rows.push([r.id, r.player, tally, r.seq, r.updated_at]);
+      if (!(r.has || r.dead_at != null || !r.obj)) {
+        let text = null;
+        try { text = await realmSaveTextOf(await env.SAVES.get(r.obj)); } catch (e) { failed = e; break; }
+        let save = null;
+        try { save = JSON.parse(text ?? 'null'); } catch { save = null; }   // no object, or one that will not open: nothing to tally, for good
+        const tally = censusTally(save);
+        if (tally) rows.push([r.id, r.player, tally, r.seq, r.updated_at]);
+      }
+      after = r.id;
     }
-    cur = { after: page.length ? page[page.length - 1].id : cur.after, done: page.length < CENSUS_BACKFILL_PAGE };
+    cur = { after, done: !failed && page.length < CENSUS_BACKFILL_PAGE };
     await db.batch([
       ...(rows.length ? [db.prepare(`INSERT OR IGNORE INTO item_census (char_id, player, tally, seq, at)
         SELECT json_extract(j.value, '$[0]'), json_extract(j.value, '$[1]'), json_extract(j.value, '$[2]'), json_extract(j.value, '$[3]'), json_extract(j.value, '$[4]')
@@ -589,6 +657,7 @@ export async function censusBackfill({ db, nowS, budget = () => true }, env) {
         ON CONFLICT (key) DO UPDATE SET value = excluded.value, at = excluded.at, by = excluded.by`).bind(JSON.stringify(cur), nowS),
     ]);
     n += rows.length;
+    if (failed) throw failed;   // what it filled is kept; the job is written down failed (cron.js), and the next firing goes on
   }
   return n;
 }
