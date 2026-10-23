@@ -177,9 +177,9 @@ try {
     check(`the ${name} is heard on its cue (${at.toFixed(3)} s): the strongest onset from 2 s before it, within 25 ms`, Math.abs(near.time - at) <= 0.025 && Math.abs(wide.time - near.time) < 1e-9, `onset at ${near.time.toFixed(3)} s, ${((near.time - at) * 1000).toFixed(1)} ms, strength ${near.strength.toFixed(2)}`);
   }
   // INTRO3b: not flat - wide (the two channels are not one: the recording's L/R correlation is 0.33 over the film, 0.59
-  // over its body; the dry render's was 0.985, INTRO3b's 0.58) and present (the spectrum's centre of weight and its
+  // over its body; the dry render's was 0.985, INTRO3b's 0.61) and present (the spectrum's centre of weight and its
   // share from 2 kHz up, measured on the recording the same way: 521 Hz and -12.8 dB over the film; the dry render's
-  // 305 Hz and -25.0 dB, INTRO3b's 474 Hz and -14.8 - the pins a margin under where it lands)
+  // 305 Hz and -25.0 dB, INTRO3b's 483 Hz and -14.7 - the pins a margin under where it lands)
   const sp = spectrum(Float32Array.from(r.mono));
   check('wide: the two channels are not one (L/R correlation under 0.8)', r.corr < 0.8, `correlation ${r.corr.toFixed(3)}`);
   check('present: the spectrum’s centre of weight over 420 Hz and its share from 2 kHz up over -16 dB', sp.centroid > 420 && sp.presenceDb > -16, `centroid ${sp.centroid.toFixed(0)} Hz, 2 kHz up ${sp.presenceDb.toFixed(1)} dB over ${sp.frames} frames`);

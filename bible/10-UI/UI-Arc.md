@@ -1376,13 +1376,15 @@ they were read - what plays them did:
   send as its third argument. A context with no convolver plays dry, as
   before; dispose lets the hall's nodes go with the gain.
 
-Measured after, the same way, the film's 27 s: the centre of weight 474 Hz,
-the share from 2 kHz up -14.8 dB (10 dB up; 2 dB under the recording's, and
-left there - the last of it costs FM its sweetness), L/R correlation 0.58 (the
+Measured after, the same way, the film's 27 s: the centre of weight 483 Hz,
+the share from 2 kHz up -14.7 dB (10 dB up; 2 dB under the recording's, and
+left there - the last of it costs FM its sweetness), L/R correlation 0.61 (the
 recording's body's), both landmarks heard at 0.0 ms of their cue, the peak
--2.7 dBFS at the highest MusicVolume under the -1 ceiling (the hall sums over
+-3.1 dBFS at the highest MusicVolume under the -1 ceiling (the hall sums over
 the press, so the ceiling is measured, not held by construction as the dry
-sound's is). The probe pins the width (correlation under 0.8) and the
+sound's is). Over the whole band: presence (2-6 kHz) -15.2 dB against the
+recording's -12.8 and the dry render's -24.9, air (6 kHz up) -23.6 against
+-25.2 and -39.0, spectral flatness 0.035 against 0.090 and 0.003. The probe pins the width (correlation under 0.8) and the
 presence (the centre over 420 Hz, 2 kHz up over -16 dB) beside the landmarks,
 each a margin under where the score lands. Pins: `test/systems/intro3_score.test.js`
 INTRO3b (the voices in range as written, every drum its skin, the halo, the

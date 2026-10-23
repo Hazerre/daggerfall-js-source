@@ -949,7 +949,7 @@ beaters' clicks and the snare a crack over a skin, a suspended cymbal's wash, th
 CC7 swell into every turn - and THE HALL: the intro session hangs a concert hall's convolver under the player's master
 (`systems/introTheme.js` `introSpace`, its impulse from I3DL2 numbers through `reverbPresets.js` `reverbImpulse`, the
 first use of that builder outside the engine's zones), through the session's own gain so MusicVolume and the mute reach
-it. The film's 27 s measured after: 474 Hz, -14.8 dB from 2 kHz up, correlation 0.58, both landmarks at 0.0 ms, the peak
--2.7 dBFS at the highest MusicVolume - the hall sums over the press, so the ceiling is measured there, not held by
+it. The film's 27 s measured after: 483 Hz, -14.7 dB from 2 kHz up, correlation 0.61, both landmarks at 0.0 ms, the peak
+-3.1 dBFS at the highest MusicVolume - the hall sums over the press, so the ceiling is measured there, not held by
 construction. `tools/introScoreProbe.mjs` pins the width and the presence beside the landmarks. The whole record is
 `10-UI/UI-Arc.md` INTRO3b.
