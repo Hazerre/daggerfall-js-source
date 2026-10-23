@@ -975,8 +975,8 @@
   {
     "name": "STAFF-PANEL5-FOLLOW-FIX-hook-in-id-unkept",
     "file": "src/net/staffHook.js",
-    "old": "ly = f.ly ?? 0; pid = f.id ?? pid; }",
-    "new": "ly = f.ly ?? 0; }",
+    "old": "ly = f.ly ?? 0; pid = f.id ?? pid; if",
+    "new": "ly = f.ly ?? 0; if",
     "why": "finding 1: the id a room said is thrown away",
     "tests": [
       "test/net/staffpanel5hook.test.js"
@@ -1068,6 +1068,106 @@
     "old": "if (who.fb === 'missing') return t(",
     "new": "if (who.fb === 'nope') return t(",
     "why": "the /tp line says a missing note did not match",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-R2-hook-note-keeps-pose",
+    "file": "src/net/staffHook.js",
+    "old": "ly = r.ly; if (r.room !== seenIn || eye?.welcomed) seen = null; } }",
+    "new": "ly = r.ly; } }",
+    "why": "round 2: a newer note loses to the pose seen before it - a fast travel while the eye was on its way leaves it in the old cell",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-R2-hook-in-keeps-pose",
+    "file": "src/net/staffHook.js",
+    "old": "pid = f.id ?? pid; if (f.room !== seenIn) seen = null; }",
+    "new": "pid = f.id ?? pid; }",
+    "why": "round 2: a room's newer word loses to the pose seen before it",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-R2-hook-pose-any-frame",
+    "file": "src/net/staffHook.js",
+    "old": "if (v && (eye.room === room || (isCellRoom(eye.room) && isCellRoom(room)))) {",
+    "new": "if (v) {",
+    "why": "round 2: a pose in an interior's own frame names an outdoor cell (world:0,31) after a door out",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-R2-hook-interior-pose-outdoors",
+    "file": "src/net/staffHook.js",
+    "old": "(isCellRoom(eye.room) && isCellRoom(room))",
+    "new": "isCellRoom(room)",
+    "why": "round 2: an interior's pose leads once the note names a cell",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-R2-hook-pose-not-in-own-room",
+    "file": "src/net/staffHook.js",
+    "old": "eye.room === room || (isCellRoom",
+    "new": "(isCellRoom",
+    "why": "round 2: inside a building or dungeon the eye stands on nobody - no lock-on for range within the room",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-R2-hook-pose-outlives-room",
+    "file": "src/net/staffHook.js",
+    "old": "      else if (!v && eye?.room === seenIn) seen = null;\n",
+    "new": "",
+    "why": "round 2: a pose seen after a fast travel's note, then gone, holds the eye in the old cell",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-R2-hook-pose-room-unkept",
+    "file": "src/net/staffHook.js",
+    "old": "seen = v; seenIn = eye.room; }",
+    "new": "seen = v; }",
+    "why": "round 2: the room a pose was seen in is not kept, so its going is never noticed",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-R3-hook-in-own-room-drops-pose",
+    "file": "src/net/staffHook.js",
+    "old": "if (f.room !== seenIn) seen = null; }",
+    "new": "seen = null; }",
+    "why": "round 3: the eye's own `in` from the cell it just left drops the pose that led it on - at a seam the eye flips between two cells, a token and a hello each",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-R3-hook-note-own-room-drops-pose",
+    "file": "src/net/staffHook.js",
+    "old": "if (r.room !== seenIn || eye?.welcomed) seen = null",
+    "new": "seen = null",
+    "why": "round 3: a note sent before the crossing, naming the cell the pose was seen in, sends the eye back while it is on its way",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-R3-hook-note-welcomed-unread",
+    "file": "src/net/staffHook.js",
+    "old": "r.room !== seenIn || eye?.welcomed",
+    "new": "r.room !== seenIn",
+    "why": "round 3: a pose that led to a cell that welcomed the eye without them holds it there against every note naming the room it was seen in (a recall back)",
     "tests": [
       "test/net/staffpanel5hook.test.js"
     ]
