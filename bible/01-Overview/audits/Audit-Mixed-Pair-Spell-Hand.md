@@ -154,8 +154,11 @@ changed nothing. At 2 it is a blow more at every Speed: 8.53 (x1.19) with the bl
 
 ## Outside the slice
 
-- `IT1` and `WD1` (the gate and vendored patches rebuilt from ARENA2, sha256 for sha256) fail identically at the
-  slice's base commit here: the environment's archives, not this slice's.
+- The whole suite (33,473 tests, in series) on the audit's checkpoint: 14 failures - ten this audit's own moves, each
+  fixed and listed above; and `IT1`, `WD1` (the gate and vendored patches rebuilt from ARENA2, sha256 for sha256) and
+  `CRATE-FREE` (every RDB block of BLOCKS.BSA) fail identically on `main` here (42be22389): the environment's archives,
+  not this slice's; `TECHFX1` (a frame's garbage, measured in a child process) failed once under the suite's load and
+  passes alone, at the head as at the checkpoint.
 
 ## Still open
 
