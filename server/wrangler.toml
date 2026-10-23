@@ -169,8 +169,9 @@ HIDDEN_SEEN_URL = "https://daggerfall-accounts.mackcothran.workers.dev/v1/mod/hi
 # the monster counts are read whatever grantStrip (GRANT9) says - a
 # separate switch, not set here, that stays off; the count reads a full
 # foes frame as it fans and never changes it.
-# Setting these URLs alone changes no code and no RELAY_VERSION, so it
-# takes a manual relay deploy, which drops every connected player once.
+# Only these vars change, so RELAY_VERSION does not move: the relay deploy
+# is a manual run of the relay's deploy with `redeploy` ticked (a plain
+# dispatch deploys only on drift), which drops every connected player once.
 STAFF_NET_FEED_URL = "https://daggerfall-accounts.mackcothran.workers.dev/v1/staff/net-feed"
 REACTION_FEED_URL = "https://daggerfall-accounts.mackcothran.workers.dev/v1/mod/reaction-feed"
 # ═══ INT11-INT14: THE LINE THE BOSS FIGHTS' COUNT RUNS BY ════════════
