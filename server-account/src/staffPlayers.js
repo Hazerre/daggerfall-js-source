@@ -517,7 +517,7 @@ export async function staffPlayers(ctx, env, path, body, who, audit) {
     const after = typeof body.from === 'string' ? body.from.slice(0, 64) : '';
     const top = (/** @type {string} */ s) => `${s}\u{10FFFF}`;   // past every name the prefix starts
     const args = [after, PLAYERS_PAGE + 1, ...(q ? [q.toLowerCase(), top(q.toLowerCase()), q, top(q)] : [])];
-    // STAFF-BANNED: the banned read by migration 0163's index, as the online one is by the play beat's; the clock bound
+    // STAFF-BANNED: the banned read by migration 0164's index, as the online one is by the play beat's; the clock bound
     // before the online filter's, whose clause reads the last bound
     const banSql = ban === 'banned' ? `AND id IN (SELECT id FROM players WHERE banned_until > ?${args.push(nowS)}) `
       : ban === 'not-banned' ? `AND (banned_until IS NULL OR banned_until <= ?${args.push(nowS)}) ` : '';

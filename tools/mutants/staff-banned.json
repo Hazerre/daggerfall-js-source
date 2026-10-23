@@ -291,7 +291,7 @@
   },
   {
     "name": "STAFF-BANNED-index",
-    "file": "server-account/migrations/0163_staff_banned.sql",
+    "file": "server-account/migrations/0164_staff_banned.sql",
     "old": "CREATE INDEX IF NOT EXISTS players_banned ON players (banned_until, id) WHERE banned_until IS NOT NULL;",
     "new": "SELECT 1;",
     "why": "every account walked for the few banned",

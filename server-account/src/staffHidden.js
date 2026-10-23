@@ -8,7 +8,7 @@
 // to every game. A hidden staff member is never passed on to anyone: the relay drops what the socket says and leaves it out
 // of every roster, list, count, join and leave (server/src/staffHidden.js). This file is the account service's half:
 //
-// HIDE ME, KEPT ON THE ACCOUNT (players.staff_hide_on, migration 0163): OFF BY DEFAULT, a toggle (STAFF-HIDE-TOGGLE, below);
+// HIDE ME, KEPT ON THE ACCOUNT (players.staff_hide_on, migration 0165): OFF BY DEFAULT, a toggle (STAFF-HIDE-TOGGLE, below);
 // Hide me turns it on and Show myself off (/v1/staff/hide). It is read only for an account a role list names (staff.js
 // staffRole: an Admin or a Moderator) that holds a LIVE staff session, so no other account's token mint reads a thing more.
 //
@@ -17,7 +17,7 @@
 // Your settings, on by default"), so a staff member who never pressed it was minted hidden tokens for as long as a staff
 // session stood, and the relay drops every line a hidden socket says but the staff channel's (server/src/staffHidden.js
 // hiddenMay) - mob could not talk in chat, and his own game was in no room the pen tool's map reads. Now it is off until
-// pressed, for every member (0163 moves the switch to `staff_hide_on`, default 0, keeping a Hide me pressed since 0159 -
+// pressed, for every member (0165 moves the switch to `staff_hide_on`, default 0, keeping a Hide me pressed since 0159 -
 // the audit log's newest `hide` row), and either way the press takes effect AT ONCE: the panel tells the open game, through
 // the staff hook's door (src/net/staffHook.js `relink`), to leave every room and open each again on a fresh token, which this
 // file's mint (hiddenToken) reads the switch for on the primary - hidden from that hello on, or shown. Show myself still
@@ -82,7 +82,7 @@ const LIVE_SQL = `SELECT p.staff_hide_on, s.token_hash, s.key_id, k.cfg, k.pub F
  *  one's), or the row's key forgotten (STAFF-PANEL5-HIDDEN-R2: hiddenEnd closed that key's sessions' sockets, and the
  *  game comes back as a normal player - a staff member's only key forgotten was refused for good). A session gone idle
  *  or past its 8 hours writes no row: it is no word of the staff member's.
- *  STAFF-HIDE-TOGGLE: and only while the switch is on, read on the primary beside the log - migration 0163 turned it off for
+ *  STAFF-HIDE-TOGGLE: and only while the switch is on, read on the primary beside the log - migration 0165 turned it off for
  *  every member who never pressed Hide me, and wrote no Show myself row for it (the move was mob's word, not theirs): read
  *  off the log alone, such a member's game, hidden before the move, would be minted no token at all once their session
  *  idled, and could never go online until they signed in or out. */
@@ -153,7 +153,7 @@ export async function staffHidden(ctx, env, path, body, who, audit) {
   const { db } = ctx;
   const me = who.player;
   if (path !== '/v1/staff/hide') return { error: 'body' };
-  if (body.on === undefined) return { hidden: me.staff_hide_on === 1 };   // STAFF-HIDE-TOGGLE: off until pressed (0163)
+  if (body.on === undefined) return { hidden: me.staff_hide_on === 1 };   // STAFF-HIDE-TOGGLE: off until pressed (0165)
   if (typeof body.on !== 'boolean') return { error: 'body' };
   const on = body.on ? 1 : 0;
   await db.batch([

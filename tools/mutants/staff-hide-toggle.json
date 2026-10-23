@@ -1,7 +1,7 @@
 [
   {
     "name": "STAFF-HIDE-TOGGLE-default-on",
-    "file": "server-account/migrations/0163_staff_hide_off.sql",
+    "file": "server-account/migrations/0165_staff_hide_off.sql",
     "old": "ADD COLUMN staff_hide_on INTEGER NOT NULL DEFAULT 0;",
     "new": "ADD COLUMN staff_hide_on INTEGER NOT NULL DEFAULT 1;",
     "why": "Hide me on by default again (mob: \"need hide to be a toggle\")",
@@ -11,7 +11,7 @@
   },
   {
     "name": "STAFF-HIDE-TOGGLE-carry-dropped",
-    "file": "server-account/migrations/0163_staff_hide_off.sql",
+    "file": "server-account/migrations/0165_staff_hide_off.sql",
     "old": "UPDATE players SET staff_hide_on = 1 WHERE id IN (",
     "new": "UPDATE players SET staff_hide_on = staff_hide_on WHERE id IN (",
     "why": "a Hide me pressed since 0159 lost at the move",
@@ -21,7 +21,7 @@
   },
   {
     "name": "STAFF-HIDE-TOGGLE-carry-any-press",
-    "file": "server-account/migrations/0163_staff_hide_off.sql",
+    "file": "server-account/migrations/0165_staff_hide_off.sql",
     "old": "WHERE a.detail = '{\"on\":true}'",
     "new": "WHERE a.detail IS NOT NULL",
     "why": "a Show myself pressed last read as Hide me",
@@ -31,7 +31,7 @@
   },
   {
     "name": "STAFF-HIDE-TOGGLE-carry-oldest",
-    "file": "server-account/migrations/0163_staff_hide_off.sql",
+    "file": "server-account/migrations/0165_staff_hide_off.sql",
     "old": "SELECT MAX(b.id) FROM staff_audit b",
     "new": "SELECT MIN(b.id) FROM staff_audit b",
     "why": "the first press read, not the newest",
@@ -41,7 +41,7 @@
   },
   {
     "name": "STAFF-HIDE-TOGGLE-carry-any-act",
-    "file": "server-account/migrations/0163_staff_hide_off.sql",
+    "file": "server-account/migrations/0165_staff_hide_off.sql",
     "old": "b.actor = a.actor AND b.act = 'hide'));",
     "new": "b.actor = a.actor));",
     "why": "the account's newest audit row of any act read as its press",
@@ -84,7 +84,7 @@
     "file": "server-account/src/staffHidden.js",
     "old": "WHERE (SELECT staff_hide_on FROM players WHERE id = ?1) = 1 AND NOT EXISTS (",
     "new": "WHERE NOT EXISTS (",
-    "why": "a game hidden before 0163 turned its switch off is minted no token at all once its session idles",
+    "why": "a game hidden before 0165 turned its switch off is minted no token at all once its session idles",
     "tests": [
       "test/server/staffpanel5hidden.test.js"
     ]
