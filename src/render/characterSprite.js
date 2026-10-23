@@ -23,6 +23,8 @@ const WORLD_UP = Object.freeze([0, 1, 0]);
  *  renderer's retroImageSpan ([image rows, canvas rows] while a retro or render-scale image is live, else null): a whole
  *  number of the image's pixels, never none (AUDIT RETRO2 I6). The card's law and the cropped picture's (BODY-CROP). */
 const imageTexel = (span, pixel) => (span ? Math.max(1, Math.round(pixel * span[0] / span[1])) : pixel);
+/** BODY-FLAT: the view's own heading, level and unit - a flat's ray when the eye stands straight over its body. */
+const levelHeading = (view) => { const x = -view[2], z = -view[10], l = Math.hypot(x, z) || 1; return [x / l, 0, z / l]; };
 /** BODY-DEPTH: the picture's near plane (its far is twice its reach - drawRigSpriteBox). */
 export const PICTURE_NEAR = 0.1;
 
@@ -100,8 +102,12 @@ export function drawRigSpriteBox(renderer, canvas, mesh, rigMat, { center, halfW
   // only foreshortening, at any distance. The card keeps its own depth (FB1015: the flat card on purpose).
   const flat = up == null && !!getPref('mwBillboardLook');
   const dx = aim[0] - eye[0], dy = flat ? 0 : aim[1] - eye[1], dz = aim[2] - eye[2];
-  const dist = Math.max(0.5, Math.hypot(dx, dy, dz));
-  const camDir = [dx / dist, dy / dist, dz / dist];
+  // the flat's level ray is a unit one however close over its body the eye stands - the floor below is for an eye ON the
+  // aim, and a level ray short of unit stood the picture's own camera inside the box, slicing it; straight over the
+  // body there is no level ray at all, and the view's own heading is the flat's
+  const lvl = Math.hypot(dx, dz);
+  const dist = flat ? lvl : Math.max(0.5, Math.hypot(dx, dy, dz));
+  const camDir = flat && !(lvl > 1e-6) ? levelHeading(view) : [dx / dist, dy / dist, dz / dist];
   // MWHEAD1 (2026-09-25, Mac: "The morrowind's model's head gets cut off in third person view" - the top sliced flat,
   // the same at every zoom): THE WINDOW IS THE BOX AS THE PICTURE SEES IT. The picture is an ortho along camDir, and
   // camDir is PITCHED - the third-person eye sits at the head (mwCamera FOCAL_HEIGHT) and looks down the ray to the
@@ -186,9 +192,10 @@ export const mwModelPixel = () => (getPref('mwModelDetail') === 'sharp' ? 1 : MW
 /** BODY-CROP: a cropped picture's depth is the frame's own - the quad writes each texel's as it stands
  *  (renderer.js drawCharacterSpriteQuad). */
 const WINDOW_DEPTH = Object.freeze({ window: true });
-/** BODY-CROP: a corner whose clip w is under this stands at or behind the eye. */
-const CROP_W_MIN = 1e-6;
-
+/** BODY-CROP: cropPicture's scratch - the frame's projection-view and the box's corners in clip space. The crop it answers
+ *  is a matrix of its own: a batch keeps it until its flush. */
+const CROP_PV = new Float32Array(16);
+const CROP_CORNERS = new Float64Array(24);
 /**
  * BODY-CROP (2026-10-22, a player's report: "when the player's camera gets too close to a morrowind 3d character model,
  * the model starts to stretch in weird ways and it gets shorter"): THE PICTURE IS THE MAIN CAMERA'S OWN, CROPPED TO THE
@@ -200,12 +207,15 @@ const CROP_W_MIN = 1e-6;
  * picture IS the frame's view of the body at any distance - the eye's near plane cutting the mesh as it cuts the world,
  * and the depth the frame's own (the crop moves x and y alone), which the quad writes as it stands.
  *
- * The window: the box's eight corners through `proj x view`, their bounds cut at the image's edge - the whole image when
- * a corner stands behind the eye (its image has no place: the eye is in or at the box) - rounded OUT to whole texels
- * counted from the image's corner, so a texel is always the same `texel` x `texel` pixels of the image: crisp at one,
- * and a pixelated body's grid is the screen's, never sliding with the body. `padOf(rows)`: the texels a side its tells
- * and its weapon's outline take, given its rows before the pad (bodyFxPad, glowPad). A window wider or taller than `cap`
- * takes a coarser whole texel until it fits. Null for a box wholly behind the eye or with no pixel on the image. Pure.
+ * The window: the box cut at the lens's near plane (what stands nearer than it is never drawn, and a corner behind the eye
+ * has no place on the screen at all) - its corners in front of the plane and the points where its edges cross it,
+ * through `proj x view` - their bounds cut at the image's edge, rounded OUT to whole texels counted from the image's
+ * corner, so a texel is always the same `texel` x `texel` pixels of the image: crisp at one, and a pixelated body's grid
+ * is the screen's, never sliding with the body. A body beside the eye takes only the window its seen part covers, never
+ * the whole screen. `padOf(rows)`: the texels a side its tells and its weapon's outline take, given its rows before the
+ * pad (bodyFxPad, glowPad). A window wider or taller than `cap` takes a coarser whole texel until it fits. Null for a box
+ * wholly nearer than the near plane (behind the eye with it) or with no pixel on the image. `proj` a perspective (its
+ * near plane read off its z row). Pure.
  * @param {ArrayLike<number>} proj @param {ArrayLike<number>} view
  * @param {{ center: number[], halfW: number, halfH: number }} box `halfW` the azimuth-safe horizontal radius
  * @param {number} texel image pixels a texel side
@@ -215,18 +225,30 @@ const CROP_W_MIN = 1e-6;
  * @returns {{ proj: Float32Array, pw: number, ph: number, texel: number, ndc: [number, number, number, number] } | null}
  */
 export function cropPicture(proj, view, { center, halfW, halfH }, texel, [W, H], padOf = () => 0, cap = Infinity) {
-  const pv = multiply(proj, view);
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, behind = 0;
+  const pv = multiply(proj, view, CROP_PV);   // a frame's crowd measures every body: the scratch, not a matrix a body
+  const near = proj[14] / (proj[10] - 1);   // a perspective's clip w is the distance ahead: the near plane is w = near
+  const clip = CROP_CORNERS;   // the corners in clip space - x, y, w each, linear in the world, so an edge's crossing is too
   for (let i = 0; i < 8; i++) {
     const x = center[0] + (i & 1 ? halfW : -halfW), y = center[1] + (i & 2 ? halfH : -halfH), z = center[2] + (i & 4 ? halfW : -halfW);
-    const w = pv[3] * x + pv[7] * y + pv[11] * z + pv[15];
-    if (!(w > CROP_W_MIN)) { behind++; continue; }
-    const nx = (pv[0] * x + pv[4] * y + pv[8] * z + pv[12]) / w, ny = (pv[1] * x + pv[5] * y + pv[9] * z + pv[13]) / w;
-    x0 = Math.min(x0, nx); x1 = Math.max(x1, nx); y0 = Math.min(y0, ny); y1 = Math.max(y1, ny);
+    clip[i * 3] = pv[0] * x + pv[4] * y + pv[8] * z + pv[12];
+    clip[i * 3 + 1] = pv[1] * x + pv[5] * y + pv[9] * z + pv[13];
+    clip[i * 3 + 2] = pv[3] * x + pv[7] * y + pv[11] * z + pv[15];
   }
-  if (behind === 8) return null;   // the whole box behind the eye
-  const px = behind ? [0, 0, W, H] : [(x0 + 1) / 2 * W, (y0 + 1) / 2 * H, (x1 + 1) / 2 * W, (y1 + 1) / 2 * H];
-  if (!(px[2] > 0 && px[3] > 0 && px[0] < W && px[1] < H)) return null;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  const take = (x, y, w) => { const nx = x / w, ny = y / w; x0 = Math.min(x0, nx); x1 = Math.max(x1, nx); y0 = Math.min(y0, ny); y1 = Math.max(y1, ny); };
+  for (let i = 0; i < 8; i++) {
+    const a = i * 3, aIn = clip[a + 2] >= near;
+    if (aIn) take(clip[a], clip[a + 1], clip[a + 2]);
+    for (let bit = 1; bit <= 4; bit <<= 1) {   // the box's twelve edges, each once - from the corner whose bit is clear
+      if (i & bit) continue;
+      const b = (i | bit) * 3;
+      if (aIn === (clip[b + 2] >= near)) continue;
+      const t = (near - clip[a + 2]) / (clip[b + 2] - clip[a + 2]);
+      take(clip[a] + t * (clip[b] - clip[a]), clip[a + 1] + t * (clip[b + 1] - clip[a + 1]), near);
+    }
+  }
+  const px = [(x0 + 1) / 2 * W, (y0 + 1) / 2 * H, (x1 + 1) / 2 * W, (y1 + 1) / 2 * H];
+  if (!(px[2] > 0 && px[3] > 0 && px[0] < W && px[1] < H)) return null;   // off the image - or nothing taken (the bounds still infinite)
   // the window on the grid: the first column and row, and the count - its last texel may hang past the image's edge,
   // which the frame's viewport cuts
   const grid = (t, pad) => {

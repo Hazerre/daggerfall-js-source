@@ -18,5 +18,13 @@
   { "name": "BODY-FLAT-picture-pitched", "file": "src/render/characterSprite.js",
     "old": "dy = flat ? 0 : aim[1] - eye[1]", "new": "dy = aim[1] - eye[1]",
     "tests": ["test/systems/bodycard.test.js"],
-    "note": "The card upright, its picture down the pitched ray again: cos(pitch) of the body, and a sliver up close." }
+    "note": "The card upright, its picture down the pitched ray again: cos(pitch) of the body, and a sliver up close." },
+  { "name": "BODY-FLAT-ray-short-of-unit", "file": "src/render/characterSprite.js",
+    "old": "  const dist = flat ? lvl : Math.max(0.5, Math.hypot(dx, dy, dz));", "new": "  const dist = Math.max(0.5, Math.hypot(dx, dy, dz));",
+    "tests": ["test/systems/bodycard.test.js"],
+    "note": "A body nearly straight below the eye: the level ray short of unit, the picture's own camera inside its box." },
+  { "name": "BODY-FLAT-no-heading-straight-over", "file": "src/render/characterSprite.js",
+    "old": "  const camDir = flat && !(lvl > 1e-6) ? levelHeading(view) : [dx / dist, dy / dist, dz / dist];", "new": "  const camDir = [dx / dist, dy / dist, dz / dist];",
+    "tests": ["test/systems/bodycard.test.js"],
+    "note": "Straight over the body there is no level ray: NaN through the picture's camera." }
 ]

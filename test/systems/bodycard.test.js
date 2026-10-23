@@ -78,6 +78,23 @@ test('BODY-CARD x BODY-FLAT: the Billboard Look stands every body\'s card uprigh
   }
 });
 
+test('BODY-FLAT: a body nearly or straight below the eye - the flat\'s picture is taken level from its full reach, never from inside its box, and straight over the body along the view\'s own heading', () => {
+  setPref('mwBillboardLook', true);
+  try {
+    for (const eye of [[0.01, 8, 0.01], [0, 8, 0]]) {
+      const r = capturing(false), c = r.c;
+      const view = lookAt(eye, [eye[0], 0.9, eye[2] + 1], [0, 1, 0]);   // looking down toward +z, the body under the eye
+      drawRigSpriteBox(r, canvas, null, null, { center: [0, 0.9, 0], halfW: 0.45, halfH: 0.95, anchor: [0, 0.9, 0] }, proj, view, eye, 3);
+      const ov = c.ov;
+      assert.ok([...ov].every(Number.isFinite), `eye ${eye}: a picture camera with no NaN`);
+      const mini = [0, 1, 2].map((k) => -(ov[k * 4] * ov[12] + ov[k * 4 + 1] * ov[13] + ov[k * 4 + 2] * ov[14]));
+      const back = Math.hypot(mini[0], mini[1] - 0.9, mini[2]);
+      assert.ok(back > 4 - 1e-4, `eye ${eye}: the picture's camera ${back.toFixed(3)} m off the body's middle - its full reach, outside the box`);
+      assert.ok(Math.abs(ov[6]) < 1e-6, `eye ${eye}: level`);
+    }
+  } finally { setPref('mwBillboardLook', false); }
+});
+
 test('BODY-CARD: the switch - a Features row, Billboard Look, enhanced, the viewer\'s own and off by default, in Combat > With Morrowind data beside Morrowind People; read where the card is stood, so it takes effect at once', () => {
   const row = FEATURES.find((f) => f.id === 'mw-billboard-look');
   assert.ok(row, 'the row');

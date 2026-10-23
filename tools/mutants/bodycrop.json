@@ -27,10 +27,28 @@
   ]
  },
  {
-  "name": "BODY-CROP-behind-never-null",
+  "name": "BODY-CROP-behind-not-null",
   "file": "src/render/characterSprite.js",
-  "old": "if (behind === 8) return null;",
-  "new": "if (behind === 9) return null;",
+  "old": "  if (!(px[2] > 0 && px[3] > 0 && px[0] < W && px[1] < H)) return null;",
+  "new": "  if (!(px[2] > -Infinity)) return { proj, pw: 1, ph: 1, texel, ndc: [-1, -1, 1, 1] };\n  if (!(px[2] > 0 && px[3] > 0 && px[0] < W && px[1] < H)) return null;",
+  "tests": [
+   "test/render/bodycrop.test.js"
+  ]
+ },
+ {
+  "name": "BODY-CROP-crossings-ignored",
+  "file": "src/render/characterSprite.js",
+  "old": "      take(clip[a] + t * (clip[b] - clip[a]), clip[a + 1] + t * (clip[b + 1] - clip[a + 1]), near);",
+  "new": "      void t;",
+  "tests": [
+   "test/render/bodycrop.test.js"
+  ]
+ },
+ {
+  "name": "BODY-CROP-straddler-whole-screen",
+  "file": "src/render/characterSprite.js",
+  "old": "  const px = [(x0 + 1) / 2 * W, (y0 + 1) / 2 * H, (x1 + 1) / 2 * W, (y1 + 1) / 2 * H];",
+  "new": "  const px = [2, 5, 8, 11, 14, 17, 20, 23].some((k) => clip[k] < near) ? [0, 0, W, H] : [(x0 + 1) / 2 * W, (y0 + 1) / 2 * H, (x1 + 1) / 2 * W, (y1 + 1) / 2 * H];",
   "tests": [
    "test/render/bodycrop.test.js"
   ]

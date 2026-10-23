@@ -2789,11 +2789,14 @@ the screen took coarser texels than that.
 BODY-CROP: THE PICTURE IS THE MAIN CAMERA'S OWN, CUT TO THE BODY. `drawBodyPicture` takes every Morrowind body (the
 player's, a peer's, the people's, the foes', the watch's - fpArm.js drawThird) and every 3D horse (horseRig.js draw):
 
-- THE WINDOW (`cropPicture`). The box's eight corners through the frame's own projection and view; their bounds, cut at
-  the image's edge, rounded OUT to whole texels counted from the image's corner. A box with a corner behind the eye
-  takes the whole image; a box wholly behind it or off the image takes nothing. Padded by the tells' and the weapon
-  outline's texels (bodyFxPad, glowPad) as the card was. A window larger than the target's room takes a coarser whole
-  texel.
+- THE WINDOW (`cropPicture`). The box cut at the lens's near plane - its corners in front of it and the points where
+  its edges cross it - through the frame's own projection and view; their bounds, cut at the image's edge, rounded OUT
+  to whole texels counted from the image's corner. A body beside the eye takes only the window its seen part covers
+  (a whole screen of texels a frame for every body brushing past the camera, otherwise); an eye inside the box takes
+  the whole image; a box wholly behind the near plane or off the image takes nothing. Padded by the tells' and the
+  weapon outline's texels (bodyFxPad, glowPad) as the card was. A window larger than the target's room takes a coarser
+  whole texel. The projection-view and the corners are scratch (CROP_PV, CROP_CORNERS): a frame's crowd measures every
+  body.
 - THE CAMERA. The frame's projection with the window stretched over the whole of NDC - x and y alone, so the picture's
   depth IS the frame's depth, and the eye's near plane cuts the mesh exactly where it cuts the world: the clipping the
   report prefers. The texel grid is the screen's, so a pixelated body's texels stand still on the screen instead of
@@ -2816,13 +2819,16 @@ The Billboard Look's card took its picture down the pitched ray (BODY-CARD), so 
 cos(pitch) of its height at a distance, and from mwCamera's MIN_DISTANCE, the ray to a body's middle 62 degrees down,
 0.16 of it. A Daggerfall flat is a picture drawn level and stood upright: the card's picture is taken along the ray's
 level part now (drawRigSpriteBox `flat`), so the card holds the body at its true height and the eye's own perspective
-is the only foreshortening, at any distance. The card keeps its own depth (FB1015: the flat card on purpose); a lean the
+is the only foreshortening, at any distance. The level ray is a unit one however close over its body the eye stands
+(the 3D ray's half-metre floor would have left it short and stood the picture's camera inside the box), and straight
+over the body it is the view's own heading (`levelHeading`). The card keeps its own depth (FB1015: the flat card on purpose); a lean the
 travel view hands keeps its pitched picture. It retires AUDIT NPC-MARKS L7 (section 31): a mark hangs over the full
 height under either look (`markCrownOf` is gone). The row's note says so ("flat upright pictures"), redrafted in the
 thirteen whole languages. Pins moved: `test/systems/bodycard.test.js` (the true height from every eye, up close too,
 the picture level, a handed lean's pitched), `test/render/prbow1_bow.test.js` (the card's picture along the level ray),
-`test/scenes/npcmarks.test.js` (L7's law retired, the full height pinned); `tools/mutants/bodycard.json` re-aimed with
-one record more (the picture pitched again), `bodylean.json` re-aimed, and `npcmarks.json`'s two L7 records retired
+`test/scenes/npcmarks.test.js` (L7's law retired, the full height pinned), and a body nearly and straight below the eye
+pinned in `bodycard.test.js`; `tools/mutants/bodycard.json` re-aimed with three records more (the picture pitched
+again, the level ray short of unit, no heading straight over the body), `bodylean.json` re-aimed, and `npcmarks.json`'s two L7 records retired
 with the law.
 
 MW-DETAIL: THE VIEWER'S DETAIL. A Features row, Morrowind Model Detail (`mwModelDetail`, `systems/features.js`
@@ -2850,7 +2856,7 @@ nothing behind the eye or off the image, a coarser texel past the room; the quad
 not, at the anchor's distance; the card under the Billboard Look and the travel view's lean alone; the texel at each
 detail and under retro; the target's growth, its steps, its most and its release, and a flush after it; the card's
 room no larger than the screen; the depth mode and the tilted right on a recording GL; the switch, its row and its
-readers. `tools/mutants/bodycrop.json`: 15 records, 15 dead. In a real WebGL2 context (Chromium, a GPU) through the
+readers. `tools/mutants/bodycrop.json`: 17 records, 17 dead. In a real WebGL2 context (Chromium, a GPU) through the
 game's mirrored lens, the fixture body: at Sharp the picture is the direct draw of its mesh pixel for pixel - coverage
 and colour - from 2 m to 0.15 m, where the card it replaced differed in nearly every body pixel; Pixelated, every body
 pixel the colour of its 3 x 3 block on the screen's grid; a second body crossing the first, the picture drawn before it

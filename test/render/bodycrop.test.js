@@ -114,13 +114,22 @@ test('BODY-CROP: the window - the box\'s eight corners rounded OUT to whole texe
   assert.deepEqual([cutPad.pw, cutPad.ph], [cut.pw + 8, cut.ph + 4], 'and none past the image\'s edge');
 });
 
-test('BODY-CROP: an eye inside the box takes the whole image (the near plane cuts the mesh as it cuts the world); a box wholly behind the eye or off the image takes nothing; a window past the target\'s room takes a coarser whole texel', () => {
+test('BODY-CROP: the box is cut at the near plane - an eye inside it takes the whole image, a body beside the eye only the window its seen part covers; a box wholly behind the eye or off the image takes nothing; a window past the target\'s room takes a coarser whole texel', () => {
   const proj = lens();
   const inside = lookAt([0, 1.2, -0.1], [0, 1.2, 1], [0, 1, 0]);
   const pic = cropPicture(proj, inside, BODY, 3, [W, H]);
   assert.deepEqual([pic.pw, pic.ph], [Math.ceil(W / 3), Math.ceil(H / 3)], 'the whole image, in whole texels');
   assert.deepEqual(pic.ndc.slice(0, 2), [-1, -1]);
   assert.equal(cropPicture(proj, lookAt([0, 1, 5], [0, 1, 10], [0, 1, 0]), BODY, 3, [W, H]), null, 'behind the eye');
+  // a body at the eye's elbow, half behind it: the window its seen part covers - never the whole screen (a whole screen
+  // of texels a frame for every body brushing past the camera)
+  const cols = Math.ceil(W / 3);
+  const beside = cropPicture(proj, lookAt([0.75, 1.2, -0.3], [0.75, 1.2, 1], [0, 1, 0]), BODY, 3, [W, H]);
+  assert.ok(beside && beside.pw < cols / 2, `beside the eye: ${beside?.pw} columns of ${cols}`);
+  // and one the eye stands half out of: its far corners alone span less than the screen; where its edges cross the near
+  // plane, they reach both of its sides
+  const straddled = cropPicture(proj, lookAt([0.2, 1.2, -0.3], [0.2, 1.2, 1], [0, 1, 0]), BODY, 3, [W, H]);
+  assert.equal(straddled.pw, cols, 'the edges\' crossings of the near plane hold the window open');
   assert.equal(cropPicture(proj, lookAt([0, 1, -5], [10, 1, -4], [0, 1, 0]), BODY, 3, [W, H]), null, 'ahead of the eye, off the side of the image');
   const sharp = cropPicture(proj, inside, BODY, 1, [W, H], undefined, 1024);
   assert.ok(sharp.pw <= 1024 && sharp.ph <= 1024, 'inside the room');
