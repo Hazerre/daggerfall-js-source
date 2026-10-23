@@ -139,7 +139,7 @@ changed nothing. At 2 it is a blow more at every Speed: 8.53 (x1.19) with the bl
   judged with the slice's own records (`mixedpair.json`, `spellhand.json`, `spellhand_mw.json`) and every record the
   fixes moved, re-aimed by content.
 - PIN MOVED, each with its note: `fieldgunmwaudit` (the muzzle names its hand), `riflestance` (the state's `free`),
-  `audit23_magic` magic-14 (CasterOnly's instant cast waits for a blow), `disc12`, `mac7`, `fparm`, `audit39_worldstate`,
+  `audit23_magic` magic-14 and `allycast` A1 (CasterOnly's instant cast waits for a blow), `disc12`, `mac7`, `fparm`, `audit39_worldstate`,
   `deckfield`, `tech1_hosts`, `hostmagic_wiring`, `weaponglow1`, `audit29_host`, and the relay's version pins (world249).
 - To deploy: the relay (**world249**: `ah`). An older relay strips the field and the socket stays open - its peers play
   every strike of a pair with the right hand's weapon, as before.

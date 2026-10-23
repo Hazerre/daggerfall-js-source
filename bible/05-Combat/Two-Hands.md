@@ -766,7 +766,7 @@ the dungeon door's `cast` a positional argument.
   pinned and its mutants in `tools/mutants/audit_mixedspell.json` - each fix reverted (`AUDITMS-L1-*` to `AUDITMS-L4-*`)
   and the record lane's scratch mutants of the slice's new lines re-aimed (`AUDITMS-L5-*`); the ones that cannot fail a
   pin recorded `equivalent` with their reason. PIN MOVED, each with its note: `fieldgunmwaudit` (the muzzle names its
-  hand), `riflestance` (the hold's `free`), `audit23_magic` magic-14 (CasterOnly's instant cast waits for a blow),
+  hand), `riflestance` (the hold's `free`), `audit23_magic` magic-14 and `allycast` A1 (CasterOnly's instant cast waits for a blow),
   `disc12` and `mac7` (`lh` beside `ah` in `poseHandsOf`), `fparm` (one door, CasterOnly), `audit39_worldstate`,
   `deckfield`, `audit29_host`, `tech1_hosts`, `hostmagic_wiring` (the cast press `CAST_PRESS`), `weaponglow1` (a pair's
   glow on the peer), and the relay's version pins (world249, `relayversion.test.js`'s hash row).
