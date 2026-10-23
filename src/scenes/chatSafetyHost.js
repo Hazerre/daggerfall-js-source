@@ -35,6 +35,7 @@ import { muteNamed } from '../net/moderation.js';   // STAFF-PANEL2-CHATMENU: a 
 import { STAFF_TP_ERROR_TEXT } from '../net/staffTeleport.js';   // STAFF-PANEL2-CHATMENU: and its TP refused as /tp is
 import { appStorage } from '../systems/appStorage.js';
 import { createConductCard } from '../ui/conductCard.js';
+import { createChatVoice } from '../net/chatVoice.js';   // STAFF-CHAT-RED: an Admin's Me or Red, beside the field
 import { registerOverlay } from '../ui/enhanced/enhancedOverlays.js';
 import { t, intlLocale } from '../systems/textManager.js';
 import { isTouchDevice } from '../ui/touch/touch.js';
@@ -429,6 +430,10 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
 
   const host = {
     hears,
+    /** STAFF-CHAT-RED (mob, 2026-10-23: "give me a option next to chat to chat as /red or myself at all times"): the voice an
+     *  Admin's lines go out in (net/chatVoice.js) - made here, beside the glyphs and the mint's word it reads, and handed
+     *  to the chat panel (ui/chatPanel.js `voice`) by the host. */
+    voice: createChatVoice({ glyphs, say, win }),
     /** The chat started: the log hears through the block list, every room's word is wired, and the list is read. */
     async start() {
       const l = log();
@@ -454,6 +459,7 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
     /** The mint's word: whether the code as it stands is agreed (`conduct`; absent from an older service - heard as yes).
      *  AUDIT SAFE CLIENT-1: never a no over a yes this page was given - a mint in flight as the player agreed. */
     adopt(issued) {
+      host.voice.adopt(issued);   // STAFF-CHAT-RED: and whether this token is a hidden staff member's
       if (!issued || typeof issued.conduct !== 'boolean') return;
       if (agreedHere && !issued.conduct) return;
       agreed = issued.conduct;
