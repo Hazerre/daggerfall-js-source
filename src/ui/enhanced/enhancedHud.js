@@ -1439,9 +1439,9 @@ const STAT_MEASURE_EVERY = 30;
 const STAT_DEFAULT_ROOM = 5 * STAT_TILE + 4 * STAT_GAP;
 /** UI3: what may stand above the widget, measured where it stands (AUDIT UI C1/C4: offline nothing had bounded the band
  *  and a long list climbed into the compass; a notched phone's presses stand below its safe area, not at 16): the
- *  chat's box and the Social panel open over it, the gate boss's bar, the journey bar, the online status line and the
- *  touch layer's presses - with the HUD's own top block (the compass, a foe's bar) and the escort faces beside them. */
-const STAT_ABOVE = '.dfchat, .dfsocial[data-open="1"], .wb-boss-bar, .travelpanel-bar, .hudstatus, .dftouch-btn';
+ *  chat's box and the Social panel open over it, the gate boss's bar, the journey bar, the online status line, the
+ *  touch layer's presses and the event board (EVENTS1, ui/eventBoard.js: off it has no height) - with the HUD's own top block (the compass, a foe's bar) and the escort faces beside them. */
+const STAT_ABOVE = '.dfchat, .dfsocial[data-open="1"], .wb-boss-bar, .travelpanel-bar, .hudstatus, .dftouch-btn, .evboard';   // EVENTS1: and the event board (ui/eventBoard.js), which stands at the same edge
 
 /**
  * UI3 - ONE FRAME OF THE STATUS WIDGET (ui/hud/hudStatus.js). What it says is rebuilt only when it changes - a countdown

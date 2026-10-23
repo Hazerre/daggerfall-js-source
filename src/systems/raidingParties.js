@@ -76,7 +76,7 @@
 
 import { modSetting } from './modSettings.js';
 import { registerModSaveData } from './modSaveData.js';
-import { hudText } from './notify.js';
+import { eventNotice } from './eventNotices.js';   // EVENTS1: a raid's lines in the event board's news
 import { sharedClockOn, worldMinutes } from './worldTick.js';
 import { MINUTES_PER_DAY } from './gameDate.js';
 import { LOCATION_TYPES, longitudeLatitudeToMapPixel } from '../formats/mapsFile.js';
@@ -344,13 +344,15 @@ export const raidState = () => state;
  *   removeFoe(foe)            Object.Destroy - gone, no corpse
  *   outOfSight(foe)           fix 6's test for a routed raider
  *   reputation()              {player, store} for GrantReputation
- *   say(line)                 DaggerfallUI.AddHUDText; notify.js hudText by default
+ *   say(line)                 DaggerfallUI.AddHUDText - EVENTS1 (bible/10-UI/Event-Board.md, Ledger A): the event
+ *                             board's news by default (systems/eventNotices.js), where the mod's line had stood in the
+ *                             middle of the screen; the board's switch off, the HUD's line again (hudText)
  */
 let _host = null;
 export function setRaidingPartiesHost(host) { _host = host ?? null; }
 const host = () => _host ?? {};
 const rnd = () => host().random ?? Math.random;
-const say = (line) => (host().say ?? hudText)(line);
+const say = (line) => (host().say ?? ((l) => eventNotice('raid', l)))(line);
 const regionName = (r) => host().regionName?.(r) ?? String(r);
 
 // ---- the runtime (not saved - the mod's own instance fields) ----------------
@@ -720,6 +722,25 @@ export function raidRelayWord(f, room = null) {
 export const raidRelayState = (key) => _relay.get(key) ?? null;
 /** RAID3: the receipt the relay handed me for a raid, or null. */
 export const raidReceipt = (key) => _receipts.get(key) ?? null;
+/**
+ * TIMERS1 / EVENTS1: THE DAY'S RAIDS AS THE TIMERS WINDOW AND THE EVENT BOARD READ THEM (systems/eventTimers.js
+ * eventTimerRows `raids`, systems/eventBoard.js eventBoardModel) - each raid's town, its region (`regionName`), its party,
+ * its two hours in relay ms (`relayOf(minute)`, the host's: a classic minute to the relay's clock), whether it is over,
+ * its town's map pixel, and the town's ledger at a raid relay where one is known (`n` of `tg` raiders down,
+ * raidRelayState - the map's card's count, FIELD BUGS 2026-10-11g RAID-WORD). Moved out of scenes/world.js's timersSource
+ * (HOST-SPLIT), the pixel and the ledger EVENTS1's.
+ * @param {(minute: number) => number} relayOf
+ * @param {(region: number) => (string|undefined)} [regionName]
+ */
+export function raidTimerList(relayOf, regionName = () => '') {
+  return state.raids.map((r) => {
+    const led = raidRelayState(raidKey(r));
+    return {
+      name: r.locationName, region: regionName(r.regionIndex) ?? '', type: raidTypeName(r.type), startMs: relayOf(r.startMinute), endMs: relayOf(r.endMinute),
+      done: !!r.cleansed, px: r.px, py: r.py, n: Number.isFinite(led?.n) ? led.n : null, tg: Number.isFinite(led?.tg) ? led.tg : null,
+    };
+  });
+}
 
 let _installed = false;
 /** Once, at the scene boot: the save record's slot (the mod's SaveDataInterface [IL_025c]). */

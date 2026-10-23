@@ -24,6 +24,7 @@ import { drawQuestHerald } from '../quest/questHerald.js';   // GUIDE3: the ques
 import { drawQuestTracker } from '../quest/questTracker.js';   // GUIDE4: the quest the HUD follows, on the same one call
 import { drawRevenantCards } from '../revenant/revenantCard.js';   // REVENANT-CARD: a revenant's portrait and words, on the same one call (and the presenter it registers)
 import { drawLootBanners } from '../lootBanner.js';   // LOOT-BANNER: what arrived in the player's keeping, on the same one call (and the codex's door it registers)
+import { drawEventBoard } from '../eventBoard.js';   // EVENTS1: the shared events a player can still reach, and their news, on the same one call
 import { drawCrosshairAndModeIcon, crosshairCentreY } from './hudCrosshair.js';   // U38; AUDIT RETRO1 G5: the reticle's row, for the loot panel beside it
 import { playerDamageFlash } from '../damageFlash.js';   // AUDIT 24 (wave 39): ShowPlayerDamage rides the one HUD call
 import { playerBloodScreen, SCREEN_SPATTER_MIN } from '../bloodScreen.js';   // BLOOD2e: blood on the lens rides the same call
@@ -512,6 +513,7 @@ export function hideHudTextSurfaces(hudText = null) {
   drawQuestTracker({ hidden: true });
   drawRevenantCards({ hidden: true });   // REVENANT-CARD: the same door
   drawLootBanners({ hidden: true });   // LOOT-BANNER: the same door
+  drawEventBoard({ hidden: true });   // EVENTS1: the same door
 }
 
 export function drawHud(renderer, canvas, art, vitals, heading01, dt = 0,
@@ -690,6 +692,9 @@ export function drawHud(renderer, canvas, art, vitals, heading01, dt = 0,
   // pack on EVERY skin (the four hosts hand drawHud the player entity as `vitals`), so a piece found on the classic skin
   // is not announced when the player switches to Enhanced Plus; only Plus draws a banner
   drawLootBanners({ entity: vitals, hidden: cursorActive || !hudRenderEnabled(), dt });
+  // EVENTS1 (bible/10-UI/Event-Board.md): the same gate and clock, on every skin - the events' lines come to it instead
+  // of the chat, so the classic skin must show them too
+  drawEventBoard({ hidden: cursorActive || !hudRenderEnabled(), dt });
   if (isEnhanced() && typeof document !== 'undefined') {
     drawLevelNotices({ hidden: cursorActive || !hudRenderEnabled() });
     drawEnhancedHud(vitals, heading01, dt, {

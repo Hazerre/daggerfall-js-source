@@ -106,7 +106,7 @@ test('WB13b the chat names the marks - the card and the bar say what each does; 
   assert.ok(!/holds it|Tonight he comes/.test(post));
   assert.equal(fellPost({ day: 112, top: [], n: 0 }).content, '**Valkynaz Ruhn has fallen** at Dagon\'s Breach in the wilds. The breach collapses.');
   assert.equal(fellLine({ near: null, boss: P.boss, top: [] }), 'Valkynaz Ruhn has fallen at Dagon\'s Breach in the wilds. The breach collapses.', 'the chat says what Discord says');
-  assert.match(read('src/scenes/world.js'), /chatNotice\(fellLine\(\{ near: site\?\.day === day \? site\.near : null,/, 'a screen that never found the site: no place ("near the wilds")');
+  assert.match(read('src/scenes/world.js'), /eventNotice\('gate', fellLine\(\{ near: site\?\.day === day \? site\.near : null,/, 'a screen that never found the site: no place ("near the wilds")');
 });
 
 test('WB13b nothing said on stepping into the court - the marks\' card stands at that moment, with the same subtitle as by the gate (mutants: the arrival line said again; two subtitles)', () => {

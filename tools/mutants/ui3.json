@@ -413,8 +413,8 @@
   {
     "name": "AUDIT-UI-C4-the-touch-presses-ignored",
     "file": "src/ui/enhanced/enhancedHud.js",
-    "old": ", .hudstatus, .dftouch-btn';",
-    "new": ", .hudstatus';",
+    "old": ", .hudstatus, .dftouch-btn, .evboard';",
+    "new": ", .hudstatus, .evboard';",
     "tests": [
       "test/ui/enhanced/ui3_status.test.js"
     ]

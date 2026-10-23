@@ -74,7 +74,7 @@
  {
   "name": "STAR6-the-town-before-its-omen",
   "file": "src/systems/starfall/starfallClient.js",
-  "old": "where: next.omen ? STAR_CARD_TEXT.near(next.s.near) : null",
+  "old": "where: next.warned ? STAR_CARD_TEXT.near(next.s.near) : null",
   "new": "where: STAR_CARD_TEXT.near(next.s.near)",
   "tests": [
    "test/systems/starfall/star6_words.test.js"

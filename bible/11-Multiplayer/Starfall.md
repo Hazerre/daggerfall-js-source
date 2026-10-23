@@ -645,6 +645,12 @@ name, *Master of the Fallen Star* (the Heart-Star's: *Heart of the Web*), its he
 the ward holds. **The map** marks each star of the night with a card; **the compass** points to the nearest within the
 region; **the timers** row says the night's coven and the next fall.
 
+**EVENTS1 (2026-10-23, `10-UI/Event-Board.md`).** The region's lines and the hold above are said in the HUD's event
+board's news now (`systems/eventNotices.js`, kind `star`), where they had been the chat's; and the next star's town is
+named from `STAR_WARN_MS` (10 minutes) before it falls - on the Timers row and the board, with its pixel, the board's
+news to every screen - where it had been named from its omen (PanickedTofu, Discord: "I only ever get a notification
+about them AFTER they've been claimed by other players").
+
 **As built (STAR6).** Every line goes through the text core (`systems/starfall/starWords.js`, `t('starfall.*')`, its
 names as arguments), held to WB13b's style by a law over all of them (`test/systems/starfall/star6_words.test.js`). The
 Timers window shows each fallen star still undecided counting down to its deadline (*Fallen Star*, *Near Gothway
