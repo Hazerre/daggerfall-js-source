@@ -4,13 +4,15 @@ One report, from the owner: "I notice with sailing. Players on board the ship ji
 Other players also slide when on board your ship/npc ships". Read on main's `dab1e710d`. Every system it touches is the
 port's own (Come Sail Away is single-player and DFU has no second player to stand on a deck - `03-World/Come-Sail-Away.md`
 "Sailing together (CSA-K)"), so no DFU member moves and no Ledger row is owed. The pins are
-`test/net/peer/deckpose.test.js` and `test/net/eliteGates/ridepose_play.test.js`, the mutants `tools/mutants/deckpose.json`
-(16, all dead) and `tools/mutants/ridepose_play.json` (5, all dead).
+`test/net/peer/deckpose.test.js`, `test/net/eliteGates/ridepose_play.test.js` and `test/scenes/naval/seadeck.test.js`, the
+mutants `tools/mutants/deckpose.json` (16, all dead), `tools/mutants/ridepose_play.json` (5, all dead) and
+`tools/mutants/seadeck.json` (14, all dead).
 
 | | Report | What it was | Done |
 |---|---|---|---|
 | 1 | "Players on board the ship jitter while sailing instead of staying put. Other players also slide when on board your ship/npc ships" | Another player aboard a boat - mine, another's, a booked passage's ship - was stood on her deck by the foes frame's `ab` alone: five words a second at most, only when it changed, the full frames alone (one in two seconds) through a crowded cell's relay, each eased toward. A body walking her deck lurched and slid on after it stopped | DECK-POSE |
 | 2 | (the owner, after DECK-POSE: "Do the not fixed items") - found beside 1: the Elite Breach's riders | The session's play-out (`net/online.js` lerpPose) carried no `pl`, so a peer standing on a moving piece was never drawn on it | RIDE-PLAY |
+| 3 | (the owner: "Do the not fixed items") - "slide when on board ... npc ships": the sea's own ships | A merchantman, a pirate, a packet under sail stood in the player's collider and moved nobody: she sailed out from under the body, her rail shoving it along, and every other screen drew it a play-out behind her | SEA-DECK |
 
 ## DECK-POSE (1) - `src/net/wire.js`, `src/net/online.js`, `src/scenes/comeSailAway/comeSailAwayAboard.js`
 
@@ -61,9 +63,7 @@ every frame but a play-out's hold - the session's own law, on land as on a deck 
 within a play-out's delay and stood there, never off its line as the deck sailed on.
 
 "NPC SHIPS". A booked passage's ship is Come Sail Away's boat of her hull (`03-World/Passage.md`, navalHost charter), so
-her passengers and her helm are this path's. The sea's own ships under sail - a merchantman, a pirate - carry nobody who
-stands on their decks: they stand in the player's collider (`navalHost.js` collidable) but no deck carries a body by
-their move, here or on another's screen. Not changed here.
+her passengers and her helm are this path's. The sea's own ships under sail are SEA-DECK's (3, below).
 
 PINS MOVED: `test/net/peer/fbsea_deck.test.js` and `test/systems/csa_together.test.js` (the place said is world.js's
 csaDeckWord); `test/net/eliteGates/egint_client.test.js` (sendPose lays the ride and the place); the RELAY_VERSION pins
@@ -85,4 +85,42 @@ another, or from no ride, the newer whole; off every piece, none; the drawn ride
 has been on the pose since EG8. Pins: `test/net/eliteGates/ridepose_play.test.js` - through a real session, a rider handed
 to `rideAt` with her ride every frame and drawn where it stood her, her offset walked evenly; mutants
 `tools/mutants/ridepose_play.json` (5, all dead).
+
+## SEA-DECK (3) - `src/scenes/naval/seaDecks.js`
+
+FOUND. A ship of the sea's (`scenes/naval/navalHost.js` - a merchantman, a pirate, a navy ship, a packet on her lane)
+within COLLIDE_RANGE stands in the player's collider (NAV-H: her hull met, her deck stood on), and the sea poses her once a
+frame - her root at her place and heading, her bob, heel and list on her MeshObject (`poseShip`). Nothing carried a body
+with her. On the real motor and collider, standing on a Small Ship sailing 6 m/s, turning 6 degrees a second and rolling,
+she sailed 7.7 m out from under the body in three seconds, her rail shoving it along; and on every other screen the body
+stood where its pose said, a play-out behind her.
+
+THE CHANGE - her deck carries, says where, and is read a frame ahead:
+
+- THE CARRY (`seaDecks.js` hold, frame; wired in the naval frame around `poseShip`). Each near ship's deck pose is held
+  before the sea poses her; after, the one aboard is carried by her DECK's move (`comeSailAwayAboard.js` deckPose: her
+  root carried by her bob, which her deck rolls and pitches with) - the helm's own law for its child (carriedPoint,
+  yawDelta), as CSA-K carries a rider on another player's boat. Aboard is the motor standing on her own colliders (its
+  last step's ground, on her deck as it stood before the frame - so the frame stepped on her is carried too), or in the
+  air with a floor of hers under the feet (`navalHost.js` standsOn, NAV2 F36). Off: standing on something else,
+  swimming, the host's gate shut (`deckMayCarry`: walking the street, alive, not mid-teleport), her gone, or her deck
+  moving farther than SEA_DECK_JUMP_M in one frame (a copy snapped to its stander's word: a placement, never a carry).
+  The world's door (`deck`) carries the body and turns its facing (`deckCarry`, CSA-K's own) and takes the eye again -
+  the sea poses after the eye is taken - and her colliders were already synced after the sea's frame (AUDIT NAV1 #12).
+- THE PLACE (`word`): my feet in her deck's frame on every pose (DECK-POSE's `ab`) under a key every client's copy of her
+  answers to - `~sea:<seed>:<class>`, the identity the naval word matches her by (`applyWord` bySeed), never a player's id;
+  `world.js` csaDeckWord asks it after another's boat and my own helm, and her deck is what carries my moving bit.
+- THE READER (`ahead`; `world.js`'s glue asks `naval.deckAhead` after `csaPoseAhead`): the online frame stands the others
+  before the sea poses her, so her deck is led a frame - her root carried on along her heading by her way over the sea's
+  share of the frame, her bob as it stands. 6.2 mm at worst against her deck once posed, where the deck before the frame
+  stood her way times the frame (9.7 cm) behind.
+
+MEASURED AFTER: on the real naval host, a merchantman built beside me and sailing 15 m, my place on her rolling deck kept
+to the millimetre; on the real motor and collider, the Small Ship above - my place kept within a millimetre, on her own
+collider every one of 180 frames. Pins `test/scenes/naval/seadeck.test.js`; mutants `tools/mutants/seadeck.json` (14, all
+dead). The host's wiring took ten logical lines over `bootWorld`'s ceiling, raised with the reason
+(`01-Overview/Host-Split.md`); PINS MOVED: the CSA-K host pins (`csa_together.test.js`) and the rigs that lift
+`csaPeersFrame` (`fb1001b_peerboats.test.js`, `peer_water_boarding_regression.test.js`, `partyBoatTeleportRig.mjs`) read
+the hoisted answers; `fbsea_deck.test.js`'s moving bit asks the sea's deck; six mutant records re-aimed by content
+(`csa_together.json`, `fbsea.json`, `hostsplit.json`, `navaudit_helm.json`).
 

@@ -188,6 +188,6 @@ test('DECK-POSE THE SENDER: every pose I say carries my place aboard while the h
   place = null;
   clock.now += 500; s.sendPose({ ...me, x: me.x + 2 });
   assert.equal('ab' in said(), false, 'ashore: none');
-  assert.match(WORLD, /const csaDeckWord = \(\) => \(csaOn\(\) \? \(csaAboard\.word\(player\.pos\) \?\? csaHelmWord\(\)\) : null\);/);
+  assert.match(WORLD, /const csaDeckWord = \(\) => \(csaOn\(\) \? \(csaAboard\.word\(player\.pos\) \?\? csaHelmWord\(\) \?\? naval\?\.deckWord\?\.\(player\.pos\) \?\? null\) : null\);/);
   assert.match(WORLD, /online\.poseAboard = csaDeckWord;/);
 });

@@ -586,3 +586,14 @@ stream's breather and the five maps the grass and the water read, and answering 
 36,138 logical lines, its ceiling 36,171 -> 36,158. The pins that quoted the moved code read `groundSets.js` now (twelve
 files, listed in the OW-HITCH record), and seven mutant records were re-aimed there.
 
+## SEA-DECK's wiring - ten lines raised, the carry a module (2026-10-23)
+
+SEA-DECK (`01-Overview/bugs/Field-Bugs-2026-10-23.md`) makes the sea's own ships carry whoever stands on their decks. The
+carry, the place it says and the deck a reader stands a body on are a module (`scenes/naval/seaDecks.js`), wired by the
+naval host (`createNavalHost` 6,213 -> 6,228, under its ceiling). What could not live there is the host's own hand on the
+player and the camera: the naval deps' `deck` door (the body carried, its facing turned, the eye taken again - the sea
+poses its ships after the eye is taken) and the three answers it shares with CSA-K's carry of another player's boat,
+hoisted out of `csaPeersFrame` so the two are one (`deckMayCarry`, `deckGround`, `deckCarry`). DECK-POSE had left
+`bootWorld` at its ceiling (36,284 of 36,284); these are ten logical lines, and the ceiling took them with the reason
+beside it (36,284 -> 36,294). The four rigs that lift `csaPeersFrame` lift the three answers with it.
+

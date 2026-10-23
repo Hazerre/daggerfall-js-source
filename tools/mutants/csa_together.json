@@ -456,8 +456,8 @@
   {
     "name": "CSAK-host-gate-travel",
     "file": "src/scenes/world.js",
-    "old": "allowed: csaOn() && !!online && walkMode && playerSpawned && !_teleporting && !_traveling && (modes?.mode ?? 'exterior') === 'exterior'",
-    "new": "allowed: csaOn() && !!online && walkMode && playerSpawned && !_teleporting && (modes?.mode ?? 'exterior') === 'exterior'",
+    "old": "const deckMayCarry = () => walkMode && playerSpawned && !_teleporting && !_traveling && (modes?.mode ?? 'exterior') === 'exterior'",
+    "new": "const deckMayCarry = () => walkMode && playerSpawned && !_teleporting && (modes?.mode ?? 'exterior') === 'exterior'",
     "tests": [
       "test/systems/csa_together.test.js"
     ]
@@ -528,7 +528,7 @@
   {
     "name": "CSAK-host-glue-off",
     "file": "src/scenes/world.js",
-    "old": "const drawable = isCellRoom(online.room) && csaOn() ? csaAboard.glue(online.drawable(), { poseOf: (o, i) => csaPoseAhead(o, i, dt), toWire: campToWire, dt }) : online.drawable();",
+    "old": "const drawable = isCellRoom(online.room) && csaOn() ? csaAboard.glue(online.drawable(), { poseOf: (o, i) => csaPoseAhead(o, i, dt) ?? naval?.deckAhead?.(o, gamePaused() ? 0 : dt * worldTimeScale()) ?? null, toWire: campToWire, dt }) : online.drawable();",
     "new": "const drawable = online.drawable();",
     "tests": [
       "test/systems/csa_together.test.js"
