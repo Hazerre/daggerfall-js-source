@@ -102,8 +102,8 @@
   {
     "name": "STAFF-PANEL1-a-before-no-row",
     "file": "server-account/src/staff.js",
-    "old": "  await audit('audit-read', view.target, view, { onceIn: STAFF_READ_ROW_S }).run();",
-    "new": "  if (!before) await audit('audit-read', view.target, view, { onceIn: STAFF_READ_ROW_S }).run();",
+    "old": "    .bind(view.actor, view.target, view.act, before, limit), audit('audit-read', view.target, view, { onceIn: STAFF_READ_ROW_S })]);",
+    "new": "    .bind(view.actor, view.target, view.act, before, limit), ...(before ? [] : [audit('audit-read', view.target, view, { onceIn: STAFF_READ_ROW_S })])]);",
     "why": "a read naming a `before` leaves no row, and any `before` past the newest row is the first page",
     "tests": [
       "test/server/staffpanel1.test.js"

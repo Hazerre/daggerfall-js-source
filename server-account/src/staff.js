@@ -343,7 +343,11 @@ export async function staffSession(ctx, env, token, { act = true } = {}) {
   if (typeof token !== 'string' || token.length < 16 || token.length > 128) return null;
   const { db, subtle, nowS } = ctx;
   const hash = await hashSecret(token, { subtle });
-  const row = await db.prepare(STAFF_WHO_SQL).bind(hash).first();
+  // STAFF-PANEL-SPEED (mob: "slow when moving in menus"): an act's touch rides the lookup's trip. Its guard is the idle and
+  // the life the checks below hold the session to, so either landing first answers the same; one they kill is deleted below
+  const [row] = await Promise.all([db.prepare(STAFF_WHO_SQL).bind(hash).first(),
+    act && db.prepare('UPDATE staff_sessions SET last_act = ?1 WHERE token_hash = ?2 AND last_act <= ?3 AND last_act > ?4 AND expires_at > ?1')
+      .bind(nowS, hash, nowS - STAFF_TOUCH_S, nowS - STAFF_IDLE_S).run()]);
   if (!row) return null;
   const role = staffRole(row, env);
   if (!role || row.s_expires <= nowS || row.s_act + STAFF_IDLE_S <= nowS || !row.k_handle || row.k_handle !== row.handle_lc || (row.k_cfg && !configKey(row, env, row.k_pub)) || isBanned(row, nowS)) {
@@ -352,11 +356,7 @@ export async function staffSession(ctx, env, token, { act = true } = {}) {
     await db.prepare('DELETE FROM staff_sessions WHERE token_hash = ?').bind(hash).run();
     return null;
   }
-  let lastAct = row.s_act;
-  if (act && nowS - lastAct >= STAFF_TOUCH_S) {
-    await db.prepare('UPDATE staff_sessions SET last_act = ? WHERE token_hash = ?').bind(nowS, hash).run();
-    lastAct = nowS;
-  }
+  const lastAct = act && nowS - row.s_act >= STAFF_TOUCH_S ? nowS : row.s_act;   // the touch above wrote it
   return { player: row, role, owner: isOwner(row, env), hash, keyId: row.s_key, idleAt: lastAct + STAFF_IDLE_S, expiresAt: row.s_expires };
 }
 
@@ -430,8 +430,8 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   if (path === '/v1/staff/mods' || path === '/v1/staff/mod/add' || path === '/v1/staff/mod/remove') {
     if (who.role !== 'admin') return denied('staff-admin');
     if (path === '/v1/staff/mods') {
-      const r = await db.prepare('SELECT id, handle FROM players WHERE staff_mod = 1 ORDER BY handle_lc LIMIT 500').all();
-      await audit('mods-read', null, null, { onceIn: STAFF_READ_ROW_S }).run();
+      // STAFF-PANEL-SPEED: the read and its audit row in one trip, one transaction - never shown without its row
+      const [r] = await db.batch([db.prepare('SELECT id, handle FROM players WHERE staff_mod = 1 ORDER BY handle_lc LIMIT 500'), audit('mods-read', null, null, { onceIn: STAFF_READ_ROW_S })]);
       return { mods: (r.results ?? []).map((p) => ({ id: p.id, handle: p.handle })), config: staffHandles(env).filter((h) => !developerHandles(env).has(h)) };
     }
     const lc = handleLc(body.handle);
@@ -466,13 +466,12 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   if (!who.owner) return denied('staff-owner');
   if (path === '/v1/staff/team') {
     const handles = staffHandles(env).slice(0, 90);   // D1 binds 100 at most; the lists name a dozen
-    const r = await db.prepare(`SELECT p.*,
+    const [r] = await db.batch([db.prepare(`SELECT p.*,
         (SELECT COUNT(*) FROM staff_keys k WHERE k.player_id = p.id AND k.handle_lc = p.handle_lc AND k.revoked_at IS NULL) AS keys,
         (SELECT COUNT(*) FROM staff_sessions s WHERE s.player_id = p.id AND s.expires_at > ?1 AND s.last_act > ?2) AS live,
         (SELECT MAX(expires_at) FROM staff_invites i WHERE i.player_id = p.id AND i.expires_at > ?1) AS invite_until
       FROM players p WHERE p.staff_mod = 1 OR p.handle_lc IN (${['NULL', ...handles.map((_, i) => `?${i + 3}`)].join(', ')})`)
-      .bind(nowS, nowS - STAFF_IDLE_S, ...handles).all();
-    await audit('team-read', null, null, { onceIn: STAFF_READ_ROW_S }).run();
+      .bind(nowS, nowS - STAFF_IDLE_S, ...handles), audit('team-read', null, null, { onceIn: STAFF_READ_ROW_S })]);   // STAFF-PANEL-SPEED: one trip, its row with it
     return {
       team: (r.results ?? []).map((p) => ({
         id: p.id, handle: p.handle, role: staffRole({ ...p, staff_suspended: 0 }, env), owner: isOwner(p, env), keys: p.keys, sessions: p.live, inviteUntil: p.invite_until ?? null,
@@ -528,10 +527,10 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   const before = Number.isSafeInteger(body.before) && body.before > 0 ? body.before : null;
   const limit = Number.isSafeInteger(body.limit) ? Math.min(Math.max(body.limit, 1), STAFF_AUDIT_PAGE) : STAFF_AUDIT_PAGE;
   const view = { actor: str(body.actor), target: str(body.target), act: str(body.act) };
-  const r = await db.prepare(`SELECT * FROM staff_audit WHERE (?1 IS NULL OR actor = ?1) AND (?2 IS NULL OR target = ?2)
+  // STAFF-PANEL-SPEED: the page and its row in one trip - the read first, so it never lists its own row
+  const [r] = await db.batch([db.prepare(`SELECT * FROM staff_audit WHERE (?1 IS NULL OR actor = ?1) AND (?2 IS NULL OR target = ?2)
     AND (?3 IS NULL OR act = ?3) AND (?4 IS NULL OR id < ?4) ORDER BY id DESC LIMIT ?5`)
-    .bind(view.actor, view.target, view.act, before, limit).all();
-  await audit('audit-read', view.target, view, { onceIn: STAFF_READ_ROW_S }).run();
+    .bind(view.actor, view.target, view.act, before, limit), audit('audit-read', view.target, view, { onceIn: STAFF_READ_ROW_S })]);
   return {
     rows: (r.results ?? []).map((a) => {
       let detail = null;
