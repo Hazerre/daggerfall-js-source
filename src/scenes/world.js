@@ -290,6 +290,7 @@ import { createGrantHost } from './grantHost.js';   // GRANT2-GRANT4: the spawn 
 import { wireOwnerClock } from './ownerCatchUp.js';   // OWNER-CLOCK: my foes' steps on the clock their frames carry, and the street's kept to my frame's pace while anyone else is in my room
 import { fishKind } from './fishHost.js';   // PROF8: Fishing's casts and schools - a kind in it
 import { createCraftWritHost } from './craftWritHost.js';   // CRAFT-WRITS: the Work tab's crafting writs, handed over from the pack
+import { createSeasonBook } from './seasonBookHost.js';   // SEASON-BOOK: the laurel's boards, asked while its window is open
 import { rollNoticeDoors } from './rollNoticeHost.js';   // SEAT-WORDS / STANDING-WORDS: what the Roll's tracker says
 import { utcDayOfMs } from '../net/nodeLaw.js';   // PROF8: a haul's UTC day
 import { registerPlayerKillListener } from '../systems/playerKills.js';   // PROF7: the player's own kill stamps a body
@@ -881,7 +882,7 @@ import { LANG_LINES, unknownLangText } from '../net/chatCommands.js';   // CHAT-
 import { OPT_CHANNELS, tradeChanOldText, notJoinedText, optJoinedText, optJoinedSayText, optLeftText, optWaitText, alreadyJoinedText } from '../net/chat.js';   // CHAT-TRADE: the Trade and LFG tabs' words
 import { badJoinText } from '../net/chatCommands.js';   // CHAT-TRADE: /join's and /leave's refusal
 import { oocText, localLineHeard, nextRegionRoom, regionJoinedText, CHAN_OLD_RELAY_TEXT, ROLL_OLD_RELAY_TEXT, EMOTE_OLD_RELAY_TEXT, GUILD_OLD_RELAY_TEXT, NO_GUILD_TEXT, partyNoteTab } from '../net/chat.js';   // CHAT-CHAN: the channels' own laws (a second chat import: CHAT1's pin holds the first as it stands)
-import { breachCommandOf, helpLines, mailboxCommandOf } from '../net/chatCommands.js';   // AUDIT EG V (c, L7-1, L7-21): the Elite Breach's door, its words whole; /help's lines with its own
+import { breachCommandOf, helpLines, pauseCommandOf, pauseCommandRefusal } from '../net/chatCommands.js';   // AUDIT EG V (c, L7-1, L7-21): the Elite Breach's door, its words whole; /help's lines with its own
 import { parseChatLine, CHAT_GREETING_TEXT, unknownCommandText, emptyCommandText, hostMisuseText, badRollText, expandShortcodes, EMOTE_LINES, foundText, FIND_OFFLINE_TEXT, FIND_RELAY_TEXT } from '../net/chatCommands.js';   // CHAT-CHAN: what a typed line IS; DICE1: and a roll; EMOTE1: an action, a gesture, a shortcode
 import { partyRosterSource, localRosterSource, guildRosterSource } from '../net/roster.js';   // CHAT-CHAN: the Party and Local tabs' composed lists
 import { partyCompassPoints } from '../ui/partyMapMarks.js';   // COMPASS-PARTY: the party's points on the compass
@@ -1210,6 +1211,15 @@ const boatForward = (boat, yaw) => {
   const l = Math.hypot(fx, fz) || 1;
   return [fx / l, 0, fz / l];
 };
+/** EntityEffectManager.AssignBundle for StartWaterwalking's bundle: its one WaterWalkingSilent on the player, for
+ *  DurationBase + DurationPlus x the level over DurationPerLevel rounds (SetDuration). HOST-SPLIT (at the merge of main
+ *  into SEASON-BOOK): out of bootWorld - it reads the player alone, as the module's imports hand it. */
+function csaAssignBundle(spec) {
+  if (spec.effectKey !== WATER_WALKING_SILENT) return;
+  const perLevel = Math.max(1, spec.durationPerLevel | 0);
+  const rounds = spec.durationBase + spec.durationPlus * Math.floor((playerEntity.level ?? 1) / perLevel);
+  assignModBundle(playerEntity, { name: spec.name, kind: WATER_WALKING_SILENT_KIND, rounds, bundleType: spec.bundleType });
+}
 /** OH-E: the abyss's two loot listeners, held so a second world booted in the page replaces them rather than adding to them. */
 let _ohLootOff = null;
 /** AUDIT PARTY-UI2 1: Internal_Strings.csv `cannotTravelIndoors`, the
@@ -8282,14 +8292,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     _csaMapKeys.held.clear();
     hideEnhancedTextLayer(CSA_MAP_TEXT_LAYER);   // AUDIT FONT3 F1: here, not in dispose alone - the interior and dungeon slots close a window without disposing it
     modes?.closeWindow?.(w);
-  }
-  /** EntityEffectManager.AssignBundle for StartWaterwalking's bundle: its one WaterWalkingSilent on the player, for
-   *  DurationBase + DurationPlus x the level over DurationPerLevel rounds (SetDuration). */
-  function csaAssignBundle(spec) {
-    if (spec.effectKey !== WATER_WALKING_SILENT) return;
-    const perLevel = Math.max(1, spec.durationPerLevel | 0);
-    const rounds = spec.durationBase + spec.durationPlus * Math.floor((playerEntity.level ?? 1) / perLevel);
-    assignModBundle(playerEntity, { name: spec.name, kind: WATER_WALKING_SILENT_KIND, rounds, bundleType: spec.bundleType });
   }
   /** OnGUI's two pictures, built at the map's first draw: record 3 rebuilt from the player's TRAV0I00.IMG (the
    *  port never carries it) and lineTexture, TEXTURE.000's solid record 112. */
@@ -17108,6 +17110,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   /** SERVER-POST: what the pause face's mailbox reads - the box, online; null offline (no envelope), as the hourglass's.
    *  AUDIT TIMERS1 D6's law: the pause door is armed before `online` and the box are declared, so not there yet is none. */
   const postSource = () => { try { return online && postBox ? postBox : null; } catch { return null; } };
+  /** SEASON-BOOK: what the pause face's laurel reads past the hourglass's clock - the season's boards (scenes/seasonBookHost.js),
+   *  off the doors this host already holds, read at each ask (the ones declared below the pause door are none until then). */
+  const seasonBook = createSeasonBook(() => ({ arena: arenaOnline, eg: _accountEg, iliac: iliacDoor, gambit: gambitDoor, ledger: captainLedger }));
   let _timersSeatAsk = -Infinity;
   const timersSource = ({ ask = false } = {}) => {
     // AUDIT TIMERS1 D6: the pause door is armed before the boot's last awaits, and `online` (and the gate's two) are
@@ -17160,6 +17165,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     loadingPrevented: () => !!online,
     timers: timersSource,   // TIMERS1: the hourglass's window (null offline - no hourglass)
     post: postSource,   // SERVER-POST: the mailbox beside it (null offline - no mailbox)
+    season: seasonBook.source,   // SEASON-BOOK: the laurel's boards (its clock is the hourglass's)
     // SAV4: the slot window's seams - the pause SAVE/LOAD doors
     // open it with these (openClassicPauseFlow builds the doors).
     playerName: () => playerEntity.name, playerId: () => playerEntity.characterId ?? null,
@@ -21448,8 +21454,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         // SERVER-POST (AUDIT SERVER-POST: the classic skin's pause window has no envelope, and the notice sent its players to
         // one): `/mail` - the mailbox, on either skin and wherever the player stands (the enhanced pause face with its window
         // open: ui/pauseDoor.js's door, worldModes.js openPauseAt indoors and underground). Local, never sent.
-        { const at = mailboxCommandOf(text); if (at) {   // PRIVATE-REPORT: and `/bug`, the mailbox's private report form
-          if (!postSource()) { chatLog.push(tabId, { text: 'Connect and sign in to use the mailbox.', system: true }); return true; }
+        { const at = pauseCommandOf(text); if (at) {   // PRIVATE-REPORT: and `/bug`, the mailbox's private report form; SEASON-BOOK: and `/season`, the laurel's window (the hourglass's clock its own)
+          if (!(at === 'season' ? timersSource() : postSource())) { chatLog.push(tabId, { text: pauseCommandRefusal(at), system: true }); return true; }
           if (!modes?.openPauseAt?.(at)) hudCtx.togglePause({ at });
           return true;
         } }
@@ -30087,6 +30093,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     loadingPrevented: () => !!online,
     timers: timersSource,   // TIMERS1: forwarded to a building's and a dungeon's pause face
     post: postSource,   // SERVER-POST: and the mailbox's box
+    season: seasonBook.source,   // SEASON-BOOK: and the laurel's boards
     playerName: () => playerEntity.name, playerId: () => playerEntity.characterId ?? null,
     saveAs: (saveName) => worldQuickSave(saveName),
     loadKey: (key) => worldQuickLoad({ key }),
