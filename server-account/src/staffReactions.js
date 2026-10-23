@@ -167,11 +167,11 @@ export async function staffReactions(ctx, env, path, body, who, audit) {
     db.prepare("SELECT COALESCE(SUM(amount), 0) AS renown, COALESCE(SUM(played_s), 0) AS played FROM progress_hours WHERE player = ?1 AND stream = 'renown' AND hour > ?2").bind(row.id, since).first(),
     db.prepare('SELECT rowid AS rid, * FROM encounter_reactions WHERE sub = ?1 AND rowid < ?2 ORDER BY rowid DESC LIMIT ?3').bind(row.id, before, REACT_PAGE + 1).all(),
     population(db, nowS),
+    audit('reactions-read', row.id, { name }, { onceIn: 10 * 60 }).run(),   // STAFF-PANEL-SPEED: the audit row with the reads, one trip
   ]);
   const episodes = (page?.results ?? []).slice(0, REACT_PAGE).map(episodeOf);
   const hours = Number(play?.played ?? 0) / 3600;
   const player = reactionSummary(mine ?? {});
-  await audit('reactions-read', row.id, { name }, { onceIn: 10 * 60 }).run();
   return {
     sub: row.id, name, player, population: pop, pattern: player.episodes >= REACT_PATTERN,
     perHour: { days: REACT_KEEP_S / 86400, playedH: Math.round(hours * 10) / 10, encounters: Number(recent?.n ?? 0), renown: Number(play?.renown ?? 0),
