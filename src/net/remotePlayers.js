@@ -59,6 +59,7 @@ import { EQUIP_SLOTS } from '../characters/paperdoll/paperdoll.js';   // AUDIT D
 import { FootstepMachine, FOOTSTEP_CLIP_SETS } from '../systems/footsteps.js';   // PEER-FS1: peer footsteps off the pose's own `fk`
 import { RidingAnimator, RIDING_VOLUME_SCALE, nextNeighDelay } from '../systems/riding.js';   // RIDE-SOUND: a peer's hooves are TransportManager's own loop, clip swap and neigh
 import { TRANSPORT_MODES } from '../systems/transport.js';   // RIDE-SOUND: the pose's `rd` as the animator's mode
+import { horseVolume } from '../systems/animalVolume.js';   // HORSE-VOL: a peer's mount on the Audio tab's Horse Volume
 import { swingSoundFor, SOUND } from '../systems/soundClips.js';   // PEER-FS2: a peer's own swing sound, off the pose's `an` edge and their equipped weapon
 import { billboardSize } from '../world/rmbFlats.js';   // PCORPSE1: a corpse stands as the dungeon's own corpses stand
 import { raceGenderPain3Sound, CLASSIC_PLAYER_DEATH_SOUND } from '../systems/playerDeath.js';   // PCORPSE1: the fallen player's own cry
@@ -1131,8 +1132,9 @@ export class RemotePlayers {
     // AUDIT DISC7 B4: past earshot nothing is made - no panner and no source for a rider nobody can hear (the
     // animator keeps its clock, so the loop comes back in step when they ride into range)
     const heard = peerInEarshot(at, eye);
-    audio.setLoop3d(ridingLoopName(peer.id), out.playing && heard ? SOUND[out.clip] : null, at, { volume: out.volume, pitch: out.pitch, ...PEER_SOUND_PROFILE });
-    if (out.neigh && heard && audio.play3d) audio.play3d(SOUND.AnimalHorse, at, RIDING_VOLUME_SCALE, PEER_SOUND_PROFILE);
+    const horse = horseVolume();   // HORSE-VOL: a peer's mount on the Audio tab's Horse Volume, as my own is
+    audio.setLoop3d(ridingLoopName(peer.id), out.playing && heard ? SOUND[out.clip] : null, at, { volume: out.volume * horse, pitch: out.pitch, ...PEER_SOUND_PROFILE });
+    if (out.neigh && heard && audio.play3d) audio.play3d(SOUND.AnimalHorse, at, RIDING_VOLUME_SCALE * horse, PEER_SOUND_PROFILE);
   }
   /** AUDIT DISC7 B6: the floating origin moved - every rider's loop is carried with it in the same frame the listener
    *  is (the sync above ran before the recentre, so its panners stood in the old frame for one frame: a click). */

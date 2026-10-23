@@ -39,6 +39,7 @@ import { ownsShip } from '../systems/banking.js';
 import { horseOffsetHeight, dockedLargeHudHeight } from '../ui/hud/hudLarge.js';   // ROAD-D D10: LargeHUDOffsetHorse; AUDIT-RR F25: EnhancedRiding's own arm asks LargeHUDDocked (EnhancedRiding.cs:256-257)
 import { mwViewHides, mwViewDrawSaddle } from './mwView.js';   // AUDIT-EOTB2: the sprite body on screen hides the FPV horse (Eye Of The Beholder's ToggleBillboard); COATS3D: the 3D horse in its place
 import { SOUND } from '../systems/soundClips.js';
+import { horseVolume } from '../systems/animalVolume.js';   // HORSE-VOL: the mount's neigh and hooves on the Audio tab's Horse Volume
 import { isShipAvailable } from '../systems/ship.js';   // RR1: TransportManager.ShipAvailiable, the delegate
 import { NATIVE_SCREEN_HEIGHT } from '../systems/riding.js';   // RR2: the 200-line native screen the sprite scales by
 import { RR_RIDING, rrTerrainAngle, rrTerrainFollow, rrRidingYAdj, rrRidingNeckBand } from '../systems/roleplayRealism/rrRealism.js';   // RR2: EnhancedRiding's draw laws
@@ -211,8 +212,9 @@ export function createMountRig({
         walking: !!player.rideWalking,   // HORSE-WALK: the walk's slow clop and its slower nod
         soundVolume: ridingVolumeScale(),   // AUDIT-TO1 J1: 0 for the length of an accelerated journey
       });
-      if (r.neigh) audio.playOneShot(SOUND.AnimalHorse, RIDING_VOLUME_SCALE);
-      audio.setLoop('riding', r.playing ? SOUND[r.clip] : null, { volume: r.volume, pitch: r.pitch });
+      const horse = horseVolume();   // HORSE-VOL: the Audio tab's Horse Volume, the neigh and the hooves alike
+      if (r.neigh) audio.playOneShot(SOUND.AnimalHorse, RIDING_VOLUME_SCALE * horse);
+      audio.setLoop('riding', r.playing ? SOUND[r.clip] : null, { volume: r.volume * horse, pitch: r.pitch });
       // TR-AUDIT F-E1: OnGUI (:293) refuses to draw AT ALL while the
       // game is paused - `!GameManager.IsGamePaused` sits in the same
       // condition as the Repaint test. Under an open window DFU shows

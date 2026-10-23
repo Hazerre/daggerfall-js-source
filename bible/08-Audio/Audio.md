@@ -920,3 +920,45 @@ court as in the Spire, are `11-Multiplayer/World-Bosses.md` section 28.
 Pins: `test/systems/gatemix_limiter.test.js` (4: the ceiling's law; the curve as the WaveShaper reads it; the trim
 against the spec's make-up; the graph - the listener into the limiter, the low-pass before it, an old context straight
 through). `tools/mutants/gatemix.json` (with section 28's: 36 dead, one equivalent as recorded).
+
+## HORSE-VOL, ANIMAL-VOL, SOUND-LIVE (2026-10-23): two more Volume rows, and every sound on a slider
+
+travddm: "add an ability to disable horse neighing"; then "Add both animal volume & horse volume (since you use horses
+to travel, but not other animals, so you're around them a lot more). Also, there are reportedly some sounds in the game
+which are not tied to any volume sliders at all - let's try to surface these and make sure they're tied to sliders."
+
+- **Horse Volume** (`systems/animalVolume.js` horseVolume, uiPrefs `horseVolume`, 0-100%). Every horse heard: the
+  mount's neigh and its riding loop (`player/mountRig.js`), a mounted peer's loop and neigh (`net/remotePlayers.js`), a
+  town's horse flat (`systems/animalAmbience.js`), and the team the Wagon Warden lifts (`scenes/world.js` WARDEN_CLIPS
+  `heave`; the throw and the landing are the guard's sounds, not a horse's). At 0 no horse is heard.
+- **Animal Volume** (uiPrefs `animalVolume`): every other archive-201 animal flat - the dog, the cat, the pig and the
+  cow (`soundClips.js` ANIMAL_SOUND_BY_RECORD, GameObjectHelper.AddAnimalAudioSource's table). A horse flat answers to
+  Horse Volume alone, so one row silences every neigh. The ambience's birds, crickets and the cemetery's howl
+  (`systems/ambientEffects.js`) are on neither row.
+- Both rows sit in the Audio tab's Volume section after Monster Volume, and each scales its sounds under Sound Volume,
+  as Monster Volume does. At 100% every level is DFU's. The three rows share one builder (`enhancedMenu.js` volumeRow).
+
+THE AUDIT. Every sound the game plays reaches the speakers through a slider. Each door of the engine (`playOneShot`,
+`play3d`, `play3dVoice`, the loops, the beds, `source()`) connects through the master that Sound Volume levels
+(`_out`). The music's two players and the intro theme follow Music Volume, and a VID reads Sound Volume for each
+clip of its sound.
+Three sounds did not follow their slider:
+
+1. **Sound Volume itself, while a sound played.** The master read the setting only when a NEW sound started. A slider
+   moved on the Options page over a quiet world left every sound already going (the rain, the wind, a torch, the ride, a
+   ship's loops) at the old level until something new played. The master now subscribes to the setting
+   (`onSettingChange`) and ramps to the new level over 50 ms (`audio.js:"  _relevel() {"`), as the music's resync does.
+   This is the port's own engine, not a DFU member.
+2. **The Trireme's oar stroke** (Come Sail Away, `comeSailAway.js` oarEvent). The mod plays it with the rudder's plain
+   `AudioSource.PlayOneShot`, which reads neither Sound Volume nor the mod's own boat volume. The host divides Sound
+   Volume out of the bus for a plain source (`plainSourceGain`), so the stroke played at one level whatever either
+   slider said. It now plays at Sound Volume x the mod's own, as the boat's loops do.
+3. **A boat's loops.** They took Sound Volume x the mod's volume when a loop started or crossfaded, and were re-levelled
+   only when the MOD's setting changed (LoadSettings' Audio arm). A change of the game's Sound Volume mid-voyage left
+   them where they were. `checkSettings` now watches the product, so either slider re-levels them.
+
+Items 2 and 3 depart from the mod: Port-Ledger section A, SOUND-LIVE.
+
+Pins: `test/systems/volume_sliders.test.js` (7: the readers; the animal flats; my own mount; a peer's; the Warden's
+heave; the rows; the live master), and `test/systems/comeSailAway/csa_time_audio.test.js` (the stroke at both volumes;
+the loops after a Sound Volume change). `tools/mutants/volume_sliders.json`: 13 dead.
