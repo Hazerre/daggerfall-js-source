@@ -8021,6 +8021,15 @@ was zero; a gift beside my own Fortify; the mate's recast merging with the mate'
 seam by source. `tools/mutants/allycast.json`: 37, 37 dead. RELAY_VERSION world97 with its law row; the relay
 deploys itself on the merge to main. Not verified in a browser: no online session exists in this container.
 
+GIFT-ONE (FIELD BUGS 2026-10-22d, `01-Overview/bugs/Field-Bugs-2026-10-22d.md`; PauloHF, "[Glitch] Overpowered spells":
+"a shield with 6002 strength, 1600 duration, and AoE (not mine). And yes, both shields work"). C2's tags are stamped at
+the bundle's TAIL (`systems/effects.js` applySpell), and the incumbent law read them on every entry - so a gift carrying
+one effect twice found its own first entry untagged, read it as somebody else's, and stood a second beside it: two
+Shield pools from one Mega Shield (3,001 each at the gift's level 30), three from three, a Fortify stacked the same. The
+caster's own cast of the same spell merged into one, as every cast of the player's own always has. An entry the cast
+itself pushed is the cast's own now (`findInc`: past `pinStart`, read without its tag): one pool a gift, as one a cast;
+a mate's bundle still stands beside mine (C2), a duel opponent's beside mine (DUEL1).
+
 ## FRIENDLY-SPELLS (2026-09-23, Mac: "These files here need to be integrated, with a cavet. We also made changes to cricket sounds and the new player-to-player spellcasting. I don't want to override our previous changes") - two drops onto ALLY-CAST, world98
 
 Two archives from Mac's tree (`friendly-spells-patch_6`, `friendly-spells-and-Nightsound-toggle`), both whole-file
@@ -10986,7 +10995,7 @@ guild's chat (through the token and the relay), **GUILD1d** the guild hall, a gu
 **GUILD1a - the guild, as the service keeps it.**
 
 - **The law** (`src/net/guild/guildLaw.js`, which the service and the client both read). The bounds: 10,000 gold and
-  Renown 10 to found, 50 members, a name of 3 to 32 letters, digits, spaces, apostrophes and hyphens (tidied, and one
+  Renown 10 to found, 50 members (75 since GUILD-CAP, below), a name of 3 to 32 letters, digits, spaces, apostrophes and hyphens (tidied, and one
   guild a name whatever its case or spaces - `guildNameKey`), a tag of 2 to 4 capitals or digits (upper-cased). FOUR
   RANKS, highest first - Guildmaster (0), Officer (1), Member (2), Recruit (3) - whose POWERS are fixed: an officer
   or the guildmaster invites, removes and moves members; any member deposits; the guildmaster alone withdraws,
@@ -13609,7 +13618,8 @@ field by field (`validPose`), so nothing rides there:
 
 - **The way**: `sa`'s `m`, a place for each of `b`'s - the boat at the helm's velocity through the wire frame and its
   turn, on the real clock at the owner's time scale; only while a boat is under way, so a moored fleet's record is the
-  one an older reader reads. Readers lead the boat along it (`scenes/comeSailAway/comeSailAwayPeers.js`, capped at 0.6 s).
+  one an older reader reads. Readers lead the boat along it (`scenes/comeSailAway/comeSailAwayPeers.js`, up to two full frames'
+  spacing and taken up at a bounded catch - SEA-GLIDE, FIELD BUGS 2026-10-22d, `03-World/Come-Sail-Away.md`).
 - **Aboard**: `ab` on the passenger's own frame - `[owner, place, x, y, z]`, their feet in that boat's own frame to
   the centimetre; a word when it changes and on every full frame, null aboard nothing; the boats' owner law (gone,
   stale, a clear). Every reader - the boat's owner among them - stands the passenger on its own copy of that boat
@@ -16972,3 +16982,7 @@ nothing is written.
 **Open.** A live handle other than this one that holds either word now fails the token's own law (identityToken.js
 claimsValid - `mintToken` throws), so its player cannot go online until it is renamed the same way; the live table was
 not read from here. Pinned by `test/server/handlerename0134.test.js`.
+
+## GUILD-CAP (2026-10-21, the Discord's feature-feedback, Bryorios: "May you please increase the guild member cap"; Dwarfblood: "75 would be a great start.") - a guild holds 75
+
+`GUILD_MEMBERS_MAX` (`src/net/guild/guildLaw.js`) is 75, up from GUILD1a's 50 - the step the thread agreed on as a start (the ask was "75 or a 100"; another player asked for many guilds over a few big ones, so the cap rises by half rather than doubling). Everything that reads the cap reads the one constant: the invite's and the join's room (`server-account/src/guilds.js`), the refusal's sentence (`accountClient.js` `guild-full`), the Guild tab's counts (`socialPanel.js`). The one bound that had to move with it is the hub's who-of-my-guild list, `HUB_GUILD_WHO_MAX` (`src/net/hubShards.js`), 64 to 100: at 64 a full guild of 75 online would have listed 64 of its 74 others. `test/server/guild1.test.js` pins the cap and that the list holds a full guild but its asker; the mutant `GUILD1-a-bigger-guild` re-aimed at 75. No migration: the cap lives in the law, not the schema. The service's version does not move - no route or shape changed.

@@ -22,7 +22,8 @@ import * as acorn from 'acorn';
 import { setPref, _resetForTests } from '../../src/systems/uiPrefs.js';
 import * as CH from '../../src/systems/champions.js';
 import * as LR from '../../src/systems/loot/lootRarity.js';
-import { isThunderlock, isPellet } from '../../src/systems/thunderlock.js';   // imported, it registers its unique find
+import { isThunderlock, isPellet } from '../../src/systems/thunderlock.js';
+import { isPistolet } from '../../src/systems/pistolet.js';   // PISTOLET: the find's second gun   // imported, it registers its unique find
 import { spawnEnemyLoot } from '../../src/scenes/hostCombat.js';
 import { equipTableOf } from '../../src/systems/equip.js';
 import { createWeapon } from '../../src/combat/enemyEquipment.js';
@@ -65,7 +66,9 @@ test('LOOT7-CHECK CORPSE-FIND: a body keeps its unique find - the Thunderlock an
     const list = [createWeapon(113, 1)];
     LR.rollLootRarity(list, LR.championSource(src), { rolls: lcg(seed), luck: 50 });   // CHAMP-LOOT: the champion's own source, one home
     assert.deepEqual(body.items.map(said), list.map(said), `seed ${seed}: the body is the list`);
-    if (body.items.some(isThunderlock)) {
+    // PIN MOVED (PISTOLET, AUDIT PISTOLET C8 D4): the find mints either gun from the draw it always made, so the same
+    // seeds find and the count is either gun's
+    if (body.items.some((i) => isThunderlock(i) || isPistolet(i))) {
       finds++;
       assert.ok(body.items.some(isPellet), `seed ${seed}: it arrives loaded`);
     }

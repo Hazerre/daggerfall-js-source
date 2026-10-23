@@ -71,6 +71,7 @@ import { relaySupportsFoeInventory } from './wire.js';
 //
 // Not a DFU member: Daggerfall Unity has no multiplayer. Ledger A row.
 import { validStaffTeleportIn, validStaffTeleportOut, staffTeleportSupported } from './staffTeleport.js';
+import { validFollowOut, whereNoteDue, followSupported } from './staffFollow.js';   // STAFF-PANEL5-FOLLOW: the hub's word to a spectator, and the where note's pace
 import { validRelayCfgIn, validRelayCfgOut, relayCfgSupported } from './relayCfg.js';
 import { relaySupportsSeatLive, seatAskDue, seatStreams } from './seatLive.js';   // FIELD BUGS 2026-10-18d SEAT-LIVE: a dungeon room's seat is a live socket's
 import { relaySupportsGrant, relaySupportsGrantStats, relaySupportsStarGrant, grantModeOf, validGrantAsk, validGrantOut, grantGate } from './grantLaw.js';   // GRANT2: the spawn grants' asks (bible/11-Multiplayer/Spawn-Grants.md section 12)   // SCALE5b: the relay's settings, a developer's
@@ -89,6 +90,10 @@ import { tabStorage } from '../systems/appStorage.js';   // the tab's own storag
 import { STAMP_RE } from './safety/chatStamp.js';   // SAFE2: a line's stamp, carried as the relay said it
 import { MUTE_HZ_MAX, CHAT_HZ_MAX, CHAT_MAX, relaySupportsBan } from './wire.js';   // AUDIT SAFE RELAY-2: the order meter and my own lines' pace, the relay's word on my chat's own bucket; RELAY-3: the ban frame's relay
 import { REALM_CHARACTER_RE } from './identityToken.js';   // AUDIT LEGACY III O1: a wed frame's stamped realm character, by the token's own shape
+import { leaseRoom, relaySupportsLease, LEASE_MS, LEASE_HELD_MS, LEASE_HAND_MIN_MS } from './roomLease.js';   // LEASE1: my hub's lease, handed to every lease room I hold
+import { LEASE_WIRE_MAX } from './wire.js';
+/** LEASE1: the frames a lease room's socket sends with no lease ahead of them - the runtime's ping, the hello, a lease. */
+const LEASE_QUIET_RE = /^\{"t":"(?:ping|hello|lease)"/;
 import { wrapAngle } from '../world/mat4.js';   // ONCRASH1: the port's one angle wrap, which cannot loop
 
 import { isGateRoom, PIXEL_M } from './gate/gateLaw.js';   // WB3: a gate's arena is one room of its own
@@ -96,7 +101,7 @@ import { isBattleRoom, isRoyalRoom } from './siege/siegeRef.js';   // SEAT2a par
 import { caravanKeyOf } from './privateInterior.js';   // WAGONS2-VISIT: a caravan's own room (NET-SMOOTH's owned interior is wire.js nativePoseRoom's now, SLIM-FRAME)
 import { relaySupportsCaravan, validCaravanData } from './wire.js';   // WAGONS2-VISIT: what a caravan's owner placed, said to its room
 import { isArenaRoom, validArenaIn } from './arena/arenaLaw.js';   // ARENA4: the arena's hall and its bouts
-import { poseChanged, POSE_TS_MOD, poseTsDiff, SOCKETS_MAX, WORLD_CELL, RANGE_PIXELS, PIXEL_UNITS, CLOSE_REPLACED, CLOSE_POLICY, CLOSE_BUSY, WORLD_FRAME_MAX, worldFrameMaxFor, isCellRoom, hitOwnerOf, validPose, validLook, sanitizeName, readBadge, readAura, readIcon, readRibbon, sanitizeChat, chatGate, redGate, dmGate, relaySupportsDm, muteGate, subOf, mutedUntilOf, worldRoom, inRange, relayUrl, isWorldRoom, streamsFoes, isChatRoom, foesGate, FOES_FRAME_MAX, MAX_FRAME_BYTES, hitGate, actGate, actFrameFits, whoGate, WHO_RETRY_MS, HEARTBEAT_MS, PING_MS, FOES_FULL_MS, FOES_STALE_MS, relayVersionOf, chatInGate, CHAT_ROOM_HZ_MAX, socialGate, partyGate, validPartyPose, validSocialFrame, validPartyFrame, PARTY_SEND_MS, validSocialAct, socialInGate, noteInGate, partyInGate, SOCIAL_IN_HZ_MAX, NOTE_IN_HZ_MAX, INBOUND_FRAME_MAX, questInGate, validQuestFrame, QUEST_SEND_MS, QUEST_HUB_MIN_MS, PARTY_MAX, tokenGate, validTradeData, tradeGate, tradeInGate, validCastData, castGate, castInGate, CAST_FRAME_MAX, CAST_IN_HZ_MAX, relaySupportsCast, TRADE_IN_HZ_MAX, relaySupportsTrade, TRADE_FRAME_MAX, parkGate, relaySupportsPark, PARK_CELL_MAX, PARK_KEY_RE, PARK_TTL_MS, relaySupportsChannels, relaySupportsLang, relaySupportsTradeChan, CHAT_LINE_CHANNELS, partyChatInGate, PARTY_CHAT_ROOM_HZ_MAX, relaySupportsRoll, rollGate, validRollSpec, validRoll, relaySupportsEmote, validCardData, cardGate, cardInGate, CARD_FRAME_MAX, CARD_IN_HZ_MAX, relaySupportsCard, validPageData, pageGate, pageInGate, PAGE_FRAME_MAX, PAGE_IN_HZ_MAX, relaySupportsPage, validDuelData, duelGate, duelInGate, DUEL_FRAME_MAX, DUEL_IN_HZ_MAX, relaySupportsBossRef, bodyWordGate, relaySupportsDuelRef, validDuelRefOut, validWedData, wedGate, wedInGate, WED_FRAME_MAX, WED_IN_HZ_MAX, relaySupportsWed, readRenown, renownGate, relaySupportsRenown, RENOWN_ORDER_KEEP_MS, RENOWN_RESEND_MS, lookGate, relaySupportsLook, relaySupportsPartyTravel, relaySupportsRestOpt, relaySupportsEvent, relayKnowsLiveEvent, eventGate, validLiveEvent, LIVE_EVENTS, isSocialRoom, validGateIn, validGateOut, gateGate, relaySupportsGate, relaySupportsOwn, relaySupportsGateSpent, relaySupportsGateSite, relaySupportsGateHeal, relaySupportsCourtWatch, relaySupportsPortents, gatePlaceWire, readGuildTag, readHouse, relaySupportsGuild, GUILD_ORDER_KEEP_MS, guildChatInGate, GUILD_CHAT_ROOM_HZ_MAX, validRaidIn, validRaidOut, raidGate, relaySupportsRaid, validRaidTownsIn, isRegionRoom, validTravellerMark, validTravellerFrame, validTravWords, relaySupportsTravellers, travInGate, TRAV_SEND_MIN_MS, TRAV_WELCOME_MAX, TRAV_STALE_MS, relaySupportsPartyWalk, relaySupportsPartyLead, relaySupportsPartyMap, validAmapFrame, amapBody, AMAP_SEND_MS, AMAP_HUB_MIN_MS, validSiegeIn, validSiegeOut, siegeGate, relayFightsBattles, relayRunsRoyal, validRiteIn, validRiteOut, riteGate, relaySupportsRite, validStarIn, validStarOut, starGate, relaySupportsStar, arenaGate, relaySupportsArena, readArenaOut, validWildData, validWildOut, wildDirected, wildGate, wildInGate, WILD_IN_HZ_MAX, WILD_FRAME_MAX, relaySupportsWildRef, validWildRefOut, relaySupportsWdun, relaySupportsWdunGiants, validWdunIn, validWdunOut, BUSY_TOKEN_UNREAD, WIRE2_BATCH_MAX, GROUND_LAW, groundRoom, GRANT_HELLO_LAW, validParkYeet, relaySupportsWildCollect, relaySupportsHome, HOME_ORDER_KEEP_MS, validHomeFrame, homeInGate } from './wire.js';   // SCALE5a: a busy close's word that the token went unread   // SOC2: the hub's law, at home; AUDIT SOC B3/B11/B20: the act's projection, the inbound gates, the inbound bound
+import { poseChanged, POSE_TS_MOD, poseTsDiff, SOCKETS_MAX, WORLD_CELL, RANGE_PIXELS, PIXEL_UNITS, CLOSE_REPLACED, CLOSE_POLICY, CLOSE_BUSY, WORLD_FRAME_MAX, worldFrameMaxFor, isCellRoom, hitOwnerOf, validPose, validLook, sanitizeName, readBadge, readAura, readIcon, readRibbon, sanitizeChat, chatGate, redGate, dmGate, relaySupportsDm, muteGate, subOf, mutedUntilOf, worldRoom, inRange, relayUrl, isWorldRoom, streamsFoes, isChatRoom, foesGate, FOES_FRAME_MAX, MAX_FRAME_BYTES, hitGate, actGate, actFrameFits, whoGate, WHO_RETRY_MS, HEARTBEAT_MS, PING_MS, FOES_FULL_MS, FOES_STALE_MS, relayVersionOf, chatInGate, CHAT_ROOM_HZ_MAX, socialGate, partyGate, validPartyPose, validSocialFrame, validPartyFrame, PARTY_SEND_MS, validSocialAct, socialInGate, noteInGate, partyInGate, SOCIAL_IN_HZ_MAX, NOTE_IN_HZ_MAX, INBOUND_FRAME_MAX, questInGate, validQuestFrame, QUEST_SEND_MS, QUEST_HUB_MIN_MS, PARTY_MAX, tokenGate, validTradeData, tradeGate, tradeInGate, validCastData, castGate, castInGate, CAST_FRAME_MAX, CAST_IN_HZ_MAX, relaySupportsCast, TRADE_IN_HZ_MAX, relaySupportsTrade, TRADE_FRAME_MAX, parkGate, relaySupportsPark, PARK_CELL_MAX, PARK_KEY_RE, PARK_TTL_MS, relaySupportsChannels, relaySupportsLang, relaySupportsTradeChan, CHAT_LINE_CHANNELS, partyChatInGate, PARTY_CHAT_ROOM_HZ_MAX, relaySupportsRoll, rollGate, validRollSpec, validRoll, relaySupportsEmote, validCardData, cardGate, cardInGate, CARD_FRAME_MAX, CARD_IN_HZ_MAX, relaySupportsCard, validPageData, pageGate, pageInGate, PAGE_FRAME_MAX, PAGE_IN_HZ_MAX, relaySupportsPage, validDuelData, duelGate, duelInGate, DUEL_FRAME_MAX, DUEL_IN_HZ_MAX, relaySupportsBossRef, bodyWordGate, relaySupportsDuelRef, validDuelRefOut, validWedData, wedGate, wedInGate, WED_FRAME_MAX, WED_IN_HZ_MAX, relaySupportsWed, readRenown, renownGate, relaySupportsRenown, RENOWN_ORDER_KEEP_MS, RENOWN_RESEND_MS, lookGate, relaySupportsLook, relaySupportsPartyTravel, relaySupportsRestOpt, relaySupportsEvent, relayKnowsLiveEvent, eventGate, validLiveEvent, LIVE_EVENTS, isSocialRoom, validGateIn, validGateOut, gateGate, relaySupportsGate, relaySupportsOwn, relaySupportsGateSpent, relaySupportsGateSite, relaySupportsGateHeal, relaySupportsCourtWatch, relaySupportsPortents, gatePlaceWire, readGuildTag, readHouse, relaySupportsGuild, GUILD_ORDER_KEEP_MS, guildChatInGate, GUILD_CHAT_ROOM_HZ_MAX, validRaidIn, validRaidOut, raidGate, relaySupportsRaid, validRaidTownsIn, isRegionRoom, validTravellerMark, validTravellerFrame, validTravWords, relaySupportsTravellers, travInGate, TRAV_SEND_MIN_MS, TRAV_WELCOME_MAX, TRAV_STALE_MS, relaySupportsPartyWalk, relaySupportsPartyLead, relaySupportsPartyMap, validAmapFrame, amapBody, AMAP_SEND_MS, AMAP_HUB_MIN_MS, validSiegeIn, validSiegeOut, siegeGate, relayFightsBattles, relayRunsRoyal, validRiteIn, validRiteOut, riteGate, relaySupportsRite, validStarIn, validStarOut, starGate, relaySupportsStar, arenaGate, relaySupportsArena, readArenaOut, validWildData, validWildOut, wildDirected, wildGate, wildInGate, WILD_IN_HZ_MAX, WILD_FRAME_MAX, relaySupportsWildRef, validWildRefOut, relaySupportsWdun, relaySupportsWdunGiants, relaySupportsWdunSea, seaVaultCell, validWdunIn, validWdunOut, BUSY_TOKEN_UNREAD, WIRE2_BATCH_MAX, GROUND_LAW, groundRoom, GRANT_HELLO_LAW, validParkYeet, relaySupportsWildCollect, relaySupportsHome, HOME_ORDER_KEEP_MS, validHomeFrame, homeInGate, relaySupportsSeaPvp, SEA_PVP_KINDS } from './wire.js';   // SCALE5a: a busy close's word that the token went unread   // SOC2: the hub's law, at home; AUDIT SOC B3/B11/B20: the act's projection, the inbound gates, the inbound bound
 import { relaySupportsHoldem, holdemGate, validHoldemIn, validHoldemOut, relaySupportsIliac, validIliacIn, validIliacOut, relaySupportsGambit, validGambitIn, validGambitOut } from './wire.js';   // CARDS5: the relay's card table, both ways
 import { RAID_TOWNS_CHUNK } from './raid/raidLaw.js';   // RAID-ROLL: the towns table's pieces
 import { dungeonRoomTag } from './wire.js';   // SD-ONLINE: a dungeon's room carries the size it was built at
@@ -569,6 +574,9 @@ export class OnlineSession {
     this.amapOk = false;          // PARTY-MAP: the relay knows the `amap` frame (relaySupportsPartyMap) - an older one closes on it
     this._lastAmapAt = -Infinity; // PARTY-MAP: the client's own floor between two sends (AMAP_SEND_MS)
     this.onStaffTeleport = null;
+    this.followOk = false;        // STAFF-PANEL5-FOLLOW: the hub keeps where notes outside a party, and follows (the welcome says)
+    this.solo = false;            // STAFF-PANEL5-FOLLOW: in no party (the host says) - sendParty sends my where note, at its own pace
+    this.onFollow = null;         // STAFF-PANEL5-FOLLOW: (frame) => void - the hub's `fol` to a spectator's hub link (net/staffFollow.js validFollowOut)
     this.staffTeleportOk = false;
     this._rfOn = new WeakMap();    // SCALE5b: socket -> its cell judges the poses that reach it (`rf`) - a halo's are never thinned then
     this.onFound = null;          // SCALE5c: ({q, l, busy}) => void - the hub's answer to a search of everyone online by name
@@ -648,6 +656,7 @@ export class OnlineSession {
     this.presence = !!presence;   // false: a channel's session (CHAT1) - no pose out, a ping for a heartbeat
     this.onChat = null;           // (line) => void: a chat line in - {id, name, text, at, mine}
     this.onRed = null;            // RED1: (line) => void: the SERVER's own line - {text, at}, no id and no name, because nobody is speaking it
+    this.onStaffMessage = null;   // STAFF-PANEL5-MESSAGE: (mi) => void: a staff message waits for this account - its id; the words are the account service's
     this.onDm = null;             // TITLE-N: (line) => void: the Dungeon Master's line - {text, at}, as the server's: a voice over the game, not a player in it
     this.dmOk = false;            // TITLE-N: the relay that welcomed this socket carries /dm (relaySupportsDm) - an older one CLOSES the socket on the frame
     this.onEvent = null;          // EVENT1: (ev, {live}) => void - the server-wide live event now ({kind, at}) or null; live: it changed while I watched (a welcome's word is not)
@@ -656,6 +665,10 @@ export class OnlineSession {
     this.liveEvent = null;        // EVENT1: the hub's live event as last said - {kind, at} or null
     this.onLaw = null;            // SAFE4: ({order}) => void - a mute or ban order the hub handed me to carry to every room I hold
     this.onBanned = null;         // SAFE4: ({until}) => void - the relay says my account is banned until then (epoch seconds), or 0: lifted
+    this.onLease = null;          // LEASE1: (l) => void - my hub's lease, to hand to every lease room I hold (net/roomLease.js)
+    this.leaseOk = false;         // LEASE1: the relay that welcomed this socket knows the lease frame - an older one CLOSES a socket on it
+    this._lease = null;           // LEASE1: my hub's newest lease, handed on by each lease room's socket ahead of its next frame (`_leased`)
+    this._leaseAt = -Infinity;    // LEASE1: when it came, on my own clock (LEASE_HELD_MS)
     this.onSlowed = null;         // SAFE6: ({ms}) => void - my public line was too soon for a new voice; the next may go in `ms`
     this.onWelcomed = null;       // AUDIT SAFE CLIENT-8: () => void - my room's socket was welcomed (a reconnect's too): what the page reads of the account at a start is read again
     this.banOk = false;           // AUDIT SAFE RELAY-3: the relay that welcomed this socket knows the `ban` frame (relaySupportsBan) - an older one CLOSES the socket on it
@@ -673,6 +686,9 @@ export class OnlineSession {
      *  the gate for every other door a line has (CHAT-POST's item, posted from the pack, went straight to sendChat). */
     this.mayChat = null;
     this.onMuted = null;          // MOD1: ({until}) => void - the relay says I am muted until then (epoch seconds), or 0: lifted
+    this.onFrozen = null;         // STAFF-PANEL5-FREEZE: ({until}) => void - the relay says staff froze my account until then (epoch seconds), or 0: lifted
+    this.onStaffNudge = null;     // STAFF-PANEL5-FREEZE: ({sl}) => void - my staff thread has a line `sl` to read from the account service
+    this.staffOk = false;         // STAFF-PANEL5-FREEZE: this hub said the staff channel's word (a `frozen`, a nudge) - it routes a staff nudge
     this.onFoes = null;           // WORLD2: (id, data) => void - the host's live foes in (a non-host's, from the room's host alone)
     this.onOwnFoes = null;        // OWN1: (id, data) => void - a peer's OWN foes in my world room (a building's, a dungeon's shared quest's)
     this.tradeOk = false;         // TRADE1: the relay that welcomed this socket routes trade frames (relaySupportsTrade) - an older one CLOSES the socket on the frame, so nothing is sent to it
@@ -740,9 +756,11 @@ export class OnlineSession {
     this._inWedBuckets = new Map();   // LEGACY7 part three: the gate on wed frames coming in, per sender (`_directedIn`)
     this.wdunGiantsOk = false;    // ZONE-GIANTS: the hub keeps the giants' deaths (relaySupportsWdunGiants)
     this.wdunOk = false;          // PVPDUNGEONS: the hub keeps the zone's halls (relaySupportsWdun) - an older one closes the socket on `wdun`
+    this.wdunSeaOk = false;       // SEA-VAULTS: the hub reads a vault of the deep's key (relaySupportsWdunSea) - an older one closes the socket on it
     this.onWdun = null;           // PVPDUNGEONS: (word) => void - the hub's word on the zone's halls (wire.js validWdunOut)
     this.wildCollectOk = false;   // MAC (2026-10-14, the two-phase handoff): the relay that welcomed this socket signs a killer's collect of a piece in escrow (relaySupportsWildCollect)
     this.wildOk = false;          // WILD1: the relay that welcomed this socket routes wild frames and, INT9, referees the zone (relaySupportsWildRef) - an older one CLOSES the socket on one, so nothing of the open zone is sent through it
+    this.seaPvpOk = false;        // SHIP-PVP: the relay that welcomed this socket referees the open sea's guns (relaySupportsSeaPvp) - an older one closes the socket on their kinds
     this.onWild = null;           // WILD1: (id, data, sub) => void - a directed wild frame at ME (a blow, a fallen's gear, a pick, a gift), projected by the wire's validWildData; `sub` the sender's account as the RELAY verified it
     this.onWildRoom = null;       // WILD1: (word, room) => void - my own room's word on its remains (validWildOut)
     this._wildBucket = null;      // WILD1: my own wild frames out - wildGate's law
@@ -892,6 +910,7 @@ export class OnlineSession {
     this._lastSent = null;
     this._lastSentAt = -Infinity;
     this._lastPingAt = -Infinity;   // RELAY-H1: the liveness ping's own clock - it must never delay the heartbeat pose
+    this._leaseAskAt = -Infinity;   // LEASE1: when this hub link last asked its lease
     this.seatLiveOk = false;        // FIELD BUGS 2026-10-18d SEAT-LIVE: my room's relay names a dungeon's seat among its live sockets (net/seatLive.js, world220 - SEAT_RELAY_MIN)
     this._seatHeardAt = -Infinity;  // SEAT-LIVE: when the named host was last heard - its word (a welcome, a host frame) or its stream's frame
     this._seatAskedAt = -Infinity;  // SEAT-LIVE: when I last asked the relay for the seat (`_askSeat`)
@@ -946,12 +965,14 @@ export class OnlineSession {
       const old = { ws: this._ws, status: this.status === 'open' ? 'open' : 'connecting', retryAt: null, backoff: BACKOFF_MIN_MS, since: this._now(), raidOk: this.raidOk, riteOk: this.riteOk, serpentOk: this.serpentOk, sdOk: this.sdOk, foeInventoryOk: this.foeInventoryOk, wildOk: this.wildOk, wildCollectOk: this.wildCollectOk, bossOk: this.bossOk };   // SERPENT1: and the serpent's; INT9 (AUDIT): and the zone's; AUDIT INT15: and the count's
       old.egOk = this.egOk;   // EG-PLAY: and the breach's
       old.starOk = this.starOk;   // STAR3: and the star's
+      old.seaPvpOk = this.seaPvpOk;   // SHIP-PVP: and the open sea's guns'
       this._halo.delete(room);
       this._halo.set(this.room, old);
       old.ly = this.layer; this.layer = h.ly ?? 0; this._layerRoom = room;   // SCALE5d: each socket's layer goes with it
       this._ws = h.ws; this.status = h.status; this.error = null; this._retryAt = h.retryAt; this._backoff = h.backoff; this._dropAt = h.dropAt ?? null; this._tokenRetry = !!h.tokenRetry;   // DOOR-TOKEN: its wait on a token too
       this.raidOk = !!h.raidOk; this.riteOk = !!h.riteOk; this.serpentOk = !!h.serpentOk; this.sdOk = !!h.sdOk; this.egOk = !!h.egOk;   // SD3: and the find's; EG-PLAY: and the breach's
       this.starOk = !!h.starOk;   // STAR3: and the star's
+      this.seaPvpOk = !!h.seaPvpOk;   // SHIP-PVP: and the open sea's guns'
       this.foeInventoryOk = !!h.foeInventoryOk;
       this.wildOk = !!h.wildOk;   // INT9 (AUDIT): the zone's word went with neither socket
       this.wildCollectOk = !!h.wildCollectOk;   // MAC (2026-10-14): nor the collect's
@@ -1263,7 +1284,7 @@ export class OnlineSession {
     if (!this.url || !this._WS) return;
     let ws;
     // AUDIT WORLD6b-iii(b) A7: a socket that cannot be made is an entry with a retry, not nothing (nothing was re-tried every frame)
-    try { ws = new this._WS(`${this.url}/room/${room}`); } catch { this._halo.set(room, { ws: null, status: 'closed', retryAt: this._now() + BACKOFF_MIN_MS + this._rand() * Math.max(BACKOFF_MIN_MS, backoff - BACKOFF_MIN_MS), backoff: Math.min(BACKOFF_MAX_MS, backoff * 2), since: this._now() }); return; }   // SLAM5 (AUDIT SLAM): jittered like the other two halo paths - SLAM2 claimed all three and treated only two
+    try { ws = this._leased(new this._WS(`${this.url}/room/${room}`), room); } catch { this._halo.set(room, { ws: null, status: 'closed', retryAt: this._now() + BACKOFF_MIN_MS + this._rand() * Math.max(BACKOFF_MIN_MS, backoff - BACKOFF_MIN_MS), backoff: Math.min(BACKOFF_MAX_MS, backoff * 2), since: this._now() }); return; }   // SLAM5 (AUDIT SLAM): jittered like the other two halo paths - SLAM2 claimed all three and treated only two
     this._halo.set(room, { ws, status: 'connecting', retryAt: null, backoff, since: this._now() });
     this._bind(ws);
   }
@@ -1430,7 +1451,7 @@ export class OnlineSession {
       // walk landed it wherever there was room, its welcome said that layer, and the player left their party's layer by
       // changing an aura. The primary asks what `_open` asks; a halo the layer its welcome said (`ly`)
       const ly = room === this.room ? (this.room === this._layerRoom && this.layer > 0 ? this.layer : this.layerHint) : (this._halo.get(room)?.ly ?? 0);
-      try { ws = new this._WS(`${this.url}/room/${room}${isLayered(room) && ly > 0 ? `?ly=${ly}` : ''}`); } catch { continue; }   // the old socket stands; the next change asks again
+      try { ws = this._leased(new this._WS(`${this.url}/room/${room}${isLayered(room) && ly > 0 ? `?ly=${ly}` : ''}`), room); } catch { continue; }   // the old socket stands; the next change asks again
       this._swap.set(room, { ws, old, since: now });
       this._bind(ws);
     }
@@ -1671,6 +1692,14 @@ export class OnlineSession {
    *  `room`'s, a halo I hold (INT9: a fall's pick and its deposit go to the room that refereed it) - through the wire's own
    *  projection first, WILD_HZ_MAX a second, never at a relay that would close the socket for it. TRUE MEANS THE FRAME
    *  LEFT THE SOCKET; false is refused to the caller, never queued here. */
+  /** SHIP-PVP: whether the relay behind socket `ws` - my cell's or a halo's - referees the open sea's guns (its own welcome's
+   *  word, carried with it across a crossing). */
+  _seaPvpOn(ws) {
+    if (ws === this._ws) return this.seaPvpOk;
+    for (const h of this._halo.values()) if (h.ws === ws) return !!h.seaPvpOk;
+    return false;
+  }
+
   sendWild(data, { room = null } = {}) {
     const d = validWildData(data);
     if (!d || !this.wildOk || d.k === 'zone') return false;   // INT9: the zone word is setWildZone's, on my cell's socket
@@ -1679,6 +1708,7 @@ export class OnlineSession {
     if (!wildDirected(d) && room && room !== this.room && !halo) return false;   // INT9 (AUDIT): a room I no longer hold - never my own instead
     const ws = wildDirected(d) ? this._wildSocketFor(d.to) : halo ? (halo.status === 'open' && halo.wildOk ? halo.ws : null) : (this.status === 'open' ? this._ws : null);
     if (!ws) return false;
+    if (SEA_PVP_KINDS.includes(d.k) && !this._seaPvpOn(ws)) return false;   // SHIP-PVP: the sea's guns to a relay that referees them alone - the socket's own (a halo's, a shot's or a boarding's room)
     const gate = wildGate(this._wildBucket, this._now());
     if (!gate.pass) return false;
     const s = JSON.stringify({ t: 'wild', data: d });
@@ -1710,6 +1740,7 @@ export class OnlineSession {
   sendWdun(word) {
     const w = validWdunIn(word);
     if (!w || !this.wdunOk || !isSocialRoom(this.room) || this.status !== 'open' || !this._ws) return false;
+    if ((seaVaultCell(w.h) || w.k === 'fk') && !this.wdunSeaOk) return false;   // SEA-VAULTS: a vault of the deep's key to a hub that reads it alone - AUDIT SEA VENTURES A10: and a fleet's sinking (an older hub closes the socket on it)
     try { this._ws.send(JSON.stringify({ t: 'wdun', ...w })); } catch { return false; }
     this.stats.sent++;
     return true;
@@ -2079,7 +2110,7 @@ export class OnlineSession {
     if (!this.room || !this._WS) { this.status = 'error'; this.error = t('net.online.noSocket', 'no WebSocket'); return; }
     let ws;
     const ly = this.room === this._layerRoom && this.layer > 0 ? this.layer : this.layerHint;   // SCALE5d: a reconnect to my layer, else my party's
-    try { ws = new this._WS(`${this.url}/room/${this.room}${isLayered(this.room) && ly > 0 ? `?ly=${ly}` : ''}`); } catch (e) { this.status = 'error'; this.error = String(e?.message ?? e); this._scheduleRetry(); return; }   // SCALE5d: my party's layer asked first
+    try { ws = this._leased(new this._WS(`${this.url}/room/${this.room}${isLayered(this.room) && ly > 0 ? `?ly=${ly}` : ''}`), this.room); } catch (e) { this.status = 'error'; this.error = String(e?.message ?? e); this._scheduleRetry(); return; }   // SCALE5d: my party's layer asked first
     this._ws = ws;
     this.status = 'connecting';
     this._tokenRetry = false;   // DOOR-TOKEN: this socket's own hello says whether it waits on one again
@@ -2106,6 +2137,9 @@ export class OnlineSession {
     if (isBattleRoom(this.room) && this._siegePass) frame.sp = this._siegePass;   // SEAT2a part four: the battle's pass (CROWN1 part two: a Royal Tourney's too)
     if (groundRoom(room)) frame.gl = GROUND_LAW;   // GROUND-GATE: the ground this build stands on, to a room whose peers stand on it (net/wire.js)
     if (streamsFoes(room)) frame.gv = GRANT_HELLO_LAW;   // GRANT-DOOR: the grants this build stands on, to a room whose foes ride (net/wire.js)
+    if (leaseRoom(room)) frame.ls = 1;   // LEASE1: this build hands its hub's lease to the room
+    if (isSocialRoom(room)) frame.sm = 1;   // STAFF-PANEL5-MESSAGE: this build shows a staff message's box - a hub link without it is "old game, not shown"
+    frame.fv = 1;   // STAFF-PANEL5-FREEZE: this build shows the freeze screen - a relay closes a frozen account's socket from a build that cannot
     return frame;
   }
 
@@ -2178,6 +2212,7 @@ export class OnlineSession {
         this._lastParty = null; this._lastPartyAt = -Infinity;   // SOC2: a fresh socket is a fresh attachment at the hub - the next party pose goes whole
         this.amapOk = false;   // PARTY-MAP: likewise, the welcome says
         this.staffTeleportOk = false;
+        this.followOk = false;   // STAFF-PANEL5-FOLLOW: likewise
         this.instanceOk = false;   // INSTANCES: likewise - a relay rolled back behind world208 keeps no instance
         this.relayCfgOk = false;   // SCALE5b: likewise
         this.grantMode = null;   // GRANT2: likewise - an older relay closes the socket on an ask (GRANT6: null, not yet said - scenes/grantHost.js waits on it a stand's while)
@@ -2426,6 +2461,7 @@ export class OnlineSession {
     // CHAT-CHAN: a line for a channel inside the room (the party's, on the hub link) goes only to a relay that routes
     // it - an older one projects `{t:'chat', text}` and would fan the party's line to everyone online
     if (ch != null && (!CHAT_LINE_CHANNELS.includes(ch) || !(ch === 'guild' ? this.guildOk : this.chanOk))) return false;   // GUILD1c: a guild's line only to a relay that routes it - an older one refuses the channel and closes nothing, but says nothing either
+    if (ch === 'staff' && !this.staffOk) return false;   // STAFF-PANEL5-FREEZE: a staff nudge only to a hub that spoke the staff channel's word first (a `frozen`, a nudge)
     // EMOTE1: an action only to a relay that carries one - an older one would say "waves" as a line of its own
     if (me && !this.emoteOk) return false;
     const gate = chatGate(this._cbucket, this._now());
@@ -2801,6 +2837,45 @@ export class OnlineSession {
     return true;
   }
 
+  /** LEASE1 (net/roomLease.js): my hub's lease, kept for this session's lease rooms - its own and each halo's. Nothing goes
+   *  now: each lease room's socket hands it just ahead of the next frame it sends there (`_leased`), so a room where I do
+   *  nothing is woken by nothing (mob's load check, 07:57Z: "if we affected server performasnce" - every room a player
+   *  stood idle in was woken every LEASE_MS). KEPT WHEREVER I STAND (a review of the PR: one that came while I stood in a
+   *  dungeon's floor, a gate or my home, or before this socket's welcome, was thrown away, and the next lease room heard
+   *  nothing of me until the hub's next) - `_leased` hands it on only in a lease room of a relay that knows the frame.
+   *  False when this session takes none now. */
+  sendLease(l) {
+    if (typeof l !== 'string' || !l) return false;
+    this._lease = l;
+    this._leaseAt = this._now();
+    return this.leaseOk && (leaseRoom(this.room) || [...this._halo.keys()].some(leaseRoom));
+  }
+
+  /** LEASE1: a second lane of mine (net/sailingCabinLink.js - no hub link hands it one) takes my session's lease, as old
+   *  as it is (the third review: the cabin lane was bound and never leased, so with the door on its boat went unheard). */
+  leaseFrom(s) {
+    if (typeof s?._lease === 'string' && s._leaseAt > this._leaseAt) { this._lease = s._lease; this._leaseAt = s._leaseAt; }
+  }
+
+  /** LEASE1: a lease room's socket, made to hand my newest lease on just ahead of the first frame it sends after that lease
+   *  came - a ping, a hello and a lease itself excepted - and never twice. Every frame a room hears from me rides behind a
+   *  lease it holds (with the door on, a bound socket with no live lease is heard in nothing); a socket that sends nothing
+   *  hands nothing; a lease held past LEASE_HELD_MS is handed on nowhere; and a newer lease waits LEASE_HAND_MIN_MS from the
+   *  last one this socket handed, for the frame after (the third review: the room's meter dropped one handed sooner, and
+   *  this socket counted it handed, so its live lease lapsed in the room). */
+  _leased(ws, room) {
+    if (!ws || !leaseRoom(room) || typeof ws.send !== 'function') return ws;
+    const send = ws.send.bind(ws);
+    let handed = null, handedAt = -Infinity;
+    ws.send = (s) => {
+      const now = this._now();
+      const l = now - this._leaseAt < LEASE_HELD_MS ? this._lease : null;
+      if (l && l !== handed && now - handedAt >= LEASE_HAND_MIN_MS && this.leaseOk && this._welcomed.has(ws) && typeof s === 'string' && !LEASE_QUIET_RE.test(s)) { handed = l; handedAt = now; send(JSON.stringify({ t: 'lease', l })); }
+      return send(s);
+    };
+    return ws;
+  }
+
   /** SCALE5b: a relay setting (net/relayCfg.js) to the hub - its answer comes back through `onRelayCfg`. False when this
    *  session is not the hub's, its relay takes none, or the setting is not one. */
   sendRelayCfg(frame) {
@@ -2897,14 +2972,20 @@ export class OnlineSession {
    *  costs the hub nothing; the hub keeps the last on the attachment, and a reopened socket sends the first one whole
    *  because `_helloFrame`'s door forgets the last). `force` sends an unchanged one - the caller's own heartbeat, if it
    *  wants one. False when nothing went. */
-  sendParty(p, { force = false } = {}) {
+  sendParty(p, { force = false, urgent = false } = {}) {
     if (!this.acct) return false;
     const pose = validPartyPose(p);
     if (!pose) return false;
     const now = this._now();
-    if (now - this._lastPartyAt < PARTY_SEND_MS) return false;
     const s = JSON.stringify(pose);
-    if (!force && this._lastParty === s) return false;
+    // STAFF-PANEL5-FOLLOW (design doc "DFO Staff Panel: design", Invisible follow): OUTSIDE A PARTY (`solo`, the host's word)
+    // the pose is my WHERE NOTE, which the hub keeps for staff alone - a changed one WHERE_NOTE_MOVING_MS after the last,
+    // the same one again WHERE_NOTE_STILL_MS after it (net/staffFollow.js whereNoteDue), and none to a relay before the
+    // follow (it would write each one at once for nobody)
+    if (this.solo) { if (!this.followOk || !whereNoteDue(now, this._lastPartyAt, this._lastParty !== s)) return false; }
+    // PARTY-PING: a ping skips the floor (the marker is a moment) and still spends partyGate. `force` does not.
+    else if (!urgent && now - this._lastPartyAt < PARTY_SEND_MS) return false;
+    else if (!urgent && !force && this._lastParty === s) return false;
     const gate = partyGate(this._pbucket, now);
     if (!gate.pass) return false;
     if (!this._send({ t: 'party', p: pose })) return false;
@@ -3188,6 +3269,7 @@ export class OnlineSession {
       if (primary) this.starGrantOk = relaySupportsStarGrant(relayV);   // AUDIT STAR-TUNE F1: a star's stands ask `star` of a relay that mints it
       if (primary) this.dmOk = relaySupportsDm(relayV);   // TITLE-N
       if (primary) this.banOk = relaySupportsBan(relayV);   // AUDIT SAFE RELAY-3: the ban frame's relay
+      if (primary) this.leaseOk = relaySupportsLease(relayV);   // LEASE1
       if (primary) this.courtWatchOk = relaySupportsCourtWatch(relayV);   // AUDIT PLAN-1000 G3: a full court's watcher, told when it is seated
       if (primary) this._deliver('welcome', () => this.onWelcomed?.());   // AUDIT SAFE CLIENT-8
       if (primary) this.cardOk = relaySupportsCard(relayV);   // INSPECT1
@@ -3198,10 +3280,12 @@ export class OnlineSession {
       if (primary) this.wedOk = relaySupportsWed(relayV);   // LEGACY7 part three
       if (primary) this.wildOk = relaySupportsWildRef(relayV);   // WILD1; INT9: a relay that REFEREES the zone - before it, a blow would be routed for a defender that resolves none now
       else { const h = this._halo.get(room); if (h) h.wildOk = relaySupportsWildRef(relayV); }   // INT9: a halo says for itself
+      if (primary) this.seaPvpOk = relaySupportsSeaPvp(relayV);   // SHIP-PVP: and one that referees the open sea's guns
+      else { const h = this._halo.get(room); if (h) h.seaPvpOk = relaySupportsSeaPvp(relayV); }   // SHIP-PVP: a halo says for itself
       if (primary) this.wildCollectOk = relaySupportsWildCollect(relayV);   // MAC (2026-10-14): a relay that signs a killer's collect
       else { const h = this._halo.get(room); if (h) h.wildCollectOk = relaySupportsWildCollect(relayV); }
       if (this._wildZone === 1 && primary && this.wildOk) { this._sayZone(this._ws, 1); this._wildZoneAt = this._now(); }   // INT9: my cell's socket welcomed while I stand in the zone hears so (AUDIT INT9: a halo never)
-      if (primary) { this.wdunOk = relaySupportsWdun(relayV); this.wdunGiantsOk = relaySupportsWdunGiants(relayV); }   // PVPDUNGEONS; ZONE-GIANTS
+      if (primary) { this.wdunOk = relaySupportsWdun(relayV); this.wdunGiantsOk = relaySupportsWdunGiants(relayV); this.wdunSeaOk = relaySupportsWdunSea(relayV); }   // PVPDUNGEONS; ZONE-GIANTS; SEA-VAULTS
       if (primary) { this.gateOk = relaySupportsGate(relayV); this.portentsOk = relaySupportsPortents(relayV); }   // WB3; AUDIT WB14 (WIRE-1)
       if (primary) { this.siegeOk = relayFightsBattles(relayV); this.royalOk = relayRunsRoyal(relayV); }   // SEAT2a part four   // CROWN1 part two
       if (primary) { this.arenaOk = relaySupportsArena(relayV); this.arenaHeard = true; }   // ARENA4; ARENA-WAIT: said
@@ -3242,6 +3326,7 @@ export class OnlineSession {
       if (primary) this.partyWalkOk = relaySupportsPartyWalk(relayV);   // TV8
       if (primary) this.partyLeadOk = relaySupportsPartyLead(relayV);   // PARTY-LEAD
       if (primary) this.staffTeleportOk = staffTeleportSupported(relayV);
+      if (primary) this.followOk = followSupported(relayV);   // STAFF-PANEL5-FOLLOW
       if (primary) this.relayCfgOk = relayCfgSupported(relayV);   // SCALE5b
       if (primary) this.grantMode = relaySupportsGrant(relayV) && streamsFoes(room) && typeof m.gm === 'string' ? grantModeOf(m.gm) : 'off';   // GRANT2: my cell's law - a relay before world218 closes on an ask (GRANT4: a world room's too)
       if (primary) this.findOk = hubShardsSupported(relayV);   // AUDIT SCALE II C-1: `find` is the shards' relay's (world192) - one before it parses it as an unknown message and closes the hub link 1008, terminal
@@ -3601,6 +3686,13 @@ export class OnlineSession {
       const stood = this.peers.get(m.id);
       if (stood && stood.src == null) { stood.src = room; stood.srcAt = now; }   // NET-SMOOTH 2: stood by a pose, this room speaks for it
       if (stood && (!stood.told || stood.recall)) stood.heardIn = room;   // the socket the ask goes down (`_askRound`) - the one this stranger is heard through
+    } else if (m.t === 'chat' && m.ch === 'staff') {
+      // STAFF-PANEL5-FREEZE (net/staffChat.js): A STAFF THREAD'S NUDGE - a line's id (`sl`) the account service stored, never
+      // its words; the hub's alone, on the relay's word's own bucket. Heard, this hub routes the staff channel (`staffOk`).
+      if (!isSocialRoom(room) || !Number.isSafeInteger(m.sl) || m.sl <= 0 || !this._lawIn(room, now)) return;
+      this.staffOk = true;
+      const sl = m.sl;
+      this._deliver('chat', () => this.onStaffNudge?.({ sl }));
     } else if (m.t === 'chat') {
       // CHAT1: checked by the relay's own law (B7) - the id's shape, the name's, the line's; `mine` is the sender's own line back
       const text = typeof m.text === 'string' ? sanitizeChat(m.text) : '';
@@ -3670,6 +3762,13 @@ export class OnlineSession {
       if (!text) return;
       if (!this._lineIn(room, null, now)) return;
       this._deliver('chat', () => this.onRed?.({ text, at: Number.isFinite(m.at) ? m.at : now }));
+    } else if (m.t === 'smsg') {
+      // STAFF-PANEL5-MESSAGE: A STAFF MESSAGE WAITS, by the hub alone, and known by the FRAME TYPE, which only the account
+      // service's signed order makes and no player can send. It names the message, never its words: the words come off
+      // the account service with this player's own session (net/staffMessages.js), so a relay that lies can only make the
+      // game ask again (and the ask is paced there).
+      if (!primary || !isSocialRoom(room) || typeof m.mi !== 'string' || m.mi.length > 64) return;
+      this._deliver('smsg', () => this.onStaffMessage?.(m.mi));
     } else if (m.t === 'event') {
       // EVENT1: THE LIVE EVENT STAGED OR ENDED, by the hub alone - known by the frame type, as the server's line is. A
       // word this build does not know is no event (LIVE_EVENTS: a new one is safe against an old build).
@@ -3696,6 +3795,14 @@ export class OnlineSession {
       this._inChat.set(room, g.bucket);
       if (!g.pass) { this.stats.chatsDropped++; return; }
       this._deliver('chat', () => this.onDm?.({ text, at: Number.isFinite(m.at) ? m.at : now }));
+    } else if (m.t === 'frozen') {
+      // STAFF-PANEL5-FREEZE (net/staffChat.js): STAFF FROZE MY ACCOUNT until then (epoch seconds), or 0: lifted. The screen
+      // is mine alone - the relay and the service hold me to it whatever it shows. On the relay's word's own bucket; my hub's
+      // next lease asked at once, so every room I hold learns it from my hand as soon as theirs.
+      if (!Number.isSafeInteger(m.until) || m.until < 0 || !this._lawIn(room, now)) return;
+      if (isSocialRoom(room)) { this.staffOk = true; this._leaseAskAt = -Infinity; }
+      const until = m.until;
+      this._deliver('chat', () => this.onFrozen?.({ until }));
     } else if (m.t === 'muted') {
       // MOD1: THE RELAY SAYS I AM MUTED (or no longer). On the chat line's
       // own inbound bucket, for CHAT-G's reason: it becomes a line in the
@@ -3713,6 +3820,11 @@ export class OnlineSession {
       if (m.t === 'law' && typeof m.order === 'string' && m.order.length > 0 && m.order.length <= 1024) this._deliver('chat', () => this.onLaw?.({ order: m.order }));
       else if (m.t === 'banned' && Number.isSafeInteger(m.until) && m.until >= 0) this._deliver('chat', () => this.onBanned?.({ until: m.until }));
       else if (m.t === 'slowed' && Number.isSafeInteger(m.ms) && m.ms > 0 && m.ms <= 60_000) this._deliver('chat', () => this.onSlowed?.({ ms: m.ms }));
+    } else if (m.t === 'lease') {
+      // LEASE1: MY HUB'S LEASE, to hand on to every lease room I hold - the hub's alone, on the relay's word's own bucket
+      if (!isSocialRoom(room) || typeof m.l !== 'string' || !m.l || m.l.length > LEASE_WIRE_MAX || !this._lawIn(room, now)) return;
+      const l = m.l;
+      this._deliver('chat', () => this.onLease?.(l));
     } else if (m.t === 'social') {
       // AUDIT SOC B3: GATED COMING IN, as a chat line is (CHAT-G) - a note or an error becomes a chat line (net/chat.js
       // keeps CHAT_KEEP of them, so an ungated stream is a player's history deleted) and the rest a repaint; the
@@ -3744,6 +3856,10 @@ export class OnlineSession {
       if (!primary || !isSocialRoom(room)) return;
       const f = validStaffTeleportOut(m);
       if (f) this._deliver('staff teleport', () => this.onStaffTeleport?.(f));
+    } else if (m.t === 'fol') {
+      if (!primary || !isSocialRoom(room)) return;   // STAFF-PANEL5-FOLLOW: the hub alone says it
+      const f = validFollowOut(m);
+      if (f) this._deliver('staff follow', () => this.onFollow?.(f));
     } else if (m.t === 'rf') {
       // SCALE5b: a cell's word that it judges the poses that reach it now (or no longer) - its socket's, for my halo there
       const ws = primary ? this._ws : this._halo.get(room)?.ws;
@@ -4014,6 +4130,7 @@ export class OnlineSession {
       if (h.ws && h.status === 'connecting' && now - (h.since ?? now) > BACKOFF_MAX_MS) { const ws = h.ws; h.ws = null; h.status = 'closed'; h.retryAt = now + BACKOFF_MIN_MS + this._rand() * Math.max(BACKOFF_MIN_MS, h.backoff - BACKOFF_MIN_MS); h.backoff = Math.min(BACKOFF_MAX_MS, h.backoff * 2); try { ws.close(1000, 'timeout'); } catch { /* already closed */ } }   // SLAM2: a halo's retry is jittered like the primary's - eight rooms a client, all refused together otherwise
     }
     if (!this.presence && this.status === 'open' && now - this._lastSentAt >= HEARTBEAT_MS && this._send({ t: 'ping' })) this._lastSentAt = now;
+    if (this.leaseOk && this.status === 'open' && isSocialRoom(this.room) && now - this._leaseAskAt >= LEASE_MS && this._send({ t: 'lease' })) this._leaseAskAt = now;   // LEASE1: my hub's lease, asked every LEASE_MS
     if (this.status === 'open' && isSocialRoom(this.room)) this._wave.noteOnline(this.othersHere + 1);   // SCALE2c: the hub's count sizes a wave's spread
     // RELAY-H1: A STANDING PLAYER IS HEARD BY THE RUNTIME, NOT THE ROOM. The presence session's socket used to prove
     // itself alive with a pose every HEARTBEAT_MS, and every pose woke the Durable Object; the runtime answers this

@@ -1730,7 +1730,7 @@ export async function listWrits({ db, nowS }, player, env, { character, region }
 
 /** The Renown a delivery credited, in the shape `/v1/renown/xp` answers (so the client's one plan reads it) - the
  *  delivering character's track (RENOWN-CHAR), and `max` once it holds the cap's total, as a report says. */
-function renownAnswer(character, before, after) {
+export function renownAnswer(character, before, after) {   // CRAFT-WRITS: a crafting writ's answer too (craftWrits.js)
   return {
     character, xp: after, level: renownForXp(after), credited: Math.max(0, after - before), rose: renownForXp(after) > renownForXp(before),
     ...(after >= RENOWN_XP_MAX ? { max: true } : {}),

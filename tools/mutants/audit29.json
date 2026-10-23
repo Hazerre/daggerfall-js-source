@@ -223,8 +223,8 @@
   {
     "name": "AUDIT29-C1-midnight-stale-every-draw",
     "file": "src/net/profBook.js",
-    "old": "      return state.day !== dayOf(now()) && now() - state.readAt >= PROF_REFRESH_BACKOFF_MS;",
-    "new": "      return state.day !== dayOf(now());",
+    "old": "      return state.day < heldDay() && now() - state.readAt >= PROF_REFRESH_BACKOFF_MS;",
+    "new": "      return state.day < heldDay();",
     "tests": [
       "test/net/audit29_client.test.js"
     ]
@@ -445,8 +445,8 @@
   {
     "name": "AUDIT29-D2-the-rig-swings-behind-the-tool",
     "file": "src/combat/weapon/weaponRig.js",
-    "old": "&& !fpsSpellCasting.isPlayingAnim && !climbing && !actTool();",
-    "new": "&& !fpsSpellCasting.isPlayingAnim && !climbing;",
+    "old": "&& !fpsSpellCasting.isPlayingAnim && !climbing && !actTool() && !pelletsOwed();",
+    "new": "&& !fpsSpellCasting.isPlayingAnim && !climbing && !pelletsOwed();",
     "tests": [
       "test/scenes/audit29_host.test.js"
     ]

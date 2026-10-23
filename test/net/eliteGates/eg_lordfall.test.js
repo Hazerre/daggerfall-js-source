@@ -498,7 +498,7 @@ test('AUDIT EG-FALL L1-5/L3-4 DAGGERFALL\'S OWN PICTURES (where ARENA2 stands - 
   assert.ok(lying && near(lying.size.w, 9.0, 0.06) && near(lying.size.h, 4.2, 0.06), `his corpse 9.0 by 4.2 m (${lying?.size.w} x ${lying?.size.h})`);
 });
 
-test('AUDIT EG-FALL L1-1/L1-2 THE SAME FALL, TOLD AGAIN (the module, row by row): a fall stamped at `efl`\'s arrival and then told at the relay\'s own instant is one fall - its flash moved to the relay\'s instant with it (ended 400 ms after the instant, not the stamp); its place, first seen along a walk, taken from a row the relay stopped (world240: where it lies on every screen), and never from a row still walking (an older relay carrying it on) (mutants: the flash left at the stamp; the stopped row unread; the walking row read)', () => {
+test('AUDIT EG-FALL L1-1/L1-2 THE SAME FALL, TOLD AGAIN (the module, row by row): a fall stamped at `efl`\'s arrival and then told at the relay\'s own instant is one fall - its flash moved to the relay\'s instant with it (ended 400 ms after the instant, not the stamp); its place, first seen along a walk, taken from a row the relay stopped (world248: where it lies on every screen), and never from a row still walking (an older relay carrying it on) (mutants: the flash left at the stamp; the stopped row unread; the walking row read)', () => {
   const look = egLookOf(lordRow(1, 'hound'), 0), centre = [0, 0, 0], lights = [];
   const F = createEgLordFall({ now: () => FELL, batches: [], lights });
   // first seen at the screen's stamp, 120 ms after the relay's instant, on the walk the screen held: 4 m/s from x 0 since FELL - 1000

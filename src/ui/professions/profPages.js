@@ -2730,7 +2730,7 @@ export function potentLine(rank, specs, unbruised = 0, potion = null, steps = 0)
 /**
  * PROF12: THE ALCHEMY STATION - DFU's twenty (alchemyLaw POTIONS, its own order), each its rank (its price's tier), the
  * chosen one's cauldron as the Stores hold it (an herb's group the one held more of - brewKeys), what a brew makes (1-3
- * potions) and its Potent chance, the XP; Brew (no act - 9.4: "DFU's windows stay 1:1"); an ingredient the Apothecaries
+ * potions; a Novice's 2 since CRAFT-PAYS) and its Potent chance, the XP; Brew (no act - 9.4: "DFU's windows stay 1:1"); an ingredient the Apothecaries
  * sell, bought where it is short (4.5); and a Transmuter's transmutations (two of a metal and a Mercury into the next).
  * Only at an alchemy station: an Alchemist's, its fee a brew, or the player's own home's.
  * @param {HTMLElement} detail @param {() => void} rerender @param {{ el: Function, divider: (w: string) => HTMLElement }} kit

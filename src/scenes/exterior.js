@@ -59,7 +59,7 @@ import { flashPlayerDamage } from '../ui/damageFlash.js';   // ROAD-G G2: an arr
 import { knockedDown } from '../systems/blowEffects.js';   // TELL6e: knocked down, no swing
 import { weaponTypeForItem, WEAPON_TYPES } from '../combat/fpsWeapon.js';
 import { targetAimPoint, missileAimDirection } from '../characters/enemy/enemyTargets.js';   // AUDIT WORLD6b-iii(a) C3: the ONE aim law for an enemy missile (the peer's transform, mine otherwise)
-import { playerEntity, surfacePlayer, hurtPlayer, setDeathPresenter, setAvoidDeathHook, playerBlowCameToNothing } from '../characters/playerEntity.js';
+import { playerEntity, surfacePlayer, hurtPlayer, setDeathPresenter, setAvoidDeathHook, playerBlowCameToNothing, staffFrozen } from '../characters/playerEntity.js';
 import { heldPlayerBlow, remarkPlayerBlow } from '../systems/sigil/sigilSetPowers.js';   // AUDIT SETS L3: a guard's blow the arrest flow holds back
 import { SOUND } from '../systems/soundClips.js';
 import { Collider } from '../player/collider.js';
@@ -181,6 +181,7 @@ import { createCityGuards } from './cityGuards.js';   // G1
 import { createExteriorFoes } from './exteriorFoes.js';
 import { createPopulationLane } from '../characters/npcBodies.js'; import { folkActor } from '../characters/folkBodies.js';   // MWNPC7: the walkers in Morrowind bodies
 import { personLook, personActor, figureLook } from '../characters/peopleBodies.js'; import { staticNpcData } from '../characters/staticNpc.js';   // MWNPC8c: and its standing people
+import { createNpcMarks } from './npcMarksHost.js';   // NPC-MARKS: the marks over its people who do something
 import { createArrestFlow } from './arrestFlow.js';   // G2
 import { makeInView } from '../player/cameraView.js';   // AUDIT 17e F24
 import { pickActivatableHit, pickQuestFoe, pickFoe, peacefulFoePass } from '../player/activate.js';   // G3: corpse loot; QG1/ROAD-G G2: the foe-click door; TI1: the lock-on pick
@@ -669,6 +670,9 @@ export async function bootExterior(canvas, renderer, params, status) {
   // MWNPC8c (section 13c): AND ITS STANDING PEOPLE - each a batch of their own (the NPC pass), read as the buildings'
   // are (their StaticNPC data with the location's region race, their faction's row)
   const standPeople = createPopulationLane({ laneName: 'people', renderer, collider: () => collider });
+  // NPC-MARKS (scenes/npcMarksHost.js): a bobbing mark over a standing person's body whose click is a quest's or a guild's -
+  // the route read in the street (no building), as world.js's street reads it
+  const npcMarks = createNpcMarks(renderer.gl), standMarkCtx = { get dict() { return townTalk.factionDict ?? null; }, building: null };
   // STAND-FLAT / STAND-HORSE (section 28): the location's town horses as the 3D horse, and its people no StaticNPC holds
   // read as a placed figure is (FLATS.CFG's sex and caption, the location's region race)
   const standingHorses = createStandingHorses({ renderer });
@@ -5281,7 +5285,7 @@ export async function bootExterior(canvas, renderer, params, status) {
     // return, WeaponManager (:235-239) does ShowWeapons(false) and
     // takes no swing. Declared above `walkMode` because the motor and
     // the weapon rig are two sibling blocks.
-    const paralyzed = entityIsParalyzed(playerEntity);
+    const paralyzed = entityIsParalyzed(playerEntity) || staffFrozen();   // STAFF-PANEL5-FREEZE: a staff freeze holds the motor as paralysis does
     // A6: FrictionMotor.GroundedMovement's head-dip guard reads
     // IsParalyzed itself (:90-93) - the zeroed input bag below is
     // the movement half of the same law, not this one.
@@ -6105,6 +6109,7 @@ export async function bootExterior(canvas, renderer, params, status) {
       else sf.batch.castOnly = false;
     }
     standPeople.draw(canvas, proj, view, eye, townTalk.overlayActive ? 0 : dt);
+    npcMarks.gather(standMarkCtx, exteriorNpcs);   // NPC-MARKS: who of them earns a mark (drawn after the person billboards)
     if (standingHorses.end(dt, { proj, view })) standingHorses.draw(canvas, { eye, proj, view });
     _visBatches.length = 0; _castBatches.length = 0;
     for (const b of billboardBatches) {
@@ -6206,6 +6211,7 @@ export async function bootExterior(canvas, renderer, params, status) {
       cityGuards.drawVeiledBodies();   // MWNPC6: and the watch's
       folkStreet.drawVeiled();   // MWNPC7: and the walkers'
       hcc.drawVeiled3d();   // AUDIT COATS3D A5: and a concealed owner's 3D horses
+      if (npcMarks.draw(proj, view, eye, standPeople, now / 1000)) renderer.markForeignPass();   // NPC-MARKS: the marks over the standing people
     }
     // WINDFALL1: the leaves and the snow, with the opaque world (world.js's twin note)
     if (windfall.particles && windfall.draw(proj, view, renderer.flatLightAt(walkMode ? player.pos : cam.pos))) renderer.markForeignPass();
@@ -6286,7 +6292,7 @@ export async function bootExterior(canvas, renderer, params, status) {
             // and a BOW always takes the FULL tally arm (Archery AND
             // CriticalStrike) - this arm tallied Archery alone, free.
             drainExteriorFatigue(SWING_FATIGUE_COST);
-            tallySwingSkills(playerEntity, weaponRig.playerWeapon.weapon);
+            tallySwingSkills(playerEntity, weaponRig.playerWeapon.weapon, weaponRig.playerWeapon.blowWeight);   // AUDIT PISTOLET A2: an off-hand shot counts as its blow weighs, as the other two hosts count it (THE FOUR HOSTS RULE)
             arrows.fire(eye, fwd, { fromPlayer: true, weapon: weaponRig.playerWeapon.weapon, muzzle: weaponRig.thunderlockMuzzle(fieldOfView()), summoned: shot.summoned });   // FIELD-GUN17: the barrel's own offset when the hand holds the gun, null for every bow - the rig answers, the lane forks   // #64: LastBowUsed rides the shaft - the impact prices off it   // ROAD-H H1c: ArrowFlight.fire applies GetAimPosition's player arm (the bow hand), as DFU's missile does its own
           }
           continue;

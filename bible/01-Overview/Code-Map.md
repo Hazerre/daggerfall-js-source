@@ -236,6 +236,7 @@ wiring in `src/scenes/`. A feature with one or two modules in a layer keeps them
 | `src/net/raid/` | Town raids - online - the law both ends run. |
 | `src/net/realm/` | The realm's gold, trade and save codec - online - the law both ends run. |
 | `src/net/safety/` | The chat's safety: the relay's stamp on a line, its feed to the reviewer, a report's law and the code of conduct (`11-Multiplayer/Chat-Safety-Arc.md`) - online - the law both ends run. |
+| `src/net/sea/` | The Eltheric Ocean's ventures (`03-World/Eltheric-Ocean.md` SEA-BOUNTY, SEA-SEASON, SHIP-PVP): the bounty board's and the season boards' law, a wreck's prize, the open sea's guns refereed - online - the law both ends run. |
 | `src/net/serpent/` | The sea serpent, the sea's world boss (`11-Multiplayer/Sea-Serpent.md`) - online - the law both ends run. |
 | `src/net/siege/` | Sieges of a seat - online - the law both ends run. |
 | `src/net/starfall/` | The Starfall, the Witches' Festival's fallen stars (`11-Multiplayer/Starfall.md`) - online - the law both ends run: the night and its stars, the defense's ledger, the receipt. |
@@ -322,6 +323,7 @@ wiring in `src/scenes/`. A feature with one or two modules in a layer keeps them
 | `src/systems/roleplayRealism/` | The Roleplay Realism mod - the law. |
 | `src/systems/roleplayRealismItems/` | The Roleplay Realism: Items mod - the law. |
 | `src/systems/save/` | Saving and loading - the law. |
+| `src/systems/sea/` | The Eltheric Ocean's ventures' law (`03-World/Eltheric-Ocean.md` SEA-VAULTS, SEA-EVENTS, SEA-SET): the day's vaults of the deep, the Aether Storm and the treasure fleet on the shared clock, the deep sea's spoils. |
 | `src/systems/serpent/` | The sea serpent, the sea's world boss (`11-Multiplayer/Sea-Serpent.md`) - the law. |
 | `src/systems/settings/` | The settings: the store, its defaults and its words. |
 | `src/systems/sigil/` | Sigil Sets (`11-Multiplayer/Sigil-Sets.md`) - the law. |
@@ -356,6 +358,7 @@ wiring in `src/scenes/`. A feature with one or two modules in a layer keeps them
 | `src/ui/automap/` | The automap's window: the sheet, its camera, chrome, markers and words, and its door. |
 | `src/ui/bounty/` | The bounty board's window, its door and its mark on the map. |
 | `src/ui/card/` | The card table's HUD, its panel kit and the binder's page. |
+| `src/ui/collections/` | The Collections page's wardrobe (`10-UI/Collections.md`): the catalogue of every title, aura, profile icon and glyph - where it comes from, whether it can be had now and how - and a kind's part, read and worn through the account's flow. |
 | `src/ui/eliteGates/` | The Elite Breach on screen (`11-Multiplayer/Elite-Gates.md`, `Elite-Gates-Look.md`, `Elite-Gates-Ascent.md`): the start window, the boards, the HUD and the party, the beats, the arch's map mark, the access settings. |
 | `src/ui/enhanced/` | The Enhanced skin's windows and HUD - its windows. |
 | `src/ui/gate/` | The Oblivion Gate on screen: the banner, the boss bar, the damage chart, the ground view, the marks and the title card. |

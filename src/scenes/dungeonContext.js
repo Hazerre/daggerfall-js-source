@@ -54,7 +54,7 @@ import { RDB_SIDE, MOVE_ACTION_FLAGS, ACTION_FLAGS, TRIGGER_FLAGS } from '../wor
 import { stopsOf } from '../systems/livingWorld/deepRoute.js';   // LW14: a company's stops, and what it left   // WAVE D: the move family - an acting FLAT tweens like the model beside it
 import { NPC_CONTEXT } from '../characters/staticNpc.js';   // AUDIT 64 F13: StaticNPC.SetLayoutData(RdbObject) stamps Context.Dungeon
 import { drawnFlat } from '../characters/nudeFlats.js';   // NUDE-FLATS: Show Nudity off draws a nude figure's clothed stand-in
-import { EFFECT_ACTION_FLAGS, COLLISION_TIMEOUT_S, isActionDoorObject, hasActionCollision, standsOnAction, actionContact, classifyPlacementAction, lookAtLockText, LOCKPICKING_SUCCESS_TEXT, LOCKPICKING_FAILURE_TEXT, DOOR_TEXT_HUD_DELAY_S, sharedRecord, validActionRecord } from '../world/actionSystem.js';   // AUDIT WORLD3 B1: the shared half of a record - the picker's latch stays home; AUDIT WORLD34 C2: and the memory's records projected like an act's
+import { EFFECT_ACTION_FLAGS, COLLISION_TIMEOUT_S, isActionDoorObject, hasActionCollision, walkHears, standsOnAction, actionContact, classifyPlacementAction, lookAtLockText, LOCKPICKING_SUCCESS_TEXT, LOCKPICKING_FAILURE_TEXT, DOOR_TEXT_HUD_DELAY_S, sharedRecord, validActionRecord } from '../world/actionSystem.js';   // AUDIT WORLD3 B1: the shared half of a record - the picker's latch stays home; AUDIT WORLD34 C2: and the memory's records projected like an act's
 import { TextRsc } from '../formats/textRsc.js';
 import { openPauseFlow, preloadPauseFlowArt, pauseDoorReady, pauseOpts } from '../ui/pauseDoor.js';
 import { releaseUnloadGuard } from '../systems/unloadGuard.js';   // AUDIT-MACL F3: the chargen Cancel is a door the game opened   // U51 picks the skin; MAC-L1: pauseOpts is the ONE reader of the door's options
@@ -252,12 +252,15 @@ import { ActionSystem } from '../world/actionSystem.js';
 import { collectDungeonEnemies, dungeonPlace, expandEliteEnemies, enemyHierarchyOrder } from '../characters/dungeonEnemies.js'; import { markDungeonChampions, applyChampion, championName } from '../systems/champions.js'; import { lootCrown } from './lootLines.js';   // LOOT7: the layout's champions; LOOT11: a find's line of light
 import { isOnlinePage } from '../systems/online/onlineLane.js';   // ELITE FOES: online play only
 import { wildHallFoes } from '../systems/wild/wildDungeons.js';   // PVPDUNGEONS: a hall's high tiers
-import { isWildRegion, applyWildFoe, wildLootOpts, wildPileMore, wildRingAt, wildMask, WILD_RINGS } from '../systems/wild/wildZone.js';   // WILD1: the open zone's dungeons (WILD2: by their ring)
+import { isWildRegion, applyWildFoe, wildLootOpts, wildPileMore, wildMask, WILD_RINGS } from '../systems/wild/wildZone.js';   // WILD1: the open zone's dungeons (WILD2: by their ring)
+import { wildRingAtPlace } from '../systems/wild/etherWild.js';
+import { seaPileMore } from '../systems/sea/seaSpoils.js';   // SEA-SET: the deep's Tidemail, a ruin's pile's last roll   // WILD2: a place's ring by its map pixel - ETHER-WILD: an isle's ruin of the open sea by its band
 import { elitesAllowed, pickDungeonElites, promoteEliteFoe, grantEliteLoot, eliteGlow, setBatchEliteGlow, eliteSize, isEliteCorpse, markEliteCorpseBatch, eliteCorpseSize, ELITE_FOE_SIZE } from '../systems/eliteFoes.js';   // ELITE FOES: 3-4 champions in an Elite Dungeon
 import { ELITE_FOE_MULTIPLIER, ELITE_HEALTH_SCALE, ELITE_DAMAGE_SCALE, ELITE_LOOT_DROP_MULT, ELITE_LOOT_QUALITY_MULT } from '../world/spawnedDungeons.js';   // ELITE: an elite spawn's foe count and strength
 import { superFoeLevel, scaleSuperFoe, SUPER_ELITE_FOES, SUPER_LOOT_OPTS, SUPER_LOOT_DROP_MULT, SUPER_LOOT_QUALITY_MULT, sdEndMarks, sdRiftPlace, sdReturnPlace, sdLandingPlace } from '../world/superDungeon/sdDungeon.js';   // SD4a: a Super dungeon's difficulty; SD4b: its end's place
 import { reachableEndOf, LAIR_WALK_WAIT_MS } from '../world/dungeon/dungeonEnd.js';   // SD4b: RVN7d's lair law, lifted - the lair's stand and a Super dungeon's end read one law
-import { createSdEnd, SD_HOME_TEXT } from './superDungeon/sdEnd.js';   // SD4b: a Super dungeon's Rift and Return; SD10: the Hour's way home
+import { createSdEnd, SD_HOME_TEXT, sdProbeOf } from './superDungeon/sdEnd.js';   // SD4b: a Super dungeon's Rift and Return; SD10: the Hour's way home
+import { createSdThrough } from './superDungeon/sdThrough.js';   // SD-THROUGH: the Way Through, beside me once the Rift is stepped through
 import { createSdHall } from './superDungeon/sdHall.js';   // SD6c: the Orrery's hall in the Shattered Hour
 import { createSdSteps } from './superDungeon/sdSteps.js';   // SD7b: the Unmoored Steps in the Shattered Hour
 import { createSdHang } from './superDungeon/sdHang.js';   // SD-LOOK S11: what hangs under the Hour's islands, the far islands, the Works
@@ -449,12 +452,7 @@ export async function levelModelRemap(id, subMeshes, texRemap, remap, deps) {
   return texRemap;
 }
 
-/** WILD2: a place's ring of the open zone, by its map pixel (mapTableData's longitude/latitude, MapsFile's own sum). */
-function wildRingAtPlace(loc) {
-  const t = loc?.mapTableData;
-  if (!Number.isFinite(t?.longitude) || !Number.isFinite(t?.latitude)) return 0;
-  return wildRingAt(Math.trunc(t.longitude / 128), 499 - Math.trunc(t.latitude / 128));
-}
+
 
 export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseType, opts = {}) {
   const { renderer, arch, getGpuMesh, cpuModels, getTexture, uploadRecord, uploadRecordFrame, palette, placeHold = null } = deps;   // FIELD BUGS 2026-10-04d PLACE-LRU: `placeHold` - the dungeon's hold on the shared caches (scenes/placeHolds.js), the three doors above its own; settled once built, released by destroy(). None from the standalone ?dungeon scene
@@ -1418,9 +1416,9 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   const _dungeonShare = dungeonShare(dfLocation.mapTableData?.dungeonType);
   /** WILD1 (systems/wild/wildZone.js): a dungeon of the open zone, online - its foes four times as strong, their loot and
    *  its piles twice as rich. Read once, at the build: the dungeon's own region, never where the player stood before. */
-  const _wildRingRaw = isOnlinePage() && isWildRegion(dfLocation?.regionIndex ?? -1) ? wildRingAtPlace(dfLocation) : 0;
-  // the owner's cut: only a dungeon whose pixel lies inside the cut zone; one the mask cannot place is the heart's
-  const _wildDungeon = isOnlinePage() && isWildRegion(dfLocation?.regionIndex ?? -1) && (_wildRingRaw > 0 || !wildMask());
+  const _wildRingRaw = isOnlinePage() && (isWildRegion(dfLocation?.regionIndex ?? -1) || !!dfLocation?.ether) ? wildRingAtPlace(dfLocation) : 0;   // ETHER-WILD: an isle's ruin too
+  // the owner's cut: only a dungeon whose pixel lies inside the cut zone; one the mask cannot place is the heart's (the mountains' alone - an isle's always places)
+  const _wildDungeon = isOnlinePage() && (_wildRingRaw > 0 || (isWildRegion(dfLocation?.regionIndex ?? -1) && !wildMask()));
   // DUNGEON-RESPAWN (the owner: "normal dungeons outside the zone 20mins respawn timer ... elite dungeons 40 mins"): this
   // dungeon's own respawn time - each foe and each container on its own clock from when it fell or was emptied
   const _respawnMs = dungeonRespawnMs({ elite: !!dfLocation?.elite, wild: _wildDungeon, superTier: _superTier });
@@ -1463,6 +1461,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   const { _roomBase, _roomMine, _roomNextGen, _roomState, composeRoomContainer, forgetRoomContainer, holderList, isRoomBaseContainer, landRoomWord, letFindGo, lootBuiltOf, mintUnbornRoom, roomBaseHolder, roomBodyBorn, roomCanonOfFoe, roomClaimTick, roomGive, roomLootOn, roomRecordOf, roomSayNow, roomSettle, roomTakeSeat, roomUnborn, searchFound, settleRoomBonus } = createRoomLoot({   // HOST-SPLIT: src/scenes/roomLootHost.js
     _deepCleared, _deepFoeCleared, _sharedFoe, _wildDungeon, _wildRing, eliteLootOpts, fightN, foes, lootKeyOf,
     lootableBody, opts, respawnDue, rollPileItems, roomLootKey, searchHeard, searchables, settleLootFlat,
+    dfLocation,   // SEA-SET: the place, whose piles of an isle's ruin roll the deep's Tidemail
     get _authority() { return _authority; },
     get _foesFrom() { return _foesFrom; },
     get _layoutFoes() { return _layoutFoes; },
@@ -1961,8 +1960,15 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   // the end the lair's law finds (world/dungeon/dungeonEnd.js), as wide as its hall lets them (world/superDungeon/sdDungeon.js) - the same on
   // every client. Pressed, or walked into (scenes/superDungeon/sdEnd.js).
   const sdEndClock = () => opts.sdClock?.() ?? performance.now() / 1000;   // SD-LOOK: the realm's anchored seconds - every screen's gear ticks together
-  const sdEnd = _superTier ? createSdEnd({ renderer, audio, onRift: () => sdRiftStep(), onReturn: () => sdReturnStep(), riftCount: () => sdEndWord()?.count ?? null, look: () => (opts.superRiftLook ? opts.superRiftLook(dfLocation?.sdSlot) : sdEndWord()?.look) ?? null, clock: sdEndClock })   // AUDIT SD II (L6 F5): its plaque counts its Hour; SD-LOOK: and its state is its look
+  // AUDIT SD-THROUGH (C13): the Rift's look - its state alone, never the whole word (AUDIT SD V P1) - and a line through the
+  // Hour's voice, the label's own where no voice answers: one closure each, the Rift's and the Way Through's, the hall's
+  const sdRiftLookNow = () => (opts.superRiftLook ? opts.superRiftLook(dfLocation?.sdSlot) : sdEndWord()?.look) ?? null;
+  const sdSayHere = (t) => { if (!opts.sdSay?.(t)) setMidScreenText(t); };
+  const sdEnd = _superTier ? createSdEnd({ renderer, audio, onRift: () => sdRiftStep(), onReturn: () => sdReturnStep(), riftCount: () => sdEndWord()?.count ?? null, look: sdRiftLookNow, clock: sdEndClock })   // AUDIT SD II (L6 F5): its plaque counts its Hour; SD-LOOK: and its state is its look
     : _sdRealm ? createSdEnd({ renderer, audio, riftTo: SD_REALM_TEXT.wayBack, onRift: () => opts.sdWayBack?.(), onReturn: () => opts.sdWayHome?.(), retTitle: SD_HOME_TEXT.title, retTo: SD_HOME_TEXT.to, clock: sdEndClock }) : null;   // SD5a: the Shattered Hour's way back - the same Rift, at its Threshold's back; SD10: and its way home, the Return's light where the Remnant fell
+  // SD-THROUGH (Super-Dungeons.md section 6): THE WAY THROUGH (scenes/superDungeon/sdThrough.js) - once the Rift has been stepped
+  // through, a second Rift beside me, the Rift's own step, word and look
+  const sdThrough = _superTier ? createSdThrough({ renderer, audio, word: () => sdEndWord(), look: sdRiftLookNow, clock: sdEndClock, onStep: () => sdRiftStep(), say: sdSayHere, probe: { ...sdProbeOf(collider), water: waterSurfaceYAt }, riftOf: () => sdEnd.rift, dynamicDraws }) : null;   // AUDIT SD-THROUGH (B2): and the block's water, for a dry foot
   // TUT1: the page of the place this build stands - read inside it, a beat after the step through and never while the
   // loading screen stands (ui/tutorialPopup.js holds it): Dagon's Breach's court, the arena's sand, the Abyss Dungeon or
   // its Shattered Hour, an Ocean Hole's flooded dungeon (its id the abyss's own, 0x60000000 and up - getAbyssMapId), or
@@ -1974,7 +1980,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   // SD6c (Super-Dungeons.md section 8): THE ORRERY'S HALL in the Shattered Hour (scenes/superDungeon/sdHall.js) - its stones,
   // plaques, dial and bridge, stood the first frame I stand here; a handle's turn sent through the outer host (the realm
   // judges it), the realm's word on the hall read from it every frame
-  const sdHall = _sdRealm ? createSdHall({ renderer, audio, s: dfLocation.sdRealm, clock: sdEndClock, onTurn: (i, a) => !!opts.sdTurn?.(i, a), say: (t) => { if (!opts.sdSay?.(t)) setMidScreenText(t); } }) : null;   // AUDIT SD II (SD11d): through the Hour's voice; SD-LOOK S10: its orrery's decor on the realm's anchored seconds
+  const sdHall = _sdRealm ? createSdHall({ renderer, audio, s: dfLocation.sdRealm, clock: sdEndClock, onTurn: (i, a) => !!opts.sdTurn?.(i, a), say: sdSayHere }) : null;   // AUDIT SD II (SD11d): through the Hour's voice; SD-LOOK S10: its orrery's decor on the realm's anchored seconds
   let _sdHallStood = false;
   /** SD-LOOK S10: the end's halos and lights with the Orrery's after them (its gem, a settling bezel), in kept lists - the
    *  hosts already draw and light the end's (world.js drawSdRift, the mode machine's light list), so the hall rides there. */
@@ -2061,10 +2067,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     if (_sdRealm) { sdEnd.stand({ rift: { at: realmToDungeon(0, 0, SD_WAY_BACK_Z), size: SD_WAY_BACK_SIZE }, retAt: null, dynamicDraws, hollow: true, probe: SD_THRESHOLD_RIM }); return; }   // AUDIT SD V (R2): its floor light's edge the Threshold's rim, never the void past it   // SD5a: the way back, at the Threshold's back - SD-LOOK S6: the Hollow behind it
     const end = dungeonEnd();   // SD-REACH, AUDIT SD IV (F38): an interior block's marker, out of the water where any is - the lair's end too (LAIR-REACH)
     if (!end) return;
-    const probe = {
-      floor: (at) => { const d = collider.raycast([at[0], at[1] + 1, at[2]], [0, -1, 0], 3); return Number.isFinite(d) ? at[1] + 1 - d : null; },
-      ray: (o, dir, max) => { const d = collider.raycast(o, dir, max); return Number.isFinite(d) ? d : null; },
-    };
+    const probe = sdProbeOf(collider);
     const rift = sdRiftPlace(floorLanding(collider, [end.x, end.y + 0.2, end.z]), probe);
     _sdRetAt = sdReturnPlace(rift, probe);
     _sdLanding = sdLandingPlace(rift, _sdRetAt, probe);
@@ -2097,6 +2100,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     else if (sdEnd.hasRet && t >= _sdEndCheckAt) { _sdEndCheckAt = t + 1000; const w = sdEndWord(); if (w && !w.returns) sdEnd.returnOut(); }
     if (playerFeet) { _sdEye[0] = playerFeet[0]; _sdEye[1] = playerFeet[1] + 1.6; _sdEye[2] = playerFeet[2]; }   // SD-LOOK: the eye the reveal asks from
     sdEnd.frame(playerFeet ?? null, playerFeet ? _sdEye : null);
+    sdThrough?.frame(playerFeet ?? null, _fpYaw, playerFeet ? _sdEye : null);   // SD-THROUGH
   }
   const _sdEye = [0, 0, 0];
   const fateSay = (ev) => { if (ev) revenantSay(ev, (l) => hudText.add(l)); };
@@ -3991,6 +3995,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
         // (UNBORN), so no reader this player's own roll could reach (LOOT11's line of light, the save) finds one
         const items = onlineRoom() ? [] : rollPileItems();
         if (_wildDungeon && !onlineRoom()) wildPileMore(items, rollPileItems, _wildRing);   // WILD1: the open zone's ring - its share of a second roll
+        if (!onlineRoom()) seaPileMore(items, dfLocation);   // SEA-SET: an isle's ruin of the deep - the Tidemail's share, last
         const stopKey = isRandom ? `${bi}:${m.position}` : null;   // LW14: a company's stop
         if (stopKey && _deepCleared.has(stopKey)) items.length = 0;   // LW14: a pile a company passed, picked over
         lootPiles.push({ pos: [m.x + b.originX, m.y, m.z + b.originZ], record, items, isFixed, batch: null });
@@ -6293,7 +6298,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
         continue;
       }
       _lootSeen.delete(canon); _lootAt.delete(canon);
-      if (canon.startsWith('loot:')) { const i = Number(canon.slice(5)); const p = lootPiles[i]; if (p && Array.isArray(p.items) && p.items.length === 0) { p.items = rollPileItems(); if (_wildDungeon) wildPileMore(p.items, rollPileItems, _wildRing); settleLootFlat(i); } }   // AUDIT WORLD7/8 C4: a pile the room EMPTIED - one with a remainder keeps it, as the apply's skip keeps the local list
+      if (canon.startsWith('loot:')) { const i = Number(canon.slice(5)); const p = lootPiles[i]; if (p && Array.isArray(p.items) && p.items.length === 0) { p.items = rollPileItems(); if (_wildDungeon) wildPileMore(p.items, rollPileItems, _wildRing); seaPileMore(p.items, dfLocation); settleLootFlat(i); } }   // AUDIT WORLD7/8 C4: a pile the room EMPTIED - one with a remainder keeps it, as the apply's skip keeps the local list
     }
     mintUnbornRoom(nowSeconds * 1000);   // PARTY-LOOT: every room container standing here with no terms gets them (on the sweep's own clock)
   }
@@ -7130,7 +7135,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       // unlocked and swung open on a bump - a Receive DFU's component
       // set makes unreachable. Refusing the CALL, not the gate, keeps
       // ROAD-B B4's ordering intact for the objects that do collide.
-      if (!hasActionCollision(o)) continue;
+      if (!walkHears(o)) continue;   // FLAT-WALK (FIELD BUGS 2026-10-21d): and a flat relay is clicked or struck, never walked
       if (o.restOnlyTrigger && o.state !== 'start') continue;   // a mover in flight: bounds stale, and classic triggers on the step, not the ride
       o._colTimer = (o._colTimer ?? COLLISION_TIMEOUT_S) + dt;
       if (o._colTimer < COLLISION_TIMEOUT_S) continue;
@@ -7151,7 +7156,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       // direction beneath the body (WalkOn, every flag), a Collision01's standing ray, or a bump - off the object's own
       // triangles: a mover or a door is its own bucket in `collider`, an effect or relay keeps one in triggerSurfaces.
       // The box above is only the broad phase: a box touched with nothing of the object touched hears nothing. An
-      // acting flat has no triangles and keeps its box's top (standsOnAction).
+      // acting effect or moving flat has no triangles and keeps its box's top (standsOnAction); a flat relay never gets here.
       const touch = o.isFlat
         ? (standsOnAction(o, playerFeet, a, triggerSurfaces) ? 'WalkOn' : 'WalkInto')
         : actionContact(o, playerFeet, playerHeight, o.kind === 'effect' || o.kind === 'relay' ? triggerSurfaces : collider, wish);
@@ -8545,6 +8550,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     targets.push(...droppedTorches.targets());   // HT1: the dropped torches, at the mod's 3.2
     targets.push(...camps.targets());   // SURV3: the fires, at the same 3.2
     if (sdEnd) targets.push(...sdEnd.targets());   // SD4b: the Rift and the Return, at a door's reach
+    if (sdThrough) targets.push(...sdThrough.targets());   // SD-THROUGH: the Way Through, at the Rift's
     if (sdHall) targets.push(...sdHall.targets());   // SD6c: the stones' handles and the Ledger plaques
     if (egSpan) targets.push(...egSpan.targets());   // EG-FULL LAYER THREE: an Athenaeum's Orrery stones, a chamber's engine
     return targets;
@@ -8772,7 +8778,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   const _namer = composeNamer([
     (key) => droppedTorches.hoverName?.(key) ?? null,   // HT1, through the mod's extension API
     (key) => camps.hoverName?.(key) ?? null,            // SURV3/HEARTH1, likewise
-    (key) => sdEnd?.hoverName(key) ?? null,             // SD4b: the Rift and the Return
+    (key) => sdEnd?.hoverName(key) ?? sdThrough?.hoverName(key) ?? null,   // SD4b: the Rift and the Return; SD-THROUGH: the Way Through
     (key) => sdHall?.hoverName(key) ?? null,            // SD6c: a stone's handle, a Ledger plaque
     (key) => egSpan?.hoverName(key) ?? null,            // EG-FULL LAYER THREE: an Orrery stone's handle, an engine
     (key, hit) => composeNamer(_hostNamers)(key, hit),  // ...and whatever the host stands
@@ -8876,6 +8882,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     randomText: (id) => textRsc?.randomTextById(id, Math.random) ?? '',   // AUDIT 63 F33: TextProvider.GetRandomText (:250-269) - the 8999 pool
     makeAreaHostile,   // AUDIT 63 F33: GameManager.MakeEnemiesHostile over this host's pool
     collider,
+    /** PARTY-PING: the mesh Enhanced AI baked, when it has. A ping's route walks it; null, and the ping host bakes its own. */
+    navMesh: () => enhancedNav.chf,
     texRemap,
     billboardBatches,
     flatAnims,   // FA1: the host ticks the flats it draws
@@ -9172,6 +9180,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
         loadingPrevented: () => !!opts.dungeonOnline?.(),
         timers: (o) => opts.timers?.(o) ?? null,   // TIMERS1: the world host's source, through worldModes
         post: () => opts.post?.() ?? null,   // SERVER-POST: the mailbox's box, the world host's through worldModes
+        season: (o) => opts.season?.(o) ?? null,   // SEASON-BOOK: the laurel's boards, the same way
         savingPrevented: () => madeLevelRule(_made, 'save') === 'refused' || isArenaFloor(dfLocation),   // ARENA2: nor on the arena's sand   // WB3b: the pause's Save says why, in the court   // EG-H2: a made level's saves are the law's - the Spire's pause greys its Save too (it never asked the Spire)
         // SAV4: the slot window's seams over the same two verbs.
         playerName: () => playerEntity.name, playerId: () => playerEntity.characterId ?? null,
@@ -10365,6 +10374,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
      *  draws billboardBatches: each active person with a look offered (their own batch cast-only where the body stands),
      *  the rest drawn as ever. A host that reads none (dungeon.js) leaves every person their billboard. MWNPC8c: `also`
      *  (lane, on, eye, dt) offers the host's own people on the same lane before it draws - the quest's stands. */
+    /** NPC-MARKS: the people's lane, whose bodies a host's marks hang over (scenes/npcMarksHost.js - its `heightOf`). */
+    peopleLane: _peopleLane,
     drawPeople(canvas, proj, view, eye, dt, also = null) {
       const read = opts.standingLook ?? null;
       const on = !!read && _peopleLane.frame();
@@ -10480,13 +10491,14 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       renderer.destroyBatch(batch);
     },
     /** SD4b: a press on a Super dungeon's Rift or Return - the press ladder's `sdrift:` / `sdreturn:` arm (worldModes.js). */
-    sdPress(key) { return !!sdEnd?.press(key) || !!sdHall?.press(key); },   // SD6c: and the Orrery's hall
+    sdPress(key) { return !!sdEnd?.press(key) || !!sdThrough?.press(key) || !!sdHall?.press(key); },   // SD6c: and the Orrery's hall; SD-THROUGH: and the Way Through
     egPress(key) { return !!egSpan?.press(key); },   // EG-FULL LAYER THREE: an Elite Breach's stone or engine
     // SD-LOOK: the Rift's and the Return's picture for the hosts' pass (render/superDungeon/sdRiftPass.js, render/superDungeon/sdHalo.js) and their
     // lights for the light list - undefined where no Super dungeon's end stands here
     sdEndLook: sdEnd ? (eye, sky, hour) => sdEnd.look(eye, sky, hour) : undefined,
-    sdEndHalos: sdEnd ? () => sdEndWith(sdEnd.halos(), sdHall?.halos(), _sdEndHalos) : undefined,   // SD-LOOK S10: and the Orrery's
-    sdEndLights: sdEnd ? () => sdEndWith(sdEnd.lights(), sdHall?.lights(), _sdEndLights) : undefined,
+    sdThroughLook: sdThrough ? (eye, sky, hour) => sdThrough.look(eye, sky, hour) : undefined,   // SD-THROUGH: the Way Through's window into the Hour and its floor light
+    sdEndHalos: sdEnd ? () => sdEndWith(sdEnd.halos(), sdHall?.halos() ?? sdThrough?.halos(), _sdEndHalos) : undefined,   // SD-LOOK S10: and the Orrery's; SD-THROUGH: or the Way Through's (a Hollow's - the hall is the Hour's)
+    sdEndLights: sdEnd ? () => sdEndWith(sdEnd.lights(), sdHall?.lights() ?? sdThrough?.lights(), _sdEndLights) : undefined,
     sdEndPulse: sdEnd ? (kind) => sdEnd.pulse(kind) : undefined,
     sdHallBridgeLaid: sdHall ? () => sdHall.bridgeLaid : undefined,   // AUDIT SD V (L2): the edge opens onto the bridge as it stands drawn   // SD-LOOK S6: what the end sees happen - the way back's exhale as one arrives
     sdRemnantLights: sdRemnant ? () => sdRemnant.lights() : undefined,   // SD-LOOK S8: the hearts' lights, for the Hour's channel (the world host's sdRealmLights)
@@ -10790,6 +10802,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       _roomMine.clear();
       portals.clear();   // COMPANION-PORTAL: the portals standing own a batch each and leave with the dungeon
       sdEnd?.clear();   // SD4b: the Rift and the Return, and the bell
+      sdThrough?.clear();   // SD-THROUGH: the Way Through, and its bell
       sdHall?.clear();   // SD6c: the hall's meshes
       sdSteps?.clear();   // SD7b: the Steps' meshes
       egSpan?.clear();   // EG-PLAY: an Elite Breach's spans' meshes

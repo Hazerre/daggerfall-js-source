@@ -23,7 +23,7 @@
 //    here (a fight won at my side, swornFightWon; an errand home, once an errand, returnFromErrand), its sky set from the
 //    page (setSwornStars - never abroad), and read where its numbers are: its health and blows (applySwornStrength), its
 //    loyalty's losses and its rests (each site below).
-import { wildHere, WILD_TEXT } from '../wild/wildZone.js';   // PVPDUNGEONS (the owner: "Only 1 revenant allowed to summon in the zone"); COMPANION-DROP: the zone's words
+import { wildHere, WILD_TEXT, zoneWord } from '../wild/wildZone.js';   // PVPDUNGEONS (the owner: "Only 1 revenant allowed to summon in the zone"); COMPANION-DROP: the zone's words
 // PVPDUNGEONS: how many sworn revenants may stand at the player's side in the open zone - COMPANION-DROP: and which ones
 // (wildSwornAtSide), so the zone stands the ones whose packs drop; the drop's law reads the same leaf (wildLeaf.js - no
 // imports, so standing a revenant never pulls the drop law's graph, the item law among it, into a client's)
@@ -146,7 +146,7 @@ export function callRefusal(r, now) {
   if (stateOf(r) === 'with') return null;
   if (stateOf(r) === 'resting' && now < restUntil(r, now)) return 'Still recovering.';
   if (stateOf(r) === 'errand') return t('rvn.errand.callAbroad', 'Abroad, {left}.', { left: errandLeftWords(errandUntil(r.companion.errand, now), now, sharedClockOn()) });   // RVN-ERRAND
-  if (wildHere() && revenantsWithYou().length >= WILD_REVENANTS_MAX) return 'Only one revenant may walk at your side in the Wrothgarian Mountains.';   // PVPDUNGEONS
+  if (wildHere() && revenantsWithYou().length >= WILD_REVENANTS_MAX) return zoneWord('revenantOne');   // PVPDUNGEONS - AUDIT SEA VENTURES C7: the ground's own words
   if (companionsWithYou() >= COMPANION_SLOTS) return `Your companions are full (${COMPANION_SLOTS}).`;
   return null;
 }

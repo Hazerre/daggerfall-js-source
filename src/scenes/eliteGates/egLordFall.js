@@ -151,7 +151,7 @@ export function createEgLordFall({ renderer = null, gl = null, getTexture = null
         if (Math.abs(b.fellAt - L.at) < EG_FALL_SAME_MS) {
           const d = b.fellAt - L.at;
           L.at = b.fellAt; if (Number.isFinite(L.flashAt)) L.flashAt += d;
-          // a row that stands still is the relay's own word of where it lies (world240 stops a felled lord's walk -
+          // a row that stands still is the relay's own word of where it lies (world248 stops a felled lord's walk -
           // net/eliteGates/egLords.js egLordHit): taken, so every screen lays it in one place; a row still walking (an older
           // relay carrying it on) never moves it
           if (!b.mv) placeAt(L, b, centre);

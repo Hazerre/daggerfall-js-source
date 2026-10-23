@@ -255,7 +255,11 @@ test('AUDIT HOLDINGS C5/C6: a horse never named, renamed with nothing, keeps no 
   owns = false;
   assert.deepEqual(p.stableAct('rename', 'X'), { ok: false, text: 'You do not own a horse.' });
   const menu = read('src/ui/enhanced/enhancedMenu.js');
-  assert.match(menu, /if \(!secs\.length\) \{\n    detail\.append\(el\('div', 'px-qverdict', 'Nothing here to hold'\)/);
+  // PIN MOVED (AUDIT COLLECTIONS-II, lanes 2 and 5): the rail is never empty - the Collections page is every player's, so a
+  // host with no holdings opens on it, never on the Stable's "you own no horse"; the empty rail's branch went with it
+  assert.doesNotMatch(menu, /if \(!secs\.length\) \{/);
+  assert.match(menu, /\.\.\.\(collectionsPageShown\(playerEntity\) \? COLLECTION_PAGE_SECTIONS : \[\]\)\];/);
+  assert.match(read('src/ui/collectionsPage.js'), /export const collectionsPageShown = \(_player = null\) => true;/);
 });
 
 // ── THE QUAYS ─────────────────────────────────────────────────────────────────────────────────────────────────────────
