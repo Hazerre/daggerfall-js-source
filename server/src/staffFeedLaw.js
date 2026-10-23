@@ -75,12 +75,12 @@ const head = (/** @type {any} */ b, /** @type {string} */ v) => !!b && typeof b 
 
 /** A net row: an account, its counts each in their law - the busiest 10 s within the busiest minute within the window,
  *  the kinds adding up to the frames. Pure. @param {any} r */
-const netRowOk = (r) => !!r && typeof r === 'object' && typeof r.a === 'string' && ID_RE.test(r.a)
+export const netRowOk = (r) => !!r && typeof r === 'object' && typeof r.a === 'string' && ID_RE.test(r.a)
   && [r.n, r.b, r.p10, r.pb10, r.p60, r.pb60, r.nr, r.j, r.c].every(count) && r.p10 <= r.p60 && r.p60 <= r.n && r.pb10 <= r.pb60 && r.pb60 <= r.b
   && Array.isArray(r.k) && r.k.length === NET_KINDS.length && r.k.every(count) && r.k.reduce((s, x) => s + x, 0) === r.n
   && (r.w === undefined || (typeof r.w === 'string' && r.w.length <= 40));
 /** A foe row: an account, the monsters it streams (the outdoor ones split by kind) and the records stripped. Pure. @param {any} r */
-const foeRowOk = (r) => !!r && typeof r === 'object' && typeof r.a === 'string' && ID_RE.test(r.a)
+export const foeRowOk = (r) => !!r && typeof r === 'object' && typeof r.a === 'string' && ID_RE.test(r.a)
   && [r.o, r.h, r.r, r.e, r.bo, r.s, r.x].every(count) && r.r + r.e + r.bo + r.s === r.o;
 
 /** Whether a parsed net batch is one: its head, the window's start, the strip switch, and 1 to STAFF_FEED_ROWS rows. Pure. @param {any} b */
@@ -92,7 +92,7 @@ export function netBatchValid(b) {
 
 /** Whether an episode is one: an account, a natural encounter's kind and size, its ask before the batch, its times within
  *  the episode and in order of the clock (none past its length). Pure. @param {any} r @param {number} at */
-const reactRowOk = (r, at) => !!r && typeof r === 'object' && typeof r.a === 'string' && ID_RE.test(r.a) && REACT_KINDS.includes(r.k)
+export const reactRowOk = (r, at) => !!r && typeof r === 'object' && typeof r.a === 'string' && ID_RE.test(r.a) && REACT_KINDS.includes(r.k)
   && Number.isSafeInteger(r.n) && r.n >= 1 && r.n <= GRANT_KINDS[/** @type {'enc'|'encr'} */ (r.k)].max
   && Number.isSafeInteger(r.t) && r.t > 0 && r.t <= at && Number.isSafeInteger(r.ms) && r.ms >= 0 && r.ms <= REACT_EPISODE_MS
   && TIMES.every((k) => r[k] === undefined || (Number.isSafeInteger(r[k]) && r[k] >= 0 && r[k] <= r.ms))

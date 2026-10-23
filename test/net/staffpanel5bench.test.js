@@ -66,3 +66,22 @@ test('STAFF-PANEL5-FOLLOW bench: what the where note and the follow cost the bus
   assert.ok(msLeave < 0.01 && msJoin < 0.01, line);
   void spies;
 }));
+
+// STAFF-PANEL5-FEEDS-FIX (the relay flaw review, findings 9 and 12; mob: features only "if it wont affect server") - WHAT
+// THE FEEDS' FIXES COST A FRAME: a pose read by two open episodes (the teleport check one compare), and a quiet sender's
+// full foes frame (no row made now). A bench on this machine, not live: the numbers print, the bounds are loose.
+test('STAFF-PANEL5-FEEDS-FIX bench: a pose read by open episodes and a quiet foes frame stay a few microseconds, and quiet senders hold no memory', async () => {
+  const { staffReactAsk, staffReactPose, staffFoesSeen, staffFeedsStop } = await import('../../server/src/staffFeeds.js');
+  const room = { env: { REACTION_FEED_URL: 'https://a.example/r', STAFF_NET_FEED_URL: 'https://a.example/n' }, _all: () => [], _meters: new Map(), _receiptKeyOf: async () => null };
+  const ws = {}, now0 = 1e12, pose = { x: 100, y: 60, z: 100, yaw: 0, pitch: 0 };
+  for (let i = 0; i < 2; i++) staffReactAsk(room, ws, { key: 'world:1,1', sub: 'acct-bench-01', pose }, { k: 'enc', n: 1 }, now0);
+  const time = (n, fn) => { const t0 = process.hrtime.bigint(); for (let i = 0; i < n; i++) fn(i); return Number(process.hrtime.bigint() - t0) / 1e3 / n; };
+  const usPose = time(100_000, (i) => staffReactPose(room, ws, { ...pose, x: 100 + (i % 7), yaw: i % 3 }, now0 + i * 0.5));   // 50 s of poses, inside the episodes' length
+  const frame = { full: 1, f: Array.from({ length: 24 }, (_, i) => ({ i: i + 1, t: 5 })) };
+  const usFoes = time(100_000, (i) => staffFoesSeen(room, { key: 'world:1,1', sub: `acct-q${String(i % 256).padStart(4, '0')}` }, frame, now0));
+  staffFeedsStop(room);
+  const line = `feeds bench (this machine): a pose with 2 open episodes ${usPose.toFixed(3)} us; a quiet 24-monster foes frame ${usFoes.toFixed(3)} us; quiet senders' rows ${room._staffNet.foes.size}`;
+  console.log(line);
+  assert.equal(room._staffNet.foes.size, 0, line);
+  assert.ok(usPose < 50 && usFoes < 50, line);
+});

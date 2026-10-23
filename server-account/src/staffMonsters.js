@@ -17,14 +17,17 @@
 //     must never look like all quiet).
 //   - The relay reports only players over a limit (Server load), so this lists those and the ones over their budget.
 //
-// /v1/staff/monster/flag { target|name, note? } - OPENS A SPAWN CASE on the player, through the grant feed's own path
-// (grants.js grantCaseLines: the `grant` tab's line, the case the reviewer's kind, the Discord post due where it is on),
-// so a Flag lands where the relay's own spawn findings land, as the kind the cases builder gives them ('spawn').
+// /v1/staff/monster/flag { target|name, note? } - OPENS A SPAWN CASE on the player, where the relay's own spawn findings
+// land (grants.js grantCaseLines: the `grant` tab's line, the case the reviewer's kind, the Discord post due where it is
+// on), as the kind the cases builder gives them ('spawn'). STAFF-PANEL5-FEEDS-FIX: ITS LINE IS WRITTEN EVERY TIME, never
+// through grantCaseLines' one line a window - that rule is the automatic findings', and a Flag on the hot spawner inside
+// one wrote nothing, its staff member's name and note dropped while it answered ok.
 import { GRANT_KINDS, GRANT_CASE_REASONS } from '../../src/net/grantLaw.js';
 import { GRANT_RELAY_READER } from '../../src/net/grantMeasure.js';
 import { FOE_HOT } from '../../server/src/staffFeedLaw.js';
-import { grantCaseLines, GRANT_ASK_CASE_TIMES, GRANT_CASE_READERS } from './grants.js';
-import { openCaseFor } from './safety.js';
+import { GRANT_ASK_CASE_TIMES, GRANT_CASE_READERS, GRANT_CASE_TAB } from './grants.js';
+import { openCaseFor, keepCaseLines } from './safety.js';
+import { discordOn } from './discord.js';
 import { findAccount } from './sanctions.js';
 import { displayName } from './accounts.js';
 import { NET_READ_S, NET_WAVE_S, NET_READ_MAX } from './staffNet.js';
@@ -140,8 +143,11 @@ export async function staffMonsters(ctx, env, path, body, who, audit) {
   const note = typeof body.note === 'string' ? body.note.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 200) : '';
   const detail = { name: displayName(row), ...(note ? { note } : {}) };
   try {
-    await grantCaseLines(ctx, env, new Map([[row.id, { texts: [`flagged from the staff panel's Monster watch by ${displayName(who.player)}${note ? `: ${note}` : ''}`], readers: true }]]));
-    const caseId = await openCaseFor(ctx, env, row.id, 'review', 'spawn');   // the spawn case the line went to (STAFF-PANEL2-FIX: a spawn case, an Admin's, never a chat report's) - or, inside its window, the one open already
+    const caseId = await openCaseFor(ctx, env, row.id, 'review', 'spawn');   // STAFF-PANEL2-FIX: a spawn case, an Admin's, never a chat report's - or the one open already
+    const text = `flagged from the staff panel's Monster watch by ${displayName(who.player)}${note ? `: ${note}` : ''}`;
+    // a line is its case's, second and account's: one there this second already (another Flag, a finding) is said, never dropped
+    if (!(await keepCaseLines(db, caseId, [{ tab: GRANT_CASE_TAB, sub: row.id, name: detail.name, at: nowS, text }], row.id))) throw new Error('a line this second already: flag again');
+    await db.prepare("UPDATE mod_cases SET updated_at = ?2, discord_state = CASE WHEN ?3 = 1 THEN 'due' ELSE discord_state END WHERE id = ?1").bind(caseId, nowS, discordOn(env) ? 1 : 0).run();   // grants.js grantCaseLines' touch
     await audit('monster-flag', row.id, { ...detail, case: caseId }).run();
     return { ok: true, case: caseId };
   } catch (e) {

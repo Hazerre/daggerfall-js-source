@@ -31,8 +31,8 @@
 import { ID_RE } from '../../src/net/identityToken.js';
 import { relayCfgValue } from '../../src/net/relayCfg.js';
 import { wrapAngle } from '../../src/world/mat4.js';
-import { isCellRoom, foesFrameFull } from './relay.js';
-import { NET_FEED_MS, NET_FEED_V, REACT_FEED_V, NET_KINDS, REACT_KINDS, REACT_EPISODE_MS, REACT_FIRST_MS, STAFF_FEED_ROWS, STAFF_FEED_SIG_HEADER, STAFF_FEED_POST_MS, STAFF_FEED_AGE_MAX_MS, NET_HOT, FOE_HOT, sealStaffFeed } from './staffFeedLaw.js';
+import { isCellRoom, foesFrameFull, PIXEL_UNITS } from './relay.js';
+import { NET_FEED_MS, NET_FEED_V, REACT_FEED_V, NET_KINDS, REACT_KINDS, REACT_EPISODE_MS, REACT_FIRST_MS, STAFF_FEED_ROWS, STAFF_FEED_SIG_HEADER, STAFF_FEED_POST_MS, STAFF_FEED_AGE_MAX_MS, NET_HOT, FOE_HOT, sealStaffFeed, netRowOk, foeRowOk, reactRowOk } from './staffFeedLaw.js';
 
 /** How long past its window's end a room posts it, ms - a frame a breath late is in it. */
 export const NET_SLACK_MS = 2_000;
@@ -58,6 +58,14 @@ const OTHER = NET_KINDS.length - 1;
 const kindOf = (/** @type {unknown} */ message) => (typeof message === 'string' && message.startsWith('{"t":"') ? KIND_OF.get(message.slice(6, message.indexOf('"', 6))) ?? OTHER : OTHER);
 const on = (/** @type {unknown} */ url) => typeof url === 'string' && url.startsWith('https://');
 const randomId = () => [...crypto.getRandomValues(new Uint8Array(8))].map((x) => x.toString(16).padStart(2, '0')).join('');
+/** STAFF-PANEL5-FEEDS-FIX: the rows the feed's law refuses left out, and said - ONE ROW NEVER TAKES ITS BATCH WITH IT (a
+ *  modded client's poses once failed one episode's law, and its room's whole batch, every honest row in it, was dropped).
+ *  Once a post, never a frame. @param {any[]} rows @param {(r: any) => boolean} ok */
+const lawful = (rows, ok) => {
+  const out = rows.filter(ok);
+  if (out.length < rows.length) console.warn('[staff] rows the law refuses left out', rows.length - out.length);
+  return out;
+};
 
 /**
  * ONE BATCH POSTED - sealed with the relay's receipt key, to `url` through the ACCOUNTS binding where the Worker has it
@@ -163,15 +171,21 @@ function netFold(room, m, a) {
 
 /** A MONSTER ROW over its limit, or a strip: hot. Pure. */
 export const foeHot = (/** @type {any} */ r) => r.o >= FOE_HOT.own || r.h >= FOE_HOT.host || r.x > 0;
-/** The room's row for a sender's monsters. @param {any} room @param {any} a */
-function foeRow(room, a) {
+/** The room's row for a sender's monsters - made only when `make` (STAFF-PANEL5-FEEDS-FIX: a quiet sender takes no room,
+ *  and a room's bound posts the window early, as netFold's does - 256 quiet senders once left Monster watch blind to the
+ *  next account, a spawner's every frame and the relay's own strips of it). @param {any} room @param {any} a @param {boolean} make */
+function foeRow(room, a, make) {
   const acct = a?.sub || a?.id;
   if (typeof acct !== 'string' || !ID_RE.test(acct)) return null;
   const W = netOf(room);
   W.q ??= a.key ?? null;
   let row = W.foes.get(acct);
-  if (!row) { if (W.foes.size >= STAFF_FEED_ROWS * 4) return null; row = { a: acct, o: 0, h: 0, r: 0, e: 0, bo: 0, s: 0, x: 0 }; W.foes.set(acct, row); }
-  return row;
+  if (!row && make) {
+    if (W.rows.size + W.foes.size >= STAFF_FEED_ROWS * 4) void staffNetFlush(room);   // its maps new before it awaits
+    row = { a: acct, o: 0, h: 0, r: 0, e: 0, bo: 0, s: 0, x: 0 };
+    W.foes.set(acct, row);
+  }
+  return row ?? null;
 }
 /**
  * A FOES OR OWN FRAME FANNED (index.js _foesSend) while grantStrip is on: a full frame's distinct live monster ids are its
@@ -183,9 +197,10 @@ export function staffFoesSeen(room, a, data, now) {
   /** @type {Map<unknown, any>} */
   const live = new Map();
   for (const r of data.f) if (r && typeof r === 'object' && r.d !== 1 && r.i != null) live.set(r.i, r);
-  const row = foeRow(room, a);
+  const indoor = !isCellRoom(a.key);
+  const row = foeRow(room, a, live.size >= (indoor ? FOE_HOT.host : FOE_HOT.own));   // a row only matters once over its limit - the window's most is that frame's or a later one's
   if (!row) return;
-  if (!isCellRoom(a.key)) row.h = Math.max(row.h, live.size);
+  if (indoor) row.h = Math.max(row.h, live.size);
   else if (live.size > row.o) {
     row.o = live.size; row.r = 0; row.e = 0; row.bo = 0; row.s = 0;
     for (const r of live.values()) {
@@ -200,7 +215,7 @@ export function staffFoesSeen(room, a, data, now) {
 /** RECORDS THE RELAY STRIPPED for their health (index.js _grantRelayTally - FOE-BOUNDS): counted on the sender's row. @param {any} room @param {any} a @param {number} n @param {number} now */
 export function staffFoesStripped(room, a, n, now) {
   if (!on(room.env?.STAFF_NET_FEED_URL)) return;
-  const row = foeRow(room, a);
+  const row = foeRow(room, a, true);
   if (!row) return;
   row.x += n;
   netArm(room, now);
@@ -223,8 +238,8 @@ export async function staffNetFlush(room, now = Date.now()) {
   const url = room.env?.STAFF_NET_FEED_URL;
   const w = Math.floor(now / NET_FEED_MS);
   for (const [ws, a] of room._all()) { const m = room._meters.get(ws); if (m?.nf && m.nf.w < w) netFold(room, m, a); }
-  const rows = [...W.rows.values()].sort(netUrgent);
-  const foes = [...W.foes.values()].filter(foeHot).sort(foeUrgent);
+  const rows = lawful([...W.rows.values()], netRowOk).sort(netUrgent);
+  const foes = lawful([...W.foes.values()], foeRowOk).sort(foeUrgent);   // each over its limit: foeRow makes no other
   const batch = rows.length || foes.length ? (() => {
     const net = rows.slice(0, STAFF_FEED_ROWS - Math.min(foes.length, STAFF_FEED_ROWS / 2));
     return { v: NET_FEED_V, id: randomId(), at: now, q: W.q, from: W.from || now, ms: relayCfgValue(room._relayCfg, room.env, 'grantStrip') === 'on' ? 1 : 0, net, foe: foes.slice(0, STAFF_FEED_ROWS - net.length) };
@@ -282,7 +297,8 @@ export function staffReactPose(room, ws, p, now) {
     if ((p.hk | 0) > e.hk) { at.hk ??= t; e.hk = p.hk | 0; }   // a count that only grows: a pose that drops its point says 0, never a blow
     if ((p.hu | 0) > e.hu) { at.hu ??= t; e.hu = p.hu | 0; }
     if (t <= REACT_FIRST_MS && Number.isFinite(q.x) && Number.isFinite(q.z)) {
-      e.mv += Math.hypot(p.x - q.x, p.z - q.z);
+      const step = Math.hypot(p.x - q.x, p.z - q.z);
+      if (step <= PIXEL_UNITS) e.mv += step;   // STAFF-PANEL5-FEEDS-FIX: a step past a cell is a teleport, never movement (a modded client's ±POSE_BOUND swings once passed the row's law)
       e.tn += Math.abs(wrapAngle(p.yaw - q.yaw));
     }
     e.last = p;
@@ -306,12 +322,14 @@ function reactClose(room, ws, e, now) {
   if (R.rows.length >= STAFF_FEED_ROWS) void staffReactFlush(room);
 }
 
-/** THE TICK: episodes past their length closed, the window posted once it has waited REACT_FEED_MS, and armed again
- *  while anything is open or waiting. @param {any} room @param {number} [now] */
+/** THE TICK: episodes past their length closed, the window posted once it has waited REACT_FEED_MS - a failed batch
+ *  alone too (STAFF-PANEL5-FEEDS-FIX: one waiting with no new episode was never sent again, and the tick re-armed for
+ *  ever; send() lets it go past STAFF_FEED_AGE_MAX_MS) - and armed again while anything is open or waiting.
+ *  @param {any} room @param {number} [now] */
 export async function staffReactTick(room, now = Date.now()) {
   const R = reactOf(room);
   for (const [ws, mine] of [...R.open]) for (const e of [...mine]) if (now - e.t0 >= REACT_EPISODE_MS) reactClose(room, ws, e, now);
-  if (R.rows.length && now - R.from >= REACT_FEED_MS) await staffReactFlush(room, now);
+  if ((R.rows.length || R.retry) && now - R.from >= REACT_FEED_MS) await staffReactFlush(room, now);
   if (R.openN || R.rows.length || R.retry) reactArm(room);
 }
 
@@ -319,11 +337,13 @@ export async function staffReactTick(room, now = Date.now()) {
 export async function staffReactFlush(room, now = Date.now()) {
   const R = room._staffReact;
   if (!R) return false;
-  const rows = R.rows.splice(0, STAFF_FEED_ROWS);
+  const rows = lawful(R.rows.splice(0, STAFF_FEED_ROWS), (r) => reactRowOk(r, now));
   R.from = R.rows.length ? now : 0;
   const url = room.env?.REACTION_FEED_URL;
   if (!on(url) || (!rows.length && !R.retry)) return false;
-  return send(room, R, url, rows.length ? { v: REACT_FEED_V, id: randomId(), at: now, q: R.q, rows } : null, () => reactArm(room));
+  const went = await send(room, R, url, rows.length ? { v: REACT_FEED_V, id: randomId(), at: now, q: R.q, rows } : null, () => reactArm(room));
+  R.from ||= R.retry ? now : 0;   // STAFF-PANEL5-FEEDS-FIX: a failed batch waits a window to go again, the net feed's pace - a failing service is not asked every minute
+  return went;
 }
 
 /** Its timers cleared - a test's end, as _grantFlush clears the grants'. @param {any} room */

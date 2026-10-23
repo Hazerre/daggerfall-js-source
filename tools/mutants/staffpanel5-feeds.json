@@ -42,8 +42,8 @@
   {
     "name": "STAFF-PANEL5-FEEDS-host-as-owner",
     "file": "server/src/staffFeeds.js",
-    "old": "if (!isCellRoom(a.key)) row.h = Math.max(row.h, live.size);",
-    "new": "if (isCellRoom(a.key)) row.h = Math.max(row.h, live.size);",
+    "old": "if (indoor) row.h = Math.max(row.h, live.size);",
+    "new": "if (!indoor) row.h = Math.max(row.h, live.size);",
     "why": "an indoor host counted as owner",
     "tests": [
       "test/net/staffpanel5feeds_relay.test.js"
@@ -95,16 +95,6 @@
     "old": "=== 'on' ? 1 : 0, net,",
     "new": "=== 'on' ? 1 : 1, net,",
     "why": "\"not measured\" never said",
-    "tests": [
-      "test/net/staffpanel5feeds_relay.test.js"
-    ]
-  },
-  {
-    "name": "STAFF-PANEL5-FEEDS-foes-unfiltered",
-    "file": "server/src/staffFeeds.js",
-    "old": ".filter(foeHot).sort(foeUrgent)",
-    "new": ".sort(foeUrgent)",
-    "why": "a sender under the monster limit reported",
     "tests": [
       "test/net/staffpanel5feeds_relay.test.js"
     ]
@@ -263,7 +253,7 @@
   {
     "name": "STAFF-PANEL5-FEEDS-net-once",
     "file": "server-account/src/staffNet.js",
-    "old": "if (!kept?.meta?.changes) return { ok: true, read: false };",
+    "old": "if (await db.prepare('SELECT 1 AS y FROM staff_net_batches WHERE id = ?1').bind(b.id).first()) return { ok: true, read: false };",
     "new": "if (false) return { ok: true, read: false };",
     "why": "a resent batch kept twice",
     "tests": [
@@ -365,8 +355,7 @@
     "file": "server-account/src/staffMonsters.js",
     "old": "openCaseFor(ctx, env, row.id, 'review', 'spawn')",
     "new": "openCaseFor(ctx, env, row.id, 'report', 'spawn')",
-    "equivalent": true,
-    "why": "grantCaseLines opened the account's one open case as 'review' just before (readers: true always opens it), so this call only reads its id back - its source is never written",
+    "why": "a Flag's case opened as a report's (STAFF-PANEL5-FEEDS-FIX: the Flag opens its case itself now, so its source is written)",
     "tests": [
       "test/server/staffpanel5feeds.test.js"
     ]
@@ -404,8 +393,8 @@
   {
     "name": "STAFF-PANEL5-FEEDS-roll-early",
     "file": "server-account/src/staffReactions.js",
-    "old": "Number(seen?.count ?? 0) > REACT_ROWS_HOUR",
-    "new": "Number(seen?.count ?? 0) >= REACT_ROWS_HOUR",
+    "old": "b.rows.length > REACT_ROWS_HOUR",
+    "new": "b.rows.length >= REACT_ROWS_HOUR",
     "why": "the hour's last own row rolled up",
     "tests": [
       "test/server/staffpanel5feeds.test.js"
@@ -434,7 +423,7 @@
   {
     "name": "STAFF-PANEL5-FEEDS-react-once",
     "file": "server-account/src/staffReactions.js",
-    "old": "if (!kept?.meta?.changes) return { ok: true, read: false, rows: 0 };",
+    "old": "if (seen?.kept) return { ok: true, read: false, rows: 0 };",
     "new": "if (false) return { ok: true, read: false, rows: 0 };",
     "why": "a resent batch summed twice",
     "tests": [
@@ -527,6 +516,156 @@
     "old": "openCaseFor(ctx, env, row.id, 'review', 'spawn')",
     "new": "openCaseFor(ctx, env, row.id, 'review')",
     "why": "a Flag answered with a chat case beside the spawn case its line went to",
+    "tests": [
+      "test/server/staffpanel5feeds.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FEEDS-FIX-teleport-moved",
+    "file": "server/src/staffFeeds.js",
+    "old": "if (step <= PIXEL_UNITS) e.mv += step;",
+    "new": "e.mv += step;",
+    "why": "a step past a cell counted as movement: a modded client's swings overflow its row (finding 9)",
+    "tests": [
+      "test/net/staffpanel5feeds_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FEEDS-FIX-react-row-unlawful",
+    "file": "server/src/staffFeeds.js",
+    "old": "lawful(R.rows.splice(0, STAFF_FEED_ROWS), (r) => reactRowOk(r, now))",
+    "new": "R.rows.splice(0, STAFF_FEED_ROWS)",
+    "why": "an episode the law refuses sealed with its batch, which then goes whole (finding 9)",
+    "tests": [
+      "test/net/staffpanel5feeds_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FEEDS-FIX-net-row-unlawful",
+    "file": "server/src/staffFeeds.js",
+    "old": "lawful([...W.rows.values()], netRowOk)",
+    "new": "[...W.rows.values()]",
+    "why": "a net row the law refuses sealed with its batch (finding 9)",
+    "tests": [
+      "test/net/staffpanel5feeds_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FEEDS-FIX-foe-row-unlawful",
+    "file": "server/src/staffFeeds.js",
+    "old": "lawful([...W.foes.values()], foeRowOk)",
+    "new": "[...W.foes.values()]",
+    "why": "a monster row the law refuses sealed with its batch (finding 9)",
+    "tests": [
+      "test/net/staffpanel5feeds_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FEEDS-FIX-retry-needs-episode",
+    "file": "server/src/staffFeeds.js",
+    "old": "if ((R.rows.length || R.retry) && now - R.from >= REACT_FEED_MS)",
+    "new": "if (R.rows.length && now - R.from >= REACT_FEED_MS)",
+    "why": "a failed reaction batch sent again only with a new episode, the tick re-armed for ever (finding 10)",
+    "tests": [
+      "test/net/staffpanel5feeds_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FEEDS-FIX-retry-every-minute",
+    "file": "server/src/staffFeeds.js",
+    "old": "R.from ||= R.retry ? now : 0;",
+    "new": "R.from ||= 0;",
+    "why": "a failing service asked again every tick (finding 10)",
+    "tests": [
+      "test/net/staffpanel5feeds_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FEEDS-FIX-quiet-row-made",
+    "file": "server/src/staffFeeds.js",
+    "old": "const row = foeRow(room, a, live.size >= (indoor ? FOE_HOT.host : FOE_HOT.own));",
+    "new": "const row = foeRow(room, a, true);",
+    "why": "a quiet sender takes a monster row (finding 12)",
+    "tests": [
+      "test/net/staffpanel5feeds_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FEEDS-FIX-outdoor-at-host-limit",
+    "file": "server/src/staffFeeds.js",
+    "old": "live.size >= (indoor ? FOE_HOT.host : FOE_HOT.own)",
+    "new": "live.size >= FOE_HOT.host",
+    "why": "an outdoor owner's row made only at the host's limit (finding 12)",
+    "tests": [
+      "test/net/staffpanel5feeds_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FEEDS-FIX-full-room-blind",
+    "file": "server/src/staffFeeds.js",
+    "old": "if (W.rows.size + W.foes.size >= STAFF_FEED_ROWS * 4) void staffNetFlush(room);   // its maps new",
+    "new": "if (W.rows.size + W.foes.size >= STAFF_FEED_ROWS * 4) return null;   // its maps new",
+    "why": "a full room refuses the next sender's row, blind to a spawner (finding 12)",
+    "tests": [
+      "test/net/staffpanel5feeds_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FEEDS-FIX-react-id-alone",
+    "file": "server-account/src/staffReactions.js",
+    "old": "  await db.batch([\n    db.prepare('INSERT INTO reaction_batches (id, at) VALUES (?1, ?2)').bind(b.id, nowS),",
+    "new": "  await db.prepare('INSERT INTO reaction_batches (id, at) VALUES (?1, ?2)').bind(b.id, nowS).run();\n  await db.batch([",
+    "why": "a reaction batch's id kept before its rows, alone: the resend after a failed rows write is read as kept (finding 11)",
+    "tests": [
+      "test/server/staffpanel5feeds.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FEEDS-FIX-react-count-alone",
+    "file": "server-account/src/staffReactions.js",
+    "old": "window_start = MAX(rate_limits.window_start, excluded.window_start)`).bind(hour, b.rows.length),",
+    "new": "window_start = MAX(rate_limits.window_start, excluded.window_start)`).bind(hour, b.rows.length).run() && db.prepare('SELECT 1'),",
+    "why": "the hour's count kept before the rows, alone: a failed rows write counted (finding 11)",
+    "tests": [
+      "test/server/staffpanel5feeds.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FEEDS-FIX-net-id-alone",
+    "file": "server-account/src/staffNet.js",
+    "old": ".bind(b.id, nowS, b.q, Math.max(1, Math.round((b.at - b.from) / 1000)), b.ms),",
+    "new": ".bind(b.id, nowS, b.q, Math.max(1, Math.round((b.at - b.from) / 1000)), b.ms).run() && db.prepare('SELECT 1'),",
+    "why": "a net batch's id kept before its rows, alone (finding 11)",
+    "tests": [
+      "test/server/staffpanel5feeds.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FEEDS-FIX-flag-window-rule",
+    "file": "server-account/src/staffMonsters.js",
+    "old": "if (!(await keepCaseLines(db, caseId, [{ tab: GRANT_CASE_TAB",
+    "new": "if (await db.prepare('SELECT 1 AS y FROM mod_case_lines WHERE case_id = ?1 AND tab = ?2 AND at > ?3').bind(caseId, GRANT_CASE_TAB, nowS - 600).first()) {} else if (!(await keepCaseLines(db, caseId, [{ tab: GRANT_CASE_TAB",
+    "why": "a Flag held to the automatic findings' one line a window: inside one it writes nothing (finding 13)",
+    "tests": [
+      "test/server/staffpanel5feeds.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FEEDS-FIX-flag-collision-silent",
+    "file": "server-account/src/staffMonsters.js",
+    "old": "throw new Error('a line this second already: flag again');",
+    "new": "{}",
+    "why": "a Flag whose line this second is held already answers ok, its note dropped (finding 13)",
+    "tests": [
+      "test/server/staffpanel5feeds.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FEEDS-FIX-flag-case-untouched",
+    "file": "server-account/src/staffMonsters.js",
+    "old": "UPDATE mod_cases SET updated_at = ?2,",
+    "new": "UPDATE mod_cases SET updated_at = updated_at,",
+    "why": "a Flag's case not touched: never risen in the queue (finding 13)",
     "tests": [
       "test/server/staffpanel5feeds.test.js"
     ]

@@ -6,10 +6,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fakeRoom } from '../fakeRoom.mjs';
-import { cellRoomOfWire, PIXEL_UNITS, DROP_STRIKES_MAX } from '../../src/net/wire.js';
+import { cellRoomOfWire, PIXEL_UNITS, DROP_STRIKES_MAX, POSE_BOUND } from '../../src/net/wire.js';
 import { validGrantOut } from '../../src/net/grantLaw.js';
-import { openStaffFeed, sealStaffFeed, netBatchValid, reactBatchValid, NET_FEED_V, REACT_FEED_V, NET_KINDS, STAFF_FEED_SIG_HEADER, STAFF_FEED_ROWS, STAFF_FEED_AGE_MAX_MS, REACT_EPISODE_MS, NET_FEED_MS, NET_HOT, FOE_HOT } from '../../server/src/staffFeedLaw.js';
-import { staffNetFlush, staffReactFlush, staffReactTick, staffFeedsStop, netHot, foeHot, REACT_OPEN_MAX } from '../../server/src/staffFeeds.js';
+import { openStaffFeed, sealStaffFeed, netBatchValid, reactBatchValid, NET_FEED_V, REACT_FEED_V, NET_KINDS, STAFF_FEED_SIG_HEADER, STAFF_FEED_ROWS, STAFF_FEED_AGE_MAX_MS, REACT_EPISODE_MS, NET_FEED_MS, NET_HOT, FOE_HOT, FEED_COUNT_MAX } from '../../server/src/staffFeedLaw.js';
+import { staffNetFlush, staffReactFlush, staffReactTick, staffFeedsStop, netHot, foeHot, staffFoesSeen, staffFoesStripped, REACT_OPEN_MAX, REACT_FEED_MS } from '../../server/src/staffFeeds.js';
 
 const { subtle } = globalThis.crypto;
 const T = 1_800_000_000;
@@ -259,4 +259,90 @@ test('STAFF-PANEL5-FEEDS A FAILED POST IS SENT AGAIN UNDER ITS OWN ID: the servi
   R.tick(NET_FEED_MS);
   await staffNetFlush(C.room);
   assert.equal(R.posts.length, 5, 'a refusal is not sent again');
+});
+
+// STAFF-PANEL5-FEEDS-FIX (the relay flaw review, findings 9, 10 and 12)
+
+test('STAFF-PANEL5-FEEDS-FIX ONE ROW NEVER TAKES ITS BATCH: a modded client swinging its pose between +POSE_BOUND and -POSE_BOUND after its encounter\'s mint is timed like anyone - a step past a cell is a teleport, never movement - and its honest neighbour\'s episode posts beside it; a row the law refuses, however it came, is left out alone, in either feed (mutants: a teleport counted as movement; a refused episode sealed with its batch; a refused net or monster row sealed with its batch)', async (t) => {
+  const R = await relay(t, { REACTION_FEED_URL: REACT_URL });
+  const C = R.room(CELL);
+  const ann = await R.join(C, 'sock-ann-01', P0), bot = await R.join(C, 'sock-bot-01', P0);
+  await ann.ask({ k: 'mint', kind: 'enc', n: 1 });
+  await bot.ask({ k: 'mint', kind: 'enc', n: 1 });
+  for (let i = 0; i < 10; i++) { R.tick(100); await C.pose(bot.ws, { ...P0, x: i % 2 ? POSE_BOUND : -POSE_BOUND }); }
+  R.tick(100);
+  await C.pose(ann.ws, { ...P0, x: P0.x + 400, dd: 1 });   // 10 m
+  await C.pose(bot.ws, { ...P0, dd: 1 });
+  assert.equal(await staffReactFlush(C.room), true, 'the batch went');
+  const rows = (await R.open(0, REACT_FEED_V)).rows;
+  assert.deepEqual(rows.map((r) => [r.a, r.mv, r.ps]), [['acct-sock-ann-01', 100, 1], ['acct-sock-bot-01', 0, 11]], 'both, the bot\'s teleports no metres');
+  // a row the law refuses beside a good one: the good one goes
+  C.room._staffReact.rows.push({ ...rows[0], mv: FEED_COUNT_MAX + 1 }, rows[1]);
+  assert.equal(await staffReactFlush(C.room), true);
+  assert.deepEqual((await R.open(1, REACT_FEED_V)).rows.map((r) => r.a), ['acct-sock-bot-01']);
+  // the net feed alike: a net row and a monster row the law refuses, beside a flooding socket's
+  const N = await relay(t, { STAFF_NET_FEED_URL: NET_URL });
+  const D = N.room(CELL);
+  const mac = await N.join(D, 'sock-mac-01', P0);
+  for (let i = 0; i < 100; i++) await D.pose(mac.ws, { ...P0, x: P0.x + i });
+  const W = D.room._staffNet;
+  W.rows.set('acct-bad-net1', { a: 'acct-bad-net1', n: 1, b: 1, p10: 5, pb10: 0, p60: 5, pb60: 0, k: [1, 0, 0, 0, 0, 0, 0], nr: 0, j: 0, c: 1 });   // a peak past its window
+  W.foes.set('acct-bad-foe1', { a: 'acct-bad-foe1', o: 40, h: 0, r: 39, e: 0, bo: 0, s: 0, x: 0 });   // a split that is not its owned
+  N.tick(NET_FEED_MS);
+  assert.equal(await staffNetFlush(D.room), true, 'the batch went');
+  const b = await N.open(0);
+  assert.deepEqual([b.net.map((r) => r.a), b.foe], [['acct-sock-mac-01'], []]);
+});
+
+test('STAFF-PANEL5-FEEDS-FIX A FAILED REACTION BATCH IS SENT AGAIN BY THE TICK ALONE: with no new episode, a window after it failed and never sooner; one that keeps failing is let go at its age, and the room\'s tick stops so the room can sleep (mutants: the retry left to a new episode; the retry asked every minute)', async (t) => {
+  const R = await relay(t, { REACTION_FEED_URL: REACT_URL });
+  const C = R.room(CELL);
+  const mac = await R.join(C, 'sock-mac-01', P0);
+  const episode = async () => { await mac.ask({ k: 'mint', kind: 'enc', n: 1 }); R.tick(200); await C.pose(mac.ws, { ...P0, dd: 1 }); };
+  const X = () => C.room._staffReact;
+  const tick = async () => { clearTimeout(X().timer); X().timer = null; R.tick(60_000); await staffReactTick(C.room, R.now); };   // the timer's own call
+  await episode();
+  R.status.push(503);
+  assert.equal(await staffReactFlush(C.room), false);
+  assert.ok(X().retry && X().timer, 'kept, armed');
+  await tick();
+  assert.equal(R.posts.length, 1, 'a failing service is not asked again a minute on');
+  for (let i = 1; i < REACT_FEED_MS / 60_000; i++) await tick();
+  assert.equal(R.posts.length, 2, 'a window on, sent again alone');
+  assert.equal((await R.open(1, REACT_FEED_V)).id, (await R.open(0, REACT_FEED_V)).id, 'under its own id');
+  assert.deepEqual([X().retry, X().timer], [null, null], 'nothing waiting: no tick');
+  // a service failing on: tried once a window while young, then let go, and the tick stops
+  await episode();
+  R.status.push(503, 503, 503, 503, 503);
+  assert.equal(await staffReactFlush(C.room), false);
+  for (let i = 0; i < STAFF_FEED_AGE_MAX_MS / 60_000 + 10; i++) await tick();
+  assert.equal(R.posts.length, 3 + Math.floor((STAFF_FEED_AGE_MAX_MS - 1) / REACT_FEED_MS), 'once a window, while young');
+  assert.deepEqual([X().retry, X().timer], [null, null]);
+});
+
+test('STAFF-PANEL5-FEEDS-FIX MONSTER WATCH NEVER GOES BLIND: a quiet sender takes no row (its frames under the limit), so a room of hundreds of them still sees the spawner who comes next and the strips the relay makes of it; and a room full of senders over the limit posts early, never refusing the next (mutants: a quiet sender\'s row made; the room\'s bound refusing the next sender; the outdoor row made at the host\'s limit)', async (t) => {
+  const R = await relay(t, { STAFF_NET_FEED_URL: NET_URL, GRANT_STRIP: 'on' });
+  const C = R.room(CELL);
+  const rec = (i) => ({ i, t: 0, f: [1, 2, 3] });
+  const socks = [];
+  for (let i = 0; i < 3; i++) socks.push(await R.join(C, `sock-q${i}-001`, P0));
+  for (const q of socks) await C.raw(q.ws, JSON.stringify({ t: 'foes', data: { n: 1, k: CELL, full: 1, f: [rec(1), rec(2)] } }));
+  assert.equal(C.room._staffNet?.foes.size ?? 0, 0, 'quiet senders: no row');
+  // the review's room: 300 quiet senders, then a spawner streaming 60 and stripped 5
+  const now = R.now;
+  for (let i = 0; i < 300; i++) staffFoesSeen(C.room, { key: CELL, sub: `acct-q${String(i).padStart(4, '0')}` }, { full: 1, f: [rec(1)] }, now);
+  const spawner = { key: CELL, sub: 'acct-spawner' };
+  staffFoesSeen(C.room, spawner, { full: 1, f: [...Array(60).keys()].map((i) => rec(i + 1)) }, now);
+  staffFoesStripped(C.room, spawner, 5, now);
+  const W = C.room._staffNet;
+  assert.deepEqual([[...W.foes.keys()], W.foes.get('acct-spawner').o, W.foes.get('acct-spawner').x, !!W.timer], [['acct-spawner'], 60, 5, true]);
+  // a room full of senders over the limit: the next one's frame posts the window early, its own row in the next
+  for (let i = 1; W.foes.size < STAFF_FEED_ROWS * 4; i++) staffFoesStripped(C.room, { key: CELL, sub: `acct-h${String(i).padStart(4, '0')}` }, 1, now);
+  const late = { key: CELL, sub: 'acct-late-01' };
+  staffFoesSeen(C.room, late, { full: 1, f: [...Array(40).keys()].map((i) => rec(i + 1)) }, now);
+  assert.deepEqual([[...W.foes.keys()], !!W.timer], [['acct-late-01'], true], 'never refused');
+  for (let i = 0; i < 50 && !R.posts.length; i++) await new Promise((r) => setTimeout(r, 5));
+  const b = await R.open(0);
+  assert.equal(b.foe.length, STAFF_FEED_ROWS, 'posted early, the most urgent within its bound');
+  assert.equal(b.foe[0].a, 'acct-spawner', 'the spawner\'s strips first');
 });
