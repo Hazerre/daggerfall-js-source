@@ -5582,12 +5582,19 @@ function pauseQuests(body) {
   // QL12 (section 4.4): and each guild the player is a member of, as its own ladder (key `g:<guild>`)
   const ladderRows = (log.ladders ?? []).map((g) => ({ key: `g:${g.key}`, name: g.name, ladder: g }));
   lines.push(...ladderRows);
-  if (!active.length && !finished.length && !hidden.length && !shelved.length && !offers.length && !lines.length) {
+  // STORY-AGAIN (#982): a step of the main story that failed, under Main Quests (key `st:<quest>`), one press (twice)
+  // from starting again - the host's door (scenes/quest/questBridge.js journalClean.storyAgain)
+  const story = (clean?.storyAgain?.() ?? []).map((s) => ({ key: `st:${s.questName}`, name: s.title, story: s }));
+  if (!active.length && !finished.length && !hidden.length && !shelved.length && !offers.length && !lines.length && !story.length) {
     body.append(el('p', 'px-note', t('pause.journal.none', 'No active quests.')));
+    if (questShelfSaid) { body.append(el('p', 'px-note', questShelfSaid)); questShelfSaid = null; }   // AUDIT QA3 F6: said, the tab empty or not
     return;
   }
   const shown = questShowHidden ? hidden : [];
-  const rows = [...offers, ...active, ...shown, ...shelved, ...finished, ...lines];
+  const rows = [...offers, ...active, ...story, ...shown, ...shelved, ...finished, ...lines];
+  // AUDIT QA3 B9: the words of a press whose quest has no row yet (a step started again waits for its questor, no entry)
+  // are said at the tab's head - under the detail they landed at the foot of whichever quest the selection fell to
+  if (questShelfSaid && !rows.some((r) => r.key === questSel)) { body.append(el('p', 'px-note', questShelfSaid)); questShelfSaid = null; }
   // GUIDE4: THE JOURNAL OPENS ON THE QUEST THE HUD SHOWS - the tracker's (the one tracked, else the one the journal
   // last changed) - and only then on the first row.
   if (!rows.some((r) => r.key === questSel)) {
@@ -5632,7 +5639,7 @@ function pauseQuests(body) {
   };
   // QL3: a section only while a reward waits - a quest's choice of gear, the first thing the journal has to ask
   if (offers.length) { rail.append(el('div', 'px-qarch px-qfirst', t('ql.journal.rewards', 'Rewards waiting'))); railList(offers, ' px-qreward'); }
-  section(t('pause.journal.main', 'Main Quests'), mains, '', !offers.length);
+  section(t('pause.journal.main', 'Main Quests'), [...mains, ...story], '', !offers.length);
   section(t('pause.journal.side', 'Side Quests'), sides, '');
   // QL12: the questlines - each row tagged with where it stands, a finished one dimmed as the archive is
   if (lines.length) {
@@ -5701,6 +5708,26 @@ function pauseQuests(body) {
     const head2 = el('div', 'px-qname');
     head2.append(el('span', 'px-qwing'), el('h3', null, questTitleOf(sel.line.title)), el('span', 'px-qwing px-flip'));
     detail.append(head2, qlLineDetail(document, sel.line, { titleText: (k) => TITLE_TEXT[k] ?? k }));
+  } else if (sel?.story) {
+    // STORY-AGAIN: the step that failed - what happened, and its one press (twice, BOUNTY1's arming)
+    const head2 = el('div', 'px-qname');
+    head2.append(el('span', 'px-qwing'), el('h3', null, questTitleOf(sel.name)), el('span', 'px-qwing px-flip'));
+    detail.append(head2, el('p', 'px-note', t('quest.story.stalled', 'This step of the main story ended before the story could go on.')));
+    const acts = el('div', 'px-qacts');
+    acts.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;margin:6px 0 8px';
+    const armed = journalCleanArmed === sel.key;
+    const go = el('button', 'act', armed ? t('quest.story.againArmed', 'Click again to take it up') : t('quest.story.again', 'Take it up again'));
+    go.title = t('quest.story.againTitle', 'Start this step of the main story again from the beginning, so the story can go on');
+    go.onclick = () => {
+      if (journalCleanArmed !== sel.key) { journalCleanArmed = sel.key; render(); return; }
+      journalCleanArmed = null;
+      const out = clean.startStoryAgain(sel.story.questName);
+      questShelfSaid = out?.text ?? null;
+      if (out?.ok) questSel = `a:${out.uid}`;
+      render();
+    };
+    acts.append(go);
+    detail.append(acts);
   } else if (sel?.ladder) {
     // QL12 (section 4.4): a guild's ladder - its quests by the rank that opens them
     const head2 = el('div', 'px-qname');
@@ -5767,7 +5794,7 @@ function pauseQuests(body) {
       const acts = el('div', 'px-qacts');
       acts.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;margin:6px 0 8px';
       const armed = bountyAbandonArmed === sel.id;
-      const ab = el('button', 'act', armed ? 'Click again to abandon' : 'Abandon hunt');
+      const ab = el('button', 'act', armed ? t('pause.journal.abandonArmed', 'Click again to abandon') : t('pause.journal.abandonHunt', 'Abandon hunt'));   // QUEST-AUDIT III SHELF-WORDS
       ab.onclick = () => {
         if (bountyAbandonArmed !== sel.id) { bountyAbandonArmed = sel.id; render(); return; }
         bountyAbandonArmed = null;
@@ -5787,7 +5814,7 @@ function pauseQuests(body) {
       // QUEST-SHELF: a running quest ABANDONS - twice, BOUNTY1's arming (its clocks stop and its questor is free the moment
       // it goes) - where the quest may be set aside (scenes/quest/questBridge.js canAbandon); one set aside RECLAIMS in one press
       if (isShelvedRow && sel.id != null && clean.reclaim) {
-        const rc = el('button', 'act', 'Reclaim quest');
+        const rc = el('button', 'act', t('pause.journal.reclaim', 'Reclaim quest'));   // QUEST-AUDIT III SHELF-WORDS
         // its audit: the selection follows the quest only where it went - a refusal is said under the quest it refused
         rc.onclick = () => { const out = clean.reclaim(sel.id); questShelfSaid = out?.text ?? null; if (out?.ok) questSel = `a:${sel.id}`; render(); };
         acts.append(rc);
@@ -5795,7 +5822,7 @@ function pauseQuests(body) {
       // lists a quest set aside by its entries), so no Reclaim could reach it
       } else if (sel.entries?.length && sel.id != null && clean.abandon && clean.canAbandon?.(sel.id)) {
         const armed = journalCleanArmed === `ab:${sel.id}`;
-        const ab = el('button', 'act', armed ? 'Click again to abandon' : 'Abandon quest');
+        const ab = el('button', 'act', armed ? t('pause.journal.abandonArmed', 'Click again to abandon') : t('pause.journal.abandonQuest', 'Abandon quest'));   // QUEST-AUDIT III SHELF-WORDS
         ab.onclick = () => {
           if (journalCleanArmed !== `ab:${sel.id}`) { journalCleanArmed = `ab:${sel.id}`; render(); return; }
           journalCleanArmed = null;
@@ -5891,6 +5918,8 @@ function pauseQuests(body) {
       detail.append(desc);
     }
   }
+  // QUEST-SHELF: the words of a press, under the quest they speak of
+  if (questShelfSaid) { detail.append(el('p', 'px-note', questShelfSaid)); questShelfSaid = null; }
   wrap.append(detail);
   body.append(wrap);
   // AUDIT QUESTLINES UI-14: on a phone the journal stacks (enhancedStyle.js PX4: the rail a strip over the page, at 480px),

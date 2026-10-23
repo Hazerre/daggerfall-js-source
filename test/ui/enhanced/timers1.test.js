@@ -143,15 +143,15 @@ function fakeDoc() {
 const walk = (n, f) => { f(n); for (const c of n.children ?? []) walk(c, f); };
 const all = (root, cls) => { const out = []; walk(root, (n) => { if (String(n.className).split(' ').includes(cls)) out.push(n); }); return out; };
 
-test('TIMERS1: the window draws Now and Coming up, rewrites the countdowns in place, and rebuilds only when a row changes', () => {
+test('TIMERS1: the window draws its rows (TIMERS2: in groups), rewrites the countdowns in place, and rebuilds only when a row changes', () => {
   let now = NOW;
   const src = { raids: [{ name: 'Ashfield', region: 'Wayrest', type: 'bandits', startMs: NOW - 1, endMs: NOW + 5000 }] };
   let closed = 0;
-  const view = timersWindow(fakeDoc(), { read: () => ({ ...src, now }), onClose: () => { closed++; }, every: 1e9 });
+  const view = timersWindow(fakeDoc(), { read: () => ({ ...src, now }), onClose: () => { closed++; }, every: 1e9, group: 'all' });
   view.stop();
   const root = view.root;
   assert.ok(root.className.includes('px-win') && root.className.includes('px-timerswin'), 'the pause window\'s frame');
-  assert.deepEqual(all(root, 'tm-section').map((n) => n.textContent), ['Now', 'Coming up']);
+  assert.deepEqual(all(root, 'tm-section-name').map((n) => n.textContent), ['World events', 'Town raids', 'Resets'], 'PIN MOVED (TIMERS2): the rows under what they are, a row under way saying "Now" itself - timers2.test.js');
   const row = all(root, 'tm-raid')[0];
   const count = all(row, 'tm-count')[0];
   assert.equal(count.textContent, '0:05');

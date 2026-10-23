@@ -2485,14 +2485,12 @@ live; the rest stands in many small holders - AUDIT P11):
    longer standing (AUDIT M3, `_midLetGo`: up to four pixels' entries a journey kept - such a ring can never be reused,
    and the player is pixels from it). A departure from the mod, whose Tick prunes nothing while inactive (AUDIT P10;
    SNOW-HOLD's Port-Ledger A row, narrowed).
-6. **The others' layered walkers, online** (`net/peer/peerRiders.js` `keepLook`). Every outfit (LAYERED-GEAR's head, top,
-   legs and cloak) is its own decoded pictures and textures, and only a horse's look was ever let go. An outfit is now let
-   go past WALKER_OUTFITS_KEPT 24, and only one undrawn WALKER_OUTFIT_IDLE_SYNCS (3,600) of the walkers' syncs, with its
-   decodes - counted in syncs, settled at a sync's start (AUDIT U2: by the clock, a tab hidden a minute let every walker
-   in view go, one by one). What the store may let go - a horse's look, an outfit - it uploads and draws under records of
-   its own (PEER_OWN_REC, AUDIT U1): the local body draws the same pictures under the same keys, and an eviction took my
-   own sprite's frames with it until a reload (and, from COATS1, my rider's look let go took a peer's horse in it). A
-   peer in my outfit now costs a second copy of its frames on the GPU.
+6. **The others' layered walkers, online** - SUPERSEDED AT THE MERGE WITH MAIN (2026-10-23) by PEER-ART and AUDIT
+   FB1022d (`01-Overview/bugs/Field-Bugs-2026-10-22d.md`), which met the same leak from the field: an outfit is a look
+   (`spriteLookOf`), let go by COATS1's law at the frame's sweep and only when undrawn two frames and RIDER_LOOK_IDLE_MS
+   (the hidden tab, this audit's U2), its decodes held to RIDER_PIXELS_KEPT, and a texture another store let go uploaded
+   again (my own sprite and a peer's in one outfit, this audit's U1). MEM-AUDIT's own book (WALKER_OUTFITS_KEPT,
+   PEER_OWN_REC, `settleOutfits`) was dropped for main's, with its pins and its eight mutant records.
 7. **The classic sky's files** (`scenes/shared.js` SKY_FILES_KEPT, `dataSource.js` `forgetBytes`). Each SKY??.DAT is
    7.8 MB, and the parsed files and their bytes stood for the session, up to 248 MB past the heap. The two last asked are
    kept. One asked again is read again: the same bytes, the same panorama - only where they can be read again (AUDIT M1,
@@ -2563,12 +2561,12 @@ Pins: `test/systems/memaudit.test.js` (13), driving the module that owned the le
 host is the owner (`setMode`, the menu's wiring, the item menu's timer). The preset's are `org2_options.test.js`'s (PIN
 MOVED: `presetNow` reads the parts and the lanes, the apply line a lane's row whole; and the audit's G1-G6), COATS1's
 (PIN MOVED: a look let go under the store's own record), RF4's (PIN MOVED: the land view lane's `readOf`) and L10N4's
-ratchet (enhancedMenu.js 60 -> 58). Mutants: `tools/mutants/memaudit.json`, 65, all dead. Records re-aimed by content,
+ratchet (enhancedMenu.js 60 -> 58; 53 with QUEST-AUDIT III at the merge). Mutants: `tools/mutants/memaudit.json`, 57, all dead (65 before the merge with main dropped the walkers' eight). Records re-aimed by content,
 all dead:
 - `fb1021b_snowhold.json`: SNOW-HOLD-queue-unpruned and SNOW-HOLD-queue-kept-inactive;
 - `worldhover.json`: the setMode pair;
 - `audittact.json`: ATACT-B2-fat-trunk and ATACT-B2-crown-grounded;
-- `audit_flicker.json`: AUDIT-FLICKER-R1-a-new-batch-each-frame; `org2.json`: ORG2-the-preset-past-the-lane.
+- `org2.json`: ORG2-the-preset-past-the-lane (`audit_flicker.json`'s R1 back to main's at the merge, with PEER-ART's store).
 
 The audit: `01-Overview/audits/Audit-Mem-Audit.md`.
 

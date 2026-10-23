@@ -3350,6 +3350,8 @@ THE FOUR HOSTS: none wired - the herald is the relay's alone. `scenes/world.js`,
 `scenes/dungeonContext.js` and `scenes/exterior.js` are untouched (the chat's lines at a find, a fall and a fade are
 `scenes/superDungeon/sdHost.js`'s, unchanged).
 
+**HERALD-CARDS (2026-10-22).** These posts are cards now (`net/herald/heraldCard.js`; `World-Bosses.md` THE HERALD, HERALD-CARDS): the family The Abyss Dungeon, in its colour, the moment's title, its facts as fields (the rise: Fades unfound, never where; the find: Dungeon, Fades; the fall: Dungeon, Where, Next may rise; the fade: Where, Next may rise), and content only on a post that pings. When each is owed is unchanged. Its cards may go to a thread of their own of the channel (the relay setting `sdThread`), the gate's else.
+
 ### SD-SEA - 2026-10-20 (no Hollow rises at sea)
 
 The owner, 2026-10-20: *"Abyss Dungeons dont seem to be spawning anymore"*. The record is

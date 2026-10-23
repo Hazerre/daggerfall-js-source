@@ -63,24 +63,6 @@
     ]
   },
   {
-    "name": "MA-an-outfit-never-let-go",
-    "file": "src/net/peer/peerRiders.js",
-    "old": "    else if (isLayeredKey(s.key)) keepLook(outfits, outfitOfLayeredKey(s.key), k, s.key, walkerSync);",
-    "new": "    else if (false) keepLook(outfits, outfitOfLayeredKey(s.key), k, s.key, walkerSync);",
-    "tests": [
-      "test/systems/memaudit.test.js"
-    ]
-  },
-  {
-    "name": "MA-an-outfit-s-decodes-kept",
-    "file": "src/net/peer/peerRiders.js",
-    "old": "      for (const sk of x.sprites) pixels.delete(sk);\n",
-    "new": "",
-    "tests": [
-      "test/systems/memaudit.test.js"
-    ]
-  },
-  {
     "name": "MA-the-market-cache-uncapped",
     "file": "src/net/marketBook.js",
     "old": "      if (cache.size > MARKET_CACHE_KEPT) cache.delete(cache.keys().next().value);\n",
@@ -279,43 +261,6 @@
     ]
   },
   {
-    "name": "MA-U1-the-shared-record",
-    "file": "src/net/peer/peerRiders.js",
-    "old": "const recOf = (s) => (s.horse || isLayeredKey(s.key) ? `${s.rec}${PEER_OWN_REC}` : s.rec);",
-    "new": "const recOf = (s) => s.rec;",
-    "tests": [
-      "test/systems/memaudit.test.js",
-      "test/systems/horse/coats1_horsecoats.test.js"
-    ]
-  },
-  {
-    "name": "MA-U1-the-outfits-shared",
-    "file": "src/net/peer/peerRiders.js",
-    "old": "const recOf = (s) => (s.horse || isLayeredKey(s.key) ? `${s.rec}${PEER_OWN_REC}` : s.rec);",
-    "new": "const recOf = (s) => (s.horse ? `${s.rec}${PEER_OWN_REC}` : s.rec);",
-    "tests": [
-      "test/systems/memaudit.test.js"
-    ]
-  },
-  {
-    "name": "MA-U2-the-outfits-by-the-clock",
-    "file": "src/net/peer/peerRiders.js",
-    "old": "    else if (isLayeredKey(s.key)) keepLook(outfits, outfitOfLayeredKey(s.key), k, s.key, walkerSync);",
-    "new": "    else if (isLayeredKey(s.key)) { keepLook(outfits, outfitOfLayeredKey(s.key), k, s.key, walkerSync); settleBook(outfits, WALKER_OUTFITS_KEPT, walkerSync + 1, 0); }",
-    "tests": [
-      "test/systems/memaudit.test.js"
-    ]
-  },
-  {
-    "name": "MA-U2-settled-at-no-sync",
-    "file": "src/net/peer/peerRiders.js",
-    "old": "    store.settleOutfits?.();",
-    "new": "    void \"settled nowhere\";",
-    "tests": [
-      "test/systems/memaudit.test.js"
-    ]
-  },
-  {
     "name": "MA-U3-a-hit-not-the-newest",
     "file": "src/net/marketBook.js",
     "old": "    const hit = touch(key);",
@@ -491,25 +436,6 @@
     "file": "src/world/propBodies.js",
     "old": "  return { c, r: m.trunk * scale, h: m.crownFrom * scale, lift: 0, body: true, _mark: 0 };",
     "new": "  return { c, r: m.trunk * scale, h: m.crownFrom * scale, lift: 0, body: true };",
-    "tests": [
-      "test/systems/memaudit.test.js"
-    ]
-  },
-  {
-    "name": "MA-P5-the-outfits-never-idle-checked",
-    "file": "src/net/peer/peerRiders.js",
-    "old": "    const old = [...book].filter(([, x]) => now - x.used > idle).sort((a, b) => a[1].used - b[1].used);",
-    "new": "    const old = [...book].sort((a, b) => a[1].used - b[1].used);",
-    "tests": [
-      "test/systems/memaudit.test.js",
-      "test/systems/horse/coats1_horsecoats.test.js"
-    ]
-  },
-  {
-    "name": "MA-P5-the-outfits-idle-at-once",
-    "file": "src/net/peer/peerRiders.js",
-    "old": "settleBook(outfits, WALKER_OUTFITS_KEPT, walkerSync, WALKER_OUTFIT_IDLE_SYNCS); },",
-    "new": "settleBook(outfits, WALKER_OUTFITS_KEPT, walkerSync, 0); },",
     "tests": [
       "test/systems/memaudit.test.js"
     ]

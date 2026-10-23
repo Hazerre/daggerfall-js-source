@@ -888,7 +888,7 @@ test('FIELD-GUN8: the voice and the one module the lab turns on', () => {
   // textures") and the lab turns it on because this art IS that case.
   // Forced for THIS WEAPON ONLY and only upward, so no other weapon
   // and no other module stops reading the player's own settings.
-  assert.match(rig, /if \(!s\.inertia && thunderlockHeld\(\)\) return \{ \.\.\.s, inertia: true \};/);
+  assert.match(rig, /if \(!s\.inertia && thunderlockHeld\(\) && !playerWeapon\.mixedPair\) return \{ \.\.\.s, inertia: true \};/);   // PIN MOVED (MIXED-PAIR): never for a blade-and-gun pair's blade - its gun steps on its own rig
   assert.match(rig, /return s;/, 'and everything else is handed back untouched');
   const decl = rig.slice(rig.indexOf('const widget = createWeaponWidget('), rig.indexOf('const widgetOn ='));
   assert.ok(!/Modules\.(Bob|Offset|Step)/.test(decl), 'no other module is touched');

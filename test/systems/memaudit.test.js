@@ -17,7 +17,6 @@ import { SnowCoverage } from '../../src/systems/snowfall.js';
 import { SnowfallRuntime } from '../../src/systems/snowfallRuntime.js';
 import { snowPixelBox } from '../../src/scenes/snowfallHost.js';
 import { drawPixelGround } from '../../src/ui/pixelGround.js';
-import { createEotbArt, createPeerWalkers, WALKER_OUTFITS_KEPT, WALKER_OUTFIT_IDLE_SYNCS, PEER_OWN_REC, outfitOfLayeredKey } from '../../src/net/peer/peerRiders.js';
 import { createMarketBook, MARKET_CACHE_KEPT, MARKET_CACHE_MS } from '../../src/net/marketBook.js';
 import { hostText } from '../hostText.mjs';
 import { accountCard } from '../../src/ui/enhanced/enhancedAccount.js';
@@ -29,7 +28,6 @@ import { HEIGHTMAP_DIMENSION } from '../../src/world/terrain/terrainSampler.js';
 
 const rd = (p) => readFileSync(new URL(`../../src/${p}`, import.meta.url), 'utf8');
 const quiet = (fn) => { const w = console.warn; console.warn = () => {}; try { return fn(); } finally { console.warn = w; } };
-const flush = () => new Promise((r) => setTimeout(r, 0));
 
 // ─── THE STATIC BATCH ────────────────────────────────────────────────
 
@@ -270,60 +268,6 @@ test('MEM-AUDIT the menus\' sky: the same bytes as PX1\'s every draw, its image 
   drawPixelGround(canvas, 1600, 900, 0, { keep: false });
   assert.equal(made, 7, 'a one-off draw keeps no image (AUDIT P9)');
   assert.deepEqual(last, oldSky(w, h, 0));
-});
-
-// ─── THE OTHERS' LAYERED WALKERS ─────────────────────────────────────
-
-test('MEM-AUDIT the others\' layered walkers: each outfit is its own pictures and decodes, let go once WALKER_OUTFITS_KEPT others were drawn since and it stood undrawn WALKER_OUTFIT_IDLE_SYNCS of the walkers\' syncs - under records of the store\'s own, never the local body\'s keys (AUDIT U1), and never one drawn the sync before, however long the gap between syncs (AUDIT U2) (mutants: an outfit never let go, its decodes kept, the shared record, the clock\'s idleness)', async () => {
-  const evicted = [], decoded = [], uploads = [];
-  const art = createEotbArt({
-    renderer: { uploadTexture: (a, rec) => uploads.push(`${a}_${rec}`), evictTexture: (k) => evicted.push(k) },
-    urlFor: (k) => k, decode: async (u) => { decoded.push(u); return { width: 4, height: 4, colors: new Uint8Array(64).fill(9) }; }, clock: () => 0,
-  });
-  const sprite = (code, f = 0) => ({ archive: 9100, record: 10, frame: f, mirror: false, key: `LA:m:2:10-${f}:${code}`, rec: `${code}_10-${f}` });
-  assert.equal(outfitOfLayeredKey(sprite('123~4', 3).key), 'LA:m:2:123~4');
-  const worn = sprite('000');
-  const sync = (...drawn) => { art.settleOutfits(); for (const s of drawn) art.ensure(s); };
-  for (let i = 1; i < WALKER_OUTFITS_KEPT; i++) {   // with the walker in view, WALKER_OUTFITS_KEPT outfits
-    sync(sprite(`${i}`), sprite(`${i}`, 1), worn);
-    for (let n = 0; n <= WALKER_OUTFIT_IDLE_SYNCS; n++) sync(worn);   // each drawn once, then undrawn its idleness
-  }
-  await flush();
-  assert.equal(evicted.length, 0, `${WALKER_OUTFITS_KEPT} outfits, all kept until one past the cap`);
-  sync(sprite('999'), worn);
-  sync(worn);
-  await flush();
-  assert.deepEqual(evicted.sort(), [`9100_1_10-0${PEER_OWN_REC}`, `9100_1_10-1${PEER_OWN_REC}`], 'the outfit longest undrawn, every frame of it - under the store\'s own records');
-  assert.ok(uploads.length > 0 && uploads.every((k) => k.endsWith(PEER_OWN_REC)), 'what the store may let go it uploads under its own records: never a key the local body draws');
-  assert.ok(art.ensure(worn), 'the walker in view stands');
-  const before = decoded.filter((u) => u.endsWith(':1')).length;
-  assert.equal(art.ensure(sprite('1')), null, 'asked again, decoded again');
-  await flush();
-  assert.equal(decoded.filter((u) => u.endsWith(':1')).length, before + 1, 'its decode went with it');
-  // AUDIT U2: a crowd past the cap, all in view - a tab hidden for any time is no sync, so none ages
-  const crowd = Array.from({ length: WALKER_OUTFITS_KEPT + 6 }, (_, i) => sprite(`c${i}`));
-  for (let n = 0; n < 3; n++) sync(...crowd);
-  const had = evicted.length;
-  for (let n = 0; n < 3; n++) sync(...crowd);
-  assert.equal(evicted.length - had, 0, 'every walker in view kept, whatever the clock read between syncs');
-});
-
-test('MEM-AUDIT the walkers\' sync settles the outfits first, once a sync - before any walker is noted, so every one drawn the sync before was noted then (AUDIT U2) (mutant: settled at no sync)', async () => {
-  const art = createEotbArt({
-    renderer: { uploadTexture() {}, evictTexture() {}, createBillboardBatch: (archive, record, size) => ({ archive, record, size, origin: null }), destroyBillboardBatch() {} },
-    urlFor: (k) => `u:${k}`, decode: async () => ({ width: 50, height: 110, colors: new Uint32Array(50 * 110) }),
-  });
-  const calls = [];
-  const settleOutfits = art.settleOutfits, ensure = art.ensure;
-  art.settleOutfits = () => { calls.push('settle'); settleOutfits(); };
-  art.ensure = (sp) => { calls.push('ensure'); return ensure(sp); };
-  const w = createPeerWalkers({ art, layeredAll: () => true });
-  const pose = (x) => ({ x, y: 0, z: 9, yaw: 0, pitch: 0, mv: 0, wd: 0, an: 0, sr: 0, cn: 0, ar: 0 });
-  const peers = [{ id: 'a', look: { gender: 'male', items: [] }, shown: pose(4) }, { id: 'b', look: { gender: 'female', items: [] }, shown: pose(6) }];
-  for (let n = 0; n < 2; n++) { w.sync(peers, (p) => [p.x, p.y, p.z], { eye: [4, 1, 20], dt: 0.01 }); await flush(); }
-  assert.deepEqual(calls.filter((c) => c === 'settle').length, 2, 'once a sync');
-  assert.equal(calls[0], 'settle', 'first');
-  assert.ok(calls.indexOf('ensure') > 0 && calls.lastIndexOf('settle') < calls.lastIndexOf('ensure'), 'before the walkers are noted');
 });
 
 // ─── THE MARKET'S READS ──────────────────────────────────────────────

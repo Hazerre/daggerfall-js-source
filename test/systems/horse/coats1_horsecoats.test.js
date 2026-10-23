@@ -22,7 +22,7 @@ import { ridingLook, loadRidingArt } from '../../../src/systems/riding.js';
 import { TRANSPORT_MODES } from '../../../src/systems/transport.js';
 import { createHorseCartPool, horseStillRecord, horseWalkRecord, HORSE_ARCHIVE, HORSE_LOOKS_KEPT, HORSE_DYE_PICTURES } from '../../../src/scenes/horseCartPool.js';
 import { HORSE_SPRITE_WIDTH, HORSE_SPRITE_HEIGHT, HORSE_VIEWS, HORSE_WALK_FRAMES } from '../../../src/systems/horse/horseCartLaw.js';
-import { createEotbArt, RIDER_LOOKS_KEPT, RIDER_LOOK_IDLE_MS, PEER_OWN_REC } from '../../../src/net/peer/peerRiders.js';
+import { createEotbArt, RIDER_LOOKS_KEPT, RIDER_LOOK_IDLE_MS } from '../../../src/net/peer/peerRiders.js';
 import { stableProviderFor } from '../../../src/ui/holdingsPages.js';
 
 const horseItem = (extra = {}) => ({ templateIndex: TRANSPORT_HORSE, group: 'Transportation', name: 'Horse', ...extra });
@@ -379,6 +379,8 @@ test('COATS1 the pool: past HORSE_LOOKS_KEPT looks, the one longest undrawn is l
   assert.ok(evicted.every((k) => k.endsWith(`~${first}`)), 'that look alone');
 });
 
+// PIN MOVED (AUDIT FB1022d D1): a look is let go by the store's once-a-frame sweep (createEotbArt sweep, the riders'
+// settle), never inside a draw - so each ensure here is a frame, swept
 test('COATS1 the others\' riders: each rider\'s horse look is its own dyed pictures, let go once RIDER_LOOKS_KEPT others were drawn since', async () => {
   const evicted = [], uploads = [];
   let now = 0;
@@ -387,12 +389,14 @@ test('COATS1 the others\' riders: each rider\'s horse look is its own dyed pictu
     urlFor: () => 'x.png', decode: async () => ({ width: 4, height: 4, colors: new Uint8Array(64).fill(200) }), clock: () => now,
   });
   const sprite = (look) => spriteFor('IdleHorse', 0, 0, { onHorse: 0, horse: look });
-  for (let s = 1; s <= RIDER_LOOKS_KEPT; s++) { art.ensure(sprite(code(2, 1, 0, s))); now += RIDER_LOOK_IDLE_MS + 1; }
+  for (let s = 1; s <= RIDER_LOOKS_KEPT; s++) { art.ensure(sprite(code(2, 1, 0, s))); art.sweep(); now += RIDER_LOOK_IDLE_MS + 1; }
   await flush();
   assert.equal(uploads.length, RIDER_LOOKS_KEPT); assert.equal(evicted.length, 0);
   art.ensure(sprite(code(2, 1, 0, 999)));
+  assert.equal(evicted.length, 0, 'never inside a draw');
+  art.sweep();
   const first = sprite(code(2, 1, 0, 1));
-  assert.deepEqual(evicted, [`${first.archive}_${first.rec}${PEER_OWN_REC}`], 'the look longest undrawn - under the store\'s own record (PIN MOVED, AUDIT MEM-AUDIT U1: a look shared with my own rider\'s keys was let go from under it)');
+  assert.deepEqual(evicted, [`${first.archive}_${first.rec}`], 'the look longest undrawn');
   assert.equal(art.ensure(first), null, 'asked again, fetched again');
 });
 

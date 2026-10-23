@@ -67,11 +67,15 @@ WHILE THE VERIFIER IS READING held while the findings already in were fixed in t
   horse looks had the same unguarded law, both ways. FIXED: what the store may let go it uploads and draws under records
   of its own (`PEER_OWN_REC`). Pinned (every upload and eviction the store's own), COATS1's pin moved;
   MA-U1-the-shared-record, MA-U1-the-outfits-shared.
+  SUPERSEDED AT THE MERGE WITH MAIN: main's PEER-ART (AUDIT FB1022d) met the same leak from the field and re-uploads a
+  texture another store let go, both ways; its law stands, this fix and its pins and records were dropped for it.
 - **U2 MEDIUM - walkers in view vanished together after a hidden minute.** Idleness by the clock, checked inside each
   `ensure`: the first walker noted after a gap let the rest go one by one. FIXED: counted in the walkers' syncs
   (WALKER_OUTFIT_IDLE_SYNCS), settled once at a sync's start - which also ends the per-walker sort a crowd paid each frame
   (U2's LOW). Pinned (a crowd past the cap in view, kept; the sync settles first, once), MA-U2-the-outfits-by-the-clock,
   MA-U2-settled-at-no-sync, MA-P5-*.
+  SUPERSEDED AT THE MERGE WITH MAIN: PEER-ART's sweep lets a look go only undrawn two frames and RIDER_LOOK_IDLE_MS,
+  once a frame after every layer drew - a hidden tab ages nothing. This fix, its pins and records were dropped for it.
 - **U3 LOW - the market dropped a view the player came back to after 70 pages, and its stale fallback.** FIXED: 256
   kept, the least recent first - a read, a `cached()` and a write each the newest. Pinned, MA-U3-*, MA-P6-*.
 - NOTE: a decode rejected after an eviction may delete its successor's cache entry - an extra decode, nothing seen. Left.
@@ -160,6 +164,6 @@ The change holds about 147-159 MB less at the same settle with the same GL objec
 
 ## The pins and the mutants
 
-`test/systems/memaudit.test.js` 13 tests; `org2_options.test.js` the G1-G6 test and its moved pins; COATS1's, RF4's and
-L10N4's moved. `tools/mutants/memaudit.json` 65 records, all dead; `audit_flicker.json` and `org2.json` re-aimed by
-content, dead.
+`test/systems/memaudit.test.js` 11 tests (13 before the merge with main dropped the walkers' two); `org2_options.test.js` the G1-G6 test and its moved pins; COATS1's, RF4's and
+L10N4's moved (COATS1's back to main's at the merge). `tools/mutants/memaudit.json` 57 records, all dead (65 before the merge dropped the walkers' eight); `org2.json` re-aimed by
+content, dead (`audit_flicker.json` main's again).

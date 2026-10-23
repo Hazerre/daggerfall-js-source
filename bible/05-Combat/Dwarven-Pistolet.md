@@ -174,10 +174,9 @@ out-of-Pellets guard asks only whether the weapon is a gun (`isGunType`), which 
 
 ## First person - the pair
 
-**The law** (`combat/twoHands/handsLaw.js`). `DUAL_GUN_TYPES` [19, 20] beside the melee `DUAL_TYPES`, and **a pair is
-two of a kind** - two melee weapons or two Pistolets, never one of each. A swing and a shot are two machines' worth of
-difference, and the sprite lane draws them through two doors. The mixed pair is a later slice's. The Thunderlock is
-two-handed and never in a pair.
+**The law** (`combat/twoHands/handsLaw.js`). `DUAL_GUN_TYPES` [19, 20] beside the melee `DUAL_TYPES`: two Pistolets are a
+pair, and since MIXED-PAIR (2026-10-23) so are a blade and a Pistolet - the hands taking turns on two machines, the gun's
+reload one-handed (`Two-Hands.md`, "A blade and a gun"). The Thunderlock is two-handed and never in a pair.
 
 **The machines** (`combat/playerWeapon.js` `pistols`, the pistol lab's pair - PISTOL-PORT, below). TWO machines, one a
 pistol, each its own six frames and its own reload; the hands take turns by the law's flurry (the lead opens, the other
@@ -298,7 +297,8 @@ a pair slid off whole).
 - The holster: the page has no sheath; the game lowers the pistols to `sheathTarget` on the same rig (`away`).
 - The handedness: the page is right-handed; the game mirrors a left-handed player's (`flipOf`). And one pistol is drawn
   where DFU draws the weapon in use - the Handedness side, whichever hand holds it - where the page's single mirrors a
-  left lead (AUDIT PISTOL-PORT B7).
+  left lead (AUDIT PISTOL-PORT B7); a pistol that is a hand of a blade-and-gun pair is drawn on ITS hand's side
+  (MIXED-PAIR, `pistols.inPair`, `pistolLane.js` flipFor - AUDIT MIXED-PAIR L5-16).
 - The off hand's held ticks are gone for a Pistolet: the page's machine has no tick to hold. Its damage, to-hit and
   blow terms stand.
 - The rest the page does not draw at all: the element's glow outline (WEAPON-GLOW1), the gilded art, the light thrown on
@@ -434,18 +434,18 @@ down, a pair's left hand on its own pistol, off when sheathed). `tools/mutants/p
 ## Departures (Port-Ledger section A, PISTOLET)
 
 - The arms solved onto the pistol while drawn, not the borrowed throw clip's (PISTOL-STANCE, RIFLE-STANCE's departure).
-- The pair of guns: `DUAL_GUN_TYPES` and two of a kind beside Two-Hands' melee law.
+- The pair of guns: `DUAL_GUN_TYPES` beside Two-Hands' melee law - two of a kind until MIXED-PAIR (2026-10-23), since
+  when a blade and a Pistolet are a pair too (`Two-Hands.md` "A blade and a gun").
 - A gun pair's reload, hand by hand, and the pull that falls to the loaded pistol - on the pistol lab's own two machines
   (PISTOL-PORT).
 - PISTOL-PORT's: the camera shake, the room's tint, the player's Offset and Bob switches, the holster, the
-  handedness (one pistol on the Handedness side), no off-hand held ticks, and what the page does not draw (above).
+  handedness (one pistol on the Handedness side; a mixed pair's on its own hand's), no off-hand held ticks, and what the page does not draw (above).
 - A weapon's own Weapon Widget tuning laid over Diverse Weapons' preset.
 - The doll's two hands for a custom weapon, by slot.
 
 ## What is still open
 
 - **The stance on Morrowind's own bodies**: picked on the vendored retail skeleton (PISTOL-STANCE, above).
-- **The mixed pair**: a Pistolet beside a sword.
 - **A pistol's own sounds**: the owner picked from the gun lab's clips; a flintlock's pan and ramrod were never searched
   for.
 - **The doll's placement**, measured on the classic records; the owner's eye is the gate.
