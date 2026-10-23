@@ -4341,14 +4341,14 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     batch.castOnly = !!_npcLane?.has('foe', foeId(f));   // AUDIT MW-NPC II H3: the body stands from the kill - the flat minted under it casts alone from its first frame (the level's pass draws it before drawFoes marks it)
     billboardBatches.push(batch);   // hosts draw + destroy() frees
   }
-  function playerAttackInput(dx, dy, held) {   // host mouse events buffer here
+  function playerAttackInput(dx, dy, held, { cast = false } = {}) {   // host mouse events buffer here; SPELL-HAND: `cast` - a cast's own press (Mouse0's), never a swing
     if (held && opts.profActing?.()) return;   // PROF2: an act's strike is the act's - never a swing (the outer host reads it); AUDIT 29 D2: the PRESS alone - a release is never gated, or a button held into an act swung on after it
     // I2 (cast probe): the CAST intercept runs BEFORE the sheath gate.
     // DFU's cast is EntityEffectManager's own Update - a separate
     // component from WeaponManager - so a sheathed player still fires
     // a readied spell on the click; only the SWING needs the weapon
     // out (WeaponManager verbatim, audit 2026-08-17).
-    if (magic.interceptAttack(held)) return;   // the armed click casts, no swing
+    if (magic.interceptAttack(held, { cast }) || cast) return;   // the armed click casts, no swing (SPELL-HAND: and a cast's own press never swings)
     weaponRig.attackInput(dx, dy, held);   // AUDIT 68 S09-sheathed-swing: the rig refuses the swing itself; a host-side sheath gate here ate the RELEASE
   }
   // ═══ WB4b: THE BURNING COURT'S BOSS, MET ═══════════════════════════════════════════════════════════════════════

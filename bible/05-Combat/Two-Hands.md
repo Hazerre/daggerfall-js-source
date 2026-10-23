@@ -38,8 +38,8 @@ described (`playerWeapon.js` `handDesc`: the item, its WeaponTypes, its ItemHand
 | Mode | When | Drawn |
 |---|---|---|
 | `fists` | both hand slots empty | both fists up |
-| `dual` | two one-handed melee weapons (`DUAL_TYPES`: blades, daggers, maces, flails, hammers, axes, plain and magic - one-handed by ItemHands) | both weapons up |
-| `single` | everything else - a shield (a fist and a shield is DFU's), a two-hander, a bow, a staff, a gun, the beast's claws, one weapon and an empty hand, **a light carried in a hand** | DFU's one used hand |
+| `dual` | two one-handed weapons - two melee (`DUAL_TYPES`: blades, daggers, maces, flails, hammers, axes, plain and magic - one-handed by ItemHands), two Pistolets (PISTOLET), or one of each (MIXED-PAIR, below) | both weapons up |
+| `single` | everything else - a shield (a fist and a shield is DFU's), a two-hander, a bow, a staff, the Thunderlock, the beast's claws, one weapon and an empty hand (with a spell readied, the spell hand - below), **a light carried in a hand** | DFU's one used hand |
 
 The light: a lit torch or lantern held (not hung at the waist, HT-WAIST) takes the left hand where a lane paints it there -
 Handheld Torches' sprite on the classic lane, the Morrowind arm's torch on its Shield Bone (a torch alone: the arm holds no
@@ -459,13 +459,139 @@ one, never one hand's glow on both:
 
 ## A pair of guns (PISTOLET, 2026-10-21)
 
-The Dwarven Pistolet is one-handed, so two of them are a pair: `DUAL_GUN_TYPES` [19, 20] beside `DUAL_TYPES`, and a pair
-is TWO OF A KIND - two melee weapons or two Pistolets, never one of each (`handsModeOf`). A gun pair fires on the pistol
+The Dwarven Pistolet is one-handed, so two of them are a pair: `DUAL_GUN_TYPES` [19, 20] beside `DUAL_TYPES` (and a
+Pistolet beside a blade is one too since MIXED-PAIR, the next section). A gun pair fires on the pistol
 lab's own two machines (`combat/playerWeapon.js pistols`, `combat/gun/pistolPair.js` - PISTOL-PORT), which run this
 page's flurry (`strikeHandOf`); what a gun adds is each hand's own six frames and reload, a pull falling to the loaded
 pistol when the law's hand is reloading, and no flurry frame skip. The sprite lane draws a gun pair through the page's own
 frame (`combat/gun/pistolViewmodel.js` through `pistolLane.js`, ahead of `twoHands.drawPair`); the guard, the mirror and
 the two sway rules are this page's. Its record and its measured balance: `Dwarven-Pistolet.md`.
+
+## A blade and a gun (MIXED-PAIR, 2026-10-23)
+
+The owner: *"So with the introduction of the pistolets. Im wondering how we could do 2 things 1. Being able to hold a melee
+and pistolet as a duel wield option"*, then, of the questions put back (one trigger or one a hand; how the gun pays), *"Make
+the best decisions"*. Until now a pair was two of a kind (PISTOLET: "a swing and a shot are two machines' worth of
+difference"); this is the later slice `Dwarven-Pistolet.md` named.
+
+**The law** (`handsLaw.js`). `handsModeOf` makes a pair of any two one-handed weapons; `gunHandOf` names the hand of a
+blade-and-Pistolet pair that holds the gun (null for two blades, two guns, one weapon). The pair keeps this page's law
+whole: the lead opens, the other hand answers inside FLURRY_WINDOW, H picks the lead, the off hand pays DUAL's terms on
+either kind - the off blade's swing as any pair's (its share, its to-hit, its held ticks), the off gun's shot as a gun
+pair's (read at impact off the gun it left, `isOffHandItem`). ONE TRIGGER, the pair's own: the decision against a button a
+hand is the page's own law - two hands, one exchange - and every control a pair already has works on it unchanged.
+
+**The turns** (`playerWeapon.js` `_mixedAttack`). Each hand strikes by its kind - the gun's pull on its own pistol machine
+(PISTOL-PORT's: six frames, its reload), the blade's swing on the classic machine - and **ONE STRIKE AT A TIME**: a pull
+while either is in flight starts nothing (the classic machine mirrors the shot while its frames play), so the blade fills
+the gun's reload and never rides over its shot. A gun pair overlaps its two shots; a mixed pair's two kinds never do.
+- **The pull falls to the blade** (`mixedStrike`): the law's gun hand that cannot fire - reloading, or no Pellet owed to it
+  (`gunReady`, the rig's `pelletsOwed`) - gives the pull to the blade: never a flurry's (that hand did not wait raised), the
+  off hand's exactly when the blade is not the lead. A gun pair's pull falls to the loaded pistol the same way (PISTOL-PORT).
+  A technique is the lead's alone and never falls: a lead gun reloading refuses it.
+- **The shot's end is the exchange's** (`_pistolsStep`): the blade that answers within FLURRY_WINDOW of the shot is a
+  flurry's (DUAL.FLURRY_FROM_FRAME), on the classic clock both hands share; and the blade swings on its own law
+  (`_tuneClassic`), never on the clock the shot left the machine on.
+- **The one-handed reload** (`MIXED.RELOAD` 1.5): the gun beside a blade reloads half again as long as with a hand free - the
+  hand that would ram the next ball holds a blade. Each machine's own (`cooldownMs`), so a gun moved to the other hand takes
+  it, a gun pair and a lone gun keep the free hand's 1.4 s, and a blade put away mid-reload loads at the free pace from there;
+  the reload's two clacks are each machine's own (`pistolReloadVoice`).
+- **No Pellet** puts nothing away: a lone gun with none is sheathed (`bowArrowGuard`), a pair's blade still fights - the gun
+  refuses its own pull and the blade takes it.
+
+**The balance, measured** (`test/combat/mixedpair.test.js`, through the machine and `calculateAttackDamage` - the mean landed
+blow at Speed 50, Strength 50, struck every time, 120 s held):
+
+| | blows a minute | damage a second |
+|---|---|---|
+| a longsword | 60 | 7.76 |
+| a longsword pair | 75 | 8.76 |
+| a Pistolet | 32 | 5.82 |
+| a Pistolet pair | 64 | 10.52 |
+| **a longsword and a Pistolet** (the blade leads) | 54 + 18 shots | **9.73** |
+| a Pistolet and a longsword (the gun leads) | 18 shots + 54 | 9.05 |
+| a dagger and a Pistolet | 54 + 18 shots | 4.87 |
+
+A longsword with a Pistolet lands about a tenth more than a longsword pair and under a pair of Pistolets, on 18 Pellets a
+minute to the gun pair's 64, the shield given up. A light blade beside the gun lands under the gun alone - the pair is as good
+as its weaker hand, the record's own line for a dagger beside a longsword. **Why 1.5**: at a free hand's reload the
+longsword and Pistolet landed 10.60 a second, a pistol pair's whole damage (10.52) on two fifths of its Pellets and a fifth
+over a longsword pair; at 2 a Pistolet-led pair fell to 8.37, under the blade pair.
+
+**The sprite lane** (`weaponRig.js`, the mixed branch beside the gun pair's): drawn whole, in the pair's own order (the
+striking hand over the other - `twoHands.drawOrder`), through two doors: the Pistolet on the gun's own frame (`drawThunderlock`'s
+`hand`; a hand of a pair, so drawn on ITS hand's side - `pistols.inPair`, `pistolLane.js` flipFor - never the Handedness side
+a lone pistol takes), the blade as the melee pair's hand (`twoHands.drawPair`'s `only` - its clone or its classic sprite,
+its mirror). **Each lowers under the other's strike**: the blade by the pair's guard under the shot, the gun by its own guard
+(`pistolHandsStep`'s `lowered`) under the blade's blow; the gun's reload dips it as any pistol's, the blade swinging the while.
+Under the Weapon Widget the gun hand's clone rests on a still machine (`STILL_MACHINE`): no swing, whoosh or thud for a shot,
+its clock kept for the blade's. The gun's voice, flash and frame step every frame the pair is up (`gunUp`), not only on its
+turn; the arm's reload pump over the whole viewmodel is a lone gun's alone (the blade swings through the reload).
+
+**The Morrowind lane** (`combat/twoHands/mixedArm.js`, wired by `fpArm.js`). The arm plays one weapon group, the right
+hand's record's; a blade's clip and a gun's are two weapons' worth of difference (the Pistolet borrows MarksmanThrown's
+group, PISTOL-STANCE). So:
+- **a blow plays its own hand's group** (`blowTypeOf`): the left hand's blow of the other kind plays in the left weapon's
+  group for the blow's length - a shot's "shoot" and its "shoot release" (MW-D42: the shot leaves there), a blade's own
+  hit - the whole body in the mirror as any left blow is; the arm's group is the right hand's again when it ends (`endAttack`);
+- **the off arm holds its own weapon's idle** in the mirror (`'dual:mixed'`), never the right weapon's;
+- **the gun is held as a gun, on its own hand alone** (`gunHoldOf`, the pistol stance's `only`): the gun hand solved onto its
+  pistol - a left gun on Weapon Bone Left, the single stance's row in the mirror - the blade's arm left to the composition;
+  its aim comes up for its own hand's shot, never the blade's swing.
+
+## The spell hand (SPELL-HAND, 2026-10-23)
+
+The owner, in the same ask: *"2. Using the spell hand and any 1 handed weapon in tandem. Basically being able to cast one
+handed spells and visually seeing the one handed spell sprite hand/morrowind"*, then *"Make the best decisions"*.
+
+**What DFU does** - never both: a readied spell hides the weapon (WeaponManager's HasReadySpell leg, the rig's `shown()`),
+and FPSSpellCasting's own header says its hands "are never mixed with weapons directly on screen at same time". Both hands
+cast (`drawSpellCastHands`: the one picture, AlignLeftHand's as painted and AlignRightHand's mirrored). The cast fires on
+ActivateCenterObject's press (EntityEffectManager); the port's swing button casts a readied spell too (M2).
+
+**The law** (`combat/twoHands/spellHand.js` `spellHandOf`): a one-handed weapon (a blade or a Pistolet - `dualEligible`)
+in the hand that fights (DFU's used hand; H still swaps them) and NOTHING in the other - no weapon, no shield, no light
+carried in it - and the free hand takes the spell. Both hands taken (a pair, a shield, a light), a weapon that takes both (a
+two-hander, a bow, a staff, the Thunderlock) or none in the fighting hand (sheathed, the fists, the beast) is DFU's
+two-handed cast, untouched. **Every readied spell** goes in the free hand - the art is per element, not per range, and an area
+spell is no more two-handed in the picture than a touch.
+
+**The decisions:**
+- **The two buttons split**: with the spell hand up the SWING button is the weapon's (`hostMagic.js` `interceptAttack`
+  lets it through) and the spell leaves on a cast's own press - ActivateCenterObject's (EntityEffectManager's own, Mouse0),
+  the touch layer's, the hotbar's (`{ cast: true }`, every host's - THE FOUR HOSTS RULE: `world.js`, `exterior.js`,
+  `worldModes.js` indoors and in the dungeon, `dungeon.js`, `quickslots.js`; a cast's press in the dungeon never swings).
+- **The hands take turns**: no swing starts while the cast's hands play (the rig's `canAttack`, DFU's IsPlayingAnim leg kept),
+  and a cast pressed while the weapon is mid-blow WAITS (`firePending` keeps the press while `spellHandBusy`) and leaves when
+  the blow ends - kept, never dropped.
+- **Z keeps the spell**: with the hands able to hold it, sheathing the weapon leaves the spell readied in DFU's two hands,
+  and drawing again puts it back in the free hand (never mid-cast); where they cannot, DFU's AbortReadySpell.
+- **The guard** (a pair's law, Mac's "the other weapon in hand should lower slightly"): while one hand strikes the other
+  lowers by GUARD.LOWER of its own drawn height - the weapon under the cast (the classic sprite, the Weapon Widget clone, a
+  Pistolet's own guard), the readied hand under a blow.
+
+**The live word** (`spellHandUp`, `spellHandBusy`): the rig that steps the frame says once a frame whether the spell hand is
+up and whether its weapon is mid-blow (`tellSpellHand`), and the cast's doors read it - a singleton for the reason
+FPSSpellCasting is one: one player, one pair of hands, four hosts each with a rig.
+
+**The classic lane** (`weaponRig.js`): `shown()`'s spell leg stands down while the spell hand is up, so the weapon is drawn
+as ever; at the spell hands' own site ONE of the two is drawn (`drawSpellHand`, through `spellHandRects` - the cast's frames
+and the readied frame 0 alike, RSH1's), on the side the weapon is not: AlignLeftHand's as painted for a right-handed player,
+AlignRightHand's mirrored where the weapon is on the left (Handedness, the Weapon Widget clone's flip, a Pistolet's own side).
+
+**The Morrowind lane** (`combat/twoHands/spellHandArm.js`, wired by `fpArm.js` `setSpellHand`): the arm draws its weapon in
+the right hand (MW-HAND), so its spell hand is the left arm.
+- **readied**: the arm keeps the WEAPON's stance - its idle, its blows, its group - where MW-D39 took the Spell stance, and
+  the left arm alone takes the Spell stance's idle (`idlespell`), its own left arm copied on its own clock (`'spellhand:ready'`);
+- **casting**: the cast plays the spellcast group on the whole body as MW-CAST1 plays it (the spell leaving on "<type>
+  release"), the weapon kept in its hand (`weaponInHand`), and the right arm takes the weapon stance's idle (`'spellhand:cast'`);
+  the Spell stance the cast latched (AUDIT 36 F2) lets go as it ends;
+- a Pistolet beside the spell keeps its stance on the right hand alone (`gunHoldOf`'s `only` 'R'): the free hand is the
+  spell's, never placed at the side.
+
+HOST-SPLIT: both slices' Morrowind laws live in their modules (`spellHandArm.js`, `mixedArm.js`); `createFpArm` grows by
+the wiring that reads its own state into them - 2,855 -> 2,931 logical lines, under its 3,252 ceiling
+(`test/scenes/hostceiling.test.js`). No host grows: the cast presses change in place.
 
 ## Departures from DFU (Port-Ledger A, TWO-HANDS)
 
@@ -485,11 +611,19 @@ the two sway rules are this page's. Its record and its measured balance: `Dwarve
 6. No Features switch (the owner, of the second audit's L4 m3: "Leave them on"): both fists up and the running hands
    stay under Settings > Features' All off, whose word is that every enhancement goes to Off; a pair needs none, being
    the player's own choice of two weapons.
+7. MIXED-PAIR: a blade and a Pistolet are a pair - the hands taking turns on two machines, the gun's reload one-handed
+   (MIXED.RELOAD), a pull falling to the blade; on the Morrowind arm each hand's blow in its own weapon's group.
+8. SPELL-HAND: WeaponManager's HasReadySpell leg and FPSSpellCasting's two hands - a readied spell beside a drawn one-handed
+   weapon with a free hand keeps the weapon up and takes ONE hand; the swing button is the weapon's and the spell leaves on
+   its own press; Z keeps the spell (AbortReadySpell only where the hands cannot hold it); the Morrowind arm keeps the
+   weapon's stance with the Spell idle's left arm. Neither has a Features switch: each is the player's own choice of hands.
 
 ## Not carried
 
 - **Peers on the wire**: another player's body still holds the one hand the wire names (`shown.lh`,
-  `net/peer/peerBodies.js`), not the pair.
+  `net/peer/peerBodies.js`), not the pair - nor a blade-and-gun pair, nor the spell hand (a peer casts in Morrowind's Spell
+  stance, the weapon out of the hand).
+- **The spell hand on the Beholder's sprite body** (EOTB): third person on the sprite body draws DFU's readied stance.
 - **The off weapon's holster**: sheathed, the left hand's weapon is hidden, not hung on the body as Weapon Sheathing
   hangs the one weapon.
 - **The Beholder's sprite body** (EOTB): third person on the sprite body shows one weapon.
@@ -533,6 +667,22 @@ the two sway rules are this page's. Its record and its measured balance: `Dwarve
   `bladeInnerEdge` share), `TWOHANDSMW-AUDIT2-guard-memo-blind` onto `pairBladeMeasure` (the memo the guard and the spread
   share), `TWOHANDSMW-AUDIT2-dip-drawn-unkept` and `TWOHANDSMW-AUDIT2-idle-key-reads-the-plan` onto the mirror's `keep` and
   its idle key's early answer, which read the spread beside the dip.
+- MIXED-PAIR and SPELL-HAND: `test/combat/mixedpair.test.js` (11 - the law, the fall, the turns and their counts, the
+  one-handed reload, the off hand's terms on either kind, a flurry's blade on its own tick, the balance measured, and the
+  rig: the sides and the order, each guard, no Pellets, the gun hand's clone at rest), `test/combat/spellhand.test.js` (9 -
+  the law, the live word, the cast's doors, the four hosts' cast presses, and the rig: one hand beside the weapon, the swing
+  with the spell readied, the cast and the weapon's guard, Z, DFU where the hands are full, the sides and a Pistolet's guard),
+  `test/combat/spellhand_mw.test.js` (6 - the arm's limbs, the live arm's spell hand and its blade-and-gun pair, the arm's law,
+  the pistol stance's one hand, the body on retail's bones). `tools/mutants/mixedpair.json` (29), `spellhand.json` (27) and
+  `spellhand_mw.json` (19), all dead. PIN MOVED: `fpsspellcasting` (the weapon's hide reads the spell hand; both hands
+  through `castHands`); `audit29_host` (the swing gate's Pellet leg, the street's cast press), `machij_sprites_and_chat`
+  (the tint through `castHands`, the clone's guard, the sprite's `m`), `thunderlock` FIELD-GUN8 (no forced Inertia for a
+  mixed pair's blade); `test/systems/pistolet.test.js`'s pair law (two of a kind - a blade and a Pistolet are a pair now),
+  and its mutant `pistolet.json` HL-mixed-pair retired with it (its mutation is the law; `MIXEDPAIR-two-of-a-kind` mutates
+  it back). `test/combat/weapon/pistolRigHarness.js` serves a blade's or a spell's CIF and the magic doors. Mutant records
+  whose anchors MIXED-PAIR and SPELL-HAND moved, re-aimed by content and re-run (all dead): `audit29`, `audit_pistolport`,
+  `climb4` (two), `fieldgun13`, `machijp`, `pistolport` (seven), `pistolstance` (two), `sw1`, `twohands` (five),
+  `twohands_mw`.
 - PIN MOVED, each with its note: `a12_lefthand` (H's lines with both hands up; the bow-switch arm on its own case, a
   bow in the left hand), `audit_seats_client` G5, `auditcc_pvp` H5 and `duel_combat` DUEL1 (the off hand's blow between
   players), `enhancedHud` AUDIT 39 (the plaque reads the resting weapon), `ww2_idlebob` WW2 (the motion bag's

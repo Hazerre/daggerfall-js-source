@@ -686,7 +686,7 @@ function spellQuickslotPressNow({ entity = null, magic = null, say = null } = {}
     // hotbar flashed it as a cast
     const took = magic?.readiedIndex?.() === r.index ? true : magic?.readySpell?.(r.spell, freeReady(r.spell));
     const armed = magic?.readiedIndex?.() === r.index;
-    const fired = armed && magic?.interceptAttack?.(true) === true;
+    const fired = armed && magic?.interceptAttack?.(true, { cast: true }) === true;   // SPELL-HAND: the hotbar's press is a cast's own
     return { kind: fired ? 'cast' : took === false ? 'refused' : 'pressed', name: r.name, readied: armed };
   }
   if (magic?.readiedIndex?.() === r.index) {

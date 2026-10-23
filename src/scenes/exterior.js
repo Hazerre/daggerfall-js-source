@@ -5515,7 +5515,7 @@ export async function bootExterior(canvas, renderer, params, status) {
         hudBlocked: activeMouseOverLargeHUD(),
         paused: _overlayHeld,
       });
-      if (_act.cast) magic.interceptAttack(true);   // the frame's firePending sends it down the live look
+      if (_act.cast) magic.interceptAttack(true, { cast: true });   // the frame's firePending sends it down the live look (SPELL-HAND: the cast's own press)
       const useEdge = pressed(latch.edge, keys, 'Interact');   // KB1: the Interact ACTION (E by default, Mac's call) - it was a raw `KeyE` beside DFU's E-AbortSpell, and one press did both
       if ((_act.activate || useEdge) && !modes.transitioning) {
         // T3b: a townsperson under the ray wins the activation (the

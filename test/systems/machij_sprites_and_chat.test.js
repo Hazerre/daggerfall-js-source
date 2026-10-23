@@ -218,11 +218,13 @@ test('MAC-I: the switch, and every sprite in the seam wearing the tint', () => {
   const rig = read('src/combat/weapon/weaponRig.js');
   // ONE read a frame, above the draws, so the four sprites cannot disagree
   assert.match(rig, /const fpTint = fpLightingOn\(\) \? \(renderer\?\.flatLightAt\?\.\(\) \?\? null\) : null;/);
-  assert.match(rig, /drawSpellCastHands\(renderer, c, spellArtFor\(fpsSpellCasting\.element\), fpsSpellCasting\.frameIndex, \{ tint: fpTint \}\)/);
+  // PIN MOVED (SPELL-HAND): both hands, or the spell hand's one, through one door wearing the tint
+  assert.match(rig, /const castHands = \(art, f\) => \(side \? drawSpellHand\(renderer, c, art, f, \{ side, tint: fpTint, guard: _spellGuard\.hand \}\) : drawSpellCastHands\(renderer, c, art, f, \{ tint: fpTint \}\)\);/);
+  assert.match(rig, /castHands\(spellArtFor\(fpsSpellCasting\.element\), fpsSpellCasting\.frameIndex\);/);
   assert.match(rig, /handheld\.draw\(renderer, c, fpTint\)/);
-  assert.match(rig, /widget\.draw\(renderer, c, fpTint\)/);   // FIELD-GUN12: the gun takes its own frame above this, so the clone is the tint alone again
+  assert.match(rig, /widget\.draw\(renderer, c, fpTint[,)]/);   // PIN MOVED (SPELL-HAND): the clone's guard rides beside the tint; FIELD-GUN12: the gun takes its own frame above this, so the clone is the tint alone again
   // FIELD-GUN6: `adjust` joined the tint - the Thunderlock's recoil and reload lower, null for every classic weapon
-  assert.match(rig, /drawFpsWeapon\(renderer, c, art, playerWeapon\.machine\.state, playerWeapon\.machine\.frame, \{ tint: fpTint(?:, offsetHeight: weaponOffsetHeight\(\) - climbDrop\(_climbLower, c\.height\))?(?:, glow: heldGlowNow\(\))? \}\)/);   // WEAPON-GLOW1: and the element's outline   // FIELD-GUN12: the classic sprite is the classic sprite again; CLIMB4: lowered for the climb (climb4.test.js F16)
+  assert.match(rig, /drawFpsWeapon\(renderer, c, art, m\.state, m\.frame, \{ tint: fpTint, offsetHeight: offsetHeight - spellDrop, glow: heldGlowNow\(\) \}\)/);   // PIN MOVED (SPELL-HAND): the machine read once (`m`), the offset with the spell hand's guard   // WEAPON-GLOW1: and the element's outline   // FIELD-GUN12: the classic sprite is the classic sprite again; CLIMB4: lowered for the climb (climb4.test.js F16)
   // and each draw passes it THROUGH to the quad rather than accepting and dropping it
   // FIELD-GUN11: the rect is expanded from the weapon's own box to
   // the drawn box first (art that declares one - the Thunderlock's

@@ -10895,8 +10895,8 @@ export function createWorldModes(host) {
     });
     if (_act.cast && chairSeat) standFromChair();   // SIT1 (AUDIT FIVE-ASKS C3): a cast stands you up first - it leaves from the body's own eye
     if (_act.cast) {   // the frame's firePending sends it down the live look
-      if (mode === 'dungeon') dungeonCtx?.playerAttackInput?.(0, 0, true);
-      else magic?.interceptAttack(true);
+      if (mode === 'dungeon') dungeonCtx?.playerAttackInput?.(0, 0, true, { cast: true });   // SPELL-HAND: the cast's own press, never the swing's
+      else magic?.interceptAttack(true, { cast: true });
     }
     const useEdge = pressed(latch.edge, keys, 'Interact');   // KB1: the Interact ACTION (E by default, Mac's call) - it was a raw `KeyE` beside DFU's E-AbortSpell, and one press did both
     // C9: per-mode routing (the old unconditional dungeonCtx read

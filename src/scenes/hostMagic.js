@@ -85,6 +85,7 @@ import { createMwMagicFx } from './mwMagicFx.js';   // MW-SPELLFX1: Morrowind's 
 import { egAllyLook } from '../ui/eliteGates/egAccess.js';   // EG-ZG (Elite-Gates.md section 25.4): THE QUIET COMPANY - another player's spell effects in a Spire trial
 import { CONCEAL_MODE } from '../systems/combatVisuals.js';   // EG-ZG: an ally's flat drawn translucent, as a revealed foe's is (alpha alone)
 import { fpsSpellCasting } from '../combat/fpsSpellCasting.js';   // CAST-SPEED: the ONE pair of hands, whose motion gates the click
+import { spellHandUp, spellHandBusy } from '../combat/twoHands/spellHand.js';   // SPELL-HAND: a spell in the free hand beside a weapon - the swing is the weapon's
 
 /** SUNBABY2: a sky fireball (skyFire) is drawn this many times its flat's size, its flash too - a ball a sun throws,
  *  seen falling from far up - and heard this far (metres) from where it lands. */
@@ -1587,8 +1588,12 @@ export function createPlayerMagic({
     spellArmed: () => readiedSpell != null || pendingClickCast,
     /** The attack click: an ARMED cast consumes the click instead of
      *  a swing. The host fires the cast on its next frame with the
-     *  live eye/dir (firePending). */
-    interceptAttack(held) {
+     *  live eye/dir (firePending).
+     *  SPELL-HAND (combat/twoHands/spellHand.js): `cast` says the press is a CAST's own - ActivateCenterObject's
+     *  (EntityEffectManager's), the hotbar's - and not the swing button's. With a spell in the free hand beside a drawn
+     *  weapon the swing button is the WEAPON's: only a cast's own press fires the spell. */
+    interceptAttack(held, { cast = false } = {}) {
+      if (!cast && spellHandUp()) return false;
       if (held && readiedSpell != null && !pendingClickCast) { pendingClickCast = true; return true; }
       return false;
     },
@@ -1599,6 +1604,9 @@ export function createPlayerMagic({
       // missile reads (see lastAim).
       if (eye && dir) lastAim = { eye: [eye[0], eye[1], eye[2]], dir: [dir[0], dir[1], dir[2]] };
       if (!pendingClickCast) return false;
+      // SPELL-HAND: THE HANDS TAKE TURNS - a cast pressed while the weapon beside the spell is mid-blow waits for the blow to
+      // end, then leaves down the look it leaves on (kept, never dropped: the press is not the swing's to eat)
+      if (spellHandBusy()) return false;
       pendingClickCast = false;
       return castInput(eye, dir);
     },

@@ -174,10 +174,9 @@ out-of-Pellets guard asks only whether the weapon is a gun (`isGunType`), which 
 
 ## First person - the pair
 
-**The law** (`combat/twoHands/handsLaw.js`). `DUAL_GUN_TYPES` [19, 20] beside the melee `DUAL_TYPES`, and **a pair is
-two of a kind** - two melee weapons or two Pistolets, never one of each. A swing and a shot are two machines' worth of
-difference, and the sprite lane draws them through two doors. The mixed pair is a later slice's. The Thunderlock is
-two-handed and never in a pair.
+**The law** (`combat/twoHands/handsLaw.js`). `DUAL_GUN_TYPES` [19, 20] beside the melee `DUAL_TYPES`: two Pistolets are a
+pair, and since MIXED-PAIR (2026-10-23) so are a blade and a Pistolet - the hands taking turns on two machines, the gun's
+reload one-handed (`Two-Hands.md`, "A blade and a gun"). The Thunderlock is two-handed and never in a pair.
 
 **The machines** (`combat/playerWeapon.js` `pistols`, the pistol lab's pair - PISTOL-PORT, below). TWO machines, one a
 pistol, each its own six frames and its own reload; the hands take turns by the law's flurry (the lead opens, the other
@@ -445,7 +444,6 @@ down, a pair's left hand on its own pistol, off when sheathed). `tools/mutants/p
 ## What is still open
 
 - **The stance on Morrowind's own bodies**: picked on the vendored retail skeleton (PISTOL-STANCE, above).
-- **The mixed pair**: a Pistolet beside a sword.
 - **A pistol's own sounds**: the owner picked from the gun lab's clips; a flintlock's pan and ramrod were never searched
   for.
 - **The doll's placement**, measured on the classic records; the owner's eye is the gate.
