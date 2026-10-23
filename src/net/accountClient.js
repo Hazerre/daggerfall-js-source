@@ -1532,6 +1532,9 @@ export function accountTokenMinter({ fetch, storage, onIssued = null, character 
   let held = null;
   /** @type {Promise<string|null> | null} */
   let minting = null;
+  /** STAFF-HIDE-TOGGLE: how many times `forget` let go - a mint that flew across one is handed to its own asker and held
+   *  for no other room (its token was signed before the word that made the forget). */
+  let forgets = 0;
   /** STORM-SHED: the mints held off after a failure - one sign-in's (its secret), until `until` on now()'s clock, the
    *  failures in a row counted and the last one's word kept to answer with. */
   let cool = { secret: /** @type {string|null} */ (null), fails: 0, until: -Infinity, why: /** @type {string|null} */ (null) };
@@ -1549,9 +1552,10 @@ export function accountTokenMinter({ fetch, storage, onIssued = null, character 
   /** One mint on the wire for this sign-in, shared by every room asking while it flies (`minting`), its answer held or
    *  its failure's hold set (STORM-SHED) - the one door the minter and DOOR-TOKEN's `ahead` both mint through. */
   const start = (/** @type {any} */ session, /** @type {string|null} */ named) => {
+    const era = forgets;
     const p = mintFresh(session, named).then((token) => {
       if (token) {
-        held = { token, secret: session.secret, character: named, at: now(), rooms: new Set() };   // STORM-SHED: opened by a hello (`opened`), never by the mint
+        if (era === forgets) held = { token, secret: session.secret, character: named, at: now(), rooms: new Set() };   // STORM-SHED: opened by a hello (`opened`), never by the mint
         cool = { secret: null, fails: 0, until: -Infinity, why: null };
       } else if (minter.lastWhy === 'queue') {
         // AUDIT SCALE II L4a: the line's own wait, its failures in a row left where they stood
@@ -1621,8 +1625,12 @@ export function accountTokenMinter({ fetch, storage, onIssued = null, character 
     },
     /** AUDIT SAFE CLIENT-2 (2026-10-17): THE HELD TOKEN LET GO - the relay said this account is banned
      *  (scenes/chatSafetyHost.js), and a token minted a moment before the ban opened every room a rejoin asked within
-     *  TOKEN_REUSE_MS. The next room mints, and the service refuses it. */
-    forget: () => { held = null; },
+     *  TOKEN_REUSE_MS. The next room mints, and the service refuses it.
+     *  STAFF-HIDE-TOGGLE (2026-10-23, mob: "need hide to be a toggle"): and Hide me or Show myself pressed
+     *  (scenes/staffFollowHost.js relinkGame) - a token signed before the press would open a room as the game was, so it
+     *  goes, and so does any mint still on its way (`forgets`): the next room asks the service, which reads the switch as
+     *  it stands now. */
+    forget: () => { held = null; forgets++; },
     /** DOOR-TOKEN: does this minter hold a token `room` would be handed now, nothing on the wire (the reuse law) - a
      *  session whose hello went without one asks again the moment it does (net/online.js). */
     holds: (/** @type {string|null} */ room) => {

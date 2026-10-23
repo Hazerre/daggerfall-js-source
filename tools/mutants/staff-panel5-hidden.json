@@ -654,7 +654,7 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-switch-unread",
     "file": "server-account/src/staffHidden.js",
-    "old": "if (!live || live.staff_hide !== 1) return null;",
+    "old": "if (!live || live.staff_hide_on !== 1) return null;",
     "new": "if (!live) return null;",
     "why": "Show myself still hidden",
     "tests": [
@@ -764,8 +764,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-switch-unwritten",
     "file": "server-account/src/staffHidden.js",
-    "old": "db.prepare('UPDATE players SET staff_hide = ?1 WHERE id = ?2').bind(on, me.id),",
-    "new": "db.prepare('UPDATE players SET staff_hide = staff_hide WHERE id = ?2').bind(on, me.id),",
+    "old": "db.prepare('UPDATE players SET staff_hide_on = ?1 WHERE id = ?2').bind(on, me.id),",
+    "new": "db.prepare('UPDATE players SET staff_hide_on = staff_hide_on WHERE id = ?2').bind(on, me.id),",
     "why": "the switch never written",
     "tests": [
       "test/server/staffpanel5hidden.test.js"

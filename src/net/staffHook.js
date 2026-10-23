@@ -20,6 +20,13 @@
 //   { dfoStaff: 'unlock' }                         let go
 //   the hook asks { dfoStaff: 'token', sub, room } and the panel answers { dfoStaff: 'token', sub, room, tok } - a
 //   follow token for that room (a token opens each room once), or tok null when the staff session refuses it.
+//   { dfoStaff: 'relink' }                         STAFF-HIDE-TOGGLE (2026-10-23, mob: "need hide to be a toggle"): Hide
+//                                                  me or Show myself was just pressed - the game leaves every room it holds
+//                                                  and opens each again on a fresh token (scenes/staffFollowHost.js
+//                                                  relinkGame), so the switch holds from now, not from its next connection.
+//                                                  At most once a STAFF_RELINK_GAP_MS (a page script may post it too, and
+//                                                  every relink is a mint and a hello a room); one asked inside the gap
+//                                                  runs at its end. No new version: a hook before it ignores the word.
 import { OnlineSession } from './online.js';
 import { SOCIAL_ROOM, cellRoomOfWire, isCellRoom } from './wire.js';
 import { ID_RE, TOKEN_MAX_CHARS } from './identityToken.js';
@@ -30,6 +37,9 @@ import { notePlace } from './staffTeleport.js';
 export const STAFF_HOOK_VERSION = 1;
 /** How long the hook waits for the panel's token before its link counts the room refused. */
 export const STAFF_TOKEN_WAIT_MS = 5000;
+/** STAFF-HIDE-TOGGLE: the least time between two relinks - AURA-LIVE's own gap between two hellos again (online.js
+ *  REHELLO_GAP_MS). */
+export const STAFF_RELINK_GAP_MS = 3000;
 /** The name a follow's sockets say - the relay shows them to nobody, and the token's own name is the service's. */
 const SPECTATOR = 'Spectator';
 
@@ -130,15 +140,18 @@ export function createStaffHook({ main, askToken, Session = OnlineSession, WS = 
   };
 }
 
-/** THE PANEL'S DOOR on a window (above) - `hookOf()` the follow; answers the panel's `hook?`, takes its `follow` and
- *  `unlock`, and hands back `askToken` for the follow's links and `panel()`, whether a panel has spoken on this page (a
- *  /tp follows on only then - with no panel no token comes, and its links would knock for nothing). Messages from
- *  another window or origin are not the panel's.
- *  @param {any} win @param {() => any} hookOf @param {{ setTimer?: typeof setTimeout, clearTimer?: typeof clearTimeout }} [t] */
-export function staffHookDoor(win, hookOf, { setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
+/** THE PANEL'S DOOR on a window (above) - `hookOf()` the follow; answers the panel's `hook?`, takes its `follow`,
+ *  `unlock` and `relink` (STAFF-HIDE-TOGGLE: the host's `relink()`), and hands back `askToken` for the follow's links and
+ *  `panel()`, whether a panel has spoken on this page (a /tp follows on only then - with no panel no token comes, and its
+ *  links would knock for nothing). Messages from another window or origin are not the panel's.
+ *  @param {any} win @param {() => any} hookOf @param {{ setTimer?: typeof setTimeout, clearTimer?: typeof clearTimeout, relink?: (() => void) | null, now?: () => number }} [t] */
+export function staffHookDoor(win, hookOf, { setTimer = setTimeout, clearTimer = clearTimeout, relink = null, now = () => Date.now() } = {}) {
   /** @type {Map<string, (tok: string|null) => void>} */
   const waiting = new Map();
   let seen = false;
+  // STAFF-HIDE-TOGGLE: when the last relink ran, and the one waiting for the gap's end (one at most: it remakes every link)
+  let relinkAt = -Infinity, relinkWait = /** @type {any} */ (null);
+  const relinkNow = () => { relinkWait = null; relinkAt = now(); relink?.(); };
   const origin = win?.location?.origin;
   const post = (/** @type {object} */ m) => win.postMessage(m, origin);
   win?.addEventListener?.('message', (/** @type {any} */ e) => {
@@ -148,6 +161,7 @@ export function staffHookDoor(win, hookOf, { setTimer = setTimeout, clearTimer =
     if (m.dfoStaff === 'hook?') { seen = true; post({ dfoStaff: 'hook', v: STAFF_HOOK_VERSION }); }
     else if (m.dfoStaff === 'follow') { seen = true; hook?.follow(m.sub); }
     else if (m.dfoStaff === 'unlock') hook?.unlock();
+    else if (m.dfoStaff === 'relink' && relink && !relinkWait) { const wait = relinkAt + STAFF_RELINK_GAP_MS - now(); if (wait > 0) relinkWait = setTimer(relinkNow, wait); else relinkNow(); }
     else if (m.dfoStaff === 'token' && 'tok' in m) waiting.get(`${m.sub}|${m.room}`)?.(typeof m.tok === 'string' && m.tok.length <= TOKEN_MAX_CHARS ? m.tok : null);
   });
   /** @param {string} sub @param {string} room @returns {Promise<string|null>} */
