@@ -112,6 +112,7 @@ import { setMidScreenText } from '../ui/midScreenText.js';   // AUDIT 64 F34: Da
 import { validYardKind, yardCounter, yardStock, YARD_TEXT } from '../systems/merchantYards.js';   // MERCHANT-YARDS: a town's Stable and Wagon Yard - their counters
 import { makeWindowStack, pauseWhileOpen, hidesHud } from '../ui/windowStack.js';   // ROAD-B B1: UserInterfaceManager's stack, under this host's one slot; ROAD-tail: and its PAUSE; AUDIT PRE-MERGE 0928 U8: and the HUD's outright hide
 import { createActivateGate, activateFrame } from '../systems/activateGate.js';   // A8: PlayerActivate's ActivateCenterObject frame
+import { CAST_PRESS } from './hostMagic.js';   // SPELL-HAND: a cast's own press, one imported word (HOST-SPLIT; the magic door's, so no host reads a two-hands module)
 import { FootstepMachine, pickFootstepSet, pickFootstepKind } from '../systems/footsteps.js';   // FS-slice; AUDIT DROPS E2: the kind the pose carries
 import { immersiveFootsteps } from '../systems/immersiveFootsteps.js';
 import { betterAmbience, classicFootstepAllowed } from '../systems/betterAmbience.js';   // BA1: Better Ambience - the shake, the dungeon's fog and light, the reverb, the indoor rain, its own stride   // IF1: Immersive Footsteps owns the stride and the three landing sounds once its clips are in (DisableVanillaFootsteps)
@@ -10889,15 +10890,15 @@ export function createWorldModes(host) {
     const _activateDown = held(keys, 'ActivateCenterObject') || !!host.activateDown?.();
     const _act = activateFrame((latch.activate ??= createActivateGate()), {
       down: _activateDown,
-      hasReadySpell: (mode === 'dungeon' ? dungeonCtx?.spellArmed?.() : magic?.spellArmed()) ?? false,
+      hasReadySpell: ((mode === 'dungeon' ? dungeonCtx?.spellArmed?.() : magic?.spellArmed()) ?? false) && !host.activateLockOnly?.(),   // AUDIT SPELL-HAND L4-9: the stick-half tap is the lock pick and nothing below it (TS1) - never a cast, a spell readied or not
       touchSpell: ((mode === 'dungeon' ? dungeonCtx?.readiedSpell?.() : magic?.readied()) ?? null)?.rangeType === 1,   // rangeType 1 is ByTouch (spellcast.js:"ClassicTargetIndexToTargetType")
       hudBlocked: activeMouseOverLargeHUD(),
       paused: overlayHeld,
     });
     if (_act.cast && chairSeat) standFromChair();   // SIT1 (AUDIT FIVE-ASKS C3): a cast stands you up first - it leaves from the body's own eye
     if (_act.cast) {   // the frame's firePending sends it down the live look
-      if (mode === 'dungeon') dungeonCtx?.playerAttackInput?.(0, 0, true);
-      else magic?.interceptAttack(true);
+      if (mode === 'dungeon') dungeonCtx?.playerAttackInput?.(0, 0, true, true);   // SPELL-HAND: the cast's own press, never the swing's
+      else magic?.interceptAttack(true, CAST_PRESS);
     }
     const useEdge = pressed(latch.edge, keys, 'Interact');   // KB1: the Interact ACTION (E by default, Mac's call) - it was a raw `KeyE` beside DFU's E-AbortSpell, and one press did both
     // C9: per-mode routing (the old unconditional dungeonCtx read
@@ -11392,7 +11393,7 @@ export function createWorldModes(host) {
     if (magic) {
       // M2: the armed click's cast + missile flight, on the interior's
       // own collider (the engine's mode-aware raycast reads it).
-      magic.firePending([...cam.pos], eyeDir());
+      magic.firePending([...cam.pos], eyeDir(), overlayHeld);   // AUDIT SPELL-HAND L4-6: a kept press never leaves under a window
       magic.update(dt, player.pos, eyeDir(), player.height, player.feetAt());   // X11: the candle hangs off the look direction; DISC13-A off the render feet
       if (magic.batches().length) renderer.drawBillboards(magic.batches(), camRight, UP_Y);
       magic.drawFx?.();   // IMPACTFX: the spells' landings in light, over their flashes
