@@ -30,7 +30,8 @@ test('M5: an armed cast eats the attack click in every host (WeaponManager defer
     'the interior attack route is wrapped');
   // PIN MOVED (SPELL-HAND): the dungeon's door says whether the press is a cast's own, and a cast's own never swings (was:
   // `if (magic.interceptAttack(held)) return;`)
-  assert.ok(src('dungeonContext.js').includes('if (magic.interceptAttack(held, { cast }) || cast) return;'),
+  // PIN MOVED (AUDIT SPELL-HAND, HOST-SPLIT): `cast` positional, the word imported (was: `{ cast }`, an entry)
+  assert.ok(src('dungeonContext.js').includes('if (magic.interceptAttack(held, cast ? CAST_PRESS : undefined) || cast) return;'),
     'the dungeon playerAttackInput defers too');
 });
 

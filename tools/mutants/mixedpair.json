@@ -209,8 +209,8 @@
   {
     "name": "MIXEDPAIR-sheathed-for-pellets",
     "file": "src/combat/weapon/weaponRig.js",
-    "old": "    if (playerWeapon.sheathed || playerWeapon.mixedPair) return;",
-    "new": "    if (playerWeapon.sheathed) return;",
+    "old": "    if (playerWeapon.mixedPair) {   // MIXED-PAIR: a pair's blade still fights",
+    "new": "    if (false) {   // MIXED-PAIR: a pair's blade still fights",
     "tests": [
       "test/combat/mixedpair.test.js"
     ]

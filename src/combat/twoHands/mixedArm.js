@@ -37,16 +37,32 @@ export const blowTypeOf = ({ gunArm = null, hand = 'R', offType = null } = {}) =
  * The gun stance's hand on rig `r` (combat/gun/gunHold.js applyGunStance's row and options), or null when no gun is held:
  *   a gun pair  - both hands on their pistols (`pair`), the right's row;
  *   a mixed pair - the gun's hand alone (`only`), its own row; the blade's arm is the composition's;
- *   one gun     - its hand (`only` 'R') and the free hand placed by the stance - unless the free hand holds a spell
- *                 (SPELL-HAND: `spellHand`), when it is left to the spell.
+ *   one gun     - its hand and the free hand placed by the stance (`lone`: the hold eases the free hand's weight) -
+ *                 unless the free hand holds a spell (SPELL-HAND: `spellHand`, `only` 'R'), when it is left to the spell.
  * @param {{ weapon?: any, offWeapon?: any, dual?: boolean, offShown?: boolean, spellHand?: boolean }} a
  * @returns {{ row: any, pair: boolean, only: 'R' | 'L' | null } | null}
  */
 export function gunHoldOf({ weapon = null, offWeapon = null, dual = false, offShown = false, spellHand = false } = {}) {
   const gunArm = gunArmOf({ dual: dual && offShown, weapon, offWeapon });
-  if (gunArm === 'L') return { row: offWeapon, pair: false, only: 'L' };
+  if (gunArm === 'L') return { row: offWeapon, pair: false, only: 'L', lone: false };
   if (!holdsGun(weapon)) return null;
-  if (gunArm === 'R') return { row: weapon, pair: false, only: 'R' };
+  if (gunArm === 'R') return { row: weapon, pair: false, only: 'R', lone: false };
   const pair = dual && offShown && holdsGun(offWeapon);
-  return { row: weapon, pair, only: !pair && spellHand ? 'R' : null };
+  // AUDIT SPELL-HAND L3-10: a lone gun - its free hand placed by the stance's weight (`lone`), eased out under the spell
+  return { row: weapon, pair, only: !pair && spellHand ? 'R' : null, lone: !pair };
 }
+
+/** AUDIT MIXED-PAIR L3-11 (HOST-SPLIT): a mixed pair's LEFT arm at rest holds its own weapon's stance - the type whose idle
+ *  it takes (in the mirror), or null: a blade pair's left arm is the right's own mirror (TWO-HANDS). */
+export const offStanceTypeOf = ({ weapon = null, offWeapon = null } = {}) => (gunArmOf({ dual: true, weapon, offWeapon }) && offWeapon ? offWeapon.type ?? null : null);
+
+/** MIXED-PAIR: the gun's aim comes up for its own hand's shot alone - never the blade's swing beside it (`hold` gunHoldOf's). */
+export const gunAimShooting = ({ attacking = false, hold = null, dual = false, hand = null } = {}) => !!attacking && !(hold && hold.only && dual && hand !== hold.only);
+
+/** AUDIT MIXED-PAIR L3-6 / L3-8: the weapon that strikes - a pair's LEFT blow is its left weapon's (its record's pace, its
+ *  barrel), any other the right's (the arm draws one weapon in the right hand, MW-HAND). */
+export const strikingWeaponOf = ({ hand = null, weapon = null, offWeapon = null } = {}) => (hand === 'L' && offWeapon ? offWeapon : weapon);
+
+/** AUDIT MIXED-PAIR L3-6: the piece a shot leaves from - a pair's LEFT hand's own (the left weapon, on Weapon Bone Left),
+ *  else the right weapon's; the right's where the rig bound no left. */
+export const muzzlePieceOf = (pieces, hand = 'R') => (hand === 'L' && pieces.find((p) => p.slot === 'offweapon')) || pieces.find((p) => p.slot === 'weapon') || null;

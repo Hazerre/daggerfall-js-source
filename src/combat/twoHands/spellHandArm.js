@@ -53,3 +53,27 @@ export function spellHandLimbs({ casting = false, ready = false, weaponIdle = nu
   if (ready) return spellIdle ? { limbs: { [SPELL_HAND_ARM.spell]: { clip: spellIdle, side: SPELL_HAND_ARM.spell, mirror: false } }, key: 'spellhand:ready' } : null;
   return null;
 }
+
+/**
+ * AUDIT SPELL-HAND L3-11 (HOST-SPLIT): THE STANCE A SPELL IN THE FREE HAND KEEPS - what the arm does as the rig says a
+ * spell is readied there (fpArm.js readySpell's spell-hand door): 'wait' under an equip or an unequip (its keys are its
+ * group's - a stance flipped mid-section never crosses "unequip detach", AUDIT SPELL-HAND L3-3; OpenMW waits the same),
+ * 'afterCast' while a cast plays (it finishes; the stance lets go at its end, MW-CAST1), 'drop' where a Spell stance stands
+ * (a cast latched it - AUDIT 36 F2 - or the hands held it sheathed): the weapon's stance comes back; else 'keep'.
+ * @param {{ upper: number, spellReady: boolean }} s
+ * @param {{ Equipping: number, Unequipping: number, Casting: number }} U the arm's UPPER_BODY
+ * @returns {'wait' | 'afterCast' | 'drop' | 'keep'}
+ */
+export function spellHandStanceStep({ upper, spellReady }, U) {
+  if (upper === U.Equipping || upper === U.Unequipping) return 'wait';
+  if (upper === U.Casting) return 'afterCast';
+  return spellReady ? 'drop' : 'keep';
+}
+
+/**
+ * AUDIT SPELL-HAND L3-3: A WEAPON DRAWN WITH THE SPELL KEPT comes up in its own stance - the two-handed Spell stance the
+ * sheathed hands held is let go before the draw composes its group (never the spellcast group's own equip played for the
+ * blade). True when the draw takes the spell into the free hand: the spell hand is up and a Spell stance stands, no cast in
+ * flight.
+ */
+export const drawsIntoSpellHand = ({ spellHand = false, spellReady = false, casting = false } = {}) => !!spellHand && !!spellReady && !casting;

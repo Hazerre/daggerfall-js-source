@@ -15,8 +15,9 @@ import { MW_WEAPON_TYPE } from '../../src/formats/morrowind/mwFirstPerson.js';
 import { parseNif } from '../../src/formats/morrowind/mwNifFile.js';
 import { writeNif } from '../../tools/nifWrite.mjs';
 import { CAST_KEYS } from '../fixtures/mw/castClip.mjs';
-import { createHeldClips, spellHandLimbs, SPELL_HAND_ARM } from '../../src/combat/twoHands/spellHandArm.js';
-import { gunArmOf, blowTypeOf, gunHoldOf } from '../../src/combat/twoHands/mixedArm.js';
+import { createHeldClips, spellHandLimbs, SPELL_HAND_ARM, spellHandStanceStep, drawsIntoSpellHand } from '../../src/combat/twoHands/spellHandArm.js';
+import { rifleStanceStep } from '../../src/combat/gun/rifleStance.js';
+import { gunArmOf, blowTypeOf, gunHoldOf, offStanceTypeOf, gunAimShooting, strikingWeaponOf, muzzlePieceOf } from '../../src/combat/twoHands/mixedArm.js';
 import { pistolStanceRequest } from '../../src/combat/gun/pistolStance.js';
 import { OWN_MW_MODELS } from '../../src/characters/ownModels/ownWeaponModels.js';
 import { PISTOLET_TEMPLATE } from '../../src/characters/thunderlockIds.js';
@@ -59,7 +60,7 @@ const wpdtRec = (id, model, type, speed = 1) => {
 const fakeRenderer = () => ({ gl: null, createCharacterMesh: () => ({ vao: 1, buffers: [], ranges: [] }), updateCharacterMesh: () => {}, createCharacterTexture: () => 1 });
 
 /** The longsword arm, its clips carrying the spellcast and thrown groups, the shipped pistol in its archive; drawn. */
-async function arm() {
+async function arm({ speed = 1 } = {}) {
   const files = new Map([
     [fpSkeletonPath({}), f('armfp.nif')],
     [FP_CLIP_PATH, new Uint8Array(armClip())],
@@ -69,7 +70,7 @@ async function arm() {
     ['textures/tx_fixture.dds', f('fixture.dds')],
     [`meshes/${OWN_MW_MODELS[PISTOLET_TEMPLATE].model}`, onDisk('src/assets/mw/meshes/pistolet.nif')],
   ]);
-  const weap = wpdtRec('iron longsword', 'w/blade.nif', MW_WEAPON_TYPE.LongBladeOneHand);
+  const weap = wpdtRec('iron longsword', 'w/blade.nif', MW_WEAPON_TYPE.LongBladeOneHand, speed);   // AUDIT MIXED-PAIR L3-8: the blade's record pace, asked
   const a = createFpArm();
   a.attach(fakeRenderer(), () => ({ pitch: 0 }));
   const deps = {
@@ -158,11 +159,11 @@ test('MIXED-PAIR THE ARM\'S LAW (mixedArm.js): gunArmOf names the gun\'s arm bes
   assert.equal(blowTypeOf({ gunArm: 'R', hand: 'L', offType: blade.type }), blade.type);
   assert.equal(blowTypeOf({ gunArm: 'L', hand: 'R', offType: gun.type }), null, 'the right hand\'s blow is the arm\'s own');
   assert.equal(blowTypeOf({ gunArm: null, hand: 'L', offType: gun.type }), null, 'a blade pair keeps the mirror of the right\'s');
-  assert.deepEqual(gunHoldOf({ weapon: blade, offWeapon: gun, dual: true, offShown: true }), { row: gun, pair: false, only: 'L' });
-  assert.deepEqual(gunHoldOf({ weapon: gun, offWeapon: blade, dual: true, offShown: true }), { row: gun, pair: false, only: 'R' });
-  assert.deepEqual(gunHoldOf({ weapon: gun, offWeapon: { ...gun }, dual: true, offShown: true }), { row: gun, pair: true, only: null });
-  assert.deepEqual(gunHoldOf({ weapon: gun }), { row: gun, pair: false, only: null }, 'one gun: its free hand placed');
-  assert.deepEqual(gunHoldOf({ weapon: gun, spellHand: true }), { row: gun, pair: false, only: 'R' }, 'beside a spell: the free hand the spell\'s');
+  assert.deepEqual(gunHoldOf({ weapon: blade, offWeapon: gun, dual: true, offShown: true }), { row: gun, pair: false, only: 'L', lone: false });
+  assert.deepEqual(gunHoldOf({ weapon: gun, offWeapon: blade, dual: true, offShown: true }), { row: gun, pair: false, only: 'R', lone: false });
+  assert.deepEqual(gunHoldOf({ weapon: gun, offWeapon: { ...gun }, dual: true, offShown: true }), { row: gun, pair: true, only: null, lone: false });
+  assert.deepEqual(gunHoldOf({ weapon: gun }), { row: gun, pair: false, only: null, lone: true }, 'one gun: its free hand placed (AUDIT SPELL-HAND L3-10: `lone` - at the hold\'s eased weight)');
+  assert.deepEqual(gunHoldOf({ weapon: gun, spellHand: true }), { row: gun, pair: false, only: 'R', lone: true }, 'beside a spell: the free hand the spell\'s');
   assert.equal(gunHoldOf({ weapon: blade }), null);
   assert.equal(gunHoldOf({ weapon: blade, offWeapon: gun, dual: true, offShown: false }), null, 'the left gun not shown: no hold');
 });
@@ -267,4 +268,112 @@ test('MIXED-PAIR THE BODY ON RETAIL\'S BONES (third person): a longsword in the 
   for (let i = 0; i < 60; i++) a.update(1 / 30);
   assert.equal(a.rifleState().w, 0, 'sheathed: the hold off');
   a.unload();
+});
+
+// ---- AUDIT MIXED-PAIR / SPELL-HAND on the arm (bible/01-Overview/audits/Audit-Mixed-Pair-Spell-Hand.md) ----------------
+
+test('AUDIT L3-11 THE ARM\'S LAWS IN THEIR MODULES (HOST-SPLIT): the spell hand\'s stance step (wait under an equip or an unequip, finish a cast, let a Spell stance go, keep), the draw into the spell hand, the off arm\'s own stance type, the gun\'s aim for its own shot alone, the striking weapon, the shot\'s piece (mutants: each answer of each law)', () => {
+  const U = UPPER_BODY;
+  assert.equal(spellHandStanceStep({ upper: U.Equipping, spellReady: true }, U), 'wait');
+  assert.equal(spellHandStanceStep({ upper: U.Unequipping, spellReady: true }, U), 'wait');
+  assert.equal(spellHandStanceStep({ upper: U.Casting, spellReady: true }, U), 'afterCast');
+  assert.equal(spellHandStanceStep({ upper: U.WeaponEquipped, spellReady: true }, U), 'drop');
+  assert.equal(spellHandStanceStep({ upper: U.WeaponEquipped, spellReady: false }, U), 'keep', 'L5-7: a repeat asks nothing of the stance');
+  assert.equal(drawsIntoSpellHand({ spellHand: true, spellReady: true }), true);
+  assert.equal(drawsIntoSpellHand({ spellHand: true, spellReady: true, casting: true }), false);
+  assert.equal(drawsIntoSpellHand({ spellHand: false, spellReady: true }), false);
+  const blade = { type: MW_WEAPON_TYPE.LongBladeOneHand }, gun = { type: MW_WEAPON_TYPE.MarksmanThrown, holdAs: 'pistol' };
+  assert.equal(offStanceTypeOf({ weapon: blade, offWeapon: gun }), gun.type, 'a gun beside a blade: its own stance');
+  assert.equal(offStanceTypeOf({ weapon: blade, offWeapon: { ...blade } }), null, 'two blades: the right\'s mirror');
+  const hold = { only: 'L' };
+  assert.equal(gunAimShooting({ attacking: true, hold, dual: true, hand: 'L' }), true, 'the gun\'s own shot');
+  assert.equal(gunAimShooting({ attacking: true, hold, dual: true, hand: 'R' }), false, 'L5-7: never the blade\'s blow');
+  assert.equal(gunAimShooting({ attacking: false, hold, dual: true, hand: 'L' }), false);
+  assert.equal(strikingWeaponOf({ hand: 'L', weapon: blade, offWeapon: gun }), gun);
+  assert.equal(strikingWeaponOf({ hand: 'R', weapon: blade, offWeapon: gun }), blade);
+  const pieces = [{ slot: 'weapon', id: 'R' }, { slot: 'offweapon', id: 'L' }];
+  assert.equal(muzzlePieceOf(pieces, 'L').id, 'L', 'L3-6: the left hand\'s own barrel');
+  assert.equal(muzzlePieceOf(pieces, 'R').id, 'R');
+  assert.equal(muzzlePieceOf([pieces[0]], 'L').id, 'R', 'no left piece bound: the right\'s');
+});
+
+test('AUDIT L3-2 / L3-8 / L3-9 THE ARM\'S CLOCK: a cast pressed in a blow\'s follow-through plays (the follow is cut, as the next blow cuts it); the left hand\'s shot plays at ITS weapon\'s record pace, never the right blade\'s; a weapon swapped into the hand mid-cast waits for the cast to end (mutants: the follow refusing the cast; the right\'s pace on the left blow; the swap cutting the cast)', async () => {
+  const { a } = await arm();
+  a.setHands({ mode: 'dual', lead: 'R' });
+  assert.equal(await a.setOffWeapon(GUN), true);
+  run(a, 0.3);
+  assert.equal(a.attack('StrikeDown', { hand: 'L' }), 'shoot');
+  for (let i = 0; i < 200 && a.status().upper !== UPPER_BODY.AttackEnd; i++) a.update(1 / 120);
+  assert.equal(a.status().upper, UPPER_BODY.AttackEnd, 'the shot\'s follow-through');
+  assert.equal(a.castSpell(2), true, 'a cast pressed now plays');
+  assert.equal(a.castInFlight(), true);
+  a.unload();
+  // the left gun's wind-up on its own record (speed 1), the blade slowed to 0.5 beside it
+  const slow = (await arm({ speed: 0.5 })).a;
+  slow.setHands({ mode: 'dual', lead: 'R' });
+  await slow.setOffWeapon(GUN);
+  run(slow, 0.3);
+  const fast = (await arm({ speed: 1 })).a;
+  fast.setHands({ mode: 'dual', lead: 'R' });
+  await fast.setOffWeapon(GUN);
+  run(fast, 0.3);
+  const windUp = (x) => { x.attack('StrikeDown', { hand: 'L' }); let t = 0; while (x.status().upper === UPPER_BODY.AttackWindUp && t < 5) { x.update(1 / 120); t += 1 / 120; } return t; };
+  const ts = windUp(slow), tf = windUp(fast);
+  assert.ok(Math.abs(ts - tf) < 0.02, `the left shot's pace is the gun's, whatever the blade's (${ts.toFixed(3)} beside a 0.5 blade, ${tf.toFixed(3)} beside a 1)`);
+  slow.unload(); fast.unload();
+  // a swap mid-cast waits for the cast's end
+  const c = (await arm()).a;
+  c.readySpell(true);
+  run(c, 0.5);
+  assert.equal(c.castSpell(2), true);
+  assert.equal(c.setWeapon(GUN), false, 'mid-cast: the hand is not changed');
+  assert.equal(c.castInFlight(), true, 'the cast plays on');
+  for (let i = 0; i < 400 && c.castInFlight(); i++) c.update(0.02);
+  assert.notEqual(c.setWeapon(GUN), false, 'the cast over: the swap goes');
+  c.unload();
+});
+
+test('AUDIT L3-3 Z KEEPS THE SPELL ON THE ARM: the weapon put away with the spell kept unequips in its OWN group and leaves the hand (the stance waits for the unequip); drawn again with the spell hand up it comes up in its own stance - never the spellcast group\'s equip (mutants: the stance flipped mid-unequip; the draw blind to the spell hand)', async () => {
+  const { a } = await arm();
+  a.setSpellHand(true); a.readySpell(true);
+  run(a, 0.3);
+  assert.equal(a.status().weaponGroup, 'weapononehand', 'the spell in the free hand: the weapon\'s stance');
+  // Z: the rig tells the arm the hand first (sheathed: no spell hand), then the sheathe, then the spell
+  a.setSpellHand(false); a.setSheathed(true); a.readySpell(true);
+  assert.equal(a.status().weaponGroup, 'weapononehand', 'the unequip in the weapon\'s own group');
+  for (let i = 0; i < 400 && a.status().upper === UPPER_BODY.Unequipping; i++) { a.update(0.02); a.setSpellHand(false); a.readySpell(true); }
+  assert.equal(a.status().upper, UPPER_BODY.None);
+  assert.equal(a.status().weaponShown, false, 'the blade left the hand');
+  run(a, 0.2, () => { a.setSpellHand(false); a.readySpell(true); });
+  assert.equal(a.status().spellReady, true, 'sheathed: DFU\'s two-handed stance');
+  // Z again: drawn with the spell hand up
+  a.setSpellHand(true); a.setSheathed(false); a.readySpell(true);
+  assert.equal(a.status().weaponGroup, 'weapononehand', 'the draw in the weapon\'s group, the Spell stance let go first');
+  assert.equal(a.status().spellReady, false);
+  a.unload();
+});
+
+test('AUDIT L3-7 / L3-10 A BLOW CUT SHORT, A FREE HAND EASED: a rebuild mid-shot hands the arm its own group back; a view switch resets the blow (its line); a lone gun\'s free hand eases out under a spell on the hold\'s own ease and the stance places it at that weight (mutants: the rebuild keeping the struck hand\'s group; the free hand switched whole; the weight unpassed)', async () => {
+  const { a, deps } = await arm();
+  a.setHands({ mode: 'dual', lead: 'R' });
+  await a.setOffWeapon(GUN);
+  run(a, 0.3);
+  a.attack('StrikeDown', { hand: 'L' });
+  assert.equal(a.status().weaponGroup, 'throwweapon');
+  const res = await a.build({ race: 'fprace', weapon: { templateIndex: 120 }, deps });
+  assert.ok(res.ok);
+  a.setSheathed(false);
+  for (let i = 0; i < 400 && a.status().upper !== UPPER_BODY.WeaponEquipped; i++) a.update(0.05);
+  assert.equal(a.status().weaponGroup, 'weapononehand', 'rebuilt: the blade\'s group, the shot\'s gone with it');
+  a.unload();
+  assert.match(readFileSync(new URL('../../src/combat/fpArm.js', import.meta.url), 'utf8'), /viewMode = want;\n\s*actionState = null; actionSource = null; attackType = null; holdWindUp = false;\n\s*blowType = null; attackHand = null;/, 'the view switch resets the blow too');
+  // the free hand's weight: 1 with no spell, easing to 0 under one (never a step), back on the hold's ease
+  let s = { w: 1, ready: 0, since: Infinity };
+  s = rifleStanceStep(s, { wanted: true, free: true, dt: 0.016 });
+  assert.equal(s.free, 1, 'no spell: the free hand whole');
+  s = rifleStanceStep(s, { wanted: true, free: false, dt: 0.016 });
+  assert.ok(s.free > 0.5 && s.free < 1, `under a spell: eased, not switched (${s.free.toFixed(3)})`);
+  for (let i = 0; i < 60; i++) s = rifleStanceStep(s, { wanted: true, free: false, dt: 0.016 });
+  assert.ok(s.free < 0.01, 'and gone');
+  assert.match(readFileSync(new URL('../../src/combat/fpArm.js', import.meta.url), 'utf8'), /only: g\.lone \? 'R' : g\.only, free: g\.lone \? \(rifle\.free \?\? 1\) : 0/, 'the hold places the free hand at that weight');
 });

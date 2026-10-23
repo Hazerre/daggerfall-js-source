@@ -97,7 +97,7 @@ import '../swingLaw.js';   // AUDIT PRE-MERGE 0929 S5: SWING-LAW's reader of the
 import { walkSpeed } from '../../player/motor.js';   // WW1: GetBaseSpeed's walk arm
 import { localizedText, t } from '../../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; TWO-HANDS: the lead's two lines, the port's own
 import { HANDS_MODE, twoHanded, runHandsWanted, runHandsKept, runPhaseOfBob, MIRROR_UV, otherHand, guardStep } from '../twoHands/handsLaw.js';   // TWO-HANDS: how the hands are held, and when they run
-import { spellHandOf, tellSpellHand, drawSpellHand, guardDrop } from '../twoHands/spellHand.js';   // SPELL-HAND: a spell in the free hand beside a one-handed weapon
+import { spellHandOf, tellSpellHand, castPending, drawSpellHand, guardDrop } from '../twoHands/spellHand.js';   // SPELL-HAND: a spell in the free hand beside a one-handed weapon
 import { stepTechnique, claimShot, techniqueFlying, TECHNIQUE_ACTION } from '../techniques.js';   // TECH1: the technique key - every host's rig steps the one runner
 import '../../systems/martialPowers.js';   // MARTIAL3/4 (bible/05-Combat/Martial-Specialisations.md): what the martial paths and the weapons past 100 DO - registered at import, so every host's rig (exterior.js, world.js, worldModes.js' interiors, dungeonContext.js' dungeons) has them
 import { techniqueHands } from '../technique/techniqueFx.js';   // TECH-FX: a technique's push of the first-person layer
@@ -550,23 +550,33 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
    *  The equip table's hands (bindWorn). Read whether or not a spell is readied - drawing the weapon with one readied keeps
    *  it (readyWeapon). */
   const spellHandHands = () => (bindWorn ? spellHandOf({
-    lead: playerWeapon.leadHand, leftBusy: playerWeapon.leftBusy,
+    lead: playerWeapon.leadHand, leftBusy: playerWeapon.leftBusy && !torchStowsForSpell(),
     right: handDesc(playerWeapon.handItem('R')), left: playerWeapon.holdingShield ? SHIELD_DESC : handDesc(playerWeapon.handItem('L')),
   }) : null);
+  /** AUDIT SPELL-HAND L2-3: a light Handheld Torches puts away for the spell (Handling.StowWhenSpellcasting, its default)
+   *  takes no hand from it - the hand is free for the spell the moment one is readied, not two frames after the mod's own
+   *  stow (the light carried while no spell is, or with the switch off, still takes it: DFU's two-handed cast). */
+  const torchStowsForSpell = () => handheldOn() && !!handheld.settings?.stowOnSpellcasting && (spellArmed() || fpsSpellCasting.isPlayingAnim);
   /** SPELL-HAND: the Morrowind arm's hands still in a cast (fpArm.castInFlight) - its spellcast section outlasts the
    *  classic frames, whose release waits on the arm's key (MW-CAST1) and clears the ready there. */
   const armCasting = () => (fpArm.active() || fpArm.thirdActive()) && !!fpArm.castInFlight();
-  /** SPELL-HAND: the free hand's cast still plays - the classic frames, or the arm's own past them. `_spellHand` is last
-   *  frame's: a cast the free hand began keeps it up to its end; a two-handed cast never raises it. */
-  const castPlaying = () => fpsSpellCasting.isPlayingAnim || (_spellHand && armCasting());
-  /** SPELL-HAND: the spell hand is UP this frame (`_spellHand`, read once a frame by frame()): the hands allow it, the
-   *  weapon is drawn and no swap is under way, and a spell is readied or its cast's hands play. */
-  const spellHandNow = () => !playerWeapon.sheathed && (entity?.equipCountdown ?? 0) <= 0
-    && (spellArmed() || castPlaying()) && !!spellHandHands();
+  /** SPELL-HAND: a cast still plays - the classic frames, or the arm's own past them. */
+  const castPlaying = () => fpsSpellCasting.isPlayingAnim || armCasting();
+  /** SPELL-HAND: the hands would hold a spell beside the drawn weapon - drawn, no swap under way, not on a wall (AUDIT
+   *  SPELL-HAND L4-5: DFU's climb hides the weapon - WeaponManager's Update - so a spell readied there is DFU's), and the
+   *  hands allow it. Whether or not a spell is readied: the cast doors' word for a spell readied this moment (L2-2). */
+  const spellHandFits = () => !playerWeapon.sheathed && (entity?.equipCountdown ?? 0) <= 0 && !_climbing && !!spellHandHands();
+  /** AUDIT SPELL-HAND L2-4: A CAST'S HANDS ARE DECIDED AS IT STARTS (castSpellAnim) - one hand or DFU's two, to its end: a
+   *  swap delay ending, H, or a spell readied mid-cast never changes the picture under it. */
+  let _castOneHand = false;
+  /** SPELL-HAND: the spell hand is UP this frame (`_spellHand`, read once a frame by frame()): the hands fit it, and a spell
+   *  is readied - or a cast plays that began in the free hand. */
+  const spellHandNow = () => spellHandFits() && (castPlaying() ? _castOneHand : spellArmed());
   let _spellHand = false;
-  /** SPELL-HAND: a strike is in flight - the machine's, a shot's hit held for the arm (MW-D42), or the arm's own blow or
-   *  draw still playing (fpArm.shotBusy) - so a cast pressed now waits for it: the hands take turns. */
-  const handsBusy = () => playerWeapon.machine.state !== 'Idle' || _heldHit || ((fpArm.active() || fpArm.thirdActive()) && !!fpArm.shotBusy());
+  /** SPELL-HAND: a strike is in flight - the machine's, a shot's hit held for the arm (MW-D42), the arm's own blow or draw
+   *  still playing (fpArm.shotBusy), or a technique's leap or dash (AUDIT SPELL-HAND L4-7: its landing blow is paid for at
+   *  the launch) - so a cast pressed now waits for it: the hands take turns. */
+  const handsBusy = () => playerWeapon.machine.state !== 'Idle' || _heldHit || ((fpArm.active() || fpArm.thirdActive()) && !!fpArm.shotBusy()) || techniqueFlying();
   /** SPELL-HAND: the two guards (handsLaw.js guardStep, a pair's law) - the weapon under the cast, the readied hand under a
    *  blow - each lowered by GUARD.LOWER of its own drawn height (spellHand.js guardDrop). */
   const _spellGuard = { weapon: 0, hand: 0 };
@@ -575,7 +585,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
    *  Handedness flip. */
   const spellHandSide = () => {
     const p = playerWeapon.pistols;
-    const weaponLeft = pistolsUp() ? pistols.flipOf(p, p.lead, handedFlip()) : widgetOn() && widget.drawing() ? !!widget.flipHorizontal : handedFlip();
+    const weaponLeft = pistolsUp() ? pistols.flipOf(p, p.lead, handedFlip()) : widgetOn() && widget.applies() ? !!widget.flipHorizontal : handedFlip();   // AUDIT SPELL-HAND L2-1: the clone's flip whenever it has the weapon - through a Hide frame too
     return weaponLeft ? 'right' : 'left';
   };
   /** WW1 / TWO-HANDS: a widget clone's frame for one hand's `item` - the frame's own inputs (`f`: the canvas, the motion,
@@ -1059,13 +1069,13 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
 
   /** MAC7 #1: the wire's swing - counted at every strike the machine starts, before the Morrowind arm's own gate
    *  (a classic-skin player swings too, and the peers in Morrowind bodies must see it); the host reads it into the pose. */
-  const swing = { n: 0, strike: 'StrikeDown' };
+  const swing = { n: 0, strike: 'StrikeDown', hand: null };   // AUDIT MIXED-PAIR L4-3: and a pair's striking hand, for the peers
   /** MAC7 #2: the wire's cast - { n, rangeType }, counted at castSpellAnim, the one door both lanes' hands come through. */
   const cast = { n: 0, rangeType: 2, element: 4 };   // SPELLFX1: and the element, so a peer can draw the missile
   const shot = { n: 0 };   // SPELLFX1: arrows loosed from a BOW, for the wire (a gun's orb is not counted - peers draw a shaft)
   function fpAttack(strike, dt = 0) {
-    swing.n = (swing.n + 1) & 0xffff; swing.strike = strike;
-    tellSpellHand({ up: _spellHand, busy: true });   // SPELL-HAND: a strike begun this frame is in flight for the cast door the hosts ask before the next
+    swing.n = (swing.n + 1) & 0xffff; swing.strike = strike; swing.hand = pairUp() ? playerWeapon.strike?.hand ?? null : null;
+    tellSpellHand({ up: _spellHand, fits: spellHandFits(), busy: true });   // SPELL-HAND: a strike begun this frame is in flight for the cast door the hosts ask before the next
     // EOTB-IL: the sprite's one-shots are no longer started here - the
     // mod POLLS FPSWeapon.IsAttacking in its own LateUpdate (IL_3eee),
     // and the body reads the machine through the record above
@@ -1465,8 +1475,18 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
    *  own weapon at zero pellets never sheathed and fired in silence -
    *  a trigger that does nothing and says nothing, which is the worst
    *  of both. The classic weapon's classic line is untouched. */
+  let _dryGunSaid = false;   // AUDIT MIXED-PAIR L4-8: a dry mixed pair's gun, said once
   function bowArrowGuard() {
-    if (playerWeapon.sheathed || playerWeapon.mixedPair) return;   // MIXED-PAIR: a pair's blade still fights - its gun's pull falls to it (gunReady)
+    if (playerWeapon.sheathed) return;
+    if (playerWeapon.mixedPair) {   // MIXED-PAIR: a pair's blade still fights - its gun's pull falls to it (gunReady)
+      // AUDIT MIXED-PAIR L4-8: and the gun's want is SAID, once as it runs dry (or is drawn dry), as a lone gun's is -
+      // FPSWeapon's own line - with nothing put away: a gun that never fires and never says why is a gun that is broken
+      const dry = !hasAmmoFor(entity.items, playerWeapon.handItem(playerWeapon.gunHand));
+      if (dry && !_dryGunSaid) setMidScreenText(t('combat.noPellets', 'You have no pellets.'));
+      _dryGunSaid = dry;
+      return;
+    }
+    _dryGunSaid = false;
     const weapon = playerWeapon.weapon;
     const type = weaponTypeForItem(weapon);
     const ranged = type === WEAPON_TYPES.Bow || isGunType(type);   // PISTOLET: either gun
@@ -1610,7 +1630,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       // it was null, or a stale rect from before the arm came up, and the orb left the eye rather than the barrel, in
       // first person and in third. The rig poses the weapon piece every frame and knows where it ends
       // (combat/rigMuzzle.js); the sprite's record stays the sprite's.
-      if (fpArm.active() || fpArm.thirdActive()) return fpArm.weaponMuzzle();
+      if (fpArm.active() || fpArm.thirdActive()) return fpArm.weaponMuzzle(pairUp() ? playerWeapon.activeHand : 'R');   // AUDIT MIXED-PAIR L3-6: a pair's shot from the hand that fired it
       // PISTOL-PORT: a Pistolet's shot leaves the barrel of the pistol that fired it - a pair's striking hand, one pistol its lead
       if (pistolsUp()) return muzzleRay(pistols.hands[playerWeapon.gunPair ? playerWeapon.activeHand : playerWeapon.pistols.lead]?.drawn ?? null, fovRad, forward);
       return muzzleRay(_tlDrawn, fovRad, forward);
@@ -1656,7 +1676,10 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       const armCasts = fpArm.castSpell(rangeType, rate) && (fpArm.active() || fpArm.thirdActive());
       // MW-CAST1: the Morrowind hands on screen cast the spell - it leaves on their "<type> release", or when they stop
       // casting without one (fpsSpellCasting's hold, and its ceiling); the classic lane's frame 5 is untouched
-      return fpsSpellCasting.playOneShot(element, onRelease, armCasts ? { hold: () => fpArm.takeCastRelease() || !fpArm.castInFlight(), rate } : { rate });
+      const oneHand = spellHandFits();   // AUDIT SPELL-HAND L2-4: the cast's hands, decided as it starts - and only by a cast that does
+      const started = fpsSpellCasting.playOneShot(element, onRelease, armCasts ? { hold: () => fpArm.takeCastRelease() || !fpArm.castInFlight(), rate } : { rate });
+      if (started) _castOneHand = oneHand;
+      return started;
     },
     playerWeapon,
     swing,   // MAC7 #1: { n, strike } - the count and the kind of the last strike started, for the wire
@@ -1673,11 +1696,12 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       if (playerWeapon.sheathed || (entity?.equipCountdown ?? 0) > 0) return;
       _dx += dx; _dy += dy;
     },
-    /** ClickToAttack for the touch button. */
+    /** ClickToAttack - the probes' door (window.__attack, __combat). AUDIT SPELL-HAND L4-10: the touch layer's ATTACK button
+     *  is not it - it reaches the swing through attackInput's latch (touch.js `hooks.attack`), the drag's door below. */
     clickAttack() {
       if (playerWeapon.sheathed || (entity?.equipCountdown ?? 0) > 0 || _climbing) return;   // CLIMB4: no swing with the hands on the wall
       if (armCannotDraw() || (pelletsOwed() && !playerWeapon.mixedPair)) return;   // BOW-CLOCK: nor a shot the Morrowind arm cannot draw yet; AUDIT PISTOL-PORT A5: nor one with no Pellet left for it (MIXED-PAIR: the pair's dry gun gives its pull to the blade - gunReady)
-      if (_spellHand && castPlaying()) return;   // SPELL-HAND: nor a blow while the free hand's cast plays - the hands take turns, as the drag's door (canAttack)
+      if (castPlaying() || (_spellHand && castPending())) return;   // SPELL-HAND: nor a blow while a cast plays or one pressed waits - the hands take turns, as the latch's door (canAttack)
       if (techniqueFlying()) return;   // AUDIT TECH1: nor a touch swing while a technique's leap or dash is in the air - its strike is the landing's
       const strike = playerWeapon.clickAttack();
       if (strike) fpAttack(strike);
@@ -1774,6 +1798,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       const m = playerWeapon.machine;
       if (m.isBow && m.now < m.cooldownUntil) return false;   // AUDIT 68 S09-held-hit-dropped: Update's cooldown return (:230-233) comes before ToggleHand, as readyWeapon has it
       if (m.state !== 'Idle' || _heldHit) return false;       // isAttacking - and a shot held for the arm's release is one
+      if (castPlaying()) return false;   // AUDIT SPELL-HAND L2-4: DFU's Update returns before ToggleHand while IsPlayingAnim (a readied spell's leg is the port's departure - Two-Hands.md)
       syncWorn();
       // MW-HAND: under the Morrowind arm H moves only between two held weapons - never to an empty hand. TWO-HANDS: both
       // fists up are two hands too - H picks the one that leads
@@ -1804,7 +1829,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       // hands just synced - and told to the cast's doors (scenes/hostMagic.js: the swing button is the weapon's, a cast
       // pressed mid-blow waits); its two guards eased on the same law as a pair's
       _spellHand = spellHandNow();
-      tellSpellHand({ up: _spellHand, busy: handsBusy() });
+      tellSpellHand({ up: _spellHand, fits: spellHandFits(), busy: handsBusy() });
       _spellGuard.weapon = guardStep(_spellGuard.weapon, _spellHand && fpsSpellCasting.isPlayingAnim, dt);
       _spellGuard.hand = guardStep(_spellGuard.hand, _spellHand && playerWeapon.machine.state !== 'Idle', dt);
       // EOTB-IL: the mod's two keys are polled on their RELEASE edge
@@ -1862,7 +1887,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       const handsClimb = handsLane && _climbLower >= CLIMB_HANDS_AFTER && !castTakesHands ? (camNow?.climb ?? null) : null;
       const handsLens = handsClimb || climbHands.law.present > 0 ? climbLens(cv(), { fov: fieldOfView(), viewport: renderer?.worldViewportRect ?? null, aspect: renderer?.worldProjAspect ?? null, offsetHeight: weaponOffsetHeight() }) : null;
       climbHands.update(dt, handsClimb, { yaw: camNow?.yaw, pitch: camNow?.pitch, lens: handsLens });
-      const canAttack = !playerWeapon.sheathed && (entity?.equipCountdown ?? 0) <= 0 && (!spellArmed() || _spellHand) && !(_spellHand && armCasting()) && !fpsSpellCasting.isPlayingAnim && !climbing && !actTool() && (!pelletsOwed() || playerWeapon.mixedPair);   // AUDIT 29 D2: no swing behind a gathering act's tool; AUDIT PISTOL-PORT A5: nor a shot with no Pellet left for it (MIXED-PAIR: the pair's gun refuses its own pull - gunReady - and its blade takes it)
+      const canAttack = !playerWeapon.sheathed && (entity?.equipCountdown ?? 0) <= 0 && (!spellArmed() || _spellHand) && !armCasting() && !(_spellHand && castPending()) && !fpsSpellCasting.isPlayingAnim && !climbing && !actTool() && (!pelletsOwed() || playerWeapon.mixedPair);   // AUDIT 29 D2: no swing behind a gathering act's tool; AUDIT PISTOL-PORT A5: nor a shot with no Pellet left for it (MIXED-PAIR: the pair's gun refuses its own pull - gunReady - and its blade takes it)
       // BOW-CLOCK: no shot starts the arm cannot draw (armLoosing, above) - gesture() is not asked, so its button
       // latch keeps the press made while waiting.
       const armLoosing = armCannotDraw();
@@ -1932,6 +1957,9 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
         // Sheathed is rule 8's weapon type None: the bare "idle" group,
         // rule 10's endless loop, and no weapon in shot. Drawn plays the
         // equip section of the weapon's long group and raises "idle1h".
+        // SPELL-HAND: the spell in the free hand beside the weapon - the arm keeps the weapon's stance (combat/twoHands/spellHandArm.js).
+        // AUDIT SPELL-HAND L3-3: told BEFORE the sheathe, so a weapon drawn with the spell kept comes up in its own stance
+        fpArm.setSpellHand(_spellHand);
         fpArm.setSheathed(playerWeapon.sheathed);
         // RIFLE-STANCE (combat/gun/rifleStance.js): the fight a long gun's aim reads - a foe's harm on the player within
         // RIFLE_EASE.fight seconds; its own shots it reads itself
@@ -1957,7 +1985,6 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
         // above); the Morrowind arm rides the same one, and its fast
         // path is a boolean compare, so the stance re-composes only
         // when a spell is actually readied or let go.
-        fpArm.setSpellHand(_spellHand);   // SPELL-HAND: the spell in the free hand beside the weapon - the arm keeps the weapon's stance (combat/twoHands/spellHandArm.js)
         fpArm.readySpell(spellArmed());
         // WEAPON-GLOW1 (bible/05-Combat/Weapon-Glow.md): THE WEAPON IN THE HAND GLOWS AS ITS CARD SAYS - its element, or its
         // enchantment where none shows - on its own ranges; a value the next draw reads, so the fast path is an assignment
@@ -2245,7 +2272,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
         // SPELL-HAND (combat/twoHands/spellHand.js): with the spell in the free hand beside the weapon, ONE of the two - the
         // free hand's, on the side the weapon is not, lowered under the weapon's blow - for the cast and the readied frame
         const side = _spellHand ? spellHandSide() : null;
-        const castHands = (art, f) => (side ? drawSpellHand(renderer, c, art, f, { side, tint: fpTint, guard: _spellGuard.hand }) : drawSpellCastHands(renderer, c, art, f, { tint: fpTint }));
+        const castHands = (art, f) => (side ? drawSpellHand(renderer, c, art, f, { side, tint: fpTint, guard: fpsSpellCasting.isPlayingAnim ? 0 : _spellGuard.hand }) : drawSpellCastHands(renderer, c, art, f, { tint: fpTint }));
         castHands(spellArtFor(fpsSpellCasting.element), fpsSpellCasting.frameIndex);
         spellHandsDrawn = fpsSpellCasting.isPlayingAnim;
         // RSH1 (vendor/readied-spellcasting-hands, Modded_FPSSpellCasting_Ready.cs AnimateSpellCast): A READIED SPELL

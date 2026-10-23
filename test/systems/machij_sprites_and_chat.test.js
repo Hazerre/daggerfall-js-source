@@ -219,10 +219,11 @@ test('MAC-I: the switch, and every sprite in the seam wearing the tint', () => {
   // ONE read a frame, above the draws, so the four sprites cannot disagree
   assert.match(rig, /const fpTint = fpLightingOn\(\) \? \(renderer\?\.flatLightAt\?\.\(\) \?\? null\) : null;/);
   // PIN MOVED (SPELL-HAND): both hands, or the spell hand's one, through one door wearing the tint
-  assert.match(rig, /const castHands = \(art, f\) => \(side \? drawSpellHand\(renderer, c, art, f, \{ side, tint: fpTint, guard: _spellGuard\.hand \}\) : drawSpellCastHands\(renderer, c, art, f, \{ tint: fpTint \}\)\);/);
+  // PIN MOVED (AUDIT SPELL-HAND L2-5): the cast frames carry no guard (was: `guard: _spellGuard.hand` on every frame)
+  assert.match(rig, /const castHands = \(art, f\) => \(side \? drawSpellHand\(renderer, c, art, f, \{ side, tint: fpTint, guard: fpsSpellCasting\.isPlayingAnim \? 0 : _spellGuard\.hand \}\) : drawSpellCastHands\(renderer, c, art, f, \{ tint: fpTint \}\)\);/);
   assert.match(rig, /castHands\(spellArtFor\(fpsSpellCasting\.element\), fpsSpellCasting\.frameIndex\);/);
   assert.match(rig, /handheld\.draw\(renderer, c, fpTint\)/);
-  assert.match(rig, /widget\.draw\(renderer, c, fpTint[,)]/);   // PIN MOVED (SPELL-HAND): the clone's guard rides beside the tint; FIELD-GUN12: the gun takes its own frame above this, so the clone is the tint alone again
+  assert.match(rig, /widget\.draw\(renderer, c, fpTint, _spellGuard\.weapon > 0 \? \{ transform: \(r\) => \(\{ \.\.\.r, y: r\.y \+ guardDrop\(_spellGuard\.weapon, r\.h\) \}\) \} : undefined\)/);   // AUDIT SPELL-HAND L5-9: the whole argument, the guard's transform   // PIN MOVED (SPELL-HAND): the clone's guard rides beside the tint; FIELD-GUN12: the gun takes its own frame above this, so the clone is the tint alone again
   // FIELD-GUN6: `adjust` joined the tint - the Thunderlock's recoil and reload lower, null for every classic weapon
   assert.match(rig, /drawFpsWeapon\(renderer, c, art, m\.state, m\.frame, \{ tint: fpTint, offsetHeight: offsetHeight - spellDrop, glow: heldGlowNow\(\) \}\)/);   // PIN MOVED (SPELL-HAND): the machine read once (`m`), the offset with the spell hand's guard   // WEAPON-GLOW1: and the element's outline   // FIELD-GUN12: the classic sprite is the classic sprite again; CLIMB4: lowered for the climb (climb4.test.js F16)
   // and each draw passes it THROUGH to the quad rather than accepting and dropping it

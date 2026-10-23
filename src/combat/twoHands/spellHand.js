@@ -58,15 +58,26 @@ export function spellHandOf({ lead = 'R', right = null, left = null, leftBusy = 
  * fpsSpellCasting is one: the player has one pair of hands, the four hosts each hold a rig, and the magic engine a building
  * shares with its street reads whichever rig owns the frame.
  */
-const live = { up: false, busy: false };
+const live = { up: false, fits: false, busy: false, pending: false };
 /** The spell hand is up: a spell readied (or casting) in the free hand, the weapon drawn in the other. */
 export const spellHandUp = () => live.up;
-/** The weapon hand is mid-blow under the spell hand - a cast pressed now waits for it. */
-export const spellHandBusy = () => live.up && live.busy;
-/** The rig's word, once a frame. */
-export function tellSpellHand({ up = false, busy = false } = {}) { live.up = !!up; live.busy = !!busy; }
+/** AUDIT SPELL-HAND L2-2: the weapon hand is mid-blow where a spell would go in the free hand - a spell readied there, or
+ *  one readied THIS moment (the hotbar's ready-and-cast, a CasterOnly's instant cast) that the rig has not yet seen: a
+ *  cast pressed now waits for the blow. */
+export const spellHandBusy = () => (live.up || live.fits) && live.busy;
+/** AUDIT SPELL-HAND L4-1: a cast press is waiting for the weapon's blow - the rig starts no new blow while it does, so a
+ *  held swing button never starves the cast (the hands take turns: the blow, the cast, then the blows again). */
+export const castPending = () => live.pending;
+/** The rig's word, once a frame and again as a strike begins: `fits` - the hands would hold a spell beside the drawn
+ *  weapon (whether or not one is readied); `up` - one is; `busy` - a strike is in flight. */
+export function tellSpellHand({ up = false, fits = false, busy = false } = {}) { live.up = !!up; live.fits = !!fits || !!up; live.busy = !!busy; }
+/** SPELL-HAND: a CAST's own press, as the hosts hand it to the cast's door (scenes/hostMagic.js interceptAttack) - one frozen
+ *  word, imported, so no host grows by an entry for it (HOST-SPLIT: test/scenes/hostceiling.test.js counts entries). */
+export const CAST_PRESS = Object.freeze({ cast: true });
+/** The magic engine's word: a cast press waits (scenes/hostMagic.js firePending). */
+export function tellCastPending(on) { live.pending = !!on; }
 /** The pins' reset. */
-export function _resetSpellHand() { live.up = false; live.busy = false; }
+export function _resetSpellHand() { live.up = false; live.fits = false; live.busy = false; live.pending = false; }
 
 // ---- THE PICTURE (the classic lane) ---------------------------------------------------------------------------------
 

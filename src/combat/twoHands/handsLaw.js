@@ -71,10 +71,12 @@ export function handsModeOf({ right = null, left = null, claws = false, leftBusy
 /** MIXED-PAIR's own terms on the pair's (DUAL's are untouched). */
 export const MIXED = Object.freeze({
   /** THE ONE-HANDED RELOAD: a mixed pair's Pistolet reloads this much longer than with a hand free - the hand that would
-   *  ram the next ball holds a blade. Measured through the machine and the formula (bible/05-Combat/Two-Hands.md "A blade
-   *  and a gun"): a longsword and a Pistolet land under a pair of Pistolets a second and about a tenth over a longsword
-   *  pair; at 1 they landed a pistol pair's whole damage on two fifths of its Pellets. */
-  RELOAD: 1.5,
+   *  ram the next ball holds a blade. AUDIT MIXED-PAIR L1-2: measured in the game's own swing (the rig's `swingCtx`, the
+   *  blade's heft) over Speed and frame rate (bible/05-Combat/Two-Hands.md "A blade and a gun"): a longsword and a Pistolet
+   *  land a fifth over a longsword pair at Speed 10-50, a tenth at 75, level at 100, on a fifth of a gun pair's Pellets.
+   *  The gun is asked only as the blade's blow ends, so a reload counts in whole blows: the 1.5 first chosen was the free
+   *  hand's two blows at most Speeds - it changed nothing - where 2 is a blow more at every Speed. */
+  RELOAD: 2,
 });
 
 /**
@@ -519,3 +521,12 @@ export function runWeightStep(w, wanted, punching, dt) {
   if (punching) return easeTo(w, 0, RUN_PUMP.PUNCH_TAU, dt);
   return easeTo(w, wanted ? 1 : 0, wanted ? RUN_PUMP.IN_TAU : RUN_PUMP.OUT_TAU, dt);
 }
+
+/**
+ * AUDIT MIXED-PAIR L4-3: THE POSE'S HANDS - what a peer needs to draw them (net/peer/peerBodies.js peerHandsOf): `lh` the
+ * LEFT hand leads (DISC12, WeaponManager.UsingRightHand false), `ah` the last strike was a pair's LEFT hand's - each omitted
+ * at 0 (the wire's omission law). One spread at the pose's sender (scenes/world.js), so the host grows no entry for it.
+ * @param {boolean} usingRightHand
+ * @param {'R'|'L'|null} strikeHand the last strike's hand in a pair, else null
+ */
+export const poseHandsOf = (usingRightHand, strikeHand) => ({ ...(usingRightHand ? {} : { lh: 1 }), ...(strikeHand === 'L' ? { ah: 1 } : {}) });

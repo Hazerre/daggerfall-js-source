@@ -255,7 +255,7 @@ test('fpsSpellCasting: WeaponManager.cs:247 - the weapon hides while the hands p
   assert.ok(handsAt < spriteAt, '"behind other HUD elements" (:113) - the hands go down first');
   // The Morrowind lane draws its OWN cast (MW-D39), so exactly one of
   // the two reaches the screen - the same one seam the sprite has.
-  assert.match(draw, /if \(c && !fpArm\.active\(\) && !eotbHidesSpellHands\(\)\) \{\n(?:\s*\/\/[^\n]*\n)*\s+const side = _spellHand \? spellHandSide\(\) : null;\n\s+const castHands = [^\n]*drawSpellCastHands\(/);   // AUDIT 68 S09-eotb-canvas-null: EOTB's hide rides the hands' own gate (PIN MOVED, SPELL-HAND: both hands through castHands, one with the spell hand)
+  assert.match(draw, /if \(c && !fpArm\.active\(\) && !eotbHidesSpellHands\(\)\) \{\n(?:\s*\/\/[^\n]*\n)*\s+const side = _spellHand \? spellHandSide\(\) : null;\n\s+const castHands = \(art, f\) => \(side \? drawSpellHand\(renderer, c, art, f, \{ side, tint: fpTint, guard: fpsSpellCasting\.isPlayingAnim \? 0 : _spellGuard\.hand \}\) : drawSpellCastHands\(renderer, c, art, f, \{ tint: fpTint \}\)\);\n\s+castHands\(spellArtFor\(fpsSpellCasting\.element\), fpsSpellCasting\.frameIndex\);/);   // AUDIT SPELL-HAND L5-9: the line whole, and the hands drawn through it   // AUDIT 68 S09-eotb-canvas-null: EOTB's hide rides the hands' own gate (PIN MOVED, SPELL-HAND: both hands through castHands, one with the spell hand)
   // ...and third person draws neither.
   assert.ok(draw.indexOf('if (fpArm.thirdActive()) return;') < handsAt,
     'the third-person gate stands above the hands too');

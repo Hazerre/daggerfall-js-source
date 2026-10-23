@@ -85,7 +85,7 @@ import { createMwMagicFx } from './mwMagicFx.js';   // MW-SPELLFX1: Morrowind's 
 import { egAllyLook } from '../ui/eliteGates/egAccess.js';   // EG-ZG (Elite-Gates.md section 25.4): THE QUIET COMPANY - another player's spell effects in a Spire trial
 import { CONCEAL_MODE } from '../systems/combatVisuals.js';   // EG-ZG: an ally's flat drawn translucent, as a revealed foe's is (alpha alone)
 import { fpsSpellCasting } from '../combat/fpsSpellCasting.js';   // CAST-SPEED: the ONE pair of hands, whose motion gates the click
-import { spellHandUp, spellHandBusy } from '../combat/twoHands/spellHand.js';   // SPELL-HAND: a spell in the free hand beside a weapon - the swing is the weapon's
+import { spellHandUp, spellHandBusy, tellCastPending } from '../combat/twoHands/spellHand.js';   // SPELL-HAND: a spell in the free hand beside a weapon - the swing is the weapon's
 
 /** SUNBABY2: a sky fireball (skyFire) is drawn this many times its flat's size, its flash too - a ball a sun throws,
  *  seen falling from far up - and heard this far (metres) from where it lands. */
@@ -458,6 +458,9 @@ export function createPlayerMagic({
   // (setReadiedByIndex set the spell and not the latch - found live
   // by the I2 cast probe). The latch is gone; armed derives.
   let pendingClickCast = false;
+  /** AUDIT SPELL-HAND L4-1/L4-6: the press, kept and told - a press waiting on the weapon's blow holds the next blow
+   *  (combat/twoHands/spellHand.js castPending); one made for a spell that is no longer the one readied never fires it. */
+  const setPending = (on) => { pendingClickCast = !!on; tellCastPending(pendingClickCast); };
   let readiedSpell = null;
   let readiedFree = false;   // readySpellDoesNotCostSpellPoints (magic-8)
   // AUDIT 58: readySpellCastingCost (EntityEffectManager.cs:61). The
@@ -1231,6 +1234,7 @@ export function createPlayerMagic({
    *  is in hand or cast, false when a gate refused it. */
   function readySpell(sp, { free = false } = {}) {
     const prevArm = _lastArm; _lastArm = null;   // GIFT-QUIET: a ready that arms nothing ends the arm
+    if (pendingClickCast) setPending(false);   // AUDIT SPELL-HAND L4-6: a press waiting on a blow was the last spell's - never this one's
     if (barredHere()) return false;   // HOME-MAGIC: before every other gate, a free ready's too (an item's spell)
     if (wardedHere(sp)) return false;   // AUDIT-SEATS G5: a battle's wards, before it costs anything
     if (!free && silenceBlocksCast(playerEntity)) { readiedSpell = null; readiedCost = 0; say(silencedText()); return false; }
@@ -1278,6 +1282,8 @@ export function createPlayerMagic({
       if (!free && allyCastable(sp) && allyNear(lastAim?.eye ?? null, sp)) { sayArm('mate-near', prevArm, pressButtonToFireSpellText(), ALLY_ARMED_LINE); return true; }
       if (companionNear(lastAim?.eye ?? null, sp)) { sayArm('mine-near', prevArm, pressButtonToFireSpellText(), COMPANION_ARMED_LINE); return true; }
       if (!free && hasResurrect(sp)) { const f = fallenInReach(lastAim?.eye ?? null, lastAim?.dir ?? null); say(f?.gone ? RESURRECT_TEXT.forGood(f.name) : f ? pressButtonToFireSpellText() : RESURRECT_TEXT.aim); return true; }   // RESURRECT1: a caster-only Resurrect waits for the click, aimed at the body; REZ-BLOODLINE: one fallen for good is said so
+      // AUDIT SPELL-HAND L2-2: beside a weapon mid-blow the instant cast waits for the blow, as a pressed one does
+      if (spellHandBusy()) { setPending(true); return true; }
       return castInput(null, null) !== false;
     }
     // AUDIT 24 scenes: SetReadySpell's own line, verbatim -
@@ -1546,6 +1552,7 @@ export function createPlayerMagic({
     abortReadySpell() {
       if (!readiedSpell) return false;
       readiedSpell = null; readiedFree = false; readiedCost = 0;
+      if (pendingClickCast) setPending(false);   // AUDIT SPELL-HAND L4-6: and the press waiting for it
       return true;
     },
     castInput,
@@ -1594,10 +1601,10 @@ export function createPlayerMagic({
      *  weapon the swing button is the WEAPON's: only a cast's own press fires the spell. */
     interceptAttack(held, { cast = false } = {}) {
       if (!cast && spellHandUp()) return false;
-      if (held && readiedSpell != null && !pendingClickCast) { pendingClickCast = true; return true; }
+      if (held && readiedSpell != null && !pendingClickCast) { setPending(true); return true; }
       return false;
     },
-    firePending(eye, dir) {
+    firePending(eye, dir, held = false) {
       // ROAD-E6: every host calls this once a frame with its LIVE
       // eye/dir whether or not a click is pending, which makes it the
       // engine's window onto the caster transform DFU's release-frame
@@ -1607,7 +1614,10 @@ export function createPlayerMagic({
       // SPELL-HAND: THE HANDS TAKE TURNS - a cast pressed while the weapon beside the spell is mid-blow waits for the blow to
       // end, then leaves down the look it leaves on (kept, never dropped: the press is not the swing's to eat)
       if (spellHandBusy()) return false;
-      pendingClickCast = false;
+      // AUDIT SPELL-HAND L4-6: nor under a window - the host's own word (a window pauses DFU's game; a press kept across a
+      // blow could otherwise leave beneath one): it waits for the window to close
+      if (held) return false;
+      setPending(false);
       return castInput(eye, dir);
     },
     /** ROAD-E6: castInProgress (:59) - the 0.2s of hand motion between
@@ -1729,11 +1739,11 @@ export function createPlayerMagic({
     // click back outside) or destroyed with the dungeon's, the item's condition spent and no spell cast.
     handReadyTo(other) {
       if (!readiedSpell || !other?.takeReady) return false;
-      other.takeReady({ sp: readiedSpell, free: readiedFree, cost: readiedCost });
+      other.takeReady({ sp: readiedSpell, free: readiedFree, cost: readiedCost, pending: pendingClickCast });   // AUDIT SPELL-HAND L4-6: a press waiting on a blow crosses with its spell
       readiedSpell = null; readiedFree = false; readiedCost = 0; pendingClickCast = false;
       return true;
     },
-    takeReady({ sp = null, free = false, cost = 0 } = {}) { readiedSpell = sp; readiedFree = !!sp && !!free; readiedCost = sp ? cost : 0; },
+    takeReady({ sp = null, free = false, cost = 0, pending = false } = {}) { readiedSpell = sp; readiedFree = !!sp && !!free; readiedCost = sp ? cost : 0; setPending(!!sp && !!pending); },
     allyInReach,   // AUDIT ALLY-CAST A5: the plaque's question, answered by THIS engine's pick and collider
     setReadiedByIndex(index, spellsByIndex) {
       // S1: a MADE spell has no SPELLS.STD index (it carries a

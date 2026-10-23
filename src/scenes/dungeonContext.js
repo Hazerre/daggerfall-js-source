@@ -166,6 +166,7 @@ import { createInventoryWindow } from '../ui/inventoryDoor.js';   // U53: the pa
 import { preloadPaperDollForEntity } from '../ui/paperDoll.js';   // U26: the doll the keyed window never had
 import { createDroppedLoot, droppedLootHooks, containerDropPos } from './droppedLoot.js';   // U8e, mounted here at U26; G5: the pile's DaggerfallLoot identity
 import { createPlayerMagic } from './hostMagic.js';   // M3: the ONE cast engine
+import { CAST_PRESS } from '../combat/twoHands/spellHand.js';   // SPELL-HAND: a cast's own press, one imported word (HOST-SPLIT)
 import { tallySkill, skillValue, SKILLS } from '../systems/skills.js';
 import { FALL_DAMAGE_THRESHOLD, FALL_HP_PER_METRE, CAPSULE_HEIGHT, EYE_HEIGHT, startRestGroundedCheck } from '../player/motor.js';   // the rest gate's grounded input, one home
 import { applyLevelUp } from '../systems/advancement.js';
@@ -4341,14 +4342,14 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     batch.castOnly = !!_npcLane?.has('foe', foeId(f));   // AUDIT MW-NPC II H3: the body stands from the kill - the flat minted under it casts alone from its first frame (the level's pass draws it before drawFoes marks it)
     billboardBatches.push(batch);   // hosts draw + destroy() frees
   }
-  function playerAttackInput(dx, dy, held, { cast = false } = {}) {   // host mouse events buffer here; SPELL-HAND: `cast` - a cast's own press (Mouse0's), never a swing
+  function playerAttackInput(dx, dy, held, cast = false) {   // host mouse events buffer here; SPELL-HAND: `cast` - a cast's own press (Mouse0's), never a swing
     if (held && opts.profActing?.()) return;   // PROF2: an act's strike is the act's - never a swing (the outer host reads it); AUDIT 29 D2: the PRESS alone - a release is never gated, or a button held into an act swung on after it
     // I2 (cast probe): the CAST intercept runs BEFORE the sheath gate.
     // DFU's cast is EntityEffectManager's own Update - a separate
     // component from WeaponManager - so a sheathed player still fires
     // a readied spell on the click; only the SWING needs the weapon
     // out (WeaponManager verbatim, audit 2026-08-17).
-    if (magic.interceptAttack(held, { cast }) || cast) return;   // the armed click casts, no swing (SPELL-HAND: and a cast's own press never swings)
+    if (magic.interceptAttack(held, cast ? CAST_PRESS : undefined) || cast) return;   // the armed click casts, no swing (SPELL-HAND: and a cast's own press never swings)
     weaponRig.attackInput(dx, dy, held);   // AUDIT 68 S09-sheathed-swing: the rig refuses the swing itself; a host-side sheath gate here ate the RELEASE
   }
   // ═══ WB4b: THE BURNING COURT'S BOSS, MET ═══════════════════════════════════════════════════════════════════════
@@ -7492,7 +7493,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
         inCastle: castleBlockAt(playerFeet[0], playerFeet[2]),
       });
     }
-    magic.firePending(eye, [-aimed[2], -aimed[6], -aimed[10]]);   // classic: the readied spell fires on the click
+    magic.firePending(eye, [-aimed[2], -aimed[6], -aimed[10]], !!opts.breathHeld?.());   // classic: the readied spell fires on the click (AUDIT SPELL-HAND L4-6: never under the street's window - this frame runs under none of its own)
     // P13: the shared stealth senses context (EnemySenses' player-
     // side reads). S21: all three illusion branches are LIVE -
     // invisible always blocks (the 13 seers exempt), blending 8%

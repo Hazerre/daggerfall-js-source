@@ -52,7 +52,7 @@ export async function pistolRig({ right = null, left = null, leftHanded = false,
   const quads = [], uploads = [], glows = [];
   // PISTOL-PORT: the camera the host hands the rig, walking when a pin says; AUDIT PISTOL-PORT B1: strafing (-1 left, 1
   // right) and in the air (`vertical` the eye's climb, null on the ground) too
-  const eye = [0, 1.7, 0], walk = { on: false, strafe: 0, vertical: null };
+  const eye = [0, 1.7, 0], walk = { on: false, strafe: 0, vertical: null, climbing: false };
   const events = [];   // AUDIT PISTOL-PORT: the events the rig handed its host on the last frame
   const renderer = {
     uploadTexture: (_k, name) => { uploads.push(name); return name; },
@@ -73,7 +73,7 @@ export async function pistolRig({ right = null, left = null, leftHanded = false,
     ...(spellArmed ? { spellArmed } : {}), ...(readiedSpell ? { readiedSpell } : {}), ...(abortSpell ? { abortSpell } : {}),
     // AUDIT PISTOL-PORT B8: the motion bag the hosts hand the rig (player/motor.js motionBagOf) - PlayerMotor.Speed as
     // `speedField`, never a ratio or a base of the harness's own, so a pin runs the rig's own path from it
-    camera: () => ({ pos: [...eye], yaw: 0, pitch: 0, climbing: false,
+    camera: () => ({ pos: [...eye], yaw: 0, pitch: 0, climbing: !!walk.climbing,   // AUDIT SPELL-HAND L4-5: `walk.climbing` puts the hands on a wall
       move: { grounded: walk.vertical === null, running: false, crouching: false, standing: !walk.on && !walk.strafe && walk.vertical === null, speedField: walkSpeed(50) } }) });
   r.toggleSheath();   // drawn
   // PISTOL-PORT: a frame of `dt` (a browser's own, when a pin replays one), the eye carried forward at the walk's speed
