@@ -364,14 +364,27 @@ let timersOpen = false;
 let timersView = null;
 let timersAnchor = null;      // AUDIT TIMERS1 UI-3: the hourglass's re-placing, disconnected with the face it stands in
 let timersFocusBack = false;  // AUDIT TIMERS1 UI-5: a closed window hands the focus back to the hourglass
+let timersFocusIn = false;    // AUDIT SEASON-BOOK U3: the window just opened - the focus goes into it, once
 const stopTimers = () => { timersView?.stop(); timersView = null; timersAnchor?.(); timersAnchor = null; };
 /** EG-ZM (Elite-Gates.md section 20): a timers row's door (the Elite rows' Boards) is a handoff, as the sheet's doors are -
  *  the pause face down first, the door's window in the slot it frees, and a door that opened nothing a resume. */
 // AUDIT GROWTH LANE2-3: a Growth face under it asked first (GROWTH5) - the timers window shut so the ask is seen
 const timersDoor = (fn) => {
   if (pauseTab === 'growth' && growthAsks()) { timersOpen = false; timersFocusBack = true; render(); return; }
-  onAction('handoff'); if (!fn()) onAction('resume');
+  handoff(fn, (r) => !!r);
 };
+/** AUDIT SEASON-BOOK S3: A DOOR HANDED THE SLOT - the pause face down, the door asked, and a door that opened nothing
+ *  (`opened` false of its answer) a resume. The handler is read BEFORE the handoff: the handoff unmounts the face, and the
+ *  unmount empties `onAction` - a resume asked of it after was a no-op, the pointer left free under a running game (AUDIT
+ *  27h A4's law, at every door that leaves the face: the sheet's, the hourglass's, the Fleet's, the Captain's, a Growth
+ *  page's, the season's). */
+function handoff(fn, opened = (r) => r !== false) {
+  const act = onAction;   // AUDIT SEASON-BOOK S3: the handler as it stood - the handoff can unmount the face, which empties it
+  onAction('handoff');
+  const r = fn();
+  if (!opened(r)) act('resume');
+  return r;
+}
 /** SERVER-POST: the mailbox's window over the pause face, its live view, the envelope's count kept live and its placing. */
 let postOpen = false;
 let postView = null;
@@ -398,6 +411,7 @@ let seasonOpen = false;
 let seasonView = null;
 let seasonAnchor = null;
 let seasonFocusBack = false;   // a closed window hands the focus back to the laurel
+let seasonFocusIn = false;     // AUDIT SEASON-BOOK U3: the window just opened - the focus goes into it, once
 const stopSeason = () => { seasonView?.stop(); seasonView = null; seasonAnchor?.(); seasonAnchor = null; };
 const closeSeason = () => { seasonOpen = false; seasonFocusBack = true; render(); };
 /** A season row's door - the hourglass's handoff (timersDoor), the season window shut first where a Growth face under it
@@ -408,7 +422,7 @@ const seasonDoor = (fn) => { if (pauseTab === 'growth' && growthAsks()) { closeS
  *  the hourglass's), at the end of the row of marks `chain`. Answers the laurel, or null with no clock. */
 function seasonLaurel(home, chain) {
   if (!hooks.timers?.()) return null;
-  const laurel = seasonMark(document, { open: seasonOpen, onOpen: () => { seasonOpen = true; render(); } });
+  const laurel = seasonMark(document, { open: seasonOpen, onOpen: () => { seasonOpen = true; seasonFocusIn = true; render(); } });
   home.append(laurel);
   seasonAnchor = anchorSeason(laurel, chain, home.querySelector?.('.px-profile'), home);
   if (seasonFocusBack && !seasonOpen) { seasonFocusBack = false; globalThis.requestAnimationFrame?.(() => laurel.focus?.()); }
@@ -4368,13 +4382,18 @@ function renderHome() {
     // where the host hands the clock and what it holds (hooks.timers); its window counts every shared moment down
     let mark = null;
     if (hooks.timers?.()) {
-      mark = timersMark(document, { open: timersOpen, onOpen: () => { timersOpen = true; render(); } });
+      mark = timersMark(document, { open: timersOpen, onOpen: () => { timersOpen = true; timersFocusIn = true; render(); } });
       home.append(mark);
       timersAnchor = anchorBeside(mark, home.querySelector?.('.px-profile'), home);   // AUDIT TIMERS1 UI-3: placed again on every resize
       if (timersFocusBack && !timersOpen) { timersFocusBack = false; globalThis.requestAnimationFrame?.(() => mark.focus?.()); }   // UI-5: back where the press was
     }
     const envelope = postEnvelope(home, mark);   // SERVER-POST: the mailbox beside the hourglass, online - its count kept live
     const laurel = seasonLaurel(home, [mark, envelope]);   // SEASON-BOOK: the laurel beside the envelope, online
+    // AUDIT SEASON-BOOK S4: a window whose mark is gone (the clock lost, the box gone) is closed - never kept to come back
+    // over whatever the player moved on to when the mark returns
+    if (timersOpen && !mark) timersOpen = false;
+    if (postOpen && !envelope) { postOpen = false; postKeep = {}; }
+    if (seasonOpen && !laurel) seasonOpen = false;
     if (accountOpen) {
       const acct = el('div', 'px-stage px-acctstage');
       acct.append(accountWindow());
@@ -4385,10 +4404,11 @@ function renderHome() {
     else if (timersOpen && hooks.timers?.()) {
       const tstage = el('div', 'px-stage px-timersstage');
       // AUDIT TIMERS1 UI-9: the window's read is the one that asks the service (the seats list); the hourglass's test does not
-      timersView = timersWindow(document, { read: () => hooks.timers?.({ ask: true }) ?? null, onClose: () => { timersOpen = false; timersFocusBack = true; render(); }, door: timersDoor });   // EG-ZM: a row's door
+      timersView = timersWindow(document, { read: () => hooks.timers?.({ ask: true }) ?? null, onClose: () => { timersOpen = false; timersFocusBack = true; render(); }, door: timersDoor, focus: timersFocusIn });   // EG-ZM: a row's door
+      timersFocusIn = false;
       tstage.append(timersView.root);
       home.append(tstage);
-      closeOnOutsideTap(home, '.px-timerswin', () => { timersOpen = false; timersFocusBack = true; render(); });
+      closeOnOutsideTap(home, '.px-timerswin', () => { timersOpen = false; timersFocusBack = true; render(); }, { swallow: true });   // AUDIT SEASON-BOOK U1: the tap's release never lands on the face drawn under it
       // AUDIT TIMERS1 UI-5/UI-7: the pause face under the window is out of reach - no Tab into it, no Enter on its
       // Resume, no bumper turning its tabs (plusPad's tab strips skip what is not visible to it), no profile window
       for (const n of [stage, home.querySelector?.('.px-profile'), mark]) n?.setAttribute?.('inert', '');
@@ -4401,16 +4421,17 @@ function renderHome() {
       postView = postWindow(document, { box: () => hooks.post?.() ?? null, keep: postKeep, onClose: () => { postOpen = false; postKeep = {}; postFocusBack = true; render(); } });
       pstage.append(postView.root);
       home.append(pstage);
-      closeOnOutsideTap(home, '.px-postwin', () => { postOpen = false; postKeep = {}; postFocusBack = true; render(); });
+      closeOnOutsideTap(home, '.px-postwin', () => { postOpen = false; postKeep = {}; postFocusBack = true; render(); }, { swallow: true });
       for (const n of [stage, home.querySelector?.('.px-profile'), mark, envelope, laurel]) n?.setAttribute?.('inert', '');
     }
     else if (seasonOpen && laurel) {
       // SEASON-BOOK: the season window, on the hourglass's own stage; its read asks the boards (the laurel's test does not)
       const sstage = el('div', 'px-stage px-timersstage px-seasonstage');
-      seasonView = seasonWindow(document, { read: () => seasonSource(hooks), onClose: closeSeason, door: seasonDoor });   // a row's door is a handoff, as the hourglass's
+      seasonView = seasonWindow(document, { read: (opening) => seasonSource(hooks, { opening }), onClose: closeSeason, door: seasonDoor, focus: seasonFocusIn });   // a row's door is a handoff, as the hourglass's
+      seasonFocusIn = false;
       sstage.append(seasonView.root);
       home.append(sstage);
-      closeOnOutsideTap(home, '.px-seasonwin', closeSeason);
+      closeOnOutsideTap(home, '.px-seasonwin', closeSeason, { swallow: true });
       for (const n of [stage, home.querySelector?.('.px-profile'), mark, envelope, laurel]) n?.setAttribute?.('inert', '');
     }
     // OT1 (Mac: "tapping outside of any UI closes the UI"): a tap on the
@@ -4705,8 +4726,8 @@ function pauseHoldings(body) {
     stable: (d) => drawStablePage(d, render, kit),
     // a door the page opens over the world (the shipwright's window, the water's placing click): the pause goes down
     // first, as the sheet's doors do (PX25/ESC-BOOK), and comes back if the door opened nothing (AUDIT 27h A4)
-    fleet: (d) => drawFleetPage(d, render, { ...kit, door: (fn) => { onAction('handoff'); if (fn() === false) onAction('resume'); } }),
-    captain: (d) => drawCaptainPage(d, render, { ...kit, door: (fn) => { onAction('handoff'); if (fn() === false) onAction('resume'); }, growth: () => { setGrowthSection('captain'); pauseTab = 'growth'; render(); } }),   // CAPT-LOG: the crowns' regard, the letter, the contracts, the log - CAPTAIN-TREE: the stars' door, the Fleet's shape
+    fleet: (d) => drawFleetPage(d, render, { ...kit, door: (fn) => { handoff(fn); } }),   // AUDIT SEASON-BOOK S3: the handoff's one home
+    captain: (d) => drawCaptainPage(d, render, { ...kit, door: (fn) => { handoff(fn); }, growth: () => { setGrowthSection('captain'); pauseTab = 'growth'; render(); } }),   // CAPT-LOG: the crowns' regard, the letter, the contracts, the log - CAPTAIN-TREE: the stars' door, the Fleet's shape
     companions: (d) => drawCompanionsPage(d, render, { ...kit, kindName: enemyDisplayName, here: swornBodyOf, stars: typeof hooks.openRevenantStars === 'function' ? hooks.openRevenantStars : null }),   // COMPANION-ROSTER - RVN-STARS: a sworn one's stars, over this window
     revenants: (d) => drawRevenantsPage(d, render, { ...kit, player: playerEntity, kindName: enemyDisplayName }),   // REVENANT-PAGE
     stores: (d) => drawStoresPage(d, render, kit),   // PROF1
@@ -4736,7 +4757,7 @@ function pauseFamily(body) {
   // first, as the Fleet's doors do, and comes back if the act did nothing
   // AUDIT LEGACY U4: a refused act is refused on the card before the press (switchRefusal, mantleRefusal); one refused
   // after it (a save that would not take) is said on the HUD by the host, and the world resumes under it
-  const kit = { el, divider: pxDivider, door: (fn) => { onAction('handoff'); const r = fn(); if (!r?.ok) onAction('resume'); return r; },
+  const kit = { el, divider: pxDivider, door: (fn) => handoff(fn, (r) => !!r?.ok),   // AUDIT SEASON-BOOK S3
     goto: (id) => { famSec = id; disarmFamilyPages(); render(); } };   // AUDIT PLAIN-UI U8: the tree's way to How it works
   ({ tree: drawTreePage, house: drawHousePage, hall: drawHallPage, guide: drawGuidePage })[famSec](detail, render, kit);   // PLAIN-UI: How it works
   wrap.append(detail);
@@ -4925,7 +4946,7 @@ function pauseStats(body) {
       // refused pack, a journal whose art has not landed): then it IS
       // a resume, inside this same click - no page and no window up,
       // and the pointer left free under a running game, was the hole.
-      b.onclick = () => { onAction('handoff'); if (fn() === false) onAction('resume'); };
+      b.onclick = () => { handoff(fn); };   // AUDIT SEASON-BOOK S3: the handler read before the handoff unmounts the face
       row.append(b);
     }
     detail.append(row);
@@ -5482,7 +5503,7 @@ function questWhere(message, cls, { wayOnly = false, skip = null } = {}) {
     go.title = WHERE_TEXT.showLabel(said.where);
     go.setAttribute('aria-label', WHERE_TEXT.showLabel(said.where));
     const find = said.find;
-    go.onclick = () => { onAction('handoff'); if (door(find) === false) onAction('resume'); };
+    go.onclick = () => { handoff(() => door(find)); };   // AUDIT SEASON-BOOK S3
     box.append(go);
   }
   if (said.note) box.append(el('span', `${cls}-note`, said.note));
@@ -6239,7 +6260,7 @@ export function mountEnhancedMenu(host, {
   else if (growthPageAt(at)) pauseTab = 'growth';   // GROWTH1: a Growth page by name (its rail set by resetGrowthTab, above)
   else if (at === 'mailbox') postOpen = true;   // SERVER-POST: the mailbox's door (/mail, either skin) - the pause face with its window open
   else if (at === 'report') { postOpen = true; postKeep = { view: 'report' }; }   // PRIVATE-REPORT: `/bug` - the mailbox's window on its report form
-  else if (at === 'season') seasonOpen = true;   // SEASON-BOOK: `/season` - the pause face with the season window open
+  else if (at === 'season') { seasonOpen = true; seasonFocusIn = true; }   // SEASON-BOOK: `/season` - the pause face with the season window open
   else if (at === 'collections' || COLLECTION_PARTS.some(([id]) => id === at)) { pauseTab = 'holdings'; holdSec = 'collections'; if (at !== 'collections') setCollectionsPart(at); }   // AUDIT CARDS-5 D14: the Collections page by name, or one of its parts - AUDIT COLLECTIONS-II (lanes 2, 5): every part, the wardrobe's four too
   else if (at === 'companions') { pauseTab = 'holdings'; holdSec = 'companions'; }   // RVN-STARS: back from a sworn one's stars
   _eff = null;

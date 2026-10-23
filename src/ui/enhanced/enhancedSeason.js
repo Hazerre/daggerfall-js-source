@@ -4,14 +4,19 @@
 //
 // THE LAUREL. A wreath beside the envelope over the paused game (ui/enhanced/enhancedPost.js's mark, placed as it is -
 // online only, as the hourglass: every clock it shows is the relay's) opens a window in the pause window's own frame: the
-// season's three clocks, each its own section - the ranked season and the boards it starts fresh (the player's own
-// standing on each), the seats' Season, and the festival - with what each one holds, in a line apiece, and the time
-// left on each counting down. The model is systems/seasonBook.js; this file draws it and keeps it live: once a second
-// the countdowns are rewritten in place, and the window is rebuilt only when a line changes (a board's answer landing).
+// season's three clocks, each its own section - the season and the boards it starts fresh (the player's own standing on
+// each), the seats' Season, and the festival - with what each one holds, in a line apiece, and the time left on each
+// counting down. The model is systems/seasonBook.js; this file draws it and keeps it live.
+//
+// AUDIT SEASON-BOOK (bible/01-Overview/audits/Audit-Season-Book.md): S2/U2 - every line is rewritten IN PLACE each
+// second (a board's answer, the day turning), and the list is rebuilt only when its rows or their doors change - a door
+// with the focus keeps it across that rebuild; U3 - the focus goes into the window when it OPENS, never when the face
+// around it repaints; R1 - only the window's first read may ask the service; W1 - the moment and the countdown in the
+// player's own language.
 import { seasonBookModel } from '../../systems/seasonBook.js';
-import { timerText, localWhenText } from '../../systems/eventTimers.js';
+import { localWhenText } from '../../systems/eventTimers.js';
 import { placeBeside } from './enhancedTimers.js';
-import { t } from '../../systems/textManager.js';
+import { t, intlLocale } from '../../systems/textManager.js';
 
 /** How often the open window rewrites its countdowns and looks at its source, ms. */
 export const SEASON_TICK_MS = 1000;
@@ -25,19 +30,45 @@ const SEASON_DOOR_TEXT = Object.freeze({
 /**
  * WHAT THE WINDOW READS, off the pause face's hooks: the hourglass's source (hooks.timers - the relay's clock, the seats'
  * word, the Spire's boards' door) under the laurel's own reads (hooks.season - the boards), and the Arena's door once a
- * banner is worn. Null where there is no clock: offline, or before the relay's has been heard.
+ * banner is worn. Null where there is no clock: offline, or before the relay's has been heard. `opening` - the window's
+ * first read, the one that may ask the service (AUDIT SEASON-BOOK R1).
  * @param {any} hooks
  */
-export function seasonSource(hooks) {
-  const clock = hooks?.timers?.({ ask: true }) ?? null;
+export function seasonSource(hooks, { opening = false } = {}) {
+  const clock = hooks?.timers?.({ ask: opening }) ?? null;
   if (!clock) return null;
-  const reads = hooks.season?.({ ask: true }) ?? null;
+  const reads = hooks.season?.({ opening, now: clock.now }) ?? null;
   const arena = hooks.arenaJoined?.() && typeof hooks.openArena === 'function' ? () => hooks.openArena() : null;
   return { ...reads, now: clock.now, seatsOpen: clock.seatsOpen, zero: clock.zero, doors: { arena, spire: clock.doors?.board ?? null } };
 }
 
+/** THE TIME LEFT, as the hourglass counts it (eventTimers.js timerText) with its days' letters in the player's language
+ *  (AUDIT SEASON-BOOK W1): "31d 04h", "4:07:09", "4:07". */
+export function seasonLeftText(/** @type {number} */ ms) {
+  const s = Math.max(0, Math.ceil((Number(ms) || 0) / 1000));
+  const two = (/** @type {number} */ n) => String(n).padStart(2, '0');
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  if (d > 0) return t('season.book.leftDays', '{d}d {h}h', { d, h: two(h) });
+  if (h > 0) return `${h}:${two(m)}:${two(sec)}`;
+  return `${m}:${two(sec)}`;
+}
+/** @type {{ loc: string, fmt: Intl.DateTimeFormat|null }|null} */
+let _when = null;
+/** THE MOMENT, in the player's own clock and language (AUDIT SEASON-BOOK W1: the hourglass's localWhenText says it in
+ *  English) - a weekday, the day, the month and the 24-hour time; localWhenText where the browser has no Intl. */
+export function seasonWhenText(/** @type {number} */ wallMs) {
+  const loc = intlLocale();
+  if (_when?.loc !== loc) {
+    let fmt = null;
+    try { fmt = new Intl.DateTimeFormat(loc, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }); } catch { fmt = null; }
+    _when = { loc, fmt };
+  }
+  return _when.fmt ? _when.fmt.format(wallMs) : localWhenText(wallMs);
+}
+
 /**
- * The laurel, the button beside the envelope.
+ * The laurel, the button beside the envelope. AUDIT SEASON-BOOK W11/U9: its name is the window's - "Season" - never a
+ * list of sections the window may not hold.
  * @param {Document} doc
  * @param {{ onOpen: () => void, open?: boolean }} o
  */
@@ -45,7 +76,7 @@ export function seasonMark(doc, { onOpen, open = false }) {
   const b = doc.createElement('button');
   b.type = 'button';
   b.className = 'px-seasonmark';
-  b.setAttribute('aria-label', t('season.book.markLabel', 'Season: the ranked boards, the seats and the festival'));
+  b.setAttribute('aria-label', t('season.book.title', 'Season'));
   b.setAttribute('aria-haspopup', 'dialog');
   b.setAttribute('aria-expanded', open ? 'true' : 'false');
   b.title = t('season.book.title', 'Season');
@@ -72,20 +103,27 @@ export function anchorSeason(/** @type {any} */ mark, /** @type {any[]} */ chain
   return () => { ro?.disconnect?.(); globalThis.removeEventListener?.('resize', place); };
 }
 
+/** The list's shape - its sections, their lead and foot, their rows and each row's door: a change to it rebuilds the
+ *  list; every word is written in place. */
+const shapeOf = (/** @type {any} */ model) => JSON.stringify(model?.sections?.map((s) => [s.id, !!s.lead, !!s.foot, s.rows.map((r) => [r.id, r.door ?? null])]) ?? null);
+
 /**
- * THE WINDOW. `read()` answers seasonSource's shape, or null when there is no clock. A row with a door carries its
- * button, which hands the source's own door (`doors[door]`, read at the press) to `door(fn)` - the pause face's handoff,
- * as the hourglass's rows do. Answers { root, stop, draw, close }: the caller stops the tick when the window goes.
+ * THE WINDOW. `read(opening)` answers seasonSource's shape, or null when there is no clock - `opening` true on the
+ * window's first read alone. A row with a door carries its button, which hands the source's own door (`doors[door]`,
+ * read at the press) to `door(fn)` - the pause face's handoff, as the hourglass's rows do. `focus` - the window was just
+ * opened: the focus goes into it (a repaint of the face around an open window keeps the focus where it was). `when` the
+ * moment's words (seasonWhenText). Answers { root, stop, draw, close }: the caller stops the tick when the window goes.
  * @param {Document} doc
- * @param {{ read: () => any, onClose: () => void, every?: number, door?: (fn: () => any) => any }} o
+ * @param {{ read: (opening: boolean) => any, onClose: () => void, every?: number, door?: (fn: () => any) => any, focus?: boolean, when?: (ms: number) => string }} o
  */
-export function seasonWindow(doc, { read, onClose, every = SEASON_TICK_MS, door = (fn) => fn() }) {
+export function seasonWindow(doc, { read, onClose, every = SEASON_TICK_MS, door = (fn) => fn(), focus = true, when = seasonWhenText }) {
   const el = (/** @type {string} */ tag, /** @type {string|null} */ cls, /** @type {string|null} */ text = null) => {
     const n = doc.createElement(tag);
     if (cls) n.className = cls;
     if (text != null) n.textContent = text;
     return n;
   };
+  const set = (/** @type {any} */ n, /** @type {string} */ text) => { if (n && n.textContent !== text) n.textContent = text; };
   const win = el('div', 'px-win px-seasonwin');
   win.setAttribute('role', 'dialog');
   win.setAttribute('aria-modal', 'true');
@@ -103,63 +141,90 @@ export function seasonWindow(doc, { read, onClose, every = SEASON_TICK_MS, door 
   body.append(head, list);
   win.append(body);
 
-  /** @type {Array<{ at: number, atLabel: string, count: any, when: any }>} */
-  let clocks = [];
+  /** @type {Map<string, any>} the drawn sections by id: their nodes, and their rows' */
+  let drawn = new Map();
   let shape = null;   // never a model's shape, so the first draw always builds
+  let first = true;
+  const build = (/** @type {any} */ model) => {
+    // the door with the focus, by its row - found again in the new list (AUDIT SEASON-BOOK S2/U2)
+    const had = doc.activeElement;
+    let kept = null;
+    for (const [sid, s] of drawn) for (const [rid, r] of s.rows) if (r.door && r.door === had) kept = `${sid}:${rid}`;
+    drawn = new Map();
+    list.textContent = '';
+    if (!model) list.append(el('p', 'sb-empty', t('season.book.noClock', 'The world\'s clock can\'t be read right now.')));
+    for (const s of model?.sections ?? []) {
+      const sec = el('section', 'sb-section sb-' + s.id);
+      const shead = el('div', 'sb-shead');
+      const stext = el('div', 'sb-stext');
+      const stitle = el('h4', 'sb-stitle'), ssub = el('span', 'sb-ssub');
+      stext.append(stitle, ssub);
+      const clock = el('div', 'sb-clock');
+      const count = el('span', 'sb-count'), whenAt = el('span', 'sb-when');
+      clock.append(count, whenAt);
+      shead.append(stext, clock);
+      sec.append(shead);
+      const lead = s.lead ? el('p', 'sb-lead') : null;
+      if (lead) sec.append(lead);
+      const rows = new Map();
+      for (const r of s.rows) {
+        const row = el('div', 'sb-row sb-' + r.id);
+        const text = el('div', 'sb-text');
+        const line = el('div', 'sb-line');
+        const name = el('span', 'sb-name'), standing = el('span', 'sb-standing'), about = el('p', 'sb-about');
+        line.append(name, standing);
+        text.append(line, about);
+        row.append(text);
+        // the row's door - a button as Close is, so a press, a tap and the pad's walk reach it alike; the source's
+        // door is read at the press, never kept from the draw
+        const words = r.door ? SEASON_DOOR_TEXT[r.door] : null;
+        let go = null;
+        if (words) {
+          go = el('button', 'act sb-door', words());
+          /** @type {any} */ (go).type = 'button';
+          const which = r.door;
+          go.addEventListener('click', () => { const fn = read(false)?.doors?.[which]; if (typeof fn === 'function') door(fn); });
+          row.append(go);
+        }
+        sec.append(row);
+        rows.set(r.id, { name, standing, about, door: go });
+      }
+      const foot = s.foot ? el('p', 'sb-foot') : null;
+      if (foot) sec.append(foot);
+      list.append(sec);
+      drawn.set(s.id, { title: stitle, sub: ssub, lead, foot, count, when: whenAt, rows });
+    }
+    if (kept) {
+      const [sid, rid] = kept.split(':');
+      drawn.get(sid)?.rows.get(rid)?.door?.focus?.({ preventScroll: true });
+    }
+  };
   const draw = () => {
-    const src = read();
+    const src = read(first);
+    first = false;
     const model = src ? seasonBookModel(src) : null;
     const now = Number(src?.now) || Date.now();
     const offset = now - Date.now();   // the relay's clock against this machine's - the local time is the machine's
-    const nextShape = JSON.stringify(model?.sections ?? null);
-    if (nextShape !== shape) {
-      shape = nextShape;
-      clocks = [];
-      list.textContent = '';
-      if (!model) list.append(el('p', 'sb-empty', t('season.book.noClock', 'The world\'s clock can\'t be read right now.')));
-      for (const s of model?.sections ?? []) {
-        const sec = el('section', 'sb-section sb-' + s.id);
-        const shead = el('div', 'sb-shead');
-        const stext = el('div', 'sb-stext');
-        stext.append(el('h4', 'sb-stitle', s.title), el('span', 'sb-ssub', s.sub));
-        const clock = el('div', 'sb-clock');
-        const count = el('span', 'sb-count');
-        const when = el('span', 'sb-when');
-        clock.append(count, when);
-        shead.append(stext, clock);
-        sec.append(shead);
-        if (s.lead) sec.append(el('p', 'sb-lead', s.lead));
-        for (const r of s.rows) {
-          const row = el('div', 'sb-row sb-' + r.id);
-          const text = el('div', 'sb-text');
-          const line = el('div', 'sb-line');
-          line.append(el('span', 'sb-name', r.name));
-          if (r.standing) line.append(el('span', 'sb-standing', r.standing));
-          text.append(line, el('p', 'sb-about', r.about));
-          row.append(text);
-          // the row's door - a button as Close is, so a press, a tap and the pad's walk reach it alike; the source's
-          // door is read at the press, never kept from the draw
-          const words = r.door ? SEASON_DOOR_TEXT[r.door] : null;
-          if (words) {
-            const go = el('button', 'act sb-door', words());
-            /** @type {any} */ (go).type = 'button';
-            const which = r.door;
-            go.addEventListener('click', () => { const fn = read()?.doors?.[which]; if (typeof fn === 'function') door(fn); });
-            row.append(go);
-          }
-          sec.append(row);
-        }
-        if (s.foot) sec.append(el('p', 'sb-foot', s.foot));
-        list.append(sec);
-        clocks.push({ at: s.at, atLabel: s.atLabel, count, when });
+    const nextShape = shapeOf(model);
+    if (nextShape !== shape) { shape = nextShape; build(model); }
+    for (const s of model?.sections ?? []) {
+      const d = drawn.get(s.id);
+      if (!d) continue;
+      set(d.title, s.title);
+      set(d.sub, s.sub);
+      if (d.lead) set(d.lead, s.lead);
+      if (d.foot) set(d.foot, s.foot);
+      for (const r of s.rows) {
+        const n = d.rows.get(r.id);
+        if (!n) continue;
+        set(n.name, r.name);
+        set(n.about, r.about);
+        set(n.standing, r.standing ?? '');
+        if (n.standing.hidden !== !r.standing) n.standing.hidden = !r.standing;
       }
-    }
-    for (const c of clocks) {
-      const left = timerText(c.at - now);
-      if (c.count.textContent !== left) c.count.textContent = left;
-      const at = localWhenText(c.at - offset);
-      const when = c.atLabel === 'opens' ? t('season.book.opens', 'opens {when}', { when: at }) : t('season.book.ends', 'ends {when}', { when: at });
-      if (c.when.textContent !== when) c.when.textContent = when;
+      set(d.count, seasonLeftText(s.at - now));
+      const at = when(s.at - offset);
+      set(d.when, s.atLabel === 'opens' ? t('season.book.opens', 'opens {when}', { when: at }) : t('season.book.ends', 'ends {when}', { when: at }));
     }
   };
   let tick = null;
@@ -167,7 +232,8 @@ export function seasonWindow(doc, { read, onClose, every = SEASON_TICK_MS, door 
   const step = () => { if (win.isConnected === false && tick) { clearInterval(tick); tick = null; return; } draw(); };
   draw();
   tick = setInterval(step, every);
-  // the focus goes into the window (AUDIT TIMERS1 UI-5's law)
-  globalThis.requestAnimationFrame?.(() => close.focus?.());
+  // AUDIT SEASON-BOOK U3: the focus goes into the window when it opens - never pulled out of it by a repaint of the face,
+  // and never scrolling the list
+  if (focus) globalThis.requestAnimationFrame?.(() => close.focus?.({ preventScroll: true }));
   return { root: win, stop: () => { if (tick) clearInterval(tick); tick = null; }, draw, close };
 }

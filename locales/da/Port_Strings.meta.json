@@ -19790,13 +19790,13 @@
   "by": "claude-in-session"
  },
  "net.chat.seasonHelp": {
-  "en": "a66ff20224f7",
-  "tr": "0f34094a070b",
+  "en": "98d0c242eba9",
+  "tr": "aa4fe74fdac2",
   "by": "claude-in-session"
  },
  "net.chat.seasonRefused": {
-  "en": "62ed542d0dd3",
-  "tr": "83d8278addb9",
+  "en": "f75ac348bcd6",
+  "tr": "97c6b9ae4e67",
   "by": "claude-in-session"
  },
  "net.chat.tradeHelp": {
@@ -30140,8 +30140,8 @@
   "by": "claude-in-session"
  },
  "season.book.arena.about": {
-  "en": "c6fef2115b8a",
-  "tr": "6a675d34dee5",
+  "en": "6436ad91c793",
+  "tr": "c831726871d6",
   "by": "claude-in-session"
  },
  "season.book.arena.blue": {
@@ -30155,7 +30155,7 @@
   "by": "claude-in-session"
  },
  "season.book.arena.none": {
-  "en": "077f846189a0",
+  "en": "215aa2af47b4",
   "tr": "151324c67dd0",
   "by": "claude-in-session"
  },
@@ -30174,14 +30174,9 @@
   "tr": "e18fc3051245",
   "by": "claude-in-session"
  },
- "season.book.arena.unread": {
-  "en": "22313a23cc18",
-  "tr": "8f09ead5baa1",
-  "by": "claude-in-session"
- },
  "season.book.arena.withBanner": {
-  "en": "5581deff14f2",
-  "tr": "19a354b60b03",
+  "en": "9e7bdd82d5b6",
+  "tr": "5a0a8c3d6007",
   "by": "claude-in-session"
  },
  "season.book.asking": {
@@ -30190,8 +30185,8 @@
   "by": "claude-in-session"
  },
  "season.book.cakes.about": {
-  "en": "e1e37383538a",
-  "tr": "0742b4a362d0",
+  "en": "42c906f277af",
+  "tr": "e3a94d2250d7",
   "by": "claude-in-session"
  },
  "season.book.cakes.name": {
@@ -30215,8 +30210,8 @@
   "by": "claude-in-session"
  },
  "season.book.crowns.about": {
-  "en": "70fd2fd511e9",
-  "tr": "9a9d95294cd2",
+  "en": "bbc340651fce",
+  "tr": "643b97d9ee45",
   "by": "claude-in-session"
  },
  "season.book.crowns.name": {
@@ -30244,14 +30239,19 @@
   "tr": "df73d717f83c",
   "by": "claude-in-session"
  },
- "season.book.festival.lead": {
-  "en": "39c177f3d4e3",
-  "tr": "a95855324e64",
+ "season.book.festival.guest": {
+  "en": "30088e0a8f13",
+  "tr": "8dbdd71c1506",
   "by": "claude-in-session"
  },
  "season.book.festival.open": {
   "en": "59fa6ab3f7a2",
   "tr": "d3a699700776",
+  "by": "claude-in-session"
+ },
+ "season.book.festival.signin": {
+  "en": "fcaaea31692a",
+  "tr": "23014d060949",
   "by": "claude-in-session"
  },
  "season.book.festival.title": {
@@ -30260,8 +30260,8 @@
   "by": "claude-in-session"
  },
  "season.book.gambit.about": {
-  "en": "1273ac53e537",
-  "tr": "cd1670f0bcaa",
+  "en": "6d2c0c0040e2",
+  "tr": "e53e3540a2e5",
   "by": "claude-in-session"
  },
  "season.book.gambit.name": {
@@ -30269,9 +30269,14 @@
   "tr": "0a39bd57d669",
   "by": "claude-in-session"
  },
+ "season.book.guest": {
+  "en": "cad475864220",
+  "tr": "92d6d196088d",
+  "by": "claude-in-session"
+ },
  "season.book.iliac.about": {
-  "en": "75365904ef96",
-  "tr": "ada8abb40032",
+  "en": "c24273bbd445",
+  "tr": "768e4f78db0d",
   "by": "claude-in-session"
  },
  "season.book.iliac.name": {
@@ -30280,7 +30285,7 @@
   "by": "claude-in-session"
  },
  "season.book.ladder.none": {
-  "en": "57237f1a712d",
+  "en": "054de0dd7e95",
   "tr": "0b704608df9b",
   "by": "claude-in-session"
  },
@@ -30294,24 +30299,14 @@
   "tr": "6d31f9fecd7e",
   "by": "claude-in-session"
  },
- "season.book.markLabel": {
-  "en": "6274792f5dd1",
-  "tr": "64ec6e38d763",
+ "season.book.leftDays": {
+  "en": "24c22ca468ba",
+  "tr": "396fec36a368",
   "by": "claude-in-session"
  },
  "season.book.noClock": {
   "en": "04953740e176",
   "tr": "7bcd5ee3a4bd",
-  "by": "claude-in-session"
- },
- "season.book.once.about": {
-  "en": "fe424314ae86",
-  "tr": "dafc629f4863",
-  "by": "claude-in-session"
- },
- "season.book.once.name": {
-  "en": "d3484c595a6b",
-  "tr": "994573aed06b",
   "by": "claude-in-session"
  },
  "season.book.opens": {
@@ -30320,13 +30315,13 @@
   "by": "claude-in-session"
  },
  "season.book.realm.foot": {
-  "en": "050efea66347",
-  "tr": "f90bc16df45c",
+  "en": "bd390816e129",
+  "tr": "f4482596ec6a",
   "by": "claude-in-session"
  },
  "season.book.realm.lead": {
-  "en": "8d5c53736b09",
-  "tr": "5a075b4586cb",
+  "en": "00fa2ad12c89",
+  "tr": "a6b245d2b653",
   "by": "claude-in-session"
  },
  "season.book.realm.sub": {
@@ -30335,8 +30330,8 @@
   "by": "claude-in-session"
  },
  "season.book.realm.title": {
-  "en": "684b34548662",
-  "tr": "e9da00b42de9",
+  "en": "a96e490d6360",
+  "tr": "b7357fb53bd7",
   "by": "claude-in-session"
  },
  "season.book.reset.about": {
@@ -30360,8 +30355,8 @@
   "by": "claude-in-session"
  },
  "season.book.sea.about": {
-  "en": "184e690ba3a7",
-  "tr": "6e41389054a6",
+  "en": "69c667311c13",
+  "tr": "db222af32147",
   "by": "claude-in-session"
  },
  "season.book.sea.figures": {
@@ -30370,7 +30365,7 @@
   "by": "claude-in-session"
  },
  "season.book.sea.name": {
-  "en": "aec1be6a3d55",
+  "en": "3e1eb63e84ec",
   "tr": "3276d290ec7b",
   "by": "claude-in-session"
  },
@@ -30389,6 +30384,11 @@
   "tr": "5eb15a2d087e",
   "by": "claude-in-session"
  },
+ "season.book.seats.named": {
+  "en": "3c1fe7054e23",
+  "tr": "b2793f86bc2d",
+  "by": "claude-in-session"
+ },
  "season.book.seats.sub": {
   "en": "f8249ef26e6b",
   "tr": "af28372436a5",
@@ -30400,8 +30400,13 @@
   "by": "claude-in-session"
  },
  "season.book.seats.trialLead": {
-  "en": "27f2700ed621",
-  "tr": "6cc6265681ea",
+  "en": "7fdca040a70f",
+  "tr": "43cd2c3a4112",
+  "by": "claude-in-session"
+ },
+ "season.book.seats.zero": {
+  "en": "4d5e08dadcc9",
+  "tr": "db47ce55b699",
   "by": "claude-in-session"
  },
  "season.book.signin": {
@@ -30410,13 +30415,13 @@
   "by": "claude-in-session"
  },
  "season.book.spire.about": {
-  "en": "b26501a3c72b",
-  "tr": "bf4690575b56",
+  "en": "e95093435a54",
+  "tr": "0fa895b5cc11",
   "by": "claude-in-session"
  },
  "season.book.spire.best": {
-  "en": "611539aa494f",
-  "tr": "8eeb05d715b8",
+  "en": "0f813420fe32",
+  "tr": "8bfe65a76db5",
   "by": "claude-in-session"
  },
  "season.book.spire.name": {
@@ -30430,8 +30435,8 @@
   "by": "claude-in-session"
  },
  "season.book.starfall.about": {
-  "en": "77050d16e51e",
-  "tr": "6b5e8ba84128",
+  "en": "447bccbdbe04",
+  "tr": "faf62a09d4fc",
   "by": "claude-in-session"
  },
  "season.book.starfall.name": {
@@ -30440,8 +30445,8 @@
   "by": "claude-in-session"
  },
  "season.book.tides.about": {
-  "en": "b6695b1c8190",
-  "tr": "9af2f29cf1ec",
+  "en": "12d6b6601702",
+  "tr": "5957d23616eb",
   "by": "claude-in-session"
  },
  "season.book.tides.name": {

@@ -175,9 +175,11 @@ export function mailboxCommandOf(text) {
 export function pauseCommandOf(text) {
   return mailboxCommandOf(text) ?? (/^\/seasons?$/i.test(String(text ?? '').trim()) ? 'season' : null);
 }
-/** The line a pause-door command answers where its window cannot stand (offline, signed out, the relay's clock unheard). */
+/** The line a pause-door command answers where its window cannot stand. AUDIT SEASON-BOOK R6/W12: the chat stands only
+ *  online and signed in, so the season's one refusal is the relay's clock not yet heard (world.js timersSource) - said
+ *  so, never "connect and sign in" to a player who has; the mailbox's is the box not there. */
 export const pauseCommandRefusal = (/** @type {string} */ at) => (at === 'season'
-  ? t('net.chat.seasonRefused', 'Connect and sign in to see the season.')
+  ? t('net.chat.seasonRefused', 'The world\'s clock hasn\'t been heard yet. Try again in a moment.')
   : t('net.chat.mailRefused', 'Connect and sign in to use the mailbox.'));
 /**
  * EVENT1: `/event <name> [on|off]` and `/event off` - a dev staging a live event for everyone online, or ending it.
@@ -224,7 +226,7 @@ export const HELP_LINES = lazyLines([
   '/mentor - shows whether you are mentoring your party (it turns on when they are well below your level)',
   '/mail - your mailbox: messages from the developers and items to claim',
   () => t('net.chat.bugHelp', '/bug - tell the developers privately about an exploit, a bug or a security hole'),   // PRIVATE-REPORT
-  () => t('net.chat.seasonHelp', '/season - the season at a glance: your standings, what each board holds and the time left'),   // SEASON-BOOK
+  () => t('net.chat.seasonHelp', '/season - this season, your standings and the time left'),   // SEASON-BOOK
   '/find or /who <name> - find who is online by that name',   // SCALE5c
   '/search <name> - show a player\'s lines on every tab and who is online by that name (/search on its own clears it)',   // CHAT-FIND
   () => t('net.chat.blockHelp', '/block <name>, /unblock <name>, /blocked - hide a player\'s lines, invites and requests, or show them again'),   // SAFE1
