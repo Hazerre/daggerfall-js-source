@@ -1261,7 +1261,9 @@ itself is held (EG-SWEEP-RED, section 31).
   local clock: a peer on a Drift swinging at 3.1 m/s would float 0.5-1.7 m beside it. So a pose on a moving piece
   carries `pl`, the piece's index, and its offset from that piece's top at the sender's time. A receiver draws
   `stepAt(piece, tDraw) + offset`. The field joins `validPose` (a relay version, EG8). A peer on a crumble the viewer
-  has seen fall is drawn on a ghost slab. The relay stands a ridden pose on its piece only where the pose's own feet
+  has seen fall is drawn on a ghost slab. RIDE-PLAY (FIELD BUGS 2026-10-23, `01-Overview/bugs/Field-Bugs-2026-10-23.md`):
+  the session's play-out carries the ride (`net/online.js` lerpPose, rideAlong) - it dropped it until then, so no ridden
+  peer reached `rideAt`. The relay stands a ridden pose on its piece only where the pose's own feet
   stand on it - its top as it stood within `EG_SUPPORT_LAG_S`, the capsule about it (`net/eliteGates/egFair.js` `egRideHolds`) -
   and judges the raw pose otherwise (AUDIT EG V: a pose on a fight floor claiming a far Drift was stood on it, off
   every floor, where no blow found it).
