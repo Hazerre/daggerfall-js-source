@@ -13,6 +13,11 @@
 //   at     the moment the countdown runs to (ms, relay clock): the start of a coming row, the end of a live one
 //   until  a live row's end; null on a coming row
 //   door   EG-ZM: on an Elite row where the host hands the boards' door (`doors.board`) - 'board', the window's button
+//
+// TIMERS2 (2026-10-22, the owner: "organize the timer system in the pause menu"): THE ROWS IN GROUPS. One list sorted by
+// time put a gate beside a raid beside the UTC day, sixteen rows deep on a busy evening; the window now lays them out by
+// what they are (TIMER_GROUPS: the world's events, the Battlespire, the raids, the seats and their battles, the resets),
+// each group in the list's own order, and a player can show one group alone (ui/enhanced/enhancedTimers.js).
 import { gateAt, gateTimes, gatePhase, GATE_EVERY_DAYS, gameDayAt, GATE_DAY_MINUTES } from '../net/gate/gateLaw.js';
 import { wallMsForClassicMinutes } from '../net/wire.js';
 import { seatWeekOf, seatWeekStartMs, seatPhaseOf, SEAT_RECKONING_MS, seasonOf, seatSeasonName, battleLengthMs, SIGN_CLOSES_MS, guildWords } from '../net/townSeatLaw.js';
@@ -22,6 +27,30 @@ import { egTimes } from '../net/eliteGates/egLaw.js';   // EG-F: an Elite Breach
 import { arenaSeasonOf, arenaSeasonEndsS } from '../net/arena/arenaLaw.js';   // EG-ZM: the Spire's boards keep the arena's season
 
 const DAY_MS = 86_400_000;
+
+/** TIMERS2: the window's groups, in the order it draws them - each row's kind belongs to one. */
+export const TIMER_GROUPS = Object.freeze([
+  Object.freeze({ id: 'world', kinds: Object.freeze(['gate', 'serpent', 'super', 'star']) }),
+  Object.freeze({ id: 'spire', kinds: Object.freeze(['elite']) }),
+  Object.freeze({ id: 'raids', kinds: Object.freeze(['raid']) }),
+  Object.freeze({ id: 'seats', kinds: Object.freeze(['seat', 'battle']) }),
+  Object.freeze({ id: 'resets', kinds: Object.freeze(['reset']) }),
+]);
+/** TIMERS2: a row's kind -> its group's id (a kind no group names stands with the resets, at the end). */
+export const timerGroupOf = (kind) => TIMER_GROUPS.find((g) => g.kinds.includes(kind))?.id ?? 'resets';
+/**
+ * TIMERS2: the rows laid out by group - `[{ id, rows, live }]` in TIMER_GROUPS's order, each group's rows in the list's
+ * own order (live first, soonest end first, then soonest start), `live` how many are under way; a group with no row left out.
+ * @template {{ kind: string, live: boolean }} R
+ * @param {ReadonlyArray<R>|null|undefined} rows
+ * @returns {Array<{ id: string, rows: R[], live: number }>}
+ */
+export function timerGroups(rows) {
+  return TIMER_GROUPS.map((g) => {
+    const of = (rows ?? []).filter((r) => timerGroupOf(r.kind) === g.id);
+    return { id: g.id, rows: of, live: of.filter((r) => r.live).length };
+  }).filter((g) => g.rows.length);
+}
 
 /** The battle kinds in the words a seat's own tab uses for them. */
 const BATTLE_TITLE = Object.freeze({ siege: (n) => `Siege of ${n}`, tourney: (n) => `Tourney at ${n}`, revolt: (n) => `Revolt at ${n}` });

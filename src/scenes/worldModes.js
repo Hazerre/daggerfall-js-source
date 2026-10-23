@@ -112,6 +112,7 @@ import { setMidScreenText } from '../ui/midScreenText.js';   // AUDIT 64 F34: Da
 import { validYardKind, yardCounter, yardStock, YARD_TEXT } from '../systems/merchantYards.js';   // MERCHANT-YARDS: a town's Stable and Wagon Yard - their counters
 import { makeWindowStack, pauseWhileOpen, hidesHud } from '../ui/windowStack.js';   // ROAD-B B1: UserInterfaceManager's stack, under this host's one slot; ROAD-tail: and its PAUSE; AUDIT PRE-MERGE 0928 U8: and the HUD's outright hide
 import { createActivateGate, activateFrame } from '../systems/activateGate.js';   // A8: PlayerActivate's ActivateCenterObject frame
+import { CAST_PRESS } from './hostMagic.js';   // SPELL-HAND: a cast's own press, one imported word (HOST-SPLIT; the magic door's, so no host reads a two-hands module)
 import { FootstepMachine, pickFootstepSet, pickFootstepKind } from '../systems/footsteps.js';   // FS-slice; AUDIT DROPS E2: the kind the pose carries
 import { immersiveFootsteps } from '../systems/immersiveFootsteps.js';
 import { betterAmbience, classicFootstepAllowed } from '../systems/betterAmbience.js';   // BA1: Better Ambience - the shake, the dungeon's fog and light, the reverb, the indoor rain, its own stride   // IF1: Immersive Footsteps owns the stride and the three landing sounds once its clips are in (DisableVanillaFootsteps)
@@ -177,6 +178,7 @@ import { trackHudPointer } from '../ui/hud/hudActiveSpells.js';   // U46: the sp
 import { ImgFile } from '../formats/imgFile.js';   // AUDIT 21 hosts F7: loadHud's reader
 // E2: the shop shelf browse/buy layer (node-pure laws in shopStock.js)
 import { ChoiceWindow } from '../ui/talkWindow.js';
+import { createHallSaleDoor } from './hallSaleDoor.js';   // GUILD-HALL-SALE: a hall sold at its door
 import { questMountsHere } from '../systems/instancePlaces.js';   // INSTANCES: where a quest's things stand online (bible/11-Multiplayer/Instances.md)
 import { instanceWord } from '../net/instanceRoom.js';   // INSTANCES (the audit): the instance a place was entered as, recorded (a save, an anchor, a staff landing)
 import { YesNoBoxWindow } from '../ui/yesNoBox.js';   // UXB1-M: DFU's YesNo box - the private-property question
@@ -362,6 +364,7 @@ import {
   HALL_VERB, homeHallBuyRow, hallNextEntry, hallBoughtLine, hallShortLine, hallOldGoldLine, HALL_CHEST_SHUT, hallEntryTurnable,   // GUILD1d: a guild's hall; AUDIT PROF-541 R2-H1: its door's gate
   HALL_CHEST_TITLE, HALL_DROP_TEXT, HALL_VISITOR_MAGIC_TEXT, hallOfferLabel,   // AUDIT GUILD1d: the chest's name, a hall's floor and magic, the offer's hall
   HALL_BOARD_TITLE, hallBoardShutLine, HALL_BOARD_COLD,   // GUILD1e: the board in a hall
+  hallSellable, hallManaged,   // GUILD-HALL-SALE: a hall sold at its door, as a home is (its windows: scenes/hallSaleDoor.js)
   HALL_OF_RECORDS_TEXT, HALL_OF_RECORDS_SHUT,   // SEASON1 part three: a seat's Hall of Records
   homeDoorName,   // FIELD BUGS 2026-09-30b HOME-PLAQUE: a nameless house with verbs is a Residence
   homeClaimLayout,   // AUDIT PRE-MERGE 1003 WD1: a hall is bought in its town's layout, as a home is
@@ -1884,7 +1887,7 @@ export function createWorldModes(host) {
   const visitorDropRefusal = () => (mode === 'interior' && privateVisitRoom ? HOME_VISITOR_DROP_TEXT : interiorHome && !interiorHome.own && mode === 'interior' ? (interiorHome.hall ? HALL_DROP_TEXT : HOME_VISITOR_DROP_TEXT) : null);   // private visits keep no personal cache; refuse drops through the existing visitor gate
   /** HOME-MAGIC (2026-09-27, Discord: "Players can use magic in player non owned houses"): a VISITOR casts nothing in
    *  someone else's online home - no spell readied or fired, no item's spell - HOUSE-DROP's own test of who is a
-   *  visitor (a character of the same account included: a home is one character's). The owner's own home, an offline
+   *  visitor (ACCOUNT-HOMES: never a character of the owner's account - a home is its account's). The owner's own home, an offline
    *  house and every other building are as they were. Asked by the cast engine through the host (`castRefusal`). */
   const HOME_VISITOR_MAGIC_TEXT = 'You cannot cast spells in another\'s home.';
   // AUDIT GUILD1d A7 (decided): a hall's MEMBER casts in it - the hall is the guild's, as a home is its owner's; anyone
@@ -2504,7 +2507,8 @@ export function createWorldModes(host) {
   // HOME1: the online home the entered building IS, read once at its door and held for the visit - the storage's
   // scene (currentInteriorScene), the bed, the room and the cupboards all ask this answer, never a later one (a
   // town's answer landing mid-visit must not move my things to another scene). Null offline and for any building no
-  // player owns; `own` when it is this character's.
+  // player owns; `own` when it is this account's (ACCOUNT-HOMES: whichever of its characters plays - each keeps its own
+  // things in the home's scene of its own save).
   let interiorHome = null;
   /** SEAT-HALL (Seats-Arc 7.2: "the palace interior is the holder's guild hall"): the visit's palace, where it is a palace
    *  seat's - `{ key, name, member, keeper }` (host.seatHall.here: the holder's guild's name; whether this character is of
@@ -7267,7 +7271,7 @@ export function createWorldModes(host) {
    * the next line - so the sixth mode turns the suite red rather than
    * leaking a street.
    */
-  const setMode = (next) => { dropDoorCache(); if (next !== mode) interiorWeapon.silenceTorch();   /* DISC6: the building's rig leaves the frame - its torch loop with it */ if (next !== 'interior') closeCardWatches();   /* CARDS5: the watched tables' cloths go with the interior */ if (next !== 'interior') closeGambitWatches();   /* KG5: and the watched boards */ mode = next; if (next !== 'interior') { privateVisitRoom = null; privateVisitOwner = null; } if (next === 'exterior') placeInstance = null; };
+  const setMode = (next) => { dropDoorCache(); if (next !== mode) interiorWeapon.silenceTorch();   /* DISC6: the building's rig leaves the frame - its torch loop with it */ if (next !== 'interior') closeCardWatches();   /* CARDS5: the watched tables' cloths go with the interior */ if (next !== 'interior') closeGambitWatches();   /* KG5: and the watched boards */ if (next !== 'interior') { _arrowsCtx = null; interiorArrows.clear(); cardLookedCtx = null; cardStandsDue.clear(); gambitStandsDue.clear(); } if (next !== 'dungeon') { _crownTried = null; arenaWall = null; _arenaStage = _arenaStageCtx = null; _pitStage = _pitStageCtx = null; }   /* MEM-AUDIT (2026-10-23): THE PLACE LEFT IS LET GO - each latches the context it was made in and is read only against the live one, so it stood unread to the next place of its kind, holding the whole torn-down room or castle (its collider, its batch's arrays, its foes: 11-16 MB for Daggerfall's or Wayrest's castle) */ mode = next; if (next !== 'interior') { privateVisitRoom = null; privateVisitOwner = null; } if (next === 'exterior') placeInstance = null; };
   function exteriorDoorTargets() {
     const gen = doorGeneration?.();
     if (gen !== undefined && _doorCache && _doorCache.gen === gen) return _doorCache;
@@ -7788,6 +7792,9 @@ export function createWorldModes(host) {
       })
       .catch((e) => console.error(e));
   }
+  // GUILD-HALL-SALE (asked: "Guild houses should be able to be sold, like regular houses"): a hall sold at its door, as a
+  // home is - its menu in Info and its sale, asked first (scenes/hallSaleDoor.js)
+  const { openHallMenu, openHallSale } = createHallSaleDoor({ host, townTalk, homeOnward: (hit, entries) => homeOnward(hit, entries), turnHallEntry, homeIdOf, homeTownOf });
 
   /** BuildingIsUnlocked's ONE evaluation (PlayerActivate.cs:358): DFU
    *  computes it once off the hit BuildingSummary and hands the same
@@ -8003,13 +8010,15 @@ export function createWorldModes(host) {
             if (verb === HOME_VERB.sell && door === 'own') { openHomeSale(bd); return true; }
             if (verb === HALL_VERB.buy && price) { pressHallBuy(bd, price); return true; }   // GUILD1d: the house bought as the guild's hall
             if (verb === HALL_VERB.entry && hallEntryTurnable(home)) { turnHallEntry(bd, home); return true; }   // GUILD1d: who may walk into the hall; AUDIT PROF-541 G2: as the service lets set it (R2-H1: the row's own gate)
+            if (verb === HALL_VERB.sell && hallSellable(home)) { openHallSale(bd, home); return true; }   // GUILD-HALL-SALE: sold at its door, as the service lets sell it
           }
           // ...and where the plaque listed none (a touch screen, World Tooltips off), the click's own ask - HOME-OFFER's
           // prompt: a house's offer in any mode but Steal, once a session per house (Info always asks); my home's menu
           // in Info
           if (verb == null) {
-            const prompt = homeDoorPrompt({ door, mode, price, declined: _homeDeclined.has(homeIdOf(bd)), asked: homeAsked, isBash });
+            const prompt = homeDoorPrompt({ door, mode, price, declined: _homeDeclined.has(homeIdOf(bd)), asked: homeAsked, isBash, hallMenu: hallManaged(home) });
             if (prompt === 'menu') { openHomeOwnerMenu(bd, home, hit, entries); return true; }
+            if (prompt === 'hall-menu') { openHallMenu(bd, home, hit, entries); return true; }   // GUILD-HALL-SALE: a hall I may turn or sell, its menu in Info
             if (prompt === 'offer') { openHomeOffer(bd, price, hit, entries); return true; }
           }
           homeOpen = door !== 'none';
@@ -10889,15 +10898,15 @@ export function createWorldModes(host) {
     const _activateDown = held(keys, 'ActivateCenterObject') || !!host.activateDown?.();
     const _act = activateFrame((latch.activate ??= createActivateGate()), {
       down: _activateDown,
-      hasReadySpell: (mode === 'dungeon' ? dungeonCtx?.spellArmed?.() : magic?.spellArmed()) ?? false,
+      hasReadySpell: ((mode === 'dungeon' ? dungeonCtx?.spellArmed?.() : magic?.spellArmed()) ?? false) && !host.activateLockOnly?.(),   // AUDIT SPELL-HAND L4-9: the stick-half tap is the lock pick and nothing below it (TS1) - never a cast, a spell readied or not
       touchSpell: ((mode === 'dungeon' ? dungeonCtx?.readiedSpell?.() : magic?.readied()) ?? null)?.rangeType === 1,   // rangeType 1 is ByTouch (spellcast.js:"ClassicTargetIndexToTargetType")
       hudBlocked: activeMouseOverLargeHUD(),
       paused: overlayHeld,
     });
     if (_act.cast && chairSeat) standFromChair();   // SIT1 (AUDIT FIVE-ASKS C3): a cast stands you up first - it leaves from the body's own eye
     if (_act.cast) {   // the frame's firePending sends it down the live look
-      if (mode === 'dungeon') dungeonCtx?.playerAttackInput?.(0, 0, true);
-      else magic?.interceptAttack(true);
+      if (mode === 'dungeon') dungeonCtx?.playerAttackInput?.(0, 0, true, true);   // SPELL-HAND: the cast's own press, never the swing's
+      else magic?.interceptAttack(true, CAST_PRESS);
     }
     const useEdge = pressed(latch.edge, keys, 'Interact');   // KB1: the Interact ACTION (E by default, Mac's call) - it was a raw `KeyE` beside DFU's E-AbortSpell, and one press did both
     // C9: per-mode routing (the old unconditional dungeonCtx read
@@ -11392,7 +11401,7 @@ export function createWorldModes(host) {
     if (magic) {
       // M2: the armed click's cast + missile flight, on the interior's
       // own collider (the engine's mode-aware raycast reads it).
-      magic.firePending([...cam.pos], eyeDir());
+      magic.firePending([...cam.pos], eyeDir(), overlayHeld);   // AUDIT SPELL-HAND L4-6: a kept press never leaves under a window
       magic.update(dt, player.pos, eyeDir(), player.height, player.feetAt());   // X11: the candle hangs off the look direction; DISC13-A off the render feet
       if (magic.batches().length) renderer.drawBillboards(magic.batches(), camRight, UP_Y);
       magic.drawFx?.();   // IMPACTFX: the spells' landings in light, over their flashes
