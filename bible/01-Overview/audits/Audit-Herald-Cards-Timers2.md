@@ -33,7 +33,8 @@ fixes moved were re-aimed by content, and every list they touch was run again.
 | S1 | low-med | The threads' relay floor (`RELAY_CFG_KEY_MIN`, 243) is a number apart from `RELAY_VERSION`. A renumber at a merge (this repo's custom) would leave it behind, and a client would say a thread to another branch's world243, which closes the hub link on it. | Pinned to the version row: the row `RELAY_CFG_KEY_MIN` names must be HERALD-CARDS's own (`test/net/relayversion.test.js`). |
 | R1 | low | `World-Bosses.md` said a card's footer is "one word a kind" (Rite broken, First of the Spire). It said every reachable name passes `heraldName` (the gate's place is the wire's word), and that each part is "never refused" (the whole could be). `wrangler.toml` read as one forum post an event (it is one a family). | Said as they are. |
 
-`RELAY_VERSION` world243 re-hashed in place (undeployed).
+`RELAY_VERSION` world243 re-hashed in place (undeployed). At the merge it was renumbered world250, past main's world243 to
+world249, and `RELAY_CFG_KEY_MIN` moved to 250 with it: S1's pin failed on the floor left at 243, as it was written to.
 
 ## Fixed - the Timers window (TIMERS2)
 

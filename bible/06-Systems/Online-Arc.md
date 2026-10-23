@@ -8021,6 +8021,15 @@ was zero; a gift beside my own Fortify; the mate's recast merging with the mate'
 seam by source. `tools/mutants/allycast.json`: 37, 37 dead. RELAY_VERSION world97 with its law row; the relay
 deploys itself on the merge to main. Not verified in a browser: no online session exists in this container.
 
+GIFT-ONE (FIELD BUGS 2026-10-22d, `01-Overview/bugs/Field-Bugs-2026-10-22d.md`; PauloHF, "[Glitch] Overpowered spells":
+"a shield with 6002 strength, 1600 duration, and AoE (not mine). And yes, both shields work"). C2's tags are stamped at
+the bundle's TAIL (`systems/effects.js` applySpell), and the incumbent law read them on every entry - so a gift carrying
+one effect twice found its own first entry untagged, read it as somebody else's, and stood a second beside it: two
+Shield pools from one Mega Shield (3,001 each at the gift's level 30), three from three, a Fortify stacked the same. The
+caster's own cast of the same spell merged into one, as every cast of the player's own always has. An entry the cast
+itself pushed is the cast's own now (`findInc`: past `pinStart`, read without its tag): one pool a gift, as one a cast;
+a mate's bundle still stands beside mine (C2), a duel opponent's beside mine (DUEL1).
+
 ## FRIENDLY-SPELLS (2026-09-23, Mac: "These files here need to be integrated, with a cavet. We also made changes to cricket sounds and the new player-to-player spellcasting. I don't want to override our previous changes") - two drops onto ALLY-CAST, world98
 
 Two archives from Mac's tree (`friendly-spells-patch_6`, `friendly-spells-and-Nightsound-toggle`), both whole-file
@@ -13609,7 +13618,8 @@ field by field (`validPose`), so nothing rides there:
 
 - **The way**: `sa`'s `m`, a place for each of `b`'s - the boat at the helm's velocity through the wire frame and its
   turn, on the real clock at the owner's time scale; only while a boat is under way, so a moored fleet's record is the
-  one an older reader reads. Readers lead the boat along it (`scenes/comeSailAway/comeSailAwayPeers.js`, capped at 0.6 s).
+  one an older reader reads. Readers lead the boat along it (`scenes/comeSailAway/comeSailAwayPeers.js`, up to two full frames'
+  spacing and taken up at a bounded catch - SEA-GLIDE, FIELD BUGS 2026-10-22d, `03-World/Come-Sail-Away.md`).
 - **Aboard**: `ab` on the passenger's own frame - `[owner, place, x, y, z]`, their feet in that boat's own frame to
   the centimetre; a word when it changes and on every full frame, null aboard nothing; the boats' owner law (gone,
   stale, a clear). Every reader - the boat's owner among them - stands the passenger on its own copy of that boat

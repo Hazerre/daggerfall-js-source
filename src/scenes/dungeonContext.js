@@ -252,7 +252,9 @@ import { ActionSystem } from '../world/actionSystem.js';
 import { collectDungeonEnemies, dungeonPlace, expandEliteEnemies, enemyHierarchyOrder } from '../characters/dungeonEnemies.js'; import { markDungeonChampions, applyChampion, championName } from '../systems/champions.js'; import { lootCrown } from './lootLines.js';   // LOOT7: the layout's champions; LOOT11: a find's line of light
 import { isOnlinePage } from '../systems/online/onlineLane.js';   // ELITE FOES: online play only
 import { wildHallFoes } from '../systems/wild/wildDungeons.js';   // PVPDUNGEONS: a hall's high tiers
-import { isWildRegion, applyWildFoe, wildLootOpts, wildPileMore, wildRingAt, wildMask, WILD_RINGS } from '../systems/wild/wildZone.js';   // WILD1: the open zone's dungeons (WILD2: by their ring)
+import { isWildRegion, applyWildFoe, wildLootOpts, wildPileMore, wildMask, WILD_RINGS } from '../systems/wild/wildZone.js';   // WILD1: the open zone's dungeons (WILD2: by their ring)
+import { wildRingAtPlace } from '../systems/wild/etherWild.js';
+import { seaPileMore } from '../systems/sea/seaSpoils.js';   // SEA-SET: the deep's Tidemail, a ruin's pile's last roll   // WILD2: a place's ring by its map pixel - ETHER-WILD: an isle's ruin of the open sea by its band
 import { elitesAllowed, pickDungeonElites, promoteEliteFoe, grantEliteLoot, eliteGlow, setBatchEliteGlow, eliteSize, isEliteCorpse, markEliteCorpseBatch, eliteCorpseSize, ELITE_FOE_SIZE } from '../systems/eliteFoes.js';   // ELITE FOES: 3-4 champions in an Elite Dungeon
 import { ELITE_FOE_MULTIPLIER, ELITE_HEALTH_SCALE, ELITE_DAMAGE_SCALE, ELITE_LOOT_DROP_MULT, ELITE_LOOT_QUALITY_MULT } from '../world/spawnedDungeons.js';   // ELITE: an elite spawn's foe count and strength
 import { superFoeLevel, scaleSuperFoe, SUPER_ELITE_FOES, SUPER_LOOT_OPTS, SUPER_LOOT_DROP_MULT, SUPER_LOOT_QUALITY_MULT, sdEndMarks, sdRiftPlace, sdReturnPlace, sdLandingPlace } from '../world/superDungeon/sdDungeon.js';   // SD4a: a Super dungeon's difficulty; SD4b: its end's place
@@ -450,12 +452,7 @@ export async function levelModelRemap(id, subMeshes, texRemap, remap, deps) {
   return texRemap;
 }
 
-/** WILD2: a place's ring of the open zone, by its map pixel (mapTableData's longitude/latitude, MapsFile's own sum). */
-function wildRingAtPlace(loc) {
-  const t = loc?.mapTableData;
-  if (!Number.isFinite(t?.longitude) || !Number.isFinite(t?.latitude)) return 0;
-  return wildRingAt(Math.trunc(t.longitude / 128), 499 - Math.trunc(t.latitude / 128));
-}
+
 
 export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseType, opts = {}) {
   const { renderer, arch, getGpuMesh, cpuModels, getTexture, uploadRecord, uploadRecordFrame, palette, placeHold = null } = deps;   // FIELD BUGS 2026-10-04d PLACE-LRU: `placeHold` - the dungeon's hold on the shared caches (scenes/placeHolds.js), the three doors above its own; settled once built, released by destroy(). None from the standalone ?dungeon scene
@@ -1419,9 +1416,9 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   const _dungeonShare = dungeonShare(dfLocation.mapTableData?.dungeonType);
   /** WILD1 (systems/wild/wildZone.js): a dungeon of the open zone, online - its foes four times as strong, their loot and
    *  its piles twice as rich. Read once, at the build: the dungeon's own region, never where the player stood before. */
-  const _wildRingRaw = isOnlinePage() && isWildRegion(dfLocation?.regionIndex ?? -1) ? wildRingAtPlace(dfLocation) : 0;
-  // the owner's cut: only a dungeon whose pixel lies inside the cut zone; one the mask cannot place is the heart's
-  const _wildDungeon = isOnlinePage() && isWildRegion(dfLocation?.regionIndex ?? -1) && (_wildRingRaw > 0 || !wildMask());
+  const _wildRingRaw = isOnlinePage() && (isWildRegion(dfLocation?.regionIndex ?? -1) || !!dfLocation?.ether) ? wildRingAtPlace(dfLocation) : 0;   // ETHER-WILD: an isle's ruin too
+  // the owner's cut: only a dungeon whose pixel lies inside the cut zone; one the mask cannot place is the heart's (the mountains' alone - an isle's always places)
+  const _wildDungeon = isOnlinePage() && (_wildRingRaw > 0 || (isWildRegion(dfLocation?.regionIndex ?? -1) && !wildMask()));
   // DUNGEON-RESPAWN (the owner: "normal dungeons outside the zone 20mins respawn timer ... elite dungeons 40 mins"): this
   // dungeon's own respawn time - each foe and each container on its own clock from when it fell or was emptied
   const _respawnMs = dungeonRespawnMs({ elite: !!dfLocation?.elite, wild: _wildDungeon, superTier: _superTier });
@@ -1464,6 +1461,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   const { _roomBase, _roomMine, _roomNextGen, _roomState, composeRoomContainer, forgetRoomContainer, holderList, isRoomBaseContainer, landRoomWord, letFindGo, lootBuiltOf, mintUnbornRoom, roomBaseHolder, roomBodyBorn, roomCanonOfFoe, roomClaimTick, roomGive, roomLootOn, roomRecordOf, roomSayNow, roomSettle, roomTakeSeat, roomUnborn, searchFound, settleRoomBonus } = createRoomLoot({   // HOST-SPLIT: src/scenes/roomLootHost.js
     _deepCleared, _deepFoeCleared, _sharedFoe, _wildDungeon, _wildRing, eliteLootOpts, fightN, foes, lootKeyOf,
     lootableBody, opts, respawnDue, rollPileItems, roomLootKey, searchHeard, searchables, settleLootFlat,
+    dfLocation,   // SEA-SET: the place, whose piles of an isle's ruin roll the deep's Tidemail
     get _authority() { return _authority; },
     get _foesFrom() { return _foesFrom; },
     get _layoutFoes() { return _layoutFoes; },
@@ -3997,6 +3995,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
         // (UNBORN), so no reader this player's own roll could reach (LOOT11's line of light, the save) finds one
         const items = onlineRoom() ? [] : rollPileItems();
         if (_wildDungeon && !onlineRoom()) wildPileMore(items, rollPileItems, _wildRing);   // WILD1: the open zone's ring - its share of a second roll
+        if (!onlineRoom()) seaPileMore(items, dfLocation);   // SEA-SET: an isle's ruin of the deep - the Tidemail's share, last
         const stopKey = isRandom ? `${bi}:${m.position}` : null;   // LW14: a company's stop
         if (stopKey && _deepCleared.has(stopKey)) items.length = 0;   // LW14: a pile a company passed, picked over
         lootPiles.push({ pos: [m.x + b.originX, m.y, m.z + b.originZ], record, items, isFixed, batch: null });
@@ -6299,7 +6298,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
         continue;
       }
       _lootSeen.delete(canon); _lootAt.delete(canon);
-      if (canon.startsWith('loot:')) { const i = Number(canon.slice(5)); const p = lootPiles[i]; if (p && Array.isArray(p.items) && p.items.length === 0) { p.items = rollPileItems(); if (_wildDungeon) wildPileMore(p.items, rollPileItems, _wildRing); settleLootFlat(i); } }   // AUDIT WORLD7/8 C4: a pile the room EMPTIED - one with a remainder keeps it, as the apply's skip keeps the local list
+      if (canon.startsWith('loot:')) { const i = Number(canon.slice(5)); const p = lootPiles[i]; if (p && Array.isArray(p.items) && p.items.length === 0) { p.items = rollPileItems(); if (_wildDungeon) wildPileMore(p.items, rollPileItems, _wildRing); seaPileMore(p.items, dfLocation); settleLootFlat(i); } }   // AUDIT WORLD7/8 C4: a pile the room EMPTIED - one with a remainder keeps it, as the apply's skip keeps the local list
     }
     mintUnbornRoom(nowSeconds * 1000);   // PARTY-LOOT: every room container standing here with no terms gets them (on the sweep's own clock)
   }
@@ -8883,6 +8882,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     randomText: (id) => textRsc?.randomTextById(id, Math.random) ?? '',   // AUDIT 63 F33: TextProvider.GetRandomText (:250-269) - the 8999 pool
     makeAreaHostile,   // AUDIT 63 F33: GameManager.MakeEnemiesHostile over this host's pool
     collider,
+    /** PARTY-PING: the mesh Enhanced AI baked, when it has. A ping's route walks it; null, and the ping host bakes its own. */
+    navMesh: () => enhancedNav.chf,
     texRemap,
     billboardBatches,
     flatAnims,   // FA1: the host ticks the flats it draws
@@ -9179,6 +9180,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
         loadingPrevented: () => !!opts.dungeonOnline?.(),
         timers: (o) => opts.timers?.(o) ?? null,   // TIMERS1: the world host's source, through worldModes
         post: () => opts.post?.() ?? null,   // SERVER-POST: the mailbox's box, the world host's through worldModes
+        season: (o) => opts.season?.(o) ?? null,   // SEASON-BOOK: the laurel's boards, the same way
         savingPrevented: () => madeLevelRule(_made, 'save') === 'refused' || isArenaFloor(dfLocation),   // ARENA2: nor on the arena's sand   // WB3b: the pause's Save says why, in the court   // EG-H2: a made level's saves are the law's - the Spire's pause greys its Save too (it never asked the Spire)
         // SAV4: the slot window's seams over the same two verbs.
         playerName: () => playerEntity.name, playerId: () => playerEntity.characterId ?? null,

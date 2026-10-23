@@ -245,8 +245,8 @@
   {
     "name": "AUDIT-HERALD-CARDS-S1-the-floor-apart-from-its-row",
     "file": "src/net/relayCfg.js",
-    "old": "RELAY_CFG_KEY_MIN = Object.freeze({ gateThread: 243, serpentThread: 243, sdThread: 243, egThread: 243 });",
-    "new": "RELAY_CFG_KEY_MIN = Object.freeze({ gateThread: 244, serpentThread: 244, sdThread: 244, egThread: 244 });",
+    "old": "RELAY_CFG_KEY_MIN = Object.freeze({ gateThread: 250, serpentThread: 250, sdThread: 250, egThread: 250 });",
+    "new": "RELAY_CFG_KEY_MIN = Object.freeze({ gateThread: 251, serpentThread: 251, sdThread: 251, egThread: 251 });",
     "tests": [
       "test/net/herald/heraldcards.test.js"
     ]

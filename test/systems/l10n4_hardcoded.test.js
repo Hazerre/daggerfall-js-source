@@ -29,7 +29,7 @@ const HARDCODED = {
   'src/characters/orcBody.js': 3,
   'src/characters/ownModels/ownArmorModels.js': 14,
   'src/characters/ownModels/ownClothingModels.js': 2,
-  'src/characters/ownModels/ownWeaponModels.js': 3,
+  'src/characters/ownModels/ownWeaponModels.js': 6,   // PISTOLET: the Pistolet's and the Sunken Sovereign's rows - a bone name and two record names the Morrowind item map reports, as the Thunderlock's and the Hourlock's (AUDIT PISTOLET M2)
   'src/characters/paperdoll/paperdollPayload.js': 2,
   'src/characters/undeadBody.js': 8,
   'src/characters/villagerDesigns.js': 27,
@@ -207,6 +207,8 @@ const HARDCODED = {
   'src/render/nodeGlint.js': 2,
   'src/render/oceanHolesRender.js': 4,
   'src/render/orderedDither.js': 1,
+  'src/render/partyPingDraw.js': 2,   // PARTY-PING: the route's two shaders - GLSL the scan reads as prose (`in vec3`), weaponGlowGlsl.js's same line
+  'src/render/partyPingLabels.js': 1,   // PARTY-PING: the pin's SVG, markup the scan reads as prose
   'src/render/precipitation.js': 6,
   'src/render/rainCurtains.js': 1,
   'src/render/realWindows.js': 11,
@@ -309,9 +311,9 @@ const HARDCODED = {
   'src/scenes/travelView.js': 39,
   'src/scenes/treeHost.js': 3,
   'src/scenes/windfallHost.js': 5,
-  'src/scenes/world.js': 347,   // FB1020c ONE-SAVE: the kept words moved to the Stores page (BAG_PAGE_WORDS.kept); CABIN-FOES: Transport > Ship's helm refusal read off CABIN_REFUSAL
+  'src/scenes/world.js': 344,   // STAFF-PANEL5-FOLLOW-FIX: -1 already at the relay base (ec3d522d61), written down; FB1020c ONE-SAVE: the kept words moved to the Stores page (BAG_PAGE_WORDS.kept); CABIN-FOES: Transport > Ship's helm refusal read off CABIN_REFUSAL; AUDIT SEA VENTURES C6: -1, /unstuck's outdoor refusal read off the zone's words; SEASON-BOOK: -1, /mail's refusal read off chatCommands.js pauseCommandRefusal (344 at the merge of main #1161: both -1s stand)
   'src/scenes/worldModes.js': 83,
-  'src/systems/aetheric.js': 151,   // WITCH1: the Wyrd's Raiment's nine pieces, each its name and its affixes' names (+18) - an item's canonical name, as every Aetheric set's; STAR7: +18, the Starspun Weave's nine names and lore - the records' own data, minted onto the item, never read at load
+  'src/systems/aetheric.js': 168,   // SEA-SET: +17, the Eltheric Tidemail's nine names and lore, as the Weave's - the records' own data, minted onto the item; WITCH1: the Wyrd's Raiment's nine pieces, each its name and its affixes' names (+18) - an item's canonical name, as every Aetheric set's; STAR7: +18, the Starspun Weave's nine names and lore - the records' own data, minted onto the item, never read at load
   'src/systems/alchemyItems.js': 3,
   'src/systems/allyCast.js': 5,
   'src/systems/answerPipeline.js': 1,
@@ -383,7 +385,7 @@ const HARDCODED = {
   'src/systems/gate/gateOmen.js': 10,
   'src/systems/gate/gateSpoils.js': 3,
   'src/systems/gateTier.js': 4,
-  'src/systems/gilded.js': 15,   // GILDED2: the Dragonfire Oath's and the Sunken Sovereign's names, powers, lore and hints - written as the Hourlock's are
+  'src/systems/gilded.js': 16,   // GILDED2: the Dragonfire Oath's and the Sunken Sovereign's names, powers, lore and hints - written as the Hourlock's are   // AUDIT PISTOLET A7 C1 D8: +1, the Sunken Sovereign's saber-era lore - an item's own story, as the records' are
   'src/systems/gravestoneLore.js': 16,
   'src/systems/guild/guilds.js': 3,
   'src/systems/handheldTorches.js': 12,
@@ -481,7 +483,7 @@ const HARDCODED = {
   'src/systems/rest/restWarning.js': 5,
   'src/systems/resurrect.js': 6,
   'src/systems/revenant/revenant.js': 73,
-  'src/systems/revenant/revenantCompanions.js': 4,
+  'src/systems/revenant/revenantCompanions.js': 3,   // AUDIT SEA VENTURES C7: -1, the zone's one-revenant refusal read off the zone's words
   'src/systems/revenant/revenantFate.js': 14,
   'src/systems/revenant/revenantFeud.js': 27,
   'src/systems/revenant/revenantPersonality.js': 621,
@@ -508,7 +510,7 @@ const HARDCODED = {
   'src/systems/sigil/sigil.js': 8,
   'src/systems/sigil/sigilBroker.js': 8,
   'src/systems/sigil/sigilSetPowers.js': 24,
-  'src/systems/sigil/sigilSets.js': 116,   // WITCH1: the Wyrd's Raiment - its name, its prince, its three tiers' names and lines (+9), as every set's; STAR7: +8, the Starspun Weave's name, role, tiers and their words, as every set's
+  'src/systems/sigil/sigilSets.js': 125,   // SEA-SET: +9, the Eltheric Tidemail's name, prince, role, tiers and their words, as every set's; WITCH1: the Wyrd's Raiment - its name, its prince, its three tiers' names and lines (+9), as every set's; STAR7: +8, the Starspun Weave's name, role, tiers and their words, as every set's
   'src/systems/smithItems.js': 26,
   'src/systems/snowfall.js': 12,
   'src/systems/snowfallRuntime.js': 10,
@@ -529,8 +531,9 @@ const HARDCODED = {
   'src/systems/survival/tavernMenu.js': 129,
   'src/systems/survival/temperature.js': 13,
   'src/systems/talk/talk.js': 2,
-  'src/systems/testRoom.js': 57,
+  'src/systems/testRoom.js': 59,   // PISTOLET: +2, the test room's two Dwarven Pistolet rows (the Thunderlock's own were counted)
   'src/systems/thunderlock.js': 8,
+  'src/systems/pistolet.js': 1,   // PISTOLET: the template row's name, 'Dwarven Pistolet' - the Thunderlock's row's is counted the same way
   'src/systems/tradePack.js': 10,
   'src/systems/translationPacks.js': 1,
   'src/systems/travel/travelBands.js': 1,
@@ -592,7 +595,6 @@ const HARDCODED = {
   'src/ui/charsheet.js': 16,
   'src/ui/chatPanel.js': 18,
   'src/ui/classicLootPanel.js': 1,
-  'src/ui/collectionsPage.js': 4,
   'src/ui/companionRoster.js': 19,
   'src/ui/credits.js': 86,
   'src/ui/cursor.js': 1,
@@ -619,7 +621,7 @@ const HARDCODED = {
   'src/ui/enhanced/enhancedHud.js': 9,   // HUD/GROWTH PATCHES (2026-10-20): counted as they arrived at their merge with main - English until a slice routes them through t() (SKILL-READY, FIRM-STARS: +3, the two tiles' names and their cell's class)
   'src/ui/enhanced/enhancedInventory.js': 89,   // HUD/GROWTH PATCHES (2026-10-20): counted as they arrived at their merge with main - English until a slice routes them through t() (BELT-LANTERN: +5, the lantern slot's acts)
   'src/ui/enhanced/enhancedLevelingChoice.js': 6,
-  'src/ui/enhanced/enhancedMenu.js': 62,   // AUDIT EG V (c, L7-10): the Spire's three accessibility rows routed; UI-CALM's doors at the merge of main
+  'src/ui/enhanced/enhancedMenu.js': 60,   // AUDIT COLLECTIONS-II: -2, the empty Holdings rail's words, gone with the rail that is never empty now. AUDIT EG V (c, L7-10): the Spire's three accessibility rows routed; UI-CALM's doors at the merge of main
   'src/ui/enhanced/enhancedMerchantPanel.js': 1,
   'src/ui/enhanced/enhancedNotice.js': 1,
   'src/ui/enhanced/enhancedPlayerTrade.js': 14,
@@ -792,7 +794,7 @@ const HARDCODED = {
   'src/world/oceanHoles.js': 9,
   'src/world/outdoors.js': 2,
   'src/world/passiveFish.js': 5,
-  'src/world/eliteGates/pseudoArchives.js': 46,   // WITCH1: +1, the Witches' Festival's pictures' row (FESTIVAL_ARCHIVE) - the registry's own words for a developer; NAVAL-REFIT: +3, the ship's paint's, her cabin's and her name boards' rows (LIVERY_ARCHIVE, CABIN_ARCHIVE, PLAQUE_ARCHIVE) - the registry's own words for a developer, never a player's; STAR4/STAR7: +2, the star's two archives' rows
+  'src/world/eliteGates/pseudoArchives.js': 47,   // PISTOLET: +1, the Dwarven Pistolet's art row (PISTOLET_ARCHIVE) - the registry's own words for a developer; WITCH1: +1, the Witches' Festival's pictures' row (FESTIVAL_ARCHIVE) - the registry's own words for a developer; NAVAL-REFIT: +3, the ship's paint's, her cabin's and her name boards' rows (LIVERY_ARCHIVE, CABIN_ARCHIVE, PLAQUE_ARCHIVE) - the registry's own words for a developer, never a player's; STAR4/STAR7: +2, the star's two archives' rows
   'src/world/superDungeon/sdDungeon.js': 6,
   'src/world/superDungeon/sdRealm.js': 10,
   'src/world/spawnedDungeons.js': 3,

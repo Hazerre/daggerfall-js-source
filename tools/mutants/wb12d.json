@@ -1468,8 +1468,8 @@
   {
     "name": "AUDIT-WB12d-the-smoke-built-in-the-draw",
     "file": "src/scenes/riteHost.js",
-    "old": "if (!smokePass && !smokeTried && gl && smokeFade(t) > 0) {",
-    "new": "if (false) {",
+    "old": "if (!smokePass && smokeOf && smokeFade(t) > 0) smokePass = smokeOf();",
+    "new": "if (false) smokePass = smokeOf();",
     "tests": [
       "test/net/gate/wb12d_rite_world.test.js"
     ]

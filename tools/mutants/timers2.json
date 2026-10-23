@@ -209,11 +209,12 @@
   {
     "name": "AUDIT-TIMERS2-M5-close-takes-it-every-draw",
     "file": "src/ui/enhanced/enhancedTimers.js",
-    "old": "globalThis.requestAnimationFrame?.(() => { if (!win.contains?.(doc.activeElement)) close.focus?.(); });",
-    "new": "globalThis.requestAnimationFrame?.(() => { close.focus?.(); });",
+    "old": "globalThis.requestAnimationFrame?.(() => { if (!win.contains?.(doc.activeElement)) close.focus?.({ preventScroll: true }); });",
+    "new": "globalThis.requestAnimationFrame?.(() => { close.focus?.({ preventScroll: true }); });",
     "tests": [
       "test/ui/enhanced/timers2.test.js"
-    ]
+    ],
+    "note": "Re-aimed by content at the HERALD-CARDS merge: one line holds SEASON-BOOK U3's open-only focus and TIMERS2 M5's guard."
   },
   {
     "name": "AUDIT-TIMERS2-L8-the-mark-not-in-the-name",

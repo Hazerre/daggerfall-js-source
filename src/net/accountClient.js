@@ -47,7 +47,7 @@ import { banRangeText, bannedText } from './safety/safetyLaw.js';   // SAFE4: a 
 import { muteRangeText } from './moderation.js';   // AUDIT 68 S14-mute-range-text-duplicated: the mute's bound in the refusal's sentence, from its home (L10N4: its reader)
 import { HOME_CAP, RENT_ROOMS_MAX, RENT_HELD_MAX, RENT_DAYS_MAX } from './homeLaw.js';   // HOME1: the cap a refusal names; HOME-RENT: and the rooms'
 import { DECOR_CAP, DECOR_YARD_CAP, DECOR_YARD_HIGH_WHY } from './decorLaw.js';   // DECOR1: the cap its refusal names; HOME-YARD: a yard's
-import { MARKS_MAX, MARKS_BANK, MARKS_MOVE_MAX } from './marksLaw.js';   // MARKS1: the bounds its refusals name
+import { MARKS_MAX, MARKS_BANK, MARKS_MOVE_MAX, MARKS_FAUCETS } from './marksLaw.js';   // MARKS1: the bounds its refusals name; CRAFT-WRITS: a crafting writ's day
 import { NOTES_LIVE_MAX, NOTE_DAYS, NOTICE_DAYS_MAX } from './boardLaw.js';   // NOTICE1: the bounds its refusals name
 import { SIGN_WHY, SIEGE_WHY, ROYAL_WHY, FEALTY_WHY, SELLSWORD_FEE_MAX } from './townSeatLaw.js';   // SEAT2a: the rosters' refusals in the board's own words; the fee's bound
 import {
@@ -65,6 +65,7 @@ import { SERPENT_EMBERS } from './serpent/serpentHoardLaw.js';   // AUDIT 625 P4
 import { HERALDRY_CHANGE_DRAKES } from './heraldryLaw.js';   // GUILD1d: a change's cost, in its refusal's own sentence
 import { t, localizedTable } from '../systems/textManager.js';   // L10N4: the refusals in the player's language, each read when it is said
 import { VENDOR_REFUSAL_WORDS } from './vendorLaw.js';   // HOME-VENDOR: a trader's refusals
+import { SEA_BOUNTY_MIN, SEA_BOUNTY_MAX } from './sea/seaBountyLaw.js';   // SEA-BOUNTY: a post's bounds, in its refusal
 import { busyRead, busyAnswer, busyWaitMs, retryAfterMs, BUSY_HOLD_MS } from './busyLaw.js';   // BUSY-GATE: the reads that stand back while the service is overloaded
 import { ARENA_TEXT } from '../systems/arena/arenaText.js';   // ARENA4b: the arena's refusals, in its own frozen table
 import { cardById } from './iliac/iliacCards.js';   // AUDIT CARDS-6 D7: the card a short deck lacks, said by its name
@@ -260,6 +261,13 @@ const REFUSAL_WORDS = {
   'post-no-item': () => t('account.refusal.postNoItem', 'That message holds no item to claim.'),
   'post-claimed': () => t('account.refusal.postClaimed', 'That item has already been claimed.'),
   'post-unclaimed': () => t('account.refusal.postUnclaimed', 'Claim the item in that message before you throw it away.'),
+  // LOST-SPOILS: the Lost and Found's (server-account/src/lostSpoils.js) - the spoils pool turns each into its own line, but
+  // every word the service can say has a sentence
+  'lost-pieces': () => t('account.refusal.lostPieces', 'The Lost and Found could not take those spoils.'),
+  'lost-item': () => t('account.refusal.lostItem', 'The Lost and Found will not keep a piece no fight could have dropped.'),
+  'lost-no-kill': () => t('account.refusal.lostNoKill', 'The Lost and Found has no word of that fight yet.'),
+  'lost-spent': () => t('account.refusal.lostSpent', 'Those spoils were left too long ago for the Lost and Found to take.'),
+  'lost-full': () => t('account.refusal.lostFull', 'Your mailbox holds too many unclaimed spoils. Claim some first.'),
   // PRIVATE-REPORT, a player's private report to the developers (server-account/src/reports.js, net/reportLaw.js)
   'report-needs-account': () => t('account.refusal.reportNeedsAccount', 'Private reports need a username and a password, so the developers can follow up with you. Give this account one, then send it.'),
   'report-kind': () => t('account.refusal.reportKind', 'Choose what kind of problem this is.'),
@@ -522,6 +530,12 @@ const REFUSAL_WORDS = {
   'writ-taken': () => t('account.refusal.writTaken', 'Someone else has already filled that writ.'),
   'writ-expired': () => t('account.refusal.writExpired', 'That writ has run out.'),
   'writ-cap': () => t('account.refusal.writCap', 'You have filled {max} writs today, the most a day allows.', { max: COURT_WRITS_PER_DAY }),   // CHAP2a: the Court's and the halls' one allowance
+  // CRAFT-WRITS (bible/06-Systems/Professions-Arc.md section 49): a crafting writ's own refusals
+  'craft-writ-cap': () => t('account.refusal.craftWritCap', 'You have filled {max} crafting writs today, the most a day allows.', { max: MARKS_FAUCETS.craftWrit.perDay }),
+  'craft-writ-filled': () => t('account.refusal.craftWritFilled', 'You have already filled this crafting writ.'),   // AUDIT CRAFT-WRITS S4
+  'craft-unbrewed': () => t('account.refusal.craftUnbrewed', 'You have not brewed enough of that potion yourself. Bottles you found or bought do not count - brew them at an alchemy station.'),
+  'craft-pieces': () => t('account.refusal.craftPieces', 'Only pieces you made yourself and never sold can fill this writ, and you need all of them.'),
+  'craft-goods-gone': () => t('account.refusal.craftGoodsGone', 'Your pack does not hold enough of what this writ asks.'),
   'prof-spec': () => t('account.refusal.profSpec', 'That specialization is not one this craft offers.'),
   'prof-respec-pending': () => t('account.refusal.profRespecPending', 'A change of specialization is already on its way ({days} days).', { days: RESPEC.days }),
   'prof-rate': () => t('account.refusal.profRate', 'You have done too much crafting this hour. Try again later.'),
@@ -767,6 +781,16 @@ const REFUSAL_WORDS = {
   'patron-low': () => t('account.refusal.patronLow', 'A bid for a patronage is at least 1,000 silver, and more than your guild bid before.'),
   // CARDS6: a gold card table's stake and its cash-out (server-account/src/cards.js)
   'cards-realm': () => t('account.refusal.cardsRealm', 'Only an online character of the realm can play a card table for gold.'),
+  // SEA-BOUNTY (server-account/src/seaBounty.js): a freeport's bounty board
+  'sea-bounty-realm': () => t('account.refusal.seaBountyRealm', 'Only an online character of the realm can post or collect a bounty.'),
+  'sea-bounty-gold': () => t('account.refusal.seaBountyGold', 'A bounty is between {min} and {max} gold.', { min: SEA_BOUNTY_MIN.toLocaleString('en-US'), max: SEA_BOUNTY_MAX.toLocaleString('en-US') }),
+  'sea-bounty-target': () => t('account.refusal.seaBountyTarget', 'There is no such captain on the board.'),
+  'sea-bounty-self': () => t('account.refusal.seaBountySelf', 'You cannot put a bounty on your own head, or on a character of your own account.'),
+  'sea-bounty-not-wanted': () => t('account.refusal.seaBountyNotWanted', 'That captain is no longer wanted.'),
+  'sea-bounty-failed': () => t('account.refusal.seaBountyFailed', 'The harbormaster could not record that. Try again in a moment.'),
+  // SHIP-PVP (server-account/src/seaWreck.js): a wreck's prizes
+  'sea-prize-realm': () => t('account.refusal.seaPrizeRealm', 'Only an online character of the realm can take a prize from a wreck.'),
+  'sea-prize-moved': () => t('account.refusal.seaPrizeMoved', 'Those goods were already taken. Look at the board again.'),
   'cards-closed': () => t('account.refusal.cardsClosed', 'The realm is not holding stakes for card tables right now. Try again later.'),
   'cards-stake-paid': () => t('account.refusal.cardsStakePaid', 'That stake has already been settled.'),
   'bad-table': () => t('account.refusal.badTable', 'The account service could not read that card table.'),
@@ -779,6 +803,7 @@ const REFUSAL_WORDS = {
   'cards-other-character': () => t('account.refusal.cardsOtherCharacter', 'That cash-out belongs to another of your characters. It is paid to the one who staked it.'),
   'cards-cashout-failed': () => t('account.refusal.cardsCashoutFailed', 'The cash-out could not be paid. Try again.'),
   'cards-held': () => t('account.refusal.cardsHeld', 'This character has gold staked at a card table. Collect it before the character is deleted.'),
+  'sea-held': () => t('account.refusal.seaHeld', 'Bounties, prizes or hold goods are waiting for this character at a freeport. Collect them before the character is deleted.'),   // AUDIT SEA VENTURES B4
   // INT3/INT4 (bible/06-Systems/Integrity-Arc.md): the judge's own (server-account/src/realm.js holdRefusal,
   // prepareRealmRecord)
   'trade-held': () => t('account.refusal.tradeHeld', 'This character\'s trading is frozen. The notice shown when it froze says why, and until when.'),   // AUDIT AUTO-HOLD: no review comes - a hold lifts on its own, or with the piece
@@ -829,6 +854,20 @@ const REFUSAL_WORDS = {
   // AUDIT SAFE DOC-4: a moderator's look at a case, and an unban of an account no ban holds
   'no-case': () => t('account.refusal.noCase', 'That player has no open case.'),
   'not-banned': () => t('account.refusal.notBanned', 'That account is not banned.'),
+  // STAFF-PANEL2-FIX (server-account/src/safety.js modAct, every moderator's door): a case another staff member holds in
+  // the staff panel, a case another act already took or closed, a sanction an Admin set, and a press of the wrong shape
+  'staff-claimed': () => t('account.refusal.staffClaimed', 'Another staff member has taken that case in the staff panel.'),
+  'case-acted': () => t('account.refusal.caseActed', 'Another moderator is acting on that case right now.'),
+  'case-closed': () => t('account.refusal.caseClosed', 'That case is already closed.'),
+  'admin-sanction': () => t('account.refusal.adminSanction', 'An Admin set this. Only an Admin can lift or shorten it.'),
+  'bad-click': () => t('account.refusal.badClick', 'That request was not sent properly. Try again.'),
+  // STAFF-PANEL5-FREEZE (server-account/src/staffFreeze.js): a staff freeze - every door but signing out, the account, the
+  // realm's loads, the token and the staff chat; a frozen seller's goods; a fall naming a frozen player; the Staff tab's own
+  frozen: () => t('account.refusal.frozen', 'Your account is frozen by staff. You can still talk to staff in the Staff tab.'),
+  'market-seller-frozen': () => t('account.refusal.marketSellerFrozen', 'That seller\'s goods are on hold for now.'),
+  'fallen-frozen': () => t('account.refusal.fallenFrozen', 'That player is held by staff. Nothing can be taken from them.'),
+  'bad-text': () => t('account.refusal.badText', 'Write something to send.'),
+  'no-thread': () => t('account.refusal.noThread', 'There is no staff chat open for you right now.'),
 };
 /** AUDIT SAFE CLIENT-2 (2026-10-17): THE SERVICE'S LAST WORD ON A BAN - `{ until, reason }` off the newest `banned`
  *  refusal any door answered (`call`), or null. The service refuses a banned account on every door but signing out
@@ -1696,6 +1735,17 @@ export function accountDuels({ fetch, storage }) {
   };
 }
 
+/** STAFF-PANEL5-FREEZE (net/staffChat.js; server-account/src/staffFreeze.js playerStaffChat): MY STAFF CHAT THREAD'S TWO
+ *  CALLS, bound to this device's stored session as the duels' are - `read(after)` answers `{ open, frozen: { until, reason }
+ *  | null, lines: [{ id, at, staff, text }], invite }` (lines past `after`), `send(text)` `{ ok, line: { id, at, staff, text } }`. */
+export function accountStaffChat({ fetch, storage }) {
+  const io = () => { const s = storedSession(storage); return s ? { fetch, base: serviceBase(storage), secret: s.secret } : null; };
+  return {
+    read: async (/** @type {number} */ after = 0) => { const i = io(); return i ? call(i, '/v1/staff-chat/read', { after }) : { ok: false, error: 'no-session' }; },
+    send: async (/** @type {string} */ text) => { const i = io(); return i ? call(i, '/v1/staff-chat/send', { text }) : { ok: false, error: 'no-session' }; },
+  };
+}
+
 /** INT9: A DEATH IN THE OPEN ZONE'S DROP, taken off the realm record by the service (server-account/src/wild.js) - `body`
  *  `{ receipt, realm, room }` (the fallen's, its record's `at`), `{ receipt, room }` (the killer's, after the grace) or
  *  `{ n, realm, room }` (a death to a foe: the tab's nonce) - `room` where the remains will lie (AUDIT INT9: the order names
@@ -2219,6 +2269,7 @@ export function accountProf({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
     disenchant: (character, provenance, rid, realm = null) => post('/v1/prof/disenchant', { character, provenance, rid, ...(realm ? { realm } : {}) }),   // PROF12: a crafted piece into Arcane Essence; AUDIT PROF-541 B2: a realm character's record where it stands
     writs: (character, region) => post('/v1/writs/list', { character, region }),
     deliver: (character, id, rid) => post('/v1/writs/deliver', { character, id, rid }),
+    craftWrit: (character, id, rid, realm, pieces = null) => post('/v1/writs/craft', { character, id, rid, realm, ...(pieces ? { pieces } : {}) }),   // CRAFT-WRITS: a crafting writ filled - its goods out of the realm record where it stands
     motherlodes: (character) => post('/v1/prof/motherlodes', { character }),   // PROF2b: today's three (a strike rides `harvest`)
   };
 }
@@ -2272,6 +2323,38 @@ export function accountCards({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
     stake: (req) => post('/v1/cards/stake', req),
     cashout: (req) => post('/v1/cards/cashout', req),
   };
+}
+
+/** SEA-BOUNTY: A FREEPORT'S BOUNTY BOARD'S DOOR (server-account/src/seaBounty.js) - the wanted captains and what is owed the
+ *  asking character (`board`: `{ character }`), gold posted on a wanted head (`post`: `{ character, realm, region, target,
+ *  gold, rid }`) and the owed collected (`collect`: `{ character, realm, region }`). Every answer is `call`'s shape. */
+export function accountSeaBounty({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
+  const post = waitedPost({ fetch, storage }, waitMs);
+  return {
+    board: (req) => post('/v1/sea/bounty/board', req),
+    post: (req) => post('/v1/sea/bounty/post', req),
+    collect: (req) => post('/v1/sea/bounty/collect', req),
+  };
+}
+
+/** SHIP-PVP: A WRECK AT SEA'S DOOR (server-account/src/seaWreck.js) - a wreck's signed receipt carried (`wreck`: `{ receipt,
+ *  realm? }` - the wrecked captain's own act with where its record stands, its killer's without), and a wreck's prizes
+ *  collected by its killer's character or reclaimed by its captain's (`collect`, `reclaim`: `{ character, realm }`). Every
+ *  answer is `call`'s shape. */
+export function accountSeaWreck({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
+  const post = waitedPost({ fetch, storage }, waitMs);
+  return {
+    wreck: (req) => post('/v1/sea/wreck', req),
+    collect: (req) => post('/v1/sea/prize/collect', req),
+    reclaim: (req) => post('/v1/sea/prize/reclaim', req),
+  };
+}
+
+/** SEA-SEASON: THE SEA'S SEASON BOARDS' DOOR (server-account/src/seaSeason.js) - the season's deepest voyages and legends
+ *  ended, and the asking character's rank each way (`board`: `{ character }`). Its answer is `call`'s shape. */
+export function accountSeaSeason({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
+  const post = waitedPost({ fetch, storage }, waitMs);
+  return { board: (req) => post('/v1/sea/season/board', req) };
 }
 
 /** CARDS10: ILIAC HAND'S DOOR (server-account/src/iliac.js) - a ranked seat's deck vouched for (`deck`: `{ character,

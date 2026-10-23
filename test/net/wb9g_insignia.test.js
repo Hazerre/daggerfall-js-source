@@ -655,7 +655,7 @@ test('WB9g the account card and its flow: an Aura row beside the titles when the
 test('WB9g the world host, by source: the auras gathered with the peers each frame (mine off the stored session, a concealed peer\'s concealed, none under the travel view) and drawn after each mode\'s opaque world through the veiled bodies\' hook under the frame\'s own camera - a foreign pass; the Broker\'s sale both halves through the sale\'s one law (AUDIT WB9); a wear the service\'s, told to my own name and feet at once; the window handed its doors (mutants: the auras never gathered; never drawn)', () => {
   const w = rd('src/scenes/world.js');
   assert.match(w, /auraFrame\(seen\);   \/\/ WB9g/);
-  assert.match(w, /const drawVeiledPeerBodies = \(\) => \{ peerBodies\?\.drawVeiled\(\); drawAuras\(\); nodeGlintPass\.draw\(travelView\?\.active \? null : nodeMarksAt\(enchantFeet\(\)\)\); \};/);   // NODE-MARKS: the nodes' glow rides the hook after the auras
+  assert.match(w, /const drawVeiledPeerBodies = \(\) => \{ peerBodies\?\.drawVeiled\(\); drawAuras\(\); nodeGlintPass\.draw\(travelView\?\.active \? null : nodeMarksAt\(enchantFeet\(\)\)\); partyPing\?\.draw\(renderer\); \};/);   // NODE-MARKS: the nodes' glow rides the hook after the auras
   assert.match(w, /function auraFrame\(seen\) \{\n    _auraWearers\.length = 0;\n    if \(!online \|\| travelView\?\.active\) return;/);
   assert.match(w, /const mine = ownAura\(\);/);
   assert.match(w, /if \(_veils\.has\(d\.id\) \|\| !d\.shown\) continue;   \/\/ a concealed peer's fire is concealed with them/);
@@ -663,7 +663,9 @@ test('WB9g the world host, by source: the auras gathered with the peers each fra
   assert.match(w, /if \(_auraPass\?\.drawn\) renderer\.markForeignPass\(\);/);
   assert.match(w, /_auraWearers\.length = 0;   \/\/ this frame's, drawn once: a frame that gathers none \(the seat left, death, offline\) draws none/, 'a frame that gathers none draws none');
   assert.match(w, /peerRiders\.settle\([^\n]*\n    auraFrame\(seen\);   \/\/ WB9g/, 'gathered once the bodies and the riders have stood');
-  assert.match(w, /try \{ _auraPass = new AuraRingRenderer\(renderer\.gl\); \} catch \(e\) \{ console\.warn\('\[online\] the aura would not build'/, 'a fire that will not build costs the fire, never the game');
+  // PIN MOVED (AURA-STALL, #1137): the build is its door's (render/glProgram.js compiledPass), whose throw is told and answers no pass for good
+  // PIN MOVED (AURA-SPLIT, #1143): the door waits on no program - each look's is the pass's own (render/auraRing.js programOf)
+  assert.match(w, /const auraPassOf = compiledPass\(renderer\.gl, \[\], \(\) => new AuraRingRenderer\(renderer\.gl\), \(e\) => console\.warn\('\[online\] the aura would not build'/, 'a fire that will not build costs the fire, never the game');
   const buy = w.slice(w.indexOf('async function insigniaBuy(offer) {'), w.indexOf('async function insigniaWear(offer) {'));
   // AUDIT WB9 (insignia F1, F2): both halves through the sale's one law (systems/sigil/sigilBroker.js insigniaSale, driven in
   // the audit's pins below) - the pack's price held first, given back unless the service holds the sale, a lost answer

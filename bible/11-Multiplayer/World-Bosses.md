@@ -472,8 +472,9 @@ player's roll is its own.
   drawn in the WORLD - and Rare and better carry a light of that colour; a Legendary's beam is taller and pulses. The
   Rare chime (`playRareDrop`) plays when a Rare or better comes to rest.
 - **The take**: activate a piece, or walk over it, and it goes into the pack through `addItem` (gold through
-  `addGoldPieces`), the name said (AUDIT WBX S7: walked over, a moment after it rests - no press, and the words plain). Leaving the arena with pieces still on the floor GATHERS them into
-  the pack - a boss's reward is never lost to a door, a disconnect or a death. The spoils ride a record on the device
+  `addGoldPieces`), the name said (AUDIT WBX S7: walked over, a moment after it rests - no press, and the words plain). Leaving the arena with pieces still on the floor sends each
+  item to the mailbox and the gold to the purse (LOST-SPOILS, 2026-10-22 - `06-Systems/Accounts-And-Cloud-Saves-Arc.md`), or
+  GATHERS them into the pack where the mailbox cannot take post - a boss's reward is never lost to a door, a disconnect or a death. The spoils ride a record on the device
   from the burst until a save holds them (the court refuses the save - WB5a), so a crash between the spew and the next
   save loses nothing either - one record a day and character, a list (AUDIT WB A7).
 - **No floor** (AUDIT WB A2): a receipt that comes while the player is not in its court - cast out before the kill,
@@ -832,7 +833,7 @@ a reader had to read each to the end to learn when, where and who. Every post is
   Discord's reason (AUDIT HERALD-CARDS H1 - it had let every post of the family go, all four through the gate's thread).
   A forum channel needs the gate's thread at least: Discord refuses a forum post with no thread, so there the channel
   refuses it too, and it is let go. A thread setting that is no id at all is said in the log and posts to the gate's. A setting must be a Discord id (the hub refuses a link or a name in words `/relay` shows), and
-  the client says one only to a relay that knows it (`RELAY_CFG_KEY_MIN`, world243 - an older relay closes the hub link
+  the client says one only to a relay that knows it (`RELAY_CFG_KEY_MIN`, world250 - an older relay closes the hub link
   on a name it does not know).
 - **Safe to post, as before**: `allowed_mentions` is the one role a post names or nothing; every name a player can reach
   passes `heraldName` wherever it is drawn - title, field or text - and begins with no hyphen (AUDIT HERALD-CARDS L2: a
@@ -844,7 +845,7 @@ a reader had to read each to the end to learn when, where and who. Every post is
   `Sea-Serpent.md` section 14, `Super-Dungeons.md` SD-HERALD and `Elite-Gates.md` section 20), the door's secret, the
   votes of where. No frame changes shape.
 
-Relay world243. Pinned in `test/net/herald/heraldcards.test.js` (13); mutants `tools/mutants/heraldcards.json` (28, all
+Relay world250 (world243 on its branch, renumbered past main's world243 to world249 at the merge). Pinned in `test/net/herald/heraldcards.test.js` (13); mutants `tools/mutants/heraldcards.json` (28, all
 dead - AUDIT HERALD-CARDS, `01-Overview/audits/Audit-Herald-Cards-Timers2.md`); the four heralds' pins and mutant lists (`discordgates`, `serpent2`, `sdherald`, `egeco_relay`, `fb1020d_loneherald`,
 `egaudit5_a2`, `wb8c`, `wb12a`, `wb12d`, `wb13b`, `wb14b`) read the cards now, every re-aimed mutant dead. Not seen:
 the cards in Discord itself (no webhook here) - the shape is Discord's documented embed, and the first omen after the
@@ -1309,7 +1310,8 @@ takes a piece when it is pressed (`scenes/spoilsPool.js pick`) and no other way:
 and stops there; the pool asks the host for no feet, and the world host hands it none. WBX3's wait after a rest
 (SPOILS_TAKE_AFTER_MS) and the walk-over's reach (SPOILS_TAKE_M) went with it - a piece is a target only once it rests,
 and the press's reach is a loot pile's (TREASURE_ACTIVATION_DISTANCE). Leaving the court still gathers what is left
-(`gather`), so nothing is ever lost to a door, a death or the day's end.
+(`gather`), so nothing is ever lost to a door, a death or the day's end. LOST-SPOILS (2026-10-22): its items now go to the
+mailbox, where it takes post (`06-Systems/Accounts-And-Cloud-Saves-Arc.md`).
 
 **The damage chart.** The relay already counted what each fighter dealt (`dealt` - the receipts' bar and the herald's
 three names, `topDealers`), and said only the three names at the kill. Now:
@@ -3011,7 +3013,8 @@ pack and lost its name and its price; the hosts' shared module registers it, so 
 SS1 (2026-09-27, `11-Multiplayer/Sigil-Sets.md`): the row stacks with its own kind alone - never with a gem - and is
 bound, never handed to another player in a trade - nor (SS3) dropped or put in a container, nor (SS4) sold; a pack
 saved before it stacked is folded on load.
-Leaving the court - by the way home, a death or the day's end - gathers what is still on its floor. No receipt (a
+Leaving the court - by the way home, a death or the day's end - gathers what is still on its floor (LOST-SPOILS: its items
+to the mailbox, where it takes post). No receipt (a
 player who neither dealt their share nor stood half the fight), and it is said the spoils are not theirs. Pins
 `test/systems/item/wb5_gate_spoils.test.js` (10); mutants `tools/mutants/wb5.json` (34 dead). The glow
 seen headless over the court; the flats and the flight not yet with ARENA2 and a live relay. The account's record of

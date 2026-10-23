@@ -143,9 +143,8 @@ import { fallenIn } from '../systems/livingWorld/trips.js';   // LW6b: ...the de
 import { innGuestsOf, patrolCover, placeName, INN_TYPE } from '../systems/livingWorld/trips.js';   // LW9: the inn's guests, the patrol's cover; AUDIT LW-II E7: a trip's end in the talk
 import { PATROL_HALT_LINES } from '../systems/livingWorld/lines.js';   // LW9: the law beyond the walls
 import { lwSeed } from '../systems/livingWorld/seed.js';   // LW9: the halt's word, the hour's
-import { enemyLootTableKey } from '../systems/loot/loot.js';   // LW6b: ...what they carried, their class's table
 import { goldStack } from '../systems/inventory.js';   // LW6b: ...and their purse
-import { mintKeepsake } from '../systems/livingWorld/keepsake.js'; import { lwRng, textSeed } from '../systems/livingWorld/seed.js';   // LW6c: ...and their keepsake, carried home; AUDIT-C5: their goods their key's own (on this line, so no cite below it moves)
+import { livingRemainsLay } from './livingWorld/remainsGoods.js'; import { lwRng, textSeed } from '../systems/livingWorld/seed.js';   // LW6c: ...and their keepsake, carried home; AUDIT-C5: their goods their key's own (on this line, so no cite below it moves)
 import { createLivingIndoors } from './livingWorld/livingIndoors.js';   // LW8: the residents inside the building the player is in
 import { createTravellerSprites, classLookOf } from '../world/travellerSprites.js';   // LW3: their bodies, and the armed walk's sprite
 import { GUARD_TEXTURE, PERSON_TEXTURES, PERSON_MOVE_SPEED, walkerRace } from '../characters/mobile/mobilePerson.js';
@@ -279,7 +278,7 @@ import { landformsOn, tamrielLandOn, tamrielTraceOn, etherSeaOn, etherCrossOutOn
 import { preloadTamrielTrace } from '../ui/tamrielTrace.js';   // TAMRIEL3: Daggerfall's own map of Tamriel, off the player's two files
 import { fitBayToPicture } from '../world/tamriel/tamrielLand.js';   // TAMRIEL3: where the Bay stands on it
 import { groundWoods, groundClimateIndex } from '../world/tamriel/tamrielGround.js';   // TAMRIEL2: the continent's ground round the Bay, for the kernels and the far ring
-import { etherWoods, etherClimateIndex, etherPoliticIndex, etherFrame, inEther, inEtherLaw, onBayOrEther, isleAt, islesNear, veilhaven, ETHER_HARBOUR_REACH, ETHER_SEA_NAME, ETHER_SEA_TITLE, CROSS_X, CROSS_LAND_PX, etherLight, ETHER_KEY_TINT } from '../world/ethericSea.js';   // ETHER-SEA: the Eltheric Ocean's ground and its box
+import { etherWoods, etherClimateIndex, etherPoliticIndex, etherFrame, inEther, inEtherLaw, onBayOrEther, isleAt, islesNear, veilhaven, ETHER_HARBOUR_REACH, ETHER_SEA_NAME, ETHER_SEA_TITLE, CROSS_X, etherLight, ETHER_KEY_TINT } from '../world/ethericSea.js';   // ETHER-SEA: the Eltheric Ocean's ground and its box
 import { etherTemplates, etherTemplateOf, synthesizeEtherLocation, etherPlaceIsle, etherPlaceRows, ETHER_REGION, ETHER_REGION_NAME } from '../world/etherPlaces.js';   // ETHER-PLACES: the isles' towns and ruins; ETHER-OW: their pixels and far rows, the Overworld's
 import { tamrielFrameInBay } from '../world/tamriel/tamrielFrame.js';   // TAMRIEL2: the frame the world streams over, and the Bay's own ground
 import { createLandforms, landformLiftField, landformSites, landformClimates, cliffFadeAt } from '../world/landforms.js';   // LANDFORM1-3: the shaped ground, and what it lifts a point by; AUDIT LANDFORMS II I1: the lift's fade beside the sea
@@ -290,6 +289,8 @@ import { freePull } from '../systems/travel/freePull.js';   // OW-FREE-STRAIGHT,
 import { createGrantHost } from './grantHost.js';   // GRANT2-GRANT4: the spawn grants - my stands' and my reading of others' (bible/11-Multiplayer/Spawn-Grants.md)
 import { wireOwnerClock } from './ownerCatchUp.js';   // OWNER-CLOCK: my foes' steps on the clock their frames carry, and the street's kept to my frame's pace while anyone else is in my room
 import { fishKind } from './fishHost.js';   // PROF8: Fishing's casts and schools - a kind in it
+import { createCraftWritHost } from './craftWritHost.js';   // CRAFT-WRITS: the Work tab's crafting writs, handed over from the pack
+import { createSeasonBook } from './seasonBookHost.js';   // SEASON-BOOK: the laurel's boards, asked while its window is open
 import { rollNoticeDoors } from './rollNoticeHost.js';   // SEAT-WORDS / STANDING-WORDS: what the Roll's tracker says
 import { utcDayOfMs } from '../net/nodeLaw.js';   // PROF8: a haul's UTC day
 import { registerPlayerKillListener } from '../systems/playerKills.js';   // PROF7: the player's own kill stamps a body
@@ -361,7 +362,7 @@ import { EG_LAST_WORD_MIN } from '../net/eliteGates/egLaw.js';   // EG-F: a ques
 import { createEgFight } from './eliteGates/egFight.js';   // EG-PLAY: a hall's fight
 import { registerSpirePotionLaw, registerSpireFooting, registerSpireWake, registerSpireObjs, registerSpireAct } from '../systems/eliteGates/spireKit.js';   // EG-FULL: THE POTION LAW (two restoring potions a hall); Iron Footing on the spans
 import { accountEg } from '../net/accountClient.js';   // EG-PLAY: the Weir Keys, the open, the admission, the claims
-import { registerPlayerDeathSave } from '../characters/playerEntity.js';   // EG-FULL: the fall's death save (the witness's damage mod rides main's import of registerPlayerDamageMod, below) (EG-H2: the Spire's Levitate ward is the one ward's, by the made level's law)
+import { registerPlayerDeathSave, staffFrozen } from '../characters/playerEntity.js';   // EG-FULL: the fall's death save (the witness's damage mod rides main's import of registerPlayerDamageMod, below) (EG-H2: the Spire's Levitate ward is the one ward's, by the made level's law)
 import { registerMadeLevelHere, madeRuleHere, madeSaysHere } from '../systems/madeLevel.js';   // EG-H2 (Elite-Gates.md section 24): THE MADE LEVEL'S RULES - every per-level door below asks the one law
 import { registerJumpForgiveness } from '../player/motor.js';   // EG-H2 (section 10.8): THE FORGIVENESS - the Spire's jump buffer and late press, the made level's law's
 import { isSdRealm, realmArena, SD_REALM_TEXT, SD_REALM_FOG, SD_REALM_FLOORS, SD_ARENA_FLOORS, arenaHolds } from '../world/superDungeon/sdRealm.js';   // SD5a: the Shattered Hour - its edge, its refusals
@@ -654,7 +655,7 @@ import { createCaptainPageHost } from './captainPageHost.js';   // CAPT-LOG / CA
 import { createDeckPlanDoor } from './deckPlanDoor.js';   // DECK-PROPS: the plan of her deck
 import { createHarbourOffice } from './harbourOffice.js';
 import { createEtherHost } from './etherHost.js';   // ETHER-SEA: the Eltheric Ocean's waters, charts, strands and legends
-import { createCrossingGate, crossingWayAt, crossingTarget, crossingRows, crossingWords, CROSS_DAYS, CROSS_CHECK_S, CROSS_REFUSED, CROSS_STALE, CROSS_FAILED } from '../systems/naval/etherCrossing.js';   // ETHER-CROSSING: the voyage across
+import { createCrossingGate, crossingWayAt, crossingTarget, crossingRows, crossingWords, createCrossLand, CROSS_DAYS, CROSS_CHECK_S, CROSS_REFUSED, CROSS_STALE, CROSS_FAILED } from '../systems/naval/etherCrossing.js';   // ETHER-CROSSING: the voyage across
 import { mulberry32 } from '../combat/blood/bloodArt.js';   // CAPT-BOARD: a site's point off its seed
 import { CHART_TEMPLATE } from '../systems/naval/treasureCharts.js';   // CAPT-CHARTS: a treasure chart read   // CAPT-BOARD: the harbourmaster's board, the contracts, the letters
 import { mintDeed } from '../systems/comeSailAway/comeSailAwayItems.js';   // CAPT-BOARD: the Admiralty's carrack's deed, the shelf's own mint   // CAPT-LOG: the captain's ledger - the log, the crowns' regard, the ranks, the letter of marque
@@ -711,8 +712,12 @@ import { goldPiecesOf as legacyGold, addItem as legacyAddItem, letterOfCredit } 
 import { tabStorage } from '../systems/appStorage.js';   // LEGACY1: a birth crosses the reload in the tab's own store
 import { monthNames } from '../systems/gameDate.js';   // L10N3e: the month's name in the player's language, read when asked
 import { createBountyHost } from './bountyHost.js';   // BOUNTY1: the town's bounty boards - the hunts, their packs, their purse
+import { createWorldPartyPing } from './partyPingHost.js';   // PARTY-PING: a look's point for the party, and the floor route while one follows
+import { pingSubject, pingCrowd } from '../systems/party/partyPingCaption.js';   // PARTY-PING: the name under a look, a person and another player among them
+import { PING_TRAVEL_M } from '../systems/party/partyPing.js';   // PARTY-PING: how far the travel view's look reaches
 import { createBountyFarms, farmSpotLocal, pickFarm } from './bountyFarms.js';   // BOUNTY-FARM: a farm on a farm bounty's pixel, while it is held
-import { questBoardIndices, bountyDungeons } from '../systems/bounty/bountyBoard.js';   // BOUNTY1: which of a town's boards post bounties (half); RVN7: a revenant's lair, in the boards' ring
+import { questBoardIndices } from '../systems/bounty/bountyBoard.js';   // BOUNTY1: which of a town's boards post bounties (half)
+import { createLairDoor } from './lairHost.js';   // RVN7, LAIR-DOOR: a revenant's lair, an enterable dungeon in the boards' ring
 import { createBountyOverlay, closeBountyDoor, bountyDoorOpen } from '../ui/bounty/bountyDoor.js';   // BOUNTY1: the board's window and the payday notice
 import { isQualifyingThreatState } from '../systems/horse/horseFollow.js';   // HCC: CollectThreats' qualification, the mod's own five-term test
 import { totalWeight } from '../systems/inventory.js';   // HCC: PlayerEntity.WagonWeight
@@ -858,6 +863,8 @@ import {
 import { createRealmLine } from '../systems/legacy/realmLine.js';   // LEGACY7: online, Project Legacy's lines are the realm's
 import { reclaimFromDevice, reclaimLines, crossLeveling, LEVELING_CROSS_LINE } from '../systems/realmCustoms.js';   // RESTORE: what customs once kept back, given back at the boot; LEVEL-ONLINE-3: the realm's one leveling
 import { appStorage } from '../systems/appStorage.js';   // ACC1d: where that session lives - the app's store, not the tab's (a second tab is the same player)
+import { createStaffMessages } from '../net/staffMessages.js';   // STAFF-PANEL5-MESSAGE: Message on screen, the game's half
+import { createStaffFreezeHost } from './staffFreezeHost.js';   // STAFF-PANEL5-FREEZE: the staff freeze's screen and the Staff tab
 import { skyClassicMinutes, wallMsForSkyMinutes, skyMinutesPerMsAt } from '../net/skyLaw.js';   // TIME1: the sky's own clock, installed beside the event clock
 import { POSE_STRIKES, isWorldRoom, isCellRoom, cellHaloFor, actFrameFits, sharedClassicMinutes, wallMsForClassicMinutes } from '../net/wire.js';   // WORLD6b-iii(b): the cell seam's halo   // MAC7 #1: the swing's kind on the wire; AUDIT WORLD4 A1: whether an act frame can be said at all
 import { WILD_DATA_MAX, WILD_ITEMS_MAX, POSE_RIDE } from '../net/wire.js';   // INT9 (AUDIT): a deposit's chunks, bounded by the wire's frame; COATS3D: POSE_RIDE - a peer on a horse rides the 3D one
@@ -876,13 +883,13 @@ import { LANG_LINES, unknownLangText } from '../net/chatCommands.js';   // CHAT-
 import { OPT_CHANNELS, tradeChanOldText, notJoinedText, optJoinedText, optJoinedSayText, optLeftText, optWaitText, alreadyJoinedText } from '../net/chat.js';   // CHAT-TRADE: the Trade and LFG tabs' words
 import { badJoinText } from '../net/chatCommands.js';   // CHAT-TRADE: /join's and /leave's refusal
 import { oocText, localLineHeard, nextRegionRoom, regionJoinedText, CHAN_OLD_RELAY_TEXT, ROLL_OLD_RELAY_TEXT, EMOTE_OLD_RELAY_TEXT, GUILD_OLD_RELAY_TEXT, NO_GUILD_TEXT, partyNoteTab } from '../net/chat.js';   // CHAT-CHAN: the channels' own laws (a second chat import: CHAT1's pin holds the first as it stands)
-import { breachCommandOf, helpLines, mailboxCommandOf } from '../net/chatCommands.js';   // AUDIT EG V (c, L7-1, L7-21): the Elite Breach's door, its words whole; /help's lines with its own
+import { breachCommandOf, helpLines, pauseCommandOf, pauseCommandRefusal } from '../net/chatCommands.js';   // AUDIT EG V (c, L7-1, L7-21): the Elite Breach's door, its words whole; /help's lines with its own
 import { parseChatLine, CHAT_GREETING_TEXT, unknownCommandText, emptyCommandText, hostMisuseText, badRollText, expandShortcodes, EMOTE_LINES, foundText, FIND_OFFLINE_TEXT, FIND_RELAY_TEXT } from '../net/chatCommands.js';   // CHAT-CHAN: what a typed line IS; DICE1: and a roll; EMOTE1: an action, a gesture, a shortcode
 import { partyRosterSource, localRosterSource, guildRosterSource } from '../net/roster.js';   // CHAT-CHAN: the Party and Local tabs' composed lists
 import { partyCompassPoints } from '../ui/partyMapMarks.js';   // COMPASS-PARTY: the party's points on the compass
 import { SocialState, accountId, accountSecret } from '../net/social.js';   // SOC2: the friends and the party, as the hub says them; the account the hub's hello carries; SOC3: and the two colours a name wears in the DOM - my party's green, a friend's blue
 import { SOCIAL_ROOM, PARTY_SEND_MS, chatRegionRoom, relaySupportsRite, relaySupportsCage } from '../net/wire.js';   // CHAT-CHAN: a region's channel
-import { cellRoomOfWire } from '../net/wire.js';   // HCC-PARK: the cell a parked team's anchor stands in
+import { cellRoomOfWire, seaVaultRoomId, seaRoomOf } from '../net/wire.js';   // HCC-PARK: the cell a parked team's anchor stands in; AUDIT SEA VENTURES D7, D8: a vault's own room
 import { parkKeyOf } from '../net/wire.js';   // WAGONS2-VISIT: my caravan's room is named by my park key
 import { caravanRoomOf, caravanKeyOf } from '../net/privateInterior.js';   // WAGONS2-VISIT: a caravan's own room
 import { CARAVAN_TEXT } from '../systems/caravanRoom.js';   // WAGONS2 (FINAL AUDIT): a caravan's save that cannot come back, said
@@ -907,6 +914,7 @@ import { makeVideoQueue } from '../systems/quest/videoQueue.js';   // CRUX1: the
 import { createPartyPanel } from '../ui/partyPanel.js';   // SOC4: the party HUD - my party's portraits and their health / stamina / magicka
 import { MailBox, mailNoticeText } from '../net/mail.js';   // MAIL1: the letterbox the Letters tab draws and the frame polls
 import { PostBox, postNoticeText } from '../net/serverPost.js';   // SERVER-POST: the server's post the pause face's mailbox draws
+import { lostSpoilsMail } from '../net/lostSpoils.js';   // LOST-SPOILS: a boss's floor's leftovers to the mailbox
 import { GuildBook } from '../net/guild/guildBook.js';   // GUILD1b: the guild the Guild tab draws
 import { sellProceeds } from '../systems/tradeModes.js';   // GUILD-LETTER: a withdrawal weighed as the trade window weighs a sale
 import { realmLetterOfCredit } from '../net/realm/realmGoldLaw.js';   // GUILD-LETTER: the letter the service writes on a realm record, one maker
@@ -935,7 +943,9 @@ import { wildHallPicks, wildHallAt, wildHallTemplateOk } from '../systems/wild/w
 import { setWildHere, wildHere, isWildRegion, wildMaskOf, wildInside, wildNear, setWildDeath, wildDeath, WILD_TEXT, WILD_DEATH_HOLD_S, WILD_NAME, ZONE_WATCH_SCALE } from '../systems/wild/wildZone.js';
 import { createPartyTruce } from '../systems/wild/wildZone.js';   // PARTY-TRUCE (FIELD BUGS 2026-10-09b)
 import { GREATER_GIANT_CALL, GREATER_GIANT_CALL_AT } from '../systems/wild/wildZone.js';   // GREATER-GIANT
-import { wildRing, wildRingAt, wildRingName, wildRingBonus, setWildMask, wildMask, WILD_RINGS, wildJourney, WILD_GIANT, WILD_GIANT_CHANCE, WILD_GIANT_MAX, WILD_STRANGER_M, WILD_STRANGER_SEE_M, WILD_STRANGER_SLOW_M, WILD_STRANGER_RGBA } from '../systems/wild/wildZone.js';   // WILD2: the four rings; WILD3: the journeys
+import { wildRing, wildRingAt, wildRingName, wildRingBonus, wildZoneKind, zoneWord, zoneRingName, setWildMask, wildMask, WILD_RINGS, wildJourney, WILD_GIANT, WILD_GIANT_CHANCE, WILD_GIANT_MAX, WILD_STRANGER_M, WILD_STRANGER_SEE_M, WILD_STRANGER_SLOW_M, WILD_STRANGER_RGBA } from '../systems/wild/wildZone.js';   // WILD2: the four rings; WILD3: the journeys
+import { etherWildRingAt, etherRisePort, etherRiseSite, etherInPeace, ETHER_KIND, ETHER_WILD_TEXT } from '../systems/wild/etherWild.js';   // ETHER-WILD: the Eltheric Ocean past Veilhaven's peace, an open PvP zone
+import { createSeaVentures, seaStormShown } from './seaVenturesHost.js';   // SEA VENTURES: the sea's vaults, its events, its bounties and boards - wired here, held there
 import { wildTakeTook, wildPacks, wornOffer, wildRecord, wildChunks, wildSpawnSpot, wildFallWords, wildTookAny } from '../systems/wild/wildDeath.js';   // CART-AWAY (FIELD BUGS 2026-10-15d): my wagon away from my death keeps its cargo - and COMPANION-DROP's word that my game reads my companions' packs, one call (wildFallWords)
 import { readWildReceipt, WILD_FALL_GRACE_S } from '../net/wild/wildReceipt.js';   // INT9: the relay's fall, carried to the service
 import { WILD_REF, wildKin, sameGuild } from '../net/wild/wildRef.js';   // INT9: the zone referee's numbers (its mend, for the HUD); MAC (2026-10-14): and its kin, one law with the referee's
@@ -963,7 +973,7 @@ import { createSeatBanners } from './seatBanners.js';   // SEAT1a: a seat town's
 import { createFestivalStage } from './seatFestival.js';   // FESTIVAL-STAGE: a Festival's music, banners and lanterns
 import { drawBanner } from '../ui/heraldryArt.js';   // GUILD1d: ...its heraldry painted on it
 import { heraldryLookup } from '../ui/heraldrySwatch.js';   // HERALDRY-SHOWN: a guild's heraldry by its tag, off what this client holds
-import { AuraRingRenderer, auraWearers, auraLookOf, auraBeastStep, auraMotionStep, auraCapeStep, auraSpriteBones, auraSpritePosed, auraWingLights, CLOAK_BONES, AURA_KINDLE_S, AURA_FORGET_S } from '../render/auraRing.js'; import { peerBodyYaw } from '../net/peer/peerClimb.js';   // WB9g: Dagon's Fire at a wearer's feet; SHADOW-CLOAK: a peer's facing, the cloak's front (on this line, so no cite below it moves)
+import { AuraRingRenderer, auraWearers, auraLookOf, auraBeastStep, auraMotionStep, auraCapeStep, auraSpriteBones, auraSpritePosed, auraWingLights, CLOAK_BONES, AURA_KINDLE_S, AURA_FORGET_S } from '../render/auraRing.js'; import { peerBodyYaw } from '../net/peer/peerClimb.js'; import { compiledPass } from '../render/glProgram.js';   // WB9g: Dagon's Fire at a wearer's feet; SHADOW-CLOAK: a peer's facing, the cloak's front (on this line, so no cite below it moves); AURA-STALL: its pass built once its program is done
 import { duelAttackerOf, duelWeaponOf, duelSwingOf, resolveDuelStrike, duelWearDamage, duelStandIn } from '../combat/duelCombat.js';   // DUEL1: the blow between two duellists - INT8/INT9: the striker's half alone, the relay referees (AUDIT C&C H5: against the neutral stand-in)
 import { createPageWindow, pageView } from '../ui/pageWindow.js';   // JOURNAL1: a page another player holds out, read and kept
 import { PageOffers, pageOfferText, pageShownText, pageTooFarText, keptPageTokens, keptLetterTokens, letterOfPage, PAGE_UNSUPPORTED_TEXT, PAGE_NO_READERS_TEXT, PAGE_GONE_TEXT } from '../net/journalPage.js';   // JOURNAL1: a page of the journal shown, and one shown to me kept
@@ -1048,7 +1058,8 @@ import { createDread, createDreadStorm, dreadLight, dreadCloudGlow, DREAD_KEY_DI
 import { parseEventCommand } from '../net/chatCommands.js';   // EVENT1: /event, a dev's live event
 import { createSunbaby, sunbabyLight, SUNBABY_WEATHER, sunbabyKey, createSunbabyRain } from '../world/sunbabySky.js';   // SUNBABY1: the sun baby's sky of flowers, the clear day and the light under it; SUNBABY2: the wrath's key light and its fireballs
 import { relayKnowsLiveEvent } from '../net/wire.js';   // SUNBABY1: a word staged only on a relay that knows it
-import { createStaffTeleportClient, validStaffDestination, staffDestinationKey, followStaffPlayer } from '../net/staffTeleport.js';
+import { createStaffTeleportClient, validStaffDestination, staffDestinationKey, followStaffPlayer, staffTpLine } from '../net/staffTeleport.js';   // STAFF-PANEL5-FOLLOW: and the line a /tp @player ends on
+import { staffFollowOnPage } from './staffFollowHost.js';   // STAFF-PANEL5-FOLLOW: the game's staff hook (net/staffHook.js) and the host's half of a follow
 import { privateInteriorPrefix, privateInteriorRoom, privateBoatRoom, privateInteriorOf } from '../net/privateInterior.js';
 import { createInstanceDoor } from './instanceDoor.js';   // INSTANCES: public or an instance, at the door (bible/11-Multiplayer/Instances.md)
 // TESTBUILD: every player may use the staff's /god (/godmode), /fly, /heal, /tp - god mode also lifts the zone's travel law and makes map journeys instant
@@ -1119,7 +1130,7 @@ import { createRandomReligiousItem, createRandomJewellery, createRandomGem, crea
 import { createRegularMagicItem, getMagicItemTemplates, lootMatrix, tableLootSpawned } from '../systems/loot/loot.js';   // OH-E: CreateRandomMagicItem, GetMatrix, LootTables.OnLootSpawned
 import { enemyLootSpawned } from '../characters/enemy/enemyEntity.js';   // OH-E: EnemyEntity.OnLootSpawned
 import { customItemClass } from '../systems/roleplayRealismItems/rriItems.js';   // OH-E: UpgradeLoot's `GetType() != typeof(DaggerfallUnityItem)`
-import { setItemFields, mintCondition, isAmmunition } from '../systems/item/itemTemplates.js';   // DW-E5: the item constructor's name, value and condition
+import { setItemFields, mintCondition } from '../systems/item/itemTemplates.js';   // DW-E5: the item constructor's name, value and condition
 import { registerItemUseHandler } from '../systems/item/itemTemplates.js';   // CSA-H: the boat items' UseItem on the item-use door
 import { mintBoatItem, mintShelfBoatUids, assignVariantsToShopItems, cargoLootTarget, BOAT_PARTS_TEMPLATE as CSA_PARTS_TEMPLATE, BOAT_DEED_TEMPLATE as CSA_DEED_TEMPLATE } from '../systems/comeSailAway/comeSailAwayItems.js';   // CSA-H: the two items, their shelf
 import { ListPickerWindow, listPickerArtLoaded } from '../ui/listPicker.js';   // CSA-H: the boat's variant picker
@@ -1177,6 +1188,39 @@ const REVEAL_NOTE_TEXT = localizedStrings({
  *  puts in a MessageBox when the travel map is asked for with enemies
  *  about. Verbatim - it is the refusal, not a paraphrase of it. */
 const CANNOT_TRAVEL_ENEMIES_TEXT = 'You cannot travel with enemies nearby.';
+/** AUDIT SEA VENTURES C1: a Come Sail Away boat's map pixel (`MapPixel` - its X and Y) as the teleport refusals read one. */
+const boatPixelOf = (boat) => ({ x: boat.MapPixel.X, y: boat.MapPixel.Y });
+/** DaggerfallAudioSource.PlayOneShot(soundIndex, spatialBlend, volumeScale): PlayOneShotWhenReady at volumeScale x
+ *  SoundVolume - the bus's - from its AudioSource at Unity's fresh defaults (logarithmic, 1 to 500). HOST-SPLIT (at the
+ *  merge of main into SEA VENTURES): it and PlayClipAtPoint out of bootWorld - the module's audio bus alone. */
+function csaDfOneShot(node, soundIndex, spatialBlend, volumeScale) {
+  if (!node?.activeInHierarchy) return;
+  if (spatialBlend > 0) audio.play3d(soundIndex, [...node.position], volumeScale, { refDistance: 1, maxDistance: 500, distanceModel: 'inverse' });
+  else audio.playOneShot(soundIndex, volumeScale);
+}
+/** DaggerfallAudioSource.PlayClipAtPoint(soundIndex, position, volumeScale): AudioSource.PlayClipAtPoint at
+ *  volumeScale x SoundVolume, its temporary source at Unity's defaults. */
+function csaDfClipAtPoint(soundIndex, position, volumeScale) {
+  audio.play3d(soundIndex, [...position], volumeScale, { refDistance: 1, maxDistance: 500, distanceModel: 'inverse' });
+}
+/** A boat's heading in the scene's XZ, off her root's rotation (her bow: +Z in her own frame) - `yaw` the camera's, for a
+ *  boat with none. HOST-SPLIT (at the merge of main into SEA VENTURES): out of bootWorld, a pure law of her rotation. */
+const boatForward = (boat, yaw) => {
+  const q = boat?.GameObject?.rotation;
+  if (!q) return [Math.sin(yaw), 0, Math.cos(yaw)];
+  const fx = 2 * (q[0] * q[2] + q[3] * q[1]), fz = 1 - 2 * (q[0] * q[0] + q[1] * q[1]);
+  const l = Math.hypot(fx, fz) || 1;
+  return [fx / l, 0, fz / l];
+};
+/** EntityEffectManager.AssignBundle for StartWaterwalking's bundle: its one WaterWalkingSilent on the player, for
+ *  DurationBase + DurationPlus x the level over DurationPerLevel rounds (SetDuration). HOST-SPLIT (at the merge of main
+ *  into SEASON-BOOK): out of bootWorld - it reads the player alone, as the module's imports hand it. */
+function csaAssignBundle(spec) {
+  if (spec.effectKey !== WATER_WALKING_SILENT) return;
+  const perLevel = Math.max(1, spec.durationPerLevel | 0);
+  const rounds = spec.durationBase + spec.durationPlus * Math.floor((playerEntity.level ?? 1) / perLevel);
+  assignModBundle(playerEntity, { name: spec.name, kind: WATER_WALKING_SILENT_KIND, rounds, bundleType: spec.bundleType });
+}
 /** OH-E: the abyss's two loot listeners, held so a second world booted in the page replaces them rather than adding to them. */
 let _ohLootOff = null;
 /** AUDIT PARTY-UI2 1: Internal_Strings.csv `cannotTravelIndoors`, the
@@ -2908,7 +2952,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // and light), and while it is staged the land wears the clear day: the SHOWN weather, never the sim's, which is the
   // world's (rolled, shared on the weather map, saved) and comes back the frame the event ends. Offline nothing sets it.
   const sunbaby = createSunbaby();
-  const shownWeather = () => (sunbaby.on ? SUNBABY_WEATHER : currentWeather());
+  const shownWeather = () => (sunbaby.on ? SUNBABY_WEATHER : seaStormShown() ?? currentWeather());   // SEA-EVENTS: the Aether Storm's thunder over the player at sea (scenes/seaVenturesHost.js), shown as the Sun Baby's clear day is
   let seenSystem = weatherSystemStamp(); const weatherStale = () => shownWeather() !== weather || weatherSystemStamp() !== seenSystem;   // AUDIT PRECIP FALL-2: the word, or the system under it, moved
   // SUNBABY2: THE WRATH'S FIRE - its fireballs on the shared clock, dropped onto the ground under each (the terrain's
   // height there, or my feet's where nothing is streamed) by the spell engine (magic.skyFire)
@@ -3612,22 +3656,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // character's world where the dungeon's own foes stand and told when the player comes near; the deep asked once a
   // second, passed by the hand's dead, the fallen beside the player, the spared and any of a company stood here now
   let livingRemains = null, _livingRemainsAt = -Infinity, _livingRemainsList = [];
-  /** LW6b: a fallen diver's remains in the dungeon `d` at `feet` - their class's corpse picture, and what they carried:
-   *  their class's own loot table at their level, a weapon and a piece of armour, their purse. */
-  const livingRemainsLay = (d, res, feet, key = res.id) => {
-    const look = classLookOf(res);
-    const corpse = look?.basics?.corpseTexture;
-    if (!corpse) return null;
-    const level = Math.max(1, res.level | 0);
-    const rolls = lwRng(textSeed(key), 0x676f6f64);   // 'good' - AUDIT-C5: the same goods each time they are laid (never a reroll for leaving)
-    const items = generateLootItems(enemyLootTableKey(res.cls, look.basics.lootTableKey ?? '-'), { level, gender: res.sex ?? 'male' }, rolls);
-    // AUDIT-C7: their weapon and their armour minted as every other piece the port hands out (the item's fields, its
-    // condition), never an arrow for a weapon
-    for (const raw of [createRandomWeapon(level, rolls), createRandomArmor(level, rolls)]) if (raw && !isAmmunition(raw)) items.push(mintCondition(setItemFields(raw)));
-    items.push(goldStack(5 + Math.floor(rolls() * 20 * level)));
-    items.push(mintKeepsake(res));   // LW6c: their own keepsake, for their household
-    return d.layRemains(items, feet, { archive: corpse.archive, record: corpse.record }, key);   // AUDIT LW-III: tagged with its key
-  };
   /** AUDIT LW-II D9: where each of the dungeon's remains lies (placeOf), by its key - this dungeon's. */
   const _livingRemainsPlace = new Map();
   const livingRemainsStep = (now) => {
@@ -8030,7 +8058,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const sailingCabins = createSailingCabinAccess({
     available: () => !!csaRuntime && csaOn(),
     boats: () => csaRuntime?.AllBoats ?? [], mode: () => modes?.mode ?? 'exterior', busy: () => worldMoveBusy(),
-    csa: () => csaRuntime, hostile: navalHostileNear,   // FB1020c CABIN-FOES: the helm read off the runtime; no cabin with a hostile ship near (scenes/sailingCabin.js)
+    csa: () => csaRuntime, hostile: () => navalHostileNear() || !!naval?.pvp?.captainNear?.(),   // FB1020c CABIN-FOES: the helm read off the runtime; no cabin with a hostile ship near (scenes/sailingCabin.js) - AUDIT SEA VENTURES E6A: nor a stranger captain's (navalPvp.js captainNear)
     aboard: csaStandsOn,
     peerBoat: (owner, uid) => csaPeers.boatByUid(owner, uid),
     boardPeer: (boat) => csaAboard.board(boat, CSA_ABOARD_GRACE),
@@ -8266,14 +8294,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     hideEnhancedTextLayer(CSA_MAP_TEXT_LAYER);   // AUDIT FONT3 F1: here, not in dispose alone - the interior and dungeon slots close a window without disposing it
     modes?.closeWindow?.(w);
   }
-  /** EntityEffectManager.AssignBundle for StartWaterwalking's bundle: its one WaterWalkingSilent on the player, for
-   *  DurationBase + DurationPlus x the level over DurationPerLevel rounds (SetDuration). */
-  function csaAssignBundle(spec) {
-    if (spec.effectKey !== WATER_WALKING_SILENT) return;
-    const perLevel = Math.max(1, spec.durationPerLevel | 0);
-    const rounds = spec.durationBase + spec.durationPlus * Math.floor((playerEntity.level ?? 1) / perLevel);
-    assignModBundle(playerEntity, { name: spec.name, kind: WATER_WALKING_SILENT_KIND, rounds, bundleType: spec.bundleType });
-  }
   /** OnGUI's two pictures, built at the map's first draw: record 3 rebuilt from the player's TRAV0I00.IMG (the
    *  port never carries it) and lineTexture, TEXTURE.000's solid record 112. */
   let _csaMapTex = null, _csaMapTexLoad = null, _csaLineTex = null, _csaLineTexLoad = null;
@@ -8366,7 +8386,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     midScreenText: (text, seconds) => setMidScreenText(text, seconds),
     log: (text) => console.log(text),
     time: () => _csaTime,
-    weatherType: () => WEATHER_TYPES.indexOf(currentWeather()),   // CSA-E: PlayerWeather.WeatherType (the port's eighth word, the sandstorm, is none of UpdateWind's three)
+    weatherType: () => WEATHER_TYPES.indexOf(seaStormShown() ?? currentWeather()),   // SEA-EVENTS: the Aether Storm's wind; CSA-E: PlayerWeather.WeatherType (the port's eighth word, the sandstorm, is none of UpdateWind's three)
     hour: () => Math.floor(minuteNow() / 60),   // CSA-E: WorldTime.Now.Hour
     persistentDungeonBoats: () => { try { return modSetting('come-sail-away', 'Compatibility.PersistentDungeonBoats') === true; } catch { return false; } },
     packedItems: packedItemsCodec,   // SerializeItems / DeserializeItems: the save's own item copy (save.js)
@@ -8845,18 +8865,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     csaSounds();
     if (!node?.activeInHierarchy) return;
     audio.play3d(csaClipKey(clip), [...node.position], csaUnityGain((src.m_Volume ?? 1) * volumeScale), { refDistance: src.MinDistance ?? 1, maxDistance: src.MaxDistance ?? 500, distanceModel: 'inverse', pitch: src.m_Pitch ?? 1 });
-  }
-  /** DaggerfallAudioSource.PlayOneShot(soundIndex, spatialBlend, volumeScale): PlayOneShotWhenReady at volumeScale x
-   *  SoundVolume - the bus's - from its AudioSource at Unity's fresh defaults (logarithmic, 1 to 500). */
-  function csaDfOneShot(node, soundIndex, spatialBlend, volumeScale) {
-    if (!node?.activeInHierarchy) return;
-    if (spatialBlend > 0) audio.play3d(soundIndex, [...node.position], volumeScale, { refDistance: 1, maxDistance: 500, distanceModel: 'inverse' });
-    else audio.playOneShot(soundIndex, volumeScale);
-  }
-  /** DaggerfallAudioSource.PlayClipAtPoint(soundIndex, position, volumeScale): AudioSource.PlayClipAtPoint at
-   *  volumeScale x SoundVolume, its temporary source at Unity's defaults. */
-  function csaDfClipAtPoint(soundIndex, position, volumeScale) {
-    audio.play3d(soundIndex, [...position], volumeScale, { refDistance: 1, maxDistance: 500, distanceModel: 'inverse' });
   }
   /** Each boat's two loops as their AudioSources stand this frame: playing on an active object, each a looping
    *  positional source restarted at every Play, its gain Unity's rolloff over the ears' distance (the panner only
@@ -9412,8 +9420,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  heading, the isles charted, the legends heard of (etherHost.js chart). Answers whether it opened. */
   function openEtherChart() {
     // AUDIT CAPTAIN'S SEA X16: the ship's heading at her helm (the camera's yaw is where the captain looks - astern, as often)
-    const heading = () => { const boat = csaRuntime?.isSailing?.() ? csaRuntime.state.CurrentBoat : null; if (!boat) return cam.yaw; const f = boatForward(boat); return Math.atan2(f[0], f[2]); };
-    const word = () => { const p = playerTravelPixel(); return etherHost.chart(p.x, p.y, heading()); };
+    const heading = () => { const boat = csaRuntime?.isSailing?.() ? csaRuntime.state.CurrentBoat : null; if (!boat) return cam.yaw; const f = boatForward(boat, cam.yaw); return Math.atan2(f[0], f[2]); };
+    const word = () => { const p = playerTravelPixel(); return { ...etherHost.chart(p.x, p.y, heading()), ...seaVentures.chartWord() }; };   // ETHER-WILD: the open sea's fights, for the chart's peace; SEA-VAULTS: the day's vaults
     // ETHER-OW (2026-10-13, the owner: "Also allow the player to zoom out into the overworld like in the Iliac Bay for easy
     // travel"): THE CHART'S OVERWORLD DOOR - the held map's own (TV1: shown where the view can rise, a driver's never),
     // taken once the chart is down and its slot empty (the slot is emptied before the occupant is told)
@@ -9429,7 +9437,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // the Fleet page's yard (a ship laid up anywhere) is the shipwright's
     if (model.atQuay) model.office = () => {   // CAPT-BOARD: the harbourmaster's tab - ETHER-SEA: past the Veil a freeport's (etherHost.js office)
       const port = navalPortHere();
-      if (port?.ether) { const o = etherHost.office(port); return o ? { ...o, buyChart: () => { const r = etherHost.buyChart(port); captainSay(); return r; } } : null; }
+      if (port?.ether) { const o = etherHost.office(port); return o ? { ...o, rumours: [...o.rumours, ...seaVentures.rumours(port)], ...seaVentures.office(), buyChart: () => { const r = etherHost.buyChart(port); captainSay(); return r; } } : null; }   // SEA-EVENTS: the treasure fleet's and the Aether Storm's talk
       return harbourOffice.model({ uid: model.uid ?? null });
     };
     if (model.atQuay) model.exchange = () => harbourOffice.exchange({ uid: model.uid ?? null, cargo: model.cargo?.() ?? null, room: () => model.room?.() ?? null });   // CAPT-TRADE: the exchange's tab - AUDIT CAPTAIN'S SEA B11: and her room
@@ -9522,7 +9530,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     tearMarque: () => captainLedger.tearMarque(),
     // CAPT-BOARD: what the sea did to the contracts held, their waters, and a rank's favours at sea
     event: (ev) => { const r = harbourOffice.event(ev); captainSay(); return r; },
-    sites: () => { const p = playerTravelPixel(); return etherSea && inEther(p.x, p.y) ? [...harbourOffice.sites(), ...etherHost.sites(p.x, p.y)] : harbourOffice.sites(); },   // ETHER-SEA: and a wild isle's strand within reach
+    sites: () => { const p = playerTravelPixel(); return etherSea && inEther(p.x, p.y) ? [...harbourOffice.sites(), ...etherHost.sites(p.x, p.y), ...seaVentures.wrackSites(p.x, p.y)] : harbourOffice.sites(); },   // ETHER-SEA: and a wild isle's strand within reach; SEA-EVENTS: and the Aether Storm's wrack
     yardDiscount: () => harbourOffice.perksHere().yard,
     seasonedHires: () => { const port = navalPortHere(); return !!port && harbourOffice.perksAt(port.crown).seasoned; },   // AUDIT CAPTAIN'S SEA C4: hands hired in a Commodore's harbour - never men pressed at sea
     reliefSure: (crown) => harbourOffice.perksAt(crown).relief,
@@ -9535,7 +9543,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       legendHere: (px, py, o) => etherHost.legendHere(px, py, o),
       legendEnded: (id, act) => { const r = etherHost.legendEnded(id, act); captainSay(); return r; },
       papers: (cls, seed, px, py) => etherHost.papers(cls, seed, px, py),
-      gather: (siteId) => etherHost.gather(siteId),
+      gather: (siteId) => seaVentures.gather(siteId) ?? etherHost.gather(siteId),   // SEA-EVENTS: a cask of the storm's wrack, or a strand's
+      fleetEnded: (n, act) => seaVentures.fleetEnded(n, act),   // SEA-EVENTS: the treasure fleet's flagship down by my hand
     } : null,
     bountyOf: (e) => (e?.bounty ? harbourOffice.bountyWords(e.bounty) : null),   // CAPT-BOARD: a bounty's purse on the glass's card
     sitePoint: (px, py, seed) => navalSitePoint(px, py, seed),   // CAPT-BOARD: a held contract's waters in the scene
@@ -9774,21 +9783,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // her hold aboard her) and her helm taken again, the voyage's days on the clock.
   const crossGate = createCrossingGate();
   let _crossCheckT = 0;
-  /** A map pixel's distance to the nearest land (Chebyshev, map pixels), out to CROSS_LAND_PX (Infinity past it) - the
-   *  map's one water law (seaPixel), asked once a pixel. */
-  let _crossLandAt = null;
-  const crossLandPx = (px, py) => {
-    const key = `${px},${py}`;
-    if (_crossLandAt?.key === key) return _crossLandAt.d;
-    let d = Infinity;
-    ring: for (let r = 0; r <= CROSS_LAND_PX; r++) {
-      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) === r && !seaPixel(px + dx, py + dy)) { d = r; break ring; }
-      }
-    }
-    _crossLandAt = { key, d };
-    return d;
-  };
+  /** A map pixel's distance to the nearest land (systems/naval/etherCrossing.js createCrossLand - the map's one water law,
+   *  seaPixel; HOST-SPLIT, SEA VENTURES: out of bootWorld). */
+  const crossLandPx = createCrossLand(seaPixel);
   /** The way the helm's waters offer now: 'out' only where the crossing out is this game's (AUDIT CAPTAIN'S SEA G2), 'home'
    *  in the Veil under any skin. */
   const crossWayHere = () => {
@@ -9820,7 +9817,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (why) { if (_crossSaid !== way) { _crossSaid = way; townTalk.say(CROSS_REFUSED[why], 4); } return; }
     crossGate.asked(way);
     const boat = csaRuntime.state.CurrentBoat;
-    _crossBox = new YesNoBoxWindow({ rows: crossingRows(way), onYes: () => { _crossBox = null; crossYes(way, boat); }, onNo: () => { _crossBox = null; } });
+    _crossBox = new YesNoBoxWindow({ rows: crossingRows(way, { pvp: _onlineWorldSession() && !!online?.wildOk }), onYes: () => { _crossBox = null; crossYes(way, boat); }, onNo: () => { _crossBox = null; } });
     townTalk.showOverlay(_crossBox);
   }
   /** AUDIT CAPTAIN'S SEA X2: Yes is the question as it stands NOW - the same helm, the same waters, no enemy, no passenger,
@@ -9835,14 +9832,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (why) { crossGate.asked(null); _crossSaid = way; townTalk.say(CROSS_REFUSED[why], 4); return; }
     etherCross(way).catch((e) => console.warn('[ether] the crossing:', e?.message ?? e));
   }
-  /** A boat's heading in the scene's XZ, off her root's rotation (her bow: +Z in her own frame). */
-  const boatForward = (boat) => {
-    const q = boat?.GameObject?.rotation;
-    if (!q) return [Math.sin(cam.yaw), 0, Math.cos(cam.yaw)];
-    const fx = 2 * (q[0] * q[2] + q[3] * q[1]), fz = 1 - 2 * (q[0] * q[0] + q[1] * q[1]);
-    const l = Math.hypot(fx, fz) || 1;
-    return [fx / l, 0, fz / l];
-  };
   /** THE VOYAGE: the captain and the ship at whose helm they stand carried across (out to Veilhaven's waters; home to the
    *  Bay's the last crossing out set sail from), CROSS_DAYS on the clock. Answers whether she crossed. AUDIT CAPTAIN'S SEA
    *  X9: a voyage that could not be made brings her and her captain back where they set out, at her helm. */
@@ -9851,7 +9840,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (_etherCrossing || !boat || !csaRuntime.isSailing() || worldMoveBusy() || _partyArrivalPending) return false;
     _etherCrossing = true;
     const here = playerTravelPixel();
-    const departure = { pixel: { x: here.x, y: here.y }, native: state.worldCoords(boat.GameObject.position), dir: boatForward(boat), was: captainLedger.crossedFrom() };
+    const departure = { pixel: { x: here.x, y: here.y }, native: state.worldCoords(boat.GameObject.position), dir: boatForward(boat, cam.yaw), was: captainLedger.crossedFrom() };
     try {
       const to = crossingTarget(way, captainLedger.crossedFrom());
       if (way === 'out') captainLedger.setCrossedFrom({ px: here.x, py: here.y });
@@ -9918,7 +9907,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (on !== _navalWasOn) { _navalWasOn = on; naval.setEnabled(on); if (!on) { navalFlames.clear(); closeNavalPlunder(); closeNavalYard(); drawNavalHud(null); drawNavalTags([]); } }
     if (!on) return;
     if (csa.seaBoats.length || csaRuntime.isSailing()) installNavalSounds(audio);   // once: the first sea (the loader keeps its promise)
-    if (_mode() === 'exterior' && !gamePaused() && !_loading) laneShips();   // SEA-LANES: the Bay's packets about the player, stood and steered before the frame poses them
+    if (_mode() === 'exterior' && !gamePaused() && !_loading) { laneShips(); seaVentures.step(lightning?.strikes ?? 0); }   // SEA-LANES: the Bay's packets about the player, stood and steered before the frame poses them; SEA-EVENTS: the treasure fleet's, the Aether Storm's
     naval.frame(dt * worldTimeScale(), { paused: gamePaused() || _loading, outdoors: _mode() === 'exterior', brace: csaRuntime.isSailing() && (held(keys, 'Crouch') || navalTouchBrace()) });   // the brace: ducking behind the rail - the Crouch action at the helm (AUDIT NAV1: or the plate's Brace under a finger)
     // AUDIT NAV1 (the frame's cost, #12): the sea's ships stand in the world's collider where this frame posed them - the
     // sync in the mod's own step runs before the sea's, so their decks and hulls stood a frame behind the hulls drawn;
@@ -11988,11 +11977,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const crowdDrawnHere = (p) => gateCrowd.shows(p.id) && peerRange.shows(p.id);   // GATE-CROWD: a player the court's crowd leaves undrawn is not there to press or aim a gift at; PEER-RANGE: nor one past the distance
   const magic = createPlayerMagic({
     renderer, audio, getTexture, uploadRecord, uploadRecordFrame,
-    lairHere: () => {   // RVN7 (bible/12-Enhanced-AI/Feud-Arc.md 18.1): a deed in the open world - my map pixel, and the named dungeons in the boards' ring about it
-      const p = playerTravelPixel();
-      const dungeons = bountyDungeons(p.x, p.y, (x, y) => _bountyDungeonPixels.get(`${x},${y}`) || null).map((d) => ({ ...d, region: _dungeonRegionPixels.get(`${d.px},${d.py}`) ?? -1 }));
-      return { px: p.x, py: p.y, dungeons };
-    },
+    // RVN7 (bible/12-Enhanced-AI/Feud-Arc.md 18.1): a deed in the open world - my map pixel (or the one asked: LAIR-DOOR's mend), and the named
+    // dungeons in the boards' ring about it; LAIR-DOOR (FIELD BUGS 2026-10-22d): those the player can go down into (scenes/lairHost.js)
+    lairHere: createLairDoor({ maps, blocks, arch, locations: locationIndex, dungeons: _bountyDungeonPixels, regions: _dungeonRegionPixels, here: playerTravelPixel }),
     allyMarks: (sp) => allyMarksNear(sp),   // AID1 onto ALLY-CAST: the party mates' bodies, for a beneficial touch, missile or blast (declared beside allyTargetPick, below) - SPELL-GIFT: the spell rides, for the strangers its list may reach
     peerBodies: () => peersNear(),   // SPELLFX1: every player's body, where a peer's drawn missile stops (declared below this engine's build)
     companionBodies: () => [...crewAshore.bodies(), ...revenantAshore.bodies()],   // COMPANION-KIT: my companions here - my healing and buffs reach them (REVENANT-COMPANION: the sworn too)
@@ -14078,6 +14065,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (link.type !== playerEntity.ownedShip) return false;
     const boat = csaRuntime.AllBoats.find((b) => b.uid === link.uid && b.hull === link.hull && !b.inside);
     if (!boat?.MapPixel) { townTalk.say('Summon your linked ship from Holdings > Fleet, or place its parts, first.'); return true; }
+    if (!loading && (wildTeleportRefused(boatPixelOf(boat)) || veilRefused(boatPixelOf(boat)))) return true;   // AUDIT SEA VENTURES C1: a teleport to her like any - never into, out of or about the open zone, nor across the Veil (each says its own refusal)
     if (csaRuntime.isSailing() || navalHostileNear()) { townTalk.say(csaRuntime.isSailing() ? CABIN_REFUSAL.helm : CABIN_REFUSAL.enemies); return true; }   // FB1020c CABIN-FOES: nor below from a deck a hostile ship is near - the door's own law (systems/sailingCabin.js)
     modes?.forceExitToExterior({ cacheScene: !loading });
     cabinLink.close();
@@ -14508,10 +14496,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // (GetRandomCemetery's CurrentRegionIndex, :196), and the dungeon this
   // host mounts carries this same arm (worldModes' buildDungeonContext
   // opts), so a dungeon's registration no longer drops it.
-  /** AUDIT CAPTAIN'S SEA P4: where a death past the Veil rises - the nearest port isle's town within ETHER_RISE_PX, else
-   *  Veilhaven: the Bay's temples are a crossing away. */
-  const ETHER_RISE_PX = 60;
-  const etherRisePort = (x, y) => islesNear(x, y, ETHER_RISE_PX).find((i) => i.kind === 'port') ?? veilhaven();
+  // AUDIT CAPTAIN'S SEA P4: where a death past the Veil rises - systems/wild/etherWild.js etherRisePort (HOST-SPLIT)
   function transferToCemeteryArm() {
     // AUDIT CAPTAIN'S SEA P4: no cemetery of the Bay's past the Veil - the transfer skipped, as where a region has none
     { const p = playerTravelPixel(); if (etherSea && inEther(p.x, p.y)) { console.warn('[infection] past the Veil - no cemetery a crossing away; the transfer is skipped'); return; } }
@@ -17124,6 +17109,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   /** SERVER-POST: what the pause face's mailbox reads - the box, online; null offline (no envelope), as the hourglass's.
    *  AUDIT TIMERS1 D6's law: the pause door is armed before `online` and the box are declared, so not there yet is none. */
   const postSource = () => { try { return online && postBox ? postBox : null; } catch { return null; } };
+  /** SEASON-BOOK: what the pause face's laurel reads past the hourglass's clock - the season's boards (scenes/seasonBookHost.js),
+   *  off the doors this host already holds, read at each ask (the ones declared below the pause door are none until then). */
+  const seasonBook = createSeasonBook(() => ({ arena: arenaOnline, eg: _accountEg, iliac: iliacDoor, gambit: gambitDoor, ledger: captainLedger }));
   let _timersSeatAsk = -Infinity;
   const timersSource = ({ ask = false } = {}) => {
     // AUDIT TIMERS1 D6: the pause door is armed before the boot's last awaits, and `online` (and the gate's two) are
@@ -17176,6 +17164,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     loadingPrevented: () => !!online,
     timers: timersSource,   // TIMERS1: the hourglass's window (null offline - no hourglass)
     post: postSource,   // SERVER-POST: the mailbox beside it (null offline - no mailbox)
+    season: seasonBook.source,   // SEASON-BOOK: the laurel's boards (its clock is the hourglass's)
     // SAV4: the slot window's seams - the pause SAVE/LOAD doors
     // open it with these (openClassicPauseFlow builds the doors).
     playerName: () => playerEntity.name, playerId: () => playerEntity.characterId ?? null,
@@ -20010,8 +19999,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // systems/bounty/bountyJournal.js
   {
     const baseQuestLog = questBridge.questLog.bind(questBridge);
-    questBridge.questLog = () => {
-      const log = baseQuestLog();
+    questBridge.questLog = (o) => {   // AUDIT FB1022d E8: the lens's `{ windows: false }` reaches the walk (questBridge.js)
+      const log = baseQuestLog(o);
       const extra = [...(bountyHost?.questLogEntries?.() ?? []), ...revenantHuntEntries(rumorHere()), ...(legacyHost?.questLogEntries() ?? [])];   // LEGACY4: and the death quests   // RVN7c: and each hunt - a lair heard of, the way there from where I stand
       return extra.length ? { ...log, active: [...(log?.active ?? []), ...extra] } : log;
     };
@@ -20140,7 +20129,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // the reset always found it null and always ended the run. This snapshot is taken the moment death starts
   // (the presenter above, and the frame below as a backstop) and the reset reads IT, not the cleared live state.
   let _deathWasOnline = null;
-  let chatLog = null, chatPanel = null, chatLinks = null;   // CHAT1: the log, the panel, one channel session per tab (Map tabId -> OnlineSession)
+  let chatLog = null, chatPanel = null, chatLinks = null, staffHost = null;   // CHAT1: the log, the panel, one channel session per tab (Map tabId -> OnlineSession); STAFF-PANEL5-FREEZE: the staff freeze and chat (scenes/staffFreezeHost.js)
   // ONE-SEAT (Mac: "the player can only have one character only at a time. Like they shouldnt be able to open multiple
   // tabs and join as different characters"): THIS TAB'S HOLD ON THE PLAYER'S ONE SEAT. Two arms say it is lost: the
   // hub's (it closed this tab's link - another tab or device of the account claimed; the sessions' own `superseded`)
@@ -20171,7 +20160,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let _walkStopWhy = null;   // AUDIT OW4 P4: why Travel Options last stopped my journey (its update's `stopped`), until the walk's step reads it
   let bountyHost = null;   // BOUNTY1: made below, beside the party's marks; read late by the maps, the pose and the boards
   let social = null, _partyComposedAt = -Infinity, _partyPose = null;   // PARTY8-B: the last pose composed, for the party HUD's own "where am I"
-  const chatSafety = createChatSafetyHost({ log: () => chatLog, links: () => [...(chatLinks?.values?.() ?? []), online].filter(Boolean), social: () => social, minter: () => identityMinter, panel: () => chatPanel });   // SAFE1-SAFE7 (bible/11-Multiplayer/Chat-Safety-Arc.md) - AUDIT SAFE CLIENT-2: the minter a ban lets go of; CLIENT-12: the field a slowed line goes back to
+  let partyPing = null, _partyPingTry = -Infinity;   // PARTY-PING: the look's point, wired below
+  const chatSafety = createChatSafetyHost({ log: () => chatLog, links: () => [...(chatLinks?.values?.() ?? []), online].filter(Boolean), social: () => social, minter: () => identityMinter, panel: () => chatPanel, glyphs: () => _staffGlyphs, teleport: (id) => runStaffCommand(chatLog?.active, { cmd: 'tp', player: { id } }), follow: () => staffFollow.follow });   // STAFF-PANEL5-FOLLOW (mob 2026-10-23: "why doesnt follow work?"): the Follow row's follow - staffFollow is made later in this same synchronous stretch, before any line can be clicked; STAFF-PANEL2: an Admin's (developer) or a Moderator's chat lines carry no Report; STAFF-PANEL2-CHATMENU: their acts instead, TP by the line's socket through /tp's own door   // SAFE1-SAFE7 (bible/11-Multiplayer/Chat-Safety-Arc.md) - AUDIT SAFE CLIENT-2: the minter a ban lets go of; CLIENT-12: the field a slowed line goes back to
   /** CONCEAL-MATE: a peer in my party - the test player/socialPick.js openPeers is handed, so a concealed mate stays
    *  open to the F key, the Nearby list, a page and a gift. A declaration: the street's pick reads it from above. */
   function isPartyMate(id) { return !!social?.party && social.isPartyPeer(id); }
@@ -20713,9 +20703,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     }
     // Put the observer at the snapshot while frozen so streaming and the
     // multiplayer room load near the target, then ask again before final placement.
-    const preview = staffLanding(d);
-    if (!capsuleFits(player.collider, preview, player.height)) throw new Error('The target landing is blocked. Exact teleport was not completed.');
-    modes?.setPlayerLocalPosition?.(preview);
+    const preview = d.pos ? staffLanding(d) : null;   // STAFF-PANEL5-FOLLOW: a where note's place names no spot - staff stand where it put them
+    if (preview && !capsuleFits(player.collider, preview, player.height)) throw new Error('The target landing is blocked. Exact teleport was not completed.');
+    if (preview) modes?.setPlayerLocalPosition?.(preview);
     playerSpawned = true;
     if (d.kind !== 'abyss') ohAbyss?.onRespawnerComplete();
     if (d.boat) {
@@ -20754,7 +20744,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     try {
       let preparedKey = null;
       return await followStaffPlayer(name, {
-        ask: (target) => client.ask(target),
+        ask: (target) => client.ask({ ...(typeof name === 'string' ? target : { id: name.id }), nt: 1 }),   // STAFF-PANEL5-FOLLOW: answered from the hub's where note where the relay lets it; STAFF-PANEL2-CHATMENU: a chat line's TP (`{ id }`) asks for the socket the relay stamped on the line, never a name (net/staffTeleport.js stays the relay's law, untouched)
         allowed,
         prepare: async (dest) => {
           const key = staffDestinationKey(dest);
@@ -20810,7 +20800,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     } else if (c.player != null) {
       if (worldMoveBusy() || modes?.transitioning) { say('You cannot teleport right now.'); return; }
       if (!staffTeleportClient) { say('Exact player teleport requires an online connection.'); return; }
-      teleportToStaffPlayer(c.player).then((who) => say(`Teleported to ${who.name}'s exact position.`))
+      teleportToStaffPlayer(c.player).then((who) => { say(staffTpLine(who)); staffFollow.follow(who.acct); })   // STAFF-PANEL5-FOLLOW: a TP follows on from their view (mob, 06:01Z) - where a Staff Panel mints the follow
         .catch((e) => { console.error('[staff] player teleport:', e); say(e.message || 'The player teleport failed.'); });
       return;
     } else {
@@ -21355,6 +21345,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     chatLinks = new Map();
     redChat = (line) => { if (!chatLog) return false; chatLog.pushAll({ text: line.text, at: line.at, red: true }); return true; };   // CROWN2: the seats' red lines
     chatLog.push(chatLog.active, { text: CHAT_GREETING_TEXT, system: true }, { quiet: true });   // CHAT-HELP: every join, the player's alone, no badge
+    staffHost = createStaffFreezeHost(chatLog, socialLink, online, staffHost);   // STAFF-PANEL5-FREEZE (scenes/staffFreezeHost.js): the screen and the Staff tab
     // MOD1: A MUTE IS SAID ONCE. An order reaches every room this client
     // holds, so the same notice can arrive two or three times at once;
     // `mutedNotices` passes the first and the next real event.
@@ -21391,6 +21382,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       link.onGuildGone = guildGone;   // GUILD1c: a room took my guild off - the hub's word on a removal most of all
       if (tab.room) link.join(channelLinkRoom(tab.room));   // CHAT-CHAN: the Region tab's room waits for the region and the relay (chatRegionFrame); SCALE5c: the hub link its own shard
       chatLinks.set(tab.id, link);
+      staffHost.wire(link);   // STAFF-PANEL5-FREEZE: its `frozen`, and the hub's staff nudge
       if (tab.room === SOCIAL_ROOM) {
         relayCfgLink = link;   // SCALE5b: a relay setting goes down the hub's link, and its answer comes back to the tab that asked
         link.onRelayCfg = (m) => chatLog.push(relayCfgTab ?? tab.id, { text: m.error ? `Relay: ${m.error}.` : `Relay: ${m.k} is now ${m.v === '' ? 'unset' : m.v}.`, system: true });
@@ -21399,6 +21391,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         const client = createStaffTeleportClient({ send: (m) => link.sendStaffTeleport(m), capture: staffDestination });
         staffTeleportClient = client;
         link.onStaffTeleport = (m) => client.receive(m);
+        link.onStaffMessage = createStaffMessages(chatLog).heard;   // STAFF-PANEL5-MESSAGE: a staff message waits - the box, its OK, and its copy on the Staff tab (net/staffMessages.js)
       }
       if (tab.room === SOCIAL_ROOM) link.onGate = (g) => gateLink?.word(g);   // WB3b: the hub's word of a kill, and a fighter's receipt outside the court
       if (tab.room === SOCIAL_ROOM) link.onEg = (w, room) => egClient?.word(w, room);   // EG-PLAY: the hub's call to my company, and its refusal of an open
@@ -21460,11 +21453,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         // SERVER-POST (AUDIT SERVER-POST: the classic skin's pause window has no envelope, and the notice sent its players to
         // one): `/mail` - the mailbox, on either skin and wherever the player stands (the enhanced pause face with its window
         // open: ui/pauseDoor.js's door, worldModes.js openPauseAt indoors and underground). Local, never sent.
-        { const at = mailboxCommandOf(text); if (at) {   // PRIVATE-REPORT: and `/bug`, the mailbox's private report form
-          if (!postSource()) { chatLog.push(tabId, { text: 'Connect and sign in to use the mailbox.', system: true }); return true; }
+        { const at = pauseCommandOf(text); if (at) {   // PRIVATE-REPORT: and `/bug`, the mailbox's private report form; SEASON-BOOK: and `/season`, the laurel's window (the hourglass's clock its own)
+          if (!(at === 'season' ? timersSource() : postSource())) { chatLog.push(tabId, { text: pauseCommandRefusal(at), system: true }); return true; }
           if (!modes?.openPauseAt?.(at)) hudCtx.togglePause({ at });
           return true;
         } }
+        if (staffHost?.claims(tabId)) return staffHost.send(tabId, text);   // STAFF-PANEL5-FREEZE: the Staff tab's line goes to the service; a freeze shuts every other tab, the commands below too
         // EG-PLAY: `/breach` - answer an Elite Breach's call; `/breach rehearse` - the day's Rehearsal; `/breach home` - a
         // Redoubt's way home. Local, never sent as chat. AUDIT EG V (c, L7-1): its words WHOLE (net/chatCommands.js
         // breachCommandOf) - `/breach pick 2`, `vote yes`, `buy tonic` - where a one-word door read each as no command
@@ -21486,7 +21480,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
           if (madeUnstuck === 'refused') { say(madeSaysHere('unstuck')); return true; }
           const inZone = wildHere() && !(TEST_GODMODE && staffPowers().god);   // TESTBUILD: god mode - /unstuck at once, no cooldown
           const _godU = TEST_GODMODE && staffPowers().god;
-          if (inZone && (modes?.mode ?? 'exterior') === 'exterior') { say('/unstuck does not work outdoors in the mountains.'); return true; }   // PVPDUNGEONS
+          if (inZone && (modes?.mode ?? 'exterior') === 'exterior') { say(zoneWord('unstuckOut')); return true; }   // PVPDUNGEONS - AUDIT SEA VENTURES C6: the ground's own words
           const cool = inZone ? UNSTUCK_COOLDOWN_ZONE_MS : UNSTUCK_COOLDOWN_MS;
           const wait = cool - (Date.now() - _unstuckAt);
           if (!_godU && _unstuckAt && wait > 0) { say(`/unstuck can be used again in ${Math.ceil(wait / 60000)} minute${Math.ceil(wait / 60000) === 1 ? '' : 's'}.`); return true; }
@@ -21754,6 +21748,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     link.onSocial = (f) => { social.apply(f); };
     link.onParty = (acct, p) => {
       social.applyParty(acct, p);
+      partyPing?.hear(acct, p);   // PARTY-PING: a mate's point, in this place
       // KEPT-KILL: a member's kills of foes they kept on a partner's word - my copy of that quest counts each, once
       if (p?.qk && social.inMyParty(acct)) creditKeptKills(questBridge?.machine, keptKills, acct, p.qk, Date.now());
     };
@@ -21845,7 +21840,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       onPost: (event) => { chatLog.push(tab.id, { text: postNoticeText(event), system: true }); },
       character: () => characterIdOf(playerEntity),
       realm: realmSession && { act: (o) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), ...o }), abandon: (why) => realmSession.abandon(why) },   // offline, none: no claim
-      pack: { add: (rec) => { addItem((playerEntity.items ??= []), setItemFields(rec), 'back'); }, changed: () => { saveSoon.changed(); } },
+      pack: { add: (rec) => { playerEntity.items ??= []; takeGateSpoil({ kind: 'item', item: setItemFields(rec) }); }, changed: () => { saveSoon.changed(); } },   // LOST-SPOILS: a spoil's own door - a first ember from the Lost and Found brings its book
     });
     heartbeat.add('post', whileLive(postBox.heartbeatPart(), () => performance.now() - _mailFrameAt < FRAME_LIVE_MS));
     // GUILD1b: THE CHARACTER'S GUILD, over the account service (GUILD1a's door). Its gold is the save's: the purse first,
@@ -22376,6 +22371,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const b = siegeSession?.active() ? siegeSession : royalSession;
     return !!b?.active() && b.side() === 'watch' && !!online?.room && online.room === b.room();
   };
+  // STAFF-PANEL5-FOLLOW (design doc "DFO Staff Panel: design", Invisible follow): THE STAFF HOOK - a follow the Staff Panel
+  // starts on this page (net/staffHook.js), and what the scene does with it (scenes/staffFollowHost.js)
+  const staffFollow = staffFollowOnPage({ main: () => online, prepare: (d) => prepareStaffDestination(d, () => staffFollow.locked()), mode: () => modes?.mode ?? 'exterior', pixel: () => state.current, toScene: (p) => onlineToScene(p) });
   registerFreeFlight(() => spectatingHere());   // AUDIT-SEATS G4: the spectator's camera is free - the motor's own flight over the town
   /** AUDIT-SEATS G4: where the spectator stood when its camera went free, in the wire's frame (the floating origin moves
    *  under a flight) - the watching ended out on the street, it is set back on its feet there, no fall billed; ended any
@@ -22477,9 +22475,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   /** Is a world-frame point (natives on x and z) in the zone - or, `near`, within its band? */
   const wildAtWire = (p, near = false) => {
     const m = wildMaskOf(maps);
-    if (!m || !p) return false;
+    if (!p) return false;
     const px = worldCoordToMapPixel(p[0], p[2]);
-    return near ? wildNear(m, px.x, px.y) : wildInside(m, px.x, px.y);
+    if (etherSea && (near ? inEther(px.x, px.y) : etherWildRingAt(px.x, px.y) > 0)) return true;   // ETHER-WILD: the open sea - and, near it, the whole sea past the Veil
+    return !!m && (near ? wildNear(m, px.x, px.y) : wildInside(m, px.x, px.y));
   };
   const wildOutdoors = () => (modes?.mode ?? 'exterior') === 'exterior';
   /** A region mark's place (its px/py and 256ths) as a world-frame point. */
@@ -22495,6 +22494,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let _wdunWait = null;           // the entry asked of the hub: { h, done }
   let _wdunInside = null;         // the hall I stand in: { h, hereAt }
   let _wdunEpoch = new Map();     // hall -> its epoch as the hub last said it (a reset is a new one)
+  // SEA VENTURES (scenes/seaVenturesHost.js): the sea's own - SEA-VAULTS' vaults of the deep keep the halls' hub, locks and crows
+  const seaVentures = createSeaVentures({
+    live: () => etherSea && _onlineWorldSession() && !!online?.wildOk, day: wdunDayNow, pixel: playerTravelPixel, locks: _wdunLocks, crows: _wdunCrows, mine: () => _wildMine,
+    clock: () => raidNowMs(), naval: () => naval, state, link: socialLink, ether: etherHost,   // SEA-EVENTS: the shared clock (asked when called - raidNowMs stands further down, V4), the naval host, the scene, the hub, the purse and the words (the ether host's)
+    session: realmSession, checkpoint: onlineCheckpoint, wallet: realmWallet, region: _questRegionIndex,   // SEA-BOUNTY: the record's gold acts (the character the sea's host's own)
+    cell: () => online, foe: (id) => wildIsStranger(id, online?.drawable?.()?.find((d) => d.id === id)?.gt),   // SHIP-PVP: my cell's socket (a peer's name its own), a stranger captain
+  });
   const _giantsDown = new Map();  // ZONE-GIANTS: giant -> when it walks again (this machine's clock)
   const _giantsStood = new Map(); // ZONE-GIANTS: giant -> { foe, promise } - the one stood here
   let _giantsAt = 0;
@@ -22741,6 +22747,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   /** The hub's word on the halls. */
   const wdunWord = (w) => {
     const now = Date.now();
+    seaVentures.hubWord(w);   // SEA-EVENTS: the treasure fleets scattered
     if (w.k === 'st') {
       _wdunHeard = true;
       if (Number.isFinite(w.now)) _wdunSkew = w.now - now;
@@ -22770,12 +22777,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // over a hall are told to everyone in the zone - its name and its tier, on the screen and in the chat. My own death
   // there is not news to me (the death screen said it).
   const crowsSay = (h) => {
-    if (!wildHere()) return;
+    const sea = seaVentures.crowLine(h);   // SEA-VAULTS: a vault of the deep's crows - told at sea, a hall's in the mountains
+    if (!wildHere() || !!sea !== (wildZoneKind() === ETHER_KIND)) return;
     if (_wildMine?.dungeon === h && Date.now() - (_wildMine.until - WILD_REMAINS_MS) < 30_000) return;
     const [x, y] = h.split(',').map(Number);
     const hall = wildHallAt(wildActiveNow(), x, y);
     const name = locationIndex.get(h)?.name ?? 'an elite hall';
-    const line = `Crows gather over ${name}${hall ? ` in ${wildRingName(hall.ring)}` : ''}. Someone has fallen there.`;
+    const line = sea ?? `Crows gather over ${name}${hall ? ` in ${wildRingName(hall.ring)}` : ''}. Someone has fallen there.`;
     setMidScreenText(line, 5);
     townTalk.say(line);
     _wildLineHold = { line, until: Date.now() + WILD_LINE_HOLD_MS };   // WILD-LINE-HOLD: real seconds, whatever the journey's pace
@@ -22818,16 +22826,16 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       wildHall: { ring: h.ring, key: h.key, name: loc?.name ?? `Elite hall (${h.x},${h.y})`, crows: _wdunCrows.has(h.key) },
     };
   });
-  const wildHallHere = () => { const a = wildActiveNow(), p = playerTravelPixel(); return a && p ? wildHallAt(a, p.x, p.y) : null; };
+  const wildHallHere = () => { const a = wildActiveNow(), p = playerTravelPixel(); return seaVentures.vaultHere() ?? (a && p ? wildHallAt(a, p.x, p.y) : null); };   // SEA-VAULTS: a vault of the deep is a hall of its own
   const wildDungeonIsOpenHere = () => !!wildHallHere();
-  const wdKey = () => { const p = playerTravelPixel(); return `${p.x},${p.y}`; };
+  const wdKey = () => { const p = playerTravelPixel(); return seaVentures.vaultHere()?.key ?? `${p.x},${p.y}`; };   // SEA-VAULTS: a vault of the deep's own key (a death after a load, which ran no gate)
   /** May I go down into the dungeon at this door. In the zone only the day's halls open, and the hub says whether my
    *  hour's lock still holds (lifted while my own remains lie inside); with no hub, this session's own lock. */
   const wildDungeonGate = async (hit, fromLoad = false) => {
     const mask = wildMapMask();
     if (!mask || fromLoad) return true;
     const p = playerTravelPixel();
-    if (!wildInside(mask, p.x, p.y)) return true;
+    if (!wildInside(mask, p.x, p.y) && !seaVentures.vaultHere()) return true;   // SEA-VAULTS: past the Veil a vault keeps a hall's door; every other ruin is open
     const hall = wildHallHere();
     // TESTBUILD: god mode walks into a sealed door - but a HALL keeps its hour's lock for god mode too (HALL-LOCK, the
     // owner: "i can still leave and reenter the dungeon as much as i want in the zone" - god mode skipped the whole gate,
@@ -22883,7 +22891,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   };
   /** PARTY-TRUCE: the row a party's walk asks with when it ends in the zone or at its edge - the walk is the one door
    *  into it no journey's gate asks (wildJourney: "The Overworld map's journeys are walked, never asked"). */
-  const wildWalkRow = (x, y) => { const m = wildMask(); return online?.wildOk && m && wildNear(m, x, y) ? WILD_TEXT.walkInto : null; };   // wildNear: inside, or within its band
+  const wildWalkRow = (x, y) => { const m = wildMask(); return !online?.wildOk ? null : etherSea && etherWildRingAt(x, y) > 0 ? zoneWord('walkInto', ETHER_KIND) : m && wildNear(m, x, y) ? WILD_TEXT.walkInto : null; };   // wildNear: inside, or within its band - AUDIT SEA VENTURES C3: and the open sea past Veilhaven's peace
   /** The fair players' bodies in this scene (peersNear's { id, feet, height }). */
   const wildBodiesNow = () => {
     if (!wildCan()) return NO_BODIES;
@@ -23032,6 +23040,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (g.k === 'hp') wildHpIn(g);
     else if (g.k === 'fell') wildFellIn(g, room);
     else if (g.k === 'rc') wildRcIn(g, room);
+    else seaVentures.wref(g, room);   // SHIP-PVP: the open sea's guns - a shot landed, a wreck (its room boarded), a wreck signed
   };
 
   // ── A BODY'S ONE PIECE (the killer's side) ──
@@ -23144,7 +23153,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // MAC (2026-10-14, the two-phase handoff): the piece my killer claimed is in the service's escrow until they collect it
     const held = d.wi === 0 && !!d.escrow?.r;
     if (dd) setWildDeath({ killer: dd.killer, dropped: d.order ? n : 0, claimed, held, burnt: d.burnt ? n : 0, letters: out });   // BURNT-SAID (FIELD BUGS 2026-10-18b): a held record's drop said, and the letters by their worth
-    else if (wildTookAny(out, d.gold)) townTalk.say(d.burnt ? WILD_TEXT.burntLate() : WILD_TEXT.dropLate);   // AUDIT INT9: a receipt that found me risen - AUDIT FB1019f B5: a companion's coin alone said too (systems/wild/wildDeath.js wildTookAny)
+    else if (wildTookAny(out, d.gold)) townTalk.say(d.burnt ? zoneWord('burntLate', seaRoomOf(room) ? ETHER_KIND : null)() : zoneWord('dropLate', seaRoomOf(room) ? ETHER_KIND : null));   // AUDIT SEA VENTURES C7: in the words of the ground the fall was on   // AUDIT INT9: a receipt that found me risen - AUDIT FB1019f B5: a companion's coin alone said too (systems/wild/wildDeath.js wildTookAny)
     if (held) wildEscrow.held(d.escrow, { killer: dd?.killer ?? null, name: claimed });
     if (d.order && n && body) wildDeposit({ r: d.r, items: d.items, o: d.order, p: body.p, room, mine: body });
   };
@@ -23237,6 +23246,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   /** THE RISE OUT OF THE ZONE (the owner: "when the players respawns in a town near the zone the cart comes with
    *  him"): the nearest town or temple OUTSIDE the zone - never the mountains' own, where the next fight waits. */
   const wildRiseSite = (px, inDungeon = false) => {
+    if (etherSea && inEther(px.x, px.y)) return etherRiseSite(px.x, px.y);   // ETHER-WILD: the nearest freeport (AUDIT CAPTAIN'S SEA P4's), an isle's ruin's death too - the sea has no outside near enough
     const m = wildMaskOf(maps);
     // PVPDUNGEONS (the owner: "Dying in a dungeon respawns you in city near the dungeon"): a death in a hall rises in the
     // town nearest the hall - in the mountains too - so the way back to the remains is a run, not a journey
@@ -23275,18 +23285,20 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const wildFrame = () => {
     if (!wildMask() && maps) setWildMask(wildMaskOf(maps));
     try { wdunFrame(); } catch (e) { console.warn('[wdun]', e?.message ?? e); }   // PVPDUNGEONS: the hub's word, the heartbeat, the day's halls
-    const here = _onlineWorldSession() && !!online?.wildOk && isWildRegion(_questRegionIndex()) && playerSpawned && (() => { const px = playerTravelPixel(); return !!px && wildRingAt(px.x, px.y) > 0; })();   // the cut zone, not the whole region
+    const seaRing = _onlineWorldSession() && !!online?.wildOk && etherSea && playerSpawned ? etherWildRingAt(playerTravelPixel()?.x, playerTravelPixel()?.y) : 0;   // ETHER-WILD: the sea past Veilhaven's peace, its band the ring
+    const here = seaRing > 0 || (_onlineWorldSession() && !!online?.wildOk && isWildRegion(_questRegionIndex()) && playerSpawned && (() => { const px = playerTravelPixel(); return !!px && wildRingAt(px.x, px.y) > 0; })());   // the cut zone, not the whole region
     if (false) void 0;   // WILD2: the rings' mask, for the hosts with no map of their own
-    if (_wildTruce.frame(social?.partyPeers?.() ?? new Set(), Date.now()).length && here) townTalk.say(WILD_TEXT.truce);   // PARTY-TRUCE
+    if (_wildTruce.frame(social?.partyPeers?.() ?? new Set(), Date.now()).length && here) townTalk.say(zoneWord('truce'));   // PARTY-TRUCE
     if (playerEntity.health > 0 && !modes?.deathUp?.()) {
       // WILD2: the ring under my feet (a building's or a dungeon's: its door's pixel) - 1 the outer, 4 the heart
       let ring = 0;
-      if (here) { const px = playerTravelPixel(); ring = wildRingAt(px.x, px.y) || WILD_RINGS; }
-      setWildHere(here, ring);
-      if (here !== _wildWas) {
-        _wildWas = here;
+      if (here) { const px = playerTravelPixel(); ring = seaRing || wildRingAt(px.x, px.y) || WILD_RINGS; }
+      setWildHere(here, ring, seaRing ? ETHER_KIND : undefined);   // ETHER-WILD: the ground, for the zone's words
+      if ((here && wildZoneKind()) !== _wildWas) {   // ETHER-WILD: the kind stood in (false outside) - the words of the ground left
+        const left = _wildWas;
+        _wildWas = here && wildZoneKind();
         _wildRingWas = ring;
-        const line = here ? `${WILD_TEXT.enter} ${WILD_TEXT.ring(ring)}` : WILD_TEXT.leave;
+        const line = here ? `${zoneWord('enter')} ${zoneWord('ring')(ring)}` : zoneWord(left === ETHER_KIND && !etherInPeace(playerTravelPixel()?.x, playerTravelPixel()?.y) ? 'quiet' : 'leave', left || undefined);   // AUDIT SEA VENTURES C7: "Veilhaven's peace" only where it is
         if (here) noteFirstUse('wild-zone');   // TUT1: the first step into the open zone
         setMidScreenText(line);
         townTalk.say(line);
@@ -23294,9 +23306,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       } else if (here && ring !== _wildRingWas) {
         const deeper = ring > _wildRingWas;
         _wildRingWas = ring;
-        setMidScreenText(WILD_TEXT.ringCross(ring, deeper));
-        townTalk.say(WILD_TEXT.ringCross(ring, deeper));
-        _wildLineHold = { line: WILD_TEXT.ringCross(ring, deeper), until: Date.now() + WILD_LINE_HOLD_MS };
+        setMidScreenText(zoneWord('ringCross')(ring, deeper));
+        townTalk.say(zoneWord('ringCross')(ring, deeper));
+        _wildLineHold = { line: zoneWord('ringCross')(ring, deeper), until: Date.now() + WILD_LINE_HOLD_MS };
       }
     }
     // WILD-LINE-HOLD (2026-10-08, the owner: "the warning message for the zone doesnt stay long enough right now only a
@@ -23307,7 +23319,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       if (Date.now() > _wildLineHold.until) _wildLineHold = null;
       else if (!_wildMidText.text) setMidScreenText(_wildLineHold.line);
     }
-    setPaceZoneCap(wildHere() ? WILD_PACE_CAP : null);   // WILD3: "max 20x in the wilds and 40x on the roads"
+    setPaceZoneCap(wildHere() && wildZoneKind() !== ETHER_KIND ? WILD_PACE_CAP : null);   // WILD3: "max 20x in the wilds and 40x on the roads" - ETHER-WILD: never at sea, whose leagues are its own price
     wildStrangersFrame();
     try { wildGiantsFrame(); } catch (e) { console.warn('[giants]', e?.message ?? e); }   // ZONE-GIANTS
     try { giantLeashFrame(); } catch (e) { console.warn('[giants] leash', e?.message ?? e); }   // GIANT-LEASH
@@ -23325,6 +23337,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (!_wildMineRead) { _wildMineRead = true; _wildMine ??= keptMine(Date.now(), wildWho()); }   // WILD-KEEP: back from a crash or a close
     if (_wildMine && Date.now() > _wildMine.until) { _wildMine = null; keepMine(null); }
     remainsMarkTick(Date.now());   // WILD-WAYPOINT: the flag goes with its remains' time
+    seaVentures.guns();   // AUDIT SEA VENTURES E6A: the open sea's guns every online frame - paused, a window open or below, my helm is said
   };
   // WILD3: THE STRANGERS - every other player in the zone with me, outside my party and my guild, within WILD_STRANGER_M
   // (their bodies as the room draws them): enemies to the Overworld (marked in red, "Stranger"), to the journey's pace
@@ -23394,7 +23407,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (playerEntity.health <= 0 || _teleporting || worldMoveBusy()) return false;
     const px = playerTravelPixel();
     const _zm = wildMaskOf(maps);
-    const town = nearestSafeLocationAnywhere(maps, px, (hit) => hit.kind === 'city' && !(_zm && wildNear(_zm, hit.mapPixel.x, hit.mapPixel.y)));   // PVPDUNGEONS: never into the zone
+    const town = etherSea && inEther(px.x, px.y) ? wildRiseSite(px) : nearestSafeLocationAnywhere(maps, px, (hit) => hit.kind === 'city' && !(_zm && wildNear(_zm, hit.mapPixel.x, hit.mapPixel.y)));   // PVPDUNGEONS: never into the zone - ETHER-WILD: past the Veil the nearest freeport (wildRiseSite's sea), never a Bay town across it (AUDIT CAPTAIN'S SEA P6)
     if (!town) return false;
     _teleporting = true;
     (async () => {
@@ -23459,7 +23472,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (party || kin === 'guild' || !_onlineWorldSession()) return false;
     const mine = wildHere() || (wildOutdoors() && wildAtWire(campToWire(player.feetAt()), true));
     if (mine) return true;
-    if (pixel) { const m = wildMaskOf(maps); return !!m && wildNear(m, pixel.x, pixel.y); }   // a map's row: its map pixel
+    if (pixel) { const m = wildMaskOf(maps); return (etherSea && inEther(pixel.x, pixel.y)) || (!!m && wildNear(m, pixel.x, pixel.y)); }   // a map's row: its map pixel (ETHER-WILD: anywhere past the Veil)
     return wildAtWire(wire, true);
   };
   /** WILD3: MAY THIS FAST JOURNEY GO (systems/wild/wildZone.js wildJourney) - from where I stand to map pixel `to`, the
@@ -23484,6 +23497,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const wildTeleportRefused = (to = null) => {
     if (TEST_GODMODE && staffPowers().god) return false;   // TESTBUILD
     const m = online?.wildOk ? wildMapMask() : null;
+    if (m && etherSea && (etherWildRingAt(playerTravelPixel()?.x, playerTravelPixel()?.y) > 0 || (to && etherWildRingAt(to.x, to.y) > 0))) { townTalk.say(ETHER_WILD_TEXT.teleport()); return true; }   // ETHER-WILD: nor about the open sea
     if (!m) return false;
     const from = playerTravelPixel();
     if (!(from && wildInside(m, from.x, from.y)) && !(to && wildInside(m, to.x, to.y))) return false;
@@ -23528,7 +23542,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     me: () => social?.acct ?? null,   // INT9: the killer's piece, mine alone
     collect: (cr, at) => wildEscrow.collectHeard(cr, at),   // MAC (2026-10-14): the room's collect of my piece in escrow, carried to the service
   });
-  setHudZone(() => (wildHere() ? { name: `${WILD_TEXT.chip} - ${wildRingName(wildRing())}, ${wildRingBonus(wildRing())}`, foot: `${wildRing()}/${WILD_RINGS}` } : null));   // WILD1: the HUD's glyph, on the enhanced skin...
+  setHudZone(() => (wildHere() ? { name: `${WILD_TEXT.chip} - ${zoneRingName(wildRing())}, ${wildRingBonus(wildRing())}`, foot: `${wildRing()}/${WILD_RINGS}` } : null));   // WILD1: the HUD's glyph, on the enhanced skin...
   setHudPauseAt((at) => { if (!modes?.openPauseAt?.(at)) hudCtx.togglePause({ at }); });   // FIRM-STARS: a pause page by name, wherever the player stands (the /mail door's)
   setZoneEntity(playerEntity);   // ...and on the classic row
   /** The duel's rows on a peer (ui/socialMenu.js): 'Accept duel' + 'Decline duel' while their challenge waits, 'Yield the
@@ -23853,8 +23867,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  AUDIT WBX2 M1: made online or not - it is also the keeper of the crash's records, which a save that lands clears
    *  (AUDIT WBX S3), and the crash's door hands a record back offline too: made online alone, a boot offline gave the same
    *  spoils again at every boot, since no save could ever clear their record. */
+  /** LOST-SPOILS (net/lostSpoils.js): what a boss's floor still holds as I leave goes to the mailbox - the court's and the
+   *  Hour's pools (the Brass Remnant's arena and a breach's Redoubts); its lines in the chat, beside the post's own. */
+  const lostMail = lostSpoilsMail({ box: () => postBox, say: (text) => chatNotice(text) });
   const spoilsPool = createSpoilsPool({
-    renderer, gl: renderer.gl, getTexture, uploadRecordFrame, audio,
+    renderer, gl: renderer.gl, getTexture, uploadRecordFrame, audio, mail: lostMail,
     ray: (from, dir, len) => { const c = modes?.dungeonCtx?.collider; const h = c?.raycastHit ? c.raycastHit(from, dir, len) : { dist: c?.raycast?.(from, dir, len) ?? Infinity, normal: null }; return Number.isFinite(h?.dist) ? h : null; },
     now: () => Date.now() + _sharedOffsetMs,
     take: takeGateSpoil,
@@ -23917,7 +23934,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     sdVoice.frame();
   };
   const sdSpoilsPool = createSpoilsPool({
-    renderer, gl: renderer.gl, getTexture, uploadRecordFrame, audio,
+    renderer, gl: renderer.gl, getTexture, uploadRecordFrame, audio, mail: lostMail,
     ray: (from, dir, len) => { const c = modes?.dungeonCtx?.collider; const h = c?.raycastHit ? c.raycastHit(from, dir, len) : { dist: c?.raycast?.(from, dir, len) ?? Infinity, normal: null }; return Number.isFinite(h?.dist) ? h : null; },   // the Hour's own floors and pillars
     // AUDIT SD II (L6 F14): what the floor still held, gathered as I leave, said in the chat - over the screen it took the
     // place of the way home's line, or the cast-out's, a frame after it was said
@@ -25870,6 +25887,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       px: px.x, py: px.y,
       in: mode === 'dungeon' ? 1 : mode === 'interior' ? 2 : 0,
       ...(online?.layer ? { ly: online.layer } : {}),   // SCALE5d: the layer of the place I stand in, so a mate who comes asks for it
+      ...(online?.room ? { rk: online.room } : {}),   // STAFF-PANEL5-FOLLOW: the room I stand in - a cell's or a world room's alone (net/wire.js validPartyPose), the staff's to read, never fanned
       loc: ident?.kind === 'dungeon' ? (ident.name ?? '') : (loc?.name ?? ''),
       // AUDIT SOC B5: fatigue in the DIGITS a sheet shows (ui/charsheet.js: the stored pool is x FATIGUE_MULTIPLIER) - a
       // member's card said 3200/6400 where their own sheet said 50/100
@@ -25936,8 +25954,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       ...(_walkLead && socialLink()?.partyWalkOk ? { tw: _walkLead } : {}),   // TV8: my walk while I lead one
       ...(_walkTs != null && socialLink()?.partyWalkOk ? { ts: _walkTs } : {}),   // TV8: when my journey last stopped for a reason of mine
       ...(social?.leads?.() && mode === 'exterior' && walkMode && playerSpawned && !worldMoveBusy() ? partyFeetOf(player.pos) : {}),
+      ...(!social?.party && mode === 'exterior' && walkMode && playerSpawned && !worldMoveBusy() && partyFeetOf(player.pos)),   // STAFF-PANEL5-FOLLOW: and outside a party, so a staff /tp lands on my feet without asking my game
       ...partyFxField(),   // PARTY-BUFFS: my live spell effects, for the party's cards (net/partyBuffs.js)
       ...(bountyHost?.poseField() ?? {}),   // BOUNTY1: my bounties - the shared, the held and today's cleared (validPartyPose `bq`)
+      ...(partyPing?.poseField() ?? {}),   // PARTY-PING: the look's point, while the route is still worth saying (validPartyPose `pg`)
       lv: Math.max(1, Math.min(99, playerEntity.level | 0 || 1)),   // BOUNTY-TIER: my level, so a sharer knows whose tier a bounty shuts out
       ...(!restsWithParty() || (_restAloneNight && playerEntity.isResting) ? { nr: 1 } : {}),   // REST-OPT: I rest alone - no voter, nobody to gather, no rest to mirror (AUDIT C3: and a night granted as my own stays mine to its end)
       ...(playerEntity.isResting ? { rs: 1 } : {}),   // PARTY-BUFFS: resting, mine or followed - what I gain is the night's, no heal to float
@@ -27384,6 +27404,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // board's). Online, a town's rumour board opens the Notice Board once the service has said it is open to this account
   // (BOARD_OPEN); until it has, and whenever it is not, the board is DFU's own - the rumour box - and the read that
   // settles it is asked (the town's board is read on arrival anyway, for the count over it).
+  // CRAFT-WRITS (bible/06-Systems/Professions-Arc.md section 49): the Work tab's crafting writs, their goods out of the pack and the record
+  const craftWrits = createCraftWritHost({ player: () => playerEntity, session: () => realmSession, checkpoint: () => onlineCheckpoint(), saved: () => saveSoon.changed(), book: () => profBook });
   const openNoticeBoard = (town, rumour) => {
     if (!noticeBook || !town) return false;
     if (noticeBook.open !== true) { noticeBook.read(town.mapId); return false; }
@@ -27393,6 +27415,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const work = profBook?.state.open === true && Number.isInteger(region) ? {
       book: profBook, region, regionName: REGION_NAMES[region] ?? 'the region', countName: materialCountLabel,
       onTaken: (r) => profWritTaken(r),
+      crafts: craftWrits,   // CRAFT-WRITS
       sayLate: (text) => chatNotice(text),   // AUDIT CHAP3 C5: a writ filled after the board closed says its line in the chat
       // CHAP4d: a chapter's Master names its Focus here, for the character playing
       setFocus: hallDoor && realmSession ? (faction, focus) => hallDoor.focus(realmSession.id, faction, region, focus) : null,
@@ -27835,6 +27858,34 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // when I am in no party - ONE HOME for MENTOR MODE's partners and PARTY-LOOT's party level (a room container's base
   // is minted at the group's reference level, systems/roomLoot.js roomBaseLevel)
   const partyMateLevels = () => (social?.party ? social.others().filter((m) => m.online !== false && Number.isInteger(m.p?.cl)).map((m) => m.p.cl) : []);
+  partyPing = createWorldPartyPing({
+    now: () => social?.now?.() ?? Date.now(),
+    pressed: () => pressed(latch.edge, keys, 'PartyPing'),
+    blocked: () => gamePaused() || !playerSpawned,
+    mode: () => modes?.mode ?? 'exterior',
+    identity: () => modes?.roomIdentity?.() ?? null,
+    pixel: () => playerTravelPixel(),
+    collider: () => csaModeCollider(),
+    feet: () => player.feetAt?.() ?? player.pos,
+    worldOf: (p) => { const wc = state.worldCoords(p); return { x: wc.x, y: p[1] - state.compensation[1], z: wc.z }; },
+    sceneOf: (pg) => { const [x, z] = state.localFromWorld(pg.x, pg.z); return [x, pg.y + state.compensation[1], z]; },
+    sound: () => { try { audio.playOneShot(SOUND.MakeItem, 0.275); } catch { /* the clip is not up yet */ } },
+    navMesh: () => modes?.dungeonCtx?.navMesh?.() ?? null,
+    actions: () => modes?.dungeonCtx?.actions ?? null,
+    ground: (x, z) => surfaceAt(x, z),
+    subject: (eye, dir, reach) => pingSubject(eye, dir, {
+      collider: csaModeCollider(), reach,
+      foes: (modes?.mode ?? 'exterior') === 'exterior' ? exteriorFoePool() : (modes?.insideFoes?.() ?? []),
+      objects: (modes?.mode === 'interior' ? modes?.interiorCtx?.actions?.objects : modes?.mode === 'dungeon' ? modes?.dungeonCtx?.actions?.objects : null) ?? null,
+      look: modes?.pingLook?.() ?? null,
+      crowd: pingCrowd(eye, dir, reach, _talkPersons(), openPeers(peersNear(), isPartyMate).filter(crowdDrawnHere), (p) => mobilePersonName(p?.person?.nameNPC), (p) => peerName(p?.id), csaModeCollider()),
+    }),
+    buildings: () => modes?.buildingBoxes?.() ?? [],
+    project: (p) => (_lastProj && _lastView ? projectToScreen(p, canvas.clientWidth, canvas.clientHeight, _lastProj, _lastView, worldViewportRect(canvas.clientWidth, canvas.clientHeight)) : null),
+    travel: () => !!travelView?.active,
+    author: () => (typeof playerEntity?.name === 'string' ? playerEntity.name : ''),
+    mateName: (acct) => social?.party?.members?.find((m) => m.acct === acct)?.name ?? '',
+  });
   const partyFrame = (nowMs) => {
     playerEntity._online = isOnlinePage();   // SOFTCAP3: Master Skills is in force only online (systems/masterSkills.js)
     // SOFTCAP1: MENTOR MODE follows the party every frame - so leaving the group hands my real character back the same frame.
@@ -27853,14 +27904,27 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     social.setClockOffset(hub?.clockRead ? hub.clockOffsetMs : (online?.clockOffsetMs ?? 0));
     partyWalkFrame(nowMs);   // TV8: the party's walk - the leader's halts, a member's steps
     partyMapFrame(nowMs);   // PARTY-MAP: Shared Cartography's batches
-    if (!social.party || nowMs - _partyComposedAt < PARTY_SEND_MS / 2) return;
+    // STAFF-PANEL5-FOLLOW (design doc "DFO Staff Panel: design", Invisible follow): outside a party my pose goes on as my
+    // where note, at the note's own pace (net/online.js sendParty, `solo`) - the hub keeps it for staff alone
+    if (socialLink()) socialLink().solo = !social.party;
+    // PARTY-PING: a ping sends on the frame it is pressed. A refused one asks again on the pose's own clock -
+    // never every frame, which would reset partyGate's refill (wire.js tokenGate stamps `at` on a refusal).
+    const pingNow = !!partyPing?.unsent();
+    const due = nowMs - _partyComposedAt >= PARTY_SEND_MS / 2;
+    if (!due && !pingNow) return;
+    if (pingNow && !due && nowMs - _partyPingTry < PARTY_SEND_MS / 2) return;
+    if (pingNow && !due) _partyPingTry = nowMs;
     _partyComposedAt = nowMs;
     _partyPose = composePartyPose();
     // PARTY-TRAVEL: once the pose saying we set out has LEFT, the leader's own journey may begin. AUDIT PARTY-TRAVEL: only a
     // pose the link sent - sendParty refuses one within PARTY_SEND_MS of the last (and a repeat, and one its gate holds),
     // and the session was told of every pose composed, so a leader walking about (a pose a second) set out before the
     // members had read "we set out", and a member whose last open reading found the leader's body gone was left behind.
-    if (socialLink()?.sendParty(_partyPose)) partyTravel?.sent(_partyPose);
+    // PARTY-PING: `urgent` skips that floor for the one pose that carries a new point.
+    if (socialLink()?.sendParty(_partyPose, { urgent: pingNow })) {
+      partyTravel?.sent(_partyPose);
+      if (pingNow) partyPing.sent();
+    }
   };
   // SRV-N (Mac: "a server restart notice whenever we push server
   // updates. Like a notice that pushes in the chat window"): A NOTICE
@@ -28767,7 +28831,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       const loc = _questLoc();   // the location under the player: an interior's room is named by it
       key = ident?.private ? privateRoomHere(ident) : roomKeyFor({
         host: 'world', mode,
-        mapId: ident?.kind === 'dungeon' ? (ident.mapId ?? null) : (loc?.mapTableData?.mapId ?? null),
+        mapId: ident?.kind === 'dungeon' ? seaVaultRoomId(ident.mapId ?? null, _wdunInside?.h ?? seaVentures.vaultHere()?.key) : (loc?.mapTableData?.mapId ?? null),   // AUDIT SEA VENTURES D7, D8: a vault of the deep's room its own lane (net/wire.js seaVaultRoomId) - the vault the gate let me into, or the day's I stand in
         regionIndex: ident?.kind === 'dungeon' ? ident.regionIndex : (loc?.regionIndex ?? -1),
         locationName: ident?.kind === 'dungeon' ? ident.name : (loc?.name ?? ''),
         buildingKey: ident?.buildingKey ?? 0,
@@ -28869,6 +28933,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       ...climbPoseOf(player),   // CLIMB5: my climb and the way my body faces on it, so the others turn me to the wall, pose me off the ground and hear me climb - absent off the wall
     };   // the wire's move bit: 1 walking, 2 running (the peers' bodies pick the clip off it)
     if (seated) arm.st = seated.st;   // CARDS2b: seated, and the table's top above the feet - absent standing, the wire's omission law
+    if (staffFollow.frame()) key = null;   // STAFF-PANEL5-FOLLOW: a follow's body stands in no room - the hook's hidden links watch (above HALO-THIN's word, which stands over WAGONS2-VISIT's close and the join: test/net/halothin.test.js, test/systems/wagons2_visit.test.js)
     online.haloWhole = !!duelMgr.duel || _serpentFight;   // HALO-THIN (net/online.js haloPoseDue): a halo hears my pose when it is due - every pose while a referee may stand in one (a duel's bout is refereed in the room my opponent is heard through, a serpent's trail in the fight's); never the open zone's - its referee holds me by the zone word, which my own cell's socket alone says (AUDIT B F4)
     if (!modes?.caravanVisit) caravanVisitLink.close();   // WAGONS2-VISIT: no visit, no listener - closed before my primary joins the cell it heard (never replaced by my own id)
     if (!key) { if (online.room) online.leave(); }   // AUDIT ONLINE D4: a place the host cannot name is no room, not the old one in the wrong frame
@@ -29042,7 +29107,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const drawPeerBodies = (proj, view, eye, face = null) => { if (peerBodies) peerBodies.draw(canvas, { proj, view, eye, flashOf: peerFlashOf, grow: face ? peerGrow : null, up: face?.up ?? null }); peerWalkers?.drawLanterns(); (_mode() === 'interior' ? familyRoom : _mode() === 'exterior' ? familyStreet : null)?.draw(canvas, { proj, view, eye }); };   // LEGACY7 part four: and the line's own bodies, in the place they stood   // OW-PEERS: under the Overworld the bodies grown and leaned as the traveller's own   // HT-WAIST-BACK: the walkers' lanterns, each on its own tilted basis, beside the bodies - every mode's pass calls this after the player's own body (the exterior here, the dungeon and the interior through host.drawPeerBodies)
   /** INVIS-LOOK: the concealed peers' Morrowind bodies, translucent - blended with no depth write, so every mode's pass
    *  calls this AFTER its opaque world (net/peer/peerBodies.js drawVeiled), with the camera its body pass took. */
-  const drawVeiledPeerBodies = () => { peerBodies?.drawVeiled(); drawAuras(); nodeGlintPass.draw(travelView?.active ? null : nodeMarksAt(enchantFeet())); };   // WB9g: and the auras, after the opaque world as the veiled are; NODE-MARKS: and the nodes' light - NODE-GLINT's glints, the glow a node with no picture
+  const drawVeiledPeerBodies = () => { peerBodies?.drawVeiled(); drawAuras(); nodeGlintPass.draw(travelView?.active ? null : nodeMarksAt(enchantFeet())); partyPing?.draw(renderer); };   // WB9g: and the auras, after the opaque world as the veiled are; NODE-MARKS: and the nodes' light - NODE-GLINT's glints, the glow a node with no picture
   /** WB9g (2026-09-30, Mac: "an animated burning ground aura that circles the ground where your character stands"):
    *  DAGON'S FIRE AT THE FEET (render/auraRing.js) - mine, as the service signed it (the session's `au`, adopted at each
    *  mint), and every peer's the relay vouched for (their hello's `au`), each kindling as it first stands. Gathered with
@@ -29052,7 +29117,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  fire is concealed with them. */
   const _auraWearers = [], _auraDraw = [], _auraPool = new Map(), _auraLights = [];
   const _auraSelf = { id: 'self', at: [0, 0, 0], aura: null, seed: 0.37, kindle: 1, since: 0, yaw: 0 };   // SHADOW-CLOAK: `yaw` the facing the cloak's opening faces
-  let _auraPass = null, _auraTried = false;
+  // AURA-STALL (bible/07-Rendering/Performance-Priority.md): built at the first wearer, the aura's program froze the game
+  // 8.5-11 s on D3D11, and the travel view draws no aura, so it met a player on the frame the view came down near a crowd.
+  // AURA-SPLIT (#1143): the pass compiles nothing of its own - each look's program is built at its own door once it is
+  // compiled (render/auraRing.js programOf), started at the boot's idle (render/playPrograms.js) - so the pass's door
+  // waits on no program: it is built at the first wearer in range, and a throw costs the auras, never the game.
+  const auraPassOf = compiledPass(renderer.gl, [], () => new AuraRingRenderer(renderer.gl), (e) => console.warn('[online] the aura would not build', e?.message ?? e));
   const auraSeedOf = (id) => { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return ((h >>> 0) % 997) / 997; };
   function auraFrame(seen) {
     _auraWearers.length = 0;
@@ -29084,7 +29154,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (!_auraWearers.length) return;
     const proj = renderer._proj, view = renderer._view, eye = renderer._camPos;   // the frame's camera, the world's own
     if (proj && view && eye && auraWearers(_auraWearers, eye, _auraDraw).length) {
-      if (!_auraTried) { _auraTried = true; try { _auraPass = new AuraRingRenderer(renderer.gl); } catch (e) { console.warn('[online] the aura would not build', e?.message ?? e); _auraPass = null; } }
+      const _auraPass = auraPassOf();   // AURA-STALL: null while its program compiles - the capes still hang and swing below
       const auraNow = performance.now() / 1000; for (const w of _auraDraw) if (auraLookOf(w.aura).mesh) { auraCapeStep(w, w === _auraSelf ? { feet: player.bodyFeetAt(), yaw: mwViewSpriteFacing()?.yaw ?? player.bodyYawFor(cam.yaw), turn: mwViewSpriteFacing()?.turn, bones: mwViewBodyBones(CLOAK_BONES) ?? auraSpriteBones(mwViewSpriteFigure()) } : peerBodies?.bonesOf(w.id, CLOAK_BONES) ?? auraSpritePosed(w, peerWalkers?.figureOf(w.id) ?? peerRiders?.figureOf?.(w.id), peerWalkers?.faceOf?.(w.id) ?? peerRiders?.faceOf?.(w.id)), w === _auraSelf ? player.height / CAPSULE_HEIGHT : 1); auraMotionStep(w, auraNow); } _auraPass?.draw(_auraDraw, proj, view, eye, auraNow, { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze });   // SHADOW-CLOAK: each cape hung on its body as drawn this frame - its bones posed by now (mine, or a peer's), else at rest, crouched with a crouch - and swung by how it moves where it is drawn; SPRITE-FACE (Mac: "The sprite rotation on character input is a little finicky and make the aura misallign"): a sprite's faced as its PICTURE is (the eight-way view drawn, mine after the mod's delayed repaint has landed - mwViewSpriteFacing, a peer's faceOf), in the saddle too, and swung by the way the body turns (`turn`)
       if (_auraPass?.drawn) renderer.markForeignPass();
     }
@@ -29220,7 +29290,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // mine names, at Privateer's Hold, where a partner stands an instance; built once, asked by the modes host - a player's
   // door its popup, every other way in its rule (scenes/instanceDoor.js). The room's key reads what the place was entered as
   const instanceDoor = createInstanceDoor({ online: () => onlineOn, instanceOk: () => !!(online?.instanceOk || chatLinks?.get('world')?.instanceOk), account: () => social?.acct ?? null, character: () => realmSession?.id ?? null,
-    members: () => social?.others() ?? [], questMachine: () => questBridge?.machine ?? null, openOverlay: (w, onClosed) => townTalk.pushOverlay(w, onClosed), say: (l) => townTalk.say(l), wild: () => { const m = wildMapMask(), p = playerTravelPixel(); return !!m && wildInside(m, p.x, p.y); },   // `wild`: inside the open zone nothing keeps an instance - its dungeons sealed, its halls the relay's to refuse
+    members: () => social?.others() ?? [], questMachine: () => questBridge?.machine ?? null, openOverlay: (w, onClosed) => townTalk.pushOverlay(w, onClosed), say: (l) => townTalk.say(l), wild: () => { const m = wildMapMask(), p = playerTravelPixel(); return (!!m && wildInside(m, p.x, p.y)) || seaVentures.openSeaAt(p); },   // `wild`: inside the open zone nothing keeps an instance - its dungeons sealed, its halls the relay's to refuse; SEA-VAULTS: the open sea's too
     remains: () => legacyHost?.remainsWhere() ?? [] });   // HEIR-WHOLE: where the line's remains lie - a dungeon they lie in whole is the death quest's place
   // WITCH1 (bible/06-Systems/Witches-Festival.md): THE WITCHES' FESTIVAL IN THE STREETS (scenes/witchesHost.js) - the town
   // underfoot's Hearth Offerings stood at their doors, taken from and filled; the Wyrd Sisters' window; the finds' doors.
@@ -30027,6 +30097,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     loadingPrevented: () => !!online,
     timers: timersSource,   // TIMERS1: forwarded to a building's and a dungeon's pause face
     post: postSource,   // SERVER-POST: and the mailbox's box
+    season: seasonBook.source,   // SEASON-BOOK: and the laurel's boards
     playerName: () => playerEntity.name, playerId: () => playerEntity.characterId ?? null,
     saveAs: (saveName) => worldQuickSave(saveName),
     loadKey: (key) => worldQuickLoad({ key }),
@@ -31502,7 +31573,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
   }
   /** A band's make, once: the themed group its seed rolls from its birthplace's table (the climate x day/night). */
   /** PVPDUNGEONS: was this pixel in the open zone (the mask every client builds alike - a band's size is the same everywhere)? */
-  function wildBornHere(px, py) { const m = wildMaskOf(maps); return !!m && wildInside(m, px, py); }
+  function wildBornHere(px, py) { const m = wildMaskOf(maps); return (!!m && wildInside(m, px, py)) || (etherSea && _onlineWorldSession() && etherWildRingAt(px, py) > 0); }   // ETHER-WILD: the open sea's packs too, online
   function bandMake(b) {
     if (_bandMake.has(b.id)) return _bandMake.get(b.id);
     const px = Math.floor(b.born.x / 32768), py = 499 - Math.floor(b.born.z / 32768);
@@ -32235,6 +32306,14 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     onPick: (x, y, e) => onTravelViewPick(x, y, e),   // TV2; OW-PATH: the event, for the fine-move key
     onMark: (key, e) => onTravelViewMark(key, e),   // OW-ATTACK: the press, for an enemy's single click
     onContext: (x, y, key) => onTravelViewContext(x, y, key),   // WAYPOINTS: the right click's menu
+    onPing: (x, y) => {   // PARTY-PING: the middle button, from the raised eye
+      const eye = travelView?.eye;
+      if (!eye || !_lastProj || !_lastView) return;
+      const [sx, sy] = canvasPoint(x, y, canvas.getBoundingClientRect());
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      const dir = rayDirFromScreen(sx, sy, w, h, _lastProj, _lastView, eye, worldViewportRect(w, h));
+      if (dir) partyPing?.cast({ eye, dir, reach: PING_TRAVEL_M });
+    },
     onWaypointGo: (id) => travelViewWaypointWalk(id),   // WAYPOINTS: a followed row's Go
     followDist: () => travelViewFollowDist(),   // WAYPOINTS: the followed rows' distances
     marks: travelViewMarks,
@@ -32397,6 +32476,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     meterFor(renderer.gl)?.markCpu('sim');   // PERF-CPU: everything between here and the next mark is the rest of the simulation
     lookGate(gamePaused());   // a window up frees the cursor; closing re-locks
     const fwd = [Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch)];
+    partyPing?.frame({ eye: (travelView?.active && travelView.eye) || cam.pos, dir: (travelView?.active && travelView.fwd) || fwd });   // PARTY-PING: one look, every mode, before the modal return
     const right = [Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)];   // HANDEDNESS (mat4's law): screen-right = (cos, 0, -sin) under the mirrored projection - Unity's own right
     noteLocalPlayer(walkMode && playerSpawned ? player.pos : cam.pos, fwd);   // TACT2: where I stand and face - a foe behind me sees my back (ai/tactics.js)
     tickTactics(foeFrameDt(_questBoxHoldsFoes() || (_mode() === 'dungeon' && !!modes?.dungeonCtx?.uiOverlayActive) ? 0 : dt));   // AUDIT TACT D10/A3: the brain's clock is the foes' own step - held when they are; AUDIT TELL H1: a dungeon's window holds its foes, and their wind-ups with them
@@ -32626,7 +32706,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // Touch (exteriorFoes.js readySpell), so the landed paralysis
     // was inert here. Declared above `walkMode` because the motor and
     // the weapon rig are two sibling blocks.
-    const paralyzed = entityIsParalyzed(playerEntity);
+    const paralyzed = entityIsParalyzed(playerEntity) || staffFrozen();   // STAFF-PANEL5-FREEZE: a staff freeze holds the motor as paralysis does
     // A6: FrictionMotor.GroundedMovement's head-dip guard reads
     // IsParalyzed itself (:90-93) - the zeroed input bag below is
     // the movement half of the same law, not this one.
@@ -33137,6 +33217,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
         if (townTalk.overlay instanceof DeathScreen) cam.pos[1] -= townTalk.overlay.drop;
         if (townTalk.overlay instanceof DeathScreen) townTalk.overlay.tiltView(cam);   // DEATH3: the enhanced fall looks up at the sky
         if (_driverSeat && player.transportMode === TRANSPORT_MODES.Cart && !(townTalk.overlay instanceof DeathScreen)) cam.pos = [_driverSeat.feet[0], _driverSeat.feet[1] + SEATED_EYE_HEIGHT, _driverSeat.feet[2]];   // WAGONS3: on my bench (last frame's seat until the wagon steps) - the picks below aim from the eye on the screen
+        staffFollow.eye(player, cam);   // STAFF-PANEL5-FOLLOW: a follow's camera - the target's eyes and their facing
         climbFeel.frame(dt, _overlayHeld || _seasonHeld);   // CLIMB4: the climb's camera, off the frame's motor - AUDIT CLIMB-ARC F2/F4: held while the motor is
         // A8 - POINTER PARITY, THE FLAG AT THIS LINE RETIRED. Mouse0 is
         // DFU's ActivateCenterObject: the readied spell fires on its
@@ -33763,7 +33844,10 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       // this host's derived lets - re-derive whenever they disagree
       if (weatherStale()) applyWeather(shownWeather());
     }
+    const frameSnowCover = () => {   // PERF-V8 (at the merge of main into SEA VENTURES: the frame back under three quarters of the ceiling)
     { const _sp = playerTravelPixel(); snowCover.tick({ px: _sp.x, py: _sp.y, dt, arriving: !playerSpawned }); renderer.setSnowFrame(snowCover.frame()); }   // PRECIP4: the snow the ground keeps, about the player - its window integrated, its lines eased, the standing pixels swept
+    };
+    frameSnowCover();
     // WX2: the front's word for this frame. Under the enhanced sky the
     // arrival is WIND1's front, read off the controller; under the
     // classic sky it is 1 and the terms are the weather's own.
@@ -33779,10 +33863,10 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     seenJump = weatherJumpStamp();
     if (jump) sky.weatherJump();
     // WEATHER2b: a CROSSING - the player walked into a cell of the field, or it drifted over them: a short front
-    const crossing = weatherCrossingStamp() !== seenCrossing;
+    const crossing = weatherCrossingStamp() !== seenCrossing || seaVentures.stormTurned();   // SEA-EVENTS: into the Aether Storm or out of it - a short front, as a cell's edge
     seenCrossing = weatherCrossingStamp();
     if (crossing && !jump) sky.weatherArrive();
-    const fx = weatherFront.tick({ dt, weather, arrival: enhancedFront ? sky.frontArrival() : 1, nowMinutes: playerTicker.classicMinutes, tsec: now / 1000, jump, peak: weatherOverride ? null : currentWeatherIntensity() });   // WEATHER3b: the map's intensity at the player is the peak
+    const fx = weatherFront.tick({ dt, weather, arrival: enhancedFront ? sky.frontArrival() : 1, nowMinutes: playerTicker.classicMinutes, tsec: now / 1000, jump, peak: weatherOverride ? null : seaStormShown() ? 1 : currentWeatherIntensity() });   // WEATHER3b: the map's intensity at the player is the peak
     if (fx.changed) wxFrom = wxNow;
     wxNow = enhancedFront ? blendTerms(wxFrom, fallTerms(weatherTerms(fx.snow), fx.intensity, weather, FALL_LIGHT), fx.t) : weatherTerms();   // RAIN-SPRINKLE: a sprinkle looks like one
     const wd = windDrive(sky, now / 1000, dt);   // WIND3: the frame's wind in every consumer's units, read once
@@ -33955,7 +34039,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (skyInside) { skyInside = false; sky.setInside(false); }   // DS1: ExteriorTransitionEvent
     sky.use((currentEntry ? currentEntry.skyBase : 16) + (weatherSkyOffset === 0
       ? seasonValue(dateFromClassicMinutes(skyMinutes())) : weatherSkyOffset), minute, weatherSkyOffset === 0,   // TIME1: the sky's season
-    { weather, violence: weatherOverride ?? currentWeatherRaw(), classicMinutes: playerTicker.classicMinutes, skyMinutes: skyMinutes(), sun: wxNow.sun, flash: flash - 1, pos: walkMode ? player.pos : cam.pos, cells: fieldCellsHere(), cloudBase: weatherOverride ? null : currentCloudBase(), approach: weatherOverride ? 0 : currentWindApproach() });   // WEATHER2a: the wind blows by the table's word; WEATHER2b/c: the field's cells are the clouds' cells   // ES1: the sky's clock and weather; VC4: the camera's world position, the clouds' and their shadow's origin; the enhanced sky's clouds and moons; VC3: the strobe lights the clouds; DS1 (AUDIT 61): the ONE sunlight scale the ground takes (the front's blend of the host's SetSunlightScale - pin and latch included; the raw row under ?front=off)
+    { weather, violence: weatherOverride ?? seaStormShown() ?? currentWeatherRaw(), classicMinutes: playerTicker.classicMinutes, skyMinutes: skyMinutes(), sun: wxNow.sun, flash: flash - 1, pos: walkMode ? player.pos : cam.pos, cells: fieldCellsHere(), cloudBase: weatherOverride || seaStormShown() ? null : currentCloudBase(), approach: weatherOverride ? 0 : currentWindApproach() });   // WEATHER2a: the wind blows by the table's word; WEATHER2b/c: the field's cells are the clouds' cells   // ES1: the sky's clock and weather; VC4: the camera's world position, the clouds' and their shadow's origin; the enhanced sky's clouds and moons; VC3: the strobe lights the clouds; DS1 (AUDIT 61): the ONE sunlight scale the ground takes (the front's blend of the host's SetSunlightScale - pin and latch included; the raw row under ?front=off)
     // Verbatim: fog is never disabled (SetFog keeps RenderSettings.fog on);
     // Sunny/Overcast ARE linear fog to 2400 - the classic distance haze.
     // DaggerfallSky.SetSkyFogColor (:318-325): anything denser than
@@ -35119,7 +35203,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       // gated on `m.enemy`, and this bow branch `continue`s past the
       // melee hit chain below. The damage door is each pool's own, so
       // a killed watchman still runs the crime and the corpse.
-      onPlayerArrowHitFoe: (m, t) => (t?.duel ? duelStrikeOut('arrow', m.weapon ?? null, 'StrikeDown', weaponRig.playerWeapon?.lastDrawMs ?? 0, t.id) : playerArrowHitFoe(m, t, {   // DUEL1: my shaft on my duel opponent is a strike their client resolves   // AUDIT-SEATS G5: on a battle's foe (`t.id`), a shaft to the referee
+      onPlayerArrowHitFoe: (m, t) => (t?.duel ? duelStrikeOut('arrow', m.weapon ?? null, 'StrikeDown', weaponRig.playerWeapon?.lastDrawMs ?? 0, t.id, { off: !!weaponRig.playerWeapon?.isOffHandItem?.(m.weapon) }) : playerArrowHitFoe(m, t, {   // DUEL1: my shaft on my duel opponent is a strike their client resolves   // AUDIT-SEATS G5: on a battle's foe (`t.id`), a shaft to the referee
         playerEntity, playerWeapon: weaponRig.playerWeapon, playerFeet: player.pos,
         dealDamage: (f, d) => (cityGuards.guards.includes(f)
           ? cityGuards.hurtGuard(f, d, player.pos, m.dir, { kind: 'arrow' })   // AUDIT-39r: the shaft shoves the watch too (WeaponManager.cs:576-595); TELL1: a shaft's weight on a wind-up
@@ -35192,7 +35276,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
             // AUDIT 23 (C14): the swing fatigue + the FULL bow tally
             // arm (Archery AND CriticalStrike) - see exterior.js.
             drainExteriorFatigue(SWING_FATIGUE_COST);
-            tallySwingSkills(playerEntity, weaponRig.playerWeapon.weapon);
+            tallySwingSkills(playerEntity, weaponRig.playerWeapon.weapon, weaponRig.playerWeapon.blowWeight);   // AUDIT PISTOLET A2: an off-hand shot counts as its blow weighs, as the other two hosts count it (THE FOUR HOSTS RULE)
             const fwd = [Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch)];
             arrows.fire(cam.pos, fwd, { fromPlayer: true, weapon: weaponRig.playerWeapon.weapon, muzzle: weaponRig.thunderlockMuzzle(fieldOfView()), summoned: shot.summoned }); weaponRig.noteShot?.(weaponRig.playerWeapon.weapon);   // SPELLFX1: the peers draw it   // FIELD-GUN17: the barrel's own offset when the hand holds the gun, null for every bow - the rig answers, the lane forks   // #64: LastBowUsed rides the shaft - the impact prices off it   // ROAD-H H1c: ArrowFlight.fire applies GetAimPosition's player arm (the bow hand), as DFU's missile does its own
           }

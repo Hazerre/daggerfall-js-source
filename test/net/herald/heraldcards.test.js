@@ -201,9 +201,9 @@ test('HERALD-CARDS relay: a thread is a setting a developer changes at run time 
 });
 
 test('HERALD-CARDS the client says a thread setting only to a relay that knows it - an older one finds no such name and closes the hub link on the frame; the roles and every older setting as before (mutants: a thread said to world242; the floor read for every setting)', async () => {
-  assert.deepEqual(RELAY_CFG_KEY_MIN, { gateThread: 243, serpentThread: 243, sdThread: 243, egThread: 243 });
+  assert.deepEqual(RELAY_CFG_KEY_MIN, { gateThread: 250, serpentThread: 250, sdThread: 250, egThread: 250 });
   assert.ok(relayCfgSupported(RELAY_VERSION, 'gateThread'), 'this relay knows them');
-  assert.deepEqual([relayCfgSupported('world242'), relayCfgSupported('world242', 'gateThread'), relayCfgSupported('world243', 'egThread'), relayCfgSupported('world242', 'gateRole'), relayCfgSupported('world191', 'gateRole')], [true, false, true, true, false]);
+  assert.deepEqual([relayCfgSupported('world242'), relayCfgSupported('world242', 'gateThread'), relayCfgSupported('world250', 'egThread'), relayCfgSupported('world242', 'gateRole'), relayCfgSupported('world191', 'gateRole')], [true, false, true, true, false]);
   await quiet(() => {
     const { FakeWS, sockets } = fakeSocketClass();
     const s = new OnlineSession({ url: 'wss://relay.test', name: 'Mac', id: 'mac-0001', secret: 'secret-of-mac-0001', WebSocketImpl: FakeWS, now: () => 1_000_000, rand: () => 0, presence: false });
@@ -212,7 +212,7 @@ test('HERALD-CARDS the client says a thread setting only to a relay that knows i
     sockets[0].receive({ t: 'welcome', id: 'mac-0001', peers: [], n: 1, v: 'world242', now: 1_000_000 });
     assert.equal(s.sendRelayCfg({ k: 'serpentThread', v: T_SEA }), false, 'world242 has no such setting');
     assert.equal(s.sendRelayCfg({ k: 'gateRole', v: ROLE }), true, 'a role, as before');
-    sockets[0].receive({ t: 'welcome', id: 'mac-0001', peers: [], n: 1, v: 'world243', now: 1_000_000 });
+    sockets[0].receive({ t: 'welcome', id: 'mac-0001', peers: [], n: 1, v: 'world250', now: 1_000_000 });
     assert.equal(s.sendRelayCfg({ k: 'serpentThread', v: T_SEA }), true);
     assert.deepEqual(JSON.parse(sockets[0].sent.at(-1)), { t: 'cfg', k: 'serpentThread', v: T_SEA });
   });

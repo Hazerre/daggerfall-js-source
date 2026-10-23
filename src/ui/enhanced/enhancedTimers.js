@@ -96,9 +96,9 @@ export function anchorBeside(mark, profile, host, gap = 10) {
  * opening it (the pause face hands its place on first). TIMERS2: `group` the group it opens on ('all', or a
  * TIMER_GROUPS id) - the one last shown when unsaid.
  * @param {Document} doc
- * @param {{ read: () => any, onClose: () => void, every?: number, door?: (fn: () => any) => any, group?: string }} o
+ * @param {{ read: () => any, onClose: () => void, every?: number, door?: (fn: () => any) => any, group?: string, focus?: boolean }} o
  */
-export function timersWindow(doc, { read, onClose, every = 1000, door = (fn) => fn(), group = shownGroup }) {
+export function timersWindow(doc, { read, onClose, every = 1000, door = (fn) => fn(), group = shownGroup, focus = true }) {
   const el = (tag, cls, text) => {
     const n = doc.createElement(tag);
     if (cls) n.className = cls;
@@ -244,9 +244,10 @@ export function timersWindow(doc, { read, onClose, every = 1000, door = (fn) => 
   const step = () => { if (win.isConnected === false && tick) { clearInterval(tick); tick = null; return; } draw(); };
   draw();
   tick = setInterval(step, every);
-  // AUDIT TIMERS1 UI-5: the focus goes INTO the window (it had stayed on the hourglass, under the scrim). AUDIT TIMERS2 M5:
-  // unless it is in already - the pause face redraws this window whole and puts the focus back where it was (a filter's
-  // button), and Close took it off again a frame later
-  globalThis.requestAnimationFrame?.(() => { if (!win.contains?.(doc.activeElement)) close.focus?.(); });
+  // AUDIT TIMERS1 UI-5: the focus goes INTO the window (it had stayed on the hourglass, under the scrim)
+  // AUDIT SEASON-BOOK U3: when the window opens - never when the face repaints around it, and never scrolling the list.
+  // AUDIT TIMERS2 M5: unless it is in already - the pause face redraws this window whole and puts the focus back where it
+  // was (a filter's button), and Close took it off again a frame later
+  if (focus) globalThis.requestAnimationFrame?.(() => { if (!win.contains?.(doc.activeElement)) close.focus?.({ preventScroll: true }); });
   return { root: win, stop: () => { if (tick) clearInterval(tick); tick = null; }, draw, close };
 }
