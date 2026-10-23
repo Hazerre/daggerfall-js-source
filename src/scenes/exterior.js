@@ -4024,6 +4024,7 @@ export async function bootExterior(canvas, renderer, params, status) {
     }),
     getBlock: (name) => blocks.getBlockByName(name),
     flatCaption: (archive, record) => pipeline.flatCaption(archive, record),   // NPC1: the =symbol_ macro's caption
+    getRandomText: (id) => townTalk.randomText?.(id) ?? null,   // QUEST-AUDIT III: %oth and %jok's TEXT.RSC pool, as world.js's quest world reads it
     // AUDIT 39 (#23) / QX1 review: EVERY faction read below goes
     // through `_questStore()` - PlayerEntity.FactionData, the MUTABLE
     // clone factionRep owns - and never the raw FACTION.TXT dictionary
