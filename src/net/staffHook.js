@@ -49,6 +49,9 @@ export const hiddenSeat = (WS) => WS && class extends WS {
 export function createStaffHook({ main, askToken, Session = OnlineSession, WS = globalThis.WebSocket }) {
   /** @type {string|null} */ let target = null;
   let on = false, note = /** @type {any} */ (null), room = /** @type {string|null} */ (null), ly = 0, seen = /** @type {any} */ (null);
+  /** STAFF-PANEL5-FOLLOW-R2: the room `seen` was taken in - a pose is in its room's frame (an interior has its own, every
+   *  cell shares the world's). @type {string|null} */
+  let seenIn = null;
   let hub = /** @type {any} */ (null), eye = /** @type {any} */ (null);
   /** STAFF-PANEL5-FOLLOW-FIX (finding 1): the target's socket id, as a room said it (`in`) - a place room's roster names
    *  no account, so this is the one name its peers know them by. @type {string|null} */
@@ -59,8 +62,10 @@ export function createStaffHook({ main, askToken, Session = OnlineSession, WS = 
   function heard(f) {
     if (!f || f.sub !== target) return;
     if (f.k === 'on') on = true;
-    else if (f.k === 'note') { note = f.p; const r = noteRoom(f.p); if (r) { room = r.room; ly = r.ly; } }
-    else if (f.k === 'in') { room = f.room; ly = f.ly ?? 0; pid = f.id ?? pid; }
+    // STAFF-PANEL5-FOLLOW-R2: the hub's newer word on their room wins over the pose seen before it (a fast travel, a door
+    // out) - a pose seen after it leads again (tick)
+    else if (f.k === 'note') { note = f.p; const r = noteRoom(f.p); if (r) { room = r.room; ly = r.ly; seen = null; } }
+    else if (f.k === 'in') { room = f.room; ly = f.ly ?? 0; pid = f.id ?? pid; seen = null; }
     else if (f.k === 'gone') { room = null; seen = null; pid = null; }   // offline: the follow stands, and waits for their next note
     // 'out': the room keeps its socket until the hub's next note says where they went
   }
@@ -106,7 +111,10 @@ export function createStaffHook({ main, askToken, Session = OnlineSession, WS = 
       hub.tick();
       if (!on) return;
       const v = peer();
-      if (v) seen = v;
+      // STAFF-PANEL5-FOLLOW-R2: a pose leads only in the frame of the room the hub names (an interior's own pose names no
+      // outdoor cell), and only while they stand in the room I saw them in - gone from it, the hub's word leads
+      if (v && (eye.room === room || (isCellRoom(eye.room) && isCellRoom(room)))) { seen = v; seenIn = eye.room; }
+      else if (!v && eye?.room === seenIn) seen = null;
       // outdoors the target's own pose names the next cell before their note does (a crossing is not a door)
       const want = seen && room && isCellRoom(room) ? cellRoomOfWire(seen.x, seen.z) ?? room : room;
       if (!want) return;
