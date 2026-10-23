@@ -13024,6 +13024,11 @@
   "tr": "be665ba11d7d",
   "by": "claude-in-session"
  },
+ "items.refusal.questTwin": {
+  "en": "b58d5ec569b8",
+  "tr": "e5848fb8994c",
+  "by": "claude-in-session"
+ },
  "knight.seatHouse": {
   "en": "30a6b1d5eb6d",
   "tr": "c0bd7aeb0ad9",
@@ -21074,9 +21079,24 @@
   "tr": "f80ad35f64d5",
   "by": "claude-in-session"
  },
+ "pause.journal.abandonHunt": {
+  "en": "d4aa2f764d75",
+  "tr": "d1b3feb7d576",
+  "by": "claude-in-session"
+ },
+ "pause.journal.abandonQuest": {
+  "en": "c5c8a50cfc44",
+  "tr": "dd9ee8ebd133",
+  "by": "claude-in-session"
+ },
  "pause.journal.abandoned": {
   "en": "f34fb6e3669d",
   "tr": "5d154bb22e36",
+  "by": "claude-in-session"
+ },
+ "pause.journal.abandonedSaid": {
+  "en": "f9e0eef7684e",
+  "tr": "b22be34fb266",
   "by": "claude-in-session"
  },
  "pause.journal.archived": {
@@ -21154,6 +21174,16 @@
   "tr": "8626582e0192",
   "by": "claude-in-session"
  },
+ "pause.journal.reclaim": {
+  "en": "d03c3ffca4d8",
+  "tr": "3ef30ca3125d",
+  "by": "claude-in-session"
+ },
+ "pause.journal.reclaimed": {
+  "en": "6ad23064d522",
+  "tr": "2d662c93c598",
+  "by": "claude-in-session"
+ },
  "pause.journal.remove": {
   "en": "e963907dac5c",
   "tr": "4bd4ea834263",
@@ -21194,6 +21224,11 @@
   "tr": "a5120eaf325b",
   "by": "claude-in-session"
  },
+ "pause.journal.restartPaid": {
+  "en": "e069450e48c9",
+  "tr": "69836c4b514c",
+  "by": "claude-in-session"
+ },
  "pause.journal.restartProtected": {
   "en": "b13c5e239c7e",
   "tr": "26fe8196d7a1",
@@ -21217,6 +21252,11 @@
  "pause.journal.restartShelved": {
   "en": "9f9f120e48d7",
   "tr": "4137b5559259",
+  "by": "claude-in-session"
+ },
+ "pause.journal.restartStarted": {
+  "en": "39eff612df6f",
+  "tr": "4d76142ad2c2",
   "by": "claude-in-session"
  },
  "pause.journal.restartTitle": {
@@ -21247,6 +21287,26 @@
  "pause.journal.shelfItemsFree": {
   "en": "0efdf00e7463",
   "tr": "d019430d33ad",
+  "by": "claude-in-session"
+ },
+ "pause.journal.shelfProtected": {
+  "en": "48cd157f9ac8",
+  "tr": "86e37efa16d5",
+  "by": "claude-in-session"
+ },
+ "pause.journal.shelfRunning": {
+  "en": "3560543406a3",
+  "tr": "eb8cf85a01d4",
+  "by": "claude-in-session"
+ },
+ "pause.journal.shelfShelved": {
+  "en": "35f180317eab",
+  "tr": "45772529e392",
+  "by": "claude-in-session"
+ },
+ "pause.journal.shelfTwin": {
+  "en": "9d4d7f518816",
+  "tr": "1b7c5192ffc8",
   "by": "claude-in-session"
  },
  "pause.journal.showHidden": {
@@ -26984,6 +27044,76 @@
   "tr": "0f0b85e7c363",
   "by": "claude-in-session"
  },
+ "quest.share.active": {
+  "en": "e63049136122",
+  "tr": "b0916ba4f92f",
+  "by": "claude-in-session"
+ },
+ "quest.share.done": {
+  "en": "68712be7de6d",
+  "tr": "fb4d15fe4164",
+  "by": "claude-in-session"
+ },
+ "quest.share.failed": {
+  "en": "f41044f84697",
+  "tr": "08dfaeaf4ac1",
+  "by": "claude-in-session"
+ },
+ "quest.share.gone": {
+  "en": "a1f19798bd7e",
+  "tr": "bc74e38fe703",
+  "by": "claude-in-session"
+ },
+ "quest.share.guild": {
+  "en": "8108a5b78bf4",
+  "tr": "aac4d80fc7e0",
+  "by": "claude-in-session"
+ },
+ "quest.share.guildName.darkBrotherhood": {
+  "en": "f885f99eff1d",
+  "tr": "77ebbd39458c",
+  "by": "claude-in-session"
+ },
+ "quest.share.guildName.fighters": {
+  "en": "058fffe8113c",
+  "tr": "e1ae4af3cf7c",
+  "by": "claude-in-session"
+ },
+ "quest.share.guildName.mages": {
+  "en": "b2497f4fd9d8",
+  "tr": "58572eca4470",
+  "by": "claude-in-session"
+ },
+ "quest.share.guildName.thieves": {
+  "en": "48ebd68a1c94",
+  "tr": "e83a49f11152",
+  "by": "claude-in-session"
+ },
+ "quest.share.guildNamed": {
+  "en": "4c77d125bdad",
+  "tr": "7396cd6f0934",
+  "by": "claude-in-session"
+ },
+ "quest.share.mainQuest": {
+  "en": "4e613079e70b",
+  "tr": "0ed1c63dd06a",
+  "by": "claude-in-session"
+ },
+ "quest.share.mismatch": {
+  "en": "8a125f013360",
+  "tr": "d6672e7e1173",
+  "by": "claude-in-session"
+ },
+ "quest.share.notNow": {
+  "en": "1ea3514f61c0",
+  "tr": "a31b9886de6b",
+  "by": "claude-in-session"
+ },
+ "quest.share.notReceived": {
+  "en": "c55cae74f2a5",
+  "tr": "37b02d691be9",
+  "by": "claude-in-session"
+ },
  "quest.share.questline": {
   "en": "64807357b849",
   "tr": "be00a3847ed9",
@@ -26991,7 +27121,102 @@
  },
  "quest.share.questline.receiver": {
   "en": "eacd41dfc09d",
-  "tr": "eacd41dfc09d",
+  "tr": "634df3bd6c6a",
+  "by": "claude-in-session"
+ },
+ "quest.share.received": {
+  "en": "b23d57c4c44c",
+  "tr": "1cca9074a065",
+  "by": "claude-in-session"
+ },
+ "quest.share.receiver.gone": {
+  "en": "299237314f5d",
+  "tr": "0b96e25f337a",
+  "by": "claude-in-session"
+ },
+ "quest.share.receiver.mainQuest": {
+  "en": "9a1542d29c5b",
+  "tr": "5aea3af39f64",
+  "by": "claude-in-session"
+ },
+ "quest.share.receiver.restore": {
+  "en": "9c657b76d4e9",
+  "tr": "ec3d445769ed",
+  "by": "claude-in-session"
+ },
+ "quest.share.receiver.shelved": {
+  "en": "0cc4697d5a55",
+  "tr": "ab4f0f75045e",
+  "by": "claude-in-session"
+ },
+ "quest.share.receiver.tooLarge": {
+  "en": "c323ff9631be",
+  "tr": "c85bdf13c0b5",
+  "by": "claude-in-session"
+ },
+ "quest.share.refused": {
+  "en": "d11421a587b8",
+  "tr": "13f2cb5c73e3",
+  "by": "claude-in-session"
+ },
+ "quest.share.repute": {
+  "en": "f6f42c7fd97f",
+  "tr": "d2365df23338",
+  "by": "claude-in-session"
+ },
+ "quest.share.sent": {
+  "en": "af911359ca0b",
+  "tr": "0aa7cf4c47ea",
+  "by": "claude-in-session"
+ },
+ "quest.share.skewDiffer": {
+  "en": "6c35bf29cda6",
+  "tr": "c8a1e97e39c9",
+  "by": "claude-in-session"
+ },
+ "quest.share.skewOld": {
+  "en": "be222f025fc1",
+  "tr": "9b4d9ec987c8",
+  "by": "claude-in-session"
+ },
+ "quest.share.someone": {
+  "en": "fc82e7e56c0b",
+  "tr": "c1a232a9384d",
+  "by": "claude-in-session"
+ },
+ "quest.share.tooLarge": {
+  "en": "c8f3f7c8f1c2",
+  "tr": "4cbe387d47d2",
+  "by": "claude-in-session"
+ },
+ "quest.share.unknown": {
+  "en": "a85057c08a12",
+  "tr": "093339ca5ffa",
+  "by": "claude-in-session"
+ },
+ "quest.story.again": {
+  "en": "2bccf5c3544b",
+  "tr": "cdb98835dade",
+  "by": "claude-in-session"
+ },
+ "quest.story.againArmed": {
+  "en": "353746f0aeb1",
+  "tr": "3ad29a779879",
+  "by": "claude-in-session"
+ },
+ "quest.story.againDone": {
+  "en": "0d8061c11f82",
+  "tr": "83126994bce9",
+  "by": "claude-in-session"
+ },
+ "quest.story.againTitle": {
+  "en": "e36ecbdbe621",
+  "tr": "a55b40b655f6",
+  "by": "claude-in-session"
+ },
+ "quest.story.stalled": {
+  "en": "2eb1fad47125",
+  "tr": "811fad0317d6",
   "by": "claude-in-session"
  },
  "realm.held.until": {

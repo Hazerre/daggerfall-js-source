@@ -445,7 +445,7 @@ import { ItemMakerWindow, preloadItemMakerArt, itemMakerArtLoaded, ITEM_RECTS, r
 import { createPotion, getMagicItemTemplates, LOOT_NEWER_TEXT, shownSpellName } from '../systems/loot/loot.js';   // M2: ItemBuilder.CreatePotion, one minter; G4: the MAGIC.DEF registry; L10N3e: a spell's name as shown
 import { SITE_TYPES } from '../systems/quest/place.js';
 import { personOwnName } from '../systems/quest/person.js';   // QUEST-NAME-ONE: a quest stand answers to its Person's own name
-import { placeFoeFreely, questStandBox, rideSceneMarker, markerScenePosition, siteMarkerSpots, standSpot, buildingStandSpot, MARKER_FLOOR_REACH } from '../systems/quest/sceneMount.js';   // B1: CreateFoe's raycast ring, finally called; TOTEM-CAGE: a stand's box where it IS; QUEST-MARKERS: the building's backstop; FB1020c CROWD-CLEAR: a Person clear of the room's people
+import { placeFoeFreely, questStandBox, rideSceneMarker, markerScenePosition, siteMarkerSpots, standSpot, buildingStandSpot, MARKER_FLOOR_REACH, freeQuestStand } from '../systems/quest/sceneMount.js';   // B1: CreateFoe's raycast ring, finally called; TOTEM-CAGE: a stand's box where it IS; QUEST-MARKERS: the building's backstop; FB1020c CROWD-CLEAR: a Person clear of the room's people
 import { chestIdentity, matchChests } from './chestRecords.js';   // HOLD-KEPT: a house chest's record by which chest it is
 import { placeFoeEnv, placeRoomQuestFoe, entityOccupancy, questFoeGender, reviveQuestBehaviour as reviveQuestBehaviourFromSave, heldSpots, holdSpotWhile, restandMendedQuestFoe } from './quest/questFoeHost.js';   // B1 (PlaceFoeFreely reads the fieldOfView import below)   // AUDIT 63 F24: SerializableEnemy.cs:206-217 re-adds the component on restore
 import { standLooseFoe } from './hostEnchant.js';   // ROAD-G G1: SoulBound's break release / the Sanguine Rose, inside a building
@@ -2913,6 +2913,7 @@ export function createWorldModes(host) {
         const origin = by + size.h / 2 + 0.2;
         const drop = ctx.collider?.raycast?.([x, origin, z], [0, -1, 0], 4);
         if (Number.isFinite(drop)) by = (origin - drop) + size.h * 0.02;
+        if (inDungeon) { [x, by, z] = freeQuestStand(ctx.collider, [x, by, z], size.h); stand.x = x; stand.z = z; }   // QUEST-AUDIT III LODGED-STAND: never inside a model
       }
       stand.y = by;
       stand.batch = renderer.createBillboardBatch(drawArchive, drawRecord, size, [[x, by, z]]);

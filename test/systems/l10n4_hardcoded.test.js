@@ -287,7 +287,6 @@ const HARDCODED = {
   'src/scenes/oceanHolesAbyss.js': 3,
   'src/scenes/oceanHolesHost.js': 7,
   'src/scenes/portHost.js': 21,
-  'src/scenes/quest/questBridge.js': 9,
   'src/scenes/riteHost.js': 5,
   'src/scenes/roadStands.js': 2,
   'src/scenes/sailingCabin.js': 1,
@@ -311,7 +310,7 @@ const HARDCODED = {
   'src/scenes/travelView.js': 39,
   'src/scenes/treeHost.js': 3,
   'src/scenes/windfallHost.js': 5,
-  'src/scenes/world.js': 344,   // STAFF-PANEL5-FOLLOW-FIX: -1 already at the relay base (ec3d522d61), written down; FB1020c ONE-SAVE: the kept words moved to the Stores page (BAG_PAGE_WORDS.kept); CABIN-FOES: Transport > Ship's helm refusal read off CABIN_REFUSAL; AUDIT SEA VENTURES C6: -1, /unstuck's outdoor refusal read off the zone's words; SEASON-BOOK: -1, /mail's refusal read off chatCommands.js pauseCommandRefusal (344 at the merge of main #1161: both -1s stand)
+  'src/scenes/world.js': 338,   // QUEST-AUDIT III SHARE-WORDS: -4, the share's lines through questShare.js's t(); AUDIT QA3: -2, the sender's (shareSentLine); STAFF-PANEL5-FOLLOW-FIX: -1 already at the relay base (ec3d522d61), written down; FB1020c ONE-SAVE: the kept words moved to the Stores page (BAG_PAGE_WORDS.kept); CABIN-FOES: Transport > Ship's helm refusal read off CABIN_REFUSAL; AUDIT SEA VENTURES C6: -1, /unstuck's outdoor refusal read off the zone's words; SEASON-BOOK: -1, /mail's refusal read off chatCommands.js pauseCommandRefusal (344 at the merge of main #1161: both -1s stand)
   'src/scenes/worldModes.js': 83,
   'src/systems/aetheric.js': 168,   // SEA-SET: +17, the Eltheric Tidemail's nine names and lore, as the Weave's - the records' own data, minted onto the item; WITCH1: the Wyrd's Raiment's nine pieces, each its name and its affixes' names (+18) - an item's canonical name, as every Aetheric set's; STAR7: +18, the Starspun Weave's nine names and lore - the records' own data, minted onto the item, never read at load
   'src/systems/alchemyItems.js': 3,
@@ -464,10 +463,9 @@ const HARDCODED = {
   'src/systems/quest/actions.js': 11,
   'src/systems/quest/machine.js': 1,
   'src/systems/quest/questMacros.js': 1,
-  'src/systems/quest/questPatches.js': 4,   // SHAM-TRAIL (FIELD BUGS 2026-10-17b): the patches' anchors into DFU's own C0B00Y02 - its text found and kept, never the port's words; the entry the patch files is the text core's (quest.possessedChild.shamTrail)
+  'src/systems/quest/questPatches.js': 7,   // SHAM-TRAIL (FIELD BUGS 2026-10-17b): the patches' anchors into DFU's own C0B00Y02 - its text found and kept, never the port's words; the entry the patch files is the text core's (quest.possessedChild.shamTrail). PIN MOVED (QUEST-AUDIT III DUEL-TOWN): A0C00Y10's two, DFU's own sentence found and kept with its town's symbol changed. PIN MOVED (AUDIT QA3 C3): M0B11Y18's latch - QBN script that starts a task of its own, no sentence a player reads
   'src/systems/quest/questRepair.js': 9,
   'src/systems/quest/questGuidance.js': 2,
-  'src/systems/quest/questShare.js': 17,
   'src/systems/quickLoot.js': 4,
   'src/systems/quickslots.js': 32,
   'src/systems/raidSpoils.js': 4,
@@ -611,7 +609,7 @@ const HARDCODED = {
   'src/ui/enhanced/enhancedBook.js': 1,
   'src/ui/enhanced/enhancedCharSheet.js': 1,
   'src/ui/enhanced/enhancedChargen.js': 108,
-  'src/ui/enhanced/enhancedChronicle.js': 35,
+  'src/ui/enhanced/enhancedChronicle.js': 33,   // QUEST-AUDIT III SHELF-WORDS: -2, "Time remains" through t()
   'src/ui/enhanced/enhancedChunk.js': 2,
   'src/ui/enhanced/enhancedControls.js': 20,
   'src/ui/enhanced/enhancedDialog.js': 1,
@@ -621,7 +619,7 @@ const HARDCODED = {
   'src/ui/enhanced/enhancedHud.js': 9,   // HUD/GROWTH PATCHES (2026-10-20): counted as they arrived at their merge with main - English until a slice routes them through t() (SKILL-READY, FIRM-STARS: +3, the two tiles' names and their cell's class)
   'src/ui/enhanced/enhancedInventory.js': 89,   // HUD/GROWTH PATCHES (2026-10-20): counted as they arrived at their merge with main - English until a slice routes them through t() (BELT-LANTERN: +5, the lantern slot's acts)
   'src/ui/enhanced/enhancedLevelingChoice.js': 6,
-  'src/ui/enhanced/enhancedMenu.js': 60,   // AUDIT COLLECTIONS-II: -2, the empty Holdings rail's words, gone with the rail that is never empty now. AUDIT EG V (c, L7-10): the Spire's three accessibility rows routed; UI-CALM's doors at the merge of main
+  'src/ui/enhanced/enhancedMenu.js': 55,   // QUEST-AUDIT III SHELF-WORDS: -5, the shelf's buttons and lines through t(). AUDIT COLLECTIONS-II: -2, the empty Holdings rail's words, gone with the rail that is never empty now. AUDIT EG V (c, L7-10): the Spire's three accessibility rows routed; UI-CALM's doors at the merge of main
   'src/ui/enhanced/enhancedMerchantPanel.js': 1,
   'src/ui/enhanced/enhancedNotice.js': 1,
   'src/ui/enhanced/enhancedPlayerTrade.js': 14,

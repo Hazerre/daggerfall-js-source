@@ -389,7 +389,10 @@ test('AUDIT PARTY8 + PARTY-REST by source: world.js\'s seams - the mirror\'s key
   assert.match(w, /_cancelSeen = snapshotCancels\(social\.others\(\)\);/, 'the markers snapshotted as my rest begins');
   assert.match(w, /readyAt: _partyRestReady && Number\.isFinite\(_partyRestReadyAt\) && _partyRestReadyAt > 0 \? _partyRestReadyAt : null,/);
   assert.match(w, /if \(_partyRestVoteOrigin\) \{ _partyRestVoteOrigin\[0\] \+= r\.offset\[0\]; _partyRestVoteOrigin\[1\] \+= r\.offset\[1\]; _partyRestVoteOrigin\[2\] \+= r\.offset\[2\]; \}/, 'PARTY-REST16\'s origin follows the floating origin');
-  assert.match(w, /if \(q\) _questSyncSeen\.set\(quest\.questName, shareSignature\(q\)\);/, 'what I just received is what I have seen: no echo (DISC28-I: by the sync\'s own measure)');
+  // PIN MOVED (QUEST-AUDIT III PROGRESS-KEPT / GOLD-HOLDERS, questShare.js syncBaselineAfter): a resync's baseline is its
+  // signature (no echo); a copy new here, or one that kept its own progress, answers once - AUDIT QA3 E4: a held answer
+  // keeps the baseline it found (`prev`)
+  assert.match(w, /if \(q\) _questSyncSeen\.set\(quest\.questName, syncBaselineAfter\(q, result, _questSyncSeen\.get\(quest\.questName\)\)\);/, 'what I just received is what I have seen: no echo (DISC28-I: by the sync\'s own measure)');
   assert.match(w, /peerBodies\.sync\(afoot, onlineToScene, dt, player\.pos, \{ priority: \(id\) => !!social\?\.isPartyPeer\(id\), conceal: veilOf \}\);/);   // RIDE: the bodies stand the peers afoot - a rider is peerRiders' (hcc_park.test.js)
   assert.match(w, /inside: \(\) => \(modes\?\.mode \?\? 'exterior'\) !== 'exterior',/, 'the mirror\'s deps say where the follower stands');
   assert.match(w, /const restWin = mode === 'interior' \? modes\?\.restState/, 'OVH4: a party\'s rest is the party card on either skin - every skin\'s rest is mirrored (ONLINE-REST1\'s classic arm retired)');
