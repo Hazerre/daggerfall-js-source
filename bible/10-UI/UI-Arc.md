@@ -1316,6 +1316,11 @@ their cue); `tools/introCapture.mjs` muxes that render into its review
 video; `tools/introProbe.mjs`'s failure path is now a browser without Web
 Audio. Pins: `test/systems/intro3_score.test.js` (5) and `test/ui/intro.test.js`
 (the session around the player). Mutants: `tools/mutants/intro3.json`, 18, all dead.
+`intro-quality.yml` runs those two files before its probes, not `npm run check` in
+series (2026-10-23, the owner's call): the whole suite had outgrown the job's 25
+minutes, so every intro run from 2026-10-16 was cancelled before a probe ran, and
+`verify.yml` already runs the whole gate on every pull request
+(`09-Testing/Testing.md`, CI in parallel).
 
 ## U65 THE INTRO (2026-08-30) - HISTORICAL REMOVAL
 
