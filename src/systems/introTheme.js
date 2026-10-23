@@ -25,7 +25,7 @@ export const MENU_THEME_GAIN = 0.26;
  *  orchestral mix (L/R correlation 0.59 over its body) and the dry render was all but mono (0.985), so the session puts
  *  a concert hall under the player's master: an impulse built from I3DL2 numbers the way the engine's reverb zones are
  *  (systems/reverbPresets.js) - a long pre-delay, a 2.6 s tail dark at the top, the early reflections low. */
-export const INTRO_HALL = Object.freeze({ room: -1000, roomHF: -200, decayTime: 2.6, decayHFRatio: 0.7, reflections: -900, reflectionsDelay: 0.024, reverb: -150, reverbDelay: 0.034, HFReference: 4000, diffusion: 100, density: 100 });
+export const INTRO_HALL = Object.freeze({ room: -1000, roomHF: 0, decayTime: 2.6, decayHFRatio: 0.8, reflections: -900, reflectionsDelay: 0.024, reverb: -150, reverbDelay: 0.034, HFReference: 4000, diffusion: 100, density: 100 });
 /** How loud the hall is beside the dry sound (the wet gain). */
 export const INTRO_WET = 1.6;
 

@@ -50,7 +50,7 @@ test('INTRO3: the song is the shape the game’s player plays - sorted, in range
   assert.equal(song.durationTicks, introTick(LAST_BAR + 1));
   assert.equal(song.seamless, true, 'it loops on its bar line, as the recording looped');
   assert.equal(songLevel(song), INTRO_LEVEL);
-  assert.deepEqual(songPress(song), { threshold: -14, knee: 12, ratio: 3, attack: 0.012, release: 0.25, out: 2.6, ceiling: -1 });
+  assert.deepEqual(songPress(song), { threshold: -14, knee: 12, ratio: 3, attack: 0.012, release: 0.25, out: 2.4, ceiling: -1 });
   assert.equal(INTRO_PRESS.ceiling, -1);
   const rank = { programChange: 0, controller: 0, noteOn: 1 };
   for (let i = 1; i < song.events.length; i++) {

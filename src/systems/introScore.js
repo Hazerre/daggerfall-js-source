@@ -98,7 +98,7 @@ const KIT_LEVEL = 112;
  *  press lets a drum's first 12 ms through (EG-ROAR's lesson - at 3 ms it clamped every taiko and kick to the pads'
  *  level). Measured through the real player, second by second against the recording: tools/introScoreProbe.mjs. */
 export const INTRO_LEVEL = 1;
-export const INTRO_PRESS = Object.freeze({ threshold: -14, knee: 12, ratio: 3, attack: 0.012, release: 0.25, ceiling: -1, out: 2.6 });
+export const INTRO_PRESS = Object.freeze({ threshold: -14, knee: 12, ratio: 3, attack: 0.012, release: 0.25, ceiling: -1, out: 2.4 });
 /** GM kit keys (gmSynth.js DRUMS). */
 const KIT = Object.freeze({ kick: 36, snare: 38, clap: 39, lowTom: 41, floorTom: 43, tom: 45, midTom: 47, crash: 49, splash: 55, surdo: 87 });
 
@@ -280,8 +280,9 @@ const MELODY = Object.freeze({
  *  low drums on one and three, 2 the 3-3-2 groove, 3 the groove with the backbeat), and who joins - read off the
  *  recording's loudness and its stems (the drums drop out at 14-18 s and 28-32 s, the bass at 118-124 s). */
 /** INTRO3b: `halo` - the tremolo violins over the choir's chord: a shimmer through the opening, the cloud break's held C
- *  and the big sections; `octave` reaches the cloud break's and the impact's calls (the horn in octaves with the violins);
- *  `pad` widens to the fullest sections too. */
+ *  and the big sections; `octave` reaches the cloud break's and the impact's calls (the horn in octaves with the violins).
+ *  The pad stays the quiet bars' (the opening, the cloud break, the breakdown, the close): under the full band it is low
+ *  mids the recording's body does not have - measured, the whole song's spectral centre sat 55 Hz under the film's with it. */
 /** @typedef {{ dyn: number, kit: 0 | 1 | 2 | 3, pulse?: boolean, choir?: boolean, brass?: boolean, octave?: boolean, harp?: boolean, pad?: boolean, bare?: boolean, halo?: boolean }} Shape */
 /** @type {(m: number) => Shape} */
 function shapeOf(m) {
@@ -294,13 +295,13 @@ function shapeOf(m) {
   if (m <= 24) return { dyn: 1, kit: m <= 22 ? 2 : 1, pulse: true, choir: true, brass: m === 17 || m === 18, halo: m <= 20 };
   if (m <= 33) return { dyn: 0.85, kit: m >= 28 && m <= 31 ? 1 : 2, pulse: true, harp: true };
   if (m <= 40) return { dyn: 1, kit: 2, pulse: true, choir: true, octave: true, halo: true };
-  if (m <= 48) return { dyn: 1.05, kit: 3, pulse: true, choir: true, brass: m >= 44, octave: true, halo: true, pad: true };
+  if (m <= 48) return { dyn: 1.05, kit: 3, pulse: true, choir: true, brass: m >= 44, octave: true, halo: true };
   if (m <= 50) return { dyn: 1, kit: 2, pulse: true, choir: true, brass: true };
-  if (m <= 55) return { dyn: 1.1, kit: 3, pulse: true, choir: true, brass: true, halo: true, pad: true };
+  if (m <= 55) return { dyn: 1.1, kit: 3, pulse: true, choir: true, brass: true, halo: true };
   if (m <= 58) return { dyn: 1, kit: 2, pulse: true, choir: true };
   if (m <= 60) return { dyn: 0.85, kit: 2, pad: true, harp: true, bare: true };   // the breakdown: the drums on, the bass gone
-  if (m <= 66) return { dyn: 1.05, kit: m >= 63 ? 3 : 2, pulse: true, choir: true, brass: m >= 64, octave: m >= 63, halo: m >= 63, pad: m >= 63 };
-  if (m <= 75) return { dyn: 1.12, kit: 3, pulse: true, choir: true, brass: true, octave: true, halo: true, pad: true };
+  if (m <= 66) return { dyn: 1.05, kit: m >= 63 ? 3 : 2, pulse: true, choir: true, brass: m >= 64, octave: m >= 63, halo: m >= 63 };
+  if (m <= 75) return { dyn: 1.12, kit: 3, pulse: true, choir: true, brass: true, octave: true, halo: true };
   if (m < CLOSE_BAR) return { dyn: 1, kit: 2, pulse: true, choir: true, octave: m <= 77, halo: m <= 77 };
   return { dyn: 0.9, kit: 0, choir: true, pad: true, halo: true };
 }
@@ -409,7 +410,7 @@ function bandBar(w, m) {
       // INTRO3b: the low brass's braam under the section, and the halo - the tremolo violins on the chord an octave
       // over the choir
       if (s.brass) w.note('brass', m, half, len * 0.9, midiNote(c.brass[0]) - 12, 96 * d);
-      if (s.halo) for (const n of c.choir) w.note('halo', m, half, len, midiNote(n) + 12, 88 * d);
+      if (s.halo) for (const n of c.choir) w.note('halo', m, half, len, midiNote(n) + 12, 96 * d);
     }
     if (s.pulse) {
       const p = pulseNote(c.root);
@@ -435,7 +436,7 @@ function bandBar(w, m) {
   if (s.kit >= 2) w.note('timpani', m, 2, 1, midiNote(CHORDS[h2].root) + 12, 80 * d);   // INTRO3b: the timpani answers on three
   // INTRO3b: the suspended cymbal's wash under the groove - soft, on one and three, on every beat where the drums are
   // fullest (the bar line's own crash stands over it where they meet)
-  if (s.kit >= 2) for (const b of s.kit >= 3 ? [0, 1, 2, 3] : [0, 2]) w.hit('crash', m, b, (s.kit >= 3 ? 42 : 36) * d);
+  if (s.kit >= 2) for (const b of s.kit >= 3 ? [0, 1, 2, 3] : [0, 2]) w.hit('crash', m, b, (s.kit >= 3 ? 54 : 46) * d);
   if (s.kit >= 2) {
     for (const b of [0, 0.75, 1.5, 2, 2.75, 3.5]) w.hit('kick', m, b, (b === 0 || b === 2 ? 108 : 90) * d);
     w.hit('lowTom', m, 1.5, 84 * d);
