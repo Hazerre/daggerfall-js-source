@@ -1493,6 +1493,101 @@ Pins: `test/render/auditshaderstall.test.js` (8), `shaderstall`'s spells' warm p
 the portal's door. Mutants: `tools/mutants/audit_perfpass.json`'s ASS records, all dead; `shaderstall.json`'s four and
 `gatemix.json`'s one re-aimed, dead.
 
+## AURA-STALL — the auras' program, started with the passes play meets
+
+*A player (2026-10-22, #1137): "when I exit overworld travel near a lot of players (>20, usually near a Dagon Breach) my
+client completely freezes for about 5-10 seconds".*
+
+**Found.** The aura pass (`render/auraRing.js`) was built in play at its first use, outside SHADER-STALL's door.
+`drawAuras` made it the first frame a wearer stood within `AURA_RANGE_M` of the eye, and its constructor's
+`buildProgram` read the link, which waits for the whole compile. Its one program carries every look: 81 KB of fragment
+shader, 1,158 lines, 19 loops. The travel view draws no aura (`world.js:"if (!online || travelView?.active) return;"`),
+so a player who rode the Overworld to a crowd met the build on the frame the view came down. A crowd at a Breach nearly
+always holds a wearer. The pass was tried once a page, and Chromium's shader cache answers a source it has compiled
+before (57 ms on a reload), so the freeze came once, on the first session after a change to the aura's shaders.
+
+**The fix.** SHADER-STALL's pattern:
+- `AURA_PROGRAMS` stands beside `AuraRingRenderer`, and the constructor builds from it. SUPERSEDED at AURA-SPLIT
+  (below): the list is every look's program, and the constructor builds none.
+- `render/playPrograms.js` starts it at the boot's idle with the passes play meets, where the driver compiles beside
+  the frames.
+- The world builds the pass through `compiledPass` and never asks it as needed. An aura is cosmetic, so a wearer stands
+  without it while its program compiles. The capes' pose and swing are stepped meanwhile. Without the extension, the
+  pass is built at its first wearer as before. SUPERSEDED in part at AURA-SPLIT: the world's door
+  (`world.js:"const auraPassOf = compiledPass(renderer.gl, [],"`) waits on no program, and each look's waits at its own.
+
+bootWorld lost 3 logical lines (its ceiling 36,256 -> 36,253, `test/scenes/hostceiling.test.js`; 36,287 -> 36,284 at the
+merge of main past STAFF-PANEL5's wiring).
+
+THE FOUR HOSTS: `scenes/world.js` WIRED - the one host that builds the aura pass. `scenes/worldModes.js` draws the
+interior's and the dungeon's auras through the host's `drawVeiledPeerBodies`, and `scenes/dungeonContext.js` through
+the late-world hook worldModes hands it, so both take the world's door. `scenes/exterior.js` (the fixed city) runs no
+online session and draws no aura.
+
+**Measured.** On the player's machine (Windows 11, NVIDIA RTX 5080, ANGLE D3D11, the desktop app's Chromium), each
+build salted so that no cache answered:
+
+| Program | Blocking build (compile, link, the LINK_STATUS read) |
+|---|---|
+| `GATE_PASS_PROGRAMS` (2) | 62-90 ms |
+| `NODE_GLINT_PROGRAMS` (2) | 575-762 ms |
+| `AURA_PROGRAMS` (1) | 8,476-11,108 ms (5 runs) |
+
+Through `KHR_parallel_shader_compile`, the aura's program completed after 9.1-9.6 s. No poll took more than 0.1 ms,
+and the link read after completion took 0.0 ms. A draw and a 1-pixel `readPixels` every 16 ms during that compile:
+p95 0.9 ms, worst 1.9 ms (0.7 ms and 1.2 ms with nothing compiling).
+
+**Not measured.** The live game with a crowd: the link between the report and this build is the code path and the
+timings above. Other GPUs and drivers. A machine with fewer cores, where the background compile shares the CPU with
+the frames, and where ANGLE's compile threads are few: a pass a fight asks as needed (`get(true)`) inside the aura's
+compile could wait behind it. A player who never goes online still pays the background compile at a boot the shader
+cache misses; starting it at the first welcome instead is left for a measurement that shows the cost.
+
+Pins: `test/render/shaderstall.test.js` (AURA-STALL, and the auras in the list-and-constructor pin). Pins moved:
+`auditshaderstall.test.js` (the passes play meets), `wb9g_insignia.test.js` (a fire that will not build) and
+`shadowcloak.test.js` (the aura's import line). Mutants: `tools/mutants/aurastall.json`, 5, all dead;
+`audit_perfpass.json`'s ASS-a-play-pass-left-out and `hostsplit.json`'s HOST-SPLIT-a-ceiling-under-its-host re-aimed
+by content, both dead.
+
+## AURA-SPLIT — one program a look
+
+*#1143 (2026-10-22): after AURA-STALL the aura's one program still took 8.5-11.6 s to compile, off the main thread.*
+
+**Found.** The aura pass's one program held every look in `AURA_LOOK`, picked per wearer by the `uAura` uniform. On
+AURA-STALL's machine (ANGLE D3D11, RTX 5080, each build salted) the whole source compiled in 10.9 s. The same source with
+`uAura` declared one look's constant compiled in 67-472 ms a look, and 1.65 s for the Holo Shadow Cloak: 4.1 s for all
+fourteen. Once the kind is a constant, the compiler drops every other look's code. A change to any one look also changed
+the one program that every player's shader cache keyed.
+
+**The fix.**
+- `auraPrograms(kind)` is the whole source with `uniform int uAura;` declared `const int uAura = <kind>;`. `AURA_PROGRAMS`
+  is every look's, started at the boot's idle as before (`render/playPrograms.js`).
+- The pass compiles nothing when it is built. `programOf(kind)` builds a look's program at its own door
+  (`compiledPass`) once the driver says it is compiled. A wearer whose look still compiles stands without the aura that
+  frame; the capes' pose and swing are stepped meanwhile.
+- The wearers are drawn farthest first, as before. A look's program is bound again only where the look changes, and is
+  handed the draw's camera, clock and fog once a draw (`_bind`).
+- The world's door waits on no program (`world.js:"const auraPassOf = compiledPass(renderer.gl, [],"`): it builds the
+  pass at the first wearer in range, and a throw costs the auras, never the game.
+- Without `KHR_parallel_shader_compile`, each look is built at its first draw and waits for that look's compile alone.
+
+`tools/auraProbe.mjs` asks every look's program built and linked. bootWorld's logical lines are unchanged.
+
+THE FOUR HOSTS: as AURA-STALL's. `scenes/world.js` WIRED; `scenes/worldModes.js` and `scenes/dungeonContext.js` draw
+through its hooks; `scenes/exterior.js` draws no aura.
+
+**Not measured.** The real game, other GPUs and drivers, and how ANGLE's threads share the fourteen compiles at the boot.
+
+Pins: `test/render/shaderstall.test.js` (AURA-SPLIT, which takes AURA-STALL's test and the auras' row of the
+list-and-constructor pin). Pins moved: `aegis`, `crystalfist`, `primarch`, `seraphwings`, `shadowcloak` and `wikimaid`
+(a wearer's look is the program bound, read through `kindOf`, and each look's program is handed the draw once), and
+`wb9g_insignia` (the world's door). The AURA-SPLIT pin also holds a look that will not build: told once, its wearers
+stand without it, and the other looks are drawn. `shadowcloak.test.js`'s import line is main's again. Mutants:
+`tools/mutants/aurasplit.json`, 4, all dead. Re-aimed by content, all dead: `aurastall.json`'s AS-a-look-off-its-list,
+AS-a-look-asked-as-needed and AS-the-door-waits-on-the-looks, `aegis.json`'s AEGIS-the-kind-never-set and
+`shadowcloak.json`'s SHADOWCLOAK-the-strip-not-the-cloth. The 41 records the other aura lists (`aegis`, `crystalfist`,
+`primarch`, `seraphwings`, `shadowcloak`, `wb9g`, `wikimaid`) hold on the pass: 41 dead.
+
 ## SNOW-BUDGET — the snow the ground keeps holds to its frame budget
 
 *The same capture, handed on by the owner (2026-10-20): "something about our weather system affecting fps".*
