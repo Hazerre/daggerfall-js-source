@@ -1,0 +1,308 @@
+[
+  {
+    "name": "JUNGLE-ROADSIDE-the-root-by-the-lowest-band",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "        if (y >= 0) continue;",
+    "new": "        if (y >= 2.5) continue;",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-anchor-off-the-roots-middle",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "const ax = (roots[0].x + roots[1].x) / 2, az",
+    "new": "const ax = roots[0].x, az",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-sink-read-upside-down",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "base: low - speciesLow[species] };",
+    "new": "base: speciesLow[species] - low };",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-a-root-drifted",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "Object.freeze([Object.freeze([-3.256, 17.506]),",
+    "new": "Object.freeze([Object.freeze([-3.256, 17.526]),",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-a-foot-drifted",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "feet: Object.freeze([6.37, 7.52])",
+    "new": "feet: Object.freeze([6.37, 7.58])",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-over-road-low-read-across-the-whole-gap",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "points[i + 2] * uz - mid) <= PATH_HALF_M)",
+    "new": "points[i + 2] * uz - mid) <= PATH_HALF_M * 3)",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-a-base-dropped",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "trees: trees.map((t, k) => ({ species: t.species, x: t.x, z: t.z, y: y + m.base[k] * js }))",
+    "new": "trees: trees.map((t) => ({ species: t.species, x: t.x, z: t.z, y }))",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-pairs-run-wearing-the-first-species-atlas",
+    "file": "src/world/jungle/jungleModels.js",
+    "old": "subs: m.subs.map((s) => ({ atlas: atlasOf(s.picture),",
+    "new": "subs: m.subs.map((s) => ({ atlas: JUNGLE_SPECIES[0].key,",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-a-near-only-prototypes-far-picture-drawn",
+    "file": "src/systems/lowPolyTreesAssets.js",
+    "old": "          if (proto.nearOnly) {\n",
+    "new": "          if (false) {\n",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-its-handles-absent-texture-given-back",
+    "file": "src/systems/lowPolyTreesAssets.js",
+    "old": "if (h && h.record != null) renderer.releaseTexture",
+    "new": "if (h) renderer.releaseTexture",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-turn-ignored",
+    "file": "src/world/lowPolyTrees.js",
+    "old": "trees[o + 5] = g.turn ? g.turn[i] : v.yaw;",
+    "new": "trees[o + 5] = v.yaw;",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-turnXZ-turned-the-other-way",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "[Math.cos(t) * x + Math.sin(t) * z, -Math.sin(t) * x + Math.cos(t) * z]",
+    "new": "[Math.cos(t) * x - Math.sin(t) * z, Math.sin(t) * x + Math.cos(t) * z]",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-gap-off-the-line",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "mid = ((m.feet[0] - m.feet[1]) / 2) * js;",
+    "new": "mid = 0;",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-axis-along-the-road",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "const ux = flip ? rz : -rz, uz = flip ? -rx : rx;",
+    "new": "const ux = flip ? rx : -rx, uz = flip ? rz : -rz;",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-feets-band-unasked",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "roadRoom(net, px, py, t.x, t.z, t.foot) >= t.foot && trailOk(",
+    "new": "trailOk(",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-stations-chance-whole",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "if (tileDraw(wx, wz, R.salt) >= R.chance) continue;",
+    "new": "if (false) continue;",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-pairs-own-spacing-unasked",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "if (trees.some((t) => trunks.some((u) => Math.hypot(t.x - u.x, t.z - u.z) < R.clear * js))) continue;",
+    "new": "",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-highest-ground-taken",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "<= r) lo = Math.min(lo, heightmapData[i * hDim + j] * yScale);",
+    "new": "<= r) lo = Math.max(lo, heightmapData[i * hDim + j] * yScale);",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-sink-raised-out-of-the-ground",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "lowest(t.x, t.z, t.foot))) - R.sink;",
+    "new": "lowest(t.x, t.z, t.foot))) + R.sink;",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-rim-unread",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "for (let k = 0; k < RIM; k++) lo =",
+    "new": "for (let k = 0; k < 0; k++) lo =",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-burial-unasked",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "if (trees.some((t) => groundAt(heightmapData, t.x, t.z) - y > R.bury)) continue;",
+    "new": "",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-headroom-unasked",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "if (road - y > m.over * js - R.headroom) continue;",
+    "new": "",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-canopy-over-a-pairs-trunk",
+    "file": "src/world/terrain/jungleNature.js",
+    "old": "      if (nearPair(mx, mz, JUNGLE_ROADSIDE.clear)) continue;   // JUNGLE-ROADSIDE: no canopy tree crowds a pair's trunk\n",
+    "new": "",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-young-trees-over-it",
+    "file": "src/world/terrain/jungleNature.js",
+    "old": "      if (nearPair(mx, mz, JUNGLE_ROADSIDE.clear)) continue;   // JUNGLE-ROADSIDE: nor a young tree or a palm\n",
+    "new": "",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-floor-over-it",
+    "file": "src/world/terrain/jungleNature.js",
+    "old": "crowded(mx, mz, cx, cy, JUNGLE.coverClear) || nearPair(mx, mz, JUNGLE.coverClear)) continue;",
+    "new": "crowded(mx, mz, cx, cy, JUNGLE.coverClear)) continue;",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-network-not-handed-on",
+    "file": "src/world/terrain/terrainGen.js",
+    "old": "pois: placesFor(jungle.hidden), paths, net: roads }",
+    "new": "pois: placesFor(jungle.hidden), paths }",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-a-lone-tree-kept",
+    "file": "src/world/jungle/jungleRoadside.js",
+    "old": "return [...by.values()].filter((p) => p.trees.every((t) => t && keep(t)));",
+    "new": "return [...by.values()].filter((p) => p.trees.some((t) => t && keep(t)));",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-spans-turn-dropped",
+    "file": "src/scenes/roadsidePairs.js",
+    "old": "entry.turn.push(p.turn);",
+    "new": "entry.turn.push(0);",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-span-unheld",
+    "file": "src/scenes/roadsidePairs.js",
+    "old": "        door.acquire(h);\n",
+    "new": "",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-fallback-lost",
+    "file": "src/scenes/roadsidePairs.js",
+    "old": "const gk = h ? `P${p.kind}.${side}` : `J${t.jungle}`;",
+    "new": "const gk = `P${p.kind}.${side}`;",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-a-pair-tree-in-the-near-set",
+    "file": "src/scenes/pixelBuild.js",
+    "old": "if (!g.span) jungleSet.push(",
+    "new": "jungleSet.push(",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-a-pair-tree-never-giving-way-to-its-span",
+    "file": "src/scenes/pixelBuild.js",
+    "old": "batch.lptProto = g.span ?? far;",
+    "new": "batch.lptProto = far;",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-a-pair-tree-Loggings",
+    "file": "src/scenes/pixelBuild.js",
+    "old": "if (!g.span) forestGroups.set(gk, { batch, centers: g.centers, size: far.size, scales });",
+    "new": "forestGroups.set(gk, { batch, centers: g.centers, size: far.size, scales });",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-a-pair-tree-stood-alone-by-the-loop",
+    "file": "src/scenes/pixelBuild.js",
+    "old": "      if (jungleOk && f.pair != null) { pairFlats.push(f); continue; }\n",
+    "new": "",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  }
+]

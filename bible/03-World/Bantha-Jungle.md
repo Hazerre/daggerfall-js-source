@@ -14,7 +14,8 @@ in the jungle ... no band aids."**
 the map's edge (`world/jungle/banthaArea.js`; BANTHA1 stood it on Glenpoint, region 18, once Bantha's own region proved to
 hold no land: AUDIT BANTHA1 RISK) - stands as a jungle in four storeys - the owner's five trees closing a canopy
 overhead, emergents above it, young trees and palms in its light gaps, ferns and flowers on its floor, and under them a
-carpet of grass, ferns and broad leaves with no earth showing (The floor) - under a humid
+carpet of grass, ferns and broad leaves with no earth showing (The floor), and pairs of its trees astride its roads
+with lianas strung across them (The roadside pairs) - under a humid
 haze that is thickest at dawn and in rain, fog and storms, thins as the player climbs out of it, and drifts. Its edge is no line:
 the trees come in as stands and the air closes over a kilometre. Inside it, the haze hides the streamed world past a
 kilometre or so - and what it hides is not drawn, so the jungle pays for itself. Its own Features row (`bantha-jungle`,
@@ -25,7 +26,7 @@ the World tab's Land section), on by default; forced on online.
 `src/assets/jungle/source/` holds the zip as they handed it over, byte for byte (`test/tooling/doctrine.test.js`'s
 SUPPLIED rows): five Blender 5.2 OBJs, their MTLs and one 252x164 RGBA picture each, cut by its alpha (every texel 0 or
 255, a stray 1 in one). Nothing is baked: the game fetches the fifteen files the first time a pixel stands a jungle tree
-(~0.24 MB) and reads them (`world/jungle/jungleModels.js`, `systems/jungleTreesAssets.js`).
+(~0.24 MB; with the roadside pairs' six, The roadside pairs, 21 and 0.35 MB) and reads them (`world/jungle/jungleModels.js`, `systems/jungleTreesAssets.js`).
 
 | Species | File | Tree record (archive 500) | Triangles | Height | Crown reach | Foot | Crown from | Trunk |
 |---|---|---|---|---|---|---|---|---|
@@ -190,6 +191,78 @@ block only where a family's floor is under the half width, and a tree asks its o
 is under its foot: exactly the answer of reading every corner and every tree (`test/world/jungletrails.test.js`), about
 2.5 ms a whole jungle pixel on the terrain worker, against the kernel's 23.5 on the same machine - never on the frame's
 thread.
+
+## The roadside pairs
+
+**JUNGLE-ROADSIDE (2026-10-23, the owner, through Mac, with `pine.obj`, `pine-1.obj` and `pine2.obj`: "These trees are
+meant for the jungle biome and roadside. Making it more like a jungle with the vines stringing across the roads", and
+to have them "sunk into the ground so they dont float").** Along the roads and tracks through the jungle, pairs of the
+owner's trees stand one each side of the road with lianas strung between their crowns across it - about one every
+hundred metres of road.
+
+**The owner's files** (`src/assets/jungle/source/`, byte for byte under their own names - Blender's file was
+`pine.blend`; `test/tooling/doctrine.test.js`'s SUPPLIED rows). Each is a PAIR of the jungle's own trees 33 to 36 m
+apart, and between them three ribbons and four drops of liana - the band of the fig's picture its hanging vines are
+drawn in, laid on its side, so each vine drawn down the picture runs from one crown to the other. They wear the five
+trees' pictures and no picture of their own.
+
+| Pair | File | Its trees | Triangles | Roots apart | Feet | Lowest over the road |
+|---|---|---|---|---|---|---|
+| leaning | `pine` | the mahogany, and a kapok leant over the road on a mound (its crown over the road's middle) | 416 | 33.85 m | 6.37 / 8.53 m | 4.21 m |
+| fig | `pine-1` | the mahogany and a fig | 461 | 35.61 m | 6.37 / 7.52 m | 7.53 m |
+| sunk | `pine2` | the mahogany, and a kapok sunk 2 m into its ground | 408 | 33.07 m | 6.37 / 8.53 m | 4.21 m |
+
+**Read whole** (`world/jungle/jungleRoadside.js` `readPair`). A pair's near tree is its file as the owner drew it -
+both trees, the leaning kapok's own shape, the lianas - one prototype of the jungle's door with a run of faces a picture
+(`jungleModels.js` `objMesh`: jungleMesh's mirror, fan and winding), moved so its ANCHOR, the middle of its two roots,
+is the origin. A ROOT is the middle of what its tree's picture sinks below the owner's ground (y 0), never the lowest
+band of it as a lone tree's is: the fig's lianas hang to 0.66 m beside its trunk and would pull that root 2 m toward the
+road. Each tree's `base` is where it stands against its species' own file (the sunk kapok's -2 m). **Measured** off what
+it draws (`measurePair` over `eachDrawn`, measureTree's own sampler): each tree's foot - the drawn points under 3 m
+nearer its root than the other's - the pair's height, and the lowest it hangs over its road, within a road's half band
+(6.4 m) of the middle of the gap between its feet - the drops' tips and the leaning kapok's crown; the lianas' bulk hangs
+at 7 to 14 m. The table (`JUNGLE_PAIR_MEASURES`) is the terrain worker's; the test measures the files again and holds it
+to them.
+
+**Where a pair stands** (`standPairs`, run by `withJungle` before its storeys, with the network the road painter painted
+with - `world/terrain/terrainGen.js` hands it on). Along each arm of the pixel's roads and tracks (VERGE1's arms and
+bands, `world/road/roadVerge.js` `ARMS`, `roadRoom`), a station every 40 m from 44 m out (past a junction) to 24 m
+short of the pixel's edge, slid along the road by up to 8 m - each station's draws a hash of its world tile, every
+client alike - and at 60% of them a pair of one of the three, turned either way round, at 0.92 to 1.08 of the owner's
+size: its axis across the road and the gap between its feet centred on the road's line (a band 12.8 m wide between feet
+18 to 22 m apart). It stands only where both trunks are 12 m inside the pixel, on ground the jungle's trees stand on (the
+jungle whole, a ground that grows, no slope past 34 degrees, no place's fields or clearing), with both feet off every
+road and track band - its own pixel's and its neighbours', a junction's other roads - and off the trails, and no trunk
+of another pair within 9 m. Every canopy tree, young tree and palm keeps 9 m off a pair's trunk, the floor's plants the
+canopy's own 2.2 m.
+
+**Sunk, never floating.** A pair is one rigid thing - its lianas hang from both crowns - so it stands at the LOWEST
+ground under either foot, less 0.3 m (`JUNGLE_ROADSIDE.sink`). The ground is bilinear across each heightmap cell, so its
+lowest under a foot is at a sample inside the foot or on its rim (32 samples round it: found to a millimetre or two,
+well inside the sink). Nowhere under either foot is the ground lower than the pair's own; the uphill tree's roots go into
+the slope. It stands only where neither trunk is buried more than 3 m (`bury`: its own ground over the pair's) and the
+road between them - its line and its band's two edges - stays 1.5 m under what hangs lowest over it (`headroom`): about
+a 6% slope across the road at most. The sunk kapok's own 2 m rides on top.
+
+**In the game** (`scenes/roadsidePairs.js`, a module the pixel's build wires - HOST-SPLIT). A pair stands whole or not
+at all (`wholePairs` - the gate's clearing and the rocks, as every flat). Near the eye its SPAN - the owner's file, one
+instance in the jungle door's near set at its anchor, turned across its road (`world/lowPolyTrees.js` `buildTreeSet`'s
+`turn`) - draws both trees and the lianas; its prototype is near-only (`nearOnly`): a handle for the near set alone, no
+far picture drawn or uploaded (`systems/lowPolyTreesAssets.js` `farPicture`). Its two trees join groups of their own
+among the build's jungle groups (`P<kind>.<side>`): each stands as its species' far picture past the handover - the batch
+giving way near the eye where its span draws (`lptProto`) - with its species' trunk body and cover, but never in the near
+set (the span draws it) and never Logging's (a felled tree would leave lianas strung to nothing). The span sways with the
+wind as the jungle's trees do, by its first tree's record. A pair whose span cannot stand stands its trees as the
+canopy's own.
+
+**What it costs.** On the freeware's ground, 61 of the 5,397 road and track pixels in the area sampled: 487 pairs, 8 a
+road pixel (one every hundred metres of road), 55 pixels with any - 16 more of the jungle's trees and 8 spans of 408 to
+461 triangles a road pixel. The layout's work is about the pixel's roads alone, inside the noise of a jungle pixel's
+layout. The door fetches the three OBJs and MTLs (0.11 MB) with the five trees' files: 21, 0.35 MB.
+
+**Known.** Far off, the leaning kapok is the upright kapok's far picture. A span hands over to its trees' far pictures by
+its anchor's distance and each far picture by its own root's - the same along the road, a few metres apart across the
+handover's 20 m band seen from the side.
 
 ## The trees in the game
 
@@ -407,6 +480,9 @@ the jungle under clear air. Read once, as the world loads.
   port's grass carpets the ground with the same pictures on crossed cards and the owner's tuft - the flora at the rate the
   owner judged, the grass at the meadow's own (JUNGLE-GRASS: 3.19 plants a square metre) - and the meadow's grass keeps
   out of it.
+- **The roadside pairs** (JUNGLE-ROADSIDE): DFU's roads run through its nature as the layout leaves them; here the
+  jungle stands the owner's pairs astride its roads and tracks, lianas strung across them, each sunk to the lowest
+  ground under its feet (`world/jungle/jungleRoadside.js`) - never Logging's.
 - **The trails** (JUNGLE-TRAILS): DFU's ground has no paths but the network's roads and tracks; here the jungle wears
   its own trails into its tiles (`world/jungle/jungleTrails.js`), never the network's - the map, the landforms and fast
   travel read only the roads they did.
@@ -459,6 +535,13 @@ pale tuft here and there; after, the tufts and sedge filling the ground between 
 blades in view against 82,253 (a new game's winter takes the meadow's grass under the snow elsewhere; the floor stood
 through it). The ground there: 87% DFU's grass record by place, 1.4% its green stone, which the floor stands nothing on
 (`__findTiles` over the nine pixels about the village).
+
+**JUNGLE-ROADSIDE.** `test/world/jungleroadside.test.js` (8): the pairs read whole and their roots off the owner's own
+mahogany, the measures held to the files, the door's near-only prototypes, the turn the program's, the law on ground
+made for it - astride each road, every foot off every band (a star of eight roads), sunk to the lowest ground under its
+feet (a hollow under one sinks it the whole metre), the burial and the headroom, a steep cross-slope none - the storeys
+kept off them, the build's pairs whole; `tools/mutants/jungleroadside.json` (34, all dead). `bantha1_jungle.test.js`'s
+door (21 files) and kernel (the network handed on) pins moved.
 
 **Recorded.** The five pictures are the owner's own (2026-10-18, at AUDIT BANTHA1's opening: "These textures are ours") -
 no pixel of them is ARENA2's; the doctrine's SUPPLIED rows say so (`test/tooling/doctrine.test.js`). **Where it stands.** On the freeware's own data (`tools/fetch-data.sh`, `tools/jungleExtent.mjs`, 2026-10-18) region

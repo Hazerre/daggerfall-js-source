@@ -47,8 +47,9 @@ export const PATH_HALF_M = PATH_HALF_WIDTH / UNITS_PER_METRE;
 /** A map pixel (m). */
 const PIXEL_M = MP_WORLD_UNITS / UNITS_PER_METRE;
 const HALF_M = PIXEL_M / 2;
-/** Each compass bit's arm: from the pixel's centre to the edge or corner it names, in half pixels (x east, z north). */
-const ARMS = Object.freeze([[N, 0, 1], [NE, 1, 1], [E, 1, 0], [SE, 1, -1], [S, 0, -1], [SW, -1, -1], [W, -1, 0], [NW, -1, 1]]);
+/** Each compass bit's arm: from the pixel's centre to the edge or corner it names, in half pixels (x east, z north) -
+ *  JUNGLE-ROADSIDE's too (world/jungle/jungleRoadside.js stands its pairs astride them). */
+export const ARMS = Object.freeze([[N, 0, 1], [NE, 1, 1], [E, 1, 0], [SE, 1, -1], [S, 0, -1], [SW, -1, -1], [W, -1, 0], [NW, -1, 1]]);
 
 /**
  * THE ROOM BESIDE THE ROAD: how far (m) a pixel-local point - x east, z north, from the pixel's south-west corner, the

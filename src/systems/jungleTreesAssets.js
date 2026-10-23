@@ -5,7 +5,9 @@
 // never a second (THE ONE CONSTRUCTION SEAM). What is the jungle's own:
 //   - ITS DATA: the owner's OBJs, MTLs and pictures (src/assets/jungle/source/, ~0.24 MB), fetched the first time a
 //     pixel stands a jungle tree and read by world/jungle/jungleModels.js readJungleTrees - none of the player's
-//     ARENA2 is read: the pictures are the owner's, decoded, never painted from a record;
+//     ARENA2 is read: the pictures are the owner's, decoded, never painted from a record; JUNGLE-ROADSIDE: and the
+//     owner's three roadside pairs (0.11 MB more), read by world/jungle/jungleRoadside.js readPair into near-only
+//     prototypes after the five trees;
 //   - ITS SLOT: the renderer's tree slot 1 (render/renderer.js setLowPolyTrees), Low Poly Trees' beside it on 0;
 //   - ITS SIZES: a tree is drawn up to JUNGLE_SCALE_MAX of the owner's (the emergents - world/terrain/jungleNature.js
 //     JUNGLE.emergentScale), so its far pictures' batch is sized for that.
@@ -13,6 +15,7 @@
 import { createLowPolyTrees } from './lowPolyTreesAssets.js';
 import { decodePng } from './textureReplacement.js';
 import { readJungleTrees, JUNGLE_SPECIES, JUNGLE_ARCHIVE, jungleRecord } from '../world/jungle/jungleModels.js';
+import { JUNGLE_PAIRS, pairFiles, pairRecord, readPair } from '../world/jungle/jungleRoadside.js';
 import { JUNGLE } from '../world/terrain/jungleNature.js';
 
 /** The largest a jungle tree is drawn, a share of the owner's (the emergents' top). */
@@ -38,6 +41,14 @@ export const JUNGLE_URLS = Object.freeze({
   'jungle_tree5.obj': new URL('../assets/jungle/source/jungle_tree5.obj', import.meta.url).href,
   'jungle_tree5.mtl': new URL('../assets/jungle/source/jungle_tree5.mtl', import.meta.url).href,
   'jungle_tree5_252w.png': new URL('../assets/jungle/source/jungle_tree5_252w.png', import.meta.url).href,
+  // JUNGLE-ROADSIDE: the owner's three roadside pairs (world/jungle/jungleRoadside.js JUNGLE_PAIRS) - they wear the
+  // species' pictures above
+  'pine.obj': new URL('../assets/jungle/source/pine.obj', import.meta.url).href,
+  'pine.mtl': new URL('../assets/jungle/source/pine.mtl', import.meta.url).href,
+  'pine-1.obj': new URL('../assets/jungle/source/pine-1.obj', import.meta.url).href,
+  'pine-1.mtl': new URL('../assets/jungle/source/pine-1.mtl', import.meta.url).href,
+  'pine2.obj': new URL('../assets/jungle/source/pine2.obj', import.meta.url).href,
+  'pine2.mtl': new URL('../assets/jungle/source/pine2.mtl', import.meta.url).href,
 });
 
 const defaultFetch = async (url) => {
@@ -75,11 +86,12 @@ export function createJungleTrees({ renderer, breathe, fetchBytes = defaultFetch
     renderer, breathe, warn, now, slot: 1, scaleMax: JUNGLE_SCALE_MAX, label: 'bantha-jungle', sunLift: JUNGLE_SUN_LIFT,
     treeSet: {
       async load() {
-        const sources = await Promise.all(JUNGLE_SPECIES.map(async (s) => {
-          const [obj, mtl] = await Promise.all([fetchFile(`${s.file}.obj`), fetchFile(`${s.file}.mtl`)]);
-          return { obj: text(obj), mtl: text(mtl) };
-        }));
-        trees = readJungleTrees(sources);
+        const read = (f) => Promise.all([fetchFile(f.obj), fetchFile(f.mtl)]).then(([obj, mtl]) => ({ obj: text(obj), mtl: text(mtl) }));
+        const [sources, pairs] = await Promise.all([
+          Promise.all(JUNGLE_SPECIES.map((s) => read({ obj: `${s.file}.obj`, mtl: `${s.file}.mtl` }))),
+          Promise.all(JUNGLE_PAIRS.map((p) => read(pairFiles(p)))),   // JUNGLE-ROADSIDE
+        ]);
+        trees = readJungleTrees(sources, (pictures, low) => JUNGLE_PAIRS.map((p, k) => ({ record: pairRecord(p), mesh: readPair(pairs[k].obj, pairs[k].mtl, p, pictures, low).mesh })));
         await Promise.all(trees.pictures.map(async (name) => { pictures.set(name, await fetchFile(name)); }));
         return trees;
       },
@@ -94,5 +106,7 @@ export function createJungleTrees({ renderer, breathe, fetchBytes = defaultFetch
   const api = Object.create(door);
   /** The prototype a species stands as, or null (the door not loaded). */
   api.proto = (species) => door.proto(JUNGLE_ARCHIVE, jungleRecord(JUNGLE_SPECIES[species]));
+  /** JUNGLE-ROADSIDE: the near prototype a roadside pair stands as (JUNGLE_PAIRS's index), or null. */
+  api.pairProto = (kind) => door.proto(JUNGLE_ARCHIVE, pairRecord(JUNGLE_PAIRS[kind]));
   return api;
 }

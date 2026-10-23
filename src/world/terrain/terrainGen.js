@@ -174,7 +174,7 @@ export function generatePixelTerrain({ woods, px, py, stride = 1, tilemap, locat
   // places, its trees off the tracks as a forest's are; AUDIT BANTHA1 PERF-6: a pixel the jungle owns whole lays no
   // layout of its own - every flat of it would be dropped
   const nature = withJungle(jungle && jungleWhole(jungle.nine) ? [] : layoutNature(samples, tilemap, natureOpts), samples, tilemap,
-    { ...natureOpts, jungle: jungle ? { nine: jungle.nine, pois: placesFor(jungle.hidden), paths } : null });
+    { ...natureOpts, jungle: jungle ? { nine: jungle.nine, pois: placesFor(jungle.hidden), paths, net: roads } : null });   // JUNGLE-ROADSIDE: and the network, its pairs astride the roads
   return { samples, tilemap, positions: grid.positions, normals: grid.normals, bed: grid.bed, tilemapBytes, avg, nature,
     paths,   // GRASS-PATH1: null when no network was present, as `withRoads` says, and no jungle trail ran (JUNGLE-TRAILS)
     // ROADS 25: whether a network was PRESENT when this pixel was painted.
