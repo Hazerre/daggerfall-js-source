@@ -20,6 +20,14 @@
 //   { dfoStaff: 'unlock' }                         let go
 //   the hook asks { dfoStaff: 'token', sub, room } and the panel answers { dfoStaff: 'token', sub, room, tok } - a
 //   follow token for that room (a token opens each room once), or tok null when the staff session refuses it.
+// STAFF-VIEW1 (2026-10-23, mob: "np player esp in staff panel?", "i need staff panel to have esp"; design doc, In game:
+// the staff view - the staff tags, scenes/staffViewHost.js). Two more, and no version bump: an existing message keeps
+// its meaning, and a panel that does not know these leaves them unanswered (tags then name the player alone):
+//   the hook asks { dfoStaff: 'tags?' }            when the staff view turns on, on Shift+M and every 60 s while on
+//   and the panel answers { dfoStaff: 'tags', dist, list: [{ sub, level, why, watch }] } - kept as validTags reads it:
+//                                                  known fields only, ID_RE subs, TAGS_MAX rows, a why of TAG_WHY_MAX
+//   the host posts { dfoStaff: 'act', act: 'follow', sub, name } after a tag click followed - the chat menu's act shape,
+//   so the panel opens its card on the player the game follows (the panel acts on nothing it carries)
 import { OnlineSession } from './online.js';
 import { SOCIAL_ROOM, cellRoomOfWire, isCellRoom } from './wire.js';
 import { ID_RE, TOKEN_MAX_CHARS } from './identityToken.js';
@@ -28,6 +36,13 @@ import { notePlace } from './staffTeleport.js';
 
 /** The hook's version - the panel reads it and refuses a build it does not know. */
 export const STAFF_HOOK_VERSION = 1;
+/** STAFF-VIEW1: the panel's tags answer, as the game keeps it - rows at most, a flag's words at most, the urgencies, and
+ *  the nameplate distances Your settings offers (m), the middle one when the answer names none of them. */
+export const TAGS_MAX = 200;
+export const TAG_WHY_MAX = 80;
+export const TAG_LEVELS = Object.freeze(['high', 'medium', 'low']);
+export const NAMEPLATE_DISTS = Object.freeze([50, 100, 200]);
+export const NAMEPLATE_DIST = 100;
 /** How long the hook waits for the panel's token before its link counts the room refused. */
 export const STAFF_TOKEN_WAIT_MS = 5000;
 /** The name a follow's sockets say - the relay shows them to nobody, and the token's own name is the service's. */
@@ -100,6 +115,9 @@ export function createStaffHook({ main, askToken, Session = OnlineSession, WS = 
     place: () => (target && on && note ? notePlace({ ...note, ...(room ? { rk: room } : {}) }) : null),
     /** The hub's word, as a session hands it (online.js onFollow). */
     heard,
+    /** STAFF-VIEW1: the players the room I watch from draws - while a follow is locked the host has left its own room
+     *  (its session's peers cleared), so these are the only players the staff view can tag. */
+    peers: () => eye?.drawable?.() ?? [],
     /** Every frame: the hub link held, and the room link where the hub says, standing on the target for range. */
     tick() {
       const m = main?.();
@@ -130,6 +148,31 @@ export function createStaffHook({ main, askToken, Session = OnlineSession, WS = 
   };
 }
 
+/** STAFF-VIEW1: THE PANEL'S TAGS ANSWER, AS THE GAME KEEPS IT - known fields only, read strictly: the nameplate distance
+ *  one Your settings offers (else NAMEPLATE_DIST), and for each account the most urgent flag the rows give it (the
+ *  highest level wins, with its words) and whether a watch names it. A row with an account that is no account id, a
+ *  level that is none of TAG_LEVELS, or nothing to show is dropped; past TAGS_MAX rows nothing is read; words that are
+ *  not a string of TAG_WHY_MAX at most are no words. Null for an answer with no list.
+ *  @param {any} m @returns {{ dist: number, flags: Map<string, { level: string|null, why: string, watch: boolean }> }|null} */
+export function validTags(m) {
+  if (!Array.isArray(m?.list)) return null;
+  /** @type {Map<string, { level: string|null, why: string, watch: boolean }>} */
+  const flags = new Map();
+  const rank = (/** @type {string|null} */ l) => (l ? TAG_LEVELS.indexOf(l) : TAG_LEVELS.length);
+  for (const r of m.list.slice(0, TAGS_MAX)) {
+    if (typeof r?.sub !== 'string' || !ID_RE.test(r.sub)) continue;
+    const level = TAG_LEVELS.includes(r.level) ? r.level : null;
+    const watch = r.watch === true;
+    if (!level && !watch) continue;
+    const why = level && typeof r.why === 'string' && r.why.length <= TAG_WHY_MAX ? r.why : '';
+    const had = flags.get(r.sub);
+    if (!had) { flags.set(r.sub, { level, why, watch }); continue; }
+    if (rank(level) < rank(had.level)) { had.level = level; had.why = why; }
+    had.watch = had.watch || watch;
+  }
+  return { dist: NAMEPLATE_DISTS.includes(m.dist) ? m.dist : NAMEPLATE_DIST, flags };
+}
+
 /** THE PANEL'S DOOR on a window (above) - `hookOf()` the follow; answers the panel's `hook?`, takes its `follow` and
  *  `unlock`, and hands back `askToken` for the follow's links and `panel()`, whether a panel has spoken on this page (a
  *  /tp follows on only then - with no panel no token comes, and its links would knock for nothing). Messages from
@@ -139,6 +182,8 @@ export function staffHookDoor(win, hookOf, { setTimer = setTimeout, clearTimer =
   /** @type {Map<string, (tok: string|null) => void>} */
   const waiting = new Map();
   let seen = false;
+  /** STAFF-VIEW1: the panel's last tags answer (validTags), or null while it has given none. */
+  let tags = /** @type {ReturnType<typeof validTags>} */ (null);
   const origin = win?.location?.origin;
   const post = (/** @type {object} */ m) => win.postMessage(m, origin);
   win?.addEventListener?.('message', (/** @type {any} */ e) => {
@@ -149,6 +194,7 @@ export function staffHookDoor(win, hookOf, { setTimer = setTimeout, clearTimer =
     else if (m.dfoStaff === 'follow') { seen = true; hook?.follow(m.sub); }
     else if (m.dfoStaff === 'unlock') hook?.unlock();
     else if (m.dfoStaff === 'token' && 'tok' in m) waiting.get(`${m.sub}|${m.room}`)?.(typeof m.tok === 'string' && m.tok.length <= TOKEN_MAX_CHARS ? m.tok : null);
+    else if (m.dfoStaff === 'tags') tags = validTags(m) ?? tags;   // STAFF-VIEW1: an answer with no list keeps the last
   });
   /** @param {string} sub @param {string} room @returns {Promise<string|null>} */
   const askToken = (sub, room) => new Promise((resolve) => {
@@ -159,5 +205,6 @@ export function staffHookDoor(win, hookOf, { setTimer = setTimeout, clearTimer =
     waiting.set(k, done);
     post({ dfoStaff: 'token', sub, room });
   });
-  return { askToken, panel: () => seen };
+  // STAFF-VIEW1: `tags()` the panel's last answer, `askTags()` the ask - to this page's own origin, as every word here
+  return { askToken, panel: () => seen, tags: () => tags, askTags: () => post({ dfoStaff: 'tags?' }) };
 }
