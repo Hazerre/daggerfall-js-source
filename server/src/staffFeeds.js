@@ -14,8 +14,11 @@
 // are counted, never parsed for it: a frame's kind is its first word (`{"t":"..."`). Monsters (design doc, Weak spots:
 // "Monster watch would flag honest dungeon hosts"): the distinct live monster ids in each full foes frame a sender streams
 // in an OUTDOOR cell are its own; indoors only the host streams them, so an indoor sender is "host of N monsters", never
-// an owner; and they are counted only while grantStrip is on - the only time the relay reads the foe stream at all (GRANT9)
-// - so the batch says `ms` 0 and the panel "not measured" while it is off.
+// an owner. STAFF-PANEL5-MONSTERS (2026-10-23, mob wants all three feed pages working with grantStrip off - an audit
+// showed the strip hides honest players' monsters, so it stays off): they are counted whatever grantStrip says, on the
+// frame as it fans (stripped first while the switch is on), so a batch says `ms` 1 always and the panel "measured" (an
+// older relay counted them only while grantStrip was on, and said 0 with it off). Read, never changed: no record dropped,
+// altered or held for it.
 //
 // ═══ BOT CHECK: AN ENCOUNTER'S REACTION (mob, 04:47Z: time natural monsters) ═══
 // A natural encounter's grant is asked just before the player's game stands it (index.js _grantMintAsk), so its mint is
@@ -29,7 +32,6 @@
 // posted - the relay release ships dark (design doc, Weak spots: "each relay part behind its own live switch").
 // IN MEMORY ALONE: a woken or evicted room forgets what it counted - a measure is a sample (grantMeasure.js's law).
 import { ID_RE } from '../../src/net/identityToken.js';
-import { relayCfgValue } from '../../src/net/relayCfg.js';
 import { wrapAngle } from '../../src/world/mat4.js';
 import { isCellRoom, foesFrameFull, PIXEL_UNITS } from './relay.js';
 import { NET_FEED_MS, NET_FEED_V, REACT_FEED_V, NET_KINDS, REACT_KINDS, REACT_EPISODE_MS, REACT_FIRST_MS, STAFF_FEED_ROWS, STAFF_FEED_SIG_HEADER, STAFF_FEED_POST_MS, STAFF_FEED_AGE_MAX_MS, NET_HOT, FOE_HOT, sealStaffFeed, netRowOk, foeRowOk, reactRowOk } from './staffFeedLaw.js';
@@ -188,8 +190,14 @@ function foeRow(room, a, make) {
   return row ?? null;
 }
 /**
- * A FOES OR OWN FRAME FANNED (index.js _foesSend) while grantStrip is on: a full frame's distinct live monster ids are its
+ * A FOES OR OWN FRAME FANNED (index.js _foesSend), grantStrip on or off: a full frame's distinct live monster ids are its
  * sender's - owned in an outdoor cell (the most in the window, split regular, elite, boss and sea), hosted anywhere else.
+ * STAFF-PANEL5-MONSTERS: with grantStrip off `data` is the client's own, unstripped: anything JSON parses to, read and
+ * never written. Its work is bounded by the doors before it - a frame within FOES_FRAME_MAX (wire.js frameCap), a cell's
+ * or own lane's within CELL_FRAME_RECORDS_MAX records, FOES_HZ_MAX a socket, and only a frame the room's budget fanned -
+ * and only a full frame is walked (an honest sender's one every FOES_FULL_MS; one that calls every frame full is still
+ * held by those bounds): one pass, its Map gone with the call. A row is made only over a limit, and a room's rows post at
+ * STAFF_FEED_ROWS * 4 (foeRow).
  * @param {any} room @param {any} a @param {any} data @param {number} now
  */
 export function staffFoesSeen(room, a, data, now) {
@@ -242,7 +250,7 @@ export async function staffNetFlush(room, now = Date.now()) {
   const foes = lawful([...W.foes.values()], foeRowOk).sort(foeUrgent);   // each over its limit: foeRow makes no other
   const batch = rows.length || foes.length ? (() => {
     const net = rows.slice(0, STAFF_FEED_ROWS - Math.min(foes.length, STAFF_FEED_ROWS / 2));
-    return { v: NET_FEED_V, id: randomId(), at: now, q: W.q, from: W.from || now, ms: relayCfgValue(room._relayCfg, room.env, 'grantStrip') === 'on' ? 1 : 0, net, foe: foes.slice(0, STAFF_FEED_ROWS - net.length) };
+    return { v: NET_FEED_V, id: randomId(), at: now, q: W.q, from: W.from || now, ms: 1, net, foe: foes.slice(0, STAFF_FEED_ROWS - net.length) };   // STAFF-PANEL5-MONSTERS: monsters counted whatever grantStrip says
   })() : null;
   W.rows = new Map(); W.foes = new Map(); W.from = 0;
   if (!on(url) || (!batch && !W.retry)) return false;

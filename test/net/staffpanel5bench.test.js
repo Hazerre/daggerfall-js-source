@@ -85,3 +85,74 @@ test('STAFF-PANEL5-FEEDS-FIX bench: a pose read by open episodes and a quiet foe
   assert.equal(room._staffNet.foes.size, 0, line);
   assert.ok(usPose < 50 && usFoes < 50, line);
 });
+
+// STAFF-PANEL5-MONSTERS (2026-10-23; mob wants all three feed pages working with grantStrip off, and "it need to not hurt
+// server performance") - WHAT COUNTING MONSTERS WITH grantStrip OFF COSTS A FOES FRAME: staffFoesSeen on every fanned
+// frame (the feed's URL unset, one compare; set, a delta two; a full frame one pass over its records), against the fan it
+// rides - a full cell's frame to 31 listeners through the Room's own _foesFan, its parse included, every send a no-op (so
+// the fan is cheaper than live and the share an upper bound). A bench on this machine, not live: the numbers print, the
+// bounds are loose. On a shared machine the fan's pair swings by more than the count costs, so the count timed alone is
+// the measure: an honest frame mix adds about 0.9 x a delta's + 0.1 x a full frame's to each frame's fan.
+test('STAFF-PANEL5-MONSTERS bench: the monster count on every fanned foes frame with grantStrip off, against the fan', async () => {
+  const { staffFoesSeen, staffFeedsStop } = await import('../../server/src/staffFeeds.js');
+  const { cellRoomOfWire, PIXEL_UNITS, FOES_FULL_MS } = await import('../../src/net/wire.js');
+  const { FOES_MS } = await import('../../src/net/online.js');
+  const URL_ON = 'https://a.example/n';
+  const P = { x: 402 * PIXEL_UNITS + 100, y: 60, z: (499 - 151) * PIXEL_UNITS + 100, yaw: 0, pitch: 0 };
+  const CELL = cellRoomOfWire(P.x, P.z);
+  let now = 1.8e12;
+  const realNow = Date.now; Date.now = () => now;
+  try {
+    const r = fakeRoom(CELL, { now: () => now });
+    const socks = [];
+    for (let i = 0; i < 32; i++) { now += 1000; const ws = r.connect(); await r.hello(ws, `sock-b${String(i).padStart(3, '0')}`, P); socks.push(ws); }   // the room's hello gate
+    for (const ws of socks) ws.send = () => {};   // the fan's sends a no-op: the fan's own work alone
+    const rec = (i) => ({ i, t: i % 9, h: 40, k: 40, x: P.x + i, y: 60, z: P.z + i, yw: i / 10, f: [1, 2, 3] });
+    const text = (n, full) => JSON.stringify({ t: 'foes', data: { n: 1, k: CELL, full, f: Array.from({ length: n }, (_, i) => rec(i + 1)) } });
+    const delta = text(24, 0), full24 = text(24, 1), full64 = text(64, 1);
+    const fullEvery = FOES_FULL_MS / FOES_MS;   // an honest sender's one full frame in ten
+    const room = r.room;
+    /** Microseconds a frame through the fan: `frames(i)` the i-th frame's text, the senders in turn, the clock at the room's budget. */
+    const fan = (frames, n = 2000) => {
+      const sends = room._metrics.c.sends, t0 = process.hrtime.bigint();
+      for (let i = 0; i < n; i++) {
+        const ws = socks[i % socks.length], message = frames(i);
+        now += 50;   // within the room's budget at 64 records: every frame fans
+        room._roomFoes = room._foesFan(ws, room._attach(ws), 'foes', JSON.parse(message).data, message, true, room._roomFoes, now);
+      }
+      const us = Number(process.hrtime.bigint() - t0) / 1e3 / n;
+      assert.equal(room._metrics.c.sends - sends, n * (socks.length - 1), 'every frame fanned to every listener');
+      return us;
+    };
+    const honest = (i) => (Math.floor(i / socks.length) % fullEvery === 0 ? full24 : delta);
+    const median = (xs) => [...xs].sort((x, y) => x - y)[xs.length >> 1];
+    const worstFrames = () => full64;   // a client that calls every frame full, at the cell's 64 records, every one over the limit
+    const runs = { honestOff: [], honestOn: [], worstOff: [], worstOn: [] };
+    const as = (url, frames) => { if (url) r.env.STAFF_NET_FEED_URL = url; else delete r.env.STAFF_NET_FEED_URL; return fan(frames); };
+    fan(honest); fan(worstFrames);   // warm
+    for (let round = 0; round < 6; round++) {   // each pair in both orders, so neither side is always first
+      const first = round % 2 ? URL_ON : undefined, second = round % 2 ? undefined : URL_ON;
+      for (const [frames, off, on] of [[honest, runs.honestOff, runs.honestOn], [worstFrames, runs.worstOff, runs.worstOn]]) {
+        (first ? on : off).push(as(first, frames));
+        (second ? on : off).push(as(second, frames));
+      }
+    }
+    staffFeedsStop(room);
+    assert.ok(socks.every((ws) => room._attach(ws).id && !ws.closed), 'every sender stood');
+    // the count alone, the same frames
+    const a = room._attach(socks[0]), d24 = JSON.parse(delta).data, f24 = JSON.parse(full24).data, f64 = JSON.parse(full64).data;
+    const alone = (data, env) => { room.env.STAFF_NET_FEED_URL = env; const t0 = process.hrtime.bigint(); for (let i = 0; i < 100_000; i++) staffFoesSeen(room, a, data, now); return Number(process.hrtime.bigint() - t0) / 1e3 / 100_000; };
+    const usUnset = alone(f24, undefined), usDelta = alone(d24, URL_ON), usFull24 = alone(f24, URL_ON), usFull64 = alone(f64, URL_ON);
+    staffFeedsStop(room);
+    const [hOff, hOn, wOff, wOn] = [runs.honestOff, runs.honestOn, runs.worstOff, runs.worstOn].map(median);
+    const pct = (x, base) => `${x >= base ? '+' : ''}${(((x - base) / base) * 100).toFixed(1)}%`;
+    const line = `monsters bench (this machine, medians of 6): a foes frame through _foesFan to 31 listeners, one full in ${fullEvery} of 24 monsters, `
+      + `${hOff.toFixed(2)} us with the feed's URL unset, ${hOn.toFixed(2)} us set (${pct(hOn, hOff)}); every frame full of 64 over the limit ${wOff.toFixed(2)} us unset, `
+      + `${wOn.toFixed(2)} us set (${pct(wOn, wOff)}); the count alone: unset ${(usUnset * 1000).toFixed(0)} ns, a delta ${(usDelta * 1000).toFixed(0)} ns, `
+      + `a full 24 ${usFull24.toFixed(3)} us, a full 64 over the limit ${usFull64.toFixed(3)} us`;
+    console.log(line);
+    // loose bounds - the machine is shared; the numbers above are the measurement
+    assert.ok(usUnset < 1 && usDelta < 1, line);
+    assert.ok(usFull24 < 50 && usFull64 < 100, line);
+  } finally { Date.now = realNow; }
+});

@@ -90,21 +90,41 @@
     ]
   },
   {
-    "name": "STAFF-PANEL5-FEEDS-strip-switch-unsaid",
+    "name": "STAFF-PANEL5-MONSTERS-not-measured-said",
     "file": "server/src/staffFeeds.js",
-    "old": "=== 'on' ? 1 : 0, net,",
-    "new": "=== 'on' ? 1 : 1, net,",
-    "why": "\"not measured\" never said",
+    "old": "ms: 1, net,",
+    "new": "ms: 0, net,",
+    "why": "a batch counted with grantStrip off says \"not measured\" (STAFF-PANEL5-MONSTERS: was STAFF-PANEL5-FEEDS-strip-switch-unsaid, whose `ms` followed grantStrip)",
     "tests": [
       "test/net/staffpanel5feeds_relay.test.js"
     ]
   },
   {
-    "name": "STAFF-PANEL5-FEEDS-strip-off-read",
+    "name": "STAFF-PANEL5-MONSTERS-strip-gate-back",
     "file": "server/src/index.js",
-    "old": "if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on') staffFoesSeen(",
-    "new": "if (true) staffFoesSeen(",
-    "why": "monsters read with grantStrip off",
+    "old": "    staffFoesSeen(this, a, data, now);",
+    "new": "    if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on') staffFoesSeen(this, a, data, now);",
+    "why": "monsters counted only while grantStrip is on again: Monster watch blind with the switch off (STAFF-PANEL5-MONSTERS: was STAFF-PANEL5-FEEDS-strip-off-read, the old rule's mutant)",
+    "tests": [
+      "test/net/staffpanel5feeds_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-MONSTERS-counted-before-strip",
+    "file": "server/src/index.js",
+    "old": "    if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on' && (kind === 'own' || isCellRoom(a.key))) data = this._grantStripped(a, data, kind, now);   // GRANT9: the switch on - a record its grant does not stand goes nowhere; FOE-BOUNDS: nor one no builder could give\n    staffFoesSeen(this, a, data, now);   // STAFF-PANEL5-FEEDS: a full frame's live monsters, its sender's; STAFF-PANEL5-MONSTERS: whatever grantStrip says - read, never changed, and nothing at all while STAFF_NET_FEED_URL is unset",
+    "new": "    staffFoesSeen(this, a, data, now);   // STAFF-PANEL5-FEEDS: a full frame's live monsters, its sender's; STAFF-PANEL5-MONSTERS: whatever grantStrip says - read, never changed, and nothing at all while STAFF_NET_FEED_URL is unset\n    if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on' && (kind === 'own' || isCellRoom(a.key))) data = this._grantStripped(a, data, kind, now);   // GRANT9: the switch on - a record its grant does not stand goes nowhere; FOE-BOUNDS: nor one no builder could give",
+    "why": "with grantStrip on, the records the strip drops counted as its sender's live monsters",
+    "tests": [
+      "test/net/staffpanel5feeds_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-MONSTERS-count-drops-a-body",
+    "file": "server/src/staffFeeds.js",
+    "old": "  for (const r of data.f) if (r && typeof r === 'object' && r.d !== 1 && r.i != null) live.set(r.i, r);",
+    "new": "  data.f = data.f.filter((r) => r?.d !== 1);\n  for (const r of data.f) if (r && typeof r === 'object' && r.d !== 1 && r.i != null) live.set(r.i, r);",
+    "why": "the count writes the frame it reads: a body dropped from what every reader is sent",
     "tests": [
       "test/net/staffpanel5feeds_relay.test.js"
     ]
