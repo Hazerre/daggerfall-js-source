@@ -381,8 +381,8 @@ export async function staffStatus(ctx, env, path, body, who, audit) {
   if (path === '/v1/staff/home') {
     const n = body.n === undefined ? HOME_TOP_DEFAULT : body.n;
     if (!HOME_TOPS.includes(n)) return { error: 'body' };
-    const r = await homeOf(ctx, env, who, n);
-    await audit('home-read', null, { n }, { onceIn: HOME_READ_ROW_S }).run();
+    // STAFF-PANEL-SPEED: the audit row with the watches' first reads, one trip
+    const [r] = await Promise.all([homeOf(ctx, env, who, n), audit('home-read', null, { n }, { onceIn: HOME_READ_ROW_S }).run()]);
     return r;
   }
   if (path === '/v1/staff/limits') return { limits: await limitsOf(db), metrics: STATUS_METRICS };

@@ -68,9 +68,9 @@ export function monsterUrgency(p) {
 
 /** `ids` asked `ask` a chunk at a time - each statement within D1's bound. @param {string[]} ids @param {(chunk: string[]) => Promise<any[]>} ask */
 async function chunked(ids, ask) {
-  const out = [];
-  for (let i = 0; i < ids.length; i += IN_MAX) out.push(...await ask(ids.slice(i, i + IN_MAX)));
-  return out;
+  const chunks = [];
+  for (let i = 0; i < ids.length; i += IN_MAX) chunks.push(ask(ids.slice(i, i + IN_MAX)));
+  return (await Promise.all(chunks)).flat();   // STAFF-PANEL-SPEED: every chunk asked at once, one trip
 }
 const marks = (/** @type {number} */ n, /** @type {number} */ from = 1) => Array.from({ length: n }, (_, i) => `?${i + from}`).join(', ');
 
@@ -80,7 +80,12 @@ const marks = (/** @type {number} */ n, /** @type {number} */ from = 1) => Array
  * @param {any} db @param {number} nowS
  */
 export async function monstersRanked(db, nowS) {
-  const b = await db.prepare('SELECT MAX(at) AS at, MAX(ms) AS ms, COUNT(*) AS n FROM staff_net_batches WHERE at > ?1').bind(nowS - NET_READ_S).first();
+  // STAFF-PANEL-SPEED: the batches, the foe rows and the asks together - none waits on another's answer
+  const [b, foeRead, askRead] = await Promise.all([
+    db.prepare('SELECT MAX(at) AS at, MAX(ms) AS ms, COUNT(*) AS n FROM staff_net_batches WHERE at > ?1').bind(nowS - NET_READ_S).first(),
+    db.prepare('SELECT * FROM staff_foe_rows WHERE at > ?1 ORDER BY at DESC LIMIT ?2').bind(nowS - NET_READ_S, NET_READ_MAX).all(),
+    db.prepare('SELECT sub, kind, SUM(asks) AS asks FROM grant_rows WHERE at > ?1 GROUP BY sub, kind').bind(nowS - MONSTER_ASK_S).all(),
+  ]);
   const monsters = !b?.n ? 'no report' : b.ms === 1 ? 'measured' : 'not measured';
   /** @type {Map<string, any>} */
   const by = new Map();
@@ -89,7 +94,7 @@ export async function monstersRanked(db, nowS) {
     if (!p) { p = { sub, name: null, at: 0, live: null, hosted: 0, stripped: 0, asks: [], others: { n: 0, readers: 0 } }; by.set(sub, p); }
     return p;
   };
-  const foes = (await db.prepare('SELECT * FROM staff_foe_rows WHERE at > ?1 ORDER BY at DESC LIMIT ?2').bind(nowS - NET_READ_S, NET_READ_MAX).all())?.results ?? [];
+  const foes = foeRead?.results ?? [];
   for (const r of foes) {
     const p = player(r.sub);
     p.stripped += r.stripped;
@@ -102,17 +107,20 @@ export async function monstersRanked(db, nowS) {
       p.hosted += r.hosted;
     }
   }
-  const asks = (await db.prepare('SELECT sub, kind, SUM(asks) AS asks FROM grant_rows WHERE at > ?1 GROUP BY sub, kind').bind(nowS - MONSTER_ASK_S).all())?.results ?? [];
+  const asks = askRead?.results ?? [];
   const over = new Set(asks.filter((a) => a.asks > askBudget(a.kind)).map((a) => String(a.sub)));
   for (const s of over) player(s);
   const ids = [...by.keys()].slice(0, MONSTER_RANKED_MAX);
   for (const a of asks) if (by.has(String(a.sub))) by.get(String(a.sub)).asks.push({ kind: a.kind, asks: Number(a.asks), budget: askBudget(a.kind) });
   // the other games' refusals: GRANT7's reasons, every reader but the relay itself (its own are `stripped`)
-  const refused = await chunked(ids, async (c) => (await db.prepare(`SELECT sender, COUNT(DISTINCT reader) AS readers, SUM(n) AS n FROM grant_tallies
-    WHERE sender IN (${marks(c.length, 3 + GRANT_CASE_REASONS.length)}) AND at > ?1 AND reader != ?2 AND reason IN (${marks(GRANT_CASE_REASONS.length, 3)}) GROUP BY sender`)
-    .bind(nowS - MONSTER_ASK_S, GRANT_RELAY_READER, ...GRANT_CASE_REASONS, ...c).all())?.results ?? []);
+  // STAFF-PANEL-SPEED: the refusals and the names asked together
+  const [refused, names] = await Promise.all([
+    chunked(ids, async (c) => (await db.prepare(`SELECT sender, COUNT(DISTINCT reader) AS readers, SUM(n) AS n FROM grant_tallies
+      WHERE sender IN (${marks(c.length, 3 + GRANT_CASE_REASONS.length)}) AND at > ?1 AND reader != ?2 AND reason IN (${marks(GRANT_CASE_REASONS.length, 3)}) GROUP BY sender`)
+      .bind(nowS - MONSTER_ASK_S, GRANT_RELAY_READER, ...GRANT_CASE_REASONS, ...c).all())?.results ?? []),
+    chunked(ids, async (c) => (await db.prepare(`SELECT id, handle, guest_name FROM players WHERE id IN (${marks(c.length)})`).bind(...c).all())?.results ?? []),
+  ]);
   for (const r of refused) by.get(String(r.sender)).others = { n: Number(r.n), readers: Number(r.readers) };
-  const names = await chunked(ids, async (c) => (await db.prepare(`SELECT id, handle, guest_name FROM players WHERE id IN (${marks(c.length)})`).bind(...c).all())?.results ?? []);
   for (const r of names) by.get(String(r.id)).name = displayName(r);
   const ranked = ids.map((s) => by.get(s)).map((p) => { const u = monsterUrgency(p); return { ...p, level: u.level, why: u.why }; });
   const lvl = (/** @type {any} */ x) => LEVELS.indexOf(x.level);
@@ -132,8 +140,8 @@ export async function staffMonsters(ctx, env, path, body, who, audit) {
   const { db, nowS } = ctx;
   if (path === '/v1/staff/monsters') {
     const from = Number.isSafeInteger(body.from) && body.from > 0 ? body.from : 0;
-    const { ranked, monsters, asOf } = await monstersRanked(db, nowS);
-    await audit('monsters-read', null, null, { onceIn: 10 * 60 }).run();
+    // STAFF-PANEL-SPEED: the audit row with the watch's first reads, one trip
+    const [{ ranked, monsters, asOf }] = await Promise.all([monstersRanked(db, nowS), audit('monsters-read', null, null, { onceIn: 10 * 60 }).run()]);
     return { players: ranked.slice(from, from + MONSTER_PAGE), next: from + MONSTER_PAGE < ranked.length ? from + MONSTER_PAGE : null, total: ranked.length,
       high: ranked.filter((p) => p.level === 'high').length, monsters, asOf };
   }
