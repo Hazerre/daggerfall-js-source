@@ -16,9 +16,34 @@
 import { SongPlayer } from './song/songPlayer.js';
 import { introThemeSong } from './introScore.js';
 import { onSettingChange } from './settings/settings.js';
+import { reverbImpulse } from './reverbPresets.js';
 
 export const INTRO_THEME_GAIN = 0.82;
 export const MENU_THEME_GAIN = 0.26;
+
+/** INTRO3b (2026-10-23, the owner: "too flat"): THE HALL - the space the theme plays in. The recording is a reverberant
+ *  orchestral mix (L/R correlation 0.59 over its body) and the dry render was all but mono (0.985), so the session puts
+ *  a concert hall under the player's master: an impulse built from I3DL2 numbers the way the engine's reverb zones are
+ *  (systems/reverbPresets.js) - a long pre-delay, a 2.6 s tail dark at the top, the early reflections low. */
+export const INTRO_HALL = Object.freeze({ room: -1000, roomHF: -200, decayTime: 2.6, decayHFRatio: 0.7, reflections: -900, reflectionsDelay: 0.024, reverb: -150, reverbDelay: 0.034, HFReference: 4000, diffusion: 100, density: 100 });
+/** How loud the hall is beside the dry sound (the wet gain). */
+export const INTRO_WET = 1.6;
+
+/** The hall under `into`: a send the player's master feeds (SongPlayer's third argument), through the convolver and the
+ *  wet gain into the session's own gain - so the hall follows MusicVolume, the mute and the film's and the menu's levels
+ *  as the dry sound does. A context with no convolver (a test's, an old browser's) has no hall, and the player is handed
+ *  no send: the theme plays dry, as it did. */
+export function introSpace(context, into) {
+  if (!context || !into || typeof context.createConvolver !== 'function' || typeof context.createBuffer !== 'function') return null;
+  const send = context.createGain(), convolver = context.createConvolver(), wet = context.createGain();
+  convolver.normalize = false;
+  convolver.buffer = reverbImpulse(context, INTRO_HALL);
+  wet.gain.value = INTRO_WET;
+  send.connect(convolver);
+  convolver.connect(wet);
+  wet.connect(into);
+  return { send, convolver, wet };
+}
 
 /** Audio device time corresponding to a presentation time (milliseconds).
  * A zero timestamp before the device starts is not a usable clock. Fallback
@@ -33,7 +58,7 @@ export function audibleContextTime(context, presentationMs) {
 
 /** Session ownership belongs to the front door, NOT the cinematic DOM. */
 export class IntroTheme {
-  constructor({ makeContext, makePlayer = (context, destination) => new SongPlayer(context, destination), song = introThemeSong, subscribe = onSettingChange, now = () => performance.now() } = {}) {
+  constructor({ makeContext, makePlayer = (context, destination, send) => new SongPlayer(context, destination, send), song = introThemeSong, subscribe = onSettingChange, now = () => performance.now() } = {}) {
     this.makeContext = makeContext ?? (() => {
       const Ctor = globalThis.AudioContext ?? globalThis.webkitAudioContext;
       return Ctor ? new Ctor({ latencyHint: 'interactive' }) : null;
@@ -46,6 +71,7 @@ export class IntroTheme {
     this.player = null;
     this.source = null;   // the player, once it plays: the front door reads it as "the score is sounding"
     this.gain = null;
+    this.space = null;   // INTRO3b: the hall (introSpace), under the gain
     this.song = null;
     this.loading = null;
     this.startedAt = null;
@@ -69,7 +95,8 @@ export class IntroTheme {
       this.gain = this.context.createGain();
       this.gain.gain.value = this.level;
       this.gain.connect(this.context.destination);
-      this.player = this.makePlayer(this.context, this.gain);
+      this.space = introSpace(this.context, this.gain);
+      this.player = this.makePlayer(this.context, this.gain, this.space?.send ?? null);
       this.unsubscribe = this.subscribe((section, key) => {
         if (section === 'Controls' && key === 'MusicVolume') this.player?.resyncGain();
       });
@@ -138,6 +165,8 @@ export class IntroTheme {
     this.source = null;
     try { player?.stop(); } catch { /* nothing sounding */ }
     this.gain?.disconnect();
+    for (const node of Object.values(this.space ?? {})) { try { node.disconnect(); } catch { /* gone with the context */ } }   // INTRO3b: the hall's nodes with it
+    this.space = null;
     this.song = null;
     this.gain = null;
     const context = this.context;

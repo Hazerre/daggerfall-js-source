@@ -33,7 +33,7 @@ const RECORDING_DB = -22.4;
 const PAGE = `<!doctype html><html><body><script type=module>
 import { SongPlayer } from '/src/systems/song/songPlayer.js';
 import { introThemeSong, INTRO_PRESS } from '/src/systems/introScore.js';
-import { INTRO_THEME_GAIN } from '/src/systems/introTheme.js';
+import { INTRO_THEME_GAIN, introSpace } from '/src/systems/introTheme.js';
 const RATE = 44100;
 window.render = async (seconds) => {
   const song = introThemeSong();
@@ -42,9 +42,10 @@ window.render = async (seconds) => {
   // the player's clock, carried by hand: it reads ctx.currentTime, which an offline context holds at 0 until it renders
   let now = 0;
   const ctx = new Proxy(real, { get(t, k) { if (k === 'currentTime') return now; const v = t[k]; return typeof v === 'function' ? v.bind(t) : v; } });
-  // the intro's own gain under the player's master, as systems/introTheme.js wires it
+  // the intro's own gain under the player's master, and the hall under it, as systems/introTheme.js wires them (INTRO3b)
   const gain = real.createGain(); gain.gain.value = INTRO_THEME_GAIN; gain.connect(real.destination);
-  const p = new SongPlayer(ctx, gain);
+  const space = introSpace(real, gain);
+  const p = new SongPlayer(ctx, gain, space?.send ?? null);
   p.play(song);
   clearInterval(p._timer);
   const origin = p._originTime;
@@ -62,12 +63,16 @@ window.render = async (seconds) => {
   // mono at 12 kHz for the onset measure (tools/introAudioCheck.mjs's method), from the song's own tick 0
   const step = RATE / 12000, mono = [];
   for (let i = Math.round(origin * RATE); i < L.length; i += step) { const j = Math.floor(i); mono.push((L[j] + R[j]) / 2); }
+  // INTRO3b: how alike the two channels are - the correlation of L and R over the sounding part (from 1 s), 1 is mono
+  let sl = 0, sr = 0, sll = 0, srr = 0, slr = 0, cn = 0;
+  for (let i = RATE; i < L.length; i++) { const a = L[i], b = R[i]; sl += a; sr += b; sll += a * a; srr += b * b; slr += a * b; cn++; }
+  const ml = sl / cn, mr = sr / cn, corr = (slr / cn - ml * mr) / Math.sqrt(Math.max(1e-18, (sll / cn - ml * ml) * (srr / cn - mr * mr)));
   const k = peak > 0 ? 0.89 / peak : 1, from = Math.round(origin * RATE);
   const pcm = new Int16Array((L.length - from) * 2);
   for (let i = from; i < L.length; i++) { const o = 2 * (i - from); pcm[o] = Math.max(-32767, Math.min(32767, Math.round(L[i] * k * 32767))); pcm[o + 1] = Math.max(-32767, Math.min(32767, Math.round(R[i] * k * 32767))); }
   const bytes = new Uint8Array(pcm.buffer);
   let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return { secs, origin, peak, nan, rms, ceiling: INTRO_PRESS.ceiling, gain: INTRO_THEME_GAIN, mono: Array.from(mono), pcm: btoa(bin), rate: RATE };
+  return { secs, origin, peak, nan, rms, corr, ceiling: INTRO_PRESS.ceiling, gain: INTRO_THEME_GAIN, mono: Array.from(mono), pcm: btoa(bin), rate: RATE };
 };
 window.ready = true;
 </script></body></html>`;
@@ -107,6 +112,37 @@ function onsets(pcm, rate = 12000, size = 1024, hop = 128) {
   return { peakBetween };
 }
 
+/** INTRO3b: the spectrum's centre of weight (Hz) and the share of its energy from 2 kHz up (dB), over the mono at 12 kHz
+ *  from `from` s - Hann 4096, hop 2048, the power averaged over the frames. The flat render measured 265 Hz against the
+ *  recording's 552 over the film, its 2-6 kHz share 12 dB under the recording's. */
+function spectrum(pcm, rate = 12000, from = 1, size = 4096, hop = 2048) {
+  const power = new Float64Array(size / 2 + 1);
+  let frames = 0;
+  for (let start = Math.round(from * rate); start + size <= pcm.length; start += hop) {
+    const real = new Float64Array(size), imag = new Float64Array(size);
+    for (let n = 0; n < size; n++) real[n] = pcm[start + n] * (0.5 - 0.5 * Math.cos(2 * Math.PI * n / (size - 1)));
+    for (let a = 1, j = 0; a < size; a++) { let bit = size >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (a < j) { [real[a], real[j]] = [real[j], real[a]]; [imag[a], imag[j]] = [imag[j], imag[a]]; } }
+    for (let n = 2; n <= size; n <<= 1) {
+      const angle = -2 * Math.PI / n;
+      for (let a = 0; a < size; a += n) for (let j = 0; j < n / 2; j++) {
+        const x = a + j, y = x + n / 2, c = Math.cos(angle * j), s = Math.sin(angle * j);
+        const r = real[y] * c - imag[y] * s, v = real[y] * s + imag[y] * c;
+        real[y] = real[x] - r; imag[y] = imag[x] - v; real[x] += r; imag[x] += v;
+      }
+    }
+    for (let b = 0; b <= size / 2; b++) power[b] += real[b] * real[b] + imag[b] * imag[b];
+    frames++;
+  }
+  let total = 0, weighted = 0, high = 0;
+  for (let b = 1; b <= size / 2; b++) {
+    const hz = (b * rate) / size;
+    if (hz < 20) continue;
+    total += power[b]; weighted += power[b] * hz;
+    if (hz >= 2000) high += power[b];
+  }
+  return { frames, centroid: total > 0 ? weighted / total : 0, presenceDb: total > 0 ? 10 * Math.log10(Math.max(1e-18, high / total)) : -Infinity };
+}
+
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split('?')[0]);
   if (url === '/probe/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(PAGE); return; }
@@ -140,6 +176,13 @@ try {
     const near = peakBetween(at - 0.25, at + 0.25), wide = peakBetween(at - 2, at + 1);
     check(`the ${name} is heard on its cue (${at.toFixed(3)} s): the strongest onset from 2 s before it, within 25 ms`, Math.abs(near.time - at) <= 0.025 && Math.abs(wide.time - near.time) < 1e-9, `onset at ${near.time.toFixed(3)} s, ${((near.time - at) * 1000).toFixed(1)} ms, strength ${near.strength.toFixed(2)}`);
   }
+  // INTRO3b: not flat - wide (the two channels are not one: the recording's L/R correlation is 0.33 over the film, 0.59
+  // over its body; the dry render's was 0.985, INTRO3b's 0.58) and present (the spectrum's centre of weight and its
+  // share from 2 kHz up, measured on the recording the same way: 521 Hz and -12.8 dB over the film; the dry render's
+  // 305 Hz and -25.0 dB, INTRO3b's 474 Hz and -14.8 - the pins a margin under where it lands)
+  const sp = spectrum(Float32Array.from(r.mono));
+  check('wide: the two channels are not one (L/R correlation under 0.8)', r.corr < 0.8, `correlation ${r.corr.toFixed(3)}`);
+  check('present: the spectrum’s centre of weight over 420 Hz and its share from 2 kHz up over -16 dB', sp.centroid > 420 && sp.presenceDb > -16, `centroid ${sp.centroid.toFixed(0)} Hz, 2 kHz up ${sp.presenceDb.toFixed(1)} dB over ${sp.frames} frames`);
   check('no page error', errs.length === 0, errs.join('; '));
 } finally {
   await browser.close();

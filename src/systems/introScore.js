@@ -27,6 +27,21 @@
 // is the one that puts those two bar lines exactly there (128.76 BPM, a hair over the recording's opening), after a
 // lead of INTRO_LEAD_TICKS of quiet - so the film's cue sheet stands as it was, and the score answers to it.
 //
+// INTRO3b (2026-10-23, the owner: "I want to make this music better. Currently its not really good and too flat. I
+// really need you to put work into this and make it truely amazing"). MEASURED FIRST, against the recording's first
+// 27 s: the dry render's presence (2-6 kHz) stood 12 dB under the recording's share and its air (6 kHz up) 14 dB under,
+// its spectral centroid 265 Hz to the recording's 552, its spectral flatness 0.003 to 0.090 (a few pure tones, not an
+// orchestra) - and it was all but mono, L/R correlation 0.985 to the recording's 0.33. Flat, literally: dull, thin and
+// centred. So, with EG-ROAR's tools (systems/song/songPlayer.js songVoices, songKit): EVERY SECTION IS AN ENSEMBLE
+// (INTRO_VOICES - unison copies cents apart, laid either side of the section's place, the FM index higher and slower to
+// settle so the top of the band is there), THE KIT HAS BEATERS AND SKINS (INTRO_KIT - the taiko long with its click,
+// the snare a crack over a skin, the crash two seconds long), a HALO of tremolo strings holds the chord's top an octave
+// over the choir where the band opens out, the LOW BRASS braams under every brass bar and section hit, the timpani
+// answers on three, the cellos drive every step of the pulse where the drums are fullest, a snare roll climbs into the
+// build's top and the last statement, and a CRESCENDO leads the bed into every landmark and section turn. THE HALL is the
+// session's (systems/introTheme.js introSpace): a concert hall's impulse under the player's master, the way the engine's
+// reverb zones are built. The notes are still the recording's: the melody and the harmony tables did not move.
+//
 // Not a DFU member. Ledger A (INTRO3).
 
 import { midiNote } from './gate/gateScore.js';
@@ -61,28 +76,73 @@ export const introSeconds = (bar, beat = 0) => introTick(bar, beat) * INTRO_SECO
  *  the riser into each landmark. */
 export const INTRO_PROGRAMS = Object.freeze({
   horn: 60, violins: 40, strings: 48, choir: 52, ostinato: 32, cellos: 42, contrabass: 43, brass: 61,
-  timpani: 47, swell: 119, harp: 46, bells: 14, pad: 89, hit: 55,
+  timpani: 47, swell: 119, harp: 46, bells: 14, pad: 89, hit: 55, halo: 44,
 });
 export const INTRO_CHANNELS = Object.freeze({
   horn: 0, violins: 1, strings: 2, choir: 3, ostinato: 4, cellos: 5, contrabass: 6, brass: 7,
-  timpani: 8, kit: 9, swell: 10, harp: 11, bells: 12, pad: 13, hit: 14,
+  timpani: 8, kit: 9, swell: 10, harp: 11, bells: 12, pad: 13, hit: 14, halo: 15,
 });
-/** Each voice's level (CC7) and place (CC10, 64 the middle). */
+/** Each voice's level (CC7) and place (CC10, 64 the middle). INTRO3b: the sections stand further apart - the violins
+ *  and the choir right, the strings, the cellos and the harp left, the bells far right - and each is spread from its
+ *  place by its voice (INTRO_VOICES). */
 const MIX = Object.freeze({
-  horn: [118, 60], violins: [96, 78], strings: [100, 44], choir: [104, 84], ostinato: [100, 64], cellos: [92, 52],
-  contrabass: [104, 64], brass: [108, 70], timpani: [110, 64], swell: [0, 64], harp: [84, 36], bells: [86, 80],
-  pad: [90, 64], hit: [100, 64],
+  horn: [118, 58], violins: [96, 82], strings: [100, 40], choir: [104, 88], ostinato: [100, 64], cellos: [92, 48],
+  contrabass: [104, 64], brass: [108, 72], timpani: [110, 64], swell: [0, 64], harp: [84, 30], bells: [86, 92],
+  pad: [90, 64], hit: [100, 64], halo: [80, 64],
 });
 const KIT_LEVEL = 112;
 /** The song at the player's own level (systems/song/songPlayer.js `song.level`) through a press (songPress) - lighter than
  *  the gate score's (3:1 from -14 dB, a ceiling a decibel under the clip), its drive after it, so the theme stands as
  *  loud as the recording it replaces (about -22 dBFS as the intro played it at MusicVolume 0.5) and keeps the
- *  recording's rise and fall: the swell from nothing, the dip before the impact, the breakdown at 118 s. Measured
- *  through the real player, second by second against the recording: tools/introScoreProbe.mjs. */
+ *  recording's rise and fall: the swell from nothing, the dip before the impact, the breakdown at 118 s. INTRO3b: the
+ *  press lets a drum's first 12 ms through (EG-ROAR's lesson - at 3 ms it clamped every taiko and kick to the pads'
+ *  level). Measured through the real player, second by second against the recording: tools/introScoreProbe.mjs. */
 export const INTRO_LEVEL = 1;
-export const INTRO_PRESS = Object.freeze({ threshold: -14, knee: 12, ratio: 3, attack: 0.003, release: 0.25, ceiling: -1, out: 2.6 });
+export const INTRO_PRESS = Object.freeze({ threshold: -14, knee: 12, ratio: 3, attack: 0.012, release: 0.25, ceiling: -1, out: 2.6 });
 /** GM kit keys (gmSynth.js DRUMS). */
 const KIT = Object.freeze({ kick: 36, snare: 38, clap: 39, lowTom: 41, floorTom: 43, tom: 45, midTom: 47, crash: 49, splash: 55, surdo: 87 });
+
+/** INTRO3b: THE VOICES - each section's own instrument over the FM bank's one pair a note (systems/song/songPlayer.js
+ *  songVoices, EG-ROAR). The bowed sections are ensembles: `unison` copies `cents` apart, laid `spread` either side of
+ *  their place, their FM index higher than the bank's and slower to settle (idxDecay) so the top of the band is there
+ *  through the note, not only at its attack. The choir and the pad modulate at twice the note (odd harmonics - the hollow
+ *  "oo" a voice has that a string has not), the brass bites (index 5), the ostinato is a spiccato, the timpani carries a
+ *  sub, the swell is the Spire's inharmonic shimmer spread wide, and the halo is four tremolo violins at the edges. The
+ *  contrabass carries no sub: at G1 its octave under is 24 Hz, under the floor and heard by nothing but the press. */
+export const INTRO_VOICES = Object.freeze({
+  horn: Object.freeze({ attack: 0.05, index: 3.4, idxDecay: 1.1, release: 0.3, unison: 2, cents: 5, spread: 0.2 }),
+  violins: Object.freeze({ attack: 0.12, index: 3.2, idxDecay: 2.5, release: 0.6, unison: 3, cents: 11, spread: 0.55 }),
+  strings: Object.freeze({ attack: 0.18, index: 3, idxDecay: 3, release: 0.8, unison: 4, cents: 13, spread: 0.6 }),
+  choir: Object.freeze({ mod: 2, index: 2, idxDecay: 2.5, attack: 0.35, release: 1.1, unison: 3, cents: 15, spread: 0.5 }),
+  ostinato: Object.freeze({ attack: 0.008, decay: 0.14, sustain: 0.45, release: 0.08, index: 4.2, idxDecay: 0.18, unison: 2, cents: 6, spread: 0.25 }),
+  cellos: Object.freeze({ attack: 0.02, index: 2.6, idxDecay: 0.3, unison: 2, cents: 8, spread: 0.3 }),
+  contrabass: Object.freeze({ attack: 0.05, index: 2, idxDecay: 1, release: 0.45, unison: 2, cents: 4, spread: 0.15 }),
+  brass: Object.freeze({ attack: 0.035, index: 5, idxDecay: 0.8, release: 0.3, unison: 3, cents: 9, spread: 0.4 }),
+  timpani: Object.freeze({ decay: 0.9, release: 0.5, sub: 0.2 }),
+  swell: Object.freeze({ mod: 3.73, index: 7, idxDecay: 4, attack: 0.6, decay: 0.02, sustain: 1, release: 0.06, gain: 0.8, unison: 2, cents: 20, spread: 0.6 }),
+  harp: Object.freeze({ index: 3, idxDecay: 0.4, unison: 2, cents: 5, spread: 0.35 }),
+  bells: Object.freeze({ index: 6, idxDecay: 0.8, unison: 2, cents: 3, spread: 0.3 }),
+  pad: Object.freeze({ mod: 2, index: 0.9, idxDecay: 3, attack: 0.4, release: 1.2, unison: 3, cents: 16, spread: 0.7 }),
+  hit: Object.freeze({ index: 4.5, decay: 0.5, release: 0.35, unison: 2, cents: 15, sub: 0.35, spread: 0.4 }),
+  halo: Object.freeze({ attack: 0.3, index: 3, idxDecay: 4, release: 1, gain: 0.75, unison: 4, cents: 18, spread: 0.8 }),
+});
+/** The voices by channel, as the song carries them. */
+const INTRO_VOICES_BY_CHANNEL = Object.freeze(Object.fromEntries(Object.entries(INTRO_VOICES).map(([v, o]) => [INTRO_CHANNELS[/** @type {keyof typeof INTRO_CHANNELS} */ (v)], o])));
+/** INTRO3b: THE KIT - each drum the theme strikes, past the bank's one sine or band of noise (systems/song/songPlayer.js
+ *  songKit): the taiko (the open surdo) long and falling with its beater's click, the kick and the toms the same, the
+ *  snare a crack over a skin, the crash two seconds long. */
+export const INTRO_KIT = Object.freeze({
+  [KIT.kick]: Object.freeze({ hz: 50, decay: 0.42, gain: 1.2, click: 0.5 }),
+  [KIT.surdo]: Object.freeze({ hz: 62, decay: 1.1, gain: 1.35, drop: 0.7, click: 0.5 }),
+  [KIT.lowTom]: Object.freeze({ hz: 84, decay: 0.6, gain: 1.05, click: 0.3 }),
+  [KIT.floorTom]: Object.freeze({ hz: 102, decay: 0.55, click: 0.3 }),
+  [KIT.tom]: Object.freeze({ hz: 124, decay: 0.48, click: 0.3 }),
+  [KIT.midTom]: Object.freeze({ hz: 152, decay: 0.42, click: 0.3 }),
+  [KIT.snare]: Object.freeze({ hz: 2000, q: 0.7, decay: 0.26, gain: 0.95, body: 185 }),
+  [KIT.clap]: Object.freeze({ hz: 1500, q: 0.9, decay: 0.14, gain: 0.6 }),
+  [KIT.crash]: Object.freeze({ decay: 2.6, q: 0.45, gain: 1 }),
+  [KIT.splash]: Object.freeze({ decay: 1.1, q: 0.6, gain: 0.7 }),
+});
 
 /** The chords the recording uses: its root (the contrabass's octave), and the strings', choir's and brass's voicings. */
 const CHORDS = Object.freeze({
@@ -219,27 +279,30 @@ const MELODY = Object.freeze({
 /** THE SHAPE, bar by bar: how hard the band plays (`dyn`, a velocity scale), what the drums do (`kit`: 0 none, 1 the
  *  low drums on one and three, 2 the 3-3-2 groove, 3 the groove with the backbeat), and who joins - read off the
  *  recording's loudness and its stems (the drums drop out at 14-18 s and 28-32 s, the bass at 118-124 s). */
-/** @typedef {{ dyn: number, kit: 0 | 1 | 2 | 3, pulse?: boolean, choir?: boolean, brass?: boolean, octave?: boolean, harp?: boolean, pad?: boolean, bare?: boolean }} Shape */
+/** INTRO3b: `halo` - the tremolo violins over the choir's chord: a shimmer through the opening, the cloud break's held C
+ *  and the big sections; `octave` reaches the cloud break's and the impact's calls (the horn in octaves with the violins);
+ *  `pad` widens to the fullest sections too. */
+/** @typedef {{ dyn: number, kit: 0 | 1 | 2 | 3, pulse?: boolean, choir?: boolean, brass?: boolean, octave?: boolean, harp?: boolean, pad?: boolean, bare?: boolean, halo?: boolean }} Shape */
 /** @type {(m: number) => Shape} */
 function shapeOf(m) {
-  if (m < 0) return { dyn: 0.55 + 0.1 * (m + 4), kit: 0, pad: true, harp: m >= -2 };
-  if (m <= 1) return { dyn: 0.85, kit: 0, pad: true, harp: true };
-  if (m <= 3) return { dyn: 1, kit: 0, choir: true, brass: true, pad: true };
-  if (m <= 5) return { dyn: 0.75, kit: 0, pad: true, harp: true };
-  if (m <= 7) return { dyn: 0.95, kit: 1, pulse: true, choir: true };
-  if (m <= 16) return { dyn: 1, kit: 2, pulse: true, choir: m >= 12, octave: m >= 14 };
-  if (m <= 24) return { dyn: 1, kit: m <= 22 ? 2 : 1, pulse: true, choir: true, brass: m === 17 || m === 18 };
+  if (m < 0) return { dyn: 0.55 + 0.1 * (m + 4), kit: 0, pad: true, harp: m >= -2, halo: m >= -3 };
+  if (m <= 1) return { dyn: 0.85, kit: 0, pad: true, harp: true, halo: true };
+  if (m <= 3) return { dyn: 1, kit: 0, choir: true, brass: true, pad: true, halo: true, octave: true };
+  if (m <= 5) return { dyn: 0.75, kit: 0, pad: true, harp: true, halo: true };
+  if (m <= 7) return { dyn: 0.95, kit: 1, pulse: true, choir: true, brass: true, octave: true };
+  if (m <= 16) return { dyn: 1, kit: 2, pulse: true, choir: m >= 12, octave: m >= 14, halo: m >= 14 };
+  if (m <= 24) return { dyn: 1, kit: m <= 22 ? 2 : 1, pulse: true, choir: true, brass: m === 17 || m === 18, halo: m <= 20 };
   if (m <= 33) return { dyn: 0.85, kit: m >= 28 && m <= 31 ? 1 : 2, pulse: true, harp: true };
-  if (m <= 40) return { dyn: 1, kit: 2, pulse: true, choir: true, octave: true };
-  if (m <= 48) return { dyn: 1.05, kit: 3, pulse: true, choir: true, brass: m >= 44, octave: true };
+  if (m <= 40) return { dyn: 1, kit: 2, pulse: true, choir: true, octave: true, halo: true };
+  if (m <= 48) return { dyn: 1.05, kit: 3, pulse: true, choir: true, brass: m >= 44, octave: true, halo: true, pad: true };
   if (m <= 50) return { dyn: 1, kit: 2, pulse: true, choir: true, brass: true };
-  if (m <= 55) return { dyn: 1.1, kit: 3, pulse: true, choir: true, brass: true };
+  if (m <= 55) return { dyn: 1.1, kit: 3, pulse: true, choir: true, brass: true, halo: true, pad: true };
   if (m <= 58) return { dyn: 1, kit: 2, pulse: true, choir: true };
   if (m <= 60) return { dyn: 0.85, kit: 2, pad: true, harp: true, bare: true };   // the breakdown: the drums on, the bass gone
-  if (m <= 66) return { dyn: 1.05, kit: m >= 63 ? 3 : 2, pulse: true, choir: true, brass: m >= 64, octave: m >= 63 };
-  if (m <= 75) return { dyn: 1.12, kit: 3, pulse: true, choir: true, brass: true, octave: true };
-  if (m < CLOSE_BAR) return { dyn: 1, kit: 2, pulse: true, choir: true, octave: m <= 77 };
-  return { dyn: 0.9, kit: 0, choir: true, pad: true };
+  if (m <= 66) return { dyn: 1.05, kit: m >= 63 ? 3 : 2, pulse: true, choir: true, brass: m >= 64, octave: m >= 63, halo: m >= 63, pad: m >= 63 };
+  if (m <= 75) return { dyn: 1.12, kit: 3, pulse: true, choir: true, brass: true, octave: true, halo: true, pad: true };
+  if (m < CLOSE_BAR) return { dyn: 1, kit: 2, pulse: true, choir: true, octave: m <= 77, halo: m <= 77 };
+  return { dyn: 0.9, kit: 0, choir: true, pad: true, halo: true };
 }
 
 /** Control events sort before notes on the same tick (a program change is heard by the note it stands beside). */
@@ -291,12 +354,32 @@ function rollInto(w, bar, beats, note, from = 50, to = 112) {
   for (let i = 0; i < n; i++) w.note('timpani', bar - 1, 4 - beats + i / 4, 0.24, note, from + (to - from) * (i / (n - 1)));
 }
 
-/** The big hit on a landmark's bar line: the whole low end, the crash and the orchestra hit together. */
+/** INTRO3b: a snare roll over the last `beats` of the bar before `bar`, in sixteenths, rising - into the build's top and
+ *  the last statement. */
+function rollSnare(w, bar, beats, from = 40, to = 104) {
+  const n = beats * 4;
+  for (let i = 0; i < n; i++) w.hit('snare', bar - 1, 4 - beats + i / 4, from + (to - from) * (i / (n - 1)));
+}
+
+/** INTRO3b: the bed's voices, and a swell into `bar` - over the two bars before it each sinks from its level to `from`
+ *  of it and surges back to the whole of it on the bar line (no step: a sink, then the surge), so a landmark and a
+ *  section's turn are led into, not merely struck. */
+const BED = /** @type {const} */ (['strings', 'choir', 'violins', 'halo', 'pad']);
+function crescendoInto(w, bar, from = 0.86) {
+  for (let i = 0; i <= 16; i++) {
+    const k = i <= 8 ? 1 - (1 - from) * (i / 8) : from + (1 - from) * ((i - 8) / 8);
+    for (const voice of BED) w.volume(voice, bar - 2, i / 2, MIX[voice][0] * k);
+  }
+}
+
+/** The big hit on a landmark's bar line: the whole low end, the crash and the orchestra hit together - INTRO3b: and the
+ *  low brass's braam an octave under the section. */
 function landOn(w, bar, chord, vel = 1) {
   const c = CHORDS[chord];
   w.note('timpani', bar, 0, 1.5, midiNote(c.root) + 12, 124 * vel);
   w.note('contrabass', bar, 0, 4, c.root, 120 * vel);
   for (const n of c.brass) { w.note('hit', bar, 0, 1, n, 116 * vel); w.note('brass', bar, 0, 2, n, 112 * vel); }
+  w.note('brass', bar, 0, 2, midiNote(c.brass[0]) - 12, 112 * vel);
   w.hit('crash', bar, 0, 118 * vel);
   w.hit('surdo', bar, 0, 120 * vel);
   w.hit('kick', bar, 0, 122 * vel);
@@ -323,13 +406,18 @@ function bandBar(w, m) {
       if (s.pad) for (const n of c.choir) w.note('pad', m, half, len, midiNote(n) - 12, 84 * d);
       if (!s.bare) w.note('contrabass', m, half, len, c.root, 100 * d);
       if (s.brass) for (const n of c.brass) w.note('brass', m, half, len * 0.9, n, 92 * d);
+      // INTRO3b: the low brass's braam under the section, and the halo - the tremolo violins on the chord an octave
+      // over the choir
+      if (s.brass) w.note('brass', m, half, len * 0.9, midiNote(c.brass[0]) - 12, 96 * d);
+      if (s.halo) for (const n of c.choir) w.note('halo', m, half, len, midiNote(n) + 12, 88 * d);
     }
     if (s.pulse) {
       const p = pulseNote(c.root);
       for (const [b, accent] of PULSE) {
         if (b < half || b >= half + 2) continue;
         w.note('ostinato', m, b, accent ? 0.4 : 0.2, p, (accent ? 104 : 74) * d);
-        if (accent) w.note('cellos', m, b, 0.45, p, 88 * d);
+        // INTRO3b: the cellos on every step where the drums are fullest, on the accents elsewhere
+        if (accent || s.kit >= 3) w.note('cellos', m, b, 0.45, p, (accent ? 88 : 70) * d);
       }
     }
     if (s.harp) {
@@ -344,6 +432,10 @@ function bandBar(w, m) {
     w.hit('surdo', m, 2, 92 * d);
     w.note('timpani', m, 0, 1, midiNote(CHORDS[h1].root) + 12, 96 * d);
   }
+  if (s.kit >= 2) w.note('timpani', m, 2, 1, midiNote(CHORDS[h2].root) + 12, 80 * d);   // INTRO3b: the timpani answers on three
+  // INTRO3b: the suspended cymbal's wash under the groove - soft, on one and three, on every beat where the drums are
+  // fullest (the bar line's own crash stands over it where they meet)
+  if (s.kit >= 2) for (const b of s.kit >= 3 ? [0, 1, 2, 3] : [0, 2]) w.hit('crash', m, b, (s.kit >= 3 ? 42 : 36) * d);
   if (s.kit >= 2) {
     for (const b of [0, 0.75, 1.5, 2, 2.75, 3.5]) w.hit('kick', m, b, (b === 0 || b === 2 ? 108 : 90) * d);
     w.hit('lowTom', m, 1.5, 84 * d);
@@ -381,29 +473,37 @@ function makeTheme() {
     for (const voice of /** @type {const} */ (['strings', 'pad', 'contrabass', 'harp'])) w.volume(voice, FIRST_BAR, i / 2, voice === 'harp' ? v * 0.84 : v);
   }
   w.volume('strings', 0, 0, MIX.strings[0]); w.volume('pad', 0, 0, MIX.pad[0]); w.volume('contrabass', 0, 0, MIX.contrabass[0]); w.volume('harp', 0, 0, MIX.harp[0]);
-  // into the cloud break: the roll, the swell, the hit - on CLOUD_REVEAL_TIME
+  // into the cloud break: the roll, the swell, the crescendo, the hit - on CLOUD_REVEAL_TIME
   rollInto(w, CLOUD_BAR, 2, 'C3');
   swellInto(w, CLOUD_BAR, 2);
+  crescendoInto(w, CLOUD_BAR, 0.82);
   landOn(w, CLOUD_BAR, 'C', 0.96);
   // the C holds; it settles, then rises again into the impact - on TITLE_IMPACT_TIME
   rollInto(w, IMPACT_BAR, 2, 'D3', 46, 116);
   swellInto(w, IMPACT_BAR, 4);
+  crescendoInto(w, IMPACT_BAR, 0.76);
   landOn(w, IMPACT_BAR, 'Gm', 1.05);
   // the sections' turns: the theme's entry, its answer, the third statement, the build's top, the breakdown's end, the
-  // dominant's arrival and the last statement
+  // dominant's arrival and the last statement - each led into by the bed's crescendo (INTRO3b), struck by the low
+  // brass's braam with the hit
   for (const [bar, chord, vel] of /** @type {Array<[number, string, number]>} */ ([[8, 'Gm', 0.92], [17, 'D', 0.9], [41, 'Gm', 0.95], [55, 'Eb', 1], [61, 'F', 0.9], [67, 'Gm', 1.05]])) {
     w.hit('crash', bar, 0, 110 * vel);
     w.note('timpani', bar, 0, 1, midiNote(CHORDS[chord].root) + 12, 116 * vel);
     for (const n of CHORDS[chord].brass) w.note('hit', bar, 0, 1, n, 100 * vel);
+    w.note('brass', bar, 0, 1.5, midiNote(CHORDS[chord].brass[0]) - 12, 104 * vel);
+    crescendoInto(w, bar);
   }
   rollInto(w, 41, 2, 'D3');
+  rollSnare(w, 55, 2);
   rollInto(w, 61, 4, 'D3', 40, 110);
   swellInto(w, 61, 4);
   rollInto(w, 67, 4, 'D3', 50, 120);
   swellInto(w, 67, 2);
+  rollSnare(w, 67, 4, 36, 110);
+  crescendoInto(w, CLOSE_BAR, 0.9);
   // the close: one last hit on G, and the chord left to ring into the loop
   landOn(w, CLOSE_BAR, 'Gm', 0.92);
-  for (let i = 0; i < 16; i++) for (const voice of /** @type {const} */ (['strings', 'choir', 'pad', 'contrabass'])) w.volume(voice, CLOSE_BAR + 1, i / 2, MIX[voice][0] * (1 - i / 16));
+  for (let i = 0; i < 16; i++) for (const voice of /** @type {const} */ (['strings', 'choir', 'pad', 'contrabass', 'halo', 'violins'])) w.volume(voice, CLOSE_BAR + 1, i / 2, MIX[voice][0] * (1 - i / 16));
   // every voice's program, level and place at tick 0
   for (const [voice, [level, pan]] of Object.entries(MIX)) {
     const channel = INTRO_CHANNELS[/** @type {keyof typeof INTRO_CHANNELS} */ (voice)];
@@ -417,6 +517,7 @@ function makeTheme() {
     name: INTRO_SONG, press: INTRO_PRESS, level: INTRO_LEVEL,
     beatsPerMinute: 60 / (INTRO_SECONDS_PER_TICK * INTRO_SCORE_TPQ), secondsPerTick: INTRO_SECONDS_PER_TICK,
     events: w.events, durationTicks: introTick(LAST_BAR + 1), seamless: true,
+    voices: INTRO_VOICES_BY_CHANNEL, kit: INTRO_KIT,   // INTRO3b: its own voices and kit (songPlayer.js songVoices, songKit)
   };
 }
 

@@ -1330,6 +1330,66 @@ frame that lands there (CI's frames are about 0.4 s apart) failed while
 showing exactly the cue: 0.899 at 18.48 s. It now holds that frame to
 `introTitleAt` at the frame's own time - visible, centred, not landed.
 
+#### INTRO3b (2026-10-23): not flat - the sections as ensembles, the kit with its skins, the hall
+
+The owner: "I want to make this music better. Currently its not really good and
+too flat. I really need you to put work into this and make it truely amazing."
+Measured first - the recording's first 27 s against the dry render's, the
+probe's own way (12 kHz mono, Hann 4096): the render's spectral centre of
+weight 305 Hz to the recording's 521, its share from 2 kHz up -25.0 dB to
+-12.8, and its two channels all but one (L/R correlation 0.985 to the
+recording's 0.33 over the film, 0.59 over its body); over the whole band its
+air (6 kHz up) 14 dB under the recording's share, its spectral flatness 0.003
+to 0.090 - a few pure tones, not an orchestra. Dull, thin and centred: flat,
+literally. The notes did not move - the melody and the harmony tables are as
+they were read - what plays them did:
+
+- **The voices** (`INTRO_VOICES`, EG-ROAR's `songVoices`): every section its
+  own instrument over the bank's one pair a note. The bowed sections are
+  ensembles - three or four unison copies 11 to 18 cents apart, laid either
+  side of their place - with the FM index higher than the bank's and slower
+  to settle, so the top of the band is there through the note and not only
+  at its attack; the choir and the pad on odd harmonics (mod 2, the hollow a
+  voice has that a string has not), the brass biting (index 5), the ostinato
+  a spiccato, the timpani with a sub, the swell the Spire's inharmonic shimmer
+  spread wide. A new voice, the HALO (channel 15, tremolo strings): four
+  violins at the edges on the choir's chord an octave up - a shimmer through
+  the opening, over the cloud break's held C and wherever the band opens out.
+  The contrabass carries no sub: at G1 its octave under is 24 Hz, under the
+  floor and heard by nothing but the press.
+- **The kit** (`INTRO_KIT`, `songKit`): the taiko long and falling with its
+  beater's click, the kick and the toms the same, the snare a crack over a
+  skin, the crash 2.6 s long. The press lets a drum's first 12 ms through
+  (EG-ROAR's lesson).
+- **The writing**: the low brass's braam an octave under every brass bar and
+  with every section hit; the horn in octaves with the violins on the cloud
+  break's and the impact's calls; the timpani answering on three; the cellos
+  on every step of the pulse where the drums are fullest; a suspended cymbal's
+  wash under the groove, soft; a snare roll into the build's top and the last
+  statement; and a swell - the bed's CC7 sinking over one bar and surging over
+  the next, no step - into both landmarks and every section's turn.
+- **The hall** (`introTheme.js` `introSpace`, `INTRO_HALL`, `INTRO_WET`): a
+  concert hall's impulse built from I3DL2 numbers the way the engine's reverb
+  zones are (`reverbPresets.js` `reverbImpulse`), under the player's master
+  through the session's own gain, so it follows MusicVolume, the mute and the
+  film's and the menu's levels as the dry sound does; the player is handed its
+  send as its third argument. A context with no convolver plays dry, as
+  before; dispose lets the hall's nodes go with the gain.
+
+Measured after, the same way, the film's 27 s: the centre of weight 474 Hz,
+the share from 2 kHz up -14.8 dB (10 dB up; 2 dB under the recording's, and
+left there - the last of it costs FM its sweetness), L/R correlation 0.58 (the
+recording's body's), both landmarks heard at 0.0 ms of their cue, the peak
+-2.7 dBFS at the highest MusicVolume under the -1 ceiling (the hall sums over
+the press, so the ceiling is measured, not held by construction as the dry
+sound's is). The probe pins the width (correlation under 0.8) and the
+presence (the centre over 420 Hz, 2 kHz up over -16 dB) beside the landmarks,
+each a margin under where the score lands. Pins: `test/systems/intro3_score.test.js`
+INTRO3b (the voices in range as written, every drum its skin, the halo, the
+braam, the wash, the rolls, the swells), `test/ui/intro.test.js` INTRO3b (the
+hall under the session, the send, dispose). Mutants: `tools/mutants/intro3.json`,
+31, all dead.
+
 ## U65 THE INTRO (2026-08-30) - HISTORICAL REMOVAL
 
 Built through five versions in one day (U65, c, d, e: generated Iliac

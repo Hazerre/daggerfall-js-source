@@ -11,9 +11,10 @@ import { join } from 'node:path';
 import {
   introThemeSong, introTick, introSeconds, INTRO_SONG, INTRO_SCORE_TPQ, INTRO_SECONDS_PER_TICK, INTRO_LEAD_TICKS,
   INTRO_PROGRAMS, INTRO_CHANNELS, INTRO_LEVEL, INTRO_PRESS, INTRO_SCORE_TABLES, FIRST_BAR, LAST_BAR, CLOUD_BAR, IMPACT_BAR,
+  INTRO_VOICES, INTRO_KIT,
 } from '../../src/systems/introScore.js';
 import { midiNote } from '../../src/systems/gate/gateScore.js';
-import { songLevel, songPress } from '../../src/systems/song/songPlayer.js';
+import { songLevel, songPress, songVoices, songKit } from '../../src/systems/song/songPlayer.js';
 import { CLOUD_REVEAL_TIME, TITLE_IMPACT_TIME } from '../../src/ui/intro/introCue.js';
 
 const song = introThemeSong();
@@ -49,7 +50,7 @@ test('INTRO3: the song is the shape the game’s player plays - sorted, in range
   assert.equal(song.durationTicks, introTick(LAST_BAR + 1));
   assert.equal(song.seamless, true, 'it loops on its bar line, as the recording looped');
   assert.equal(songLevel(song), INTRO_LEVEL);
-  assert.deepEqual(songPress(song), { threshold: -14, knee: 12, ratio: 3, attack: 0.003, release: 0.25, out: 2.6, ceiling: -1 });
+  assert.deepEqual(songPress(song), { threshold: -14, knee: 12, ratio: 3, attack: 0.012, release: 0.25, out: 2.6, ceiling: -1 });
   assert.equal(INTRO_PRESS.ceiling, -1);
   const rank = { programChange: 0, controller: 0, noteOn: 1 };
   for (let i = 1; i < song.events.length; i++) {
@@ -131,6 +132,64 @@ test('INTRO3: the horn plays the melody where the bar puts it, the band follows 
   const atRise = strings.filter((e) => e.tick <= introTick(0)).at(-1);
   assert.ok(atRise.value >= 100, `the strings at ${atRise.value} by the rise`);
   for (const e of strings.filter((x) => x.tick > 0 && x.tick < introTick(0))) assert.ok(e.value <= atRise.value);
+});
+
+test('INTRO3b: not flat - every section its own voice (the bed an ensemble, spread), every drum its own skin, the press letting a drum through, the halo over the choir where the band opens out, the low brass’s braam under every brass bar and with every hit, the timpani on three, the cellos on every step at the fullest, the snare rolls, and a swell into every landmark and turn', () => {
+  const { HARMONY, CHORDS } = INTRO_SCORE_TABLES;
+  const voices = songVoices(song), kit = songKit(song);
+  assert.ok(voices && kit, 'the song carries its own voices and kit');
+  for (const [voice, channel] of Object.entries(INTRO_CHANNELS)) {
+    if (voice === 'kit') continue;
+    assert.deepEqual(voices[channel], { ...INTRO_VOICES[voice] }, `${voice}'s voice, in range as written`);
+  }
+  for (const voice of ['strings', 'violins', 'choir', 'pad', 'halo', 'brass']) assert.ok(INTRO_VOICES[voice].unison >= 3 && INTRO_VOICES[voice].spread >= 0.4, `${voice} is an ensemble, spread`);
+  assert.equal(INTRO_VOICES.contrabass.sub, undefined, 'no sub under the contrabass: 24 Hz at G1, under the floor');
+  for (const e of notes.filter((x) => x.channel === INTRO_CHANNELS.kit)) assert.ok(kit.has(e.note), `drum ${e.note} has its own skin`);
+  assert.ok(kit.get(87).click > 0 && kit.get(87).decay >= 1, 'the taiko is long, with its beater');
+  assert.ok(kit.get(38).body > 0, 'the snare is a crack over a skin');
+  assert.ok(kit.get(49).decay >= 2, 'the crash is long');
+  assert.equal(songPress(song).attack, 0.012, 'the press lets a drum’s first 12 ms through');
+  // the halo: the choir's chord an octave up where the band opens out (bar 14) and over the cloud break; none at the theme's entry
+  const halo = (m) => at(introTick(m), INTRO_CHANNELS.halo).map((e) => e.note).sort((a, b) => a - b);
+  const over = (chord) => CHORDS[chord].choir.map((n) => midiNote(n) + 12).sort((a, b) => a - b);
+  assert.deepEqual(halo(14), over(HARMONY[14][0]));
+  assert.deepEqual(halo(CLOUD_BAR), over('C'));
+  assert.deepEqual(halo(8), []);
+  // the braam: the low brass an octave under the section's bottom note - under a brass bar's second half (18) and a bar
+  // that is no turn (45), with the hit on a turn (41), on the impact
+  const braam = (m, beat, chord) => at(introTick(m, beat), INTRO_CHANNELS.brass).some((e) => e.note === midiNote(CHORDS[chord].brass[0]) - 12);
+  assert.ok(braam(18, 2, HARMONY[18][1]), 'bar 18, the second half: the braam under the section');
+  assert.ok(braam(45, 0, HARMONY[45][0]), 'bar 45: the braam under the section');
+  assert.ok(braam(41, 0, 'Gm'), 'bar 41: the braam with the hit');
+  assert.ok(braam(IMPACT_BAR, 0, 'Gm'), 'the impact: the braam');
+  assert.ok(!braam(9, 0, HARMONY[9][0]), 'bar 9 has no brass');
+  // the suspended cymbal's wash: soft crashes on one and three under the groove (bar 9), on every beat at the fullest (bar 44), none under the low drums alone (bar 7)
+  const wash = (m) => notes.filter((e) => e.channel === INTRO_CHANNELS.kit && e.note === 49 && e.tick >= introTick(m) && e.tick < introTick(m + 1)).map((e) => (e.tick - introTick(m)) / INTRO_SCORE_TPQ);
+  assert.deepEqual(wash(9), [0, 2]); assert.deepEqual(wash(44), [0, 1, 2, 3]); assert.deepEqual(wash(7), []);
+  assert.ok(notes.filter((e) => e.channel === INTRO_CHANNELS.kit && e.note === 49 && e.tick > introTick(9) && e.tick < introTick(10)).every((e) => e.velocity < 50), 'the wash is soft');
+  // the timpani answers on three where the groove plays (bar 9), not where only the low drums do (bar 7)
+  assert.ok(at(introTick(9, 2), INTRO_CHANNELS.timpani).some((e) => e.note === midiNote(CHORDS[HARMONY[9][1]].root) + 12));
+  assert.equal(at(introTick(7, 2), INTRO_CHANNELS.timpani).length, 0);
+  // the cellos: every step of the pulse where the drums are fullest (bar 44), the accents alone where they are not (bar 9)
+  const cellos = (m) => notes.filter((e) => e.channel === INTRO_CHANNELS.cellos && e.tick >= introTick(m) && e.tick < introTick(m + 1)).length;
+  assert.equal(cellos(44), 10); assert.equal(cellos(9), 6);
+  // the snare rolls into the build's top and the last statement: sixteenths over the bar before, rising (the groove's own
+  // snare on one and three stands over the roll where they meet - one note a key a moment)
+  for (const [bar, beats] of [[55, 2], [67, 4]]) {
+    const roll = notes.filter((e) => e.channel === INTRO_CHANNELS.kit && e.note === 38 && e.tick >= introTick(bar - 1, 4 - beats) && e.tick < introTick(bar));
+    assert.equal(roll.length, beats * 4, `the roll into ${bar}`);
+    const climbing = roll.filter((e) => (e.tick - introTick(bar - 1)) % (2 * INTRO_SCORE_TPQ) !== INTRO_SCORE_TPQ);
+    for (let i = 1; i < climbing.length; i++) assert.ok(climbing[i].velocity > climbing[i - 1].velocity, 'the roll only rises');
+  }
+  // the swell: over the bar before each landmark and turn the strings climb back to their level on the bar line, having sunk through the bar before that
+  for (const bar of [CLOUD_BAR, IMPACT_BAR, 8, 17, 41, 55, 61, 67]) {
+    const cc7 = (from, to) => song.events.filter((e) => e.type === 'controller' && e.controller === 7 && e.channel === INTRO_CHANNELS.strings && e.tick >= from && e.tick <= to);
+    const rise = cc7(introTick(bar - 1), introTick(bar)), sink = cc7(introTick(bar - 2), introTick(bar - 1));
+    assert.ok(rise.length >= 9 && sink.length >= 9, `a swell into ${bar}`);
+    assert.equal(rise.at(-1).value, 100); assert.ok(rise[0].value < 100); assert.equal(sink[0].value, 100);
+    for (let i = 1; i < rise.length; i++) assert.ok(rise[i].value >= rise[i - 1].value, 'the surge only rises');
+    for (let i = 1; i < sink.length; i++) assert.ok(sink[i].value <= sink[i - 1].value, 'the sink only falls');
+  }
 });
 
 test('INTRO3: nothing fetches or decodes a recording - the intro plays the score through the game’s own player', () => {

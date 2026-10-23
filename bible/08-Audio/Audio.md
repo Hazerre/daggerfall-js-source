@@ -938,3 +938,18 @@ and the menu (`systems/introTheme.js`).
   player: `tools/introScoreProbe.mjs`.
 - **Not here**: a music pack's replacement by name and MIDI-OUT1's device - the session plays before the music service
   exists, on the FM bank. `10-UI/UI-Arc.md` INTRO3.
+
+**INTRO3b (2026-10-23, the owner: "too flat"): the theme is the second song to carry its own voices and kit**
+(`systems/introScore.js` `INTRO_VOICES`, `INTRO_KIT` - EG-ROAR's `songVoices`, `songKit`, after the Spire's). Measured
+against the recording's first 27 s, the dry render's spectral centre stood at 305 Hz to the recording's 521, its share
+from 2 kHz up 13 dB under, and its two channels all but one (L/R correlation 0.985 to 0.33). Now: the bowed sections
+ensembles (unison copies spread either side of their place, the FM index higher and slower to settle), the choir and the
+pad on odd harmonics, a halo of four tremolo violins on the choir's chord an octave up, the taiko and the toms with their
+beaters' clicks and the snare a crack over a skin, a suspended cymbal's wash, the low brass's braams, snare rolls and a
+CC7 swell into every turn - and THE HALL: the intro session hangs a concert hall's convolver under the player's master
+(`systems/introTheme.js` `introSpace`, its impulse from I3DL2 numbers through `reverbPresets.js` `reverbImpulse`, the
+first use of that builder outside the engine's zones), through the session's own gain so MusicVolume and the mute reach
+it. The film's 27 s measured after: 474 Hz, -14.8 dB from 2 kHz up, correlation 0.58, both landmarks at 0.0 ms, the peak
+-2.7 dBFS at the highest MusicVolume - the hall sums over the press, so the ceiling is measured there, not held by
+construction. `tools/introScoreProbe.mjs` pins the width and the presence beside the landmarks. The whole record is
+`10-UI/UI-Arc.md` INTRO3b.

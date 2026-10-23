@@ -36,7 +36,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      # INTRO3b: the runner image carries ffmpeg; apt is asked only where it does not (one run spent 15 of the job's
+      # 25 minutes in `apt-get update` and was cancelled before a probe ran)
+      - run: which ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
       # INTRO3 (2026-10-23, the owner): the intro's own tests, not `npm run check` in series - the whole suite had outgrown
       # this job's 25 minutes and cancelled every run before its probes; verify.yml runs the whole gate on every PR
       - name: The intro's own tests

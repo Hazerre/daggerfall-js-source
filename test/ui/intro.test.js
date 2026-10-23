@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
-import { IntroTheme, audibleContextTime, INTRO_THEME_GAIN, MENU_THEME_GAIN } from '../../src/systems/introTheme.js';
+import { IntroTheme, audibleContextTime, INTRO_THEME_GAIN, MENU_THEME_GAIN, INTRO_WET, INTRO_HALL } from '../../src/systems/introTheme.js';
 import { introThemeSong } from '../../src/systems/introScore.js';
 import { introTitleAt, introFrameAt, introCameraAt, INTRO_CREDITS, TITLE_IMPACT_TIME, TITLE_ENTER_TIME, TITLE_READY_TIME, LANDSCAPE_HOLD_TIME, TITLE_DEPTH, TITLE_BLUR } from '../../src/ui/intro/introCue.js';
 import { introTerrainGrid } from '../../src/ui/intro/introLandscape.js';
@@ -142,9 +142,9 @@ function audioRig() {
   };
   // INTRO3: the game's song player, as IntroTheme drives it (systems/song/songPlayer.js: play sets the song's origin 0.06 s on)
   const players = [];
-  const makePlayer = (context, destination) => {
+  const makePlayer = (context, destination, send) => {
     const p = {
-      context, destination, songs: [],
+      context, destination, send, songs: [],
       play(song) { this.songs.push(song); this._originTime = context.currentTime + 0.06; events.push(['play']); return true; },
       stop() { events.push(['stopPlayer']); },
       resyncGain() { events.push(['resync']); },
@@ -198,6 +198,38 @@ test('INTRO2: a session disposed before it is ready never sounds, and no Web Aud
   const warn = console.warn; console.warn = () => {};
   try { assert.equal(await none.prepare(), false); } finally { console.warn = warn; }
   assert.equal(none.start(), false);
+});
+
+test('INTRO3b: the hall - a context with a convolver puts one under the session gain and hands the player its send; one without plays dry; dispose lets the hall’s nodes go', async () => {
+  const r = audioRig();
+  await r.theme.unlock(); await r.theme.prepare();
+  assert.equal(r.theme.space, null, 'the rig’s context has no convolver: no hall, the theme dry');
+  assert.equal(r.players[0].send, null);
+  await r.theme.dispose();
+  const wired = [];
+  const node = (kind) => ({ kind, connect(to) { wired.push([kind, to.kind]); return to; }, disconnect() { wired.push([kind, 'off']); } });
+  const ctx = {
+    currentTime: 1, state: 'suspended', sampleRate: 8000, destination: { kind: 'destination' },
+    createGain: () => Object.assign(node('gain'), { gain: { value: 1, cancelAndHoldAtTime() {}, linearRampToValueAtTime() {} } }),
+    createConvolver: () => node('convolver'),
+    createBuffer: (channels, length, rate) => { const data = Array.from({ length: channels }, () => new Float32Array(length)); return { length, sampleRate: rate, numberOfChannels: channels, getChannelData: (c) => data[c] }; },
+    resume() { this.state = 'running'; return Promise.resolve(); }, suspend() { return Promise.resolve(); }, close() { return Promise.resolve(); },
+  };
+  const players = [];
+  const theme = new IntroTheme({ makeContext: () => ctx, makePlayer: (context, destination, send) => { const p = { destination, send, play() { return true; }, stop() {}, resyncGain() {} }; players.push(p); return p; }, subscribe: () => () => {} });
+  await theme.prepare();
+  assert.ok(theme.space, 'a hall');
+  assert.equal(players[0].send, theme.space.send, 'the player is handed the hall’s send');
+  assert.equal(players[0].destination, theme.gain);
+  assert.equal(theme.space.wet.gain.value, INTRO_WET);
+  assert.equal(theme.space.convolver.normalize, false, 'the impulse carries its own level - the tail is normalised to unit energy as it is built');
+  assert.equal(theme.space.convolver.buffer.sampleRate, 8000);
+  assert.equal(theme.space.convolver.buffer.length, Math.ceil((INTRO_HALL.reverbDelay + INTRO_HALL.decayTime) * 8000), 'the hall’s impulse is the preset’s length at the context’s rate');
+  assert.ok(theme.space.convolver.buffer.getChannelData(0).some((v) => v !== 0) && theme.space.convolver.buffer.getChannelData(1).some((v) => v !== 0), 'both channels of the impulse carry the hall');
+  assert.deepEqual(wired.filter(([, to]) => to !== 'off'), [['gain', 'destination'], ['gain', 'convolver'], ['convolver', 'gain'], ['gain', 'gain']], 'send -> convolver -> wet -> the session gain -> the destination');
+  await theme.dispose();
+  assert.equal(wired.filter(([, to]) => to === 'off').length, 4, 'the session gain and the hall’s three nodes let go');
+  assert.equal(theme.space, null);
 });
 
 test('INTRO2: the shared logo has accessible text and its exact natural aspect ratio', () => {
