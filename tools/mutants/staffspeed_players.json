@@ -40,6 +40,16 @@
     ]
   },
   {
+    "name": "STAFF-SPEED-PLAYERS-no-character-unaudited",
+    "file": "server-account/src/staffPlayers.js",
+    "old": "if (!c) { await row.run(); return { character: null }; }",
+    "new": "if (!c) return { character: null };",
+    "why": "a Skills, Equipment or Inventories tab of an account with no character answered without its audit row (the tab's row is no longer one site after tabOf)",
+    "tests": [
+      "test/server/staffspeed_players.test.js"
+    ]
+  },
+  {
     "name": "STAFF-SPEED-PLAYERS-law-before-batch",
     "file": "server-account/src/staffPlayers.js",
     "old": "const [view, law, got] = await Promise.all([viewOf(bucket, c), lawOf(db, c),",

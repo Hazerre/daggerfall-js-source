@@ -82,6 +82,13 @@ test('STAFF-PANEL-SPEED players: the search, a profile and every tab, the device
   const rows = (act) => s.raw.prepare('SELECT COUNT(*) AS n FROM staff_audit WHERE act = ?').get(act).n;
   assert.deepEqual(['players-search', 'player-read', 'devices-read', 'notes-read', 'watch-read', 'watch-events', 'reported-read', 'ai-score-read'].map(rows),
     [4, PLAYER_TABS.length, 1, 1, 1, 1, 2, 1]);
+  // an account with no realm character: its Skills, Equipment and Inventories answer none and still write their row
+  const none = (await s.registered('Emptyhand')).id;
+  for (const tab of ['skills', 'equipment', 'inventories']) {
+    const r = await counted(s, '/v1/staff/player', { target: none, tab });
+    assert.deepEqual([r.status, r.body?.data, r.trips <= 3], [200, { character: null }, true], `${tab} of an account with no character: ${r.trips} trips`);
+  }
+  assert.equal(s.raw.prepare("SELECT COUNT(*) AS n FROM staff_audit WHERE act = 'player-read' AND target = ?").get(none).n, 3);
 });
 
 test('STAFF-PANEL-SPEED players: the folded search answers each account\'s characters as the separate read did - newest first, playing, dead and held - and only the page\'s', async () => {

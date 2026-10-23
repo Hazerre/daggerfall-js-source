@@ -506,9 +506,7 @@ export async function staffPlayers(ctx, env, path, body, who, audit) {
     const args = [after, PLAYERS_PAGE + 1, ...(q ? [q.toLowerCase(), top(q.toLowerCase()), q, top(q)] : []), ...(online ? [nowS - PLAY_GRACE_S] : [])];
     // the online read by the last play beat's index (idx_players_played) and only they sorted: a plain `played_at >=` beside
     // the handle's range let the planner walk every handle for the ORDER BY (STAFF-PANEL3-PLAYERS FIX, flaw review)
-    // STAFF-PANEL-SPEED (mob: "slow when moving in menus"): each row's characters, newest first, ride the page's own read as
-    // one JSON column, read by the outer select after the page is cut (its rows alone, never every match), and the audit row
-    // rides the same batch - one trip, where the page, its characters and its row were three
+    // STAFF-PANEL-SPEED (mob: "slow when moving in menus"): the cut page's characters ride its read as one JSON column, its audit row the same batch - one trip, was three
     const sql = `SELECT x.*, (SELECT json_group_array(json_array(c.id, c.name, c.lease, c.lease_at, c.dead_at, c.held)) FROM (SELECT id, name, lease, lease_at, dead_at, held
         FROM realm_characters WHERE player = x.id ORDER BY updated_at DESC) c) AS chars
       FROM (SELECT id, handle, handle_lc, created_at, played_at, muted_until, banned_until FROM players WHERE ${q ? `id IN (
