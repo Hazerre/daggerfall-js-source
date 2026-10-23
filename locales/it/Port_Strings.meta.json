@@ -20789,6 +20789,26 @@
   "tr": "3cbf43e8e1bf",
   "by": "claude-in-session"
  },
+ "net.staffView.crowd": {
+  "en": "fc818f0d87e4",
+  "tr": "102a92cfc9a1",
+  "by": "claude-in-session"
+ },
+ "net.staffView.more": {
+  "en": "8a8f0b6e3349",
+  "tr": "ae02b83c42d8",
+  "by": "claude-in-session"
+ },
+ "net.staffView.noAccount": {
+  "en": "9305331b1669",
+  "tr": "bcafd6df9b40",
+  "by": "claude-in-session"
+ },
+ "net.staffView.noAccountAnon": {
+  "en": "1d57171e6260",
+  "tr": "47e8d0f7215a",
+  "by": "claude-in-session"
+ },
  "net.update.build": {
   "en": "21da376bfb7d",
   "tr": "9052871f7d15",

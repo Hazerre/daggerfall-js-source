@@ -41,6 +41,7 @@ import { projectToScreen } from '../player/tapRay.js';
 import { worldViewportRect } from '../ui/hud/hudLarge.js';
 import { multiply } from '../world/mat4.js';
 import { createStaffTags } from '../ui/staffTags.js';
+import { t } from '../systems/textManager.js';
 
 /** The ground view's tags at most, nearest first - the relay's own fan (every pose only for the nearest POSE_FAN_MAX). */
 export const STAFF_TAGS_MAX = POSE_FAN_MAX;
@@ -66,7 +67,8 @@ export function staffTagWords(flag, monsters, concealed) {
   return [flag?.level ? flag.why : '', flag?.watch ? 'WATCH' : '', monsters > 0 ? `${monsters} monster${monsters === 1 ? '' : 's'}` : '', concealed ? 'concealed' : '']
     .filter(Boolean).join(' · ');
 }
-const noAccount = (/** @type {string} */ name) => `Staff view: no account found for ${name || 'that player'} - not followed.`;
+const noAccount = (/** @type {string} */ name) => (name ? t('net.staffView.noAccount', 'Staff view: no account found for {name} - not followed.', { name })
+  : t('net.staffView.noAccountAnon', 'Staff view: no account found for that player - not followed.'));
 
 /**
  * `follow` the page's follow (scenes/staffFollowHost.js staffFollowOnPage), `glyphs()` mine as the service last issued
@@ -186,10 +188,10 @@ export function createStaffViewHost({ follow, glyphs, links, book, foes, overwor
             if (a.front && b.front) segs.push([a.x, a.y, b.x, b.y]);
           }
         }
-        layer.lines(segs, w, h);
+        layer.strokes(segs, w, h);
         return;
       }
-      layer.lines([], w, h);
+      layer.strokes([], w, h);
       const dist = follow.tags()?.dist ?? NAMEPLATE_DIST;
       const near = [];
       for (const d of peers) {

@@ -9,6 +9,7 @@
 // scrolls; the host's cap holds it to STAFF_TAGS_MAX rows); past the cap a "+N". One canvas, for an Admin's monster
 // lines on the Overworld, drawn again only when a line moved.
 import { PIXEL_FONT_CSS, PIXEL_TEXT_SHADOW } from './pixelifyFive.js';
+import { t } from '../systems/textManager.js';
 
 /** The mockup's look (In game board): the name in the Ember look's cyan on a dark plate, a flag by its urgency - High
  *  red, Medium amber, Low grey; an Admin's monster lines in the enemy's red. */
@@ -26,7 +27,7 @@ const inkOf = (level) => STAFF_TAG_COLORS[level] ?? STAFF_TAG_COLORS.plain;
  * @param {{ doc?: any, onPick: (id: string) => void }} deps
  */
 export function createStaffTags({ doc = globalThis.document, onPick }) {
-  if (!doc?.createElement || !doc.body) return { render() {}, lines() {}, hide() {}, dispose() {}, size: () => 0 };
+  if (!doc?.createElement || !doc.body) return { render() {}, strokes() {}, hide() {}, dispose() {}, size: () => 0 };
   const root = doc.createElement('div');
   root.setAttribute('data-staff-tags', '');
   root.style.cssText = ROOT_CSS;
@@ -68,7 +69,7 @@ export function createStaffTags({ doc = globalThis.document, onPick }) {
     return { node, crowd, v: {}, head, list, rows: [] };
   }
   function crowdRows(/** @type {any} */ b, /** @type {any[]} */ members) {
-    put(b.v, 'head', `${members.length} players here`, (v) => { b.head.textContent = v; });
+    put(b.v, 'head', t('net.staffView.crowd', '{n} players here', { n: members.length }), (v) => { b.head.textContent = v; });
     const key = members.map((m) => `${m.id}\u0001${m.name}\u0001${m.line}\u0001${m.level}`).join('\u0002');
     if (b.v.rows === key) return;
     b.v.rows = key;
@@ -104,11 +105,11 @@ export function createStaffTags({ doc = globalThis.document, onPick }) {
       }
       for (const [k, b] of boxes) if (!live.has(k)) { b.node.remove(); boxes.delete(k); }
       if (n > 0 && !more) { more = doc.createElement('div'); more.style.cssText = MORE_CSS; root.append(more); }
-      if (more && n !== moreN) { moreN = n; more.textContent = n > 0 ? `+${n} more players in range` : ''; more.style.display = n > 0 ? '' : 'none'; }
+      if (more && n !== moreN) { moreN = n; more.textContent = n > 0 ? t('net.staffView.more', '+{n} more players in range', { n }) : ''; more.style.display = n > 0 ? '' : 'none'; }
     },
     /** An Admin's monster lines, [[x0, y0, x1, y1]] in CSS px over a `w` x `h` screen - each from the monster (its dot)
      *  to its owner. Drawn again only when one moved. @param {number[][]} segs @param {number} w @param {number} h */
-    lines(segs, w, h) {
+    strokes(segs, w, h) {
       const sig = segs.length ? `${w}x${h}|${segs.map((s) => s.map((v) => Math.round(v)).join(',')).join(';')}` : '';
       if (sig === lineSig) return;
       lineSig = sig;

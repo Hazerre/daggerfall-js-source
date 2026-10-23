@@ -74,7 +74,7 @@ function fakeFollow({ panel = true, locked = false, eye = [], room = [], tags = 
 /** A layer that records what the host hands it. */
 function fakeLayer() {
   const l = { renders: [], lineSets: [], hidden: 0, onPick: null };
-  l.make = ({ onPick }) => { l.onPick = onPick; return { render: (g, n) => l.renders.push({ groups: g, n }), lines: (s) => l.lineSets.push(s), hide: () => { l.hidden++; }, dispose() {}, size: () => 0 }; };
+  l.make = ({ onPick }) => { l.onPick = onPick; return { render: (g, n) => l.renders.push({ groups: g, n }), strokes: (s) => l.lineSets.push(s), hide: () => { l.hidden++; }, dispose() {}, size: () => 0 }; };
   l.last = () => l.renders.at(-1);
   l.members = () => (l.last()?.groups ?? []).flatMap((g) => g.members);
   return l;
@@ -404,16 +404,16 @@ test('STAFF-VIEW1 the layer: one button a player under a root that takes no poin
 test('STAFF-VIEW1 the layer\'s lines: one canvas, drawn only when a line moved; +N said once', () => {
   const doc = fakeDocument();
   const tags = createStaffTags({ doc, onPick: () => {} });
-  tags.lines([], 100, 100);
+  tags.strokes([], 100, 100);
   assert.equal(all(doc.body).some((n) => n.tagName === 'CANVAS'), false, 'no line, no canvas');
-  tags.lines([[1, 2, 3, 4], [5, 6, 7, 8]], 100, 100);
+  tags.strokes([[1, 2, 3, 4], [5, 6, 7, 8]], 100, 100);
   const cv = all(doc.body).find((n) => n.tagName === 'CANVAS');
   assert.equal(cv.ops.filter((o) => o[0] === 'lineTo').length, 2);
   assert.equal(cv.ops.filter((o) => o[0] === 'arc').length, 2, 'a dot at each monster');
   const n = cv.ops.length;
-  tags.lines([[1, 2, 3, 4], [5, 6, 7, 8]], 100, 100);
+  tags.strokes([[1, 2, 3, 4], [5, 6, 7, 8]], 100, 100);
   assert.equal(cv.ops.length, n, 'unmoved: not drawn again');
-  tags.lines([], 100, 100);
+  tags.strokes([], 100, 100);
   assert.equal(cv.ops.at(-1)[0], 'clearRect', 'gone: cleared');
   tags.render([], 3);
   const more = all(doc.body).find((x) => /more players/.test(x.textContent));

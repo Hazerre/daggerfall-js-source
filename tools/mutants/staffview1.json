@@ -382,7 +382,7 @@
   {
     "name": "STAFF-VIEW1-lines-on-ground",
     "file": "src/scenes/staffViewHost.js",
-    "old": "      layer.lines([], w, h);\n      const dist",
+    "old": "      layer.strokes([], w, h);\n      const dist",
     "new": "      const dist",
     "why": "the Overworld's lines left over the ground",
     "tests": [
