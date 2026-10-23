@@ -36,6 +36,15 @@
   ]
  },
  {
+  "name": "BODY-CROP-ortho-cropped",
+  "file": "src/render/characterSprite.js",
+  "old": "getPref('mwBillboardLook') || !(proj[11] < 0))",
+  "new": "getPref('mwBillboardLook'))",
+  "tests": [
+   "test/render/bodycrop.test.js"
+  ]
+ },
+ {
   "name": "BODY-CROP-crossings-ignored",
   "file": "src/render/characterSprite.js",
   "old": "      take(clip[a] + t * (clip[b] - clip[a]), clip[a + 1] + t * (clip[b + 1] - clip[a + 1]), near);",
@@ -56,8 +65,8 @@
  {
   "name": "BODY-CROP-card-only-under-both",
   "file": "src/render/characterSprite.js",
-  "old": "if (box.up != null || getPref('mwBillboardLook'))",
-  "new": "if (box.up != null && getPref('mwBillboardLook'))",
+  "old": "if (box.up != null || getPref('mwBillboardLook') ||",
+  "new": "if (box.up != null && getPref('mwBillboardLook') ||",
   "tests": [
    "test/render/bodycrop.test.js"
   ]

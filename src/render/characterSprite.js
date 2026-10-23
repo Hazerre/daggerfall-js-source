@@ -297,7 +297,8 @@ export function cropQuad(proj, view, [nx0, ny0, nx1, ny1], at) {
  *  draws nothing. Answers drawRigSpriteBox's diagnostics. */
 export function drawBodyPicture(renderer, canvas, mesh, rigMat, box, proj, view, eye) {
   const pixel = mwModelPixel();
-  if (box.up != null || getPref('mwBillboardLook')) return drawRigSpriteBox(renderer, canvas, mesh, rigMat, box, proj, view, eye, pixel);
+  // and a lens with no perspective (an ortho's w is 1, its z row names no near plane) - nothing to crop through: the card
+  if (box.up != null || getPref('mwBillboardLook') || !(proj[11] < 0)) return drawRigSpriteBox(renderer, canvas, mesh, rigMat, box, proj, view, eye, pixel);
   const { center, halfW, halfH, anchor = null, hitFlash = 0, conceal = null, fx = null, also = null, glowLook = null } = box;
   const texel = imageTexel(renderer.retroImageSpan ?? null, pixel);
   // the world's image; a renderer that cannot say (a probe's) has the canvas's height at the lens's own aspect

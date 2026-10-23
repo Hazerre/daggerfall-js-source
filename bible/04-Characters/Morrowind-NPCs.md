@@ -2809,7 +2809,8 @@ player's, a peer's, the people's, the foes', the watch's - fpArm.js drawThird) a
   24-bit now: over the frame's whole near-to-far 16 bits step a quarter of a metre at 60 m in the street.
 
 THE CARD STAYS where a card is asked for: the Billboard Look's upright one (BODY-CARD - the flat card on purpose; its
-picture level since BODY-FLAT, below) and the travel view's leaned one (`up`, AUDIT OW4 J6), through drawRigSpriteBox;
+picture level since BODY-FLAT, below), the travel view's leaned one (`up`, AUDIT OW4 J6) and a lens with no perspective
+(an ortho's or a probe's identity - no near plane to crop through), through drawRigSpriteBox;
 and the voxel rigs' (drawCharacterSprite, exterior.js) - not a Morrowind mesh. The hit flash, the concealment's blend,
 a foe's tells and the weapon glow are the quad's and the pass's, so every one draws as it did.
 
@@ -2856,7 +2857,7 @@ nothing behind the eye or off the image, a coarser texel past the room; the quad
 not, at the anchor's distance; the card under the Billboard Look and the travel view's lean alone; the texel at each
 detail and under retro; the target's growth, its steps, its most and its release, and a flush after it; the card's
 room no larger than the screen; the depth mode and the tilted right on a recording GL; the switch, its row and its
-readers. `tools/mutants/bodycrop.json`: 17 records, 17 dead. In a real WebGL2 context (Chromium, a GPU) through the
+readers. `tools/mutants/bodycrop.json`: 18 records, 18 dead. In a real WebGL2 context (Chromium, a GPU) through the
 game's mirrored lens, the fixture body: at Sharp the picture is the direct draw of its mesh pixel for pixel - coverage
 and colour - from 2 m to 0.15 m, where the card it replaced differed in nearly every body pixel; Pixelated, every body
 pixel the colour of its 3 x 3 block on the screen's grid; a second body crossing the first, the picture drawn before it

@@ -171,6 +171,9 @@ test('BODY-CROP: the card stands only where one is asked for - the Billboard Loo
   const handed = capturing(true);
   drawBodyPicture(handed, canvas, null, null, { ...BODY, up: [0, 0.8, 0.6] }, proj, view, eye);
   assert.deepEqual([handed.c.op[11], handed.c.up], [0, [0, 0.8, 0.6]], 'the travel view\'s lean: the card');
+  const flatLens = capturing(true);
+  drawBodyPicture(flatLens, canvas, null, null, BODY, new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]), view, eye);
+  assert.equal(flatLens.c.op?.[11], 0, 'a lens with no perspective (a probe\'s identity): the card, never a crop through a near plane it has not');
   setPref('mwBillboardLook', true);
   const card = capturing(true);
   drawBodyPicture(card, canvas, null, null, BODY, proj, view, eye);
