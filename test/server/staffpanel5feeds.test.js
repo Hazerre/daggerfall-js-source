@@ -219,11 +219,25 @@ test('STAFF-PANEL5-FEEDS: Monster watch - owners outdoors, hosts never owners, "
   const line = s.raw.prepare('SELECT tab, text FROM mod_case_lines WHERE case_id = ?').get(c.id);
   assert.equal(line.text, "flagged from the staff panel's Monster watch by SirMcMobdon: forty outdoors , two bosses");
   assert.deepEqual(s.audits('monster-flag').map((a) => [a.target, a.outcome, JSON.parse(a.detail)]), [[s.troll.id, 'ok', { name: 'Troll', note: 'forty outdoors , two bosses', case: c.id }]]);
+  // STAFF-PANEL5-FEEDS-FIX: A FLAG INSIDE THE WINDOW OF A GRANT LINE WRITES ITS OWN, and touches the case (grantCaseLines'
+  // one line a window is the automatic findings'); a line there this second already is said, never dropped
+  s.raw.prepare('UPDATE mod_case_lines SET at = at - 60 WHERE case_id = ?').run(c.id);
+  s.raw.prepare('UPDATE mod_cases SET updated_at = 0 WHERE id = ?').run(c.id);
+  const again = await s.staff('/v1/staff/monster/flag', { name: 'Troll', note: 'spawning liches at the gate' }, s.mob);
+  assert.deepEqual([again.status, again.body.case], [200, c.id], JSON.stringify(again.body));
+  assert.deepEqual(s.raw.prepare('SELECT tab, text FROM mod_case_lines WHERE case_id = ? ORDER BY at').all(c.id).map((x) => [x.tab, x.text]), [
+    ['grant', "flagged from the staff panel's Monster watch by SirMcMobdon: forty outdoors , two bosses"], ['grant', "flagged from the staff panel's Monster watch by SirMcMobdon: spawning liches at the gate"]]);
+  assert.ok(s.raw.prepare('SELECT updated_at FROM mod_cases WHERE id = ?').get(c.id).updated_at > 0, 'the case touched');
+  for (const at of [0, 1, 2]) s.raw.prepare("INSERT OR IGNORE INTO mod_case_lines (case_id, at, sub, name, tab, text) VALUES (?, ?, ?, 'Troll', 'grant', 'a finding')").run(c.id, nowS() + at, s.troll.id);
+  const twice = await s.staff('/v1/staff/monster/flag', { name: 'Troll', note: 'once more' }, s.mob);
+  assert.deepEqual([twice.status, twice.body.error], [500, 'flag-failed'], 'a line this second already');
+  assert.equal(s.raw.prepare("SELECT COUNT(*) AS n FROM mod_case_lines WHERE text LIKE '%once more'").get().n, 0);
+  assert.deepEqual(s.audits('monster-flag').map((a) => a.outcome), ['ok', 'ok', 'failed']);
   // a Flag whose case cannot open is audited failed, its error said
   s.raw.exec('DROP TABLE mod_case_lines');
   const bad = await s.staff('/v1/staff/monster/flag', { name: 'Sylvia' }, s.mob);
   assert.deepEqual([bad.status, bad.body.error], [500, 'flag-failed']);
-  const failed = s.audits('monster-flag')[1];
+  const failed = s.audits('monster-flag')[3];
   assert.deepEqual([failed.target, failed.outcome], [s.sylvia.id, 'failed']);
   assert.ok(JSON.parse(failed.detail).error, 'the error written down');
 });
@@ -304,6 +318,30 @@ test('STAFF-PANEL5-FEEDS: past an hour\'s rows, a player-hour is one row of sums
   s.raw.prepare("UPDATE rate_limits SET window_start = ? WHERE key = 'react-rows'").run(hour - 3600);
   await s.post(REACTION_FEED_PATH, reactBatch([episode(s.grim.id)]));
   assert.ok(s.raw.prepare('SELECT id FROM encounter_reactions WHERE sub = ?').get(s.grim.id).id.includes(':0'), 'a row of its own again');
+  assert.equal(s.raw.prepare("SELECT count FROM rate_limits WHERE key = 'react-rows'").get().count, 1, 'the new hour counted from its own');
+});
+
+test('STAFF-PANEL5-FEEDS-FIX: a batch whose rows failed to write is kept whole when the relay sends it again under its id - the id, its rows and the hour\'s count in one transaction, at both doors (mutants: the id kept before its rows, alone; the hour\'s count kept before them; the net batch\'s id kept before its rows)', async () => {
+  const s = await stand();
+  const n = (t) => s.raw.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get().n;
+  const b = reactBatch([episode(s.troll.id), episode(s.sylvia.id)]);
+  s.raw.exec("CREATE TRIGGER overloaded BEFORE INSERT ON encounter_reactions BEGIN SELECT RAISE(ABORT, 'D1 overloaded'); END");
+  const failed = await s.post(REACTION_FEED_PATH, b);
+  assert.ok(failed.status >= 500, `the relay keeps it to send again (${failed.status})`);
+  assert.deepEqual([n('reaction_batches'), n('encounter_reactions'), n('rate_limits WHERE key = \'react-rows\'')], [0, 0, 0], 'nothing kept');
+  s.raw.exec('DROP TRIGGER overloaded');
+  assert.deepEqual((await s.post(REACTION_FEED_PATH, b)).body, { ok: true, read: true, rows: 2 }, 'sent again: read');
+  assert.deepEqual([n('reaction_batches'), n('encounter_reactions'), s.raw.prepare("SELECT count FROM rate_limits WHERE key = 'react-rows'").get().count], [1, 2, 2], 'counted once');
+  assert.deepEqual((await s.post(REACTION_FEED_PATH, b)).body, { ok: true, read: false, rows: 0 });
+  // the net door alike
+  const nb = netBatch({ net: [netRow(s.troll.id)], foe: [foeRow(s.troll.id, { h: 200 })] });
+  s.raw.exec("CREATE TRIGGER overloaded BEFORE INSERT ON staff_foe_rows BEGIN SELECT RAISE(ABORT, 'D1 overloaded'); END");
+  assert.ok((await s.post(NET_FEED_PATH, nb)).status >= 500);
+  assert.deepEqual([n('staff_net_batches'), n('staff_net_rows')], [0, 0]);
+  s.raw.exec('DROP TRIGGER overloaded');
+  assert.deepEqual((await s.post(NET_FEED_PATH, nb)).body, { ok: true, read: true });
+  assert.deepEqual([n('staff_net_batches'), n('staff_net_rows'), n('staff_foe_rows')], [1, 1, 1]);
+  assert.deepEqual((await s.post(NET_FEED_PATH, nb)).body, { ok: true, read: false });
 });
 
 test('STAFF-PANEL5-FEEDS: the hourly sweep takes the feed\'s day and nothing newer', async () => {

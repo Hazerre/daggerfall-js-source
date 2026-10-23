@@ -49,16 +49,18 @@ export async function takeNetFeed({ db, nowS, subtle }, env, bytes, sig) {
   const opened = await openStaffFeed(NET_FEED_V, bytes, sig, await gatePublicKey(env, subtle), { subtle, nowMs: nowS * 1000 });
   if ('error' in opened) return opened;
   const b = opened.batch;
-  const kept = await db.prepare('INSERT OR IGNORE INTO staff_net_batches (id, at, q, span_s, ms) VALUES (?1, ?2, ?3, ?4, ?5)')
-    .bind(b.id, nowS, b.q, Math.max(1, Math.round((b.at - b.from) / 1000)), b.ms).run();
-  if (!kept?.meta?.changes) return { ok: true, read: false };
+  // STAFF-PANEL5-FEEDS-FIX: the batch's id is kept IN ONE TRANSACTION WITH ITS ROWS (staffReactions.js takeReactionFeed's
+  // way) - kept first, alone, a rows write that failed left the relay's resend under it read as kept, its rows lost
+  if (await db.prepare('SELECT 1 AS y FROM staff_net_batches WHERE id = ?1').bind(b.id).first()) return { ok: true, read: false };
   const writes = [
+    db.prepare('INSERT INTO staff_net_batches (id, at, q, span_s, ms) VALUES (?1, ?2, ?3, ?4, ?5)')
+      .bind(b.id, nowS, b.q, Math.max(1, Math.round((b.at - b.from) / 1000)), b.ms),   // never OR IGNORE: two at once, the second's whole batch fails
     ...b.net.map((/** @type {any} */ r) => db.prepare(`INSERT INTO staff_net_rows (batch, at, sub, frames, bytes, p10, pb10, p60, pb60, ${KIND_COLS.join(', ')}, refused, junk, closes, close_why)
       VALUES (${Array.from({ length: 20 }, (_, i) => `?${i + 1}`).join(', ')})`).bind(b.id, nowS, r.a, r.n, r.b, r.p10, r.pb10, r.p60, r.pb60, ...r.k, r.nr, r.j, r.c, r.w ?? null)),
     ...b.foe.map((/** @type {any} */ r) => db.prepare('INSERT INTO staff_foe_rows (batch, at, sub, owned, hosted, regular, elite, boss, sea, stripped) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)')
       .bind(b.id, nowS, r.a, r.o, r.h, r.r, r.e, r.bo, r.s, r.x)),
   ];
-  if (writes.length) await db.batch(writes);
+  await db.batch(writes);
   return { ok: true, read: true };
 }
 

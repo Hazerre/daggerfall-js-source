@@ -72,14 +72,16 @@ export async function takeReactionFeed({ db, nowS, subtle }, env, bytes, sig) {
   const opened = await openStaffFeed(REACT_FEED_V, bytes, sig, await gatePublicKey(env, subtle), { subtle, nowMs: nowS * 1000 });
   if ('error' in opened) return opened;
   const b = opened.batch;
-  const kept = await db.prepare('INSERT OR IGNORE INTO reaction_batches (id, at) VALUES (?1, ?2)').bind(b.id, nowS).run();
-  if (!kept?.meta?.changes) return { ok: true, read: false, rows: 0 };
-  // the hour's episodes so far, this batch's among them (accounts.js overRate's window, counted by the batch)
+  // STAFF-PANEL5-FEEDS-FIX: THE BATCH'S ID, ITS ROWS AND THE HOUR'S COUNT ARE KEPT IN ONE TRANSACTION (the db.batch below).
+  // The id was kept first, alone: a rows write that failed (D1 overloaded, a 5xx) left it kept, and the relay's resend
+  // under it read as one already kept, its episodes lost and the hour's count spent on them. Read first, once - one kept
+  // already, and the hour's episodes so far (accounts.js overRate's window); batches posted at one moment may each pass
+  // REACT_ROWS_HOUR by their rows, far inside the sweep's room past it.
   const hour = nowS - (nowS % 3600);
-  const seen = await db.prepare(`INSERT INTO rate_limits (key, window_start, count) VALUES ('react-rows', ?1, ?2)
-    ON CONFLICT(key) DO UPDATE SET count = CASE WHEN rate_limits.window_start >= excluded.window_start THEN rate_limits.count + excluded.count ELSE excluded.count END,
-      window_start = MAX(rate_limits.window_start, excluded.window_start) RETURNING count`).bind(hour, b.rows.length).first();
-  const rolled = Number(seen?.count ?? 0) > REACT_ROWS_HOUR;
+  const seen = await db.prepare("SELECT (SELECT 1 FROM reaction_batches WHERE id = ?1) AS kept, (SELECT count FROM rate_limits WHERE key = 'react-rows' AND window_start >= ?2) AS count")
+    .bind(b.id, hour).first();
+  if (seen?.kept) return { ok: true, read: false, rows: 0 };
+  const rolled = Number(seen?.count ?? 0) + b.rows.length > REACT_ROWS_HOUR;
   const cols = ['id', 'sub', 'at', 'kind', ...SUM_COLS];
   const marks = cols.map((_, i) => `?${i + 1}`).join(', ');
   const writes = b.rows.map((/** @type {any} */ r, /** @type {number} */ i) => {
@@ -90,7 +92,13 @@ export async function takeReactionFeed({ db, nowS, subtle }, env, bytes, sig) {
       ON CONFLICT(id) DO UPDATE SET ${SUM_COLS.map((c) => `${c} = ${c} + excluded.${c}`).join(', ')}`)
       .bind(id, r.a, at, r.k, ...SUM_COLS.map((c) => row[c]));
   });
-  await db.batch(writes);
+  await db.batch([
+    db.prepare('INSERT INTO reaction_batches (id, at) VALUES (?1, ?2)').bind(b.id, nowS),   // never OR IGNORE: two at once, the second's whole batch fails, and its resend reads it kept
+    db.prepare(`INSERT INTO rate_limits (key, window_start, count) VALUES ('react-rows', ?1, ?2)
+      ON CONFLICT(key) DO UPDATE SET count = CASE WHEN rate_limits.window_start >= excluded.window_start THEN rate_limits.count + excluded.count ELSE excluded.count END,
+        window_start = MAX(rate_limits.window_start, excluded.window_start)`).bind(hour, b.rows.length),
+    ...writes,
+  ]);
   return { ok: true, read: true, rows: writes.length };
 }
 
