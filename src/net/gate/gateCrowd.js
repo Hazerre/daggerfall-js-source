@@ -3,9 +3,10 @@
 // when there are too many people"): THE CROWD, FILTERED ON THIS SCREEN. A court holds as many challengers as come
 // (net/gate/gateBrain.js GATE_FIGHTERS_MAX), and forty round one boss are forty bodies, names, lights, spells and
 // footsteps over his telegraphs. Past the count the player chose on the Other players card - twelve or twenty-four;
-// everyone, the default, cuts nobody - only that many other players are drawn: every party mate and my duel's opponent,
-// then the nearest. The rest stand nowhere on this screen - no body, no sprite, no name, no light, no spell's flight, no
-// step heard - until they are among the nearest again. Nothing of a fight or a room is filtered: the relay judges every
+// everyone, the default, cuts nobody - only that many other players are drawn: those never cut (`crowdKept`: my party,
+// my duel's opponent, my trade's partner, those I ride or sail with, a duel's two fighters), then the nearest to me. The
+// rest stand nowhere on this screen - no body, no sprite, no name, no light, no spell's flight, no step heard - until
+// they are among the nearest again. Nothing of a fight or a room is filtered: the relay judges every
 // blow, and the boss, his host, the bar's count of challengers, the damage chart, the spoils, the map's marks and the chat
 // are the room's, never this screen's.
 //
@@ -17,11 +18,11 @@
 // for the oblivion gate into the entire game? Like being able to see how many players you want to see at one time"). The
 // count cut a gate's court alone until then: the street, a building and a dungeon hold duels, arena bouts and battles,
 // where a player cut from the screen could be the one fighting me. Now it cuts everywhere but where that can be so - the
-// open zone (WILD1's fair ground, its sea and its dungeons among it), a siege's or a Royal Tourney's battle, an arena's
-// room - and under the travel view, where nothing is cut (OW-PEERS, as PEER-RANGE). A gate's court is cut wherever it
-// stands: nobody fights anybody there but him. My duel's opponent is drawn whatever the count, from its count on (as
-// PEER-RANGE draws them). A player past the Other players card's draw distance is cut first (PEER-RANGE,
-// net/peer/peerRange.js), and this count is taken from the players within it.
+// open zone (WILD1's fair ground, its sea and its dungeons among it), while I am entered in a siege or a Royal Tourney,
+// an arena's room - and under the travel view, where nothing is cut (OW-PEERS, as PEER-RANGE). A gate's court is cut
+// whatever I am entered in: nobody fights anybody there but him. A player past the Other players card's draw distance is
+// cut first (PEER-RANGE, net/peer/peerRange.js), and this count is taken from the players within it. AUDIT CROWD-WIDE
+// (bible/01-Overview/audits/Audit-Crowd-Wide.md) added who is never cut and what goes with a cut player.
 //
 // The law is pure (`crowdDrawn`); `createGateCrowd` keeps the held places between frames for the host (scenes/world.js,
 // the online frame's drawn peers, which asks where the count cuts). Not a DFU member: Daggerfall has no other players.
@@ -68,15 +69,36 @@ export function crowdDrawn(peers, me, { at, max = GATE_CROWD_DEFAULT, mate = () 
 }
 
 /**
+ * THE KEPT (AUDIT CROWD-WIDE A2): the players the count never cuts, gathered once a frame as the host's `mate` - my
+ * party (`party`, a Set, or null), the ones named (`ones`: my duel's opponent, my trade's partner - null where there is
+ * none) and every id of `lists` (those I ride or sail with). A player I fight, trade with, sit beside in a wagon or stand
+ * beside aboard a boat does not vanish at arm's length because a crowd came nearer. Pure.
+ * @param {Iterable<any>|null|undefined} party
+ * @param {ReadonlyArray<any>} ones
+ * @param {...(Iterable<any>|null|undefined)} lists
+ * @returns {(id: any) => boolean}
+ */
+export function crowdKept(party, ones, ...lists) {
+  const kept = new Set(party ?? []);
+  for (const id of ones) if (id != null) kept.add(id);
+  for (const list of lists) if (list) for (const id of list) kept.add(id);
+  return (id) => kept.has(id);
+}
+
+/**
  * THE HOST'S CROWD - `cut(peers, o)`: the peers drawn this frame, the places held from the frame before. `peers` itself
  * when every one is drawn, else a list refilled each frame; where the count does not cut (`o.on` false - the open zone,
  * a battle, an arena, the travel view) every peer, and the held places forgotten - the next place it cuts chooses
- * afresh. `shows(id)`: whether the last cut drew that player - every player where the count does not cut. The doors that
- * answer a player on this screen ask it (the crosshair's pick and the plaque, a gift's aim, a blow's spark and a cry):
- * one the crowd leaves undrawn is not there to press, aim at or hear, INVIS-NET's law for the concealed.
+ * afresh. `shows(id)`: false only for a player the last cut left out by the count - one it never saw (filtered before
+ * it, as a player below deck is, or not yet in the room) is not its to answer for, PEER-RANGE's law (AUDIT CROWD-WIDE
+ * B4). The doors that answer a player on this screen ask it (the crosshair's pick and the plaque, a gift's aim, a page
+ * handed, a blow's spark and a cry), and the things a player brings with them ask it (their team and wagon, their boat,
+ * their torch): one the crowd leaves undrawn is not there to press, aim at or hear, and nothing of theirs stands without
+ * them - INVIS-NET's law for the concealed.
  */
 export function createGateCrowd() {
-  let held = new Set(), spare = new Set(), live = false;
+  let held = new Set(), spare = new Set();
+  const gone = new Set();
   /** @type {any[]} */
   const drawn = [];
   return {
@@ -87,17 +109,17 @@ export function createGateCrowd() {
      * @returns {P[]}
      */
     cut(peers, { on, me, at, max = GATE_CROWD_DEFAULT, mate = () => false }) {
-      live = !!on;
+      gone.clear();
       if (!on) { held.clear(); return peers; }
       const now = crowdDrawn(peers, me, { at, max, mate, was: held }, spare);
       spare = held; held = now;
       if (held.size === peers.length) return peers;
       drawn.length = 0;
-      for (const p of peers) if (held.has(p.id)) drawn.push(p);
+      for (const p of peers) { if (held.has(p.id)) drawn.push(p); else gone.add(p.id); }
       return drawn;
     },
-    /** Whether the last cut drew `id` - every player where the count does not cut. */
-    shows: (id) => !live || held.has(id),
+    /** Whether the last cut left `id` drawn - true for every player it did not cut by the count. */
+    shows: (id) => !gone.has(id),
     /** The ids drawn by the last cut (the tests' window on the held places). */
     held: () => held,
   };

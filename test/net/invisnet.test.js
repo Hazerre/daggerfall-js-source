@@ -175,7 +175,7 @@ test('AUDIT pre-merge I-A + I-E + I-F by source: a building\'s sheet opens the b
   assert.match(w, /townParty: \(\) => host\.partyOnMaps\(\)\.map\(/, 'the town map');   // PIN MOVED (STAR0): the town map's door left bootWorld for scenes/exteriorAutomapToggle.js, which reads the host's members off `host`
   assert.match(w, /partyNear: \(\) => partyOnMaps\(\),/, 'the dungeon\'s and the building\'s plans');
   assert.match(w, /if \(tabId === 'local'\) return localRosterSource\(s, openPeers\(peersNear\(\), isPartyMate\), player\.feetAt\(\)\);/, 'the Nearby list');
-  assert.match(w, /return openPeers\(near, isPartyMate\)\.map\(\(p\) => \(\{ id: p\.id, name: peerName\(p\.id\)/, 'the page\'s readers');
+  assert.match(w, /return openPeers\(near, isPartyMate\)(?:\.filter\(crowdDrawnHere\))?\.map\(\(p\) => \(\{ id: p\.id, name: peerName\(p\.id\)/, 'the page\'s readers');   // PIN MOVED (AUDIT CROWD-WIDE B5): and the crowd's count's, after the concealed (test/systems/gatecrowd.test.js)
 });
 
 // ---- CONCEAL-MATE (2026-10-07, a player: "you're not interactable with party members - would be a QoL if you can interact
@@ -211,7 +211,7 @@ test('CONCEAL-MATE by source: every social door reads ONE law (openPeers over th
   assert.match(w, /function isPartyMate\(id\) \{ return !!social\?\.party && social\.isPartyPeer\(id\); \}/, 'a mate is a member of my party, and nobody without one');
   assert.match(w, /pickPeerInFront\(eye, dir, openPeers\(peersNear\(\), isPartyMate\)\.filter\(crowdDrawnHere\), SOCIAL_REACH, rayPersonDistance\);/, 'the F key and the plaque');
   assert.match(w, /localRosterSource\(s, openPeers\(peersNear\(\), isPartyMate\), player\.feetAt\(\)\)/, 'the Nearby list');
-  assert.match(w, /return openPeers\(near, isPartyMate\)\.map\(/, 'a page\'s readers');
+  assert.match(w, /return openPeers\(near, isPartyMate\)(?:\.filter\(crowdDrawnHere\))?\.map\(/, 'a page\'s readers');   // PIN MOVED (AUDIT CROWD-WIDE B5)
   assert.match(w, /const giftablePeers = \(list\) => openPeers\(list, isPartyMate\)\.filter\(/, 'a gift');
   assert.doesNotMatch(w, /\.filter\(\((?:q|p)\) => !(?:q|p)\.cv\)/, 'no door keeps its own copy of the old law');
 });

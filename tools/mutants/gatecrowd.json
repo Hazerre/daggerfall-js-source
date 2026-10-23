@@ -155,8 +155,8 @@
   {
     "name": "GATECROWD-new-list-every-frame",
     "file": "src/net/gate/gateCrowd.js",
-    "old": "      drawn.length = 0;\n      for (const p of peers) if (held.has(p.id)) drawn.push(p);\n      return drawn;",
-    "new": "      return peers.filter((p) => held.has(p.id));",
+    "old": "      drawn.length = 0;\n      for (const p of peers) { if (held.has(p.id)) drawn.push(p); else gone.add(p.id); }\n      return drawn;",
+    "new": "      for (const p of peers) if (!held.has(p.id)) gone.add(p.id);\n      return peers.filter((p) => held.has(p.id));",
     "tests": [
       "test/systems/gatecrowd.test.js"
     ]
@@ -164,8 +164,8 @@
   {
     "name": "GATECROWD-order-lost",
     "file": "src/net/gate/gateCrowd.js",
-    "old": "for (const p of peers) if (held.has(p.id)) drawn.push(p);",
-    "new": "for (const p of peers) if (held.has(p.id)) drawn.unshift(p);",
+    "old": "{ if (held.has(p.id)) drawn.push(p); else gone.add(p.id); }",
+    "new": "{ if (held.has(p.id)) drawn.unshift(p); else gone.add(p.id); }",
     "tests": [
       "test/systems/gatecrowd.test.js"
     ]
@@ -254,8 +254,8 @@
   {
     "name": "GATECROWD-frame-party-unasked",
     "file": "src/scenes/world.js",
-    "old": "mate: (id) => !!social?.isPartyPeer(id) || id === duelMgr.opponent });   // GATE-CROWD",
-    "new": "mate: (id) => id === duelMgr.opponent });   // GATE-CROWD",
+    "old": "mate: crowdKept(social?.partyPeers?.(), [duelMgr.opponent, tradeMgr.session?.peer], wagonRiders?.ridingWithMe(), csaAboard.shipmates(), _duelRings.keys()) });   // GATE-CROWD",
+    "new": "mate: crowdKept(null, [duelMgr.opponent, tradeMgr.session?.peer], wagonRiders?.ridingWithMe(), csaAboard.shipmates(), _duelRings.keys()) });   // GATE-CROWD",
     "tests": [
       "test/systems/gatecrowd.test.js"
     ]
@@ -263,8 +263,8 @@
   {
     "name": "CROWDWIDE-duel-unasked",
     "file": "src/scenes/world.js",
-    "old": "mate: (id) => !!social?.isPartyPeer(id) || id === duelMgr.opponent });   // GATE-CROWD",
-    "new": "mate: (id) => !!social?.isPartyPeer(id) });   // GATE-CROWD",
+    "old": "mate: crowdKept(social?.partyPeers?.(), [duelMgr.opponent, tradeMgr.session?.peer], wagonRiders?.ridingWithMe(), csaAboard.shipmates(), _duelRings.keys()) });   // GATE-CROWD",
+    "new": "mate: crowdKept(social?.partyPeers?.(), [tradeMgr.session?.peer], wagonRiders?.ridingWithMe(), csaAboard.shipmates(), _duelRings.keys()) });   // GATE-CROWD",
     "tests": [
       "test/systems/gatecrowd.test.js"
     ]
@@ -416,7 +416,7 @@
   {
     "name": "GATECROWD-everyone-shown",
     "file": "src/net/gate/gateCrowd.js",
-    "old": "shows: (id) => !live || held.has(id),",
+    "old": "shows: (id) => !gone.has(id),",
     "new": "shows: () => true,",
     "tests": [
       "test/systems/gatecrowd.test.js"
@@ -425,17 +425,17 @@
   {
     "name": "GATECROWD-nobody-shown-outside",
     "file": "src/net/gate/gateCrowd.js",
-    "old": "shows: (id) => !live || held.has(id),",
+    "old": "shows: (id) => !gone.has(id),",
     "new": "shows: (id) => held.has(id),",
     "tests": [
       "test/systems/gatecrowd.test.js"
     ]
   },
   {
-    "name": "GATECROWD-court-never-marked",
+    "name": "GATECROWD-cut-never-forgotten",
     "file": "src/net/gate/gateCrowd.js",
-    "old": "      live = !!on;\n",
-    "new": "",
+    "old": "      gone.clear();\n      if (!on) { held.clear(); return peers; }",
+    "new": "      if (!on) { held.clear(); return peers; }",
     "tests": [
       "test/systems/gatecrowd.test.js"
     ]
@@ -474,6 +474,276 @@
     "new": "const crowdDrawnHere = (p) => peerRange.shows(p.id);",
     "tests": [
       "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-C1-my-x-summed",
+    "file": "src/net/gate/gateCrowd.js",
+    "old": "Math.hypot(f[0] - me[0], f[2] - me[2])",
+    "new": "Math.hypot(f[0] + me[0], f[2] - me[2])",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-C1-my-z-read-as-x",
+    "file": "src/net/gate/gateCrowd.js",
+    "old": "Math.hypot(f[0] - me[0], f[2] - me[2])",
+    "new": "Math.hypot(f[0] - me[0], f[2] - me[0])",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-C1-my-x-unread",
+    "file": "src/net/gate/gateCrowd.js",
+    "old": "Math.hypot(f[0] - me[0], f[2] - me[2])",
+    "new": "Math.hypot(f[0], f[2] - me[2])",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-C1-z-ignored",
+    "file": "src/net/gate/gateCrowd.js",
+    "old": "Math.hypot(f[0] - me[0], f[2] - me[2])",
+    "new": "Math.hypot(f[0] - me[0], 0)",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-C1-frame-my-place-unread",
+    "file": "src/scenes/world.js",
+    "old": "me: player.pos, at: (d) => onlineToScene(d.shown), max: gateCrowdMax(",
+    "new": "me: [0, 0, 0], at: (d) => onlineToScene(d.shown), max: gateCrowdMax(",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-C2-frame-tier-unread",
+    "file": "src/scenes/world.js",
+    "old": "max: gateCrowdMax(getPref('gateCrowd')),",
+    "new": "max: getPref('gateCrowd'),",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-C3-social-assumed",
+    "file": "src/scenes/world.js",
+    "old": "crowdKept(social?.partyPeers?.(), [",
+    "new": "crowdKept(social.partyPeers(), [",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-A2-frame-trade-unasked",
+    "file": "src/scenes/world.js",
+    "old": "mate: crowdKept(social?.partyPeers?.(), [duelMgr.opponent, tradeMgr.session?.peer], wagonRiders?.ridingWithMe(), csaAboard.shipmates(), _duelRings.keys()) });   // GATE-CROWD",
+    "new": "mate: crowdKept(social?.partyPeers?.(), [duelMgr.opponent], wagonRiders?.ridingWithMe(), csaAboard.shipmates(), _duelRings.keys()) });   // GATE-CROWD",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-A2-frame-ride-unasked",
+    "file": "src/scenes/world.js",
+    "old": "mate: crowdKept(social?.partyPeers?.(), [duelMgr.opponent, tradeMgr.session?.peer], wagonRiders?.ridingWithMe(), csaAboard.shipmates(), _duelRings.keys()) });   // GATE-CROWD",
+    "new": "mate: crowdKept(social?.partyPeers?.(), [duelMgr.opponent, tradeMgr.session?.peer], null, csaAboard.shipmates(), _duelRings.keys()) });   // GATE-CROWD",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-A2-frame-boat-unasked",
+    "file": "src/scenes/world.js",
+    "old": "mate: crowdKept(social?.partyPeers?.(), [duelMgr.opponent, tradeMgr.session?.peer], wagonRiders?.ridingWithMe(), csaAboard.shipmates(), _duelRings.keys()) });   // GATE-CROWD",
+    "new": "mate: crowdKept(social?.partyPeers?.(), [duelMgr.opponent, tradeMgr.session?.peer], wagonRiders?.ridingWithMe(), null, _duelRings.keys()) });   // GATE-CROWD",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-A2-frame-rings-unasked",
+    "file": "src/scenes/world.js",
+    "old": "mate: crowdKept(social?.partyPeers?.(), [duelMgr.opponent, tradeMgr.session?.peer], wagonRiders?.ridingWithMe(), csaAboard.shipmates(), _duelRings.keys()) });   // GATE-CROWD",
+    "new": "mate: crowdKept(social?.partyPeers?.(), [duelMgr.opponent, tradeMgr.session?.peer], wagonRiders?.ridingWithMe(), csaAboard.shipmates(), null) });   // GATE-CROWD",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-A2-kept-party-dropped",
+    "file": "src/net/gate/gateCrowd.js",
+    "old": "const kept = new Set(party ?? []);",
+    "new": "const kept = new Set();",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-A2-kept-null-id",
+    "file": "src/net/gate/gateCrowd.js",
+    "old": "for (const id of ones) if (id != null) kept.add(id);",
+    "new": "for (const id of ones) kept.add(id);",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-A2-kept-lists-dropped",
+    "file": "src/net/gate/gateCrowd.js",
+    "old": "  for (const list of lists) if (list) for (const id of list) kept.add(id);\n",
+    "new": "",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-A2-kept-first-list-only",
+    "file": "src/net/gate/gateCrowd.js",
+    "old": "for (const list of lists) if (list)",
+    "new": "for (const list of lists.slice(0, 1)) if (list)",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-B4-cut-shown",
+    "file": "src/net/gate/gateCrowd.js",
+    "old": "{ if (held.has(p.id)) drawn.push(p); else gone.add(p.id); }",
+    "new": "{ if (held.has(p.id)) drawn.push(p); }",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-B1-team-uncut",
+    "file": "src/scenes/world.js",
+    "old": "hcc.setPeerLook((id) => (_hiddenPeers.has(id) || !gateCrowd.shows(id) ? 'hidden'",
+    "new": "hcc.setPeerLook((id) => (_hiddenPeers.has(id) ? 'hidden'",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-B1-boat-uncut",
+    "file": "src/scenes/world.js",
+    "old": "csaPeers.setPeerLook((id) => (_hiddenPeers.has(id) || !gateCrowd.shows(id) ? 'hidden'",
+    "new": "csaPeers.setPeerLook((id) => (_hiddenPeers.has(id) ? 'hidden'",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-B3-torch-uncut",
+    "file": "src/scenes/world.js",
+    "old": "p.shown.dd || !gateCrowd.shows(p.id)) continue;",
+    "new": "p.shown.dd) continue;",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-B5-page-uncut",
+    "file": "src/scenes/world.js",
+    "old": "return openPeers(near, isPartyMate).filter(crowdDrawnHere).map(",
+    "new": "return openPeers(near, isPartyMate).map(",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-D1-old-note",
+    "file": "src/ui/enhanced/enhancedMenu.js",
+    "old": "t('menu.peers.crowdNote', 'How many other players are drawn at once, the nearest first. Your party, your duel opponent and anyone you trade, ride or sail with always show. The count is off in a PvP zone, a siege, a Royal Tourney and the Arena, but not in the Burning Court.')",
+    "new": "t('menu.peers.crowdNote', 'How many players the Burning Court draws. Your party always shows.')",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-D1-no-note",
+    "file": "src/ui/enhanced/enhancedMenu.js",
+    "old": "t('menu.peers.crowdNote', 'How many other players are drawn at once, the nearest first. Your party, your duel opponent and anyone you trade, ride or sail with always show. The count is off in a PvP zone, a siege, a Royal Tourney and the Arena, but not in the Burning Court.')",
+    "new": "t('menu.peers.crowdNote', '')",
+    "tests": [
+      "test/systems/gatecrowd.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-A2-riders-passengers-dropped",
+    "file": "src/scenes/wagon/wagonRiders.js",
+    "old": "const out = book.passengers().map((e) => e[0]);",
+    "new": "const out = [];",
+    "tests": [
+      "test/scenes/wagons1_seats.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-A2-riders-owner-dropped",
+    "file": "src/scenes/wagon/wagonRiders.js",
+    "old": "if (ride?.seat != null) { out.push(ride.owner); for",
+    "new": "if (ride?.seat != null) { for",
+    "tests": [
+      "test/scenes/wagons1_seats.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-A2-riders-others-unread",
+    "file": "src/scenes/wagon/wagonRiders.js",
+    "old": "for (const [peer, w] of seatWords) if (w.seated === ride.owner) out.push(peer); }",
+    "new": "}",
+    "tests": [
+      "test/scenes/wagons1_seats.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-A2-riders-third-wagon",
+    "file": "src/scenes/wagon/wagonRiders.js",
+    "old": "for (const [peer, w] of seatWords) if (w.seated === ride.owner) out.push(peer); }",
+    "new": "for (const [peer] of seatWords) out.push(peer); }",
+    "tests": [
+      "test/scenes/wagons1_seats.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-A2-ship-mine-dropped",
+    "file": "src/scenes/comeSailAway/comeSailAwayAboard.js",
+    "old": "if (r.owner === me || (on != null && r.owner === on)) out.push(id);",
+    "new": "if (on != null && r.owner === on) out.push(id);",
+    "tests": [
+      "test/net/peer/fbsea_deck.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-A2-ship-owner-dropped",
+    "file": "src/scenes/comeSailAway/comeSailAwayAboard.js",
+    "old": "const out = on != null ? [on] : [];",
+    "new": "const out = [];",
+    "tests": [
+      "test/net/peer/fbsea_deck.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-A2-ship-riders-unread",
+    "file": "src/scenes/comeSailAway/comeSailAwayAboard.js",
+    "old": "if (r.owner === me || (on != null && r.owner === on)) out.push(id);",
+    "new": "if (r.owner === me) out.push(id);",
+    "tests": [
+      "test/net/peer/fbsea_deck.test.js"
+    ]
+  },
+  {
+    "name": "AUDITCW-A2-ship-third-boat",
+    "file": "src/scenes/comeSailAway/comeSailAwayAboard.js",
+    "old": "for (const [id, r] of riders) if (r.owner === me || (on != null && r.owner === on)) out.push(id);",
+    "new": "for (const [id] of riders) out.push(id);",
+    "tests": [
+      "test/net/peer/fbsea_deck.test.js"
     ]
   }
 ]

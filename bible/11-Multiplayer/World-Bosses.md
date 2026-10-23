@@ -2438,9 +2438,9 @@ string to the breach's words; **Players shown at once** since CROWD-WIDE, below)
 every party mate, then the nearest across the floor (`net/gate/gateCrowd.js crowdDrawn`). The rest stand nowhere on this
 screen - no body, sprite, name, light, aura, spell's flight or step - until they are among the nearest again.
 
-**Everyone by default** (Mac, after the first push: *"The default other setting should be everyone"*): the court is drawn
-whole until a player chooses a count. The default is the first of the card's choices (`GATE_CROWD_TIERS` 0, 12, 24),
-so a stored value that is none of them shows as Everyone on the card and reads as everyone in the court.
+**Everyone by default** (Mac, after the first push: *"The default other setting should be everyone"*): every place is
+drawn whole until a player chooses a count. The default is the first of the card's choices (`GATE_CROWD_TIERS` 0, 12,
+24), so a stored value that is none of them shows as Everyone on the card and reads as everyone (`gateCrowdMax`).
 
 - HELD PLACES. The drawn are chosen again every frame, and a crowd milling at the edge of the count traded players in
   and out every frame - a sprite built and a body handed over each time (WB9h's churn). A player drawn last frame keeps
@@ -2470,36 +2470,55 @@ player cut from the screen could be the one fighting me. It cuts everywhere now 
 the same held places, the same doors asking it (`scenes/world.js` `visiblePeers`):
 
 - NEVER CUT: the open zone (`wildHere()` - WILD1's fair ground anywhere in it: its towns and roofs, its sea where ships
-  fight (SHIP-PVP), its dungeons (PVPDUNGEON)), a siege's battle and a Royal Tourney's bout (`siegeSession`,
-  `royalSession` active), an arena's room (`roomIdentity().kind === 'arena'` - my bout, or one watched from the stands),
-  and under the travel view (OW-PEERS grows every player to be seen from overhead, as PEER-RANGE cuts nobody there).
-  There every player within the draw distance is drawn.
-- A COURT IS CUT WHEREVER ITS GATE STANDS, a gate risen in the zone too: nobody fights anybody there but him.
-- MY DUEL'S OPPONENT is drawn whatever the count, from its count on (`duelMgr.opponent`, as PEER-RANGE draws them), and
-  counts toward the number as a party mate does.
+  fight (SHIP-PVP), its dungeons (PVPDUNGEON)), while I am entered in a siege or a Royal Tourney, fighting or watching
+  (`siegeSession`, `royalSession` active - from the entry, before the pass and the count, to the leaving), an arena's
+  room (`roomIdentity().kind === 'arena'` - my bout, a private one, or one watched from the stands or the Herald's
+  Watch), and under the travel view (OW-PEERS grows every player to be seen from overhead). There every player within the
+  draw distance is drawn - under the travel view, every player. Some of these places hold nobody who can fight me (a
+  building of the zone, the stands): the rule is the conservative one, and the card says it in the same words.
+- A COURT IS CUT WHEREVER ITS GATE STANDS and whatever I am entered in: nobody fights anybody there but him. (A gate never
+  rises in the zone - `gateRegions` leaves the zone's region out - so in the game this is the siege's and the tourney's
+  case.)
+- NEVER CUT EITHER, wherever the count cuts (AUDIT CROWD-WIDE A2, `net/gate/gateCrowd.js crowdKept`, gathered once a
+  frame): my party, my duel's opponent from its count on (`duelMgr.opponent`), my trade's partner, those I ride with (my
+  wagon's passengers, or the owner of the wagon I sit in and the others seated in it - `wagonRiders.ridingWithMe`), those
+  I sail with (the owner of the boat I stand aboard, and the others aboard it or aboard mine - `csaAboard.shipmates`) and
+  the two fighters of any duel whose ring the room shows (`_duelRings`). Each counts toward the number. Nobody I fight,
+  trade with or sit beside vanishes at arm's length because a crowd came nearer, and a duel watched in a square is never
+  one fighter swinging at air.
+- NOTHING OF THEIRS STANDS WITHOUT THEM (AUDIT CROWD-WIDE B1, B3): a player the count leaves undrawn is hidden from the
+  cart pool and the boat pool as a concealed one is (`hcc.setPeerLook`, `csaPeers.setPeerLook` answer 'hidden' - their
+  team and wagon, their boat, kept in the world parked and moored as a hidden owner's are), and their torch lights
+  nothing (`peerTorchLights`). Nor are they handed a page (`pageReaders`, AUDIT CROWD-WIDE B5). Their companions are the
+  one thing left standing - see the audit's open item.
+- WHO SHOWS (AUDIT CROWD-WIDE B4): `shows(id)` is false only for a player the last cut left out by the count - one it never
+  saw (below deck, filtered before it; not yet in the room) is not its to answer for, as PEER-RANGE's is not. Before the
+  audit it answered false for every player not handed to it wherever it ran, so a struck player below deck went unheard
+  everywhere, at Everyone too.
+- ONE WAY (AUDIT CROWD-WIDE A4): a player the count leaves undrawn can still reach me - a stranger's gift from within reach
+  lands (`online.onCast` asks the room's uncut list), and a duel, trade, party or ride asked of me prompts - while I
+  cannot press or aim at them. Accepting a duel draws its opponent from the count on.
 - THE ROW is the card's **Players shown at once** - its key (`menu.peers.crowd`) and the shelf's (`gateCrowd`) kept, so a
-  count chosen for the court carries over: *"How many other players are drawn at once, the nearest first. Your party and
-  your duel opponent always show, and nobody is hidden in a PvP zone, a battle or the arena."* (the zone's own words,
-  `systems/wild/wildZone.js` WILD_TEXT.walkInto: "an open PvP zone"). Its tiers and its default are GATE-CROWD's -
-  everyone, the nearest 12 or 24.
-- The law's module keeps its name (`net/gate/gateCrowd.js`): the cut is the one GATE-CROWD made. Not a DFU member:
-  Daggerfall has no other players.
+  count chosen for the court carries over: *"How many other players are drawn at once, the nearest first. Your party,
+  your duel opponent and anyone you trade, ride or sail with always show. The count is off in a PvP zone, a siege, a Royal
+  Tourney and the Arena, but not in the Burning Court."* (the zone's own words, `systems/wild/wildZone.js`
+  WILD_TEXT.walkInto: "an open PvP zone"; the Arena by its name, as the catalog writes it). It speaks of the count alone:
+  the Draw distance row above it still hides the far, everywhere but under the travel view. Its tiers and its default are
+  GATE-CROWD's - everyone, the nearest 12 or 24.
+- The law's module keeps its name (`net/gate/gateCrowd.js`): the cut is the one GATE-CROWD made. Where it cuts is one
+  boolean the host reads off its own state (`visiblePeers`' `on`), written inline because bootWorld stands at its ceiling;
+  who it keeps is the module's (`crowdKept`). Not a DFU member: Daggerfall has no other players.
 
-Pinned: `test/systems/gatecrowd.test.js` (9; its online-frame test widened - the street, a building and a dungeon cut, the
-zone, a siege, a tourney, an arena's room and the travel view never, a court in the zone cut, the duel's opponent drawn;
-the card's row by its new name). Moved with it: the drawn list's pins in `test/net/invisnet.test.js` and
-`test/net/peer/mwbody1.test.js`. Mutants `tools/mutants/gatecrowd.json` (53, all dead): eight new - the court alone, each
-of the five places cut, the court's own cut lost in the zone, the duel's opponent unasked - and four re-aimed. No relay
-change, no account change. Not yet seen in a browser over a real crowd.
-
-Pinned: `test/systems/gatecrowd.test.js` (9) - the law and its held places, the host's crowd and who it shows, the online
-frame's cut (lifted and evaluated) and the doors that ask it, the card and the shelf's literal, `companionPlace` (lifted
-and run), the companion layer through a court, the court's word (lifted); the party panel's cards in
-`test/systems/naval/auditwatchkit_net.test.js` (none in a court). Moved with it: the drawn list's pins in `test/net/invisnet.test.js` and
-`test/net/peer/mwbody1.test.js`, the pick's in `test/net/invisnet.test.js`, `test/player/peerplaque.test.js` and
-`test/ui/soc5_interact.test.js`, the gift's in `test/systems/audit27d.test.js`; AUDIT-CC-F-world-helm-stands
-(`tools/mutants/auditcrew.json`) re-aimed by content. Mutants `tools/mutants/gatecrowd.json` (45, all dead). No relay
-change, no account change. Not yet seen in a browser over a real court.
+Pinned: `test/systems/gatecrowd.test.js` (11) - the online-frame test widened by CROWD-WIDE (the street, a building and a
+dungeon cut; the zone, a siege, a tourney, an arena's room and the travel view never; a court cut in the zone and in a
+battle) and by its audit (me off the origin, the nearest to me; everyone kept; no social state; every stored value that
+is no tier), the law off the origin, `crowdKept`, who shows, the four doors and hooks the audit added, the card's note
+word for word; `ridingWithMe` in `test/scenes/wagons1_seats.test.js` and `shipmates` in `test/net/peer/fbsea_deck.test.js`,
+each over the real module. Moved with it: the drawn list's pins in `test/net/invisnet.test.js` and
+`test/net/peer/mwbody1.test.js`, and the audit's - the looks' in `test/systems/disc20.test.js` and
+`test/scenes/audit0928_online.test.js`, the page's in `test/net/invisnet.test.js`. Mutants `tools/mutants/gatecrowd.json`
+(83, all dead; PEER-RANGE's two party and duel records and four of INVIS-NET's and AUDIT 0928's re-aimed). No relay change, no account change. Not yet seen in a browser over a real crowd.
+The audit: `01-Overview/audits/Audit-Crowd-Wide.md`.
 
 ## 22. Mac's gate, and the court's fire (GATE-FBX, 2026-10-09)
 
@@ -3430,10 +3449,11 @@ once.
 
 **CROWD-WIDE (2026-10-23) - the crowd's count, everywhere a stranger cannot fight me.** Section 21 above:
 - The Other players card's count (renamed **Players shown at once**) cuts everywhere, not the court alone - never in the
-  open zone, a siege's or a tourney's battle, an arena's room or under the travel view; a court wherever its gate stands.
-- My duel's opponent drawn whatever the count, as my party is.
-- No relay or account change. Pins `test/systems/gatecrowd.test.js` (9), invisnet and mwbody1 re-pinned; mutants
-  `tools/mutants/gatecrowd.json` (53).
+  open zone, while entered in a siege or a Royal Tourney, in an arena's room or under the travel view; a court always.
+- Never cut, wherever it cuts: my party, my duel's opponent, my trade's partner, those I ride or sail with, a duel's two
+  fighters (AUDIT CROWD-WIDE). A cut player's team, wagon, boat and torch hidden with them.
+- No relay or account change. Pins `test/systems/gatecrowd.test.js` (11), wagons1_seats, fbsea_deck, invisnet and mwbody1;
+  mutants `tools/mutants/gatecrowd.json` (83).
 
 ## At sea - the sea serpent (SERPENT1, 2026-10-04)
 
