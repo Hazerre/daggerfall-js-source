@@ -937,6 +937,10 @@ which are not tied to any volume sliders at all - let's try to surface these and
   (`systems/ambientEffects.js`) are on neither row.
 - Both rows sit in the Audio tab's Volume section after Monster Volume, and each scales its sounds under Sound Volume,
   as Monster Volume does. At 100% every level is DFU's. The three rows share one builder (`enhancedMenu.js` volumeRow).
+- The four hosts: `world.js` and `exterior.js` reach the mount and the animal flats through `mountRig.js` and
+  `animalAmbience.js`, and `dungeonContext.js` its animal flats through `animalAmbience.js`. `worldModes.js` (interiors)
+  plays no horse and no animal. A peer's mount and the Wagon Warden stand in `world.js` alone (`exterior.js` runs no
+  town watch, `wagonWardenHost.js`).
 
 THE AUDIT. Every sound the game plays reaches the speakers through a slider. Each door of the engine (`playOneShot`,
 `play3d`, `play3dVoice`, the loops, the beds, `source()`) connects through the master that Sound Volume levels
