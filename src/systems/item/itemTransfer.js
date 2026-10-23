@@ -181,6 +181,14 @@ export function keepsQuestItem(entity, res) {
     .some((l) => Array.isArray(l) && l.some((it) => it?.questItem && it.questUID === uid && it.questSymbol?.name === name));
 }
 
+/** MakePermanent over the pack's copies of a quest's item `sym` (item.js's sync) - the host's `makeHeldQuestItemsPermanent`,
+ *  out of bootWorld (HOST-SPLIT) beside its quest-item kin. */
+export function makeHeldQuestItemsPermanent(entity, uid, sym) {
+  for (const it of entity?.items ?? []) {
+    if (it.questItem && it.questUID === uid && it.questSymbol?.name === sym?.name) makeItemPermanent(it);
+  }
+}
+
 export function questTransferRefused(item, { fromLocal, toWagon = false, getQuest = null, trade = false } = {}) {
   if (!item?.questItem) return false;
   const quest = getQuest?.(item.questUID) ?? null;
