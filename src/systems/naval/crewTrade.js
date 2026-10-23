@@ -1,0 +1,75 @@
+// @ts-check
+// CREW-TRADE (2026-10-23, the owner: "add crew as a resource that can be sold and traded"; asked, the owner chose "Exchange
+// good only" - crew bought and sold at the port exchange straight into and out of the ship at the quay, priced per port
+// like the other goods - a headcount, and a price that varies by port; bible/03-World/Captains-Sea.md CREW-TRADE) - THE
+// CREW AT THE EXCHANGE, her side of it. The row is the exchange's (tradeGoods.js CREW, exchangeOf's `crew`: a port's stand
+// to sailors, the day's drift, the spread, the day's stock); here, what the exchange pays for a man at most, how many men
+// may leave her and how many more she takes, and the words.
+//
+// WHAT A MAN FETCHES (`crewPayMost`): a gold under what the shipwright asks for one at most (navalYard.js yardOffer's own
+// price for a hand, at the captain's yard discount) - or a captain hires at the yard and sells at the exchange for
+// something, as often as the exchange's day allows. A port short of men pays near the yard's price; one with men to spare
+// sells them at well under it, so the exchange is the cheaper way to fill her where sailors are to be had.
+//
+// WHO MAY LEAVE HER (`crewSpare`): men by the head, never a named hand carried over - her roster's last to join leave
+// first (shipCrew.js sync's order); never her last man (a ship with nobody aboard strikes - crewHall.js releasePlan's
+// law); never so many that a named hand ashore at the player's side loses his place on her deck; and none of a ship that
+// came into the realm through customs (fleet.js fleetCrossed - RESTORE's "Keep all, can't sell": her men are an offline
+// save's). Men signed on raise her crew to her whole at most (`crewRoom`).
+//
+// Pure: no DOM, no clock. Not a DFU member - Daggerfall has no ships. Ledger A (CREW-TRADE).
+import { CREW, exchangeOf } from './tradeGoods.js';
+import { yardOffer } from './navalYard.js';
+import { playerCrewCount } from './crewLife.js';
+import { CREW_HALL_TEXT } from '../crewHall.js';
+
+/** The fewest men a ship keeps aboard: her last is never signed off. */
+export const CREW_KEEP = 1;
+
+/** What the shipwright asks for a man at `discount` (a captain's rank's - navalYard.js yardOffer's own crew row). */
+export const yardHandPrice = (discount = 0) => yardOffer({ hull: 1, maxHull: 1, sail: 1, maxSail: 1, crew: 0, maxCrew: 1 }, 0, 0, { discount }).rows.find((r) => r.id === 'crew')?.price ?? 0;
+/** The most the exchange pays for a man: a gold under the shipwright's price for one (never under a gold). */
+export const crewPayMost = (discount = 0) => Math.max(1, Math.ceil(yardHandPrice(discount) - 1e-9) - 1);
+
+/**
+ * CREW'S ROW AT A PORT'S EXCHANGE TODAY: exchangeOf's (its stand, its two prices, how many more it signs on - `sells` -
+ * and takes off her - `buys`), what it pays for a man held under the shipwright's price (`crewPayMost` at `discount`).
+ * @param {{ key: string, crown?: string|null, ether?: boolean }} port @param {number} day
+ * @param {{ dealt?: { sold?: any, bought?: any }, edge?: number, town?: { ask: number, pay: number } | null, discount?: number }} [o]
+ */
+export function crewRowOf(port, day, { dealt = {}, edge = 0, town = null, discount = 0 } = {}) {
+  const r = exchangeOf(port, day, dealt, edge, town, true)[0];
+  return { ...r, buy: Math.min(r.buy, crewPayMost(discount)) };
+}
+
+/**
+ * HOW MANY MEN MAY LEAVE HER: `crew` her crew now, `hands` her named hands in roster order (shipCrew.js), `away` the names
+ * of hers ashore at the player's side, `crossed` whether she came into the realm through customs. Answers `{ n, why }` -
+ * `why` the reason none may, or null. Pure.
+ * @param {{ hull: number, crew: number, hands?: readonly { name: string }[], away?: { has: (name: string) => boolean } | null, crossed?: boolean }} o
+ */
+export function crewSpare({ hull, crew, hands = [], away = null, crossed = false }) {
+  if (crossed) return { n: 0, why: CREW_TRADE_TEXT.crossed };
+  const now = Math.max(0, Math.floor(Number(crew) || 0));
+  let need = 0, who = '';
+  hands.forEach((h, i) => { if (away?.has?.(h?.name)) { need = i + 1; who = h.name; } });
+  let least = CREW_KEEP;
+  while (least < now && playerCrewCount(hull, least) < need) least++;
+  const n = Math.max(0, now - least);
+  return { n, why: n > 0 ? null : now > CREW_KEEP && need > 0 ? CREW_HALL_TEXT.ashore(who) : CREW_HALL_TEXT.lastMan };
+}
+/** How many more men she takes: her whole less her crew now. @param {{ crew: number, maxCrew: number }} d */
+export const crewRoom = (d) => Math.max(0, Math.floor((Number(d?.maxCrew) || 0) - (Number(d?.crew) || 0)));
+
+/** The exchange's words for crew. */
+export const CREW_TRADE_TEXT = Object.freeze({
+  bought: (n, gold) => `Bought the contracts of ${n} crew for ${gold}.`,
+  sold: (n, gold) => `Sold the contracts of ${n} crew for ${gold}.`,
+  short: (gold) => `Not enough gold - ${gold} a man.`,
+  noneToday: 'The exchange has no more sailors to sign on today.',
+  noneWanted: 'The exchange will take no more crew today.',
+  full: 'The ship has her whole crew aboard.',
+  noCrew: 'This ship carries no crew.',
+  crossed: 'This ship came through customs with her crew. The exchange takes none of them.',
+  fighting: CREW_HALL_TEXT.fighting,
+});

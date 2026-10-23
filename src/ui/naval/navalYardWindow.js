@@ -23,7 +23,9 @@
 //
 // CAPT-TRADE: THE EXCHANGE'S TAB, where the world hands an `exchange()` (scenes/harbourOffice.js exchange): each good
 // the port deals in - what it is to the port (made here, wanted here), its price to buy and to sell today, how many more
-// the exchange deals in, what the boat at the quay carries of it - and Buy 1, Buy 10, Sell 1, Sell all.
+// the exchange deals in, what the boat at the quay carries of it - and Buy 1, Buy 10, Sell 1, Sell all. CREW-TRADE
+// (bible/03-World/Captains-Sea.md CREW-TRADE): a crewed ship's CREW first - whether the port has sailors to spare or is
+// short of them, a man's two prices, her crew aboard against her whole - its presses signing men on to her and off her.
 import { closeOnOutsideTap } from '../enhanced/enhancedOverlays.js';
 import { overlayAction } from '../input.js';
 import { injectEnhancedStyle, injectEnhancedFonts } from '../enhanced/enhancedStyle.js';
@@ -32,6 +34,7 @@ import { injectNavalWindowStyle } from './navalPlunderWindow.js';
 import { ETHER_SEA_NAME } from '../../world/ethericSea.js';   // ELTHERIC: the sea's name, one home
 import { t } from '../../systems/textManager.js';   // GROG-WORD: the day's round said in the player's language
 import { townBandWord } from '../../net/townEconLaw.js';   // SEA-TRADE: the port town's economy in the exchange's lede
+import { CREW } from '../../systems/naval/tradeGoods.js';   // CREW-TRADE: crew's row
 
 export const NAVAL_YARD_STYLE_ID = 'dagger-naval-yard-style';
 /** The yard's own rules beside the naval windows' sheet: a row's three columns. */
@@ -233,11 +236,15 @@ export function exchangeText(x) {
   const lede = (x.weight == null ? `${x.port}'s exchange. Trade from the helm, into the hold.`
     : `${x.port}'s exchange. The hold carries ${Math.round(x.weight)} kg of goods${room}. You have ${g(x.gold)}.`) + band;
   const STAND = { makes: 'Made here: cheap', wants: 'Wanted here: dear', neither: '' };
-  const rows = (x.rows ?? []).map((r) => ({
-    id: r.id, title: r.name, canBuy: r.sells > 0 && x.weight != null, canSell: r.have > 0 && r.buys > 0,
-    words: [STAND[r.stand], r.sells > 0 ? `buy at ${g(r.sell)} a ${r.unit} (${r.sells} left today)` : r.exotic ? 'not sold here' : 'none to buy today', r.buys > 0 ? `sell at ${g(r.buy)} (${r.buys} wanted)` : 'none wanted today'].filter(Boolean).join(' - '),   // AUDIT CAPTAIN'S SEA B16
-    extra: r.have > 0 ? `In the hold: ${r.have} ${r.have === 1 ? r.unit : r.units}` : '',
-  }));
+  const CREW_STAND = { makes: 'Sailors to spare here: cheap', wants: 'Short of sailors here: dear', neither: '' };   // CREW-TRADE
+  const rows = (x.rows ?? []).map((r) => {
+    const crew = r.id === CREW.id;   // CREW-TRADE: signed on while she has room, off while any may leave her
+    return {
+      id: r.id, title: r.name, canBuy: crew ? r.sells > 0 && r.room > 0 : r.sells > 0 && x.weight != null, canSell: crew ? r.spare > 0 && r.buys > 0 : r.have > 0 && r.buys > 0,
+      words: [(crew ? CREW_STAND : STAND)[r.stand], r.sells > 0 ? `buy at ${g(r.sell)} a ${r.unit} (${r.sells} left today)` : r.exotic ? 'not sold here' : 'none to buy today', r.buys > 0 ? `sell at ${g(r.buy)} (${r.buys} wanted)` : 'none wanted today'].filter(Boolean).join(' - '),   // AUDIT CAPTAIN'S SEA B16
+      extra: crew ? `Aboard: ${r.have} of ${r.whole} crew` : r.have > 0 ? `In the hold: ${r.have} ${r.have === 1 ? r.unit : r.units}` : '',
+    };
+  });
   return { lede, rows };
 }
 

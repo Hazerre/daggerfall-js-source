@@ -9461,7 +9461,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       if (port?.ether) { const o = etherHost.office(port); return o ? { ...o, rumours: [...o.rumours, ...seaVentures.rumours(port)], ...seaVentures.office(), buyChart: () => { const r = etherHost.buyChart(port); captainSay(); return r; } } : null; }   // SEA-EVENTS: the treasure fleet's and the Aether Storm's talk
       return harbourOffice.model({ uid: model.uid ?? null });
     };
-    if (model.atQuay) model.exchange = () => harbourOffice.exchange({ uid: model.uid ?? null, cargo: model.cargo?.() ?? null, room: () => model.room?.() ?? null });   // CAPT-TRADE: the exchange's tab - AUDIT CAPTAIN'S SEA B11: and her room
+    if (model.atQuay) model.exchange = () => harbourOffice.exchange(model);   // CAPT-TRADE: the exchange's tab, over the yard's model - AUDIT CAPTAIN'S SEA B11: her room; CREW-TRADE: her crew (`crewDeal`)
     const win = createNavalYardOverlay({ model });
     if (!win) return false;
     townTalk.showOverlay(win);
