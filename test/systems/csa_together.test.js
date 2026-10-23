@@ -432,6 +432,7 @@ test('CSA-K: the host - my place aboard rides my foes frame as `ab` (a changed w
     navalWord: () => false,   // THE MERGE with NAV-G: the sea's word rides beside it - no sea here, this pin is the aboard word's
     seaRaidWord: () => false,   // OW6: nor raider chases
   };
+  scope.csaDeckWord = mount(scope, cut(WORLD, 'const csaDeckWord = () =>', ');\n'), 'csaDeckWord');   // PIN MOVED (DECK-POSE): the one place the foes word and the pose both say
   scope.csaAboardWord = mount(scope, cut(WORLD, 'function csaAboardWord(frame, full) {', '\n  }\n'), 'csaAboardWord');
   const foesStream = mount(scope, cut(WORLD, 'const foesStream = (now) => {', '\n  };\n'), 'foesStream');
   foesStream(0);

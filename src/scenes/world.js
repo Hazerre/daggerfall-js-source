@@ -8999,8 +8999,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const slot = csaRuntime.AllBoats.filter((b) => b.GameObject?.activeSelf).indexOf(boat);
     return slot < 0 ? null : csaHelmWordOf(id, slot, boat, player.height);
   }
+  /** CSA-K / #1: my place aboard another's boat, or at my own helm - DECK-POSE: one place, two streams (this foes frame's
+   *  `ab`, and every pose I send - net/online.js poseAboard). */
+  const csaDeckWord = () => (csaOn() ? (csaAboard.word(player.pos) ?? csaHelmWord()) : null);
   function csaAboardWord(frame, full) {
-    const w = csaOn() ? (csaAboard.word(player.pos) ?? csaHelmWord()) : null;   // #1: or where I stand at my own helm
+    const w = csaDeckWord();   // #1: or where I stand at my own helm
     const key = w ? JSON.stringify(w) : '';
     if (!full && key === _csaAboardKey) return false;
     if (frame) { frame.ab = w; _csaAboardKey = key; }
@@ -21065,6 +21068,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       wire2: true,   // SCALE5b: the second wire - this build reads a relay's batched poses and its channel's roster deltas
     });
     online.onArena = (w, room) => arenaOnline?.word(w, room);   // ARENA4: a relay's bout's words, to the bout on this screen
+    online.poseAboard = csaDeckWord;   // DECK-POSE: my place on a deck rides every pose - the others play it out with my walk (scenes/comeSailAway/comeSailAwayAboard.js glue)
     // ONE-SEAT: the browser's arm - this tab goes online, so any other tab of this browser that is online gives its seat
     // up (net/oneSeat.js); the hub's arm is the World link's claim (chatStart)
     seatLock = createSeatLock({ onLost: () => seatLostNow() });

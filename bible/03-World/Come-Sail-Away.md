@@ -2188,15 +2188,29 @@ changes (standing still on a moving deck says nothing) and again on every
 full frame, null aboard nothing; the reader takes it past the same room
 test and owner law as `sa` (`scenes/exteriorFoes.js`: gone from the room or
 quiet past the stale time, a clear, a teardown). The pose frame could not
-carry it: the relay's `validPose` projects the pose field by field and a new
-field would be a relay change (every player dropped). Every reader stands a
+carry it then: the relay's `validPose` projects the pose field by field and a
+new field is a relay change (every player dropped) - DECK-POSE, below, made
+that change. Every reader stands a
 player aboard on their OWN copy of that boat at that place (glue, over
 `online.drawable()` before every layer reads it): the owner on the boat they
 sail - its move of this frame made ahead, since the online frame runs before
 the mod's LateUpdate (`csaPoseAhead`) - the others on the one they lead, a
-frame ahead the same way; the place eased toward each word, a new boat's
-taken at once. So the deck I walk is the deck they see me on, never a
-stride behind it.
+frame ahead the same way. So the deck I walk is the deck they see me on,
+never a stride behind it.
+
+DECK-POSE (2026-10-23, `01-Overview/bugs/Field-Bugs-2026-10-23.md`; the
+owner: "Players on board the ship jitter while sailing instead of staying
+put. Other players also slide when on board your ship/npc ships"): the
+place rides every pose too (`net/wire.js` validAboard, the pose's `ab`, the
+foes word's door the same law; RELAY_VERSION world248), the session plays it
+out with the walk it rides (`net/online.js` lerpPose, `aboardAlong`: eased on
+one deck, the newer whole onto another), and the glue stands a body where its
+drawn pose says, at once. The word eased toward - five a second at most, one
+in two seconds through a crowded cell's relay - drew a walk across a deck in
+lurches (3 m/s drawn at 0.5 to 7.7) and slid it on after it stopped; it
+stands now only for a sender whose poses never carry a place (an older
+build, an older relay), and one whose poses have carried one is ashore when
+drawn without one, whatever their last word said.
 
 **What a passenger may press.** Another's boat's pick is taken only where
 none of the player's own boats is under the ray, and it YIELDS (PR-WAGON1's

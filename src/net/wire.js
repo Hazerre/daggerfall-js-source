@@ -1582,7 +1582,8 @@ export const KEEPALIVE_FAN_MS = HEARTBEAT_MS / 2;
  *  is deployed by CI and the relay by hand, so a skew between them is the ordinary state of a release day, and until
  *  now nothing on either end could see it. */
 // Integrated Arena spectator visibility with staff teleport, stable boat identity and private ownership; deploy relay before clients.
-export const RELAY_VERSION = 'world247';   // world247: STAFF-PANEL5 (2026-10-22, mob: "do all 6"; design doc "DFO Staff Panel: design"; NOT YET DEPLOYED) - the staff panel's relay half, one release: a hidden staff spectator's follow (staffFollow.js), Message on screen's nudge (`smsg`), the Staff Panel's counts (staffFeeds.js), a cut staff member's sockets closed (`staffcut`), hidden staff named by nobody (`hide`, staffHidden.js), and freeze player with its staff chat (`freeze`, `staffline`, staffFreeze.js)
+export const RELAY_VERSION = 'world248';   // world248: DECK-POSE (2026-10-23, the owner: "Players on board the ship jitter while sailing instead of staying put. Other players also slide when on board your ship/npc ships"; NOT YET DEPLOYED) - validPose carries `ab`, a place aboard a boat (validAboard: her owner, which of their boats, the feet in her frame), so a reader plays a passenger's place on a deck out with their walk. A relay before this field strips it and the reader falls back to the foes frame's `ab`, as before.
+// world247: STAFF-PANEL5 (2026-10-22, mob: "do all 6"; design doc "DFO Staff Panel: design"; NOT YET DEPLOYED) - the staff panel's relay half, one release: a hidden staff spectator's follow (staffFollow.js), Message on screen's nudge (`smsg`), the Staff Panel's counts (staffFeeds.js), a cut staff member's sockets closed (`staffcut`), hidden staff named by nobody (`hide`, staffHidden.js), and freeze player with its staff chat (`freeze`, `staffline`, staffFreeze.js)
 // world246: SEA VENTURES (2026-10-22, world241 on its branch, then world242 and world245 - renumbered past SD-THROUGH's world241, LEASE1's world242, PARTY-PING's world243, SPAWN-THIN's world244 and AUDIT PISTOLET's world245 at the merges; the owner: "Build ever single bit of this and dont return until its perfected" - the Eltheric Ocean's ventures; bible/03-World/Eltheric-Ocean.md SEA-VAULTS and the sections after it; NOT YET DEPLOYED): the hub reads a vault of the deep by its cell (`wdun` keys `"e<cx>,<cy>"` - wdunHall, wdunRoomKey, WDUN_SEA_RELAY_MIN) and keeps a treasure fleet's flagship sunk for its sailing (`fk`, `fd` - SEA-EVENTS), refuses an instance of an isle's dungeon (seaRoomCell), a fall at another's hand signs its room and its killer's character (net/wild/wildReceipt.js `m`, `kc` - SEA-BOUNTY: the service's word on a kill at sea; a receipt up to 512 long, DUEL_REF_RECEIPT_MAX), and the referee judges a broadside between captains in the open sea (SHIP-PVP - net/sea/seaRef.js: a captain's `helm`, `shot` and `board` in, the `hull` a shot landed, a `wreck` and its signed receipt `wc` out - net/wild/wildReceipt.js `n1`; relaySupportsSeaPvp). An older client never sends a sea key, and an older relay is never asked one.
 // world245: AUDIT PISTOLET (2026-10-22, world242 on its branch, renumbered past LEASE1's world242, PARTY-PING's world243 and SPAWN-THIN's world244 at the merge; the owner: "Now lets do a comprehensive audit on everything"; bible/01-Overview/audits/Audit-Pistolet.md C7/D1, A1; NOT YET DEPLOYED) - the siege referee's arms know the Dwarven Pistolet (net/siege/siegeRef.js SIEGE_PISTOLET: its top, and a shot is a bow's blow), and the duel's roll takes `off` for a shot as for a swing (combat/duelCombat.js), so a pair's off-hand shot at a player lands DUAL's share. The PISTOLET branch edited the relay's graph under world237 (world241 at its merges) without a bump. Client and relay move together: an older relay rolls an off-hand shot whole.
 // world244: SPAWN-THIN (2026-10-19, world224 on its branch, then world242, renumbered past PARTY-PING's world243 at the merge; bible/06-Systems/Systems-Arc.md; NOT YET DEPLOYED): the overworld keep drops a quarter of the spawn band (net/overworldLaw.js OW_SPAWN_KEEP), so a cell and a client agree which ruins stand.
@@ -1845,7 +1846,7 @@ export function wire2Batch(items) {
 /** A pose the room will relay, or null. */
 export function validPose(p) {
   if (!p || typeof p !== 'object') return null;
-  const { x, y, z, yaw, pitch, mv, wd, an, as, am, sr, cn, cr, ce, ar, fk, rd, rv, rc, hs, lh, wb, dd, hl, lt, lc, hk, hp, hb, hq, hu, uq, cv, cl, cw, ck, cy, cd, st, ga, gb, gm, ts, pl } = p;
+  const { x, y, z, yaw, pitch, mv, wd, an, as, am, sr, cn, cr, ce, ar, fk, rd, rv, rc, hs, lh, wb, dd, hl, lt, lc, hk, hp, hb, hq, hu, uq, cv, cl, cw, ck, cy, cd, st, ga, gb, gm, ts, pl, ab } = p;
   if (![x, y, z, yaw, pitch].every(finite)) return null;
   if (Math.abs(x) > POSE_BOUND || Math.abs(z) > POSE_BOUND || Math.abs(y) > POSE_Y_BOUND) return null;
   // ONCRASH1 (2026-09-15, Mac: "reports of player browser crashing when
@@ -1930,6 +1931,7 @@ export function validPose(p) {
     ...climbOf(cl, cw, ck, cy, cd),
     ...seatOf(st),   // CARDS2b: seated at a card table, and the table's top - omitted standing
     ...riddenOf(pl),   // EG-H1: RIDDEN POSES - a pose on an Elite Breach's moving piece, its index and its offset from the piece's top
+    ...aboardOf(ab),   // DECK-POSE: a pose aboard a boat - whose, which of theirs, and the feet in her own frame
     // PEER-ACTS (GATHER-FEEL II, 2026-10-13): `ga` the player's GATHERING ACT and `gm` the net's throw, and `gb` the
     // beats - its own, as `hk` is, so a beat counted as an act ends rides the pose that ends it (gatherOf) - so the
     // others see the swing, the kneel and the throw and hear each beat at the act's place (net/peer/peerGather.js). OMITTED
@@ -1997,6 +1999,28 @@ function peerFxOf(hk, hp, hb, hq, hu, uq) {
 export const POSE_RIDE_OFF_MAX = 8;
 const riddenOf = (pl) => (Array.isArray(pl) && pl.length === 4 && Number.isInteger(pl[0]) && pl[0] >= 0 && pl[0] <= 255 && pl.slice(1).every((v) => finite(v) && Math.abs(v) <= POSE_RIDE_OFF_MAX)
   ? { pl: [pl[0], Math.round(pl[1] * 100) / 100, Math.round(pl[2] * 100) / 100, Math.round(pl[3] * 100) / 100] } : {});
+/** DECK-POSE (2026-10-23, the owner: "Players on board the ship jitter while sailing instead of staying put. Other players
+ *  also slide when on board your ship/npc ships"): A POSE ABOARD A BOAT SAYS WHERE ON HER DECK. `ab` - `[owner, slot, x,
+ *  y, z]`, Come Sail Away's place aboard (scenes/comeSailAway/comeSailAwayAboard.js `word`, and `helmWord` at one's own
+ *  helm): her owner's id, which boat of their word, and the feet in her own frame (m, to the cm). The foes frame's `ab`
+ *  said it alone, at most five times a second, only when it changed (a crowded cell's relay keeps its full frames alone:
+ *  once in two seconds), and a reader eased toward each word - a body walking a deck was drawn in lurches and slid on
+ *  after it stopped. On the pose it is played out with the walk it rides (net/online.js lerpPose) and stood on the deck as
+ *  it is drawn here. OMITTED ashore (validLook's `class` law); a field out of bounds is no place aboard, never clamped. */
+export const POSE_ABOARD_SLOTS = 8;   // the boats one Come Sail Away word carries (comeSailAwayWire.js CSA_WIRE_BOATS_MAX is this)
+export const POSE_ABOARD_LOCAL_MAX = 100;   // a place on a deck from her root, each way (comeSailAwayAboard.js CSA_ABOARD_LOCAL_MAX is this)
+export const POSE_ABOARD_OWNER_MAX = 64;
+/** DECK-POSE: a place aboard through the door - `[owner, slot, x, y, z]` to the cm, or null. Pure. */
+export function validAboard(ab) {
+  if (!Array.isArray(ab) || ab.length !== 5) return null;
+  const [owner, slot, x, y, z] = ab;
+  if (typeof owner !== 'string' || !owner || owner.length > POSE_ABOARD_OWNER_MAX) return null;
+  if (!Number.isInteger(slot) || slot < 0 || slot >= POSE_ABOARD_SLOTS) return null;
+  if (![x, y, z].every((v) => finite(v) && Math.abs(v) <= POSE_ABOARD_LOCAL_MAX)) return null;
+  const cm = (v) => { const r = Math.round(v * 100) / 100; return r === 0 ? 0 : r; };   // never a -0
+  return [owner, slot, cm(x), cm(y), cm(z)];
+}
+const aboardOf = (ab) => { const w = validAboard(ab); return w ? { ab: w } : {}; };
 /** CARDS2b (bible/11-Multiplayer/Tavern-Cards.md section 12): the most the seat's `st` says - the table's top above the
  *  sitter's feet in 5 cm steps (player/seatPose.js SEAT_TOP_STEP), so 40 is two metres. */
 export const POSE_SEAT_TOP_MAX = 40;
