@@ -384,3 +384,11 @@ the chronicle's door, whose finding was the missing pin, passes there and holds 
 in `questaudit3.test.js`, `questaudit3_life.test.js`, `questaudit3_acts.test.js`, `questaudit3_share.test.js`,
 realm0, auditparty8, keptkill, questparty, quickloot, rvn7c_map, sd20g_delve, sharemend, disc25d_guild_share,
 fb1017b_shamtrail, l10n3d_services and l10n4_hardcoded, each marked PIN MOVED (AUDIT QA3 ...).
+
+The mutants, as the fixes left them, are 348, all dead (`node tools/mutate.mjs --jobs 4` over each list): this audit's
+own `auditqa3_story.json` 22, `auditqa3_share.json` 47 and `auditqa3_life.json` 39, and QUEST-AUDIT III's lists
+re-aimed to the fixed code - `questaudit3.json` 15 (the door's rungs renamed with it), `questaudit3_life.json` 76,
+`questaudit3_acts.json` 60, `questaudit3_scene.json` 30 and `questaudit3_share.json` 59. Three of the last list's
+survived the first campaign: two of its pins sent a copy unchanged since it came, which E4's held answer merges by
+nobody, and one loaded a shelved copy through the share memory, not the read an older save takes (A6). Each pin reaches
+its law again (PIN MOVED (AUDIT QA3 E4 / A6) in `questaudit3_share.test.js`).

@@ -47,9 +47,11 @@ const SOURCES = {
   // two deeds, an end that waits on both (the lane's crossing quest)
   __X: [...head('__X'), '_doA_ task:', ' start task _a_', '', '_doB_ task:', ' start task _b_', '', 'variable _a_', 'variable _b_', '',
     '_fin_ task:', ' when _a_ and _b_', ' give pc _reward_', ' end quest'],
-  // a deed and a journal step, the partner's undoing of both, and the deed done again
+  // a deed and a journal step, the partner's undoing of both, and the deed done again (and a deed of the partner's own)
   __P: [...head('__P'), '_doA_ task:', ' start task _a_', ' log 1011 step 0', '', '_doB_ task:', ' start task _b_', '',
-    '_undo_ task:', ' clear _a_', ' remove log step 0', '', '_redo_ task:', ' start task _a_', '', 'variable _a_', 'variable _b_', '',
+    '_doC_ task:', ' start task _c_', '',
+    '_undo_ task:', ' clear _a_', ' remove log step 0', '', '_redo_ task:', ' start task _a_', '', 'variable _a_', 'variable _b_',
+    'variable _c_', '',
     '_fin_ task:', ' when _a_ and _b_', ' end quest'],
   // a quest's gold, taken by `get item` (GOLD-ONCE), and an end
   __G: [...head('__G'), '_pay_ task:', ' get item _reward_', '', 'variable _a_', '', '_fin_ task:', ' when _a_', ' end quest'],
@@ -174,6 +176,9 @@ test('SHARE-MEMORY: a load remembers a shared copy finished - the partner still 
   assert.equal(D.shelveQuest(qd.uid).ok, true);
   L = reload(D);
   assert.equal(L.hasSharedQuestNamed('__X'), false, 'set aside: it left the party\'s step, and a load does not put it back');
+  // PIN MOVED (AUDIT QA3 A6, the fixes' own audit): a copy ever shared writes the memory, so the read from identities
+  // is an older save's alone - and there too a copy set aside stays out of step
+  assert.equal(reloadOld(D).hasSharedQuestNamed('__X'), false, 'an older save: set aside, out of step');
   assert.equal(L.getQuest(qd.uid)?.shareId, qd.shareId, 'though it keeps its identity');
 });
 
@@ -281,6 +286,9 @@ test('PROGRESS-KEPT: a journal step I logged stays; the partner\'s NEW `clear` a
   const qb = receive(B, '__P', env(A, qa)).quest; B.tick();
   task(qa, 'doA').start(); run(A, 2);
   assert.ok(qa.activeLogMessages.has(0) && task(qa, 'a').triggered);
+  // PIN MOVED (AUDIT QA3 E4, the fixes' own audit): B's copy unchanged since it came is a held word, merged by nobody -
+  // B does a deed of its own, so its copy from before mine is a real merge
+  task(qb, 'doC').start(); run(B, 2);
   receive(A, '__P', env(B, qb));   // B's copy, from before my deed
   assert.equal(qa.activeLogMessages.has(0), true, 'my journal step stays');
   assert.equal(task(qa, 'a').triggered, true, 'my task stays');
@@ -375,6 +383,9 @@ test('GOLD-HOLDERS: a shared quest\'s gold is split among the copies held - a sh
   assert.equal(qb.hooks.rewardShares(qb), 2, 'the sharer holds it');
   assert.equal(QS.syncBaselineAfter(qb, got), '', 'a copy new here answers once, so its sharer hears it is held');
   assert.equal(q2.hooks.rewardShares(q2), 1, 'not heard yet');
+  // PIN MOVED (AUDIT QA3 E4, the fixes' own audit): a copy unchanged since it came answers "held" (auditqa3_share's pin);
+  // B's copy here has moved on, so its word is a resync - and a resync names its sender a holder too
+  task(qb, 'doA').start(); run(B, 2);
   assert.equal(receive(A2, '__X', env(B, qb), { from: 'acct-b' }).resync, true);
   assert.equal(q2.hooks.rewardShares(q2), 2, 'heard: two copies hold it');
   task(q2, 'doA').start(); task(q2, 'doB').start(); run(A2, 8);

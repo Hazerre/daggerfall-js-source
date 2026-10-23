@@ -462,7 +462,7 @@ const HARDCODED = {
   'src/systems/quest/actions.js': 11,
   'src/systems/quest/machine.js': 1,
   'src/systems/quest/questMacros.js': 1,
-  'src/systems/quest/questPatches.js': 6,   // SHAM-TRAIL (FIELD BUGS 2026-10-17b): the patches' anchors into DFU's own C0B00Y02 - its text found and kept, never the port's words; the entry the patch files is the text core's (quest.possessedChild.shamTrail). PIN MOVED (QUEST-AUDIT III DUEL-TOWN): A0C00Y10's two, DFU's own sentence found and kept with its town's symbol changed
+  'src/systems/quest/questPatches.js': 7,   // SHAM-TRAIL (FIELD BUGS 2026-10-17b): the patches' anchors into DFU's own C0B00Y02 - its text found and kept, never the port's words; the entry the patch files is the text core's (quest.possessedChild.shamTrail). PIN MOVED (QUEST-AUDIT III DUEL-TOWN): A0C00Y10's two, DFU's own sentence found and kept with its town's symbol changed. PIN MOVED (AUDIT QA3 C3): M0B11Y18's latch - QBN script that starts a task of its own, no sentence a player reads
   'src/systems/quest/questRepair.js': 9,
   'src/systems/quest/questGuidance.js': 2,
   'src/systems/quickLoot.js': 4,
