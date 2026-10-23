@@ -306,7 +306,7 @@ a pair slid off whole).
   the Morrowind arm - under it a pull waits for the arm, the shot leaves at its release and the breech clacks after
   the bang (AUDIT PISTOL-PORT A1).
 
-**AUDIT PISTOL-PORT (2026-10-22, the owner: "Audit this")**: four cold lanes and the author's - 36 findings, 33 distinct, the worst a
+**AUDIT PISTOL-PORT (2026-10-22, the owner: "Audit this")**: four cold lanes and the author's - 37 findings, 34 distinct, the worst a
 pair under the Morrowind arm losing half its shots, two hits in one frame both credited to the second pistol, one
 pistol juggled between the hands firing a pair's rate, and one frame with a Pistolet in hand erasing the Thunderlock's
 reload. Every one fixed or recorded: `01-Overview/audits/Audit-Pistol-Port.md`.

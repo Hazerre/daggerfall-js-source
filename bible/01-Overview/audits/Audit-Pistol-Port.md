@@ -31,7 +31,7 @@ seen to fail.
 - nothing pinned the gun machine itself: every shot after a pistol's first could have stopped landing and every suite
   stayed green (D1).
 
-36 findings, 33 distinct (lanes cross-reported three). Every one is fixed or recorded below.
+37 findings, 34 distinct (lanes cross-reported three). Every one is fixed or recorded below.
 
 ## Findings
 
@@ -105,9 +105,18 @@ of; 2,747 tests across 252 files, 0 failures.
 
 | # | Sev | Finding | Verdict |
 |---|---|---|---|
-| M1 | MED | The slice was pushed without its last mutation run whole: 212 of 554 neighbouring records judged when the run was stopped for the audit | FIXED: the run made whole after the fixes (below) |
-| M2 | MED | No pull request, so CI's `verify` never ran on the slice's head | FIXED: the whole suite run here on the fixed tree (below) |
+| M1 | MED | The slice was pushed without its last mutation run whole: 212 of 554 neighbouring records judged when the run was stopped for the audit | FIXED: every record aimed at a file the port or the audit changed - 479, in 62 lists - run on the fixed tree: 477 dead, 0 survived, 2 equivalent as recorded (AP-A5-queued-hits-owe-nothing; TECHFX1-the-hit-twice, which died once under four workers' load and stands as recorded alone and in a workspace) |
+| M2 | MED | No pull request, so CI's `verify` never ran on the slice's head | FIXED: the whole suite here on the fixed tree, with ARENA2: 33,068 tests, 33,016 pass, 49 skipped, 3 failing - all three red on main too (Outside the slice, below) |
 | M3 | LOW | The pistol lab's twin, `gun-proto.html` (the Thunderlock's), turns at the same fixed sensitivity on the same device-pixel canvas (B2) | OPEN: not this slice's - the Thunderlock's lab, left to its own |
+| M4 | MED | The audit's own A5 fix lengthened the rig's swing gate (`&& !pelletsOwed()`), and AUDIT 29's source pin (`test/scenes/audit29_host.test.js`) reads that line by its text - red at the audit's first push: the author's test list took the files that IMPORT the changed code and the ones naming it in the slice's own areas, and missed a pin that reads the rig by path from elsewhere. Found by the final mutation run (AUDIT29-D2 no verdict) | FIXED: PIN MOVED, the record judged again (dead); then every test whose text names a changed file run - 91 more files, 1,020 tests, 0 failing - and the whole suite (M2) |
+
+## Outside the slice
+
+- Three real-data tests fail with ARENA2 present, on main (a61d01901) exactly as on this branch, and skip on CI, which
+  has no ARENA2: `test/formats/worldData/it1_worlddata.test.js` and `wd1_worlddata.test.js` (Immersive Travel's
+  `WALLAA08.RMB.json` patch no longer rebuilds the author's file sha256 for sha256) and
+  `test/systems/quest/fb1004d_cratefree.test.js` (the crate-free markers counted in BLOCKS.BSA). Not this slice's;
+  left to their own.
 
 ## What stands
 
