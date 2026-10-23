@@ -144,6 +144,17 @@ MOD_FEED_URL = "https://daggerfall-accounts.mackcothran.workers.dev/v1/mod/feed"
 # woken (or one whose hub did not answer) never reads it off. Leases are
 # signed with a key derived from GATE_SIGNING_KEY; no new secret.
 GRANT_FEED_URL = "https://daggerfall-accounts.mackcothran.workers.dev/v1/mod/grant-feed"
+# ═══ STAFF-PANEL5-HIDDEN: A HIDDEN STAFF MEMBER IN A PRIVATE HOME ═══════
+#
+# Where the relay reports a hidden staff socket entering a private home
+# (src/net/hiddenSeen.js HIDDEN_SEEN_PATH) for the account service's
+# staff audit log (design doc "DFO Staff Panel: design": "Entering a
+# private home is allowed and written to the audit log"). Signed with
+# GATE_SIGNING_KEY, through the ACCOUNTS binding below, the feed's door.
+# EMPTY (or no GATE_SIGNING_KEY) CLOSES EVERY PRIVATE HOME TO A HIDDEN
+# SOCKET (server/src/staffHidden.js hiddenSeenOn): an entry the log
+# would not hold is never made.
+HIDDEN_SEEN_URL = "https://daggerfall-accounts.mackcothran.workers.dev/v1/mod/hidden-seen"
 # ═══ INT11-INT14: THE LINE THE BOSS FIGHTS' COUNT RUNS BY ════════════
 #
 # The relay counts each fighter's body in a gate, an Abyss Dungeon and

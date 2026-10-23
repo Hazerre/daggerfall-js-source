@@ -50,6 +50,9 @@ import { HOME_WATCH as WATCHLIST_WATCH } from './staffDesk.js';
 import { HOME_WATCH as ECONOMY_WATCH } from './staffEconomy.js';
 import { HOME_WATCH as GAINS_WATCH } from './staffRealm.js';
 import { HOME_WATCH as CONTESTED_WATCH } from './staffCensus.js';
+import { HOME_WATCH as BURSTS_WATCH } from './staffNet.js';   // STAFF-PANEL5-FEEDS: packet bursts
+import { HOME_WATCH as MONSTERS_WATCH } from './staffMonsters.js';   // STAFF-PANEL5-FEEDS: monster owners
+import { HOME_WATCH as FREEZE_WATCH } from './staffFreeze.js';   // STAFF-PANEL5-FREEZE: freezes not live, players waiting
 import { modAiOn } from './modAi.js';
 import { utcDay } from '../../src/net/marksLaw.js';
 import { PLAY_GRACE_S } from '../../src/net/playClock.js';
@@ -335,7 +338,7 @@ export const STATUS_WATCH = Object.freeze({
 });
 
 /** THE HOME ROLL-UP's watches, in their usual order - one plain list; a module's HOME_WATCH joins it by one line. */
-export const HOME_WATCHES = [REPORTS_WATCH, ECONOMY_WATCH, GAINS_WATCH, CONTESTED_WATCH, WATCHLIST_WATCH, STATUS_WATCH];   // the design's Home order: reports, then market and harvesting, then the rest
+export const HOME_WATCHES = [REPORTS_WATCH, ECONOMY_WATCH, GAINS_WATCH, CONTESTED_WATCH, BURSTS_WATCH, MONSTERS_WATCH, FREEZE_WATCH, WATCHLIST_WATCH, STATUS_WATCH];   // the design's Home order: reports, then market and harvesting, then the rest
 
 const LEVELS = Object.freeze(['low', 'medium', 'high']);
 /**
