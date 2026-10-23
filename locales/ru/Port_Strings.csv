@@ -2027,7 +2027,7 @@ features.moddedLighting.note,"Нужен мод Improved Interior Lighting. Ег
 features.moddedLighting.on,"Вкл."
 features.moddedLighting.shadows,"С тенями"
 features.moddedLighting.title,"Освещение из мода ({mod})"
-features.mwBillboardLook.note,"С телом Morrowind тела и лошади стоят прямо, как классические спрайты, и сверху кажутся ниже. Если выключено, они наклоняются к камере и сохраняют свой настоящий рост."
+features.mwBillboardLook.note,"С телом Morrowind тела и лошади стоят плоскими вертикальными картинками, как классические спрайты. Если выключено, они рисуются так, как их видит камера в 3D."
 features.mwBillboardLook.title,"Вид билборда"
 features.mwBodyMotion.note,"В виде от третьего лица тело Morrowind шагает в темпе вашего движения, несёт каждое оружие по-своему и бьёт всем телом, пока ноги продолжают двигаться. «Выкл.» проигрывает собственные анимации Morrowind."
 features.mwBodyMotion.title,"Движения тела Morrowind"

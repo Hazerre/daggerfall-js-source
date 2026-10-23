@@ -2027,7 +2027,7 @@ features.moddedLighting.note,"Memerlukan mod Improved Interior Lighting. Cahaya 
 features.moddedLighting.on,"Aktif"
 features.moddedLighting.shadows,"Dengan bayangan"
 features.moddedLighting.title,"Pencahayaan mod ({mod})"
-features.mwBillboardLook.note,"Dengan tubuh Morrowind, tubuh dan kuda berdiri tegak seperti sprite klasik dan tampak lebih pendek dari atas. Jika mati, mereka condong ke kamera dan tetap setinggi aslinya."
+features.mwBillboardLook.note,"Dengan tubuh Morrowind, tubuh dan kuda berdiri sebagai gambar datar yang tegak, seperti sprite klasik. Jika mati, mereka digambar seperti yang dilihat kamera dalam 3D."
 features.mwBillboardLook.title,"Tampilan Billboard"
 features.mwBodyMotion.note,"Dalam sudut pandang orang ketiga, tubuh Morrowind melangkah mengikuti kecepatanmu bergerak, membawa setiap senjata dengan caranya sendiri, dan mengayun dengan seluruh tubuh sementara kakinya terus bergerak. Mati memainkan animasi Morrowind sendiri."
 features.mwBodyMotion.title,"Gerak Tubuh Morrowind"

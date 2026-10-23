@@ -2027,7 +2027,7 @@ features.moddedLighting.note,"Improved Interior Lighting 모드가 필요합니�
 features.moddedLighting.on,"켜기"
 features.moddedLighting.shadows,"그림자 포함"
 features.moddedLighting.title,"모드 조명 ({mod})"
-features.mwBillboardLook.note,"Morrowind 몸을 쓰면 몸과 말이 클래식 스프라이트처럼 똑바로 서서 위에서 보면 더 작아 보입니다. 끄면 카메라 쪽으로 기울어져 원래 키를 유지합니다."
+features.mwBillboardLook.note,"Morrowind 몸을 쓰면 몸과 말이 클래식 스프라이트처럼 똑바로 선 평면 그림으로 보입니다. 끄면 카메라가 보는 대로 3D로 그려집니다."
 features.mwBillboardLook.title,"빌보드 모습"
 features.mwBodyMotion.note,"3인칭에서 Morrowind 몸은 이동 속도에 맞춰 걷고, 무기마다 고유한 방식으로 들며, 다리를 계속 움직이면서 온몸으로 휘두릅니다. 끄면 Morrowind 고유의 애니메이션을 재생합니다."
 features.mwBodyMotion.title,"Morrowind 몸 동작"

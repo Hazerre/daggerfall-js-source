@@ -2027,7 +2027,7 @@ features.moddedLighting.note,"Braucht den Mod Improved Interior Lighting. Seine 
 features.moddedLighting.on,"An"
 features.moddedLighting.shadows,"Mit Schatten"
 features.moddedLighting.title,"Mod-Beleuchtung ({mod})"
-features.mwBillboardLook.note,"Mit dem Morrowind-Körper stehen Körper und Pferde aufrecht wie die klassischen Sprites und wirken von oben kleiner. Aus neigen sie sich zur Kamera und behalten ihre wahre Größe."
+features.mwBillboardLook.note,"Mit dem Morrowind-Körper stehen Körper und Pferde als flache, aufrechte Bilder da, wie die klassischen Sprites. Aus werden sie so gezeichnet, wie die Kamera sie in 3D sieht."
 features.mwBillboardLook.title,"Billboard-Optik"
 features.mwBodyMotion.note,"In der dritten Person geht ein Morrowind-Körper im Tempo, in dem du dich bewegst, trägt jede Waffe auf ihre eigene Art und schlägt mit dem ganzen Körper zu, während die Beine in Bewegung bleiben. Aus spielt Morrowinds eigene Animationen ab."
 features.mwBodyMotion.title,"Morrowind-Körperbewegung"

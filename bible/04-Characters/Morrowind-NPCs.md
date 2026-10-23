@@ -303,7 +303,9 @@ it. Off, the card leans and the figure keeps its true height. Read where
 the card is stood (`characterSprite.js:"const qUp = up ??"`), so it takes
 effect at once with no rebuild; a lean the host hands (the travel view's)
 stands as handed either way. Pinned: `test/systems/bodycard.test.js`; mutants
-`tools/mutants/bodycard.json`.
+`tools/mutants/bodycard.json`. BODY-FLAT (2026-10-23, section 32) takes the
+card's picture level since, so the figure stands its true height: the
+cos(pitch) above is the record of what it drew.
 
 ONE-BAD-BODY (FIELD BUGS 2026-10-13b, `01-Overview/bugs/Field-Bugs-2026-10-13b.md`;
 the owner: "people are saying with norrowind models, people are invisable.
@@ -2803,10 +2805,25 @@ player's, a peer's, the people's, the foes', the watch's - fpArm.js drawThird) a
   the glow's floor (a ring or an ember keeps the quad's depth, AUDIT WEAPON-GLOW MW-1). The sprite target's depth is
   24-bit now: over the frame's whole near-to-far 16 bits step a quarter of a metre at 60 m in the street.
 
-THE CARD STAYS where a card is asked for: the Billboard Look's upright one (BODY-CARD - the flat card on purpose) and the
-travel view's leaned one (`up`, AUDIT OW4 J6), through drawRigSpriteBox as they stood; and the voxel rigs'
-(drawCharacterSprite, exterior.js) - not a Morrowind mesh. The hit flash, the concealment's blend, a foe's tells and the
-weapon glow are the quad's and the pass's, so every one draws as it did.
+THE CARD STAYS where a card is asked for: the Billboard Look's upright one (BODY-CARD - the flat card on purpose; its
+picture level since BODY-FLAT, below) and the travel view's leaned one (`up`, AUDIT OW4 J6), through drawRigSpriteBox;
+and the voxel rigs' (drawCharacterSprite, exterior.js) - not a Morrowind mesh. The hit flash, the concealment's blend,
+a foe's tells and the weapon glow are the quad's and the pass's, so every one draws as it did.
+
+BODY-FLAT (2026-10-23, the same player, of this change's build: "The billboard look still has the same issue, is this
+fixable?"; asked whether the look should shrink by the camera's own tilt or be a true flat sprite: a true flat sprite).
+The Billboard Look's card took its picture down the pitched ray (BODY-CARD), so the eye foreshortened a body twice -
+cos(pitch) of its height at a distance, and from mwCamera's MIN_DISTANCE, the ray to a body's middle 62 degrees down,
+0.16 of it. A Daggerfall flat is a picture drawn level and stood upright: the card's picture is taken along the ray's
+level part now (drawRigSpriteBox `flat`), so the card holds the body at its true height and the eye's own perspective
+is the only foreshortening, at any distance. The card keeps its own depth (FB1015: the flat card on purpose); a lean the
+travel view hands keeps its pitched picture. It retires AUDIT NPC-MARKS L7 (section 31): a mark hangs over the full
+height under either look (`markCrownOf` is gone). The row's note says so ("flat upright pictures"), redrafted in the
+thirteen whole languages. Pins moved: `test/systems/bodycard.test.js` (the true height from every eye, up close too,
+the picture level, a handed lean's pitched), `test/render/prbow1_bow.test.js` (the card's picture along the level ray),
+`test/scenes/npcmarks.test.js` (L7's law retired, the full height pinned); `tools/mutants/bodycard.json` re-aimed with
+one record more (the picture pitched again), `bodylean.json` re-aimed, and `npcmarks.json`'s two L7 records retired
+with the law.
 
 MW-DETAIL: THE VIEWER'S DETAIL. A Features row, Morrowind Model Detail (`mwModelDetail`, `systems/features.js`
 mw-model-detail; Combat > With Morrowind data, beside the Billboard Look): Pixelated, the default and the owner's look,
@@ -2838,7 +2855,8 @@ game's mirrored lens, the fixture body: at Sharp the picture is the direct draw 
 and colour - from 2 m to 0.15 m, where the card it replaced differed in nearly every body pixel; Pixelated, every body
 pixel the colour of its 3 x 3 block on the screen's grid; a second body crossing the first, the picture drawn before it
 and after it, wins and loses the same pixels the mesh does (the frame's own depth); the target's framebuffer complete
-with its 24-bit depth, grown, with no GL error. NOT CHECKED HERE: the game itself with Morrowind's data. Pins moved (each marked PIN MOVED): `test/render/prbow1_bow.test.js` (PR-BOW1's ray and anchor and AUDIT OW3
+with its 24-bit depth, grown, with no GL error. NOT CHECKED HERE: the game itself with Morrowind's data.
+Pins moved (each marked PIN MOVED): `test/render/prbow1_bow.test.js` (PR-BOW1's ray and anchor and AUDIT OW3
 J6's grown window are the card's laws, held under the Billboard Look, and the crop's own beside them),
 `test/render/mwnpc5_bodyfx.test.js` (the card's lone pass's tells, under the Billboard Look), `fb1015_lootbody`
 (the 24-bit depth, the flush's edge), `fb1012g_batchshut` (the probe renderer names no world image), `invislook` (and

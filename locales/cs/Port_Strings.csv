@@ -2027,7 +2027,7 @@ features.moddedLighting.note,"Vyžaduje mód Improved Interior Lighting. Jeho te
 features.moddedLighting.on,"Zapnuto"
 features.moddedLighting.shadows,"Se stíny"
 features.moddedLighting.title,"Osvětlení z módu ({mod})"
-features.mwBillboardLook.note,"S tělem Morrowindu stojí těla a koně vzpřímeně jako klasické sprity a shora vypadají menší. Vypnuto se naklánějí ke kameře a mají svou skutečnou výšku."
+features.mwBillboardLook.note,"S tělem Morrowindu stojí těla a koně jako ploché vzpřímené obrázky, jako klasické sprity. Vypnuto se kreslí tak, jak je kamera vidí ve 3D."
 features.mwBillboardLook.title,"Vzhled billboardu"
 features.mwBodyMotion.note,"Z pohledu třetí osoby kráčí tělo Morrowindu tempem, jakým se pohybuješ, nese každou zbraň po svém a vede úder celým tělem, zatímco se jeho nohy dál pohybují. Vypnuto přehrává vlastní animace Morrowindu."
 features.mwBodyMotion.title,"Pohyb těla Morrowindu"

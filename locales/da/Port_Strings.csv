@@ -2027,7 +2027,7 @@ features.moddedLighting.note,"Kræver modden Improved Interior Lighting. Dens va
 features.moddedLighting.on,"Til"
 features.moddedLighting.shadows,"Med skygger"
 features.moddedLighting.title,"Modbelysning ({mod})"
-features.mwBillboardLook.note,"Med Morrowind-kroppen står kroppe og heste oprejst som de klassiske sprites og ser lavere ud oppefra. Slået fra læner de sig mod kameraet og beholder deres rigtige højde."
+features.mwBillboardLook.note,"Med Morrowind-kroppen står kroppe og heste som flade, oprejste billeder, ligesom de klassiske sprites. Slået fra tegnes de, som kameraet ser dem i 3D."
 features.mwBillboardLook.title,"Billboard-udseende"
 features.mwBodyMotion.note,"I tredje person går en Morrowind-krop i det tempo, du bevæger dig i, bærer hvert våben på sin egen måde og svinger med hele kroppen, mens benene bliver ved med at bevæge sig. Fra afspiller Morrowinds egne animationer."
 features.mwBodyMotion.title,"Morrowind-kropsbevægelse"

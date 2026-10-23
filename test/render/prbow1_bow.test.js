@@ -172,9 +172,10 @@ test('PR-BOW1: the picture is OF the body - taken along the eye\'s ray to the ac
           const got = drawnBody(body, cam);
           const at = `${what}, ${back}/${pitch}`;
           if (card) {
-            // lookAt's third row is -forward
+            // lookAt's third row is -forward. BODY-FLAT (2026-10-23): along the ray's LEVEL part - the Billboard Look's
+            // card is a classic flat, its picture drawn level (PIN MOVED: it was the pitched ray)
             const fwd = [-got.sprite.oview[2], -got.sprite.oview[6], -got.sprite.oview[10]];
-            assert.ok(crossLen(fwd, [axis[0] - cam.eye[0], axis[1] - cam.eye[1], axis[2] - cam.eye[2]]) < 1e-5, `${at}: the picture is taken along the eye's ray to the body`);
+            assert.ok(crossLen(fwd, [axis[0] - cam.eye[0], 0, axis[2] - cam.eye[2]]) < 1e-5, `${at}: the picture is taken along the eye's level ray to the body`);
           } else {
             assert.deepEqual([...got.sprite.oview], [...cam.view], `${at}: the picture is the main camera's own`);
           }

@@ -2027,7 +2027,7 @@ features.moddedLighting.note,"Needs the Improved Interior Lighting mod. Its warm
 features.moddedLighting.on,"On"
 features.moddedLighting.shadows,"With shadows"
 features.moddedLighting.title,"Modded lighting ({mod})"
-features.mwBillboardLook.note,"With the Morrowind body, bodies and horses stand upright like the classic sprites and look shorter from above. Off, they lean to the camera and keep their true height."
+features.mwBillboardLook.note,"With the Morrowind body, bodies and horses stand as flat upright pictures, like the classic sprites. Off, they are drawn as the camera sees them in 3D."
 features.mwBillboardLook.title,"Billboard Look"
 features.mwBodyMotion.note,"In third person a Morrowind body walks at the pace you move, carries each weapon its own way, and swings with its whole body while its legs keep moving. Off plays Morrowind’s own animations."
 features.mwBodyMotion.title,"Morrowind Body Motion"

@@ -2027,7 +2027,7 @@ features.moddedLighting.note,"Изисква мода Improved Interior Lighting
 features.moddedLighting.on,"Включено"
 features.moddedLighting.shadows,"Със сенки"
 features.moddedLighting.title,"Осветление от мод ({mod})"
-features.mwBillboardLook.note,"С тялото от Morrowind телата и конете стоят изправени като класическите спрайтове и изглеждат по-ниски отгоре. Изключено, те се накланят към камерата и запазват истинския си ръст."
+features.mwBillboardLook.note,"С тялото от Morrowind телата и конете стоят като плоски изправени картини, като класическите спрайтове. Изключено, те се рисуват така, както камерата ги вижда в 3D."
 features.mwBillboardLook.title,"Изглед на билборд"
 features.mwBodyMotion.note,"От трето лице тялото от Morrowind крачи с темпото, с което се движите, носи всяко оръжие по свой начин и замахва с цялото си тяло, докато краката му продължават да се движат. Изключено изпълнява собствените анимации на Morrowind."
 features.mwBodyMotion.title,"Движение на тялото от Morrowind"

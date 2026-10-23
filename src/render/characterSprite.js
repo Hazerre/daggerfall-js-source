@@ -92,7 +92,14 @@ export function bodyFxPad(fx) {
  *  them all. */
 export function drawRigSpriteBox(renderer, canvas, mesh, rigMat, { center, halfW: boxW, halfH: boxH, anchor = null, hitFlash = 0, conceal = null, up = null, fx = null, also = null, glowLook = null }, proj, view, eye, pixel = CHAR_PIXEL) {   // WEAPON-GLOW1: `glowLook` the held weapon's glow, whose outline needs room
   const aim = anchor && Math.hypot(anchor[0] - eye[0], anchor[1] - eye[1], anchor[2] - eye[2]) > 1e-6 ? anchor : center;   // PR-BOW1: the ray the picture is taken along
-  const dx = aim[0] - eye[0], dy = aim[1] - eye[1], dz = aim[2] - eye[2];
+  // BODY-FLAT (2026-10-23, a player: "The billboard look still has the same issue"; asked, a true flat sprite): THE
+  // BILLBOARD LOOK IS A CLASSIC FLAT. Its card was upright with the picture taken down the PITCHED ray, so the eye
+  // foreshortened the body twice - cos(pitch) of its height, and up close, where the ray to a body's middle points nearly
+  // straight down, a body squashed to a sliver. A Daggerfall flat is a picture drawn level, stood upright: the picture is
+  // taken along the ray's LEVEL part, so the card holds the body at its true height and the eye's own perspective is the
+  // only foreshortening, at any distance. The card keeps its own depth (FB1015: the flat card on purpose).
+  const flat = up == null && !!getPref('mwBillboardLook');
+  const dx = aim[0] - eye[0], dy = flat ? 0 : aim[1] - eye[1], dz = aim[2] - eye[2];
   const dist = Math.max(0.5, Math.hypot(dx, dy, dz));
   const camDir = [dx / dist, dy / dist, dz / dist];
   // MWHEAD1 (2026-09-25, Mac: "The morrowind's model's head gets cut off in third person view" - the top sliced flat,
@@ -120,8 +127,9 @@ export function drawRigSpriteBox(renderer, canvas, mesh, rigMat, { center, halfW
   // Leaned by lookAt's own y for the ray, the quad stands square to it and the body draws its true size from any eye.
   // The travel view's lean (AUDIT OW4 J6) is the view's own, the flats' with it, and stands where it is handed.
   // BODY-CARD (2026-10-14, the owner: "Reimplement the billboard morrowind look as a toggle"): the Billboard Look
-  // (features.js mw-billboard-look, off by default) stands the card upright again, as before BODY-LEAN - the flats' way.
-  const qUp = up ?? (getPref('mwBillboardLook') ? WORLD_UP : pictureUp(camDir));   // AUDIT OW4 J6: the quad's vertical
+  // (features.js mw-billboard-look, off by default) stands the card upright again, as before BODY-LEAN - the flats' way;
+  // BODY-FLAT, above, takes its picture level.
+  const qUp = up ?? (flat ? WORLD_UP : pictureUp(camDir));   // AUDIT OW4 J6: the quad's vertical
   const at = aim === center ? center : landAnchor(center, anchor, camDir, right, qUp);   // PR-BOW1: where the quad stands
   const pvS = multiply(proj, view);
   const prjY = (x, y, z) => { const w = pvS[3]*x + pvS[7]*y + pvS[11]*z + pvS[15]; return (pvS[1]*x + pvS[5]*y + pvS[9]*z + pvS[13]) / w; };

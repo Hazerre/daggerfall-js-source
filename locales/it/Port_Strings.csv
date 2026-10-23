@@ -2027,7 +2027,7 @@ features.moddedLighting.note,"Richiede la mod Improved Interior Lighting. Le sue
 features.moddedLighting.on,"Attiva"
 features.moddedLighting.shadows,"Con ombre"
 features.moddedLighting.title,"Illuminazione da mod ({mod})"
-features.mwBillboardLook.note,"Con il corpo di Morrowind, corpi e cavalli stanno dritti come gli sprite classici e sembrano più bassi visti dall’alto. Disattivato, si inclinano verso la telecamera e mantengono la loro altezza reale."
+features.mwBillboardLook.note,"Con il corpo di Morrowind, corpi e cavalli stanno dritti come immagini piatte, come gli sprite classici. Disattivato, vengono disegnati come li vede la telecamera in 3D."
 features.mwBillboardLook.title,"Aspetto billboard"
 features.mwBodyMotion.note,"In terza persona un corpo di Morrowind cammina al ritmo a cui ti muovi, porta ogni arma a modo suo e colpisce con tutto il corpo mentre le gambe continuano a muoversi. Disattivato riproduce le animazioni proprie di Morrowind."
 features.mwBodyMotion.title,"Movimento del corpo di Morrowind"
