@@ -150,7 +150,8 @@ import { createTravellerSprites, classLookOf } from '../world/travellerSprites.j
 import { GUARD_TEXTURE, PERSON_TEXTURES, PERSON_MOVE_SPEED, walkerRace } from '../characters/mobile/mobilePerson.js';
 import { bowDamageArrow, weaponOfMaterial, armorOfMaterial } from '../combat/enemyEquipment.js';   // MAC-N1: the recovered shaft is CreateWeapon's arrow, value and all; OH-E: UpgradeLoot's SetItem + ApplyWeaponMaterial / ApplyArmorSettings
 import { createTownTalk, rayPersonDistance, nearestPerson } from './townTalk.js';   // AUDIT 63 F33 (review): the townsfolk's own pick distance, the enemy arm's rival
-import { createPlayerMagic } from './hostMagic.js';   // M2: spellcasting above ground
+import { poseHandsOf } from '../net/wire.js';   // AUDIT MIXED-PAIR L4-3: the pose's hands (`lh`, `ah`) - the wire's law, never a two-hands module (THE FOUR HOSTS)
+import { createPlayerMagic, CAST_PRESS } from './hostMagic.js';   // M2: spellcasting above ground
 import { setDefaultEnchantCtx } from '../systems/enchantments.js';   // E2: the host's enchantCtx mount
 import { createEnchantCtx, standLooseFoe, LOOSE_FOE_PLACE_ATTEMPTS } from './hostEnchant.js';   // FS1 (wave D): the ctx BODY and DFU's loose-foe placement, one copy for the two hosts that mount them
 import { ChoiceWindow } from '../ui/talkWindow.js';   // TP-slice: the anchor/teleport prompt
@@ -28908,7 +28909,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // DISC12: the hand in use (the look carries both hands' weapons; the others drew the right one always, so a
       // left-handed fighter was a fist to them) and the beast form (LycanthropyEffect's isTransformed - the others saw
       // the person). Both absent rather than 0, the wire's omission law.
-      lh: rig.playerWeapon.usingRightHand ? undefined : 1,
+      ...poseHandsOf(rig.playerWeapon.usingRightHand, rig.swing.hand),   // AUDIT MIXED-PAIR L4-3: and `ah`, the hand a pair's last strike was (net/wire.js poseHandsOf)
       wb: (() => { const l = liveLycanthropy(playerEntity); return l?.isTransformed ? (l.infectionType | 0) || undefined : undefined; })(),
       cv: concealBits(playerEntity) || undefined,   // INVIS-NET: my magical concealment (1 invisible, 2 blending, 4 a shade), so the others draw me as DFU draws every concealed entity that is not the player - absent when none, the wire's omission law
       hl: waistLanternPoseBit(playerEntity.lightSource),   // HT-WAIST-NET: a lit lantern hung at the waist, so the others' Morrowind bodies hang it at the hip - absent otherwise, the wire's omission law
@@ -33227,7 +33228,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
         const _activateDown = held(keys, 'ActivateCenterObject') || _tapArmed > 0;   // AUDIT 62 F8: the touch tap is the ACTION, not a synthesized 'Mouse0' - a rebind off Mouse0 must not kill the finger, and no key code can honestly stand for a mouse binding
         const _act = activateFrame((latch.activate ??= createActivateGate()), {
           down: _activateDown,
-          hasReadySpell: magic.spellArmed(),
+          hasReadySpell: magic.spellArmed() && !_tapLockOnly,   // AUDIT SPELL-HAND L4-9: the stick-half tap is the lock pick and nothing below it (TS1) - never a cast, a spell readied or not
           touchSpell: magic.readied()?.rangeType === 1,   // rangeType 1 is ByTouch (spellcast.js:"ClassicTargetIndexToTargetType")
           hudBlocked: activeMouseOverLargeHUD(),
           paused: _overlayHeld,
@@ -33239,7 +33240,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
         // E went to the ladder, whose naval arm grappled a struck ship in reach with the guns still laid, and the release
         // then fired the broadside into the ship being hauled alongside
         const _holdFire = (_act.activate || _act.cast || useEdge) && !!naval?.aiming && naval.holdFire();
-        if (_act.cast && !_holdFire && !gatherHost?.acting()) magic.interceptAttack(true);   // the frame's firePending sends it down the live look; AUDIT 29 D2: never a readied spell mid-act (the dungeon held it off already)
+        if (_act.cast && !_holdFire && !gatherHost?.acting()) magic.interceptAttack(true, CAST_PRESS);   // SPELL-HAND: the cast's own press; the frame's firePending sends it down the live look; AUDIT 29 D2: never a readied spell mid-act (the dungeon held it off already)
         // PROF1: E at an herb patch is the patch's - an act started, or what it needs said - spent before the ladder
         const nodeTook = useEdge && !_holdFire && !modes.transitioning && !naval?.takesActivate?.() && (gatherHost?.press() ?? false);
         // AUDIT 32 H5: a click mid-act is the act's too (AUDIT 29 D3's law for E) - it opened the body's loot under the
@@ -35244,7 +35245,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       // fly through this host's world every walk frame.
       if ((modes?.mode ?? 'exterior') === 'exterior') {
         const _mfwd = [Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch)];
-        magic.firePending([...cam.pos], _mfwd);
+        magic.firePending([...cam.pos], _mfwd, gamePaused());   // AUDIT SPELL-HAND L4-6: a kept press never leaves under a window
         magic.update(dt, player.pos, _mfwd, player.height, player.feetAt());   // X11: the candle hangs off the look direction; DISC13-A off the render feet
         { const mv = lycanthropeMoveSound(playerEntity, dt); if (mv != null) audio.playOneShot(mv, 1); }   // LM1: the beast's own noise while transformed (real time)
       }
