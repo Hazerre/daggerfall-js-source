@@ -2202,7 +2202,7 @@ DECK-POSE (2026-10-23, `01-Overview/bugs/Field-Bugs-2026-10-23.md`; the
 owner: "Players on board the ship jitter while sailing instead of staying
 put. Other players also slide when on board your ship/npc ships"): the
 place rides every pose too (`net/wire.js` validAboard, the pose's `ab`, the
-foes word's door the same law; RELAY_VERSION world248), the session plays it
+foes word's door the same law; RELAY_VERSION world250), the session plays it
 out with the walk it rides (`net/online.js` lerpPose, `aboardAlong`: eased on
 one deck, the newer whole onto another), and the glue stands a body where its
 drawn pose says, at once. The word eased toward - five a second at most, one

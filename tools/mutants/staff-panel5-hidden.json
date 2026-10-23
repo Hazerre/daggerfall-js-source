@@ -952,6 +952,56 @@
     ]
   },
   {
+    "name": "STAFF-CHAT-RED-say-dropped",
+    "file": "server/src/staffHidden.js",
+    "old": "Object.freeze(['ping', 'pose', 'lease', 'find', 'say'])",
+    "new": "Object.freeze(['ping', 'pose', 'lease', 'find'])",
+    "why": "a hidden Admin's /red ask dropped, so the chat box's Red switch says nothing with Hide me on",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-CHAT-RED-dm-too",
+    "file": "server/src/staffHidden.js",
+    "old": "Object.freeze(['ping', 'pose', 'lease', 'find', 'say'])",
+    "new": "Object.freeze(['ping', 'pose', 'lease', 'find', 'say', 'narrate'])",
+    "why": "a frame type past /red's let through with it - the allow list admits exactly the say ask",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-CHAT-RED-hidden-skips-dev",
+    "file": "server/src/index.js",
+    "old": "if (!Array.isArray(a.glyphs) || !a.glyphs.includes('dev')) return;   // silently: a stranger probing this learns nothing from being ignored",
+    "new": "if (!a.hid && (!Array.isArray(a.glyphs) || !a.glyphs.includes('dev'))) return;   // silently: a stranger probing this learns nothing from being ignored",
+    "why": "a hidden socket speaks as the server without the dev glyph - a hidden Moderator's /red heard",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-CHAT-RED-red-names-id",
+    "file": "server/src/index.js",
+    "old": "const said = JSON.stringify({ t: 'red', text: m.text, at: now });",
+    "new": "const said = JSON.stringify({ t: 'red', id: a.id, text: m.text, at: now });",
+    "why": "the server's line carries its speaker's id - a hidden Admin's /red names them to every player",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-CHAT-RED-red-names-name",
+    "file": "server/src/index.js",
+    "old": "const said = JSON.stringify({ t: 'red', text: m.text, at: now });",
+    "new": "const said = JSON.stringify({ t: 'red', name: a.name, sub: a.sub, text: m.text, at: now });",
+    "why": "the server's line carries its speaker's name and subject - a hidden Admin's /red names them to every player",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
     "name": "STAFF-PANEL5-HIDDEN-FIX-tp-capture-hidden",
     "file": "server/src/staffTeleport.js",
     "old": "    if (a.hid) { result(ws, m.nonce, { error: 'unavailable' }); return; }",

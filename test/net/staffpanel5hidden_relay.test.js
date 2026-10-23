@@ -36,13 +36,13 @@ const welcomeOf = (ws) => ws.sent.find((f) => f.t === 'welcome');
 const leaks = (ws, id = GHOST_ID, sub = GHOST_SUB) => ws.sent.filter((f) => { const s = JSON.stringify(f); return s.includes(id) || s.includes(sub) || s.includes(GHOST_NAME); });
 
 test('STAFF-PANEL5-HIDDEN the allow list: a hidden socket is heard in its ping, pose, lease, find and a staff-channel line alone - every other frame, a line on any other channel, a binary or broken frame, one too long, refused (mutants: a frame type let through; the staff channel unread; the length unbounded)', () => {
-  assert.deepEqual([...HIDDEN_FRAMES], ['ping', 'pose', 'lease', 'find']);
+  assert.deepEqual([...HIDDEN_FRAMES], ['ping', 'pose', 'lease', 'find', 'say']);   // STAFF-CHAT-RED: /red's ask, a line nobody speaks
   assert.equal(HIDDEN_CHAT, 'staff');
   for (const t of HIDDEN_FRAMES) assert.equal(hiddenMay(JSON.stringify({ t })), true, t);
   assert.equal(hiddenMay(JSON.stringify({ t: 'chat', ch: 'staff', text: 'hi' })), true, 'a staff-channel line');
   assert.equal(hiddenMay(JSON.stringify({ t: 'stp', k: 'ask', name: 'Bran', nonce: 'n1', nt: 1 })), true, 'STAFF-PANEL5-HIDDEN-FIX: a /tp ask');
   for (const f of [{ t: 'stp', k: 'answer', ticket: 'x', dest: {} }, { t: 'stp', k: 'capture' }, { t: 'stp' }]) assert.equal(hiddenMay(JSON.stringify(f)), false, `never ${JSON.stringify(f)}`);
-  for (const f of [{ t: 'chat', text: 'hi' }, { t: 'chat', ch: 'party', text: 'hi' }, { t: 'chat', ch: 'guild', text: 'hi' }, { t: 'social', k: 'friend.request' }, { t: 'trav', p: {} }, { t: 'who', id: 'x' }, { t: 'world', data: {} }, { t: 'foes' }, { t: 'hello' }, { t: 'act' }, { t: 'quest' }, { t: 'roll' }, { t: 'mute' }, { t: 'ban' }, null, 5, []]) assert.equal(hiddenMay(JSON.stringify(f)), false, JSON.stringify(f));
+  for (const f of [{ t: 'chat', text: 'hi' }, { t: 'chat', ch: 'party', text: 'hi' }, { t: 'chat', ch: 'guild', text: 'hi' }, { t: 'social', k: 'friend.request' }, { t: 'trav', p: {} }, { t: 'who', id: 'x' }, { t: 'world', data: {} }, { t: 'foes' }, { t: 'hello' }, { t: 'act' }, { t: 'quest' }, { t: 'roll' }, { t: 'mute' }, { t: 'ban' }, { t: 'narrate', text: 'hi' }, { t: 'red', text: 'hi' }, null, 5, []]) assert.equal(hiddenMay(JSON.stringify(f)), false, JSON.stringify(f));
   for (const m of ['{"t":"pose"', 'not json', new ArrayBuffer(4), null]) assert.equal(hiddenMay(m), false, String(m));
   assert.equal(hiddenMay(JSON.stringify({ t: 'pose', pad: 'x'.repeat(4096) })), false, 'a frame past the bound');
   assert.equal(isHidden({ hid: 1 }), true); assert.equal(isHidden({ hid: true }), false); assert.equal(isHidden(null), false);
@@ -474,6 +474,37 @@ test('STAFF-PANEL5-HIDDEN-FIX a hidden Admin\'s /tp, on its hub shard: its ask i
     await ask(dev, H.hubOfSubject('acct-devvy'), { name: 'cleo', nonce: 'v1' });
     assert.equal(stp(cleo, 'capture').length, 1, 'a visible Admin\'s missing note still falls back to the capture');
     for (const ws of [bran, cleo, dev]) assert.deepEqual(leaks(ws), [], `${ws.att.id} heard nothing of it`);
+  });
+});
+
+// STAFF-CHAT-RED (2026-10-23, mob: "give me a option next to chat to chat as /red or myself at all times"): the chat box's
+// Me / Red switch, kept on Red by a hidden Admin - so its /red ask must be heard, and its line must still name nobody.
+test('STAFF-CHAT-RED a hidden Admin speaks as the server: on its hub shard its /red ask (`{t:\'say\', text}`) is heard, and every shard and the bus hear the server\'s line - `{t:\'red\', text, at}` and nothing else, naming nobody; a hidden socket without the dev glyph is ignored in silence, never closed, and its other frames are still dropped (mutants: the ask dropped; the dev glyph unread for a hidden socket; the line naming its speaker)', async () => {
+  await world(async ({ link, say }) => {
+    const kg = H.hubOfSubject(GHOST_SUB);
+    const MOD_SUB = 'gH0st5ubBBBBBBBBBBBBBBBB';
+    const ghost = await link('staffer', kg, { ...HIDE, glyphs: ['dev', 'dm'], peer: GHOST_ID });   // a Dungeon Master too: its /dm dropped by the allow list, never by the glyph
+    const mod = await link('staffer2', H.hubOfSubject(MOD_SUB), { ...HIDE, tokenSub: MOD_SUB, peer: 'ghost-0098' });
+    const bran = await link('bran', H.hubOfSubject('acct-bran'));
+    const old = await link('legacy', SOCIAL_ROOM, { hs: undefined });   // a tab from before the shards, on the bus itself
+    const everyone = [ghost, mod, bran, old];
+    const reds = (ws) => ofT(ws, 'red');
+    await say(ghost, kg, { t: 'say', text: 'Server restarts in five minutes' });
+    for (const ws of everyone) {
+      assert.deepEqual(reds(ws).map((f) => f.text), ['Server restarts in five minutes'], `${ws.att.id} heard the server's line`);
+      assert.deepEqual(Object.keys(reds(ws)[0]).sort(), ['at', 't', 'text'], `${ws.att.id}: a line nobody speaks - no id, no name, no subject`);
+    }
+    assert.equal(ghost.closed, null);
+    // a hidden Moderator holds no dev glyph: its ask is the room's to ignore, silently, as any stranger's
+    await say(mod, H.hubOfSubject(MOD_SUB), { t: 'say', text: 'not the server' });
+    for (const ws of everyone) assert.equal(reds(ws).length, 1, `${ws.att.id} heard no line of the Moderator's`);
+    assert.equal(mod.closed, null, 'never struck, never closed');
+    // and the rest of what the hidden Admin says is still dropped: its line, its /dm, a roll
+    await say(ghost, kg, { t: 'chat', text: 'boo' });
+    await say(ghost, kg, { t: 'narrate', text: 'a voice over the game' });
+    await say(ghost, kg, { t: 'roll', n: 1, m: 6, k: 0 });
+    for (const ws of [bran, old]) { assert.equal(ofT(ws, 'chat').length + ofT(ws, 'dm').length + ofT(ws, 'roll').length, 0, `${ws.att.id} heard nothing else of it`); }
+    for (const ws of [bran, old]) { assert.deepEqual(leaks(ws), [], `${ws.att.id} heard nothing naming it`); assert.deepEqual(leaks(ws, 'ghost-0098', MOD_SUB), [], `${ws.att.id} nor the Moderator`); }
   });
 });
 
