@@ -23,7 +23,9 @@
 //
 // THE MARK LAPSES (hiddenEnd): Show myself, a staff sign-out, a key forgotten, an owner's cut and a Moderator removed each push a hide order
 // for every subject the account's staff sessions minted (identityToken.js mintHideOrder) to the relay's law door; the hub
-// closes those hidden sockets rather than show them, and the game comes back as a normal player on its next token.
+// closes those hidden sockets rather than show them, and the game comes back as a normal player on its next token. A
+// session that only lapses - gone idle, past its 8 hours - is no such word (STAFF-PANEL5-HIDDEN-FIX): the game it hid is
+// minted no token at all until the staff member signs in again or says one of them (hiddenToken, LAPSED_SQL).
 //
 // A PRIVATE HOME ENTERED (takeHiddenSeen): the relay reports a hidden subject entering an `owned:` room, signed with its
 // receipt key (net/hiddenSeen.js); it is written to the audit log (`hidden-home`) as the staff member whose session minted

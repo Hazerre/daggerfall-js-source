@@ -162,8 +162,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-seen-http",
     "file": "server/src/staffHidden.js",
-    "old": "typeof url !== 'string' || !url.startsWith('https://') ||",
-    "new": "typeof url !== 'string' ||",
+    "old": "env.HIDDEN_SEEN_URL.startsWith('https://')",
+    "new": "env.HIDDEN_SEEN_URL.startsWith('http')",
     "why": "the note posted over plain http",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -803,8 +803,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-seen-unmatched",
     "file": "server-account/src/staffHidden.js",
-    "old": "if (await hiddenSubOf(row.s_hash, subtle) === s) { actor = row; break; }",
-    "new": "if (false) { actor = row; break; }",
+    "old": "if (await hiddenSubOf(row.s_hash, subtle) === s ||",
+    "new": "if (false ||",
     "why": "the home row names nobody",
     "tests": [
       "test/server/staffpanel5hidden.test.js"
@@ -903,8 +903,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-mint-unhidden",
     "file": "server-account/src/index.js",
-    "old": "if (hidden) return json(hidden, 200, origin);",
-    "new": "if (false) return json(hidden, 200, origin);",
+    "old": "if (hidden) return hidden.error ?",
+    "new": "if (false) return hidden.error ?",
     "why": "the game's mint never hides",
     "tests": [
       "test/server/staffpanel5hidden.test.js"
@@ -928,6 +928,227 @@
     "why": "the relay's door unlisted",
     "tests": [
       "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-stp-ask-dropped",
+    "file": "server/src/staffHidden.js",
+    "old": "    || (m.t === 'stp' && m.k === 'ask');",
+    "new": "    || false;",
+    "why": "finding 3: a hidden staff member's /tp ask dropped, so silent TP never answers with Hide me on",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-stp-any",
+    "file": "server/src/staffHidden.js",
+    "old": "(m.t === 'stp' && m.k === 'ask')",
+    "new": "(m.t === 'stp')",
+    "why": "finding 3: a hidden socket heard answering a capture, which only a target sends",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-tp-capture-hidden",
+    "file": "server/src/staffTeleport.js",
+    "old": "    if (a.hid) { result(ws, m.nonce, { error: 'unavailable' }); return; }",
+    "new": "    if (false) { result(ws, m.nonce, { error: 'unavailable' }); return; }",
+    "why": "finding 3: a hidden asker's missing or unmatched note asks the target's game, which a modded game can see",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-tp-capture-nobody",
+    "file": "server/src/staffTeleport.js",
+    "old": "    if (a.hid) { result(ws, m.nonce, { error: 'unavailable' }); return; }",
+    "new": "    if (true) { result(ws, m.nonce, { error: 'unavailable' }); return; }",
+    "why": "finding 3: a visible Admin's missing note never falls back to the capture",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-home-unreported-open",
+    "file": "server/src/staffHidden.js",
+    "old": "  if (who.hid && String(a.key).startsWith('owned:') && !hiddenSeenOn(room.env)) return 'private room';\n",
+    "new": "",
+    "why": "finding 16: a hidden socket let into a home the relay cannot report",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-home-any-room-closed",
+    "file": "server/src/staffHidden.js",
+    "old": "if (who.hid && String(a.key).startsWith('owned:') && !hiddenSeenOn(room.env))",
+    "new": "if (who.hid && !hiddenSeenOn(room.env))",
+    "why": "finding 16: every room closed to a hidden socket while the report is off, not homes alone",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-seen-keyless",
+    "file": "server/src/staffHidden.js",
+    "old": " && !!env.GATE_SIGNING_KEY;",
+    "new": ";",
+    "why": "finding 16: a relay with no receipt key reads as reporting, so a home is entered unreported",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-seen-url-unset",
+    "file": "server/wrangler.toml",
+    "old": "HIDDEN_SEEN_URL = \"https://daggerfall-accounts.mackcothran.workers.dev/v1/mod/hidden-seen\"",
+    "new": "HIDDEN_SEEN_URL = \"\"",
+    "why": "finding 16: the relay never told where to report a home entered",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-seat-silence-counts-hidden",
+    "file": "server/src/index.js",
+    "old": "if (b.id && !b.hid) list.push(b);   // STAFF-PANEL5-HIDDEN-FIX",
+    "new": "if (b.id) list.push(b);   // STAFF-PANEL5-HIDDEN-FIX",
+    "why": "finding 17: a lone dungeon player back from silence sent a host frame because a hidden socket is there",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-seat-keep-counts-hidden",
+    "file": "server/src/index.js",
+    "old": "if (b.id && !b.hid && b !== replaced) {",
+    "new": "if (b.id && b !== replaced) {",
+    "why": "finding 17: a reconnecting host loses its seat because a hidden socket came in first",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-layer-empty-counts-hidden",
+    "file": "server/src/index.js",
+    "old": "request.headers.get(LAYER_ASK_HEADER) === '1' && this.state.getWebSockets().length === hiddenSeats(this))",
+    "new": "request.headers.get(LAYER_ASK_HEADER) === '1' && !this.state.getWebSockets().length)",
+    "why": "finding 20: a ?ly probe admitted to a layer only a hidden socket holds",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-lapse-unread",
+    "file": "server-account/src/staffHidden.js",
+    "old": "if (!live && await db.prepare(LAPSED_SQL).bind(player.id).first()) {",
+    "new": "if (false) {",
+    "why": "finding 14: a lapsed hidden session mints the visible token",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-lapse-unaudited",
+    "file": "server-account/src/staffHidden.js",
+    "old": "    await auditStatement(db, nowS, { actor: player, role, act: 'hidden-lapsed', outcome: 'denied', onceIn: 60 }).run();\n",
+    "new": "",
+    "why": "finding 14: the refused mint never written",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-lapse-every-time",
+    "file": "server-account/src/staffHidden.js",
+    "old": "act: 'hidden-lapsed', outcome: 'denied', onceIn: 60 })",
+    "new": "act: 'hidden-lapsed', outcome: 'denied' })",
+    "why": "finding 14: a refused mint written every time, not once a minute",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-lapse-200",
+    "file": "server-account/src/index.js",
+    "old": "hidden.error ? no(hidden.error, 409, origin) :",
+    "new": "",
+    "why": "finding 14: the refusal answered 200 as if it were a token",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-lapse-any-logout",
+    "file": "server-account/src/staffHidden.js",
+    "old": "OR e.key_id IS h.key_id))))",
+    "new": "OR 1 = 1))))",
+    "why": "finding 14: another key's sign-out ends a hidden session it never held",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-lapse-own-key-unread",
+    "file": "server-account/src/staffHidden.js",
+    "old": "OR e.key_id IS h.key_id))))",
+    "new": "))))",
+    "why": "finding 14: the staff member's own sign-out shows nobody - the game stays refused",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-lapse-all-unread",
+    "file": "server-account/src/staffHidden.js",
+    "old": "(e.detail = '{\"all\":true}' OR e.key_id IS h.key_id)",
+    "new": "(e.key_id IS h.key_id)",
+    "why": "finding 14: a sign-out of every session by another key ends nothing",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-lapse-show-unread",
+    "file": "server-account/src/staffHidden.js",
+    "old": "(e.act = 'hide' AND e.detail = '{\"on\":false}')",
+    "new": "(0)",
+    "why": "finding 14: Show myself does not end a hidden session's hold",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-lapse-oldest",
+    "file": "server-account/src/staffHidden.js",
+    "old": "act = 'hidden-token' ORDER BY at DESC, id DESC LIMIT 1) h",
+    "new": "act = 'hidden-token' ORDER BY at, id LIMIT 1) h",
+    "why": "finding 14: the oldest hidden mint read, so a sign-out before a newer hiding ends it",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-seen-follow-unmatched",
+    "file": "server-account/src/staffHidden.js",
+    "old": " || await followSubject(row.s_hash, subtle) === s",
+    "new": "",
+    "why": "findings 4/15: a follow eye's home entry written as nobody's",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-FIX-follow-row-no-sub",
+    "file": "server-account/src/staffFollow.js",
+    "old": "{ room, sub: eye } : { sub: eye };",
+    "new": "{ room } : null;",
+    "why": "findings 4/15: the follow row never names the subject a home entry carries",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js",
+      "test/server/staffpanel5follow.test.js"
     ]
   }
 ]
