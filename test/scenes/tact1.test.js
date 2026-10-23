@@ -187,7 +187,7 @@ test('TACT1: every host stands its cover on its collider, under the switch; ever
   assert.match(rd('src/scenes/interiorContext.js'), /if \(isCoverFlat\(archive, record, size\)\) collider\.cover\.add\('tact1:flats', centers\.map\(\(c\) => coverProxy\(c, size\)\)\);/);
   assert.equal((rd('src/scenes/exterior.js').match(/collider\.cover\.add\('tact1:flats'/g) ?? []).length, 3);   // the seasonal, the classic and (LPT1) a low-poly tree's far pictures - the flat's own size
   for (const f of ['src/scenes/hostMagic.js', 'src/scenes/dungeonContext.js']) {
-    assert.match(rd(f), /const _cs = coverStep\(coverDistance\(collider, m\.pos, _unit, reach\), collider\.raycast\(m\.pos, _unit, reach\), reach, reach - step \* _len, step \* _len\);\n\s*const hitWall = _cs\.stop;/, `${f}: the bolts (AUDIT TACT B5: cover met by touch)`);
+    assert.match(rd(f), /const _cs = coverStep\(coverDistance\(collider, m\.pos, _unit, reach\), (?:collider\.raycast\(m\.pos, _unit, reach\)|rayHit\(m\.pos, _unit, reach, collider\)), reach, reach - step \* _len, step \* _len\);[^\n]*\n\s*const hitWall = _cs\.stop;/, `${f}: the bolts (AUDIT TACT B5: cover met by touch)`);   // GROUND-BOLT: hostMagic's ray is rayHit, the terrain's too
     assert.match(rd(f), /const _adv = step \* _cs\.advance;/, `${f}: no further than cover's touch`);
   }
   assert.equal((rd('src/scenes/cityGuards.js').match(/coverDistance\(collider, eye, dir, dist, true\) < dist - 1e-3/g) ?? []).length, 2, 'the witness and the guard who sees him - lines of sight (AUDIT TACT B2)');

@@ -113,8 +113,8 @@ test('ROAD-H tail: the flight reach is displacement.magnitude + ColliderRadius a
   assert.ok(Math.abs(a.arrows[0].pos[1] - (1 - 0.05 * step)) < 1e-12, 'the dip is flown, not renormalised away');
   for (const f of ['src/scenes/dungeonContext.js', 'src/scenes/hostMagic.js']) {
     const s = src(f);
-    assert.match(s, /const \{ unit: _unit, reach \} = missileReach\(m\.dir, step\);\s*\/\/[^\n]*\n(?:\s*\/\/[^\n]*\n)?\s*const _len = [^\n]*\n\s*const _cs = coverStep\(coverDistance\(collider, m\.pos, _unit, reach\), collider\.raycast\(m\.pos, _unit, reach\), reach, reach - step \* _len, step \* _len\);\n\s+const hitWall = _cs\.stop;\n\s+if \(Number\.isFinite\(hitWall\) && hitWall <= reach\) \{/,
-      `${f}: the missile flight casts for the scaled reach along the unit ray`);
+    assert.match(s, /const \{ unit: _unit, reach \} = missileReach\(m\.dir, step\);\s*\/\/[^\n]*\n(?:\s*\/\/[^\n]*\n)?\s*const _len = [^\n]*\n\s*const _cs = coverStep\(coverDistance\(collider, m\.pos, _unit, reach\), (?:collider\.raycast\(m\.pos, _unit, reach\)|rayHit\(m\.pos, _unit, reach, collider\)), reach, reach - step \* _len, step \* _len\);[^\n]*\n\s+const hitWall = _cs\.stop;\n\s+if \(Number\.isFinite\(hitWall\) && hitWall <= reach\) \{/,
+      `${f}: the missile flight casts for the scaled reach along the unit ray`);   // GROUND-BOLT: hostMagic's is rayHit - the mesh ray and the terrain (test/scenes/groundbolt.test.js)
     assert.doesNotMatch(s, /raycast\(m\.pos, m\.dir, step \+ MISSILE_COLLIDER_RADIUS\)/, `${f}: no flight casts the bare step`);
     // REVIEW: ...and the WALL POINT is measured along the vector the
     // ray was actually cast along. The collider answers in its ray's

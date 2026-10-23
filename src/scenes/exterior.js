@@ -134,7 +134,7 @@ import { CityNavigation } from '../world/city/cityNavigation.js';   // T1 towns
 import { TownPopulation } from '../systems/town/townPopulation.js';
 import { GUARD_TEXTURE, MobilePerson, PERSON_TEXTURES, personWantsToStop, walkerRace } from '../characters/mobile/mobilePerson.js';
 import { createTownTalk, rayPersonDistance, nearestPerson } from './townTalk.js';   // T3b   // AUDIT 63 F33 (review): the townsfolk's own pick distance, the enemy arm's rival
-import { createPlayerMagic, CAST_PRESS } from './hostMagic.js';   // M2: spellcasting above ground
+import { createPlayerMagic, CAST_PRESS, liveCollider } from './hostMagic.js';   // M2: spellcasting above ground; GROUND-BOLT: its collider, the ground with it
 import { preloadSpellbookArt, spellbookArtLoaded } from '../ui/spellbookWindow.js';   // U42: the classic art window (retires M2's keyed stand-in)
 import { createSpellbookWindow } from '../ui/spellbookDoor.js';   // PX23: the book's one door
 import { worldMinutes, skyMinutes, setWorldMinutes, ownMinutes, sharedClockOn, trustedWorldMinutes, raisedMinutes } from '../systems/worldTick.js';   // AUDIT 23 (C2): the ONE clock; AUDIT WORLD5 C10 / WORLD7: the quest clocks' played step, this host's word too
@@ -2895,7 +2895,7 @@ export async function bootExterior(canvas, renderer, params, status) {
       }
     },
     renderer, audio, getTexture, uploadRecord, uploadRecordFrame,
-    collider: { raycast: (o, d, m) => ((modes?.mode === 'interior' && modes?.interiorCollider) ? modes?.interiorCollider : collider).raycast(o, d, m) },
+    collider: liveCollider(() => ((modes?.mode === 'interior' && modes?.interiorCollider) ? modes?.interiorCollider : collider)),   // GROUND-BOLT: the mesh ray and the ground - a missile meets the terrain
     playerEntity,
     now: () => playerTicker.ownMinutes,   // V2a: MorphSelf's once-a-day clock
     playerSinks: playerSpellSinks,

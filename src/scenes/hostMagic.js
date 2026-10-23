@@ -77,6 +77,7 @@ import { markPlayerHarm } from '../systems/harmMark.js';   // REVENANT-HARM: a f
 import { knockedDown } from '../systems/blowEffects.js';   // TELL6e: knocked down, no cast
 import { sparedByPlayer, isShipmate, boutTeammates } from '../combat/friendlyFire.js';   // SHIPMATES: who the player's spells pass by, and whose blasts pass the player by
 import { coverDistance, coverStep } from '../ai/cover.js';   // TACT1: billboards are cover; AUDIT TACT B5: met by touch
+import { rayHit } from '../combat/techniques.js';   // GROUND-BOLT: the mesh ray AND the terrain, the one march (AUDIT TECH1)
 import { blowTaken } from '../systems/blowTaken.js';   // TELL1: what a spell's target takes (a staggered foe a quarter more)
 import { noteFeudHarm, elementFeudClass } from '../systems/feudLedger.js';   // RVN1: my spell, in its fight's ledger (a leaf)
 import { noteSkillChallenge } from '../systems/skillSoftcap.js';   // BAL9: a spell answers its foe, as a blow does
@@ -92,6 +93,23 @@ export { CAST_PRESS };   // SPELL-HAND: the cast's own press, handed on - the ho
  *  seen falling from far up - and heard this far (metres) from where it lands. */
 export const SKY_FIRE_SCALE = 3;
 export const SKY_FIRE_HEARD_M = 48;
+
+/**
+ * GROUND-BOLT (FIELD BUGS 2026-10-23b; the owner: "spells cast at the ground outdoors don't collide with it at all and
+ * sail straight through"): the collider a host hands this engine - whichever of its colliders the player stands in
+ * (`live()`, asked at each call) - with its GROUND as well as its mesh ray. Outdoors the ground is not a mesh
+ * (player/collider.js surfaceHit's note): the hosts' proxy carried `raycast` alone, so a missile met the buildings and
+ * never the terrain, where DaggerfallMissile.cs:337-339's cast meets whatever collider is there, the terrain's too.
+ * @param {() => any} live
+ */
+export function liveCollider(live) {
+  return {
+    raycast: (o, d, m) => live().raycast(o, d, m),
+    surfaceHit: (o, d, m) => live().surfaceHit(o, d, m),
+    heightAt: (x, z) => live().heightAt(x, z),
+    surfaceAt: (x, z) => { const c = live(); return (c.surfaceAt ?? c.heightAt)(x, z); },
+  };
+}
 
 /**
  * AUDIT SET M4: whether a burst from feet `a` reaches feet `b` through `collider` - chest to chest, a wall between is
@@ -1381,7 +1399,7 @@ export function createPlayerMagic({
       const { unit: _unit, reach } = missileReach(m.dir, step);   // ROAD-H tail: DaggerfallMissile.cs:333/:337-339's reach along the normalised direction
       // TACT1: cover stops a bolt, and an area spell bursts on it; AUDIT TACT B5: by touch, the bodies before it tested first
       const _len = Math.hypot(m.dir[0], m.dir[1], m.dir[2]) || 1;
-      const _cs = coverStep(coverDistance(collider, m.pos, _unit, reach), collider.raycast(m.pos, _unit, reach), reach, reach - step * _len, step * _len);
+      const _cs = coverStep(coverDistance(collider, m.pos, _unit, reach), rayHit(m.pos, _unit, reach, collider), reach, reach - step * _len, step * _len);   // GROUND-BOLT: a wall, or the ground outdoors
       const hitWall = _cs.stop;
       if (Number.isFinite(hitWall) && hitWall <= reach) {
         const impact = [m.pos[0] + _unit[0] * hitWall, m.pos[1] + _unit[1] * hitWall, m.pos[2] + _unit[2] * hitWall];   // ROAD-H tail (review): the collider answers in the RAY's own units, and the ray is `_unit` - `m.dir` would scale the impact point by |dir| (`colliderPosition += direction.normalized * hitInfo.distance`, DaggerfallMissile.cs:347)
@@ -1404,8 +1422,8 @@ export function createPlayerMagic({
       // SPELLFX1: A PEER'S MISSILE, DRAWN - it flies, meets a wall (above), a body or me, flashes and is gone, and
       // applies NOTHING: the caster's own world decided what it hit (a beneficial one of theirs reached its target as ALLY-CAST's cast frame)
       if (m.visual) {
-        // SUNBABY2: a sky fireball lands where it was thrown - on the ground the host found under it, which the
-        // collider's ray (buildings, not the terrain) would not stop it at
+        // SUNBABY2: a sky fireball lands where it was thrown - on the ground the host found under it (GROUND-BOLT: the
+        // ray above meets the terrain now; this count still lands it where the throw said, should the two grounds part)
         if (m.sky) {
           m.left -= _adv * _len;
           if (m.left <= 0) { showImpactFlash(m, m.to); retireMissile(m); continue; }

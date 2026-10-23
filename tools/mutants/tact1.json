@@ -192,8 +192,8 @@
   {
     "name": "TACT1-bolt-through",
     "file": "src/scenes/hostMagic.js",
-    "old": "      const _cs = coverStep(coverDistance(collider, m.pos, _unit, reach), collider.raycast(m.pos, _unit, reach), reach, reach - step * _len, step * _len);",
-    "new": "      const _cs = coverStep(Infinity, collider.raycast(m.pos, _unit, reach), reach, reach - step * _len, step * _len);",
+    "old": "      const _cs = coverStep(coverDistance(collider, m.pos, _unit, reach), rayHit(m.pos, _unit, reach, collider), reach, reach - step * _len, step * _len);",
+    "new": "      const _cs = coverStep(Infinity, rayHit(m.pos, _unit, reach, collider), reach, reach - step * _len, step * _len);",
     "tests": [
       "test/scenes/tact1.test.js"
     ]

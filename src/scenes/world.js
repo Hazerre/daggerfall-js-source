@@ -151,7 +151,7 @@ import { GUARD_TEXTURE, PERSON_TEXTURES, PERSON_MOVE_SPEED, walkerRace } from '.
 import { bowDamageArrow, weaponOfMaterial, armorOfMaterial } from '../combat/enemyEquipment.js';   // MAC-N1: the recovered shaft is CreateWeapon's arrow, value and all; OH-E: UpgradeLoot's SetItem + ApplyWeaponMaterial / ApplyArmorSettings
 import { createTownTalk, rayPersonDistance, nearestPerson } from './townTalk.js';   // AUDIT 63 F33 (review): the townsfolk's own pick distance, the enemy arm's rival
 import { poseHandsOf } from '../net/wire.js';   // AUDIT MIXED-PAIR L4-3: the pose's hands (`lh`, `ah`) - the wire's law, never a two-hands module (THE FOUR HOSTS)
-import { createPlayerMagic, CAST_PRESS } from './hostMagic.js';   // M2: spellcasting above ground
+import { createPlayerMagic, CAST_PRESS, liveCollider } from './hostMagic.js';   // M2: spellcasting above ground; GROUND-BOLT: its collider, the ground with it
 import { setDefaultEnchantCtx } from '../systems/enchantments.js';   // E2: the host's enchantCtx mount
 import { createEnchantCtx, standLooseFoe, LOOSE_FOE_PLACE_ATTEMPTS } from './hostEnchant.js';   // FS1 (wave D): the ctx BODY and DFU's loose-foe placement, one copy for the two hosts that mount them
 import { ChoiceWindow } from '../ui/talkWindow.js';   // TP-slice: the anchor/teleport prompt
@@ -12014,7 +12014,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     castAtBox: (sp, q, caster) => serpentSpell.cast(sp, q, caster),
     castRefusal: () => modes?.castRefusal?.() ?? null,   // HOME-MAGIC: a visitor casts nothing in another's online home (worldModes.js visitorMagicRefusal)
     spellRefusal: (sp) => battleSpellRefusal(sp),   // AUDIT-SEATS G5: Teleport, Recall and Levitate do nothing in a siege's room
-    collider: { raycast: (o, d, m) => ((modes?.mode === 'interior' && modes?.interiorCollider) ? modes?.interiorCollider : collider).raycast(o, d, m) },
+    collider: liveCollider(() => ((modes?.mode === 'interior' && modes?.interiorCollider) ? modes?.interiorCollider : collider)),   // GROUND-BOLT: the mesh ray and the ground - a missile meets the terrain
     playerEntity,
     playerSinks: playerSpellSinks,
     say: (l) => townTalk.say(l),

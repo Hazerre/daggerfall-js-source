@@ -1,0 +1,56 @@
+[
+  {
+    "name": "GROUNDBOLT-mesh-ray-alone",
+    "file": "src/scenes/hostMagic.js",
+    "old": "rayHit(m.pos, _unit, reach, collider), reach, reach - step * _len, step * _len);   // GROUND-BOLT",
+    "new": "collider.raycast(m.pos, _unit, reach), reach, reach - step * _len, step * _len);   // GROUND-BOLT",
+    "tests": [
+      "test/scenes/groundbolt.test.js"
+    ]
+  },
+  {
+    "name": "GROUNDBOLT-proxy-no-ground",
+    "file": "src/scenes/hostMagic.js",
+    "old": "    surfaceAt: (x, z) => { const c = live(); return (c.surfaceAt ?? c.heightAt)(x, z); },\n",
+    "new": "    surfaceAt: () => NaN,\n",
+    "tests": [
+      "test/scenes/groundbolt.test.js"
+    ]
+  },
+  {
+    "name": "GROUNDBOLT-proxy-no-sampler",
+    "file": "src/scenes/hostMagic.js",
+    "old": "    heightAt: (x, z) => live().heightAt(x, z),\n",
+    "new": "    heightAt: () => -Infinity,\n",
+    "tests": [
+      "test/scenes/groundbolt.test.js"
+    ]
+  },
+  {
+    "name": "GROUNDBOLT-proxy-held-once",
+    "file": "src/scenes/hostMagic.js",
+    "old": "export function liveCollider(live) {\n  return {",
+    "new": "export function liveCollider(live) {\n  const held = live(); live = () => held;\n  return {",
+    "tests": [
+      "test/scenes/groundbolt.test.js"
+    ]
+  },
+  {
+    "name": "GROUNDBOLT-world-bare-proxy",
+    "file": "src/scenes/world.js",
+    "old": "    collider: liveCollider(() => ((modes?.mode === 'interior' && modes?.interiorCollider) ? modes?.interiorCollider : collider)),",
+    "new": "    collider: { raycast: (o, d, m) => ((modes?.mode === 'interior' && modes?.interiorCollider) ? modes?.interiorCollider : collider).raycast(o, d, m) },",
+    "tests": [
+      "test/scenes/groundbolt.test.js"
+    ]
+  },
+  {
+    "name": "GROUNDBOLT-exterior-bare-proxy",
+    "file": "src/scenes/exterior.js",
+    "old": "    collider: liveCollider(() => ((modes?.mode === 'interior' && modes?.interiorCollider) ? modes?.interiorCollider : collider)),",
+    "new": "    collider: { raycast: (o, d, m) => ((modes?.mode === 'interior' && modes?.interiorCollider) ? modes?.interiorCollider : collider).raycast(o, d, m) },",
+    "tests": [
+      "test/scenes/groundbolt.test.js"
+    ]
+  }
+]
