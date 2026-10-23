@@ -1,8 +1,9 @@
 # FIELD BUGS 2026-10-23b - a spell cast at the ground outdoors flies through it
 
 One report, from the owner: "spells cast at the ground outdoors don't collide with it at all and sail straight
-through". Read on main's `b0765ab21`. The pins are `test/scenes/groundbolt.test.js`, the mutants
-`tools/mutants/groundbolt.json` (6, all dead).
+through". Read on main's `b0765ab21`; audited the same day (AUDIT GROUND-BOLT, at the foot). The pins are
+`test/scenes/groundbolt.test.js` (and the moved ones named below), the mutants `tools/mutants/groundbolt.json` (29, all
+dead).
 
 | | Report | What it was | Done |
 |---|---|---|---|
@@ -13,29 +14,29 @@ through". Read on main's `b0765ab21`. The pins are `test/scenes/groundbolt.test.
 DFU: DaggerfallMissile.cs:337-339 casts the missile's displacement into the scene's physics, and a Unity terrain has
 its own TerrainCollider - DFU's missiles meet the ground, so this is no departure and no Ledger row is owed.
 
-THE CHANGE:
+THE CHANGE (as the audit left it):
 
-- The flight asks `rayHit` (`combat/techniques.js`, AUDIT TECH1) - the collider's mesh ray AND the terrain, marched
-  and halved to the crossing - where it asked `collider.raycast`: `hostMagic.js:"const _cs = coverStep(coverDistance(collider, m.pos, _unit, reach), rayHit("`.
-  One march, imported; not a second copy (ONE DFU MEMBER, ONE EXPORT). It meets a rise as well as a fall, so a level
-  bolt into a hillside stops on it (the collider's `surfaceHit` meets the ground on the way down alone).
+- The flight's stop is `flightStop` (`hostMagic.js:"export function flightStop(collider, pos, unit, reach, stepLen) {"`),
+  the one law of both flights (this engine's and `dungeonContext.js`'s): the mesh ray at the step's whole reach, cover
+  (TACT1) by touch, and the terrain by touch - `groundHit`, AUDIT TECH1's march (`player/groundRay.js`, a leaf since
+  the audit: the techniques, the engine and a foe's shot ask the one march). It meets a rise as well as a fall, so a
+  level bolt into a hillside stops on it (the collider's `surfaceHit` meets the ground on the way down alone).
 - `liveCollider` (`hostMagic.js:"export function liveCollider(live) {"`) is the collider a host hands the engine:
-  whichever of its colliders the player stands in, asked at each call, with its ground (`heightAt`, `surfaceAt`,
-  `surfaceHit`) beside its mesh ray. Both exterior hosts hand it in place of the bare proxy, one entry for one entry
-  (THE HOSTS DO NOT GROW).
-- What else reads the ground now: an impact's sparks land on the ground under it, and its shockwave lies on the ground
-  it struck (`groundUnder` and WALL-RING both asked `surfaceHit`, which the bare proxy did not carry - they guessed).
-  A sky fireball (SUNBABY2) is met by the ground too; its count still lands it where the throw said, should the two
-  grounds part.
+  whichever of its colliders the player stands in, asked at each call, whole - its mesh ray and what that ray struck,
+  its ground (`heightAt`, `surfaceAt`, `surfaceHit`, `groundNormal`) and its cover. Both exterior hosts hand it in place
+  of the bare proxy, one entry for one entry (THE HOSTS DO NOT GROW).
+- What else reads the ground: an impact's chunks land on the ground under it (`impactGround`), and its shockwave lies on
+  what it struck, a hillside's slope included (`struckSurface`); a Resurrect aimed at the grass beside a fallen mate
+  finds the body; a burst does not reach over a crest (`burstClear`); a spell given to a mate or a companion is not
+  given across a hill; and a foe behind a ridge finds no clear shot (`enemyMotor.js` hasClearPathToShootProjectile). A
+  sky fireball (SUNBABY2) is met by my ground too; its count still lands it where the throw said, where no ground is
+  streamed under it.
 
-THE FOUR HOSTS: `world.js` and `exterior.js` wired. `worldModes.js` (interiors) casts through the world's engine,
-whose collider follows the door to `interiorCollider` - a room has no ground sampler (`-Infinity`) and its floors are
-meshes, so nothing moves there. `dungeonContext.js` builds its engine on its own Collider, the same: no ground
-sampler underground, its own flight unchanged.
+THE FOUR HOSTS: `world.js` and `exterior.js` wired. `worldModes.js` (interiors) casts through the world's engine, whose
+collider follows the door to `interiorCollider` - a room has no ground sampler (`-Infinity`), so the flight's terrain
+never moves there; what does is the room's meshes and cover now reaching the engine whole (an impact's floor and plane
+are the room's meshes', as the dungeon's engine already had them, and a bolt meets the room's cover). `dungeonContext.js`
+builds its engine on its own Collider: no ground sampler underground, its flight `flightStop` now (the same law, the
+meshes and cover alone there).
 
-Moved with it: the flight-line source pins in `test/scenes/roadh_tail.test.js` and `test/scenes/tact1.test.js` read
-`rayHit` for this engine, and `tools/mutants/tact1.json` TACT1-bolt-through is re-aimed at the new line (still dead).
-
-Seen, not changed: the bare proxy carried no `cover` either, and `liveCollider` carries none - so in the two exterior
-hosts a bolt still passes through TACT1's cover (trees, rocks, props), which the dungeon's engine, on its own
-Collider, meets. Left for the owner's word: it changes what a bolt does in the open world.
+## AUDIT GROUND-BOLT (2026-10-23) - the slice, read cold

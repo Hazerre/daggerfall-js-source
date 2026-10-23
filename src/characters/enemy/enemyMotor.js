@@ -86,6 +86,7 @@ import { GRAVITY, FIXED_DT, MAX_FRAME_DT, CLASSIC_TO_UNITY_RATIO, FALL_DAMAGE_TH
 import { wrapAngle } from '../../world/mat4.js';   // ONCRASH1: the port's one angle wrap, which cannot loop
 import { MOBILE_TYPES } from '../mobile/mobileTypes.js';
 import { coverDistance } from '../../ai/cover.js';   // TACT1: billboards are cover (sight, the clear shot)
+import { groundHit } from '../../player/groundRay.js';   // AUDIT GROUND-BOLT C1: the clear shot meets the terrain, as the shot does
 import { tacticsStep, tacticsNow, breakWindup } from '../../ai/tactics.js';   // TACT2: the tactics brain; TELL1: its clock, for the stagger's end
 
 // C15 knockback (EnemyMotor.KnockbackMovement): classic units through
@@ -1043,7 +1044,8 @@ export class EnemyAI {
     // measured from the BODY, so it overshoots by originDistance.
     const hit = this.collider.sphereCast(origin, radius, [dx, dy, dz], dist);
     // TACT1: and no cover between - an archer behind a tree steps out rather than loose into the bark
-    return !Number.isFinite(hit.dist) && !(coverDistance(this.collider, origin, [dx, dy, dz], dist - originDistance, true) < dist - originDistance - 1e-3);   // AUDIT TACT B2: to the target, which a crown it stands in does not hide
+    return !Number.isFinite(hit.dist) && !(coverDistance(this.collider, origin, [dx, dy, dz], dist - originDistance, true) < dist - originDistance - 1e-3)   // AUDIT TACT B2: to the target, which a crown it stands in does not hide
+      && !(groundHit(origin, [dx, dy, dz], dist - originDistance, this.collider) < dist - originDistance - 1e-3);   // AUDIT GROUND-BOLT C1: nor a hill - the bolt bursts on the ground between now, so a caster behind a crest steps out rather than spend it there (DFU's sweep meets the TerrainCollider)
   }
 
   /**
