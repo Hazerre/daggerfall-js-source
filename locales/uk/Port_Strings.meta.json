@@ -1994,6 +1994,61 @@
   "tr": "08d64ae7297e",
   "by": "claude-in-session"
  },
+ "sea.crew.aboard": {
+  "en": "517c97ee20ce",
+  "tr": "f2d143b3d9c7",
+  "by": "claude-in-session"
+ },
+ "sea.crew.bought": {
+  "en": "66ad48e3db5f",
+  "tr": "33d6d80f9c94",
+  "by": "claude-in-session"
+ },
+ "sea.crew.crossed": {
+  "en": "7d06f9ff62b6",
+  "tr": "c973c5fa600a",
+  "by": "claude-in-session"
+ },
+ "sea.crew.full": {
+  "en": "100783d588bc",
+  "tr": "b4209b47d9b3",
+  "by": "claude-in-session"
+ },
+ "sea.crew.noCrew": {
+  "en": "f7a2801429e5",
+  "tr": "ab8f16aaee60",
+  "by": "claude-in-session"
+ },
+ "sea.crew.noneToday": {
+  "en": "73e3f32ffb62",
+  "tr": "4ca8ccadc571",
+  "by": "claude-in-session"
+ },
+ "sea.crew.noneWanted": {
+  "en": "71951e224d17",
+  "tr": "a7dcf637b6c3",
+  "by": "claude-in-session"
+ },
+ "sea.crew.short": {
+  "en": "480f3a50b2b8",
+  "tr": "b200cf9778fe",
+  "by": "claude-in-session"
+ },
+ "sea.crew.sold": {
+  "en": "4ae369bdb6d4",
+  "tr": "283900415a69",
+  "by": "claude-in-session"
+ },
+ "sea.crew.standMakes": {
+  "en": "b402e3315fce",
+  "tr": "10ff6c94b29e",
+  "by": "claude-in-session"
+ },
+ "sea.crew.standWants": {
+  "en": "af85786c6218",
+  "tr": "ed43c93e8906",
+  "by": "claude-in-session"
+ },
  "sea.exchange.band": {
   "en": "80c476366bce",
   "tr": "80c42a8ccef0",

@@ -22,6 +22,7 @@ import { CREW, exchangeOf } from './tradeGoods.js';
 import { yardOffer } from './navalYard.js';
 import { playerCrewCount } from './crewLife.js';
 import { CREW_HALL_TEXT } from '../crewHall.js';
+import { t } from '../textManager.js';   // the exchange's words in the player's language
 
 /** The fewest men a ship keeps aboard: her last is never signed off. */
 export const CREW_KEEP = 1;
@@ -61,15 +62,15 @@ export function crewSpare({ hull, crew, hands = [], away = null, crossed = false
 /** How many more men she takes: her whole less her crew now. @param {{ crew: number, maxCrew: number }} d */
 export const crewRoom = (d) => Math.max(0, Math.floor((Number(d?.maxCrew) || 0) - (Number(d?.crew) || 0)));
 
-/** The exchange's words for crew. */
+/** The exchange's words for crew, in the player's language (each asked as it is said). */
 export const CREW_TRADE_TEXT = Object.freeze({
-  bought: (n, gold) => `Bought the contracts of ${n} crew for ${gold}.`,
-  sold: (n, gold) => `Sold the contracts of ${n} crew for ${gold}.`,
-  short: (gold) => `Not enough gold - ${gold} a man.`,
-  noneToday: 'The exchange has no more sailors to sign on today.',
-  noneWanted: 'The exchange will take no more crew today.',
-  full: 'The ship has her whole crew aboard.',
-  noCrew: 'This ship carries no crew.',
-  crossed: 'This ship came through customs with her crew. The exchange takes none of them.',
+  bought: (n, gold) => t('sea.crew.bought', 'Bought the contracts of {n} crew for {gold}.', { n, gold }),
+  sold: (n, gold) => t('sea.crew.sold', 'Sold the contracts of {n} crew for {gold}.', { n, gold }),
+  short: (gold) => t('sea.crew.short', 'Not enough gold - {gold} a man.', { gold }),
+  get noneToday() { return t('sea.crew.noneToday', 'The exchange has no more sailors to sign on today.'); },
+  get noneWanted() { return t('sea.crew.noneWanted', 'The exchange will take no more crew today.'); },
+  get full() { return t('sea.crew.full', 'The ship has her whole crew aboard.'); },
+  get noCrew() { return t('sea.crew.noCrew', 'This ship carries no crew.'); },
+  get crossed() { return t('sea.crew.crossed', 'This ship came through customs with her crew. The exchange takes none of them.'); },
   fighting: CREW_HALL_TEXT.fighting,
 });

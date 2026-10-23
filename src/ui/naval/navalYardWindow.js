@@ -236,13 +236,13 @@ export function exchangeText(x) {
   const lede = (x.weight == null ? `${x.port}'s exchange. Trade from the helm, into the hold.`
     : `${x.port}'s exchange. The hold carries ${Math.round(x.weight)} kg of goods${room}. You have ${g(x.gold)}.`) + band;
   const STAND = { makes: 'Made here: cheap', wants: 'Wanted here: dear', neither: '' };
-  const CREW_STAND = { makes: 'Sailors to spare here: cheap', wants: 'Short of sailors here: dear', neither: '' };   // CREW-TRADE
+  const CREW_STAND = { makes: t('sea.crew.standMakes', 'Sailors to spare here: cheap'), wants: t('sea.crew.standWants', 'Short of sailors here: dear'), neither: '' };   // CREW-TRADE
   const rows = (x.rows ?? []).map((r) => {
     const crew = r.id === CREW.id;   // CREW-TRADE: signed on while she has room, off while any may leave her
     return {
       id: r.id, title: r.name, canBuy: crew ? r.sells > 0 && r.room > 0 : r.sells > 0 && x.weight != null, canSell: crew ? r.spare > 0 && r.buys > 0 : r.have > 0 && r.buys > 0,
       words: [(crew ? CREW_STAND : STAND)[r.stand], r.sells > 0 ? `buy at ${g(r.sell)} a ${r.unit} (${r.sells} left today)` : r.exotic ? 'not sold here' : 'none to buy today', r.buys > 0 ? `sell at ${g(r.buy)} (${r.buys} wanted)` : 'none wanted today'].filter(Boolean).join(' - '),   // AUDIT CAPTAIN'S SEA B16
-      extra: crew ? `Aboard: ${r.have} of ${r.whole} crew` : r.have > 0 ? `In the hold: ${r.have} ${r.have === 1 ? r.unit : r.units}` : '',
+      extra: crew ? t('sea.crew.aboard', 'Aboard: {have} of {whole} crew', { have: r.have, whole: r.whole }) : r.have > 0 ? `In the hold: ${r.have} ${r.have === 1 ? r.unit : r.units}` : '',
     };
   });
   return { lede, rows };
