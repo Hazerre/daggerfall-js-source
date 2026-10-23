@@ -2415,6 +2415,114 @@ Mutants: `tools/mutants/snowsweep.json`, 6, all dead. PIN MOVED: re-aimed by con
   AUDIT-PRECIP-HOST-6-a-flat-s-decision-unread;
 - `tools/mutants/precip1.json`: PRECIP4-the-sweep-farthest-first and PRECIP4-the-step-unread.
 
+## MEM-AUDIT — what a pixel, a place, a window and a session held after its life
+
+*The owner (2026-10-23): "Can you do a comprehensive performance audit, looking for memory leaks, any outstanding issues
+and improving overall performance without impacting fidelity. Also dig into the performance settings ... ensuring they
+are perfect."*
+
+**How it was run.** Four read-only lanes over the tree, each finding traced from a real caller before anything moved:
+- the GPU's owners and the stream's release;
+- the four hosts' exits;
+- the world's and the systems' caches;
+- the windows and the net.
+
+Then the real game: the freeware ARENA2 (`tools/fetch-data.sh`), Chromium on SwiftShader at 240 x 135, Knightstale at
+15:00 with `&nofoes`, the stream's slice served at 250 ms (frameProbe's own probe-only edits). Two readings:
+- the live JS heap after three forced collections;
+- V8's sampling heap profiler, started at the page's commit: what is still live, by the stack that allocated it.
+
+The drivers live in the session's scratch, outside the tree, like OW-HITCH's.
+
+**Measured: the live set is the standing world, not growth.** At 121 pixels standing (land view 5), 1,165 MB of live JS
+heap. That is SNOW-SWEEP's 1.1-1.4 GB. Offline, warping a pixel a step over 60 pixels (660 built and torn down), the heap
+after collection stayed within 1,163-1,207 MB. What holds it, from the sampling profile (812 MB of 1,164 sampled):
+- the cover index (`ai/cover.js`), 290 MB: its grids (`fill`) 224 MB, the proxies 65 MB;
+- the streamed pixels' flats (`pixelBuild.js` `addFlat` 76 MB, `buildPixelNow` 46 MB);
+- World of Daggerfall's replacement blocks, parsed (`worldDataReplacement.js`, ~100 MB, its cache capped at 192 blocks);
+- the location index's MAPS records (36 MB), the bodies (`propBodies.js`, 27 MB) and the colliders (18 MB).
+
+**Fixed, each the same answer for less.**
+1. **THE LEAK - the fishing host's schools, online** (`scenes/fishHost.js` `fishKind` `dropped`). The kind kept each stood
+   pixel's `{ entry, nodes }` and nothing let one go. Its entry is the pixel's whole build (ground samples and normals,
+   tilemaps, flats, townsfolk), ~2 MB of heap. Online the professions' book stands every built pixel, a bare one too, so
+   every pixel a journey streamed stood for the session. The world lane measured ~26 MB a map pixel travelled, about 1 GB
+   after 40 pixels: a couple of minutes at x60, and the black screens of FIELD BUGS 2026-10-21b's travellers had room in
+   it. A torn-down pixel's schools are now forgotten. `schoolPlaces` already passed any entry the gather host no longer
+   stood.
+2. **The cover index's cells** (`ai/cover.js` `fileIn`, CELL_EXACT). The census at Knightstale counted 964k cover proxies
+   and 523k bodies in 2.07M cells:
+   - 63% of the cover grid's cells and 97% of the bodies' hold one proxy;
+   - a cell grown by push from `[]` reserves sixteen slots at its first.
+
+   Below CELL_EXACT (16) a cell is now copied one longer in the same order, so it holds exactly its own. Past it, it is
+   pushed. Every maker gives a proxy the index's `_mark` at birth (`coverProxy`, `coverProxies`, `propBodies.js`, the
+   jungle's): `fill` set it first, a property store more for each of 1.5M proxies. A ray, a body's query and the probes
+   read the same proxies in the same order.
+3. **The merge spends its inputs** (`render/staticBatch.js` `_spend`). A builder outlives its merge in its host's build
+   scope: a closure made beside it keeps the scope (a pixel's colliders, a room's or a dungeon's frame). Every model's
+   transformed copy stood with it, ~18 MB on a synthetic city pixel and a castle's 2-4 MB through its visit.
+4. **The place left is let go** (`scenes/worldModes.js` `setMode`). The arrows', the card stands' and the King's Gambit's
+   latches held the last room's context to the next building. The crown, the arena's wall and its two stages held the
+   last castle's to the next of its kind, which may never come: Castle Daggerfall's or Wayrest's whole context, 11-16 MB.
+   Each is read only against the live context.
+5. **The snow's blanket, idle** (`systems/snowfallRuntime.js` `_blanketPrune`, `_blanketDrop`). Its 5 s prune ran only
+   while the tier was active, so indoors or under the travel view the last ring's overlays held their tiles. Each tile
+   held its map pixel's whole entry long after the world destroyed it: 49 at the default view, 11 MB of overlays and the
+   entries behind them. The prune now runs idle too. A dropped overlay lets go of its tile and arrays at once, since its
+   GPU half waits for the surface's next sync (the door or the view coming down).
+6. **The others' layered walkers, online** (`net/peer/peerRiders.js` `keepLook`). Every outfit (LAYERED-GEAR's head, top,
+   legs and cloak) is its own decoded pictures and textures, and only a horse's look was ever let go. An outfit is now let
+   go by the horse looks' law: WALKER_OUTFITS_KEPT 24, and only one undrawn for WALKER_OUTFIT_IDLE_MS (a minute), with its
+   decodes. A walker in view is never let go.
+7. **The classic sky's files** (`scenes/shared.js` SKY_FILES_KEPT, `dataSource.js` `forgetBytes`). Each SKY??.DAT is
+   7.8 MB, and the parsed files and their bytes stood for the session, up to 248 MB past the heap. The two last asked are
+   kept. One asked again is read again: the same bytes, the same panorama. The enhanced skies read none.
+8. **The menus' sky** (`ui/pixelGround.js`). It is redrawn eight times a second at the home, chargen and level-up, at
+   62-132 ms a draw in node (at 1440p, longer than its tick). Now:
+   - the ramp is read as bytes once;
+   - one ImageData a size;
+   - the canvas is sized only when its size moves;
+   - the fog's `Math.hypot` is skipped where it cannot reach (`hypot >= max(|dx|, |dy|) >= r`).
+
+   18 ms at 1080p, 28 at 1440p, PX1's bytes to the byte.
+9. **The small owners:**
+   - the account card's focus listener, a card a render;
+   - the menu's foot observer and card at unmount;
+   - an item menu's listener pair, laid by a timer its close did not clear, so a second menu opened first swallowed every
+     Escape after;
+   - the icon data-URL cache, a WeakMap;
+   - the market's read cache, 64 kept, the oldest written first (its old answers are a failed read's stale fallback);
+   - a still billboard batch in an arena, no index array of its own.
+
+**The Graphics preset.** Every row's own note was read against what it does and what it costs. The four presets stand in
+order on every row, and High is every default. The DFU keys nothing reads fold under "Saved for later" and say so.
+Steady shadows (Enhanced lighting's part, FLICKER-FIX) was the one knob whose note says it costs frame rate that the
+preset left alone: it redraws every far caster and swaying wood's shadow every frame (42 lantern face passes a frame at
+Knightstale by day, Performance-Next item 9). The preset now sets it as a part (`PRESET_PARTS`): off on Low, on from
+Medium up. High is unchanged, so an untouched shelf still reads High (`10-UI/Settings-Screen-Spec.md`).
+
+**Not changed, and why.**
+- A flat's `[x, y, z]` is one array, shared by its batch, its cover and its body. FELLED and `noCover` know a flat by it,
+  so packing them is a refactor of every reader.
+- The location index parses every location once at boot and keeps it.
+- World of Daggerfall's blocks are capped already.
+- The decoded TEXTURE frames (80 MB measured over all 472 files) are each a file's, kept while the file is.
+- The weather's births memo (40,000 a lookup, ~27 MB at its cap) is bounded.
+- The per-frame arrays of the Morrowind bodies' sprite quads are eight small arrays a frame at most.
+
+**The four hosts.** `scenes/world.js` streams the pixels the fishing host, the cover and the blanket hold; its own code is
+unchanged. `scenes/worldModes.js` is wired (`setMode`). `scenes/dungeonContext.js` and the interior context build through
+`StaticBatchBuilder`, so the merge's spend is theirs. `scenes/exterior.js` (one fixed city) streams nothing, and its cover
+and batches are made once a page.
+
+Pins: `test/systems/memaudit.test.js` (11): one for each fix above but the per-frame arrays, driving the module that owned
+the leak or reading the host's one line. The preset's pin is `org2_options.test.js` (PIN MOVED: `presetNow` reads the
+parts). Mutants: `tools/mutants/memaudit.json`, 31, all dead. Records re-aimed by content, all dead:
+- `fb1021b_snowhold.json`: SNOW-HOLD-queue-unpruned and SNOW-HOLD-queue-kept-inactive;
+- `worldhover.json`: the setMode pair;
+- `audittact.json`: ATACT-B2-fat-trunk and ATACT-B2-crown-grounded.
+
 ## For the owner
 
 - **The A/B this branch owes**: on a machine with the data, `ARENA2_PATH=... node tools/frameProbe.mjs knight night`
@@ -2425,4 +2533,6 @@ Mutants: `tools/mutants/snowsweep.json`, 6, all dead. PIN MOVED: re-aimed by con
   pays, 3), and a real GPU's frames are the ones a player waits through.
 - **OW-HITCH's A/B**: the same Overworld journey (W held at x60 from Knightstale) on the base and on this branch, on a
   machine with a GPU - the frame after the view comes down, the first blow, a climate's edge.
+- **MEM-AUDIT's A/B on a GPU**: OW-HITCH's journey online (where the fishing host streamed) and offline, on the base
+  and on this branch - the live heap after a collection, and the longest frames, which are the major GC's.
 - **The picture's levers** above (1, 4, 6b, 7) are yours - and 5's distance is the Other players card's now (PEER-RANGE): each trades a little of what is seen for frame time.
