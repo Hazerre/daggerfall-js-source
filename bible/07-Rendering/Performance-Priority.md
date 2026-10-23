@@ -1664,6 +1664,52 @@ What it found, and what was done:
 Pins: `test/systems/weather/snowbudget.test.js` (+2: lock-step to the 560th step of the lane's own window, and the kept
 lines across a move). Mutants: `tools/mutants/audit_perfpass.json`'s ASB records, all dead.
 
+## FIRST-USE — the passes still built at first use, through SHADER-STALL's door
+
+*#1144 (2026-10-22): the passes SHADER-STALL left building in play, measured.*
+
+**Found.** Ten passes were still built behind a try-once latch the first frame they were wanted, each `buildProgram`'s
+LINK_STATUS read holding that frame for the whole compile: Starfall's sky (`scenes/starfall/starfallHost.js`, at its idle
+warm - a bare step, which waited out the compile inside its idle task), the rite's smoke (`scenes/riteHost.js`, the first
+frame the smoke fades in), the Steps' ghosts (`scenes/superDungeon/sdSteps.js`) and the Spans' (`scenes/eliteGates/egSpan.js`)
+at the first ghost drawn, and the Elite Breach's look (`scenes/eliteGates/egLookDraw.js`) - its lines, sky, mist, motes,
+lights and halos - in the first frame drawn in the Spire, where the look is made. On the player's machine of AURA-STALL
+(ANGLE D3D11, RTX 5080, each build salted), each held its frame 12-86 ms, the look's six 293 ms together on a first run.
+The gate's fire took 62-90 ms there and 11.43 s on a player's driver before SHADER-STALL, so a slower driver pays many
+times these figures.
+
+**The fix.** SHADER-STALL's pattern, a pass at a time:
+- Each pass lists its programs beside its constructor, which builds from the list: `STARFALL_PROGRAMS` (its beacon the
+  gate's own, started with the passes play meets), `RITE_SMOKE_PROGRAMS`, `sdStepsPrograms(opts)` (the Spans' options are
+  sources of their own), `EG_LINE_PROGRAMS`, `EG_SKY_PROGRAMS`, `EG_MIST_PROGRAMS`, `EG_MOTES_PROGRAMS`,
+  `EG_LIGHT_PROGRAMS` and `SD_HALO_PROGRAMS`.
+- The passes the game is played by are started at their owner's load and asked as needed: the Steps' ghosts as the realm
+  loads (`createSdSteps`), the Spans' and the look's six (`EG_LOOK_PROGRAMS`, `startEgLookPrograms`) as the hall does
+  (`createEgSpan`). A ghost is where a step returns and the lines are where a player falls, so the frame one is first
+  drawn builds it whatever the driver says; by then its compile is done.
+- The rest are asked through their doors and never as needed: the look's sky, mist, motes, lights and halos, and the
+  rite's smoke stand a few frames late while their programs compile. Starfall's warm is a step that names its programs
+  (`{ start, run, need }`, as the spells' impact pass has it), so its idle builds only once they are done.
+- Where the driver cannot say (no `KHR_parallel_shader_compile`), nothing is started early and each pass is built the
+  first time it is asked for, as before.
+
+A door is made again where its pass was freed (the look's release, the Steps' and the Spans' clears). Programs the hall
+started that no look takes - a circle changed under a look that already stands - wait in the started map, one a source,
+for the next breach's doors.
+
+THE FOUR HOSTS: none is wired here - each pass is a module's. `scenes/world.js` makes the rite's host and Starfall's;
+`scenes/dungeonContext.js` makes the Steps and the Spans at the realm's and the hall's load; the look is made by
+`scenes/eliteGates/egClient.js`, whose draws `scenes/world.js` hands the dungeon mode (its `drawEgSky` hook and the late
+pass); `scenes/worldModes.js` builds none of them; `scenes/exterior.js` (the
+fixed city) stands none of them.
+
+**Not measured.** The real game's first-use frames, and other GPUs and drivers. The Spans' ghosts with their own options.
+
+Pins: `test/render/firstuse.test.js` (3). Pin moved: `egz_tells.test.js` (the ghosts' pass built once - the hall now
+starts the look's six programs beside the ghosts'). Mutants: `tools/mutants/firstuse.json`, 14, all dead;
+`egz_stair.json`'s EGZ-the-lights-pass-rebuilt and `wb12d.json`'s AUDIT-WB12d-the-smoke-built-in-the-draw re-aimed by
+content, both dead.
+
 ## HORSE-VIEW — a 3D horse is posed where it is seen
 
 *A player's CPU profile (2026-10-21): "Horse Cart pool (peers' horses and carts) 11% (3% with peers' teams not loaded) -
