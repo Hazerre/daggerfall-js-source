@@ -239,7 +239,7 @@ export async function staffNetFlush(room, now = Date.now()) {
   const w = Math.floor(now / NET_FEED_MS);
   for (const [ws, a] of room._all()) { const m = room._meters.get(ws); if (m?.nf && m.nf.w < w) netFold(room, m, a); }
   const rows = lawful([...W.rows.values()], netRowOk).sort(netUrgent);
-  const foes = lawful([...W.foes.values()].filter(foeHot), foeRowOk).sort(foeUrgent);
+  const foes = lawful([...W.foes.values()], foeRowOk).sort(foeUrgent);   // each over its limit: foeRow makes no other
   const batch = rows.length || foes.length ? (() => {
     const net = rows.slice(0, STAFF_FEED_ROWS - Math.min(foes.length, STAFF_FEED_ROWS / 2));
     return { v: NET_FEED_V, id: randomId(), at: now, q: W.q, from: W.from || now, ms: relayCfgValue(room._relayCfg, room.env, 'grantStrip') === 'on' ? 1 : 0, net, foe: foes.slice(0, STAFF_FEED_ROWS - net.length) };
