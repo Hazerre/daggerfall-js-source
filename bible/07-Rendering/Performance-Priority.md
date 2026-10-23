@@ -2236,6 +2236,10 @@ SNOW-BUDGET's 3 ms, which covers the lattice's `advance` alone.
   pixels, and every `SWEEP_FLATS_A_READ` (64) flats within one: a forest pixel stands thousands.
 - A pixel found due is re-skinned as it is found. The nearest are still the first marked, and the marks are the whole
   sweep's.
+- Marks now arrive over several frames, and this changes nothing downstream. The skin queue is a set
+  (`world/seasonReskin.js` `skin`), so a pixel marked again while its skin is pending is skinned once. `runSkin` takes
+  the nearest standing pixel when it runs, whatever order the marks came in. The whole sweep re-marked pending pixels at
+  every window move too.
 - A call moves at least one pixel's first flats.
 - The walk waits while the window catches up after a move. The move resets the window's step marker, so the sweep
   begins again on the lines the window then reads.
@@ -2252,6 +2256,9 @@ The runs had 8, 5, 11 and 11 stops, left out as above.
 | of them the snow's sweep | 35 | 0 | 39 | 0 |
 | the sweep's script, ms/s (`sweep` / `sweepUntil` inclusive) | 15.6 | 16.2 | 15.1 | 13.8 |
 | longest frame, ms (a major GC cycle) | 354 | 396 | 363 | 408 |
+
+Compare within a table, not across them. The re-measure's x60 (one run at `a61d01901`, 2 stops) and this base's x60 (8
+stops) differ in tree and in the stretch of the route the stops left.
 
 The sweep does the same work, spread: no frame over 50 ms is the sweep's now. The frames over 50 ms that are left are
 the build-bound frames (12-17 a run) and the GC's (4-5 a run, the longest). This slice moves neither.
