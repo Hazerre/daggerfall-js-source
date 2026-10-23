@@ -1384,7 +1384,14 @@ recording's body's), both landmarks heard at 0.0 ms of their cue, the peak
 the press, so the ceiling is measured, not held by construction as the dry
 sound's is). Over the whole band: presence (2-6 kHz) -15.2 dB against the
 recording's -12.8 and the dry render's -24.9, air (6 kHz up) -23.6 against
--25.2 and -39.0, spectral flatness 0.035 against 0.090 and 0.003. The probe pins the width (correlation under 0.8) and the
+-25.2 and -39.0, spectral flatness 0.035 against 0.090 and 0.003. The whole
+song, 162.8 s: as loud as the recording (-22.6 dBFS over 24-160 s against its
+-22.4), the peak -1.8 dBFS at the highest MusicVolume, L/R correlation 0.63
+(the recording's body's 0.59), the centre 436 Hz with -15.0 dB from 2 kHz up;
+over the whole band the body's presence -15.5 dB against the recording's
+-10.8 and its air -24.7 against -21.1 - the body stands further from the
+recording than the film does, and brightening it past this costs FM its
+sweetness - its flatness 0.045 against 0.181. 9/9. The probe pins the width (correlation under 0.8) and the
 presence (the centre over 420 Hz, 2 kHz up over -16 dB) beside the landmarks,
 each a margin under where the score lands. Pins: `test/systems/intro3_score.test.js`
 INTRO3b (the voices in range as written, every drum its skin, the halo, the

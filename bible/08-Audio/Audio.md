@@ -951,5 +951,5 @@ CC7 swell into every turn - and THE HALL: the intro session hangs a concert hall
 first use of that builder outside the engine's zones), through the session's own gain so MusicVolume and the mute reach
 it. The film's 27 s measured after: 483 Hz, -14.7 dB from 2 kHz up, correlation 0.61, both landmarks at 0.0 ms, the peak
 -3.1 dBFS at the highest MusicVolume - the hall sums over the press, so the ceiling is measured there, not held by
-construction. `tools/introScoreProbe.mjs` pins the width and the presence beside the landmarks. The whole record is
+construction; the whole song as loud as the recording (-22.6 dBFS to its -22.4), correlation 0.63, 436 Hz, -15.0 dB, 9/9. `tools/introScoreProbe.mjs` pins the width and the presence beside the landmarks. The whole record is
 `10-UI/UI-Arc.md` INTRO3b.
