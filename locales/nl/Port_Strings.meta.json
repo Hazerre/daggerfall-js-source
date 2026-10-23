@@ -1535,8 +1535,8 @@
   "by": "claude-in-session"
  },
  "account.refusal.homeCap": {
-  "en": "1bca5adf09b6",
-  "tr": "6d53edf294b0",
+  "en": "fa2166171344",
+  "tr": "6df50114da31",
   "by": "claude-in-session"
  },
  "account.refusal.homeCharacter": {
@@ -7405,8 +7405,8 @@
   "by": "claude-in-session"
  },
  "menu.realm.deleteBody": {
-  "en": "f1d0c63aee13",
-  "tr": "b39db4f28188",
+  "en": "aaa3cbaefd05",
+  "tr": "1464e2f32a0c",
   "by": "claude-in-session"
  },
  "menu.realm.deleteYes": {
@@ -7552,6 +7552,46 @@
  "menu.settings.more": {
   "en": "b5bcf068eb39",
   "tr": "8dfbc2eedc8a",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.custom": {
+  "en": "081ae3fdc403",
+  "tr": "849ce9d9d72e",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.effect": {
+  "en": "14ce279f662a",
+  "tr": "2d9d45857081",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.high": {
+  "en": "b1a5954a483f",
+  "tr": "b600ff805e7a",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.low": {
+  "en": "a124947cbd2d",
+  "tr": "0fbe6a85e4d4",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.medium": {
+  "en": "d404968ea90b",
+  "tr": "ed9d83906624",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.name": {
+  "en": "c841c65b2bd6",
+  "tr": "e36e31a7497d",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.note": {
+  "en": "e8f57263fb6e",
+  "tr": "e216266063c5",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.ultra": {
+  "en": "50050d5b621c",
+  "tr": "50050d5b621c",
   "by": "claude-in-session"
  },
  "menu.settings.reset": {

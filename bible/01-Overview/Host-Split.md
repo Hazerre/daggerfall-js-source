@@ -599,5 +599,5 @@ beside it - 36,296 at the merge with main, whose own host had grown to 36,283 in
 
 SEA-DROPS (`07-Rendering/Performance-Priority.md`) took one more: the boats' collider sync (`csaSyncColliders`) tells the
 collider its posed buckets moved (`posesMoved`) once it has carried them - the sync is the one place that moves them, and
-`player/collider.js` holds the rest. 36,296 -> 36,297, the reason beside it.
+`player/collider.js` holds the rest. 36,296 -> 36,297, the reason beside it; 36,295 at the merge with main, whose own host had come down to 36,282.
 

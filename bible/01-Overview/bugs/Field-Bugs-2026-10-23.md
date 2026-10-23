@@ -43,8 +43,8 @@ THE CHANGE - the place rides the pose:
   POSE_ABOARD_OWNER_MAX), which boat of their word (under POSE_ABOARD_SLOTS - Come Sail Away's CSA_WIRE_BOATS_MAX is this
   one), the feet in her own frame within POSE_ABOARD_LOCAL_MAX each way (CSA_ABOARD_LOCAL_MAX is this one), to the cm,
   never a -0. Out of any bound it is no place, never clamped, and the pose stands; ashore it is absent, the bytes a pose
-  always had. The foes word's door (`validAboardWord`) is the same law. RELAY_VERSION world250 (world248 on its
-  branch, renumbered past main's world248 and world249 at the merge); its deploy drops every connected player once, as
+  always had. The foes word's door (`validAboardWord`) is the same law. RELAY_VERSION world252 (world248 on its
+  branch, renumbered past main's world248 and world249 at one merge, world250 there, then past world250 and world251 at the next); its deploy drops every connected player once, as
   every relay change's does. A relay before it strips the field and keeps the socket, and the reader stands the sender
   by the foes word as before.
 - THE SENDER (`src/net/online.js` poseAboard, sendPose): each pose said carries my place aboard while the host names one -
@@ -67,7 +67,7 @@ her passengers and her helm are this path's. The sea's own ships under sail are 
 
 PINS MOVED: `test/net/peer/fbsea_deck.test.js` and `test/systems/csa_together.test.js` (the place said is world.js's
 csaDeckWord); `test/net/eliteGates/egint_client.test.js` (sendPose lays the ride and the place); the RELAY_VERSION pins
-(world250) and SLAM8's law row (`test/net/relayversion.test.js`); five mutant records re-aimed by content
+(world252) and SLAM8's law row (`test/net/relayversion.test.js`); five mutant records re-aimed by content
 (`csa_together.json` - the door's bounds now `wire.js`'s - `fbsea.json`, `soc1.json`).
 
 ## RIDE-PLAY (2) - `src/net/online.js`

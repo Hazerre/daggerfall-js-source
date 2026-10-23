@@ -268,8 +268,8 @@ export const JUNGLE_MEASURES = Object.freeze([
 export function jungleCover(base, species, scale) {
   const m = JUNGLE_MEASURES[species];
   return [
-    { c: base, r: m.trunk * scale, h: m.crownFrom * scale, lift: 0 },
-    { c: base, r: m.crown * JUNGLE_CROWN_COVER * scale, h: (m.height - m.crownFrom) * scale, lift: m.crownFrom * scale },
+    { c: base, r: m.trunk * scale, h: m.crownFrom * scale, lift: 0, _mark: 0 },   // MEM-AUDIT: born with the cover index's mark
+    { c: base, r: m.crown * JUNGLE_CROWN_COVER * scale, h: (m.height - m.crownFrom) * scale, lift: m.crownFrom * scale, _mark: 0 },
   ];
 }
 /** A crown's cover radius as a share of its reach - ai/cover.js COVER_RADIUS_FRAC of its whole width (0.35 x 2): a

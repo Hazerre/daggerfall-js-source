@@ -231,13 +231,15 @@ test('the weapon type: Pistolet 19 and its enchanted 20, the guns’ table and p
   assert.ok(isPistoletType(19) && isPistoletType(20) && !isPistoletType(17));
 });
 
-test('the pair’s law: two Pistolets are a pair, a Pistolet and a sword are not (two of a kind), the Thunderlock never', () => {
+test('the pair’s law: two Pistolets are a pair, and (MIXED-PAIR) a Pistolet and a sword too, the Thunderlock never', () => {
   assert.deepEqual([...DUAL_GUN_TYPES], [WEAPON_TYPES.Pistolet, WEAPON_TYPES.Pistolet_Magic], 'pinned to the enum');
   const p = handDesc(createPistolet()), sword = { item: true, type: WEAPON_TYPES.LongBlade, hands: ITEM_HANDS.Either };
   assert.ok(dualEligible(p));
   assert.equal(handsModeOf({ right: p, left: handDesc(createPistolet()) }), HANDS_MODE.Dual);
-  assert.equal(handsModeOf({ right: p, left: sword }), HANDS_MODE.Single, 'never one of each');
-  assert.equal(handsModeOf({ right: sword, left: p }), HANDS_MODE.Single);
+  // PIN MOVED (MIXED-PAIR, bible/05-Combat/Two-Hands.md "A blade and a gun"): PISTOLET held a pair to two of a kind; a blade
+  // and a Pistolet are a pair now (test/combat/mixedpair.test.js pins the pair itself)
+  assert.equal(handsModeOf({ right: p, left: sword }), HANDS_MODE.Dual, 'one of each');
+  assert.equal(handsModeOf({ right: sword, left: p }), HANDS_MODE.Dual);
   assert.equal(dualEligible(handDesc(createThunderlock())), false, 'two-handed');
 });
 

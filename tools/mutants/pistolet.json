@@ -219,16 +219,6 @@
   ]
  },
  {
-  "name": "HL-mixed-pair",
-  "file": "src/combat/twoHands/handsLaw.js",
-  "old": "if (dualEligible(right) && dualEligible(left) && dualGun(right) === dualGun(left)) return HANDS_MODE.Dual;",
-  "new": "if (dualEligible(right) && dualEligible(left)) return HANDS_MODE.Dual;",
-  "tests": [
-   "test/systems/pistolet.test.js",
-   "test/combat/twohands.test.js"
-  ]
- },
- {
   "name": "HL-enchanted-pistolet-no-pair",
   "file": "src/combat/twoHands/handsLaw.js",
   "old": "export const DUAL_GUN_TYPES = Object.freeze([19, 20]);",
