@@ -2144,7 +2144,7 @@ export class Room {
     lane.heard = now;
     if (typeof data === 'string') data = JSON.parse(data).data;
     if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on' && (kind === 'own' || isCellRoom(a.key))) data = this._grantStripped(a, data, kind, now);   // GRANT9: the switch on - a record its grant does not stand goes nowhere; FOE-BOUNDS: nor one no builder could give
-    if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on') staffFoesSeen(this, a, data, now);   // STAFF-PANEL5-FEEDS: a full frame's live monsters, its sender's - read only while the stream is read at all
+    staffFoesSeen(this, a, data, now, lane);   // STAFF-PANEL5-FEEDS: a full frame's live monsters, its sender's; STAFF-PANEL5-MONSTERS: whatever grantStrip says - read, never changed, and nothing at all while STAFF_NET_FEED_URL is unset; REVIEW: one a FOES_FIRST_MS on its lane
     const out = fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched
     if (out == null) { this._junk(ws); return { bucket: budget.bucket, pass: true, fan: 0, junk: true }; }
     for (const other of listeners) this._send(other, out);
@@ -4016,14 +4016,16 @@ export class Room {
       if (!cell && (!isWorldRoom(a.key) || a.id !== this._hostOf())) return;
       // AUDIT WORLD6b B3: a cell's frame carries at most CELL_FRAME_RECORDS_MAX records - each one MINTS a foe at every
       // reader, and a dungeon's bound (`i >= _layoutFoes`, a layout every client built) has no cell equivalent; over
-      // it the frame is junk, counted (the relay still reads nothing inside a record)
+      // it the frame is junk, counted (the relay changes nothing inside a record; STAFF-PANEL5-MONSTERS: the Staff Panel's
+      // count reads a full one, never changing it - staffFeeds.js staffFoesSeen)
       if (cell && (!Array.isArray(m.data.f) || m.data.f.length > CELL_FRAME_RECORDS_MAX)) { this._junk(ws); return; }
       this._roomFoes = this._foesFan(ws, a, 'foes', m.data, message, cell, this._roomFoes, now);   // SCALE5b: a method of its own
       return;
     }
     if (m.t === 'own') {
       // OWN1: a socket's OWN foes in a world room - fanned as a cell's foes frame is (every other hello'd socket, the
-      // room's own budget, at most CELL_FRAME_RECORDS_MAX records), beside the host's stream; the relay reads none of it
+      // room's own budget, at most CELL_FRAME_RECORDS_MAX records), beside the host's stream; the relay changes none of it
+      // (STAFF-PANEL5-MONSTERS: the Staff Panel's count reads a full one - staffFeeds.js staffFoesSeen)
       const now = Date.now();
       if (doored !== 'own') { if (!isWorldRoom(a.key)) { this._junk(ws); return; } a = this._meterFoes(ws, a, now); if (!a) return; }
       if (!Array.isArray(m.data.f) || m.data.f.length > CELL_FRAME_RECORDS_MAX) { this._junk(ws); return; }
