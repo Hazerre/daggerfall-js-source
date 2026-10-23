@@ -155,6 +155,12 @@ export class QuestResourceBehaviour {
       if (!this.individualHome && !this.targetResource?.isQuestor) this.setGameObjectActive(false);
       return;
     }
+    // AUDIT QA3 D2: nor a quest the machine no longer holds at all - the journal's Restart threw it away (removeQuest),
+    // and its things and people stood on, drawn and answering nothing, until the player left
+    if (this.questUID != null && this.machine?.getQuest && !this.machine.getQuest(this.questUID) && !this.enemy) {
+      if (!this.individualHome) this.setGameObjectActive(false);
+      return;
+    }
     // Ensure target resource has this behaviour assigned - coupling
     // is otherwise lost when reloading a game
     if (this.targetResource != null) {
@@ -198,6 +204,11 @@ export class QuestResourceBehaviour {
         foe.setInjured();
         return;
       }
+
+      // AUDIT QA3 D1: a body stood up again in place (a same-dungeon quickload: dungeonContext.js applyWorld un-kills it)
+      // whose Foe the load holds alive is alive here too - bound to the loaded Foe by the mount's relink, it still read
+      // dead, and its next death never counted (the quest stuck until the dungeon was left)
+      if (this.isFoeDead && this.enemy.currentHealth > 0 && foe.killCount < foe.spawnCount) this.isFoeDead = false;
 
       // Handle death checks
       if (!this.isFoeDead && foe.deathTrigger) this.enemy.setCurrentHealth(0);

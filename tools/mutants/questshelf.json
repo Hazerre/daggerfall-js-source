@@ -551,8 +551,8 @@
   {
     "name": "QSD-handed-back-while-carried",
     "file": "src/systems/quest/machine.js",
-    "old": "      if (!res?.daggerfallUnityItem || this.deps.carriesQuestItem?.(res)) continue;",
-    "new": "      if (!res?.daggerfallUnityItem) continue;",
+    "old": "      if (!res?.daggerfallUnityItem || (this.deps.keepsQuestItem ?? this.deps.carriesQuestItem)?.(res)) continue;   // AUDIT QA3 B8: kept anywhere",
+    "new": "      if (!res?.daggerfallUnityItem) continue;   // AUDIT QA3 B8: kept anywhere",
     "tests": [
       "test/systems/quest/questshelf.test.js"
     ]

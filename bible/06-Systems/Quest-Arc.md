@@ -6685,7 +6685,8 @@ asking is A CLICK (noAsksAgain.js:"export function asksOnAClick" - a plain `_x_ 
 of it one of noAsksAgain.js:"export const CLICK_TRIGGERS", and the task named by nothing) is re-armed once answered No
 (noAsksAgain.js:"export function askAgain"): its task cleared as a `clear` clears it, the prompt alone made incomplete,
 the No variable cleared. The next click asks again, a Yes then runs as a first Yes does, and a No that does something
-stays DFU's. Two doors: Quest.update each tick (quest.js:"NO-ASKS-AGAIN (not DFU's - quest/noAsksAgain.js): a prompt")
+else stays DFU's - a No whose every action is a `clear` of its asking task alone is the author's own ask-again, and asks
+again too (QUEST-AUDIT III; C0C00Y10's healer, below). Two doors: Quest.update each tick (quest.js:"NO-ASKS-AGAIN (not DFU's - quest/noAsksAgain.js): a prompt")
 and the end of Quest.restoreSaveData (quest.js:"NO-ASKS-AGAIN (not DFU's - quest/noAsksAgain.js): a save"), so a save
 taken after such a No loads asking again, as do a party member's copy and a reclaimed quest.
 
@@ -6694,7 +6695,7 @@ _foe_` - a robber's or a guard's "hand it over" (A0C00Y14, A0C00Y15, K0C00Y03, O
 O0B10Y00, R0C10Y00, R0C10Y01, R0C10Y02, R0C10Y18, R0C11Y19). There the No is the refusal and the courier's road goes
 on, and the trigger is Foe.injuredTrigger, a latch that holds until the foe is stood again: re-armed, the demand would
 come back the next tick, every tick, until a Yes gave the goods away. In the shipped corpus the law re-arms The Lost
-Child alone.
+Child and, since QUEST-AUDIT III, C0C00Y10's healer (below).
 
 C0C00Y10 (the healer's `prompt 1014 yes _S.11_ no _no_` under `clicked npc _healer_ say 1013`) answers a No with `_no_
 task: clear _S.10_` - the author's own ask-again - which Prompt.cs's `allowRearm = false` defeats in DFU: the healer said
@@ -6703,7 +6704,7 @@ and all outstanding issues"): a No whose every action is a `clear` of its click-
 the prompt, is that ask-again (`src/systems/quest/noAsksAgain.js` clearingNo) - once it has run, the prompt listens again
 and the No is cleared for a second No. It is the corpus's one such No (`01-Overview/audits/Quest-Audit-III.md`).
 
-`test/systems/quest/fb1013e_noasks.test.js` (5): the real scripts through the real parser and machine over a crafted region, every
+`test/systems/quest/fb1013e_noasks.test.js` (6 since QUEST-AUDIT III's healer): the real scripts through the real parser and machine over a crafted region, every
 click through QuestResourceBehaviour.doClick and every answer through the box's own callback - The Lost Child asked
 again after a No, twice, and a Yes then leaving every task and action as a first Yes does; a save taken after the No
 loading asked again; M0B00Y16's refused villager and K0C00Y03's refused guard asked once (DFU's law); the action and the
@@ -6831,10 +6832,13 @@ by a script over the real modules, each fix pinned and its mutants dead. The rec
 
 - **STORY-AGAIN (#982)** - `systems/quest/machine.js` (`storyAgainRefusal`, `startStoryAgain`, `seedStory`,
   `storyStarted` / `storyFailed` in the envelope), `scenes/quest/questBridge.js` (`journalClean.storyAgain` /
-  `startStoryAgain`), the pause window's Main Quests and the chronicle's Quests. A step of the main story that ended
-  without paying, whose story went no further, is started again from its first step; its questor offers it once more.
-  Refused: not the story's own or the world's backbone, running or set aside, never failed, carried on past, a step
-  that starts and pays nothing, no source. A save from before the record reads the journal's archive once.
+  `startStoryAgain`), the pause window's Main Quests and the chronicle's Quests. A step the story needs - one that
+  sets a global the story reads, or starts a step that does - that has ended, and none of whose work has happened (no
+  step it starts begun, however far on; for one that starts none, none of its globals set; no link task of a set global
+  that would pay, start or end it at once), is started again from its first step, paid or not; its questor offers it
+  once more (AUDIT QA3 B2-B6: the scripts' own word, `storyShape`). Refused: the backbone, the Totem's aftermath
+  (S00001xx), the guilds' S series (S00005xx), a step the story does not need, running, scheduled or set aside, never
+  ended, carried on past, no source. A save from before the record reads its tombstones and the journal's archive once.
 - **THE LIFECYCLE** - END-GRACE (a save inside `end quest`'s grace ends on load), END-ONCE (a second end pays nothing),
   START-HELD (a scheduled `start quest` rides the save), PROMPT-HELD (a question is spent by its answer, not its box).
 - **THE ACTIONS** - SEND-HELD, GOLD-ONCE, MUTE-HELD, ILL-SAYING, DOTTED-SYMBOLS, CLIMATE-NAMES, CAST-SHARE, JOKE-MACROS,
@@ -6847,4 +6851,9 @@ by a script over the real modules, each fix pinned and its mutants dead. The rec
   REPUTE-SHARE, SHARE-WORDS.
 
 `test/systems/quest/questaudit3.test.js`, `questaudit3_life.test.js`, `questaudit3_acts.test.js`,
-`questaudit3_scene.test.js`, `questaudit3_share.test.js`; `tools/mutants/questaudit3*.json`, all dead.
+`questaudit3_scene.test.js`, `questaudit3_share.test.js`; `tools/mutants/questaudit3*.json`, all dead. AUDIT QA3 (the
+owner: "Audit this"): six cold lanes over the frozen branch, forty findings (five HIGH: a party's question asked twice, a
+restart replaying the Totem's reward, an old save offering steps the story went past, a foe after a quickload that never
+counted, a questline choice answered twice) - each fixed and pinned red on the snapshot, or left with its reason, in the
+record's own section; `auditqa3_story.test.js`, `auditqa3_share.test.js`, `auditqa3_life.test.js`,
+`tools/mutants/auditqa3_*.json`.

@@ -58,9 +58,11 @@ export function noteOfferPending(sender) {
 export function giveOffer() {
   // QUEST-AUDIT III OFFER-STALE: a sender already handed over (its own ticks ran out first - DFU never unlatches there
   // either) or of a quest no longer running is let go, and the press is the player's: one Rest or Travel press hours
-  // later did nothing at all, even after another save was loaded
+  // later did nothing at all, even after another save was loaded. AUDIT QA3 B7: nor one its quest no longer holds - a
+  // party's resync rebuilds every action, and the latched one was nobody's
   const s = lastPendingOfferSender;
-  if (s != null && (s.isComplete || s.parentQuest?.questComplete || s.parentQuest?.questTombstoned || s.parentQuest?.shelvedAt != null)) lastPendingOfferSender = null;
+  const held = (q) => [...(q?.tasks?.values?.() ?? [])].some((t) => t.actions?.includes(s));
+  if (s != null && (s.isComplete || s.parentQuest?.questComplete || s.parentQuest?.questTombstoned || s.parentQuest?.shelvedAt != null || (s.parentQuest?.tasks && !held(s.parentQuest)))) lastPendingOfferSender = null;
   if (lastPendingOfferSender != null) {
     lastPendingOfferSender.offerImmediatelyNow();
     lastPendingOfferSender = null;

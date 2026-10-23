@@ -38,6 +38,15 @@ const canonical = (value) => JSON.stringify(value, (_key, v) => v && typeof v ==
   ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, v[k]])) : v);
 const same = (a, b) => canonical(a) === canonical(b);
 
+/** AUDIT QA3 C1: what a copy parsed by an earlier build of the port writes otherwise - accepted, never taken (the
+ *  receiver's own parse stands: takeLocalActions). QUEST-AUDIT III CLIMATE-NAMES read `climate desert2` and `climate
+ *  mountainwoods` (Foraging's mining quests) as their own climates, 225 and 230; a copy begun before it holds 224 and 226,
+ *  and every share and sync of it was refused as forged. */
+const LEGACY_CLIMATES = Object.freeze({ 225: 224, 230: 226 });
+const legacy = Object.freeze({
+  Climate: { climate: (v, own) => v === LEGACY_CLIMATES[own] },   // ClimateCondition's typeName
+});
+
 /** Validate definitions against the local parse, allowing only bounded runtime progress. */
 export function sharedActionMatches(own, incoming) {
   if (!incoming || incoming.type !== own.type || !bool(incoming.isComplete)
@@ -54,7 +63,7 @@ export function sharedActionMatches(own, incoming) {
     if (own.type === 'StartQuest' && key === 'questName' && value === '' && expected.questIndex1 > 0
       && received === `S${String(expected.questIndex1).padStart(7, '0')}`) continue;
     if (own.type === 'WorldUpdate' && key === 'variant' && value === '-' && received === '') continue;
-    const validate = progress[own.type]?.[key] ?? holders[own.type]?.[key];
+    const validate = progress[own.type]?.[key] ?? holders[own.type]?.[key] ?? legacy[own.type]?.[key];
     if (!validate || !validate(received, value)) return false;
   }
   return true;

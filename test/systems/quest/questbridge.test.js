@@ -555,6 +555,7 @@ test('MAC-K2: the bridge’s questLog is the ONE walk - and it is the arithmetic
   assert.ok(body.includes('remainingTimeInSeconds'), 'the slice really is the walk');
   // PIN MOVED (QL1/QL12): the walk asks the questlines' layer for each row's `ql`, and hands the lines and the ladders -
   // a DFU-only layer here (no row of its own, the switch off), so what is under test stays these lines' arithmetic
+  // PIN MOVED (QUEST-AUDIT III NAMED-TIMER): the lifted questLog reads the lens's clocksNamed too
   const questLog = new Function('machine', 'notebook', 'clockCounts', 'questlines', 'quietText', 'questlinesOn', 'ladderRows', 'clocksNamed',   // DEAD-CLOCK: whether a clock's end changes anything; QUEST-AUDIT III NAMED-TIMER: the clocks an entry names
     `const isShelved = (q) => q?.shelvedAt != null;   // QUEST-SHELF (PIN MOVED): the walk files a quest set aside apart
     const o = { ${body} }; return o.questLog();`);

@@ -714,6 +714,9 @@ const promptsUp = new WeakMap();   // quest -> the places (`task#index`) whose b
 const promptPlace = (action, caller) => `${caller?.symbol?.name ?? ''}#${caller?.actions?.indexOf?.(action) ?? -1}`;
 /** Is this prompt's box up (its place held)? */
 const promptUp = (action, caller) => promptsUp.get(action.parentQuest)?.has(promptPlace(action, caller)) ?? false;
+/** AUDIT QA3 A1: the places (`task#index`) of `quest` whose box is up here - the envelope this copy hands on writes them
+ *  asked (machine.js getShareableQuestData), so a party member's copy never asks the question this player's box holds. */
+export const heldPromptPlaces = (quest) => [...(promptsUp.get(quest) ?? [])];
 /** Hold the prompt's place while its box is up; answers the answer's own door - the hold let go, the prompt complete
  *  (and the one a resync stood at its place since, which the hold kept from asking). */
 function holdPrompt(action, caller) {
@@ -1616,6 +1619,9 @@ export class GetItem extends ActionTemplate {
       // inventory's dedupe's to drop - gold had none
       if (!item.goldPaid) {
         item.goldPaid = true;
+        // AUDIT QA3 A3: a stamped quest's gold is its outcome's (QL3, qlLayer.js reward) here as at GivePc - paid here,
+        // N0B21Y14's rescue paid its purse unscaled and the `give pc` of it after, paid already, settled nothing
+        hooks?.questReward?.(this.parentQuest, dfItem, item);
         const amount = dfItem.stackCount ?? 0;
         hooks?.addGold?.(amount);
         hooks?.addHUDText?.(localizedText('youReceiveGoldPieces', YOU_RECEIVE_GOLD_PIECES).replaceAll('%s', String(amount)));
@@ -2765,11 +2771,19 @@ export class WhenReputeWith extends ActionTemplate {
 /** MakePcDiseased.cs: the Quests-Diseases id at parse (a miss
  *  THROWS), CreateDisease + AssignBundle(BypassSavingThrows) through
  *  the makePcDiseased seam at update. The corpus's one "saying N"
- *  tail is NOT in C#'s pattern - the tail is silently dropped and no
- *  popup fires, verbatim. */
+ *  tail is NOT in C#'s pattern - C# drops it and no popup fires; the
+ *  port reads it (QUEST-AUDIT III ILL-SAYING, below). */
 export class MakePcDiseased extends ActionTemplate {
   static typeName = 'MakePcDiseased';
-  get saveShape() { return [['diseaseType'], ['textId']]; }
+  // AUDIT QA3 C1/A4: `textId` is saved only where a `saying` gave one - written always, every bare `make pc ill` (C0C00Y10,
+  // A0C00Y11, C0B10Y05, Q0C0XY02) wrote a field a copy begun before it, and an older build's, has not, and each share and
+  // sync between the two was refused as forged. S0000007's, the one `saying`, is the main story's and never shared.
+  get saveShape() { return this.textId ? [['diseaseType'], ['textId']] : [['diseaseType']]; }
+  constructor(parentQuest) { super(parentQuest); this.diseaseType = -1; this.textId = 0; }
+  restoreSaveData(dataIn) {
+    super.restoreSaveData(dataIn);
+    if (dataIn?.textId) this.textId = dataIn.textId;   // a restore builds the action bare - its `saying` from the save
+  }
   // QUEST-AUDIT III ILL-SAYING: `... saying N` - S0000007's "You feel a sickening jolt as the _relic_ vanishes." (1027) was
   // read past and never shown; the curse landed with no word
   get pattern() { return /make pc ill with (?<aDisease>[a-zA-Z0-9_.']+)(?: saying (?<id>\d+))?/; }

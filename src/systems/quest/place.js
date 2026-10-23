@@ -878,9 +878,9 @@ export class Place extends QuestResource {
     // NEARBY-QUESTS: the dungeons within reach, or the nearest few; KVAR-HOLD's re-seat: the nearest few to `origin`
     const reach = origin ? { origin, pixels: 0 } : this._questReach(world);
     if (reach) foundIndices = nearbyIndices(regionData, foundIndices, reach.origin, reach.pixels);
-    // QUEST-AUDIT III MARKERLESS-DRAW: a drawn dungeon whose build holds no quest marker (117 of 3,444 small builds and one
-    // medium - Glork's Hold, the Cairn of Necromulan) gave up the draw, and the quest took any dungeon or did not start;
-    // it is set aside and another of the pool drawn, a few times at most (each is a dungeon's walk)
+    // QUEST-AUDIT III MARKERLESS-DRAW: a drawn dungeon whose build holds no quest marker (117 of 3,444 small builds - Glork's
+    // Hold and the Cairn of Necromulan among them - and one medium, Norlogod's Nest) gave up the draw, and the quest took any
+    // dungeon or did not start; it is set aside and another of the pool drawn, a few times at most (each is a dungeon's walk)
     let location = null, questSpawnMarkers = null, questItemMarkers = null;
     const pool = foundIndices.slice();
     for (let tries = 0; pool.length && tries < REMOTE_DUNGEON_DRAWS; tries++) {

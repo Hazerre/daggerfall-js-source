@@ -106,7 +106,9 @@ export function addQuestResourceObjects(machine, adapter, siteType, buildingKey 
     // same uids, and a quickload inside the same dungeon mounts at once (worldModes.js onQuestRestored) over the stands
     // the scene still holds: by their old symbols none read "already here", and every quest person, item and live foe
     // stood twice (two giants for M0B00Y16, a hidden person's twin left standing and clickable)
-    for (const b of resourceBehaviours) b.relinkToLiveQuest?.();
+    // AUDIT QA3 D1: never a destroyed one (a foe the quest hid, gone with its body) - bound to the loaded Foe it read
+    // "already here", and a foe the save held standing never stood
+    for (const b of resourceBehaviours) if (!b.isComponentDestroyed) b.relinkToLiveQuest?.();
     addMarkerResourceObjects(machine, adapter, siteType, enableNPCs, enableFoes, quest,
       resourceBehaviours, place.siteDetails.selectedMarker, byName);
     if (place.siteDetails.questSpawnMarkers) {
@@ -163,6 +165,7 @@ export function addMarkerResourceObjects(machine, adapter, siteType, enableNPCs,
 export function isAlreadyInjected(resourceBehaviours, resource, byName = false) {
   if (!resourceBehaviours || resourceBehaviours.length === 0) return false;
   for (const behaviour of resourceBehaviours) {
+    if (behaviour.isComponentDestroyed) continue;   // AUDIT QA3 D1: Destroy() takes it out of the scene's objects, as C#'s does
     if (behaviour.targetSymbol === resource.symbol) return true;
     // QREPAIR: the repair's mount closes the load hole above for its own pass - the same quest, the same symbol name,
     // is the same resource standing. DFU's own mounts (the layout, the hot-place) keep the identity match, verbatim.
@@ -331,7 +334,9 @@ export function standSpot(own, spots, hasFloor) {
  *  billboard's), else `feet` as given. */
 export function freeQuestStand(collider, feet, height) {
   const f = [...feet];
-  return collider && freeLodgedFeet(collider, f, { height }) ? f : feet;
+  if (!collider || !freeLodgedFeet(collider, f, { height })) return feet;
+  f[1] += height * 0.02;   // AUDIT QA3 D3: the stand's own lift off the ground plane (worldModes.js standQuestFlatIn), kept
+  return f;
 }
 
 // ---- FB1020c CROWD-CLEAR: a quest Person never stands in a standing person's pick box ----

@@ -418,16 +418,19 @@ export function questMacroSource(quest) {
       return templeDivine(w, factionId);
     },
     // %di - C#'s LastPlaceReferenced.Scope is read BEFORE the null check, so an unreferenced place THREW (the NRE). QUEST-AUDIT
-    // III DI-UNREF: nothing referenced yet - a load or a share forgets it (no save state), and three messages lead with
-    // %di (P0B00L01 1014, R0C10Y12 1012, R0C11Y03 1011; V0C00Y00's and Y0C00Y00's contact answers after a load) - the talk
-    // answer or the quest's popup threw out to the host, which error-terminated the quest. Nothing referenced, it reads the
-    // Place a quest Person stands at (the last declared that stands somewhere - V0C00Y00's "If you go %di of here in
-    // __contact_" is the contact's), else DFU's own "...never mind...", as every unresolvable direction answers
+    // III DI-UNREF: nothing referenced yet - a load or a share forgets it (no save state), and three messages a player
+    // reaches read %di before any person or place of theirs (V0C00Y00 1012 and Y0C00Y00 1012, the contact's answer after a
+    // load; P0B01L02's rumor 1010) - the talk answer or the quest's popup threw out to the host, which error-terminated the
+    // quest. Nothing referenced, it reads the Place a quest Person is to be found at - the last declared that has one, its
+    // dialog place (Person.getDialogPlace: where it stands, else its home - AUDIT QA3 C2: V0C00Y00's remote contact stands
+    // nowhere until the player walks into their home, and "If you go %di of here in __contact_" read "...never mind..."),
+    // never a questor's (they are where the player is) - else DFU's own "...never mind...", as every unresolvable
+    // direction answers
     direction() {
       let place = quest.lastPlaceReferenced;
       if (!place) {
         for (const r of quest.resources?.values?.() ?? []) {
-          const at = r?.isPerson && r.assignedPlaceSymbol ? quest.getPlace?.(r.assignedPlaceSymbol) : null;
+          const at = r?.isPerson && !r.isQuestor ? r.getDialogPlace?.() : null;
           if (at?.siteDetails) place = at;
         }
       }
@@ -582,15 +585,17 @@ const HANDLERS = {
   },
   '%vam': (mcp, hooks) => hooks?.world?.playerVampireClanName?.() ?? '%vam[ERROR: PC not a vampire]',
   // QUEST-AUDIT III JOKE-MACROS: TEXT.RSC 200's jokes carry their own macros (%ra in 22 of the 23, %nt, %cn, %cn2), and the
-  // expansion never walks inserted text - K0C00Y05's child and eight quests' rumors told the player "%ra" raw. Each is
-  // read through this table (a miss, or an answer in an error's shape, keeps the token as it was)
+  // expansion never walks inserted text - K0C00Y05's child and thirteen quests' rumors told the player "%ra" raw. Each is
+  // read through this table (a miss, or an answer in an error's shape, keeps the token as it was). AUDIT QA3 C4: a name
+  // that brings its own article after the joke's own "the " drops it ("Over at the %nt" - every tavern name is "The ...")
   '%jok': (mcp, hooks) => {
     const joke = hooks?.world?.getRandomText?.(200) ?? null;
     if (typeof joke !== 'string') return null;
-    return joke.replace(/%[a-zA-Z][a-zA-Z0-9]*/g, (tok) => {
+    return joke.replace(/%[a-zA-Z][a-zA-Z0-9]*/g, (tok, at) => {
       if (tok === '%jok' || !HANDLERS[tok]) return tok;
       const v = getMacroValue(tok, mcp, hooks);
-      return typeof v === 'string' && !v.startsWith(`${tok}[`) ? v : tok;
+      if (typeof v !== 'string' || v.startsWith(`${tok}[`)) return tok;
+      return /\bthe $/i.test(joke.slice(Math.max(0, at - 4), at)) ? v.replace(/^the /i, '') : v;
     });
   },
   // L10N3e: CityName (MacroHelper.cs:567-574) shows the location by its

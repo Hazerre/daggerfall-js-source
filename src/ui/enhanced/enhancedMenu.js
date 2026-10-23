@@ -5560,10 +5560,14 @@ function pauseQuests(body) {
   const story = (clean?.storyAgain?.() ?? []).map((s) => ({ key: `st:${s.questName}`, name: s.title, story: s }));
   if (!active.length && !finished.length && !hidden.length && !shelved.length && !offers.length && !lines.length && !story.length) {
     body.append(el('p', 'px-note', t('pause.journal.none', 'No active quests.')));
+    if (questShelfSaid) { body.append(el('p', 'px-note', questShelfSaid)); questShelfSaid = null; }   // AUDIT QA3 F6: said, the tab empty or not
     return;
   }
   const shown = questShowHidden ? hidden : [];
   const rows = [...offers, ...active, ...story, ...shown, ...shelved, ...finished, ...lines];
+  // AUDIT QA3 B9: the words of a press whose quest has no row yet (a step started again waits for its questor, no entry)
+  // are said at the tab's head - under the detail they landed at the foot of whichever quest the selection fell to
+  if (questShelfSaid && !rows.some((r) => r.key === questSel)) { body.append(el('p', 'px-note', questShelfSaid)); questShelfSaid = null; }
   // GUIDE4: THE JOURNAL OPENS ON THE QUEST THE HUD SHOWS - the tracker's (the one tracked, else the one the journal
   // last changed) - and only then on the first row.
   if (!rows.some((r) => r.key === questSel)) {
@@ -5887,7 +5891,7 @@ function pauseQuests(body) {
       detail.append(desc);
     }
   }
-  // STORY-AGAIN: the words of a press whose quest has no row yet (a step started again waits for its questor, no entry)
+  // QUEST-SHELF: the words of a press, under the quest they speak of
   if (questShelfSaid) { detail.append(el('p', 'px-note', questShelfSaid)); questShelfSaid = null; }
   wrap.append(detail);
   body.append(wrap);

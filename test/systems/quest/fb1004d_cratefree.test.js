@@ -707,6 +707,7 @@ test('CRATE-FREE real data: every RDB block of BLOCKS.BSA - of its 2,563 foe and
     }
   }
   assert.deepEqual([rdb, foes, quests, starts], [187, 2563, 144, 177]);
+  // PIN MOVED (QUEST-AUDIT III LODGED-STAND): the quest marker inside statue 62330 is the fourth - and stood clear (above)
   assert.deepEqual(lodged, ['N0000005.RDB quest@29157 in 62330', 'N0000048.RDB foe@16070 in 41833', 'N0000049.RDB foe@16070 in 41833', 'N0000050.RDB foe@16070 in 41833']);
 });
 

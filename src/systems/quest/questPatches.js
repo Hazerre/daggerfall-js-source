@@ -67,6 +67,11 @@ export function entryLines(text, width = ENTRY_WIDTH) {
  *  Glaghton Court. The inn's own town (`___inn_`) is the questor's wherever the inn is in it, so DFU's words stand there. */
 export const QUEST_PATCHES = Object.freeze({
   A0C00Y10: () => [{ old: ' _inn_ in ___giver_ in six hours.', new: ' _inn_ in ___inn_ in six hours.', count: 1 }],
+  // M0B11Y18 (Lord K'avar), AUDIT QA3 C3: `_S.10_`'s `pc at _L.00_ set _S.12_` stops K'avar's archers (`_S.12_ task: clear
+  // _conhouse_`) once the player reaches his hideout - read at last (QUEST-AUDIT III DOTTED-SYMBOLS: C# never read
+  // `_L.00_`), its `set` cleared `_S.12_` again on the way out, and `_conhouse_`'s five waves began anew at every exit
+  // (twenty over four trips, where the unread line had given five). `do` sets it once.
+  M0B11Y18: () => [{ old: 'pc at _L.00_ set _S.12_', new: 'pc at _L.00_ do _S.12_', count: 1 }],
   C0B00Y02: () => {
     const entry = [`Message:  ${SHAM_TRAIL_MESSAGE}`, '%qdt:', ...entryLines(t('quest.possessedChild.shamTrail', SHAM_TRAIL_EN))].join('\n');
     return [

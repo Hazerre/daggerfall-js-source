@@ -213,7 +213,7 @@ import { setRacialQuestHost } from '../systems/racialQuests.js';   // V2d: the q
 import { setCrimeGuildQuestHost, setCrimeGuildClock, tallyCrimeGuildRequirements } from '../systems/crimeGuilds.js';   // CG2; LW7: a traveller struck down is the Brotherhood's five
 import { randomCemeteryLocationIndex } from '../systems/infection.js';   // V2e: GetRandomCemetery's pick half
 import { MEMBERSHIP_STATUS } from '../systems/quest/questLists.js';   // V2d: the vampire clan pool asks as a Member
-import { prepareQuestShare, prepareShareData, shareSignature, receiveSharedQuest, SHARE_REFUSAL_TEXT, sayShareRefusal, syncBaselineAfter, questBusyAgain, shareSomeone, shareReceivedLine, shareRefusedLine } from '../systems/quest/questShare.js';   // QUEST1: the chronicle's own Share button, and the party frame it answers
+import { prepareQuestShare, prepareShareData, shareSignature, receiveSharedQuest, SHARE_REFUSAL_TEXT, sayShareRefusal, syncBaselineAfter, questBusyAgain, shareSomeone, shareReceivedLine, shareRefusedLine, shareSentLine } from '../systems/quest/questShare.js';   // QUEST1: the chronicle's own Share button, and the party frame it answers
 import { careerSunAverse } from '../systems/passiveSpecials.js';   // AUDIT 64 F20: Career.DamageFromSunlight, the arrival clamp's second arm - HOOD-CAREER: under a bare head
 import { buildMapDict, locationSummaryAt as travelLocationSummaryAt } from '../systems/map/mapDirectory.js';   // W1: ContentReader's map dict; TO1: the junction map's own reads
 import { dilateCoastalClimate, smoothLocationNeighbourhood } from '../world/terrain/terrainHelper.js';   // AUDIT 58 F4
@@ -13125,7 +13125,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       questBridge?.machine.markQuestShared(prepared.questName);
       _questSyncSeen.set(prepared.questName, shareSignature(questBridge.machine.getQuest(uid)));   // DISC28-I
     }
-    setMidScreenText(sent ? `Shared "${prepared.displayName || displayName || questName}" with your party.` : 'Could not share that quest right now.');
+    setMidScreenText(shareSentLine(sent, prepared.displayName || displayName || questName));   // AUDIT QA3: the sender's words in the player's language (questShare.js)
   };
   /** U43: the two journal doors (GameManager.cs:541-548), ONE window
    *  either way - LogBook opens it as it stands, NoteBook on the
@@ -19854,7 +19854,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       surfacePlayer();
     },
     playerHasItem: (dfItem) => _heldItemIndex(dfItem) >= 0,
-    carriesQuestItem: (res) => keepsQuestItem(playerEntity, res),   // QUEST-AUDIT III SHELF-TWIN: every keeping, the wagon's and the bag's too (itemTransfer.js)
+    carriesQuestItem: (res) => (playerEntity.items ?? []).some((it) =>
+      it.questItem && it.questUID === res.parentQuest?.uid && it.questSymbol?.name === res.symbol?.name),
+    keepsQuestItem: (res) => keepsQuestItem(playerEntity, res),   // QUEST-AUDIT III SHELF-TWIN, AUDIT QA3 B8: every keeping, for the reclaim and the repair - the pack alone for `toting` and `have`
     releaseQuestItem: (uid, res) => {
       // ReleaseQuestItemForReoffer's player-side sweep: unequip + drop
       // every held copy of the quest item.
@@ -19896,6 +19898,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // so "in town, outdoors" was true while standing in a shop.
     isPlayerInTown: () => _isPlayerInTownStrict(),
     partySize: () => social?.party?.members?.length ?? 1,   // REALM P0.4: a shared quest's gold is paid in the party's shares (online; offline no party)
+    partyHas: (acct) => !!social?.inMyParty(acct),   // AUDIT QA3 E1: a received copy waits on its sharer while they are in the party
     getGuild: (fid) => {
       const dict = townTalk.factionDict ?? null;
       const g = guildOfFaction(fid, resolveVariantGuild(dict), dict);
@@ -20996,7 +20999,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       if (!foe) return;
       const owner = from != null ? (social?.accountOfPeer?.(from) ?? null) : null;
       if (owner && Number.isInteger(i) && !keptKills.credit(owner, tag.q, tag.s, i, Date.now())) return;
-      foe.creditPartnerKill?.();   // QUEST-AUDIT III KILL-ONCE: one the partner's envelope brought already is not counted again (quest/foe.js)
+      foe.creditPartnerKill?.(owner);   // QUEST-AUDIT III KILL-ONCE: one the partner's envelope brought already is not counted again (quest/foe.js)
     },
     // KEPT-KILL (2026-10-01): a foe I kept on a partner's word fell here - my copy holds no such quest, so my party pose
     // says it (`qk`) and every copy that holds the quest counts it, wherever its member stands
@@ -21780,7 +21783,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         // on its next tick: one log line became eight hub acts and fifty-six deliveries at eight seats, and the
         // room's whole quest burst (QUEST_ROOM_HZ_MAX) for one party. What I just received is what I have seen.
         const q = questBridge?.machine?.sharedCandidateNamed(quest.questName);
-        if (q) _questSyncSeen.set(quest.questName, syncBaselineAfter(q, result));   // DISC28-I: the whole signature, the sync's own measure; QUEST-AUDIT III PROGRESS-KEPT / GOLD-HOLDERS (questShare.js)
+        if (q) _questSyncSeen.set(quest.questName, syncBaselineAfter(q, result, _questSyncSeen.get(quest.questName)));   // DISC28-I: the whole signature, the sync's own measure; QUEST-AUDIT III PROGRESS-KEPT / GOLD-HOLDERS (questShare.js)
         if (quest.data?.final === 1) _questSharer.delete(quest.questName);   // DISC28-I: the copy that stood its foes has ended - mine ends with it
         return;
       }

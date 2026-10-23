@@ -56,7 +56,7 @@
   {
     "name": "AUDIT-QL-FLOW-BRANCH-1-no-party-waits",
     "file": "src/systems/questlines/qlActions.js",
-    "old": "&& (quest.hooks?.partySize?.() ?? quest.hooks?.rewardShares?.(quest) ?? 1) > 1 && quest.hooks?.sharerHeard?.(quest) !== false;",
+    "old": "&& (quest.hooks?.partySize?.() ?? quest.hooks?.rewardShares?.(quest) ?? 1) > 1 && quest.hooks?.sharerHere?.(quest) !== false;",
     "new": ";",
     "tests": [
       "test/systems/questlines/ql4_flow.test.js"

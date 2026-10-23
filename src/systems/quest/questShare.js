@@ -94,7 +94,17 @@ export const QUEST_SHARE_MAX_BYTES = QUEST_FRAME_MAX - 512;
 /** SENDER SIDE: one quest's shareable envelope, or a refusal.
  *  `machine` is the sender's own QuestMachine. */
 export function prepareQuestShare(machine, uid) {
-  return prepareShareData(machine.getShareableQuestData(uid));
+  const prepared = prepareShareData(machine.getShareableQuestData(uid));
+  // AUDIT QA3 E2/E4: A COPY NEW HERE ANSWERS "HELD" - its first sync, while nothing has changed since it came, tells the
+  // party it is held (machine.js noteShareHolder: the purse's shares) and is merged by nobody: answered with the copy,
+  // it carried the sharer's state at the share back over what the sharer did since (a `hide npc` undone, its action
+  // spent). A deliberate share is never one (the receiver reads `held` only on a sync).
+  const quest = machine.quests?.get?.(Number(uid));
+  if (prepared.ok && quest?._heldSig !== undefined) {
+    if (quest._heldSig === shareSignature(quest)) prepared.data = { ...prepared.data, held: 1 };
+    else delete quest._heldSig;
+  }
+  return prepared;
 }
 
 /** DISC28-I: the same preparation over an envelope already taken - a finished copy's final state
@@ -133,9 +143,11 @@ export function shareSignature(quest) {
 
 /** The host's sync baseline after a receipt (scenes/world.js onQuestShared): what I just received is what I have seen
  *  (AUDIT PARTY8's echo) - unless the merge kept progress of my own (QUEST-AUDIT III PROGRESS-KEPT: machine.js
- *  `_keptLocal`) or the copy is new here (GOLD-HOLDERS: it answers once, so its sharer hears it is held): then '' -
- *  no signature - and the next check sends it. */
-export function syncBaselineAfter(quest, result) {
+ *  `_keptLocal`) or the copy is new here (GOLD-HOLDERS: it answers once, "held" - prepareQuestShare - so its sharer
+ *  hears it is held): then '' - no signature - and the next check sends it. A held answer merged nothing (AUDIT QA3
+ *  E4): the baseline stays `prev`, so a change of mine still waiting on the floor still goes. */
+export function syncBaselineAfter(quest, result, prev = undefined) {
+  if (result?.held) return prev;
   return quest?._keptLocal || !result?.resync ? '' : shareSignature(quest);
 }
 
@@ -271,8 +283,10 @@ export function canReceiveSharedQuest(machine, questLists, questName, { membersh
   // QUEST-AUDIT III REPUTE-SHARE: REPUTE-GATE's two quests (onlineRepute.js) wait online for the guild standing their
   // headers name - in the guild's own pool, and a party's share handed them to a member at standing 0, the penalties the
   // gate keeps off a new member with them. The receiver's own standing with the quest's faction (the envelope's)
+  // AUDIT QA3 E7: the faction is the catalog row's guild's (guilds.js), never the envelope's word - the sender writes it
   const need = ONLINE_REPUTE_GATES[questName];
-  if (need != null && isOnlinePage() && (machine.deps?.getReputation?.(Number(factionId) || 0) ?? 0) < need) return { ok: false, reason: 'repute', need };
+  const fid = Object.values(GUILDS).find((g) => g.guildGroup === meta?.group)?.factionId ?? (Number(factionId) || 0);
+  if (need != null && isOnlinePage() && (machine.deps?.getReputation?.(fid) ?? 0) < need) return { ok: false, reason: 'repute', need };
   return { ok: true, meta };
 }
 
@@ -291,7 +305,13 @@ export function canReceiveSharedQuest(machine, questLists, questName, { membersh
  *  on which arm ran to read the outcome. */
 export function receiveSharedQuest(machine, questLists, questName, data, ctx = {}) {
   const check = canReceiveSharedQuest(machine, questLists, questName, { ...ctx, shareId: data?.shareId ?? null, factionId: data?.factionId ?? 0 });   // DISC22-F: the copy being offered; REPUTE-SHARE: its faction
-  if (!check.ok) return check;
+  const held = data?.sync === 1 && data?.held === 1;   // AUDIT QA3 E2/E4: a partner's word that it holds the copy (prepareQuestShare)
+  if (!check.ok) return held ? { ...check, quiet: true } : check;   // a member who refused the share is not told so again by each answer
+  if (held && check.resync) {
+    machine.noteShareHolder?.(questName, ctx.from);
+    const quest = machine.sharedCandidateNamed?.(questName) ?? null;
+    return quest ? { ok: true, quest, resync: true, held: true } : { ok: false, reason: 'gone' };
+  }
   // AUDIT DROPS A1: THE ENVELOPE IS NOT TRUSTED. The wire's `questName` gated the receipt above, but the quest is
   // BUILT from `data` - so the two must agree, and the envelope's SHAPE (every task symbol and every action TYPE in
   // order, every resource symbol and type) must be the receiver's OWN parse of that quest by name. Without this a
@@ -322,7 +342,7 @@ export function receiveSharedQuest(machine, questLists, questName, data, ctx = {
     relayQuestMovedLayout(q, machine, { carriesQuestItem: ctx.carriesQuestItem ?? null }, online);
   };
   if (check.resync) {
-    const quest = machine.updateSharedQuest(questName, safe);
+    const quest = machine.updateSharedQuest(questName, safe, { from: ctx.from });   // AUDIT QA3 E3: whose kills it brings
     if (quest) { relay(quest); machine.noteShareHolder?.(questName, ctx.from); return { ok: true, quest, resync: true }; }   // QUEST-AUDIT III GOLD-HOLDERS: `from` holds it
     // AUDIT SHARE-MEND D4: a copy that still stands was not GONE - the restore choked on the partner's (machine.js
     // logs why), most often another build of the game, and the receiver was told they no longer had it
@@ -339,6 +359,8 @@ export function receiveSharedQuest(machine, questLists, questName, data, ctx = {
   if (!quest) return { ok: false, reason: 'restore' };   // SHARE-MEND: the restore choked (machine.js logs why) - not a forged envelope
   relay(quest);
   machine.noteShareHolder?.(questName, ctx.from);   // QUEST-AUDIT III GOLD-HOLDERS: the sharer holds it
+  quest._sentBy = ctx.from ?? null;   // AUDIT QA3 E1: who shared it - its questline choices wait while they are in the party
+  quest._heldSig = shareSignature(quest);   // AUDIT QA3 E2/E4: its first sync, unchanged, answers held
   if (check.meta?.quest?.oneTime) questLists.markOneTimeAccepted(questName);
   return { ok: true, quest };
 }
@@ -458,6 +480,11 @@ export function shareRefusalText(result, theirBuild = undefined) {
   return base && theirBuild !== undefined && SKEW_REASONS.has(result.reason) ? base + shareSkewText(theirBuild) : base;
 }
 
+/** AUDIT QA3: the sender's own line after a deliberate share - sent to the party, or not now - in the player's language. */
+export function shareSentLine(sent, quest) {
+  return sent ? t('quest.share.sent', 'Shared "{quest}" with your party.', { quest }) : t('quest.share.notNow', 'Could not share that quest right now.');
+}
+
 /** QUEST-AUDIT III SHARE-WORDS: the receiver's lines, whole, in the player's language - a partner who has no name yet, the
  *  share's arrival, and its refusal (shareRefusalText's fragment after the language's own "... but you"), or the bare
  *  failure where no fragment says why. */
@@ -497,6 +524,7 @@ export function shareSkewText(theirBuild, mine = BUILD_TAG) {
  *  that name of their own, read the same refusal every few seconds for as long as the sharer played. A deliberate
  *  share is always answered; a sync's refusal is said once per sharer, quest and reason. `said` is the host's Set. */
 export function sayShareRefusal(said, acct, questName, result, sync, copy = '') {
+  if (result?.quiet) return false;   // AUDIT QA3 E4: a partner's held answer, refused here, is no share to answer
   // AUDIT SHARE-MEND D5: keyed by the copy too (`copy` - its share id and the sender's build): a sender who reloads onto
   // another build, or shares a fresh copy, is answered again; and a deliberate share's refusal counts as said
   const key = `${acct}|${questName}|${result?.reason}|${result?.guild ?? ''}|${copy}`;

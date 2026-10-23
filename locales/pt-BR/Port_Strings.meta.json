@@ -21254,6 +21254,11 @@
   "tr": "4137b5559259",
   "by": "claude-in-session"
  },
+ "pause.journal.restartStarted": {
+  "en": "39eff612df6f",
+  "tr": "4d76142ad2c2",
+  "by": "claude-in-session"
+ },
  "pause.journal.restartTitle": {
   "en": "ac4f95219339",
   "tr": "7394acbb4ac4",
@@ -27099,6 +27104,11 @@
   "tr": "d6672e7e1173",
   "by": "claude-in-session"
  },
+ "quest.share.notNow": {
+  "en": "1ea3514f61c0",
+  "tr": "a31b9886de6b",
+  "by": "claude-in-session"
+ },
  "quest.share.notReceived": {
   "en": "c55cae74f2a5",
   "tr": "37b02d691be9",
@@ -27152,6 +27162,11 @@
  "quest.share.repute": {
   "en": "f6f42c7fd97f",
   "tr": "d2365df23338",
+  "by": "claude-in-session"
+ },
+ "quest.share.sent": {
+  "en": "af911359ca0b",
+  "tr": "0aa7cf4c47ea",
   "by": "claude-in-session"
  },
  "quest.share.skewDiffer": {

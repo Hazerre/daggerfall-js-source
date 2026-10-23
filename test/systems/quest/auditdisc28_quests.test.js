@@ -121,7 +121,7 @@ const makeHost = new Function('d', `
   const { questBridge, _questSyncSeen, partyMembersHere, prepareShareData, socialLink, performance, QUEST_SYNC_CHECK_MS,
     shareSignature, prepareQuestShare, link, social, receiveSharedQuest, activeMemberships, playerEntity, _questSharer,
     setMidScreenText, sayShareRefusal, _questRefusalSaid, shareRefusalText, SHARE_REFUSAL_TEXT,
-    syncBaselineAfter, questBusyAgain, shareSomeone, shareReceivedLine, shareRefusedLine } = d;   // QUEST-AUDIT III: the host's share wiring, moved to questShare.js
+    syncBaselineAfter, questBusyAgain, shareSomeone, shareReceivedLine, shareRefusedLine, shareSentLine } = d;   // QUEST-AUDIT III: the host's share wiring, moved to questShare.js
   let _questSyncCheckAt = -Infinity;
   ${lift(W, 'const questSyncTick = () => {')}
   ${lift(W, 'const shareQuestWithParty = (uid, questName, displayName) => {')}
@@ -146,7 +146,7 @@ function seat(acct, clock, party, { world = null, gameNow = () => 0 } = {}) {
     social: { inMyParty: (a) => party.includes(a) }, receiveSharedQuest: QS.receiveSharedQuest,
     activeMemberships: () => ({}), playerEntity: {}, _questSharer: new Map(), setMidScreenText: (t) => said.push(t),
     sayShareRefusal: QS.sayShareRefusal, _questRefusalSaid: new Set(), shareRefusalText: QS.shareRefusalText, SHARE_REFUSAL_TEXT: QS.SHARE_REFUSAL_TEXT,
-    syncBaselineAfter: QS.syncBaselineAfter, questBusyAgain: QS.questBusyAgain, shareSomeone: QS.shareSomeone, shareReceivedLine: QS.shareReceivedLine, shareRefusedLine: QS.shareRefusedLine,
+    syncBaselineAfter: QS.syncBaselineAfter, questBusyAgain: QS.questBusyAgain, shareSomeone: QS.shareSomeone, shareReceivedLine: QS.shareReceivedLine, shareSentLine: QS.shareSentLine, shareRefusedLine: QS.shareRefusedLine,
   });
   let read = 0;
   return {

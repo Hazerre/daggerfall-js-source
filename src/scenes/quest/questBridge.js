@@ -266,10 +266,10 @@ export const QUEST_CTX_CONTRACT = Object.freeze([
   'dropFace', 'endLycanthropy', 'endVampirism', 'forceTopicListsUpdate',
   'getGoldPieces', 'getGuild', 'getGuildFactionId',
   'getReputation', 'getTotalGold', 'giveItemToPlayer', 'hasQuestTopics',
-  'isPlayerInTown', 'isPlayerInsideCastle', 'makeEnemiesHostile',
+  'isPlayerInTown', 'isPlayerInsideCastle', 'keepsQuestItem', 'makeEnemiesHostile',   // AUDIT QA3 B8: the reclaim's read of every keeping
   'makeHeldQuestItemsPermanent', 'makePcDiseased', 'midDateTimeString',
   'noteMinutes', 'notePlace',   // L10N5: a notebook header's render data
-  'offerReward', 'onQuestEnded', 'onQuestStarted', 'onQuestlineOffer', 'ownMinutes', 'partySize', 'playSong',   // QL3: a quest's choice of gear, rolled - the host's window
+  'offerReward', 'onQuestEnded', 'onQuestStarted', 'onQuestlineOffer', 'ownMinutes', 'partyHas', 'partySize', 'playSong',   // QL3: a quest's choice of gear, rolled - the host's window
   'playSound', 'playVideo', 'playerEntity', 'playerHasItem',
   'playerRaceName', 'questClockStepMax', 'questFoeInstances', 'questFoeKilled', 'questWhere',   // GUIDE4: the host's two questions for the lens's look
   'questlineService',   // QL12: the account service's door for the questlines' claims - optional, the page's own by default
@@ -323,6 +323,7 @@ export function restartRefusalText(reason) {
     case 'questor': return t('pause.journal.restartQuestor', 'Someone gave you that quest. Abandon it and ask them for it again.');
     case 'paid': return t('pause.journal.restartPaid', 'That quest has already paid you, so it cannot be started again.');   // QUEST-AUDIT III RESTART-PAID
     case 'child': return t('pause.journal.restartChild', 'Another quest depends on that one, so it cannot be restarted.');
+    case 'started': return t('pause.journal.restartStarted', 'That quest has already started another, so starting it again would start that one twice.');   // AUDIT QA3 B1
     case 'raid': return t('pause.journal.restartRaid', 'Not while the raid is on.');
     case 'unparsed': return t('pause.journal.restartUnparsed', 'That quest could not be started again here.');
     case 'failed': return t('pause.journal.restartFailed', 'That quest could not be started again.');
@@ -413,6 +414,7 @@ export function createQuestBridge(ctx, { label = 'host' } = {}) {
     removeItemFromPlayer: (item) => ctx.removeItemFromPlayer?.(item),
     playerHasItem: (item) => ctx.playerHasItem?.(item) ?? false,
     carriesQuestItem: (item) => ctx.carriesQuestItem?.(item) ?? false,
+    keepsQuestItem: (item) => (ctx.keepsQuestItem ?? ctx.carriesQuestItem)?.(item) ?? false,   // AUDIT QA3 B8: anywhere the player keeps it (the reclaim's read)
     releaseQuestItem: (uid, item) => ctx.releaseQuestItem?.(uid, item),
     makeHeldQuestItemsPermanent: (uid, sym) => ctx.makeHeldQuestItemsPermanent?.(uid, sym),
     offerReward: (q, item) => ctx.offerReward?.(q, item),
@@ -423,6 +425,7 @@ export function createQuestBridge(ctx, { label = 'host' } = {}) {
     questEnding: (q) => questlines?.ending(q) ?? null,
     isPlayerInTown: () => ctx.isPlayerInTown?.() ?? false,
     partySize: () => ctx.partySize?.() ?? 1,   // REALM P0.4: a shared quest's gold, split
+    partyHas: (acct) => ctx.partyHas?.(acct) ?? true,   // AUDIT QA3 E1: the sharer of a received copy, still in the party
     // AUDIT 58: DaggerfallUI.Awake's one subscription to GivePc's
     // static OnOfferPending event (DaggerfallUI.cs:352) - the handler
     // latches the sender and nothing else (:1731-1735). The two key
