@@ -595,5 +595,5 @@ player and the camera: the naval deps' `deck` door (the body carried, its facing
 poses its ships after the eye is taken) and the three answers it shares with CSA-K's carry of another player's boat,
 hoisted out of `csaPeersFrame` so the two are one (`deckMayCarry`, `deckGround`, `deckCarry`). DECK-POSE had left
 `bootWorld` at its ceiling (36,284 of 36,284); these are ten logical lines, and the ceiling took them with the reason
-beside it (36,284 -> 36,294). The four rigs that lift `csaPeersFrame` lift the three answers with it.
+beside it - 36,296 at the merge with main, whose own host had grown to 36,283 inside its room. The four rigs that lift `csaPeersFrame` lift the three answers with it.
 
