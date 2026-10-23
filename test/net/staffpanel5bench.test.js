@@ -70,9 +70,10 @@ test('STAFF-PANEL5-FOLLOW bench: what the where note and the follow cost the bus
 // STAFF-PANEL5-FEEDS-FIX (the relay flaw review, findings 9 and 12; mob: features only "if it wont affect server") - WHAT
 // THE FEEDS' FIXES COST A FRAME: a pose read by two open episodes (the teleport check one compare), and a quiet sender's
 // full foes frame (no row made now). A bench on this machine, not live: the numbers print, the bounds are loose.
-test('STAFF-PANEL5-FEEDS-FIX bench: a pose read by open episodes and a quiet foes frame stay a few microseconds, and quiet senders hold no memory', async () => {
+test('STAFF-PANEL5-FEEDS-FIX bench: a pose read by open episodes and a quiet foes frame stay a few microseconds, and quiet senders hold no memory', async (t) => {
   const { staffReactAsk, staffReactPose, staffFoesSeen, staffFeedsStop } = await import('../../server/src/staffFeeds.js');
   const room = { env: { REACTION_FEED_URL: 'https://a.example/r', STAFF_NET_FEED_URL: 'https://a.example/n' }, _all: () => [], _meters: new Map(), _receiptKeyOf: async () => null };
+  t.after(() => staffFeedsStop(room));   // a failed assert must not leave the feed's timer holding the file open
   const ws = {}, now0 = 1e12, pose = { x: 100, y: 60, z: 100, yaw: 0, pitch: 0 };
   for (let i = 0; i < 2; i++) staffReactAsk(room, ws, { key: 'world:1,1', sub: 'acct-bench-01', pose }, { k: 'enc', n: 1 }, now0);
   const time = (n, fn) => { const t0 = process.hrtime.bigint(); for (let i = 0; i < n; i++) fn(i); return Number(process.hrtime.bigint() - t0) / 1e3 / n; };
@@ -93,7 +94,7 @@ test('STAFF-PANEL5-FEEDS-FIX bench: a pose read by open episodes and a quiet foe
 // the fan is cheaper than live and the share an upper bound). A bench on this machine, not live: the numbers print, the
 // bounds are loose. On a shared machine the fan's pair swings by more than the count costs, so the count timed alone is
 // the measure: an honest frame mix adds about 0.9 x a delta's + 0.1 x a full frame's to each frame's fan.
-test('STAFF-PANEL5-MONSTERS bench: the monster count on every fanned foes frame with grantStrip off, against the fan', async () => {
+test('STAFF-PANEL5-MONSTERS bench: the monster count on every fanned foes frame with grantStrip off, against the fan', async (t) => {
   const { staffFoesSeen, staffFeedsStop } = await import('../../server/src/staffFeeds.js');
   const { cellRoomOfWire, PIXEL_UNITS, FOES_FULL_MS } = await import('../../src/net/wire.js');
   const { FOES_MS } = await import('../../src/net/online.js');
@@ -112,6 +113,7 @@ test('STAFF-PANEL5-MONSTERS bench: the monster count on every fanned foes frame 
     const delta = text(24, 0), full24 = text(24, 1), full64 = text(64, 1);
     const fullEvery = FOES_FULL_MS / FOES_MS;   // an honest sender's one full frame in ten
     const room = r.room;
+    t.after(() => staffFeedsStop(room));   // a failed assert must not leave the feed's timer holding the file open
     /** Microseconds a frame through the fan: `frames(i)` the i-th frame's text, the senders in turn, the clock at the room's budget. */
     const fan = (frames, n = 2000) => {
       const sends = room._metrics.c.sends, t0 = process.hrtime.bigint();

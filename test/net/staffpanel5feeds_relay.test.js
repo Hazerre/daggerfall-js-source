@@ -202,7 +202,8 @@ test('STAFF-PANEL5-MONSTERS RAW FRAMES: with grantStrip off the count reads the 
   const owner = { key: CELL, sub: 'acct-raw-0001' };
   for (const text of ['null', '7', '"foes"', '[]', '{"full":1}', '{"full":1,"f":"x"}', '{"full":1,"f":{}}', '{"full":1,"f":[]}', '{"lc":2,"f":[null]}']) seen(owner, text);
   assert.equal(room._staffNet?.foes.size ?? 0, 0, 'no frame, no row');
-  // odd records and ids: none counted twice, a body and an id-less one not at all, the rest regular
+  // odd records and ids: a body and an id-less one not counted, the rest regular (an object id is a fresh key each time, so
+  // a modded client can only swell its own row)
   const odd = ['null', '3', '"s"', '[]', '{"i":null}', '{"i":{"x":1}}', '{"i":{"x":1}}', '{"i":"a"}', '{"i":"a"}', '{"__proto__":{"d":1},"i":5}', '{"i":6,"d":1}', '{"i":7,"t":"x","z":"1","cp":1.5,"nm":7,"gg":"16"}'];
   seen(owner, `{"full":1,"f":[${odd.join(',')},${[...Array(40).keys()].map((i) => `{"i":${100 + i}}`).join(',')}]}`);
   const row = room._staffNet.foes.get('acct-raw-0001');

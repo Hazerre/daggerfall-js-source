@@ -175,7 +175,7 @@ test('STAFF-PANEL5-FEEDS: Network bursts - Admins alone, most urgent first, by w
   assert.deepEqual(await BURSTS.top({ db: s.env.DB, nowS: nowS() }, s.env, { role: 'moderator' }, 2), { items: [], high: 0, total: 0 });
 });
 
-test('STAFF-PANEL5-FEEDS: Monster watch - owners outdoors, hosts never owners, "not measured" while grantStrip is off, and a Flag', async () => {
+test('STAFF-PANEL5-FEEDS: Monster watch - owners outdoors, hosts never owners, "not measured" while the batches say ms 0 (an older relay with grantStrip off), and a Flag', async () => {
   const s = await stand();
   assert.equal((await s.staff('/v1/staff/monsters', {}, s.mob)).body.monsters, 'no report');
   // an older relay's batch with grantStrip off: a window with no monsters read (a world248 relay always says ms 1)
