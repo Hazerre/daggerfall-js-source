@@ -156,6 +156,19 @@ test('FB1018D HOME-BENCH THE HOST\'S GATE: the host\'s own functions over the se
   assert.deepEqual([hallA.log.said, hallA.log.opened], [['This belongs to The Hand.'], []]);
 });
 
+test('FB1018D HOME-BENCH + ACCOUNT-HOMES A KNIGHT\'S DEED: the one home the account\'s other character does not own - in character A\'s house the realm gave (`deed`), B walks in as the owner\'s (`mine`), every station serves B as the door\'s owner and B\'s press opens it, and the cupboard is not B\'s ("This belongs to Cruor."): the deed is its knight\'s alone (mutants: the station asks `own`, or the decorator\'s owner, or both; the storage shared)', async (t) => {
+  const { svc, cruor, B, reader } = await town(t);
+  svc.env.DB._raw.prepare('UPDATE homes SET deed = 1 WHERE map_id = ? AND building_key = ?').run(MAP, HOME);
+  const asB = (await reader(cruor, B)).homeAt(MAP, HOME);
+  assert.deepEqual([asB.own, asB.mine, asB.deed, homeDoorAnswer(asB), homeStationsServe(asB)], [false, true, true, 'enter', true], 'the knight\'s house: the account\'s, not B\'s own');
+  const { gate, log } = room(asB);
+  for (const [station, here] of Object.entries(STATIONS)) assert.deepEqual(gate[here](), { kind: 'home', fee: 0 }, `B at the deed house's ${station}`);
+  gate.press({ station: 'enchant' });
+  assert.deepEqual([log.said, log.opened], [[], [['chooser', 'enchant']]], 'B is told nothing, and the chooser opens');
+  gate.activate('cupboard');
+  assert.deepEqual([gate.slot, log.said], [null, ['This belongs to Cruor.']], 'the cupboard is the knight\'s - its things in the knight\'s save');
+});
+
 test('FB1018D HOME-BENCH THE DOOR\'S OTHER VISITORS (AUDIT FB1018D L1-3): Cruor opens A\'s home to its guild, and Mara\'s character, in that guild, is let in as a guildmate; Mara\'s character renting a room there is let in as a tenant - and neither is the owner\'s account, so neither is served a station: homeStationsServe false, every accessor null, the press told whose home it is (mutants: a guildmate served; a tenant served)', async (t) => {
   const { svc, cruor, A, Mara, mara, reader } = await town(t);
   const raw = svc.env.DB._raw;

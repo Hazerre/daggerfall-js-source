@@ -11093,7 +11093,9 @@ sale - a piece from before the realm in it pays nothing back.
   account still holds stands for its heir to take up, one the account sold leaves. AUDIT SEA VENTURES B4 and AUDIT
   CARDS-4 A3: the delete asks them as well as `home-vendor-stocked`. FB1018D HOME-BENCH (PIN MOVED,
   `test/scenes/fb1018d_homebench.test.js`): the account's other character owns the home now - its door its own, its
-  cupboard its own save's - and the stations' one owner question serves both. L10N: the delete's door and `home-cap`
+  cupboard its own save's - and the stations' one owner question serves both; a knight's deed house is the one home
+  the account's other character walks into without owning, so it is where the station's `mine` and the cupboard's `own`
+  part now, and a test of its own holds the two apart (its 17 mutants dead). L10N: the delete's door and `home-cap`
   changed their English, so `menu.realm.deleteBody` and `account.refusal.homeCap` are drafted again in every language
   that holds them; the slice's own new words (the sweep's line, the hall's row, menu, sale and sold line - `home.*`, 12
   keys) go through `t()` (L10N4's ratchet), drafted in the 13 whole languages, the drafting ones falling back to English.
