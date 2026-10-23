@@ -56,7 +56,7 @@
   {
     "name": "MIXEDPAIR-reload-free",
     "file": "src/combat/twoHands/handsLaw.js",
-    "old": "  RELOAD: 1.5,",
+    "old": "  RELOAD: 2,",
     "new": "  RELOAD: 1,",
     "tests": [
       "test/combat/mixedpair.test.js"
@@ -74,8 +74,8 @@
   {
     "name": "MIXEDPAIR-blade-waits-the-reload",
     "file": "src/combat/playerWeapon.js",
-    "old": "    m.cooldownUntil = this.mixedPair ? m.now : m.now + Math.min(...hands.map((x) => this._pistolLeft(x)));",
-    "new": "    m.cooldownUntil = m.now + Math.min(...hands.map((x) => this._pistolLeft(x)));",
+    "old": "m.cooldownUntil = this.mixedPair ? Math.max(m.now, this._classicCooldown) : m.now + Math.min(",
+    "new": "m.cooldownUntil = m.now + Math.min(",
     "tests": [
       "test/combat/mixedpair.test.js"
     ]
@@ -92,8 +92,8 @@
   {
     "name": "MIXEDPAIR-reload-on-both",
     "file": "src/combat/playerWeapon.js",
-    "old": "this.pistols[h].cooldownMs = PISTOLET_FEEL.reloadMs * (h === gh ? MIXED.RELOAD : 1);",
-    "new": "this.pistols[h].cooldownMs = PISTOLET_FEEL.reloadMs * (gh ? MIXED.RELOAD : 1);",
+    "old": "ms = PISTOLET_FEEL.reloadMs * (h === gh ? MIXED.RELOAD : 1);",
+    "new": "ms = PISTOLET_FEEL.reloadMs * (gh ? MIXED.RELOAD : 1);",
     "tests": [
       "test/combat/mixedpair.test.js"
     ]
@@ -101,8 +101,8 @@
   {
     "name": "MIXEDPAIR-reload-never-reset",
     "file": "src/combat/playerWeapon.js",
-    "old": "this.pistols[h].cooldownMs = PISTOLET_FEEL.reloadMs * (h === gh ? MIXED.RELOAD : 1);",
-    "new": "if (h === gh) this.pistols[h].cooldownMs = PISTOLET_FEEL.reloadMs * MIXED.RELOAD;",
+    "old": "ms = PISTOLET_FEEL.reloadMs * (h === gh ? MIXED.RELOAD : 1);",
+    "new": "ms = h === gh ? PISTOLET_FEEL.reloadMs * MIXED.RELOAD : g.cooldownMs;",
     "tests": [
       "test/combat/mixedpair.test.js"
     ]
@@ -263,8 +263,8 @@
   {
     "name": "MIXEDPAIR-held-shot-unread",
     "file": "src/combat/playerWeapon.js",
-    "old": "((!!this.strike && this.strike.hand === gh) || this.shotHeld() === true)",
-    "new": "(!!this.strike && this.strike.hand === gh)",
+    "old": "  _gunStriking() { return !!this.gunHand && (this._shotMirror || this.shotHeld() === true); }",
+    "new": "  _gunStriking() { return !!this.gunHand && this._shotMirror; }",
     "tests": [
       "test/combat/mixedpair.test.js"
     ]
@@ -281,8 +281,8 @@
   {
     "name": "MIXEDPAIR-putby-cuts-the-blow",
     "file": "src/combat/playerWeapon.js",
-    "old": "    if (this._bladeTurn) return;",
-    "new": "    if (false) return;",
+    "old": "    if (this._bladeTurn) { m.cooldownUntil",
+    "new": "    if (false) { m.cooldownUntil",
     "tests": [
       "test/combat/mixedpair.test.js"
     ]
