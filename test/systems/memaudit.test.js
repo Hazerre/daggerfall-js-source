@@ -6,6 +6,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { StaticBatchBuilder, keyResolver } from '../../src/render/staticBatch.js';
+import { createCoverIndex, coverProxy, coverProxies, CELL_EXACT, COVER_CELL } from '../../src/ai/cover.js';
+import { flatBodies } from '../../src/world/propBodies.js';
+import { jungleCover } from '../../src/world/jungle/jungleModels.js';
 import { trs } from '../../src/world/mat4.js';
 import { SnowCoverage } from '../../src/systems/snowfall.js';
 import { SnowfallRuntime } from '../../src/systems/snowfallRuntime.js';
@@ -14,6 +17,10 @@ import { drawPixelGround } from '../../src/ui/pixelGround.js';
 import { createEotbArt, WALKER_OUTFITS_KEPT, WALKER_OUTFIT_IDLE_MS, outfitOfLayeredKey } from '../../src/net/peer/peerRiders.js';
 import { createMarketBook, MARKET_CACHE_KEPT, MARKET_CACHE_MS } from '../../src/net/marketBook.js';
 import { hostText } from '../hostText.mjs';
+import { fishKind } from '../../src/scenes/fishHost.js';
+import { setForagingHost } from '../../src/systems/foraging/foragingInstall.js';
+import { WORLD_MAP_TILE_DIM } from '../../src/world/terrain/terrainTiles.js';
+import { HEIGHTMAP_DIMENSION } from '../../src/world/terrain/terrainSampler.js';
 
 const rd = (p) => readFileSync(new URL(`../../src/${p}`, import.meta.url), 'utf8');
 const quiet = (fn) => { const w = console.warn; console.warn = () => {}; try { return fn(); } finally { console.warn = w; } };
@@ -40,6 +47,45 @@ test('MEM-AUDIT the static batch: the merge spends its inputs - the builder a ho
     assert.deepEqual([b.chunks.length, b.groups.size, b.vertexCount, b.triangles, b.models], [0, 0, 0, 0, 0], `${sliced ? 'sliced' : 'whole'}: spent`);
     assert.equal(b.finish(), null, 'a second merge is an empty builder\'s');
   }
+});
+
+// ─── THE COVER INDEX ─────────────────────────────────────────────────
+
+test('MEM-AUDIT the cover index: a cell is held at its size while small - the same proxies in the same order as the pushes filed them, a cell copied one longer below CELL_EXACT and pushed past it; every proxy born with its mark (mutants: a cell pushed from its first, the order turned, a maker without the mark)', () => {
+  const idx = createCoverIndex({ enabled: () => true });
+  const set = idx.staged();
+  let seed = 7;
+  const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 0x100000000;
+  const items = [];
+  for (let i = 0; i < 4000; i++) items.push(...coverProxies([rnd() * 300, 0, rnd() * 300], { w: 1 + rnd() * 8, h: 3 + rnd() * 9 }, { tree: rnd() < 0.5 }));
+  for (let i = 0; i < 60; i++) items.push(coverProxy([150 + rnd(), 0, 150 + rnd()], { w: 2, h: 2 }));   // one crowded corner: cells past CELL_EXACT
+  const bodies = flatBodies(null, 504, 3, { w: 3, h: 9 }, items.slice(0, 500).map((p) => p.c), { tree: true });
+  // the pushes' own grid, restated: every cell its proxies in the order they were filed
+  const ref = new Map(), refBodies = new Map();
+  const file = (m, k, it) => { let c = m.get(k); if (!c) m.set(k, c = []); c.push(it); };
+  const key = (gx, gz) => (gx + 32768) * 65536 + (gz + 32768);
+  for (const [list, m] of [[items, ref], [bodies, refBodies]]) for (const it of list) {
+    if (it.r > COVER_CELL) continue;
+    const [x, , z] = it.c;
+    for (let gx = Math.floor((x - it.r) / COVER_CELL); gx <= Math.floor((x + it.r) / COVER_CELL); gx++) for (let gz = Math.floor((z - it.r) / COVER_CELL); gz <= Math.floor((z + it.r) / COVER_CELL); gz++) file(m, key(gx, gz), it);
+  }
+  let copied = 0, pushed = 0;
+  for (let i = 0; i < items.length; i += 997) {   // filled a slice at a time, as a streamed pixel's is
+    const before = new Map([...set.grid].map(([k, c]) => [k, [c, c.length]]));
+    idx.fill(set, items.slice(i, i + 997));
+    for (const [k, [was, n]] of before) {
+      const now = set.grid.get(k);
+      if (now.length === n) continue;
+      if (n < CELL_EXACT) { assert.notEqual(now, was, 'a small cell grown is a new array, its own size'); copied++; } else { assert.equal(now, was, 'a cell past CELL_EXACT is pushed'); pushed++; }
+    }
+  }
+  idx.fill(set, bodies);
+  assert.deepEqual([...set.grid.keys()].sort((a, b) => a - b), [...ref.keys()].sort((a, b) => a - b), 'the same cells');
+  for (const [k, c] of ref) assert.deepEqual(set.grid.get(k), c, 'each its proxies, in the order filed');
+  for (const [k, c] of refBodies) assert.deepEqual(set.bodies.get(k), c, 'and the bodies\' grid the same');
+  assert.ok(copied > 100 && pushed > 0, `both arms met (${copied} copied, ${pushed} pushed)`);
+  const born = [coverProxy([0, 0, 0], { w: 2, h: 2 }), ...coverProxies([0, 0, 0], { w: 2, h: 9 }, { tree: true }), ...jungleCover([0, 0, 0], 0, 1), ...flatBodies(null, 504, 3, { w: 3, h: 9 }, [[0, 0, 0]], { tree: true })];   // fresh: `fill` marks what it files
+  for (const p of born) assert.ok(Object.hasOwn(p, '_mark'), `a proxy born with its mark (${Object.keys(p).join(',')})`);
 });
 
 // ─── THE SNOW'S BLANKET ──────────────────────────────────────────────
@@ -94,6 +140,31 @@ test('MEM-AUDIT the snow\'s blanket: idle (the travel view up, a door), its over
   const dropped = [...rt.dirty.blanket].filter((o) => o.dead);
   assert.ok(dropped.length >= laid.length - (2 * RING + 1) ** 2 + 1 || dropped.length > 0, 'the old ring dropped, its GPU halves waiting on the sync');
   assert.ok(dropped.every((o) => o.t === null && o.pos === null && o.nrm === null && o.ctx === null && o.statics === null), 'and holding nothing of their tiles');
+});
+
+// ─── THE FISHING HOST'S SCHOOLS ──────────────────────────────────────
+
+test('MEM-AUDIT the fishing host: a pixel torn down forgets its schools - its whole entry was held for the session online, every pixel a journey streamed (~26 MB a map pixel travelled); one stood again keeps its own (mutant: the schools never dropped)', () => {
+  const prev = setForagingHost({ world: () => ({ inside: false, insideDungeon: false, insideCastle: false, locationType: 0xffff, inLocationRect: false, hour: 12, climate: 231, region: 17, enemiesNear: false, carriedWeight: 0, maxEncumbrance: 100, swimming: true, exteriorWater: 'Swimming' }), entity: () => null });
+  try {
+    const samples = new Float32Array(HEIGHTMAP_DIMENSION * HEIGHTMAP_DIMENSION), water = new Uint8Array(WORLD_MAP_TILE_DIM * WORLD_MAP_TILE_DIM);
+    let eye = null;
+    const host = { pixel: () => ({ x: 300, y: 200 }), ground: () => ({ climate: 231, region: 17 }), eye: () => eye, feet: () => eye.pos, hour: () => 12, storm: () => false, climateAt: () => 231, trophy: () => true, day: () => 20724 };
+    const k = fishKind({ book: { state: { open: true, hauls: 0, caps: { stores: 5000 } }, taken: () => false, counting: () => false, held: () => 0 }, host });
+    const entry = { px: 300, py: 200, samples, tilemap: water };
+    const nodes = k.nodesOf({ entry, px: 300, py: 200, day: 20724 });
+    eye = { pos: [nodes[0].local[0] - 8, 1.6, nodes[0].local[2]], dir: [1, 0, 0] };
+    k.stood(entry, nodes);
+    k.frame(0, { feet: eye.pos, translation: () => [0, 0, 0] });   // a translation that answers for any entry: what the kind holds is what it says
+    const [cast] = k.looseNodesOf({ entity: { items: [{ templateIndex: 1603, currentCondition: 50 }] }, dungeon: false });
+    const said = () => k.plan(cast, { rank: () => 0, keyLabel: () => 'E' }).rest;
+    assert.match(said(), /a school rises 8 m east/);
+    const again = { ...entry };
+    k.dropped(again);
+    assert.match(said(), /a school rises/, 'another entry of the pixel let go: its own kept');
+    k.dropped(entry);
+    assert.equal(said(), 'Fishing 0', 'torn down: forgotten');
+  } finally { setForagingHost(prev); }
 });
 
 // ─── THE MENUS' SKY ──────────────────────────────────────────────────
@@ -206,6 +277,26 @@ test('MEM-AUDIT the windows\' listeners and caches: the account card\'s focus li
   assert.match(menu, /footObs\?\.disconnect\?\.\(\); footObs = null;\n {6}acctPaint = null; acctOff\?\.\(\); acctOff = null;/, 'the unmount');
   assert.match(inv, /menuOff = \(\) => \{ clearTimeout\(timer\); document\.removeEventListener\('pointerdown', away, true\);/);
   assert.match(rd('ui/item/itemIconUrl.js'), /const _iconUrls = new WeakMap\(\);/);
+});
+
+test('MEM-AUDIT the classic sky keeps its two last sky files, and their bytes go with the rest - forgetBytes lets a file go from the memory cache, read again the next time it is asked (mutants: the sky files unbounded, the bytes kept)', async () => {
+  const shared = rd('scenes/shared.js');
+  assert.match(shared, /const SKY_FILES_KEPT = 2;/);
+  assert.match(shared, /skyFiles\.delete\(skyIndex\); skyFiles\.set\(skyIndex, sf\);[^\n]*\n {4}while \(skyFiles\.size > SKY_FILES_KEPT\) \{\n {6}const \[old\] = skyFiles\.keys\(\);\n {6}skyFiles\.delete\(old\);\n {6}forgetBytes\(SkyFile\.indexToFileName\(old\)\);/);
+  const { getBytes, forgetBytes } = await import('../../src/scenes/dataSource.js');
+  const was = globalThis.fetch;
+  let asked = 0;
+  globalThis.fetch = async () => { asked++; return { ok: true, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer }; };
+  try {
+    const name = 'MEMAUDIT.TST';
+    assert.deepEqual([...await getBytes(name)], [1, 2, 3]);
+    await getBytes(name);
+    assert.equal(asked, 1, 'kept');
+    forgetBytes(name);
+    assert.deepEqual([...await getBytes(name)], [1, 2, 3]);
+    assert.equal(asked, 2, 'let go: read again, the same bytes');
+    forgetBytes(name);
+  } finally { globalThis.fetch = was; }
 });
 
 test('MEM-AUDIT a still batch in an arena makes no indices of its own - the batch with its own buffers alone writes them (mutant: the indices a batch again)', () => {

@@ -178,5 +178,104 @@
     "tests": [
       "test/systems/org2_options.test.js"
     ]
+  },
+  {
+    "name": "MA-the-schools-never-dropped",
+    "file": "src/scenes/fishHost.js",
+    "old": "    dropped(entry) { const k = pixelKey(entry.px, entry.py); if (schools.get(k)?.entry === entry) schools.delete(k); },\n",
+    "new": "",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-the-schools-dropped-for-any-entry",
+    "file": "src/scenes/fishHost.js",
+    "old": "if (schools.get(k)?.entry === entry) schools.delete(k);",
+    "new": "schools.delete(k);",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-a-cover-cell-pushed-from-its-first",
+    "file": "src/ai/cover.js",
+    "old": "  if (n >= CELL_EXACT) { cell.push(it); return; }",
+    "new": "  if (n >= 0) { cell.push(it); return; }",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-a-cover-cell-s-order-turned",
+    "file": "src/ai/cover.js",
+    "old": "  for (let i = 0; i < n; i++) next[i] = cell[i];\n  next[n] = it;",
+    "new": "  for (let i = 0; i < n; i++) next[i + 1] = cell[i];\n  next[0] = it;",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-a-proxy-born-without-its-mark",
+    "file": "src/ai/cover.js",
+    "old": "h: size.h * COVER_HEIGHT_FRAC, lift: 0, _mark: 0 };",
+    "new": "h: size.h * COVER_HEIGHT_FRAC, lift: 0 };",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-a-tree-s-crown-born-without-its-mark",
+    "file": "src/ai/cover.js",
+    "old": "h: h - from, lift: from, _mark: 0 },",
+    "new": "h: h - from, lift: from },",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-a-body-born-without-its-mark",
+    "file": "src/world/propBodies.js",
+    "old": "{ c, r, h, lift: 0, body: true, _mark: 0 }",
+    "new": "{ c, r, h, lift: 0, body: true }",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-a-jungle-trunk-born-without-its-mark",
+    "file": "src/world/jungle/jungleModels.js",
+    "old": "h: m.crownFrom * scale, lift: 0, _mark: 0 },",
+    "new": "h: m.crownFrom * scale, lift: 0 },",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-the-sky-files-unbounded",
+    "file": "src/scenes/shared.js",
+    "old": "    while (skyFiles.size > SKY_FILES_KEPT) {",
+    "new": "    while (skyFiles.size > Infinity) {",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-the-sky-s-bytes-kept",
+    "file": "src/scenes/shared.js",
+    "old": "      forgetBytes(SkyFile.indexToFileName(old));\n",
+    "new": "",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-forgetBytes-forgets-nothing",
+    "file": "src/scenes/dataSource.js",
+    "old": "export function forgetBytes(name) { mem.delete(normalizeName(name)); }",
+    "new": "export function forgetBytes(name) { void name; }",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
   }
 ]

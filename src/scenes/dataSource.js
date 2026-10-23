@@ -1324,6 +1324,11 @@ export async function pickTextureFolder() {
  *  through `deps.fetchArena2Bytes`, and a test hands it a fixture. */
 export const fetchArena2Bytes = (name) => getBytes(name);
 
+/** MEM-AUDIT (2026-10-23): a file's bytes let go from the memory cache - its next read comes from IndexedDB (or the
+ *  network) again, the same bytes. For a file a reader keeps only while it uses it: a classic sky's SKY??.DAT, 7.8 MB
+ *  each and 32 of them, held for the session as a journey crossed climates, weathers and seasons. */
+export function forgetBytes(name) { mem.delete(normalizeName(name)); }
+
 /** The single data seam every reader goes through (via fetchBytes). */
 export async function getBytes(name) {
   const key = normalizeName(name);

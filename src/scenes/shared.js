@@ -108,7 +108,7 @@ import { festivalEnvironment } from './seatFestival.js';   // FESTIVAL-STAGE: a 
 import { audio } from '../systems/audio.js';
 import { messageBox } from '../systems/notify.js';   // ENH-NOTICE3: the one door every DaggerfallUI.MessageBox goes through - the infection's popup names the KIND, never the host's window
 
-import { getBytes, storedMusicNames, loadMusicFile, registerTextureStore, registerMorrowindData } from './dataSource.js';   // M-EXT/M-TEX: the player's own packs
+import { getBytes, forgetBytes, storedMusicNames, loadMusicFile, registerTextureStore, registerMorrowindData } from './dataSource.js';   // M-EXT/M-TEX: the player's own packs
 
 
 /** The data seam every scene uses - delegates to the ARENA2 data
@@ -338,6 +338,10 @@ export function createSkyController(gl, params) {
   // immediate neighbours and the night/day toggle.
   const PANORAMA_CACHE_MAX = 4;
   const panoramas = new Map();
+  // MEM-AUDIT (2026-10-23): AND THE SKY FILES THEMSELVES, the two last asked. Each SKY??.DAT is 7.8 MB, a sky index is a
+  // climate's sky and its season or weather, and the parsed files and their bytes stood for the session - up to 248 MB
+  // past the heap. One asked again is read again: the same bytes, the same panorama.
+  const SKY_FILES_KEPT = 2;
   const skyFiles = new Map();
   let activeKey = '';
   let pending = null;
@@ -385,6 +389,12 @@ export function createSkyController(gl, params) {
       }
     }
     const sf = skyFiles.get(skyIndex);
+    skyFiles.delete(skyIndex); skyFiles.set(skyIndex, sf);   // MEM-AUDIT: the newest last
+    while (skyFiles.size > SKY_FILES_KEPT) {
+      const [old] = skyFiles.keys();
+      skyFiles.delete(old);
+      forgetBytes(SkyFile.indexToFileName(old));
+    }
     return sf ? buildDaySkyPanorama(sf, frame) : buildFallbackSkyPanorama();
   }
 
