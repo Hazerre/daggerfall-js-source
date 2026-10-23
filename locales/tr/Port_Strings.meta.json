@@ -2434,6 +2434,26 @@
   "tr": "e339fd7aeac0",
   "by": "claude-in-session"
  },
+ "net.staffTp.exact": {
+  "en": "8fb56b5df042",
+  "tr": "d2a3361688b9",
+  "by": "claude-in-session"
+ },
+ "net.staffTp.noteMismatch": {
+  "en": "f50cdbcedc32",
+  "tr": "de040bfe86ca",
+  "by": "claude-in-session"
+ },
+ "net.staffTp.noteMissing": {
+  "en": "d14a4a4e409d",
+  "tr": "90a1ff0708d9",
+  "by": "claude-in-session"
+ },
+ "net.staffTp.viaNote": {
+  "en": "8a97ef1eda62",
+  "tr": "2c77639c3ea3",
+  "by": "claude-in-session"
+ },
  "quest.mark.many": {
   "en": "ac6a379cd9e1",
   "tr": "6624eee7e113",

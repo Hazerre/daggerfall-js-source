@@ -1904,6 +1904,26 @@
   "tr": "d8ca04e7c4a7",
   "by": "claude-in-session"
  },
+ "net.staffTp.exact": {
+  "en": "8fb56b5df042",
+  "tr": "5bff45c2d395",
+  "by": "claude-in-session"
+ },
+ "net.staffTp.noteMismatch": {
+  "en": "f50cdbcedc32",
+  "tr": "c2784644a3b5",
+  "by": "claude-in-session"
+ },
+ "net.staffTp.noteMissing": {
+  "en": "d14a4a4e409d",
+  "tr": "e0f089a93070",
+  "by": "claude-in-session"
+ },
+ "net.staffTp.viaNote": {
+  "en": "8a97ef1eda62",
+  "tr": "a2aadefb1838",
+  "by": "claude-in-session"
+ },
  "quest.mark.many": {
   "en": "ac6a379cd9e1",
   "tr": "40dd49c53090",
