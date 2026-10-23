@@ -46,7 +46,7 @@ import { strikingSide, mirrorPlan, counterpartName } from './twoHands/mirrorRig.
 import { climbRequestToRig, climbRequestToFirstPerson } from './climbRig.js';   // CLIMB6: ...and in each rig's space
 import { seatRequestFor, seatedCamera, saddleRequestFor } from '../player/seatPose.js';   // CARDS2b: the seat in the rig's space; WAGONS3: and the body still on it; COATS3D: and astride
 import { fieldOfView } from '../ui/viewSettings.js';   // CLIMB6: the world lens the arm's hands are matched to
-import { MW_ARM_PIXEL, CHAR_SPRITE_RT_SIZE } from '../render/renderer.js';
+import { CHAR_SPRITE_RT_SIZE } from '../render/renderer.js';
 import {
   sampleTrack, resetClip, advanceClip, getTextKeyTime, getStartTime,
 } from '../formats/morrowind/mwAnim.js';
@@ -81,7 +81,7 @@ import { CifRciFile } from '../formats/cifRciFile.js';
 import { DFPalette } from '../formats/dfPalette.js';
 import { raceArt } from '../systems/races.js';
 import { appStorage } from '../systems/appStorage.js';   // DA1: the storage seam
-import { drawRigSpriteBox } from '../render/characterSprite.js';
+import { drawBodyPicture, mwModelPixel } from '../render/characterSprite.js';
 import { WEAPONS } from '../characters/weapons.js';
 import { materialName } from '../systems/item/itemInfo.js';
 import { composeWornArmor, composeWornModest, shadowSkinRows, fpWornAdds, mwArmorRecords, mwClothingRecord, CLOTHING_NAME, werewolfRobeOf, firstPersonPartGroup } from '../formats/morrowind/mwItemMap.js';   // WEREWOLF1: the robe and its first-person ladder; NUDE-FLATS: the upper weld
@@ -4231,7 +4231,7 @@ export function createFpArm() {
     if (thirdMesh && thirdMesh.skin) releaseThirdMesh();   // MWNPC1: back to the CPU skin - its mesh is the packed one
     thirdPacked = packFpArm(t.arm.pieces, thirdPacked);
     if (!thirdMesh) {
-      thirdMesh = renderer.createCharacterMesh(thirdPacked.packed, { uv: true, bounds: false });   // MW-CROWD: drawn only through the sprite target (drawRigSpriteBox), which casts nothing - no sphere to walk at every pose
+      thirdMesh = renderer.createCharacterMesh(thirdPacked.packed, { uv: true, bounds: false });   // MW-CROWD: drawn only through the sprite target (drawBodyPicture), which casts nothing - no sphere to walk at every pose
       thirdMesh.ranges = thirdPacked.ranges;
       hangRangeTextures(thirdMesh.ranges, t.textures, { skin: bodySkin() });   // SHADOW-FANG
     } else {
@@ -6557,12 +6557,15 @@ export function createFpArm() {
       if (!active() || !canvas) return false;
       const cam = camera();
       if (!cam) return false;
-      // MW-D43: the ARM's dial, not the sprite pass's. See MW_ARM_PIXEL.
-      const wantW = canvas.clientWidth / MW_ARM_PIXEL;
-      const wantH = canvas.clientHeight / MW_ARM_PIXEL;
+      // MW-D43: the ARM's dial, not the sprite pass's. See MW_ARM_PIXEL. MW-DETAIL: the viewer's - one pixel a texel on Sharp.
+      const pixel = mwModelPixel();
+      const wantW = canvas.clientWidth / pixel;
+      const wantH = canvas.clientHeight / pixel;
       // DISC13-C: no pad to fit in the target - a moved frame needs one column and one row more at most (fpFrameWindow's note).
       const spare = screenTransform ? 1 : 0;
-      const s = Math.min(1, (CHAR_SPRITE_RT_SIZE - spare) / wantW, (CHAR_SPRITE_RT_SIZE - spare) / wantH);
+      // MW-DETAIL: the target grows to the screen's frame where it can (Sharp's is the screen's own size)
+      const edge = renderer.charSpriteRoom?.(Math.ceil(Math.max(wantW, wantH)) + spare) ?? CHAR_SPRITE_RT_SIZE;
+      const s = Math.min(1, (edge - spare) / wantW, (edge - spare) / wantH);
       const pw = Math.max(2, Math.round(wantW * s));
       const ph = Math.max(2, Math.round(wantH * s));
 
@@ -6646,7 +6649,7 @@ export function createFpArm() {
       const W = canvas.clientWidth || canvas.width, H = canvas.clientHeight || canvas.height;
       const rect = screenTransform ? screenTransform({ x: 0, y: 0, w: W, h: H }) : null;
       if (rect && !(rect.w > 0 && rect.h > 0)) return false;
-      const win = rect ? fpFrameWindow(rect, W, H, pw, ph) : null;
+      const win = rect ? fpFrameWindow(rect, W, H, pw, ph, edge) : null;
       const fw = win ? win.nx : pw, fh = win ? win.ny : ph;   // the frame the pass renders
       const px = (2 * hw) / pw, py = (2 * hh) / ph;   // one frame pixel on the near plane
       const proj = win ? frustum(-hw + win.k0 * px, -hw + (win.k0 + fw) * px, hh - (win.r0 + fh) * py, hh - win.r0 * py, near, far) : perspective(FP_FIELD_OF_VIEW, pw / ph, near, far);
@@ -6672,10 +6675,10 @@ export function createFpArm() {
       // DISC13-C: the rect is the frame window's, which covers the screen
       // and slides with the widget's own sub-pixel position.
       if (win) {
-        renderer.drawScreenQuad(tex, win.dst, { u0: 0, v0: fh / CHAR_SPRITE_RT_SIZE, u1: fw / CHAR_SPRITE_RT_SIZE, v1: 0 });
+        renderer.drawScreenQuad(tex, win.dst, { u0: 0, v0: fh / edge, u1: fw / edge, v1: 0 });
         return true;
       }
-      renderer.drawScreenOverlayQuad(tex, pw / CHAR_SPRITE_RT_SIZE, ph / CHAR_SPRITE_RT_SIZE);
+      renderer.drawScreenOverlayQuad(tex, pw / edge, ph / edge);
       return true;
     },
 
@@ -6792,7 +6795,8 @@ export function createFpArm() {
     /**
      * MW-D24: THE THIRD-PERSON DRAW - the body composited into the world
      * through the pixelize standard (drawRigSpriteBox, the same law the
-     * voxel foes ride). The assembly is in Morrowind's Z-up units; the
+     * voxel foes ride; BODY-CROP: drawBodyPicture, the main camera's own
+     * picture of it, unless a card is asked for). The assembly is in Morrowind's Z-up units; the
      * model matrix stands it at the player's feet with the player's
      * heading and ONE scale, the reference's own unit bridge
      * (constants.hpp:10) - a Morrowind body is 1.83m tall in this
@@ -6885,7 +6889,11 @@ export function createFpArm() {
       const anchor = transformPoint(model, 0, 0, body ? (body.minZ + body.maxZ) / 2 : (minZ + maxZ) / 2);
       // MW-D43b: the body is a Morrowind MESH, so it takes the arm's
       // dial, not the sprite standard - the same fix MW-D43 made for
-      // the first-person pass and missed here.
+      // the first-person pass and missed here (MW-DETAIL: the viewer's
+      // dial now, mwModelPixel). BODY-CROP: the picture is the main
+      // camera's own, cut to the body's window (drawBodyPicture), so the
+      // anchor only sets the quad's depth there; it lands the card as
+      // above under the Billboard Look and the travel view's lean.
       // INVIS-LOOK: `conceal` a concealed peer's draw (ECV1's visual, net/peer/peerBodies.js drawVeiled) - the quad blends.
       // AUDIT OW4 J6: `up` the travel view's leaned vertical (player/mwView.js, face.up) - the quad leans with the flats and
       // the sprite lane's body, so the picture taken down the pitched ray is not foreshortened a second time
@@ -6894,10 +6902,10 @@ export function createFpArm() {
       // is OF the horse - its middle is the anchor, so the figure is the rider on it, sized where the horse stands
       if (horse && horse.mesh && horse.model && horse.box) {
         const u = spriteBoxUnion({ center, halfW, halfH }, horse.box);
-        drawRigSpriteBox(renderer, canvas, thirdMesh, model, { ...u, anchor: horse.box.anchor, hitFlash, conceal, up, fx, also: [{ mesh: horse.mesh, model: horse.model }], glowLook: padLooks }, proj, view, eye, MW_ARM_PIXEL);
+        drawBodyPicture(renderer, canvas, thirdMesh, model, { ...u, anchor: horse.box.anchor, hitFlash, conceal, up, fx, also: [{ mesh: horse.mesh, model: horse.model }], glowLook: padLooks }, proj, view, eye);
         return true;
       }
-      drawRigSpriteBox(renderer, canvas, thirdMesh, model, { center, halfW, halfH, anchor, hitFlash, conceal, up, fx, glowLook: padLooks }, proj, view, eye, MW_ARM_PIXEL);   // HITFLASH1: a struck peer's body flashes
+      drawBodyPicture(renderer, canvas, thirdMesh, model, { center, halfW, halfH, anchor, hitFlash, conceal, up, fx, glowLook: padLooks }, proj, view, eye);   // HITFLASH1: a struck peer's body flashes
       return true;
     },
 

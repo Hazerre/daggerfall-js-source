@@ -10159,6 +10159,26 @@
   "tr": "fb177110e1a0",
   "by": "claude-in-session"
  },
+ "features.mwModelDetail.note": {
+  "en": "ebe17589efe8",
+  "tr": "9477a2851942",
+  "by": "claude-in-session"
+ },
+ "features.mwModelDetail.pixel": {
+  "en": "d1ecc5ee9c8b",
+  "tr": "f5d95cd889e1",
+  "by": "claude-in-session"
+ },
+ "features.mwModelDetail.sharp": {
+  "en": "cf3e9a41dee8",
+  "tr": "1b6bc4811402",
+  "by": "claude-in-session"
+ },
+ "features.mwModelDetail.title": {
+  "en": "80df07bb3322",
+  "tr": "751db323b5ac",
+  "by": "claude-in-session"
+ },
  "features.navalCombat.aimCamera": {
   "en": "cfc12726e349",
   "tr": "6299646cc7b3",
