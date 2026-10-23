@@ -14,11 +14,13 @@
 // A pair whose span cannot stand (its prototype missing) stands its trees as the jungle's own canopy trees.
 // ═══════════════════════════════════════════════════════════════════
 import { wholePairs } from '../world/jungle/jungleRoadside.js';
+import { pairPicture } from '../world/naturePicture.js';   // THE ONE CONSTRUCTION SEAM: the one file that asks a door for a picture
 
 /**
  * @param {{ door: any, flats: any[], keep: (f: any) => boolean, groups: Map<string, any>, handles: any[], set: any[],
  *   sway: (proto: any, record: number) => void }} deps
- *   `door` the jungle's, loaded (systems/jungleTreesAssets.js - pairProto, farPicture, acquire); `flats` the pixel's pair
+ *   `door` the jungle's, loaded (systems/jungleTreesAssets.js - asked through world/naturePicture.js pairPicture, and
+ *   acquire); `flats` the pixel's pair
  *   trees; `keep(f)` whether the build would stand a flat there; `groups` the build's jungle groups (each pair tree's
  *   added); `handles` and `set` the pixel's jungle handles and near set (each span's added, its handle held as the
  *   species' are); `sway(proto, record)` the build's wind maps written for a span's prototype by its first tree's record.
@@ -29,15 +31,14 @@ export async function standRoadside({ door, flats, keep, groups, handles, set, s
   const pairs = wholePairs(flats, keep);
   for (const p of pairs) {
     if (!spans.has(p.kind)) {
-      const proto = door.pairProto(p.kind);
-      const h = proto ? await door.farPicture(proto) : null;
+      const pic = await pairPicture(door, p.kind), h = pic?.far ?? null;
       let entry = null;
-      if (h) {
+      if (pic) {
         door.acquire(h);
         handles.push(h);
         entry = { h: handles.length - 1, centers: [], wild: null, own: [], fit: null, turn: [] };
         set.push(entry);
-        sway(proto, p.trees[0].record);
+        sway(pic.proto, p.trees[0].record);
       }
       spans.set(p.kind, { h, entry });
     }

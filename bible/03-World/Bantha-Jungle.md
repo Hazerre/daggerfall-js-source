@@ -226,7 +226,8 @@ to them.
 
 **Where a pair stands** (`standPairs`, run by `withJungle` before its storeys, with the network the road painter painted
 with - `world/terrain/terrainGen.js` hands it on). Along each arm of the pixel's roads and tracks (VERGE1's arms and
-bands, `world/road/roadVerge.js` `ARMS`, `roadRoom`), a station every 40 m from 44 m out (past a junction) to 24 m
+bands - `world/road/roadBand.js` `ARMS`, `bandRoom`, VERGE1's band moved to one home the terrain worker reaches, which
+reaches `world/` and `formats/` alone - read off the arrays the painter paints from, `netBits`), a station every 40 m from 44 m out (past a junction) to 24 m
 short of the pixel's edge, slid along the road by up to 8 m - each station's draws a hash of its world tile, every
 client alike - and at 60% of them a pair of one of the three, turned either way round, at 0.92 to 1.08 of the owner's
 size: its axis across the road and the gap between its feet centred on the road's line (a band 12.8 m wide between feet
@@ -246,7 +247,8 @@ a 6% slope across the road at most. The sunk kapok's own 2 m rides on top.
 
 **In the game** (`scenes/roadsidePairs.js`, a module the pixel's build wires - HOST-SPLIT). A pair stands whole or not
 at all (`wholePairs` - the gate's clearing and the rocks, as every flat). Near the eye its SPAN - the owner's file, one
-instance in the jungle door's near set at its anchor, turned across its road (`world/lowPolyTrees.js` `buildTreeSet`'s
+instance in the jungle door's near set at its anchor (asked through `world/naturePicture.js` `pairPicture`, THE ONE
+CONSTRUCTION SEAM), turned across its road (`world/lowPolyTrees.js` `buildTreeSet`'s
 `turn`) - draws both trees and the lianas; its prototype is near-only (`nearOnly`): a handle for the near set alone, no
 far picture drawn or uploaded (`systems/lowPolyTreesAssets.js` `farPicture`). Its two trees join groups of their own
 among the build's jungle groups (`P<kind>.<side>`): each stands as its species' far picture past the handover - the batch
@@ -536,12 +538,17 @@ blades in view against 82,253 (a new game's winter takes the meadow's grass unde
 through it). The ground there: 87% DFU's grass record by place, 1.4% its green stone, which the floor stands nothing on
 (`__findTiles` over the nine pixels about the village).
 
-**JUNGLE-ROADSIDE.** `test/world/jungleroadside.test.js` (8): the pairs read whole and their roots off the owner's own
+**JUNGLE-ROADSIDE.** `test/world/jungleroadside.test.js` (9): the pairs read whole and their roots off the owner's own
 mahogany, the measures held to the files, the door's near-only prototypes, the turn the program's, the law on ground
 made for it - astride each road, every foot off every band (a star of eight roads), sunk to the lowest ground under its
 feet (a hollow under one sinks it the whole metre), the burial and the headroom, a steep cross-slope none - the storeys
-kept off them, the build's pairs whole; `tools/mutants/jungleroadside.json` (34, all dead). `bantha1_jungle.test.js`'s
-door (21 files) and kernel (the network handed on) pins moved.
+kept off them, the build's pairs whole, the worker's read of the roads GetPathsDataPoint's over the whole shipped map;
+`tools/mutants/jungleroadside.json` (37, all dead). `bantha1_jungle.test.js`'s
+door (21 files) and kernel (the network handed on) pins moved. **Seen in the running game** (2026-10-23, the freeware's data, headless
+Chromium on SwiftShader, the land view at 1): the road south out of Ceradbu, Mournoth (map pixel 949, 302), summer at
+10:00 - 14 pairs stood along its 820 m, all three kinds; down the road the leaning kapok bowing over it and the mahogany
+across, lianas strung over the road and the next pairs' lianas beyond; from under a pair, three lianas sagging crown to
+crown; the trunks' feet in the floor's plants, none standing clear of the ground.
 
 **Recorded.** The five pictures are the owner's own (2026-10-18, at AUDIT BANTHA1's opening: "These textures are ours") -
 no pixel of them is ARENA2's; the doctrine's SUPPLIED rows say so (`test/tooling/doctrine.test.js`). **Where it stands.** On the freeware's own data (`tools/fetch-data.sh`, `tools/jungleExtent.mjs`, 2026-10-18) region

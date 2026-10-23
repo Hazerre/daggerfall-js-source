@@ -25,9 +25,8 @@
 import { parseObj, parseMtl, objMesh, eachDrawn, FOOT_TOP } from './jungleModels.js';
 import { HEIGHTMAP_DIMENSION, MAX_TERRAIN_HEIGHT, STREAMING_TERRAIN_SCALE, TERRAIN_SIZE } from '../terrain/terrainSampler.js';
 import { WORLD_MAP_TILE_DIM } from '../terrain/terrainTiles.js';
-import { ARMS, roadRoom, PATH_HALF_M } from '../road/roadVerge.js';
+import { ARMS, bandRoom, netBits, PATH_HALF_M } from '../road/roadBand.js';
 import { tileDraw, groundAt } from '../terrain/terrainNature.js';
-import { pathsDataPoint } from '../../systems/travel/travelPaths.js';
 
 /**
  * THE OWNER'S THREE PAIRS. `file` the OBJ's name under src/assets/jungle/source/ (its MTL the same name's); `trees` the
@@ -170,14 +169,14 @@ export const JUNGLE_ROADSIDE = Object.freeze({
 const PIXEL = TERRAIN_SIZE, HALF = PIXEL / 2;
 
 /**
- * THE PAIRS A PIXEL STANDS - astride its roads and tracks (the network's arms, VERGE1's bands: world/road/roadVerge.js
- * ARMS, roadRoom), in the jungle whole. Along each arm a station every JUNGLE_ROADSIDE.step, its draws a hash of its
+ * THE PAIRS A PIXEL STANDS - astride its roads and tracks (the network's arms, VERGE1's bands: world/road/roadBand.js
+ * ARMS, bandRoom - read off the network's own arrays, netBits), in the jungle whole. Along each arm a station every JUNGLE_ROADSIDE.step, its draws a hash of its
  * world tile (terrainNature.js tileDraw: every client, every rebuild the same pairs); at a station a pair of one of the
  * owner's three, its axis across the road and its two feet's gap centred on the road's line, turned so (turnXZ) - and it
  * stands only where:
  *   - both trunks are well inside the pixel (`edge`), on ground the jungle's trees stand on (`tileOk` - whole jungle, a
  *     ground that grows, no slope past the trees' 34 degrees, no place's fields or clearing);
- *   - both feet keep off every road and track band (roadRoom - its own pixel's and its neighbours') and off the jungle's
+ *   - both feet keep off every road and track band (bandRoom - its own pixel's and its neighbours') and off the jungle's
  *     trails (`trailOk`);
  *   - neither trunk is buried past `bury` (its own ground over where the pair stands), and the road between them - its
  *     line and its band's two edges, across - leaves `headroom` under what hangs lowest over it (`over`);
@@ -191,7 +190,7 @@ const PIXEL = TERRAIN_SIZE, HALF = PIXEL / 2;
  *   trailOk: (x: number, z: number, r: number) => boolean }} job
  */
 export function standPairs({ px, py, net, heightmapData, tileOk, trailOk }) {
-  const bits = pathsDataPoint(net, px, py);
+  const bitsAt = net ? netBits(net) : null, bits = bitsAt ? bitsAt(px, py) : 0;
   if (!bits) return [];
   const R = JUNGLE_ROADSIDE, hDim = HEIGHTMAP_DIMENSION, cell = PIXEL / (hDim - 1), tile = PIXEL / WORLD_MAP_TILE_DIM, RIM = 32;
   const yScale = MAX_TERRAIN_HEIGHT * STREAMING_TERRAIN_SCALE;
@@ -232,7 +231,7 @@ export function standPairs({ px, py, net, heightmapData, tileOk, trailOk }) {
       });
       if (!trees.every((t) => t.x >= R.edge && t.x <= PIXEL - R.edge && t.z >= R.edge && t.z <= PIXEL - R.edge)) continue;
       if (!trees.every((t) => tileOk(Math.floor(t.x / tile), Math.floor(t.z / tile)))) continue;
-      if (!trees.every((t) => roadRoom(net, px, py, t.x, t.z, t.foot) >= t.foot && trailOk(t.x, t.z, t.foot))) continue;
+      if (!trees.every((t) => bandRoom(bitsAt, px, py, t.x, t.z, t.foot) >= t.foot && trailOk(t.x, t.z, t.foot))) continue;
       if (trees.some((t) => trunks.some((u) => Math.hypot(t.x - u.x, t.z - u.z) < R.clear * js))) continue;
       const y = Math.min(...trees.map((t) => lowest(t.x, t.z, t.foot))) - R.sink;
       if (trees.some((t) => groundAt(heightmapData, t.x, t.z) - y > R.bury)) continue;

@@ -23,6 +23,8 @@ import { HEIGHTMAP_DIMENSION, MAX_TERRAIN_HEIGHT, SCALED_BEACH_ELEVATION, TERRAI
 import { MAP_W, MAP_H } from '../../src/world/road/roadNetwork.js';
 import { N, S, NE, SW, NW, SE } from '../../src/systems/travel/travelPaths.js';
 import { roadRoom, PATH_HALF_M } from '../../src/world/road/roadVerge.js';
+import { netBits, bandRoom } from '../../src/world/road/roadBand.js';
+import { pathsDataPoint } from '../../src/systems/travel/travelPaths.js';
 import { buildTreeSet, lptVariety } from '../../src/world/lowPolyTrees.js';
 import { createJungleTrees, JUNGLE_URLS } from '../../src/systems/jungleTreesAssets.js';
 import { standRoadside } from '../../src/scenes/roadsidePairs.js';
@@ -252,6 +254,19 @@ test('JUNGLE-ROADSIDE SUNK, NEVER FLOATING: a pair stands at the lowest ground u
   for (let a = 0; a < H; a++) for (let b = 0; b < H; b++) if (a * cell > PIXEL_M / 2 + 11) cliff[a * H + b] += 4 / yScale;
   assert.deepEqual(standPairs(job(cliff)).filter(astride), [], 'none over the cliff');
   assert.ok(standPairs(job(ground(0, 0))).filter(astride).length > 0, 'where it stood level');
+});
+
+test('JUNGLE-ROADSIDE the worker reads the roads as the network does: a pixel\'s bits off the arrays it paints from are GetPathsDataPoint\'s over the whole shipped map (a road\'s and a track\'s, the map\'s edges 0), and the band\'s room off them is VERGE1\'s (mutants: the tracks unread; the map\'s edge unasked)', () => {
+  const bytes = (f) => new Uint8Array(readFileSync(join(ROOT, 'vendor/roads-hazelnut', f)));
+  const net = { roads: bytes('roadData.bytes'), tracks: bytes('trackData.bytes') }, bits = netBits(net);
+  let differ = 0, tracks = 0;
+  for (let y = -1; y <= MAP_H; y++) for (let x = -1; x <= MAP_W; x++) {
+    if (bits(x, y) !== pathsDataPoint(net, x, y)) differ++;
+    if (x >= 0 && y >= 0 && x < MAP_W && y < MAP_H && !net.roads[x + y * MAP_W] && net.tracks[x + y * MAP_W]) tracks++;
+  }
+  assert.equal(differ, 0);
+  assert.ok(tracks > 1000, 'pixels a track alone crosses, read');
+  for (const [x, z] of [[409.6, 300], [100, 700], [3, 5], [810, 410]]) assert.equal(bandRoom(bits, 860, 300, x, z, 40), roadRoom(net, 860, 300, x, z, 40));
 });
 
 // ---- the layout ----------------------------------------------------------------------------------------------------

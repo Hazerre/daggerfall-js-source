@@ -128,7 +128,7 @@
   {
     "name": "JUNGLE-ROADSIDE-the-feets-band-unasked",
     "file": "src/world/jungle/jungleRoadside.js",
-    "old": "roadRoom(net, px, py, t.x, t.z, t.foot) >= t.foot && trailOk(",
+    "old": "bandRoom(bitsAt, px, py, t.x, t.z, t.foot) >= t.foot && trailOk(",
     "new": "trailOk(",
     "tests": [
       "test/world/jungleroadside.test.js"
@@ -303,6 +303,33 @@
     "new": "",
     "tests": [
       "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-tracks-unread",
+    "file": "src/world/road/roadBand.js",
+    "old": "return ((net.roads?.[i] ?? 0) | (net.tracks?.[i] ?? 0)) & 0xff;",
+    "new": "return (net.roads?.[i] ?? 0) & 0xff;",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-the-maps-edge-unasked",
+    "file": "src/world/road/roadBand.js",
+    "old": "  if (x < 0 || y < 0 || x >= MAP_W || y >= MAP_H) return 0;\n",
+    "new": "",
+    "tests": [
+      "test/world/jungleroadside.test.js"
+    ]
+  },
+  {
+    "name": "JUNGLE-ROADSIDE-a-span-asked-past-the-seam",
+    "file": "src/scenes/roadsidePairs.js",
+    "old": "const pic = await pairPicture(door, p.kind), h = pic?.far ?? null;",
+    "new": "const proto = door.pairProto(p.kind), far = proto ? await door.farPicture(proto) : null, pic = far ? { proto, far } : null, h = far;",
+    "tests": [
+      "test/world/naturepicture.test.js"
     ]
   }
 ]
