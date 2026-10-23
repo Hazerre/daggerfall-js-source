@@ -1,0 +1,182 @@
+[
+  {
+    "name": "MA-the-batch-inputs-kept",
+    "file": "src/render/staticBatch.js",
+    "old": "    this._spend();\n    return merged;",
+    "new": "    return merged;",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-the-blanket-pruned-active-alone",
+    "file": "src/systems/snowfallRuntime.js",
+    "old": "      if (B.overlays.size || B.building) this._blanketPrune(f, this.world.terrainsNear(Math.max(1, Math.min(4, this.world.terrainDistance ?? 3))));\n",
+    "new": "",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-a-dropped-overlay-keeps-its-tile",
+    "file": "src/systems/snowfallRuntime.js",
+    "old": "    o.t = null;\n",
+    "new": "",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-a-dropped-overlay-keeps-its-arrays",
+    "file": "src/systems/snowfallRuntime.js",
+    "old": "    o.pos = o.nrm = o.ctx = o.statics = null;\n",
+    "new": "",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-the-fog-skipped-inside-its-reach",
+    "file": "src/ui/pixelGround.js",
+    "old": "if (dx >= f.r || dx <= -f.r || dy >= f.r || dy <= -f.r) continue;",
+    "new": "if (dx >= f.r * 0.5 || dx <= -f.r || dy >= f.r || dy <= -f.r) continue;",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-the-sky-an-image-a-draw",
+    "file": "src/ui/pixelGround.js",
+    "old": "if (!img || img.width !== W || img.height !== H) {",
+    "new": "if (true) {",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-the-sky-sized-every-draw",
+    "file": "src/ui/pixelGround.js",
+    "old": "  if (canvas.width !== W) canvas.width = W;",
+    "new": "  canvas.width = W;",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-an-outfit-never-let-go",
+    "file": "src/net/peer/peerRiders.js",
+    "old": "    else if (isLayeredKey(s.key)) keepLook(outfits, outfitOfLayeredKey(s.key), k, s.key, WALKER_OUTFITS_KEPT, WALKER_OUTFIT_IDLE_MS);\n",
+    "new": "",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-an-outfit-s-decodes-kept",
+    "file": "src/net/peer/peerRiders.js",
+    "old": "      for (const sk of x.sprites) pixels.delete(sk);\n",
+    "new": "",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-the-market-cache-uncapped",
+    "file": "src/net/marketBook.js",
+    "old": "      if (cache.size > MARKET_CACHE_KEPT) cache.delete(cache.keys().next().value);\n",
+    "new": "",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-the-last-room-latched",
+    "file": "src/scenes/worldModes.js",
+    "old": "_arrowsCtx = null; interiorArrows.clear(); ",
+    "new": "",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-the-last-castle-latched",
+    "file": "src/scenes/worldModes.js",
+    "old": "_crownTried = null; arenaWall = null; ",
+    "new": "",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-the-card-drawn-before-kept",
+    "file": "src/ui/enhanced/enhancedMenu.js",
+    "old": "  acctOff?.(); acctOff = card.off ?? null;\n",
+    "new": "  acctOff = card.off ?? null;\n",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-the-foot-observer-kept",
+    "file": "src/ui/enhanced/enhancedMenu.js",
+    "old": "      footObs?.disconnect?.(); footObs = null;\n",
+    "new": "",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-an-item-menu-s-timer-kept",
+    "file": "src/ui/enhanced/enhancedInventory.js",
+    "old": "menuOff = () => { clearTimeout(timer); ",
+    "new": "menuOff = () => { ",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-the-icons-held-strongly",
+    "file": "src/ui/item/itemIconUrl.js",
+    "old": "const _iconUrls = new WeakMap();",
+    "new": "const _iconUrls = new Map();",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-the-indices-a-batch-again",
+    "file": "src/render/renderer.js",
+    "old": "    const verts = new Float32Array(count * 4 * 5);\n    const corners = BB_CORNERS;",
+    "new": "    const verts = new Float32Array(count * 4 * 5);\n    void new Uint32Array(count * 6);\n    const corners = BB_CORNERS;",
+    "tests": [
+      "test/systems/memaudit.test.js"
+    ]
+  },
+  {
+    "name": "MA-steady-shadows-kept-on-low",
+    "file": "src/systems/graphicsPresets.js",
+    "old": "'real-windows': 'off' }), parts: Object.freeze({ steadyShadows: false })",
+    "new": "'real-windows': 'off' }), parts: Object.freeze({ steadyShadows: true })",
+    "tests": [
+      "test/systems/org2_options.test.js"
+    ]
+  },
+  {
+    "name": "MA-a-preset-writes-no-part",
+    "file": "src/ui/enhanced/enhancedMenu.js",
+    "old": "  for (const k of PRESET_PARTS) if (onlineForcedPref(k) === undefined && String(getPref(k)) !== String(p.parts[k])) setPref(k, p.parts[k]);\n",
+    "new": "",
+    "tests": [
+      "test/systems/org2_options.test.js"
+    ]
+  },
+  {
+    "name": "MA-a-preset-reads-no-part",
+    "file": "src/systems/graphicsPresets.js",
+    "old": "\n    && PRESET_PARTS.every((k) => String(partOf(k)) === String(p.parts[k]))",
+    "new": "",
+    "tests": [
+      "test/systems/org2_options.test.js"
+    ]
+  }
+]

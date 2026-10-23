@@ -55,6 +55,14 @@ export const RIDER_RETRY_MS = 30000;
 /** COATS1: how many riders' horse looks' dyed pictures stand at once, and how long a look undrawn is before it may go. */
 export const RIDER_LOOKS_KEPT = 12;
 export const RIDER_LOOK_IDLE_MS = 2000;
+/** MEM-AUDIT (2026-10-23): how many layered walkers' outfits stand at once, and how long one undrawn is before it may go.
+ *  Each outfit is its own pictures (LAYERED-GEAR: head x top x legs x cloak), so a session online meets many - and they
+ *  were never let go. Longer than a horse's look: a walker asked again pays a decode before it draws, so only one gone
+ *  from the view a minute goes. */
+export const WALKER_OUTFITS_KEPT = 24;
+export const WALKER_OUTFIT_IDLE_MS = 60000;
+/** MEM-AUDIT: a layered sprite's outfit - its key (`LA:<body>:<combo>:<record>-<frame>:<code>`) less the frame. */
+export const outfitOfLayeredKey = (key) => { const p = key.split(':'); return `${p[0]}:${p[1]}:${p[2]}:${p[4]}`; };
 
 async function decodeUrl(url) {
   if (isLayeredKey(url)) return worldOrderColors(await decodeLayered(url, decodePng), { owned: true });   // WORN-ARMOUR: composed from its strip
@@ -80,18 +88,25 @@ export function createEotbArt({ renderer = null, urlFor = eotbSpriteUrl, decode 
   // RIDER_LOOKS_KEPT others were drawn since (EVERY ALLOCATION HAS AN OWNER: every horse is its own look, and a session
   // meets many riders). code -> { keys: Set<tex key>, used: clock() }
   const looks = new Map();
-  function noteLook(s, k) {
-    if (!s.horse) return;
-    let l = looks.get(s.horse);
-    if (!l) { l = { keys: new Set(), used: 0 }; looks.set(s.horse, l); }
-    l.keys.add(k); l.used = clock();
-    if (looks.size <= RIDER_LOOKS_KEPT) return;
+  // MEM-AUDIT: and the layered walkers' outfits, by the same law - each outfit's decodes (`pixels`, keyed by the outfit's
+  // own sprite keys) go with it. code -> { keys, sprites: Set<sprite key>, used }
+  const outfits = new Map();
+  function keepLook(book, code, k, sprite, kept, idleMs) {
+    let l = book.get(code);
+    if (!l) { l = { keys: new Set(), sprites: new Set(), used: 0 }; book.set(code, l); }
+    l.keys.add(k); if (sprite) l.sprites.add(sprite); l.used = clock();
+    if (book.size <= kept) return;
     const now = clock();
-    const old = [...looks].filter(([, x]) => now - x.used > RIDER_LOOK_IDLE_MS).sort((a, b) => a[1].used - b[1].used);
-    for (const [code, x] of old.slice(0, looks.size - RIDER_LOOKS_KEPT)) {
-      looks.delete(code);
+    const old = [...book].filter(([, x]) => now - x.used > idleMs).sort((a, b) => a[1].used - b[1].used);
+    for (const [c, x] of old.slice(0, book.size - kept)) {
+      book.delete(c);
       for (const key of x.keys) { tex.delete(key); renderer?.evictTexture?.(key.replace(':', '_')); }   // the cache's `archive:rec` is the renderer's `archive_rec`
+      for (const sk of x.sprites) pixels.delete(sk);
     }
+  }
+  function noteLook(s, k) {
+    if (s.horse) keepLook(looks, s.horse, k, null, RIDER_LOOKS_KEPT, RIDER_LOOK_IDLE_MS);   // a horse's pictures are its art's, dyed: the decode is kept
+    else if (isLayeredKey(s.key)) keepLook(outfits, outfitOfLayeredKey(s.key), k, s.key, WALKER_OUTFITS_KEPT, WALKER_OUTFIT_IDLE_MS);
   }
   function ensure(s) {
     const k = `${s.archive}:${s.rec}`;

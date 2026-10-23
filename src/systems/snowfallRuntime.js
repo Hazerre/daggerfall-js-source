@@ -985,7 +985,15 @@ export class SnowfallRuntime {
     // FIELD BUGS 2026-10-21b SNOW-HOLD: SetActive(false) lets its queue go - standing again queues every visible tile anew
     // (below), and a queued tile holds its map pixel's whole entry (the host's SnowTerrain closures): an indoors, or an
     // Overworld journey under the travel view, kept every pixel the world destroyed meanwhile
-    if (!B.active) { if (was) { B.queue.length = 0; B.queued.clear(); } return; }
+    if (!B.active) {
+      if (was) { B.queue.length = 0; B.queued.clear(); }
+      // MEM-AUDIT (2026-10-23): AND ITS OVERLAYS ARE PRUNED STILL. The prune below ran only while the tier was active, so
+      // an indoors or a journey under the travel view kept every overlay of the last ring - and each its tile, and the
+      // tile its map pixel's whole entry, long after the world destroyed it. The same prune, on the same schedule: a tile
+      // still standing keeps its overlay for the door or the view coming down, as before
+      if (B.overlays.size || B.building) this._blanketPrune(f, this.world.terrainsNear(Math.max(1, Math.min(4, this.world.terrainDistance ?? 3))));
+      return;
+    }
     if (!was) B.lastPixel = null;   // AUDIT ENVIRONS S4: SetActive(true) - the visible tiles queue again, a tile rebuilt while it was off among them
     B.handoff = handoff;
     B.innerRadius = innerRadius;
@@ -998,16 +1006,32 @@ export class SnowfallRuntime {
       for (const t of near) this._blanketQueue(t);
     }
     if (allowBuild) this._blanketProcess();
-    // PruneDestroyedTerrains (every 5 s in the mod): a tile no longer loaded is let go
-    if (!B.nextPrune || f.now >= B.nextPrune) {
-      B.nextPrune = f.now + BLANKET.pruneSeconds;
-      const live = new Set(near);
-      for (const [t, o] of B.overlays) if (!live.has(t)) { B.overlays.delete(t); this.dirty.blanket.add(o); o.dead = true; }
-      // SNOW-HOLD: and a queued one - the queue drains only while the local tier is not recentring, and a player on the
-      // move keeps it recentring, so every tile the world built and destroyed behind them stood in it (1.8 MB of JS heap a
-      // map pixel, measured in the running game); _blanketProcess skips a tile no longer drawn, so letting it go is the same
-      if (B.queue.some((t) => !live.has(t))) { B.queue = B.queue.filter((t) => live.has(t)); B.queued = new Set(B.queue); }
-    }
+    this._blanketPrune(f, near);
+  }
+  /** PruneDestroyedTerrains (every 5 s in the mod): a tile no longer loaded is let go. */
+  _blanketPrune(f, near) {
+    const B = this.blanket;
+    if (B.nextPrune && f.now < B.nextPrune) return;
+    B.nextPrune = f.now + BLANKET.pruneSeconds;
+    const live = new Set(near);
+    for (const [t, o] of B.overlays) if (!live.has(t)) this._blanketDrop(o);
+    if (B.building && !live.has(B.building.t)) B.building = null;   // MEM-AUDIT: _blanketProcess would skip it on its next turn
+    if (!B.active) B.live = new Set([...B.live].filter((t) => live.has(t)));   // MEM-AUDIT: nothing is drawn idle; the next active frame sets it whole
+    // SNOW-HOLD: and a queued one - the queue drains only while the local tier is not recentring, and a player on the
+    // move keeps it recentring, so every tile the world built and destroyed behind them stood in it (1.8 MB of JS heap a
+    // map pixel, measured in the running game); _blanketProcess skips a tile no longer drawn, so letting it go is the same
+    if (B.queue.some((t) => !live.has(t))) { B.queue = B.queue.filter((t) => live.has(t)); B.queued = new Set(B.queue); }
+  }
+  /** An overlay let go: out of the map, and its GPU half freed at the surface's next sync (snowfallSurface.js `sync`'s
+   *  dead arm, which reads the overlay alone). MEM-AUDIT: what it held of its tile and its arrays go now - that sync waits
+   *  for the door or the travel view to come down, and the tile holds its map pixel's whole entry (the host's SnowTerrain
+   *  closures). */
+  _blanketDrop(o) {
+    this.blanket.overlays.delete(o.t);
+    o.dead = true;
+    o.t = null;
+    o.pos = o.nrm = o.ctx = o.statics = null;
+    this.dirty.blanket.add(o);
   }
   _blanketQueue(t) {
     const B = this.blanket;
@@ -1023,7 +1047,7 @@ export class SnowfallRuntime {
     const o = B.overlays.get(t);
     if (o) o.ready = false;
     const old = replaced && B.overlays.get(replaced);   // the tile's old ground: its overlay goes with it
-    if (old) { B.overlays.delete(replaced); old.dead = true; this.dirty.blanket.add(old); }
+    if (old) this._blanketDrop(old);
     if (B.active) this._blanketQueue(t);
     const og = t.origin(v3());
     const overlaps = (cx, cz, r) => og[0] <= cx + r && og[0] + t.size >= cx - r && og[2] <= cz + r && og[2] + t.size >= cz - r;

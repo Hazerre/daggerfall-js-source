@@ -14,7 +14,7 @@ import '../../src/world/outdoors.js';
 import '../../src/systems/featureLanes.js';
 import { FEATURES, featureForControl, resolveControl } from '../../src/systems/features.js';
 import { CATEGORIES, CATEGORY_IDS, whereIs, optionPath, isSettingItem, keysOf } from '../../src/ui/settings/settingsMap.js';
-import { GRAPHICS_PRESETS, PRESET_ROWS, presetNow } from '../../src/systems/graphicsPresets.js';
+import { GRAPHICS_PRESETS, PRESET_ROWS, PRESET_PARTS, presetNow } from '../../src/systems/graphicsPresets.js';
 import { ALL_KEYS, DEFAULTS, effectiveSettings, setValue, _resetForTests as resetSettings } from '../../src/systems/settings/settings.js';
 import { getPref, setPref, PREF_DEFAULTS, _resetForTests as resetPrefs } from '../../src/systems/uiPrefs.js';
 import { _resetModSettings } from '../../src/systems/modSettings.js';
@@ -136,6 +136,12 @@ test('ORG2: the graphics preset - High is how the game ships, every value is one
   const view = GRAPHICS_PRESETS.map((p) => p.values['land-view-distance']);
   assert.deepEqual([...view].sort((a, b) => a - b), view, 'the further the preset, the further you see');
   assert.equal(new Set(GRAPHICS_PRESETS.map((p) => JSON.stringify(p.values))).size, 4, 'four different choices');
+  // MEM-AUDIT: the parts - each a row's drawer pref, set by every preset; Steady shadows off on Low alone
+  for (const k of PRESET_PARTS) {
+    assert.ok(FEATURES.some((f) => resolveControl(f)?.parts?.some((pt) => pt.key === k)), `${k} is a part of a row's drawer`);
+    for (const p of GRAPHICS_PRESETS) assert.equal(typeof p.parts[k], typeof PREF_DEFAULTS[k], `${p.id}'s ${k} is the pref's own kind`);
+  }
+  assert.deepEqual(GRAPHICS_PRESETS.map((p) => p.parts.steadyShadows), [false, true, true, true], 'steady shadows off on Low alone');
   fresh();
   try {
     globalThis.location = { search: '' };
@@ -145,16 +151,21 @@ test('ORG2: the graphics preset - High is how the game ships, every value is one
       assert.equal(defaultSegment(row(id), st), st.at, `${id} stands at its default on a fresh shelf`);
       assert.equal(String(valueOf(id)), String(high.values[id]), `High is ${id}'s default`);
     }
-    assert.equal(presetNow(valueOf)?.id, 'high', 'a player who never touched them reads High, not Custom');
+    for (const k of PRESET_PARTS) assert.equal(String(PREF_DEFAULTS[k]), String(high.parts[k]), `High is ${k}'s default`);
+    assert.equal(presetNow(valueOf, getPref)?.id, 'high', 'a player who never touched them reads High, not Custom');
     for (const p of GRAPHICS_PRESETS) {
       applyGraphicsPreset(p);
-      assert.equal(presetNow(valueOf)?.id, p.id, `${p.id} reads back as itself`);
+      assert.equal(presetNow(valueOf, getPref)?.id, p.id, `${p.id} reads back as itself`);
       for (const id of PRESET_ROWS) assert.equal(String(valueOf(id)), String(p.values[id]), `${p.id} set ${id}`);
+      for (const k of PRESET_PARTS) assert.equal(String(getPref(k)), String(p.parts[k]), `${p.id} set ${k}`);
     }
     applyGraphicsPreset(GRAPHICS_PRESETS[0]);
     assert.equal(String(effectiveSettings().Experimental.TerrainDistance), '3', 'land view\'s lane wrote DFU\'s TerrainDistance with it - the row\'s own door');
     tileStates(row('water-quality')).set(0);   // Full water on Low's mix
-    assert.equal(presetNow(valueOf), null, 'a mix of the player\'s own is Custom');
+    assert.equal(presetNow(valueOf, getPref), null, 'a mix of the player\'s own is Custom');
+    applyGraphicsPreset(GRAPHICS_PRESETS[0]);
+    setPref('steadyShadows', true);   // MEM-AUDIT: a part the player set on Low's rows
+    assert.equal(presetNow(valueOf, getPref), null, 'a part of the player\'s own is Custom too');
   } finally { delete globalThis.location; fresh(); }
 });
 

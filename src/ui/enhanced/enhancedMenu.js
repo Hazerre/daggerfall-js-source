@@ -108,7 +108,7 @@ import { dfWornEquipment } from '../../formats/morrowind/mwItemMap.js';
 import { ARMOR_ENUM } from '../../combat/enemyEquipment.js';
 import { morrowindDataCount, morrowindDataCounted, countMorrowindArchives, assetPickerOpen, textureStoreRegistered, textureStoreSettled } from '../../scenes/dataSource.js';   // MAC1: the boot door counts the store itself; AUDIT 65 XL-6: by NAME - it never reads a stored file   // MW-IMPORT: the attach door; MWFIX: and the modal it opens owns the keyboard
 import { CATEGORIES, keysOf, isSettingItem, optionPath, whereIs } from '../settings/settingsMap.js';   // ORG2: the one map of every option
-import { GRAPHICS_PRESETS, PRESET_ROWS, presetNow } from '../../systems/graphicsPresets.js';   // ORG2
+import { GRAPHICS_PRESETS, PRESET_ROWS, PRESET_PARTS, presetNow } from '../../systems/graphicsPresets.js';   // ORG2; MEM-AUDIT: and its parts
 import { widgetFor, blockedReason, formatValue, stepValue, COLOUR_KEYS, ENUM_LAW, enumWords } from '../settings/settingsLaw.js';   // FT14: the enum's own values are the bar's segments
 import { labelOf, helpOf, INSTEAD, TIER_TEXT } from '../settings/settingsCopy.js';
 import {
@@ -1118,12 +1118,14 @@ function paneTest(body) {
 // written it down" is the one way off the `code` stage.
 let acctFlow = null;
 let acctPaint = null;
+let acctOff = null;   // MEM-AUDIT: the drawn card's focus listener, let go with the card (enhancedAccount.js accountCard `off`)
 const accountMayClose = () => !acctFlow || (acctFlow.stage !== 'code' && !acctFlow.busy);
 function closeAccount() {
   if (!accountMayClose()) return;
   accountOpen = false;
   acctFlow = null;
   acctPaint = null;
+  acctOff?.(); acctOff = null;
   rereadCollectionsAccount();   // AUDIT COLLECTIONS-II (lane 2): what the card did, the Collections page reads again
   render();
 }
@@ -1143,6 +1145,7 @@ function accountBody() {
     character: save ? `Playing ${characterLine(save)}` : null,
   });
   acctPaint = card.paint;
+  acctOff?.(); acctOff = card.off ?? null;
   host.append(card.root);
   // Not awaited: the door must be on screen before the service is
   // asked anything, and `start` catches its own refusals. The guard is
@@ -2139,12 +2142,12 @@ function categoryCard({ pool = portPool(), pause = false } = {}) {
  *  the preset they stand at or Custom. A press writes each row through its own door, so a lane's second store moves
  *  with it and a row the room decides is left as it is. */
 function graphicsPresetRow() {
-  const now = presetNow(featureValue);
+  const now = presetNow(featureValue, getPref);
   const row = el('div', 'row opt-preset');
   row.dataset.opt = 'graphicsPreset';
   const main = el('div', 'row-main');
   main.append(el('div', 'row-name', 'Quality preset'));
-  main.append(el('div', 'row-note', 'View distance, grass, clouds, ground sharpness, water and windows.'));   // RW1: and the real windows
+  main.append(el('div', 'row-note', 'View distance, grass, clouds, ground sharpness, water, windows and steady shadows.'));   // RW1: and the real windows; MEM-AUDIT: and Steady shadows
   row.append(main);
   const ctl = el('div', 'ctl');
   const seg = el('div', 'ft-seg');
@@ -2172,6 +2175,8 @@ export function applyGraphicsPreset(p) {
     const i = c.tiers.findIndex(([v]) => String(v) === String(p.values[id]));
     if (i >= 0 && i !== st.at) st.set(i);
   }
+  // MEM-AUDIT: and its parts, each written straight as its drawer writes it - one the room decides is left as it is
+  for (const k of PRESET_PARTS) if (onlineForcedPref(k) === undefined && String(getPref(k)) !== String(p.parts[k])) setPref(k, p.parts[k]);
 }
 
 /** ORG2: the Overhauls page's door, on the Graphics tab - the whole looks are chosen there. */
@@ -6169,7 +6174,7 @@ export function mountEnhancedMenu(host, {
   // PROFILE2: and the profile window is a visit's too - the pause screen mounts this module again, and a window left
   // open on the door (or on the last pause) must not be standing over the next one before the player asks for it
   accountOpen = false;
-  acctFlow = null; acctPaint = null;
+  acctFlow = null; acctPaint = null; acctOff?.(); acctOff = null;
   timersOpen = false;   // TIMERS1: and the timers window the same
   timersFocusBack = false;
   postOpen = false;   // SERVER-POST: and the mailbox's
@@ -6312,6 +6317,10 @@ export function mountEnhancedMenu(host, {
       // the DOCUMENT and would outlive this screen exactly as the one
       // above would.
       discardControlsStaging();
+      // MEM-AUDIT (2026-10-23): and what still watched the last screen - the foot's observer (its reserve keeps the home's
+      // whole tree, the sky's canvas with it) and the account card's paint and focus listener
+      footObs?.disconnect?.(); footObs = null;
+      acctPaint = null; acctOff?.(); acctOff = null;
       keyHandler = null;
       lockHandler = null;
       resizeHandler = null;
