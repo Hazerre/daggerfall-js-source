@@ -168,7 +168,7 @@ HIDDEN_SEEN_URL = "https://daggerfall-accounts.mackcothran.workers.dev/v1/mod/hi
 # is counted and nothing is posted. The monster counts are read only
 # while grantStrip is on (GRANT9) - a separate switch, not set here.
 # Only these vars change, so RELAY_VERSION does not move: the relay deploy
-# is a manual run of relay-deploy.yml with `redeploy` ticked (a plain
+# is a manual run of the relay's deploy with `redeploy` ticked (a plain
 # dispatch deploys only on drift), which drops every connected player once.
 STAFF_NET_FEED_URL = "https://daggerfall-accounts.mackcothran.workers.dev/v1/staff/net-feed"
 REACTION_FEED_URL = "https://daggerfall-accounts.mackcothran.workers.dev/v1/mod/reaction-feed"
