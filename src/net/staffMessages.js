@@ -13,7 +13,13 @@
 // call into the host's chat log (net/chat.js ChatLog - the Staff tab, id `staff`, is the freeze slice's; a log without
 // it keeps nothing and says so by answering null). This module keeps its own list besides (`list`), so a build whose log
 // has no Staff tab yet still holds them.
+//
+// STAFF-PANEL5-MESSAGE-FIX: the Staff tab is off the bar unless staff froze the player or opened a talk (net/staffChat.js),
+// so a copy landing puts it on the bar and keeps it there (staffCopyShown) - else the copy could never be read again. And
+// an answer is at most the service's five oldest: when it said `more`, the game asks again once the player has pressed OK
+// on the boxes it holds - a nudge for a sixth answered the five still up, and nothing asked for it after.
 import { call, storedSession, serviceBase } from './accountClient.js';
+import { staffCopyShown } from './staffChat.js';
 import { appStorage } from '../systems/appStorage.js';
 import { showStaffMessageBox } from '../ui/staffMessageBox.js';
 import { t } from '../systems/textManager.js';
@@ -29,7 +35,7 @@ export const STAFF_MESSAGES_KEPT = 20;
 export const staffMessageLine = (m) => t('net.staffMsg.chat', 'Message from staff ({name}): {text}', { name: m.from, text: m.text });
 
 /**
- * @param {{ push: (tabId: string, fields: any) => unknown }|null} log the host's chat log (net/chat.js ChatLog), or null
+ * @param {{ push: (tabId: string, fields: any) => unknown, setShown: (tabId: string, shown: boolean) => unknown }|null} log the host's chat log (net/chat.js ChatLog), or null
  * @param {{ fetch?: (u: string, i: any) => Promise<any>, storage?: any, show?: typeof showStaffMessageBox, now?: () => number,
  *   wait?: (fn: () => void, ms: number) => unknown }} [io]
  */
@@ -41,7 +47,7 @@ export function createStaffMessages(log, { fetch = (u, i) => globalThis.fetch(u,
   const kept = [];
   /** @type {typeof kept} */
   const queue = [];
-  let up = false, asking = false, again = false, timer = false, askedAt = -Infinity;
+  let up = false, asking = false, again = false, timer = false, more = false, askedAt = -Infinity;
 
   const next = () => {
     if (up || !queue.length) return;
@@ -50,8 +56,9 @@ export function createStaffMessages(log, { fetch = (u, i) => globalThis.fetch(u,
     show({ from: m.from, text: m.text, onOk: () => {
       up = false;
       const io = session();
-      if (io) void call(io, '/v1/safety/staff-message-ok', { id: m.id });   // never throws (accountClient's law)
+      const said = io ? call(io, '/v1/safety/staff-message-ok', { id: m.id }) : null;   // never throws (accountClient's law)
       next();
+      void Promise.resolve(said).then(() => { if (!up && more) void ask(); });   // the last box OK'd and its OK in: the ones past the answer's bound
     } });
   };
 
@@ -64,13 +71,14 @@ export function createStaffMessages(log, { fetch = (u, i) => globalThis.fetch(u,
     asking = true; askedAt = now();
     try {
       const r = await call(io, '/v1/safety/staff-messages', {});
+      more = r.ok && r.data?.more === true;
       for (const m of r.ok && Array.isArray(r.data?.messages) ? r.data.messages : []) {   // `call` answers { ok, data } and never throws
         if (typeof m?.id !== 'string' || seen.has(m.id) || typeof m.text !== 'string' || !m.text) continue;
         seen.add(m.id);
         const one = { id: m.id, from: typeof m.from === 'string' ? m.from : '', text: m.text, at: Number.isSafeInteger(m.at) ? m.at * 1000 : now() };
         kept.push(one);
         if (kept.length > STAFF_MESSAGES_KEPT) kept.shift();
-        log?.push(STAFF_TAB, { text: staffMessageLine(one), at: one.at, system: true });
+        if (log?.push(STAFF_TAB, { text: staffMessageLine(one), at: one.at, system: true })) staffCopyShown(log);   // on the bar, to be read again
         queue.push(one);
       }
     } finally { asking = false; }

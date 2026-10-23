@@ -216,7 +216,7 @@ test('STAFF-PANEL5-MESSAGE: the read - a Moderator their own messages, an Admin 
   } finally { s.restore(); }
 });
 
-test('STAFF-PANEL5-MESSAGE: THE GAME\'S DOORS - its own messages not pressed OK, newer than a day, oldest first and five at most; an OK marks only its own player\'s message, once (mutants: another\'s read; an OK on another\'s message)', async () => {
+test('STAFF-PANEL5-MESSAGE: THE GAME\'S DOORS - its own messages not pressed OK, newer than a day, oldest first and five at most, `more` when more wait; an OK marks only its own player\'s message, once (mutants: another\'s read; an OK on another\'s message; `more` off by one)', async () => {
   const s = await stand();
   try {
     const ins = s.raw.prepare('INSERT INTO staff_messages (id, at, staff_id, staff_name, target, text, pushed, sockets, old) VALUES (?, ?, ?, ?, ?, ?, 1, 1, 0)');
@@ -228,13 +228,17 @@ test('STAFF-PANEL5-MESSAGE: THE GAME\'S DOORS - its own messages not pressed OK,
     assert.equal(read.status, 200);
     assert.deepEqual(read.body.messages.map((m) => [m.id, m.from, m.text]), [0, 1, 2, 3, 4].map((i) => [`fresh-000${i}`, 'Asynian', `fresh ${i}`]));
     assert.equal(read.body.messages[0].at, t - 100);
-    assert.deepEqual((await s.call('/v1/safety/staff-messages', {}, s.sylvia.secret)).body.messages.map((m) => m.id), ['sylv-0001'], 'each player reads only their own');
+    assert.equal(read.body.more, true, 'STAFF-PANEL5-MESSAGE-FIX: a sixth waits past the five - the game asks again after their OKs');
+    const sylvia = (await s.call('/v1/safety/staff-messages', {}, s.sylvia.secret)).body;
+    assert.deepEqual([sylvia.messages.map((m) => m.id), sylvia.more], [['sylv-0001'], false], 'each player reads only their own');
     assert.deepEqual(await s.call('/v1/safety/staff-message-ok', { id: 'sylv-0001' }, s.troll.secret), { status: 200, body: { ok: true, marked: false } }, 'another player\'s message is never marked');
     assert.equal(s.raw.prepare('SELECT ok_at FROM staff_messages WHERE id = ?').get('sylv-0001').ok_at, null);
     assert.deepEqual((await s.call('/v1/safety/staff-message-ok', { id: 'fresh-0000' }, s.troll.secret)).body, { ok: true, marked: true });
     assert.deepEqual((await s.call('/v1/safety/staff-message-ok', { id: 'fresh-0000' }, s.troll.secret)).body, { ok: true, marked: false }, 'twice is once');
     assert.equal((await s.call('/v1/safety/staff-message-ok', { id: 7 }, s.troll.secret)).status, 400);
-    assert.deepEqual((await s.call('/v1/safety/staff-messages', {}, s.troll.secret)).body.messages.map((m) => m.id), [1, 2, 3, 4, 5].map((i) => `fresh-000${i}`), 'pressed OK, it is not asked again');
+    const after = (await s.call('/v1/safety/staff-messages', {}, s.troll.secret)).body;
+    assert.deepEqual(after.messages.map((m) => m.id), [1, 2, 3, 4, 5].map((i) => `fresh-000${i}`), 'pressed OK, it is not asked again');
+    assert.equal(after.more, false, 'five waiting, five answered');
   } finally { s.restore(); }
 });
 

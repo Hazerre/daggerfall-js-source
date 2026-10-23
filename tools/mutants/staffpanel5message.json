@@ -202,8 +202,8 @@
   {
     "name": "STAFF-PANEL5-MESSAGE-game-reads-stale",
     "file": "server-account/src/staffMessage.js",
-    "old": ".bind(player.id, nowS - STAFF_MESSAGE_SHOW_S, STAFF_MESSAGE_ASK_MAX)",
-    "new": ".bind(player.id, nowS - STAFF_MESSAGE_SHOW_S - 1, STAFF_MESSAGE_ASK_MAX)",
+    "old": ".bind(player.id, nowS - STAFF_MESSAGE_SHOW_S, STAFF_MESSAGE_ASK_MAX + 1)",
+    "new": ".bind(player.id, nowS - STAFF_MESSAGE_SHOW_S - 1, STAFF_MESSAGE_ASK_MAX + 1)",
     "why": "a message a day old shown again",
     "tests": [
       "test/server/staffpanel5message.test.js"
@@ -212,8 +212,8 @@
   {
     "name": "STAFF-PANEL5-MESSAGE-game-reads-unbounded",
     "file": "server-account/src/staffMessage.js",
-    "old": ".bind(player.id, nowS - STAFF_MESSAGE_SHOW_S, STAFF_MESSAGE_ASK_MAX)",
-    "new": ".bind(player.id, nowS - STAFF_MESSAGE_SHOW_S, STAFF_MESSAGE_ASK_MAX + 1)",
+    "old": "messages: rows.slice(0, STAFF_MESSAGE_ASK_MAX).map(",
+    "new": "messages: rows.map(",
     "why": "more than five at one ask",
     "tests": [
       "test/server/staffpanel5message.test.js"
@@ -402,8 +402,8 @@
   {
     "name": "STAFF-PANEL5-MESSAGE-game-ok-unsaid",
     "file": "src/net/staffMessages.js",
-    "old": "      if (io) void call(io, '/v1/safety/staff-message-ok', { id: m.id });",
-    "new": "",
+    "old": "      const said = io ? call(io, '/v1/safety/staff-message-ok', { id: m.id }) : null;",
+    "new": "      const said = null;",
     "why": "the OK never said",
     "tests": [
       "test/net/staffpanel5message.test.js"
@@ -422,7 +422,7 @@
   {
     "name": "STAFF-PANEL5-MESSAGE-game-copy-dropped",
     "file": "src/net/staffMessages.js",
-    "old": "        log?.push(STAFF_TAB, { text: staffMessageLine(one), at: one.at, system: true });",
+    "old": "        if (log?.push(STAFF_TAB, { text: staffMessageLine(one), at: one.at, system: true })) staffCopyShown(log);",
     "new": "",
     "why": "no copy on the Staff tab",
     "tests": [
@@ -445,6 +445,86 @@
     "old": "el('div', 'notice-row center inputbox-label', staffMessageFrom(from))",
     "new": "el('div', 'notice-row center inputbox-label', '')",
     "why": "the staff member's name not shown",
+    "tests": [
+      "test/net/staffpanel5message.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-MESSAGE-FIX-more-unread",
+    "file": "src/net/staffMessages.js",
+    "old": "      more = r.ok && r.data?.more === true;",
+    "new": "      more = false;",
+    "why": "finding 7: the service's `more` unread - a sixth message never asked for",
+    "tests": [
+      "test/net/staffpanel5message.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-MESSAGE-FIX-no-ask-after-ok",
+    "file": "src/net/staffMessages.js",
+    "old": "      void Promise.resolve(said).then(() => { if (!up && more) void ask(); });",
+    "new": "      void said;",
+    "why": "finding 7: nothing asked after the last box is OK'd",
+    "tests": [
+      "test/net/staffpanel5message.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-MESSAGE-FIX-ask-whatever-more",
+    "file": "src/net/staffMessages.js",
+    "old": ".then(() => { if (!up && more) void ask(); });",
+    "new": ".then(() => { if (!up) void ask(); });",
+    "why": "finding 7: an ask after every OK, though the service said no more",
+    "tests": [
+      "test/net/staffpanel5message.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-MESSAGE-FIX-more-never",
+    "file": "server-account/src/staffMessage.js",
+    "old": "STAFF_MESSAGE_SHOW_S, STAFF_MESSAGE_ASK_MAX + 1).all();",
+    "new": "STAFF_MESSAGE_SHOW_S, STAFF_MESSAGE_ASK_MAX).all();",
+    "why": "finding 7: the read stops at five, so `more` is never said",
+    "tests": [
+      "test/server/staffpanel5message.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-MESSAGE-FIX-more-off-by-one",
+    "file": "server-account/src/staffMessage.js",
+    "old": "more: rows.length > STAFF_MESSAGE_ASK_MAX };",
+    "new": "more: rows.length >= STAFF_MESSAGE_ASK_MAX };",
+    "why": "finding 7: five waiting read as more",
+    "tests": [
+      "test/server/staffpanel5message.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-MESSAGE-FIX-copy-off-bar",
+    "file": "src/net/staffMessages.js",
+    "old": ")) staffCopyShown(log);   // on the bar, to be read again",
+    "new": ")) void 0;   // on the bar, to be read again",
+    "why": "finding 8: the copy lands on a Staff tab nobody can open",
+    "tests": [
+      "test/net/staffpanel5message.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-MESSAGE-FIX-copy-not-shown",
+    "file": "src/net/staffChat.js",
+    "old": "{ copied.add(log); log.setShown(STAFF_TAB, true); };",
+    "new": "{ copied.add(log); };",
+    "why": "finding 8: a copy kept but its tab left off the bar",
+    "tests": [
+      "test/net/staffpanel5message.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-MESSAGE-FIX-chat-hides-copy",
+    "file": "src/net/staffChat.js",
+    "old": "frozen() || open || copied.has(log));",
+    "new": "frozen() || open);",
+    "why": "finding 8: the staff chat's next read (or a freeze lifted) takes the copy's tab off the bar",
     "tests": [
       "test/net/staffpanel5message.test.js"
     ]

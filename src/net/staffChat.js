@@ -30,6 +30,13 @@ export const STAFF_TAB_ROW = Object.freeze({ id: STAFF_TAB, label: 'Staff', room
 /** The thread read again this often while the Staff tab is on the bar, ms - a nudge lost on the way is late, never lost. */
 export const STAFF_POLL_MS = 30_000;
 
+/** STAFF-PANEL5-MESSAGE-FIX: the logs whose Staff tab holds a staff message's copy (net/staffMessages.js) - the tab kept on
+ *  the bar from then, frozen or not (design doc, Message on screen: "A copy goes in their Staff chat tab so they can read
+ *  it again"). */
+const copied = new WeakSet();
+/** A staff message's copy landed on `log`'s Staff tab: the tab on the bar, and kept there. @param {Log} log */
+export const staffCopyShown = (log) => { copied.add(log); log.setShown(STAFF_TAB, true); };
+
 export const frozenTitleText = () => t('net.freeze.title', 'Frozen by staff');
 export const frozenBodyText = () => t('net.freeze.body', 'You can only look around. Talk to staff in the Staff tab of the chat.');
 /** @param {number} until epoch seconds */
@@ -64,7 +71,7 @@ export function createStaffChat({ log, read, send, nudge, onFrozen, me = () => '
   let reading = null, again = false;
   const frozen = () => until > now() / 1000;
   const paint = () => onFrozen({ until: frozen() ? until : 0, reason, invite });
-  const shown = () => log.setShown(STAFF_TAB, frozen() || open);
+  const shown = () => log.setShown(STAFF_TAB, frozen() || open || copied.has(log));
   const system = (/** @type {string} */ text, extra = {}) => log.push(STAFF_TAB, { text, system: true, ...extra });
   /** One read at a time; one asked meanwhile runs after it (a nudge is a reason to read, never a line). */
   const refresh = () => {

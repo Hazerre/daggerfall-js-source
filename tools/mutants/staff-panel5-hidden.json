@@ -883,8 +883,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-cut-no-order",
     "file": "server-account/src/staff.js",
-    "old": "      await hiddenEnd(ctx, env, target.id);   // STAFF-PANEL5-HIDDEN: their hidden sockets closed with their sessions\n      await db.batch([",
-    "new": "      await db.batch([",
+    "old": "  const orders = [...(key ? await Promise.all(subs.map((x) => mintHideOrder({ s: x }, key, { subtle, nowS: at }))) : []), ",
+    "new": "  const orders = [",
     "why": "a cut pushes nothing",
     "tests": [
       "test/server/staffpanel5hidden.test.js"

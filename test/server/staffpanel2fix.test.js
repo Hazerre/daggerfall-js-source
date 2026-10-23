@@ -381,8 +381,14 @@ test('STAFF-PANEL5-CUT-FIX: THE CUT ORDERS EVERY HIDDEN SOCKET CLOSED, ITS PUSH 
     assert.equal(back.status, 200, JSON.stringify(back.body));
     const live = await hiddenSub();
     assert.notEqual(live, gone, 'a new session, a new subject');
-    // the relay busy: every push refused
-    globalThis.fetch = async (url, init) => { if (String(url) === RELAY) { s.pushed.push(JSON.parse(init.body).order); return new Response('busy', { status: 503 }); } return fetch0(url, init); };
+    // the relay busy for the staffcut (its hide orders taken)
+    const kindOf = (o) => JSON.parse(Buffer.from(o.split('.')[1], 'base64url').toString()).o;
+    globalThis.fetch = async (url, init) => {
+      if (String(url) !== RELAY) return fetch0(url, init);
+      const { order } = JSON.parse(init.body);
+      s.pushed.push(order);
+      return kindOf(order) === 'staffcut' ? new Response('busy', { status: 503 }) : Response.json({ ok: true });
+    };
     s.pushed.length = 0;
     // the batch commits a few seconds after the request began (a slow database)
     let skew = 0;
@@ -400,7 +406,7 @@ test('STAFF-PANEL5-CUT-FIX: THE CUT ORDERS EVERY HIDDEN SOCKET CLOSED, ITS PUSH 
     assert.ok((await ordersOf('hide', t0 + 3)).every((c) => c.i >= t0 + 3), 'its hide orders too');
     Date.now = realNow;
     const relayRow = () => s.raw.prepare("SELECT outcome, detail FROM staff_audit WHERE act = 'cut-relay' AND target = ? ORDER BY id DESC").get(asyId);
-    assert.deepEqual([relayRow().outcome, JSON.parse(relayRow().detail)], ['failed', { orders: 3, took: 0, hidden: 2, error: 'relay' }]);
+    assert.deepEqual([relayRow().outcome, JSON.parse(relayRow().detail)], ['failed', { orders: 3, took: 2, hidden: 2, error: 'relay' }]);
     // pressed again: every order pushed again, the relay taking them now
     globalThis.fetch = fetch0;
     s.pushed.length = 0;
