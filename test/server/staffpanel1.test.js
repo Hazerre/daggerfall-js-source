@@ -88,9 +88,9 @@ test('STAFF-PANEL1: every door is listed once, beside the game\'s, and none is b
     '/v1/staff/players', '/v1/staff/player', '/v1/staff/player/devices', '/v1/staff/player/signout', '/v1/staff/player/rename',
     // STAFF-PANEL6-STATUS: server status, its limits and Home (staffStatus.js)
     '/v1/staff/home', '/v1/staff/limit/set', '/v1/staff/limits', '/v1/staff/status',
-    // STAFF-PANEL3-REALM: trade holds, rollbacks, fixes, gains and removals (staffRealm.js)
+    // STAFF-PANEL3-REALM: trade holds, rollbacks, fixes, gains and removals (staffRealm.js); STAFF-SET-BANK: a bank set - PIN MOVED
     '/v1/staff/trade-holds', '/v1/staff/findings', '/v1/staff/trade-hold', '/v1/staff/trade-unhold', '/v1/staff/rollback', '/v1/staff/fix/repair',
-    '/v1/staff/fix/mend', '/v1/staff/gains', '/v1/staff/market/pull', '/v1/staff/market/remove', '/v1/staff/item/take', '/v1/staff/evidence',
+    '/v1/staff/fix/mend', '/v1/staff/fix/bank', '/v1/staff/gains', '/v1/staff/market/pull', '/v1/staff/market/remove', '/v1/staff/item/take', '/v1/staff/evidence',
     '/v1/staff/evidence/return',
     // STAFF-PANEL4-CENSUS: the census and the contested pieces (staffCensus.js)
     '/v1/staff/census/find', '/v1/staff/census', '/v1/staff/census/jumps', '/v1/staff/contested', '/v1/staff/contested/piece', '/v1/staff/contested/trail',

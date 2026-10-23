@@ -560,9 +560,10 @@ export const ROUTES = new Set([
   // STAFF-PANEL6-STATUS: the panel's server status, its Admin-set limits, and Home (staffStatus.js)
   '/v1/staff/status', '/v1/staff/home', '/v1/staff/limits', '/v1/staff/limit/set',
   // STAFF-PANEL3-REALM: the trade holds, a character's findings, a hold laid (one character, or every one of an account) and
-  // lifted, Roll back, Fix account, wealth past the allowance, and the removals with their 30-day store (staffRealm.js)
+  // lifted, Roll back, Fix account, wealth past the allowance, and the removals with their 30-day store (staffRealm.js);
+  // STAFF-SET-BANK: and a character's bank set (Fix account's `bank`)
   '/v1/staff/trade-holds', '/v1/staff/findings', '/v1/staff/trade-hold', '/v1/staff/trade-unhold', '/v1/staff/rollback', '/v1/staff/fix/repair',
-  '/v1/staff/fix/mend', '/v1/staff/gains', '/v1/staff/market/pull', '/v1/staff/market/remove', '/v1/staff/item/take', '/v1/staff/evidence',
+  '/v1/staff/fix/mend', '/v1/staff/fix/bank', '/v1/staff/gains', '/v1/staff/market/pull', '/v1/staff/market/remove', '/v1/staff/item/take', '/v1/staff/evidence',
   '/v1/staff/evidence/return',
   // STAFF-PANEL4-CENSUS: the item and gold census (a kind found, its count and holders, its jumps) and the contested pieces
   // (the list, one piece's trail, a trail check recorded) - Admin only (staffCensus.js)

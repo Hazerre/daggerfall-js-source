@@ -35,6 +35,7 @@ import { receiptOf } from './review.js';
 import { REALM_TRADE_KEEP_S } from './realmTrade.js';
 import { itemWorth } from '../../src/systems/item/itemLaw.js';
 import { liquidWorthOf, REALM_LETTER_TEMPLATE } from '../../src/net/realm/realmGoldLaw.js';
+import { bankTotalOf } from '../../src/net/repairLaw.js';   // STAFF-SET-BANK: the profile's bank, the one sum a bank set reads
 import { STAT_KEYS_ORDER } from '../../src/systems/statMods.js';
 import { PLAY_GRACE_S } from '../../src/net/playClock.js';
 import { isHandleShaped } from '../../src/net/handleShape.js';
@@ -188,7 +189,7 @@ export function saveViewOf(save) {
   const stats = objectOf(save.stats);
   return {
     level: num(save.level), name: str(save.name), purse: num(save.goldPieces),
-    banks: arrayOf(save.bankAccounts).reduce((/** @type {number} */ s, /** @type {any} */ a) => s + (num(a?.accountGold) ?? 0), 0),
+    banks: bankTotalOf(save),   // STAFF-SET-BANK: the sum a bank set is checked against (net/repairLaw.js), one with it
     stats: Object.fromEntries(STAT_KEYS_ORDER.map((k) => [k, num(stats[k])])),
     skills: arrayOf(save.skills).slice(0, 64).map(num),
     items,
