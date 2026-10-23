@@ -121,8 +121,10 @@ test('STAFF-PANEL3-PLAYERS: THE SEARCH - every account by its handle or a charac
   assert.equal(p2.body.players.length + p3.body.players.length, PLAYERS_PAGE + 4);
   assert.equal(new Set([...p2.body.players, ...p3.body.players].map((p) => p.id)).size, PLAYERS_PAGE + 4, 'every account once across the pages');
   assert.equal(p3.body.next, null);
-  assert.deepEqual(s.audits('players-search').map((a) => JSON.parse(a.detail)), [{ q: 'bri', online: false }, { q: 'THORN', online: false }, { q: 'horn', online: false },
-    { q: '', online: true }, { q: '', online: false }, { q: 'zed', online: false }], 'once a view in ten minutes, whatever its pages');
+  // STAFF-BANNED: the ban filter is part of the view, its default not-banned
+  assert.deepEqual(s.audits('players-search').map((a) => JSON.parse(a.detail)), [{ q: 'bri', online: false, ban: 'not-banned' }, { q: 'THORN', online: false, ban: 'not-banned' },
+    { q: 'horn', online: false, ban: 'not-banned' }, { q: '', online: true, ban: 'not-banned' }, { q: '', online: false, ban: 'not-banned' }, { q: 'zed', online: false, ban: 'not-banned' }],
+  'once a view in ten minutes, whatever its pages');
 });
 
 test('STAFF-PANEL3-PLAYERS: WHAT GOES FIRST - each tab\'s badge counts what is open, at its level, and the profile opens on the most urgent (mutants: each level; the order)', () => {

@@ -244,7 +244,7 @@ test('STAFF-PANEL3-REALM: FIX ACCOUNT - the purse mend and the repair as buttons
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.deepEqual([r.body.ok, r.body.was, r.body.gold, r.body.held, r.body.by, r.body.playing], [true, -500, 500, null, 'SirMcMobdon', true]);
   assert.equal(recordOf(s.env, c.id).goldPieces, 0);
-  assert.deepEqual(s.audits('fix-mend').at(-1).detail, { char: c.id, name: 'Purse', note: 'the wrapped sale', ticket: 'fb-purse', gold: 500, was: -500 });
+  assert.deepEqual(s.audits('fix-mend').at(-1).detail, { char: c.id, name: 'Purse', note: 'the wrapped sale', ticket: 'fb-purse', gold: 500, was: -500, repeat: false });
 });
 
 test('STAFF-PANEL3-REALM: WEALTH PAST THE ALLOWANCE - the judge\'s gains with gold apart from goods (the verdict writes the gold), XP past the line from the progression\'s hours, most urgent first by allowances past, paged and kept five minutes; the Home roll-up (mutants: the gold; the score; the levels; the cache)', async () => {

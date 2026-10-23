@@ -54,16 +54,40 @@ export function createStaffFollowHost({ hook, prepare, mode, where, toScene, eye
   };
 }
 
+/**
+ * STAFF-HIDE-TOGGLE (2026-10-23, mob: "i cant talk in chat?", "need hide to be a toggle"): THE GAME'S OWN LINKS REMADE ON A
+ * FRESH TOKEN, at the Staff Panel's `relink` (net/staffHook.js) - Hide me or Show myself just pressed. The account service
+ * mints hidden or shown by the switch at each mint (server-account/src/staffHidden.js hiddenToken), so the held token is let
+ * go (`minter.forget`, a mint still on its way with it) and every room the game holds is left and opened again: the
+ * presence session's by the world frame, which joins a session standing in no room where the player is, the next frame
+ * (scenes/world.js, the room key's join); each chat link's here, at once - a join clears a terminal close's wait (a hide
+ * order's `hidden lapsed` on the hub link), which a rejoin would sit out for CHAT_REJOIN_MS. A link the seat or a ban took
+ * out of every room stands in none and is left alone. Leave first, then open - never AURA-LIVE's swap (online.js
+ * rehello): the relay refuses a hidden hello on an id a shown socket of the room still holds (`id taken`,
+ * server/src/staffHidden.js hiddenHello), so the shown socket's close goes out before the new socket opens, mints and
+ * says hello. A follow's own links are the hook's, on follow tokens, and stand.
+ * @param {{ forget?: () => void } | null | undefined} minter @param {any} main the presence session @param {Iterable<any> | null | undefined} links the chat links
+ */
+export function relinkGame(minter, main, links) {
+  minter?.forget?.();
+  if (main?.room) main.leave();
+  for (const link of links ?? []) { const room = link.room; if (room) { link.leave(); link.join(room); } }
+}
+
 /** THE PAGE'S FOLLOW, made once by the host (scenes/world.js): the panel's door on this window, the hook behind it and
  *  the host's half above - so bootWorld wires one object. `follow(sub)` is a /tp's follow-on (mob, 06:01Z: "tp should
  *  auto follow form thier view"), taken only where a Staff Panel has spoken on this page: with none, no token comes.
- *  @param {{ main: () => any, prepare: (d: any) => Promise<any>, mode: () => string, pixel: () => { x: number, y: number }, toScene: (p: any) => number[] | null, win?: any, Session?: any }} deps */
-export function staffFollowOnPage({ main, prepare, mode, pixel, toScene, win = globalThis.window, Session = undefined }) {
-  const door = staffHookDoor(win, () => hook);
+ *  `relink` the door's STAFF-HIDE-TOGGLE word (relinkGame, over the host's minter and links).
+ *  @param {{ main: () => any, prepare: (d: any) => Promise<any>, mode: () => string, pixel: () => { x: number, y: number }, toScene: (p: any) => number[] | null, relink?: () => void, win?: any, Session?: any }} deps */
+export function staffFollowOnPage({ main, prepare, mode, pixel, toScene, relink = undefined, win = globalThis.window, Session = undefined }) {
+  const door = staffHookDoor(win, () => hook, { relink });
   const hook = createStaffHook({ main, askToken: door.askToken, ...(Session ? { Session } : {}) });
   const host = createStaffFollowHost({ hook, prepare, mode, where: () => `${mode()}|${pixel().x},${pixel().y}`, toScene, eyeHeight: (p) => (p.rd ? RIDE_EYE_HEIGHT : CAPSULE_HEIGHT - 0.2) });
   return {
     hook, frame: host.frame, eye: host.eye, locked: () => hook.locked(),
     follow: (/** @type {unknown} */ sub) => door.panel() && hook.follow(sub),
+    // STAFF-VIEW1 (mob: "np player esp in staff panel?"): what the staff view reads (scenes/staffViewHost.js) - whether a
+    // panel spoke here, the followed room's players, the game's own session, its frame and mode, and the panel's tags
+    panel: door.panel, peers: hook.peers, main, toScene, mode, tags: door.tags, askTags: door.askTags,
   };
 }
