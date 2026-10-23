@@ -74,7 +74,7 @@ export const STAFF_MAX_S = 8 * 60 * 60;
  *  shortcut: a hidden socket open longer than this on a token minted before it is missed; upgrade when the relay asks a
  *  hidden socket's session again after its hello. */
 export const CUT_HIDDEN_S = 24 * 60 * 60;
-/** The most hidden subjects one cut orders closed (one a staff session). */
+/** The most hidden subjects one cut orders closed (two a staff session: its Hide me game's and its follow eye's). */
 const CUT_SUBS_MAX = 50;
 /** How stale `last_act` may grow before an act writes it again (one write a minute at most). */
 export const STAFF_TOUCH_S = 60;
@@ -126,6 +126,7 @@ export const STAFF_STATUS = Object.freeze({
   // sanction a Moderator would lift, a press with no one-time id, and a cut member an Admin would add back
   'case-acted': 409, 'case-closed': 409, 'admin-sanction': 403, 'bad-click': 400, 'staff-suspended': 409,
   'no-signing-key': 503,   // STAFF-PANEL5-FOLLOW (staffFollow.js): a service with no key mints no follow token
+  'staff-session-lapsed': 409,   // STAFF-PANEL5-HIDDEN-R2 (staffHidden.js hiddenToken): the game's mint, its hiding lapsed - /v1/auth/token's 409
   // STAFF-PANEL5-MESSAGE (staffMessage.js): a message past 200 characters, and a second inside a staff member's 5 seconds
   'staff-message-long': 400, 'staff-message-rate': 429,
   // STAFF-PANEL5-FEEDS (staffMonsters.js): a Flag whose spawn case did not open
@@ -311,21 +312,26 @@ const STAFF_WHO_SQL = `SELECT s.key_id AS s_key, s.last_act AS s_act, s.expires_
  * hold - their staff sessions' (`hashes`, read before the batch deleted them) and every subject the audit log says a hidden
  * token was minted for in CUT_HIDDEN_S (staffHidden.js `hidden-token`, written before the token is handed out): a session
  * deleted before the cut (an idle-out, a sign-in's prune, a new password) left its hidden sockets open, and its subject is
- * no account the staffcut names. Then the staffcut. Every order is stamped with the clock read after the batch, so a token
- * minted while the request ran is no newer than them. Answers `{ orders, took, hidden }`.
- * @param {any} ctx @param {any} env @param {string} playerId @param {string[]} hashes
+ * no account the staffcut names. STAFF-PANEL5-HIDDEN-R2: and every follow eye's (staffFollow.js, the `follow` and
+ * `follow-home` rows' subject, in the same CUT_HIDDEN_S - a socket outlives the token that opened it). Then the staffcut,
+ * unless `cut` is false (a Moderator removed, below). Every order is stamped with the clock read after the batch, so a
+ * token minted while the request ran is no newer than them. Answers `{ orders, took, hidden }`.
+ * @param {any} ctx @param {any} env @param {string} playerId @param {string[]} hashes @param {boolean} [cut]
  */
-async function cutPush(ctx, env, playerId, hashes) {
+async function cutPush(ctx, env, playerId, hashes, cut = true) {
   const { db, subtle } = ctx;
   const at = Math.max(ctx.nowS, Math.floor(Date.now() / 1000));
-  const minted = (await db.prepare(`SELECT json_extract(detail, '$.sub') AS sub, MAX(at) AS t FROM staff_audit WHERE actor = ?1 AND act = 'hidden-token' AND at > ?2
+  const minted = (await db.prepare(`SELECT json_extract(detail, '$.sub') AS sub, MAX(at) AS t FROM staff_audit WHERE actor = ?1 AND act IN ('hidden-token', 'follow', 'follow-home') AND at > ?2
     GROUP BY sub ORDER BY t DESC LIMIT ?3`).bind(playerId, at - CUT_HIDDEN_S, CUT_SUBS_MAX).all())?.results ?? [];
   const subs = [...new Set([...(await Promise.all(hashes.map((h) => hiddenSubOf(h, subtle)))), ...minted.map((r) => r.sub)])].filter((x) => typeof x === 'string' && ID_RE.test(x));
   const key = await signingKey(env, subtle);
-  const orders = [...(key ? await Promise.all(subs.map((x) => mintHideOrder({ s: x }, key, { subtle, nowS: at }))) : []), await staffCutOrder(env, subtle, at, playerId)];
+  const orders = [...(key ? await Promise.all(subs.map((x) => mintHideOrder({ s: x }, key, { subtle, nowS: at }))) : []), ...(cut ? [await staffCutOrder(env, subtle, at, playerId)] : [])];
   const took = await Promise.all(orders.map((o) => pushLaw(env, (u, i) => globalThis.fetch(u, i), o)));
   return { orders: orders.length, took: took.filter(Boolean).length, hidden: subs.length };
 }
+
+/** A member's staff sessions' stored hashes, read before a batch deletes them (a cut's, a removal's). @param {any} db @param {string} playerId */
+const sessionHashes = async (db, playerId) => ((await db.prepare('SELECT token_hash FROM staff_sessions WHERE player_id = ? LIMIT 20').bind(playerId).all())?.results ?? []).map((r) => r.token_hash);
 
 /**
  * WHO IS THIS STAFF MEMBER? One read: the session, its account and its key. Dead - and deleted - when it is past its
@@ -341,6 +347,8 @@ export async function staffSession(ctx, env, token, { act = true } = {}) {
   if (!row) return null;
   const role = staffRole(row, env);
   if (!role || row.s_expires <= nowS || row.s_act + STAFF_IDLE_S <= nowS || !row.k_handle || row.k_handle !== row.handle_lc || (row.k_cfg && !configKey(row, env, row.k_pub)) || isBanned(row, nowS)) {
+    // STAFF-PANEL5-HIDDEN-R2: its hidden sockets stay hidden, its game is minted nothing (staffHidden.js LAPSED_SQL), and
+    // a cut or a removal finds them in the audit log (cutPush) - every other delete of a session row is the same
     await db.prepare('DELETE FROM staff_sessions WHERE token_hash = ?').bind(hash).run();
     return null;
   }
@@ -378,7 +386,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
     await hiddenEnd(ctx, env, me.id, all ? null : [who.hash]);   // STAFF-PANEL5-HIDDEN: the session's hidden sockets closed, never shown
     await db.batch([
       all ? db.prepare('DELETE FROM staff_sessions WHERE player_id = ?').bind(me.id) : db.prepare('DELETE FROM staff_sessions WHERE token_hash = ?').bind(who.hash),
-      audit('logout', null, { all }),
+      audit('logout', null, all ? { all } : { all, sub: await hiddenSubOf(who.hash, subtle) }),   // STAFF-PANEL5-HIDDEN-R2: the session's subject, so its sign-out ends its own hiding alone (staffHidden.js LAPSED_SQL)
     ]);
     return { ok: true, all };
   }
@@ -441,13 +449,16 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
     }
     if (target.staff_mod !== 1) return { error: staffRole(target, env) ? 'staff-config' : 'no-staff' };
     if (staffRole({ ...target, staff_mod: 0 }, env)) return { error: 'staff-config' };   // the config holds them still
-    await hiddenEnd(ctx, env, target.id);   // STAFF-PANEL5-HIDDEN: their hidden sockets closed with their sessions
+    const hashes = await sessionHashes(db, target.id);
     await db.batch([
       audit('mod-remove', target.id, { handle: target.handle }, { okIf: { sql: 'EXISTS (SELECT 1 FROM players WHERE id = ? AND staff_mod = 1)', args: [target.id] } }),
       db.prepare('UPDATE players SET staff_mod = 0 WHERE id = ?').bind(target.id),
       db.prepare('UPDATE staff_keys SET revoked_at = ? WHERE player_id = ? AND revoked_at IS NULL').bind(nowS, target.id),
       ...['staff_sessions', 'staff_invites'].map((t) => db.prepare(`DELETE FROM ${t} WHERE player_id = ?`).bind(target.id)),
     ]);
+    // STAFF-PANEL5-HIDDEN: their hidden sockets closed with their sessions - STAFF-PANEL5-HIDDEN-R2: every one the cut
+    // would find (a session idled out or pruned before the removal, a follow eye's), the cut's own union, no staffcut
+    await cutPush(ctx, env, target.id, hashes, false);
     return { ok: true, handle: target.handle };
   }
 
@@ -485,7 +496,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
       // their panel's, so no game door and no fresh token is theirs until they sign in again - and that token carries no
       // staff glyph. The relay is told to close what they hold now (sanctions.js staffCutOrder; the hub hands it on to every
       // room their game holds); `relay` says whether it took every order, and the log says it too (`cut-relay`)
-      const hashes = ((await db.prepare('SELECT token_hash FROM staff_sessions WHERE player_id = ? LIMIT 20').bind(target.id).all())?.results ?? []).map((r) => r.token_hash);
+      const hashes = await sessionHashes(db, target.id);
       await db.batch([
         db.prepare('UPDATE staff_keys SET revoked_at = ? WHERE player_id = ? AND revoked_at IS NULL').bind(nowS, target.id),
         ...['staff_sessions', 'staff_invites', 'sessions'].map((t) => db.prepare(`DELETE FROM ${t} WHERE player_id = ?`).bind(target.id)),

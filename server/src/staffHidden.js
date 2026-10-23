@@ -20,9 +20,11 @@
 //   Region lists - `_idFirst`, every directed frame's target), its join and its leave never said, never a room's host
 //   (`_hostWalk`, `_leads`), never in a census (no `lk`), and never the hub's account (no friends' presence, no party).
 //   Its own name is the token's - HIDDEN_NAME, never the account's - and its subject a staff session's, never an account.
-//   OUTSIDE THE CAP. A hidden seat is asked at the upgrade (`?hd=1`) and taken from HIDDEN_RESERVE over the room's own
-//   cap; a visible socket's fullness leaves hidden ones out (`seatsTaken`). A hidden seat said hello with a visible token
-//   is closed (`hiddenHello`): the reserve is the spectator's alone.
+//   OUTSIDE THE CAP. A hidden seat is asked at the upgrade (`?hd=1`) and taken from a free seat, or from HIDDEN_RESERVE
+//   over a full room's own cap; a visible socket's fullness leaves hidden ones out (`seatsTaken`). The ask is anyone's
+//   until its hello's token is verified, so HIDDEN_RESERVE seats at most stand asked and not yet hello'd, and a hidden ask
+//   past them closes the silent ones past HELLO_WAIT_MS first (index.js `_unseatSilent`). A hidden seat said hello with a
+//   visible token is closed (`hiddenHello`): a hidden seat is the spectator's alone.
 //   ADMITTED AS STAFF, WRITING NOTHING. A private home (privateInteriorAdmits' staff right), a seat-limited instance
 //   (instanceAdmits' staff right), an Elite Breach and a Super dungeon's realm let a hidden socket in without its
 //   admission's membership or seat written. Entering a private home is reported to the account service's audit log
@@ -80,14 +82,30 @@ export function hiddenSeats(room) {
   return n;
 }
 
+/** How many of the room's sockets hold a hidden seat asked and not yet said hello - an ask no token has spoken for yet
+ *  (STAFF-PANEL5-HIDDEN-R3). @param {any} room */
+function hiddenPending(room) {
+  let n = 0;
+  for (const [ws, b] of room._all()) if (b.hs && !b.hid && !room._dead.has(ws) && !room._gone.has(ws)) n++;
+  return n;
+}
+
 /** The seats an upgrade measures against the room's cap: a visible one, every socket but the hidden ones; a hidden one,
- *  its reserve's (full at HIDDEN_RESERVE). Under the cap with every socket counted, nothing is walked.
+ *  every socket less the reserve (STAFF-PANEL5-HIDDEN-R2) - a free seat under the cap first, then HIDDEN_RESERVE over a
+ *  full room's, a hidden ask full at cap + HIDDEN_RESERVE sockets in all (the follow eye asks one: a near-empty cell with
+ *  8 hidden sockets in it walked the eye to a layer its target is not on). Under the cap with every socket counted, a
+ *  visible ask walks nothing.
+ *  STAFF-PANEL5-HIDDEN-R3 (design doc: "a small reserve over the cap"): the `?hd=1` ask is checked at no door before its
+ *  hello, so a page with no token could park cap + HIDDEN_RESERVE silent seats that player traffic never reaped - a
+ *  hidden ask is also full at HIDDEN_RESERVE seats asked and not yet hello'd, and the room's full path closes the silent
+ *  ones past HELLO_WAIT_MS. Hello'd hidden sockets still take free seats. The walk runs on a hidden ask alone, and only
+ *  under the hard bound.
  *  @param {any} room @param {boolean} ask @param {number} cap */
 export function seatsTaken(room, ask, cap) {
   const all = room.state.getWebSockets().length;
-  if (!ask && all < cap) return all;
-  const n = hiddenSeats(room);
-  return ask ? cap - HIDDEN_RESERVE + n : all - n;
+  if (!ask) return all < cap ? all : all - hiddenSeats(room);
+  const seats = all - HIDDEN_RESERVE;
+  return seats < cap && hiddenPending(room) >= HIDDEN_RESERVE ? cap : seats;
 }
 
 /** A hello's hidden word: `who` marked `hid` when `_named` verified a hidden token for it (the room's `_hidHellos`, a

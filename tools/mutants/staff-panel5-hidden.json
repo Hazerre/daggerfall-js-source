@@ -52,8 +52,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-full-counts-hidden",
     "file": "server/src/staffHidden.js",
-    "old": "return ask ? cap - HIDDEN_RESERVE + n : all - n;",
-    "new": "return ask ? cap - HIDDEN_RESERVE + n : all;",
+    "old": "return all < cap ? all : all - hiddenSeats(room);",
+    "new": "return all;",
     "why": "hidden sockets in a visible socket's fullness",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -62,8 +62,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-reserve-unbounded",
     "file": "server/src/staffHidden.js",
-    "old": "return ask ? cap - HIDDEN_RESERVE + n : all - n;",
-    "new": "return ask ? cap - HIDDEN_RESERVE : all - n;",
+    "old": "  const seats = all - HIDDEN_RESERVE;",
+    "new": "  const seats = 0;",
     "why": "no bound on the hidden reserve",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
@@ -72,12 +72,13 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-reserve-empty-unbounded",
     "file": "server/src/staffHidden.js",
-    "old": "if (!ask && all < cap) return all;",
-    "new": "if (all < cap) return all;",
+    "old": "  const seats = all - HIDDEN_RESERVE;",
+    "new": "  const seats = cap - HIDDEN_RESERVE + hiddenSeats(room);",
     "why": "an under-cap room takes any number of hidden seats",
     "tests": [
       "test/net/staffpanel5hidden_relay.test.js"
-    ]
+    ],
+    "note": "RETIRED by STAFF-PANEL5-HIDDEN-R2 (the relay fixes' second round: a hidden ask takes a free seat first, then the reserve): an under-cap room now takes hidden asks into its free seats, bounded at cap + HIDDEN_RESERVE in all - the mutant puts back the reserve as a hidden ask's only seats, which walked a follow eye off its target's layer. It was the mutant that let an under-cap room take any number."
   },
   {
     "name": "STAFF-PANEL5-HIDDEN-seat-visible-token",
@@ -873,8 +874,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-remove-no-order",
     "file": "server-account/src/staff.js",
-    "old": "    await hiddenEnd(ctx, env, target.id);   // STAFF-PANEL5-HIDDEN: their hidden sockets closed with their sessions\n    await db.batch([\n      audit('mod-remove'",
-    "new": "    await db.batch([\n      audit('mod-remove'",
+    "old": "    await cutPush(ctx, env, target.id, hashes, false);\n",
+    "new": "",
     "why": "a Moderator removed pushes nothing",
     "tests": [
       "test/server/staffpanel5hidden.test.js"
@@ -1083,8 +1084,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-FIX-lapse-any-logout",
     "file": "server-account/src/staffHidden.js",
-    "old": "OR e.key_id IS h.key_id))))",
-    "new": "OR 1 = 1))))",
+    "old": "OR json_extract(e.detail, '$.sub') = h.sub))",
+    "new": "OR 1 = 1))",
     "why": "finding 14: another key's sign-out ends a hidden session it never held",
     "tests": [
       "test/server/staffpanel5hidden.test.js"
@@ -1093,8 +1094,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-FIX-lapse-own-key-unread",
     "file": "server-account/src/staffHidden.js",
-    "old": "OR e.key_id IS h.key_id))))",
-    "new": "))))",
+    "old": " OR json_extract(e.detail, '$.sub') = h.sub))",
+    "new": "))",
     "why": "finding 14: the staff member's own sign-out shows nobody - the game stays refused",
     "tests": [
       "test/server/staffpanel5hidden.test.js"
@@ -1103,8 +1104,8 @@
   {
     "name": "STAFF-PANEL5-HIDDEN-FIX-lapse-all-unread",
     "file": "server-account/src/staffHidden.js",
-    "old": "(e.detail = '{\"all\":true}' OR e.key_id IS h.key_id)",
-    "new": "(e.key_id IS h.key_id)",
+    "old": "(e.detail = '{\"all\":true}' OR json_extract(e.detail, '$.sub') = h.sub)",
+    "new": "(json_extract(e.detail, '$.sub') = h.sub)",
     "why": "finding 14: a sign-out of every session by another key ends nothing",
     "tests": [
       "test/server/staffpanel5hidden.test.js"
@@ -1149,6 +1150,156 @@
     "tests": [
       "test/server/staffpanel5hidden.test.js",
       "test/server/staffpanel5follow.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R2-seat-visible-unread",
+    "file": "server/src/staffHidden.js",
+    "old": "  const seats = all - HIDDEN_RESERVE;",
+    "new": "  const seats = hiddenSeats(room) - HIDDEN_RESERVE;",
+    "why": "item 3: a hidden ask counts the hidden sockets alone - a full room's reserve unbounded",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R2-seat-reserve-unread",
+    "file": "server/src/staffHidden.js",
+    "old": "  const seats = all - HIDDEN_RESERVE;",
+    "new": "  const seats = all;",
+    "why": "item 3: no reserve over a full room's cap - the eye walked to another layer",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R3-pending-unbounded",
+    "file": "server/src/staffHidden.js",
+    "old": "return seats < cap && hiddenPending(room) >= HIDDEN_RESERVE ? cap : seats;",
+    "new": "return seats;",
+    "why": "round 2 verifier: an anonymous page parks cap + HIDDEN_RESERVE silent hidden seats that player traffic never reaps",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R3-pending-one-late",
+    "file": "server/src/staffHidden.js",
+    "old": "hiddenPending(room) >= HIDDEN_RESERVE ? cap : seats;",
+    "new": "hiddenPending(room) > HIDDEN_RESERVE ? cap : seats;",
+    "why": "HIDDEN_RESERVE + 1 silent hidden seats parked",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R3-pending-counts-hello",
+    "file": "server/src/staffHidden.js",
+    "old": "if (b.hs && !b.hid && !room._dead.has(ws)",
+    "new": "if (b.hs && !room._dead.has(ws)",
+    "why": "a hello'd hidden socket counted as a pending seat - HIDDEN_RESERVE watchers walk the eye off its target's layer again",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R3-pending-dead-counted",
+    "file": "server/src/staffHidden.js",
+    "old": "if (b.hs && !b.hid && !room._dead.has(ws) && ",
+    "new": "if (b.hs && !b.hid && ",
+    "why": "a silent seat the full path closed still counted - the eye refused after the reap",
+    "tests": [
+      "test/net/staffpanel5hidden_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R2-lapse-forget-unread",
+    "file": "server-account/src/staffHidden.js",
+    "old": "\n      OR (e.act = 'key-forget' AND json_extract(e.detail, '$.id') = h.key_id)",
+    "new": "",
+    "why": "item 1: the key that hid the game forgotten - the game refused for good",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R2-lapse-forget-any-key",
+    "file": "server-account/src/staffHidden.js",
+    "old": "AND json_extract(e.detail, '$.id') = h.key_id)",
+    "new": "AND 1 = 1)",
+    "why": "item 1: another key forgotten ends a hiding it never held",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R2-lapse-logout-by-key",
+    "file": "server-account/src/staffHidden.js",
+    "old": "OR json_extract(e.detail, '$.sub') = h.sub))",
+    "new": "OR e.key_id IS h.key_id))",
+    "why": "item 2: a key's older session signing out ends its newer session's hiding - lapsed, the game is minted the visible token",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R2-logout-sub-unwritten",
+    "file": "server-account/src/staff.js",
+    "old": "all ? { all } : { all, sub: await hiddenSubOf(who.hash, subtle) }",
+    "new": "{ all }",
+    "why": "item 2: a sign-out names no session - its own hiding never ends by it",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R2-remove-live-only",
+    "file": "server-account/src/staff.js",
+    "old": "await cutPush(ctx, env, target.id, hashes, false);",
+    "new": "await hiddenEnd(ctx, env, target.id, hashes);",
+    "why": "item 4: a Moderator removed after an idle-out, a sign-in's prune or a new password - their hidden sockets never ordered closed",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R2-follow-unread",
+    "file": "server-account/src/staff.js",
+    "old": "act IN ('hidden-token', 'follow', 'follow-home')",
+    "new": "act IN ('hidden-token')",
+    "why": "item 5: a cut or a removal leaves the member's follow eyes open",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R2-follow-home-unread",
+    "file": "server-account/src/staff.js",
+    "old": "act IN ('hidden-token', 'follow', 'follow-home')",
+    "new": "act IN ('hidden-token', 'follow')",
+    "why": "item 5: a follow eye that only ever entered a home left open",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R2-removal-staffcut",
+    "file": "server-account/src/staff.js",
+    "old": "...(cut ? [await staffCutOrder",
+    "new": "...(true ? [await staffCutOrder",
+    "why": "item 4: a Moderator removed is pushed a staffcut - a removal is no cut",
+    "tests": [
+      "test/server/staffpanel5hidden.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-HIDDEN-R2-lapsed-status-unlisted",
+    "file": "server-account/src/staff.js",
+    "old": "  'staff-session-lapsed': 409,",
+    "new": "",
+    "why": "the lapsed mint's word in no STAFF_STATUS - a staff module's refusal with no status (accountflow ACC1e)",
+    "tests": [
+      "test/server/accountflow.test.js"
     ]
   }
 ]
