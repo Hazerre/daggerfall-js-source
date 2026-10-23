@@ -66,6 +66,11 @@ the phase `slain` for `SERPENT_DIVE_MS` (its death throes), then `gone`.
 
 ## 2. The sighting - the chat, the ring, the compass
 
+[EVENTS1, 2026-10-23 (`10-UI/Event-Board.md`): the sighting's lines and the kill's are said in the HUD's event board's
+news now (`systems/eventNotices.js`, kind `serpent`) and filed in the journal, where they had been the chat's; with the
+board switched off, the chat. Wherever this page says "the chat" of the sighting, read the board's news - the port named
+there too.]
+
 `systems/serpent/serpentOmen.js` (`createSerpentOmen`), one call a frame from the online frame. It says nothing until the
 relay's clock is read and the hub has welcomed the player (AUDIT WB C4's law), then waits `SERPENT_OMEN_SETTLE_MS`
 more. Each line is said once a day, in order. A player arriving late hears only the line for where it stands now:

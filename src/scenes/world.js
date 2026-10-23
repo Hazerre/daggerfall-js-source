@@ -617,6 +617,7 @@ import { COOK_FIRE } from '../net/professionLaw.js';   // PROF9: the fire Cookin
 import { SURVEYOR } from '../net/professionLaw.js';   // MINE-PERKS: Mining 100's Surveyor, whose own word witnesses the ground
 import { lodeMapMarks } from '../ui/lodeMapMark.js';   // MINE-PERKS: a Motherlode Sense's day's Motherlodes, on both maps and the Overworld
 import { seatEventBoard, eventNotice } from '../systems/eventNotices.js';   // EVENTS1: the event board's source, seated where it is made, and the one door an event's line goes through (never the chat)
+import { EVENT_SOON_MS } from '../systems/eventBoard.js';   // AUDIT EVENTS1 A4: the board's horizon, the raids' look ahead
 import { localWhenText } from '../systems/eventTimers.js';   // AUDIT MINE-PERKS: a Motherlode's hour as the timers say a moment - this machine's clock, its weekday where it is not today
 import { setFeastShare, takeFeastGift, shareFeastWith } from '../systems/cookItems.js';   // PROF9: a feast shared with the party at the table
 import { hasSkillet, packSavedFires, CAMP_TEXT } from '../systems/survival/camp.js';   // PROF9: C&C's Skillet widens the pan's window; AUDIT REST II H5: a dungeon save's fires carried out
@@ -697,7 +698,7 @@ import { warmAshesOn, LeaveShip, setWarmAshesHost, onPreFastTravel as warmAshesP
 import { laneNetwork, laneWay, packetsAt, packetAt, LANE_PATH_PX, LANE_DWELL_S } from '../systems/naval/seaLanes.js';   // SEA-LANES: the Bay's packets; LW5: where one is, and her dwell
 import { raidersNear, raiderAt, raiderSight, chaseStep as raiderChaseStep, pixelOfNative, NATIVE_PIXEL as RAID_NATIVE_PIXEL, RAIDER_CONTACT_M, RAIDER_CONTACT_PLAY_M, RAIDER_CHASE_MPS, RAIDERS_WIRE_MAX, RAIDER_WORD_MS, raiderWordOf, validRaiderWord, raiderLifeOf, raiderNearMe, RAIDER_LIFE_MS } from '../systems/seaRaiders.js';   // OWS3: Warm Ashes' raiders on the Overworld's sea
 import { RAIDER_LEAD_S } from '../systems/naval/navalRaiders.js';   // NAV-R: a raider ship steers its seeded course this far on
-import { setRaidingPartiesHost, raidFrame as raidingPartiesFrame, raidState, raidActive, raidingPartiesOn, raidTimerList, raidDefendingHere, outOfSight as raidOutOfSight, raidWireWord, raidPeerWord, raidRelayWord, raidTownsFor, raidPoolCleared, raidRelayState, RAID_SPAWN_MIN_DISTANCE, RAID_SPAWN_MAX_DISTANCE } from '../systems/raidingParties.js';   // RAID1: World Events - Raiding Parties, the towns' raids
+import { setRaidingPartiesHost, raidFrame as raidingPartiesFrame, raidState, raidActive, raidingPartiesOn, raidTimerList, raidRegionNow, raidDefendingHere, outOfSight as raidOutOfSight, raidWireWord, raidPeerWord, raidRelayWord, raidTownsFor, raidPoolCleared, raidRelayState, RAID_SPAWN_MIN_DISTANCE, RAID_SPAWN_MAX_DISTANCE } from '../systems/raidingParties.js';   // RAID1: World Events - Raiding Parties, the towns' raids
 import { modSaveRecords, restoreModSaveRecords, newGameModSaveRecords, registerModSaveData } from '../systems/modSaveData.js';   // WA1: DFU's per-mod save slot, for the mods after HCC; OH-D: Ocean Holes' OceanHoleSaveData
 import { applyDeathPenalty, deathPenaltyText, stateDeathLoss, statedDeathLoss } from '../systems/deathPenalty.js';   // DEATH-PENALTY: an online death costs a tenth of the purse
 import { createLegacyHost, LEGACY_TEXT, REMAINS_FLAT } from './legacyHost.js';   // LEGACY1: Project Legacy's family - the record, the deaths, the births
@@ -17134,18 +17135,18 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         // SERPENT-TIMERS: the sea serpent - the port it lies off as the omen found it, and its kill at this machine's site
         serpent: { place: serpentOmen?.current?.()?.site?.near ?? null, site: serpentOmen?.current?.()?.site ?? null, fellAt: (day) => { const site = serpentOmen?.current?.()?.site; return site && site.day === day ? serpentLink?.fellAt?.(day, site) ?? null : null; } },
         // SD2c: the Super dungeon - the hub's record, its name and its city (the row's own law asks the phase: a row once found)
-        sd: sdHost ? { rec: sdHost.record(), name: sdHost.hollow()?.loc?.name ?? null, place: sdHost.hollow()?.site?.cityName ?? null } : null,
+        sd: sdHost ? { rec: sdHost.record(), name: sdHost.hollow()?.loc?.name ?? null, site: sdHost.hollow()?.site ?? null } : null,   // AUDIT EVENTS1 A2: the site itself - its city the window's place, its pixel the board's way
         stars: starfall?.timerRows() ?? null,   // STAR6: each fallen star's deadline, the next fall and the night's coven
         elite: egClient?.timers() ?? null,   // EG-F: my company's Elite Breach - its opening, its window, its hall and count
         doors: egClient ? { board: () => egBoardDoor() } : null,   // EG-ZM (Elite-Gates.md section 20): the boards' door on the Elite rows
         seatsOpen: seatBook?.open === true,   // AUDIT TIMERS1 D5: the seat week's rows are for an account the seats are open to
         seats: seatBook?.open === true ? (seatBook.data?.seats ?? null) : null,
         zero: seatBook?.open === true ? seatBook.zero : null,
-        region: REGION_NAMES[_questRegionIndex()] ?? null,   // AUDIT TIMERS1 D3: the player's own region's raids are listed whole
-        raids: raidingPartiesOn() ? raidTimerList(relayOf, (r) => REGION_NAMES[r]) : null,   // EVENTS1: and each town's pixel and ledger (systems/raidingParties.js)
+        region: REGION_NAMES[raidRegionNow()] ?? null,   // AUDIT TIMERS1 D3: the player's own region's raids are listed whole - AUDIT EVENTS1 A8: the raids' own region, none at sea or past the Veil (G7)
+        raids: raidingPartiesOn() ? raidTimerList(relayOf, (r) => REGION_NAMES[r], EVENT_SOON_MS) : null,   // EVENTS1: and each town's pixel and ledger (systems/raidingParties.js); AUDIT EVENTS1 A4: the next day's too, near its turn
       };
     } catch { return null; }
-  }, (text) => chatNotice(text));
+  }, (text) => chatNotice(text), townTalk);   // AUDIT EVENTS1 C4/C5: and every line filed in the journal's Messages (townTalk's hudMessageSink, set below - as AddHUDText files its own)
   const pauseDoorHooks = () => ({
     // PX25: the sheet's own doors, through this host's own arms. AUDIT 27h A4: each answers whether it opened one -
     // the page went down as a handoff (ui/pauseDoor.js), and a door that opened nothing resumes instead.
@@ -24666,7 +24667,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     unsprang: (site) => wodUnsprang(site),
     struckAt: (f) => renownStruckAt(f),
     send: (w, cell) => !!online?.sendRite?.(w, cell),
-    say: (text) => chatNotice(text),
+    say: (text) => eventNotice('gate', text),   // AUDIT EVENTS1 C6: the rite broken - the gate's, in the event board's news as its omen line is
     sayNear: (text) => setMidScreenText(text),
     loot: { seed: (items, feet, pixelKey) => droppedLoot.seedPile(items, feet, { archive: RANDOM_TREASURE_ARCHIVE, record: 0 }, null, pixelKey, { unsaved: true, drawn: false }), keyOf: (p) => `droppedLoot:${p.id}` },   // the casket is its picture, and its name
     level: () => playerEntity.level ?? 1,
@@ -24688,7 +24689,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  onSd), the Hollow it names found over this client's own map files (the gate's scan, the game's own rows) and stood in
    *  the index at its pixel while its phase stands - built there as a spawned dungeon is, its pixel built again when it
    *  rises or goes on ground that stands (sweepSdLate) - the find said at its mouth to the cell its pixel is in, and the
-   *  chat's lines for its find, its kill and its fading. */
+   *  lines for its find, its kill and its fading (the event board's news since EVENTS1). */
   let _sdDoorAt = null;
   /** AUDIT SD IV (F39): the Hollow host's scan, a row an ask - the rest the idle warm's (`warmScan`, AUDIT WB C7's
    *  slices): unbudgeted, the first frame after the hub's word paid the whole scan's remainder, and the warm never ran. A

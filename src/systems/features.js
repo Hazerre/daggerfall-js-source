@@ -1471,9 +1471,10 @@ export const FEATURES = Object.freeze([
     id: 'event-board',
     group: 'interface',
     get title() { return t('features.eventBoard.title', 'Event board'); },
-    get note() { return t('features.eventBoard.note', 'A small board at the left of the screen lists the world events you can still reach - Dagon\'s Breach, '
-      + 'the sea serpent, the Abyss Dungeon, fallen stars and nearby town raids - with where each is, how far and which way, and the time left. When one '
-      + 'is about to start, when it begins and when it has news, the news opens at the top of the board for a few seconds. Off sends the news to the chat instead.'); },
+    // AUDIT EVENTS1 W5: WB13b's rules (no dash aside, no rhythm of three), and the switch's truth (a raid's news goes back to
+    // the HUD's line, not the chat)
+    get note() { return t('features.eventBoard.note', 'A board at the left of the screen lists the world events you can still reach, with how far away each one '
+      + 'is and the time left. Their news opens at the top of the board and is kept in your journal. Off, the news goes back to the chat and the screen\'s message line.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced', 'classic']),
     control: Object.freeze({ store: 'prefs', key: 'eventBoard', initial: true, online: 'player' }),   // systems/eventNotices.js EVENT_BOARD_PREF

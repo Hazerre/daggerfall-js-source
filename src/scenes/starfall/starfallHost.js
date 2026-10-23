@@ -167,7 +167,7 @@ export function createStarfallHost(host) {
     peerSprang: (site) => !!host._wodPeerSprung?.has(site), peerHeldAgo: (site) => host.wodPeerHeldAgo?.(site) ?? 0,
     forgetPeer: (site) => host.wodForgetPeer?.(site), sprang: (site) => host.wodSprang?.(site), unsprang: (site) => host.wodUnsprang?.(site),
   };
-  const say = (text) => (host.eventNotice ?? eventNotice)('star', text);   // EVENTS1: the event board's news, never the chat (`eventNotice` the tests')
+  const say = (text, id = null) => (host.eventNotice ?? eventNotice)('star', text, id);   // AUDIT EVENTS1 A1: with its star's id (the board's row, starTimerRows)   // EVENTS1: the event board's news, never the chat (`eventNotice` the tests')
   const onBare = (x0, z0, x1, z1) => host.labGrassField?.invalidate?.(x0, z0, x1, z1);
   const shake = (k) => betterAmbience.weaponKick?.(k);
   const regionAt = () => host._questRegionIndex?.() ?? -1;
@@ -620,7 +620,7 @@ export function createStarfallHost(host) {
   function sayOnce(S, id, text, how = 'chat') {
     if (!text || S.said.has(id)) return;
     S.said.add(id);
-    if (how === 'mid') setMidScreenText(text, 4); else say(text);
+    if (how === 'mid') setMidScreenText(text, 4); else say(text, `star:${S.site.n}.${S.site.k}`);
   }
   function sayAt(S, id, text) {
     const f = feet();
@@ -797,7 +797,7 @@ export function createStarfallHost(host) {
           const site = nightSites(now()).find((s) => starHeldKey(s.n, s.k, s.px, s.py) === key) ?? null;
           const S = stars.get(key);
           const line = starHeldLine(site, w.top, w.c);
-          if (line && !(S?.said.has('heldRegion'))) { S?.said.add('heldRegion'); say(line); }
+          if (line && !(S?.said.has('heldRegion'))) { S?.said.add('heldRegion'); say(line, `star:${w.n}.${w.s}`); }
         }
         return;
       }

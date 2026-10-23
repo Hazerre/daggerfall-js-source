@@ -74,8 +74,8 @@
  {
   "name": "STAR6-the-town-before-its-omen",
   "file": "src/systems/starfall/starfallClient.js",
-  "old": "where: next.warned ? STAR_CARD_TEXT.near(next.s.near) : null",
-  "new": "where: STAR_CARD_TEXT.near(next.s.near)",
+  "old": "where: warned ? STAR_CARD_TEXT.near(s.near) : null",
+  "new": "where: STAR_CARD_TEXT.near(s.near)",
   "tests": [
    "test/systems/starfall/star6_words.test.js"
   ]
@@ -83,8 +83,8 @@
  {
   "name": "STAR6-not-the-soonest",
   "file": "src/systems/starfall/starfallClient.js",
-  "old": "(!next || T.fallAt < next.at)",
-  "new": "!next",
+  "old": "if (!next || T.fallAt < next.at) next =",
+  "new": "if (!next) next =",
   "tests": [
    "test/systems/starfall/star6_words.test.js"
   ]

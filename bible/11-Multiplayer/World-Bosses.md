@@ -103,8 +103,11 @@ at 8 in the evening (14:32)* and its countdown. Classic region page: the ring wr
 after `_drawPartyMarks`, when the site's region is the one open. Online data reaches the maps the way the party's
 does - a function in the travel map's dependency bag - so neither map learns the net.
 
-**The chat.** Local system lines on the World tab (`ChatLog.push`, `system: true`), each client printing its own at
-the clock's moments - the relay sends none of them. Nothing is said, and no gate stands, until the relay's clock is
+**The chat.** [EVENTS1, 2026-10-23 (`10-UI/Event-Board.md`): these lines - the omen's, the rite's, the marks', the
+portents', the gate's fall and the rite broken - are said in the HUD's event board's news now (`systems/eventNotices.js`,
+kind `gate`) and filed in the journal, where they had been the chat's; with the board switched off, the chat as below.
+Wherever this page says "the chat line" of the gate, read the board's news.] Local system lines on the World tab
+(`ChatLog.push`, `system: true`), each client printing its own at the clock's moments - the relay sends none of them. Nothing is said, and no gate stands, until the relay's clock is
 read and the hub has welcomed the player (or eight seconds on the relay's clock alone), and then `OMEN_SETTLE_MS` more,
 so the hub's word of a kill lands first; a line is said only past the last one said for its day, so a clock that
 steps back never says one twice (AUDIT WB C4):

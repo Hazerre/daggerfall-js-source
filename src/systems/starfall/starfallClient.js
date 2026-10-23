@@ -155,24 +155,29 @@ export function starMapMarks(sites, t, { held = new Map(), led = new Map(), loca
 
 /**
  * THE TIMERS WINDOW'S ROWS (systems/eventTimers.js's `{ id, kind, title, where, detail, live, at, until }`): each star
- * fallen and still undecided, live to its deadline; and the next to fall, coming - its coven always (the night's), its
- * town from STAR_WARN_MS before its fall (EVENTS1: it had been from its omen on, as the region hears it). A row that names
- * its town carries its map pixel (`px`, `py`) for the event board's way to it. `decided(key)` the host's word that a star
- * by starHeldKey is held or lost. A row that names its town also carries it bare (`town`) - the event board finds the
- * star a region line names by it. Pure.
+ * fallen and still undecided, live to its deadline; every star warned - within STAR_WARN_MS of its fall - coming, with
+ * its town and its map pixel (`px`, `py`, the event board's way to it); and, where the soonest to fall is not yet
+ * warned, that one coming without a town - its coven always (the night's). EVENTS1 named the town from STAR_WARN_MS
+ * where it had been from its omen, as the region hears it; AUDIT EVENTS1 A3: for EVERY star so warned - the night's falls
+ * are 7.5 minutes apart, and the soonest alone had kept the second and the third to 7.5 minutes' warning. `decided(key)`
+ * the host's word that a star by starHeldKey is held or lost. Pure.
  * @param {any[]} sites @param {number} t relay ms @param {(key: string) => boolean} [decided]
  */
 export function starTimerRows(sites, t, decided = () => false) {
   const rows = [];
   let next = null;
+  const coming = (s, at, heart, warned) => ({ id: `star:${s.n}.${s.k}`, kind: 'star', title: STAR_CARD_TEXT.comes(heart), where: warned ? STAR_CARD_TEXT.near(s.near) : null, detail: STAR_CARD_TEXT.rite(covenWitches(s.coven)), live: false, at, until: null, ...(warned ? { px: s.px, py: s.py } : {}) });
   for (const s of sites ?? []) {
     const T = starTimes(s.n, s.k), heart = heartStar(s.n, s.k);
     if (T.fallAt <= t && t < T.endAt && !decided(starHeldKey(s.n, s.k, s.px, s.py))) {
-      rows.push({ id: `star:${s.n}.${s.k}`, kind: 'star', title: STAR_CARD_TEXT.name(heart), where: STAR_CARD_TEXT.near(s.near), detail: STAR_CARD_TEXT.takes(), live: true, at: T.endAt, until: T.endAt, px: s.px, py: s.py, town: s.near });
-    } else if (T.fallAt > t && (!next || T.fallAt < next.at)) next = { s, at: T.fallAt, warned: T.fallAt - STAR_WARN_MS <= t, heart };
+      rows.push({ id: `star:${s.n}.${s.k}`, kind: 'star', title: STAR_CARD_TEXT.name(heart), where: STAR_CARD_TEXT.near(s.near), detail: STAR_CARD_TEXT.takes(), live: true, at: T.endAt, until: T.endAt, px: s.px, py: s.py });
+    } else if (T.fallAt > t) {
+      if (T.fallAt - STAR_WARN_MS <= t) rows.push(coming(s, T.fallAt, heart, true));
+      if (!next || T.fallAt < next.at) next = { s, at: T.fallAt, warned: T.fallAt - STAR_WARN_MS <= t, heart };
+    }
   }
-  if (next) rows.push({ id: `star:${next.s.n}.${next.s.k}`, kind: 'star', title: STAR_CARD_TEXT.comes(next.heart), where: next.warned ? STAR_CARD_TEXT.near(next.s.near) : null, detail: STAR_CARD_TEXT.rite(covenWitches(next.s.coven)), live: false, at: next.at, until: null, ...(next.warned ? { px: next.s.px, py: next.s.py, town: next.s.near } : {}) });
-  return rows;
+  if (next && !next.warned) rows.push(coming(next.s, next.at, next.heart, false));
+  return rows.sort((a, b) => (a.live === b.live ? 0 : a.live ? -1 : 1) || (a.live ? 0 : a.at - b.at));
 }
 
 /** The region's line for a held star the hub said: its town where this screen found the night's stars, else none. */
