@@ -375,7 +375,7 @@ than the gun, by the bow's span: the Hourlock was measured as powerful, not over
 with the toll is still the Remnant's prize - the owner picked the bow.
 
 **The law and the service.** A bow Hourlock is a shape law 11 never saw, so the item law moves to 12
-(`systems/item/itemLaw.js` ITEM_LAW_VERSION) and the account service to acct177 with it (`server-account/src/service.js`
+(`systems/item/itemLaw.js` ITEM_LAW_VERSION) and the account service to acct178 with it (acct177 on its branch, renumbered past ACCOUNT-HOMES at the merge; `server-account/src/service.js`
 ACCOUNT_VERSION, `wrangler.toml`) - `tech1_roster.test.js`'s LAW_SERVICE holds the pair. No migration.
 
 **The test room** (section 6): the loot character carries the bow Hourlock and thirty arrows, where it carried thirty
