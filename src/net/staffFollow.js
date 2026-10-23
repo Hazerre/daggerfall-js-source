@@ -42,10 +42,11 @@ export const NOTE_STALE_MS = 2 * WHERE_NOTE_STILL_MS + 30_000;
  *  @param {number} now @param {number} lastAt @param {boolean} changed */
 export const whereNoteDue = (now, lastAt, changed) => now - lastAt >= (changed ? WHERE_NOTE_MOVING_MS : WHERE_NOTE_STILL_MS);
 
-/** The room a note names (`rk`, with its layer), or null for one that names none (an old build, a battle, a private
- *  room). @param {any} p @returns {{ room: string, ly: number } | null} */
+/** The room a note names (`rk`, with its layer), or null for one that names none (an old build, a battle).
+ *  STAFF-PANEL5-FOLLOW-FIX (finding 2): a private room - a home, a boat's cabin, a caravan - is one, so the follow asks a
+ *  token for it and the service writes its `follow-home` row. @param {any} p @returns {{ room: string, ly: number } | null} */
 export function noteRoom(p) {
-  if (!p || !(isWorldRoom(p.rk) || isCellRoom(p.rk))) return null;
+  if (!p || !(isWorldRoom(p.rk) || isCellRoom(p.rk) || privateInteriorOf(p.rk))) return null;
   return { room: p.rk, ly: Number.isInteger(p.ly) && p.ly > 0 ? p.ly : 0 };
 }
 /** Where a note says its sender stands, as one string - a changed one is a changed room (a door, a dungeon, fast travel,
@@ -60,12 +61,13 @@ export const FOLLOW_INTERNAL_SAY = '/internal/follow/say';
 export const FOLLOWERS_MAX = 16;
 export const FOLLOWED_MAX = 256;
 
-/** A room's word to the bus, checked at the bus's door: `{ sub, k: 'in'|'out', room, ly? }` or null. @param {any} b */
+/** A room's word to the bus, checked at the bus's door: `{ sub, k: 'in'|'out', room, ly?, id? }` or null - `id` the
+ *  account's socket's id in that room (STAFF-PANEL5-FOLLOW-FIX, finding 1: the name its roster knows it by). @param {any} b */
 export function validFollowSay(b) {
   if (!b || typeof b !== 'object' || typeof b.sub !== 'string' || !ID_RE.test(b.sub)) return null;
   if (b.k !== 'in' && b.k !== 'out') return null;
   if (typeof b.room !== 'string' || b.room.length > 128 || !/^[\w:.,#@+-]+$/.test(b.room)) return null;
-  return { sub: b.sub, k: b.k, room: b.room, ...(Number.isInteger(b.ly) && b.ly > 0 && b.ly < 64 ? { ly: b.ly } : {}) };
+  return { sub: b.sub, k: b.k, room: b.room, ...(Number.isInteger(b.ly) && b.ly > 0 && b.ly < 64 ? { ly: b.ly } : {}), ...(typeof b.id === 'string' && ID_RE.test(b.id) ? { id: b.id } : {}) };
 }
 
 /** A `fol` frame as the game reads it, or null - an unsolicited or malformed one changes nothing. @param {any} m */

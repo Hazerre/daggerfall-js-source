@@ -8,11 +8,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { parse } from 'acorn';
 import { OnlineSession } from '../../src/net/online.js';
-import { SOCIAL_ROOM, validPartyPose, cellRoomOfWire } from '../../src/net/wire.js';
+import { SOCIAL_ROOM, validPartyPose, cellRoomOfWire, rosterFor } from '../../src/net/wire.js';
 import { FOLLOW_RELAY_MIN, WHERE_NOTE_MOVING_MS, WHERE_NOTE_STILL_MS } from '../../src/net/staffFollow.js';
-import { createStaffHook, staffHookDoor, STAFF_HOOK_VERSION, STAFF_TOKEN_WAIT_MS } from '../../src/net/staffHook.js';
+import { createStaffHook, staffHookDoor, hiddenSeat, STAFF_HOOK_VERSION, STAFF_TOKEN_WAIT_MS } from '../../src/net/staffHook.js';
 import { createStaffFollowHost, staffFollowOnPage } from '../../src/scenes/staffFollowHost.js';
-import { notePlace, staffTpLine, followStaffPlayer, staffDestinationKey, quietTeleportAllowed, STAFF_TP_FALLBACKS } from '../../src/net/staffTeleport.js';
+import { notePlace, staffTpLine, followStaffPlayer, staffDestinationKey, quietTeleportAllowed, STAFF_TP_FALLBACKS, validStaffDestination } from '../../src/net/staffTeleport.js';
 import { fakeSocketClass } from '../fakeSocket.mjs';
 
 const note = (rk = 'world:100,100', more = {}) => ({ px: 100, py: 100, in: 0, loc: 'Daggerfall', h: 50, hm: 60, f: 40, fm: 40, m: 10, mm: 20, rk, ...more });
@@ -93,6 +93,9 @@ function fakeSessions() {
     leave() { this.left = true; this.room = null; }
     tick() { this.ticks++; }
     sendPose(p) { this.poses.push(p); }
+    // LEASE1's two doors, as online.js keeps them: a lease handed on is kept; a lane takes another's kept one
+    sendLease(l) { this._lease = l; (this.leases ??= []).push(l); }
+    leaseFrom(s) { if (typeof s?._lease === 'string') this._lease = s._lease; }
   }
   return { Session, made };
 }
@@ -174,6 +177,71 @@ test('STAFF-PANEL5-FOLLOW hook: outdoors the target\'s own pose names the next c
   hook.tick();
   assert.equal(eye.room, cb);
   assert.equal(hook.room(), ca, 'the note\'s room stands until the hub says another');
+});
+
+test('STAFF-PANEL5-FOLLOW-FIX hook, on real sessions: a place room names no account, so the target is found by the id the room said (finding 1); the hub\'s lease rides the eye (finding 5); the eye alone asks a hidden seat (finding 18)', async () => {
+  const flush = async () => { for (let i = 0; i < 8; i++) await new Promise((r) => setImmediate(r)); };
+  const { FakeWS, sockets } = fakeSocketClass();
+  const v = `world${FOLLOW_RELAY_MIN}`;
+  const hook = createStaffHook({ main: () => ({ url: 'wss://relay.test' }), askToken: async () => 'tok', WS: FakeWS });
+  const idOf = (ws) => ws.sent.map(JSON.parse).find((m) => m.t === 'hello').id;
+  hook.follow('acct-target'); hook.tick();
+  const [hub] = sockets;
+  assert.equal(hub.url, `wss://relay.test/room/${SOCIAL_ROOM}`, 'the hub link asks no hidden seat: the reserve is a few a room, and the hub holds every hidden staff game');
+  hub.open(); await flush();
+  hub.receive({ t: 'welcome', id: idOf(hub), peers: [], n: 1, v });
+  hub.receive({ t: 'lease', l: 'lease-1' });   // before there is an eye to hand it to
+  hub.receive({ t: 'fol', k: 'on', sub: 'acct-target' });
+  const a = { x: 100 * 32768 + 10, y: 3, z: (499 - 100) * 32768 + 10 };
+  const cell = cellRoomOfWire(a.x, a.z);
+  hub.receive({ t: 'fol', k: 'note', sub: 'acct-target', p: note(cell, { wx: a.x, wy: a.y, wz: a.z }), ag: 0 });
+  assert.equal(hook.locked(), true);
+  hook.tick();
+  const eye = sockets[1];
+  assert.equal(eye.url, `wss://relay.test/room/${cell}?hd=1`, 'a hidden seat, from the reserve over a full layer');
+  const Seat = hiddenSeat(FakeWS);
+  assert.equal(new Seat('wss://relay.test/room/world:1,1?ly=2').url, 'wss://relay.test/room/world:1,1?ly=2&hd=1', 'beside a layer asked');
+  assert.ok(new Seat('wss://relay.test/room/x') instanceof FakeWS);
+  eye.open(); await flush();
+  // the cell's welcome as the relay writes it (wire.js rosterFor): the target's row carries no account
+  const pose = { x: a.x + 5, y: 3, z: a.z + 7, yaw: 1.5, pitch: -0.2 };
+  const peers = rosterFor([{ id: 'peer-t', name: 'Bran', look: null, pose, sub: 'acct-target' }], idOf(eye));
+  assert.equal('sub' in peers[0], false);
+  eye.receive({ t: 'welcome', id: idOf(eye), peers, n: 2, v });
+  assert.equal(hook.view(), null, 'not by account: the room never says one');
+  hub.receive({ t: 'fol', k: 'in', sub: 'acct-target', room: cell, id: 'peer-t' });
+  assert.deepEqual([hook.view()?.x, hook.view()?.z, hook.view()?.yaw], [pose.x, pose.z, pose.yaw], 'by the id the room said');
+  hook.tick();
+  const said = eye.sent.map(JSON.parse);
+  const at = said.findIndex((m) => m.t === 'pose');
+  assert.ok(at > 0, JSON.stringify(said.map((m) => m.t)));
+  assert.deepEqual(said[at - 1], { t: 'lease', l: 'lease-1' }, 'the hub\'s lease from before the eye, ahead of its first pose');
+  assert.deepEqual([said[at].p.x, said[at].p.z], [pose.x, pose.z], 'standing on the target, for range');
+  hook.heard({ k: 'gone', sub: 'acct-target' });
+  assert.equal(hook.view(), null, 'offline: their next socket\'s id is the next room\'s word');
+  hook.unlock();
+});
+
+test('STAFF-PANEL5-FOLLOW-FIX hook: a lease the hub hands after the eye is made reaches it too (finding 5); a follow into a home asks that room, and the place is the home (finding 2)', async () => {
+  const { Session, made } = fakeSessions();
+  const asked = [];
+  const hook = createStaffHook({ main: () => ({ url: 'wss://relay.test' }), askToken: async (sub, room) => { asked.push([sub, room]); return 'tok'; }, Session });
+  hook.follow('acct-target'); hook.tick();
+  const [hub] = made;
+  hub.onFollow({ k: 'on', sub: 'acct-target' });
+  const bk = (5 << 16) + (9 << 8) + 42, home = `owned:${'a'.repeat(32)}.${'b'.repeat(16)}:99.${bk}`;
+  hook.heard({ k: 'note', sub: 'acct-target', p: validPartyPose(note(home, { in: 2, bk })) });
+  assert.equal(hook.room(), home, 'their home is a room the follow enters');
+  hook.tick();
+  const eye = made[1];
+  assert.equal(eye.room, home);
+  assert.equal(await eye.o.mintToken(home), 'tok');
+  assert.deepEqual(asked.at(-1), ['acct-target', home], 'its token asked by name - the service writes `follow-home`');
+  assert.deepEqual([hook.place()?.kind, hook.place()?.privateRoom], ['interior', home]);
+  hub.onLease('lease-2');
+  assert.deepEqual(eye.leases, ['lease-2'], 'handed to the eye');
+  assert.equal(hub._lease, 'lease-2', 'and kept on the hub link, for an eye made later');
+  hook.unlock();
 });
 
 test('STAFF-PANEL5-FOLLOW hook door: same window and origin alone; the version, a follow, Unlock, and the panel\'s tokens', async () => {
@@ -309,6 +377,13 @@ test('STAFF-PANEL5-FOLLOW TP law: where a note puts staff, the line a TP says, a
   assert.deepEqual(notePlace(p({ in: 2, bk, rk: `interior:m99.${bk}` })), { kind: 'interior', pixel: { x: 207, y: 213 }, yaw: 0, pitch: 0, door: { blockIndex: 0, recordIndex: 42, doorIndex: 0, buildingKey: bk }, pos: null });
   assert.equal(notePlace(p({ in: 2, bk: 0, rk: 'interior:m99.0' })), null, 'no building');
   assert.equal(notePlace(p({ in: 2, bk })), null, 'a building with no room named');
+  // STAFF-PANEL5-FOLLOW-FIX (finding 2): a home is its building, entered as its own private room
+  const owner = `owned:${'a'.repeat(32)}.${'b'.repeat(16)}`, home = `${owner}:99.${bk}`;
+  const atHome = notePlace(p({ in: 2, bk, rk: home }));
+  assert.deepEqual(atHome, { kind: 'interior', pixel: { x: 207, y: 213 }, yaw: 0, pitch: 0, door: { blockIndex: 0, recordIndex: 42, doorIndex: 0, buildingKey: bk }, privateRoom: home, pos: null });
+  assert.deepEqual(validStaffDestination({ ...atHome, pos: [0, 0, 0] }).privateRoom, home, 'a destination the TP host takes');
+  assert.equal(notePlace(p({ in: 2, bk: bk + 1, rk: home })), null, 'a home of another building does not match');
+  assert.equal(notePlace(p({ in: 2, bk, rk: `${owner}:boat.7` })), null, 'a boat\'s cabin: no door to restore - their game is asked');
   assert.equal(notePlace({ px: 5000, py: 1, in: 0 }), null, 'off the map');
   assert.equal(notePlace(null), null);
   assert.equal(staffDestinationKey(notePlace(p({ in: 2, bk, rk: `interior:m99.${bk}` }))), staffDestinationKey(notePlace(p({ in: 2, bk, rk: `interior:m99.${bk}`, h: 1 }))));

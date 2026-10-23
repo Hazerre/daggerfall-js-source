@@ -553,7 +553,7 @@
   {
     "name": "STAFF-PANEL5-FOLLOW-wire-any-room",
     "file": "src/net/wire.js",
-    "old": "if (isWorldRoom(p.rk) || isCellRoom(p.rk)) out.rk = p.rk;",
+    "old": "if (isWorldRoom(p.rk) || isCellRoom(p.rk) || privateInteriorOf(p.rk)) out.rk = p.rk;",
     "new": "if (typeof p.rk === 'string') out.rk = p.rk;",
     "why": "a home's key in a note",
     "tests": [
@@ -623,8 +623,8 @@
   {
     "name": "STAFF-PANEL5-FOLLOW-notes-line-swapped",
     "file": "src/net/staffTeleport.js",
-    "old": "was missing' : 'did not match'",
-    "new": "did not match' : 'was missing'",
+    "old": "because their where note was missing (the player",
+    "new": "because their where note did not match (the player",
     "why": "the wrong reason said",
     "tests": [
       "test/net/staffpanel5hook.test.js"
@@ -888,6 +888,188 @@
     "why": "a TP that says nothing of being seen",
     "tests": [
       "test/net/staffTeleport.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-tp-lookup-names-hidden",
+    "file": "server/src/staffTeleport.js",
+    "old": "b.id && !b.hid && !room._dead.has(other)",
+    "new": "b.id && !room._dead.has(other)",
+    "why": "finding 6: a hidden socket matched by /tp, detectable by a Dungeon Master",
+    "tests": [
+      "test/net/staffpanel5follow.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-note-drops-private-room",
+    "file": "src/net/wire.js",
+    "old": "if (isWorldRoom(p.rk) || isCellRoom(p.rk) || privateInteriorOf(p.rk)) out.rk = p.rk;",
+    "new": "if (isWorldRoom(p.rk) || isCellRoom(p.rk)) out.rk = p.rk;",
+    "why": "finding 2: a note from a home names no room, so no follow enters it",
+    "tests": [
+      "test/net/staffpanel5follow.test.js",
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-note-room-not-private",
+    "file": "src/net/staffFollow.js",
+    "old": "if (!p || !(isWorldRoom(p.rk) || isCellRoom(p.rk) || privateInteriorOf(p.rk))) return null;",
+    "new": "if (!p || !(isWorldRoom(p.rk) || isCellRoom(p.rk))) return null;",
+    "why": "finding 2: the follow never takes a home for its room",
+    "tests": [
+      "test/net/staffpanel5follow.test.js",
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-note-place-any-private",
+    "file": "src/net/staffTeleport.js",
+    "old": "home?.buildingKey === bk)) return null;",
+    "new": "!!home)) return null;",
+    "why": "finding 2: a boat's cabin, a caravan or another building's home placed as this door",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-note-place-home-public",
+    "file": "src/net/staffTeleport.js",
+    "old": "...(home ? { privateRoom: rk } : {}), ",
+    "new": "",
+    "why": "finding 2: a home's place is its public building, never the home",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-say-no-id",
+    "file": "server/src/staffFollow.js",
+    "old": "...(a.ly ? { ly: a.ly } : {}), id: a.id });",
+    "new": "...(a.ly ? { ly: a.ly } : {}) });",
+    "why": "finding 1: a room's word names no socket, so the spectator never finds the target",
+    "tests": [
+      "test/net/staffpanel5follow.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-say-door-drops-id",
+    "file": "src/net/staffFollow.js",
+    "old": "...(typeof b.id === 'string' && ID_RE.test(b.id) ? { id: b.id } : {})",
+    "new": "...{}",
+    "why": "finding 1: the bus and the game drop the target's id",
+    "tests": [
+      "test/net/staffpanel5follow.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-say-door-any-id",
+    "file": "src/net/staffFollow.js",
+    "old": "typeof b.id === 'string' && ID_RE.test(b.id) ? { id: b.id }",
+    "new": "typeof b.id === 'string' ? { id: b.id }",
+    "why": "finding 1: an id of any shape carried on",
+    "tests": [
+      "test/net/staffpanel5follow.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-hook-in-id-unkept",
+    "file": "src/net/staffHook.js",
+    "old": "ly = f.ly ?? 0; pid = f.id ?? pid; }",
+    "new": "ly = f.ly ?? 0; }",
+    "why": "finding 1: the id a room said is thrown away",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-hook-peer-by-account-only",
+    "file": "src/net/staffHook.js",
+    "old": "(p.sub === target || (pid && p.id === pid))",
+    "new": "(p.sub === target)",
+    "why": "finding 1: peers matched by an account no place room sends - the camera never locks",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-hook-gone-keeps-id",
+    "file": "src/net/staffHook.js",
+    "old": "seen = null; pid = null; }   // offline",
+    "new": "seen = null; }   // offline",
+    "why": "finding 1: an offline target's old socket id still matched",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-hook-lease-not-to-eye",
+    "file": "src/net/staffHook.js",
+    "old": "h.sendLease(l); eye?.sendLease(l); };",
+    "new": "h.sendLease(l); };",
+    "why": "finding 5: a lease that comes after the eye is made never reaches it",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-hook-lease-not-kept",
+    "file": "src/net/staffHook.js",
+    "old": "=> { h.sendLease(l); eye?.sendLease(l); };",
+    "new": "=> { eye?.sendLease(l); };",
+    "why": "finding 5: a lease before the eye is made is lost - its first frames are unheard",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-hook-eye-not-leased",
+    "file": "src/net/staffHook.js",
+    "old": "eye.leaseFrom(hub); }",
+    "new": "}",
+    "why": "finding 5: the eye never takes the hub's kept lease",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-hook-eye-visible-seat",
+    "file": "src/net/staffHook.js",
+    "old": "WebSocketImpl: hiddenSeat(WS) });",
+    "new": "WebSocketImpl: WS });",
+    "why": "finding 18: the eye asks no hidden seat - a full layer walks it elsewhere",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-hook-hub-hidden-seat",
+    "file": "src/net/staffHook.js",
+    "old": "mintToken: mint(target), WebSocketImpl: WS });",
+    "new": "mintToken: mint(target), WebSocketImpl: hiddenSeat(WS) });",
+    "why": "finding 18: the hub link takes one of a room's few reserve seats",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-hidden-seat-after-layer",
+    "file": "src/net/staffHook.js",
+    "old": "url.includes('?') ? '&' : '?'",
+    "new": "'?'",
+    "why": "finding 18: a layer asked and a hidden seat make a broken query",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FOLLOW-FIX-tp-line-missing-as-mismatch",
+    "file": "src/net/staffTeleport.js",
+    "old": "if (who.fb === 'missing') return t(",
+    "new": "if (who.fb === 'nope') return t(",
+    "why": "the /tp line says a missing note did not match",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
     ]
   }
 ]

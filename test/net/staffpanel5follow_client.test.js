@@ -52,7 +52,7 @@ test('STAFF-PANEL5-FOLLOW law: the note\'s pace, its room, its place, the frames
   assert.equal(followSupported(`world${FOLLOW_RELAY_MIN - 1}`), false);
   assert.equal(followSupported(`world${FOLLOW_RELAY_MIN}`), true);
   assert.equal(followSupported(null), false);
-  // the room a note names: a cell's or a world room's, with its layer; a private one or none is no room
+  // the room a note names: a cell's, a world room's or a private one's, with its layer; none is no room
   assert.deepEqual(noteRoom(note('dungeon:m1234', { ly: 2 })), { room: 'dungeon:m1234', ly: 2 });
   assert.deepEqual(noteRoom(note('world:3,4')), { room: 'world:3,4', ly: 0 });
   assert.equal(noteRoom(note('owned:abc.m1.2')), null);
@@ -63,6 +63,14 @@ test('STAFF-PANEL5-FOLLOW law: the note\'s pace, its room, its place, the frames
   assert.equal(validPartyPose(note('interior:m12.345')).rk, 'interior:m12.345');
   assert.equal('rk' in validPartyPose(note('owned:abc.m1.2')), false);
   assert.equal('rk' in validPartyPose(note('chat:world')), false);
+  // STAFF-PANEL5-FOLLOW-FIX (finding 2): a home, a boat's cabin and a caravan are rooms a follow enters (mob: "ANY player
+  // ANYWHERE (homes too)") - the note keeps them, and names them
+  const bk = (5 << 16) + (9 << 8) + 42, owner = `owned:${'a'.repeat(32)}.${'b'.repeat(16)}`;
+  for (const rk of [`${owner}:1291010263.${bk}`, `${owner}:boat.77`, `caravan:${'c'.repeat(24)}`]) {
+    assert.equal(validPartyPose(note(rk, { in: 2, bk })).rk, rk, rk);
+    assert.deepEqual(noteRoom(validPartyPose(note(rk, { in: 2, bk, ly: 3 }))), { room: rk, ly: 3 }, rk);
+  }
+  assert.equal('rk' in validPartyPose(note(`${owner}:0.${bk}x`)), false, 'a key of no private room\'s shape is none');
   assert.deepEqual(validPartyPose(validPartyPose(note())), validPartyPose(note()), 'idempotent - an unchanged note reads unchanged');
   assert.equal(noteWhere(note('world:1,1', { h: 1 })), noteWhere(note('world:1,1', { h: 9 })), 'health is no move');
   for (const moved of [note('world:1,2'), note('world:1,1', { ly: 2 }), note('world:1,1', { in: 2, bk: 7 }), note('world:1,1', { ins: 'x' })]) assert.notEqual(noteWhere(note('world:1,1')), noteWhere(moved));
@@ -74,6 +82,10 @@ test('STAFF-PANEL5-FOLLOW law: the note\'s pace, its room, its place, the frames
   assert.equal(validFollowSay({ sub: 'acct-bran', k: 'out', room: 'dungeon:m9', ly: 64 }).ly, undefined);
   for (const bad of [null, {}, { sub: 'x', k: 'in', room: 'world:1,2' }, { sub: 'acct-bran', k: 'on', room: 'world:1,2' }, { sub: 'acct-bran', k: 'in', room: 'a b' }, { sub: 'acct-bran', k: 'in', room: 'w'.repeat(129) }, { sub: 'acct-bran', k: 'in' }]) assert.equal(validFollowSay(bad), null, JSON.stringify(bad));
   assert.equal(validFollowSay({ sub: 'acct-bran', k: 'in', room: 'w'.repeat(128) }).room.length, 128);
+  // STAFF-PANEL5-FOLLOW-FIX (finding 1): the account's socket's id in that room, in an id's shape alone
+  assert.equal(validFollowSay({ sub: 'acct-bran', k: 'in', room: 'world:1,2', id: 'peer-bran' }).id, 'peer-bran');
+  for (const id of ['x', 'a b c d', 7, 'p'.repeat(41)]) assert.equal('id' in validFollowSay({ sub: 'acct-bran', k: 'in', room: 'world:1,2', id }), false, String(id));
+  assert.equal(validFollowOut({ t: 'fol', k: 'in', sub: 'acct-bran', room: 'world:1,2', id: 'peer-bran' }).id, 'peer-bran');
   // the game's door
   assert.deepEqual(validFollowOut({ t: 'fol', k: 'on', sub: 'acct-bran', x: 1 }), { k: 'on', sub: 'acct-bran' });
   assert.deepEqual(validFollowOut({ t: 'fol', k: 'gone', sub: 'acct-bran' }), { k: 'gone', sub: 'acct-bran' });
@@ -271,15 +283,16 @@ test('STAFF-PANEL5-FOLLOW relay: a room tells the bus a followed account came an
   assert.equal(cell.room._fol.get('acct-bran'), 1);
   const bran = await player(cell, 'bran');
   await flush();
-  assert.deepEqual(says.map(([, b]) => b), [{ sub: 'acct-bran', k: 'in', room: 'world:100,100' }]);
-  assert.deepEqual(fol(busSpy).at(-1), { t: 'fol', k: 'in', sub: 'acct-bran', room: 'world:100,100' });
+  assert.deepEqual(says.map(([, b]) => b), [{ sub: 'acct-bran', k: 'in', room: 'world:100,100', id: 'bran' }], 'with the id this room knows them by (finding 1)');
+  assert.deepEqual(fol(busSpy).at(-1), { t: 'fol', k: 'in', sub: 'acct-bran', room: 'world:100,100', id: 'bran' });
+  assert.equal(validFollowOut(fol(busSpy).at(-1)).id, 'bran', 'and the game reads it');
   // a second tab of the target's says nothing more; its last socket going says `out`
   const stranger = await player(cell, 'stranger');
   await flush();
   assert.equal(says.length, 1, 'nobody follows the stranger');
   await cell.drop(bran); await flush();
-  assert.deepEqual(says.at(-1)[1], { sub: 'acct-bran', k: 'out', room: 'world:100,100' });
-  assert.deepEqual(fol(busSpy).at(-1), { t: 'fol', k: 'out', sub: 'acct-bran', room: 'world:100,100' });
+  assert.deepEqual(says.at(-1)[1], { sub: 'acct-bran', k: 'out', room: 'world:100,100', id: 'bran' });
+  assert.deepEqual(fol(busSpy).at(-1), { t: 'fol', k: 'out', sub: 'acct-bran', room: 'world:100,100', id: 'bran' });
   await cell.drop(stranger); await flush();
   assert.equal(says.length, 2);
   // the spectator gone from the cell: the room forgets the account, and says nothing of it after
@@ -288,10 +301,10 @@ test('STAFF-PANEL5-FOLLOW relay: a room tells the bus a followed account came an
   const back = await player(cell, 'bran');
   await flush();
   assert.equal(says.length, 2);
-  // a spectator arriving where the target already stands says it at once
+  // a spectator arriving where the target already stands says it at once - the target's id, never its own
   const spy2 = await spectator(cell, 'peer-spy-2', 'acct-bran', { pose: at });
   await flush();
-  assert.deepEqual(says.at(-1)[1], { sub: 'acct-bran', k: 'in', room: 'world:100,100' });
+  assert.deepEqual(says.at(-1)[1], { sub: 'acct-bran', k: 'in', room: 'world:100,100', id: 'bran' });
   void back; void spy2;
 }));
 
@@ -348,4 +361,23 @@ test('STAFF-PANEL5-FOLLOW relay: SILENT TP - an Admin\'s or a Shadow Fang\'s /tp
   const normal = await join('peer-normal', 'Normal');
   await send(normal, { k: 'ask', name: 'Bran', nonce: 'x', nt: 1 });
   assert.equal(stp(normal, 'result').at(-1).error, 'denied');
+}));
+
+test('STAFF-PANEL5-FOLLOW-FIX relay: a hidden socket is in no /tp lookup - a Dungeon Master asking for one hears `offline` at once, it is sent no capture, and it makes no real player\'s name ambiguous (finding 6)', () => hub(async ({ r, tick, join }) => {
+  const send = (ws, m) => { tick(3000); return r.raw(ws, JSON.stringify({ t: 'stp', ...m })); };
+  const stp = (ws, k) => ws.sent.filter((m) => m.t === 'stp' && m.k === k);
+  const dm = await join('peer-dm', 'Dee', ['dm']);
+  const spy = await spectator(r, 'peer-spy', 'acct-peer-bran');
+  assert.equal(r.room._attach(spy).hid, 1, 'the spectator is hidden');
+  await send(dm, { k: 'ask', name: 'Spectator', nonce: 'h1' });
+  assert.equal(stp(dm, 'result').at(-1)?.error, 'offline', 'answered as nobody, at once');
+  assert.equal(stp(spy, 'capture').length, 0, 'the hidden socket is asked nothing');
+  await send(dm, { k: 'ask', id: 'peer-spy', nonce: 'h2' });
+  assert.equal(stp(dm, 'result').at(-1)?.error, 'offline', 'nor by its id');
+  // a real player whose name the hidden one's begins alike: theirs alone
+  const spec = await join('peer-spec', 'Spectre');
+  await send(dm, { k: 'ask', name: 'Spec', nonce: 'h3' });
+  assert.equal(stp(spec, 'capture').length, 1, 'one hit: the player');
+  assert.equal(stp(dm, 'result').some((m) => m.nonce === 'h3'), false, 'never `ambiguous`');
+  assert.equal(stp(spy, 'capture').length, 0);
 }));

@@ -33,28 +33,41 @@ export const STAFF_TOKEN_WAIT_MS = 5000;
 /** The name a follow's sockets say - the relay shows them to nobody, and the token's own name is the service's. */
 const SPECTATOR = 'Spectator';
 
+/** STAFF-PANEL5-FOLLOW-FIX (the relay review's finding 18): a WebSocket class whose every room asks a hidden seat
+ *  (`?hd=1`, server/src/staffHidden.js hiddenAsked) - the reserve over a full layer's cap, so the eye joins the target's
+ *  layer rather than being walked to another, and a hello without its hidden token there is closed, never shown. Only
+ *  the eye's: the reserve is HIDDEN_RESERVE seats a room however empty, and the hub holds every hidden staff game's link.
+ *  @param {any} WS */
+export const hiddenSeat = (WS) => WS && class extends WS {
+  /** @param {string} url @param {any[]} more */
+  constructor(url, ...more) { super(`${url}${url.includes('?') ? '&' : '?'}hd=1`, ...more); }
+};
+
 /** THE FOLLOW. `main()` the game's presence session (its relay's address) or null offline; `askToken(sub, room)` a
  *  follow token for a room, from the panel. Pure of any scene: the host reads `locked`, `view` and `place`.
- *  @param {{ main: () => any, askToken: (sub: string, room: string) => Promise<string|null>, Session?: any }} deps */
-export function createStaffHook({ main, askToken, Session = OnlineSession }) {
+ *  @param {{ main: () => any, askToken: (sub: string, room: string) => Promise<string|null>, Session?: any, WS?: any }} deps */
+export function createStaffHook({ main, askToken, Session = OnlineSession, WS = globalThis.WebSocket }) {
   /** @type {string|null} */ let target = null;
   let on = false, note = /** @type {any} */ (null), room = /** @type {string|null} */ (null), ly = 0, seen = /** @type {any} */ (null);
   let hub = /** @type {any} */ (null), eye = /** @type {any} */ (null);
-  const close = () => { hub?.leave(); eye?.leave(); hub = null; eye = null; on = false; note = null; room = null; ly = 0; seen = null; };
+  /** STAFF-PANEL5-FOLLOW-FIX (finding 1): the target's socket id, as a room said it (`in`) - a place room's roster names
+   *  no account, so this is the one name its peers know them by. @type {string|null} */
+  let pid = null;
+  const close = () => { hub?.leave(); eye?.leave(); hub = null; eye = null; on = false; note = null; room = null; ly = 0; seen = null; pid = null; };
   const mint = (/** @type {string} */ sub) => (/** @type {string} */ r) => (sub === target ? askToken(sub, r) : Promise.resolve(null));
   /** The hub's word (net/staffFollow.js validFollowOut), for this follow's target alone. @param {any} f */
   function heard(f) {
     if (!f || f.sub !== target) return;
     if (f.k === 'on') on = true;
     else if (f.k === 'note') { note = f.p; const r = noteRoom(f.p); if (r) { room = r.room; ly = r.ly; } }
-    else if (f.k === 'in') { room = f.room; ly = f.ly ?? 0; }
-    else if (f.k === 'gone') { room = null; seen = null; }   // offline: the follow stands, and waits for their next note
+    else if (f.k === 'in') { room = f.room; ly = f.ly ?? 0; pid = f.id ?? pid; }
+    else if (f.k === 'gone') { room = null; seen = null; pid = null; }   // offline: the follow stands, and waits for their next note
     // 'out': the room keeps its socket until the hub's next note says where they went
   }
   /** The target as the room I watch from shows them, or null. */
   function peer() {
     if (!eye) return null;
-    for (const p of eye.peers?.values?.() ?? []) if (p?.sub === target) return p.shown ?? p.pose ?? null;
+    for (const p of eye.peers?.values?.() ?? []) if (p && (p.sub === target || (pid && p.id === pid))) return p.shown ?? p.pose ?? null;
     return null;
   }
   return {
@@ -82,7 +95,13 @@ export function createStaffHook({ main, askToken, Session = OnlineSession }) {
     tick() {
       const m = main?.();
       if (!target || !m?.url) { if (hub || eye) close(); return; }
-      if (!hub) { hub = new Session({ url: m.url, name: SPECTATOR, presence: false, mintToken: mint(target) }); hub.onFollow = heard; }
+      if (!hub) {
+        const h = hub = new Session({ url: m.url, name: SPECTATOR, presence: false, mintToken: mint(target), WebSocketImpl: WS });
+        h.onFollow = heard;
+        // STAFF-PANEL5-FOLLOW-FIX (the relay review's finding 5): the hub's lease, kept on its link and handed to the eye
+        // (as chatSafetyHost does for the game's own links) - with leaseDoor on, a lease room hears nothing else from it
+        h.onLease = (/** @type {string} */ l) => { h.sendLease(l); eye?.sendLease(l); };
+      }
       if (hub.room !== SOCIAL_ROOM) hub.join(SOCIAL_ROOM, null);
       hub.tick();
       if (!on) return;
@@ -91,7 +110,7 @@ export function createStaffHook({ main, askToken, Session = OnlineSession }) {
       // outdoors the target's own pose names the next cell before their note does (a crossing is not a door)
       const want = seen && room && isCellRoom(room) ? cellRoomOfWire(seen.x, seen.z) ?? room : room;
       if (!want) return;
-      if (!eye) eye = new Session({ url: m.url, name: SPECTATOR, presence: true, mintToken: mint(target) });
+      if (!eye) { eye = new Session({ url: m.url, name: SPECTATOR, presence: true, mintToken: mint(target), WebSocketImpl: hiddenSeat(WS) }); eye.leaseFrom(hub); }
       const at = seen ?? (Number.isFinite(note?.wx) ? { x: note.wx, y: note.wy, z: note.wz, yaw: 0, pitch: 0, mv: 0 } : null);
       if (eye.room !== want) { eye.layerHint = ly; eye.join(want, at); } else if (at) eye.sendPose(at);
       eye.tick();
