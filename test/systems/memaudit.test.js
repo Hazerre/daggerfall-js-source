@@ -6,8 +6,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { setFlagsFromString } from 'node:v8';
-import { runInNewContext } from 'node:vm';
+import { spawnSync } from 'node:child_process';
+import { ALLOC_CHILD_ARGS } from '../allocChild.mjs';
 import { StaticBatchBuilder, keyResolver } from '../../src/render/staticBatch.js';
 import { createCoverIndex, coverProxy, coverProxies, CELL_EXACT, COVER_CELL } from '../../src/ai/cover.js';
 import { flatBodies, jungleBody } from '../../src/world/propBodies.js';
@@ -100,18 +100,24 @@ test('MEM-AUDIT the cover index: a cell is held at its size while small - the sa
   const COVER_KEYS = ['c', 'r', 'h', 'lift', '_mark'], BODY_KEYS = ['c', 'r', 'h', 'lift', 'body', '_mark'];
   for (const p of [coverProxy([0, 0, 0], { w: 2, h: 2 }), ...coverProxies([0, 0, 0], { w: 2, h: 9 }, { tree: true }), ...jungleCover([0, 0, 0], 0, 1)]) assert.deepEqual(Object.keys(p), COVER_KEYS, 'a cover proxy');
   for (const p of [...flatBodies(null, 504, 3, { w: 3, h: 9 }, [[0, 0, 0]], { tree: true }), jungleBody([0, 0, 0], 0, 1)]) assert.deepEqual(Object.keys(p), BODY_KEYS, 'a body');
-  // a cell of one proxy at its size: measured on the heap - 100,000 cells of one, each its own
-  setFlagsFromString('--expose-gc');
-  const gc = runInNewContext('gc');
-  const one = createCoverIndex({ enabled: () => true });
-  const lone = Array.from({ length: 100000 }, (_, i) => coverProxy([(i % 1000) * 8 + 2, 0, Math.floor(i / 1000) * 8 + 2], { w: 1.5, h: 2 }));
-  gc(); gc();
-  const h0 = process.memoryUsage().heapUsed;
-  one.add('one', lone);
-  gc(); gc();
-  const perCell = (process.memoryUsage().heapUsed - h0) / 100000;
-  assert.equal(one.refs(), 100000, 'a cell each');
-  assert.ok(perCell < 120, `a cell of one proxy and its entry: ${perCell.toFixed(0)} B (pushed from [], ~250)`);
+  // a cell of one proxy at its size: measured on the heap - 100,000 cells of one, each its own - in the measuring child
+  // (ALLOC-RACE: test/allocChild.mjs, the one home of its flags)
+  const script = `
+    import { createCoverIndex, coverProxy } from ${JSON.stringify(new URL('../../src/ai/cover.js', import.meta.url).href)};
+    const one = createCoverIndex({ enabled: () => true });
+    const lone = Array.from({ length: 100000 }, (_, i) => coverProxy([(i % 1000) * 8 + 2, 0, Math.floor(i / 1000) * 8 + 2], { w: 1.5, h: 2 }));
+    globalThis.gc(); globalThis.gc();
+    const h0 = process.memoryUsage().heapUsed;
+    one.add('one', lone);
+    globalThis.gc(); globalThis.gc();
+    const perCell = (process.memoryUsage().heapUsed - h0) / 100000;   // read before refs(), which allocates
+    console.log(JSON.stringify({ refs: one.refs(), perCell }));
+  `;
+  const run = spawnSync(process.execPath, [...ALLOC_CHILD_ARGS, '--input-type=module', '-e', script], { encoding: 'utf8' });
+  assert.equal(run.status, 0, run.stderr);
+  const { refs, perCell } = JSON.parse(run.stdout.trim().split('\n').pop());
+  assert.equal(refs, 100000, 'a cell each');
+  assert.ok(perCell < 180, `a cell of one proxy and its entry: ${perCell.toFixed(0)} B (~118 at its size; pushed from [], ~246)`);
 });
 
 // ─── THE SNOW'S BLANKET ──────────────────────────────────────────────

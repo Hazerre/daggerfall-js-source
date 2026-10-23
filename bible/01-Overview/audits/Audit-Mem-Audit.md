@@ -46,7 +46,7 @@ WHILE THE VERIFIER IS READING held while the findings already in were fixed in t
 
 - **C1 MEDIUM - the pins did not hold the main saving.** A cell of one pushed from `[]` (17 slots), the bodies' grid or the
   wide grid pushed again, all survived. FIXED: the pin checks copy against push on all three grids, fills in a seeded
-  order so each grows across slices, and measures a cell of one on the heap (under 120 B, ~250 pushed). Mutants
+  order so each grows across slices, and measures a cell of one on the heap in the measuring child (ALLOC-RACE; ~118 B against ~246 pushed, the bar 180). Mutants
   MA-C1-a-cell-of-one-pushed-from-empty, MA-C1-the-bodies-grid-pushed, MA-C1-the-wide-grid-pushed.
 - **C2 LOW - the pins checked `_mark` existed, not one shape.** `jungleBody` without it and `_mark` first both survived.
   FIXED: every maker's keys deep-equal in order. MA-C2-the-mark-born-first, MA-C2-a-jungle-body-born-without-its-mark.
