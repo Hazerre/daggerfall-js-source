@@ -22,7 +22,7 @@ WHILE THE VERIFIER IS READING held while the findings already in were fixed in t
 | P - the pins and the record | `memaudit.test.js`, the moved pins, every recorded mutant, the bible's every number | 73 mutants of its own, the recorded and re-aimed records, the bible gates, the suite at head and base |
 | R - the real game | the snapshot and the base in Chromium on the freeware ARENA2 | the live heap after collection at the same settle, walks and doors |
 
-**WHAT THEY FOUND.** Lanes M, C, U, G and P: 50 findings, nine of them one defect met by a second lens (written `= M1` and so on). Every one is fixed, pinned and named below, or left and said. Lane R's are added when it reports.
+**WHAT THEY FOUND.** Lanes M, C, U, G and P: 37 findings, three of them one defect met by a second lens (written `= M1` and so on), so 34 defects; lane R four more. Every one is fixed, pinned and named below, or left and said.
 
 ## M - the memory law
 
@@ -132,7 +132,31 @@ WHILE THE VERIFIER IS READING held while the findings already in were fixed in t
 
 ## R - the real game
 
-Lane R (the snapshot and the base booted in Chromium, the heap after collection, walks and doors) is still running at this commit; its findings follow when it reports.
+Both trees booted in Chromium (SwiftShader) at Knightstale, Wayrest, 15:00, no foes, on the freeware ARENA2; the heap
+read after `HeapProfiler.collectGarbage`.
+
+| Run | Tree | Settle (MB) | Settle + 60 frames | Walk peak | Back at the start |
+|---|---|---|---|---|---|
+| baseA | base | 1,175.7 | - | - | - |
+| baseB | base | 1,164.0 | 1,164.5 | 1,219.7 | 1,193.8 |
+| snapA | snapshot | 1,016.8 | - | - | - |
+| snapB | snapshot | 1,017.4 | 1,017.5 | 1,071.2 | 1,047.1 |
+
+The change holds about 147-159 MB less at the same settle with the same GL objects (textures 1,383 / 1,384, buffers
+1,729 / 1,732), and the walk's peak 148 MB lower.
+
+- **R1 NOTE - the walk out and back grows the same on both trees.** Ten pixels east and back: +29.8 MB on the base,
+  +29.7 MB on the snapshot, textures 1,384 -> 1,573 and 1,383 -> 1,569. The change neither causes nor cures it; what it
+  holds is not traced here. Left, said.
+- **R2 NOTE - the doors.** Three GENRAS04 interiors entered and left three rounds each on the snapshot: 1,043.5 ->
+  1,046.8 MB over nine round trips (about 0.4 MB each), buffers flat after the first round, textures 1,606 -> 1,614 over
+  the last two. No error in the page (`errors 0 []`). Small enough to leave; said.
+- **R3 UNRESOLVED - one page crash.** snapA crashed at +941 s while the sampling profiler ran; baseA finished the same
+  profile at +905 s. snapB (2,170 s) and snapR (2,848 s) ran the same tree longer without a crash, and both trees crashed
+  under a full heap snapshot earlier in the session. Not reproduced; not shown to be the change's. The lane was stopped
+  before its last base run finished.
+- **R4 NOTE - PIXEL MISMATCH.** The walk's driver reached a neighbouring pixel on both trees (baseB at back0, snapB,
+  snapA twice). The probe's, not the game's. Left, said.
 
 ## The pins and the mutants
 
