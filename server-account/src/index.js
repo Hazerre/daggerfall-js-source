@@ -230,12 +230,12 @@ import {
   devicesOf, accountView, displayName, accountKind,
   register, login, recover, changePassword, setEmail, overRate, overAccountRate, accountRateFull,
   newRecoveryCodes,   // RECOVERY-SET: a new set of codes from the profile
-  accountWardrobe, equipTitle, equipAura, equipIcon, equipGlyph, buyInsignia, insigniaPurse, creditPlay, muteAccount, isMuted, mutedUntil,
+  accountWardrobe, equipTitle, equipAura, equipIcon, equipGlyph, buyInsignia, insigniaPurse, creditPlay, isMuted, mutedUntil,
   duelRecordOf, claimDuel, gateRecordOf, claimGate, legalRefusal,
   nameAsOf, wornNameOf, chooseNameAs,   // NAME-AS: the name the room reads - the account's or the character's
   ACCOUNT_MAX, ACCOUNT_WINDOW_S,
 } from './accounts.js';
-import { mintToken, mintOrder, mintRenownOrder, mintGuildOrder, mintGuildOutOrder, mintHomeOrder, MAX_TTL_S, TOKEN_V, ID_RE, SEAT_TITLES, CHAPTER_TITLES, TOKEN_MAX_CHARS, TOKEN_BODY_MAX, tokenBodyOf } from '../../src/net/identityToken.js';
+import { mintToken, mintRenownOrder, mintGuildOrder, mintGuildOutOrder, mintHomeOrder, MAX_TTL_S, TOKEN_V, ID_RE, SEAT_TITLES, CHAPTER_TITLES, TOKEN_MAX_CHARS, TOKEN_BODY_MAX, tokenBodyOf } from '../../src/net/identityToken.js';
 import { ACCOUNT_VERSION, MAX_BODY_BYTES, ROUTES, OPEN_ROUTES, PATREON_OPEN_ROUTES, SAFE_OPEN_ROUTES, STAFF_ROUTES, savePathOf, realmPathOf, poiPathOf, SAVE_MAX_BYTES, SHOT_MAX_BYTES, maintaining, routeDb, d1BookmarkOf, D1_BOOKMARK_RE, d1Overloaded, noteOverload, shedding } from './service.js';   // SCALE4d: the routes a read replica may serve, and the session they are served on
 import { poiRolesOf, putPoiAsset, getPoiAsset, savePoiDraft, submitPoi, withdrawPoi, requestRetire, reviewPoi, rollbackPoi, listPoi, poiHistory, poiQueue, poiLiveFeed, poiHeldVersion, poiFeedTag, listShelf, shelfEntry, shelve, unshelve, POI_ASSET_MAX, POI_DRAFT_BODY_MAX, POI_LIVE_ASSET_MAX_AGE_S } from './poi.js';   // POI-1: the POI store - builders draft, an approver decides, the feed is what is live; POI-4b: the library's shelf
 import { listSaves, putCard, putBlob, getBlob, deleteSave, saveCardOf } from './saves.js';
@@ -337,8 +337,8 @@ import { wildFall, wildCollect, wildReclaim, wildEscrows } from './wild.js';   /
 import { listLineages, putLineage, realmDie, realmRaise, realmWed, listUnions, LINEAGE_BODY_MAX } from './legacy.js';   // LEGACY7: Project Legacy's lines and the tombstone; REZ-BLOODLINE AUDIT R1: a Resurrect inside its hold
 import { measured, heartbeatPartsOf } from './metrics.js';   // SCALE1: every request counted (Workers Analytics Engine); AUDIT SCALE II A-3: a heartbeat's parts, of the body the route read
 import { runCron } from './cron.js';   // SCALE4b: the service's own clock
-import { blocksOf, blockAccount, unblockAccount, fileReport, agreeConduct, conductAgreed, takeFeed, bannedAnswer, resolveCase, modCases, modCase, modDismiss, REPORT_BODY_MAX } from './safety.js';   // SAFE1-SAFE7: the chat's safety
-import { banAccount, unbanAccount, strikesLook, isBanned, actionStatement, lawOrder, pushLaw } from './sanctions.js';   // SAFE4: the record, the ladder and the ban
+import { blocksOf, blockAccount, unblockAccount, fileReport, agreeConduct, conductAgreed, takeFeed, bannedAnswer, modCases, modCase, modDismiss, modAct, REPORT_BODY_MAX } from './safety.js';   // SAFE1-SAFE7: the chat's safety
+import { strikesLook, isBanned } from './sanctions.js';   // SAFE4: the record, the ladder and the ban
 import { staffRoute, STAFF_STATUS, STAFF_SESSION_HEADER } from './staff.js';   // STAFF-PANEL1: the staff panel's sign-in, sessions, roles and audit log
 import { discordSigned, discordInteraction, DISCORD_BODY_MAX } from './discord.js';   // SAFE8: the moderators' queue in Discord
 import { FEED_MAX_BYTES, FEED_SIG_HEADER } from '../../src/net/safety/chatFeed.js';   // SAFE5: the relay's feed of public lines
@@ -530,7 +530,11 @@ const MARKS_STATUS = Object.freeze({
  *  developer's act) 403, no such note 404, the author's notes full 409, the hour's acts spent 429, a bad shape 400. */
 /** SAFE1, SAFE3, SAFE7: the chat safety's refusals by status - the rest 400. */
 const SAFETY_STATUS = Object.freeze({ 'no-player': 404, 'no-case': 404, 'report-unwitnessed': 403, 'report-closed': 503, 'conduct-stale': 409, 'blocks-full': 409, rate: 429,
-  'not-moderator': 403, protected: 403, ambiguous: 409 });
+  'not-moderator': 403, protected: 403, ambiguous: 409,
+  // STAFF-PANEL2-FIX (safety.js modAct): the bounds, a case another act took or closed or another staff member holds, a
+  // spawn case (a developer's), an Admin's sanction (an Admin's to lift), a press's id of the wrong shape
+  'bad-minutes': 400, 'bad-days': 400, 'not-banned': 400, 'case-acted': 409, 'case-closed': 409, 'staff-claimed': 409, 'not-developer': 403, 'admin-sanction': 403,
+  'bad-click': 400 });
 const BOARD_STATUS = Object.freeze({
   'board-need-account': 403, 'board-closed': 403, 'muted': 403, 'not-moderator': 403, 'not-developer': 403, 'own-note': 403,
   'guild-rank': 403, 'guilds-need-account': 403,
@@ -620,7 +624,7 @@ const PROF_STATUS = Object.freeze({
  *  moved, one's own goods) 409, the hour's acts spent 429, a bad shape 400 (the default). */
 const MARKET_STATUS = Object.freeze({
   ...JUDGE_STATUS,   // INT3/INT4
-  'prof-need-account': 403, 'market-closed': 403, 'not-moderator': 403,
+  'prof-need-account': 403, 'market-closed': 403, 'not-moderator': 403, 'not-developer': 403,   // STAFF-PANEL2-FIX: a pull is a developer's
   'market-gone': 404,
   'marks-short': 409, 'marks-full': 409, 'stores-full': 409, 'stores-short': 409, 'market-own': 409, 'market-short': 409,
   'market-no-road': 409, 'market-price-moved': 409, 'market-seller-full': 409, 'market-listings-max': 409, 'market-orders-max': 409,
@@ -2144,38 +2148,23 @@ const service = {
         // are ALREADY holding the target hear it now. So a service with
         // no signing key still mutes - it just cannot tell live rooms,
         // and says so rather than pretending.
-        const r = await muteAccount(ctx, who.player, env, { target: body.target, minutes: body.minutes });
-        if (r.error) {
-          const status = r.error === 'not-moderator' || r.error === 'protected' ? 403 : r.error === 'no-player' ? 404 : 400;
-          return no(r.error, status, origin);
-        }
-        const key = await signingKey(env, subtle);
-        const order = key ? await mintOrder({ s: r.target, mu: r.until }, key, { subtle, nowS }) : null;
         // SAFE4: the act kept in the record for good, and the order pushed to the relay's door - the hub hands it to the
-        // target's own client, which reaches the rooms the moderator's does not hold
-        // AUDIT SAFE SERVICE-11: the act in the mute's own batch would need MOD1's muteAccount opened up; it is the next
-        // statement, and a mute whose record failed to write is said in the log by the throw it makes
-        await actionStatement(db, { target: r.target, kind: r.until ? 'mute' : 'unmute', until: r.until || null, actor: who.player.id, actorName: displayName(who.player), at: nowS }).run();
-        // AUDIT SAFE SERVICE-2: a moderator's mute closes the account's open case - as the moderator's act
-        if (r.until) await resolveCase(db, { target: r.target, status: 'actioned', by: displayName(who.player), resolution: `muted until ${new Date(r.until * 1000).toISOString().slice(0, 16).replace('T', ' ')} UTC (in the game)`, nowS }).run();
-        await pushLaw(env, (u, i) => globalThis.fetch(u, i), order);
-        return json({ ...r, order }, 200, origin);
+        // target's own client, which reaches the rooms the moderator's does not hold. AUDIT SAFE SERVICE-2: a moderator's
+        // mute closes the account's open case - as the moderator's act. STAFF-PANEL2-FIX: all of it safety.js modAct's, the
+        // code every door shares - one sanction a case, and a case another staff member holds in the panel is theirs
+        const r = await modAct(ctx, who.player, env, { act: 'mute', target: body.target, minutes: body.minutes, from: 'in the game' });
+        return 'error' in r ? no(r.error, SAFETY_STATUS[r.error] ?? 400, origin) : json(r, 200, origin);
       }
 
       // SAFE4 (bible/11-Multiplayer/Chat-Safety-Arc.md section 5): A MODERATOR'S BAN, UNBAN AND LOOK - sanctions.js. A ban's
       // order goes back to the moderator's client to carry to its rooms (MOD1's carrier) and to the relay's door.
+      // STAFF-PANEL2-FIX: the ban and the unban are safety.js modAct's, as the mute is
       if ((path === '/v1/mod/ban' || path === '/v1/mod/unban' || path === '/v1/mod/strikes') && request.method === 'POST') {
         const who2 = { target: body.target, name: body.name };
         const r = path === '/v1/mod/strikes' ? await strikesLook(ctx, who.player, env, who2)
-          : path === '/v1/mod/ban' ? await banAccount(ctx, who.player, env, { ...who2, days: body.days, reason: body.reason })
-            : await unbanAccount(ctx, who.player, env, who2);
-        if ('error' in r) return no(r.error, r.error === 'not-moderator' || r.error === 'protected' ? 403 : r.error === 'no-player' ? 404 : r.error === 'ambiguous' ? 409 : 400, origin);
-        if (path === '/v1/mod/strikes') return json(r, 200, origin);
-        // AUDIT SAFE SERVICE-2: a moderator's ban closes the account's open case - as the moderator's act
-        if (path === '/v1/mod/ban') await resolveCase(db, { target: r.target, status: 'actioned', by: displayName(who.player), resolution: 'banned (in the game)', nowS }).run();
-        const order = await lawOrder(env, subtle, nowS, { s: r.target, bn: r.until });
-        await pushLaw(env, (u, i) => globalThis.fetch(u, i), order);
-        return json({ ...r, order }, 200, origin);
+          : path === '/v1/mod/ban' ? await modAct(ctx, who.player, env, { act: 'ban', ...who2, days: body.days, reason: body.reason, from: 'in the game' })
+            : await modAct(ctx, who.player, env, { act: 'unban', ...who2, from: 'in the game' });
+        return 'error' in r ? no(r.error, SAFETY_STATUS[r.error] ?? 400, origin) : json(r, 200, origin);
       }
 
       // AUDIT SAFE DOC-4 (bible/11-Multiplayer/Chat-Safety-Arc.md section 9): THE CASES, READ IN THE GAME - a moderator's
