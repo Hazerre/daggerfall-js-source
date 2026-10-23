@@ -290,6 +290,7 @@ import { createGrantHost } from './grantHost.js';   // GRANT2-GRANT4: the spawn 
 import { wireOwnerClock } from './ownerCatchUp.js';   // OWNER-CLOCK: my foes' steps on the clock their frames carry, and the street's kept to my frame's pace while anyone else is in my room
 import { fishKind } from './fishHost.js';   // PROF8: Fishing's casts and schools - a kind in it
 import { createCraftWritHost } from './craftWritHost.js';   // CRAFT-WRITS: the Work tab's crafting writs, handed over from the pack
+import { createSeasonBook } from './seasonBookHost.js';   // SEASON-BOOK: the laurel's boards, asked while its window is open
 import { rollNoticeDoors } from './rollNoticeHost.js';   // SEAT-WORDS / STANDING-WORDS: what the Roll's tracker says
 import { utcDayOfMs } from '../net/nodeLaw.js';   // PROF8: a haul's UTC day
 import { registerPlayerKillListener } from '../systems/playerKills.js';   // PROF7: the player's own kill stamps a body
@@ -715,7 +716,8 @@ import { createWorldPartyPing } from './partyPingHost.js';   // PARTY-PING: a lo
 import { pingSubject, pingCrowd } from '../systems/party/partyPingCaption.js';   // PARTY-PING: the name under a look, a person and another player among them
 import { PING_TRAVEL_M } from '../systems/party/partyPing.js';   // PARTY-PING: how far the travel view's look reaches
 import { createBountyFarms, farmSpotLocal, pickFarm } from './bountyFarms.js';   // BOUNTY-FARM: a farm on a farm bounty's pixel, while it is held
-import { questBoardIndices, bountyDungeons } from '../systems/bounty/bountyBoard.js';   // BOUNTY1: which of a town's boards post bounties (half); RVN7: a revenant's lair, in the boards' ring
+import { questBoardIndices } from '../systems/bounty/bountyBoard.js';   // BOUNTY1: which of a town's boards post bounties (half)
+import { createLairDoor } from './lairHost.js';   // RVN7, LAIR-DOOR: a revenant's lair, an enterable dungeon in the boards' ring
 import { createBountyOverlay, closeBountyDoor, bountyDoorOpen } from '../ui/bounty/bountyDoor.js';   // BOUNTY1: the board's window and the payday notice
 import { isQualifyingThreatState } from '../systems/horse/horseFollow.js';   // HCC: CollectThreats' qualification, the mod's own five-term test
 import { totalWeight } from '../systems/inventory.js';   // HCC: PlayerEntity.WagonWeight
@@ -881,7 +883,7 @@ import { LANG_LINES, unknownLangText } from '../net/chatCommands.js';   // CHAT-
 import { OPT_CHANNELS, tradeChanOldText, notJoinedText, optJoinedText, optJoinedSayText, optLeftText, optWaitText, alreadyJoinedText } from '../net/chat.js';   // CHAT-TRADE: the Trade and LFG tabs' words
 import { badJoinText } from '../net/chatCommands.js';   // CHAT-TRADE: /join's and /leave's refusal
 import { oocText, localLineHeard, nextRegionRoom, regionJoinedText, CHAN_OLD_RELAY_TEXT, ROLL_OLD_RELAY_TEXT, EMOTE_OLD_RELAY_TEXT, GUILD_OLD_RELAY_TEXT, NO_GUILD_TEXT, partyNoteTab } from '../net/chat.js';   // CHAT-CHAN: the channels' own laws (a second chat import: CHAT1's pin holds the first as it stands)
-import { breachCommandOf, helpLines, mailboxCommandOf } from '../net/chatCommands.js';   // AUDIT EG V (c, L7-1, L7-21): the Elite Breach's door, its words whole; /help's lines with its own
+import { breachCommandOf, helpLines, pauseCommandOf, pauseCommandRefusal } from '../net/chatCommands.js';   // AUDIT EG V (c, L7-1, L7-21): the Elite Breach's door, its words whole; /help's lines with its own
 import { parseChatLine, CHAT_GREETING_TEXT, unknownCommandText, emptyCommandText, hostMisuseText, badRollText, expandShortcodes, EMOTE_LINES, foundText, FIND_OFFLINE_TEXT, FIND_RELAY_TEXT } from '../net/chatCommands.js';   // CHAT-CHAN: what a typed line IS; DICE1: and a roll; EMOTE1: an action, a gesture, a shortcode
 import { partyRosterSource, localRosterSource, guildRosterSource } from '../net/roster.js';   // CHAT-CHAN: the Party and Local tabs' composed lists
 import { partyCompassPoints } from '../ui/partyMapMarks.js';   // COMPASS-PARTY: the party's points on the compass
@@ -971,7 +973,7 @@ import { createSeatBanners } from './seatBanners.js';   // SEAT1a: a seat town's
 import { createFestivalStage } from './seatFestival.js';   // FESTIVAL-STAGE: a Festival's music, banners and lanterns
 import { drawBanner } from '../ui/heraldryArt.js';   // GUILD1d: ...its heraldry painted on it
 import { heraldryLookup } from '../ui/heraldrySwatch.js';   // HERALDRY-SHOWN: a guild's heraldry by its tag, off what this client holds
-import { AuraRingRenderer, auraWearers, auraLookOf, auraBeastStep, auraMotionStep, auraCapeStep, auraSpriteBones, auraSpritePosed, auraWingLights, CLOAK_BONES, AURA_KINDLE_S, AURA_FORGET_S } from '../render/auraRing.js'; import { peerBodyYaw } from '../net/peer/peerClimb.js';   // WB9g: Dagon's Fire at a wearer's feet; SHADOW-CLOAK: a peer's facing, the cloak's front (on this line, so no cite below it moves)
+import { AuraRingRenderer, auraWearers, auraLookOf, auraBeastStep, auraMotionStep, auraCapeStep, auraSpriteBones, auraSpritePosed, auraWingLights, CLOAK_BONES, AURA_KINDLE_S, AURA_FORGET_S } from '../render/auraRing.js'; import { peerBodyYaw } from '../net/peer/peerClimb.js'; import { compiledPass } from '../render/glProgram.js';   // WB9g: Dagon's Fire at a wearer's feet; SHADOW-CLOAK: a peer's facing, the cloak's front (on this line, so no cite below it moves); AURA-STALL: its pass built once its program is done
 import { duelAttackerOf, duelWeaponOf, duelSwingOf, resolveDuelStrike, duelWearDamage, duelStandIn } from '../combat/duelCombat.js';   // DUEL1: the blow between two duellists - INT8/INT9: the striker's half alone, the relay referees (AUDIT C&C H5: against the neutral stand-in)
 import { createPageWindow, pageView } from '../ui/pageWindow.js';   // JOURNAL1: a page another player holds out, read and kept
 import { PageOffers, pageOfferText, pageShownText, pageTooFarText, keptPageTokens, keptLetterTokens, letterOfPage, PAGE_UNSUPPORTED_TEXT, PAGE_NO_READERS_TEXT, PAGE_GONE_TEXT } from '../net/journalPage.js';   // JOURNAL1: a page of the journal shown, and one shown to me kept
@@ -1210,6 +1212,15 @@ const boatForward = (boat, yaw) => {
   const l = Math.hypot(fx, fz) || 1;
   return [fx / l, 0, fz / l];
 };
+/** EntityEffectManager.AssignBundle for StartWaterwalking's bundle: its one WaterWalkingSilent on the player, for
+ *  DurationBase + DurationPlus x the level over DurationPerLevel rounds (SetDuration). HOST-SPLIT (at the merge of main
+ *  into SEASON-BOOK): out of bootWorld - it reads the player alone, as the module's imports hand it. */
+function csaAssignBundle(spec) {
+  if (spec.effectKey !== WATER_WALKING_SILENT) return;
+  const perLevel = Math.max(1, spec.durationPerLevel | 0);
+  const rounds = spec.durationBase + spec.durationPlus * Math.floor((playerEntity.level ?? 1) / perLevel);
+  assignModBundle(playerEntity, { name: spec.name, kind: WATER_WALKING_SILENT_KIND, rounds, bundleType: spec.bundleType });
+}
 /** OH-E: the abyss's two loot listeners, held so a second world booted in the page replaces them rather than adding to them. */
 let _ohLootOff = null;
 /** AUDIT PARTY-UI2 1: Internal_Strings.csv `cannotTravelIndoors`, the
@@ -8283,14 +8294,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     hideEnhancedTextLayer(CSA_MAP_TEXT_LAYER);   // AUDIT FONT3 F1: here, not in dispose alone - the interior and dungeon slots close a window without disposing it
     modes?.closeWindow?.(w);
   }
-  /** EntityEffectManager.AssignBundle for StartWaterwalking's bundle: its one WaterWalkingSilent on the player, for
-   *  DurationBase + DurationPlus x the level over DurationPerLevel rounds (SetDuration). */
-  function csaAssignBundle(spec) {
-    if (spec.effectKey !== WATER_WALKING_SILENT) return;
-    const perLevel = Math.max(1, spec.durationPerLevel | 0);
-    const rounds = spec.durationBase + spec.durationPlus * Math.floor((playerEntity.level ?? 1) / perLevel);
-    assignModBundle(playerEntity, { name: spec.name, kind: WATER_WALKING_SILENT_KIND, rounds, bundleType: spec.bundleType });
-  }
   /** OnGUI's two pictures, built at the map's first draw: record 3 rebuilt from the player's TRAV0I00.IMG (the
    *  port never carries it) and lineTexture, TEXTURE.000's solid record 112. */
   let _csaMapTex = null, _csaMapTexLoad = null, _csaLineTex = null, _csaLineTexLoad = null;
@@ -11974,11 +11977,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const crowdDrawnHere = (p) => gateCrowd.shows(p.id) && peerRange.shows(p.id);   // GATE-CROWD: a player the court's crowd leaves undrawn is not there to press or aim a gift at; PEER-RANGE: nor one past the distance
   const magic = createPlayerMagic({
     renderer, audio, getTexture, uploadRecord, uploadRecordFrame,
-    lairHere: () => {   // RVN7 (bible/12-Enhanced-AI/Feud-Arc.md 18.1): a deed in the open world - my map pixel, and the named dungeons in the boards' ring about it
-      const p = playerTravelPixel();
-      const dungeons = bountyDungeons(p.x, p.y, (x, y) => _bountyDungeonPixels.get(`${x},${y}`) || null).map((d) => ({ ...d, region: _dungeonRegionPixels.get(`${d.px},${d.py}`) ?? -1 }));
-      return { px: p.x, py: p.y, dungeons };
-    },
+    // RVN7 (bible/12-Enhanced-AI/Feud-Arc.md 18.1): a deed in the open world - my map pixel (or the one asked: LAIR-DOOR's mend), and the named
+    // dungeons in the boards' ring about it; LAIR-DOOR (FIELD BUGS 2026-10-22d): those the player can go down into (scenes/lairHost.js)
+    lairHere: createLairDoor({ maps, blocks, arch, locations: locationIndex, dungeons: _bountyDungeonPixels, regions: _dungeonRegionPixels, here: playerTravelPixel }),
     allyMarks: (sp) => allyMarksNear(sp),   // AID1 onto ALLY-CAST: the party mates' bodies, for a beneficial touch, missile or blast (declared beside allyTargetPick, below) - SPELL-GIFT: the spell rides, for the strangers its list may reach
     peerBodies: () => peersNear(),   // SPELLFX1: every player's body, where a peer's drawn missile stops (declared below this engine's build)
     companionBodies: () => [...crewAshore.bodies(), ...revenantAshore.bodies()],   // COMPANION-KIT: my companions here - my healing and buffs reach them (REVENANT-COMPANION: the sworn too)
@@ -17108,6 +17109,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   /** SERVER-POST: what the pause face's mailbox reads - the box, online; null offline (no envelope), as the hourglass's.
    *  AUDIT TIMERS1 D6's law: the pause door is armed before `online` and the box are declared, so not there yet is none. */
   const postSource = () => { try { return online && postBox ? postBox : null; } catch { return null; } };
+  /** SEASON-BOOK: what the pause face's laurel reads past the hourglass's clock - the season's boards (scenes/seasonBookHost.js),
+   *  off the doors this host already holds, read at each ask (the ones declared below the pause door are none until then). */
+  const seasonBook = createSeasonBook(() => ({ arena: arenaOnline, eg: _accountEg, iliac: iliacDoor, gambit: gambitDoor, ledger: captainLedger }));
   let _timersSeatAsk = -Infinity;
   const timersSource = ({ ask = false } = {}) => {
     // AUDIT TIMERS1 D6: the pause door is armed before the boot's last awaits, and `online` (and the gate's two) are
@@ -17160,6 +17164,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     loadingPrevented: () => !!online,
     timers: timersSource,   // TIMERS1: the hourglass's window (null offline - no hourglass)
     post: postSource,   // SERVER-POST: the mailbox beside it (null offline - no mailbox)
+    season: seasonBook.source,   // SEASON-BOOK: the laurel's boards (its clock is the hourglass's)
     // SAV4: the slot window's seams - the pause SAVE/LOAD doors
     // open it with these (openClassicPauseFlow builds the doors).
     playerName: () => playerEntity.name, playerId: () => playerEntity.characterId ?? null,
@@ -19994,8 +19999,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // systems/bounty/bountyJournal.js
   {
     const baseQuestLog = questBridge.questLog.bind(questBridge);
-    questBridge.questLog = () => {
-      const log = baseQuestLog();
+    questBridge.questLog = (o) => {   // AUDIT FB1022d E8: the lens's `{ windows: false }` reaches the walk (questBridge.js)
+      const log = baseQuestLog(o);
       const extra = [...(bountyHost?.questLogEntries?.() ?? []), ...revenantHuntEntries(rumorHere()), ...(legacyHost?.questLogEntries() ?? [])];   // LEGACY4: and the death quests   // RVN7c: and each hunt - a lair heard of, the way there from where I stand
       return extra.length ? { ...log, active: [...(log?.active ?? []), ...extra] } : log;
     };
@@ -21448,8 +21453,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         // SERVER-POST (AUDIT SERVER-POST: the classic skin's pause window has no envelope, and the notice sent its players to
         // one): `/mail` - the mailbox, on either skin and wherever the player stands (the enhanced pause face with its window
         // open: ui/pauseDoor.js's door, worldModes.js openPauseAt indoors and underground). Local, never sent.
-        { const at = mailboxCommandOf(text); if (at) {   // PRIVATE-REPORT: and `/bug`, the mailbox's private report form
-          if (!postSource()) { chatLog.push(tabId, { text: 'Connect and sign in to use the mailbox.', system: true }); return true; }
+        { const at = pauseCommandOf(text); if (at) {   // PRIVATE-REPORT: and `/bug`, the mailbox's private report form; SEASON-BOOK: and `/season`, the laurel's window (the hourglass's clock its own)
+          if (!(at === 'season' ? timersSource() : postSource())) { chatLog.push(tabId, { text: pauseCommandRefusal(at), system: true }); return true; }
           if (!modes?.openPauseAt?.(at)) hudCtx.togglePause({ at });
           return true;
         } }
@@ -29112,7 +29117,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  fire is concealed with them. */
   const _auraWearers = [], _auraDraw = [], _auraPool = new Map(), _auraLights = [];
   const _auraSelf = { id: 'self', at: [0, 0, 0], aura: null, seed: 0.37, kindle: 1, since: 0, yaw: 0 };   // SHADOW-CLOAK: `yaw` the facing the cloak's opening faces
-  let _auraPass = null, _auraTried = false;
+  // AURA-STALL (bible/07-Rendering/Performance-Priority.md): built at the first wearer, the aura's program froze the game
+  // 8.5-11 s on D3D11, and the travel view draws no aura, so it met a player on the frame the view came down near a crowd.
+  // AURA-SPLIT (#1143): the pass compiles nothing of its own - each look's program is built at its own door once it is
+  // compiled (render/auraRing.js programOf), started at the boot's idle (render/playPrograms.js) - so the pass's door
+  // waits on no program: it is built at the first wearer in range, and a throw costs the auras, never the game.
+  const auraPassOf = compiledPass(renderer.gl, [], () => new AuraRingRenderer(renderer.gl), (e) => console.warn('[online] the aura would not build', e?.message ?? e));
   const auraSeedOf = (id) => { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return ((h >>> 0) % 997) / 997; };
   function auraFrame(seen) {
     _auraWearers.length = 0;
@@ -29144,7 +29154,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (!_auraWearers.length) return;
     const proj = renderer._proj, view = renderer._view, eye = renderer._camPos;   // the frame's camera, the world's own
     if (proj && view && eye && auraWearers(_auraWearers, eye, _auraDraw).length) {
-      if (!_auraTried) { _auraTried = true; try { _auraPass = new AuraRingRenderer(renderer.gl); } catch (e) { console.warn('[online] the aura would not build', e?.message ?? e); _auraPass = null; } }
+      const _auraPass = auraPassOf();   // AURA-STALL: null while its program compiles - the capes still hang and swing below
       const auraNow = performance.now() / 1000; for (const w of _auraDraw) if (auraLookOf(w.aura).mesh) { auraCapeStep(w, w === _auraSelf ? { feet: player.bodyFeetAt(), yaw: mwViewSpriteFacing()?.yaw ?? player.bodyYawFor(cam.yaw), turn: mwViewSpriteFacing()?.turn, bones: mwViewBodyBones(CLOAK_BONES) ?? auraSpriteBones(mwViewSpriteFigure()) } : peerBodies?.bonesOf(w.id, CLOAK_BONES) ?? auraSpritePosed(w, peerWalkers?.figureOf(w.id) ?? peerRiders?.figureOf?.(w.id), peerWalkers?.faceOf?.(w.id) ?? peerRiders?.faceOf?.(w.id)), w === _auraSelf ? player.height / CAPSULE_HEIGHT : 1); auraMotionStep(w, auraNow); } _auraPass?.draw(_auraDraw, proj, view, eye, auraNow, { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze });   // SHADOW-CLOAK: each cape hung on its body as drawn this frame - its bones posed by now (mine, or a peer's), else at rest, crouched with a crouch - and swung by how it moves where it is drawn; SPRITE-FACE (Mac: "The sprite rotation on character input is a little finicky and make the aura misallign"): a sprite's faced as its PICTURE is (the eight-way view drawn, mine after the mod's delayed repaint has landed - mwViewSpriteFacing, a peer's faceOf), in the saddle too, and swung by the way the body turns (`turn`)
       if (_auraPass?.drawn) renderer.markForeignPass();
     }
@@ -30087,6 +30097,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     loadingPrevented: () => !!online,
     timers: timersSource,   // TIMERS1: forwarded to a building's and a dungeon's pause face
     post: postSource,   // SERVER-POST: and the mailbox's box
+    season: seasonBook.source,   // SEASON-BOOK: and the laurel's boards
     playerName: () => playerEntity.name, playerId: () => playerEntity.characterId ?? null,
     saveAs: (saveName) => worldQuickSave(saveName),
     loadKey: (key) => worldQuickLoad({ key }),
