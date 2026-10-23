@@ -802,6 +802,55 @@ else this role, and its fall and a found one's fade, pinging nobody - each read 
 no vote: the find names the record's region, never the city. Its beat runs on the hub's alarm after the director's.
 `test/net/gate/discordgates.test.js` seeds the director with a rise ten years off, so it owes nothing there.
 
+**One card a post, each event in its own place (HERALD-CARDS, 2026-10-22).** The owner: *"I want to overhaul our
+discord world event notification system to be more organized"*. Four heralds posted fourteen kinds of message to one
+channel, each a paragraph of plain text with its headline in bold and its times, place and names inside the sentence;
+a reader had to read each to the end to learn when, where and who. Every post is now ONE CARD, built by one law
+(`net/herald/heraldCard.js` `heraldCard`), the same shape for every moment:
+
+| Part | What it holds |
+|---|---|
+| author and colour | the event's family - Dagon's Breach, The Sea Serpent, The Abyss Dungeon, The Battlespire - in the colour its marker has in the pause menu's Timers (the gate's red; the serpent's, the Abyss Dungeon's and the Spire's rings on the map) |
+| title | the moment in a line: *The sky burns near Copperham*, *Valkynaz Ruhn has fallen*, *Mara has found an Abyss Dungeon in the Daggerfall region!* |
+| text | what a reader should know beyond the facts, where there is any: the rite and tonight's marks (the chat's own sentences, WB12d, WB13b), the hunt, the way in |
+| fields | the facts, side by side: when (`<t:...:t> (<t:...:R>)` - each reader's own clock and how soon), where, who (the first names and how many more) |
+| footer | the moment's kind, the same words on every card of that kind: Omen, Slain, Rite broken, Bells, Risen, Found, Hour broken, Faded, Redoubt, First of the Spire, The Lone Beacon, Descent record, Seal lifted (AUDIT HERALD-CARDS: "one word a kind" was not so) |
+| content | only on a post that pings - the role and the headline (*Dagon's Breach opens in 15 minutes.*), the one place Discord notifies from; a quiet post has none |
+
+- **The moments**: the gate's omen (fields Opens, Seals, Where), kill (Where, Struck down by) and broken rite (Where,
+  Broken by); the serpent's bells (Rises, Dives, Where) and kill (Where, Slain by); the Abyss Dungeon's rise (Fades
+  unfound - never where), find (Dungeon, Fades), fall (Dungeon, Where, Next may rise) and fade (Where, Next may rise);
+  the Spire's tenth Redoubt and First of the Spire (Hall, Time, Began at, Company), Lone Beacon, Descent record
+  (Bracket, Company, Deepest hall, Time) and seal lifted. Who pings is unchanged: the omen, the bells, the rise and
+  the find, each its own role or else the gate's.
+- **Each family in its own place.** One webhook, one channel - and a THREAD for each family when the operator names
+  one (a forum channel with one post a family - every gate's omen and kill in the gate's post, not a post an occurrence -
+  or a text channel's threads): `gateThread`, `serpentThread`, `sdThread`, `egThread`,
+  relay settings over the vars `GATE_DISCORD_THREAD` and the rest (`net/relayCfg.js`; `/relay serpentThread <id>`, no
+  deploy). A family with no thread of its own posts to the gate's; with none at all, everything goes to the channel
+  itself, as before. A thread Discord refuses - an id that names no thread of the channel, a thread deleted, locked or
+  private - never loses the post: it goes to the channel itself, once, and the refusal is said in the hub's log with
+  Discord's reason (AUDIT HERALD-CARDS H1 - it had let every post of the family go, all four through the gate's thread).
+  A forum channel needs the gate's thread at least: Discord refuses a forum post with no thread, so there the channel
+  refuses it too, and it is let go. A thread setting that is no id at all is said in the log and posts to the gate's. A setting must be a Discord id (the hub refuses a link or a name in words `/relay` shows), and
+  the client says one only to a relay that knows it (`RELAY_CFG_KEY_MIN`, world250 - an older relay closes the hub link
+  on a name it does not know).
+- **Safe to post, as before**: `allowed_mentions` is the one role a post names or nothing; every name a player can reach
+  passes `heraldName` wherever it is drawn - title, field or text - and begins with no hyphen (AUDIT HERALD-CARDS L2: a
+  field's "- Ann" draws as a list); the gate's place is the wire's own word (`gatePlaceWire`, refused at the relay if it
+  would change), the serpent's passes `heraldName`, and every other word is a table's. Every part is cut to Discord's own
+  bound (`HERALD_TITLE_MAX` and the rest) and the whole to its 6000, the text cut before a fact is dropped (AUDIT
+  HERALD-CARDS L1), since a body past one is refused whole and let go.
+- **What did not change**: when each post is owed, retried and let go (each herald's own law above and in
+  `Sea-Serpent.md` section 14, `Super-Dungeons.md` SD-HERALD and `Elite-Gates.md` section 20), the door's secret, the
+  votes of where. No frame changes shape.
+
+Relay world250 (world243 on its branch, renumbered past main's world243 to world249 at the merge). Pinned in `test/net/herald/heraldcards.test.js` (13); mutants `tools/mutants/heraldcards.json` (28, all
+dead - AUDIT HERALD-CARDS, `01-Overview/audits/Audit-Herald-Cards-Timers2.md`); the four heralds' pins and mutant lists (`discordgates`, `serpent2`, `sdherald`, `egeco_relay`, `fb1020d_loneherald`,
+`egaudit5_a2`, `wb8c`, `wb12a`, `wb12d`, `wb13b`, `wb14b`) read the cards now, every re-aimed mutant dead. Not seen:
+the cards in Discord itself (no webhook here) - the shape is Discord's documented embed, and the first omen after the
+deploy is the eyeball.
+
 ## 13. The Warden's marks (WB8, 2026-09-28)
 
 Mac: "Make the oblivion gate boss not be able to be pacified, continue to refine and add detail to his encounters, and
