@@ -126,18 +126,22 @@ export function applyPurseMend(save, { was, gold }) {
 /**
  * STAFF-SET-BANK: THE BANK AS THE STAFF PANEL SAYS IT - every account's gold together, a count that is no finite number
  * counted none (server-account/src/staffPlayers.js saveViewOf `banks` reads it here, so the total staff read and the one
- * a set is checked against are one sum). A branch below nothing counts below nothing.
+ * a set is checked against are one sum). A branch below nothing counts below nothing. REVIEW (2026-10-23): the sum held
+ * to the safe integers, as judge.js wealthOf holds the wealth - a bank a modified client wrote past them, or summed past
+ * every number (1e308 twice is Infinity, which JSON sends as null), is said at the bound: a total the profile can send,
+ * staff can name and the act's row can hold (an int64 past them reads back as no JavaScript number). Two banks past the
+ * bound read alike, so a set over either is the one staff asked.
  * @param {any} save
  */
-export const bankTotalOf = (save) => (Array.isArray(save?.bankAccounts) ? save.bankAccounts : [])
-  .reduce((/** @type {number} */ s, /** @type {any} */ a) => s + (typeof a?.accountGold === 'number' && Number.isFinite(a.accountGold) ? a.accountGold : 0), 0);
+export const bankTotalOf = (save) => Math.min(Number.MAX_SAFE_INTEGER, Math.max(-Number.MAX_SAFE_INTEGER, (Array.isArray(save?.bankAccounts) ? save.bankAccounts : [])
+  .reduce((/** @type {number} */ s, /** @type {any} */ a) => s + (typeof a?.accountGold === 'number' && Number.isFinite(a.accountGold) ? a.accountGold : 0), 0)));
 
 /**
  * STAFF-SET-BANK: A BANK SET AS ASKED, checked - `{ ticket, was, gold }`, or null: a ticket of the repair's shape, `was`
  * the bank total staff read (bankTotalOf - any finite number: a branch below nothing makes it less than nothing, and a
- * bank a modified client wrote past every safe integer is the one staff most need to set), and `gold` the bank it is to
- * hold, 0 to GOLD_INT_MAX (DFU's `int accountGold`, one int's worth). Whether the record's bank is still that total is the
- * record's to say (applyBankSet).
+ * bank a modified client wrote past every safe integer, the one staff most need to set, is said at the bound), and `gold`
+ * the bank it is to hold, 0 to GOLD_INT_MAX (DFU's `int accountGold`, one int's worth). Whether the record's bank is still
+ * that total is the record's to say (applyBankSet).
  * @param {any} v
  * @returns {{ ticket: string, was: number, gold: number } | null}
  */

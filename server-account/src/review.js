@@ -55,7 +55,7 @@ import { budgetConfig, budgetConfigOf, forgetBudgetConfig, BUDGET_DEFAULT, FAUCE
 import { repairOf, applyRepair, purseMendOf, applyPurseMend, bankSetOf, applyBankSet } from '../../src/net/repairLaw.js';   // SUMMON-REPAIR: the repair's law, the tool's too; PURSE-MEND: the mend's; STAFF-SET-BANK: the bank set's
 import { lawSigOf } from './verdict.js';   // PURSE-MEND: the signature the purse's finding stands under
 import { isHandleShaped } from '../../src/net/handleShape.js';   // SUMMON-REPAIR: an account named by its handle
-import { wealthOf } from './judge.js';
+import { wealthOf, goldOf } from './judge.js';   // STAFF-SET-BANK: and a bank's gold as the judge counts it
 import { grantsMeasure } from './grants.js';   // GRANT2: the spawn grants' measure (bible/11-Multiplayer/Spawn-Grants.md section 12)
 import { progressConfig, progressConfigOf, forgetProgressConfig, PROGRESS_LINE, PROGRESS_STREAMS } from './progress.js';   // INT17: the progression claims' line
 import { REALM_LETTER_TEMPLATE } from '../../src/net/realm/realmGoldLaw.js';   // HACKED-GOLD: a trade's letters, at their worth
@@ -339,17 +339,21 @@ async function mendAct(ctx, row, by, note, body) {
  * prepareRealmRecord writes that into the row's `witnessed` in the record's own step, so the next checkpoint's gain
  * (verdict.js: the wealth less the last judged, less what was witnessed) is the player's alone - a set up charges no
  * gain, a set down hides none after it. THE ECONOMY: what the set raised the bank by is the service's own faucet,
- * `repair`, as a mend's letter is (a bank below nothing counted none, as the mend counts a purse below nothing); what a
- * set down takes is written in the finding and the panel's audit row alone - the service keeps no sink for staff's
- * removals. No hold is lifted (the mend's lift is the purse's alone): the next checkpoint judges the record as it stands.
+ * `repair`, as a mend's letter is - the bank before counted as the judge counts it (judge.js goldOf, wealthOf: a branch
+ * below nothing, a fraction or a count past every safe integer is none), so the faucet is the gold the set witnessed
+ * (REVIEW, 2026-10-23: reckoned from `was`, a branch below nothing beside gold booked a faucet for no gold, and a hacked
+ * bank set down to honest gold booked none for the gold it made); what a set down takes is written in the finding and
+ * the panel's audit row alone - the service keeps no sink for staff's removals. No hold is lifted (the mend's lift is the
+ * purse's alone): the next checkpoint judges the record as it stands.
  * @param {any} ctx @param {any} row the character's row @param {string} by @param {string | null} note @param {any} body
  */
 async function bankAct(ctx, row, by, note, body) {
   const { db, nowS } = ctx;
   const set = bankSetOf(body);
   if (!set) return { error: 'body' };
-  const up = set.gold - Math.max(0, set.was);
+  let up = 0;
   return staffMend(ctx, row, 'bank', set.ticket, (save) => {
+    up = set.gold - (Array.isArray(save.bankAccounts) ? save.bankAccounts : []).reduce((/** @type {number} */ g, /** @type {any} */ a) => g + goldOf(a?.accountGold), 0);
     const r = applyBankSet(save, set);
     return typeof r === 'string' ? r : null;
   }, (seq) => [

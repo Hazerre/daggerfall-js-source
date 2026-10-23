@@ -526,7 +526,10 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
     const { ticket, faction, flag, gold, was } = body;
     const r = await reviewAct(c, me, env, act, act === 'repair' ? { id: row.id, note, ticket, faction, flag, gold } : { id: row.id, note, ticket, was, gold });
     const detail = { ...ch, note, ticket: typeof ticket === 'string' ? ticket.slice(0, 64) : null, gold: Number.isSafeInteger(gold) ? gold : null, ...(act === 'repair' ? { faction, flag } : { was }) };
-    return said(`fix-${act}`, row.player, detail, r.error ? r : { ...r, playing: playing(row) });
+    // STAFF-SET-BANK REVIEW (2026-10-23): a fix that landed is written as its row holds it, and whether it was a repeat - a
+    // ticket asked again with other values moves nothing, and its row once named the body's values as done
+    const landed = r.error ? {} : { gold: r.gold, ...(act === 'repair' ? { faction: r.faction, flag: r.flag } : { was: r.was }), repeat: r.repeat };
+    return said(`fix-${act}`, row.player, { ...detail, ...landed }, r.error ? r : { ...r, playing: playing(row) });
   }
 
   if (path === '/v1/staff/item/take') return takeAct();

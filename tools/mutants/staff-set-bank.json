@@ -222,11 +222,63 @@
   {
     "name": "STAFF-SET-BANK-the-total-below-nothing-counted",
     "file": "server-account/src/review.js",
-    "old": "  const up = set.gold - Math.max(0, set.was);",
-    "new": "  const up = set.gold - set.was;",
-    "why": "a bank below nothing held no gold: the faucet is the gold set, none for the hole",
+    "old": "g + goldOf(a?.accountGold), 0);",
+    "new": "g + (Number.isFinite(a?.accountGold) ? a.accountGold : 0), 0);",
+    "why": "a bank's gold before the set is the judge's count: a branch below nothing held no gold, so the faucet is the gold the set witnessed, none for the hole",
     "tests": [
       "test/server/staffsetbank.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-SET-BANK-the-faucet-from-the-total",
+    "file": "server-account/src/review.js",
+    "old": "    up = set.gold - (Array.isArray(save.bankAccounts) ? save.bankAccounts : []).reduce((/** @type {number} */ g, /** @type {any} */ a) => g + goldOf(a?.accountGold), 0);",
+    "new": "    up = set.gold - Math.max(0, set.was);",
+    "why": "REVIEW: the faucet is the gold the set witnessed - from the total named, a hacked bank set to honest gold booked none for the gold it made, and a branch below nothing beside gold one for gold that never came in",
+    "tests": [
+      "test/server/staffsetbank.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-SET-BANK-the-total-unbounded",
+    "file": "src/net/repairLaw.js",
+    "old": "export const bankTotalOf = (save) => Math.min(Number.MAX_SAFE_INTEGER, Math.max(-Number.MAX_SAFE_INTEGER, (Array.isArray(save?.bankAccounts) ? save.bankAccounts : [])\n  .reduce((/** @type {number} */ s, /** @type {any} */ a) => s + (typeof a?.accountGold === 'number' && Number.isFinite(a.accountGold) ? a.accountGold : 0), 0)));",
+    "new": "export const bankTotalOf = (save) => (Array.isArray(save?.bankAccounts) ? save.bankAccounts : [])\n  .reduce((/** @type {number} */ s, /** @type {any} */ a) => s + (typeof a?.accountGold === 'number' && Number.isFinite(a.accountGold) ? a.accountGold : 0), 0);",
+    "why": "REVIEW: a bank past every safe integer is said at the bound - unbounded, the act's row held an int64 that reads back as no number (the set landed, answered 500 and wrote no audit row), and banks summed past every number were Infinity, null in JSON, a bank no body could set",
+    "tests": [
+      "test/server/staffsetbank.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-SET-BANK-the-total-unbounded-below",
+    "file": "src/net/repairLaw.js",
+    "old": "Math.max(-Number.MAX_SAFE_INTEGER, (Array.isArray(save?.bankAccounts)",
+    "new": "((Array.isArray(save?.bankAccounts)",
+    "why": "REVIEW: the bound holds below nothing too - branches summed below every number are a bank no body could name",
+    "tests": [
+      "test/server/staffsetbank.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-SET-BANK-the-audit-as-the-body",
+    "file": "server-account/src/staffRealm.js",
+    "old": "    return said(`fix-${act}`, row.player, { ...detail, ...landed }, r.error",
+    "new": "    return said(`fix-${act}`, row.player, detail, r.error",
+    "why": "REVIEW: a ticket asked again with other values is written as the set its row holds, never the body's values as done",
+    "tests": [
+      "test/server/staffsetbank.test.js",
+      "test/server/staffpanel3realm.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-SET-BANK-the-audit-no-repeat",
+    "file": "server-account/src/staffRealm.js",
+    "old": " : { was: r.was }), repeat: r.repeat };",
+    "new": " : { was: r.was }) };",
+    "why": "REVIEW: the audit row says whether the fix was a repeat that moved nothing",
+    "tests": [
+      "test/server/staffsetbank.test.js",
+      "test/server/staffpanel3realm.test.js"
     ]
   },
   {
