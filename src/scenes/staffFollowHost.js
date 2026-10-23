@@ -39,7 +39,7 @@ export function createStaffFollowHost({ hook, prepare, mode, where, toScene, eye
       return true;
     },
     /** After the motor took the eye: the camera at the target's eyes, the body under it (the world streams round the
-     *  body). False while there is nothing to copy. @param {{ pos: number[] }} player @param {{ pos: number[], yaw: number, pitch: number }} cam */
+     *  body). False while there is nothing to copy. @param {{ pos: number[], _airVelX?: number, _airVelZ?: number, velY?: number, falling?: boolean, fallStart?: number }} player @param {{ pos: number[], yaw: number, pitch: number }} cam */
     eye(player, cam) {
       const v = !entering && hook.locked() ? hook.view() : null;
       const q = v ? toScene(v) : null;

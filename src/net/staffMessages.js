@@ -17,9 +17,10 @@ import { call, storedSession, serviceBase } from './accountClient.js';
 import { appStorage } from '../systems/appStorage.js';
 import { showStaffMessageBox } from '../ui/staffMessageBox.js';
 import { t } from '../systems/textManager.js';
+import { STAFF_TAB } from './staffChat.js';
 
-/** The chat tab a message's copy lands on (the freeze slice's Staff tab). */
-export const STAFF_TAB = 'staff';
+/** The chat tab a message's copy lands on: the freeze slice's Staff tab, declared in its one home (net/staffChat.js - AUDIT 24's one export a name, test/systems/talk/audit24_onehome.test.js). */
+export { STAFF_TAB };
 /** One ask of the service at most this often, ms - the nudge is the relay's, and the relay is the player's own choice. */
 export const STAFF_ASK_GAP_MS = 5000;
 /** Messages this module keeps in its own list (the Staff tab's copy is the log's). */
