@@ -47,6 +47,13 @@ test('LEASE1 THE LEASE: minted with the relay\'s key and read back whole; anothe
   assert.equal(await readLease(await signed({ s: 'acct-mac-0001', m: -1, f: 0, a: at, u: at + LEASE_LIFE_S }), k, { subtle, nowS: at }), null);
   for (const bad of [{ s: 'no', at }, { s: 'acct-mac-0001', mu: -1, at }, { s: 'acct-mac-0001', fz: 1.5, at }, { s: 'acct-mac-0001', at: 0 }]) assert.equal(await mintLease(bad, k, { subtle }), null, JSON.stringify(bad));
   for (const junk of [null, 5, '', 'a.b.c', `${l}x`.repeat(3), '.x']) assert.equal(await readLease(junk, k, { subtle, nowS: at }), null);
+  // STAFF-PANEL5-FREEZE-FIX (round two): a PASS (`p` 1, a hub shard's own while its bus is silent) reads back with it, the
+  // longest account's inside the frame; `p` is 1 or nothing, minted or read
+  const pass = await mintLease({ s: 'a'.repeat(40), mu: 2 * at, fz: 2 * at, at, p: 1 }, k, { subtle });
+  assert.ok(pass.length <= LEASE_WIRE_MAX, String(pass.length));
+  assert.deepEqual(await readLease(pass, k, { subtle, nowS: at }), { s: 'a'.repeat(40), mu: 2 * at, fz: 2 * at, at, u: at + LEASE_LIFE_S, p: 1 });
+  for (const p of [2, true, '1', -1]) assert.equal(await mintLease({ s: 'acct-mac-0001', at, p }, k, { subtle }), null, `mint p ${p}`);
+  for (const p of [0, 2, true, '1']) assert.equal(await readLease(await signed({ s: 'acct-mac-0001', m: 0, f: 0, a: at, u: at + LEASE_LIFE_S, p }), k, { subtle, nowS: at }), null, `read p ${p}`);
   // the frame
   assert.deepEqual(parseClient('{"t":"lease"}', { hasHello: false }), { error: 'lease before hello' });
   assert.deepEqual(parseClient('{"t":"lease"}', { hasHello: true }), { t: 'lease' });

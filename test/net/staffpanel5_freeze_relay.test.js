@@ -302,6 +302,108 @@ test('STAFF-PANEL5-FREEZE THROUGH THE SHARDS: the bus\'s freeze reaches the play
 
 const lines = (ws) => of(ws, 'chat').map((f) => f.text);
 
+test('STAFF-PANEL5-FREEZE-FIX A SILENT BUS STOPS NO LEASE (round two, a review: a hub shard\'s lease is its bus\'s to mint, so with the bus down no shard minted one, and within a lease\'s life every bound socket in every room but the hub\'s was heard in nothing): the bus not taking a hand-up, the lease ask it carried is answered by the shard - a PASS off its own attachment, its freeze in it, once however often the hand-up is tried again - and an ask said while the bus is silent is answered at once and never handed up; with the door on, a cell hears its socket again behind a pass, its freeze held; a fresh hello\'s pass, its token from before the freeze the bus\'s book holds, lifts nothing (finding 25); and the bus back, the next ask is the bus\'s again (mutants: the shard waiting on its bus; the miss unanswered; a pass on every try; a pass unmarked; a pass the newer word; a pass read as any lease; a pass for a frame not an ask)', async (t) => {
+  let clock = 1_800_000_000_000;
+  t.mock.method(Date, 'now', () => clock);
+  const secret = await GATE;
+  const key = await leaseKeyOf(secret, { subtle });
+  const read = (l) => readLease(l, key, { subtle, nowS: Math.floor(clock / 1000) });
+  await quiet(async () => {
+    const W = fakeRooms({ now: () => clock });
+    const room = (k) => { const r = W.room(k); r.env.GATE_SIGNING_KEY = secret; return r; };
+    const bus = room(CHAT_WORLD_ROOM);
+    const settle = async () => {
+      for (let i = 0; i < 6; i++) {
+        for (const [k, r] of [...W.made]) if (H.isChannelShard(k)) await r.room._hubUpFlush();
+        for (const [k, r] of [...W.made]) if (H.isChannelBus(k)) await r.room._downFlush();
+        for (const [k, r] of [...W.made]) if (H.isChannelShard(k)) await r.room._hubPoll();
+      }
+    };
+    const sub = 'acct-p0';
+    const R = room(H.hubOfSubject(sub));
+    const cell = room(CELL);
+    cell.env.LEASE_DOOR = 'on';
+    const ask = async (ws) => { clock += LEASE_FRAME_MIN_MS; await R.raw(ws, '{"t":"lease"}'); };
+    const hub = async (n, extra = {}) => { const ws = R.connect(); clock += 30; await R.hello(ws, `peer-${n}`, null, { name: n, acct: sub, asecret: `secret-of-${sub}`, fv: 1, ...extra }); return ws; };
+    try {
+      const early = await R.token('peer-p0b', { s: sub, n: 'p0b' });   // a second tab's token, minted before the freeze
+      const wv = await hub('p0');
+      await settle();
+      const cs = cell.connect();
+      clock += 30;
+      await cell.hello(cs, 'peer-p0', P0, { name: 'p0', tokenSub: sub, fv: 1, ls: 1 });
+      clock += 2000;
+      const kp = await bus.signer();
+      const until = Math.floor(clock / 1000) + 3600;
+      const res = await worker.fetch(new Request(`https://relay.example${SAFE_LAW_PATH}`, { method: 'POST', body: JSON.stringify({ order: await mintFreezeOrder({ s: sub, fz: until }, kp.privateKey, { subtle, nowS: Math.floor(clock / 1000) }) }) }), { ROOMS: W.ROOMS, IDENTITY_PUBLIC_KEY: bus.env.IDENTITY_PUBLIC_KEY });
+      assert.equal(res.status, 200);
+      await settle();
+      await ask(wv);
+      await settle();
+      const L1 = of(wv, 'lease').at(-1).l;
+      assert.deepEqual([(await read(L1)).fz, (await read(L1)).p], [until, undefined], 'the control: the bus\'s lease, frozen');
+      await cell.raw(cs, JSON.stringify({ t: 'lease', l: L1 }));
+      assert.equal(cell.room._attach(cs).fz, until, 'the cell took it');
+      // THE BUS GOES SILENT
+      const real = bus.room.fetch.bind(bus.room);
+      bus.room.fetch = async () => new Response('down', { status: 503 });
+      await R.raw(wv, JSON.stringify({ t: 'chat', text: 'lease' }));   // a line in the same hand-up, its words "lease": no ask
+      await ask(wv);
+      const n = of(wv, 'lease').length;
+      await settle();
+      assert.equal(of(wv, 'lease').length, n + 1, 'the hand-up missed: its ask answered by the shard');
+      const P1 = await read(of(wv, 'lease').at(-1).l);
+      assert.deepEqual([P1.p, P1.fz, P1.s], [1, until, sub], 'a pass, the freeze the shard holds in it');
+      clock += 5000;
+      await settle();
+      clock += 5000;
+      await settle();
+      assert.equal(of(wv, 'lease').length, n + 1, 'tried again and again, one pass');
+      await ask(wv);
+      assert.equal(of(wv, 'lease').length, n + 2, 'asked while the bus is silent: a pass at once');
+      assert.equal((await read(of(wv, 'lease').at(-1).l)).p, 1);
+      assert.ok(!R.room._up.some((ev) => ev[1] === 'f' && ev[2] === '{"t":"lease"}'), 'and never handed up');
+      // the cell, its door on: the bus's lease lapsed, its socket is heard in nothing; behind a pass, heard - frozen still
+      clock += 95_000;
+      await cell.raw(cs, JSON.stringify({ t: 'pose', p: { ...P0, yaw: 1 } }));
+      assert.notEqual(cell.room._attach(cs).pose?.yaw, 1, 'the control: lapsed, unheard');
+      await ask(wv);
+      const P2 = of(wv, 'lease').at(-1).l;
+      assert.equal((await read(P2)).p, 1);
+      await cell.raw(cs, JSON.stringify({ t: 'lease', l: P2 }));
+      assert.equal(cell.room._attach(cs).ld, (await read(P2)).u, 'the pass renews its life');
+      clock += 1000;
+      await cell.raw(cs, JSON.stringify({ t: 'pose', p: { ...P0, x: P0.x + 500, yaw: 2 } }));
+      assert.equal(cell.room._attach(cs).pose?.yaw, 2, 'heard behind the pass');
+      assert.equal(cell.room._attach(cs).pose?.x, P0.x, 'frozen still: its camera alone');
+      // FINDING 25 KEPT: a fresh hello on the shard, its token from before the freeze, the bus's book out of reach - its pass
+      // says no freeze, and lifts none (its first tab let go: one seat an account)
+      await R.drop(wv);
+      const fresh = await hub('p0b', { tok: early });
+      assert.ok(!(fresh.att.fz > 0), 'the shard alone knows the token\'s word: no freeze');
+      await ask(fresh);
+      const P3 = of(fresh, 'lease').at(-1)?.l;
+      assert.deepEqual([(await read(P3)).p, (await read(P3)).fz], [1, 0], 'a pass, unfrozen');
+      clock += LEASE_FRAME_MIN_MS;
+      await cell.raw(cs, JSON.stringify({ t: 'lease', l: P3 }));
+      assert.equal(cell.room._attach(cs).fz, until, 'the pass lifts nothing the cell heard');
+      // THE BUS BACK: the next ask is the bus's to answer again, from its book
+      bus.room.fetch = real;
+      clock += 2000;
+      await settle();
+      assert.equal(R.room._upRetry, null, 'the hand-up landed');
+      const m = of(fresh, 'lease').length;
+      await ask(fresh);
+      assert.equal(of(fresh, 'lease').length, m, 'nothing minted on the shard\'s own word');
+      await settle();
+      const L2 = await read(of(fresh, 'lease').at(-1).l);
+      assert.deepEqual([L2.p, L2.fz], [undefined, until], 'the bus\'s lease, its book\'s freeze');
+    } finally {
+      for (const [, r] of W.made) { clearTimeout(r.room._upT); clearTimeout(r.room._downT); clearTimeout(r.room._hubCountT); clearTimeout(r.room._owedSoon); clearTimeout(r.room._owedLate); clearTimeout(r.room._countT); clearTimeout(r.room._pollT); }
+    }
+  });
+});
+
 test('STAFF-PANEL5-FREEZE-FIX EVERY ROOM BUT THE HUB IS A LEASE ROOM (a review: a freeze or a lift never reached a home, a caravan, a siege, an arena, a gate, a breach or a Super dungeon realm): in a caravan the hub\'s lease freezes a socket already there and lifts one its token froze; with the door on, a build that hands on no lease is refused there, and a bound socket is heard in nothing until its lease (mutants: the old lease rooms)', async (t) => {
   for (const key of ['owned:0123456789abcdef0123456789abcdef', caravanRoomOf('0123456789abcdef01234567'), 'siege:7:2900', 'royal:1:2900', 'arena:hall', 'arena:b42', 'gate:20260101', 'eg:0123456789abcdef', 'sd:3', CELL, 'dungeon:m123', 'chat:trade']) assert.equal(leaseRoom(key), true, key);
   for (const key of [CHAT_WORLD_ROOM, H.hubOfSubject('acct-ice-0001'), null, undefined]) assert.equal(leaseRoom(key), false, String(key));

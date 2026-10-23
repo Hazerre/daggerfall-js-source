@@ -14,7 +14,9 @@
 // with the freeze as it holds it now, and a lease room takes it. STAFF-PANEL5-FREEZE-FIX (a review: homes, caravans,
 // sieges, arenas, gates, breaches and Super dungeon realms were no lease rooms, so a freeze or a lift never reached them):
 // every room but the hub's is a lease room now, and a hub shard's lease is its bus's to mint (index.js `_leaseRead`: the
-// bus holds the book a fresh hello on a shard has not heard yet).
+// bus holds the book a fresh hello on a shard has not heard yet) - and while the bus takes nothing the shard hands up, the
+// shard's own PASS (net/roomLease.js `p`, `busMissed`): a lease a room reads as older than its own last word, so a bus
+// down never leaves every lease room unheard, and a fresh hello's pass lifts nothing the bus's book holds.
 //
 // A FROZEN SOCKET (mob, 03:05Z: "the player can only look around"; design doc: "The relay drops every frame from that
 // player except the camera and their lines on the staff channel"):
@@ -236,6 +238,24 @@ export function staffLine(room, ws, a, frame, now) {
   room._staffNudges = budget.bucket;
   if (!budget.pass) return;
   nudge(room, a.sub, { t: 'chat', ch: 'staff', th: a.sub, sl, id: a.id, name: a.name, at: now });
+}
+
+/**
+ * (a hub shard) ITS BUS DID NOT TAKE A HAND-UP (index.js `_hubUpFlush`, the hand-up's first miss): each lease ask it carried
+ * is answered here - a pass off the socket's own attachment (`_leaseRead`, past its meter already, sees `_upRetry` set),
+ * never left to wait on a bus that may not come back (STAFF-PANEL5-FREEZE-FIX, round two - a review: with the bus down no
+ * shard minted a lease, and inside a lease's life every bound socket in every room but the hub's was heard in nothing).
+ * An ask said after the miss is answered the same at once, and never handed up. THE LOAD: nothing while the bus answers -
+ * each ask is still the bus's (one bus, 2 lease asks a minute an online player); a pass is one MAC on the shard, and a bus
+ * back hears no backlog of asks (the missed hand-up alone goes again, as it was).
+ * @param {any} room @param {any[]} events the hand-up's `[vid, kind, payload]`
+ */
+export async function busMissed(room, events) {
+  for (const [vid, kind, said] of Array.isArray(events) ? events : []) {
+    if (kind !== 'f' || !said.startsWith('{"t":"lease"')) continue;   // an ask: a shard keeps every lease frame of that shape (hubShards.js shardKeeps), and hands up its asks alone
+    const ws = room._byVid(vid), a = ws && room._pastWait(ws);
+    if (a) try { await room._leaseRead(ws, a, { t: 'lease' }, said, Date.now()); } catch (e) { console.warn('[freeze] pass', /** @type {any} */ (e)?.message ?? e); }
+  }
 }
 
 /** A nudge to a thread's members online: its player's sockets and every staff socket (`isHidden`: STAFF-PANEL5-FREEZE-FIX,

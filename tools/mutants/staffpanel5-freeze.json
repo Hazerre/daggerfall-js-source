@@ -432,12 +432,13 @@
   {
     "name": "STAFF-PANEL5-FREEZE-lapsed-said-standing",
     "file": "server/src/index.js",
-    "old": "fz: frozenAt(a, nowS) ? a.fz : 0, at: nowS }",
-    "new": "fz: a.fz ?? 0, at: nowS }",
+    "old": "fz: frozenAt(a, nowS) ? a.fz : 0, at: nowS, p:",
+    "new": "fz: a.fz ?? 0, at: nowS, p:",
     "why": "a lapsed freeze said standing in the lease",
     "tests": [
       "test/net/staffpanel5_freeze_relay.test.js"
-    ]
+    ],
+    "note": "STAFF-PANEL5-FREEZE-FIX round two (re-aimed by content): the mint says a pass (`p`) after its time."
   },
   {
     "name": "STAFF-PANEL5-FREEZE-seat-back-by-clock",
@@ -763,12 +764,13 @@
   {
     "name": "STAFF-PANEL5-FREEZE-FIX-shard-mints-own",
     "file": "server/src/index.js",
-    "old": "if (a.vid && isChannelShard(room)) { this._hubForward(ws, a, message); return; }",
+    "old": "if (a.vid && isChannelShard(room) && !this._upRetry) { this._hubForward(ws, a, message); return; }",
     "new": "if (false) { this._hubForward(ws, a, message); return; }",
     "why": "finding 25: a hub shard mints a lease from its own copy before the bus's book reaches a fresh hello",
     "tests": [
       "test/net/staffpanel5_freeze_relay.test.js"
-    ]
+    ],
+    "note": "STAFF-PANEL5-FREEZE-FIX round two (re-aimed by content): the forward waits on a bus that takes its hand-ups (`!this._upRetry`)."
   },
   {
     "name": "STAFF-PANEL5-FREEZE-FIX-no-push-after",
@@ -848,6 +850,107 @@
     "why": "finding 26: a read begun before the relay's lift puts the freeze back",
     "tests": [
       "test/net/staffpanel5_freeze_client.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-R2-hall-lease-untaken",
+    "file": "src/scenes/chatSafetyHost.js",
+    "old": "      for (const x of links()) link.leaseFrom?.(x);\n",
+    "new": "",
+    "why": "round two, item 1: a new hall link holds no lease - with the door on, its queue word is heard in nothing",
+    "tests": [
+      "test/net/staffpanel5_freeze_client.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-R2-shard-waits-on-bus",
+    "file": "server/src/index.js",
+    "old": "isChannelShard(room) && !this._upRetry)",
+    "new": "isChannelShard(room))",
+    "why": "round two, item 2: an ask while the bus takes nothing waits on it - no lease",
+    "tests": [
+      "test/net/staffpanel5_freeze_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-R2-miss-unanswered",
+    "file": "server/src/index.js",
+    "old": "this._upRetry = body; await busMissed(this, body.e); }",
+    "new": "this._upRetry = body; }",
+    "why": "round two, item 2: the ask a missed hand-up carried is never answered",
+    "tests": [
+      "test/net/staffpanel5_freeze_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-R2-pass-every-try",
+    "file": "server/src/index.js",
+    "old": "if (this._upRetry !== body) {",
+    "new": "if (true) {",
+    "why": "round two, item 2: a pass minted again on every try of the same hand-up",
+    "tests": [
+      "test/net/staffpanel5_freeze_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-R2-pass-unmarked",
+    "file": "server/src/index.js",
+    "old": "p: a.vid && isChannelShard(room) ? 1 : 0 }",
+    "new": "p: 0 }",
+    "why": "round two, item 2 (finding 25 kept): the shard's own lease is no pass - a fresh hello's lifts a freeze the bus's book holds",
+    "tests": [
+      "test/net/staffpanel5_freeze_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-R2-pass-newer-word",
+    "file": "server/src/index.js",
+    "old": "const law = !r.p && ",
+    "new": "const law = ",
+    "why": "round two, item 2 (finding 25 kept): a pass read as the newer word lifts a freeze",
+    "tests": [
+      "test/net/staffpanel5_freeze_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-R2-pass-read-unmarked",
+    "file": "src/net/roomLease.js",
+    "old": "u: c.u, ...(c.p ? { p: 1 } : {}) };",
+    "new": "u: c.u };",
+    "why": "round two, item 2: a pass read as any lease",
+    "tests": [
+      "test/net/lease1.test.js",
+      "test/net/staffpanel5_freeze_relay.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-R2-pass-mark-unchecked-read",
+    "file": "src/net/roomLease.js",
+    "old": "|| (c.p !== undefined && c.p !== 1)) return null;",
+    "new": ") return null;",
+    "why": "round two, item 2: any `p` read",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-R2-pass-mark-unchecked-mint",
+    "file": "src/net/roomLease.js",
+    "old": "|| (p !== 0 && p !== 1)) return null;",
+    "new": ") return null;",
+    "why": "round two, item 2: any `p` minted",
+    "tests": [
+      "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-PANEL5-FREEZE-FIX-R2-pass-for-any-frame",
+    "file": "server/src/staffFreeze.js",
+    "old": "if (kind !== 'f' || !said.startsWith('{\"t\":\"lease\"')) continue;",
+    "new": "if (kind !== 'f') continue;",
+    "why": "round two, item 2: a missed hand-up's line answered with a pass",
+    "tests": [
+      "test/net/staffpanel5_freeze_relay.test.js"
     ]
   }
 ]

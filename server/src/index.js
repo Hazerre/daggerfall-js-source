@@ -184,7 +184,7 @@ import { FOLLOW_INTERNAL_SAY } from '../../src/net/staffFollow.js';
 import { takeStaffMessage } from './staffMessage.js';   // STAFF-PANEL5-MESSAGE: a staff message's nudge, to one account's own hub sockets
 import { staffNetFrame, staffNetClosed, staffFoesSeen, staffFoesStripped, staffReactAsk, staffReactPose, staffLeft } from './staffFeeds.js';   // STAFF-PANEL5-FEEDS: the Staff Panel's counts - network bursts, monsters, an encounter's reaction (off until their URLs are set)
 import { hiddenMay, hiddenAsked, seatsTaken, hiddenSeats, hiddenHello, hiddenPose, hiddenLapse, hiddenEntered, isHidden } from './staffHidden.js';   // STAFF-PANEL5-HIDDEN: a hidden staff spectator, named by nobody
-import { STAFF_ORDER_KINDS, takeStaffOrder, frozenHello, busFreeze, frozenFrame, staffLine, freezeMoved, seatBarred, frozenAt } from './staffFreeze.js';   // STAFF-PANEL5-FREEZE: freeze player and the staff chat
+import { STAFF_ORDER_KINDS, takeStaffOrder, frozenHello, busFreeze, frozenFrame, staffLine, freezeMoved, seatBarred, frozenAt, busMissed } from './staffFreeze.js';   // STAFF-PANEL5-FREEZE: freeze player and the staff chat
 import { privateInteriorOf, privateInteriorAdmits, caravanKeyOf } from '../../src/net/privateInterior.js';   // WAGONS2-VISIT: and a caravan's own room
 import { isInstanceRoom, instanceOf, instanceAdmission, partyHoldsOwner, INSTANCE_INTERNAL_KIN, INSTANCE_KIN_KEEP_MS, INSTANCE_DOOR_WORD } from '../../src/net/instanceRoom.js';   // INSTANCES: an instance's room, its door and the hub's party answer (bible/11-Multiplayer/Instances.md)
 import { isStaff } from '../../src/net/staffCommands.js';
@@ -1522,7 +1522,7 @@ export class Room {
           ans = res?.ok ? await res.json() : null;   // AUDIT SCALE II R2-7: an answer that is not ok is a miss, as a throw is
         } catch (e) { console.warn('[shard] the bus did not answer', e?.message ?? e); }
         if (!ans) {
-          this._upRetry = body;
+          if (this._upRetry !== body) { this._upRetry = body; await busMissed(this, body.e); }   // STAFF-PANEL5-FREEZE-FIX: its first miss - each lease ask it carried answered here, a pass (staffFreeze.js)
           this._upHoldUntil = Date.now() + HUB_RETRY_MS;
           this._hubSyncAt = 0;   // the next hand-up after it says every socket again, and the bus asks for what it lacks
           // HUB-PULL audit: its retry armed here - armed after this block, it never was (the `return` skipped it), and a miss
@@ -7180,8 +7180,8 @@ export class Room {
     const nowS = Math.floor(now / 1000);
     if (m.l === undefined) {
       if (!isSocialRoom(room)) return;
-      if (a.vid && isChannelShard(room)) { this._hubForward(ws, a, message); return; }   // STAFF-PANEL5-FREEZE-FIX: a hub shard's ask is its bus's to answer, behind the hello it handed up - the bus holds the book of freezes (and the mutes) a fresh hello here has not heard yet
-      const l = await mintLease({ s: a.sub, mu: a.mu ?? 0, fz: frozenAt(a, nowS) ? a.fz : 0, at: nowS }, key, { subtle: crypto.subtle });   // STAFF-PANEL5-FREEZE: a freeze run out is said lifted, so a room's seat moves back on its lease
+      if (a.vid && isChannelShard(room) && !this._upRetry) { this._hubForward(ws, a, message); return; }   // STAFF-PANEL5-FREEZE-FIX: a hub shard's ask is its bus's to answer, behind the hello it handed up - the bus holds the book of freezes (and the mutes) a fresh hello here has not heard yet; while the bus takes nothing it hands up, the shard's own pass (net/roomLease.js `p`)
+      const l = await mintLease({ s: a.sub, mu: a.mu ?? 0, fz: frozenAt(a, nowS) ? a.fz : 0, at: nowS, p: a.vid && isChannelShard(room) ? 1 : 0 }, key, { subtle: crypto.subtle });   // STAFF-PANEL5-FREEZE: a freeze run out is said lifted, so a room's seat moves back on its lease
       if (l) this._send(ws, JSON.stringify({ t: 'lease', l }));
       return;
     }
@@ -7189,7 +7189,7 @@ export class Room {
     const r = await readLease(m.l, key, { subtle: crypto.subtle, nowS });
     const b = this._pastWait(ws);   // read again past the awaits
     if (!r || !b || r.s !== b.sub) return;
-    const law = r.at > (b.lt ?? b.gio ?? 0);
+    const law = !r.p && r.at > (b.lt ?? b.gio ?? 0);   // STAFF-PANEL5-FREEZE-FIX: a pass is never the newer word
     // a token says nothing of a freeze (a review of the PR: a fresh token, then a lease minted before it, dodged one), so
     // an older lease still holds a freeze longer than the room's - it lifts none
     const next = { ...b, ld: Math.max(b.ld ?? 0, r.u), ...(law ? { lt: r.at, mu: r.mu, fz: r.fz } : r.fz > (b.fz ?? 0) ? { fz: r.fz } : {}) };
