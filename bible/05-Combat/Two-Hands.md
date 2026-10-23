@@ -700,8 +700,9 @@ the wiring that reads its own state into them - 2,855 -> 2,938 logical lines, un
   and the touch button refused a dry pair whole (`clickAttack`). PIN MOVED, each with its note: `ww1_weaponwidget` WW1 and
   `ht1_handheldtorches` HT1 (the gate's gun leg `gunUp()`; the clone's draw with the guard's transform), WW4 and `mwattach`
   (the clone's draw), `fparm` MW-D39 (the weapon group reads the blow's own type), `eotb_audit2` EOTB-IL (the hands' one
-  draw), `audit39_worldstate` #130 and `deckfield` GUN-HOLD (the cast press's `{ cast: true }`), `tech1_hosts` (the strike
-  `_swing` is handed). Re-aimed by content and re-run (dead): `spellhand` (three: SPELLHAND-word-never-told, -swing-refused,
+  draw), `audit39_worldstate` #130 and `deckfield` GUN-HOLD (the cast press's `{ cast: true }`), `hostmagic_wiring` M5 (the
+  dungeon's door, a cast's own press never swinging), `weaponglow1` WEAPON-GLOW1 (the sprite's offset less the spell hand's
+  guard), `tech1_hosts` (the strike `_swing` is handed). Re-aimed by content and re-run (dead): `spellhand` (three: SPELLHAND-word-never-told, -swing-refused,
   -swing-under-the-cast), `audit_pistolport` AP-A5-click-door-ungated, `fb1009g_bowclock` (two). PIN MOVED: `fpsspellcasting` (the weapon's hide reads the spell hand; both hands
   through `castHands`); `audit29_host` (the swing gate's Pellet leg, the street's cast press), `machij_sprites_and_chat`
   (the tint through `castHands`, the clone's guard, the sprite's `m`), `thunderlock` FIELD-GUN8 (no forced Inertia for a

@@ -271,7 +271,10 @@ test('WEAPON-GLOW1: the classic hand swings the PLAIN sheet while an element sho
   // glow, and the field in the art's NATIVE pixels - the Thunderlock's union box, the Pistolet's own texture size (AUDIT
   // PISTOLET B4: its union box is in design pixels)
   assert.match(rig, /renderer\.drawScreenQuad\(tex, rect, uv, lit \?\? undefined\);\s*const elementGlow = hand \? glowOf\(playerWeapon\.handItem\(hand\)\) : heldGlowNow\(\);[^\n]*\n\s*if \(elementGlow\) renderer\.drawScreenQuadGlow\?\.\(tex, rect, uv, elementGlow, \{ art: art\.native \? \[art\.native\.w, art\.native\.h\] : \[art\.unionBox\.w, art\.unionBox\.h\], view: \[canvas\.width, canvas\.height\] \}\);/, 'the Thunderlock\'s frame, then its outline - in its art\'s native pixels');
-  assert.match(rig, /\{ tint: fpTint, offsetHeight: weaponOffsetHeight\(\) - climbDrop\(_climbLower, c\.height\), glow: heldGlowNow\(\) \}/);
+  // PIN MOVED (SPELL-HAND): the sprite's offset is the climb's (`offsetHeight`, built once on the line above) less the
+  // spell hand's guard (was: `weaponOffsetHeight() - climbDrop(...)` inline); the glow did not move
+  assert.match(rig, /const m = playerWeapon\.machine, offsetHeight = c \? weaponOffsetHeight\(\) - climbDrop\(_climbLower, c\.height\) : 0;/);
+  assert.match(rig, /\{ tint: fpTint, offsetHeight: offsetHeight - spellDrop, glow: heldGlowNow\(\) \}/);
   const widget = strip(read('src/combat/weapon/weaponWidget.js'));
   assert.match(widget, /renderer\.drawScreenQuad\(tex, getWeaponRect\(\), w\.curAnimRect, tint \?\? undefined\);\s*if \(ctx\.glow\) renderer\.drawScreenQuadGlow\?\.\(tex, getWeaponRect\(\), w\.curAnimRect, ctx\.glow, \{ art: \[rec\.width, rec\.height\], view: \[canvas\.width, canvas\.height\] \}\);/, 'the clone\'s frame, then its outline, on its rect and mirror, in the record\'s pixels');
   // PIN MOVED (TWO-HANDS): the item the arm HOLDS (armItem: the one hand's, or a pair's right hand's whichever strikes),
