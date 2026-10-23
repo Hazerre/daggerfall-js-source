@@ -420,11 +420,13 @@ test('STAFF-PANEL5-FREEZE: A FAILED PUSH IS SAID AND TRIED AGAIN - the act saved
     assert.equal(await retryFreezePushes({ db: s.env.DB, nowS: nowS() }, { ...s.env, RELAY_LAW_URL: undefined }), 0);
     const live = await s.staff('/v1/staff/freeze-push', { target: s.troll.id }, s.mob.session);
     assert.deepEqual([live.body.live, s.pushed.length], [true, n + 1], 'live already: nothing pushed');
-    // a push marks only its own revision live
+    // a push marks only its own revision live - and pushes the newer act's row after its own (STAFF-PANEL5-FREEZE-FIX)
     s.raw.prepare('UPDATE players SET freeze_live = 0, freeze_rev = 7 WHERE id = ?').run(s.troll.id);
+    const k = s.pushed.length;
     assert.equal(await pushFreeze({ db: s.env.DB, nowS: nowS(), subtle }, s.env, { id: s.troll.id, frozen_until: nowS() + 60, freeze_rev: 6 }), true);
-    assert.equal(s.row(s.troll.id).freeze_live, 0, 'an older act\'s push: the newer act still waits');
-    s.raw.prepare('UPDATE players SET freeze_live = 1 WHERE id = ?').run(s.troll.id);
+    const [older, newer] = await Promise.all(s.pushed.slice(k).map((o) => verifyOrder(o, s.identityPublic, { subtle, nowS: nowS(), kind: 'freeze' })));
+    assert.deepEqual([s.pushed.length - k, older.claims.fz, newer.claims.fz], [2, nowS() + 60, s.row(s.troll.id).frozen_until], 'an older act\'s order, then the row as it stands');
+    assert.equal(s.row(s.troll.id).freeze_live, 1, 'the newer act live by the push after');
     // a list past its page answers `next`
     for (let i = 0; i < FREEZES_PAGE; i++) s.raw.prepare('INSERT INTO players (id, guest_name, created_at, last_seen, frozen_until, freeze_live, frozen_at) VALUES (?, ?, 1, 1, ?, 1, ?)').run(`p_frz${String(i).padStart(5, '0')}`, `Frozen ${i}`, nowS() + 60, i);
     const p1 = (await s.staff('/v1/staff/freezes', {}, s.mob.session)).body;
@@ -484,4 +486,71 @@ test('STAFF-PANEL5-FREEZE: the Discord invite is the setting\'s, an https addres
   assert.equal(discordInvite({ DISCORD_INVITE_URL: ` ${INVITE} ` }), INVITE);
   for (const bad of [undefined, '', 'http://discord.gg/x', 'javascript:alert(1)', 'https://discord.gg/x?y=<b>', 'https://discord.gg', 7]) assert.equal(discordInvite({ DISCORD_INVITE_URL: bad }), null, String(bad));
   assert.equal(discordInvite(undefined), null);
+});
+
+test('STAFF-PANEL5-FREEZE-FIX A STALE PUSH NEVER HAS THE LAST WORD (a review: a retry read before an unfreeze landed after that unfreeze\'s order, and the hub held the freeze while the panel said unfrozen and live): a push whose revision moved on pushes the row as it stands after it, and one that fails leaves that act for the clock; an order\'s time is its mint\'s; the clock reads each row as it stands at its push; at most `tries` pushes after (mutants: no push after; a push after for its own revision; the failed push after said live; the order\'s time the request\'s; the firing\'s read pushed; the tries)', async () => {
+  const s = await stand();
+  const f = globalThis.fetch;
+  let before = null, failFrom = Infinity, n = 0;
+  globalThis.fetch = async (u, i) => {
+    if (String(u) !== RELAY) return f(u, i);
+    const k = n++;
+    if (before) { const h = before; before = null; await h(); }
+    return k >= failFrom ? new Response('no', { status: 503 }) : f(u, i);
+  };
+  const claims = async (from = 0) => (await Promise.all(s.pushed.slice(from).map((o) => verifyOrder(o, s.identityPublic, { subtle, nowS: nowS(), kind: 'freeze' })))).map((r) => r.claims);
+  try {
+    // THE FINDING'S CASE: the clock's retry of a freeze whose push failed, and an Admin's unfreeze committed and pushed
+    // while the retry's own order was on its way - landing first
+    s.relayDown(true);
+    await s.freeze(s.troll);
+    s.relayDown(false);
+    _now += PUSH_RETRY_AFTER_S;
+    let from = s.pushed.length;
+    before = async () => { assert.equal((await s.staff('/v1/staff/unfreeze', { target: s.troll.id }, s.mob.session)).body.live, true); };
+    assert.equal(await retryFreezePushes({ db: s.env.DB, nowS: nowS() }, s.env), 1);
+    let c = await claims(from);
+    assert.deepEqual(c.map((x) => x.fz), [0, nowS() - PUSH_RETRY_AFTER_S + 3600, 0], 'the unfreeze, the stale freeze after it, then the row as it stands');
+    assert.ok(c[2].i >= c[1].i, 'the last word no older than the stale one (the hub takes a tie by its later arrival)');
+    assert.deepEqual([s.row(s.troll.id).frozen_until, s.row(s.troll.id).freeze_live], [null, 1]);
+    // a push of its own revision, live already, pushes nothing after
+    await s.freeze(s.troll);
+    from = s.pushed.length;
+    const r = s.row(s.troll.id);
+    assert.equal(await pushFreeze({ db: s.env.DB, nowS: nowS(), subtle }, s.env, { id: s.troll.id, ...r }), true);
+    assert.equal(s.pushed.length - from, 1, 'its own revision: nothing after');
+    // the push after fails: the newer act is left waiting for the clock, never said live
+    before = async () => { s.raw.prepare('UPDATE players SET freeze_rev = freeze_rev + 1, freeze_live = 1 WHERE id = ?').run(s.troll.id); failFrom = n; };
+    assert.equal(await pushFreeze({ db: s.env.DB, nowS: nowS(), subtle }, s.env, { id: s.troll.id, ...r }), true, 'its own went');
+    assert.equal(s.row(s.troll.id).freeze_live, 0, 'the newer act waits for the clock');
+    failFrom = Infinity;
+    s.raw.prepare('UPDATE players SET freeze_live = 1 WHERE id = ?').run(s.troll.id);
+    // AN ORDER'S TIME IS ITS MINT'S: an act whose commit came a second after its request was read
+    const batch = s.env.DB.batch;
+    s.env.DB.batch = async (list) => { s.env.DB.batch = batch; _now += 2; return batch.call(s.env.DB, list); };
+    const asked = nowS();
+    from = s.pushed.length;
+    assert.equal((await s.staff('/v1/staff/unfreeze', { target: s.troll.id }, s.mob.session)).status, 200);
+    c = await claims(from);
+    assert.deepEqual([c[0].i, s.row(s.troll.id).frozen_at], [asked + 2, asked], 'minted after the commit; the act kept at its request');
+    // THE CLOCK READS EACH ROW AT ITS OWN PUSH: Sylvia's push first, and Troll's freeze lifted by an Admin meanwhile
+    await s.freeze(s.troll);
+    await s.freeze(s.sylvia);
+    s.raw.prepare('UPDATE players SET freeze_live = 0, frozen_at = ? WHERE id = ?').run(nowS() - 100, s.sylvia.id);
+    s.raw.prepare('UPDATE players SET freeze_live = 0, frozen_at = ? WHERE id = ?').run(nowS() - 50, s.troll.id);
+    _now += PUSH_RETRY_AFTER_S;
+    before = async () => { s.raw.prepare('UPDATE players SET frozen_until = NULL, freeze_rev = freeze_rev + 1 WHERE id = ?').run(s.troll.id); };
+    from = s.pushed.length;
+    assert.equal(await retryFreezePushes({ db: s.env.DB, nowS: nowS() }, s.env), 2);
+    c = await claims(from);
+    assert.deepEqual(c.map((x) => [x.s, x.fz > 0]), [[s.sylvia.id, true], [s.troll.id, false]], 'Troll pushed once, as his row stands');
+    // at most `tries` pushes after: a revision that moves at every push
+    before = null;
+    const hook = () => { before = async () => { s.raw.prepare('UPDATE players SET freeze_rev = freeze_rev + 1 WHERE id = ?').run(s.troll.id); hook(); }; };
+    hook();
+    from = s.pushed.length;
+    assert.equal(await pushFreeze({ db: s.env.DB, nowS: nowS(), subtle }, s.env, { id: s.troll.id, ...s.row(s.troll.id) }), true);
+    before = null;
+    assert.equal(s.pushed.length - from, 4, 'its own and three after');
+  } finally { s.restore(); }
 });

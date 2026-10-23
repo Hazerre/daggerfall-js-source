@@ -11,12 +11,16 @@
 // at its hello: it shows no freeze screen) is closed with the reload words. A hello is judged by the token's own `fz`
 // (every token minted while a freeze stands carries it - a reload never sheds one) and, at the hub, by the book when its
 // order is the newer word. EVERY OTHER ROOM learns it from the lease (net/roomLease.js, LEASE1): the hub mints each lease
-// with the freeze as it holds it now, and a lease room takes it.
+// with the freeze as it holds it now, and a lease room takes it. STAFF-PANEL5-FREEZE-FIX (a review: homes, caravans,
+// sieges, arenas, gates, breaches and Super dungeon realms were no lease rooms, so a freeze or a lift never reached them):
+// every room but the hub's is a lease room now, and a hub shard's lease is its bus's to mint (index.js `_leaseRead`: the
+// bus holds the book a fresh hello on a shard has not heard yet).
 //
 // A FROZEN SOCKET (mob, 03:05Z: "the player can only look around"; design doc: "The relay drops every frame from that
 // player except the camera and their lines on the staff channel"):
 //   - is heard in nothing but its ping, its lease, its camera - a pose kept where it stood, only its yaw and pitch new -
-//     and its staff channel nudges (`frozenFrame`);
+//     and its staff channel nudges (`frozenFrame`); a frozen hello in a place stands where its account's socket there stood,
+//     never where the hello says, or nowhere (STAFF-PANEL5-FREEZE-FIX: a reconnect was a step - `frozenHello`);
 //   - is OUT OF EVERY FIGHT: a blow, a cast, a trade or a duel's word aimed at it is refused (`aimedAtFrozen`; Weak spots:
 //     "A frozen player can still be killed and robbed");
 //   - IS NEVER A ROOM'S HOST, and the seat moves on when the freeze lands (`seatBarred`, `freezeMoved`; Weak spots: "A
@@ -31,13 +35,14 @@
 // th, sl, id, name, at}` - `th` the thread (the player's account id), `sl` the line's id; a staff line's signed `staffline`
 // order (`{o:'staffline', s, sl}`) is told them the same, `st` 1. The MEMBERS are the thread's player (frozen, or joined
 // by a staff line this hub heard) and the staff sockets online - a socket whose verified token says it is a staff
-// session's (`hd` 1 on its attachment, the hidden spectator's claim - never a glyph).
+// session's (the hidden spectator's claim `hd`, `hid` 1 on its attachment - staffHidden.js isHidden; never a glyph).
 //
 // OFFLINE ONLY until mob tries it live.
 // ═══════════════════════════════════════════════════════════════════
 
 import { SOCIAL_ROOM, CLOSE_POLICY, isSocialRoom, isChatRoom, tokenGate } from '../../src/net/wire.js';
 import { MAX_TTL_S, SKEW_S, tokenBodyOf, _b64url } from '../../src/net/identityToken.js';
+import { isHidden } from './staffHidden.js';
 
 /** The order kinds this module takes (identityToken.js ORDER_KINDS). */
 export const STAFF_ORDER_KINDS = Object.freeze(['freeze', 'staffline']);
@@ -138,7 +143,9 @@ export async function takeStaffOrder(room, c, order, now, oldWords) {
  * A HELLO'S FREEZE (index.js, past the ban's): the token's own (`fz`, off the token `_named` verified), or the hub's book
  * where its order is the newer word - set on `who.fz` for the attachment (0 for none). An old build's frozen hello is
  * refused with the reload words; a frozen one is told so (its screen, after a reload), and one whose token's freeze the
- * book lifted is told that. Answers whether it refused.
+ * book lifted is told that. A frozen hello in a place takes no pose of its own (STAFF-PANEL5-FREEZE-FIX: a frozen client
+ * that said hello again somewhere else was seen standing there): it stands where its account's socket in this room stood
+ * (the one its reconnect replaces), or nowhere - and `frozenFrame` keeps it there. Answers whether it refused.
  * @param {any} room @param {any} ws @param {string} key @param {any} who `_named`'s answer @param {any} m the hello @param {number} now @param {string} oldWords
  */
 export async function frozenHello(room, ws, key, who, m, now, oldWords) {
@@ -148,6 +155,7 @@ export async function frozenHello(room, ws, key, who, m, now, oldWords) {
   const book = key === SOCIAL_ROOM ? await bookOver(room, who.subject, who.gio, nowS) : undefined;   // the hub keeps the book (its law door's)
   who.fz = book ?? own;
   if (who.fz && m.fv !== 1) { room._refuse(ws, oldWords, CLOSE_POLICY, FREEZE_OLD_REASON); return true; }
+  if (who.fz && !isChatRoom(key)) m.pose = posedHere(room, who.subject);
   if (who.fz || (book !== undefined && book !== own)) room._send(ws, JSON.stringify({ t: 'frozen', until: who.fz }));   // a reload's screen is told too; a lift the token never heard of, said
   return false;
 }
@@ -164,6 +172,13 @@ export async function busFreeze(room, vws, a, ti, now, oldWords) {
   if (frozenAt(next, nowS) && next.fv !== 1) { vws.att = next; room._refuse(vws, oldWords, CLOSE_POLICY, FREEZE_OLD_REASON); return null; }
   if (book !== undefined && book !== (Number(a.fz) > nowS ? a.fz : 0)) room._send(vws, JSON.stringify({ t: 'frozen', until: book }));
   return next;
+}
+
+/** Where `sub`'s socket in this room stands (a camera's pose, no step), or null. @param {any} room @param {unknown} sub */
+function posedHere(room, sub) {
+  if (typeof sub !== 'string' || !sub) return null;
+  for (const [, b] of room._all()) if (b.sub === sub && b.pose && typeof b.pose === 'object') return { ...b.pose, mv: 0 };
+  return null;
 }
 
 /** THE SEAT MOVES WHEN A FREEZE LANDS OR LIFTS (a lease, an order): in any room with a seat (a channel has none - the
@@ -223,9 +238,10 @@ export function staffLine(room, ws, a, frame, now) {
   nudge(room, a.sub, { t: 'chat', ch: 'staff', th: a.sub, sl, id: a.id, name: a.name, at: now });
 }
 
-/** A nudge to a thread's members online: its player's sockets and every staff socket (`hd` 1). A walk of the hub, at
+/** A nudge to a thread's members online: its player's sockets and every staff socket (`isHidden`: STAFF-PANEL5-FREEZE-FIX,
+ *  three reviews - this asked `hd` 1, which no attachment carries, so staff heard nothing). A walk of the hub, at
  *  STAFF_NUDGE_HZ_MAX at most - shortcut: no index of staff sockets; add one if staff sockets or nudges grow. */
 function nudge(/** @type {any} */ room, /** @type {string} */ sub, /** @type {object} */ frame) {
   const out = JSON.stringify(frame);
-  for (const [other, b] of [...room._all()]) if (b.id && (b.sub === sub || b.hd === 1)) room._send(other, out);
+  for (const [other, b] of [...room._all()]) if (b.id && (b.sub === sub || isHidden(b))) room._send(other, out);
 }

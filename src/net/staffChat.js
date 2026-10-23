@@ -62,6 +62,8 @@ export function createStaffChat({ log, read, send, nudge, onFrozen, me = () => '
   let last = 0, open = false, readAt = -Infinity;
   /** @type {Promise<void>|null} */
   let reading = null, again = false;
+  /** The relay's `frozen` words heard: a read begun before the latest is older than it (STAFF-PANEL5-FREEZE-FIX). */
+  let heard = 0;
   const frozen = () => until > now() / 1000;
   const paint = () => onFrozen({ until: frozen() ? until : 0, reason, invite });
   const shown = () => log.setShown(STAFF_TAB, frozen() || open);
@@ -70,13 +72,20 @@ export function createStaffChat({ log, read, send, nudge, onFrozen, me = () => '
   const refresh = () => {
     if (reading) { again = true; return reading; }
     readAt = now();
+    const word = heard;
     reading = (async () => {
       try {
         const r = await read(last);
         if (!r?.ok || !r.data) return;
         const d = r.data;
         open = d.open === true;
-        if (d.frozen && Number.isSafeInteger(d.frozen.until)) { reason = typeof d.frozen.reason === 'string' ? d.frozen.reason : null; if (d.frozen.until > until) until = d.frozen.until; }
+        // THE SERVICE'S ANSWER BOTH WAYS (STAFF-PANEL5-FREEZE-FIX, a review: a lift the relay never said - its link down
+        // then - held the motor until the old end), unless the relay spoke while it was read: its word is the newer
+        if (word === heard) {
+          const f = d.frozen && Number.isSafeInteger(d.frozen.until) ? d.frozen : null;
+          reason = f && typeof f.reason === 'string' ? f.reason : null;
+          until = f ? f.until : 0;
+        }
         const url = inviteOf(d.invite);
         if (url && url !== invite) { invite = url; system(staffInviteText(url), { copy: url }); }
         for (const l of Array.isArray(d.lines) ? d.lines : []) {
@@ -100,6 +109,7 @@ export function createStaffChat({ log, read, send, nudge, onFrozen, me = () => '
     /** The relay's word: frozen until then (epoch seconds), or 0 lifted. @param {number} u */
     heardFrozen(u) {
       if (!Number.isSafeInteger(u) || u < 0) return;
+      heard++;
       const was = frozen();
       until = u;
       if (!frozen()) reason = null;

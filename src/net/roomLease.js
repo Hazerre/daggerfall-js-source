@@ -32,7 +32,7 @@
 // the key that signs a receipt. A relay without the secret hands out none, and binds nobody.
 
 import { _b64url, ID_RE } from './identityToken.js';
-import { isChatRoom, isSocialRoom, streamsFoes, LEASE_WIRE_MAX } from './wire.js';
+import { isSocialRoom, LEASE_WIRE_MAX } from './wire.js';
 
 /** How often a game asks its hub for a lease. */
 export const LEASE_MS = 30_000;
@@ -57,9 +57,12 @@ export const LEASE_OLD_REASON = 'old lease';
 export const LEASE_RELAY_MIN = 242;
 /** Does the relay at version `v` know the lease frame? An older one closes a socket on a frame type it does not know. */
 export const relaySupportsLease = (v) => Number(/^world(\d+)$/.exec(String(v ?? ''))?.[1]) >= LEASE_RELAY_MIN;
-/** A room a lease binds: a channel that is not the hub's (Trade, LFG, a language's, a region's and its shards), and a
- *  cell or world room (where a frozen player stands). The hub hands leases out; every other room is outside them. */
-export const leaseRoom = (key) => !isSocialRoom(key) && (isChatRoom(key) || streamsFoes(key));
+/** A room a lease binds: EVERY ROOM BUT THE HUB'S (and its shards), which hands leases out - a channel (Trade, LFG, a
+ *  language's, a region's and its shards), a cell or world room, and every place a player acts in besides: a home, a
+ *  caravan, a boat, a siege or a Royal Tourney, an arena's hall and floors, a gate's court, an Elite Breach, a Super
+ *  dungeon's realm (STAFF-PANEL5-FREEZE-FIX, mob: "freeze they can only talk to staff while frozen" - a review found a
+ *  frozen player free in each of these, which no lease reached). A room's kind added later is bound from its first day. */
+export const leaseRoom = (key) => typeof key === 'string' && !isSocialRoom(key);
 
 const enc = new TextEncoder();
 const dec = new TextDecoder();

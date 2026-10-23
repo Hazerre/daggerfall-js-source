@@ -13,7 +13,9 @@
 // A FAILED PUSH IS SAID, AND TRIED AGAIN (Weak spots: "A failed push leaves a freeze or unfreeze unapplied"): each act
 // counts a revision (`freeze_rev`) and is `freeze_live` 0 until the relay's door took its order - the panel shows "saved,
 // not live yet" - and the minute's clock (cron.js freeze-push) pushes a FRESH order for each act still waiting, as does the
-// panel's own button (/v1/staff/freeze-push). A push marks only its own revision live, never a newer act's.
+// panel's own button (/v1/staff/freeze-push). A push marks only its own revision live, never a newer act's - and one that
+// finds its revision moved on while its order went pushes the row as it stands after it (STAFF-PANEL5-FREEZE-FIX, a review:
+// a retry read before a newer act landed after that act's order, and the hub held the stale word while the panel said live).
 //
 // ONE FREEZE GATE beside the ban gate (index.js; Weak spots: "Freeze blocks only some routes, and checkpoints still save"):
 // a frozen account is answered `frozen` on every door behind a session but a short list - signing out, its own account,
@@ -114,15 +116,25 @@ export function discordInvite(env) {
 /**
  * A FREEZE ACT'S ORDER, PUSHED: a fresh `freeze` order for the row as it stands (its end, or 0 lifted) to the relay's law
  * door, and the act marked live when the door took it - its own revision alone. Answers whether it went.
- * @param {{ db: any, nowS: number, subtle: SubtleCrypto }} ctx @param {any} env @param {{ id: string, frozen_until: any, freeze_rev: any }} row
+ * STAFF-PANEL5-FREEZE-FIX (a review): the hub keeps the newest order by its time, and a tie by the later arrival. So the
+ * order's time is its mint's (the request's second, or the clock firing's, can be older than another act committed
+ * before this mint), and a push whose revision moved on while it went - a newer act committed, whose own order may have
+ * landed first - reads the row again and pushes it as it stands, after its own (`tries` such pushes at most; one that
+ * fails leaves that act waiting for the minute's clock).
+ * @param {{ db: any, nowS: number, subtle: SubtleCrypto }} ctx @param {any} env @param {{ id: string, frozen_until: any, freeze_rev: any }} row @param {number} [tries]
  */
-export async function pushFreeze({ db, nowS, subtle }, env, row) {
+export async function pushFreeze({ db, nowS, subtle }, env, row, tries = 3) {
   const key = await signingKey(env, subtle);
   if (!key) return false;
-  const fz = frozenUntil(row) > nowS ? frozenUntil(row) : 0;
-  const order = await mintFreezeOrder({ s: row.id, fz }, key, { subtle, nowS });
+  const at = Math.max(nowS, Math.floor(Date.now() / 1000));
+  const fz = frozenUntil(row) > at ? frozenUntil(row) : 0;
+  const order = await mintFreezeOrder({ s: row.id, fz }, key, { subtle, nowS: at });
   if (!(await pushLaw(env, (u, i) => globalThis.fetch(u, i), order))) return false;
-  await db.prepare('UPDATE players SET freeze_live = 1 WHERE id = ?1 AND freeze_rev = ?2 AND freeze_live = 0').bind(row.id, Number(row.freeze_rev)).run();
+  const set = await db.prepare('UPDATE players SET freeze_live = 1 WHERE id = ?1 AND freeze_rev = ?2 AND freeze_live = 0').bind(row.id, Number(row.freeze_rev)).run();
+  if (set.meta.changes || tries < 1) return true;
+  const cur = await db.prepare('SELECT id, frozen_until, freeze_rev FROM players WHERE id = ?1').bind(row.id).first();
+  if (!cur || Number(cur.freeze_rev) === Number(row.freeze_rev)) return true;   // live already, by another push of this revision
+  if (!(await pushFreeze({ db, nowS: at, subtle }, env, cur, tries - 1))) await db.prepare('UPDATE players SET freeze_live = 0 WHERE id = ?1 AND freeze_rev = ?2').bind(cur.id, Number(cur.freeze_rev)).run();
   return true;
 }
 
@@ -338,7 +350,10 @@ export async function retryFreezePushes({ db, nowS }, env) {
   const rows = (await db.prepare('SELECT id, frozen_until, freeze_rev FROM players WHERE freeze_live = 0 AND frozen_at <= ?1 ORDER BY frozen_at LIMIT ?2')
     .bind(nowS - PUSH_RETRY_AFTER_S, PUSH_RETRY_MAX).all())?.results ?? [];
   let n = 0;
-  for (const r of rows) if (await pushFreeze({ db, nowS, subtle: crypto.subtle }, env, r)) n++;
+  for (const { id } of rows) {
+    const r = await db.prepare('SELECT id, frozen_until, freeze_rev FROM players WHERE id = ?1 AND freeze_live = 0').bind(id).first();   // STAFF-PANEL5-FREEZE-FIX: the row as it stands at its own push, never as the firing's read found it
+    if (r && await pushFreeze({ db, nowS, subtle: crypto.subtle }, env, r)) n++;
+  }
   return n;
 }
 

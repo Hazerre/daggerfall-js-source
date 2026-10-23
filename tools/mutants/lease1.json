@@ -43,12 +43,13 @@
   {
     "name": "LEASE1-minted-in-any-room",
     "file": "server/src/index.js",
-    "old": "if (!isSocialRoom(room)) return;\n      const l = await mintLease",
-    "new": "const l = await mintLease",
+    "old": "if (!isSocialRoom(room)) return;\n      if (a.vid && isChannelShard(room))",
+    "new": "if (a.vid && isChannelShard(room))",
     "why": "a channel mints leases",
     "tests": [
       "test/net/lease1.test.js"
-    ]
+    ],
+    "note": "STAFF-PANEL5-FREEZE-FIX (re-aimed by content): a hub shard's ask goes to its bus now, the line after the room's check."
   },
   {
     "name": "LEASE1-read-in-any-room",
@@ -508,10 +509,11 @@
     "file": "server/src/index.js",
     "old": ": !a.id || !leaseRoom(a.key ?? this._busKey)) return a;",
     "new": ": !a.id || isSocialRoom(a.key ?? this._busKey)) return a;",
-    "why": "a room no lease binds turns an old build away at its frame",
+    "why": "a room no lease binds turns an old build away at its frame - STAFF-PANEL5-FREEZE-FIX: EQUIVALENT now. Every room but the hub's is a lease room (net/roomLease.js leaseRoom), so `!leaseRoom(k)` is `isSocialRoom(k)` for every key a socket carries, and a town is bound on purpose (lease1.test.js: 'a town is a lease room: turned away'). The hub's own frame unbound stays pinned by LEASE1-a-hubs-frame-bound.",
     "tests": [
       "test/net/lease1.test.js"
-    ]
+    ],
+    "equivalent": true
   },
   {
     "name": "LEASE1-a-hubs-frame-bound",
@@ -526,12 +528,13 @@
   {
     "name": "LEASE1-a-hub-bound",
     "file": "src/net/roomLease.js",
-    "old": "export const leaseRoom = (key) => !isSocialRoom(key) && (isChatRoom(key) || streamsFoes(key));",
-    "new": "export const leaseRoom = (key) => isChatRoom(key) || streamsFoes(key);",
+    "old": "export const leaseRoom = (key) => typeof key === 'string' && !isSocialRoom(key);",
+    "new": "export const leaseRoom = (key) => typeof key === 'string';",
     "why": "the hub binds its own sockets",
     "tests": [
       "test/net/lease1.test.js"
-    ]
+    ],
+    "note": "STAFF-PANEL5-FREEZE-FIX (re-aimed by content): every room but the hub's is a lease room now."
   },
   {
     "name": "LEASE1-the-mute-unsaid",
