@@ -464,7 +464,9 @@ test('STAFF-PANEL4-CENSUS: a character holding CONTESTED_HIGH unchecked pieces i
     assert.match(list.body.pieces[0].why.join(' · '), new RegExp(`${CONTESTED_HIGH} contested pieces on this character`));
     const home = await HOME_WATCH.top({ db: s.env.DB, nowS: s.now() }, s.env, null, 3);
     assert.deepEqual([home.high, home.total, home.items.length], [CONTESTED_HIGH, CONTESTED_HIGH + 1, 3]);
-    // kept a few minutes: a trail check is in Home's counts once the answer is kept no longer, never by reading it again
+    // kept a few minutes (design doc, Server load: "cache them for 5-10 minutes"): a trail check is in Home's counts once
+    // the answer is kept no longer, never by reading it again
+    assert.ok(CONTESTED_HOME_KEEP_S >= 5 * 60 && CONTESTED_HOME_KEEP_S <= 10 * 60, 'kept 5 to 10 minutes');
     await s.staff('/v1/staff/contested/trail', { uid: 'a000000000000001', char: one, found: 'innocent', note: 'traded' }, s.mob.session);
     s.wait(CONTESTED_HOME_KEEP_S - 1);
     assert.deepEqual(await HOME_WATCH.top({ db: s.env.DB, nowS: s.now() }, s.env, null, 3), home, 'kept');
@@ -610,7 +612,8 @@ test('STAFF-PANEL4-CENSUS: THE BACKFILL RETRIES A RECORD R2 FAILED TO READ - the
     assert.deepEqual(place(), { after: ids[0], done: false }, 'its place just before the one that failed');
     assert.deepEqual(gets, [objOf(ids[0]), objOf(failing)], 'and the firing stopped there');
     down = false;
-    assert.equal(await censusBackfill({ db: s.env.DB, nowS: quiet + 3600 }, env), 2, 'the next firing reads it, and goes on');
+    const again = await runCron(env, { cron: CRON_HOUR, nowS: quiet + 3600, jobs: HOUR_JOBS.filter(([name]) => name === 'census-backfill') });
+    assert.deepEqual(again.map((r) => [r.ok, r.changed]), [[true, 2]], 'the next firing reads it, and goes on');
     assert.equal(s.census(failing).tally, '{"g":100,"t71":2}');
     assert.equal(s.census(ids[2]).tally, '{"g":100,"t71":2}');
     assert.equal(s.census(absent), null, 'no record: nothing to tally');
