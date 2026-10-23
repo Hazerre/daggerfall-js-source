@@ -1,0 +1,146 @@
+[
+  {
+    "name": "GUILD-WINDOW-the-mode-unwritten",
+    "file": "src/ui/socialPanel.js",
+    "old": "      root.dataset.mode = mode;\n",
+    "new": "",
+    "tests": [
+      "test/net/guild/guildwindow.test.js"
+    ]
+  },
+  {
+    "name": "GUILD-WINDOW-the-name-unmoved",
+    "file": "src/ui/socialPanel.js",
+    "old": "titleEl.textContent = mode === 'guild' ? t('social.guild.title', 'Guild') : 'Social';",
+    "new": "titleEl.textContent = 'Social';",
+    "tests": [
+      "test/net/guild/guildwindow.test.js"
+    ]
+  },
+  {
+    "name": "GUILD-WINDOW-the-way-back-to-friends-always",
+    "file": "src/ui/socialPanel.js",
+    "old": "tab = socialTab; confirm = null; ui++;",
+    "new": "tab = 'friends'; confirm = null; ui++;",
+    "tests": [
+      "test/net/guild/guildwindow.test.js"
+    ]
+  },
+  {
+    "name": "GUILD-WINDOW-a-count-lost",
+    "file": "src/ui/socialPanel.js",
+    "old": ", vault: `${v.vault?.used ?? 0}/${v.vault?.max ?? GUILD_VAULT_SLOTS}` };",
+    "new": " };",
+    "tests": [
+      "test/net/guild/guildwindow.test.js"
+    ]
+  },
+  {
+    "name": "GUILD-WINDOW-the-words-unread",
+    "file": "src/ui/socialPanel.js",
+    "old": "el('span', 'dfguild-navsub', words[id] ?? '')",
+    "new": "el('span', 'dfguild-navsub', '')",
+    "tests": [
+      "test/net/guild/guildwindow.test.js"
+    ]
+  },
+  {
+    "name": "GUILD-WINDOW-the-walk-one-way",
+    "file": "src/ui/socialPanel.js",
+    "old": "e.code === 'ArrowUp' || e.code === 'ArrowLeft' ? -1 : 0",
+    "new": "e.code === 'ArrowUp' || e.code === 'ArrowLeft' ? 1 : 0",
+    "tests": [
+      "test/net/guild/guildwindow.test.js"
+    ]
+  },
+  {
+    "name": "GUILD-WINDOW-a-key-not-ours-stopped",
+    "file": "src/ui/socialPanel.js",
+    "old": "        if (!step) return;\n",
+    "new": "",
+    "tests": [
+      "test/net/guild/guildwindow.test.js"
+    ]
+  },
+  {
+    "name": "GUILD-WINDOW-the-cards-unmade",
+    "file": "src/ui/socialPanel.js",
+    "old": "main.append(...guildCards(out));",
+    "new": "main.append(...out);",
+    "tests": [
+      "test/net/guild/guildwindow.test.js"
+    ]
+  },
+  {
+    "name": "GUILD-WINDOW-the-heading-not-opening-one",
+    "file": "src/ui/socialPanel.js",
+    "old": "if (!card || cls.includes('dfsocial-sec'))",
+    "new": "if (!card)",
+    "tests": [
+      "test/net/guild/guildwindow.test.js"
+    ]
+  },
+  {
+    "name": "GUILD-WINDOW-the-words-carded",
+    "file": "src/ui/socialPanel.js",
+    "old": "if (cls.includes('dfguild-said')) { out.push(n); continue; }",
+    "new": "",
+    "tests": [
+      "test/net/guild/guildwindow.test.js"
+    ]
+  },
+  {
+    "name": "GUILD-WINDOW-the-place-lost",
+    "file": "src/ui/socialPanel.js",
+    "old": "if (now && now.dataset?.page === kept[0]) now.scrollTop = kept[1];",
+    "new": "",
+    "tests": [
+      "test/net/guild/guildwindow.test.js"
+    ]
+  },
+  {
+    "name": "GUILD-WINDOW-the-place-carried-to-another-page",
+    "file": "src/ui/socialPanel.js",
+    "old": "now.dataset?.page === kept[0]",
+    "new": "true",
+    "tests": [
+      "test/net/guild/guildwindow.test.js"
+    ]
+  },
+  {
+    "name": "GUILD-WINDOW-the-unstamped-counted",
+    "file": "src/ui/socialPanel.js",
+    "old": "filter((m) => guildMemberOnline(m, now) === true)",
+    "new": "filter((m) => guildMemberOnline(m, now) !== false)",
+    "tests": [
+      "test/net/guild/guildwindow.test.js"
+    ]
+  },
+  {
+    "name": "GUILD-WINDOW-a-rule-lost",
+    "file": "src/ui/socialPanel.js",
+    "old": ".dfsocial[data-mode=\"guild\"] .dfsocial-tabs { display: none; }",
+    "new": "",
+    "tests": [
+      "test/net/guild/guildwindow.test.js"
+    ]
+  },
+  {
+    "name": "GUILD-WINDOW-the-silver-tile-always",
+    "file": "src/ui/socialPanel.js",
+    "old": "if (g.marks?.state?.open === true) stat(t('social.guild.stat.silver', 'Silver')",
+    "new": "stat(t('social.guild.stat.silver', 'Silver')",
+    "tests": [
+      "test/net/guild/guild2_client.test.js"
+    ]
+  },
+  {
+    "name": "GUILD-WINDOW-the-tiles-unnamed",
+    "file": "src/ui/socialPanel.js",
+    "old": "s.append(el('div', 'dfguild-statlabel', label), el('div', 'dfguild-statvalue', value));",
+    "new": "s.append(el('div', 'dfguild-statvalue', value));",
+    "tests": [
+      "test/net/guild/guild2_client.test.js"
+    ]
+  }
+]

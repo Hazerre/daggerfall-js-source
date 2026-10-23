@@ -166,6 +166,22 @@ export const GUILD_PRIMER_LINES = Object.freeze([   // AUDIT GUILD3 W10: one rea
 ]);
 /** GUILD3c: where the rest of a guild is run - said on the Overview, so a member is never left to find the boards. */
 export const GUILD_ELSEWHERE_TEXT = 'Seats and sieges are run from the Seat tab of a seat town\'s Notice Board, where you can also read its Chronicle. Guild writs and contracts are posted from the Work tab of any Notice Board.';   // AUDIT GUILD3 W9: a Chronicle is read, never run
+/** GUILD-WINDOW (Guild-Overhaul.md GUILD-WINDOW): what each page holds, said under its name in the window's column of
+ *  pages - one line each, the page's sections in the order it shows them; read at each call, in the player's language. */
+export const guildPageWords = () => ({
+  overview: t('social.guild.page.overview', 'The arms, the hall, and where the rest is run'),
+  members: t('social.guild.page.members', 'The roster, its ranks, and invitations'),
+  treasury: t('social.guild.page.treasury', 'Gold and silver, and their ledgers'),
+  vault: t('social.guild.page.vault', 'The pieces the guild keeps'),
+  stores: t('social.guild.page.stores', 'Materials, and the writ budget'),
+  arms: t('social.guild.page.arms', 'The banner, the shield and the tag'),
+  settings: t('social.guild.page.settings', 'A new name, the rank names, and leaving'),
+});
+/** GUILD-WINDOW: how many of a guild's members are online now, as the header's Members tile says it beneath its count -
+ *  each member by guildBook.js's own reading (`guildMemberOnline`, the roster rows' dot), so the two never disagree. */
+export const guildOnlineText = (members, now) => t('social.guild.online', '{n, number} online', { n: (members ?? []).filter((m) => guildMemberOnline(m, now) === true).length });
+/** The panel's name in its social mode - and again when the Guild window gives it back (GUILD-WINDOW). */
+const SOCIAL_LABEL = 'Friends and party';
 /** GUILD3c: the Settings page's list of what still holds a guild that would go - its heading. */
 export const GUILD_KEEPS_HEAD = 'Before the guild can be disbanded';   // AUDIT GUILD3 W13: the act the page names
 /** GUILD3c: the codes the service's view reads of what holds a guild (server-account/src/guilds.js guildHolds) - where
@@ -441,6 +457,99 @@ textarea.dfsocial-field { resize: vertical; min-height: 120px; line-height: 1.4;
 .dfsocial.touch .dfsocial-swatch { width: 44px; height: 44px; }
 .dfsocial.touch .dfsocial-tile { padding: 8px; }
 
+/* GUILD-WINDOW (2026-10-23, the owner: "overhaul the guild tab to be more of a full fledged detailed window with easy
+   navigation and readabity instead of being stuffed as a small window in the social tab" - Guild-Overhaul.md
+   GUILD-WINDOW): THE GUILD TAB IS A WINDOW OF ITS OWN. While it is up the panel is the Guild window (data-mode
+   "guild"): centred and large, the social tabs put away behind its Social button, the guild's header and tiles over a
+   column of its pages, and the page up in cards in a column of its own that scrolls under them, at a reading size.
+   The panel's places beside and below the chat are its social mode's alone - the open mark and :root put these rules
+   past every one of them (the chat's fit included, whatever size it is dragged to) - and nothing of the social mode's
+   moves. Under 760px wide or 520px high it takes the screen, its pages a row that scrolls across. */
+:root .dfsocial[data-mode="guild"][data-open], :root .dfsocial.touch[data-mode="guild"][data-open] {
+  --dfguild-w: min(1060px, calc(100vw - 28px)); --dfguild-h: min(740px, calc(100vh - 56px));
+  left: calc((100vw - var(--dfguild-w)) / 2); top: calc((100vh - var(--dfguild-h)) / 2);
+  width: var(--dfguild-w); height: var(--dfguild-h); max-height: none;
+  background: rgba(14, 16, 19, .97); border-color: #4a3b26; box-shadow: 0 12px 48px rgba(0, 0, 0, .6); }
+.dfsocial[data-mode="guild"] .dfsocial-tabs { display: none; }
+.dfsocial-back { display: none; flex: none; background: none; color: var(--dim, #9a9486); border: 1px solid var(--iron, #2b323b); border-radius: 3px;
+  font: inherit; font-size: 12px; padding: 3px 10px; cursor: pointer; }
+.dfsocial-back:hover, .dfsocial-back:focus-visible { color: var(--bone, #e9e4d9); border-color: var(--brass, #c08a3e); outline: none; }
+.dfsocial[data-mode="guild"] .dfsocial-back { display: block; }
+.dfsocial.touch .dfsocial-back { min-height: 44px; padding: 4px 12px; }   /* AUDIT SOC C8's finger, as Close has it */
+.dfsocial[data-mode="guild"] .dfsocial-head { padding: 8px 12px; }
+.dfsocial[data-mode="guild"] .dfsocial-title { font-size: 15px; color: var(--brass, #c08a3e); }
+.dfsocial[data-mode="guild"] .dfsocial-body { overflow: hidden; padding: 0; }
+/* the header: the banner beside the name, and the tiles */
+.dfsocial[data-mode="guild"] .dfsocial-guildhead { gap: 16px; padding: 12px 18px; background: linear-gradient(rgba(192, 138, 62, .08), rgba(192, 138, 62, 0)); }
+.dfsocial[data-mode="guild"] .dfsocial-guildhead .dfsocial-subject { font-size: 22px; letter-spacing: .03em; }
+.dfguild-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.dfguild-stat { flex: none; min-width: 84px; padding: 5px 10px; background: rgba(0, 0, 0, .3); border: 1px solid var(--iron, #2b323b); border-radius: 4px; }
+.dfguild-statlabel { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim, #9a9486); }
+.dfguild-statvalue { font-size: 15px; color: var(--bone, #e9e4d9); overflow-wrap: anywhere; }
+.dfguild-statsub { font-size: 11px; color: ${PARTY_GREEN_CSS}; }
+/* the pages beside the page */
+.dfguild-layout { flex: 1; min-height: 0; display: flex; }
+.dfsocial[data-mode="guild"] .dfguild-nav { width: 232px; flex-direction: column; flex-wrap: nowrap; gap: 2px; padding: 10px 8px; overflow-y: auto;
+  border-bottom: 0; border-right: 1px solid var(--iron, #2b323b); }
+.dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab { display: flex; flex-direction: column; align-items: stretch; gap: 2px; text-align: left;
+  border: 0; border-left: 3px solid transparent; border-radius: 0 4px 4px 0; padding: 8px 10px; color: var(--bone, #e9e4d9); text-transform: none; letter-spacing: 0; }
+.dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab:hover, .dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab:focus-visible { background: rgba(125, 116, 96, .16); outline: none; }
+.dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab.active { background: rgba(192, 138, 62, .16); border-left-color: var(--brass, #c08a3e); }
+.dfguild-navtop { display: flex; align-items: baseline; gap: 8px; }
+.dfguild-navlabel { flex: 1; font-size: 14px; letter-spacing: .05em; text-transform: uppercase; }
+.dfguild-navcount { flex: none; font-size: 12px; color: var(--dim, #9a9486); }
+.dfguild-navsub { font-size: 11px; line-height: 1.35; color: var(--dim, #9a9486); }
+/* the page: its column, its cards, and a reading size for everything in them */
+.dfguild-main { flex: 1; min-width: 0; overflow-y: auto; padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+.dfguild-card { flex: none; display: flex; flex-direction: column; padding: 6px 14px 12px; background: rgba(255, 255, 255, .025);
+  border: 1px solid var(--iron, #2b323b); border-radius: 6px; }
+.dfguild-said { flex: none; padding: 8px 12px; border-radius: 4px; background: rgba(0, 0, 0, .3); border-left: 3px solid var(--dim, #9a9486); }
+.dfguild-said.dfsocial-err { border-left-color: #e0704a; }
+.dfguild-alone { align-items: center; }
+.dfguild-alone > * { box-sizing: border-box; width: 100%; max-width: 640px; }
+.dfsocial[data-mode="guild"] .dfguild-card > .dfsocial-sec { font-size: 12px; color: var(--brass, #c08a3e); padding: 6px 0; margin-bottom: 4px; border-bottom: 1px solid var(--iron, #2b323b); }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-note { font-size: 13px; line-height: 1.5; color: #e6d3ad; padding: 3px 0; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-empty { font-size: 13px; line-height: 1.5; padding: 4px 0; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-err { font-size: 13px; padding: 4px 0; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfguild-said { padding: 8px 12px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-row { padding: 6px 2px; border-bottom: 1px solid rgba(255, 255, 255, .05); }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-row:last-child { border-bottom: 0; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-name { font-size: 15px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-sub { font-size: 12px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-btn { font-size: 13px; padding: 5px 12px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-why { font-size: 12px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-form { max-width: 460px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-label { font-size: 11px; margin-top: 6px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-field { font-size: 14px; padding: 6px 8px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-ranks { font-size: 13px; line-height: 1.5; padding: 6px 0; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-ranks > summary { font-size: 12px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-keeps { font-size: 13px; line-height: 1.5; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-grant { padding: 0 0 8px 18px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-grant .dfsocial-field { flex: 0 1 300px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-filter { max-width: none; flex-direction: row; flex-wrap: wrap; gap: 6px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-filter .dfsocial-field { width: auto; flex: 0 1 200px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-filter .dfsocial-field[type="search"] { flex: 1 1 240px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-swatch { width: 24px; height: 24px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-armspics { gap: 18px; padding: 8px 0; }
+@media (max-width: 760px), (max-height: 520px) {
+  :root .dfsocial[data-mode="guild"][data-open], :root .dfsocial.touch[data-mode="guild"][data-open] {
+    left: calc(6px + env(safe-area-inset-left, 0px)); top: calc(6px + env(safe-area-inset-top, 0px));
+    width: calc(100vw - 12px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+    height: calc(100vh - 12px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
+  .dfsocial[data-mode="guild"] .dfsocial-guildhead { padding: 8px 12px; gap: 10px; }
+  .dfsocial[data-mode="guild"] .dfsocial-guildhead img { width: 20px; height: 60px; }
+  .dfsocial[data-mode="guild"] .dfsocial-guildhead .dfsocial-subject { font-size: 17px; }
+  .dfguild-stat { min-width: 0; padding: 3px 8px; }
+  .dfguild-statvalue { font-size: 13px; }
+  .dfguild-layout { flex-direction: column; }
+  .dfsocial[data-mode="guild"] .dfguild-nav { width: auto; flex: none; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 4px 6px;
+    border-right: 0; border-bottom: 1px solid var(--iron, #2b323b); }
+  .dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab { flex: none; border-left: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 6px 10px; }
+  .dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab.active { border-bottom-color: var(--brass, #c08a3e); }
+  .dfguild-navsub { display: none; }
+  .dfguild-main { padding: 10px 10px 14px; }
+}
+
 /* AUDIT SOC C8: THE FINGER'S OWN SIZES. Every control this panel draws was built at the mouse's scale - the tabs 29
    tall, Close 27x19, Invite and Remove 22 - and online forces the enhanced lane on a phone as readily as on a
    desktop. Under the touch skin each one is at least the 44px the platforms ask for (ui/touch/touch.js draws its own
@@ -542,11 +651,16 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
   // AUDIT SOC C21: a labelled DIALOG, not an unnamed div with a stray aria-label - this panel takes the pointer and
   // the keyboard off the world while it stands, which is the one thing `role="dialog"` says.
   root.setAttribute('role', 'dialog');
-  root.setAttribute('aria-label', 'Friends and party');
+  root.setAttribute('aria-label', SOCIAL_LABEL);
+  root.dataset.mode = 'social';   // GUILD-WINDOW: 'guild' while the Guild tab is up - the panel is the Guild window then
   const head = el('div', 'dfsocial-head');
   const closeBtn = el('button', 'dfsocial-close', '✕');
   closeBtn.type = 'button'; closeBtn.setAttribute('aria-label', 'Close social');
-  head.append(el('div', 'dfsocial-title', 'Social'), closeBtn);
+  const titleEl = el('div', 'dfsocial-title', 'Social');
+  // GUILD-WINDOW: the Guild window's way back to the social tabs it put away - drawn in the window alone (its sheet)
+  const backBtn = guild ? el('button', 'dfsocial-back', t('social.guild.back', '← Social')) : null;
+  if (backBtn) { backBtn.type = 'button'; backBtn.setAttribute('aria-label', t('social.guild.backLabel', 'Back to friends, party and letters')); }
+  head.append(...(backBtn ? [backBtn] : []), titleEl, closeBtn);
   // the hub's last refusal, in the hub's own words - the world tab gets it as a system line too (world.js
   // socialStart), and a player reading the panel should not have to look away from it to find out why nothing moved
   const err = el('div', 'dfsocial-err');
@@ -585,6 +699,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
   let alive = true;
   let open = false;
   let tab = 'friends';
+  let socialTab = 'friends';   // GUILD-WINDOW: the social tab last up, where the window's Social button goes back to
   /** PARTY-READY (2026-10-01, Mac: "when party readying up, the ui element is hidden"): the Party tab a covering window
    *  took down mid-journey - the travel map its own Travel map opened, or any window over an open round - put back when
    *  the cover lifts. A cover still closes the panel (SOC3); the journey's controls no longer stay gone with it. */
@@ -1287,30 +1402,58 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     return s;
   };
 
-  /** THE HEADER over every page: the banner, the name and tag, the reader's rank and the treasury (GUILD1b's line). */
-  const guildHead = (v, me) => {
+  /** THE HEADER over every page: the banner, the name and tag, the reader's rank and the treasury (GUILD1b's line).
+   *  GUILD-WINDOW: its numbers as the window's tiles, each under its own name - the reader's rank, the gold, the silver
+   *  where it is this account's (the Treasury page's own switch), the members and how many of them are online (read
+   *  again on the live pass, as each row's dot is), the vault, and the hall. */
+  const guildHead = (g, v, me) => {
     const head = el('div', 'dfsocial-letterhead dfsocial-guildhead');
-    head.append(svgPicture(bannerSvg(v.heraldry, { width: 24 }), 24, 72, v.heraldry ? heraldryText(v.heraldry) : 'An undrawn banner'));
+    head.append(svgPicture(bannerSvg(v.heraldry, { width: 32 }), 32, 96, v.heraldry ? heraldryText(v.heraldry) : 'An undrawn banner'));
     const who = el('div', 'dfsocial-who');
-    who.append(el('div', 'dfsocial-subject', `${v.name} [${v.tag}]`),
-      el('div', 'dfsocial-sub', `You are ${rankName(v, me)} - the treasury holds ${Number(v.treasury).toLocaleString('en-US')} gold`),
-      el('div', 'dfsocial-sub', `${v.members.length}/${GUILD_MEMBERS_MAX} members - the vault ${v.vault?.used ?? 0}/${v.vault?.max ?? GUILD_VAULT_SLOTS}`));
+    const stats = el('div', 'dfguild-stats');
+    const stat = (label, value, sub = null) => {
+      const s = el('div', 'dfguild-stat');
+      s.append(el('div', 'dfguild-statlabel', label), el('div', 'dfguild-statvalue', value));
+      if (sub) { const n = el('div', 'dfguild-statsub', sub()); s.append(n); liveSubs.push({ el: n, of: sub }); }
+      stats.append(s);
+    };
+    stat(t('social.guild.stat.rank', 'Rank'), rankName(v, me));
+    stat(t('social.guild.stat.gold', 'Gold'), Number(v.treasury).toLocaleString('en-US'));
+    if (g.marks?.state?.open === true) stat(t('social.guild.stat.silver', 'Silver'), Number(v.marks ?? 0).toLocaleString('en-US'));
+    stat(t('social.guild.stat.members', 'Members'), `${v.members.length}/${GUILD_MEMBERS_MAX}`, () => guildOnlineText(g.guild?.members ?? v.members, g.now()));
+    stat(t('social.guild.stat.vault', 'Vault'), `${v.vault?.used ?? 0}/${v.vault?.max ?? GUILD_VAULT_SLOTS}`);
+    stat(t('social.guild.stat.hall', 'Hall'), v.hall ? REGION_NAMES[v.hall.region] ?? t('social.guild.stat.bay', 'Iliac Bay') : t('social.guild.stat.noHall', 'None'));
+    who.append(el('div', 'dfsocial-subject', `${v.name} [${v.tag}]`), stats);
     head.append(who);
     return head;
   };
   /** AUDIT2 GUILD2 U9: the strip's buttons as last drawn, by page - the focus put back on the page turned to. */
   let stripBtns = new Map();
-  /** THE PAGE STRIP: a tab for each page, the one up marked. */
-  const guildStrip = (g, page) => {
-    const strip = el('div', 'dfsocial-subtabs');
+  /** THE PAGE STRIP: a tab for each page, the one up marked. GUILD-WINDOW: the window's column of pages - each its
+   *  name, its count where it has one (the members, the vault) and what it holds; the arrow keys walk it. */
+  const guildStrip = (g, page, v) => {
+    const strip = el('div', 'dfsocial-subtabs dfguild-nav');
     strip.setAttribute('role', 'tablist');
+    strip.setAttribute('aria-orientation', 'vertical');
     stripBtns = new Map();
+    const counts = { members: `${v.members.length}/${GUILD_MEMBERS_MAX}`, vault: `${v.vault?.used ?? 0}/${v.vault?.max ?? GUILD_VAULT_SLOTS}` };
+    const ids = guildPagesOf(g).map(([id]) => id);
+    const words = guildPageWords();
     for (const [id, label] of guildPagesOf(g)) {
-      const b = el('button', `dfsocial-subtab${id === page ? ' active' : ''}`, label);
+      const b = el('button', `dfsocial-subtab${id === page ? ' active' : ''}`);
+      const top = el('span', 'dfguild-navtop');
+      top.append(el('span', 'dfguild-navlabel', label), ...(counts[id] ? [el('span', 'dfguild-navcount', counts[id])] : []));
+      b.append(top, el('span', 'dfguild-navsub', words[id] ?? ''));
       stripBtns.set(id, b);
       b.type = 'button'; b.dataset.page = id;
       b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', id === page ? 'true' : 'false');
-      b.addEventListener('click', () => {
+      b.addEventListener('keydown', (e) => {
+        const step = e.code === 'ArrowDown' || e.code === 'ArrowRight' ? 1 : e.code === 'ArrowUp' || e.code === 'ArrowLeft' ? -1 : 0;
+        if (!step) return;
+        e.preventDefault?.(); e.stopPropagation?.();
+        stripBtns.get(ids[(ids.indexOf(id) + step + ids.length) % ids.length])?.turn?.();
+      });
+      b.addEventListener('click', b.turn = () => {
         if (guildUi.page === id) return;
         guildUi.page = id; guildUi.arm = null;
         if (id === 'vault') guildUi.vaultAsked = false;   // AUDIT GUILD2 M2: the vault read again at each turn to its page
@@ -1501,7 +1644,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
   const vaultFilterBar = (items, shown, none) => {
     const f = vaultFilter();
     const recs = items.map((r) => r.rec ?? {});
-    const bar = el('div', 'dfsocial-form');
+    const bar = el('div', 'dfsocial-form dfsocial-filter');   // GUILD-WINDOW: one row in the window (its sheet)
     const q = doc.createElement('input');
     q.className = 'dfsocial-field'; q.type = 'search'; q.maxLength = 40; q.value = f.query;
     q.placeholder = t('social.vault.find', 'Find a piece'); q.setAttribute('aria-label', q.placeholder);
@@ -1817,12 +1960,30 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     return out;
   };
 
-  /** In a guild: its header, its page strip, and the page up. */
-  const guildMemberBody = (g, v) => {
+  /** GUILD-WINDOW: a page's sections as cards - each heading (`.dfsocial-sec`) opens one, and what stands before the first
+   *  heading is a card of its own; the last act's words (`.dfguild-said`) stand above them all. The nodes are MOVED, never
+   *  rebuilt, so every hold a page kept on its own nodes (the vault's filter over its rows, a grant drawn again in place,
+   *  the arms' box) still holds. */
+  const guildCards = (nodes) => {
+    const out = [];
+    let card = null;
+    for (const n of nodes) {
+      const cls = String(n?.className ?? '').split(/\s+/);
+      if (cls.includes('dfguild-said')) { out.push(n); continue; }
+      if (!card || cls.includes('dfsocial-sec')) { card = el('div', 'dfguild-card'); out.push(card); }
+      card.append(n);
+    }
+    return out;
+  };
+
+  /** In a guild: its header, its page strip, and the page up. GUILD-WINDOW: the strip a column beside the page, and the
+   *  page in cards in a column of its own that scrolls under the header (`said`, the last act's words, at its top -
+   *  where the press was). */
+  const guildMemberBody = (g, v, said = []) => {
     const me = v.rank;
     const pages = guildPagesOf(g).map(([id]) => id);
     const page = pages.includes(guildUi.page) ? guildUi.page : 'overview';
-    const out = [guildHead(v, me), guildStrip(g, page)];
+    const out = [...said];
     if (page === 'members') out.push(...guildMembersNodes(g, v, me));
     else if (page === 'treasury') out.push(...guildTreasuryNodes(g, v, me));
     else if (page === 'vault') out.push(...guildVaultNodes(g, v, me));
@@ -1830,7 +1991,21 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     else if (page === 'arms') out.push(...guildArmsNodes(g, v, me));
     else if (page === 'settings') out.push(...guildSettingsNodes(g, v, me));
     else out.push(...guildOverviewNodes(g, v, me));
-    return out;
+    const main = el('div', 'dfguild-main');
+    main.dataset.page = page;
+    main.append(...guildCards(out));
+    const layout = el('div', 'dfguild-layout');
+    layout.append(guildStrip(g, page, v), main);
+    return [guildHead(g, v, me), layout];
+  };
+  /** GUILD-WINDOW: the window's body - a guild's header and pages as they are; anything else (no guild yet, signed out,
+   *  a read refused) in the one column, in cards. */
+  const guildWindowBody = (nodes) => {
+    if (nodes.some((n) => String(n?.className ?? '').split(/\s+/).includes('dfguild-layout'))) return nodes;
+    const main = el('div', 'dfguild-main dfguild-alone');
+    main.dataset.page = '';
+    main.append(...guildCards(nodes));
+    return [main];
   };
 
   const guildBody = () => {
@@ -1839,7 +2014,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     if (g.state === 'guest') return [el('div', 'dfsocial-empty', accountRefusalText('guilds-need-account'))];
     if (g.state === 'unknown') return [el('div', 'dfsocial-empty', GUILD_LOOKING_TEXT)];
     const out = [];
-    if (guildUi.word) out.push(el('div', guildUi.bad ? 'dfsocial-err' : 'dfsocial-empty', guildUi.word));
+    if (guildUi.word) out.push(el('div', `${guildUi.bad ? 'dfsocial-err' : 'dfsocial-empty'} dfguild-said`, guildUi.word));
     if (g.state === 'error') {
       out.push(el('div', 'dfsocial-err', guildWordText(g.error)));
       const acts = el('div', 'dfsocial-acts');
@@ -1847,7 +2022,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
       out.push(acts);
       return out;
     }
-    return [...out, ...(g.guild ? guildMemberBody(g, g.guild) : guildJoinBody(g))];
+    return g.guild ? guildMemberBody(g, g.guild, out) : [...out, ...guildJoinBody(g)];
   };
 
   /** What a tab's badge should say right now: requests waiting on Friends, invitations standing on Party, letters
@@ -1872,9 +2047,29 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
       t.b.setAttribute('aria-selected', id === tab ? 'true' : 'false');   // C21
       t.badge.textContent = badgeText(id);
     }
-    body.replaceChildren(...(tab === 'party' ? partyBody() : tab === 'letters' ? lettersBody() : tab === 'guild' ? guildBody() : friendsBody()));
+    // GUILD-WINDOW: the Guild tab up is the Guild window - its own name, the social tabs put away (the sheet)
+    const mode = tab === 'guild' ? 'guild' : 'social';
+    if (mode === 'social') socialTab = tab;
+    if (root.dataset.mode !== mode) {
+      root.dataset.mode = mode;
+      titleEl.textContent = mode === 'guild' ? t('social.guild.title', 'Guild') : 'Social';
+      root.setAttribute('aria-label', mode === 'guild' ? t('social.guild.title', 'Guild') : SOCIAL_LABEL);
+    }
+    // GUILD-WINDOW: the page's column is drawn again at every act and every look, so where it was scrolled to is put
+    // back on the same page - a guildmaster promoting the fortieth member is not thrown back to the first
+    const was = childOfClass(body, 'dfguild-main');
+    const kept = was ? [was.dataset?.page, Number(was.scrollTop) || 0] : null;
+    body.replaceChildren(...(tab === 'party' ? partyBody() : tab === 'letters' ? lettersBody() : tab === 'guild' ? guildWindowBody(guildBody()) : friendsBody()));
+    const now = kept?.[1] ? childOfClass(body, 'dfguild-main') : null;
+    if (now && now.dataset?.page === kept[0]) now.scrollTop = kept[1];
     paintLive();
   };
+  backBtn?.addEventListener('click', () => {
+    if (tab !== 'guild') return;
+    tab = socialTab; confirm = null; ui++;
+    if (tab === 'letters') lookAtLetters();
+    if (open) repaint();
+  });
 
   /**
    * The handful of things that move without the picture changing: the countdowns, the hub's last refusal, the note,

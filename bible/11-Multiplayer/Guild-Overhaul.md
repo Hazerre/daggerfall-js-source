@@ -185,6 +185,50 @@ Pins: `test/net/guildseen.test.js` (the service through the real Worker, the law
 | `scenes/exterior.js` | FLAGGED, nothing to wire: the single-location dev host has no online guild |
 | `scenes/dungeonContext.js` | nothing to wire: the Guild tab is world.js's on every face |
 
+## GUILD-WINDOW - the Guild tab a window of its own (2026-10-23)
+
+The owner: "I want to overhaul the guild tab to be more of a full fledged detailed window with easy navigation and
+readabity instead of being stuffed as a small window in the social tab". GUILD2d's seven pages sat in the friends
+panel's 360 by 460 pixels, their strip wrapping over two rows, every line at 11 or 12 pixels and most of them amber.
+
+- **The Guild tab is the window.** While it is up the panel is in its guild mode (`data-mode="guild"` on its root,
+  `ui/socialPanel.js` repaint): named Guild, centred, up to 1,060 by 740 pixels, and the social tabs put away behind
+  a Social button in its head that goes back to the tab last up (Friends, Party or Letters). Every way in opens it as
+  before - the Social panel's Guild tab, and `openGuild(page)` (the hall's chest: the Vault). Escape and the close
+  button close it, as they close the panel. The social mode is untouched: its places beside and below the chat are
+  its own, and the window's rules outweigh them (`:root` and the open mark), so a chat dragged to any size never
+  moves the window. Under 760 pixels wide or 520 high the window takes the screen, its pages a row that scrolls
+  across.
+- **The header is tiles.** The banner (32 by 96 now) beside the name and tag, and under them each number under its
+  own name: Rank, Gold, Silver (where silver is this account's - the Treasury page's own switch), Members (and how
+  many are online, `guildOnlineText`, by the roster rows' own reading, read again on the live pass), Vault and Hall.
+  GUILD1b's two sentences ("You are Guildmaster - the treasury holds 30,000 gold", "1/75 members - the vault 1/50")
+  are those tiles; their pin moved with them (`guild2_client.test.js`, PIN MOVED: GUILD-WINDOW).
+- **The pages are a column.** GUILD2's strip, one page a row: its name, its count where it has one (the members, the
+  vault) and what it holds in words (`guildPageWords`, in the player's language). The arrow keys walk it, both ways round, the focus with
+  them (AUDIT2 GUILD2 U9's law); any other key goes on to the world.
+- **A page is cards.** Each section heading opens a card, and what stands before the first is a card of its own
+  (`guildCards`); the nodes are moved, never rebuilt, so every hold a page kept on its own (the vault's filter, a grant
+  drawn again in place, the arms' box) still holds. The last act's words stand above the cards, where the press was -
+  they stood above the header. The page's column scrolls under the header and the column of pages, and a repaint on
+  the same page (every act, every look) puts it back where it was scrolled to; another page starts at its top.
+- **A reading size.** Inside the window: 13 pixels for every sentence (line height 1.5) and 15 for a row's name, the
+  notes a softer amber, the forms at most 460 wide, the vault's filter one row, a grant's choice at most 300 wide.
+  No page lost a control or a sentence, and a refused button still says why beside its label.
+- **Not a DFU window.** A player's guild is the port's own (GUILD1), so THE NATIVE-WINDOW RULE has no layout to cite:
+  this section is the window's design record (Port-Doctrine, Scope).
+
+Pins: `test/net/guild/guildwindow.test.js` (the mode and the way back, the column of pages and its keys, the cards and
+the words above them, the scroll kept, the online count, the sheet) and the header's tiles in
+`test/net/guild/guild2_client.test.js`; `tools/mutants/guildwindow.json`, 16 of 16 dead.
+
+| Host | GUILD-WINDOW |
+|---|---|
+| `scenes/world.js` | nothing new to wire: the panel it makes (`createSocialPanel`) is the window while its Guild tab is up |
+| `scenes/worldModes.js` | nothing to wire: the hall's chest opens the window at its Vault page, through the same `openGuild` |
+| `scenes/exterior.js` | FLAGGED, nothing to wire: the single-location dev host has no online guild |
+| `scenes/dungeonContext.js` | nothing to wire: the Guild tab is world.js's on every face |
+
 ## The threats, and the answers
 
 | Threat | Answer |
