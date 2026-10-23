@@ -7168,6 +7168,7 @@ export class Room {
     const nowS = Math.floor(now / 1000);
     if (m.l === undefined) {
       if (!isSocialRoom(room)) return;
+      if (a.vid && isChannelShard(room)) { this._hubForward(ws, a, message); return; }   // STAFF-PANEL5-FREEZE-FIX: a hub shard's ask is its bus's to answer, behind the hello it handed up - the bus holds the book of freezes (and the mutes) a fresh hello here has not heard yet
       const l = await mintLease({ s: a.sub, mu: a.mu ?? 0, fz: frozenAt(a, nowS) ? a.fz : 0, at: nowS }, key, { subtle: crypto.subtle });   // STAFF-PANEL5-FREEZE: a freeze run out is said lifted, so a room's seat moves back on its lease
       if (l) this._send(ws, JSON.stringify({ t: 'lease', l }));
       return;

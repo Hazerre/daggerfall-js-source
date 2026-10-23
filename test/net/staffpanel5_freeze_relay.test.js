@@ -13,7 +13,8 @@ import { fakeRoom, fakeRooms } from '../fakeRoom.mjs';
 import * as H from '../../src/net/hubShards.js';
 import { CHAT_WORLD_ROOM, SAFE_LAW_PATH, CLOSE_POLICY, PIXEL_UNITS, cellRoomOfWire, CHAT_LINE_CHANNELS, parseClient } from '../../src/net/wire.js';
 import { mintFreezeOrder, mintStaffLineOrder, mintOrder, verifyOrder, orderValid, claimsValid } from '../../src/net/identityToken.js';
-import { leaseKeyOf, mintLease, readLease, LEASE_FRAME_MIN_MS } from '../../src/net/roomLease.js';
+import { leaseKeyOf, mintLease, readLease, leaseRoom, LEASE_FRAME_MIN_MS, LEASE_OLD_REASON } from '../../src/net/roomLease.js';
+import { caravanRoomOf } from '../../src/net/privateInterior.js';
 import { FREEZES_KEY, FREEZE_OLD_REASON, STAFF_ORDER_KINDS, frozenFrame, seatBarred } from '../../server/src/staffFreeze.js';
 
 const { subtle } = globalThis.crypto;
@@ -40,7 +41,7 @@ async function stand(t) {
   const freeze = async (s, fz, at = nowS()) => door(await mintFreezeOrder({ s, fz }, kp.privateKey, { subtle, nowS: at }));
   const key = await leaseKeyOf(secret, { subtle });
   const lease = (o) => mintLease({ at: nowS(), mu: 0, ...o }, key, { subtle });
-  return { W, hub, cell, kp, join, say, door, freeze, lease, key, tick: (ms) => { now += ms; }, nowS };
+  return { W, room, hub, cell, kp, join, say, door, freeze, lease, key, tick: (ms) => { now += ms; }, nowS };
 }
 
 test('STAFF-PANEL5-FREEZE the law: `fz` rides a token after its issue; the `freeze` and `staffline` orders are their own kinds, a mute\'s or a ban\'s fields never on them, nor theirs on a mute; the hello says whether the build can show the freeze screen (`fv`); the staff channel is a line channel (mutants: the claim\'s bound; the kinds\' fields)', async () => {
@@ -121,8 +122,9 @@ test('STAFF-PANEL5-FREEZE THE SERVICE\'S DOOR: a signed freeze reaches the hub -
 test('STAFF-PANEL5-FREEZE A MODDED CLIENT THAT IGNORES ITS FREEZE SCREEN is heard in nothing but its camera (where it stood, its yaw new), its ping and its lease: no step, no line, no trade, no duel, no world; and every socket\'s trade or duel word aimed at a frozen one is refused, out of every fight (mutants: the gate gone; the camera kept whole; the aim unread)', async (t) => {
   const S = await stand(t);
   const ear = await S.join(S.cell, 'ear-0001');
-  const ice = await S.join(S.cell, 'ice-0001', { fz: S.nowS() + 3600 });
+  const ice = await S.join(S.cell, 'ice-0001');
   const bob = await S.join(S.cell, 'bob-0001');
+  await S.say(S.cell, ice, { t: 'lease', l: await S.lease({ s: 'acct-ice-0001', fz: S.nowS() + 3600 }) });   // STAFF-PANEL5-FREEZE-FIX: frozen where it stands (a frozen hello stands nowhere of its own)
   S.tick(1000);
   const heard = ear.sent.length;
   await S.say(S.cell, ice, { t: 'pose', p: { ...P0, x: P0.x + 400, yaw: 1.5, pitch: 0.25, mv: 2, wd: 1, an: 9 } });
@@ -185,8 +187,8 @@ test('STAFF-PANEL5-FREEZE THE STAFF CHANNEL: a frozen player\'s nudge (its line\
   const S = await stand(t);
   const until = S.nowS() + 3600;
   const troll = await S.join(S.hub, 'trol-0001', { fz: until, mu: until });
-  const staff = await S.join(S.hub, 'staf-0001');
-  S.hub.room._setAttach(staff, { ...S.hub.room._attach(staff), hd: 1 });   // the hidden builder's staff session claim, as its hello will set it
+  const staff = await S.join(S.hub, 'staf-0001', { hd: 1, glyphs: ['mod'] });   // STAFF-PANEL5-FREEZE-FIX: a staff session's hidden token, through a real hello
+  assert.deepEqual([S.hub.room._attach(staff).hid, S.hub.room._attach(staff).hd], [1, undefined], 'the relay marks it `hid`, never `hd`');
   const bob = await S.join(S.hub, 'bobb-0001');
   const amy = await S.join(S.hub, 'amyy-0001', { mu: until });
   S.tick(1000);
@@ -230,7 +232,7 @@ test('STAFF-PANEL5-FREEZE THE STAFF CHANNEL: a frozen player\'s nudge (its line\
   assert.equal((await S.door(await mintOrder({ s: 'acct-bobb-0001', mu: until }, S.kp.privateKey, { subtle, nowS: S.nowS() }))).status, 200, 'the door\'s own kinds as ever');
 });
 
-test('STAFF-PANEL5-FREEZE THROUGH THE SHARDS: the bus\'s freeze reaches the player\'s hub shard (SHARD_LAW_KEYS) and its lease; a shard\'s hello whose token is older than the bus\'s book is frozen by the bus, and an old build\'s refused (mutants: the bus\'s book unread at a shard\'s hello)', async (t) => {
+test('STAFF-PANEL5-FREEZE THROUGH THE SHARDS: the bus\'s freeze reaches the player\'s hub shard (SHARD_LAW_KEYS) and its lease; a shard\'s hello whose token is older than the bus\'s book is frozen by the bus, and an old build\'s refused; STAFF-PANEL5-FREEZE-FIX: a lease asked at once on a fresh shard hello is the bus\'s, frozen (mutants: the bus\'s book unread at a shard\'s hello; the shard minting its own)', async (t) => {
   let clock = 1_800_000_000_000;
   t.mock.method(Date, 'now', () => clock);
   const secret = await GATE;
@@ -257,7 +259,7 @@ test('STAFF-PANEL5-FREEZE THROUGH THE SHARDS: the bus\'s freeze reaches the play
     try {
       const wv = await link('p0');
       // two more tabs' tokens, minted now - before the order
-      const early = { b: await R.token('peer-p0b', { s: sub, n: 'p0b' }), c: await R.token('peer-p0c', { s: sub, n: 'p0c' }) };
+      const early = { b: await R.token('peer-p0b', { s: sub, n: 'p0b' }), c: await R.token('peer-p0c', { s: sub, n: 'p0c' }), d: await R.token('peer-p0d', { s: sub, n: 'p0d' }) };
       clock += 2000;
       const kp = await bus.signer();
       const until = Math.floor(clock / 1000) + 3600;
@@ -268,6 +270,7 @@ test('STAFF-PANEL5-FREEZE THROUGH THE SHARDS: the bus\'s freeze reaches the play
       assert.deepEqual(of(wv, 'frozen'), [{ t: 'frozen', until }]);
       clock += LEASE_FRAME_MIN_MS;
       await R.raw(wv, '{"t":"lease"}');
+      await settle();   // STAFF-PANEL5-FREEZE-FIX: the bus's to answer
       assert.equal((await readLease(of(wv, 'lease').at(-1).l, await leaseKeyOf(secret, { subtle }), { subtle, nowS: Math.floor(clock / 1000) })).fz, until, 'and its lease');
       // another tab, its token minted before the order: the bus's book freezes it
       await R.drop(wv); await settle();
@@ -278,8 +281,103 @@ test('STAFF-PANEL5-FREEZE THROUGH THE SHARDS: the bus\'s freeze reaches the play
       await R.drop(again); await settle();
       const oldTab = await link('p0c', { tok: early.c, fv: undefined });
       assert.match(of(oldTab, 'error').at(-1)?.m ?? '', RELOAD, 'an old build: the reload words');
+      // STAFF-PANEL5-FREEZE-FIX (a review): a fresh hello on the shard, its token minted before the order, asks its lease at
+      // once - before the bus's word on it is back down. The shard mints none of its own: the bus answers behind the hello
+      // it handed up, with its book's freeze (the shard alone knew only the token's, none)
+      await settle();
+      const quick = R.connect();
+      clock += 30;
+      await R.hello(quick, 'peer-p0d', null, { name: 'p0d', acct: sub, asecret: `secret-of-${sub}`, fv: 1, tok: early.d });
+      await R.raw(quick, '{"t":"lease"}');
+      assert.deepEqual(of(quick, 'lease'), [], 'nothing minted on the shard\'s own word');
+      await settle();
+      const quickLease = of(quick, 'lease').at(-1)?.l;
+      assert.ok(quickLease, 'the bus answered it');
+      assert.equal((await readLease(quickLease, await leaseKeyOf(secret, { subtle }), { subtle, nowS: Math.floor(clock / 1000) })).fz, until, 'frozen, as the bus holds it');
     } finally {
       for (const [, r] of W.made) { clearTimeout(r.room._upT); clearTimeout(r.room._downT); clearTimeout(r.room._hubCountT); clearTimeout(r.room._owedSoon); clearTimeout(r.room._owedLate); clearTimeout(r.room._countT); }
     }
   });
+});
+
+const lines = (ws) => of(ws, 'chat').map((f) => f.text);
+
+test('STAFF-PANEL5-FREEZE-FIX EVERY ROOM BUT THE HUB IS A LEASE ROOM (a review: a freeze or a lift never reached a home, a caravan, a siege, an arena, a gate, a breach or a Super dungeon realm): in a caravan the hub\'s lease freezes a socket already there and lifts one its token froze; with the door on, a build that hands on no lease is refused there, and a bound socket is heard in nothing until its lease (mutants: the old lease rooms)', async (t) => {
+  for (const key of ['owned:0123456789abcdef0123456789abcdef', caravanRoomOf('0123456789abcdef01234567'), 'siege:7:2900', 'royal:1:2900', 'arena:hall', 'arena:b42', 'gate:20260101', 'eg:0123456789abcdef', 'sd:3', CELL, 'dungeon:m123', 'chat:trade']) assert.equal(leaseRoom(key), true, key);
+  for (const key of [CHAT_WORLD_ROOM, H.hubOfSubject('acct-ice-0001'), null, undefined]) assert.equal(leaseRoom(key), false, String(key));
+  const S = await stand(t);
+  const VAN = /** @type {string} */ (caravanRoomOf('0123456789abcdef01234567'));
+  const van = S.room(VAN);
+  const ear = await S.join(van, 'ear-0001', { ls: 1 });
+  const ice = await S.join(van, 'ice-0001', { ls: 1 });
+  S.tick(1000);
+  await S.say(van, ice, { t: 'chat', text: 'before' });
+  assert.ok(lines(ear).includes('before'), 'the control: heard');
+  // frozen while it stands there: the hub's next lease, handed on, holds it
+  const fz = S.nowS() + 600;
+  await S.say(van, ice, { t: 'lease', l: await S.lease({ s: 'acct-ice-0001', fz }) });
+  assert.equal(van.room._attach(ice).fz, fz, 'the caravan took the freeze');
+  S.tick(1000);
+  await S.say(van, ice, { t: 'chat', text: 'frozen line' });
+  assert.ok(!lines(ear).includes('frozen line'), 'and hears nothing it says');
+  // the mirror: a socket its token froze, lifted by the hub's newer lease
+  const icy = await S.join(van, 'icy-0001', { ls: 1, fz });
+  assert.equal(van.room._attach(icy).fz, fz);
+  S.tick(2000);
+  await S.say(van, icy, { t: 'lease', l: await S.lease({ s: 'acct-icy-0001', fz: 0 }) });
+  S.tick(1000);
+  await S.say(van, icy, { t: 'chat', text: 'thawed' });
+  assert.ok(lines(ear).includes('thawed'), 'a lift reaches it');
+  // the door on: no lease, no caravan
+  const shut = S.room(/** @type {string} */ (caravanRoomOf('fedcba9876543210fedcba98')));
+  shut.env.LEASE_DOOR = 'on';
+  const old = await S.join(shut, 'oldy-0001');
+  assert.equal(old.closed?.reason, LEASE_OLD_REASON, 'a build that hands on no lease is turned away');
+  const bound = await S.join(shut, 'bnd-0001', { ls: 1 });
+  const peer = await S.join(shut, 'per-0001', { ls: 1 });
+  S.tick(1000);
+  await S.say(shut, bound, { t: 'chat', text: 'unleased' });
+  assert.ok(!lines(peer).includes('unleased'), 'bound, with no lease: heard in nothing');
+  await S.say(shut, bound, { t: 'lease', l: await S.lease({ s: 'acct-bnd-0001', fz: 0 }) });
+  await S.say(shut, bound, { t: 'chat', text: 'leased' });
+  assert.ok(lines(peer).includes('leased'));
+});
+
+test('STAFF-PANEL5-FREEZE-FIX A FROZEN HELLO TAKES NO STEP (a review: a frozen client that said hello again elsewhere was seen standing there): its reconnect in the cell stands where its socket there stood; its hello in another cell stands nowhere, and its camera with it; a frozen token\'s first hello the same (mutant: the hello\'s pose taken)', async (t) => {
+  const S = await stand(t);
+  const fz = S.nowS() + 3600;
+  const ear = await S.join(S.cell, 'ear-0001');
+  const ice = await S.join(S.cell, 'ice-0001');
+  S.tick(1000);
+  await S.say(S.cell, ice, { t: 'pose', p: { ...P0, mv: 2 } });
+  assert.equal(S.cell.room._attach(ice).pose?.mv, 2, 'walking when the freeze lands');
+  await S.say(S.cell, ice, { t: 'lease', l: await S.lease({ s: 'acct-ice-0001', fz }) });
+  S.tick(1000);
+  const back = S.cell.connect();
+  S.tick(300);
+  await quiet(() => S.cell.hello(back, 'ice-0001', { ...P0, x: P0.x + 1200, z: P0.z + 40 }, { fv: 1, fz }));
+  assert.equal(back.closed, null);
+  const pose = S.cell.room._attach(back).pose;
+  assert.deepEqual([pose?.x, pose?.z, pose?.mv ?? 0], [P0.x, P0.z, 0], 'where it stood, not where its hello said');
+  const joins = of(ear, 'join').filter((f) => f.id === 'ice-0001');
+  assert.deepEqual([joins.at(-1)?.pose?.x, joins.at(-1)?.pose?.z], [P0.x, P0.z], 'and the room was told so');
+  // another cell, where it stood nowhere: nowhere
+  const far = S.room(cellRoomOfWire(P0.x + 40 * PIXEL_UNITS, P0.z));
+  const farEar = far.connect();
+  S.tick(300);
+  await quiet(() => far.hello(farEar, 'fear-0001', { ...P0, x: P0.x + 40 * PIXEL_UNITS }, { fv: 1 }));
+  const away = far.connect();
+  S.tick(300);
+  await quiet(() => far.hello(away, 'ice-0002', { ...P0, x: P0.x + 40 * PIXEL_UNITS + 50 }, { fv: 1, fz, tokenSub: 'acct-ice-0001' }));
+  assert.equal(far.room._attach(away).pose, null, 'stands nowhere');
+  assert.equal(of(farEar, 'join').find((f) => f.id === 'ice-0002')?.pose ?? null, null, 'and is said nowhere');
+  S.tick(1000);
+  const heard = farEar.sent.length;
+  await S.say(far, away, { t: 'pose', p: { ...P0, x: P0.x + 40 * PIXEL_UNITS + 50, yaw: 1 } });
+  assert.deepEqual(farEar.sent.slice(heard).filter((f) => f.t === 'pose'), [], 'its camera has no place to stand in');
+  // the control: an unfrozen hello stands where it says
+  const free = far.connect();
+  S.tick(300);
+  await quiet(() => far.hello(free, 'free-0001', { ...P0, x: P0.x + 40 * PIXEL_UNITS + 60 }, { fv: 1 }));
+  assert.equal(far.room._attach(free).pose?.x, P0.x + 40 * PIXEL_UNITS + 60);
 });

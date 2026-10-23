@@ -54,6 +54,7 @@ function service({ lines = [], frozen = null, open = true, invite = INVITE } = {
   let hold = null;
   return {
     calls, lines,
+    setFrozen(v) { frozen = v; },
     holdNext() { let go; hold = new Promise((r) => { go = r; }); return () => go(); },
     async read(after) {
       calls.push(['read', after]);
@@ -245,4 +246,32 @@ test('STAFF-PANEL5-FREEZE THE HOST: the host wires `frozen` on every session and
   assert.match(w, /staffHost = createStaffFreezeHost\(chatLog, socialLink, online, staffHost\);/);
   assert.match(w, /staffHost\.wire\(link\);/);
   assert.match(w, /if \(staffHost\?\.claims\(tabId\)\) return staffHost\.send\(tabId, text\);[^\n]*\n\s*\/\/ EG-PLAY: `\/breach`/, 'before every command but the mailbox\'s');
+});
+
+test('STAFF-PANEL5-FREEZE-FIX THE SERVICE\'S ANSWER BOTH WAYS (a review: a lift the relay never said - the hub link down then - held the motor until the old end): a read that finds the freeze gone lets go, a read that finds it raised holds; a read begun before the relay\'s latest word changes no freeze, its lines all the same (mutants: the read raising only; the relay\'s word overruled)', async () => {
+  const clock = 1_800_000_000_000;
+  const log = new ChatLog({ now: () => clock });
+  const svc = service({ frozen: { until: 1_800_003_600, reason: 'spawn camping' } });
+  const painted = [];
+  const chat = createStaffChat({ log, read: svc.read, send: svc.send, nudge: () => true, onFrozen: (s) => painted.push(s), me: () => 'Troll', now: () => clock });
+  chat.heardFrozen(1_800_003_600);
+  await settle(); await settle();
+  assert.equal(chat.frozen(), true);
+  // the lift, said while a read was on its way: the read (begun before it) leaves it lifted
+  const go = svc.holdNext();
+  chat.heardNudge();
+  svc.lines.push({ id: 7, at: 1_800_000_010, staff: true, text: 'You are free to go.' });
+  chat.heardFrozen(0);
+  go(); await settle(); await settle(); await settle();
+  assert.equal(chat.frozen(), false, 'the relay\'s lift is newer than the read');
+  assert.equal(painted.at(-1).until, 0);
+  assert.ok(log.tab(STAFF_TAB).messages.some((l) => l.text === 'You are free to go.'), 'its lines kept all the same');
+  // the service froze again (its word, the relay silent): a read raises it
+  svc.setFrozen({ until: 1_800_007_200, reason: 'again' });
+  await chat.refresh();
+  assert.deepEqual([chat.frozen(), painted.at(-1).until, painted.at(-1).reason], [true, 1_800_007_200, 'again']);
+  // and lifted with the hub link down - the relay never says it: the next read lets go
+  svc.setFrozen(null);
+  await chat.refresh();
+  assert.deepEqual([chat.frozen(), painted.at(-1).until, painted.at(-1).reason], [false, 0, null], 'the motor and the screen let go');
 });
