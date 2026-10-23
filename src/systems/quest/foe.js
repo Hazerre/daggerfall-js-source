@@ -49,6 +49,7 @@ export class Foe extends QuestResource {
     this.deathTrigger = false;     // true when the enemy should instantly die (Foe.cs:42); NOT save state
     this.isRestrained = false;     // true if enemy restrained by quest
     this.killCount = 0;            // kills of this spawn; does NOT rearm
+    this.learnedKills = 0;         // QUEST-AUDIT III KILL-ONCE: a party member's kills an envelope brought, not yet credited - transient
     // Q3-iii name state (Foe.cs:45-46, SetFoeName)
     //
     // AUDIT 24 (wave 27), EXAMINED AND NOT A DIVERGENCE - recorded so
@@ -99,6 +100,18 @@ export class Foe extends QuestResource {
   /** SetRestrained / ClearRestrained (Foe.cs:202-212). */
   setRestrained() { this.isRestrained = true; }
   clearRestrained() { this.isRestrained = false; }
+
+  /** QUEST-AUDIT III KILL-ONCE (VERMIN-SHARED's "Said, not fixed"): a party member's kill of this Foe, counted on this
+   *  copy - their puppet's fall seen, their pose's word - unless their copy's envelope already brought it here
+   *  (`learnedKills`, machine.js updateSharedQuest's merge): each copy counted the kills it saw and the resync kept the
+   *  larger count, so an envelope that came before the credit counted one kill twice (a `killed 2` closed on one spider).
+   *  A credit the envelope never carried counts; the next envelope's larger count corrects any it held back. Answers
+   *  whether it counted. */
+  creditPartnerKill() {
+    if (this.learnedKills > 0) { this.learnedKills--; return false; }
+    this.incrementKills();
+    return true;
+  }
 
   /** IncrementKills (Foe.cs:219-222). */
   incrementKills(amount = 1) {

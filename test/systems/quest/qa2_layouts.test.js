@@ -375,6 +375,10 @@ test('QUEST-AUDIT II SHARED-SEAT: a shared copy chooses again by ONE die per sha
     D.m.restoreSaveData(structuredClone(B.m.getSaveData()));
     const dq = [...D.m.quests.values()][0];
     assert.equal(dq.shareId, envelope.shareId, 'the save keeps its share');
+    // PIN MOVED (QUEST-AUDIT III SHARE-MEMORY): a load keeps a running shared copy in step with its party again
+    // (machine.js restoreSaveData) - the copy QA2 means, one no longer kept in step, is one that left it
+    assert.equal(D.m.hasSharedQuestNamed(dq.questName), true, 'loaded, it is in step again');
+    D.m.sharedQuestNames.delete(dq.questName);
     dq.rolls = () => own;
     D.m.reseatMovedSites(D.world);
     assert.equal(innOf(dq).buildingKey & 0xff, TAVERNS[Math.floor(own * 3)], 'its own roll, not the share\'s die');

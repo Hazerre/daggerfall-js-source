@@ -6370,9 +6370,10 @@ it lives. DFU has no such pass; this is the port's own (Port-Ledger section A, Q
    way (Person.PlaceAtHome's; never a questor's or an individual's, whom it refuses) - the courier's recipient and 43
    more people no `place npc` ever places - and a person put back where no Place is assigned him is assigned that
    Place, which the talk's Where is reads.
-2. **A site link the quest never got.** `hasSiteLink` asks the SITE, not the quest (QuestMachine.cs:1739, kept), so a
+2. **A site link the quest never got.** `hasSiteLink` asked the SITE, not the quest (QuestMachine.cs:1739), so a
    second quest placing where a first already had leaned on the first's link, and when the first ended the second's
-   resources stood nowhere. One link per (quest, Place) that holds targets.
+   resources stood nowhere. One link per (quest, Place) that holds targets. QUEST-AUDIT III LINK-OWN made hasSiteLink
+   ask this quest's link for this Place; this mend is its backstop for a save made before.
 3. **The map.** Every `reveal` that ran is filed again (the hosts' `discoverLocation` now answers whether it was new, for
    the count). A quest the talk never heard of gets its topics (a received shared quest: receiveSharedQuest adds none);
    a quest that has them is not re-added, since adding them again un-discovers residences the player already found.
@@ -6695,11 +6696,12 @@ on, and the trigger is Foe.injuredTrigger, a latch that holds until the foe is s
 come back the next tick, every tick, until a Yes gave the goods away. In the shipped corpus the law re-arms The Lost
 Child alone.
 
-NOT TAKEN, Mac's to decide: C0C00Y10 (the healer's `prompt 1014 yes _S.11_ no _no_` under `clicked npc _healer_ say
-1013`) answers a No with `_no_ task: clear _S.10_` - the author's own ask-again - and Prompt.cs's `allowRearm = false`
-defeats it in DFU as here: the healer says 1013 on every click and never asks again, and the talisman is never sold. A
-No that does something is outside this law by its own terms; it is the corpus's one prompt whose answer clears the task
-that asks it.
+C0C00Y10 (the healer's `prompt 1014 yes _S.11_ no _no_` under `clicked npc _healer_ say 1013`) answers a No with `_no_
+task: clear _S.10_` - the author's own ask-again - which Prompt.cs's `allowRearm = false` defeats in DFU: the healer said
+1013 on every click and never asked again, and the talisman was never sold. TAKEN (QUEST-AUDIT III, the owner: "fix any
+and all outstanding issues"): a No whose every action is a `clear` of its click-asked task alone, named by nothing but
+the prompt, is that ask-again (`src/systems/quest/noAsksAgain.js` clearingNo) - once it has run, the prompt listens again
+and the No is cleared for a second No. It is the corpus's one such No (`01-Overview/audits/Quest-Audit-III.md`).
 
 `test/systems/quest/fb1013e_noasks.test.js` (5): the real scripts through the real parser and machine over a crafted region, every
 click through QuestResourceBehaviour.doClick and every answer through the box's own callback - The Lost Child asked
@@ -6749,8 +6751,10 @@ touches a quest whose own state says its foe is dead.
   no reputation and no journal entry - it did not end), and the new one starts at once and runs its first step on the
   machine's next tick. A shared copy leaves the party's step first, so the tombstone does not file it as a finished
   share. Refused, each in words (`scenes/quest/questBridge.js` `restartRefusalText`): a quest gone, ending or set aside
-  (reclaim it first); the world's own (`PROTECTED_QUESTS`); one with a questor - its parse would bind whoever the
-  player clicked last (abandon it and ask its questor again); one another quest's `run quest` waits on (the parent
+  (reclaim it first); the world's own (`PROTECTED_QUESTS`); one whose questor the click bound - its parse would bind
+  whoever the player clicked last (abandon it and ask its questor again; QUEST-AUDIT III: a questor the script names,
+  `add _x_ as questor`, binds the same person again and restarts as any other); one that has paid out (QUEST-AUDIT III
+  RESTART-PAID: gold, training, an item made permanent, standing gained - restarted, it paid again); one another quest's `run quest` waits on (the parent
   would read the restart as a failure); a sea raid. S0000018 restarted waits its thirty days for Medora's vision again
   - its script's own first step.
 - **THE DOORS**: `journalClean.restart` / `canRestart` beside Abandon, so every host that hands its pause window and
@@ -6816,3 +6820,31 @@ every whole language's `{quest}`; what still reaches the sentence; the classic b
 FONT0003 for every guild quest's title, the service records unchanged (ARENA2, the suite's usual skip). PIN MOVED:
 `test/systems/quest/covenwindow.test.js` (the coven's close carries its reason and its quest).
 `tools/mutants/questor_said.json` (16), all dead.
+
+## QUEST-AUDIT III - the quest system read whole, and STORY-AGAIN (2026-10-23)
+
+The owner: *"Can you do a detailed quest audit, fix any and all outstanding issues. Do not worry about DFU parity."*
+Six read-only lanes over a frozen snapshot (main `4728fb88a`) - the lifecycle and the save, the actions and the macros,
+placement and the mount, the journal and the offers, the online share, the record against the code - each finding shown
+by a script over the real modules, each fix pinned and its mutants dead. The record, finding by finding, is
+`01-Overview/audits/Quest-Audit-III.md`; what changes the quest law here:
+
+- **STORY-AGAIN (#982)** - `systems/quest/machine.js` (`storyAgainRefusal`, `startStoryAgain`, `seedStory`,
+  `storyStarted` / `storyFailed` in the envelope), `scenes/quest/questBridge.js` (`journalClean.storyAgain` /
+  `startStoryAgain`), the pause window's Main Quests and the chronicle's Quests. A step of the main story that ended
+  without paying, whose story went no further, is started again from its first step; its questor offers it once more.
+  Refused: not the story's own or the world's backbone, running or set aside, never failed, carried on past, a step
+  that starts and pays nothing, no source. A save from before the record reads the journal's archive once.
+- **THE LIFECYCLE** - END-GRACE (a save inside `end quest`'s grace ends on load), END-ONCE (a second end pays nothing),
+  START-HELD (a scheduled `start quest` rides the save), PROMPT-HELD (a question is spent by its answer, not its box).
+- **THE ACTIONS** - SEND-HELD, GOLD-ONCE, MUTE-HELD, ILL-SAYING, DOTTED-SYMBOLS, CLIMATE-NAMES, CAST-SHARE, JOKE-MACROS,
+  DI-UNREF, DUEL-TOWN, and NO-ASKS-AGAIN's clearing No (C0C00Y10's healer, above).
+- **THE MOUNT AND THE SITES** - LODGED-STAND, RELOAD-TWINS, ENDED-STANDS, LINK-OWN, HOUSE-HOUSE, RESEAT-TYPED,
+  MARKERLESS-DRAW.
+- **THE JOURNAL** - QUEST-RESET's questor rung narrowed and its RESTART-PAID rung, SHELF-TWIN, NAMED-TIMER, OFFER-STALE,
+  NO-WORK, RESTART-WORDS, SHELF-WORDS.
+- **THE SHARE** - SAME-COPY, SHARE-MEMORY, PROGRESS-KEPT, BUSY-SYNC, SHARER-GONE, GOLD-HOLDERS, GUARD-HOLDER, KILL-ONCE,
+  REPUTE-SHARE, SHARE-WORDS.
+
+`test/systems/quest/questaudit3.test.js`, `questaudit3_life.test.js`, `questaudit3_acts.test.js`,
+`questaudit3_scene.test.js`, `questaudit3_share.test.js`; `tools/mutants/questaudit3*.json`, all dead.

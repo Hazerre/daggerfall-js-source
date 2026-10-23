@@ -56,6 +56,11 @@ export function noteOfferPending(sender) {
 /** GiveOffer (DaggerfallUI.cs:1717-1726). True when a pending offer
  *  was handed over, which means the press that asked is spent. */
 export function giveOffer() {
+  // QUEST-AUDIT III OFFER-STALE: a sender already handed over (its own ticks ran out first - DFU never unlatches there
+  // either) or of a quest no longer running is let go, and the press is the player's: one Rest or Travel press hours
+  // later did nothing at all, even after another save was loaded
+  const s = lastPendingOfferSender;
+  if (s != null && (s.isComplete || s.parentQuest?.questComplete || s.parentQuest?.questTombstoned || s.parentQuest?.shelvedAt != null)) lastPendingOfferSender = null;
   if (lastPendingOfferSender != null) {
     lastPendingOfferSender.offerImmediatelyNow();
     lastPendingOfferSender = null;

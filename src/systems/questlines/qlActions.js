@@ -68,7 +68,12 @@ const heldOf = (quest) => { let m = held.get(quest); if (!m) held.set(quest, (m 
  *  sharer's own box, whose answer then started the other choice's task - the kept gold AND the standing for giving it up
  *  (R0C11Y26). A received copy with no party to resync it (machine.js rewardShares: the party gone; or after a load - the
  *  share memory is no save state) is its holder's alone, and asks. */
-const awaitsSharer = (quest) => quest?.ql?.received === true && !!quest.hooks?.sharedCopy?.(quest) && (quest.hooks?.rewardShares?.(quest) ?? 1) > 1;
+// QUEST-AUDIT III SHARER-GONE (AUDIT QUESTLINES BRANCH-1's "LEFT, said", wider than written): and only while the party is
+// still heard on it (machine.js sharerHeard: an envelope of this copy within SHARER_QUIET_TICKS). The sharer who reloaded,
+// abandoned, restarted or left kept every received copy waiting at its choice for good - no one was asked. Quiet that
+// long, the holder is asked; a late second answer is inert (the choice already made, the ask complete).
+const awaitsSharer = (quest) => quest?.ql?.received === true && !!quest.hooks?.sharedCopy?.(quest)
+  && (quest.hooks?.partySize?.() ?? quest.hooks?.rewardShares?.(quest) ?? 1) > 1 && quest.hooks?.sharerHeard?.(quest) !== false;
 
 /** `ask` - a choice in the player's own words. The host shows the question's message and the choices' messages
  *  (hooks.showChoice - a box, then a pick that cannot be dismissed without a choice, as PromptMulti's box cannot -

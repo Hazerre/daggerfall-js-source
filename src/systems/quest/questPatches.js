@@ -59,8 +59,14 @@ export function entryLines(text, width = ENTRY_WIDTH) {
   return lines;
 }
 
-/** The patches by quest name, each built as it is asked for (the entry's words in the language of that moment). */
+/** The patches by quest name, each built as it is asked for (the entry's words in the language of that moment).
+ *
+ *  A0C00Y10 (The Duel), QUEST-AUDIT III DUEL-TOWN (Quest-Audit-II's "Recorded, not changed"): the journal said the duel
+ *  was "at _inn_ in ___giver_" - the questor's town - and where the town mods took the town's tavern away the inn is the
+ *  nearest town's (place.js NEAR-SITE): Glaghton Court's duel is at Moriribia's inn, and the journal sent the player to
+ *  Glaghton Court. The inn's own town (`___inn_`) is the questor's wherever the inn is in it, so DFU's words stand there. */
 export const QUEST_PATCHES = Object.freeze({
+  A0C00Y10: () => [{ old: ' _inn_ in ___giver_ in six hours.', new: ' _inn_ in ___inn_ in six hours.', count: 1 }],
   C0B00Y02: () => {
     const entry = [`Message:  ${SHAM_TRAIL_MESSAGE}`, '%qdt:', ...entryLines(t('quest.possessedChild.shamTrail', SHAM_TRAIL_EN))].join('\n');
     return [

@@ -109,7 +109,14 @@ export class QuestResourceBehaviour {
       this.targetSymbol = r.symbol;
       return true;
     }
-    if (this.machine.getQuest(this.questUID) === this.targetQuest && this.targetQuest.getResource(this.targetSymbol) === this.targetResource) return false;
+    if (this.machine.getQuest(this.questUID) === this.targetQuest && this.targetQuest.getResource(this.targetSymbol) === this.targetResource) {
+      // QUEST-AUDIT III RELOAD-TWINS: the live resource by a symbol object of its own (a restored behaviour's is the save's
+      // copy) - the mount's guard matches by the object, so it takes the resource's own
+      const own = this.targetResource?.symbol;
+      if (!own || own === this.targetSymbol) return false;
+      this.targetSymbol = own;
+      return true;
+    }
     this.targetResource?.uncoupleBehaviour(this);   // AUDIT 68 S30-relink-leaks-orphan-resources: the orphan lets go
     this.targetQuest = null; this.targetResource = null;
     this.cacheTarget();
@@ -139,6 +146,13 @@ export class QuestResourceBehaviour {
     // put away - the block bound it to the quest's Person (setupIndividualStaticNPC), and the quest let them go home.
     if (isShelved(this.targetQuest) && !this.enemy) {
       if (!this.individualHome) this.setGameObjectActive(!!this.targetResource?.isQuestor);
+      return;
+    }
+    // QUEST-AUDIT III ENDED-STANDS: a quest that ended while its people and things stood here (a timer, its own `end
+    // quest`) no longer ticks, so nothing put them away - its item could still be taken and its person took every click.
+    // Put away as a quest set aside puts them, its questor and a named NPC's home copy left standing
+    if (this.targetQuest?.questComplete && !this.enemy) {
+      if (!this.individualHome && !this.targetResource?.isQuestor) this.setGameObjectActive(false);
       return;
     }
     // Ensure target resource has this behaviour assigned - coupling
@@ -205,7 +219,7 @@ export class QuestResourceBehaviour {
     // QUEST-SHELF: a quest set aside takes no click - it falls through to talk/guild routing; its audit: a named NPC's
     // click still reaches every RUNNING quest that holds them (the broadcast below)
     let foundInActiveQuest = false;
-    if (this.targetResource != null && !isShelved(this.targetQuest)) {
+    if (this.targetResource != null && !isShelved(this.targetQuest) && !this.targetQuest?.questComplete) {   // ENDED-STANDS: nor an ended one
       this.targetResource.setPlayerClicked();
       if (this.targetResource.isItem) this._transferWorldItemToPlayer();
       foundInActiveQuest = true;

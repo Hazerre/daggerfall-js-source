@@ -20,9 +20,9 @@
 // underscore, so `_one_day_` truncates to `_one_` and misses its
 // resource - the raw text stands, verbatim DFU; %pct (GuildTitle)
 // with no external MCP falls through the null-mcp arm to the
-// PLAYER's name; %di reads lastPlaceReferenced.scope BEFORE the
-// null check, so an unreferenced place THROWS out of expansion as
-// C#'s NRE does. L10N3g: GrammarManager.ProcessGrammar runs over each
+// PLAYER's name. (%di's NRE on an unreferenced place - C# reads
+// lastPlaceReferenced.scope BEFORE the null check - is retired:
+// QUEST-AUDIT III DI-UNREF, "...never mind...".) L10N3g: GrammarManager.ProcessGrammar runs over each
 // finished token (QuestMacroHelper.cs:158) - English's rules are the
 // identity, a language's resolve its pack's grammar tokens.
 //
@@ -417,11 +417,22 @@ export function questMacroSource(quest) {
       }
       return templeDivine(w, factionId);
     },
-    // %di - C# QUIRK KEPT: LastPlaceReferenced.Scope is read BEFORE
-    // the null check, so an unreferenced place THROWS (the NRE)
+    // %di - C#'s LastPlaceReferenced.Scope is read BEFORE the null check, so an unreferenced place THREW (the NRE). QUEST-AUDIT
+    // III DI-UNREF: nothing referenced yet - a load or a share forgets it (no save state), and three messages lead with
+    // %di (P0B00L01 1014, R0C10Y12 1012, R0C11Y03 1011; V0C00Y00's and Y0C00Y00's contact answers after a load) - the talk
+    // answer or the quest's popup threw out to the host, which error-terminated the quest. Nothing referenced, it reads the
+    // Place a quest Person stands at (the last declared that stands somewhere - V0C00Y00's "If you go %di of here in
+    // __contact_" is the contact's), else DFU's own "...never mind...", as every unresolvable direction answers
     direction() {
-      const place = quest.lastPlaceReferenced;
+      let place = quest.lastPlaceReferenced;
+      if (!place) {
+        for (const r of quest.resources?.values?.() ?? []) {
+          const at = r?.isPerson && r.assignedPlaceSymbol ? quest.getPlace?.(r.assignedPlaceSymbol) : null;
+          if (at?.siteDetails) place = at;
+        }
+      }
       const w = world();
+      if (!place) return EN.resolvingError;
       if (place.scope === 'remote') {
         return w?.locationCompassDirection?.(place) ?? EN.resolvingError;
       } else if (place.scope === 'local') {
@@ -570,7 +581,18 @@ const HANDLERS = {
     return fullName(getNameBank(FACTION_RACE_KEYS[fd?.race ?? 0]), gender);
   },
   '%vam': (mcp, hooks) => hooks?.world?.playerVampireClanName?.() ?? '%vam[ERROR: PC not a vampire]',
-  '%jok': (mcp, hooks) => hooks?.world?.getRandomText?.(200) ?? null,
+  // QUEST-AUDIT III JOKE-MACROS: TEXT.RSC 200's jokes carry their own macros (%ra in 22 of the 23, %nt, %cn, %cn2), and the
+  // expansion never walks inserted text - K0C00Y05's child and eight quests' rumors told the player "%ra" raw. Each is
+  // read through this table (a miss, or an answer in an error's shape, keeps the token as it was)
+  '%jok': (mcp, hooks) => {
+    const joke = hooks?.world?.getRandomText?.(200) ?? null;
+    if (typeof joke !== 'string') return null;
+    return joke.replace(/%[a-zA-Z][a-zA-Z0-9]*/g, (tok) => {
+      if (tok === '%jok' || !HANDLERS[tok]) return tok;
+      const v = getMacroValue(tok, mcp, hooks);
+      return typeof v === 'string' && !v.startsWith(`${tok}[`) ? v : tok;
+    });
+  },
   // L10N3e: CityName (MacroHelper.cs:567-574) shows the location by its
   // map id (CurrentLocalizedLocationName, :571), else the region (:573)
   '%cn': (mcp, hooks) => {

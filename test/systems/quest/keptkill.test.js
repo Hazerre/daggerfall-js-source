@@ -287,5 +287,6 @@ test('KEPT-KILL by source: both pools say a kept foe\'s fall each frame by the b
   assert.match(W, /onKeptDied: \(tag, i\) => \{ keptKills\.said\(tag, i, Date\.now\(\)\); \}/, 'said into the ledger');
   assert.match(W, /\.\.\.keptKillField\(\),/, 'the pose carries it');
   assert.match(W, /if \(p\?\.qk && social\.inMyParty\(acct\)\) creditKeptKills\(questBridge\?\.machine, keptKills, acct, p\.qk, Date\.now\(\)\);/, 'a member of my party alone');
-  assert.match(W, /if \(owner && Number\.isInteger\(i\) && !keptKills\.credit\(owner, tag\.q, tag\.s, i, Date\.now\(\)\)\) return;\n\s+foe\.incrementKills\?\.\(\);/, 'the witness counts through the ledger');
+  // PIN MOVED (QUEST-AUDIT III KILL-ONCE): and through the Foe's partner credit, which a kill the envelope brought already spends
+  assert.match(W, /if \(owner && Number\.isInteger\(i\) && !keptKills\.credit\(owner, tag\.q, tag\.s, i, Date\.now\(\)\)\) return;\n\s+foe\.creditPartnerKill\?\.\(\);/, 'the witness counts through the ledger');
 });

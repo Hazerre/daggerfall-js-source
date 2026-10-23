@@ -5,7 +5,6 @@ const count = (v) => Number.isSafeInteger(v) && v >= 0;
 const bool = (v) => typeof v === 'boolean';
 const location = (v) => Number.isInteger(v) && v >= 0 && v <= 0xffff;
 const progress = {
-  DailyFrom: { guardAnchor: (v) => v === null || finite(v), guardAway: bool },
   PlaySound: { lastTimePlayed: finite },
   PcAt: { textShown: bool },
   DroppedItemAtPlace: { textShown: bool },
@@ -24,6 +23,14 @@ const progress = {
 // scripts) could not be shared once its trigger had been asked, and every resync of a party's copy was refused.
 const holders = {
   QlAct: { from: (v) => v === null || count(v) },
+  // QUEST-AUDIT III GUARD-HOLDER: GUARD-ONLINE's watch is the holder's arrival at the hall (onlineGuard.js), never the
+  // partner's - a member who left at the close sent `guardAway` and started the watch over for the one still in the hall
+  DailyFrom: { guardAnchor: (v) => v === null || finite(v), guardAway: bool },
+  // QUEST-AUDIT III CAST-SHARE: a `cast X spell do` action's classic effects are its spell's, read from the holder's own
+  // ARENA2 at the parse - the receiver's reference parse is headless and holds none, so every share and resync of
+  // N0B00Y08, N0B00Y16 and N0B40Y07 was refused as a forgery. The holder's own stand (actions.js CastSpellDo reads them
+  // lazily); a partner's are only checked to be effects
+  CastSpellDo: { classicEffects: (v, own) => (own == null ? v === null || Array.isArray(v) : same(v, own)) },
 };
 
 // Save fields may be absent rather than undefined after JSON transport. Key order is irrelevant.
