@@ -623,7 +623,7 @@
   {
     "name": "STAFF-PANEL5-CUT-FIX-outcome-unwritten",
     "file": "server-account/src/staff.js",
-    "old": "      await audit('cut-relay', target.id, { ...pushed, ...(relay ? {} : { error: 'relay' }) }, { outcome: relay ? 'ok' : 'failed' }).run();",
+    "old": "      await audit('cut-relay', target.id, pushed, { outcome: relay ? 'ok' : 'failed' }).run();",
     "new": "",
     "why": "finding 29: the relay's answer never in the log",
     "tests": [

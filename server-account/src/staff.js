@@ -494,7 +494,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
       ]);
       const pushed = await cutPush(ctx, env, target.id, hashes);
       const relay = pushed.took === pushed.orders;
-      await audit('cut-relay', target.id, { ...pushed, ...(relay ? {} : { error: 'relay' }) }, { outcome: relay ? 'ok' : 'failed' }).run();
+      await audit('cut-relay', target.id, pushed, { outcome: relay ? 'ok' : 'failed' }).run();   // failed: `took` short of `orders`
       return { ok: true, handle: target.handle, relay };
     }
     const code = mintRecoveryCode(rand);

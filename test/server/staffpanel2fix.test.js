@@ -406,7 +406,7 @@ test('STAFF-PANEL5-CUT-FIX: THE CUT ORDERS EVERY HIDDEN SOCKET CLOSED, ITS PUSH 
     assert.ok((await ordersOf('hide', t0 + 3)).every((c) => c.i >= t0 + 3), 'its hide orders too');
     Date.now = realNow;
     const relayRow = () => s.raw.prepare("SELECT outcome, detail FROM staff_audit WHERE act = 'cut-relay' AND target = ? ORDER BY id DESC").get(asyId);
-    assert.deepEqual([relayRow().outcome, JSON.parse(relayRow().detail)], ['failed', { orders: 3, took: 2, hidden: 2, error: 'relay' }]);
+    assert.deepEqual([relayRow().outcome, JSON.parse(relayRow().detail)], ['failed', { orders: 3, took: 2, hidden: 2 }]);
     // pressed again: every order pushed again, the relay taking them now
     globalThis.fetch = fetch0;
     s.pushed.length = 0;
