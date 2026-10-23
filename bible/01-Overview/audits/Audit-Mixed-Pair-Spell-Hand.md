@@ -83,7 +83,7 @@ changed nothing. At 2 it is a blow more at every Speed: 8.53 (x1.19) with the bl
 |---|---|---|---|
 | L4-1 | MAJOR | A cast pressed with the swing button HELD (WeaponSwingMode 2, the default) never left until the button was let go: each new blow began before the door looked | FIXED: a press waiting stops new blows (`castPending`, read by `canAttack` and the probes' door) - the hands take turns; pinned ("THE HELD SWING NEVER STARVES THE CAST"), mutants AUDITMS-L4-1-* |
 | L4-2 | MAJOR | Other players saw a spell-hand player in the Spell stance, weapon out of hand, and none of their blows | FIXED: the peer's body reads the spell hand off the look and the pose (`peerHandsOf`'s `spellHand`) and tells its rig (`setSpellHand` before `readySpell`); pinned (`test/net/mixedspell_peers.test.js`), mutants AUDITMS-L4-2-* |
-| L4-3 | MAJOR | Other players saw a blade-and-Pistolet pair holding one weapon, and the wrong weapon struck | FIXED: the pose carries `ah` (a pair's LEFT hand struck last; `poseHandsOf` in `wire.js`, relay **world249**); the peer's body holds a pair (`setHands`, `setOffWeapon`, the right hand's item in the right hand) and plays each strike with its hand; pinned (`mixedspell_peers.test.js`, `disc12.test.js`), mutants AUDITMS-L4-3-* |
+| L4-3 | MAJOR | Other players saw a blade-and-Pistolet pair holding one weapon, and the wrong weapon struck | FIXED: the pose carries `ah` (a pair's LEFT hand struck last; `poseHandsOf` in `wire.js`, relay **world251**); the peer's body holds a pair (`setHands`, `setOffWeapon`, the right hand's item in the right hand) and plays each strike with its hand; pinned (`mixedspell_peers.test.js`, `disc12.test.js`), mutants AUDITMS-L4-3-* |
 | L4-4 | MAJOR | The tutorial named the swing button as the cast's | FIXED: the spellbook page casts with ActivateCenterObject and says the swing button swings beside a spell in the free hand; pinned, mutant AUDITMS-L4-4-tutorial-names-the-swing |
 | L4-5 | MINOR | On a wall the swing button was dead with a spell beside a drawn weapon (the spell hand stayed up; the rig refuses a swing on a wall) | FIXED: no spell hand while climbing (DFU's climb hides the weapon, WeaponManager.cs:236-240) - the swing button casts as before; pinned, mutant AUDITMS-L4-5-climb-unread |
 | L4-6 | MINOR | A press could outlive its frame and nothing managed it: a new ready inherited it, a door dropped it, a window let it leave beneath | FIXED: a new ready drops the press, AbortSpell drops it, a door hands it over with the spell (`takeReady`'s `pending`), a window holds it (`firePending`'s `held`); pinned, mutants AUDITMS-L4-6-* |
@@ -150,8 +150,9 @@ changed nothing. At 2 it is a blow more at every Speed: 8.53 (x1.19) with the bl
   content and re-run, all dead.
 - PIN MOVED, each with its note: `fieldgunmwaudit` (the muzzle names its hand), `riflestance` (the state's `free`),
   `audit23_magic` magic-14 and `allycast` A1 (CasterOnly's instant cast waits for a blow), `auditclimbarc` F10/F11 (the dungeon's `firePending` hears the window), `disc12`, `mac7`, `fparm`, `audit39_worldstate`,
-  `deckfield`, `tech1_hosts`, `hostmagic_wiring`, `weaponglow1`, `audit29_host`, and the relay's version pins (world249).
-- To deploy: the relay (**world249**: `ah`). An older relay strips the field and the socket stays open - its peers play
+  `deckfield`, `tech1_hosts`, `hostmagic_wiring`, `weaponglow1`, `audit29_host`, and the relay's version pins (world251).
+- To deploy: the relay (**world251**: `ah` - world249 on its branch, renumbered past STAFF-PANEL5-MONSTERS' world249 and
+  HERALD-CARDS' world250 at the merge with main). An older relay strips the field and the socket stays open - its peers play
   every strike of a pair with the right hand's weapon, as before.
 
 ## Outside the slice

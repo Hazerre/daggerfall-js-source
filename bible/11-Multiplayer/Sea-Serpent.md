@@ -614,6 +614,8 @@ The bells arm the hub's alarm from the first hello (`_serpentHeraldArm`). The al
 then the serpent's. Each keeps its own state (`herald`, `sherald`) and its own site record (`gatesite`,
 `serpentsite`). With no webhook nothing is posted and nothing of the herald's is kept.
 
+**HERALD-CARDS (2026-10-22).** These posts are cards now (`net/herald/heraldCard.js`; `World-Bosses.md` THE HERALD, HERALD-CARDS): the family The Sea Serpent, in its colour, the moment's title, its facts as fields (the bells: Rises, Dives, Where; the kill: Where, Slain by), and content only on a post that pings. When each is owed is unchanged. Its cards may go to a thread of their own of the channel (the relay setting `serpentThread`), the gate's else.
+
 ## 15. It never leaps (SERPENT3, 2026-10-05)
 
 Mac: *"the serpent world boss teleports. Nobody has beat it yet."* Mac's call for who can beat it: *"Two or more ships"* -

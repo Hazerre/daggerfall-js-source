@@ -702,7 +702,7 @@ the dungeon door's `cast` a positional argument.
 
 ## Not carried
 
-- **Peers on the wire** - CARRIED for MIXED-PAIR and SPELL-HAND (AUDIT L4-2, L4-3, relay world249): the peer's body
+- **Peers on the wire** - CARRIED for MIXED-PAIR and SPELL-HAND (AUDIT L4-2, L4-3, relay world251): the peer's body
   reads both hands off the look (`peerHandsOf`): a pair - a blade and a Pistolet as much as two blades - is held in both
   hands, the right hand's item in the right, the lead the pose's `lh`; each strike plays with the hand that made it (the
   pose's `ah`: a pair's LEFT hand struck last, `poseHandsOf`); a spell readied beside a one-handed weapon with the other
@@ -772,7 +772,7 @@ the dungeon door's `cast` a positional argument.
   hand), `riflestance` (the hold's `free`), `audit23_magic` magic-14 and `allycast` A1 (CasterOnly's instant cast waits for a blow), `auditclimbarc` F10/F11 (the dungeon's `firePending` hears the window),
   `disc12` and `mac7` (`lh` beside `ah` in `poseHandsOf`), `fparm` (one door, CasterOnly), `audit39_worldstate`,
   `deckfield`, `audit29_host`, `tech1_hosts`, `hostmagic_wiring` (the cast press `CAST_PRESS`), `weaponglow1` (a pair's
-  glow on the peer), and the relay's version pins (world249, `relayversion.test.js`'s hash row).
+  glow on the peer), and the relay's version pins (world251, `relayversion.test.js`'s hash row).
 - MIXED-PAIR and SPELL-HAND's cold review (2026-10-23), each finding fixed with its pin and its mutants: a mixed pair's shot
   held for the Morrowind arm's release was dropped as the blade's turn began (`shotHeld`); the arm's cast tail took the
   weapon out of the hand and let a blow, a touch blow or Z in (`castPlaying`, `armCasting`); the cast door read a blow the

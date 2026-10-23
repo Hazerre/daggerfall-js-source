@@ -597,6 +597,7 @@ export class OnlineSession {
     this._layerRoom = null;       // SCALE5d: the room `layer` was said in - a reconnect to it asks for its own layer again
     this.onRelayCfg = null;       // SCALE5b: ({k, v}|{k, error}) => void - the hub's answer to a relay setting
     this.relayCfgOk = false;      // SCALE5b: the hub's relay takes a setting (its welcome says, relayCfgSupported)
+    this._relayCfgV = null;       // HERALD-CARDS: the hub's relay's version, for the settings newer than the frame
     /** @type {string|null} */
     this.grantMode = 'off';       // GRANT2 (Spawn-Grants.md section 12): the spawn grants' law in my cell, as its welcome said (`gm`, relaySupportsGrant) - 'off' asks nothing; GRANT6: null while a socket's welcome is owed
     this.findOk = false;          // AUDIT SCALE II C-1: the hub's relay answers `find` - a search, the World tab's list, the Guild tab's (its welcome says, hubShardsSupported)
@@ -2882,7 +2883,7 @@ export class OnlineSession {
   sendRelayCfg(frame) {
     if (!this.relayCfgOk || !isSocialRoom(this.room)) return false;
     const m = validRelayCfgIn(frame);
-    return !!m && this._send({ t: 'cfg', ...m });
+    return !!m && relayCfgSupported(this._relayCfgV, m.k) && this._send({ t: 'cfg', ...m });   // HERALD-CARDS: a setting its relay knows
   }
 
   /** SCALE5c (Mac's decision 2): a search of everyone online by name, down the hub link - its answer comes back through
@@ -3329,6 +3330,7 @@ export class OnlineSession {
       if (primary) this.staffTeleportOk = staffTeleportSupported(relayV);
       if (primary) this.followOk = followSupported(relayV);   // STAFF-PANEL5-FOLLOW
       if (primary) this.relayCfgOk = relayCfgSupported(relayV);   // SCALE5b
+      if (primary) this._relayCfgV = relayV;   // HERALD-CARDS: and which of the settings it knows (relayCfg.js RELAY_CFG_KEY_MIN)
       if (primary) this.grantMode = relaySupportsGrant(relayV) && streamsFoes(room) && typeof m.gm === 'string' ? grantModeOf(m.gm) : 'off';   // GRANT2: my cell's law - a relay before world218 closes on an ask (GRANT4: a world room's too)
       if (primary) this.findOk = hubShardsSupported(relayV);   // AUDIT SCALE II C-1: `find` is the shards' relay's (world192) - one before it parses it as an unknown message and closes the hub link 1008, terminal
       { const ws = primary ? this._ws : this._halo.get(room)?.ws; if (ws) this._rfOn.set(ws, m.rf === 1); }   // SCALE5b: whether its cell judges poses - a halo there hears every one (HALO-THIN)

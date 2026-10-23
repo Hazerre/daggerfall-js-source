@@ -2,7 +2,7 @@
 // Two-Hands.md, "Peers on the wire"): THE OTHERS SEE THE HANDS. A peer's body held the lead hand's one weapon - a
 // blade-and-Pistolet pair's shot played as a sword blow, a blade's as a shot - and a spell beside a weapon stood the body
 // in the Spell stance with the weapon out of the hand and played none of its blows. The look carries both hands; the pose
-// carries `ah` (world249), the hand a pair's last strike was; the peer reads both by the local rig's own laws
+// carries `ah` (world251), the hand a pair's last strike was; the peer reads both by the local rig's own laws
 // (net/peer/peerBodies.js peerHandsOf).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

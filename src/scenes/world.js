@@ -214,7 +214,7 @@ import { setRacialQuestHost } from '../systems/racialQuests.js';   // V2d: the q
 import { setCrimeGuildQuestHost, setCrimeGuildClock, tallyCrimeGuildRequirements } from '../systems/crimeGuilds.js';   // CG2; LW7: a traveller struck down is the Brotherhood's five
 import { randomCemeteryLocationIndex } from '../systems/infection.js';   // V2e: GetRandomCemetery's pick half
 import { MEMBERSHIP_STATUS } from '../systems/quest/questLists.js';   // V2d: the vampire clan pool asks as a Member
-import { prepareQuestShare, prepareShareData, shareSignature, receiveSharedQuest, SHARE_REFUSAL_TEXT, shareRefusalText, sayShareRefusal } from '../systems/quest/questShare.js';   // QUEST1: the chronicle's own Share button, and the party frame it answers
+import { prepareQuestShare, prepareShareData, shareSignature, receiveSharedQuest, SHARE_REFUSAL_TEXT, sayShareRefusal, syncBaselineAfter, questBusyAgain, shareSomeone, shareReceivedLine, shareRefusedLine, shareSentLine } from '../systems/quest/questShare.js';   // QUEST1: the chronicle's own Share button, and the party frame it answers
 import { careerSunAverse } from '../systems/passiveSpecials.js';   // AUDIT 64 F20: Career.DamageFromSunlight, the arrival clamp's second arm - HOOD-CAREER: under a bare head
 import { buildMapDict, locationSummaryAt as travelLocationSummaryAt } from '../systems/map/mapDirectory.js';   // W1: ContentReader's map dict; TO1: the junction map's own reads
 import { dilateCoastalClimate, smoothLocationNeighbourhood } from '../world/terrain/terrainHelper.js';   // AUDIT 58 F4
@@ -722,7 +722,7 @@ import { createLairDoor } from './lairHost.js';   // RVN7, LAIR-DOOR: a revenant
 import { createBountyOverlay, closeBountyDoor, bountyDoorOpen } from '../ui/bounty/bountyDoor.js';   // BOUNTY1: the board's window and the payday notice
 import { isQualifyingThreatState } from '../systems/horse/horseFollow.js';   // HCC: CollectThreats' qualification, the mod's own five-term test
 import { totalWeight } from '../systems/inventory.js';   // HCC: PlayerEntity.WagonWeight
-import { planTake, cannotCarryText } from '../systems/item/itemTransfer.js';   // SET7: the Broker's sale asks the pack's own carry gate
+import { planTake, cannotCarryText, keepsQuestItem, makeHeldQuestItemsPermanent } from '../systems/item/itemTransfer.js';   // SET7: the Broker's sale asks the pack's own carry gate
 import { createUpkeep, horseWhereOf, upkeepReach, registerUpkeepUses } from '../systems/upkeep/upkeepRuntime.js';   // STEED1/WAGONS4: horse care and wagon upkeep, a frame at a time
 import { mendWagon, wagonWord, WAGON_UPKEEP_TEXT } from '../systems/wagon/wagonUpkeep.js';   // WAGONS4: the Wagon Yard's wright
 import { horseCareRules, wagonUpkeepRules } from '../systems/upkeep/upkeepSwitch.js';   // STEED1/WAGONS4: their Features switches; HORSE-TIERS: horse care's tier through its one accessor; WAGON-TIERS: and wagon upkeep's through its own
@@ -991,7 +991,6 @@ import { ensureFactionRep, getReputation, changeReputation } from '../systems/fa
 import { changeLegalRep, legalRepOf, CRIMES, setCrimeCommitted, lowerRepForCrime, setCrimeRepFactor } from '../systems/court.js';   // the region's LegalRep: the status box, the quest actions, the crimes (REP1 retired :498-511's levy)
 import { isEquipped, unequipSlot, unequipItem, wearableItem } from '../systems/equip.js';   // HACKED-GOLD: a worn offer holds what can be worn
 import { ServiceFlowWindow } from '../ui/guildServiceWindows.js';
-import { makeItemPermanent } from '../systems/quest/item.js';
 import { isShelved } from '../systems/quest/quest.js';   // QUEST-SHELF: a quest set aside
 import { guildOfFaction, membershipOf, guildFactionIdOfGroup, joinedGuildOfGroup, activeMemberships, guildInitiationQuestEnded } from '../systems/guild/guilds.js';   // V2e: the per-read vampire book pick; F96: the TG/DB initiation listener
 import { GUILD_FACTION_IDS } from '../systems/guild/guildFactions.js';   // CHAP4b: the Mages Guild's faction, for its seat's teleport
@@ -13115,7 +13114,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   };
   const shareQuestWithParty = (uid, questName, displayName) => {
     const prepared = prepareQuestShare(questBridge?.machine, uid);
-    if (!prepared.ok) { setMidScreenText(SHARE_REFUSAL_TEXT[prepared.reason] ?? 'Could not share that quest.'); return; }
+    if (!prepared.ok) { setMidScreenText(SHARE_REFUSAL_TEXT[prepared.reason] ?? t('quest.share.failed', 'Could not share that quest.')); return; }
     const link = socialLink();
     const sent = link?.shareQuest({ questName: prepared.questName, displayName: prepared.displayName || displayName || questName, data: prepared.data });
     if (sent) {
@@ -13126,7 +13125,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       questBridge?.machine.markQuestShared(prepared.questName);
       _questSyncSeen.set(prepared.questName, shareSignature(questBridge.machine.getQuest(uid)));   // DISC28-I
     }
-    setMidScreenText(sent ? `Shared "${prepared.displayName || displayName || questName}" with your party.` : 'Could not share that quest right now.');
+    setMidScreenText(shareSentLine(sent, prepared.displayName || displayName || questName));   // AUDIT QA3: the sender's words in the player's language (questShare.js)
   };
   /** U43: the two journal doors (GameManager.cs:541-548), ONE window
    *  either way - LogBook opens it as it stands, NoteBook on the
@@ -19857,6 +19856,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     playerHasItem: (dfItem) => _heldItemIndex(dfItem) >= 0,
     carriesQuestItem: (res) => (playerEntity.items ?? []).some((it) =>
       it.questItem && it.questUID === res.parentQuest?.uid && it.questSymbol?.name === res.symbol?.name),
+    keepsQuestItem: (res) => keepsQuestItem(playerEntity, res),   // QUEST-AUDIT III SHELF-TWIN, AUDIT QA3 B8: every keeping, for the reclaim and the repair - the pack alone for `toting` and `have`
     releaseQuestItem: (uid, res) => {
       // ReleaseQuestItemForReoffer's player-side sweep: unequip + drop
       // every held copy of the quest item.
@@ -19869,11 +19869,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       }
       surfacePlayer();
     },
-    makeHeldQuestItemsPermanent: (uid, sym) => {
-      for (const it of playerEntity.items ?? []) {
-        if (it.questItem && it.questUID === uid && it.questSymbol?.name === sym?.name) makeItemPermanent(it);
-      }
-    },
+    makeHeldQuestItemsPermanent: (uid, sym) => makeHeldQuestItemsPermanent(playerEntity, uid, sym),   // the pack's copies (itemTransfer.js)
     // RW1: OfferToPlayerWithQuestComplete's world half (GivePc.cs
     // :150-171 + :189-196). The reward is a DROPPED LOOT container at
     // the player - "CreateDroppedLootContainer(PlayerObject, ...)" -
@@ -19898,6 +19894,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // so "in town, outdoors" was true while standing in a shop.
     isPlayerInTown: () => _isPlayerInTownStrict(),
     partySize: () => social?.party?.members?.length ?? 1,   // REALM P0.4: a shared quest's gold is paid in the party's shares (online; offline no party)
+    partyHas: (acct) => !!social?.inMyParty(acct),   // AUDIT QA3 E1: a received copy waits on its sharer while they are in the party
     getGuild: (fid) => {
       const dict = townTalk.factionDict ?? null;
       const g = guildOfFaction(fid, resolveVariantGuild(dict), dict);
@@ -20162,7 +20159,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let bountyHost = null;   // BOUNTY1: made below, beside the party's marks; read late by the maps, the pose and the boards
   let social = null, _partyComposedAt = -Infinity, _partyPose = null;   // PARTY8-B: the last pose composed, for the party HUD's own "where am I"
   let partyPing = null, _partyPingTry = -Infinity;   // PARTY-PING: the look's point, wired below
-  const chatSafety = createChatSafetyHost({ log: () => chatLog, links: () => [...(chatLinks?.values?.() ?? []), online].filter(Boolean), social: () => social, minter: () => identityMinter, panel: () => chatPanel, glyphs: () => _staffGlyphs, teleport: (id) => runStaffCommand(chatLog?.active, { cmd: 'tp', player: { id } }) });   // STAFF-PANEL2: an Admin's (developer) or a Moderator's chat lines carry no Report; STAFF-PANEL2-CHATMENU: their acts instead, TP by the line's socket through /tp's own door   // SAFE1-SAFE7 (bible/11-Multiplayer/Chat-Safety-Arc.md) - AUDIT SAFE CLIENT-2: the minter a ban lets go of; CLIENT-12: the field a slowed line goes back to
+  const chatSafety = createChatSafetyHost({ log: () => chatLog, links: () => [...(chatLinks?.values?.() ?? []), online].filter(Boolean), social: () => social, minter: () => identityMinter, panel: () => chatPanel, glyphs: () => _staffGlyphs, teleport: (id) => runStaffCommand(chatLog?.active, { cmd: 'tp', player: { id } }), follow: () => staffFollow.follow });   // STAFF-PANEL5-FOLLOW (mob 2026-10-23: "why doesnt follow work?"): the Follow row's follow - staffFollow is made later in this same synchronous stretch, before any line can be clicked; STAFF-PANEL2: an Admin's (developer) or a Moderator's chat lines carry no Report; STAFF-PANEL2-CHATMENU: their acts instead, TP by the line's socket through /tp's own door   // SAFE1-SAFE7 (bible/11-Multiplayer/Chat-Safety-Arc.md) - AUDIT SAFE CLIENT-2: the minter a ban lets go of; CLIENT-12: the field a slowed line goes back to
   /** CONCEAL-MATE: a peer in my party - the test player/socialPick.js openPeers is handed, so a concealed mate stays
    *  open to the F key, the Nearby list, a page and a gift. A declaration: the street's pick reads it from above. */
   function isPartyMate(id) { return !!social?.party && social.isPartyPeer(id); }
@@ -20998,7 +20995,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       if (!foe) return;
       const owner = from != null ? (social?.accountOfPeer?.(from) ?? null) : null;
       if (owner && Number.isInteger(i) && !keptKills.credit(owner, tag.q, tag.s, i, Date.now())) return;
-      foe.incrementKills?.();
+      foe.creditPartnerKill?.(owner);   // QUEST-AUDIT III KILL-ONCE: one the partner's envelope brought already is not counted again (quest/foe.js)
     },
     // KEPT-KILL (2026-10-01): a foe I kept on a partner's word fell here - my copy holds no such quest, so my party pose
     // says it (`qk`) and every copy that holds the quest counts it, wherever its member stands
@@ -21761,11 +21758,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // reads only the result and says it in a word, success or refusal, the same as sendQuest's own send-side note.
     link.onQuestShared = (acct, name, quest) => {
       if (!social.inMyParty(acct)) return;   // AUDIT 68 S14-quest-inbound-ungated: a seat in my party alone, applyParty's own rule - the relay is the player's choice
-      const who = name || 'A party member';
+      const who = name || shareSomeone();   // QUEST-AUDIT III SHARE-WORDS (questShare.js)
       const result = receiveSharedQuest(questBridge?.machine, questBridge?.questLists, quest.questName, quest.data, {
         memberships: activeMemberships(playerEntity),
         // AUDIT SD III (D5): the copy laid on this world's sizes - a quest item I carry never laid again
-        carriesQuestItem: (res) => (playerEntity.items ?? []).some((it) => it.questItem && it.questUID === res.parentQuest?.uid && it.questSymbol?.name === res.symbol?.name),
+        carriesQuestItem: (res) => keepsQuestItem(playerEntity, res),   // QUEST-AUDIT III SHELF-TWIN: every keeping (itemTransfer.js)
+        from: acct,   // QUEST-AUDIT III GOLD-HOLDERS: the sender holds this copy (questShare.js receiveSharedQuest)
       });
       const label = quest.displayName || quest.questName;
       if (result.ok) {
@@ -21775,13 +21773,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         // of seconds while someone actively plays through it, and a
         // background sync is not a deliberate share. Only the FIRST,
         // fresh receipt gets the on-screen note.
-        if (!result.resync) setMidScreenText(`${who} shared a quest: "${label}".`);
+        if (!result.resync) setMidScreenText(shareReceivedLine(who, label));
         // AUDIT PARTY8 (2026-09-23): THE ECHO. A resync restores the sender's log, which changes MY log's length, and
         // questSyncTick read that as my own progress and shared the quest straight back - every receiver, once,
         // on its next tick: one log line became eight hub acts and fifty-six deliveries at eight seats, and the
         // room's whole quest burst (QUEST_ROOM_HZ_MAX) for one party. What I just received is what I have seen.
         const q = questBridge?.machine?.sharedCandidateNamed(quest.questName);
-        if (q) _questSyncSeen.set(quest.questName, shareSignature(q));   // DISC28-I: the whole signature, the sync's own measure
+        if (q) _questSyncSeen.set(quest.questName, syncBaselineAfter(q, result, _questSyncSeen.get(quest.questName)));   // DISC28-I: the whole signature, the sync's own measure; QUEST-AUDIT III PROGRESS-KEPT / GOLD-HOLDERS (questShare.js)
         if (quest.data?.final === 1) _questSharer.delete(quest.questName);   // DISC28-I: the copy that stood its foes has ended - mine ends with it
         return;
       }
@@ -21796,13 +21794,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       if (quest.data?.final === 1 || (quest.data?.sync === 1 && result.reason === 'done')) return;
       // SHARE-MEND: a sync's refusal is said once (sayShareRefusal), and one that says the copies disagree names a build skew
       if (!sayShareRefusal(_questRefusalSaid, acct, quest.questName, result, quest.data?.sync === 1, `${quest.data?.shareId ?? ''}|${quest.data?.build ?? ''}`)) return;
-      const why = shareRefusalText(result, quest.data?.build ?? null);   // DISC25-D: a guild refusal names the guild
-      setMidScreenText(why ? `${who} tried to share "${label}", but you ${why}` : `Could not receive the quest "${label}" from ${who}.`);
+      setMidScreenText(shareRefusedLine(result, who, label, quest.data?.build ?? null));   // DISC25-D: a guild refusal names the guild; QUEST-AUDIT III SHARE-WORDS: the line in the player's language (questShare.js)
     };
     // AUDIT DISC28 QS-1: the hub refused my last share as 'busy' (net/online.js onQuestBusy) - a FINAL goes back on the
     // machine's pending finals and questSyncTick sends it when the floor opens. An ordinary sync never does: sent as a
     // final it would end the party's copies on the state before the end; the next change carries it, as it always did
-    link.onQuestBusy = (quest) => { if (quest?.data?.final === 1) questBridge?.machine?.pendFinishedShare?.(quest.data); };
+    link.onQuestBusy = (quest) => { questBusyAgain(questBridge?.machine, quest, _questSyncSeen); };   // AUDIT DISC28 QS-1 and QUEST-AUDIT III BUSY-SYNC (questShare.js)
     social.onNote = (note, text) => { if (text) chatLog.push(partyNoteTab(note, social, tab.id), { text, system: true }); };   // CHAT-CHAN: a party's own news on the Party tab, beside its conversation
     social.onError = (text) => { chatLog.push(tab.id, { text: `Social: ${text}`, system: true }); };
     // SOC3: the social button and the friends + party panel are made here, over `social`, `link` and `chatPanel`

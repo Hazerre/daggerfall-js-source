@@ -250,7 +250,7 @@ function stubSlotsOf(look) {
  * AUDIT MIXED-PAIR L4-3 / AUDIT SPELL-HAND L4-2: THE PEER'S HANDS, off the look (both hands' items) and the pose, read by
  * the local rig's own laws (combat/weapon/weaponRig.js handArm, spellHandNow): a PAIR (handsModeOf) - its RIGHT hand's
  * weapon in the body's right hand, its left mirrored on the Weapon Bone Left (setOffWeapon), its lead `lh`, and the hand
- * each strike was (`ah`, a pose of world249 on); else the hand in use (DISC12). And the SPELL HAND: a spell readied (`sr`)
+ * each strike was (`ah`, a pose of world251 on); else the hand in use (DISC12). And the SPELL HAND: a spell readied (`sr`)
  * beside a drawn (`wd`) one-handed weapon with the other hand empty (spellHandOf) - the body keeps the weapon's stance, its
  * left arm the spell's; a peer stood in the Spell stance with the weapon out of the hand, and played none of its blows. A
  * light in hand (`lt` lit while no lantern hangs at the waist, `hl`) takes the left hand, as the local rig's leftBusy.
