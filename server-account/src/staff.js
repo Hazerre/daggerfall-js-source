@@ -45,8 +45,15 @@
 // write than a wrong one - a clock to guess a password by, from as many addresses as an attacker holds.
 import { verifyPassword, mintRecoveryCode, canonicalCode } from './password.js';
 import { mintId, mintSecret, hashSecret, displayName, overRate, clearRate, overAccountRate } from './accounts.js';
-import { isDeveloper, canModerate, handleList, developerHandles, moderatorHandles, TIER_LISTS, MOD_TIERS } from './titles.js';
+import { isDeveloper, canModerate, handleList, developerHandles, moderatorHandles, staffSuspended, TIER_LISTS, MOD_TIERS } from './titles.js';
 import { isBanned } from './sanctions.js';
+import { staffCases, CASE_ROUTES } from './staffCases.js';
+import { staffDesk, DESK_ROUTES } from './staffDesk.js';   // STAFF-PANEL3-DESK: notes, the watchlist, your settings, and the Admins' notice, scorecard and reported notes
+import { staffPlayers, PLAYER_ROUTES } from './staffPlayers.js';
+import { staffStatus, STATUS_ROUTES } from './staffStatus.js';   // STAFF-PANEL6-STATUS: server status, its limits, Home
+import { staffRealm, REALM_ROUTES } from './staffRealm.js';
+import { staffCensus, CENSUS_ROUTES } from './staffCensus.js';   // STAFF-PANEL4-CENSUS: the item and gold census, the contested pieces
+import { staffEconomy, ECON_ROUTES } from './staffEconomy.js';   // STAFF-PANEL3-ECON: market and trades, node activity, economy
 
 /** The header a staff session rides in - never `authorization`, which is the game's. */
 export const STAFF_SESSION_HEADER = 'x-staff-session';
@@ -84,6 +91,25 @@ export const staffWords = (/** @type {'login'|'enroll'} */ what, /** @type {stri
 export const STAFF_STATUS = Object.freeze({
   'staff-login': 401, 'staff-session': 401, 'staff-owner': 403, 'staff-admin': 403, 'no-staff': 404, 'no-key': 404, 'no-player': 404,
   'staff-self': 409, 'staff-keys-full': 409, 'staff-already': 409, 'staff-banned': 409, 'staff-config': 409, 'rate': 429, 'body': 400,
+  // STAFF-PANEL2 (staffCases.js): a case another member holds, a Moderator's second case, and the game's own moderation words
+  'staff-claimed': 409, 'staff-one-case': 409, 'no-case': 404, 'not-moderator': 403, protected: 403, ambiguous: 409, 'bad-minutes': 400,
+  'bad-days': 400, 'not-banned': 409, 'not-found': 404,
+  // STAFF-PANEL3-DESK (staffDesk.js): a watchlist full, a player not on it, a board note gone
+  'watch-full': 409, 'not-watched': 404, 'no-note': 404, 'note-text': 400, 'settings-bad': 400, 'bad-act': 400, 'bad-notice-days': 400, 'board-rid': 400,
+  // STAFF-PANEL3-PLAYERS (staffPlayers.js): a rename refused - not a name the game takes, the name it has, a role or title
+  // list's, another account's, or moved under the act - and an account with no handle or no such character
+  'rename-bad': 400, 'rename-same': 409, 'rename-listed': 409, 'rename-taken': 409, 'rename-moved': 409, 'no-handle': 409, 'no-character': 404,
+  // STAFF-PANEL3-REALM (staffRealm.js): the review's own words (index.js REVIEW_STATUS), the market's, and the panel's - a
+  // note or a reason not given, a Roll back waiting on a kept removal, a piece not where the panel saw it, a contested
+  // piece whose trail was not checked, a removal not kept (or past its 30 days)
+  'not-developer': 403, 'no-realm-character': 404, 'no-clean': 409, 'service-moved': 409, dead: 409, 'repair-no-faction': 409, 'repair-not-set': 409,
+  seq: 409, 'mend-not-negative': 409, 'mend-moved': 409, 'repair-ticket': 409, 'no-data': 409, 'no-storage': 503, 'market-gone': 409, 'bad-listing': 400,
+  'staff-note': 400, 'staff-reason': 400, 'staff-remove-pending': 409, 'staff-no-piece': 409, 'staff-trail': 409, 'staff-evidence': 404, 'staff-evidence-gone': 409,
+  // STAFF-PANEL4-CENSUS (staffCensus.js): a contested piece that is not there, and a kind no save tallies (Marks' jumps)
+  'no-piece': 404, 'census-no-tally': 400,
+  // STAFF-PANEL2-FIX (safety.js modAct): a case another act took or closed, a spawn case a Moderator asked for, an Admin's
+  // sanction a Moderator would lift, a press with no one-time id, and a cut member an Admin would add back
+  'case-acted': 409, 'case-closed': 409, 'admin-sanction': 403, 'bad-click': 400, 'staff-suspended': 409,
 });
 
 const enc = new TextEncoder();
@@ -327,6 +353,15 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
     return gone.meta.changes ? { ok: true, id: body.id } : { error: 'no-key' };
   }
 
+  // ═══ STAFF-PANEL2: THE REPORTS, Mute, Ban and the claims - Admins and Moderators both (staffCases.js) ═══
+  if (CASE_ROUTES.includes(path)) return staffCases(ctx, env, path, body, who, audit);
+  if (DESK_ROUTES.includes(path)) return staffDesk(ctx, env, path, body, who, audit);   // STAFF-PANEL3-DESK (staffDesk.js): each door checks its role
+  if (PLAYER_ROUTES.includes(path)) return staffPlayers(ctx, env, path, body, who, audit);   // STAFF-PANEL3-PLAYERS: search, profile, devices, rename - Admins'
+  if (STATUS_ROUTES.includes(path)) return staffStatus(ctx, env, path, body, who, audit);   // STAFF-PANEL6-STATUS (staffStatus.js)
+  if (REALM_ROUTES.includes(path)) return staffRealm(ctx, env, path, body, who, audit);   // STAFF-PANEL3-REALM: trade holds, rollbacks, fixes, gains, removals - Admins'
+  if (CENSUS_ROUTES.includes(path)) return staffCensus(ctx, env, path, body, who, audit);   // STAFF-PANEL4-CENSUS: Admin only
+  if (ECON_ROUTES.includes(path)) return staffEconomy(ctx, env, path, body, who, audit);   // STAFF-PANEL3-ECON: an Admin's alone
+
   // ═══ THE ADMINS' DOORS: THE PANEL'S MODERATORS (mob, 07:42Z: "add it so admins can add or remove moderatoers") ═══
   // /v1/staff/mods lists them; /v1/staff/mod/add and /mod/remove { handle } - a registered account, not banned, not staff
   // already. One the config names (MODERATOR_HANDLES, a moderating title, an Admin) is the config's to remove, never the
@@ -343,6 +378,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
     if (!target?.handle) return { error: 'no-player' };
     if (path === '/v1/staff/mod/add') {
       if (staffRole(target, env)) return { error: 'staff-already' };
+      if (staffSuspended(target)) return { error: 'staff-suspended' };   // STAFF-PANEL2-FIX: an owner's cut, an owner's invite to lift
       if (isBanned(target, nowS)) return { error: 'staff-banned' };
       const [, set] = await db.batch([
         audit('mod-add', target.id, { handle: target.handle }, { okIf: { sql: 'EXISTS (SELECT 1 FROM players WHERE id = ? AND staff_mod = 0)', args: [target.id] } }),
@@ -374,20 +410,29 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
     await audit('team-read', null, null, { onceIn: STAFF_READ_ROW_S }).run();
     return {
       team: (r.results ?? []).map((p) => ({
-        id: p.id, handle: p.handle, role: staffRole(p, env), owner: isOwner(p, env), keys: p.keys, sessions: p.live, inviteUntil: p.invite_until ?? null,
+        id: p.id, handle: p.handle, role: staffRole({ ...p, staff_suspended: 0 }, env), owner: isOwner(p, env), keys: p.keys, sessions: p.live, inviteUntil: p.invite_until ?? null,
+        suspended: staffSuspended(p),   // STAFF-PANEL2-FIX: cut off - the role their lists give, held by nobody until an invite
       })),
     };
   }
   if (path === '/v1/staff/invite' || path === '/v1/staff/cut') {
     const lc = handleLc(body.handle);
     const target = lc ? await db.prepare('SELECT * FROM players WHERE handle_lc = ?').bind(lc).first() : null;
-    const role = staffRole(target, env);
+    // STAFF-PANEL2-FIX: a member cut off holds no role, but an owner's invite brings them back - lifting the cut with it
+    const restore = path === '/v1/staff/invite' && staffSuspended(target);
+    const role = staffRole(restore ? { ...target, staff_suspended: 0 } : target, env);
     if (!target || !role) return { error: 'no-staff' };
     if (path === '/v1/staff/cut') {
       if (target.id === me.id) return { error: 'staff-self' };
+      // STAFF-PANEL2-FIX (design doc, Weak spots: "Cutting off a staff member misses most doors"): the cut is stored
+      // (`staff_suspended`, every role path reads it - titles.js), and it ends the member's game sessions as well as
+      // their panel's, so no game door and no fresh token is theirs until they sign in again - and that token carries no
+      // staff glyph. What their open sockets hold now stays until they drop or their lease lapses: the relay's order that
+      // closes them ships with the relay release, not with the service
       await db.batch([
         db.prepare('UPDATE staff_keys SET revoked_at = ? WHERE player_id = ? AND revoked_at IS NULL').bind(nowS, target.id),
-        ...['staff_sessions', 'staff_invites'].map((t) => db.prepare(`DELETE FROM ${t} WHERE player_id = ?`).bind(target.id)),
+        ...['staff_sessions', 'staff_invites', 'sessions'].map((t) => db.prepare(`DELETE FROM ${t} WHERE player_id = ?`).bind(target.id)),
+        db.prepare('UPDATE players SET staff_suspended = 1 WHERE id = ?').bind(target.id),
         audit('cut', target.id, { handle: target.handle, role }),
       ]);
       return { ok: true, handle: target.handle };
@@ -400,7 +445,8 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
       db.prepare('DELETE FROM staff_invites WHERE player_id = ?').bind(target.id),   // one live invite a member: a new one replaces it
       db.prepare('INSERT INTO staff_invites (code_hash, player_id, by_id, created_at, expires_at) VALUES (?, ?, ?, ?, ?)')
         .bind(await hashSecret(canon, { subtle }), target.id, me.id, nowS, until),
-      audit('invite', target.id, { handle: target.handle, role }),
+      db.prepare('UPDATE players SET staff_suspended = 0 WHERE id = ?').bind(target.id),
+      audit('invite', target.id, { handle: target.handle, role, ...(restore ? { restored: true } : {}) }),
     ]);
     return { ok: true, handle: target.handle, role, invite: code, expiresAt: until };
   }

@@ -110,10 +110,13 @@ test('ACC1e: every refusal word the SERVICE can emit has a sentence here - walke
   // three-file list is an enumeration, and an enumeration disagrees with
   // the tree the day somebody adds a file.
   // STAFF-PANEL1: but staff.js answers the staff panel (/v1/staff/*), never this screen, so its words are the
-  // panel's to say - walked all the same, below, against the status it answers each with.
+  // panel's to say - walked all the same, below, against the status it answers each with. STAFF-PANEL6-STATUS: and so do
+  // the panel's own modules beside it (staffCases.js, staffStatus.js, every staff*.js).
+  const panel = (/** @type {string} */ f) => /^staff[A-Z.]/.test(f);
   const files = readdirSync(new URL('../../server-account/src', import.meta.url))
-    .filter((f) => f.endsWith('.js') && f !== 'staff.js').sort();
-  const staffSays = [...src('server-account/src/staff.js').matchAll(/error:\s*'([a-z-]+)'/g)].map((m) => m[1]);
+    .filter((f) => f.endsWith('.js') && !panel(f)).sort();
+  const staffSays = readdirSync(new URL('../../server-account/src', import.meta.url)).filter((f) => f.endsWith('.js') && panel(f))
+    .flatMap((f) => [...src(`server-account/src/${f}`).matchAll(/error:\s*'([a-z-]+)'/g)].map((m) => m[1]));
   assert.ok(staffSays.length >= 5, 'the staff walk found nothing - it has stopped seeing its subject');
   assert.deepEqual(staffSays.filter((w) => !(w in STAFF_STATUS)), [], 'the staff panel can be refused with a word it has no status for');
   assert.ok(files.length >= 4, `the walk found only ${files.length} service files - it has stopped seeing its subject`);
