@@ -31,13 +31,14 @@ ONE hand, and so a PAIR.
 | Skill | Archery (`weaponSkillUsed`) | |
 | Hands | Either (`characters/equipTable.js`) - one-handed, so a second one in the other hand is a pair | |
 | Ammunition | the **Dwemer Pellet** (`ammoTemplateFor` answers 561 for either gun), flying as the same shock orb | |
-| Found | the Thunderlock's unique find, half its mints, from source tier 4, arriving with 6-18 Pellets; never on a shelf | `systems/thunderlock.js` |
+| Found | never, since GUNS-UNFOUND (2026-10-23) - the find mints its Pellets alone (below); never on a shelf. Until then the Thunderlock's unique find, half its mints, from source tier 4, arriving with 6-18 Pellets | `systems/thunderlock.js` |
 
 **The rarity.** There is ONE gun find, the Thunderlock's own at its old weight (`systems/thunderlock.js`). Its one mint
 draw picks the gun - the Pistolet at or over `GUN_SHARE` 0.5, the Thunderlock under it - and what is left of the draw,
 stretched back to a whole unit, counts the Pellets. So each gun turns up exactly half as often as the Thunderlock did, at
 every source, the find's cap and Luck's nudge included, and every seeded loot list draws what it always drew (Loot-II-Arc
-law 9). `systems/pistolet.js` hands the find its mint (`setSecondGun`).
+law 9). `systems/pistolet.js` hands the find its mint (`setSecondGun`). GUNS-UNFOUND (2026-10-23): no more - the find
+mints its Pellets alone and `GUN_SHARE` and `setSecondGun` are gone (`Dwarven-Thunderlock.md` GUNS-UNFOUND).
 
 AUDIT PISTOLET (A5, A8, C2, C3, D6, D29) found the first cut, two finds at `FIND_WEIGHT` 0.5, neither half nor stable:
 - `uniqueFindChance` caps each find at 6 per mille and adds Luck's nudge per find, neither scaled by the weight, so a
@@ -312,6 +313,12 @@ pistol juggled between the hands firing a pair's rate, and one frame with a Pist
 reload. Every one fixed or recorded: `01-Overview/audits/Audit-Pistol-Port.md`.
 
 ## The Sunken Sovereign is a Pistolet
+
+GUNS-UNFOUND (2026-10-23, the owner: "remove the thunderlock and pistolet from the loot pool and revert the gilded
+weapon from the serpent"): **the Sovereign is the Ebony Saber again, and the Pistolet is found no more** - the
+Thunderlock's find mints its Pellets alone. A gold Pistolet minted below is the record's PISTOLET ERA
+(`SOVEREIGN_PISTOLET_ERA`), lawful and its own, its gold art kept; the saber era below is the record itself again
+(`06-Systems/Gilded.md` section 9, `Dwarven-Thunderlock.md` GUNS-UNFOUND). What follows is PISTOLET's record.
 
 `systems/gilded.js`: the serpent's Gilded record is an Ebony **Dwarven Pistolet**, where it was an Ebony Saber.
 - It keeps its id (every hoard and save that holds one reads it), its make, damage, Agility and leech lines, its power

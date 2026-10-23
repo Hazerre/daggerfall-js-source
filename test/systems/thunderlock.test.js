@@ -210,7 +210,7 @@ test('the shimmer cools the metal and lights the highlights, and touches no tran
   for (let i = 3; i < px.length; i += 4) assert.equal(px[i], before[i], 'alpha is never written');
 });
 
-test('THE RAREST THING IN THE GAME: impossible below its tier, and never for sale', () => {
+test('THE RAREST THING IN THE GAME: impossible below its tier, and never for sale - GUNS-UNFOUND: and found no more, its find its Pellets alone', () => {
   const find = uniqueFinds().find((f) => f.id === 'dwarven-thunderlock');
   assert.ok(find, 'it registers itself with the loot ladder rather than the ladder naming it');
   // BASE ZERO. A rat in a shallow crypt cannot drop it at any luck -
@@ -235,10 +235,14 @@ test('THE RAREST THING IN THE GAME: impossible below its tier, and never for sal
   // cannot be fired and cannot be bought shot for.
   // PIN MOVED (PISTOLET, AUDIT PISTOLET): the find's draw under GUN_SHARE is the Thunderlock's, at or over it the
   // Pistolet's (systems/thunderlock.js setSecondGun) - this one draws in the Thunderlock's half
-  const minted = find.mint(() => 0.25);
-  assert.equal(minted.length, 2);
-  assert.ok(isThunderlock(minted[0]) && isPellet(minted[1]));
-  assert.ok(minted[1].stackCount >= 6 && minted[1].stackCount <= 18);
+  // PIN MOVED (GUNS-UNFOUND, the owner: "remove the thunderlock and pistolet from the loot pool ... Ammo should still
+  // drop"): no gun at any draw - the find mints its Pellets alone
+  for (const v of [0, 0.25, 0.5, 0.75, 0.9999]) {
+    const minted = find.mint(() => v);
+    assert.equal(minted.length, 1, `${v}: the Pellets alone`);
+    assert.ok(!minted.some(isThunderlock) && isPellet(minted[0]), `${v}: no gun`);
+    assert.ok(minted[0].stackCount >= 6 && minted[0].stackCount <= 18);
+  }
 
   // NOT FOR SALE, and it takes no code: a shelf is built from DFU's
   // own group enum table, and a custom template is not in it.
@@ -261,12 +265,12 @@ test('THE RAREST THING IN THE GAME: impossible below its tier, and never for sal
 });
 
 test('the find adds to a list rather than promoting one, and claims its own legendary', () => {
-  // a roll that always lands: the find is added, with its ammunition
+  // a roll that always lands: the find is added - PIN MOVED (GUNS-UNFOUND): its ammunition alone, the gun never
   const items = [];
   const always = () => 0;
   rollLootRarity(items, { kind: 'pile', tier: 8, boss: true, luck: 100 }, { rolls: always, luck: 100 });
-  assert.ok(items.some(isThunderlock), 'the weapon arrived');
-  assert.ok(items.some(isPellet), 'and so did something to fire');
+  assert.ok(!items.some(isThunderlock), 'no gun arrives');
+  assert.ok(items.some(isPellet), 'the ammunition still does');
   // a roll that never lands leaves the list exactly as it was
   const none = [];
   rollLootRarity(none, { kind: 'pile', tier: 8, boss: true, luck: 100 }, { rolls: () => 0.999, luck: 100 });
