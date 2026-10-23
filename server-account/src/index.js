@@ -2612,7 +2612,11 @@ const service = {
         // AUDIT LEGACY III O1/O3: the other's character as the relay stamped it, and a half taken back
         if (path === '/v1/realm/wed') return answer(await realmWed(rctx, me, { id: body.id, lease: body.lease, sid: body.sid, partner: body.partner, partnerChar: body.partnerChar, withdraw: body.withdraw === true }));
         if (path === '/v1/realm/unions') return json({ unions: await listUnions(rctx, me) }, 200, origin);
-        return answer(await homeOrdersOf(await deleteRealm(rctx, me, body.id), me, env, subtle, nowS));   // QUEST-HOME: its homes a house again to every page online   // /v1/realm/delete - HOUSE-LOSS: which undoes one too, for a door that asks a delete
+        // /v1/realm/delete - HOUSE-LOSS: which undoes one too, for a door that asks a delete. ACCOUNT-HOMES: the homes it
+        // bought go with it (QUEST-HOME's `moved`), and their towns' kept yards are let go as a decor write lets them go (YARD-SHED)
+        const deleted = await deleteRealm(rctx, me, body.id);
+        for (const { mapId } of deleted?.moved ?? []) forgetYards(mapId);
+        return answer(await homeOrdersOf(deleted, me, env, subtle, nowS));   // QUEST-HOME: its homes a house again to every page online
       }
 
       // a path this service serves, reached with a method it does not
