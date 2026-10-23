@@ -1320,7 +1320,15 @@ Audio. Pins: `test/systems/intro3_score.test.js` (5) and `test/ui/intro.test.js`
 series (2026-10-23, the owner's call): the whole suite had outgrown the job's 25
 minutes, so every intro run from 2026-10-16 was cancelled before a probe ran, and
 `verify.yml` already runs the whole gate on every pull request
-(`09-Testing/Testing.md`, CI in parallel).
+(`09-Testing/Testing.md`, CI in parallel). The first run that reached the
+live probe found two of its own checks stale, both hidden behind those
+cancellations. It looked for New Game on the front door, where UI-CALM had
+put it behind the Offline door; it now opens Offline first, as the other
+menu probes do. And it held the last frame before the attack to an opacity
+over 0.9, but the logo fades in over the approach's first 0.125 s, so a
+frame that lands there (CI's frames are about 0.4 s apart) failed while
+showing exactly the cue: 0.899 at 18.48 s. It now holds that frame to
+`introTitleAt` at the frame's own time - visible, centred, not landed.
 
 ## U65 THE INTRO (2026-08-30) - HISTORICAL REMOVAL
 
