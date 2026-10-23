@@ -1124,8 +1124,8 @@ function closeAccount() {
   if (!accountMayClose()) return;
   accountOpen = false;
   acctFlow = null;
-  acctPaint = null;
   acctOff?.(); acctOff = null;
+  acctPaint = null;
   rereadCollectionsAccount();   // AUDIT COLLECTIONS-II (lane 2): what the card did, the Collections page reads again
   render();
 }
