@@ -17,6 +17,11 @@ import { createFreezeScreen } from '../../src/ui/freezeScreen.js';
 import { setStaffFrozen, staffFrozen, playerDamageWithheld, hurtPlayer } from '../../src/characters/playerEntity.js';
 import { accountRefusalText } from '../../src/net/accountClient.js';
 import { createStaffFreezeHost } from '../../src/scenes/staffFreezeHost.js';
+import { fakeRooms } from '../fakeRoom.mjs';
+import { createChatSafetyHost } from '../../src/scenes/chatSafetyHost.js';
+import { RELAY_VERSION } from '../../src/net/wire.js';
+import { ARENA_HALL } from '../../src/net/arena/arenaLaw.js';
+import { leaseKeyOf, mintLease } from '../../src/net/roomLease.js';
 
 const settle = () => new Promise((r) => setTimeout(r, 0));
 const INVITE = 'https://discord.gg/QADbZYQ73j';
@@ -274,4 +279,50 @@ test('STAFF-PANEL5-FREEZE-FIX THE SERVICE\'S ANSWER BOTH WAYS (a review: a lift 
   svc.setFrozen(null);
   await chat.refresh();
   assert.deepEqual([chat.frozen(), painted.at(-1).until, painted.at(-1).reason], [false, 0, null], 'the motor and the screen let go');
+});
+
+test('STAFF-PANEL5-FREEZE-FIX A NEW ARENA HALL LINK HANDS THE PAGE\'S LEASE (round two, a review: every room but the hub\'s is a lease room, and a hall link made after the page\'s lease came held none - with the door on, its one queue word was heard in nothing, the hall said queued and the relay never queued it): adopted (world.js makeHall), the link takes the page\'s newest lease and hands it just ahead of its first hall word, and the hall, its door on, queues it (mutant: the lease untaken)', async (t) => {
+  let now = 1_800_000_000_000;
+  t.mock.method(Date, 'now', () => now);
+  const { subtle } = globalThis.crypto;
+  const kp = await subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
+  const secret = Buffer.from(new Uint8Array(await subtle.exportKey('pkcs8', kp.privateKey))).toString('base64');
+  const quiet = async (fn) => { const keep = { info: console.info, warn: console.warn, log: console.log }; console.info = console.warn = console.log = () => {}; try { return await fn(); } finally { Object.assign(console, keep); } };
+  // the page: its hub link, welcomed by a relay that knows the lease, handed the hub's lease
+  const { FakeWS, sockets } = fakeSocketClass();
+  const session = () => new OnlineSession({ url: 'wss://relay.test', name: 'Alva', id: 'peer-alva', secret: 'secret-of-peer-alva', presence: false, WebSocketImpl: FakeWS, now: () => now, wire2: true });
+  const hub = session();
+  hub.join(CHAT_WORLD_ROOM);
+  const hubWs = sockets.at(-1);
+  hubWs.open();
+  hubWs.receive({ t: 'welcome', id: 'peer-alva', peers: [], n: 1, v: RELAY_VERSION });
+  const host = createChatSafetyHost({ log: () => new ChatLog({ now: () => now }), links: () => [hub], storage: { getItem: () => null }, doc: fakeDocument(), touch: false, register: () => () => {}, win: { addEventListener() {}, removeEventListener() {} }, now: () => now });
+  await host.start();
+  const key = await leaseKeyOf(secret, { subtle });
+  const l = await mintLease({ s: 'acct-alva', at: Math.floor(now / 1000) }, key, { subtle });
+  hubWs.receive({ t: 'lease', l });
+  await settle();
+  now += 5000;
+  // the hall, its door on
+  const W = fakeRooms({ now: () => now });
+  const H = W.room(ARENA_HALL);
+  Object.assign(H.env, { GATE_SIGNING_KEY: secret, LEASE_DOOR: 'on' });
+  const A = H.connect();
+  await quiet(() => H.hello(A, 'peer-alva', null, { name: 'Alva', kind: 'linked', tokenSub: 'acct-alva', ar: 1000, fv: 1, ls: 1 }));
+  assert.equal(A.closed, null);
+  // the game's hall link (world.js makeHall), adopted, says its first hall word
+  const hall = host.adoptLink(session());
+  hall.join(ARENA_HALL);
+  const ws = sockets.at(-1);
+  ws.open();
+  ws.receive({ t: 'welcome', id: 'peer-alva', peers: [], n: 1, v: RELAY_VERSION });
+  await settle();
+  now += 1000;
+  assert.equal(hall.sendArena({ k: 'q', lv: 9 }), true);
+  const said = ws.sent.map((f) => JSON.parse(f)).filter((f) => f.t !== 'hello' && f.t !== 'ping');
+  assert.deepEqual(said.map((f) => f.t), ['lease', 'arena'], 'the page\'s lease just ahead of the hall word');
+  assert.equal(said[0].l, l);
+  for (const f of said) await quiet(() => H.raw(A, JSON.stringify(f)));
+  assert.ok(A.sent.some((m) => m.t === 'arena' && m.k === 'qd'), `queued: ${JSON.stringify(A.sent.filter((m) => m.t === 'arena'))}`);
+  for (const [, r] of W.made) { clearTimeout(r.room._countT); clearTimeout(r.room._owedSoon); clearTimeout(r.room._owedLate); }
 });

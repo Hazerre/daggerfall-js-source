@@ -12,12 +12,13 @@
   {
     "name": "LEASE1-the-law-time-unread",
     "file": "server/src/index.js",
-    "old": "const law = r.at > (b.lt ?? b.gio ?? 0);",
-    "new": "const law = true;",
+    "old": "&& r.at > (b.lt ?? b.gio ?? 0);",
+    "new": "&& true;",
     "why": "an older lease lifts a newer order's mute",
     "tests": [
       "test/net/lease1.test.js"
-    ]
+    ],
+    "note": "STAFF-PANEL5-FREEZE-FIX round two (re-aimed by content): a pass is never the newer word (`!r.p &&`) ahead of the time."
   },
   {
     "name": "LEASE1-the-carried-order-unstamped",
@@ -43,13 +44,13 @@
   {
     "name": "LEASE1-minted-in-any-room",
     "file": "server/src/index.js",
-    "old": "if (!isSocialRoom(room)) return;\n      if (a.vid && isChannelShard(room))",
-    "new": "if (a.vid && isChannelShard(room))",
+    "old": "if (!isSocialRoom(room)) return;\n      if (a.vid && isChannelShard(room) &&",
+    "new": "if (a.vid && isChannelShard(room) &&",
     "why": "a channel mints leases",
     "tests": [
       "test/net/lease1.test.js"
     ],
-    "note": "STAFF-PANEL5-FREEZE-FIX (re-aimed by content): a hub shard's ask goes to its bus now, the line after the room's check."
+    "note": "STAFF-PANEL5-FREEZE-FIX (re-aimed by content): a hub shard's ask goes to its bus now, the line after the room's check. STAFF-PANEL5-FREEZE-FIX round two (re-aimed by content): the shard's forward waits on a bus that takes its hand-ups (`!this._upRetry`)."
   },
   {
     "name": "LEASE1-read-in-any-room",
@@ -145,12 +146,13 @@
   {
     "name": "LEASE1-the-life-unchecked",
     "file": "src/net/roomLease.js",
-    "old": "|| c.u !== c.a + LEASE_LIFE_S) return null;",
-    "new": ") return null;",
+    "old": "|| c.u !== c.a + LEASE_LIFE_S ||",
+    "new": "||",
     "why": "a lease with any life read",
     "tests": [
       "test/net/lease1.test.js"
-    ]
+    ],
+    "note": "STAFF-PANEL5-FREEZE-FIX round two (re-aimed by content): a pass's mark (`p`) checked after the life."
   },
   {
     "name": "LEASE1-the-lapse-unread",
