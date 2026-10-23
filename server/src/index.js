@@ -2144,7 +2144,7 @@ export class Room {
     lane.heard = now;
     if (typeof data === 'string') data = JSON.parse(data).data;
     if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on' && (kind === 'own' || isCellRoom(a.key))) data = this._grantStripped(a, data, kind, now);   // GRANT9: the switch on - a record its grant does not stand goes nowhere; FOE-BOUNDS: nor one no builder could give
-    staffFoesSeen(this, a, data, now);   // STAFF-PANEL5-FEEDS: a full frame's live monsters, its sender's; STAFF-PANEL5-MONSTERS: whatever grantStrip says - read, never changed, and nothing at all while STAFF_NET_FEED_URL is unset
+    staffFoesSeen(this, a, data, now, lane);   // STAFF-PANEL5-FEEDS: a full frame's live monsters, its sender's; STAFF-PANEL5-MONSTERS: whatever grantStrip says - read, never changed, and nothing at all while STAFF_NET_FEED_URL is unset; REVIEW: one a FOES_FIRST_MS on its lane
     const out = fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched
     if (out == null) { this._junk(ws); return { bucket: budget.bucket, pass: true, fan: 0, junk: true }; }
     for (const other of listeners) this._send(other, out);

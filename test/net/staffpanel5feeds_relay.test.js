@@ -7,7 +7,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fakeRoom } from '../fakeRoom.mjs';
-import { cellRoomOfWire, PIXEL_UNITS, DROP_STRIKES_MAX, POSE_BOUND, FOES_FRAME_MAX } from '../../src/net/wire.js';
+import { cellRoomOfWire, PIXEL_UNITS, DROP_STRIKES_MAX, POSE_BOUND, FOES_FRAME_MAX, FOES_FIRST_MS, FOES_FULL_MS } from '../../src/net/wire.js';
 import { validGrantOut } from '../../src/net/grantLaw.js';
 import { openStaffFeed, sealStaffFeed, netBatchValid, reactBatchValid, foeRowOk, NET_FEED_V, REACT_FEED_V, NET_KINDS, STAFF_FEED_SIG_HEADER, STAFF_FEED_ROWS, STAFF_FEED_AGE_MAX_MS, REACT_EPISODE_MS, NET_FEED_MS, NET_HOT, FOE_HOT, FEED_COUNT_MAX } from '../../server/src/staffFeedLaw.js';
 import { staffNetFlush, staffReactFlush, staffReactTick, staffFeedsStop, netHot, foeHot, staffFoesSeen, staffFoesStripped, REACT_OPEN_MAX, REACT_FEED_MS } from '../../server/src/staffFeeds.js';
@@ -194,8 +194,9 @@ test('STAFF-PANEL5-FEEDS MONSTER WATCH: while grantStrip is on, a sender\'s full
   assert.equal(U.posts.length, 0);
 });
 
-test('STAFF-PANEL5-MONSTERS RAW FRAMES: with grantStrip off the count reads the client\'s own frame, unstripped - a frame that is no frame, records that are no records, ids of any shape and a host\'s frame as big as the door lets in are read without a throw and never written, and the row they make is one the law takes (mutants: the count dropping a body from the frame)', () => {
+test('STAFF-PANEL5-MONSTERS RAW FRAMES: with grantStrip off the count reads the client\'s own frame, unstripped - a frame that is no frame, records that are no records, ids of any shape and a host\'s frame as big as the door lets in are read without a throw and never written, and the row they make is one the law takes (mutants: the count dropping a body from the frame)', (t) => {
   const room = { env: { STAFF_NET_FEED_URL: NET_URL }, _all: () => [], _meters: new Map(), _receiptKeyOf: async () => null };
+  t.after(() => staffFeedsStop(room));   // STAFF-PANEL5-MONSTERS REVIEW: the row's real timer (602 s here) stopped even when an assert fails
   const freeze = (x) => { if (x && typeof x === 'object') { Object.freeze(x); for (const v of Object.values(x)) freeze(v); } return x; };   // a write throws (a module is strict)
   const seen = (a, text) => { const data = freeze(JSON.parse(text)); staffFoesSeen(room, a, data, T * 1000); assert.equal(JSON.stringify(data), JSON.stringify(JSON.parse(text)), 'read, never written'); };
   const owner = { key: CELL, sub: 'acct-raw-0001' };
@@ -212,7 +213,29 @@ test('STAFF-PANEL5-MONSTERS RAW FRAMES: with grantStrip off the count reads the 
   assert.ok(big.length + 40 <= FOES_FRAME_MAX, `a frame the door admits (${big.length})`);
   seen({ key: ROOM, sub: 'acct-raw-0002' }, big);
   assert.equal(room._staffNet.foes.get('acct-raw-0002').h, 6000);
-  staffFeedsStop(room);
+});
+
+test('STAFF-PANEL5-MONSTERS REVIEW ONE FULL FRAME A SECOND IS WALKED ON A LANE: a world room host\'s frame has no record cap (FOES_FRAME_MAX bytes, about 6,000 records), so a sender that says full on every frame has one walked each FOES_FIRST_MS on its lane, the cadence FOES-FIRST lets a full frame go first - an honest sender\'s every one (FOES_FULL_MS apart), and a delta never takes a walk\'s turn (mutants: the lane not passed; the gate stamped on a frame it did not walk; the gate at FOES_FULL_MS)', async (t) => {
+  const R = await relay(t, { STAFF_NET_FEED_URL: NET_URL });
+  const C = R.room(CELL);
+  const mac = await R.join(C, 'sock-mac-01', P0), ann = await R.join(C, 'sock-ann-01', P0);
+  const rec = (i) => ({ i, t: 0, f: [1, 2, 3] });
+  const send = (n, full) => C.raw(mac.ws, JSON.stringify({ t: 'foes', data: { n: 1, k: CELL, full, f: [...Array(n).keys()].map((i) => rec(i + 1)) } }));
+  const owned = () => C.room._staffNet?.foes.get('acct-sock-mac-01')?.o;
+  await send(40, 1);
+  assert.equal(owned(), 40, 'the first full frame walked');
+  R.tick(FOES_FIRST_MS / 2);
+  await send(50, 1);
+  assert.equal(owned(), 40, 'a full frame inside FOES_FIRST_MS of the last walked: not walked');
+  R.tick(FOES_FIRST_MS / 2);
+  await send(50, 0);   // a delta: never walked, and it takes no turn
+  R.tick(50);
+  await send(50, 1);
+  assert.equal(owned(), 50, 'a full frame FOES_FIRST_MS on: walked');
+  R.tick(FOES_FULL_MS);
+  await send(55, 1);
+  assert.equal(owned(), 55, 'an honest cadence: every full frame walked');
+  assert.equal(ann.ws.sent.filter((m) => m.t === 'foes').length, 5, 'and every frame fanned, walked or not');
 });
 
 test('STAFF-PANEL5-FEEDS BOT CHECK: a natural encounter\'s mint opens its asker\'s episode, and the poses it already sends time it - the first pose, the weapon drawn, the first swing, the first blow landed and taken, the distance and turn in the first 3 s, a death ending it; one never answered ends at its length; two open a socket at most; a camp opens none; a leave ends what is open; the window posts signed to the reaction door (mutants: the clock not the ask\'s; a swing unread; the turn unwrapped; the cap unchecked; a camp timed)', async (t) => {
