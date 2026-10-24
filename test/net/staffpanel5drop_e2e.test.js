@@ -132,3 +132,38 @@ for (const leaves of [false, true]) for (const hide of ['shown', 'hidden', 'reli
     if (!leaves) assert.ok(smain.status === 'open' && smain.room === cell, `room link up: ${st(smain)}`);
   });
 });
+
+test('FOLLOW-GROUND-HINT (mob: "following from ground does not work", "panel open said locked never moved"): a target whose game has sent the hub no where note - none yet, or a room a note cannot name - is locked on all the same when picked off the staff member\'s own ground: the eye goes to the room the pick names, the room tells the bus they are in it, and the camera draws them; with no hint the follow is locked and still waits (mutants: the hint dropped)', async () => {
+  for (const hinted of [false, true]) await world(async ({ W, signer, BridgeWS, Session, settle, tick, now }) => {
+    void W;
+    const tmint = async () => signer.token('tgt-0001', { s: TARGET, n: 'Target', k: 'linked' });
+    const main = new Session({ url: 'wss://relay.test', name: 'Target', id: 'tgt-0001', secret: 'secret-of-tgt-0001', WebSocketImpl: BridgeWS, mintToken: tmint });
+    const thub = new Session({ url: 'wss://relay.test', name: 'Target', id: 'tgt-0001', secret: 'secret-of-tgt-0001', acct: TARGET, asecret: 'secret-of-acct-target', presence: false, WebSocketImpl: BridgeWS, mintToken: tmint });
+    const smint = async () => signer.token('stf-0001', { s: STAFF, n: 'Mob', k: 'linked' });
+    const smain = new Session({ url: 'wss://relay.test', name: 'Mob', id: 'stf-0001', secret: 'secret-of-stf-0001', WebSocketImpl: BridgeWS, mintToken: smint });
+    const pose = at(100, 100);
+    const cell = roomKeyFor({ host: 'world', mode: 'exterior', mapPixel: { x: 100, y: 100 } });
+    let n = 0;
+    const kp = await signer.signer();
+    const askToken = async (sub, r) => { n++; return mintToken({ s: 'hd-0123456789abcdef01234567', n: 'Spectator', k: 'guest', hd: 1, fo: sub }, kp.privateKey, { subtle: globalThis.crypto.subtle, nowS: Math.floor(now() / 1000) - n }); };
+    const hook = createStaffHook({ main: () => ({ url: 'wss://relay.test' }), askToken, WS: BridgeWS, Session });
+    const frame = async () => {
+      if (main.room !== cell) main.join(cell, { ...pose }); else main.sendPose({ ...pose });
+      if (smain.room !== cell) smain.join(cell, { ...pose }); else smain.sendPose({ ...pose });
+      if (!thub.terminal && !isSocialRoom(thub.room)) thub.join(SOCIAL_ROOM);
+      for (const s of [main, thub, smain]) s.tick();   // the target sends no where note
+      hook.tick();
+      await settle();
+      tick(100);
+    };
+    for (let i = 0; i < 20 || (i < 400 && !smain.peers?.size); i++) await frame();
+    const seen = [...smain.peers.values()].find((p) => p);
+    assert.ok(seen, 'the staff game sees the target on its ground');
+    hook.follow(TARGET, hinted ? { room: smain.room, id: seen.id, ly: smain.layer } : null);
+    for (let i = 0; i < 60 || (hinted && i < 400 && !(hook.locked() && hook.view())); i++) { pose.x += 1; await frame(); }
+    assert.equal(hook.locked(), true, 'the hub said on');
+    if (!hinted) { assert.equal(hook.view(), null, 'no note, no hint: nowhere to look'); return; }
+    assert.ok(Math.abs(hook.view()?.x - pose.x) <= 2, `picked off my ground: drawn where they stand - ${hook.view()?.x} vs ${pose.x}`);
+    assert.equal(hook.where(), cell, 'the room the pick named, which the room\'s own word to the bus confirms');
+  });
+});

@@ -773,8 +773,8 @@
   {
     "name": "STAFF-PANEL5-FOLLOW-page-tp-follows-anyway",
     "file": "src/scenes/staffFollowHost.js",
-    "old": "door.panel() && hook.follow(sub)",
-    "new": "hook.follow(sub)",
+    "old": "door.panel() && hook.follow(sub, hint)",
+    "new": "hook.follow(sub, hint)",
     "why": "a TP knocks with no panel",
     "tests": [
       "test/net/staffpanel5hook.test.js"

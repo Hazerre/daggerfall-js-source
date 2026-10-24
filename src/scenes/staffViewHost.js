@@ -40,7 +40,7 @@ import { NAMEPLATE_DIST } from '../net/staffHook.js';
 import { projectToScreen } from '../player/tapRay.js';
 import { worldViewportRect } from '../ui/hud/hudLarge.js';
 import { multiply } from '../world/mat4.js';
-import { createStaffTags } from '../ui/staffTags.js';
+import { STAFF_LINE, createStaffTags } from '../ui/staffTags.js';
 import { createStaffFlatMapHost } from './staffFlatMapHost.js';   // STAFF-FLATMAP: Shift+N
 import { t } from '../systems/textManager.js';
 
@@ -99,7 +99,7 @@ export function createStaffViewHost({ follow, glyphs, links, book, foes, overwor
   let finding = null;
   /** @type {Map<string, string>} */
   const known = new Map();
-  /** STAFF-OW-TAGS: the Overworld's players this frame, as marks() found them. @type {Array<{ id: string, at: number[], name: string, line: string, level: string }>} */
+  /** STAFF-OW-TAGS: the Overworld's players this frame, as marks() found them (`kind` their flag's line, STAFF-FLAG-LINES). @type {Array<{ id: string, at: number[], name: string, line: string, level: string, kind: number|null }>} */
   let owTags = [];
   /** THE GATE: a Staff Panel spoke on this page (a player's page: false, and nothing more is asked), and my glyphs are an
    *  Admin's or a Moderator's (chatSafetyHost.js staffLineActs: dev, mod or Shadow Fang, never a Dungeon Master) - the true
@@ -128,13 +128,23 @@ export function createStaffViewHost({ follow, glyphs, links, book, foes, overwor
    *  line menu's staff acts (`acts`, scenes/chatSafetyHost.js playerActions), its Follow this view's own (`go`, which
    *  opens the panel's card); with no acts on this page, the follow at once, as before. */
   function chosen(/** @type {string} */ id, /** @type {string} */ sub, /** @type {string} */ name, /** @type {{ x: number, y: number } | null} */ where = null) {
-    const rows = acts?.({ id, sub, name }, (/** @type {string} */ s) => { go(s, name); }) ?? [];
+    const hint = groundOf(id);
+    const rows = acts?.({ id, sub, name }, (/** @type {string} */ s) => { go(s, name, s === sub ? hint : null); }) ?? [];
     if (rows.length && layer) layer.menu(name || sub, rows, ...(where ? [where] : []));
-    else go(sub, name);
+    else go(sub, name, hint);
+  }
+  /** FOLLOW-GROUND-HINT (mob: "following from ground does not work"): a player drawn on my own ground stands in my own
+   *  room - its key, its layer and their socket there, for the follow to go to at once - else null (a traveller's mark,
+   *  the flat map's dot, or the followed room's while a follow is locked: the hub says where those are). @param {string} id */
+  function groundOf(id) {
+    if (follow.locked()) return null;
+    const m = follow.main?.();
+    if (typeof m?.room !== 'string' || !(m.drawable?.() ?? []).some((/** @type {any} */ p) => p?.id === id)) return null;
+    return { room: m.room, id, ly: m.layer ?? 0 };
   }
   /** Follow the account at once, and only when that took, hand the panel its card - to this page's own origin, never '*'. */
-  function go(/** @type {string} */ sub, /** @type {string} */ name) {
-    if (!follow.follow(sub)) return;
+  function go(/** @type {string} */ sub, /** @type {string} */ name, /** @type {any} */ hint = null) {
+    if (!follow.follow(sub, hint)) return;
     const origin = win?.location?.origin;
     if (typeof origin !== 'string' || !origin || origin === 'null' || typeof win.postMessage !== 'function') return;
     win.postMessage({ dfoStaff: 'act', act: 'follow', sub, name: (name || sub).slice(0, 64) }, origin);
@@ -194,6 +204,20 @@ export function createStaffViewHost({ follow, glyphs, links, book, foes, overwor
     return flat;
   };
   const flagOf = (/** @type {string|null} */ sub) => (sub ? follow.tags()?.flags?.get(sub) ?? null : null);
+  /** STAFF-FLAG-LINES: a flag's line - a report waiting on review (any level) red, a watch alone gold, else none. @param {any} flag */
+  const lineOf = (flag) => (flag?.level ? STAFF_LINE.review : flag?.watch ? STAFF_LINE.watch : null);
+  /** STAFF-FLAG-LINES (2026-10-24, mob: "need to port over my watch lines and review lines for flags in staff esp",
+   *  "helps flag bad players"): a line from the screen's middle to each flagged player in front of the eye, however far
+   *  (the tags stop at the nameplate distance; a flag's line does not), STAFF_LINES_MAX at most with the others.
+   *  @param {number[][]} segs @param {Array<{ at: number[], kind: number|null }>} who @param {(p: number[]) => any} at @param {number} w @param {number} h */
+  function flagLines(segs, who, at, w, h) {
+    for (const { at: q, kind } of who) {
+      if (segs.length >= STAFF_LINES_MAX) break;
+      if (kind === null) continue;
+      const p = at(q);
+      if (p.front) segs.push([w / 2, h / 2, p.x, p.y, kind]);
+    }
+  }
   return {
     /** THE FRAME (the host's names pass, every mode): the flags asked when due, a search's answer read, and on the ground
      *  the tags; on the Overworld an Admin's monster lines (its tags are the travel view's marks). `covered` a window
@@ -228,22 +252,27 @@ export function createStaffViewHost({ follow, glyphs, links, book, foes, overwor
             if (a.front && b.front) segs.push([a.x, a.y, b.x, b.y]);
           }
         }
+        flagLines(segs, owTags.map((m) => ({ at: m.at, kind: m.kind })), at, w, h);
         layer.strokes(segs, w, h);
         return;
       }
-      layer.strokes([], w, h);
       const dist = follow.tags()?.dist ?? NAMEPLATE_DIST;
-      const near = [];
+      const tv = travellers(), mons = admin() ? monstersBy() : null;
+      const near = [], flagged = [];
       for (const d of peers) {
         if (!d?.shown || typeof d.id !== 'string') continue;
         const f = follow.toScene(d.shown);
         if (!f) continue;
         const head = [f[0], f[1] + STAFF_TAG_HEAD_M, f[2]];
+        const kind = lineOf(flagOf(subOf(d.id, d, tv)));
+        if (kind !== null) flagged.push({ at: head, kind });
         const r = Math.hypot(head[0] - eye[0], head[1] - eye[1], head[2] - eye[2]);
         if (r <= dist) near.push({ d, head, r });
       }
       near.sort((a, b) => a.r - b.r || (a.d.id < b.d.id ? -1 : a.d.id > b.d.id ? 1 : 0));
-      const tv = travellers(), mons = admin() ? monstersBy() : null;
+      const segs = /** @type {number[][]} */ ([]);
+      flagLines(segs, flagged, at, w, h);
+      layer.strokes(segs, w, h);
       const tagged = [];
       for (const { d, head } of near.slice(0, STAFF_TAGS_MAX)) {
         const p = at(head);
@@ -274,14 +303,14 @@ export function createStaffViewHost({ follow, glyphs, links, book, foes, overwor
         seen.add(id);
         const d = byId.get(id) ?? null, t = tv.get(id) ?? null;
         const flag = flagOf(subOf(id, d, tv));
-        owTags.push({ id, at: m.at, name: String(d?.name ?? t?.name ?? m.label ?? ''), line: staffTagWords(flag, mons?.get(id) ?? 0, concealedPose(d) || /^stranger\b/.test(m.kind ?? '')), level: flag?.level ?? '' });
+        owTags.push({ id, at: m.at, name: String(d?.name ?? t?.name ?? m.label ?? ''), line: staffTagWords(flag, mons?.get(id) ?? 0, concealedPose(d) || /^stranger\b/.test(m.kind ?? '')), level: flag?.level ?? '', kind: lineOf(flag) });
       }
       for (const d of peers) {
         if (!d?.shown || typeof d.id !== 'string' || seen.has(d.id)) continue;
         const f = follow.toScene(d.shown);
         if (!f) continue;
         const flag = flagOf(subOf(d.id, d, tv));
-        owTags.push({ id: d.id, at: [f[0], f[1] + STAFF_TAG_HEAD_M, f[2]], name: String(d.name ?? ''), line: staffTagWords(flag, mons?.get(d.id) ?? 0, concealedPose(d)), level: flag?.level ?? '' });
+        owTags.push({ id: d.id, at: [f[0], f[1] + STAFF_TAG_HEAD_M, f[2]], name: String(d.name ?? ''), line: staffTagWords(flag, mons?.get(d.id) ?? 0, concealedPose(d)), level: flag?.level ?? '', kind: lineOf(flag) });
       }
       return out;
     },

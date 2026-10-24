@@ -46,7 +46,7 @@
 //                                                  way, road, ageS }] } on each change, at most once a STAFF_MAP_SEND_MS -
 //                                                  state 'open' when its hidden link is in, 'hide' when Hide me is off
 import { OnlineSession, peerId, peerSecret } from './online.js';
-import { SOCIAL_ROOM, cellRoomOfWire, isCellRoom, isSocialRoom } from './wire.js';
+import { SOCIAL_ROOM, cellRoomOfWire, isCellRoom, isChatRoom, isSocialRoom } from './wire.js';
 import { ID_RE, TOKEN_MAX_CHARS } from './identityToken.js';
 import { noteRoom } from './staffFollow.js';
 import { notePlace } from './staffTeleport.js';
@@ -67,6 +67,8 @@ export const STAFF_TOKEN_WAIT_MS = 5000;
 export const STAFF_RELINK_GAP_MS = 3000;
 /** The name a follow's sockets say - the relay shows them to nobody, and the token's own name is the service's. */
 const SPECTATOR = 'Spectator';
+/** FOLLOW-GROUND-HINT: the longest room key or socket id a pick's hint may carry. */
+const ROOM_HINT_MAX = 128;
 
 /** STAFF-PANEL5-FOLLOW-FIX (the relay review's finding 18): a WebSocket class whose every room asks a hidden seat
  *  (`?hd=1`, server/src/staffHidden.js hiddenAsked) - the reserve over a full layer's cap, so the eye joins the target's
@@ -125,12 +127,26 @@ export function createStaffHook({ main, askToken, Session = OnlineSession, WS = 
   }
   return {
     version: STAFF_HOOK_VERSION,
-    /** Follow `sub` at once - another pick lets the last go. False for no account. @param {unknown} sub */
-    follow(sub) {
+    /** Follow `sub` at once - another pick lets the last go. False for no account. FOLLOW-GROUND-HINT (2026-10-24, mob:
+     *  "following from ground does not work", "panel open said locked never moved"): a pick off the staff member's own
+     *  ground knows the room the target stands in and their socket there (`hint`), so the eye goes there at once instead
+     *  of waiting on the hub's word of where they are - which never comes for a room a note cannot name (a dungeon, a
+     *  building), nor before the target's game sends its first note. The hub's later word leads as ever.
+     *  @param {unknown} sub @param {{ room?: unknown, id?: unknown, ly?: unknown } | null} [hint] */
+    follow(sub, hint = null) {
       if (typeof sub !== 'string' || !ID_RE.test(sub)) return false;
-      if (sub !== target) { close(); target = sub; }
+      if (sub !== target) {
+        close(); target = sub;
+        const r = hint?.room;
+        if (typeof r === 'string' && r.length > 0 && r.length <= ROOM_HINT_MAX && !isSocialRoom(r) && !isChatRoom(r)) {
+          room = r; ly = Number.isInteger(hint?.ly) && /** @type {number} */ (hint?.ly) > 0 ? /** @type {number} */ (hint?.ly) : 0;
+          pid = typeof hint?.id === 'string' && hint.id.length <= ROOM_HINT_MAX ? hint.id : null;
+        }
+      }
       return true;
     },
+    /** FOLLOW-GROUND-HINT: whether the follow knows where the target is yet (a room to watch from). */
+    where: () => room,
     /** Let go. */
     unlock() { close(); target = null; },
     /** Whether the camera is the target's: a follow the hub said `on` to. */

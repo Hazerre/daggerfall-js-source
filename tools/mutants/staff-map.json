@@ -42,8 +42,8 @@
   {
     "name": "STAFF-FOLLOW-UNLOCK-no-bar",
     "file": "src/scenes/staffFollowHost.js",
-    "old": "const barFrame = () => { if (door.panel()) bar.show({ following: hook.locked(), hidden: hiddenNow, asking }); else bar.hide(); };",
-    "new": "const barFrame = () => { if (door.panel()) bar.show({ following: false, hidden: hiddenNow, asking }); else bar.hide(); };",
+    "old": "const barFrame = () => { if (door.panel()) bar.show({ following: hook.locked(), hidden: hiddenNow, asking, seeing: !!hook.view() }); else bar.hide(); };",
+    "new": "const barFrame = () => { if (door.panel()) bar.show({ following: false, hidden: hiddenNow, asking, seeing: !!hook.view() }); else bar.hide(); };",
     "why": "a locked follow has no Unlock on the game's screen - with the panel's card closed the staff member is stuck behind the target's eyes (mob: \"follow needs a unlock button in game\")",
     "tests": [
       "test/ui/staffFollowBar.test.js"
@@ -107,6 +107,66 @@
     "why": "closing the flat map keeps a hidden link open in that region",
     "tests": [
       "test/scenes/staffFlatMap.test.js"
+    ]
+  },
+  {
+    "name": "FOLLOW-GROUND-HINT-dropped",
+    "file": "src/net/staffHook.js",
+    "old": "if (typeof r === 'string' && r.length > 0 && r.length <= ROOM_HINT_MAX && !isSocialRoom(r) && !isChatRoom(r)) {",
+    "new": "if (false) {",
+    "why": "a player picked off the staff member's own ground whose game has sent no where note is locked on and never drawn - the camera never moves (mob: \"panel open said locked never moved\")",
+    "tests": [
+      "test/net/staffpanel5drop_e2e.test.js"
+    ]
+  },
+  {
+    "name": "FOLLOW-GROUND-HINT-view-never-hints",
+    "file": "src/scenes/staffViewHost.js",
+    "old": "return { room: m.room, id, ly: m.layer ?? 0 };",
+    "new": "return null;",
+    "why": "a tag picked on the ground hands the follow nowhere to look",
+    "tests": [
+      "test/scenes/staffview1.test.js"
+    ]
+  },
+  {
+    "name": "FOLLOW-GROUND-HINT-hint-while-locked",
+    "file": "src/scenes/staffViewHost.js",
+    "old": "    if (follow.locked()) return null;\n    const m = follow.main?.();",
+    "new": "    const m = follow.main?.();",
+    "why": "a pick in the followed room is sent to the staff member's own room instead",
+    "tests": [
+      "test/scenes/staffview1.test.js"
+    ]
+  },
+  {
+    "name": "FOLLOW-GROUND-HINT-bar-silent",
+    "file": "src/ui/staffFollowBar.js",
+    "old": "const line = following && !seeing ?",
+    "new": "const line = false ?",
+    "why": "a follow locked but not yet finding its target says Following with a still camera",
+    "tests": [
+      "test/ui/staffFollowBar.test.js"
+    ]
+  },
+  {
+    "name": "INV-HOVER-maker-rows-kept",
+    "file": "server-account/src/staffPlayers.js",
+    "old": "e && typeof e === 'object' && e.enchantCost === undefined && Number.isSafeInteger(e.type)",
+    "new": "e && typeof e === 'object' && Number.isSafeInteger(e.type)",
+    "why": "the item maker's cost rows read as enchantments the piece has",
+    "tests": [
+      "test/server/staffpanel3players.test.js"
+    ]
+  },
+  {
+    "name": "INV-HOVER-condition-unread",
+    "file": "server-account/src/staffPlayers.js",
+    "old": "...(cur != null && max != null && max > 0 ? { cond: [cur, max] } : {}),",
+    "new": "",
+    "why": "a hover never says a piece's condition",
+    "tests": [
+      "test/server/staffpanel3players.test.js"
     ]
   }
 ]

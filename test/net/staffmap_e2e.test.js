@@ -90,10 +90,12 @@ for (const hidden of [true, false]) test(`STAFF-MAP: the map's link in another r
     const said = [];
     const map = createStaffMap({ main: () => ({ url: 'wss://relay.test', mintToken: minter }), post: (m) => said.push(m), Session, WS: BridgeWS, now: () => Date.now() });
     const step = async (k = 1) => { for (let i = 0; i < k; i++) { for (const s of [a, b]) s.tick(); map.tick(); await settle(); tick(250); } };
-    a.join(room); b.join(room); await step(4);
-    a.sendTraveller(mark(300, 200)); tick(11_000); b.sendTraveller(mark(310, 205, 1)); await step(4);
-    map.pick(region); await step(12);
+    // the mints are real crypto: a busy runner takes more steps for a hello to land - each wait is until, never a count
+    const until = async (/** @type {() => boolean} */ ok, k = 4) => { for (let i = 0; i < k || (i < 400 && !ok()); i++) await step(); };
     const last = () => said.at(-1);
+    a.join(room); b.join(room); await until(() => a.status === 'open' && b.status === 'open' && a.room === room && b.room === room);
+    a.sendTraveller(mark(300, 200)); tick(11_000); b.sendTraveller(mark(310, 205, 1)); await step(4);
+    map.pick(region); await until(() => last()?.region === region && (hidden ? last()?.state === 'open' && last()?.list?.length === 2 : last()?.state === 'hide'), 12);
     assert.equal(last()?.region, region);
     assert.equal(last()?.name, REGION_NAMES[region]);
     if (!hidden) {
@@ -104,7 +106,7 @@ for (const hidden of [true, false]) test(`STAFF-MAP: the map's link in another r
     }
     assert.equal(last().state, 'open');
     assert.deepEqual(last().list.map((r) => [r.name, r.sub, r.px, r.py, r.way]).sort(), [['Alpha', 'acct-a-0001', 300.5, 200.25, 'foot'], ['Beta', 'acct-b-0002', 310.5, 205.25, 'horse']]);
-    tick(11_000); a.sendTraveller(mark(301, 200)); await step(8);
+    tick(11_000); a.sendTraveller(mark(301, 200)); await until(() => last().list.find((r) => r.name === 'Alpha')?.px === 301.5, 8);
     assert.equal(last().list.find((r) => r.name === 'Alpha')?.px, 301.5, 'a live mark lands');
     const before = said.length;
     await step(2);

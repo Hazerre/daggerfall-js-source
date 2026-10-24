@@ -45,12 +45,14 @@ export function createStaffFollowBar({ doc = globalThis.document, onUnlock, onHi
   }
   return {
     /** The bar this frame: `following` while a follow is locked (its target's `name` when the page knows it), `hidden`
-     *  whether the game's links are hidden now, `asking` while a Hide me press waits on the panel.
-     *  @param {{ following?: boolean, name?: string, hidden?: boolean, asking?: boolean }} [s] */
-    show({ following = false, name = '', hidden = false, asking = false } = {}) {
+     *  whether the game's links are hidden now, `asking` while a Hide me press waits on the panel, `seeing` whether the
+     *  follow has found the target yet (FOLLOW-GROUND-HINT: locked and not yet seen says so, never a silent camera).
+     *  @param {{ following?: boolean, name?: string, hidden?: boolean, asking?: boolean, seeing?: boolean }} [s] */
+    show({ following = false, name = '', hidden = false, asking = false, seeing = true } = {}) {
       if (!bar) make();
       hiddenNow = hidden;
-      const line = following ? (name ? t('net.staffFollow.following', 'Following {name}', { name }) : t('net.staffFollow.followingAnon', 'Following'))
+      const line = following && !seeing ? t('net.staffFollow.finding', 'Following - finding them…')
+        : following ? (name ? t('net.staffFollow.following', 'Following {name}', { name }) : t('net.staffFollow.followingAnon', 'Following'))
         : hidden ? t('net.staffFollow.hidden', 'Hidden') : t('net.staffFollow.shown', 'Shown to players');
       put('line', line, (v) => { words.textContent = v; });
       put('hide', asking ? '…' : hidden ? t('net.staffFollow.showMe', 'Show myself') : t('net.staffFollow.hideMe', 'Hide me'), (v) => { hideBtn.textContent = v; });

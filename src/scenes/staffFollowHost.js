@@ -101,10 +101,10 @@ export function staffFollowOnPage({ main, prepare, mode, pixel, toScene, relink 
     void staffHide(on, win).catch(() => false).then((ok) => { asking = false; if (ok) hiddenNow = on; });
   };
   const bar = createStaffFollowBar({ doc: win?.document, onUnlock: () => hook.unlock(), onHide: press });
-  const barFrame = () => { if (door.panel()) bar.show({ following: hook.locked(), hidden: hiddenNow, asking }); else bar.hide(); };
+  const barFrame = () => { if (door.panel()) bar.show({ following: hook.locked(), hidden: hiddenNow, asking, seeing: !!hook.view() }); else bar.hide(); };
   return {
     hook, map, frame: () => { watch(); map.tick(); const out = host.frame(); barFrame(); return out; }, eye: host.eye, locked: () => hook.locked(),
-    follow: (/** @type {unknown} */ sub) => door.panel() && hook.follow(sub),
+    follow: (/** @type {unknown} */ sub, /** @type {any} */ hint = null) => door.panel() && hook.follow(sub, hint),   // FOLLOW-GROUND-HINT: a ground pick's room
     // STAFF-VIEW1 (mob: "np player esp in staff panel?"): what the staff view reads (scenes/staffViewHost.js) - whether a
     // panel spoke here, the followed room's players, the game's own session, its frame and mode, and the panel's tags
     panel: door.panel, peers: hook.peers, main, toScene, mode, tags: door.tags, askTags: door.askTags,
