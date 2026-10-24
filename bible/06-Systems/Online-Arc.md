@@ -17199,3 +17199,50 @@ re-aimed: the halo still connecting is waited for, and once the wait is out the 
 covers any mint the halo outlives. `HALO_WAIT_MS` is `BACKOFF_MAX_MS` by design, so raising the reconnect backoff's
 ceiling lengthens the wait with it. #1134's second effect (a fast peer drawn jumping, SNAP_WORLD_UNITS) is not this
 slice.
+
+## DECOR-USE - a placed bed is slept in, a placed fire cooked on, and the cooking station (2026-10-24, the Discord's feature-feedback, "Make bed decor and firepit decor actually funtional")
+
+Saint Diaz: *"Was hyped to get a caravan for a mini house until i saw the beds dont actually let you sleep in it and
+firepit doesnt actually let you cook on it"* (eleven seconded it); Ashley: *"yeah we need a way to be able to cook in our
+homes"*; and, to the answer that any piece can be made any profession's station, Mona Polca: *"Cooking station is not an
+option in decorate"*. All three were so. A placed piece pressed did one of three things - its trader, its station's
+craft, its storage - and nothing else (`worldModes.js` activateDecor): a bed the player placed was furniture, the room's
+own beds answering alone (and only under Roleplay Realism's bed sleeping); a placed bowl of fire or brazier was a light,
+because the room's hearths are collected once from its own lights when the room is built (HEARTH1), and a placed piece's
+light carries no record; and no station cooks - the fire is no station (PROF9: any lit fire, no fee).
+
+THE LAW (`systems/decor/decorUse.js`, the port's own - DFU places no furniture):
+
+- **A bed** - a placed piece that is one of Daggerfall's beds (`rrRealism.js` BED_MODELS; a town mod's coloured bed read
+  as the classic bed it stands for, `customModels.js` classicModelIdOf) - is slept in when pressed, through the room's own
+  beds' door (`restFromInteriorBed`: the rest window, ignoring the allocated bed - RR1's F6). Who may is the rest
+  window's, as it is at the room's beds and at the R key: the owner, a tenant, a member, a caravan's visitor. A placed bed
+  answers whatever Roleplay Realism says - it was placed to be slept in.
+- **A fire** - a placed fire one stands over, HEARTH1's own (`survival/hearth.js` isHearthFlat: the lights archive's bowl
+  of fire, camp flame and brazier) - is one of the room's hearths (`decorRoom.js` hearths, handed to the interior's camps
+  beside the room's own - `worldModes.js` interiorCamps): it warms and dries, a rest by it is a camp's, Climates &
+  Calories cooks on it and so does the Stores page's The Fire (PROF9's cookFireHere asks the same camps), and pressed it
+  opens what a brazier opens (Rest and Cook online, the cooking list offline). A fire is nobody's: a visitor cooks at it.
+- **The cooking station** - a tenth station (`net/decorLaw.js` DECOR_STATIONS, before the loom so the stations counted
+  from the end stand), at the crafts' own licence (50,000 gold, STATION-FEES' law for the profession stations), named
+  "Cooking station" - makes ANY piece the room's fire: a fireplace model, a stove, a cauldron. It is a hearth as a placed
+  fire is, and pressed it opens the same. Offered online and offline (Climates & Calories cooks offline), in a home, a
+  caravan and a ship's cabin; the account service keeps it by the shared law, so it waits on its deploy.
+- A piece that holds things holds things - pressed, its storage opens - and a fire made another craft's station serves
+  that craft. Neither is a bed or a hearth.
+
+The host: `useDecorPiece` decides bed or fire and opens the room's own doors, pressed after a trader (anyone's) and
+before a station's craft - one statement, and the room's fires in the camps' entry that already stood (createWorldModes
++2 logical lines, its ceiling raised with the reason, `test/scenes/hostceiling.test.js`). THE FOUR HOSTS: the interior
+host (`worldModes.js`) is where a home, a ship's cabin and a caravan's room stand; `world.js` and `exterior.js` stand
+yards, whose placed fires stay lights (a yard's fire is its own slice); `dungeonContext.js` places no decor.
+
+**Pins.** `test/systems/decor/decoruse.test.js` (the bed, the fire, the station, the press, the room's hearths on a real
+decor room, the host's two lines); pins moved for the tenth station: `test/ui/homestations.test.js`,
+`test/net/prof2_client.test.js`, `test/net/audit29_client.test.js` (offline the cycle is alchemy, spells, enchanting and
+cooking), and the interior camps' line in `test/systems/survival/fb1004d_campcap.test.js`,
+`test/systems/survival/hearth1_worldfires.test.js` and `test/systems/auditrest2_camps.test.js`;
+`test/scenes/fb1018d_homebench.test.js`'s lifted gate is handed the press. Mutants: `tools/mutants/decoruse.json`, 16
+dead; the station list's and the licences' records in `prof2.json`, `prof4.json`, `prof7.json`, `prof10.json`,
+`prof11.json` and the camps' in `fb1004d_campcap.json` re-aimed by content.
+

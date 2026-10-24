@@ -51,6 +51,7 @@ import { decorIsDoor } from '../../systems/decor/decorDoorways.js';   // HOME-DO
 import { drawnFlat } from '../../characters/nudeFlats.js';   // NUDE-DECOR: a nude figure stands as its clothed stand-in while Show Nudity is off
 import { StaticBatchBuilder, keyResolver } from '../../render/staticBatch.js';   // YARD-MERGE: a yard's models as one mesh, as a town's statics are
 import { lateSolidsOf } from '../../player/lateSolid.js';   // DECOR-CLEAR: a piece landing round the body is withheld until it is clear
+import { decorHearth } from '../../systems/decor/decorUse.js';   // DECOR-USE: a placed fire is one of the room's hearths
 
 /** How far the eye reaches a placed piece - the room's own furniture's reach (a bed's, a shelf's: 128 units). */
 export const DECOR_REACH = DEFAULT_ACTIVATION_DISTANCE;
@@ -771,6 +772,29 @@ export function createDecorRoom({
 
   const pieceOf = (id) => standing.get(id)?.piece ?? null;
   const list = () => [...standing.values()].map((e) => e.piece);
+  /**
+   * DECOR-USE (systems/decor/decorUse.js decorHearth): THE ROOM'S PLACED FIRES - a fire flat one stands over and a piece
+   * made the cooking station - as survival/hearth.js collectHearths gives the room's own: its flame (`x`, `y`, `z`, the
+   * picture's middle), the floor it stands on (`foot`) and its size (`w`, `h`, the eye's box - hearthAabb). A model is
+   * its box in the world; a flat its base and its size. A piece not yet standing (no size, no box) is none yet.
+   */
+  function hearths() {
+    const out = [];
+    const o = origin?.() ?? [0, 0, 0];
+    for (const e of standing.values()) {
+      if (!decorHearth(e.piece)) continue;
+      if (e.piece.model != null) {
+        if (!e.box || !e.matrix) continue;
+        const b = transformedAabb(e.box, e.matrix);
+        const w = Math.max(b[3] - b[0], b[5] - b[2]), h = b[4] - b[1];
+        out.push({ x: (b[0] + b[3]) / 2, y: b[1] + h / 2, z: (b[2] + b[5]) / 2, foot: b[1], w, h });
+      } else if (e.size) {
+        const p = [o[0] + e.piece.pos[0], o[1] + e.piece.pos[1], o[2] + e.piece.pos[2]];
+        out.push({ x: p[0], y: p[1] + e.size.h / 2, z: p[2], foot: p[1], w: e.size.w, h: e.size.h });
+      }
+    }
+    return out;
+  }
 
   /** MW-MOUNT: a Morrowind build landed, or went (the host watches fpArm.js mountPictureStamp) - every mount asks
    *  for its picture again and hangs as the answer, where it stood. */
@@ -800,7 +824,7 @@ export function createDecorRoom({
   }
 
   return {
-    put, remove, set, restand, destroyAll, draw, batches, batchesSeen, figures, drawMounts, lights, pushLights, targets, pieceOf, list, size: () => standing.size,
+    put, remove, set, restand, destroyAll, draw, batches, batchesSeen, figures, drawMounts, lights, pushLights, targets, pieceOf, list, hearths, size: () => standing.size,   // DECOR-USE: the placed fires
     itemsOf, holdsAny, itemsSnapshot, setItems, takeUnserved, keep, kept: () => kept,
     ownOf, keepOwn, takeOwn, ownSnapshot, setOwn, ownIds, refreshMounts, mountPicture, standPicture, onRefresh,
   };
