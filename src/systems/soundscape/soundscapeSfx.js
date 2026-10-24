@@ -6,6 +6,7 @@
 // takes the player draws from, so no call is the same twice running. Daggerfall's own (the bell, the lap of water, the
 // people) play by their DAGGER.SND indices and are not here.
 import { APP_ROOT } from '../appRoot.js';
+import { createClipInstaller } from './clipInstall.js';
 
 /** @param {string} stem @param {number} n */
 const takes = (stem, n) => Object.freeze(Array.from({ length: n }, (_, i) => `${stem}-${i + 1}`));
@@ -31,24 +32,12 @@ export const SCAPE_SFX_FILES = Object.freeze(Object.fromEntries(Object.values(SC
 
 export const scapeSfxUrl = (/** @type {string} */ file) => new URL(`sfx/${file}`, APP_ROOT ?? globalThis.document?.baseURI ?? 'http://localhost/').href;
 
-/** @type {Promise<number> | null} */
-let _sounds = null;
-/** Register every clip, once (the first frame the soundscape is heard). Answers how many took; a clip that will not
- *  load is silence, never a stopped voyage. @param {any} audio @param {{ fetchBytes?: ((file: string) => Promise<Uint8Array>) | null }} [opts] */
-export function installSoundscapeSounds(audio, { fetchBytes = null } = {}) {
-  if (!audio?.registerSound) return Promise.resolve(0);
-  return (_sounds ??= (async () => {
-    const load = fetchBytes ?? (async (/** @type {string} */ file) => {
-      const r = await fetch(scapeSfxUrl(file));
-      if (!r.ok) throw new Error(`${file}: ${r.status}`);
-      return new Uint8Array(await r.arrayBuffer());
-    });
-    let n = 0;
-    for (const [key, file] of Object.entries(SCAPE_SFX_FILES)) {
-      try { if (await audio.registerSound(key, await load(file))) n++; } catch { /* the sea goes on, without it */ }
-    }
-    return n;
-  })());
-}
+/** The loader (AUDIT SOUNDSCAPE S7: a first load that failed is asked again - clipInstall.js). */
+const _installer = createClipInstaller(SCAPE_SFX_FILES, { urlOf: scapeSfxUrl });
+/** Register every clip: asked every frame the soundscape is heard; answers the pass in flight, or the last one's count.
+ *  A clip that will not load is silence, never a stopped voyage. @param {any} audio */
+export const installSoundscapeSounds = (audio) => _installer.install(audio);
+/** Whether a clip stands on the bus. */
+export const soundscapeSoundReady = (/** @type {string} */ key) => _installer.has(key);
 /** Test seam. */
-export function _resetSoundscapeSounds() { _sounds = null; }
+export function _resetSoundscapeSounds() { _installer._reset(); }

@@ -146,8 +146,8 @@
   {
     "name": "HORSE-VOICE-the-stride-halved",
     "file": "src/systems/horse/horseVoice.js",
-    "old": "breathAt = now + GALLOP_BREATH_S * (1 +",
-    "new": "breathAt = now + GALLOP_BREATH_S / 2 * (1 +",
+    "old": "breathAt = now + (GALLOP_BREATH_S / (Number(pitch) > 0 ? pitch : 1)) * (1 +",
+    "new": "breathAt = now + (GALLOP_BREATH_S / 2 / (Number(pitch) > 0 ? pitch : 1)) * (1 +",
     "tests": [
       "test/systems/horse/horsevoice.test.js"
     ]
@@ -236,7 +236,7 @@
   {
     "name": "HORSE-VOICE-the-pause-ignored",
     "file": "src/systems/horse/horseVoice.js",
-    "old": "      if (paused) return out;   // a window up: the horse holds its breath with the world\n",
+    "old": "      if (paused) { held ||= !!neigh; return out; }   // a window up: the horse holds its breath with the world, and its moment (H4)\n",
     "new": "",
     "tests": [
       "test/systems/horse/horsevoice.test.js"
@@ -245,8 +245,8 @@
   {
     "name": "HORSE-VOICE-a-dismount-keeps-the-neigh",
     "file": "src/systems/horse/horseVoice.js",
-    "old": "      foes = false; foeAskAt = 0;\n      queue = [];\n",
-    "new": "      foes = false; foeAskAt = 0;\n",
+    "old": "      foes = false; foeAskAt = 0; held = false;\n      if (queue.length) queue = [];\n",
+    "new": "      foes = false; foeAskAt = 0; held = false;\n",
     "tests": [
       "test/systems/horse/horsevoice.test.js"
     ]
@@ -289,18 +289,18 @@
   },
   {
     "name": "HORSE-VOICE-never-retried",
-    "file": "src/systems/horse/horseVoice.js",
-    "old": "if (_ready.size < Object.keys(HORSE_SFX_FILES).length) _retryAt = now() + INSTALL_RETRY_MS;",
-    "new": "_retryAt = Infinity;",
+    "file": "src/systems/soundscape/clipInstall.js",
+    "old": "      if (tries < retryMs.length) nextAt = now() + retryMs[tries++];\n      else gaveUp = true;",
+    "new": "      gaveUp = true;",
     "tests": [
       "test/systems/horse/horsevoice.test.js"
     ]
   },
   {
     "name": "HORSE-VOICE-refetched-every-try",
-    "file": "src/systems/horse/horseVoice.js",
-    "old": "if (!_bytes.has(key)) _bytes.set(key, await load(file));",
-    "new": "_bytes.set(key, await load(file));",
+    "file": "src/systems/soundscape/clipInstall.js",
+    "old": "if (await audio.registerSound(key, bytes.get(key))) { ready.add(key); bytes.delete(key); }",
+    "new": "if (await audio.registerSound(key, bytes.get(key))) { ready.add(key); bytes.delete(key); } else bytes.delete(key);",
     "tests": [
       "test/systems/horse/horsevoice.test.js"
     ]
@@ -328,6 +328,114 @@
     "file": "src/net/remotePlayers.js",
     "old": "clop != null && voiced ? hoofClipFor(out.clip, peer.shown.fk) : clop",
     "new": "clop",
+    "tests": [
+      "test/systems/horse/horsevoice.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VOICE-H1-the-hush-ignored",
+    "file": "src/systems/horse/horseVoice.js",
+    "old": "      quiet = true;\n      this.mount(false);",
+    "new": "      quiet = true;",
+    "tests": [
+      "test/systems/horse/horsevoice.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VOICE-H1-the-rig-never-hushes",
+    "file": "src/player/mountRig.js",
+    "old": "        voice.hush();   // AUDIT SOUNDSCAPE H1",
+    "new": "        // AUDIT SOUNDSCAPE H1",
+    "tests": [
+      "test/systems/horse/horsevoice.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VOICE-H3-the-stride-at-pitch-1",
+    "file": "src/systems/horse/horseVoice.js",
+    "old": "        breathAt = now + (GALLOP_BREATH_S / (Number(pitch) > 0 ? pitch : 1))",
+    "new": "        breathAt = now + (GALLOP_BREATH_S / 1)",
+    "tests": [
+      "test/systems/horse/horsevoice.test.js"
+    ]
+  },
+  {
+    "name": "HORSE-VOICE-H4-a-moment-dropped-in-a-pause",
+    "file": "src/systems/horse/horseVoice.js",
+    "old": "if (paused) { held ||= !!neigh; return out; }",
+    "new": "if (paused) { return out; }",
+    "tests": [
+      "test/systems/horse/horsevoice.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-SOUNDSCAPE-P5-the-breath-unread",
+    "file": "src/player/mountRig.js",
+    "old": "breath: horseBreath?.()?.amount ?? null, foesNear });",
+    "new": "breath: null, foesNear });",
+    "tests": [
+      "test/systems/horse/horsevoice.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-SOUNDSCAPE-P5-the-foes-unread",
+    "file": "src/player/mountRig.js",
+    "old": "breath: horseBreath?.()?.amount ?? null, foesNear });",
+    "new": "breath: horseBreath?.()?.amount ?? null, foesNear: null });",
+    "tests": [
+      "test/systems/horse/horsevoice.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-SOUNDSCAPE-P5-the-journey-not-silencing",
+    "file": "src/player/mountRig.js",
+    "old": "for (const s of shots) audio.playOneShot(s.clip, s.volume * RIDING_VOLUME_SCALE * ridingVolumeScale(), s.pitch);",
+    "new": "for (const s of shots) audio.playOneShot(s.clip, s.volume * RIDING_VOLUME_SCALE, s.pitch);",
+    "tests": [
+      "test/systems/horse/horsevoice.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-SOUNDSCAPE-P5-the-rigs-pause-unread",
+    "file": "src/player/mountRig.js",
+    "old": "pitch: r.pitch, paused: ridePaused,",
+    "new": "pitch: r.pitch, paused: false,",
+    "tests": [
+      "test/systems/horse/horsevoice.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-SOUNDSCAPE-P5-the-peers-never-loading",
+    "file": "src/net/remotePlayers.js",
+    "old": "    if (voiced) installHorseSounds(audio);\n",
+    "new": "",
+    "tests": [
+      "test/systems/horse/horsevoice.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-SOUNDSCAPE-P6-the-whinny-at-one",
+    "file": "src/systems/horse/horseVoice.js",
+    "old": "export const MOUNT_WHINNY_PITCH = 1.08;",
+    "new": "export const MOUNT_WHINNY_PITCH = 1;",
+    "tests": [
+      "test/systems/horse/horsevoice.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-SOUNDSCAPE-P6-the-cooldown-ten",
+    "file": "src/systems/horse/horseVoice.js",
+    "old": "export const SPOOK_COOLDOWN_S = 30;",
+    "new": "export const SPOOK_COOLDOWN_S = 10;",
+    "tests": [
+      "test/systems/horse/horsevoice.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-SOUNDSCAPE-P6-breath-short-under-a-third",
+    "file": "src/systems/horse/horseVoice.js",
+    "old": "export const BREATH_TIRED = 0.4;",
+    "new": "export const BREATH_TIRED = 0.3;",
     "tests": [
       "test/systems/horse/horsevoice.test.js"
     ]

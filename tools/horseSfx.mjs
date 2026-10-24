@@ -96,8 +96,9 @@ function waterFall(rand) {
 }
 
 /** DAGGER.SND's own cadences (measured off the player's archive, the loudest 10 ms of each fall, as a share of the clip's
- *  loudest): HorseClop (97), 1.508 s, and HorseClop2 (298), 2.606 s - [at s, accent]. The fast clop's three ghost falls
- *  (0.09, 1.12, 1.37 at a fifth) are its second hooves landing on the first's heels. */
+ *  loudest): HorseClop (97), 1.508 s, and HorseClop2 (298), 2.606 s - [at s, accent]. HorseClop2 has a second hoof
+ *  40-60 ms after seven of its main falls (0.09, 0.34, 0.61, 1.12, 1.37, 1.64, 1.91 s, at 0.20-0.38 of its peak); the
+ *  cadence keeps three of them (0.09, 1.12, 1.37), the main falls carrying the beat (AUDIT SOUNDSCAPE H7). */
 export const HOOF_CADENCE = Object.freeze({
   slow: Object.freeze({ len: 1.508, falls: Object.freeze([[0.37, 0.22], [0.65, 0.45], [1.09, 1], [1.39, 0.68]]) }),
   fast: Object.freeze({

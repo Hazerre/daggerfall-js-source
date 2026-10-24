@@ -13,7 +13,7 @@
 //   sea-luff-1/-2      canvas shaking head to wind: flaps of a sail's band uneven in time, a whump under each
 //   sea-spray-1/-2     spray over the bow: a crest's crack and a long hiss of water falling back
 //   shore-crash-1/-2   a wave breaking on a shore: its roar rising as it curls, the crash, the foam running back
-//   wild-owl-1/-2      an owl in the dark: a tawny's hoot and its tremolo, a deeper owl's slow double call
+//   wild-owl-1/-2      an owl in the dark: a tawny's hoot and its tremolo (-1), a deeper owl's slow triple call (-2)
 //   wild-howl-1/-2     a wolf far off: a long howl rising and falling with a breath in it, the hills' echo after
 //
 //     node tools/soundscapeSfx.mjs             # writes public/sfx/{sea,shore,wild}-*.wav
@@ -23,7 +23,7 @@
 // DETERMINISTIC: every noise is a seeded PRNG (each clip its own seed), so re-running writes the same bytes - the rule
 // public/README.md sets for anything of ours that ships. Provenance: public/sfx/SOURCES.md; the doctrine allow-list
 // (test/tooling/doctrine.test.js) carries a row for each. The recorded ones (the gulls, the crow, the frogs, the
-// cicadas, the night bird, the anvils) are tools/soundscapeSfxInstall.mjs's.
+// anvils) are tools/soundscapeSfxInstall.mjs's (AUDIT SOUNDSCAPE P8: no cicada and no night bird was ever installed).
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';

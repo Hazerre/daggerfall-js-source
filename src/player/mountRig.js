@@ -225,9 +225,12 @@ export function createMountRig({
       const voiced = !!soundsOn() && isRiding(player.transportMode);
       if (voiced) {
         installHorseSounds(audio);
-        const shots = voice.update(dt, { neigh: r.neigh, clip: r.clip, moving: r.playing && !player.standing, running: player.isRunning, paused: ridePaused, breath: horseBreath?.()?.amount ?? null, foesNear });
+        const shots = voice.update(dt, { neigh: r.neigh, clip: r.clip, moving: r.playing && !player.standing, running: player.isRunning, pitch: r.pitch, paused: ridePaused, breath: horseBreath?.()?.amount ?? null, foesNear });
         for (const s of shots) audio.playOneShot(s.clip, s.volume * RIDING_VOLUME_SCALE * ridingVolumeScale(), s.pitch);
-      } else if (r.neigh) audio.playOneShot(SOUND.AnimalHorse, RIDING_VOLUME_SCALE);
+      } else {
+        voice.hush();   // AUDIT SOUNDSCAPE H1: nothing owed from before is said when the voices come back
+        if (r.neigh) audio.playOneShot(SOUND.AnimalHorse, RIDING_VOLUME_SCALE);
+      }
       if (voiced) audio.setLoop('riding', r.playing ? hoofClipFor(r.clip, surfaceKind?.()) : null, { volume: r.volume, pitch: r.pitch });
       else audio.setLoop('riding', r.playing ? SOUND[r.clip] : null, { volume: r.volume, pitch: r.pitch });
       // TR-AUDIT F-E1: OnGUI (:293) refuses to draw AT ALL while the

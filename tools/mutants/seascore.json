@@ -227,8 +227,8 @@
   {
     "name": "SEA-SCORE-the-hold-a-tick-late",
     "file": "src/systems/soundscape/seaScore.js",
-    "old": "now - since >= SEA_SCORE_HOLD_MS",
-    "new": "now - since > SEA_SCORE_HOLD_MS",
+    "old": "if (now - since >= Math.max(SEA_SCORE_HOLD_MS, seaSongMs(current))",
+    "new": "if (now - since > Math.max(SEA_SCORE_HOLD_MS, seaSongMs(current))",
     "tests": [
       "test/systems/soundscape/seascore.test.js"
     ]
@@ -236,8 +236,8 @@
   {
     "name": "SEA-SCORE-the-storm-held-out",
     "file": "src/systems/soundscape/seaScore.js",
-    "old": "(law === SEA_SONGS.storm && current !== law) || ",
-    "new": "",
+    "old": "if (current === null || (law === SEA_SONGS.storm && current !== law)) return take(law, now);",
+    "new": "if (current === null) return take(law, now);",
     "tests": [
       "test/systems/soundscape/seascore.test.js"
     ]
@@ -254,8 +254,8 @@
   {
     "name": "SEA-SCORE-the-helm-memory-kept",
     "file": "src/systems/soundscape/seaScore.js",
-    "old": "if (law === null) { current = null; since = -Infinity; fightOverAt = null; return null; }",
-    "new": "if (law === null) return null;",
+    "old": "      if (law === null) { take(null, -Infinity); return null; }",
+    "new": "      if (law === null) return null;",
     "tests": [
       "test/systems/soundscape/seascore.test.js"
     ]
@@ -263,8 +263,80 @@
   {
     "name": "SEA-SCORE-the-tail-from-its-first-word",
     "file": "src/systems/soundscape/seaScore.js",
-    "old": "fightOverAt = null; if (current !== law) { current = law; since = now; } return current;",
-    "new": "if (current !== law) { current = law; since = now; } return current;",
+    "old": "if (law === SEA_SONGS.fight) { fightOverAt = null; pending = null;",
+    "new": "if (law === SEA_SONGS.fight) { pending = null;",
+    "tests": [
+      "test/systems/soundscape/seascore.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-SOUNDSCAPE-M1-the-boarding-the-directors",
+    "file": "src/systems/soundscape/seaScore.js",
+    "old": "  if (ctx?.aboard && ctx.fight) return SEA_SONGS.fight;\n",
+    "new": "",
+    "tests": [
+      "test/systems/soundscape/seascore.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-SOUNDSCAPE-M1-the-tail-lost-off-the-helm",
+    "file": "src/systems/soundscape/seaScore.js",
+    "old": "if (current === SEA_SONGS.fight && (law !== null || ctx?.aboard)) {",
+    "new": "if (current === SEA_SONGS.fight && law !== null) {",
+    "tests": [
+      "test/systems/soundscape/seascore.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-SOUNDSCAPE-M3-the-song-cut-at-the-timer",
+    "file": "src/systems/soundscape/seaScore.js",
+    "old": "Math.max(SEA_SCORE_HOLD_MS, seaSongMs(current)) && now",
+    "new": "SEA_SCORE_HOLD_MS && now",
+    "tests": [
+      "test/systems/soundscape/seascore.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-SOUNDSCAPE-M3-the-settle-unread",
+    "file": "src/systems/soundscape/seaScore.js",
+    "old": " && now - pendingSince >= SEA_SCORE_SETTLE_MS) take(law, now);",
+    "new": ") take(law, now);",
+    "tests": [
+      "test/systems/soundscape/seascore.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-SOUNDSCAPE-M3-the-short-tail",
+    "file": "src/systems/soundscape/seaScore.js",
+    "old": "export const SEA_FIGHT_TAIL_MS = 20_000;",
+    "new": "export const SEA_FIGHT_TAIL_MS = 12_000;",
+    "tests": [
+      "test/systems/soundscape/seascore.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-SOUNDSCAPE-M5-a-key-re-struck-under-itself",
+    "file": "src/systems/soundscape/seaScore.js",
+    "old": "    for (let i = 0; i + 1 < list.length; i++) list[i].duration = Math.max(1, Math.min(list[i].duration, list[i + 1].tick - list[i].tick));\n",
+    "new": "",
+    "tests": [
+      "test/systems/soundscape/seascore.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-SOUNDSCAPE-M5-the-drive-on-the-cellos-slow-bow",
+    "file": "src/systems/soundscape/seaScore.js",
+    "old": "drive: Object.freeze({ attack: 0.012, decay: 0.08,",
+    "new": "drive: Object.freeze({ attack: 0.07, decay: 0.3,",
+    "tests": [
+      "test/systems/soundscape/seascore.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-SOUNDSCAPE-M5-the-storms-drive-back-on-the-cello",
+    "file": "src/systems/soundscape/seaScore.js",
+    "old": "        w.note('drive', bar, i * 0.5, 0.42, n,",
+    "new": "        w.note('cello', bar, i * 0.5, 0.42, n,",
     "tests": [
       "test/systems/soundscape/seascore.test.js"
     ]

@@ -5,7 +5,8 @@
 // FIELD-WIND1 made the wind's (systems/wind/windAudio.js windBedSamples) and for its reason: Daggerfall has no water bed
 // to loop (DAGGER.SND's WaterGentle is a one-shot lap, AmbientRaining the rain's), and a recording looped end to end is
 // a loop an ear finds. Noise repeats nowhere an ear can find, and what makes a sea of it - the swell rising and falling,
-// a wave breaking - is the gain the driver moves live (systems/soundscape/seaAir.js, worldAir.js), never baked in.
+// a wave breaking - is the gain the driver moves live (systems/soundscape/seaAir.js, worldAir.js), never baked in. They
+// are made and registered by soundJobs.js, off the main thread (AUDIT SOUNDSCAPE W4).
 //
 // SEAMLESS: each layer's chain is run over the noise TWICE and the second pass kept, so every section's state at the
 // period's end is where the period itself leaves it and the last sample runs into the first as any sample into the
@@ -13,7 +14,7 @@
 // A bed may sum LAYERS, each the same noise through its own chain at its own gain (the surf's body and its hiss), and
 // is levelled to its RMS last, so a driver's gain law means the same number whatever the bed is made of.
 // Pure and deterministic: the same seed is the same bed every boot. Not a DFU member. Ledger A (SOUNDSCAPE).
-import { section, mulberry32 } from '../wind/windAudio.js';
+import { section, mulberry32 } from './bedDsp.js';
 
 /** The rate a bed is made at: 22050 Hz holds all a wash or a surf has (the brightest, the surf's spray, is gone past
  *  7 kHz), at half the memory of 44.1; a bed with nothing over 2.5 kHz (the swell, the rigging, the lap) is made at
@@ -92,50 +93,13 @@ export function bedSamples(spec, sampleRate = spec.rate) {
 }
 
 /** @type {Map<string, Float32Array>} */
-const _made = new Map();
-/** The sound being made in the page's idle time, or null - one at a time. */
-let _making = null;
-/** A bed by its key, made now if it is not yet (the tests' door); null for a key there is no bed of. */
+const _beds = new Map();
+/** A bed by its key, made once (the tests' door - the game's are made by soundJobs.js ensureBed, off the main thread);
+ *  null for a key there is no bed of. */
 export function bedOf(/** @type {string} */ key) {
   const spec = /** @type {Record<string, BedSpec>} */ (SOUND_BEDS)[key];
   if (!spec) return null;
-  let s = _made.get(key);
-  if (!s) _made.set(key, (s = bedSamples(spec)));
+  let s = _beds.get(key);
+  if (!s) _beds.set(key, (s = bedSamples(spec)));
   return s;
 }
-
-/**
- * A SOUND THE PORT MAKES, registered on the engine under `key` (audio.registerSamples) at `rate`, so every entry point
- * takes the key as a clip. True once it stands. Made by `make()` (its samples, or null while what it is made of is not
- * there yet - the player's archive) in the page's idle time (requestIdleCallback, a second at the latest), never inside
- * a frame: one of these is 5 to 30 ms of work, a hitch the moment a deck is boarded or a town's gate passed - and false
- * is answered until it is (the driver asks again next frame); one at a time. A page without idle callbacks (a test, an
- * old browser) makes it at once. False with no context to register it on yet, too.
- * @param {{ registerSamples?: (key: string, samples: Float32Array, rate: number) => boolean }} engine
- * @param {string} key @param {() => Float32Array | null} make @param {number} rate
- * @param {{ idle?: ((fn: () => void, opts: { timeout: number }) => unknown) | null }} [opts]
- */
-export function ensureMade(engine, key, make, rate, { idle = /** @type {any} */ (globalThis).requestIdleCallback ?? null } = {}) {
-  if (!engine?.registerSamples) return false;
-  const have = _made.get(key);
-  if (have) return !!engine.registerSamples(key, have, rate);
-  if (typeof idle !== 'function') {
-    const s = make();
-    if (!s) return false;
-    _made.set(key, s);
-    return !!engine.registerSamples(key, s, rate);
-  }
-  if (_making == null) {
-    _making = key;
-    idle(() => { try { const s = make(); if (s) _made.set(key, s); } finally { _making = null; } }, { timeout: 1000 });
-  }
-  return false;
-}
-
-/** A bed of SOUND_BEDS on the engine under its key (ensureMade's law). @param {any} engine @param {string} key @param {{ idle?: any }} [opts] */
-export function ensureBed(engine, key, opts) {
-  const spec = /** @type {Record<string, BedSpec>} */ (SOUND_BEDS)[key];
-  return !!spec && ensureMade(engine, key, () => bedSamples(spec), spec.rate, opts);
-}
-/** Test seam: every made sound forgotten. */
-export function _resetMade() { _made.clear(); _making = null; }

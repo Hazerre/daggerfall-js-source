@@ -10,6 +10,8 @@
 //
 //     node tools/seaScoreProbe.mjs [--wav <dir>] [--seconds <n>]
 //         --wav writes each render there as 16-bit WAV, normalised to -1 dBFS, for a person to listen to
+//         --seconds renders only so much of each song (default: the whole of it - AUDIT SOUNDSCAPE M4: the first cut
+//         measured 30 s, 11 to 26 bars of songs 32 to 64 long, and never heard the storm's stabs or the fight's tutti)
 import { chromium } from 'playwright';
 import http from 'node:http';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
@@ -19,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const arg = (k) => (process.argv.includes(k) ? process.argv[process.argv.indexOf(k) + 1] : null);
 const wavAt = arg('--wav');
-const SECONDS = Number(arg('--seconds') ?? 30);
+const SECONDS = Number(arg('--seconds') ?? 1e9);
 const ARENA2 = process.env.ARENA2_PATH ?? '/home/claude/dfdata/arena2';
 const MIDI_BSA = join(ARENA2, 'MIDI.BSA');
 const out = []; const check = (n, ok, d = '') => { out.push(ok); console.log(`${ok ? 'ok  ' : 'FAIL'} ${n}${d ? ` - ${d}` : ''}`); };
@@ -99,7 +101,8 @@ try {
   await page.goto(`http://127.0.0.1:${port}/probe/`);
   await page.waitForFunction(() => window.ready === true, null, { timeout: 60000 });
   const db = (x) => (x > 0 ? 20 * Math.log10(x) : -Infinity);
-  const loudness = (rms) => { const loud = rms.slice(1, Math.min(rms.length, 25)); return db(Math.sqrt(loud.reduce((a, b) => a + b * b, 0) / loud.length)); };
+  // the loudness of the whole render (its first second, the band's attack, left out) - M4: it was seconds 1 to 24 alone
+  const loudness = (rms) => { const loud = rms.slice(1); return db(Math.sqrt(loud.reduce((a, b) => a + b * b, 0) / loud.length)); };
   const r = {};
   for (const key of KEYS) {
     r[key] = await page.evaluate(([k, s]) => window.render(k, s), [key, SECONDS]);

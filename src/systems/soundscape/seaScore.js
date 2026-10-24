@@ -10,7 +10,8 @@
 //   SEACALM - A STILL SEA. 6/8, D Dorian (the major sixth, B natural, the mode's sea colour), 84 BPM in quarters: the
 //             harp rolling the chord in eighths, a low drone, the flute's tune, the strings come in on its second pass
 //             and the whistle takes a tune of its own in the middle. For drifting, the oars, a sea under fog.
-//   SEAOPEN - THE OPEN SEA. 4/4, G Mixolydian (the flat seventh, F natural, the shanty's own), 100 BPM: the fiddle's
+//   SEAOPEN - THE OPEN SEA. 4/4, G with the flat seventh borrowed (its F chord, F natural over it - AUDIT SOUNDSCAPE M7:
+//             G major elsewhere, F sharp over D, not the Mixolydian the first cut named), 100 BPM: the fiddle's
 //             tune over the accordion's off-beat chords, the cello and bass on one and three, a bodhran's pattern; the
 //             accordion joins the tune and the horns hold under it on the second pass; a breath on the strings and the
 //             whistle, then everything for the last eight bars. For a ship making way.
@@ -24,16 +25,21 @@
 //             the whistle, the accordion's boom-chick, the bodhran and a tambourine; the fiddle a diatonic third under
 //             the whistle on the second time through. For a port's approach.
 //   SEAFIGHT - A SEA FIGHT. 4/4, D minor with its major dominant, 144 BPM: a snare's march, the kick on one and three,
-//             the strings' ostinato, the timpani, the brass's theme - heroic, a swashbuckler's, its turns on the major
-//             IV and the Andalusian fall (i - VII - VI - V), never the Warden's half steps.
+//             the strings' ostinato, the timpani, the brass's theme - heroic, a swashbuckler's, its turns on the minor
+//             iv and the Andalusian fall (i - VII - VI - V; M7: no major IV stands in it), never the Warden's half steps.
 //
-// THE LAW (`seaScoreFor`): not at a helm, no score (the music director stands); a sea fight near, the fight; a
-// thunderstorm, the storm; a port's approach, landfall; night, the night's; drifting (under SEA_CALM_WAY) or fog, the
-// still sea; else the open sea. Rain and snow at sea are the open sea's: a wet passage, not a storm (DFU's own weather
-// splits rain from storm the same way: WeatherManager's IsRaining and IsStorming). Pure.
-// THE HOLD (`createSeaScore`): a song once chosen plays SEA_SCORE_HOLD_MS before the law may change it, so a ship
-// working about the calm line or the edge of a port's ring does not flip between songs - but a fight or a storm comes in
-// at once, the helm let go lets the music go at once, and a fight ended keeps its song SEA_FIGHT_TAIL_MS more.
+// THE LAW (`seaScoreFor`): not at a helm, no score (the music director stands) - but aboard in a sea fight, the fight
+// still (AUDIT SOUNDSCAPE M1: a boarding lets the helm go, and the deck fight, a sea fight's climax, played the
+// overland song); a sea fight as the watch knows it, the fight; a thunderstorm, the storm; a port's approach, landfall;
+// night, the night's; drifting (under SEA_CALM_WAY) or fog, the still sea; else the open sea. Rain and snow at sea are
+// the open sea's: a wet passage, not a storm (DFU's own weather splits rain from storm the same way: WeatherManager's
+// IsRaining and IsStorming). Pure.
+// THE HOLD (`createSeaScore`): a song once chosen plays whole - its own length, and never under SEA_SCORE_HOLD_MS -
+// and the law must have wanted another for SEA_SCORE_SETTLE_MS on end before it changes, so a ship working about the
+// calm line or the edge of a port's ring neither flips between songs nor cuts one short (AUDIT SOUNDSCAPE M3: a timer
+// alone changed at 90 s on the dot, and the still sea's choir and the shanty's last tutti were never heard); a fight or
+// a storm comes in at once, the helm let go lets the music go at once, and a fight ended keeps its song
+// SEA_FIGHT_TAIL_MS more - aboard off the helm too.
 // Not a DFU member. Ledger A (SEA-SCORE).
 
 import { midiNote, SCORE_TPQ } from '../gate/gateScore.js';
@@ -45,9 +51,12 @@ export const SEA_SONGS = Object.freeze({ calm: 'SEACALM.HMI', open: 'SEAOPEN.HMI
 export const SEA_SCORE_SILENCE = 'silence';
 /** Under this way (m/s, the helm's - comeSailAway.js helmPanelState().way) a ship is drifting: the still sea's song. */
 export const SEA_CALM_WAY = 2.5;
-/** How long a chosen song plays before the law may change it, and how long a fight's song outlives the fight. */
+/** The least a chosen song plays before the law may change it (a song longer plays whole), how long on end the law must
+ *  want another, and how long a fight's song outlives the fight (M3: a ship at the edge of a hostile's reach - in 4 s,
+ *  out 14 s - restarted the fight's song from its top seventeen times in five minutes on a 12 s tail). */
 export const SEA_SCORE_HOLD_MS = 90_000;
-export const SEA_FIGHT_TAIL_MS = 12_000;
+export const SEA_SCORE_SETTLE_MS = 20_000;
+export const SEA_FIGHT_TAIL_MS = 20_000;
 
 /** Each song's tempo (quarter notes a minute), length in bars, and bar in quarter beats (6/8 is three). */
 export const SEA_SHAPE = Object.freeze({
@@ -63,12 +72,12 @@ export const SEA_SHAPE = Object.freeze({
  *  (40, bowed): GM's own fiddle (110) sits in the ethnic family, a plucked envelope that dies in half a second. */
 export const SEA_PROGRAMS = Object.freeze({
   fiddle: 40, flute: 73, whistle: 78, accordion: 21, harp: 46, pizz: 45, strings: 48, cello: 42, bass: 43,
-  choir: 52, horn: 60, brass: 61, timpani: 47, bells: 14,
+  choir: 52, horn: 60, brass: 61, timpani: 47, bells: 14, drive: 42,
 });
 /** Channels: one voice each, the kit on GM's channel 9. */
 export const SEA_CHANNELS = Object.freeze({
   fiddle: 0, flute: 1, whistle: 2, accordion: 3, harp: 4, pizz: 5, strings: 6, cello: 7, bass: 8, kit: 9,
-  choir: 10, horn: 11, brass: 12, timpani: 13, bells: 14,
+  choir: 10, horn: 11, brass: 12, timpani: 13, bells: 14, drive: 15,
 });
 /** Each voice's level (CC7) and place (CC10, 64 the middle): the band about the middle - the fiddle a touch left, the
  *  whistle and the flute right, the harp left of them and the pizzicato right, the horns left and the brass right. */
@@ -76,7 +85,7 @@ export const SEA_MIX = Object.freeze({
   fiddle: Object.freeze([104, 56]), flute: Object.freeze([98, 72]), whistle: Object.freeze([90, 78]), accordion: Object.freeze([94, 46]),
   harp: Object.freeze([100, 40]), pizz: Object.freeze([88, 84]), strings: Object.freeze([86, 70]), cello: Object.freeze([94, 52]),
   bass: Object.freeze([96, 64]), choir: Object.freeze([80, 64]), horn: Object.freeze([98, 44]), brass: Object.freeze([100, 82]),
-  timpani: Object.freeze([100, 64]), bells: Object.freeze([70, 90]),
+  timpani: Object.freeze([100, 64]), bells: Object.freeze([70, 90]), drive: Object.freeze([94, 52]),
 });
 /** The kit's level (CC7 on channel 9). */
 export const SEA_KIT_LEVEL = 100;
@@ -93,6 +102,11 @@ export const SEA_VOICES = Object.freeze({
   cello: Object.freeze({ attack: 0.07, unison: 2, cents: 6, spread: 0.2 }),
   choir: Object.freeze({ mod: 1, index: 1.1, idxDecay: 2, attack: 0.35, release: 1, unison: 3, cents: 12, spread: 0.45 }),
   horn: Object.freeze({ attack: 0.06, index: 2.6, unison: 2, cents: 6, spread: 0.25 }),
+  /** AUDIT SOUNDSCAPE M5: THE DRIVE - the storm's and the fight's bowed eighths (and the storm's sixteenths) on a cello that
+   *  speaks and stops inside its note. On the cello's own envelope (0.37 s to speak, 0.4 to die) every strike still sounded
+   *  under the next three of the same key, and copies of one key at one pitch cancel and swell by its pitch and the
+   *  tempo: the storm's drive was quietest, with holes 18-20 dB deep inside each eighth, on its own tonic. */
+  drive: Object.freeze({ attack: 0.012, decay: 0.08, sustain: 0.75, release: 0.05, unison: 2, cents: 6, spread: 0.2 }),
 });
 /** The voices by channel, as the song carries them. */
 const VOICES_BY_CHANNEL = Object.freeze(Object.fromEntries(Object.entries(SEA_VOICES).map(([v, s]) => [SEA_CHANNELS[/** @type {keyof typeof SEA_CHANNELS} */ (v)], s])));
@@ -164,7 +178,7 @@ export const SEA_TUNES = Object.freeze({
   // its middle, over F C G Dm F C Am Am | F G Em Am F C G Dm
   calmB: tune('C5:1.5 A4:1.5 | G4:1 E4:.5 G4:1.5 | B4:1 D5:.5 B4:1 G4:.5 | A4:3 | C5:.5 D5:.5 C5:.5 A4:1.5 | G4:.5 A4:.5 G4:.5 E4:1.5 | E4:1 A4:.5 C5:1 B4:.5 | A4:3'
     + ' | F5:1.5 E5:1 D5:.5 | D5:1.5 B4:1.5 | E5:1 D5:.5 B4:1 G4:.5 | A4:1.5 E5:1.5 | F5:1 E5:.5 D5:1 C5:.5 | E5:1.5 G4:1.5 | B4:1 A4:.5 G4:1 B4:.5 | D5:3'),
-  // the open sea, G Mixolydian over G C G D G F D G | C G C D Em C D G
+  // the open sea, G with its borrowed flat seventh over G C G D G F D G | C G C D Em C D G
   openA: tune('D4:.5 G4:1 G4:.5 G4:.5 A4:.5 B4:1 | C5:1 B4:.5 A4:.5 G4:1 E4:1 | D4:1 G4:.5 A4:.5 B4:1 D5:1 | C5:1 A4:1 F#4:1 D4:1'
     + ' | D4:.5 G4:1 G4:.5 G4:.5 A4:.5 B4:1 | C5:1 A4:.5 C5:.5 F5:1 E5:.5 D5:.5 | D5:1 A4:1 B4:.5 A4:.5 F#4:1 | G4:3 r:1'),
   openB: tune('E5:1.5 D5:.5 C5:1 E5:1 | D5:1.5 B4:.5 G4:1 B4:1 | C5:1 E5:1 G5:1 E5:1 | D5:2 A4:1 F#4:1'
@@ -215,7 +229,9 @@ const RANK = { programChange: 0, controller: 0, noteOn: 1 };
  * SEA_SHAPE's `beats` long - and `w.hit(key, bar, beat, velocity)`; every voice gets its program, level and place at
  * tick 0. A note laid past the last bar sounds at the loop's start (the song is a loop: a pickup or an echo runs round
  * its seam), and one held past the end stops at it. One note a key a moment (AUDIT SD III A8, gateScore.js makeSong):
- * a note laid where the same voice already strikes it is one note, its loudest and its longest.
+ * a note laid where the same voice already strikes it is one note, its loudest and its longest; and a key struck again
+ * ends the note before it there (AUDIT SOUNDSCAPE M5: a string, a reed or a key sounds once - two of one pitch at once
+ * cancel and swell).
  * @param {keyof typeof SEA_SHAPE} key
  * @param {(w: Writer) => void} write
  */
@@ -239,6 +255,12 @@ function makeSong(key, write) {
     hit(k, bar, beat, velocity) { w.note('kit', bar, beat, 0.25, KIT[k], velocity); },
   };
   write(w);
+  const byKey = new Map();
+  for (const e of events) if (e.channel !== SEA_CHANNELS.kit) { const k = e.channel * 128 + e.note; if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(e); }
+  for (const list of byKey.values()) {
+    list.sort((a, b) => a.tick - b.tick);
+    for (let i = 0; i + 1 < list.length; i++) list[i].duration = Math.max(1, Math.min(list[i].duration, list[i + 1].tick - list[i].tick));
+  }
   for (const [voice, [lv, pan]] of Object.entries(SEA_MIX)) {
     const channel = SEA_CHANNELS[/** @type {keyof typeof SEA_CHANNELS} */ (voice)];
     events.push({ tick: 0, type: 'programChange', channel, program: SEA_PROGRAMS[/** @type {keyof typeof SEA_PROGRAMS} */ (voice)] });
@@ -341,10 +363,10 @@ function storm() {
     prog.forEach((c, bar) => {
       const breath = bar >= 32 && bar < 40;
       const [r, , f] = stack(c, 2);
-      // the drive: the cello and the bass in eighths on the root, the bar's last two leaning to the fifth and back
+      // the drive: the cello (its quick bow, M5) and the bass in eighths on the root, the bar's last two leaning to the fifth and back
       for (let i = 0; i < 8; i++) {
         const n = i === 6 ? f : r;
-        w.note('cello', bar, i * 0.5, 0.42, n, (i % 2 === 0 ? 88 : 72) + (i === 0 ? 10 : 0) - (breath ? 18 : 0));
+        w.note('drive', bar, i * 0.5, 0.42, n, (i % 2 === 0 ? 88 : 72) + (i === 0 ? 10 : 0) - (breath ? 18 : 0));
         if (i % 2 === 0) w.note('bass', bar, i * 0.5, 0.45, floored(r - 12), breath ? 66 : 90);
       }
       if (!breath) {
@@ -356,8 +378,8 @@ function storm() {
       for (const n of voicing(c, 57)) w.note('choir', bar, 0, 3.9, n, breath ? 70 : 62);
       if (bar % 8 === 0 && !breath) w.hit('crash', bar, 0, 92);
       if (!breath) { w.hit('kick', bar, 0, 90); w.hit('kick', bar, 2, 82); }
-      // the strings' unrest: repeated sixteenths, high and soft, over the B harmony
-      if ((bar >= 16 && bar < 24) || bar >= 40) for (let i = 0; i < 16; i++) for (const n of voicing(c, 69).slice(0, 2)) w.note('strings', bar, i * 0.25, 0.22, n, 46 + (i % 4 === 0 ? 10 : 0));
+      // the unrest: repeated sixteenths, high and soft, over the B harmony
+      if ((bar >= 16 && bar < 24) || bar >= 40) for (let i = 0; i < 16; i++) for (const n of voicing(c, 69).slice(0, 2)) w.note('drive', bar, i * 0.25, 0.22, n, 46 + (i % 4 === 0 ? 10 : 0));   // M5: the drive's quick bow, every sixteenth spoken
     });
     lay(w, 'horn', 8, SEA_TUNES.storm, 96);
     lay(w, 'strings', 24, SEA_TUNES.storm, 84, { octave: 1, legato: 0.96 });
@@ -421,8 +443,8 @@ function fight() {
     const prog = [...A, ...A, ...B, ...A, ...A, ...B];
     prog.forEach((c, bar) => {
       const [r, t, f] = stack(c, 3);
-      // the drive: the strings in eighths, root and fifth rocking, the bass on the beat
-      for (let i = 0; i < 8; i++) w.note('cello', bar, i * 0.5, 0.42, i % 2 === 0 ? r - 12 : f - 12, i === 0 ? 96 : i % 2 === 0 ? 84 : 70);
+      // the drive: the cello's quick bow in eighths (M5), root and fifth rocking, the bass on the beat
+      for (let i = 0; i < 8; i++) w.note('drive', bar, i * 0.5, 0.42, i % 2 === 0 ? r - 12 : f - 12, i === 0 ? 96 : i % 2 === 0 ? 84 : 70);
       for (let i = 0; i < 4; i++) w.note('bass', bar, i, 0.8, floored(r - 24), i === 0 ? 98 : 86);
       w.note('timpani', bar, 0, 0.9, r - 12, 100); w.note('timpani', bar, 3, 0.4, f - 24, 84);
       // the march: the kick on one and three, the snare on two and four with its drag before four
@@ -452,9 +474,10 @@ export function seaScoreSongs() {
  * THE LAW: what a helm hears - a song's name, or null (not at a helm: the music director stands). `ctx`:
  * `{ sailing, fight, weather, night, nearPort, way }` - at a helm (a passage's too), a sea fight near, the weather's word
  * (systems/weather/weatherFront.js soundWeather's), night, a port's approach, the helm's way in m/s. Pure.
- * @param {{ sailing?: boolean, fight?: boolean, weather?: string, night?: boolean, nearPort?: boolean, way?: number } | null | undefined} ctx
+ * @param {{ sailing?: boolean, aboard?: boolean, fight?: boolean, weather?: string, night?: boolean, nearPort?: boolean, way?: number } | null | undefined} ctx
  */
 export function seaScoreFor(ctx) {
+  if (ctx?.aboard && ctx.fight) return SEA_SONGS.fight;
   if (!ctx?.sailing) return null;
   if (ctx.fight) return SEA_SONGS.fight;
   if (ctx.weather === 'thunder') return SEA_SONGS.storm;
@@ -464,28 +487,41 @@ export function seaScoreFor(ctx) {
   return SEA_SONGS.open;
 }
 
+/** A song's own length (ms), off its shape. Pure. @param {string} name */
+export function seaSongMs(name) {
+  const key = /** @type {keyof typeof SEA_SHAPE | undefined} */ (Object.keys(SEA_SONGS).find((k) => /** @type {any} */ (SEA_SONGS)[k] === name));
+  if (!key) return 0;
+  const { bpm, bars, beats } = SEA_SHAPE[key];
+  return (bars * beats * 60_000) / bpm;
+}
+
 /**
- * THE HOLD over the law: `want(ctx, now)` (now in ms) - the law's song, kept SEA_SCORE_HOLD_MS before the law may
- * change it; a fight or a storm comes in at once; a fight ended keeps its song SEA_FIGHT_TAIL_MS; the helm let go is
- * null at once (and the next helm starts afresh).
+ * THE HOLD over the law: `want(ctx, now)` (now in ms) - the law's song, played whole (its length, never under
+ * SEA_SCORE_HOLD_MS) and changed only once the law has wanted another SEA_SCORE_SETTLE_MS on end; a fight or a storm
+ * comes in at once; a fight ended keeps its song SEA_FIGHT_TAIL_MS (aboard off the helm too, then none); the helm let go
+ * is null at once (and the next helm starts afresh).
  */
 export function createSeaScore() {
   /** @type {string | null} */
-  let current = null;
-  let since = -Infinity, fightOverAt = null;
+  let current = null, pending = /** @type {string | null} */ (null);
+  let since = -Infinity, fightOverAt = /** @type {number | null} */ (null), pendingSince = -Infinity;
+  const take = (/** @type {string | null} */ song, /** @type {number} */ now) => { current = song; since = now; pending = null; fightOverAt = null; return current; };
   return {
     get current() { return current; },
     /** @param {Parameters<typeof seaScoreFor>[0]} ctx @param {number} now */
     want(ctx, now) {
       const law = seaScoreFor(ctx);
-      if (law === null) { current = null; since = -Infinity; fightOverAt = null; return null; }
-      if (law === SEA_SONGS.fight) { fightOverAt = null; if (current !== law) { current = law; since = now; } return current; }
-      if (current === SEA_SONGS.fight) {
+      if (law === SEA_SONGS.fight) { fightOverAt = null; pending = null; return current === law ? current : take(law, now); }
+      if (current === SEA_SONGS.fight && (law !== null || ctx?.aboard)) {
         fightOverAt ??= now;
         if (now - fightOverAt < SEA_FIGHT_TAIL_MS) return current;
-        fightOverAt = null; current = law; since = now; return current;
+        return take(law, now);
       }
-      if (current === null || (law === SEA_SONGS.storm && current !== law) || (law !== current && now - since >= SEA_SCORE_HOLD_MS)) { current = law; since = now; }
+      if (law === null) { take(null, -Infinity); return null; }
+      if (current === null || (law === SEA_SONGS.storm && current !== law)) return take(law, now);
+      if (law === current) { pending = null; return current; }
+      if (pending !== law) { pending = law; pendingSince = now; }
+      if (now - since >= Math.max(SEA_SCORE_HOLD_MS, seaSongMs(current)) && now - pendingSince >= SEA_SCORE_SETTLE_MS) take(law, now);
       return current;
     },
   };

@@ -13,7 +13,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   seaScoreSongs, seaScoreFor, createSeaScore, tune, SEA_SONGS, SEA_SCORE_SILENCE, SEA_CALM_WAY, SEA_SCORE_HOLD_MS,
-  SEA_FIGHT_TAIL_MS, SEA_SHAPE, SEA_PROGRAMS, SEA_CHANNELS, SEA_MIX, SEA_KIT_LEVEL, SEA_VOICES, SEA_KIT, SEA_LEVEL,
+  SEA_FIGHT_TAIL_MS, SEA_SCORE_SETTLE_MS, seaSongMs, SEA_SHAPE, SEA_PROGRAMS, SEA_CHANNELS, SEA_MIX, SEA_KIT_LEVEL, SEA_VOICES, SEA_KIT, SEA_LEVEL,
   SEA_TUNES, SEA_CHORDS,
 } from '../../../src/systems/soundscape/seaScore.js';
 import { gateScoreSongs, midiNote, SCORE_TPQ } from '../../../src/systems/gate/gateScore.js';
@@ -73,10 +73,13 @@ test('SEA-SCORE THE SONGS: six, by their own names - eight and three, beside eve
   assert.ok(lastHarp.some((e) => e.tick + e.duration === calm.durationTicks), 'the last bar\'s ring stops at the seam');
 });
 
-test('SEA-SCORE THE BAND: fourteen voices and the kit, one a channel, the kit on GM\'s own channel 9; every voice\'s program, level and place at tick 0 of every song, before its first note, and the kit\'s level; one note a key a moment; the voices and the drums the songs carry, every field inside the player\'s range (mutants: a voice unset; a doubled note-on struck twice; the fiddle on GM\'s plucked fiddle; the accordion\'s reeds in tune)', () => {
+test('SEA-SCORE THE BAND: fifteen voices and the kit, one a channel, the kit on GM\'s own channel 9; every voice\'s program, level and place at tick 0 of every song, before its first note, and the kit\'s level; one note a key a moment, and a key struck again ending the note before it (AUDIT SOUNDSCAPE M5); the drive\'s bow spoken and stopped inside a sixteenth of the storm; the voices and the drums the songs carry, every field inside the player\'s range (mutants: a voice unset; a doubled note-on struck twice; a key re-struck under its own note; the drive on the cello\'s slow bow; the fiddle on GM\'s plucked fiddle; the accordion\'s reeds in tune)', () => {
   assert.deepEqual({ ...SEA_PROGRAMS }, {
-    fiddle: 40, flute: 73, whistle: 78, accordion: 21, harp: 46, pizz: 45, strings: 48, cello: 42, bass: 43, choir: 52, horn: 60, brass: 61, timpani: 47, bells: 14,
+    fiddle: 40, flute: 73, whistle: 78, accordion: 21, harp: 46, pizz: 45, strings: 48, cello: 42, bass: 43, choir: 52, horn: 60, brass: 61, timpani: 47, bells: 14, drive: 42,
   });
+  assert.equal(SEA_CHANNELS.drive, 15);
+  const d = SEA_VOICES.drive;
+  assert.ok(d.attack + d.decay <= 60 / SEA_SHAPE.storm.bpm / 4 - 0.02 && d.release <= 0.06, 'the drive speaks and stops inside the storm\'s sixteenth');
   assert.equal(SEA_CHANNELS.kit, 9, 'GM\'s own drum channel');
   assert.equal(new Set(Object.values(SEA_CHANNELS)).size, Object.keys(SEA_CHANNELS).length, 'one voice a channel');
   assert.deepEqual(Object.keys(SEA_MIX), Object.keys(SEA_PROGRAMS));
@@ -99,6 +102,12 @@ test('SEA-SCORE THE BAND: fourteen voices and the kit, one a channel, the kit on
       const key = `${e.tick}:${e.channel}:${e.note}`;
       assert.ok(!seen.has(key), `${k}: one note a key a moment (${key})`);
       seen.add(key);
+    }
+    const byKey = new Map();
+    for (const e of notesOf(s)) if (e.channel !== 9) { const kk = e.channel * 128 + e.note; byKey.set(kk, [...(byKey.get(kk) ?? []), e]); }
+    for (const list of byKey.values()) {
+      list.sort((a, b) => a.tick - b.tick);
+      for (let i = 0; i + 1 < list.length; i++) assert.ok(list[i].tick + list[i].duration <= list[i + 1].tick, `${k}: channel ${list[i].channel} key ${list[i].note} struck again under itself at ${list[i + 1].tick}`);
     }
     // the voices as the player reads them: every field the score asks for held as asked (inside the range)
     const v = songVoices(s);
@@ -164,7 +173,7 @@ test('SEA-SCORE THE ARRANGEMENTS: the still sea\'s harp rolling six eighths a ba
   const horn = onChannel(s.open, 'horn');
   assert.ok(horn.length > 0 && horn.every((e) => e.tick >= bar('open', 16) && e.tick < bar('open', 32)), 'the horns under the second pass alone');
   // SEASTORM
-  const drive = onChannel(s.storm, 'cello');
+  const drive = onChannel(s.storm, 'drive').filter((e) => e.note < 60);   // the low eighths (the unrest's sixteenths ride the same bow, high)
   for (let b = 0; b < SEA_SHAPE.storm.bars; b++) assert.equal(drive.filter((e) => e.tick >= bar('storm', b) && e.tick < bar('storm', b + 1)).length, 8, `storm bar ${b}: the drive's eight`);
   // SEANIGHT
   assert.deepEqual(onChannel(s.night, 'bells').map((e) => [e.tick, e.note, e.velocity]), [[0, midiNote('A3'), 40], [bar('night', 16), midiNote('E4'), 36]]);
@@ -194,6 +203,8 @@ test('SEA-SCORE THE LAW: no helm, no score - the director stands; at a helm a fi
   assert.equal(seaScoreFor(null), null);
   assert.equal(seaScoreFor(undefined), null);
   assert.equal(seaScoreFor({ sailing: false, fight: true, weather: 'thunder', nearPort: true }), null, 'no helm, no score');
+  assert.equal(seaScoreFor({ sailing: false, aboard: true, fight: true }), S.fight, 'AUDIT SOUNDSCAPE M1: aboard off the helm in a sea fight - a boarding - the fight\'s');
+  assert.equal(seaScoreFor({ sailing: false, aboard: true, weather: 'thunder' }), null, 'aboard off the helm with no fight: the director\'s');
   const table = [
     [{}, S.open],
     [{ fight: true, weather: 'thunder', nearPort: true, night: true, way: 0 }, S.fight],
@@ -208,35 +219,55 @@ test('SEA-SCORE THE LAW: no helm, no score - the director stands; at a helm a fi
   assert.deepEqual(table.map(([o]) => at(o)), table.map(([, want]) => want));
 });
 
-test('SEA-SCORE THE HOLD: the law\'s song, kept SEA_SCORE_HOLD_MS before the law may change it - and changed the moment the hold is spent; a storm and a fight through it at once; a storm, once in, kept its hold; a fight ended keeps its song SEA_FIGHT_TAIL_MS, then the law\'s song at once; the helm let go is null at once, and the next helm hears its own law at once (mutants: the hold spent a tick late; the storm held out; the fight\'s tail cut; the helm\'s memory kept; the tail from the fight\'s first word)', () => {
-  assert.equal(SEA_SCORE_HOLD_MS, 90_000);
-  assert.equal(SEA_FIGHT_TAIL_MS, 12_000);
+test('SEA-SCORE THE HOLD (AUDIT SOUNDSCAPE M1, M3): the law\'s song played whole - its own length, never under SEA_SCORE_HOLD_MS - and changed only once the law has wanted another SEA_SCORE_SETTLE_MS on end; a storm and a fight through it at once; a storm, once in, kept its hold; a fight ended keeps its song SEA_FIGHT_TAIL_MS from its last word, then the law\'s song at once - aboard off the helm too, then none; the helm let go ashore is null at once, and the next helm hears its own law at once (mutants: the song cut at the timer; the settle unread; the storm held out; the fight\'s tail cut; the tail lost off the helm; the helm\'s memory kept)', () => {
+  assert.deepEqual([SEA_SCORE_HOLD_MS, SEA_SCORE_SETTLE_MS, SEA_FIGHT_TAIL_MS], [90_000, 20_000, 20_000]);
   const S = SEA_SONGS, T0 = 1_800_000_000_000;
+  assert.deepEqual(Object.values(S).map((n) => Math.round(seaSongMs(n))), [137143, 115200, 91429, 87273, 73846, 80000]);
+  assert.equal(seaSongMs('nope'), 0);
   const ctx = (o) => ({ sailing: true, weather: 'sunny', way: 6, ...o });
   const h = createSeaScore();
   assert.equal(h.want(ctx({ way: 0 }), T0), S.calm, 'the first song the law\'s');
-  assert.equal(h.want(ctx({}), T0 + 1000), S.calm, 'making way inside the hold: the still sea kept');
-  assert.equal(h.want(ctx({}), T0 + SEA_SCORE_HOLD_MS - 1), S.calm);
-  assert.equal(h.want(ctx({}), T0 + SEA_SCORE_HOLD_MS), S.open, 'the hold spent: the law\'s song');
-  assert.equal(h.want(ctx({ way: 0 }), T0 + SEA_SCORE_HOLD_MS + 10), S.open, 'and the new song held in its turn');
-  const t1 = T0 + SEA_SCORE_HOLD_MS + 20_000;
+  assert.equal(h.want(ctx({}), T0 + 1000), S.calm, 'making way: the still sea kept');
+  assert.equal(h.want(ctx({}), T0 + SEA_SCORE_HOLD_MS), S.calm, 'at the old timer\'s 90 s: still the still sea - its choir is to come');
+  const calmMs = seaSongMs(S.calm);
+  assert.equal(h.want(ctx({}), T0 + calmMs - 1), S.calm);
+  assert.equal(h.want(ctx({}), T0 + calmMs), S.open, 'played whole, the law\'s song');
+  const t0 = T0 + calmMs;
+  // the law at the calm line, back and forth: no change until it settles
+  const openMs = seaSongMs(S.open);
+  assert.equal(h.want(ctx({ way: 0 }), t0 + openMs), S.open, 'the law turns; not settled yet');
+  assert.equal(h.want(ctx({}), t0 + openMs + 10_000), S.open);
+  assert.equal(h.want(ctx({ way: 0 }), t0 + openMs + 15_000), S.open, 'turned again: its settling begins again');
+  assert.equal(h.want(ctx({ way: 0 }), t0 + openMs + 15_000 + SEA_SCORE_SETTLE_MS - 1), S.open);
+  assert.equal(h.want(ctx({ way: 0 }), t0 + openMs + 15_000 + SEA_SCORE_SETTLE_MS), S.calm, 'settled: the still sea');
+  const t1 = t0 + openMs + 15_000 + SEA_SCORE_SETTLE_MS + 5_000;
   assert.equal(h.want(ctx({ weather: 'thunder' }), t1), S.storm, 'a storm through the hold at once');
   assert.equal(h.want(ctx({}), t1 + 5_000), S.storm, 'the storm kept its hold when the sky cleared');
-  assert.equal(h.want(ctx({}), t1 + SEA_SCORE_HOLD_MS), S.open);
-  const t2 = t1 + SEA_SCORE_HOLD_MS + 1_000;
+  assert.equal(h.want(ctx({}), t1 + seaSongMs(S.storm) - 1), S.storm, 'played whole');
+  assert.equal(h.want(ctx({}), t1 + seaSongMs(S.storm)), S.open);
+  const t2 = t1 + seaSongMs(S.storm) + 1_000;
   assert.equal(h.want(ctx({ fight: true }), t2), S.fight, 'a fight through the hold at once');
   assert.equal(h.want(ctx({}), t2 + 30_000), S.fight, 'the fight over: its tail begins');
   assert.equal(h.want(ctx({}), t2 + 30_000 + SEA_FIGHT_TAIL_MS - 1), S.fight, 'the tail still sounding');
   assert.equal(h.want(ctx({}), t2 + 30_000 + SEA_FIGHT_TAIL_MS), S.open, 'the tail spent: the law\'s song at once');
   assert.equal(h.want(ctx({ way: 0 }), t2 + 30_000 + SEA_FIGHT_TAIL_MS + 1_000), S.open, 'and held');
   assert.equal(h.current, S.open);
-  assert.equal(h.want({ sailing: false }, t2 + 60_000), null, 'the helm let go: null at once');
+  assert.equal(h.want({ sailing: false }, t2 + 60_000), null, 'the helm let go ashore: null at once');
   assert.equal(h.current, null);
   assert.equal(h.want(ctx({ night: true }), t2 + 61_000), S.night, 'a new helm hears its own law at once');
+  assert.equal(h.want(ctx({}), t2 + 62_000), S.night);
+  assert.equal(h.want(ctx({}), t2 + 61_000 + SEA_SCORE_HOLD_MS - 1), S.night, 'a song shorter than the hold keeps the hold');
+  assert.equal(h.want(ctx({}), t2 + 61_000 + SEA_SCORE_HOLD_MS), S.open);
   // a fight that flares again inside its tail is the fight still
   const f = createSeaScore();
   f.want(ctx({ fight: true }), T0);
   f.want(ctx({}), T0 + 1_000);
   assert.equal(f.want(ctx({ fight: true }), T0 + 5_000), S.fight);
   assert.equal(f.want(ctx({}), T0 + 6_000 + SEA_FIGHT_TAIL_MS - 1), S.fight, 'the tail counted from the fight\'s last word');
+  // a boarding: the helm let go in the fight, the deck fight the fight's; won aboard, its tail, then the director's
+  const b = createSeaScore();
+  b.want(ctx({ fight: true }), T0);
+  assert.equal(b.want({ sailing: false, aboard: true, fight: true }, T0 + 2_000), S.fight, 'boarding: the fight held');
+  assert.equal(b.want({ sailing: false, aboard: true, fight: false }, T0 + 60_000), S.fight, 'won aboard: its tail');
+  assert.equal(b.want({ sailing: false, aboard: true, fight: false }, T0 + 60_000 + SEA_FIGHT_TAIL_MS), null, 'the tail spent off the helm: the director\'s');
 });

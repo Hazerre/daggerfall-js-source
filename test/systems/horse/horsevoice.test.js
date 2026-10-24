@@ -105,6 +105,12 @@ test('HORSE-VOICE THE HOOVES\' CLIP: DFU\'s clop on hard ground, the gait\'s loo
 
 // ── the voices ────────────────────────────────────────────────────────
 
+test('HORSE-VOICE THE NUMBERS THE RECORD STATES (AUDIT SOUNDSCAPE P6): each pinned to its literal, where the laws\' tests read each back - the whinny at 1.08, the neighs at 0.94, 1, 1.05 and 1.1, the spook\'s high neigh 1.14 on its heels (0.38 s), never again within 30 s, foes asked four times a second, the gallop\'s breath past 8 s, horse care\'s breath short under 0.4, the blown breaths every 2.2 to 3.4 s, a blow one in three (mutants: any of them moved)', () => {
+  assert.deepEqual([MOUNT_WHINNY_PITCH, [...NEIGH_PITCHES], SPOOK_NEIGH_PITCH, SPOOK_NEIGH_LAG_S, SPOOK_COOLDOWN_S, FOE_SAMPLE_S], [1.08, [0.94, 1, 1.05, 1.1], 1.14, 0.38, 30, 0.25]);
+  assert.deepEqual([GALLOP_BREATH_AFTER_S, GALLOP_BREATH_S, [...GALLOP_BREATH_GAIN], GALLOP_EFFORT_S, BREATH_TIRED, RECOVER_SHARE, RECOVER_MAX_S, [...TIRED_BREATH_S], BLOW_EVERY, ALARM_SNORT_PITCH], [8, 0.52, [0.45, 0.8], 20, 0.4, 0.4, 14, [2.2, 3.4], 3, 1.08]);
+  assert.deepEqual({ ...VOICE_GAIN }, { neigh: 1, snort: 0.85, blow: 0.8, spook: 1 });
+});
+
 test('HORSE-VOICE THE MOODS: foes in sight the alarm, before blown, before the gallop, before a walk or standing (calm), else riding on; every mood\'s weights a whole; a voice picked by its weights over the kinds loaded, the neigh always there; no clip twice while another is there (mutants: the alarm under the tired; a weight unbalanced; a repeat allowed)', () => {
   assert.equal(horseMood({ alarm: true, tired: true, galloping: true }), 'alarm');
   assert.equal(horseMood({ tired: true, galloping: true }), 'tired');
@@ -158,6 +164,11 @@ test('HORSE-VOICE THE GALLOP\'S BREATH: nothing in a gallop\'s first GALLOP_BREA
   assert.ok(later.length >= 18 && later.length <= 20, `once a stride: ${later.length} in 10 s`);
   for (let i = 1; i < later.length; i++) assert.ok(Math.abs(later[i].t - later[i - 1].t - GALLOP_BREATH_S) < 0.04);
   for (let i = 1; i < later.length; i++) assert.notEqual(later[i].clip, later[i - 1].clip);
+  // AUDIT SOUNDSCAPE H3: a gallop plays the fast clop at DFU's 1.2 - its stride is the clop's, not pitch 1's
+  const lifted = createHorseVoice({ rolls: () => 0.5 });
+  lifted.mount(false);
+  const at12 = run(lifted, 18 * 60, 1 / 60, { ...gallop, pitch: 1.2 }).filter((s) => s.t > GALLOP_BREATH_AFTER_S + 1);
+  for (let i = 1; i < at12.length; i++) assert.ok(Math.abs(at12[i].t - at12[i - 1].t - GALLOP_BREATH_S / 1.2) < 0.04, `at 1.2: ${(at12[i].t - at12[i - 1].t).toFixed(3)}`);
   assert.ok(later[0].volume >= GALLOP_BREATH_GAIN[0] && later[0].volume < GALLOP_BREATH_GAIN[0] + 0.02);
   assert.ok(later.at(-1).volume > later[0].volume + 0.1, 'harder as it runs on');
   const long = run(v, (GALLOP_EFFORT_S + 1) * 60, 1 / 60, gallop);
@@ -238,6 +249,9 @@ test('HORSE-VOICE THE SPOOK: foes coming into sight (asked every FOE_SAMPLE_S) -
   assert.deepEqual(run(p, 120, 1 / 60, { ...ride, paused: true, neigh: true, foesNear: () => (pAsked++, true) }), []);
   assert.equal(p.now, 0);
   assert.equal(pAsked, 0);
+  // AUDIT SOUNDSCAPE H4: and a moment of the clock's that fell in it is said on the first frame after - held, not dropped
+  assert.equal(p.update(1 / 60, ride).length, 1, 'the held moment, said');
+  assert.deepEqual(run(p, 60, 1 / 60, ride), [], 'once');
   // a dismount drops the spook's neigh not yet said
   const d = createHorseVoice({ rolls: () => 0 });
   d.mount(true);
@@ -246,6 +260,20 @@ test('HORSE-VOICE THE SPOOK: foes coming into sight (asked every FOE_SAMPLE_S) -
   assert.equal(d.pending, 1);
   d.mount(false);
   assert.deepEqual(run(d, 60, 1 / 60, ride), [], 'the neigh not said');
+  // AUDIT SOUNDSCAPE H1: a ride heard on DFU's sounds a while owes nothing when the voices come back - a mount's whinny
+  // (the mount was on DFU's), a spook's neigh, a long gallop's blowing
+  const h = createHorseVoice({ rolls: () => 0 });
+  h.mount(true);
+  h.hush();
+  assert.notEqual(h.update(1 / 60, { ...ride, neigh: true })[0]?.pitch, MOUNT_WHINNY_PITCH, 'no whinny for a mount long gone');
+  h.update(1 / 60, { ...ride, foesNear: () => true });
+  assert.equal(h.pending, 1);
+  h.hush();
+  assert.equal(h.pending, 0, 'the spook\'s neigh let go');
+  run(h, 20 * 60, 1 / 60, { ...ride, running: true });
+  h.hush();
+  assert.equal(h.recover, 0);
+  assert.deepEqual(run(h, 10 * 60, 1 / 60, { ...ride, clip: RIDING_SOUND.horseSlow }), [], 'and no blowing for a gallop long gone');
   // the spook asks for its own clip: not loaded, no spook
   const n = createHorseVoice({ rolls: () => 0 });
   n.mount(false);
@@ -255,7 +283,7 @@ test('HORSE-VOICE THE SPOOK: foes coming into sight (asked every FOE_SAMPLE_S) -
 // ── the rig ───────────────────────────────────────────────────────────
 
 /** A recording bus, a rider and the rig over them. */
-function rig({ soundsOn, surfaceKind = () => FOOTSTEP_KIND.Outside, running = true } = {}) {
+function rig({ soundsOn, surfaceKind = () => FOOTSTEP_KIND.Outside, running = true, horseBreath, foesNear, ridingVolumeScale, paused } = {}) {
   const calls = { shots: [], loops: [] };
   const audio = {
     playOneShot: (...a) => { calls.shots.push(a); },
@@ -268,10 +296,11 @@ function rig({ soundsOn, surfaceKind = () => FOOTSTEP_KIND.Outside, running = tr
   const r = createMountRig({
     renderer: {}, canvas: null, fetchBytes: async () => { throw new Error('no ARENA2 here'); }, palette: null,
     audio, player, playerEntity: { items: [] }, showOverlay: () => {}, soundsOn, surfaceKind,
+    ...(horseBreath ? { horseBreath } : {}), ...(foesNear ? { foesNear } : {}), ...(ridingVolumeScale ? { ridingVolumeScale } : {}), ...(paused ? { paused } : {}),
   });
   r.setMode(TRANSPORT_MODES.Horse);
   calls.loops.length = 0;
-  return { calls, frames: (n) => { for (let i = 0; i < n; i++) r.frame(1 / 60); } };
+  return { calls, player, frames: (n) => { for (let i = 0; i < n; i++) r.frame(1 / 60); } };
 }
 
 test('HORSE-VOICE THE RIG: the switch off is DFU\'s TransportManager exactly - every voice AnimalHorse at RidingVolumeScale, the loop DFU\'s clop whatever the ground; on, with the clips loaded, the hooves on the ground under the rider and the voices DFU\'s scale on top (mutants: the switch ignored; the ground ignored on; the voices louder than DFU\'s scale)', async () => {
@@ -323,11 +352,41 @@ test('HORSE-VOICE THE HOSTS: the two that ride (world.js, exterior.js) hand the 
   assert.ok(X.includes('surfaceKind: () => _townFootstepKind, foesNear: () => areEnemiesNearby([...cityGuards.guards, ...exteriorFoes.foes]), horseBreath: () => upkeep.bar(player.transportMode),'));
   assert.ok(X.includes('}, pickFootstepSet(_fsCtx));\n        _townFootstepKind = pickFootstepKind(_fsCtx);'));
   const R = src('src/player/mountRig.js');
-  assert.ok(R.includes("} else if (r.neigh) audio.playOneShot(SOUND.AnimalHorse, RIDING_VOLUME_SCALE);"));
+  assert.ok(R.includes("        if (r.neigh) audio.playOneShot(SOUND.AnimalHorse, RIDING_VOLUME_SCALE);"));
+  assert.ok(R.includes("        voice.hush();   // AUDIT SOUNDSCAPE H1"), 'the switch-off arm lets the voices\' debts go');
+  assert.ok(R.includes("running: player.isRunning, pitch: r.pitch, paused: ridePaused,"), 'the gallop\'s breath on the loop\'s own pitch (H3)');
   assert.ok(R.includes("else audio.setLoop('riding', r.playing ? SOUND[r.clip] : null, { volume: r.volume, pitch: r.pitch });"));
   assert.ok(R.includes("if (voiced) audio.setLoop('riding', r.playing ? hoofClipFor(r.clip, surfaceKind?.()) : null, { volume: r.volume, pitch: r.pitch });"));
   const P = src('src/net/remotePlayers.js');
   assert.ok(P.includes('const clop = out.playing && heard ? SOUND[out.clip] : null;'));
   assert.ok(P.includes('clop != null && voiced ? hoofClipFor(out.clip, peer.shown.fk) : clop'));
   assert.ok(P.includes('const voiced = heard && enhancedSoundsOn();'));
+});
+
+test('HORSE-VOICE THE RIG\'S READS (AUDIT SOUNDSCAPE P5): the rig run on the shapes their producers make - horse care\'s `bar` ({ amount, low }) short of breath, blowing at the walk; foes about, the spook; a Travel Options journey (ridingVolumeScale 0), every voice silent; a pause, none said and the clock\'s moment held; the peers\' hooves load the clips themselves (mutants: the breath unread; the foes unread; the journey not silencing; the pause unread; the peers never loading)', async () => {
+  _resetHorseSounds();
+  assert.equal(await installHorseSounds({ registerSound: async () => true }, { fetchBytes: async () => new Uint8Array(4) }), 15);
+  const blown = rig({ soundsOn: () => true, running: false, horseBreath: () => ({ amount: 0.2, low: true }) });
+  blown.frames(12 * 60);
+  assert.ok(blown.calls.shots.filter(([c]) => HORSE_SFX.breath.includes(c) || HORSE_SFX.blow.includes(c)).length >= 3, 'short of breath at the walk: blowing');
+  const fresh = rig({ soundsOn: () => true, running: false, horseBreath: () => ({ amount: 0.9, low: false }) });
+  fresh.frames(12 * 60);
+  assert.equal(fresh.calls.shots.filter(([c]) => HORSE_SFX.breath.includes(c) || HORSE_SFX.blow.includes(c)).length, 0, 'its breath whole: none');
+  const spooked = rig({ soundsOn: () => true, foesNear: () => true });
+  spooked.frames(60);
+  assert.ok(spooked.calls.shots.some(([c]) => c === HORSE_SFX.spook), 'foes about: the spook');
+  const journey = rig({ soundsOn: () => true, foesNear: () => true, ridingVolumeScale: () => 0 });
+  journey.frames(90 * 60);
+  assert.ok(journey.calls.shots.length >= 2, 'the voices still said...');
+  assert.ok(journey.calls.shots.every(([, v]) => v === 0), '...and silent through a journey');
+  let held = true;
+  const still = rig({ soundsOn: () => true, foesNear: () => true, paused: () => held });
+  still.frames(90 * 60);
+  assert.deepEqual(still.calls.shots, [], 'under a pause: nothing said');
+  held = false;
+  still.frames(2);
+  assert.ok(still.calls.shots.length >= 1, 'the pause over: its held moment said');
+  _resetHorseSounds();
+  const P = src('src/net/remotePlayers.js');
+  assert.ok(P.includes('if (voiced) installHorseSounds(audio);'), 'a peer heard on my sounds loads the clips');
 });
