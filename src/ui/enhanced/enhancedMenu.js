@@ -134,7 +134,7 @@ import { getPref, setPref, isOpen, setOpen, PREF_DEFAULTS } from '../../systems/
 import { EG_DANGER_PALETTES, EG_DANGER_PALETTE_KEYS } from '../eliteGates/egAccess.js';   // EG-G1: the Spire's danger palettes, named once
 import { TOUCH_BUTTON_SLOTS, touchButtonSlots, nextTouchButton, touchButtonChoices } from '../touch/touchButtons.js';   // TOUCH-BUTTONS: the corner's three slots
 import { DEFAULT_SERVER } from '../../net/online.js';   // ONLINE1: the relay this port hosts, the field's placeholder   // R7: the port's own switches; SO1: the folded tiers' memory
-import { GATE_CROWD_TIERS } from '../../net/gate/gateCrowd.js';   // GATE-CROWD: how many other players a gate's court draws
+import { GATE_CROWD_TIERS } from '../../net/gate/gateCrowd.js';   // GATE-CROWD: how many other players are drawn at once (CROWD-WIDE: everywhere, not a gate's court alone)
 import { PEER_RANGE_TIERS, peerRangeOf } from '../../net/peer/peerRange.js';
 import { YARD_RANGE_TIERS, yardRangeOf } from '../../net/yardRange.js';   // YARD-RANGE: how far other players' yards are drawn   // PEER-RANGE: how far out other players are drawn, and the distance a stored value stands for
 import { replacementCount } from '../../systems/musicReplacement.js';   // M-EXT: the packs card reports what the pick covers
@@ -3223,9 +3223,11 @@ function peerSpritesCard() {
   c.append(choiceRow('yardRange', t('menu.peers.yards', 'Yard decorations'),
     t('menu.peers.yardsNote', 'How far away other players\u2019 yard decorations are drawn. Your own yard always shows. Nearer is faster in busy towns.'),
     YARD_RANGE_TIERS.map((m) => [m, m ? t('menu.peers.metres', '{m} m', { m }) : t('menu.toggle.off', 'Off')]), { home: true, read: () => yardRangeOf(getPref('yardRange')) }));
-  // GATE-CROWD (2026-10-07, Mac: "some type of filter when there are too many people"): a crowded court, thinned
-  c.append(choiceRow('gateCrowd', t('menu.peers.crowd', 'Crowd in the Burning Court'),
-    t('menu.peers.crowdNote', 'How many players the Burning Court draws. Your party always shows.'),
+  // GATE-CROWD (2026-10-07, Mac: "some type of filter when there are too many people"): a crowd, thinned - CROWD-WIDE
+  // (2026-10-23, the owner: "into the entire game"): everywhere, not the Burning Court alone, but never where a stranger can
+  // fight you; AUDIT CROWD-WIDE D1: the note says what the count does - the Draw distance row above still hides the far
+  c.append(choiceRow('gateCrowd', t('menu.peers.crowd', 'Players shown at once'),
+    t('menu.peers.crowdNote', 'How many other players are drawn at once, the nearest first. Your party, your duel opponent and anyone you trade, ride or sail with always show. The count is off in a PvP zone, a siege, a Royal Tourney and the Arena, but not in the Burning Court.'),
     GATE_CROWD_TIERS.map((n) => [n, n ? t('menu.peers.nearest', 'Nearest {n}', { n }) : t('menu.peers.everyone', 'Everyone')]), { home: true }));
   // SPELL-GIFT (2026-09-27, Tabitha: "Allow casting of buffs on players outside party"): the receiver's say
   c.append(prefRow('acceptStrangerSpells', t('menu.peers.spells', 'Spells from strangers'),

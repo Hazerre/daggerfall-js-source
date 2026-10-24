@@ -1462,6 +1462,23 @@ export const FEATURES = Object.freeze([
       tiers: Object.freeze([['shots', 'Your screenshots'], ['art', 'Night sky'], ['off', 'Off']]),
     }),
   }),
+  // EVENTS1 (2026-10-23, the owner: "Instead of stuffing these in the chat menu, there must be a less obstructive and more
+  // detailed way to handle them"): THE EVENT BOARD - the shared events a player can still reach, at the HUD's left edge,
+  // and the news at its head that announces them and carries their lines (ui/eventBoard.js, bible/10-UI/Event-Board.md). On by default;
+  // off, the events' lines go back to the chat (systems/eventNotices.js). Every skin draws it (the lines left the chat on
+  // every skin). The player's own online.
+  Object.freeze({
+    id: 'event-board',
+    group: 'interface',
+    get title() { return t('features.eventBoard.title', 'Event board'); },
+    // AUDIT EVENTS1 W5: WB13b's rules (no dash aside, no rhythm of three), and the switch's truth (a raid's news goes back to
+    // the HUD's line, not the chat)
+    get note() { return t('features.eventBoard.note', 'A board at the left of the screen lists the world events you can still reach, with how far away each one '
+      + 'is and the time left. Their news opens at the top of the board and is kept in your journal. Off, the news goes back to the chat and the screen\'s message line.'); },
+    get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
+    kinds: Object.freeze(['enhanced', 'classic']),
+    control: Object.freeze({ store: 'prefs', key: 'eventBoard', initial: true, online: 'player' }),   // systems/eventNotices.js EVENT_BOARD_PREF
+  }),
   // GUIDE3 (2026-09-29, Mac: "...make it more accessible", then "This is your baby"): THE HERALD - a quest's news as
   // a notice in the enhanced stack (ui/quest/questHerald.js), fed by the quest bridge's tick. On by default (the arc's
   // DECISIONS: the silence it answers is DISC6's report); the player's own online, since news is no one else's.

@@ -472,7 +472,7 @@ measured beside it with PERF-ON's probe - 0.028 ms a frame at 100 peers - and LE
 the range itself read the pose it plays.
 
 **The fix** (`net/peer/peerRange.js`). GATE-CROWD's cut, by distance in place of a count, run on the online frame's drawn
-list just before the court's own (`scenes/world.js` `ranged`): past the distance on the Other players card a player
+list just before the crowd's count (GATE-CROWD's own; everywhere since CROWD-WIDE) (`scenes/world.js` `ranged`): past the distance on the Other players card a player
 stands nowhere on this screen - no body, sprite, name, light, cast, spark or step - and their map marks, taken off the
 whole list above it, stay.
 - THE CHOICES: 150, 300 or 600 m on the ground, or Everyone (`PEER_RANGE_TIERS`; `systems/uiPrefs.js` `peerRange`, a
@@ -966,7 +966,9 @@ Each with what was found and whether it moves the picture (those are the owner's
    switches, and the frame's uniform block - 48 lights among it - sent again after it. A body that did not re-skin and
    whose view moved little could keep its sprite. Moves the body's look on the frames it is kept.
 5. **The sprite peers** - a distance tier since PEER-RANGE (above): past the card's distance nobody is stepped or drawn.
-   Left: within it there is still no cap - a crowd inside 300 m is every one of its sprites; and `online.tick` plays a
+   Left: within it no cap by default - unless the player picks Nearest 12 or 24 on **Players shown at once** (CROWD-WIDE,
+   `11-Multiplayer/World-Bosses.md` 21: everywhere but the open zone, a siege, a Royal Tourney, the Arena and the travel
+   view), a crowd inside 300 m is every one of its sprites; and `online.tick` plays a
    pose for every peer of every room held open (measured small, 0.028 ms a frame at 100).
 6. **The Living World's dodge** walks the whole pool for each walker each frame, with an array and a sort a walker
    (`livingTown.js _dodge`). Nothing a player sees - and measured small: a street's frame is 0.2 ms mean in the great
