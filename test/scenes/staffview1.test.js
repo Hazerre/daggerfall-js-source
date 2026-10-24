@@ -332,27 +332,35 @@ test('STAFF-VIEW1 Shift+M is staff only: a trusted Shift+M with no other modifie
 
 // ── THE OVERWORLD ──────────────────────────────────────────────────────────────────────────────────
 
-test('STAFF-VIEW1 marks(): a player\'s list back untouched; staff\'s player marks take a click and wear the true name (a Stranger\'s too, \'concealed\') and the flag; the players the travel view cut are marked; a mark\'s click is a follow, anything else the view\'s (mutants: a player\'s marks touched, a cut player marked twice, the Stranger\'s mask unsaid)', () => {
+test('STAFF-OW-TAGS marks() and the Overworld: a player\'s list back untouched; staff\'s player marks leave the canvas for the staff tags - every player whatever the Travellers switch says, the true name (a Stranger\'s too, \'concealed\') and the flag, the ones the travel view cut too, a crowd one box of rows, each a follow (mutants: a player\'s marks touched, the marks left on the canvas, a cut player tagged twice, the Stranger\'s mask unsaid, no Overworld tags)', () => {
   const list = [
     { key: 'place:7', label: 'Daggerfall', kind: 'place', at: [0, 0, 0] },
     { key: 'peer:p1', label: 'Stranger', kind: 'stranger', at: [0, 2, -40] },
-    { key: 'trav:t1', label: 'Tess', kind: 'traveller', at: [0, 2, -900], edge: true },
+    { key: 'trav:t1', label: 'Tess', kind: 'traveller', at: [-400, 2, -900], edge: true },
   ];
   const player = rig({ glyphs: [], follow: fakeFollow({ room: [peer('p1', 0, -40, { name: 'Bran' })] }) });
   assert.equal(player.host.marks(list), list, 'the same list');
   assert.equal(player.host.mark('peer:p1'), false);
   const follow = fakeFollow({
-    room: [peer('p1', 0, -40, { name: 'Bran', sub: 'acct-bran' }), peer('p2', 300, -40, { name: 'Ghost', cv: 1 })],
+    room: [peer('p1', 0, -40, { name: 'Bran', sub: 'acct-bran' }), peer('p2', 300, -40, { name: 'Ghost', cv: 1 }), peer('p3', 1, -40, { name: 'Ash', sub: 'acct-ash' })],
     tags: validTags({ dist: 100, list: [{ sub: 'acct-bran', level: 'high', why: '4 reports' }, { sub: 'acct-tess', watch: true }] }),
   });
-  const r = rig({ glyphs: ['dev'], follow, book: [{ id: 't1', name: 'Tess', sub: 'acct-tess' }], foes: [{ puppet: 'p1', ai: { feet: [0, 0, -41] } }] });
-  const out = r.host.marks(list);
-  assert.equal(out[0], list[0], 'a place untouched');
-  assert.deepEqual(out[1], { key: 'peer:p1', label: 'Bran', kind: 'stranger', at: [0, 2, -40], pick: true, sub: '4 reports · 1 monster · concealed' });
-  assert.deepEqual(out[2], { ...list[2], pick: true, sub: 'WATCH' });
-  assert.deepEqual(out.slice(3), [{ key: 'peer:p2', at: [300, STAFF_TAG_HEAD_M, -40], label: 'Ghost', kind: 'traveller', pick: true, sub: 'concealed' }], 'the one it cut');
-  assert.equal(r.host.marks([...list, { key: 'peer:p2', label: 'Ghost', at: [0, 0, 0] }]).filter((m) => m.key === 'peer:p2').length, 1, 'never twice');
-  assert.equal(r.host.mark('trav:t1'), true);
+  const r = rig({ glyphs: ['dev'], follow, up: true, book: [{ id: 't1', name: 'Tess', sub: 'acct-tess' }], foes: [{ puppet: 'p1', ai: { feet: [0, 0, -41] } }] });
+  const out = r.host.marks([...list, { key: 'peer:p2', label: 'Ghost', at: [300, 2, -40] }]);
+  assert.deepEqual(out, [list[0]], 'the canvas keeps the places; the players are the tags\'');
+  r.frame();
+  const { groups, n } = r.layer.last();
+  assert.equal(n, 0);
+  const byName = Object.fromEntries(r.layer.members().map((m) => [m.name, m]));
+  assert.deepEqual(Object.keys(byName).sort(), ['Ash', 'Bran', 'Ghost', 'Tess'], 'every player once, the cut one too');
+  assert.equal(byName.Bran.line, '4 reports · 1 monster · concealed', 'the Stranger\'s true name and mask');
+  assert.equal(byName.Bran.level, 'high');
+  assert.equal(byName.Tess.line, 'WATCH');
+  assert.equal(byName.Ghost.line, 'concealed');
+  const crowd = groups.find((g) => g.members.length > 1);
+  assert.deepEqual(crowd.members.map((m) => m.name).sort(), ['Ash', 'Bran'], 'two players this near: one box');
+  assert.match(crowd.key, /^crowd:/);
+  r.layer.onPick('t1');
   assert.deepEqual(follow.followed, ['acct-tess'], 'a far traveller by their mark\'s account');
   assert.equal(r.host.mark('place:7'), false, 'a place is the view\'s');
   assert.equal(r.host.mark('crowd:trav:t1'), false);

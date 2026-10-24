@@ -18,5 +18,25 @@
     "tests": [
       "test/net/staffmap_e2e.test.js"
     ]
+  },
+  {
+    "name": "FOLLOW-HIDDEN-REJOIN-parks-hidden",
+    "file": "src/scenes/staffFollowHost.js",
+    "old": "if (parked !== null && (hidden() || parked !== where())) parked = null;",
+    "new": "if (parked !== null && parked !== where()) parked = null;",
+    "why": "a hidden staff member let go of a follow stands in no room until they walk off that map pixel - every player stays unloaded (mob: \"when i change form invis all players dont load\")",
+    "tests": [
+      "test/net/staffmap_e2e.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-MAP-lastWhy-copied-once",
+    "file": "src/net/staffMap.js",
+    "old": "return Object.defineProperties(mint, Object.getOwnPropertyDescriptors({   // descriptors: lastWhy read live, never copied once",
+    "new": "return Object.assign(mint, ({   // descriptors: lastWhy read live, never copied once",
+    "why": "the map's refused shown token reads as no reason at all, so the session retries a link that can never open",
+    "tests": [
+      "test/net/staffmap_e2e.test.js"
+    ]
   }
 ]

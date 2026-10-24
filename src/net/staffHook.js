@@ -54,11 +54,11 @@ import { notePlace } from './staffTeleport.js';
 /** The hook's version - the panel reads it and refuses a build it does not know. */
 export const STAFF_HOOK_VERSION = 1;
 /** STAFF-VIEW1: the panel's tags answer, as the game keeps it - rows at most, a flag's words at most, the urgencies, and
- *  the nameplate distances Your settings offers (m), the middle one when the answer names none of them. */
+ *  the nameplate distances Your settings offers (m), 100 when the answer names none of them. */
 export const TAGS_MAX = 200;
 export const TAG_WHY_MAX = 80;
 export const TAG_LEVELS = Object.freeze(['high', 'medium', 'low']);
-export const NAMEPLATE_DISTS = Object.freeze([50, 100, 200]);
+export const NAMEPLATE_DISTS = Object.freeze([50, 100, 200, 350]);   // 350: mob 2026-10-24, "add esp for player to 350m", "its max"
 export const NAMEPLATE_DIST = 100;
 /** How long the hook waits for the panel's token before its link counts the room refused. */
 export const STAFF_TOKEN_WAIT_MS = 5000;

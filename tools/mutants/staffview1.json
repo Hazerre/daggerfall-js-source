@@ -92,8 +92,8 @@
   {
     "name": "STAFF-VIEW1-no-more",
     "file": "src/scenes/staffViewHost.js",
-    "old": "layer.render(groups, Math.max(0, near.length - STAFF_TAGS_MAX));",
-    "new": "layer.render(groups, 0);",
+    "old": "layer.render(crowded(tagged), Math.max(0, near.length - STAFF_TAGS_MAX));",
+    "new": "layer.render(crowded(tagged), 0);",
     "why": "the players past the cap unsaid",
     "tests": [
       "test/scenes/staffview1.test.js"
@@ -410,11 +410,11 @@
     ]
   },
   {
-    "name": "STAFF-VIEW1-marks-no-pick",
+    "name": "STAFF-OW-TAGS-left-on-canvas",
     "file": "src/scenes/staffViewHost.js",
-    "old": "label: String(d?.name ?? t?.name ?? m.label ?? ''), pick: true,",
-    "new": "label: String(d?.name ?? t?.name ?? m.label ?? ''),",
-    "why": "a staff member's marks take no click",
+    "old": "if (id == null) { out.push(m); continue; }",
+    "new": "out.push(m); if (id == null) continue;",
+    "why": "staff's player marks stay on the travel view's canvas as well - under the Travellers switch, a crowd an unclickable 'N travellers', and each player twice",
     "tests": [
       "test/scenes/staffview1.test.js"
     ]
@@ -422,8 +422,8 @@
   {
     "name": "STAFF-VIEW1-marks-mask-kept",
     "file": "src/scenes/staffViewHost.js",
-    "old": "label: String(d?.name ?? t?.name ?? m.label ?? '')",
-    "new": "label: String(m.label ?? '')",
+    "old": "name: String(d?.name ?? t?.name ?? m.label ?? '')",
+    "new": "name: String(m.label ?? '')",
     "why": "the Stranger's mask kept for staff",
     "tests": [
       "test/scenes/staffview1.test.js"
@@ -667,6 +667,16 @@
     "old": "|| (!gamePaused() && staffView.key(e))) { e.preventDefault(); return; }",
     "new": ") { e.preventDefault(); return; }",
     "why": "Shift+M never the staff view's",
+    "tests": [
+      "test/scenes/staffview1.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-OW-TAGS-none",
+    "file": "src/scenes/staffViewHost.js",
+    "old": "layer.render(crowded(ow.slice(0, STAFF_OW_TAGS_MAX)), Math.max(0, ow.length - STAFF_OW_TAGS_MAX));",
+    "new": "layer.render([], 0);",
+    "why": "the Overworld shows an Admin's monster lines and no player at all (mob 2026-10-24: \"like it show enemy to player but no players\")",
     "tests": [
       "test/scenes/staffview1.test.js"
     ]

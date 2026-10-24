@@ -10,7 +10,8 @@ import { OnlineSession, roomKeyFor } from '../../src/net/online.js';
 import { reconnectWave } from '../../src/net/reconnectWave.js';
 import { SOCIAL_ROOM, PIXEL_UNITS, isSocialRoom } from '../../src/net/wire.js';
 import * as H from '../../src/net/hubShards.js';
-import { createStaffMap, tokenHidden, STAFF_MAP_SEND_MS } from '../../src/net/staffMap.js';
+import { createStaffMap, tokenHidden, hiddenOnly, noteHidden, STAFF_MAP_SEND_MS } from '../../src/net/staffMap.js';
+import { createStaffFollowHost, staffFollowOnPage } from '../../src/scenes/staffFollowHost.js';
 import { staffHookDoor } from '../../src/net/staffHook.js';
 import { REGION_NAMES } from '../../src/formats/mapsTables.js';
 import { CHAT_REGION_PREFIX } from '../../src/net/wire.js';
@@ -137,4 +138,54 @@ test('STAFF-MAP: the panel\'s door - `regions?` answers the politic map\'s names
   send({ dfoStaff: 'map?', region: 9 }, {}, 'https://daggerfalljs.dev');
   send({ dfoStaff: 'map?', region: 9 }, win, 'https://evil.example');
   assert.deepEqual(picks, [5, null]);
+});
+
+test('STAFF-MAP: the minter wrappers read lastWhy live, hand on the keeping, and noteHidden wraps once', async () => {
+  const body = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  let next = `v1.${body({ s: 'x' })}.sig`;
+  const calls = [];
+  const minter = Object.assign(async () => next, { lastWhy: null, coolMs: () => 7, holds: () => true, opened: (r) => calls.push(['opened', r]), unopened: (r) => calls.push(['unopened', r]), ahead: () => true, forget: () => calls.push(['forget']) });
+  const heard = [];
+  const only = hiddenOnly(minter, (h) => heard.push(h));
+  assert.equal(await only('r'), null, 'a shown token is never handed on');
+  assert.equal(only.lastWhy, 'auth', 'read live, after the mint');
+  next = `v1.${body({ s: 'x', hd: 1 })}.sig`;
+  assert.equal(await only('r'), next);
+  assert.equal(only.lastWhy, null);
+  const seen = [];
+  const noted = noteHidden(minter, (h) => seen.push(h));
+  assert.equal(noteHidden(noted, () => assert.fail('wrapped twice')), noted, 'wrapped once');
+  assert.equal(await noted('r'), next);
+  next = `v1.${body({ s: 'x' })}.sig`;
+  assert.equal(await noted('r'), next, 'every token handed on as it came');
+  assert.deepEqual(seen, [true, false]);
+  minter.lastWhy = 'banned';
+  assert.equal(noted.lastWhy, 'banned', 'read live');
+  noted.opened('a'); noted.unopened('b'); noted.forget();
+  assert.deepEqual(calls, [['opened', 'a'], ['unopened', 'b'], ['forget']]);
+  assert.deepEqual([noted.coolMs(), noted.holds('r'), noted.ahead('r', 1)], [7, true, true]);
+});
+
+test('FOLLOW-HIDDEN-REJOIN: a follow let go while hidden parks nowhere - the host joins where it stands at once; shown, it waits off that map pixel', async () => {
+  let locked = true, hidden = true;
+  const hook = { tick() {}, locked: () => locked, view: () => null, place: () => null };
+  const host = createStaffFollowHost({ hook, prepare: async () => {}, mode: () => 'exterior', where: () => 'exterior|1,1', toScene: () => null, eyeHeight: () => 0, hidden: () => hidden });
+  assert.equal(host.frame(), true);
+  locked = false;
+  assert.equal(host.frame(), false, 'hidden: no body to show beside them, so the room at once');
+  locked = true; hidden = false; host.frame();
+  locked = false;
+  assert.equal(host.frame(), true, 'shown: out of every room');
+  hidden = true;
+  assert.equal(host.frame(), false, 'Hide me pressed while parked: the room again');
+  // the page reads hidden off the presence session's own tokens
+  const body = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  const main = { url: 'wss://relay.test', mintToken: async () => `v1.${body({ s: 'x', hd: 1 })}.sig` };
+  const win = { location: { origin: 'https://game.test' }, addEventListener: () => {}, postMessage: () => {} };
+  const page = staffFollowOnPage({ main: () => main, prepare: async () => {}, mode: () => 'exterior', pixel: () => ({ x: 1, y: 1 }), toScene: () => null, win, Session: class { tick() {} leave() {} } });
+  page.frame();
+  const wrapped = main.mintToken;
+  page.frame();
+  assert.equal(main.mintToken, wrapped, 'wrapped once');
+  await main.mintToken('r');
 });

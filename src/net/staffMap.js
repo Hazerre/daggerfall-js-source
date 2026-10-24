@@ -46,13 +46,33 @@ export function hiddenOnly(minter, heard) {
     heard(!tok);   // no token at all is the service's refusal, not Hide me off
     return null;
   };
-  return Object.assign(mint, {
+  return Object.defineProperties(mint, Object.getOwnPropertyDescriptors({   // descriptors: lastWhy read live, never copied once
     get lastWhy() { return why; },
     coolMs: () => minter.coolMs?.() ?? 0,
     holds: (/** @type {string|null} */ room) => !!minter.holds?.(room),
     opened: (/** @type {string|null} */ room, /** @type {string} */ tok) => minter.opened?.(room, tok),
     unopened: (/** @type {string|null} */ room, /** @type {string} */ tok) => minter.unopened?.(room, tok),
-  });
+  }));
+}
+
+const NOTED = Symbol('staff-noted');
+
+/** The game's own minter, every token handed on as it came, each one's hidden mark said to `heard` - so the game knows
+ *  whether its links are hidden now (Hide me) without asking the panel. Marked, so it is wrapped once. Its keeping is the
+ *  minter's own. @param {any} minter @param {(hidden: boolean) => void} heard */
+export function noteHidden(minter, heard) {
+  if (minter?.[NOTED]) return minter;
+  const mint = async (/** @type {string|null} */ room) => { const tok = await minter(room); if (tok) heard(tokenHidden(tok)); return tok; };
+  return Object.defineProperties(mint, Object.getOwnPropertyDescriptors({
+    [NOTED]: true,
+    get lastWhy() { return minter.lastWhy ?? null; },
+    coolMs: () => minter.coolMs?.() ?? 0,
+    holds: (/** @type {string|null} */ room) => !!minter.holds?.(room),
+    opened: (/** @type {string|null} */ room, /** @type {string} */ tok) => minter.opened?.(room, tok),
+    unopened: (/** @type {string|null} */ room, /** @type {string} */ tok) => minter.unopened?.(room, tok),
+    ahead: (/** @type {string|null} */ room, /** @type {number} */ withinMs) => !!minter.ahead?.(room, withinMs),
+    forget: () => minter.forget?.(),
+  }));
 }
 
 /** A region index the politic map has, or null. @param {unknown} r */

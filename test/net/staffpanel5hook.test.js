@@ -533,7 +533,7 @@ test('STAFF-VIEW1 hook door: `tags?` to this page\'s own origin; a `tags` answer
   const big = read(Array.from({ length: TAGS_MAX + 50 }, (_, i) => ({ sub: `acct-${String(i).padStart(4, '0')}`, level: 'low' })));
   assert.equal(big.flags.size, TAGS_MAX, 'an oversize list: its first TAGS_MAX rows');
   assert.equal(big.flags.has(`acct-${String(TAGS_MAX).padStart(4, '0')}`), false);
-  for (const [dist, kept] of [[50, 50], [100, 100], [200, 200], [5000, NAMEPLATE_DIST], [75, NAMEPLATE_DIST], ['200', NAMEPLATE_DIST], [undefined, NAMEPLATE_DIST]]) assert.equal(read([], dist).dist, kept, String(dist));
+  for (const [dist, kept] of [[50, 50], [100, 100], [200, 200], [350, 350], [351, NAMEPLATE_DIST], [5000, NAMEPLATE_DIST], [75, NAMEPLATE_DIST], ['200', NAMEPLATE_DIST], [undefined, NAMEPLATE_DIST]]) assert.equal(read([], dist).dist, kept, String(dist));
   for (const m of [null, {}, { list: 'x' }, { list: {} }]) assert.equal(validTags(m), null);
 });
 
