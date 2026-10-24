@@ -615,7 +615,8 @@ test('WEAPON-GLOW1: a third-person picture is padded for its outline, in texels 
   const arm = strip(read('src/combat/fpArm.js'));
   assert.match(arm, /const glow = glowShown\(\);\s*thirdMesh\.weaponGlow = glow;\s*const glowLook = glow \? glow\.look : null;/);
   // PIN MOVED (TWO-HANDS): the pad's looks - the held weapon's, and a pair's left blade's beside it (padLooks)
-  assert.equal(arm.match(/drawRigSpriteBox\(renderer, canvas, thirdMesh, model, \{[^\n]*, glowLook: padLooks \}, proj, view, eye, MW_ARM_PIXEL\)/g)?.length, 2, 'the horse\'s rider and the body alone');
+  // PIN MOVED (BODY-CROP x MW-DETAIL, 2026-10-22): through drawBodyPicture, which pads its window the same way (bodycrop.test.js)
+  assert.equal(arm.match(/drawBodyPicture\(renderer, canvas, thirdMesh, model, \{[^\n]*, glowLook: padLooks \}, proj, view, eye\)/g)?.length, 2, 'the horse\'s rider and the body alone');
 });
 
 test('WEAPON-GLOW1: the arm lays the glow only on the weapon it was asked of, and only in hand (NET-1, NET-2)', async () => {

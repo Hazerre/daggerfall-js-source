@@ -10415,8 +10415,8 @@
   "by": "claude-in-session"
  },
  "features.mwBillboardLook.note": {
-  "en": "b637d8bc86a9",
-  "tr": "eb3ae388bc15",
+  "en": "d11847a0f6ee",
+  "tr": "58945d8a62fa",
   "by": "claude-in-session"
  },
  "features.mwBillboardLook.title": {
@@ -10432,6 +10432,26 @@
  "features.mwBodyMotion.title": {
   "en": "6fb981a99ca7",
   "tr": "605b9e6f80ba",
+  "by": "claude-in-session"
+ },
+ "features.mwModelDetail.note": {
+  "en": "ebe17589efe8",
+  "tr": "46ce554327c0",
+  "by": "claude-in-session"
+ },
+ "features.mwModelDetail.pixel": {
+  "en": "d1ecc5ee9c8b",
+  "tr": "3de5d5ff1198",
+  "by": "claude-in-session"
+ },
+ "features.mwModelDetail.sharp": {
+  "en": "cf3e9a41dee8",
+  "tr": "2e584da1b38e",
+  "by": "claude-in-session"
+ },
+ "features.mwModelDetail.title": {
+  "en": "80df07bb3322",
+  "tr": "5bc6a9e7b9df",
   "by": "claude-in-session"
  },
  "features.navalCombat.aimCamera": {
