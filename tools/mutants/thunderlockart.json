@@ -56,8 +56,8 @@
   {
     "name": "THUNDERLOCK-ART-the-gap-left",
     "file": "tools/gunIcons.mjs",
-    "old": "  const icon = trim(healGap(doll));",
-    "new": "  const icon = trim(doll);",
+    "old": "  const icon = trim(own ?? healGap(doll));",
+    "new": "  const icon = trim(own ?? doll);",
     "tests": [
       "test/systems/thunderlockart.test.js"
     ]
@@ -97,5 +97,85 @@
     "tests": [
       "test/systems/thunderlockart.test.js"
     ]
+  },
+  {
+    "name": "THUNDERLOCK-ART2-the-canvas-cropped",
+    "file": "src/combat/thunderlockArt.js",
+    "old": "return { frames, anchor: { x: 0, y: 0, w: S.cellW, h: S.cellH }, union,",
+    "new": "return { frames, anchor: contentBox(cells[0]), union,",
+    "tests": [
+      "test/systems/thunderlockart2.test.js"
+    ],
+    "note": "The owner's canvas would be cropped to its content - the gun seated off where the owner placed it."
+  },
+  {
+    "name": "THUNDERLOCK-ART2-the-bleed-dropped",
+    "file": "src/combat/thunderlockArt.js",
+    "old": "magic ? thunderlockShimmer(own) : own, [0, 1], A.bleed);",
+    "new": "magic ? thunderlockShimmer(own) : own, [0, 1], { right: 0, bottom: 0 });",
+    "tests": [
+      "test/systems/thunderlockart2.test.js"
+    ],
+    "note": "Both forearms would end in a straight line at the foot - the cut showing when Bob or the kick lift the frame."
+  },
+  {
+    "name": "THUNDERLOCK-ART2-the-table-left-at-six",
+    "file": "src/combat/fpsWeapon.js",
+    "old": "export const THUNDERLOCK_ANIMS = gunAnims(7);",
+    "new": "export const THUNDERLOCK_ANIMS = gunAnims(6);",
+    "tests": [
+      "test/systems/thunderlockart2.test.js"
+    ],
+    "note": "The owner's seventh frame would never play."
+  },
+  {
+    "name": "THUNDERLOCK-ART2-the-pistolet-on-the-thunderlocks",
+    "file": "src/combat/fpsWeapon.js",
+    "old": "return PISTOLET_ANIMS;   // PISTOLET:",
+    "new": "return THUNDERLOCK_ANIMS;   // PISTOLET:",
+    "tests": [
+      "test/systems/thunderlockart2.test.js"
+    ],
+    "note": "The Pistolet would ask for a seventh frame its strip does not have."
+  },
+  {
+    "name": "THUNDERLOCK-ART2-every-hot-texel-averaged",
+    "file": "src/combat/thunderlockArt.js",
+    "old": "if (!best || body.length > best.length) best = body;",
+    "new": "best = best ? best.concat(body) : body;",
+    "tests": [
+      "test/systems/thunderlockart2.test.js"
+    ],
+    "note": "The shot would leave from down the barrel, the bolt's sparks pulling the muzzle off the flash's ball."
+  },
+  {
+    "name": "THUNDERLOCK-ART2-the-gloves-gilded",
+    "file": "src/combat/thunderlockArt.js",
+    "old": "keep[i] = hue >= 32 && hue <= 60 && s >= 0.5 && l >= 0.32 ? 1 : 0;",
+    "new": "keep[i] = hue >= 15 && hue <= 60 && s >= 0.3 && l >= 0.2 ? 1 : 0;",
+    "tests": [
+      "test/systems/thunderlockart2.test.js"
+    ],
+    "note": "A Gilded Thunderlock would be held in gold-plated gloves."
+  },
+  {
+    "name": "THUNDERLOCK-ART2-the-flash-gilded",
+    "file": "src/combat/thunderlockArt.js",
+    "old": "if (data[o + 3] < 128 || luma(data, o) >= TL_FLASH_LUMA) continue;",
+    "new": "if (data[o + 3] < 128) continue;",
+    "tests": [
+      "test/systems/thunderlockart2.test.js"
+    ],
+    "note": "The muzzle flash would be laid in gold leaf - the flash and the smoke stay the flash and the smoke."
+  },
+  {
+    "name": "THUNDERLOCK-ART2-the-whole-frame-shimmered",
+    "file": "src/combat/thunderlockArt.js",
+    "old": "magic ? thunderlockShimmer(own) : own",
+    "new": "magic ? shimmer(own) : own",
+    "tests": [
+      "test/systems/thunderlockart2.test.js"
+    ],
+    "note": "An enchanted Thunderlock's grey sleeve would turn blue."
   }
 ]

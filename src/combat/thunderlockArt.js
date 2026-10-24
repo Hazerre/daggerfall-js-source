@@ -3,8 +3,11 @@
 // Every classic weapon's FP art is a WEAPON*.CIF out of the player's
 // ARENA2, read by formats/cifRciFile.js and baked by
 // fpsWeapon.loadFpsWeaponArt. This weapon is the port's own, so its
-// art is OURS - two files under public/art, shipped with the build -
-// and it arrives as one contact sheet rather than as records.
+// art is OURS - under public/art, shipped with the build - and it
+// arrives as a strip rather than as records. THUNDERLOCK-ART2 (2026-10-24):
+// the owner's seven native frames (thunderlockFrames, below); the six-frame
+// contact sheet the paragraphs after this one speak of is the gun lab's
+// (src/tools/gunLab.js), kept for it.
 //
 // So this is loadFpsWeaponArt's other half: fetch, decode, slice
 // (combat/gun/gunSheet.js, the laws the gun lab settled), and hand back
@@ -23,7 +26,8 @@
 // background key that has to kill a white page without eating a
 // muzzle flash, are gunSheet.js's.
 
-import { FIRE_FRAMES, cellRect, keyBackground, contentBox, unionBox } from './gun/gunSheet.js';
+import { contentBox } from './gun/gunSheet.js';
+import { stripCellRect, hardenAlpha, bleedArm, cropImage } from './gun/pistolStrip.js';   // THUNDERLOCK-ART2: the strip's cut and the arm's bleed - the Pistolet's laws, a leaf's
 import { decodePng } from '../systems/textureReplacement.js';
 import { toScreenOrder } from '../formats/color32Order.js';   // FIELD-GUN3: HT3's law - a SCREEN QUAD's PNG keeps its rows
 import { WEAPON_TYPES, getWeaponAnims } from './fpsWeapon.js';
@@ -179,29 +183,6 @@ export function gildKeep(idle) {
   return keep;
 }
 
-/** One cell of the sheet, decoded and keyed, as RGBA + its content box. */
-function bakeCell(sheet, i) {
-  const r = cellRect(i, sheet.width, sheet.height);
-  const out = new Uint8ClampedArray(r.w * r.h * 4);
-  for (let y = 0; y < r.h; y++) {
-    const src = ((y + r.y) * sheet.width + r.x) * 4;
-    out.set(sheet.data.subarray(src, src + r.w * 4), y * r.w * 4);
-  }
-  const img = { width: r.w, height: r.h, data: out };
-  keyBackground(img, KEY_THRESHOLD, KEY_CHROMA);
-  return { img, box: contentBox(img) };
-}
-
-/** Crop to a box, in the shape the upload door reads. */
-function crop(img, box) {
-  const out = new Uint8ClampedArray(box.w * box.h * 4);
-  for (let y = 0; y < box.h; y++) {
-    const src = ((y + box.y) * img.width + box.x) * 4;
-    out.set(img.data.subarray(src, src + box.w * 4), y * box.w * 4);
-  }
-  return { width: box.w, height: box.h, data: out };
-}
-
 /**
  * THE SPRITE'S SIZE ON THE 320x200 SURFACE.
  *
@@ -220,107 +201,151 @@ function crop(img, box) {
 export const NATIVE_WIDTH = GUN_FEEL.widthPct * 320;
 
 /**
- * Load it. `fetchBytes` is the door a test comes through; by default
- * the sheet is fetched from the build beside the page.
- * @returns the same shape loadFpsWeaponArt answers, or null.
+ * THUNDERLOCK-ART2 (2026-10-24, the owner: "Heres the new thunderlock sprite replacement"; bible/05-Combat/
+ * Dwarven-Thunderlock.md "THUNDERLOCK-ART2"): THE OWNER'S SEVEN FRAMES, the Pistolet's way (combat/gun/pistoletArt.js).
+ *
+ *   - A STRIP, NOT A SHEET. Seven 160x98 frames side by side (public/art/thunderlock-frames.png): the rest frame, the
+ *     shot (its flash and the Dweamer's bolt), two of smoke and three settling, the fifth held a beat. Each is registered
+ *     to the others by its canvas, so they are cut at a fixed stride: no key, no badge gutter, no crop to content.
+ *   - NATIVE SIZE, THE CANVAS THE ANCHOR. A frame is a WEAPON*.CIF record's size and the owner placed the gun in it, both
+ *     forearms leaving through its foot, so the canvas is what is seated on the screen's corner (AlignRight), at
+ *     THUNDERLOCK_ART.scale design pixels a texel - 160 of the surface's 320, where the old sheet's gun took 0.49.
+ *   - THE 1-BIT CUT at THUNDERLOCK_ART.alphaCut (the screen quad discards under 0.5), made once, here.
+ *   - THE FOREARMS GO ON BELOW THE FOOT (PISTOL-EDGE's reason, combat/gun/pistolStrip.js bleedArm): Bob and the kick lift
+ *     the frame, and a sleeve ending in a straight line in mid-air is the cut showing. Both arms leave downward, so each
+ *     foot texel is carried straight down THUNDERLOCK_ART.bleed.bottom texels; at rest all of it is off the screen.
+ *   - GILDED: the GUN's brass, found on EVERY frame (thunderlockGildKeep) - the shot kicks the gun inside the canvas;
+ *     ENCHANTED: the shimmer on the gun and what is drawn bright, the hands left be (thunderlockShimmer).
  */
-export async function loadThunderlockArt(renderer, { fetch: fetchSheet = null, decode = decodePng, magic = false, gilded = false } = {}) {
-  const bytes = fetchSheet
-    ? await fetchSheet(SHEET_FILE)
+export const THUNDERLOCK_STRIP = Object.freeze({ frames: 7, cellW: 160, cellH: 98, file: 'thunderlock-frames.png' });
+export const THUNDERLOCK_ART = Object.freeze({ scale: 1, raise: -1, alphaCut: 128, bleed: Object.freeze({ right: 0, bottom: 40 }) });
+/** White-hot: the flash's core, the one thing in the strip drawn this bright (the Pistolet's FLASH_LUMA). */
+export const TL_FLASH_LUMA = 215;
+const hsl = (d, o) => {
+  const r = d[o] / 255, g = d[o + 1] / 255, b = d[o + 2] / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, dl = mx - mn;
+  if (!dl) return [0, 0, l];
+  const s = l > 0.5 ? dl / (2 - mx - mn) : dl / (mx + mn);
+  const h = (mx === r ? (g - b) / dl + (g < b ? 6 : 0) : mx === g ? (b - r) / dl + 2 : (r - g) / dl + 4) * 60;
+  return [h, s, l];
+};
+const luma = (d, o) => d[o] * 0.299 + d[o + 1] * 0.587 + d[o + 2] * 0.114;
+
+/** THE GOLD'S KEEP on one frame: the gun's brass alone - hue 32-60, saturated, lit (the gloves are as warm but duller
+ *  and darker, the sleeve grey) - never a white-hot texel of the flash or the bolt, nor the smoke. Pure. */
+export function thunderlockGildKeep({ width: w, height: h, data }) {
+  const keep = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    const o = i * 4;
+    if (data[o + 3] < 128 || luma(data, o) >= TL_FLASH_LUMA) continue;
+    const [hue, s, l] = hsl(data, o);
+    keep[i] = hue >= 32 && hue <= 60 && s >= 0.5 && l >= 0.32 ? 1 : 0;
+  }
+  return keep;
+}
+
+/** THE ENCHANTED LOOK on one frame, IN PLACE: the shimmer (above) on the gun's brass and on everything drawn bright - the
+ *  flash, the bolt, the smoke - never the gloves or the grey sleeve, which a whole-frame shimmer turned blue. Answers it. */
+export const TL_SHIMMER_LUMA = 160;
+export function thunderlockShimmer(img) {
+  const keep = thunderlockGildKeep(img), d = img.data;
+  const sh = shimmer({ width: img.width, height: img.height, data: new Uint8ClampedArray(d) }).data;
+  for (let i = 0, n = img.width * img.height; i < n; i++) {
+    const o = i * 4;
+    if (d[o + 3] && (keep[i] || luma(d, o) >= TL_SHIMMER_LUMA)) { d[o] = sh[o]; d[o + 1] = sh[o + 1]; d[o + 2] = sh[o + 2]; }
+  }
+  return img;
+}
+
+/** WHERE THE SHOT LEAVES, off the flash alone (the Pistolet's flashPoint, and FIELD-GUN17's question): the largest body
+ *  of white-hot texels on the shot frame - the bolt's own sparks along the barrel are smaller - and its centre, as
+ *  fractions of `w` x `h` (the union the frame is drawn in). Null with no flash. Pure. */
+export function thunderlockMuzzle(lit, w = lit?.width, h = lit?.height) {
+  if (!lit?.data) return null;
+  const { width: W, height: H, data } = lit;
+  const hot = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) if (data[i * 4 + 3] >= 128 && luma(data, i * 4) >= TL_FLASH_LUMA) hot[i] = 1;
+  let best = null;
+  const seen = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    if (!hot[i] || seen[i]) continue;
+    const body = [i], st = [i];
+    seen[i] = 1;
+    while (st.length) {
+      const q = st.pop(), x = q % W, y = (q / W) | 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy, n = ny * W + nx;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H || seen[n] || !hot[n]) continue;
+        seen[n] = 1; st.push(n); body.push(n);
+      }
+    }
+    if (!best || body.length > best.length) best = body;
+  }
+  if (!best) return null;
+  const sx = best.reduce((a, q) => a + (q % W) + 0.5, 0), sy = best.reduce((a, q) => a + ((q / W) | 0) + 0.5, 0);
+  return { x: sx / best.length / w, y: sy / best.length / h };
+}
+
+/**
+ * THE SEVEN FRAMES AS THEY ARE DRAWN: cut at the stride and hardened, in their look (the gold on each frame's own
+ * brass; the shimmer on every texel), then carried on below the foot. `anchor` is the owner's canvas, `union` the canvas
+ * with the bleed under it, `muzzle` read off the plain shot frame. Pure; null for a strip that is not seven frames wide or
+ * whose rest frame is empty.
+ * @param {{ width: number, height: number, data: ArrayLike<number> }} strip
+ */
+export function thunderlockFrames(strip, { gilded = false, magic = false } = {}) {
+  const S = THUNDERLOCK_STRIP, A = THUNDERLOCK_ART;
+  if (!strip?.data || strip.width < S.frames * S.cellW || strip.height < S.cellH) return null;
+  const cells = Array.from({ length: S.frames }, (_, i) => { const c = cropImage(strip, stripCellRect(i, S)); hardenAlpha(c, A.alphaCut); return c; });
+  if (!contentBox(cells[0])) return null;
+  const frames = cells.map((c) => {
+    const own = gilded || magic ? { width: c.width, height: c.height, data: new Uint8ClampedArray(c.data) } : c;
+    return bleedArm(gilded ? gildFrame(own, thunderlockGildKeep(own)) : magic ? thunderlockShimmer(own) : own, [0, 1], A.bleed);
+  });
+  const union = { x: 0, y: 0, w: frames[0].width, h: frames[0].height };
+  return { frames, anchor: { x: 0, y: 0, w: S.cellW, h: S.cellH }, union, muzzle: thunderlockMuzzle(cells[1], union.w, union.h) };
+}
+
+/**
+ * Load it. `fetch` is the door a test comes through; by default the strip is fetched from the build beside the page.
+ * The answer is loadFpsWeaponArt's shape and the Pistolet's (combat/gun/pistoletArt.js): `records` (0 the idle, 1 the
+ * seven-frame cycle) at the CANVAS's size in design pixels, `anchor` and `unionBox` for gunFrameRect, `native` the
+ * textures' own size, `muzzle`, and `pose` - the width and raise the rig places it by.
+ * @returns the art, or null.
+ */
+export async function loadThunderlockArt(renderer, { fetch: fetchStrip = null, decode = decodePng, magic = false, gilded = false } = {}) {
+  const file = `art/${THUNDERLOCK_STRIP.file}`;
+  const bytes = fetchStrip
+    ? await fetchStrip(file)
     : await (async () => {
-      const r = await fetch(sheetUrl());
-      if (!r.ok) throw new Error(`${SHEET_FILE}: ${r.status}`);
+      const r = await fetch(sheetUrl(file));
+      if (!r.ok) throw new Error(`${file}: ${r.status}`);
       return new Uint8Array(await r.arrayBuffer());
     })();
-  const sheet = await decode(bytes);
-  if (!sheet?.width) return null;
-
-  const baked = [];
-  for (let i = 0; i < FIRE_FRAMES; i++) baked.push(bakeCell(sheet, i));
-  const boxes = baked.map((b) => b.box);
-  const union = unionBox(boxes);
-  if (!union) return null;
-  const anchor = boxes[0] ?? union;   // frame 1: the gun with no flash on it
-
-  // the drawn size: the GUN's box takes NATIVE_WIDTH, and the union
-  // box - flash and all - keeps the same scale around it
-  const scale = NATIVE_WIDTH / anchor.w;
-  const width = Math.round(union.w * scale);
-  const height = Math.round(union.h * scale);
-  // FIELD-GUN11: the gun's own box at the same scale - what the
-  // records carry, and what the transforms are applied to
-  const anchorW = Math.round(anchor.w * scale);
-  const anchorH = Math.round(anchor.h * scale);
-
+  const set = thunderlockFrames(await decode(bytes), { gilded, magic });
+  if (!set) return null;
+  const { frames, anchor, union, muzzle } = set, k = THUNDERLOCK_ART.scale;
   const type = magic ? WEAPON_TYPES.Thunderlock_Magic : WEAPON_TYPES.Thunderlock;
-  // FIELD-GUN3 (Mac, from play: "The sprite is upside down"). HT3's
-  // law, and the THIRD time this port has paid it: `toColor32` is a
-  // FLIP, right for a Unity texture whose rows are stored bottom-up
-  // and WRONG for a decoded PNG, whose row 0 already is the picture's
-  // top. Which one is right depends on where it is drawn, and the two
-  // answers are opposite - a world billboard samples v with 0 at the
-  // bottom and wants the flip; a SCREEN QUAD does not, because
-  // `drawScreenQuad` hands the rect's top the pair `v0` and nothing
-  // flips at upload.
-  //
-  // This weapon is drawn by `drawFpsWeapon`, which ends in
-  // `renderer.drawScreenQuad`. So it is a screen sprite from a PNG
-  // and it wants its rows exactly as they came: `toScreenOrder`, the
-  // same door the held torch and the weapon widget's loose arm take.
-  // The held torch (HT3) and the shield mod (SW4) each found this the
-  // same way - a person looking at the picture.
-  // FIELD-GUN17: THE MUZZLE, MEASURED OFF THE ART. Kept before the
-  // upload because it wants the PIXELS, and after this loop they are
-  // GL handles.
-  const cropped = baked.map((b) => crop(b.img, union));
-  const muzzle = muzzlePoint(cropped[0], cropped[1]);
-  // GILDED1: the Hourlock's gold, on the gun's own pixels - found once, on the idle frame (gildKeep, above)
-  const keep = gilded ? gildKeep(cropped[0]) : null;
   const look = gilded ? ':gilded' : magic ? ':magic' : '';
-  const frames = cropped.map((rgba, i) =>
-    renderer.uploadTexture('img', `thunderlock${look}:${i}`,
-      toScreenOrder(gilded ? gildFrame(rgba, keep) : magic ? shimmer(rgba) : rgba)));
-
+  // FIELD-GUN3 (Mac, from play: "The sprite is upside down"): HT3's law - drawFpsWeapon ends in drawScreenQuad, whose
+  // rect's top takes v0 with no flip at upload, so a decoded PNG keeps its rows (toScreenOrder, never toColor32's flip)
+  const textures = frames.map((rgba, i) => renderer.uploadTexture('img', `thunderlock${look}:${i}`, toScreenOrder(rgba)));
+  const anchorW = anchor.w * k, anchorH = anchor.h * k;
   return {
     weaponType: type,
     anims: getWeaponAnims(type),
-    // FIELD-GUN11: THE RECORD IS THE GUN, NOT THE GUN PLUS ITS SMOKE.
-    //
-    // This used to be the UNION's size, and it is the last structural
-    // difference between this weapon in the lab and in the game. The
-    // lab places and TRANSFORMS the anchor box - the gun with no
-    // flash on it - and only then derives the rect the full image is
-    // drawn at (`unionDrawRect`). The game handed the union to
-    // Weapon Widget's transform instead, and anything in that
-    // transform proportional to the rect's height - the Offset
-    // module's slide most of all - came out 6% large, because the
-    // union is 21 native pixels taller than the gun.
-    //
-    // The lab's own header says why the anchor is the right box to
-    // lay out from: "Lay the screen rect out from the union box and
-    // Center puts the SMOKE in the middle of the screen and the
-    // weapon off to the right." The same is true of everything else
-    // that measures the rect.
-    //
-    // So the record is the ANCHOR now and both draw sites expand it
-    // back to the union at the moment of drawing, which is exactly
-    // the shape the lab has always had.
+    // FIELD-GUN11: THE RECORD IS THE GUN, NOT THE GUN PLUS WHAT HANGS OFF IT - the anchor's size; both draw sites expand
+    // it back to the union at the moment of drawing (gunFrameRect)
     records: [
-      { width: anchorW, height: anchorH, frames: [frames[0]] },   // 0: idle
-      { width: anchorW, height: anchorH, frames },                // 1: the fire cycle
+      { width: anchorW, height: anchorH, frames: [textures[0]] },   // 0: idle
+      { width: anchorW, height: anchorH, frames: textures },        // 1: the fire cycle
     ],
-    // the gun's own box inside the union, and the union around it -
-    // what a caller needs to turn a transformed ANCHOR rect into the
-    // rect the whole image is drawn at
-    anchor: { x: (anchor.x - union.x) * scale, y: (anchor.y - union.y) * scale, w: anchor.w * scale, h: anchor.h * scale },
-    unionBox: { x: 0, y: 0, w: width, h: height },
-    // FIELD-GUN17: where the barrel ends, as fractions of the UNION
-    // box - so a caller that knows where the union is drawn knows
-    // where the muzzle is. Null if the art has no flash to measure.
+    anchor: { x: anchor.x * k, y: anchor.y * k, w: anchorW, h: anchorH },
+    unionBox: { x: 0, y: 0, w: union.w * k, h: union.h * k },
+    native: { w: union.w, h: union.h },   // the glow's field is laid in the textures' own texels (AUDIT PISTOLET B4's law)
+    // FIELD-GUN17: where the barrel ends, as fractions of the UNION box
     muzzle,
-    // PISTOLET: the pose gunFrameRect places it by, on the art - so the rig asks the art for either gun's
-    // (combat/gun/pistoletArt.js answers the Pistolet's)
-    pose: { widthPct: GUN_FEEL.widthPct, raise: GUN_FEEL.raise },
+    pose: { widthPct: anchorW / 320, raise: THUNDERLOCK_ART.raise },
   };
 }
 

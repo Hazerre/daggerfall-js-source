@@ -26,7 +26,7 @@ import {
 import { isBowWeapon, attackSkillOf, weaponSkillUsed as hostWeaponSkillUsed } from '../../src/scenes/hostCombat.js';
 import { spendAmmoFor, ammoCountFor } from '../../src/systems/inventory.js';
 import { playerArchiveFor } from '../../src/characters/paperdoll/paperdollArt.js';
-import { shimmer, NATIVE_WIDTH } from '../../src/combat/thunderlockArt.js';
+import { shimmer, NATIVE_WIDTH, THUNDERLOCK_STRIP } from '../../src/combat/thunderlockArt.js';
 import { muzzlePoint, MUZZLE_GAIN } from '../../src/combat/thunderlockArt.js';   // FIELD-GUN17
 import { orbColour, orbColourFrom, noteOrbColour, resetOrbColour } from '../../src/characters/thunderlockIds.js';   // FIELD-GUN17
 import { ORB_SCALE } from '../../src/characters/thunderlockIds.js';   // FIELD-GUN18
@@ -43,7 +43,6 @@ import { installThunderlockIcons, ICON_FILES } from '../../src/systems/thunderlo
 import { isVendorArchive, vendorRecordCount, clearVendorTextures } from '../../src/systems/textureReplacement.js';
 import { inventoryItemImage } from '../../src/systems/item/itemTemplates.js';
 import { loadThunderlockArt } from '../../src/combat/thunderlockArt.js';   // FIELD-GUN3
-import { SHEET_GRID, cellRect } from '../../src/combat/gun/gunSheet.js';
 import { vendorTextureStandIn, preloadTextureArchive } from '../../src/systems/textureReplacement.js';   // FIELD-GUN4
 import { paperdollItemImage, PAPERDOLL_ORIGIN } from '../../src/ui/paperDoll.js';
 import { PAPERDOLL_OFFSET } from '../../src/systems/thunderlock.js';
@@ -123,13 +122,13 @@ test('it is RANGED but not a BOW - the machine keeps the trigger, the skill keep
   assert.notEqual(type, WEAPON_TYPES.Bow, 'a bow draws and holds; this has a trigger');
   assert.equal(weaponTypeForItem(BOW), WEAPON_TYPES.Bow, 'the verbatim switch is untouched');
   assert.equal(weaponTypeForItem({ templateIndex: 120 }), WEAPON_TYPES.LongBlade);
-  // six frames on every strike direction: a gun does not care which
-  // way you dragged
+  // seven frames on every strike direction: a gun does not care which
+  // way you dragged (PIN MOVED, THUNDERLOCK-ART2: the owner's strip is seven - the sheet was six)
   const anims = getWeaponAnims(type);
   assert.equal(anims.length, 7);
-  assert.deepEqual(anims.map((a) => a.NumFrames), [1, 6, 6, 6, 6, 6, 6]);
+  assert.deepEqual(anims.map((a) => a.NumFrames), [1, 7, 7, 7, 7, 7, 7]);
   assert.deepEqual(anims.map((a) => a.Record), [0, 1, 1, 1, 1, 1, 1], 'record 0 idle, record 1 the fire cycle');
-  assert.equal(THUNDERLOCK_NUM_FRAMES.StrikeDown, 6);
+  assert.equal(THUNDERLOCK_NUM_FRAMES.StrikeDown, 7);
   // and the two classic tables are what they were
   assert.equal(MELEE_NUM_FRAMES.StrikeDown, 5);
   assert.equal(BOW_NUM_FRAMES.StrikeDown, 7);
@@ -497,15 +496,16 @@ test('FIELD-GUN1: the icons register as STAND-IN archives, so the doors that gat
  *  content and a one-row mark at the BOTTOM, in different colours. A
  *  gun is a picture with a top and a bottom; this is the smallest
  *  thing that has the same property. */
-function orientedSheet(cellW = 40, cellH = 30) {
-  const width = cellW * SHEET_GRID.cols, height = cellH * SHEET_GRID.rows;
-  const data = new Uint8ClampedArray(width * height * 4).fill(255);   // white, opaque
+/** THUNDERLOCK-ART2 (PIN MOVED): the owner's strip - seven 160x98 cells side by side on a clear page, each with a red
+ *  TOP mark (two rows) and a blue mark on its FOOT row (the row the forearms are carried down from). */
+function orientedStrip() {
+  const { frames, cellW, cellH } = THUNDERLOCK_STRIP, width = cellW * frames, height = cellH;
+  const data = new Uint8ClampedArray(width * height * 4);   // clear
   const put = (x, y, [r, g, b]) => { const o = (y * width + x) * 4; data[o] = r; data[o + 1] = g; data[o + 2] = b; data[o + 3] = 255; };
-  for (let i = 0; i < SHEET_GRID.cols * SHEET_GRID.rows; i++) {
-    const c = cellRect(i, width, height);
-    for (let x = c.x + 2; x < c.x + c.w - 2; x++) {
-      put(x, c.y + 2, [255, 0, 0]); put(x, c.y + 3, [255, 0, 0]);   // TOP mark: red, two rows
-      put(x, c.y + c.h - 3, [0, 0, 255]);                            // BOTTOM mark: blue, one row
+  for (let i = 0; i < frames; i++) {
+    for (let x = i * cellW + 2; x < (i + 1) * cellW - 2; x++) {
+      put(x, 2, [255, 0, 0]); put(x, 3, [255, 0, 0]);   // TOP mark: red, two rows
+      put(x, cellH - 1, [0, 0, 255]);                     // FOOT mark: blue, its last row
     }
   }
   return { width, height, data };
@@ -522,10 +522,10 @@ test('FIELD-GUN3: the sprite is not upside down - a screen quad keeps a PNG\'s r
   const renderer = { uploadTexture: (kind, key, img) => { uploads.push({ key, img }); return key; } };
   const art = await loadThunderlockArt(renderer, {
     fetch: async () => new Uint8Array([1]),
-    decode: async () => orientedSheet(),
+    decode: async () => orientedStrip(),
   });
   assert.ok(art, 'the art loaded');
-  assert.equal(uploads.length, 6, 'six frames uploaded');
+  assert.equal(uploads.length, 7, 'seven frames uploaded');   // PIN MOVED (THUNDERLOCK-ART2): the owner's strip, not the sheet's six
 
   // Read the mark off row 0 of what was handed to the GPU. Right way
   // up, the first row of the uploaded picture is the TOP mark (red);
@@ -534,8 +534,10 @@ test('FIELD-GUN3: the sprite is not upside down - a screen quad keeps a PNG\'s r
   const { img } = uploads[0];
   const at = (x, y) => { const o = (y * img.width + x) * 4; return [img.colors[o], img.colors[o + 1], img.colors[o + 2]]; };
   const mid = Math.floor(img.width / 2);
-  assert.deepEqual(at(mid, 0), [255, 0, 0], 'row 0 of the upload is the picture\'s TOP');
-  assert.deepEqual(at(mid, img.height - 1), [0, 0, 255], '...and the last row is its bottom');
+  // PIN MOVED (THUNDERLOCK-ART2): the canvas is drawn whole (no crop to content), so the TOP mark is row 2 as painted,
+  // and the foot row carried down is the last - flipped, both rows would read the foot's blue
+  assert.deepEqual(at(mid, 2), [255, 0, 0], 'row 2 of the upload is the picture\'s TOP mark');
+  assert.deepEqual(at(mid, img.height - 1), [0, 0, 255], '...and the last row is its foot, carried down');
 
   // and the shape the upload path reads, which is the other half of
   // what toScreenOrder answers
@@ -691,7 +693,7 @@ test('FIELD-GUN7: the game\'s machine and the LAB\'s run the same cycle, frame f
   // lab's machine is the oracle, and the game's has to agree with it
   // frame for frame. It is the only pin in this file that can fail
   // for "it doesn't feel right", because feel IS the timeline.
-  const lab = createGunMachine({ fps: GUN_FEEL.fps, cooldownMs: GUN_FEEL.reloadMs, hitFrame: GUN_FEEL.hitFrame });
+  const lab = createGunMachine({ fps: GUN_FEEL.fps, cooldownMs: GUN_FEEL.reloadMs, hitFrame: GUN_FEEL.hitFrame, frames: THUNDERLOCK_STRIP.frames });   // PIN MOVED (THUNDERLOCK-ART2): the owner's seven
   const game = createWeaponMachine(false);
   game.ranged = true;
   game.frames = THUNDERLOCK_NUM_FRAMES;
@@ -724,9 +726,13 @@ test('FIELD-GUN7: the game\'s machine and the LAB\'s run the same cycle, frame f
   // the SHOT: the same six frames on the same ticks
   const labShot = labFrames.filter((f) => f >= 0);
   const gameShot = gameFrames.filter((f) => f >= 0);
-  assert.equal(labShot.length, gameShot.length,
+  // PIN MOVED (THUNDERLOCK-ART2): seven frames at 14fps are 0.5s - a 60Hz tick's very edge, where the two clocks' sums of
+  // 1/60 part by one tick - so the lengths agree within that tick and the frames agree, frame for frame, on all they share
+  assert.ok(Math.abs(labShot.length - gameShot.length) <= 1,
     `the shot is ${gameShot.length} frames long in the game and ${labShot.length} in the lab`);
-  assert.ok(labShot.length >= 20, 'six frames at 14fps is about 26 ticks of a 60Hz frame - a sanity floor');
+  const both = Math.min(labShot.length, gameShot.length);
+  assert.deepEqual(gameShot.slice(0, both), labShot.slice(0, both), 'frame for frame');
+  assert.ok(labShot.length >= 28, 'seven frames at 14fps is 30 ticks of a 60Hz frame - a sanity floor');
 
   // the HIT lands on the same tick, which is the muzzle flash
   assert.equal(gameHit, labHit, `the damage lands on tick ${gameHit} in the game and ${labHit} in the lab`);

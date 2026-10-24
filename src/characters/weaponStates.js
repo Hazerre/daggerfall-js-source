@@ -190,10 +190,12 @@ export const BOW_DRAWN_HOLD_FRAME = 3;             // fully drawn; drawback hold
 // started the bow cooldown one classic tick early.
 export const BOW_NUM_FRAMES = { Idle: 1, StrikeUp: 4, StrikeDown: 7 };
 /** The Dwarven Thunderlock's, the port's own weapon: one trigger pull
- *  is six frames - flash, flash, smoke, smoke, wisp - on every strike
- *  direction, because a gun does not care which way you dragged. */
+ *  is seven frames - the rest, the flash and the bolt, smoke, smoke,
+ *  and three settling (THUNDERLOCK-ART2, the owner's strip; it was the
+ *  sheet's six) - on every strike direction, because a gun does not
+ *  care which way you dragged. */
 export const THUNDERLOCK_NUM_FRAMES = Object.freeze({
-  Idle: 1, StrikeDown: 6, StrikeDownLeft: 6, StrikeLeft: 6, StrikeRight: 6, StrikeDownRight: 6, StrikeUp: 6,
+  Idle: 1, StrikeDown: 7, StrikeDownLeft: 7, StrikeLeft: 7, StrikeRight: 7, StrikeDownRight: 7, StrikeUp: 7,
 });
 
 // FPSWeapon.cs:71 verbatim: the unarmed strike-to-the-LEFT plays its

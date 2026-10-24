@@ -171,27 +171,24 @@ export const WERECREATURE_ANIMS = Object.freeze([
   A(6, 5, WERE_FPS, ALIGN.Left, 0.2),
 ]);
 
-/** The Thunderlock's table. Not a WeaponBasics row - there is no such
- *  row - but the same five columns, so everything that reads an anim
- *  reads this one too. Record 0 is the idle pose, record 1 the six
- *  fire frames, and every strike direction plays the same six: a gun
- *  does not care which way you dragged. AlignRight, because that is
- *  where the lab settled it and where the classic weapons sit. */
-export const THUNDERLOCK_ANIMS = Object.freeze([
-  A(0, 1, IDLE_FPS, ALIGN.Right, 0),
-  A(1, 6, STRIKE_FPS, ALIGN.Right, 0),
-  A(1, 6, STRIKE_FPS, ALIGN.Right, 0),
-  A(1, 6, STRIKE_FPS, ALIGN.Right, 0),
-  A(1, 6, STRIKE_FPS, ALIGN.Right, 0),
-  A(1, 6, STRIKE_FPS, ALIGN.Right, 0),
-  A(1, 6, STRIKE_FPS, ALIGN.Right, 0),
-]);
+/** A gun's table, `n` fire frames. Not a WeaponBasics row - there is no
+ *  such row - but the same five columns, so everything that reads an anim
+ *  reads this one too. Record 0 is the idle pose, record 1 the fire
+ *  frames, and every strike direction plays the same: a gun does not care
+ *  which way you dragged. AlignRight, because that is where the lab
+ *  settled it and where the classic weapons sit. */
+const gunAnims = (n) => Object.freeze([A(0, 1, IDLE_FPS, ALIGN.Right, 0), ...Array.from({ length: 6 }, () => A(1, n, STRIKE_FPS, ALIGN.Right, 0))]);
+/** The Thunderlock's: THUNDERLOCK-ART2 - the owner's seven frames (combat/thunderlockArt.js THUNDERLOCK_STRIP), the rest
+ *  frame first and the flash on the second, as the six-frame sheet had them. */
+export const THUNDERLOCK_ANIMS = gunAnims(7);
+/** The Pistolet's: its six (combat/gun/pistolStrip.js PISTOL_STRIP) - the table the Thunderlock's was. */
+export const PISTOLET_ANIMS = gunAnims(6);
 
 /** GetWeaponAnims, verbatim routing. */
 export function getWeaponAnims(weaponType) {
   const T = WEAPON_TYPES;
   if (weaponType === T.Thunderlock || weaponType === T.Thunderlock_Magic) return THUNDERLOCK_ANIMS;   // the port's own, ahead of the verbatim routing
-  if (weaponType === T.Pistolet || weaponType === T.Pistolet_Magic) return THUNDERLOCK_ANIMS;   // PISTOLET: the same table - an idle and six fire frames, AlignRight, every direction alike
+  if (weaponType === T.Pistolet || weaponType === T.Pistolet_Magic) return PISTOLET_ANIMS;   // PISTOLET: an idle and six fire frames, AlignRight, every direction alike (THUNDERLOCK-ART2: its own table now - the Thunderlock plays seven)
   if (weaponType === T.Melee) return MELEE_ANIMS;
   if (weaponType === T.Dagger || weaponType === T.Dagger_Magic) return DAGGER_ANIMS;
   if (weaponType === T.Staff || weaponType === T.Staff_Magic) return STAFF_ANIMS;

@@ -15,7 +15,7 @@ import { isGunTemplate, ammoTemplateFor, orbArchiveFor, ORB_ARCHIVE, PISTOLET_SP
 import { weaponMinDamage, weaponMaxDamage, weaponSkillUsed } from '../../src/characters/weapons.js';
 import { SKILLS } from '../../src/systems/skills.js';
 import { getItemHands, ITEM_HANDS, equipItem, EQUIP_SLOTS } from '../../src/systems/equip.js';
-import { weaponTypeForItem, WEAPON_TYPES, isGunType, isPistoletType, plainWeaponType, getWeaponAnims, THUNDERLOCK_ANIMS } from '../../src/combat/fpsWeapon.js';
+import { weaponTypeForItem, WEAPON_TYPES, isGunType, isPistoletType, plainWeaponType, getWeaponAnims, THUNDERLOCK_ANIMS, PISTOLET_ANIMS } from '../../src/combat/fpsWeapon.js';
 import { HANDS_MODE, DUAL_GUN_TYPES, handsModeOf, dualEligible, DUAL, GUARD } from '../../src/combat/twoHands/handsLaw.js';
 import { PlayerWeapon, handDesc } from '../../src/combat/playerWeapon.js';
 import { GUN_FEEL, PISTOLET_FEEL, PISTOLET_TICK_SECONDS, PISTOLET_COOLDOWN_SECONDS } from '../../src/combat/gun/gunFeel.js';
@@ -224,7 +224,9 @@ test('the weapon type: Pistolet 19 and its enchanted 20, the guns’ table and p
   assert.equal(weaponTypeForItem(it), WEAPON_TYPES.Pistolet);
   assert.deepEqual([WEAPON_TYPES.Pistolet, WEAPON_TYPES.Pistolet_Magic], [19, 20]);
   assert.equal(plainWeaponType(WEAPON_TYPES.Pistolet_Magic), WEAPON_TYPES.Pistolet);
-  assert.equal(getWeaponAnims(WEAPON_TYPES.Pistolet), THUNDERLOCK_ANIMS);
+  assert.equal(getWeaponAnims(WEAPON_TYPES.Pistolet), PISTOLET_ANIMS);   // PIN MOVED (THUNDERLOCK-ART2): its own six - the Thunderlock plays seven now
+  assert.deepEqual(PISTOLET_ANIMS.map((a) => a.NumFrames), [1, 6, 6, 6, 6, 6, 6]);
+  assert.notEqual(PISTOLET_ANIMS, THUNDERLOCK_ANIMS);
   assert.ok(isGunType(19) && isGunType(20) && isGunType(17) && isGunType(18) && !isGunType(14));
   assert.ok(isPistoletType(19) && isPistoletType(20) && !isPistoletType(17));
 });
