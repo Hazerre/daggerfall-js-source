@@ -290,5 +290,6 @@ forks, its sections) and its receipt handed. What the run and the tests written 
 **The tests:** `test/net/ketch/` (`ketch_law`, `ketch_deck`, `ketch_brain` - a voyage run whole through `ketchSim.mjs`,
 every frame through the wire - `ketch_warden`, `ketch_constructs`, `ketch_link`, `ketch_herald`, `ketch_relay`),
 `test/server/ketch_claim.test.js`, `test/systems/ketch/` (`ketch_spoils`, `ketch_gilded`, `ketch_words`), `test/scenes/ketch_sky.test.js`,
-`test/ui/ketch_hud.test.js`, `test/world/ketch_model.test.js`. **The mutants:** `tools/mutants/ketch_*.json`, every one
-dead.
+`test/ui/ketch_hud.test.js`, `test/world/ketch_model.test.js`. **The mutants:** `tools/mutants/ketch_*.json`, fifteen
+lists, 208 records: 207 dead and one recorded equivalent (`KTB-the-cells-said-every-beat` - every caller says the cells
+only after it moved them, so the word's dedupe guard is never the branch taken).
