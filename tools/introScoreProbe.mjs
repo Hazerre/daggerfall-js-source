@@ -18,6 +18,7 @@ import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CLOUD_REVEAL_TIME, TITLE_IMPACT_TIME } from '../src/ui/intro/introCue.js';
+import { introThemeSong, INTRO_CHANNELS, INTRO_SECONDS_PER_TICK } from '../src/systems/introScore.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const arg = (k) => (process.argv.includes(k) ? process.argv[process.argv.indexOf(k) + 1] : null);
@@ -159,32 +160,44 @@ function spectrum(pcm, rate = 12000, from = 1, size = 4096, hop = 2048) {
   return { frames, centroid: total > 0 ? weighted / total : 0, presenceDb: total > 0 ? 10 * Math.log10(Math.max(1e-18, high / total)) : -Infinity };
 }
 
-/** INTRO3c (the owner: "I dont like the high pitch whine"): THE WHINE - one tone standing over its band for seconds. Over
- *  the same mono, Hann 4096 and hop 1024, a bin is a tone in a frame when it is a local maximum 12 dB over the mean
- *  magnitude 350 Hz either side of it and within `gateDb` of the frame's loudest bin; the measure is the share of frames
- *  the worst bin from `lo` to `hi` is a tone in (two bins' tolerance). The recording's worst over the film is D7 (2353 Hz)
- *  in 52% of its frames; INTRO3b's render had 2341 Hz in 71% - the halo's partials, a doubled pair beating - and INTRO3c's
- *  2089 Hz in 28%. */
-function whine(pcm, rate = 12000, from = 1, size = 4096, hop = 1024, lo = 2000, hi = 6000, gateDb = 40) {
-  const half = size / 2, count = new Float64Array(half + 1), mag = new Float64Array(half + 1), prefix = new Float64Array(half + 2), peak = new Uint8Array(half + 1);
-  const radius = Math.round(350 * size / rate), gate = Math.pow(10, -gateDb / 20);
+/** INTRO3c (the owner: "I dont like the high pitch whine" ... "Its not natural"): THE SHAPE OF A HELD CHORD - what the
+ *  whine was, measured. Over the first strings chord of the opening (the score's own: its top note and its span), the
+ *  level of each harmonic of the top note against the loudest, and the width of each partial at -6 dB in cents. The
+ *  recording's top note (G4): harmonics 1-9 at -14, 0, -16, -12, -35, -27, -19, -23, -19 dB - a dense series with a
+ *  plateau from the 5th up - its partials 19 to 52 cents wide (a section's spread). The FM render's: -5, -3, -16, 0,
+ *  -33, -4, -50, -17, -49 - the 4th and the 6th as loud as the fundamentals with the 7th and the 9th 50 dB under them,
+ *  isolated pure lines 6 to 12 cents wide: that is a whine, by construction. Two conditions, then: no harmonic above the
+ *  third within 8 dB of the loudest, and the partials from the 3rd to the 6th 12 cents wide or more on average. Hann 4096
+ *  at 12 kHz (2.9 Hz a bin; a pure line reads 6 to 12 cents at these pitches). */
+function chordShape(pcm, rate = 12000, size = 4096, hop = 1024) {
+  const song = introThemeSong();
+  const first = song.events.find((e) => e.type === 'noteOn' && e.channel === INTRO_CHANNELS.strings && e.tick * INTRO_SECONDS_PER_TICK >= 2);
+  const chord = song.events.filter((e) => e.type === 'noteOn' && e.channel === INTRO_CHANNELS.strings && e.tick === first.tick);
+  const top = Math.max(...chord.map((e) => e.note)), hz = 440 * Math.pow(2, (top - 69) / 12);
+  const from = first.tick * INTRO_SECONDS_PER_TICK + 0.1, to = (first.tick + first.duration) * INTRO_SECONDS_PER_TICK - 0.1;
+  const half = size / 2, power = new Float64Array(half + 1);
   let frames = 0;
-  for (let start = Math.round(from * rate); start + size <= pcm.length; start += hop) {
+  for (let start = Math.round(from * rate); start + size <= Math.min(pcm.length, Math.round(to * rate)); start += hop) {
     const real = new Float64Array(size), imag = new Float64Array(size);
     for (let n = 0; n < size; n++) real[n] = pcm[start + n] * (0.5 - 0.5 * Math.cos(2 * Math.PI * n / (size - 1)));
     fft(real, imag);
-    let loudest = 0;
-    for (let b = 0; b <= half; b++) { mag[b] = Math.hypot(real[b], imag[b]); prefix[b + 1] = prefix[b] + mag[b]; if (b * rate / size >= 20 && mag[b] > loudest) loudest = mag[b]; }
-    for (let b = 1; b < half; b++) {
-      const a = Math.max(0, b - radius), z = Math.min(half, b + radius), mean = (prefix[z + 1] - prefix[a]) / (z - a + 1);
-      peak[b] = mag[b] >= 4 * mean && mag[b] >= mag[b - 1] && mag[b] >= mag[b + 1] && mag[b] >= loudest * gate ? 1 : 0;
-    }
-    for (let b = 1; b < half; b++) { let near = 0; for (let k = -2; k <= 2; k++) near |= peak[Math.min(half, Math.max(0, b + k))]; count[b] += near; }
+    for (let b = 0; b <= half; b++) power[b] += real[b] * real[b] + imag[b] * imag[b];
     frames++;
   }
-  let worst = 0, hz = 0;
-  for (let b = 1; b < half; b++) { const f = b * rate / size; if (f >= lo && f <= hi && count[b] > worst) { worst = count[b]; hz = f; } }
-  return { frames, share: frames ? worst / frames : 0, hz };
+  const db = (b) => 10 * Math.log10(power[b] / Math.max(1, frames) + 1e-18);
+  const levels = [], widths = [];
+  for (let n = 1; n <= 9; n++) {
+    const lo = Math.round((hz * n * 0.97) * size / rate), hi = Math.min(half, Math.round((hz * n * 1.03) * size / rate));
+    let peak = lo;
+    for (let b = lo; b <= hi; b++) if (power[b] > power[peak]) peak = b;
+    const top6 = db(peak) - 6;
+    let a = peak, z = peak;
+    while (a > 1 && db(a) > top6) a--;
+    while (z < half - 1 && db(z) > top6) z++;
+    levels.push(db(peak)); widths.push(1200 * Math.log2(z / a));
+  }
+  const loudest = Math.max(...levels);
+  return { note: top, from, to, frames, levels: levels.map((l) => l - loudest), widths, isolated: Math.max(...levels.slice(3)) - loudest, meanWidth: widths.slice(2, 6).reduce((x, y) => x + y, 0) / 4 };
 }
 
 const server = http.createServer((req, res) => {
@@ -223,13 +236,13 @@ try {
   // INTRO3b: not flat - wide (the two channels are not one: the recording's L/R correlation is 0.33 over the film, 0.59
   // over its body; the dry render's was 0.985, INTRO3b's 0.61) and present (the spectrum's centre of weight and its
   // share from 2 kHz up, measured on the recording the same way: 521 Hz and -12.8 dB over the film; the dry render's
-  // 305 Hz and -25.0 dB, INTRO3b's 483 Hz and -14.7, INTRO3c's 445 Hz and -15.6 over the film, 417 Hz and -15.6 over the
-  // whole song - the pins a margin under where it lands); INTRO3c: and no whine (the worst persistent tone from 2 to
-  // 6 kHz under 60% of the frames: the recording's D7 stands in 52%, the whine's in 71%, INTRO3c's worst in 28%)
-  const sp = spectrum(Float32Array.from(r.mono)), wh = whine(Float32Array.from(r.mono));
+  // 305 Hz and -25.0 dB, INTRO3b's 483 Hz and -14.7, INTRO3c's 484 Hz and -13.2 over the film - the pins a margin under
+  // where it lands); INTRO3c: and no whine - the held chord's shape (chordShape): the recording's loudest harmonic above
+  // the third -12 dB with partials 38 cents wide, the FM render's 0 dB and 8.5 cents, the bowed render's -13 and 27
+  const sp = spectrum(Float32Array.from(r.mono)), shape = chordShape(Float32Array.from(r.mono));
   check('wide: the two channels are not one (L/R correlation under 0.8)', r.corr < 0.8, `correlation ${r.corr.toFixed(3)}`);
   check('present: the spectrum’s centre of weight over 400 Hz and its share from 2 kHz up over -18 dB', sp.centroid > 400 && sp.presenceDb > -18, `centroid ${sp.centroid.toFixed(0)} Hz, 2 kHz up ${sp.presenceDb.toFixed(1)} dB over ${sp.frames} frames`);
-  check('no whine: no one tone from 2 to 6 kHz stands over its band in more than 60% of the frames', wh.share < 0.6, `the worst ${wh.hz.toFixed(0)} Hz in ${(100 * wh.share).toFixed(0)}% of ${wh.frames} frames`);
+  check('no whine: over the opening’s first held chord no harmonic of its top note above the third stands within 8 dB of the loudest, and its partials are bands, not lines (the 3rd to the 6th 12 cents wide or more, the mean)', shape.isolated <= -8 && shape.meanWidth >= 12, `note ${shape.note} over ${shape.from.toFixed(2)}-${shape.to.toFixed(2)} s: harmonics ${shape.levels.map((l) => l.toFixed(0)).join(' ')} dB, widths ${shape.widths.map((w) => w.toFixed(0)).join(' ')} cents - isolated ${shape.isolated.toFixed(1)} dB, mean width ${shape.meanWidth.toFixed(1)} cents`);
   check('no page error', errs.length === 0, errs.join('; '));
 } finally {
   await browser.close();

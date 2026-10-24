@@ -10,11 +10,11 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   introThemeSong, introTick, introSeconds, INTRO_SONG, INTRO_SCORE_TPQ, INTRO_SECONDS_PER_TICK, INTRO_LEAD_TICKS,
-  INTRO_PROGRAMS, INTRO_CHANNELS, INTRO_LEVEL, INTRO_PRESS, INTRO_SCORE_TABLES, FIRST_BAR, LAST_BAR, CLOUD_BAR, IMPACT_BAR,
+  INTRO_PROGRAMS, INTRO_CHANNELS, INTRO_LEVEL, INTRO_PRESS, INTRO_TONE, INTRO_SCORE_TABLES, FIRST_BAR, LAST_BAR, CLOUD_BAR, IMPACT_BAR,
   INTRO_VOICES, INTRO_KIT,
 } from '../../src/systems/introScore.js';
 import { midiNote } from '../../src/systems/gate/gateScore.js';
-import { songLevel, songPress, songVoices, songKit } from '../../src/systems/song/songPlayer.js';
+import { songLevel, songPress, songVoices, songKit, songTone } from '../../src/systems/song/songPlayer.js';
 import { CLOUD_REVEAL_TIME, TITLE_IMPACT_TIME } from '../../src/ui/intro/introCue.js';
 
 const song = introThemeSong();
@@ -50,7 +50,7 @@ test('INTRO3: the song is the shape the game’s player plays - sorted, in range
   assert.equal(song.durationTicks, introTick(LAST_BAR + 1));
   assert.equal(song.seamless, true, 'it loops on its bar line, as the recording looped');
   assert.equal(songLevel(song), INTRO_LEVEL);
-  assert.deepEqual(songPress(song), { threshold: -14, knee: 12, ratio: 3, attack: 0.012, release: 0.25, out: 2.4, ceiling: -1 });
+  assert.deepEqual(songPress(song), { threshold: -14, knee: 12, ratio: 3, attack: 0.012, release: 0.25, out: 2, ceiling: -1 });
   assert.equal(INTRO_PRESS.ceiling, -1);
   const rank = { programChange: 0, controller: 0, noteOn: 1 };
   for (let i = 1; i < song.events.length; i++) {
@@ -192,21 +192,29 @@ test('INTRO3b: not flat - every section its own voice (the bed an ensemble, spre
   }
 });
 
-test('INTRO3c: no whine - every bowed section and the choir with a vibrato, a breath of noise and half the static detune, the halo a soft shimmer (its index low and settling, three copies close, quieter) out of the opening’s bare bars and the quiet after the cloud break; the violins settle and the risers stay under it', () => {
+test('INTRO3c: no whine - the bed is BOWED: every string section, the pad and the choir play sawtooths under the bow’s low-pass through a body, an air shelf and an ensemble, with a vibrato and no breath held (a bite at most); the choir’s body is its vowel, the strings’ and the violins’ carry the bridge hill; the horn holds its brightness; the song carries its tone, the measured difference; the halo out of the opening’s bare bars and the quiet after the cloud break; the risers under it', () => {
   const { CHORDS } = INTRO_SCORE_TABLES;
-  const h = INTRO_VOICES.halo;
-  assert.ok(h.index <= 1.5 && h.idxDecay <= 1.5 && h.cents <= 8 && h.unison <= 3 && h.gain <= 0.6, 'the halo is a soft shimmer: its partials were the whine');
-  assert.ok(INTRO_VOICES.violins.index <= 2.4 && INTRO_VOICES.violins.idxDecay <= 2, 'the violins settle');
-  for (const voice of ['violins', 'strings', 'choir', 'cellos', 'halo']) assert.ok(INTRO_VOICES[voice].vibrato >= 8 && INTRO_VOICES[voice].vibRate >= 4.5 && INTRO_VOICES[voice].cents <= 8, `${voice} has a vibrato, not a static beat: a held FM tone without one is the whine`);
-  for (const voice of ['horn', 'contrabass', 'pad']) assert.ok(INTRO_VOICES[voice].vibrato > 0 && INTRO_VOICES[voice].vibrato <= 8, `${voice} has a little`);
-  for (const voice of ['violins', 'strings', 'cellos', 'halo']) assert.ok(INTRO_VOICES[voice].noise >= 0.2, `${voice} has the bow's noise`);
-  for (const voice of ['choir', 'horn', 'brass', 'contrabass', 'pad']) assert.ok(INTRO_VOICES[voice].noise >= 0.1, `${voice} has a breath`);
-  for (const voice of ['harp', 'bells', 'ostinato', 'hit', 'swell', 'timpani']) assert.equal(INTRO_VOICES[voice].noise, undefined, `${voice} has none: struck, plucked or a riser`);
-  assert.ok(INTRO_VOICES.swell.index <= 5 && INTRO_VOICES.swell.gain <= 0.6 && INTRO_VOICES.swell.cents <= 12, 'the risers stay under the halo');
+  for (const voice of ['strings', 'violins', 'cellos', 'contrabass', 'halo', 'pad', 'choir']) {
+    const v = INTRO_VOICES[voice];
+    assert.equal(v.saw, 1, `${voice} is bowed`);
+    assert.ok(v.cutoff >= 4 && v.cutoff <= 14, `${voice}'s bow`);
+    assert.ok(Array.isArray(v.body) && v.body.length >= 1 && v.body.every((b) => b.length === 3), `${voice} has a body`);
+    assert.ok(v.air <= -3 && v.ensemble > 0 && v.ensembleRate > 0 && v.ensembleMs > 0, `${voice} has its air and its ensemble`);
+    assert.ok(v.vibrato >= 5 && v.vibRate >= 4 && v.cents <= 8, `${voice} has a vibrato, not a static beat`);
+    assert.ok(!(v.noise > 0.1), `${voice} holds no breath under the note: the owner heard one as static`);
+    assert.equal(v.index, undefined, `${voice} names no index: a bowed voice has no modulator`);
+  }
+  assert.ok(INTRO_VOICES.choir.body.length === 3 && INTRO_VOICES.choir.body[0][0] >= 600 && INTRO_VOICES.choir.body[0][0] <= 700, 'the choir’s body is a vowel: three formants, the first at ah');
+  for (const voice of ['strings', 'violins']) assert.ok(INTRO_VOICES[voice].body.some(([hz, db]) => hz >= 2500 && hz <= 3200 && db >= 4), `${voice} carries the bridge hill`);
+  for (const voice of ['horn', 'brass', 'harp', 'bells', 'ostinato', 'hit', 'swell', 'timpani']) assert.equal(INTRO_VOICES[voice].saw, undefined, `${voice} stays FM`);
+  assert.equal(INTRO_VOICES.horn.idxFloor, 0.5, 'the horn holds its brightness');
+  assert.deepEqual(songTone(song), { ...INTRO_TONE }, 'the song carries its tone, in range as written');
+  assert.ok(INTRO_TONE.bands.some(([hz, db]) => hz === 250 && db < 0) && INTRO_TONE.bands.some(([hz, db]) => hz === 100 && db > 0) && INTRO_TONE.high[1] > 0, 'the tone is the measured difference: 250 Hz down, 100 Hz and the top up');
   const halo = (m) => at(introTick(m), INTRO_CHANNELS.halo);
   for (const m of [-3, -1, 0, 1, 4, 5]) assert.equal(halo(m).length, 0, `bar ${m} is bare of the halo`);
   assert.deepEqual(halo(CLOUD_BAR).map((e) => e.note).sort((a, b) => a - b), CHORDS.C.choir.map((n) => midiNote(n) + 12).sort((a, b) => a - b), 'over the cloud break still');
   assert.ok(halo(14).length > 0 && halo(14).every((e) => e.velocity === 72), 'the halo at 72 where the band opens out, under the choir');
+  assert.ok(INTRO_VOICES.swell.index <= 5 && INTRO_VOICES.swell.gain <= 0.6, 'the risers stay under');
 });
 
 test('INTRO3: nothing fetches or decodes a recording - the intro plays the score through the game’s own player', () => {

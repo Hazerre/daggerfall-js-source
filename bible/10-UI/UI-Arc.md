@@ -1399,76 +1399,117 @@ braam, the wash, the rolls, the swells), `test/ui/intro.test.js` INTRO3b (the
 hall under the session, the send, dispose). Mutants: `tools/mutants/intro3.json`,
 31, all dead.
 
-#### INTRO3c (2026-10-24): no whine - a vibrato and a breath for the player's voices
+#### INTRO3c (2026-10-24): no whine - the bowed voice, the body, the ensemble and the tone
 
-The owner, hearing INTRO3b's render: "I dont like the high pitch whine", and,
-with the halo tamed, "It still has that whine. Its not natural." Measured, in
-two passes. First the loudest offenders: a scan for one tone standing over its
-band for seconds found G6, D7, G7 and D8 in 40 to 68% of the film's frames
-against the recording's 20 to 48%, each a doubled pair about 30 Hz apart -
-four unison copies 18 cents apart, beating - the halo's upper partials (FM
-index 3, held bright for 4 s) over the opening's quiet. Then, with those gone
-and the whine still heard, what was left: the render's top is a LINE SPECTRUM.
-Its spectral flatness from 1 to 5 kHz (1 is noise, 0 is pure tones) ran 0.000
-to 0.07 over the film's 3 s windows against the recording's 0.08 to 0.30, and
-its most prominent narrow tone stood 24 dB over its band (the mean) against
-the recording's 18 - a held FM note is a few pure sines exactly in tune with
-themselves, and a string section is not: it has vibrato, and the bow's noise
-between the partials. That is the whine, and "not natural" is the right word
-for it. The notes did not move:
+The owner, hearing INTRO3b's render: "I dont like the high pitch whine"; with
+the halo tamed, "It still has that whine. Its not natural"; with a vibrato and
+a breath of noise under every held note, "Now it just sounds like static. Stop
+band aid fixing and be as detailed as possible." Measured properly then,
+against the recording, three ways: over the opening's held chord (G minor,
+bars -3 and -2) the level of each harmonic of its top note, G4, against the
+loudest, and the -6 dB width of each partial in cents; and the film's
+third-octave curve.
 
-- **The player's voices** (`songPlayer.js`, EG-ROAR's `VOICE_RANGE`): two
-  things a song's voice may now carry. A VIBRATO - `vibrato` (cents, to 50)
-  at `vibRate` (Hz, 0.5 to 12): a sine LFO per unison copy summed into the
-  pair's detune (the carrier's and the modulator's, so the spectrum moves
-  whole), each copy 6% faster a step than the last so an ensemble's vibratos
-  drift apart, the depth setting in from nothing over the attack and a quarter
-  second (`_vibrato`). A BREATH - `noise` (a share, to 1): the player's own
-  noise buffer, looped, through a wide band-pass two and a half times up from
-  the note (600 Hz to 5 kHz, Q 0.6), at that share of one copy's amplitude,
-  into the note's own envelope sides so it swells, holds and fades with the
-  tone (`_breath`). Both are the note's own nodes, stopped with it; a bend
-  still reaches every copy. Every song MIDI.BSA holds names neither, and the
-  Spire's voices name neither.
-- **The intro's voices** (`INTRO_VOICES`): every bowed section and the choir
-  with a vibrato (10 to 15 cents at 4.9 to 6.1 Hz; the horn, the contrabass
-  and the pad a little, 5 to 6) and a breath (the violins and the halo 0.3,
-  the strings 0.25, the cellos 0.2, the choir 0.18; the brass, the horn, the
-  contrabass and the pad 0.1 to 0.12; none on the harp, the bells, the
-  ostinato, the hits, the risers or the timpani), and their static detune
-  halved (3 to 8 cents) - the vibrato carries the motion a fixed comb of copies
-  beat out. The halo a soft shimmer (index 1.4 settling in 1.2 s, three copies
-  4 cents apart, gain 0.6, written at 72) and out of the opening's bare bars
-  (-3 to 1) and the quiet after the cloud break (4 and 5); the violins and the
-  strings settling sooner and closer; the risers (`swell`) less inharmonic
-  (mod 2.76, index 4.5) and lower (gain 0.55). The hall's top was tried darker
-  (roomHF -400, decayHFRatio 0.6) and measured as no difference, so it stands.
+| | recording | FM render (the whine) | FM, vibrato, noise (the static) |
+|---|---|---|---|
+| G4's harmonics 1-4, dB under the loudest | -14, 0, -16, -12 | -5, -3, -16, 0 | 0, -6, -16, -12 |
+| G4's harmonics 5-9 | -35, -27, -19, -23, -19 | -33, -4, -50, -17, -49 | -31, -33, -35, -36, -38 |
+| partial widths at -6 dB, cents | 52, 19, 22, 20 | 47, 36, 12, 9 | 36, 36, 28, 15 |
+| 315-630 Hz against 250 Hz, dB | +5 to +7 | 0 to -2 | 0 to -3 |
+| 2-3 kHz against 250 Hz | -1 to -2 | -7 to -11 | -8 to -12 |
 
-Measured after, the film's 27 s. The strings alone, one bar: G4's pitch moves
-23 cents peak to peak at 5.3 Hz (the vibrato as written), their flatness from
-1 to 5 kHz 0.26. The whole band: flatness 0.107 (the mean over the 3 s
-windows; the recording's 0.18, the halo-tamed render's 0.039), the top tone's
-prominence 21 dB (18; 24), the worst persistent tone from 2 to 6 kHz in 28% of
-the frames (the recording's D7 in 52%, the whine render's in 71%), the centre
-of weight 445 Hz with -15.6 dB from 2 kHz up (INTRO3b's 483 and -14.7; the
-recording's 521 and -12.8), L/R correlation 0.63, both landmarks at 0.0 ms,
-the peak -2.8 dBFS at the highest MusicVolume. The whole song, 162.8 s: as
-loud as the recording (-22.6 dBFS over 24-160 s to its -22.4), the peak -2.9
-dBFS at the highest MusicVolume, L/R correlation 0.64, the centre 417 Hz with
--15.6 dB from 2 kHz up, the worst persistent tone in 27% of its frames, 10/10.
-The probe now pumps the player JUST IN TIME - the offline context suspended
-every 0.1 s and the window scheduled there - so a render costs the sounding
-notes and not every node of the song from the first sample: the whole song
-renders in under 3 minutes where the up-front graph took 8, and over 30 with
-the vibrato's and the breath's nodes. The probe pins
-the whine (`whine`: the worst persistent tone from 2 to 6 kHz under 60% of the
-frames) beside the width and the presence, the presence pins at 400 Hz and
--18 dB. Pins: `test/systems/intro3_score.test.js` INTRO3c (the vibrato, the
-breath and the detune on every voice, the halo's voice, bars and velocity, the
-risers under it), `test/systems/eliteGates/egroar_score.test.js` INTRO3c (the
-vibrato's LFO per copy into both detunes, its rates and onset; the breath's
-band, share, sides and loop; the fields held). Mutants: 18 more in
-`tools/mutants/intro3.json` (49), all dead.
+THE WHINE WAS THE MODEL. Two-operator FM at a 1:1 ratio puts its harmonics
+where the Bessel functions put them: a few loud, their neighbours absent. In
+the FM render the chord's 4th and 6th harmonics stood as loud as its
+fundamentals with the 7th and the 9th 50 dB under them, and where several
+notes' harmonics met (G3's 8th, G4's 4th, the halo's 2nd, all at G6) they
+stacked into one isolated pure line 6 to 12 cents wide. A string section fills
+the 5th through the 9th in a plateau around -20 and spreads every partial 20
+to 50 cents. The static was the noise: a quarter of each voice's amplitude of
+broadband hiss, where a bow's noise sits 30 dB down and in the attack. And the
+render was thin where the recording is full - no body hump at 315-630 Hz, no
+presence at 2-3 kHz - because the model had no body and no formants. The
+earlier passes moved the parameters of a model that cannot make the sound.
+
+A bowed string's waveform is a sawtooth (Helmholtz motion: every harmonic at
+1/n), shaped by the body's fixed resonances, brightened by the bow's pressure,
+moved by each player's vibrato and smeared by the section into bands; a sung
+voice is the same with a vowel's formants for a body. That is also every
+analogue string machine since the 1970s, and it is cheap in Web Audio. So
+(`songPlayer.js`, EG-ROAR's `VOICE_RANGE`):
+
+- **The bowed voice** (`saw`, `cutoff`, `cutQ`; `_bow`): the copies are
+  sawtooths with no modulator, into a low-pass a side whose cutoff is `cutoff`
+  times the note at full velocity and seven tenths of that at none, opening
+  from half over the attack and 80 ms and settling to 85% through the decay.
+- **The body, the air and the ensemble** (`body`, `air`, `ensemble`,
+  `ensembleRate`, `ensembleMs`; `_insert`, `heldBody`): a voiced channel plays
+  through up to four peaking resonances [Hz, dB, Q] in turn, a high shelf at
+  5 kHz, and three short delays (`ensembleMs` x 1, 1.37 and 1.83) each swept a
+  fifth of its length by a sine at `ensembleRate` x 1, 0.79 and 1.31 beside
+  the dry sound - the string machine's circuit, which smears every partial
+  into the band a section makes with no beat and no noise. Built once a song a
+  channel, between the channel's gain and the song's level; `play()` drops a
+  voiced song's chains for the next song.
+- **The vibrato** (`vibrato`, `vibRate`; `_vibrato`) stays: a sine LFO per
+  copy into the pair's detune (a bowed copy's one oscillator), each copy 6%
+  faster a step than the last so an ensemble's vibratos drift apart, setting
+  in over the attack and a quarter second.
+- **The bite** (`noise`; `_breath`): the band of noise plays at its share AS
+  THE NOTE STARTS and fades to a sixteenth over the attack and 0.3 s - a bow's
+  start, not a hiss under the note - into what the copies play into (a bowed
+  voice's low-pass, so it is coloured as they are).
+- **The index floor** (`idxFloor`): an FM voice's index settles to that share
+  of itself (12% unnamed, as the bank always did): the horn holds its
+  brightness at a half, the brass at 0.35.
+- **The tone** (`tone`; `songTone`, `_routeTone`): a song's own shape between
+  the fader and the master - up to four bands and a shelf each end - a mix's
+  match to a reference. The intro's (`INTRO_TONE`) is the measured difference
+  at equal loudness: 60 Hz -2 (shelf), 100 Hz +5, 250 Hz -4 (the bed's and the
+  horn's fundamentals stack there), 500 Hz +3, 3150 Hz +4, 5 kHz +4 (shelf).
+
+The intro's voices (`INTRO_VOICES`): every string section, the pad and the
+choir bowed (cutoffs 4 to 14, the quiet pad darkest), each with its body - the
+strings' air and wood at 450 and 1000 Hz and the bridge hill at 2.7 kHz, the
+violins' at 550, 1300 and 3 kHz, the cellos' at 220, 600 and 1.8 kHz, the
+contrabass's at 100, 200 and 400, the choir's vowel at 650, 1050 and 2500 -
+an air shelf of -4 to -12 dB, an ensemble (0.25 on the bass to 0.5 on the
+choir), a vibrato (5 to 14 cents at 4 to 6.1 Hz) and the static detune halved
+(4 to 8 cents); a bite of 0.08 to 0.1 on the strings, the violins and the
+cellos and none elsewhere. The horn and the brass stay FM, the horn's index 3
+settling to half with a body at 450 Hz; the harp, the bells, the ostinato, the
+hits, the risers and the timpani as they were. The halo a soft bowed shimmer
+out of the opening's bare bars (-3 to 1) and the quiet after the cloud break
+(4 and 5); the risers less inharmonic (mod 2.76, index 4.5) and lower (gain
+0.55); the hall's tail a little brighter (decayHFRatio 1.1); the press's drive
+2 (2.4 drove the toned sum into the ceiling).
+
+Measured after, the film's 27 s. The chord: G4's harmonics 0, -10, -21, -13,
+-17, -18, -18, -22, -25 dB - the plateau from the 5th, nothing above the 3rd
+within 13 dB of the loudest - its partials 47, 47, 36, 18, 24, 32 cents wide.
+The third-octave curve against the recording's at equal loudness, 80 Hz to
+10 kHz: within 3 dB at every band, a mean of 1.2 dB (2.4 before the tone, 6 dB
+short at 100 Hz and 5 over at 250). The centre of weight 484 Hz with -13.2 dB
+from 2 kHz up (the recording's 521 and -12.8), L/R correlation 0.58, both
+landmarks on their cue, the peak -2.8 dBFS at the highest MusicVolume. The
+whole song, 162.8 s: as loud as the recording (-22.1 dBFS over 24-160 s to
+its -22.4), the peak -1.5 dBFS at the highest MusicVolume, L/R correlation
+0.62, the centre 502 Hz with -13.0 dB from 2 kHz up, 10/10. The probe's whine pin is the chord's shape (`chordShape`, from
+the score's own first strings chord: no harmonic of its top note above the
+third within 8 dB of the loudest, its 3rd to 6th partials 12 cents wide or
+more on average - the recording -12 dB and 38 cents, the FM render 0 dB and
+8.5 cents, this render -13 and 27); the first pass's persistence measure
+counted a sawtooth's honest harmonics as the FM render's isolated lines, and
+went. The probe pumps the player just in time (the offline context suspended
+every 0.1 s and the window scheduled there), so a render costs the sounding
+notes: the whole song in under 3 minutes where the up-front graph took 8.
+Pins: `test/systems/intro3_score.test.js` INTRO3c (every bowed section's bow,
+body, air, ensemble, vibrato and no held breath; the choir's vowel and the
+bridge hills; the FM voices unbowed; the horn's floor; the tone; the halo's
+bars), `test/systems/eliteGates/egroar_score.test.js` INTRO3c (the bowed
+voice, the index floor, the body, air and ensemble insert and its drop, the
+tone's routing, the bite; every field held). Mutants: 36 more in
+`tools/mutants/intro3.json` (67), all dead.
 
 ## U65 THE INTRO (2026-08-30) - HISTORICAL REMOVAL
 
