@@ -58,7 +58,7 @@ test('AUDIT FOE-KEEPS P4 THE WORDS READ WHEN SAID: the mountains\' entry and chi
     tm.setLocale('de');
     assert.equal(WILD_TEXT.enter, 'Du betrittst Wrothgarian Mountains, eine offene PvP-Zone. Gegner sind hier viermal so stark. Tötet dich ein anderer Spieler, lässt du fallen, was du trägst.');
     assert.match(WILD_TEXT.chipTip, /^Wrothgarian Mountains: Andere Spieler dürfen dich angreifen\..*Tötet dich ein anderer Spieler, lässt du fallen, was du trägst\.$/);
-    assert.equal(WILD_TEXT.deathKept(), 'Du behältst, was du trägst. Nur wenn dich ein anderer Spieler tötet, lässt du es fallen.');
+    assert.equal(WILD_TEXT.deathKept(), 'Nichts fällt zu Boden. Was du trägst, fällt nur, wenn dich ein Spieler tötet.');   // PIN MOVED (AUDIT FOE-KEEPS O1)
   } finally { tm.setLocale(tm.BASE_LOCALE); }
   assert.match(WILD_TEXT.enter, /^You enter the Wrothgarian Mountains/, 'English again');
 });
@@ -71,9 +71,9 @@ test('FOE-KEEPS THE WORDS (wildZone.js WILD_TEXT, etherWild.js ETHER_WILD_TEXT, 
   }
   assert.match(WILD_TEXT.enter, /^You enter the Wrothgarian Mountains, an open PvP zone\./);
   assert.ok(ZONE_RULES.some((l) => l.startsWith('If another player kills you, what you carry drops')), 'the zone map\'s legend');
-  assert.ok(rd('src/systems/tutorialCatalogue.js').includes("'If another player kills you there, you lose what is in your bag and cart, and they may take one item you were wearing.',"), 'the tutorial page');
+  assert.ok(rd('src/systems/tutorialCatalogue.js').includes("t('tutorials.wildZone.body2', 'If another player kills you there, your bag drops"), 'the tutorial page');   // PIN MOVED (AUDIT FOE-KEEPS O4): both zones, the cart only while with you, the tenths
   setWildDeath({ killer: null, dropped: 0 });
-  assert.deepEqual(wildDeathLines(), ['You keep what you carry. Only another player\'s kill drops it.', WILD_TEXT.deathHold], 'a foe\'s death: kept');
+  assert.deepEqual(wildDeathLines(), ['Nothing dropped. Only another player\'s kill drops what you carry.', WILD_TEXT.deathHold], 'a foe\'s death: kept');   // PIN MOVED (AUDIT FOE-KEEPS O1, H5): "You keep what you carry" stood over the tenth the death claims
   setWildDeath({ killer: 'Borin', dropped: 3 });
   assert.deepEqual(wildDeathLines(), [WILD_TEXT.deathPvp('Borin'), WILD_TEXT.deathDrop(3), WILD_TEXT.deathHold], 'a kill: no kept line');
   setWildDeath(null);
@@ -84,7 +84,7 @@ test('FOE-KEEPS THE HOST (world.js wildDeathBegin, wildTakeDrop, the online resp
   const begin = /const wildDeathBegin = \(\) => \{[\s\S]*?\n {2}\};/.exec(w)?.[0] ?? '';
   assert.ok(begin.includes('if (worn.length) wildFight.offerWorn(fell.by, fell.r, worn.map(wildRecord));'), 'the fixture: the first dead frame');
   assert.ok(!begin.includes('wildTakeDrop('), 'no drop asked at the death itself - a kill\'s waits on the relay\'s receipt');
-  assert.match(w, /const wildRise = !!wildDeath\(\), wildKilled = !!wildDeath\(\)\?\.killer;[^\n]*\n\s*wildGhostEnd\(\);/, 'the kill read before the ghost ends');
+  assert.match(w, /const wildRise = !!wildDeath\(\) \|\| wildDeathKill\(\), wildKilled = wildDeathKill\(\);[^\n]*\n\s*wildGhostEnd\(\);/, 'the kill read before the ghost ends');   // PIN MOVED (AUDIT FOE-KEEPS H1): the referee's word, never the screen's name
   assert.match(w, /const goldLost = wildKilled \|\| madeRuleHere\('deathPenalty'\) === 'none' \? 0 : applyDeathPenalty\(playerEntity\);/, 'a kill\'s tenth is in the remains; any other death pays it');
   assert.ok(w.includes('    const key = readWildReceipt(rc)?.r;\n'), 'the drop asked against a receipt');
   assert.ok(w.includes('    if (!key || !realmSession || realmSession.lost || !lay || _wildTaking.has(key)) return;'), 'and none without one');

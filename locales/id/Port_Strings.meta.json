@@ -33104,6 +33104,16 @@
   "tr": "d89644b5c3ea",
   "by": "claude-in-session"
  },
+ "tutorials.wildZone.body1": {
+  "en": "75b25b2fe113",
+  "tr": "44f50e62024a",
+  "by": "claude-in-session"
+ },
+ "tutorials.wildZone.body2": {
+  "en": "3c759d3b73f2",
+  "tr": "bd35a012d34f",
+  "by": "claude-in-session"
+ },
  "wagon.upkeep.boons.failing": {
   "en": "5e6a68b53a69",
   "tr": "df79faba8fc2",
@@ -33150,8 +33160,8 @@
   "by": "claude-in-session"
  },
  "wild.death.kept": {
-  "en": "fce18dcaa17b",
-  "tr": "b90f6f0c8d6f",
+  "en": "5677b5a00569",
+  "tr": "123e27a889a2",
   "by": "claude-in-session"
  },
  "wild.death.letters": {

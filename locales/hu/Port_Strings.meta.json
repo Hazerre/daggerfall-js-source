@@ -11746,7 +11746,7 @@
  },
  "sea.wild.chipTip": {
   "en": "9e14a86d940a",
-  "tr": "ac456ca2d9fe",
+  "tr": "77143516b924",
   "by": "claude-in-session"
  },
  "sea.wild.enter": {
@@ -12359,6 +12359,16 @@
   "tr": "cc622f8f29b4",
   "by": "claude-in-session"
  },
+ "tutorials.wildZone.body1": {
+  "en": "75b25b2fe113",
+  "tr": "17caa086d077",
+  "by": "claude-in-session"
+ },
+ "tutorials.wildZone.body2": {
+  "en": "3c759d3b73f2",
+  "tr": "d6451c5e2fd6",
+  "by": "claude-in-session"
+ },
  "wagon.upkeep.boons.failing": {
   "en": "5e6a68b53a69",
   "tr": "2f74eeaee371",
@@ -12370,8 +12380,8 @@
   "by": "claude-in-session"
  },
  "wild.death.kept": {
-  "en": "fce18dcaa17b",
-  "tr": "ec55b5c16135",
+  "en": "5677b5a00569",
+  "tr": "835e7545b937",
   "by": "claude-in-session"
  },
  "wild.escrow.collectLate": {

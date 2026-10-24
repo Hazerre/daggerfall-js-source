@@ -478,7 +478,9 @@ export const WILD_TEXT = Object.freeze({
   mapKey: 'Open PvP zone',
   deathPvp: (name) => `${name || 'Another player'} may claim one piece of your worn gear.`,
   deathDrop: (n) => (n > 0 ? `${n} ${n === 1 ? 'thing you carried lies' : 'things you carried lie'} where you fell, for ten minutes.` : ''),
-  deathKept: () => t('wild.death.kept', 'You keep what you carry. Only another player\'s kill drops it.'),   // FOE-KEEPS: a foe's kill
+  // FOE-KEEPS: a foe's kill. AUDIT FOE-KEEPS O1, H5: it said "You keep what you carry" over the gold the same death
+  // claims, and a revenant's theft at the rise - nothing DROPS, which is true of both
+  deathKept: () => t('wild.death.kept', 'Nothing dropped. Only another player\'s kill drops what you carry.'),
   // BURNT-SAID (FIELD BUGS 2026-10-18b): a held record's drop is taken and laid nowhere (Integrity-Arc, Lane 1's freeze) -
   // said, where it was said as nothing at all; and the letters of credit among what a death took, by their worth - through
   // the text core (L10N4), read when they are said
@@ -589,13 +591,25 @@ export function applyWildFoe(entity, { own = true, ring = WILD_RINGS } = {}) {
 
 // ── a death in the zone, as the death screen reads it ─────────────────────────────────────────────────────────────────
 let _death = null;
+/** AUDIT FOE-KEEPS H1 (L1, P1, E5; H2): this death was at another player's hand - the referee's fall heard for me, or a
+ *  take against my receipt landed - whenever it came: before my first dead frame, after it (a foe's blow killed me on my
+ *  own machine and a player's, in flight, reached the referee first), or long after (a hidden tab runs no frames but hears
+ *  its socket). It was the killer's name alone, set at the first dead frame from a fall heard in the last 15 s - so a late
+ *  word left a kill read as a foe's: the remains took its tenth and the rise the usual tenth again, under "You keep what
+ *  you carry". Cleared only with the death (setWildDeath(null): the rise, a Resurrect). */
+let _killed = false;
+/** My fall, the referee's word (`wref` `fell`): `{ r, by, room, at }` - kept here beside the kill it makes (it was the world
+ *  host's `_wildFell`), until the death ends. */
+let _fell = null;
 /** The world host's word at a death in the zone - `{ killer, dropped, claimed, held, burnt, letters }` (the killer's name or
  *  null, how many things were left where the body fell, the worn piece the killer took - `held`: MAC (2026-10-14), held in
  *  escrow until they collect it - BURNT-SAID: how many were taken and laid nowhere, a held record's, and `letters` the
  *  pieces the death took out of the pack, of which the letters of credit are counted) - or null when the death screen
  *  goes. The screen holds WILD_DEATH_HOLD_S and takes no Enter while it stands (ui/deathScreen.js). */
 export function setWildDeath(d) {
-  _death = d ? { killer: typeof d.killer === 'string' && d.killer ? d.killer : null, dropped: Math.max(0, d.dropped | 0), claimed: typeof d.claimed === 'string' && d.claimed ? d.claimed : null, held: d.held === true,
+  if (!d) { _killed = false; _fell = null; }
+  else if (d.kill === true || (typeof d.killer === 'string' && d.killer)) _killed = true;
+  _death = d ? { killer: typeof d.killer === 'string' && d.killer ? d.killer : null, kill: _killed, dropped: Math.max(0, d.dropped | 0), claimed: typeof d.claimed === 'string' && d.claimed ? d.claimed : null, held: d.held === true,
     burnt: Math.max(0, d.burnt | 0), letters: wildLettersOf(d.letters), kind: d.kind ?? _death?.kind ?? _kind ?? WILD_KIND } : null;   // ETHER-WILD: the ground it fell on, for its words
 }
 /** BURNT-SAID: the letters of credit among `items` - how many, and the gold they stand for. */
@@ -604,9 +618,20 @@ export function wildLettersOf(/** @type {any} */ items) {
   return { n: l.length, gold: l.reduce((g, it) => g + (Number.isSafeInteger(it.value) && it.value > 0 ? it.value : 0), 0) };
 }
 export const wildDeath = () => _death;
+/** AUDIT FOE-KEEPS H1: the referee's word that I fell at another player's hand - `fell` its `{ r, by, room, at }`, `name`
+ *  the killer's if known - heard at any moment of the death; the death screen, if up, says so from then on. */
+export function wildDeathAtHand(/** @type {any} */ fell, /** @type {string | null | undefined} */ name) {
+  _fell = fell ?? _fell;
+  _killed = true;
+  if (_death) _death = { ..._death, kill: true, killer: _death.killer ?? (typeof name === 'string' && name ? name : null) };
+}
+/** AUDIT FOE-KEEPS H1: whether this death was a kill (the rise pays the usual tenth only when it was not). */
+export const wildDeathKill = () => _killed;
+/** The referee's fall heard for me since my last rise, or null (wildDeathBegin shows my worn pieces to its killer). */
+export const wildFallHeard = () => _fell;
 /** The death screen's lines for a death in the zone (empty for any other). */
 export function wildDeathLines(d = _death) {
   if (!d) return [];
-  return [d.killer ? (d.claimed ? (d.held ? WILD_TEXT.deathHeld : WILD_TEXT.deathClaim)(d.killer, d.claimed) : WILD_TEXT.deathPvp(d.killer)) : WILD_TEXT.deathKept(), WILD_TEXT.deathDrop(d.dropped),
+  return [d.killer || d.kill ? (d.claimed ? (d.held ? WILD_TEXT.deathHeld : WILD_TEXT.deathClaim)(d.killer, d.claimed) : WILD_TEXT.deathPvp(d.killer)) : WILD_TEXT.deathKept(), WILD_TEXT.deathDrop(d.dropped),
     WILD_TEXT.deathBurnt(d.burnt ?? 0), WILD_TEXT.deathLetters(d.letters?.n ?? 0, d.letters?.gold ?? 0), zoneWord('deathHold', d.kind ?? WILD_KIND)].filter(Boolean);
 }

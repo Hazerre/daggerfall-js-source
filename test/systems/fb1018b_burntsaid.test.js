@@ -92,7 +92,7 @@ test('BURNT-SAID THE WORDS AND THE HOST: one letter, none, a forged worth; world
   assert.deepEqual(wildDeathLines(), ['Ria may claim one piece of your worn gear.', '3 things you carried lie where you fell, for ten minutes.', 'In the mountains the dead wait two minutes.'], 'a death with no letters reads as it did');
   setWildDeath(null);
   const w = rd('src/scenes/world.js');
-  assert.ok(w.includes('if (dd) setWildDeath({ killer: dd.killer, dropped: d.order ? n : 0, claimed, held, burnt: d.burnt ? n : 0, letters: out });'), 'the host hands the burnt count and the pieces taken out');
+  assert.ok(w.includes('if (dd) setWildDeath({ killer: dd.killer, kill: true, dropped: d.order ? n : 0, claimed, held, burnt: d.burnt ? n : 0, letters: out });'), 'the host hands the burnt count and the pieces taken out');   // PIN MOVED (AUDIT FOE-KEEPS H1): my take is a kill
   // PIN MOVED (AUDIT SEA VENTURES C7): in the words of the ground the fall was on (zoneWord - the mountains' are WILD_TEXT's)
   assert.ok(w.includes("townTalk.say(d.burnt ? zoneWord('burntLate', seaRoomOf(room) ? ETHER_KIND : null)() : zoneWord('dropLate', seaRoomOf(room) ? ETHER_KIND : null));"), 'risen: the held case said its own way');
   assert.match(WILD_TEXT.burntLate(), /trading is frozen, so it was lost\.$/);

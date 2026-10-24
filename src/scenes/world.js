@@ -945,7 +945,7 @@ import { duelVitality } from '../net/duel/duelBar.js';   // DUEL-BAR: my vitalit
 // WILD1 (2026-10-07, bible/11-Multiplayer/Wild-Zone.md): THE OPEN ZONE - the Wrothgarian Mountains: its law (a leaf), a
 // death's drop and its one piece, the fights between players, the room's remains as piles, and the HUD's two glyphs
 import { wildHallPicks, wildHallAt, wildHallTemplateOk } from '../systems/wild/wildDungeons.js';   // PVPDUNGEONS: the day's halls, picked alike on every client   // PVPDUNGEONS
-import { setWildHere, wildHere, isWildRegion, wildMaskOf, wildInside, wildNear, setWildDeath, wildDeath, WILD_TEXT, WILD_DEATH_HOLD_S, WILD_NAME, ZONE_WATCH_SCALE } from '../systems/wild/wildZone.js';
+import { setWildHere, wildHere, isWildRegion, wildMaskOf, wildInside, wildNear, setWildDeath, wildDeath, wildDeathAtHand, wildDeathKill, wildFallHeard, WILD_TEXT, WILD_DEATH_HOLD_S, WILD_NAME, ZONE_WATCH_SCALE } from '../systems/wild/wildZone.js';
 import { createPartyTruce } from '../systems/wild/wildZone.js';   // PARTY-TRUCE (FIELD BUGS 2026-10-09b)
 import { GREATER_GIANT_CALL, GREATER_GIANT_CALL_AT } from '../systems/wild/wildZone.js';   // GREATER-GIANT
 import { wildRing, wildRingAt, wildRingName, wildRingBonus, wildZoneKind, zoneWord, zoneRingName, setWildMask, wildMask, WILD_RINGS, wildJourney, WILD_GIANT, WILD_GIANT_CHANCE, WILD_GIANT_MAX, WILD_STRANGER_M, WILD_STRANGER_SEE_M, WILD_STRANGER_SLOW_M, WILD_STRANGER_RGBA } from '../systems/wild/wildZone.js';   // WILD2: the four rings; WILD3: the journeys
@@ -14584,6 +14584,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  closed in place with no exit and no teleport; the next frame rejoins the room from right here. */
   function resurrectInPlace(rez) {
     if (_respawning) return;
+    const spared = wildDeathKill() ? 0 : statedDeathLoss() ?? 0;   // AUDIT FOE-KEEPS H4: a kill's tenth lies in the remains - none was spared
     wildGhostEnd();   // WILD1: a body raised in the open zone - its offer over (what it dropped stays dropped), its cell let go to be joined again
     _rezSeen = null;
     _deadMark = null; _partyComposedAt = -Infinity;   // PCORPSE3: my body is gone - my party pose says so at once
@@ -14592,7 +14593,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     playerEntity.health = Math.max(1, Math.round((playerEntity.maxHealth ?? playerEntity.health) * RESURRECT_HEALTH_PCT / 100));
     player.stopAutorun();   // AUDIT 27h S2: SEA-RISE's law for every rise - a drowned autorunner raised on the seabed walked on
     _deathWasOnline = null;
-    const spared = statedDeathLoss() ?? 0;
     stateDeathLoss(null);   // AUDIT 28 B5: a rescue is no respawn - the screen's loss is withdrawn, and said so
     closeDeathScreen();
     townTalk.say(RESURRECT_TEXT.raised(rez.name));
@@ -14809,7 +14809,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     wagonRiders?.leave();   // WAGONS2 (AUDIT): a death ends a ride in another's wagon - the risen body is never pinned back on its seat
     // WILD1: a death in the open zone rises OUT of it - the nearest town beyond the mountains - its body's offer over and
     // its cell let go (the ghost), the team brought along whatever its settings say
-    const wildRise = !!wildDeath(), wildKilled = !!wildDeath()?.killer;   // FOE-KEEPS: a player's kill drops the zone's share; a foe's takes the usual tenth
+    const wildRise = !!wildDeath() || wildDeathKill(), wildKilled = wildDeathKill();   // FOE-KEEPS: a player's kill drops the zone's share; a foe's takes the usual tenth (AUDIT FOE-KEEPS H1: the kill the referee's word, H2: a zone's death even when its first dead frame found no room)
     wildGhostEnd();
     // DEATHLOOP1: the health AND the cause. MAC-D3 put the heal first
     // so no frame could see a dead player with no death screen; this
@@ -23026,7 +23026,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       playPlayerVoice(audio, playerPainVoice(playerEntity, g.d));
     }
   };
-  let _wildFell = null;           // my fall, the referee's word: { r, by, room, at }
   const _wildSeize = new Map();   // a fall I won, signed: r -> { rc, room, p, due, tries } - its drop the fallen's tab's first
   const _wildFellAt = new Map();  // AUDIT INT9: where a fall I won lay, in its room's frame, when the referee called it: r -> p
   /** A FALL (`wref` `fell`): mine - a death in the zone, the referee's word, whatever my save's health says; my foe's at my
@@ -23034,7 +23033,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const wildFellIn = (g, room) => {
     const me = online?.id ?? '';
     if (g.id === me) {
-      _wildFell = { r: g.r, by: g.by, room, at: Date.now() };
+      wildDeathAtHand({ r: g.r, by: g.by, room, at: Date.now() }, peerName(g.by));   // AUDIT FOE-KEEPS H1: a kill, whenever its word comes - the rise and the screen read it (wildZone.js)
       _wildVit = null; wildHudSay();
       // AUDIT INT9: THE REFEREE'S FALL IS A DEATH, whatever this machine would say - no guild's AvoidDeath, no withheld
       // blow, no save (the SetHealth(0) door turned it aside, and the fallen stood with a fall already called on it)
@@ -23170,7 +23169,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const claimed = d.wi === 0 && out.length && d.took?.[0] ? itemLongName(out[0]) : null;
     // MAC (2026-10-14, the two-phase handoff): the piece my killer claimed is in the service's escrow until they collect it
     const held = d.wi === 0 && !!d.escrow?.r;
-    if (dd) setWildDeath({ killer: dd.killer, dropped: d.order ? n : 0, claimed, held, burnt: d.burnt ? n : 0, letters: out });   // BURNT-SAID (FIELD BUGS 2026-10-18b): a held record's drop said, and the letters by their worth
+    if (dd) setWildDeath({ killer: dd.killer, kill: true, dropped: d.order ? n : 0, claimed, held, burnt: d.burnt ? n : 0, letters: out });   // BURNT-SAID (FIELD BUGS 2026-10-18b): a held record's drop said, and the letters by their worth
     else if (wildTookAny(out, d.gold)) townTalk.say(d.burnt ? zoneWord('burntLate', seaRoomOf(room) ? ETHER_KIND : null)() : zoneWord('dropLate', seaRoomOf(room) ? ETHER_KIND : null));   // AUDIT SEA VENTURES C7: in the words of the ground the fall was on   // AUDIT INT9: a receipt that found me risen - AUDIT FB1019f B5: a companion's coin alone said too (systems/wild/wildDeath.js wildTookAny)
     if (held) wildEscrow.held(d.escrow, { killer: dd?.killer ?? null, name: claimed });
     if (d.order && n && body) wildDeposit({ r: d.r, items: d.items, o: d.order, p: body.p, room, mine: body });
@@ -23226,13 +23225,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     }
   };
   /** THE FIRST DEAD FRAME IN THE ZONE (onlineFrame's dead branch, the room still mine): at another player's hand (the
-   *  referee's word, `_wildFell`) my worn pieces are shown to my killer and the drop waits on the fall the relay signs;
+   *  referee's word, wildZone.js wildFallHeard) my worn pieces are shown to my killer and the drop waits on the fall the relay signs;
    *  to a foe, nothing drops (FOE-KEEPS, the owner, 2026-10-24: "I dont want people to lose everything they have" - the
    *  usual tenth of the purse at the rise, and the service refuses a foe's fall). Either way my socket stays in the room
    *  while my body lies, so the deposit and the receipt reach it. Answers whether the death was the zone's. */
   const wildDeathBegin = () => {
     if (!wildHere() || !online?.wildOk || online.status !== 'open' || !online.room || !_deadMark) return false;
-    const fell = _wildFell && Date.now() - _wildFell.at < 15_000 ? _wildFell : null;
+    const fell = wildFallHeard();   // AUDIT FOE-KEEPS H1: any fall heard since my last rise (wildGhostEnd clears it) - a hidden tab hears it, runs no frame
     _wildBody = { p: [_deadMark.x, _deadMark.y, _deadMark.z], room: online.room, dungeon: modes?.mode === 'dungeon' ? (_wdunInside?.h ?? wdKey()) : null, px: playerTravelPixel() };
     // HALL-CROWS (the owner: "i dont see the crows circleling around the dungeon where i died on the zone map"): a death in
     // a hall always locks it and sets the crows over it - whether or not the pack had anything to drop
@@ -23251,8 +23250,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   };
   /** My body is gone (the rise, a party mate's Resurrect, the game left): the cell let go. */
   const wildGhostEnd = () => {
-    setWildDeath(null);
-    _wildFell = null;
+    setWildDeath(null);   // and the referee's fall with it (wildZone.js)
     wildGhostLeave();
   };
   /** The ghost's socket let go - its room left, the dead stay dead. */

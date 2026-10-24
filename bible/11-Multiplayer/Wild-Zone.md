@@ -138,7 +138,7 @@ everything they have. Espcially the fact you can lose your spellbook? Ridiculous
 deaths drop", "The usual tenth" and "Both zones"): ONLY A DEATH AT ANOTHER PLAYER'S HAND DROPS ANYTHING, in the
 mountains and on the open sea (section 24) alike. A death to a foe - a monster, a ship, the sea itself - drops nothing:
 the fallen keeps the bag, the cart, the companions' packs and every worn piece, and pays the usual death's tenth of the
-purse at the rise, as a death outside the zone does (DEATH-PENALTY; `world.js:"wildKilled = !!wildDeath()?.killer"`).
+purse at the rise, as a death outside the zone does (DEATH-PENALTY; `world.js:"wildKilled = wildDeathKill()"`).
 The first dead frame asks no drop (`world.js:"const wildDeathBegin"`), the fallen's tab asks one only against the
 relay's signed fall (`world.js:"const key = readWildReceipt(rc)?.r;"`), and the account service refuses a foe's fall,
 nothing moved (`foe`, `server-account/src/wild.js:"return { error: 'foe' }"`) - so a tab from before the word takes
