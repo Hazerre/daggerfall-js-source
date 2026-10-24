@@ -231,5 +231,5 @@ export function validStaffEventTell(t) {
 }
 
 /** The relay that knows staff events (net/wire.js RELAY_VERSION) - an older one closes a socket on the frame. */
-export const STAFF_EVENT_RELAY_MIN = 255;
+export const STAFF_EVENT_RELAY_MIN = 256;   // world255 on its branch, renumbered past KETCH at the merge
 export const relaySupportsStaffEvents = (/** @type {unknown} */ v) => { const r = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!r && Number(r[1]) >= STAFF_EVENT_RELAY_MIN; };

@@ -36,7 +36,7 @@ service, the relay and the game all import. It imports nothing (`raidLaw.js`'s r
 
 1. **The account service** (`server-account/src/staffEvents.js`, routes `/v1/staff/event` `{op: start|end|boss}` and
    `/v1/staff/events`, Admins only) mints the event's id, checks it by the law, stores the row (`staff_events`,
-   migration 0166) and its audit row in one batch, then pushes a signed order of its own kind
+   migration 0167) and its audit row in one batch, then pushes a signed order of its own kind
    (`identityToken.js` `mintStaffEventOrder`, `o: 'sevent'`, `op`, `ev` or `ei`) through the relay's law door
    (`sanctions.js` `pushLaw`). The door answers with the hub's book, each event with its live meter, so every answer
    the panel reads is the hub's. A refusal's why (a full book) comes back through `pushLaw`'s `refused`. The list's read
@@ -91,10 +91,10 @@ staff member's region, the place on their pixel or -1, their pixel). The boot ha
 
 ## 7. Versions and what a deploy does
 
-- Relay `world255` (`STAFF_EVENT_RELAY_MIN`): `staffEventLaw.js` and `server/src/staffEvents.js` join the bundle. An
-  older relay closes a socket on a `sev` frame, so the game sends one only to world255 on. A relay deploy drops every
+- Relay `world256` (`STAFF_EVENT_RELAY_MIN`): `staffEventLaw.js` and `server/src/staffEvents.js` join the bundle. An
+  older relay closes a socket on a `sev` frame, so the game sends one only to world256 on. A relay deploy drops every
   player for about 40 s.
-- Account service `acct181`, migration 0166: drops nobody.
+- Account service `acct182`, migration 0167: drops nobody.
 - Staff Panel 0.2.7: the Events page.
 
 ## 8. Known limits

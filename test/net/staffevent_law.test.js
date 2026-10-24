@@ -34,7 +34,7 @@ test('STAFF-EVENT: an event is held to its bounds - kinds any monster but the tw
   assert.ok(staffEventLapsed({ ...EV, ue: EV.at + 1000 }, EV.at + 1000) && !staffEventLapsed(EV, EV.at * 2));
   assert.equal(staffEventIdOf(staffEventKey(EV.id)), EV.id);
   assert.equal(staffEventIdOf('raid:17:0:3'), null);
-  assert.ok(relaySupportsStaffEvents('world255') && !relaySupportsStaffEvents('world254') && !relaySupportsStaffEvents(null));
+  assert.ok(relaySupportsStaffEvents('world256') && !relaySupportsStaffEvents('world255') && !relaySupportsStaffEvents(null));
 });
 
 test('STAFF-EVENT: the words each way are projected - a player\'s word, the hub\'s book and end, a cell\'s ledger, a tell', () => {
