@@ -42,10 +42,26 @@
   {
     "name": "HORSE-VOL-own-hooves-full",
     "file": "src/player/mountRig.js",
-    "old": "{ volume: r.volume * horse, pitch: r.pitch }",
-    "new": "{ volume: r.volume, pitch: r.pitch }",
+    "old": "else audio.setLoop('riding', r.playing ? SOUND[r.clip] : null, { volume: r.volume * horse, pitch: r.pitch });",
+    "new": "else audio.setLoop('riding', r.playing ? SOUND[r.clip] : null, { volume: r.volume, pitch: r.pitch });",
     "tests": ["test/systems/volume_sliders.test.js"],
-    "why": "the riding loop past the row"
+    "why": "DFU's riding loop past the row"
+  },
+  {
+    "name": "HORSE-VOL-own-voiced-hooves-full",
+    "file": "src/player/mountRig.js",
+    "old": "hoofClipFor(r.clip, surfaceKind?.()) : null, { volume: r.volume * horse, pitch: r.pitch });",
+    "new": "hoofClipFor(r.clip, surfaceKind?.()) : null, { volume: r.volume, pitch: r.pitch });",
+    "tests": ["test/systems/volume_sliders.test.js"],
+    "why": "HORSE-VOICE's hooves on the ground past the row"
+  },
+  {
+    "name": "HORSE-VOL-own-voices-full",
+    "file": "src/player/mountRig.js",
+    "old": "s.volume * RIDING_VOLUME_SCALE * ridingVolumeScale() * horse, s.pitch);",
+    "new": "s.volume * RIDING_VOLUME_SCALE * ridingVolumeScale(), s.pitch);",
+    "tests": ["test/systems/volume_sliders.test.js"],
+    "why": "HORSE-VOICE's snorts, breath, whinny and spook past the row - the mount's whinny among them"
   },
   {
     "name": "HORSE-VOL-peer-hooves-full",
