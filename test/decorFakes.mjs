@@ -172,6 +172,10 @@ export function toolRig({ room = { kind: 'house', where: 'Your house' }, gold = 
     keepOwn: (id, item) => { if (item) owned.set(id, item); },
     takeOwn: (id) => { const it = owned.get(id) ?? null; owned.delete(id); return it; },
     ownIds: () => [...owned.keys()],
+    itemsSnapshot: () => ({}),
+    setItems() {},
+    ownSnapshot: () => Object.fromEntries([...owned].map(([id, item]) => [id, { ...item }])),
+    setOwn(record) { owned.clear(); if (record) for (const [id, item] of Object.entries(record)) owned.set(id, item); },
   };
   const names = new Map();
   const slots = [];

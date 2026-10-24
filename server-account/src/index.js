@@ -303,6 +303,8 @@ const withSeatTitles = async (ctx, player, env) => withChapterTitles(ctx, seatsO
 const withChapterTitles = async (/** @type {any} */ ctx, /** @type {any} */ player, /** @type {any} */ env) => (chapterTitlesOpenFor(player, env)
   ? { ...player, chapterTitles: [...new Set((await chapterTitlesOfAccount(ctx.db, player.id, ctx.nowS, seasonZeroOf(env.SEASON_ZERO_WEEK))).map((t) => t.title))] } : player);
 import { decorOf, placeDecor, moveDecor, removeDecor, hideDecorBase, yardsKept, forgetYards, settleYards } from './decor.js';   // YARD-SHED: a town's yards kept   // DECOR1: an online home's decor; BASE-HIDE: what its owner took out
+import { commitDecorBatch } from './decorBatch.js';   // DECOR-BATCH: one Confirm for a home's draft
+import { DECOR_BATCH_BYTES } from '../../src/net/decorLaw.js';
 import { gateStrikeStatement, gateStrikeAnswer, raidStrikeStatement, combatStrikeAnswer, raidStrikeRid, deedStatements, deedAnswer, deedEvent, marksOf, marksCardOf, exchangeMarks, depositGuildMarks, withdrawGuildMarks, marksReport, serpentStrikeStatement, serpentStrikeAnswer, findMarks, starStrikeStatement, starStrikeRid } from './marks.js';   // MARKS1: the server's currency; SILVER-WAYS: a raid's silver and a guild's deeds
 import { readBoard, pinNote, takeDownNote, reportNote, moderateNote, postNotice, removeNotice } from './board.js';   // NOTICE1: the Notice Board
 import { profState, profPixels, harvestNode, chooseSpec, withdrawStores, depositStores, smeltAtForge, craftAtAnvil, temperPiece, buyStock, listWrits, deliverWrit } from './professions.js';   // BAG1: a deposit   // PROF1: the professions; PROF2: the forge; PROF3: the anvil and the smith's stock
@@ -952,8 +954,9 @@ const service = {
       // first save was refused, and the realm held the founding copy for good
       // PRIVATE-REPORT: and a report's words, to theirs (reportLaw.js REPORT_BODY_BYTES)
       const body = request.method === 'POST'
-        ? await readBody(request, path === '/v1/realm/lineage' ? LINEAGE_BODY_MAX : path === '/v1/realm/trade' ? REALM_TRADE_BODY_MAX : path === '/v1/safety/report' ? REPORT_BODY_MAX : path === '/v1/report/send' ? REPORT_BODY_BYTES : MAX_BODY_BYTES) : {};   // SAFE3: a report's stamped lines
+        ? await readBody(request, path === '/v1/realm/lineage' ? LINEAGE_BODY_MAX : path === '/v1/realm/trade' ? REALM_TRADE_BODY_MAX : path === '/v1/homes/decor/batch' ? DECOR_BATCH_BYTES : path === '/v1/safety/report' ? REPORT_BODY_MAX : path === '/v1/report/send' ? REPORT_BODY_BYTES : MAX_BODY_BYTES) : {};   // SAFE3: a report's stamped lines; DECOR-BATCH: a home's Confirm
       if (body === undefined && path === '/v1/realm/lineage') return no('lineage-too-large', 413, origin);
+      if (body === undefined && path === '/v1/homes/decor/batch') return no('too-large', 413, origin);   // DECOR-BATCH: past 128 KiB, before a session is read
       if (!body) return no('body', 400, origin);
       // YARD-SHED (2026-10-06, the service down - "D1 DB is overloaded. Requests queued for too long."): A TOWN'S YARDS NEED
       // NO SESSION. Its answer is every caller's alike, any guest's to read (decor.js yardsKept), and the two reads a
@@ -1653,13 +1656,14 @@ const service = {
           const r = path === '/v1/homes/decor/place' ? await placeDecor(hctx, who.player, body)
             : path === '/v1/homes/decor/move' ? await moveDecor(hctx, who.player, body)
               : path === '/v1/homes/decor/hidden' ? await hideDecorBase(hctx, who.player, body)   // BASE-HIDE
-                : await removeDecor(hctx, who.player, body);
+                : path === '/v1/homes/decor/batch' ? await commitDecorBatch(hctx, who.player, body)   // DECOR-BATCH
+                  : await removeDecor(hctx, who.player, body);
           forgetYards(body?.mapId);   // YARD-SHED: the town's kept yards let go, whatever the write did
           await settleYards(ctx.db, body?.mapId).catch((e) => console.warn('[yards] the town not built', e?.message ?? e));   // YARD-SNAP: and built again (the clock builds one this misses)
           if (!('error' in r)) return json(r, 200, origin);
           const said = realmNo(r);
           if (said) return said;
-          const status = r.error === 'decor-cap' || r.error === 'yard-cap' || r.error === 'decor-taken' || r.error === 'guild-treasury-full' || r.error === 'vendor-stocked' ? 409   // GUILD1d: a hall piece's half back, into a full treasury; HOME-VENDOR: a stocked trader stays
+          const status = r.error === 'decor-cap' || r.error === 'yard-cap' || r.error === 'decor-taken' || r.error === 'guild-treasury-full' || r.error === 'vendor-stocked' || r.error === 'decor-rev' || r.error === 'decor-holds' ? 409   // GUILD1d: a hall piece's half back, into a full treasury; HOME-VENDOR: a stocked trader stays; DECOR-BATCH: a stale revision, or a chest that still holds goods
             : r.error === 'decor-rate' ? 429
               : r.error === 'no-home' || r.error === 'no-decor' ? 404 : 400;
           return no(r.error, status, origin);

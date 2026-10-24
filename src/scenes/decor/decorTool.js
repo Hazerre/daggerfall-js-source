@@ -90,8 +90,9 @@ import { createDecorPlacer, decorEntrySized, DECOR_TURN_STEP, DECOR_TURN_FINE, D
 import { createDecorButton, createDecorPanel, createDecorBar, createDecorHotbar, decorWhyNot } from '../../ui/decorPanel.js';
 import { loadDecorHotbar, saveDecorHotbar, decorHotId, DECOR_HOT_SLOTS } from '../../systems/decor/decorHotbar.js';
 import { decorLookOffers, decorAimKind } from '../../systems/decor/decorLook.js';
+import { decorDelta, decorDraftGold, decorDraftText, mintDecorTxn } from '../../systems/decor/decorDraft.js';   // DECOR-BATCH
 import { interiorDoorIndex, interiorDoorKey } from '../../systems/decor/decorInteriorDoors.js';
-import { DECOR_CAP, DECOR_HALL_CAP, DECOR_PRICE_PER_METRE, DECOR_HIDDEN_CAP, decorPrice, decorPieceOf, decorRefund, decorRescale, mintDecorId, DECOR_STATIONS, DECOR_STATION_FEES, DECOR_STATION_NAMES } from '../../net/decorLaw.js';
+import { DECOR_CAP, DECOR_HALL_CAP, DECOR_PRICE_PER_METRE, DECOR_HIDDEN_CAP, decorPrice, decorPieceOf, decorRefund, decorRescale, mintDecorId, DECOR_STATIONS, DECOR_STATION_FEES, DECOR_STATION_NAMES, decorGoldMove } from '../../net/decorLaw.js';
 import { decorKey, DECOR_KINDS, decorFlatLight, modelKind, flatKind, decorRoomEntries } from '../../systems/decor/decorCatalogue.js';
 import { decorOwnEntry, decorItemName, decorMountDye, decorMountDyeTarget } from '../../systems/decor/decorItems.js';
 import { decorFurnishingEntry, isFurnishing } from '../../systems/decor/decorFurnish.js';
@@ -606,6 +607,8 @@ export function createDecorTool(deps) {
         grid: () => placing?.placer?.toggleSnap(),
         preview: () => togglePreview(),
         catalog: () => openPanel(),
+        confirm: () => { confirmDraft(); },
+        discard: () => { discardDraft(); },
         fly: (dir) => { if (placing) placing.rise = dir; },   // DECOR1e: a touch screen's Fly up/down, held
       },
     });
@@ -1156,11 +1159,102 @@ export function createDecorTool(deps) {
     askGhostArt(placing);
   }
 
+  /** DECOR-BATCH: a personal online home stages into the room and writes once, on Confirm. A hall and a palace keep
+   *  one write a piece. The revision is the list's, read when the session opens, never a zero sent before it answers. */
+  let draft = null;
+  const usesBatch = (r) => !!(r && r.kind === 'home' && !r.hall && !r.seat && typeof deps.homeDecor?.batch === 'function');
+  const snapPiece = (p) => JSON.parse(JSON.stringify(p));
+  function openDraft() {
+    const r = deps.room?.();
+    if (!usesBatch(r)) return null;
+    const key = `${r.mapId}:${r.buildingKey}:${r.yard ? 1 : 0}`;
+    if (draft?.key === key) return draft;
+    const before = new Map();
+    for (const p of pool.list()) before.set(p.id, snapPiece(p));
+    draft = {
+      key, rev: null, txn: mintDecorTxn(), before,
+      items: pool.itemsSnapshot?.() ?? null, owns: pool.ownSnapshot?.() ?? null, packOut: [], packIn: [],
+      asked: Promise.resolve(deps.homeDecor.list(r.mapId, r.buildingKey)).then((res) => {
+        if (draft?.key === key && res?.ok && Number.isSafeInteger(res.data?.rev)) draft.rev = res.data.rev;
+      }, () => {}),
+    };
+    return draft;
+  }
+  const draftGoldNow = () => (draft ? decorDraftGold([...draft.before.values()], pool.list()) : 0);
+  const purseOk = (extra) => (deps.wallet?.().gold ?? 0) + draftGoldNow() + extra >= 0;
+  const draftDirty = () => {
+    if (!draft) return false;
+    const d = decorDelta([...draft.before.values()], pool.list());
+    return d.put.length + d.drop.length > 0 || draft.packOut.length + draft.packIn.length > 0;
+  };
+  function discardDraft() {
+    const d = draft;
+    if (!d) return false;
+    for (const p of pool.list()) if (!d.before.has(p.id)) pool.remove(p.id);
+    for (const p of d.before.values()) pool.put(snapPiece(p));
+    pool.setItems?.(d.items);
+    pool.setOwn?.(d.owns);
+    for (const item of d.packOut) deps.packGive?.(item);
+    for (const item of d.packIn) deps.packTake?.(item);
+    d.packOut = [];
+    d.packIn = [];
+    if (placing) placing.draftWhy = null;
+    return true;
+  }
+  async function confirmDraft() {
+    const r = deps.room?.();
+    const d = draft;
+    if (!usesBatch(r) || !d) return false;
+    if (placing) placing.busy = true;
+    try {
+      await d.asked;
+      if (!Number.isSafeInteger(d.rev)) { deps.say?.('The room could not be read.'); return false; }
+      const before = [...d.before.values()];
+      const after = pool.list();
+      const delta = decorDelta(before, after);
+      if (!delta.put.length && !delta.drop.length) { d.packOut = []; d.packIn = []; if (placing) placing.draftWhy = null; return true; }
+      const gold = decorDraftGold(before, after);
+      if ((deps.wallet?.().gold ?? 0) + Math.min(gold, 0) < 0) { deps.say?.('Not enough gold.'); return false; }
+      const body = { mapId: r.mapId, buildingKey: r.buildingKey, character: deps.character?.(), rev: d.rev, txn: d.txn, put: delta.put, drop: delta.drop, yard: !!r.yard };
+      let res;
+      const act = gold !== 0 ? deps.realm?.() : null;
+      if (act) {
+        const wallet = deps.wallet();
+        const paid = gold < 0 ? walletReserve(wallet, -gold) : null;
+        res = await act({
+          reserve: paid?.reserve ?? null,
+          needsAnswer: gold > 0,
+          apply: (/** @type {any} */ a) => { const g = Number(a.data?.gold) || 0; if (g > 0) deps.wallet().credit?.(g); },
+          call: (/** @type {any} */ at) => deps.homeDecor.batch({ ...body, realm: at }),
+        });
+        if (!res?.ok) paid?.back();
+      } else {
+        res = await deps.homeDecor.batch(body);
+        if (res?.ok && gold < 0) deps.wallet().pay(-gold);
+        if (res?.ok && gold > 0) deps.wallet().credit?.(gold);
+      }
+      if (!res?.ok) { deps.say?.(deps.refusal?.(res?.error) ?? 'The changes could not be kept.'); return false; }
+      d.before = new Map(pool.list().map((p) => [p.id, snapPiece(p)]));
+      if (Number.isSafeInteger(res.data?.rev)) d.rev = res.data.rev;
+      d.txn = mintDecorTxn();
+      d.packOut = [];
+      d.packIn = [];
+      d.items = pool.itemsSnapshot?.() ?? null;
+      d.owns = pool.ownSnapshot?.() ?? null;
+      if (placing) placing.draftWhy = null;
+      deps.say?.('The room is kept.');
+      return true;
+    } finally {
+      if (placing) placing.busy = false;
+    }
+  }
+
   /** The mode itself: the camera flies and placed pieces can be moved, copied or taken, with no catalogue yet.
    *  `from` keeps the eye where a move finished. */
   function beginBrowse(from = null) {
     if (!deps.room?.() || placing || panel?.isOpen()) return false;
     ensureDom();
+    openDraft();
     const eye = from ?? deps.eye?.() ?? [0, 0, 0];
     placing = {
       entry: null, browse: true, radius: null, editing: null, pose: null, free: true, placer: null,
@@ -1178,6 +1272,7 @@ export function createDecorTool(deps) {
    *  returns to that browse, the catalogue staying closed. A piece taken from the catalogue returns to it. */
   function back() {
     if (justClosed || !placing) return;
+    if (placing.browse && draftDirty()) { placing.draftWhy = 'Confirm or discard the changes first.'; return; }
     if (placing.browse) { endPlacing(); return; }
     const stay = !!(placing.editing || placing.through || placing.hotbar);
     const fly = [...placing.fly];
@@ -1217,12 +1312,20 @@ export function createDecorTool(deps) {
     if (p.editing) return commitMove(p, r);
     if (p.entry.kind === 'own') return commitOwn(p, r);
     const price = p.piece.paid;
-    if (decorWhyNot({ price, ready: true, gold: deps.wallet().gold, count: pool.size(), cap: capHere(r), yard: !!r?.yard, hall: !!r?.hall })) return false;   // the bar says why
+    const batching = usesBatch(r);
+    if (decorWhyNot({ price, ready: true, gold: deps.wallet().gold + (batching ? draftGoldNow() : 0), count: pool.size(), cap: capHere(r), yard: !!r?.yard, hall: !!r?.hall })) return false;   // the bar says why
     if (whyNotHere(p)) return false;   // HOME-YARD: off the lot; SEAT-HALL: out of the Charter Room - the bar says why
     p.busy = true;
     p.refused = null;
     const piece = p.piece;
     try {
+      if (batching) {
+        openDraft();
+        standRound(p, piece);
+        deps.say?.(`${p.entry.name} set aside. Confirm keeps it.`);
+        p.id = mintDecorId();
+        return true;
+      }
       const act = r.kind === 'home' && price > 0 ? deps.realm?.() : null;
       if (act) {
         // REALM P2.2b: a realm character's piece and what it cost are one write on the service - the purse pays at once
@@ -1286,6 +1389,18 @@ export function createDecorTool(deps) {
     p.refused = null;
     const piece = p.piece;
     const online = r.kind === 'home';
+    if (usesBatch(r)) {
+      openDraft();
+      const moved = deps.packTake?.(item);
+      p.busy = false;
+      if (!moved) return false;
+      pool.put(piece);
+      pool.keepOwn(piece.id, moved);
+      draft?.packOut.push(moved);
+      deps.say?.(`${p.entry.name} set aside. Confirm keeps it.`);
+      if (placing === p) { endPlacing(); if (openPanel()) panel.showOwn(); }
+      return true;
+    }
     const at = online ? { mapId: r.mapId, buildingKey: r.buildingKey, character: deps.character?.() } : null;
     const undo = async () => { if (online) await deps.homeDecor.remove?.({ ...at, id: piece.id }); };
     let stood = piece;
@@ -1315,6 +1430,7 @@ export function createDecorTool(deps) {
   /** Write a placed piece's change - through the account service in an online home, into the room's pool (and so the
    *  save) elsewhere - and answer the piece as it now stands, or null (the bar or the line says why). */
   async function writeChange(r, piece) {
+    if (usesBatch(r)) { openDraft(); return piece; }
     if (r.kind !== 'home') return piece;
     const res = await deps.homeDecor?.move?.({ mapId: r.mapId, buildingKey: r.buildingKey, character: deps.character?.(), id: piece.id, place: placeOf(piece) });
     if (!res?.ok) { deps.say?.(deps.refusal?.(res?.error) ?? 'The piece could not be changed.'); return null; }
@@ -1345,11 +1461,19 @@ export function createDecorTool(deps) {
     const was = p.editing;
     if (whyNotHere(p)) return false;   // HOME-YARD: off the lot; SEAT-HALL: out of the Charter Room - the bar says why
     const price = decorEditPrice(p.radius, was, p.piece.scale);
-    if (price.pay > (deps.wallet?.().gold ?? 0)) return false;   // the bar says why
+    const batching = usesBatch(r);
+    if (price.pay > (deps.wallet?.().gold ?? 0) + (batching ? draftGoldNow() : 0)) return false;   // the bar says why
     p.busy = true;
     const next = { ...p.piece, paid: price.paid };
     const visit = deps.visit?.();
     try {
+      if (batching) {
+        openDraft();
+        if (!purseOk(decorGoldMove(was, next, was.paid).delta)) return false;
+        pool.put(next);
+        turnsOwed.delete(was.id);
+        if (decorIsDoor(next)) forgetRooms();
+      } else {
       // AUDIT Y5: after the piece's write before it - and it writes the piece's turn itself, so a turn owed from the
       // panel is written no more once it stands
       const done = await pieceWrite(was.id, async () => {
@@ -1370,6 +1494,7 @@ export function createDecorTool(deps) {
         return true;
       });
       if (!done) return false;
+      }
     } finally {
       p.busy = false;
     }
@@ -1384,6 +1509,13 @@ export function createDecorTool(deps) {
     const r = deps.room?.();
     if (piece.item) return takeDown(piece, r);
     if (!r || pool.holdsAny?.(piece.id)) return false;
+    if (usesBatch(r)) {
+      openDraft();
+      pool.remove(piece.id);
+      if (decorIsDoor(piece)) forgetRooms();
+      deps.say?.(`${entryOf(piece).name} set aside. Confirm removes it.`);
+      return true;
+    }
     const visit = deps.visit?.();
     const restore = () => { if (deps.visit?.() === visit) pool.put(piece); };
     let paid = piece.paid;
@@ -1432,6 +1564,14 @@ export function createDecorTool(deps) {
   async function takeDown(piece, r) {
     if (!r) return false;
     const name = ownName(piece);
+    if (usesBatch(r)) {
+      openDraft();
+      pool.remove(piece.id);
+      const item = pool.takeOwn?.(piece.id) ?? null;
+      if (item) { draft?.packIn.push(item); deps.packGive?.(item); }
+      deps.say?.(`${name} set aside. Confirm takes it down.`);
+      return true;
+    }
     const visit = deps.visit?.();
     if (r.kind === 'home') {
       const pending = deps.homeDecor?.remove?.({ mapId: r.mapId, buildingKey: r.buildingKey, character: deps.character?.(), id: piece.id });
@@ -1577,7 +1717,16 @@ export function createDecorTool(deps) {
     const cur = pool.list().find((p) => p.id === piece.id) ?? piece;
     if ((cur.station ?? null) === want) return false;
     const fee = want ? DECOR_STATION_FEES[want] : 0;
-    if (fee > (deps.wallet?.().gold ?? 0)) { deps.say?.(decorStationGoldLine(want)); return false; }
+    const batching = usesBatch(r);
+    if (fee > (deps.wallet?.().gold ?? 0) + (batching ? draftGoldNow() : 0)) { deps.say?.(decorStationGoldLine(want)); return false; }
+    if (batching) {
+      openDraft();
+      const next = decorPieceOf({ ...cur, station: want });
+      if (!next || !purseOk(decorGoldMove(cur, next, cur.paid).delta)) { deps.say?.(decorStationGoldLine(want)); return false; }
+      pool.put(next);
+      deps.say?.(want ? `${entryOf(cur).name ?? 'The piece'}: ${DECOR_STATION_NAMES[want]}. Confirm keeps it.` : `${entryOf(cur).name ?? 'The piece'} is no longer a station. Confirm keeps it.`);
+      return true;
+    }
     const next = decorPieceOf({ ...cur, station: want });
     if (!next) return false;
     const visit = deps.visit?.();
@@ -1772,9 +1921,10 @@ export function createDecorTool(deps) {
     p.aim = hit;
     p.aimYaw = cam.yaw;
     if (p.browse) {
-      bar?.show({ name: 'Decorating', priceText: 'the catalogue is closed', browse: true, sized: true,
+      const pending = draftDirty();
+      bar?.show({ name: 'Decorating', priceText: pending ? decorDraftText(draftGoldNow()) : 'the catalogue is closed', browse: true, draft: pending, sized: true,
         count: pool.size(), cap: capHere(r),
-        why: !deps.touch && !deps.locked?.() ? 'Click to look around again.' : null });
+        why: p.draftWhy ?? (!deps.touch && !deps.locked?.() ? 'Click to look around again.' : null) });
       return;
     }
     if (deps.lot && !p.lock) markLot(p);   // HOME-YARD: the lot's edge, marked while a piece is placed
@@ -2054,6 +2204,7 @@ export function createDecorTool(deps) {
 
   return {
     frame, cameraOverride, draw, batches, drawMounts, drawPreview, close, openPanel, commit, back, act,
+    confirmDraft, discardDraft,   // DECOR-BATCH
     setBase,   // BASE-HIDE: the room's own furniture out or back - the panel's door (and the pins')
     rentAct,   // HOME-RENT: a room offered, withdrawn, or the rent collected - the panel's door (and the pins')
     paintAct,   // HOME-LOOK: a look tried, put away or painted - the panel's door (and the pins')

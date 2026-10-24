@@ -1407,6 +1407,10 @@ export function createDecorBar({ on, touch = false, doc = document }) {
   const preview = b('Preview', 'preview');
   const catalog = b('Catalogue', 'catalog');
   catalog.hidden = true;
+  const confirm = b('Confirm', 'confirm', 'dfdecor-btn');
+  const discard = b('Discard', 'discard');
+  confirm.hidden = true;
+  discard.hidden = true;
   // DECOR1e: THE FINGER'S UP AND DOWN - held, as Jump and Crouch are on a keyboard; let go when the finger lifts, is
   // taken, or the bar goes (a window over the flight)
   let flyDir = 0;
@@ -1436,14 +1440,14 @@ export function createDecorBar({ on, touch = false, doc = document }) {
   keysChip.dataset.dficon = 'list';
   keysChip.setAttribute('aria-pressed', 'false');
   keysChip.addEventListener('click', () => { const on = root.dataset.keys !== '1'; root.dataset.keys = on ? '1' : '0'; keysChip.setAttribute('aria-pressed', on ? 'true' : 'false'); });
-  btns.append(sep(), catalog, b('Back', 'back'), keysChip);
+  btns.append(sep(), catalog, confirm, discard, b('Back', 'back'), keysChip);
   root.append(what, tally, why, btns, keys);   // MENU-ORDER: the presses first, the legend under them when asked
   swallowPresses(root);
   doc.body?.append(root);
   let alive = true;
   return {
     root,
-    show({ name, price, priceText = null, why: whyText = null, snap = false, sized = true, preview: frozen = false, browse = false, count = null, cap = null }) {
+    show({ name, price, priceText = null, why: whyText = null, snap = false, sized = true, preview: frozen = false, browse = false, draft = false, count = null, cap = null }) {
       if (!alive) return;
       const w = `${name} - ${priceText ?? decorPriceText(price)}`;
       if (what.textContent !== w) what.textContent = w;
@@ -1452,6 +1456,8 @@ export function createDecorBar({ on, touch = false, doc = document }) {
       // DECOR-FIGURE: one of Daggerfall's people stands at its own size - no Smaller, no Bigger, no Size key told
       if (!browse && !!smaller.hidden === sized) { smaller.hidden = !sized; bigger.hidden = !sized; drawKeys(sized); }
       catalog.hidden = !browse;
+      confirm.hidden = !draft;
+      discard.hidden = !draft;
       for (const n of flightBtns) n.hidden = browse ? true : n.hidden;
       if (!browse) for (const n of [place, turnLeft, turnRight, raise, lower, grid, preview]) n.hidden = false;
       for (const s of seps) s.hidden = !!browse;

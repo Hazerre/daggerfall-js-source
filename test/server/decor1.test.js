@@ -140,7 +140,7 @@ test('DECOR1 the service: a home\'s pieces are any session\'s to read (a guest\'
   assert.equal((await call('POST', '/v1/homes/decor', HOME)).status, 401, 'a stranger reads nothing');
   const guest = (await call('POST', '/v1/auth/guest', { ...ACCEPTED })).body.secret;
   const empty = await call('POST', '/v1/homes/decor', HOME, guest);
-  assert.deepEqual([empty.status, empty.body], [200, { ...HOME, pieces: [], hidden: [] }], 'a guest reads a room (BASE-HIDE: and nothing of its own furniture taken out)');
+  assert.deepEqual([empty.status, empty.body], [200, { ...HOME, pieces: [], hidden: [], rev: 0 }], 'a guest reads a room (BASE-HIDE: and nothing of its own furniture taken out)');
   const g = await call('POST', '/v1/homes/decor/place', { ...HOME, character: 'char-guest', piece: piece() }, guest);
   assert.deepEqual([g.status, g.body.error], [403, 'homes-need-account']);
   assert.deepEqual(await placeDecor({ db: env.DB, nowS: T0 }, { id: 'g1', handle: null, guest_name: 'Quiet Fox' }, { ...HOME, character: 'char-guest', piece: piece() }), { error: 'homes-need-account' }, 'and the function asks again');

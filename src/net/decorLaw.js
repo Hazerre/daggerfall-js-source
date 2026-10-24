@@ -67,6 +67,11 @@ export const DECOR_PRICE_MAX = 400;
  *  hundred, and this stops a script, not a decorator. */
 export const DECOR_OPS_MAX = 600;
 export const DECOR_OPS_WINDOW_S = 3600;
+/** One Confirm: how many final changes it may carry, and how large the body may be. The other JSON routes stay at 4 KiB. */
+export const DECOR_BATCH_OPS = 64;
+export const DECOR_BATCH_BYTES = 128 * 1024;
+/** A batch's own id, so a lost answer is asked again as the same write. */
+export const DECOR_TXN_RE = /^[A-Za-z0-9_-]{16,64}$/;
 
 const fin = (v) => typeof v === 'number' && Number.isFinite(v);
 const round = (v, places) => {
@@ -285,6 +290,25 @@ export function decorRescale(radiusMetres, paid, scale) {
   if (now >= was) return { pay: now - was, refund: 0, paid: now };
   return { pay: 0, refund: Math.trunc((was - now) / 2), paid: now };
 }
+
+/**
+ * WHAT A PIECE'S CHANGE COSTS. Placed: its price. Grown: the difference. Shrunk or removed: half of what records
+ * paid (`ledger`, never a cost the client merely named). A station's licence is paid and never given back.
+ * `delta` is what the record gains (negative: the purse pays). `ledger` is what records have now paid for it.
+ */
+export function decorGoldMove(was, now, ledger = was?.paid) {
+  const paidWas = was ? Math.max(0, Number(was.paid) || 0) : 0;
+  const own = Math.min(paidWas, Math.max(0, Number(ledger) || 0));
+  if (!now) return { delta: decorRefund(own), ledger: 0 };
+  const paidNow = Math.max(0, Number(now.paid) || 0);
+  let delta, next;
+  if (paidNow >= paidWas) { delta = paidWas - paidNow; next = own + paidNow - paidWas; }
+  else { const base = Math.min(paidWas - paidNow, own); delta = Math.trunc(base / 2); next = own - base; }
+  if (now.station && now.station !== (was?.station ?? null)) delta -= DECOR_STATION_FEES[now.station] ?? 0;
+  return { delta, ledger: next };
+}
+/** The gold alone (decorGoldMove's `delta`). */
+export const decorGoldDelta = (was, now, ledger = was?.paid) => decorGoldMove(was, now, ledger).delta;
 
 /** A fresh piece id - twelve base-36 characters, the client's own (the save and the service key on it). */
 export function mintDecorId(rand = Math.random) {
