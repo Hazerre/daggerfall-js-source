@@ -72,22 +72,22 @@ export const introTick = (bar, beat = 0) => INTRO_LEAD_TICKS + Math.round(((bar 
 export const introSeconds = (bar, beat = 0) => introTick(bar, beat) * INTRO_SECONDS_PER_TICK;
 
 /** GM programs (gmSynth.js FM bank) and channels: one voice each, the kit on GM's channel 9. The horn carries the theme;
- *  the violins double it an octave up where the recording opens out; the reverse cymbal (119, the bank's one swell) is
- *  the riser into each landmark. */
+ *  the violins double it an octave up where the recording opens out; the riser into each landmark is a suspended
+ *  cymbal's roll on the kit (INTRO3c: it was the bank's reverse cymbal, 119, then the Spire's FM shimmer - a whine). */
 export const INTRO_PROGRAMS = Object.freeze({
   horn: 60, violins: 40, strings: 48, choir: 52, ostinato: 32, cellos: 42, contrabass: 43, brass: 61,
-  timpani: 47, swell: 119, harp: 46, bells: 14, pad: 89, hit: 55, halo: 44,
+  timpani: 47, harp: 46, bells: 14, pad: 89, hit: 55, halo: 44,
 });
 export const INTRO_CHANNELS = Object.freeze({
   horn: 0, violins: 1, strings: 2, choir: 3, ostinato: 4, cellos: 5, contrabass: 6, brass: 7,
-  timpani: 8, kit: 9, swell: 10, harp: 11, bells: 12, pad: 13, hit: 14, halo: 15,
+  timpani: 8, kit: 9, harp: 11, bells: 12, pad: 13, hit: 14, halo: 15,
 });
 /** Each voice's level (CC7) and place (CC10, 64 the middle). INTRO3b: the sections stand further apart - the violins
  *  and the choir right, the strings, the cellos and the harp left, the bells far right - and each is spread from its
  *  place by its voice (INTRO_VOICES). */
 const MIX = Object.freeze({
   horn: [118, 58], violins: [96, 82], strings: [100, 40], choir: [104, 88], ostinato: [100, 64], cellos: [92, 48],
-  contrabass: [104, 64], brass: [108, 72], timpani: [110, 64], swell: [0, 64], harp: [84, 30], bells: [86, 92],
+  contrabass: [104, 64], brass: [108, 72], timpani: [110, 64], harp: [84, 30], bells: [86, 92],
   pad: [90, 64], hit: [100, 64], halo: [80, 64],
 });
 const KIT_LEVEL = 112;
@@ -104,16 +104,16 @@ export const INTRO_TONE = Object.freeze({ low: [60, -2], bands: [[100, 5, 1.2], 
  *  press lets a drum's first 12 ms through (EG-ROAR's lesson - at 3 ms it clamped every taiko and kick to the pads'
  *  level). Measured through the real player, second by second against the recording: tools/introScoreProbe.mjs. */
 export const INTRO_LEVEL = 1;
-export const INTRO_PRESS = Object.freeze({ threshold: -14, knee: 12, ratio: 3, attack: 0.012, release: 0.25, ceiling: -1, out: 2 });
+export const INTRO_PRESS = Object.freeze({ threshold: -14, knee: 12, ratio: 3, attack: 0.012, release: 0.25, ceiling: -1, out: 1.8 });
 /** GM kit keys (gmSynth.js DRUMS). */
-const KIT = Object.freeze({ kick: 36, snare: 38, clap: 39, lowTom: 41, floorTom: 43, tom: 45, midTom: 47, crash: 49, splash: 55, surdo: 87 });
+const KIT = Object.freeze({ kick: 36, snare: 38, clap: 39, lowTom: 41, floorTom: 43, tom: 45, midTom: 47, crash: 49, ride: 51, splash: 55, surdo: 87 });
 
 /** INTRO3b: THE VOICES - each section's own instrument over the FM bank's one pair a note (systems/song/songPlayer.js
  *  songVoices, EG-ROAR). The bowed sections are ensembles: `unison` copies `cents` apart, laid `spread` either side of
  *  their place, their FM index higher than the bank's and slower to settle (idxDecay) so the top of the band is there
  *  through the note, not only at its attack. The choir and the pad modulate at twice the note (odd harmonics - the hollow
  *  "oo" a voice has that a string has not), the brass bites (index 5), the ostinato is a spiccato, the timpani carries a
- *  sub, the swell is the Spire's inharmonic shimmer spread wide, and the halo is four tremolo violins at the edges. The
+ *  sub, and the halo is four tremolo violins at the edges (INTRO3c: the swell, the Spire's inharmonic shimmer, is gone - a cymbal's roll). The
  *  contrabass carries no sub: at G1 its octave under is 24 Hz, under the floor and heard by nothing but the press. */
 export const INTRO_VOICES = Object.freeze({
   horn: Object.freeze({ attack: 0.05, index: 3, idxDecay: 1.1, idxFloor: 0.5, release: 0.3, unison: 2, cents: 3, spread: 0.2, vibrato: 5, vibRate: 4.8, noise: 0.06, body: [[450, 6, 1.2]], air: -3 }),
@@ -125,7 +125,6 @@ export const INTRO_VOICES = Object.freeze({
   contrabass: Object.freeze({ saw: 1, cutoff: 14, attack: 0.05, release: 0.45, gain: 1.2, unison: 2, cents: 4, spread: 0.15, vibrato: 5, vibRate: 4.4, body: [[100, 8, 0.7], [200, 4, 1], [400, 4, 1.2]], air: -10, ensemble: 0.25, ensembleRate: 0.5, ensembleMs: 16 }),
   brass: Object.freeze({ attack: 0.035, index: 5, idxDecay: 0.8, idxFloor: 0.35, release: 0.3, unison: 3, cents: 6, spread: 0.4, noise: 0.06 }),
   timpani: Object.freeze({ decay: 0.9, release: 0.5, sub: 0.2 }),
-  swell: Object.freeze({ mod: 2.76, index: 4.5, idxDecay: 4, attack: 0.6, decay: 0.02, sustain: 1, release: 0.06, gain: 0.55, unison: 2, cents: 12, spread: 0.6 }),
   harp: Object.freeze({ index: 3, idxDecay: 0.4, unison: 2, cents: 5, spread: 0.35 }),
   bells: Object.freeze({ index: 6, idxDecay: 0.8, unison: 2, cents: 3, spread: 0.3 }),
   pad: Object.freeze({ saw: 1, cutoff: 4, attack: 0.4, release: 1.2, unison: 3, cents: 8, spread: 0.7, vibrato: 5, vibRate: 4, body: [[300, 5, 0.8]], air: -12, ensemble: 0.8, ensembleRate: 0.4, ensembleMs: 20 }),
@@ -145,13 +144,15 @@ export const INTRO_VOICES = Object.freeze({
 // to half; the whole mix through THE TONE, the recording's third-octave curve against the render's (INTRO_TONE). After:
 // the chord's harmonics 0, -10, -21, -13, -17, -18, -18, -22, -25 dB (nothing above the 3rd within 13 of the loudest),
 // its partials 18-47 cents wide, the film within 3 dB of the recording's curve from 80 Hz to 10 kHz. The halo stays a
-// soft shimmer out of the opening's bare bars; the risers less inharmonic and lower. tools/introScoreProbe.mjs pins the
-// chord's shape (chordShape) beside the width and the presence.
+// soft shimmer out of the opening's bare bars; the risers are a suspended cymbal's roll (swellInto: the FM shimmer's
+// sidebands were the whine in the build-up to the title drop). tools/introScoreProbe.mjs pins the chord's shape
+// (chordShape) and the build-up (riserShape) beside the width and the presence.
 /** The voices by channel, as the song carries them. */
 const INTRO_VOICES_BY_CHANNEL = Object.freeze(Object.fromEntries(Object.entries(INTRO_VOICES).map(([v, o]) => [INTRO_CHANNELS[/** @type {keyof typeof INTRO_CHANNELS} */ (v)], o])));
 /** INTRO3b: THE KIT - each drum the theme strikes, past the bank's one sine or band of noise (systems/song/songPlayer.js
  *  songKit): the taiko (the open surdo) long and falling with its beater's click, the kick and the toms the same, the
- *  snare a crack over a skin, the crash two seconds long. */
+ *  snare a crack over a skin, the crash two seconds long; INTRO3c: the ride under soft mallets, the roll's stroke (a
+ *  20 ms attack, no click - a cymbal swelling, not struck). */
 export const INTRO_KIT = Object.freeze({
   [KIT.kick]: Object.freeze({ hz: 50, decay: 0.42, gain: 1.2, click: 0.5 }),
   [KIT.surdo]: Object.freeze({ hz: 62, decay: 1.1, gain: 1.35, drop: 0.7, click: 0.5 }),
@@ -162,6 +163,7 @@ export const INTRO_KIT = Object.freeze({
   [KIT.snare]: Object.freeze({ hz: 2000, q: 0.7, decay: 0.26, gain: 0.95, body: 185 }),
   [KIT.clap]: Object.freeze({ hz: 1500, q: 0.9, decay: 0.14, gain: 0.6 }),
   [KIT.crash]: Object.freeze({ decay: 2.6, q: 0.45, gain: 1 }),
+  [KIT.ride]: Object.freeze({ hz: 5500, q: 0.6, attack: 0.02, decay: 0.45, gain: 0.55 }),
   [KIT.splash]: Object.freeze({ decay: 1.1, q: 0.6, gain: 0.7 }),
 });
 
@@ -361,14 +363,15 @@ function writer() {
   return w;
 }
 
-/** A swell: the reverse cymbal from `beats` before (bar, 0), its level climbing step by step to the bar line, cut there -
- *  so the landmark is the loudest instant of the rise and the hit that follows it. */
+/** A swell: a suspended cymbal's roll into (bar, 0) - soft mallets in sixteenths over the last `beats` of the bar before,
+ *  rising from a whisper to its loudest at the last stroke before the line, where the crash and the hit take over.
+ *  INTRO3c (the owner: "Theres still a high pitch whine in the build up leading to the title drop"): this was the
+ *  bank's reverse cymbal, then INTRO3b's riser - the Spire's inharmonic FM shimmer on G5 and D6 under a 2.76 modulator,
+ *  whose sidebands (2.9, 4.4, 5.1 and 7.6 kHz) stood 14 to 17 dB over their surroundings through both build-ups where
+ *  the recording has none. A cymbal's roll is a band of noise: no line in it to whine. */
 function swellInto(w, bar, beats) {
-  const steps = beats * 8;
-  w.note('swell', bar - 1, 4 - beats, beats, 'G5', 110);
-  w.note('swell', bar - 1, 4 - beats, beats, 'D6', 96);
-  for (let i = 0; i <= steps; i++) w.volume('swell', bar - 1, 4 - beats + i / 8, 12 + 115 * Math.pow(i / steps, 1.6));
-  w.volume('swell', bar, 0.5, 0);
+  const steps = beats * 4 - 1;
+  for (let i = 0; i <= steps; i++) w.hit('ride', bar - 1, 4 - beats + i / 4, 12 + 115 * Math.pow(i / steps, 1.6));
 }
 
 /** A timpani roll on `note` over the last `beats` of the bar before `bar`, rising. */

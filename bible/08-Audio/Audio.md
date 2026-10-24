@@ -972,7 +972,10 @@ short). A vibrato widened the lines; a breath of noise under the notes was the s
 choir's vowel at 650, 1050 and 2500), an air shelf and an ensemble, with a vibrato and a bite at most; the horn and the
 brass stay FM, the horn's index settling to half; the mix through THE TONE, the recording's third-octave curve against
 the render's. After: the chord's harmonics 0, -10, -21, -13, -17, -18, -18, -22, -25 dB, its partials 18-47 cents wide,
-the film within 3 dB of the recording's curve from 80 Hz to 10 kHz (a mean of 1.2), 484 Hz and -13.2 dB from 2 kHz up.
-`tools/introScoreProbe.mjs` pins the chord's shape (`chordShape`) beside the width and the presence. The whole song: as loud as the recording (-22.1 dBFS to its -22.4), correlation 0.62,
-502 Hz, -13.0 dB, 10/10. The
+the film within 3 dB of the recording's curve from 80 Hz to 10 kHz (a mean of 1.2), 483 Hz and -13.3 dB from 2 kHz up.
+The riser into each landmark (the owner: "still a high pitch whine in the build up leading to the title drop") was the
+Spire's inharmonic FM shimmer, its sidebands 14-17 dB over their surroundings through both build-ups; it is a suspended
+cymbal's roll on the kit now (`swellInto`, the ride under soft mallets), a band of noise with no line in it.
+`tools/introScoreProbe.mjs` pins the chord's shape (`chordShape`) and the build-up (`riserShape`) beside the width and the presence. The whole song: as loud as the recording (-22.9 dBFS to its -22.4), correlation 0.62,
+502 Hz, -13.1 dB, 11/11. The
 record is `10-UI/UI-Arc.md` INTRO3c.

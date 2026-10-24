@@ -33,11 +33,12 @@ test('INTRO3: the film’s two landmarks are the score’s bar lines, to the mil
     assert.ok(at(tick, INTRO_CHANNELS.kit).some((e) => e.note === CRASH), `a crash on bar ${bar}`);
     assert.ok(at(tick, INTRO_CHANNELS.hit).length >= 3, `the orchestra hit's chord on bar ${bar}`);
     assert.ok(at(tick, INTRO_CHANNELS.timpani).some((e) => e.note === midiNote(root) && e.velocity >= 115), `the timpani's ${root} on bar ${bar}`);
-    // the riser climbs to its loudest on the bar line itself
-    const swell = song.events.filter((e) => e.type === 'controller' && e.channel === INTRO_CHANNELS.swell && e.tick > tick - 4 * INTRO_SCORE_TPQ && e.tick <= tick);
-    assert.ok(swell.length >= 8, `a swell into bar ${bar}`);
-    assert.equal(swell.at(-1).tick, tick); assert.equal(swell.at(-1).value, 127);
-    for (let i = 1; i < swell.length; i++) assert.ok(swell[i].value >= swell[i - 1].value, 'the swell only rises');
+    // the riser - a suspended cymbal's roll (INTRO3c) - climbs to its loudest at the last stroke before the bar line
+    const swell = notes.filter((e) => e.channel === INTRO_CHANNELS.kit && e.note === 51 && e.tick > tick - 4 * INTRO_SCORE_TPQ && e.tick < tick);
+    assert.ok(swell.length >= 8, `a roll into bar ${bar}`);
+    assert.equal(swell.at(-1).tick, tick - INTRO_SCORE_TPQ / 4); assert.equal(swell.at(-1).velocity, 127);
+    for (let i = 1; i < swell.length; i++) assert.ok(swell[i].velocity > swell[i - 1].velocity, 'the roll only rises');
+    assert.equal(song.events.some((e) => e.channel === 10), false, 'no riser channel: the FM shimmer is gone');
   }
   // nothing else in the film's first 22 s is struck as hard as the two landmarks
   const crashes = notes.filter((e) => e.channel === INTRO_CHANNELS.kit && e.note === CRASH && e.tick < introTick(IMPACT_BAR + 2)).map((e) => e.tick);
@@ -50,7 +51,7 @@ test('INTRO3: the song is the shape the game’s player plays - sorted, in range
   assert.equal(song.durationTicks, introTick(LAST_BAR + 1));
   assert.equal(song.seamless, true, 'it loops on its bar line, as the recording looped');
   assert.equal(songLevel(song), INTRO_LEVEL);
-  assert.deepEqual(songPress(song), { threshold: -14, knee: 12, ratio: 3, attack: 0.012, release: 0.25, out: 2, ceiling: -1 });
+  assert.deepEqual(songPress(song), { threshold: -14, knee: 12, ratio: 3, attack: 0.012, release: 0.25, out: 1.8, ceiling: -1 });
   assert.equal(INTRO_PRESS.ceiling, -1);
   const rank = { programChange: 0, controller: 0, noteOn: 1 };
   for (let i = 1; i < song.events.length; i++) {
@@ -206,7 +207,7 @@ test('INTRO3c: no whine - the bed is BOWED: every string section, the pad and th
   }
   assert.ok(INTRO_VOICES.choir.body.length === 3 && INTRO_VOICES.choir.body[0][0] >= 600 && INTRO_VOICES.choir.body[0][0] <= 700, 'the choir’s body is a vowel: three formants, the first at ah');
   for (const voice of ['strings', 'violins']) assert.ok(INTRO_VOICES[voice].body.some(([hz, db]) => hz >= 2500 && hz <= 3200 && db >= 4), `${voice} carries the bridge hill`);
-  for (const voice of ['horn', 'brass', 'harp', 'bells', 'ostinato', 'hit', 'swell', 'timpani']) assert.equal(INTRO_VOICES[voice].saw, undefined, `${voice} stays FM`);
+  for (const voice of ['horn', 'brass', 'harp', 'bells', 'ostinato', 'hit', 'timpani']) assert.equal(INTRO_VOICES[voice].saw, undefined, `${voice} stays FM`);
   assert.equal(INTRO_VOICES.horn.idxFloor, 0.5, 'the horn holds its brightness');
   assert.deepEqual(songTone(song), { ...INTRO_TONE }, 'the song carries its tone, in range as written');
   assert.ok(INTRO_TONE.bands.some(([hz, db]) => hz === 250 && db < 0) && INTRO_TONE.bands.some(([hz, db]) => hz === 100 && db > 0) && INTRO_TONE.high[1] > 0, 'the tone is the measured difference: 250 Hz down, 100 Hz and the top up');
@@ -214,7 +215,10 @@ test('INTRO3c: no whine - the bed is BOWED: every string section, the pad and th
   for (const m of [-3, -1, 0, 1, 4, 5]) assert.equal(halo(m).length, 0, `bar ${m} is bare of the halo`);
   assert.deepEqual(halo(CLOUD_BAR).map((e) => e.note).sort((a, b) => a - b), CHORDS.C.choir.map((n) => midiNote(n) + 12).sort((a, b) => a - b), 'over the cloud break still');
   assert.ok(halo(14).length > 0 && halo(14).every((e) => e.velocity === 72), 'the halo at 72 where the band opens out, under the choir');
-  assert.ok(INTRO_VOICES.swell.index <= 5 && INTRO_VOICES.swell.gain <= 0.6, 'the risers stay under');
+  // the riser is a cymbal's roll: no swell voice, no swell channel, the ride under soft mallets - a cymbal's band, not a tone
+  assert.equal(INTRO_VOICES.swell, undefined); assert.equal(INTRO_CHANNELS.swell, undefined); assert.equal(INTRO_PROGRAMS.swell, undefined);
+  const ride = songKit(song).get(51);
+  assert.ok(ride && ride.hz >= 4000 && ride.attack >= 0.01 && !(ride.click > 0), 'the roll’s stroke: a cymbal’s band under a mallet, no click');
 });
 
 test('INTRO3: nothing fetches or decodes a recording - the intro plays the score through the game’s own player', () => {

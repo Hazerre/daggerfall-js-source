@@ -1478,38 +1478,51 @@ choir), a vibrato (5 to 14 cents at 4 to 6.1 Hz) and the static detune halved
 (4 to 8 cents); a bite of 0.08 to 0.1 on the strings, the violins and the
 cellos and none elsewhere. The horn and the brass stay FM, the horn's index 3
 settling to half with a body at 450 Hz; the harp, the bells, the ostinato, the
-hits, the risers and the timpani as they were. The halo a soft bowed shimmer
-out of the opening's bare bars (-3 to 1) and the quiet after the cloud break
-(4 and 5); the risers less inharmonic (mod 2.76, index 4.5) and lower (gain
-0.55); the hall's tail a little brighter (decayHFRatio 1.1); the press's drive
-2 (2.4 drove the toned sum into the ceiling).
+hits and the timpani as they were. The halo a soft bowed shimmer out of the
+opening's bare bars (-3 to 1) and the quiet after the cloud break (4 and 5);
+the hall's tail a little brighter (decayHFRatio 1.1); the press's drive 1.8
+(2.4 drove the toned sum into the ceiling, and 2 left the whole song's peak a
+tenth of a decibel under it once the roll stacked on the crash). And THE RISER (the owner, on the bowed
+render: "Theres still a high pitch whine in the build up leading to the title
+drop"): measured over the four beats before the impact, INTRO3b's riser - the
+Spire's inharmonic FM shimmer on G5 and D6 under a 2.76 modulator - put its
+sidebands at 2.9, 4.4, 5.1 and 7.6 kHz 14 to 17 dB over their surroundings in
+both build-ups, where the recording's worst is a harmonic of the chord at +11.
+The swell voice and its channel are gone; `swellInto` is a suspended cymbal's
+roll on the kit (the ride under soft mallets, `INTRO_KIT[51]`: a 20 ms
+attack, no click), sixteenths rising from a whisper to the last stroke before
+the bar line, where the crash and the hit take over - a band of noise, with
+no line in it. After: the build-up's worst narrow peak +8 dB at 2.7 kHz (a
+harmonic), the FM sidebands gone from both build-ups.
 
 Measured after, the film's 27 s. The chord: G4's harmonics 0, -10, -21, -13,
 -17, -18, -18, -22, -25 dB - the plateau from the 5th, nothing above the 3rd
 within 13 dB of the loudest - its partials 47, 47, 36, 18, 24, 32 cents wide.
 The third-octave curve against the recording's at equal loudness, 80 Hz to
 10 kHz: within 3 dB at every band, a mean of 1.2 dB (2.4 before the tone, 6 dB
-short at 100 Hz and 5 over at 250). The centre of weight 484 Hz with -13.2 dB
+short at 100 Hz and 5 over at 250). The centre of weight 483 Hz with -13.3 dB
 from 2 kHz up (the recording's 521 and -12.8), L/R correlation 0.58, both
-landmarks on their cue, the peak -2.8 dBFS at the highest MusicVolume. The
-whole song, 162.8 s: as loud as the recording (-22.1 dBFS over 24-160 s to
-its -22.4), the peak -1.5 dBFS at the highest MusicVolume, L/R correlation
-0.62, the centre 502 Hz with -13.0 dB from 2 kHz up, 10/10. The probe's whine pin is the chord's shape (`chordShape`, from
+landmarks on their cue, the peak -3.9 dBFS at the highest MusicVolume. The
+whole song, 162.8 s: as loud as the recording (-22.9 dBFS over 24-160 s to
+its -22.4), the peak -1.9 dBFS at the highest MusicVolume, L/R correlation
+0.62, the centre 502 Hz with -13.1 dB from 2 kHz up, 11/11. The probe's whine pin is the chord's shape (`chordShape`, from
 the score's own first strings chord: no harmonic of its top note above the
 third within 8 dB of the loudest, its 3rd to 6th partials 12 cents wide or
 more on average - the recording -12 dB and 38 cents, the FM render 0 dB and
-8.5 cents, this render -13 and 27); the first pass's persistence measure
-counted a sawtooth's honest harmonics as the FM render's isolated lines, and
-went. The probe pumps the player just in time (the offline context suspended
+8.5 cents, this render -13 and 27), and the build-up's (`riserShape`: over
+the four beats before the impact no narrow peak from 2.5 kHz up more than
+13 dB over its surroundings - the recording's worst +11, the FM riser's +17,
+the roll's +8); the first pass's persistence measure counted a sawtooth's
+honest harmonics as the FM render's isolated lines, and went. The probe pumps the player just in time (the offline context suspended
 every 0.1 s and the window scheduled there), so a render costs the sounding
 notes: the whole song in under 3 minutes where the up-front graph took 8.
 Pins: `test/systems/intro3_score.test.js` INTRO3c (every bowed section's bow,
 body, air, ensemble, vibrato and no held breath; the choir's vowel and the
 bridge hills; the FM voices unbowed; the horn's floor; the tone; the halo's
-bars), `test/systems/eliteGates/egroar_score.test.js` INTRO3c (the bowed
+bars, the riser a roll on the kit and no swell voice or channel), `test/systems/eliteGates/egroar_score.test.js` INTRO3c (the bowed
 voice, the index floor, the body, air and ensemble insert and its drop, the
-tone's routing, the bite; every field held). Mutants: 36 more in
-`tools/mutants/intro3.json` (67), all dead.
+tone's routing, the bite; every field held). Mutants: 38 more in
+`tools/mutants/intro3.json` (69), all dead.
 
 ## U65 THE INTRO (2026-08-30) - HISTORICAL REMOVAL
 

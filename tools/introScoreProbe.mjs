@@ -200,6 +200,34 @@ function chordShape(pcm, rate = 12000, size = 4096, hop = 1024) {
   return { note: top, from, to, frames, levels: levels.map((l) => l - loudest), widths, isolated: Math.max(...levels.slice(3)) - loudest, meanWidth: widths.slice(2, 6).reduce((x, y) => x + y, 0) / 4 };
 }
 
+/** INTRO3c (the owner: "Theres still a high pitch whine in the build up leading to the title drop"): THE BUILD-UP - over the
+ *  four beats before the impact (the riser's span), the most prominent narrow peak from 2.5 kHz to the top of the band:
+ *  its level over the mean of the 300 Hz either side of it, in dB. The recording's worst there is +11 (a harmonic of
+ *  the chord); INTRO3b's FM riser put its sidebands at +17 (4.4 kHz) and +14 (2.9 and 5.1 kHz), where no harmonic of
+ *  the chord falls; a cymbal's roll is a band of noise and puts none. Hann 2048 at 12 kHz (5.9 Hz a bin). */
+function riserShape(pcm, impactAt, rate = 12000, size = 2048, hop = 512) {
+  const beat = 60 / introThemeSong().beatsPerMinute, from = impactAt - 4 * beat + 0.05, to = impactAt - 0.05;
+  const half = size / 2, power = new Float64Array(half + 1);
+  let frames = 0;
+  for (let start = Math.round(from * rate); start + size <= Math.min(pcm.length, Math.round(to * rate)); start += hop) {
+    const real = new Float64Array(size), imag = new Float64Array(size);
+    for (let n = 0; n < size; n++) real[n] = pcm[start + n] * (0.5 - 0.5 * Math.cos(2 * Math.PI * n / (size - 1)));
+    fft(real, imag);
+    for (let b = 0; b <= half; b++) power[b] += real[b] * real[b] + imag[b] * imag[b];
+    frames++;
+  }
+  const radius = Math.round(300 * size / rate);
+  let worst = -Infinity, hz = 0;
+  for (let b = Math.round(2500 * size / rate); b < half - 1; b++) {
+    if (power[b] < power[b - 1] || power[b] < power[b + 1]) continue;
+    let sum = 0, n = 0;
+    for (let k = Math.max(1, b - radius); k <= Math.min(half, b + radius); k++) { sum += power[k]; n++; }
+    const prom = 10 * Math.log10((power[b] + 1e-18) / (sum / n + 1e-18));
+    if (prom > worst) { worst = prom; hz = b * rate / size; }
+  }
+  return { from, to, frames, worst, hz };
+}
+
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split('?')[0]);
   if (url === '/probe/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(PAGE); return; }
@@ -236,13 +264,15 @@ try {
   // INTRO3b: not flat - wide (the two channels are not one: the recording's L/R correlation is 0.33 over the film, 0.59
   // over its body; the dry render's was 0.985, INTRO3b's 0.61) and present (the spectrum's centre of weight and its
   // share from 2 kHz up, measured on the recording the same way: 521 Hz and -12.8 dB over the film; the dry render's
-  // 305 Hz and -25.0 dB, INTRO3b's 483 Hz and -14.7, INTRO3c's 484 Hz and -13.2 over the film - the pins a margin under
+  // 305 Hz and -25.0 dB, INTRO3b's 483 Hz and -14.7, INTRO3c's 483 Hz and -13.3 over the film - the pins a margin under
   // where it lands); INTRO3c: and no whine - the held chord's shape (chordShape): the recording's loudest harmonic above
   // the third -12 dB with partials 38 cents wide, the FM render's 0 dB and 8.5 cents, the bowed render's -13 and 27
   const sp = spectrum(Float32Array.from(r.mono)), shape = chordShape(Float32Array.from(r.mono));
   check('wide: the two channels are not one (L/R correlation under 0.8)', r.corr < 0.8, `correlation ${r.corr.toFixed(3)}`);
   check('present: the spectrum’s centre of weight over 400 Hz and its share from 2 kHz up over -18 dB', sp.centroid > 400 && sp.presenceDb > -18, `centroid ${sp.centroid.toFixed(0)} Hz, 2 kHz up ${sp.presenceDb.toFixed(1)} dB over ${sp.frames} frames`);
   check('no whine: over the opening’s first held chord no harmonic of its top note above the third stands within 8 dB of the loudest, and its partials are bands, not lines (the 3rd to the 6th 12 cents wide or more, the mean)', shape.isolated <= -8 && shape.meanWidth >= 12, `note ${shape.note} over ${shape.from.toFixed(2)}-${shape.to.toFixed(2)} s: harmonics ${shape.levels.map((l) => l.toFixed(0)).join(' ')} dB, widths ${shape.widths.map((w) => w.toFixed(0)).join(' ')} cents - isolated ${shape.isolated.toFixed(1)} dB, mean width ${shape.meanWidth.toFixed(1)} cents`);
+  const riser = riserShape(Float32Array.from(r.mono), TITLE_IMPACT_TIME);
+  check('no whine in the build-up: over the four beats before the impact no narrow peak from 2.5 kHz up stands more than 13 dB over its surroundings', riser.worst < 13, `the worst ${riser.hz.toFixed(0)} Hz at +${riser.worst.toFixed(1)} dB over ${riser.from.toFixed(2)}-${riser.to.toFixed(2)} s (${riser.frames} frames)`);
   check('no page error', errs.length === 0, errs.join('; '));
 } finally {
   await browser.close();
