@@ -228,8 +228,9 @@ export function createHarbourOffice(deps) {
   // ── CREW-TRADE: crew at the exchange ──
   /** Crew's row at `port` today, at the captain's dealing, stars and yard discount (the shipwright's own, perksHere). */
   const crewRow = (port, day) => crewRowOf(port, day, { dealt: L.dealtAt(port.key, day), edge: L.stats?.().trade, town: townAt(port), discount: perksHere().yard });
-  /** Why the exchange cannot deal in her crew at all, or null: no crew to her (a Rowboat, a Large Boat), a fight. */
-  const crewRefused = (s) => (!s?.crewed ? CREW_TRADE_TEXT.noCrew : s.fighting ? CREW_TRADE_TEXT.fighting : null);
+  /** Why the exchange cannot deal in her crew at all, or null: no crew to her (a Rowboat, a Large Boat), a booked
+   *  passage's boat (AUDIT CREW-TRADE E1), a fight. */
+  const crewRefused = (s) => (!s?.crewed ? CREW_TRADE_TEXT.noCrew : s.charter ? CREW_TRADE_TEXT.charter : s.fighting ? CREW_TRADE_TEXT.fighting : null);
   /** `n` men signed on to the ship at the quay - as many as the exchange signs on today, the purse pays for and her whole
    *  takes. `deal` the window's model's (scenes/naval/crewDeal.js). */
   function buyCrew(port, day, deal, n) {
@@ -240,12 +241,12 @@ export function createHarbourOffice(deps) {
     if (r.sells <= 0) return { ok: false, text: CREW_TRADE_TEXT.noneToday };
     if (s.room <= 0) return { ok: false, text: CREW_TRADE_TEXT.full };
     const k = Math.min(asked(n), r.sells, Math.floor((deps.gold?.() ?? 0) / r.sell));
-    if (k <= 0) return { ok: false, text: CREW_TRADE_TEXT.short(gold(r.sell)) };
+    if (k <= 0) return { ok: false, text: CREW_TRADE_TEXT.short(r.sell) };
     const on = deal.signOn(k), got = on.n;   // her whole the most she takes
     deps.pay?.(got * r.sell);
     L.deal(port.key, day, CREW.id, got, 'bought');
     deps.town?.seaDeal?.(port);   // SEA-TRADE: a dealing at the port's exchange
-    return { ok: true, text: [CREW_TRADE_TEXT.bought(got, gold(got * r.sell)), on.joined.length ? CREW_TRADE_TEXT.signedOn(handsNamed(on.joined)) : ''].filter(Boolean).join(' ') };   // AUDIT CREW-TRADE H3: who joined her
+    return { ok: true, text: [CREW_TRADE_TEXT.bought(got, got * r.sell), on.joined.length ? CREW_TRADE_TEXT.signedOn(handsNamed(on.joined)) : ''].filter(Boolean).join(' ') };   // AUDIT CREW-TRADE H3: who joined her
   }
   /** `n` men signed off the ship at the quay - as many as may leave her (crewTrade.js crewSpare) and the exchange takes
    *  today. */
@@ -261,7 +262,7 @@ export function createHarbourOffice(deps) {
     L.deal(port.key, day, CREW.id, gone, 'sold');
     L.note('traded', gone * r.buy);
     deps.town?.seaDeal?.(port);   // SEA-TRADE: a dealing at the port's exchange
-    return { ok: true, text: [CREW_TRADE_TEXT.sold(gone, gold(gone * r.buy)), off.left.length ? CREW_TRADE_TEXT.paidOff(handsNamed(off.left)) : ''].filter(Boolean).join(' ') };   // AUDIT CREW-TRADE H1: who left her
+    return { ok: true, text: [CREW_TRADE_TEXT.sold(gone, gone * r.buy), off.left.length ? CREW_TRADE_TEXT.paidOff(handsNamed(off.left)) : ''].filter(Boolean).join(' ') };   // AUDIT CREW-TRADE H1: who left her
   }
   /**
    * THE EXCHANGE'S TAB (ui/naval/navalYardWindow.js): the port's goods at today's prices, what the boat at the quay carries
@@ -280,7 +281,7 @@ export function createHarbourOffice(deps) {
     const others = deps.etherGoods?.() !== false;
     const deal = boat?.crewDeal ?? null, hands = deal?.stands?.() ?? null;
     const rows = exchangeOf(port, day, L.dealtAt(port.key, day), L.stats?.().trade, townAt(port)).map((r) => ({ ...r, have: goodIn(hold, r.id) })).filter((r) => others || !r.exotic || r.have > 0);
-    if (hands?.crewed) rows.unshift({ ...crewRow(port, day), have: hands.crew, whole: hands.maxCrew, room: hands.room, spare: hands.spare });
+    if (hands?.crewed && !hands.charter) rows.unshift({ ...crewRow(port, day), name: CREW_TRADE_TEXT.title, have: hands.crew, whole: hands.maxCrew, room: hands.room, spare: hands.spare, why: hands.why });   // AUDIT CREW-TRADE E1: never a booked passage's; O1: why none may leave her
     const rm = room?.();
     return {
       port: port.name, ether: !!port.ether, gold: deps.gold?.() ?? 0, weight: hold ? goodsWeight(hold) : null, rows,

@@ -11550,8 +11550,18 @@
   "by": "claude-in-session"
  },
  "sea.crew.bought": {
-  "en": "66ad48e3db5f",
-  "tr": "6ca34c50cf6a",
+  "en": "778f1ca29bb3",
+  "tr": "ad91b2d6b130",
+  "by": "claude-in-session"
+ },
+ "sea.crew.buyAt": {
+  "en": "5b97f23ea534",
+  "tr": "d89fbf2e3caa",
+  "by": "claude-in-session"
+ },
+ "sea.crew.charter": {
+  "en": "8ffcda3c6574",
+  "tr": "f0a578baf91e",
   "by": "claude-in-session"
  },
  "sea.crew.crossed": {
@@ -11559,14 +11569,34 @@
   "tr": "e783ddb6e55a",
   "by": "claude-in-session"
  },
+ "sea.crew.fighting": {
+  "en": "459bb7d0efe3",
+  "tr": "583e92aeed28",
+  "by": "claude-in-session"
+ },
  "sea.crew.full": {
   "en": "100783d588bc",
   "tr": "b5e3f39cbcc1",
   "by": "claude-in-session"
  },
+ "sea.crew.lastMan": {
+  "en": "516debdac40b",
+  "tr": "dfc04e413fa3",
+  "by": "claude-in-session"
+ },
  "sea.crew.noCrew": {
   "en": "f7a2801429e5",
   "tr": "da0ba44d1e96",
+  "by": "claude-in-session"
+ },
+ "sea.crew.noneTaken": {
+  "en": "39b2c6f2d16f",
+  "tr": "519d40f53540",
+  "by": "claude-in-session"
+ },
+ "sea.crew.noneToBuy": {
+  "en": "3155e815fe70",
+  "tr": "4acb8db1409d",
   "by": "claude-in-session"
  },
  "sea.crew.noneToday": {
@@ -11584,9 +11614,14 @@
   "tr": "fd5828653bda",
   "by": "claude-in-session"
  },
+ "sea.crew.sellAt": {
+  "en": "4321ba4578c9",
+  "tr": "f057816f2850",
+  "by": "claude-in-session"
+ },
  "sea.crew.short": {
-  "en": "480f3a50b2b8",
-  "tr": "04a276f6657d",
+  "en": "fc4f26f9fba4",
+  "tr": "2b180b9f5322",
   "by": "claude-in-session"
  },
  "sea.crew.signedOn": {
@@ -11595,8 +11630,8 @@
   "by": "claude-in-session"
  },
  "sea.crew.sold": {
-  "en": "4ae369bdb6d4",
-  "tr": "df85f73c19be",
+  "en": "6d26d958ad86",
+  "tr": "e0ad8b1720d6",
   "by": "claude-in-session"
  },
  "sea.crew.standMakes": {
@@ -11604,9 +11639,19 @@
   "tr": "c58a9c1c94bc",
   "by": "claude-in-session"
  },
+ "sea.crew.standNeither": {
+  "en": "954bd0efe780",
+  "tr": "eff5aafae174",
+  "by": "claude-in-session"
+ },
  "sea.crew.standWants": {
   "en": "af85786c6218",
   "tr": "d05df2ed5829",
+  "by": "claude-in-session"
+ },
+ "sea.crew.title": {
+  "en": "de463ba892c2",
+  "tr": "6fbbdebba0da",
   "by": "claude-in-session"
  },
  "sea.exchange.band": {

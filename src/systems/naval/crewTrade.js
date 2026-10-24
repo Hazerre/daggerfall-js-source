@@ -27,7 +27,6 @@
 import { CREW, exchangeOf } from './tradeGoods.js';
 import { yardOffer } from './navalYard.js';
 import { playerCrewCount } from './crewLife.js';
-import { CREW_HALL_TEXT } from '../crewHall.js';
 import { FIRST_MATE, serviceOf } from './shipCrew.js';
 import { t } from '../textManager.js';   // the exchange's words in the player's language
 
@@ -64,7 +63,7 @@ export function crewSpare({ hull, crew, hands = [], away = null, crossed = false
   let least = CREW_KEEP;
   while (least < now && playerCrewCount(hull, least) < need) least++;
   const n = Math.max(0, now - least);
-  return { n, why: n > 0 ? null : now > CREW_KEEP && party.length ? CREW_TRADE_TEXT.ashore(party.at(-1).name) : CREW_HALL_TEXT.lastMan };
+  return { n, why: n > 0 ? null : now > CREW_KEEP && party.length ? CREW_TRADE_TEXT.ashore(party.at(-1).name) : CREW_TRADE_TEXT.lastMan };
 }
 /**
  * THE NAMED HANDS IN THE ORDER A HEADCOUNT SALE SIGNS THEM OFF (AUDIT CREW-TRADE H1): never one in the shore party (`away`);
@@ -82,11 +81,13 @@ export const handsNamed = (hands) => hands.map((h) => `${h.name} (${h.role})`).j
 /** How many more men she takes: her whole less her crew now. @param {{ crew: number, maxCrew: number }} d */
 export const crewRoom = (d) => Math.max(0, Math.floor((Number(d?.maxCrew) || 0) - (Number(d?.crew) || 0)));
 
-/** The exchange's words for crew, in the player's language (each asked as it is said). */
+/** The exchange's words for crew, in the player's language (each asked as it is said). AUDIT CREW-TRADE O2: `gold` a
+ *  number, its word the language's own (it came as English, "90 gold" and its en-US comma, inside every language's
+ *  sentence); O3: the refusals and the row's own words the crew's, never the crew hall's English. */
 export const CREW_TRADE_TEXT = Object.freeze({
-  bought: (n, gold) => t('sea.crew.bought', 'Bought the contracts of {n} crew for {gold}.', { n, gold }),
-  sold: (n, gold) => t('sea.crew.sold', 'Sold the contracts of {n} crew for {gold}.', { n, gold }),
-  short: (gold) => t('sea.crew.short', 'Not enough gold - {gold} a man.', { gold }),
+  bought: (n, gold) => t('sea.crew.bought', 'Signed on {n, plural, one {# man} other {# men}} for {gold, number} gold.', { n, gold }),   // AUDIT CREW-TRADE R4: a man, as the row counts him
+  sold: (n, gold) => t('sea.crew.sold', 'Signed off {n, plural, one {# man} other {# men}} for {gold, number} gold.', { n, gold }),
+  short: (gold) => t('sea.crew.short', 'Not enough gold - {gold, number} gold a man.', { gold }),
   get noneToday() { return t('sea.crew.noneToday', 'The exchange has no more sailors to sign on today.'); },
   get noneWanted() { return t('sea.crew.noneWanted', 'The exchange will take no more crew today.'); },
   get full() { return t('sea.crew.full', 'The ship has her whole crew aboard.'); },
@@ -95,5 +96,12 @@ export const CREW_TRADE_TEXT = Object.freeze({
   ashore: (who) => t('sea.crew.ashore', '{who} is in your shore party. Send them back aboard first.', { who }),   // AUDIT CREW-TRADE H2: on deck at the helm, his place kept for the shore
   signedOn: (names) => t('sea.crew.signedOn', 'Signed on: {names}.', { names }),   // AUDIT CREW-TRADE H3
   paidOff: (names) => t('sea.crew.paidOff', 'Paid off: {names}.', { names }),   // AUDIT CREW-TRADE H1
-  fighting: CREW_HALL_TEXT.fighting,
+  get fighting() { return t('sea.crew.fighting', 'Not while the ship is in combat.'); },
+  get lastMan() { return t('sea.crew.lastMan', 'That\'s your last crew member. The ship would have nobody aboard.'); },
+  get charter() { return t('sea.crew.charter', 'Her crew are her master\'s. You only booked passage.'); },   // AUDIT CREW-TRADE E1
+  get title() { return t('sea.crew.title', 'Crew'); },
+  buyAt: (gold, left) => t('sea.crew.buyAt', 'buy at {gold, number} gold a man ({left} left today)', { gold, left }),
+  sellAt: (gold, wanted) => t('sea.crew.sellAt', 'sell at {gold, number} gold ({wanted} wanted)', { gold, wanted }),
+  get noneToBuy() { return t('sea.crew.noneToBuy', 'none to sign on today'); },
+  get noneTaken() { return t('sea.crew.noneTaken', 'none wanted today'); },
 });

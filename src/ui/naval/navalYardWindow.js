@@ -35,6 +35,7 @@ import { ETHER_SEA_NAME } from '../../world/ethericSea.js';   // ELTHERIC: the s
 import { t } from '../../systems/textManager.js';   // GROG-WORD: the day's round said in the player's language
 import { townBandWord } from '../../net/townEconLaw.js';   // SEA-TRADE: the port town's economy in the exchange's lede
 import { CREW } from '../../systems/naval/tradeGoods.js';   // CREW-TRADE: crew's row
+import { CREW_TRADE_TEXT } from '../../systems/naval/crewTrade.js';   // AUDIT CREW-TRADE O3: the row's words, in the player's language
 
 export const NAVAL_YARD_STYLE_ID = 'dagger-naval-yard-style';
 /** The yard's own rules beside the naval windows' sheet: a row's three columns. */
@@ -236,13 +237,16 @@ export function exchangeText(x) {
   const lede = (x.weight == null ? `${x.port}'s exchange. Trade from the helm, into the hold.`
     : `${x.port}'s exchange. The hold carries ${Math.round(x.weight)} kg of goods${room}. You have ${g(x.gold)}.`) + band;
   const STAND = { makes: 'Made here: cheap', wants: 'Wanted here: dear', neither: '' };
-  const CREW_STAND = { makes: t('sea.crew.standMakes', 'Sailors to spare here: cheap'), wants: t('sea.crew.standWants', 'Short of sailors here: dear'), neither: '' };   // CREW-TRADE
+  const CREW_STAND = { makes: t('sea.crew.standMakes', 'Sailors to spare here: cheap'), wants: t('sea.crew.standWants', 'Short of sailors here: dear'), neither: t('sea.crew.standNeither', 'Sailors to be had here: the usual price') };   // CREW-TRADE; AUDIT CREW-TRADE R4: a port that is neither says so
+  /** AUDIT CREW-TRADE O3: crew's row in the player's language - its stand, a man's two prices and how many today. */
+  const crewWords = (r) => [CREW_STAND[r.stand], r.sells > 0 ? CREW_TRADE_TEXT.buyAt(r.sell, r.sells) : CREW_TRADE_TEXT.noneToBuy, r.buys > 0 ? CREW_TRADE_TEXT.sellAt(r.buy, r.buys) : CREW_TRADE_TEXT.noneTaken].filter(Boolean).join(' - ');
   const rows = (x.rows ?? []).map((r) => {
     const crew = r.id === CREW.id;   // CREW-TRADE: signed on while she has room, off while any may leave her
+    const aboard = crew ? t('sea.crew.aboard', 'Aboard: {have} of {whole} crew', { have: r.have, whole: r.whole }) : '';
     return {
-      id: r.id, title: r.name, canBuy: crew ? r.sells > 0 && r.room > 0 : r.sells > 0 && x.weight != null, canSell: crew ? r.spare > 0 && r.buys > 0 : r.have > 0 && r.buys > 0,
-      words: [(crew ? CREW_STAND : STAND)[r.stand], r.sells > 0 ? `buy at ${g(r.sell)} a ${r.unit} (${r.sells} left today)` : r.exotic ? 'not sold here' : 'none to buy today', r.buys > 0 ? `sell at ${g(r.buy)} (${r.buys} wanted)` : 'none wanted today'].filter(Boolean).join(' - '),   // AUDIT CAPTAIN'S SEA B16
-      extra: crew ? t('sea.crew.aboard', 'Aboard: {have} of {whole} crew', { have: r.have, whole: r.whole }) : r.have > 0 ? `In the hold: ${r.have} ${r.have === 1 ? r.unit : r.units}` : '',
+      id: r.id, title: r.name, canBuy: crew ? r.sells > 0 && r.room > 0 && (Number(x.gold) || 0) >= r.sell : r.sells > 0 && x.weight != null, canSell: crew ? r.spare > 0 && r.buys > 0 : r.have > 0 && r.buys > 0,
+      words: crew ? crewWords(r) : [STAND[r.stand], r.sells > 0 ? `buy at ${g(r.sell)} a ${r.unit} (${r.sells} left today)` : r.exotic ? 'not sold here' : 'none to buy today', r.buys > 0 ? `sell at ${g(r.buy)} (${r.buys} wanted)` : 'none wanted today'].filter(Boolean).join(' - '),   // AUDIT CAPTAIN'S SEA B16
+      extra: crew ? [aboard, r.spare <= 0 && r.buys > 0 ? r.why : ''].filter(Boolean).join(' - ') : r.have > 0 ? `In the hold: ${r.have} ${r.have === 1 ? r.unit : r.units}` : '',   // AUDIT CREW-TRADE O1: why none may leave her, said beside the greyed Sell
     };
   });
   return { lede, rows };
@@ -461,7 +465,9 @@ export function mountNavalYardWindow(host, deps) {
       mk('Buy 1', r.canBuy, () => press(x.buy(r.id, 1)));
       mk('Buy 10', r.canBuy, () => press(x.buy(r.id, 10)));
       mk('Sell 1', r.canSell, () => press(x.sell(r.id, 1)));
-      mk('Sell all', r.canSell, () => press(x.sell(r.id, Infinity)));
+      // AUDIT CREW-TRADE R2: crew sells ten at a time as it buys - one "Sell all" press took a Small Ship from 13 men to 1
+      if (r.id === CREW.id) mk('Sell 10', r.canSell, () => press(x.sell(r.id, 10)));
+      else mk('Sell all', r.canSell, () => press(x.sell(r.id, Infinity)));
       li.append(text, presses);
       tradeList.append(li);
     }

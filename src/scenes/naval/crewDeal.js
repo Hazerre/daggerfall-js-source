@@ -8,6 +8,7 @@
 import { crewSpare, crewRoom, signOffOrder } from '../../systems/naval/crewTrade.js';
 import { playerCrewCount } from '../../systems/naval/crewLife.js';
 import { fleetCrossed } from '../../systems/fleet.js';
+import { charterRecord } from '../../systems/naval/passage.js';   // AUDIT CREW-TRADE E1: a booked passage's boat
 
 /**
  * A boat of mine's crew as the exchange deals in it: `st` her sea-fight state (navalHost.js myBoatState), `sync(boat)`
@@ -22,13 +23,15 @@ export function crewDealOf(boat, st, sync, companions) {
   const away = () => (boat?.uid ? companions.awayOf(boat.uid) : null);
   /** Her named hands now, by name and post. */
   const named = () => st.crew.hands.map((h) => ({ name: h.name, role: h.role }));
-  /** Her crew as the exchange reads it: crewed (a hull whose deck stands men), her crew and her whole, in a fight, how
-   *  many more she takes (`room`) and how many may leave her (`spare`, crewTrade.js crewSpare - `why` none may). */
+  /** Her crew as the exchange reads it: crewed (a hull whose deck stands men), a booked passage's (`charter` - AUDIT
+   *  CREW-TRADE E1: her hands are her master's, a fresh full crew every booking, and three bookings sold 1,466 gold of
+   *  them), her crew and her whole, in a fight, how many more she takes (`room`) and how many may leave her (`spare`,
+   *  crewTrade.js crewSpare - `why` none may). */
   function stands() {
     const crewed = !!boat?.crewed && d.maxCrew > 0;
     const hands = crewed ? sync(boat) : [];
     const spare = crewSpare({ hull: boat.hull, crew: d.crew, hands, away: away(), crossed: !!boat.uid && fleetCrossed(boat.uid) });
-    return { crewed, crew: d.crew, maxCrew: d.maxCrew, fighting: !!st.inFight, room: crewRoom(d), spare: spare.n, why: spare.why };
+    return { crewed, charter: !!charterRecord(boat?.charter), crew: d.crew, maxCrew: d.maxCrew, fighting: !!st.inFight, room: crewRoom(d), spare: spare.n, why: spare.why };
   }
   return {
     stands,
