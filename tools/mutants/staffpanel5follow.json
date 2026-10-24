@@ -803,7 +803,7 @@
   {
     "name": "STAFF-PANEL5-FOLLOW-host-unparked",
     "file": "src/scenes/staffFollowHost.js",
-    "old": "if (parked !== null && parked !== where()) parked = null;",
+    "old": "if (parked !== null && (hidden() || parked !== where())) parked = null;",
     "new": "if (parked !== null) parked = null;",
     "why": "the body shown where the target stood",
     "tests": [
