@@ -191,8 +191,8 @@
   {
     "name": "KTB-the-bridge-from-the-course",
     "file": "src/net/ketch/ketchBrain.js",
-    "old": "const first = live.find((q) => q.zone === 'gangway' || q.zone === 'bridge');",
-    "new": "const first = live.find((q) => q.zone === 'sailwalk' || q.zone === 'gangway' || q.zone === 'bridge');",
+    "old": "live.find((q) => (q.zone === 'gangway' || q.zone === 'bridge') && now",
+    "new": "live.find((q) => (q.zone === 'sailwalk' || q.zone === 'gangway' || q.zone === 'bridge') && now",
     "tests": [
       "test/net/ketch/ketch_brain.test.js"
     ]
