@@ -1,0 +1,10 @@
+[
+  {"name": "HU-the-own-row-pushed-while-hidden", "file": "src/net/roster.js", "old": "  if (session?.hidden !== true) push(session?.id ?? null, session?.name ?? '', true, session);", "new": "  push(session?.id ?? null, session?.name ?? '', true, session);", "tests": ["test/net/hiddenuncounted.test.js"]},
+  {"name": "HU-the-hellos-mark-unread", "file": "src/net/online.js", "old": "        this.hidden = tokenHidden(frame.tok);", "new": "        void tokenHidden;", "tests": ["test/net/hiddenuncounted.test.js"]},
+  {"name": "HU-the-party-drops-the-mark", "file": "src/net/roster.js", "old": "hidden: hub?.hidden === true, peers, label: 'Party' };", "new": "peers, label: 'Party' };", "tests": ["test/net/hiddenuncounted.test.js"]},
+  {"name": "HU-the-guild-drops-the-mark", "file": "src/net/roster.js", "old": "hidden: hub?.hidden === true, peers, label: 'Guild' };", "new": "peers, label: 'Guild' };", "tests": ["test/net/hiddenuncounted.test.js"]},
+  {"name": "HU-nearby-drops-the-mark", "file": "src/net/roster.js", "old": "hidden: session?.hidden === true, peers, label: 'Nearby' };", "new": "peers, label: 'Nearby' };", "tests": ["test/net/hiddenuncounted.test.js"]},
+  {"name": "HU-a-placed-tab-drops-the-mark", "file": "src/net/roster.js", "old": "gt: link?.gt ?? null, hidden: link?.hidden === true, peers:", "new": "gt: link?.gt ?? null, peers:", "tests": ["test/net/hiddenuncounted.test.js"]},
+  {"name": "HU-a-placed-tab-drops-its-count", "file": "src/net/roster.js", "old": "roomCount: link?.roomCount ?? null, hubOnline:", "new": "hubOnline:", "tests": ["test/net/hiddenuncounted.test.js"]},
+  {"name": "HU-a-placed-tab-drops-the-hubs-shards", "file": "src/net/roster.js", "old": "hubOnline: link?.hubOnline ?? null, label: place };", "new": "label: place };", "tests": ["test/net/hiddenuncounted.test.js"]}
+]

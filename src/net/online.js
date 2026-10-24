@@ -89,7 +89,7 @@ import { layoutRoomKey } from '../world/interior/interiorShared.js';   // WD3 (A
 import { tabStorage } from '../systems/appStorage.js';   // the tab's own storage - the seam, never the browser's own (a PIN)
 import { STAMP_RE } from './safety/chatStamp.js';   // SAFE2: a line's stamp, carried as the relay said it
 import { MUTE_HZ_MAX, CHAT_HZ_MAX, CHAT_MAX, relaySupportsBan } from './wire.js';   // AUDIT SAFE RELAY-2: the order meter and my own lines' pace, the relay's word on my chat's own bucket; RELAY-3: the ban frame's relay
-import { REALM_CHARACTER_RE } from './identityToken.js';   // AUDIT LEGACY III O1: a wed frame's stamped realm character, by the token's own shape
+import { REALM_CHARACTER_RE, tokenBodyOf, TOKEN_MAX_CHARS } from './identityToken.js';   // AUDIT LEGACY III O1: a wed frame's stamped realm character, by the token's own shape; HIDDEN-UNCOUNTED: a token's hidden mark (tokenHidden)
 import { leaseRoom, relaySupportsLease, LEASE_MS, LEASE_HELD_MS, LEASE_HAND_MIN_MS, LEASE_FRAME_MIN_MS } from './roomLease.js';   // LEASE1: my hub's lease, handed to every lease room I hold
 import { LEASE_WIRE_MAX } from './wire.js';
 /** LEASE1: the frames a lease room's socket sends with no lease ahead of them - the runtime's ping, the hello, a lease. */
@@ -152,6 +152,17 @@ export const POSE_CROWD = 24;
  *  host, three at once as the page starts). It covers the service's real answer now, and stays under the relay's
  *  HELLO_WAIT_MS (net/wire.js), past which a full room closes a socket that has said nothing. */
 export const TOKEN_WAIT_MS = 8000;
+
+/** Whether an identity token names a hidden staff socket (`hd: 1`) - read off its body alone; the relay verifies it.
+ *  HIDDEN-UNCOUNTED: here, so the session notes its own mark at its hello (`hidden`); net/staffMap.js hands it on.
+ *  @param {unknown} tok */
+export function tokenHidden(tok) {
+  if (typeof tok !== 'string' || tok.length > TOKEN_MAX_CHARS) return false;
+  try {
+    const b = tokenBodyOf(tok).replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(globalThis.atob(b + '='.repeat((4 - (b.length % 4)) % 4)))?.hd === 1;
+  } catch { return false; }
+}
 
 export const GAP_MIN_MS = 50;
 export const GAP_MAX_MS = 1000;
@@ -892,6 +903,7 @@ export class OnlineSession {
     // shape AUDIT-CHATR deleted `whoRows()` for. The hook is the whole
     // seam; the detector owns the memory.
     this.onRelay = null;          // SRV-N: (version) => void - a welcome named the relay's deploy
+    this.hidden = false;          // HIDDEN-UNCOUNTED: my room's hello went on a hidden staff token (`hd`) - the relay counts me nowhere, so my own roster leaves me out (net/roster.js)
     this.roomCount = null;        // ROSTER-G: the welcome's `n` when its list was CUT - how many the room holds beyond the names it gave (a channel's; a place's welcome carries none)
     this.look = look ?? { race: 'Breton', gender: 'male', faceIndex: 0, items: [] };
     this.id = id ?? peerId();
@@ -2287,6 +2299,7 @@ export class OnlineSession {
       if (frame.tok) { this.mintToken?.opened?.(room, frame.tok); this._helloTok.set(ws, frame.tok); }   // SCALE5a: and remembered by its socket
       const hello = JSON.stringify(frame);
       if (room === this.room) {
+        this.hidden = tokenHidden(frame.tok);   // HIDDEN-UNCOUNTED: Hide me's relink opens every room again, on the token it mints
         this.status = 'open'; this.error = null;   // SLAM12: `_backoff` is reset by the WELCOME (`_receive`), not here - see there
         this._lastSent = null; this._lastSentAt = -Infinity;
         this._lastParty = null; this._lastPartyAt = -Infinity;   // SOC2: a fresh socket is a fresh attachment at the hub - the next party pose goes whole

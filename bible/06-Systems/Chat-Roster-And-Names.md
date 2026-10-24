@@ -426,3 +426,38 @@ the realm character's they play. Two things on this page carry it: NAME-F's filt
 must pass to be worn (the mint asks the token's own law, `nameIsIssuable`, and names the word it caught), and the
 roster's `#tag` is still the tie-breaker for two players with one name, which characters' names make more common. The
 record is `06-Systems/Accounts-And-Cloud-Saves-Arc.md` NAME-AS.
+
+## HIDDEN-UNCOUNTED - a hidden staff member is in no count, their own included (2026-10-24)
+
+Mac: "Invisible players dont count towards the online count". The invisible player here is a hidden staff member (Hide
+me, STAFF-PANEL5-HIDDEN), not the Invisibility spell: a concealed player is still online and still listed (INVIS-NET
+hides the body, never the name). No DFU member: Daggerfall has no online.
+
+**What it was.** The relay already left a hidden socket out of every roster and count (`server/src/staffHidden.js`,
+NAMED BY NOBODY; `test/net/staffpanel5hidden_relay.test.js` pins the welcome's, the join's, the leave's and the hub's
+`n`), so every other game's "Online - N" left the staff member out. Their own game did not: `rosterRows` always pushed
+the player's own row and counted it, so a hidden staff member read one more than everyone else - themselves.
+
+**The fix, client-side alone** (a relay byte is a `RELAY_VERSION` and its law's hash, for a count the relay already
+gets right):
+
+- `net/online.js` `tokenHidden` - moved from `net/staffMap.js`, which hands the same function on - is read at the
+  primary room's hello: `session.hidden` is that hello's token's `hd`. Hide me's relink (`scenes/staffFollowHost.js`
+  relinkGame) opens every room again on the token it mints, so the mark follows the switch; a tokenless hello is not
+  hidden at the relay either, and is counted.
+- `net/roster.js` `rosterRows` pushes no own row while the source is `hidden`; the Party, Guild and Nearby sources
+  carry their link's mark, and a placed tab's (the Region tab under the region's name) is `placedRosterSource` -
+  out of `bootWorld`, which now wires one call where it built the object.
+
+**Left as it is.** The relay's welcome to a hidden socket says `others.length + 1`, counting the joiner. The client
+reads that `n` only when the welcome's list was cut (past `CHAT_ROSTER_MAX`), and on a hub shard the bus's count
+(which leaves the hidden socket out) wins over its own few - so only a hidden link on the bus itself (a build from
+before the shards) or on a shard the bus has not told yet reads one too many, until the next count the room says.
+Taking it out is a relay change for the next `RELAY_VERSION`.
+
+**Driven.** `test/net/hiddenuncounted.test.js` (4): over the real relay, three games on the hub's shards - a hidden
+staff game's World tab reads the count both players read, with no row of its own and nobody listing it; with Hide me
+off it is a player, its own row and in everyone's count; every tab's source carries the mark and a placed tab keeps
+the link's roster, count and other shards; the token's mark is one function. `test/net/scale5c.test.js`'s wiring pin
+reads the placed tab's new home. Mutants: `tools/mutants/hiddenuncounted.json` - **8 mutations, 8 dead**;
+`acc3c.json`, `guild1c.json` and `scale5c.json`'s roster records re-aimed by content - 3 of 3 dead.

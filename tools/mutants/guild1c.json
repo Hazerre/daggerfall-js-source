@@ -476,8 +476,8 @@
   {
     "name": "GUILD1c-my-own-row-untagged",
     "file": "src/net/roster.js",
-    "old": "glyphs: hub?.glyphs ?? null, gt: hub?.gt ?? null, peers, label: 'Guild' };",
-    "new": "glyphs: hub?.glyphs ?? null, peers, label: 'Guild' };",
+    "old": "glyphs: hub?.glyphs ?? null, gt: hub?.gt ?? null, hidden: hub?.hidden === true, peers, label: 'Guild' };",
+    "new": "glyphs: hub?.glyphs ?? null, hidden: hub?.hidden === true, peers, label: 'Guild' };",
     "tests": [
       "test/net/guild1c.test.js"
     ]

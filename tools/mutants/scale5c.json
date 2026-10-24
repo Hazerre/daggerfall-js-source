@@ -842,8 +842,8 @@
   },
   {
     "name": "SCALE5c-region-list-unmerged",
-    "file": "src/scenes/world.js",
-    "old": "hubOnline: s.hubOnline, label: place }",
+    "file": "src/net/roster.js",
+    "old": "hubOnline: link?.hubOnline ?? null, label: place }",
     "new": "label: place }",
     "tests": [
       "test/net/scale5c.test.js"

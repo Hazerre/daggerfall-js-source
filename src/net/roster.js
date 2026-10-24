@@ -64,7 +64,8 @@ export const ROSTER_ROWS_MAX = 200;
  * members are everyone online). A channel tab that is not a room of its own hands a source composed for it (the
  * Party tab its party, the Local tab those in earshot) and names it.
  * `title` and `glyphs` are my own badge (ACC3c: the relay never sends me my own row), read by the wire's readBadge.
- * @typedef {{ id?: string|null, name?: string|null, title?: any, glyphs?: any, gt?: string|null,
+ * HIDDEN-UNCOUNTED: `hidden` - my link is a hidden staff socket's (net/online.js `hidden`), counted by nobody, so no row of mine.
+ * @typedef {{ id?: string|null, name?: string|null, title?: any, glyphs?: any, gt?: string|null, hidden?: boolean,
  *             peers?: Map<string, { id?: string|null, name?: string|null, gt?: string|null }>|null,
  *             roomCount?: number|null, label?: string|null,
  *             guildOnline?: Map<string, { id?: string|null, name?: string|null, gt?: string|null }>|null,
@@ -177,7 +178,11 @@ export function rosterRows(session) {
   // one name a player looks at most is the one name with no title on
   // it (ACC1d-MARK's shape, again - a signal true for everybody but
   // you reads as a fault in your own account).
-  push(session?.id ?? null, session?.name ?? '', true, session);
+  // HIDDEN-UNCOUNTED (2026-10-24, Mac: "Invisible players dont count towards the online count"): EXCEPT WHILE I AM HIDDEN.
+  // The relay leaves a hidden staff socket out of every roster and count (server/src/staffHidden.js, NAMED BY NOBODY), so
+  // every other screen's "Online - N" leaves me out; my own still listed my row and counted it, so a hidden staff member
+  // read a count one higher than everyone else's - themselves, the one player nobody can see.
+  if (session?.hidden !== true) push(session?.id ?? null, session?.name ?? '', true, session);
   for (const p of session?.peers?.values?.() ?? []) push(p?.id ?? null, p?.name ?? '', false, p);
   for (const p of session?.hubOnline?.values?.() ?? []) push(p?.id ?? null, p?.name ?? '', false, p);   // SCALE5c: and everyone on the hub's other shards, while it is small (a peer of my own shard is listed once, live)
 
@@ -253,7 +258,7 @@ export function partyRosterSource(party, hub, acct) {
     const known = hub?.peers?.get?.(id) ?? null;
     peers.set(id, { ...(known ?? {}), id, name: m.name ?? known?.name ?? '' });
   }
-  return { id: hub?.id ?? null, name: hub?.name ?? '', title: hub?.title ?? null, glyphs: hub?.glyphs ?? null, gt: hub?.gt ?? null, peers, label: 'Party' };
+  return { id: hub?.id ?? null, name: hub?.name ?? '', title: hub?.title ?? null, glyphs: hub?.glyphs ?? null, gt: hub?.gt ?? null, hidden: hub?.hidden === true, peers, label: 'Party' };
 }
 
 /**
@@ -271,7 +276,19 @@ export function guildRosterSource(hub, tag) {
   const peers = new Map();
   if (tag) for (const [id, p] of hub?.peers ?? []) if (p?.gt === tag) peers.set(id, p);
   if (tag) for (const [id, p] of hub?.guildOnline ?? []) if (!peers.has(id)) peers.set(id, p);   // SCALE5c: the guild on every shard
-  return { id: hub?.id ?? null, name: hub?.name ?? '', title: hub?.title ?? null, glyphs: hub?.glyphs ?? null, gt: hub?.gt ?? null, peers, label: 'Guild' };
+  return { id: hub?.id ?? null, name: hub?.name ?? '', title: hub?.title ?? null, glyphs: hub?.glyphs ?? null, gt: hub?.gt ?? null, hidden: hub?.hidden === true, peers, label: 'Guild' };
+}
+
+/**
+ * CHAT-CHAN: A PLACED TAB'S LIST - a channel tab that stands for a place (the Region tab under the region's name): the
+ * link's own roster, its count and the hub's other shards, headed by the place. HIDDEN-UNCOUNTED: and the link's hidden
+ * mark, as every composed source carries it.
+ * @param {RosterSource|null|undefined} link   the tab's channel link
+ * @param {string} place   the heading's word
+ * @returns {RosterSource}
+ */
+export function placedRosterSource(link, place) {
+  return { id: link?.id ?? null, name: link?.name ?? '', title: link?.title ?? null, glyphs: link?.glyphs ?? null, gt: link?.gt ?? null, hidden: link?.hidden === true, peers: link?.peers ?? null, roomCount: link?.roomCount ?? null, hubOnline: link?.hubOnline ?? null, label: place };   // GUILD1c: my own row wears my tag
 }
 
 /**
@@ -289,5 +306,5 @@ export function localRosterSource(session, near, here) {
     const known = session?.peers?.get?.(p.id);
     if (known) peers.set(p.id, known);
   }
-  return { id: session?.id ?? null, name: session?.name ?? '', title: session?.title ?? null, glyphs: session?.glyphs ?? null, gt: session?.gt ?? null, peers, label: 'Nearby' };   // GUILD1c: my own row wears my tag
+  return { id: session?.id ?? null, name: session?.name ?? '', title: session?.title ?? null, glyphs: session?.glyphs ?? null, gt: session?.gt ?? null, hidden: session?.hidden === true, peers, label: 'Nearby' };   // GUILD1c: my own row wears my tag
 }
