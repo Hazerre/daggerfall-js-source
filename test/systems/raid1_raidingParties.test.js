@@ -502,7 +502,8 @@ test('RAID1 the world host by source: the seams answered where GameManager would
   assert.match(body, /standDefender: \(threats\) => cityGuards\.standDefender\(\{/);
   // PIN MOVED (AUDIT CAPTAIN'S SEA G7): nor the Eltheric Ocean, whose composed politic is the isles' region's
   assert.match(body, /regionIndex: \(\) => \{ const px = playerTravelPixel\(\); return !\(etherSea && inEther\(px\.x, px\.y\)\) && politicClaimed\(maps\.getPoliticIndex\(px\.x, px\.y\)\) \? _questRegionIndex\(\) : -1; \}/);
-  assert.match(body, /townHere: \(\) => \(\(modes\?\.mode \?\? 'exterior'\) === 'exterior' && _musicInLocationRect\(\) \? _questLoc\(\) : null\)/);
+  // PIN MOVED (STAFF-EVENT): `outdoors` (true) asks only that the player stands outdoors - an area's event; a raid's ask is the same
+  assert.match(body, /townHere: \(outdoors\) => \(\(modes\?\.mode \?\? 'exterior'\) !== 'exterior' \? null : outdoors \|\| \(_musicInLocationRect\(\) \? _questLoc\(\) : null\)\)/);
   assert.match(body, /picker: \(\) => travelMapPickerData\(\)/);
   assert.match(body, /defendersAllowed: \(\) => !playerEntity\.crimeCommitted && !isTransformedLycanthrope\(playerEntity\)/);
   assert.match(body, /reputation: \(\) => \(\{ player: playerEntity, store: _questStore\(\) \}\)/);

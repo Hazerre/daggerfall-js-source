@@ -1064,6 +1064,7 @@ import { parseEventCommand } from '../net/chatCommands.js';   // EVENT1: /event,
 import { createSunbaby, sunbabyLight, SUNBABY_WEATHER, sunbabyKey, createSunbabyRain } from '../world/sunbabySky.js';   // SUNBABY1: the sun baby's sky of flowers, the clear day and the light under it; SUNBABY2: the wrath's key light and its fireballs
 import { relayKnowsLiveEvent } from '../net/wire.js';   // SUNBABY1: a word staged only on a relay that knows it
 import { createStaffTeleportClient, validStaffDestination, staffDestinationKey, followStaffPlayer, staffTpLine } from '../net/staffTeleport.js';   // STAFF-PANEL5-FOLLOW: and the line a /tp @player ends on
+import { gameMaps } from '../net/staffPlaces.js';   // STAFF-EVENT: the game's maps, for the Staff Panel's place picker
 import { staffFollowOnPage, relinkGame } from './staffFollowHost.js';   // STAFF-PANEL5-FOLLOW: the game's staff hook (net/staffHook.js) and the host's half of a follow; STAFF-HIDE-TOGGLE: and the panel's relink
 import { createStaffViewHost } from './staffViewHost.js';   // STAFF-VIEW1: the staff tags, Shift+M and a tag's follow
 import { privateInteriorPrefix, privateInteriorRoom, privateBoatRoom, privateInteriorOf } from '../net/privateInterior.js';
@@ -1455,7 +1456,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   await loadModWorldData();   // RR3b: ModManager's world-data assets on the door before the first region or block loads
   const arch = new Arch3dFile();
   arch.load(archBytes);
-  const maps = new MapsFile();
+  const maps = gameMaps(new MapsFile());   // STAFF-EVENT: the maps the Staff Panel's place picker reads (net/staffPlaces.js)
   maps.load(mapsBytes, climateBytes, politicBytes);
   // AUDIT NAV1 (B2): a Warm Ashes raid parsed at sea reads the crown of these waters' region (waRaidQuest) - declared up
   // here with maps, before townTalk's load can reach _questRegionIndex (FIELD 2026-09-27's order, below)
@@ -20026,7 +20027,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     picker: () => travelMapPickerData(),   // DaggerfallUI.GetImgBitmap("TRAV0I01.IMG")
     regionIndex: () => { const px = playerTravelPixel(); return !(etherSea && inEther(px.x, px.y)) && politicClaimed(maps.getPoliticIndex(px.x, px.y)) ? _questRegionIndex() : -1; },   // fix 8: the sea (politic 64) and an unmapped pixel are no province - AUDIT CAPTAIN'S SEA G7: nor the Eltheric Ocean (its composed politic is the isles' region's, and Betony's raids were announced to a captain past the Veil)
     regionName: (r) => REGION_NAMES[r] ?? String(r),   // GetLocalizedRegionName - the port speaks one language (ui/travel/travelMapWindow.js)
-    townHere: () => ((modes?.mode ?? 'exterior') === 'exterior' && _musicInLocationRect() ? _questLoc() : null),   // FindCurrentRaid: outdoors, in the rect, at a location
+    townHere: (outdoors) => ((modes?.mode ?? 'exterior') !== 'exterior' ? null : outdoors || (_musicInLocationRect() ? _questLoc() : null)),   // FindCurrentRaid: outdoors, in the rect, at a location; STAFF-EVENT: `outdoors` (true) asks only that - an area's event
     playerPixel: () => playerTravelPixel(),
     standRaider: (mobileType) => standLooseFoe({
       collider, feet: enchantFeet(), yawRad: cam.yaw, fovDegrees: fieldOfView() * 180 / Math.PI, foes: exteriorFoePool(),

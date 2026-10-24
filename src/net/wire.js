@@ -1,4 +1,5 @@
 // @ts-check
+import { validStaffEventIn } from './staffEvent/staffEventLaw.js';   // STAFF-EVENT: a staff event's word in
 import { validStaffTeleportIn } from './staffTeleport.js';
 import { validRelayCfgIn } from './relayCfg.js';   // SCALE5b: a relay setting, said to the hub
 import { HUB_SHARD_ROOMS, isHubShard, HUB_FIND_Q_MAX, REGION_SHARD_ROOMS } from './hubShards.js';   // SCALE5c: the hub, sixteen ways
@@ -1582,7 +1583,8 @@ export const KEEPALIVE_FAN_MS = HEARTBEAT_MS / 2;
  *  is deployed by CI and the relay by hand, so a skew between them is the ordinary state of a release day, and until
  *  now nothing on either end could see it. */
 // Integrated Arena spectator visibility with staff teleport, stable boat identity and private ownership; deploy relay before clients.
-export const RELAY_VERSION = 'world254';   // world254: AUDIT FOE-KEEPS (2026-10-24, the owner, asked: "Credit the last player"; bible/01-Overview/audits/Audit-Foe-Keeps.md E2; NOT YET DEPLOYED): the zone word carries `dd` 1 - a fighter's word that it left the zone dying, which the referee did not see - and the relay names the last fair player to strike it within WILD_REF.creditMs its killer (net/wild/wildRef.js wildCredit, server/src/index.js _wildCredit): a fall made, said and signed as a blow's. A relay before it drops the field and credits nobody, as before
+export const RELAY_VERSION = 'world255';   // world255: STAFF-EVENT (2026-10-24, mob: "lets start making an event tool for staff to use"; bible/11-Multiplayer/Staff-Events.md; NOT YET DEPLOYED) - a staff event's order (identityToken.js 'sevent') kept in the hub's book and said to everyone (`{t:'sev', k:'ev'|'end'}`), a player's word on it (`{t:'sev', k:'w'}`) kept as its place's cell's kill meter (`k:'st'`), the mini boss called at the meter or by staff's hand; an older relay closes a socket on the frame, so the game sends it only to world255 on (STAFF_EVENT_RELAY_MIN)
+// world254: AUDIT FOE-KEEPS (2026-10-24, the owner, asked: "Credit the last player"; bible/01-Overview/audits/Audit-Foe-Keeps.md E2; NOT YET DEPLOYED): the zone word carries `dd` 1 - a fighter's word that it left the zone dying, which the referee did not see - and the relay names the last fair player to strike it within WILD_REF.creditMs its killer (net/wild/wildRef.js wildCredit, server/src/index.js _wildCredit): a fall made, said and signed as a blow's. A relay before it drops the field and credits nobody, as before
 // world253: ROCKET1 (2026-10-23, the owner: "when I type /event rocket I want mounds to appear and shoot poop up from the ground and a horse to fart across the sky neighing and then smaller horses farting across the sky"; bible/11-Multiplayer/Rocket-Event.md; NOT YET DEPLOYED) - LIVE_EVENTS gains its third word, `rocket` (LIVE_EVENT_RELAY_MIN 253): the hub stages it, keeps it and says it as it says the dread and the sun baby. An older relay answers the word 'bad stage' and closes the socket, so a client sends `/event rocket` only through this one (relayKnowsLiveEvent); a client that does not know the word shows no event. Deploy the relay first, then the site.
 // world252: DECK-POSE (2026-10-23, world248 on its branch - renumbered past AUDIT EG-FALL's world248 and STAFF-PANEL5-MONSTERS' world249 at one merge, and past HERALD-CARDS' world250 and AUDIT MIXED-PAIR / SPELL-HAND's world251 at the next; the owner: "Players on board the ship jitter while sailing instead of staying put. Other players also slide when on board your ship/npc ships"; NOT YET DEPLOYED) - validPose carries `ab`, a place aboard a boat (validAboard: her owner, which of their boats, the feet in her frame), so a reader plays a passenger's place on a deck out with their walk. A relay before this field strips it and the reader falls back to the foes frame's `ab`, as before.
 // world251: AUDIT MIXED-PAIR / SPELL-HAND (2026-10-23, world249 on its branch - renumbered past STAFF-PANEL5-MONSTERS' world249 and HERALD-CARDS' world250 at the merge; the owner: "Audit this and ensure perfection", of MIXED-PAIR and SPELL-HAND - bible/01-Overview/audits/Audit-Mixed-Pair-Spell-Hand.md L4-3; bible/05-Combat/Two-Hands.md; NOT YET DEPLOYED): validPose carries `ah` - a pair's LEFT hand struck last - so the others draw a pair in both hands and play each strike with the hand that made it (net/peer/peerBodies.js peerHandsOf). A relay before this field strips it and the socket stays open: an older relay's peers play every strike with the right hand's weapon, as before.
@@ -2201,7 +2203,7 @@ export function inRangeOf(roomKey, from) {
   return (to) => !!to && Math.max(Math.abs(fx - Math.floor(to.x / PIXEL_UNITS)), Math.abs(fy - Math.floor(to.z / PIXEL_UNITS))) <= RANGE_PIXELS;
 }
 
-/** One client frame, parsed and checked: {t:'hello'|'pose'|'ping'|'chat'|'roll'|'say'|'narrate'|'stage'|'mute'|'ban'|'renown'|'guild'|'guildout'|'home'|'world'|'foes'|'own'|'hit'|'act'|'who'|'quest'|'social'|'party'|'trade'|'cast'|'card'|'page'|'duel'|'wed'|'park'|'caravan'|'look'|'gate'|'grant'|'siege'|'arena'|'raid'|'raidtowns'|'rite'|'star'|'ow'|'trav'|'amap'|'stp'|'cfg'|'find'|'serpent'|'sd'|'eg'|'wild'|'wdun'|'holdem'|'iliac'|'gambit'|'lease', ...}
+/** One client frame, parsed and checked: {t:'hello'|'pose'|'ping'|'chat'|'roll'|'say'|'narrate'|'stage'|'mute'|'ban'|'renown'|'guild'|'guildout'|'home'|'world'|'foes'|'own'|'hit'|'act'|'who'|'quest'|'social'|'party'|'trade'|'cast'|'card'|'page'|'duel'|'wed'|'park'|'caravan'|'look'|'gate'|'grant'|'siege'|'arena'|'raid'|'raidtowns'|'sev'|'rite'|'star'|'ow'|'trav'|'amap'|'stp'|'cfg'|'find'|'serpent'|'sd'|'eg'|'wild'|'wdun'|'holdem'|'iliac'|'gambit'|'lease', ...}
  *  or {error} - the caller closes on an error. INSPECT1: every arm below, named - this line had fallen seven behind
  *  (test/net/auditworld2.test.js derives the list from the arms now, so it cannot fall behind again - the merge with
  *  main's HCC-PARK was its first catch: the park arm, unnamed). */
@@ -2313,6 +2315,11 @@ export function parseClient(text, { hasHello = false } = {}) {
     if (!hasHello) return { error: 'raid before hello' };
     const r = validRaidIn(m);
     return r ? { t: 'raid', ...r } : { error: 'bad raid' };
+  }
+  if (m.t === 'sev') {   // STAFF-EVENT: a word on a staff event, to its place's cell - projected by its own law (net/staffEvent/staffEventLaw.js); the cell's ledger (server/src/staffEvents.js) judges it
+    if (!hasHello) return { error: 'sev before hello' };
+    const r = validStaffEventIn(m);
+    return r ? { t: 'sev', ...r } : { error: 'bad sev' };
   }
   if (m.t === 'serpent') {   // SERPENT1: a word on the sea serpent's fight, to its site's cell - projected by validSerpentIn; the cell's brain (net/serpent/serpentBrain.js) judges it
     if (!hasHello) return { error: 'serpent before hello' };

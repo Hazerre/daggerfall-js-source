@@ -94,6 +94,11 @@ import { readRaidReceipt } from '../net/raid/raidReceipt.js';
 import { worldRoom, isCellRoom } from '../net/wire.js';
 import { isWildRegion } from './wild/wildZone.js';   // PVPDUNGEONS: no world event in the open zone
 import { noteAct } from './questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
+import { staffRaids, staffRaidsEnded, staffRaidHere, staffRaider, staffRaidRoom, staffBossWanted, staffBossToSay, staffEventBook, staffEventEnd, staffEventLedger } from './staffEvents.js';   // STAFF-EVENT: a staff event runs as a raid
+import { validStaffEventIn } from '../net/staffEvent/staffEventLaw.js';
+import { promoteStaffBoss } from './eliteFoes.js';   // STAFF-EVENT: its mini boss
+import { enemyDisplayName } from '../characters/enemy/enemyBasics.js';   // STAFF-EVENT: its lines name a kind
+import { t } from './textManager.js';   // STAFF-EVENT: its lines in the player's language
 
 export const RAIDING_PARTIES_VENDOR = 'world-events-raiding-parties';
 export const raidingPartiesOn = () => modSetting(RAIDING_PARTIES_VENDOR, 'Enabled') === true;
@@ -230,7 +235,7 @@ export function rollRaids(day, regions, count, random) {
 export const raidsForDay = (day, regions) => rollRaids(day, regions, raidsPerDay(regions?.length ?? 0), raidDayRandom(day));
 
 /** RaidEnemyName's bracket [IL_13cc]: one raid, one key - the region, the town and the day. */
-export const raidKey = (raid) => `${raid.regionIndex}:${raid.locationIndex}:${raid.startDay}`;
+export const raidKey = (raid) => raid.key ?? `${raid.regionIndex}:${raid.locationIndex}:${raid.startDay}`;   // STAFF-EVENT: an event's own (`s.<id>`)
 /** The windows every Update test reads: begun, not ended, not cleansed. */
 export const raidActive = (raid, now) => !raid.cleansed && now >= raid.startMinute && now < raid.endMinute;
 
@@ -323,6 +328,8 @@ export function restoreRaidSaveData(data) {
   _lastRegion = -1;
 }
 export const raidState = () => state;
+/** STAFF-EVENT: the day's raids and the staff events live here (systems/staffEvents.js) - every raid a frame runs. */
+const allRaids = () => { const s = staffRaids(); return s.length ? [...state.raids, ...s] : state.raids; };
 
 // ---- the host ---------------------------------------------------------------
 /**
@@ -389,7 +396,7 @@ let _lastWord = null;
 
 /** ScheduleNextSpawn [IL_0828]. */
 function scheduleNextSpawn(type) {
-  _nextSpawnIn = rangeFloat(SPAWN_INTERVAL_MIN_S, type === 2 ? ORC_SPAWN_INTERVAL_MAX_S : SPAWN_INTERVAL_MAX_S, rnd());
+  _nextSpawnIn = type === STAFF_RAID_TYPE ? rangeFloat(STAFF_SPAWN_INTERVAL_MIN_S, STAFF_SPAWN_INTERVAL_MAX_S, rnd()) : rangeFloat(SPAWN_INTERVAL_MIN_S, type === 2 ? ORC_SPAWN_INTERVAL_MAX_S : SPAWN_INTERVAL_MAX_S, rnd());
 }
 /** ScheduleNextDefender [IL_0852]. */
 function scheduleNextDefender() {
@@ -414,7 +421,7 @@ function routRaid(raid) {
   for (const e of _live) if (e.key === key && e.kind === 'raider') e.routed = true;
 }
 
-const liveRaiders = (key) => _live.filter((e) => e.key === key && e.kind === 'raider' && !e.routed && !e.foe.dead && (e.foe.entity?.health ?? 1) > 0);
+const liveRaiders = (key) => _live.filter((e) => e.key === key && e.kind === 'raider' && !e.boss && !e.routed && !e.foe.dead && (e.foe.entity?.health ?? 1) > 0);
 /** FIELD BUGS 2026-10-11g RAID-WORD: the raid on the map pixel I stand on that I fought (a death tallied, or a blow
  *  struck) - the word the relay credits from anywhere on the town's pixel, rect or not. */
 function raidOnMyPixel(now) {
@@ -460,13 +467,14 @@ function cleanse(raid, { said = true, top = [], n = 0 } = {}) {
 function tallyDeaths(now) {
   for (const e of _live) {
     if (e.kind !== 'raider') continue;
-    const raid = state.raids.find((r) => raidKey(r) === e.key);
+    const raid = allRaids().find((r) => raidKey(r) === e.key);
     if (raid && !raid.struck && renownStruckAt(e.foe) != null) raid.struck = true;
     if (!e.foe.dead || e.counted) continue;
     e.counted = true;
     if (!e.foe.corpse || !raid || !raidActive(raid, now)) continue;   // removed, not killed; or its raid is over
+    if (e.boss) { raid.bossDown = 1; continue; }   // STAFF-EVENT: its mini boss fell - its own word, never a kill on the meter
     raid.killed++;
-    if (!raidRelayOn() && raidKillTotal(raid) >= raid.attackAmount) cleanse(raid);   // RAID3: at a raid relay, its cleanse alone
+    if (!raid.staff && !raidRelayOn() && raidKillTotal(raid) >= raid.attackAmount) cleanse(raid);   // RAID3: at a raid relay, its cleanse alone; STAFF-EVENT: an event's end is the relay's
   }
 }
 
@@ -486,13 +494,15 @@ function spawn(raid, kind, mobileType) {
   _pending = p;
   const threats = () => liveRaiders(p.key).map((e) => e.foe);
   const promise = kind === 'defender' ? h.standDefender?.(threats()) : h.standRaider?.(mobileType);
+  const boss = kind === 'boss';   // STAFF-EVENT: a staff event's mini boss - one raider, promoted
   Promise.resolve(promise).then((foe) => {
     if (_pending === p) _pending = null;
-    if (!foe) return;
-    if (p.cancelled && kind === 'raider') { h.removeFoe?.(foe); return; }
-    if (!_live.some((e) => e.foe === foe)) _live.push({ foe, key: p.key, kind, routed: false, counted: false });   // WATCH-LEAVES: a defender called back from his walk off is the one already held
-    if (kind === 'raider') foe.raidKey = p.key;   // RAID2: it rides my frame tagged with its raid
-  }, () => { if (_pending === p) _pending = null; });
+    if (!foe) { if (boss) raid.bossFc = -1; return; }   // STAFF-EVENT: no spot - the call is answered again
+    if (p.cancelled && kind !== 'defender') { h.removeFoe?.(foe); if (boss) raid.bossFc = -1; return; }
+    if (boss) { promoteStaffBoss(foe.entity, { sizePct: raid.staff.bs, healthX: raid.staff.bh }); raid.bossUp = 1; raid.bossDown = 0; }
+    if (!_live.some((e) => e.foe === foe)) _live.push({ foe, key: p.key, kind: boss ? 'raider' : kind, boss, routed: false, counted: false });   // WATCH-LEAVES: a defender called back from his walk off is the one already held
+    if (kind !== 'defender') foe.raidKey = p.key;   // RAID2: it rides my frame tagged with its raid
+  }, () => { if (_pending === p) _pending = null; if (boss) raid.bossFc = -1; });
 }
 
 /**
@@ -510,15 +520,16 @@ export function raidFrame(dt = 0) {
   _nextDefenderIn -= dt;
   _sweepIn -= dt;
   // RAID2: a raider taken over from a fallen runner is mine to count; a puppet of a raid I struck marks it fought
-  for (const f of h.ownRaidFoes?.() ?? []) if (!_live.some((e) => e.foe === f)) _live.push({ foe: f, key: f.raidKey, kind: 'raider', routed: false, counted: false });
+  for (const f of h.ownRaidFoes?.() ?? []) if (!_live.some((e) => e.foe === f)) _live.push({ foe: f, key: f.raidKey, kind: 'raider', boss: tookStaffBoss(f), routed: false, counted: false });
   for (const pup of h.raidPuppets?.() ?? []) {
-    const r = state.raids.find((x) => raidKey(x) === pup._pupRaid);
+    const r = allRaids().find((x) => raidKey(x) === pup._pupRaid);
     if (r && !r.struck && renownStruckAt(pup) != null) r.struck = true;
   }
   tallyDeaths(now);
   const relay = raidRelayOn();
   for (const r of state.raids) if (!relay && raidActive(r, now) && raidKillTotal(r) >= r.attackAmount) cleanse(r);   // RAID2: the owners' shares summed; RAID3: at a raid relay, its cleanse alone
   if (_sweepIn <= 0) { _sweepIn = ACTOR_SWEEP_S; sweep(); }
+  for (const r of staffRaidsEnded()) { r.routed = true; routRaid(r); if (r.announced) say(staffEndLine(r), r); }   // STAFF-EVENT: an event the hub ended - its monsters stand down out of sight
 
   // B. the day's roll [IL_0498-IL_0540]: the old day's raids expire first (fix 9), then the day's are rolled (fix 1).
   // The mod rolls only on a LATER day. RAID2: online the day is the world's, and a save made on a clock of its own can
@@ -553,16 +564,21 @@ export function raidFrame(dt = 0) {
       say(attackLine(r.locationName, regionName(region), r.type), r);
     }
   }
-  // F. is the player standing in a raid [IL_0de4]?
+  // STAFF-EVENT: an event in my region, said once
+  if (region >= 0) for (const r of staffRaids()) if (r.regionIndex === region && !r.announced) { r.announced = true; say(staffAttackLine(r), r); }
+  // F. is the player standing in a raid [IL_0de4]? STAFF-EVENT: in a staff event first - a town's, as a raid's; an
+  // area's, outdoors on its pixel (the host's `townHere(true)`: outdoors at all)
   const town = h.townHere?.() ?? null;
-  const raid = town ? state.raids.find((r) => raidActive(r, now) && r.regionIndex === town.regionIndex && r.locationIndex === town.locationIndex) : null;
+  const raid = staffRaidHere(town, h.playerPixel?.() ?? null, !!h.townHere?.(true)) ?? (town ? state.raids.find((r) => raidActive(r, now) && r.regionIndex === town.regionIndex && r.locationIndex === town.locationIndex) : null);
+  if (raid?.staff && staffBossToSay(raid) >= 0) say(staffBossLine(raid), raid);
   // RAID3: my word to the town's ledger, whoever runs the raid. FIELD BUGS 2026-10-11g RAID-WORD ("Doesn't register raid
   // 20%ish of the time"): the relay credits a word said from the town's PIXEL (server/src/index.js _raidWord's `here`,
   // the mod's own reward test), and the rect is narrower - a hamlet's ~300 m in an 819 m pixel. A fight that drifted past
   // the rect tallied its deaths here and never said them: the town's count stood short of its target, nothing was
   // cleansed, and the raid withdrew. Past the rect, on the pixel, a raid I fought is still said; it stands no one there.
   const said = raid ?? (relay ? raidOnMyPixel(now) : null);
-  if (relay && said) sayToRelay(said);
+  if (said?.staff) sayToCell(said);   // STAFF-EVENT: its cell keeps its meter
+  else if (relay && said) sayToRelay(said);
   if (!raid) { cancelPending(); _myClaims.clear(); return 'idle'; }
   // RAID2: online, the one who runs it stands its foes - every other player here stands them as puppets
   if (sharedClockOn() && !runsRaid(raid)) { cancelPending(); return 'standing-by'; }
@@ -576,8 +592,13 @@ export function raidFrame(dt = 0) {
     _nextDefenderIn = PENDING_BACKOFF_S;
     return 'waiting';
   }
+  // STAFF-EVENT: its mini boss, once the cell calls it - before any raider, and no defenders (staff set the fight)
+  if (raid.staff) {
+    const fc = staffBossWanted(raid);
+    if (fc >= 0) { raid.bossFc = fc; spawn(raid, 'boss', raid.staff.b); return 'boss'; }
+  }
   // H. a defender first [IL_06d1-IL_0712]; the clock is rescheduled even at the cap
-  if (_nextDefenderIn <= 0) {
+  if (!raid.staff && _nextDefenderIn <= 0) {
     scheduleNextDefender();
     if (h.defendersAllowed?.() !== false && (h.defenderCount?.() ?? 0) < MAX_RAID_DEFENDERS) {
       spawn(raid, 'defender');
@@ -587,8 +608,9 @@ export function raidFrame(dt = 0) {
   // I. a raider [IL_0712-IL_0760]
   if (_nextSpawnIn <= 0) {
     scheduleNextSpawn(raid.type);
-    if (liveRaiders(raidKey(raid)).length < MAX_RAID_ENEMIES) {
-      spawn(raid, 'raider', chooseRaider(raid.type, rnd()));
+    const standing = liveRaiders(raidKey(raid)).length;
+    if (raid.staff ? staffRaidRoom(raid, standing, MAX_RAID_ENEMIES) : standing < MAX_RAID_ENEMIES) {
+      spawn(raid, 'raider', raid.staff ? staffRaider(raid, rnd()) : chooseRaider(raid.type, rnd()));
       return 'raider';
     }
   }
@@ -655,7 +677,7 @@ export function raidPeerWord(from, raw, t = localNow()) {
 export function raidWireWord(t = localNow()) {
   const now = (host().now ?? worldMinutes)();
   const out = [];
-  for (const r of state.raids) {
+  for (const r of allRaids()) {   // STAFF-EVENT: an event's runner is elected by the same words
     if (out.length >= RAID_WORDS_MAX) break;
     const key = raidKey(r);
     if (!raidActive(r, now) || (!_myClaims.has(key) && r.killed === 0)) continue;
@@ -691,6 +713,7 @@ function sayToRelay(raid, t = localNow()) {
  */
 export function raidRelayWord(f, room = null) {
   if (!f || typeof f !== 'object') return false;
+  if (f.k === 'sev') return staffRelayWord(f.sev, room);   // STAFF-EVENT: the hub's book and ends, a cell's ledger
   if (f.k === 'rc') {
     const c = readRaidReceipt(f.r);
     if (!c || _receipts.get(c.w) === f.r) return false;
@@ -723,6 +746,64 @@ export function raidRelayWord(f, room = null) {
 export const raidRelayState = (key) => _relay.get(key) ?? null;
 /** RAID3: the receipt the relay handed me for a raid, or null. */
 export const raidReceipt = (key) => _receipts.get(key) ?? null;
+
+// ---- STAFF-EVENT: a staff event run as a raid (systems/staffEvents.js, net/staffEvent/staffEventLaw.js) ----------------
+/** The party word a staff event's raid carries for its spawn clock. */
+export const STAFF_RAID_TYPE = 9;   // no party of the mod's (0-2), and never the day roll's first clock (-1)
+/** A staff event stands its monsters faster than a raid's one to ten seconds - it is up to 500 of them, staged now. */
+export const STAFF_SPAWN_INTERVAL_MIN_S = 0.5;
+export const STAFF_SPAWN_INTERVAL_MAX_S = 2;
+/** A foe of mine taken over from a fallen runner: its event's mini boss is still the boss I stand now. */
+function tookStaffBoss(f) {
+  if (!f?.entity?.staffBoss) return false;
+  const r = staffRaids().find((x) => x.key === f.raidKey);
+  if (r) { r.bossUp = 1; r.bossDown = 0; }
+  return true;
+}
+/** The name a staff event's place is said by: its town's, off my own map (the panel's word when the map has none), or
+ *  its region's for an area. */
+function staffPlaceName(r) {
+  if (r.locationIndex >= 0) {
+    const town = regionsNow()?.find((x) => x.region === r.regionIndex)?.towns.find((t) => t.index === r.locationIndex);
+    if (town?.name) return town.name;
+  }
+  return r.locationName || regionName(r.regionIndex);
+}
+const kindName = (t) => enemyDisplayName(t) ?? 'monster';
+/** Is a staff event's place a city? The panel's word (`ct`, off the game's map), or a town of my own map. Anything else
+ *  is said as an area (mob 2026-10-24: "make sure to add that it is a city ... and make sure to say its an area if it not"). */
+const staffCity = (r) => r.locationIndex >= 0 && (r.staff?.ct === 1 || !!regionsNow()?.find((x) => x.region === r.regionIndex)?.towns.some((t) => t.index === r.locationIndex));
+export const staffAttackLine = (r) => (staffCity(r)
+  ? t('staffEvent.attackCity', 'The city of {place} is under attack!', { place: staffPlaceName(r) })
+  : t('staffEvent.attackArea', 'The area of {place} is under attack!', { place: staffPlaceName(r) }));
+export const staffBossLine = (r) => (staffCity(r)
+  ? t('staffEvent.bossCity', 'A mighty {kind} has come to the city of {place}!', { kind: kindName(r.staff.b), place: staffPlaceName(r) })
+  : t('staffEvent.bossArea', 'A mighty {kind} has come to the area of {place}!', { kind: kindName(r.staff.b), place: staffPlaceName(r) }));
+export function staffEndLine(r) {
+  const city = staffCity(r), args = { kind: kindName(r.staff.b), place: staffPlaceName(r) };
+  if (r.bossDown) return city ? t('staffEvent.bossFellCity', 'The {kind} has fallen. The city of {place} is safe.', args) : t('staffEvent.bossFellArea', 'The {kind} has fallen. The area of {place} is safe.', args);
+  return city ? t('staffEvent.overCity', 'The attack on the city of {place} is over.', args) : t('staffEvent.overArea', 'The attack on the area of {place} is over.', args);
+}
+/** My word on the staff event I stand in, to its place's cell - at once when my deaths, my strike or my boss moved, else
+ *  every STAFF_EVENT_WORD_MS (the raid's RAID_WORD_MS); the session sends it where the relay keeps events. */
+function sayToCell(raid, t = localNow()) {
+  const w = validStaffEventIn({ k: 'w', id: raid.staff.id, px: raid.px, py: raid.py, n: Math.min(raid.killed, 9999), s: raid.struck ? 1 : 0, bu: raid.bossUp, bk: raid.bossDown, fb: Math.max(0, raid.bossFc) });
+  if (!w) return false;
+  const sig = `${w.n}.${w.s}.${w.bu}.${w.bk}.${w.fb}`;
+  if (_lastStaffWord && _lastStaffWord.id === w.id && _lastStaffWord.sig === sig && t - _lastStaffWord.at < RAID_WORD_MS) return false;
+  if (!host().sendRaid?.(w, worldRoom(raid.px, raid.py))) return false;   // the session knows a staff word by its shape (net/online.js sendRaid)
+  _lastStaffWord = { id: w.id, sig, at: t };
+  return true;
+}
+let _lastStaffWord = null;
+/** The relay's word on the staff events: the hub's book (`ev`) and an end (`end`), a cell's ledger (`st`). */
+function staffRelayWord(sev, room) {
+  if (!sev) return false;
+  if (sev.k === 'ev') { staffEventBook(sev.l); return true; }
+  if (sev.k === 'end') return staffEventEnd(sev.id, sev.why);
+  if (sev.k === 'st') return typeof room === 'string' && isCellRoom(room) && staffEventLedger(sev);
+  return false;
+}
 /**
  * TIMERS1 / EVENTS1: THE DAY'S RAIDS AS THE TIMERS WINDOW AND THE EVENT BOARD READ THEM (systems/eventTimers.js
  * eventTimerRows `raids`, systems/eventBoard.js eventBoardModel) - each raid's town, its region (`regionName`), its party,

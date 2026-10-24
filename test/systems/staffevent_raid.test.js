@@ -1,0 +1,189 @@
+// STAFF-EVENT (2026-10-24, mob: "lets start making an event tool for staff to use / ... / mini boss need to be a single
+// enlarges version of the mob spawns / instead of the blue elite glow lets make the mini boss have a yellow glow";
+// bible/11-Multiplayer/Staff-Events.md) - THE GAME'S HALF: the hub's book held as raids (systems/staffEvents.js), run by
+// systems/raidingParties.js as a town's raid is - the staff's monsters stood to the event's total, no defenders, the word
+// to the place's cell, the mini boss stood when the cell calls it (promoted: yellow, its size, its health), its fall its
+// own word and never a kill on the meter, the end routing the monsters - and the boss's looks (systems/eliteFoes.js,
+// systems/hitFlash.js, systems/foeTitle.js), the raid wire's staff keys (world/raidShared.js), and the client's frame
+// and word shapes (net/wire.js, net/online.js).
+import '../modsOff.js';
+import { test, beforeEach } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+import {
+  raidFrame as frame, raidWireWord, raidRelayWord, setRaidingPartiesHost, restoreRaidSaveData, _resetRaidingParties,
+  STAFF_RAID_TYPE, staffBossLine, staffEndLine, staffAttackLine,
+} from '../../src/systems/raidingParties.js';
+import { staffEventBook, staffRaids, staffRaidHere, staffRaidRoom, staffBossWanted, staffLedgerOf, _resetStaffEvents } from '../../src/systems/staffEvents.js';
+import { validStaffEvent, staffEventKey } from '../../src/net/staffEvent/staffEventLaw.js';
+import {
+  promoteStaffBoss, isStaffBoss, eliteGlow, eliteSize, STAFF_BOSS_GLOW, STAFF_BOSS_HEALTH_MULT, ELITE_FOE_SIZE,
+} from '../../src/systems/eliteFoes.js';
+import { foeTitle } from '../../src/systems/foeTitle.js';
+import { validRaidWords, validRaidTags, validStaffBossTags } from '../../src/world/raidShared.js';
+import { setSharedClock } from '../../src/systems/worldTick.js';
+import { MINUTES_PER_DAY } from '../../src/systems/gameDate.js';
+import { _resetModSettings, setModSetting } from '../../src/systems/modSettings.js';
+import { parseClient } from '../../src/net/wire.js';
+
+const rd = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+const tick = () => new Promise((r) => setImmediate(r));
+const DAY = 400;
+const EV = { id: 'ab12cd34ef', rg: 3, loc: 7, px: 200, py: 100, nm: 'Gothway Garden', ct: 1, mt: [7, 12], n: 6, m: 3, b: 24, bs: 250, bh: 20, at: 1_700_000_000_000, ue: 0, eb: 1, fb: 0, by: 'SirMcMobdon' };
+const KEY = staffEventKey(EV.id);
+
+function rig() {
+  const at = { now: DAY * MINUTES_PER_DAY + 600, wall: 100000, me: 'mmm-0002', town: { regionIndex: 3, locationIndex: 7 }, outdoors: true, pixel: { x: 200, y: 100 }, roll: 0, own: [] };
+  const log = { said: [], raiders: [], defenders: [], words: [] };
+  let seq = 0;
+  const foe = (mobileType) => ({ mobileType, dead: false, corpse: false, entity: { health: 40, maxHealth: 40, mobileType }, ai: { feet: [seq, 0, 0] }, uid: ++seq });
+  setRaidingPartiesHost({
+    now: () => at.now, random: () => at.roll, wallNow: () => at.wall, selfId: () => at.me, maps: () => null, picker: () => null,
+    regionIndex: () => 3, regionName: (r) => `Region${r}`,
+    townHere: (outdoors) => (outdoors ? at.outdoors : at.town), playerPixel: () => at.pixel,
+    peersInTown: () => [], raidPuppets: () => [], ownRaidFoes: () => at.own, relayRaids: () => true,
+    standRaider: (mt) => { const f = foe(mt); log.raiders.push(f); return Promise.resolve(f); },
+    standDefender: () => { const g = foe(146); log.defenders.push(g); return Promise.resolve(g); },
+    defenderCount: () => 0, defendersAllowed: () => true, removeFoe: (f) => { f.dead = true; }, outOfSight: () => true,
+    reputation: () => ({ player: { legalRep: {} }, store: { dict: new Map() } }), say: (line) => log.said.push(line),
+    sendRaid: (w, room) => { log.words.push({ w, room }); return true; },
+  });
+  return { at, log };
+}
+const kill = (f) => { f.dead = true; f.corpse = true; f.entity.health = 0; };
+/** Frames until the spawn clock comes round (a staff event's 0.5-2 s), each a tick for a stand to land. */
+async function run(n, dt = 2.1) { const out = []; for (let i = 0; i < n; i++) { out.push(frame(dt)); await tick(); } return out; }
+
+beforeEach(() => {
+  _resetRaidingParties();
+  _resetStaffEvents();
+  _resetModSettings();
+  setModSetting('world-events-raiding-parties', 'Enabled', true);
+  setSharedClock(null);
+});
+
+test('STAFF-EVENT: the hub\'s book held as raids - a town\'s where I stand outdoors in its rect, an area\'s on its pixel outdoors; one the book drops is ended', () => {
+  assert.equal(staffEventBook([EV, { ...EV, id: 'cc22dd33ee', loc: -1, px: 210, py: 101 }, { bad: 1 }]), 2);
+  const [town, area] = staffRaids();
+  assert.deepEqual([town.key, town.type, town.attackAmount, town.startMinute, town.endMinute], [KEY, STAFF_RAID_TYPE, 6, -Infinity, Infinity]);
+  assert.equal(staffRaidHere({ regionIndex: 3, locationIndex: 7 }, { x: 0, y: 0 }, true), town);
+  assert.equal(staffRaidHere(null, { x: 210, y: 101 }, true), area);
+  assert.equal(staffRaidHere(null, { x: 210, y: 101 }, false), null, 'an area is outdoors alone');
+  assert.equal(staffRaidRoom(town, 0, 25), true);
+  assert.equal(staffRaidRoom(town, 6, 25), false, 'never more standing than its total');
+  assert.equal(staffRaidRoom(town, 25, 25), false);
+  staffEventBook([EV]);
+  assert.equal(staffRaids().length, 1, 'the area\'s is over');
+  staffEventBook([EV, { ...EV, id: 'cc22dd33ee', loc: -1 }]);
+  assert.equal(staffRaids().length, 1, 'and never stood again by a late book');
+});
+
+test('STAFF-EVENT: RUN AS A RAID - its own monsters, mixed, up to its total; no defenders; my word to the place\'s cell; the boss stood when the cell calls it, yellow and large; its fall ends nothing on the meter', async () => {
+  const { at, log } = rig();
+  restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });
+  setSharedClock(() => at.now);
+  raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [EV] } }, 'social');
+  const raid = staffRaids()[0];
+  await run(12);
+  assert.equal(log.defenders.length, 0, 'no defenders: staff set the fight');
+  assert.equal(log.raiders.length, 6, 'its total and no more');
+  assert.deepEqual([...new Set(log.raiders.map((f) => f.mobileType))].sort(), [7], 'the roll picks its kinds (a roll of 0: the first)');
+  assert.ok(log.raiders.every((f) => f.raidKey === KEY));
+  at.roll = 0.99;
+  assert.equal(log.raiders.length, 6);
+  assert.match(log.said[0], /The city of Gothway Garden is under attack!/);
+  // three deaths: my word says them, to the place's cell
+  for (const f of log.raiders.slice(0, 3)) kill(f);
+  await run(1);
+  const w = log.words.at(-1);
+  assert.deepEqual(w.w, { k: 'w', id: EV.id, px: 200, py: 100, n: 3, s: 0, bu: 0, bk: 0, fb: 0 });
+  assert.equal(w.room, 'world:' + w.room.split(':')[1], 'a cell room');
+  // the cell calls the boss (the meter at 3): I run the event, so I stand it, before any raider
+  raidRelayWord({ k: 'sev', sev: { k: 'st', id: EV.id, n: 3, bd: 1, bu: 0, bk: 0, fc: 0 } }, w.room);
+  assert.equal(staffLedgerOf(EV.id).bd, 1);
+  assert.equal(raidRelayWord({ k: 'sev', sev: { k: 'st', id: EV.id, n: 5, bd: 1, bu: 0, bk: 0, fc: 0 } }, 'social'), false, 'a ledger from the social room is no cell\'s');
+  assert.equal(staffBossWanted(raid), 0);
+  assert.equal(frame(0.1), 'boss');
+  await tick();
+  const boss = log.raiders.at(-1);
+  assert.equal(boss.mobileType, 24, 'staff\'s pick: an Orc Warlord');
+  assert.ok(isStaffBoss(boss.entity));
+  assert.equal(boss.entity.maxHealth, 40 * 20, 'staff\'s health pick: 20x');
+  assert.equal(eliteSize(boss.entity), 2.5);
+  assert.equal(raid.bossUp, 1);
+  assert.equal(staffBossWanted(raid), -1, 'one boss a call');
+  assert.ok(log.said.some((l) => /A mighty Orc Warlord has come to the city of Gothway Garden!/.test(l)), 'said once where I stand');
+  await run(1);
+  assert.deepEqual([log.words.at(-1).w.bu, log.words.at(-1).w.bk], [1, 0]);
+  // the boss falls: its own word, not a fourth kill
+  kill(boss);
+  await run(1);
+  assert.deepEqual([log.words.at(-1).w.n, log.words.at(-1).w.bk], [3, 1]);
+  // the hub ends it: its monsters routed, the end said
+  raidRelayWord({ k: 'sev', sev: { k: 'end', id: EV.id, why: 'boss' } }, 'social');
+  frame(0.1);
+  assert.match(log.said.at(-1), /The Orc Warlord has fallen\. The city of Gothway Garden is safe\./);
+  assert.equal(staffRaids().length, 0);
+  // a hand call is one more boss
+  raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [{ ...EV, id: 'dd33ee44ff' }] } }, 'social');
+  raidRelayWord({ k: 'sev', sev: { k: 'st', id: 'dd33ee44ff', n: 0, bd: 1, bu: 0, bk: 0, fc: 2 } }, w.room);
+  assert.equal(staffBossWanted(staffRaids()[0]), 2);
+});
+
+test('STAFF-EVENT: an event\'s runner is elected by the raid\'s own words; a claim on a staff key rides the wire', async () => {
+  const { at } = rig();
+  restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });
+  setSharedClock(() => at.now);
+  staffEventBook([EV]);
+  await run(2);
+  const word = raidWireWord(at.wall);
+  assert.equal(word[0][0], KEY);
+  assert.deepEqual(validRaidWords(word).map((x) => x.key), [KEY], 'the wire takes a staff key');
+  assert.deepEqual([...validRaidTags([[5, KEY], [6, 's.X']])], [[5, KEY]]);
+  assert.deepEqual([...validStaffBossTags([[5, 250], [6, 200], [7, 99]])], [[5, 250]], 'one boss a frame, sized 1.5x-3x');
+});
+
+test('STAFF-EVENT: THE MINI BOSS\'S LOOKS - an elite, larger, its glow carried past the elite\'s band (the shader reads yellow), named Mighty', () => {
+  const e = { health: 10, maxHealth: 10, mobileType: 7 };
+  assert.ok(promoteStaffBoss(e, { sizePct: 300 }));
+  assert.equal(e.maxHealth, 10 * STAFF_BOSS_HEALTH_MULT, 'unset: 10x');
+  assert.ok(e.eliteFoe);
+  assert.equal(eliteSize(e), 3);
+  const g = eliteGlow(e, 1);
+  assert.ok(g >= STAFF_BOSS_GLOW + 0.55 && g <= STAFF_BOSS_GLOW + 1, 'a boss\'s glow: 2.55-3');
+  const plain = { health: 10, eliteFoe: true };
+  assert.ok(eliteGlow(plain, 1) <= 1, 'an elite\'s stays 0.55-1');
+  assert.equal(eliteSize(plain), ELITE_FOE_SIZE);
+  const puppet = { health: 10, maxHealth: 10 };
+  promoteStaffBoss(puppet, { own: false, sizePct: 200 });
+  assert.equal(puppet.maxHealth, 10, 'a puppet\'s health is its owner\'s word');
+  const capped = { health: 10, maxHealth: 10 };
+  promoteStaffBoss(capped, { healthX: 1000 });
+  assert.equal(capped.maxHealth, 1000, 'at most 100x');
+  assert.equal(foeTitle(e, 'Orc'), 'Mighty Orc');
+  const glsl = rd('src/systems/hitFlash.js');
+  assert.match(glsl, /STAFF_BOSS_RIM = vec3\(1\.0, 0\.82, 0\.18\)/, 'yellow');
+  assert.match(glsl, /boss \? STAFF_BOSS_RIM : ELITE_RIM/);
+});
+
+test('STAFF-EVENT: the client\'s word and the relay\'s frame - a staff word parsed by the relay\'s own parser; the game reads its frames off the raid door', () => {
+  const m = parseClient(JSON.stringify({ t: 'sev', k: 'w', id: EV.id, px: 200, py: 100, n: 3, s: 1 }), { hasHello: true });
+  assert.deepEqual(m, { t: 'sev', k: 'w', id: EV.id, px: 200, py: 100, n: 3, s: 1, bu: 0, bk: 0, fb: 0 });
+  assert.deepEqual(parseClient(JSON.stringify({ t: 'sev', k: 'w', id: 'X', px: 200, py: 100, n: 3 }), { hasHello: true }), { error: 'bad sev' });
+  assert.deepEqual(parseClient(JSON.stringify({ t: 'sev', k: 'w', id: EV.id, px: 200, py: 100, n: 3 })), { error: 'sev before hello' });
+  const online = rd('src/net/online.js');
+  assert.match(online, /m\.t === 'sev'/);
+  assert.match(online, /relaySupportsStaffEvents/);
+  assert.ok(validStaffEvent(EV));
+  // mob 2026-10-24: a city said as a city, anything else as an area
+  assert.equal(staffAttackLine({ locationIndex: -1, locationName: 'Road', regionIndex: 3, staff: { b: 7 } }), 'The area of Road is under attack!');
+  assert.equal(staffBossLine({ locationIndex: -1, locationName: 'Road', regionIndex: 3, staff: { b: 130 } }), 'A mighty Battlemage has come to the area of Road!', 'a class named by its own name');
+  assert.equal(staffEndLine({ locationIndex: -1, locationName: 'Road', regionIndex: 3, bossDown: 0, staff: { b: 7 } }), 'The attack on the area of Road is over.');
+  const city = { locationIndex: 7, locationName: 'Gothway Garden', regionIndex: 3, staff: { b: 7, ct: 1 } };
+  assert.equal(staffAttackLine(city), 'The city of Gothway Garden is under attack!');
+  assert.match(staffBossLine(city), /^A mighty .+ has come to the city of Gothway Garden!$/);
+  assert.match(staffEndLine({ ...city, bossDown: 1 }), /^The .+ has fallen\. The city of Gothway Garden is safe\.$/);
+  assert.equal(staffEndLine({ ...city, bossDown: 0 }), 'The attack on the city of Gothway Garden is over.');
+  assert.equal(staffAttackLine({ ...city, staff: { b: 7, ct: 0 } }), 'The area of Gothway Garden is under attack!', 'a named place that is no town (a dungeon, a temple) is an area');
+});
