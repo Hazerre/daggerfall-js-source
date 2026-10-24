@@ -1,7 +1,11 @@
 -- KETCH (2026-10-24; bible/11-Multiplayer/Sky-Ketch.md section 13): THE SKY-KETCH, step 1 of 4.
 -- The port's own script on DFU's machine (systems/questlines/qlLines.js). Started by the line's runner, never offered
 -- by a questor: Imrah Bel-Tavir's letter is the offer (QLWR01's shape), and her book with it - The Ketch That Never
--- Lands (systems/portBooks.js, id 419). The step waits on the anchor-lift ridden up (`ql act ketch-boarded 1`, said by
+-- Lands (systems/portBooks.js, id 419), handed over as the letter is in the pack (`have _letter_ set _book_`, QLIW02's
+-- shape) by `get item`, never `give pc` - a give is a quest's pay (qlLayer.js reward: AUDIT KETCH L5-2, the book's give
+-- showed the QuestComplete box, "Imrah counts ... gold into your hand", at the letter, and marked the quest paid). The
+-- Ketch keeps the real week (net/ketch/ketchLaw.js), never the online calendar's Loredas, so no line names a day (AUDIT
+-- KETCH L5-3). The step waits on the anchor-lift ridden up (`ql act ketch-boarded 1`, said by
 -- scenes/ketch/ketchClient.js as the mode machine stands the player aboard), then her table, where she pays; a visit
 -- before is answered and cleared (M0B30Y04's `_clearclick_`). Lore: canon - the Rourken, the clan that would not join
 -- the Chimer, threw Volendrung and built where it fell; the Dwemer vanished, every one, in a day. The port's own - the
@@ -23,8 +27,8 @@ QuestComplete:  [1004]
 QuestLogEntry:  [1010]
 %qdt:
  A letter from Imrah Bel-Tavir, an antiquarian of
- Sentinel, with her book on the ship that crosses
- the sky over Daggerfall each Loredas. She asks me
+ Sentinel, with her book on the brass ship that
+ comes to keep station over Daggerfall. She asks me
  to ride its anchor-lift up from the fields east of
  the city, and then to find her at _tavern_ in
  __tavern_ and tell her what is on its deck.
@@ -33,9 +37,9 @@ Message:  1011
 %pcn,
 
      They tell me you have seen the shape over
- Daggerfall on Loredas. I have watched it from
- Sentinel for a year and from Daggerfall's walls for
- a month, and I am too old to climb a chain.
+ Daggerfall. I have watched it from Sentinel for a
+ year and from Daggerfall's walls for a month, and I
+ am too old to climb a chain.
 
      While she keeps station she lets down her
  anchor-lift to the fields east of the city. Ride it
@@ -114,9 +118,12 @@ Clock _meet_ 30.00:00 0 flag 1 range 0 1
 
 _courier_ task:
 	give pc _letter_ notify 1012
-	give pc _guide_
+	have _letter_ set _book_
 	log 1010 step 0
 	start timer _wait_
+
+_book_ task:
+	get item _guide_
 
 _boarded_ task:
 	ql act ketch-boarded 1

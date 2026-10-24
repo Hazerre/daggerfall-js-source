@@ -18,7 +18,7 @@ export const KT_WORDS = Object.freeze({
   get sighted() { return t('ketch.sighted', 'A shape like a brass whale hangs in the east sky over Daggerfall. The Ketch is coming.'); },
   get arrived() { return t('ketch.arrived', 'The Rourken sky-ketch Mzunthar keeps station over Daggerfall. Its anchor-lift waits in the fields outside the walls.'); },
   get departing() { return t('ketch.departing', 'The Ketch is weighing anchor. Her anchor-lift will not rise again this voyage.'); },
-  get departed() { return t('ketch.departed', 'The Ketch turns west and is gone. She comes again on Loredas.'); },
+  get departed() { return t('ketch.departed', 'The Ketch turns west and is gone. She comes again on Saturday at 00:00 UTC.'); },
   get boarding() { return t('ketch.boarding', 'The anchor-lift rises into the sky.'); },
   get lowered() { return t('ketch.lowered', 'The anchor-lift sets you down in the fields outside Daggerfall.'); },
   get noRest() { return t('ketch.noRest', 'You cannot rest aboard the Ketch.'); },
@@ -29,7 +29,7 @@ export const KT_WORDS = Object.freeze({
   get noFlight() { return t('ketch.noFlight', 'The Sailwalk is walked, not flown.'); },
   get noUnstuck() { return t('ketch.noUnstuck', 'The Ketch\'s ways down are her anchor-lift and her stern lift.'); },
   get died() { return t('ketch.died', 'You fall from the Ketch. You wake in the fields outside Daggerfall, the anchor-lift above you.'); },
-  get castBack() { return t('ketch.castBack', 'The rigging nets catch you and haul you back to the last top.'); },
+  get castBack() { return t('ketch.castBack', 'The rigging nets catch you and haul you back aboard.'); },
   get hatchOpen() { return t('ketch.hatchOpen', 'The Watch is broken. The hatch to the gun deck opens.'); },
   get holdOpen() { return t('ketch.holdOpen', 'The Hammer Wardens are down. The way to the hold opens.'); },
   get engineFed() { return t('ketch.engineFed', 'The Starved Engine wakes. The mast-lift rises to the main top.'); },
@@ -48,7 +48,7 @@ export const KT_REFUSE_WORDS = Object.freeze({
   get full() { return t('ketch.refuse.full', 'The anchor-lift will not rise for nine.'); },
   get busy() { return t('ketch.refuse.busy', 'The anchor-lift does not answer. Try again in a moment.'); },
   get offline() { return t('ketch.refuse.offline', 'Only an online crew can board the Ketch.'); },
-  get away() { return t('ketch.refuse.away', 'There is no Ketch over Daggerfall now. She comes on Loredas.'); },
+  get away() { return t('ketch.refuse.away', 'There is no Ketch over Daggerfall now. She comes on Saturday at 00:00 UTC.'); },
 });
 /** A refusal the relay said (its English) in the player's language - any other word as it came. Pure. */
 export function ketchRefusal(err) {

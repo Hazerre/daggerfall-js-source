@@ -196,5 +196,32 @@
     "tests": [
       "test/world/ketch_model.test.js"
     ]
+  },
+  {
+    "name": "KTM-the-stone-never-turned",
+    "file": "src/scenes/ketch/ketchDeckHost.js",
+    "old": "yawAbout(D.lodestone.object.matrix, t * KT_LODESTONE.spin,",
+    "new": "yawAbout(D.lodestone.object.matrix, 0 * KT_LODESTONE.spin,",
+    "tests": [
+      "test/scenes/ketch_deck_host.test.js"
+    ]
+  },
+  {
+    "name": "KTM-the-chain-to-the-old-end",
+    "file": "src/world/ketch/ketchModel.js",
+    "old": "{ const q = bosunLineAt(k / n); K.pipe(R.chain, p, q, 0.06, 4); p = q; }",
+    "new": "{ const q = bosunLineAt(k / n); if (k === n) { q[0] = KT_GANGWAY.ax; q[2] = KT_GANGWAY.az + 1; } K.pipe(R.chain, p, q, 0.06, 4); p = q; }",
+    "tests": [
+      "test/world/ketch_model.test.js"
+    ]
+  },
+  {
+    "name": "KTM-her-night-at-0.1",
+    "file": "src/world/ketch/ketchShip.js",
+    "old": "night: Object.freeze([0.25, 0.26, 0.3]),",
+    "new": "night: Object.freeze([0.1, 0.1, 0.12]),",
+    "tests": [
+      "test/scenes/ketch_deck_host.test.js"
+    ]
   }
 ]

@@ -426,7 +426,7 @@ them moves; `KETCH_GILDED_CHANCE`, **one in a hundred each**, each its own draw;
 | Make | a **Dwarven Thunderlock** (560), the gun's own mint (`createThunderlock`) | a **Dwarven Pistolet** (562), the gun's own mint (`createPistolet`) |
 | Lines | the Hourlock's as a gun: +40% damage, +15 Agility, +30 Archery, +10 shock a shot | +40% damage, +15 Speed, +30 Archery, +10 shock a shot |
 | Power | **Hammerfall** - a shot that lands rings on: every OTHER foe within 3.5 m of the one it struck takes half the shot as shock, by its resistance | **Broadside** - a shot that lands marks the foe 2.5 s: the next blow of the other hand on it (a second pistol, a blade) strikes 60% harder, and the mark is spent |
-| Lore | the Rourken threw Volendrung and built where it fell; their gunwrights tuned this one to the note the Hammer sang in its flight | the Mzunthar's master wore it at her hip the day the Dwemer vanished; the Ketch's constructs still lower their arms to it |
+| Lore | the Rourken threw Volendrung and built where it fell; their gunwrights tuned this one to the note the Hammer sang in its flight, and gilded it for the steersman bound to her helm (AUDIT KETCH L5-8: "for the Ketch's master", where the book and its drop make it the Warden's) | the Mzunthar's master wore it at her hip the day the Dwemer vanished and gave her last order with it in her hand; its coil never wound down (AUDIT KETCH L5-7: it promised constructs that lowered their arms to it - the game has none) |
 
 Both every line at the Legendary band's top and no higher, KNOWN, priced over their make by their lines and
 GILDED_WORTH, lawful on the wire exactly (one number off a forgery), never salvaged, reforged or made, in the codex at the

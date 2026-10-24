@@ -6,11 +6,12 @@
 // of the voyage is called. Pure, and every end's: the page (its sight, its anchor-lift, its link), the relay (the Worker's
 // door and the room's admission) and the account service (a receipt's voyage).
 //
-// THE VOYAGE, ON THE REAL CLOCK. The Ketch comes on Loredas - the Tamrielic Saturday, and the real one: voyage n arrives
-// at KT_EPOCH_MS + n weeks, 00:00 UTC on a Saturday. It is SIGHTED KT_SIGHT_MS before (a speck in the east, then a shape),
-// keeps station KT_STATION_MS over the fields outside Daggerfall's walls (the anchor-lift lowered: boarding), then
-// weighs anchor - no crew boards, the crews aboard have KT_LAST_MS to finish - and turns west. One rule for every
-// screen and the relay, so no hub keeps a record: the clock is the record.
+// THE VOYAGE, ON THE REAL CLOCK. The Ketch comes on the real Saturday: voyage n arrives at KT_EPOCH_MS + n weeks, 00:00
+// UTC on a Saturday - never the online calendar's Loredas, which runs twelve game days a real day, so no line names a day
+// of Tamriel's week (AUDIT KETCH L5-3: "every Loredas" was false on the game's own calendar). It is SIGHTED KT_SIGHT_MS
+// before (a speck in the east, then a shape), keeps station KT_STATION_MS over the fields outside Daggerfall's walls (the
+// anchor-lift lowered: boarding), then weighs anchor - no crew boards, the crews aboard have KT_LAST_MS to finish - and
+// turns west. One rule for every screen and the relay, so no hub keeps a record: the clock is the record.
 //
 // A CREW IS A PARTY, ITS SHIP ITS OWN. Every crew sails its own Ketch: a room of its own, `kt:<voyage>.<owner>` - the
 // voyage in eight hex, the captain's account digest in sixteen (net/instanceRoom.js instanceOwnerOf, INSTANCES' own),
@@ -24,7 +25,7 @@ import { INSTANCE_OWNER_HEX } from '../instanceRoom.js';
 
 /** A week, ms. */
 export const KT_WEEK_MS = 7 * 24 * 3600 * 1000;
-/** Voyage 0's arrival: Loredas, 2026-10-24, 00:00 UTC - a Saturday. Every voyage after is a week on. */
+/** Voyage 0's arrival: Saturday, 2026-10-24, 00:00 UTC. Every voyage after is a week on. */
 export const KT_EPOCH_MS = Date.UTC(2026, 9, 24);
 /** Sighted this long before it arrives; keeps station this long; the crews aboard have this long after it weighs anchor. */
 export const KT_SIGHT_MS = 2 * 3600 * 1000;

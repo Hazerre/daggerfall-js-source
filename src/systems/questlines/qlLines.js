@@ -108,7 +108,7 @@ export const QL_LINES = Object.freeze([
   line({
     id: 'skyKetch', group: 'ketch', tier: 4,
     title: () => t('ql.line.skyKetch', 'The Sky-Ketch'),
-    lead: () => t('ql.line.skyKetch.lead', 'Each Loredas a Rourken ship of brass keeps station over Daggerfall. An antiquarian of Sentinel wants to know what brought her down.'),
+    lead: () => t('ql.line.skyKetch.lead', 'Every Saturday from 00:00 UTC a Rourken ship of brass keeps station over Daggerfall. An antiquarian of Sentinel wants to know what brought her down.'),
     giver: () => t('ql.line.skyKetch.giver', 'Imrah Bel-Tavir, Antiquarian of Sentinel'),
     opens: { level: 12, online: true, account: true },
     steps: [

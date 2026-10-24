@@ -79,3 +79,37 @@ test('KETCH A STAIR\'S WHOLE FLIGHT IS BELOW DECKS: the waist\'s stair and the h
   assert.equal(ketchFrameLook(eye(0, 0, 30), 720).below, false, 'the waist itself');
   assert.equal(ketchFrameLook(eye(24, -6, 120), 720).below, false, 'a fall outboard of the hull');
 });
+
+test('KETCH THE LODESTONE TURNS ON ITS OWN: the deck draws the stone behind the helm at its foot, and every frame turns it - at every stage, the Warden standing or felled (AUDIT KETCH L5-7; mutants: the stone never turned)', async () => {
+  const { buildKetchParts, KT_LODESTONE } = await import('../../src/world/ketch/ketchModel.js');
+  const { deckToDungeon } = await import('../../src/net/ketch/ketchDeck.js');
+  const want = buildKetchParts().lodestone.model.positions;
+  const deck = createKetchDeck({ renderer: { createMesh: (m) => ({ m }) } }), draws = [];
+  deck.stand({ dynamicDraws: draws, collider: null });
+  const d = draws.find((x) => x.gpu?.m?.positions?.length === want.length && x.gpu.m.positions.every((v, i) => v === want[i]));
+  assert.ok(d, 'the lodestone drawn');
+  const at = deckToDungeon(KT_LODESTONE.x, KT_LODESTONE.y, KT_LODESTONE.z);
+  for (const sg of [KT_STAGE.watch, KT_STAGE.bridge, KT_STAGE.vault]) {
+    deck.pose({ n: 1, sg, cl: null, ws: null }, 10, 10_000, null);
+    const m0 = [...d.object.matrix];
+    deck.pose({ n: 1, sg, cl: null, ws: null }, 12, 12_000, null);
+    const m1 = [...d.object.matrix];
+    assert.equal(d.hidden, false, `shown at stage ${sg}`);
+    assert.deepEqual([m1[12], m1[13], m1[14]].map((v) => Math.round(v * 1e4) / 1e4), at.map((v) => Math.round(v * 1e4) / 1e4), 'at its foot');
+    assert.ok(Math.abs(m1[0] - m0[0]) > 0.05 || Math.abs(m1[2] - m0[2]) > 0.05, `turned between the frames at stage ${sg}`);
+  }
+});
+
+test('KETCH HER NIGHT NO DARKER THAN THE WORLD\'S: on her open deck at midnight the frame\'s ambient is never under DFU\'s exterior night floor, and the day\'s only brighter (the live run at 04:00 UTC found her deck black at 0.1; AUDIT KETCH L5-9: pinned by the live run alone; mutants: her night at 0.1)', async () => {
+  const { ketchFrameLook } = await import('../../src/scenes/ketch/ketchDeckHost.js');
+  const { EXTERIOR_NIGHT_AMBIENT } = await import('../../src/world/worldClock.js');
+  const { deckToDungeon } = await import('../../src/net/ketch/ketchDeck.js');
+  const eye = deckToDungeon(0, 1.6, 30);
+  for (const minute of [0, 120, 1380]) {
+    const L = ketchFrameLook(eye, minute);
+    assert.equal(L.below, false);
+    for (let k = 0; k < 3; k++) assert.ok(L.ambient[k] >= EXTERIOR_NIGHT_AMBIENT[k], `minute ${minute}, channel ${k}: ${L.ambient[k]}`);
+  }
+  const night = [...ketchFrameLook(eye, 0).ambient], noon = [...ketchFrameLook(eye, 720).ambient];
+  for (let k = 0; k < 3; k++) assert.ok(noon[k] >= night[k], 'the day no darker than the night');
+});

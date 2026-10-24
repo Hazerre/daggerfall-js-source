@@ -6925,7 +6925,7 @@ export const ketchReceiptKey = (sub) => `${KT_RC_PREFIX}${sub}`;
 /** The hub's internal door a ship's room tells its fall's receipts at, and how long it waits to tell again. */
 export const KT_INTERNAL_RC = '/internal/ketch/rc';
 export const KT_TELL_RETRY_MS = 30_000;
-/** The most a voyage's number is on the wire (two centuries of Loredas). */
+/** The most a voyage's number is on the wire (two centuries of Saturdays). */
 export const KT_VOYAGE_N_MAX = 10_000;
 /** A ship's receipts as told to the hub - its voyage and `[account, receipt]` each, the wire's own receipts alone -
  *  projected, or null. */

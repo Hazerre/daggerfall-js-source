@@ -17,7 +17,8 @@ only found within this activity"* (`06-Systems/Gilded.md` section 10).
 So, as decided here:
 
 - **Online only, on the real clock.** The Ketch is a fact about the shared world, like the gate and the Hour: she comes
-  every Loredas, the relay runs each crew's ship, signs each earner's receipt, and the account service pays the week's
+  every real Saturday at 00:00 UTC - never the online calendar's Loredas, which runs twelve game days a real day, so no
+  line names a day of Tamriel's week (AUDIT KETCH L5-3) - the relay runs each crew's ship, signs each earner's receipt, and the account service pays the week's
   share. Offline there is no Ketch.
 - **One party, one ship.** A crew is a party - eight at most, the party's own bound (`net/wire.js` PARTY_MAX) - and each
   crew boards its own copy of her (an instance, `11-Multiplayer/Instances.md`'s law): the captain's ship, the captain's
@@ -54,7 +55,7 @@ on the guns - `05-Combat/Dwarven-Thunderlock.md` GUN-LORE).
 
 ## 2. The voyage on the clock, and the Ketch in the sky
 
-**The law** (`net/ketch/ketchLaw.js`): voyage 0 arrives **Loredas 2026-10-24 at midnight UTC** (`KT_EPOCH_MS`) and
+**The law** (`net/ketch/ketchLaw.js`): voyage 0 arrives **Saturday 2026-10-24 at 00:00 UTC** (`KT_EPOCH_MS`) and
 every voyage a week on (`KT_WEEK_MS`). She is **sighted** two hours before (`KT_SIGHT_MS`), **keeps station** a day and a
 half (`KT_STATION_MS`), then **weighs anchor**: the crews aboard have twenty minutes more (`KT_LAST_MS`), and then she
 is gone. `ketchVoyageAt(now)` names the voyage and its phase - away, sighted, docked, departing - each instant's edge

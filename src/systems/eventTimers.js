@@ -139,7 +139,7 @@ export function eventTimerRows(src) {
   // one that knows where the night's stars fall and which of them are held.
   for (const r of src?.stars ?? []) if (r?.kind === 'star' && typeof r.id === 'string' && Number.isFinite(r.at)) rows.push(r);
 
-  // ── THE SKY-KETCH (net/ketch/ketchLaw.js: a voyage every Loredas, the clock's alone) ── KETCH: ketchRows
+  // ── THE SKY-KETCH (net/ketch/ketchLaw.js: a voyage every real Saturday, the clock's alone) ── KETCH: ketchRows
   ketchRows(now, coming, live);
 
   // ── AN ELITE BREACH (net/eliteGates/egLaw.js egTimes: the call's opening, the open window, THE COUNT) ── EG-F (bible/11-Multiplayer/

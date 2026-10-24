@@ -1,9 +1,11 @@
 -- KETCH (2026-10-24; bible/11-Multiplayer/Sky-Ketch.md section 13): THE SKY-KETCH, step 2 of 4.
 -- The port's own script on DFU's machine (systems/questlines/qlLines.js). Started by the line's runner: Imrah's letter, and
--- she waits at her tavern. The step waits on three aether cells of the player's own set in the Starved Engine or a
--- resonator (`ql act ketch-cell-banked 3`, said by scenes/ketch/ketchClient.js when the ship's room says the cell was
--- mine). Then her table, where she gives her other book - Rourken Thunder (systems/portBooks.js, id 418), on the guns the
--- Ketch's hold is said to keep - and pays. A visit before is answered and cleared (M0B30Y04's `_clearclick_`). Lore:
+-- she waits at her tavern. The step waits on an aether cell of the player's own set in the Starved Engine or a
+-- resonator (`ql act ketch-cell-banked 1`, said by scenes/ketch/ketchClient.js when the ship's room says the cell was
+-- mine) - one, so every hand of a crew of eight can: a voyage banks the engine's seven at most and a resonator's each
+-- discord, never three cells a hand (AUDIT KETCH L5-4). Then her table, where she gives her other book - Rourken Thunder
+-- (systems/portBooks.js, id 418), on the guns the Ketch's hold is said to keep - by `get item` (a give is a quest's pay,
+-- qlLayer.js reward: AUDIT KETCH L5-2, its give showed the QuestComplete box twice) and pays. A visit before is answered and cleared (M0B30Y04's `_clearclick_`). Lore:
 -- canon - aetherium, the Dwemer's blue crystal, mined and fought over (the Aetherium Wars); the tonal architecture. The
 -- port's own - the cells, the Starved Engine, the arc-coils (Sky-Ketch.md section 6).
 Quest: QLSK02
@@ -23,10 +25,11 @@ QuestComplete:  [1004]
 QuestLogEntry:  [1010]
 %qdt:
  Imrah Bel-Tavir writes that the Sky-Ketch's engine
- is starving. She asks me to carry aether cells
- from the cradles in her hold and set three of them
- in the engine's sockets, and then to tell her of
- it at _tavern_ in __tavern_.
+ is starving. She asks me to carry an aether cell
+ from the cradles in her hold and set it with my
+ own hands in the engine or in one of the bridge's
+ resonators, and then to tell her of it at _tavern_
+ in __tavern_.
 
 Message:  1011
 %pcn,
@@ -37,8 +40,8 @@ Message:  1011
  crystal the Dwemer went to war over.
 
      Find her engine. Find what it eats, and feed it
- with your own hands, three times at least, so you
- will know the weight of it. Then come to _tavern_ in
+ with your own hands, once at least, so you will
+ know the weight of it. Then come to _tavern_ in
  __tavern_. Bring nothing back with you. Not yet.
 
 <ce>                Imrah Bel-Tavir, Antiquarian
@@ -70,19 +73,19 @@ They say the woman from Sentinel has a gun of the Dwemer in her room. They say s
 
 Message:  1015
 <ce>       "Her engine," Imrah says, without looking up.
-<ce>        "Feed it. Three cells, your own hands. Then
+<ce>        "Feed it. A cell, with your own hands. Then
 <ce>                    come back to me."
 
 Message:  1016
 %qdt:
- I have set three aether cells in the Sky-Ketch's
- Starved Engine with my own hands. Imrah Bel-Tavir
- is waiting to hear of it at _tavern_ in __tavern_.
+ I have set an aether cell in the Sky-Ketch with my
+ own hands. Imrah Bel-Tavir is waiting to hear of it
+ at _tavern_ in __tavern_.
 
 Message:  1020
-<ce>       The cell seats with a sound like a struck bell.
-<ce>       Somewhere below your feet the engine drinks, and
-<ce>                hums a little louder for it.
+<ce>       The cell seats with a sound like a struck bell,
+<ce>       and the whole ship hums a little louder for it.
+<ce>                Imrah will want to hear of this.
 
 -- Symbols used in the QRC file:
 --
@@ -116,7 +119,7 @@ _courier_ task:
 	start timer _wait_
 
 _fed_ task:
-	ql act ketch-cell-banked 3
+	ql act ketch-cell-banked 1
 	say 1020
 	log 1016 step 1
 	stop timer _wait_
@@ -133,7 +136,7 @@ _notyet_ task:
 _paid_ task:
 	when _clicked_ and _fed_
 	say 1013
-	give pc _thunder_
+	get item _thunder_
 	give pc _gold_
 	end quest
 

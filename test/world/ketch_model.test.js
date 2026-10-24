@@ -159,3 +159,28 @@ test('KETCH THE PARKED CAGE\'S FLOOR OVER THE HOLD\'S: the cage\'s deck a hair o
   assert.ok(Math.abs(top - KT_CAGE_LIFT_M) < 1e-4, `the floor's top at ${top}`);
   assert.ok(KT_LIFT.y0 + top - hold >= 0.015, 'drawn clear of the hold\'s floor');
 });
+
+test('KETCH THE LODESTONE BEHIND THE HELM: the stone the line\'s words name - blue aether in a brass hoop on a post - stands on the console behind the helm, its foot at the console\'s top, its stone clear over it (AUDIT KETCH L5-7; mutants: no stone)', async () => {
+  const { KT_LODESTONE } = await import('../../src/world/ketch/ketchModel.js');
+  const { KT_CONSOLE, KT_HELM } = await import('../../src/net/ketch/ketchDeck.js');
+  const { KT_REC } = await import('../../src/world/ketch/ketchArt.js');
+  const { lodestone } = buildKetchParts();
+  assert.ok(lodestone?.model?.positions?.length > 0, 'a part');
+  assert.ok(lodestone.model.subMeshes.some((m) => m.textureRecord === KT_REC.aether && m.primitiveCount >= 8), 'of aether');
+  assert.ok(KT_LODESTONE.x > KT_CONSOLE.x0 && KT_LODESTONE.x < KT_CONSOLE.x1 && KT_LODESTONE.z > KT_CONSOLE.z0 && KT_LODESTONE.z < KT_CONSOLE.z1, 'on the console');
+  assert.ok(KT_LODESTONE.z > KT_HELM.z, 'behind the helm');
+  assert.equal(KT_LODESTONE.y, KT_BRIDGE.y + KT_CONSOLE.h, 'its foot on the console\'s top');
+  let lo = Infinity; const p = lodestone.model.positions;
+  for (let i = 1; i < p.length; i += 3) lo = Math.min(lo, p[i]);
+  assert.ok(Math.abs(lo) < 1e-4, 'nothing of it under its foot');
+  assert.ok(KT_LODESTONE.lift - KT_LODESTONE.r * 1.35 > 0.12, 'the stone clear over its foot');
+  assert.ok(KT_LODESTONE.spin > 0, 'it turns');
+});
+
+test('KETCH THE BOSUN\'S LINE DRAWN ON ITS RIDER\'S PATH: every point of the path from the post to where it sets its rider down has the chain at it, and the chain runs to that landing - never to the gangway\'s old head (AUDIT KETCH L4-6; mutants: the chain to the old end)', async () => {
+  const { bosunLineAt } = await import('../../src/world/ketch/ketchModel.js');
+  const { line } = buildKetchParts(), p = line.model.positions;
+  const near = (q) => { const Q = deckToDungeon(...q); let best = Infinity; for (let i = 0; i < p.length; i += 3) best = Math.min(best, Math.hypot(p[i] - Q[0], p[i + 1] - Q[1], p[i + 2] - Q[2])); return best; };
+  for (let k = 0; k <= 16; k++) assert.ok(near(bosunLineAt(k / 16)) < 0.1, `the chain at the path's ${k}/16`);
+  assert.ok(near([KT_GANGWAY.ax, 3, KT_GANGWAY.az + 1]) > 1, 'nothing at the old end');
+});

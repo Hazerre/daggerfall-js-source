@@ -389,7 +389,7 @@ const HARDCODED = {
   'src/systems/gate/gateOmen.js': 10,
   'src/systems/gate/gateSpoils.js': 3,
   'src/systems/gateTier.js': 4,
-  'src/systems/gilded.js': 25,   // GILDED2: the Dragonfire Oath's and the Sunken Sovereign's names, powers, lore and hints - written as the Hourlock's are   // AUDIT PISTOLET A7 C1 D8: +1, the Sunken Sovereign's saber-era lore - an item's own story, as the records' are; KETCH: +9, the Hammerfall's and the Ketchmaster's Word's names, powers, lore and hints, and the Hourlock's lore re-read for the Pellet's dweamer (a kill returns the shot) - written as the Hourlock's are
+  'src/systems/gilded.js': 25,   // GILDED2: the Dragonfire Oath's and the Sunken Sovereign's names, powers, lore and hints - written as the Hourlock's are   // AUDIT PISTOLET A7 C1 D8: +1, the Sunken Sovereign's saber-era lore - an item's own story, as the records' are; KETCH: +9, Hammerfall's and Broadside's briefs and texts, Volendrung's Echo's lore and hint, the Ketchmaster's Word's name, lore and hint (the Echo's name and the two powers' a word or two the scan passes), The Hour Tolls' text re-read for the Pellet's dweamer in its old one's place (a kill returns the shot) - written as the Hourlock's are (AUDIT KETCH L5-10: the reason named the Hourlock's lore, unchanged, and left out the Echo and Broadside)
   'src/systems/gravestoneLore.js': 16,
   'src/systems/guild/guilds.js': 3,
   'src/systems/handheldTorches.js': 12,
@@ -535,7 +535,7 @@ const HARDCODED = {
   'src/systems/survival/temperature.js': 13,
   'src/systems/talk/talk.js': 2,
   'src/systems/testRoom.js': 59,   // PISTOLET: +2, the test room's two Dwarven Pistolet rows (the Thunderlock's own were counted)
-  'src/systems/thunderlock.js': 11,   // KETCH: +3, the Thunderlock's, the Pistolet's and the Pellet's lore re-read through the dweamer (their records' descriptions) and the Last Lock's hint now no gun drops ('No longer found') - an item's own record, as its name and power are
+  'src/systems/thunderlock.js': 11,   // KETCH: +3, the Thunderlock's, the Pistolet's and the Pellet's descriptions, their lore through the dweamer - an item's own record, as its name and power are; the Last Lock's hint 'No longer found' (no gun drops) in its old one's place, no count (AUDIT KETCH L5-10: the reason counted the hint among the three)
   'src/systems/pistolet.js': 1,   // PISTOLET: the template row's name, 'Dwarven Pistolet' - the Thunderlock's row's is counted the same way
   'src/systems/tradePack.js': 10,
   'src/systems/translationPacks.js': 1,

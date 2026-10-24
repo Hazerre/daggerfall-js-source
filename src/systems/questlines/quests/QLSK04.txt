@@ -5,7 +5,11 @@
 -- canon - the Numidium, the Brass God, the Dwemer's great construct, raised by Tiber Septim and broken, its pieces lost
 -- about the Iliac Bay (the Daggerfall of 3E 417 is a game of the Brass God's pieces). The port's own - that the
 -- Mzunthar's lodestone, tuned to great masses of Dwemer brass, answers it: Imrah's reading, said as hers, never as the
--- canon's word. Ysolde Marnhel (the Burning Doors) is the Guild's ear, as she is every line's of the Cycle.
+-- canon's word. Ysolde Marnhel (the Burning Doors) is the Guild's ear, as she is every line's of the Cycle - she wrote the
+-- book on the Doors; the player closed them (QLBD04/05). AUDIT KETCH L5-7, L5-8: no word promises what the game does not
+-- do or contradicts the canon - the charm's hum is Imrah's tale (the piece is a plain amulet), the hammer's metal the
+-- roll's (qlRewards.js baseOf), and the Brass God walked some five hundred years before (2E 896), so the ship was pulled
+-- once before; the porter came off the anchor-lift, never "last Loredas" (L5-3: the Ketch keeps the real week).
 Quest: QLSK04
 DisplayName: What the Lodestone Answers
 -- Message panels
@@ -44,16 +48,18 @@ Message:  1012
 Message:  1013
 <ce>       "Her lodestone is tuned to Dwemer brass, a great
 <ce>        deal of it, as a compass is tuned to the north.
-<ce>        For three thousand years there was nothing in the
-<ce>        world big enough to pull her down. Now there is."
+<ce>        Once before there was enough of it in one place
+<ce>        to pull her, when Tiber Septim's Brass God walked,
+<ce>        and it was broken before she could follow. Now
+<ce>        its pieces are pulling her again."
 <ce>
 <ce>       She turns her chart to you. Every line she has
 <ce>       drawn of the Ketch's course bends toward one
 <ce>       place under the Bay.
 <ce>
-<ce>       "The Brass God. The Numidium. Its pieces are
-<ce>        somewhere under these waters, and something is
-<ce>        waking them, and the ship follows."
+<ce>       "The Numidium. Its pieces are somewhere under
+<ce>        these waters, and something is waking them, and
+<ce>                    the ship follows."
 
 Message:  1014
 The antiquarian? She has stopped drawing the sky. Now she draws the Bay.
@@ -78,22 +84,24 @@ No one. Burn the chart.
 
 Message:  1040
 <ce>       Imrah nods and takes up her pen. "Ysolde, then.
-<ce>        She closed the Burning Doors. She will know what
-<ce>        to do with a door that opens the other way."
+<ce>        She wrote the book on the Burning Doors. She
+<ce>        will know what to do with a door that opens
+<ce>                    the other way."
 <ce>
 <ce>       Then she takes a little brass charm from her own
 <ce>       neck, a tuning-fork no longer than a finger, and
-<ce>       hangs it on yours. "Rourken work. It hums when
-<ce>               the ship is near. Keep it."
+<ce>       hangs it on yours. "Rourken work. It hummed in
+<ce>        my hand the day she first came over the walls.
+<ce>                       Keep it."
 
 Message:  1041
 <ce>       Imrah holds the chart over the candle until it
 <ce>       catches, and watches it burn down to her fingers.
 <ce>
 <ce>       "Then no one," she says. From under her table
-<ce>       she lifts a hammer of Dwemer brass, its head cut
-<ce>       with the Tonal Guard's marks. "From the bridge.
-<ce>        A porter brought it down last Loredas and would
+<ce>       she lifts a war hammer, its head cut with the
+<ce>       Tonal Guard's marks. "From the bridge. A porter
+<ce>        brought it down off her anchor-lift and would
 <ce>        take no coin for it. I think the steersman
 <ce>        carried it. You have earned it more than I."
 

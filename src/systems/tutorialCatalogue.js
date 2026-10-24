@@ -553,8 +553,8 @@ export const TUTORIALS = Object.freeze([
     get trigger() { return t('tutorials.skyKetch.trigger', 'When you first ride the anchor-lift up to the Sky-Ketch.'); },
     get body() {
       return [
-        t('tutorials.skyKetch.body1', 'Every Loredas the Rourken sky-ketch keeps station over the fields east of the capital. Ride her anchor-lift up with your party, eight hands at most.'),
-        t('tutorials.skyKetch.body2', 'Carry aether cells from the cradles to the Starved Engine - a blow knocks one from your hands. A fall from her decks wakes you in the fields below.'),
+        t('tutorials.skyKetch.body1', 'Every Saturday from 00:00 UTC, for a day and a half, the Rourken sky-ketch keeps station over the fields east of the capital. Ride her anchor-lift up with your party, eight hands at most.'),
+        t('tutorials.skyKetch.body2', 'Carry aether cells from the cradles to the Starved Engine - a blow knocks one from your hands. Her nets catch a fall and haul you back aboard, bruised; only death wakes you in the fields below.'),
       ];
     },
   }),

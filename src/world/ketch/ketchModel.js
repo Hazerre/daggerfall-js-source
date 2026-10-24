@@ -705,18 +705,33 @@ export function buildKetchParts() {
     K.quad2(rec, [x0, -w, 0], [x1, -w, 0], [x1, w, 0], [x0, w, 0], [0, 0, 1], [[0, 0], [3, 0], [3, 1], [0, 1]]);
     K.quad2(rec, [x0, 0, -w], [x1, 0, -w], [x1, 0, w], [x0, 0, w], [0, 1, 0], [[0, 0], [3, 0], [3, 1], [0, 1]]);
   })));
-  // THE BOSUN'S LINE: from the post's head on the main top down to the gangway's head, sagging - the dungeon's frame
+  // THE BOSUN'S LINE: from the post's head on the main top down to the gangway's head, sagging - the dungeon's frame; drawn
+  // on the rider's own path (AUDIT KETCH L4-6: the path was moved to where it sets its rider down, the chain was not - the
+  // rider left it 1.9 m short of its end)
   const line = part((K) => {
-    const a = [KT_LINE.x, KT_MAIN_TOP.y + 3.1, KT_LINE.z], b = [KT_GANGWAY.ax, 3, KT_GANGWAY.az + 1], n = 16;
-    let p = a;
-    for (let k = 1; k <= n; k++) {
-      const t = k / n, q = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t - 6 * Math.sin(Math.PI * t), a[2] + (b[2] - a[2]) * t];
-      K.pipe(R.chain, p, q, 0.06, 4);
-      p = q;
-    }
+    const n = 16;
+    let p = bosunLineAt(0);
+    for (let k = 1; k <= n; k++) { const q = bosunLineAt(k / n); K.pipe(R.chain, p, q, 0.06, 4); p = q; }
   });
-  return { hammer, cage, gateHold, gateTop, grateWatch, grateHold, doors, sections, resonator, cell, fork, arc, line };
+  // THE LODESTONE: blue and brass, set on the console behind the helm and turning on its own - what the ship follows (the
+  // line's QLSK03: AUDIT KETCH L5-7, its words named a stone the ship did not have). Made about its foot; the host turns it
+  const lodestone = local(part((K) => {
+    const S = KT_LODESTONE, c = [0, S.lift, 0], r = S.r;
+    K.cyl(R.brass, 0, 0, 0.32, 0, 0.12, 12, { capRec: R.gilt });
+    K.pipe(R.brass, [0, 0.12, 0], [0, S.lift - r - 0.05, 0], 0.07, 6);
+    const ring = [[r, 0], [0, r], [-r, 0], [0, -r]];
+    for (const tip of [1, -1]) for (let k = 0; k < 4; k++) {
+      const [ax, az] = ring[k], [bx, bz] = ring[(k + 1) % 4], P = [c[0], c[1] + tip * r * 1.35, c[2]], A = [c[0] + ax, c[1], c[2] + az], B = [c[0] + bx, c[1], c[2] + bz];
+      K.tri(R.aether, P, A, B, [0.5, 1], [0, 0], [1, 0], [(ax + bx) / 2, tip * r, (az + bz) / 2]);
+    }
+    const hr = r + 0.14, n = 20;
+    for (let k = 0; k < n; k++) { const a0 = (k / n) * Math.PI * 2, a1 = ((k + 1) / n) * Math.PI * 2; K.pipe(R.brass, [Math.cos(a0) * hr, S.lift + Math.sin(a0) * hr, 0], [Math.cos(a1) * hr, S.lift + Math.sin(a1) * hr, 0], 0.035, 5); }
+  }));
+  return { hammer, cage, gateHold, gateTop, grateWatch, grateHold, doors, sections, resonator, cell, fork, arc, line, lodestone };
 }
+/** THE LODESTONE's foot on the console behind the helm (deck metres), its stone's centre over it (`lift`), its half-height
+ *  across (`r`) and its turn (radians a second). */
+export const KT_LODESTONE = Object.freeze({ x: (KT_CONSOLE.x0 + KT_CONSOLE.x1) / 2, y: KT_BRIDGE.y + KT_CONSOLE.h, z: (KT_CONSOLE.z0 + KT_CONSOLE.z1) / 2, lift: 1.1, r: 0.4, spin: 0.35 });
 /** The bosun's line's path at `t` (0 its post, 1 the gangway's head): a deck point - the rider's own, as the part sags. */
 export function bosunLineAt(t) {
   const a = [KT_LINE.x, KT_MAIN_TOP.y + 3.1, KT_LINE.z], b = [KT_LINE_LAND.x, 3, KT_LINE_LAND.z], k = Math.max(0, Math.min(1, t));   // to where it sets its rider down (AUDIT KETCH L4-6)

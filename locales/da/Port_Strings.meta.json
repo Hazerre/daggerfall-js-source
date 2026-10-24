@@ -13200,8 +13200,8 @@
   "by": "claude-in-session"
  },
  "ketch.castBack": {
-  "en": "eb20a2b0c5bc",
-  "tr": "f1147b3acf79",
+  "en": "8971b7054d70",
+  "tr": "50dd53aa55b5",
   "by": "claude-in-session"
  },
  "ketch.claim.none": {
@@ -13315,8 +13315,8 @@
   "by": "claude-in-session"
  },
  "ketch.departed": {
-  "en": "3309467ffe46",
-  "tr": "019fd49f173b",
+  "en": "a5d8b1c79809",
+  "tr": "591030230ed2",
   "by": "claude-in-session"
  },
  "ketch.departing": {
@@ -13735,8 +13735,8 @@
   "by": "claude-in-session"
  },
  "ketch.refuse.away": {
-  "en": "a030c701c5ef",
-  "tr": "3dae01e3067b",
+  "en": "f63a0cf5e07d",
+  "tr": "7e2fa7787d85",
   "by": "claude-in-session"
  },
  "ketch.refuse.busy": {
@@ -27725,8 +27725,8 @@
   "by": "claude-in-session"
  },
  "ql.line.skyKetch.lead": {
-  "en": "42f50be173b1",
-  "tr": "c24a1e9dc171",
+  "en": "4a1d0de185e0",
+  "tr": "c7c8acb93468",
   "by": "claude-in-session"
  },
  "ql.line.stalled": {
@@ -33490,13 +33490,13 @@
   "by": "claude-in-session"
  },
  "tutorials.skyKetch.body1": {
-  "en": "0ea9581cd6c8",
-  "tr": "f13ecea22367",
+  "en": "631c832d5211",
+  "tr": "d84bcc0667e3",
   "by": "claude-in-session"
  },
  "tutorials.skyKetch.body2": {
-  "en": "50bd073c3ad6",
-  "tr": "ff15c63c0e06",
+  "en": "1546525206b3",
+  "tr": "5eca58290396",
   "by": "claude-in-session"
  },
  "tutorials.skyKetch.title": {

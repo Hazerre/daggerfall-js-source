@@ -21,7 +21,7 @@
 //
 // Not a DFU member. Ledger A (KETCH).
 import { identity } from '../../world/mat4.js';
-import { buildKetchShip, buildKetchParts, buildKetchGround, ketchLights, KT_GROUND, KT_CAGE } from '../../world/ketch/ketchModel.js';
+import { buildKetchShip, buildKetchParts, buildKetchGround, ketchLights, KT_GROUND, KT_CAGE, KT_LODESTONE } from '../../world/ketch/ketchModel.js';
 import { ketchArt, KT_ARCHIVE, KT_REC } from '../../world/ketch/ketchArt.js';
 import { hammerHeadY, hazardState, sectionPose } from '../../world/ketch/ketchPose.js';
 import { packKetchHit } from '../../world/ketch/ketchKit.js';
@@ -102,7 +102,7 @@ export function createKetchDeck({ renderer = null } = {}) {
   const make = (model) => { if (!model || !renderer?.createMesh) return null; try { const m = renderer.createMesh(model); meshes.push(m); return m; } catch (e) { console.warn('[kt] the Ketch would not build', e?.message ?? e); return null; } };
   let draws = null, collider = null, ship = null, parts = null;
   /** each part's draw (and its bucket's translation where it has one) */
-  const D = { hammers: [], cage: null, gateHold: null, gateTop: null, grateW: [], grateH: [], doors: [], sections: [], resTrue: [], resFalse: [], cradle: [], bcradle: [], socket: [], loose: [], carried: [], forks: [], arcs: [], line: null };
+  const D = { hammers: [], cage: null, gateHold: null, gateTop: null, grateW: [], grateH: [], doors: [], sections: [], resTrue: [], resFalse: [], cradle: [], bcradle: [], socket: [], loose: [], carried: [], forks: [], arcs: [], line: null, lodestone: null };
   /** each moving bucket's translation (the dungeon's frame - a part about the deck's origin stands at the origin plus its
    *  move; a section, laid in the dungeon's frame, at its drop alone) - read by the collider at every query */
   const T = { cage: [...O], gateHold: [...O], gateTop: [...O], grateW: [...O], grateH: [...O], doors: [...O], sections: Array.from({ length: KT_SECTIONS }, () => [0, 0, 0]) };
@@ -163,6 +163,7 @@ export function createKetchDeck({ renderer = null } = {}) {
       const arcs = P.arc.map((a) => g(a));
       for (let j = 0; j < KT_ARCS.z.length; j++) D.arcs.push({ d: draw(arcs[0], { noShadow: true }), meshes: arcs });
       D.line = draw(g(P.line), { noShadow: true });
+      D.lodestone = draw(g(P.lodestone), { noShadow: true });
       for (const d of [...D.resFalse, ...D.cradle, ...D.bcradle, ...D.socket, ...D.loose, ...D.carried, ...D.forks, ...D.arcs.map((a) => a.d), D.line]) hide(d);
       if (renderer?.createBillboardBatch) {
         try {
@@ -240,6 +241,8 @@ export function createKetchDeck({ renderer = null } = {}) {
       }
       // the bosun's line, once the bridge is unbarred
       if (sg >= KT_STAGE.bridge) { D.line.hidden = false; translate(D.line.object.matrix, 0, 0, 0); } else hide(D.line);
+      // the lodestone behind the helm, turning on its own whatever the voyage does
+      yawAbout(D.lodestone.object.matrix, t * KT_LODESTONE.spin, O[0] + KT_LODESTONE.x, O[1] + KT_LODESTONE.y, O[2] + KT_LODESTONE.z);
       // the clouds' drift and the steam's puffs
       if (clouds) {
         for (let k = 0; k < cloudSeeds.length; k++) {
