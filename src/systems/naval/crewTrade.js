@@ -11,17 +11,24 @@
 // something, as often as the exchange's day allows. A port short of men pays near the yard's price; one with men to spare
 // sells them at well under it, so the exchange is the cheaper way to fill her where sailors are to be had.
 //
-// WHO MAY LEAVE HER (`crewSpare`): men by the head, never a named hand carried over - her roster's last to join leave
-// first (shipCrew.js sync's order); never her last man (a ship with nobody aboard strikes - crewHall.js releasePlan's
-// law); never so many that a named hand ashore at the player's side loses his place on her deck; and none of a ship that
-// came into the realm through customs (fleet.js fleetCrossed - RESTORE's "Keep all, can't sell": her men are an offline
-// save's). Men signed on raise her crew to her whole at most (`crewRoom`).
+// WHO MAY LEAVE HER (`crewSpare`): men by the head, never a named hand carried over; never her last man (a ship with
+// nobody aboard strikes - crewHall.js releasePlan's law); never a named hand in the player's shore party, nor so many
+// that her deck stands no named hand aboard beside them; and none of a ship that came into the realm through customs
+// (fleet.js fleetCrossed - RESTORE's "Keep all, can't sell": her men are an offline save's). Men signed on raise her crew
+// to her whole at most (`crewRoom`).
+//
+// WHICH NAMED HANDS GO WITH THEM (`signOffOrder`, AUDIT CREW-TRADE H1): the ones least worth losing first - a plain hand
+// before a post's holder, her First Mate last of all, a hand of the deck's own before a crew hall's recruit (his fee paid),
+// the less service before the more, and of the rest the last to join. The tail went first (the sync's order), and the
+// tail is where a hall's recruit stands: one press of Sell 1 paid off a Veteran First Mate signed on for 1,120 gold, his
+// post and the spirits he lifted with him, for one man's price and unsaid. Each hand who goes is named, as each who joins.
 //
 // Pure: no DOM, no clock. Not a DFU member - Daggerfall has no ships. Ledger A (CREW-TRADE).
 import { CREW, exchangeOf } from './tradeGoods.js';
 import { yardOffer } from './navalYard.js';
 import { playerCrewCount } from './crewLife.js';
 import { CREW_HALL_TEXT } from '../crewHall.js';
+import { FIRST_MATE, serviceOf } from './shipCrew.js';
 import { t } from '../textManager.js';   // the exchange's words in the player's language
 
 /** The fewest men a ship keeps aboard: her last is never signed off. */
@@ -44,21 +51,34 @@ export function crewRowOf(port, day, { dealt = {}, edge = 0, town = null, discou
 }
 
 /**
- * HOW MANY MEN MAY LEAVE HER: `crew` her crew now, `hands` her named hands in roster order (shipCrew.js), `away` the names
- * of hers ashore at the player's side, `crossed` whether she came into the realm through customs. Answers `{ n, why }` -
- * `why` the reason none may, or null. Pure.
+ * HOW MANY MEN MAY LEAVE HER: `crew` her crew now, `hands` her named hands (shipCrew.js), `away` the names of hers in the
+ * player's shore party, `crossed` whether she came into the realm through customs. Answers `{ n, why }` - `why` the
+ * reason none may, or null. Pure.
  * @param {{ hull: number, crew: number, hands?: readonly { name: string }[], away?: { has: (name: string) => boolean } | null, crossed?: boolean }} o
  */
 export function crewSpare({ hull, crew, hands = [], away = null, crossed = false }) {
   if (crossed) return { n: 0, why: CREW_TRADE_TEXT.crossed };
   const now = Math.max(0, Math.floor(Number(crew) || 0));
-  let need = 0, who = '';
-  hands.forEach((h, i) => { if (away?.has?.(h?.name)) { need = i + 1; who = h.name; } });
+  const party = hands.filter((h) => away?.has?.(h?.name));
+  const need = party.length ? party.length + 1 : 0;   // the shore party's places, and one hand aboard beside them
   let least = CREW_KEEP;
   while (least < now && playerCrewCount(hull, least) < need) least++;
   const n = Math.max(0, now - least);
-  return { n, why: n > 0 ? null : now > CREW_KEEP && need > 0 ? CREW_HALL_TEXT.ashore(who) : CREW_HALL_TEXT.lastMan };
+  return { n, why: n > 0 ? null : now > CREW_KEEP && party.length ? CREW_TRADE_TEXT.ashore(party.at(-1).name) : CREW_HALL_TEXT.lastMan };
 }
+/**
+ * THE NAMED HANDS IN THE ORDER A HEADCOUNT SALE SIGNS THEM OFF (AUDIT CREW-TRADE H1): never one in the shore party (`away`);
+ * a plain Deckhand before a post's holder (a Bard's calling is his post), her First Mate last of all; a hand of the deck's
+ * own before a crew hall's recruit; the less service (shipCrew.js serviceOf) before the more; of the rest, the last to join
+ * first. Pure. @param {readonly any[]} hands @param {{ has: (name: string) => boolean } | null} [away]
+ */
+export function signOffOrder(hands, away = null) {
+  const worth = (h, i) => [h.role === FIRST_MATE ? 1 : 0, h.role !== 'Deckhand' ? 1 : 0, h.hall ? 1 : 0, serviceOf(h), -i];
+  const before = (a, b) => { for (let j = 0; j < a.length; j++) if (a[j] !== b[j]) return a[j] - b[j]; return 0; };
+  return hands.map((h, i) => ({ h, w: worth(h, i) })).filter(({ h }) => !away?.has?.(h.name)).sort((a, b) => before(a.w, b.w)).map(({ h }) => h);
+}
+/** Named hands as the exchange's note names them: "Name (Post), Name (Post)". @param {readonly { name: string, role: string }[]} hands */
+export const handsNamed = (hands) => hands.map((h) => `${h.name} (${h.role})`).join(', ');
 /** How many more men she takes: her whole less her crew now. @param {{ crew: number, maxCrew: number }} d */
 export const crewRoom = (d) => Math.max(0, Math.floor((Number(d?.maxCrew) || 0) - (Number(d?.crew) || 0)));
 
@@ -72,5 +92,8 @@ export const CREW_TRADE_TEXT = Object.freeze({
   get full() { return t('sea.crew.full', 'The ship has her whole crew aboard.'); },
   get noCrew() { return t('sea.crew.noCrew', 'This ship carries no crew.'); },
   get crossed() { return t('sea.crew.crossed', 'This ship came through customs with her crew. The exchange takes none of them.'); },
+  ashore: (who) => t('sea.crew.ashore', '{who} is in your shore party. Send them back aboard first.', { who }),   // AUDIT CREW-TRADE H2: on deck at the helm, his place kept for the shore
+  signedOn: (names) => t('sea.crew.signedOn', 'Signed on: {names}.', { names }),   // AUDIT CREW-TRADE H3
+  paidOff: (names) => t('sea.crew.paidOff', 'Paid off: {names}.', { names }),   // AUDIT CREW-TRADE H1
   fighting: CREW_HALL_TEXT.fighting,
 });

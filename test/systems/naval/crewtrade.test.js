@@ -11,7 +11,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { sea } from '../../navalSea.mjs';
 import { CREW, CREW_BASE, crewStandOf, exchangeOf, priceOf, standOf, DAY_STOCK, MADE_K, WANT_K, PRICE_DRIFT, SPREAD, TRADE_MOST } from '../../../src/systems/naval/tradeGoods.js';
-import { crewRowOf, crewPayMost, yardHandPrice, crewSpare, crewRoom, CREW_KEEP, CREW_TRADE_TEXT } from '../../../src/systems/naval/crewTrade.js';
+import { crewRowOf, crewPayMost, yardHandPrice, crewSpare, crewRoom, CREW_KEEP, CREW_TRADE_TEXT, signOffOrder, handsNamed } from '../../../src/systems/naval/crewTrade.js';
+import { FIRST_MATE } from '../../../src/systems/naval/shipCrew.js';
 import { REPAIR_PRICE, SHIP_STATES } from '../../../src/systems/naval/navalDamage.js';
 import { YARD_DISCOUNT_MAX } from '../../../src/systems/naval/navalYard.js';
 import { CREW_HALL_TEXT } from '../../../src/systems/crewHall.js';
@@ -91,20 +92,20 @@ test('CREW-TRADE NO MAN FETCHES THE SHIPWRIGHT\'S PRICE: at every discount a ran
   assert.ok(capped > 0, 'the cap is what holds a short port\'s price at a high rank');
 });
 
-test('CREW-TRADE WHO MAY LEAVE HER: men by the head, never her last; never so many that a named hand ashore loses his place on her deck; none of a ship come through customs - and the room she has for more (mutants: the last man, the hand ashore, the customs, the room)', () => {
+test('CREW-TRADE WHO MAY LEAVE HER: men by the head, never her last; never so many that her deck stands no named hand aboard beside the shore party (PIN MOVED, AUDIT CREW-TRADE H1: by the party\'s count, its hands never signed off - not by the last one\'s roster place); none of a ship come through customs - and the room she has for more (mutants: the last man, the shore party, the hand beside it, the customs, the room)', () => {
   assert.equal(CREW_KEEP, 1);
   const hands = ['A', 'B', 'C', 'D'].map((name) => ({ name }));
   assert.deepEqual(crewSpare({ hull: SMALL_SHIP, crew: 24, hands }), { n: 23, why: null }, 'all but her last');
   assert.deepEqual(crewSpare({ hull: SMALL_SHIP, crew: 1, hands: hands.slice(0, 1) }), { n: 0, why: CREW_HALL_TEXT.lastMan });
   assert.deepEqual(crewSpare({ hull: SMALL_SHIP, crew: 0, hands: [] }), { n: 0, why: CREW_HALL_TEXT.lastMan });
-  // her third hand ashore: her deck must still stand three - 15 men (a man a CREW_PER_HAND, rounded), so nine may go
-  const away = new Set(['C']);
-  const s = crewSpare({ hull: SMALL_SHIP, crew: 24, hands, away });
-  assert.equal(s.n, 24 - 15);
-  assert.equal(playerCrewCount(SMALL_SHIP, 15), 3);
-  assert.equal(playerCrewCount(SMALL_SHIP, 14), 2, 'one fewer and his place is gone');
-  assert.deepEqual(crewSpare({ hull: SMALL_SHIP, crew: 15, hands: hands.slice(0, 3), away }), { n: 0, why: CREW_HALL_TEXT.ashore('C') });
-  assert.equal(crewSpare({ hull: SMALL_SHIP, crew: 24, hands, away: new Set(['A']) }).n, 23, 'her first ashore: her last man is his place');
+  // one hand ashore: her deck must still stand two - his place and one aboard beside him - 9 men (a man a CREW_PER_HAND,
+  // rounded), so fifteen may go; wherever he stands in her roster
+  for (const who of ['A', 'C', 'D']) assert.equal(crewSpare({ hull: SMALL_SHIP, crew: 24, hands, away: new Set([who]) }).n, 24 - 9, `${who} ashore`);
+  assert.deepEqual([playerCrewCount(SMALL_SHIP, 9), playerCrewCount(SMALL_SHIP, 8)], [2, 1], 'one fewer and nobody stands aboard beside him');
+  // two ashore: three places - 15 men
+  assert.equal(crewSpare({ hull: SMALL_SHIP, crew: 24, hands, away: new Set(['B', 'C']) }).n, 24 - 15);
+  assert.deepEqual(crewSpare({ hull: SMALL_SHIP, crew: 15, hands: hands.slice(0, 3), away: new Set(['B', 'C']) }), { n: 0, why: CREW_TRADE_TEXT.ashore('C') }, 'the shore party\'s words (AUDIT CREW-TRADE H2)');
+  assert.match(CREW_TRADE_TEXT.ashore('C'), /^C is in your shore party\. /);
   assert.deepEqual(crewSpare({ hull: SMALL_SHIP, crew: 24, hands, crossed: true }), { n: 0, why: CREW_TRADE_TEXT.crossed });
   assert.deepEqual([crewRoom({ crew: 10, maxCrew: 24 }), crewRoom({ crew: 24, maxCrew: 24 }), crewRoom({ crew: 30, maxCrew: 24 })], [14, 0, 0]);
 });
@@ -146,11 +147,16 @@ test('CREW-TRADE AT THE QUAY, over the real sea: the shipwright\'s window\'s mod
   assert.deepEqual(none.x().buy('crew', 1), { ok: false, text: CREW_TRADE_TEXT.noCrew });
 });
 
-test('CREW-TRADE SIGNED ON: men bought at the port\'s price into her crew - as many as the exchange signs on today, the purse pays for and her whole takes - her new hands named quietly, the day\'s dealing kept, the purse paid (mutants: the room, the purse, the stock, the ledger, the pay)', async () => {
+test('CREW-TRADE SIGNED ON: men bought at the port\'s price into her crew - as many as the exchange signs on today, the purse pays for and her whole takes - the named hands who join her said in the note (AUDIT CREW-TRADE H3), the day\'s dealing kept, the purse paid (mutants: the room, the purse, the stock, the ledger, the pay, the joined unsaid)', async () => {
   const q = await quay(SMALL_SHIP, 6);
   const row = q.x().rows[0];
+  const had = new Set(q.s.host.crewHands(q.s.boat).map((h) => h.name));
   const r = q.x().buy('crew', 10);
-  assert.deepEqual(r, { ok: true, text: CREW_TRADE_TEXT.bought(10, `${(10 * row.sell).toLocaleString('en-US')} gold`) });
+  const joined = q.s.host.crewHands(q.s.boat).filter((h) => !had.has(h.name));
+  assert.equal(joined.length, 2, 'two named hands joined her');
+  // PIN MOVED (AUDIT CREW-TRADE H3): the hands who joined her named, as the shipwright's hire names them
+  assert.deepEqual(r, { ok: true, text: `${CREW_TRADE_TEXT.bought(10, `${(10 * row.sell).toLocaleString('en-US')} gold`)} ${CREW_TRADE_TEXT.signedOn(handsNamed(joined))}` });
+  assert.match(r.text, new RegExp(`Signed on: ${joined[0].name} \\(${joined[0].role}\\), ${joined[1].name} \\(${joined[1].role}\\)\\.$`));
   assert.equal(q.model.ship().crew, 16);
   assert.equal(q.purse.gold, 100000 - 10 * row.sell);
   assert.equal(q.s.host.crewHands(q.s.boat).length, playerCrewCount(SMALL_SHIP, 16), 'her deck stands her new men, named');
@@ -173,30 +179,38 @@ test('CREW-TRADE SIGNED ON: men bought at the port\'s price into her crew - as m
   assert.deepEqual(short.x().buy('crew', 1), { ok: false, text: CREW_TRADE_TEXT.noneToday });
 });
 
-test('CREW-TRADE SIGNED OFF: men sold out of her crew at the port\'s price - never her last, as many as the exchange takes today - her named hands past her deck paid off the crew hall\'s way (a hall\'s recruit takes the spirits he lifted with him), no loss on her spirits\' books, nobody said fallen; the gold, the ledger\'s dealing and the log\'s trade (mutants: the last man, the stock, the release, the books, the credit)', async () => {
+test('CREW-TRADE SIGNED OFF: men sold out of her crew at the port\'s price - never her last, as many as the exchange takes today - her named hands past her deck paid off the crew hall\'s way, the least worth losing first and each named (PIN MOVED, AUDIT CREW-TRADE H1: the tail went first, and a hall\'s recruit stands there), a recruit\'s lift leaving with him, no loss on her spirits\' books, nobody said fallen; the gold, the ledger\'s dealing and the log\'s trade (mutants: the last man, the stock, the order, the release, the books, the credit, the paid off unsaid)', async () => {
   const q = await quay(SMALL_SHIP, 24, { port: portStanding('wants') });
-  const recruit = { name: 'Brynja Holt', trade: 'Gunner', mobile: 0, sex: 'female', lift: 6 };
+  const recruit = { id: '4242:1:0', name: 'Brynja Holt', trade: 'Gunner', mobile: 0, sex: 'female', lift: 6 };
   q.s.host.swapHand(q.s.boat, q.s.host.crewHands(q.s.boat).at(-1).name, recruit);
   const lifted = q.st.crew.morale;
-  assert.equal(q.s.host.crewHands(q.s.boat).at(-1).name, 'Brynja Holt');
+  const before = q.s.host.crewHands(q.s.boat);
+  assert.deepEqual([before.at(-1).name, before.at(-1).hall], ['Brynja Holt', '4242:1:0'], 'a hall\'s recruit at her roster\'s tail');
+  const leaving = signOffOrder(before).slice(0, 2);
+  assert.ok(!leaving.some((h) => h.name === 'Brynja Holt' || h.role === FIRST_MATE), `neither the recruit nor her First Mate among the first to go: ${handsNamed(leaving)}`);
   const row = q.x().rows[0];
   const r = q.x().sell('crew', 10);
-  assert.deepEqual(r, { ok: true, text: CREW_TRADE_TEXT.sold(10, `${10 * row.buy} gold`) });
+  assert.deepEqual(r, { ok: true, text: `${CREW_TRADE_TEXT.sold(10, `${10 * row.buy} gold`)} ${CREW_TRADE_TEXT.paidOff(handsNamed(leaving))}` });
   assert.equal(q.model.ship().crew, 14);
   assert.equal(q.purse.gold, 100000 + 10 * row.buy);
   const hands = q.s.host.crewHands(q.s.boat);
   assert.equal(hands.length, playerCrewCount(SMALL_SHIP, 14));
-  assert.ok(!hands.some((h) => h.name === 'Brynja Holt'), 'the last to join leaves first');
-  assert.equal(q.st.crew.morale, lifted - 6, 'and the spirits she lifted leave with her');
+  assert.deepEqual(hands.map((h) => h.name).sort(), before.filter((h) => !leaving.includes(h)).map((h) => h.name).sort(), 'the least worth losing went');
+  assert.ok(hands.some((h) => h.name === 'Brynja Holt'), 'the hall\'s recruit stays while a plain hand stands');
+  assert.equal(q.st.crew.morale, lifted, 'and so do the spirits she lifted');
   assert.equal(q.st.lastCrew, 14, 'no loss on her spirits\' books');
   q.s.log.say.length = 0;
   q.s.run(0.3);
   assert.ok(!q.s.log.say.some((t) => /has fallen/.test(t)), `nobody said fallen: ${q.s.log.say}`);
   assert.equal(q.ledger.dealtAt(q.port.key, q.day).sold.crew, 10);
   assert.equal(q.ledger.log.traded, 10 * row.buy, 'the log\'s trade');
+  const mate = hands.find((h) => h.role === FIRST_MATE);
+  assert.ok(mate, 'her First Mate stands');
   const rest = q.x().sell('crew', Infinity);
   assert.equal(rest.ok, true, rest.text);
   assert.equal(q.model.ship().crew, 1, 'all but her last');
+  assert.deepEqual(q.s.host.crewHands(q.s.boat).map((h) => h.name), [mate.name], 'her First Mate the last to go: he stands to her last man');
+  assert.equal(q.st.crew.morale, lifted - 6, 'the recruit gone, the spirits she lifted with her');
   assert.deepEqual(q.x().sell('crew', 1), { ok: false, text: CREW_HALL_TEXT.lastMan });
   // the day's taking spent at a port with men to spare
   const spare = await quay(SMALL_SHIP, 24, { port: portStanding('makes') });
@@ -205,7 +219,29 @@ test('CREW-TRADE SIGNED OFF: men sold out of her crew at the port\'s price - nev
   assert.deepEqual(spare.x().sell('crew', 1), { ok: false, text: CREW_TRADE_TEXT.noneWanted });
 });
 
-test('CREW-TRADE REFUSED: never in a fight; never a hand ashore\'s place on her deck; never a ship come into the realm through customs (her crew an offline save\'s) - though men may still sign on to her (mutants: the fight, the hands ashore, the customs read)', async () => {
+test('CREW-TRADE AUDIT H1 - A PAID-FOR VETERAN IS NOT ONE MAN\'S PRICE: the order a headcount sale signs named hands off - never one in the shore party, a plain Deckhand before a post\'s holder, her First Mate last of all, the deck\'s own before a hall\'s recruit, the less service before the more, of the rest the last to join; over the real sea, a Veteran First Mate signed on at the crew hall in a hand\'s place keeps his post through a Sell 1 (mutants: each rung of the order)', async () => {
+  const H = (name, role, o = {}) => ({ name, role, fights: 0, boardings: 0, prior: 0, ...o });
+  const roster = [H('A', FIRST_MATE), H('B', 'Bosun'), H('C', 'Deckhand', { fights: 5 }), H('D', 'Deckhand'), H('E', 'Gunner', { hall: 'x:1:0' }), H('F', 'Deckhand', { hall: 'x:1:1' }), H('G', 'Deckhand'), H('J', 'Bard')];
+  assert.deepEqual(signOffOrder(roster).map((h) => h.name), ['G', 'D', 'C', 'F', 'J', 'B', 'E', 'A']);
+  assert.deepEqual(signOffOrder(roster, new Set(['D', 'A'])).map((h) => h.name), ['G', 'C', 'F', 'J', 'B', 'E'], 'the shore party never');
+  assert.deepEqual(signOffOrder([H('P', 'Deckhand', { boardings: 2 }), H('Q', 'Deckhand', { fights: 3 })]).map((h) => h.name), ['Q', 'P'], 'service: a boarding counts twice');
+  const q = await quay(SMALL_SHIP, 24, { port: portStanding('wants') });
+  const tail = q.s.host.crewHands(q.s.boat).at(-1).name;
+  const vet = { id: '4242:1:2', name: 'Old Hrolf', trade: FIRST_MATE, mobile: 0, sex: 'male', fights: 20, boardings: 10, lift: 6 };
+  assert.equal(q.s.host.swapHand(q.s.boat, tail, vet).ok, true);
+  q.x().sell('crew', 3);   // 21: her deck still stands four
+  const was = q.s.host.crewHands(q.s.boat);
+  assert.equal(was.at(-1).name, 'Old Hrolf');
+  const r = q.x().sell('crew', 1);   // 20: three - one named hand goes
+  assert.equal(r.ok, true);
+  const now = q.s.host.crewHands(q.s.boat);
+  assert.deepEqual([now.length, now.find((h) => h.role === FIRST_MATE)?.name], [3, 'Old Hrolf'], 'the veteran keeps his post');
+  const gone = was.find((h) => !now.some((x) => x.name === h.name));
+  assert.equal(gone.role, 'Deckhand', `a plain hand went: ${gone.name}`);
+  assert.match(r.text, new RegExp(`Paid off: ${gone.name} \\(Deckhand\\)\\.$`), 'and is named');
+});
+
+test('CREW-TRADE REFUSED: never in a fight; never a hand of the shore party, nor her last hand aboard beside it (PIN MOVED, AUDIT CREW-TRADE H1/H2 - the party\'s words); never a ship come into the realm through customs (her crew an offline save\'s) - though men may still sign on to her (mutants: the fight, the shore party, the customs read)', async () => {
   const f = await quay(SMALL_SHIP, 12);
   f.st.inFight = true;
   assert.deepEqual(f.x().buy('crew', 1), { ok: false, text: CREW_HALL_TEXT.fighting });
@@ -214,11 +250,14 @@ test('CREW-TRADE REFUSED: never in a fight; never a hand ashore\'s place on her 
   const a = await quay(SMALL_SHIP, 24, { port: portStanding('wants') });
   const hs = a.s.host.crewHands(a.s.boat);
   a.s.host.companionPress(a.s.boat, hs[2].name, 0);
-  assert.equal(a.x().rows[0].spare, 9, 'her third hand ashore: her deck keeps his place');
-  assert.equal(a.x().sell('crew', Infinity).ok, true);
-  assert.equal(a.model.ship().crew, 15);
-  assert.ok(a.s.host.crewHands(a.s.boat).some((h) => h.name === hs[2].name), 'he is still hers');
-  assert.deepEqual(a.x().sell('crew', 1), { ok: false, text: CREW_HALL_TEXT.ashore(hs[2].name) });
+  assert.equal(a.x().rows[0].spare, 15, 'her third hand ashore: her deck keeps his place and one beside him');
+  const off = a.x().sell('crew', Infinity);
+  assert.equal(off.ok, true);
+  assert.equal(a.model.ship().crew, 9);
+  const left = a.s.host.crewHands(a.s.boat);
+  assert.deepEqual(left.map((h) => h.name).sort(), [hs[2].name, hs.find((h) => h.role === FIRST_MATE).name].sort(), 'he is still hers, and her First Mate beside him');
+  assert.ok(!off.text.includes(hs[2].name), 'never named among the paid off');
+  assert.deepEqual(a.x().sell('crew', 1), { ok: false, text: CREW_TRADE_TEXT.ashore(hs[2].name) });
   const c = await quay(SMALL_SHIP, 12, { port: portStanding('wants') });
   restoreFleetSaveData({ v: 1, ships: [], crossed: [42] });
   assert.deepEqual(c.x().sell('crew', 1), { ok: false, text: CREW_TRADE_TEXT.crossed });

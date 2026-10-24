@@ -30324,6 +30324,11 @@
   "tr": "2f9de2e2aaf8",
   "by": "claude-in-session"
  },
+ "sea.crew.ashore": {
+  "en": "955b84235f21",
+  "tr": "3e5d11e6f757",
+  "by": "claude-in-session"
+ },
  "sea.crew.bought": {
   "en": "66ad48e3db5f",
   "tr": "7f19b48d4717",
@@ -30354,9 +30359,19 @@
   "tr": "c88ed8be5e2a",
   "by": "claude-in-session"
  },
+ "sea.crew.paidOff": {
+  "en": "efe9b061a6b1",
+  "tr": "e50817d3516b",
+  "by": "claude-in-session"
+ },
  "sea.crew.short": {
   "en": "480f3a50b2b8",
   "tr": "f96d73c76bf7",
+  "by": "claude-in-session"
+ },
+ "sea.crew.signedOn": {
+  "en": "c9d24a8835f7",
+  "tr": "a514e47677ab",
   "by": "claude-in-session"
  },
  "sea.crew.sold": {

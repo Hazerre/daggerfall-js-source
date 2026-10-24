@@ -42,7 +42,7 @@ import { boardFor, takeContract, contractLine, contractSites, marqueOffer, admir
 import { MINUTES_PER_DAY } from '../systems/gameDate.js';
 import { perksOf, PERKS_REFUSED_AT, LEAGUE_M } from '../systems/naval/captainLedger.js';
 import { exchangeOf, goodById, goodIn, takeGood, mintGood, goodsWeight, CREW } from '../systems/naval/tradeGoods.js';
-import { crewRowOf, CREW_TRADE_TEXT } from '../systems/naval/crewTrade.js';   // CREW-TRADE: crew at the exchange
+import { crewRowOf, CREW_TRADE_TEXT, handsNamed } from '../systems/naval/crewTrade.js';   // CREW-TRADE: crew at the exchange
 import { markCounterBought } from '../systems/tradeModes.js';   // SEA-TRADE: a good bought of the exchange carries what it cost (LAW-3)
 import { chartAboard, chartSite, mintChart, cacheGold, CHART_SITE } from '../systems/naval/treasureCharts.js';
 import { t } from '../systems/textManager.js';   // FIELD BUGS 2026-10-13c PORT-TOWNS: a cargo voided, in the player's language
@@ -241,11 +241,11 @@ export function createHarbourOffice(deps) {
     if (s.room <= 0) return { ok: false, text: CREW_TRADE_TEXT.full };
     const k = Math.min(asked(n), r.sells, Math.floor((deps.gold?.() ?? 0) / r.sell));
     if (k <= 0) return { ok: false, text: CREW_TRADE_TEXT.short(gold(r.sell)) };
-    const got = deal.signOn(k);   // her whole the most she takes
+    const on = deal.signOn(k), got = on.n;   // her whole the most she takes
     deps.pay?.(got * r.sell);
     L.deal(port.key, day, CREW.id, got, 'bought');
     deps.town?.seaDeal?.(port);   // SEA-TRADE: a dealing at the port's exchange
-    return { ok: true, text: CREW_TRADE_TEXT.bought(got, gold(got * r.sell)) };
+    return { ok: true, text: [CREW_TRADE_TEXT.bought(got, gold(got * r.sell)), on.joined.length ? CREW_TRADE_TEXT.signedOn(handsNamed(on.joined)) : ''].filter(Boolean).join(' ') };   // AUDIT CREW-TRADE H3: who joined her
   }
   /** `n` men signed off the ship at the quay - as many as may leave her (crewTrade.js crewSpare) and the exchange takes
    *  today. */
@@ -256,12 +256,12 @@ export function createHarbourOffice(deps) {
     if (s.spare <= 0) return { ok: false, text: s.why };
     const r = crewRow(port, day);
     if (r.buys <= 0) return { ok: false, text: CREW_TRADE_TEXT.noneWanted };
-    const gone = deal.signOff(Math.min(asked(n), r.buys));   // as many as may leave her the most who go
+    const off = deal.signOff(Math.min(asked(n), r.buys)), gone = off.n;   // as many as may leave her the most who go
     deps.credit?.(gone * r.buy);
     L.deal(port.key, day, CREW.id, gone, 'sold');
     L.note('traded', gone * r.buy);
     deps.town?.seaDeal?.(port);   // SEA-TRADE: a dealing at the port's exchange
-    return { ok: true, text: CREW_TRADE_TEXT.sold(gone, gold(gone * r.buy)) };
+    return { ok: true, text: [CREW_TRADE_TEXT.sold(gone, gold(gone * r.buy)), off.left.length ? CREW_TRADE_TEXT.paidOff(handsNamed(off.left)) : ''].filter(Boolean).join(' ') };   // AUDIT CREW-TRADE H1: who left her
   }
   /**
    * THE EXCHANGE'S TAB (ui/naval/navalYardWindow.js): the port's goods at today's prices, what the boat at the quay carries
