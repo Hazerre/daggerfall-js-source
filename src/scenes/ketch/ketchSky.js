@@ -94,7 +94,7 @@ export function ketchSkyMatrix(out, mid, pose) {
  *   (NaN where none streams); `frameY` the scene's vertical shift (its floating frame's); `feet` mine outside, or null
  */
 export function createKetchSky({ renderer = null, collider = () => null, city = () => null, groundAt = () => NaN, frameY = () => 0, now, feet = () => null, say = () => {}, onBoard = () => {}, mayBoard = () => true }) {
-  let ship = null, lift = null, chain = null, hit = null, built = false;
+  let ship = null, lamps = null, lift = null, chain = null, hit = null, built = false;
   /** the fields' height under the lift, less the frame's shift - the terrain's own, found once */
   let groundLocal = null;
   const M = new Float32Array(16), CAGE = new Float32Array(16), CHAIN = new Float32Array(16);
@@ -110,6 +110,7 @@ export function createKetchSky({ renderer = null, collider = () => null, city = 
       ketchArtUp(renderer);
       const s = buildKetchShip();
       ship = renderer.createMesh(s.model);
+      lamps = renderer.createMesh(s.lamps);   // AUDIT SHIP A4: her lamps' glass from the world too (KETCH-LOOK KL1 took them out of her mesh)
       hit = packKetchHit(s.hit);
       const a = buildKetchAnchorLift();
       lift = renderer.createMesh(a.cage); chain = renderer.createMesh(a.chain);
@@ -163,6 +164,7 @@ export function createKetchSky({ renderer = null, collider = () => null, city = 
     draw(r = renderer) {
       if (!shown || !ship || !place || !r?.drawMesh) return 0;
       r.drawMesh(ship, M, null, { noShadow: true });
+      if (lamps) r.drawMesh(lamps, M, null, { noShadow: true });
       if (place.pose.lift > 0.01 && lift && chain) { r.drawMesh(chain, CHAIN, null, { noShadow: true }); r.drawMesh(lift, CAGE, null, { noShadow: true }); }
       return 1;
     },
@@ -175,8 +177,8 @@ export function createKetchSky({ renderer = null, collider = () => null, city = 
     /** Gone for good: her meshes freed. */
     destroy() {
       standCollider(false);
-      for (const m of [ship, lift, chain]) if (m) { try { renderer?.destroyMesh?.(m); } catch { /* gone */ } }
-      ship = lift = chain = null; built = false; shown = false;
+      for (const m of [ship, lamps, lift, chain]) if (m) { try { renderer?.destroyMesh?.(m); } catch { /* gone */ } }
+      ship = lamps = lift = chain = null; built = false; shown = false;
     },
   };
 }

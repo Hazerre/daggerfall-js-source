@@ -95,13 +95,16 @@ export const KT_CLIENT_TEXT = Object.freeze({
   get away() { return t('ketch.client.away', 'The Ketch is gone. The anchor-lift sets you down in the fields outside Daggerfall.'); },
 });
 /** MY SHIP THIS VOYAGE (AUDIT KETCH L1-6 - after the party's lead passed on, a member riding back up boarded the new
- *  leader's empty ship): the room's `st` naming me in its crew keeps {n, a, o} under KT_SHIP_KEY on the device. */
+ *  leader's empty ship): the room's `st` naming me in its crew keeps {n, a, o, p} under KT_SHIP_KEY on the device - `p`
+ *  the party I was in when it was kept (its id, null alone). */
 export const KT_SHIP_KEY = 'ketch.myShip';
-/** The ship a `st` frame `w` from the ship under me (`at` - its {n, owner}) says I am of: {n, a, o}, or null. */
-export const ketchShipKept = (w, mine, at) => (w?.k === 'st' && mine && at && w.n === at.n && Array.isArray(w.cr) && w.cr.some((c) => c?.[0] === mine) ? { n: at.n, a: mine, o: at.owner } : null);
-/** THE SHIP I RIDE UP TO: the one I was taken into this voyage (`kept`), else my party leader's, else my own - `{owner}`
- *  kept, else `{captain}` to digest. */
-export const ketchShipChoice = (n, mine, leader, kept) => (kept && kept.n === n && kept.a === mine && typeof kept.o === 'string' && kept.o ? { owner: kept.o } : { captain: leader ?? mine });
+/** The ship a `st` frame `w` from the ship under me (`at` - its {n, owner}) says I am of, in party `party` (its id, or
+ *  null): {n, a, o, p}, or null. */
+export const ketchShipKept = (w, mine, at, party = null) => (w?.k === 'st' && mine && at && w.n === at.n && Array.isArray(w.cr) && w.cr.some((c) => c?.[0] === mine) ? { n: at.n, a: mine, o: at.owner, p: party ?? null } : null);
+/** THE SHIP I RIDE UP TO: the one I was taken into this voyage (`kept`) while I stand in the party I was in then (`party`
+ *  - AUDIT SHIP 1: a ride up alone kept my own ship, and a party joined after it never took me to its leader's), else my
+ *  party leader's, else my own - `{owner}` kept, else `{captain}` to digest. */
+export const ketchShipChoice = (n, mine, leader, kept, party = null) => (kept && kept.n === n && kept.a === mine && typeof kept.o === 'string' && kept.o && (kept.p ?? null) === (party ?? null) ? { owner: kept.o } : { captain: leader ?? mine });
 /** THE PRESS'S REACH (AUDIT KETCH L3-5 - a press was let through from further than the room takes it, and the room said
  *  nothing): a cell's press goes only from where the room takes it - my feet within KT_PRESS_REACH of its spot, the room's
  *  own KT_REACH + 0.6 (net/ketch/ketchBrain.js voyageWord) less a step for the pose it last heard. */
@@ -239,7 +242,7 @@ export function createKetchClient(deps) {
     if (!(entity.health > 0)) return false;
     boarding = true;
     try {
-      const pick = ketchShipChoice(v.n, mine, social()?.party?.leader ?? null, keptShip());
+      const pick = ketchShipChoice(v.n, mine, social()?.party?.leader ?? null, keptShip(), social()?.party?.id ?? null);
       const owner = pick.owner ?? await instanceOwnerOf(pick.captain);
       if (!ketchRoomKey(v.n, owner)) { mid(KT_REFUSE_WORDS.busy); return false; }
       mid(KT_WORDS.boarding);
@@ -393,7 +396,7 @@ export function createKetchClient(deps) {
       if (w.k === 'rcpt') { claims.add(w.r); return; }
       if (w.k === 'bd') { fall('count'); return; }
       if (!onShip()) return;
-      const kept = ketchShipKept(w, me(), ship());
+      const kept = ketchShipKept(w, me(), ship(), social()?.party?.id ?? null);
       if (kept) keepShip(kept);
       link.word(w);
       if (w.k === 'bank' && w.s === me()) noteAct('ketch-cell-banked');

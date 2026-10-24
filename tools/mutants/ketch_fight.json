@@ -63,5 +63,15 @@
     "tests": [
       "test/scenes/ketch_fight.test.js"
     ]
+  },
+  {
+    "name": "KTF-a-number-a-body",
+    "file": "src/scenes/ketch/ketchFight.js",
+    "old": "q: blowQ(KW_FORK_ID0 + c) });",
+    "new": "q: ++blowSeq });",
+    "tests": [
+      "test/scenes/ketch_fight.test.js"
+    ],
+    "note": "AUDIT SHIP 4: a swing through three forks would spend the relay's hand three times - its later bodies refused."
   }
 ]

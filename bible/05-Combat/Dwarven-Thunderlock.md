@@ -2108,16 +2108,19 @@ rare)"*.
   find's own `weights` for this, and `final: true`.
 - **And the airship**: the Ketchmaster's hold pays every share 20 to 40 Pellets from the Ketch's own foundry
   (`Sky-Ketch.md` section 9 - her constructs drop nothing: the relay runs them), and players trade them.
+- **Loot rarity off** (AUDIT SHIP C2, 2026-10-24): the Dwemer find is a find, not a tier, so the switch off still rolls the
+  final finds (`rollLootRarity`), the DFU list otherwise untouched. Before it, the switch off left no Pellet anywhere,
+  with the shelves selling none, and a gun owned offline starved.
 
 A departure of kind (Port-Ledger section A, PELLETS-SCARCE): an item DFU never had, found on the port's own curve.
 
-**Pins** (`test/systems/pelletsscarce.test.js`, 4): no shop of any kind, quality or shelf, at any draw, carries a
+**Pins** (`test/systems/pelletsscarce.test.js`, 5): no shop of any kind, quality or shelf, at any draw, carries a
 Pellet, and the stock law names none; the old find kept, taking one draw and handing nothing over; the Dwemer find's
 curve, cap, boss and pile, tier 0 never, the stack from one draw, and a find under its tier costing a seed no draw; over
-29 seeds the door's last draw, with every earlier draw the seed's own. PIN MOVED: `shopstock.test.js`,
+29 seeds the door's last draw, with every earlier draw the seed's own; the switch off still dropping it (AUDIT SHIP C2). PIN MOVED: `shopstock.test.js`,
 `audit18_systems_items.test.js`, `arrowsupply.test.js`, `pistolet.test.js`, `thunderlock.test.js` (the old find mints
 nothing), `loot21_stones.test.js` and `tech1_roster.test.js` (each holds the final finds off where it compares two
-doors' draws). `test/systems/shoppellets.test.js` is RETIRED with its law. `tools/mutants/pelletsscarce.json`: 10
-dead. `shoppellets.json` is retired too: its three records that read the counter's law moved to `arrowsupply.json`,
+doors' draws). `test/systems/shoppellets.test.js` is RETIRED with its law. `tools/mutants/pelletsscarce.json`: 11
+dead (AUDIT SHIP C2's checked by hand). `shoppellets.json` is retired too: its three records that read the counter's law moved to `arrowsupply.json`,
 each re-aimed at the quiver's pins, and the rest went with the line they mutated. Re-aimed by content: `gunsunfound.json`
 (2), `pistolet.json` (2), `loot21.json` (3), `tech1.json` (1).

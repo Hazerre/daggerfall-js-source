@@ -9470,6 +9470,7 @@ export class Room {
     const all = [];
     for (const fr of frames) {
       if (fr.to == null) { all.push(JSON.stringify({ t: 'kt', ...fr })); continue; }
+      if (all.length) this._fanFrames(all.splice(0), (b) => b.id);   // AUDIT SHIP 7: the frames before it said first - a fight's `wf` before my `ws`
       const { to, ...word } = fr, w = JSON.stringify({ t: 'kt', ...word });
       for (const [ws, b] of [...this._all()]) if (b.id && b.sub === to) this._send(ws, w);
     }
@@ -9552,7 +9553,11 @@ export class Room {
    *  constructs', the hazards', the Warden's), a carrier any met letting its cell go, the director stepped, the fall said once.
    *  False when no ship is here (the alarm is the room's other duties'). */
   async _ktTick() {
-    const key = this._kt?.key ?? [...this._all()].map(([, b]) => b.key).find((k) => isKetchRoom(k));
+    let key = this._kt?.key ?? [...this._all()].map(([, b]) => b.key).find((k) => isKetchRoom(k));
+    if (!key && !this._ktNone) {   // AUDIT SHIP 2: woken by her alarm alone (evicted, nobody aboard) - her key is her record's; a room that never held one reads once
+      const v = await this.state.storage.get(KT_VOYAGE_KEY);
+      if (v && typeof v === 'object' && isKetchRoom(v.key)) key = v.key; else this._ktNone = true;
+    }
     if (!key || !isKetchRoom(key)) return false;
     const V = await this._ktOf(key), now = Date.now();
     if (now >= ketchVoyageOf(V.n).endAt) {

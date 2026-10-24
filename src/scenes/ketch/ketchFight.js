@@ -133,7 +133,10 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
   const bodies = new Map(), textures = new Map();
   const judged = new Set(), heard = new Set();
   const _batches = [], _targets = [], _forkTargets = [], _lights = [], _shapes = [], _slots = [];
-  let warden = null, wardenStandIn = null, forkStandIn = null, seq = 0;
+  let warden = null, wardenStandIn = null, forkStandIn = null, blowSeq = 0;
+  /** AUDIT SHIP 4: ONE SWING ONE SEQUENCE (gateCourt.js blowQ) - the bodies a blow meets in a frame share it; a body met again is a new one */
+  const blowMet = new Set();
+  const blowQ = (who) => { if (!blowMet.size || blowMet.has(who)) { blowSeq++; blowMet.clear(); } blowMet.add(who); return blowSeq; };
   /** the hazards in view this frame (their landings near), and those landed and not yet judged */
   const hazards = new Map();
   const teleDoor = gl ? compiledPass(gl, telegraphPrograms(false), () => new GateTelegraphRenderer(gl), (e) => console.warn('[kt] the telegraph would not build', e?.message ?? e)) : null;
@@ -228,6 +231,7 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
   return {
     /** One frame of the ship's fights: every body heard, judged and drawn; every blow drawn and judged on my feet. */
     frame() {
+      blowMet.clear();   // AUDIT SHIP 4: a frame ends my blow
       const s = link.state(), t = now(), me = myDeck(), e = player(), alive = !!e && e.health > 0;
       _batches.length = 0; _targets.length = 0; _forkTargets.length = 0; _lights.length = 0; _shapes.length = 0;
       if (!s || s.n < 0) { for (const b of bodies.values()) destroyBatch(b); bodies.clear(); if (warden) { destroyBatch(warden); warden = null; } return; }
@@ -331,7 +335,7 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
       const b = bodies.get(i), dmg = Math.round(d);
       if (!b || !(dmg >= 1) || !Object.values(HIT_KINDS).includes(r)) return false;
       b.hurtAt = now();
-      return !!sendHit({ o: i, d: dmg, r, q: ++seq });
+      return !!sendHit({ o: i, d: dmg, r, q: blowQ(i) });
     },
     /** THE TONAL WARDEN as a body my blows meet, or null (no fight, fallen) - the gate's boss seam's shape. */
     bossTarget() {
@@ -347,7 +351,7 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
       if (!ws || ws.fell || ws.lost || !link.joined() || !(dmg >= 1) || !Object.values(HIT_KINDS).includes(r)) return false;
       if (ws.ward || t < ws.op || t < (ws.ou ?? 0)) return false;
       if (warden) warden.hurtAt = t;
-      return !!sendHit({ o: KW_ID, d: dmg, r, q: ++seq });
+      return !!sendHit({ o: KW_ID, d: dmg, r, q: blowQ(KW_ID) });
     },
     /** The song's forks as bodies my blows meet (the gate's crystal seam's shape). */
     forkTargets: () => _forkTargets,
@@ -355,7 +359,7 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
     forkHit({ c, d, r } = /** @type {any} */ ({})) {
       const fk = link.state()?.ws?.fk, dmg = Math.round(d);
       if (!fk || !Number.isInteger(c) || !(fk.c[c]?.[2] > 0) || !(dmg >= 1) || !link.joined()) return false;
-      return !!sendHit({ o: KW_FORK_ID0 + c, d: dmg, r, q: ++seq });
+      return !!sendHit({ o: KW_FORK_ID0 + c, d: dmg, r, q: blowQ(KW_FORK_ID0 + c) });
     },
     /** MWNPC10: each shown construct offered its Morrowind creature on `lane`, with the billboard it is drawn by. */
     offerBodies(lane) {

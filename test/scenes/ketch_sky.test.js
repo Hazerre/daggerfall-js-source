@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { ketchSkyPose, ketchSkyMatrix, createKetchSky, KT_SKY, KT_STATION_MID, KT_LIFT_AT, KT_BOARD_HOLD_MS, KT_SKY_BUCKET, KT_SKY_TEXT, KT_LIFT_NEAR_M } from '../../src/scenes/ketch/ketchSky.js';
 import { ketchVoyageOf, KT_SIGHT_MS } from '../../src/net/ketch/ketchLaw.js';
 import { deckToDungeon, KT_ANCHOR_LIFT } from '../../src/net/ketch/ketchDeck.js';
-import { KT_GROUND, KT_SKY_CHAIN } from '../../src/world/ketch/ketchModel.js';
+import { KT_GROUND, KT_SKY_CHAIN, buildKetchShip } from '../../src/world/ketch/ketchModel.js';
 
 const v = ketchVoyageOf(2);
 const apply = (M, [x, y, z]) => [M[0] * x + M[4] * y + M[8] * z + M[12], M[1] * x + M[5] * y + M[9] * z + M[13], M[2] * x + M[6] * y + M[10] * z + M[14]];
@@ -76,12 +76,14 @@ test('KETCH HER SET - her collider while she keeps station (laid once, the same 
   k.step(250); k.S.frame();
   assert.equal(k.col.adds, 1, 'the same matrix: laid once');
   assert.equal(k.S.draw(), 1);
-  assert.equal(k.draws.length, 3, 'ship, chain, cage');
+  assert.equal(k.draws.length, 4, 'ship, lamps, chain, cage');   // PIN MOVED (AUDIT SHIP A4): her lamps a mesh of their own (KETCH-LOOK KL1), drawn outside too
+  const L = buildKetchShip().lamps;
+  assert.ok(k.draws.some((d) => d.m.positions.length === L.positions.length && d.m.indices.length === L.indices.length), 'her lamps among them');
   const drawn = k.draws.length;
   k.set(v.at - 60_000);
   k.S.frame();
   k.S.draw();
-  assert.equal(k.draws.length - drawn, 1, 'sighted, her lift drawn up: her ship alone');
+  assert.equal(k.draws.length - drawn, 2, 'sighted, her lift drawn up: her ship and her lamps alone');
   k.set(v.departAt + 1000);
   const q = k.S.frame();
   assert.ok(q.lift[1] > 50 && q.lift[1] <= 50 + KT_SKY_CHAIN, 'the cage rising');

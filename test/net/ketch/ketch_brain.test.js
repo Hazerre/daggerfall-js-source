@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   newVoyage, joinVoyage, stepVoyage, voyageWord, voyageStateOf, voyageEarners, watchWave, spidersMaxFor, cellsWord,
-  KT_WATCH_WAIT_MS, KT_WAVE_GAP_MS, KT_RISE_MS, KT_CELL_LIES_MS, KT_CRADLE_BACK_MS, KT_BRIDGE_CRADLE_BACK_MS, KT_BRIDGE_CRADLE0, KT_RESONATOR0, KT_BODY_ID0,
+  KT_WATCH_WAIT_MS, KT_WAVE_GAP_MS, KT_RISE_MS, KT_CELL_LIES_MS, KT_DOWN_KEEP_MS, KT_CRADLE_BACK_MS, KT_BRIDGE_CRADLE_BACK_MS, KT_BRIDGE_CRADLE0, KT_RESONATOR0, KT_BODY_ID0,
   idlePlaces, freePlace, stampFightFall, fightBodyOf, KT_PLACE_KEEP_MS, KT_SAILWALK_LEAST_MS, KT_CROSS_LEAST_MS, KT_FAST_RUN_MPS, KT_CARRY_PACE, KT_STEP_SLACK, ktLeastMs,
 } from '../../../src/net/ketch/ketchBrain.js';
 import { ketchRoomKey, ketchVoyageOf, KT_STAGE, KT_CREW_MAX } from '../../../src/net/ketch/ketchLaw.js';
@@ -166,6 +166,28 @@ test('KETCH THE STARVED ENGINE - a cell dropped: struck, it lies where the carri
   pick('mem0', 3, lost.now + 250);
   assert.equal(voyageWord(V, 'mem0', { k: 'drop' }, poseOf(HOLD_MID), lost.now + 300, rng)[0].why, 'let');
   assert.deepEqual(voyageWord(V, 'mem0', { k: 'drop' }, poseOf(HOLD_MID), lost.now + 400, rng), [], 'empty hands drop nothing');
+});
+
+test('KETCH THE GALLERY WEDGES ON NO LATE BEAT: both Wardens down and taken off (KT_DOWN_KEEP_MS) before the next beat - a wake late - the hold opens all the same (AUDIT SHIP 5; mutants: the hold kept shut on wardens taken off)', () => {
+  const V = ship(4), w = all(V, WAIST);
+  const a = sail(V, T0, w, { act: strikeFloor(V, w, 'waist'), until: (f) => f.k === 'sg' });
+  const t = a.now + 1000;
+  for (const B of V.bodies.filter((q) => q.kind === 'warden')) { B.h = 0; B.downAt = t; }
+  const out = stepVoyage(V, t + KT_DOWN_KEEP_MS + 5000, bodiesOf(all(V, GALLERY)), seeded(6));
+  assert.equal(V.bodies.filter((q) => q.kind === 'warden').length, 0, 'taken off');
+  assert.equal(out.find((f) => f.k === 'sg')?.sg, KT_STAGE.engine);
+});
+
+test('KETCH A CELL LET GO AND TAKEN UP AGAIN BANKS NO SOONER: the step law\'s start and its clock lie with the cell - let go by its socket a moment after its cradle and taken up again, it is set no sooner than carried from the cradle (AUDIT SHIP 3; mutants: a cell taken up afresh where it lies)', () => {
+  const V = ship(4), t = toEngine(V), rng = seeded(5);
+  const [cx, cz] = KT_CRADLES[0], [sx, sz] = KT_SOCKETS[3], S3 = poseOf([sx, -12, sz]);
+  voyageWord(V, 'mem0', { k: 'pick', c: 0 }, poseOf([cx, -12, cz]), t, rng);
+  const W = carried(V, 'mem0', KT_SOCKETS[3]);
+  assert.ok(W > 400);
+  assert.equal(voyageWord(V, 'mem0', { k: 'drop' }, S3, t + 50, rng)[0].k, 'drop');
+  assert.equal(voyageWord(V, 'mem0', { k: 'pick', l: V.cells.lo[0].id }, S3, t + 100, rng)[0].k, 'pick');
+  assert.deepEqual(voyageWord(V, 'mem0', { k: 'bank', s: 3 }, S3, t + 200, rng), [], 'by its socket in 200 ms: refused');
+  assert.equal(voyageWord(V, 'mem0', { k: 'bank', s: 3 }, S3, t + W + 10, rng)[0].k, 'bank', 'as soon as carried from its cradle');
 });
 
 test('KETCH THE STARVED ENGINE - the spiders pour from the vents two at a time, never more than three and the crew at once; fed, the engine\'s hold is cleared and THE MAST-LIFT RUNS - the Sailwalk (mutants: the spiders\' bound ignored; the hold\'s constructs left standing; the engine fed one short)', () => {

@@ -74,8 +74,8 @@
   {
     "name": "KTL3-the-hatch-one-sided",
     "file": "src/world/ketch/ketchStates.js",
-    "old": "join: Object.freeze(['decks', 'below']) }),",
-    "new": "join: Object.freeze(['decks']) }),",
+    "old": "join: Object.freeze(['decks', 'below']), r: KT_PVS_HATCH_M }),",
+    "new": "join: Object.freeze(['decks']), r: KT_PVS_HATCH_M }),",
     "tests": [
       "test/world/ketch/ketch_states.test.js",
       "test/scenes/ketch_deck_host.test.js"
@@ -93,7 +93,7 @@
   {
     "name": "KTL3-the-door-rule-dropped",
     "file": "src/world/ketch/ketchStates.js",
-    "old": "p[2] - d.at[2]) <= KT_PVS_DOOR_M)",
+    "old": "p[2] - d.at[2]) <= (d.r ?? KT_PVS_DOOR_M))",
     "new": "p[2] - d.at[2]) <= 0)",
     "tests": [
       "test/world/ketch/ketch_states.test.js",
@@ -333,5 +333,75 @@
     "tests": [
       "test/world/ketch/ketch_lab.test.js"
     ]
+  },
+  {
+    "name": "KTSHIP-the-held-view-alone",
+    "file": "src/world/ketch/ketchStates.js",
+    "old": "  if (here && here !== view) for (const g of KT_PVS[here]) out.add(g);",
+    "new": "",
+    "tests": [
+      "test/world/ketch/ketch_states.test.js"
+    ],
+    "note": "AUDIT SHIP A2: off the lift into the hold with the decks' view held, the hold's cradles, sockets, arcs and gate would vanish."
+  },
+  {
+    "name": "KTSHIP-the-hatch-at-the-door-reach",
+    "file": "src/world/ketch/ketchStates.js",
+    "old": "export const KT_PVS_HATCH_M = 14;",
+    "new": "export const KT_PVS_HATCH_M = 6;",
+    "tests": [
+      "test/scenes/ketch_deck_host.test.js"
+    ],
+    "note": "AUDIT SHIP A3: the gallery's hammers would pop in at the hatch's lip, seen down the stair from the waist."
+  },
+  {
+    "name": "KTSHIP-her-fallback-art-held",
+    "file": "src/scenes/ketch/ketchDeckHost.js",
+    "old": "    if (again) { renderer.releaseTexture?.(KT_ARCHIVE, rec); renderer.evictEmissionTexture?.(`${KT_ARCHIVE}_${rec}`); }\n",
+    "new": "",
+    "tests": [
+      "test/scenes/ketch_deck_host.test.js"
+    ],
+    "note": "AUDIT SHIP A1: the renderer's cache would answer her palette's upload with her fallback's pictures - ART_PAL never on the GPU."
+  },
+  {
+    "name": "KTSHIP-the-bounce-before-the-moon",
+    "file": "src/scenes/ketch/ketchDeckHost.js",
+    "old": "  for (let i = 0; i < 3; i++) L.tri.ground[i] = Math.max(0, L.tri.ground[i] - L.key.color[i] * k0 * (1 - m) * KT_TRI.bounce);",
+    "new": "",
+    "tests": [
+      "test/scenes/ketch_deck_host.test.js"
+    ],
+    "note": "AUDIT SHIP A6: a moonless night would bounce moonlight off her ceilings and her belly."
+  },
+  {
+    "name": "KTSHIP-the-halo-at-the-gain",
+    "file": "src/scenes/ketch/ketchDeckHost.js",
+    "old": "(c ? Math.min(L.color[j], c[j]) : L.color[j]) * k",
+    "new": "L.color[j] * k",
+    "tests": [
+      "test/scenes/ketch_deck_host.test.js"
+    ],
+    "note": "AUDIT SHIP A5: the classic cabin's halos would burn white, at its lamps' 7.6 gain."
+  },
+  {
+    "name": "KTSHIP-her-lamps-dark-outside",
+    "file": "src/scenes/ketch/ketchSky.js",
+    "old": "      if (lamps) r.drawMesh(lamps, M, null, { noShadow: true });\n",
+    "new": "",
+    "tests": [
+      "test/scenes/ketch_sky.test.js"
+    ],
+    "note": "AUDIT SHIP A4: seen from Daggerfall at night she would carry no lit lamp."
+  },
+  {
+    "name": "KTSHIP-the-street-feet-retimed",
+    "file": "src/scenes/shared.js",
+    "old": " extra.skyMinutes = skyMinutes; extra.pos = null; }",
+    "new": " extra.skyMinutes = skyMinutes; }",
+    "tests": [
+      "test/scenes/ketch_deck_host.test.js"
+    ],
+    "note": "AUDIT SHIP A7: on the ship the clouds' camera would read the made level's coordinates - the field jumping at boarding."
   }
 ]

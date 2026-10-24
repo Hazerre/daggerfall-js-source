@@ -11,7 +11,8 @@ const AT = { n: 3, owner: 'aaaaaaaaaaaaaaaa', key: 'kt:00000003.aaaaaaaaaaaaaaaa
 test('KETCH MY SHIP THIS VOYAGE: the room\'s `st` naming me keeps the ship under me; one not naming me, another voyage\'s, or no ship keeps nothing (mutants: kept without my name)', () => {
   assert.equal(KT_SHIP_KEY, 'ketch.myShip');
   const st = { k: 'st', n: 3, cr: [['acct-a', 'A'], ['acct-b', 'B']] };
-  assert.deepEqual(ketchShipKept(st, 'acct-b', AT), { n: 3, a: 'acct-b', o: AT.owner });
+  assert.deepEqual(ketchShipKept(st, 'acct-b', AT), { n: 3, a: 'acct-b', o: AT.owner, p: null });
+  assert.deepEqual(ketchShipKept(st, 'acct-b', AT, 'party-1'), { n: 3, a: 'acct-b', o: AT.owner, p: 'party-1' }, 'the party it was kept in');
   assert.equal(ketchShipKept(st, 'acct-c', AT), null, 'not of its crew');
   assert.equal(ketchShipKept({ ...st, n: 2 }, 'acct-b', AT), null, 'another voyage\'s');
   assert.equal(ketchShipKept({ ...st, k: 'cl' }, 'acct-b', AT), null);
@@ -19,9 +20,12 @@ test('KETCH MY SHIP THIS VOYAGE: the room\'s `st` naming me keeps the ship under
   assert.equal(ketchShipKept(st, null, AT), null);
 });
 
-test('KETCH THE SHIP I RIDE UP TO: the one I was taken into, though the lead has passed on; else the leader\'s, else my own - never another voyage\'s ship, never another account\'s (AUDIT KETCH L1-6; mutants: the leader over the ship kept; another voyage\'s ship ridden to)', () => {
-  const kept = { n: 3, a: 'acct-b', o: AT.owner };
-  assert.deepEqual(ketchShipChoice(3, 'acct-b', 'acct-c', kept), { owner: AT.owner }, 'the lead passed to c: still a\'s ship');
+test('KETCH THE SHIP I RIDE UP TO: the one I was taken into, though the lead has passed on; else the leader\'s, else my own - never another voyage\'s ship, never another account\'s (AUDIT KETCH L1-6; AUDIT SHIP 1 - the ship kept only in the party it was kept in; mutants: the leader over the ship kept; another voyage\'s ship ridden to; the party unread)', () => {
+  const kept = { n: 3, a: 'acct-b', o: AT.owner, p: 'party-1' };
+  assert.deepEqual(ketchShipChoice(3, 'acct-b', 'acct-c', kept, 'party-1'), { owner: AT.owner }, 'the lead passed to c: still a\'s ship');
+  assert.deepEqual(ketchShipChoice(3, 'acct-b', 'acct-y', { ...kept, p: null }, 'party-2'), { captain: 'acct-y' }, 'up alone first, then into y\'s party: y\'s ship (AUDIT SHIP 1)');
+  assert.deepEqual(ketchShipChoice(3, 'acct-b', 'acct-y', kept, 'party-2'), { captain: 'acct-y' }, 'into another party: its leader\'s');
+  assert.deepEqual(ketchShipChoice(3, 'acct-b', null, { ...kept, p: null }, null), { owner: AT.owner }, 'alone still: the ship kept');
   assert.deepEqual(ketchShipChoice(4, 'acct-b', 'acct-c', kept), { captain: 'acct-c' }, 'next voyage: the leader\'s');
   assert.deepEqual(ketchShipChoice(3, 'acct-d', 'acct-c', kept), { captain: 'acct-c' }, 'another account signed in');
   assert.deepEqual(ketchShipChoice(3, 'acct-b', null, null), { captain: 'acct-b' }, 'alone: my own');

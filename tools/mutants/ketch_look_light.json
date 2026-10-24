@@ -112,8 +112,8 @@
   {
     "name": "KTL-the-key-from-no-moon",
     "file": "src/scenes/ketch/ketchDeckHost.js",
-    "old": "const m = moon && moon.scale > 0 ? Math.min(1, moon.scale / MOONLIGHT.masser) : 0;",
-    "new": "const m = moon && moon.scale > 0 ? Math.min(1, moon.scale / MOONLIGHT.masser) : 1;",
+    "old": "const m = moon && moon.scale > 0 ? Math.min(1, moon.scale / MOONLIGHT.masser) : 0, k0 = L.key.scale;",
+    "new": "const m = moon && moon.scale > 0 ? Math.min(1, moon.scale / MOONLIGHT.masser) : 1, k0 = L.key.scale;",
     "tests": [
       "test/scenes/ketch_deck_host.test.js"
     ]
@@ -175,7 +175,7 @@
   {
     "name": "KTL-retime-the-old-clocks",
     "file": "src/scenes/shared.js",
-    "old": "      if (extra) { extra.classicMinutes = classicMinutes; extra.skyMinutes = skyMinutes; }",
+    "old": "      if (extra) { extra.classicMinutes = classicMinutes; extra.skyMinutes = skyMinutes; extra.pos = null; }",
     "new": "",
     "tests": [
       "test/scenes/ketch_deck_host.test.js"

@@ -88,5 +88,15 @@
     "tests": [
       "test/systems/pelletsscarce.test.js"
     ]
+  },
+  {
+    "name": "PELLETS-SCARCE-the-switch-off-a-no-op-again",
+    "file": "src/systems/loot/lootRarity.js",
+    "old": "  if (!lootRarityOn()) return (items.push(...rollFinalFinds({ ...source, luck }, rolls)), items);",
+    "new": "  if (!lootRarityOn()) return items;",
+    "tests": [
+      "test/systems/pelletsscarce.test.js"
+    ],
+    "note": "AUDIT SHIP C2: Loot rarity off, no Pellet would drop anywhere - the shelves sell none - and a gun owned offline starves."
   }
 ]

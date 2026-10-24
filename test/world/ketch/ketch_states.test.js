@@ -96,6 +96,14 @@ test('KETCH-LOOK KL3 ONE KEPT RECORD: the record handed in is the record answere
   }
 });
 
+test('KETCH-LOOK THE PVS HOLDS NO ZONE OUT OF ITS OWN SIGHT: a view held past its edge, the zone the eye stands in seen with it - off the lift west into the hold with the decks\' view held, the hold and its gun deck drawn (AUDIT SHIP A2; mutants: the held view alone)', () => {
+  const g = new Set();
+  for (const p of [[2.5, -12, 58], [7, -12, 65]]) {   // beside the lift's tower (its door), and past its door's reach
+    assert.equal(pvsGroupsAt(p, 'decks', g), 'decks', `the decks' view held at ${p}`);
+    assert.ok(g.has('hold') && g.has('gundeck'), `${p}: ${[...g].join()}`);
+  }
+});
+
 test('KETCH-LOOK KL3 THE PVS: each zone its view\'s groups - the decks never the gun deck\'s, below never the bridge\'s; held past its edge; both sides\' groups within an opening\'s reach (mutants: the hatch one-sided; no hold at the edge)', () => {
   const g = new Set();
   assert.equal(pvsGroupsAt([0, 0, 30], null, g), 'decks');

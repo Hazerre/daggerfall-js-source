@@ -205,5 +205,15 @@
     "tests": [
       "test/net/ketch/ketch_online.test.js"
     ]
+  },
+  {
+    "name": "KTR-a-member-s-own-frame-first",
+    "file": "server/src/index.js",
+    "old": "      if (all.length) this._fanFrames(all.splice(0), (b) => b.id);   // AUDIT SHIP 7",
+    "new": "      if (false) this._fanFrames(all.splice(0), (b) => b.id);   // AUDIT SHIP 7",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ],
+    "note": "AUDIT SHIP 7: a joiner's own fight state would be said before the fight's `wf` that resets it."
   }
 ]

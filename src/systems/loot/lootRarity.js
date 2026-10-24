@@ -1325,11 +1325,12 @@ export function craftedRarityWorth(item) {
 }
 
 /** THE HOST DOOR. Roll every eligible item of a freshly generated list
- *  against the source; a no-op with the switch off or no source, so
- *  the DFU loot list is returned untouched. `luck` is the player's
+ *  against the source; a no-op with no source, and with the switch off
+ *  the DFU loot list untouched but for the final finds (the Pellet). `luck` is the player's
  *  live luck. Returns the list for chaining. */
 export function rollLootRarity(items, source, { rolls = Math.random, luck = 50, find: findIn = undefined } = {}) {   // PARTY-LOOT: `find` the roll's own finders' word (a room's base reads none of a player's)
-  if (!lootRarityOn() || !source || !Array.isArray(items)) return items;
+  if (!source || !Array.isArray(items)) return items;
+  if (!lootRarityOn()) return (items.push(...rollFinalFinds({ ...source, luck }, rolls)), items);   // AUDIT SHIP C2: the Pellet a find, not a tier - the switch off still drops it, the shelves selling none
   const find = findIn ?? legendaryFindMult();   // LOOT5: the finders' word, once for the list
   const minted = [];
   for (const it of items) {

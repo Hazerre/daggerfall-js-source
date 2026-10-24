@@ -229,7 +229,7 @@ export function dropCell(V, sub, at, now, why, out) {
   const c = V.cells.carry[sub];
   if (!c) return false;
   delete V.cells.carry[sub];
-  if (at && Number.isFinite(at.x) && Number.isFinite(at.z)) V.cells.lo.push({ id: c.id, x: at.x, y: Number.isFinite(at.y) ? at.y : 0, z: at.z, until: now + KT_CELL_LIES_MS, on: c.on });
+  if (at && Number.isFinite(at.x) && Number.isFinite(at.z)) V.cells.lo.push({ id: c.id, x: at.x, y: Number.isFinite(at.y) ? at.y : 0, z: at.z, until: now + KT_CELL_LIES_MS, on: c.on, ox: c.x, oz: c.z, oa: c.at });   // AUDIT SHIP 3: where and when it was first taken up, lying with it
   out.push({ k: 'drop', s: sub, n: V.players[sub]?.name ?? '', why, at: now });
   cellsFrame(V, out);
   return true;
@@ -294,7 +294,8 @@ function stageBeat(V, now, live, rng, out) {
   } else if (V.sg === KT_STAGE.gallery) {
     const W = V.bodies.filter((B) => B.kind === 'warden');
     if (W.some((B) => !B.wake) && live.some((q) => (q.zone === 'gallery' || q.zone === 'landing') && q.z >= KT_WARDEN_WAKE_Z)) for (const B of W) if (!B.wake) { B.wake = true; out.push({ k: 'wk', o: B.id, at: now }); }
-    if (W.length && W.every((B) => B.h <= 0)) { toStage(V, KT_STAGE.engine, now, out); V.cells.need = engineNeeds(n); V.spidersAt = now + KT_SPIDER_EVERY_MS / 2; cellsFrame(V, out); }
+    // AUDIT SHIP 5: the wardens down or taken off (KT_DOWN_KEEP_MS) - a beat late past the last one's fall wedges nothing
+    if (!W.some((B) => B.h > 0)) { toStage(V, KT_STAGE.engine, now, out); V.cells.need = engineNeeds(n); V.spidersAt = now + KT_SPIDER_EVERY_MS / 2; cellsFrame(V, out); }
   } else if (V.sg === KT_STAGE.engine) {
     if (V.cells.banked >= V.cells.need) {
       for (const B of V.bodies) if (B.floor === 'hold' && B.h > 0) { B.h = 0; B.downAt = now; out.push({ k: 'dn', o: B.id, n: '', at: now }); }
@@ -328,6 +329,7 @@ function stageBeat(V, now, live, rng, out) {
       V.fell = { at: f.fell.at, top: f.fell.top, n: f.fell.n };
       for (const B of V.bodies) if (B.h > 0) { B.h = 0; B.downAt = now; out.push({ k: 'dn', o: B.id, n: '', at: now }); }
       V.cells.carry = {}; V.cells.lo = [];
+      cellsFrame(V, out);   // AUDIT SHIP 6: the hands emptied said
       toStage(V, KT_STAGE.vault, now, out);
       out.push({ k: 'fell', ...f.fell });
     }
@@ -422,7 +424,7 @@ export function voyageWord(V, sub, m, pose, now, rng) {
       const l = C.lo[li];
       if (!l || dist(at.x, at.z, l.x, l.z) > KT_REACH + 0.6 || Math.abs((at.y ?? 0) - l.y) > 2.5) return out;
       C.lo.splice(li, 1);
-      C.carry[sub] = { id: l.id, on: l.on, x: at.x, z: at.z, at: now };
+      C.carry[sub] = { id: l.id, on: l.on, x: l.ox ?? at.x, z: l.oz ?? at.z, at: l.oa ?? now };   // AUDIT SHIP 3: the step law's start kept - a cell let go where its carrier claimed and taken up again banks no sooner
     } else return out;
     out.push({ k: 'pick', s: sub, n: p.name, at: now });
     cellsFrame(V, out);

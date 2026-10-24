@@ -780,7 +780,7 @@ export function createSkyController(gl, params) {
     retime(minuteOfDay, classicMinutes, skyMinutes) {
       if (lastUse.index === null) return;
       const extra = lastUse.extra ? Object.assign(retimed, lastUse.extra) : null;
-      if (extra) { extra.classicMinutes = classicMinutes; extra.skyMinutes = skyMinutes; }
+      if (extra) { extra.classicMinutes = classicMinutes; extra.skyMinutes = skyMinutes; extra.pos = null; }   // AUDIT SHIP A7: the street's feet are the player's live array - in a made level its coordinates, the clouds' field moved to them; it stays where the street left it
       this.use(lastUse.index, minuteOfDay, lastUse.night, extra);
     },
     /** VC3: `viewport` is the host's world rect [x, y, w, h] in pixels,

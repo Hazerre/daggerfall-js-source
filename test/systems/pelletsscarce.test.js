@@ -113,3 +113,18 @@ test('PELLETS-SCARCE THE DOOR\'S LAST DRAW: over 29 seeds, every draw before the
     assert.equal(JSON.stringify(a.slice(0, -1)), JSON.stringify(b), `seed ${seed}: the rest the seed's own`);
   }
 });
+
+test('PELLETS-SCARCE THE SWITCH OFF STILL DROPS IT: Loot rarity off, the DFU list is untouched but for the Dwemer find - a find, not a tier - so a gun owned offline is never starved, the shelves selling none (AUDIT SHIP C2; mutants: the switch off a no-op again)', () => {
+  setPref('lootRarity', false);
+  try {
+    const src = { kind: 'corpse', tier: 12, boss: false, family: null };
+    const w = createWeapon(120, 1), plain = JSON.stringify(w);
+    let drawn = 0;
+    const found = LR.rollLootRarity([w], src, { rolls: () => { drawn++; return 0; } });
+    assert.equal(JSON.stringify(found[0]), plain, 'the DFU piece untouched');
+    assert.equal(found.length, 2); assert.ok(isPellet(found[1]));
+    assert.equal(drawn, 2, 'its roll and its stack\'s');
+    assert.deepEqual(LR.rollLootRarity([createWeapon(120, 1)], src, { rolls: () => 0.999 }).filter(isPellet), []);
+    assert.deepEqual(LR.rollLootRarity([createWeapon(120, 1)], { ...src, tier: 0 }, { rolls: () => 0 }).filter(isPellet), [], 'never at tier 0');
+  } finally { setPref('lootRarity', true); }
+});

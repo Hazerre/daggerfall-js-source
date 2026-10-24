@@ -338,7 +338,7 @@ test('GEM2 the world\'s gem find: 10 in a thousand and 2 a tier to 50 (GEM-RARE,
     assert.equal(G.gemFindChance({ tier: 21, boss: true }), 0);
     const offList = [createWeapon(122, 1)];
     LR.rollLootRarity(offList, src, { rolls: () => 0 });
-    assert.equal(offList.length, 1, 'off: DFU\'s list');
+    assert.ok(offList.slice(1).every((it) => /Pellet/.test(it.name)) && !offList.some((it) => it.gem || /Ruby|Sapphire|Emerald|Diamond|Amethyst|Topaz/.test(it.name ?? '')), 'off: DFU\'s list - no gem');   // PIN MOVED (AUDIT SHIP C2): the switch off still drops the Pellet's final find, and nothing else
   } finally { LR._setWeaponSocketsForTests(null); LR.registerGemFind(G.rollGemFind); LR._setTechniqueForTests(null); off(); }   // AUDIT GEM: the hooks back whatever failed; TECH1: and the technique's chances
 });
 

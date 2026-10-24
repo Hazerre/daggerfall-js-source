@@ -113,7 +113,7 @@ test('LOOT21: the finds - late, from tier 6 and tier 10, never in rollUniqueFind
   setPref('lootRarity', false);
   const offList = [createWeapon(120, 1)];
   LR.rollLootRarity(offList, src, { rolls: () => 0 });
-  assert.equal(offList.length, 1);
+  assert.ok(!offList.some((it) => isWelkyndStone(it) || isVarlaStone(it)) && offList.slice(1).every((it) => /Pellet/.test(it.name)), 'no stone');   // PIN MOVED (AUDIT SHIP C2): the switch off still drops the Pellet's final find - a find, not a tier - and nothing else
   _resetForTests();
 });
 

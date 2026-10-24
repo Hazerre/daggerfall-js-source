@@ -92,8 +92,8 @@
   {
     "name": "KTB-the-hold-opened-with-one-standing",
     "file": "src/net/ketch/ketchBrain.js",
-    "old": "if (W.length && W.every((B) => B.h <= 0)) {",
-    "new": "if (W.length && W.some((B) => B.h <= 0)) {",
+    "old": "if (!W.some((B) => B.h > 0)) {",
+    "new": "if (W.some((B) => B.h <= 0)) {",
     "tests": [
       "test/net/ketch/ketch_brain.test.js"
     ]
@@ -229,6 +229,24 @@
     "file": "src/net/ketch/ketchBrain.js",
     "old": "if (!V.wf || !spot || V.wf.rs[k] !== 0 ||",
     "new": "if (!V.wf || !spot ||",
+    "tests": [
+      "test/net/ketch/ketch_brain.test.js"
+    ]
+  },
+  {
+    "name": "KTB-a-cell-taken-up-afresh-where-it-lies",
+    "file": "src/net/ketch/ketchBrain.js",
+    "old": "C.carry[sub] = { id: l.id, on: l.on, x: l.ox ?? at.x, z: l.oz ?? at.z, at: l.oa ?? now };",
+    "new": "C.carry[sub] = { id: l.id, on: l.on, x: at.x, z: at.z, at: now };",
+    "tests": [
+      "test/net/ketch/ketch_brain.test.js"
+    ]
+  },
+  {
+    "name": "KTB-the-hold-kept-shut-on-wardens-taken-off",
+    "file": "src/net/ketch/ketchBrain.js",
+    "old": "if (!W.some((B) => B.h > 0)) {",
+    "new": "if (W.length && !W.some((B) => B.h > 0)) {",
     "tests": [
       "test/net/ketch/ketch_brain.test.js"
     ]

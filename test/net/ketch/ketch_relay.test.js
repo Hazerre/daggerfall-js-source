@@ -141,6 +141,17 @@ test('KETCH A WORD ABOARD: the wire projects it (junk refused), the brain\'s num
   });
 });
 
+test('KETCH THE FRAMES IN THEIR ORDER: a frame for one member said after every frame before it - a fight begun (`wf`) before the joiner\'s own `ws` - never ahead of them (AUDIT SHIP 7; mutants: a member\'s own frame said first)', async () => {
+  await withShip(async ({ ship }) => {
+    const alice = ship.connect(); await ship.hello(alice, 'alice', at(0, 0, 30), { charLevel: 30 });
+    const bob = ship.connect(); await ship.hello(bob, 'bobby', at(0, 0, 30), { charLevel: 30 });
+    const from = alice.sent.length;
+    ship.room._ktFan([{ k: 'wf', fi: 1, at: 1 }, { k: 'ws', to: 'acct-alice', me: 1 }, { k: 'wl', at: 2 }]);
+    assert.deepEqual(alice.sent.slice(from).filter((m) => m.t === 'kt').map((m) => m.k), ['wf', 'ws', 'wl']);
+    assert.deepEqual(kt(bob).slice(-2).map((m) => m.k), ['wf', 'wl'], 'hers alone');
+  });
+});
+
 test('KETCH THE VOYAGE KEPT AS IT MOVES: a word the brain refuses writes nothing; a stage the beat reaches is written at once, not at the next checkpoint (AUDIT KETCH L1-9, L1-10; mutants: a refused word written; a stage left to the checkpoint)', async () => {
   await withShip(async ({ ship, step, now }) => {
     const alice = ship.connect(); await ship.hello(alice, 'alice', at(0, 0, 30), { charLevel: 30 });

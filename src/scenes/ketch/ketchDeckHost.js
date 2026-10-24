@@ -29,7 +29,7 @@ import { DFPalette } from '../../formats/dfPalette.js';
 import { hammerHeadY, hazardState, hazardStrike, sectionPose } from '../../world/ketch/ketchPose.js';
 import { packKetchHit } from '../../world/ketch/ketchKit.js';
 import { isKetchShip, ketchShipLocation, ketchShipBlocks } from '../../world/ketch/ketchShip.js';
-import { ketchHourLight, ketchLightRecord } from '../../world/ketch/ketchAtmos.js';
+import { ketchHourLight, ketchLightRecord, KT_TRI } from '../../world/ketch/ketchAtmos.js';
 import { KT_GROUP, pvsGroupsAt } from '../../world/ketch/ketchStates.js';
 import {
   KT_HAMMER, KT_STEAM, KT_ARCS, KT_LIFT, KT_CRADLES, KT_BRIDGE_CRADLES, KT_SOCKETS, KT_RESONATORS, KT_BRIDGE, KT_HOLD, KT_GALLERY, KT_SECTIONS,
@@ -82,7 +82,9 @@ export function ketchHalosInto(out, lights) {
     const L = lights[i], h = out[n] ?? (out[n] = { at: [0, 0, 0], size: 0, color: [0, 0, 0] }), glow = !!L.carried, k = glow ? H.glow.k : H.lamp.k;
     h.at[0] = L.x; h.at[1] = L.y; h.at[2] = L.z;
     h.size = glow ? Math.max(H.glow.min, Math.min(H.glow.max, H.glow.size * L.range)) : H.lamp.size;
-    h.color[0] = L.color[0] * k; h.color[1] = L.color[1] * k; h.color[2] = L.color[2] * k;
+    // AUDIT SHIP A5: a lamp's halo dims with its zone's gain, never past its own glass (the classic set's gain is the light's, not the bloom's)
+    const c = glow || !L.zone ? null : L.zone === 'deck' ? KT_LAMP.color : KT_LAMP.below;
+    for (let j = 0; j < 3; j++) h.color[j] = (c ? Math.min(L.color[j], c[j]) : L.color[j]) * k;
     n++;
   }
   out.length = n;
@@ -112,8 +114,10 @@ export function ensureKetchArt(renderer, rgb = null) {
   if (!renderer?.uploadTexture || (_artUp === renderer && (rgb == null || rgb === _artPal))) return;
   // the nets' holes a cutout - the sky through them (AUDIT KETCH L4-2: uploaded plain, every net drew as a solid wall), as
   // the Spire's spans' and the boats' liveries are (scenes/eliteGates/egSpan.js); the puffs stay soft, the billboards' own
+  const again = _artUp === renderer;   // AUDIT SHIP A1: the renderer's cache answers a key it holds with the picture it holds - let her old ones go first
   for (const [rec, raw] of (_art ??= ketchArt())) {
     const art = resolveKetchArt(raw, rgb);
+    if (again) { renderer.releaseTexture?.(KT_ARCHIVE, rec); renderer.evictEmissionTexture?.(`${KT_ARCHIVE}_${rec}`); }
     renderer.uploadTexture(KT_ARCHIVE, rec, art.albedo, ...(KT_CUTOUT_RECS.includes(rec) ? [{ cutout: true }] : []));
     renderer.uploadEmissionTexture?.(KT_ARCHIVE, rec, art.emission, { white: true });
   }
@@ -125,7 +129,7 @@ let _palette = null;
  *  data. */
 export function ketchPaletteRgb(getBytes = (name) => import('../dataSource.js').then((m) => m.getBytes(name))) {
   _palette ??= (async () => {
-    try { const pal = new DFPalette(); pal.load(await getBytes('ART_PAL.COL'), 'ART_PAL.COL'); const h = pal.headerLength; return pal.paletteBuffer.slice(h, h + 768); } catch { return null; }
+    try { const pal = new DFPalette(); if (!pal.load(await getBytes('ART_PAL.COL'), 'ART_PAL.COL')) return null; const h = pal.headerLength; return pal.paletteBuffer.slice(h, h + 768); } catch { return null; }
   })();
   return _palette;
 }
@@ -439,8 +443,9 @@ export function ketchFrameLook(eye, minute, lane = false, moon = null) {
     for (let i = 0; i < 3; i++) { L.ambient[i] *= k; L.tri.sky[i] *= k; L.tri.equator[i] *= k; L.tri.ground[i] *= k; }
     L.sunScale *= k; L.key.scale *= k; L.lamps *= L.classic.lamps;
   }
-  const m = moon && moon.scale > 0 ? Math.min(1, moon.scale / MOONLIGHT.masser) : 0;
+  const m = moon && moon.scale > 0 ? Math.min(1, moon.scale / MOONLIGHT.masser) : 0, k0 = L.key.scale;
   L.key.scale *= m;
+  for (let i = 0; i < 3; i++) L.tri.ground[i] = Math.max(0, L.tri.ground[i] - L.key.color[i] * k0 * (1 - m) * KT_TRI.bounce);   // AUDIT SHIP A6: the moons' bounce at their own light - none on a moonless night
   if (m > 0) { L.key.dir[0] = moon.dir[0]; L.key.dir[1] = moon.dir[1]; L.key.dir[2] = moon.dir[2]; }
   L.clear[0] = L.fog.color[0]; L.clear[1] = L.fog.color[1]; L.clear[2] = L.fog.color[2];
   return L;

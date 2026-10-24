@@ -11,8 +11,8 @@
   {
     "name": "KTC-the-leader-over-the-ship-kept",
     "file": "src/scenes/ketch/ketchClient.js",
-    "old": "typeof kept.o === 'string' && kept.o ? { owner: kept.o } : { captain: leader ?? mine });",
-    "new": "typeof kept.o === 'string' && kept.o && !leader ? { owner: kept.o } : { captain: leader ?? mine });",
+    "old": "typeof kept.o === 'string' && kept.o && (kept.p ?? null) === (party ?? null) ? { owner: kept.o } : { captain: leader ?? mine });",
+    "new": "typeof kept.o === 'string' && kept.o && (kept.p ?? null) === (party ?? null) && !leader ? { owner: kept.o } : { captain: leader ?? mine });",
     "tests": [
       "test/scenes/ketch_client.test.js"
     ]

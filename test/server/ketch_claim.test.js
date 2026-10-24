@@ -272,7 +272,7 @@ test('KETCH the hosts and the service by source: the route and its migration, th
   assert.match(mig, /PRIMARY KEY \(voyage, account\)/);
   assert.match(mig, /REFERENCES players\(id\) ON DELETE CASCADE/);
   assert.match(src('server-account/src/index.js'), /path === '\/v1\/ketch\/claim' && request\.method === 'POST'/);
-  assert.match(src('server-account/src/service.js'), /acct180: KETCH/);
+  assert.match(src('server-account/src/service.js'), /acct181: KETCH/);   // PIN MOVED (the merge): acct181, KETCH - acct180 on its branch, renumbered past FOE-KEEPS'
   assert.match(src('src/ui/enhanced/enhancedAccount.js'), /ketchRecordText\(flow\.account\.ketch\)/);
   assert.match(src('src/scenes/world.js'), /\.\.\.profileRecordLines\(rec\)/);
   assert.match(src('src/scenes/ketch/ketchClient.js'), /createKetchClaims\(/);

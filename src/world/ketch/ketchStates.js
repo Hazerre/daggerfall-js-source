@@ -140,14 +140,17 @@ export const KT_PVS = Object.freeze({
  *  (m); a zone is held this far past the edge the eye began at, so a step back and forth flips nothing. */
 export const KT_PVS_DOOR_M = 6;
 export const KT_PVS_HOLD_M = 4;
+/** AUDIT SHIP A3: the Watch's hatch reaches further - the gallery's hammers are seen down its stair from the waist (m). */
+export const KT_PVS_HATCH_M = 14;
+const HOLD_STEPS = Object.freeze([[KT_PVS_HOLD_M, 0], [-KT_PVS_HOLD_M, 0], [0, KT_PVS_HOLD_M], [0, -KT_PVS_HOLD_M]]);
 /** The openings between the PVS's sides (deck [x, y, z]) and the views each joins. */
-export const KT_PVS_DOORS = Object.freeze([
-  Object.freeze({ at: Object.freeze([(KT_HATCH.x0 + KT_HATCH.x1) / 2, -3, (KT_HATCH.z0 + KT_HATCH.z1) / 2]), join: Object.freeze(['decks', 'below']) }),
+export const KT_PVS_DOORS = /** @type {ReadonlyArray<Readonly<{ at: ReadonlyArray<number>, join: ReadonlyArray<string>, r?: number }>>} */ (Object.freeze([
+  Object.freeze({ at: Object.freeze([(KT_HATCH.x0 + KT_HATCH.x1) / 2, -3, (KT_HATCH.z0 + KT_HATCH.z1) / 2]), join: Object.freeze(['decks', 'below']), r: KT_PVS_HATCH_M }),
   Object.freeze({ at: Object.freeze([(KT_HOLD_HATCH.x0 + KT_HOLD_HATCH.x1) / 2, -9, (KT_HOLD_HATCH.z0 + KT_HOLD_HATCH.z1) / 2]), join: Object.freeze(['below']) }),
   Object.freeze({ at: Object.freeze([KT_LIFT.x, KT_LIFT.y0 + 1.6, KT_LIFT.z]), join: Object.freeze(['below', 'decks', 'aloft']) }),
   Object.freeze({ at: Object.freeze([(KT_CABIN.x0 + KT_CABIN.x1) / 2, 1.6, KT_CABIN.z0]), join: Object.freeze(['cabin', 'bridge']) }),
   Object.freeze({ at: Object.freeze([KT_GANGWAY.bx, 1.6, KT_GANGWAY.bz]), join: Object.freeze(['aloft', 'bridge']) }),
-]);
+]));
 /** The view a deck zone (net/ketch/ketchDeck.js deckZoneAt's word) belongs to, or null (off her floors: the last kept). */
 export function pvsViewOf(zone) {
   switch (zone) {
@@ -168,15 +171,17 @@ export function pvsViewOf(zone) {
  */
 export function pvsGroupsAt(p, keep, out) {
   out.clear();
-  let view = pvsViewOf(deckZoneAt(p[0], p[1], p[2]));
+  const here = pvsViewOf(deckZoneAt(p[0], p[1], p[2]));
+  let view = here;
   if (keep && view !== keep) {
     // the view held while the eye stands within the hold of its old zone's floor
-    for (const [dx, dz] of [[KT_PVS_HOLD_M, 0], [-KT_PVS_HOLD_M, 0], [0, KT_PVS_HOLD_M], [0, -KT_PVS_HOLD_M]]) if (pvsViewOf(deckZoneAt(p[0] + dx, p[1], p[2] + dz)) === keep) { view = keep; break; }
+    for (const [dx, dz] of HOLD_STEPS) if (pvsViewOf(deckZoneAt(p[0] + dx, p[1], p[2] + dz)) === keep) { view = keep; break; }
   }
   view ??= keep ?? (p[1] < -1 ? 'below' : 'decks');
   for (const g of KT_PVS[view]) out.add(g);
+  if (here && here !== view) for (const g of KT_PVS[here]) out.add(g);   // AUDIT SHIP A2: a view held, the zone the eye stands in seen with it
   for (const d of KT_PVS_DOORS) {
-    if (Math.hypot(p[0] - d.at[0], p[1] - d.at[1], p[2] - d.at[2]) <= KT_PVS_DOOR_M) for (const v of d.join) for (const g of KT_PVS[v]) out.add(g);
+    if (Math.hypot(p[0] - d.at[0], p[1] - d.at[1], p[2] - d.at[2]) <= (d.r ?? KT_PVS_DOOR_M)) for (const v of d.join) for (const g of KT_PVS[v]) out.add(g);
   }
   return view;
 }

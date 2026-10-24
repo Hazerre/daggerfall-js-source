@@ -252,7 +252,7 @@ test('KETCH-LOOK KL1 THE SKY ON THE HOUR OFF THE STREET: a made level that draws
     ctl.retime(1080, 500, 600);
     ctl.retime(1081, 501, 601);
     assert.equal(seen.length, 2);
-    assert.deepEqual(seen[0], [16, 1080, false, { weather: 'rain', classicMinutes: 500, skyMinutes: 600, pos: [1, 2, 3] }]);
+    assert.deepEqual(seen[0], [16, 1080, false, { weather: 'rain', classicMinutes: 500, skyMinutes: 600, pos: null }]);   // PIN MOVED (AUDIT SHIP A7): the street's feet - the player's live array, a made level's coordinates by then - never handed on; the clouds' field stays where the street left it
     assert.deepEqual(seen[1].slice(0, 3), [16, 1081, false]);
     assert.equal(seen[1][3].skyMinutes, 601);
     // the draw handed the clocks retimes first; handed none (the street's, its use run) it does not
@@ -283,7 +283,7 @@ test('KETCH-LOOK KL1 THE SKY ON THE HOUR OFF THE STREET: a made level that draws
 
 test('KETCH-LOOK KL2 HER ART THROUGH THE PLAYER\'S PALETTE AT UPLOAD: up first in its fallback colours, then once more through ART_PAL when it is read - never back to the fallback after (the world outside\'s door asks again with none); a renderer that cannot upload asks nothing (mutants: the palette never asked; the fallback over the palette)', async () => {
   const { ensureKetchArt, ketchArtUp } = await import('../../src/scenes/ketch/ketchDeckHost.js');
-  const { ketchArt, KT_REC } = await import('../../src/world/ketch/ketchArt.js');
+  const { ketchArt, KT_REC, KT_ARCHIVE } = await import('../../src/world/ketch/ketchArt.js');
   const ups = [], renderer = { uploadTexture: (a, rec, img) => ups.push([rec, img.colors.slice(0, 4)]), uploadEmissionTexture: () => {} };
   ensureKetchArt(renderer);
   const n = ketchArt().length;
@@ -295,6 +295,17 @@ test('KETCH-LOOK KL2 HER ART THROUGH THE PLAYER\'S PALETTE AT UPLOAD: up first i
   ensureKetchArt(renderer);
   ensureKetchArt(renderer, rgb);
   assert.equal(ups.length, 2 * n, 'never back, never twice');
+  // AUDIT SHIP A1: a renderer that keeps what it holds under a key (renderer.js uploadTexture's cache) - her palette's
+  // pictures are the ones it holds after, her fallback's let go
+  const held = new Map(), glow = new Map(), cache = {
+    uploadTexture: (a, rec, img) => { const k = `${a}_${rec}`; if (!held.has(k)) held.set(k, img.colors.slice(0, 3)); },
+    uploadEmissionTexture: (a, rec, img) => { const k = `${a}_${rec}`; if (!glow.has(k)) glow.set(k, img); },
+    releaseTexture: (a, rec) => held.delete(`${a}_${rec}`), evictEmissionTexture: (k) => glow.delete(k),
+  };
+  ensureKetchArt(cache);
+  ensureKetchArt(cache, rgb);
+  assert.equal(held.size, n);
+  for (const [k, c] of held) assert.deepEqual([...c], [7, 7, 7], `${k} through the palette`);
   const asked = [];
   ketchArtUp({ uploadTexture: () => asked.push(1), uploadEmissionTexture: () => {} }, false);
   assert.ok(asked.length > 0, 'the lab\'s own colours up');
@@ -321,7 +332,7 @@ test('KETCH-LOOK KL2 THE CLASSIC SET CARRIES THE EYE: off the lane her light (th
 test('KETCH-LOOK KL3 THE PVS ON THE DECK: the parts the eye\'s zone cannot see `culled` - from the waist the gun deck\'s hammers, the hold\'s cells and arcs, the bridge\'s sections, resonators, forks, doors and lodestone; from the hold the bridge\'s and none of below\'s; from the cabin the bridge\'s drawn and the hold\'s not; within 6 m of the Watch hatch both sides\'; a draw without a group (the ship, her lamps, the land, the cage, the hatches) never; no eye, nothing; and the host\'s ride reads it from the body\'s feet (mutants: a group culled in its own zone; the door rule dropped; an ungrouped draw culled; the eye never the body\'s)', async () => {
   const { createKetchDeckHost } = await import('../../src/scenes/ketch/ketchDeckHost.js');
   const { deckToDungeon, KT_HATCH, KT_CABIN } = await import('../../src/net/ketch/ketchDeck.js');
-  const { KT_GROUP, KT_PVS_DOOR_M, KT_PVS_DOORS } = await import('../../src/world/ketch/ketchStates.js');
+  const { KT_GROUP, KT_PVS_DOOR_M, KT_PVS_DOORS, KT_PVS_HATCH_M } = await import('../../src/world/ketch/ketchStates.js');
   const deck = createKetchDeck({ renderer: { createMesh: (m) => ({ m }) }, palette: false }), draws = [];
   deck.stand({ dynamicDraws: draws, collider: null });
   const V = { n: 1, sg: KT_STAGE.vault, cl: null, ws: null };
@@ -344,7 +355,8 @@ test('KETCH-LOOK KL3 THE PVS ON THE DECK: the parts the eye\'s zone cannot see `
   assert.ok(Math.hypot(beside[0] - H0[0], beside[1] - H0[1], beside[2] - H0[2]) <= KT_PVS_DOOR_M);
   const hatch = at(...beside);
   assert.ok(hatch.has(KT_GROUP.gundeck) && hatch.has(KT_GROUP.aloft), 'both sides at the hatch');
-  assert.ok(!at(KT_HATCH.x1 + 1, 0, H0[2] - KT_PVS_DOOR_M - 6).has(KT_GROUP.gundeck), 'and not past its reach');
+  assert.ok(!at(KT_HATCH.x1 + 1, 0, H0[2] - KT_PVS_HATCH_M - 2).has(KT_GROUP.gundeck), 'and not past its reach');   // PIN MOVED (AUDIT SHIP A3): the Watch hatch's reach its own, KT_PVS_HATCH_M
+  assert.ok(at(0, 1.6, 48).has(KT_GROUP.gundeck), 'the gallery\'s hammers seen down the stair from the waist (AUDIT SHIP A3)');
   for (const p of [[0, 0, 30], [0, -12, 118], [0, 0, 200]]) { at(...p); assert.ok(plain.every((d) => !d.culled), 'an ungrouped draw never culled'); }
   deck.pose(V, 1, 1000, null);
   assert.ok(draws.every((d) => !d.culled), 'no eye, nothing culled');
@@ -385,4 +397,20 @@ test('KETCH-LOOK KL3 THE DECK\'S HALOS ON THE CLASSIC SET: each lamp and lit thi
     assert.ok(Array.isArray(handed), `handed a list (${lane ? 'lane' : 'classic'})`);
     if (lane) assert.equal(handed.length, 0, 'none on the lane'); else assert.ok(handed.length > 0 && handed.every((h) => h.size > 0), 'the deck\'s on the classic set');
   }
+});
+
+test('AUDIT SHIP THE DECK\'S LOOK AT NIGHT: a moonless night bounces no moonlight off her belly, a full moon its own share; a lamp\'s halo dims with its zone\'s gain and never burns past its own glass - the classic set\'s gain the light\'s, not the bloom\'s (AUDIT SHIP A5, A6; mutants: the bounce before the moon; the halo at the gain)', async () => {
+  const { ketchFrameLook, ketchHalosInto, KT_HALO } = await import('../../src/scenes/ketch/ketchDeckHost.js');
+  const { deckToDungeon } = await import('../../src/net/ketch/ketchDeck.js');
+  const { KT_LAMP } = await import('../../src/world/ketch/ketchModel.js');
+  const { MOONLIGHT } = await import('../../src/render/enhancedSky.js');
+  const eye = deckToDungeon(0, 1.6, 30);
+  for (const lane of [false, true]) {
+    assert.deepEqual([...ketchFrameLook(eye, 120, lane, null).tri.ground], [0, 0, 0], `02:00, no moon (lane ${lane})`);
+    assert.ok(ketchFrameLook(eye, 120, lane, { dir: [0, 1, 0], scale: MOONLIGHT.masser }).tri.ground[2] > 0, 'a full moon bounces');
+  }
+  const out = [], lamp = (zone, g) => ({ x: 0, y: 0, z: 0, range: 5, zone, color: (zone === 'deck' ? KT_LAMP.color : KT_LAMP.below).map((c) => c * g) });
+  ketchHalosInto(out, [lamp('cabin', 7.6), lamp('deck', 0.5)]);
+  assert.deepEqual(out[0].color.map((c) => +c.toFixed(6)), KT_LAMP.below.map((c) => +(c * KT_HALO.lamp.k).toFixed(6)), 'the classic cabin\'s gain held at its glass');
+  assert.deepEqual(out[1].color.map((c) => +c.toFixed(6)), KT_LAMP.color.map((c) => +(c * 0.5 * KT_HALO.lamp.k).toFixed(6)), 'a lamp dim by day, its halo with it');
 });

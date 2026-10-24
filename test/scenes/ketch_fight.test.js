@@ -147,3 +147,18 @@ test('KETCH-LOOK KL3 THE FIGHT\'S LATE PASS DRAWS THE DECK\'S HALOS: what the de
   assert.equal(fight.drawPass(I, I, [0, 0, 0], 0, null), false, 'forgotten off the ship');
   assert.equal(draws.length, n);
 });
+
+test('KETCH ONE SWING ONE SEQUENCE: the bodies a blow of mine meets in a frame share its number (the gate\'s blowQ) - the relay\'s hand spent once a swing, never once a body; a body met again, or the next frame, a new one (AUDIT SHIP 4; mutants: a number a body)', () => {
+  const sent = [], ws = { fk: { c: [[0, 0, 5], [0, 0, 5], [0, 0, 5]] } };
+  const state = { n: 1, sg: 0, bodies: [], blows: [], ws };
+  const link = { state: () => state, owed: () => [], paid: () => {}, songBroken: () => false, joined: () => true };
+  const fight = createKetchFight({ link, now: () => 0, sendHit: (m) => (sent.push(m.q), true) });
+  for (const c of [0, 1, 2]) fight.forkHit({ c, d: 10, r: 'Shaft' });
+  fight.forkHit({ c: 0, d: 10, r: 'Shaft' });
+  state.ws = null; fight.frame(); state.ws = ws;
+  fight.forkHit({ c: 1, d: 10, r: 'Shaft' });
+  assert.equal(sent.length, 5);
+  assert.equal(new Set(sent.slice(0, 3)).size, 1, 'one swing, three forks: one number');
+  assert.notEqual(sent[3], sent[0], 'a fork met again: a new one');
+  assert.notEqual(sent[4], sent[3], 'the next frame: a new one');
+});

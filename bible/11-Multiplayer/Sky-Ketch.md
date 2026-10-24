@@ -397,3 +397,60 @@ pass draws them), `test/world/ketch/ketch_lab.test.js` (the fake link, every fig
 `tools/mutants/ketch_look_law.json` (37, all dead). THE FOUR HOSTS (KL3): `scenes/worldModes.js` - one entry out of the late pass's
 call (`host.drawKtFight`'s `fog`), 11,040 -> 11,039 and its ceiling with it; `scenes/world.js`, `scenes/dungeonContext.js`,
 `scenes/exterior.js` - FLAGGED, nothing of KL3 passes through them (the Steps' word waits on KL12's term, above).
+
+## 17. AUDIT SHIP - the last audit before she ships (2026-10-24)
+
+The owner, of shipping: *"Lets do an an audit on everything we have. Then we can ship"*. Three readers went over the
+event, the guns and loot, and the KETCH-LOOK slices. Every finding below was traced to a real caller first, then fixed and
+pinned, each with a mutant checked dead by hand (the owner asked for no long sweeps).
+
+- **1. The kept ship is the party's.** `scenes/ketch/ketchClient.js` `ketchShipKept` keeps the party it was boarded with,
+  and `ketchShipChoice` answers it only to that same party. A member who changed parties boards the new captain's ship.
+- **2. Her alarm alone wakes her.** In `server/src/index.js` `_ktTick`, a room evicted with nobody aboard reads its key off
+  the voyage's own record (`KT_VOYAGE_KEY`). A room that never held one reads once (`_ktNone`).
+- **3. The step law lies with the cell.** A cell let go (`dropCell`) keeps where and when it was first taken up (`ox`,
+  `oz`, `oa`), and taking it up again carries them. A cradle's cell let go by its socket and taken up again banks no sooner
+  than one carried from the cradle. Before it, pick, drop and pick reset the law's clock: the bank came in 200 ms.
+- **4. One swing, one sequence.** `scenes/ketch/ketchFight.js` numbers a blow as the gate's `blowQ` does: the bodies it
+  meets in a frame share the number, and a body met again or the next frame gets a new one. Before it, every body took a
+  number of its own, and the relay's hand (`spendBlow`) was spent once a body.
+- **5. The gallery wedges on no late beat.** The hold opens once no warden stands, down or already taken off
+  (`KT_DOWN_KEEP_MS`), so a beat more than 3 s late after the last fall no longer wedges the voyage.
+- **6. The fall's empty hands are said.** The Warden's fall says the cells (`cellsFrame`) once every hand is emptied.
+- **7. The frames in their order.** `_ktFan` says the frames for everyone that came before a frame for one member first,
+  so a fight begun (`wf`) reaches the joiner before its own `ws`.
+- **C1. A door leaves only what it drops.** `server-account/src/lostSpoils.js` `lostLeftBy` refuses guns, the Sky-Ketch's
+  alone (`Gilded.md` section 10), and any Gilded but the door's own: an Hour's the Hourlock, a gate's the Oath, a Redoubt
+  none (`LOST_GILDED`). Before it, a Brass Remnant kill could mail 32 of Volendrung's Echo through the Lost and Found.
+- **C2. Loot rarity off still drops the Pellet** (`Dwarven-Thunderlock.md`, PELLETS-SCARCE).
+- **A1. Her palette reaches the GPU.** `ensureKetchArt` lets her fallback pictures go (`releaseTexture`,
+  `evictEmissionTexture`) before her palette's go up. The renderer's cache answers a held key with the picture it holds,
+  so before this she never wore ART_PAL. A wrong-size palette file now reads as none.
+- **A2, A3. The PVS hides nothing in sight.** `pvsGroupsAt` draws the zone the eye stands in alongside a held view, so
+  stepping out of the lift's tower into the hold keeps the hold drawn. The Watch hatch reaches `KT_PVS_HATCH_M` (14 m), so
+  the gallery's hammers are seen down its stair from the waist. The hold's steps are a kept list, built once.
+- **A4. Her lamps outside.** `scenes/ketch/ketchSky.js` builds, draws and frees `lamps` with her mesh. KL1 had moved them
+  out of it, and from Daggerfall she showed no lit lamp.
+- **A5. A halo is never brighter than its glass.** `ketchHalosInto` holds a lamp's halo at its own colour: it dims with
+  its zone's gain but never exceeds the glass, since the classic set's gain is for the light, not the bloom.
+- **A6. A moonless night bounces nothing.** `ketchFrameLook` takes the moons' part of the ground's bounce down with their
+  key (`k0`, `m`).
+- **A7. The retimed sky drops the street's feet.** `shared.js` `retime` hands no `pos`, because it was the player's live
+  array: on the ship it held the made level's coordinates, and the clouds' field jumped at boarding.
+
+**Not taken: the renderer's per-frame trilight.** `setAmbientTrilight` copies the trilight into a fresh object on each
+set. The finding is real (two 3-float arrays a frame on the ship), but `renderer.js`'s LA-COST key reads that object's
+identity as its change ("replaced on every set, never written in place"). Writing it in place would trade 24 bytes a frame
+for a stale key, so it stands.
+
+Pins: `test/net/ketch/ketch_brain.test.js` (the gallery's late beat; a cell let go and taken up again),
+`test/net/ketch/ketch_relay.test.js` (the frames in their order), `test/scenes/ketch_client.test.js` (the kept ship's
+party), `test/scenes/ketch_fight.test.js` (one swing, one sequence), `test/server/lostspoils_service.test.js` (a door
+leaves only what it drops), `test/systems/pelletsscarce.test.js` (the switch off), `test/scenes/ketch_deck_host.test.js`
+(her palette through a cache that keeps what it holds; the hatch's reach; the night's bounce and the halos' cap; the
+retimed sky's feet), `test/world/ketch/ketch_states.test.js` (the held view and the zone), and `test/scenes/ketch_sky.test.js`
+(her lamps outside). PIN MOVED: `ketch_deck_host.test.js` (the hatch's reach, the retime's `pos`), `ketch_sky.test.js` (the
+draw count), `loot21_stones.test.js` (the switch off), and `relayversion.test.js` (world255 re-hashed in place, NOT YET
+DEPLOYED). Mutants: `ketch_brain.json` (+2, one re-aimed), `ketch_relay.json` (+1), `ketch_fight.json` (+1),
+`ketch_look_law.json` (+7, two re-aimed), `lostspoils.json` (+2, one re-aimed), `pelletsscarce.json` (+1), and re-aimed
+by content `ketch_client.json` (1) and `ketch_look_light.json` (2) - the 22 each run once and dead.
