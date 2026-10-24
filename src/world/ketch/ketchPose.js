@@ -7,8 +7,9 @@
 //   A HAMMER'S HEAD (hammerHeadY): at rest under its housing; drawn back up its wind-up (KT_HAMMER.wu); slammed to the deck
 //     at its landing and held there its span (KT_HAMMER.sp); hauled back up to rest.
 //   A STEAM LANE, AN ARC (hazardState): quiet, hissing or crackling through its wind-up, live through its span.
-//   A SECTION OF THE BRIDGE'S OUTER RING (sectionPose): whole; shuddering through its warning; fallen at its moment and
-//     dropping away out of sight; gone; and risen back into its place in the last KT_SECTION_RISE_MS before it is whole.
+//   A SECTION OF THE BRIDGE'S OUTER RING (sectionPose): whole; lurching through its warning (KT_SECTION_LURCH_HZ, under the
+//     flash law); fallen at its moment and dropping away out of sight; gone; and risen back into its place in the last
+//     KT_SECTION_RISE_MS before it is whole.
 //
 // Not a DFU member. Ledger A (KETCH).
 import { KT_HAMMER, KT_STEAM, KT_ARCS, KT_GALLERY, hammerPhase } from '../../net/ketch/ketchDeck.js';
@@ -34,15 +35,28 @@ export function hammerHeadY(ri, li, t) {
  * warning through its wind-up before (`k` how far into the wind-up, 0..1). `kind` 'steam' or 'arc', `j` its place. Pure.
  */
 export function hazardState(kind, j, t, out = { live: false, warn: false, k: 0 }) {
-  const H = kind === 'steam' ? KT_STEAM : KT_ARCS, phase = kind === 'steam' ? (j * H.cycle) / 2 : (j * H.cycle) / 3;
-  const u = wrap(t - phase, H.cycle), sp = H.sp / 1000, wu = H.wu / 1000;
+  const H = kind === 'steam' ? KT_STEAM : KT_ARCS;
+  const u = wrap(t - hazardPhase(kind, j), H.cycle), sp = H.sp / 1000, wu = H.wu / 1000;
   if (u < sp) { out.live = true; out.warn = false; out.k = 1; } else if (u >= H.cycle - wu) { out.live = false; out.warn = true; out.k = (u - (H.cycle - wu)) / wu; } else { out.live = false; out.warn = false; out.k = 0; }
   return out;   // `out` written in place (a frame's own - AUDIT KETCH L3-16: a new record each hazard each frame)
+}
+
+/** A steam lane's or an arc's phase in its cycle (s): the lanes half a cycle apart, the arcs a third. */
+export const hazardPhase = (kind, j) => (kind === 'steam' ? (j * KT_STEAM.cycle) / 2 : (j * KT_ARCS.cycle) / 3);
+/** WHICH STRIKE a steam lane or an arc is on at shared second `t`: its landings counted from the clock's zero (the last
+ *  one at or before `t`) - one number a strike, so a look that changes a strike at a time holds still through it
+ *  (KETCH-LOOK KL0: the arcs swapped their four frames 16.7 times a second, past the flash law's 3 Hz). Pure. */
+export function hazardStrike(kind, j, t) {
+  const H = kind === 'steam' ? KT_STEAM : KT_ARCS;
+  return Math.floor((t - hazardPhase(kind, j)) / H.cycle);
 }
 
 /** How far a fallen section drops before it is out of sight (m), how fast (m/s^2), and how long its rise back takes (ms). */
 export const KT_SECTION_DROP = Object.freeze({ seen: 60, g: 14, shudder: 0.06 });
 export const KT_SECTION_RISE_MS = 1200;
+/** A warned section's lurch (Hz): under the flash law's 3 Hz (`render/gate/gateTelegraph.js` TELEGRAPH_THROB_MAX_HZ) and
+ *  its heartbeat ceiling of 2.5 (KETCH-LOOK KL0: it shook at 6.9 Hz - a sine of now / 23 ms). */
+export const KT_SECTION_LURCH_HZ = 1.5;
 /**
  * Section `k`'s pose at relay ms `now` from the fight's word of the ring (`sec` - `[[k, at, back], ...]`, the wire's): `{
  * solid, dy, shake, hidden }` - solid (its collider in place) until its moment and again from its return; `dy` its drop
@@ -56,7 +70,7 @@ export function sectionPose(k, sec, now, warnMs, out = { solid: true, dy: 0, sha
   if (!s || now >= s[2]) return put(true, 0, 0, false);
   const at = s[1], back = s[2];
   if (now < at - warnMs) return put(true, 0, 0, false);
-  if (now < at) return put(true, 0, KT_SECTION_DROP.shudder * Math.sin(now / 23) * ((now - (at - warnMs)) / warnMs), false);
+  if (now < at) return put(true, 0, KT_SECTION_DROP.shudder * Math.sin((2 * Math.PI * KT_SECTION_LURCH_HZ * now) / 1000) * ((now - (at - warnMs)) / warnMs), false);
   const D = KT_SECTION_DROP;
   if (now >= back - KT_SECTION_RISE_MS) { const k2 = (back - now) / KT_SECTION_RISE_MS; return put(false, -D.seen * k2 * k2, 0, false); }
   const f = (now - at) / 1000, dy = -0.5 * D.g * f * f;

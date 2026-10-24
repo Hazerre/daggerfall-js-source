@@ -113,3 +113,66 @@ test('KETCH HER NIGHT NO DARKER THAN THE WORLD\'S: on her open deck at midnight 
   const night = [...ketchFrameLook(eye, 0).ambient], noon = [...ketchFrameLook(eye, 720).ambient];
   for (let k = 0; k < 3; k++) assert.ok(noon[k] >= night[k], 'the day no darker than the night');
 });
+
+test('KETCH-LOOK KL0 ONE BOLT A STRIKE: an arc-coil\'s bolt holds still through its live span and changes only between strikes - never the 16.7 frames a second that broke the flash law (TELEGRAPH_THROB_MAX_HZ 3); the strike count steps exactly at a landing (mutants: the bolt swapped by the clock)', async () => {
+  const { buildKetchParts } = await import('../../src/world/ketch/ketchModel.js');
+  const { hazardStrike, hazardPhase } = await import('../../src/world/ketch/ketchPose.js');
+  const { KT_ARCS } = await import('../../src/net/ketch/ketchDeck.js');
+  const { TELEGRAPH_THROB_MAX_HZ } = await import('../../src/render/gate/gateTelegraph.js');
+  const arcModels = buildKetchParts().arc.map((a) => a.model.positions);
+  const deck = createKetchDeck({ renderer: { createMesh: (m) => ({ m }) } }), draws = [];
+  deck.stand({ dynamicDraws: draws, collider: null });
+  const isArc = (gpu) => !!gpu && arcModels.some((p) => p.length === gpu.m.positions.length && p.every((v, i) => v === gpu.m.positions[i]));
+  for (let j = 0; j < KT_ARCS.z.length; j++) {
+    const live0 = hazardPhase('arc', j) + 2 * KT_ARCS.cycle;   // the third strike's landing (the coils' spans never overlap)
+    const bolts = new Set();
+    for (const strike of [0, 1, 2, 3]) {
+      let held = null, changes = 0;
+      for (let t = live0 + strike * KT_ARCS.cycle + 0.02; t < live0 + strike * KT_ARCS.cycle + KT_ARCS.sp / 1000 - 0.02; t += 1 / 60) {
+        deck.pose({ n: 1, sg: KT_STAGE.engine, cl: null, ws: null }, t, t * 1000, null);
+        const shown = draws.filter((d) => !d.hidden && isArc(d.gpu));
+        assert.equal(shown.length, 1, 'one coil live');
+        const g = shown[0].gpu;
+        if (held && g !== held) changes++;
+        held = g;
+      }
+      assert.equal(changes, 0, `arc ${j}, strike ${strike}: its bolt held through the span`);
+      bolts.add(held);
+      assert.equal(hazardStrike('arc', j, live0 + strike * KT_ARCS.cycle + 0.01), hazardStrike('arc', j, live0 + strike * KT_ARCS.cycle - 0.01) + 1, 'the count steps at the landing');
+    }
+    assert.ok(bolts.size >= 2, `arc ${j}: the bolt changes between strikes`);
+  }
+  assert.ok(TELEGRAPH_THROB_MAX_HZ <= 3);
+});
+
+test('KETCH-LOOK KL0 NOTHING THAT MOVES CASTS: the mast-lift\'s cage never records a shadow; a bridge section casts whole and still, and not from its warning to its return - so no lamp\'s cube is rebuilt every frame a part rides (mutants: the cage casts; a falling section casts)', async () => {
+  const { buildKetchParts } = await import('../../src/world/ketch/ketchModel.js');
+  const { KW_SECTION_WARN_MS } = await import('../../src/net/ketch/ketchWarden.js');
+  const P = buildKetchParts(), same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+  const deck = createKetchDeck({ renderer: { createMesh: (m) => ({ m }) } }), draws = [];
+  deck.stand({ dynamicDraws: draws, collider: null });
+  const cage = draws.find((d) => d.gpu && same(d.gpu.m.positions, P.cage.model.positions));
+  assert.ok(cage && cage.noShadow === true, 'the cage casts nothing');
+  const s1 = draws.find((d) => d.gpu && same(d.gpu.m.positions, P.sections[1].model.positions));
+  const at = 100_000, back = at + 7000;
+  const casts = (now) => { deck.pose({ n: 1, sg: KT_STAGE.bridge, cl: null, ws: { ph: 3, rs: [1, 1, 1, 1], sec: [[1, at, back]] } }, now / 1000, now, null); return !s1.noShadow; };
+  assert.equal(casts(at - KW_SECTION_WARN_MS - 100), true, 'whole and still before its warning');
+  assert.equal(casts(at - KW_SECTION_WARN_MS / 2), false, 'lurching in its warning');
+  assert.equal(casts(at + 300), false, 'falling');
+  assert.equal(casts(back - 400), false, 'rising back');
+  assert.equal(casts(back + 100), true, 'home again');
+});
+
+test('KETCH-LOOK KL0 A WARNED SECTION LURCHES UNDER THE FLASH LAW: its shake turns at most 2.5 times a second (the heartbeat ceiling under TELEGRAPH_THROB_MAX_HZ) - it shook at 6.9 Hz (a sine of now / 23 ms) (mutants: the shudder fast)', async () => {
+  const { sectionPose, KT_SECTION_LURCH_HZ } = await import('../../src/world/ketch/ketchPose.js');
+  assert.ok(KT_SECTION_LURCH_HZ <= 2.5);
+  const at = 50_000, warn = 3000;
+  let crossings = 0, prev = null;
+  for (let now = at - warn; now < at; now += 5) {
+    const s = sectionPose(0, [[0, at, at + 7000]], now, warn).shake;
+    if (prev != null && Math.sign(s) !== Math.sign(prev) && s !== 0 && prev !== 0) crossings++;
+    prev = s;
+  }
+  assert.ok(crossings / 2 / (warn / 1000) <= 2.5, `${crossings} crossings in ${warn / 1000} s`);
+  assert.ok(crossings >= 4, 'and it does lurch');
+});

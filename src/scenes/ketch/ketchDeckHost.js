@@ -23,7 +23,7 @@
 import { identity } from '../../world/mat4.js';
 import { buildKetchShip, buildKetchParts, buildKetchGround, ketchLights, KT_GROUND, KT_CAGE, KT_LODESTONE } from '../../world/ketch/ketchModel.js';
 import { ketchArt, KT_ARCHIVE, KT_REC } from '../../world/ketch/ketchArt.js';
-import { hammerHeadY, hazardState, sectionPose } from '../../world/ketch/ketchPose.js';
+import { hammerHeadY, hazardState, hazardStrike, sectionPose } from '../../world/ketch/ketchPose.js';
 import { packKetchHit } from '../../world/ketch/ketchKit.js';
 import { isKetchShip, ketchShipLocation, ketchShipBlocks, KT_AIR_FOG, KT_BELOW_FOG, KT_LIGHT } from '../../world/ketch/ketchShip.js';
 import {
@@ -144,7 +144,7 @@ export function createKetchDeck({ renderer = null } = {}) {
       const P = parts, g = (p) => make(p.model);
       const hammer = g(P.hammer);
       for (let ri = 0; ri < KT_HAMMER.rows.length; ri++) for (let li = 0; li < KT_HAMMER.lanes.length; li++) D.hammers.push({ ri, li, d: draw(hammer, { noShadow: true }) });
-      D.cage = draw(g(P.cage)); bucket(KT_BUCKET.cage, P.cage, T.cage);
+      D.cage = draw(g(P.cage), { noShadow: true }); bucket(KT_BUCKET.cage, P.cage, T.cage);   // casts nothing: a part that rides rebuilds no lamp's cube (KETCH-LOOK KL0)
       D.gateHold = draw(g(P.gateHold), { noShadow: true }); bucket(KT_BUCKET.gateHold, P.gateHold, T.gateHold);
       D.gateTop = draw(g(P.gateTop), { noShadow: true }); bucket(KT_BUCKET.gateTop, P.gateTop, T.gateTop);
       for (const [dk, pk, bk] of [['grateW', 'grateWatch', 'grateW'], ['grateH', 'grateHold', 'grateH'], ['doors', 'doors', 'doors']]) {
@@ -213,6 +213,7 @@ export function createKetchDeck({ renderer = null } = {}) {
         const p = sectionPose(k, sec, now, KW_SECTION_WARN_MS, _sp), d = D.sections[k];
         T.sections[k][1] = p.solid ? 0 : KT_GONE_Y;
         if (p.hidden) hide(d); else { d.hidden = false; translate(d.object.matrix, p.shake, p.dy, p.shake * 0.7); }
+        d.noShadow = !(p.solid && p.dy === 0 && p.shake === 0);   // a section casts only whole and still - from its warning to its return it moves (KETCH-LOOK KL0)
         // its resonator rides it
         const ri = _resOf[k];
         if (ri >= 0) {
@@ -232,11 +233,13 @@ export function createKetchDeck({ renderer = null } = {}) {
       // the forks the song raised, each while it stands
       const fk = ws?.fk ?? null;
       for (let j = 0; j < D.forks.length; j++) { const q = fk?.c?.[j]; if (q && (q[2] ?? 1) > 0) { D.forks[j].hidden = false; at(D.forks[j].object.matrix, q[0], KT_BRIDGE.y, q[1]); } else hide(D.forks[j]); }
-      // the arcs: live through their span, a frame each 60 ms
+      // the arcs: live through their span, one bolt a strike held still through it (KETCH-LOOK KL0: a frame each 60 ms
+      // was a 16.7 Hz flicker, past the flash law's 3 Hz - render/gate/gateTelegraph.js TELEGRAPH_THROB_MAX_HZ)
       for (let j = 0; j < D.arcs.length; j++) {
         const s = hazardState('arc', j, t, _hz), a = D.arcs[j];
         if (!s.live) { hide(a.d); continue; }
-        a.d.gpu = a.meshes[Math.floor(t * 16.7) % a.meshes.length] ?? a.d.gpu;   // a frame that would not build: the last one held
+        const n = a.meshes.length, k = hazardStrike('arc', j, t) + j;
+        a.d.gpu = a.meshes[((k % n) + n) % n] ?? a.d.gpu;   // a frame that would not build: the last one held
         a.d.hidden = false; at(a.d.object.matrix, 0, KT_HOLD.y + 4.4, KT_ARCS.z[j]);
       }
       // the bosun's line, once the bridge is unbarred

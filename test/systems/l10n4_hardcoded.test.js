@@ -576,6 +576,7 @@ const HARDCODED = {
   'src/tools/enhanced/enhancedVisuals.js': 1,
   'src/tools/firmamentLab.js': 3,
   'src/tools/gunLab.js': 7,
+  'src/tools/ketchLab.js': 1,   // KETCH-LOOK KL0: the lab's bill (its draws, casters and CPU) - a reviewer's tool page, never the game's
   'src/tools/mwViewer.js': 9,
   'src/tools/paperdoll/paperdollViewer.js': 18,
   'src/tools/studioLab.js': 3,   // STUDIO1: the studio page's own words to the game's artists (studio.html) - no player reads them

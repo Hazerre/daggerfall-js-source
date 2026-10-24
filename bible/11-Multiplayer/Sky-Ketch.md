@@ -344,3 +344,22 @@ pinned red on the code as it stood but L2-10 (left with its reason): the Engine'
 fallen earner's receipt kept at the hub, a share paid one device once, the Keel-Song counted, a ninth never aboard, a
 quitter's place freed, the step law, the Ketch's own spoils, her walk true end to end, the line's pay and words, the real
 week named.
+
+## 16. KETCH-LOOK - the polish, as shipped
+
+The owner, 2026-10-24: *"After this audit is done and finalized, the goal is going to be to do a deep polish ohase of
+every element, like weve done in the past with other world events, enhancing the ambience, the detail and everything to
+be a AAA experience. This even needs to surpass what weve done with the abyss dungeon"*. The plan is
+`Sky-Ketch-Look.md` (four directors' sets synthesized; the owner's four calls ruled; slices KL0-KL22); this records what
+shipped of it, slice by slice, and wins where the two differ. No law moves: no file the relay bundles changes and no relay
+version moves.
+
+| slice | what shipped |
+|---|---|
+| KL0 | THE FLASH LAW, THE CASTERS, THE LAB'S EYES. The hold's arc-coils swapped their four bolt frames 16.7 times a second (`ketchDeckHost.js`, a frame each 60 ms) - a flicker past `TELEGRAPH_THROB_MAX_HZ` (3 Hz): a coil now holds one bolt through each strike and changes it between strikes (`world/ketch/ketchPose.js` `hazardStrike`, `hazardPhase`). A warned section of the bridge's ring shook at 6.9 Hz (a sine of now / 23 ms): it lurches at `KT_SECTION_LURCH_HZ` 1.5, under the heartbeat ceiling of 2.5. Nothing that moves casts: the mast-lift's cage never records a shadow, and a section casts only whole and still - from its warning to its return it moves, and every lamp's cube near it was rebuilt each frame. THE LAB (`ketch.html`): its cameras and knobs in a pure module (`src/tools/ketchLabViews.js` `KT_LAB_VIEWS`, `ketchLabKnobs`), every eye pinned clear of the ship's colliders and over a floor; `top-out` (the main top's ring outside the shaft, looking out along the yard); `?grey`, `?lite` (the Steps' phone tier), `?bill` (the ship's GL draws, meshes, shadow casters and how many MOVED, lights, its CPU - on the page and `window.__lab.bill()`), the world's sky over her by default (`render/enhancedSky.js`, drawn after the opaque level as the dungeon arm's `host.drawSky` is; `?sky=0` off, `?weather=`), `&secAt=` (the sections' fall on the shared clock, so a probe watches one run). `tools/ketchLabProbe.mjs` (frame-synced on `window.__frame`): `value` (every view at four hours, its display luma - the ladder measured), `flash` (a live arc sampled at 60 Hz for 4 s: at most 3 transitions a second), `shadow` (the lift riding and the sections falling: no moving caster - red on the code before KL0, 1 and 3 moving casters) |
+
+Pins (KL0): `test/scenes/ketch_deck_host.test.js` (one bolt a strike; nothing that moves casts; the lurch under the flash
+law), `test/world/ketch/ketch_lab.test.js` (the eyes in open air; `top-out`; the knobs read). Mutants:
+`tools/mutants/ketch_look_lab.json` (9, all dead). THE FOUR HOSTS (KL0): `scenes/worldModes.js` - the deck host it
+constructs changed inside its own module, no host line; `scenes/world.js`, `scenes/dungeonContext.js`,
+`scenes/exterior.js` - FLAGGED, nothing of KL0 passes through them.
