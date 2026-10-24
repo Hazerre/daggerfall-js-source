@@ -12,7 +12,8 @@ import { HULL, batteryOf, hullBuild } from '../../../src/systems/naval/navalShip
 import { SHIP_STATES, BRACE_TAKEN, BARE_POLES, WRECKED_OARS, STRUCK_AT } from '../../../src/systems/naval/navalDamage.js';
 import { BOARD_RANGE, BOARD_SPEED } from '../../../src/systems/naval/navalBoarding.js';
 import { NAVAL_DEG, shotPosition, segmentBoxEntry } from '../../../src/systems/naval/navalBallistics.js';
-import { hullBoxOf, rigBoxesOf, AIM_CAM_OUT, AIM_CAM_UP, AIM_CAM_AFT, AIM_CAM_TAU, AIM_CAM_CLEAR, RAM_REACH, RAM_MEMORY_S, RAM_DAMAGE, RAM_RECOIL, BOW_RECOIL, GALLEY_RAM, RAM_SPEED, RAM_COOLDOWN_S, HEAVE_TO_DECEL, HEAVE_TO_S, HEAVE_TO_M, heaveToDecel, heaveToRun, COMPASS_SHIP_RANGE, PLAYER_SKILL, PLAYER_SKILL_THIN } from '../../../src/scenes/naval/navalHost.js';
+import { hullBoxOf, rigBoxesOf, AIM_CAM_OUT, AIM_CAM_UP, AIM_CAM_AFT, AIM_CAM_TAU, AIM_CAM_CLEAR, AIM_CAM_AHEAD, RAM_REACH, RAM_MEMORY_S, RAM_DAMAGE, RAM_RECOIL, BOW_RECOIL, GALLEY_RAM, RAM_SPEED, RAM_COOLDOWN_S, HEAVE_TO_DECEL, HEAVE_TO_S, HEAVE_TO_M, heaveToDecel, heaveToRun, COMPASS_SHIP_RANGE, PLAYER_SKILL, PLAYER_SKILL_THIN } from '../../../src/scenes/naval/navalHost.js';
+import { clearOfRig } from '../../../src/scenes/naval/aimCamera.js';   // AIM-ENDS: the eye over her bow walked out past her canvas
 import { CSA_BRAKE_MAX } from '../../../src/systems/comeSailAway/comeSailAway.js';
 import { drawShipCompassMarks, SHIP_MARK_COLORS, compassMarkerLerp, DETECT_MARKER_W, DETECT_MARKER_H } from '../../../src/ui/hud/hud.js';
 import { navalHudText, drawNavalHud, destroyNavalHud, navalTouchBrace, NAVAL_BRACE_H, NAVAL_HUD_CSS } from '../../../src/ui/naval/navalHud.js';
@@ -336,7 +337,7 @@ test('AUDIT NAV1 H7 the aim drawn: each ball\'s fall stood up as a post of light
 
 // ── the broadside camera ─────────────────────────────────────────────────────────────────────────────────────────────
 
-test('AUDIT NAV1 H8 the broadside camera: while a broadside is laid the eye eases over AIM_CAM_TAU to AIM_CAM_OUT past that battery\'s ports, AIM_CAM_UP over them and AIM_CAM_AFT toward her stern - smoothstepped - and home again on the release, the eye its own once there; AIM_CAM_CLEAR short of a ship alongside; never for the chasers, never crippled, never with the Broadside camera off (mutants: the setting unread, the ease, the smoothstep, the guard, the chasers taken)', async () => {
+test('AUDIT NAV1 H8 the broadside camera: while a broadside is laid the eye eases over AIM_CAM_TAU to AIM_CAM_OUT past that battery\'s ports, AIM_CAM_UP over them and AIM_CAM_AFT toward her stern - smoothstepped - and home again on the release, the eye its own once there; AIM_CAM_CLEAR short of a ship alongside; AIM-ENDS: over the bow AIM_CAM_AHEAD past her chasers and AIM_CAM_UP over them, out past her own canvas there, and the same astern over her barrels; never crippled, never with the Broadside camera off (mutants: the setting unread, the ease, the smoothstep, the guard, the ends at the broadside\'s place, the rig unwalked)', async () => {
   const h = await helm();
   frames(h, [[h.e, { pos: [0, 0, 600], yaw: 0 }]], 2);
   const own = [0, 5, 0];
@@ -369,14 +370,44 @@ test('AUDIT NAV1 H8 the broadside camera: while a broadside is laid the eye ease
   const entry = segmentBoxEntry(c, want, boxOf(h, h.e), AIM_CAM_CLEAR);
   assert.ok(entry && entry.t > 0 && entry.t < 1, 'her side across the camera\'s way');
   for (let i = 0; i < 3; i++) near(eye[i], entry.point[i], 1e-6, 'short of her side');
-  // the chasers: no broadside camera
+  // AIM-ENDS (2026-10-24, Discord - "Aiming front ship cannons impossible"): over the bow the eye goes with the chasers,
+  // AIM_CAM_AHEAD past them along her keel and AIM_CAM_UP over them - and out past her jib there, AIM_CAM_CLEAR clear of
+  // it (PIN MOVED: AUDIT NAV1 kept the eye home for the chasers, and from behind her rig the jib hid every arc they drew)
+  const ends = (side) => {
+    const m = batteryOf(HULL.SmallShip, side).muzzles;
+    const at = m.reduce((s, p) => [s[0] + p[0] / m.length, s[1] + p[1] / m.length, s[2] + p[2] / m.length], [0, 0, 0]);
+    return [at[0], at[1] + AIM_CAM_UP, at[2] + (side === 'bow' ? AIM_CAM_AHEAD : -AIM_CAM_AHEAD)];
+  };
+  const rig = rigBoxesOf(h.boat);
+  const inRig = (p) => rig.some((b) => segmentBoxEntry(p, p, b, AIM_CAM_CLEAR - 1e-6));
   h.host.cancelAim();
+  for (let i = 0; i < 60; i++) h.host.aimEye(own, 0.1);
   h.view.look = { origin: own, dir: [0, -0.05, 1] };
   h.host.attackInput(true);
   frames(h, [[h.e, { pos: [0, 0, 600], yaw: 0 }]]);
   assert.equal(h.host.hudModel().aim.side, 'bow');
   for (let i = 0; i < 60; i++) eye = h.host.aimEye(own, 0.1);
-  assert.equal(eye, own, 'over the bow the eye stays');
+  const bow = ends('bow');
+  for (let i = 0; i < 3; i++) near(eye[i], clearOfRig(bow, [0, 0, 1], rig)[i], 1e-6, 'AIM_CAM_AHEAD past her chasers and AIM_CAM_UP over them, walked past her canvas');
+  assert.ok(!inRig(eye), 'the eye clear of every sail of hers - her jib ahead of her foremast and over her chasers behind it');
+  assert.ok(eye[2] > Math.max(...batteryOf(HULL.SmallShip, 'bow').muzzles.map((m) => m[2])), 'ahead of the chasers: their arcs go out in front of the eye');
+  // over the stern, her barrels: AIM_CAM_AHEAD astern and AIM_CAM_UP over them, no canvas of hers there
+  h.host.cancelAim();
+  for (let i = 0; i < 60; i++) h.host.aimEye(own, 0.1);
+  h.view.look = { origin: own, dir: [0, -0.05, -1] };
+  h.host.attackInput(true);
+  frames(h, [[h.e, { pos: [0, 0, 600], yaw: 0 }]]);
+  assert.equal(h.host.hudModel().aim.side, 'stern');
+  for (let i = 0; i < 60; i++) eye = h.host.aimEye(own, 0.1);
+  const stern = ends('stern');
+  for (let i = 0; i < 3; i++) near(eye[i], stern[i], 1e-6, 'astern of her barrels');
+  // and the barrel's fall drawn from her rail to its mark, a post stood over it (the stern drew a flat ring alone)
+  const drop = h.host.drawFrame().aim;
+  const rail = batteryOf(HULL.SmallShip, 'stern').muzzles[0];
+  assert.equal(drop.arcs.length, 1, 'one barrel, one fall');
+  for (let i = 0; i < 3; i++) near(drop.arcs[0][0][i], rail[i], 1e-6, 'from her stern rail');
+  for (let i = 0; i < 3; i++) near(drop.arcs[0].at(-1)[i], drop.zone[0][i], 1e-9, 'to its mark on the sea');
+  assert.equal(drop.posts, true, 'a post of light over the mark');
   // the Broadside camera off
   const off = await helm({ settings: { AimCamera: false } });
   off.view.look = { origin: own, dir: [1, -0.05, 0] };
