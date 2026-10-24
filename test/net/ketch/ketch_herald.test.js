@@ -33,14 +33,14 @@ test('KETCH THE CARDS: her family (The Sky-Ketch, the edge her ring\'s blue on t
   assert.deepEqual(KT_HERALD_MOMENTS.map((k) => ketchHeraldPost(2, k, ROLE).embeds[0].footer.text), ['Sighted', 'Arrived', 'Weighing anchor']);
 });
 
-test('KETCH THE ROLE AND THE THREAD: her own role when the operator names one, else the gate\'s; her thread a relay setting over KT_DISCORD_THREAD, said only to world253 or later (mutants: the gate\'s role first; the setting\'s floor an older relay\'s)', () => {
+test('KETCH THE ROLE AND THE THREAD: her own role when the operator names one, else the gate\'s; her thread a relay setting over KT_DISCORD_THREAD, said only to world255 or later (mutants: the gate\'s role first; the setting\'s floor an older relay\'s)', () => {
   assert.equal(ketchHeraldRole(ROLE, GATE), ROLE);
   assert.equal(ketchHeraldRole('', GATE), GATE);
   assert.equal(ketchHeraldRole('nope', null), null);
   assert.equal(RELAY_CFG_VARS.ktRole, 'KT_DISCORD_ROLE');
   assert.equal(RELAY_CFG_VARS.ktThread, 'KT_DISCORD_THREAD');
-  assert.equal(RELAY_CFG_KEY_MIN.ktThread, 253);
-  assert.equal(RELAY_CFG_KEY_MIN.ktRole, 253);
+  assert.equal(RELAY_CFG_KEY_MIN.ktThread, 255);
+  assert.equal(RELAY_CFG_KEY_MIN.ktRole, 255);
   const toml = readFileSync(new URL('../../../server/wrangler.toml', import.meta.url), 'utf8');
   assert.match(toml, /^KT_DISCORD_ROLE = ""$/m);
   assert.match(toml, /^KT_DISCORD_THREAD = ""$/m);

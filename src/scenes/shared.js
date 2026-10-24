@@ -1875,6 +1875,7 @@ export function sensesContext(entity, gameMinutes, { movingLessThanHalfSpeed = t
     playerBlending: isBlending(entity),
     playerInvisible: isInvisible(entity),
     playerShade: isAShade(entity),
+    playerUnseen: entity.staffHidden === true,   // STAFF-UNSEEN: a hidden staff member (scenes/staffFollowHost.js staffFollowOnPage) - no foe senses them
     sharedStealth: entity.stealthCheckBox,
     tallyStealth: () => tallySkill(entity, SKILLS.Stealth),
     // MT-ii: the target-machine seam. A host that owns a pool passes

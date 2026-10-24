@@ -221,6 +221,7 @@ const HARDCODED = {
   'src/render/renderer.js': 17,
   'src/render/retroPass.js': 1,
   'src/render/riteSmoke.js': 1,
+  'src/render/rocketPass.js': 4,   // ROCKET1: its shaders' sources, as every pass's - no word a player reads
   'src/render/shipFlagPass.js': 1,
   'src/render/starfall/starfallPass.js': 3,   // STAR4: its shaders' sources, as every pass's (AUDIT STARFALL R3: the ring's vertex stage reads its bearings' count, one fewer)
   'src/render/superDungeon/sdArenaGlow.js': 1,
@@ -547,7 +548,7 @@ const HARDCODED = {
   'src/systems/travel/travelPace.js': 5,
   'src/systems/travel/travelPathMode.js': 3,
   'src/systems/travel/travelViewFilters.js': 7,   // HUD/GROWTH PATCHES (2026-10-20): counted as they arrived at their merge with main - English until a slice routes them through t() (MAP-PLAYERS: +1, the Players switch's tip)
-  'src/systems/tutorialCatalogue.js': 214,
+  'src/systems/tutorialCatalogue.js': 212,
   'src/systems/uiSkin.js': 1,
   'src/systems/upkeep/upkeepItemRows.js': 2,
   'src/systems/upkeep/upkeepRuntime.js': 8,
@@ -565,7 +566,7 @@ const HARDCODED = {
   'src/systems/weaponSheathing.js': 3,
   'src/systems/weaponSheathingAssets.js': 1,
   'src/systems/wild/wildRemainsWaypoint.js': 1,
-  'src/systems/wild/wildZone.js': 40,
+  'src/systems/wild/wildZone.js': 38,
   'src/systems/windfall.js': 23,
   'src/systems/windfallEffects.js': 7,
   'src/systems/worldTick.js': 4,

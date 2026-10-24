@@ -2,8 +2,8 @@
   {
     "name": "KTX-the-floor-an-older-relay",
     "file": "src/net/wire.js",
-    "old": "export const KT_RELAY_MIN = 253;",
-    "new": "export const KT_RELAY_MIN = 252;",
+    "old": "export const KT_RELAY_MIN = 255;",
+    "new": "export const KT_RELAY_MIN = 254;",
     "tests": [
       "test/net/ketch/ketch_relay.test.js"
     ]

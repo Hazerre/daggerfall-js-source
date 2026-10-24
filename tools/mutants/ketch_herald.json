@@ -38,8 +38,8 @@
   {
     "name": "KTH-the-floor-an-older-relay",
     "file": "src/net/relayCfg.js",
-    "old": "ktRole: 253, ktThread: 253 });",
-    "new": "ktRole: 253, ktThread: 252 });",
+    "old": "ktRole: 255, ktThread: 255 });",
+    "new": "ktRole: 255, ktThread: 254 });",
     "tests": [
       "test/net/ketch/ketch_herald.test.js"
     ]

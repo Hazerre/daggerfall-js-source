@@ -43,8 +43,8 @@ async function withShip(fn, members = ['acct-alice', 'acct-bobby']) {
   } finally { Date.now = realNow; }
 }
 
-test('KETCH THE RELAY KEEPS SHIPS FROM world253: a page boards no ship whose relay is older (mutants: the floor an older relay\'s)', () => {
-  assert.equal(KT_RELAY_MIN, 253);
+test('KETCH THE RELAY KEEPS SHIPS FROM world255: a page boards no ship whose relay is older (mutants: the floor an older relay\'s)', () => {
+  assert.equal(KT_RELAY_MIN, 255);
   assert.ok(relaySupportsKetch(RELAY_VERSION));
   assert.equal(relaySupportsKetch('world252'), false);
   assert.equal(relaySupportsKetch(null), false);
