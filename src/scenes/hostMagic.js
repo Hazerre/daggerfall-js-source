@@ -95,7 +95,7 @@ export const SKY_FIRE_SCALE = 3;
 export const SKY_FIRE_HEARD_M = 48;
 
 /**
- * GROUND-BOLT (FIELD BUGS 2026-10-23b; the owner: "spells cast at the ground outdoors don't collide with it at all and
+ * GROUND-BOLT (FIELD BUGS 2026-10-23c; the owner: "spells cast at the ground outdoors don't collide with it at all and
  * sail straight through"): the collider a host hands this engine - whichever of its colliders the player stands in
  * (`live()`, asked at each call) - with its GROUND as well as its mesh ray. Outdoors the ground is not a mesh
  * (player/collider.js surfaceHit's note): the hosts' proxy carried `raycast` alone, so a missile met the buildings and

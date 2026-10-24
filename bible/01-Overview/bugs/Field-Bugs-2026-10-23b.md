@@ -1,96 +1,79 @@
-# FIELD BUGS 2026-10-23b - a spell cast at the ground outdoors flies through it
+# FIELD BUGS 2026-10-23b - the desktop app's first-use freezes, every launch
 
-One report, from the owner: "spells cast at the ground outdoors don't collide with it at all and sail straight
-through". Read on main's `b0765ab21`; audited the same day (AUDIT GROUND-BOLT, at the foot). The pins are
-`test/scenes/groundbolt.test.js` (and the moved ones named below), the mutants `tools/mutants/groundbolt.json` (29, all
-dead).
+One thread from the Discord's #tech-support, handed over as two phone screenshots. SeQueL: "Seems like the freezing /
+loading is getting worse every day ... It happens the 1st time I do anything - open my inventory, map, etc. Then once
+it freezes and does its thing and comes back it doesnt do it for that action again until I close the game and
+restart. The load/freezing can last 3-10 seconds ... Teleporting to a Dagon Breach is the worse, entering the breach.
+Entering dungeons, or a city ... I am running a texture pack and using the client. Both of my friends are experiencing
+the freeze to different degrees. All with higher end computers. Could be a caching problem." Beneath it, Leonardo Vita:
+"i literaly now tested in browser and there has no problem. tried clean all files and re install and not work"; and
+Palmin: "Vendor tab also lagging. And worldmap. Also when you completing work in Notice Board it takes around 5
+seconds". Read on main's `2cde8b02f`, with the freeware's data (`tools/fetch-data.sh`) and the desktop shell itself
+(Electron 42.11.8 over the built `dist/`, under xvfb). Named 23b: main's `Field-Bugs-2026-10-23.md` took 23. The pins
+are `test/tooling/fb1023b_gpucache.test.js`, the mutants `tools/mutants/fb1023b_gpucache.json` (5, all dead).
 
 | | Report | What it was | Done |
 |---|---|---|---|
-| 1 | "spells cast at the ground outdoors don't collide with it at all and sail straight through" | The streamed world and the fixed city handed the cast engine a collider proxy that carried `raycast` alone, and a missile's flight asked that ray alone. That ray walks the collider's MESHES; outdoors the ground is not a mesh but the host's `heightAt` sampler (`player/collider.js` surfaceHit's own note, MAC-BUG W5). A bolt met a building and never the ground: a Fireball at the grass went under it and on until its lifespan ran out, its blast never thrown. A foe's missile the same | GROUND-BOLT |
+| 1 | "the 1st time I do anything ... until I close the game and restart"; "in browser ... no problem"; "re install and not work" | Chromium keeps every WebGL program it links, in memory and in `<userData>/GPUCache`, both capped at 6 MiB. On Windows a kept program is ANGLE's D3D11 binary, several times its GLSL, and one town's boot links 111 programs from 2.4 MB of GLSL: the cap is passed in the first town, the rest are evicted, and every launch compiles them again | GPU-CACHE |
+| 2 | "Vendor tab also lagging. And worldmap"; "completing work in Notice Board it takes around 5 seconds" | Not reproduced: the windows' first opens were not driven in the shell here (below, Not measured) | asked of the player |
 
-## GROUND-BOLT (1) - `src/scenes/hostMagic.js`, `src/scenes/world.js`, `src/scenes/exterior.js`
+## GPU-CACHE (1) - `01-Overview/Desktop-App.md`, The GPU's kept programs
 
-DFU: DaggerfallMissile.cs:337-339 casts the missile's displacement into the scene's physics, and a Unity terrain has
-its own TerrainCollider - DFU's missiles meet the ground, so this is no departure and no Ledger row is owed.
+WHAT THE REPORT SAYS. Three things narrow it before any code is read. A freeze once an action and then never again
+is a cost paid once a session; one paid again after a restart is a cost nothing keeps between launches; one the
+browser does not pay is the app's own. A reinstall keeps `<userData>` (it is the player's saves), so it changes
+nothing either way. And "seconds" on "higher end computers" is a compile: the gate's fire took 11.43 s on a player's
+D3D11 driver before SHADER-STALL (`07-Rendering/Performance-Priority.md`), where SwiftShader takes milliseconds.
 
-THE CHANGE (as the audit left it):
+WHAT THE APP DOES NOT KEEP. A WebGL program is compiled by the GPU process. Chromium keeps the linked binary (the
+passthrough decoder's `PassthroughProgramCache`, through ANGLE's blob cache) and writes it to `<userData>/GPUCache`,
+so the next launch links from it instead of compiling. Both stores are sized by `GetDefaultGpuDiskCacheSize`
+(`gpu/config/gpu_preferences.cc`): `kDefaultMaxProgramCacheMemoryBytes`, 6 MiB, unless the `gpu-disk-cache-size-kb`
+switch says otherwise. On Windows the binary is ANGLE's D3D11 one, and `ProgramExecutableD3D::save` writes each
+stage's translated HLSL and the bytecode of every vertex and pixel variant compiled so far: several times the GLSL
+it was made from. Measured in the shell over the freeware data (Knightstale, the probe's `knight` scene): the boot
+links 111 distinct programs from 2,459 KB of GLSL. So a Windows player passes the cap before leaving the first town;
+every program met after it (a dungeon's, a breach's, a window's) is kept by evicting an older one, and the next
+launch compiles what was evicted. "Worse every day": the game adds passes every day. Chrome does not show it: on
+Windows it runs a newer cache by field trial (`GpuPersistentCache` in Chromium's `fieldtrial_testing_config.json`),
+which a Chromium embedded without Google's field trials, Electron's, never gets.
 
-- The flight's stop is `flightStop` (`hostMagic.js:"export function flightStop(collider, pos, unit, reach, stepLen) {"`),
-  the one law of both flights (this engine's and `dungeonContext.js`'s): the mesh ray at the step's whole reach, cover
-  (TACT1) by touch, and the terrain by touch - `groundHit`, AUDIT TECH1's march (`player/groundRay.js`, a leaf since
-  the audit: the techniques, the engine and a foe's shot ask the one march). It meets a rise as well as a fall, so a
-  level bolt into a hillside stops on it (the collider's `surfaceHit` meets the ground on the way down alone).
-- `liveCollider` (`hostMagic.js:"export function liveCollider(live) {"`) is the collider a host hands the engine:
-  whichever of its colliders the player stands in, asked at each call, whole - its mesh ray and what that ray struck,
-  its ground (`heightAt`, `surfaceAt`, `surfaceHit`, `groundNormal`) and its cover. Both exterior hosts hand it in place
-  of the bare proxy, one entry for one entry (THE HOSTS DO NOT GROW).
-- What else reads the ground: an impact's chunks land on the ground under it (`impactGround`), and its shockwave lies on
-  what it struck, a hillside's slope included (`struckSurface`); a Resurrect aimed at the grass beside a fallen mate
-  finds the body; a burst does not reach over a crest (`burstClear`); a spell given to a mate or a companion is not
-  given across a hill; and a foe behind a ridge finds no clear shot (`enemyMotor.js` hasClearPathToShootProjectile). A
-  sky fireball (SUNBABY2) is met by my ground too; its count still lands it where the throw said, where no ground is
-  streamed under it.
+FIXED: the shell sizes both stores to 128 MiB (`app/main.cjs` GPU_CACHE_KB, the `gpu-disk-cache-size-kb` switch),
+before the app is ready, as every switch. The memory holds what was kept, not the cap; under memory pressure the
+program cache trims itself as before. The browser build is untouched.
 
-THE FOUR HOSTS: `world.js` and `exterior.js` wired. `worldModes.js` (interiors) casts through the world's engine, whose
-collider follows the door to `interiorCollider` - a room has no ground sampler (`-Infinity`), so the flight's terrain
-never moves there; what does is the room's meshes and cover now reaching the engine whole (an impact's floor and plane
-are the room's meshes', as the dungeon's engine already had them, and a bolt meets the room's cover). `dungeonContext.js`
-builds its engine on its own Collider: no ground sampler underground, its flight `flightStop` now (the same law, the
-meshes and cover alone there).
+MEASURED, in the shell (Electron 42.11.8, SwiftShader under xvfb, ANGLE's parallel compile on): two launches over one
+`<userData>`, every program link the page waited on summed (`tools/compileStallProbe.mjs`'s GL_WAITS):
 
-## AUDIT GROUND-BOLT (2026-10-23) - the slice, read cold
+| The cap | First launch | Second launch |
+|---|---|---|
+| Chromium's 6 MiB | 2,636 ms | 1,495 ms |
+| 1 KB, on the command line | 2,614 ms | 2,581 ms |
+| 1 KB, through `app/main.cjs`'s switch | 2,010 ms | 2,592 ms |
+| 128 MiB, through `app/main.cjs`'s switch (as shipped) | 2,613 ms | 1,411 ms |
 
-The owner: "Audit this". Five lanes, each a cold reader of the frozen snapshot (`dbb684e51`) in its own worktree - the
-repository untouched while they read (DO NOT FIX WHILE THE VERIFIER IS READING) - each told to prove a finding by a repro
-over the real code before reporting it: A where the ground is (the world's samplers, the sea, decks, the spaces the world
-host builds, the modes), B the cast engine's behaviour (every reader of its collider, every missile arm, the cost), C the
-report's reach and the four hosts (everything else that flies or aims across open ground), D the record, the pins and
-the process, R the real game (the streamed world in Chromium on the freeware ARENA2, the snapshot against the base
-`b0765ab21`). Every finding was reproduced by its lane's own script before it was acted on; every fix is pinned, each
-pin failing on the code before it (`tools/mutants/groundbolt.json`, 29, all dead).
+So the app's Chromium does keep programs between launches, the switch decides how many, and the shell's own
+`appendSwitch` reaches it. SwiftShader's binaries for the town fit 6 MiB (the second launch gains as much at 6 MiB as
+at 128), which is why the table shows the law and not the player's freeze: D3D11's binaries are the ones that pass it,
+and D3D11's compiler is the one that takes seconds.
 
-R's twelve casts in the real world: every stop on the drawn ground (`|y - surfaceAt| < 1e-3` - a town street, the street
-before the city wall, a hillside of grade 0.43 struck level, a high place, the seafloor), every miss its full lifespan,
-no invisible ground; on the base the same casts ended 16 to 56 m under the street and 31 to 40 m inside the hill. The
-slice answers the report. After the fixes, lane B's real-terrain probe (Fireballs at 72 headings and 4 pitches, three map
-pixels, 864 in all): a floor handed 1 m or more under the ground 0 of 864 (288 of 288 at each pixel before), no plane
-0 of 864 (19 and 25 of 288 at the hilly pixels before).
+NOT MEASURED. A player's Windows machine: the size of the game's D3D11 binaries, and the freezes after the fix. Until
+the release reaches them, a player can try it on the app they have: Chromium reads its switches from the command line
+too, so `--gpu-disk-cache-size-kb=131072` added to the shortcut's target does the same thing. The first launch after
+it compiles once more; the launches after it should not freeze on what an earlier session already did.
 
-| # | Sev | Finding | Disposition |
-|---|---|---|---|
-| A1 | should-fix | A burst on the terrain stands at the first point the march found not above it, a hair under the ground, where `surfaceHit`'s way down never starts: every ground impact threw its chunks and its burst's floor 1.2 m into the ground (= B2, R1) | FIXED: `impactGround` answers the sampler; pinned (the finder, and the engine's chunks at rest) |
-| A2 | nit | The fixed city's ground is a constant everywhere - past its drawn quad a spell bursts on an undrawn plane | NAMED: the bench (`?exterior`, `?region&loc`), whose capsule stands on the same constant; no player plays it |
-| A3 | note | A missile in flight when the player takes a door flies on in the other collider | NAMED: the meshes swapped the same way before the slice; not its regression |
-| B1 | should-fix | The ground at the step's whole reach (step + 0.45) met the grass behind a foe's feet a step early: 14 of 40 bolts aimed at the feet struck at 20 frames a second (= A4) | FIXED: the terrain met by touch, as cover is (AUDIT TACT B5), `flightStop`; pinned (40 of 40 at 20 and 30 frames, a foe's bolt at me no worse than with no ground at all) |
-| B3 | nit, doc | The shockwave's plane: `surfaceHit` meets the ground on the way down alone, laid flat - a level bolt into a hill, a shallow one onto a grade, found none (R1's buried rings) | FIXED: `struckSurface`, the meshes and the terrain marched, its slope; pinned, the engine's own burst too |
-| B4 | note | Foes see and hear through a hill (`canSeeTarget`, `canHearTarget` ask the mesh ray); their bolts now stop on it (= C1's senses) | NAMED (Found on the way): the shot is fixed (C1); a 102 m sight ray marched at every look is a cost and a change to how every foe outdoors notices - the owner's call |
-| B5 | note | `rayHit` swallows the mesh ray's exceptions, so a broken collider let the flight go silently through everything | FIXED by B1's law: the flight asks `collider.raycast` itself again |
-| B6 | note | A Fireball at one's own feet outdoors now hurts its caster (it did underground already) | Patch notes, at the pull request |
-| B7 | note | A hole in the sampler at the crossing lets a missile under the ground | NAMED: the pixels about the player are built; not reached |
-| C1 | should-fix | A foe behind a ridge found a clear shot through it, and spent the spell on the hill | FIXED: `hasClearPathToShootProjectile` marches the ground (DFU's sweep meets the TerrainCollider); pinned |
-| C2 | should-fix | A spell given to a mate or a companion crossed a hill the same spell's missile now stops on | FIXED: both picks ask the ground, a body's breadth of grace at the feet; pinned |
-| C3 | should-fix | Resurrect's aim never met the open ground (RESURRECT2's "aim at the ground beside the body") | FIXED: `rayHit`; pinned |
-| C4 | nit | A burst reached over the crest of a hill (`burstClear`) | FIXED: `rayHit`; pinned; set3's two mutants re-aimed (dead) |
-| C5 | doc | The record's cover gap named the two exterior hosts; buildings had it too | FIXED with D5 |
-| C6 | nit | The dungeon's flight a second copy of the law the slice changed | FIXED: both flights take `flightStop`; pinned |
-| D1 | tests | `liveCollider`'s mesh ray unpinned (a blind ray survived 42 files) | FIXED: walls pinned through the proxy and the engine |
-| D2 | tests | The drawn ground (`surfaceAt`) never exercised | FIXED: the proxy mirrors the Collider's own members; pinned on a sampler and a drawn ground that differ |
-| D3 | tests | SUNBABY2's pin built the old proxy | FIXED: retitled, and a world-shaped case where the thrower's ground and mine part |
-| D4 | tests | The moved regexes accepted either ray in either file | FIXED: one law per file (`flightStop`), its body pinned |
-| D5 | should-fix | Cover: the owner's word is on record (`12-Enhanced-AI/Tactics-Arc.md`: "stop arrows and spells", "Mac's call: sight and missiles"), and the arc claimed the hosts' bolts read it | FIXED: `liveCollider` hands the cover; pinned; the arc says since when |
-| D6 | doc | "Nothing moves there" (interiors) was false: the room's meshes reach the impact now | FIXED in the record |
-| D7 | nit | The test's comment numbers | FIXED |
-| D8 | note | hostceiling red on main (createWorldModes) and the branch conflicting with main | Main raised the ceiling (`c7084e792`); main merged; patch notes owed at the pull request |
-| R2 | doc | Water is not a surface: with Iliac Puddle (the default) a spell dives through the sea and bursts on its floor, where DFU's ocean is terrain at the water's height | NAMED for the owner: the mod's water has no collider, and the swimmer's capsule meets the same floor; before the slice the missile went through that floor too |
-| R3 | note | 404s for `BOK00112.TXT` and `BOK00113.TXT` on both trees | Not the slice: the freeware data lacks them |
-| R4 | note | No indoor cast in the real game (the harness's door left the camera on the street) | Not checked there; the pins cover the room |
-| F1 | should-fix | Found fixing A1: `landFx`'s own floor still called the removed `groundUnder` - a ReferenceError inside its try, so a landing handed no floor (a self heal, a touch, a peer's) drew nothing (`npm run lint` found it; REZ-BLOODLINE's run failed on it) | FIXED; pinned |
+WHAT IT DOES NOT TAKE. The first-ever compile of each program, on the first launch after the fix and after a driver
+update (ANGLE refuses a binary made by another adapter or driver). A pass built in play where the driver cannot say
+when its compile is done still holds that first frame; SHADER-STALL, AURA-STALL and FIRST-USE moved the passes play
+meets behind the door that does not wait, and the rest are named there.
 
-Found on the way: AUDIT GRAVE-PARTY G5 (`test/systems/fb1016b_graveparty.test.js`) failed once in the 975-file run under
-the real-game lane's load. Its file failed one test on `b0765ab21` too while that lane ran (which one, unrecorded), and
-passes alone three times of three on both trees once the load was gone - a failure of load, not of the slice.
+## The windows (2)
 
-THE RUNS: every test file that names or imports a module the audit touched - 975 files, 10,710 tests - green but for
-the three above (the ceiling, merged away; G5; REZ-BLOODLINE, F1's). The moved mutants: tact1's TACT1-bolt-through and
-TACT1-shot-blind, set3's two, and tech1's three on the march (moved with it to `player/groundRay.js`) - all dead.
+Not reproduced. The probe's in-world key presses did not open the windows (the overlay seam the probes read is the
+classic dungeon's alone), and SwiftShader's compiler cannot show D3D11's costs. If the Vendors tab, the travel map
+and a Notice Board work's completion still hold their first open after GPU-CACHE reaches the players, the next step is a
+CPU profile of the player's own client through the shell's `--remote-debugging-port` (STORE-CACHE's recipe,
+`07-Rendering/Performance-Priority.md`).
+
+THE FOUR HOSTS: none is wired here. The change is the desktop shell's, before any page loads; `scenes/exterior.js`,
+`scenes/world.js`, `scenes/worldModes.js` and `scenes/dungeonContext.js` are untouched.

@@ -3,7 +3,7 @@
 // the collider's own mesh ray. Outdoors the ground is not a mesh: `raycast` never meets it (player/collider.js
 // surfaceHit's own note). Indoors and underground the sampler answers -Infinity, and the floors are meshes.
 // AUDIT TECH1 (2026-10-10) wrote the march for the techniques' looks (combat/techniques.js); AUDIT GROUND-BOLT
-// (FIELD BUGS 2026-10-23b) moved it here, a module with no imports, so the cast engine (scenes/hostMagic.js) and a
+// (FIELD BUGS 2026-10-23c) moved it here, a module with no imports, so the cast engine (scenes/hostMagic.js) and a
 // foe's shot (characters/enemy/enemyMotor.js) ask the one march without importing the techniques' whole runner.
 
 /** THE GROUND'S HEIGHT at (x, z), or NaN: the terrain the host draws (the collider's surfaceAt - BLOOD1 AUDIT 3's drawn
