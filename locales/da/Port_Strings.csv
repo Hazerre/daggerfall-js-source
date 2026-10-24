@@ -6700,7 +6700,7 @@ tutorials.questlines.gearBody,"Nogle opgaver lader dig, når de er fuldført, v�
 tutorials.questlines.title,"Opgaveforløb"
 tutorials.questlines.trigger,"Første gang du tager en opgave med mål."
 tutorials.skyKetch.body1,"Hver lørdag fra kl. 00:00 UTC holder Himmelketchen fra Rourken i halvanden dag position over markerne øst for hovedstaden. Kør op med hendes ankerlift sammen med din gruppe, højst otte mand."
-tutorials.skyKetch.body2,"Bær æterceller fra vuggerne til Den Udsultede Maskine - et slag slår en ud af dine hænder. Hendes net griber dig, når du falder, og haler dig forslået tilbage om bord; kun døden får dig til at vågne på markerne nedenfor."
+tutorials.skyKetch.body2,"Bær æterceller fra vuggerne til Den Udsultede Maskine; et slag slår en løs. Hendes net griber et fald; kun døden får dig til at vågne nedenfor."
 tutorials.skyKetch.title,"Himmelketchen"
 tutorials.skyKetch.trigger,"Når du første gang kører op til Himmelketchen med ankerliften."
 wagon.upkeep.boons.failing,"Din {name} falder fra hinanden. En Vognplads eller et Vognreparationssæt vil reparere den."

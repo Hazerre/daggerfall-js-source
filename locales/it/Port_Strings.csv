@@ -6700,7 +6700,7 @@ tutorials.questlines.gearBody,"Alcune missioni, una volta completate, ti fanno s
 tutorials.questlines.title,"Catene di missioni"
 tutorials.questlines.trigger,"La prima volta che accetti una missione con obiettivi."
 tutorials.skyKetch.body1,"Ogni sabato dalle 00:00 UTC, per un giorno e mezzo, il Ketch celeste dei Rourken staziona sopra i campi a est della capitale. Sali sul suo elevatore dell’ancora con il tuo gruppo, al massimo in otto."
-tutorials.skyKetch.body2,"Porta le celle d’etere dalle culle alla Macchina Affamata - un colpo te ne fa cadere una dalle mani. Le sue reti fermano una caduta e ti riportano a bordo, con qualche livido; solo la morte ti risveglia nei campi sottostanti."
+tutorials.skyKetch.body2,"Porta le celle d’etere dalle culle alla Macchina Affamata; un colpo te ne fa cadere una. Le sue reti fermano una caduta; solo la morte ti risveglia di sotto."
 tutorials.skyKetch.title,"Il Ketch celeste"
 tutorials.skyKetch.trigger,"La prima volta che sali con l’elevatore dell’ancora sul Ketch celeste."
 wagon.upkeep.boons.failing,"Il tuo {name} sta andando a pezzi. Un Cortile dei carri o un Kit di riparazione per carri lo aggiusterà."

@@ -6700,7 +6700,7 @@ tutorials.questlines.gearBody,"Beberapa misi, setelah selesai, membuatmu bisa me
 tutorials.questlines.title,"Alur Misi"
 tutorials.questlines.trigger,"Saat pertama kali kamu mengambil misi yang punya tujuan."
 tutorials.skyKetch.body1,"Setiap Sabtu mulai pukul 00.00 UTC, selama satu setengah hari, Kapal Langit Rourken bertahan di atas ladang di timur ibu kota. Naiki lift jangkarnya bersama grupmu, paling banyak delapan orang."
-tutorials.skyKetch.body2,"Bawa sel eter dari dudukan ke Mesin Lapar - satu pukulan menjatuhkannya dari tanganmu. Jaringnya menangkapmu saat jatuh dan menarikmu kembali ke atas kapal meski memar; hanya kematian yang membuatmu terbangun di ladang di bawah."
+tutorials.skyKetch.body2,"Bawa sel eter dari dudukan ke Mesin Lapar; satu pukulan menjatuhkannya. Jaringnya menangkap orang yang jatuh; hanya kematian yang membuatmu terbangun di bawah."
 tutorials.skyKetch.title,"Kapal Langit"
 tutorials.skyKetch.trigger,"Saat pertama kali kamu menaiki lift jangkar ke Kapal Langit."
 wagon.upkeep.boons.failing,"{name} milikmu hampir hancur. Bengkel Kereta atau Kit Perbaikan Kereta akan memperbaikinya."

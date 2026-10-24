@@ -16,7 +16,7 @@ import { spoilsLevel, spoilsLock } from '../spoilsPool.js';
 /** The device's shares paid and not yet given: `[{ d, o, s, c, l }]` - a receipt's voyage, ship, account, seed, level. */
 export const KT_OWED_KEY = 'kt.owed';
 /** The most it keeps (a share a week: a handful at most, with an older one still owed). */
-export const KT_OWED_MAX = 8;
+export const KT_SHARES_OWED_MAX = 8;
 
 const owedOk = (e) => !!e && typeof e === 'object' && Number.isSafeInteger(e.d) && typeof e.o === 'string' && typeof e.s === 'string' && Number.isSafeInteger(e.c) && Number.isFinite(e.l);
 const same = (a, b) => a.d === b.d && a.o === b.o && a.s === b.s;
@@ -53,7 +53,7 @@ export function createKetchShares({ store = null, pool, level, me, aboard, say =
     paid(c) {
       const e = { d: c.d, o: c.o, s: c.s, c: c.c, l: c.l };
       if (!owedOk(e)) return false;
-      if (!owed().some((k) => same(k, e))) keep([...owed().filter((k) => !same(k, e)), e].slice(-KT_OWED_MAX));
+      if (!owed().some((k) => same(k, e))) keep([...owed().filter((k) => !same(k, e)), e].slice(-KT_SHARES_OWED_MAX));
       if (!aboard()) void grant(e);
       return true;
     },

@@ -47,7 +47,7 @@
   {
     "name": "KTQ-the-fall-said-to-wake-you-below",
     "file": "src/systems/tutorialCatalogue.js",
-    "old": "Her nets catch a fall and haul you back aboard, bruised; only death wakes you in the fields below.",
+    "old": "Her nets catch a fall; only death wakes you below.",
     "new": "A fall from her decks wakes you in the fields below.",
     "tests": [
       "test/systems/questlines/ketch_lines.test.js"

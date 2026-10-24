@@ -6700,7 +6700,7 @@ tutorials.questlines.gearBody,"Některé úkoly ti po dokončení dovolí vybrat
 tutorials.questlines.title,"Série úkolů"
 tutorials.questlines.trigger,"Když poprvé přijmeš úkol s cíli."
 tutorials.skyKetch.body1,"Každou sobotu od 00:00 UTC stojí nebeská keč klanu Rourken den a půl nad poli východně od hlavního města. Vyjeď jejím kotevním výtahem nahoru se svou družinou, nejvýše osm lidí."
-tutorials.skyKetch.body2,"Nos éterické články z kolébek do Vyhladovělého stroje - úder ti článek vyrazí z rukou. Její sítě tě při pádu zachytí a vytáhnou zpět na palubu, i když s modřinami; jen smrt tě probudí na polích dole."
+tutorials.skyKetch.body2,"Nos éterické články z kolébek do Vyhladovělého stroje; úder ti článek vyrazí. Její sítě zachytí pád; jen smrt tě probudí dole."
 tutorials.skyKetch.title,"Nebeská keč"
 tutorials.skyKetch.trigger,"Když poprvé vyjedeš kotevním výtahem na palubu Nebeské keče."
 wagon.upkeep.boons.failing,"Váš {name} se rozpadá. Vozárna nebo Sada na opravu vozu ho spraví."

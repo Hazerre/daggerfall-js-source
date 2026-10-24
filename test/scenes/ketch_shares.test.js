@@ -4,7 +4,7 @@
 // paid at once both kept; another account's never given to this one. tools/mutants/ketch_client.json.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createKetchShares, KT_OWED_KEY, KT_OWED_MAX } from '../../src/scenes/ketch/ketchShares.js';
+import { createKetchShares, KT_OWED_KEY, KT_SHARES_OWED_MAX } from '../../src/scenes/ketch/ketchShares.js';
 import { ketchSpoilsDay, KT_SPOILS_TEXT } from '../../src/systems/ketch/ketchSpoils.js';
 
 const SHIP = '0123456789abcdef';
@@ -72,7 +72,7 @@ test('KETCH TWO SHARES PAID AT ONCE ARE TWO: the second never writes over the fi
   assert.deepEqual(c.pool.granted, [ketchSpoilsDay(7, SHIP)]);
   // bounded
   const d = book();
-  for (let n = 1; n <= KT_OWED_MAX + 3; n++) d.s.paid(claims(n));
-  assert.equal(d.s.owed().length, KT_OWED_MAX);
+  for (let n = 1; n <= KT_SHARES_OWED_MAX + 3; n++) d.s.paid(claims(n));
+  assert.equal(d.s.owed().length, KT_SHARES_OWED_MAX);
   assert.equal(d.s.paid({ d: 1 }), false, 'claims that are not a receipt\'s: nothing');
 });

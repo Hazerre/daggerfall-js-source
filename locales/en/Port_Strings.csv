@@ -6700,7 +6700,7 @@ tutorials.questlines.gearBody,"Some quests, once finished, let you pick one of t
 tutorials.questlines.title,"Questlines"
 tutorials.questlines.trigger,"When you first take a quest with objectives."
 tutorials.skyKetch.body1,"Every Saturday from 00:00 UTC, for a day and a half, the Rourken sky-ketch keeps station over the fields east of the capital. Ride her anchor-lift up with your party, eight hands at most."
-tutorials.skyKetch.body2,"Carry aether cells from the cradles to the Starved Engine - a blow knocks one from your hands. Her nets catch a fall and haul you back aboard, bruised; only death wakes you in the fields below."
+tutorials.skyKetch.body2,"Carry aether cells from the cradles to the Starved Engine; a blow knocks one loose. Her nets catch a fall; only death wakes you below."
 tutorials.skyKetch.title,"The Sky-Ketch"
 tutorials.skyKetch.trigger,"When you first ride the anchor-lift up to the Sky-Ketch."
 wagon.upkeep.boons.failing,"Your {name} is falling apart. A Wagon Yard or a Wagon Repair Kit will mend it."

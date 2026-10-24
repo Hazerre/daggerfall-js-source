@@ -6700,7 +6700,7 @@ tutorials.questlines.gearBody,"Algumas missões, quando concluídas, deixam voc�
 tutorials.questlines.title,"Cadeias de missões"
 tutorials.questlines.trigger,"Na primeira vez que você aceita uma missão com objetivos."
 tutorials.skyKetch.body1,"Todo sábado a partir das 00:00 UTC, por um dia e meio, o Ketch Celeste dos Rourken mantém posição sobre os campos a leste da capital. Suba no elevador da âncora com seu grupo, no máximo oito pessoas."
-tutorials.skyKetch.body2,"Leve células de éter dos berços até a Máquina Faminta - um golpe faz uma cair das suas mãos. As redes dele seguram uma queda e puxam você de volta a bordo, não sem hematomas; só a morte faz você acordar nos campos lá embaixo."
+tutorials.skyKetch.body2,"Leve células de éter dos berços até a Máquina Faminta; um golpe faz uma cair. As redes dele seguram uma queda; só a morte faz você acordar lá embaixo."
 tutorials.skyKetch.title,"O Ketch Celeste"
 tutorials.skyKetch.trigger,"Na primeira vez que você sobe pelo elevador da âncora até o Ketch Celeste."
 wagon.upkeep.boons.failing,"Sua {name} está caindo aos pedaços. Um Pátio de Carroças ou um Kit de Reparo de Carroça vai consertá-la."

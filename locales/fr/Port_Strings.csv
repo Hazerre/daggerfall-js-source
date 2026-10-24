@@ -6700,7 +6700,7 @@ tutorials.questlines.gearBody,"Certaines quêtes, une fois terminées, vous lais
 tutorials.questlines.title,"Chaînes de quêtes"
 tutorials.questlines.trigger,"La première fois que vous acceptez une quête avec des objectifs."
 tutorials.skyKetch.body1,"Chaque samedi à partir de 00:00 UTC, pendant un jour et demi, le Ketch céleste des Rourken se tient au-dessus des champs à l’est de la capitale. Montez dans sa nacelle d’ancre avec votre groupe, huit au plus."
-tutorials.skyKetch.body2,"Portez des cellules d’éther des berceaux à la Machine affamée - un coup vous en fait lâcher une. Ses filets rattrapent une chute et vous hissent de nouveau à bord, non sans quelques bleus ; seule la mort vous réveille dans les champs en contrebas."
+tutorials.skyKetch.body2,"Portez des cellules d’éther des berceaux à la Machine affamée ; un coup vous en fait lâcher une. Ses filets rattrapent une chute ; seule la mort vous réveille en contrebas."
 tutorials.skyKetch.title,"Le Ketch céleste"
 tutorials.skyKetch.trigger,"La première fois que vous montez par la nacelle d’ancre jusqu’au Ketch céleste."
 wagon.upkeep.boons.failing,"Votre {name} tombe en ruine. Une Cour des chariots ou un Kit de réparation de chariot le réparera."

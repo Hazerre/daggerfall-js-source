@@ -554,7 +554,7 @@ export const TUTORIALS = Object.freeze([
     get body() {
       return [
         t('tutorials.skyKetch.body1', 'Every Saturday from 00:00 UTC, for a day and a half, the Rourken sky-ketch keeps station over the fields east of the capital. Ride her anchor-lift up with your party, eight hands at most.'),
-        t('tutorials.skyKetch.body2', 'Carry aether cells from the cradles to the Starved Engine - a blow knocks one from your hands. Her nets catch a fall and haul you back aboard, bruised; only death wakes you in the fields below.'),
+        t('tutorials.skyKetch.body2', 'Carry aether cells from the cradles to the Starved Engine; a blow knocks one loose. Her nets catch a fall; only death wakes you below.'),
       ];
     },
   }),

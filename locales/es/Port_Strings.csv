@@ -6700,7 +6700,7 @@ tutorials.questlines.gearBody,"Algunas misiones, al terminarlas, te dejan elegir
 tutorials.questlines.title,"Cadenas de misiones"
 tutorials.questlines.trigger,"La primera vez que aceptas una misión con objetivos."
 tutorials.skyKetch.body1,"Cada sábado desde las 00:00 UTC, durante un día y medio, el Queche Celeste de los Rourken se mantiene sobre los campos al este de la capital. Sube en su elevador del ancla con tu grupo, ocho como máximo."
-tutorials.skyKetch.body2,"Lleva células de éter de las cunas a la Máquina Hambrienta - un golpe te hace soltar una. Sus redes frenan una caída y te suben de nuevo a bordo, no sin magulladuras; solo la muerte te despierta en los campos de abajo."
+tutorials.skyKetch.body2,"Lleva células de éter de las cunas a la Máquina Hambrienta; un golpe te hace soltar una. Sus redes frenan una caída; solo la muerte te despierta abajo."
 tutorials.skyKetch.title,"El Queche Celeste"
 tutorials.skyKetch.trigger,"La primera vez que subes en el elevador del ancla al Queche Celeste."
 wagon.upkeep.boons.failing,"Tu {name} se cae a pedazos. Un Taller de Carros o un Kit de Reparación de Carros lo arreglará."

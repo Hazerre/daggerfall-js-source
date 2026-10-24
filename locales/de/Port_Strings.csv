@@ -6700,7 +6700,7 @@ tutorials.questlines.gearBody,"Manche Quests lassen dich nach dem Abschluss eine
 tutorials.questlines.title,"Questreihen"
 tutorials.questlines.trigger,"Wenn du zum ersten Mal eine Quest mit Zielen annimmst."
 tutorials.skyKetch.body1,"Jeden Samstag ab 00:00 UTC hält die Himmelsketsch der Rourken anderthalb Tage lang Position über den Feldern östlich der Hauptstadt. Fahr mit deiner Gruppe, höchstens zu acht, auf ihrem Ankeraufzug hinauf."
-tutorials.skyKetch.body2,"Die Hungernde Maschine braucht Ätherzellen aus den Wiegen - ein Treffer schlägt dir eine aus den Händen. Ihre Netze fangen einen Sturz auf und ziehen dich zerschunden zurück an Bord; nur der Tod lässt dich auf den Feldern darunter erwachen."
+tutorials.skyKetch.body2,"Bring Ätherzellen aus den Wiegen zur Hungernden Maschine; ein Treffer schlägt dir eine aus den Händen. Ihre Netze fangen einen Sturz auf; nur der Tod lässt dich unten erwachen."
 tutorials.skyKetch.title,"Die Himmelsketsch"
 tutorials.skyKetch.trigger,"Wenn du zum ersten Mal mit dem Ankeraufzug zur Himmelsketsch hinauffährst."
 wagon.upkeep.boons.failing,"Dein {name} fällt auseinander. Ein Wagenhof oder ein Wagen-Reparaturset repariert ihn."

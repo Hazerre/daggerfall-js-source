@@ -6700,7 +6700,7 @@ tutorials.questlines.gearBody,"Noen oppdrag lar deg, når de er fullført, velge
 tutorials.questlines.title,"Oppdragsrekker"
 tutorials.questlines.trigger,"Første gang du tar et oppdrag med mål."
 tutorials.skyKetch.body1,"Hver lørdag fra kl. 00:00 UTC holder Himmelketsjen fra Rourken posisjon over markene øst for hovedstaden i halvannet døgn. Ta ankerheisen hennes opp sammen med gruppen din, høyst åtte mann."
-tutorials.skyKetch.body2,"Bær eterceller fra vuggene til Den utsultede maskinen - et slag slår en ut av hendene dine. Nettene hennes fanger et fall og haler deg forslått tilbake om bord; bare døden får deg til å våkne på markene nedenfor."
+tutorials.skyKetch.body2,"Bær eterceller fra vuggene til Den utsultede maskinen; et slag slår en løs. Nettene hennes fanger et fall; bare døden får deg til å våkne nedenfor."
 tutorials.skyKetch.title,"Himmelketsjen"
 tutorials.skyKetch.trigger,"Første gang du tar ankerheisen opp til Himmelketsjen."
 wagon.upkeep.boons.failing,"Din {name} faller fra hverandre. En Vognplass eller et Vognreparasjonssett vil reparere den."

@@ -47,7 +47,7 @@
   {
     "name": "KTC-one-share-held",
     "file": "src/scenes/ketch/ketchShares.js",
-    "old": "keep([...owed().filter((k) => !same(k, e)), e].slice(-KT_OWED_MAX));",
+    "old": "keep([...owed().filter((k) => !same(k, e)), e].slice(-KT_SHARES_OWED_MAX));",
     "new": "keep([e]);",
     "tests": [
       "test/scenes/ketch_shares.test.js"
