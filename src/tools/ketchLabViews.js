@@ -34,6 +34,11 @@ export const KT_LAB_VIEWS = Object.freeze({
 
 /** The views a body stands at: the eye a body's height over a floor of the ship (the rest look at her from the air, or from
  *  over a crew's heads - `waist-aft`). */
+/** KETCH-LOOK KL3 THE BILL'S CEILINGS: the most GL draws (one a submesh) the ship may cost at each zone's view, the PVS
+ *  culling what the zone cannot see (`node tools/ketchLabProbe.mjs bill`) - measured, and pinned so a slice that adds a
+ *  part pays for it here in the open. */
+export const KT_LAB_BILL = Object.freeze({ waist: 74, gallery: 92, hold: 92, bridge: 136, cabin: 136 });
+
 export const KT_LAB_DECK_VIEWS = Object.freeze(['arrive', 'waist', 'gallery', 'landing', 'hold', 'engine', 'lift', 'top', 'top-out', 'sailwalk', 'bridge', 'helm', 'cabin', 'city']);
 
 /**
@@ -44,7 +49,8 @@ export const KT_LAB_DECK_VIEWS = Object.freeze(['arrive', 'waist', 'gallery', 'l
  * light is at; `eye` (KETCH-LOOK KL1) how many times the lane's eye adapts faster (render/airPass.js AIR_ADAPT_OPEN and
  * CLOSE - where it settles is the game's, only how soon), so a probe measures the settled eye a few frames after a
  * move rather than the minute the game's takes; `arena2` (KETCH-LOOK KL2) her art through the player's own palette (the
- * dev server's ARENA2 - scenes/dataSource.js), not its fallback colours. Pure.
+ * dev server's ARENA2 - scenes/dataSource.js), not its fallback colours; `gauges` (KETCH-LOOK KL3) a card of every gauge
+ * kind (render/ketch/ktGaugePass.js) before the eye, at five shares and the four meanings. Pure.
  * @param {string} search
  */
 export function ketchLabKnobs(search) {
@@ -59,5 +65,6 @@ export function ketchLabKnobs(search) {
     hour: Number.isFinite(hour) ? hour : 13,
     eye: Number.isFinite(eye) && eye >= 1 ? eye : 1,
     arena2: p.has('arena2'),
+    gauges: p.has('gauges'),
   });
 }

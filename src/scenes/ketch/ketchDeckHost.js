@@ -30,6 +30,7 @@ import { hammerHeadY, hazardState, hazardStrike, sectionPose } from '../../world
 import { packKetchHit } from '../../world/ketch/ketchKit.js';
 import { isKetchShip, ketchShipLocation, ketchShipBlocks } from '../../world/ketch/ketchShip.js';
 import { ketchHourLight, ketchLightRecord } from '../../world/ketch/ketchAtmos.js';
+import { KT_GROUP, pvsGroupsAt } from '../../world/ketch/ketchStates.js';
 import {
   KT_HAMMER, KT_STEAM, KT_ARCS, KT_LIFT, KT_CRADLES, KT_BRIDGE_CRADLES, KT_SOCKETS, KT_RESONATORS, KT_BRIDGE, KT_HOLD, KT_GALLERY, KT_SECTIONS,
   KT_ENGINE, KT_HATCH, KT_HOLD_HATCH, KT_FORK_RING, KT_GANGWAY, liftYAt, deckToDungeon, dungeonToDeck, deckZoneAt, sectionAt,
@@ -65,6 +66,28 @@ export const KT_GLOWS = Object.freeze({
 });
 
 const NONE = Object.freeze([]);
+/** KETCH-LOOK KL3 THE HALOS (render/superDungeon/sdHalo.js - the classic set's bloom): a lamp's at its glass, `lamp.size`
+ *  across (m) at `lamp.k` of its light; a lit thing's (KT_GLOWS - the engine, an arc, a cell, a resonator, a fork) across
+ *  `glow.size` of its reach, clamped to `glow.min`..`glow.max`, at `glow.k` of its light. */
+export const KT_HALO = Object.freeze({ lamp: Object.freeze({ size: 0.9, k: 0.35 }), glow: Object.freeze({ size: 0.09, min: 0.4, max: 1.4, k: 0.45 }) });
+/**
+ * THE HALOS OF `lights` (the deck's lightsNear answer: its lit things - `carried` - and its lamps, nearest first) into `out`,
+ * a kept array of kept `{ at, size, color }` slots, its length the count. Answers `out`; nothing made past its first slots.
+ * @param {any[]} out @param {ArrayLike<any>} lights
+ */
+export function ketchHalosInto(out, lights) {
+  const H = KT_HALO;
+  let n = 0;
+  for (let i = 0; i < lights.length; i++) {
+    const L = lights[i], h = out[n] ?? (out[n] = { at: [0, 0, 0], size: 0, color: [0, 0, 0] }), glow = !!L.carried, k = glow ? H.glow.k : H.lamp.k;
+    h.at[0] = L.x; h.at[1] = L.y; h.at[2] = L.z;
+    h.size = glow ? Math.max(H.glow.min, Math.min(H.glow.max, H.glow.size * L.range)) : H.lamp.size;
+    h.color[0] = L.color[0] * k; h.color[1] = L.color[1] * k; h.color[2] = L.color[2] * k;
+    n++;
+  }
+  out.length = n;
+  return out;
+}
 /** How far the cabin's doors slide into their walls (m), the tower's door's portcullis rises (m), the grates' leaves turn (rad). */
 export const KT_DOOR_SLIDE = 1.8;
 export const KT_SHAFT_DOOR_H = 3.4;
@@ -147,10 +170,20 @@ export function createKetchDeck({ renderer = null, palette = true } = {}) {
   const cloudSeeds = (() => { let s = KT_CLOUDS.seed >>> 0; const r = () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; return Array.from({ length: KT_CLOUDS.n }, (_, k) => ({ x: r() * 2 - 1, z: r() * 2 - 1, y: k % 3 === 0 ? KT_CLOUDS.above[0] + r() * (KT_CLOUDS.above[1] - KT_CLOUDS.above[0]) : KT_CLOUDS.below[0] + r() * (KT_CLOUDS.below[1] - KT_CLOUDS.below[0]), s: KT_CLOUDS.size[0] + r() * (KT_CLOUDS.size[1] - KT_CLOUDS.size[0]) })); })();
   const _cloudCentres = cloudSeeds.map(() => [0, 0, 0]);
   const _steamCentres = Array.from({ length: KT_STEAM.z.length * KT_STEAM_PUFFS.n }, () => [0, KT_GONE_Y, 0]);
+  // KETCH-LOOK KL3 THE PVS (world/ketch/ketchStates.js KT_PVS): the draws a part group names, the groups the eye's zone sees
+  // (none culled while no eye is given), the view it holds for the next frame's edge, the eye in the deck's frame
+  const _grouped = [], _seen = new Set(), _eyeDeck = [0, 0, 0];
+  let _view = /** @type {string | null} */ (null), _eyed = false;
 
   /** a part's draw - a record even for a mesh that would not build (posed, never drawn: AUDIT KETCH L3-15, one part's failed
    *  build threw every frame from pose()) */
-  const draw = (gpu, o = {}) => { if (!draws) return null; const d = { gpu, object: { matrix: identity() }, hidden: !gpu, noShadow: !!o.noShadow, texRemap: null }; if (gpu) draws.push(d); return d; };
+  const draw = (gpu, o = {}) => {
+    if (!draws) return null;
+    const d = { gpu, object: { matrix: identity() }, hidden: !gpu, noShadow: !!o.noShadow, texRemap: null };
+    if (gpu) draws.push(d);
+    if (o.group) { d.group = o.group; d.culled = false; _grouped.push(d); }   // KETCH-LOOK KL3: its PVS group (KT_GROUP)
+    return d;
+  };
   const hide = (d) => { if (d && !d.hidden) { d.hidden = true; d.object.matrix.fill(0); } };
   const bucket = (key, p, t) => { if (!collider || !p?.hit?.length) return; const { positions, indices } = packKetchHit(p.hit); try { collider.addMesh(key, positions, indices, identity(), t ? () => t : undefined); } catch (e) { console.warn('[kt] a collider', key, e?.message ?? e); } };
   const at = (out, x, y, z) => translate(out, O[0] + x, O[1] + y, O[2] + z);
@@ -175,27 +208,28 @@ export function createKetchDeck({ renderer = null, palette = true } = {}) {
       if (collider) { const { positions, indices } = packKetchHit(ship.hit); try { collider.addMesh(KT_BUCKET.ship, positions, indices, identity()); } catch (e) { console.warn('[kt] the ship\'s collider', e?.message ?? e); } }
       const P = parts, g = (p) => make(p.model);
       const hammer = g(P.hammer);
-      for (let ri = 0; ri < KT_HAMMER.rows.length; ri++) for (let li = 0; li < KT_HAMMER.lanes.length; li++) D.hammers.push({ ri, li, d: draw(hammer, { noShadow: true }) });
+      for (let ri = 0; ri < KT_HAMMER.rows.length; ri++) for (let li = 0; li < KT_HAMMER.lanes.length; li++) D.hammers.push({ ri, li, d: draw(hammer, { noShadow: true, group: KT_GROUP.gundeck }) });
       D.cage = draw(g(P.cage), { noShadow: true }); bucket(KT_BUCKET.cage, P.cage, T.cage);   // casts nothing: a part that rides rebuilds no lamp's cube (KETCH-LOOK KL0)
-      D.gateHold = draw(g(P.gateHold), { noShadow: true }); bucket(KT_BUCKET.gateHold, P.gateHold, T.gateHold);
-      D.gateTop = draw(g(P.gateTop), { noShadow: true }); bucket(KT_BUCKET.gateTop, P.gateTop, T.gateTop);
-      for (const [dk, pk, bk] of [['grateW', 'grateWatch', 'grateW'], ['grateH', 'grateHold', 'grateH'], ['doors', 'doors', 'doors']]) {
-        D[dk] = [draw(g(P[pk].left), { noShadow: true }), draw(g(P[pk].right), { noShadow: true })];
+      D.gateHold = draw(g(P.gateHold), { noShadow: true, group: KT_GROUP.hold }); bucket(KT_BUCKET.gateHold, P.gateHold, T.gateHold);
+      D.gateTop = draw(g(P.gateTop), { noShadow: true, group: KT_GROUP.aloft }); bucket(KT_BUCKET.gateTop, P.gateTop, T.gateTop);
+      // the hatches never culled (a shut leaf is a ceiling below and a floor above); the cabin's doors the bridge's
+      for (const [dk, pk, bk, group] of [['grateW', 'grateWatch', 'grateW', null], ['grateH', 'grateHold', 'grateH', null], ['doors', 'doors', 'doors', KT_GROUP.bridge]]) {
+        D[dk] = [draw(g(P[pk].left), { noShadow: true, group }), draw(g(P[pk].right), { noShadow: true, group })];
         bucket(KT_BUCKET[bk], P[pk], T[bk]);
       }
-      P.sections.forEach((s, k) => { D.sections.push(draw(g(s))); bucket(KT_BUCKET.section(k), s, T.sections[k]); });
+      P.sections.forEach((s, k) => { D.sections.push(draw(g(s), { group: KT_GROUP.bridge })); bucket(KT_BUCKET.section(k), s, T.sections[k]); });
       const rt = g(P.resonator.true), rf = g(P.resonator.false), cell = g(P.cell), fork = g(P.fork);
-      for (let k = 0; k < KT_RESONATORS.length; k++) { D.resTrue.push(draw(rt, { noShadow: true })); D.resFalse.push(draw(rf, { noShadow: true })); }
-      for (let k = 0; k < KT_CRADLES.length; k++) D.cradle.push(draw(cell, { noShadow: true }));
-      for (let k = 0; k < KT_BRIDGE_CRADLES.length; k++) D.bcradle.push(draw(cell, { noShadow: true }));
-      for (let k = 0; k < KT_SOCKETS.length; k++) D.socket.push(draw(cell, { noShadow: true }));
+      for (let k = 0; k < KT_RESONATORS.length; k++) { D.resTrue.push(draw(rt, { noShadow: true, group: KT_GROUP.bridge })); D.resFalse.push(draw(rf, { noShadow: true, group: KT_GROUP.bridge })); }
+      for (let k = 0; k < KT_CRADLES.length; k++) D.cradle.push(draw(cell, { noShadow: true, group: KT_GROUP.hold }));
+      for (let k = 0; k < KT_BRIDGE_CRADLES.length; k++) D.bcradle.push(draw(cell, { noShadow: true, group: KT_GROUP.bridge }));
+      for (let k = 0; k < KT_SOCKETS.length; k++) D.socket.push(draw(cell, { noShadow: true, group: KT_GROUP.hold }));
       for (let k = 0; k < KT_LOOSE_MAX; k++) D.loose.push(draw(cell, { noShadow: true }));
       for (let k = 0; k < KT_CARRIED_MAX; k++) D.carried.push(draw(cell, { noShadow: true }));
-      for (let k = 0; k < 7; k++) D.forks.push(draw(fork, { noShadow: true }));
+      for (let k = 0; k < 7; k++) D.forks.push(draw(fork, { noShadow: true, group: KT_GROUP.bridge }));
       const arcs = P.arc.map((a) => g(a));
-      for (let j = 0; j < KT_ARCS.z.length; j++) D.arcs.push({ d: draw(arcs[0], { noShadow: true }), meshes: arcs });
+      for (let j = 0; j < KT_ARCS.z.length; j++) D.arcs.push({ d: draw(arcs[0], { noShadow: true, group: KT_GROUP.hold }), meshes: arcs });
       D.line = draw(g(P.line), { noShadow: true });
-      D.lodestone = draw(g(P.lodestone), { noShadow: true });
+      D.lodestone = draw(g(P.lodestone), { noShadow: true, group: KT_GROUP.bridge });
       for (const d of [...D.resFalse, ...D.cradle, ...D.bcradle, ...D.socket, ...D.loose, ...D.carried, ...D.forks, ...D.arcs.map((a) => a.d), D.line]) hide(d);
       if (renderer?.createBillboardBatch) {
         try {
@@ -211,10 +245,14 @@ export function createKetchDeck({ renderer = null, palette = true } = {}) {
      * ONE FRAME, BEFORE THE MOTOR: every part where the voyage and the clock have it. `V` the voyage as this page holds it
      * (net/ketch/ketchLink.js state - its stage `sg`, its cells `cl`, its fight `ws`; null: the Watch, nothing taken);
      * `t` the shared clock's seconds; `now` the relay's ms; `body` the motor (a body on the cage's floor is carried);
-     * `carried` the places (dungeon frame) a carried cell is drawn at.
+     * `carried` the places (dungeon frame) a carried cell is drawn at; `eye` (dungeon frame - the body's feet by default)
+     * where the PVS is read from (KETCH-LOOK KL3: every grouped part its zone cannot see `culled`; none without an eye).
      */
-    pose(V, t, now, body = null, carried = NONE) {
+    pose(V, t, now, body = null, carried = NONE, eye = body?.pos ?? null) {
       if (!draws) return;
+      _eyed = !!eye;
+      if (eye) { _eyeDeck[0] = eye[0] - O[0]; _eyeDeck[1] = eye[1] - O[1]; _eyeDeck[2] = eye[2] - O[2]; _view = pvsGroupsAt(_eyeDeck, _view, _seen); }   // dungeonToDeck, in place
+      for (const d of _grouped) d.culled = _eyed && !_seen.has(d.group);
       const sg = V?.sg ?? KT_STAGE.watch, cl = V?.cl ?? null, ws = V?.ws ?? null;
       // the hammers
       for (const h of D.hammers) at(h.d.object.matrix, KT_HAMMER.lanes[h.li], hammerHeadY(h.ri, h.li, t), KT_HAMMER.rows[h.ri]);
@@ -335,6 +373,10 @@ export function createKetchDeck({ renderer = null, palette = true } = {}) {
       _gain[zone] = g;
       for (const l of lamps()) if (l.zone === zone) { const c = zone === 'deck' ? KT_LAMP.color : KT_LAMP.below; for (let k = 0; k < 3; k++) l.color[k] = c[k] * g; }
     },
+    /** KETCH-LOOK KL3: whether the eye's zone sees part group `g` (KT_GROUP) at the last pose - every group while no eye
+     *  was given; the view it holds. */
+    sees: (g) => !_eyed || _seen.has(g),
+    view: () => (_eyed ? _view : null),
     /** The clouds and the steam, for the frame's billboard pass. */
     billboards() { return [clouds, steam].filter(Boolean); },
     /** Where the cage's floor stands now (deck y) - the lift's riders and its prompt read it. */
@@ -358,6 +400,7 @@ export function createKetchDeck({ renderer = null, palette = true } = {}) {
       for (const b of [clouds, steam]) if (b) { try { renderer?.destroyBillboardBatch?.(b); } catch { /* gone */ } }
       meshes.length = 0; clouds = null; steam = null;
       for (const k of Object.keys(D)) { const v = D[k]; if (Array.isArray(v)) v.length = 0; else D[k] = null; }
+      _grouped.length = 0; _seen.clear(); _view = null; _eyed = false;
       draws = null; collider = null;
     },
   };
@@ -458,7 +501,7 @@ export function createKetchDeckHost({ renderer, host, wm, moon = ketchMoonNow })
     if (z === 'gangway') { safe = [KT_GANGWAY.bx, 0, KT_GANGWAY.bz]; safeZone = z; return; }
     safe = p; safeZone = z;
   }
-  const _extra = [], _fogInto = new Float32Array(3);
+  const _extra = [], _fogInto = new Float32Array(3), _halos = [];
   return {
     /** THE SHIP stood into its built context (scenes/worldModes.js - before its start marker is read): its set, its
      *  ride before the motor (beside the Steps'), its presses, its teardown the context's. */
@@ -494,6 +537,7 @@ export function createKetchDeckHost({ renderer, host, wm, moon = ketchMoonNow })
       _extra.length = 0;
       for (const l of K()?.lights?.() ?? NONE) _extra.push(l);
       const lamps = deck?.lightsNear(eye, 24) ?? NONE;   // the deck's own list (egLightsWith sorts it in place - it is written again next frame)
+      K()?.halos?.(renderer?.lightingLane ? NONE : ketchHalosInto(_halos, lamps));   // KETCH-LOOK KL3: the classic set's bloom, with the late pass
       if (lit) { const w = egLightsWith(lit, _extra, lamps, eye); renderer.setPointLights?.(w.data, null, w.colors); }
       return L;
     },

@@ -460,6 +460,8 @@ export function createKetchClient(deps) {
       void shares.give();
     },
     lights: () => [...fight.lights(), ...(spoils.lights?.() ?? NONE)],
+    /** KETCH-LOOK KL3: the deck's halos this frame, for the late pass (the fight draws them with its telegraphs). */
+    halos: (list) => fight.halos(list),
     /** The telegraphs and the spoils' lines, after the flats. Answers whether anything drew. */
     drawPass(proj, view, eye, seconds, fog) {
       const a = fight.drawPass(proj, view, eye, seconds, fog), b = !!spoils.drawPass?.(proj, view, eye, seconds, fog);

@@ -28,6 +28,7 @@ import { wordShare } from '../../combat/healthShare.js';
 import { setBatchHitFlash, setBatchGlint } from '../../systems/hitFlash.js';
 import { GateTelegraphRenderer, telegraphPrograms, TELEGRAPH_STYLE, TELEGRAPH_EDGE_DAGON, TELEGRAPH_EDGE, TELEGRAPH_POOL } from '../../render/gate/gateTelegraph.js';
 import { compiledPass } from '../../render/glProgram.js';
+import { SdHaloRenderer, SD_HALO_PROGRAMS, SD_HALO_GAIN } from '../../render/superDungeon/sdHalo.js';   // KETCH-LOOK KL3: the classic set's bloom
 import { fillStamp } from '../eliteGates/egFight.js';
 import { egBlowVerdict } from '../../net/eliteGates/egShape.js';
 import { ENEMY_BASICS } from '../../characters/enemy/enemyBasics.js';
@@ -137,6 +138,10 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
   const hazards = new Map();
   const teleDoor = gl ? compiledPass(gl, telegraphPrograms(false), () => new GateTelegraphRenderer(gl), (e) => console.warn('[kt] the telegraph would not build', e?.message ?? e)) : null;
   let tele = null;
+  // KETCH-LOOK KL3: the deck's halos on the classic set (scenes/ketch/ketchDeckHost.js ketchHalosInto - its lamps and lit
+  // things, handed each frame), drawn with the telegraphs; the pass built a few frames late, once its program is done
+  const haloDoor = gl ? compiledPass(gl, SD_HALO_PROGRAMS, () => new SdHaloRenderer(gl), (e) => console.warn('[kt] the halos would not build', e?.message ?? e)) : null;
+  let halo = null, _halos = /** @type {ArrayLike<any>} */ (Object.freeze([]));
 
   function play(cue, p) {
     if (!cue || !audio || !p) return;
@@ -364,10 +369,11 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
     },
     /** THE TELEGRAPHS: every shape this frame on its own floor, after the flats (the court's law). Answers whether it drew. */
     drawPass(proj, view, eye, seconds, fog) {
-      if (!_shapes.length) return false;
-      tele ??= teleDoor?.(true) ?? null;
-      if (!tele) return false;
       let drew = false;
+      if (_halos.length && (halo ??= haloDoor?.() ?? null)?.draw(proj, view, _halos, fog, SD_HALO_GAIN.classic)) drew = true;
+      if (!_shapes.length) return drew;
+      tele ??= teleDoor?.(true) ?? null;
+      if (!tele) return drew;
       for (const sh of _shapes) {
         const F = KT_TELEGRAPH_FLOORS[sh.floor] ?? KT_TELEGRAPH_FLOORS.waist;
         tele.draw(sh, proj, view, eye, seconds, fog, [O[0], O[1] + F.y, O[2]], null, { r: F.r, courts: [F.court] });
@@ -375,6 +381,9 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
       }
       return drew;
     },
+    /** KETCH-LOOK KL3: the halos the frame draws (`{ at, size, color }` each - the deck's list, read at the draw, never
+     *  kept past it; empty on the lane, whose bloom is its own). */
+    halos(list) { _halos = list ?? Object.freeze([]); },
     /** THE WARDEN'S BAR as the HUD reads it, or null. */
     bar() {
       const ws = link.state()?.ws, t = now();
@@ -388,6 +397,7 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
       if (warden) destroyBatch(warden);
       warden = null;
       _batches.length = 0; _targets.length = 0; _forkTargets.length = 0; _lights.length = 0; _shapes.length = 0;
+      _halos = Object.freeze([]);
     },
     /** What the set holds (tests, stats). */
     state: () => ({ bodies: [...bodies.keys()], shown: _batches.length, targets: _targets.length, shapes: _shapes.length, hazards: hazards.size }),

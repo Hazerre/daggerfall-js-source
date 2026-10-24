@@ -83,8 +83,8 @@
   {
     "name": "KTM-a-part-that-would-not-build-left-null",
     "file": "src/scenes/ketch/ketchDeckHost.js",
-    "old": "const draw = (gpu, o = {}) => { if (!draws) return null;",
-    "new": "const draw = (gpu, o = {}) => { if (!draws || !gpu) return null;",
+    "old": "    if (!draws) return null;\n    const d = { gpu, object: { matrix: identity() }, hidden: !gpu,",
+    "new": "    if (!draws || !gpu) return null;\n    const d = { gpu, object: { matrix: identity() }, hidden: !gpu,",
     "tests": [
       "test/scenes/ketch_deck_host.test.js"
     ]

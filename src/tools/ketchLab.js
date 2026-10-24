@@ -6,6 +6,7 @@
 //
 //   ?view=<name>     a camera (the panel's list)            ?t=<seconds>   the shared clock, pinned   ?still
 //   ?stage=0-5       the voyage's stage the parts stand for (the hatches, the lift, the cabin's door, the bosun's line)
+//   ?cr ?br ?bk ?nd ?lo ?carry ?wv ?fight=   (KL3) the voyage's state, through the fake link (src/tools/ketchLabLink.js)
 //   ?sec=<k,k>       the bridge's sections fallen            ?law           the colliders as wire
 //   &secAt=<s>       (KL0) their moment on the shared clock: warned before it, falling, gone, risen 7 s after
 //   ?hour=<0-24>     the hour the light is at               ?nopanel       the panel hidden (probes)
@@ -28,8 +29,12 @@ import { Renderer, WORLD_FRAME } from '../render/renderer.js';
 import { EL_LANE, exposureFor } from '../render/enhancedLighting.js';
 import { AIR_ADAPT_OPEN, AIR_ADAPT_CLOSE } from '../render/airPass.js';
 import { createSdSteps } from '../scenes/superDungeon/sdSteps.js';
-import { createKetchDeck, ketchFrameLook, ketchApplyLook } from '../scenes/ketch/ketchDeckHost.js';
+import { createKetchDeck, ketchFrameLook, ketchApplyLook, ketchHalosInto } from '../scenes/ketch/ketchDeckHost.js';
+import { SdHaloRenderer, SD_HALO_GAIN } from '../render/superDungeon/sdHalo.js';
+import { KtGaugeRenderer, KT_GAUGE_KIND, KT_GAUGE_FLOATS, ktGaugePut } from '../render/ketch/ktGaugePass.js';
 import { KT_COURSE, KT_BRIDGE, deckToDungeon } from '../net/ketch/ketchDeck.js';
+import { KT_GROUP } from '../world/ketch/ketchStates.js';
+import { createKetchLabLink, KT_LAB_EPOCH } from './ketchLabLink.js';
 import { KT_WARDEN_LOOK, ktWardenDye } from '../scenes/ketch/ketchFight.js';
 import { TextureFile } from '../formats/textureFile.js';
 import { DFPalette } from '../formats/dfPalette.js';
@@ -87,11 +92,11 @@ const deck = createKetchDeck({ renderer, palette: knobs.arena2 });   // KL2: ?ar
 deck.stand({ dynamicDraws, collider: null });
 const steps = createSdSteps({ renderer, course: KT_COURSE, lite: knobs.lite });
 steps.stand({ dynamicDraws, collider: null });
-const stage = Number(params.get('stage') ?? 0);
-const fallen = (params.get('sec') ?? '').split(',').filter(Boolean).map(Number);
-const secAt = params.has('secAt') ? Number(params.get('secAt')) : null;   // KL0: the fallen sections' moment on the shared clock (their warning before it, their return 7 s after) - a fall a probe can watch run
-const labVoyage = () => ({ sg: stage, cl: { cr: [1, 1, 0, 1, 1, 1], br: [1, 1], lo: [], ca: [], bk: Math.min(stage >= 2 ? 3 : 0, 7), nd: 5, sk: stage >= 2 ? [1, 1, 1, 0, 0, 0, 0] : [0, 0, 0, 0, 0, 0, 0] },
-  ws: stage === 4 ? { ph: 3, rs: [1, 0, 1, 0], sec: fallen.map((k) => (secAt != null ? [k, secAt * 1000, secAt * 1000 + 7000] : [k, clock * 1000 - 500, clock * 1000 + 6000])), fk: params.has('forks') ? { i: 1, at: clock * 1000 + 5000, m: 100, c: [[3, 205, 100], [-6, 196, 100], [8, 197, 100]] } : null } : null });
+// KETCH-LOOK KL3: THE FAKE LINK (src/tools/ketchLabLink.js) - the voyage as her room would say it, written by the knobs
+// (?stage ?cr ?br ?bk ?nd ?lo ?carry ?wv ?fight= and its companions; KL0's ?sec&secAt and ?forks), on the relay's clock
+const labNow = () => KT_LAB_EPOCH + clock * 1000;
+const labLink = createKetchLabLink(location.search, labNow);
+const labVoyage = () => labLink.state();
 const lawMesh = params.has('law') ? (() => {
   const tris = deck.colliderTris(), n = tris.length / 3;
   return renderer.createMesh({ positions: tris, normals: new Float32Array(n * 3).map((_, i) => (i % 3 === 1 ? 1 : 0)), uvs: new Float32Array(n * 2), indices: Uint32Array.from({ length: n }, (_, i) => i), subMeshes: [{ textureArchive: 38311, textureRecord: 11, startIndex: 0, primitiveCount: n / 3 }] });
@@ -138,8 +143,14 @@ const NO_SHADOW = Object.freeze({ noShadow: true }), WITH_SHADOW = Object.freeze
 // the world's sky over her (the game's dungeon arm draws it after the opaque level: host.drawSky)
 const sky = knobs.sky ? new EnhancedSkyRenderer(gl) : null;
 // THE BILL (KETCH-LOOK KL0): what the frame cost, and whether any part that moved recorded a shadow
-const bill = { gl: 0, draws: 0, casters: 0, moving: 0, lights: 0, cpuMs: 0 };   // gl: the ship's GL draws, one a submesh
+const bill = { gl: 0, draws: 0, casters: 0, moving: 0, lights: 0, cpuMs: 0, halos: 0 };   // gl: the ship's GL draws, one a submesh
 const _was = new Map();
+// KETCH-LOOK KL3: the classic set's halos, as the fight's late pass draws them on a ship (scenes/ketch/ketchFight.js drawPass)
+let halo = null;
+const _halos = [], _fog = { mode: 0, density: 0, range: null, camPos: null };
+// ?gauges (KL3): a card of every gauge kind (rows) at five shares (columns, each its meaning in turn) before the eye
+let gauge = null;
+const _cardShares = [0, 0.25, 0.5, 0.75, 1], _card = new Float32Array(Object.keys(KT_GAUGE_KIND).length * _cardShares.length * KT_GAUGE_FLOATS);
 const billBox = knobs.bill ? Object.assign(document.body.appendChild(document.createElement('pre')), { id: 'bill' }) : null;
 if (billBox) Object.assign(billBox.style, { position: 'fixed', right: '10px', top: '10px', margin: '0', padding: '6px 8px', background: 'rgba(14,16,19,0.85)', color: '#e9e4d9', font: '12px monospace' });
 let _movedSince = 0;   // the most moving casters any frame drew since the bill was last read (a probe steps the clock, then reads)
@@ -168,9 +179,10 @@ function frame(now) {
   const look = ketchFrameLook(cam.pos, minute, lane, skyNow ? moonlightTerm(skyNow) : null);
   ketchApplyLook(renderer, look);
   deck.lampGain(look.lamps, look.zone);
+  const V = labVoyage();   // the room's word made and folded - the lab's, outside the ship's own CPU
   const cpu0 = performance.now();
-  deck.pose(labVoyage(), clock, clock * 1000, null);
-  steps.ride(clock, dt, null, true);
+  deck.pose(V, clock, labNow(), null, undefined, cam.pos);   // KETCH-LOOK KL3: the PVS read from the camera
+  steps.ride(clock, dt, null, true, deck.sees(KT_GROUP.sailwalk));
   bill.cpuMs = performance.now() - cpu0;
   const lights = deck.lightsNear(cam.pos, renderer.maxPointLights ?? 16);
   const data = lightList(lights.length), colors = new Float32Array(Math.max(1, lights.length) * 3);
@@ -197,6 +209,23 @@ function frame(now) {
   }
   const camRight = new Float32Array([-view[0], -view[4], -view[8]]);
   renderer.drawBillboards(wardenBatch ? [...deck.billboards(cam.pos, clock), wardenBatch] : deck.billboards(cam.pos, clock), camRight, new Float32Array([0, 1, 0]));
+  if (!lane) {
+    halo ??= new SdHaloRenderer(renderer.gl);
+    _fog.mode = renderer._fogMode; _fog.density = renderer._fogDensity; _fog.range = renderer._fogRange; _fog.camPos = renderer._camPos;
+    if (halo.draw(proj, view, ketchHalosInto(_halos, deck.lightsNear(cam.pos, 24)), _fog, SD_HALO_GAIN.classic)) renderer.markForeignPass?.();
+  }
+  bill.halos = halo?.drawn ?? 0;
+  if (knobs.gauges) {
+    gauge ??= new KtGaugeRenderer(renderer.gl);
+    const up = [view[1], view[5], view[9]], R = [camRight[0], camRight[1], camRight[2]], S = 0.3, H = 0.11;   // the screen's right (the mirrored X's) and up
+    let n = 0;
+    Object.values(KT_GAUGE_KIND).forEach((kind, row) => _cardShares.forEach((a, col) => {
+      const ox = (col - 2) * S, oy = (2 - row) * S, at = [0, 1, 2].map((i) => cam.pos[i] + fwd[i] * 2.4 + R[i] * ox + up[i] * oy);
+      n = ktGaugePut(_card, n, at, R.map((v) => v * H), up.map((v) => v * H), kind, col % 4, a, 5);
+    }));
+    _fog.mode = renderer._fogMode; _fog.density = renderer._fogDensity; _fog.range = renderer._fogRange; _fog.camPos = renderer._camPos; _fog.color = renderer._fogColor;
+    if (gauge.draw(proj, view, _card, n, { lane, fog: _fog })) renderer.markForeignPass?.();
+  }
   renderer.resolveFrame();
   if (billBox) billBox.textContent = `ship GL draws ${bill.gl}\nship meshes ${bill.draws}\ncasters ${bill.casters} (moving ${bill.moving})\nlights ${bill.lights}\nship CPU ${bill.cpuMs.toFixed(2)} ms`;
   window.__frame++;

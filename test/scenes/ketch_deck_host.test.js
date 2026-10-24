@@ -317,3 +317,72 @@ test('KETCH-LOOK KL2 THE CLASSIC SET CARRIES THE EYE: off the lane her light (th
   }
   assert.ok(KT_HOURS.below.classic.light > 1 && KT_HOURS.dusk.classic.light > 1 && KT_HOURS.day.classic.light < 1 && KT_HOURS.cabin.classic.lamps > 1, 'the dark rooms and the twilights up, the noon down');
 });
+
+test('KETCH-LOOK KL3 THE PVS ON THE DECK: the parts the eye\'s zone cannot see `culled` - from the waist the gun deck\'s hammers, the hold\'s cells and arcs, the bridge\'s sections, resonators, forks, doors and lodestone; from the hold the bridge\'s and none of below\'s; from the cabin the bridge\'s drawn and the hold\'s not; within 6 m of the Watch hatch both sides\'; a draw without a group (the ship, her lamps, the land, the cage, the hatches) never; no eye, nothing; and the host\'s ride reads it from the body\'s feet (mutants: a group culled in its own zone; the door rule dropped; an ungrouped draw culled; the eye never the body\'s)', async () => {
+  const { createKetchDeckHost } = await import('../../src/scenes/ketch/ketchDeckHost.js');
+  const { deckToDungeon, KT_HATCH, KT_CABIN } = await import('../../src/net/ketch/ketchDeck.js');
+  const { KT_GROUP, KT_PVS_DOOR_M, KT_PVS_DOORS } = await import('../../src/world/ketch/ketchStates.js');
+  const deck = createKetchDeck({ renderer: { createMesh: (m) => ({ m }) }, palette: false }), draws = [];
+  deck.stand({ dynamicDraws: draws, collider: null });
+  const V = { n: 1, sg: KT_STAGE.vault, cl: null, ws: null };
+  const grouped = draws.filter((d) => d.group), plain = draws.filter((d) => !d.group);
+  assert.ok(plain.length >= 3, 'the ship, her lamps, the land and the rest stand ungrouped');
+  for (const g of [KT_GROUP.gundeck, KT_GROUP.hold, KT_GROUP.bridge, KT_GROUP.aloft]) assert.ok(grouped.some((d) => d.group === g), `a part of ${g}`);
+  const at = (x, y, z) => { deck.pose(V, 1, 1000, null, undefined, deckToDungeon(x, y, z)); return new Set(grouped.filter((d) => !d.culled).map((d) => d.group)); };
+  const waist = at(0, 0, 30);
+  assert.deepEqual([...waist].sort(), [KT_GROUP.aloft]);
+  assert.equal(deck.view(), 'decks'); assert.equal(deck.sees(KT_GROUP.sailwalk), true);
+  const hold = at(0, -12, 118);
+  assert.deepEqual([...hold].sort(), [KT_GROUP.gundeck, KT_GROUP.hold].sort());
+  assert.equal(deck.sees(KT_GROUP.sailwalk), false, 'below sees no Sailwalk');
+  const cabin = at((KT_CABIN.x0 + KT_CABIN.x1) / 2, 0, (KT_CABIN.z0 + KT_CABIN.z1) / 2 + 3);
+  assert.ok(cabin.has(KT_GROUP.bridge) && !cabin.has(KT_GROUP.hold) && !cabin.has(KT_GROUP.gundeck));
+  assert.equal(deck.view(), 'cabin');
+  const bridge = at(0, 0, 200);
+  assert.ok(bridge.has(KT_GROUP.bridge) && bridge.has(KT_GROUP.aloft) && !bridge.has(KT_GROUP.gundeck));
+  const H0 = KT_PVS_DOORS[0].at, beside = [KT_HATCH.x1 + 1, 0, H0[2]];   // on the waist beside the Watch hatch
+  assert.ok(Math.hypot(beside[0] - H0[0], beside[1] - H0[1], beside[2] - H0[2]) <= KT_PVS_DOOR_M);
+  const hatch = at(...beside);
+  assert.ok(hatch.has(KT_GROUP.gundeck) && hatch.has(KT_GROUP.aloft), 'both sides at the hatch');
+  assert.ok(!at(KT_HATCH.x1 + 1, 0, H0[2] - KT_PVS_DOOR_M - 6).has(KT_GROUP.gundeck), 'and not past its reach');
+  for (const p of [[0, 0, 30], [0, -12, 118], [0, 0, 200]]) { at(...p); assert.ok(plain.every((d) => !d.culled), 'an ungrouped draw never culled'); }
+  deck.pose(V, 1, 1000, null);
+  assert.ok(draws.every((d) => !d.culled), 'no eye, nothing culled');
+  assert.equal(deck.sees(KT_GROUP.hold), true);
+  // the host's ride poses the deck from the body's feet: the PVS read where it stands
+  const ctx = { dynamicDraws: [], collider: null, sdStepsRide: () => null, addTeardown: () => {} };
+  const H = createKetchDeckHost({ renderer: { createMesh: (m) => ({ m }) }, host: {}, wm: { mode: 'dungeon', dungeonLoc: null, place: () => true } });
+  H.stand(ctx);
+  ctx.sdStepsRide(0.016, { pos: deckToDungeon(0, -12, 118), grounded: false }, true);
+  assert.equal(H.deck().view(), 'below'); assert.equal(H.deck().sees(KT_GROUP.bridge), false);
+  ctx.sdStepsRide(0.016, { pos: deckToDungeon(0, 0, 200), grounded: false }, true);
+  assert.equal(H.deck().view(), 'bridge');
+});
+
+test('KETCH-LOOK KL3 THE DECK\'S HALOS ON THE CLASSIC SET: each lamp and lit thing the deck lights the eye with gets a halo at its place - a lamp\'s at its size, a lit thing\'s by its reach and held to its bounds - at its share of the light, written into kept slots; the host hands them to the late pass on the classic set and none on the lane, whose bloom is its own (mutants: halos on the lane; a lit thing at a lamp\'s size; the slots made anew)', async () => {
+  const { ketchHalosInto, KT_HALO, createKetchDeckHost } = await import('../../src/scenes/ketch/ketchDeckHost.js');
+  const { deckToDungeon } = await import('../../src/net/ketch/ketchDeck.js');
+  const lamp = { x: 1, y: 2, z: 3, range: 11, color: [1, 0.8, 0.5] }, engine = { x: 4, y: 5, z: 6, range: 14, color: [0.5, 0.85, 1], carried: true }, cell = { x: 0, y: 0, z: 0, range: 4, color: [0.5, 0.85, 1], carried: true };
+  const out = [];
+  ketchHalosInto(out, [lamp, engine, cell]);
+  assert.equal(out.length, 3);
+  assert.deepEqual(out[0].at, [1, 2, 3]); assert.equal(out[0].size, KT_HALO.lamp.size);
+  assert.deepEqual(out[0].color, lamp.color.map((c) => c * KT_HALO.lamp.k));
+  assert.equal(out[1].size, Math.min(KT_HALO.glow.max, KT_HALO.glow.size * 14)); assert.deepEqual(out[1].color, engine.color.map((c) => c * KT_HALO.glow.k));
+  assert.equal(out[2].size, Math.max(KT_HALO.glow.min, KT_HALO.glow.size * 4), 'held to its bounds');
+  assert.notEqual(out[1].size, KT_HALO.lamp.size);
+  const slot = out[0];
+  ketchHalosInto(out, [cell]);
+  assert.equal(out.length, 1); assert.equal(out[0], slot, 'the slots kept');
+  // the host: the classic set hands the deck's halos, the lane none
+  for (const lane of [false, true]) {
+    let handed = null;
+    const renderer = { createMesh: (m) => ({ m }), lightingLane: lane ? {} : null, setLighting() {}, setMoonlight() {}, setFog() {}, setSceneGrade() {}, setPointLights() {} };
+    const host = { ketch: () => ({ halos: (l) => { handed = l; }, lights: () => [] }) };
+    const H = createKetchDeckHost({ renderer, host, wm: { mode: 'dungeon', dungeonLoc: null, place: () => true }, moon: () => null });
+    H.stand({ dynamicDraws: [], collider: null, addTeardown: () => {} });
+    H.frameLook(deckToDungeon(0, -12, 118), null, 720);
+    assert.ok(Array.isArray(handed), `handed a list (${lane ? 'lane' : 'classic'})`);
+    if (lane) assert.equal(handed.length, 0, 'none on the lane'); else assert.ok(handed.length > 0 && handed.every((h) => h.size > 0), 'the deck\'s on the classic set');
+  }
+});

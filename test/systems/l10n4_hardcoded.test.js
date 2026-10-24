@@ -204,6 +204,7 @@ const HARDCODED = {
   'src/render/gate/gateTelegraph.js': 5,
   'src/render/gate/gateVeil.js': 1,
   'src/render/heatHaze.js': 2,
+  'src/render/ketch/ktGaugePass.js': 1,   // KETCH-LOOK KL3: its vertex stage's source, as every pass's
   'src/render/labGrass.js': 176,
   'src/render/lightningBolts.js': 2,
   'src/render/navalRender.js': 2,

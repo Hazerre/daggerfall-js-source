@@ -11,6 +11,9 @@
 //                                                     4 s - at most 3 transitions a second (TELEGRAPH_THROB_MAX_HZ)
 //     node tools/ketchLabProbe.mjs shadow             no moving part records a shadow: the mast-lift riding and the
 //                                                     bridge's sections warned, falling and rising, the bill's `moving` 0
+//     node tools/ketchLabProbe.mjs bill               (KETCH-LOOK KL3) the ship's GL draws at each zone's view - the waist,
+//                                                     the gallery, the hold, the bridge, the cabin - at most its ceiling
+//                                                     (src/tools/ketchLabViews.js KT_LAB_BILL), the PVS culling the rest
 //     KETCH_Q='lane=off' ...                          more of the lab's query on every page (the classic set)
 //     KETCH_PORT=5262 ...                             another port (two probes at once)
 //     KETCH_HOURS=12,2 ...                            the value probe at these hours alone
@@ -20,6 +23,7 @@ import { existsSync } from 'node:fs';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
 import { KT_LADDER } from '../src/world/ketch/ketchLook.js';
+import { KT_LAB_BILL } from '../src/tools/ketchLabViews.js';
 
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= '/opt/pw-browsers';
 const extra = process.env.KETCH_Q ?? '';
@@ -107,6 +111,15 @@ try {
         worst = Math.max(worst, b.moving); casters = b.casters;
       }
       check(`no moving part records a shadow: ${name}`, worst === 0 && !errors.length, `moving casters at most ${worst} of ${casters}${errors.length ? `; ${errors[0]}` : ''}`);
+    }
+  } else if (mode === 'bill') {
+    // the voyage at its fight (every part the ship can show standing: the cells, the sockets, the forks, the sections)
+    await open('t=40&hour=12&stage=4&fight=song&lo=7:9,8:9&carry=2&bill');
+    for (const view of rest.length ? rest : Object.keys(KT_LAB_BILL)) {
+      await page.evaluate((v) => window.__lab.view(v), view);
+      for (let k = 0; k < 2; k++) await step(40);
+      const b = await page.evaluate(() => window.__lab.bill());
+      check(`${view}: the ship's GL draws at most ${KT_LAB_BILL[view]}`, b.gl <= KT_LAB_BILL[view] && !errors.length, `${b.gl} GL draws (${b.draws} meshes, ${b.casters} casters, ${b.lights} lights, ${b.cpuMs.toFixed(2)} ms)${errors.length ? `; ${errors[0]}` : ''}`);
     }
   } else throw new Error(`no such probe: ${mode}`);
 } finally {

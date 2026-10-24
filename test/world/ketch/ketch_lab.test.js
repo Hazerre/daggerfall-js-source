@@ -6,7 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { KT_LAB_VIEWS, KT_LAB_DECK_VIEWS, ketchLabKnobs } from '../../../src/tools/ketchLabViews.js';
+import { KT_LAB_VIEWS, KT_LAB_DECK_VIEWS, KT_LAB_BILL, ketchLabKnobs } from '../../../src/tools/ketchLabViews.js';
 import { buildKetchShip, buildKetchParts } from '../../../src/world/ketch/ketchModel.js';
 import { deckToDungeon, KT_LIFT, KT_MAIN_TOP, KT_YARD } from '../../../src/net/ketch/ketchDeck.js';
 
@@ -82,9 +82,9 @@ test('KETCH-LOOK KL0 THE TOP SEEN OUT OF IT: `top-out` stands on the main top\'s
 });
 
 test('KETCH-LOOK KL0 THE LAB\'S KNOBS: ?grey, ?lite (or the touch door), ?bill and the sky - on unless sky=0 - read off the query, and the page reads each: the frame in grey, the Steps\' lite set, the bill on the page and on __lab, the world\'s sky drawn after the opaque level (mutants: ?grey ignored; the sky off by default)', () => {
-  assert.deepEqual({ ...ketchLabKnobs('') }, { grey: false, lite: false, bill: false, sky: true, weather: 'sunny', hour: 13, eye: 1, arena2: false });
-  const k = ketchLabKnobs('?grey&lite&bill&sky=0&weather=rain&hour=18.5&eye=20&arena2');
-  assert.deepEqual({ ...k }, { grey: true, lite: true, bill: true, sky: false, weather: 'rain', hour: 18.5, eye: 20, arena2: true });
+  assert.deepEqual({ ...ketchLabKnobs('') }, { grey: false, lite: false, bill: false, sky: true, weather: 'sunny', hour: 13, eye: 1, arena2: false, gauges: false });
+  const k = ketchLabKnobs('?grey&lite&bill&sky=0&weather=rain&hour=18.5&eye=20&arena2&gauges');
+  assert.deepEqual({ ...k }, { grey: true, lite: true, bill: true, sky: false, weather: 'rain', hour: 18.5, eye: 20, arena2: true, gauges: true });
   assert.equal(ketchLabKnobs('?eye=0.2').eye, 1, 'the eye never slower than the game\'s');
   assert.equal(ketchLabKnobs('?touch=on').lite, true, 'the touch door is the phone\'s tier');
   const src = readFileSync(new URL('../../../src/tools/ketchLab.js', import.meta.url), 'utf8');
@@ -93,4 +93,81 @@ test('KETCH-LOOK KL0 THE LAB\'S KNOBS: ?grey, ?lite (or the touch door), ?bill a
   assert.match(src, /const sky = knobs\.sky \? new EnhancedSkyRenderer\(gl\) : null;/);
   assert.match(src, /window\.__lab\.bill = \(\) =>/);
   assert.ok(src.indexOf('renderer.drawMesh(d.gpu') < src.indexOf('sky.draw(') && src.indexOf('sky.draw(') < src.indexOf('renderer.drawBillboards('), 'the sky after the opaque level, before the billboards - the dungeon arm\'s order');
+});
+
+test('KETCH-LOOK KL3 THE LAB\'S FAKE LINK: every fight and every knob a whole state the room could say - through the wire\'s own projection and the page\'s fold - and the one law reads what each knob wrote: the cradles, the engine, the loose cells, the carried, the wave, the stun, the Discord, the song and its forks, the ring\'s sections, the turn west, the fall; KL0\'s ?sec&secAt and ?forks still stand their fights (mutants: a knob unread; a section\'s moment turned)', async () => {
+  const { ketchLabWire, ketchLabState, KT_LAB_FIGHTS, KT_LAB_EPOCH, createKetchLabLink } = await import('../../../src/tools/ketchLabLink.js');
+  const { ketchStatesOf, ketchStatesRecord, KT_SHIP } = await import('../../../src/world/ketch/ketchStates.js');
+  const { validKetchOut } = await import('../../../src/net/wire.js');
+  const { KT_CELL_LIES_MS, KT_CRADLE_BACK_MS } = await import('../../../src/net/ketch/ketchBrain.js');
+  const { KW_SECTION_WARN_MS } = await import('../../../src/net/ketch/ketchWarden.js');
+  const now = KT_LAB_EPOCH + 40_000, r = ketchStatesRecord();
+  const law = (q) => ketchStatesOf(ketchLabState(q, now), 40, now, null, r);
+  for (const f of KT_LAB_FIGHTS) {
+    const q = `?fight=${f}`;
+    assert.ok(validKetchOut(ketchLabWire(q, now)), `${f}: the room could say it`);
+    const s = ketchLabState(q, now);
+    assert.equal(s.n, 1, `${f}: folded`); assert.ok(s.ws, `${f}: a fight`);
+  }
+  law('?fight=asleep'); assert.equal(r.ship, KT_SHIP.awake, 'asleep: before its opening');
+  law('?fight=wake&age=2'); assert.equal(r.ship, KT_SHIP.singing);
+  law('?fight=fell&age=5'); assert.equal(r.fellAt, now - 5000); assert.equal(r.ship, KT_SHIP.awake);
+  law('?stage=2&cr=1,0,4,1,1,1&bk=2&nd=6&lo=7:3,9:12&carry=2&wv=2');
+  assert.deepEqual([...r.cradles].map((v) => Math.round(v * 1000) / 1000), [1, 0, Math.round((1 - 4000 / KT_CRADLE_BACK_MS) * 1000) / 1000, 1, 1, 1]);
+  assert.equal(r.banked, 2); assert.equal(r.need, 6); assert.deepEqual([...r.sockets], [1, 1, 0, 0, 0, 0, 0]);
+  assert.equal(r.looseN, 2); assert.ok(Math.abs(r.loose[0] - 3000 / KT_CELL_LIES_MS) < 1e-6);
+  assert.equal(r.carried, 2); assert.equal(r.wave, 2);
+  law('?fight=stun&su=4'); assert.equal(r.stunUntil, now + 4000);
+  law('?fight=discord&rs=1,0,0,1&da=12'); assert.deepEqual([...r.resonators], [1, 0, 0, 1]); assert.equal(r.discordAt, now + 12_000);
+  law('?fight=song&st=3&forks=3:100,40,0'); assert.equal(r.forksN, 3); assert.deepEqual([...r.forks].slice(0, 3).map((v) => Math.round(v * 100) / 100), [1, 0.4, 0]);
+  law('?fight=sections&sec=1:2.2,2:-3');
+  assert.ok(Math.abs(r.secWarn[1] - (1 - 2200 / KW_SECTION_WARN_MS)) < 1e-6, 'one warned, 2.2 s off'); assert.equal(r.secGone[2], 1, 'one gone');
+  law('?fight=west&left=40'); assert.equal(r.ends, now + 40_000);
+  // KL0's words: sections fallen at a second of the lab's clock, forks raised - each its fight at stage 4
+  const old = ketchLabState('?stage=4&sec=1,2&secAt=45', now);
+  assert.deepEqual(old.ws.sec.map((e) => [e[0], e[1]]), [[1, KT_LAB_EPOCH + 45_000], [2, KT_LAB_EPOCH + 45_000]]);
+  assert.ok(ketchLabState('?stage=4&forks', now).ws.fk, 'the forks raised');
+  assert.equal(ketchLabState('?stage=3&sec=1', now).ws, null, 'no fight before the bridge');
+  const link = createKetchLabLink('?fight=stun', () => now);
+  assert.equal(link.state().ws.su > now, true); assert.deepEqual(link.owed(), []); assert.equal(link.joined(), true);
+});
+
+test('KETCH-LOOK KL3 THE BILL\'S CEILINGS: a ceiling for each zone\'s view (the waist, the gallery, the hold, the bridge, the cabin), each a view the lab stands, the probe holding the ship\'s GL draws there to it - the decks under below decks, below decks under the bridge (the PVS hides the bridge from the waist and below)', () => {
+  assert.deepEqual(Object.keys(KT_LAB_BILL), ['waist', 'gallery', 'hold', 'bridge', 'cabin']);
+  for (const [v, n] of Object.entries(KT_LAB_BILL)) { assert.ok(KT_LAB_VIEWS[v], `${v} a view`); assert.ok(Number.isInteger(n) && n > 0, `${v} measured`); }
+  assert.ok(KT_LAB_BILL.waist < KT_LAB_BILL.bridge && KT_LAB_BILL.hold < KT_LAB_BILL.bridge);
+  const probe = readFileSync(new URL('../../../tools/ketchLabProbe.mjs', import.meta.url), 'utf8');
+  assert.match(probe, /b\.gl <= KT_LAB_BILL\[view\]/);
+});
+
+test('KETCH-LOOK KL3 THE LAB\'S BLOWS ARE THE BRAIN\'S: a keel, a lash and a ring (its Tonal Wave with it) begun by the lab from where the Warden stands are byte for byte the blows the relay\'s own beat begins there, at the same moment, at the same fighter (mutants: a blow\'s wind-up unfloored; the wave left off)', async () => {
+  const { newWardenFight, joinWarden, stepWarden, KW_BLOW_BY_A, KW_BODY, KW_ID, KW_OPENING_MS } = await import('../../../src/net/ketch/ketchWarden.js');
+  const { labBlow } = await import('../../../src/tools/ketchLabLink.js');
+  const { KT_BRIDGE } = await import('../../../src/net/ketch/ketchDeck.js');
+  const now = 2_000_000, start = now - KW_OPENING_MS - 1000;
+  const fight = (phase) => { const f = newWardenFight('kt:t', 1, start); joinWarden(f, 'aaaa1', 'A', 40, start); f.phase = phase; return f; };
+  const seen = new Set();
+  let floored = 0;
+  for (const phase of [1, 3]) for (let seed = 1; seed < 300 && seen.size < 3 * phase; seed++) {
+    for (const gap of [3, 9, 20]) {
+      const f = fight(phase), W0 = { ...f.wd };
+      const body = { sub: 'aaaa1', x: W0.x, z: W0.z - (gap + KW_BODY.r), y: KT_BRIDGE.y, dead: false };
+      let r = seed;
+      stepWarden(f, now, [body], () => { r = (r * 16807) % 2147483647; return r / 2147483647; });
+      const b = f.blows.find((q) => q.o === KW_ID && !q.jp);
+      if (!b) continue;
+      const key = `${KW_BLOW_BY_A[b.a].key}@${phase}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const g = fight(phase);
+      labBlow(g, KW_BLOW_BY_A[b.a].key, now, body);
+      assert.deepEqual(g.blows, f.blows.filter((q) => q.o === KW_ID), `${key}: the brain's own blow`);
+      if (b.wu > Math.round(KW_BLOW_BY_A[b.a].wu * [1, 0.85, 0.75][phase - 1])) floored++;
+    }
+  }
+  assert.deepEqual([...seen].sort(), ['keel@1', 'keel@3', 'lash@1', 'lash@3', 'ring@1', 'ring@3']);
+  assert.ok(floored > 0, 'a fast blow\'s wind-up held at its floor, as the brain holds it');
+  const g = fight(1);
+  labBlow(g, 'song', now, null);
+  assert.equal(g.blows[0].o, 0); assert.equal(g.blows[0].at - now, g.blows[0].wu, 'the whole bridge\'s from no body');
 });

@@ -117,3 +117,33 @@ test('KETCH-LOOK KL2 THE WARDEN DYED DWARVEN: the Iron Atronach\'s frame takes D
   const src = readFileSync(new URL('../../src/scenes/ketch/ketchFight.js', import.meta.url), 'utf8');
   assert.match(src, /renderer\.uploadTexture\?\.\(T\.archive, rkey, T\.tex\.getColor32\(look\.dye\(T\.tex\.getDFBitmap\(fr\.record, fr\.frame\)\), 0\)\)/, 'dyed at upload, through the player\'s palette, under its own key');
 });
+
+test('KETCH-LOOK KL3 THE FIGHT\'S LATE PASS DRAWS THE DECK\'S HALOS: what the deck hands it this frame, in one draw at the classic set\'s gain, whether or not a telegraph stands; none handed, none drawn; off the ship, forgotten (mutants: the halos never drawn; the halos kept past the ship)', () => {
+  // a context whose every compile is done at once, counting its draws (test/render/firstuse.test.js's stand-in)
+  const draws = [], base = { VERTEX_SHADER: 1, FRAGMENT_SHADER: 2, COMPILE_STATUS: 3, LINK_STATUS: 4 };
+  let id = 0;
+  const gl = new Proxy(base, { get(t, k) {
+    if (typeof k !== 'string') return undefined;
+    if (k in t) return t[k];
+    if (/^[A-Z0-9_]+$/.test(k)) return k;
+    if (k === 'getExtension') return (n) => (n === 'KHR_parallel_shader_compile' ? { COMPLETION_STATUS_KHR: 9 } : null);
+    if (k === 'getProgramParameter' || k === 'getShaderParameter') return () => true;
+    if (k === 'getUniformLocation') return (p, n) => n;
+    if (k === 'isContextLost') return () => false;
+    if (k === 'drawArrays') return (...a) => draws.push(a);
+    return () => ({ id: id++ });
+  } });
+  const link = { state: () => null, owed: () => [], paid: () => {}, songBroken: () => false, joined: () => true };
+  const fight = createKetchFight({ gl, link, now: () => 0 });
+  const I = new Float32Array(16);
+  assert.equal(fight.drawPass(I, I, [0, 0, 0], 0, null), false, 'none handed, none drawn');
+  fight.halos([{ at: [1, 2, 3], size: 0.5, color: [0.3, 0.24, 0.15] }, { at: [4, 5, 6], size: 1, color: [0.2, 0.4, 0.45] }]);
+  let drew = false;
+  for (let k = 0; k < 4 && !drew; k++) drew = fight.drawPass(I, I, [0, 0, 0], 0, null);   // its pass stands a few frames late, once compiled
+  assert.equal(drew, true, 'drawn with no telegraph standing');
+  assert.equal(draws.at(-1)[2], 2 * 6, 'both halos, one draw');
+  fight.leave();
+  const n = draws.length;
+  assert.equal(fight.drawPass(I, I, [0, 0, 0], 0, null), false, 'forgotten off the ship');
+  assert.equal(draws.length, n);
+});
