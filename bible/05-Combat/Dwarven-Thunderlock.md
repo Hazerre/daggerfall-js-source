@@ -2139,9 +2139,12 @@ with the fifth held for a beat. `combat/thunderlockArt.js` `thunderlockFrames` r
 - **The canvas is the anchor.** The owner placed the gun in its canvas, with both forearms leaving through the foot, so
   the canvas is what sits on the screen's corner (AlignRight). It is drawn at `THUNDERLOCK_ART.scale` design pixels per
   texel: 160 of the surface's 320, close to the 0.49 the old sheet's gun took.
-- **The cut and the bleed.** The frames are cut to one bit at the screen quad's 0.5. Then every foot texel is carried
-  straight down `THUNDERLOCK_ART.bleed.bottom` texels, for PISTOL-EDGE's reason: Bob and the kick lift the frame, and a
-  sleeve that ends in mid-air shows the cut. At rest, all of the bleed is off the screen.
+- **The cut.** The frames are cut to one bit at the screen quad's 0.5 and are otherwise drawn exactly as drawn.
+- **Seated, never stretched.** A first cut carried the forearms straight down below the foot, for PISTOL-EDGE's reason,
+  and the owner took it back: *"Why is it stretched at the bottom. You need to place it correctly"*. So nothing is
+  invented under the frames. Instead the canvas is seated the kick's height (`GUN_FEEL.kick`, 5) below the screen's foot
+  (`THUNDERLOCK_ART.raise`). Weapon Widget's transform never lifts the foot off where it is seated (its floor), and the
+  shot's kick, applied after it, lifts it at most that far, so the cut foot never shows.
 - **The cycle is seven frames.** `THUNDERLOCK_ANIMS` and the machine's `THUNDERLOCK_NUM_FRAMES` both say seven, with the
   rest frame first and the flash second, as the sheet had them. So the hit still lands on the flash (`GUN_FEEL.hitFrame`)
   and the muzzle's light curve is unchanged. A shot is 0.5 s at the lab's 14 fps. The Pistolet keeps its own six
@@ -2167,8 +2170,8 @@ so nothing is healed. `healGap` stays the answer for a doll layer that has no pi
   for it).
 
 **Pins:**
-- `test/systems/thunderlockart2.test.js` (new, read off the committed strip): the strip, the canvas anchor, the cut and
-  the bleed; the cycle of seven, with the Pistolet's six; the muzzle on the ball; the gold and the shimmer on the gun alone.
+- `test/systems/thunderlockart2.test.js` (new, read off the committed strip): the strip, the canvas anchor, the frames
+  as drawn texel for texel, and the seating under the kick; the cycle of seven, with the Pistolet's six; the muzzle on the ball; the gold and the shimmer on the gun alone.
 - PIN MOVED:
   - `thunderlock.test.js`: the table and the machine at seven; FIELD-GUN3's orientation read off a strip; FIELD-GUN7's
     parity with the lab's machine at seven, within the one 60 Hz tick that 0.5 s lands on.

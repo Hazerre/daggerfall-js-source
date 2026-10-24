@@ -101,22 +101,22 @@
   {
     "name": "THUNDERLOCK-ART2-the-canvas-cropped",
     "file": "src/combat/thunderlockArt.js",
-    "old": "return { frames, anchor: { x: 0, y: 0, w: S.cellW, h: S.cellH }, union,",
-    "new": "return { frames, anchor: contentBox(cells[0]), union,",
+    "old": "return { frames, anchor: canvas, union:",
+    "new": "return { frames, anchor: contentBox(cells[0]), union:",
     "tests": [
       "test/systems/thunderlockart2.test.js"
     ],
     "note": "The owner's canvas would be cropped to its content - the gun seated off where the owner placed it."
   },
   {
-    "name": "THUNDERLOCK-ART2-the-bleed-dropped",
+    "name": "THUNDERLOCK-ART2-the-foot-where-the-kick-shows-it",
     "file": "src/combat/thunderlockArt.js",
-    "old": "magic ? thunderlockShimmer(own) : own, [0, 1], A.bleed);",
-    "new": "magic ? thunderlockShimmer(own) : own, [0, 1], { right: 0, bottom: 0 });",
+    "old": "export const THUNDERLOCK_ART = Object.freeze({ scale: 1, raise: -GUN_FEEL.kick, alphaCut: 128 });",
+    "new": "export const THUNDERLOCK_ART = Object.freeze({ scale: 1, raise: 0, alphaCut: 128 });",
     "tests": [
       "test/systems/thunderlockart2.test.js"
     ],
-    "note": "Both forearms would end in a straight line at the foot - the cut showing when Bob or the kick lift the frame."
+    "note": "Seated flush, the shot's kick would lift the canvas's cut foot into view."
   },
   {
     "name": "THUNDERLOCK-ART2-the-table-left-at-six",

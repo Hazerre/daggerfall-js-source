@@ -1,8 +1,9 @@
 // THUNDERLOCK-ART2 (2026-10-24, the owner: "Heres the new thunderlock sprite replacement"; bible/05-Combat/
 // Dwarven-Thunderlock.md "THUNDERLOCK-ART2"): THE OWNER'S SEVEN FRAMES, AS THE GAME DRAWS THEM - read off the committed
 // strip itself (public/art/thunderlock-frames.png), never a stand-in. The laws pinned:
-//   - THE STRIP: seven 160x98 frames at a fixed stride, the canvas the anchor (no crop to content), the 1-bit cut, both
-//     forearms carried straight down below the foot; the records the canvas's size, drawn at 160 of the surface's 320.
+//   - THE STRIP: seven 160x98 frames at a fixed stride, the canvas the anchor (no crop to content), the 1-bit cut, drawn
+//     exactly as drawn - never stretched below the foot - and seated the kick's height under the screen's foot; the
+//     records the canvas's size, drawn at 160 of the surface's 320.
 //   - THE CYCLE IS SEVEN: the art, the anim table and the machine's frame count agree; the Pistolet keeps its six.
 //   - THE MUZZLE is the flash's largest white-hot body - the ball at the barrel's end, not the bolt's sparks.
 //   - THE GOLD AND THE SHIMMER are the gun's: the brass gilded on every frame, the gloves and the grey sleeve never, the
@@ -18,37 +19,37 @@ import {
 } from '../../src/combat/thunderlockArt.js';
 import { THUNDERLOCK_ANIMS, PISTOLET_ANIMS, getWeaponAnims, WEAPON_TYPES } from '../../src/combat/fpsWeapon.js';
 import { THUNDERLOCK_NUM_FRAMES } from '../../src/characters/weaponStates.js';
-import { PISTOL_STRIP } from '../../src/combat/gun/pistolStrip.js';
+import { PISTOL_STRIP, stripCellRect, cropImage, hardenAlpha } from '../../src/combat/gun/pistolStrip.js';
+import { GUN_FEEL } from '../../src/combat/gun/gunFeel.js';
 
 const strip = readPng(readFileSync(new URL('../../public/art/thunderlock-frames.png', import.meta.url)));
 const px = (img, x, y) => [...img.data.subarray((y * img.width + x) * 4, (y * img.width + x) * 4 + 4)];
 const luma = ([r, g, b]) => r * 0.299 + g * 0.587 + b * 0.114;
 
-test('THUNDERLOCK-ART2 THE STRIP: seven 160x98 frames at a fixed stride, the owner\'s canvas the anchor, cut to 1 bit, both forearms carried straight down below the foot; the records the canvas\'s size, half the surface wide (mutants: the canvas cropped; the bleed dropped; the cut soft)', async () => {
+test('THUNDERLOCK-ART2 THE STRIP: seven 160x98 frames at a fixed stride, the owner\'s canvas the anchor, cut to 1 bit and drawn as drawn - nothing stretched below the foot (the owner: "Why is it stretched at the bottom. You need to place it correctly") - seated the kick\'s height under the screen\'s foot; the records the canvas\'s size, half the surface wide (mutants: the canvas cropped; the foot seated where the kick shows it)', async () => {
   assert.deepEqual([strip.width, strip.height], [THUNDERLOCK_STRIP.frames * THUNDERLOCK_STRIP.cellW, THUNDERLOCK_STRIP.cellH]);
   assert.deepEqual([THUNDERLOCK_STRIP.frames, THUNDERLOCK_STRIP.cellW, THUNDERLOCK_STRIP.cellH], [7, 160, 98]);
   const set = thunderlockFrames(strip);
   assert.equal(set.frames.length, 7);
   assert.deepEqual(set.anchor, { x: 0, y: 0, w: 160, h: 98 }, 'the canvas, as the owner placed the gun in it');
-  assert.deepEqual(set.union, { x: 0, y: 0, w: 160, h: 98 + THUNDERLOCK_ART.bleed.bottom });
-  for (const f of set.frames) {
-    assert.deepEqual([f.width, f.height], [set.union.w, set.union.h]);
+  assert.deepEqual(set.union, { x: 0, y: 0, w: 160, h: 98 }, 'the canvas and nothing under it');
+  set.frames.forEach((f, i) => {
+    const own = cropImage(strip, stripCellRect(i, THUNDERLOCK_STRIP));
+    hardenAlpha(own, THUNDERLOCK_ART.alphaCut);
+    assert.deepEqual([f.width, f.height], [160, 98]);
+    assert.ok(Buffer.from(f.data).equals(Buffer.from(own.data)), `frame ${i} is the owner's, texel for texel`);
     for (let p = 3; p < f.data.length; p += 4) assert.ok(f.data[p] === 0 || f.data[p] === 255, 'every texel drawn or not');
-  }
-  // the foot's texels carried down: every column's last row is its foot row's
-  const rest = set.frames[0];
-  for (let x = 0; x < 160; x++) {
-    const foot = px(rest, x, 97), last = px(rest, x, rest.height - 1);
-    assert.deepEqual(foot[3] ? last : last[3], foot[3] ? foot : 0, `column ${x}`);   // a texel the cut cleared carries nothing down
-  }
-  assert.ok(px(rest, 43, 93)[3] === 255 && px(rest, 43, rest.height - 1)[3] === 255, 'the sleeve goes on below the foot');
+  });
+  // seated so the shot's lift never shows the cut foot: Weapon Widget's floor keeps the foot where it is seated, and the
+  // kick lifts it at most GUN_FEEL.kick design pixels
+  assert.ok(THUNDERLOCK_ART.raise <= -GUN_FEEL.kick, `raise ${THUNDERLOCK_ART.raise} under the kick's ${GUN_FEEL.kick}`);
   // the art as the rig takes it
   const ups = [];
   const art = await loadThunderlockArt({ uploadTexture: (k, key, img) => { ups.push(key); return key; } }, { fetch: async () => new Uint8Array([1]), decode: async () => strip });
   assert.equal(ups.length, 7);
   assert.equal(art.records[1].frames.length, 7);
   assert.deepEqual([art.records[0].width, art.records[0].height], [160 * THUNDERLOCK_ART.scale, 98 * THUNDERLOCK_ART.scale]);
-  assert.deepEqual(art.native, { w: 160, h: 98 + THUNDERLOCK_ART.bleed.bottom });
+  assert.deepEqual(art.native, { w: 160, h: 98 });
   assert.deepEqual(art.pose, { widthPct: 0.5, raise: THUNDERLOCK_ART.raise }, '160 of the surface\'s 320 - the old sheet\'s gun took 0.49');
   assert.equal(thunderlockFrames({ width: 160, height: 98, data: new Uint8ClampedArray(160 * 98 * 4) }), null, 'not seven frames wide: nothing');
 });

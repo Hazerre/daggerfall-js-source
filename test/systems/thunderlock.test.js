@@ -497,7 +497,7 @@ test('FIELD-GUN1: the icons register as STAND-IN archives, so the doors that gat
  *  gun is a picture with a top and a bottom; this is the smallest
  *  thing that has the same property. */
 /** THUNDERLOCK-ART2 (PIN MOVED): the owner's strip - seven 160x98 cells side by side on a clear page, each with a red
- *  TOP mark (two rows) and a blue mark on its FOOT row (the row the forearms are carried down from). */
+ *  TOP mark (two rows) and a blue mark on its FOOT row. */
 function orientedStrip() {
   const { frames, cellW, cellH } = THUNDERLOCK_STRIP, width = cellW * frames, height = cellH;
   const data = new Uint8ClampedArray(width * height * 4);   // clear
@@ -535,9 +535,9 @@ test('FIELD-GUN3: the sprite is not upside down - a screen quad keeps a PNG\'s r
   const at = (x, y) => { const o = (y * img.width + x) * 4; return [img.colors[o], img.colors[o + 1], img.colors[o + 2]]; };
   const mid = Math.floor(img.width / 2);
   // PIN MOVED (THUNDERLOCK-ART2): the canvas is drawn whole (no crop to content), so the TOP mark is row 2 as painted,
-  // and the foot row carried down is the last - flipped, both rows would read the foot's blue
+  // and the foot row is the last - flipped, they would trade places
   assert.deepEqual(at(mid, 2), [255, 0, 0], 'row 2 of the upload is the picture\'s TOP mark');
-  assert.deepEqual(at(mid, img.height - 1), [0, 0, 255], '...and the last row is its foot, carried down');
+  assert.deepEqual(at(mid, img.height - 1), [0, 0, 255], '...and the last row is its foot');
 
   // and the shape the upload path reads, which is the other half of
   // what toScreenOrder answers

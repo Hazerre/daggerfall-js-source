@@ -27,7 +27,7 @@
 // muzzle flash, are gunSheet.js's.
 
 import { contentBox } from './gun/gunSheet.js';
-import { stripCellRect, hardenAlpha, bleedArm, cropImage } from './gun/pistolStrip.js';   // THUNDERLOCK-ART2: the strip's cut and the arm's bleed - the Pistolet's laws, a leaf's
+import { stripCellRect, hardenAlpha, cropImage } from './gun/pistolStrip.js';   // THUNDERLOCK-ART2: the strip's cut - the Pistolet's laws, a leaf's
 import { decodePng } from '../systems/textureReplacement.js';
 import { toScreenOrder } from '../formats/color32Order.js';   // FIELD-GUN3: HT3's law - a SCREEN QUAD's PNG keeps its rows
 import { WEAPON_TYPES, getWeaponAnims } from './fpsWeapon.js';
@@ -211,14 +211,16 @@ export const NATIVE_WIDTH = GUN_FEEL.widthPct * 320;
  *     forearms leaving through its foot, so the canvas is what is seated on the screen's corner (AlignRight), at
  *     THUNDERLOCK_ART.scale design pixels a texel - 160 of the surface's 320, where the old sheet's gun took 0.49.
  *   - THE 1-BIT CUT at THUNDERLOCK_ART.alphaCut (the screen quad discards under 0.5), made once, here.
- *   - THE FOREARMS GO ON BELOW THE FOOT (PISTOL-EDGE's reason, combat/gun/pistolStrip.js bleedArm): Bob and the kick lift
- *     the frame, and a sleeve ending in a straight line in mid-air is the cut showing. Both arms leave downward, so each
- *     foot texel is carried straight down THUNDERLOCK_ART.bleed.bottom texels; at rest all of it is off the screen.
+ *   - SEATED, NEVER STRETCHED (the owner, of a first cut that carried the forearms on below the foot: "Why is it
+ *     stretched at the bottom. You need to place it correctly"): the frames are drawn exactly as drawn, and the canvas is
+ *     seated the kick's height (GUN_FEEL.kick) below the screen's foot - Weapon Widget's transform never lifts the foot
+ *     off the screen (its floor), and the shot's kick, applied after it, lifts it at most that far - so the cut never
+ *     shows and nothing is invented under it.
  *   - GILDED: the GUN's brass, found on EVERY frame (thunderlockGildKeep) - the shot kicks the gun inside the canvas;
  *     ENCHANTED: the shimmer on the gun and what is drawn bright, the hands left be (thunderlockShimmer).
  */
 export const THUNDERLOCK_STRIP = Object.freeze({ frames: 7, cellW: 160, cellH: 98, file: 'thunderlock-frames.png' });
-export const THUNDERLOCK_ART = Object.freeze({ scale: 1, raise: -1, alphaCut: 128, bleed: Object.freeze({ right: 0, bottom: 40 }) });
+export const THUNDERLOCK_ART = Object.freeze({ scale: 1, raise: -GUN_FEEL.kick, alphaCut: 128 });
 /** White-hot: the flash's core, the one thing in the strip drawn this bright (the Pistolet's FLASH_LUMA). */
 export const TL_FLASH_LUMA = 215;
 const hsl = (d, o) => {
@@ -288,9 +290,8 @@ export function thunderlockMuzzle(lit, w = lit?.width, h = lit?.height) {
 
 /**
  * THE SEVEN FRAMES AS THEY ARE DRAWN: cut at the stride and hardened, in their look (the gold on each frame's own
- * brass; the shimmer on every texel), then carried on below the foot. `anchor` is the owner's canvas, `union` the canvas
- * with the bleed under it, `muzzle` read off the plain shot frame. Pure; null for a strip that is not seven frames wide or
- * whose rest frame is empty.
+ * brass; the shimmer on the gun and the bright). `anchor` and `union` are both the owner's canvas, `muzzle` read off the
+ * plain shot frame. Pure; null for a strip that is not seven frames wide or whose rest frame is empty.
  * @param {{ width: number, height: number, data: ArrayLike<number> }} strip
  */
 export function thunderlockFrames(strip, { gilded = false, magic = false } = {}) {
@@ -300,10 +301,10 @@ export function thunderlockFrames(strip, { gilded = false, magic = false } = {})
   if (!contentBox(cells[0])) return null;
   const frames = cells.map((c) => {
     const own = gilded || magic ? { width: c.width, height: c.height, data: new Uint8ClampedArray(c.data) } : c;
-    return bleedArm(gilded ? gildFrame(own, thunderlockGildKeep(own)) : magic ? thunderlockShimmer(own) : own, [0, 1], A.bleed);
+    return gilded ? gildFrame(own, thunderlockGildKeep(own)) : magic ? thunderlockShimmer(own) : own;
   });
-  const union = { x: 0, y: 0, w: frames[0].width, h: frames[0].height };
-  return { frames, anchor: { x: 0, y: 0, w: S.cellW, h: S.cellH }, union, muzzle: thunderlockMuzzle(cells[1], union.w, union.h) };
+  const canvas = { x: 0, y: 0, w: S.cellW, h: S.cellH };
+  return { frames, anchor: canvas, union: { ...canvas }, muzzle: thunderlockMuzzle(cells[1]) };
 }
 
 /**
