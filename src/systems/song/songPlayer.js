@@ -136,7 +136,10 @@ export function songPress(song) {
  *  pairs; and a voiced channel plays through its BODY (`body`, up to four resonances [Hz, dB, Q] - a violin's air and
  *  wood, a vowel's formants), its AIR (`air`, a shelf at 5 kHz) and an ENSEMBLE (`ensemble`, three slow-swept delays,
  *  the string machine's circuit that smears every partial into the band a section of players makes); an FM voice's
- *  index settles to `idxFloor` of itself (a horn holds its brightness; the bank's own settle to 12%, near a sine); a drum
+ *  index settles to `idxFloor` of itself (a horn holds its brightness; the bank's own settle to 12%, near a sine). A held
+ *  note may have the BOW'S ARC (`arc`: it dips after the attack, swells to its crest past the middle and eases before the
+ *  release - a bow's stroke, not an organ's key) and the section's SWAY (`sway` at `swayRate`: each copy's level
+ *  undulating slowly at its own rate, as players breathe and change bows apart); a drum
  *  may carry a CLICK (`click`, the beater's noise over a skin's tone) and a BODY (`body` Hz, a skin's tone under a
  *  noise's crack). Every song MIDI.BSA holds carries neither and plays the bank exactly as it always has. A field out
  *  of its range is held to it, one that is not a number is dropped. Pure. */
@@ -144,6 +147,7 @@ export const VOICE_RANGE = Object.freeze({
   car: [0.25, 8], mod: [0.25, 12], index: [0, 12], idxDecay: [0.01, 4], attack: [0.001, 2], decay: [0.01, 4], sustain: [0, 1], release: [0.01, 4], gain: [0, 1.5],
   unison: [1, 4], cents: [0, 40], sub: [0, 1], spread: [0, 1], vibrato: [0, 50], vibRate: [0.5, 12], noise: [0, 1],
   saw: [0, 1], cutoff: [1, 64], cutQ: [0.3, 8], air: [-30, 0], ensemble: [0, 1], ensembleRate: [0.1, 4], ensembleMs: [1, 30], idxFloor: [0.05, 1],
+  arc: [0, 1], sway: [0, 1], swayRate: [0.05, 2],
 });
 /** INTRO3c: a voice's `body` - up to four resonances `[Hz, dB, Q]`, each held to its range; null for none, or none usable. */
 export function heldBody(list) {
@@ -724,7 +728,9 @@ export class SongPlayer {
         mod.start(at);
         oscs.push(mod);
       }
-      carrier.connect(into[u % into.length]);
+      let out = into[u % into.length];
+      if (own?.sway > 0) { const g = ctx.createGain(); g.connect(out); out = g; oscs.push(this._sway(g, own, u, offs.length, at)); }   // INTRO3c: the section's sway
+      carrier.connect(out);
       carrier.start(at);
       oscs.push(carrier); detunes.push(carrier.detune, mod ? mod.detune : carrier.detune);   // two a copy: a bend's spread map counts pairs
       if (own?.vibrato > 0) oscs.push(this._vibrato(carrier, mod, own, u, offs.length, t0, tA, at));   // INTRO3c
@@ -743,11 +749,17 @@ export class SongPlayer {
       oscs.push(subN); detunes.push(subN.detune);
     }
 
+    // INTRO3c: THE BOW'S ARC - a held note (its sustain a quarter second or more past the decay, its crest past the decay)
+    // dips to 1 - 0.4 arc of its sustain after the attack, swells to the sustain at 55% of its length and eases to
+    // 1 - 0.6 arc of it by the release: a bow's stroke. A note too short for one holds, as every note always did.
+    const crest = t0 + 0.55 * (tOff - t0);
+    const arc = own?.arc > 0 && tOff - tD >= 0.25 && crest > tD + 0.05 ? own.arc : 0;
     for (const g of sides) {
       g.gain.setValueAtTime(0.0001, t0);
       g.gain.linearRampToValueAtTime(Math.max(0.0001, peak), tA);
-      g.gain.exponentialRampToValueAtTime(sustain, tD);
-      g.gain.setValueAtTime(sustain, tOff);
+      g.gain.exponentialRampToValueAtTime(arc ? Math.max(0.0001, sustain * (1 - 0.4 * arc)) : sustain, tD);
+      if (arc) { g.gain.exponentialRampToValueAtTime(sustain, crest); g.gain.exponentialRampToValueAtTime(Math.max(0.0001, sustain * (1 - 0.6 * arc)), tOff); }
+      else g.gain.setValueAtTime(sustain, tOff);
       g.gain.exponentialRampToValueAtTime(0.0001, end);
     }
 
@@ -774,6 +786,20 @@ export class SongPlayer {
     lfo.connect(depth);
     depth.connect(carrier.detune);
     if (mod) depth.connect(mod.detune);
+    lfo.start(at);
+    return lfo;
+  }
+
+  /** INTRO3c: THE SWAY - a sine at the voice's `swayRate` (0.3 Hz unnamed), copy `u` of `n` a fifth faster a step than the
+   *  one before it, into the copy's own gain at 0.3 x `sway` about 1: each player's level breathes slowly, apart from
+   *  the others', so a held chord moves instead of standing. One of the note's oscillators, stopped with them. */
+  _sway(g, own, u, n, at) {
+    const ctx = this.ctx, lfo = ctx.createOscillator(), depth = ctx.createGain();
+    lfo.type = 'sine';
+    lfo.frequency.value = (own.swayRate ?? 0.3) * (1 + 0.21 * (u - (n - 1) / 2));
+    depth.gain.value = 0.3 * own.sway;
+    lfo.connect(depth);
+    depth.connect(g.gain);
     lfo.start(at);
     return lfo;
   }

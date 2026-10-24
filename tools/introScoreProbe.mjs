@@ -228,6 +228,29 @@ function riserShape(pcm, impactAt, rate = 12000, size = 2048, hop = 512) {
   return { from, to, frames, worst, hz };
 }
 
+/** INTRO3c (the owner: "The background monotone hum is too constant. Needs more variation and flow. Too overpowering"):
+ *  THE BASS - over a window, the 40-120 Hz band's share of the whole (dB) and how still it stands: the spread of its
+ *  level frame to frame (p90 - p10) and the share of frames within 1.5 dB of its median. Hann 4096, hop 1024, at 12 kHz.
+ *  The recording, at the probe's own measure: over the film's opening (0.5-11.7 s) a share of -7.6 dB, still 9% of the
+ *  time; over its body (11.7-27 s) -5.9 dB, a spread of 8.8 dB, still 23%. The hum render: -4.3 and -4.3 dB (3.3 and
+ *  1.6 over), still 18% and 49% - a held sawtooth pedal with no arc, raised by the tone. INTRO3c's bed, with the bow's arc
+ *  and the sway and the bass brought down: -9.8 and -7.9 dB, still 17% and 31%. */
+function bassShape(pcm, from, to, rate = 12000, size = 4096, hop = 1024, lo = 40, hi = 120) {
+  const half = size / 2, levels = [];
+  let bass = 0, total = 0;
+  for (let start = Math.round(from * rate); start + size <= Math.min(pcm.length, Math.round(to * rate)); start += hop) {
+    const real = new Float64Array(size), imag = new Float64Array(size);
+    for (let n = 0; n < size; n++) real[n] = pcm[start + n] * (0.5 - 0.5 * Math.cos(2 * Math.PI * n / (size - 1)));
+    fft(real, imag);
+    let b = 0, t = 0;
+    for (let k = 1; k <= half; k++) { const hz = k * rate / size, p = real[k] * real[k] + imag[k] * imag[k]; if (hz >= 20) t += p; if (hz >= lo && hz <= hi) b += p; }
+    bass += b; total += t; levels.push(10 * Math.log10(b + 1e-18));
+  }
+  const sorted = [...levels].sort((a, c) => a - c), median = sorted[Math.floor(sorted.length / 2)];
+  const p = (q) => sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))];
+  return { frames: levels.length, shareDb: 10 * Math.log10((bass + 1e-18) / (total + 1e-18)), spreadDb: p(0.9) - p(0.1), still: levels.filter((l) => Math.abs(l - median) < 1.5).length / levels.length };
+}
+
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split('?')[0]);
   if (url === '/probe/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(PAGE); return; }
@@ -273,6 +296,8 @@ try {
   check('no whine: over the opening’s first held chord no harmonic of its top note above the third stands within 8 dB of the loudest, and its partials are bands, not lines (the 3rd to the 6th 12 cents wide or more, the mean)', shape.isolated <= -8 && shape.meanWidth >= 12, `note ${shape.note} over ${shape.from.toFixed(2)}-${shape.to.toFixed(2)} s: harmonics ${shape.levels.map((l) => l.toFixed(0)).join(' ')} dB, widths ${shape.widths.map((w) => w.toFixed(0)).join(' ')} cents - isolated ${shape.isolated.toFixed(1)} dB, mean width ${shape.meanWidth.toFixed(1)} cents`);
   const riser = riserShape(Float32Array.from(r.mono), TITLE_IMPACT_TIME);
   check('no whine in the build-up: over the four beats before the impact no narrow peak from 2.5 kHz up stands more than 13 dB over its surroundings', riser.worst < 13, `the worst ${riser.hz.toFixed(0)} Hz at +${riser.worst.toFixed(1)} dB over ${riser.from.toFixed(2)}-${riser.to.toFixed(2)} s (${riser.frames} frames)`);
+  const bassOpen = bassShape(Float32Array.from(r.mono), 0.5, CLOUD_REVEAL_TIME), bassBody = bassShape(Float32Array.from(r.mono), CLOUD_REVEAL_TIME, Math.min(27, r.secs));
+  check('no hum: the bass sits where the recording’s does and moves as it does - its share of the whole over the body within 2.5 dB of the recording’s -5.9 dB and under -6 dB over the opening, and within 1.5 dB of its median in under 40% of the body’s frames', Math.abs(bassBody.shareDb + 5.9) <= 2.5 && bassOpen.shareDb <= -6 && bassBody.still < 0.4, `opening ${bassOpen.shareDb.toFixed(1)} dB (still ${(100 * bassOpen.still).toFixed(0)}%), body ${bassBody.shareDb.toFixed(1)} dB, spread ${bassBody.spreadDb.toFixed(1)} dB, still ${(100 * bassBody.still).toFixed(0)}% of ${bassBody.frames} frames`);
   check('no page error', errs.length === 0, errs.join('; '));
 } finally {
   await browser.close();

@@ -1480,9 +1480,8 @@ cellos and none elsewhere. The horn and the brass stay FM, the horn's index 3
 settling to half with a body at 450 Hz; the harp, the bells, the ostinato, the
 hits and the timpani as they were. The halo a soft bowed shimmer out of the
 opening's bare bars (-3 to 1) and the quiet after the cloud break (4 and 5);
-the hall's tail a little brighter (decayHFRatio 1.1); the press's drive 1.8
-(2.4 drove the toned sum into the ceiling, and 2 left the whole song's peak a
-tenth of a decibel under it once the roll stacked on the crash). And THE RISER (the owner, on the bowed
+the hall's tail a little brighter (decayHFRatio 1.1); the press's drive 2
+(2.4 drove the toned sum into the ceiling). And THE RISER (the owner, on the bowed
 render: "Theres still a high pitch whine in the build up leading to the title
 drop"): measured over the four beats before the impact, INTRO3b's riser - the
 Spire's inharmonic FM shimmer on G5 and D6 under a 2.76 modulator - put its
@@ -1493,7 +1492,31 @@ roll on the kit (the ride under soft mallets, `INTRO_KIT[51]`: a 20 ms
 attack, no click), sixteenths rising from a whisper to the last stroke before
 the bar line, where the crash and the hit take over - a band of noise, with
 no line in it. After: the build-up's worst narrow peak +8 dB at 2.7 kHz (a
-harmonic), the FM sidebands gone from both build-ups.
+harmonic), the FM sidebands gone from both build-ups. And THE HUM (the owner,
+on that render: "The background monotone hum is too constant. Needs more
+variation and flow. Too overpowering"): measured at equal loudness, the
+40-120 Hz band - the contrabass's G pedal and the pad under it - stood 7 dB
+over the recording's through the opening (a mean of -9.9 dB to -17.1, its
+floor -19.5 to -26.8) and 3 dB over through the body, and it did not move:
+within a held bar the recording's bass swells 6 dB and fades 9 (a bow's
+stroke) where ours stayed within 4 dB, and over the body it sat within 1.5 dB
+of its median 48% of the time to the recording's 25%. A held sawtooth with a
+flat sustain is an organ's key, not a bow, and the tone's lift at 100 Hz -
+matched to the recording's long-term curve, which a dynamic bass and a drone
+share - had raised a drone. So the player's voices gained THE BOW'S ARC
+(`arc`: a held note dips to 1 - 0.4 arc of its sustain after the attack,
+swells to the sustain at 55% of its length and eases to 1 - 0.6 arc of it by
+the release; a note too short for one holds as before) and THE SWAY (`sway`
+at `swayRate`: a slow sine per copy into the copy's own gain, each copy a
+fifth faster a step, so a section breathes apart); every held voice of the
+bed arcs (the pedal and the pad deepest, 1 and 0.8), the pad, the strings,
+the choir and the pedal sway (0.2 to 0.4 at 0.15 to 0.4 Hz); the contrabass
+plays at the bank's gain with its body a lift (+4 at 100 Hz, not +8), the
+tone lifts 100 Hz 2 dB (not 5) and shelves 60 Hz down 3; the low end's
+weight moves to the drums (the kick 1.4, the taiko 1.5, the timpani 1.2) -
+dynamic, not drone. After: the opening's bass a mean of -16.3 dB (the
+recording's -17.1), its floor -26.5 (-26.8); the body's -8.2 (-6.3), still
+31% of the time (25%); a held bar swells and fades again.
 
 Measured after, the film's 27 s. The chord: G4's harmonics 0, -10, -21, -13,
 -17, -18, -18, -22, -25 dB - the plateau from the 5th, nothing above the 3rd
@@ -1512,17 +1535,21 @@ more on average - the recording -12 dB and 38 cents, the FM render 0 dB and
 8.5 cents, this render -13 and 27), and the build-up's (`riserShape`: over
 the four beats before the impact no narrow peak from 2.5 kHz up more than
 13 dB over its surroundings - the recording's worst +11, the FM riser's +17,
-the roll's +8); the first pass's persistence measure counted a sawtooth's
-honest harmonics as the FM render's isolated lines, and went. The probe pumps the player just in time (the offline context suspended
+the roll's +8) and the bass (`bassShape`: the 40-120 Hz band's share of the
+whole over the body within 2.5 dB of the recording's -5.9 and under -6 over
+the opening, and within 1.5 dB of its median in under 40% of the body's
+frames - the recording 23%, the hum 49%, this render 31%); the first pass's
+persistence measure counted a sawtooth's honest harmonics as the FM render's
+isolated lines, and went. The probe pumps the player just in time (the offline context suspended
 every 0.1 s and the window scheduled there), so a render costs the sounding
 notes: the whole song in under 3 minutes where the up-front graph took 8.
 Pins: `test/systems/intro3_score.test.js` INTRO3c (every bowed section's bow,
 body, air, ensemble, vibrato and no held breath; the choir's vowel and the
 bridge hills; the FM voices unbowed; the horn's floor; the tone; the halo's
-bars, the riser a roll on the kit and no swell voice or channel), `test/systems/eliteGates/egroar_score.test.js` INTRO3c (the bowed
+bars, the riser a roll on the kit and no swell voice or channel, the arc and the sway on every held voice, the bass at the bank's gain and the weight in the drums), `test/systems/eliteGates/egroar_score.test.js` INTRO3c (the bowed
 voice, the index floor, the body, air and ensemble insert and its drop, the
-tone's routing, the bite; every field held). Mutants: 38 more in
-`tools/mutants/intro3.json` (69), all dead.
+tone's routing, the bite, the arc and the sway; every field held). Mutants:
+50 more in `tools/mutants/intro3.json` (81), all dead.
 
 ## U65 THE INTRO (2026-08-30) - HISTORICAL REMOVAL
 

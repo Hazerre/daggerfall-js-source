@@ -747,7 +747,8 @@ bowed string's own waveform, into a low-pass a side at `cutoff` times the note u
 a BODY, AIR and ENSEMBLE a channel (`body`, up to four resonances [Hz, dB, Q]; `air`, a shelf at 5 kHz; `ensemble`,
 three slow-swept delays - the string machine's circuit; `_insert`), a VIBRATO (`vibrato` cents at `vibRate` Hz, a sine LFO
 a copy into its detune, each copy's rate its own; `_vibrato`), a BITE (`noise` - a band of noise as the note starts,
-fading to a sixteenth; `_breath`), an INDEX FLOOR (`idxFloor`, the share an FM index settles to) and a song's TONE
+fading to a sixteenth; `_breath`), the BOW'S ARC (`arc` - a held note's dip, crest and ease) and the SWAY (`sway` at
+`swayRate` - each copy's level breathing slowly, apart; `_sway`), an INDEX FLOOR (`idxFloor`, the share an FM index settles to) and a song's TONE
 (`tone` - bands and shelves between the fader and the master, a mix's match to a reference; `songTone`, `_routeTone`).
 `10-UI/UI-Arc.md` INTRO3c.
 A song that carries voices is high-passed at `SONG_FLOOR_HZ` (30 Hz) before its press - THE FLOOR: a 1:1 FM pair's first
@@ -975,7 +976,10 @@ the render's. After: the chord's harmonics 0, -10, -21, -13, -17, -18, -18, -22,
 the film within 3 dB of the recording's curve from 80 Hz to 10 kHz (a mean of 1.2), 483 Hz and -13.3 dB from 2 kHz up.
 The riser into each landmark (the owner: "still a high pitch whine in the build up leading to the title drop") was the
 Spire's inharmonic FM shimmer, its sidebands 14-17 dB over their surroundings through both build-ups; it is a suspended
-cymbal's roll on the kit now (`swellInto`, the ride under soft mallets), a band of noise with no line in it.
-`tools/introScoreProbe.mjs` pins the chord's shape (`chordShape`) and the build-up (`riserShape`) beside the width and the presence. The whole song: as loud as the recording (-22.9 dBFS to its -22.4), correlation 0.62,
+cymbal's roll on the kit now (`swellInto`, the ride under soft mallets), a band of noise with no line in it. The hum
+("too constant ... too overpowering") was the contrabass's pedal and the pad, flat sawtooths 7 dB over the recording's
+bass: every held voice has the bow's arc now (`arc`) and the bed sways (`sway`), the bass plays at the bank's gain with
+the low end's weight in the drums, and the opening's bass sits at the recording's (-16.3 dB to its -17.1).
+`tools/introScoreProbe.mjs` pins the chord's shape (`chordShape`), the build-up (`riserShape`) and the bass (`bassShape`) beside the width and the presence. The whole song: as loud as the recording (-22.9 dBFS to its -22.4), correlation 0.62,
 502 Hz, -13.1 dB, 11/11. The
 record is `10-UI/UI-Arc.md` INTRO3c.

@@ -294,3 +294,34 @@ test('INTRO3c THE TONE (songPlayer.js _routeTone, songTone): a song with `tone` 
   assert.equal(songTone({}), null); assert.equal(songTone({ tone: { bands: 'x', low: [1] } }), null);
   assert.deepEqual(songTone({ tone: { low: [5, -40], high: [30000, 40], bands: [[100, 5, 1.2]] } }), { bands: [[100, 5, 1.2]], low: [20, -24], high: [16000, 24] });
 });
+
+test('INTRO3c THE BOW’S ARC AND THE SWAY (songPlayer.js, VOICE_RANGE): a held note with `arc` dips after the attack, swells to its sustain at 55% of its length and eases before the release; a note too short for one holds as before; a voice with `sway` runs a slow sine per copy into the copy’s own gain about 1, each copy a fifth faster a step; the fields held', () => {
+  // a long note: duration 1200 ticks x 0.001 s = 1.2 s; attack 0.1, decay 0.2, sustain 0.5 (fmSpec's)
+  const long = (voices, duration = 1200) => { const ctx = recCtx(), p = new SongPlayer(ctx); p.play({ secondsPerTick: 0.001, durationTicks: 2000, events: [{ tick: 0, type: 'programChange', channel: 0, program: 48 }, { tick: 0, type: 'noteOn', channel: 0, note: 60, velocity: 100, duration }], voices, press: { out: 2 } }); clearInterval(p._timer); p._timer = null; return { ctx, p }; };
+  const env = (ctx) => ctx.made.gain.find((n) => n.gain.writes.length >= 5 && n.gain.writes[0][0] === 'setValueAtTime' && n.gain.writes[0][1] === 0.0001).gain.writes;
+  const arced = env(long({ 0: { attack: 0.1, decay: 0.2, sustain: 0.5, arc: 0.5 } }).ctx);
+  assert.equal(arced.length, 6, 'set, attack, dip, crest, ease, release');
+  const [, atk, dip, crest, ease, rel] = arced;
+  const peak = atk[1], sustain = peak * 0.5;
+  assert.ok(Math.abs(dip[1] - sustain * 0.8) < 1e-9 && dip[0] === 'exponentialRampToValueAtTime', 'dips to 1 - 0.4 arc after the attack');
+  assert.ok(Math.abs(crest[1] - sustain) < 1e-9 && Math.abs(crest[2] - (arced[0][2] + 0.55 * 1.2)) < 1e-9, 'the crest at 55% of the note');
+  assert.ok(Math.abs(ease[1] - sustain * 0.7) < 1e-9 && Math.abs(ease[2] - (arced[0][2] + 1.2)) < 1e-9, 'eases to 1 - 0.6 arc by the release');
+  assert.equal(rel[1], 0.0001);
+  const plain = env(long({ 0: { attack: 0.1, decay: 0.2, sustain: 0.5 } }).ctx);
+  assert.equal(plain.length, 5); assert.deepEqual([plain[2][1], plain[3][0], plain[3][1]], [sustain, 'setValueAtTime', sustain], 'no arc: the sustain holds');
+  const short = env(long({ 0: { attack: 0.1, decay: 0.2, sustain: 0.5, arc: 0.5 } }, 400).ctx);
+  assert.equal(short.length, 5, 'a note too short for an arc (its sustain under a quarter second) holds');
+  // the sway
+  const { ctx, p } = long({ 0: { unison: 2, cents: 4, sway: 0.5, swayRate: 0.4 } });
+  const lfos = ctx.made.osc.filter((o) => o.frequency.value < 20);
+  assert.deepEqual(lfos.map((o) => +o.frequency.value.toFixed(4)).sort((a, b) => a - b), [+(0.4 * 0.895).toFixed(4), +(0.4 * 1.105).toFixed(4)], 'a copy’s own rate, a fifth a step');
+  for (const lfo of lfos) {
+    const depth = lfo.to[0]; assert.ok(Math.abs(depth.gain.value - 0.15) < 1e-12, '0.3 x sway');
+    const copyGain = ctx.made.gain.find((g) => g.gain === depth.to[0]); assert.ok(copyGain, 'into a copy’s own gain'); assert.equal(copyGain.gain.value, 1);
+    assert.ok(ctx.made.osc.some((o) => o.frequency.value >= 20 && o.to[0] === copyGain), 'the copy plays through it');
+    assert.ok(Number.isFinite(lfo.started));
+  }
+  assert.equal(ctx.made.osc.length, 6, 'two pairs and a sway each');
+  assert.ok(lfos.every((o) => Number.isFinite(o.stopped)), 'stopped with the note'); p.stop();
+  assert.deepEqual(songVoices({ voices: { 0: { arc: 2, sway: -1, swayRate: 9 } } })[0], { arc: 1, sway: 0, swayRate: 2 });
+});

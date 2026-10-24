@@ -96,7 +96,7 @@ const KIT_LEVEL = 112;
  *  third-octave by third-octave, the bowed render stood 6 dB short of the recording at 100 Hz, 5 dB over at 250 (the
  *  bed's and the horn's fundamentals stack there), 4 short at 500, 3 to 6 short from 2 to 5 kHz and 3 to 5 short above;
  *  this is that difference, applied once to the sum (songPlayer.js songTone, between the fader and the master). */
-export const INTRO_TONE = Object.freeze({ low: [60, -2], bands: [[100, 5, 1.2], [250, -4, 1.2], [500, 3, 1.4], [3150, 4, 0.9]], high: [5000, 4] });
+export const INTRO_TONE = Object.freeze({ low: [60, -3], bands: [[100, 2, 1.2], [250, -4, 1.2], [500, 3, 1.4], [3150, 4, 0.9]], high: [5000, 4] });
 /** The song at the player's own level (systems/song/songPlayer.js `song.level`) through a press (songPress) - lighter than
  *  the gate score's (3:1 from -14 dB, a ceiling a decibel under the clip), its drive after it, so the theme stands as
  *  loud as the recording it replaces (about -22 dBFS as the intro played it at MusicVolume 0.5) and keeps the
@@ -104,7 +104,7 @@ export const INTRO_TONE = Object.freeze({ low: [60, -2], bands: [[100, 5, 1.2], 
  *  press lets a drum's first 12 ms through (EG-ROAR's lesson - at 3 ms it clamped every taiko and kick to the pads'
  *  level). Measured through the real player, second by second against the recording: tools/introScoreProbe.mjs. */
 export const INTRO_LEVEL = 1;
-export const INTRO_PRESS = Object.freeze({ threshold: -14, knee: 12, ratio: 3, attack: 0.012, release: 0.25, ceiling: -1, out: 1.8 });
+export const INTRO_PRESS = Object.freeze({ threshold: -14, knee: 12, ratio: 3, attack: 0.012, release: 0.25, ceiling: -1, out: 2 });
 /** GM kit keys (gmSynth.js DRUMS). */
 const KIT = Object.freeze({ kick: 36, snare: 38, clap: 39, lowTom: 41, floorTom: 43, tom: 45, midTom: 47, crash: 49, ride: 51, splash: 55, surdo: 87 });
 
@@ -117,19 +117,19 @@ const KIT = Object.freeze({ kick: 36, snare: 38, clap: 39, lowTom: 41, floorTom:
  *  contrabass carries no sub: at G1 its octave under is 24 Hz, under the floor and heard by nothing but the press. */
 export const INTRO_VOICES = Object.freeze({
   horn: Object.freeze({ attack: 0.05, index: 3, idxDecay: 1.1, idxFloor: 0.5, release: 0.3, unison: 2, cents: 3, spread: 0.2, vibrato: 5, vibRate: 4.8, noise: 0.06, body: [[450, 6, 1.2]], air: -3 }),
-  violins: Object.freeze({ saw: 1, cutoff: 10, cutQ: 0.9, attack: 0.12, release: 0.6, unison: 3, cents: 6, spread: 0.55, vibrato: 13, vibRate: 5.6, noise: 0.08, body: [[550, 5, 1], [1300, 2, 1.5], [3000, 8, 1]], air: -4, ensemble: 0.45, ensembleRate: 0.8, ensembleMs: 10 }),
-  strings: Object.freeze({ saw: 1, cutoff: 12, cutQ: 0.9, attack: 0.18, release: 0.8, gain: 1.1, unison: 3, cents: 6, spread: 0.6, vibrato: 11, vibRate: 5.2, noise: 0.08, body: [[450, 7, 0.8], [1000, 2, 1.4], [2700, 8, 1]], air: -4, ensemble: 0.45, ensembleRate: 0.7, ensembleMs: 12 }),
-  choir: Object.freeze({ saw: 1, cutoff: 6, cutQ: 0.7, attack: 0.35, release: 1.1, gain: 1.1, unison: 3, cents: 8, spread: 0.5, vibrato: 14, vibRate: 5, body: [[650, 7, 2.5], [1050, 5, 3], [2500, 6, 3]], air: -10, ensemble: 0.5, ensembleRate: 0.5, ensembleMs: 18 }),
+  violins: Object.freeze({ saw: 1, cutoff: 10, cutQ: 0.9, attack: 0.12, release: 0.6, unison: 3, cents: 6, spread: 0.55, vibrato: 13, vibRate: 5.6, arc: 0.4, sway: 0.25, swayRate: 0.4, noise: 0.08, body: [[550, 5, 1], [1300, 2, 1.5], [3000, 8, 1]], air: -4, ensemble: 0.45, ensembleRate: 0.8, ensembleMs: 10 }),
+  strings: Object.freeze({ saw: 1, cutoff: 12, cutQ: 0.9, attack: 0.18, release: 0.8, gain: 1.1, unison: 3, cents: 6, spread: 0.6, vibrato: 11, vibRate: 5.2, arc: 0.5, sway: 0.3, swayRate: 0.35, noise: 0.08, body: [[450, 7, 0.8], [1000, 2, 1.4], [2700, 8, 1]], air: -4, ensemble: 0.45, ensembleRate: 0.7, ensembleMs: 12 }),
+  choir: Object.freeze({ saw: 1, cutoff: 6, cutQ: 0.7, attack: 0.35, release: 1.1, gain: 1.1, unison: 3, cents: 8, spread: 0.5, vibrato: 14, vibRate: 5, arc: 0.5, sway: 0.3, swayRate: 0.2, body: [[650, 7, 2.5], [1050, 5, 3], [2500, 6, 3]], air: -10, ensemble: 0.5, ensembleRate: 0.5, ensembleMs: 18 }),
   ostinato: Object.freeze({ attack: 0.008, decay: 0.14, sustain: 0.45, release: 0.08, index: 4.2, idxDecay: 0.18, unison: 2, cents: 6, spread: 0.25 }),
   cellos: Object.freeze({ saw: 1, cutoff: 10, attack: 0.02, unison: 2, cents: 5, spread: 0.3, vibrato: 8, vibRate: 4.9, noise: 0.1, body: [[220, 6, 0.9], [600, 3, 1.3], [1800, 6, 1.2]], air: -6, ensemble: 0.35, ensembleRate: 0.6, ensembleMs: 14 }),
-  contrabass: Object.freeze({ saw: 1, cutoff: 14, attack: 0.05, release: 0.45, gain: 1.2, unison: 2, cents: 4, spread: 0.15, vibrato: 5, vibRate: 4.4, body: [[100, 8, 0.7], [200, 4, 1], [400, 4, 1.2]], air: -10, ensemble: 0.25, ensembleRate: 0.5, ensembleMs: 16 }),
+  contrabass: Object.freeze({ saw: 1, cutoff: 14, attack: 0.05, release: 0.45, gain: 1, unison: 2, cents: 4, spread: 0.15, vibrato: 5, vibRate: 4.4, arc: 1, sway: 0.2, swayRate: 0.15, body: [[100, 4, 0.7], [200, 4, 1], [400, 4, 1.2]], air: -10, ensemble: 0.25, ensembleRate: 0.5, ensembleMs: 16 }),
   brass: Object.freeze({ attack: 0.035, index: 5, idxDecay: 0.8, idxFloor: 0.35, release: 0.3, unison: 3, cents: 6, spread: 0.4, noise: 0.06 }),
-  timpani: Object.freeze({ decay: 0.9, release: 0.5, sub: 0.2 }),
+  timpani: Object.freeze({ decay: 0.9, release: 0.5, gain: 1.2, sub: 0.2 }),
   harp: Object.freeze({ index: 3, idxDecay: 0.4, unison: 2, cents: 5, spread: 0.35 }),
   bells: Object.freeze({ index: 6, idxDecay: 0.8, unison: 2, cents: 3, spread: 0.3 }),
-  pad: Object.freeze({ saw: 1, cutoff: 4, attack: 0.4, release: 1.2, unison: 3, cents: 8, spread: 0.7, vibrato: 5, vibRate: 4, body: [[300, 5, 0.8]], air: -12, ensemble: 0.8, ensembleRate: 0.4, ensembleMs: 20 }),
+  pad: Object.freeze({ saw: 1, cutoff: 4, attack: 0.4, release: 1.2, unison: 3, cents: 8, spread: 0.7, vibrato: 5, vibRate: 4, arc: 0.8, sway: 0.4, swayRate: 0.25, body: [[300, 5, 0.8]], air: -12, ensemble: 0.8, ensembleRate: 0.4, ensembleMs: 20 }),
   hit: Object.freeze({ index: 4.5, decay: 0.5, release: 0.35, unison: 2, cents: 15, sub: 0.35, spread: 0.4 }),
-  halo: Object.freeze({ saw: 1, cutoff: 6, attack: 0.35, release: 1, gain: 0.6, unison: 3, cents: 5, spread: 0.8, vibrato: 14, vibRate: 6.1, body: [[3000, 5, 1.6]], air: -5, ensemble: 0.45, ensembleRate: 0.9, ensembleMs: 9 }),
+  halo: Object.freeze({ saw: 1, cutoff: 6, attack: 0.35, release: 1, gain: 0.6, unison: 3, cents: 5, spread: 0.8, vibrato: 14, vibRate: 6.1, arc: 0.5, body: [[3000, 5, 1.6]], air: -5, ensemble: 0.45, ensembleRate: 0.9, ensembleMs: 9 }),
 });
 // INTRO3c (2026-10-24, the owner: "I dont like the high pitch whine"; "It still has that whine. Its not natural"; "Now
 // it just sounds like static. Stop band aid fixing and be as detailed as possible"): THE WHINE WAS THE MODEL. Measured
@@ -145,8 +145,9 @@ export const INTRO_VOICES = Object.freeze({
 // the chord's harmonics 0, -10, -21, -13, -17, -18, -18, -22, -25 dB (nothing above the 3rd within 13 of the loudest),
 // its partials 18-47 cents wide, the film within 3 dB of the recording's curve from 80 Hz to 10 kHz. The halo stays a
 // soft shimmer out of the opening's bare bars; the risers are a suspended cymbal's roll (swellInto: the FM shimmer's
-// sidebands were the whine in the build-up to the title drop). tools/introScoreProbe.mjs pins the chord's shape
-// (chordShape) and the build-up (riserShape) beside the width and the presence.
+// sidebands were the whine in the build-up to the title drop); every held voice has the bow's arc and the bed sways, with
+// the bass at the recording's level (a flat sawtooth pedal 7 dB over it was the hum). tools/introScoreProbe.mjs pins the
+// chord's shape (chordShape), the build-up (riserShape) and the bass (bassShape) beside the width and the presence.
 /** The voices by channel, as the song carries them. */
 const INTRO_VOICES_BY_CHANNEL = Object.freeze(Object.fromEntries(Object.entries(INTRO_VOICES).map(([v, o]) => [INTRO_CHANNELS[/** @type {keyof typeof INTRO_CHANNELS} */ (v)], o])));
 /** INTRO3b: THE KIT - each drum the theme strikes, past the bank's one sine or band of noise (systems/song/songPlayer.js
@@ -154,8 +155,8 @@ const INTRO_VOICES_BY_CHANNEL = Object.freeze(Object.fromEntries(Object.entries(
  *  snare a crack over a skin, the crash two seconds long; INTRO3c: the ride under soft mallets, the roll's stroke (a
  *  20 ms attack, no click - a cymbal swelling, not struck). */
 export const INTRO_KIT = Object.freeze({
-  [KIT.kick]: Object.freeze({ hz: 50, decay: 0.42, gain: 1.2, click: 0.5 }),
-  [KIT.surdo]: Object.freeze({ hz: 62, decay: 1.1, gain: 1.35, drop: 0.7, click: 0.5 }),
+  [KIT.kick]: Object.freeze({ hz: 50, decay: 0.42, gain: 1.4, click: 0.5 }),
+  [KIT.surdo]: Object.freeze({ hz: 62, decay: 1.1, gain: 1.5, drop: 0.7, click: 0.5 }),
   [KIT.lowTom]: Object.freeze({ hz: 84, decay: 0.6, gain: 1.05, click: 0.3 }),
   [KIT.floorTom]: Object.freeze({ hz: 102, decay: 0.55, click: 0.3 }),
   [KIT.tom]: Object.freeze({ hz: 124, decay: 0.48, click: 0.3 }),

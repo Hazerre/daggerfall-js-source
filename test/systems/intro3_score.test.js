@@ -51,7 +51,7 @@ test('INTRO3: the song is the shape the game’s player plays - sorted, in range
   assert.equal(song.durationTicks, introTick(LAST_BAR + 1));
   assert.equal(song.seamless, true, 'it loops on its bar line, as the recording looped');
   assert.equal(songLevel(song), INTRO_LEVEL);
-  assert.deepEqual(songPress(song), { threshold: -14, knee: 12, ratio: 3, attack: 0.012, release: 0.25, out: 1.8, ceiling: -1 });
+  assert.deepEqual(songPress(song), { threshold: -14, knee: 12, ratio: 3, attack: 0.012, release: 0.25, out: 2, ceiling: -1 });
   assert.equal(INTRO_PRESS.ceiling, -1);
   const rank = { programChange: 0, controller: 0, noteOn: 1 };
   for (let i = 1; i < song.events.length; i++) {
@@ -195,6 +195,7 @@ test('INTRO3b: not flat - every section its own voice (the bed an ensemble, spre
 
 test('INTRO3c: no whine - the bed is BOWED: every string section, the pad and the choir play sawtooths under the bow’s low-pass through a body, an air shelf and an ensemble, with a vibrato and no breath held (a bite at most); the choir’s body is its vowel, the strings’ and the violins’ carry the bridge hill; the horn holds its brightness; the song carries its tone, the measured difference; the halo out of the opening’s bare bars and the quiet after the cloud break; the risers under it', () => {
   const { CHORDS } = INTRO_SCORE_TABLES;
+  const kit = songKit(song);
   for (const voice of ['strings', 'violins', 'cellos', 'contrabass', 'halo', 'pad', 'choir']) {
     const v = INTRO_VOICES[voice];
     assert.equal(v.saw, 1, `${voice} is bowed`);
@@ -215,9 +216,18 @@ test('INTRO3c: no whine - the bed is BOWED: every string section, the pad and th
   for (const m of [-3, -1, 0, 1, 4, 5]) assert.equal(halo(m).length, 0, `bar ${m} is bare of the halo`);
   assert.deepEqual(halo(CLOUD_BAR).map((e) => e.note).sort((a, b) => a - b), CHORDS.C.choir.map((n) => midiNote(n) + 12).sort((a, b) => a - b), 'over the cloud break still');
   assert.ok(halo(14).length > 0 && halo(14).every((e) => e.velocity === 72), 'the halo at 72 where the band opens out, under the choir');
+  // the hum (the owner: "too constant ... too overpowering"): the bed breathes - a bow's arc on every held voice, a sway
+  // on the pad, the strings and the choir - and the low end's weight is in the drums, not the drone
+  for (const voice of ['strings', 'violins', 'choir', 'pad', 'halo', 'contrabass']) assert.ok(INTRO_VOICES[voice].arc >= 0.4, `${voice} has the bow's arc`);
+  assert.ok(INTRO_VOICES.contrabass.arc >= 0.8 && INTRO_VOICES.pad.arc >= 0.6, 'the pedal and the pad arc deepest');
+  for (const voice of ['strings', 'violins', 'choir', 'pad', 'contrabass']) assert.ok(INTRO_VOICES[voice].sway > 0 && INTRO_VOICES[voice].swayRate <= 0.5, `${voice} sways, slowly`);
+  assert.ok(!(INTRO_VOICES.contrabass.gain > 1) && INTRO_VOICES.contrabass.body[0][1] <= 4, 'the contrabass no louder than the bank plays it, its body a lift and not a boost');
+  assert.ok(INTRO_TONE.bands.find(([hz]) => hz === 100)[1] <= 3 && INTRO_TONE.low[1] <= -3, 'the tone lifts 100 Hz a little and shelves 60 Hz down');
+  assert.ok(kit.get(36).gain >= 1.3 && kit.get(87).gain >= 1.4 && INTRO_VOICES.timpani.gain >= 1.1, 'the low end’s weight is the kick, the taiko and the timpani');
+  assert.equal(INTRO_VOICES.cellos.arc, undefined, 'the pulse has no arc: its notes are short');
   // the riser is a cymbal's roll: no swell voice, no swell channel, the ride under soft mallets - a cymbal's band, not a tone
   assert.equal(INTRO_VOICES.swell, undefined); assert.equal(INTRO_CHANNELS.swell, undefined); assert.equal(INTRO_PROGRAMS.swell, undefined);
-  const ride = songKit(song).get(51);
+  const ride = kit.get(51);
   assert.ok(ride && ride.hz >= 4000 && ride.attack >= 0.01 && !(ride.click > 0), 'the roll’s stroke: a cymbal’s band under a mallet, no click');
 });
 
