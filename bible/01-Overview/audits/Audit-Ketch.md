@@ -17,7 +17,8 @@ given the owner's asks and the files, never the record's conclusions:
 67 reported, five the same defect seen from two lanes (L3-1 = L1-2, L3-4 = L1-6, L3-12 = L2-3, L4-15 = L3-15, L5-6 =
 L2-6): 62 defects. Every one was re-run on its lane's probe against the head before it was fixed, and each fix is pinned
 by a test that fails on the code as it stood, with a mutant in `tools/mutants/ketch_*.json` that the pin kills. Each fix
-in code carries an `AUDIT KETCH L<lane>-<n>` comment. Two were found in the fixing and are below with their lanes (L4-6's
+in code carries an `AUDIT KETCH L<lane>-<n>` comment (L5-10 and L5-12 moved a test's reasons and two languages' rows,
+which carry none). Two were found in the fixing and are below with their lanes (L4-6's
 drawn line, L5-9's untested fight). One finding is left, with its reason (L2-10).
 
 ## Fixed - the relay (L1)

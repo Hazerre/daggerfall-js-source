@@ -5,10 +5,10 @@
 // hazards on the trails it holds (net/ketch/ketchBrain.js, net/ketch/ketchJudge.js).
 //
 // THE FRAME is the DECK's: metres, y up, x across (starboard -x, port +x - the engine's frame is left-handed: facing the
-// bow, -z, the right hand is -x), z along the keel from the bow (z 0, the Anchor Deck's fore rail) to the stern - and into
-// the dungeon host's frame by the Shattered Hour's own move (net/superDungeon/sdBrain.js realmToDungeon, SD_REALM_ORIGIN):
-// one translation, so the Hour's Steps' scene lays the Sailwalk unchanged (scenes/superDungeon/sdSteps.js, with this file's
-// course) and the Hour's telegraph floor reads it.
+// bow, -z, the right hand is -x; AUDIT KETCH L4-12), z along the keel from the bow (z 0, the Anchor Deck's fore rail) to
+// the stern - and into the dungeon host's frame by the Shattered Hour's own move (net/superDungeon/sdBrain.js
+// realmToDungeon, SD_REALM_ORIGIN): one translation, so the Hour's Steps' scene lays the Sailwalk unchanged
+// (scenes/superDungeon/sdSteps.js, with this file's course) and the Hour's telegraph floor reads it.
 //
 //   THE ANCHOR DECK   the bow, y 0 - where the anchor-lift sets a crew down, and its way down
 //   THE WAIST         y 0, the open deck - THE BOARDING WATCH's three waves
