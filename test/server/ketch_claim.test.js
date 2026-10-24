@@ -1,4 +1,4 @@
-// KETCH (2026-10-24; bible/11-Multiplayer/Sky-Ketch.md section 9): THE KETCHMASTER'S HOLD - the relay's `k1` receipt
+// KETCH (2026-10-24; bible/11-Multiplayer/Sky-Ketch.md section 9): THE KETCHMASTER'S HOLD - the relay's `y1` receipt
 // (net/ketch/ketchReceipt.js) minted, read and verified rung for rung, never another boss's; the account service's claim
 // (server-account/src/ketch.js claimKetch, migration 0166): one row a (voyage, account) - the first receipt takes the
 // week's share, the same ship again is the same kill, another crew's ship that voyage is `taken`; the route behind a
@@ -47,9 +47,9 @@ async function relayPair() {
 }
 const voyage = (s, d, o, key, { c = 4242, x = 'dealt', l = 30, nowS = T0, m } = {}) => mintKetchReceipt({ d, o, s, c, x, l, ...(m ? { m } : {}) }, key, { subtle, nowS });
 
-test('KETCH THE RECEIPT: a `k1` - the voyage, the Warden, the crew\'s ship, the account, the seed, how it was earned, the level, issued and a week to expiry - minted signed or unsigned, read by the page either way, verified rung for rung; never an Hour\'s receipt nor one carrying another\'s fields (mutants: another boss believed; the ship unread; an expired one good; an Hour\'s h1 let through)', async () => {
+test('KETCH THE RECEIPT: a `y1` - the voyage, the Warden, the crew\'s ship, the account, the seed, how it was earned, the level, issued and a week to expiry - minted signed or unsigned, read by the page either way, verified rung for rung; never an Hour\'s receipt nor one carrying another\'s fields (mutants: another boss believed; the ship unread; an expired one good; an Hour\'s h1 let through)', async () => {
   const { priv, pubKey, kp } = await relayPair();
-  assert.deepEqual([KT_RECEIPT_V, KT_RECEIPT_TTL_S, KT_RECEIPT_BOSS, [...KT_EARNED]], ['k1', 7 * 24 * 3600, 'warden', ['dealt', 'stood']]);
+  assert.deepEqual([KT_RECEIPT_V, KT_RECEIPT_TTL_S, KT_RECEIPT_BOSS, [...KT_EARNED]], ['y1', 7 * 24 * 3600, 'warden', ['dealt', 'stood']]);
   const r = await voyage('acct-ann', 3, SHIP_A, priv);
   const c = readKetchReceipt(r);
   assert.deepEqual({ ...c }, { d: 3, b: 'warden', o: SHIP_A, s: 'acct-ann', c: 4242, x: 'dealt', l: 30, i: T0, e: T0 + KT_RECEIPT_TTL_S, signed: true });
@@ -64,14 +64,32 @@ test('KETCH THE RECEIPT: a `k1` - the voyage, the Warden, the crew\'s ship, the 
   const h1 = await mintSdReceipt({ d: 3, s: 'acct-ann', c: 1, x: 'dealt', l: 30 }, priv, { subtle, nowS: T0 });
   assert.deepEqual(await verifyKetchReceipt(h1, pubKey, { subtle, nowS: T0 }), { ok: false, why: 'version' });
   assert.equal(readKetchReceipt(h1), null);
-  assert.equal((await verifySdReceipt(r, kp.publicKey, { subtle, nowS: T0 })).ok, false, 'and an Hour\'s verifier refuses a k1');
+  assert.equal((await verifySdReceipt(r, kp.publicKey, { subtle, nowS: T0 })).ok, false, 'and an Hour\'s verifier refuses a y1');
   const good = { d: 3, b: 'warden', o: SHIP_A, s: 'acct-ann', c: 1, x: 'stood', l: 1, i: T0, e: T0 + 60 };
   assert.equal(ketchReceiptValid(good), true);
   for (const bad of [{ b: 'remnant' }, { o: 'ABCDEF0123456789' }, { o: SHIP_A.slice(1) }, { x: 'witnessed' }, { l: 0 }, { d: -1 }, { e: T0 }, { e: T0 + KT_RECEIPT_TTL_S + 1 }, { n: 3 }, { t: 1 }]) assert.equal(ketchReceiptValid({ ...good, ...bad }), false, JSON.stringify(bad));
   await assert.rejects(voyage('acct-ann', 3, 'nope', priv), /refused a claim set/);
 });
 
-test('KETCH THE CLAIM: a `k1` the relay signed, naming the claiming account, one row a (voyage, account) - the first takes the week\'s share; the same ship again the same kill (`claimed`, its share still the page\'s to roll); another crew\'s ship that voyage `taken`, no share; the next voyage pays again; another\'s, an unsigned one, a forged one refused; no public half no claim; a guest\'s written and said (mutants: the voyage not the key; the ship not compared; another\'s receipt claimed; the guest unsaid)', async () => {
+test('KETCH THE RECEIPT\'S VERSION IS ITS OWN: `y1` is no other relay-signed word\'s - every verifier refuses another\'s at its first rung, before a byte of the body (AUDIT KETCH L2-8: `k1` was the Watch\'s too; mutants: the Watch\'s letter)', async () => {
+  const others = await Promise.all([
+    ['../../src/net/gate/gateReceipt.js', 'RECEIPT_V'], ['../../src/net/serpent/serpentReceipt.js', 'SERPENT_RECEIPT_V'], ['../../src/net/siege/siegeReceipt.js', 'SIEGE_RECEIPT_V'],
+    ['../../src/net/siege/siegeReceipt.js', 'ROYAL_RECEIPT_V'], ['../../src/net/eliteGates/egReceipt.js', 'EG_RECEIPT_V'], ['../../src/net/arena/arenaReceipt.js', 'ARENA_RECEIPT_V'],
+    ['../../src/net/card/cardReceipt.js', 'CARD_RECEIPT_V'], ['../../src/net/productRecord.js', 'PRODUCT_RECORD_V'], ['../../src/net/watchReceipt.js', 'WATCH_RECEIPT_V'],
+    ['../../src/net/superDungeon/sdReceipt.js', 'SD_RECEIPT_V'], ['../../src/net/gambit/gambitReceipt.js', 'GAMBIT_RECEIPT_V'], ['../../src/net/iliac/iliacReceipt.js', 'ILIAC_RECEIPT_V'],
+    ['../../src/net/wild/wildReceipt.js', 'WILD_RECEIPT_V'], ['../../src/net/wild/wildReceipt.js', 'WILD_COLLECT_V'], ['../../src/net/wild/wildReceipt.js', 'SEA_WRECK_V'],
+    ['../../src/net/duel/duelReceipt.js', 'DUEL_RECEIPT_V'], ['../../src/net/starfall/starReceipt.js', 'STAR_RECEIPT_V'], ['../../src/net/raid/raidReceipt.js', 'RAID_RECEIPT_V'],
+    ['../../src/net/identityToken.js', 'TOKEN_V'],
+  ].map(async ([f, k]) => (await import(f))[k]));
+  assert.equal(KT_RECEIPT_V, 'y1');
+  assert.ok(others.every((v) => typeof v === 'string' && v.length === 2), 'every version read');
+  assert.ok(!others.includes(KT_RECEIPT_V), `the Ketch's letter is its own (taken: ${others.join(' ')})`);
+  const { pubKey } = await relayPair();
+  const watch = `${others[8]}.${Buffer.from(JSON.stringify({ d: 3 })).toString('base64url')}.`;
+  assert.deepEqual(await verifyKetchReceipt(watch, pubKey, { subtle, nowS: T0 }), { ok: false, why: 'version' }, 'a Watch tick refused at its first rung');
+});
+
+test('KETCH THE CLAIM: a `y1` the relay signed, naming the claiming account, one row a (voyage, account) - the first takes the week\'s share; the same ship again the same kill (`claimed`, its share still the page\'s to roll); another crew\'s ship that voyage `taken`, no share; the next voyage pays again; another\'s, an unsigned one, a forged one refused; no public half no claim; a guest\'s written and said (mutants: the voyage not the key; the ship not compared; another\'s receipt claimed; the guest unsaid)', async () => {
   const db = d1();
   const A = await member(db), B = await member(db), G = await member(db, { guest: true });
   const { priv, pubKey } = await relayPair();
@@ -162,7 +180,7 @@ test('KETCH THE CLIENT\'S CALL: no session, no knock; with one the receipt goes 
   const sent = [];
   const fetch = async (u, i) => { sent.push([u, i]); return new Response(JSON.stringify({ recorded: true, voyage: 3, share: true, sailed: 1 }), { status: 200, headers: { 'content-type': 'application/json' } }); };
   const none = accountKetch({ fetch, storage: { getItem: () => null, setItem() {}, removeItem() {} } });
-  assert.deepEqual(await none.claim('k1.x.'), { ok: false, error: 'no-session' });
+  assert.deepEqual(await none.claim('y1.x.'), { ok: false, error: 'no-session' });
   assert.equal(sent.length, 0);
   assert.equal(none.me(), null);
 });

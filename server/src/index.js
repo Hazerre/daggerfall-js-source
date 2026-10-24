@@ -188,14 +188,14 @@ import { STAFF_ORDER_KINDS, takeStaffOrder, frozenHello, busFreeze, frozenFrame,
 import { privateInteriorOf, privateInteriorAdmits, caravanKeyOf } from '../../src/net/privateInterior.js';   // WAGONS2-VISIT: and a caravan's own room
 import { isInstanceRoom, instanceOf, instanceAdmission, partyHoldsOwner, INSTANCE_INTERNAL_KIN, INSTANCE_KIN_KEEP_MS, INSTANCE_DOOR_WORD } from '../../src/net/instanceRoom.js';   // INSTANCES: an instance's room, its door and the hub's party answer (bible/11-Multiplayer/Instances.md)
 import { isStaff } from '../../src/net/staffCommands.js';
-import { isKetchRoom, ketchRoomOf, ketchRoomHolds, ketchAdmits, ketchHolds, ketchVoyageOf, KT_TEXT } from '../../src/net/ketch/ketchLaw.js';   // KETCH: the sky-ketch's law - its voyages, its ships' rooms, its door
+import { isKetchRoom, ketchRoomOf, ketchRoomHolds, ketchAdmits, ketchHolds, ketchVoyageOf, ketchVoyageAt, KT_TEXT } from '../../src/net/ketch/ketchLaw.js';   // KETCH: the sky-ketch's law - its voyages, its ships' rooms, its door
 import { newVoyage, joinVoyage, stepVoyage, voyageWord, voyageStateOf, voyageEarners, voyageLive, dropCell, idlePlaces, freePlace, stampFightFall, fightBodyOf, KT_POSE_FRESH_MS } from '../../src/net/ketch/ketchBrain.js';   // KETCH: a crew's voyage, run by its room
 import { judgeVoyage } from '../../src/net/ketch/ketchJudge.js';   // KETCH: its constructs' blows and its hazards, judged on the trails
 import { KETCH_SEAM } from '../../src/net/ketch/ketchWarden.js';   // KETCH: the Tonal Warden on the boss seam
-import { mintKetchReceipt } from '../../src/net/ketch/ketchReceipt.js';   // KETCH: the k1 receipt
+import { mintKetchReceipt, readKetchReceipt, KT_RECEIPT_TTL_S } from '../../src/net/ketch/ketchReceipt.js';   // KETCH: the y1 receipt
 import { dungeonToDeck } from '../../src/net/ketch/ketchDeck.js';   // KETCH: a pose of the dungeon's frame in the deck's
 import { instanceOwnerOf } from '../../src/net/instanceRoom.js';   // KETCH: a captain's digest, INSTANCES' own
-import { validKetchIn, ketchRelayGate, KT_BRAIN_MIN, KT_VOYAGE_KEY } from '../../src/net/wire.js';   // KETCH: its words, their bucket, its brain's number, its record's key
+import { validKetchIn, ketchRelayGate, KT_BRAIN_MIN, KT_VOYAGE_KEY, KT_RC_PREFIX, ketchReceiptKey, KT_INTERNAL_RC, KT_TELL_RETRY_MS, validKtRcTell } from '../../src/net/wire.js';   // KETCH: its words, their bucket, its brain's number, its record's key; AUDIT KETCH L1-2: the hub's keeping of its receipts
 import { RELAY_CFG_TTL_MS, RELAY_INTERNAL_CFG, mayRelayCfg, relayCfgValue } from '../../src/net/relayCfg.js';   // SCALE5b: the relay's settings, at run time
 import { leaseKeyOf, mintLease, readLease, leaseRoom, LEASE_FRAME_MIN_MS, LEASE_OLD_REASON } from '../../src/net/roomLease.js';   // LEASE1: the hub's word on every socket, in every room
 /** LEASE1 (the fourth review of the PR): a frame of a build that hands on no lease asks the hub's door at most this often -
@@ -883,6 +883,7 @@ export class Room {
     this._asecrets = new Bounded(HUB_KEEP_MAX);   // SCALE2b: the hub's account id -> profile secret (null: none), read once and kept
     this._noGateRcpt = new Bounded(HUB_KEEP_MAX); // SCALE2b: accounts the hub holds no gate receipt for (dropped whole when one is written)
     this._noSdRcpt = new Bounded(HUB_KEEP_MAX);   // SD9a: and no Hour receipt (dropped whole when one is written)
+    this._noKtRcpt = new Bounded(HUB_KEEP_MAX);   // AUDIT KETCH L1-2: and no Ketch receipt (the same)
     this._noEgRc = new Bounded(HUB_KEEP_MAX);   // EG-ZA: and no breach receipt held (dropped whole when one is written)
     this._noSerpentRcpt = new Bounded(HUB_KEEP_MAX);   // SCALE5a: and no serpent receipt - the one receipt every hub hello still read from storage (dropped whole when one is written)
     this._noRaidRcpt = new Bounded(HUB_KEEP_MAX); // SCALE2b: and no raid receipts
@@ -1074,6 +1075,7 @@ export class Room {
     if (path === SD_INTERNAL_FOUND) return this._sdFoundInternal(request);   // SD3: a cell telling the hub a Hollow found
     if (path === SD_INTERNAL_LIVE) return this._sdLiveInternal();   // SD3: the Worker or a realm asking the hub its record
     if (path === SD_INTERNAL_FELL) return this._sdFellInternal(request);   // SD8b: a realm telling the hub its Remnant fell
+    if (path === KT_INTERNAL_RC) return this._ktRcInternal(request);   // AUDIT KETCH L1-2: a ship telling the hub its fall's receipts
     if (path === SD_INTERNAL_IN) return this._sdInInternal(request);   // SD-THROUGH: a realm telling the hub its first soul stepped through
     if (path === EG_INTERNAL_OPEN) return this._egOpenInternal(request);   // EG-PLAY: the hub opening a breach's room
     if (path === EG_INTERNAL_HERALD) return this._egHeraldInternal(request);   // EG-E3: a breach's room telling the hub its news, for the herald
@@ -1384,6 +1386,7 @@ export class Room {
     if (sub) { try { await this._gateReceiptTo(ws, sub, now); } catch (e) { console.warn('[hub] gate receipt failed', e?.message ?? e); } }
     // SD9a: and this account's Hour receipt, while it is good (spent, it goes)
     if (sub) { try { await this._sdReceiptTo(ws, sub, now); } catch (e) { console.warn('[hub] sd receipt failed', e?.message ?? e); } }
+    if (sub) { try { await this._ktReceiptTo(ws, sub, now); } catch (e) { console.warn('[hub] kt receipt failed', e?.message ?? e); } }   // AUDIT KETCH L1-2: and its Ketch receipt (spent, it goes)
     // EG-PLAY: and a breach's call to this account, while its open window stands (a member whose page reloaded hears it again)
     if (sub) { try { await this._egCallTo(ws, sub, now); } catch (e) { console.warn('[hub] eg call failed', e?.message ?? e); } }
     // EG-ZA (section 23): and every breach receipt the hub holds for this account, until its account says each is counted
@@ -3208,7 +3211,7 @@ export class Room {
    *  next hello, as a drain's is. The cursors ride storage; a full page is followed SWEEP_STEP_MS later, an empty one
    *  ACCOUNT_SWEEP_MS later from the start. */
   async _sweepHub(now) {
-    const cur = (await this.state.storage.get(['sweep:acct', 'sweep:party', 'sweep:gaterc', 'sweep:raidrc', 'sweep:serpentrc', 'sweep:sdrc', 'sweep:egrc', 'sweep:egcall', 'sweep:starrc']));   // AUDIT WBX2 M9: one read (EG-ZA: and the breach receipts' cursor; AUDIT EG IV: and the calls'; STAR3: and the star receipts')
+    const cur = (await this.state.storage.get(['sweep:acct', 'sweep:party', 'sweep:gaterc', 'sweep:raidrc', 'sweep:serpentrc', 'sweep:sdrc', 'sweep:egrc', 'sweep:egcall', 'sweep:starrc', 'sweep:ktrc']));   // AUDIT WBX2 M9: one read (EG-ZA: and the breach receipts' cursor; AUDIT EG IV: and the calls'; STAR3: and the star receipts')
     const acur = cur.get('sweep:acct') ?? null, pcur = cur.get('sweep:party') ?? null, gcur = cur.get('sweep:gaterc') ?? null, rcur = cur.get('sweep:raidrc') ?? null, scur = cur.get('sweep:serpentrc') ?? null;
     const accts = await this.state.storage.list({ prefix: 'acct:', limit: SWEEP_PAGE, ...(acur ? { startAfter: acur } : {}) });
     const dead = [], idle = []; let alast = null;
@@ -3259,9 +3262,14 @@ export class Room {
     const trc = await this.state.storage.list({ prefix: STAR_RC_PREFIX, limit: SWEEP_PAGE, ...(tcur ? { startAfter: tcur } : {}) });
     let tlast = null;
     for (const [k, v] of trc) { tlast = k; if (!raidRcLive(v, now).length) dead.push(k); }
+    // AUDIT KETCH L1-2: and a Ketch receipt (or its spent mark) kept for an account that never came back, once it has expired
+    const kcur = cur.get('sweep:ktrc') ?? null;
+    const krc = await this.state.storage.list({ prefix: KT_RC_PREFIX, limit: SWEEP_PAGE, ...(kcur ? { startAfter: kcur } : {}) });
+    let klast = null;
+    for (const [k, v] of krc) { klast = k; if (!v || typeof v !== 'object' || !(Number.isFinite(v.e) && now < v.e * 1000)) dead.push(k); }
     for (let i = 0; i < dead.length; i += SWEEP_PAGE) await this.state.storage.delete(dead.slice(i, i + SWEEP_PAGE));
-    const more = accts.size >= SWEEP_PAGE || parties.size >= SWEEP_PAGE || kept.size >= SWEEP_PAGE || rcs.size >= SWEEP_PAGE || src.size >= SWEEP_PAGE || drc.size >= SWEEP_PAGE || erc.size >= SWEEP_PAGE || calls.size >= SWEEP_PAGE || trc.size >= SWEEP_PAGE;
-    await this.state.storage.put({ 'sweep:acct': accts.size >= SWEEP_PAGE ? alast : null, 'sweep:party': parties.size >= SWEEP_PAGE ? plast : null, 'sweep:gaterc': kept.size >= SWEEP_PAGE ? glast : null, 'sweep:raidrc': rcs.size >= SWEEP_PAGE ? rlast : null, 'sweep:serpentrc': src.size >= SWEEP_PAGE ? slast : null, 'sweep:sdrc': drc.size >= SWEEP_PAGE ? dlast : null, 'sweep:egrc': erc.size >= SWEEP_PAGE ? elast : null, 'sweep:egcall': calls.size >= SWEEP_PAGE ? clast : null, 'sweep:starrc': trc.size >= SWEEP_PAGE ? tlast : null });
+    const more = accts.size >= SWEEP_PAGE || parties.size >= SWEEP_PAGE || kept.size >= SWEEP_PAGE || rcs.size >= SWEEP_PAGE || src.size >= SWEEP_PAGE || drc.size >= SWEEP_PAGE || erc.size >= SWEEP_PAGE || calls.size >= SWEEP_PAGE || trc.size >= SWEEP_PAGE || krc.size >= SWEEP_PAGE;
+    await this.state.storage.put({ 'sweep:acct': accts.size >= SWEEP_PAGE ? alast : null, 'sweep:party': parties.size >= SWEEP_PAGE ? plast : null, 'sweep:gaterc': kept.size >= SWEEP_PAGE ? glast : null, 'sweep:raidrc': rcs.size >= SWEEP_PAGE ? rlast : null, 'sweep:serpentrc': src.size >= SWEEP_PAGE ? slast : null, 'sweep:sdrc': drc.size >= SWEEP_PAGE ? dlast : null, 'sweep:egrc': erc.size >= SWEEP_PAGE ? elast : null, 'sweep:egcall': calls.size >= SWEEP_PAGE ? clast : null, 'sweep:starrc': trc.size >= SWEEP_PAGE ? tlast : null, 'sweep:ktrc': krc.size >= SWEEP_PAGE ? klast : null });
     await this.state.storage.setAlarm(now + (more ? SWEEP_STEP_MS : ACCOUNT_SWEEP_MS));
   }
 
@@ -9513,6 +9521,11 @@ export class Room {
     const w = validKetchIn(m);
     if (!w) { this._junk(ws); return; }
     if (w.k === 'vt' ? !this._spend(ws, now, bodyWordRelayGate, 'bodyBucket', 'bodyDrops', 'too many body words') : !this._spend(ws, now, ketchRelayGate, 'ktBucket', 'ktDrops', 'too many ketch words')) return;
+    if (w.k === 'spent') {   // AUDIT KETCH L1-2: a voyage's share given - the hub's alone, its kept copy spent
+      if (!isSocialRoom(a.key) || typeof a.sub !== 'string' || !a.sub) { this._junk(ws); return; }
+      try { await this._ktSpent(a.sub, w.n, now); } catch (e) { console.warn('[hub] kt spent failed', e?.message ?? e); }
+      return;
+    }
     if (!isKetchRoom(a.key) || typeof a.sub !== 'string' || !a.sub) { this._junk(ws); return; }
     try { await this._ktWord(ws, a, w, now); } catch (e) { console.warn('[kt] word failed', e?.message ?? e); }
   }
@@ -9560,11 +9573,12 @@ export class Room {
       this._ktFan(drops);
       this._ktFan(stepVoyage(V, now, this._bodiesBare(census), rand01));
       if (V.fell && !V.said) await this._ktFall(V, now);
+      else if (V.said && !V.told) await this._ktTellHub(V, now);   // AUDIT KETCH L1-2: told again until the hub keeps them
       await this._ktSave(V, now, V.sg !== sg);   // AUDIT KETCH L1-9: a stage kept the moment it is reached
     } catch (e) { console.warn('[kt] beat failed', e?.message ?? e); }
     const here = [...this._all()].some(([, b]) => b.id);
     if (here && voyageLive(V)) { await this.state.storage.setAlarm(now + BRAIN_TICK_MS); return true; }
-    await this.state.storage.setAlarm(ketchVoyageOf(V.n).endAt);   // AUDIT KETCH L1-11: the beat rests - the fall said, or nobody aboard - till her end
+    await this.state.storage.setAlarm(V.said && !V.told ? now + KT_TELL_RETRY_MS : ketchVoyageOf(V.n).endAt);   // AUDIT KETCH L1-11: the beat rests - the fall said, or nobody aboard - till her end
     return false;
   }
   /** THE FALL, SAID ONCE (the Hour's law): each member who earned it minted its k1 receipt - kept before it is said - then
@@ -9582,8 +9596,69 @@ export class Room {
       V.said = true;
       await this._ktSave(V, now, true);
       for (const [ws, b] of [...this._all()]) { const r = b.id && b.sub ? V.rc[b.sub] : null; if (r) this._send(ws, JSON.stringify({ t: 'kt', k: 'rcpt', r })); }
+      await this._ktTellHub(V, now);
     })().finally(() => { this._ktFalling = null; });
     return this._ktFalling;
+  }
+  /** AUDIT KETCH L1-2: THE HUB TOLD OF THE FALL'S RECEIPTS, and it kept them - once it has answered (a relay built without the
+   *  binding keeps its own word); the beat tells again every KT_TELL_RETRY_MS until then. One tell in flight. */
+  async _ktTellHub(V, now) {
+    if (V.told || !V.said) return;
+    if (this._ktTelling) return this._ktTelling;
+    this._ktTelling = (async () => {
+      const rooms = this.env?.ROOMS;
+      let ok = !rooms?.idFromName || !rooms?.get || !Object.keys(V.rc ?? {}).length;
+      if (!ok) {
+        try {
+          const res = await rooms.get(rooms.idFromName(SOCIAL_ROOM)).fetch(new Request(`https://relay.internal${KT_INTERNAL_RC}`, { method: 'POST', body: JSON.stringify({ n: V.n, rc: Object.entries(V.rc) }), signal: AbortSignal.timeout(KT_TELL_RETRY_MS) }));
+          ok = !!res && (res.ok || (res.status >= 400 && res.status < 500));
+        } catch (e) { console.warn('[kt] hub', e?.message ?? e); }
+      }
+      if (!ok) return;
+      V.told = true;
+      await this._ktSave(V, now, true);
+    })().finally(() => { this._ktTelling = null; });
+    return this._ktTelling;
+  }
+  /** AUDIT KETCH L1-2: THE HUB KEEPS EACH EARNER'S KETCH RECEIPT for its life, one key an account (its latest voyage's) - never
+   *  over a newer voyage's, nor over its account's word that this voyage's share is given (that word may come first) - and
+   *  hands it to that account's newest socket here now and to its next hello. */
+  async _ktRcInternal(request) {
+    let body = null;
+    try { body = await request.json(); } catch { /* refused below */ }
+    const c = validKtRcTell(body);
+    if (!c) return json({ ok: false }, 400);
+    const keep = [];
+    for (const [sub, r] of c.rc) { const cl = readKetchReceipt(r); if (cl && cl.s === sub && cl.d === c.n) keep.push([sub, { n: c.n, r, e: cl.e }]); }
+    if (!keep.length) return json({ ok: true });
+    this._noKtRcpt.clear();
+    const had = await this.state.storage.get(keep.map(([sub]) => ketchReceiptKey(sub)));
+    const fresh = keep.filter(([sub]) => { const v = had.get(ketchReceiptKey(sub)); return !(v && typeof v === 'object' && Number.isSafeInteger(v.n) && (v.n > c.n || (v.n === c.n && (v.spent || v.r)))); });
+    if (fresh.length) await this.state.storage.put(Object.fromEntries(fresh.map(([sub, v]) => [ketchReceiptKey(sub), v])));
+    const owed = new Map(fresh);
+    for (const [sub, [ws]] of this._siegeSockets()) if (owed.has(sub)) this._send(ws, JSON.stringify({ t: 'kt', k: 'rcpt', r: owed.get(sub).r }));
+    return json({ ok: true });
+  }
+  /** AUDIT KETCH L1-2: an account's kept Ketch receipt to its hello while it is good - an expired one forgotten, a spent one
+   *  not said. */
+  async _ktReceiptTo(ws, sub, now) {
+    if (this._noKtRcpt.has(sub)) return;
+    const k = ketchReceiptKey(sub), v = await this.state.storage.get(k);
+    if (!v || typeof v !== 'object') { this._noKtRcpt.set(sub, 1); return; }
+    const gone = !(Number.isFinite(v.e) && v.e * 1000 > now) || (v.spent !== true && typeof v.r !== 'string');
+    if (gone) { await this.state.storage.delete(k); return; }
+    if (v.spent === true) return;
+    this._send(ws, JSON.stringify({ t: 'kt', k: 'rcpt', r: v.r }));
+  }
+  /** AUDIT KETCH L1-2: the account's word that a voyage's share is given - REMEMBERED AS SPENT in its kept copy's place for a
+   *  receipt's life (the word may come before the fall's own tell, and must stand over it); a newer voyage's left alone, and
+   *  none past the clock's own voyage. */
+  async _ktSpent(sub, n, now) {
+    if (!(n <= ketchVoyageAt(now).n)) return;
+    const k = ketchReceiptKey(sub), v = await this.state.storage.get(k);
+    if (v && typeof v === 'object' && Number.isSafeInteger(v.n) && (v.n > n || (v.n === n && v.spent === true))) return;
+    this._noKtRcpt.delete(sub);
+    await this.state.storage.put(k, { n, spent: true, e: Math.floor(now / 1000) + KT_RECEIPT_TTL_S });
   }
   // ───────────────────────────── SD8b: THE LAST MOMENT'S FIGHT ─────────────────────────────
   /** The realm's fight - the instance's, else storage's (the gate's law: one room, one fight). */

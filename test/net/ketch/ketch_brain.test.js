@@ -15,7 +15,7 @@ import { ketchRoomKey, ketchVoyageOf, KT_STAGE, KT_CREW_MAX } from '../../../src
 import { KT_CRADLES, KT_BRIDGE_CRADLES, KT_SOCKETS, KT_RESONATORS, KT_GANGWAY, KT_WARDEN_WAKE_Z, KT_HOLD, KT_MAIN_TOP, engineNeeds } from '../../../src/net/ketch/ketchDeck.js';
 import { KW_ID, KW_FORK_ID0, KW_PHASE_AT, KW_LOST_MS } from '../../../src/net/ketch/ketchWarden.js';
 import { HIT_KINDS, BUCKET_DEPTH_X, dpsRef } from '../../../src/net/gate/gateBrain.js';
-import { validKetchOut, validKetchIn, KT_OUT_KINDS, KT_CELL_SPOT_MAX, KT_BODY_ID_MAX, KT_CREW_WIRE_MAX, KT_KIND_MAX } from '../../../src/net/wire.js';
+import { validKetchOut, validKetchIn, validKtRcTell, KT_OUT_KINDS, KT_CELL_SPOT_MAX, KT_BODY_ID_MAX, KT_CREW_WIRE_MAX, KT_KIND_MAX } from '../../../src/net/wire.js';
 import { KT_KIND_BY_K } from '../../../src/net/ketch/ketchConstructs.js';
 import { ship, all, bodiesOf, poseOf, sail, strikeFloor, wireOk, toEngine, feed, toBridge, carried, OWNER, T0, SHAFT, seeded, WAIST, GALLERY, HOLD_MID } from './ketchSim.mjs';
 
@@ -277,6 +277,11 @@ test('KETCH THE WIRE\'S BOUNDS ARE THE SHIP\'S: a cradle\'s, a socket\'s and a r
   assert.deepEqual(validKetchIn({ k: 'in', lv: 30, bv: 1 }), { k: 'in', lv: 30, bv: 1 });
   assert.deepEqual(validKetchIn({ k: 'hurt', s: 'x' }), { k: 'hurt' });
   assert.equal(validKetchIn({ k: 'warp' }), null);
+  assert.deepEqual(validKetchIn({ k: 'spent', n: 3, x: 1 }), { k: 'spent', n: 3 }, 'a share given (AUDIT KETCH L1-2)');
+  assert.equal(validKetchIn({ k: 'spent', n: -1 }), null);
+  const r = 'y1.e30.';
+  assert.deepEqual(validKtRcTell({ n: 3, rc: [['acct-a', r], ['acct-b', 'k1.e30.'], ['bad id!', r], 7] }), { n: 3, rc: [['acct-a', r]] }, 'the wire\'s own receipts alone');
+  assert.equal(validKtRcTell({ n: 'x', rc: [] }), null);
 });
 
 test('KETCH A FIGHT LOST: nobody living on the bridge for KW_LOST_MS - the bridge\'s constructs go, its cells with them, the Warden stands at its helm again, and the next `in` is a fresh fight; earners only at a fall (mutants: a lost fight kept; its bridge cells left lying)', () => {

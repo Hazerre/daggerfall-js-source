@@ -160,5 +160,32 @@
     "tests": [
       "test/net/ketch/ketch_relay.test.js"
     ]
+  },
+  {
+    "name": "KTR-the-hub-never-told",
+    "file": "server/src/index.js",
+    "old": "      await this._ktTellHub(V, now);\n    })().finally(() => { this._ktFalling = null; });",
+    "new": "    })().finally(() => { this._ktFalling = null; });",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  },
+  {
+    "name": "KTR-a-spent-receipt-handed-again",
+    "file": "server/src/index.js",
+    "old": "    if (v.spent === true) return;\n    this._send(ws, JSON.stringify({ t: 'kt', k: 'rcpt', r: v.r }));",
+    "new": "    this._send(ws, JSON.stringify({ t: 'kt', k: 'rcpt', r: v.r }));",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  },
+  {
+    "name": "KTR-a-ships-room-keeping-a-spent-word",
+    "file": "server/src/index.js",
+    "old": "      if (!isSocialRoom(a.key) || typeof a.sub !== 'string' || !a.sub) { this._junk(ws); return; }\n      try { await this._ktSpent(",
+    "new": "      if (typeof a.sub !== 'string' || !a.sub) { this._junk(ws); return; }\n      try { await this._ktSpent(",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
   }
 ]

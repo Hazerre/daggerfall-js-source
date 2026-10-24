@@ -19,7 +19,7 @@
 //     gangway or the bridge UNBARS THE BRIDGE: the bosun's line runs from the main top for the rest.
 //   THE TONAL WARDEN (the bridge): net/ketch/ketchWarden.js on the boss seam - its `in`, its blows, its Discord's
 //     resonators (put right with the bridge's own two cradles' cells - the engine's law again), its forks, its sections.
-//     Its fall: THE CABIN OPENS, and every member who earned it is owed a receipt (the room mints them - k1).
+//     Its fall: THE CABIN OPENS, and every member who earned it is owed a receipt (the room mints them - y1).
 //
 // ONE HAND AND ONE PURSE a member, for everything it strikes (net/gate/gateBrain.js spendBlow, spendPurse - the gate's
 // own rule for its boss, crystals and host): the voyage's crew record. The census (net/bossBody.js) counts the same record.

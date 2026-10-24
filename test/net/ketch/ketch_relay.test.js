@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fakeRooms } from '../../fakeRoom.mjs';
-import { SOCIAL_ROOM, KT_VOYAGE_KEY, KT_RELAY_MIN, RELAY_VERSION, relaySupportsKetch } from '../../../src/net/wire.js';
+import { SOCIAL_ROOM, KT_VOYAGE_KEY, KT_RELAY_MIN, RELAY_VERSION, relaySupportsKetch, ketchReceiptKey } from '../../../src/net/wire.js';
 import { instanceOwnerOf } from '../../../src/net/instanceRoom.js';
 import { ketchRoomKey, ketchVoyageOf, KT_TEXT, KT_STAGE, KT_CREW_MAX } from '../../../src/net/ketch/ketchLaw.js';
 import { deckToDungeon } from '../../../src/net/ketch/ketchDeck.js';
@@ -186,6 +186,36 @@ test('KETCH THE FALL: its receipts minted for each earner once, kept before they
     assert.equal(ship.alarm.at, V1.endAt, 'the fall said: the beat rests till her end (AUDIT KETCH L1-11)');
     const late = ship.connect(); await ship.hello(late, 'alice', at(0, 0, 200));
     assert.deepEqual(kt(late, 'rcpt').map((m) => m.r), [r[0].r], 'handed again at a late hello');
+  });
+});
+
+test('KETCH THE HUB KEEPS THE RECEIPTS: the fall told to the hub, which keeps each earner\'s for its life and hands it to the account\'s hub socket at once and at every hello - an earner off the ship who never boards her again still has it; its account\'s `spent` word stands over it, from the hub alone (AUDIT KETCH L1-2; mutants: the hub never told; a spent receipt handed again; a ship\'s room keeping a spent word)', async () => {
+  await withShip(async ({ ship, hub, step, now }) => {
+    const alice = ship.connect(); await ship.hello(alice, 'alice', at(0, 0, 200), { charLevel: 30 });
+    const V = ship.room._kt;
+    V.sg = KT_STAGE.bridge; V.bridge = { at: now(), by: 'alice' };
+    V.wf = KETCH_SEAM.new({ room: V.key, fi: 1, now: now() });
+    KETCH_SEAM.join(V.wf, 'acct-alice', 'alice', 30, now());
+    V.wf.players['acct-alice'].dealt = V.wf.players['acct-alice'].share;
+    V.wf.liveMs = 60_000;
+    V.wf.fell = { at: now(), top: ['alice'], n: 1 };
+    await ship.drop(alice);   // off the ship at the fall - and she never boards again
+    const away = hub.connect(); await hub.hello(away, 'alice');
+    const before = away.sent.length;
+    step(250); await ship.fire();
+    assert.equal(V.told, true, 'the hub told');
+    const kept = hub.store.get(ketchReceiptKey('acct-alice'));
+    assert.deepEqual([kept?.n, typeof kept?.r], [1, 'string'], 'kept at the hub');
+    assert.deepEqual(away.sent.slice(before).filter((m) => m.t === 'kt' && m.k === 'rcpt').map((m) => m.r), [kept.r], 'handed to her hub socket at once');
+    const later = hub.connect(); await hub.hello(later, 'alice');
+    assert.deepEqual(kt(later, 'rcpt').map((m) => m.r), [kept.r], 'and at her next hello');
+    await hub.raw(later, word('spent', { n: 1 }));
+    assert.equal(hub.store.get(ketchReceiptKey('acct-alice')).spent, true, 'its share given: spent');
+    const again = hub.connect(); await hub.hello(again, 'alice');
+    assert.equal(kt(again, 'rcpt').length, 0, 'never handed again');
+    const aboard = ship.connect(); await ship.hello(aboard, 'alice', at(0, 0, 200));
+    await ship.raw(aboard, word('spent', { n: 1 }));
+    assert.ok(!ship.store.has(ketchReceiptKey('acct-alice')), 'a ship\'s room keeps no spent word');
   });
 });
 

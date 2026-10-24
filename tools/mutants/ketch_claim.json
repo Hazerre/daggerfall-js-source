@@ -187,5 +187,14 @@
     "tests": [
       "test/server/ketch_claim.test.js"
     ]
+  },
+  {
+    "name": "KTA-the-watchs-letter",
+    "file": "src/net/ketch/ketchReceipt.js",
+    "old": "export const KT_RECEIPT_V = 'y1';",
+    "new": "export const KT_RECEIPT_V = 'k1';",
+    "tests": [
+      "test/server/ketch_claim.test.js"
+    ]
   }
 ]

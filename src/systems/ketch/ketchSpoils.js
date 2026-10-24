@@ -1,6 +1,6 @@
 // @ts-check
 // KETCH (2026-10-24; bible/11-Multiplayer/Sky-Ketch.md section 9): THE KETCHMASTER'S HOLD - what one member's share of the
-// Tonal Warden's fall pays, rolled from the relay's receipt (net/ketch/ketchReceipt.js `k1`): the Brass Remnant's spoils'
+// Tonal Warden's fall pays, rolled from the relay's receipt (net/ketch/ketchReceipt.js `y1`): the Brass Remnant's spoils'
 // twin (systems/superDungeon/sdSpoils.js) rung for rung, and THE ONE PLACE A GUN IS FOUND.
 //
 // PER MEMBER, AND THE SEED'S OWN: everything here is rolled on `seededRng(c)` (systems/wind/wind.js) - the receipt's seed,

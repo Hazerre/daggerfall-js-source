@@ -2,14 +2,14 @@
 // KETCH (bible/11-Multiplayer/Sky-Ketch.md section 9): THE KETCH'S RECEIPT - the relay's signature on the Tonal Warden's
 // fall, the Hour's twin (net/superDungeon/sdReceipt.js) rung for rung.
 //
-//     k1.<base64url({ d, b, o, s, c, x, l, m?, i, e })>.<base64url(64-byte Ed25519 signature)>
+//     y1.<base64url({ d, b, o, s, c, x, l, m?, i, e })>.<base64url(64-byte Ed25519 signature)>
 //         d the voyage (net/ketch/ketchLaw.js)   b the boss ('warden')   o the crew's ship - its captain's digest, 16 hex
 //         s the account (the identity sub)   c the spoils' seed (32 bits, the relay's CSPRNG)   x how it was earned
 //         ('dealt' | 'stood')   l the level the fight admitted it at   m the relay's count of its body (INT14, optional)
 //         i issued, epoch seconds   e expires (i + KT_RECEIPT_TTL_S)
 //
 // ONE KEY, NEVER CONFUSED: the relay's one secret signs it as it signs every kill, the version INSIDE the signed bytes,
-// so `k1` is refused by every other verifier and theirs by this one before a byte of either body is parsed - and its
+// so `y1` is refused by every other verifier and theirs by this one before a byte of either body is parsed - and its
 // claims carry none of the others' own fields. UNSIGNED IS A REAL ANSWER (a relay with no key): the page reads it and the
 // account service declines it - and the Ketchmaster's hold, which pays only the share the service grants once a voyage an
 // account (net/ketch/ketchClaims.js, scenes/ketch/ketchClient.js `paid`), pays nothing off it (the Hour's page, which owes
@@ -23,7 +23,7 @@
 import { _b64url, SIG_BYTES, SKEW_S, ID_RE } from '../identityToken.js';
 import { bodyMeasureValid } from '../bossBody.js';
 
-export const KT_RECEIPT_V = 'k1';
+export const KT_RECEIPT_V = 'y1';
 /** How long a receipt may be carried to the account service: a week, the voyage's own. */
 export const KT_RECEIPT_TTL_S = 7 * 24 * 3600;
 export const KT_RECEIPT_MAX = 560;
@@ -53,7 +53,7 @@ export function ketchReceiptValid(c) {
 }
 
 /**
- * MINT - the relay's half. With no key the receipt goes out unsigned (`k1.<body>.`).
+ * MINT - the relay's half. With no key the receipt goes out unsigned (`y1.<body>.`).
  * @param {{d: number, o: string, s: string, c: number, x: string, l: number, m?: number[]}} what
  * @param {CryptoKey|null} privateKey @param {{subtle: SubtleCrypto, nowS: number}} env
  * @returns {Promise<string>}

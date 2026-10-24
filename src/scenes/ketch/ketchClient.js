@@ -19,7 +19,7 @@
 //     the ways down (the anchor-lift on the Anchor Deck, the stern lift in the cabin), the nets' cast-back and its cost,
 //     A DEATH A FALL (the death save: out of the sky to the fields under her lift, the lift there to ride again while she
 //     keeps station), the voyage's end, the room's refusal - and the HUD (ui/ketch/ketchHud.js).
-//   THE HOLD: every `k1` the room hands me kept on the device and carried to the account service
+//   THE HOLD: every `y1` the room hands me kept on the device and carried to the account service
 //     (net/ketch/ketchClaims.js); a share it pays waits in the Ketchmaster's chest while I stand aboard (opened, it spills
 //     across the cabin floor - the Hour's spoils pool), and goes into the pack if I leave without opening it.
 //

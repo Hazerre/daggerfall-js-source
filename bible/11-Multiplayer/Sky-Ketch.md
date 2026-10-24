@@ -178,7 +178,7 @@ cell loose (the Tonal Wave, jumped, never). The Warden's own are its fight's (`j
 
 ## 9. The Ketchmaster's hold - the receipt, the week's share, the spoils, the guns
 
-**The receipt** (`net/ketch/ketchReceipt.js`, `k1`): the relay's signature on the fall for each earner - its voyage, the
+**The receipt** (`net/ketch/ketchReceipt.js`, `y1`): the relay's signature on the fall for each earner - its voyage, the
 crew's ship, the account, a seed, how it was earned, the level - never another boss's. Unsigned (a keyless relay) the
 page reads it and the service declines it; the hold pays nothing off it.
 

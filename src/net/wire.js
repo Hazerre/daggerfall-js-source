@@ -1582,7 +1582,7 @@ export const KEEPALIVE_FAN_MS = HEARTBEAT_MS / 2;
  *  is deployed by CI and the relay by hand, so a skew between them is the ordinary state of a release day, and until
  *  now nothing on either end could see it. */
 // Integrated Arena spectator visibility with staff teleport, stable boat identity and private ownership; deploy relay before clients.
-export const RELAY_VERSION = 'world253';   // world253: KETCH (2026-10-24, the owner: "A proper dwarven airship flies in once a week over the skies of daggerfall, and you, along with other players venture into it in a raid like format", "Make the dwarven event 8 player"; bible/11-Multiplayer/Sky-Ketch.md section 10; NOT YET DEPLOYED) - one frame, `kt` (validKetchIn, validKetchOut), in a crew's ship's room `kt:<voyage>.<owner>` alone: the Worker mints one only while its voyage holds its crews (net/ketch/ketchLaw.js ketchRoomHolds), the room admits its captain, staff and the captain's party (INSTANCES' kin) to KT_CREW_MAX, and runs the voyage (net/ketch/ketchBrain.js) and its Tonal Warden on the boss seam; the receipts are `k1` (net/ketch/ketchReceipt.js). A page boards only once its relay says KT_RELAY_MIN. Before it, world252: DECK-POSE (2026-10-23, world248 on its branch - renumbered past AUDIT EG-FALL's world248 and STAFF-PANEL5-MONSTERS' world249 at one merge, and past HERALD-CARDS' world250 and AUDIT MIXED-PAIR / SPELL-HAND's world251 at the next; the owner: "Players on board the ship jitter while sailing instead of staying put. Other players also slide when on board your ship/npc ships"; NOT YET DEPLOYED) - validPose carries `ab`, a place aboard a boat (validAboard: her owner, which of their boats, the feet in her frame), so a reader plays a passenger's place on a deck out with their walk. A relay before this field strips it and the reader falls back to the foes frame's `ab`, as before.
+export const RELAY_VERSION = 'world253';   // world253: KETCH (2026-10-24, the owner: "A proper dwarven airship flies in once a week over the skies of daggerfall, and you, along with other players venture into it in a raid like format", "Make the dwarven event 8 player"; bible/11-Multiplayer/Sky-Ketch.md section 10; NOT YET DEPLOYED) - one frame, `kt` (validKetchIn, validKetchOut), in a crew's ship's room `kt:<voyage>.<owner>` alone: the Worker mints one only while its voyage holds its crews (net/ketch/ketchLaw.js ketchRoomHolds), the room admits its captain, staff and the captain's party (INSTANCES' kin) to KT_CREW_MAX, and runs the voyage (net/ketch/ketchBrain.js) and its Tonal Warden on the boss seam; the receipts are `y1` (net/ketch/ketchReceipt.js). A page boards only once its relay says KT_RELAY_MIN. Before it, world252: DECK-POSE (2026-10-23, world248 on its branch - renumbered past AUDIT EG-FALL's world248 and STAFF-PANEL5-MONSTERS' world249 at one merge, and past HERALD-CARDS' world250 and AUDIT MIXED-PAIR / SPELL-HAND's world251 at the next; the owner: "Players on board the ship jitter while sailing instead of staying put. Other players also slide when on board your ship/npc ships"; NOT YET DEPLOYED) - validPose carries `ab`, a place aboard a boat (validAboard: her owner, which of their boats, the feet in her frame), so a reader plays a passenger's place on a deck out with their walk. A relay before this field strips it and the reader falls back to the foes frame's `ab`, as before.
 // world251: AUDIT MIXED-PAIR / SPELL-HAND (2026-10-23, world249 on its branch - renumbered past STAFF-PANEL5-MONSTERS' world249 and HERALD-CARDS' world250 at the merge; the owner: "Audit this and ensure perfection", of MIXED-PAIR and SPELL-HAND - bible/01-Overview/audits/Audit-Mixed-Pair-Spell-Hand.md L4-3; bible/05-Combat/Two-Hands.md; NOT YET DEPLOYED): validPose carries `ah` - a pair's LEFT hand struck last - so the others draw a pair in both hands and play each strike with the hand that made it (net/peer/peerBodies.js peerHandsOf). A relay before this field strips it and the socket stays open: an older relay's peers play every strike with the right hand's weapon, as before.
 // world250: HERALD-CARDS (2026-10-22, world243 on its branch - renumbered past PARTY-PING's world243, SPAWN-THIN's world244, AUDIT PISTOLET's world245, SEA VENTURES' world246, STAFF-PANEL5's world247, AUDIT EG-FALL's world248 and STAFF-PANEL5-MONSTERS' world249 at the merge; the owner: "I want to overhaul our discord world event notification system to be more organized"; net/herald/heraldCard.js; NOT YET DEPLOYED) - every herald's Discord post is one card of its family (Dagon's Breach, the Sea Serpent, the Abyss Dungeon, the Battlespire): its colour, the moment's title, its facts as fields, the moment its footer; content only when it pings. Each family may post to a thread of its own of the world events' channel - the relay settings gateThread, serpentThread, sdThread and egThread (vars GATE_DISCORD_THREAD and the rest), the gate's thread else, the channel itself with none. net/herald/heraldCard.js joins the bundle. No frame changes shape; the client says a thread setting only to a relay at world243 or later (relayCfg.js RELAY_CFG_KEY_MIN).
 // world249: STAFF-PANEL5-MONSTERS (2026-10-23, world248 on its branch - renumbered past AUDIT EG-FALL's world248 at the merge; mob wants all three feed pages working with grantStrip off; NOT YET DEPLOYED) - the Staff Panel's Monster watch counts a full foes frame's live monsters whatever grantStrip says (server/src/staffFeeds.js staffFoesSeen, on _foesSend's path: read, never changed, nothing at all while STAFF_NET_FEED_URL is unset), and the net batch says `ms` 1 always, so the panel shows it measured; grantStrip stays off (an audit showed it hides honest players' monsters). The feed's law (staffFeedLaw.js, `staff-net1`, `ms` 0 or 1) is unchanged, so the account service takes it as it is. Nothing a player receives changes. With it STAFF-CHAT-RED (mob: "give me a option next to chat to chat as /red or myself at all times"): a hidden staff socket is heard in /red's ask (server/src/staffHidden.js HIDDEN_FRAMES), so a hidden Admin's Red line still speaks as the server, naming nobody.
@@ -6796,7 +6796,7 @@ export const KT_RELAY_MIN = 253;
 export const relaySupportsKetch = (v) => { const m = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!m && Number(m[1]) >= KT_RELAY_MIN; };
 /** What a member may say: its `in` to the bridge's fight, a blow (`hit`), a cell taken, set, let go or knocked from its
  *  hands, and its body's word (`vt`). */
-export const KT_IN_KINDS = Object.freeze(['in', 'hit', 'pick', 'bank', 'drop', 'hurt', 'vt']);
+export const KT_IN_KINDS = Object.freeze(['in', 'hit', 'pick', 'bank', 'drop', 'hurt', 'vt', 'spent']);   // AUDIT KETCH L1-2: `spent`, a voyage's share given - to the hub alone
 /** What the room says (a page drops any other kind). */
 export const KT_OUT_KINDS = Object.freeze(['st', 'nb', 'mv', 'bl', 'hp', 'dn', 'sg', 'cl', 'wave', 'wk', 'drop', 'pick', 'bank', 'wf', 'ws', 'whp', 'ph', 'ward', 'rs', 'fk', 'fkh', 'fkb', 'stun', 'sec', 'lost', 'wl', 'fell', 'rcpt', 'no', 'bd']);
 /** The fight's brain, by number (the Hour's SD_BRAIN_V law): said on every `in`, refused below KT_BRAIN_MIN. */
@@ -6815,9 +6815,9 @@ export const KT_CELL_SPOT_MAX = 13;
 export const KT_CREW_WIRE_MAX = 8;
 export const KT_KIND_MAX = 4;
 export const KT_HP_MAX = 99_999_999;
-/** The receipt on the wire - a `k1` (net/ketch/ketchReceipt.js KT_RECEIPT_MAX, pinned equal), signed or not. */
+/** The receipt on the wire - a `y1` (net/ketch/ketchReceipt.js KT_RECEIPT_MAX, pinned equal), signed or not. */
 export const KT_RECEIPT_WIRE_MAX = 560;
-const KT_RECEIPT_RE = /^k1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$/;
+const KT_RECEIPT_RE = /^y1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$/;
 /** Why a ship refuses an `in` or a word, by the number on the wire - the voyage gone, the fight over, a game whose brain
  *  is older. The page says each in the player's language (net/ketch/ketchLink.js KT_LINK_TEXT.no, in this order). */
 export const KT_NO_WORDS = Object.freeze(['gone', 'over', 'older']);
@@ -6829,6 +6829,7 @@ export function validKetchIn(m) {
   if (m.k === 'drop' || m.k === 'hurt') return { k: m.k };
   if (m.k === 'pick') return intIn(m.c, 0, KT_CELL_SPOT_MAX) ? { k: 'pick', c: m.c } : intIn(m.l, 1, 1e9) ? { k: 'pick', l: m.l } : null;
   if (m.k === 'bank') return intIn(m.s, 0, KT_CELL_SPOT_MAX) ? { k: 'bank', s: m.s } : null;
+  if (m.k === 'spent') return intIn(m.n, 0, KT_VOYAGE_N_MAX) ? { k: 'spent', n: m.n } : null;
   if (!intIn(m.o, 1, KT_BODY_ID_MAX) || !intIn(m.q, 0, GATE_SEQ_MAX) || !finite(m.d) || m.d <= 0 || m.d > GATE_DMG_WIRE_MAX || (m.r !== 0 && m.r !== 1 && m.r !== 2)) return null;
   return { k: 'hit', o: m.o, q: m.q, d: m.d, r: m.r };
 }
@@ -6915,3 +6916,23 @@ export function validKetchOut(m) {
 }
 /** Where a ship's room keeps its voyage (net/ketch/ketchBrain.js newVoyage's record - outside every swept prefix). */
 export const KT_VOYAGE_KEY = 'ktvoyage';
+/** AUDIT KETCH L1-2 (an earner off the ship at the fall, who never boarded her again, lost its receipt - every other
+ *  event's are kept at the hub): WHERE THE HUB KEEPS AN EARNER'S KETCH RECEIPT - its latest voyage's, `{ n, r, e }`, or
+ *  `{ n, spent: true, e }` once its account says that voyage's share is given (`kt` `spent`, on the hub's socket) - for
+ *  the receipt's life, handed at its account's next hello (the Hour's SD9a, rung for rung). */
+export const KT_RC_PREFIX = 'ktrc:';
+export const ketchReceiptKey = (sub) => `${KT_RC_PREFIX}${sub}`;
+/** The hub's internal door a ship's room tells its fall's receipts at, and how long it waits to tell again. */
+export const KT_INTERNAL_RC = '/internal/ketch/rc';
+export const KT_TELL_RETRY_MS = 30_000;
+/** The most a voyage's number is on the wire (two centuries of Loredas). */
+export const KT_VOYAGE_N_MAX = 10_000;
+/** A ship's receipts as told to the hub - its voyage and `[account, receipt]` each, the wire's own receipts alone -
+ *  projected, or null. */
+export function validKtRcTell(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const b = /** @type {any} */ (v);
+  if (!intIn(b.n, 0, KT_VOYAGE_N_MAX) || !Array.isArray(b.rc)) return null;
+  const rc = b.rc.slice(0, KT_CREW_WIRE_MAX).filter((e) => Array.isArray(e) && typeof e[0] === 'string' && ID_RE.test(e[0]) && typeof e[1] === 'string' && e[1].length <= KT_RECEIPT_WIRE_MAX && KT_RECEIPT_RE.test(e[1])).map((e) => [e[0], e[1]]);
+  return { n: b.n, rc };
+}
