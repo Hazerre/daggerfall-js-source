@@ -24,7 +24,7 @@
 // Not a DFU member. Ledger A (KETCH).
 import {
   KT_ANCHOR, KT_WAIST, KT_GALLERY, KT_LANDING, KT_HOLD, KT_HATCH, KT_HOLD_HATCH, KT_QUARTER_WALL, KT_ANCHOR_LIFT, KT_LIFT, KT_MAIN_TOP, KT_YARD,
-  KT_LINE, KT_LINE_LAND, KT_RAIL_R, railRuns, KT_COURSE, KT_COURSE_SPEC, KT_GANGWAY, KT_BRIDGE, KT_HELM, KT_CONSOLE, KT_RESONATORS, KT_BRIDGE_CRADLES, KT_SECTIONS, sectionAt, KT_CABIN,
+  KT_LINE, KT_LINE_LAND, KT_RAIL_R, railRuns, KT_GUN_ZS, KT_GUN_DEPTH, KT_COURSE, KT_COURSE_SPEC, KT_GANGWAY, KT_BRIDGE, KT_HELM, KT_CONSOLE, KT_RESONATORS, KT_BRIDGE_CRADLES, KT_SECTIONS, sectionAt, KT_CABIN,
   KT_CABIN_DOOR, KT_VAULT, KT_STERN_LIFT, KT_WAIST_COVER, KT_WARDEN_POSTS, KT_ENGINE, KT_SOCKETS, KT_CRADLES, KT_VENTS, KT_HAMMER, KT_STEAM,
   KT_ARCS, KT_DECK_H, KT_MAIN_MAST, deckToDungeon,
 } from '../../net/ketch/ketchDeck.js';
@@ -50,18 +50,36 @@ export const KT_HOUSE = Object.freeze({ x: 11, z0: KT_QUARTER_WALL.z + 0.6, z1: 
 export const KT_HULL = Object.freeze({ bilge: -14, keel: -20, fin: -25, rub: -2 });
 /** The lift's cage: its floor's half side, its walls' height, its roof's peak over its floor. */
 export const KT_CAGE = Object.freeze({ half: 2.6, h: 2.8, peak: 4.4 });
+/** The cage's floor stands this far over its own zero - over the hold's floor at its foot, never in it. */
+export const KT_CAGE_LIFT_M = 0.02;
+
 /** The shaft's wall thickness; the door in its west face at the hold (z0..z1, its height). */
 export const KT_SHAFT = Object.freeze({ t: 0.3, door: Object.freeze({ z0: KT_LIFT.z - 2, z1: KT_LIFT.z + 2, h: 3.2 }) });
 /** The masts - a ketch's two: each `{ x, z, y0, y1, r, vanes: [lo, hi, reach] }` - the main, the taller, stands on the
  *  waist beside the lift's tower and pierces the main top; the mizzen, shorter, stands aft on the engine house. */
 export const KT_MASTS = Object.freeze([
   Object.freeze({ x: KT_MAIN_MAST.x, z: KT_MAIN_MAST.z, y0: 0, y1: 52, r: KT_MAIN_MAST.r, vanes: Object.freeze([24, 48, 26]) }),
-  Object.freeze({ x: 0, z: 140, y0: KT_HOUSE.ridge, y1: 42, r: 0.65, vanes: Object.freeze([22, 38, 20]) }),
+  Object.freeze({ x: 0, z: 140, y0: KT_HOUSE.ridge, y1: 42, r: 0.65, vanes: Object.freeze([22, 38, KT_COURSE_SPEC.start.x]) }),
 ]);
+/** How far aft of its mast each mast's fan of vanes and its spar stand. */
+export const KT_VANE_DZ = 1.2;
+/** THE JACKSTAY: a brass spar over the Sailwalk's line (`x`), from the main mast's vane-spar (`fore`, its height and z) aft
+ *  to the mizzen's, whose spar reaches out to the line - every checkpoint's three chains hang from it (AUDIT KETCH L4-13:
+ *  they ended in the empty sky). */
+export const KT_JACKSTAY = Object.freeze({
+  x: KT_COURSE_SPEC.start.x,
+  fore: Object.freeze({ y: (KT_MASTS[0].vanes[0] + KT_MASTS[0].vanes[1]) / 2, z: KT_MASTS[0].z + KT_VANE_DZ }),
+  aft: Object.freeze({ y: (KT_MASTS[1].vanes[0] + KT_MASTS[1].vanes[1]) / 2, z: KT_MASTS[1].z + KT_VANE_DZ }),
+});
+/** The jackstay's height over a z between its ends. */
+export function jackstayY(z) {
+  const { fore: a, aft: b } = KT_JACKSTAY;
+  return a.y + ((b.y - a.y) * (z - a.z)) / (b.z - a.z);
+}
 /** The ground under the keel (deck y), its tile (m a picture), how far it runs; the city of Daggerfall's place and size. */
 export const KT_GROUND = Object.freeze({ y: -260, tile: 420, half: 3200 });
 /** THE KETCH'S STATION over the fields outside Daggerfall (scenes/ketch/ketchSky.js): the deck's origin (the Anchor Deck's fore
- *  rail) from the city's centre, metres east (`x`) and north (`z`) - the bow to the south, the city off the port side. The
+ *  rail) from the city's centre, metres east (`x`) and north (`z`) - the bow to the south, the city off the starboard side. The
  *  city is eight blocks a side (819.2 m, its pixel whole), so 700 m east stands the anchor-lift some 290 m outside the
  *  east wall. One home: the land below the made level draws the city where the world has it. */
 export const KT_STATION = Object.freeze({ x: 700, z: -140 });
@@ -135,6 +153,22 @@ function bulwark(K, pts, y, inside, net = KT_NET_TOP) {
       for (let k = 0; k <= m; k++) { const x = p[0] + ((q[0] - p[0]) * k) / m, z = p[1] + ((q[1] - p[1]) * k) / m; K.pipe(R.brass, [x, y + B.h, z], [x, y + net, z], 0.06, 6); }
     }
   }
+}
+
+/** A checkpoint's three chains, each `[foot, head]`: from inside its floor's rim up to the jackstay over it. */
+export function ketchCheckpointChains(c) {
+  const head = [KT_JACKSTAY.x, jackstayY(c.z), c.z], out = [];
+  for (let k = 0; k < 3; k++) { const a = (k / 3) * Math.PI * 2 + Math.PI / 2; out.push([[c.x + Math.sin(a) * (c.r - 0.3), c.y + 0.1, c.z + Math.cos(a) * (c.r - 0.3)], head]); }
+  return out;
+}
+
+/** The gangway's sill, its corners ([x, z] round it): along its head's edge on the course's side, the gangway's width and
+ *  a hand over each rail, 0.3 m out over the sky and 0.1 m in on its planks (AUDIT KETCH L4-14: it lay square to the deck,
+ *  across the last plank's far edge, in the air before the slanted head). */
+export function ketchGangwaySill() {
+  const W = KT_GANGWAY, L = Math.hypot(W.bx - W.ax, W.bz - W.az), ux = (W.bx - W.ax) / L, uz = (W.bz - W.az) / L, h = W.w / 2 + 0.1;
+  const at = (s, u) => [W.ax - uz * s * h + ux * u, W.az + ux * s * h + uz * u];
+  return [at(1, -0.3), at(1, 0.1), at(-1, 0.1), at(-1, -0.3)];
 }
 
 /**
@@ -275,12 +309,13 @@ export function buildKetchShip() {
   wall(R.iron, [LA.x0, LA.z0], [LA.x0, LA.z1], gy, ceil, [1, 0, 0]);
   wall(R.iron, [LA.x1, LA.z0], [LA.x1, LA.z1], gy, ceil, [-1, 0, 0]);
   wall(R.stone, [LA.x0, LA.z1], [LA.x1, LA.z1], gy, ceil, [0, 0, -1]);
-  // the guns behind their ports: a breech, a barrel into the wall, a brass ring - every eight metres a side
-  for (let z = 64; z <= 100; z += 8) for (const s of [-1, 1]) {
+  // the guns behind their ports: a breech, a barrel into the wall, a brass ring - every eight metres a side; each run in
+  // against its wall on a carriage a body stops at (AUDIT KETCH L4-11: drawn across the outer hammer lanes, walked through)
+  for (const z of KT_GUN_ZS) for (const s of [-1, 1]) {
     const x = s > 0 ? G.x1 : G.x0, y = gy + 1.5;
     K.box(R.brass, x - s * 0.05, x, y - 0.75, y + 0.75, z - 0.75, z + 0.75, { skip: [s > 0 ? 'px' : 'nx'] });
-    K.pipe(R.iron, [x - s * 1.6, y, z], [x, y, z], 0.32, 10, { caps: true });
-    K.box(R.iron, x - s * 2.2 - 0.4, x - s * 1.4 + 0.4, gy, y - 0.2, z - 0.55, z + 0.55, { skip: ['bottom'] });
+    K.pipe(R.iron, [x - s * 1.25, y, z], [x, y, z], 0.32, 10, { caps: true });
+    K.box(R.iron, Math.min(x - s * KT_GUN_DEPTH, x - s * 0.1), Math.max(x - s * KT_GUN_DEPTH, x - s * 0.1), gy, y - 0.2, z - 0.55, z + 0.55, { skip: ['bottom'], solid: true });
   }
   // the hammers' housings on the ceiling over each slam, and their sleeves
   for (const z of KT_HAMMER.rows) for (const x of KT_HAMMER.lanes) {
@@ -330,7 +365,7 @@ export function buildKetchShip() {
   }
   K.pipe(R.iron, [E.x - E.r - 0.2, hy + 2.8, E.z], [E.x - E.r - 1.2, hy + 2.8, E.z], 0.3, 8);
   K.cyl(R.gear, E.x - E.r - 1.4, E.z, 2.2, hy + 0.6, hy + 0.6, 1);   // placeholder face never seen (a disc of no height)
-  // the flywheel: a gear's face standing beside the drum, port side, turning on its axle (its face drawn both ways)
+  // the flywheel: a gear's face standing beside the drum, starboard side, turning on its axle (its face drawn both ways)
   {
     const fx = E.x - E.r - 1.3, fy = hy + 2.8, fr = 2.4, n = 20;
     for (let k = 0; k < n; k++) {
@@ -386,7 +421,8 @@ export function buildKetchShip() {
     for (const z of [D0.z0 - 0.1, D0.z1 + 0.1]) K.box(R.brass, x0 - 0.15, x0 + t + 0.15, L.y0, L.y0 + D0.h, z - 0.1, z + 0.1);
     // its brass corner posts outside, the height of it; its collar at the top - a rail on three sides (the west the gate's)
     for (const [x, z] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) K.box(R.brass, x - 0.2, x + 0.2, L.y0, L.y1 + 0.1, z - 0.2, z + 0.2, { skip: ['bottom'] });
-    K.rail([[x0, z0 - 0.15], [x1 + 0.15, z0 - 0.15], [x1 + 0.15, z1 + 0.15], [x0, z1 + 0.15]], L.y1, { h: KT_RAIL_H, postRec: R.brass, barRec: R.brass });
+    // netted to KT_HIGH_NET as the main top is (AUDIT KETCH L4-4: a 1.1 m rail, jumped at a run into a 24 m shaft)
+    K.rail([[x0, z0 - 0.15], [x1 + 0.15, z0 - 0.15], [x1 + 0.15, z1 + 0.15], [x0, z1 + 0.15]], L.y1, { h: KT_RAIL_H, net: KT_HIGH_NET, netRec: R.net, postRec: R.brass, barRec: R.brass });
   }
 
   // ── THE MAIN TOP, THE YARD AND THE FIRST TOP ─────────────────────────────────────────────────────────────────
@@ -413,13 +449,11 @@ export function buildKetchShip() {
     for (const s of [-1, 1]) K.rail([[yx0, Y.z + s * (Y.halfW - 0.05)], [Y.x1 + 0.2, Y.z + s * (Y.halfW - 0.05)]], Y.y, { h: KT_RAIL_H, net: KT_HIGH_NET, netRec: R.net, postRec: R.brass, barRec: R.brass });
     K.pipe(R.iron, [KT_LIFT.x + KT_LIFT.half, Y.y - 6, Y.z], [Y.x1, Y.y - T, Y.z], 0.18, 6);
     // THE FIRST TOP (A): the course's start, an island of the Hour's shape at the yard's end - a deck disc, its brass lip,
-    // its underside, and the chains it hangs from up to the main mast's vanes
+    // its underside, and the chains it hangs from up to the jackstay - B and C hang the same way (the Steps stand their floors)
     const A = KT_COURSE_SPEC.start;
     K.sector(R.deck, A.x, A.z, 0, A.r, 0, Math.PI * 2, A.y, 32, { solid: true, rim: 0.4, rimRec: R.brass });
     K.cone(R.hull, [A.x, A.y - 0.4, A.z], [A.x, A.y - 3.2, A.z], A.r, 16);
-    for (let k = 0; k < 3; k++) { const a = (k / 3) * Math.PI * 2 + Math.PI / 2; K.pipe(R.chain, [A.x + Math.sin(a) * (A.r - 0.3), A.y + 0.1, A.z + Math.cos(a) * (A.r - 0.3)], [A.x - 2, A.y + 14, A.z], 0.06, 4); }
-    // and B and C hang the same way (the Steps stand their floors)
-    for (const c of KT_COURSE.checkpoints.slice(1)) for (let k = 0; k < 3; k++) { const a = (k / 3) * Math.PI * 2 + Math.PI / 2; K.pipe(R.chain, [c.x + Math.sin(a) * (c.r - 0.3), c.y + 0.1, c.z + Math.cos(a) * (c.r - 0.3)], [c.x - 2, c.y + 14, c.z], 0.06, 4); }
+    for (const c of KT_COURSE.checkpoints) for (const [p, q] of ketchCheckpointChains(c)) K.pipe(R.chain, p, q, 0.06, 4);
     // the bosun's line's post on the main top's aft side (its line is a part - it runs once the bridge is unbarred)
     K.cyl(R.brass, KT_LINE.x, KT_LINE.z, 0.22, M.y, M.y + 3.2, 10, { solid: true });
     K.cyl(R.gear, KT_LINE.x, KT_LINE.z, 0.55, M.y + 3.0, M.y + 3.15, 12);
@@ -437,7 +471,7 @@ export function buildKetchShip() {
       K.rail([[p[0] - s * nx * 0.05, p[1] - s * nz * 0.05], [q[0] - s * nx * 0.05, q[1] - s * nz * 0.05]], 0, { h: KT_RAIL_H, net: KT_HIGH_NET, netRec: R.net, postRec: R.brass, barRec: R.brass });
     }
     // its head on the course's side: a brass sill the last plank's jump lands past
-    K.box(R.brass, Math.min(a[0], d[0]) - 0.1, Math.max(a[0], d[0]) + 0.1, -T, 0.02, Math.min(a[1], d[1]) - 0.3, Math.min(a[1], d[1]) + 0.1);
+    K.prism(R.brass, ketchGangwaySill(), -T, 0.02, { bottom: true });
   }
 
   // ── THE BRIDGE ────────────────────────────────────────────────────────────────────────────────────────────────
@@ -527,11 +561,11 @@ export function buildKetchShip() {
       const n = 5, mid = (lo + hi) / 2;
       for (let k = 0; k < n; k++) {
         const a0 = -0.9 + (1.8 * k) / n, a1 = -0.9 + (1.8 * (k + 1)) / n;
-        const P = (a) => [m.x + s * Math.cos(a) * reach, mid + Math.sin(a) * (hi - lo) * 0.9, m.z + 1.2];
-        K.tri(R.vane, [m.x + s * m.r, mid, m.z + 1.2], P(a0), P(a1), [0.5, 1], [k / n, 0], [(k + 1) / n, 0], [0, 0, 1]);
-        K.tri(R.vane, [m.x + s * m.r, mid, m.z + 1.2], P(a0), P(a1), [0.5, 1], [k / n, 0], [(k + 1) / n, 0], [0, 0, -1]);
+        const P = (a) => [m.x + s * Math.cos(a) * reach, mid + Math.sin(a) * (hi - lo) * 0.9, m.z + KT_VANE_DZ];
+        K.tri(R.vane, [m.x + s * m.r, mid, m.z + KT_VANE_DZ], P(a0), P(a1), [0.5, 1], [k / n, 0], [(k + 1) / n, 0], [0, 0, 1]);
+        K.tri(R.vane, [m.x + s * m.r, mid, m.z + KT_VANE_DZ], P(a0), P(a1), [0.5, 1], [k / n, 0], [(k + 1) / n, 0], [0, 0, -1]);
       }
-      K.pipe(R.brass, [m.x, mid, m.z + 1.2], [m.x + s * reach, mid, m.z + 1.2], 0.18, 6);
+      K.pipe(R.brass, [m.x, mid, m.z + KT_VANE_DZ], [m.x + s * reach, mid, m.z + KT_VANE_DZ], 0.18, 6);
       // the shrouds: rigging from the mast's head to the deck's edge
       K.pipe(R.chain, [m.x, m.y1 - 2, m.z], [s * 12.8, KT_BULWARK.h, m.z - 8], 0.04, 4);
       K.pipe(R.chain, [m.x, m.y1 - 2, m.z], [s * 12.8, KT_BULWARK.h, m.z + 8], 0.04, 4);
@@ -547,6 +581,8 @@ export function buildKetchShip() {
   K.pipe(R.chain, [0, 8, -20], [MAIN.x, MAIN.y1 - 1, MAIN.z], 0.05, 4);
   K.pipe(R.chain, [MAIN.x, MAIN.y1 - 1, MAIN.z], [MIZZEN.x, MIZZEN.y1 - 1, MIZZEN.z], 0.05, 4);
   K.pipe(R.chain, [MIZZEN.x, MIZZEN.y1 - 1, MIZZEN.z], [0, 6.8, KT_CABIN.z0 + 2], 0.05, 4);
+  // the jackstay over the Sailwalk, vane-spar to vane-spar
+  K.pipe(R.brass, [KT_JACKSTAY.x, KT_JACKSTAY.fore.y, KT_JACKSTAY.fore.z], [KT_JACKSTAY.x, KT_JACKSTAY.aft.y, KT_JACKSTAY.aft.z], 0.14, 6);
 
   // ── THE LAMPS ─────────────────────────────────────────────────────────────────────────────────────────────────
   const { up, below } = ketchLampSpots();
@@ -575,7 +611,7 @@ export function buildKetchParts() {
   }));
   const C = KT_CAGE;
   const cage = local(part((K) => {
-    K.box(R.iron, -C.half, C.half, -0.25, 0, -C.half, C.half, { solid: true, recs: { top: R.deck } });
+    K.box(R.iron, -C.half, C.half, -0.25, KT_CAGE_LIFT_M, -C.half, C.half, { solid: true, recs: { top: R.deck } });   // a hair over the hold's floor at its foot (AUDIT KETCH L4-9: the two coplanar, fighting)
     for (const [a, b, n] of [[[C.half, -C.half], [C.half, C.half], [-1, 0, 0]], [[-C.half, -C.half], [C.half, -C.half], [0, 0, 1]], [[-C.half, C.half], [C.half, C.half], [0, 0, -1]]]) {
       K.quad2(R.net, [a[0], 0.1, a[1]], [b[0], 0.1, b[1]], [b[0], C.h, b[1]], [a[0], C.h, a[1]], n, [[0, 0], [2.6, 0], [2.6, 1.4], [0, 1.4]]);
       K.quad(null, [a[0], 0, a[1]], [b[0], 0, b[1]], [b[0], C.h, b[1]], [a[0], C.h, a[1]], n, null, true);
@@ -583,7 +619,8 @@ export function buildKetchParts() {
       K.pipe(R.brass, [a[0], 1.1, a[1]], [b[0], 1.1, b[1]], 0.05, 6);
     }
     for (const [x, z] of [[C.half, C.half], [C.half, -C.half], [-C.half, C.half], [-C.half, -C.half]]) K.pipe(R.brass, [x, 0, z], [x, C.h, z], 0.1, 6);
-    // its roof: a pyramid of iron to its peak - steep, so nothing stands on it
+    // its roof: a pyramid of iron to its peak (59 degrees - a body that lands on it stands, and rides it as the floor's
+    // riders do: AUDIT KETCH L4-8, the record had it too steep to stand on)
     for (const [a, b, n] of [[[-C.half, -C.half], [C.half, -C.half], [0, 0.6, -1]], [[C.half, -C.half], [C.half, C.half], [1, 0.6, 0]], [[C.half, C.half], [-C.half, C.half], [0, 0.6, 1]], [[-C.half, C.half], [-C.half, -C.half], [-1, 0.6, 0]]]) {
       K.tri(R.iron, [a[0], C.h, a[1]], [b[0], C.h, b[1]], [0, C.peak + C.h, 0], [0, 0], [1, 0], [0.5, 1], n, true);
       K.tri(R.iron, [a[0], C.h, a[1]], [b[0], C.h, b[1]], [0, C.peak + C.h, 0], [0, 0], [1, 0], [0.5, 1], [-n[0], -n[1], -n[2]]);
@@ -599,7 +636,7 @@ export function buildKetchParts() {
     K.quad(null, [x, ya, za], [x, ya, zb], [x, yb, zb], [x, yb, za], [-1, 0, 0], null, true);
   };
   const gateHold = local(part((K) => bars(K, L.x - L.half - 0.15, D0.z0, D0.z1, L.y0, L.y0 + D0.h, 0.3), true));
-  const gateTop = local(part((K) => bars(K, L.x - L.half - 0.15, L.z - L.half, L.z + L.half, L.y1, L.y1 + KT_RAIL_H + 0.1, 0.25), true));
+  const gateTop = local(part((K) => bars(K, L.x - L.half - 0.15, L.z - L.half, L.z + L.half, L.y1, L.y1 + KT_HIGH_NET, 0.25), true));   // the net's height (AUDIT KETCH L4-4)
   // the hatches' grates: two leaves barred flat over the opening, hinged along its sides - the host turns each up on its
   // hinge once open (`left` hinged at x0, `right` at x1); `hit` the two together, the bucket the host moves out of reach
   const leaf = (H, xa, xb) => local(part((K) => {
@@ -711,7 +748,7 @@ export function buildKetchAnchorLift() {
 }
 
 /** THE LAND BELOW: the fields under the keel (one great quad, its picture KT_GROUND.tile metres a repeat) and the city of
- *  Daggerfall off the port bow - its walls and towers, its houses, its castle - drawn in the haze. noShadow; never collided. */
+ *  Daggerfall off the starboard beam - its walls and towers, its houses, its castle - drawn in the haze. noShadow; never collided. */
 export function buildKetchGround() {
   const K = ketchKit({ f: faces() });
   const G = KT_GROUND, y = G.y, h = G.half, k = (2 * h) / G.tile;

@@ -73,11 +73,11 @@ function hingeZ(out, a, hx, hy, ox, oy, oz) {
   out[12] = ox + hx - (c * hx - s * hy); out[13] = oy + hy - (s * hx + c * hy); out[14] = oz;
   return out;
 }
+/** The Ketch's pictures drawn as cutouts (their alpha a hole, never a blend). */
+export const KT_CUTOUT_RECS = /** @type {ReadonlyArray<number>} */ (Object.freeze([KT_REC.net]));
 let _artUp = null;
 /** The Ketch's art uploaded once a renderer (its billboards' pictures by the same keys) - the made level's, and the world
  *  outside's (scenes/ketch/ketchSky.js). */
-/** The Ketch's pictures drawn as cutouts (their alpha a hole, never a blend). */
-export const KT_CUTOUT_RECS = Object.freeze([KT_REC.net]);
 export function ensureKetchArt(renderer) {
   if (!renderer?.uploadTexture || _artUp === renderer) return;
   // the nets' holes a cutout - the sky through them (AUDIT KETCH L4-2: uploaded plain, every net drew as a solid wall), as
@@ -336,7 +336,10 @@ export function ketchFrameLook(eye, minute, lane = false) {
   const p = _lookAt;
   if (eye) { p[0] = eye[0] - _O[0]; p[1] = eye[1] - _O[1]; p[2] = eye[2] - _O[2]; } else { p[0] = 0; p[1] = 2; p[2] = 0; }   // dungeonToDeck, in place
   const zone = deckZoneAt(p[0], p[1] - 1.6, p[2]);
-  const below = zone === 'gallery' || zone === 'landing' || zone === 'hold' || (zone === 'lift' && p[1] < -1);
+  // below decks: the rooms the deck plan names, and anywhere inside the hull with the feet under the deck - a stair's whole
+  // flight (AUDIT KETCH L4-7: the waist's stair read 'waist' to two metres down, and lit its walker with the open sky)
+  const feetY = p[1] - 1.6, inHull = Math.abs(p[0]) <= KT_HOLD.x1 && p[2] >= KT_HOLD.z0 - 2 && p[2] <= KT_HOLD.z1 + 2;
+  const below = zone === 'gallery' || zone === 'landing' || zone === 'hold' || (zone === 'lift' && p[1] < -1) || (inHull && feetY < -0.3);
   const L = _look;
   L.below = below;
   if (below) {

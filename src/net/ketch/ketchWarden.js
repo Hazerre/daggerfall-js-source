@@ -33,7 +33,7 @@
 // The fight's frame is the DECK's (net/ketch/ketchDeck.js): the bridge's centre at KT_BRIDGE.
 //
 // Not a DFU member. Ledger A (KETCH).
-import { KT_BRIDGE, KT_HELM, KT_FORK_RING, KT_SECTIONS, onBridge } from './ketchDeck.js';
+import { KT_BRIDGE, KT_WARDEN_HOME, KT_FORK_RING, KT_SECTIONS, onBridge } from './ketchDeck.js';
 import { KT_CREW_MAX } from './ketchLaw.js';
 import {
   dpsRef, clampLv, BUCKET_DEPTH_X, GATE_HIT_HZ_MAX, HIT_KINDS, MELEE_REACH, POSE_SLACK, ABSENT_RETIRE_MS, THREAT_PICK, THREAT_DECAY,
@@ -127,7 +127,7 @@ export function newWardenFight(room, fi, now) {
   const op = now + KW_OPENING_MS;
   return {
     v: 1, room, fi, startedAt: now, op, phase: 1, hp: 0, max: 0,
-    wd: { x: KT_HELM.x, z: KT_HELM.z, yw: KT_HELM.yaw, mv: null, atk: null, lastA: -1, runA: 0, freeAt: 0, nextAt: 0, walkUntil: 0, tg: null, tgAt: 0, until: 0 },
+    wd: { x: KT_WARDEN_HOME.x, z: KT_WARDEN_HOME.z, yw: KT_WARDEN_HOME.yaw, mv: null, atk: null, lastA: -1, runA: 0, freeAt: 0, nextAt: 0, walkUntil: 0, tg: null, tgAt: 0, until: 0 },
     seq: 0, outUntil: 0,
     /** @type {any[]} the blows in flight, as the wire says them (every screen draws and judges each) */
     blows: [],

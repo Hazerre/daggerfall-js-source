@@ -21,7 +21,7 @@
 // Not a DFU member. Ledger A (KETCH).
 import { dpsRef, MELEE_REACH, POSE_SLACK, HIT_KINDS, THREAT_PICK, TARGET_HOLD_MS, BREATH_MS, MOVE_RESAY_M, MOVE_RESAY_MS, REPEAT_MAX, chooseAttack, wrapYaw, spendBlow, spendPurse } from '../gate/gateBrain.js';
 import { egBlowOf, egFloorWindup, shDisc, shLaneAt, shCone, shRing } from '../eliteGates/egShape.js';
-import { KT_ANCHOR, KT_WAIST, KT_LANDING, KT_GALLERY, KT_HOLD, KT_BRIDGE, KT_WAIST_COVER, KT_ENGINE, KT_CONSOLE, KT_LIFT, KT_MAIN_MAST } from './ketchDeck.js';
+import { KT_ANCHOR, KT_WAIST, KT_LANDING, KT_GALLERY, KT_HOLD, KT_BRIDGE, KT_WAIST_COVER, KT_ENGINE, KT_CONSOLE, KT_LIFT, KT_MAIN_MAST, KT_BRIDGE_CRADLES, KT_HELM, KT_HELM_PEDESTAL_R, KT_GUN_ZS, KT_GUN_DEPTH } from './ketchDeck.js';
 
 /** THE KINDS, by the wire's number (`k`) - each its key (the page names a kind by it, systems/ketch/ketchWords.js
  *  ketchKindName: the relay keeps no name of its own). Each blow: its shape (`sh`), its numbers, its wind-up and
@@ -67,9 +67,11 @@ export const KT_FLOORS = Object.freeze({
 export const KT_OBSTACLES = Object.freeze({
   waist: Object.freeze([...KT_WAIST_COVER.capstans.map((c) => Object.freeze([c.x, c.z, c.r])), ...KT_WAIST_COVER.covers.map((c) => Object.freeze([c.x, c.z, Math.hypot(c.w, c.d) / 2])),
     Object.freeze([KT_LIFT.x, KT_LIFT.z, KT_LIFT.half * Math.SQRT2 + 0.2]), Object.freeze([KT_MAIN_MAST.x, KT_MAIN_MAST.z, KT_MAIN_MAST.r + 0.2])]),   // the mast-lift's tower and the main mast beside it
-  landing: Object.freeze([]),
+  landing: Object.freeze(KT_GUN_ZS.flatMap((z) => [-1, 1].map((s) => Object.freeze([s * (KT_GALLERY.x1 - KT_GUN_DEPTH / 2), z, Math.hypot(KT_GUN_DEPTH, 1.1) / 2 + 0.1])))),   // the guns' carriages (AUDIT KETCH L4-11)
   hold: Object.freeze([Object.freeze([KT_ENGINE.x, KT_ENGINE.z, KT_ENGINE.r])]),
-  bridge: Object.freeze([Object.freeze([(KT_CONSOLE.x0 + KT_CONSOLE.x1) / 2, (KT_CONSOLE.z0 + KT_CONSOLE.z1) / 2, Math.hypot(KT_CONSOLE.x1 - KT_CONSOLE.x0, KT_CONSOLE.z1 - KT_CONSOLE.z0) / 2])]),
+  bridge: Object.freeze([Object.freeze([(KT_CONSOLE.x0 + KT_CONSOLE.x1) / 2, (KT_CONSOLE.z0 + KT_CONSOLE.z1) / 2, Math.hypot(KT_CONSOLE.x1 - KT_CONSOLE.x0, KT_CONSOLE.z1 - KT_CONSOLE.z0) / 2]),
+    // AUDIT KETCH L4-10: and the helm's pedestal and the bridge's two cradles (a construct spawned inside one)
+    Object.freeze([KT_HELM.x, KT_HELM.z, KT_HELM_PEDESTAL_R + 0.1]), ...KT_BRIDGE_CRADLES.map(([x, z]) => Object.freeze([x, z, 0.6 * Math.SQRT2 + 0.1]))]),
 });
 
 const r2 = (v) => Math.round(v * 100) / 100;
@@ -88,7 +90,7 @@ export function keepOnFloor(F, x, z, inset = 0) {
   return [px, pz];
 }
 /** Out of every obstacle's rim on its floor (pushed out the nearest way), `pad` beyond it. */
-function clearOf(floor, x, z, pad) {
+export function clearOf(floor, x, z, pad) {
   let px = x, pz = z;
   for (const [ox, oz, or] of KT_OBSTACLES[floor] ?? []) {
     const d = dist(px, pz, ox, oz), R = or + pad;

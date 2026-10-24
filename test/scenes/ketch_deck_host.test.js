@@ -69,3 +69,13 @@ test('KETCH THE NETS ARE CUTOUTS: the rigging net\'s picture uploaded with its h
   let holes = 0; for (let i = 3; i < px.length; i += 4) if (px[i] === 0) holes++;
   assert.ok(holes > 0, 'it has holes to cut');
 });
+
+test('KETCH A STAIR\'S WHOLE FLIGHT IS BELOW DECKS: the waist\'s stair and the hold\'s, every step under the deck, in the lamps\' close air - never the open sky\'s; the open deck and the Sailwalk\'s fall outboard the sky\'s (AUDIT KETCH L4-7; mutants: the flight read by its zone alone)', async () => {
+  const { ketchFrameLook } = await import('../../src/scenes/ketch/ketchDeckHost.js');
+  const { KT_HATCH, KT_HOLD_HATCH, deckToDungeon } = await import('../../src/net/ketch/ketchDeck.js');
+  const eye = (x, feet, z) => deckToDungeon(x, feet + 1.6, z);
+  for (const y of [-0.5, -1.5, -2.5, -3.5, -5.5]) assert.equal(ketchFrameLook(eye((KT_HATCH.x0 + KT_HATCH.x1) / 2, y, (KT_HATCH.z0 + KT_HATCH.z1) / 2), 720).below, true, `the waist's stair at ${y}`);
+  for (const y of [-6.5, -8.5, -10.5]) assert.equal(ketchFrameLook(eye(0, y, (KT_HOLD_HATCH.z0 + KT_HOLD_HATCH.z1) / 2), 720).below, true, `the hold's stair at ${y}`);
+  assert.equal(ketchFrameLook(eye(0, 0, 30), 720).below, false, 'the waist itself');
+  assert.equal(ketchFrameLook(eye(24, -6, 120), 720).below, false, 'a fall outboard of the hull');
+});

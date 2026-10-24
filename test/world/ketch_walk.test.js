@@ -70,8 +70,48 @@ test('KETCH NO WALL CLIMBED OVER INTO A BARRED ROOM: DFU\'s classic climb at Cli
     return null;
   };
   for (const pk of [false, true]) {
-    assert.equal(climbAt(KT_STAGE.gallery, 4.8, -6, 80, 90, (f) => f[0] > 6.5, pk), null, `the gallery's starboard wall (parkour ${pk})`);
+    assert.equal(climbAt(KT_STAGE.gallery, 4.8, -6, 80, 90, (f) => f[0] > 6.5, pk), null, `the gallery's port wall (parkour ${pk})`);
     assert.equal(climbAt(KT_STAGE.bridge, 4.4, 0, 222.0, 0, (f) => f[2] > 224.6, pk), null, `the cabin's front (parkour ${pk})`);
     assert.equal(climbAt(KT_STAGE.engine, 6, 0, 61.2, 0, (f) => f[2] > 62.8, pk), null, `the quarter wall (parkour ${pk})`);
   }
+});
+
+test('KETCH THE MAST-LIFT\'S SHAFT IS NETTED AT THE TOP: with the cage below, a running jump at its collar or its gate - up to the fastest build\'s - never drops a body down the shaft (AUDIT KETCH L4-4; mutants: the collar a plain rail)', async () => {
+  const { EG_FAST_JUMP_X } = await import('../../src/net/eliteGates/egSpanLaw.js');
+  const base = 1_800_000_000 - (1_800_000_000 % 32);   // the cage at the hold's floor
+  for (const [side, from, dir, edgeOf] of [['north collar', [9, 52.9], [0, 1], (f) => 54.85 - f[2]], ['west gate', [3.8, 58], [1, 0], (f) => 5.85 - f[0]], ['east collar', [14.6, 57.2], [-1, 0], (f) => f[0] - 12.15]]) {
+    for (const mult of [1.1, 1.35, EG_FAST_JUMP_X]) {
+      for (const at of [0.6, 1.2]) {
+        const col = new Collider(() => -Infinity), deck = createKetchDeck({ renderer: { createMesh: (m) => ({ m }) } });
+        deck.stand({ dynamicDraws: [], collider: col });
+        const m = new PlayerMotor(col, { speed: 50, running: 50, swimming: 30 }, { jumpBoost: () => mult });
+        m.spawn(...deckToDungeon(from[0], 16.05, from[1]));
+        let t = base + 2, pressed = false, low = 99;
+        const yaw = Math.atan2(dir[0], dir[1]);
+        for (let k = 0; k < 60 * 5; k++) {
+          deck.pose({ sg: KT_STAGE.sailwalk, cl: null, ws: null }, t, t * 1000, m);
+          const go = !pressed && m.grounded && edgeOf(dungeonToDeck(...m.pos)) <= at;
+          if (go) pressed = true;
+          m.update(1 / 60, { forward: 1, run: true, jump: go, up: go, strafe: 0, down: false }, yaw, 0); t += 1 / 60;
+          low = Math.min(low, dungeonToDeck(...m.pos)[1]);
+        }
+        assert.ok(low > 10, `${side}, x${mult}, jumped ${at} m short: held at the top (lowest ${low.toFixed(2)})`);
+      }
+    }
+  }
+});
+
+test('KETCH THE GUNS ARE SOLID AND OUT OF THE LANES: a body walking into a gun\'s carriage stops at it, and each outer hammer lane runs the gallery\'s length unblocked (AUDIT KETCH L4-11; mutants: a carriage walked through)', async () => {
+  const { KT_GUN_ZS, KT_GUN_DEPTH, KT_GALLERY, KT_HAMMER } = await import('../../src/net/ketch/ketchDeck.js');
+  assert.ok(KT_GALLERY.x1 - KT_GUN_DEPTH >= Math.max(...KT_HAMMER.lanes) + 0.4 + 0.3, 'clear of the outer lane by a body\'s breadth');
+  for (const lane of [-4, 4]) {
+    const S = ship(KT_STAGE.gallery);
+    S.spawn(lane, -6, KT_GALLERY.z0 + 2);
+    const end = S.walk([lane, 104], 30);
+    assert.ok(end[2] > 103.5, `the lane at ${lane} walked its length (ended at ${end.map((v) => v.toFixed(2))})`);
+  }
+  const G = ship(KT_STAGE.gallery), z = KT_GUN_ZS[2];
+  G.spawn(3.5, -6, z);
+  const at = G.walk([KT_GALLERY.x1 - 0.2, z], 4);
+  assert.ok(at[0] < KT_GALLERY.x1 - KT_GUN_DEPTH, `stopped at the carriage (at ${at[0].toFixed(2)})`);
 });

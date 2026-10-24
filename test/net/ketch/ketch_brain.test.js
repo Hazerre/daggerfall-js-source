@@ -453,3 +453,16 @@ test('KETCH A RECEIPT\'S MEASURE IS THE FIGHT\'S: a member felled before it join
   stampFightFall(V);
   assert.deepEqual(f.players.mem0.bf, { s: 0, d: 0 }, 'kept as it was');
 });
+
+test('KETCH EVERY BODY RISES CLEAR: every Watch spot and every bridge spawn clear of its floor\'s obstacles by its body\'s breadth - the lift\'s tower, the helm\'s pedestal, the bridge\'s cradles among them; the Warden\'s home before its helm, never in the pedestal (AUDIT KETCH L4-10; mutants: a spot in the tower; a spawn in a cradle)', async () => {
+  const { KT_WATCH_SPOTS, KT_WARDEN_HOME, KT_HELM, KT_HELM_PEDESTAL_R, KT_BRIDGE_CRADLES } = await import('../../../src/net/ketch/ketchDeck.js');
+  const { KT_OBSTACLES, KT_KINDS } = await import('../../../src/net/ketch/ketchConstructs.js');
+  const { KT_BRIDGE_SPAWNS } = await import('../../../src/net/ketch/ketchBrain.js');
+  const { KW_BODY } = await import('../../../src/net/ketch/ketchWarden.js');
+  const clear = (floor, [x, z], r) => KT_OBSTACLES[floor].every(([ox, oz, or]) => Math.hypot(x - ox, z - oz) >= or + r - 1e-9);
+  for (const kind of ['sphere', 'sentry']) for (const p of KT_WATCH_SPOTS[kind]) assert.ok(clear('waist', p, KT_KINDS[kind].r), `${kind} at ${p}`);
+  assert.ok(clear('waist', KT_WATCH_SPOTS.captain, KT_KINDS.captain.r), 'the Captain');
+  for (const p of KT_BRIDGE_SPAWNS) assert.ok(clear('bridge', p, KT_KINDS.sentry.r), `a bridge spawn at ${p}`);
+  for (const [x, z] of KT_BRIDGE_CRADLES) assert.ok(KT_OBSTACLES.bridge.some(([ox, oz]) => ox === x && oz === z), 'the cradles walked round');
+  assert.ok(Math.hypot(KT_WARDEN_HOME.x - KT_HELM.x, KT_WARDEN_HOME.z - KT_HELM.z) >= KW_BODY.r + KT_HELM_PEDESTAL_R, 'the Warden before its helm');
+});

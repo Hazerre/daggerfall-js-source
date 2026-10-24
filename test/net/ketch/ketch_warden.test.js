@@ -11,7 +11,7 @@ import {
   KW_ENDS_MS, KW_END_EVERY_MS, KW_TURN_MS, KW_BLOWS, KW_ID, forkCountFor, forkHpFor, newWardenFight, joinWarden, applyWardenHit,
   wardenOpen, retune, applyForkHit, forksOpen, sectionGone, stepWarden, wardenStateOf, judgeWarden, wardenAllows, KETCH_SEAM, KW_FORK,
 } from '../../../src/net/ketch/ketchWarden.js';
-import { KT_BRIDGE, KT_HELM, KT_SECTIONS, KT_FORK_RING } from '../../../src/net/ketch/ketchDeck.js';
+import { KT_BRIDGE, KT_WARDEN_HOME, KT_SECTIONS, KT_FORK_RING } from '../../../src/net/ketch/ketchDeck.js';
 import { KT_CREW_MAX } from '../../../src/net/ketch/ketchLaw.js';
 import { dpsRef, HIT_KINDS, MELEE_REACH, POSE_SLACK, REPEAT_MAX } from '../../../src/net/gate/gateBrain.js';
 import { BOSS_SEAM_KEYS } from '../../../src/net/bossSeam.js';
@@ -52,7 +52,7 @@ test('KETCH THE WARDEN\'S NUMBERS: a share of 300 s of reference damage; awake s
 
 test('KETCH A SEAT AT THE WARDEN: born at its helm facing the way in, one seat an account, each bringing its share at the fraction it stands at; the crew\'s eight at most; a fight over seats nobody (mutants: a ninth seated; a late fighter bringing a whole share to a hurt Warden)', () => {
   const f = newWardenFight(KEY, 1, T0);
-  assert.deepEqual([f.wd.x, f.wd.z, f.wd.yw, f.op], [KT_HELM.x, KT_HELM.z, KT_HELM.yaw, T0 + KW_OPENING_MS]);
+  assert.deepEqual([f.wd.x, f.wd.z, f.wd.yw, f.op], [KT_WARDEN_HOME.x, KT_WARDEN_HOME.z, KT_WARDEN_HOME.yaw, T0 + KW_OPENING_MS]);
   for (let k = 0; k < KT_CREW_MAX; k++) assert.equal(joinWarden(f, `p${k}`, `P${k}`, 30, T0), true);
   assert.equal(f.max, KT_CREW_MAX * KW_TTK_S * dpsRef(30));
   assert.equal(joinWarden(f, 'p9', 'Nine', 30, T0), false, 'the crew\'s eight');
@@ -72,9 +72,9 @@ test('KETCH THE BELIEF OF A BLOW: nothing while it sleeps, from off the bridge, 
   assert.equal(wardenOpen(f, t), true);
   assert.equal(applyWardenHit(f, 'p0', 100, HIT_KINDS.Shaft, { x: 0, y: 0, z: 150 }, t, take), 0, 'off the bridge');
   assert.equal(applyWardenHit(f, 'p0', 100, HIT_KINDS.Shaft, { ...ON(), y: -12 }, t, take), 0, 'a storey off');
-  const far = { x: KT_HELM.x, y: 0, z: KT_HELM.z - (KW_BODY.r + MELEE_REACH + POSE_SLACK + 1) };
+  const far = { x: KT_WARDEN_HOME.x, y: 0, z: KT_WARDEN_HOME.z - (KW_BODY.r + MELEE_REACH + POSE_SLACK + 1) };
   assert.equal(applyWardenHit(f, 'p0', 100, HIT_KINDS.Melee, far, t, take), 0, 'a swing past reach');
-  const close = { x: KT_HELM.x, y: 0, z: KT_HELM.z - KW_BODY.r - 1 };
+  const close = { x: KT_WARDEN_HOME.x, y: 0, z: KT_WARDEN_HOME.z - KW_BODY.r - 1 };
   assert.equal(applyWardenHit(f, 'p0', 100, HIT_KINDS.Melee, close, t, take), 100);
   assert.equal(applyWardenHit(f, 'nobody', 100, HIT_KINDS.Shaft, ON(), t, take), 0, 'not seated');
   const got = applyWardenHit(f, 'p0', 1e9, HIT_KINDS.Shaft, ON(), t, take);

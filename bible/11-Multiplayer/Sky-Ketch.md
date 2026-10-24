@@ -77,7 +77,7 @@ arrives, keeps station, weighs anchor - "Over Daggerfall").
 
 ## 3. The deck plan - and the ship as built
 
-**The frame** is the deck's (`net/ketch/ketchDeck.js`): metres, y up, x across (port -x), z along the keel from the
+**The frame** is the deck's (`net/ketch/ketchDeck.js`): metres, y up, x across (starboard -x, port +x), z along the keel from the
 bow; into the dungeon host's frame by the Shattered Hour's own move (`realmToDungeon`), so the Hour's Steps lay the
 Sailwalk unchanged.
 
@@ -87,9 +87,9 @@ Sailwalk unchanged.
 | The waist | y 0, z 14-62 | the Boarding Watch; capstans and hatch covers to fight round; the quarter wall aft |
 | The gun deck | y -6, z 52-128 | the Gallery of Hammers (six rows, three lanes), two steam lanes, the Wardens' landing |
 | The hold | y -12, z 52-132 | the Starved Engine fore, six cradles aft, three arc-coils between, four spider vents |
-| The mast-lift | a brass tower at the waist's starboard quarter | the hold to the main top (y 16); it runs once the engine is fed |
+| The mast-lift | a brass tower at the waist's port quarter | the hold to the main top (y 16); it runs once the engine is fed |
 | The main top and its yard | y 16 | the yard out to the Sailwalk's first top; the bosun's line's post |
-| The Sailwalk | outboard to starboard, x 24 | six drifting spars, the beating plates and a riser, seven rotten planks stepping down |
+| The Sailwalk | outboard to port, x 24 | six drifting spars, the beating plates and a riser, seven rotten planks stepping down |
 | The bridge | y 0, a disc r 24 about z 200 | the Tonal Warden; a core (r 15) that never falls, an outer ring in eight sections |
 | The cabin | behind the helm | the Ketchmaster's chest, and the stern lift down |
 
@@ -102,7 +102,7 @@ unbarred, runs from the main top down to the gangway's head for whoever comes af
 **The ship as built** (`world/ketch/ketchModel.js`, `world/ketch/ketchKit.js`, `world/ketch/ketchArt.js` - its own art
 on the pseudo archive KT_ARCHIVE): the hull, two masts and their stays, the engine house, every deck, stair and rail,
 lamps on every deck, the hatches' grates and the cabin's doors (parts the host moves), the bridge's eight sections each
-its own mesh and collider, the resonators' pylons, the land below and Daggerfall off the port bow in the haze. The made
+its own mesh and collider, the resonators' pylons, the land below and Daggerfall off the starboard beam in the haze. The made
 level stands in the dungeon host (`world/ketch/ketchShip.js` - a made location, its one block file), as the Hour does.
 
 ## 4. The stages - the director

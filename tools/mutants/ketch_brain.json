@@ -405,5 +405,23 @@
     "tests": [
       "test/net/ketch/ketch_brain.test.js"
     ]
+  },
+  {
+    "name": "KTB-a-spot-in-the-tower",
+    "file": "src/net/ketch/ketchDeck.js",
+    "old": "[-6, 56], [2.5, 56], [0, 30], [0, 42]]",
+    "new": "[-6, 56], [6, 56], [0, 30], [0, 42]]",
+    "tests": [
+      "test/net/ketch/ketch_brain.test.js"
+    ]
+  },
+  {
+    "name": "KTB-a-spawn-in-a-cradle",
+    "file": "src/net/ketch/ketchBrain.js",
+    "old": "KT_BRIDGE.z + (z - KT_BRIDGE.z) * 0.62, 1.0))));",
+    "new": "KT_BRIDGE.z + (z - KT_BRIDGE.z) * 0.62, 0))));",
+    "tests": [
+      "test/net/ketch/ketch_brain.test.js"
+    ]
   }
 ]

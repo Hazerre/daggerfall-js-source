@@ -133,5 +133,68 @@
     "tests": [
       "test/world/ketch_walk.test.js"
     ]
+  },
+  {
+    "name": "KTM-the-collar-a-plain-rail",
+    "file": "src/world/ketch/ketchModel.js",
+    "old": "L.y1, { h: KT_RAIL_H, net: KT_HIGH_NET, netRec: R.net, postRec: R.brass, barRec: R.brass });\n  }",
+    "new": "L.y1, { h: KT_RAIL_H, postRec: R.brass, barRec: R.brass });\n  }",
+    "tests": [
+      "test/world/ketch_walk.test.js"
+    ]
+  },
+  {
+    "name": "KTM-the-flight-read-by-its-zone-alone",
+    "file": "src/scenes/ketch/ketchDeckHost.js",
+    "old": " || (inHull && feetY < -0.3);",
+    "new": ";",
+    "tests": [
+      "test/scenes/ketch_deck_host.test.js"
+    ]
+  },
+  {
+    "name": "KTM-a-carriage-walked-through",
+    "file": "src/world/ketch/ketchModel.js",
+    "old": "gy, y - 0.2, z - 0.55, z + 0.55, { skip: ['bottom'], solid: true });",
+    "new": "gy, y - 0.2, z - 0.55, z + 0.55, { skip: ['bottom'] });",
+    "tests": [
+      "test/world/ketch_walk.test.js"
+    ]
+  },
+  {
+    "name": "KTM-a-chain-head-in-the-sky",
+    "file": "src/world/ketch/ketchModel.js",
+    "old": "const head = [KT_JACKSTAY.x, jackstayY(c.z), c.z], out = [];",
+    "new": "const head = [c.x - 2, c.y + 14, c.z], out = [];",
+    "tests": [
+      "test/world/ketch_model.test.js"
+    ]
+  },
+  {
+    "name": "KTM-the-mizzen-spar-short-of-the-line",
+    "file": "src/world/ketch/ketchModel.js",
+    "old": "vanes: Object.freeze([22, 38, KT_COURSE_SPEC.start.x]) }),",
+    "new": "vanes: Object.freeze([22, 38, 20]) }),",
+    "tests": [
+      "test/world/ketch_model.test.js"
+    ]
+  },
+  {
+    "name": "KTM-the-sill-square-to-the-deck",
+    "file": "src/world/ketch/ketchModel.js",
+    "old": "const at = (s, u) => [W.ax - uz * s * h + ux * u, W.az + ux * s * h + uz * u];",
+    "new": "const at = (s, u) => [W.ax + s * h, W.az - 1.3 + u];",
+    "tests": [
+      "test/world/ketch_model.test.js"
+    ]
+  },
+  {
+    "name": "KTM-the-cage-floor-at-its-zero",
+    "file": "src/world/ketch/ketchModel.js",
+    "old": "export const KT_CAGE_LIFT_M = 0.02;",
+    "new": "export const KT_CAGE_LIFT_M = 0;",
+    "tests": [
+      "test/world/ketch_model.test.js"
+    ]
   }
 ]

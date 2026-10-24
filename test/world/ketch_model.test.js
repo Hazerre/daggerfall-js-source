@@ -117,3 +117,45 @@ test('KETCH THE SHAFT\'S GATES: the hold\'s open with the cage at its foot and t
   assert.notEqual(KT_LINK_TEXT.dropped('Ann', 'left'), KT_LINK_TEXT.dropped('Ann', 'let'));
   assert.match(KT_LINK_TEXT.dropped('Ann', 'left'), /lost/);
 });
+
+test('KETCH THE CHECKPOINTS HANG FROM A SPAR: each checkpoint\'s three chains run from inside its floor\'s rim up to the jackstay over it, and the jackstay runs over the Sailwalk\'s line from the main mast\'s vane-spar to the mizzen\'s - never into the empty sky (AUDIT KETCH L4-13; mutants: a chain\'s head in the sky; the mizzen\'s spar short of the line)', async () => {
+  const { KT_MASTS, KT_JACKSTAY, KT_VANE_DZ, jackstayY, ketchCheckpointChains } = await import('../../src/world/ketch/ketchModel.js');
+  for (const [m, end] of [[KT_MASTS[0], KT_JACKSTAY.fore], [KT_MASTS[1], KT_JACKSTAY.aft]]) {
+    const [lo, hi, reach] = m.vanes;
+    assert.equal(end.y, (lo + hi) / 2, 'at its spar\'s height');
+    assert.equal(end.z, m.z + KT_VANE_DZ, 'in its spar\'s plane');
+    assert.ok(KT_JACKSTAY.x > m.x && KT_JACKSTAY.x <= m.x + reach, `on its spar's run (x ${m.x}..${m.x + reach})`);
+  }
+  for (const c of KT_COURSE.checkpoints) {
+    assert.ok(c.z > KT_JACKSTAY.fore.z && c.z < KT_JACKSTAY.aft.z, `checkpoint at z ${c.z} under the jackstay's run`);
+    const chains = ketchCheckpointChains(c);
+    assert.equal(chains.length, 3);
+    for (const [foot, head] of chains) {
+      assert.ok(Math.hypot(foot[0] - c.x, foot[2] - c.z) < c.r && Math.abs(foot[1] - c.y) < 0.2, 'its foot inside the floor\'s rim');
+      assert.deepEqual(head, [KT_JACKSTAY.x, jackstayY(c.z), c.z], 'its head on the jackstay');
+      assert.ok(head[1] > c.y + 10, 'well over the floor');
+    }
+  }
+});
+
+test('KETCH THE GANGWAY\'S SILL LIES ALONG ITS HEAD: every corner of the brass sill within a hand of the head\'s edge on the course\'s side, the sill the gangway\'s width - never square across the last plank\'s far edge in the air (AUDIT KETCH L4-14; mutants: the sill square to the deck)', async () => {
+  const { ketchGangwaySill } = await import('../../src/world/ketch/ketchModel.js');
+  const W = KT_GANGWAY, L = Math.hypot(W.bx - W.ax, W.bz - W.az), u = [(W.bx - W.ax) / L, (W.bz - W.az) / L], n = [-u[1], u[0]];
+  const pts = ketchGangwaySill();
+  assert.equal(pts.length, 4);
+  const along = pts.map((p) => (p[0] - W.ax) * u[0] + (p[1] - W.az) * u[1]), across = pts.map((p) => (p[0] - W.ax) * n[0] + (p[1] - W.az) * n[1]);
+  for (const a of along) assert.ok(a >= -0.31 && a <= 0.11, `a corner ${a.toFixed(2)} m off the head's edge`);
+  assert.ok(Math.max(...across) >= W.w / 2 && Math.min(...across) <= -W.w / 2, 'the gangway\'s width');
+});
+
+test('KETCH THE PARKED CAGE\'S FLOOR OVER THE HOLD\'S: the cage\'s deck a hair over the hold\'s floor at the shaft\'s foot - never coplanar with it, the two fighting (AUDIT KETCH L4-9; mutants: the cage\'s floor at its own zero)', async () => {
+  const { KT_CAGE_LIFT_M } = await import('../../src/world/ketch/ketchModel.js');
+  const hold = floorAt(ship.hit, KT_LIFT.x + 1, KT_LIFT.z + 1, KT_LIFT.y0 + 1);
+  assert.equal(hold, KT_LIFT.y0, 'the hold\'s floor under the shaft at the lift\'s foot');
+  const { cage } = buildKetchParts();
+  const pos = cage.model.positions;
+  let top = -Infinity;
+  for (let i = 1; i < pos.length; i += 3) if (pos[i] < 0.09) top = Math.max(top, pos[i]);   // the floor's top (the nets start at 0.1)
+  assert.ok(Math.abs(top - KT_CAGE_LIFT_M) < 1e-4, `the floor's top at ${top}`);
+  assert.ok(KT_LIFT.y0 + top - hold >= 0.015, 'drawn clear of the hold\'s floor');
+});

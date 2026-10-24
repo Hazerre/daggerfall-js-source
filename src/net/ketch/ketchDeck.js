@@ -4,17 +4,18 @@
 // from it (world/ketch/ketchModel.js) and draws its hazards; the relay places its constructs, judges its cells and its
 // hazards on the trails it holds (net/ketch/ketchBrain.js, net/ketch/ketchJudge.js).
 //
-// THE FRAME is the DECK's: metres, y up, x across (port -x, starboard +x), z along the keel from the bow (z 0, the Anchor
-// Deck's fore rail) to the stern - and into the dungeon host's frame by the Shattered Hour's own move
-// (net/superDungeon/sdBrain.js realmToDungeon, SD_REALM_ORIGIN): one translation, so the Hour's Steps' scene lays the
-// Sailwalk unchanged (scenes/superDungeon/sdSteps.js, with this file's course) and the Hour's telegraph floor reads it.
+// THE FRAME is the DECK's: metres, y up, x across (starboard -x, port +x - the engine's frame is left-handed: facing the
+// bow, -z, the right hand is -x), z along the keel from the bow (z 0, the Anchor Deck's fore rail) to the stern - and into
+// the dungeon host's frame by the Shattered Hour's own move (net/superDungeon/sdBrain.js realmToDungeon, SD_REALM_ORIGIN):
+// one translation, so the Hour's Steps' scene lays the Sailwalk unchanged (scenes/superDungeon/sdSteps.js, with this file's
+// course) and the Hour's telegraph floor reads it.
 //
 //   THE ANCHOR DECK   the bow, y 0 - where the anchor-lift sets a crew down, and its way down
 //   THE WAIST         y 0, the open deck - THE BOARDING WATCH's three waves
 //   THE GALLERY       y -6, the gun deck - THE GALLERY OF HAMMERS: six rows of hammers, two steam lanes, the Hammer Wardens
 //   THE HOLD          y -12 - THE STARVED ENGINE: six cradles of aether cells aft, the engine fore, three arc-coils between
-//   THE MAST-LIFT     a cage in a brass tower at the waist's starboard quarter, the hold to the main top (y 16)
-//   THE SAILWALK      outboard to starboard over the open sky, the main top's yard to the bridge - the Hour's course law
+//   THE MAST-LIFT     a cage in a brass tower at the waist's port quarter, the hold to the main top (y 16)
+//   THE SAILWALK      outboard to port over the open sky, the main top's yard to the bridge - the Hour's course law
 //   THE BRIDGE        y 0, the stern's round deck - THE TONAL WARDEN; its outer ring in eight sections
 //   THE CABIN         behind the helm - the Ketchmaster's hold, and the stern lift down
 //
@@ -72,14 +73,14 @@ export function liftYAt(t, on = true) {
   return KT_LIFT.y1 - H * ease((u - 2 * W - R) / R);
 }
 /** THE MAIN TOP: the round platform about the lift tower's head (the shaft's square open in its middle - the cage comes up
- *  into it), and THE YARD from its starboard edge out to the Sailwalk's first top (a plank railed and netted both sides). */
+ *  into it), and THE YARD from its port edge out to the Sailwalk's first top (a plank railed and netted both sides). */
 export const KT_MAIN_TOP = Object.freeze({ x: KT_LIFT.x, z: KT_LIFT.z, r: 6.5, y: KT_LIFT.y1 });
 export const KT_YARD = Object.freeze({ x0: KT_LIFT.x + 6.2, x1: 21.4, z: KT_LIFT.z, halfW: 1.1, y: KT_LIFT.y1 });
 /** THE BOSUN'S LINE: from the main top's aft side to the gangway's head, once the bridge is unbarred - where it is taken
  *  (its post, `r` about it), and where it sets a rider down. */
 export const KT_LINE = Object.freeze({ x: KT_LIFT.x, z: KT_LIFT.z + 4.8, r: 1.4 });
 
-// ── THE SAILWALK: the Hour's course law, outboard to starboard ─────────────────────────────────────────────────
+// ── THE SAILWALK: the Hour's course law, outboard to port ──────────────────────────────────────────────────────
 /** The Hour's step tops (world/superDungeon/sdSteps.js SD_DRIFT_SIZE, SD_BEAT_SIZE, SD_CRUMBLE_SIZE; SD_RISER_H) - one home
  *  there; restated as their numbers here only so the relay's bundle reads no world module. Pinned equal. */
 export const KT_STEP_SIZES = Object.freeze({ drift: Object.freeze({ w: 3.0, d: 2.4 }), beat: Object.freeze({ w: 3.0, d: 2.6 }), crumble: Object.freeze({ w: 2.6, d: 2.6 }), riser: 2.3 });
@@ -135,6 +136,10 @@ export const KT_LINE_LAND = (() => {
 })();
 /** The helm (the Warden's home, facing the way in - -z), and the console it keeps (a block the bodies walk round). */
 export const KT_HELM = Object.freeze({ x: 0, z: 214, yaw: Math.PI });
+/** Where the Tonal Warden stands at its helm - before the wheel, facing the way in, never in the pedestal (AUDIT KETCH
+ *  L4-10: its home was the pedestal's centre); its pedestal (the wheel's column) a body walks round. */
+export const KT_HELM_PEDESTAL_R = 0.7;
+export const KT_WARDEN_HOME = Object.freeze({ x: KT_HELM.x, z: KT_HELM.z - 2.8, yaw: KT_HELM.yaw });   // its body (KW_BODY.r 2) clear of the pedestal
 export const KT_CONSOLE = Object.freeze({ x0: -2, x1: 2, z0: 217, z1: 219.5, h: 1.6 });
 /** THE RESONATORS - four pylons on the outer ring at its quarters, each in the middle of its section (bearings 22.5 + 90k
  *  degrees from +z toward +x - sections 0, 2, 4 and 6: the ring's seams never run through one). */
@@ -152,6 +157,10 @@ export const sectionAt = (x, z) => {
   return Math.floor((((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) / (Math.PI / 4)) % KT_SECTIONS;
 };
 /** THE CABIN behind the helm, its door on the bridge's aft rim; the vault's chest; the stern lift down. */
+/** THE GUN DECK'S GUNS: where they stand along each wall, and how far their carriages reach in from it - clear of the outer
+ *  hammer lanes (KT_HAMMER.lanes, a body's breadth to spare: AUDIT KETCH L4-11, drawn across them and walked through). */
+export const KT_GUN_ZS = Object.freeze([64, 72, 80, 88, 96]);
+export const KT_GUN_DEPTH = 1.1;
 export const KT_CABIN = box(-7, 7, 224, 236, 0);
 export const KT_CABIN_DOOR = Object.freeze({ x0: -1.8, x1: 1.8, z: 224 });
 /** THE BRIDGE RAIL'S GAPS (AUDIT KETCH L4-1 - the outer ring's rail ran the whole way round, a wall across the gangway's foot
@@ -184,8 +193,8 @@ export const KT_STERN_LIFT = Object.freeze({ x: -3.5, z: 230.5, r: 1.6 });
 // ── THE STAGES' SPOTS ──────────────────────────────────────────────────────────────────────────────────────────
 /** The Watch's: where spheres drop from the rigging, sentries take their posts, the Watch-Captain comes up. */
 export const KT_WATCH_SPOTS = Object.freeze({
-  sphere: Object.freeze([[-11, 20], [11, 20], [-11, 30], [11, 30], [-11, 40], [11, 40], [-11, 50], [11, 50], [-6, 56], [6, 56], [0, 30], [0, 44]].map((p) => Object.freeze(p))),
-  sentry: Object.freeze([[-10, 58], [10, 50], [-4, 58], [4, 58]].map((p) => Object.freeze(p))),
+  sphere: Object.freeze([[-11, 20], [11, 20], [-11, 30], [11, 30], [-11, 40], [11, 40], [-11, 50], [11, 50], [-6, 56], [2.5, 56], [0, 30], [0, 42]].map((p) => Object.freeze(p))),   // AUDIT KETCH L4-10: (6, 56) stood inside the lift's tower, (0, 44) in the aft hatch cover
+  sentry: Object.freeze([[-10, 58], [10, 50], [-4, 58], [3, 58]].map((p) => Object.freeze(p))),   // AUDIT KETCH L4-10: (4, 58) against the lift's tower
   captain: Object.freeze([0, 54]),
 });
 /** The waist's cover: two capstans (discs) and three hatch covers (boxes `w` x `d`, `h` tall). */

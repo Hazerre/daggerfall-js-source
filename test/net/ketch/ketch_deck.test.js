@@ -33,7 +33,7 @@ test('KETCH THE MAST-LIFT\'S ROUND TRIP on the shared clock: at its foot a wait,
   assert.ok(liftYAt(-KT_LIFT_CYCLE + Wt + R + 1) === y1, 'a clock before zero reads as the cycle');
 });
 
-test('KETCH THE MAIN TOP, THE YARD AND THE LINE: the top about the lift\'s head, the yard from its starboard edge out to the Sailwalk\'s first top, the bosun\'s line\'s post on the top - and the main mast beside the tower, on the waist (mutants: the yard short of the first top; the line\'s post off the top; the mast off the waist)', () => {
+test('KETCH THE MAIN TOP, THE YARD AND THE LINE: the top about the lift\'s head, the yard from its port edge out to the Sailwalk\'s first top, the bosun\'s line\'s post on the top - and the main mast beside the tower, on the waist (mutants: the yard short of the first top; the line\'s post off the top; the mast off the waist)', () => {
   assert.equal(KT_MAIN_TOP.y, KT_LIFT.y1);
   assert.ok(KT_YARD.x0 <= KT_MAIN_TOP.x + KT_MAIN_TOP.r, 'the yard begins on the top');
   assert.ok(KT_YARD.x1 >= KT_COURSE_SPEC.start.x - KT_COURSE_SPEC.start.r, 'and reaches the first top');
@@ -136,4 +136,13 @@ test('KETCH THE BOSUN\'S LINE SETS ITS RIDER DOWN ON THE GANGWAY, PAST THE GUST,
   assert.ok(Math.abs((f[0] * g[0] + f[1] * g[1]) / gd - 1) < 1e-9, 'along the gangway');
   const end = bosunLineAt(1);
   assert.ok(Math.hypot(end[0] - KT_LINE_LAND.x, end[2] - KT_LINE_LAND.z) < 1e-9, 'the line ends over it');
+});
+
+test('KETCH THE WARP\'S BREATH IS DRAWN OVER ITS OWN COURSE: the streaks about the Ketch\'s line (x 24), the Hour\'s about its own (x 0) - the gust\'s warning where the gust blows (AUDIT KETCH L4-5; mutants: the streaks about x 0)', async () => {
+  const { buildBreathModel } = await import('../../../src/world/superDungeon/sdStepsModel.js');
+  const { SD_COURSE } = await import('../../../src/world/superDungeon/sdSteps.js');
+  const { KT_COURSE } = await import('../../../src/net/ketch/ketchDeck.js');
+  const meanX = (m) => { let s = 0, n = 0; for (let i = 0; i < m.positions.length; i += 3) { s += m.positions[i]; n++; } return s / n; };
+  assert.ok(Math.abs(meanX(buildBreathModel(KT_COURSE)) - KT_COURSE.checkpoints[2].x) < 2, 'the Ketch\'s');
+  assert.ok(Math.abs(meanX(buildBreathModel(SD_COURSE)) - SD_COURSE.checkpoints[2].x) < 2, 'the Hour\'s, as it was');
 });

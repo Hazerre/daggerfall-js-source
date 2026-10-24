@@ -30,7 +30,7 @@ import {
   KT_WATCH_SPOTS, KT_WARDEN_POSTS, KT_WARDEN_WAKE_Z, KT_CRADLES, KT_BRIDGE_CRADLES, KT_SOCKETS, KT_RESONATORS, KT_VENTS, KT_REACH,
   KT_HOLD, KT_BRIDGE, KT_LIFT, KT_COURSE_SPEC, KT_GANGWAY, engineNeeds, deckZoneAt,
 } from './ketchDeck.js';
-import { KT_KINDS, KT_FLOORS, newConstruct, constructHp, bodyWord, beatConstruct, hitConstruct, stepWalk, mvWord } from './ketchConstructs.js';
+import { KT_KINDS, KT_FLOORS, newConstruct, constructHp, bodyWord, beatConstruct, hitConstruct, stepWalk, mvWord, clearOf } from './ketchConstructs.js';
 import { KETCH_SEAM, KW_ID, KW_FORK_ID0, retune, applyForkHit } from './ketchWarden.js';
 import { dpsRef, clampLv, BUCKET_DEPTH_X, GATE_HIT_HZ_MAX, HP_SEND_MS, STATE_SEND_MS, STEP_MAX_MS, THREAT_DECAY, spendBlow, spendPurse, hasPart, freeSeat } from '../gate/gateBrain.js';
 
@@ -181,6 +181,9 @@ function aboard(V, now) {
 /** A floor's living crew: its zone (or zones) on the deck plan. */
 const FLOOR_ZONES = Object.freeze({ waist: ['waist', 'anchor'], landing: ['gallery', 'landing'], hold: ['hold'], bridge: ['bridge', 'gangway'] });
 
+/** THE BRIDGE'S SPAWNS - the Discord's Sentries, by their resonators: six tenths of the way out to each, clear of the bridge's
+ *  obstacles by the widest body's breadth (AUDIT KETCH L4-10: the one by resonator 2 rose inside a cradle). */
+export const KT_BRIDGE_SPAWNS = Object.freeze(KT_RESONATORS.map(([x, z]) => Object.freeze(clearOf('bridge', KT_BRIDGE.x + (x - KT_BRIDGE.x) * 0.62, KT_BRIDGE.z + (z - KT_BRIDGE.z) * 0.62, 1.0))));
 /** A body born: its record kept, its word fanned. */
 function spawn(V, kind, floor, x, z, yw, now, out, { wake = true, rise = KT_RISE_MS } = {}) {
   const { n, lv } = aboard(V, now);
@@ -311,8 +314,8 @@ function stageBeat(V, now, live, rng, out) {
     const frames = KETCH_SEAM.step(f, now, live.map((q) => ({ sub: q.sub, x: q.x, y: q.y, z: q.z, dead: false })), rng);
     out.push(...frames);
     while (f.want.length) {
-      const kind = f.want.shift(), spot = KT_RESONATORS[V.nid % KT_RESONATORS.length];
-      spawn(V, kind, 'bridge', KT_BRIDGE.x + (spot[0] - KT_BRIDGE.x) * 0.62, KT_BRIDGE.z + (spot[1] - KT_BRIDGE.z) * 0.62, Math.atan2(KT_BRIDGE.x - spot[0], KT_BRIDGE.z - spot[1]), now, out);
+      const kind = f.want.shift(), k = V.nid % KT_RESONATORS.length, spot = KT_RESONATORS[k], at = KT_BRIDGE_SPAWNS[k];
+      spawn(V, kind, 'bridge', at[0], at[1], Math.atan2(KT_BRIDGE.x - spot[0], KT_BRIDGE.z - spot[1]), now, out);
     }
     if (f.lost) {
       // A FIGHT LOST: the bridge's constructs go, the Warden stands at its helm again, the next `in` is fresh

@@ -142,5 +142,14 @@
     "tests": [
       "test/net/ketch/ketch_deck.test.js"
     ]
+  },
+  {
+    "name": "KTD-the-streaks-about-x-0",
+    "file": "src/world/superDungeon/sdStepsModel.js",
+    "old": "    const x = C.x + (rnd() * 2 - 1) * SD_BREATH.halfX,",
+    "new": "    const x = (rnd() * 2 - 1) * SD_BREATH.halfX,",
+    "tests": [
+      "test/net/ketch/ketch_deck.test.js"
+    ]
   }
 ]
