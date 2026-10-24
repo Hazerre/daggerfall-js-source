@@ -2013,7 +2013,7 @@ features.enhancedSounds.note,"Sunete noi în interfața îmbunătățită: vânt
 features.enhancedSounds.title,"Sunete îmbunătățite"
 features.enhancedWater.note,"Mări, râuri și iazuri în care poți vedea: valuri care cresc cu vântul, spumă unde întâlnesc țărmul, unde unde se mișcă ceva, cerul și luna pe suprafață. Oprit aduce înapoi apa plată clasică."
 features.enhancedWater.title,"Apă îmbunătățită"
-features.eventBoard.note,"Un panou în stânga ecranului arată evenimentele lumii la care mai poți ajunge, cu distanța până la fiecare și timpul rămas. Veștile lor apar în partea de sus a panoului și rămân în jurnalul tău. Dezactivat, veștile merg din nou în chat și pe linia de mesaje a ecranului."
+features.eventBoard.note,"Un panou în stânga ecranului arată evenimentele lumii la care mai poți ajunge, cu distanța până la fiecare și timpul rămas. Veștile lor apar în partea de sus a panoului și rămân în jurnalul tău. Dezactivează un eveniment din butonul lui și acesta dispare de pe panou, iar veștile lui rămân doar în jurnalul tău. Dezactivat, veștile merg din nou în chat și pe linia de mesaje a ecranului."
 features.eventBoard.title,"Panoul evenimentelor"
 features.firstPersonLighting.note,"Ce ții la persoana întâi ia lumina locului în care stai: arma ta, mâinile cu care arunci vrăji, torța din mâna secundară și brațele Morrowind."
 features.firstPersonLighting.title,"Iluminare la persoana întâi"
