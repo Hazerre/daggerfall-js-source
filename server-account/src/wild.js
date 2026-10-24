@@ -54,7 +54,7 @@
 // the record decides what drops, and a word that shrank it would let any tab keep its companions' packs by leaving it
 // out. A seizure takes them whatever is said: no game applies it (its fallen plays a record that moved under it, and
 // its next join reads it) - so a fall at another's hand that the old tab is refused is still taken whole, by its killer
-// once the grace is gone; a death to a foe, the fallen's own act, waits for a tab that says the word.
+// once the grace is gone; a death to a foe takes nothing (FOE-KEEPS).
 import { verifyWildReceipt, verifyWildCollect, WILD_FALL_GRACE_S, WILD_COLLECT_TTL_S } from '../../src/net/wild/wildReceipt.js';
 import { mintRemainsOrder, remainsDigest, ORDER_TTL_S } from '../../src/net/identityToken.js';
 import { streamsFoes, WILD_REMAINS_MS } from '../../src/net/wire.js';
@@ -107,7 +107,7 @@ async function answerOf(/** @type {any} */ ctx, /** @type {CryptoKey} */ signing
 
 /**
  * /v1/wild/fall - A DEATH'S DROP, TAKEN. `body.receipt` a fall the relay signed (the caller its fallen or its killer), or
- * none (a death to a foe: the caller's own, `body.n` its tab's nonce); `body.realm` the caller's record where its tab says
+ * none (a death to a foe: the caller's own, `body.n` its tab's nonce - refused, FOE-KEEPS, unless taken before); `body.realm` the caller's record where its tab says
  * it stands (the fallen's own act - required of the fallen, never of a killer); `body.room` the room the remains will be
  * laid in (the order names it, and no other room keeps it); `body.cart` 0 the fallen's word that its wagon is away
  * (CART-AWAY - honoured where its record agrees, never on a seizure); `body.packs` 1 the fallen's word that its game

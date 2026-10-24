@@ -278,7 +278,7 @@ Either death, at the first dead frame, while the room is still the player's (`wi
   While the body lies the fallen's socket stays in the
   room, so the signed fall reaches them; a fallen that lets `WILD_FALL_GRACE_S` (30 s) go by is seized by its killer
   (the record moved where it stands, its lease cleared). A death at a player's hand underground drops the bag and the
-  gold as any death there does, and offers no worn piece.
+  gold's tenth as a kill in the open does, and offers no worn piece; a death to a foe there drops nothing (FOE-KEEPS).
 - THE DEATH CHECKPOINT. A dead character is never the realm's save; its drop's act checkpoints it AS IT WILL RISE (one
   health, where it fell) before the service is asked, and again after, without what it dropped
   (`wildDeathCheckpoint`).

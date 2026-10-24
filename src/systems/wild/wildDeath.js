@@ -8,13 +8,14 @@
 // lost, "the bags" too (the mob death's law) "and the players can take the cart in to the zone and it also loses all
 // loot in it". And of a death to a foe: "drops the loot he has in his bags ... (you dont drop your equipped stuff)".
 //
-// SO, EITHER DEATH:
+// SO, EITHER DEATH (FOE-KEEPS, 2026-10-24 - the owner: "I dont want people to lose everything they have"; asked, "Only
+// PvP deaths drop": a death to a foe now drops nothing, and pays the usual tenth at the rise):
 //   KEPT, always: the consumables the owner named and their kin - potions, light sources (a torch, a lantern, a candle),
 //     the camp's kit and its fire (Climates & Calories' gear, food and water), the rest consumables (REST6), arrows and
 //     every other ammunition, bandages - and everything that may never change hands (a quest's item, a summoned or
 //     bound piece, a boat's deed or parts, the Materials Bag, a vehicle, a deed, the spellbook, the wallet and the Embers
 //     and Shards it holds - the trade's refusals and the decor's kept-back list, read, not rewritten).
-//   DROPPED: every other thing in the bag and in the cart - into the room's remains (net/wild/wildLaw.js), where anyone may
+//   DROPPED, AT ANOTHER PLAYER'S HAND ALONE: every other thing in the bag and in the cart - into the room's remains (net/wild/wildLaw.js), where anyone may
 //     take it for ten minutes. A letter of credit too (LETTERS-DROP, 2026-10-09), ahead of the decor's kept-back list.
 //     CART-AWAY (Mac, 2026-10-15: "if its parked outside the zone nothing should be lost"): the cart's only while the
 //     wagon is with them - parked off the zone, stabled or none, it keeps every piece and its coin (systems/wild/wildCart.js).
@@ -23,7 +24,8 @@
 //     from inside the zone (crewCompanions.js, revenantCompanions.js).
 //   WORN: kept on a death to a foe. On a death at another player's hand the killer may take ONE worn piece the same
 //     rules let go (`wornOffer`) - the fallen's own game gives it (net/wild/wildFight.js).
-// The purse is the death penalty's (systems/deathPenalty.js) and unchanged.
+// The purse: a kill drops a tenth of it into the remains in place of the death penalty (WILD GOLD, wildDropLaw.js
+// takeWildGold); any other death pays the penalty (systems/deathPenalty.js).
 // ═══════════════════════════════════════════════════════════════════
 import { WILD_ITEMS_MAX } from '../../net/wire.js';
 import { wildCartWord } from './wildCart.js';
@@ -33,7 +35,7 @@ import { WILD_FALL_PACKS } from './wildDropLaw.js';
 // off the record), re-exported here
 export { WILD_NEVER_GROUPS, keptOnWildDeath, wildCanLose, takeWildDrop, WILD_GOLD_LOSS, takeWildGold, wornOffer, wildRecord, takeWildDeath, wildPickOf, wildDropCandidates, wildCartRecordOf, wildCartMayBeAway, wildTookOf, wildTakeTook, WILD_REVENANTS_MAX, wildSwornAtSide, WILD_PACK, wildPacks, wildPacksOf, WILD_FALL_PACKS, wildTakesPacks } from './wildDropLaw.js';
 
-/** THE FALLEN'S OWN WORDS on /v1/wild/fall (world.js wildTakeDrop), beside its receipt or its nonce, its record's `at`, its
+/** THE FALLEN'S OWN WORDS on /v1/wild/fall (world.js wildTakeDrop), beside its receipt (FOE-KEEPS: a foe's death asks none), its record's `at`, its
  *  room and its relay's `collect`: CART-AWAY's wagon (wildCart.js wildCartWord - `on` the Horse Cart mod, `rec` its record,
  *  `mask` the zone's) and COMPANION-DROP's `packs` 1 - this game takes a companion's piece out of his own pack and his
  *  coin's share out of his coin (wildTakeTook's `packs`, world.js wildDropTaken), so the service may hand it a take of the

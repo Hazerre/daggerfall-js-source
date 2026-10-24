@@ -76,24 +76,26 @@ export function takeWildDrop(items, wagon = null) {
   return [...lift(items, true), ...lift(wagon, false)];
 }
 
-/** WILD GOLD: a death at another player's hand in the zone drops this share of the gold carried (no usual death penalty)
- *  into the remains. FOE-KEEPS (2026-10-24, the owner: "I dont want people to lose everything they have"; asked, "The
- *  usual tenth"): a tenth, the usual death's own share (deathPenalty.js DEATH_GOLD_FRACTION, pinned equal - this leaf is
- *  the account Worker's and the penalty's module is not); it was half. A death to a foe drops none: it takes the usual
- *  penalty, and nothing else (`/v1/wild/fall` refuses a foe's fall - server-account/src/wild.js). */
-export const WILD_GOLD_LOSS = 0.1;
-/** The share as a divisor - `g / 10` is exact for every whole purse, where `g * 0.1` is a hair over a tenth (AUDIT
- *  DEATH-TENTH's own reason, deathPenalty.js DEATH_GOLD_DIVISOR). */
+/** WILD GOLD: a death at another player's hand in the zone drops a share of the gold carried - each purse's whole
+ *  pieces divided by this, floored (no usual death penalty) - into the remains. FOE-KEEPS (2026-10-24, the owner: "I dont
+ *  want people to lose everything they have"; asked, "The usual tenth"): a tenth, the usual death's own share
+ *  (deathPenalty.js DEATH_GOLD_DIVISOR, pinned equal - this leaf is the account Worker's and the penalty's module is
+ *  not); it was half. A divisor because `g / 10` is exact for every whole purse, where `g * 0.1` is a hair over a tenth
+ *  (AUDIT DEATH-TENTH's own reason). A death to a foe drops none: it takes the usual penalty, and nothing else
+ *  (`/v1/wild/fall` refuses a foe's fall - server-account/src/wild.js). */
 export const WILD_GOLD_DIVISOR = 10;
+/** The share as a fraction, for those who say it so - the law divides by WILD_GOLD_DIVISOR (AUDIT FOE-KEEPS P3: it
+ *  stood beside the divisor as a second number no code read). */
+export const WILD_GOLD_LOSS = 1 / WILD_GOLD_DIVISOR;
 
 /** A list's gold stack (its `Currency` item) - the cart's, a companion's pack's - or null. */
 const coinIn = (/** @type {any} */ list) => (Array.isArray(list) ? list.find((i) => i?.group === 'Currency') ?? null : null);
 
-/** Take WILD_GOLD_LOSS of the purse (`entity.goldPieces`) AND of the cart's gold stack (the `Currency` item in
- *  `entity.wagonItems`), in place; answers the gold as ONE pile record (purse + cart share), or null. CART-AWAY (Mac,
- *  2026-10-15): `cart` false - the wagon away from the death (wildCartMayBeAway) - and the purse's share alone.
- *  COMPANION-DROP: and of each pack at the side's gold stack (`packs` - wildPacks; a record's own, wildPacksOf, by
- *  default), into the same pile.
+/** Take a tenth (each source's whole pieces / WILD_GOLD_DIVISOR, floored) of the purse (`entity.goldPieces`) AND of
+ *  the cart's gold stack (the `Currency` item in `entity.wagonItems`), in place; answers the gold as ONE pile record
+ *  (purse + cart share), or null. CART-AWAY (Mac, 2026-10-15): `cart` false - the wagon away from the death
+ *  (wildCartMayBeAway) - and the purse's share alone. COMPANION-DROP: and of each pack at the side's gold stack (`packs` -
+ *  wildPacks; a record's own, wildPacksOf, by default), into the same pile.
  *  @param {any} entity @param {{ cart?: boolean, packs?: WildPack[] }} [opts] */
 export function takeWildGold(entity, { cart: withCart = true, packs = wildPacksOf(entity) } = {}) {
   let take = 0;
@@ -248,7 +250,8 @@ export function wildCartMayBeAway(rec) {
 // they fall; a sworn revenant is with them while it walks at their side (REVENANT-COMPANION's 'with'), and in the zone
 // only the first WILD_REVENANTS_MAX stand there (PVPDUNGEONS) - the rest wait outside it. What each carries is the
 // player's own (COMPANION-KIT's pack; RVN-GEAR's kit, given from the pack and taken back to it at will), so the zone's
-// own law reads it as it reads the bag: what never changes hands stays (wildCanLose), the rest drops, his coin halves.
+// own law reads it as it reads the bag: what never changes hands stays (wildCanLose), the rest drops, a tenth of his coin
+// with it (FOE-KEEPS; it halved).
 
 // The zone's count of the sworn at the side and which ones they are: the same leaf (wildLeaf.js), so the companions read
 // them without this law's graph; re-exported here for the drop's readers and the account service.

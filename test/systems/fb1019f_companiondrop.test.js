@@ -127,7 +127,7 @@ test('COMPANION-DROP WHO IS AT THE SIDE (wildDropLaw.js wildPacksOf, wildSwornAt
   assert.deepEqual(wildPacksOf({ modData: { [NAVAL_SAVE_VENDOR]: { party: { party: [] } }, [N.REVENANT_SAVE]: { list: [] } } }), []);
 });
 
-test('COMPANION-DROP THE LAW (wildDropLaw.js takeWildDeath, wildDropCandidates, takeWildGold over the record): his pack and the sworn one\'s pack and kit drop with the bag, by worth, each piece named by its pack - the letter too (LETTERS-DROP); what never changes hands stays in his pack (the bound Portal Stones, the potion the fallen keep); each pack\'s coin halves into the one pile; the one waiting outside the zone and the one away keep everything (mutants: the packs never read; a pack\'s drop dropped; its coin kept; its coin\'s share unsaid; a kit\'s slots never written back)', async () => {
+test('COMPANION-DROP THE LAW (wildDropLaw.js takeWildDeath, wildDropCandidates, takeWildGold over the record): his pack and the sworn one\'s pack and kit drop with the bag, by worth, each piece named by its pack - the letter too (LETTERS-DROP); what never changes hands stays in his pack (the bound Portal Stones, the potion the fallen keep); a tenth of each pack\'s coin into the one pile (FOE-KEEPS: it halved); the one waiting outside the zone and the one away keep everything (mutants: the packs never read; a pack\'s drop dropped; its coin kept; its coin\'s share unsaid; a kit\'s slots never written back)', async () => {
   const s = await stand();
   const rec = s.record();
   const cand = wildDropCandidates(rec, -1).map((it) => it.templateIndex);

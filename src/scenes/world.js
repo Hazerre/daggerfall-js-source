@@ -28818,8 +28818,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         const _handed = handOverFoes() || handOverRoomFoes();   // QUEST-PARTY phase 3b: or my building's
         if (_handed) console.info(`[foes] handed ${_handed} foe(s) to the survivors`);
         online.sendDeath?.();
-        // WILD1: a death in the open zone - the bag and the cart dropped to the room's remains while the room is still
-        // mine, and at another player's hand my worn gear offered to them: then my socket stays in the cell (a cell has
+        // WILD1: a death in the open zone - at another player's hand (FOE-KEEPS: a foe's drops nothing) the bag and the
+        // cart dropped to the room's remains while the room is still mine, and my worn gear offered to them: then my socket stays in the cell (a cell has
         // no host to hand over) while my body lies, so their pick reaches me (wildDeathBegin sets _wildGhost)
         wildDeathBegin();
       }
