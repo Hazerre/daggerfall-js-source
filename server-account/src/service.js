@@ -567,6 +567,8 @@ export const ROUTES = new Set([
   '/v1/staff/trade-holds', '/v1/staff/findings', '/v1/staff/trade-hold', '/v1/staff/trade-unhold', '/v1/staff/rollback', '/v1/staff/fix/repair',
   '/v1/staff/fix/mend', '/v1/staff/fix/bank', '/v1/staff/gains', '/v1/staff/market/pull', '/v1/staff/market/remove', '/v1/staff/item/take', '/v1/staff/evidence',
   '/v1/staff/evidence/return',
+  // STAFF-GIVE: Add an item - the item list, and one piece minted and given (staffGive.js)
+  '/v1/staff/item/catalogue', '/v1/staff/item/give',
   // STAFF-PANEL4-CENSUS: the item and gold census (a kind found, its count and holders, its jumps) and the contested pieces
   // (the list, one piece's trail, a trail check recorded) - Admin only (staffCensus.js)
   '/v1/staff/census/find', '/v1/staff/census', '/v1/staff/census/jumps', '/v1/staff/contested', '/v1/staff/contested/piece', '/v1/staff/contested/trail',
