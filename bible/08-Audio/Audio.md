@@ -979,7 +979,7 @@ hull loops and its oars, never instead of them:
 - **The sea state** (`seaState`): a floor of 0.15 in a flat calm, seven tenths of the wind over it, a rain's 0.12, a
   storm's 0.35, snow's 0.06. The wind is the sky's (windDrive's `strength01`) - the ear hears one wind, the one WIND3's
   bed and the trees already say; her sailing reads Come Sail Away's own rolled wind (AUDIT SOUNDSCAPE S11, a choice).
-- **The beds**: the SWELL (0.15 in a calm to 0.78 in a gale, 0.55 of it riding the swell's own clock - `swellAt`, three
+- **The beds**: the SWELL (0.15 in a calm to 0.78 in a gale, 0.55 of it riding the swell's own clock - `seaSwellAt`, three
   long waves of 8.3, 12.7 and 5.1 s summed, so no two swells are alike); the WASH, nothing under 0.4 m/s of way and all
   of 0.6 by 7, riding the swell a beat behind; the RIGGING, nothing below a 0.5 wind (a storm adds 0.3), all of 0.42 in
   a full gale, breathing with the gust. AUDIT SOUNDSCAPE S6: the first cut's levels, a third of these, sat 16 to 24 dB
