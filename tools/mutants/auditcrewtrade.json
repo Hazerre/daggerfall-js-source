@@ -422,7 +422,7 @@
   {
     "name": "ACT-P11-last-man-said-ashore",
     "file": "src/systems/naval/crewTrade.js",
-    "old": "now > CREW_KEEP && party.length ? CREW_TRADE_TEXT.ashore",
+    "old": "now > CREW_LEAST && party.length ? CREW_TRADE_TEXT.ashore",
     "new": "party.length ? CREW_TRADE_TEXT.ashore",
     "tests": [
       "test/systems/naval/auditcrewtrade.test.js",

@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { BAY, ISLE, portStanding, quay } from './crewQuay.mjs';
 import { CREW, CREW_BASE, crewStandOf, exchangeOf, priceOf, standOf, DAY_STOCK, MADE_K, WANT_K, PRICE_DRIFT, SPREAD, TRADE_MOST } from '../../../src/systems/naval/tradeGoods.js';
-import { crewRowOf, crewPayMost, yardHandPrice, crewSpare, crewRoom, CREW_KEEP, CREW_TRADE_TEXT, signOffOrder, handsNamed } from '../../../src/systems/naval/crewTrade.js';
+import { crewRowOf, crewPayMost, yardHandPrice, crewSpare, crewRoom, CREW_LEAST, CREW_TRADE_TEXT, signOffOrder, handsNamed } from '../../../src/systems/naval/crewTrade.js';
 import { FIRST_MATE } from '../../../src/systems/naval/shipCrew.js';
 import { REPAIR_PRICE } from '../../../src/systems/naval/navalDamage.js';
 import { YARD_DISCOUNT_MAX } from '../../../src/systems/naval/navalYard.js';
@@ -85,7 +85,7 @@ test('CREW-TRADE NO MAN FETCHES THE SHIPWRIGHT\'S PRICE: at every discount a ran
 });
 
 test('CREW-TRADE WHO MAY LEAVE HER: men by the head, never her last; never so many that her deck stands no named hand aboard beside the shore party (PIN MOVED, AUDIT CREW-TRADE H1: by the party\'s count, its hands never signed off - not by the last one\'s roster place); none of a ship come through customs - and the room she has for more (mutants: the last man, the shore party, the hand beside it, the customs, the room)', () => {
-  assert.equal(CREW_KEEP, 1);
+  assert.equal(CREW_LEAST, 1);
   const hands = ['A', 'B', 'C', 'D'].map((name) => ({ name }));
   assert.deepEqual(crewSpare({ hull: SMALL_SHIP, crew: 24, hands }), { n: 23, why: null }, 'all but her last');
   assert.deepEqual(crewSpare({ hull: SMALL_SHIP, crew: 1, hands: hands.slice(0, 1) }), { n: 0, why: CREW_TRADE_TEXT.lastMan });

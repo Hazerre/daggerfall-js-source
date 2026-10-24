@@ -31,7 +31,7 @@ import { FIRST_MATE, serviceOf } from './shipCrew.js';
 import { t } from '../textManager.js';   // the exchange's words in the player's language
 
 /** The fewest men a ship keeps aboard: her last is never signed off. */
-export const CREW_KEEP = 1;
+export const CREW_LEAST = 1;
 
 /** What the shipwright asks for a man at `discount` (a captain's rank's - navalYard.js yardOffer's own crew row). */
 export const yardHandPrice = (discount = 0) => yardOffer({ hull: 1, maxHull: 1, sail: 1, maxSail: 1, crew: 0, maxCrew: 1 }, 0, 0, { discount }).rows.find((r) => r.id === 'crew')?.price ?? 0;
@@ -60,10 +60,10 @@ export function crewSpare({ hull, crew, hands = [], away = null, crossed = false
   const now = Math.max(0, Math.floor(Number(crew) || 0));
   const party = hands.filter((h) => away?.has?.(h?.name));
   const need = party.length ? party.length + 1 : 0;   // the shore party's places, and one hand aboard beside them
-  let least = CREW_KEEP;
+  let least = CREW_LEAST;
   while (least < now && playerCrewCount(hull, least) < need) least++;
   const n = Math.max(0, now - least);
-  return { n, why: n > 0 ? null : now > CREW_KEEP && party.length ? CREW_TRADE_TEXT.ashore(party.at(-1).name) : CREW_TRADE_TEXT.lastMan };
+  return { n, why: n > 0 ? null : now > CREW_LEAST && party.length ? CREW_TRADE_TEXT.ashore(party.at(-1).name) : CREW_TRADE_TEXT.lastMan };
 }
 /**
  * THE NAMED HANDS IN THE ORDER A HEADCOUNT SALE SIGNS THEM OFF (AUDIT CREW-TRADE H1): never one in the shore party (`away`);
