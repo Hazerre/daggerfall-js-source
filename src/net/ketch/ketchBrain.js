@@ -63,8 +63,11 @@ export const spidersMaxFor = (n) => 3 + Math.max(1, Math.min(KT_CREW_MAX, n | 0)
 export const KT_BRIDGE_CRADLE0 = 10;
 export const KT_RESONATOR0 = 10;
 /** Constructs are numbered from here (the Warden is KW_ID, a fork KW_FORK_ID0 + its place), and their blows from here -
- *  apart from the Warden's own (its fight counts its own from 1). */
-export const KT_BODY_ID0 = 100;
+ *  apart from the Warden's own (its fight counts its own from 1). AUDIT KETCH L1-1: ABOVE THE FORKS' SIXTEEN - a hit on
+ *  KW_FORK_ID0..+15 is the Warden's fight's (voyageWord), so a construct numbered there (from 100, the Engine's spiders
+ *  reached 200 some six minutes in) took no blow at all; numbered up from 1000 none ever is (a voyage spawns some thirty
+ *  thousand at the very most, well under the wire's KT_BODY_ID_MAX). */
+export const KT_BODY_ID0 = 1000;
 export const KT_BLOW_ID0 = 500_000;
 /** How long the census keeps a member standing for whom no pose speaks (the Hour's SD_POSE_FRESH_MS). */
 export const KT_POSE_FRESH_MS = 25_000;

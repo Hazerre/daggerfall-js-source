@@ -253,7 +253,7 @@ test('KETCH THE TONAL WARDEN, WHOLE: `in` only on the bridge; the Discord asks t
 test('KETCH THE WIRE\'S BOUNDS ARE THE SHIP\'S: a cradle\'s, a socket\'s and a resonator\'s number, a body\'s, the crew\'s eight and the kinds - pinned to the laws the wire imports none of; every word a member says, projected (mutants: the resonators past the wire\'s spots; a kind the wire refuses)', () => {
   assert.ok(KT_RESONATOR0 + KT_RESONATORS.length - 1 <= KT_CELL_SPOT_MAX && KT_BRIDGE_CRADLE0 + KT_BRIDGE_CRADLES.length - 1 <= KT_CELL_SPOT_MAX);
   assert.ok(KT_SOCKETS.length - 1 <= KT_CELL_SPOT_MAX && KT_CRADLES.length - 1 <= KT_CELL_SPOT_MAX);
-  assert.ok(KW_FORK_ID0 + 16 <= KT_BODY_ID_MAX && KT_BODY_ID0 < KW_FORK_ID0 && KW_ID < KT_BODY_ID0);
+  assert.ok(KW_FORK_ID0 + 16 <= KT_BODY_ID0 && KT_BODY_ID0 < KT_BODY_ID_MAX && KW_ID < KW_FORK_ID0);
   assert.equal(KT_CREW_WIRE_MAX, KT_CREW_MAX);
   assert.equal(KT_KIND_MAX, KT_KIND_BY_K.length - 1);
   assert.deepEqual(validKetchIn({ k: 'pick', c: KT_BRIDGE_CRADLE0 + 1 }), { k: 'pick', c: 11 });
@@ -361,4 +361,20 @@ test('KETCH A LOST FIGHT TAKES ITS CELLS: a bridge cell lying when the fight is 
   const lost = sail(V, t + 250, away, { most: KW_LOST_MS + 3000, act: (now) => { if (!dropped && now >= dropAt) { dropped = true; return voyageWord(V, 'mem2', { k: 'drop' }, poseOf(core.mem2), now, rng); } return []; }, until: (f) => f.k === 'wl' });
   assert.ok(dropped && lost.now, 'let go eight seconds before the loss, and lost');
   assert.deepEqual(V.cells.lo, [], 'its cell gone with the fight');
+});
+
+test('KETCH A CONSTRUCT IS NEVER A FORK BY ITS NUMBER: the Engine\'s spiders killed as they come for ten minutes - every blow on one lands, never routed to the Warden\'s forks (AUDIT KETCH L1-1; mutants: constructs numbered among the forks)', () => {
+  assert.ok(KT_BODY_ID0 >= KW_FORK_ID0 + 16, 'numbered above the forks\' sixteen');
+  const V = ship(1), t0 = toEngine(V), where = all(V, HOLD_MID), rng = seeded(5), sub = V.crew[0];
+  let now = t0, struck = 0;
+  while (now < t0 + 10 * 60_000 && V.sg === KT_STAGE.engine) {
+    now += 250;
+    stepVoyage(V, now, bodiesOf(where), rng);
+    for (const B of V.bodies.filter((b) => b.kind === 'spider' && b.h > 0 && now >= b.upAt)) {
+      voyageWord(V, sub, { k: 'hit', o: B.id, d: 1e6, r: SHAFT, q: null }, poseOf(where[sub]), now, rng);
+      assert.equal(B.h, 0, `spider #${B.id} felled`);
+      struck++;
+    }
+  }
+  assert.ok(struck > 120, `past where the forks' numbers began (${struck} spiders)`);
 });

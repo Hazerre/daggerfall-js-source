@@ -297,5 +297,14 @@
     "tests": [
       "test/net/ketch/ketch_brain.test.js"
     ]
+  },
+  {
+    "name": "KTB-a-construct-numbered-among-the-forks",
+    "file": "src/net/ketch/ketchBrain.js",
+    "old": "export const KT_BODY_ID0 = 1000;",
+    "new": "export const KT_BODY_ID0 = 100;",
+    "tests": [
+      "test/net/ketch/ketch_brain.test.js"
+    ]
   }
 ]
