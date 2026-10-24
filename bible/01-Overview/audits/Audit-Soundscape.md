@@ -20,7 +20,7 @@ that fails without its fix and a mutant record that proves it.
 | H - the horse | HORSE-VOICE: the voices, the hooves, the rig, the peers, the loader | 10 probes: the rig against its parent's (7,452 calls, the same), the switch flipped mid-ride, a gallop's stride against its breath, a journey and a pause |
 | M - the music | SEA-SCORE: the law, the hold, the songs, their levels, MIDI-out | 9 probes: the law driven through a boarding and a dark pirate, the hold at the calm line and a hostile's edge, every song rendered whole in Chromium beside MIDI.BSA's, the notes' overlaps, CC7 on a device |
 | P - the pins and the record | every test, mutant record and claim of the change | 55 mutants of its own and 6 its titles claim, the suite over every file that names the touched ones (758 files, 8,469 tests), the record against the code |
-| R - the real game | the change in the running game, its own data | the game booted in Chromium on the player's ARENA2 - a town, a coast, the deck |
+| R - the real game | the change in the running game, its own data | the game booted in Chromium on the player's ARENA2 - a town, a coast, the deck (its report below, when it comes) |
 
 **WHAT THEY FOUND.** 50 findings in five lanes (S 11, W 14, H 9, M 8, P 8; lane R's below): one HIGH, thirteen MEDIUM,
 the rest LOW and NOTE. The HIGH broke the suite (P1). Seven of the MEDIUM reached the player as a promise broken: a
@@ -179,7 +179,8 @@ below or LEFT and said.
 
 ## R - the real game
 
-LANE_R_FINDINGS
+Lane R (the change booted in Chromium on the player's ARENA2: a town, a coast, a deck) had not reported when this page
+was written; its findings are added here, each with its verdict, when it does.
 
 ## The pins
 
