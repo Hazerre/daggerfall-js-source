@@ -1084,6 +1084,66 @@ export function createDecorTool(deps) {
     syncHot();
   }
 
+  /** DECOR-ACCESS: the owner names who else may use this container or station. The service resolves the names. */
+  function openAccess(piece) {
+    const r = deps.room?.();
+    const doc = deps.doc;
+    if (!r || r.kind !== 'home' || r.hall || r.seat || !deps.homeDecor?.use || !doc) return false;
+    const kind = piece.station ? 'station' : 'storage';
+    const known = [...(deps.friends?.() ?? [])].map((f) => f?.name).filter((n) => typeof n === 'string');
+    const picked = new Set();
+    const root = doc.createElement('div');
+    root.className = 'dfdecor-access';
+    const title = doc.createElement('p');
+    title.textContent = kind === 'station' ? 'Who may use this station' : 'Who may use this chest';
+    root.append(title);
+    const modes = ['private', 'guild', 'chosen_friends'];
+    const labels = { private: 'Only you', guild: 'Your guild', chosen_friends: 'Chosen friends' };
+    let mode = 'private';
+    const modeRow = doc.createElement('div');
+    for (const m of modes) {
+      const b = doc.createElement('button');
+      b.type = 'button';
+      b.textContent = labels[m];
+      b.addEventListener('click', () => { mode = m; });
+      modeRow.append(b);
+    }
+    root.append(modeRow);
+    for (const name of known) {
+      const b = doc.createElement('button');
+      b.type = 'button';
+      b.textContent = name;
+      b.addEventListener('click', () => { if (picked.has(name)) picked.delete(name); else picked.add(name); });
+      root.append(b);
+    }
+    const field = doc.createElement('input');
+    field.type = 'text';
+    field.placeholder = 'Account name';
+    root.append(field);
+    const keep = doc.createElement('button');
+    keep.type = 'button';
+    keep.textContent = 'Keep';
+    keep.addEventListener('click', async () => {
+      const typed = field.value.trim();
+      if (typed) picked.add(typed);
+      const res = await deps.homeDecor.use({ mapId: r.mapId, buildingKey: r.buildingKey, character: deps.character?.(), op: 'set', id: piece.id, kind, mode, names: [...picked], realm: null });
+      if (res?.ok && kind === 'storage' && mode !== 'private') {
+        const snap = pool.itemsSnapshot?.() ?? {};
+        delete snap[piece.id];
+        pool.setItems?.(snap);
+      }
+      deps.say?.(res?.ok ? 'Who may use it is kept.' : (deps.refusal?.(res?.error) ?? 'It could not be kept.'));
+      root.remove?.();
+    });
+    const cancel = doc.createElement('button');
+    cancel.type = 'button';
+    cancel.textContent = 'Cancel';
+    cancel.addEventListener('click', () => root.remove?.());
+    root.append(keep, cancel);
+    doc.body?.append(root);
+    return true;
+  }
+
   /** The plaque's lit row, while browsing. A room door is its record index. Nothing is charged until a placement confirms. */
   function act(verb, id) {
     if (!placing?.browse || !deps.room?.()) return false;
@@ -1099,6 +1159,7 @@ export function createDecorTool(deps) {
     const piece = typeof id === 'string' ? pool.pieceOf?.(id) : null;
     const offers = decorLookOffers(piece ? { kind: decorAimKind(decorKeyOf(piece.id), piece), piece, holds: !!pool.holdsAny?.(piece.id), mayEdit: true } : null);
     if (!offers[verb]) return false;
+    if (verb === 'access') { openAccess(piece); return true; }
     if (verb === 'remove') { removePiece(piece); return true; }
     endPlacing();
     if (verb === 'move') beginPlacing(entryOf(piece), piece);

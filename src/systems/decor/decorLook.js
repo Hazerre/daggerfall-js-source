@@ -36,10 +36,12 @@ export function decorLookOffers(aim) {
   if (kind === 'base') return { move: false, duplicate: false, remove: false, out: true };
   if (!aim.piece) return { ...NONE };
   if (kind !== 'decor' && kind !== 'container' && kind !== 'station' && kind !== 'door') return { ...NONE };
-  return { move: true, duplicate: !aim.piece.item, remove: !aim.holds, out: false };
+  const row = { move: true, duplicate: !aim.piece.item, remove: !aim.holds, out: false };
+  if (kind === 'container' || kind === 'station') row.access = true;
+  return row;
 }
 
-const PLAQUE_LABEL = { move: 'Move', duplicate: 'Duplicate', remove: 'Remove', out: 'Take out' };
+const PLAQUE_LABEL = { move: 'Move', duplicate: 'Duplicate', remove: 'Remove', out: 'Take out', access: 'Access' };
 
 /**
  * The hover plaque's title and its wheel list, for one aim while decorating. No list, the name the room already
@@ -53,6 +55,7 @@ export function decorPlaque(named, aim) {
   if (offers.move) actions.push({ id: 'move', label: PLAQUE_LABEL.move });
   if (offers.duplicate) actions.push({ id: 'duplicate', label: PLAQUE_LABEL.duplicate });
   if (offers.remove) actions.push({ id: 'remove', label: PLAQUE_LABEL.remove });
+  if (offers.access) actions.push({ id: 'access', label: PLAQUE_LABEL.access });
   if (offers.out) actions.push(aim?.holds
     ? { id: 'out', label: PLAQUE_LABEL.out, disabled: true, why: 'it holds something' }
     : { id: 'out', label: PLAQUE_LABEL.out });

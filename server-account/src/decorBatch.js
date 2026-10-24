@@ -159,6 +159,11 @@ export async function commitDecorBatch(ctx, player, body = {}) {
   }
   if (next.size > cap) return { error: yard ? 'yard-cap' : 'decor-cap' };
 
+  if (drops.length) {
+    const marks = drops.map(() => '?').join(', ');
+    const heldBin = await db.prepare(`SELECT piece_id FROM decor_bin WHERE map_id = ? AND building_key = ? AND piece_id IN (${marks}) LIMIT 1`).bind(mapId, buildingKey, ...drops).first();
+    if (heldBin) return { error: 'decor-holds' };
+  }
   const clears = writes.filter((w) => w.had?.piece.storage && !w.p.storage).map((w) => w.p.id);
   let saveNote = null;
   if (drops.length || clears.length) {
@@ -198,6 +203,7 @@ export async function commitDecorBatch(ctx, player, body = {}) {
     steps.push(db.prepare(`DELETE FROM home_decor WHERE map_id = ? AND building_key = ? AND id = ? AND yard = ? AND place = ? AND paid = ? AND ${OWNS}`)
       .bind(mapId, buildingKey, id, out, had.row.place, had.row.paid, ...ownsTail));
     steps.push(mustChange(db));
+    steps.push(db.prepare('DELETE FROM decor_access WHERE map_id = ? AND building_key = ? AND piece_id = ?').bind(mapId, buildingKey, id));
   }
   for (const w of writes) {
     if (w.had) {

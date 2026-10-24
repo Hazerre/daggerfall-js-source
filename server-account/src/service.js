@@ -438,7 +438,7 @@ export const ROUTES = new Set([
   '/v1/homes/town', '/v1/homes/mine', '/v1/homes/claim', '/v1/homes/release', '/v1/homes/entry',
   // DECOR1: an online home's decor (decor.js). Its pieces are read by every session (the room is the same room to
   // every visitor); the three that change one are its owner's.
-  '/v1/homes/decor', '/v1/homes/decor/place', '/v1/homes/decor/move', '/v1/homes/decor/remove', '/v1/homes/decor/batch',
+  '/v1/homes/decor', '/v1/homes/decor/place', '/v1/homes/decor/move', '/v1/homes/decor/remove', '/v1/homes/decor/batch', '/v1/homes/decor/use',
   // BASE-HIDE: what the owner took out of the room's own furniture - read with the pieces, written by the owner
   '/v1/homes/decor/hidden',
   // HOME-RENT: a home's rooms (rent.js) - read by every session at its door; offered and withdrawn by its owner, rented by
