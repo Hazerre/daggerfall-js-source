@@ -192,6 +192,23 @@ test('INTRO3b: not flat - every section its own voice (the bed an ensemble, spre
   }
 });
 
+test('INTRO3c: no whine - every bowed section and the choir with a vibrato, a breath of noise and half the static detune, the halo a soft shimmer (its index low and settling, three copies close, quieter) out of the opening’s bare bars and the quiet after the cloud break; the violins settle and the risers stay under it', () => {
+  const { CHORDS } = INTRO_SCORE_TABLES;
+  const h = INTRO_VOICES.halo;
+  assert.ok(h.index <= 1.5 && h.idxDecay <= 1.5 && h.cents <= 8 && h.unison <= 3 && h.gain <= 0.6, 'the halo is a soft shimmer: its partials were the whine');
+  assert.ok(INTRO_VOICES.violins.index <= 2.4 && INTRO_VOICES.violins.idxDecay <= 2, 'the violins settle');
+  for (const voice of ['violins', 'strings', 'choir', 'cellos', 'halo']) assert.ok(INTRO_VOICES[voice].vibrato >= 8 && INTRO_VOICES[voice].vibRate >= 4.5 && INTRO_VOICES[voice].cents <= 8, `${voice} has a vibrato, not a static beat: a held FM tone without one is the whine`);
+  for (const voice of ['horn', 'contrabass', 'pad']) assert.ok(INTRO_VOICES[voice].vibrato > 0 && INTRO_VOICES[voice].vibrato <= 8, `${voice} has a little`);
+  for (const voice of ['violins', 'strings', 'cellos', 'halo']) assert.ok(INTRO_VOICES[voice].noise >= 0.2, `${voice} has the bow's noise`);
+  for (const voice of ['choir', 'horn', 'brass', 'contrabass', 'pad']) assert.ok(INTRO_VOICES[voice].noise >= 0.1, `${voice} has a breath`);
+  for (const voice of ['harp', 'bells', 'ostinato', 'hit', 'swell', 'timpani']) assert.equal(INTRO_VOICES[voice].noise, undefined, `${voice} has none: struck, plucked or a riser`);
+  assert.ok(INTRO_VOICES.swell.index <= 5 && INTRO_VOICES.swell.gain <= 0.6 && INTRO_VOICES.swell.cents <= 12, 'the risers stay under the halo');
+  const halo = (m) => at(introTick(m), INTRO_CHANNELS.halo);
+  for (const m of [-3, -1, 0, 1, 4, 5]) assert.equal(halo(m).length, 0, `bar ${m} is bare of the halo`);
+  assert.deepEqual(halo(CLOUD_BAR).map((e) => e.note).sort((a, b) => a - b), CHORDS.C.choir.map((n) => midiNote(n) + 12).sort((a, b) => a - b), 'over the cloud break still');
+  assert.ok(halo(14).length > 0 && halo(14).every((e) => e.velocity === 72), 'the halo at 72 where the band opens out, under the choir');
+});
+
 test('INTRO3: nothing fetches or decodes a recording - the intro plays the score through the game’s own player', () => {
   const src = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
   const theme = src('src/systems/introTheme.js');

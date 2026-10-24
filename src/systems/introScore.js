@@ -110,22 +110,33 @@ const KIT = Object.freeze({ kick: 36, snare: 38, clap: 39, lowTom: 41, floorTom:
  *  sub, the swell is the Spire's inharmonic shimmer spread wide, and the halo is four tremolo violins at the edges. The
  *  contrabass carries no sub: at G1 its octave under is 24 Hz, under the floor and heard by nothing but the press. */
 export const INTRO_VOICES = Object.freeze({
-  horn: Object.freeze({ attack: 0.05, index: 3.4, idxDecay: 1.1, release: 0.3, unison: 2, cents: 5, spread: 0.2 }),
-  violins: Object.freeze({ attack: 0.12, index: 3.2, idxDecay: 2.5, release: 0.6, unison: 3, cents: 11, spread: 0.55 }),
-  strings: Object.freeze({ attack: 0.18, index: 3, idxDecay: 3, release: 0.8, unison: 4, cents: 13, spread: 0.6 }),
-  choir: Object.freeze({ mod: 2, index: 2, idxDecay: 2.5, attack: 0.35, release: 1.1, unison: 3, cents: 15, spread: 0.5 }),
+  horn: Object.freeze({ attack: 0.05, index: 3.4, idxDecay: 1.1, release: 0.3, unison: 2, cents: 3, spread: 0.2, vibrato: 5, vibRate: 4.8, noise: 0.12 }),
+  violins: Object.freeze({ attack: 0.12, index: 2.2, idxDecay: 1.6, release: 0.6, unison: 3, cents: 5, spread: 0.55, vibrato: 14, vibRate: 5.6, noise: 0.3 }),
+  strings: Object.freeze({ attack: 0.18, index: 2.6, idxDecay: 3, release: 0.8, unison: 4, cents: 5, spread: 0.6, vibrato: 12, vibRate: 5.2, noise: 0.25 }),
+  choir: Object.freeze({ mod: 2, index: 2, idxDecay: 2.5, attack: 0.35, release: 1.1, unison: 3, cents: 7, spread: 0.5, vibrato: 15, vibRate: 5, noise: 0.18 }),
   ostinato: Object.freeze({ attack: 0.008, decay: 0.14, sustain: 0.45, release: 0.08, index: 4.2, idxDecay: 0.18, unison: 2, cents: 6, spread: 0.25 }),
-  cellos: Object.freeze({ attack: 0.02, index: 2.6, idxDecay: 0.3, unison: 2, cents: 8, spread: 0.3 }),
-  contrabass: Object.freeze({ attack: 0.05, index: 2, idxDecay: 1, release: 0.45, unison: 2, cents: 4, spread: 0.15 }),
-  brass: Object.freeze({ attack: 0.035, index: 5, idxDecay: 0.8, release: 0.3, unison: 3, cents: 9, spread: 0.4 }),
+  cellos: Object.freeze({ attack: 0.02, index: 2.6, idxDecay: 0.3, unison: 2, cents: 5, spread: 0.3, vibrato: 10, vibRate: 4.9, noise: 0.2 }),
+  contrabass: Object.freeze({ attack: 0.05, index: 2, idxDecay: 1, release: 0.45, unison: 2, cents: 3, spread: 0.15, vibrato: 6, vibRate: 4.4, noise: 0.12 }),
+  brass: Object.freeze({ attack: 0.035, index: 5, idxDecay: 0.8, release: 0.3, unison: 3, cents: 6, spread: 0.4, noise: 0.1 }),
   timpani: Object.freeze({ decay: 0.9, release: 0.5, sub: 0.2 }),
-  swell: Object.freeze({ mod: 3.73, index: 7, idxDecay: 4, attack: 0.6, decay: 0.02, sustain: 1, release: 0.06, gain: 0.8, unison: 2, cents: 20, spread: 0.6 }),
+  swell: Object.freeze({ mod: 2.76, index: 4.5, idxDecay: 4, attack: 0.6, decay: 0.02, sustain: 1, release: 0.06, gain: 0.55, unison: 2, cents: 12, spread: 0.6 }),
   harp: Object.freeze({ index: 3, idxDecay: 0.4, unison: 2, cents: 5, spread: 0.35 }),
   bells: Object.freeze({ index: 6, idxDecay: 0.8, unison: 2, cents: 3, spread: 0.3 }),
-  pad: Object.freeze({ mod: 2, index: 0.9, idxDecay: 3, attack: 0.4, release: 1.2, unison: 3, cents: 16, spread: 0.7 }),
+  pad: Object.freeze({ mod: 2, index: 0.9, idxDecay: 3, attack: 0.4, release: 1.2, unison: 3, cents: 8, spread: 0.7, vibrato: 6, vibRate: 4, noise: 0.1 }),
   hit: Object.freeze({ index: 4.5, decay: 0.5, release: 0.35, unison: 2, cents: 15, sub: 0.35, spread: 0.4 }),
-  halo: Object.freeze({ attack: 0.3, index: 3, idxDecay: 4, release: 1, gain: 0.75, unison: 4, cents: 18, spread: 0.8 }),
+  halo: Object.freeze({ attack: 0.35, index: 1.4, idxDecay: 1.2, release: 1, gain: 0.6, unison: 3, cents: 4, spread: 0.8, vibrato: 14, vibRate: 6.1, noise: 0.3 }),
 });
+// INTRO3c (2026-10-24, the owner: "I dont like the high pitch whine" - and with the halo tamed, "It still has that whine.
+// Its not natural"): THE WHINE WAS A LINE SPECTRUM. Measured twice. First the loudest of it: G6, D7, G7 and D8 stood in
+// 40-68% of the film's frames against the recording's 20-48%, each a doubled pair beating - the halo's upper partials
+// (index 3, four copies 18 cents apart) over the opening's quiet; so the halo is a soft shimmer (index 1.4 settling in
+// 1.2 s, three copies 4 cents apart, a third quieter) out of the opening's bare bars and the quiet after the cloud break.
+// Then what was left: the render's top from 1 to 5 kHz had a spectral flatness of 0.00-0.07 to the recording's 0.08-0.30
+// - held FM notes are a few pure sines exactly in tune with themselves, and a section of strings is not. So the player's
+// voices gained a VIBRATO and a BREATH (song/songPlayer.js `vibrato`, `vibRate`, `noise`): every bowed section and the
+// choir carry both here, with half the static detune (the vibrato carries the motion a fixed comb of copies beat out);
+// the violins and the strings settle sooner; the risers are less inharmonic and lower. The hall's top was tried darker
+// and measured as no difference, so it stands. tools/introScoreProbe.mjs's "no whine" pins the worst persistent tone.
 /** The voices by channel, as the song carries them. */
 const INTRO_VOICES_BY_CHANNEL = Object.freeze(Object.fromEntries(Object.entries(INTRO_VOICES).map(([v, o]) => [INTRO_CHANNELS[/** @type {keyof typeof INTRO_CHANNELS} */ (v)], o])));
 /** INTRO3b: THE KIT - each drum the theme strikes, past the bank's one sine or band of noise (systems/song/songPlayer.js
@@ -279,17 +290,18 @@ const MELODY = Object.freeze({
 /** THE SHAPE, bar by bar: how hard the band plays (`dyn`, a velocity scale), what the drums do (`kit`: 0 none, 1 the
  *  low drums on one and three, 2 the 3-3-2 groove, 3 the groove with the backbeat), and who joins - read off the
  *  recording's loudness and its stems (the drums drop out at 14-18 s and 28-32 s, the bass at 118-124 s). */
-/** INTRO3b: `halo` - the tremolo violins over the choir's chord: a shimmer through the opening, the cloud break's held C
- *  and the big sections; `octave` reaches the cloud break's and the impact's calls (the horn in octaves with the violins).
+/** INTRO3b: `halo` - the tremolo violins over the choir's chord: over the cloud break's held C and the big sections
+ *  (INTRO3c took it out of the opening's bare bars, where its partials were the whine); `octave` reaches the cloud
+ *  break's and the impact's calls (the horn in octaves with the violins).
  *  The pad stays the quiet bars' (the opening, the cloud break, the breakdown, the close): under the full band it is low
  *  mids the recording's body does not have - measured, the whole song's spectral centre sat 55 Hz under the film's with it. */
 /** @typedef {{ dyn: number, kit: 0 | 1 | 2 | 3, pulse?: boolean, choir?: boolean, brass?: boolean, octave?: boolean, harp?: boolean, pad?: boolean, bare?: boolean, halo?: boolean }} Shape */
 /** @type {(m: number) => Shape} */
 function shapeOf(m) {
-  if (m < 0) return { dyn: 0.55 + 0.1 * (m + 4), kit: 0, pad: true, harp: m >= -2, halo: m >= -3 };
-  if (m <= 1) return { dyn: 0.85, kit: 0, pad: true, harp: true, halo: true };
+  if (m < 0) return { dyn: 0.55 + 0.1 * (m + 4), kit: 0, pad: true, harp: m >= -2 };
+  if (m <= 1) return { dyn: 0.85, kit: 0, pad: true, harp: true };
   if (m <= 3) return { dyn: 1, kit: 0, choir: true, brass: true, pad: true, halo: true, octave: true };
-  if (m <= 5) return { dyn: 0.75, kit: 0, pad: true, harp: true, halo: true };
+  if (m <= 5) return { dyn: 0.75, kit: 0, pad: true, harp: true };
   if (m <= 7) return { dyn: 0.95, kit: 1, pulse: true, choir: true, brass: true, octave: true };
   if (m <= 16) return { dyn: 1, kit: 2, pulse: true, choir: m >= 12, octave: m >= 14, halo: m >= 14 };
   if (m <= 24) return { dyn: 1, kit: m <= 22 ? 2 : 1, pulse: true, choir: true, brass: m === 17 || m === 18, halo: m <= 20 };
@@ -410,7 +422,7 @@ function bandBar(w, m) {
       // INTRO3b: the low brass's braam under the section, and the halo - the tremolo violins on the chord an octave
       // over the choir
       if (s.brass) w.note('brass', m, half, len * 0.9, midiNote(c.brass[0]) - 12, 96 * d);
-      if (s.halo) for (const n of c.choir) w.note('halo', m, half, len, midiNote(n) + 12, 96 * d);
+      if (s.halo) for (const n of c.choir) w.note('halo', m, half, len, midiNote(n) + 12, 72 * d);
     }
     if (s.pulse) {
       const p = pulseNote(c.root);

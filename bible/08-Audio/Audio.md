@@ -742,6 +742,10 @@ held to `KIT_RANGE`). A voice may be a UNISON - `unison` pairs (1-4) `cents` apa
 one pair; a `spread` lays its copies in turn in two envelopes either side of the channel's place - with a SUB (`sub`, a
 sine an octave under in the note's own envelope); a bend reaches every copy with its spread kept. A drum may carry a
 CLICK (`click`, the beater's noise, 3.2 kHz, gone in 15 ms) and a BODY (`body` Hz, a skin's tone under a noise's crack).
+INTRO3c (2026-10-24) gave a voice two more: a VIBRATO (`vibrato` cents at `vibRate` Hz - a sine LFO per copy into the
+pair's detune, each copy's rate its own, setting in over the attack and a quarter second; `_vibrato`) and a BREATH
+(`noise` - the player's noise looped through a wide band-pass two and a half times up from the note, in the note's own
+envelope; `_breath`): a held FM tone without them is a few pure sines, a whine. `10-UI/UI-Arc.md` INTRO3c.
 A song that carries voices is high-passed at `SONG_FLOOR_HZ` (30 Hz) before its press - THE FLOOR: a 1:1 FM pair's first
 lower sideband lands on 0 Hz, an offset no speaker plays that the press answers by pressing the whole song (a quarter of
 the Spire's spiccato's energy stood under 40 Hz). Every song MIDI.BSA holds carries neither and plays the bank exactly as
@@ -953,3 +957,17 @@ it. The film's 27 s measured after: 483 Hz, -14.7 dB from 2 kHz up, correlation 
 -3.1 dBFS at the highest MusicVolume - the hall sums over the press, so the ceiling is measured there, not held by
 construction; the whole song as loud as the recording (-22.6 dBFS to its -22.4), correlation 0.63, 436 Hz, -15.0 dB, 9/9. `tools/introScoreProbe.mjs` pins the width and the presence beside the landmarks. The whole record is
 `10-UI/UI-Arc.md` INTRO3b.
+
+**INTRO3c (2026-10-24, the owner: "I dont like the high pitch whine" - "Its not natural"): the whine was a line spectrum.**
+First the loudest of it: G6, D7, G7 and D8 stood in 40-68% of the film's frames against the recording's 20-48%, each a
+doubled pair beating - the halo's upper partials over the opening's quiet; the halo is a soft shimmer now
+(`INTRO_VOICES.halo`: index 1.4 settling in 1.2 s, three copies, quieter, written at 72) and out of the opening's bare
+bars. Then what was left: the render's top from 1 to 5 kHz had a spectral flatness of 0.00-0.07 to the recording's
+0.08-0.30 - held FM notes are a few pure sines exactly in tune with themselves. So the player's voices gained a VIBRATO
+and a BREATH (above), and every bowed section and the choir carry both with half the static detune; the risers are less
+inharmonic and lower. The film's flatness 0.107 after (the recording's 0.18), its worst persistent tone from 2 to 6 kHz
+in 28% of its frames (the whine's 71%, the recording's 52%), 445 Hz and -15.6 dB from 2 kHz up, correlation 0.63.
+`tools/introScoreProbe.mjs` pins the whine (`whine`, under 60%) beside the width and the presence. The whole song: as loud as the recording (-22.6 dBFS to its -22.4), correlation 0.64, 417 Hz,
+-15.6 dB, its worst tone in 27% of its frames, 10/10; the probe pumps the player just in time now (the context suspended
+every 0.1 s), a render costing the sounding notes. The
+record is `10-UI/UI-Arc.md` INTRO3c.

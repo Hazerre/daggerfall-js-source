@@ -164,3 +164,45 @@ test('EG-ROAR THE WRITING (egScore.js): the halls climb in four eights - the spi
   const clock = inBars(S.count, 9, 3, 4).filter((e) => e.note === 76 || e.note === 77).map((e) => e.tick - 12 * SCORE_TPQ);
   assert.deepEqual(clock, [0, 1, 2, 3, 4, 5, 6, 7].map((i) => i * SCORE_TPQ / 2), 'a tick every eighth');
 });
+
+test('INTRO3c THE VIBRATO (songPlayer.js _vibrato, VOICE_RANGE): a voice with `vibrato` runs a sine LFO per copy into the pair’s detune - carrier and modulator both - at `vibRate` with each copy 6% faster than the last, the depth setting in from nothing over the attack and a quarter second; one without runs none; the fields held to their ranges', () => {
+  const plain = playOne({ voices: { 0: { unison: 2, cents: 4 } } });
+  assert.equal(plain.ctx.made.osc.length, 4, 'two pairs, no LFO');
+  const { ctx } = playOne({ voices: { 0: { unison: 2, cents: 4, attack: 0.1, vibrato: 12, vibRate: 5 } } });
+  const lfos = ctx.made.osc.filter((o) => o.frequency.value < 20);
+  assert.equal(ctx.made.osc.length, 6, 'two pairs and an LFO each');
+  assert.deepEqual(lfos.map((o) => +o.frequency.value.toFixed(3)).sort((a, b) => a - b), [4.85, 5.15], 'each copy’s rate its own, 6% a step about vibRate');
+  for (const lfo of lfos) {
+    assert.equal(lfo.type, 'sine');
+    assert.equal(lfo.to.length, 1, 'through one depth gain');
+    const depth = lfo.to[0];
+    const detunes = ctx.made.osc.filter((o) => o !== lfo && o.frequency.value >= 20).map((o) => o.detune);
+    assert.equal(depth.to.length, 2, 'into the carrier’s detune and the modulator’s');
+    assert.ok(depth.to.every((d) => detunes.includes(d)), 'the detunes of a pair');
+    const [set, ramp] = depth.gain.writes;
+    assert.deepEqual(set.slice(0, 2), ['setValueAtTime', 0], 'from nothing');
+    assert.equal(ramp[0], 'linearRampToValueAtTime'); assert.equal(ramp[1], 12, 'to the depth in cents');
+    assert.ok(Math.abs((ramp[2] - set[2]) - (0.1 + 0.25)) < 1e-9, 'over the attack and a quarter second');
+    assert.ok(Number.isFinite(lfo.started) && Number.isFinite(lfo.stopped), 'started with the note, stopped with it');
+  }
+  const held = songVoices({ voices: { 0: { vibrato: 90, vibRate: 0.1 }, 1: { vibrato: -3 } } });
+  assert.deepEqual(held[0], { vibrato: 50, vibRate: 0.5 }); assert.deepEqual(held[1], { vibrato: 0 });
+});
+
+test('INTRO3c THE BREATH (songPlayer.js _breath, VOICE_RANGE): a voice with `noise` runs the player’s noise, looped, through a wide band-pass two and a half times up from the note (600 Hz to 5 kHz) at that share into the note’s own envelope sides, started and stopped with the note; one without runs none', () => {
+  const plain = playOne({ voices: { 0: { unison: 2, cents: 4 } } });
+  assert.equal(plain.ctx.made.src.length, 0, 'no noise under a plain voice');
+  const { ctx } = playOne({ note: 69, voices: { 0: { unison: 2, cents: 4, spread: 0.5, noise: 0.3 } } });
+  assert.equal(ctx.made.src.length, 1, 'one band of noise a note, not a copy');
+  const [src] = ctx.made.src;
+  assert.equal(src.loop, true, 'looped: the buffer is a second long, a note is not');
+  const [bp] = src.to; assert.equal(bp.kind, 'biquad'); assert.equal(bp.type, 'bandpass'); assert.equal(bp.frequency.value, 1100, 'A4 440 x 2.5'); assert.equal(bp.Q.value, 0.6);
+  const [g] = bp.to; assert.equal(g.gain.value, 0.3, 'at the share');
+  const sides = ctx.made.gain.filter((n) => n.gain.writes.some(([k, v]) => k === 'exponentialRampToValueAtTime' && v === 0.0001));
+  assert.equal(g.to.length, 2, 'into both envelope sides of a spread unison');
+  assert.ok(g.to.every((side) => sides.includes(side)), 'the envelope sides, not the output');
+  assert.ok(Number.isFinite(src.started) && Number.isFinite(src.stopped), 'started with the note, stopped with it');
+  const low = playOne({ note: 36, voices: { 0: { noise: 0.2 } } }).ctx.made.src[0].to[0].frequency.value, high = playOne({ note: 108, voices: { 0: { noise: 0.2 } } }).ctx.made.src[0].to[0].frequency.value;
+  assert.equal(low, 600); assert.equal(high, 5000);
+  assert.deepEqual(songVoices({ voices: { 0: { noise: 3 } } })[0], { noise: 1 });
+});

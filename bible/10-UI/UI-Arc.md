@@ -1399,6 +1399,77 @@ braam, the wash, the rolls, the swells), `test/ui/intro.test.js` INTRO3b (the
 hall under the session, the send, dispose). Mutants: `tools/mutants/intro3.json`,
 31, all dead.
 
+#### INTRO3c (2026-10-24): no whine - a vibrato and a breath for the player's voices
+
+The owner, hearing INTRO3b's render: "I dont like the high pitch whine", and,
+with the halo tamed, "It still has that whine. Its not natural." Measured, in
+two passes. First the loudest offenders: a scan for one tone standing over its
+band for seconds found G6, D7, G7 and D8 in 40 to 68% of the film's frames
+against the recording's 20 to 48%, each a doubled pair about 30 Hz apart -
+four unison copies 18 cents apart, beating - the halo's upper partials (FM
+index 3, held bright for 4 s) over the opening's quiet. Then, with those gone
+and the whine still heard, what was left: the render's top is a LINE SPECTRUM.
+Its spectral flatness from 1 to 5 kHz (1 is noise, 0 is pure tones) ran 0.000
+to 0.07 over the film's 3 s windows against the recording's 0.08 to 0.30, and
+its most prominent narrow tone stood 24 dB over its band (the mean) against
+the recording's 18 - a held FM note is a few pure sines exactly in tune with
+themselves, and a string section is not: it has vibrato, and the bow's noise
+between the partials. That is the whine, and "not natural" is the right word
+for it. The notes did not move:
+
+- **The player's voices** (`songPlayer.js`, EG-ROAR's `VOICE_RANGE`): two
+  things a song's voice may now carry. A VIBRATO - `vibrato` (cents, to 50)
+  at `vibRate` (Hz, 0.5 to 12): a sine LFO per unison copy summed into the
+  pair's detune (the carrier's and the modulator's, so the spectrum moves
+  whole), each copy 6% faster a step than the last so an ensemble's vibratos
+  drift apart, the depth setting in from nothing over the attack and a quarter
+  second (`_vibrato`). A BREATH - `noise` (a share, to 1): the player's own
+  noise buffer, looped, through a wide band-pass two and a half times up from
+  the note (600 Hz to 5 kHz, Q 0.6), at that share of one copy's amplitude,
+  into the note's own envelope sides so it swells, holds and fades with the
+  tone (`_breath`). Both are the note's own nodes, stopped with it; a bend
+  still reaches every copy. Every song MIDI.BSA holds names neither, and the
+  Spire's voices name neither.
+- **The intro's voices** (`INTRO_VOICES`): every bowed section and the choir
+  with a vibrato (10 to 15 cents at 4.9 to 6.1 Hz; the horn, the contrabass
+  and the pad a little, 5 to 6) and a breath (the violins and the halo 0.3,
+  the strings 0.25, the cellos 0.2, the choir 0.18; the brass, the horn, the
+  contrabass and the pad 0.1 to 0.12; none on the harp, the bells, the
+  ostinato, the hits, the risers or the timpani), and their static detune
+  halved (3 to 8 cents) - the vibrato carries the motion a fixed comb of copies
+  beat out. The halo a soft shimmer (index 1.4 settling in 1.2 s, three copies
+  4 cents apart, gain 0.6, written at 72) and out of the opening's bare bars
+  (-3 to 1) and the quiet after the cloud break (4 and 5); the violins and the
+  strings settling sooner and closer; the risers (`swell`) less inharmonic
+  (mod 2.76, index 4.5) and lower (gain 0.55). The hall's top was tried darker
+  (roomHF -400, decayHFRatio 0.6) and measured as no difference, so it stands.
+
+Measured after, the film's 27 s. The strings alone, one bar: G4's pitch moves
+23 cents peak to peak at 5.3 Hz (the vibrato as written), their flatness from
+1 to 5 kHz 0.26. The whole band: flatness 0.107 (the mean over the 3 s
+windows; the recording's 0.18, the halo-tamed render's 0.039), the top tone's
+prominence 21 dB (18; 24), the worst persistent tone from 2 to 6 kHz in 28% of
+the frames (the recording's D7 in 52%, the whine render's in 71%), the centre
+of weight 445 Hz with -15.6 dB from 2 kHz up (INTRO3b's 483 and -14.7; the
+recording's 521 and -12.8), L/R correlation 0.63, both landmarks at 0.0 ms,
+the peak -2.8 dBFS at the highest MusicVolume. The whole song, 162.8 s: as
+loud as the recording (-22.6 dBFS over 24-160 s to its -22.4), the peak -2.9
+dBFS at the highest MusicVolume, L/R correlation 0.64, the centre 417 Hz with
+-15.6 dB from 2 kHz up, the worst persistent tone in 27% of its frames, 10/10.
+The probe now pumps the player JUST IN TIME - the offline context suspended
+every 0.1 s and the window scheduled there - so a render costs the sounding
+notes and not every node of the song from the first sample: the whole song
+renders in under 3 minutes where the up-front graph took 8, and over 30 with
+the vibrato's and the breath's nodes. The probe pins
+the whine (`whine`: the worst persistent tone from 2 to 6 kHz under 60% of the
+frames) beside the width and the presence, the presence pins at 400 Hz and
+-18 dB. Pins: `test/systems/intro3_score.test.js` INTRO3c (the vibrato, the
+breath and the detune on every voice, the halo's voice, bars and velocity, the
+risers under it), `test/systems/eliteGates/egroar_score.test.js` INTRO3c (the
+vibrato's LFO per copy into both detunes, its rates and onset; the breath's
+band, share, sides and loop; the fields held). Mutants: 18 more in
+`tools/mutants/intro3.json` (49), all dead.
+
 ## U65 THE INTRO (2026-08-30) - HISTORICAL REMOVAL
 
 Built through five versions in one day (U65, c, d, e: generated Iliac

@@ -127,13 +127,17 @@ export function songPress(song) {
  *  oscillator pair a note (gmSynth.js fmSpec's fields, each held to its range, over the program's own), and `kit`, its
  *  drums past percussionSpec's one sine or band of noise a hit. A voice may be a UNISON (`unison` copies, `cents` apart
  *  either side of the note - an ensemble, where one pair is one player) with a SUB (`sub`, a sine an octave under at that
- *  share), its copies laid in turn either side of the channel's place (`spread`, a share of the pan's whole); a drum
+ *  share), its copies laid in turn either side of the channel's place (`spread`, a share of the pan's whole), and a
+ *  VIBRATO (INTRO3c: `vibrato` cents at `vibRate` Hz on every copy's pitch, each copy's rate its own so an ensemble's
+ *  vibratos drift apart, setting in over the attack and a quarter second - a held FM tone without one is a whine) and a
+ *  BREATH (`noise`, a band of noise in the note's own envelope - the bow's and the breath's, the sound between the partials
+ *  that a line of pure sines has not); a drum
  *  may carry a CLICK (`click`, the beater's noise over a skin's tone) and a BODY (`body` Hz, a skin's tone under a
  *  noise's crack). Every song MIDI.BSA holds carries neither and plays the bank exactly as it always has. A field out
  *  of its range is held to it, one that is not a number is dropped. Pure. */
 export const VOICE_RANGE = Object.freeze({
   car: [0.25, 8], mod: [0.25, 12], index: [0, 12], idxDecay: [0.01, 4], attack: [0.001, 2], decay: [0.01, 4], sustain: [0, 1], release: [0.01, 4], gain: [0, 1.5],
-  unison: [1, 4], cents: [0, 40], sub: [0, 1], spread: [0, 1],
+  unison: [1, 4], cents: [0, 40], sub: [0, 1], spread: [0, 1], vibrato: [0, 50], vibRate: [0.5, 12], noise: [0, 1],
 });
 export const KIT_RANGE = Object.freeze({ hz: [20, 12000], attack: [0.001, 0.2], decay: [0.01, 3], gain: [0, 1.5], drop: [0.1, 1], q: [0.2, 12], click: [0, 1], body: [0, 400] });
 const held = (o, range) => {
@@ -657,7 +661,9 @@ export class SongPlayer {
       carrier.connect(sides[u % sides.length]);
       mod.start(at); carrier.start(at);
       oscs.push(mod, carrier); detunes.push(carrier.detune, mod.detune);
+      if (own?.vibrato > 0) oscs.push(this._vibrato(carrier, mod, own, u, offs.length, t0, tA, at));   // INTRO3c
     }
+    if (own?.noise > 0) oscs.push(this._breath(hz, own.noise, sides, t0));   // INTRO3c: the bow's noise, in the note's own envelope
     const subN = own?.sub > 0 ? ctx.createOscillator() : null;   // EG-ROAR: the sub, an octave under, inside the note's own envelope
     if (subN) {
       const subG = ctx.createGain();
@@ -686,6 +692,39 @@ export class SongPlayer {
       stop: () => { for (const o of oscs) o.stop(); }, endsAt: end,
       channel: e.channel, detunes, offs: oscs.length > 2 ? [...offs.flatMap((c) => [c, c]), ...(subN ? [0] : [])] : null,
     });
+  }
+
+  /** INTRO3c (2026-10-24, the owner: "I dont like the high pitch whine ... Its not natural"): THE VIBRATO - a sine at the
+   *  voice's `vibRate` (5.5 Hz unnamed), `vibrato` cents deep, summed into the pair's detune (the carrier's and the
+   *  modulator's, so the spectrum moves whole); copy `u` of `n` runs 6% faster a step than the one before it, so an
+   *  ensemble's vibratos drift in and out of each other as players' do; the depth sets in from nothing over the attack
+   *  and a quarter second, as a player's does. The LFO is one of the note's oscillators, stopped with them. */
+  _vibrato(carrier, mod, own, u, n, t0, tA, at) {
+    const ctx = this.ctx, lfo = ctx.createOscillator(), depth = ctx.createGain();
+    lfo.type = 'sine';
+    lfo.frequency.value = (own.vibRate ?? 5.5) * (1 + 0.06 * (u - (n - 1) / 2));
+    depth.gain.setValueAtTime(0, t0);
+    depth.gain.linearRampToValueAtTime(own.vibrato, tA + 0.25);
+    lfo.connect(depth);
+    depth.connect(carrier.detune);
+    depth.connect(mod.detune);
+    lfo.start(at);
+    return lfo;
+  }
+
+  /** INTRO3c: THE BREATH - a band of noise (the player's own buffer, looped) through a wide band-pass centred two
+   *  and a half times up from the note (600 Hz to 5 kHz, Q 0.6 - a bow's hiss, a singer's
+   *  breath), at `share` of one copy's amplitude, into the note's own envelope sides so it swells, holds and fades with
+   *  the tone. A spectrum of pure sines is a whine; the sound between the partials is what an instrument has. */
+  _breath(hz, share, sides, t0) {
+    const ctx = this.ctx, n = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = ctx.createGain();
+    n.buffer = this._noiseBuffer(); n.loop = true;
+    bp.type = 'bandpass'; bp.frequency.value = Math.min(5000, Math.max(600, hz * 2.5)); bp.Q.value = 0.6;
+    g.gain.value = share;
+    n.connect(bp); bp.connect(g);
+    for (const side of sides) g.connect(side);
+    n.start(t0);
+    return n;
   }
 
   /** EG-ROAR: a song's own drum's layers over its tone or its noise (songKit) - `click`, the beater's noise, 2-5 kHz and

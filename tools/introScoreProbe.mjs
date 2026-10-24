@@ -49,9 +49,19 @@ window.render = async (seconds) => {
   p.play(song);
   clearInterval(p._timer);
   const origin = p._originTime;
-  for (now = 0; now < secs; now += 0.1) p._pump();
+  // INTRO3c: THE PUMP JUST IN TIME - the context suspended every 0.1 s (under the player's LOOKAHEAD, so no window is
+  // skipped as a stall) and the player pumped there, so each window's nodes are made as the render reaches it. Pumping
+  // the whole song before the first sample put every note's nodes in the graph from the start, and the render paid for
+  // all of them at every quantum: 8 minutes for the song, over 30 with the vibrato's and the breath's nodes; just in
+  // time it pays for the notes that sound. The loop stays on through the pumps as before (one pass: the seam is not the
+  // song) and is turned off after the last.
+  const STEP = 0.1, stops = [];
+  for (let t = STEP; t < secs; t += STEP) stops.push(real.suspend(t).then(() => { now = t; p._pump(); return real.resume(); }));
+  now = 0; p._pump();
+  const rendering = real.startRendering();
+  await Promise.all(stops);
   p.loop = false;
-  const buf = await real.startRendering();
+  const buf = await rendering;
   const L = buf.getChannelData(0), R = buf.getChannelData(1);
   let peak = 0, nan = 0;
   const rms = [];
@@ -112,6 +122,20 @@ function onsets(pcm, rate = 12000, size = 1024, hop = 128) {
   return { peakBetween };
 }
 
+/** A radix-2 FFT in place (real and imag, a power of two long). */
+function fft(real, imag) {
+  const size = real.length;
+  for (let a = 1, j = 0; a < size; a++) { let bit = size >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (a < j) { [real[a], real[j]] = [real[j], real[a]]; [imag[a], imag[j]] = [imag[j], imag[a]]; } }
+  for (let n = 2; n <= size; n <<= 1) {
+    const angle = -2 * Math.PI / n;
+    for (let a = 0; a < size; a += n) for (let j = 0; j < n / 2; j++) {
+      const x = a + j, y = x + n / 2, c = Math.cos(angle * j), s = Math.sin(angle * j);
+      const r = real[y] * c - imag[y] * s, v = real[y] * s + imag[y] * c;
+      real[y] = real[x] - r; imag[y] = imag[x] - v; real[x] += r; imag[x] += v;
+    }
+  }
+}
+
 /** INTRO3b: the spectrum's centre of weight (Hz) and the share of its energy from 2 kHz up (dB), over the mono at 12 kHz
  *  from `from` s - Hann 4096, hop 2048, the power averaged over the frames. The flat render measured 265 Hz against the
  *  recording's 552 over the film, its 2-6 kHz share 12 dB under the recording's. */
@@ -121,15 +145,7 @@ function spectrum(pcm, rate = 12000, from = 1, size = 4096, hop = 2048) {
   for (let start = Math.round(from * rate); start + size <= pcm.length; start += hop) {
     const real = new Float64Array(size), imag = new Float64Array(size);
     for (let n = 0; n < size; n++) real[n] = pcm[start + n] * (0.5 - 0.5 * Math.cos(2 * Math.PI * n / (size - 1)));
-    for (let a = 1, j = 0; a < size; a++) { let bit = size >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (a < j) { [real[a], real[j]] = [real[j], real[a]]; [imag[a], imag[j]] = [imag[j], imag[a]]; } }
-    for (let n = 2; n <= size; n <<= 1) {
-      const angle = -2 * Math.PI / n;
-      for (let a = 0; a < size; a += n) for (let j = 0; j < n / 2; j++) {
-        const x = a + j, y = x + n / 2, c = Math.cos(angle * j), s = Math.sin(angle * j);
-        const r = real[y] * c - imag[y] * s, v = real[y] * s + imag[y] * c;
-        real[y] = real[x] - r; imag[y] = imag[x] - v; real[x] += r; imag[x] += v;
-      }
-    }
+    fft(real, imag);
     for (let b = 0; b <= size / 2; b++) power[b] += real[b] * real[b] + imag[b] * imag[b];
     frames++;
   }
@@ -141,6 +157,34 @@ function spectrum(pcm, rate = 12000, from = 1, size = 4096, hop = 2048) {
     if (hz >= 2000) high += power[b];
   }
   return { frames, centroid: total > 0 ? weighted / total : 0, presenceDb: total > 0 ? 10 * Math.log10(Math.max(1e-18, high / total)) : -Infinity };
+}
+
+/** INTRO3c (the owner: "I dont like the high pitch whine"): THE WHINE - one tone standing over its band for seconds. Over
+ *  the same mono, Hann 4096 and hop 1024, a bin is a tone in a frame when it is a local maximum 12 dB over the mean
+ *  magnitude 350 Hz either side of it and within `gateDb` of the frame's loudest bin; the measure is the share of frames
+ *  the worst bin from `lo` to `hi` is a tone in (two bins' tolerance). The recording's worst over the film is D7 (2353 Hz)
+ *  in 52% of its frames; INTRO3b's render had 2341 Hz in 71% - the halo's partials, a doubled pair beating - and INTRO3c's
+ *  2089 Hz in 28%. */
+function whine(pcm, rate = 12000, from = 1, size = 4096, hop = 1024, lo = 2000, hi = 6000, gateDb = 40) {
+  const half = size / 2, count = new Float64Array(half + 1), mag = new Float64Array(half + 1), prefix = new Float64Array(half + 2), peak = new Uint8Array(half + 1);
+  const radius = Math.round(350 * size / rate), gate = Math.pow(10, -gateDb / 20);
+  let frames = 0;
+  for (let start = Math.round(from * rate); start + size <= pcm.length; start += hop) {
+    const real = new Float64Array(size), imag = new Float64Array(size);
+    for (let n = 0; n < size; n++) real[n] = pcm[start + n] * (0.5 - 0.5 * Math.cos(2 * Math.PI * n / (size - 1)));
+    fft(real, imag);
+    let loudest = 0;
+    for (let b = 0; b <= half; b++) { mag[b] = Math.hypot(real[b], imag[b]); prefix[b + 1] = prefix[b] + mag[b]; if (b * rate / size >= 20 && mag[b] > loudest) loudest = mag[b]; }
+    for (let b = 1; b < half; b++) {
+      const a = Math.max(0, b - radius), z = Math.min(half, b + radius), mean = (prefix[z + 1] - prefix[a]) / (z - a + 1);
+      peak[b] = mag[b] >= 4 * mean && mag[b] >= mag[b - 1] && mag[b] >= mag[b + 1] && mag[b] >= loudest * gate ? 1 : 0;
+    }
+    for (let b = 1; b < half; b++) { let near = 0; for (let k = -2; k <= 2; k++) near |= peak[Math.min(half, Math.max(0, b + k))]; count[b] += near; }
+    frames++;
+  }
+  let worst = 0, hz = 0;
+  for (let b = 1; b < half; b++) { const f = b * rate / size; if (f >= lo && f <= hi && count[b] > worst) { worst = count[b]; hz = f; } }
+  return { frames, share: frames ? worst / frames : 0, hz };
 }
 
 const server = http.createServer((req, res) => {
@@ -179,10 +223,13 @@ try {
   // INTRO3b: not flat - wide (the two channels are not one: the recording's L/R correlation is 0.33 over the film, 0.59
   // over its body; the dry render's was 0.985, INTRO3b's 0.61) and present (the spectrum's centre of weight and its
   // share from 2 kHz up, measured on the recording the same way: 521 Hz and -12.8 dB over the film; the dry render's
-  // 305 Hz and -25.0 dB, INTRO3b's 483 Hz and -14.7 - the pins a margin under where it lands)
-  const sp = spectrum(Float32Array.from(r.mono));
+  // 305 Hz and -25.0 dB, INTRO3b's 483 Hz and -14.7, INTRO3c's 445 Hz and -15.6 over the film, 417 Hz and -15.6 over the
+  // whole song - the pins a margin under where it lands); INTRO3c: and no whine (the worst persistent tone from 2 to
+  // 6 kHz under 60% of the frames: the recording's D7 stands in 52%, the whine's in 71%, INTRO3c's worst in 28%)
+  const sp = spectrum(Float32Array.from(r.mono)), wh = whine(Float32Array.from(r.mono));
   check('wide: the two channels are not one (L/R correlation under 0.8)', r.corr < 0.8, `correlation ${r.corr.toFixed(3)}`);
-  check('present: the spectrum’s centre of weight over 420 Hz and its share from 2 kHz up over -16 dB', sp.centroid > 420 && sp.presenceDb > -16, `centroid ${sp.centroid.toFixed(0)} Hz, 2 kHz up ${sp.presenceDb.toFixed(1)} dB over ${sp.frames} frames`);
+  check('present: the spectrum’s centre of weight over 400 Hz and its share from 2 kHz up over -18 dB', sp.centroid > 400 && sp.presenceDb > -18, `centroid ${sp.centroid.toFixed(0)} Hz, 2 kHz up ${sp.presenceDb.toFixed(1)} dB over ${sp.frames} frames`);
+  check('no whine: no one tone from 2 to 6 kHz stands over its band in more than 60% of the frames', wh.share < 0.6, `the worst ${wh.hz.toFixed(0)} Hz in ${(100 * wh.share).toFixed(0)}% of ${wh.frames} frames`);
   check('no page error', errs.length === 0, errs.join('; '));
 } finally {
   await browser.close();
