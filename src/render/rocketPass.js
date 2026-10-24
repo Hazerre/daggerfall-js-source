@@ -21,7 +21,7 @@ import { multiply } from '../world/mat4.js';
 import {
   ROCKET_POOP, ROCKET_POOP_DARK, ROCKET_POOP_SHINE, ROCKET_MOUND, ROCKET_MOUND_TOP, ROCKET_GAS, ROCKET_GAS_EDGE,
   ROCKET_FRENZY_ZENITH, ROCKET_FRENZY_HORIZON, ROCKET_FRENZY_SWIRL, ROCKET_WASH, ROCKET_COATS, ROCKET_MANES,
-  ROCKET_RAIN_SPAN_M, ROCKET_RAIN_TOP_M,
+  ROCKET_RAIN_SPAN_M, ROCKET_RAIN_TOP_M, ROCKET_HORSE_GIRTH, ROCKET_HORSE_LEGS,
 } from '../world/rocketEvent.js';
 
 const f = (v) => v.toFixed(4);
@@ -262,41 +262,45 @@ ${FOG_FACTOR_GLSL}
 float seg(vec2 p, vec2 a, vec2 b, float r) { vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h) - r; }
 float ell(vec2 p, vec2 c, vec2 r) { return (length((p - c) / r) - 1.0) * min(r.x, r.y); }
 float smin(float a, float b, float k) { float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0); return mix(b, a, h) - k * h * (1.0 - h); }
-// one leg from its joint: the upper swung by a1 (from straight down, + toward the nose), the lower by a2; its hoof
-float leg(vec2 p, vec2 j, float a1, float a2, out float hoof) {
-  vec2 k = j + 0.21 * vec2(sin(a1), -cos(a1));
-  vec2 h = k + 0.21 * vec2(sin(a2), -cos(a2));
-  hoof = seg(p, h, h + 0.05 * vec2(sin(a2), -cos(a2)), 0.042);
-  return min(seg(p, j, k, 0.05), seg(p, k, h, 0.036));
+// one leg from its joint: the upper swung by a1 (from straight down, + toward the nose), the lower by a2, each l long;
+// its hoof
+float leg(vec2 p, vec2 j, float a1, float a2, float l, out float hoof) {
+  vec2 k = j + l * vec2(sin(a1), -cos(a1));
+  vec2 h = k + l * vec2(sin(a2), -cos(a2));
+  hoof = seg(p, h, h + 0.05 * vec2(sin(a2), -cos(a2)), 0.05);
+  return min(seg(p, j, k, 0.062), seg(p, k, h, 0.05));
 }
 void main() {
   vec2 p = vP;
   float g = vGallop * 6.2832;
-  float d = smin(smin(ell(p, vec2(0.0, 0.05), vec2(0.52, 0.22)), ell(p, vec2(0.36, 0.06), vec2(0.22, 0.21)), 0.08), ell(p, vec2(-0.36, 0.08), vec2(0.23, 0.22)), 0.08);
-  d = smin(d, seg(p, vec2(0.40, 0.14), vec2(0.62, 0.48), 0.10), 0.06);   // the neck
-  d = smin(d, seg(p, vec2(0.60, 0.52), vec2(0.86, 0.36), 0.075), 0.04);  // the head
-  d = smin(d, ell(p, vec2(0.86, 0.355), vec2(0.075, 0.068)), 0.02);      // the muzzle
-  d = min(d, seg(p, vec2(0.60, 0.58), vec2(0.57, 0.71), 0.028));          // the ear
-  // the gallop: forelegs reaching and folding, hind legs driving
-  float hoof = 1e3, hf;
+  // THE FATASS HORSE (the owner, 2026-10-23: "have it make all the horses go into fatass rendering mode"): a barrel
+  // ${f(ROCKET_HORSE_GIRTH)} times a horse's depth, its belly jiggling with the gallop, on stubby legs
+  float G = ${f(ROCKET_HORSE_GIRTH)}, jig = 1.0 + 0.06 * sin(g * 2.0);
+  float d = smin(smin(ell(p, vec2(0.0, 0.04), vec2(0.58, 0.22 * G * jig)), ell(p, vec2(0.37, 0.07), vec2(0.24, 0.21 * G)), 0.1), ell(p, vec2(-0.38, 0.08), vec2(0.26, 0.22 * G)), 0.1);
+  d = smin(d, seg(p, vec2(0.42, 0.26), vec2(0.64, 0.58), 0.11), 0.07);   // the neck
+  d = smin(d, seg(p, vec2(0.62, 0.62), vec2(0.86, 0.48), 0.075), 0.04);  // the head
+  d = smin(d, ell(p, vec2(0.86, 0.475), vec2(0.075, 0.068)), 0.02);      // the muzzle
+  d = min(d, seg(p, vec2(0.62, 0.68), vec2(0.59, 0.80), 0.028));          // the ear
+  // the gallop, paddling: forelegs reaching and folding, hind legs driving, under the belly
+  float hoof = 1e3, hf, L = 0.21 * ${f(ROCKET_HORSE_LEGS)}, under = 0.04 - 0.22 * G * 0.72;
   for (int i = 0; i < 2; i++) {
     float o2 = float(i) * 0.9;
     float sf = sin(g + o2), sh = sin(g + o2 + 3.1416);
-    d = min(d, leg(p, vec2(0.33 - 0.06 * float(i), -0.06), 0.25 + 0.6 * sf, 0.25 + 0.6 * sf - 1.1 * max(0.0, sin(g + o2 + 1.2)), hf)); hoof = min(hoof, hf);
-    d = min(d, leg(p, vec2(-0.40 + 0.06 * float(i), -0.04), -0.15 + 0.55 * sh, -0.15 + 0.55 * sh + 0.8 * max(0.0, sin(g + o2 + 4.3)), hf)); hoof = min(hoof, hf);
+    d = min(d, leg(p, vec2(0.33 - 0.07 * float(i), under), 0.25 + 0.6 * sf, 0.25 + 0.6 * sf - 1.1 * max(0.0, sin(g + o2 + 1.2)), L, hf)); hoof = min(hoof, hf);
+    d = min(d, leg(p, vec2(-0.40 + 0.07 * float(i), under), -0.15 + 0.55 * sh, -0.15 + 0.55 * sh + 0.8 * max(0.0, sin(g + o2 + 4.3)), L, hf)); hoof = min(hoof, hf);
   }
   // the tail and the mane, flowing back
   float w1 = 0.05 * sin(g * 0.5), w2 = 0.08 * sin(g * 0.5 + 1.0);
-  float hair = min(min(seg(p, vec2(-0.55, 0.17), vec2(-0.74, 0.13 + w1), 0.06), seg(p, vec2(-0.74, 0.13 + w1), vec2(-0.90, 0.02 + w2), 0.05)), seg(p, vec2(-0.90, 0.02 + w2), vec2(-1.0, -0.12 + w2 * 1.5), 0.04));
-  hair = min(hair, seg(p, vec2(0.37, 0.25), vec2(0.58, 0.60), 0.045 + 0.012 * sin(p.y * 70.0)));
+  float hair = min(min(seg(p, vec2(-0.60, 0.26), vec2(-0.78, 0.22 + w1), 0.06), seg(p, vec2(-0.78, 0.22 + w1), vec2(-0.93, 0.11 + w2), 0.05)), seg(p, vec2(-0.93, 0.11 + w2), vec2(-1.03, -0.03 + w2 * 1.5), 0.04));
+  hair = min(hair, seg(p, vec2(0.39, 0.37), vec2(0.60, 0.70), 0.045 + 0.012 * sin(p.y * 70.0)));
   float all_ = min(min(d, hoof), hair);
   if (all_ > 0.0) discard;
   vec3 coat = uCoat[vCoat], mane = uMane[vCoat];
-  vec3 col = coat * (0.82 + 0.25 * smoothstep(-0.1, 0.2, p.y));   // the belly in its own shadow
+  vec3 col = coat * (0.8 + 0.28 * smoothstep(-0.25, 0.3, p.y));   // the belly in its own shadow
   col = hair < 0.0 ? mane : hoof < 0.0 ? vec3(0.09, 0.07, 0.06) : col;
-  col = mix(col, vec3(0.04), 1.0 - smoothstep(0.016, 0.026, length(p - vec2(0.70, 0.49))));   // the eye
-  col = mix(col, vec3(1.0), 1.0 - smoothstep(0.004, 0.009, length(p - vec2(0.708, 0.497))));
-  col = mix(col, vec3(0.05), 1.0 - smoothstep(0.008, 0.014, length(p - vec2(0.905, 0.385))));   // the nostril
+  col = mix(col, vec3(0.04), 1.0 - smoothstep(0.016, 0.026, length(p - vec2(0.71, 0.60))));   // the eye
+  col = mix(col, vec3(1.0), 1.0 - smoothstep(0.004, 0.009, length(p - vec2(0.718, 0.607))));
+  col = mix(col, vec3(0.05), 1.0 - smoothstep(0.008, 0.014, length(p - vec2(0.905, 0.505))));   // the nostril
   col = mix(col, coat * 0.25, smoothstep(-0.03, -0.012, all_));   // the outline
   o = vec4(mix(uFogColor, col * clamp(uLight, 0.45, 1.25), max(fogFactorAt(vWorld), 0.8)), 1.0);   // a sky thing: fogged, never under a floor of it (the star's law)
 }`;
@@ -428,7 +432,7 @@ export class RocketPassRenderer {
     const gl = this.gl;
     const time = ((seconds % 600) + 600) % 600;
     multiply(proj, view, this._vp);
-    const lum = light ? Math.max(0.35, (light.ambient[0] + light.ambient[1] + light.ambient[2]) / 3 + 0.6 * (light.sun ?? 0)) : 1;
+    const lum = light?.ambient ? Math.max(0.35, (light.ambient[0] + light.ambient[1] + light.ambient[2]) / 3 + 0.6 * (light.sun ?? 0)) : 1;
     gl.disable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST);
     if (frenzy > 0.001) {

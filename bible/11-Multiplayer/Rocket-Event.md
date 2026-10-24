@@ -53,6 +53,9 @@ out over 4 s (`ROCKET_FADE_S`); a welcome is whole at once.
   the same horse cross the same quarter of the sky. Each farts on its own seconds; each fart hangs as a cloud for 3.5 s.
 - **The horse is drawn, not read.** A side-on galloping horse in one of six coats, cut out of a signed-distance shape
   in the shader. Not Daggerfall's horse art: a sky full of them at any angle wants one shape that reads at a distance.
+- **Every horse is FAT** (the owner, the same day: "have it make all the horses go into fatass rendering mode"): a
+  barrel 1.7 times a horse's depth (`ROCKET_HORSE_GIRTH`), its belly jiggling with the gallop, on legs 0.6 of a horse's
+  (`ROCKET_HORSE_LEGS`), farting from where the barrel ends.
 
 ## 4. The sound
 
@@ -89,5 +92,5 @@ Not a DFU member - DFU has no live events. Ledger A row: THE ROCKET (ROCKET1).
 the cycle, the lines, the fade, the mounds' grid, the flights, the sky and its sounds, the made fart, the pass (nothing
 drawn with nothing to draw, each part's depth and blend, every state put back, every allocation freed, the colours from
 the tables), the host (the line, the pass built once, the mounds through a recentre, the neigh and the farts) and
-world.js's four lines. `tools/mutants/rocket1.json`: 14 mutants, all dead. The shaders were compiled, linked and drawn
+world.js's four lines. `tools/mutants/rocket1.json`: 15 mutants, all dead. The shaders were compiled, linked and drawn
 in Chromium (SwiftShader) at every phase before they shipped.

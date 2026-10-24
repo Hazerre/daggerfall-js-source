@@ -28,7 +28,7 @@ import {
   ROCKET_EVENT, ROCKET_FADE_S, ROCKET_PHASES, ROCKET_CYCLE_S, ROCKET_CUES, ROCKET_LINES, ROCKET_FRENZY_JET, ROCKET_BROWN_W,
   ROCKET_MOUND_CELL_M, ROCKET_MOUND_CHANCE, ROCKET_MOUND_REACH_M, ROCKET_GREAT, ROCKET_FOALS, ROCKET_HERD, ROCKET_SKY_R,
   ROCKET_PUFF_S, ROCKET_PUFFS, ROCKET_FART_RATE, ROCKET_FART_VARIANTS, ROCKET_POOP, ROCKET_MOUND, ROCKET_GAS, ROCKET_FRENZY_ZENITH,
-  ROCKET_FRENZY_HORIZON, ROCKET_COATS, ROCKET_MANES,
+  ROCKET_FRENZY_HORIZON, ROCKET_COATS, ROCKET_MANES, ROCKET_HORSE_GIRTH, ROCKET_HORSE_LEGS,
   createRocket, rocketPhase, rocketCue, rocketJetScale, rocketMounds, rocketFlights, rocketHorseAt, rocketSky, rocketSounds, rocketFartSamples,
 } from '../../src/world/rocketEvent.js';
 import { RocketPassRenderer, ROCKET_PROGRAMS, ROCKET_SKY_FS, ROCKET_MOUND_FS, ROCKET_SPRITE_FS, ROCKET_HORSE_FS, moundMesh } from '../../src/render/rocketPass.js';
@@ -295,6 +295,9 @@ test('ROCKET1 GLSL: every colour generated from world/rocketEvent.js\'s tables, 
   assert.ok(ROCKET_SKY_FS.includes(v3(ROCKET_FRENZY_ZENITH)) && ROCKET_SKY_FS.includes(v3(ROCKET_FRENZY_HORIZON)));
   assert.match(ROCKET_HORSE_FS, new RegExp(`uniform vec3 uCoat\\[${ROCKET_COATS.length}\\];\\s*uniform vec3 uMane\\[${ROCKET_MANES.length}\\];`));
   assert.equal(ROCKET_COATS.length, ROCKET_MANES.length, 'a mane for every coat');
+  assert.deepEqual([ROCKET_HORSE_GIRTH, ROCKET_HORSE_LEGS], [1.7, 0.6], 'FATASS: every horse a barrel on stubby legs');
+  assert.match(ROCKET_HORSE_FS, new RegExp(`float G = ${ROCKET_HORSE_GIRTH.toFixed(4)}, jig = `), 'the girth from the table');
+  assert.match(ROCKET_HORSE_FS, new RegExp(`L = 0\\.21 \\* ${ROCKET_HORSE_LEGS.toFixed(4)}`), 'and the legs');
   for (const [vs, fs] of ROCKET_PROGRAMS) for (const s of [vs, fs]) assert.ok(s.startsWith('#version 300 es'));
   for (const fs of [ROCKET_MOUND_FS, ROCKET_SPRITE_FS, ROCKET_HORSE_FS]) assert.match(fs, /fogFactorAt\(vWorld\)/, 'fogged as the land is');
   const mesh = moundMesh(7, 16);

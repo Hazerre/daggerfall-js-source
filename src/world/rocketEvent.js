@@ -96,6 +96,10 @@ export const ROCKET_FOALS = Object.freeze({ at: 30, n: 6, every: 2.2, s: 12, len
 /** THE FRENZY'S HERD: one sets out this often through the frenzy, each crossing in s[0]..s[1] seconds, len[0]..len[1]
  *  long - any bearing. */
 export const ROCKET_HERD = Object.freeze({ every: 1.1, s: Object.freeze([8, 13]), len: Object.freeze([60, 180]) });
+/** FATASS (the owner, 2026-10-23: "have it make all the horses go into fatass rendering mode"): every horse is drawn
+ *  this many times a horse's depth through the barrel, on legs this share of a horse's - render/rocketPass.js. */
+export const ROCKET_HORSE_GIRTH = 1.7;
+export const ROCKET_HORSE_LEGS = 0.6;
 /** Seconds between a horse's farts (the great horse's, a foal's, the herd's), each nudged by up to half again. */
 export const ROCKET_FART_EVERY_S = Object.freeze({ great: 0.9, foal: 0.7, herd: 0.6 });
 /** Seconds a fart's cloud hangs in the sky, and how many puffs one fart blows. */
@@ -331,7 +335,7 @@ export function rocketHorseAt(f, k) {
   const dir = at(k), a = at(k - 0.004), b = at(k + 0.004);
   const fw = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], fl = Math.hypot(fw[0], fw[1], fw[2]) || 1;
   const forward = [fw[0] / fl, fw[1] / fl, fw[2] / fl];
-  const back = (f.len * 0.5) / ROCKET_SKY_R;
+  const back = (f.len * 0.33) / ROCKET_SKY_R;   // the drawn body's end (render/rocketPass.js: the barrel's 0.58 of a half-length, and its haunch)
   const rp = [dir[0] - forward[0] * back, dir[1] - forward[1] * back, dir[2] - forward[2] * back], rl = Math.hypot(rp[0], rp[1], rp[2]) || 1;
   return { dir, forward, rump: [rp[0] / rl, rp[1] / rl, rp[2] / rl] };
 }

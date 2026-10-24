@@ -80,10 +80,11 @@ export function createRocketHost(renderer, ground, state, { audio = engine, Pass
     moundsDirty = true;
   };
 
+  const made = [];   // the made farts' samples, a variant once - handed again until the engine's context stands
   const fart = (v, pos, volume, pitch) => {
     const key = ROCKET_FART_KEYS[v];
     try {
-      if (!audio?.registerSamples?.(key, rocketFartSamples(v), ROCKET_FART_RATE)) return;
+      if (!audio?.registerSamples?.(key, made[v] ??= rocketFartSamples(v), ROCKET_FART_RATE)) return;
       audio.play3d?.(key, pos, volume, { refDistance: ROCKET_SKY_EAR_M, maxDistance: 2000, pitch });
     } catch { /* a sound never stops the show */ }
   };

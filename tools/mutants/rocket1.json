@@ -91,6 +91,13 @@
   "tests": ["test/world/rocket1_event.test.js"]
  },
  {
+  "name": "ROCKET1-horses-slim",
+  "file": "src/world/rocketEvent.js",
+  "old": "export const ROCKET_HORSE_GIRTH = 1.7;",
+  "new": "export const ROCKET_HORSE_GIRTH = 1;",
+  "tests": ["test/world/rocket1_event.test.js"]
+ },
+ {
   "name": "ROCKET1-world-word-unheard",
   "file": "src/scenes/world.js",
   "old": "sunbaby.set(ev, o); rocket.set(ev, o); };",
