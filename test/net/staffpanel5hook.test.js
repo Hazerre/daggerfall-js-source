@@ -11,7 +11,7 @@ import { OnlineSession } from '../../src/net/online.js';
 import { SOCIAL_ROOM, CLOSE_POLICY, validPartyPose, cellRoomOfWire, rosterFor } from '../../src/net/wire.js';
 import { FOLLOW_RELAY_MIN, WHERE_NOTE_MOVING_MS, WHERE_NOTE_STILL_MS } from '../../src/net/staffFollow.js';
 import { createStaffHook, staffHookDoor, hiddenSeat, validTags, STAFF_HOOK_VERSION, STAFF_TOKEN_WAIT_MS, STAFF_RELINK_GAP_MS, TAGS_MAX, TAG_WHY_MAX, NAMEPLATE_DIST } from '../../src/net/staffHook.js';
-import { createStaffFollowHost, staffFollowOnPage, relinkGame } from '../../src/scenes/staffFollowHost.js';
+import { createStaffFollowHost, staffFollowOnPage, relinkGame, followInFrame, FOLLOW_RETRY_MS, FOLLOW_RETRY_MAX_MS } from '../../src/scenes/staffFollowHost.js';
 import { accountTokenMinter, SESSION_KEY, SERVICE_KEY } from '../../src/net/accountClient.js';
 import { notePlace, staffTpLine, followStaffPlayer, staffDestinationKey, quietTeleportAllowed, STAFF_TP_FALLBACKS, validStaffDestination } from '../../src/net/staffTeleport.js';
 import { fakeSocketClass } from '../fakeSocket.mjs';
@@ -505,6 +505,24 @@ test('STAFF-VIEW1 hook: peers() is the followed room\'s players as the eye draws
   assert.deepEqual(hook.peers(), [], 'let go');
 });
 
+test('FOLLOW-BODIES (mob, 2026-10-24: "cant see other players bodys"): while a follow is locked the scene draws the players around the target - the eye\'s room less the target, whose eyes the camera is - and the game\'s own room otherwise (mutants: the target kept, the game\'s room while locked)', () => {
+  const { Session, made } = fakeSessions();
+  const mine = [{ id: 'peer-mine' }];
+  const main = { url: 'wss://relay.test', drawable: () => mine };
+  const page = staffFollowOnPage({ main: () => main, prepare: async () => {}, mode: () => 'exterior', pixel: () => ({ x: 1, y: 2 }), toScene: (p) => [p.x, p.y, p.z], win: { location: { origin: 'https://game.test' }, addEventListener() {}, postMessage() {} }, Session, entity: null });
+  assert.deepEqual(page.drawable(), mine, 'no follow: the game\'s own room');
+  const hook = page.hook;
+  hook.follow('acct-target', { room: 'world:1,1', id: 'peer-t' }); hook.tick();
+  made[0].onFollow({ k: 'on', sub: 'acct-target' });
+  hook.tick();
+  const eye = made[1];
+  const t = { id: 'peer-t', shown: { x: 1, y: 2, z: 3, yaw: 0, pitch: 0 } }, o = { id: 'peer-o', shown: { x: 4, y: 5, z: 6, yaw: 0, pitch: 0 } }, s = { id: 'peer-s', sub: 'acct-target', shown: { x: 7, y: 8, z: 9, yaw: 0, pitch: 0 } };
+  eye.peers.set('peer-t', t); eye.peers.set('peer-o', o); eye.peers.set('peer-s', s);
+  assert.deepEqual(page.drawable(), [o], 'locked: the others around the target, never the target (by socket or by account)');
+  hook.unlock();
+  assert.deepEqual(page.drawable(), mine, 'let go: the game\'s own room again');
+});
+
 test('STAFF-VIEW1 hook door: `tags?` to this page\'s own origin; a `tags` answer kept as validTags reads it - from this window and origin alone, an account that is an account id, a known level, words of TAG_WHY_MAX at most, TAGS_MAX rows, a distance Your settings offers - and an answer with no list keeps the last (mutants: each check dropped, the ask to \'*\')', () => {
   const listeners = [], posted = [];
   const win = { location: { origin: 'https://game.test' }, addEventListener: (_k, f) => listeners.push(f), postMessage: (m, o) => posted.push([m, o]) };
@@ -572,6 +590,8 @@ test('STAFF-PANEL5-FOLLOW host: a follow leaves the host\'s room, enters the not
   view = { x: 10, y: 20, z: 30, yaw: 1.25, pitch: -0.5 };
   assert.equal(host.eye(player, cam), false, 'no camera while the place loads');
   release(); await new Promise((r) => setImmediate(r));
+  assert.equal(host.eye(player, cam), false, 'FOLLOW-FRAME: entered, but the scene is still the open air - their dungeon pose is not its frame');
+  mode = 'dungeon';
   assert.equal(host.eye(player, cam), true);
   assert.deepEqual([player.pos, cam.pos, cam.yaw, cam.pitch], [[11, 22, 33], [11, 23.6, 33], 1.25, -0.5]);
   assert.deepEqual([player.velY, player.falling, player.fallStart, player._airVelX, player._airVelZ], [0, false, 22, 0, 0], 'carried, no fall billed');
@@ -581,6 +601,7 @@ test('STAFF-PANEL5-FOLLOW host: a follow leaves the host\'s room, enters the not
   host.frame();
   assert.equal(prepared.length, 1, 'the same place: not entered again');
   // outdoors, seen: the camera carries itself
+  mode = 'exterior';
   place = notePlace({ ...validPartyPose(note('world:1,1')), wx: 1, wy: 2, wz: 3 });
   host.frame();
   await new Promise((r) => setImmediate(r));
@@ -604,6 +625,39 @@ test('STAFF-PANEL5-FOLLOW host: a follow leaves the host\'s room, enters the not
   const warn = console.warn; const warned = []; console.warn = (...a) => warned.push(a.join(' '));
   try { failing.frame(); await new Promise((r) => setImmediate(r)); failing.frame(); await new Promise((r) => setImmediate(r)); } finally { console.warn = warn; }
   assert.equal(warned.length, 1);
+});
+
+test('FOLLOW-FRAME host (mob: "u end up in the bottom left corner" "of the daggerfall map"): a dungeon pose never lands on the open air - the camera waits at the door, and an enter that failed is tried again, each wait twice the last', async () => {
+  let t = 0, fail = true, mode = 'exterior';
+  const view = { x: 12, y: 1, z: 30, yaw: 0, pitch: 0 };
+  const place = notePlace(validPartyPose(note('dungeon:m1234.m', { in: 1 })));
+  const hook = { tick() {}, locked: () => true, view: () => view, place: () => place };
+  const tried = [];
+  const host = createStaffFollowHost({ hook, prepare: async () => { tried.push(t); if (fail) throw new Error('sealed'); mode = 'dungeon'; }, mode: () => mode, where: () => 'exterior|1,1', toScene: (p) => [p.x, p.y, p.z], eyeHeight: () => 1.6, now: () => t });
+  const settle = () => new Promise((r) => setImmediate(r));
+  const player = { pos: [500, 60, 500] }, cam = { pos: [500, 61, 500], yaw: 2, pitch: 0 };
+  const warn = console.warn; const warned = []; console.warn = (...a) => warned.push(a.join(' '));
+  try {
+    host.frame(); await settle();
+    assert.deepEqual(tried, [0]);
+    assert.equal(host.eye(player, cam), false, 'not entered: the camera is not moved');
+    assert.deepEqual([player.pos, cam.pos, host.seeing()], [[500, 60, 500], [500, 61, 500], false], 'never at the world\'s origin');
+    t = FOLLOW_RETRY_MS - 1; host.frame(); await settle();
+    assert.deepEqual(tried, [0], 'not before the wait');
+    t = FOLLOW_RETRY_MS; host.frame(); await settle();
+    assert.deepEqual(tried, [0, FOLLOW_RETRY_MS], 'tried again - it was tried once, and never again');
+    t += 2 * FOLLOW_RETRY_MS - 1; host.frame(); await settle();
+    assert.equal(tried.length, 2, 'the second wait is twice the first');
+    t += 1; fail = false; host.frame(); await settle();
+    assert.equal(tried.length, 3);
+    assert.equal(warned.length, 1, 'said once a place');
+    assert.equal(host.eye(player, cam), true, 'entered: their eyes');
+    assert.deepEqual([player.pos, host.seeing()], [[12, 1, 30], true]);
+    host.frame(); await settle();
+    assert.equal(tried.length, 3, 'entered: not again');
+  } finally { console.warn = warn; }
+  assert.deepEqual([followInFrame(null, 'exterior'), followInFrame({ kind: 'gate' }, 'dungeon'), followInFrame({ kind: 'abyss' }, 'exterior'), followInFrame({ kind: 'interior' }, 'interior'), followInFrame({ kind: 'exterior' }, 'dungeon')], [true, true, false, true, false]);
+  assert.equal(FOLLOW_RETRY_MAX_MS, 60000);
 });
 
 test('STAFF-PANEL5-FOLLOW page: a /tp follows on only where a Staff Panel spoke on this page; the panel\'s follow drives the one hook', () => {

@@ -65,14 +65,44 @@ const KNOWN_MAX = 256;
 const markId = (key) => { const m = typeof key === 'string' ? /^(?:peer|trav):(.+)$/.exec(key) : null; return m ? m[1] : null; };
 /** A peer magically concealed, by their pose's `cv` (systems/combatVisuals.js peerDraw's bits). @param {any} d */
 const concealedPose = (d) => ((d?.shown?.cv | 0) & 7) !== 0;
-/** Tags this near one another on the screen as one box, in the order given (the nearest first leads). @param {Array<{ p: { x: number, y: number }, m: { id: string } }>} tagged */
-function crowded(tagged) {
+/** CROWD-CHIPS: a tag's box on the screen, as ui/staffTags.js draws it (12 px pixel font, a padded plate) - a crowd a
+ *  count's chip, a lone tag its name over its words - estimated, never measured (no layout read in the frame). */
+const TAG_CHAR_PX = 7, TAG_LINE_PX = 15, TAG_PAD_PX = 12, CROWD_WORDS_CHARS = 13;   // the head's words after the count, as English writes them
+/** @param {{ members: Array<{ name?: string, line?: string }> }} g */
+function tagBox(g) {
+  if (g.members.length > 1) return { w: TAG_CHAR_PX * (String(g.members.length).length + CROWD_WORDS_CHARS) + TAG_PAD_PX, h: TAG_LINE_PX + 6 };
+  const m = g.members[0];
+  return { w: TAG_CHAR_PX * Math.max(String(m.name ?? '').length, String(m.line ?? '').length) + TAG_PAD_PX, h: TAG_LINE_PX * (m.line ? 2 : 1) + 6 };
+}
+/** Whether two tags' boxes would touch - each stands centred over its point, its bottom on it. @param {any} a @param {any} b */
+function touching(a, b) {
+  const A = tagBox(a), B = tagBox(b);
+  return Math.abs(a.x - b.x) * 2 < A.w + B.w && Math.abs((a.y - A.h / 2) - (b.y - B.h / 2)) * 2 < A.h + B.h;
+}
+/** Tags this near one another on the screen as one box, in the order given (the nearest first leads) - and CROWD-CHIPS
+ *  (2026-10-24, mob: "to many ocerlapping how would we clean thaT UP"; the card's pick "Merge close boxes, count only"):
+ *  boxes that would still touch merged into the one that leads, until none does, so no two overlap.
+ *  @param {Array<{ p: { x: number, y: number }, m: { id: string } }>} tagged */
+export function crowded(tagged) {
   /** @type {Array<{ key: string, x: number, y: number, members: any[] }>} */
   const groups = [];
   for (const { p, m } of tagged) {
     const g = groups.find((o) => Math.hypot(o.x - p.x, o.y - p.y) <= STAFF_CROWD_PX);
     if (g) g.members.push(m);
     else groups.push({ key: m.id, x: p.x, y: p.y, members: [m] });
+  }
+  // a pass merges every box that touches the one that leads, then the next; a merge grows a lone tag to a chip, so
+  // passes run until one merges nothing (a few at most: each takes boxes away)
+  for (let merged = true; merged;) {
+    merged = false;
+    for (let i = 0; i < groups.length; i++) {
+      for (let j = i + 1; j < groups.length; j++) {
+        if (!touching(groups[i], groups[j])) continue;
+        groups[i].members.push(...groups[j].members);
+        groups.splice(j--, 1);
+        merged = true;
+      }
+    }
   }
   for (const g of groups) if (g.members.length > 1) g.key = `crowd:${g.key}`;
   return groups;

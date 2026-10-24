@@ -471,7 +471,7 @@ test('CSA-K: the host - my place aboard rides my foes frame as `ab` (a changed w
   assert.match(WORLD, /exteriorFoes\.setOnCsaAboard\(\(from, ab, at\) => csaAboard\.applyRider\(from, ab, at\), \(\) => csaAboard\.clearRiders\(\)\);/);
   assert.match(WORLD, /if \(isCellRoom\(online\.room\)\) \{ const ids = ownerIds\(\); if \(ids\) csaAboard\.sweepRiders\(ids, now, FOES_STALE_MS\); \}/);
   // PIN MOVED (SEA-DECK): a place aboard a ship of the sea's is stood on her deck a frame ahead (navalHost.js deckAhead)
-  assert.match(WORLD, /const drawable = isCellRoom\(online\.room\) && csaOn\(\) \? csaAboard\.glue\(online\.drawable\(\), \{ poseOf: \(o, i\) => csaPoseAhead\(o, i, dt\) \?\? naval\?\.deckAhead\?\.\(o, gamePaused\(\) \? 0 : dt \* worldTimeScale\(\)\) \?\? null, toWire: campToWire, dt \}\) : online\.drawable\(\);/);
+  assert.match(WORLD, /const drawable = isCellRoom\(online\.room\) && csaOn\(\) \? csaAboard\.glue\(staffFollow\.drawable\(\), \{ poseOf: \(o, i\) => csaPoseAhead\(o, i, dt\) \?\? naval\?\.deckAhead\?\.\(o, gamePaused\(\) \? 0 : dt \* worldTimeScale\(\)\) \?\? null, toWire: campToWire, dt \}\) : staffFollow\.drawable\(\);/);
   // my own boat, a frame ahead: the helm's move of this frame made before the mod's LateUpdate makes it
   const boat = { GameObject: { activeSelf: true, position: [10, 34, 20], rotation: [0, 0, 0, 1] } };
   const s2 = {
