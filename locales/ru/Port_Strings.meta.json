@@ -20884,6 +20884,21 @@
   "tr": "986dccfaac2a",
   "by": "claude-in-session"
  },
+ "net.staffFollow.following": {
+  "en": "5731d809fd3b",
+  "tr": "a808ada1955f",
+  "by": "claude-in-session"
+ },
+ "net.staffFollow.followingAnon": {
+  "en": "90eeb1008380",
+  "tr": "c476117ed241",
+  "by": "claude-in-session"
+ },
+ "net.staffFollow.unlock": {
+  "en": "1526a17ee757",
+  "tr": "be692a086d53",
+  "by": "claude-in-session"
+ },
  "net.staffMenu.ban": {
   "en": "8c71099c4585",
   "tr": "e3cc7af02ee5",

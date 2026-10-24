@@ -38,6 +38,13 @@
 //                                                  known fields only, ID_RE subs, TAGS_MAX rows, a why of TAG_WHY_MAX
 //   the host posts { dfoStaff: 'act', act: 'follow', sub, name } after a tag click followed - the chat menu's act shape,
 //   so the panel opens its card on the player the game follows (the panel acts on nothing it carries)
+// STAFF-MAP (2026-10-24, mob: "also need the map done as well cant see players far"; net/staffMap.js). Two more, no version
+// bump, as STAFF-VIEW1's:
+//   { dfoStaff: 'regions?' }                       -> { dfoStaff: 'regions', names } - the politic map's region names, in order
+//   { dfoStaff: 'map?', region }                   watch that region (an index into names), or stop (null); the game answers
+//                                                  { dfoStaff: 'map', region, name, state, list: [{ id, sub, name, px, py,
+//                                                  way, road, ageS }] } on each change, at most once a STAFF_MAP_SEND_MS -
+//                                                  state 'open' when its hidden link is in, 'hide' when Hide me is off
 import { OnlineSession, peerId, peerSecret } from './online.js';
 import { SOCIAL_ROOM, cellRoomOfWire, isCellRoom, isSocialRoom } from './wire.js';
 import { ID_RE, TOKEN_MAX_CHARS } from './identityToken.js';
@@ -47,11 +54,11 @@ import { notePlace } from './staffTeleport.js';
 /** The hook's version - the panel reads it and refuses a build it does not know. */
 export const STAFF_HOOK_VERSION = 1;
 /** STAFF-VIEW1: the panel's tags answer, as the game keeps it - rows at most, a flag's words at most, the urgencies, and
- *  the nameplate distances Your settings offers (m), the middle one when the answer names none of them. */
+ *  the nameplate distances Your settings offers (m), 100 when the answer names none of them. */
 export const TAGS_MAX = 200;
 export const TAG_WHY_MAX = 80;
 export const TAG_LEVELS = Object.freeze(['high', 'medium', 'low']);
-export const NAMEPLATE_DISTS = Object.freeze([50, 100, 200]);
+export const NAMEPLATE_DISTS = Object.freeze([50, 100, 200, 350]);   // 350: mob 2026-10-24, "add esp for player to 350m", "its max"
 export const NAMEPLATE_DIST = 100;
 /** How long the hook waits for the panel's token before its link counts the room refused. */
 export const STAFF_TOKEN_WAIT_MS = 5000;
@@ -202,8 +209,9 @@ export function validTags(m) {
  *  `unlock`, `relink` (STAFF-HIDE-TOGGLE: the host's `relink()`) and `tags` (STAFF-VIEW1), and hands back `askToken` for the follow's links and
  *  `panel()`, whether a panel has spoken on this page (a /tp follows on only then - with no panel no token comes, and its
  *  links would knock for nothing). Messages from another window or origin are not the panel's.
- *  @param {any} win @param {() => any} hookOf @param {{ setTimer?: typeof setTimeout, clearTimer?: typeof clearTimeout, relink?: (() => void) | null, now?: () => number }} [t] */
-export function staffHookDoor(win, hookOf, { setTimer = setTimeout, clearTimer = clearTimeout, relink = null, now = () => Date.now() } = {}) {
+ *  STAFF-MAP: and `map?` and `regions?` for the region map (`mapOf()`, net/staffMap.js), whose answers go out by `post`.
+ *  @param {any} win @param {() => any} hookOf @param {{ setTimer?: typeof setTimeout, clearTimer?: typeof clearTimeout, relink?: (() => void) | null, now?: () => number, mapOf?: () => any }} [t] */
+export function staffHookDoor(win, hookOf, { setTimer = setTimeout, clearTimer = clearTimeout, relink = null, now = () => Date.now(), mapOf = () => null } = {}) {
   /** @type {Map<string, (tok: string|null) => void>} */
   const waiting = new Map();
   let seen = false;
@@ -224,6 +232,8 @@ export function staffHookDoor(win, hookOf, { setTimer = setTimeout, clearTimer =
     else if (m.dfoStaff === 'relink' && relink && !relinkWait) { const wait = relinkAt + STAFF_RELINK_GAP_MS - now(); if (wait > 0) relinkWait = setTimer(relinkNow, wait); else relinkNow(); }
     else if (m.dfoStaff === 'token' && 'tok' in m) waiting.get(`${m.sub}|${m.room}`)?.(typeof m.tok === 'string' && m.tok.length <= TOKEN_MAX_CHARS ? m.tok : null);
     else if (m.dfoStaff === 'tags') tags = validTags(m) ?? tags;   // STAFF-VIEW1: an answer with no list keeps the last
+    else if (m.dfoStaff === 'map?') { seen = true; mapOf()?.pick(m.region); }   // STAFF-MAP: a region to watch, or null
+    else if (m.dfoStaff === 'regions?') post({ dfoStaff: 'regions', names: mapOf()?.regions() ?? [] });
   });
   /** @param {string} sub @param {string} room @returns {Promise<string|null>} */
   const askToken = (sub, room) => new Promise((resolve) => {
@@ -235,7 +245,7 @@ export function staffHookDoor(win, hookOf, { setTimer = setTimeout, clearTimer =
     post({ dfoStaff: 'token', sub, room });
   });
   // STAFF-VIEW1: `tags()` the panel's last answer, `askTags()` the ask - to this page's own origin, as every word here
-  return { askToken, panel: () => seen, tags: () => tags, askTags: () => post({ dfoStaff: 'tags?' }) };
+  return { askToken, panel: () => seen, tags: () => tags, askTags: () => post({ dfoStaff: 'tags?' }), post };
 }
 
 /** STAFF-CHAT-RED (2026-10-23, mob: "give me a option next to chat to chat as /red or myself at all times"): THE GAME'S

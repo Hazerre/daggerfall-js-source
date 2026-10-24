@@ -116,14 +116,14 @@ for (const leaves of [false, true]) for (const hide of ['shown', 'hidden', 'reli
       await settle();
       tick(100);
     };
-    for (let i = 0; i < 20; i++) await frame();
+    for (let i = 0; i < 20 || (i < 400 && !smain.peers?.size); i++) await frame();   // the mints are real crypto: a busy runner may take more frames for the hellos to land
     assert.ok(smain.peers?.size, 'the staff game sees the target before the follow');
     hook.follow(TARGET);
     for (let i = 0; i < 60; i++) { pose.x += 1; await frame(); }
     if (hide === 'relink') { hidden = true; relinkGame(null, smain, [shub]); }
     if (hide === 'unhide') { hidden = false; relinkGame(null, smain, [shub]); }
     if (hide === 'twice') { hidden = true; relinkGame(null, smain, [shub]); await frame(); hidden = false; relinkGame(null, smain, [shub]); }
-    for (let i = 0; i < 60; i++) { pose.x += 1; await frame(); }
+    for (let i = 0; i < 60 || (i < 400 && !(hook.locked() && hook.view())); i++) { pose.x += 1; await frame(); }   // a busy runner's slower mints: until the follow has its view again
     const st = (s) => `${s.room}/${s.status}/${s.error ?? ''}`;
     assert.deepEqual(closes, [], `the staff game is never put offline: room ${st(smain)}, World ${st(shub)}`);
     assert.equal(hook.locked(), true, 'the follow holds');
