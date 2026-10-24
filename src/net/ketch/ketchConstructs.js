@@ -145,7 +145,7 @@ export function stepWalk(B, now) {
   B.z = m.z + ((m.tz - m.z) / len) * along;
 }
 /** The point a body's walk reaches at `now`, without moving it - the page's and the judge's. */
-export function bodyAt(B, now) {
+export function constructAt(B, now) {
   const m = B?.mv;
   if (!m) return [B?.x ?? 0, B?.z ?? 0];
   const len = dist(m.x, m.z, m.tx, m.tz);
@@ -288,7 +288,7 @@ export function hitConstruct(B, p, d, r, pose, now, seq = null) {
   if (!B || !p || !(B.h > 0) || now < (B.upAt ?? 0) || !Number.isFinite(d) || !(d > 0)) return 0;
   if (!spendBlow(p, now, seq, `c${B.id}`)) return 0;
   if (!pose || !Number.isFinite(pose.x) || !Number.isFinite(pose.z) || !Number.isFinite(pose.y) || Math.abs(pose.y - B.y) > 4) return 0;
-  const [bx, bz] = bodyAt(B, now);
+  const [bx, bz] = constructAt(B, now);
   if (r === HIT_KINDS.Melee && dist(pose.x, pose.z, bx, bz) - KT_KINDS[B.kind].r > MELEE_REACH + POSE_SLACK) return 0;
   const got = spendPurse(p, d, B.h, now);
   B.h -= got;

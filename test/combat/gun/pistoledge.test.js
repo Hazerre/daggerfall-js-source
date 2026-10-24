@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { readPng } from '../../../tools/pngIO.mjs';
 import { pistolRig, DT } from '../weapon/pistolRigHarness.js';
-import { PISTOL_BLEED, ARM_LEAN_ROWS, EDGE_GAP, armLean, bleedArm, pistolFrameSet, cropTo, PISTOL_STRIP } from '../../../src/combat/gun/pistolStrip.js';
+import { PISTOL_BLEED, ARM_LEAN_ROWS, EDGE_GAP, armLean, bleedArm, pistolFrameSet, cropImage, PISTOL_STRIP } from '../../../src/combat/gun/pistolStrip.js';
 import { bledFrames } from '../../../src/combat/gun/pistoletArt.js';
 import { holdToCorner } from '../../../src/combat/gun/pistolViewmodel.js';
 import { createPistolet } from '../../../src/systems/pistolet.js';
@@ -84,7 +84,7 @@ test('PISTOL-EDGE ONE FRAME SET, BOTH ENDS: the anchor the rest frame\'s own box
   const bottom = set.union.y + set.union.h;
   assert.ok(bottom > PISTOL_STRIP.cellH + PISTOL_BLEED.bottom / 2 && bottom <= PISTOL_STRIP.cellH + PISTOL_BLEED.bottom, `and well below it (${bottom})`);
   for (let i = 0; i < PISTOL_STRIP.frames; i++) {
-    const own = cropTo(set.bled[i], { x: 0, y: 0, w: PISTOL_STRIP.cellW, h: PISTOL_STRIP.cellH });
+    const own = cropImage(set.bled[i], { x: 0, y: 0, w: PISTOL_STRIP.cellW, h: PISTOL_STRIP.cellH });
     assert.ok(own.data.every((v, k) => v === set.cells[i].data[k]), `frame ${i + 1}: the owner's pixels, as cut`);
   }
   // the arm past the cut is ONE piece: every column the bleed added holds its opaque texels in one run, every frame - no
@@ -101,7 +101,7 @@ test('PISTOL-EDGE ONE FRAME SET, BOTH ENDS: the anchor the rest frame\'s own box
   assert.deepEqual(game.union, set.union);
   assert.deepEqual(game.anchor, set.anchor);
   for (let i = 0; i < PISTOL_STRIP.frames; i++) {
-    const want = cropTo(set.bled[i], set.union);
+    const want = cropImage(set.bled[i], set.union);
     assert.ok(game.frames[i].data.every((v, k) => v === want.data[k]), `frame ${i + 1}: the game draws the set's frame`);
   }
   assert.match(page, /pistolFrameSet\(/, 'the page draws the set');

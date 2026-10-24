@@ -26,7 +26,7 @@ import { shimmer, gildFrame } from '../thunderlockArt.js';   // the Thunderlock'
 // the strip's laws live on a leaf (combat/gun/pistolStrip.js) so the pistol lab's own build reads them without this
 // file's texture pipeline behind them - weaponAlign.js's reason for the Thunderlock's lab
 export { PISTOL_STRIP, stripCellRect, hardenAlpha, PISTOL_BLEED, armLean, bleedArm, pistolFrameSet } from './pistolStrip.js';
-import { PISTOL_STRIP, cutCell, cropTo, bleedArm, pistolFrameSet } from './pistolStrip.js';
+import { PISTOL_STRIP, cutCell, cropImage, bleedArm, pistolFrameSet } from './pistolStrip.js';
 
 export const stripUrl = (file = `art/${PISTOL_STRIP.file}`) =>
   new URL(file, APP_ROOT ?? globalThis.document?.baseURI ?? 'http://localhost/').href;
@@ -175,7 +175,7 @@ export function bledFrames(strip, { gilded = false, magic = false, cut = PISTOLE
     const own = { width: f.width, height: f.height, data: new Uint8ClampedArray(f.data) };
     return bleedArm(gilded ? gildFrame(own, pistoletGildKeep(own)) : shimmer(own), lean);
   });
-  return { union, anchor, lean, frames: looked.map((f) => cropTo(f, union)), muzzle: flashPoint(cropTo(bled[1], union)) };
+  return { union, anchor, lean, frames: looked.map((f) => cropImage(f, union)), muzzle: flashPoint(cropImage(bled[1], union)) };
 }
 
 /**

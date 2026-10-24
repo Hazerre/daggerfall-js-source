@@ -269,8 +269,8 @@
   {
     "name": "PA-muzzle-off-the-wrong-frame",
     "file": "src/combat/gun/pistoletArt.js",
-    "old": "muzzle: flashPoint(cropTo(bled[1], union))",
-    "new": "muzzle: flashPoint(cropTo(bled[0], union)) ?? { x: 0.5, y: 0.5 }",
+    "old": "muzzle: flashPoint(cropImage(bled[1], union))",
+    "new": "muzzle: flashPoint(cropImage(bled[0], union)) ?? { x: 0.5, y: 0.5 }",
     "tests": [
       "test/systems/pistolet.test.js",
       "test/systems/pistolet_pins.test.js"

@@ -138,7 +138,7 @@ export function cutCell(strip, i, cut = 128) {
   return { ...img, soft };
 }
 /** An image cropped to `box`. Pure. */
-export function cropTo(img, box) {
+export function cropImage(img, box) {
   const out = new Uint8ClampedArray(box.w * box.h * 4);
   for (let y = 0; y < box.h; y++) {
     const src = ((y + box.y) * img.width + box.x) * 4;

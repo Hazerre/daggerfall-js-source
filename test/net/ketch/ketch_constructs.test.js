@@ -9,7 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   KT_KINDS, KT_KIND_BY_K, KT_FLOORS, KT_OBSTACLES, keepOnFloor, steer, newConstruct, constructHp, bodyWord, constructBlows, constructAllows,
-  chooseFor, beatConstruct, hitConstruct, bodyAt, mvWord,
+  chooseFor, beatConstruct, hitConstruct, constructAt, mvWord,
 } from '../../../src/net/ketch/ketchConstructs.js';
 import { judgeVoyage, KT_STOREY_BAND, KT_HAZARD_SPAN_S } from '../../../src/net/ketch/ketchJudge.js';
 import { KT_LIFT, KT_MAIN_MAST, KT_HOLD, KT_GALLERY, KT_HAMMER, hammerPhase, KT_ARCS, KT_ANCHOR, KT_WAIST } from '../../../src/net/ketch/ketchDeck.js';
@@ -103,7 +103,7 @@ test('KETCH A BODY\'S BEAT: a sentry keeps its range - backing off a chosen too 
   beatConstruct(far, T0, [{ sub: 'a', x: 0, z: 40 }], {}, rng, S, o4, []);
   assert.equal(o4[0].k, 'mv');
   assert.deepEqual(mvWord(far, T0), o4[0]);
-  const [x1, z1] = bodyAt(far, T0 + 1000);
+  const [x1, z1] = constructAt(far, T0 + 1000);
   assert.ok(z1 > 20 && Math.abs(z1 - 20 - KT_KINDS.sphere.speed) < 1e-6 && x1 === 0, 'its walk read at a moment');
 });
 

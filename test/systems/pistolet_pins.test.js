@@ -12,7 +12,7 @@ import {
 import { EQUIP_SLOTS } from '../../src/systems/equip.js';
 import { mintGilded, SOVEREIGN_PISTOLET_ERA } from '../../src/systems/gilded.js';
 import { loadPistoletArt, pistoletGildKeep, flashMask, cutStrip, pistolFrameSet, bleedArm } from '../../src/combat/gun/pistoletArt.js';
-import { cropTo } from '../../src/combat/gun/pistolStrip.js';
+import { cropImage } from '../../src/combat/gun/pistolStrip.js';
 import { PISTOLET_FEEL } from '../../src/combat/gun/gunFeel.js';
 import { gildFrame } from '../../src/combat/thunderlockArt.js';
 import { WEAPON_TYPES } from '../../src/combat/fpsWeapon.js';
@@ -85,9 +85,9 @@ test('D18 B3: the gilded art gilds EACH frame by its own keep - the pistol, neve
     const p = plain.ups.get(`pistolet:${i}`), g = gold.ups.get(`pistolet:gilded:${i}`);
     const crop = { width: p.width, height: p.height, data: Uint8ClampedArray.from(p.colors) };
     const own = { width: set.cells[i].width, height: set.cells[i].height, data: Uint8ClampedArray.from(set.cells[i].data) };
-    const want = cropTo(bleedArm(gildFrame(own, pistoletGildKeep(own)), set.lean), set.union);
+    const want = cropImage(bleedArm(gildFrame(own, pistoletGildKeep(own)), set.lean), set.union);
     assert.equal(firstOff(g.colors, want.data), -1, `frame ${i + 1}: gilded by its own keep, then bled`);
-    assert.equal(firstOff(crop.data, cropTo(set.bled[i], set.union).data), -1, `frame ${i + 1}: the plain the bled cell`);
+    assert.equal(firstOff(crop.data, cropImage(set.bled[i], set.union).data), -1, `frame ${i + 1}: the plain the bled cell`);
     const flame = flashMask(crop);
     for (let k = 0; k < flame.length; k++) {
       if (!flame[k]) continue;
