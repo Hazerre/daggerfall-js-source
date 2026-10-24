@@ -21,7 +21,7 @@ import { ketchVoyageAt, KT_SIGHT_MS } from '../../net/ketch/ketchLaw.js';
 import { KT_ANCHOR_LIFT, deckToDungeon } from '../../net/ketch/ketchDeck.js';
 import { buildKetchShip, buildKetchAnchorLift, KT_STATION, KT_SKY_CHAIN, KT_GROUND, KT_LIFT_CROWN } from '../../world/ketch/ketchModel.js';
 import { packKetchHit } from '../../world/ketch/ketchKit.js';
-import { ensureKetchArt } from './ketchDeckHost.js';
+import { ketchArtUp } from './ketchDeckHost.js';
 import { t } from '../../systems/textManager.js';
 
 /** THE FLIGHT: the deck z she turns about (her middle), how far east and how high over her station she is first seen, the
@@ -107,7 +107,7 @@ export function createKetchSky({ renderer = null, collider = () => null, city = 
     if (built || !renderer?.createMesh) return;
     built = true;
     try {
-      ensureKetchArt(renderer);
+      ketchArtUp(renderer);
       const s = buildKetchShip();
       ship = renderer.createMesh(s.model);
       hit = packKetchHit(s.hit);

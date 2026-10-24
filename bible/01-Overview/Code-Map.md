@@ -409,7 +409,7 @@ wiring in `src/scenes/`. A feature with one or two modules in a layer keeps them
 | `src/world/gate/` | The Oblivion Gate in the world: the arena, the art, the boss, the model, the clearance and the spew. |
 | `src/world/interior/` | Interiors: layout, lights, glass - its models and assembly. |
 | `src/world/jungle/` | Bantha's jungle (`03-World/Bantha-Jungle.md`): where it is (the owner's area, `banthaArea.js`, and its field), the owner's trees and their measures, and its haze's law. |
-| `src/world/ketch/` | The Sky-Ketch in the world (`11-Multiplayer/Sky-Ketch.md`, `Sky-Ketch-Look.md`): the ship made in code - her location, kit, art, model and pose; her look's shared numbers (the light meanings, the value ladder) and her light by the hour and the zone. |
+| `src/world/ketch/` | The Sky-Ketch in the world (`11-Multiplayer/Sky-Ketch.md`, `Sky-Ketch-Look.md`): the ship made in code - her location, kit, art, model and pose; her look's shared numbers (the light meanings, the value ladder, her palette in ART_PAL's index space) and her light by the hour and the zone. |
 | `src/world/merchantYards/` | A town's Stable and Wagon Yard (`03-World/Merchant-Yards.md`) - its models and assembly. |
 | `src/world/road/` | Roads: the network, its painter, verges and clearance - its models and assembly. |
 | `src/world/ships/` | The port's own ships: the galleon, the carrack, the large boat - its models and assembly. |

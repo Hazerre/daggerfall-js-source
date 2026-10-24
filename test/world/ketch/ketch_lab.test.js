@@ -82,9 +82,9 @@ test('KETCH-LOOK KL0 THE TOP SEEN OUT OF IT: `top-out` stands on the main top\'s
 });
 
 test('KETCH-LOOK KL0 THE LAB\'S KNOBS: ?grey, ?lite (or the touch door), ?bill and the sky - on unless sky=0 - read off the query, and the page reads each: the frame in grey, the Steps\' lite set, the bill on the page and on __lab, the world\'s sky drawn after the opaque level (mutants: ?grey ignored; the sky off by default)', () => {
-  assert.deepEqual({ ...ketchLabKnobs('') }, { grey: false, lite: false, bill: false, sky: true, weather: 'sunny', hour: 13, eye: 1 });
-  const k = ketchLabKnobs('?grey&lite&bill&sky=0&weather=rain&hour=18.5&eye=20');
-  assert.deepEqual({ ...k }, { grey: true, lite: true, bill: true, sky: false, weather: 'rain', hour: 18.5, eye: 20 });
+  assert.deepEqual({ ...ketchLabKnobs('') }, { grey: false, lite: false, bill: false, sky: true, weather: 'sunny', hour: 13, eye: 1, arena2: false });
+  const k = ketchLabKnobs('?grey&lite&bill&sky=0&weather=rain&hour=18.5&eye=20&arena2');
+  assert.deepEqual({ ...k }, { grey: true, lite: true, bill: true, sky: false, weather: 'rain', hour: 18.5, eye: 20, arena2: true });
   assert.equal(ketchLabKnobs('?eye=0.2').eye, 1, 'the eye never slower than the game\'s');
   assert.equal(ketchLabKnobs('?touch=on').lite, true, 'the touch door is the phone\'s tier');
   const src = readFileSync(new URL('../../../src/tools/ketchLab.js', import.meta.url), 'utf8');

@@ -30,7 +30,7 @@ import {
 } from '../../net/ketch/ketchDeck.js';
 import { faces } from '../gate/gateModel.js';
 import { ketchKit, packKetchFaces, packKetchHit, KT_TILE_M } from './ketchKit.js';
-import { KT_REC as R } from './ketchArt.js';
+import { KT_REC as R, KT_NET_M } from './ketchArt.js';
 
 // ── the dress's numbers ─────────────────────────────────────────────────────────────────────────────────────────
 /** A floor's thickness (its underside is the ceiling of the room below). */
@@ -170,7 +170,7 @@ function bulwark(K, pts, y, inside, net = KT_NET_TOP) {
     K.quad(R.iron, [ip[0], y, ip[1]], [iq[0], y, iq[1]], [iq[0], y + B.h, iq[1]], [ip[0], y + B.h, ip[1]], [nx, 0, nz], null, true);
     K.quad(R.brass, [p[0], y + B.h, p[1]], [q[0], y + B.h, q[1]], [iq[0], y + B.h, iq[1]], [ip[0], y + B.h, ip[1]], [0, 1, 0]);
     if (net > B.h) {
-      K.quad2(R.net, [p[0], y + B.h, p[1]], [q[0], y + B.h, q[1]], [q[0], y + net, q[1]], [p[0], y + net, p[1]], [nx, 0, nz], [[0, 0], [L / KT_TILE_M, 0], [L / KT_TILE_M, (net - B.h) / KT_TILE_M], [0, (net - B.h) / KT_TILE_M]]);
+      K.quad2(R.net, [p[0], y + B.h, p[1]], [q[0], y + B.h, q[1]], [q[0], y + net, q[1]], [p[0], y + net, p[1]], [nx, 0, nz], [[0, 0], [L / KT_NET_M, 0], [L / KT_NET_M, (net - B.h) / KT_NET_M], [0, (net - B.h) / KT_NET_M]]);   // KETCH-LOOK KL2: a diamond a cell
       K.quad(null, [ip[0], y, ip[1]], [iq[0], y, iq[1]], [iq[0], y + net, iq[1]], [ip[0], y + net, ip[1]], [nx, 0, nz], null, true);
       // the net's top cord and the shroud posts it hangs from, a post each four metres
       K.pipe(R.brass, [p[0], y + net, p[1]], [q[0], y + net, q[1]], 0.05, 6);
@@ -373,8 +373,8 @@ export function buildKetchShip() {
   const HD = KT_HOLD, hy = HD.y, hc = gy - T;
   K.slabWithHoles(R.deck, HD.x0, HD.x1, HD.z0, HD.z1, hy, [], [0, 1, 0], true);
   K.slabWithHoles(R.iron, HD.x0, HD.x1, HD.z0, HD.z1, hc, [holdHatch, shaft], [0, -1, 0], true);   // solid, the shaft open (AUDIT KETCH L4-3)
-  wall(R.hull, [HD.x0, HD.z0], [HD.x0, HD.z1], hy, hc, [1, 0, 0]);
-  wall(R.hull, [HD.x1, HD.z0], [HD.x1, HD.z1], hy, hc, [-1, 0, 0]);
+  wall(R.inner, [HD.x0, HD.z0], [HD.x0, HD.z1], hy, hc, [1, 0, 0]);   // KETCH-LOOK KL2: the plates' backs (its outside's strakes read as shelves)
+  wall(R.inner, [HD.x1, HD.z0], [HD.x1, HD.z1], hy, hc, [-1, 0, 0]);
   wall(R.stone, [HD.x0, HD.z0], [HD.x1, HD.z0], hy, hc, [0, 0, 1]);
   wall(R.stone, [HD.x0, HD.z1], [HD.x1, HD.z1], hy, hc, [0, 0, -1]);
   // its ribs, iron, every six metres down both walls and across the ceiling

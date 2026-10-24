@@ -62,8 +62,8 @@ test('KETCH THE NETS ARE CUTOUTS: the rigging net\'s picture uploaded with its h
   const { KT_REC, ketchNetArt } = await import('../../src/world/ketch/ketchArt.js');
   const up = [];
   ensureKetchArt({ uploadTexture: (arch, rec, img, o) => up.push([rec, o?.cutout === true]) });
-  assert.deepEqual(KT_CUTOUT_RECS, [KT_REC.net]);
-  assert.deepEqual(up.filter(([, c]) => c).map(([r]) => r), [KT_REC.net], 'the net alone, cut');
+  assert.deepEqual(KT_CUTOUT_RECS, [KT_REC.net, KT_REC.vane], 'the net and the pierced vane (KETCH-LOOK KL2, PIN MOVED)');
+  assert.deepEqual(up.filter(([, c]) => c).map(([r]) => r), [KT_REC.vane, KT_REC.net], 'the net and the vane alone, cut');
   assert.ok(up.some(([r, c]) => r === KT_REC.cloud && !c), 'the puffs soft');
   const a = ketchNetArt().albedo, px = a.colors ?? a.data ?? a.pixels ?? a;
   let holes = 0; for (let i = 3; i < px.length; i += 4) if (px[i] === 0) holes++;
@@ -279,4 +279,41 @@ test('KETCH-LOOK KL1 THE SKY ON THE HOUR OFF THE STREET: a made level that draws
   assert.equal(ketchMoonNow(night.m + 0.4, 'sunny'), night.t, 'made once a sky minute');
   const m2 = night.m + 1, clear = moonlightTerm(skyState({ minuteOfDay: m2 % 1440, weather: 'sunny', classicMinutes: m2, skyMinutes: m2 })), cloud = ketchMoonNow(m2, 'overcast');
   assert.ok(cloud && cloud.scale < clear.scale * 0.9, 'the weather\'s clouds dim it');
+});
+
+test('KETCH-LOOK KL2 HER ART THROUGH THE PLAYER\'S PALETTE AT UPLOAD: up first in its fallback colours, then once more through ART_PAL when it is read - never back to the fallback after (the world outside\'s door asks again with none); a renderer that cannot upload asks nothing (mutants: the palette never asked; the fallback over the palette)', async () => {
+  const { ensureKetchArt, ketchArtUp } = await import('../../src/scenes/ketch/ketchDeckHost.js');
+  const { ketchArt, KT_REC } = await import('../../src/world/ketch/ketchArt.js');
+  const ups = [], renderer = { uploadTexture: (a, rec, img) => ups.push([rec, img.colors.slice(0, 4)]), uploadEmissionTexture: () => {} };
+  ensureKetchArt(renderer);
+  const n = ketchArt().length;
+  assert.equal(ups.length, n, 'every record up');
+  const rgb = new Uint8Array(768).fill(7);
+  ensureKetchArt(renderer, rgb);
+  assert.equal(ups.length, 2 * n, 'up again through the palette');
+  assert.deepEqual([...ups.at(-1)[1]].slice(0, 3), [7, 7, 7], 'in its colours');
+  ensureKetchArt(renderer);
+  ensureKetchArt(renderer, rgb);
+  assert.equal(ups.length, 2 * n, 'never back, never twice');
+  const asked = [];
+  ketchArtUp({ uploadTexture: () => asked.push(1), uploadEmissionTexture: () => {} }, false);
+  assert.ok(asked.length > 0, 'the lab\'s own colours up');
+  assert.doesNotThrow(() => ketchArtUp({}), 'no upload, no ask');
+  assert.ok(ketchArt().some(([rec]) => rec === KT_REC.inner));
+});
+
+test('KETCH-LOOK KL2 THE CLASSIC SET CARRIES THE EYE: off the lane her light (the trilight, the sun, the moons\' key) and her lamps take the row\'s classic gains - brighter in the dark rooms and the twilights, a little dimmer at noon, as the lane\'s eye would open and close; on the lane the rows as they are (mutants: the classic set unscaled; its lamps unscaled)', async () => {
+  const { ketchFrameLook } = await import('../../src/scenes/ketch/ketchDeckHost.js');
+  const { KT_HOURS } = await import('../../src/world/ketch/ketchAtmos.js');
+  const { deckToDungeon } = await import('../../src/net/ketch/ketchDeck.js');
+  const moon = { dir: [0, 1, 0], scale: 1 };
+  for (const [at, minute, row] of [[[0, 1.7, 30], 720, 'day'], [[0, 1.7, 30], 18.25 * 60, 'dusk'], [[0, -10.3, 120], 720, 'below'], [[0, 1.7, 30], 120, 'night']]) {
+    const eye = deckToDungeon(...at);
+    const lane = ketchFrameLook(eye, minute, true, moon), A = [...lane.ambient], S = lane.sunScale, K = lane.key.scale, Lp = lane.lamps;
+    const cl = ketchFrameLook(eye, minute, false, moon), C = KT_HOURS[row].classic;
+    for (let k = 0; k < 3; k++) assert.ok(Math.abs(cl.ambient[k] - A[k] * C.light) < 1e-9 && Math.abs(cl.tri.equator[k] - A[k] * 0.8 * C.light) < 1e-9, `${row}: the light`);
+    assert.ok(Math.abs(cl.sunScale - S * C.light) < 1e-9 && Math.abs(cl.key.scale - K * C.light) < 1e-9, `${row}: the sun and the key`);
+    assert.ok(Math.abs(cl.lamps - Lp * C.lamps) < 1e-9, `${row}: the lamps`);
+  }
+  assert.ok(KT_HOURS.below.classic.light > 1 && KT_HOURS.dusk.classic.light > 1 && KT_HOURS.day.classic.light < 1 && KT_HOURS.cabin.classic.lamps > 1, 'the dark rooms and the twilights up, the noon down');
 });

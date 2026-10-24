@@ -20,13 +20,20 @@
 //                    the game - the procedural sky's, render/enhancedSky.js, at ?hour= and ?weather=)
 //   ?eye=<k>         (KL1) the lane's eye adapting k times faster (where it settles the game's) - a probe's settled frame;
 //                    window.__lab.hour(h) moves the hour without a load
+//   ?arena2          (KL2) her art through the player's own ART_PAL (the dev server's ARENA2), not its fallback colours
+//   ?warden          (KL2, the dev server's ARENA2) the Tonal Warden on the bridge, as the fight draws it: the Iron
+//                    Atronach dyed Dwarven at upload (scenes/ketch/ketchFight.js ktWardenDye), at its presence
 // `window.__frame` counts drawn frames; `window.__lab` moves the camera and the clock from a probe.
 import { Renderer, WORLD_FRAME } from '../render/renderer.js';
 import { EL_LANE, exposureFor } from '../render/enhancedLighting.js';
 import { AIR_ADAPT_OPEN, AIR_ADAPT_CLOSE } from '../render/airPass.js';
 import { createSdSteps } from '../scenes/superDungeon/sdSteps.js';
 import { createKetchDeck, ketchFrameLook, ketchApplyLook } from '../scenes/ketch/ketchDeckHost.js';
-import { KT_COURSE, deckToDungeon } from '../net/ketch/ketchDeck.js';
+import { KT_COURSE, KT_BRIDGE, deckToDungeon } from '../net/ketch/ketchDeck.js';
+import { KT_WARDEN_LOOK, ktWardenDye } from '../scenes/ketch/ketchFight.js';
+import { TextureFile } from '../formats/textureFile.js';
+import { DFPalette } from '../formats/dfPalette.js';
+import { mobileBillboardSize } from '../world/rmbFlats.js';
 import { perspective, lookAt, identity, mirrorProjectionX } from '../world/mat4.js';
 import { lightList, packLight } from '../render/lightId.js';
 import { EnhancedSkyRenderer, skyState, moonlightTerm } from '../render/enhancedSky.js';
@@ -76,7 +83,7 @@ function syncLane() {
 
 // ── the ship, stood as the deck host stands it ─────────────────────────────────────────────────────────────────
 const dynamicDraws = [];
-const deck = createKetchDeck({ renderer });
+const deck = createKetchDeck({ renderer, palette: knobs.arena2 });   // KL2: ?arena2 - her art through the game's own palette
 deck.stand({ dynamicDraws, collider: null });
 const steps = createSdSteps({ renderer, course: KT_COURSE, lite: knobs.lite });
 steps.stand({ dynamicDraws, collider: null });
@@ -89,6 +96,22 @@ const lawMesh = params.has('law') ? (() => {
   const tris = deck.colliderTris(), n = tris.length / 3;
   return renderer.createMesh({ positions: tris, normals: new Float32Array(n * 3).map((_, i) => (i % 3 === 1 ? 1 : 0)), uvs: new Float32Array(n * 2), indices: Uint32Array.from({ length: n }, (_, i) => i), subMeshes: [{ textureArchive: 38311, textureRecord: 11, startIndex: 0, primitiveCount: n / 3 }] });
 })() : null;
+
+// ?warden (KL2): the Tonal Warden on the bridge, ahead of the helm - its first frame dyed as the fight dyes it, off the dev
+// server's ARENA2 (never kept), its batch the fight's shape (feet at its origin, its presence's size)
+let wardenBatch = null;
+if (params.has('warden')) (async () => {
+  try {
+    const get = async (name) => { const r = await fetch(`/arena2/${name}`); if (!r.ok) throw new Error(`${name}: ${r.status}`); return new Uint8Array(await r.arrayBuffer()); };
+    const pal = new DFPalette(); pal.load(await get('ART_PAL.COL'), 'ART_PAL.COL');
+    const t = new TextureFile(); t.load(await get('TEXTURE.291'), 'TEXTURE.291', pal);
+    renderer.uploadTexture(291, '0#0~kt', t.getColor32(ktWardenDye(t.getDFBitmap(0, 0)), 0));
+    const sz = mobileBillboardSize(t, 0), k = KT_WARDEN_LOOK.scale;
+    const b = renderer.createBillboardBatch(291, '0#0~kt', { w: sz.w * k, h: sz.h * k }, [[0, 0, 0]]);
+    b.origin = deckToDungeon(KT_BRIDGE.x, KT_BRIDGE.y, KT_BRIDGE.z);
+    wardenBatch = b;
+  } catch (e) { console.warn('[lab] the Warden would not stand', e?.message ?? e); }
+})();
 
 const keys = new Set();
 addEventListener('keydown', (e) => keys.add(e.code));
@@ -173,7 +196,7 @@ function frame(now) {
     sky.draw(cam.yaw, cam.pitch, (65 * Math.PI) / 180, w / h);
   }
   const camRight = new Float32Array([-view[0], -view[4], -view[8]]);
-  renderer.drawBillboards(deck.billboards(cam.pos, clock), camRight, new Float32Array([0, 1, 0]));
+  renderer.drawBillboards(wardenBatch ? [...deck.billboards(cam.pos, clock), wardenBatch] : deck.billboards(cam.pos, clock), camRight, new Float32Array([0, 1, 0]));
   renderer.resolveFrame();
   if (billBox) billBox.textContent = `ship GL draws ${bill.gl}\nship meshes ${bill.draws}\ncasters ${bill.casters} (moving ${bill.moving})\nlights ${bill.lights}\nship CPU ${bill.cpuMs.toFixed(2)} ms`;
   window.__frame++;

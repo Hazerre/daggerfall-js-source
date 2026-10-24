@@ -80,8 +80,10 @@ export const KT_AIR_FOG = Object.freeze({ mode: 'exp', density: 0.0016, color: O
  *  into ([0.1, 0.08, 0.05] before - a dark brown the hold's far end went black in). */
 export const KT_BELOW_FOG = Object.freeze({ mode: 'exp', density: 0.012, color: Object.freeze([0.16, 0.12, 0.08]) });
 /** The ambient light at the Ketch's height at noon and the sun's colour and share there - world/ketch/ketchAtmos.js
- *  KT_HOURS' day row (its night, its twilights and below decks are its own rows: KETCH-LOOK KL1). */
+ *  KT_HOURS' day row (its night, its twilights and below decks are its own rows: KETCH-LOOK KL1). The share 0.8 (0.85
+ *  before) and the sky's fill [0.52, 0.54, 0.58] ([0.56, 0.58, 0.62] before, KETCH-LOOK KL2): her steel deck's lit plate
+ *  stood over the ladder's noon floor (p95 0.32, the rung 0.30) - the shade under her rails a little deeper for it. */
 export const KT_LIGHT = Object.freeze({
-  noon: Object.freeze([0.56, 0.58, 0.62]),
-  sun: Object.freeze([1.0, 0.95, 0.84]), sunScale: 0.85,
+  noon: Object.freeze([0.52, 0.54, 0.58]),
+  sun: Object.freeze([1.0, 0.95, 0.84]), sunScale: 0.8,
 });

@@ -13,7 +13,7 @@
 // Pure. Not a DFU member. Ledger A (KETCH).
 import { deckToDungeon } from '../../net/ketch/ketchDeck.js';
 import { faces } from '../gate/gateModel.js';
-import { KT_ARCHIVE } from './ketchArt.js';
+import { KT_ARCHIVE, KT_NET_M } from './ketchArt.js';
 
 /** A tile's side (m). */
 export const KT_TILE_M = 2;
@@ -185,7 +185,7 @@ export function ketchKit({ f = faces(), hit = null } = {}) {
       bar(y + h * 0.5, 0.035);
       if (solid) quad(null, [p[0], y, p[1]], [q[0], y, q[1]], [q[0], y + h, q[1]], [p[0], y + h, p[1]], [nx, 0, nz], null, true);
       if (net > 0) {
-        quad2(netRec, [p[0], y + h, p[1]], [q[0], y + h, q[1]], [q[0], y + net, q[1]], [p[0], y + net, p[1]], [nx, 0, nz], [[0, 0], [L / KT_TILE_M, 0], [L / KT_TILE_M, (net - h) / KT_TILE_M], [0, (net - h) / KT_TILE_M]]);
+        quad2(netRec, [p[0], y + h, p[1]], [q[0], y + h, q[1]], [q[0], y + net, q[1]], [p[0], y + net, p[1]], [nx, 0, nz], [[0, 0], [L / KT_NET_M, 0], [L / KT_NET_M, (net - h) / KT_NET_M], [0, (net - h) / KT_NET_M]]);   // KETCH-LOOK KL2: a diamond a cell
         quad(null, [p[0], y, p[1]], [q[0], y, q[1]], [q[0], y + net, q[1]], [p[0], y + net, p[1]], [nx, 0, nz], null, true);
       }
     }

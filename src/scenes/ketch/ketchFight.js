@@ -7,8 +7,8 @@
 //   THE BODIES - each construct Daggerfall's own sprite or Daggerfall Enemy Expansion's, at its size (KT_LOOKS): the
 //     Dwarven Sphere and the Sentry the Expansion's Centurion Sphere (the Sentry larger, verdigris-washed), the Spider
 //     Daggerfall's giant spider washed in brass, the Hammer Warden the Expansion's Iron Golem in brass, the Watch-Captain
-//     its Steam Centurion; THE TONAL WARDEN Daggerfall's Iron Atronach grown to KT_WARDEN_LOOK's presence and washed in
-//     tonal gold - each rising (a sphere dropping from the rigging), walking, winding up (its glint - TELL2), striking,
+//     its Steam Centurion; THE TONAL WARDEN Daggerfall's Iron Atronach grown to KT_WARDEN_LOOK's presence and dyed
+//     Dwarven the Daggerfall way (KETCH-LOOK KL2: ktWardenDye - until its own sheets) - each rising (a sphere dropping from the rigging), walking, winding up (its glint - TELL2), striking,
 //     flinching, falling; heard by its own clips (world/gate/gateBoss.js hostCue); offered its Morrowind body where its
 //     mobile has one (MWNPC10 - the Centurions'). Bodies my blows meet through the dungeon host's gate seams (routed here
 //     on a ship - scenes/ketch/ketchDeckHost.js): the constructs as the gate's host, the Warden as its boss, the forks as
@@ -40,6 +40,7 @@ import { KW_ID, KW_FORK_ID0, KW_BODY, KW_FORK, KW_BLOWS, KW_FORKS_CLOSE_MS } fro
 import { KT_BRIDGE, KT_GALLERY, KT_HOLD, deckToDungeon, dungeonToDeck, hazardsBetween, deckZoneAt, onBridge } from '../../net/ketch/ketchDeck.js';
 import { ktBodyAt, ktBlowDone } from '../../net/ketch/ketchLink.js';
 import { ketchKindName } from '../../systems/ketch/ketchWords.js';
+import { changeDyeBitmap, DYE_COLORS, DYE_TARGETS } from '../../characters/dyes.js';
 
 /** THE CONSTRUCTS' LOOKS by kind: a mobile (its sprite, its clips - characters/enemy/enemyBasics.js), its size, its wash. */
 export const KT_LOOKS = Object.freeze({
@@ -49,8 +50,26 @@ export const KT_LOOKS = Object.freeze({
   warden: Object.freeze({ mobile: 270, scale: 1.35, tint: Object.freeze([1.0, 0.84, 0.52]), drop: false }),
   captain: Object.freeze({ mobile: 290, scale: 1.4, tint: null, drop: false }),
 });
-/** THE TONAL WARDEN'S LOOK: Daggerfall's Iron Atronach at its presence, in tonal gold. */
-export const KT_WARDEN_LOOK = Object.freeze({ mobile: 36, scale: 2.6, tint: Object.freeze([1.0, 0.86, 0.5]), get name() { return ketchKindName('tonal'); } });
+/** THE TONAL WARDEN'S LOOK: Daggerfall's Iron Atronach at its presence, its metal Dwarven (`dye` - its frames' own indices
+ *  dyed at upload, in place of the multiply wash the plan retires: KETCH-LOOK KL2). */
+export const KT_WARDEN_LOOK = Object.freeze({ mobile: 36, scale: 2.6, tint: null, dye: (bmp) => ktWardenDye(bmp), get name() { return ketchKindName('tonal'); } });
+/** THE INTERIM WARDEN'S DARKS (KETCH-LOOK KL2, Sky-Ketch-Look.md section 10, until its baked sheets land - KL15): the Ketch's
+ *  table over the Iron Atronach's near-black greys (0xD8-0xDB), each to the Dwarven ramp's darks - its shadows olive, not
+ *  iron. The darkest four (0xDC-0xDF, its outline) keep their own: they are her steel's too (world/ketch/ketchLook.js
+ *  KT_PAL.steel). */
+export const KT_WARDEN_DARKS = Object.freeze({ 216: 158, 217: 159, 218: 159, 219: 95 });
+/**
+ * THE IRON ATRONACH DYED DWARVEN, the Daggerfall way: DFU's ChangeDye with the Dwarven table over its 0x70 metal band
+ * (characters/dyes.js changeDyeBitmap - every Dwarven blade and cuirass in the Iliac Bay is the same band), then
+ * KT_WARDEN_DARKS over its darkest greys - an indexed frame in, a fresh one out, the player's own TEXTURE.291 never kept.
+ * @param {{ width: number, height: number, data: Uint8Array }} bitmap
+ */
+export function ktWardenDye(bitmap) {
+  const dyed = changeDyeBitmap(bitmap, DYE_COLORS.Dwarven, DYE_TARGETS.WeaponsAndArmor);
+  const data = dyed === bitmap ? new Uint8Array(bitmap.data) : dyed.data;
+  for (let i = 0; i < data.length; i++) { const m = KT_WARDEN_DARKS[data[i]]; if (m !== undefined) data[i] = m; }
+  return { ...bitmap, data };
+}
 /** How long a body's fall plays, how far a sphere drops from the rigging as it rises (m), how long a blow of mine flinches. */
 export const KT_FALL_MS = 1100;
 export const KT_DROP_M = 5;
@@ -144,8 +163,12 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
     if (!T || !renderer?.createBillboardBatch || act.act === 'gone') { b.shown = false; return; }
     const eye = cam() ?? at;
     const fr = bossFrame(act, yaw, at, eye, (rec) => T.tex.getFrameCount?.(rec) ?? 1);
-    const rkey = `${fr.record}#${fr.frame}`;
-    if (!renderer.textures?.has?.(`${T.archive}_${rkey}`)) uploadRecordFrame?.(T.archive, fr.record, fr.frame);
+    // a dyed look's frame under a key of its own (KETCH-LOOK KL2): its indices dyed, then through the player's palette
+    const rkey = look.dye ? `${fr.record}#${fr.frame}~kt` : `${fr.record}#${fr.frame}`;
+    if (!renderer.textures?.has?.(`${T.archive}_${rkey}`)) {
+      if (look.dye && T.tex.getDFBitmap && T.tex.getColor32) renderer.uploadTexture?.(T.archive, rkey, T.tex.getColor32(look.dye(T.tex.getDFBitmap(fr.record, fr.frame)), 0));
+      else uploadRecordFrame?.(T.archive, fr.record, fr.frame);
+    }
     const sz = mobileBillboardSize(T.tex, fr.record), k = look.scale ?? 1;
     const size = { w: (fr.flip ? -sz.w : sz.w) * k, h: sz.h * k };
     if (!b.batch) { b.batch = renderer.createBillboardBatch(T.archive, rkey, { w: sz.w * k, h: sz.h * k }, [[0, 0, 0]]); b.batch.origin = [0, 0, 0]; }

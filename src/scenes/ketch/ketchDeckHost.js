@@ -24,7 +24,8 @@
 // Not a DFU member. Ledger A (KETCH).
 import { identity } from '../../world/mat4.js';
 import { buildKetchShip, buildKetchParts, buildKetchGround, KT_GROUND, KT_CAGE, KT_LODESTONE, KT_LAMP } from '../../world/ketch/ketchModel.js';
-import { ketchArt, KT_ARCHIVE, KT_REC } from '../../world/ketch/ketchArt.js';
+import { ketchArt, resolveKetchArt, KT_ARCHIVE, KT_REC } from '../../world/ketch/ketchArt.js';
+import { DFPalette } from '../../formats/dfPalette.js';
 import { hammerHeadY, hazardState, hazardStrike, sectionPose } from '../../world/ketch/ketchPose.js';
 import { packKetchHit } from '../../world/ketch/ketchKit.js';
 import { isKetchShip, ketchShipLocation, ketchShipBlocks } from '../../world/ketch/ketchShip.js';
@@ -79,16 +80,38 @@ function hingeZ(out, a, hx, hy, ox, oy, oz) {
   return out;
 }
 /** The Ketch's pictures drawn as cutouts (their alpha a hole, never a blend). */
-export const KT_CUTOUT_RECS = /** @type {ReadonlyArray<number>} */ (Object.freeze([KT_REC.net]));
-let _artUp = null;
+export const KT_CUTOUT_RECS = /** @type {ReadonlyArray<number>} */ (Object.freeze([KT_REC.net, KT_REC.vane]));
+let _artUp = null, _artPal = null, _art = null;
 /** The Ketch's art uploaded once a renderer (its billboards' pictures by the same keys) - the made level's, and the world
- *  outside's (scenes/ketch/ketchSky.js). */
-export function ensureKetchArt(renderer) {
-  if (!renderer?.uploadTexture || _artUp === renderer) return;
+ *  outside's (scenes/ketch/ketchSky.js) - in its fallback colours, or through `rgb`, the player's palette (KETCH-LOOK KL2:
+ *  world/ketch/ketchArt.js resolveKetchArt), uploaded again when that arrives; never back to the fallback after it. */
+export function ensureKetchArt(renderer, rgb = null) {
+  if (!renderer?.uploadTexture || (_artUp === renderer && (rgb == null || rgb === _artPal))) return;
   // the nets' holes a cutout - the sky through them (AUDIT KETCH L4-2: uploaded plain, every net drew as a solid wall), as
   // the Spire's spans' and the boats' liveries are (scenes/eliteGates/egSpan.js); the puffs stay soft, the billboards' own
-  for (const [rec, art] of ketchArt()) { renderer.uploadTexture(KT_ARCHIVE, rec, art.albedo, ...(KT_CUTOUT_RECS.includes(rec) ? [{ cutout: true }] : [])); renderer.uploadEmissionTexture?.(KT_ARCHIVE, rec, art.emission, { white: true }); }
-  _artUp = renderer;
+  for (const [rec, raw] of (_art ??= ketchArt())) {
+    const art = resolveKetchArt(raw, rgb);
+    renderer.uploadTexture(KT_ARCHIVE, rec, art.albedo, ...(KT_CUTOUT_RECS.includes(rec) ? [{ cutout: true }] : []));
+    renderer.uploadEmissionTexture?.(KT_ARCHIVE, rec, art.emission, { white: true });
+  }
+  _artUp = renderer; _artPal = rgb;
+}
+let _palette = null;
+/** THE PLAYER'S PALETTE (KETCH-LOOK KL2): ART_PAL.COL's 256 colours (768 bytes) off the game's one data seam (scenes/
+ *  dataSource.js getBytes - the palette every TEXTURE archive is drawn with), asked once; null where there is no game
+ *  data. */
+export function ketchPaletteRgb(getBytes = (name) => import('../dataSource.js').then((m) => m.getBytes(name))) {
+  _palette ??= (async () => {
+    try { const pal = new DFPalette(); pal.load(await getBytes('ART_PAL.COL'), 'ART_PAL.COL'); const h = pal.headerLength; return pal.paletteBuffer.slice(h, h + 768); } catch { return null; }
+  })();
+  return _palette;
+}
+/** Her art up on `renderer` now, and through the player's palette once it is read (`palette` false: the fallback alone -
+ *  the lab's own colours unless it is asked for the game's). */
+export function ketchArtUp(renderer, palette = true) {
+  if (!renderer?.uploadTexture) return;
+  ensureKetchArt(renderer);
+  if (palette) ketchPaletteRgb().then((rgb) => { if (rgb) ensureKetchArt(renderer, rgb); }, () => {});
 }
 
 /** THE SHAFT'S GATES: the hold's open with the cage at its foot, the top's with it at the top - and neither while the lift
@@ -98,10 +121,10 @@ export const ketchShaftGates = (cageY, runs) => ({ hold: !!runs && cageY <= KT_L
 
 
 /**
- * THE DECK'S SET.
- * @param {{ renderer?: any }} [deps]
+ * THE DECK'S SET. `palette` false keeps her art in its fallback colours (the lab's default).
+ * @param {{ renderer?: any, palette?: boolean }} [deps]
  */
-export function createKetchDeck({ renderer = null } = {}) {
+export function createKetchDeck({ renderer = null, palette = true } = {}) {
   const O = deckToDungeon(0, 0, 0);
   const meshes = [];
   const make = (model) => { if (!model || !renderer?.createMesh) return null; try { const m = renderer.createMesh(model); meshes.push(m); return m; } catch (e) { console.warn('[kt] the Ketch would not build', e?.message ?? e); return null; } };
@@ -143,7 +166,7 @@ export function createKetchDeck({ renderer = null } = {}) {
     stand({ dynamicDraws, collider: c = null }) {
       if (draws) return false;
       draws = dynamicDraws; collider = c;
-      ensureKetchArt(renderer);
+      ketchArtUp(renderer, palette);
       ship ??= buildKetchShip();
       parts ??= buildKetchParts();
       draw(make(ship.model));
@@ -368,6 +391,11 @@ export function ketchFrameLook(eye, minute, lane = false, moon = null) {
   const zone = below ? 'below' : at === 'cabin' ? 'cabin' : 'deck';
   const L = ketchHourLight(minute, zone, _look);
   L.below = below; L.zone = zone;
+  if (!lane) {   // the classic set: its light carries the eye the lane would open (KETCH-LOOK KL2, KT_HOURS `classic`)
+    const k = L.classic.light;
+    for (let i = 0; i < 3; i++) { L.ambient[i] *= k; L.tri.sky[i] *= k; L.tri.equator[i] *= k; L.tri.ground[i] *= k; }
+    L.sunScale *= k; L.key.scale *= k; L.lamps *= L.classic.lamps;
+  }
   const m = moon && moon.scale > 0 ? Math.min(1, moon.scale / MOONLIGHT.masser) : 0;
   L.key.scale *= m;
   if (m > 0) { L.key.dir[0] = moon.dir[0]; L.key.dir[1] = moon.dir[1]; L.key.dir[2] = moon.dir[2]; }

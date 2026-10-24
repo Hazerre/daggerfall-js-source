@@ -43,7 +43,8 @@ export const KT_LAB_DECK_VIEWS = Object.freeze(['arrive', 'waist', 'gallery', 'l
  * `sky=0` - the game always draws one: the dungeon arm's `host.drawSky`); `weather` the sky's word; `hour` the hour the
  * light is at; `eye` (KETCH-LOOK KL1) how many times the lane's eye adapts faster (render/airPass.js AIR_ADAPT_OPEN and
  * CLOSE - where it settles is the game's, only how soon), so a probe measures the settled eye a few frames after a
- * move rather than the minute the game's takes. Pure.
+ * move rather than the minute the game's takes; `arena2` (KETCH-LOOK KL2) her art through the player's own palette (the
+ * dev server's ARENA2 - scenes/dataSource.js), not its fallback colours. Pure.
  * @param {string} search
  */
 export function ketchLabKnobs(search) {
@@ -57,5 +58,6 @@ export function ketchLabKnobs(search) {
     weather: p.get('weather') ?? 'sunny',
     hour: Number.isFinite(hour) ? hour : 13,
     eye: Number.isFinite(eye) && eye >= 1 ? eye : 1,
+    arena2: p.has('arena2'),
   });
 }
