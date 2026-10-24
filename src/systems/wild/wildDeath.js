@@ -29,7 +29,8 @@
 // ═══════════════════════════════════════════════════════════════════
 import { WILD_ITEMS_MAX } from '../../net/wire.js';
 import { wildCartWord } from './wildCart.js';
-import { WILD_FALL_PACKS } from './wildDropLaw.js';
+import { WILD_FALL_PACKS, WILD_FALL_LETTERS } from './wildDropLaw.js';
+import { wildInside, wildNear, wildRingAt } from './wildZone.js';   // AUDIT FOE-KEEPS E1: the rise's towns
 
 // THE LAW - INT9: its home is systems/wild/wildDropLaw.js (a leaf the account Worker bundles: the service takes a death's drop
 // off the record), re-exported here
@@ -41,13 +42,14 @@ export { WILD_NEVER_GROUPS, keptOnWildDeath, wildCanLose, takeWildDrop, WILD_GOL
  *  coin's share out of his coin (wildTakeTook's `packs`, world.js wildDropTaken), so the service may hand it a take of the
  *  packs (WILD_FALL_PACKS; AUDIT FB1019f B2: a game from before the word, which would misapply one, is refused it).
  *  @param {boolean} on @param {any} rec @param {any} mask */
-export const wildFallWords = (on, rec, mask) => ({ ...wildCartWord(on, rec, mask), packs: WILD_FALL_PACKS });
+export const wildFallWords = (on, rec, mask) => ({ ...wildCartWord(on, rec, mask), packs: WILD_FALL_PACKS, letters: WILD_FALL_LETTERS });   // AUDIT FOE-KEEPS LETTERS-TENTH: this game lowers a letter by its share
 
 /** AUDIT INT9: DID MY DROP TAKE ANYTHING OF MINE - a piece out of a list (`out`, wildTakeTook's answer) or a share of coin:
  *  the purse's, the cart's, or (COMPANION-DROP, AUDIT FB1019f B5) a pack's at my side (`gold.packs`). A receipt that finds
- *  me risen says so when it did (world.js wildDropTaken, `WILD_TEXT.dropLate`): a companion's coin alone is my loss too.
- *  @param {any[]} out @param {{ purse?: number, cart?: number, packs?: Record<string, number> } | null | undefined} gold */
-export const wildTookAny = (out, gold) => out.length > 0 || (gold?.purse ?? 0) > 0 || (gold?.cart ?? 0) > 0 || Object.values(gold?.packs ?? {}).some((n) => n > 0);
+ *  me risen says so when it did (world.js wildDropTaken, `WILD_TEXT.dropLate`): a companion's coin alone is my loss too -
+ *  AUDIT FOE-KEEPS LETTERS-TENTH: and a letter's share (`gold.letters`).
+ *  @param {any[]} out @param {{ purse?: number, cart?: number, packs?: Record<string, number>, letters?: Record<string, number> } | null | undefined} gold */
+export const wildTookAny = (out, gold) => out.length > 0 || (gold?.purse ?? 0) > 0 || (gold?.cart ?? 0) > 0 || Object.values(gold?.packs ?? {}).some((n) => n > 0) || Object.values(gold?.letters ?? {}).some((n) => n > 0);   // LETTERS-TENTH: a letter's share alone is said too
 
 /** A list cut into the wire's chunks. */
 export function wildChunks(list, size = WILD_ITEMS_MAX, bytes = Infinity) {
@@ -89,4 +91,27 @@ export function wildSpawnSpot(centre, { bodies = [], clear = () => true, yaw = 0
     }
   }
   return { pos: [centre[0], centre[1], centre[2]], yaw };
+}
+
+/** THE RISE'S TOWNS in the order they are asked (world.js wildRiseSite: the first `nearestSafeLocationAnywhere` finds) -
+ *  `mask` the zone's, `px` where the body fell, `inDungeon` a hall's death, `kill` a death at another player's hand.
+ *  WILD1 (the owner: "when the players respawns in a town near the zone the cart comes with him"): a kill rises at the
+ *  nearest town or temple OUTSIDE the zone and its band. PVPDUNGEONS (the owner: "Dying in a dungeon respawns you in city
+ *  near the dungeon"): a hall's death in the zone at the town nearest the hall. AUDIT FOE-KEEPS E1 (the owner, 2026-10-24,
+ *  asked: "Rise inside the zone"): since FOE-KEEPS a death to a foe drops nothing, so its rise outside made dying the
+ *  zone's free way out - where fast travel out is refused and the walk out an hour and more; it rises at the nearest town
+ *  or temple INSIDE the zone in the ring it fell in, else anywhere inside, else outside as a kill does.
+ *  @param {any} mask @param {{ x: number, y: number }} px @param {{ inDungeon?: boolean, kill?: boolean }} [o]
+ *  @returns {((hit: any) => boolean)[]} */
+export function wildRisePicks(mask, px, { inDungeon = false, kill = true } = {}) {
+  const town = (/** @type {any} */ hit) => hit.kind === 'city' || hit.kind === 'temple';
+  const out = (/** @type {any} */ hit) => town(hit) && !(mask && wildNear(mask, hit.mapPixel.x, hit.mapPixel.y));
+  const inside = !!mask && wildInside(mask, px.x, px.y);
+  if (inside && inDungeon) return [(hit) => hit.kind === 'city', out];
+  if (inside && !kill) {
+    const ring = wildRingAt(px.x, px.y, mask);
+    const inZone = (/** @type {any} */ hit) => town(hit) && wildInside(mask, hit.mapPixel.x, hit.mapPixel.y);
+    return [(hit) => inZone(hit) && wildRingAt(hit.mapPixel.x, hit.mapPixel.y, mask) === ring, inZone, out];
+  }
+  return [out];
 }

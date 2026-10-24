@@ -485,6 +485,8 @@ export const WILD_TEXT = Object.freeze({
   // said, where it was said as nothing at all; and the letters of credit among what a death took, by their worth - through
   // the text core (L10N4), read when they are said
   deathBurnt: (n) => (n > 0 ? t('wild.death.burnt', '{n, plural, one {# thing you carried was} other {# things you carried were}} lost where you fell. This character\'s trading is frozen, so nothing is left for anyone to take.', { n }) : ''),
+  // AUDIT FOE-KEEPS LETTERS-TENTH: a kill takes a tenth of each letter's worth into the remains' gold, the letter kept
+  deathLettersTenth: (gold) => (gold > 0 ? t('wild.death.lettersTenth', 'A tenth of your letters of credit, {gold} gold, lies where you fell.', { gold: Number(gold).toLocaleString('en-US') }) : ''),
   deathLetters: (n, gold) => (n > 0 ? t('wild.death.letters', '{n, plural, one {A letter} other {# letters}} of credit worth {gold} gold left your wallet.', { n, gold: Number(gold).toLocaleString('en-US') }) : ''),
   deathClaim: (name, item) => `${name || 'Another player'} took your ${item || 'gear'}.`,
   // MAC (2026-10-14, the two-phase handoff): the piece claimed is held in escrow until its killer collects it - its words
@@ -612,10 +614,12 @@ export function setWildDeath(d) {
   _death = d ? { killer: typeof d.killer === 'string' && d.killer ? d.killer : null, kill: _killed, dropped: Math.max(0, d.dropped | 0), claimed: typeof d.claimed === 'string' && d.claimed ? d.claimed : null, held: d.held === true,
     burnt: Math.max(0, d.burnt | 0), letters: wildLettersOf(d.letters), kind: d.kind ?? _death?.kind ?? _kind ?? WILD_KIND } : null;   // ETHER-WILD: the ground it fell on, for its words
 }
-/** BURNT-SAID: the letters of credit among `items` - how many, and the gold they stand for. */
+/** BURNT-SAID: the letters of credit among `items` - how many, and the gold they stand for. AUDIT FOE-KEEPS LETTERS-TENTH:
+ *  and `tenth`, the gold a kill took out of the letters left in the wallet (wildTakeTook's `out.letters`), when any. */
 export function wildLettersOf(/** @type {any} */ items) {
   const l = (Array.isArray(items) ? items : []).filter(isLetterOfCredit);
-  return { n: l.length, gold: l.reduce((g, it) => g + (Number.isSafeInteger(it.value) && it.value > 0 ? it.value : 0), 0) };
+  const tenth = Math.max(0, Math.floor(Number(items?.letters?.gold) || 0));
+  return { n: l.length, gold: l.reduce((g, it) => g + (Number.isSafeInteger(it.value) && it.value > 0 ? it.value : 0), 0), ...(tenth > 0 ? { tenth } : {}) };
 }
 export const wildDeath = () => _death;
 /** AUDIT FOE-KEEPS H1: the referee's word that I fell at another player's hand - `fell` its `{ r, by, room, at }`, `name`
@@ -633,5 +637,5 @@ export const wildFallHeard = () => _fell;
 export function wildDeathLines(d = _death) {
   if (!d) return [];
   return [d.killer || d.kill ? (d.claimed ? (d.held ? WILD_TEXT.deathHeld : WILD_TEXT.deathClaim)(d.killer, d.claimed) : WILD_TEXT.deathPvp(d.killer)) : WILD_TEXT.deathKept(), WILD_TEXT.deathDrop(d.dropped),
-    WILD_TEXT.deathBurnt(d.burnt ?? 0), WILD_TEXT.deathLetters(d.letters?.n ?? 0, d.letters?.gold ?? 0), zoneWord('deathHold', d.kind ?? WILD_KIND)].filter(Boolean);
+    WILD_TEXT.deathBurnt(d.burnt ?? 0), WILD_TEXT.deathLetters(d.letters?.n ?? 0, d.letters?.gold ?? 0), WILD_TEXT.deathLettersTenth(d.letters?.tenth ?? 0), zoneWord('deathHold', d.kind ?? WILD_KIND)].filter(Boolean);
 }

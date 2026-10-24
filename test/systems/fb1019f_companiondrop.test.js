@@ -205,14 +205,15 @@ test('COMPANION-DROP THROUGH THE SERVICE AND BACK (server-account/src/wild.js, w
   assert.equal(lone.items.length, 1);
   // the service hands the shares on
   const svcSrc = rd('server-account/src/wild.js');
-  assert.ok(svcSrc.includes('gold: { purse: tk?.gold?.purse ?? 0, cart: tk?.gold?.cart ?? 0, ...packs }'));
+  assert.ok(svcSrc.includes('gold: { purse: tk?.gold?.purse ?? 0, cart: tk?.gold?.cart ?? 0, ...packs, ...letters }'));   // PIN MOVED (AUDIT FOE-KEEPS LETTERS-TENTH): and the letters' shares
 });
 
 test('COMPANION-DROP A TAB FROM BEFORE THE WORD (AUDIT FB1019f B2): the fallen\'s own ask says its game reads the packs (`packs` 1, wildFallWords, the wagon\'s word beside it); asked without it, a take of a companion\'s pack - his pieces, or his coin alone - is refused in the old build\'s word (`not-found`), nothing moved, never a smaller take; a fall at another\'s hand so refused is taken whole, packs and all, by the killer\'s seizure past the grace, which no game applies; a take that touches no pack is that tab\'s as ever; and risen, a companion\'s coin alone is said (B5) (mutants: the refusal gone; the word unread; a seizure refused; a pack\'s coin unread; the pile, the cart or the bag read as a pack; the words without the packs; the risen word blind to a pack\'s coin)', async () => {
   // the word, as the game says it
   assert.equal(WILD_FALL_PACKS, 1);
-  assert.deepEqual(wildFallWords(false, null, null), { cart: 1, packs: 1 }, 'the mod off: the wagon goes where she goes, and the packs read');
-  assert.deepEqual(wildFallWords(true, newSaveData(), null), { cart: 0, packs: 1 }, 'the mod on, no wagon: away');
+  // PIN MOVED (AUDIT FOE-KEEPS LETTERS-TENTH): and `letters` 1 - this game lowers a letter by its share
+  assert.deepEqual(wildFallWords(false, null, null), { cart: 1, packs: 1, letters: 1 }, 'the mod off: the wagon goes where she goes, and the packs read');
+  assert.deepEqual(wildFallWords(true, newSaveData(), null), { cart: 0, packs: 1, letters: 1 }, 'the mod on, no wagon: away');
   assert.equal(accountRefusalText('not-found'), 'The account service does not know that request. The game may need updating.', 'the old build\'s word, as every shipped build says it');
   assert.ok(rd('src/scenes/world.js').includes('...(online?.wildCollectAt?.(lay) ? { collect: 1 } : {}), ...wildFallWords(hccOn(), hccRuntime.getSaveData(), wildMaskOf(maps)) }),'), 'my own ask says them');
   // her record as play left it - her purse spent, so every coin a death takes is her companions'

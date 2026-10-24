@@ -19659,6 +19659,16 @@
   "tr": "6db3dcd29e45",
   "by": "claude-in-session"
  },
+ "naval.fleet.openSeaAway": {
+  "en": "bd300b52e6cb",
+  "tr": "12800cfdedb0",
+  "by": "claude-in-session"
+ },
+ "naval.fleet.openSeaSummon": {
+  "en": "7ac61afe3515",
+  "tr": "edb6e5cedff2",
+  "by": "claude-in-session"
+ },
  "naval.foul.board": {
   "en": "e37b0bf0d16b",
   "tr": "57bada57d8f5",
@@ -33167,6 +33177,11 @@
  "wild.death.letters": {
   "en": "83c43a6db2b0",
   "tr": "e523e1737ab5",
+  "by": "claude-in-session"
+ },
+ "wild.death.lettersTenth": {
+  "en": "2f66ddbe7b5b",
+  "tr": "5197bec46a80",
   "by": "claude-in-session"
  },
  "wild.escrow.collectLate": {
