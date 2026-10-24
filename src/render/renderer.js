@@ -8187,10 +8187,12 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
   lptDrawnFrames() { return this._lptDrawn ?? []; }
 
   /** BANTHA1: the slot's frame that draws the 3D trees a far picture's handle stands for this frame, or null - the
-   *  picture keeps whole. */
+   *  picture keeps whole. JUNGLE-ROADSIDE: a batch may stand for several handles (a species' trees and the roadside
+   *  pairs' halves among them - scenes/roadsidePairs.js): the frame of the first one drawn. */
   _lptFrameOf(proto) {
     const slots = this._lptSlots;
     if (!slots || !proto) return null;
+    if (Array.isArray(proto)) { for (const h of proto) { const f = this._lptFrameOf(h); if (f) return f; } return null; }
     for (let i = 0; i < slots.length; i++) if (slots[i]?.cut.has(proto)) return slots[i];
     return null;
   }

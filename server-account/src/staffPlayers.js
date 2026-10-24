@@ -167,6 +167,27 @@ function itemRow(/** @type {any} */ it, /** @type {string} */ where, /** @type {
     where, li, i, name: str(o.name), t: num(o.templateIndex), group: str(o.group ?? o.itemGroup, 32), material: num(o.material), quality: num(o.quality),
     count: Number.isSafeInteger(o.stackCount) && o.stackCount > 1 ? o.stackCount : 1, worth: Number.isSafeInteger(worth) ? worth : 0,
     slot: typeof o.equipSlot === 'number' || typeof o.equipSlot === 'string' ? o.equipSlot : null, key, letter: o.templateIndex === REALM_LETTER_TEMPLATE,
+    ...itemMore(o),
+  };
+}
+/** How many enchantments a row carries at most. */
+const ITEM_ENCH_MAX = 12;
+/** INV-HOVER (mob 2026-10-24: "hover for item here with descriptons", "so i can see what enchants and amounts of gold on
+ *  parchment are"): what a piece's hover in the profile says beyond its row - its enchantments ([type, param], the
+ *  game's EnchantmentTypes; the maker's own rows left out), its condition, the gold written on it (`value`: a letter's,
+ *  or any piece's that carries one), its message number and whether a quest owns it. Only what the piece has.
+ *  @param {any} o */
+function itemMore(o) {
+  const ench = (Array.isArray(o.enchantments) ? o.enchantments : [])
+    .filter((/** @type {any} */ e) => e && typeof e === 'object' && e.enchantCost === undefined && Number.isSafeInteger(e.type) && e.type >= 0)
+    .slice(0, ITEM_ENCH_MAX).map((/** @type {any} */ e) => [e.type, Number.isSafeInteger(e.param) ? e.param : -1]);
+  const cur = num(o.currentCondition), max = num(o.maxCondition);
+  return {
+    ...(ench.length ? { ench } : {}),
+    ...(cur != null && max != null && max > 0 ? { cond: [cur, max] } : {}),
+    ...(Number.isSafeInteger(o.value) && o.value > 0 ? { value: o.value } : {}),
+    ...(Number.isSafeInteger(o.message) && o.message > 0 ? { msg: o.message } : {}),
+    ...(o.questItem ? { quest: true } : {}),
   };
 }
 

@@ -122,6 +122,9 @@ export const STAFF_STATUS = Object.freeze({
   'staff-note': 400, 'staff-reason': 400, 'staff-remove-pending': 409, 'staff-no-piece': 409, 'staff-trail': 409, 'staff-evidence': 404, 'staff-evidence-gone': 409,
   // STAFF-SET-BANK (net/repairLaw.js applyBankSet): a record that keeps no Empire account, and a bank not the total staff read
   'bank-none': 409, 'bank-moved': 409,
+  // STAFF-GIVE (staffGive.js): a template, group, material or count the item list does not take; an enchantment the item
+  // maker does not cost, or too many; a gift the item law would find
+  'staff-item-template': 400, 'staff-item-enchant': 400, 'staff-item-unlawful': 409,
   // STAFF-PANEL4-CENSUS (staffCensus.js): a contested piece that is not there, and a kind no save tallies (Marks' jumps)
   'no-piece': 404, 'census-no-tally': 400,
   // STAFF-PANEL2-FIX (safety.js modAct): a case another act took or closed, a spawn case a Moderator asked for, an Admin's

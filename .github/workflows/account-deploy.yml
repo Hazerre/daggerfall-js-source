@@ -256,6 +256,7 @@ on:
       - "src/player/classSkins.js"
       - "src/player/climbing.js"
       - "src/player/exteriorSurface.js"
+      - "src/player/groundRay.js"
       - "src/player/motor.js"
       - "src/player/moveScanner.js"
       - "src/player/parkour.js"
