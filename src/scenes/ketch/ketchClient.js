@@ -105,7 +105,7 @@ const target = (key, x, y, z, h = 1.2, half = BOX, reach = KT_REACH + 0.4) => { 
 /**
  * @param {{
  *   renderer?: any, gl?: any, getTexture?: any, uploadRecordFrame?: any, audio?: any,
- *   online: () => any, modes: () => any, social?: () => any, account: { me: () => (string|null), claim: (r: string) => Promise<any> },
+ *   online: () => any, modes: () => any, social?: () => any, account: { me: () => (string|null), claim: (r: string, cid: string) => Promise<any> },
  *   entity: any, player: any, cam: any, now: () => number,
  *   maps?: any, state?: any, heightAt?: (x: number, z: number) => number, collider?: () => any,
  *   feetOutside?: () => (number[]|null), site?: () => any, peers?: () => Array<{ sub: string, pos: number[] }>,
