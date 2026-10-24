@@ -107,8 +107,13 @@ directory by `test/bible/audit18_bible_docs.test.js`:
   HQ1 (2026-09-23): the occlusion is horizon-based (GTAO's arc, two slices,
   six steps a side), no kernel (`Enhanced-Lighting-Arc.md`, HQ1).
 - `characterMesh.js` - the voxel character mesh path.
-- `characterSprite.js` - the classic-visuals sprite pass (one fixed
-  CHAR_SPRITE_RT_SIZE target).
+- `characterSprite.js` - the classic-visuals sprite pass (one
+  CHAR_SPRITE_RT_SIZE target, grown by `Renderer.charSpriteRoom` up to
+  CHAR_SPRITE_RT_MAX when a picture asks for more - MW-DETAIL). A
+  Morrowind body's picture is the main camera's own, cut to the body's
+  window of the screen (`drawBodyPicture`, BODY-CROP); the ortho card
+  (`drawRigSpriteBox`) stays the voxel rigs', the Billboard Look's and the
+  travel view's. `04-Characters/Morrowind-NPCs.md` section 32.
 - `bounds.js` - EL5 THE BOUNDS AND THE CULL: a bundle's bounding sphere
   (`boundsOf`, computed at upload for a mesh and each sub-mesh, a terrain
   surface, a billboard batch), the record's world sphere
