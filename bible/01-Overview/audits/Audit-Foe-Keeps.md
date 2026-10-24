@@ -174,4 +174,6 @@ service); `test/net/auditfoekeeps_relay.test.js` - 3 (E2's law, wire and real re
 - 45 records, 43 dead and 2 recorded equivalent (a fighter down never has a blow to credit; a quest's letter is kept by
 the decor law before the share is asked). `test/systems/wild/foekeeps.test.js` (5) and `tools/mutants/foekeeps.json` (12:
 11 dead, one recorded equivalent - the spellbook's two rules) moved with it. The versions: ACCOUNT_VERSION acct180,
-RELAY_VERSION world254.
+RELAY_VERSION world254. The neighbouring records re-run after the fixes (200 across 29 lists - int_lane2, fb1019f, fb1015,
+etherwild, fb1014, the Fleet's and the ships' lists among them): 195 dead, 4 recorded equivalent, and the one survivor lane
+P found before the change (P10).
