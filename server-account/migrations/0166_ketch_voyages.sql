@@ -6,7 +6,7 @@
 --
 -- Applied exactly once through the `d1_migrations` ledger, which the deploy runs (ACC1-CI), before the Worker that reads
 -- it (acct180). The relay runs each crew's ship and, at the Tonal Warden's fall, signs a receipt for each member who
--- earned it (src/net/ketch/ketchReceipt.js - `k1`, under the relay's GATE_SIGNING_KEY). The account it names carries it
+-- earned it (src/net/ketch/ketchReceipt.js - `y1`, under the relay's GATE_SIGNING_KEY). The account it names carries it
 -- here (server-account/src/ketch.js claimKetch), and it is counted.
 --
 -- ONE ROW A VOYAGE AN ACCOUNT: the primary key is (voyage, account) - the hold pays a hand once a week. `owner` is the

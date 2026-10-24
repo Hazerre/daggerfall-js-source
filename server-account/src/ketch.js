@@ -3,7 +3,7 @@
 // KETCH (2026-10-24; bible/11-Multiplayer/Sky-Ketch.md section 9) — THE KETCHMASTER'S HOLD, AS THE SERVICE KEEPS IT.
 //
 // The relay runs each crew's sky-ketch and, at the Tonal Warden's fall, signs a receipt for each member who earned it
-// (src/net/ketch/ketchReceipt.js - `k1`, under the relay's GATE_SIGNING_KEY). This file is where that receipt is honoured:
+// (src/net/ketch/ketchReceipt.js - `y1`, under the relay's GATE_SIGNING_KEY). This file is where that receipt is honoured:
 // the Hour's claim (sds.js claimSd) rung for rung, and THE WEEK'S SHARE.
 //
 // ═══ ONCE A VOYAGE ═════════════════════════════════════════════════
