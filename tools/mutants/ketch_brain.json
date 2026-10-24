@@ -387,5 +387,23 @@
     "tests": [
       "test/net/ketch/ketch_brain.test.js"
     ]
+  },
+  {
+    "name": "KTB-the-voyages-figures-read",
+    "file": "src/net/ketch/ketchBrain.js",
+    "old": "  return b && b.fs != null ? { ...b, fs: q?.bf?.s ?? 0, fd: q?.bf?.d ?? 0 } : b;",
+    "new": "  return b;",
+    "tests": [
+      "test/net/ketch/ketch_brain.test.js"
+    ]
+  },
+  {
+    "name": "KTB-a-fall-before-the-fight-unmarked",
+    "file": "src/net/ketch/ketchBrain.js",
+    "old": "    if (q && !q.bf && p.bd?.fs != null) q.bf = { s: 0, d: 0 };",
+    "new": "",
+    "tests": [
+      "test/net/ketch/ketch_brain.test.js"
+    ]
   }
 ]

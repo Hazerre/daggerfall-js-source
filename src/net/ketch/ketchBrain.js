@@ -379,6 +379,8 @@ export function voyageWord(V, sub, m, pose, now, rng) {
     if (!V.wf || V.wf.lost) { V.wf = KETCH_SEAM.new({ room: V.key, fi: ++V.wfi, now }); out.push({ k: 'wf', fi: V.wfi, at: now }); }
     const present = new Set(V.crew.filter((s) => now - (V.players[s]?.seenAt ?? 0) <= KT_POSE_FRESH_MS));
     if (KETCH_SEAM.join(V.wf, sub, p.name, Number.isFinite(m.lv) ? m.lv : p.lv, now, present)) out.push({ ...KETCH_SEAM.stateOf(V.wf), to: sub, me: 1 });
+    const q = V.wf.players[sub];
+    if (q && !q.bf && p.bd?.fs != null) q.bf = { s: 0, d: 0 };   // fallen before it joined: the fight saw it stand at nothing
     return out;
   }
   if (m.k === 'hit') {
@@ -459,6 +461,20 @@ export function voyageStateOf(V, now) {
 }
 /** The members who earned a receipt at the fall (the gate's law, on the Warden's fight). */
 export const voyageEarners = (V) => (V.wf?.fell ? Object.keys(V.wf.players).filter((s) => KETCH_SEAM.earned(V.wf, s)) : []);
+/**
+ * THE FIGHT'S OWN FIRST FALL (AUDIT KETCH L1-12 - a receipt's measure asked the fight's law of the voyage's figures, so a
+ * member felled in the Gallery read as one whose receipt would have stood): the count keeps a member's body on its
+ * voyage record (`bd`, its first fall's `fs`/`fd` the voyage's stood and dealt); the fight keeps the figures it stood at
+ * then (`bf`) - nothing for a fall before it joined (voyageWord's `in`), its own at the beat the count felled it after
+ * (the relay calls this after each count). fightBodyOf is the body a receipt's measure reads.
+ */
+export function stampFightFall(V) {
+  for (const [s, q] of Object.entries(V.wf?.players ?? {})) if (!q.bf && V.players[s]?.bd?.fs != null) q.bf = { s: q.stoodMs ?? 0, d: q.dealt ?? 0 };
+}
+export function fightBodyOf(V, sub) {
+  const b = V.players[sub]?.bd, q = V.wf?.players?.[sub];
+  return b && b.fs != null ? { ...b, fs: q?.bf?.s ?? 0, fd: q?.bf?.d ?? 0 } : b;
+}
 /** Does the voyage's room hold its fight's floors live now (the relay arms its beat while a member stands aboard)? */
 export const voyageLive = (V) => !!V && !V.said;
 /** The floors' names for a body's floor (the page's). */

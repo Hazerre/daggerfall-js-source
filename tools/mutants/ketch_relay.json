@@ -124,5 +124,41 @@
     "tests": [
       "test/net/ketch/ketch_relay.test.js"
     ]
+  },
+  {
+    "name": "KTR-a-refused-word-written",
+    "file": "server/src/index.js",
+    "old": "await this._ktSave(V, now, out.length > 0 && w.k !== 'hit'",
+    "new": "await this._ktSave(V, now, w.k !== 'hit'",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  },
+  {
+    "name": "KTR-a-stage-left-to-the-checkpoint",
+    "file": "server/src/index.js",
+    "old": "await this._ktSave(V, now, V.sg !== sg);",
+    "new": "await this._ktSave(V, now, false);",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  },
+  {
+    "name": "KTR-her-record-outliving-her",
+    "file": "server/src/index.js",
+    "old": "      await this.state.storage.delete(KT_VOYAGE_KEY);   // AUDIT KETCH L1-11",
+    "new": "      // AUDIT KETCH L1-11",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  },
+  {
+    "name": "KTR-the-beat-never-resting",
+    "file": "server/src/index.js",
+    "old": "    if (here && voyageLive(V)) { await this.state.storage.setAlarm(now + BRAIN_TICK_MS); return true; }",
+    "new": "    if (here) { await this.state.storage.setAlarm(now + BRAIN_TICK_MS); return true; }",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
   }
 ]

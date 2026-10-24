@@ -14,7 +14,8 @@ import { ketchRoomKey, ketchVoyageOf, KT_TEXT, KT_STAGE, KT_CREW_MAX } from '../
 import { deckToDungeon } from '../../../src/net/ketch/ketchDeck.js';
 import { KETCH_SEAM } from '../../../src/net/ketch/ketchWarden.js';
 import { readKetchReceipt } from '../../../src/net/ketch/ketchReceipt.js';
-import { KT_POSE_FRESH_MS, KT_PLACE_KEEP_MS } from '../../../src/net/ketch/ketchBrain.js';
+import { KT_POSE_FRESH_MS, KT_PLACE_KEEP_MS, KT_SAILWALK_LEAST_MS } from '../../../src/net/ketch/ketchBrain.js';
+import { KT_GANGWAY } from '../../../src/net/ketch/ketchDeck.js';
 
 const V1 = ketchVoyageOf(1);
 const T0 = V1.at + 60_000;
@@ -140,6 +141,24 @@ test('KETCH A WORD ABOARD: the wire projects it (junk refused), the brain\'s num
   });
 });
 
+test('KETCH THE VOYAGE KEPT AS IT MOVES: a word the brain refuses writes nothing; a stage the beat reaches is written at once, not at the next checkpoint (AUDIT KETCH L1-9, L1-10; mutants: a refused word written; a stage left to the checkpoint)', async () => {
+  await withShip(async ({ ship, step, now }) => {
+    const alice = ship.connect(); await ship.hello(alice, 'alice', at(0, 0, 30), { charLevel: 30 });
+    const put = ship.state.storage.put.bind(ship.state.storage);
+    let writes = 0;
+    ship.state.storage.put = async (...a) => { writes++; return put(...a); };
+    for (let k = 0; k < 16; k++) await ship.raw(alice, word('pick', { c: 0 }));
+    assert.equal(writes, 0, 'sixteen picks off their stage: nothing written');
+    const V = ship.room._kt;
+    V.sg = KT_STAGE.sailwalk; V.sgAt = now() - KT_SAILWALK_LEAST_MS - 1000;
+    await ship.pose(alice, at(KT_GANGWAY.ax, 0, KT_GANGWAY.az));
+    ship.room._ktSavedAt = now();   // a checkpoint just written: an unforced save waits
+    step(250); await ship.fire();
+    assert.equal(V.sg, KT_STAGE.bridge, 'the bridge reached');
+    assert.equal(ship.store.get(KT_VOYAGE_KEY).sg, KT_STAGE.bridge, 'and kept at once');
+  });
+});
+
 test('KETCH THE FALL: its receipts minted for each earner once, kept before they are said, handed to each earner aboard - and again at a late hello; nobody else\'s (mutants: the receipt to every socket; a late hello untold)', async () => {
   await withShip(async ({ ship, step, now }) => {
     const alice = ship.connect(); await ship.hello(alice, 'alice', at(0, 0, 200), { charLevel: 30 });
@@ -164,6 +183,7 @@ test('KETCH THE FALL: its receipts minted for each earner once, kept before they
     assert.equal(ship.store.get(KT_VOYAGE_KEY).said, true, 'kept before it is said');
     step(250); await ship.fire();
     assert.equal(kt(alice, 'rcpt').length, 1, 'once');
+    assert.equal(ship.alarm.at, V1.endAt, 'the fall said: the beat rests till her end (AUDIT KETCH L1-11)');
     const late = ship.connect(); await ship.hello(late, 'alice', at(0, 0, 200));
     assert.deepEqual(kt(late, 'rcpt').map((m) => m.r), [r[0].r], 'handed again at a late hello');
   });
@@ -172,9 +192,11 @@ test('KETCH THE FALL: its receipts minted for each earner once, kept before they
 test('KETCH THE VOYAGE GONE: past its crews\' last minutes every socket aboard is told and closed; a word in its last minutes is answered `no` once it holds no crew (mutants: a ship outliving its voyage)', async () => {
   await withShip(async ({ ship, set }) => {
     const alice = ship.connect(); await ship.hello(alice, 'alice', at(0, 0, 30));
+    assert.ok(ship.store.get(KT_VOYAGE_KEY));
     set(V1.endAt + 1);
     await ship.fire();
     assert.equal(refusal(alice), KT_TEXT.refuse.gone);
+    assert.equal(ship.store.get(KT_VOYAGE_KEY), undefined, 'her record goes with her (AUDIT KETCH L1-11)');
     const bob = ship.connect(); await ship.hello(bob, 'bobby', at(0, 0, 30));
     assert.equal(refusal(bob), KT_TEXT.refuse.gone, 'nobody once she is gone');
   });

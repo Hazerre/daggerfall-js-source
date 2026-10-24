@@ -223,5 +223,23 @@
     "tests": [
       "test/net/ketch/ketch_warden.test.js"
     ]
+  },
+  {
+    "name": "KTW-a-forks-damage-not-dealt",
+    "file": "src/net/ketch/ketchWarden.js",
+    "old": "  p.dealt += got;   // a part in the fight, as the gate's crystals are",
+    "new": "  // a part in the fight, as the gate's crystals are",
+    "tests": [
+      "test/net/ketch/ketch_warden.test.js"
+    ]
+  },
+  {
+    "name": "KTW-the-forks-of-nobody",
+    "file": "src/net/ketch/ketchWarden.js",
+    "old": "  const who = here.length ? here.map((b) => b.sub) : Object.keys(f.players).filter((s) => !f.players[s].retired);",
+    "new": "  const who = here.map((b) => b.sub);",
+    "tests": [
+      "test/net/ketch/ketch_warden.test.js"
+    ]
   }
 ]

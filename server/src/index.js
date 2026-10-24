@@ -189,7 +189,7 @@ import { privateInteriorOf, privateInteriorAdmits, caravanKeyOf } from '../../sr
 import { isInstanceRoom, instanceOf, instanceAdmission, partyHoldsOwner, INSTANCE_INTERNAL_KIN, INSTANCE_KIN_KEEP_MS, INSTANCE_DOOR_WORD } from '../../src/net/instanceRoom.js';   // INSTANCES: an instance's room, its door and the hub's party answer (bible/11-Multiplayer/Instances.md)
 import { isStaff } from '../../src/net/staffCommands.js';
 import { isKetchRoom, ketchRoomOf, ketchRoomHolds, ketchAdmits, ketchHolds, ketchVoyageOf, KT_TEXT } from '../../src/net/ketch/ketchLaw.js';   // KETCH: the sky-ketch's law - its voyages, its ships' rooms, its door
-import { newVoyage, joinVoyage, stepVoyage, voyageWord, voyageStateOf, voyageEarners, dropCell, idlePlaces, freePlace, KT_POSE_FRESH_MS } from '../../src/net/ketch/ketchBrain.js';   // KETCH: a crew's voyage, run by its room
+import { newVoyage, joinVoyage, stepVoyage, voyageWord, voyageStateOf, voyageEarners, voyageLive, dropCell, idlePlaces, freePlace, stampFightFall, fightBodyOf, KT_POSE_FRESH_MS } from '../../src/net/ketch/ketchBrain.js';   // KETCH: a crew's voyage, run by its room
 import { judgeVoyage } from '../../src/net/ketch/ketchJudge.js';   // KETCH: its constructs' blows and its hazards, judged on the trails
 import { KETCH_SEAM } from '../../src/net/ketch/ketchWarden.js';   // KETCH: the Tonal Warden on the boss seam
 import { mintKetchReceipt } from '../../src/net/ketch/ketchReceipt.js';   // KETCH: the k1 receipt
@@ -9532,7 +9532,7 @@ export class Room {
     if (w.k === 'in') this._trailSeed(ws, a, now);
     this._ktFan(out);
     if (V.fell && !V.said) await this._ktFall(V, now);
-    await this._ktSave(V, now, w.k !== 'hit' && w.k !== 'drop' && w.k !== 'hurt');
+    await this._ktSave(V, now, out.length > 0 && w.k !== 'hit' && w.k !== 'drop' && w.k !== 'hurt');   // AUDIT KETCH L1-10: a word refused writes nothing
     await this._ktArm(now);
   }
   /** ONE BEAT of a ship's alarm: its voyage gone - every socket told and closed; else its blows judged on the census (the
@@ -9544,7 +9544,8 @@ export class Room {
     const V = await this._ktOf(key), now = Date.now();
     if (now >= ketchVoyageOf(V.n).endAt) {
       for (const [ws, b] of [...this._all()]) if (b.id) this._refuse(ws, KT_TEXT.refuse.gone);
-      await this._ktSave(V, now, true);
+      await this.state.storage.delete(KT_VOYAGE_KEY);   // AUDIT KETCH L1-11: her record goes with her (its receipts the hub's)
+      this._kt = undefined;
       return false;
     }
     try {
@@ -9552,16 +9553,18 @@ export class Room {
       const { hits, struck } = judgeVoyage(V, census, now);
       if (V.wf) hits.push(...KETCH_SEAM.judge(V.wf, census, now));
       await this._bodyCount('kt', V, hits, now, line.body);
+      stampFightFall(V);
       this._bodyTell('kt', V, now);
-      const drops = [];
+      const drops = [], sg = V.sg;
       for (const sub of new Set([...struck, ...hits.map((h) => h.sub)])) if (V.cells.carry[sub]) dropCell(V, sub, census.find((b) => b.sub === sub) ?? null, now, 'struck', drops);
       this._ktFan(drops);
       this._ktFan(stepVoyage(V, now, this._bodiesBare(census), rand01));
       if (V.fell && !V.said) await this._ktFall(V, now);
-      await this._ktSave(V, now, false);
+      await this._ktSave(V, now, V.sg !== sg);   // AUDIT KETCH L1-9: a stage kept the moment it is reached
     } catch (e) { console.warn('[kt] beat failed', e?.message ?? e); }
     const here = [...this._all()].some(([, b]) => b.id);
-    if (here) { await this.state.storage.setAlarm(now + BRAIN_TICK_MS); return true; }
+    if (here && voyageLive(V)) { await this.state.storage.setAlarm(now + BRAIN_TICK_MS); return true; }
+    await this.state.storage.setAlarm(ketchVoyageOf(V.n).endAt);   // AUDIT KETCH L1-11: the beat rests - the fall said, or nobody aboard - till her end
     return false;
   }
   /** THE FALL, SAID ONCE (the Hour's law): each member who earned it minted its k1 receipt - kept before it is said - then
@@ -9573,7 +9576,7 @@ export class Room {
       const key = await this._receiptKeyOf(), nowS = Math.floor(now / 1000), f = V.wf;
       V.rc = {};
       for (const sub of voyageEarners(V)) {
-        try { V.rc[sub] = await mintKetchReceipt({ d: V.n, o: V.owner, s: sub, c: rand32(), x: earnedBy(f, sub), l: f.players[sub].lv, ...this._bodyMeasureOf({ ...f, players: { ...f.players, [sub]: { ...f.players[sub], bd: V.players[sub]?.bd } } }, sub, KETCH_SEAM.earned) }, key, { subtle: crypto.subtle, nowS }); }
+        try { V.rc[sub] = await mintKetchReceipt({ d: V.n, o: V.owner, s: sub, c: rand32(), x: earnedBy(f, sub), l: f.players[sub].lv, ...this._bodyMeasureOf({ ...f, players: { ...f.players, [sub]: { ...f.players[sub], bd: fightBodyOf(V, sub) } } }, sub, KETCH_SEAM.earned) }, key, { subtle: crypto.subtle, nowS }); }
         catch (e) { console.warn('[kt] receipt refused', e?.message ?? e); }
       }
       V.said = true;

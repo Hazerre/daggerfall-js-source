@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import {
   newVoyage, joinVoyage, stepVoyage, voyageWord, voyageStateOf, voyageEarners, watchWave, spidersMaxFor, cellsWord,
   KT_WATCH_WAIT_MS, KT_WAVE_GAP_MS, KT_RISE_MS, KT_CELL_LIES_MS, KT_CRADLE_BACK_MS, KT_BRIDGE_CRADLE_BACK_MS, KT_BRIDGE_CRADLE0, KT_RESONATOR0, KT_BODY_ID0,
-  idlePlaces, freePlace, KT_PLACE_KEEP_MS, KT_SAILWALK_LEAST_MS, KT_CROSS_LEAST_MS, KT_FAST_RUN_MPS, KT_CARRY_PACE, KT_STEP_SLACK, ktLeastMs,
+  idlePlaces, freePlace, stampFightFall, fightBodyOf, KT_PLACE_KEEP_MS, KT_SAILWALK_LEAST_MS, KT_CROSS_LEAST_MS, KT_FAST_RUN_MPS, KT_CARRY_PACE, KT_STEP_SLACK, ktLeastMs,
 } from '../../../src/net/ketch/ketchBrain.js';
 import { ketchRoomKey, ketchVoyageOf, KT_STAGE, KT_CREW_MAX } from '../../../src/net/ketch/ketchLaw.js';
 import { KT_CRADLES, KT_BRIDGE_CRADLES, KT_SOCKETS, KT_RESONATORS, KT_GANGWAY, KT_WARDEN_WAKE_Z, KT_HOLD, KT_MAIN_TOP, engineNeeds } from '../../../src/net/ketch/ketchDeck.js';
@@ -425,4 +425,26 @@ test('KETCH THE STEP LAW\'S NUMBERS: the fastest build\'s run (the Elite Gates\'
   assert.ok(Math.abs(ktLeastMs(12, true) - ktLeastMs(12) / KT_CARRY_PACE) < 1e-9);
   assert.ok(Math.abs(KT_CROSS_LEAST_MS - ktLeastMs(KT_GANGWAY.az - KT_COURSE_SPEC.start.z)) < 1e-9);
   assert.ok(Math.abs(KT_SAILWALK_LEAST_MS - KT_CROSS_LEAST_MS - KT_LIFT.rise * 1000 * (1 - KT_STEP_SLACK)) < 1e-9);
+});
+
+test('KETCH A RECEIPT\'S MEASURE IS THE FIGHT\'S: a member felled before it joined the Warden\'s fight stood at nothing in it - its receipt would not have stood; one felled in it stood at the fight\'s own figures then, never the voyage\'s (AUDIT KETCH L1-12; mutants: the voyage\'s figures read; a fall before the fight unmarked)', async () => {
+  const { bodyMeasure } = await import('../../../src/net/bossBody.js');
+  const { KETCH_SEAM } = await import('../../../src/net/ketch/ketchWarden.js');
+  const { V, now: t0, core } = toBridge(2), rng = seeded(4);
+  V.players.mem0.bd = { sd: 1, t: 1, h: 0, o: 0, w: 1, v: 0, fs: V.players.mem0.stoodMs, fd: 1e9 };   // felled in the Gallery, the voyage's figures
+  V.players.mem1.bd = { sd: 1, t: 0, h: 0, o: 0, w: 0, v: 1 };
+  for (const s of V.crew) voyageWord(V, s, { k: 'in', lv: 30 }, poseOf(core[s]), t0, rng);
+  const f = V.wf, kept = (s) => (q) => KETCH_SEAM.earned({ ...f, players: { ...f.players, [s]: q } }, s);
+  for (const s of V.crew) { f.players[s].dealt = f.players[s].share; f.players[s].stoodMs = 60_000; }
+  f.fell = { at: t0 + 60_000, top: [], n: 2 }; f.liveMs = 60_000;
+  const measure = (s) => bodyMeasure({ ...f.players[s], bd: fightBodyOf(V, s) }, kept(s));
+  assert.equal(measure('mem0')[4], 0, 'felled before the fight: it stood at nothing there');
+  assert.equal(bodyMeasure({ ...f.players.mem0, bd: V.players.mem0.bd }, kept('mem0'))[4], 1, 'the voyage\'s figures would say it stood');
+  // mem1 felled in the fight, its share dealt: the fight's own figures then
+  V.players.mem1.bd = { ...V.players.mem1.bd, w: 1, fs: V.players.mem1.stoodMs, fd: 0 };
+  stampFightFall(V);
+  assert.deepEqual(f.players.mem1.bf, { s: 60_000, d: f.players.mem1.share });
+  assert.equal(measure('mem1')[4], 1);
+  stampFightFall(V);
+  assert.deepEqual(f.players.mem0.bf, { s: 0, d: 0 }, 'kept as it was');
 });

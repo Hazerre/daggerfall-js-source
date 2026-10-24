@@ -141,9 +141,10 @@ test('KETCH THE LAST NOTE: the song called while forks rise on the core for the 
   assert.ok(s.some((x) => x.k === 'bl' && x.b.a === KW_BLOWS.song.a));
   const now = s.at(-1).now;
   assert.equal(forksOpen(f, now), true);
-  const hp = f.hp;
+  const hp = f.hp, dealt = f.players.p0.dealt, forkHp = f.fk.c[0].h;
   const out = [];
   for (let c = 0; c < f.fk.c.length - 1; c++) out.push(...applyForkHit(f, 'p0', c, 1e9, HIT_KINDS.Shaft, ON(), now, take));
+  assert.ok(Math.abs(f.players.p0.dealt - dealt - forkHp * (f.fk.c.length - 1)) < 1e-6, 'a fork\'s damage dealt - a part in the fight (AUDIT KETCH L1-8)');
   assert.equal(out.filter((x) => x.k === 'fkb').length, f.fk.c.length - 1);
   assert.ok(f.fk, 'one stands: the song goes on');
   // that one lands: healed
@@ -235,6 +236,17 @@ test('KETCH THE KEEL-SONG COUNTED IN THE RELAY\'S ORDER: judged, then stepped, e
     assert.ok(fk, 'the forks rose');
     assert.equal(songs, broken ? 0 : Object.keys(f.players).length, broken ? 'broken: never counted' : 'sung: every body on the bridge, once');
   }
+});
+
+test('KETCH A SONG CALLED ON AN EMPTY BRIDGE: its forks stand at the fight\'s own fighters\' measure - never at nothing, so one who comes back can break them (AUDIT KETCH L1-13; mutants: the forks of nobody)', () => {
+  const rng = seeded(6);
+  const { f, t, crew } = intoLastNote(3, rng);
+  const fk = beatTo(f, t, t + KW_TURN_MS + KW_SONG_FIRST_MS + 2000, () => [], rng, (x) => x.k === 'fk').find((x) => x.k === 'fk');
+  assert.ok(fk, 'the song called with nobody on the bridge');
+  assert.equal(fk.c.length, forkCountFor(3));
+  assert.equal(fk.m, forkHpFor([30, 30, 30], forkCountFor(3)));
+  assert.ok(fk.m > 0);
+  void crew;
 });
 
 test('KETCH THE WARDEN ON THE BOSS SEAM: every member of the contract, the claim spent by the crew\'s purse (mutants: the seam\'s hit bypassing the purse)', () => {

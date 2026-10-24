@@ -236,6 +236,7 @@ export function applyForkHit(f, sub, c, d, r, pose, now, spend) {
   if (!p || over(f, now) || !q || !(q.h > 0) || !Number.isFinite(d) || !(d > 0) || !forksOpen(f, now) || !poseIn(pose)) return out;
   if (r === HIT_KINDS.Melee && dist(pose.x, pose.z, q.x, q.z) - KW_FORK.r > MELEE_REACH + POSE_SLACK) return out;
   const got = spend(d, q.h);
+  p.dealt += got;   // a part in the fight, as the gate's crystals are (AUDIT KETCH L1-8: a fork's damage counted for nothing)
   p.cxd = (p.cxd ?? 0) + got;
   q.h -= got;
   if (q.h > 1e-6) return out;
@@ -330,7 +331,9 @@ function beatWarden(f, now, here, rng, out) {
 /** THE FORKS rise as the song is called: forkCountFor the living, on the core's ring, KW_FORK.gap apart, clear of the
  *  Warden. Said once (`fk`), their health as it falls (`fkh`), each one's breaking (`fkb`). */
 function raiseForks(f, song, now, here, rng, out) {
-  const n = forkCountFor(here.length), m = forkHpFor(here.map((b) => f.players[b.sub]?.lv ?? 1), n), spots = [];
+  // the living on the bridge; nobody there - the fight's own fighters (AUDIT KETCH L1-13: forks of 0 hp, unbreakable)
+  const who = here.length ? here.map((b) => b.sub) : Object.keys(f.players).filter((s) => !f.players[s].retired);
+  const n = forkCountFor(who.length), m = forkHpFor(who.map((s) => f.players[s]?.lv ?? 1), n), spots = [];
   const [r0, r1] = KT_FORK_RING, W = f.wd, clear = KW_BODY.r + KW_FORK.r + 1;
   for (let tries = 0; spots.length < n && tries < n * 80; tries++) {
     const a = rng() * Math.PI * 2, r = Math.sqrt(r0 * r0 + rng() * (r1 * r1 - r0 * r0));
