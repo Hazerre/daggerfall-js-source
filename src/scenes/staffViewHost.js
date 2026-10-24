@@ -67,10 +67,10 @@ const markId = (key) => { const m = typeof key === 'string' ? /^(?:peer|trav):(.
 const concealedPose = (d) => ((d?.shown?.cv | 0) & 7) !== 0;
 /** CROWD-CHIPS: a tag's box on the screen, as ui/staffTags.js draws it (12 px pixel font, a padded plate) - a crowd a
  *  count's chip, a lone tag its name over its words - estimated, never measured (no layout read in the frame). */
-const TAG_CHAR_PX = 7, TAG_LINE_PX = 15, TAG_PAD_PX = 12;
+const TAG_CHAR_PX = 7, TAG_LINE_PX = 15, TAG_PAD_PX = 12, CROWD_WORDS_CHARS = 13;   // the head's words after the count, as English writes them
 /** @param {{ members: Array<{ name?: string, line?: string }> }} g */
 function tagBox(g) {
-  if (g.members.length > 1) return { w: TAG_CHAR_PX * `${g.members.length} players here`.length + TAG_PAD_PX, h: TAG_LINE_PX + 6 };
+  if (g.members.length > 1) return { w: TAG_CHAR_PX * (String(g.members.length).length + CROWD_WORDS_CHARS) + TAG_PAD_PX, h: TAG_LINE_PX + 6 };
   const m = g.members[0];
   return { w: TAG_CHAR_PX * Math.max(String(m.name ?? '').length, String(m.line ?? '').length) + TAG_PAD_PX, h: TAG_LINE_PX * (m.line ? 2 : 1) + 6 };
 }

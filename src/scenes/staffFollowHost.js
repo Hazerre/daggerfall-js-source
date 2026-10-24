@@ -18,7 +18,7 @@ import { RIDE_EYE_HEIGHT, CAPSULE_HEIGHT } from '../player/motor.js';   // a pee
  *  MapsFile's (world.js onlineToScene, set from the mode the staff member stands in) - so a dungeon pose read while the
  *  staff scene was still the open air (their place not entered: refused, or still loading) put the camera a few metres
  *  from the world's origin, the map's south-west corner. The camera is the target's only while the scene is the kind
- *  their place is (`inFrame`); otherwise it stays where the enter left the body (at the door), and an enter that failed
+ *  their place is (`followInFrame`); otherwise it stays where the enter left the body (at the door), and an enter that failed
  *  is tried again after FOLLOW_RETRY_MS, doubling to FOLLOW_RETRY_MAX_MS - it was tried once a place, and never again. */
 export const FOLLOW_RETRY_MS = 5000;
 export const FOLLOW_RETRY_MAX_MS = 60000;
@@ -26,7 +26,7 @@ export const FOLLOW_RETRY_MAX_MS = 60000;
 const KIND_MODE = Object.freeze({ exterior: 'exterior', interior: 'interior', dungeon: 'dungeon', gate: 'dungeon', abyss: 'dungeon' });
 /** Whether the scene's mode is the frame of the place `d` names - no place (a ground pick's room, before a note) is the
  *  staff member's own. @param {any} d @param {string} m */
-export const inFrame = (d, m) => !d || KIND_MODE[/** @type {keyof typeof KIND_MODE} */ (d.kind)] === m;
+export const followInFrame = (d, m) => !d || KIND_MODE[/** @type {keyof typeof KIND_MODE} */ (d.kind)] === m;
 
 /** `where()` names the place the staff member stands in (its mode and map pixel): let go, the body the camera carried
  *  stands where the target stood, so the host stays out of every room until it is somewhere else (a door, fast travel,
@@ -69,7 +69,7 @@ export function createStaffFollowHost({ hook, prepare, mode, where, toScene, eye
     /** After the motor took the eye: the camera at the target's eyes, the body under it (the world streams round the
      *  body). False while there is nothing to copy. @param {{ pos: number[], _airVelX?: number, _airVelZ?: number, velY?: number, falling?: boolean, fallStart?: number }} player @param {{ pos: number[], yaw: number, pitch: number }} cam */
     eye(player, cam) {
-      const v = !entering && hook.locked() && inFrame(hook.place(), mode()) ? hook.view() : null;
+      const v = !entering && hook.locked() && followInFrame(hook.place(), mode()) ? hook.view() : null;
       const q = v ? toScene(v) : null;
       seeing = !!q;
       if (!q) return false;

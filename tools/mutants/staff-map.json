@@ -42,8 +42,8 @@
   {
     "name": "STAFF-FOLLOW-UNLOCK-no-bar",
     "file": "src/scenes/staffFollowHost.js",
-    "old": "const barFrame = () => { if (door.panel()) bar.show({ following: hook.locked(), hidden: hiddenNow, asking, seeing: !!hook.view() }); else bar.hide(); };",
-    "new": "const barFrame = () => { if (door.panel()) bar.show({ following: false, hidden: hiddenNow, asking, seeing: !!hook.view() }); else bar.hide(); };",
+    "old": "const barFrame = () => { if (door.panel()) bar.show({ following: hook.locked(), hidden: hiddenNow, asking, seeing: host.seeing() }); else bar.hide(); };",
+    "new": "const barFrame = () => { if (door.panel()) bar.show({ following: false, hidden: hiddenNow, asking, seeing: host.seeing() }); else bar.hide(); };",
     "why": "a locked follow has no Unlock on the game's screen - with the panel's card closed the staff member is stuck behind the target's eyes (mob: \"follow needs a unlock button in game\")",
     "tests": [
       "test/ui/staffFollowBar.test.js"

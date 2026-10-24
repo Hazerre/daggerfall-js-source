@@ -11,7 +11,7 @@ import { OnlineSession } from '../../src/net/online.js';
 import { SOCIAL_ROOM, CLOSE_POLICY, validPartyPose, cellRoomOfWire, rosterFor } from '../../src/net/wire.js';
 import { FOLLOW_RELAY_MIN, WHERE_NOTE_MOVING_MS, WHERE_NOTE_STILL_MS } from '../../src/net/staffFollow.js';
 import { createStaffHook, staffHookDoor, hiddenSeat, validTags, STAFF_HOOK_VERSION, STAFF_TOKEN_WAIT_MS, STAFF_RELINK_GAP_MS, TAGS_MAX, TAG_WHY_MAX, NAMEPLATE_DIST } from '../../src/net/staffHook.js';
-import { createStaffFollowHost, staffFollowOnPage, relinkGame, inFrame, FOLLOW_RETRY_MS, FOLLOW_RETRY_MAX_MS } from '../../src/scenes/staffFollowHost.js';
+import { createStaffFollowHost, staffFollowOnPage, relinkGame, followInFrame, FOLLOW_RETRY_MS, FOLLOW_RETRY_MAX_MS } from '../../src/scenes/staffFollowHost.js';
 import { accountTokenMinter, SESSION_KEY, SERVICE_KEY } from '../../src/net/accountClient.js';
 import { notePlace, staffTpLine, followStaffPlayer, staffDestinationKey, quietTeleportAllowed, STAFF_TP_FALLBACKS, validStaffDestination } from '../../src/net/staffTeleport.js';
 import { fakeSocketClass } from '../fakeSocket.mjs';
@@ -638,7 +638,7 @@ test('FOLLOW-FRAME host (mob: "u end up in the bottom left corner" "of the dagge
     host.frame(); await settle();
     assert.equal(tried.length, 3, 'entered: not again');
   } finally { console.warn = warn; }
-  assert.deepEqual([inFrame(null, 'exterior'), inFrame({ kind: 'gate' }, 'dungeon'), inFrame({ kind: 'abyss' }, 'exterior'), inFrame({ kind: 'interior' }, 'interior'), inFrame({ kind: 'exterior' }, 'dungeon')], [true, true, false, true, false]);
+  assert.deepEqual([followInFrame(null, 'exterior'), followInFrame({ kind: 'gate' }, 'dungeon'), followInFrame({ kind: 'abyss' }, 'exterior'), followInFrame({ kind: 'interior' }, 'interior'), followInFrame({ kind: 'exterior' }, 'dungeon')], [true, true, false, true, false]);
   assert.equal(FOLLOW_RETRY_MAX_MS, 60000);
 });
 
