@@ -25,6 +25,7 @@ import { BUILDING_TYPES } from '../../src/world/buildingNames.js';
 import { setPref } from '../../src/systems/uiPrefs.js';
 import { uiSkin, setUiSkin } from '../../src/systems/uiSkin.js';
 import { _resetSoundscapeSounds } from '../../src/systems/soundscape/soundscapeSfx.js';
+import { seeded } from '../fb1004dArena.mjs';
 
 const W = readFileSync(new URL('../../src/scenes/world.js', import.meta.url), 'utf8');
 
@@ -62,8 +63,10 @@ test('SOUNDSCAPE THE MAP\'S WORD: land near a map pixel - one within GULL_RING t
 
 /** A door at (x, z) facing +z, of record `recordIndex` of `block` - a door's own centre and normal in its model, placed. */
 const doorOf = (block, x, z, recordIndex) => ({ dfBlock: block, recordIndex, door: { matrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, 0, z, 1], centre: { x: 0, y: 0, z: 0 }, normal: { x: 0, y: 0, z: 1 } } });
-/** The fakes: an engine that records, a music service that records, a deck, a helm and every door the test moves. */
-function rig({ boat = null, helm = null, depth = null, inTown = false, doors = [], people = false, aboard = false, sea = () => true, bow = null } = {}) {
+/** The fakes: an engine that records, a music service that records, a deck, a helm and every door the test moves - and
+ *  the airs' dice seeded, so a bout of blows or a breaker's period is the same every run (Math.random once let the
+ *  anvil's bouts fall short of four blows on CI). */
+function rig({ boat = null, helm = null, depth = null, inTown = false, doors = [], people = false, aboard = false, sea = () => true, bow = null, seed = 1 } = {}) {
   const calls = { beds: new Map(), beds3d: new Map(), shots: [], music: [], registered: new Set() };
   const audio = {
     listenerPose: () => ({ pos: [0, 0, 0], fwd: [0, 0, 1] }),
@@ -82,6 +85,7 @@ function rig({ boat = null, helm = null, depth = null, inTown = false, doors = [
     csa: { helmPanelState: () => state.helm, IsNearPort: () => state.port }, fight: () => state.fight,
     pixel: () => ({ x: 100, y: 100 }), seaPixel: (x, y) => state.sea(x, y), dw: depth ? { rawColumnAt: (x, z) => depth(x, z) } : null,
     inTown: () => state.inTown, towns: () => new Map([[100 * 1000 + 100, { blocks: 9 }]]), doors, doorAt: (e) => e.door,
+    rand: seeded(seed),
   });
   return { host, calls, state, music };
 }
