@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   PISTOLET_TEMPLATE, PISTOLET_ARCHIVE, PISTOLET_TEMPLATES, PISTOLET_DAMAGE, PISTOLET_SKILL, createPistolet, isPistolet,
-  PISTOLET_ICON_FILES, PISTOLET_ART_RECORDS, PISTOLET_PAPERDOLL_OFFSET, pistoletImageRecord, installPistoletIcons, GUN_SHARE,
+  PISTOLET_ICON_FILES, PISTOLET_ART_RECORDS, PISTOLET_PAPERDOLL_OFFSET, pistoletImageRecord, installPistoletIcons,
   PISTOLET_SFX, PISTOLET_SFX_FILES, installPistoletSounds,
 } from '../../src/systems/pistolet.js';
 import { THUNDERLOCK_TEMPLATE, PELLET_TEMPLATE, createThunderlock, createPellets, FIND_MIN_TIER } from '../../src/systems/thunderlock.js';
@@ -20,12 +20,12 @@ import { HANDS_MODE, DUAL_GUN_TYPES, handsModeOf, dualEligible, DUAL, GUARD } fr
 import { PlayerWeapon, handDesc } from '../../src/combat/playerWeapon.js';
 import { GUN_FEEL, PISTOLET_FEEL, PISTOLET_TICK_SECONDS, PISTOLET_COOLDOWN_SECONDS } from '../../src/combat/gun/gunFeel.js';
 import { gunWidgetSettings, TUNED_FIELDS } from '../../src/combat/gun/gunViewmodel.js';
-import { createGunPair } from '../../src/combat/gun/gunPair.js';
+import { createPistolLane } from '../../src/combat/gun/pistolLane.js';   // PISTOL-PORT: the rig's pistols on the page's frame
 import { loadPistoletArt, cutStrip, pistoletGildKeep, flashPoint, PISTOL_STRIP } from '../../src/combat/gun/pistoletArt.js';
 import { PISTOL_OPENING } from '../../src/tools/pistolLab.js';
 import { uniqueFinds } from '../../src/systems/loot/lootRarity.js';
 import { stockShopShelf, SHOP_ITEM_GROUPS } from '../../src/systems/shopStock.js';
-import { SUNKEN_SOVEREIGN, SOVEREIGN_SABER_ERA, mintGilded, gildedRecordOf } from '../../src/systems/gilded.js';
+import { SUNKEN_SOVEREIGN, SOVEREIGN_PISTOLET_ERA, mintGilded, gildedRecordOf } from '../../src/systems/gilded.js';
 import { validLootItem } from '../../src/systems/loot/loot.js';
 import { WEAPONS } from '../../src/characters/weapons.js';
 import { techniqueFamily } from '../../src/combat/technique/techniqueRoster.js';
@@ -67,25 +67,25 @@ test('the item: the owner’s name and numbers, one-handed, Archery, the Pellet,
   assert.equal(getItemHands(createThunderlock()), ITEM_HANDS.Both, 'the Thunderlock stays two-handed');
 });
 
-test('the rarity: ONE gun find, the Thunderlock’s at its old weight, minting either gun half the time from one draw - tier 4 up, arriving loaded, never on a shelf', () => {
-  // the owner: "make the thunderlock in general more rare along with the new hand cannon" - each "Half as often". AUDIT
-  // PISTOLET (A5, A8, C2, C3, D6): two finds at half weight were not half (each find's cap and Luck unscaled) and moved
-  // every seeded draw; one find at the old weight, splitting its mint, is exactly half of each at every source
-  assert.equal(GUN_SHARE, 0.5);
+test('the rarity: GUNS-UNFOUND - the one gun find mints its Pellets alone, from its one draw, at its old weight and tier; no Pistolet is found, nor ever on a shelf', () => {
+  // PIN MOVED (GUNS-UNFOUND, the owner: "remove the thunderlock and pistolet from the loot pool ... Ammo should still
+  // drop"): the find PISTOLET split between the guns (GUN_SHARE) mints no gun now. It stays one find at the old weight
+  // and tier - AUDIT PISTOLET's (A5, A8, C2, C3, D6) one roll and one mint draw, so no seed's earlier draw moves
   const finds = uniqueFinds();
   const gun = finds.filter((f) => f.id === 'dwarven-thunderlock' || f.id === 'dwarven-pistolet');
-  assert.deepEqual(gun.map((f) => f.id), ['dwarven-thunderlock'], 'one find for both guns - no second roll to move a seed');
+  assert.deepEqual(gun.map((f) => f.id), ['dwarven-thunderlock'], 'one find - no second roll to move a seed');
   assert.equal(gun[0].weight, 1, 'the old weight: the chance, its cap and its Luck the Thunderlock’s own');
   assert.equal(gun[0].minTier, 4);
-  // one draw picks the gun AND counts the Pellets - the mint draws exactly what it always drew
+  // one draw counts the Pellets - the mint draws exactly what it always drew, and mints nothing else
   const once = (v) => { let n = 0; return { rolls: () => { n++; return v; }, get n() { return n; } }; };
-  for (const [v, pistol, pellets] of [[0, false, 6], [0.4999, false, 18], [0.5, true, 6], [0.9999, true, 18], [0.25, false, 12], [0.75, true, 12]]) {
+  for (const [v, pellets] of [[0, 6], [0.4999, 12], [0.5, 12], [0.9999, 18], [0.25, 9], [0.75, 15]]) {
     const d = once(v);
-    const [weapon, ammo] = gun[0].mint(d.rolls);
+    const found = gun[0].mint(d.rolls);
     assert.equal(d.n, 1, `${v}: one draw`);
-    assert.equal(isPistolet(weapon), pistol, `${v}: ${pistol ? 'the Pistolet' : 'the Thunderlock'}`);
-    assert.equal(ammo.templateIndex, PELLET_TEMPLATE);
-    assert.equal(ammo.stackCount, pellets, `${v}: ${pellets} Pellets - it arrives loaded`);
+    assert.equal(found.length, 1, `${v}: the Pellets alone`);
+    assert.ok(!found.some((it) => isGunTemplate(it.templateIndex)), `${v}: no gun`);
+    assert.equal(found[0].templateIndex, PELLET_TEMPLATE);
+    assert.equal(found[0].stackCount, pellets, `${v}: ${pellets} Pellets - the ammunition still drops`);
   }
   const shelf = readFileSync('src/systems/shopStock.js', 'utf8');
   assert.ok(!/createPistolet|PISTOLET_TEMPLATE|isPistolet/.test(shelf), 'the shop stock never names it');
@@ -231,13 +231,15 @@ test('the weapon type: Pistolet 19 and its enchanted 20, the guns’ table and p
   assert.ok(isPistoletType(19) && isPistoletType(20) && !isPistoletType(17));
 });
 
-test('the pair’s law: two Pistolets are a pair, a Pistolet and a sword are not (two of a kind), the Thunderlock never', () => {
+test('the pair’s law: two Pistolets are a pair, and (MIXED-PAIR) a Pistolet and a sword too, the Thunderlock never', () => {
   assert.deepEqual([...DUAL_GUN_TYPES], [WEAPON_TYPES.Pistolet, WEAPON_TYPES.Pistolet_Magic], 'pinned to the enum');
   const p = handDesc(createPistolet()), sword = { item: true, type: WEAPON_TYPES.LongBlade, hands: ITEM_HANDS.Either };
   assert.ok(dualEligible(p));
   assert.equal(handsModeOf({ right: p, left: handDesc(createPistolet()) }), HANDS_MODE.Dual);
-  assert.equal(handsModeOf({ right: p, left: sword }), HANDS_MODE.Single, 'never one of each');
-  assert.equal(handsModeOf({ right: sword, left: p }), HANDS_MODE.Single);
+  // PIN MOVED (MIXED-PAIR, bible/05-Combat/Two-Hands.md "A blade and a gun"): PISTOLET held a pair to two of a kind; a blade
+  // and a Pistolet are a pair now (test/combat/mixedpair.test.js pins the pair itself)
+  assert.equal(handsModeOf({ right: p, left: sword }), HANDS_MODE.Dual, 'one of each');
+  assert.equal(handsModeOf({ right: sword, left: p }), HANDS_MODE.Dual);
   assert.equal(dualEligible(handDesc(createThunderlock())), false, 'two-handed');
 });
 
@@ -297,33 +299,31 @@ test('the pair’s cadence against one Pistolet and the Thunderlock: more shots,
 });
 
 test('a single Pistolet runs its OWN cadence, not the Thunderlock’s', () => {
+  // PIN MOVED (PISTOL-PORT): a Pistolet fires on the pistol lab's own machine, its clock the feel's row - never the
+  // classic machine's, which is the Thunderlock's alone
   const pw = pairWeapon(createPistolet(), null);
   pw._attack('StrikeDown'); pw.update(1 / 60);
-  assert.equal(pw.machine.tick, PISTOLET_TICK_SECONDS);
-  assert.equal(pw.machine.cooldown, PISTOLET_COOLDOWN_SECONDS);
-  assert.equal(pw.machine.hitFrame, PISTOLET_FEEL.hitFrame);
+  assert.deepEqual([pw.pistols.R.fps, pw.pistols.R.cooldownMs, pw.pistols.R.hitFrame], [PISTOLET_FEEL.fps, PISTOLET_FEEL.reloadMs, PISTOLET_FEEL.hitFrame]);
+  assert.equal(1 / pw.pistols.R.fps, PISTOLET_TICK_SECONDS); assert.equal(pw.pistols.R.cooldownMs / 1000, PISTOLET_COOLDOWN_SECONDS);
   const tl = pairWeapon(createThunderlock(), null);
   tl._attack('StrikeDown'); tl.update(1 / 60);
   assert.equal(tl.machine.cooldown, GUN_FEEL.reloadMs / 1000, 'and the Thunderlock keeps its own');
 });
 
-test('the rig’s pair module: each hand its spring, the resting hand guards, the left one flipped, the striking one drawn over', () => {
-  const pair = createGunPair();
+test('the rig’s pistols on the page’s frame: each hand its spring, the resting hand guards, the left one flipped, the hand that fired last drawn over (PIN MOVED: PISTOL-PORT - combat/gun/pistolLane.js on the page’s own pair and frame, where combat/gun/gunPair.js composed a pair of its own)', () => {
+  const lane = createPistolLane();
   const pw = pairWeapon(createPistolet(), createPistolet());
   pw._attack('StrikeDown');
-  pair.punch(pw.strike.hand, PISTOLET_FEEL);
-  for (let i = 0; i < 6; i++) pair.step(1 / 60, pw, { feel: PISTOLET_FEEL, settings: gunWidgetSettings(null, PISTOLET_FEEL.widget) });
-  assert.ok(pair.hands.R.recoil.y !== 0 && pair.hands.L.recoil.y === 0, 'the right’s spring kicked, the left’s did not');
-  assert.ok(pair.hands.L.guard > 0.5 && pair.hands.R.guard === 0, 'the resting left lowers into its guard');
-  const k = pair.kickOf('L', 100);
-  assert.ok(k.y > 0.5 * GUARD.LOWER * 100, `straight down, a share of its height (${k.y.toFixed(1)})`);
-  assert.equal(k.x, 0);
-  assert.deepEqual(pair.order(pw), ['L', 'R'], 'the striking right drawn last');
-  assert.equal(pair.flipOf('L'), true); assert.equal(pair.flipOf('R'), false);
-  assert.equal(pair.flipOf('R', true), true, 'a left-handed player’s pair is the mirror');
-  // the frame each shows: the striking hand the machine’s, the other its rest
-  assert.deepEqual(pair.frameOf('L', pw), { record: 0, frame: 0 });
-  assert.equal(pair.frameOf('R', pw).record, 1);
+  assert.deepEqual(lane.fired(pw.pistols, PISTOLET_FEEL), ['R'], 'the right fired - its own machine’s shot');
+  for (let i = 0; i < 6; i++) { pw.update(1 / 60); lane.step(1 / 60, pw.pistols, { feel: PISTOLET_FEEL }); }
+  assert.ok(lane.hands.R.recoil.y !== 0 && lane.hands.L.recoil.y === 0, 'the right’s spring kicked, the left’s did not');
+  assert.ok(lane.hands.L.guard > 0.5 && lane.hands.R.guard === 0, 'the resting left lowers into its guard');
+  assert.deepEqual(lane.order(pw.pistols), ['L', 'R'], 'the right, fired last, drawn over');
+  assert.equal(lane.flipOf(pw.pistols, 'L'), true); assert.equal(lane.flipOf(pw.pistols, 'R'), false);
+  assert.equal(lane.flipOf(pw.pistols, 'R', true), true, 'a left-handed player’s pair is the mirror');
+  // the picture each shows: the firing hand its own machine’s, the other its rest
+  assert.ok(lane.hands.R.firing);
+  assert.deepEqual([lane.hands.L.firing, lane.hands.L.frame], [false, 0]);
 });
 
 test('the first-person art the loader cuts: native size, 1-bit, the muzzle on the flash, and gold on the pistol only', async () => {
@@ -363,9 +363,10 @@ test('the flash’s light: the gun’s own reach, from the hand that fired', () 
   assert.equal(thunderlockMuzzleLight({ _thunderlockFlash: 1 }, feet, 0).range, GUN_FEEL.flashRange, 'the Thunderlock’s own, unparked');
 });
 
-test('the Sunken Sovereign is a gilded Pistolet: the owner’s "replace the serpent boss gilded weapon with this new weapon"', () => {
-  assert.equal(SUNKEN_SOVEREIGN.templateIndex, PISTOLET_TEMPLATE);
-  const it = mintGilded(SUNKEN_SOVEREIGN);
+test('the Sunken Sovereign minted a Pistolet keeps its gold - its era (PIN MOVED, GUNS-UNFOUND: the record is the Saber again, the owner’s "revert the gilded weapon from the serpent")', () => {
+  assert.equal(SUNKEN_SOVEREIGN.templateIndex, WEAPONS.Saber);
+  assert.ok(!isPistolet(mintGilded(SUNKEN_SOVEREIGN)), 'the serpent mints no gun');
+  const it = mintGilded(SOVEREIGN_PISTOLET_ERA);   // the shape PISTOLET minted, which a save holds
   assert.ok(isPistolet(it));
   assert.equal(it.rarity, 'gilded');
   assert.equal(it.gilded, 'the-sunken-sovereign', 'the same record id - every hoard and save that holds one reads it');
@@ -414,25 +415,30 @@ test('the Morrowind model is built and painted (PISTOLET-MODEL) - the bake repro
   assert.equal(OWN_MW_GILDED[PISTOLET_TEMPLATE].model, 'pistolet_gilded.nif');
 });
 
-test('AUDIT PISTOLET A7 C1 D8: a Sunken Sovereign minted before PISTOLET - an Ebony Saber with a Long Blade line - stays lawful and reads its own lore; the pistol is lawful; a hybrid is a forgery (mutants: the era dropped; the era\'s template; the era read by every saber)', () => {
-  // the shape GILDED2 minted: the same mint, the record as it stood at the base
-  const saber = mintGilded(SOVEREIGN_SABER_ERA);
+test('GUNS-UNFOUND (AUDIT PISTOLET A7 C1 D8\'s way): a Sunken Sovereign minted a Pistolet - an Archery line - stays lawful and reads its own lore; the saber it is minted as again is lawful; a hybrid is a forgery (mutants: the era dropped; the era\'s template; the era read by every Pistolet)', () => {
+  // PIN MOVED (GUNS-UNFOUND): the eras swapped - the record is the Saber GILDED2 minted, and the Pistolet PISTOLET minted
+  // is the era; the same mint, the record as it stood then
+  const pistol = mintGilded(SOVEREIGN_PISTOLET_ERA);
+  assert.equal(pistol.templateIndex, PISTOLET_TEMPLATE);
+  assert.ok(pistol.affixes.some((a) => a.id === 'skill' && a.param === SKILLS.Archery));
+  assert.deepEqual(itemFindings(pistol), [], 'the law finds nothing - no trade hold, no market refusal');
+  assert.ok(validLootItem(pistol), 'and the wire keeps it - a trade, a pile, a body');
+  assert.equal(gildedRecordOf(pistol), SOVEREIGN_PISTOLET_ERA, 'it reads its own record');
+  assert.match(gildedRecordOf(pistol).lore, /pistolet/);
+  assert.equal(gildedRecordOf(createPistolet()), null, 'a plain Pistolet names no record');
+  const saber = mintGilded(SUNKEN_SOVEREIGN);
   assert.equal(saber.templateIndex, WEAPONS.Saber);
   assert.ok(saber.affixes.some((a) => a.id === 'skill' && a.param === SKILLS.LongBlade));
-  assert.deepEqual(itemFindings(saber), [], 'the law finds nothing - no trade hold, no market refusal');
-  assert.ok(validLootItem(saber), 'and the wire keeps it - a trade, a pile, a body');
-  assert.equal(gildedRecordOf(saber), SOVEREIGN_SABER_ERA, 'it reads its own record');
+  assert.deepEqual(itemFindings(saber), []);
+  assert.ok(validLootItem(saber));
+  assert.equal(gildedRecordOf(saber), SUNKEN_SOVEREIGN);
   assert.match(gildedRecordOf(saber).lore, /saber/);
-  const pistol = mintGilded(SUNKEN_SOVEREIGN);
-  assert.deepEqual(itemFindings(pistol), []);
-  assert.ok(validLootItem(pistol));
-  assert.equal(gildedRecordOf(pistol), SUNKEN_SOVEREIGN);
   // the two shapes do not mix: a saber with the pistol's line, a pistol with the saber's, are forgeries
   const hybrid = { ...saber, affixes: pistol.affixes.map((a) => ({ ...a })) };
   assert.deepEqual(itemFindings(hybrid), ['gilded'], 'a saber with the Archery line');
   const hybrid2 = { ...pistol, affixes: saber.affixes.map((a) => ({ ...a })) };
   assert.deepEqual(itemFindings(hybrid2), ['gilded'], 'a pistol with the Long Blade line');
-  assert.equal(ITEM_LAW_VERSION, 11, 'the law that knows both - a finding a law of 9 made is asked again');   // PIN MOVED (SEA-SET, at the merge into SEA VENTURES): law 11 - PISTOLET's 10 and the Eltheric Tidemail's nine records
+  assert.equal(ITEM_LAW_VERSION, 12, 'the law that knows both - a finding a law of 9 made is asked again');   // PIN MOVED (GUNS-UNFOUND): law 12 - the Hourlock lawful as a gilded Dwarven Long Bow and as the Thunderlock minted before, the Sunken Sovereign as the Ebony Saber again and as the Pistolet minted between; PIN MOVED (SEA-SET, at the merge into SEA VENTURES): law 11 - PISTOLET's 10 and the Eltheric Tidemail's nine records
 });
 
 test('the pair is equipped through the equip law - one in each hand - and the player weapon reads it as a gun pair', () => {

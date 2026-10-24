@@ -59,7 +59,7 @@ import { flashPlayerDamage } from '../ui/damageFlash.js';   // ROAD-G G2: an arr
 import { knockedDown } from '../systems/blowEffects.js';   // TELL6e: knocked down, no swing
 import { weaponTypeForItem, WEAPON_TYPES } from '../combat/fpsWeapon.js';
 import { targetAimPoint, missileAimDirection } from '../characters/enemy/enemyTargets.js';   // AUDIT WORLD6b-iii(a) C3: the ONE aim law for an enemy missile (the peer's transform, mine otherwise)
-import { playerEntity, surfacePlayer, hurtPlayer, setDeathPresenter, setAvoidDeathHook, playerBlowCameToNothing } from '../characters/playerEntity.js';
+import { playerEntity, surfacePlayer, hurtPlayer, setDeathPresenter, setAvoidDeathHook, playerBlowCameToNothing, staffFrozen } from '../characters/playerEntity.js';
 import { heldPlayerBlow, remarkPlayerBlow } from '../systems/sigil/sigilSetPowers.js';   // AUDIT SETS L3: a guard's blow the arrest flow holds back
 import { SOUND } from '../systems/soundClips.js';
 import { Collider } from '../player/collider.js';
@@ -134,7 +134,7 @@ import { CityNavigation } from '../world/city/cityNavigation.js';   // T1 towns
 import { TownPopulation } from '../systems/town/townPopulation.js';
 import { GUARD_TEXTURE, MobilePerson, PERSON_TEXTURES, personWantsToStop, walkerRace } from '../characters/mobile/mobilePerson.js';
 import { createTownTalk, rayPersonDistance, nearestPerson } from './townTalk.js';   // T3b   // AUDIT 63 F33 (review): the townsfolk's own pick distance, the enemy arm's rival
-import { createPlayerMagic } from './hostMagic.js';   // M2: spellcasting above ground
+import { createPlayerMagic, CAST_PRESS } from './hostMagic.js';   // M2: spellcasting above ground
 import { preloadSpellbookArt, spellbookArtLoaded } from '../ui/spellbookWindow.js';   // U42: the classic art window (retires M2's keyed stand-in)
 import { createSpellbookWindow } from '../ui/spellbookDoor.js';   // PX23: the book's one door
 import { worldMinutes, skyMinutes, setWorldMinutes, ownMinutes, sharedClockOn, trustedWorldMinutes, raisedMinutes } from '../systems/worldTick.js';   // AUDIT 23 (C2): the ONE clock; AUDIT WORLD5 C10 / WORLD7: the quest clocks' played step, this host's word too
@@ -4024,6 +4024,7 @@ export async function bootExterior(canvas, renderer, params, status) {
     }),
     getBlock: (name) => blocks.getBlockByName(name),
     flatCaption: (archive, record) => pipeline.flatCaption(archive, record),   // NPC1: the =symbol_ macro's caption
+    getRandomText: (id) => townTalk.randomText?.(id) ?? null,   // QUEST-AUDIT III: %oth and %jok's TEXT.RSC pool, as world.js's quest world reads it
     // AUDIT 39 (#23) / QX1 review: EVERY faction read below goes
     // through `_questStore()` - PlayerEntity.FactionData, the MUTABLE
     // clone factionRep owns - and never the raw FACTION.TXT dictionary
@@ -5285,7 +5286,7 @@ export async function bootExterior(canvas, renderer, params, status) {
     // return, WeaponManager (:235-239) does ShowWeapons(false) and
     // takes no swing. Declared above `walkMode` because the motor and
     // the weapon rig are two sibling blocks.
-    const paralyzed = entityIsParalyzed(playerEntity);
+    const paralyzed = entityIsParalyzed(playerEntity) || staffFrozen();   // STAFF-PANEL5-FREEZE: a staff freeze holds the motor as paralysis does
     // A6: FrictionMotor.GroundedMovement's head-dip guard reads
     // IsParalyzed itself (:90-93) - the zeroed input bag below is
     // the movement half of the same law, not this one.
@@ -5510,12 +5511,12 @@ export async function bootExterior(canvas, renderer, params, status) {
 
       const _act = activateFrame((latch.activate ??= createActivateGate()), {
         down: held(keys, 'ActivateCenterObject') || _tapArmed > 0,   // AUDIT 62 F8: the touch tap is the ACTION, not a synthesized 'Mouse0' - a rebind off Mouse0 must not kill the finger, and no key code can honestly stand for a mouse binding
-        hasReadySpell: magic.spellArmed(),
+        hasReadySpell: magic.spellArmed() && !_tapLockOnly,   // AUDIT SPELL-HAND L4-9: the stick-half tap is the lock pick and nothing below it (TS1) - never a cast, a spell readied or not
         touchSpell: magic.readied()?.rangeType === 1,   // rangeType 1 is ByTouch (spellcast.js:"ClassicTargetIndexToTargetType")
         hudBlocked: activeMouseOverLargeHUD(),
         paused: _overlayHeld,
       });
-      if (_act.cast) magic.interceptAttack(true);   // the frame's firePending sends it down the live look
+      if (_act.cast) magic.interceptAttack(true, CAST_PRESS);   // the frame's firePending sends it down the live look (SPELL-HAND: the cast's own press)
       const useEdge = pressed(latch.edge, keys, 'Interact');   // KB1: the Interact ACTION (E by default, Mac's call) - it was a raw `KeyE` beside DFU's E-AbortSpell, and one press did both
       if ((_act.activate || useEdge) && !modes.transitioning) {
         // T3b: a townsperson under the ray wins the activation (the
@@ -6272,7 +6273,7 @@ export async function bootExterior(canvas, renderer, params, status) {
       // fly through this host's world every walk frame.
       if ((modes?.mode ?? 'exterior') === 'exterior') {
         const _mfwd = [Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch)];
-        magic.firePending([...cam.pos], _mfwd);
+        magic.firePending([...cam.pos], _mfwd, gamePaused());   // AUDIT SPELL-HAND L4-6: a kept press never leaves under a window
         magic.update(dt, player.pos, _mfwd, player.height, player.feetAt());   // X11: the candle hangs off the look direction; DISC13-A off the render feet
         { const mv = lycanthropeMoveSound(playerEntity, dt); if (mv != null) audio.playOneShot(mv, 1); }   // LM1: the beast's own noise while transformed (real time)
       }

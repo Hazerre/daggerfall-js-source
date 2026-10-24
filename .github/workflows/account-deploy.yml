@@ -54,6 +54,7 @@ on:
       - "src/net/sessionPassLaw.js"
       - "src/net/staffTeleport.js"
       - "src/net/relayCfg.js"
+      - "src/net/staffCommands.js"
       - "src/net/hubShards.js"
       - "src/net/privateInterior.js"
       - "src/net/instanceRoom.js"
@@ -208,6 +209,7 @@ on:
       - "src/systems/eliteGates/egSpoils.js"
       - "src/systems/eliteGates/egLordArms.js"
       - "src/net/reportLaw.js"
+      - "src/net/hiddenSeen.js"
       - "src/systems/wind/wind.js"
       - "src/ai/blowShapes.js"
       - "src/ai/cover.js"
@@ -402,6 +404,8 @@ on:
       - "src/poi/poiLaw.js"
       - "src/poi/poiMesh.js"
       - "src/poi/poiImage.js"
+      - "server/src/staffFeedLaw.js"
+      - "src/ui/touch/touchDevice.js"
   workflow_dispatch:
 
 permissions:
