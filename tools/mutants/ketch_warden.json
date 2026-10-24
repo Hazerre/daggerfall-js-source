@@ -200,7 +200,7 @@
   {
     "name": "KTW-a-song-broken-still-landing",
     "file": "src/net/ketch/ketchWarden.js",
-    "old": "const share = a.a === KW_BLOWS.song.a ? (f.fk && f.fk.i === a.i ? Math.min(1, a.p) : 0) : Math.min(1, a.p);",
+    "old": "const share = a.a === KW_BLOWS.song.a ? (a.sg || (f.fk && f.fk.i === a.i) ? Math.min(1, a.p) : 0) : Math.min(1, a.p);",
     "new": "const share = Math.min(1, a.p);",
     "tests": [
       "test/net/ketch/ketch_warden.test.js"
@@ -211,6 +211,15 @@
     "file": "src/net/ketch/ketchWarden.js",
     "old": "applyWardenHit(f, sub, d, r, pose, now, o.spend ?? ((x) => x))",
     "new": "applyWardenHit(f, sub, d, r, pose, now, (x) => x)",
+    "tests": [
+      "test/net/ketch/ketch_warden.test.js"
+    ]
+  },
+  {
+    "name": "KTW-the-song-never-marked-sung",
+    "file": "src/net/ketch/ketchWarden.js",
+    "old": "if (song) song.sg = 1;",
+    "new": "if (song) song.sg = 0;",
     "tests": [
       "test/net/ketch/ketch_warden.test.js"
     ]

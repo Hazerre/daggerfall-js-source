@@ -422,8 +422,12 @@ export function stepWarden(f, now, bodies, rng) {
   }
   if (f.phase === 3) {
     if (now >= f.secAt) { dropSections(f, now, rng, out); f.secAt = now + KW_SECTION_EVERY_MS; }
-    // the song lands - forks unbroken - and heals
-    if (f.fk && now >= f.fk.at) { f.fk = null; f.hp = Math.min(f.max, f.hp + KW_SONG_HEAL * f.max); f.songAt = now + KW_SONG_EVERY_MS; }
+    // the song lands - forks unbroken - and heals; its blow marked sung, for the judge comes BODY_AFTER_MS later
+    if (f.fk && now >= f.fk.at) {
+      const X = f.fk, song = f.blows.find((b) => b.i === X.i);
+      if (song) song.sg = 1;
+      f.fk = null; f.hp = Math.min(f.max, f.hp + KW_SONG_HEAL * f.max); f.songAt = now + KW_SONG_EVERY_MS;
+    }
   }
   if (now >= f.outUntil && now >= f.stunUntil) {
     const W = f.wd;
@@ -476,7 +480,9 @@ export function wardenStateOf(f) {
 /**
  * THE WARDEN'S BLOWS JUDGED ON THE RELAY'S TRAILS (net/bossRef.js's law): each plain blow of its own (`el` none, never a
  * jumped wave) at its landing - a body deep in its stamps (net/eliteGates/egShape.js egInBlow) where it stood before and
- * after - and each clock's over the whole bridge; the song only while its forks stand at its landing. `[{sub, share}]`.
+ * after - and each clock's over the whole bridge; the song only when it was sung - its forks standing at its landing (`sg`,
+ * stamped by stepWarden, which the relay beats AFTER this judge: AUDIT KETCH L1-3, the song was never counted while the
+ * judge looked for forks the step had already cleared) or still standing now. `[{sub, share}]`.
  * @param {any} f @param {Array<{sub: string, x: number, z: number, dead: boolean, tr?: number[][]}>} bodies the deck's frame
  * @param {number} now
  */
@@ -488,7 +494,7 @@ export function judgeWarden(f, bodies, now) {
     a.bj = true;
     if (a.el != null || a.jp) continue;
     const allBridge = a.s?.[0]?.[0] === 'a';
-    const share = a.a === KW_BLOWS.song.a ? (f.fk && f.fk.i === a.i ? Math.min(1, a.p) : 0) : Math.min(1, a.p);
+    const share = a.a === KW_BLOWS.song.a ? (a.sg || (f.fk && f.fk.i === a.i) ? Math.min(1, a.p) : 0) : Math.min(1, a.p);
     if (!(share > 0)) continue;
     for (const b of live) {
       const p0 = posAt(b, a.at), p1 = posAfter(b, a.at);

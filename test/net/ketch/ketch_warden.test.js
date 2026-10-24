@@ -221,6 +221,22 @@ test('KETCH ITS BLOWS JUDGED ON THE TRAILS: a plain blow\'s share on a body deep
   assert.deepEqual(judgeWarden(f, [here], at + 2000), [{ sub: 'p0', share: 0.7 }]);
 });
 
+test('KETCH THE KEEL-SONG COUNTED IN THE RELAY\'S ORDER: judged, then stepped, every beat - a song that lands unbroken is counted on every body on the bridge, once; a song whose forks all broke is not (AUDIT KETCH L1-3; mutants: the sung mark never set)', () => {
+  for (const broken of [false, true]) {
+    const rng = seeded(6);
+    const { f, t, crew } = intoLastNote(3, rng);
+    let fk = null, songs = 0;
+    for (let now = t; now <= t + KW_TURN_MS + KW_SONG_FIRST_MS + 20_000; now += 250) {
+      songs += judgeWarden(f, crew(now), now).filter((h) => h.share === Math.min(1, KW_BLOWS.song.p)).length;   // the relay judges first ...
+      for (const x of stepWarden(f, now, crew(now), rng)) {                                                     // ... then steps
+        if (x.k === 'fk' && !fk) { fk = x; if (broken) for (let c = 0; c < x.c.length; c++) applyForkHit(f, 'p0', c, 1e9, HIT_KINDS.Shaft, ON(), now, take); }
+      }
+    }
+    assert.ok(fk, 'the forks rose');
+    assert.equal(songs, broken ? 0 : Object.keys(f.players).length, broken ? 'broken: never counted' : 'sung: every body on the bridge, once');
+  }
+});
+
 test('KETCH THE WARDEN ON THE BOSS SEAM: every member of the contract, the claim spent by the crew\'s purse (mutants: the seam\'s hit bypassing the purse)', () => {
   for (const k of BOSS_SEAM_KEYS) assert.equal(typeof KETCH_SEAM[k], 'function', k);
   assert.equal(KETCH_SEAM.name, 'ketch');
