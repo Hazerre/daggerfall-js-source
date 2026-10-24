@@ -106,5 +106,32 @@
     "tests": [
       "test/scenes/ketch_deck_host.test.js"
     ]
+  },
+  {
+    "name": "KTM-the-rail-closed-round",
+    "file": "src/world/ketch/ketchModel.js",
+    "old": "    for (const [r0, r1] of railRuns(a0, a1)) {",
+    "new": "    for (const [r0, r1] of [[a0, a1]]) {",
+    "tests": [
+      "test/world/ketch_walk.test.js"
+    ]
+  },
+  {
+    "name": "KTM-the-net-uploaded-plain",
+    "file": "src/scenes/ketch/ketchDeckHost.js",
+    "old": "...(KT_CUTOUT_RECS.includes(rec) ? [{ cutout: true }] : [])",
+    "new": "...[]",
+    "tests": [
+      "test/scenes/ketch_deck_host.test.js"
+    ]
+  },
+  {
+    "name": "KTM-the-gallerys-ceiling-drawn-only",
+    "file": "src/world/ketch/ketchModel.js",
+    "old": "  K.slabWithHoles(R.iron, G.x0, G.x1, G.z0, G.z1, ceil, [hatch], [0, -1, 0], true);",
+    "new": "  K.slabWithHoles(R.iron, G.x0, G.x1, G.z0, G.z1, ceil, [hatch], [0, -1, 0]);",
+    "tests": [
+      "test/world/ketch_walk.test.js"
+    ]
   }
 ]

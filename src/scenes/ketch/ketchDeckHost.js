@@ -76,9 +76,13 @@ function hingeZ(out, a, hx, hy, ox, oy, oz) {
 let _artUp = null;
 /** The Ketch's art uploaded once a renderer (its billboards' pictures by the same keys) - the made level's, and the world
  *  outside's (scenes/ketch/ketchSky.js). */
+/** The Ketch's pictures drawn as cutouts (their alpha a hole, never a blend). */
+export const KT_CUTOUT_RECS = Object.freeze([KT_REC.net]);
 export function ensureKetchArt(renderer) {
   if (!renderer?.uploadTexture || _artUp === renderer) return;
-  for (const [rec, art] of ketchArt()) { renderer.uploadTexture(KT_ARCHIVE, rec, art.albedo); renderer.uploadEmissionTexture?.(KT_ARCHIVE, rec, art.emission, { white: true }); }
+  // the nets' holes a cutout - the sky through them (AUDIT KETCH L4-2: uploaded plain, every net drew as a solid wall), as
+  // the Spire's spans' and the boats' liveries are (scenes/eliteGates/egSpan.js); the puffs stay soft, the billboards' own
+  for (const [rec, art] of ketchArt()) { renderer.uploadTexture(KT_ARCHIVE, rec, art.albedo, ...(KT_CUTOUT_RECS.includes(rec) ? [{ cutout: true }] : [])); renderer.uploadEmissionTexture?.(KT_ARCHIVE, rec, art.emission, { white: true }); }
   _artUp = renderer;
 }
 

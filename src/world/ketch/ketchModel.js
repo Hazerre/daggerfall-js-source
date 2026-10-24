@@ -24,7 +24,7 @@
 // Not a DFU member. Ledger A (KETCH).
 import {
   KT_ANCHOR, KT_WAIST, KT_GALLERY, KT_LANDING, KT_HOLD, KT_HATCH, KT_HOLD_HATCH, KT_QUARTER_WALL, KT_ANCHOR_LIFT, KT_LIFT, KT_MAIN_TOP, KT_YARD,
-  KT_LINE, KT_LINE_LAND, KT_COURSE, KT_COURSE_SPEC, KT_GANGWAY, KT_BRIDGE, KT_HELM, KT_CONSOLE, KT_RESONATORS, KT_BRIDGE_CRADLES, KT_SECTIONS, sectionAt, KT_CABIN,
+  KT_LINE, KT_LINE_LAND, KT_RAIL_R, railRuns, KT_COURSE, KT_COURSE_SPEC, KT_GANGWAY, KT_BRIDGE, KT_HELM, KT_CONSOLE, KT_RESONATORS, KT_BRIDGE_CRADLES, KT_SECTIONS, sectionAt, KT_CABIN,
   KT_CABIN_DOOR, KT_VAULT, KT_STERN_LIFT, KT_WAIST_COVER, KT_WARDEN_POSTS, KT_ENGINE, KT_SOCKETS, KT_CRADLES, KT_VENTS, KT_HAMMER, KT_STEAM,
   KT_ARCS, KT_DECK_H, KT_MAIN_MAST, deckToDungeon,
 } from '../../net/ketch/ketchDeck.js';
@@ -261,8 +261,9 @@ export function buildKetchShip() {
   K.slabWithHoles(R.deck, G.x0, G.x1, G.z0, G.z1, gy, [], [0, 1, 0], true);
   K.slabWithHoles(R.deck, LA.x0, LA.x1, LA.z0, LA.z1, gy, [holdHatch], [0, 1, 0], true);
   // its ceiling (the waist's underside, the engine house's floor), beamed
-  K.slabWithHoles(R.iron, G.x0, G.x1, G.z0, G.z1, ceil, [hatch], [0, -1, 0]);
-  K.slabWithHoles(R.iron, LA.x0, LA.x1, LA.z0, LA.z1, ceil, [], [0, -1, 0]);
+  // solid (AUDIT KETCH L4-3: drawn only, DFU's classic climb went up a wall and over its top into the hold)
+  K.slabWithHoles(R.iron, G.x0, G.x1, G.z0, G.z1, ceil, [hatch], [0, -1, 0], true);
+  K.slabWithHoles(R.iron, LA.x0, LA.x1, LA.z0, LA.z1, ceil, [], [0, -1, 0], true);
   for (let z = G.z0 + 3; z < LA.z1; z += 6) { const x0 = z >= LA.z0 ? LA.x0 : G.x0, x1 = z >= LA.z0 ? LA.x1 : G.x1; K.box(R.brass, x0, x1, ceil - 0.35, ceil, z - 0.2, z + 0.2, { skip: ['top'] }); }
   // its walls, seen from within, solid
   const wall = (rec, a, b, y0, y1, inward) => K.quad(rec, [a[0], y0, a[1]], [b[0], y0, b[1]], [b[0], y1, b[1]], [a[0], y1, a[1]], inward, null, true);
@@ -308,7 +309,7 @@ export function buildKetchShip() {
   // ── THE HOLD ──────────────────────────────────────────────────────────────────────────────────────────────────
   const HD = KT_HOLD, hy = HD.y, hc = gy - T;
   K.slabWithHoles(R.deck, HD.x0, HD.x1, HD.z0, HD.z1, hy, [], [0, 1, 0], true);
-  K.slabWithHoles(R.iron, HD.x0, HD.x1, HD.z0, HD.z1, hc, [holdHatch], [0, -1, 0]);
+  K.slabWithHoles(R.iron, HD.x0, HD.x1, HD.z0, HD.z1, hc, [holdHatch, shaft], [0, -1, 0], true);   // solid, the shaft open (AUDIT KETCH L4-3)
   wall(R.hull, [HD.x0, HD.z0], [HD.x0, HD.z1], hy, hc, [1, 0, 0]);
   wall(R.hull, [HD.x1, HD.z0], [HD.x1, HD.z1], hy, hc, [-1, 0, 0]);
   wall(R.stone, [HD.x0, HD.z0], [HD.x1, HD.z0], hy, hc, [0, 0, 1]);
@@ -499,10 +500,10 @@ export function buildKetchShip() {
     for (const x of [DR.x0 - 0.15, DR.x1 + 0.15]) K.box(R.gilt, x - 0.15, x + 0.15, 0, 3.4, CB.z0 - 0.1, CB.z0 + 0.05);
     // the roof: a low gable of hull plates, its ceiling inside
     for (const s of [-1, 1]) {
-      K.quad(R.hull, [0, roof, CB.z0 - 0.3], [s * (CB.x1 + 0.4), h, CB.z0 - 0.3], [s * (CB.x1 + 0.4), h, CB.z1 + 0.3], [0, roof, CB.z1 + 0.3], [s * 0.6, 1, 0]);
+      K.quad(R.hull, [0, roof, CB.z0 - 0.3], [s * (CB.x1 + 0.4), h, CB.z0 - 0.3], [s * (CB.x1 + 0.4), h, CB.z1 + 0.3], [0, roof, CB.z1 + 0.3], [s * 0.6, 1, 0], null, true);   // solid (AUDIT KETCH L4-3)
       for (const z of [CB.z0, CB.z1]) K.tri(R.stone, [0, roof, z], [s * CB.x1, h, z], [0, h, z], [0.5, 1], [0, 0], [0.5, 0], [0, 0, z === CB.z0 ? -1 : 1]);
     }
-    K.slabWithHoles(R.iron, CB.x0, CB.x1, CB.z0, CB.z1, h, [], [0, -1, 0]);
+    K.slabWithHoles(R.iron, CB.x0, CB.x1, CB.z0, CB.z1, h, [], [0, -1, 0], true);
     // its two great ports either side of the door
     for (const x of [-4.4, 4.4]) K.quad(R.glass, [x - 1, 1.6, CB.z0 - 0.04], [x + 1, 1.6, CB.z0 - 0.04], [x + 1, 3.6, CB.z0 - 0.04], [x - 1, 3.6, CB.z0 - 0.04], [0, 0, -1]);
     // THE KETCHMASTER'S CHEST: gilt and iron, its lid domed
@@ -622,9 +623,11 @@ export function buildKetchParts() {
     K.sector(R.deck, BC.x, BC.z, BC.core, BC.r, a0, a1, BC.y, 8, { solid: true, rim: 1.2, rimRec: R.hull, inner: true, ends: true });
     K.sector(R.hull, BC.x, BC.z, BC.core, BC.r, a0, a1, BC.y - 1.2, 8, { up: false });
     K.sector(R.edge, BC.x, BC.z, BC.r - 0.08, BC.r, a0, a1, BC.y + 0.01, 8);
-    const pts = [];
-    for (let j = 0; j <= 8; j++) { const a = a0 + ((a1 - a0) * j) / 8; pts.push([BC.x + Math.sin(a) * (BC.r - 0.2), BC.z + Math.cos(a) * (BC.r - 0.2)]); }
-    K.rail(pts, BC.y, { h: 0.95, postRec: R.brass, barRec: R.brass });
+    for (const [r0, r1] of railRuns(a0, a1)) {   // open across the gangway's foot and the cabin's door (AUDIT KETCH L4-1)
+      const pts = [], n = Math.max(1, Math.ceil(((r1 - r0) / (a1 - a0)) * 8));
+      for (let j = 0; j <= n; j++) { const a = r0 + ((r1 - r0) * j) / n; pts.push([BC.x + Math.sin(a) * KT_RAIL_R, BC.z + Math.cos(a) * KT_RAIL_R]); }
+      K.rail(pts, BC.y, { h: 0.95, postRec: R.brass, barRec: R.brass });
+    }
     const ri = KT_RESONATORS.findIndex(([x, z]) => sectionAt(x, z) === k);   // the deck plan's own reading of a section (ONCRASH1 C2: no hand-rolled wrap)
     if (ri >= 0) {
       const [x, z] = KT_RESONATORS[ri];

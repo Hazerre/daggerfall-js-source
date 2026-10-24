@@ -56,3 +56,16 @@ test('KETCH THE LAB\'S COLLIDER IS THE WHOLE SHIP: the static ship and every par
   assert.ok(parts > 0);
   assert.equal(deck.colliderTris().length, ship.hit.length + parts);
 });
+
+test('KETCH THE NETS ARE CUTOUTS: the rigging net\'s picture uploaded with its holes cut, so the sky shows through; every other picture as it was (AUDIT KETCH L4-2; mutants: the net uploaded plain)', async () => {
+  const { ensureKetchArt, KT_CUTOUT_RECS } = await import('../../src/scenes/ketch/ketchDeckHost.js');
+  const { KT_REC, ketchNetArt } = await import('../../src/world/ketch/ketchArt.js');
+  const up = [];
+  ensureKetchArt({ uploadTexture: (arch, rec, img, o) => up.push([rec, o?.cutout === true]) });
+  assert.deepEqual(KT_CUTOUT_RECS, [KT_REC.net]);
+  assert.deepEqual(up.filter(([, c]) => c).map(([r]) => r), [KT_REC.net], 'the net alone, cut');
+  assert.ok(up.some(([r, c]) => r === KT_REC.cloud && !c), 'the puffs soft');
+  const a = ketchNetArt().albedo, px = a.colors ?? a.data ?? a.pixels ?? a;
+  let holes = 0; for (let i = 3; i < px.length; i += 4) if (px[i] === 0) holes++;
+  assert.ok(holes > 0, 'it has holes to cut');
+});

@@ -154,6 +154,30 @@ export const sectionAt = (x, z) => {
 /** THE CABIN behind the helm, its door on the bridge's aft rim; the vault's chest; the stern lift down. */
 export const KT_CABIN = box(-7, 7, 224, 236, 0);
 export const KT_CABIN_DOOR = Object.freeze({ x0: -1.8, x1: 1.8, z: 224 });
+/** THE BRIDGE RAIL'S GAPS (AUDIT KETCH L4-1 - the outer ring's rail ran the whole way round, a wall across the gangway's foot
+ *  and the cabin's door that only a well-timed running jump got over): the bearings (radians from +z toward +x about the
+ *  bridge's centre) where the rail stands open - the gangway's width and the door's, each with a body's room to spare. */
+export const KT_RAIL_R = KT_BRIDGE.r - 0.2;
+export const KT_RAIL_GAPS = (() => {
+  const B = KT_BRIDGE, G = KT_GANGWAY, half = (w) => Math.asin(Math.min(1, w / KT_RAIL_R));
+  const way = Math.atan2(G.bx - B.x, G.bz - B.z), door = Math.atan2((KT_CABIN_DOOR.x0 + KT_CABIN_DOOR.x1) / 2 - B.x, KT_CABIN_DOOR.z - B.z);
+  const wrap = (a) => ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  return Object.freeze([
+    Object.freeze([wrap(way - half(G.w / 2 + 0.3)), wrap(way + half(G.w / 2 + 0.3))]),
+    Object.freeze([wrap(door - half((KT_CABIN_DOOR.x1 - KT_CABIN_DOOR.x0) / 2 + 0.3)), wrap(door + half((KT_CABIN_DOOR.x1 - KT_CABIN_DOOR.x0) / 2 + 0.3))]),
+  ]);
+})();
+/** The runs of a section's rail from bearing a0 to a1 - the arc less the gaps ([from, to] each, from < to). Pure. */
+export function railRuns(a0, a1, gaps = KT_RAIL_GAPS) {
+  const cut = [];
+  for (const [g0, g1] of gaps) for (const s of [0, -2 * Math.PI, 2 * Math.PI]) { const lo = g0 + s, hi = (g1 >= g0 ? g1 : g1 + 2 * Math.PI) + s; if (hi > a0 && lo < a1) cut.push([Math.max(a0, lo), Math.min(a1, hi)]); }
+  cut.sort((p, q) => p[0] - q[0]);
+  const out = [];
+  let at = a0;
+  for (const [lo, hi] of cut) { if (lo > at + 1e-6) out.push([at, lo]); at = Math.max(at, hi); }
+  if (a1 > at + 1e-6) out.push([at, a1]);
+  return out;
+}
 export const KT_VAULT = Object.freeze({ x: 3, z: 231 });
 export const KT_STERN_LIFT = Object.freeze({ x: -3.5, z: 230.5, r: 1.6 });
 
