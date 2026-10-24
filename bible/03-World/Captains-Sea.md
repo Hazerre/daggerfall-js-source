@@ -420,15 +420,20 @@ named hand's record never travels with him) and a port's own price ("Port price,
 
 CREW is a row of the exchange that is no item (`tradeGoods.js CREW` - a man, CREW_BASE 15 gold: half the shipwright's
 REPAIR_PRICE.crew, pinned equal, since the item law's graph, which the account service reads, does not carry the sea's).
-A port has SAILORS TO SPARE, is SHORT OF THEM, or neither - a third of the Bay's ports each, off its key on its own
-scrambled draw (`crewStandOf`, isleGood's way: a plain hash bunches neighbours) - and every isle of the Veil is short of
-them. A man is priced as a good (`priceOf`: MADE_K where men are to spare, WANT_K where they are short - a man of either
+A port has SAILORS TO SPARE, is SHORT OF THEM, or neither - a third of the Bay's ports each by the draw (31, 41 and 34 of
+the board's 106 - AUDIT CREW-TRADE P12), off its key on its own scrambled draw (`crewStandOf`, isleGood's way) - and every
+isle of the Veil is short of them. A man is priced as a good (`priceOf`: MADE_K where men are to spare, WANT_K where they are short - a man of either
 sea's own, never EXOTIC_K - drifting within PRICE_DRIFT a day), bought and sold at the exchange's SPREAD (the captain's
 stars and, online, the port town's factors as a good's) and dealt at DAY_STOCK's day (`exchangeOf`'s `crew`: the row
 first; without it every other row as it was). The Exchange tab lists it first for a crewed ship at the quay
-(`harbourOffice.js exchange`): whether the port has sailors to spare or is short of them, a man's two prices and how many
-today, her crew aboard against her whole, and Buy 1, Buy 10, Sell 1, Sell all (`navalYardWindow.js exchangeText`). A
-Rowboat or a Large Boat carries no crew and lists none.
+(`harbourOffice.js exchange`): whether the port has sailors to spare, is short of them or neither, a man's two prices and
+how many today, her crew aboard against her whole and, where none may leave her, why (AUDIT CREW-TRADE O1), and Buy 1,
+Buy 10, Sell 1, Sell 10 (`navalYardWindow.js exchangeText` - R2: crew sells ten at a time as it buys; one Sell all took a
+Small Ship from 13 men to 1), Buy greyed where the exchange signs nobody more on today or the purse cannot pay a man
+(R3) - all of it, its notes and its refusals in the player's language, the gold a number in the language's own figures
+(O2, O3: it came as English, "90 gold", inside every language's sentence). A Rowboat or a Large Boat carries no crew and
+lists none; nor does a booked passage's boat (`passage.js charterRecord` - AUDIT CREW-TRADE E1: her crew are her
+master's, a fresh full crew every booking, and three bookings sold 1,466 gold of them), and a press there says so.
 
 WHAT A MAN FETCHES (`crewTrade.js crewPayMost`, `crewRowOf`): a gold under what the shipwright asks for one at most - his
 own price for a hand (`navalYard.js yardOffer`'s crew row) at this captain's rank's discount (`harbourOffice.js
@@ -439,20 +444,27 @@ there; where they are short, a captain carrying more men than she needs sells th
 
 SIGNED ON (`scenes/naval/crewDeal.js signOn`, `harbourOffice.js buyCrew`): as many as the exchange signs on today and the
 purse pays for, her crew raised to her whole at most (`navalDamage.js muster` - no blow, no fire put out, a wreck a
-wreck), her new hands named quietly by her roster's own sync (`navalHost.js crewHands`: a Commodore's harbour's come
-Seasoned, as every sign-on), no loss on her spirits' books (`lastCrew`). SIGNED OFF (`signOff`, `sellCrew`): as many as
-may leave her (`crewTrade.js crewSpare`) and the exchange takes today - never her last man (crewHall.js releasePlan's
-law), never so many that a named hand ashore at the player's side loses his place on her deck, and none of a ship that
-came into the realm through customs (`fleet.js fleetCrossed` - RESTORE's "Keep all, can't sell": her men are an offline
-save's; men may still sign on to her). Her named hands past what her deck then stands are paid off the crew hall's way,
-the last to join first (`shipCrew.js release` - a hall's recruit takes the spirits he lifted with him, AUDIT SHIPYARDS
-L2-4), and nobody is said fallen. Never in a fight. Each dealing is the ledger's day's (`captainLedger.js deal`, id
+wreck), her new hands named by her roster's own sync (`navalHost.js crewHands`: a Commodore's harbour's come Seasoned, as
+every sign-on) and named in the note, as the shipwright's hire names them (AUDIT CREW-TRADE H3), no loss on her
+spirits' books (`lastCrew`). SIGNED OFF (`signOff`, `sellCrew`): as many as may leave her (`crewTrade.js crewSpare`)
+and the exchange takes today - never her last man (crewHall.js releasePlan's law), never a named hand of the player's
+shore party nor so many that her deck stands no named hand aboard beside them (the party's own words, H2: at the helm
+the party stands on her deck, its places kept for the shore), and none of a ship that came into the realm through
+customs (`fleet.js fleetCrossed` - RESTORE's "Keep all, can't sell": her men are an offline save's; men may still sign
+on to her). Her named hands past what her deck then stands are paid off the crew hall's way, the least worth losing
+first (`crewTrade.js signOffOrder` - AUDIT CREW-TRADE H1: a plain Deckhand before a post's holder, her First Mate last of
+all, the deck's own before a crew hall's recruit, the less service before the more, of the rest the last to join; the
+roster's tail went first, and the tail is where a hall's recruit stands - one Sell 1 paid off a Veteran First Mate
+signed on for 1,120 gold, his post and his lift, for one man's price and unsaid), each named in the note (a hall's
+recruit takes the spirits he lifted with him - `shipCrew.js release`, AUDIT SHIPYARDS L2-4), and nobody is said fallen. Never in a fight. Each dealing is the ledger's day's (`captainLedger.js deal`, id
 `crew`), a sale's gold the log's `traded`, and online each is told to the town economy, as a good's is.
 
 Not a DFU member - Daggerfall has no ships, and Come Sail Away's crew is a count its shipwright refills. A man is never
 an item: never in a pack or a hold, never at a shop, a stall, the market or a trade between players. A prize's pressed
 men (navalPlunder.js `press`) are hers like any others, and sell like any others: men won in a fight are worth their
-port's price. WIRING (HOST-SPLIT): the naval host hands her state, its roster's sync and its crew companions to
+port's price - though the press makes good PRESS_SHARE of HER losses, not the prize's men, so a crew sold down before a
+fight is pressed back whatever the prize had aboard (AUDIT CREW-TRADE E2, put to the owner: about 300-400 gold a prize;
+the press's law is the naval arc's, unchanged here). WIRING (HOST-SPLIT): the naval host hands her state, its roster's sync and its crew companions to
 `crewDealOf` as the yard's model's `crewDeal` (one entry in createNavalHost's yardModel); the world hands the Exchange
 tab that model itself (`world.js navalOpenYard`), four logical lines out of bootWorld where it had built a second object
 of three of the model's fields. THE FOUR HOSTS: the sea is `scenes/world.js`'s; `scenes/exterior.js` (the bench),
@@ -489,6 +501,11 @@ CREW-TRADE: `test/systems/naval/crewtrade.test.js` (10 tests; `tools/mutants/cre
 moved say so (PIN MOVED): the Exchange tab handed the yard's model itself (`test/systems/naval/capttrade.test.js` "the
 exchange's tab", `test/systems/naval/auditcaptsea.test.js` B9/B11/B13); two records re-aimed by content (ACS-B11-world-room,
 HOST-SPLIT-a-ceiling-under-its-host - bootWorld's ceiling down by the four logical lines it took out).
+
+AUDIT CREW-TRADE (2026-10-24, `01-Overview/audits/Audit-Crew-Trade.md`): five cold lanes on a frozen snapshot; every
+finding fixed and pinned in `test/systems/naval/auditcrewtrade.test.js` (10 tests; `tools/mutants/auditcrewtrade.json`,
+43 records, all dead), the quay rig shared in `test/systems/naval/crewQuay.mjs`; the pins they moved say so (PIN MOVED),
+and the recorded list re-aimed by content (still 41, all dead).
 
 GLASS-SPOT and GLASS-CLEAR: `test/systems/naval/glassclear.test.js` (9 tests; `tools/mutants/glassclear.json`, 41 records, all
 dead). Their pins moved say so (PIN MOVED): the look's card on an unknown hull (`test/systems/naval/spyglass.test.js` "at sea, the

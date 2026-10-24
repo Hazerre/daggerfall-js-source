@@ -15,6 +15,7 @@ import { crewRowOf, crewPayMost, yardHandPrice, crewSpare, crewRoom, CREW_KEEP, 
 import { FIRST_MATE } from '../../../src/systems/naval/shipCrew.js';
 import { REPAIR_PRICE } from '../../../src/systems/naval/navalDamage.js';
 import { YARD_DISCOUNT_MAX } from '../../../src/systems/naval/navalYard.js';
+import { RANK_PERKS } from '../../../src/systems/naval/captainLedger.js';
 import { CREW_HALL_TEXT } from '../../../src/systems/crewHall.js';
 import { playerCrewCount } from '../../../src/systems/naval/crewLife.js';
 import { exchangeText } from '../../../src/ui/naval/navalYardWindow.js';
@@ -64,7 +65,7 @@ test('CREW-TRADE NO MAN FETCHES THE SHIPWRIGHT\'S PRICE: at every discount a ran
   assert.deepEqual([crewPayMost(0), crewPayMost(0.2), crewPayMost(0.05), crewPayMost(YARD_DISCOUNT_MAX)], [29, 23, 28, 14], 'a gold under the yard\'s man (28.5 asks 29 of one)');
   assert.equal(yardHandPrice(0.05), 28.5);
   let capped = 0;
-  for (const discount of [0, 0.05, 0.1, 0.2, YARD_DISCOUNT_MAX]) {
+  for (const discount of [...RANK_PERKS.map((k) => k.yard), YARD_DISCOUNT_MAX]) {   // AUDIT CREW-TRADE P13: every rank's own favour, and the yard's ceiling
     const yard = yardHandPrice(discount);
     for (const port of [...BAY.slice(0, 60), ISLE]) {
       for (const day of [1, 17, 99]) {
