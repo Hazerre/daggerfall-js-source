@@ -86,7 +86,7 @@ const HARDCODED = {
   'src/net/eliteGates/egBrain.js': 10,
   'src/net/eliteGates/egFeats.js': 19,
   'src/net/eliteGates/egFragLaw.js': 85,
-  'src/net/eliteGates/egHerald.js': 14,   // AUDIT EG V (a2, L8-7): +1, a deeper breach's start on the herald's Redoubt posts (', from Redoubt N') - the Discord channel's English, as every herald post is
+  'src/net/eliteGates/egHerald.js': 21,   // HERALD-CARDS: +7, the cards' titles, field names and moments - the Discord channel's English, as every herald post is (the relay sets no locale); AUDIT EG V (a2, L8-7): +1, a deeper breach's start on the herald's Redoubt posts (', from Redoubt N') - the Discord channel's English, as every herald post is
   'src/net/eliteGates/egLaw.js': 196,   // THE ASCENT - THE ROOMS (LAW 9): +5, a law 9 try's refusals (egAscentProof's `why` - a course's, the way's, the pieces in no course; ascentLaid's note past the wire's bound) - read by a test and the lab, never said to a player; EG-HERO-LAY: +16, the hero fit's refusals (net/eliteGates/egLaw.js egHeroTrials' `why`) - the relay's law read by a test and a hero's author, never said to a player, kept as egFragLaw.js's record faults are; AUDIT EG V (a1): +2, The Fraying's name and line (the decrees' table, the arc's English, owed its localization wave with the rest)
   'src/net/eliteGates/egLegion.js': 10,
   'src/net/eliteGates/egLords.js': 89,   // AUDIT EG V (the lords' group): +34, every lord's two phase cards, each its name and its one order (EG_LORD_PHASES, EG_GAROTH_SIG_ORDERS - section 13.2's card, drawn on every screen) - the arc's English, owed EG-L10N with the rest; AUDIT EG IV (the lords' group): +2, Garoth's third-phase card names the older signature he borrows (EG_GAROTH_SIG_CARDS - three names for the one 'The older signature.') - the arc's English, owed its localization wave with the rest
@@ -100,7 +100,7 @@ const HARDCODED = {
   'src/net/fortLaw.js': 21,
   'src/net/gate/gateBrain.js': 7,   // AUDIT WB14 (TEXT-9): the phase names through the text core
   'src/net/gate/gateClaims.js': 5,
-  'src/net/gate/gateHerald.js': 8,
+  'src/net/gate/gateHerald.js': 12,   // HERALD-CARDS: +4, the cards' titles, field names and moments - the Discord channel's English, as every herald post is (the relay sets no locale)
   'src/net/gate/gateLaw.js': 4,
   'src/net/gate/gateLink.js': 6,
   'src/net/gate/gateMods.js': 31,
@@ -108,6 +108,7 @@ const HARDCODED = {
   'src/net/guild/guildBook.js': 1,
   'src/net/guild/guildPowers.js': 34,
   'src/net/guild/guildVaultLaw.js': 4,
+  'src/net/herald/heraldCard.js': 3,   // HERALD-CARDS: the families' names on their cards ('The Sea Serpent', ...) - the Discord channel's English, as every herald post is
   'src/net/heraldryLaw.js': 8,
   'src/net/hitPend.js': 2,
   'src/net/holdemTable.js': 2,
@@ -141,13 +142,13 @@ const HARDCODED = {
   'src/net/superDungeon/sdBrain.js': 14,
   'src/net/superDungeon/sdClaims.js': 5,
   'src/net/superDungeon/sdFightLink.js': 13,
-  'src/net/superDungeon/sdHerald.js': 6,
+  'src/net/superDungeon/sdHerald.js': 11,   // HERALD-CARDS: +5, the cards' titles, field names and moments - the Discord channel's English, as every herald post is (the relay sets no locale)
   'src/net/superDungeon/sdLaw.js': 19,
   'src/net/superDungeon/sdMarks.js': 37,
   'src/net/superDungeon/sdRemnant.js': 9,
   'src/net/serpent/serpentBrain.js': 9,
   'src/net/serpent/serpentClaims.js': 4,
-  'src/net/serpent/serpentHerald.js': 4,
+  'src/net/serpent/serpentHerald.js': 7,   // HERALD-CARDS: +3, the cards' titles, field names and moments - the Discord channel's English, as every herald post is (the relay sets no locale)
   'src/net/serpent/serpentLaw.js': 7,
   'src/net/serpent/serpentLink.js': 6,
   'src/net/serverPost.js': 5,
@@ -618,7 +619,7 @@ const HARDCODED = {
   'src/ui/enhanced/enhancedHud.js': 9,   // HUD/GROWTH PATCHES (2026-10-20): counted as they arrived at their merge with main - English until a slice routes them through t() (SKILL-READY, FIRM-STARS: +3, the two tiles' names and their cell's class)
   'src/ui/enhanced/enhancedInventory.js': 89,   // HUD/GROWTH PATCHES (2026-10-20): counted as they arrived at their merge with main - English until a slice routes them through t() (BELT-LANTERN: +5, the lantern slot's acts)
   'src/ui/enhanced/enhancedLevelingChoice.js': 6,
-  'src/ui/enhanced/enhancedMenu.js': 55,   // QUEST-AUDIT III SHELF-WORDS: -5, the shelf's buttons and lines through t(). AUDIT COLLECTIONS-II: -2, the empty Holdings rail's words, gone with the rail that is never empty now. AUDIT EG V (c, L7-10): the Spire's three accessibility rows routed; UI-CALM's doors at the merge of main
+  'src/ui/enhanced/enhancedMenu.js': 53,   // AUDIT MEM-AUDIT G5: -2, the Graphics preset's name and note routed (with its effect, its Custom and its four labels). QUEST-AUDIT III SHELF-WORDS: -5, the shelf's buttons and lines through t(). AUDIT COLLECTIONS-II: -2, the empty Holdings rail's words, gone with the rail that is never empty now. AUDIT EG V (c, L7-10): the Spire's three accessibility rows routed; UI-CALM's doors at the merge of main
   'src/ui/enhanced/enhancedMerchantPanel.js': 1,
   'src/ui/enhanced/enhancedNotice.js': 1,
   'src/ui/enhanced/enhancedPlayerTrade.js': 14,
@@ -631,7 +632,7 @@ const HARDCODED = {
   'src/ui/enhanced/enhancedSpellbook.js': 22,
   'src/ui/enhanced/enhancedTalk.js': 8,
   'src/ui/enhanced/enhancedTavern.js': 9,
-  'src/ui/enhanced/enhancedTimers.js': 6,
+  'src/ui/enhanced/enhancedTimers.js': 5,   // TIMERS2: -1, the Now and Coming up heads gone; its groups' words through the text core
   'src/ui/enhanced/enhancedTrade.js': 19,
   'src/ui/enhanced/enhancedTravelControl.js': 3,
   'src/ui/eventMapMarks.js': 6,
@@ -738,7 +739,7 @@ const HARDCODED = {
   'src/ui/sigilRune.js': 5,
   'src/ui/skinCard.js': 7,
   'src/ui/socialMenu.js': 4,
-  'src/ui/socialPanel.js': 237,
+  'src/ui/socialPanel.js': 235,   // GUILD-WINDOW: -2, the header's two sentences are its tiles, their names in t()
   'src/ui/socketWells.js': 4,
   'src/ui/spell/spellMakerWindow.js': 15,
   'src/ui/spellbookWindow.js': 4,

@@ -619,6 +619,8 @@ The bells arm the hub's alarm from the first hello (`_serpentHeraldArm`). The al
 then the serpent's. Each keeps its own state (`herald`, `sherald`) and its own site record (`gatesite`,
 `serpentsite`). With no webhook nothing is posted and nothing of the herald's is kept.
 
+**HERALD-CARDS (2026-10-22).** These posts are cards now (`net/herald/heraldCard.js`; `World-Bosses.md` THE HERALD, HERALD-CARDS): the family The Sea Serpent, in its colour, the moment's title, its facts as fields (the bells: Rises, Dives, Where; the kill: Where, Slain by), and content only on a post that pings. When each is owed is unchanged. Its cards may go to a thread of their own of the channel (the relay setting `serpentThread`), the gate's else.
+
 ## 15. It never leaps (SERPENT3, 2026-10-05)
 
 Mac: *"the serpent world boss teleports. Nobody has beat it yet."* Mac's call for who can beat it: *"Two or more ships"* -
@@ -854,7 +856,7 @@ Mac: *"With the introduction of elite dungeons soon. I want to enhance the rewar
 weapon to the serpent + a rare chance of a title/aura drop."* Three rewards, each a ship that DEALT's alone - a ship that
 stood is paid its hoard and its Renown as before, and nothing here.
 
-**The Sunken Sovereign** (GILDED2, `06-Systems/Gilded.md` section 7): a Gilded Ebony Saber - a Gilded Ebony Dwarven Pistolet since PISTOLET (2026-10-21) - its power Undertow - the
+**The Sunken Sovereign** (GILDED2, `06-Systems/Gilded.md` section 7): a Gilded Ebony Saber - a Gilded Ebony Dwarven Pistolet since PISTOLET (2026-10-21), and the Saber again since GUNS-UNFOUND (2026-10-23, `06-Systems/Gilded.md` section 9) - its power Undertow - the
 hoard's very last draw, one dealing ship's hoard in a hundred (`systems/serpent/serpentSpoils.js`, after the technique pass), so
 every hoard rolled before it is what it was for its seed.
 
