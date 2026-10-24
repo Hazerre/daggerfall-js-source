@@ -71,16 +71,17 @@ export function ketchShipBlocks(real) {
   };
 }
 
-/** THE AIR AT THE KETCH'S HEIGHT - a thin haze the sky's horizon meets (the deck's open air, never a dungeon's dark): the
- *  colour the sky leans to at its foot, exponential. */
-export const KT_AIR_FOG = Object.freeze({ mode: 'exp', density: 0.0028, color: Object.freeze([0.62, 0.7, 0.8]) });
-/** BELOW DECKS - the gun deck's and the hold's air: lamp-warm and close. */
-export const KT_BELOW_FOG = Object.freeze({ mode: 'exp', density: 0.012, color: Object.freeze([0.1, 0.08, 0.05]) });
-/** The ambient light at the Ketch's height at noon and at night (the sky's own share is the time's - ketchLighting), and
- *  below decks (the lamps do the rest). Her night is never darker than the world's outside it: DFU's exterior night floor
- *  (PlayerAmbientLight.ExteriorNightAmbientLight 0.25 - world/worldClock.js EXTERIOR_NIGHT_AMBIENT) under her moon's cool
- *  tint, so a crew boarding after dark can read her decks (the live run at 04:00 UTC found them black at 0.1). */
+/** THE AIR AT THE KETCH'S HEIGHT BY DAY - a thin haze the sky's horizon meets (the deck's open air, never a dungeon's dark):
+ *  the colour the sky leans to at its foot, exponential. KETCH-LOOK KL1: thinner (0.0028 before) - the city 800 m off
+ *  keeps about a quarter of its contrast and the land darkens under her hull; the other hours' are world/ketch/
+ *  ketchAtmos.js KT_HOURS'. */
+export const KT_AIR_FOG = Object.freeze({ mode: 'exp', density: 0.0016, color: Object.freeze([0.62, 0.7, 0.8]) });
+/** BELOW DECKS - the gun deck's and the hold's air: lamp-warm and close. KETCH-LOOK KL1: a warm haze the far end dissolves
+ *  into ([0.1, 0.08, 0.05] before - a dark brown the hold's far end went black in). */
+export const KT_BELOW_FOG = Object.freeze({ mode: 'exp', density: 0.012, color: Object.freeze([0.16, 0.12, 0.08]) });
+/** The ambient light at the Ketch's height at noon and the sun's colour and share there - world/ketch/ketchAtmos.js
+ *  KT_HOURS' day row (its night, its twilights and below decks are its own rows: KETCH-LOOK KL1). */
 export const KT_LIGHT = Object.freeze({
-  noon: Object.freeze([0.56, 0.58, 0.62]), night: Object.freeze([0.25, 0.26, 0.3]), below: Object.freeze([0.22, 0.18, 0.14]),
+  noon: Object.freeze([0.56, 0.58, 0.62]),
   sun: Object.freeze([1.0, 0.95, 0.84]), sunScale: 0.85,
 });

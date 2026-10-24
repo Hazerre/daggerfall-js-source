@@ -176,3 +176,107 @@ test('KETCH-LOOK KL0 A WARNED SECTION LURCHES UNDER THE FLASH LAW: its shake tur
   assert.ok(crossings / 2 / (warn / 1000) <= 2.5, `${crossings} crossings in ${warn / 1000} s`);
   assert.ok(crossings >= 4, 'and it does lurch');
 });
+
+test('KETCH-LOOK KL1 THE LOOK ON THE RENDERER: on a ship the frame takes her trilight (its equator the flat ambient), the sun, the moons\' key off the world\'s own moon by night and none by day, the haze - and on the lane her zone\'s grade every frame, on the classic set none; her lamps at the gain of the zone the eye stands in - the open decks\' by the hour, below decks\' and the cabin\'s by their rows (mutants: the grade off the lane; the key from no moon; the lamps\' gain on every lamp)', async () => {
+  const { createKetchDeckHost } = await import('../../src/scenes/ketch/ketchDeckHost.js');
+  const { KT_HOURS, KT_TRI } = await import('../../src/world/ketch/ketchAtmos.js');
+  const { KT_LAMP } = await import('../../src/world/ketch/ketchModel.js');
+  const { MOONLIGHT } = await import('../../src/render/enhancedSky.js');
+  const { deckToDungeon } = await import('../../src/net/ketch/ketchDeck.js');
+  const run = (lane, moon, eyeDeck, minute) => {
+    const calls = { grade: [], moon: [], light: null, lights: null };
+    const renderer = {
+      lightingLane: lane ? {} : null, createMesh: () => ({}),
+      setLighting: (a, s, c, tri) => { calls.light = { a: [...a], s, c: [...c], tri: tri && { sky: [...tri.sky], ground: [...tri.ground] } }; },
+      setMoonlight: (m) => calls.moon.push(m && { scale: m.scale, dir: [...m.dir], color: [...m.color] }),
+      setSceneGrade: (g) => calls.grade.push(g && { ...g }), setFog: () => {}, setFogColor: () => {},
+      setPointLights: (d, _, c) => { calls.lights = c; },
+    };
+    const H = createKetchDeckHost({ renderer, host: {}, wm: { mode: 'dungeon', dungeonCtx: null, dungeonLoc: null, place: () => true }, moon: () => moon });
+    H.stand({ dynamicDraws: [], collider: null, addTeardown: () => {} });
+    const lit = { data: new Float32Array(0), colors: new Float32Array(0) };
+    H.frameLook(deckToDungeon(...eyeDeck), lit, minute);
+    return { calls, deck: H.deck() };
+  };
+  // noon on the waist, the lane: the day's grade, no key, the trilight's equator the flat ambient
+  const day = run(true, null, [0, 1.7, 30], 720);
+  assert.deepEqual(day.calls.grade, [{ ...KT_HOURS.day.grade }], 'the day\'s grade, once a frame');
+  assert.deepEqual(day.calls.moon, [null], 'no moon by day');
+  for (let k = 0; k < 3; k++) assert.ok(Math.abs(day.calls.light.a[k] - KT_HOURS.day.ambient[k] * KT_TRI.equator) < 1e-6 && Math.abs(day.calls.light.tri.sky[k] - KT_HOURS.day.ambient[k]) < 1e-6);
+  // the classic set: the light, no grade
+  const classic = run(false, null, [0, 1.7, 30], 720);
+  assert.deepEqual(classic.calls.grade, [], 'nothing graded on the classic set');
+  assert.ok(classic.calls.light, 'lit all the same');
+  // the hold at noon: below's grade
+  assert.deepEqual(run(true, null, [0, -10.3, 120], 720).calls.grade, [{ ...KT_HOURS.below.grade }]);
+  // midnight under a full Masser: the moons' key along the moon, its share the moon's
+  const moon = { dir: [0.3, 0.9, 0.3], scale: MOONLIGHT.masser, color: [1, 1, 1] };
+  const night = run(true, moon, [0, 1.7, 30], 0);
+  assert.equal(night.calls.moon.length, 1);
+  assert.deepEqual(night.calls.moon[0].dir, moon.dir);
+  assert.ok(Math.abs(night.calls.moon[0].scale - 1) < 1e-9 && night.calls.moon[0].color.every((v, k) => Math.abs(v - KT_HOURS.night.key[k]) < 1e-9), 'her key\'s colour at the full share');
+  const half = run(true, { ...moon, scale: MOONLIGHT.masser / 2 }, [0, 1.7, 30], 0);
+  assert.ok(Math.abs(half.calls.moon[0].scale - 0.5) < 1e-9, 'a half moon half the key');
+  assert.deepEqual(run(true, null, [0, 1.7, 30], 0).calls.moon, [null], 'no moon, no key');
+  // the lamps: her open decks' at the night's gain while the eye is on them, below decks' and the cabin's as they were
+  const lamps = night.deck.lightsNear(null, 64), of = (z) => lamps.filter((l) => l.zone === z);
+  assert.equal(of('deck').length, 23);
+  for (const l of of('deck')) assert.ok(l.color.every((v, k) => Math.abs(v - KT_LAMP.color[k] * KT_HOURS.night.lamps) < 1e-9));
+  for (const l of [...of('below'), ...of('cabin')]) assert.deepEqual(l.color, [...KT_LAMP.below]);
+  // the eye below decks: below's lamps at below's gain, the open decks' left at the last
+  const H = run(true, null, [0, -10.3, 120], 720).deck;
+  H.lampGain(KT_HOURS.night.lamps, 'deck');
+  H.lampGain(KT_HOURS.below.lamps, 'below');
+  const all = H.lightsNear(null, 64), in3 = (z) => all.filter((l) => l.zone === z);
+  for (const l of in3('below')) assert.ok(l.color.every((v, k) => Math.abs(v - KT_LAMP.below[k] * KT_HOURS.below.lamps) < 1e-9), 'below at below\'s gain');
+  for (const l of in3('deck')) assert.ok(l.color.every((v, k) => Math.abs(v - KT_LAMP.color[k] * KT_HOURS.night.lamps) < 1e-9), 'the open decks\' as they were');
+  H.lampGain(KT_HOURS.cabin.lamps, 'cabin');
+  for (const l of in3('cabin')) assert.ok(l.color.every((v, k) => Math.abs(v - KT_LAMP.below[k] * KT_HOURS.cabin.lamps) < 1e-9), 'the cabin\'s its own');
+});
+
+test('KETCH-LOOK KL1 THE SKY ON THE HOUR OFF THE STREET: a made level that draws the world\'s sky takes the street\'s last use again on the clocks now - its sky, its night sky, its weather kept, the minute and both clocks moved - and nothing before the street\'s first; the drawSky door hands its draw the clocks, a term in its own line; her night key\'s moon is the world\'s, read off the clock (her sky stood at the minute she was boarded while her hour turned - twelve game hours a real one online; mutants: the door draws the street\'s minute)', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { createSkyController } = await import('../../src/scenes/shared.js');
+  const gl = new Proxy({}, { get: (t, k) => (k in t ? t[k] : (typeof k === 'string' && /^[A-Z_0-9]+$/.test(k) ? 1 : (k === 'drawingBufferWidth' || k === 'drawingBufferHeight' ? 64 : () => ({})))) });
+  const fetchWas = globalThis.fetch, warn = console.warn;
+  globalThis.fetch = () => Promise.reject(new Error('no data here')); console.warn = () => {};
+  try {
+    const ctl = createSkyController(gl, new URLSearchParams('sky=classic'));
+    const seen = [], realUse = ctl.use;
+    ctl.use = (...a) => { seen.push(a); };
+    ctl.retime(600, 10, 20);
+    assert.equal(seen.length, 0, 'nothing before the street\'s first use');
+    ctl.use = realUse;
+    ctl.use(16, 540, false, { weather: 'rain', classicMinutes: 100, skyMinutes: 200, pos: [1, 2, 3] });
+    ctl.use = (...a) => { seen.push(a.map((v) => (v && typeof v === 'object' ? { ...v } : v))); };
+    ctl.retime(1080, 500, 600);
+    ctl.retime(1081, 501, 601);
+    assert.equal(seen.length, 2);
+    assert.deepEqual(seen[0], [16, 1080, false, { weather: 'rain', classicMinutes: 500, skyMinutes: 600, pos: [1, 2, 3] }]);
+    assert.deepEqual(seen[1].slice(0, 3), [16, 1081, false]);
+    assert.equal(seen[1][3].skyMinutes, 601);
+    // the draw handed the clocks retimes first; handed none (the street's, its use run) it does not
+    const drew = [];
+    ctl.renderer.draw = () => drew.push(seen.length);
+    ctl.draw(0, 0, 1, 1, [0, 0, 64, 64], 1100, 700, 800);
+    assert.deepEqual(seen.at(-1).slice(0, 3), [16, 1100, false]);
+    assert.equal(seen.at(-1)[3].skyMinutes, 800);
+    assert.deepEqual(drew, [seen.length], 'retimed, then drawn');
+    ctl.draw(0, 0, 1, 1, [0, 0, 64, 64]);
+    assert.equal(seen.length, drew[0], 'the street\'s draw retimes nothing');
+  } finally { globalThis.fetch = fetchWas; console.warn = warn; }
+  const world = readFileSync(new URL('../../src/scenes/world.js', import.meta.url), 'utf8');
+  assert.match(world, /drawSky: \(yaw, pitch, fov, aspect, vp\) => \{ sky\.draw\(yaw, pitch, fov, aspect, vp, minuteNow\(\), playerTicker\.classicMinutes, skyMinutes\(\)\); renderer\.markForeignPass\(\); \},/, 'the door hands the clocks');
+  // her moon: the world's sky's own term on the clock - none by day, Masser's bearing by night, its share the moon's
+  const { ketchMoonNow } = await import('../../src/scenes/ketch/ketchDeckHost.js');
+  const { moonlightTerm, skyState } = await import('../../src/render/enhancedSky.js');
+  assert.equal(ketchMoonNow(14400 + 720, 'sunny'), null, 'none at noon');
+  const day = 4 * 1440;   // a night with Masser up: the term the world's sky draws by
+  let night = null;
+  for (let d = 0; d < 32 && !night; d++) { const m = (day + d * 1440) + 60; const t = ketchMoonNow(m, 'sunny'); if (t && t.scale > 0.1) night = { m, t }; }
+  assert.ok(night, 'a night with a moon up');
+  assert.deepEqual(night.t, moonlightTerm(skyState({ minuteOfDay: night.m % 1440, weather: 'sunny', classicMinutes: night.m, skyMinutes: night.m })), 'the sky\'s own term');
+  assert.equal(ketchMoonNow(night.m + 0.4, 'sunny'), night.t, 'made once a sky minute');
+  const m2 = night.m + 1, clear = moonlightTerm(skyState({ minuteOfDay: m2 % 1440, weather: 'sunny', classicMinutes: m2, skyMinutes: m2 })), cloud = ketchMoonNow(m2, 'overcast');
+  assert.ok(cloud && cloud.scale < clear.scale * 0.9, 'the weather\'s clouds dim it');
+});

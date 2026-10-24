@@ -41,12 +41,14 @@ export const KT_LAB_DECK_VIEWS = Object.freeze(['arrive', 'waist', 'gallery', 'l
  * shape, place and motion, never by hue alone); `lite` the phone's tier (ui/touch/touchDevice.js isTouchDevice's answer,
  * forced); `bill` the frame's bill on screen and on `window.__lab.bill()`; `sky` the world's sky over her (on unless
  * `sky=0` - the game always draws one: the dungeon arm's `host.drawSky`); `weather` the sky's word; `hour` the hour the
- * light is at. Pure.
+ * light is at; `eye` (KETCH-LOOK KL1) how many times the lane's eye adapts faster (render/airPass.js AIR_ADAPT_OPEN and
+ * CLOSE - where it settles is the game's, only how soon), so a probe measures the settled eye a few frames after a
+ * move rather than the minute the game's takes. Pure.
  * @param {string} search
  */
 export function ketchLabKnobs(search) {
   const p = new URLSearchParams(search);
-  const hour = Number(p.get('hour') ?? 13);
+  const hour = Number(p.get('hour') ?? 13), eye = Number(p.get('eye') ?? 1);
   return Object.freeze({
     grey: p.has('grey'),
     lite: p.has('lite') || p.get('touch') === 'on',
@@ -54,5 +56,6 @@ export function ketchLabKnobs(search) {
     sky: p.get('sky') !== '0',
     weather: p.get('weather') ?? 'sunny',
     hour: Number.isFinite(hour) ? hour : 13,
+    eye: Number.isFinite(eye) && eye >= 1 ? eye : 1,
   });
 }

@@ -184,3 +184,65 @@ test('KETCH THE BOSUN\'S LINE DRAWN ON ITS RIDER\'S PATH: every point of the pat
   for (let k = 0; k <= 16; k++) assert.ok(near(bosunLineAt(k / 16)) < 0.1, `the chain at the path's ${k}/16`);
   assert.ok(near([KT_GANGWAY.ax, 3, KT_GANGWAY.az + 1]) > 1, 'nothing at the old end');
 });
+
+test('KETCH-LOOK KL1 THE LAMPS WHERE THEY MEAN SOMETHING: 49 - 23 on her open decks, 24 below, 2 in the cabin; a lamp under each hammer row\'s middle housing, clear of its head\'s whole stroke, and the way-on lamp at the hatch\'s foot; the landing\'s four over its floor; one over each cradle and down the hold\'s middle, a ring of four round the engine, each hung from its ceiling on a rod; every glass clear of every collider and a body\'s head clear under it - the hold\'s stair kept free; their own mesh, never in the ship\'s, so no glass shadows its own light (mutants: a row\'s lamp in its head\'s stroke; the middle lamp over the stair; the lamps in the ship\'s mesh)', async () => {
+  const { ketchLampSpots, ketchLights, KT_HUNG_LAMPS, KT_LAMP } = await import('../../src/world/ketch/ketchModel.js');
+  const { KT_HAMMER_POSE } = await import('../../src/world/ketch/ketchPose.js');
+  const { KT_HAMMER, KT_CRADLES, KT_ENGINE, KT_GALLERY, KT_HOLD } = await import('../../src/net/ketch/ketchDeck.js');
+  const { KT_REC } = await import('../../src/world/ketch/ketchArt.js');
+  const { up, below, cabin } = ketchLampSpots();
+  assert.equal(up.length, 23, 'her open decks\' lamps where they were');
+  assert.equal(below.length, 24, 'below decks');
+  assert.equal(cabin.length, 2, 'the cabin');
+  const lights = ketchLights();
+  assert.equal(lights.length, 49);
+  assert.deepEqual(['deck', 'below', 'cabin'].map((z) => lights.filter((l) => l.zone === z).length), [23, 24, 2], 'each lamp marked with the zone whose gain it takes');
+  const g = KT_LAMP.glass, HEAD = 1.25;   // the head's half-width (buildKetchParts hammer)
+  const has = (x, z, y0, y1) => below.some((p) => Math.abs(p[0] - x) < 1e-6 && Math.abs(p[2] - z) < 1e-6 && p[1] > y0 && p[1] < y1);
+  for (const z of KT_HAMMER.rows) {
+    assert.ok(has(0, z + KT_HUNG_LAMPS.rowDz, KT_GALLERY.y, -KT_FLOOR_T), `the row at ${z} has its lamp`);
+    assert.ok(KT_HUNG_LAMPS.rowDz - g > HEAD + 0.1, 'clear of the head in z');
+  }
+  assert.ok(has(0, KT_HUNG_LAMPS.wayOnZ, KT_GALLERY.y, -KT_FLOOR_T), 'the way-on lamp');
+  assert.ok(KT_HUNG_LAMPS.wayOnZ > KT_HATCH.z1 && KT_HUNG_LAMPS.wayOnZ + g < KT_HAMMER.rows[0] - HEAD, 'at the stair\'s foot, clear of the first row\'s head');
+  for (const z of KT_HUNG_LAMPS.landing.z) for (const sx of [-1, 1]) assert.ok(has(sx * KT_HUNG_LAMPS.landing.x, z, KT_GALLERY.y, -KT_FLOOR_T), 'the landing\'s');
+  assert.ok(KT_HAMMER_POSE.top + 0.9 > -KT_FLOOR_T - KT_HUNG_LAMPS.drop - g, 'the head\'s stroke reaches the lamp\'s height - only z keeps them apart');
+  for (const [x, z] of KT_CRADLES) assert.ok(has(Math.sign(x) * KT_HUNG_LAMPS.cradleX, z, KT_HOLD.y, KT_GALLERY.y), `a lamp over the cradle at ${x}, ${z}`);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) assert.ok(has(KT_ENGINE.x + sx * KT_HUNG_LAMPS.engine, KT_ENGINE.z + sz * KT_HUNG_LAMPS.engine, KT_HOLD.y, KT_GALLERY.y), 'the engine\'s ring');
+  const hung = below.filter((p) => p.length > 3);
+  assert.equal(hung.length, below.length, 'every lamp below decks hangs');
+  for (const p of hung) assert.ok(Math.abs(p[3] - (p[1] < KT_GALLERY.y ? KT_GALLERY.y - KT_FLOOR_T : -KT_FLOOR_T)) < 1e-6, 'from the ceiling over it');
+  // every glass clear of every collider, and a body's head (2 m) clear under it
+  const dist = (P, h) => {   // a point's distance to a triangle soup
+    let best = Infinity;
+    for (let i = 0; i < h.length; i += 9) {
+      const A = [h[i], h[i + 1], h[i + 2]], B = [h[i + 3], h[i + 4], h[i + 5]], C = [h[i + 6], h[i + 7], h[i + 8]];
+      const sub = (u, v) => [u[0] - v[0], u[1] - v[1], u[2] - v[2]], dot = (u, v) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+      // Ericson's closest point on a triangle
+      const ab = sub(B, A), ac = sub(C, A), ap = sub(P, A), d1 = dot(ab, ap), d2 = dot(ac, ap);
+      let q;
+      if (d1 <= 0 && d2 <= 0) q = A;
+      else {
+        const bp = sub(P, B), d3 = dot(ab, bp), d4 = dot(ac, bp), cp = sub(P, C), d5 = dot(ab, cp), d6 = dot(ac, cp);
+        const vc = d1 * d4 - d3 * d2, vb = d5 * d2 - d1 * d6, va = d3 * d6 - d5 * d4;
+        if (d3 >= 0 && d4 <= d3) q = B;
+        else if (d6 >= 0 && d5 <= d6) q = C;
+        else if (vc <= 0 && d1 >= 0 && d3 <= 0) { const v = d1 / (d1 - d3); q = [A[0] + ab[0] * v, A[1] + ab[1] * v, A[2] + ab[2] * v]; }
+        else if (vb <= 0 && d2 >= 0 && d6 <= 0) { const w = d2 / (d2 - d6); q = [A[0] + ac[0] * w, A[1] + ac[1] * w, A[2] + ac[2] * w]; }
+        else if (va <= 0 && d4 - d3 >= 0 && d5 - d6 >= 0) { const w = (d4 - d3) / (d4 - d3 + (d5 - d6)); q = [B[0] + (C[0] - B[0]) * w, B[1] + (C[1] - B[1]) * w, B[2] + (C[2] - B[2]) * w]; }
+        else { const den = 1 / (va + vb + vc), v = vb * den, w = vc * den; q = [A[0] + ab[0] * v + ac[0] * w, A[1] + ab[1] * v + ac[1] * w, A[2] + ab[2] * v + ac[2] * w]; }
+      }
+      best = Math.min(best, Math.hypot(P[0] - q[0], P[1] - q[1], P[2] - q[2]));
+    }
+    return best;
+  };
+  for (const p of [...up, ...below, ...cabin]) {
+    { const d = dist(deckToDungeon(p[0], p[1], p[2]), ship.hit); assert.ok(d > g, `the lamp at ${p.slice(0, 3)} clear of every collider (${d.toFixed(3)})`); }
+    const f = floorAt(ship.hit, p[0], p[2], p[1] - g - 0.01);
+    assert.ok(f == null || p[1] - g - f >= 2, `a body's head clear under the lamp at ${p.slice(0, 3)} (its floor ${f})`);
+  }
+  // no glass in the ship's own mesh (it casts): every lamp's glass texels are the lamps' mesh's
+  const glassIn = (m) => m.subMeshes.filter((sm) => sm.textureRecord === KT_REC.lamp).reduce((a, sm) => a + sm.primitiveCount, 0);
+  assert.equal(glassIn(ship.model), 0, 'no lamp glass in the mesh that casts');
+  assert.equal(glassIn(ship.lamps), 49 * 12, 'every lamp\'s glass box in the lamps\' own');
+});

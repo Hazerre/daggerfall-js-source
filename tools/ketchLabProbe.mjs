@@ -2,24 +2,31 @@
 // (ketch.html, src/tools/ketchLab.js) on Vite's own server in a real Chromium, frame-synced on the lab's counter (never a
 // sleep - bible/Home.md's Process), and measures what the look is held to:
 //
-//     node tools/ketchLabProbe.mjs value [views...]   every view at four hours: its display luma (p50, p95 of the frame and
-//                                                     of its floor - the lower 30%) - the value ladder's numbers, measured
+//     node tools/ketchLabProbe.mjs value [views...]   every view at six hours: its display luma (p50, p95 of the frame and
+//                                                     of its floor - the lower 30%) against the value ladder (KETCH-LOOK KL1,
+//                                                     world/ketch/ketchLook.js KT_LADDER): below decks p50 and its telegraph
+//                                                     floor at every hour, her open decks' floor at noon, dusk and night;
+//                                                     the rest measured. One page, its eye settled (?eye) at each
 //     node tools/ketchLabProbe.mjs flash              the flash law: a live arc in the hold, its frame sampled at 60 Hz for
 //                                                     4 s - at most 3 transitions a second (TELEGRAPH_THROB_MAX_HZ)
 //     node tools/ketchLabProbe.mjs shadow             no moving part records a shadow: the mast-lift riding and the
 //                                                     bridge's sections warned, falling and rising, the bill's `moving` 0
 //     KETCH_Q='lane=off' ...                          more of the lab's query on every page (the classic set)
 //     KETCH_PORT=5262 ...                             another port (two probes at once)
+//     KETCH_HOURS=12,2 ...                            the value probe at these hours alone
 //
 // Fails (exit 1) on a page error, a frame that drew nothing, or a law broken.
 import { existsSync } from 'node:fs';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
+import { KT_LADDER } from '../src/world/ketch/ketchLook.js';
 
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= '/opt/pw-browsers';
 const extra = process.env.KETCH_Q ?? '';
 const VIEWS = ['arrive', 'waist', 'waist-aft', 'gallery', 'landing', 'hold', 'engine', 'lift', 'top-out', 'sailwalk', 'sailwalk-side', 'bridge', 'helm', 'cabin', 'bow', 'side', 'stern', 'below', 'city'];
-const HOURS = [6, 12, 19, 2];
+const HOURS = process.env.KETCH_HOURS ? process.env.KETCH_HOURS.split(',').map(Number) : [5.5, 7, 12, 18.5, 19.5, 2];
+/** The views the ladder judges (KT_LADDER): below decks', her open decks' (the four whose lower frame is her deck), the cabin. */
+const BELOW = ['gallery', 'landing', 'hold', 'engine', 'lift'], DECK = ['arrive', 'waist', 'bridge', 'helm'];
 const [mode = 'value', ...rest] = process.argv.slice(2);
 const results = [];
 const check = (name, ok, detail = '') => { results.push(ok); console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? ` - ${detail}` : ''}`); };
@@ -55,13 +62,25 @@ const pct = (arr, p) => { const a = [...arr].sort((x, z) => x - z); return a[Mat
 
 try {
   if (mode === 'value') {
+    const L = KT_LADDER;
+    await open('t=40&hour=12&eye=24');
     for (const view of rest.length ? rest : VIEWS) {
+      await page.evaluate((v) => window.__lab.view(v), view);
       for (const hour of HOURS) {
-        await open(`t=40&view=${view}&hour=${hour}`);
+        await page.evaluate((hr) => window.__lab.hour(hr), hour);
+        for (let k = 0; k < 3; k++) await step(40);   // the eye settled (?eye: its rates x24 - three quarters of the way a frame)
         const { w, h, y } = await lumaOf();
-        const floor = y.slice(0, Math.floor(h * 0.3) * w);
-        const lit = y.some((v) => v > 0.02);
-        check(`${view} at ${hour}h`, lit && !errors.length, `frame p50 ${pct(y, 0.5).toFixed(3)} p95 ${pct(y, 0.95).toFixed(3)}, floor p50 ${pct(floor, 0.5).toFixed(3)} p95 ${pct(floor, 0.95).toFixed(3)}${errors.length ? `; ${errors[0]}` : ''}`);
+        const floor = y.slice(0, Math.floor(h * 0.3) * w), fMean = floor.reduce((a, v) => a + v, 0) / floor.length;
+        const p50 = pct(y, 0.5), f50 = pct(floor, 0.5), f95 = pct(floor, 0.95);
+        const want = [];
+        if (BELOW.includes(view)) want.push([`p50 >= ${L.below.p50}`, p50 >= L.below.p50], [`floor p95 <= ${L.below.telegraphFloor}`, f95 <= L.below.telegraphFloor]);
+        if (DECK.includes(view) && (hour === 7 || hour === 12)) want.push([`floor p95 <= ${L.deck.noonFloorP95}`, f95 <= L.deck.noonFloorP95]);
+        if (DECK.includes(view) && hour === 12) want.push([`floor mean <= ${L.deck.noonFloorMean}`, fMean <= L.deck.noonFloorMean]);
+        if (DECK.includes(view) && (hour === 5.5 || hour === 18.5)) want.push([`floor p50 >= ${L.deck.duskP50}`, f50 >= L.deck.duskP50]);
+        if (DECK.includes(view) && (hour === 19.5 || hour === 2)) want.push([`floor mean >= ${L.deck.nightMean}`, fMean >= L.deck.nightMean]);
+        if (view === 'cabin') want.push([`p50 in ${L.cabin.p50.join('-')}`, p50 >= L.cabin.p50[0] && p50 <= L.cabin.p50[1]]);
+        const lit = y.some((v) => v > 0.02), bad = want.filter(([, ok]) => !ok).map(([n]) => n);
+        check(`${view} at ${hour}h${want.length ? '' : ' (measured)'}`, lit && !bad.length && !errors.length, `frame p50 ${p50.toFixed(3)} p95 ${pct(y, 0.95).toFixed(3)}, floor p50 ${f50.toFixed(3)} p95 ${f95.toFixed(3)} mean ${fMean.toFixed(3)}${bad.length ? `; wants ${bad.join(', ')}` : ''}${errors.length ? `; ${errors[0]}` : ''}`);
       }
     }
   } else if (mode === 'flash') {

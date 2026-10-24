@@ -217,9 +217,9 @@
   },
   {
     "name": "KTM-her-night-at-0.1",
-    "file": "src/world/ketch/ketchShip.js",
-    "old": "night: Object.freeze([0.25, 0.26, 0.3]),",
-    "new": "night: Object.freeze([0.1, 0.1, 0.12]),",
+    "file": "src/world/ketch/ketchAtmos.js",
+    "old": "night: Object.freeze({ ambient: f3(0.25, 0.27, 0.34),",
+    "new": "night: Object.freeze({ ambient: f3(0.1, 0.1, 0.12),",
     "tests": [
       "test/scenes/ketch_deck_host.test.js"
     ]

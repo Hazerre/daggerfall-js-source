@@ -103,33 +103,58 @@ export function ketchHullOutline(steps = 10) {
   return out;
 }
 
-/** The lamps' places (deck [x, y, z]) and which are below decks. */
+/** THE LAMPS BELOW DECKS THAT HANG (KETCH-LOOK KL1, Sky-Ketch-Look.md section 5 - "light where it means something"): one
+ *  under each hammer row's middle housing, `rowDz` aft of its head (2.5 m square - its wind-up never reaches the glass), so
+ *  each slam lands in its row's pool, and the way-on lamp at the Watch hatch's stair's foot (`wayOnZ` - LAMP's own place,
+ *  the made way: the corridor's fore 16 m had no lamp and read at p50 0.035); in the hold one over each cradle (`cradleX`
+ *  either side) and down the middle where the hold's stair leaves room (`middleZ` - the middle cradle row's own place is
+ *  the stair's: KT_HOLD_HATCH, a body's head on it at y -6.45), a ninth over the arcs' aisle; and a ring of four round the
+ *  engine (`engine` from its axis on the diagonals); the Wardens' landing's four from its ceiling over its floor either
+ *  side of the hold's hatch (`landing`: x and the two z - on its walls they left the landing at p50 0.072); each glass
+ *  `drop` under the gun deck's ceiling over the hammers' lanes, `holdDrop` under the landing's and the hold's (a lamp 4 m
+ *  over the hold's floor burned a pool at p95 0.28 by the lift's door, over the telegraphs' 0.25; at 4.9 m, 0.25). */
+export const KT_HUNG_LAMPS = Object.freeze({
+  rowDz: 1.8, wayOnZ: 62.5, cradleX: 7, middleZ: Object.freeze([112, 126, 100]), engine: 4.5,
+  landing: Object.freeze({ x: 5, z: Object.freeze([114, 124]) }), drop: 1.7, holdDrop: 0.8,
+});
+/** The lamps' places (deck [x, y, z] - a fourth, the ceiling's y, for a lamp that hangs): her open decks' (`up`), below
+ *  decks' and the cabin's. 49: 23 on deck, 24 below, 2 in the cabin - the gallery's ten wall lamps became its six rows'
+ *  and its way-on lamp, the hold's twelve its nine and its engine's four (KETCH-LOOK KL1: a wall lamp every 12 m left the
+ *  24 m hold's middle and the hammers' lanes black; the plan's 48 left the gallery's fore end dark - the way-on lamp is
+ *  the one more). */
 export function ketchLampSpots() {
-  const up = [], below = [];
-  for (const z of [20, 32, 44, 56]) for (const x of [KT_WAIST.x0 + 0.5, KT_WAIST.x1 - 0.5]) up.push([x, 2.3, z]);
+  const up = [], below = [], cabin = [];
+  for (const z of [20, 32, 44, 56]) for (const x of [KT_WAIST.x0 + KT_BULWARK.t + 0.2, KT_WAIST.x1 - KT_BULWARK.t - 0.2]) up.push([x, 2.3, z]);   // KL1: clear of the net's face (its glass stood a centimetre into it)
   up.push([-3.2, 3.6, KT_QUARTER_WALL.z - 0.4], [3.2, 3.6, KT_QUARTER_WALL.z - 0.4], [-6, 2.3, 8], [6, 2.3, 8]);
-  for (const z of [58, 70, 82, 94, 106]) for (const x of [KT_GALLERY.x0 + 0.3, KT_GALLERY.x1 - 0.3]) below.push([x, KT_GALLERY.y + 3.2, z]);
-  for (const [x, z] of [[KT_LANDING.x0 + 0.3, 114], [KT_LANDING.x1 - 0.3, 114], [KT_LANDING.x0 + 0.3, 124], [KT_LANDING.x1 - 0.3, 124]]) below.push([x, KT_GALLERY.y + 3.2, z]);
-  for (const z of [62, 74, 86, 98, 110, 122]) for (const x of [KT_HOLD.x0 + 0.3, KT_HOLD.x1 - 0.3]) below.push([x, KT_HOLD.y + 3.4, z]);
-  up.push([KT_MAIN_TOP.x - 4.6, KT_MAIN_TOP.y + 2.4, KT_MAIN_TOP.z - 4.6], [KT_MAIN_TOP.x + 4.6, KT_MAIN_TOP.y + 2.4, KT_MAIN_TOP.z + 4.6]);
+  const HL = KT_HUNG_LAMPS, gCeil = -KT_FLOOR_T, hCeil = KT_GALLERY.y - KT_FLOOR_T;
+  for (const z of [HL.wayOnZ, ...KT_HAMMER.rows.map((r) => r + HL.rowDz)]) below.push([0, gCeil - HL.drop, z, gCeil]);
+  for (const z of HL.landing.z) for (const sx of [-1, 1]) below.push([sx * HL.landing.x, gCeil - HL.holdDrop, z, gCeil]);
+  for (const [x, z] of KT_CRADLES) below.push([Math.sign(x) * HL.cradleX, hCeil - HL.holdDrop, z, hCeil]);
+  for (const z of HL.middleZ) below.push([0, hCeil - HL.holdDrop, z, hCeil]);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) below.push([KT_ENGINE.x + sx * HL.engine, hCeil - HL.holdDrop, KT_ENGINE.z + sz * HL.engine, hCeil]);
+  up.push([KT_MAIN_TOP.x - 4.2, KT_MAIN_TOP.y + 2.4, KT_MAIN_TOP.z - 4.2], [KT_MAIN_TOP.x + 4.2, KT_MAIN_TOP.y + 2.4, KT_MAIN_TOP.z + 4.2]);   // KL1: inside the top's rail (on its rim, 6.5 m out, the glass stood in the net)
   up.push([KT_COURSE_SPEC.start.x, KT_COURSE_SPEC.start.y + 2.4, KT_COURSE_SPEC.start.z + 2.4]);
   for (let k = 0; k < 8; k++) { const a = (k + 0.5) * (Math.PI / 4); up.push([BRIDGE_C.x + Math.sin(a) * (BRIDGE_C.core - 0.6), 2.6, BRIDGE_C.z + Math.cos(a) * (BRIDGE_C.core - 0.6)]); }
-  below.push([-4, 3.6, KT_CABIN.z0 + 3], [4, 3.6, KT_CABIN.z1 - 3]);
-  return { up, below };
+  cabin.push([-4, 3.6, KT_CABIN.z0 + 3], [4, 3.6, KT_CABIN.z1 - 3]);
+  return { up, below, cabin };
 }
-/** THE LAMPS as the light list takes them: `{ x, y, z, range, color }` in the dungeon's frame, at each lamp's glass. */
+/** THE LAMPS as the light list takes them: `{ x, y, z, range, color, zone }` in the dungeon's frame, at each lamp's glass -
+ *  `zone` the room it lights, 'deck' (her open decks), 'below' or 'cabin': its gain the zone's (KETCH-LOOK KL1, world/ketch/
+ *  ketchAtmos.js KT_HOURS `lamps`); below decks and in the cabin the warmer glass. */
 export function ketchLights() {
-  const { up, below } = ketchLampSpots();
-  const L = (p, color, range) => { const [x, y, z] = deckToDungeon(p[0], p[1], p[2]); return { x, y, z, range, color: [...color] }; };
-  return [...up.map((p) => L(p, KT_LAMP.color, KT_LAMP.range)), ...below.map((p) => L(p, KT_LAMP.below, KT_LAMP.rangeBelow))];
+  const { up, below, cabin } = ketchLampSpots();
+  const L = (p, color, range, zone) => { const [x, y, z] = deckToDungeon(p[0], p[1], p[2]); return { x, y, z, range, color: [...color], zone }; };
+  return [...up.map((p) => L(p, KT_LAMP.color, KT_LAMP.range, 'deck')), ...below.map((p) => L(p, KT_LAMP.below, KT_LAMP.rangeBelow, 'below')), ...cabin.map((p) => L(p, KT_LAMP.below, KT_LAMP.rangeBelow, 'cabin'))];
 }
 
-/** A lamp: its bracket and its glass box about `p`. */
+/** A lamp: its glass box about `p` under its cap, on its bracket's post - or, one that hangs (`p[3]` its ceiling's y), on
+ *  its rod up to the ceiling. */
 function lamp(K, p) {
   const g = KT_LAMP.glass;
   K.box(R.lamp, p[0] - g, p[0] + g, p[1] - g, p[1] + g, p[2] - g, p[2] + g);
   K.box(R.brass, p[0] - g * 1.3, p[0] + g * 1.3, p[1] + g, p[1] + g + 0.06, p[2] - g * 1.3, p[2] + g * 1.3);
-  K.box(R.brass, p[0] - 0.03, p[0] + 0.03, p[1] - g - 0.5, p[1] - g, p[2] - 0.03, p[2] + 0.03, { skip: ['bottom'] });
+  if (p.length > 3) K.box(R.brass, p[0] - 0.03, p[0] + 0.03, p[1] + g + 0.06, p[3], p[2] - 0.03, p[2] + 0.03, { skip: ['top'] });
+  else K.box(R.brass, p[0] - 0.03, p[0] + 0.03, p[1] - g - 0.5, p[1] - g, p[2] - 0.03, p[2] + 0.03, { skip: ['bottom'] });
 }
 /** A bulwark along a polyline at deck `y`: its inner face (iron), its brass cap, solid to its top; the rigging net over it to
  *  `net` above the deck, its wall solid. `inside` a point on the deck's side. */
@@ -172,8 +197,11 @@ export function ketchGangwaySill() {
 }
 
 /**
- * THE STATIC SHIP: `{ model, hit, lights }` - the mesh (renderer.createMesh's shape, the dungeon's frame), the collider's
- * one bucket (the flat xyz list) and the lamps. Pure; the same ship every call.
+ * THE STATIC SHIP: `{ model, hit, lights, lamps }` - the mesh (renderer.createMesh's shape, the dungeon's frame), the
+ * collider's one bucket (the flat xyz list), the lamps' lights, and the lamps themselves (their glass, caps and posts): a
+ * mesh of their own the deck draws casting no shadow. KETCH-LOOK KL1: in the ship's mesh every lamp's glass boxed its own
+ * light in - each cube shadow map recorded its own glass round it, so no lamp aboard lit anything (the hold's floor under
+ * a lamp at eight times its colour read as the dark between them). Pure; the same ship every call.
  */
 export function buildKetchShip() {
   const hit = [];
@@ -585,10 +613,10 @@ export function buildKetchShip() {
   K.pipe(R.brass, [KT_JACKSTAY.x, KT_JACKSTAY.fore.y, KT_JACKSTAY.fore.z], [KT_JACKSTAY.x, KT_JACKSTAY.aft.y, KT_JACKSTAY.aft.z], 0.14, 6);
 
   // ── THE LAMPS ─────────────────────────────────────────────────────────────────────────────────────────────────
-  const { up, below } = ketchLampSpots();
-  for (const p of [...up, ...below]) lamp(K, p);
+  const { up, below, cabin } = ketchLampSpots(), LK = ketchKit({ f: faces(), hit: null });
+  for (const p of [...up, ...below, ...cabin]) lamp(LK, p);
 
-  return { model: packKetchFaces(K.f), hit, lights: ketchLights() };
+  return { model: packKetchFaces(K.f), hit, lights: ketchLights(), lamps: packKetchFaces(LK.f) };
 }
 
 /**

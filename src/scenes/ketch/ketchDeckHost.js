@@ -13,26 +13,31 @@
 //     once the room has opened them, the doors slid back, the sections shuddering and falling, the resonators true or
 //     false, the cells in their cradles and sockets and where they lie, the forks risen, the arcs crackling, the steam, the
 //     bosun's line. The ship's lamps and the lit things nearest the eye (lightsNear); the clouds and the steam as billboards.
-//   THE AIR AND THE LIGHT (ketchFrameLook): on deck the Ketch's height at the world's hour - the sun's direction and share,
-//     the ambient between night and noon, a thin haze the colour of the sky's foot; below decks a lamp-warm close air.
+//   THE AIR AND THE LIGHT (ketchFrameLook, ketchApplyLook): her light by the hour and the zone at the eye (world/ketch/
+//     ketchAtmos.js ketchHourLight - KETCH-LOOK KL1): on her open decks the world's hour - the sun by its elevation, the
+//     moons' key by night, the trilight, the haze, the lamps' gain, the lane's grade; below decks the lamps' warm close air;
+//     the cabin its hour's, dimmer.
 //   THE HOST'S SEAMS (createKetchDeckHost): stood into a built context (stand - its teardown handed to the context), the six
 //     combat seams and the billboards routed to the voyage's fight on the ship (the Spire's way - worldModes' egBoss table),
 //     the Steps' void answered on the ship's own ground (castBack), the frame's look.
 //
 // Not a DFU member. Ledger A (KETCH).
 import { identity } from '../../world/mat4.js';
-import { buildKetchShip, buildKetchParts, buildKetchGround, ketchLights, KT_GROUND, KT_CAGE, KT_LODESTONE } from '../../world/ketch/ketchModel.js';
+import { buildKetchShip, buildKetchParts, buildKetchGround, KT_GROUND, KT_CAGE, KT_LODESTONE, KT_LAMP } from '../../world/ketch/ketchModel.js';
 import { ketchArt, KT_ARCHIVE, KT_REC } from '../../world/ketch/ketchArt.js';
 import { hammerHeadY, hazardState, hazardStrike, sectionPose } from '../../world/ketch/ketchPose.js';
 import { packKetchHit } from '../../world/ketch/ketchKit.js';
-import { isKetchShip, ketchShipLocation, ketchShipBlocks, KT_AIR_FOG, KT_BELOW_FOG, KT_LIGHT } from '../../world/ketch/ketchShip.js';
+import { isKetchShip, ketchShipLocation, ketchShipBlocks } from '../../world/ketch/ketchShip.js';
+import { ketchHourLight, ketchLightRecord } from '../../world/ketch/ketchAtmos.js';
 import {
   KT_HAMMER, KT_STEAM, KT_ARCS, KT_LIFT, KT_CRADLES, KT_BRIDGE_CRADLES, KT_SOCKETS, KT_RESONATORS, KT_BRIDGE, KT_HOLD, KT_GALLERY, KT_SECTIONS,
   KT_ENGINE, KT_HATCH, KT_HOLD_HATCH, KT_FORK_RING, KT_GANGWAY, liftYAt, deckToDungeon, dungeonToDeck, deckZoneAt, sectionAt,
 } from '../../net/ketch/ketchDeck.js';
 import { KT_STAGE } from '../../net/ketch/ketchLaw.js';
 import { KW_SECTION_WARN_MS } from '../../net/ketch/ketchWarden.js';
-import { daylightScale, sunDirection } from '../../world/worldClock.js';
+import { MOONLIGHT, moonlightTerm, skyState } from '../../render/enhancedSky.js';
+import { skyMinutes } from '../../systems/worldTick.js';
+import { currentWeather } from '../../systems/weather/weatherSim.js';
 import { applyFog } from '../../render/underwaterFog.js';
 import { egLightsWith } from '../../world/eliteGates/egHall.js';   // the Spire's lamps' merge (the arm's own lights, the glows, the lamps nearest first)
 
@@ -110,6 +115,9 @@ export function createKetchDeck({ renderer = null } = {}) {
   let cageY = /** @type {number} */ (KT_LIFT.y0), cageWas = /** @type {number} */ (KT_LIFT.y0);
   // a frame's own scratch (AUDIT KETCH L3-16 - the ship's hot paths built ~60 KB a frame): the hazards' and the sections'
   // poses, the lit things' records (a pool), the lamps' sort and the lights it hands on - each written in place
+  const _gain = { deck: 1, below: 1, cabin: 1 };
+  /** The ship's lamps (world/ketch/ketchModel.js ketchLights), the ship's own - built once, the stand's or the first ask's. */
+  const lamps = () => (ship ??= buildKetchShip()).lights;
   const _glows = [], _lights = [], _near = [], _glowPool = [], _hz = { live: false, warn: false, k: 0 }, _sp = { solid: true, dy: 0, shake: 0, hidden: false };
   const _resOf = Array.from({ length: KT_SECTIONS }, (_, k) => KT_RESONATORS.findIndex(([x, z]) => sectionAt(x, z) === k));
   let clouds = null, steam = null;
@@ -139,6 +147,7 @@ export function createKetchDeck({ renderer = null } = {}) {
       ship ??= buildKetchShip();
       parts ??= buildKetchParts();
       draw(make(ship.model));
+      draw(make(ship.lamps), { noShadow: true });   // KETCH-LOOK KL1: a lamp's glass never shadows its own light
       draw(make(buildKetchGround()), { noShadow: true });
       if (collider) { const { positions, indices } = packKetchHit(ship.hit); try { collider.addMesh(KT_BUCKET.ship, positions, indices, identity()); } catch (e) { console.warn('[kt] the ship\'s collider', e?.message ?? e); } }
       const P = parts, g = (p) => make(p.model);
@@ -285,7 +294,7 @@ export function createKetchDeck({ renderer = null } = {}) {
     lightsNear(eye, cap = 16) {
       _lights.length = 0;
       for (const l of _glows) _lights.push(l);
-      for (const l of (ship?.lights ?? (ship = { lights: ketchLights() }).lights)) _lights.push(l);
+      for (const l of lamps()) _lights.push(l);
       if (eye) {
         for (const l of _lights) l._near = Math.hypot(l.x - eye[0], l.y - eye[1], l.z - eye[2]) - l.range;   // each once, never per comparison
         for (let i = 1; i < _lights.length; i++) { const l = _lights[i]; let j = i - 1; while (j >= 0 && _lights[j]._near > l._near) { _lights[j + 1] = _lights[j]; j--; } _lights[j + 1] = l; }   // in place, nothing built
@@ -293,6 +302,15 @@ export function createKetchDeck({ renderer = null } = {}) {
       _near.length = 0;
       for (let i = 0; i < _lights.length && i < cap; i++) _near.push(_lights[i]);
       return _near;
+    },
+    /** HER LAMPS AT THE GAIN OF THE ZONE THE EYE STANDS IN (KETCH-LOOK KL1, world/ketch/ketchAtmos.js KT_HOURS `lamps`):
+     *  her open decks' by the hour - dim by day, brightest at night - while the eye is on them, below decks' and the
+     *  cabin's by their rows while it is in them (the other zones' as they were: none of their light reaches the eye).
+     *  Written in place, only when a zone's gain moves. */
+    lampGain(g, zone = 'deck') {
+      if (_gain[zone] === g) return;
+      _gain[zone] = g;
+      for (const l of lamps()) if (l.zone === zone) { const c = zone === 'deck' ? KT_LAMP.color : KT_LAMP.below; for (let k = 0; k < 3; k++) l.color[k] = c[k] * g; }
     },
     /** The clouds and the steam, for the frame's billboard pass. */
     billboards() { return [clouds, steam].filter(Boolean); },
@@ -323,57 +341,68 @@ export function createKetchDeck({ renderer = null } = {}) {
 }
 
 // ── THE AIR AND THE LIGHT ────────────────────────────────────────────────────────────────────────────────────────
-const _O = deckToDungeon(0, 0, 0), _lookAt = [0, 0, 0], _foot = [0, 0, 0], _belowColor = [...KT_BELOW_FOG.color];
-const _look = { ambient: new Float32Array(3), sunScale: 0, sunColor: new Float32Array(KT_LIGHT.sun), sunDir: new Float32Array([0, 1, 0]), fog: { mode: 'exp', density: 0, color: [0, 0, 0] }, clear: [0, 0, 0, 1], below: false };
-/** The sky's foot's colour at the hour (the haze leans to it): night blue, dawn and dusk amber, the day's pale blue. */
-const FOOT_NIGHT = Object.freeze([0.06, 0.08, 0.14]), FOOT_AMBER = Object.freeze([0.85, 0.55, 0.35]);
+const _O = deckToDungeon(0, 0, 0), _lookAt = [0, 0, 0], _foot = ketchLightRecord();
+const _look = Object.assign(ketchLightRecord(), { clear: [0, 0, 0, 1], below: false, zone: 'deck' });
+/** The sky's foot's colour at the hour (the haze leans to it): her open decks' fog by the hour (world/ketch/ketchAtmos.js
+ *  KT_HOURS - night blue, dawn rose, the day's pale blue, dusk amber), into `out`. */
 export function ketchSkyFoot(minute, out = [0, 0, 0]) {
-  const d = daylightScale(minute), h = ((minute / 60) % 24 + 24) % 24, dusk = Math.max(0, 1 - Math.min(Math.abs(h - 6.5), Math.abs(h - 18.5)) / 1.5);
-  const day = KT_AIR_FOG.color;
-  for (let k = 0; k < 3; k++) { const base = FOOT_NIGHT[k] + (day[k] - FOOT_NIGHT[k]) * d; out[k] = base + (FOOT_AMBER[k] - base) * dusk * 0.6; }
+  const c = ketchHourLight(minute, 'deck', _foot).fog.color;
+  out[0] = c[0]; out[1] = c[1]; out[2] = c[2];
   return out;   // `out` written in place (AUDIT KETCH L3-16)
 }
 /**
- * THE FRAME'S LOOK at the eye (the dungeon's frame) and the world's minute of the day: `{ ambient, sunScale, sunColor,
- * sunDir, fog, clear, below }` - one object, its arrays written in place. Below decks (the gun deck's and the hold's
- * rooms) the lamps' warm close air and no sun; on deck the hour's.
+ * THE FRAME'S LOOK at the eye (the dungeon's frame) and the world's minute of the day: her light by the hour and the zone
+ * (world/ketch/ketchAtmos.js ketchHourLight's record) and `clear`, `below`, `zone` - one object, its arrays written in
+ * place. `moon` the world's moon term (render/enhancedSky.js moonlightTerm - its direction and share; null none): by night
+ * the moons' key comes from it, and a moon that is new, set or clouded gives none.
+ * @param {ArrayLike<number> | null} eye @param {number} minute @param {boolean} [lane] @param {{ dir: ArrayLike<number>, scale: number } | null} [moon]
  */
-export function ketchFrameLook(eye, minute, lane = false) {
+export function ketchFrameLook(eye, minute, lane = false, moon = null) {
   const p = _lookAt;
   if (eye) { p[0] = eye[0] - _O[0]; p[1] = eye[1] - _O[1]; p[2] = eye[2] - _O[2]; } else { p[0] = 0; p[1] = 2; p[2] = 0; }   // dungeonToDeck, in place
-  const zone = deckZoneAt(p[0], p[1] - 1.6, p[2]);
+  const at = deckZoneAt(p[0], p[1] - 1.6, p[2]);
   // below decks: the rooms the deck plan names, and anywhere inside the hull with the feet under the deck - a stair's whole
   // flight (AUDIT KETCH L4-7: the waist's stair read 'waist' to two metres down, and lit its walker with the open sky)
   const feetY = p[1] - 1.6, inHull = Math.abs(p[0]) <= KT_HOLD.x1 && p[2] >= KT_HOLD.z0 - 2 && p[2] <= KT_HOLD.z1 + 2;
-  const below = zone === 'gallery' || zone === 'landing' || zone === 'hold' || (zone === 'lift' && p[1] < -1) || (inHull && feetY < -0.3);
-  const L = _look;
-  L.below = below;
-  if (below) {
-    for (let k = 0; k < 3; k++) L.ambient[k] = KT_LIGHT.below[k];
-    L.sunScale = 0;
-    L.sunDir.set([0, 1, 0]);
-    L.fog.mode = KT_BELOW_FOG.mode; L.fog.density = KT_BELOW_FOG.density; L.fog.color = _belowColor;
-    L.clear[0] = KT_BELOW_FOG.color[0]; L.clear[1] = KT_BELOW_FOG.color[1]; L.clear[2] = KT_BELOW_FOG.color[2];
-    return L;
-  }
-  const d = daylightScale(minute);
-  for (let k = 0; k < 3; k++) L.ambient[k] = KT_LIGHT.night[k] + (KT_LIGHT.noon[k] - KT_LIGHT.night[k]) * d;
-  L.sunScale = KT_LIGHT.sunScale * d;
-  L.sunDir.set(sunDirection(minute));
-  const foot = ketchSkyFoot(minute, _foot);
-  L.fog.mode = KT_AIR_FOG.mode; L.fog.density = KT_AIR_FOG.density; L.fog.color = foot;
-  L.clear[0] = foot[0]; L.clear[1] = foot[1]; L.clear[2] = foot[2];
+  const below = at === 'gallery' || at === 'landing' || at === 'hold' || (at === 'lift' && p[1] < -1) || (inHull && feetY < -0.3);
+  const zone = below ? 'below' : at === 'cabin' ? 'cabin' : 'deck';
+  const L = ketchHourLight(minute, zone, _look);
+  L.below = below; L.zone = zone;
+  const m = moon && moon.scale > 0 ? Math.min(1, moon.scale / MOONLIGHT.masser) : 0;
+  L.key.scale *= m;
+  if (m > 0) { L.key.dir[0] = moon.dir[0]; L.key.dir[1] = moon.dir[1]; L.key.dir[2] = moon.dir[2]; }
+  L.clear[0] = L.fog.color[0]; L.clear[1] = L.fog.color[1]; L.clear[2] = L.fog.color[2];
   return L;
+}
+/** THE WORLD'S MOON NOW (render/enhancedSky.js moonlightTerm, off the state the world's sky draws from - the sky's minute,
+ *  its date, the weather's word): the night key's bearing and share. Pure of the host - the sky is the world's, and its
+ *  moons are a function of the clock (bible/01-Overview/Host-Split.md: no host line for a read a module can make). Made
+ *  once a sky minute, so the frame builds nothing. */
+let _moonAt = NaN, _moon = null;
+export function ketchMoonNow(sky = skyMinutes(), weather = currentWeather()) {
+  const m = Math.floor(sky);
+  if (m !== _moonAt) { _moonAt = m; _moon = moonlightTerm(skyState({ minuteOfDay: ((m % 1440) + 1440) % 1440, weather, classicMinutes: m, skyMinutes: m })); }
+  return _moon;
+}
+/** THE LOOK ON THE RENDERER (the dungeon arm's and the lab's one hand): the trilight (its equator the flat ambient a
+ *  billboard takes), the sun, the moons' key or none, the haze, and on the lane the zone's grade - the lane takes its
+ *  defaults back the frame it is not called (render/renderer.js `_sceneGrade`); the classic set has no grade. */
+export function ketchApplyLook(renderer, L, fogInto = null) {
+  renderer.setLighting?.(L.tri.equator, L.sunScale, L.sunColor, L.tri);
+  renderer.setMoonlight?.(L.key.scale > 0 ? L.key : null);
+  applyFog(renderer, L.fog, fogInto);
+  if (renderer.lightingLane) renderer.setSceneGrade?.(L.grade);
 }
 
 // ── THE HOST'S SEAMS ─────────────────────────────────────────────────────────────────────────────────────────────
 /**
  * THE KETCH ON THE DUNGEON HOST: `renderer`, the outer host (its seams routed here while a ship stands - `host.ketch()` the
  * world's client, scenes/ketch/ketchClient.js), and the mode machine's live reads `wm` (`mode`, `dungeonCtx`, `dungeonLoc`,
- * and `place(at, yaw)` - a body stood elsewhere on the level, the action teleport's way).
- * @param {{ renderer: any, host: any, wm: { readonly mode: string, readonly dungeonCtx: any, readonly dungeonLoc: any, place: (at: number[], yaw?: number|null) => boolean } }} deps
+ * and `place(at, yaw)` - a body stood elsewhere on the level, the action teleport's way); `moon` the world's moon now
+ * (ketchMoonNow - a test's own).
+ * @param {{ renderer: any, host: any, wm: { readonly mode: string, readonly dungeonCtx: any, readonly dungeonLoc: any, place: (at: number[], yaw?: number|null) => boolean }, moon?: () => ({ dir: ArrayLike<number>, scale: number } | null) }} deps
  */
-export function createKetchDeckHost({ renderer, host, wm }) {
+export function createKetchDeckHost({ renderer, host, wm, moon = ketchMoonNow }) {
   let deck = null, deckCtx = null;
   const onShip = () => wm.mode === 'dungeon' && isKetchShip(wm.dungeonLoc);
   const K = () => host.ketch?.() ?? null;
@@ -425,14 +454,15 @@ export function createKetchDeckHost({ renderer, host, wm }) {
     },
     /**
      * THE FRAME'S LOOK on the ship (the dungeon arm's, after its own lights - scenes/worldModes.js): the light and the air
-     * at the eye (ketchFrameLook - the deck's hour, or below decks' lamps), the ship's lamps and lit things and the fight's
-     * glows after the player's own lights (`lit` - the arm's list), nearest first. Answers the look (its sun's direction for
-     * the frame's begin).
+     * at the eye (ketchFrameLook, ketchApplyLook - her hour and zone: the trilight, the sun or the moons' key off the world's
+     * own moon, `moon` - ketchMoonNow, the haze, the lane's grade), her lamps at their zone's gain, the ship's lamps and lit
+     * things and the fight's glows after the player's own lights (`lit` - the arm's list), nearest first. Answers the look
+     * (its sun's direction for the frame's begin).
      */
     frameLook(eye, lit, minute) {
-      const L = ketchFrameLook(eye, minute, !!renderer?.lightingLane);
-      renderer.setLighting?.(L.ambient, L.sunScale, L.sunColor);
-      applyFog(renderer, L.fog, _fogInto);
+      const L = ketchFrameLook(eye, minute, !!renderer?.lightingLane, moon());
+      ketchApplyLook(renderer, L, _fogInto);
+      deck?.lampGain(L.lamps, L.zone);
       _extra.length = 0;
       for (const l of K()?.lights?.() ?? NONE) _extra.push(l);
       const lamps = deck?.lightsNear(eye, 24) ?? NONE;   // the deck's own list (egLightsWith sorts it in place - it is written again next frame)

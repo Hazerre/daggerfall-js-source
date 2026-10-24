@@ -1,8 +1,8 @@
 // THE KETCH LAB (KETCH, 2026-10-24; bible/11-Multiplayer/Sky-Ketch.md section 3): the sky-ketch Mzunthar drawn by the game's
 // own renderer from its own parts, with no game data - the ship, its parts, the Sailwalk's Steps and the land below are all
 // made in code (world/ketch/ketchModel.js, world/ketch/ketchArt.js, scenes/superDungeon/sdSteps.js with the Ketch's course),
-// lit and fogged as the dungeon arm lights the Ketch (scenes/ketch/ketchDeckHost.js ketchFrameLook), so what this page
-// shows is what a crew sees.
+// lit, fogged and graded as the dungeon arm lights the Ketch (scenes/ketch/ketchDeckHost.js ketchFrameLook, ketchApplyLook -
+// her hour and zone, the moons' key off this page's own sky), so what this page shows is what a crew sees.
 //
 //   ?view=<name>     a camera (the panel's list)            ?t=<seconds>   the shared clock, pinned   ?still
 //   ?stage=0-5       the voyage's stage the parts stand for (the hatches, the lift, the cabin's door, the bosun's line)
@@ -18,16 +18,18 @@
 //                    casters and how many of them MOVED this frame (the shadow probe's - none may), lights, its CPU
 //   ?sky=0           no sky (the world's sky stands over her by default, as the dungeon arm's host.drawSky draws it in
 //                    the game - the procedural sky's, render/enhancedSky.js, at ?hour= and ?weather=)
+//   ?eye=<k>         (KL1) the lane's eye adapting k times faster (where it settles the game's) - a probe's settled frame;
+//                    window.__lab.hour(h) moves the hour without a load
 // `window.__frame` counts drawn frames; `window.__lab` moves the camera and the clock from a probe.
 import { Renderer, WORLD_FRAME } from '../render/renderer.js';
 import { EL_LANE, exposureFor } from '../render/enhancedLighting.js';
-import { applyFog } from '../render/underwaterFog.js';
+import { AIR_ADAPT_OPEN, AIR_ADAPT_CLOSE } from '../render/airPass.js';
 import { createSdSteps } from '../scenes/superDungeon/sdSteps.js';
-import { createKetchDeck, ketchFrameLook } from '../scenes/ketch/ketchDeckHost.js';
+import { createKetchDeck, ketchFrameLook, ketchApplyLook } from '../scenes/ketch/ketchDeckHost.js';
 import { KT_COURSE, deckToDungeon } from '../net/ketch/ketchDeck.js';
 import { perspective, lookAt, identity, mirrorProjectionX } from '../world/mat4.js';
 import { lightList, packLight } from '../render/lightId.js';
-import { EnhancedSkyRenderer, skyState } from '../render/enhancedSky.js';
+import { EnhancedSkyRenderer, skyState, moonlightTerm } from '../render/enhancedSky.js';
 import { KT_LAB_VIEWS, ketchLabKnobs } from './ketchLabViews.js';
 
 const params = new URLSearchParams(location.search);
@@ -68,6 +70,8 @@ function syncLane() {
   laneOn = on;
   renderer.setLightingLane(on ? EL_LANE : null);
   if (on) { renderer.setExposure?.(exposureFor('')); renderer.setAir?.(true); }
+  const air = renderer._air;   // KL1: ?eye - the eye's rates, its targets untouched
+  if (air?.adaptRates) { air.adaptRates[0] = AIR_ADAPT_OPEN * knobs.eye; air.adaptRates[1] = AIR_ADAPT_CLOSE * knobs.eye; }
 }
 
 // ── the ship, stood as the deck host stands it ─────────────────────────────────────────────────────────────────
@@ -98,12 +102,13 @@ canvas.addEventListener('pointermove', (e) => {
 });
 canvas.addEventListener('pointerup', () => { drag = null; });
 
-let last = performance.now();
+let last = performance.now(), hour = knobs.hour;
 window.__frame = 0;
 window.__lab = {
   view: (name) => { viewSel.value = name; setView(name); },
   eye: (x, y, z, yawDeg, pitchDeg) => { cam.pos = deckToDungeon(x, y, z); cam.yaw = (yawDeg * Math.PI) / 180; cam.pitch = (pitchDeg * Math.PI) / 180; },
   clock: (s) => { clock = s; $('t').value = String(s); },
+  hour: (h) => { hour = h; },
 };
 $('t').addEventListener('input', () => { clock = Number($('t').value); });
 const NO_SHADOW = Object.freeze({ noShadow: true }), WITH_SHADOW = Object.freeze({ noShadow: false });
@@ -135,11 +140,11 @@ function frame(now) {
   const view = lookAt(cam.pos, [cam.pos[0] + fwd[0], cam.pos[1] + fwd[1], cam.pos[2] + fwd[2]], [0, 1, 0]);
   const proj = mirrorProjectionX(perspective((65 * Math.PI) / 180, w / h, 0.1, 4000));
   const lane = !!renderer.lightingLane;
-  const minute = knobs.hour * 60;
-  const look = ketchFrameLook(cam.pos, minute, lane);
-  renderer.setMoonlight(null);
-  renderer.setLighting(look.ambient, look.sunScale, look.sunColor);
-  applyFog(renderer, look.fog);
+  const minute = hour * 60;
+  const skyNow = sky ? skyState({ minuteOfDay: minute, weather: knobs.weather, seconds: clock }) : null;
+  const look = ketchFrameLook(cam.pos, minute, lane, skyNow ? moonlightTerm(skyNow) : null);
+  ketchApplyLook(renderer, look);
+  deck.lampGain(look.lamps, look.zone);
   const cpu0 = performance.now();
   deck.pose(labVoyage(), clock, clock * 1000, null);
   steps.ride(clock, dt, null, true);
@@ -164,7 +169,7 @@ function frame(now) {
   _movedSince = Math.max(_movedSince, bill.moving);
   if (lawMesh) renderer.drawMeshWire(lawMesh, identity(), null);
   if (sky) {
-    sky.setState(skyState({ minuteOfDay: minute, weather: knobs.weather, seconds: clock }));
+    sky.setState(skyNow);
     sky.draw(cam.yaw, cam.pitch, (65 * Math.PI) / 180, w / h);
   }
   const camRight = new Float32Array([-view[0], -view[4], -view[8]]);
