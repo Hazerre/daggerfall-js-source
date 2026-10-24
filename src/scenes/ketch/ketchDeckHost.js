@@ -82,6 +82,12 @@ export function ensureKetchArt(renderer) {
   _artUp = renderer;
 }
 
+/** THE SHAFT'S GATES: the hold's open with the cage at its foot, the top's with it at the top - and neither while the lift
+ *  is dead (the engine starving: AUDIT KETCH L3-14 - the dead cage at its foot left the hold's gate open, and a carrier who
+ *  stepped onto it stood off the hold's floor, its cell lost). Pure. */
+export const ketchShaftGates = (cageY, runs) => ({ hold: !!runs && cageY <= KT_LIFT.y0 + 0.05, top: !!runs && cageY >= KT_LIFT.y1 - 0.05 });
+
+
 /**
  * THE DECK'S SET.
  * @param {{ renderer?: any }} [deps]
@@ -98,13 +104,18 @@ export function createKetchDeck({ renderer = null } = {}) {
   const T = { cage: [...O], gateHold: [...O], gateTop: [...O], grateW: [...O], grateH: [...O], doors: [...O], sections: Array.from({ length: KT_SECTIONS }, () => [0, 0, 0]) };
   const move = (t3, dy) => { t3[0] = O[0]; t3[1] = O[1] + dy; t3[2] = O[2]; };
   let cageY = /** @type {number} */ (KT_LIFT.y0), cageWas = /** @type {number} */ (KT_LIFT.y0);
-  const _glows = [], _lights = [];
+  // a frame's own scratch (AUDIT KETCH L3-16 - the ship's hot paths built ~60 KB a frame): the hazards' and the sections'
+  // poses, the lit things' records (a pool), the lamps' sort and the lights it hands on - each written in place
+  const _glows = [], _lights = [], _near = [], _glowPool = [], _hz = { live: false, warn: false, k: 0 }, _sp = { solid: true, dy: 0, shake: 0, hidden: false };
+  const _resOf = Array.from({ length: KT_SECTIONS }, (_, k) => KT_RESONATORS.findIndex(([x, z]) => sectionAt(x, z) === k));
   let clouds = null, steam = null;
   const cloudSeeds = (() => { let s = KT_CLOUDS.seed >>> 0; const r = () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; return Array.from({ length: KT_CLOUDS.n }, (_, k) => ({ x: r() * 2 - 1, z: r() * 2 - 1, y: k % 3 === 0 ? KT_CLOUDS.above[0] + r() * (KT_CLOUDS.above[1] - KT_CLOUDS.above[0]) : KT_CLOUDS.below[0] + r() * (KT_CLOUDS.below[1] - KT_CLOUDS.below[0]), s: KT_CLOUDS.size[0] + r() * (KT_CLOUDS.size[1] - KT_CLOUDS.size[0]) })); })();
   const _cloudCentres = cloudSeeds.map(() => [0, 0, 0]);
   const _steamCentres = Array.from({ length: KT_STEAM.z.length * KT_STEAM_PUFFS.n }, () => [0, KT_GONE_Y, 0]);
 
-  const draw = (gpu, o = {}) => { if (!gpu || !draws) return null; const d = { gpu, object: { matrix: identity() }, hidden: false, noShadow: !!o.noShadow, texRemap: null }; draws.push(d); return d; };
+  /** a part's draw - a record even for a mesh that would not build (posed, never drawn: AUDIT KETCH L3-15, one part's failed
+   *  build threw every frame from pose()) */
+  const draw = (gpu, o = {}) => { if (!draws) return null; const d = { gpu, object: { matrix: identity() }, hidden: !gpu, noShadow: !!o.noShadow, texRemap: null }; if (gpu) draws.push(d); return d; };
   const hide = (d) => { if (d && !d.hidden) { d.hidden = true; d.object.matrix.fill(0); } };
   const bucket = (key, p, t) => { if (!collider || !p?.hit?.length) return; const { positions, indices } = packKetchHit(p.hit); try { collider.addMesh(key, positions, indices, identity(), t ? () => t : undefined); } catch (e) { console.warn('[kt] a collider', key, e?.message ?? e); } };
   const at = (out, x, y, z) => translate(out, O[0] + x, O[1] + y, O[2] + z);
@@ -177,7 +188,7 @@ export function createKetchDeck({ renderer = null } = {}) {
       T.cage[0] = O[0] + KT_LIFT.x; T.cage[1] = O[1] + cageY; T.cage[2] = O[2] + KT_LIFT.z;   // the cage is made about the deck's origin
       const dy = cageY - cageWas;
       if (dy && body?.grounded && body.groundKey === KT_BUCKET.cage) body.carryBy?.(0, dy, 0);
-      const atFoot = cageY <= KT_LIFT.y0 + 0.05, atTop = cageY >= KT_LIFT.y1 - 0.05;
+      const gates = ketchShaftGates(cageY, sg >= KT_STAGE.sailwalk), atFoot = gates.hold, atTop = gates.top;
       move(T.gateHold, atFoot ? KT_GONE_Y : 0); at(D.gateHold.object.matrix, 0, atFoot ? KT_SHAFT_DOOR_H : 0, 0);
       move(T.gateTop, atTop ? KT_GONE_Y : 0); at(D.gateTop.object.matrix, 0, atTop ? -1.4 : 0, 0);
       // the hatches: barred, then each leaf turned up on its hinge once the room has opened them
@@ -194,11 +205,11 @@ export function createKetchDeck({ renderer = null } = {}) {
       // the bridge's sections: whole, shuddering, falling, gone, rising back (the fight's word of its ring)
       const sec = ws?.sec ?? NONE;
       for (let k = 0; k < KT_SECTIONS; k++) {
-        const p = sectionPose(k, sec, now, KW_SECTION_WARN_MS), d = D.sections[k];
+        const p = sectionPose(k, sec, now, KW_SECTION_WARN_MS, _sp), d = D.sections[k];
         T.sections[k][1] = p.solid ? 0 : KT_GONE_Y;
         if (p.hidden) hide(d); else { d.hidden = false; translate(d.object.matrix, p.shake, p.dy, p.shake * 0.7); }
         // its resonator rides it
-        const ri = KT_RESONATORS.findIndex(([x, z]) => sectionAt(x, z) === k);
+        const ri = _resOf[k];
         if (ri >= 0) {
           const [x, z] = KT_RESONATORS[ri], ok = !ws || ws.ph !== 2 || ws.rs?.[ri] === 1, spin = t * (ok ? 0.8 : 2.4);
           const on = ok ? D.resTrue[ri] : D.resFalse[ri], off = ok ? D.resFalse[ri] : D.resTrue[ri];
@@ -218,9 +229,9 @@ export function createKetchDeck({ renderer = null } = {}) {
       for (let j = 0; j < D.forks.length; j++) { const q = fk?.c?.[j]; if (q && (q[2] ?? 1) > 0) { D.forks[j].hidden = false; at(D.forks[j].object.matrix, q[0], KT_BRIDGE.y, q[1]); } else hide(D.forks[j]); }
       // the arcs: live through their span, a frame each 60 ms
       for (let j = 0; j < D.arcs.length; j++) {
-        const s = hazardState('arc', j, t), a = D.arcs[j];
+        const s = hazardState('arc', j, t, _hz), a = D.arcs[j];
         if (!s.live) { hide(a.d); continue; }
-        a.d.gpu = a.meshes[Math.floor(t * 16.7) % a.meshes.length];
+        a.d.gpu = a.meshes[Math.floor(t * 16.7) % a.meshes.length] ?? a.d.gpu;   // a frame that would not build: the last one held
         a.d.hidden = false; at(a.d.object.matrix, 0, KT_HOLD.y + 4.4, KT_ARCS.z[j]);
       }
       // the bosun's line, once the bridge is unbarred
@@ -229,41 +240,49 @@ export function createKetchDeck({ renderer = null } = {}) {
       if (clouds) {
         for (let k = 0; k < cloudSeeds.length; k++) {
           const c = cloudSeeds[k], H = KT_CLOUDS.half, x = ((((c.x * H + t * KT_CLOUDS.drift) % (2 * H)) + 3 * H) % (2 * H)) - H;
-          const p = deckToDungeon(x, c.y, 110 + c.z * H);
-          _cloudCentres[k][0] = p[0]; _cloudCentres[k][1] = p[1]; _cloudCentres[k][2] = p[2];
+          _cloudCentres[k][0] = O[0] + x; _cloudCentres[k][1] = O[1] + c.y; _cloudCentres[k][2] = O[2] + 110 + c.z * H;   // the deck's frame moved, as deckToDungeon
         }
         renderer.moveBillboardBatch?.(clouds, _cloudCentres);
       }
       if (steam) {
         let i = 0;
         for (let j = 0; j < KT_STEAM.z.length; j++) {
-          const s = hazardState('steam', j, t);
+          const s = hazardState('steam', j, t, _hz);
           for (let k = 0; k < KT_STEAM_PUFFS.n; k++, i++) {
             const c = _steamCentres[i];
             if (!s.live && !(s.warn && k < 2)) { c[0] = O[0]; c[1] = O[1] + KT_GONE_Y; c[2] = O[2]; continue; }
             const ph = (t * 1.3 + k * 0.37) % 1, x = KT_GALLERY.x0 + 0.6 + ((k + 0.5) / KT_STEAM_PUFFS.n) * (KT_GALLERY.x1 - KT_GALLERY.x0 - 1.2);
-            const p = deckToDungeon(x + 0.4 * Math.sin(k * 3.1 + t), KT_GALLERY.y + 0.2 + ph * KT_STEAM_PUFFS.rise * (s.live ? 2 : 0.6), KT_STEAM.z[j] + 0.5 * Math.sin(k * 1.7 + t * 2));
-            c[0] = p[0]; c[1] = p[1]; c[2] = p[2];
+            c[0] = O[0] + x + 0.4 * Math.sin(k * 3.1 + t); c[1] = O[1] + KT_GALLERY.y + 0.2 + ph * KT_STEAM_PUFFS.rise * (s.live ? 2 : 0.6); c[2] = O[2] + KT_STEAM.z[j] + 0.5 * Math.sin(k * 1.7 + t * 2);
           }
         }
         renderer.moveBillboardBatch?.(steam, _steamCentres);
       }
       // the lit things (lightsNear reads them)
       _glows.length = 0;
-      const glow = (x, y, z, G, k = 1) => { const p = deckToDungeon(x, y, z); _glows.push({ x: p[0], y: p[1], z: p[2], range: G.range, color: [G.color[0] * k, G.color[1] * k, G.color[2] * k], carried: true }); };
+      const glow = (x, y, z, G, k = 1) => {
+        const g = _glowPool[_glows.length] ?? (_glowPool[_glows.length] = { x: 0, y: 0, z: 0, range: 0, color: [0, 0, 0], carried: true });
+        g.x = O[0] + x; g.y = O[1] + y; g.z = O[2] + z; g.range = G.range; g.color[0] = G.color[0] * k; g.color[1] = G.color[1] * k; g.color[2] = G.color[2] * k;
+        _glows.push(g);
+      };
       if (sg >= KT_STAGE.engine) glow(KT_ENGINE.x, KT_HOLD.y + KT_ENGINE.h + 0.6, KT_ENGINE.z, KT_GLOWS.engine, sg > KT_STAGE.engine ? 1 : 0.25 + 0.75 * ((cl?.bk ?? 0) / Math.max(1, cl?.nd ?? 1)));
-      for (let j = 0; j < D.arcs.length; j++) { const s = hazardState('arc', j, t); if (s.live || s.warn) glow(0, KT_HOLD.y + 4.4, KT_ARCS.z[j], KT_GLOWS.arc, s.live ? 1 : 0.3 * s.k); }
+      for (let j = 0; j < D.arcs.length; j++) { const s = hazardState('arc', j, t, _hz); if (s.live || s.warn) glow(0, KT_HOLD.y + 4.4, KT_ARCS.z[j], KT_GLOWS.arc, s.live ? 1 : 0.3 * s.k); }
       for (let j = 0; j < D.cradle.length; j++) if (!D.cradle[j].hidden) glow(KT_CRADLES[j][0], KT_HOLD.y + 1.2, KT_CRADLES[j][1], KT_GLOWS.cell);
       for (let j = 0; j < KT_RESONATORS.length; j++) { const d = D.resTrue[j].hidden ? D.resFalse[j] : D.resTrue[j]; if (!d.hidden) glow(KT_RESONATORS[j][0], KT_BRIDGE.y + 4.6, KT_RESONATORS[j][1], d === D.resTrue[j] ? KT_GLOWS.resTrue : KT_GLOWS.resFalse); }
       for (let j = 0; j < D.forks.length; j++) if (!D.forks[j].hidden) { const q = fk.c[j]; glow(q[0], KT_BRIDGE.y + 2.2, q[1], KT_GLOWS.fork); }
     },
     /** The ship's lamps and its lit things, the nearest `cap` to `eye` first (the dungeon's frame). */
+    /** (Its answer is the deck's own list, written again at the next ask - read it, never keep it.) */
     lightsNear(eye, cap = 16) {
       _lights.length = 0;
       for (const l of _glows) _lights.push(l);
       for (const l of (ship?.lights ?? (ship = { lights: ketchLights() }).lights)) _lights.push(l);
-      if (eye) _lights.sort((a, b) => (Math.hypot(a.x - eye[0], a.y - eye[1], a.z - eye[2]) - a.range) - (Math.hypot(b.x - eye[0], b.y - eye[1], b.z - eye[2]) - b.range));
-      return _lights.slice(0, cap);
+      if (eye) {
+        for (const l of _lights) l._near = Math.hypot(l.x - eye[0], l.y - eye[1], l.z - eye[2]) - l.range;   // each once, never per comparison
+        for (let i = 1; i < _lights.length; i++) { const l = _lights[i]; let j = i - 1; while (j >= 0 && _lights[j]._near > l._near) { _lights[j + 1] = _lights[j]; j--; } _lights[j + 1] = l; }   // in place, nothing built
+      }
+      _near.length = 0;
+      for (let i = 0; i < _lights.length && i < cap; i++) _near.push(_lights[i]);
+      return _near;
     },
     /** The clouds and the steam, for the frame's billboard pass. */
     billboards() { return [clouds, steam].filter(Boolean); },
@@ -272,6 +291,13 @@ export function createKetchDeck({ renderer = null } = {}) {
     /** The collider's whole ship (the lab's law wire): the static bucket and every part's, each at its place now. */
     colliderTris() {
       const out = [...(ship ?? buildKetchShip()).hit];
+      // AUDIT KETCH L4-16: and every part's at its place now (its bucket's translation), as the collider holds them
+      const add = (p, t) => { const h = p?.hit ?? NONE; for (let i = 0; i + 2 < h.length; i += 3) out.push(h[i] + t[0], h[i + 1] + t[1], h[i + 2] + t[2]); };
+      if (parts) {
+        add(parts.cage, T.cage); add(parts.gateHold, T.gateHold); add(parts.gateTop, T.gateTop);
+        add(parts.grateWatch, T.grateW); add(parts.grateHold, T.grateH); add(parts.doors, T.doors);
+        parts.sections.forEach((sp, k) => add(sp, T.sections[k]));
+      }
       return new Float32Array(out);
     },
     /** Gone with the dungeon: every mesh and batch freed, every bucket off the collider. */
@@ -287,12 +313,15 @@ export function createKetchDeck({ renderer = null } = {}) {
 }
 
 // ── THE AIR AND THE LIGHT ────────────────────────────────────────────────────────────────────────────────────────
+const _O = deckToDungeon(0, 0, 0), _lookAt = [0, 0, 0], _foot = [0, 0, 0], _belowColor = [...KT_BELOW_FOG.color];
 const _look = { ambient: new Float32Array(3), sunScale: 0, sunColor: new Float32Array(KT_LIGHT.sun), sunDir: new Float32Array([0, 1, 0]), fog: { mode: 'exp', density: 0, color: [0, 0, 0] }, clear: [0, 0, 0, 1], below: false };
 /** The sky's foot's colour at the hour (the haze leans to it): night blue, dawn and dusk amber, the day's pale blue. */
-export function ketchSkyFoot(minute) {
+const FOOT_NIGHT = Object.freeze([0.06, 0.08, 0.14]), FOOT_AMBER = Object.freeze([0.85, 0.55, 0.35]);
+export function ketchSkyFoot(minute, out = [0, 0, 0]) {
   const d = daylightScale(minute), h = ((minute / 60) % 24 + 24) % 24, dusk = Math.max(0, 1 - Math.min(Math.abs(h - 6.5), Math.abs(h - 18.5)) / 1.5);
-  const day = KT_AIR_FOG.color, night = [0.06, 0.08, 0.14], amber = [0.85, 0.55, 0.35];
-  return [0, 1, 2].map((k) => { const base = night[k] + (day[k] - night[k]) * d; return base + (amber[k] - base) * dusk * 0.6; });
+  const day = KT_AIR_FOG.color;
+  for (let k = 0; k < 3; k++) { const base = FOOT_NIGHT[k] + (day[k] - FOOT_NIGHT[k]) * d; out[k] = base + (FOOT_AMBER[k] - base) * dusk * 0.6; }
+  return out;   // `out` written in place (AUDIT KETCH L3-16)
 }
 /**
  * THE FRAME'S LOOK at the eye (the dungeon's frame) and the world's minute of the day: `{ ambient, sunScale, sunColor,
@@ -300,7 +329,8 @@ export function ketchSkyFoot(minute) {
  * rooms) the lamps' warm close air and no sun; on deck the hour's.
  */
 export function ketchFrameLook(eye, minute, lane = false) {
-  const p = eye ? dungeonToDeck(eye[0], eye[1], eye[2]) : [0, 2, 0];
+  const p = _lookAt;
+  if (eye) { p[0] = eye[0] - _O[0]; p[1] = eye[1] - _O[1]; p[2] = eye[2] - _O[2]; } else { p[0] = 0; p[1] = 2; p[2] = 0; }   // dungeonToDeck, in place
   const zone = deckZoneAt(p[0], p[1] - 1.6, p[2]);
   const below = zone === 'gallery' || zone === 'landing' || zone === 'hold' || (zone === 'lift' && p[1] < -1);
   const L = _look;
@@ -309,7 +339,7 @@ export function ketchFrameLook(eye, minute, lane = false) {
     for (let k = 0; k < 3; k++) L.ambient[k] = KT_LIGHT.below[k];
     L.sunScale = 0;
     L.sunDir.set([0, 1, 0]);
-    L.fog.mode = KT_BELOW_FOG.mode; L.fog.density = KT_BELOW_FOG.density; L.fog.color = [...KT_BELOW_FOG.color];
+    L.fog.mode = KT_BELOW_FOG.mode; L.fog.density = KT_BELOW_FOG.density; L.fog.color = _belowColor;
     L.clear[0] = KT_BELOW_FOG.color[0]; L.clear[1] = KT_BELOW_FOG.color[1]; L.clear[2] = KT_BELOW_FOG.color[2];
     return L;
   }
@@ -317,7 +347,7 @@ export function ketchFrameLook(eye, minute, lane = false) {
   for (let k = 0; k < 3; k++) L.ambient[k] = KT_LIGHT.night[k] + (KT_LIGHT.noon[k] - KT_LIGHT.night[k]) * d;
   L.sunScale = KT_LIGHT.sunScale * d;
   L.sunDir.set(sunDirection(minute));
-  const foot = ketchSkyFoot(minute);
+  const foot = ketchSkyFoot(minute, _foot);
   L.fog.mode = KT_AIR_FOG.mode; L.fog.density = KT_AIR_FOG.density; L.fog.color = foot;
   L.clear[0] = foot[0]; L.clear[1] = foot[1]; L.clear[2] = foot[2];
   return L;
@@ -392,8 +422,8 @@ export function createKetchDeckHost({ renderer, host, wm }) {
       applyFog(renderer, L.fog, _fogInto);
       _extra.length = 0;
       for (const l of K()?.lights?.() ?? NONE) _extra.push(l);
-      const lamps = deck?.lightsNear(eye, 24) ?? NONE;
-      if (lit) { const w = egLightsWith(lit, _extra, [...lamps], eye); renderer.setPointLights?.(w.data, null, w.colors); }
+      const lamps = deck?.lightsNear(eye, 24) ?? NONE;   // the deck's own list (egLightsWith sorts it in place - it is written again next frame)
+      if (lit) { const w = egLightsWith(lit, _extra, lamps, eye); renderer.setPointLights?.(w.data, null, w.colors); }
       return L;
     },
     /** The frame's look on the ship at the eye (ketchFrameLook) - its reads alone. */

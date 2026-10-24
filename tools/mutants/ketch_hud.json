@@ -88,5 +88,32 @@
     "tests": [
       "test/ui/ketch_hud.test.js"
     ]
+  },
+  {
+    "name": "KTH-the-voyages-end-unread",
+    "file": "src/ui/ketch/ketchHud.js",
+    "old": "toGone = Number.isFinite(endAt) ? endAt - now : Infinity;",
+    "new": "toGone = Infinity;",
+    "tests": [
+      "test/ui/ketch_hud.test.js"
+    ]
+  },
+  {
+    "name": "KTH-the-crew-said-aboard",
+    "file": "src/ui/ketch/ketchHud.js",
+    "old": "'Crew: {n} of {max}'",
+    "new": "'Crew aboard: {n} of {max}'",
+    "tests": [
+      "test/ui/ketch_hud.test.js"
+    ]
+  },
+  {
+    "name": "KTH-the-card-left-out-of-the-key",
+    "file": "src/ui/gate/gateMapMark.js",
+    "old": "|${m.label}|${tipKey(m.tip)}` : '');",
+    "new": "|${m.label}` : '');",
+    "tests": [
+      "test/ui/ketch_hud.test.js"
+    ]
   }
 ]

@@ -123,3 +123,17 @@ test('KETCH WHERE A BODY STANDS: the anchor deck, the waist, the gun deck and it
   assert.equal(z(NaN, 0, 0), null);
   assert.deepEqual(['gallery', 'landing', 'hold', 'top', 'bridge'].map(zoneFloorY), [-6, -6, -12, 16, 0]);
 });
+
+test('KETCH THE BOSUN\'S LINE SETS ITS RIDER DOWN ON THE GANGWAY, PAST THE GUST, FACING THE BRIDGE: its landing on the gangway, beyond the Rotten Rigging\'s breath (which blows to the course\'s end), the rider\'s forward along the gangway toward the bridge; the line drawn to it (AUDIT KETCH L3-7, L4-6; mutants: set down in the gust; facing the bow)', async () => {
+  const { KT_LINE_LAND, KT_GANGWAY, KT_COURSE, KT_BRIDGE, deckZoneAt } = await import('../../../src/net/ketch/ketchDeck.js');
+  const { inBreath } = await import('../../../src/world/superDungeon/sdSteps.js');
+  const { bosunLineAt } = await import('../../../src/world/ketch/ketchModel.js');
+  assert.equal(deckZoneAt(KT_LINE_LAND.x, 0.1, KT_LINE_LAND.z), 'gangway');
+  assert.ok(KT_LINE_LAND.z > KT_COURSE.end && !inBreath(KT_LINE_LAND.z, KT_COURSE), 'past the gust');
+  const f = [Math.sin(KT_LINE_LAND.yaw), Math.cos(KT_LINE_LAND.yaw)], to = [KT_BRIDGE.x - KT_LINE_LAND.x, KT_BRIDGE.z - KT_LINE_LAND.z], d = Math.hypot(...to);
+  assert.ok((f[0] * to[0] + f[1] * to[1]) / d > 0.95, 'facing the bridge, never the bow');
+  const g = [KT_GANGWAY.bx - KT_GANGWAY.ax, KT_GANGWAY.bz - KT_GANGWAY.az], gd = Math.hypot(...g);
+  assert.ok(Math.abs((f[0] * g[0] + f[1] * g[1]) / gd - 1) < 1e-9, 'along the gangway');
+  const end = bosunLineAt(1);
+  assert.ok(Math.hypot(end[0] - KT_LINE_LAND.x, end[2] - KT_LINE_LAND.z) < 1e-9, 'the line ends over it');
+});

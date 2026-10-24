@@ -29,7 +29,7 @@ import { t } from '../../systems/textManager.js';
 import { KT_WORDS, KT_REFUSE_WORDS, ketchRefusal, ketchSkyPhase, ketchWhenLine } from '../../systems/ketch/ketchWords.js';
 import {
   KT_CRADLES, KT_BRIDGE_CRADLES, KT_SOCKETS, KT_RESONATORS, KT_HOLD, KT_BRIDGE, KT_LINE, KT_MAIN_TOP, KT_ANCHOR_LIFT, KT_STERN_LIFT, KT_VAULT,
-  KT_GANGWAY, KT_REACH, deckToDungeon, dungeonToDeck, deckZoneAt,
+  KT_REACH, KT_LINE_LAND, deckToDungeon, dungeonToDeck, deckZoneAt,
 } from '../../net/ketch/ketchDeck.js';
 import { KT_BRIDGE_CRADLE0, KT_RESONATOR0, KT_CARRY_PACE } from '../../net/ketch/ketchBrain.js';
 import { createKetchLink } from '../../net/ketch/ketchLink.js';
@@ -54,6 +54,7 @@ import { longitudeLatitudeToMapPixel } from '../../formats/mapsFile.js';
 import { spawnedLocationCentreLocal } from '../../world/spawnedDungeons.js';
 import { ARENA_REGION, ARENA_LOCATION } from '../../world/arena/arenaCity.js';   // Daggerfall's own row (the arena's city)
 import { registerFootSpeedMod } from '../../player/motor.js';
+import { tooFarAwayText } from '../../player/activate.js';
 import { ketchHudModel, wardenBarModel, drawKetchHud } from '../../ui/ketch/ketchHud.js';
 import { drawGateBossBar } from '../../ui/gate/gateBossBar.js';
 import { KT_RING_R } from '../../ui/ketch/ketchMapMark.js';
@@ -101,6 +102,40 @@ export const ketchShipKept = (w, mine, at) => (w?.k === 'st' && mine && at && w.
 /** THE SHIP I RIDE UP TO: the one I was taken into this voyage (`kept`), else my party leader's, else my own - `{owner}`
  *  kept, else `{captain}` to digest. */
 export const ketchShipChoice = (n, mine, leader, kept) => (kept && kept.n === n && kept.a === mine && typeof kept.o === 'string' && kept.o ? { owner: kept.o } : { captain: leader ?? mine });
+/** THE PRESS'S REACH (AUDIT KETCH L3-5 - a press was let through from further than the room takes it, and the room said
+ *  nothing): a cell's press goes only from where the room takes it - my feet within KT_PRESS_REACH of its spot, the room's
+ *  own KT_REACH + 0.6 (net/ketch/ketchBrain.js voyageWord) less a step for the pose it last heard. */
+export const KT_PRESS_REACH = KT_REACH + 0.4;
+/** A press's spot on the deck ([x, z]) - a cradle's, a lying cell's (in `cl`), a socket's, a resonator's - or null. */
+export function ketchPressSpot(key, cl) {
+  const k = String(key), n = Number(k.split(':')[2]);
+  if (k.startsWith('kt:cr:')) return KT_CRADLES[n] ?? null;
+  if (k.startsWith('kt:bc:')) return KT_BRIDGE_CRADLES[n] ?? null;
+  if (k.startsWith('kt:sk:')) return KT_SOCKETS[n] ?? null;
+  if (k.startsWith('kt:rs:')) return KT_RESONATORS[n] ?? null;
+  if (k.startsWith('kt:lo:')) { const l = (cl?.lo ?? []).find((q) => q[0] === n); return l ? [l[1], l[3]] : null; }
+  return null;
+}
+/** Is a press from `feet` (the deck's frame) further than the room takes it? */
+export const ketchPressFar = (key, cl, feet) => { const s = ketchPressSpot(key, cl); return !!s && !!feet && Math.hypot(feet[0] - s[0], feet[2] - s[1]) > KT_PRESS_REACH; };
+/**
+ * THE HANDS FULL, a step a frame: a carrier's readied weapon put up (`sheathe`), said once (`handsFull`); readied again
+ * after that, the cell let go - said (`letGo`) only when the word left (AUDIT KETCH L3-6: said when the drop never went,
+ * the cell still in the room's hands), else the weapon put up again and the drop asked next frame. Pure.
+ * @param {{ carrying: boolean, sheathed: (boolean|undefined), forced: boolean, letGoAt: number }} st @param {number} t
+ * @param {() => boolean} sendDrop @returns {{ forced: boolean, letGoAt?: number, sheathe?: boolean, say?: ('handsFull'|'letGo'|null) }}
+ */
+export function ketchCarryStep(st, t, sendDrop) {
+  if (!st.carrying) return { forced: false };
+  if (t - st.letGoAt < KT_LET_GO_MS) return { forced: st.forced };   // the hands given back while the room hears the cell let go
+  if (st.forced && st.sheathed === false) return sendDrop() ? { forced: false, letGoAt: t, say: 'letGo' } : { forced: true, sheathe: true };
+  if (!st.sheathed) return { forced: true, sheathe: true, say: st.forced ? null : 'handsFull' };
+  return { forced: true };
+}
+/** A SHIP NEVER HEARD (AUDIT KETCH L3-11 - a busy door closes its socket to be tried again, not for good, and left me on
+ *  an empty deck with nothing said): no word of her (`V`, the link's state) KT_DOOR_MS after the step aboard - walked
+ *  down, the door's busy word said. */
+export const ketchShipUnheard = (V, sinceMs) => !(V?.n >= 0) && sinceMs > KT_DOOR_MS;
 const NONE = Object.freeze([]);
 const BOX = 0.55;
 /** Daggerfall's map pixel (formats/mapsFile.js longitudeLatitudeToMapPixel of its own row - pinned). */
@@ -233,12 +268,12 @@ export function createKetchClient(deps) {
   const weapon = () => modes()?.dungeonCtx?.weaponRig?.()?.playerWeapon ?? null;
   function struck() { if (link.carrying()) online()?.sendKetch?.('hurt'); }
   function carryFrame(t) {
-    const carrying = onShip() && link.carrying(), pw = weapon();
-    if (!carrying || !pw) { forced = false; return; }
-    if (t - letGoAt < KT_LET_GO_MS) return;   // the hands given back while the room hears the cell let go
-    if (forced && pw.sheathed === false) { online()?.sendKetch?.('drop'); letGoAt = t; forced = false; mid(KT_CLIENT_TEXT.letGo); return; }
-    if (!pw.sheathed) { pw.sheathed = true; if (!forced) mid(KT_CLIENT_TEXT.handsFull); }
-    forced = true;
+    const pw = weapon();
+    const s = ketchCarryStep({ carrying: onShip() && link.carrying() && !!pw, sheathed: pw?.sheathed, forced, letGoAt }, t, () => !!online()?.sendKetch?.('drop'));
+    forced = s.forced;
+    if (s.letGoAt != null) letGoAt = s.letGoAt;
+    if (s.sheathe && pw) pw.sheathed = true;
+    if (s.say) mid(KT_CLIENT_TEXT[s.say]);
   }
   registerFootSpeedMod('kt-carry', () => (onShip() && link.carrying() ? KT_CARRY_PACE : 1));
   // ── the bosun's line ──
@@ -247,8 +282,8 @@ export function createKetchClient(deps) {
     if (!ride) return;
     if (!onShip()) { ride = null; return; }
     const u = Math.min(1, (performance.now() - ride.t0) / ride.ms), p = bosunLineAt(u);
-    const at = u >= 1 ? deckToDungeon(KT_GANGWAY.ax, 0.1, KT_GANGWAY.az + 0.6) : deckToDungeon(p[0], p[1] - 1.9, p[2]);
-    modes()?.ktPlace?.(at, u >= 1 ? Math.PI : null);
+    const at = u >= 1 ? deckToDungeon(KT_LINE_LAND.x, 0.1, KT_LINE_LAND.z) : deckToDungeon(p[0], p[1] - 1.9, p[2]);
+    modes()?.ktPlace?.(at, u >= 1 ? KT_LINE_LAND.yaw : null);   // past the gust, facing the bridge (AUDIT KETCH L3-7, L4-6)
     if (u >= 1) ride = null;
   }
   function takeLine() {
@@ -304,6 +339,7 @@ export function createKetchClient(deps) {
   function press(key) {
     const k = String(key), o = online(), n = Number(k.split(':')[2]);
     if (!onShip() || !(entity.health > 0)) return false;
+    if (ketchPressFar(k, link.state().cl, feetDeck())) { mid(tooFarAwayText()); return true; }
     if (k.startsWith('kt:cr:')) return !!o?.sendKetch?.('pick', { c: n });
     if (k.startsWith('kt:bc:')) return !!o?.sendKetch?.('pick', { c: KT_BRIDGE_CRADLE0 + n });
     if (k.startsWith('kt:lo:')) return !!o?.sendKetch?.('pick', { l: n });
@@ -323,6 +359,7 @@ export function createKetchClient(deps) {
       if (o.error === KT_TEXT.refuse.crew) keepShip(null);   // that ship's crew no longer mine: my party's next
       leave(o.error ? ketchRefusal(o.error) : KT_CLIENT_TEXT.away); return;
     }
+    if (ketchShipUnheard(V, Date.now() - boardedAt)) { leave(KT_REFUSE_WORDS.busy); return; }
     const sh = ship();
     if (sh && t >= ketchVoyageOf(sh.n).endAt) { leave(KT_CLIENT_TEXT.away); return; }
     // my `in` to the bridge's fight, my body's word
@@ -336,7 +373,7 @@ export function createKetchClient(deps) {
     const hidden = !!deps.hudHidden?.();
     drawKetchHud(ketchHudModel(V, t, { carrying: link.carrying() }), { hidden });
     hudUp = true;
-    const bar = V.ws && (zone === 'bridge' || zone === 'gangway' || zone === 'cabin') ? wardenBarModel(V.ws, t) : null;
+    const bar = V.ws && (zone === 'bridge' || zone === 'gangway' || zone === 'cabin') ? wardenBarModel(V.ws, t, ketchVoyageOf(V.n).endAt) : null;
     if (bar || barUp) { drawGateBossBar(bar, { hidden }); barUp = !!bar; }
   }
   function offShip() {

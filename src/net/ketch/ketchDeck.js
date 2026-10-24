@@ -124,6 +124,15 @@ export const KT_GANGWAY = (() => {
   const bx = ax + (dx / d) * (d - KT_BRIDGE.r + 1.2), bz = az + (dz / d) * (d - KT_BRIDGE.r + 1.2);
   return Object.freeze({ ax, az: az - 1.2, bx, bz, w: 3, y: 0 });
 })();
+/** WHERE THE BOSUN'S LINE SETS ITS RIDER DOWN (AUDIT KETCH L3-7, L4-6 - it set them at the gangway's open head, facing the
+ *  drop behind them, inside the Rotten Rigging's gust, which blows to the course's end): KT_LINE_LAND_M along the gangway
+ *  from its head - past the gust (world/superDungeon/sdSteps.js inBreath, z < KT_COURSE.end) - facing along it to the
+ *  bridge (`yaw`, the motor's own: forward [sin, cos]). */
+export const KT_LINE_LAND_M = 2.5;
+export const KT_LINE_LAND = (() => {
+  const G = KT_GANGWAY, dx = G.bx - G.ax, dz = G.bz - G.az, d = Math.hypot(dx, dz);
+  return Object.freeze({ x: G.ax + (dx / d) * KT_LINE_LAND_M, z: G.az + (dz / d) * KT_LINE_LAND_M, yaw: Math.atan2(dx, dz) });
+})();
 /** The helm (the Warden's home, facing the way in - -z), and the console it keeps (a block the bodies walk round). */
 export const KT_HELM = Object.freeze({ x: 0, z: 214, yaw: Math.PI });
 export const KT_CONSOLE = Object.freeze({ x0: -2, x1: 2, z0: 217, z1: 219.5, h: 1.6 });

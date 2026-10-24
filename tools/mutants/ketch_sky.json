@@ -74,8 +74,8 @@
   {
     "name": "KTY-a-ride-at-once",
     "file": "src/scenes/ketch/ketchSky.js",
-    "old": "if (t - standAt >= KT_BOARD_HOLD_MS) { standAt = -1; onBoard(); }",
-    "new": "if (t - standAt >= 0) { standAt = -1; onBoard(); }",
+    "old": "if (t - standAt >= KT_BOARD_HOLD_MS) { standAt = -1; needOut = true; onBoard(); }",
+    "new": "if (t - standAt >= 0) { standAt = -1; needOut = true; onBoard(); }",
     "tests": [
       "test/scenes/ketch_sky.test.js"
     ]
@@ -94,6 +94,15 @@
     "file": "src/scenes/ketch/ketchSky.js",
     "old": "      if (inLift && !needOut && mayBoard()) {",
     "new": "      if (inLift && !needOut) {",
+    "tests": [
+      "test/scenes/ketch_sky.test.js"
+    ]
+  },
+  {
+    "name": "KTY-a-refused-ride-counted-again",
+    "file": "src/scenes/ketch/ketchSky.js",
+    "old": "{ standAt = -1; needOut = true; onBoard(); }",
+    "new": "{ standAt = -1; onBoard(); }",
     "tests": [
       "test/scenes/ketch_sky.test.js"
     ]

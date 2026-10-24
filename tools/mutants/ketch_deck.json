@@ -124,5 +124,23 @@
     "tests": [
       "test/net/ketch/ketch_deck.test.js"
     ]
+  },
+  {
+    "name": "KTD-set-down-in-the-gust",
+    "file": "src/net/ketch/ketchDeck.js",
+    "old": "export const KT_LINE_LAND_M = 2.5;",
+    "new": "export const KT_LINE_LAND_M = 0.6;",
+    "tests": [
+      "test/net/ketch/ketch_deck.test.js"
+    ]
+  },
+  {
+    "name": "KTD-facing-the-bow",
+    "file": "src/net/ketch/ketchDeck.js",
+    "old": "yaw: Math.atan2(dx, dz) });",
+    "new": "yaw: Math.PI });",
+    "tests": [
+      "test/net/ketch/ketch_deck.test.js"
+    ]
   }
 ]

@@ -61,7 +61,8 @@ export const KT_LINK_TEXT = Object.freeze({
   banked: (who, k, n) => t('ketch.link.banked', '{who} sets a cell in the engine ({k} of {n}).', { who: someone(who), k, n }),
   dropped: (who, why) => (why === 'struck' ? t('ketch.link.dropped.struck', '{who} is struck and drops their aether cell.', { who: someone(who) })
     : why === 'fell' ? t('ketch.link.dropped.fell', '{who} falls and drops their aether cell.', { who: someone(who) })
-      : t('ketch.link.dropped.let', '{who} lets go of their aether cell.', { who: someone(who) })),
+      : why === 'left' ? t('ketch.link.dropped.left', '{who} carries their aether cell off its deck, and it is lost.', { who: someone(who) })   // AUDIT KETCH L3-14: never "lets go"
+        : t('ketch.link.dropped.let', '{who} lets go of their aether cell.', { who: someone(who) })),
   bridge: (by) => t('ketch.link.bridge', '{who} reaches the bridge. {open}', { who: someone(by), open: KT_WORDS.bridgeOpen }),
   phase: (n) => t('ketch.link.phase', '{phase}!', { phase: ketchPhaseName(n) }),
   get discord() { return t('ketch.link.discord', 'The Warden puts the ship out of tune! Carry cells from the bridge\'s cradles to the four resonators.'); },
@@ -185,7 +186,7 @@ export function createKetchLink({ now, say = () => {}, me = () => null }) {
         else if (w.sg === KT_STAGE.bridge) once(`sg${state.n}.4`, KT_LINK_TEXT.bridge(w.by));
       } else if (w.k === 'cl' && state.sg === KT_STAGE.engine && !was.cl?.nd && w.nd) once(`eng${state.n}`, KT_LINK_TEXT.engine(w.nd));
       else if (w.k === 'wk' && fresh(w.at)) once(`wk${state.n}`, KT_LINK_TEXT.woke);
-      else if (w.k === 'bank' && fresh(w.at)) { if (state.sg === KT_STAGE.engine) say(KT_LINK_TEXT.banked(w.n, state.cl?.bk ?? 0, state.cl?.nd ?? 0)); }
+      else if (w.k === 'bank' && fresh(w.at)) { if (state.sg === KT_STAGE.engine) say(KT_LINK_TEXT.banked(w.n, Math.min(state.cl?.nd ?? 0, (state.cl?.bk ?? 0) + 1), state.cl?.nd ?? 0)); }   // the room says the cell before the cells (ketchBrain.js voyageWord): this one counted (AUDIT KETCH L3-3)
       else if (w.k === 'drop' && fresh(w.at) && w.why !== 'lost') say(KT_LINK_TEXT.dropped(w.n, w.why));
       else if (w.k === 'ph' && fresh(w.at)) { say(KT_LINK_TEXT.phase(w.n)); if (w.n === 2) say(KT_LINK_TEXT.discord); if (w.n === 3) say(KT_LINK_TEXT.lastNote); }
       else if (w.k === 'rs' && was.ws?.rs && fresh(w.at)) { const up = w.rs.filter((v, k) => v === 1 && was.ws.rs[k] === 0).length; if (up > 0) say(KT_LINK_TEXT.retuned(w.rs.filter((v) => v === 0).length)); }

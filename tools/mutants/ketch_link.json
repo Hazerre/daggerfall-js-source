@@ -124,5 +124,14 @@
     "tests": [
       "test/net/ketch/ketch_link.test.js"
     ]
+  },
+  {
+    "name": "KTK-the-cell-counted-one-behind",
+    "file": "src/net/ketch/ketchLink.js",
+    "old": "Math.min(state.cl?.nd ?? 0, (state.cl?.bk ?? 0) + 1)",
+    "new": "(state.cl?.bk ?? 0)",
+    "tests": [
+      "test/net/ketch/ketch_link.test.js"
+    ]
   }
 ]

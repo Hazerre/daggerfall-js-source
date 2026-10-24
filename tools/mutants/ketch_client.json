@@ -70,5 +70,32 @@
     "tests": [
       "test/systems/ketch/ketch_spoils.test.js"
     ]
+  },
+  {
+    "name": "KTC-the-reach-the-boxs",
+    "file": "src/scenes/ketch/ketchClient.js",
+    "old": "export const KT_PRESS_REACH = KT_REACH + 0.4;",
+    "new": "export const KT_PRESS_REACH = KT_REACH + 0.4 + 0.55 * Math.SQRT2;",
+    "tests": [
+      "test/scenes/ketch_client.test.js"
+    ]
+  },
+  {
+    "name": "KTC-let-go-said-whether-it-went",
+    "file": "src/scenes/ketch/ketchClient.js",
+    "old": "return sendDrop() ? { forced: false, letGoAt: t, say: 'letGo' } : { forced: true, sheathe: true };",
+    "new": "return (sendDrop(), { forced: false, letGoAt: t, say: 'letGo' });",
+    "tests": [
+      "test/scenes/ketch_client.test.js"
+    ]
+  },
+  {
+    "name": "KTC-an-empty-deck-kept",
+    "file": "src/scenes/ketch/ketchClient.js",
+    "old": "export const ketchShipUnheard = (V, sinceMs) => !(V?.n >= 0) && sinceMs > KT_DOOR_MS;",
+    "new": "export const ketchShipUnheard = (V, sinceMs) => !(V?.n >= 0) && sinceMs > Infinity;",
+    "tests": [
+      "test/scenes/ketch_client.test.js"
+    ]
   }
 ]

@@ -61,5 +61,50 @@
     "tests": [
       "test/world/ketch_model.test.js"
     ]
+  },
+  {
+    "name": "KTM-the-holds-gate-open-on-a-dead-lift",
+    "file": "src/scenes/ketch/ketchDeckHost.js",
+    "old": "({ hold: !!runs && cageY <= KT_LIFT.y0 + 0.05,",
+    "new": "({ hold: cageY <= KT_LIFT.y0 + 0.05,",
+    "tests": [
+      "test/world/ketch_model.test.js"
+    ]
+  },
+  {
+    "name": "KTM-a-lost-cell-said-let-go",
+    "file": "src/net/ketch/ketchLink.js",
+    "old": "      : why === 'left' ? t('ketch.link.dropped.left',",
+    "new": "      : why === 'never' ? t('ketch.link.dropped.left',",
+    "tests": [
+      "test/world/ketch_model.test.js"
+    ]
+  },
+  {
+    "name": "KTM-a-part-that-would-not-build-left-null",
+    "file": "src/scenes/ketch/ketchDeckHost.js",
+    "old": "const draw = (gpu, o = {}) => { if (!draws) return null;",
+    "new": "const draw = (gpu, o = {}) => { if (!draws || !gpu) return null;",
+    "tests": [
+      "test/scenes/ketch_deck_host.test.js"
+    ]
+  },
+  {
+    "name": "KTM-the-lamps-unsorted",
+    "file": "src/scenes/ketch/ketchDeckHost.js",
+    "old": "while (j >= 0 && _lights[j]._near > l._near) {",
+    "new": "while (false && _lights[j]._near > l._near) {",
+    "tests": [
+      "test/scenes/ketch_deck_host.test.js"
+    ]
+  },
+  {
+    "name": "KTM-the-labs-parts-left-out",
+    "file": "src/scenes/ketch/ketchDeckHost.js",
+    "old": "      if (parts) {\n        add(parts.cage, T.cage);",
+    "new": "      if (false) {\n        add(parts.cage, T.cage);",
+    "tests": [
+      "test/scenes/ketch_deck_host.test.js"
+    ]
   }
 ]

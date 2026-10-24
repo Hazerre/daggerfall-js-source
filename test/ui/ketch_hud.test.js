@@ -65,11 +65,12 @@ test('KETCH THE TRACKER\'S FOOT: the cell in my hands and how to let it go; the 
   assert.equal(m.carry, KT_HUD_TEXT.carry);
   assert.equal(ketchHudModel(s, v.at + 1).carry, '');
   assert.equal(m.crew, KT_HUD_TEXT.crew(4));
+  assert.equal(KT_HUD_TEXT.crew(4), 'Crew: 4 of 8', 'the places taken, never "aboard" (AUDIT KETCH L3-8)');
   assert.match(m.clock, /^She weighs anchor in /);
   assert.equal(m.low, false);
   assert.equal(ketchHudModel(s, v.departAt - KT_HUD_LOW_MS + 1).low, true);
   const late = ketchHudModel(s, v.endAt - KT_HUD_PULSE_MS + 1);
-  assert.match(late.clock, /^She turns west in /);
+  assert.match(late.clock, /^She leaves the sky in /, 'the voyage\'s end in its own words (AUDIT KETCH L3-9)');
   assert.deepEqual([late.low, late.pulse], [true, true]);
 });
 
@@ -119,4 +120,23 @@ test('KETCH THE TRACKER\'S NODE: made on the first word, updated never rebuilt, 
   drawKetchHud(ketchHudModel(s.s, s.now), { doc });
   assert.equal(node.style.display, '');
   destroyKetchHud();
+});
+
+test('KETCH ONE END ON THE BAR: the fight\'s own west turning when it comes first, the voyage\'s end in its own words when that does - never two clocks named alike (AUDIT KETCH L3-9; mutants: the voyage\'s end unread)', () => {
+  const ws = { fi: 1, m: 100, h: 50, op: 0, ph: 1, ends: 10 * 60_000, n: 2, bl: [] };
+  const fight = wardenBarModel(ws, 7 * 60_000, 60 * 60_000);
+  assert.match(fight.wrath, /^The Ketch turns west in /);
+  const voyage = wardenBarModel(ws, 6 * 60_000, 8 * 60_000);
+  assert.match(voyage.wrath, /^She leaves the sky in /);
+  assert.equal(voyage.wrathNear, false);
+  assert.equal(wardenBarModel(ws, 7 * 60_000 + 59_500, 8 * 60_000).wrathNear, true, 'its last minute');
+  assert.equal(wardenBarModel(ws, 0, Infinity).wrath, null, 'far off: no clock');
+});
+
+test('KETCH THE HELD MAP\'S CARD COUNTS DOWN: the mark\'s key carries its card\'s words, so the held map repaints as her when-line moves - the same ring, the same label, a minute on (AUDIT KETCH L3-10; mutants: the card left out of the key)', async () => {
+  const { readGateMark, gateMarkKey } = await import('../../src/ui/gate/gateMapMark.js');
+  const mark = (line) => readGateMark(() => ({ day: 1, cx: 10.5, cy: 10.5, r: 1.6, label: 'The Sky-Ketch Mzunthar', phase: 'docked', tip: { title: 'The Sky-Ketch Mzunthar', lines: ['Keeping station over the fields', line] } }), { width: 100, height: 100 });
+  const a = mark('over Daggerfall, 5h 2m left'), b = mark('over Daggerfall, 5h 1m left');
+  assert.notEqual(gateMarkKey(a), gateMarkKey(b));
+  assert.equal(gateMarkKey(a), gateMarkKey(mark('over Daggerfall, 5h 2m left')), 'and nothing new, no repaint');
 });

@@ -24,7 +24,7 @@
 // Not a DFU member. Ledger A (KETCH).
 import {
   KT_ANCHOR, KT_WAIST, KT_GALLERY, KT_LANDING, KT_HOLD, KT_HATCH, KT_HOLD_HATCH, KT_QUARTER_WALL, KT_ANCHOR_LIFT, KT_LIFT, KT_MAIN_TOP, KT_YARD,
-  KT_LINE, KT_COURSE, KT_COURSE_SPEC, KT_GANGWAY, KT_BRIDGE, KT_HELM, KT_CONSOLE, KT_RESONATORS, KT_BRIDGE_CRADLES, KT_SECTIONS, sectionAt, KT_CABIN,
+  KT_LINE, KT_LINE_LAND, KT_COURSE, KT_COURSE_SPEC, KT_GANGWAY, KT_BRIDGE, KT_HELM, KT_CONSOLE, KT_RESONATORS, KT_BRIDGE_CRADLES, KT_SECTIONS, sectionAt, KT_CABIN,
   KT_CABIN_DOOR, KT_VAULT, KT_STERN_LIFT, KT_WAIST_COVER, KT_WARDEN_POSTS, KT_ENGINE, KT_SOCKETS, KT_CRADLES, KT_VENTS, KT_HAMMER, KT_STEAM,
   KT_ARCS, KT_DECK_H, KT_MAIN_MAST, deckToDungeon,
 } from '../../net/ketch/ketchDeck.js';
@@ -679,7 +679,7 @@ export function buildKetchParts() {
 }
 /** The bosun's line's path at `t` (0 its post, 1 the gangway's head): a deck point - the rider's own, as the part sags. */
 export function bosunLineAt(t) {
-  const a = [KT_LINE.x, KT_MAIN_TOP.y + 3.1, KT_LINE.z], b = [KT_GANGWAY.ax, 3, KT_GANGWAY.az + 1], k = Math.max(0, Math.min(1, t));
+  const a = [KT_LINE.x, KT_MAIN_TOP.y + 3.1, KT_LINE.z], b = [KT_LINE_LAND.x, 3, KT_LINE_LAND.z], k = Math.max(0, Math.min(1, t));   // to where it sets its rider down (AUDIT KETCH L4-6)
   return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k - 6 * Math.sin(Math.PI * k), a[2] + (b[2] - a[2]) * k];
 }
 

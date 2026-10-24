@@ -105,3 +105,15 @@ test('KETCH A PLACE THE PORT MADE: her made location is no dungeon to tier - no 
   assert.equal(madeDungeon(loc), true);
   assert.equal(dungeonTierLabel(loc), null);
 });
+
+test('KETCH THE SHAFT\'S GATES: the hold\'s open with the cage at its foot and the top\'s at the top while the lift runs - neither while it is dead, so no carrier steps off the hold\'s floor onto a dead cage; a cell carried off its deck is said lost, never let go (AUDIT KETCH L3-14; mutants: the hold\'s gate open on a dead lift; a lost cell said let go)', async () => {
+  const { ketchShaftGates } = await import('../../src/scenes/ketch/ketchDeckHost.js');
+  const { KT_LIFT } = await import('../../src/net/ketch/ketchDeck.js');
+  const { KT_LINK_TEXT } = await import('../../src/net/ketch/ketchLink.js');
+  assert.deepEqual(ketchShaftGates(KT_LIFT.y0, false), { hold: false, top: false }, 'dead at its foot: shut');
+  assert.deepEqual(ketchShaftGates(KT_LIFT.y0, true), { hold: true, top: false });
+  assert.deepEqual(ketchShaftGates(KT_LIFT.y1, true), { hold: false, top: true });
+  assert.deepEqual(ketchShaftGates((KT_LIFT.y0 + KT_LIFT.y1) / 2, true), { hold: false, top: false }, 'between: both shut');
+  assert.notEqual(KT_LINK_TEXT.dropped('Ann', 'left'), KT_LINK_TEXT.dropped('Ann', 'let'));
+  assert.match(KT_LINK_TEXT.dropped('Ann', 'left'), /lost/);
+});

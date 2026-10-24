@@ -7,7 +7,7 @@
 //     and what it asks - the Watch's wave and the constructs still standing; the Hammer Wardens; the engine's cells set of
 //     those it needs, the cradles charged, the cells lying loose; the Sailwalk and the bosun's line; the Warden's phase
 //     and what it asks (the false resonators, the forks); the cabin open - and the cell in MY hands and how to let it go,
-//     the crew aboard of KT_CREW_MAX, and the clock (the Ketch weighing anchor; the crews' last minutes).
+//     the places this ship's crew has taken of KT_CREW_MAX (AUDIT KETCH L3-8: the door's count, said as aboard), and the clock (the Ketch weighing anchor; the crews' last minutes).
 //   THE TONAL WARDEN'S BAR (wardenBarModel - the gate's boss bar, ui/gate/gateBossBar.js drawGateBossBar, in the Hour's
 //     brass): its name over its phase, its health cut at its two turns, the ward while the Discord holds it, the blow it
 //     winds up named in its colour with a line filling to its landing (the Keel-Song with its forks still standing), the
@@ -50,9 +50,9 @@ export const KT_HUD_TEXT = Object.freeze({
   get vault() { return t('ketch.hud.vault', 'The Warden is felled. The Ketchmaster\'s cabin is open.'); },
   get vaultSub() { return t('ketch.hud.vaultSub', 'Your share waits at the hold. The stern lift takes you down.'); },
   get carry() { return t('ketch.hud.carry', 'You carry an aether cell. Ready your weapon to let it go.'); },
-  crew: (n) => t('ketch.hud.crew', 'Crew aboard: {n} of {max}', { n, max: KT_CREW_MAX }),
+  crew: (n) => t('ketch.hud.crew', 'Crew: {n} of {max}', { n, max: KT_CREW_MAX }),
   anchor: (w) => t('ketch.hud.anchor', 'She weighs anchor in {w}', { w }),
-  last: (w) => t('ketch.hud.last', 'She turns west in {w}', { w }),
+  last: (w) => t('ketch.hud.last', 'She leaves the sky in {w}', { w }),   // the voyage's end - never the fight's "turns west" (AUDIT KETCH L3-9)
 });
 /** The tracker's clock burns red under this (ms), and pulses under this. */
 export const KT_HUD_LOW_MS = 5 * 60_000;
@@ -123,7 +123,7 @@ export const KT_ENDS_NEAR_MS = 60_000;
  * THE WARDEN'S BAR'S MODEL (the gate bar's - ui/superDungeon/sdRemnantBar.js's shape) for the fight `ws` (the link's state's)
  * at `now`, or null - no fight, or one lost. Pure.
  */
-export function wardenBarModel(ws, now) {
+export function wardenBarModel(ws, now, endAt = Infinity) {
   if (!ws || !(ws.fi > 0) || ws.lost) return null;
   const frac = ws.fell ? 0 : ws.m > 0 ? Math.max(0, Math.min(1, ws.h / ws.m)) : 1;
   const asleep = now < ws.op, stunned = !ws.fell && now < (ws.su ?? 0), warded = !ws.fell && (asleep || !!ws.ward || now < (ws.ou ?? 0));
@@ -140,7 +140,10 @@ export function wardenBarModel(ws, now) {
     else if (stunned) callout = { text: KT_BAR_TEXT.stunned(Math.ceil((ws.su - now) / 1000)), color: KT_BAR_CSS.stun, t: null, dagon: false, move: false };
     else if (B) callout = { text: ketchBlowName(B.key), color: KT_BAR_CSS[B.key] ?? KT_BAR_CSS.ring0, t: 1, dagon: B.sh === 'all', move: false };
   }
-  const toEnd = Number.isFinite(ws.ends) && ws.ends > 0 ? ws.ends - now : Infinity;
+  // the fight's own end (the Ketch turning west at its helm), or the voyage's (her crews' last minutes, `endAt`) when that
+  // comes first - one clock, its own words (AUDIT KETCH L3-9: two clocks, both "turns west", counted to two moments)
+  const toFight = Number.isFinite(ws.ends) && ws.ends > 0 ? ws.ends - now : Infinity, toGone = Number.isFinite(endAt) ? endAt - now : Infinity;
+  const toEnd = Math.min(toFight, toGone);
   const since = ws.fell ? Math.max(0, now - ws.fell.at) : 0;
   const alpha = ws.fell ? Math.max(0, Math.min(1, 1 - (since - FELL_HOLD_MS) / FELL_FADE_MS)) : 1;
   const forkLive = !ws.fell && ws.fk && now < ws.fk.at - KW_FORKS_CLOSE_MS;
@@ -149,7 +152,7 @@ export function wardenBarModel(ws, now) {
     name: KT_BAR_TEXT.name, title: ketchPhaseName(ws.ph), epithet: '', epithetColor: null, marksView: null,
     frac, marks: [...KW_PHASE_AT], phase: ws.ph, spent: KW_PHASE_AT.map((_, i) => ws.ph > i + 1),
     warded, wardedText: ws.ward ? KT_BAR_TEXT.warded : undefined, fallen: !!ws.fell, fallenText: KT_BAR_TEXT.felled, callout,
-    wrath: ws.fell ? null : toEnd <= KT_ENDS_WARN_MS ? KT_BAR_TEXT.endsIn(countdownText(Math.max(0, toEnd))) : null,
+    wrath: ws.fell ? null : toEnd <= KT_ENDS_WARN_MS ? (toGone < toFight ? KT_HUD_TEXT.last(countdownText(Math.max(0, toGone))) : KT_BAR_TEXT.endsIn(countdownText(Math.max(0, toFight)))) : null,
     wrathNear: !ws.fell && (!!ws.ended || toEnd <= KT_ENDS_NEAR_MS),
     fighters: ws.n | 0, fightersLine: KT_BAR_TEXT.fighters(ws.n | 0),
     host: ws.fell ? null : ws.ph === 2 && ws.ward ? KT_BAR_TEXT.resonators((ws.rs ?? []).filter((v) => v === 1).length) : forkLive ? KT_HUD_TEXT.forks(ws.fk.c.filter((q) => q[2] > 0).length) : null,

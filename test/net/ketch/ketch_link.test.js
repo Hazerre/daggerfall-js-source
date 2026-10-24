@@ -50,6 +50,7 @@ test('KETCH THE TURNS SAID ONCE EACH, as they happen: the three waves, the hatch
   for (const t of [KT_WORDS.hatchOpen, KT_LINK_TEXT.wardens, KT_LINK_TEXT.woke, KT_WORDS.holdOpen, KT_LINK_TEXT.engine(whole.V.cells.need), KT_WORDS.engineFed, KT_LINK_TEXT.bridge(whole.V.bridge.by), KT_LINK_TEXT.discord, KT_LINK_TEXT.lastNote])
     assert.equal(count(t), 1, t);
   assert.equal(said.filter((x) => /sets a cell in the engine/.test(x)).length, whole.V.cells.need, 'each cell set');
+  assert.deepEqual(said.filter((x) => /sets a cell in the engine/.test(x)).map((x) => Number(/\((\d+) of (\d+)\)/.exec(x)[1])), Array.from({ length: whole.V.cells.need }, (_, i) => i + 1), 'counted one to the last (AUDIT KETCH L3-3)');
   assert.ok(said.includes(KT_LINK_TEXT.retuned(0)), 'the last resonator');
   assert.ok(said.includes(KT_LINK_TEXT.song) && said.includes(KT_LINK_TEXT.stunned));
   assert.ok(said.some((x) => /breaks the last fork/.test(x)));

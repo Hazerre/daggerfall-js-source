@@ -102,6 +102,9 @@ test('KETCH THE LIFT\'S RIDE: near it, its word once; a body standing in the low
   assert.ok(k.said.includes(KT_SKY_TEXT.rising(3)) && k.said.includes(KT_SKY_TEXT.rising(1)));
   k.step(250); k.S.frame();
   assert.equal(k.boards(), 1, 'up');
+  const before = k.said.length;
+  for (let t = 0; t < 2 * KT_BOARD_HOLD_MS; t += 250) { k.S.frame(); k.step(250); }
+  assert.deepEqual([k.boards(), k.said.length], [1, before], 'refused, still in the cage: asked once, no count again (AUDIT KETCH L3-2)');
   k.S.hold();
   for (let t = 0; t < 2 * KT_BOARD_HOLD_MS; t += 250) { k.S.frame(); k.step(250); }
   assert.equal(k.boards(), 1, 'set down in it: it must step out first');

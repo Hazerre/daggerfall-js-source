@@ -33,12 +33,11 @@ export function hammerHeadY(ri, li, t) {
  * A steam lane's or an arc's state at shared second `t`: `{ live, warn, k }` - live through its span from each landing,
  * warning through its wind-up before (`k` how far into the wind-up, 0..1). `kind` 'steam' or 'arc', `j` its place. Pure.
  */
-export function hazardState(kind, j, t) {
+export function hazardState(kind, j, t, out = { live: false, warn: false, k: 0 }) {
   const H = kind === 'steam' ? KT_STEAM : KT_ARCS, phase = kind === 'steam' ? (j * H.cycle) / 2 : (j * H.cycle) / 3;
   const u = wrap(t - phase, H.cycle), sp = H.sp / 1000, wu = H.wu / 1000;
-  if (u < sp) return { live: true, warn: false, k: 1 };
-  if (u >= H.cycle - wu) return { live: false, warn: true, k: (u - (H.cycle - wu)) / wu };
-  return { live: false, warn: false, k: 0 };
+  if (u < sp) { out.live = true; out.warn = false; out.k = 1; } else if (u >= H.cycle - wu) { out.live = false; out.warn = true; out.k = (u - (H.cycle - wu)) / wu; } else { out.live = false; out.warn = false; out.k = 0; }
+  return out;   // `out` written in place (a frame's own - AUDIT KETCH L3-16: a new record each hazard each frame)
 }
 
 /** How far a fallen section drops before it is out of sight (m), how fast (m/s^2), and how long its rise back takes (ms). */
@@ -50,14 +49,16 @@ export const KT_SECTION_RISE_MS = 1200;
  * (0 whole, negative falling or rising back), `shake` its shudder through its warning, `hidden` once out of sight.
  * `warnMs` how long its warning runs before its moment. Pure.
  */
-export function sectionPose(k, sec, now, warnMs) {
-  const s = (sec ?? []).find((e) => e[0] === k);
-  if (!s || now >= s[2]) return { solid: true, dy: 0, shake: 0, hidden: false };
+export function sectionPose(k, sec, now, warnMs, out = { solid: true, dy: 0, shake: 0, hidden: false }) {
+  const put = (solid, dy, shake, hidden) => { out.solid = solid; out.dy = dy; out.shake = shake; out.hidden = hidden; return out; };   // `out` written in place (AUDIT KETCH L3-16)
+  let s = null;
+  for (const e of sec ?? []) if (e[0] === k) { s = e; break; }
+  if (!s || now >= s[2]) return put(true, 0, 0, false);
   const at = s[1], back = s[2];
-  if (now < at - warnMs) return { solid: true, dy: 0, shake: 0, hidden: false };
-  if (now < at) return { solid: true, dy: 0, shake: KT_SECTION_DROP.shudder * Math.sin(now / 23) * ((now - (at - warnMs)) / warnMs), hidden: false };
+  if (now < at - warnMs) return put(true, 0, 0, false);
+  if (now < at) return put(true, 0, KT_SECTION_DROP.shudder * Math.sin(now / 23) * ((now - (at - warnMs)) / warnMs), false);
   const D = KT_SECTION_DROP;
-  if (now >= back - KT_SECTION_RISE_MS) { const k2 = (back - now) / KT_SECTION_RISE_MS; return { solid: false, dy: -D.seen * k2 * k2, shake: 0, hidden: false }; }
+  if (now >= back - KT_SECTION_RISE_MS) { const k2 = (back - now) / KT_SECTION_RISE_MS; return put(false, -D.seen * k2 * k2, 0, false); }
   const f = (now - at) / 1000, dy = -0.5 * D.g * f * f;
-  return dy < -D.seen ? { solid: false, dy: -D.seen, shake: 0, hidden: true } : { solid: false, dy, shake: 0, hidden: false };
+  return dy < -D.seen ? put(false, -D.seen, 0, true) : put(false, dy, 0, false);
 }

@@ -155,7 +155,7 @@ export function createKetchSky({ renderer = null, collider = () => null, city = 
         if (standAt < 0) { standAt = t; lastCount = -1; }
         const left = Math.ceil((KT_BOARD_HOLD_MS - (t - standAt)) / 1000);
         if (left > 0 && left !== lastCount) { lastCount = left; say(KT_SKY_TEXT.rising(left)); }
-        if (t - standAt >= KT_BOARD_HOLD_MS) { standAt = -1; onBoard(); }
+        if (t - standAt >= KT_BOARD_HOLD_MS) { standAt = -1; needOut = true; onBoard(); }   // asked once (AUDIT KETCH L3-2: a refusal counted down again forever) - out and back in to ask again
       } else standAt = -1;
       return place;
     },

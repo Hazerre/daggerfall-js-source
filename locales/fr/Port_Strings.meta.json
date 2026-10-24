@@ -13380,8 +13380,8 @@
   "by": "claude-in-session"
  },
  "ketch.hud.crew": {
-  "en": "7ce8ef24c2b4",
-  "tr": "b307d2d1f500",
+  "en": "6052df94666b",
+  "tr": "f73a6ce0581c",
   "by": "claude-in-session"
  },
  "ketch.hud.discord": {
@@ -13405,8 +13405,8 @@
   "by": "claude-in-session"
  },
  "ketch.hud.last": {
-  "en": "3ed808808977",
-  "tr": "e981283b2ef1",
+  "en": "70194ec40682",
+  "tr": "f9dc750b5b9e",
   "by": "claude-in-session"
  },
  "ketch.hud.lastNote": {
@@ -13542,6 +13542,11 @@
  "ketch.link.dropped.fell": {
   "en": "6a005e6a5f3e",
   "tr": "ca67866c1429",
+  "by": "claude-in-session"
+ },
+ "ketch.link.dropped.left": {
+  "en": "423cb2198e41",
+  "tr": "93925e262bd1",
   "by": "claude-in-session"
  },
  "ketch.link.dropped.let": {
