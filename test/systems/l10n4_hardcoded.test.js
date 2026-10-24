@@ -560,7 +560,7 @@ const HARDCODED = {
   'src/systems/weaponSheathing.js': 3,
   'src/systems/weaponSheathingAssets.js': 1,
   'src/systems/wild/wildRemainsWaypoint.js': 1,
-  'src/systems/wild/wildZone.js': 40,
+  'src/systems/wild/wildZone.js': 38,
   'src/systems/windfall.js': 23,
   'src/systems/windfallEffects.js': 7,
   'src/systems/worldTick.js': 4,

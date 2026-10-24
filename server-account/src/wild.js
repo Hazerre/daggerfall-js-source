@@ -7,16 +7,18 @@
 // Now the relay referees the zone (src/net/wild/wildRef.js) and signs a fall (src/net/wild/wildReceipt.js `f1`) naming the fallen,
 // its realm character, its killer and the worn piece the killer picked; and THIS SERVICE TAKES THE DROP OFF THE FALLEN'S
 // JUDGED RECORD against it - the zone's own law (src/systems/wild/wildDropLaw.js takeWildDeath: the bag and the cart but what
-// the fallen keep, half the purse, the killer's one worn piece, fitted to one remains), every piece the ledger bars from
-// leaving kept - and signs what it took for the room: a `remains` order (src/net/identityToken.js), the records' digest
+// the fallen keep, a tenth of the purse - FOE-KEEPS: it was half - the killer's one worn piece, fitted to one remains),
+// every piece the ledger bars from leaving kept - and signs what it took for the room: a `remains` order
+// (src/net/identityToken.js), the records' digest
 // and the killer's piece theirs alone. The room keeps a deposit only on that order.
 //
 // WHO CARRIES THE RECEIPT: the fallen's own tab first, as an act on its record (its `at` - prepareRealmRecord, the
 // client's realmGoldAct taking the same out of its own pack); its killer once WILD_FALL_GRACE_S has gone by, as a
 // SEIZURE (seizeRealmRecord: the record moved where it stands, its lease cleared - a fallen that never says it fell plays
 // a record that moved under it). Once a fall (`wild_falls`, its remains' id): a second asking is answered the first's
-// records with a fresh order. A death to a foe, no receipt: the fallen's own act alone, its remains' id the service's (a
-// digest of the character and the tab's own nonce - asked again it is the same fall, and never a relay's id). A record the
+// records with a fresh order. A death to a foe, no receipt, takes nothing (FOE-KEEPS, 2026-10-24 - the owner: "I dont want
+// people to lose everything they have"): refused, 'foe'; one taken before it is still answered as it was, its remains' id the
+// service's (a digest of the character and the tab's own nonce - never a relay's id). A record the
 // judge holds (lane 1's freeze) still loses its drop, and the room is given none of it.
 //
 // MAC'S DECISION (2026-10-14, "Yes, build it"): THE TWO-PHASE HANDOFF. The fallen loses the worn piece its killer picked
@@ -113,7 +115,7 @@ async function answerOf(/** @type {any} */ ctx, /** @type {CryptoKey} */ signing
  * - the remains' id, the order the room keeps a deposit on (null: nothing for the room), the records taken, the ledger
  * keys the record kept, what the record lost as the fallen's game finds it again - or `{ error }`: 'no-signing-key',
  * 'no-gate-key', 'receipt' (with `why`), 'not-yours', 'no-realm-character', 'grace' (the fallen's own tab has the first
- * WILD_FALL_GRACE_S), 'nonce', 'room', 'not-found' (a take of the packs, asked by a fallen's tab without `packs` 1: a
+ * WILD_FALL_GRACE_S), 'nonce', 'room', 'foe' (FOE-KEEPS: a death to a foe, never taken), 'not-found' (a take of the packs, asked by a fallen's tab without `packs` 1: a
  * game too old to apply it), the record's own words.
  * @param {any} ctx `{ db, bucket, rand, nowS, subtle }` @param {any} player the session's account
  * @param {any} body @param {{ gateKey: CryptoKey|null, signing: CryptoKey|null }} keys @param {boolean} [again] the
@@ -164,6 +166,10 @@ export async function wildFall(ctx, player, body, { gateKey, signing }, again = 
     }
     return answerOf(ctx, signing, { r, fallen, killer: had.killer, records: list(had.items), kept: list(had.kept), burnt: had.burnt === 1, killerFirst: had.wi === 0, wm: had.wm, oi: had.oi, wg: had.wg, tk: read(had.tk, {}), seq, escrow });
   }
+  // FOE-KEEPS (2026-10-24, the owner: "I dont want people to lose everything they have"; asked, "Only PvP deaths drop",
+  // in the mountains and at sea): a death to a foe takes nothing - no receipt, no take. Asked by a tab from before the
+  // word, it is refused and nothing moves; a foe's fall taken before it is answered as it was taken (above).
+  if (body?.receipt === undefined) return { error: 'foe' };
   // the ledger's word on what may leave, before the drop is taken - asked of EVERY piece the death could take (a copy,
   // another's piece, a claim waiting - kept)
   const row = await ctx.db.prepare('SELECT obj, held, judged_seq FROM realm_characters WHERE id = ?1 AND player = ?2 AND dead_at IS NULL').bind(charId, fallen).first();

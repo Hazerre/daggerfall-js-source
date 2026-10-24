@@ -76,8 +76,15 @@ export function takeWildDrop(items, wagon = null) {
   return [...lift(items, true), ...lift(wagon, false)];
 }
 
-/** WILD GOLD: a death in the zone drops this share of the gold carried (no usual death penalty) into the remains. */
-export const WILD_GOLD_LOSS = 0.5;
+/** WILD GOLD: a death at another player's hand in the zone drops this share of the gold carried (no usual death penalty)
+ *  into the remains. FOE-KEEPS (2026-10-24, the owner: "I dont want people to lose everything they have"; asked, "The
+ *  usual tenth"): a tenth, the usual death's own share (deathPenalty.js DEATH_GOLD_FRACTION, pinned equal - this leaf is
+ *  the account Worker's and the penalty's module is not); it was half. A death to a foe drops none: it takes the usual
+ *  penalty, and nothing else (`/v1/wild/fall` refuses a foe's fall - server-account/src/wild.js). */
+export const WILD_GOLD_LOSS = 0.1;
+/** The share as a divisor - `g / 10` is exact for every whole purse, where `g * 0.1` is a hair over a tenth (AUDIT
+ *  DEATH-TENTH's own reason, deathPenalty.js DEATH_GOLD_DIVISOR). */
+export const WILD_GOLD_DIVISOR = 10;
 
 /** A list's gold stack (its `Currency` item) - the cart's, a companion's pack's - or null. */
 const coinIn = (/** @type {any} */ list) => (Array.isArray(list) ? list.find((i) => i?.group === 'Currency') ?? null : null);
@@ -91,13 +98,13 @@ const coinIn = (/** @type {any} */ list) => (Array.isArray(list) ? list.find((i)
 export function takeWildGold(entity, { cart: withCart = true, packs = wildPacksOf(entity) } = {}) {
   let take = 0;
   const have = Math.max(0, Math.floor(entity?.goldPieces ?? 0));
-  const purse = Math.floor(have * WILD_GOLD_LOSS);
+  const purse = Math.floor(have / WILD_GOLD_DIVISOR);
   if (purse >= 1) { entity.goldPieces = have - purse; take += purse; }
   const cart = withCart && Array.isArray(entity?.wagonItems) ? entity.wagonItems.find((i) => i?.group === 'Currency') : null;
   for (const coin of [cart, ...packs.map((p) => coinIn(p.items))]) {
     if (!coin) continue;
     const n = Math.max(0, Math.floor(coin.stackCount ?? 1));
-    const share = Math.floor(n * WILD_GOLD_LOSS);
+    const share = Math.floor(n / WILD_GOLD_DIVISOR);
     if (share >= 1) { coin.stackCount = n - share; take += share; }
   }
   return take >= 1 ? goldStack(take) : null;

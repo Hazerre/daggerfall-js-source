@@ -31155,8 +31155,8 @@
   "by": "claude-in-session"
  },
  "sea.wild.chipTip": {
-  "en": "b40492a06f0d",
-  "tr": "73c7be30161c",
+  "en": "9e14a86d940a",
+  "tr": "27fb045596e3",
   "by": "claude-in-session"
  },
  "sea.wild.crossWarn": {
@@ -31180,8 +31180,8 @@
   "by": "claude-in-session"
  },
  "sea.wild.enter": {
-  "en": "b5f46484e3b0",
-  "tr": "0ee8752f77e9",
+  "en": "f49115e892b2",
+  "tr": "23af8a1c0da7",
   "by": "claude-in-session"
  },
  "sea.wild.leave": {
@@ -33149,6 +33149,11 @@
   "tr": "70495c158c88",
   "by": "claude-in-session"
  },
+ "wild.death.kept": {
+  "en": "fce18dcaa17b",
+  "tr": "e806bf99d987",
+  "by": "claude-in-session"
+ },
  "wild.death.letters": {
   "en": "83c43a6db2b0",
   "tr": "a6bcb8d64910",
@@ -33202,6 +33207,16 @@
  "wild.escrow.heldTakenAnon": {
   "en": "d57b9aca004f",
   "tr": "12e282f0bbf4",
+  "by": "claude-in-session"
+ },
+ "wild.zone.chipTip": {
+  "en": "fda83308207b",
+  "tr": "c7f6cf38fcbb",
+  "by": "claude-in-session"
+ },
+ "wild.zone.enter": {
+  "en": "7211df45b4d5",
+  "tr": "455712bfe00c",
   "by": "claude-in-session"
  },
  "wild.zone.revenantOne": {

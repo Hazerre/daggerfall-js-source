@@ -10034,6 +10034,16 @@
   "tr": "feabdeb7ba29",
   "by": "claude-in-session"
  },
+ "sea.wild.chipTip": {
+  "en": "9e14a86d940a",
+  "tr": "452caa0f2b7f",
+  "by": "claude-in-session"
+ },
+ "sea.wild.enter": {
+  "en": "f49115e892b2",
+  "tr": "34b41b0ddd9f",
+  "by": "claude-in-session"
+ },
  "settings.language.machine": {
   "en": "048283a78ca3",
   "tr": "cf1d6c9dbd53",
@@ -10649,6 +10659,11 @@
   "tr": "c05dea6f6d92",
   "by": "claude-in-session"
  },
+ "wild.death.kept": {
+  "en": "fce18dcaa17b",
+  "tr": "694c25cf00c6",
+  "by": "claude-in-session"
+ },
  "wild.escrow.collectLate": {
   "en": "c88dccb15ebf",
   "tr": "1cd7bd61a15a",
@@ -10697,6 +10712,16 @@
  "wild.escrow.heldTakenAnon": {
   "en": "d57b9aca004f",
   "tr": "a3a61614915d",
+  "by": "claude-in-session"
+ },
+ "wild.zone.chipTip": {
+  "en": "fda83308207b",
+  "tr": "82c1e09a8bff",
+  "by": "claude-in-session"
+ },
+ "wild.zone.enter": {
+  "en": "7211df45b4d5",
+  "tr": "b7a3a7f631a1",
   "by": "claude-in-session"
  }
 }

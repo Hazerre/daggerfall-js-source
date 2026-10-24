@@ -610,7 +610,7 @@ export const TUTORIALS = Object.freeze([
     id: 'wild-zone', group: 'online', title: 'The Open Zone', trigger: 'When you first enter the open zone.',
     body: [
       'In the Wrothgarian Mountains players may fight one another. The monsters there are tougher and the spoils richer.',
-      'If you die there, you lose what is in your bag and cart, and your killer may take one item you were wearing.',
+      'If another player kills you there, you lose what is in your bag and cart, and they may take one item you were wearing.',   // FOE-KEEPS: a foe's kill takes only the usual tenth of your gold
     ],
   }),
   // SEAT-WORDS / STANDING-WORDS (Field-Bugs-2026-10-15g): the guilds online - the Roll's pace and the seats - popped at
