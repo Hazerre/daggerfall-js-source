@@ -90,7 +90,8 @@ export const ketchRoomHolds = (key, now) => { const r = ketchRoomOf(key); return
  * THE ROOM'S DOOR - may account `sub` come aboard ship `key` at `now`, as `right` ('owner', 'party', 'staff' - the
  * instance door's answer, net/instanceRoom.js instanceAdmission) with the crew `crew` (the accounts the room has taken)?
  * Null for yes, else the refusal's word: a crew member already taken comes back while the voyage holds; a newcomer only
- * while the anchor-lift is lowered, never as the ninth, never without a right.
+ * while the anchor-lift is lowered, never as the ninth (staff neither: a hidden spectator watches, taking no place),
+ * never without a right.
  * @param {string} key @param {string} sub @param {string|null} right @param {ReadonlyArray<string>} crew @param {number} now
  * @returns {null | 'closed' | 'gone' | 'crew' | 'full'}
  */
@@ -101,7 +102,7 @@ export function ketchAdmits(key, sub, right, crew, now) {
   if (crew.includes(sub)) return null;
   if (!right) return 'crew';
   if (!ketchBoards(r.n, now)) return 'closed';
-  if (crew.length >= KT_CREW_MAX && right !== 'staff') return 'full';
+  if (crew.length >= KT_CREW_MAX) return 'full';   // staff too (AUDIT KETCH L1-4: a ninth broke every page's `st`) - a full ship is watched hidden (STAFF-PANEL5-HIDDEN, _ktHello)
   return null;
 }
 

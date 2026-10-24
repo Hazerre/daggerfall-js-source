@@ -69,7 +69,7 @@ test('KETCH A CREW\'S SHIP\'S ROOM: `kt:<voyage in eight hex>.<captain\'s digest
   assert.equal(ketchRoomHolds(key, v.endAt), false);
 });
 
-test('KETCH THE ROOM\'S DOOR: a newcomer with a right while she boards, never the ninth (staff aside), never without a right, never while she weighs anchor; a member of the crew comes back while she holds; nobody once she is gone; the crew\'s eight the party\'s own bound (mutants: the ninth let in; a member refused in the last minutes; a newcomer let in while she weighs anchor; no right let in)', () => {
+test('KETCH THE ROOM\'S DOOR: a newcomer with a right while she boards, never the ninth (staff neither), never without a right, never while she weighs anchor; a member of the crew comes back while she holds; nobody once she is gone; the crew\'s eight the party\'s own bound (mutants: the ninth let in; a member refused in the last minutes; a newcomer let in while she weighs anchor; no right let in)', () => {
   assert.equal(KT_CREW_MAX, 8);
   assert.equal(KT_CREW_MAX, PARTY_MAX, 'one party, one ship');
   const key = ketchRoomKey(1, OWNER), v = ketchVoyageOf(1), t = v.at + H;
@@ -78,7 +78,8 @@ test('KETCH THE ROOM\'S DOOR: a newcomer with a right while she boards, never th
   assert.equal(ketchAdmits(key, 'z', 'party', crew, t), null);
   assert.equal(ketchAdmits(key, 'z', null, crew, t), 'crew');
   assert.equal(ketchAdmits(key, 'z', 'party', [...crew, 'a7'], t), 'full', 'never nine');
-  assert.equal(ketchAdmits(key, 'z', 'staff', [...crew, 'a7'], t), null, 'staff see a full ship');
+  assert.equal(ketchAdmits(key, 'z', 'staff', [...crew, 'a7'], t), 'full', 'staff neither: the wire\'s crew is eight (AUDIT KETCH L1-4) - a full ship is watched hidden');
+  assert.equal(ketchAdmits(key, 'z', 'staff', crew, t), null, 'staff while there is a place');
   assert.equal(ketchAdmits(key, 'a3', null, crew, t), null, 'a member comes back');
   assert.equal(ketchAdmits(key, 'a3', null, crew, v.departAt + 1), null, 'and in her last minutes');
   assert.equal(ketchAdmits(key, 'z', 'party', crew, v.departAt + 1), 'closed');

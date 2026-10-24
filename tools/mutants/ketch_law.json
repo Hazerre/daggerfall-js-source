@@ -101,8 +101,8 @@
   {
     "name": "KTL-the-ninth-let-in",
     "file": "src/net/ketch/ketchLaw.js",
-    "old": "if (crew.length >= KT_CREW_MAX && right !== 'staff') return 'full';",
-    "new": "if (crew.length > KT_CREW_MAX && right !== 'staff') return 'full';",
+    "old": "if (crew.length >= KT_CREW_MAX) return 'full';",
+    "new": "if (crew.length > KT_CREW_MAX) return 'full';",
     "tests": [
       "test/net/ketch/ketch_law.test.js"
     ]
@@ -130,6 +130,15 @@
     "file": "src/net/ketch/ketchLaw.js",
     "old": "if (!right) return 'crew';",
     "new": "if (right === 'none') return 'crew';",
+    "tests": [
+      "test/net/ketch/ketch_law.test.js"
+    ]
+  },
+  {
+    "name": "KTL-staff-the-ninth",
+    "file": "src/net/ketch/ketchLaw.js",
+    "old": "  if (crew.length >= KT_CREW_MAX) return 'full';",
+    "new": "  if (crew.length >= KT_CREW_MAX && right !== 'staff') return 'full';",
     "tests": [
       "test/net/ketch/ketch_law.test.js"
     ]
