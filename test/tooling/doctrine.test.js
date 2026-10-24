@@ -48,11 +48,12 @@ const PUBLIC_ALLOWLIST = new Map([
   ['public/icons/icon-512.png', 'TI2: home-screen icon, drawn by scripts/makeIcons.mjs from the skin\'s tokens'],
   ['public/icons/icon-512-maskable.png', 'TI2: home-screen icon (maskable), drawn by scripts/makeIcons.mjs from the skin\'s tokens'],
   // INTRO2 (2026-09-18): restored at Mac's explicit request. The credit
-  // marks and score are the identical U65 assets, not ARENA2-derived data.
-  // Credit marks identify their respective projects; no new rights claimed.
+  // marks are the identical U65 assets, not ARENA2-derived data. Credit
+  // marks identify their respective projects; no new rights claimed.
+  // INTRO3 (2026-10-14): the score's recording left with its row - the theme
+  // is written as notes (src/systems/introScore.js).
   ['src/assets/intro/interkarma.webp', 'U65 credit artwork identifying Interkarma / Daggerfall Unity; recovered unchanged'],
   ['src/assets/intro/nexus.webp', 'U65 credit artwork identifying Nexus Mods; recovered unchanged'],
-  ['src/assets/intro/theme.mp3', 'U65 original theme recording; recovered unchanged at Mac\'s request'],
   ['src/assets/branding/dfo-online.png', 'BR5: Mac\'s supplied DFO Online logo, 2026-10-11, his own file with alpha, cut to its painted bounds with every pixel inside unchanged; no ARENA2 data'],
   // THE SITE'S PICTURES (U60c) WERE RETIRED with the DA site cleanup
   // (Mac, 2026-08-31): the landing page carries no raster at all now -
@@ -797,6 +798,18 @@ const PUBLIC_ALLOWLIST = new Map([
   ['src/assets/jungle/source/jungle_tree5.obj', "SUPPLIED - the owner's mahogany for the Jungle of Bantha (BANTHA1, 2026-10-18), the owner's Blender 5.2 OBJ export as handed over - geometry only, read at run time by world/jungle/jungleModels.js"],
   ['src/assets/jungle/source/jungle_tree5.mtl', "SUPPLIED - the owner's mahogany's material (BANTHA1, 2026-10-18), as handed over - it names the picture its tree is cut from"],
   ['src/assets/jungle/source/jungle_tree5_252w.png', "SUPPLIED - the owner's mahogany picture for the Jungle of Bantha (BANTHA1, 2026-10-18), 252x164 RGBA cut by its alpha, the owner's own PNG bytes as handed over - the owner's art (the owner, 2026-10-18: \"These textures are ours\" - no ARENA2 pixel)"],
+  // JUNGLE-ROADSIDE (2026-10-23, the owner, through Mac: "These trees are meant for the jungle biome and roadside. Making
+  // it more like a jungle with the vines stringing across the roads"): THE ROADSIDE PAIRS, three Blender 5.2 OBJs and
+  // their MTLs committed as handed over, byte for byte (their own names - Blender's file was pine.blend). Each is two of
+  // the trees above and lianas between them, and wears only the pictures above - no picture of their own. They ship as
+  // they are: systems/jungleTreesAssets.js fetches them and world/jungle/jungleRoadside.js reads them at run time (no
+  // bake); test/world/jungleroadside.test.js reads the same bytes.
+  ['src/assets/jungle/source/pine.obj', "SUPPLIED - the owner's roadside pair for the Jungle of Bantha (JUNGLE-ROADSIDE, 2026-10-23): the mahogany and a kapok leant over the road, lianas strung between them - the owner's Blender 5.2 OBJ export as handed over, geometry only, read at run time by world/jungle/jungleRoadside.js"],
+  ['src/assets/jungle/source/pine.mtl', "SUPPLIED - the leaning pair's materials (JUNGLE-ROADSIDE, 2026-10-23), as handed over - they name the kapok's, the fig's and the mahogany's pictures above"],
+  ['src/assets/jungle/source/pine-1.obj', "SUPPLIED - the owner's roadside pair for the Jungle of Bantha (JUNGLE-ROADSIDE, 2026-10-23): the mahogany and a fig, lianas strung between them - the owner's Blender 5.2 OBJ export as handed over, geometry only, read at run time by world/jungle/jungleRoadside.js"],
+  ['src/assets/jungle/source/pine-1.mtl', "SUPPLIED - the fig pair's materials (JUNGLE-ROADSIDE, 2026-10-23), as handed over - they name the fig's and the mahogany's pictures above"],
+  ['src/assets/jungle/source/pine2.obj', "SUPPLIED - the owner's roadside pair for the Jungle of Bantha (JUNGLE-ROADSIDE, 2026-10-23): the mahogany and a kapok sunk 2 m into its ground, lianas strung between them - the owner's Blender 5.2 OBJ export as handed over, geometry only, read at run time by world/jungle/jungleRoadside.js"],
+  ['src/assets/jungle/source/pine2.mtl', "SUPPLIED - the sunk pair's materials (JUNGLE-ROADSIDE, 2026-10-23), as handed over - they name the kapok's, the fig's and the mahogany's pictures above"],
   // COATS3D (2026-10-11, the owner: "The first image is for the horse itself and the second is for the tail"): THE
   // COURSER, a rigged horse supplied as five saves of one Blender rig and two pictures painted for its own UV layout -
   // the newest whole save committed, as the ships' and the wagons' scenes are. tools/bakeHorse.mjs re-makes
