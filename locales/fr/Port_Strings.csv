@@ -2008,7 +2008,7 @@ features.enhancedLighting.note,"Une lumière plus chaude et plus naturelle : lan
 features.enhancedLighting.title,"Éclairage amélioré"
 features.enhancedMap.note,"Une seule carte sur parchemin dessinée à la main pour le monde, les villes et les donjons, tenue entre vos mains, que vous pouvez déplacer et zoomer. Désactivé utilise les trois fenêtres de carte classiques."
 features.enhancedMap.title,"Carte améliorée"
-features.enhancedSounds.note,"De nouveaux sons sur l’interface améliorée : le vent en extérieur, qui monte et retombe selon sa force et se tait en intérieur, un tintement de pièces quand vous prenez ou rangez des objets dans l’inventaire amélioré, vos mains et bottes sur la pierre quand vous grimpez, et la hache, la pioche, les feuilles, le couteau et le filet quand vous récoltez."
+features.enhancedSounds.note,"De nouveaux sons sur l’interface améliorée : le vent en extérieur, qui monte et retombe selon sa force et se tait en intérieur, un tintement de pièces dans l’inventaire amélioré, les mains et les bottes sur la pierre quand vous grimpez, les outils quand vous récoltez, un cheval qui s’ébroue et respire, ses sabots qui changent selon le sol, la mer sous le pont avec ses cloches et sa propre musique à la barre, le ressac sur le rivage, la nature sauvage selon la région et l’heure, et la rue, les forges et les tavernes d’une ville."
 features.enhancedSounds.title,"Sons améliorés"
 features.enhancedWater.note,"Des mers, rivières et étangs dans lesquels on voit : des vagues qui grossissent avec le vent, de l’écume où elles rencontrent le rivage, des ondulations là où les choses bougent, le ciel et la lune à la surface. Désactivé rétablit l’eau plate classique."
 features.enhancedWater.title,"Eau améliorée"
