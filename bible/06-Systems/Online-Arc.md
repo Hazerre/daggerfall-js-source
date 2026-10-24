@@ -17138,3 +17138,64 @@ not read from here. Pinned by `test/server/handlerename0134.test.js`.
 ## GUILD-CAP (2026-10-21, the Discord's feature-feedback, Bryorios: "May you please increase the guild member cap"; Dwarfblood: "75 would be a great start.") - a guild holds 75
 
 `GUILD_MEMBERS_MAX` (`src/net/guild/guildLaw.js`) is 75, up from GUILD1a's 50 - the step the thread agreed on as a start (the ask was "75 or a 100"; another player asked for many guilds over a few big ones, so the cap rises by half rather than doubling). Everything that reads the cap reads the one constant: the invite's and the join's room (`server-account/src/guilds.js`), the refusal's sentence (`accountClient.js` `guild-full`), the Guild tab's counts (`socialPanel.js`). The one bound that had to move with it is the hub's who-of-my-guild list, `HUB_GUILD_WHO_MAX` (`src/net/hubShards.js`), 64 to 100: at 64 a full guild of 75 online would have listed 64 of its 74 others. `test/server/guild1.test.js` pins the cap and that the list holds a full guild but its asker; the mutant `GUILD1-a-bigger-guild` re-aimed at 75. No migration: the cap lives in the law, not the schema. The service's version does not move - no route or shape changed.
+
+## HALO-WAIT - A CELL CROSSING WAITS FOR ITS HALO (2026-10-22, #1134)
+
+**The report** (#1134, measured over the session and the minter): a crossing into the next cell promotes that cell's
+halo socket only while the halo is `'open'`, and a halo is open only once its mint resolves and its hello goes. The
+forward halo opens RANGE_PIXELS before the edge, which the Overworld's x60 and x100 cross in 2-4 s on a horse
+(`player/motor.js` `rideSpeed`, 10.76 m/s at Speed 50). A mint slower than that lead left the halo connecting when the
+host's 500 ms hold ran out, and the ordinary join closed my cell and every halo, wiped the roster and opened them all
+again. Driven over the real `OnlineSession` and `accountTokenMinter` on a fake clock (30 cells, a path 7° off the grid,
+an 80 ms connect, a welcome 60 ms after the hello): 4 of 32 crossings torn down at horse x100 with a 3 s mint, 7 of 32
+at horse x60 with a 5 s mint, 8 of 32 on foot at x100 with a 7 s mint, each with every cell socket gone for 0.4-4.4 s.
+None at x20, and none at any pace with a mint of 2 s or less.
+
+**The law.** A crossing into a cell whose halo is still connecting WAITS for it
+(`src/net/online.js:"if (this._haloWait(room)) { if (pose) this.sendPose(pose); return; }"`): cell to cell only, only on
+a halo with a socket (a dropped or refused one has none, and is joined as before), only while my own cell's socket is
+open, and for `HALO_WAIT_MS` from the halo's opening at most (`src/net/online.js:"export const HALO_WAIT_MS = BACKOFF_MAX_MS;"`) -
+the time `tick` lets a halo stand connecting before it drops it (AUDIT WORLD6b-iii(b) A7), which spans the mint's own
+`TOKEN_WAIT_MS`. The world host calls `join` every frame while the key differs and sends no pose meanwhile, so the
+wait sends the pose it is handed down the sockets I hold, and the promotion takes the halo the frame its hello goes.
+The wait is asked before the join's clears: `_who` cleared every frame would ask a stranger every frame. Past the
+bound, the ordinary join runs as it did, and its new socket shares the mint already on the wire (the minter's
+`minting`), so nothing mints twice. A pixel that moves on into a third cell while waiting is joined by the same rule
+for that cell: waited for while its halo is connecting, joined the ordinary way otherwise.
+
+**And no hold before it.** The host held every crossing it could not join at once for ROOM_HOLD_MS, and sent no pose
+for those 500 ms. A crossing whose halo is still connecting needs no hold now: the host joins at once on
+`src/net/online.js:"crossesNow(key) { return this.inRoom(key) || this._haloWait(key); }"` - the host's line,
+`world.js:"(isCellRoom(key) && online.crossesNow(key))"`, asks it where it asked `inRoom` and keeps its logical lines -
+so the wait and its poses begin in the crossing frame. The hold stays for everything else - a dropped halo, no halo - because a waited
+crossing closes nothing, and so an edge paced back and forth churns nothing either way (AUDIT ONLINE D11's reason for
+the hold).
+
+**After**, the same harness runs: no crossing torn down at any pace or mint up to 7 s, with the same sockets and the
+same mints a minute as with a fast mint. Nothing changes on screen at a waited crossing: the promoted socket is
+welcomed one round trip after its hello, and meanwhile the cell left stands as a halo and its peers stay drawn. The
+longest gap between two of my poses on a journey with a slow mint (3 or 7 s) fell from 600 ms - the hold - to 150-200
+ms, a journey's own cadence at the harness's frame.
+
+**What the wait costs.** My pose goes down the cell I still hold from a pixel in the next one, as every halo's poses and
+the hold always did; the relay ticks the watch only in a pose's own cell (`_watchTick`), so none ticks meanwhile. A foe
+I stand while waiting streams to the cell I hold. The wait's poses carry no blow fields (the host adds `poseFx()` only
+to its own sends), so a blow landed or taken while waiting is shown, by its counter, with the first pose after the
+crossing. The host composes the look every frame it calls `join`
+(`composeLook`, a walk of the equipped slots; `setLook` returns at once when nothing changed). No relay change, no
+RELAY_VERSION, no deploy.
+
+**Pins.** `test/net/halowait.test.js` (the wait begins in the crossing frame, holds and promotes with nothing closed,
+nobody wiped and the asked list kept until the crossing; a third cell at a corner is waited for by its own halo; an edge
+paced while the halo connects churns nothing; the wait is bounded; a dropped halo keeps the hold and is joined as
+before, and so is a crossing with my own cell down; by source). The host-frame mirrors in
+`test/net/auditworld6biiib.test.js` and `test/net/fb1016b_doortoken.test.js` ask `crossesNow` as the host does, and
+the host line's two source pins (AUDIT WORLD6b-iii(b) B1/B8, and WORLD2's C8 in `test/net/world2.test.js`) are re-aimed
+at it. AUDIT 68 X7 (`test/net/audit68_net.test.js`)
+re-aimed: the halo still connecting is waited for, and once the wait is out the ordinary join still closes it. Mutants:
+`tools/mutants/halowait.json`, 10 dead.
+
+**Open.** The live mint's latency is not measured here; the teardown needed a mint slower than the lead, and this wait
+covers any mint the halo outlives. `HALO_WAIT_MS` is `BACKOFF_MAX_MS` by design, so raising the reconnect backoff's
+ceiling lengthens the wait with it. #1134's second effect (a fast peer drawn jumping, SNAP_WORLD_UNITS) is not this
+slice.

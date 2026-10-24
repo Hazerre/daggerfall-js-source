@@ -109,6 +109,7 @@ import { NEAR_LIFE_M, FAR_LIFE_EVERY, farLifeStep } from '../comeSailAway/farLif
 import { segmentOfTarget } from '../serpentHost.js';   // SERPENT1: a sea serpent's segment among the shots' targets
 import { intoDeck, outOfDeck, mainLevel, DECK_STEP } from '../../systems/naval/navalDeck.js';   // AUDIT NAV2 F36: the feet in her deck's frame (aboardShip); QUAYS: her rail where the gangway lands
 import { createSeaDecks } from './seaDecks.js';   // SEA-DECK: her deck carries whoever stands on it, and says where
+import { crewDealOf } from './crewDeal.js';   // CREW-TRADE: her crew signed on and off at the exchange
 import { CAPSULE_RADIUS } from '../../player/motor.js';   // AUDIT GN-D3: aboard under her main deck, a body's own reach (standsOn)
 import { createGalleonGunDeck } from '../../systems/naval/galleonGunDeck.js';   // GALLEON: her shutters and guns at work
 import { timeScale } from '../../systems/timeScale.js';   // AUDIT GN2-GN3: the real clock another player's word comes on
@@ -2952,6 +2953,7 @@ export function createNavalHost(deps) {
       ship: () => ({ hull: d.hull, maxHull: d.maxHull, sail: d.sail, maxSail: d.maxSail, crew: d.crew, maxCrew: d.maxCrew, barrels: st.guns.barrels, wrecked: d.state === SHIP_STATES.wrecked, stores: deps.stores?.count?.(boat) ?? 0, morale: boat.crewed ? st.crew.morale : null }),
       offer, buy, buyAll, prices: YARD_PRICE, hasBarrels: batteryOf(boat.hull, 'stern')?.gun === 'barrel',
       provisions, buyProvision,
+      crewDeal: crewDealOf(boat, st, crewHands, companions),   // CREW-TRADE (scenes/naval/crewDeal.js): her crew at the exchange
     };
   }
   /** The shipwright's window over the world. */

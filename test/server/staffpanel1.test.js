@@ -94,6 +94,8 @@ test('STAFF-PANEL1: every door is listed once, beside the game\'s, and none is b
     '/v1/staff/trade-holds', '/v1/staff/findings', '/v1/staff/trade-hold', '/v1/staff/trade-unhold', '/v1/staff/rollback', '/v1/staff/fix/repair',
     '/v1/staff/fix/mend', '/v1/staff/fix/bank', '/v1/staff/gains', '/v1/staff/market/pull', '/v1/staff/market/remove', '/v1/staff/item/take', '/v1/staff/evidence',
     '/v1/staff/evidence/return',
+    // STAFF-GIVE: Add an item (staffGive.js)
+    '/v1/staff/item/catalogue', '/v1/staff/item/give',
     // STAFF-PANEL4-CENSUS: the census and the contested pieces (staffCensus.js)
     '/v1/staff/census/find', '/v1/staff/census', '/v1/staff/census/jumps', '/v1/staff/contested', '/v1/staff/contested/piece', '/v1/staff/contested/trail',
     // STAFF-PANEL3-ECON: the economy (staffEconomy.js)
