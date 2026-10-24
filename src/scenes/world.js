@@ -28851,7 +28851,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     else if (modes?.roomIdentity?.()?.kind === 'gate') key = gateRoomKey(modes?.roomIdentity?.()?.day);   // WB3b: the court's room is its gate's own
     else if (modes?.roomIdentity?.()?.kind === 'sd') key = sdRoomKey(modes?.roomIdentity?.()?.s);   // SD5a: the Hour's room is the relay's realm (SD3's _sdAdmit asks the Rift's law of its hello)
     else if (modes?.roomIdentity?.()?.kind === 'eg') key = egRoomKey(modes?.roomIdentity?.()?.b);   // EG-PLAY: an Elite Breach's room is the relay's breach (its hello asks the company's law)
-    else if (modes?.roomIdentity?.()?.kind === 'kt') key = modes.roomIdentity().key;   // KETCH: a crew's ship's room is the relay's `kt:<voyage>.<captain>` (its hello asks the crew's law)
+    else if (modes?.roomIdentity?.()?.kind === 'kt') key = modes?.roomIdentity?.()?.key;   // KETCH: a crew's ship's room is the relay's `kt:<voyage>.<captain>` (its hello asks the crew's law)
     else if (modes?.roomIdentity?.()?.kind === 'arena') key = arenaFloorRoomOf(modes?.roomIdentity?.()?.o);   // ARENA4: a relay's bout's floor is its room (ARENA4b: the hour's exhibition's, `x<hour>`, its own)
     else {
       const ident = modes?.roomIdentity?.();

@@ -300,6 +300,12 @@
    "why": "the interior's night light"
   },
   {
+   "file": "src/scenes/worldModes.js",
+   "has": "ketchDeck.frameLook(mwv.eye, _dgLit, skyMinutes() % 1440)",
+   "clock": "sky",
+   "why": "KETCH: the sky-ketch's deck by the hour - her light, her haze, her sun"
+  },
+  {
    "file": "src/scenes/shared.js",
    "has": "entity, classicMinutes: worldMinutes(), dt, sinks, activity, realSeconds, raiseMinutes,",
    "clock": "event",

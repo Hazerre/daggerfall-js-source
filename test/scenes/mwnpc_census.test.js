@@ -28,6 +28,7 @@ const WIRED = Object.freeze([
   'src/scenes/gate/gateCourt.js',       // MWNPC10a: the gate's boss
   'src/scenes/gate/gateHost.js',        // MWNPC10a: his host
   'src/scenes/gate/gateFlame.js',       // WB14d: his Flame, the Sundering's second body
+  'src/scenes/ketch/ketchFight.js',     // KETCH: the sky-ketch's constructs - each offered to the body lane (rosterActor), its sprite the fallback
   'src/scenes/merchantYardsHost.js', // AUDIT MW-NPC II P1: the yards' keepers (main's MERCHANT-YARDS)
   'src/scenes/naval/navalCrew.js',       // MWNPC10b: the crews
   'src/scenes/pixelBuild.js',      // HOST-SPLIT 2: the world's pixel build, moved out of world.js - a pixel's street people
