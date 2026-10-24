@@ -570,7 +570,7 @@ import { shipTransition, REPOSITION, isOnShip, shipMemory, shipRestorePos } from
 import { createMountRig } from '../player/mountRig.js';   // MAC-K3: the mount surface, one home for this host and the fixed-city one
 import { worldViewportRect, largeHudWorldAspect } from '../ui/hud/hudLarge.js';   // ROAD-E E5: ViewportChanger - the docked bar shrinks the world pass (RETRO1: and retro mode's aspect correction pillarboxes it)
 import { createLockOn, LOCK_PICK_DISTANCE } from '../player/lockOn.js';   // TI1: touch lock-on
-import { rayDirFromScreen, projectToScreen, ndcFromScreen, worldRectPx } from '../player/tapRay.js';   // TI1: the finger's ray and the dot
+import { rayDirFromScreen, projectToScreen, ndcFromScreen, worldRectPx, createFrameProjector } from '../player/tapRay.js';   // TI1: the finger's ray and the dot
 import { isRiding } from '../systems/transport.js';   // TR2: is there a mount under us
 import { useItem } from '../systems/useItem.js';   // UI1: MagicItemPicker_OnItemPicked's two arms
 import { isEnchanted } from '../systems/inventory.js';   // UI1: the use path's enchanted test
@@ -6376,6 +6376,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let _tapArmed = 0, _tapPoint = null, _tapDir = null, _tapLockOnly = false;   // TS1: the stick-half tap locks a foe and activates nothing else
   let _tapClick = false;   // AUDIT PRE-MERGE 0928 U2: the frame the finger's press lifts - ActivateCenterObject's release for a read that takes it off the edge ring, where a tap never lands (Come Sail Away's placing click)
   let _lastProj = null, _lastView = null, _lockChest = null;
+  const frameProject = createFrameProjector(canvas, worldViewportRect, (take) => take(_lastProj, _lastView));   // PERF-TV-PROJ: the canvas's size and proj x view read once a frame, not once a point
   const lockOn = createLockOn();
   // P1: grounded first-person is the default; ?fly restores the fly cam.
   // The motor freezes until the start pixel's collider exists.
@@ -27899,7 +27900,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       crowd: pingCrowd(eye, dir, reach, _talkPersons(), openPeers(peersNear(), isPartyMate).filter(crowdDrawnHere), (p) => mobilePersonName(p?.person?.nameNPC), (p) => peerName(p?.id), csaModeCollider()),
     }),
     buildings: () => modes?.buildingBoxes?.() ?? [],
-    project: (p) => (_lastProj && _lastView ? projectToScreen(p, canvas.clientWidth, canvas.clientHeight, _lastProj, _lastView, worldViewportRect(canvas.clientWidth, canvas.clientHeight)) : null),
+    project: frameProject.front,   // PERF-TV-PROJ
     travel: () => !!travelView?.active,
     author: () => (typeof playerEntity?.name === 'string' ? playerEntity.name : ''),
     mateName: (acct) => social?.party?.members?.find((m) => m.acct === acct)?.name ?? '',
@@ -28957,8 +28958,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (!key) { if (online.room) online.leave(); }   // AUDIT ONLINE D4: a place the host cannot name is no room, not the old one in the wrong frame
     // AUDIT WORLD2 C8: a world room's edge is never a churn - the hold delayed every handover and let one dungeon's stream land in another
     // AUDIT WORLD6b-iii(b) B1/B8: a cell crossing is joined the moment the cell is HELD (the halo's socket promotes in
-    // place - the hold bought nothing but a 500 ms strip with no socket in the cell I stood in); otherwise the hold
-    else if (key !== online.room) { if (!online.room || isWorldRoom(key) || isWorldRoom(online.room) || (isCellRoom(key) && online.inRoom(key)) || now - _onlineKeySince >= ROOM_HOLD_MS) { online.setLook(composeLook(playerEntity)); online.layerHint = partyLayerAt(key); online.join(key, { ...pose, ...arm }); } }   // the look re-composed: the next room's hello carries the gear worn now (PROFILE2: through setLook, so a halo the join PROMOTES - no hello of its own - is told too)
+    // place - the hold bought nothing but a 500 ms strip with no socket in the cell I stood in); HALO-WAIT: and so is one
+    // whose halo is still connecting (net/online.js `crossesNow` - the join waits for it, my pose sent meanwhile, where
+    // the hold sent none); otherwise the hold
+    else if (key !== online.room) { if (!online.room || isWorldRoom(key) || isWorldRoom(online.room) || (isCellRoom(key) && online.crossesNow(key)) || now - _onlineKeySince >= ROOM_HOLD_MS) { online.setLook(composeLook(playerEntity)); online.layerHint = partyLayerAt(key); online.join(key, { ...pose, ...arm }); } }   // the look re-composed: the next room's hello carries the gear worn now (PROFILE2: through setLook, so a halo the join PROMOTES - no hello of its own - is told too)
     else online.sendPose({ ...pose, ...arm, ...poseFx() });   // PEERFX1: and my landed blows and the blows I took
     siegeSession?.tick();   // SEAT2a part four: the battle's pass, its `in`, its HUD, its window
     if (siegeNpcs) { if (inSiegeRoom()) siegeNpcs.frame(siegeSession.npcs(), battleNowMs()); else siegeNpcs.leave(); }   // SEAT2b part two (c): the relay's own fighters, in its room alone
@@ -32318,7 +32321,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     holdBody: (on) => mwViewHoldThird(on),
     freeCursor: (free) => { if (free) { tvCursorWas = cursorActive(); setCursorActive(true); releaseLook(); } else { setCursorActive(tvCursorWas); if (!tvCursorWas && !gamePaused() && !pointerSurfaces.size && !(modes?.modalWindowUp?.() ?? false) && !overlayOpen()) requestLook(canvas); } },   // AUDIT DEEP2 A3: nor under the Tab dial   // AUDIT DEEP T1-5: never the lock under an open chat or a window - the surface's close, or the look gate's, takes it back   // AUDIT TV B9: a cursor the player freed before the view is free after it
     where: travelViewWhere,
-    project: (p) => (_lastProj && _lastView ? projectToScreen(p, canvas.clientWidth, canvas.clientHeight, _lastProj, _lastView, worldViewportRect(canvas.clientWidth, canvas.clientHeight), true) : null),   // AUDIT DEEP T1-1: behind the eye, the mirror - a traveller there is held at the edge THEIR way, not all in one corner
+    project: frameProject.behind,   // PERF-TV-PROJ: thousands of points a frame (the route's dots, the marks); AUDIT DEEP T1-1: behind the eye, the mirror - a traveller there is held at the edge THEIR way, not all in one corner
     hud: { show: showTravelViewHud, hide: hideTravelViewHud, update: updateTravelViewHud, pickAt: travelViewHudPickAt },   // PERF-TV: a plate's click found by position
     say: (t) => townTalk.say(t),
     touch: !!touch,

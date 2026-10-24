@@ -379,6 +379,7 @@ on:
       - "src/world/perlin.js"
       - "src/world/puddleDry.js"
       - "src/world/puddleMask.js"
+      - "src/world/road/pathData.js"
       - "src/world/road/roadNetwork.js"
       - "src/world/spawnedDungeons.js"
       - "src/world/terrain/terrainSampler.js"
