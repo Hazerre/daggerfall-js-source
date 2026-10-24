@@ -38,8 +38,8 @@ test('AUDIT 39 #59: the two above-ground hosts gate the motor and the weapon on 
   for (const [name, s] of HOSTS) {
     assert.match(s, /import \{ isInvisible, entityIsParalyzed(?:, concealBits)? \} from '\.\.\/systems\/effects\.js';/,
       `${name}: the read-time fold (DaggerfallEntity.IsParalyzed + the FreeAction immunity)`);
-    assert.match(s, /const paralyzed = entityIsParalyzed\(playerEntity\);/,
-      `${name}: one read per frame, above the motor and the weapon rig`);
+    assert.match(s, /const paralyzed = entityIsParalyzed\(playerEntity\)(?: \|\| staffFrozen\(\))?;/,
+      `${name}: one read per frame, above the motor and the weapon rig (STAFF-PANEL5-FREEZE: a staff freeze folded in beside it)`);
     // AUDIT 64 F3 (review): the stride gate is no longer a host-side
     // `moving` term. DFU silences the frozen player's footsteps
     // THROUGH IsStandingStill: FrictionMotor.GroundedMovement zeroes
@@ -96,8 +96,8 @@ test('AUDIT 39r: the THIRD above-ground host - worldModes\' interior arm - reads
   // interior rig was handed no flag at all.
   assert.match(WORLD_MODES, /import \{ entityIsParalyzed \} from '\.\.\/systems\/effects\.js';/,
     'the read-time fold, the other two hosts\' own import');
-  assert.ok(WORLD_MODES.includes("const paralyzed = (mode === 'dungeon' && dungeonCtx) ? (dungeonCtx.playerParalyzed?.() ?? false) : entityIsParalyzed(playerEntity);"),
-    'one fold: the dungeon context underground, the entity above it');
+  assert.ok(WORLD_MODES.includes("const paralyzed = staffFrozen() || ((mode === 'dungeon' && dungeonCtx) ? (dungeonCtx.playerParalyzed?.() ?? false) : entityIsParalyzed(playerEntity));"),
+    'one fold: the dungeon context underground, the entity above it (STAFF-PANEL5-FREEZE: a staff freeze before both)');
   assert.ok(!WORLD_MODES.includes("(dungeonCtx.playerParalyzed?.() ?? false) : false;"), 'the hardcoded false is gone');
   // AUDIT 64 F3 (review): see the note in the #59 pin above - the
   // stride gate is IsStandingStill (PlayerFootsteps.cs:264-265), and
@@ -428,8 +428,14 @@ test('AUDIT 39 #130: the exterior host\'s attack TAP defers to a readied spell l
   // mousemove, mousedown, the SWIPE (TI1) and the frame's cast dispatch.
   // MAC-SWING1 (2026-09-21) added a FIFTH door: the frame's key latch
   // for a swing bound to a key or pad code, gated exactly as mousedown.
+  // PIN MOVED (SPELL-HAND): the cast dispatch says it is a cast's own press - `interceptAttack(true, { cast: true })`, the
+  // door a spell in the free hand still casts through while the swing button swings (scenes/hostMagic.js); still five doors.
+  // PIN MOVED (AUDIT SPELL-HAND, HOST-SPLIT): the press is the imported word CAST_PRESS (was: `{ cast: true }`, an entry)
   for (const [name, s] of HOSTS) {
-    assert.equal((s.match(/magic\.interceptAttack\(true\)/g) ?? []).length, 5,
+    // AUDIT SPELL-HAND L5-9: four swing doors (no word) and the one cast press (the word) - each counted on its own
+    assert.equal((s.match(/magic\.interceptAttack\(true\)/g) ?? []).length, 4, `${name}: the four swing doors`);
+    assert.equal((s.match(/magic\.interceptAttack\(true, CAST_PRESS\)/g) ?? []).length, 1, `${name}: the one cast press`);
+    assert.equal((s.match(/magic\.interceptAttack\(true(?:, CAST_PRESS)?\)/g) ?? []).length, 5,
       `${name}: mousemove, mousedown, the swipe, the cast dispatch and the key latch`);
   }
 });

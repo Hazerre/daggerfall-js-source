@@ -568,6 +568,8 @@ export async function checkpointRealm({ db, bucket, rand, nowS }, playerId, { id
     (SELECT played_s FROM players p WHERE p.id = realm_characters.player) AS played_now,
     (SELECT banned_until FROM players p WHERE p.id = realm_characters.player) AS ban_until_now,
     (SELECT ban_reason FROM players p WHERE p.id = realm_characters.player) AS ban_reason_now,
+    (SELECT frozen_until FROM players p WHERE p.id = realm_characters.player) AS frozen_until_now,
+    (SELECT frozen_reason FROM players p WHERE p.id = realm_characters.player) AS frozen_reason_now,
     (SELECT 1 FROM sessions s WHERE s.id = ?3 AND s.player_id = realm_characters.player) AS session_alive,
     (SELECT tally FROM item_census c WHERE c.char_id = realm_characters.id) AS census_tally
     FROM realm_characters WHERE id = ?1 AND player = ?2`).bind(id, playerId, session),
@@ -584,6 +586,9 @@ export async function checkpointRealm({ db, bucket, rand, nowS }, playerId, { id
   // pass was minted saves nothing (a request the lookup answered knows both already; the save asks them all the same)
   if (session != null && row.session_alive == null) return { error: 'auth' };
   if (Number.isSafeInteger(row.ban_until_now) && row.ban_until_now > nowS) return { error: 'banned', player: { banned_until: row.ban_until_now, ban_reason: row.ban_reason_now } };
+  // STAFF-PANEL5-FREEZE (staffFreeze.js; design doc Weak spots: "checkpoints still save"): and the freeze - a frozen player
+  // only looks around, so its save moves nothing while the freeze stands
+  if (Number.isSafeInteger(row.frozen_until_now) && row.frozen_until_now > nowS) return { error: 'frozen', player: { frozen_until: row.frozen_until_now, frozen_reason: row.frozen_reason_now } };
   if (row.dead_at != null) return { error: 'dead' };   // LEGACY7: the tombstone - nothing of the dead is written again
   if (row.lease !== lease) return { error: 'lease' };
   if (seq !== row.seq + 1) return { error: 'seq', seq: row.seq };   // the service's own: a client whose last answer was lost resyncs
@@ -845,7 +850,10 @@ export async function leaveRealm({ db }, /** @type {string} */ playerId, /** @ty
  *  - then the row: saves.js's order, so a failure halfway leaves a row whose bytes lie rather than objects nothing
  *  names. AUDIT REALM L1-F7 / L3-F5: AND ITS ONLINE LIFE WITH IT, as the door promises ("its home and its guild place
  *  with it"): the row's delete carries its homes (their pieces and hidden furniture go by the tables' own cascade), its
- *  guild place and its Renown track in ONE batch. They stood under a dead id: a house nobody could buy again nor its
+ *  guild place and its Renown track in ONE batch. ACCOUNT-HOMES (2026-10-06; asked: "Deleted characters should remove
+ *  their houses from online", beside "House ownership should be account bound"): the homes are the ones it BOUGHT -
+ *  every character of the account owns them while it stands, and they go with it, whatever another of them placed in
+ *  them; goods another stocked at their traders wait ('home-vendor-stocked'). They stood under a dead id: a house nobody could buy again nor its
  *  owner sell, a guild whose master could never be succeeded, a track that counted against the account's sixty
  *  (RENOWN-CHAR: the character's Renown goes with it again, as the door said before RENOWN-ACCOUNT).
  *  A guildmaster with members hands the guild over first ('guild-master-leaves', the guild's own word for leaving).
@@ -889,6 +897,10 @@ export async function deleteRealm({ db, bucket, nowS = Math.floor(Date.now() / 1
   // out, kept from going by them (guildKeepsSql), its name and tag held for good (guilds.js disband and leave ask it too)
   if (master?.vault) return { error: 'guild-vault' };
   if (Number((await db.prepare(REALM_MARKET_OPEN_SQL).bind(playerId, id).first())?.n ?? 0) > 0) return { error: 'realm-market-open' };
+  // ACCOUNT-HOMES (2026-10-06): the homes it bought go with it ("Deleted characters should remove their houses from
+  // online"), and any character of the account may stock a trader in one now - so goods another of them has standing at
+  // one wait, as a sale waits for them (homes.js releaseHome): the delete would leave them for sale at a trader gone
+  if (Number((await db.prepare(HOME_VENDOR_STOCK_SQL).bind(playerId, id).first())?.n ?? 0) > 0) return { error: 'home-vendor-stocked' };
   // AUDIT CARDS-4 A3: a card table's stake still held comes home to this character first (cards.js cashoutCards)
   if (await db.prepare(`SELECT 1 FROM card_stakes WHERE player = ? AND char_id = ? AND status = 'held' LIMIT 1`).bind(playerId, id).first()) return { error: 'cards-held' };
   // AUDIT SEA VENTURES B4: gold owed it at sea, a wreck's goods held for it, and its own hold's goods due back come home
@@ -946,6 +958,11 @@ export const HOME_TENANTS_SQL = `SELECT COUNT(*) AS n FROM home_rooms r JOIN hom
   WHERE h.player = ?1 AND h.char_id = ?2 AND r.tenant IS NOT NULL AND r.until > ?3`;
 /** HOME-RENT: the rent held on a character's homes, not yet collected (`due`) - its delete waits for it too. */
 export const HOME_RENT_DUE_SQL = 'SELECT COALESCE(SUM(rent_due), 0) AS due FROM homes WHERE player = ?1 AND char_id = ?2';
+/** ACCOUNT-HOMES: the goods standing for sale at the traders of the homes a character bought, whoever of the account
+ *  stocked them (`n`) - its delete takes those homes and their traders, so it waits for them. `?1` the account, `?2` the
+ *  character. */
+export const HOME_VENDOR_STOCK_SQL = `SELECT COUNT(*) AS n FROM market_listings l JOIN home_decor d ON d.map_id = l.vendor_map AND d.id = l.vendor_id
+  JOIN homes h ON h.map_id = d.map_id AND h.building_key = d.building_key WHERE l.state = 'open' AND h.player = ?1 AND h.char_id = ?2 AND h.guild_id IS NULL`;
 
 /** PROF-DELETE: A CHARACTER'S MARKET BUSINESS STILL OPEN (`?1` the account, `?2` the character) - each a thing another
  *  player is part of whose goods, piece or Marks' worth would come to this character: a listing or an auction still

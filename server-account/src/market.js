@@ -1114,12 +1114,13 @@ async function listGood(ctx, player, env, { character, region, item, pick, price
   if (prior) return answer(prior, { repeat: true });
   const closed = shut(player, env);
   if (closed) return closed;
-  // HOME-VENDOR: a piece stocked at the seller's own trader - its home's region the listing's, its stall its only door
+  // HOME-VENDOR: a piece stocked at the seller's own trader - its home's region the listing's, its stall its only door.
+  // ACCOUNT-HOMES (2026-10-06): a trader of a home of the seller's ACCOUNT, any character of it (homes.js; a hall's none)
   const vend = vendor == null ? null : vendorOf(vendor);
   if (vendor != null && !vend) return { error: 'bad-vendor' };
   if (vend) {
     const h = await db.prepare(`SELECT h.region FROM home_decor d JOIN homes h ON h.map_id = d.map_id AND h.building_key = d.building_key
-      WHERE ${VENDOR_STANDS_SQL} AND h.player = ?3 AND h.char_id = ?4`).bind(vend.map, vend.id, me, character).first();
+      WHERE ${VENDOR_STANDS_SQL} AND h.player = ?3 AND h.guild_id IS NULL AND (h.deed = 0 OR h.char_id = ?4)`).bind(vend.map, vend.id, me, character).first();
     if (!h) return { error: 'vendor-not-yours' };
     region = Number(h.region);
   }
@@ -1164,7 +1165,7 @@ async function listGood(ctx, player, env, { character, region, item, pick, price
       db.prepare(`INSERT OR IGNORE INTO market_listings (id, seller, char_id, region, kind, units, own, bought, price, fee, at, expires_at, rid, n, currency, item, vendor_map, vendor_id)
         SELECT ?3, ?1, ?2, ?4, 'item', 1, 1, 0, ?5, ?6, ?7, ?8, ?9, ?10, 'gold', ?11, ?13, ?14 WHERE ${vend ? stallSalesSql() : openSalesSql('?7')} < ?12
           AND (?14 IS NULL OR EXISTS (SELECT 1 FROM home_decor d JOIN homes h ON h.map_id = d.map_id AND h.building_key = d.building_key
-            WHERE d.map_id = ?13 AND d.id = ?14 AND d.yard = 0 AND json_extract(d.place, '$.station') = '${VENDOR_STATION}' AND h.player = ?1 AND h.char_id = ?2))`)
+            WHERE d.map_id = ?13 AND d.id = ?14 AND d.yard = 0 AND json_extract(d.place, '$.station') = '${VENDOR_STATION}' AND h.player = ?1 AND h.guild_id IS NULL AND (h.deed = 0 OR h.char_id = ?2)))`)
         .bind(me, character, id, region, price, listingFee(price), nowS, nowS + (vend ? VENDOR_LISTING_S : MARKET_LISTING_S), rid, nonce, JSON.stringify(moved), listingsMax,
           vend?.map ?? null, vend?.id ?? null),
       mustChange(db),   // no listing, no piece out of the record: the record's step rolls back with it
@@ -1244,10 +1245,12 @@ export async function marketBuy(ctx, player, env, { character, region, listing: 
   // MARKET-SPEED: the hour's acts counted and the listing read at once - the hour's refusal still the first word
   const [over, l] = await Promise.all([
     overRate(ctx, `market:${me}`, MARKET_OPS_MAX, MARKET_WINDOW_S),
-    db.prepare(`SELECT l.*, ${sellerStoppedSql('l', '?2')} AS seller_stopped FROM market_listings l WHERE l.id = ?1`).bind(id, nowS).first(),
+    db.prepare(`SELECT l.*, ${sellerStoppedSql('l', '?2')} AS seller_stopped,
+      (SELECT frozen_until FROM players WHERE id = l.seller) AS seller_frozen FROM market_listings l WHERE l.id = ?1`).bind(id, nowS).first(),
   ]);
   if (over) return { error: 'market-rate' };
   if (!l || l.state !== 'open' || Number(l.expires_at) <= nowS) return { error: 'market-gone' };
+  if (Number(l.seller_frozen) > nowS) return { error: 'market-seller-frozen' };   // STAFF-PANEL5-FREEZE: a frozen account's listings sell nothing
   if (l.seller === me) return { error: 'market-own' };
   // STAFF-PANEL3-REALM: a seller held or banned sells nothing - the word every game already reads for a listing it can no
   // longer buy (a word of its own would need its text in every language the game ships)
@@ -1951,9 +1954,10 @@ export async function marketBid(ctx, player, env, { character, region, auction: 
   if (!idOk(id)) return { error: 'bad-listing' };
   if (!bidOk(amount)) return { error: 'bad-bid' };   // AUDIT 31 L6: a bid's bound is the Marks cap, never a price's
   if (await overRate(ctx, `market:${me}`, MARKET_OPS_MAX, MARKET_WINDOW_S)) return { error: 'market-rate' };
-  const a = await db.prepare(`SELECT a.*, (SELECT bidder FROM market_bids WHERE id = a.high_bid) AS high_bidder, ${sellerStoppedSql('a', '?2')} AS seller_stopped
-    FROM market_auctions a WHERE a.id = ?1`).bind(id, nowS).first();
+  const a = await db.prepare(`SELECT a.*, (SELECT bidder FROM market_bids WHERE id = a.high_bid) AS high_bidder, ${sellerStoppedSql('a', '?2')} AS seller_stopped,
+    (SELECT frozen_until FROM players WHERE id = a.seller) AS seller_frozen FROM market_auctions a WHERE a.id = ?1`).bind(id, nowS).first();
   if (!a || a.state !== 'open' || Number(a.ends_at) <= nowS) return { error: 'market-gone' };
+  if (Number(a.seller_frozen) > nowS) return { error: 'market-seller-frozen' };   // STAFF-PANEL5-FREEZE: nor its auctions
   if (a.seller === me) return { error: 'market-own' };
   if (Number(a.seller_stopped)) return { error: 'market-gone' };   // STAFF-PANEL3-REALM: a seller held or banned (sellerStoppedSql)
   if (a.high_bidder === me) return { error: 'auction-leading' };
@@ -2159,7 +2163,9 @@ export async function marketVendors(ctx, player, env, { region, character = null
       GROUP BY map_id, building_key`).bind(player.id, me, nowS),
   ]) : [null, null];
   const board = await vendorBoard(ctx, region);
-  const mate = new Set((mates?.results ?? []).map((/** @type {any} */ m) => `${m.player}\n${m.char_id}`));
+  // ACCOUNT-HOMES (2026-10-06): a house is its ACCOUNT's, so the door's guildmate is a guild shared with any character of
+  // the owner's account - the accounts of the caller's guildmates, not their characters
+  const mate = new Set((mates?.results ?? []).map((/** @type {any} */ m) => m.player));
   const rent = new Map((rooms?.results ?? []).map((/** @type {any} */ r) => [`${r.map_id}:${r.building_key}`, Number(r.until)]));
   const traderOf = (/** @type {any} */ l) => `${l.v_map}:${l.v_key}:${l.v_id}`;
   const shown = new Set(board.newest.map(traderOf));
@@ -2173,8 +2179,8 @@ export async function marketVendors(ctx, player, env, { region, character = null
       return listingView(l, player.id, {
         vendor: { map: Number(l.v_map), id: l.v_id }, map: Number(l.v_map), buildingKey: Number(l.v_key), owner: l.v_owner,
         // the house's door, as the town answer says it to this character (homeMayEnter's own fields)
-        home: { owner: l.v_owner, entry: l.v_entry, mine: l.v_player === player.id && l.v_char === me,
-          ...(l.v_entry === 'guild' && mate.has(`${l.v_player}\n${l.v_char}`) ? { guildmate: true } : {}),
+        home: { owner: l.v_owner, entry: l.v_entry, mine: l.v_player === player.id,   // ACCOUNT-HOMES: the account's own, whichever character bought it
+          ...(l.v_entry === 'guild' && mate.has(l.v_player) ? { guildmate: true } : {}),
           ...(Number.isSafeInteger(tenancy) ? { tenant: tenancy } : {}) },   // the rooms read rents still running alone
       });
     }),
@@ -2268,6 +2274,8 @@ export function vendorBoardOf(/** @type {unknown} */ text) {
  * HOME-VENDOR: MY TRADERS - `{ character }`: the Vendor page's read (the pause window's, beside the Professions). Every
  * trader of this character's homes (where it stands), the pieces standing at them, the pieces they have SOLD (newest
  * first, while the market keeps the sale's listing), and the gold the sales hold to collect at any board.
+ * ACCOUNT-HOMES (2026-10-06): the traders are the ACCOUNT's homes' (every character of it owns them); what stands at
+ * them, what they sold and the gold held stay this character's - a listing is its seller character's goods.
  */
 export async function marketMyVendors(ctx, player, env, { character } = {}) {
   const { db, nowS } = ctx;
@@ -2278,7 +2286,7 @@ export async function marketMyVendors(ctx, player, env, { character } = {}) {
   const me = player.id;
   const { results: traders = [] } = await db.prepare(`SELECT d.map_id, d.id, h.building_key, h.region, h.owner_name, h.player FROM home_decor d
     JOIN homes h ON h.map_id = d.map_id AND h.building_key = d.building_key
-    WHERE h.player = ?1 AND h.char_id = ?2 AND d.yard = 0 AND json_extract(d.place, '$.station') = '${VENDOR_STATION}' ORDER BY h.map_id, d.id`).bind(me, character).all();
+    WHERE h.player = ?1 AND h.guild_id IS NULL AND (h.deed = 0 OR h.char_id = ?2) AND d.yard = 0 AND json_extract(d.place, '$.station') = '${VENDOR_STATION}' ORDER BY h.map_id, d.id`).bind(me, character).all();
   await reckonPatrons(ctx, { maps: [...new Set(traders.map((v) => Number(v.map_id)))] }, env).catch(() => null);   // LW15: my traders' towns' patrons first
   const { results: stock = [] } = await db.prepare(`SELECT * FROM market_listings WHERE seller = ?1 AND char_id = ?2 AND vendor_id IS NOT NULL AND state = 'open'
     AND expires_at > ?3 ORDER BY at DESC LIMIT ${VENDOR_STOCK_SHOWN * 2}`).bind(me, character, nowS).all();

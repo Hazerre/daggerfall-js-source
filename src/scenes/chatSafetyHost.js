@@ -35,6 +35,7 @@ import { muteNamed } from '../net/moderation.js';   // STAFF-PANEL2-CHATMENU: a 
 import { STAFF_TP_ERROR_TEXT } from '../net/staffTeleport.js';   // STAFF-PANEL2-CHATMENU: and its TP refused as /tp is
 import { appStorage } from '../systems/appStorage.js';
 import { createConductCard } from '../ui/conductCard.js';
+import { createChatVoice } from '../net/chatVoice.js';   // STAFF-CHAT-RED: an Admin's Me or Red, beside the field
 import { registerOverlay } from '../ui/enhanced/enhancedOverlays.js';
 import { t, intlLocale } from '../systems/textManager.js';
 import { isTouchDevice } from '../ui/touch/touch.js';
@@ -193,8 +194,9 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
   const carry = (order) => {
     const kind = orderKindOf(order);
     if (!kind) return 0;
+    if (kind === 'staffcut') try { minter()?.forget?.(); } catch { /* each room's own close holds without it */ }   // STAFF-PANEL5-CUT-FIX: a staff cut - the token held from before it opens no room more
     let n = 0;
-    for (const l of allLinks()) if (kind === 'ban' ? l?.sendBanOrder?.(order) : l?.sendMuteOrder?.(order)) n++;
+    for (const l of allLinks()) if (kind === 'mute' ? l?.sendMuteOrder?.(order) : l?.sendBanOrder?.(order)) n++;
     return n;
   };
   const adoptList = (list) => {
@@ -418,7 +420,7 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
     const f = follow();
     return staffLineActs(glyphs()).map((act) => {
       const row = { label: STAFF_LABEL[act](), title: STAFF_SEEN.includes(act) ? t('net.staffMenu.seen', 'The player can see this.') : t('net.staffMenu.unseen', 'The player does not see this.') };
-      if (act === 'follow') return typeof f === 'function' ? { ...row, run: () => { void Promise.resolve().then(() => f(sub)).catch((e) => sayActive(String(e?.message ?? e))); } } : null;
+      if (act === 'follow') return typeof f === 'function' ? { ...row, run: () => { void Promise.resolve().then(() => f(sub)).then((ok) => { if (ok === false) sayActive(t('net.staffMenu.handed', 'Staff Panel: {act} {name}. Nothing opens without the Staff Panel extension.', { act: row.label, name })); }).catch((e) => sayActive(String(e?.message ?? e))); } } : null;   // false: no Staff Panel over this game (staffFollowHost.js follow), said as the panel's other acts say it
       if (act === 'tp') return typeof teleport === 'function' && typeof line.id === 'string' && line.id ? { ...row, run: () => tpTo(line) } : null;
       if (act === 'mute') return { ...row, menu: STAFF_MUTE_MINUTES.map((m) => ({ label: spanText(m), title: row.title, run: () => { void muteFor(sub, name, m); } })) };
       if (act === 'ban') return { ...row, menu: STAFF_BAN_DAYS.map((d) => ({ label: spanText(d * 1440), title: row.title, menu: banLevel(sub, name, d) })) };
@@ -428,6 +430,10 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
 
   const host = {
     hears,
+    /** STAFF-CHAT-RED (mob, 2026-10-23: "give me a option next to chat to chat as /red or myself at all times"): the voice an
+     *  Admin's lines go out in (net/chatVoice.js) - made here, beside the glyphs and the mint's word it reads, and handed
+     *  to the chat panel (ui/chatPanel.js `voice`) by the host. */
+    voice: createChatVoice({ glyphs, say, win }),
     /** The chat started: the log hears through the block list, every room's word is wired, and the list is read. */
     async start() {
       const l = log();
@@ -437,9 +443,13 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
     },
     /** AUDIT SAFE CLIENT-13: a room the host made after the chat started (the arena's hall and its watching sockets,
      *  scenes/arena/arenaOnline.js through world.js makeHall) - wired, carried to and left on a ban as the chat's own are.
+     *  STAFF-PANEL5-FREEZE-FIX (round two, a review: every room but the hub's is a lease room, so a new hall link that held
+     *  no lease was heard in nothing with the door on - its one queue word lost while the hall said queued): it takes the
+     *  page's newest lease at once, as the sailing cabin's lane does (net/roomLease.js), and the hub's next as every link.
      *  Answers the link. */
     adoptLink(link) {
       if (!link) return link;
+      for (const x of links()) link.leaseFrom?.(x);
       extra.add(link);
       wire(link);
       return link;
@@ -449,6 +459,7 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
     /** The mint's word: whether the code as it stands is agreed (`conduct`; absent from an older service - heard as yes).
      *  AUDIT SAFE CLIENT-1: never a no over a yes this page was given - a mint in flight as the player agreed. */
     adopt(issued) {
+      host.voice.adopt(issued);   // STAFF-CHAT-RED: and whether this token is a hidden staff member's
       if (!issued || typeof issued.conduct !== 'boolean') return;
       if (agreedHere && !issued.conduct) return;
       agreed = issued.conduct;

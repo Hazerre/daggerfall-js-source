@@ -126,7 +126,7 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'spellbook', group: 'combat', title: 'Casting Spells', trigger: 'When you first open your spellbook.',
     body: [
-      '{CastSpell} opens your spellbook. Choose a spell, then aim and cast it with {SwingWeapon}.',
+      '{CastSpell} opens your spellbook. Choose a spell, then aim and cast it with {ActivateCenterObject}. With a one-handed weapon drawn and your other hand empty, the spell waits in that hand and {SwingWeapon} still swings the weapon.',
       '{RecastSpell} casts your last spell again and {AbortSpell} lets it go. The Mages Guild sells spells and lets you make your own.',
     ],
   }),

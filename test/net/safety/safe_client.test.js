@@ -352,6 +352,19 @@ test('STAFF-PANEL2-CHATMENU FOLLOW AND TP: Follow calls the staff hook with the 
   rowOf(fail.host.lineActions(STAFF_LINE), 'Follow').run();
   await settle(); await settle();
   assert.equal(fail.log.tab(fail.log.active).messages.at(-1).text, 'Follow needs the Staff Panel.');
+  // STAFF-PANEL5-FOLLOW (mob 2026-10-23: "why doesnt follow work?"): no Staff Panel over the game - the hook's follow says
+  // false - is said as the panel's other acts say it, never silence
+  const none = staffRig(['dev'], { opts: { follow: () => () => false } });
+  rowOf(none.host.lineActions(STAFF_LINE), 'Follow').run();
+  await settle(); await settle();
+  assert.match(none.log.tab(none.log.active).messages.at(-1).text, /^Staff Panel: Follow Troll\. Nothing opens without the Staff Panel extension\.$/);
+  const said = none.log.tab(none.log.active).messages.length;
+  const on = staffRig(['dev'], { opts: { follow: () => () => true } });
+  const before = on.log.tab(on.log.active).messages.length;
+  rowOf(on.host.lineActions(STAFF_LINE), 'Follow').run();
+  await settle(); await settle();
+  assert.equal(on.log.tab(on.log.active).messages.length, before, 'a follow that started says nothing');
+  assert.ok(said > 0);
   const moved = staffRig(['shadowfang'], { peers: [['p2', { id: 'p2', name: 'Troll', sub: 'acct-new' }]], opts });
   tps.length = 0;
   rowOf(moved.host.lineActions(STAFF_LINE), 'TP').run();
@@ -359,7 +372,8 @@ test('STAFF-PANEL2-CHATMENU FOLLOW AND TP: Follow calls the staff hook with the 
   assert.equal(moved.log.tab(moved.log.active).messages.at(-1).text, 'That player is not online.');
   assert.equal(rowOf(staffRig(['dev'], { opts }).host.lineActions({ ...STAFF_LINE, id: '' }), 'TP'), undefined, 'no socket on the line, no TP');
   const w = readFileSync(new URL('../../../src/scenes/world.js', import.meta.url), 'utf8');
-  assert.match(w, /createChatSafetyHost\(\{[^\n]*, glyphs: \(\) => _staffGlyphs, teleport: \(id\) => runStaffCommand\(chatLog\?\.active, \{ cmd: 'tp', player: \{ id \} \}\) \}\);/, 'world.js: my glyphs as issued, and TP through /tp\'s own door by the socket');
+  assert.match(w, /createChatSafetyHost\(\{[^\n]*, glyphs: \(\) => _staffGlyphs, teleport: \(id\) => runStaffCommand\(chatLog\?\.active, \{ cmd: 'tp', player: \{ id \} \}\), follow: \(\) => staffFollow\.follow \}\);/, 'world.js: my glyphs as issued, TP through /tp\'s own door by the socket, and Follow through the page\'s staff hook');
+  assert.match(w, /\n  const staffFollow = staffFollowOnPage\(/, 'world.js: the follow the row calls is the page\'s one');
 });
 
 test('SAFE3 THE HOST\'S REPORT: a line\'s own Report carries that line and the stamped lines before it with the reason chosen; /report <name> carries everything the account said here; a report that mutes hands back an order, carried to every room by its kind (mutants: the order dropped; carried to the wrong door)', async () => {
@@ -521,6 +535,24 @@ test('AUDIT SAFE CLIENT-2 + RELAY-3 THE PAGE IS BANNED: the hub says the ban\'s 
   assert.deepEqual([hub.s.barred, trade.s.barred, late.s.barred], [false, false, false]);
   assert.equal(hub.s.rejoin(CHAT_WORLD_ROOM, chatNs.CHAT_REJOIN_MS), true);
   assert.match(log.tab(log.active).messages.at(-1).text, /Your ban was lifted/);
+});
+
+test('STAFF-PANEL5-CUT-FIX A STAFF MEMBER CUT OFF: the hub hands the cut\'s order (`law`) - read as its own kind, carried to every room by the ban\'s door (where a room closes the account\'s sockets it postdates, server/src/index.js `_banFrame`), and the token the minter holds let go, so no room opens on one from before the cut; nothing latched, nothing said (mutants: the kind unread; carried by the mute\'s door; the token kept)', async () => {
+  const { FakeWS, sockets } = fakeSocketClass();
+  const now = () => 1_000_000;
+  const hub = welcomedSession(FakeWS, sockets, CHAT_WORLD_ROOM, { now }), trade = welcomedSession(FakeWS, sockets, 'chat:trade', { now });
+  const log = new ChatLog({ now });
+  let forgot = 0;
+  const host = createChatSafetyHost({ log: () => log, links: () => [hub.s, trade.s], storage: { getItem: () => null }, doc: fakeDocument(), touch: false, register: () => () => {}, win: fakeWindow(), minter: () => ({ forget() { forgot++; } }), now });
+  await host.start();
+  const order = orderOf({ o: 'staffcut', s: 'acct-me', i: 1, e: 61 });
+  assert.equal(orderKindOf(order), 'staffcut');
+  const said = log.tab(log.active)?.messages.length ?? 0;
+  hub.ws.receive({ t: 'law', order });
+  assert.deepEqual(JSON.parse(trade.ws.sent.at(-1)), { t: 'ban', order }, 'carried by the ban\'s door');
+  assert.equal(forgot, 1, 'the token from before the cut let go');
+  assert.deepEqual([hub.s.barred, trade.s.barred], [false, false], 'nothing latched: each room closes what it must');
+  assert.equal(log.tab(log.active)?.messages.length ?? 0, said, 'nothing said');
 });
 
 test('AUDIT SAFE CLIENT-2 THE MINTER LETS GO OF A TOKEN MINTED BEFORE THE BAN: the host\'s word (`forget`), and a mint the service refuses as `banned` - no room is handed the old token after, though TOKEN_REUSE_MS has not run (mutants: forget a no-op; a refused mint keeping the held token)', async () => {
