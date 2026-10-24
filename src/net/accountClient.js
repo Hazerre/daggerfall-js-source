@@ -383,6 +383,8 @@ const REFUSAL_WORDS = {
   grace: () => t('account.refusal.grace', 'The fallen player still has a moment to settle their own death. This will be tried again shortly.'),
   nonce: () => t('account.refusal.nonce', 'That fall could not be read. Try again.'),
   room: () => t('account.refusal.room', 'That death gave no place for the remains. Try again.'),
+  // FOE-KEEPS: a foe's fall asked by a tab from before the word (no receipt) - a death to a foe drops nothing now
+  foe: () => t('account.refusal.foe', 'A death to a foe in the open zone drops nothing now. The game may need updating.'),
   // PVP-ESCROW (FIELD BUGS 2026-10-14, the two-phase handoff - server-account/src/wild.js wildCollect, wildReclaim,
   // wildEscrows): the world host's collect and reclaim say nothing of these to the player - it keeps what they do not
   // settle and lets go of what they do - but a word the service can say is a word with a sentence (ACC1e)

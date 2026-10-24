@@ -1424,6 +1424,11 @@
   "tr": "97198085a579",
   "by": "claude-in-session"
  },
+ "account.refusal.foe": {
+  "en": "c8af1250deb1",
+  "tr": "9c2228822aeb",
+  "by": "claude-in-session"
+ },
  "account.refusal.fortBuilding": {
   "en": "076781bd6643",
   "tr": "79ad9a16ccec",
@@ -33135,8 +33140,8 @@
   "by": "claude-in-session"
  },
  "tutorials.wildZone.body1": {
-  "en": "75b25b2fe113",
-  "tr": "0f7b012025a3",
+  "en": "5160bd8ee6d8",
+  "tr": "bc288652e446",
   "by": "claude-in-session"
  },
  "tutorials.wildZone.body2": {
