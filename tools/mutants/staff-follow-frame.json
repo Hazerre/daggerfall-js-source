@@ -108,5 +108,45 @@
     "tests": [
       "test/scenes/staffview1.test.js"
     ]
+  },
+  {
+    "name": "FOLLOW-BODIES-target-kept",
+    "file": "src/net/staffHook.js",
+    "old": "others: () => (eye?.drawable?.() ?? []).filter((/** @type {any} */ p) => !(p?.sub === target || (pid && p?.id === pid))),",
+    "new": "others: () => (eye?.drawable?.() ?? []),",
+    "why": "the target's own body drawn round the camera at their eyes",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "FOLLOW-BODIES-socket-only",
+    "file": "src/net/staffHook.js",
+    "old": "!(p?.sub === target || (pid && p?.id === pid))),",
+    "new": "!(pid && p?.id === pid)),",
+    "why": "the target known by account alone drawn over the camera",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "FOLLOW-BODIES-own-room-while-locked",
+    "file": "src/scenes/staffFollowHost.js",
+    "old": "drawable: () => (hook.locked() ? hook.others() : main()?.drawable?.() ?? []),",
+    "new": "drawable: () => (main()?.drawable?.() ?? []),",
+    "why": "mob: \"cant see other players bodys\" - the game's own room is left while following, so nobody is drawn",
+    "tests": [
+      "test/net/staffpanel5hook.test.js"
+    ]
+  },
+  {
+    "name": "FOLLOW-BODIES-host-unwired",
+    "file": "src/scenes/world.js",
+    "old": ": staffFollow.drawable(); if (hccOn())",
+    "new": ": online.drawable(); if (hccOn())",
+    "why": "the scene draws the game's empty room while following",
+    "tests": [
+      "test/systems/wagon/wagons2.test.js"
+    ]
   }
 ]

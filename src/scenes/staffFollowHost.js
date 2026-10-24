@@ -139,6 +139,9 @@ export function staffFollowOnPage({ main, prepare, mode, pixel, toScene, relink 
     // STAFF-VIEW1 (mob: "np player esp in staff panel?"): what the staff view reads (scenes/staffViewHost.js) - whether a
     // panel spoke here, the followed room's players, the game's own session, its frame and mode, and the panel's tags
     panel: door.panel, peers: hook.peers, main, toScene, mode, tags: door.tags, askTags: door.askTags,
+    /** FOLLOW-BODIES: the players the scene draws - while a follow is locked the game has left its own room, so the
+     *  players around the target (net/staffHook.js `others`), else the game's own room's. */
+    drawable: () => (hook.locked() ? hook.others() : main()?.drawable?.() ?? []),
     pixel,   // STAFF-FLATMAP: where the staff member stands, the flat map's first region
   };
 }

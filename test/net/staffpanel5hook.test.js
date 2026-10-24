@@ -505,6 +505,24 @@ test('STAFF-VIEW1 hook: peers() is the followed room\'s players as the eye draws
   assert.deepEqual(hook.peers(), [], 'let go');
 });
 
+test('FOLLOW-BODIES (mob, 2026-10-24: "cant see other players bodys"): while a follow is locked the scene draws the players around the target - the eye\'s room less the target, whose eyes the camera is - and the game\'s own room otherwise (mutants: the target kept, the game\'s room while locked)', () => {
+  const { Session, made } = fakeSessions();
+  const mine = [{ id: 'peer-mine' }];
+  const main = { url: 'wss://relay.test', drawable: () => mine };
+  const page = staffFollowOnPage({ main: () => main, prepare: async () => {}, mode: () => 'exterior', pixel: () => ({ x: 1, y: 2 }), toScene: (p) => [p.x, p.y, p.z], win: { location: { origin: 'https://game.test' }, addEventListener() {}, postMessage() {} }, Session, entity: null });
+  assert.deepEqual(page.drawable(), mine, 'no follow: the game\'s own room');
+  const hook = page.hook;
+  hook.follow('acct-target', { room: 'world:1,1', id: 'peer-t' }); hook.tick();
+  made[0].onFollow({ k: 'on', sub: 'acct-target' });
+  hook.tick();
+  const eye = made[1];
+  const t = { id: 'peer-t', shown: { x: 1, y: 2, z: 3, yaw: 0, pitch: 0 } }, o = { id: 'peer-o', shown: { x: 4, y: 5, z: 6, yaw: 0, pitch: 0 } }, s = { id: 'peer-s', sub: 'acct-target', shown: { x: 7, y: 8, z: 9, yaw: 0, pitch: 0 } };
+  eye.peers.set('peer-t', t); eye.peers.set('peer-o', o); eye.peers.set('peer-s', s);
+  assert.deepEqual(page.drawable(), [o], 'locked: the others around the target, never the target (by socket or by account)');
+  hook.unlock();
+  assert.deepEqual(page.drawable(), mine, 'let go: the game\'s own room again');
+});
+
 test('STAFF-VIEW1 hook door: `tags?` to this page\'s own origin; a `tags` answer kept as validTags reads it - from this window and origin alone, an account that is an account id, a known level, words of TAG_WHY_MAX at most, TAGS_MAX rows, a distance Your settings offers - and an answer with no list keeps the last (mutants: each check dropped, the ask to \'*\')', () => {
   const listeners = [], posted = [];
   const win = { location: { origin: 'https://game.test' }, addEventListener: (_k, f) => listeners.push(f), postMessage: (m, o) => posted.push([m, o]) };

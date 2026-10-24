@@ -163,6 +163,9 @@ export function createStaffHook({ main, askToken, Session = OnlineSession, WS = 
     /** STAFF-VIEW1: the players the room I watch from draws - while a follow is locked the host has left its own room
      *  (its session's peers cleared), so these are the only players the staff view can tag. */
     peers: () => eye?.drawable?.() ?? [],
+    /** FOLLOW-BODIES (mob, 2026-10-24: "cant see other players bodys"): the players around the target, for the scene to
+     *  draw while the follow is locked - the room's draw less the target, whose eyes the camera is. */
+    others: () => (eye?.drawable?.() ?? []).filter((/** @type {any} */ p) => !(p?.sub === target || (pid && p?.id === pid))),
     /** Every frame: the hub link held, and the room link where the hub says, standing on the target for range. */
     tick() {
       const m = main?.();
