@@ -240,8 +240,8 @@
  {
   "name": "PA-gilded-keep-of-the-rest-frame",
   "file": "src/combat/gun/pistoletArt.js",
-  "old": "gilded ? gildFrame(rgba, pistoletGildKeep(rgba))",
-  "new": "gilded ? gildFrame(rgba, pistoletGildKeep(cropped[0]))",
+  "old": "gilded ? gildFrame(own, pistoletGildKeep(own))",
+  "new": "gilded ? gildFrame(own, pistoletGildKeep(cells[0]))",
   "tests": [
    "test/systems/pistolet_pins.test.js"
   ]
@@ -268,8 +268,8 @@
  {
   "name": "PA-muzzle-off-the-wrong-frame",
   "file": "src/combat/gun/pistoletArt.js",
-  "old": "const muzzle = flashPoint(cropped[1]);",
-  "new": "const muzzle = flashPoint(cropped[0]) ?? { x: 0.5, y: 0.5 };",
+  "old": "muzzle: flashPoint(cropTo(bled[1], union))",
+  "new": "muzzle: flashPoint(cropTo(bled[0], union)) ?? { x: 0.5, y: 0.5 }",
   "tests": [
    "test/systems/pistolet.test.js",
    "test/systems/pistolet_pins.test.js"
