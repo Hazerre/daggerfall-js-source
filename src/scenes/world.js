@@ -348,6 +348,7 @@ import { createGateOmen, insideGateRing, gateSceneXZ, fellLine, OMEN_SETTLE_MS, 
 import { gateScanner, findGateSite, gateSeaPixel, politicClaimed } from '../systems/gate/gateSite.js';   // WB1: where the day's gate stands, over the map files every client holds alike
 import { createGatePool, GATE_TEXT } from './gate/gatePool.js';   // WB2: the gate the world stands - its stone, its fire and beacon, its collider and its door
 import { createStarfallHost } from './starfall/starfallHost.js';   // STAR4-STAR6: the Witches' Festival's fallen stars - in the sky, in the world, defended
+import { createRocketHost } from './rocketHost.js';   // ROCKET1: /event rocket - the mounds, their poop, the farting horses and the frenzy
 import { createRiteHost, RITE_TEXT } from './riteHost.js';   // WB12d: the faithful's rite - its circle, its smoke, its faithful, its word and its chest
 import { createSdHost } from './superDungeon/sdHost.js';   // SD2b: the Hollow in the world - the hub's record in, the Hollow stood at its pixel, the find, the lines
 import { sdOmenSeen, sdNoticeCard, SD_COMPASS_M, sdAirWeight, sdBrassLight, sdBannerText, SD_BANNER_M } from '../systems/superDungeon/sdOmen.js';   // SD2c: the Hollow seen and heard of - its column, its note, its compass's reach
@@ -21430,7 +21431,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // EVERY link, not the hub's alone - a close that marks the Region link (this tab's id taken in its channel) left
       // it shut for the page's life, with no Play online here to open it again
       link.onSuperseded = () => seatLostNow();
-      if (tab.room === SOCIAL_ROOM) link.onEvent = (ev, o) => { dread.set(ev, o); sunbaby.set(ev, o); };   // SUNBABY1: and the sun baby   // EVENT1: the hub - the one room every online player holds - says the live event
+      if (tab.room === SOCIAL_ROOM) link.onEvent = (ev, o) => { dread.set(ev, o); sunbaby.set(ev, o); rocket.set(ev, o); };   // SUNBABY1: and the sun baby; ROCKET1: and the rocket   // EVENT1: the hub - the one room every online player holds - says the live event
       if (tab.room === SOCIAL_ROOM) link.onHome = (words) => { onlineHomes?.hearHome(words); };   // QUEST-HOME: and a home that moved since the boot's read, every page told
     }
     // SRV-N: the PRESENCE session hears the relay too, and it is usually
@@ -24695,6 +24696,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // STAR7: the rewards' (scenes/starfall/starRewards.js) - the pack's door, the relay's clock, the silver, the Renown
     takeSpoil, relayNowS, marksBook, renownXpAdopt, renownAdopt, renownRose, get renownSaid() { return renownSaid; },
   }) : null;
+  /** ROCKET1: THE ROCKET (scenes/rocketHost.js) - the hub's third live event word: mounds round the traveller on the world's
+   *  own grid, their poop, the horses farting across the sky and the diarrhea frenzy, on the shared clock. Offline nothing sets it. */
+  const rocket = createRocketHost(renderer, sunbabyGround, state);
   /** SD2b: THE HOLLOW IN THE WORLD (scenes/superDungeon/sdHost.js) - online alone: the hub's record of the Super dungeon (its hub link's
    *  onSd), the Hollow it names found over this client's own map files (the gate's scan, the game's own rows) and stood in
    *  the index at its pixel while its phase stands - built there as a spawned dungeon is, its pixel built again when it
@@ -33976,6 +33980,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // player online sees one drop in the same second, each round themselves), drawn by the spell engine, burning no one
     if (jump) sunbabyRain.reset();
     for (const fb of sunbabyRain.tick({ sharedMs: Date.now() + _sharedOffsetMs, eye: tvStand, fire: sunbaby.on && sunbabyFace.fire, ground: sunbabyGround })) magic.skyFire(fb);
+    rocket.frame(dt, Date.now() + _sharedOffsetMs, tvStand, townTalk);   // ROCKET1: the rocket's weight, its line owed, its mounds round the traveller and its sounds
     // WBX8: THE GATE'S RED STORM - the same strikes' law on a schedule of its own, round the gate's site (so its
     // lightning shows where the gate stands), its thunder from each strike's distance to the ear; ticked every frame,
     // at nothing when no gate burns, so a gate coming into reach fires no backlog
@@ -35148,6 +35153,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, color: renderer._fogColor, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze })) renderer.markForeignPass();
     // STAR4: THE STARFALL'S SKY - the omens, the falls, the flashes and their rings, the beacons - the same eye and fog
     if (starfall?.showing() && starfall.drawSky(proj, view, new Float32Array(mwv.eye), now / 1000)) renderer.markForeignPass();
+    rocket.draw(proj, view, mwv.eye);   // ROCKET1: the rocket - its brown sky, mounds, poop, horses and their clouds, the same eye and fog
     // LOOT11 (the Loot arc): THE LINES OF LIGHT over my bodies and the street's piles holding a Rare or better - after the
     // gate's fire, the same eye and fog (scenes/lootLines.js: the nearest eight within 40 m)
     if (lootLines.draw(() => [...exteriorFoes.lootFinds(), ...droppedLoot.lootFinds()], proj, view, new Float32Array(mwv.eye), now / 1000,
