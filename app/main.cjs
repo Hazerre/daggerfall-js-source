@@ -475,12 +475,17 @@ const { UNLOAD_ASK, leaves, restartAsk, reinstallAsk, installFailedAsk, goesAhea
 const { goneAsk, restarts, hangAsk, restartsHung, createStopCount, goneLine, logWith } = require('./lib/rendererGone.cjs');   // FIELD BUGS 2026-10-21b RENDERER-GONE
 /** RENDERER-GONE: crash.log beside the saves - a process gone, when and why (its oldest lines dropped past its most). */
 const CRASH_LOG = () => path.join(app.getPath('userData'), 'crash.log');
+const { trailFrom, trailLines } = require('./lib/rendererGone.cjs');   // GPU-TRAIL
+/** GPU-TRAIL: the game page's newest GPU samples (dagger:gpu-trail), written under a process gone's line - and let go
+ *  with a page that stopped, so the page after it never writes the dead one's as its own. */
+let gpuTrail = null;
 function logGone(what, details) {
   try {
     const file = CRASH_LOG();
     const had = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
-    fs.writeFileSync(file, logWith(had, goneLine(what, details, Date.now())));
+    fs.writeFileSync(file, logWith(had, goneLine(what, details, Date.now()) + trailLines(gpuTrail)));
   } catch { /* a log that cannot be written is no reason to stop */ }
+  if (what === 'renderer') gpuTrail = null;
 }
 // RENDERER-GONE: the GPU's process gone is logged too - Chromium starts it again, and the page says the graphics stopped
 // itself (main.js webglcontextlost: tap to reload)
@@ -1838,6 +1843,12 @@ app.on('web-contents-created', (_e, contents) => {
 // proved itself: the one before it goes (gameStore.bootDone). Heard from the game's window only.
 ipcMain.on('dagger:game-up', (e) => {
   if (gameWindow && !gameWindow.isDestroyed() && e.sender === gameWindow.webContents) gameStore?.bootDone();
+});
+// GPU-TRAIL (src/render/gpuTrail.js, app/lib/rendererGone.cjs trailFrom): the game page's GPU samples, handed over with
+// each one so a page that stops between them has already said its last - kept from the game's window only, read field
+// by field, and written by logGone.
+ipcMain.on('dagger:gpu-trail', (e, trail) => {
+  if (gameWindow && !gameWindow.isDestroyed() && e.sender === gameWindow.webContents) gpuTrail = trailFrom(trail);
 });
 
 // The preload asks for its storage root synchronously at page boot -
