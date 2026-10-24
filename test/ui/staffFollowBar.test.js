@@ -94,3 +94,22 @@ test('STAFF-FOLLOW-UNLOCK + STAFF-HIDE-IN-GAME the page: no bar until a panel sp
   page.frame();
   assert.equal(unlockOf(doc).style.display, 'none', 'let go: the Unlock goes, the bar stays');
 });
+
+test('BAR-NO-FOCUS (mob, 2026-10-24: "DONT LET THE HIDE BUTTON STAY LOCKED TO MY SPACE BAR"): the bar\'s buttons never hold the keyboard - out of the tab order, a press takes no focus, a click lets go of any (mutants: each of the three)', () => {
+  const doc = fakeDoc();
+  const bar = createStaffFollowBar({ doc, onUnlock: () => {}, onHide: () => {} });
+  bar.show({ hidden: false, following: true });
+  for (const data of ['data-staff-hide', 'data-staff-unlock']) {
+    const b = btnOf(doc, data);
+    assert.equal(b.tabIndex, -1, `${data}: out of the tab order`);
+    for (const k of ['pointerdown', 'mousedown']) {
+      let prevented = false;
+      for (const f of b.on[k] ?? []) f({ stopPropagation() {}, preventDefault() { prevented = true; } });
+      assert.equal(prevented, true, `${data}: a ${k} takes no focus`);
+    }
+    let blurred = 0;
+    b.blur = () => { blurred++; };
+    b.fire('click');
+    assert.equal(blurred, 1, `${data}: a click lets go of the keyboard`);
+  }
+});
