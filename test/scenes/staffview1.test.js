@@ -25,6 +25,7 @@ function fakeNode(tag, doc) {
     setAttribute(k, v) { n.attrs[k] = v; doc.writes++; },
     remove() { if (n.parent) { n.parent.children.splice(n.parent.children.indexOf(n), 1); n.parent = null; } n.removed = true; doc.structure++; },
     addEventListener(k, f) { (n.on[k] ??= []).push(f); },
+    replaceChildren(...cs) { for (const c of n.children) c.parent = null; n.children = []; n.append(...cs); },
     fire(k) { const e = { stopped: false, stopPropagation() { e.stopped = true; }, preventDefault() {} }; for (const f of n.on[k] ?? []) f(e); return e; },
   };
   let text = '', cls = '';
@@ -74,19 +75,20 @@ function fakeFollow({ panel = true, locked = false, eye = [], room = [], tags = 
 /** A layer that records what the host hands it. */
 function fakeLayer() {
   const l = { renders: [], lineSets: [], hidden: 0, onPick: null };
-  l.make = ({ onPick }) => { l.onPick = onPick; return { render: (g, n) => l.renders.push({ groups: g, n }), strokes: (s) => l.lineSets.push(s), hide: () => { l.hidden++; }, dispose() {}, size: () => 0 }; };
+  l.menus = [];
+  l.make = ({ onPick }) => { l.onPick = onPick; return { menu: (title, rows) => l.menus.push({ title, rows }), render: (g, n) => l.renders.push({ groups: g, n }), strokes: (s) => l.lineSets.push(s), hide: () => { l.hidden++; }, dispose() {}, size: () => 0 }; };
   l.last = () => l.renders.at(-1);
   l.members = () => (l.last()?.groups ?? []).flatMap((g) => g.members);
   return l;
 }
-function rig({ glyphs = ['dev'], follow = fakeFollow(), links = null, book = [], foes = [], up = false, doc = null, layer = fakeLayer(), origin = ORIGIN } = {}) {
+function rig({ glyphs = ['dev'], follow = fakeFollow(), links = null, book = [], foes = [], up = false, doc = null, layer = fakeLayer(), origin = ORIGIN, acts = null, politicAt = null } = {}) {
   const said = [], posted = [], toggled = [];
   let t = 1_000_000;
   const win = { location: { origin }, postMessage: (m, o) => posted.push([m, o]) };
   const state = { glyphs, up, links };
   const host = createStaffViewHost({
     follow, glyphs: () => state.glyphs, links: () => state.links, book: { live: () => book }, foes: { foes }, overworld: () => toggled.push(1),
-    up: () => state.up, canvas: CANVAS, say: (s) => said.push(s), win, doc: doc ?? fakeDocument(), now: () => t,
+    up: () => state.up, canvas: CANVAS, say: (s) => said.push(s), win, doc: doc ?? fakeDocument(), now: () => t, acts, politicAt,
     ...(doc ? {} : { makeTags: layer.make }),
   });
   const frame = (covered = false) => host.frame(PROJ, VIEW, EYE, covered);
@@ -434,11 +436,85 @@ test('STAFF-VIEW1 the layer\'s lines: one canvas, drawn only when a line moved; 
 
 test('STAFF-VIEW1 host: the five seams - made after the follow with its getters, the names pass\'s frame, the travel view\'s marks and mark click, and Shift+M past the key ladder\'s latch (KEY-BOOT) and before its actions', () => {
   const w = readFileSync(new URL('../../src/scenes/world.js', import.meta.url), 'utf8');
-  const made = w.search(/const staffView = createStaffViewHost\(\{\n\s*follow: staffFollow, glyphs: staffGlyphs, links: \(\) => chatLinks, book: travellerBook, foes: exteriorFoes,\n\s*overworld: travelViewKey, up: \(\) => !!travelView\?\.active, canvas, say: townTalk\.say,\n\s*\}\);/);
+  const made = w.search(/const staffView = createStaffViewHost\(\{\n\s*follow: staffFollow, glyphs: staffGlyphs, links: \(\) => chatLinks, book: travellerBook, foes: exteriorFoes,\n\s*overworld: travelViewKey, up: \(\) => !!travelView\?\.active, canvas, say: townTalk\.say,\n\s*acts: \(p, onFollow\) => chatSafety\.playerActions\(p, onFollow\),[^\n]*\n\s*politicAt: \(x, y\) => maps\.getPoliticIndex\(x, y\),[^\n]*\n\s*\}\);/);
   assert.ok(made > w.indexOf('const staffFollow = staffFollowOnPage('), 'made, after the follow it reads');
   assert.match(w, /const namesOff = covered \|\| !!travelView\?\.active;\n\s*staffView\.frame\(proj, view, eye, covered\);/, 'the names pass, every mode');
   assert.match(w, /marks: \(\) => staffView\.marks\(travelViewMarks\(\)\),/);
   assert.match(w, /onMark: \(key, e\) => staffView\.mark\(key\) \|\| onTravelViewMark\(key, e\),/);
   assert.match(w, /if \(!_worldKeysLive\) return;[^\n]*\n\s*if \(\(!e\.repeat && !gamePaused\(\) && egClient\?\.key\(e\)\) \|\| \(!gamePaused\(\) && staffView\.key\(e\)\)\) \{ e\.preventDefault\(\); return; \}/, 'Shift+M, past the latch');
   assert.doesNotMatch(readFileSync(new URL('../../src/systems/inputActions.js', import.meta.url), 'utf8'), /StaffView|ShiftLeft\+KeyM/, 'no InputManager action and no default chord: a player\'s Shift is no modifier');
+});
+
+test('STAFF-TAG-MENU a tag\'s click opens the player\'s menu - the chat line menu\'s staff acts by socket and account - at the tag; its Follow is the view\'s own (the follow, then the panel\'s card); with no acts the click follows at once (mutants: the menu skipped, the view\'s follow not handed)', () => {
+  const asked = [];
+  const acts = (p, onFollow) => { asked.push(p); return [{ label: 'Follow', run: () => onFollow(p.sub) }, { label: 'Mute…', menu: [] }]; };
+  const follow = fakeFollow({ room: [peer('p1', 0, -30, { name: 'Bran', sub: 'acct-bran' })] });
+  const r = rig({ follow, acts });
+  r.frame();
+  r.layer.onPick('p1');
+  assert.deepEqual(asked, [{ id: 'p1', sub: 'acct-bran', name: 'Bran' }]);
+  assert.equal(r.layer.menus.length, 1);
+  assert.equal(r.layer.menus[0].title, 'Bran');
+  assert.deepEqual(follow.followed, [], 'a click alone follows nobody');
+  r.layer.menus[0].rows[0].run();
+  assert.deepEqual(follow.followed, ['acct-bran']);
+  assert.deepEqual(r.posted.at(-1), [{ dfoStaff: 'act', act: 'follow', sub: 'acct-bran', name: 'Bran' }, ORIGIN], 'and the panel\'s card');
+  const plain = rig({ follow: fakeFollow({ room: [peer('p1', 0, -30, { name: 'Bran', sub: 'acct-bran' })] }) });
+  plain.frame();
+  plain.layer.onPick('p1');
+  assert.deepEqual(plain.follow.followed, ['acct-bran'], 'no acts: the follow at once');
+});
+
+test('STAFF-TAG-MENU the layer\'s menu: at the press, a head and a button a row, a row\'s own menu opened in place, a choice runs and shuts it, Close shuts it, a second replaces the first; its presses never reach the world', () => {
+  const doc = fakeDocument();
+  const picked = [];
+  const tags = createStaffTags({ doc, onPick: (id) => picked.push(id) });
+  tags.render([{ key: 'p1', x: 100, y: 100, members: [{ id: 'p1', name: 'Bran', line: '', level: '' }] }], 0);
+  const tag = tagsIn(doc)[0];
+  for (const f of tag.on.click) f({ clientX: 120, clientY: 90, stopPropagation() {}, preventDefault() {} });
+  assert.deepEqual(picked, ['p1']);
+  const ran = [];
+  tags.menu('Bran', [{ label: 'Follow', run: () => ran.push('follow') }, { label: 'Mute…', menu: [{ label: '30 min', run: () => ran.push('mute30') }] }]);
+  const menus = () => all(doc.body).filter((x) => x.attrs['data-staff-menu'] != null && !x.removed && x.parent);
+  assert.equal(menus().length, 1);
+  const m = menus()[0];
+  assert.match(m.style.cssText, /translate\(120px, 90px\)/);
+  assert.deepEqual(m.children.map((c) => c.textContent), ['Bran', 'Follow', 'Mute…', 'Close']);
+  assert.equal(m.fire('mousedown').stopped, true, 'the world hears nothing');
+  m.children[2].fire('click');
+  assert.deepEqual(m.children.map((c) => c.textContent), ['Bran', '30 min', 'Close'], 'Mute opens its lengths in place');
+  m.children[1].fire('click');
+  assert.deepEqual(ran, ['mute30']);
+  assert.equal(menus().length, 0, 'a choice shuts it');
+  tags.menu('Bran', [{ label: 'Follow', run: () => ran.push('follow') }]);
+  tags.menu('Ash', [{ label: 'Follow', run: () => ran.push('ash') }]);
+  assert.equal(menus().length, 1, 'a second replaces the first');
+  assert.equal(menus()[0].children[0].textContent, 'Ash');
+  menus()[0].children.find((c) => c.attrs['data-staff-menu-close'] != null).fire('click');
+  assert.equal(menus().length, 0, 'Close shuts it');
+  tags.menu('X', []);
+  assert.equal(menus().length, 0, 'no rows, no menu');
+});
+
+test('STAFF-FLATMAP Shift+N: staff only, a trusted press with Shift alone, anywhere; opens the flat map on the map\'s link at the region stood in and closes it again; a player\'s press is the game\'s (mutants: the flat map for a player)', () => {
+  const picks = [];
+  const map = { pick: (r) => picks.push(r), answer: () => null };
+  const press = (o = {}) => ({ code: 'KeyN', shiftKey: true, ctrlKey: false, altKey: false, metaKey: false, isTrusted: true, repeat: false, ...o });
+  const follow = Object.assign(fakeFollow(), { map, pixel: () => ({ x: 5, y: 5 }), mode: () => 'interior' });
+  const politicAt = () => 128 + 7;
+  const r = rig({ follow, politicAt, doc: fakeDocument() });
+  r.frame();
+  assert.equal(r.host.key(press({ isTrusted: false })), false);
+  assert.equal(r.host.key(press({ ctrlKey: true })), false);
+  assert.equal(r.host.key(press()), true, 'indoors too');
+  assert.deepEqual(picks, [7]);
+  r.frame();
+  assert.equal(r.host.key(press({ repeat: true })), true, 'its held repeat nothing');
+  assert.deepEqual(picks, [7]);
+  assert.equal(r.host.key(press()), true);
+  assert.deepEqual(picks, [7, null], 'closed: the link let go');
+  const player = rig({ glyphs: [], follow, politicAt });
+  assert.equal(player.host.key(press()), false, 'a player\'s Shift+N is the game\'s');
+  const noMap = rig({ follow: fakeFollow(), politicAt });
+  assert.equal(noMap.host.key(press()), false, 'no map link: nothing');
 });

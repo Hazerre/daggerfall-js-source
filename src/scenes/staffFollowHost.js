@@ -7,7 +7,7 @@
 // "spectator enter" - the TP host's prepare, never placed), and after the motor the camera sits at the target's eyes
 // and faces where they face. Nothing here moves anyone but the staff member's own camera and body, and nothing fights.
 import { staffDestinationKey } from '../net/staffTeleport.js';
-import { createStaffHook, staffHookDoor } from '../net/staffHook.js';
+import { createStaffHook, staffHookDoor, staffHide } from '../net/staffHook.js';
 import { createStaffMap, noteHidden } from '../net/staffMap.js';
 import { createStaffFollowBar } from '../ui/staffFollowBar.js';   // STAFF-FOLLOW-UNLOCK: the follow's Unlock in the game   // STAFF-MAP: the Staff Panel's region map
 import { RIDE_EYE_HEIGHT, CAPSULE_HEIGHT } from '../player/motor.js';   // a peer's eye, as the peers' bodies stand it (world.js: a rider's the saddle's)
@@ -92,14 +92,22 @@ export function staffFollowOnPage({ main, prepare, mode, pixel, toScene, relink 
   let hiddenNow = false;
   const watch = () => { const m = main(); if (m && typeof m.mintToken === 'function') m.mintToken = noteHidden(m.mintToken, (/** @type {boolean} */ h) => { hiddenNow = h; }); };
   const host = createStaffFollowHost({ hook, prepare, mode, where: () => `${mode()}|${pixel().x},${pixel().y}`, toScene, eyeHeight: (p) => (p.rd ? RIDE_EYE_HEIGHT : CAPSULE_HEIGHT - 0.2), hidden: () => hiddenNow });
-  // STAFF-FOLLOW-UNLOCK: while a follow is locked, its bar and Unlock on the game's own screen
-  const bar = createStaffFollowBar({ doc: win?.document, onUnlock: () => hook.unlock() });
-  const barFrame = () => { if (hook.locked()) bar.show(); else bar.hide(); };
+  // STAFF-FOLLOW-UNLOCK and STAFF-HIDE-IN-GAME: once a panel has spoken here, the staff bar on the game's own screen - Hide
+  // me or Show myself, and while a follow is locked its Unlock; a press waits on the panel's answer (the relink follows it)
+  let asking = false;
+  const press = (/** @type {boolean} */ on) => {
+    if (asking) return;
+    asking = true;
+    void staffHide(on, win).catch(() => false).then((ok) => { asking = false; if (ok) hiddenNow = on; });
+  };
+  const bar = createStaffFollowBar({ doc: win?.document, onUnlock: () => hook.unlock(), onHide: press });
+  const barFrame = () => { if (door.panel()) bar.show({ following: hook.locked(), hidden: hiddenNow, asking }); else bar.hide(); };
   return {
     hook, map, frame: () => { watch(); map.tick(); const out = host.frame(); barFrame(); return out; }, eye: host.eye, locked: () => hook.locked(),
     follow: (/** @type {unknown} */ sub) => door.panel() && hook.follow(sub),
     // STAFF-VIEW1 (mob: "np player esp in staff panel?"): what the staff view reads (scenes/staffViewHost.js) - whether a
     // panel spoke here, the followed room's players, the game's own session, its frame and mode, and the panel's tags
     panel: door.panel, peers: hook.peers, main, toScene, mode, tags: door.tags, askTags: door.askTags,
+    pixel,   // STAFF-FLATMAP: where the staff member stands, the flat map's first region
   };
 }

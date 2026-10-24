@@ -22391,6 +22391,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const staffView = createStaffViewHost({
     follow: staffFollow, glyphs: staffGlyphs, links: () => chatLinks, book: travellerBook, foes: exteriorFoes,
     overworld: travelViewKey, up: () => !!travelView?.active, canvas, say: townTalk.say,
+    acts: (p, onFollow) => chatSafety.playerActions(p, onFollow),   // STAFF-TAG-MENU: a tag's click opens the chat line menu's staff acts
+    politicAt: (x, y) => maps.getPoliticIndex(x, y),   // STAFF-FLATMAP: the flat map's land, off the politic map
   });
   registerFreeFlight(() => spectatingHere());   // AUDIT-SEATS G4: the spectator's camera is free - the motor's own flight over the town
   /** AUDIT-SEATS G4: where the spectator stood when its camera went free, in the wire's frame (the floating origin moves

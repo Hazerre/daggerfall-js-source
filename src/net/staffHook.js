@@ -255,17 +255,24 @@ export function staffHookDoor(win, hookOf, { setTimer = setTimeout, clearTimer =
  *  once the service has. Resolves the panel's ok - false when the service refused, or when no answer came in
  *  STAFF_TOKEN_WAIT_MS: no panel on this page, or one older than this ask, which ignores it.
  *  @param {any} [win] @param {{ setTimer?: typeof setTimeout, clearTimer?: typeof clearTimeout }} [t] @returns {Promise<boolean>} */
-export function staffShowMe(win = globalThis.window, { setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
+export function staffShowMe(win = globalThis.window, t = {}) { return staffHide(false, win, t); }
+
+/** STAFF-HIDE-IN-GAME (2026-10-24, mob: "when i ment hide button for chat i ment for invisble", "and hide me and unlock
+ *  button?"): Hide me ON or OFF asked from the game (its staff bar, ui/staffFollowBar.js), as staffShowMe asks it off -
+ *  the panel's worker says it on the staff session (/v1/staff/hide { on }), audited there, and every game tab relinks.
+ *  Resolves the panel's ok. @param {boolean} on @param {any} [win] @param {{ setTimer?: typeof setTimeout, clearTimer?: typeof clearTimeout }} [t] @returns {Promise<boolean>} */
+export function staffHide(on, win = globalThis.window, { setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
   const origin = win?.location?.origin;
   if (typeof origin !== 'string' || !origin || origin === 'null' || typeof win.postMessage !== 'function') return Promise.resolve(false);
+  const want = on === true;
   return new Promise((resolve) => {
     const heard = (/** @type {any} */ e) => {
       const m = e?.data;
-      if (e?.source === win && e?.origin === origin && m?.dfoStaff === 'hide' && 'ok' in m) done(m.ok === true);
+      if (e?.source === win && e?.origin === origin && m?.dfoStaff === 'hide' && m.on === want && 'ok' in m) done(m.ok === true);
     };
     const done = (/** @type {boolean} */ ok) => { clearTimer(timer); win.removeEventListener?.('message', heard); resolve(ok); };
     const timer = setTimer(() => done(false), STAFF_TOKEN_WAIT_MS);
     win.addEventListener?.('message', heard);
-    win.postMessage({ dfoStaff: 'hide', on: false }, origin);
+    win.postMessage({ dfoStaff: 'hide', on: want }, origin);
   });
 }

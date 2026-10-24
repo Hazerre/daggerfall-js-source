@@ -20884,6 +20884,46 @@
   "tr": "62753ea2bf10",
   "by": "claude-in-session"
  },
+ "net.staffFlat.close": {
+  "en": "bbfa773e5a63",
+  "tr": "ae2883a526af",
+  "by": "claude-in-session"
+ },
+ "net.staffFlat.connecting": {
+  "en": "fd3e79699426",
+  "tr": "82b0fb8ba48b",
+  "by": "claude-in-session"
+ },
+ "net.staffFlat.count": {
+  "en": "42a215afd17e",
+  "tr": "23f3d0e7cff4",
+  "by": "claude-in-session"
+ },
+ "net.staffFlat.hideOff": {
+  "en": "a8161b252b3d",
+  "tr": "ef02e476fb3b",
+  "by": "claude-in-session"
+ },
+ "net.staffFlat.noFlag": {
+  "en": "44af2d949737",
+  "tr": "20b675e356e1",
+  "by": "claude-in-session"
+ },
+ "net.staffFlat.nobody": {
+  "en": "986672df99eb",
+  "tr": "bea5abfe30ac",
+  "by": "claude-in-session"
+ },
+ "net.staffFlat.title": {
+  "en": "e511b78d5db6",
+  "tr": "208a97d511d1",
+  "by": "claude-in-session"
+ },
+ "net.staffFlat.urgent": {
+  "en": "83922b9c177f",
+  "tr": "16b18b166fee",
+  "by": "claude-in-session"
+ },
  "net.staffFollow.following": {
   "en": "5731d809fd3b",
   "tr": "e14453cf8de4",
@@ -20892,6 +20932,26 @@
  "net.staffFollow.followingAnon": {
   "en": "90eeb1008380",
   "tr": "61bfde7b7c63",
+  "by": "claude-in-session"
+ },
+ "net.staffFollow.hidden": {
+  "en": "d4c2792a7245",
+  "tr": "640dff12b32e",
+  "by": "claude-in-session"
+ },
+ "net.staffFollow.hideMe": {
+  "en": "def2f86ecfcc",
+  "tr": "9bd78d1029f7",
+  "by": "claude-in-session"
+ },
+ "net.staffFollow.showMe": {
+  "en": "6eda9c25e5d4",
+  "tr": "7d2ecfc37cca",
+  "by": "claude-in-session"
+ },
+ "net.staffFollow.shown": {
+  "en": "81ac4eb8f148",
+  "tr": "8389c8bd667c",
   "by": "claude-in-session"
  },
  "net.staffFollow.unlock": {
@@ -21032,6 +21092,11 @@
  "net.staffTp.viaNote": {
   "en": "8a97ef1eda62",
   "tr": "78cede61be95",
+  "by": "claude-in-session"
+ },
+ "net.staffView.close": {
+  "en": "bbfa773e5a63",
+  "tr": "ae2883a526af",
   "by": "claude-in-session"
  },
  "net.staffView.crowd": {

@@ -414,10 +414,9 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
   /** STAFF-PANEL2-CHATMENU: a staff member's rows for one spoken line, each act by the line's ACCOUNT (`sub`, the relay's
    *  word beside the line), never by the name it showed (design weak spot "In-game cards match players by name"). A
    *  tooltip says whether the player can see it. */
-  const staffRows = (line, name) => {
+  const staffRows = (line, name, f = follow()) => {
     const sub = line.sub;
     if (!ID_RE.test(sub)) return [];
-    const f = follow();
     return staffLineActs(glyphs()).map((act) => {
       const row = { label: STAFF_LABEL[act](), title: STAFF_SEEN.includes(act) ? t('net.staffMenu.seen', 'The player can see this.') : t('net.staffMenu.unseen', 'The player does not see this.') };
       if (act === 'follow') return typeof f === 'function' ? { ...row, run: () => { void Promise.resolve().then(() => f(sub)).then((ok) => { if (ok === false) sayActive(t('net.staffMenu.handed', 'Staff Panel: {act} {name}. Nothing opens without the Staff Panel extension.', { act: row.label, name })); }).catch((e) => sayActive(String(e?.message ?? e))); } } : null;   // false: no Staff Panel over this game (staffFollowHost.js follow), said as the panel's other acts say it
@@ -468,6 +467,14 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
      *  "remove the report buttons iunch for admin and mods as well", "chat they arnt usefu for us"): an Admin or a
      *  Moderator (`staff`) gets no Report - they act on a player, not report them. STAFF-PANEL2-CHATMENU: and gets the
      *  acts they use on players instead (staffRows), then Block. */
+    /** STAFF-TAG-MENU (2026-10-24, mob: "when u lcick on someon", "i mean the pop up"): a player's staff acts by their
+     *  socket (`id`) and account (`sub`) - the chat line menu's own rows (staffRows), for the staff view's tag menu
+     *  (scenes/staffViewHost.js); `onFollow` its Follow when the view's own follow (which opens the panel's card) stands
+     *  for the chat's. None for a player's page. @param {{ id: string, sub: string, name: string }} p @param {(sub: string) => any} [onFollow] */
+    playerActions(p, onFollow) {
+      if (!staff() || !p) return [];
+      return staffRows({ id: p.id, sub: p.sub }, String(p.name ?? ''), onFollow ?? follow());
+    },
     lineActions(line) {
       if (!line?.sub || line.mine || line.system) return [];
       const name = String(line.name ?? '');
