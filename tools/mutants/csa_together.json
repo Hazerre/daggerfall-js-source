@@ -528,8 +528,8 @@
   {
     "name": "CSAK-host-glue-off",
     "file": "src/scenes/world.js",
-    "old": "const drawable = isCellRoom(online.room) && csaOn() ? csaAboard.glue(online.drawable(), { poseOf: (o, i) => csaPoseAhead(o, i, dt) ?? naval?.deckAhead?.(o, gamePaused() ? 0 : dt * worldTimeScale()) ?? null, toWire: campToWire, dt }) : online.drawable();",
-    "new": "const drawable = online.drawable();",
+    "old": "const drawable = isCellRoom(online.room) && csaOn() ? csaAboard.glue(staffFollow.drawable(), { poseOf: (o, i) => csaPoseAhead(o, i, dt) ?? naval?.deckAhead?.(o, gamePaused() ? 0 : dt * worldTimeScale()) ?? null, toWire: campToWire, dt }) : staffFollow.drawable();",
+    "new": "const drawable = staffFollow.drawable();",
     "tests": [
       "test/systems/csa_together.test.js"
     ]

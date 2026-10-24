@@ -77,6 +77,7 @@ import { markPlayerHarm } from '../systems/harmMark.js';   // REVENANT-HARM: a f
 import { knockedDown } from '../systems/blowEffects.js';   // TELL6e: knocked down, no cast
 import { sparedByPlayer, isShipmate, boutTeammates } from '../combat/friendlyFire.js';   // SHIPMATES: who the player's spells pass by, and whose blasts pass the player by
 import { coverDistance, coverStep } from '../ai/cover.js';   // TACT1: billboards are cover; AUDIT TACT B5: met by touch
+import { groundAt, groundHit, rayHit } from '../player/groundRay.js';   // GROUND-BOLT: the terrain along a ray, the one march (AUDIT TECH1's)
 import { blowTaken } from '../systems/blowTaken.js';   // TELL1: what a spell's target takes (a staggered foe a quarter more)
 import { noteFeudHarm, elementFeudClass } from '../systems/feudLedger.js';   // RVN1: my spell, in its fight's ledger (a leaf)
 import { noteSkillChallenge } from '../systems/skillSoftcap.js';   // BAL9: a spell answers its foe, as a blow does
@@ -94,6 +95,82 @@ export const SKY_FIRE_SCALE = 3;
 export const SKY_FIRE_HEARD_M = 48;
 
 /**
+ * GROUND-BOLT (FIELD BUGS 2026-10-23c; the owner: "spells cast at the ground outdoors don't collide with it at all and
+ * sail straight through"): the collider a host hands this engine - whichever of its colliders the player stands in
+ * (`live()`, asked at each call) - with its GROUND as well as its mesh ray. Outdoors the ground is not a mesh
+ * (player/collider.js surfaceHit's note): the hosts' proxy carried `raycast` alone, so a missile met the buildings and
+ * never the terrain, where DaggerfallMissile.cs:337-339's cast meets whatever collider is there, the terrain's too.
+ * @param {() => any} live
+ */
+export function liveCollider(live) {
+  return {
+    raycast: (o, d, m) => live().raycast(o, d, m),
+    raycastHit: (o, d, m) => live().raycastHit(o, d, m),   // AUDIT GROUND-BOLT B3: what an impact struck, the meshes alone
+    surfaceHit: (o, d, m) => live().surfaceHit(o, d, m),
+    groundNormal: (x, z) => live().groundNormal(x, z),   // AUDIT GROUND-BOLT B3: the slope an impact on the ground lies on
+    get heightAt() { return live().heightAt; },   // AUDIT GROUND-BOLT D2: the collider's own members, as it holds them -
+    get surfaceAt() { return live().surfaceAt; },   // the drawn ground where the host draws one, else null (groundAt's rule)
+    get cover() { return live().cover; },   // AUDIT GROUND-BOLT D5: TACT1's cover - "trees, crates and decor flats ... stop arrows and spells" (Mac's call)
+  };
+}
+
+/** AUDIT GROUND-BOLT B1: how near the terrain must be for a missile's sphere to be TOUCHING it - past the march's own
+ *  grain (groundHit is never short of the crossing, and at most GROUND_MARCH_STEP / 2^10 past it), so the touch a
+ *  step went to is met the next frame. */
+export const GROUND_TOUCH_M = 0.02;
+
+/**
+ * AUDIT GROUND-BOLT B1: WHERE A MISSILE'S STEP STOPS, AND HOW FAR IT GOES - the one law of the two flights (this
+ * engine's and dungeonContext.js's), as `{ stop, advance }`: `stop` a distance along the unit ray (Infinity: none),
+ * `advance` the share of the step to fly. A wall (the mesh ray) stops it at the step's whole reach - DaggerfallMissile
+ * .cs:337-339's cast for displacement + ColliderRadius. Cover (TACT1) and the terrain are met BY TOUCH (AUDIT TACT B5's
+ * law): a missile stops on one only once its own radius touches it, and short of that it flies only as far as the
+ * touch, so the bodies are tested there first. The ground at the whole reach ate a bolt aimed at a foe's feet - the
+ * grass behind them met a step early - 14 of 40 struck at 20 frames a second, where every one had.
+ * `reach` the step's reach along the unit ray, `stepLen` the step's length on it (so the radius is reach - stepLen).
+ * @param {any} collider @param {number[]} pos @param {number[]} unit @param {number} reach @param {number} stepLen
+ */
+export function flightStop(collider, pos, unit, reach, stepLen) {
+  const radius = reach - stepLen;
+  const cs = coverStep(coverDistance(collider, pos, unit, reach), collider.raycast(pos, unit, reach), reach, radius, stepLen);
+  const g = groundHit(pos, unit, Math.min(reach, cs.stop), collider);
+  if (!(g < cs.stop)) return cs;   // no ground in reach, or a wall or cover met first
+  if (g <= radius + GROUND_TOUCH_M) return { stop: g, advance: 1 };
+  return { stop: Infinity, advance: Math.min(cs.advance, stepLen > 1e-9 ? Math.min(1, (g - radius) / stepLen) : 1) };
+}
+
+/** IMPACTFEEL: the floor's height under an impact at `pos` (meshes and terrain), or a body's height below it when the
+ *  cast finds none - where its chunks land. AUDIT GROUND-BOLT A1/B2: a burst ON the terrain stands at the first point
+ *  the flight's march found not above it, a hair under the ground, where surfaceHit's way down never starts - it met
+ *  nothing, and every ground impact threw its chunks 1.2 m into the hill; the sampler answers it.
+ *  @param {any} collider @param {number[]} pos */
+export function impactGround(collider, pos) {
+  let ground = pos[1] - 1.2;
+  try { const h = collider?.surfaceHit?.(pos, [0, -1, 0], 30) ?? null; if (h && Number.isFinite(h.dist)) ground = pos[1] - h.dist + 0.05; } catch { /* the guess stands */ }
+  const t = groundAt(collider, pos[0], pos[2]);
+  if (Number.isFinite(t) && t < pos[1] + 0.05 && t + 0.05 > ground) ground = t + 0.05;
+  return ground > pos[1] ? pos[1] - 0.05 : ground;   // the impact is on the floor: it sprays above it
+}
+
+/** WALL-RING: WHAT AN IMPACT STRUCK - the surface along the line of flight `u` (unit) just through the impact at `pos`
+ *  (a wall, a ceiling, the floor), its normal turned to face the shot, and where it lies; null where none (a body, the
+ *  air: the burst finds its own plane). AUDIT GROUND-BOLT B3: the meshes (raycastHit), and the terrain marched - a rise
+ *  as well as a fall, its own slope - where surfaceHit met the ground on the way down alone, and laid flat at the
+ *  height under the shot: a level bolt into a hill, or a shallow one onto a grade, found no plane.
+ *  @param {any} collider @param {number[]} pos @param {number[]} u */
+export function struckSurface(collider, pos, u) {
+  const from = [pos[0] - u[0] * 0.6, pos[1] - u[1] * 0.6, pos[2] - u[2] * 0.6];
+  let dist = Infinity, n = null;
+  const h = collider?.raycastHit ? collider.raycastHit(from, u, 1.3) : collider?.surfaceHit?.(from, u, 1.3);
+  if (h && Number.isFinite(h.dist) && Array.isArray(h.normal) && h.normal.every(Number.isFinite)) { dist = h.dist; n = h.normal; }
+  const g = groundHit(from, u, Math.min(1.3, dist), collider);
+  if (g < dist) { dist = g; n = collider.groundNormal?.(from[0] + u[0] * g, from[2] + u[2] * g) ?? [0, 1, 0]; }
+  if (!n) return null;
+  const nd = n[0] * u[0] + n[1] * u[1] + n[2] * u[2];
+  return { normal: nd > 0 ? [-n[0], -n[1], -n[2]] : [...n], surfaceAt: [from[0] + u[0] * dist, from[1] + u[1] * dist, from[2] + u[2] * dist] };
+}
+
+/**
  * AUDIT SET M4: whether a burst from feet `a` reaches feet `b` through `collider` - chest to chest, a wall between is
  * the answer (the Warden's Nova is fire, not a thrown rock over a wall). No collider, or feet on feet: clear.
  * @param {any} collider @param {number[]} a @param {number[]} b
@@ -102,7 +179,7 @@ export function burstClear(collider, a, b) {
   const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], d = Math.hypot(dx, dy, dz);
   if (!(d > 0.05)) return true;
   const eye = [a[0], a[1] + 1, a[2]], dir = [dx / d, dy / d, dz / d];
-  return !(collider?.raycast?.(eye, dir, d) < d - 0.25);
+  return !(rayHit(eye, dir, d, collider) < d - 0.25);   // AUDIT GROUND-BOLT C4: a wall, or the crest of a hill between
 }
 
 export function createPlayerMagic({
@@ -354,6 +431,7 @@ export function createPlayerMagic({
       if (along >= bestT) continue;
       const hit = collider.raycast(eye, [ux, uy, uz], along);
       if (Number.isFinite(hit) && hit < along - 1e-3) continue;
+      if (groundHit(eye, [ux, uy, uz], along, collider) < along - PERSON_RADIUS) continue;   // AUDIT GROUND-BOLT C2: nor a hill (his body's breadth of grace: the aim at his feet)
       best = m; bestT = along;
     }
     return best;
@@ -547,12 +625,6 @@ export function createPlayerMagic({
     { n: 4, v: 4.0, up: 3.5, g: 11, bounce: 0.3,  life: 1.1, s: 0.28, fps: 12 },   // magic
   ];
   const sparks = [];
-  /** The floor's height under `pos` (meshes and terrain), or a body's height below it when the cast finds none. */
-  function groundUnder(pos) {
-    let ground = pos[1] - 1.2;
-    try { const h = collider?.surfaceHit?.(pos, [0, -1, 0], 30) ?? null; if (h && Number.isFinite(h.dist)) ground = pos[1] - h.dist + 0.05; } catch { /* the guess stands */ }
-    return ground > pos[1] ? pos[1] - 0.05 : ground;   // the impact is on the floor: it sprays above it
-  }
   function spawnSparks(m, pos, sc, ground) {
     const k = SPARK_KINDS[Math.max(0, Math.min(4, m.spell.element | 0))];
     for (let i = 0; i < k.n; i++) {
@@ -622,7 +694,7 @@ export function createPlayerMagic({
   function landFx(kind, pos, { back = null, scale = 1, power = 1, radius = null, minR = 0, heard = 40, shake = 0, ground = null, area = 0, areaFrom = null, normal = null, surfaceAt = null } = {}) {
     try {
       if (kind !== 'heal') noteElementArt(IMPACT_FX_KINDS.indexOf(kind));   // ART-COLOUR: a touch or a peer's lands here first sometimes
-      const gy = Number.isFinite(ground) ? ground : groundUnder(pos);
+      const gy = Number.isFinite(ground) ? ground : impactGround(collider, pos);
       fx.burst(kind, pos, { ground: gy, back, scale, power, radius, minR, area, areaFrom, body: AREA_FX_BODY, normal, surfaceAt });   // AOE-SIZE / AOE-REACH: an area's burst is drawn to what its sweep catches
       impactSounds.play(kind, kind === 'heal' ? [pos[0], gy + 1, pos[2]] : pos, { heard, volume: kind === 'heal' ? 0.8 : Math.min(1, 0.75 + 0.2 * power) });   // HEAL-SOFT: a big heal is no louder
       const f = _doorFeet;
@@ -659,7 +731,7 @@ export function createPlayerMagic({
     try {
       const sc = m.scale ?? 1;
       const kind = fxKindOf(m.spell);
-      const ground = groundUnder(pos);
+      const ground = impactGround(collider, pos);
       if (kind !== 'heal') {
         impacts.showMissEffect('spell', pos, { archive: missileArchive(m.spell.element), record: 1, fps: 12, scale: sc * 1.8 });
         spawnSparks(m, pos, sc, ground);
@@ -669,16 +741,8 @@ export function createPlayerMagic({
       // WALL-RING: WHAT IT STRUCK - the surface along the line of flight just through the impact (a wall, a ceiling, the
       // floor), its normal turned to face the shot. None (a body, the air): the burst finds its own plane.
       let normal = null, surfaceAt = null;
-      if (back && collider?.surfaceHit) {
-        try {
-          const u = [-back[0], -back[1], -back[2]], from = [pos[0] - u[0] * 0.6, pos[1] - u[1] * 0.6, pos[2] - u[2] * 0.6];
-          const h = collider.surfaceHit(from, u, 1.3);
-          if (h && Number.isFinite(h.dist) && Array.isArray(h.normal) && h.normal.every(Number.isFinite)) {
-            const nd = h.normal[0] * u[0] + h.normal[1] * u[1] + h.normal[2] * u[2];
-            normal = nd > 0 ? [-h.normal[0], -h.normal[1], -h.normal[2]] : [...h.normal];
-            surfaceAt = [from[0] + u[0] * h.dist, from[1] + u[1] * h.dist, from[2] + u[2] * h.dist];
-          }
-        } catch { /* the burst finds its own plane */ }
+      if (back) {
+        try { const struck = struckSurface(collider, pos, [-back[0], -back[1], -back[2]]); if (struck) ({ normal, surfaceAt } = struck); } catch { /* the burst finds its own plane */ }
       }
       const blast = m.spell.rangeType === 4;
       // AOE-SIZE: an Area at Range blast is drawn to the sphere explodeAt sweeps (EXPLOSION_RADIUS about the impact); a
@@ -962,7 +1026,7 @@ export function createPlayerMagic({
     try { bodies = fallenTarget(eye, dir, RESURRECT_REACH) ?? null; } catch { return null; }
     if (!Array.isArray(bodies) || !bodies.length) return null;
     const l = Math.hypot(dir[0], dir[1], dir[2]) || 1;
-    const ground = collider.raycast(eye, [dir[0] / l, dir[1] / l, dir[2] / l], RESURRECT_REACH * 2);
+    const ground = rayHit(eye, [dir[0] / l, dir[1] / l, dir[2] / l], RESURRECT_REACH * 2, collider);   // AUDIT GROUND-BOLT C3: the floor, or the open ground outdoors
     return pickFallenBody(eye, dir, bodies, Number.isFinite(ground) ? ground : Infinity);
   }
   function allyInReach(eye, dir, reach, sp = readiedSpell) {
@@ -975,6 +1039,7 @@ export function createPlayerMagic({
       const l = Math.hypot(dir[0], dir[1], dir[2]) || 1;
       const hit = collider.raycast(eye, [dir[0] / l, dir[1] / l, dir[2] / l], d);
       if (Number.isFinite(hit) && hit < d - 1e-3) return null;
+      if (groundHit(eye, [dir[0] / l, dir[1] / l, dir[2] / l], d, collider) < d - PERSON_RADIUS) return null;   // AUDIT GROUND-BOLT C2: nor a hill (her body's breadth of grace: the aim at her feet)
     }
     return ally;
   }
@@ -1381,7 +1446,7 @@ export function createPlayerMagic({
       const { unit: _unit, reach } = missileReach(m.dir, step);   // ROAD-H tail: DaggerfallMissile.cs:333/:337-339's reach along the normalised direction
       // TACT1: cover stops a bolt, and an area spell bursts on it; AUDIT TACT B5: by touch, the bodies before it tested first
       const _len = Math.hypot(m.dir[0], m.dir[1], m.dir[2]) || 1;
-      const _cs = coverStep(coverDistance(collider, m.pos, _unit, reach), collider.raycast(m.pos, _unit, reach), reach, reach - step * _len, step * _len);
+      const _cs = flightStop(collider, m.pos, _unit, reach, step * _len);   // GROUND-BOLT: a wall, cover or the ground outdoors (AUDIT B1: the last two by touch)
       const hitWall = _cs.stop;
       if (Number.isFinite(hitWall) && hitWall <= reach) {
         const impact = [m.pos[0] + _unit[0] * hitWall, m.pos[1] + _unit[1] * hitWall, m.pos[2] + _unit[2] * hitWall];   // ROAD-H tail (review): the collider answers in the RAY's own units, and the ray is `_unit` - `m.dir` would scale the impact point by |dir| (`colliderPosition += direction.normalized * hitInfo.distance`, DaggerfallMissile.cs:347)
@@ -1404,8 +1469,8 @@ export function createPlayerMagic({
       // SPELLFX1: A PEER'S MISSILE, DRAWN - it flies, meets a wall (above), a body or me, flashes and is gone, and
       // applies NOTHING: the caster's own world decided what it hit (a beneficial one of theirs reached its target as ALLY-CAST's cast frame)
       if (m.visual) {
-        // SUNBABY2: a sky fireball lands where it was thrown - on the ground the host found under it, which the
-        // collider's ray (buildings, not the terrain) would not stop it at
+        // SUNBABY2: a sky fireball lands where it was thrown - on the ground the host found under it (GROUND-BOLT: the
+        // ray above meets the terrain now; this count still lands it where the throw said, should the two grounds part)
         if (m.sky) {
           m.left -= _adv * _len;
           if (m.left <= 0) { showImpactFlash(m, m.to); retireMissile(m); continue; }

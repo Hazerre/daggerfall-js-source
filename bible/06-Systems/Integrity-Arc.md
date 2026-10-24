@@ -374,6 +374,21 @@ so the finding and the panel's audit row are its record. No hold is lifted. The 
 `test/server/staffsetbank.test.js` over the real Worker, the game's own bank table and the panel's own profile read;
 `tools/mutants/staff-set-bank.json` (31, dead).
 
+STAFF-GIVE (2026-10-24, mob: "add yes we will work on add as well", the card's pick "Pick from the item list", "include
+enchants") is Remove from a player's twin, an Admin's: `/v1/staff/item/catalogue` (the game's item list - each template
+with its groups and whether it stacks, a weapon's and an armour's materials, the item maker's enchantments with their
+settings and costs) and `/v1/staff/item/give { id, template, group?, material?, count?, gold?, enchant?, seq, confirm,
+reason, note }` (`server-account/src/staffGive.js`). The panel never writes the piece: the service mints it with the
+producers the game mints it with (`enemyEquipment.js` weaponOfMaterial and armorOfMaterial, CreateWeapon's arrow arm,
+`itemTemplates.js` setItemFields and mintCondition; a letter of credit's `gold` its value), lays the enchantments as the
+item maker lays them (`enchantmentCatalogue.js` pickEnchantment, a bound soul's forced rows with it, then
+`enchanting.js` applyEnchantments), and asks the item law before anything moves: a gift the law would find - powers past
+what the item holds - is shown with its findings and refused (`staff-item-unlawful`), so a gift never holds the trade of
+the player it was given to. Given, it is Put back's write: the record seized one sequence on with the piece in the pack,
+its worth witnessed, a valuable piece's ledger id minted and entered as the record's own, the act among the findings
+(`give`, the piece with it). Remove takes it off again. Pinned by `test/server/staffpanel3realm.test.js` over the real
+Worker, the player's next checkpoint carrying the gift unheld; `tools/mutants/staff-give.json` (10, dead).
+
 ### AUTO-HOLD - no hold waits on a person (2026-10-16, `server-account/src/verdict.js`, `ledger.js`, migration 0120)
 
 Players on Discord, frozen "until staff have looked" because "copies of an item were found", none of them meaning to

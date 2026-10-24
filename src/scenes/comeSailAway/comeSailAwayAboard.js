@@ -328,6 +328,14 @@ export function createComeSailAwayAboard({ peers, geometry, selfId = () => null 
     boardPlace: (hit) => boardPlaceOf(hit.node),
     applyRider, sweepRiders, clearRiders, passengersOn, glue,
     get aboard() { return aboard ? { ...aboard } : null; },
+    /** AUDIT CROWD-WIDE A2: the players I sail with, their ids - the owner of the boat I stand aboard, and the others
+     *  aboard it or aboard one of mine. The crowd's count never cuts them (net/gate/gateCrowd.js crowdKept). */
+    shipmates() {
+      const me = selfId(), on = aboard?.owner ?? null;
+      const out = on != null ? [on] : [];
+      for (const [id, r] of riders) if (r.owner === me || (on != null && r.owner === on)) out.push(id);
+      return out;
+    },
     /** A probe's and the tests' reading: the others aboard, by id. */
     riders: () => [...riders].map(([id, r]) => ({ id, owner: r.owner, slot: r.slot, local: [...r.local], shown: [...r.shown] })),
   };
