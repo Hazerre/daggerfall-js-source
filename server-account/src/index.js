@@ -274,6 +274,7 @@ import { festivalOf, findFestival, buyFestival, festivalTown, setOffering, fillO
 import { claimQl, QL_STATUS } from './questlines.js';   // QL12: a questline's step claimed - what the service witnessed, paid
 import { voteHome } from './homeVotes.js';   // HOME-VOTE: a town's word on a player's house
 import { claimHome, releaseHome, setHomeEntry, homesInTown, homesOf, setHomeLook, homeLayoutsKept, arenaMoveHome, arenaMovesOf, arenaMoveSeen, holdDeed, inheritHome } from './homes.js';   // HOME1: the online homes' routes; HOME-LOOK: its outside; WD3: the towns' layouts; ARENA4b: the homes the arena displaced, moved; FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed held
+import { homeTransfer } from './homeTransfer.js';   // a house offered to one account, accepted as one write
 import { roomsOf, offerRoom, withdrawRoom, rentRoom, collectRent } from './rent.js';   // HOME-RENT: a home's rooms, rented
 import {
   foundGuild, guildOf, invitesOf, inviteToGuild, answerInvite, leaveGuild, removeFromGuild, rankGuildMember, renameGuildRanks,
@@ -1736,8 +1737,16 @@ const service = {
           const status = r.error === 'home-taken' || r.error === 'home-cap' || r.error === 'home-arena' ? 409 : r.error === 'home-rate' ? 429 : r.error === 'home-update' ? 426 : 400;   // AUDIT WD3 B2: a build from before the town mods   // WD3: a town kept in another layout   // ARENA4b: the arena stands there
           return no(r.error, status, origin);
         }
+        if (path === '/v1/homes/transfer') {
+          const r = await homeTransfer(hctx, who.player, body);
+          if (!('error' in r)) return json(r, 200, origin);
+          const said = realmNo(r);
+          if (said) return said;
+          const conflict = r.error === 'home-cap' || r.error === 'home-tenants' || r.error === 'home-vendor-stocked' || r.error === 'home-holds' || r.error === 'offer-open' || r.error === 'offer-closed' || r.error === 'offer-stale' || r.error === 'home-deed';
+          return no(r.error, r.error === 'home-rate' ? 429 : conflict ? 409 : r.error === 'no-home' ? 404 : 400, origin);
+        }
         const r = path === '/v1/homes/release' ? await releaseHome(hctx, who.player, body) : await setHomeEntry(hctx, who.player, body, env);   // AUDIT LW-II-2 S4: a door leaving public reckons its patrons, by the service's secret
-        if ('error' in r) return realmNo(r) ?? no(r.error, r.error === 'bad-entry' || r.error === 'realm-needed' ? 400 : r.error === 'home-crossed' || r.error === 'home-tenants' || r.error === 'home-vendor-stocked' ? 409 : 404, origin);   // HOME-CROSSED; HOME-RENT: a sale waits for its tenants; HOME-VENDOR: and its stocked trader
+        if ('error' in r) return realmNo(r) ?? no(r.error, r.error === 'bad-entry' || r.error === 'realm-needed' ? 400 : r.error === 'home-crossed' || r.error === 'home-tenants' || r.error === 'home-vendor-stocked' || r.error === 'home-holds' ? 409 : 404, origin);   // HOME-CROSSED; HOME-RENT: a sale waits for its tenants; HOME-VENDOR: and its stocked trader; a shared chest still holding goods
         return json(await homeOrdersOf(r, who.player.id, env, subtle, nowS), 200, origin);   // QUEST-HOME: a sale - a house again to every page online
       }
 

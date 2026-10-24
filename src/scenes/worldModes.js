@@ -385,6 +385,7 @@ import {
 // DECOR1c: the pieces a room's owner placed (their law, and the pool that stands them in the room)
 import { decorPieceOf, decorSaleBack, DECOR_STATION_SERVICES, DECOR_STATION_NAMES } from '../net/decorLaw.js';
 import { noteDecorGrants, decorMayStorage, decorMayStation, bindDecorHouseFrom, openSharedChest } from '../systems/decor/decorGrants.js';   // DECOR-ACCESS
+import { openHomeTransfer, answerHomeTransfer } from '../systems/online/homeTransfer.js';
 import { VENDOR_STATION, VENDOR_COLD_LINE } from '../net/vendorLaw.js';   // HOME-VENDOR: a trader, and its word where none can trade
 import { forgeOffered, PROF_STATIONS, stationColdLine, enchantGoldPct, STORES_ACT_STATIONS, focusStoresStation } from '../ui/professions/profPages.js';   // AUDIT 29 B2: a Forge worked only where the Stores page is; PROF4: a Workbench
 import { FORGE_FEE, WORKBENCH_FEE, LOOM_FEE, MASON_FEE, COOK_FIRE, JEWEL_FEE, ALCHEMY_FEE, ENCHANT_FEE } from '../net/professionLaw.js';   // PROF2: a smith's forge's use fee; PROF4: a furnisher's workbench's; PROF7: a tailor's loom's; PROF11: a General Store's mason's bench's; PROF10: a Pawn Shop's or a Gem Store's jeweller's bench's
@@ -7997,6 +7998,7 @@ export function createWorldModes(host) {
           // room to rent - asks which room, and for how long, before Daggerfall's lock ladder
           if (home && !home.own && !isBash && !homeAsked && getInteractionMode() !== 'steal'
             && (verb === HOME_VERB.rent || (verb == null && door === 'locked' && home.rent))) { openHomeRent(bd, home).catch((e) => console.error(e)); return true; }
+          if (home?.offer && !isBash && !homeAsked && (verb === HOME_VERB.take || verb === HOME_VERB.refuse)) { answerHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, home, verb === HOME_VERB.take, host, (t) => townTalk?.say?.(t), accountRefusalText); return true; }
           // HOME-VOTE: a vote row pressed - the vote its row says, on the home as it stands now (AUDIT B5: one gone since is
           // said so, never handed to Daggerfall's lock ladder); and an Info press on a home I may vote on asks - only where
           // the plaque lists no rows (AUDIT B1: a touch screen, World Tooltips off; a drawn plaque's plain click goes in)
@@ -8012,6 +8014,7 @@ export function createWorldModes(host) {
             if (verb === HOME_VERB.buy && price) { pressHomeBuy(bd, price); return true; }
             if (verb === HOME_VERB.entry && door === 'own') { turnHomeEntry(bd, home); return true; }
             if (verb === HOME_VERB.sell && door === 'own') { openHomeSale(bd); return true; }
+            if (verb === HOME_VERB.give && door === 'own') { openHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, host, (t) => townTalk?.say?.(t), accountRefusalText, home?.giving); return true; }
             if (verb === HALL_VERB.buy && price) { pressHallBuy(bd, price); return true; }   // GUILD1d: the house bought as the guild's hall
             if (verb === HALL_VERB.entry && hallEntryTurnable(home)) { turnHallEntry(bd, home); return true; }   // GUILD1d: who may walk into the hall; AUDIT PROF-541 G2: as the service lets set it (R2-H1: the row's own gate)
           }
