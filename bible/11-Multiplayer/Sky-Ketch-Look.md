@@ -577,7 +577,7 @@ ladder of lamps** - a brass guide-collar and lamp every 40 m, six in all - so by
 fields; its rattle runs from the cage (reference 30 m, reach 600 m); the cage lands with a thud and a grit burst and its
 gate drops open.
 
-**Keeping station** (a day and a half): **asleep**. Her vanes feathered edge-on, her shutters half shut, one breath of
+**Keeping station** (seven hours - KETCH-EVERY; a day and a half when she came weekly): **asleep**. Her vanes feathered edge-on, her shutters half shut, one breath of
 steam every 12.5 s, and **her keel's hum** filling the east fields - an A1 drone at her middle (reference 120 m, reach
 1,600 m, linear), felt more than heard under her. **She keeps the real watch**: her ship's bell rings the UTC half-hours as
 a ship's bells do - one bell at 00:30, two at 01:00 and so to eight at 04:00, in pairs (0.45 s within a pair, 1.1 s

@@ -14,8 +14,8 @@ import { ketchArt, resolveKetchArt, KT_REC, KT_NET_M } from '../../../src/world/
 import { quantizeIndexed, image, putTexel } from '../../../src/world/superDungeon/sdPixelKit.js';
 import { METAL_TABLES } from '../../../src/characters/dyes.js';
 
-const ARENA2 = process.env.ARENA2_PATH ?? '/home/claude/dfdata/arena2';
-const PAL = existsSync(join(ARENA2, 'ART_PAL.COL')) ? readFileSync(join(ARENA2, 'ART_PAL.COL')) : null;
+const ARENA2 = process.env.ARENA2_PATH;   // AUDIT 17n: the corpus by its variable alone, never a path of one machine's
+const PAL = ARENA2 && existsSync(join(ARENA2, 'ART_PAL.COL')) ? readFileSync(join(ARENA2, 'ART_PAL.COL')) : null;
 const palRgb = PAL ? PAL.subarray(PAL.length === 776 ? 8 : 0, (PAL.length === 776 ? 8 : 0) + 768) : null;
 const entry = (i) => [palRgb[i * 3], palRgb[i * 3 + 1], palRgb[i * 3 + 2]];
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);

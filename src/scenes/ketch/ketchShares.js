@@ -15,7 +15,7 @@ import { spoilsLevel, spoilsLock } from '../spoilsPool.js';
 
 /** The device's shares paid and not yet given: `[{ d, o, s, c, l }]` - a receipt's voyage, ship, account, seed, level. */
 export const KT_OWED_KEY = 'kt.owed';
-/** The most it keeps (a share a week: a handful at most, with an older one still owed). */
+/** The most it keeps (a share a voyage, each given as it is paid: a handful at most, with an older one still owed). */
 export const KT_SHARES_OWED_MAX = 8;
 
 const owedOk = (e) => !!e && typeof e === 'object' && Number.isSafeInteger(e.d) && typeof e.o === 'string' && typeof e.s === 'string' && Number.isSafeInteger(e.c) && Number.isFinite(e.l);

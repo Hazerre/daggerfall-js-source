@@ -29,7 +29,7 @@ export const KT_CLAIMS_KEY = 'kt.ketchClaims';
 /** A claim id - sixteen hex digits, the service's KT_CID_RE. */
 export const KT_CID_RE = /^[0-9a-f]{16}$/;
 const mintCid = () => { const b = new Uint8Array(8); globalThis.crypto.getRandomValues(b); return [...b].map((x) => x.toString(16).padStart(2, '0')).join(''); };
-/** The most it keeps for one account and for the device (a voyage a week: a handful at most). */
+/** The most it keeps for one account and for the device (a voyage every ten hours, each claimed as it is earned: a handful at most). */
 export const KT_CLAIMS_MAX = 8;
 export const KT_CLAIMS_ALL_MAX = 64;
 /** The least time between two offers of what is kept, ms; how often a frame asks who is signed in. */
@@ -41,7 +41,7 @@ export const KT_CLAIM_MENDABLE = Object.freeze(['signature', 'verify-threw', 'fu
 /** The words - each read through the text core when it is said (L10N4). */
 export const KT_CLAIM_TEXT = Object.freeze({
   recorded: (n) => t('ketch.claim.recorded', 'The Ketchmaster\'s hold pays your share. Voyages sailed: {n}.', { n }),
-  get taken() { return t('ketch.claim.taken', 'You have already taken your share of the Ketchmaster\'s hold this voyage, with another crew. She pays no hand twice a week.'); },
+  get taken() { return t('ketch.claim.taken', 'You have already taken your share of the Ketchmaster\'s hold this voyage, with another crew. She pays no hand twice a voyage.'); },
 });
 
 /** What the account service's answer does to a kept receipt: 'done' (let it go) or 'keep'. */

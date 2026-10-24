@@ -40,7 +40,7 @@ export const KT_SPOILS_LEGENDARY = 0.25;
 export const KT_SPOILS_SOURCE = Object.freeze({ boss: true, tier: 22, luck: 65 });
 /** The Pellets the Ketch's foundry pays, always: from `min` to `max`, one draw. */
 export const KT_SPOILS_PELLETS = Object.freeze({ min: 20, max: 40 });
-/** THE GUNS: each its own draw (rare - a share a week at most, net/ketch/ketchLaw.js's voyage). */
+/** THE GUNS: each its own draw (rare - a share a voyage at most, every ten hours: net/ketch/ketchLaw.js's voyage). */
 export const KT_THUNDERLOCK_CHANCE = 1 / 10;
 export const KT_PISTOLET_CHANCE = 1 / 8;
 /** The device's record of spoils no save holds yet, and the receipts spent - the spoils pool's two keys, the Ketch's own. */

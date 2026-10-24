@@ -6,9 +6,10 @@
 // of the voyage is called. Pure, and every end's: the page (its sight, its anchor-lift, its link), the relay (the Worker's
 // door and the room's admission) and the account service (a receipt's voyage).
 //
-// THE VOYAGE, ON THE REAL CLOCK. The Ketch comes on the real Saturday: voyage n arrives at KT_EPOCH_MS + n weeks, 00:00
-// UTC on a Saturday - never the online calendar's Loredas, which runs twelve game days a real day, so no line names a day
-// of Tamriel's week (AUDIT KETCH L5-3: "every Loredas" was false on the game's own calendar). It is SIGHTED KT_SIGHT_MS
+// THE VOYAGE, ON THE REAL CLOCK. The Ketch comes every ten real hours (KETCH-EVERY, the owner, 2026-10-24: "Can we make
+// this happen every 10 hours. First one to spawn after this goes live" - it was a week, the real Saturday): voyage n
+// arrives at KT_EPOCH_MS + n rounds of KT_EVERY_MS - never by the online calendar, which runs twelve game days a real day,
+// so no line names a day of Tamriel's week (AUDIT KETCH L5-3: "every Loredas" was false on the game's own calendar). It is SIGHTED KT_SIGHT_MS
 // before (a speck in the east, then a shape), keeps station KT_STATION_MS over the fields outside Daggerfall's walls (the
 // anchor-lift lowered: boarding), then weighs anchor - no crew boards, the crews aboard have KT_LAST_MS to finish - and
 // turns west. One rule for every screen and the relay, so no hub keeps a record: the clock is the record.
@@ -23,13 +24,13 @@
 // Not a DFU member: Daggerfall has no other players and no airship. Ledger A (KETCH).
 import { INSTANCE_OWNER_HEX } from '../instanceRoom.js';
 
-/** A week, ms. */
-export const KT_WEEK_MS = 7 * 24 * 3600 * 1000;
-/** Voyage 0's arrival: Saturday, 2026-10-24, 00:00 UTC. Every voyage after is a week on. */
-export const KT_EPOCH_MS = Date.UTC(2026, 9, 24);
+/** KETCH-EVERY: her round - a voyage every ten hours, ms. */
+export const KT_EVERY_MS = 10 * 3600 * 1000;
+/** Voyage 0's arrival: 2026-10-25, 00:00 UTC - the first after she goes live (KETCH-EVERY). Every voyage after is a round on. */
+export const KT_EPOCH_MS = Date.UTC(2026, 9, 25);
 /** Sighted this long before it arrives; keeps station this long; the crews aboard have this long after it weighs anchor. */
-export const KT_SIGHT_MS = 2 * 3600 * 1000;
-export const KT_STATION_MS = 36 * 3600 * 1000;
+export const KT_SIGHT_MS = 1 * 3600 * 1000;   // KETCH-EVERY: an hour sighted, seven at station, twenty minutes more - away an hour and forty of every ten
+export const KT_STATION_MS = 7 * 3600 * 1000;
 export const KT_LAST_MS = 20 * 60 * 1000;
 /** The most accounts one ship's crew holds - the party's own bound (net/social PARTY_MAX, pinned equal). */
 export const KT_CREW_MAX = 8;
@@ -46,7 +47,7 @@ export const KT_PHASES = Object.freeze(['away', 'sighted', 'docked', 'departing'
  * @param {number} n
  */
 export function ketchVoyageOf(n) {
-  const k = Math.max(0, Math.floor(Number(n) || 0)), at = KT_EPOCH_MS + k * KT_WEEK_MS;
+  const k = Math.max(0, Math.floor(Number(n) || 0)), at = KT_EPOCH_MS + k * KT_EVERY_MS;
   return { n: k, sightAt: at - KT_SIGHT_MS, at, departAt: at + KT_STATION_MS, endAt: at + KT_STATION_MS + KT_LAST_MS };
 }
 
@@ -59,7 +60,7 @@ export function ketchVoyageOf(n) {
 export function ketchVoyageAt(now) {
   const t = Number(now);
   if (!Number.isFinite(t)) return { ...ketchVoyageOf(0), phase: 'away' };
-  const n = Math.floor((t - (KT_EPOCH_MS - KT_SIGHT_MS)) / KT_WEEK_MS);
+  const n = Math.floor((t - (KT_EPOCH_MS - KT_SIGHT_MS)) / KT_EVERY_MS);
   if (n < 0) return { ...ketchVoyageOf(0), phase: 'away' };
   const v = ketchVoyageOf(n);
   if (t >= v.endAt) return { ...ketchVoyageOf(n + 1), phase: 'away' };

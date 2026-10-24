@@ -66,7 +66,7 @@ const capital = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
  *  through the text core as the row is laid (L10N4). */
 function ketchRows(now, coming, live) {
   const kv = ketchVoyageAt(now), kWhere = t('ketch.timers.where', 'Over Daggerfall');
-  if (kv.phase === 'away') coming(`ketch:${kv.n}`, 'ketch', t('ketch.timers.sighted', 'The Sky-Ketch is sighted'), kv.sightAt, kWhere, t('ketch.timers.sightedSub', 'She keeps station east of the city for a day and a half'));
+  if (kv.phase === 'away') coming(`ketch:${kv.n}`, 'ketch', t('ketch.timers.sighted', 'The Sky-Ketch is sighted'), kv.sightAt, kWhere, t('ketch.timers.sightedSub', 'She keeps station east of the city for seven hours'));
   else if (kv.phase === 'sighted') coming(`ketch:${kv.n}`, 'ketch', t('ketch.timers.arrives', 'The Sky-Ketch arrives'), kv.at, kWhere, t('ketch.timers.arrivesSub', 'She is in the eastern sky. Her anchor-lift comes down when this runs out'));
   else if (kv.phase === 'docked') live(`ketch:${kv.n}`, 'ketch', t('ketch.timers.station', 'The Sky-Ketch keeps station'), kv.departAt, kWhere, t('ketch.timers.stationSub', 'Her anchor-lift waits in the fields east of the city. It is drawn up when this runs out'));
   else live(`ketch:${kv.n}`, 'ketch', t('ketch.timers.departing', 'The Sky-Ketch weighs anchor'), kv.endAt, kWhere, t('ketch.timers.departingSub', 'The crews aboard have until this runs out'));

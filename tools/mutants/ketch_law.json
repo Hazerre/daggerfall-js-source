@@ -2,17 +2,17 @@
   {
     "name": "KTL-the-epoch-moved",
     "file": "src/net/ketch/ketchLaw.js",
-    "old": "export const KT_EPOCH_MS = Date.UTC(2026, 9, 24);",
-    "new": "export const KT_EPOCH_MS = Date.UTC(2026, 9, 25);",
+    "old": "export const KT_EPOCH_MS = Date.UTC(2026, 9, 25);",
+    "new": "export const KT_EPOCH_MS = Date.UTC(2026, 9, 24);",
     "tests": [
       "test/net/ketch/ketch_law.test.js"
     ]
   },
   {
-    "name": "KTL-a-week-of-six",
+    "name": "KTL-a-round-of-nine-hours",
     "file": "src/net/ketch/ketchLaw.js",
-    "old": "export const KT_WEEK_MS = 7 * 24 * 3600 * 1000;",
-    "new": "export const KT_WEEK_MS = 6 * 24 * 3600 * 1000;",
+    "old": "export const KT_EVERY_MS = 10 * 3600 * 1000;",
+    "new": "export const KT_EVERY_MS = 9 * 3600 * 1000;",
     "tests": [
       "test/net/ketch/ketch_law.test.js"
     ]
@@ -20,8 +20,8 @@
   {
     "name": "KTL-the-station-shortened",
     "file": "src/net/ketch/ketchLaw.js",
-    "old": "export const KT_STATION_MS = 36 * 3600 * 1000;",
-    "new": "export const KT_STATION_MS = 24 * 3600 * 1000;",
+    "old": "export const KT_STATION_MS = 7 * 3600 * 1000;",
+    "new": "export const KT_STATION_MS = 6 * 3600 * 1000;",
     "tests": [
       "test/net/ketch/ketch_law.test.js"
     ]
@@ -29,8 +29,8 @@
   {
     "name": "KTL-the-sighting-late",
     "file": "src/net/ketch/ketchLaw.js",
-    "old": "const n = Math.floor((t - (KT_EPOCH_MS - KT_SIGHT_MS)) / KT_WEEK_MS);",
-    "new": "const n = Math.floor((t - KT_EPOCH_MS) / KT_WEEK_MS);",
+    "old": "const n = Math.floor((t - (KT_EPOCH_MS - KT_SIGHT_MS)) / KT_EVERY_MS);",
+    "new": "const n = Math.floor((t - KT_EPOCH_MS) / KT_EVERY_MS);",
     "tests": [
       "test/net/ketch/ketch_law.test.js"
     ]

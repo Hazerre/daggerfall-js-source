@@ -86,7 +86,7 @@ export const PORT_BOOKS = new Map([[BURNING_DOORS_ID, book({
       { text: 'Being an Account of the Rourken Sky-Ketch Mzunthar', center: true }, '',
       { text: 'by Imrah Bel-Tavir', center: true },
       { text: 'Antiquarian of Sentinel', center: true }, '',
-      'Now and again a shape comes out of the east over Daggerfall. The boatmen keep a tally of her comings, and they say she keeps a week of her own, twelve of ours long, and is never late. The children call it the brass cloud. The priests of the city call it a portent, and preach on it. It is a ship, two-masted and brass-hulled, and it has been sailing since before the first Emperor was born.',
+      'Now and again a shape comes out of the east over Daggerfall. The boatmen keep a tally of her comings, and they say she comes round every fifth day, and is never late. The children call it the brass cloud. The priests of the city call it a portent, and preach on it. It is a ship, two-masted and brass-hulled, and it has been sailing since before the first Emperor was born.',
       '',
     ]),
     section('What she is', 'She is the Mzunthar, a sky-ketch of the Rourken of Volenfell. Her hull is brass and Dwemer steel. Her two masts carry no canvas but vanes of beaten brass and spun crystal, which drink the sun above the clouds. She is held up by her keel-song, the note her engine sings against the bones of the world, and her engine is fed on cells of aetherium, as a lamp is fed on oil.'),

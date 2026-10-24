@@ -84,7 +84,8 @@ test('GUN-LORE THE BOOKS: Rourken Thunder (418) and The Ketch That Never Lands (
   const gun = text(ROURKEN_THUNDER_ID), ship = text(KETCH_BOOK_ID);
   for (const w of ['Volendrung', 'Volenfell', 'tonal architecture', 'coil', 'aetherium', 'lightning', 'The thunder you hear is the note', 'pistolet', 'thunderlock']) assert.ok(gun.includes(w), `Rourken Thunder says ${w}`);
   // PIN MOVED (AUDIT KETCH L5-3): 'Loredas' out - the Ketch keeps the real week, never the online calendar's day; the book
-  // says her week is twelve of ours, and names no day
+  // says her week is twelve of ours, and names no day. PIN MOVED (KETCH-EVERY): she comes every ten hours - the book says
+  // every fifth day, five of the online calendar's
   assert.ok(!ship.includes('Loredas'), 'The Ketch That Never Lands names no day of the calendar');
-  for (const w of ['Mzunthar', 'twelve of ours', 'Daggerfall', 'holds eight and will not rise for nine', 'Gallery of Hammers', 'cells', 'Tonal Warden', 'resonators', 'tuning-forks', 'turns west']) assert.ok(ship.includes(w), `The Ketch That Never Lands says ${w}`);
+  for (const w of ['Mzunthar', 'every fifth day', 'Daggerfall', 'holds eight and will not rise for nine', 'Gallery of Hammers', 'cells', 'Tonal Warden', 'resonators', 'tuning-forks', 'turns west']) assert.ok(ship.includes(w), `The Ketch That Never Lands says ${w}`);
 });

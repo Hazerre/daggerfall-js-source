@@ -8,14 +8,14 @@
 //
 // ═══ ONCE A VOYAGE ═════════════════════════════════════════════════
 //
-// ketch_voyages' primary key is (voyage, account): the hold pays a hand once a week. The first receipt of a voyage the
+// ketch_voyages' primary key is (voyage, account): the hold pays a hand once a voyage (KETCH-EVERY: every ten hours). The first receipt of a voyage the
 // service is shown takes its share (`recorded`), under the device's claim id (`cid` - the stars' and the raids' own,
 // STAR_CID_RE). The same voyage again from the SAME ship is the same kill, answered `claimed` - its `share` true only to
 // the claim id that wrote the row (a retry after a lost answer, on that device): AUDIT KETCH L2-1, the relay hands a
 // receipt to every hello of its account, and a second browser or device rolled the same share again (AUDIT RAID R4's
 // bug, which the stars' cid closed). The same voyage from ANOTHER crew's ship is answered `taken`, `share` false: the
-// account helped a second crew this week, and its page throws no spoils for it. A guest's share is written too - the
-// week is the account's, registered or not - and its record says `guest`. The budget's fill (INT5) rides the row's own
+// account helped a second crew this voyage, and its page throws no spoils for it. A guest's share is written too - the
+// voyage is the account's, registered or not - and its record says `guest`. The budget's fill (INT5) rides the row's own
 // batch, held to it by its nonce (AUDIT KETCH L2-9 - AUDIT STARFALL B3's law: run after it, a failure between the two
 // lost the fill for good).
 //

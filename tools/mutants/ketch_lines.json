@@ -29,7 +29,7 @@
   {
     "name": "KTQ-she-comes-on-Loredas",
     "file": "src/systems/ketch/ketchWords.js",
-    "old": "'The Ketch turns west and is gone. She comes again on Saturday at 00:00 UTC.'",
+    "old": "'The Ketch turns west and is gone. She comes round again every ten hours.'",
     "new": "'The Ketch turns west and is gone. She comes again on Loredas.'",
     "tests": [
       "test/systems/questlines/ketch_lines.test.js"

@@ -81,8 +81,8 @@ test('KETCH NO LINE NAMES LOREDAS: the Ketch keeps the real week - the four step
   const days = /Morndas|Tirdas|Middas|Turdas|Fredas|Loredas|Sundas/;
   for (const q of ['QLSK01', 'QLSK02', 'QLSK03', 'QLSK04']) assert.doesNotMatch(readFileSync(new URL(`../../../src/systems/questlines/quests/${q}.txt`, import.meta.url), 'utf8').replace(/^--.*$/gm, ''), days, q);
   for (const id of [KETCH_BOOK_ID, ROURKEN_THUNDER_ID]) assert.doesNotMatch(PORT_BOOKS.get(id).pages.flat().map((r) => (typeof r === 'string' ? r : r.text)).join(' '), days, `book ${id}`);
-  for (const w of [KT_WORDS.departed, KT_REFUSE_WORDS.away]) assert.match(w, /Saturday at 00:00 UTC/);
-  assert.match(lineById('skyKetch').lead(), /Saturday from 00:00 UTC/);
+  for (const w of [KT_WORDS.departed, KT_REFUSE_WORDS.away]) assert.match(w, /every ten hours/);   // PIN MOVED (KETCH-EVERY): she comes every ten hours, no longer on the real Saturday
+  assert.match(lineById('skyKetch').lead(), /Every ten hours/);
   const tut = readFileSync(new URL('../../../src/systems/tutorialCatalogue.js', import.meta.url), 'utf8');
   for (const m of tut.matchAll(/t\('tutorials\.skyKetch\.[a-z0-9]+', '((?:[^'\\]|\\.)*)'\)/g)) assert.doesNotMatch(m[1], days, 'the tutorial');
 });

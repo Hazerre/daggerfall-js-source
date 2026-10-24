@@ -24,7 +24,7 @@ import { _b64url, SIG_BYTES, SKEW_S, ID_RE } from '../identityToken.js';
 import { bodyMeasureValid } from '../bossBody.js';
 
 export const KT_RECEIPT_V = 'y1';
-/** How long a receipt may be carried to the account service: a week, the voyage's own. */
+/** How long a receipt may be carried to the account service: a week (KETCH-EVERY: some seventeen voyages). */
 export const KT_RECEIPT_TTL_S = 7 * 24 * 3600;
 export const KT_RECEIPT_MAX = 560;
 export const KT_EARNED = Object.freeze(['dealt', 'stood']);

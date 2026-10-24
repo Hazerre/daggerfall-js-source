@@ -1570,8 +1570,8 @@
   "by": "claude-in-session"
  },
  "ketch.claim.taken": {
-  "en": "983ddc52b1d9",
-  "tr": "eab0e13d70a7",
+  "en": "12d580b57769",
+  "tr": "f42801324cfb",
   "by": "claude-in-session"
  },
  "ketch.client.away": {
@@ -1670,8 +1670,8 @@
   "by": "claude-in-session"
  },
  "ketch.departed": {
-  "en": "a5d8b1c79809",
-  "tr": "e53c660368c6",
+  "en": "4d1b80c3d9c0",
+  "tr": "aaa48ad8ab48",
   "by": "claude-in-session"
  },
  "ketch.departing": {
@@ -2090,8 +2090,8 @@
   "by": "claude-in-session"
  },
  "ketch.refuse.away": {
-  "en": "f63a0cf5e07d",
-  "tr": "6c6b80109d68",
+  "en": "166b77833186",
+  "tr": "6da7f4352b49",
   "by": "claude-in-session"
  },
  "ketch.refuse.busy": {
@@ -2230,8 +2230,8 @@
   "by": "claude-in-session"
  },
  "ketch.timers.sightedSub": {
-  "en": "78547ffcd9f6",
-  "tr": "3597101ac929",
+  "en": "15e35efdc3a5",
+  "tr": "e8416f466b80",
   "by": "claude-in-session"
  },
  "ketch.timers.station": {
@@ -2855,8 +2855,8 @@
   "by": "claude-in-session"
  },
  "ql.line.skyKetch.lead": {
-  "en": "4a1d0de185e0",
-  "tr": "75703a96a873",
+  "en": "95865c449836",
+  "tr": "b572117b0213",
   "by": "claude-in-session"
  },
  "ql.step.QLSK01": {
@@ -3685,8 +3685,8 @@
   "by": "claude-in-session"
  },
  "tutorials.skyKetch.body1": {
-  "en": "631c832d5211",
-  "tr": "e4e626674030",
+  "en": "e25e3fbb7cca",
+  "tr": "61f48f5c94e9",
   "by": "claude-in-session"
  },
  "tutorials.skyKetch.body2": {

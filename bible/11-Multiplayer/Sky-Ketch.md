@@ -17,9 +17,10 @@ only found within this activity"* (`06-Systems/Gilded.md` section 10).
 So, as decided here:
 
 - **Online only, on the real clock.** The Ketch is a fact about the shared world, like the gate and the Hour: she comes
-  every real Saturday at 00:00 UTC - never the online calendar's Loredas, which runs twelve game days a real day, so no
-  line names a day of Tamriel's week (AUDIT KETCH L5-3) - the relay runs each crew's ship, signs each earner's receipt, and the account service pays the week's
-  share. Offline there is no Ketch.
+  every ten real hours (KETCH-EVERY, below - she first came every real Saturday at 00:00 UTC), never by the online
+  calendar, which runs twelve game days a real day, so no line names a day of Tamriel's week (AUDIT KETCH L5-3). The
+  relay runs each crew's ship and signs each earner's receipt, and the account service pays each voyage's share.
+  Offline there is no Ketch.
 - **One party, one ship.** A crew is a party - eight at most, the party's own bound (`net/wire.js` PARTY_MAX) - and each
   crew boards its own copy of her (an instance, `11-Multiplayer/Instances.md`'s law): the captain's ship, the captain's
   party aboard. A member rides back up to the ship it was taken into, whoever leads the party since (AUDIT KETCH L1-6,
@@ -55,10 +56,20 @@ on the guns - `05-Combat/Dwarven-Thunderlock.md` GUN-LORE).
 
 ## 2. The voyage on the clock, and the Ketch in the sky
 
-**The law** (`net/ketch/ketchLaw.js`): voyage 0 arrives **Saturday 2026-10-24 at 00:00 UTC** (`KT_EPOCH_MS`) and
-every voyage a week on (`KT_WEEK_MS`). She is **sighted** two hours before (`KT_SIGHT_MS`), **keeps station** a day and a
-half (`KT_STATION_MS`), then **weighs anchor**: the crews aboard have twenty minutes more (`KT_LAST_MS`), and then she
-is gone. `ketchVoyageAt(now)` names the voyage and its phase - away, sighted, docked, departing - each instant's edge
+**The law** (`net/ketch/ketchLaw.js`): voyage 0 arrives **2026-10-25 at 00:00 UTC** (`KT_EPOCH_MS`) and every voyage
+**ten hours** on (`KT_EVERY_MS`). She is **sighted** an hour before (`KT_SIGHT_MS`), **keeps station** seven hours
+(`KT_STATION_MS`), then **weighs anchor**: the crews aboard have twenty minutes more (`KT_LAST_MS`), and then she is
+gone for an hour and forty minutes before she is sighted again. Ten hours does not divide the day, so her arrivals walk
+round the clock: 00:00, 10:00 and 20:00 UTC on the first day, then 06:00, 16:00 and 02:00, and so on through every
+time zone's evening.
+
+**KETCH-EVERY** (the owner, 2026-10-24: *"Can we make this happen every 10 hours. First one to spawn after this goes
+live"*): she came every real Saturday at 00:00 UTC for a day and a half (`KT_WEEK_MS`), and comes every ten hours now.
+Voyage 0 is the first after she goes live (nothing of her was deployed before it). The share is still once a voyage
+(`ketch_voyages`' key, voyage and account), so a hand can earn about seventeen a week where it earned one; the hold's
+rates (section 9) are unchanged. A receipt still keeps a week (`KT_RECEIPT_TTL_S`). The words on every screen say
+"every ten hours", drafted again in every language, and her book says she comes round "every fifth day" (ten real hours
+are five days of the online calendar). `ketchVoyageAt(now)` names the voyage and its phase - away, sighted, docked, departing - each instant's edge
 on the later side. A crew **boards** only while she keeps station (`ketchBoards`); her ships **hold** their crews from
 her arrival to her going (`ketchHolds`).
 
