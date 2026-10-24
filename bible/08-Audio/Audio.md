@@ -930,7 +930,60 @@ Pins: `test/systems/gatemix_limiter.test.js` (4: the ceiling's law; the curve as
 against the spec's make-up; the graph - the listener into the limiter, the low-pass before it, an old context straight
 through). `tools/mutants/gatemix.json` (with section 28's: 36 dead, one equivalent as recorded).
 
-<<<<<<< HEAD
+## INTRO3 (2026-10-14): the main theme, written as notes - the film's and the menu's
+
+The owner: "With the main menu music, is there anyway to recreate it using the sound system daggerfall's music uses",
+then "you do it and it's for both". The front door's theme was a recording decoded by a session of its own; it is now
+a song made in code (`systems/introScore.js`, `DFOTHEME.HMI`) - the fourth after the Warden's score (WB7), the Arena's
+and the Hour's - transcribed from that recording bar by bar and played by `SongPlayer` and the FM bank for the film
+and the menu (`systems/introTheme.js`).
+
+- **Its tempo is the film's**: one tempo (128.76 BPM, 68 ticks of lead) that puts the cue sheet's cloud break (11.712 s)
+  and the logo's beat (19.168 s) on its bar lines, within 0.2 ms.
+- **Its volume is the player's own law**: MUSIC_GAIN under MusicVolume and the video mute, followed live; the session's
+  gain is the film's level (0.82) or the menu's (0.26) alone.
+- **Its loudness is the recording's**: a light press (`INTRO_PRESS`, 3:1 from -14 dB, ceiling -1 dBFS) at level 1 -
+  about -22 dBFS through the body at MusicVolume 0.5, the recording's rise and fall kept. Measured through the real
+  player: `tools/introScoreProbe.mjs`.
+- **Not here**: a music pack's replacement by name and MIDI-OUT1's device - the session plays before the music service
+  exists, on the FM bank. `10-UI/UI-Arc.md` INTRO3.
+
+**INTRO3b (2026-10-23, the owner: "too flat"): the theme is the second song to carry its own voices and kit**
+(`systems/introScore.js` `INTRO_VOICES`, `INTRO_KIT` - EG-ROAR's `songVoices`, `songKit`, after the Spire's). Measured
+against the recording's first 27 s, the dry render's spectral centre stood at 305 Hz to the recording's 521, its share
+from 2 kHz up 13 dB under, and its two channels all but one (L/R correlation 0.985 to 0.33). Now: the bowed sections
+ensembles (unison copies spread either side of their place, the FM index higher and slower to settle), the choir and the
+pad on odd harmonics, a halo of four tremolo violins on the choir's chord an octave up, the taiko and the toms with their
+beaters' clicks and the snare a crack over a skin, a suspended cymbal's wash, the low brass's braams, snare rolls and a
+CC7 swell into every turn - and THE HALL: the intro session hangs a concert hall's convolver under the player's master
+(`systems/introTheme.js` `introSpace`, its impulse from I3DL2 numbers through `reverbPresets.js` `reverbImpulse`, the
+first use of that builder outside the engine's zones), through the session's own gain so MusicVolume and the mute reach
+it. The film's 27 s measured after: 483 Hz, -14.7 dB from 2 kHz up, correlation 0.61, both landmarks at 0.0 ms, the peak
+-3.1 dBFS at the highest MusicVolume - the hall sums over the press, so the ceiling is measured there, not held by
+construction; the whole song as loud as the recording (-22.6 dBFS to its -22.4), correlation 0.63, 436 Hz, -15.0 dB, 9/9. `tools/introScoreProbe.mjs` pins the width and the presence beside the landmarks. The whole record is
+`10-UI/UI-Arc.md` INTRO3b.
+
+**INTRO3c (2026-10-24, the owner: "I dont like the high pitch whine"; "Its not natural"; "Now it just sounds like
+static. Stop band aid fixing"): the whine was the model.** Measured over the opening's held chord against the recording:
+two-operator FM at 1:1 put the chord's 4th and 6th harmonics as loud as its fundamentals with the 7th and the 9th 50 dB
+under them - isolated pure lines 6-12 cents wide, where a string section has a dense series with a plateau from the 5th
+and every partial 20-50 cents wide - and the render had no body (315-630 Hz 5-7 dB short) and no presence (2-3 kHz 8-10
+short). A vibrato widened the lines; a breath of noise under the notes was the static. So the intro's bed is BOWED
+(above): sawtooths under the bow's low-pass, each section through its body (the strings' bridge hill at 2.7 kHz, the
+choir's vowel at 650, 1050 and 2500), an air shelf and an ensemble, with a vibrato and a bite at most; the horn and the
+brass stay FM, the horn's index settling to half; the mix through THE TONE, the recording's third-octave curve against
+the render's. After: the chord's harmonics 0, -10, -21, -13, -17, -18, -18, -22, -25 dB, its partials 18-47 cents wide,
+the film within 3 dB of the recording's curve from 80 Hz to 10 kHz (a mean of 1.2), 483 Hz and -13.3 dB from 2 kHz up.
+The riser into each landmark (the owner: "still a high pitch whine in the build up leading to the title drop") was the
+Spire's inharmonic FM shimmer, its sidebands 14-17 dB over their surroundings through both build-ups; it is a suspended
+cymbal's roll on the kit now (`swellInto`, the ride under soft mallets), a band of noise with no line in it. The hum
+("too constant ... too overpowering") was the contrabass's pedal and the pad, flat sawtooths 7 dB over the recording's
+bass: every held voice has the bow's arc now (`arc`) and the bed sways (`sway`), the bass plays at the bank's gain with
+the low end's weight in the drums, and the opening's bass sits at the recording's (-16.3 dB to its -17.1).
+`tools/introScoreProbe.mjs` pins the chord's shape (`chordShape`), the build-up (`riserShape`) and the bass (`bassShape`) beside the width and the presence. The whole song: as loud as the recording (-22.9 dBFS to its -22.4), correlation 0.62,
+502 Hz, -13.1 dB, 11/11. The
+record is `10-UI/UI-Arc.md` INTRO3c.
+
 ## SOUNDSCAPE (2026-10-24): the sea under a deck, the shore, the wild and the town - SEA-AIR and WORLD-AIR
 
 The owner: "I want to talk about enhancing sound and ambience, different music and ambience sounds for sailing, more
@@ -1115,58 +1168,3 @@ The owner: "more varied horse sounds". DFU's TransportManager gives a horse one 
 - **The clips.** Fifteen of the port's own, the climb's way (`tools/horseSfx.mjs` -> `public/sfx/horse-*.wav`, DAGGER.SND's 11025 Hz 8-bit). Each is baked to a loudness target set against the classic clips it plays beside: HorseClop -18.3, HorseClop2 -11.0 and AnimalHorse -8.6 dBFS (loudest 50 ms), so grass sits a shade under the road and a snort well under the neigh. A first mix, set on numbers; none has been heard by ear. Loaded by the soundscape's loader (`systems/soundscape/clipInstall.js`): a clip the bus would not take is asked again at 2 s, 8 s, 30 s and 2 min, then not at all (AUDIT SOUNDSCAPE H2). The CC0 trot recording offered (OpenGameArt's "Horse Trotting") was not used: its falls overlap unevenly and no clean loop on DFU's beat could be cut from it.
 
 Pins: `test/systems/horse/horsevoice.test.js` (13); `tools/mutants/horsevoice.json` (49, all dead).
-=======
-## INTRO3 (2026-10-14): the main theme, written as notes - the film's and the menu's
-
-The owner: "With the main menu music, is there anyway to recreate it using the sound system daggerfall's music uses",
-then "you do it and it's for both". The front door's theme was a recording decoded by a session of its own; it is now
-a song made in code (`systems/introScore.js`, `DFOTHEME.HMI`) - the fourth after the Warden's score (WB7), the Arena's
-and the Hour's - transcribed from that recording bar by bar and played by `SongPlayer` and the FM bank for the film
-and the menu (`systems/introTheme.js`).
-
-- **Its tempo is the film's**: one tempo (128.76 BPM, 68 ticks of lead) that puts the cue sheet's cloud break (11.712 s)
-  and the logo's beat (19.168 s) on its bar lines, within 0.2 ms.
-- **Its volume is the player's own law**: MUSIC_GAIN under MusicVolume and the video mute, followed live; the session's
-  gain is the film's level (0.82) or the menu's (0.26) alone.
-- **Its loudness is the recording's**: a light press (`INTRO_PRESS`, 3:1 from -14 dB, ceiling -1 dBFS) at level 1 -
-  about -22 dBFS through the body at MusicVolume 0.5, the recording's rise and fall kept. Measured through the real
-  player: `tools/introScoreProbe.mjs`.
-- **Not here**: a music pack's replacement by name and MIDI-OUT1's device - the session plays before the music service
-  exists, on the FM bank. `10-UI/UI-Arc.md` INTRO3.
-
-**INTRO3b (2026-10-23, the owner: "too flat"): the theme is the second song to carry its own voices and kit**
-(`systems/introScore.js` `INTRO_VOICES`, `INTRO_KIT` - EG-ROAR's `songVoices`, `songKit`, after the Spire's). Measured
-against the recording's first 27 s, the dry render's spectral centre stood at 305 Hz to the recording's 521, its share
-from 2 kHz up 13 dB under, and its two channels all but one (L/R correlation 0.985 to 0.33). Now: the bowed sections
-ensembles (unison copies spread either side of their place, the FM index higher and slower to settle), the choir and the
-pad on odd harmonics, a halo of four tremolo violins on the choir's chord an octave up, the taiko and the toms with their
-beaters' clicks and the snare a crack over a skin, a suspended cymbal's wash, the low brass's braams, snare rolls and a
-CC7 swell into every turn - and THE HALL: the intro session hangs a concert hall's convolver under the player's master
-(`systems/introTheme.js` `introSpace`, its impulse from I3DL2 numbers through `reverbPresets.js` `reverbImpulse`, the
-first use of that builder outside the engine's zones), through the session's own gain so MusicVolume and the mute reach
-it. The film's 27 s measured after: 483 Hz, -14.7 dB from 2 kHz up, correlation 0.61, both landmarks at 0.0 ms, the peak
--3.1 dBFS at the highest MusicVolume - the hall sums over the press, so the ceiling is measured there, not held by
-construction; the whole song as loud as the recording (-22.6 dBFS to its -22.4), correlation 0.63, 436 Hz, -15.0 dB, 9/9. `tools/introScoreProbe.mjs` pins the width and the presence beside the landmarks. The whole record is
-`10-UI/UI-Arc.md` INTRO3b.
-
-**INTRO3c (2026-10-24, the owner: "I dont like the high pitch whine"; "Its not natural"; "Now it just sounds like
-static. Stop band aid fixing"): the whine was the model.** Measured over the opening's held chord against the recording:
-two-operator FM at 1:1 put the chord's 4th and 6th harmonics as loud as its fundamentals with the 7th and the 9th 50 dB
-under them - isolated pure lines 6-12 cents wide, where a string section has a dense series with a plateau from the 5th
-and every partial 20-50 cents wide - and the render had no body (315-630 Hz 5-7 dB short) and no presence (2-3 kHz 8-10
-short). A vibrato widened the lines; a breath of noise under the notes was the static. So the intro's bed is BOWED
-(above): sawtooths under the bow's low-pass, each section through its body (the strings' bridge hill at 2.7 kHz, the
-choir's vowel at 650, 1050 and 2500), an air shelf and an ensemble, with a vibrato and a bite at most; the horn and the
-brass stay FM, the horn's index settling to half; the mix through THE TONE, the recording's third-octave curve against
-the render's. After: the chord's harmonics 0, -10, -21, -13, -17, -18, -18, -22, -25 dB, its partials 18-47 cents wide,
-the film within 3 dB of the recording's curve from 80 Hz to 10 kHz (a mean of 1.2), 483 Hz and -13.3 dB from 2 kHz up.
-The riser into each landmark (the owner: "still a high pitch whine in the build up leading to the title drop") was the
-Spire's inharmonic FM shimmer, its sidebands 14-17 dB over their surroundings through both build-ups; it is a suspended
-cymbal's roll on the kit now (`swellInto`, the ride under soft mallets), a band of noise with no line in it. The hum
-("too constant ... too overpowering") was the contrabass's pedal and the pad, flat sawtooths 7 dB over the recording's
-bass: every held voice has the bow's arc now (`arc`) and the bed sways (`sway`), the bass plays at the bank's gain with
-the low end's weight in the drums, and the opening's bass sits at the recording's (-16.3 dB to its -17.1).
-`tools/introScoreProbe.mjs` pins the chord's shape (`chordShape`), the build-up (`riserShape`) and the bass (`bassShape`) beside the width and the presence. The whole song: as loud as the recording (-22.9 dBFS to its -22.4), correlation 0.62,
-502 Hz, -13.1 dB, 11/11. The
-record is `10-UI/UI-Arc.md` INTRO3c.
->>>>>>> origin/main
