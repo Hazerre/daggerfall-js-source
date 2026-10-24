@@ -72,6 +72,9 @@ export function playerInSunlight(nowMinutes = null) {
   const now = nowMinutes ?? _host?.now?.() ?? 0;
   return isDayFromMinutes(now) && !(_host?.isInside?.() ?? false) && !(_host?.inPrison?.() ?? false);
 }
+/** PlayerEnterExit.cs:201, "Same as !IsPlayerInSunlight" - RegensHealth.cs:98's InDarkness arm. Not the
+ *  career's darkness (`!day || dungeon` below, PassiveSpecialsEffect's own law): a lit shop at noon is dark here. */
+export const playerInDarkness = (nowMinutes = null) => !playerInSunlight(nowMinutes);
 /** PlayerEnterExit.cs:1424-1431, the host's answer. */
 export const playerInHolyPlace = () => !!(_host?.isHolyPlace?.() ?? false);
 

@@ -1,0 +1,29 @@
+[
+ {
+  "name": "DARK1-the-ctx-forgets-the-dark",
+  "file": "src/scenes/hostEnchant.js",
+  "old": "    inDarkness: () => playerInDarkness(),",
+  "new": "",
+  "tests": [
+   "test/systems/fb1024_darkregen.test.js"
+  ]
+ },
+ {
+  "name": "DARK1-the-dark-is-the-sun",
+  "file": "src/systems/passiveSpecials.js",
+  "old": "export const playerInDarkness = (nowMinutes = null) => !playerInSunlight(nowMinutes);",
+  "new": "export const playerInDarkness = (nowMinutes = null) => playerInSunlight(nowMinutes);",
+  "tests": [
+   "test/systems/fb1024_darkregen.test.js"
+  ]
+ },
+ {
+  "name": "DARK1-the-dark-is-the-night-alone",
+  "file": "src/systems/passiveSpecials.js",
+  "old": "export const playerInDarkness = (nowMinutes = null) => !playerInSunlight(nowMinutes);",
+  "new": "export const playerInDarkness = (nowMinutes = null) => !isDayFromMinutes(nowMinutes ?? _host?.now?.() ?? 0);",
+  "tests": [
+   "test/systems/fb1024_darkregen.test.js"
+  ]
+ }
+]
