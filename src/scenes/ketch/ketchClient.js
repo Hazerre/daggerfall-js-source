@@ -31,7 +31,7 @@ import {
   KT_CRADLES, KT_BRIDGE_CRADLES, KT_SOCKETS, KT_RESONATORS, KT_HOLD, KT_BRIDGE, KT_LINE, KT_MAIN_TOP, KT_ANCHOR_LIFT, KT_STERN_LIFT, KT_VAULT,
   KT_GANGWAY, KT_REACH, deckToDungeon, dungeonToDeck, deckZoneAt,
 } from '../../net/ketch/ketchDeck.js';
-import { KT_BRIDGE_CRADLE0, KT_RESONATOR0 } from '../../net/ketch/ketchBrain.js';
+import { KT_BRIDGE_CRADLE0, KT_RESONATOR0, KT_CARRY_PACE } from '../../net/ketch/ketchBrain.js';
 import { createKetchLink } from '../../net/ketch/ketchLink.js';
 import { createKetchClaims } from '../../net/ketch/ketchClaims.js';
 import { instanceOwnerOf } from '../../net/instanceRoom.js';
@@ -53,7 +53,7 @@ import { drawGateBossBar } from '../../ui/gate/gateBossBar.js';
 import { KT_RING_R } from '../../ui/ketch/ketchMapMark.js';
 
 /** A carrier's pace on foot (a share of its own): the cell is heavy, and held in both hands. */
-export const KT_CARRY_PACE = 0.72;
+export { KT_CARRY_PACE };
 /** The nets' cast-back costs this share of the body's health (the Steps' own law - net/superDungeon's SD_CAST_BACK_LOSS). */
 export const KT_CAST_BACK_LOSS = 0.15;
 /** A fall wakes the body in the fields at this share of its health. */

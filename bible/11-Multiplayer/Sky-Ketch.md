@@ -208,6 +208,14 @@ never a stranger, never a newcomer while she weighs anchor; the ship told whole 
 voyage kept to storage; its beat every BRAIN_TICK_MS while a member stands aboard; past her crews' last minutes every
 socket told and closed. Every pose stamped (`pAt`) so the census reads its age.
 
+**The step law** (AUDIT KETCH L1-7, `ketchBrain.js` `ktLeastMs`): the relay believes no member faster than the fastest
+build runs (`KT_FAST_RUN_MPS`, the Elite Gates' `EG_FAST_RUN_MPS` pinned equal; a carrier at `KT_CARRY_PACE` of it, the
+page's own pace), less `KT_STEP_SLACK` and a body's breadth - a time bound, the Elite Gates' crossing law's. A cell is set
+no sooner after its pick than its straight walk would take; the bridge unbars to a member on the gangway no sooner than the
+mast-lift's rise and the Sailwalk's least crossing after the engine is fed (`KT_SAILWALK_LEAST_MS`), nor sooner than that
+crossing after it was last seen at the main top (`KT_CROSS_LEAST_MS`). A legitimate crew is never refused; a warp waits
+what a run would take. A ranged blow keeps the gate's law (a storey, no range) - the Hour's and the gate's own.
+
 **The words** (`net/wire.js`, from `world253` - `KT_RELAY_MIN`): one frame type, `kt`, in a ship's room alone - a member's
 `in` (with its game's brain number), `hit`, `pick`, `bank`, `drop`, `hurt` and its body's word; the room's thirty kinds,
 each projected (`validKetchOut`), on a bucket of its own. **The link** (`net/ketch/ketchLink.js`) folds them into the

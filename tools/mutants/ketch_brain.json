@@ -342,5 +342,50 @@
     "tests": [
       "test/net/ketch/ketch_brain.test.js"
     ]
+  },
+  {
+    "name": "KTB-a-cell-banked-in-the-hold-at-a-warp",
+    "file": "src/net/ketch/ketchBrain.js",
+    "old": "KT_HOLD.y) > 2.5 || far(spot)) return out;",
+    "new": "KT_HOLD.y) > 2.5) return out;",
+    "tests": [
+      "test/net/ketch/ketch_brain.test.js"
+    ]
+  },
+  {
+    "name": "KTB-a-resonator-set-at-a-warp",
+    "file": "src/net/ketch/ketchBrain.js",
+    "old": "V.wf.rs[k] !== 0 || dist(at.x, at.z, spot[0], spot[1]) > KT_REACH + 0.6 || far(spot)) return out;",
+    "new": "V.wf.rs[k] !== 0 || dist(at.x, at.z, spot[0], spot[1]) > KT_REACH + 0.6) return out;",
+    "tests": [
+      "test/net/ketch/ketch_brain.test.js"
+    ]
+  },
+  {
+    "name": "KTB-the-bridge-before-the-lift",
+    "file": "src/net/ketch/ketchBrain.js",
+    "old": "const first = now - V.sgAt >= KT_SAILWALK_LEAST_MS ?",
+    "new": "const first = true ?",
+    "tests": [
+      "test/net/ketch/ketch_brain.test.js"
+    ]
+  },
+  {
+    "name": "KTB-the-main-top-unseen",
+    "file": "src/net/ketch/ketchBrain.js",
+    "old": "V.players[q.sub].topAt = now;",
+    "new": "V.players[q.sub].topAt = 0;",
+    "tests": [
+      "test/net/ketch/ketch_brain.test.js"
+    ]
+  },
+  {
+    "name": "KTB-the-carrier-at-a-runners-pace",
+    "file": "src/net/ketch/ketchBrain.js",
+    "old": "(KT_FAST_RUN_MPS * (carrying ? KT_CARRY_PACE : 1))",
+    "new": "(KT_FAST_RUN_MPS * 1)",
+    "tests": [
+      "test/net/ketch/ketch_brain.test.js"
+    ]
   }
 ]

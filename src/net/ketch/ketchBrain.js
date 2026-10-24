@@ -28,7 +28,7 @@
 import { KT_CREW_MAX, KT_STAGE, ketchRoomOf } from './ketchLaw.js';
 import {
   KT_WATCH_SPOTS, KT_WARDEN_POSTS, KT_WARDEN_WAKE_Z, KT_CRADLES, KT_BRIDGE_CRADLES, KT_SOCKETS, KT_RESONATORS, KT_VENTS, KT_REACH,
-  KT_HOLD, KT_BRIDGE, engineNeeds, deckZoneAt,
+  KT_HOLD, KT_BRIDGE, KT_LIFT, KT_COURSE_SPEC, KT_GANGWAY, engineNeeds, deckZoneAt,
 } from './ketchDeck.js';
 import { KT_KINDS, KT_FLOORS, newConstruct, constructHp, bodyWord, beatConstruct, hitConstruct, stepWalk, mvWord } from './ketchConstructs.js';
 import { KETCH_SEAM, KW_ID, KW_FORK_ID0, retune, applyForkHit } from './ketchWarden.js';
@@ -73,6 +73,20 @@ export const KT_BLOW_ID0 = 500_000;
 export const KT_POSE_FRESH_MS = 25_000;
 
 const dist = (ax, az, bx, bz) => Math.hypot(ax - bx, az - bz);
+/** THE STEP LAW (AUDIT KETCH L1-7 - the relay believed any pose: a cell banked a moment after its pick, the bridge unbarred
+ *  from the hold): no member is believed faster than the fastest build runs (KT_FAST_RUN_MPS - net/eliteGates/egSpanLaw.js
+ *  EG_FAST_RUN_MPS, pinned equal; a carrier at KT_CARRY_PACE of it), less KT_STEP_SLACK and a body's breadth. A time bound,
+ *  the Elite Gates' crossing law's (egCrossMin): a legitimate crew is never refused, a warp waits what a run would take. */
+export const KT_FAST_RUN_MPS = ((100 + 150) / 39.5) * (1.35 + 100 / 200) * 1.1;
+export const KT_CARRY_PACE = 0.72;
+export const KT_STEP_SLACK = 0.15;
+const STEP_SPARE_M = 2;
+/** The least time (ms) a body takes over `d` metres, carrying or not. */
+export const ktLeastMs = (d, carrying = false) => (Math.max(0, d - STEP_SPARE_M) / (KT_FAST_RUN_MPS * (carrying ? KT_CARRY_PACE : 1))) * (1 - KT_STEP_SLACK) * 1000;
+/** The Sailwalk's least crossing - the span's top to the gangway's head - and the least from the engine fed to the bridge
+ *  (the mast-lift's rise first; nothing else climbs the 28 m faster). */
+export const KT_CROSS_LEAST_MS = ktLeastMs(KT_GANGWAY.az - KT_COURSE_SPEC.start.z);
+export const KT_SAILWALK_LEAST_MS = KT_LIFT.rise * 1000 * (1 - KT_STEP_SLACK) + KT_CROSS_LEAST_MS;
 const r2 = (v) => Math.round(v * 100) / 100;
 
 /**
@@ -288,7 +302,9 @@ function stageBeat(V, now, live, rng, out) {
       for (const [vx, vz] of pickSpots(KT_VENTS, Math.min(KT_SPIDERS_AT_ONCE, room), rng)) spawn(V, 'spider', 'hold', vx - Math.sign(vx) * 1.2, vz, vx > 0 ? -Math.PI / 2 : Math.PI / 2, now, out, { rise: 600 });
     }
   } else if (V.sg === KT_STAGE.sailwalk) {
-    const first = live.find((q) => q.zone === 'gangway' || q.zone === 'bridge');
+    // the step law: a member seen at the main top crosses no faster than the fastest run; nobody before the lift's rise and that
+    for (const q of live) if (q.zone === 'top' && V.players[q.sub]) V.players[q.sub].topAt = now;
+    const first = now - V.sgAt >= KT_SAILWALK_LEAST_MS ? live.find((q) => (q.zone === 'gangway' || q.zone === 'bridge') && now - (V.players[q.sub]?.topAt ?? V.sgAt) >= KT_CROSS_LEAST_MS) : null;
     if (first) { V.bridge = { at: now, by: V.players[first.sub]?.name ?? '' }; toStage(V, KT_STAGE.bridge, now, out, { by: V.bridge.by }); }
   } else if (V.sg === KT_STAGE.bridge && V.wf) {
     const f = V.wf;
@@ -395,13 +411,13 @@ export function voyageWord(V, sub, m, pose, now, rng) {
       const cr = list[j], spot = spots[j];
       if (!cr || !cr.ready || dist(at.x, at.z, spot[0], spot[1]) > KT_REACH + 0.6) return out;
       cr.ready = 0; cr.backAt = now + (engine ? KT_CRADLE_BACK_MS : KT_BRIDGE_CRADLE_BACK_MS);
-      C.carry[sub] = { id: C.nid++, on: engine ? 'hold' : 'bridge' };
+      C.carry[sub] = { id: C.nid++, on: engine ? 'hold' : 'bridge', x: at.x, z: at.z, at: now };
     } else if (Number.isInteger(m.l)) {
       const li = C.lo.findIndex((l) => l.id === m.l && l.on === (engine ? 'hold' : 'bridge'));
       const l = C.lo[li];
       if (!l || dist(at.x, at.z, l.x, l.z) > KT_REACH + 0.6 || Math.abs((at.y ?? 0) - l.y) > 2.5) return out;
       C.lo.splice(li, 1);
-      C.carry[sub] = { id: l.id, on: l.on };
+      C.carry[sub] = { id: l.id, on: l.on, x: at.x, z: at.z, at: now };
     } else return out;
     out.push({ k: 'pick', s: sub, n: p.name, at: now });
     cellsFrame(V, out);
@@ -410,13 +426,14 @@ export function voyageWord(V, sub, m, pose, now, rng) {
   if (m.k === 'bank') {
     const c = C.carry[sub];
     if (!at || !c || !Number.isInteger(m.s)) return out;
+    const far = (spot) => now - c.at < ktLeastMs(dist(c.x, c.z, spot[0], spot[1]), true);   // the step law: carried there no faster than the fastest run
     if (c.on === 'hold') {
       const spot = KT_SOCKETS[m.s];
-      if (V.sg !== KT_STAGE.engine || !spot || C.sk[m.s] || dist(at.x, at.z, spot[0], spot[1]) > KT_REACH + 0.6 || Math.abs((at.y ?? 0) - KT_HOLD.y) > 2.5) return out;
+      if (V.sg !== KT_STAGE.engine || !spot || C.sk[m.s] || dist(at.x, at.z, spot[0], spot[1]) > KT_REACH + 0.6 || Math.abs((at.y ?? 0) - KT_HOLD.y) > 2.5 || far(spot)) return out;
       C.sk[m.s] = 1; C.banked += 1;
     } else {
       const k = m.s - KT_RESONATOR0, spot = KT_RESONATORS[k];
-      if (!V.wf || !spot || V.wf.rs[k] !== 0 || dist(at.x, at.z, spot[0], spot[1]) > KT_REACH + 0.6) return out;
+      if (!V.wf || !spot || V.wf.rs[k] !== 0 || dist(at.x, at.z, spot[0], spot[1]) > KT_REACH + 0.6 || far(spot)) return out;
       out.push(...retune(V.wf, k, now));
     }
     delete C.carry[sub];

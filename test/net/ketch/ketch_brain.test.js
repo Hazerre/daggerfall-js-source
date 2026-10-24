@@ -9,15 +9,15 @@ import assert from 'node:assert/strict';
 import {
   newVoyage, joinVoyage, stepVoyage, voyageWord, voyageStateOf, voyageEarners, watchWave, spidersMaxFor, cellsWord,
   KT_WATCH_WAIT_MS, KT_WAVE_GAP_MS, KT_RISE_MS, KT_CELL_LIES_MS, KT_CRADLE_BACK_MS, KT_BRIDGE_CRADLE_BACK_MS, KT_BRIDGE_CRADLE0, KT_RESONATOR0, KT_BODY_ID0,
-  idlePlaces, freePlace, KT_PLACE_KEEP_MS,
+  idlePlaces, freePlace, KT_PLACE_KEEP_MS, KT_SAILWALK_LEAST_MS, KT_CROSS_LEAST_MS, KT_FAST_RUN_MPS, KT_CARRY_PACE, KT_STEP_SLACK, ktLeastMs,
 } from '../../../src/net/ketch/ketchBrain.js';
 import { ketchRoomKey, ketchVoyageOf, KT_STAGE, KT_CREW_MAX } from '../../../src/net/ketch/ketchLaw.js';
-import { KT_CRADLES, KT_BRIDGE_CRADLES, KT_SOCKETS, KT_RESONATORS, KT_GANGWAY, KT_WARDEN_WAKE_Z, KT_HOLD, engineNeeds } from '../../../src/net/ketch/ketchDeck.js';
+import { KT_CRADLES, KT_BRIDGE_CRADLES, KT_SOCKETS, KT_RESONATORS, KT_GANGWAY, KT_WARDEN_WAKE_Z, KT_HOLD, KT_MAIN_TOP, engineNeeds } from '../../../src/net/ketch/ketchDeck.js';
 import { KW_ID, KW_FORK_ID0, KW_PHASE_AT, KW_LOST_MS } from '../../../src/net/ketch/ketchWarden.js';
 import { HIT_KINDS, BUCKET_DEPTH_X, dpsRef } from '../../../src/net/gate/gateBrain.js';
 import { validKetchOut, validKetchIn, KT_OUT_KINDS, KT_CELL_SPOT_MAX, KT_BODY_ID_MAX, KT_CREW_WIRE_MAX, KT_KIND_MAX } from '../../../src/net/wire.js';
 import { KT_KIND_BY_K } from '../../../src/net/ketch/ketchConstructs.js';
-import { ship, all, bodiesOf, poseOf, sail, strikeFloor, wireOk, toEngine, feed, toBridge, OWNER, T0, SHAFT, seeded, WAIST, GALLERY, HOLD_MID } from './ketchSim.mjs';
+import { ship, all, bodiesOf, poseOf, sail, strikeFloor, wireOk, toEngine, feed, toBridge, carried, OWNER, T0, SHAFT, seeded, WAIST, GALLERY, HOLD_MID } from './ketchSim.mjs';
 
 test('KETCH THE NUMBERS: the Watch\'s waves for a crew of one, four and eight (spheres; spheres and sentries; the Captain and spheres); the engine eats three and one for each two aboard; the spiders three and the crew at once (mutants: wave one a sphere short; the Captain missing; the engine\'s appetite by the whole crew)', () => {
   assert.deepEqual([1, 2, 3].map((w) => watchWave(w, 1)), [{ sphere: 3, sentry: 0, captain: 0 }, { sphere: 2, sentry: 1, captain: 0 }, { sphere: 1, sentry: 0, captain: 1 }]);
@@ -114,14 +114,17 @@ test('KETCH THE STARVED ENGINE - a cell taken and set: from a charged cradle wit
   assert.deepEqual(took[1].ca, [['mem0', V.cells.carry.mem0.id]]);
   assert.deepEqual(voyageWord(V, 'mem1', { k: 'pick', c: 0 }, poseOf([cx, -12, cz]), t, rng), [], 'spent');
   assert.deepEqual(voyageWord(V, 'mem0', { k: 'pick', c: 1 }, poseOf(KT_CRADLES[1].length ? [KT_CRADLES[1][0], -12, KT_CRADLES[1][1]] : null), t, rng), [], 'its hands full');
-  assert.deepEqual(voyageWord(V, 'mem0', { k: 'bank', s: 3 }, poseOf([sx + 5, -12, sz]), t + 10, rng), [], 'a socket out of reach');
-  const set = voyageWord(V, 'mem0', { k: 'bank', s: 3 }, poseOf([sx, -12, sz]), t + 20, rng);
+  const W = carried(V, 'mem0', KT_SOCKETS[3]);
+  assert.ok(W > 0);
+  assert.deepEqual(voyageWord(V, 'mem0', { k: 'bank', s: 3 }, poseOf([sx, -12, sz]), t + W - 1, rng), [], 'carried there faster than the fastest run (AUDIT KETCH L1-7)');
+  assert.deepEqual(voyageWord(V, 'mem0', { k: 'bank', s: 3 }, poseOf([sx + 5, -12, sz]), t + W + 10, rng), [], 'a socket out of reach');
+  const set = voyageWord(V, 'mem0', { k: 'bank', s: 3 }, poseOf([sx, -12, sz]), t + W + 20, rng);
   assert.deepEqual(set.map((f) => f.k), ['bank', 'cl']);
   assert.equal(set[0].sk, 3);
   assert.deepEqual([V.cells.banked, V.cells.sk[3], V.players.mem0.banked], [1, 1, 1]);
   assert.equal(V.cells.carry.mem0, undefined);
   voyageWord(V, 'mem1', { k: 'pick', c: 1 }, poseOf([KT_CRADLES[1][0], -12, KT_CRADLES[1][1]]), t + 30, rng);
-  assert.deepEqual(voyageWord(V, 'mem1', { k: 'bank', s: 3 }, poseOf([sx, -12, sz]), t + 40, rng), [], 'that socket is fed');
+  assert.deepEqual(voyageWord(V, 'mem1', { k: 'bank', s: 3 }, poseOf([sx, -12, sz]), t + 30 + carried(V, 'mem1', KT_SOCKETS[3]) + 10, rng), [], 'that socket is fed');
   assert.ok(V.cells.carry.mem1, 'still carried');
   const back = sail(V, t + 250, all(V, HOLD_MID), { most: KT_CRADLE_BACK_MS + 1000, until: (f) => f.k === 'cl' && f.cr[0] === 1 });
   assert.ok(back.now >= t + KT_CRADLE_BACK_MS && back.now < t + KT_CRADLE_BACK_MS + 250, 'charged again');
@@ -187,7 +190,15 @@ test('KETCH THE SAILWALK UNBARS THE BRIDGE: the first member on the gangway or t
   const fed = feed(V, t);
   const course = sail(V, fed.now + 250, all(V, [24, 16, 70]), { most: 3000, until: (f) => f.k === 'sg' });
   assert.equal(course.now, null);
-  const there = sail(V, fed.now + 3500, { ...all(V, [24, 16, 70]), mem2: [KT_GANGWAY.ax, 0, KT_GANGWAY.az] }, { most: 1000, until: (f) => f.k === 'sg' });
+  // the step law (AUDIT KETCH L1-7): nobody on the gangway sooner than the lift's rise and the fastest crossing after the
+  // engine is fed, nor sooner than the fastest crossing after it was last seen at the main top
+  const early = sail(V, fed.now + 3500, { ...all(V, [24, 16, 70]), mem2: [KT_GANGWAY.ax, 0, KT_GANGWAY.az] }, { most: KT_SAILWALK_LEAST_MS - 3600, until: (f) => f.k === 'sg' });
+  assert.equal(early.now, null, 'warped from the hold: barred still');
+  const T = fed.now + Math.ceil(KT_SAILWALK_LEAST_MS);
+  sail(V, T, { ...all(V, [24, 16, 70]), mem2: [KT_MAIN_TOP.x, KT_MAIN_TOP.y, KT_MAIN_TOP.z] }, { most: 0 });
+  const fromTop = sail(V, T + 250, { ...all(V, [24, 16, 70]), mem2: [KT_GANGWAY.ax, 0, KT_GANGWAY.az] }, { most: KT_CROSS_LEAST_MS - 500, until: (f) => f.k === 'sg' });
+  assert.equal(fromTop.now, null, 'seen at the top a moment ago: barred still');
+  const there = sail(V, T + Math.ceil(KT_CROSS_LEAST_MS) + 250, { ...all(V, [24, 16, 70]), mem2: [KT_GANGWAY.ax, 0, KT_GANGWAY.az] }, { most: 1000, until: (f) => f.k === 'sg' });
   const sg = there.out.find((f) => f.k === 'sg');
   assert.deepEqual([sg.sg, sg.by], [KT_STAGE.bridge, 'P2']);
   assert.deepEqual(V.bridge, { at: there.now, by: 'P2' });
@@ -319,9 +330,11 @@ test('KETCH THE DISCORD\'S RESONATORS TAKE A CELL EACH: one set true takes no se
   voyageWord(V, 'mem0', { k: 'pick', c: KT_BRIDGE_CRADLE0 }, poseOf(BC(0)), t, rng);
   voyageWord(V, 'mem1', { k: 'pick', c: KT_BRIDGE_CRADLE0 + 1 }, poseOf(BC(1)), t, rng);
   const was = V.players.mem1.banked;
-  const first = voyageWord(V, 'mem0', { k: 'bank', s: KT_RESONATOR0 }, poseOf(RS(0)), t + 100, rng);
+  const w = Math.max(carried(V, 'mem0', KT_RESONATORS[0]), carried(V, 'mem1', KT_RESONATORS[0]));
+  assert.deepEqual(voyageWord(V, 'mem0', { k: 'bank', s: KT_RESONATOR0 }, poseOf(RS(0)), V.cells.carry.mem0.at + carried(V, 'mem0', KT_RESONATORS[0]) - 1, rng), [], 'carried there faster than the fastest run (AUDIT KETCH L1-7)');
+  const first = voyageWord(V, 'mem0', { k: 'bank', s: KT_RESONATOR0 }, poseOf(RS(0)), t + w + 100, rng);
   assert.deepEqual(first.filter((f) => f.k === 'rs').map((f) => f.rs), [[1, 0, 0, 0]]);
-  assert.deepEqual(voyageWord(V, 'mem1', { k: 'bank', s: KT_RESONATOR0 }, poseOf(RS(0)), t + 200, rng), [], 'true already: no cell taken');
+  assert.deepEqual(voyageWord(V, 'mem1', { k: 'bank', s: KT_RESONATOR0 }, poseOf(RS(0)), t + w + 200, rng), [], 'true already: no cell taken');
   assert.ok(V.cells.carry.mem1, 'its cell still in its hands');
   assert.equal(V.players.mem1.banked, was, 'none counted to it');
 });
@@ -397,4 +410,19 @@ test('KETCH A PLACE FREES ONLY WHEN IDLE: a member with no socket aboard, unseen
   assert.ok(Math.abs(V.wf.max - (max - share)) < 1e-6, 'its share of the Warden\'s health out');
   assert.deepEqual(freePlace(V, b, later), [], 'once');
   assert.ok(validKetchOut(voyageStateOf(V, later)));
+});
+
+test('KETCH THE STEP LAW\'S NUMBERS: the fastest build\'s run (the Elite Gates\' own, pinned equal), a carrier at KT_CARRY_PACE of it - the page\'s own pace - less KT_STEP_SLACK and a body\'s breadth; the Sailwalk\'s least crossing and the mast-lift\'s rise before it (AUDIT KETCH L1-7; mutants: the carrier at a runner\'s pace)', async () => {
+  const { EG_FAST_RUN_MPS, EG_CROSS_SLACK } = await import('../../../src/net/eliteGates/egSpanLaw.js');
+  const { KT_CARRY_PACE: PAGE_PACE } = await import('../../../src/scenes/ketch/ketchClient.js');
+  const { KT_LIFT, KT_COURSE_SPEC } = await import('../../../src/net/ketch/ketchDeck.js');
+  assert.equal(KT_FAST_RUN_MPS, EG_FAST_RUN_MPS);
+  assert.equal(KT_STEP_SLACK, EG_CROSS_SLACK);
+  assert.equal(PAGE_PACE, KT_CARRY_PACE);
+  assert.equal(KT_CARRY_PACE, 0.72);
+  assert.equal(ktLeastMs(2), 0, 'a body\'s breadth');
+  assert.ok(Math.abs(ktLeastMs(12) - (10 / KT_FAST_RUN_MPS) * (1 - KT_STEP_SLACK) * 1000) < 1e-9);
+  assert.ok(Math.abs(ktLeastMs(12, true) - ktLeastMs(12) / KT_CARRY_PACE) < 1e-9);
+  assert.ok(Math.abs(KT_CROSS_LEAST_MS - ktLeastMs(KT_GANGWAY.az - KT_COURSE_SPEC.start.z)) < 1e-9);
+  assert.ok(Math.abs(KT_SAILWALK_LEAST_MS - KT_CROSS_LEAST_MS - KT_LIFT.rise * 1000 * (1 - KT_STEP_SLACK)) < 1e-9);
 });

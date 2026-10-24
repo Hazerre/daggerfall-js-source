@@ -3,7 +3,7 @@
 // Gallery, the Starved Engine fed, the bridge reached and the Tonal Warden felled. Its frames are the room's own, in
 // order - the director's tests read the state, the page's tests fold the frames (net/ketch/ketchLink.js).
 import assert from 'node:assert/strict';
-import { newVoyage, joinVoyage, stepVoyage, voyageWord, voyageStateOf, KT_BRIDGE_CRADLE0, KT_RESONATOR0 } from '../../../src/net/ketch/ketchBrain.js';
+import { newVoyage, joinVoyage, stepVoyage, voyageWord, voyageStateOf, ktLeastMs, KT_BRIDGE_CRADLE0, KT_RESONATOR0, KT_SAILWALK_LEAST_MS } from '../../../src/net/ketch/ketchBrain.js';
 import { ketchRoomKey, ketchVoyageOf, KT_STAGE } from '../../../src/net/ketch/ketchLaw.js';
 import { KT_CRADLES, KT_BRIDGE_CRADLES, KT_SOCKETS, KT_RESONATORS } from '../../../src/net/ketch/ketchDeck.js';
 import { KW_ID, KW_FORK_ID0 } from '../../../src/net/ketch/ketchWarden.js';
@@ -65,6 +65,8 @@ export function toEngine(V, from = T0) {
   assert.ok(b.now, 'the Wardens down');
   return b.now;
 }
+/** A carried cell's least walk to a spot (the step law, AUDIT KETCH L1-7) - a sim's carrier waits it out. */
+export const carried = (V, sub, spot) => { const c = V.cells.carry[sub]; return c ? Math.ceil(ktLeastMs(Math.hypot(spot[0] - c.x, spot[1] - c.z), true)) : 0; };
 /** The engine fed by the crew from where it starves: each member in turn takes a cradle's cell and sets it. Answers
  *  `{ now, frames }` - every frame said while it was fed, each with its moment. */
 export function feed(V, from) {
@@ -76,9 +78,10 @@ export function feed(V, from) {
     if (c < 0) { said(now, stepVoyage(V, now, bodiesOf(all(V, HOLD_MID)), rng)); now += 250; continue; }
     const sub = V.crew[s++ % V.crew.length], cr = KT_CRADLES[c], k = V.cells.sk.findIndex((v) => !v), sk = KT_SOCKETS[k];
     said(now, voyageWord(V, sub, { k: 'pick', c }, poseOf([cr[0], -12, cr[1]]), now, rng));
+    const walk = carried(V, sub, sk) + 100;
     said(now, stepVoyage(V, now, bodiesOf({ ...all(V, HOLD_MID), [sub]: [sk[0], -12, sk[1]] }), rng));
-    said(now + 100, voyageWord(V, sub, { k: 'bank', s: k }, poseOf([sk[0], -12, sk[1]]), now + 100, rng));
-    now += 250;
+    said(now + walk, voyageWord(V, sub, { k: 'bank', s: k }, poseOf([sk[0], -12, sk[1]]), now + walk, rng));
+    now += walk + 150;
   }
   said(now, stepVoyage(V, now, bodiesOf(all(V, HOLD_MID)), rng));
   return { now, frames };
@@ -87,7 +90,7 @@ export function feed(V, from) {
 export function toBridge(n = 4) {
   const V = ship(n), t = toEngine(V), fed = feed(V, t);
   const core = all(V, (k) => [Math.sin(k) * 8, 0, 200 + Math.cos(k) * 8]);
-  const b = sail(V, fed.now + 250, core, { most: 1000, until: (f) => f.k === 'sg' });
+  const b = sail(V, fed.now + Math.ceil(KT_SAILWALK_LEAST_MS), core, { most: 1000, until: (f) => f.k === 'sg' });
   return { V, now: b.now + 250, core };
 }
 
@@ -102,7 +105,7 @@ export function fightWhole(V, t0, core, rng = seeded(9)) {
       for (const [j, sub] of [[0, V.crew[0]], [1, V.crew[1]]]) {
         const c = V.cells.carry[sub];
         if (!c && V.cells.br[j].ready) out.push(...voyageWord(V, sub, { k: 'pick', c: KT_BRIDGE_CRADLE0 + j }, poseOf([KT_BRIDGE_CRADLES[j][0], 0, KT_BRIDGE_CRADLES[j][1]]), now, rng));
-        else if (c) { const open = f.rs.flatMap((v, i) => (v === 0 ? [i] : [])), k = j === 0 ? open[0] : open.at(-1), R = KT_RESONATORS[k]; out.push(...voyageWord(V, sub, { k: 'bank', s: KT_RESONATOR0 + k }, poseOf([R[0], 0, R[1]]), now, rng)); }
+        else if (c) { const open = f.rs.flatMap((v, i) => (v === 0 ? [i] : [])), k = j === 0 ? open[0] : open.at(-1), R = KT_RESONATORS[k]; if (now - c.at >= carried(V, sub, R)) out.push(...voyageWord(V, sub, { k: 'bank', s: KT_RESONATOR0 + k }, poseOf([R[0], 0, R[1]]), now, rng)); }
       }
       return out;
     }
@@ -127,7 +130,7 @@ export function sailWhole(n = 4) {
   const b = sail(V, a.now + 250, g, { act: strikeFloor(V, g, 'landing'), until: (f) => f.k === 'sg' && f.sg === KT_STAGE.engine });
   const fed = feed(V, b.now + 250);
   const core = all(V, (k) => [Math.sin(k) * 8, 0, 200 + Math.cos(k) * 8]);
-  const c = sail(V, fed.now + 250, core, { most: 1000, until: (f) => f.k === 'sg' });
+  const c = sail(V, fed.now + Math.ceil(KT_SAILWALK_LEAST_MS), core, { most: 1000, until: (f) => f.k === 'sg' });
   const fight = fightWhole(V, c.now + 250, core);
   frames.push(...a.out, ...b.out, ...fed.frames, ...c.out, ...fight.out);
   return { V, frames, now: fight.now };
