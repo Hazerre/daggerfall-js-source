@@ -965,7 +965,7 @@ features.enhancedLighting.note,"より暖かく自然な光：距離に応じて
 features.enhancedLighting.title,"強化されたライティング"
 features.enhancedMap.note,"ワールド、町、ダンジョンを1枚の手描きの羊皮紙の地図で表示し、手に持ってスクロールやズームができます。オフでは従来の3つのマップウィンドウを使います。"
 features.enhancedMap.title,"強化マップ"
-features.enhancedSounds.note,"強化UIの新しい音：屋外では強さに合わせて強まったり弱まったりし、屋内では静まる風の音、強化された所持品画面でアイテムを取ったりしまったりするときの硬貨の音、登るときに石に触れる手と靴の音、そして採集するときの斧、つるはし、葉、ナイフ、網の音。"
+features.enhancedSounds.note,"強化UIの新しい音：屋外では強さに合わせて強まったり弱まったりし、屋内では静まる風の音、強化された所持品画面の硬貨の音、登攀時の石に触れる手とブーツの音、採集時の道具の音、鼻を鳴らし息をし、地面によって蹄の音が変わる馬、甲板の下の海と船鐘、舵を取るときの専用の音楽、岸に打ち寄せる波、地域と時刻に応じた野生の声、そして町の通り、鍛冶屋、酒場の音。"
 features.enhancedSounds.title,"強化されたサウンド"
 features.enhancedWater.note,"中まで見通せる海、川、池：風とともに大きくなる波、岸に寄せる泡、物が動くところの波紋、水面に映る空と月。オフでは従来の平坦な水に戻ります。"
 features.enhancedWater.title,"強化された水"

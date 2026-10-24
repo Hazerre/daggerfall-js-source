@@ -2010,7 +2010,7 @@ features.enhancedLighting.note,"더 따뜻하고 자연스러운 빛입니다. �
 features.enhancedLighting.title,"향상된 조명"
 features.enhancedMap.note,"월드, 마을, 던전을 위한 손으로 그린 양피지 지도 하나를 손에 들고 이동하고 확대할 수 있습니다. 끄면 클래식 지도 창 세 개를 씁니다."
 features.enhancedMap.title,"향상된 지도"
-features.enhancedSounds.note,"향상된 UI의 새 소리입니다. 야외에서는 세기에 따라 커지고 작아지며 실내에서는 잦아드는 바람 소리, 향상된 인벤토리에서 아이템을 집거나 넣을 때 동전 소리, 등반할 때 돌에 닿는 손과 장화 소리, 채집할 때 도끼, 곡괭이, 나뭇잎, 칼, 그물 소리가 납니다."
+features.enhancedSounds.note,"향상된 UI의 새 소리입니다. 야외에서는 세기에 따라 커지고 작아지며 실내에서는 잦아드는 바람 소리, 향상된 인벤토리의 동전 소리, 등반할 때 돌에 닿는 손과 장화 소리, 채집할 때의 도구 소리, 코를 킁킁거리고 숨을 쉬며 땅에 따라 발굽 소리가 바뀌는 말, 갑판 아래의 바다와 종소리, 키를 잡을 때의 전용 음악, 해안의 파도, 지역과 시간에 따른 야생의 소리, 그리고 마을의 거리와 대장간, 선술집 소리."
 features.enhancedSounds.title,"향상된 소리"
 features.enhancedWater.note,"속이 들여다보이는 바다, 강, 연못입니다. 바람에 따라 커지는 파도, 해안에 부딪히는 거품, 무언가 움직이는 곳의 물결, 수면에 비치는 하늘과 달이 있습니다. 끄면 클래식의 평평한 물로 돌아갑니다."
 features.enhancedWater.title,"향상된 물"
