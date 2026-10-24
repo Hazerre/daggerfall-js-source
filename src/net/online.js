@@ -1994,6 +1994,17 @@ export class OnlineSession {
    *  (my level, my game's brain), a blow (`hit` on a construct, the Warden or a fork), a cell taken, set, let go or knocked
    *  from my hands, my body's word (`vt`, on its own bucket) - at a relay that keeps ships, after its welcome, on the ship's
    *  own bucket. TRUE MEANS THE WORD LEFT THE SOCKET. */
+  /** AUDIT KETCH L1-2: a voyage's share given - said to the hub on my own hub socket (net/wire.js validKetchIn `spent`),
+   *  which keeps that voyage's receipt spent and hands it to no other device of mine. TRUE MEANS THE WORD LEFT THE SOCKET. */
+  sendKetchSpent(n) {
+    const w = validKetchIn({ k: 'spent', n });
+    if (!w || !this.acct || !this.ktOk || !isSocialRoom(this.room) || this.status !== 'open' || !this._ws) return false;
+    const gate = ketchGate(this._ktBucket, this._now());
+    if (!gate.pass) return false;
+    try { this._ws.send(JSON.stringify({ t: 'kt', ...w })); } catch { return false; }
+    this._ktBucket = gate.bucket; this.stats.sent++;
+    return true;
+  }
   sendKetch(k, fields = {}) {
     const w = validKetchIn({ ...fields, k, ...(k === 'in' ? { bv: KT_BRAIN_V } : {}) });
     if (!w || !this.ktOk || !isKetchRoom(this.room) || this.status !== 'open' || !this._ws || !this._welcomed.has(this._ws)) return false;
@@ -3574,9 +3585,10 @@ export class OnlineSession {
       else if (r && r.k !== 'ev') { if (room === this.room && isSdRoom(room)) this._deliver('sd', () => this.onSdFight?.(r, room)); }   // SD8b: the realm's fight, from my own realm alone
       else if (r && isSocialRoom(room)) this._deliver('sd', () => this.onSd?.(r, room));
     } else if (m.t === 'kt') {
-      // KETCH: a crew's ship's word - from the ship I stand on alone, projected by the wire's own law
+      // KETCH: a crew's ship's word - from the ship I stand on alone, projected by the wire's own law; AUDIT KETCH L1-2: and
+      // my receipt from the hub, which keeps it (at the fall when I stood off her, and at my hello)
       const r = validKetchOut(m);
-      if (r && room === this.room && isKetchRoom(room)) this._deliver('kt', () => this.onKetch?.(r, room));
+      if (r && ((room === this.room && isKetchRoom(room)) || (r.k === 'rcpt' && isSocialRoom(room)))) this._deliver('kt', () => this.onKetch?.(r, room));
     } else if (m.t === 'eg') {
       // EG-PLAY: an Elite Breach's word - the call from the hub, everything else from the breach room I stand in alone
       const r = validEgOut(m);

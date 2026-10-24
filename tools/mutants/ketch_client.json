@@ -25,5 +25,50 @@
     "tests": [
       "test/scenes/ketch_client.test.js"
     ]
+  },
+  {
+    "name": "KTC-a-share-kept-in-memory-alone",
+    "file": "src/scenes/ketch/ketchShares.js",
+    "old": "const keep = (list) => { memory = list; try { store?.set(KT_OWED_KEY, list); } catch { /* memory holds it */ } };",
+    "new": "const keep = (list) => { memory = list; };",
+    "tests": [
+      "test/scenes/ketch_shares.test.js"
+    ]
+  },
+  {
+    "name": "KTC-a-thrown-share-kept",
+    "file": "src/scenes/ketch/ketchShares.js",
+    "old": "if (ok) { drop(e); say(KT_SPOILS_TEXT.spilled); }",
+    "new": "if (ok) { say(KT_SPOILS_TEXT.spilled); }",
+    "tests": [
+      "test/scenes/ketch_shares.test.js"
+    ]
+  },
+  {
+    "name": "KTC-one-share-held",
+    "file": "src/scenes/ketch/ketchShares.js",
+    "old": "keep([...owed().filter((k) => !same(k, e)), e].slice(-KT_OWED_MAX));",
+    "new": "keep([e]);",
+    "tests": [
+      "test/scenes/ketch_shares.test.js"
+    ]
+  },
+  {
+    "name": "KTC-anothers-share-given",
+    "file": "src/scenes/ketch/ketchShares.js",
+    "old": "const mine = () => { const m = me(); return owed().filter((e) => !m || e.s === m); };",
+    "new": "const mine = () => owed();",
+    "tests": [
+      "test/scenes/ketch_shares.test.js"
+    ]
+  },
+  {
+    "name": "KTC-the-hours-pool-handed-again",
+    "file": "src/scenes/world.js",
+    "old": "  const floorPool = () => (modes?.ktShip?.() != null && ketch ? ketch.spoils :",
+    "new": "  const floorPool = () => (modes?.ktShip?.() != null && ketch ? sdSpoilsPool :",
+    "tests": [
+      "test/systems/ketch/ketch_spoils.test.js"
+    ]
   }
 ]

@@ -534,6 +534,7 @@ ketch.sky.near,"Çapa asansörü Gök Gemisi’nden sarkıyor. Yukarı çıkmak 
 ketch.sky.rising,"Çapa asansörü yükseliyor: {s}..."
 ketch.sky.sighted,"Doğuda göründü"
 ketch.sky.up,"Çapa asansörü yukarı çekildi."
+ketch.spoils.gathered,"Kamaranın zemininde payından kalanlar artık çantanda."
 ketch.spoils.granted,"Gemi Reisi’nin ambarındaki payınız çantanızda."
 ketch.spoils.spilled,"Gemi Reisi’nin ambarı açılıyor. Payınız kamaranın zeminine saçılıyor."
 ketch.stage.bridge,"Ton Muhafızı"

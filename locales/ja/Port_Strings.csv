@@ -1275,6 +1275,7 @@ ketch.sky.near,"錨リフトがケッチから吊り下がっている。中に�
 ketch.sky.rising,"{s}秒後に錨リフトが昇る…"
 ketch.sky.sighted,"東の空に出現"
 ketch.sky.up,"錨リフトは引き上げられている。"
+ketch.spoils.gathered,"船室の床に残っていたあなたの取り分は、荷物に収められた。"
 ketch.spoils.granted,"ケッチ船長の船倉からの分け前が所持品に入った。"
 ketch.spoils.spilled,"ケッチ船長の船倉が開く。あなたの分け前が船室の床に散らばる。"
 ketch.stage.bridge,"音律の番人"

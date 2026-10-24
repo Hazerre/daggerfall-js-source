@@ -187,5 +187,23 @@
     "tests": [
       "test/net/ketch/ketch_relay.test.js"
     ]
+  },
+  {
+    "name": "KTX-the-hubs-receipt-unheard",
+    "file": "src/net/online.js",
+    "old": "if (r && ((room === this.room && isKetchRoom(room)) || (r.k === 'rcpt' && isSocialRoom(room)))) this._deliver('kt'",
+    "new": "if (r && room === this.room && isKetchRoom(room)) this._deliver('kt'",
+    "tests": [
+      "test/net/ketch/ketch_online.test.js"
+    ]
+  },
+  {
+    "name": "KTX-spent-from-a-ship",
+    "file": "src/net/online.js",
+    "old": "if (!w || !this.acct || !this.ktOk || !isSocialRoom(this.room) || this.status !== 'open' || !this._ws) return false;",
+    "new": "if (!w || !this.acct || !this.ktOk || this.status !== 'open' || !this._ws) return false;",
+    "tests": [
+      "test/net/ketch/ketch_online.test.js"
+    ]
   }
 ]

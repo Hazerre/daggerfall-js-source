@@ -8,11 +8,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   rollKetchSpoils, ketchSpoilsList, ketchSpoilsDay, ketchSpoilsOf, KT_SPOILS_GOLD_PER_LEVEL, KT_SPOILS_LEGENDARY, KT_SPOILS_PELLETS,
-  KT_THUNDERLOCK_CHANCE, KT_PISTOLET_CHANCE, KT_SPOILS_KEYS,
+  KT_THUNDERLOCK_CHANCE, KT_PISTOLET_CHANCE, KT_SPOILS_KEYS, KT_SPOILS_GATHERED, KT_SPOILS_TEXT,
 } from '../../../src/systems/ketch/ketchSpoils.js';
 import { KETCH_GILDED_CHANCE, VOLENDRUNGS_ECHO, KETCHMASTERS_WORD, GILDED_CHANCE } from '../../../src/systems/gilded.js';
 import { validLootItem } from '../../../src/systems/loot/loot.js';
 import { SPOILS_KEYS } from '../../../src/scenes/spoilsPool.js';
+import { SD_SPOILS_KEYS } from '../../../src/systems/superDungeon/sdSpoils.js';
+import { readFileSync } from 'node:fs';
 
 const N = 4000;
 const rolls = Array.from({ length: N }, (_, c) => rollKetchSpoils(c * 2654435761 >>> 0, 30));
@@ -65,5 +67,17 @@ test('KETCH THE LIST THE POOL THROWS: the pieces, the guns, the Gilded, the Pell
   assert.deepEqual(ketchSpoilsOf('kt:3.0123456789abcdef'), { d: 3, o: '0123456789abcdef' });
   for (const bad of ['kt:3', 'sd:3.0123456789abcdef', 'kt:x.0123456789abcdef', null]) assert.equal(ketchSpoilsOf(bad), null);
   assert.deepEqual({ ...KT_SPOILS_KEYS }, { store: 'kt.spoils', day: 'kt.spoilsDay' });
-  assert.notEqual(KT_SPOILS_KEYS.store, SPOILS_KEYS.store, 'its own keys, never the Hour\'s');
+  for (const K of [SPOILS_KEYS, SD_SPOILS_KEYS]) assert.ok(K.store !== KT_SPOILS_KEYS.store && K.day !== KT_SPOILS_KEYS.day, 'its own keys - never the gate\'s, never the Hour\'s');
+});
+
+test('KETCH THE HOLD THROWS INTO ITS OWN POOL: the client makes the pool with the Ketch\'s keys, its bound and its own gathered word, and no mailbox (the service keeps no kill of a ship\'s); the world host hands it no other pool, and the floor aboard is the Ketch\'s (AUDIT KETCH L2-3, L2-4; mutants: the Hour\'s pool handed again)', () => {
+  const client = readFileSync(new URL('../../../src/scenes/ketch/ketchClient.js', import.meta.url), 'utf8');
+  const made = client.slice(client.indexOf('const spoils = createSpoilsPool({'), client.indexOf('});', client.indexOf('const spoils = createSpoilsPool({')));
+  assert.match(made, /keys: KT_SPOILS_KEYS, recordsMax: KT_SPOILS_RECORDS_MAX, gathered: KT_SPOILS_GATHERED/);
+  assert.doesNotMatch(made, /mail:/, 'no leftovers promised to the mailbox');
+  const world = readFileSync(new URL('../../../src/scenes/world.js', import.meta.url), 'utf8');
+  const wired = world.slice(world.indexOf('createKetchClient({'), world.indexOf('}) : null;', world.indexOf('createKetchClient({')));
+  assert.doesNotMatch(wired, /spoils: sdSpoilsPool/, 'the Hour\'s pool handed no more');
+  assert.match(world, /const floorPool = \(\) => \(modes\?\.ktShip\?\.\(\) != null && ketch \? ketch\.spoils :/);
+  assert.notEqual(KT_SPOILS_GATHERED, KT_SPOILS_TEXT.gathered, 'a sentinel, said in the player\'s words when it is said');
 });

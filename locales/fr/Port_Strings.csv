@@ -2759,6 +2759,7 @@ ketch.sky.near,"La nacelle d’ancre pend du Ketch. Montez dedans pour vous éle
 ketch.sky.rising,"La nacelle d’ancre s’élève dans {s}..."
 ketch.sky.sighted,"En vue à l’est"
 ketch.sky.up,"La nacelle d’ancre est remontée."
+ketch.spoils.gathered,"Ce qui restait de ta part sur le plancher de la cabine est dans ton sac."
 ketch.spoils.granted,"Votre part de la cale du Maître du Ketch est dans votre sac."
 ketch.spoils.spilled,"La cale du Maître du Ketch s’ouvre. Votre part se répand sur le plancher de la cabine."
 ketch.stage.bridge,"Le Gardien tonal"

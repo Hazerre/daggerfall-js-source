@@ -52,7 +52,11 @@ export const KT_SPOILS_RECORDS_MAX = 8;
 export const KT_SPOILS_TEXT = Object.freeze({
   get spilled() { return t('ketch.spoils.spilled', 'The Ketchmaster\'s hold opens. Your share spills across the cabin floor.'); },
   get granted() { return t('ketch.spoils.granted', 'Your share of the Ketchmaster\'s hold is in your pack.'); },
+  get gathered() { return t('ketch.spoils.gathered', 'What was left of your share on the cabin floor is in your pack.'); },
 });
+/** The word the pool says when leaving gathers the cabin's floor - its own words' sentinel, said by the Ketch's say in
+ *  the player's language when it is said (KT_SPOILS_TEXT.gathered; the pool keeps one string from its making). */
+export const KT_SPOILS_GATHERED = '\u0000ketch.spoils.gathered';
 /** A receipt as the pool keys it spent: its voyage and its ship. */
 export const ketchSpoilsDay = (d, o) => `kt:${d}.${o}`;
 /** The voyage and ship a spent key names, or null. Pure. */

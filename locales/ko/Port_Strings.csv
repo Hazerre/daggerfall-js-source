@@ -2759,6 +2759,7 @@ ketch.sky.near,"닻 승강기가 케치에 매달려 있습니다. 안에 서면
 ketch.sky.rising,"{s}초 후 닻 승강기가 올라갑니다..."
 ketch.sky.sighted,"동쪽 하늘에 출현"
 ketch.sky.up,"닻 승강기가 걷혀 올라갔습니다."
+ketch.spoils.gathered,"선실 바닥에 남아 있던 당신의 몫이 가방에 담겼습니다."
 ketch.spoils.granted,"케치 선장의 선창에서 받은 당신의 몫이 소지품에 들어왔습니다."
 ketch.spoils.spilled,"케치 선장의 선창이 열립니다. 당신의 몫이 선실 바닥에 쏟아집니다."
 ketch.stage.bridge,"음률의 수호자"

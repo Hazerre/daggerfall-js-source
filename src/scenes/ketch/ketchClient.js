@@ -39,8 +39,14 @@ import { bodySayer } from '../../net/bossBody.js';
 import { createKetchFight } from './ketchFight.js';
 import { createKetchSky, ketchSkyPose } from './ketchSky.js';
 import { bosunLineAt } from '../../world/ketch/ketchModel.js';
-import { ketchSpoilsList, ketchSpoilsDay, KT_SPOILS_TEXT } from '../../systems/ketch/ketchSpoils.js';
-import { spoilsLevel, spoilsLock } from '../spoilsPool.js';
+import { ketchSpoilsOf, KT_SPOILS_TEXT, KT_SPOILS_KEYS, KT_SPOILS_RECORDS_MAX, KT_SPOILS_GATHERED } from '../../systems/ketch/ketchSpoils.js';
+import { createSpoilsPool, recoverSpoils } from '../spoilsPool.js';
+import { createKetchShares } from './ketchShares.js';
+import { addItem, addGoldPieces } from '../../systems/inventory.js';
+import { itemIconColor32 } from '../../ui/item/itemIconColor32.js';
+import { lootPileName } from '../../systems/worldTooltips.js';
+import { characterIdOf } from '../../systems/characterId.js';
+import { onSlotSaved, onSlotLoaded, enumerateSaves } from '../../systems/save/saveSlots.js';
 import { noteAct } from '../../systems/questlines/qlActs.js';
 import { registerPlayerDeathSave, hurtPlayer } from '../../characters/playerEntity.js';
 import { flashPlayerDamage } from '../../ui/damageFlash.js';
@@ -110,7 +116,7 @@ const target = (key, x, y, z, h = 1.2, half = BOX, reach = KT_REACH + 0.4) => { 
  *   maps?: any, state?: any, heightAt?: (x: number, z: number) => number, collider?: () => any,
  *   feetOutside?: () => (number[]|null), site?: () => any, peers?: () => Array<{ sub: string, pos: number[] }>,
  *   say?: (text: string) => void, mid?: (text: string) => void, save?: (e: any, el: string) => number,
- *   store?: any, spoils?: any, hudHidden?: () => boolean,
+ *   store?: any, hudHidden?: () => boolean, spent?: (n: number) => boolean, changed?: () => void,
  * }} deps
  *   `online` the session (net/online.js - sendKetch, ktOk); `modes` the mode machine (enterKetch, ktLeave, ktPlace, ktShip,
  *   dungeonCtx); `social` the hub's picture (its party's leader); `account` net/accountClient.js accountKetch; `now` the
@@ -118,7 +124,8 @@ const target = (key, x, y, z, h = 1.2, half = BOX, reach = KT_REACH + 0.4) => { 
  *   own row, its pixel's place), `heightAt` the terrain under a scene point; `feetOutside` my feet in the open world, or
  *   null; `site` the climate and region the made level is laid under; `peers` my crew's bodies where this screen draws
  *   them; `say` a chat line, `mid` a line over the screen; `save` my throw against an element; `store` the device's
- *   (get/set); `spoils` the Hour's spoils pool (scenes/spoilsPool.js) - the Ketchmaster's hold throws into it
+ *   (get/set) - the Ketchmaster's hold's own pool's (scenes/spoilsPool.js, made here); `spent` a voyage's share given, said
+ *   to the hub (net/online.js sendKetchSpent - true when it went); `changed` a save asked for
  */
 export function createKetchClient(deps) {
   const { online, modes, account, entity, player, cam, now } = deps;
@@ -131,11 +138,26 @@ export function createKetchClient(deps) {
   let shipMem = null;
   const keptShip = () => { if (shipMem) return shipMem; try { return deps.store?.get?.(KT_SHIP_KEY) ?? null; } catch { return null; } };
   const keepShip = (m) => { shipMem = m; try { deps.store?.set?.(KT_SHIP_KEY, m); } catch { /* memory holds it */ } };
-  /** a share the hold paid, waiting in the chest while I stand aboard: its claims and the service's answer */
-  let share = null;
+  // THE KETCHMASTER'S HOLD'S OWN POOL (AUDIT KETCH L2-3 - the Ketch threw into the Hour's, its words and its spent marks
+  // the Hour's): its own keys, its words, no floor's leftovers promised to the mailbox (L2-4 - the service keeps no kill of
+  // a ship's), its spent word to the hub (`spent`, L1-2); the shares it is handed kept on the device until it holds them
+  const who = () => characterIdOf(entity);
+  /** the ship's collider's ray (the spoils' flight off the cabin floor), and a piece into my pack */
+  const dungeonRay = (from, dir, len) => { const c = modes()?.dungeonCtx?.collider; const h = c?.raycastHit ? c.raycastHit(from, dir, len) : { dist: c?.raycast?.(from, dir, len) ?? Infinity, normal: null }; return Number.isFinite(h?.dist) ? h : null; };
+  const takeSpoil = (p) => { if (p.kind === 'gold') addGoldPieces(entity, p.gold); else if (p.item) addItem(entity.items, p.item); };
+  const spoils = createSpoilsPool({
+    renderer: deps.renderer, gl: deps.gl, getTexture: deps.getTexture, uploadRecordFrame: deps.uploadRecordFrame, audio: deps.audio,
+    ray: dungeonRay, now, take: takeSpoil, say: (text) => (text === KT_SPOILS_GATHERED ? say(KT_SPOILS_TEXT.gathered) : mid(text)),
+    store: deps.store ?? null, who, me, iconOf: (item) => itemIconColor32(item, { identity: entity }), itemName: (item) => lootPileName([item]),
+    onSpent: (day) => { const k = ketchSpoilsOf(day); return !k || deps.spent?.(k.d) === true; },
+    keys: KT_SPOILS_KEYS, recordsMax: KT_SPOILS_RECORDS_MAX, gathered: KT_SPOILS_GATHERED,
+  });
+  onSlotSaved((id) => { try { spoils.saved(id); } catch (e) { console.warn('[kt] spoils', e?.message ?? e); } });
+  onSlotLoaded((id) => { try { spoils.loaded(id); } catch (e) { console.warn('[kt] spoils', e?.message ?? e); } });
+  const shares = createKetchShares({ store: deps.store ?? null, pool: spoils, level: () => entity.level ?? 1, me, aboard: () => onShip(), say: (t) => mid(t), changed: () => deps.changed?.() });
   const claims = createKetchClaims({
     claim: (r, cid) => account.claim(r, cid), store: deps.store ? { get: (k) => deps.store.get(k), set: (k, v) => deps.store.set(k, v) } : null,
-    nowS: () => Math.floor(now() / 1000), say, me, paid: (c, d) => paid(c, d),
+    nowS: () => Math.floor(now() / 1000), say, me, paid: (c) => paid(c),
   });
   const fight = createKetchFight({
     renderer: deps.renderer, gl: deps.gl, getTexture: deps.getTexture, uploadRecordFrame: deps.uploadRecordFrame, audio: deps.audio, link, now,
@@ -236,23 +258,12 @@ export function createKetchClient(deps) {
     mid(KT_WORDS.lineTaken);
   }
   // ── the hold ──
-  function paid(c, d) {
-    if (!c || !Number.isSafeInteger(c.c)) return;
-    share = { c, d, at: Date.now() };
-    if (!onShip()) grantShare(KT_SPOILS_TEXT.granted);
-  }
-  function grantShare(text) {
-    const s = share;
-    share = null;
-    if (!s || !deps.spoils) return;
-    const level = spoilsLevel(entity.level ?? 1, s.c.l);
-    spoilsLock(() => deps.spoils.grant({ day: ketchSpoilsDay(s.c.d, s.c.o), acct: s.c.s, roll: () => ketchSpoilsList(s.c.c, level), text })).catch((e) => console.warn('[kt] spoils', e?.message ?? e));
+  function paid(c) {
+    if (c && Number.isSafeInteger(c.c)) shares.paid(c);
   }
   function openChest() {
-    if (!share) { mid(KT_CLIENT_TEXT.chestEmpty); return; }
-    const s = share, level = spoilsLevel(entity.level ?? 1, s.c.l), at = deckToDungeon(KT_VAULT.x, 0.6, KT_VAULT.z), f = player.feetAt();
-    const ok = deps.spoils?.spew?.({ day: ketchSpoilsDay(s.c.d, s.c.o), seed: s.c.c, level, at, bearing: Math.atan2(f[0] - at[0], f[2] - at[2]), acct: s.c.s, roll: () => ketchSpoilsList(s.c.c, level) });
-    if (ok) { share = null; mid(KT_SPOILS_TEXT.spilled); } else grantShare(KT_SPOILS_TEXT.granted);
+    const at = deckToDungeon(KT_VAULT.x, 0.6, KT_VAULT.z), f = player.feetAt();
+    if (!shares.chest(at, Math.atan2(f[0] - at[0], f[2] - at[2]))) mid(KT_CLIENT_TEXT.chestEmpty);
   }
   // ── the presses aboard ──
   const _targets = [];
@@ -286,7 +297,7 @@ export function createKetchClient(deps) {
     if (k === 'kt:line') return { title: KT_CLIENT_TEXT.line, subs: [KT_CLIENT_TEXT.lineSub] };
     if (k === 'kt:down') return { title: KT_CLIENT_TEXT.down, subs: [KT_CLIENT_TEXT.downSub] };
     if (k === 'kt:stern') return { title: KT_CLIENT_TEXT.stern, subs: [KT_CLIENT_TEXT.downSub] };
-    if (k === 'kt:vault') return { title: KT_CLIENT_TEXT.chest, subs: share ? [KT_CLIENT_TEXT.chestSub] : [] };
+    if (k === 'kt:vault') { const m = me(); return { title: KT_CLIENT_TEXT.chest, subs: shares.owed().some((e) => !m || e.s === m) ? [KT_CLIENT_TEXT.chestSub] : [] }; }
     return null;
   }
   /** A press aboard (the dungeon host's activation, `kt:` keys). */
@@ -320,7 +331,7 @@ export function createKetchClient(deps) {
     try { fight.frame(); } catch (e) { console.warn('[kt] fight', e?.message ?? e); }
     carryFrame(t);
     rideFrame();
-    try { deps.spoils?.frame?.(); } catch (e) { console.warn('[kt] spoils', e?.message ?? e); }
+    try { spoils.frame(); } catch (e) { console.warn('[kt] spoils', e?.message ?? e); }
     // the HUD
     const hidden = !!deps.hudHidden?.();
     drawKetchHud(ketchHudModel(V, t, { carrying: link.carrying() }), { hidden });
@@ -332,8 +343,8 @@ export function createKetchClient(deps) {
     if (hudUp) { drawKetchHud(null); hudUp = false; }
     if (barUp) { drawGateBossBar(null); barUp = false; }
     link.leave(); fight.leave(); ride = null; forced = false;
-    if (share) grantShare(KT_SPOILS_TEXT.granted);
-    try { deps.spoils?.gather?.(); } catch (e) { console.warn('[kt] spoils', e?.message ?? e); }
+    void shares.give();   // the chest unopened: my share into the pack
+    try { spoils.gather(); deps.changed?.(); } catch (e) { console.warn('[kt] spoils', e?.message ?? e); }   // AUDIT KETCH L3-13: a save asked for
   }
 
   registerPlayerDeathSave('kt-fall', () => { if (!onShip()) return false; fall('death'); return true; });
@@ -401,10 +412,20 @@ export function createKetchClient(deps) {
       return out;
     },
     targets, name, press,
-    lights: () => [...fight.lights(), ...(deps.spoils?.lights?.() ?? NONE)],
+    /** The Ketchmaster's hold's pool (the floor a press, a plaque and the ray ask of aboard), and its doors for the hosts:
+     *  the realm save's records held and landed, and the crash's door at a stand-up - the pool's records and my shares
+     *  still owed (AUDIT KETCH L2-2, L2-3). */
+    spoils,
+    spoilsHeld: (id) => { try { return spoils.heldIds?.(id) ?? []; } catch { return []; } },
+    spoilsLanded(id, ids) { try { spoils.saved(id, ids); } catch (e) { console.warn('[kt] spoils', e?.message ?? e); } },
+    recoverSpoils(id, inSave = null) {
+      try { if (recoverSpoils(deps.store ?? null, takeSpoil, { who: id, saves: enumerateSaves().info.values(), onHanded: (rec) => spoils.adopt(rec), key: KT_SPOILS_KEYS.store, inSave })) mid(KT_SPOILS_TEXT.granted); } catch (e) { console.warn('[kt] spoils', e?.message ?? e); }
+      void shares.give();
+    },
+    lights: () => [...fight.lights(), ...(spoils.lights?.() ?? NONE)],
     /** The telegraphs and the spoils' lines, after the flats. Answers whether anything drew. */
     drawPass(proj, view, eye, seconds, fog) {
-      const a = fight.drawPass(proj, view, eye, seconds, fog), b = !!deps.spoils?.drawPass?.(proj, view, eye, seconds, fog);
+      const a = fight.drawPass(proj, view, eye, seconds, fog), b = !!spoils.drawPass?.(proj, view, eye, seconds, fog);
       return a || b;
     },
     offerBodies: (lane) => fight.offerBodies(lane),
