@@ -78,8 +78,8 @@ arrives, keeps station, weighs anchor - "Over Daggerfall").
 
 ## 3. The deck plan - and the ship as built
 
-**The frame** is the deck's (`net/ketch/ketchDeck.js`): metres, y up, x across (starboard -x, port +x), z along the keel from the
-bow; into the dungeon host's frame by the Shattered Hour's own move (`realmToDungeon`), so the Hour's Steps lay the
+**The frame** is the deck's (`net/ketch/ketchDeck.js`): metres, y up, x across (starboard -x, port +x: the engine is left-handed, so facing the bow, -z, the right hand is -x - AUDIT KETCH
+L4-12), z along the keel from the bow; into the dungeon host's frame by the Shattered Hour's own move (`realmToDungeon`), so the Hour's Steps lay the
 Sailwalk unchanged.
 
 | Part | Where | What |
@@ -98,12 +98,19 @@ Sailwalk unchanged.
 the Hour's own (pinned equal), every gap within the envelope (2.4 m to 3.2 m), the riser climbed straight off the plate
 before it, every step down under DFU's fall damage (5 m, `player/motor.js` FALL_DAMAGE_THRESHOLD); a fall into the sky is
 caught by the nets and cast back to the span's top for 15% of the body's health. **The bosun's line**, once the bridge is
-unbarred, runs from the main top down to the gangway's head for whoever comes after.
+unbarred, runs from the main top down to the gangway and sets its rider down past the Rotten Rigging's gust, facing the
+bridge (`KT_LINE_LAND`), its chain drawn on the rider's own path (AUDIT KETCH L4-6). The checkpoints hang on three chains
+each from **the jackstay**, a brass spar over the Sailwalk's line between the main mast's vane-spar and the mizzen's
+(`KT_JACKSTAY`, AUDIT KETCH L4-13).
 
 **The ship as built** (`world/ketch/ketchModel.js`, `world/ketch/ketchKit.js`, `world/ketch/ketchArt.js` - its own art
 on the pseudo archive KT_ARCHIVE): the hull, two masts and their stays, the engine house, every deck, stair and rail,
 lamps on every deck, the hatches' grates and the cabin's doors (parts the host moves), the bridge's eight sections each
-its own mesh and collider, the resonators' pylons, the land below and Daggerfall off the starboard beam in the haze. The made
+its own mesh and collider, the resonators' pylons, **the lodestone** on the console behind the helm (blue and brass,
+turning on its own - `KT_LODESTONE`, the line's stone made true, AUDIT KETCH L5-7), the land below and Daggerfall off the
+starboard beam in the haze. AUDIT KETCH made her walk true (L4-1..L4-14): the bridge's outer rail open over the
+gangway's foot and the cabin's door, the nets cut out, every ceiling over a barred room solid, the shaft's collar netted,
+the guns' carriages solid and out of the hammer lanes, every spawn and spot clear of what stands on its floor. The made
 level stands in the dungeon host (`world/ketch/ketchShip.js` - a made location, its one block file), as the Hour does.
 
 ## 4. The stages - the director
@@ -137,7 +144,8 @@ is believed only risen, by the hand, from its storey, and a swing within reach; 
 
 ## 6. The Starved Engine - the cells (the new mechanic)
 
-The engine eats **aether cells**: three, and one for each two aboard (`engineNeeds` - four to seven). A member takes a
+The engine eats **aether cells**: three, and one more for every two aboard or part of two (`engineNeeds` - four for one
+or two, seven for seven or eight; AUDIT KETCH L5-9). A member takes a
 charged cell from one of six cradles (`pick`), carries it through the arc-coils to the engine and sets it in one of
 its seven sockets (`bank`).
 
@@ -166,7 +174,8 @@ bridge for thirty seconds is lost (the Warden whole at its helm again, the next 
    for each two living, seven at most): every one broken stuns it; one standing and it lands (70% of everyone's health)
    and heals it. The outer ring gives way - two sections at a time shudder three seconds and fall away for seven.
 
-Fourteen minutes after its wake **the Ketch turns west** - nine tenths of everyone's health every two seconds.
+Fourteen minutes after its wake **the Ketch turns west** - ninety-nine hundredths of everyone's health every two
+seconds (`KW_END_PCT` 0.99; AUDIT KETCH L5-9: the page said nine tenths).
 
 ## 8. The ship's blows judged where the client cannot skip them
 
@@ -184,9 +193,12 @@ crew's ship, the account, a seed, how it was earned, the level - never another b
 page reads it and the service declines it; the hold pays nothing off it.
 
 **The week's share** (`server-account/src/ketch.js` claimKetch, migration 0166, `/v1/ketch/claim`): one row a (voyage,
-account). The first receipt of a voyage takes its share; the same ship again is the same kill (`claimed`, its share
-still the page's to roll); another crew's ship that voyage is answered `taken` - she pays no hand twice a week. The
-device carries its receipts (`net/ketch/ketchClaims.js`) until they settle. The voyages sailed show on the account card
+account). The first receipt of a voyage takes its share; the same ship again from the device that claimed it (its claim id,
+`cid` - AUDIT KETCH L2-1) is the same kill (`claimed`, its share still that device's to roll), and from any other device
+pays nothing; another crew's ship that voyage is answered `taken` - she pays no hand twice a week. The device carries its
+receipts (`net/ketch/ketchClaims.js`) until they settle, and the hub keeps each earner's for its life and hands it at
+every hello (`ktrc:`, AUDIT KETCH L1-2), so an earner off the ship at the fall is paid too. A share the service pays is
+written to the device at once (`scenes/ketch/ketchShares.js`, AUDIT KETCH L2-2, L2-5) until the pool holds it. The voyages sailed show on the account card
 and the Inspect card (`ketchRecordOf`, `ui/profileWindow.js` profileRecordLines - the one door that laid the stars there
 too, which STAR7 had laid on the card's view alone).
 
@@ -195,8 +207,9 @@ Legendary piece a quarter of the time (else Rare) and one Rare or better; the fo
 one door that pays shot by the score - `PELLETS-SCARCE`); **the Dwarven Thunderlock one share in ten, the Dwarven
 Pistolet one in eight**, each its own draw - no other door mints either; and last of all the Ketch's two Gilded guns,
 **Volendrung's Echo** (a gilded Thunderlock - Hammerfall) and **the Ketchmaster's Word** (a gilded Pistolet - Broadside),
-one in a hundred each (`06-Systems/Gilded.md` section 10). They spill from the cabin's chest; a share paid off the ship is
-granted to the pack.
+one in a hundred each (`06-Systems/Gilded.md` section 10). They spill from the cabin's chest into the Ketch's own spoils pool (its keys, its words, its spent marks - AUDIT KETCH
+L2-3); a share paid off the ship is granted to the pack, and what lies on the cabin's floor at leaving is gathered into
+it - no mailbox (L2-4).
 
 ## 10. The relay and the wire
 
@@ -268,11 +281,17 @@ all 25 languages; `test/systems/l10n4_hardcoded.test.js` counts what stays Engli
 `skyKetch` (`systems/questlines/qlLines.js`; tier 4, level 12, online, an account), given by Imrah Bel-Tavir:
 
 1. **The Ketch That Never Lands** (QLSK01) - her letter and book 419; ride the anchor-lift up (`ketch-boarded`).
-2. **The Starved Engine** (QLSK02) - set three cells of your own (`ketch-cell-banked`); her book 418.
+2. **The Starved Engine** (QLSK02) - set a cell of your own in the engine or a resonator (`ketch-cell-banked 1`: every
+   hand of a crew of eight can - AUDIT KETCH L5-4); her book 418.
 3. **The Tonal Warden** (QLSK03) - witnessed: the Warden felled, its receipt counted (`warden-felled`; the service's
    `ketch` witness, `ketch_voyages`) - and the line's title, **Skyfarer**.
 4. **What the Lodestone Answers** (QLSK04) - the Numidium reading; who is told: the Mages Guild (Bel-Tavir's Tuning-Charm,
    the Guild's standing) or no one (the Steersman's Hammer).
+
+A book is handed by `get item`, never `give pc` - a give is a quest's pay (`qlLayer.js` reward): QLSK01's with its letter
+(`have _letter_ set _book_`), QLSK02's at her table (AUDIT KETCH L5-2). No line names a day of Tamriel's week - she keeps
+the real one (section 2, L5-3) - and the lore promises nothing the game does not do (L5-7, L5-8): the lodestone stands at
+her helm; the charm's hum is Imrah's tale and the hammer's metal the roll's; the Brass God pulled her once before.
 
 ## 14. The herald
 
@@ -304,13 +323,24 @@ driver ran woke the body in the fields, as the made level's death says. What the
 | an arc-coil's lane narrower than the margin: never judged on the trail | the crossing rule (section 8) | `ketch_constructs.test.js` |
 | a crew on the Anchor Deck out of the Watch's reach | the waist's floor over it | `ketch_constructs.test.js` |
 | "Regular Dungeon, Small" over her deck | `madeDungeon` | `ketch_model.test.js` |
-| her deck black at night (ambient 0.1) | the world's own night floor | the live run |
+| her deck black at night (ambient 0.1) | the world's own night floor | the live run; `ketch_deck_host.test.js` (AUDIT KETCH L5-9) |
 | Hammerfall's brief past the card's row | shortened | `ketch_gilded.test.js` |
 | the Skyfarer's colour 32 from the Chaptermaster's | `#58d8ff` | `ql12_claim.test.js` |
 
 **The tests:** `test/net/ketch/` (`ketch_law`, `ketch_deck`, `ketch_brain` - a voyage run whole through `ketchSim.mjs`,
-every frame through the wire - `ketch_warden`, `ketch_constructs`, `ketch_link`, `ketch_herald`, `ketch_relay`),
-`test/server/ketch_claim.test.js`, `test/systems/ketch/` (`ketch_spoils`, `ketch_gilded`, `ketch_words`), `test/scenes/ketch_sky.test.js`,
-`test/ui/ketch_hud.test.js`, `test/world/ketch_model.test.js`. **The mutants:** `tools/mutants/ketch_*.json`, fifteen
-lists, 208 records: 207 dead and one recorded equivalent (`KTB-the-cells-said-every-beat` - every caller says the cells
-only after it moved them, so the word's dedupe guard is never the branch taken).
+every frame through the wire - `ketch_warden`, `ketch_constructs`, `ketch_link`, `ketch_herald`, `ketch_relay`,
+`ketch_online`), `test/server/ketch_claim.test.js`, `test/systems/ketch/` (`ketch_spoils`, `ketch_gilded`, `ketch_words`),
+`test/systems/questlines/ketch_lines.test.js`, `test/scenes/` (`ketch_sky`, `ketch_client`, `ketch_shares`,
+`ketch_deck_host`, `ketch_fight`), `test/ui/ketch_hud.test.js`, `test/world/` (`ketch_model`, `ketch_walk` - the real ship
+on a real Collider and PlayerMotor). **The mutants:** `tools/mutants/ketch_*.json`, eighteen lists, 297 records: 295 dead
+and two recorded equivalent (`KTB-the-cells-said-every-beat` - every caller says the cells only after it moved them, so
+the word's dedupe guard is never the branch taken; `KTF-the-late-landing-judged` - the verdict refuses a stale blow the
+frame's window would have).
+
+**AUDIT KETCH** (2026-10-24, the owner: "Its time to be a deep audit on this and ensure absolute perfection";
+`01-Overview/audits/Audit-Ketch.md`): five cold lanes on a frozen snapshot - the relay and its law, the rewards and the
+account service, the page, the ship in the world, the record and its words - 67 reported, 62 defects, every one fixed and
+pinned red on the code as it stood but L2-10 (left with its reason): the Engine's spiders killable past six minutes, the
+fallen earner's receipt kept at the hub, a share paid one device once, the Keel-Song counted, a ninth never aboard, a
+quitter's place freed, the step law, the Ketch's own spoils, her walk true end to end, the line's pay and words, the real
+week named.
