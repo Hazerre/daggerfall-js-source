@@ -138,7 +138,7 @@
 
 <script type="module">
 import {
-  PISTOL_STRIP, pistolFrameSet, cropTo, createPair,
+  PISTOL_STRIP, pistolFrameSet, cropImage, createPair,
   muzzleLight, createScreenShake, SFX_CANDIDATES, createSfxPlayer,
   createPistolHands, pistolHandFired, pistolDrawOrder,
   pistolPageState, pistolPageStep, pistolPageRect, pistolJumpClimb,   // AUDIT PISTOL-PORT D7: the page's wiring, a module the pins run
@@ -203,7 +203,7 @@ function rebuild() {
   const set = pistolFrameSet(c.getImageData(0, 0, cv.width, cv.height), state.alphaCut);
   if (!set?.union) return;
   const { union, anchor } = set;
-  art = { frames: set.bled.map((f) => canvasOf(cropTo(f, union))), union, anchor, soft: set.soft };
+  art = { frames: set.bled.map((f) => canvasOf(cropImage(f, union))), union, anchor, soft: set.soft };
   $('note').textContent = `strip ${stripImg.naturalWidth}x${stripImg.naturalHeight}, ${PISTOL_STRIP.frames} frames of ${PISTOL_STRIP.cellW}x${PISTOL_STRIP.cellH} — pistol ${anchor.w}x${anchor.h}, drawn ${union.w}x${union.h} with its arm carried on`;
 }
 stripImg.onload = rebuild;

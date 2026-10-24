@@ -74,7 +74,7 @@ test('PISTOL-EDGE A FRAME BLED PAST ITS CUT: PISTOL_BLEED larger right and below
   assert.equal(EDGE_GAP, 4);
 });
 
-test('PISTOL-EDGE ONE FRAME SET, BOTH ENDS: the anchor the rest frame\'s own box, unbled; the union the bled frames\', reaching PISTOL_BLEED past the cut; every frame the owner\'s inside the cell; the game\'s loader and the lab\'s page draw this set (mutants: the anchor the bled box; the union unbled; the page cutting its own)', () => {
+test('PISTOL-EDGE ONE FRAME SET, BOTH ENDS: the anchor the rest frame\'s own box, unbled; the union the bled frames\', reaching PISTOL_BLEED past the cut; every frame the owner\'s inside the cell; the game\'s loader and the lab\'s page draw this set (mutants: the anchor the bled box; the union unbled; the page cutting its own)', async () => {
   const s = strip();
   const set = pistolFrameSet(s, 128);
   assert.deepEqual(set.anchor, set.boxes[0], 'the gun seated where the owner drew it');
@@ -107,6 +107,13 @@ test('PISTOL-EDGE ONE FRAME SET, BOTH ENDS: the anchor the rest frame\'s own box
   assert.match(page, /pistolFrameSet\(/, 'the page draws the set');
   assert.match(page, /set\.bled\.map\(/, 'the bled frames, never the bare cells');
   assert.ok(!/function hardenAlpha|function cutCell/.test(page), 'and cuts no frame of its own');
+  // AUDIT KETCH L5-1: every name the page imports is one the lab exports - a rename the page missed (cropTo) left the
+  // owner's prototype on "loading art" and the build refusing the page; read off the page's own import list
+  const block = /import \{([^}]*)\} from '\/src\/tools\/pistolLab\.js';/.exec(page);
+  assert.ok(block, 'the page imports the lab');
+  const names = block[1].replace(/\/\/[^\n]*/g, '').split(',').map((n) => n.trim()).filter(Boolean);
+  const lab = await import('../../../src/tools/pistolLab.js');
+  assert.deepEqual(names.filter((n) => !(n in lab)), [], 'every name the page imports, the lab exports');
 });
 
 test('PISTOL-EDGE THE MOTION IS THE OWNER\'S: holdToCorner moves nothing the bleed covers; past it, the picture is held so its far side and bottom stay on the screen\'s edges, the anchor moved with it - the left hand in the mirror (mutants: the clamp always on; the anchor left behind; the mirror\'s side the right\'s)', () => {
