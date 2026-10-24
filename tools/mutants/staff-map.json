@@ -38,5 +38,25 @@
     "tests": [
       "test/net/staffmap_e2e.test.js"
     ]
+  },
+  {
+    "name": "STAFF-FOLLOW-UNLOCK-no-bar",
+    "file": "src/scenes/staffFollowHost.js",
+    "old": "const barFrame = () => { if (hook.locked()) bar.show(); else bar.hide(); };",
+    "new": "const barFrame = () => { bar.hide(); };",
+    "why": "a locked follow has no Unlock on the game's screen - with the panel's card closed the staff member is stuck behind the target's eyes (mob: \"follow needs a unlock button in game\")",
+    "tests": [
+      "test/ui/staffFollowBar.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-FOLLOW-UNLOCK-press-leaks",
+    "file": "src/ui/staffFollowBar.js",
+    "old": "unlock.addEventListener?.('click', (/** @type {any} */ e) => { e.stopPropagation?.(); e.preventDefault?.(); onUnlock(); });",
+    "new": "unlock.addEventListener?.('click', () => { onUnlock(); });",
+    "why": "the Unlock's press reaches the world under it - a swing or a look",
+    "tests": [
+      "test/ui/staffFollowBar.test.js"
+    ]
   }
 ]
