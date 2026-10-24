@@ -242,7 +242,8 @@ before it falls (its town first named, on the Timers row and the event board) un
 (`scenes/starfall/starfallHost.js` starClears - the same frozen list while the same stars stand, read once a second at
 most). A whole site reaching the clearing is refused at its pick, a piece whose mesh box reaches it is not stood, and
 the streamer's sweep builds a pixel again as a star's clearing comes and goes. The world host's memo of the set moved
-out with it (`gateClearMemo`: nine logical lines out of bootWorld, its ceiling 36,313 -> 36,304). THE FOUR HOSTS:
+out with it (`gateClearMemo`: nine logical lines out of bootWorld, its ceiling 36,307 -> 36,298 on main's count at the
+merge). THE FOUR HOSTS:
 `scenes/world.js` wires it (the set's read by the pixel build and the sweep); `scenes/exterior.js`, `scenes/worldModes.js`
 and `scenes/dungeonContext.js` stand no World of Daggerfall site, no gate's clearing and no star, by design. Pinned in
 `test/scenes/starfall/starclear.test.js` (7, one over the festival's real stars, ARENA2-gated); `tools/mutants/starclear.json`,

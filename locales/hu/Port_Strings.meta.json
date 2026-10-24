@@ -10614,6 +10614,16 @@
   "tr": "a92bed0264b4",
   "by": "claude-in-session"
  },
+ "naval.fleet.openSeaAway": {
+  "en": "bd300b52e6cb",
+  "tr": "1db41142c8f0",
+  "by": "claude-in-session"
+ },
+ "naval.fleet.openSeaSummon": {
+  "en": "7ac61afe3515",
+  "tr": "2c87c5db1a2d",
+  "by": "claude-in-session"
+ },
  "naval.yard.grogDrunk": {
   "en": "fffab87cdcec",
   "tr": "abc2dce9ad50",
@@ -11744,6 +11754,16 @@
   "tr": "51939e1cde01",
   "by": "claude-in-session"
  },
+ "sea.wild.chipTip": {
+  "en": "9e14a86d940a",
+  "tr": "77143516b924",
+  "by": "claude-in-session"
+ },
+ "sea.wild.enter": {
+  "en": "f49115e892b2",
+  "tr": "79000ba82efd",
+  "by": "claude-in-session"
+ },
  "settings.language.machine": {
   "en": "048283a78ca3",
   "tr": "0e8eb364057d",
@@ -12349,6 +12369,16 @@
   "tr": "cc622f8f29b4",
   "by": "claude-in-session"
  },
+ "tutorials.wildZone.body1": {
+  "en": "75b25b2fe113",
+  "tr": "17caa086d077",
+  "by": "claude-in-session"
+ },
+ "tutorials.wildZone.body2": {
+  "en": "3c759d3b73f2",
+  "tr": "d6451c5e2fd6",
+  "by": "claude-in-session"
+ },
  "wagon.upkeep.boons.failing": {
   "en": "5e6a68b53a69",
   "tr": "2f74eeaee371",
@@ -12357,6 +12387,16 @@
  "wagon.upkeep.boons.rickety": {
   "en": "8dcc1fe1e4b7",
   "tr": "548cc997b72c",
+  "by": "claude-in-session"
+ },
+ "wild.death.kept": {
+  "en": "5677b5a00569",
+  "tr": "835e7545b937",
+  "by": "claude-in-session"
+ },
+ "wild.death.lettersTenth": {
+  "en": "2f66ddbe7b5b",
+  "tr": "5e778e3d9639",
   "by": "claude-in-session"
  },
  "wild.escrow.collectLate": {
@@ -12407,6 +12447,16 @@
  "wild.escrow.heldTakenAnon": {
   "en": "d57b9aca004f",
   "tr": "900afd0c7c6b",
+  "by": "claude-in-session"
+ },
+ "wild.zone.chipTip": {
+  "en": "fda83308207b",
+  "tr": "f3e58991d9fa",
+  "by": "claude-in-session"
+ },
+ "wild.zone.enter": {
+  "en": "7211df45b4d5",
+  "tr": "fdbdae576a31",
   "by": "claude-in-session"
  }
 }
