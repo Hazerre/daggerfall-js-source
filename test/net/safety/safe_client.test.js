@@ -912,3 +912,18 @@ test('LEASE1 THE PAGE HANDS ITS HUB\'S LEASE TO EVERY ROOM IT HOLDS (net/roomLea
   assert.deepEqual(leases(hub.ws), [], 'the hub is handed none back');
   assert.deepEqual(leases(old.ws), [], 'nor a relay that closes on the frame');
 });
+
+test('STAFF-TAG-MENU playerActions: a tag\'s menu is the line menu\'s staff acts by socket and account (no Report, no Block), its Follow the staff view\'s own when given; none for a player or with no account (mutants: Report kept, the view\'s follow unused)', () => {
+  const seams = { follow: () => () => {}, teleport: () => {} };
+  const r = staffRig(['dev'], { opts: seams });
+  const followed = [];
+  const rows = r.host.playerActions({ id: 'p2', sub: 'acct-tro', name: 'Troll' }, (s) => followed.push(s));
+  assert.deepEqual(rows.map((x) => x.label), ['Follow', 'TP', 'Message on screen', 'Mute…', 'Freeze', 'Ban…', 'Notes', 'Watch']);
+  rowOf(rows, 'Follow').run();
+  return Promise.resolve().then(() => Promise.resolve()).then(() => {
+    assert.deepEqual(followed, ['acct-tro'], 'the view\'s own follow');
+    assert.deepEqual(hostRig().host.playerActions({ id: 'p2', sub: 'acct-tro', name: 'Troll' }), [], 'a player\'s page: none');
+    assert.deepEqual(r.host.playerActions({ id: 'p2', sub: 'not an id', name: 'Troll' }), [], 'no account: none');
+    assert.deepEqual(r.host.playerActions(null), []);
+  });
+});

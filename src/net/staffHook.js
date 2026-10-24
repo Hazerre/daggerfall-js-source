@@ -46,7 +46,7 @@
 //                                                  way, road, ageS }] } on each change, at most once a STAFF_MAP_SEND_MS -
 //                                                  state 'open' when its hidden link is in, 'hide' when Hide me is off
 import { OnlineSession, peerId, peerSecret } from './online.js';
-import { SOCIAL_ROOM, cellRoomOfWire, isCellRoom, isSocialRoom } from './wire.js';
+import { SOCIAL_ROOM, cellRoomOfWire, isCellRoom, isChatRoom, isSocialRoom } from './wire.js';
 import { ID_RE, TOKEN_MAX_CHARS } from './identityToken.js';
 import { noteRoom } from './staffFollow.js';
 import { notePlace } from './staffTeleport.js';
@@ -67,6 +67,8 @@ export const STAFF_TOKEN_WAIT_MS = 5000;
 export const STAFF_RELINK_GAP_MS = 3000;
 /** The name a follow's sockets say - the relay shows them to nobody, and the token's own name is the service's. */
 const SPECTATOR = 'Spectator';
+/** FOLLOW-GROUND-HINT: the longest room key or socket id a pick's hint may carry. */
+const ROOM_HINT_MAX = 128;
 
 /** STAFF-PANEL5-FOLLOW-FIX (the relay review's finding 18): a WebSocket class whose every room asks a hidden seat
  *  (`?hd=1`, server/src/staffHidden.js hiddenAsked) - the reserve over a full layer's cap, so the eye joins the target's
@@ -125,12 +127,26 @@ export function createStaffHook({ main, askToken, Session = OnlineSession, WS = 
   }
   return {
     version: STAFF_HOOK_VERSION,
-    /** Follow `sub` at once - another pick lets the last go. False for no account. @param {unknown} sub */
-    follow(sub) {
+    /** Follow `sub` at once - another pick lets the last go. False for no account. FOLLOW-GROUND-HINT (2026-10-24, mob:
+     *  "following from ground does not work", "panel open said locked never moved"): a pick off the staff member's own
+     *  ground knows the room the target stands in and their socket there (`hint`), so the eye goes there at once instead
+     *  of waiting on the hub's word of where they are - which never comes for a room a note cannot name (a dungeon, a
+     *  building), nor before the target's game sends its first note. The hub's later word leads as ever.
+     *  @param {unknown} sub @param {{ room?: unknown, id?: unknown, ly?: unknown } | null} [hint] */
+    follow(sub, hint = null) {
       if (typeof sub !== 'string' || !ID_RE.test(sub)) return false;
-      if (sub !== target) { close(); target = sub; }
+      if (sub !== target) {
+        close(); target = sub;
+        const r = hint?.room;
+        if (typeof r === 'string' && r.length > 0 && r.length <= ROOM_HINT_MAX && !isSocialRoom(r) && !isChatRoom(r)) {
+          room = r; ly = Number.isInteger(hint?.ly) && /** @type {number} */ (hint?.ly) > 0 ? /** @type {number} */ (hint?.ly) : 0;
+          pid = typeof hint?.id === 'string' && hint.id.length <= ROOM_HINT_MAX ? hint.id : null;
+        }
+      }
       return true;
     },
+    /** FOLLOW-GROUND-HINT: whether the follow knows where the target is yet (a room to watch from). */
+    where: () => room,
     /** Let go. */
     unlock() { close(); target = null; },
     /** Whether the camera is the target's: a follow the hub said `on` to. */
@@ -255,17 +271,24 @@ export function staffHookDoor(win, hookOf, { setTimer = setTimeout, clearTimer =
  *  once the service has. Resolves the panel's ok - false when the service refused, or when no answer came in
  *  STAFF_TOKEN_WAIT_MS: no panel on this page, or one older than this ask, which ignores it.
  *  @param {any} [win] @param {{ setTimer?: typeof setTimeout, clearTimer?: typeof clearTimeout }} [t] @returns {Promise<boolean>} */
-export function staffShowMe(win = globalThis.window, { setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
+export function staffShowMe(win = globalThis.window, t = {}) { return staffHide(false, win, t); }
+
+/** STAFF-HIDE-IN-GAME (2026-10-24, mob: "when i ment hide button for chat i ment for invisble", "and hide me and unlock
+ *  button?"): Hide me ON or OFF asked from the game (its staff bar, ui/staffFollowBar.js), as staffShowMe asks it off -
+ *  the panel's worker says it on the staff session (/v1/staff/hide { on }), audited there, and every game tab relinks.
+ *  Resolves the panel's ok. @param {boolean} on @param {any} [win] @param {{ setTimer?: typeof setTimeout, clearTimer?: typeof clearTimeout }} [t] @returns {Promise<boolean>} */
+export function staffHide(on, win = globalThis.window, { setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
   const origin = win?.location?.origin;
   if (typeof origin !== 'string' || !origin || origin === 'null' || typeof win.postMessage !== 'function') return Promise.resolve(false);
+  const want = on === true;
   return new Promise((resolve) => {
     const heard = (/** @type {any} */ e) => {
       const m = e?.data;
-      if (e?.source === win && e?.origin === origin && m?.dfoStaff === 'hide' && 'ok' in m) done(m.ok === true);
+      if (e?.source === win && e?.origin === origin && m?.dfoStaff === 'hide' && m.on === want && 'ok' in m) done(m.ok === true);
     };
     const done = (/** @type {boolean} */ ok) => { clearTimer(timer); win.removeEventListener?.('message', heard); resolve(ok); };
     const timer = setTimer(() => done(false), STAFF_TOKEN_WAIT_MS);
     win.addEventListener?.('message', heard);
-    win.postMessage({ dfoStaff: 'hide', on: false }, origin);
+    win.postMessage({ dfoStaff: 'hide', on: want }, origin);
   });
 }

@@ -7,17 +7,28 @@
 // moved by its transform alone and its words written only when they change (ui/nameLayer.js's law), so a still frame
 // writes nothing. Players this near one another on the screen are one box, "N players here", a row a player (the box
 // scrolls; the host's cap holds it to STAFF_TAGS_MAX rows); past the cap a "+N". One canvas, for an Admin's monster
-// lines on the Overworld, drawn again only when a line moved.
+// lines on the Overworld and a line to each flagged player (STAFF-FLAG-LINES), drawn again only when a line moved.
 import { PIXEL_FONT_CSS, PIXEL_TEXT_SHADOW } from './pixelifyFive.js';
 import { t } from '../systems/textManager.js';
 
 /** The mockup's look (In game board): the name in the Ember look's cyan on a dark plate, a flag by its urgency - High
  *  red, Medium amber, Low grey; an Admin's monster lines in the enemy's red. */
-export const STAFF_TAG_COLORS = Object.freeze({ name: '#7FE3F0', plate: 'rgba(16,19,23,0.86)', high: '#e0503c', medium: '#e0a43c', low: '#9a9a9a', plain: '#d8cfae', line: 'rgba(224,80,60,0.7)' });
+export const STAFF_TAG_COLORS = Object.freeze({ name: '#7FE3F0', plate: 'rgba(16,19,23,0.86)', high: '#e0503c', medium: '#e0a43c', low: '#9a9a9a', plain: '#d8cfae', line: 'rgba(224,80,60,0.7)', review: '#ff5252', watch: '#ffd76a' });
+/** STAFF-FLAG-LINES: a line's kind (a segment's fifth number) - an Admin's monster line, a watched player's, a reported
+ *  player's waiting on review. */
+export const STAFF_LINE = Object.freeze({ monster: 0, watch: 1, review: 2 });
+/** Each kind's pen: colour, width, glow, and whether its far end gets a dot. */
+const PENS = Object.freeze({
+  [STAFF_LINE.monster]: { ink: STAFF_TAG_COLORS.line, w: 1, glow: 0, dot: true },
+  [STAFF_LINE.watch]: { ink: STAFF_TAG_COLORS.watch, w: 1.5, glow: 4, dot: false },
+  [STAFF_LINE.review]: { ink: STAFF_TAG_COLORS.review, w: 3, glow: 10, dot: false },
+});
 const ROOT_CSS = 'position:fixed;inset:0;pointer-events:none;z-index:12;overflow:hidden;';
 const BOX_CSS = `position:absolute;left:0;top:0;pointer-events:auto;cursor:pointer;${PIXEL_FONT_CSS}font-size:12px;line-height:1.2;color:${STAFF_TAG_COLORS.name};background:${STAFF_TAG_COLORS.plate};border:1px solid rgba(127,227,240,0.35);border-radius:3px;padding:2px 5px;text-align:center;white-space:nowrap;text-shadow:${PIXEL_TEXT_SHADOW};will-change:transform;`;
 const ROW_CSS = `display:block;width:100%;pointer-events:auto;cursor:pointer;${PIXEL_FONT_CSS}font-size:12px;color:${STAFF_TAG_COLORS.name};background:none;border:0;padding:1px 0;text-align:left;white-space:nowrap;text-shadow:${PIXEL_TEXT_SHADOW};`;
 const LIST_CSS = 'max-height:180px;overflow-y:auto;text-align:left;margin-top:2px;';
+const MENU_CSS = `position:fixed;left:0;top:0;z-index:15;pointer-events:auto;min-width:150px;${PIXEL_FONT_CSS}font-size:12px;color:${STAFF_TAG_COLORS.name};background:rgba(16,19,23,0.94);border:1px solid rgba(127,227,240,0.45);border-radius:3px;padding:4px 8px;text-shadow:${PIXEL_TEXT_SHADOW};`;
+const MENU_HEAD_CSS = 'font-weight:bold;padding-bottom:3px;margin-bottom:3px;border-bottom:1px solid rgba(127,227,240,0.25);white-space:nowrap;';
 const MORE_CSS = `position:absolute;left:50%;top:8px;transform:translateX(-50%);${PIXEL_FONT_CSS}font-size:12px;color:${STAFF_TAG_COLORS.plain};background:${STAFF_TAG_COLORS.plate};padding:2px 6px;border-radius:3px;text-shadow:${PIXEL_TEXT_SHADOW};`;
 
 /** A row's words under its name: the flag (and the host's other words) in its urgency's colour. @param {string} level */
@@ -40,8 +51,13 @@ export function createStaffTags({ doc = globalThis.document, onPick }) {
   const pressable = (/** @type {any} */ n, /** @type {string} */ id) => {
     n.addEventListener?.('mousedown', (/** @type {any} */ e) => e.stopPropagation?.());
     n.addEventListener?.('pointerdown', (/** @type {any} */ e) => e.stopPropagation?.());
-    n.addEventListener?.('click', (/** @type {any} */ e) => { e.stopPropagation?.(); e.preventDefault?.(); onPick(id); });
+    n.addEventListener?.('click', (/** @type {any} */ e) => { e.stopPropagation?.(); e.preventDefault?.(); at = { x: Number(e?.clientX) || 0, y: Number(e?.clientY) || 0 }; onPick(id); });
   };
+  /** STAFF-TAG-MENU: where the last pick was pressed, the menu's corner. */
+  let at = { x: 0, y: 0 };
+  /** @type {any} the open menu, or null */
+  let pop = null;
+  const shut = () => { pop?.remove(); pop = null; };
   /** A player's two lines: the name, then the flag's words. */
   function lines2(/** @type {any} */ host) {
     const name = doc.createElement('span'), words = doc.createElement('span');
@@ -107,8 +123,11 @@ export function createStaffTags({ doc = globalThis.document, onPick }) {
       if (n > 0 && !more) { more = doc.createElement('div'); more.style.cssText = MORE_CSS; root.append(more); }
       if (more && n !== moreN) { moreN = n; more.textContent = n > 0 ? t('net.staffView.more', '+{n} more players in range', { n }) : ''; more.style.display = n > 0 ? '' : 'none'; }
     },
-    /** An Admin's monster lines, [[x0, y0, x1, y1]] in CSS px over a `w` x `h` screen - each from the monster (its dot)
-     *  to its owner. Drawn again only when one moved. @param {number[][]} segs @param {number} w @param {number} h */
+    /** The lines, [[x0, y0, x1, y1, kind?]] in CSS px over a `w` x `h` screen: an Admin's monster lines, each from the
+     *  monster (its dot) to its owner; STAFF-FLAG-LINES (2026-10-24, mob: "need to port over my watch lines and review
+     *  lines for flags in staff esp", "helps flag bad players") each flagged player's from the screen's middle - a
+     *  watch's thin and gold, a report's thick and red, drawn over the gold. Drawn again only when one moved.
+     *  @param {number[][]} segs @param {number} w @param {number} h */
     strokes(segs, w, h) {
       const sig = segs.length ? `${w}x${h}|${segs.map((s) => s.map((v) => Math.round(v)).join(',')).join(';')}` : '';
       if (sig === lineSig) return;
@@ -118,15 +137,57 @@ export function createStaffTags({ doc = globalThis.document, onPick }) {
       const g = canvas.getContext?.('2d');
       if (!g) return;
       g.clearRect(0, 0, w, h);
-      g.strokeStyle = STAFF_TAG_COLORS.line; g.fillStyle = STAFF_TAG_COLORS.high; g.lineWidth = 1;
-      for (const [x0, y0, x1, y1] of segs) {
-        g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
-        g.beginPath(); g.arc(x0, y0, 4, 0, Math.PI * 2); g.fill();
+      g.lineCap = 'round';
+      for (const kind of [STAFF_LINE.monster, STAFF_LINE.watch, STAFF_LINE.review]) {
+        const pen = PENS[kind];
+        g.strokeStyle = pen.ink; g.fillStyle = STAFF_TAG_COLORS.high; g.lineWidth = pen.w; g.shadowColor = pen.ink; g.shadowBlur = pen.glow;
+        for (const [x0, y0, x1, y1, k = STAFF_LINE.monster] of segs) {
+          if (k !== kind) continue;
+          g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+          if (pen.dot) { g.beginPath(); g.arc(x0, y0, 4, 0, Math.PI * 2); g.fill(); }
+        }
       }
+      g.shadowBlur = 0;
+    },
+    /** STAFF-TAG-MENU (2026-10-24, mob: "when u lcick on someon", "i mean the pop up"): a picked player's menu where the
+     *  pick was pressed - `title` its head, `rows` [{ label, title?, run?, menu? }] (the chat line menu's own rows,
+     *  scenes/chatSafetyHost.js playerActions): a row with its own `menu` opens that level in place, any other runs and
+     *  closes it. A second menu replaces the first; Close shuts it. Over every staff sheet (the flat map's too), at `where`
+     *  when given. @param {string} title @param {any[]} rows @param {{ x: number, y: number }} [where] */
+    menu(title, rows, where = at) {
+      shut();
+      if (!rows?.length) return;
+      pop = doc.createElement('div');
+      pop.setAttribute('data-staff-menu', '');
+      pop.style.cssText = `${MENU_CSS}transform:translate(${Math.round(where.x)}px, ${Math.round(where.y)}px);`;
+      for (const k of ['pointerdown', 'mousedown', 'click']) pop.addEventListener?.(k, (/** @type {any} */ e) => e.stopPropagation?.());
+      const fill = (/** @type {any[]} */ level) => {
+        const head = doc.createElement('div');
+        head.style.cssText = MENU_HEAD_CSS;
+        head.textContent = title;
+        const items = level.map((r) => {
+          const b = doc.createElement('button');
+          b.setAttribute('type', 'button');
+          b.style.cssText = ROW_CSS;
+          b.textContent = String(r.label ?? '');
+          if (r.title) b.setAttribute('title', String(r.title));
+          b.addEventListener?.('click', (/** @type {any} */ e) => { e.stopPropagation?.(); e.preventDefault?.(); if (Array.isArray(r.menu)) { fill(r.menu); return; } shut(); r.run?.(); });
+          return b;
+        });
+        const close = doc.createElement('button');
+        close.setAttribute('type', 'button');
+        close.setAttribute('data-staff-menu-close', '');
+        close.style.cssText = `${ROW_CSS}color:${STAFF_TAG_COLORS.plain};`;
+        close.textContent = t('net.staffView.close', 'Close');
+        close.addEventListener?.('click', (/** @type {any} */ e) => { e.stopPropagation?.(); e.preventDefault?.(); shut(); });
+        pop.replaceChildren(head, ...items, close);
+      };
+      fill(rows);
+      doc.body.append(pop);
     },
     /** Nothing shown: under a window, or the view off - the elements kept, to move again when it comes back. */
-    hide() { show(false); },
-    dispose() { root.remove(); boxes.clear(); },
+    hide() { show(false); shut(); },
+    dispose() { shut(); root.remove(); boxes.clear(); },
     /** How many tags and boxes stand (the pins'). */
     size: () => boxes.size,
   };

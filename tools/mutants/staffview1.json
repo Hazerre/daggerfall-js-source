@@ -22,7 +22,7 @@
   {
     "name": "STAFF-VIEW1-off-hides-nothing",
     "file": "src/scenes/staffViewHost.js",
-    "old": "if (!on()) { if (wasOn) { wasOn = false; layer?.hide(); } return; }",
+    "old": "if (!on()) { if (wasOn) { wasOn = false; layer?.hide(); if (flat?.isOpen()) flat.toggle(); } return; }",
     "new": "if (!on()) { wasOn = false; return; }",
     "why": "the view turned off leaves its tags standing",
     "tests": [
@@ -212,8 +212,8 @@
   {
     "name": "STAFF-VIEW1-no-id-follows-name",
     "file": "src/scenes/staffViewHost.js",
-    "old": "if (!search(id, name)) say(noAccount(name));",
-    "new": "if (!search(id, name)) go(name, name);",
+    "old": "    if (sub) { chosen(id, sub, name); return; }\n    if (!search(id, name)) say(noAccount(name));",
+    "new": "    if (sub) { chosen(id, sub, name); return; }\n    if (!search(id, name)) go(name, name);",
     "why": "no account: followed by the name",
     "tests": [
       "test/scenes/staffview1.test.js"
@@ -272,8 +272,8 @@
   {
     "name": "STAFF-VIEW1-act-without-follow",
     "file": "src/scenes/staffViewHost.js",
-    "old": "if (!follow.follow(sub)) return;",
-    "new": "follow.follow(sub);",
+    "old": "if (!follow.follow(sub, hint)) return;",
+    "new": "follow.follow(sub, hint);",
     "why": "the card asked of the panel for a follow that did not take",
     "tests": [
       "test/scenes/staffview1.test.js"
@@ -372,8 +372,8 @@
   {
     "name": "STAFF-VIEW1-lines-uncapped",
     "file": "src/scenes/staffViewHost.js",
-    "old": "if (segs.length >= STAFF_LINES_MAX) break;",
-    "new": "",
+    "old": "if (segs.length >= STAFF_LINES_MAX) break;\n            const o = f?.puppet",
+    "new": "const o = f?.puppet",
     "why": "the monster lines uncapped",
     "tests": [
       "test/scenes/staffview1.test.js"
@@ -382,8 +382,8 @@
   {
     "name": "STAFF-VIEW1-lines-on-ground",
     "file": "src/scenes/staffViewHost.js",
-    "old": "      layer.strokes([], w, h);\n      const dist",
-    "new": "      const dist",
+    "old": "      layer.strokes(segs, w, h);\n      const tagged",
+    "new": "      const tagged",
     "why": "the Overworld's lines left over the ground",
     "tests": [
       "test/scenes/staffview1.test.js"
@@ -677,6 +677,36 @@
     "old": "layer.render(crowded(ow.slice(0, STAFF_OW_TAGS_MAX)), Math.max(0, ow.length - STAFF_OW_TAGS_MAX));",
     "new": "layer.render([], 0);",
     "why": "the Overworld shows an Admin's monster lines and no player at all (mob 2026-10-24: \"like it show enemy to player but no players\")",
+    "tests": [
+      "test/scenes/staffview1.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-FLAG-LINES-watch-as-review",
+    "file": "src/scenes/staffViewHost.js",
+    "old": "(flag?.level ? STAFF_LINE.review : flag?.watch ? STAFF_LINE.watch : null)",
+    "new": "(flag?.level || flag?.watch ? STAFF_LINE.review : null)",
+    "why": "a watched player's line is the red of a report waiting on review",
+    "tests": [
+      "test/scenes/staffview1.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-FLAG-LINES-distance-cut",
+    "file": "src/scenes/staffViewHost.js",
+    "old": "if (kind !== null) flagged.push({ at: head, kind });",
+    "new": "if (kind !== null && Math.hypot(head[0] - eye[0], head[1] - eye[1], head[2] - eye[2]) <= dist) flagged.push({ at: head, kind });",
+    "why": "a flagged player past the nameplate distance gets no line - the lines are how staff find them",
+    "tests": [
+      "test/scenes/staffview1.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-FLAG-LINES-no-overworld",
+    "file": "src/scenes/staffViewHost.js",
+    "old": "        flagLines(segs, owTags.map((m) => ({ at: m.at, kind: m.kind })), at, w, h);\n",
+    "new": "",
+    "why": "the Overworld draws no flag lines",
     "tests": [
       "test/scenes/staffview1.test.js"
     ]
