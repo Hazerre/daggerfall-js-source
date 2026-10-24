@@ -2,7 +2,7 @@
   {
     "name": "GROUNDBOLT-ground-unmarched",
     "file": "src/scenes/hostMagic.js",
-    "old": "  const g = groundHit(pos, unit, Math.min(reach, cs.stop), collider);",
+    "old": "  const g = rayGroundHit(pos, unit, Math.min(reach, cs.stop), collider);",
     "new": "  const g = Infinity;",
     "tests": [
       "test/scenes/groundbolt.test.js"
@@ -173,7 +173,7 @@
   {
     "name": "GROUNDBOLT-AUDIT-C2-companion-over-the-hill",
     "file": "src/scenes/hostMagic.js",
-    "old": "      if (groundHit(eye, [ux, uy, uz], along, collider) < along - PERSON_RADIUS) continue;",
+    "old": "      if (rayGroundHit(eye, [ux, uy, uz], along, collider) < along - PERSON_RADIUS) continue;",
     "new": "",
     "tests": [
       "test/scenes/groundbolt.test.js"
@@ -182,8 +182,8 @@
   {
     "name": "GROUNDBOLT-AUDIT-C2-companion-no-grace",
     "file": "src/scenes/hostMagic.js",
-    "old": "      if (groundHit(eye, [ux, uy, uz], along, collider) < along - PERSON_RADIUS) continue;",
-    "new": "      if (groundHit(eye, [ux, uy, uz], along, collider) < along - 1e-3) continue;",
+    "old": "      if (rayGroundHit(eye, [ux, uy, uz], along, collider) < along - PERSON_RADIUS) continue;",
+    "new": "      if (rayGroundHit(eye, [ux, uy, uz], along, collider) < along - 1e-3) continue;",
     "tests": [
       "test/scenes/groundbolt.test.js"
     ]
@@ -191,7 +191,7 @@
   {
     "name": "GROUNDBOLT-AUDIT-C2-ally-over-the-hill",
     "file": "src/scenes/hostMagic.js",
-    "old": "      if (groundHit(eye, [dir[0] / l, dir[1] / l, dir[2] / l], d, collider) < d - PERSON_RADIUS) return null;",
+    "old": "      if (rayGroundHit(eye, [dir[0] / l, dir[1] / l, dir[2] / l], d, collider) < d - PERSON_RADIUS) return null;",
     "new": "",
     "tests": [
       "test/scenes/groundbolt.test.js"
@@ -200,8 +200,8 @@
   {
     "name": "GROUNDBOLT-AUDIT-C2-ally-no-grace",
     "file": "src/scenes/hostMagic.js",
-    "old": "      if (groundHit(eye, [dir[0] / l, dir[1] / l, dir[2] / l], d, collider) < d - PERSON_RADIUS) return null;",
-    "new": "      if (groundHit(eye, [dir[0] / l, dir[1] / l, dir[2] / l], d, collider) < d - 1e-3) return null;",
+    "old": "      if (rayGroundHit(eye, [dir[0] / l, dir[1] / l, dir[2] / l], d, collider) < d - PERSON_RADIUS) return null;",
+    "new": "      if (rayGroundHit(eye, [dir[0] / l, dir[1] / l, dir[2] / l], d, collider) < d - 1e-3) return null;",
     "tests": [
       "test/scenes/groundbolt.test.js"
     ]
@@ -218,7 +218,7 @@
   {
     "name": "GROUNDBOLT-AUDIT-C1-shot-over-the-ridge",
     "file": "src/characters/enemy/enemyMotor.js",
-    "old": "      && !(groundHit(origin, [dx, dy, dz], dist - originDistance, this.collider) < dist - originDistance - 1e-3);",
+    "old": "      && !(rayGroundHit(origin, [dx, dy, dz], dist - originDistance, this.collider) < dist - originDistance - 1e-3);",
     "new": "      && true;",
     "tests": [
       "test/scenes/groundbolt.test.js"

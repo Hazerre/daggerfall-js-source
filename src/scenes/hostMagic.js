@@ -77,7 +77,7 @@ import { markPlayerHarm } from '../systems/harmMark.js';   // REVENANT-HARM: a f
 import { knockedDown } from '../systems/blowEffects.js';   // TELL6e: knocked down, no cast
 import { sparedByPlayer, isShipmate, boutTeammates } from '../combat/friendlyFire.js';   // SHIPMATES: who the player's spells pass by, and whose blasts pass the player by
 import { coverDistance, coverStep } from '../ai/cover.js';   // TACT1: billboards are cover; AUDIT TACT B5: met by touch
-import { groundAt, groundHit, rayHit } from '../player/groundRay.js';   // GROUND-BOLT: the terrain along a ray, the one march (AUDIT TECH1's)
+import { rayGroundAt, rayGroundHit, rayHit } from '../player/groundRay.js';   // GROUND-BOLT: the terrain along a ray, the one march (AUDIT TECH1's)
 import { blowTaken } from '../systems/blowTaken.js';   // TELL1: what a spell's target takes (a staggered foe a quarter more)
 import { noteFeudHarm, elementFeudClass } from '../systems/feudLedger.js';   // RVN1: my spell, in its fight's ledger (a leaf)
 import { noteSkillChallenge } from '../systems/skillSoftcap.js';   // BAL9: a spell answers its foe, as a blow does
@@ -109,13 +109,13 @@ export function liveCollider(live) {
     surfaceHit: (o, d, m) => live().surfaceHit(o, d, m),
     groundNormal: (x, z) => live().groundNormal(x, z),   // AUDIT GROUND-BOLT B3: the slope an impact on the ground lies on
     get heightAt() { return live().heightAt; },   // AUDIT GROUND-BOLT D2: the collider's own members, as it holds them -
-    get surfaceAt() { return live().surfaceAt; },   // the drawn ground where the host draws one, else null (groundAt's rule)
+    get surfaceAt() { return live().surfaceAt; },   // the drawn ground where the host draws one, else null (rayGroundAt's rule)
     get cover() { return live().cover; },   // AUDIT GROUND-BOLT D5: TACT1's cover - "trees, crates and decor flats ... stop arrows and spells" (Mac's call)
   };
 }
 
 /** AUDIT GROUND-BOLT B1: how near the terrain must be for a missile's sphere to be TOUCHING it - past the march's own
- *  grain (groundHit is never short of the crossing, and at most GROUND_MARCH_STEP / 2^10 past it), so the touch a
+ *  grain (rayGroundHit is never short of the crossing, and at most GROUND_MARCH_STEP / 2^10 past it), so the touch a
  *  step went to is met the next frame. */
 export const GROUND_TOUCH_M = 0.02;
 
@@ -133,7 +133,7 @@ export const GROUND_TOUCH_M = 0.02;
 export function flightStop(collider, pos, unit, reach, stepLen) {
   const radius = reach - stepLen;
   const cs = coverStep(coverDistance(collider, pos, unit, reach), collider.raycast(pos, unit, reach), reach, radius, stepLen);
-  const g = groundHit(pos, unit, Math.min(reach, cs.stop), collider);
+  const g = rayGroundHit(pos, unit, Math.min(reach, cs.stop), collider);
   if (!(g < cs.stop)) return cs;   // no ground in reach, or a wall or cover met first
   if (g <= radius + GROUND_TOUCH_M) return { stop: g, advance: 1 };
   return { stop: Infinity, advance: Math.min(cs.advance, stepLen > 1e-9 ? Math.min(1, (g - radius) / stepLen) : 1) };
@@ -147,7 +147,7 @@ export function flightStop(collider, pos, unit, reach, stepLen) {
 export function impactGround(collider, pos) {
   let ground = pos[1] - 1.2;
   try { const h = collider?.surfaceHit?.(pos, [0, -1, 0], 30) ?? null; if (h && Number.isFinite(h.dist)) ground = pos[1] - h.dist + 0.05; } catch { /* the guess stands */ }
-  const t = groundAt(collider, pos[0], pos[2]);
+  const t = rayGroundAt(collider, pos[0], pos[2]);
   if (Number.isFinite(t) && t < pos[1] + 0.05 && t + 0.05 > ground) ground = t + 0.05;
   return ground > pos[1] ? pos[1] - 0.05 : ground;   // the impact is on the floor: it sprays above it
 }
@@ -163,7 +163,7 @@ export function struckSurface(collider, pos, u) {
   let dist = Infinity, n = null;
   const h = collider?.raycastHit ? collider.raycastHit(from, u, 1.3) : collider?.surfaceHit?.(from, u, 1.3);
   if (h && Number.isFinite(h.dist) && Array.isArray(h.normal) && h.normal.every(Number.isFinite)) { dist = h.dist; n = h.normal; }
-  const g = groundHit(from, u, Math.min(1.3, dist), collider);
+  const g = rayGroundHit(from, u, Math.min(1.3, dist), collider);
   if (g < dist) { dist = g; n = collider.groundNormal?.(from[0] + u[0] * g, from[2] + u[2] * g) ?? [0, 1, 0]; }
   if (!n) return null;
   const nd = n[0] * u[0] + n[1] * u[1] + n[2] * u[2];
@@ -431,7 +431,7 @@ export function createPlayerMagic({
       if (along >= bestT) continue;
       const hit = collider.raycast(eye, [ux, uy, uz], along);
       if (Number.isFinite(hit) && hit < along - 1e-3) continue;
-      if (groundHit(eye, [ux, uy, uz], along, collider) < along - PERSON_RADIUS) continue;   // AUDIT GROUND-BOLT C2: nor a hill (his body's breadth of grace: the aim at his feet)
+      if (rayGroundHit(eye, [ux, uy, uz], along, collider) < along - PERSON_RADIUS) continue;   // AUDIT GROUND-BOLT C2: nor a hill (his body's breadth of grace: the aim at his feet)
       best = m; bestT = along;
     }
     return best;
@@ -1039,7 +1039,7 @@ export function createPlayerMagic({
       const l = Math.hypot(dir[0], dir[1], dir[2]) || 1;
       const hit = collider.raycast(eye, [dir[0] / l, dir[1] / l, dir[2] / l], d);
       if (Number.isFinite(hit) && hit < d - 1e-3) return null;
-      if (groundHit(eye, [dir[0] / l, dir[1] / l, dir[2] / l], d, collider) < d - PERSON_RADIUS) return null;   // AUDIT GROUND-BOLT C2: nor a hill (her body's breadth of grace: the aim at her feet)
+      if (rayGroundHit(eye, [dir[0] / l, dir[1] / l, dir[2] / l], d, collider) < d - PERSON_RADIUS) return null;   // AUDIT GROUND-BOLT C2: nor a hill (her body's breadth of grace: the aim at her feet)
     }
     return ally;
   }
