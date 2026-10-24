@@ -363,6 +363,8 @@ import { EG_LAST_WORD_MIN } from '../net/eliteGates/egLaw.js';   // EG-F: a ques
 import { createEgFight } from './eliteGates/egFight.js';   // EG-PLAY: a hall's fight
 import { registerSpirePotionLaw, registerSpireFooting, registerSpireWake, registerSpireObjs, registerSpireAct } from '../systems/eliteGates/spireKit.js';   // EG-FULL: THE POTION LAW (two restoring potions a hall); Iron Footing on the spans
 import { accountEg } from '../net/accountClient.js';   // EG-PLAY: the Weir Keys, the open, the admission, the claims
+import { accountKetch } from '../net/accountClient.js';   // KETCH: the Ketchmaster's hold - a Tonal Warden's receipt carried to the service
+import { createKetchClient } from './ketch/ketchClient.js';   // KETCH (HOST-SPLIT): the sky-ketch on this screen - the sky over Daggerfall, the anchor-lift, the ship aboard, the hold
 import { registerPlayerDeathSave, staffFrozen } from '../characters/playerEntity.js';   // EG-FULL: the fall's death save (the witness's damage mod rides main's import of registerPlayerDamageMod, below) (EG-H2: the Spire's Levitate ward is the one ward's, by the made level's law)
 import { registerMadeLevelHere, madeRuleHere, madeSaysHere } from '../systems/madeLevel.js';   // EG-H2 (Elite-Gates.md section 24): THE MADE LEVEL'S RULES - every per-level door below asks the one law
 import { registerJumpForgiveness } from '../player/motor.js';   // EG-H2 (section 10.8): THE FORGIVENESS - the Spire's jump buffer and late press, the made level's law's
@@ -936,7 +938,7 @@ import { isLocked } from '../systems/item/itemLock.js';   // PROF5: a locked pie
 import { createPlayerTradeWindow, playerTradeReady } from '../ui/playerTradeDoor.js';   // TRADE1: the enhanced window two players share
 import { createPeerMenuReader } from '../systems/peerMenuBind.js';   // PEERMENU1: the player menu opens on a bind (hold E / hold A)
 import { createSocialMenu, socialPlaqueRows, plaqueRowFor } from '../ui/socialMenu.js';   // SOC5: the F-menu over that body - Add friend, Invite to party
-import { createProfileWindow, profileView, profileDuelLine, profileRenown, profileGateLine, profileRaidLine, profileSerpentLine, profileSdLine } from '../ui/profileWindow.js';   // INSPECT1: the profile the F-menu's Inspect opens
+import { createProfileWindow, profileView, profileDuelLine, profileRenown, profileRecordLines } from '../ui/profileWindow.js';   // INSPECT1: the profile the F-menu's Inspect opens
 import { createDuelManager, DUEL_RADIUS_M, DUEL_RANGE_M, DUEL_COUNTDOWN_MS, ringCentre, validRingRecord } from '../net/duel/duelSession.js';   // DUEL1: the duel's state machine (pure)
 import { duelVitality } from '../net/duel/duelBar.js';   // DUEL-BAR: my vitality as the referee says it, the HUD's health bar's for the duel's length
 // WILD1 (2026-10-07, bible/11-Multiplayer/Wild-Zone.md): THE OPEN ZONE - the Wrothgarian Mountains: its law (a leaf), a
@@ -16867,6 +16869,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       sd: () => sdHost?.mapMark() ?? null,   // SD2c: a found Super dungeon's ring, in its omen's brass - the held map alone draws it
       stars: () => starfall?.mapMarks() ?? [],   // STAR6: the night's fallen stars, each its card
       arch: () => egClient?.archMapMark() ?? null,   // EG-F: my company's Elite arch while it stands, in its gold - the held map alone draws it
+      ketch: () => ketch?.mapMark() ?? null,   // KETCH: the Sky-Ketch over Daggerfall while she is in its sky - the held map alone draws it
       // GUIDE5: WHERE THE QUESTS POINT - every active quest's place the player's map holds, the followed one filled
       // (ui/quest/questMarks.js); a function for the gate's reason (a step logged while the map stands open). The enhanced
       // map alone draws them: a player who chose DFU's own maps chose DFU's look.
@@ -21228,6 +21231,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     online.onSdFight = (w) => sdFightHeard(w);   // SD8c: the realm's word on the Last Moment's fight
     online.onSdReceipt = (r, room) => { sdClaims?.add(r); sdSpoilsReceipt(r, room); };   // SD9b: my Hour receipt (my realm's at the fall, the hub's at a hello) - to the account service, kept until it is counted; SD9e: and its spoils
     online.onEg = (w, room) => egClient?.word(w, room);   // EG-PLAY: my breach room's word - its state, its fights, my receipts
+    online.onKetch = (w) => ketch?.word(w);   // KETCH: my ship's room's word - its voyage, its fights, its cells, my receipt
     online.onSerpent = (w) => { if (w?.k === 'bd') serpentHost?.wrecked?.(w); else serpentLink?.word(w); };   // SERPENT1: the sea serpent's cell's word (on my cell's socket or a halo's) - its fight, its swim, its blows, my receipt
     online.onRaid = (f, room) => raidRelayWord(f, room);   // RAID3: a town cell's word about its raid - the ledger, the cleanse, my receipt
     online.onRite = (w) => riteHost?.onBroken(w);   // WB12d: the hub's broken rite
@@ -23606,7 +23610,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     _profileView = profileRenown(v, online?.renownOf?.(peerId) ?? null);   // AUDIT RENOWN1 UI-3: the Renown as the session knows it now
     v = _profileView;
     const rec = _profileSub ? duelRecords.get(_profileSub) : null;
-    return { ...v, duel: duelButtonFor(peerId), wed: wedButtonFor(peerId), duels: _profileSub ? profileDuelLine(rec) : null, gates: profileGateLine(rec), raids: profileRaidLine(rec), serpents: profileSerpentLine(rec), hours: profileSdLine(rec) };   // LEGACY7 part three: and the Propose button   // WB5b: and the gates they closed, off the same answer   // AUDIT SD II (L5 F1): and the towns defended, the serpents slain and the Hours broken - laid by no host before
+    return { ...v, duel: duelButtonFor(peerId), wed: wedButtonFor(peerId), duels: _profileSub ? profileDuelLine(rec) : null, ...profileRecordLines(rec) };   // LEGACY7 part three: and the Propose button   // WB5b: and the gates they closed, off the same answer   // AUDIT SD II (L5 F1): and the towns defended, the serpents slain and the Hours broken - laid by no host before   // KETCH: the record's lines through one door (ui/profileWindow.js profileRecordLines) - the voyages sailed, and the stars held, which STAR7 laid on the card's view and not here
   };
   const repaintDuelProfile = () => {
     const id = profileWin?.isOpen() ? profileWin.peerId() : null;
@@ -24222,7 +24226,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     return out;
   }
   registerPlayerDeathSave('eg-fall', () => !!egClient?.fallSave());   // EG-FULL (section 16.5): a death in the Spire is a fall - the witness, not the death screen
-  registerMadeLevelHere(() => modes?.madeLevel?.() ?? null, () => !!egClient?.onTraverse?.());   // EG-H2 (Elite-Gates.md section 24): where the player stands, for the made level's doors with no host in reach (an item, a technique, the motor) - and the Spire's traversal ground (section 10.7)
+  registerMadeLevelHere(() => modes?.madeLevel?.() ?? null, () => !!egClient?.onTraverse?.() || !!ketch?.onTraverse?.());   // KETCH: and the Sailwalk   // EG-H2 (Elite-Gates.md section 24): where the player stands, for the made level's doors with no host in reach (an item, a technique, the motor) - and the Spire's traversal ground (section 10.7)
   registerJumpForgiveness(() => madeRuleHere('jumpBuffer'), () => madeRuleHere('latePress'));   // EG-H2 (section 10.8): THE FORGIVENESS - the Spire's jump buffer and late press; elsewhere none, DFU's motor
   registerPlayerDamageMod('eg-witness', (e, d) => (egClient?.witnessing() ? 0 : d));   // EG-FULL: no blow reaches a witness
   registerSpirePotionLaw(egClient ? { allowed: () => egClient.potionAllowed(), used: () => egClient.potionUsed() } : null);   // EG-FULL: THE POTION LAW's count
@@ -24247,6 +24251,14 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     throwKey: (e, n) => { egFindThrow(e, playerEntity.items ?? (playerEntity.items = []), n); saveSoon.changed(); },
   });
   egClient?.claimKeys();   // the Weir Key's use is this screen's open
+  // KETCH (bible/11-Multiplayer/Sky-Ketch.md): THE SKY-KETCH ON THIS SCREEN (scenes/ketch/ketchClient.js - HOST-SPLIT: the module
+  // owns its state and its frame; these are its reads) - online alone, as every crew's ship is the relay's
+  const ketch = params.has('online') ? createKetchClient({
+    renderer, gl: renderer.gl, getTexture, uploadRecordFrame, audio, online: () => online, modes: () => modes, social: () => social,
+    account: accountKetch({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }), entity: playerEntity, player, cam, now: egNow,
+    maps, state, heightAt: (x, z) => heightAt(x, z), collider: () => collider, feetOutside: egFeet, site: egSiteNow, peers: () => egPeers(),
+    say: (text) => chatNotice(text), mid: egMid, save: egSave, store: _spoilsStore, spoils: sdSpoilsPool, hudHidden: () => gamePaused() || !!townTalk.hudHidden,
+  }) : null;
   let _egSpoilsIn = false;
   const egFrame = () => {
     try { egClient?.frame(); } catch (e) { console.warn('[eg] frame', e?.message ?? e); }
@@ -25084,7 +25096,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   }) : null;
   /** SD9e: the floor a press, a plaque and the ray ask of - the Hour's pool in the Hour, the court's anywhere else (the two
    *  are never stood in at once). */
-  const floorPool = () => (modes?.sdRealmSlot?.() != null || modes?.egHallBreach?.() != null ? sdSpoilsPool : spoilsPool);   // EG-E: the Spire's Redoubts throw into the Hour's pool
+  const floorPool = () => (modes?.sdRealmSlot?.() != null || modes?.egHallBreach?.() != null || modes?.ktShip?.() != null ? sdSpoilsPool : spoilsPool);   // KETCH: and the Ketchmaster's hold   // EG-E: the Spire's Redoubts throw into the Hour's pool
   /** INT11/INT12: THE RELAY'S COUNT HAS FALLEN ME (`bd` - a gate's court's or the Hour's word, once its BOSS_BODY line
    *  enforces; net/bossBody.js): a death, the relay's word, whatever this machine's health says - the zone referee's own
    *  door (forcePlayerDeath: no death save, no AvoidDeath). Heard in the fight it came from alone (`inFight`). */
@@ -28771,6 +28783,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     serpentFrame();   // SERPENT1: the sea serpent's sighting (to the dead too), and on the street its fight and its bar
     sdFrame();   // SD2b: the Hollow stood or taken down, its find, its lines - SD2d: in every mode, so its end reaches a player inside it
     egFrame();   // EG-PLAY: an Elite Breach - its call, its halls, its fight, its tracker, its receipts - in every mode
+    try { ketch?.frame(); } catch (e) { console.warn('[kt] frame', e?.message ?? e); }   // KETCH: the voyage's words, the sky, the ship aboard, the receipts - in every mode
     renownTracker?.tick();   // RENOWN1: what this character earned, to the account service when a report is due
     rollTracker?.tick();   // CHAP1: this character's standing with the guilds - read once, then what moved claimed when due
     peerMenuFrame();   // PEERMENU1: the bind's hold timer
@@ -28838,6 +28851,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     else if (modes?.roomIdentity?.()?.kind === 'gate') key = gateRoomKey(modes?.roomIdentity?.()?.day);   // WB3b: the court's room is its gate's own
     else if (modes?.roomIdentity?.()?.kind === 'sd') key = sdRoomKey(modes?.roomIdentity?.()?.s);   // SD5a: the Hour's room is the relay's realm (SD3's _sdAdmit asks the Rift's law of its hello)
     else if (modes?.roomIdentity?.()?.kind === 'eg') key = egRoomKey(modes?.roomIdentity?.()?.b);   // EG-PLAY: an Elite Breach's room is the relay's breach (its hello asks the company's law)
+    else if (modes?.roomIdentity?.()?.kind === 'kt') key = modes.roomIdentity().key;   // KETCH: a crew's ship's room is the relay's `kt:<voyage>.<captain>` (its hello asks the crew's law)
     else if (modes?.roomIdentity?.()?.kind === 'arena') key = arenaFloorRoomOf(modes?.roomIdentity?.()?.o);   // ARENA4: a relay's bout's floor is its room (ARENA4b: the hour's exhibition's, `x<hour>`, its own)
     else {
       const ident = modes?.roomIdentity?.();
@@ -29623,6 +29637,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     drawEgFight: ({ proj, view, eye }) => { const t = performance.now() / 1000, fog = courtFogNow(); const a = !!egClient?.drawPass(proj, view, eye, t, fog), b = !!sdSpoilsPool?.drawPass(proj, view, eye, t, fog); if (a || b) renderer.markForeignPass(); },   // EG-PLAY: the telegraphs, vents and rifts; EG-E: a Redoubt's spoils' lines
     drawEgSky: ({ proj, view, eye }) => { if (egClient?.drawSky(proj, view, eye, deadlandsSeconds(), courtFogNow(), skyGain(renderer._fogColor, egHallFog(modes?.egHallCircle?.()).color))) renderer.markForeignPass(); },   // EG-G2: the Spire's own sky (render/eliteGates/egSkyPass.js) - the band's void, the Spire's underside
     egWayHome: () => egClient?.wayHome(),   // EG-PLAY: a Redoubt's way home, pressed
+    ketch: () => ketch,   // KETCH: the ship's client - the deck host's seams (scenes/ketch/ketchDeckHost.js)
+    drawKtFight: ({ proj, view, eye, fog }) => { if (ketch?.drawPass(proj, view, eye, performance.now() / 1000, fog ?? courtFogNow())) renderer.markForeignPass(); },   // KETCH: the ship's telegraphs and its hold's spoils' lines
     egCastBack: () => egClient?.castBack(),   // EG-PLAY: the void's cost
     egWitness: () => !!egClient?.witnessing(),   // AUDIT EG III (lane4 #1, lane6 #1): a witness's body, held under the hall - the spans never cast it back, the dither pass tries nothing for it
     egWitnessEye: (v, dt, cast) => egWitnessEye(v, dt, cast),   // AUDIT EG III (lane6 #1): THE WITNESS VIEW's eye and THE FALL's sink in the dungeon arm - the Spire's frame - damped and colliding (section 16.5)
@@ -34180,6 +34196,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     sigilBroker?.draw(renderer);   // BROKER-CAGE: the Sigil Broker's cage beside it, and its door
     starfall?.draw(renderer);   // STAR4: the craters and their stones
     gatePool?.draw(renderer);   // WB2: the Oblivion Gate's stone
+    ketch?.drawSky(renderer);   // KETCH: the Sky-Ketch over Daggerfall, and her anchor-lift let down to the fields
     camps.draw(renderer, null, yardCull);   // SURV3: the tents, the cart's own pass; PERF-WAGON: by the street's view test
     hcc.draw(renderer, null, tvf ? { selfGrow: tvf.grow, grow: peerGrow } : undefined, yardCull);   // PERF-TEAMS: each wagon culled as the town's own models are; HCC: the trailing / parked / following wagon and its cargo, mine and the peers' (the horses ride the flats' pass); WAGON-HITCH x OW-BIG: a cart's wagon grown with its rider under the Overworld
     if (tvf) drawTvDungeonModels(travelView?.eye ?? null, tvf.fullyUp, tvf.blend);   // OW-DUNGEONS: each dungeon's own model, grown under the Overworld; TV-BURST: loaded once the view is up, one a frame; OW-DUNGEON-SIZE: to its one height as the view rises

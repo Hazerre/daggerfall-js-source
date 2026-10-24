@@ -1,0 +1,65 @@
+[
+  {
+    "name": "KTM-the-hold-a-deck-high",
+    "file": "src/world/ketch/ketchModel.js",
+    "old": "  K.slabWithHoles(R.deck, HD.x0, HD.x1, HD.z0, HD.z1, hy, [], [0, 1, 0], true);",
+    "new": "  K.slabWithHoles(R.deck, HD.x0, HD.x1, HD.z0, HD.z1, hy + 6, [], [0, 1, 0], true);",
+    "tests": [
+      "test/world/ketch_model.test.js"
+    ]
+  },
+  {
+    "name": "KTM-the-yard-missing",
+    "file": "src/world/ketch/ketchModel.js",
+    "old": "    K.box(R.deck, yx0, Y.x1 + 0.6, Y.y - T, Y.y, Y.z - Y.halfW, Y.z + Y.halfW, { solid: true,",
+    "new": "    K.box(R.deck, yx0, Y.x1 + 0.6, Y.y - T, Y.y, Y.z - Y.halfW, Y.z + Y.halfW, { solid: false,",
+    "tests": [
+      "test/world/ketch_model.test.js"
+    ]
+  },
+  {
+    "name": "KTM-the-hatch-floored-over",
+    "file": "src/world/ketch/ketchModel.js",
+    "old": "KT_QUARTER_WALL.z, 0, [hatch, shaft], [0, 1, 0], true);",
+    "new": "KT_QUARTER_WALL.z, 0, [shaft], [0, 1, 0], true);",
+    "tests": [
+      "test/world/ketch_model.test.js"
+    ]
+  },
+  {
+    "name": "KTM-the-quarter-wall-missing",
+    "file": "src/world/ketch/ketchModel.js",
+    "old": "  K.box(R.stone, KT_WAIST.x0, KT_WAIST.x1, 0, KT_QUARTER_WALL.h, KT_QUARTER_WALL.z, KT_QUARTER_WALL.z + 0.6, { skip: ['bottom'], solid: true });",
+    "new": "  K.box(R.stone, KT_WAIST.x0, KT_WAIST.x1, 0, KT_QUARTER_WALL.h, KT_QUARTER_WALL.z, KT_QUARTER_WALL.z + 0.6, { skip: ['bottom'], solid: false });",
+    "tests": [
+      "test/world/ketch_model.test.js"
+    ]
+  },
+  {
+    "name": "KTM-a-section-not-solid",
+    "file": "src/world/ketch/ketchModel.js",
+    "old": "    K.sector(R.deck, BC.x, BC.z, BC.core, BC.r, a0, a1, BC.y, 8, { solid: true,",
+    "new": "    K.sector(R.deck, BC.x, BC.z, BC.core, BC.r, a0, a1, BC.y, 8, { solid: false,",
+    "tests": [
+      "test/world/ketch_model.test.js"
+    ]
+  },
+  {
+    "name": "KTM-a-gap-past-the-envelope",
+    "file": "src/net/ketch/ketchDeck.js",
+    "old": "const drift = [2.6, 2.8, 2.4, 3.0, 2.6, 2.8].map(",
+    "new": "const drift = [2.6, 2.8, 2.4, 3.4, 2.6, 2.8].map(",
+    "tests": [
+      "test/world/ketch_model.test.js"
+    ]
+  },
+  {
+    "name": "KTM-the-rigging-a-cliff",
+    "file": "src/net/ketch/ketchDeck.js",
+    "old": "const crumble = [2.6, 2.4, 2.8, 2.6, 2.8, 2.6, 2.8].map(",
+    "new": "const crumble = [2.6, 2.4, 2.8].map(",
+    "tests": [
+      "test/world/ketch_model.test.js"
+    ]
+  }
+]

@@ -1,0 +1,101 @@
+[
+  {
+    "name": "KTX-the-floor-an-older-relay",
+    "file": "src/net/wire.js",
+    "old": "export const KT_RELAY_MIN = 253;",
+    "new": "export const KT_RELAY_MIN = 252;",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  },
+  {
+    "name": "KTX-a-stranger-let-in",
+    "file": "server/src/index.js",
+    "old": "right = kin ? 'party' : null; }",
+    "new": "right = 'party'; void kin; }",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  },
+  {
+    "name": "KTX-the-ship-untold",
+    "file": "server/src/index.js",
+    "old": "    if (!this._send(ws, JSON.stringify({ t: 'kt', ...voyageStateOf(V, now) }))) return false;",
+    "new": "    if (!this._send(ws, JSON.stringify({ t: 'kt', k: 'no', m: 0, n: voyageStateOf(V, now).n }))) return false;",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  },
+  {
+    "name": "KTX-a-pose-unstamped",
+    "file": "server/src/index.js",
+    "old": "...(isSdRoom(a.key) || isKetchRoom(a.key) ? { pAt: now } : {})",
+    "new": "...(isSdRoom(a.key) ? { pAt: now } : {})",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  },
+  {
+    "name": "KTX-the-ninth-let-in",
+    "file": "server/src/index.js",
+    "old": "    const no = ketchAdmits(key, who.subject, right, V.crew, now);",
+    "new": "    const no = ketchAdmits(key, who.subject, right, V.crew.slice(1), now);",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  },
+  {
+    "name": "KTX-the-wire-refusing-its-words",
+    "file": "src/net/wire.js",
+    "old": "  if (m.t === 'kt') {   // KETCH: a word aboard a crew's ship",
+    "new": "  if (m.t === 'ktx') {   // KETCH: a word aboard a crew's ship",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  },
+  {
+    "name": "KTX-an-in-with-no-brain-number",
+    "file": "server/src/index.js",
+    "old": "    if (w.k === 'in' && !(w.bv >= KT_BRAIN_MIN)) {",
+    "new": "    if (w.k === 'in' && w.bv < KT_BRAIN_MIN) {",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  },
+  {
+    "name": "KTX-the-beat-unarmed",
+    "file": "server/src/index.js",
+    "old": "    await this._ktSave(V, now, fresh);\n    await this._ktArm(now);\n    return null;",
+    "new": "    await this._ktSave(V, now, fresh);\n    return null;",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  },
+  {
+    "name": "KTX-the-receipt-to-every-socket",
+    "file": "server/src/index.js",
+    "old": "const r = b.id && b.sub ? V.rc[b.sub] : null; if (r)",
+    "new": "const r = b.id && b.sub ? Object.values(V.rc)[0] : null; if (r)",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  },
+  {
+    "name": "KTX-a-late-hello-untold",
+    "file": "server/src/index.js",
+    "old": "    const r = sub ? V.rc?.[sub] : null;",
+    "new": "    const r = sub ? null : V.rc;",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  },
+  {
+    "name": "KTX-a-ship-outliving-its-voyage",
+    "file": "server/src/index.js",
+    "old": "    if (now >= ketchVoyageOf(V.n).endAt) {",
+    "new": "    if (now >= ketchVoyageOf(V.n).endAt + 1e12) {",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  }
+]

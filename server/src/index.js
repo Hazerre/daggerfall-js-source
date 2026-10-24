@@ -188,6 +188,14 @@ import { STAFF_ORDER_KINDS, takeStaffOrder, frozenHello, busFreeze, frozenFrame,
 import { privateInteriorOf, privateInteriorAdmits, caravanKeyOf } from '../../src/net/privateInterior.js';   // WAGONS2-VISIT: and a caravan's own room
 import { isInstanceRoom, instanceOf, instanceAdmission, partyHoldsOwner, INSTANCE_INTERNAL_KIN, INSTANCE_KIN_KEEP_MS, INSTANCE_DOOR_WORD } from '../../src/net/instanceRoom.js';   // INSTANCES: an instance's room, its door and the hub's party answer (bible/11-Multiplayer/Instances.md)
 import { isStaff } from '../../src/net/staffCommands.js';
+import { isKetchRoom, ketchRoomOf, ketchRoomHolds, ketchAdmits, ketchHolds, ketchVoyageOf, KT_TEXT } from '../../src/net/ketch/ketchLaw.js';   // KETCH: the sky-ketch's law - its voyages, its ships' rooms, its door
+import { newVoyage, joinVoyage, stepVoyage, voyageWord, voyageStateOf, voyageEarners, dropCell, KT_POSE_FRESH_MS } from '../../src/net/ketch/ketchBrain.js';   // KETCH: a crew's voyage, run by its room
+import { judgeVoyage } from '../../src/net/ketch/ketchJudge.js';   // KETCH: its constructs' blows and its hazards, judged on the trails
+import { KETCH_SEAM } from '../../src/net/ketch/ketchWarden.js';   // KETCH: the Tonal Warden on the boss seam
+import { mintKetchReceipt } from '../../src/net/ketch/ketchReceipt.js';   // KETCH: the k1 receipt
+import { dungeonToDeck } from '../../src/net/ketch/ketchDeck.js';   // KETCH: a pose of the dungeon's frame in the deck's
+import { instanceOwnerOf } from '../../src/net/instanceRoom.js';   // KETCH: a captain's digest, INSTANCES' own
+import { validKetchIn, ketchRelayGate, KT_BRAIN_MIN, KT_VOYAGE_KEY } from '../../src/net/wire.js';   // KETCH: its words, their bucket, its brain's number, its record's key
 import { RELAY_CFG_TTL_MS, RELAY_INTERNAL_CFG, mayRelayCfg, relayCfgValue } from '../../src/net/relayCfg.js';   // SCALE5b: the relay's settings, at run time
 import { leaseKeyOf, mintLease, readLease, leaseRoom, LEASE_FRAME_MIN_MS, LEASE_OLD_REASON } from '../../src/net/roomLease.js';   // LEASE1: the hub's word on every socket, in every room
 /** LEASE1 (the fourth review of the PR): a frame of a build that hands on no lease asks the hub's door at most this often -
@@ -359,6 +367,7 @@ import { sdFirst, sdRise, sdFind, sdEnter, sdFell, sdGone, sdDue, pickSdRegion, 
 // gateHerald.js, both here) and formats/mapsTables.js (MapsFile's verbatim tables, which import nothing - the region a
 // post names). The hub posts off its own alarm, after the director's beat.
 import { sdHeraldDue, sdHeraldPost, readSdHeraldState } from '../../src/net/superDungeon/sdHerald.js';
+import { ketchHeraldDue, ketchHeraldPost, ketchHeraldRole, readKetchHeraldState } from '../../src/net/ketch/ketchHerald.js';   // KETCH: the Sky-Ketch's Discord cards - the clock's alone
 import { sdMarksOf } from '../../src/net/superDungeon/sdMarks.js';   // SD18a: a Hollow's marks by its slot - the Remnant's profile and the Orrery's fray
 import { orreryOf, orreryJudge, orreryLit, orreryFresh, orreryRightsFresh, orreryTurnerOf, orreryLashed, stoneInReach, dungeonToRealm, SD_STONES, SD_HOURS, SD_FRAY_MAX, SD_STONE_REACH_SLACK } from '../../src/net/superDungeon/sdBrain.js';   // SD6b: the Orrery's law - the realm judges every turn by it; AUDIT SD II (L7 H2): and who may turn while others turn
 import { applyEchoHit, applyHeartHit, arenaOf, inArena, SD_ARENA_SLACK, SD_LOST_MS, SD_POSE_FRESH_MS } from '../../src/net/superDungeon/sdRemnant.js';   // SD8b: the Brass Remnant's law - the realm runs its fight by it
@@ -679,6 +688,9 @@ export default {
     // EG-PLAY: an Elite Breach's room is `eg:<16hex>` and nothing else (net/eliteGates/egLaw.js isEgRoom) - and it admits nobody until
     // the hub has opened it (the room's own record, below)
     if (key.startsWith('eg:') && !isEgRoom(key)) return json({ error: 'no such room' }, 404);
+    // KETCH: a crew's ship is `kt:<voyage>.<owner>` and stands only while its voyage holds its crews (net/ketch/ketchLaw.js) -
+    // no object is minted for a voyage the clock has not brought, nor one gone west
+    if (key.startsWith('kt:') && !ketchRoomHolds(key, Date.now())) return json({ error: 'the Ketch is gone' }, 404);
     if (String(request.headers.get('Upgrade') ?? '').toLowerCase() !== 'websocket') return json({ error: 'websocket only' }, 426);
     // SD3: and it stands only while the hub's record holds its slot - found, or fallen and collapsing (the gate's law, read
     // from the hub, after the socket's own check so no other request asks it): no object is minted for a slot the hub
@@ -3136,7 +3148,7 @@ export class Room {
     // its sockets say none, and the alarm kept while anything is still owed the bus (a last leave on a woken instance)
     if (await this._hubKeyOf()) { this._hubSyncAt = 0; await this._hubUpFlush(); this._hubPollEnsure(); if (this.state.getWebSockets().length || this._up.length || this._upRetry) await this.state.storage.setAlarm(Date.now() + HUB_SYNC_MS); return; }
     await this._seaAlarm(Date.now());   // AUDIT SEA VENTURES A8: a wreck nobody came back to, signed on the room's alarm
-    if (await this.state.storage.get('hub')) { await this._relayCfgOf(); await this._sweepHub(Date.now()); await this._heraldBeat(Date.now()); await this._egHeraldBeat(Date.now()); await this._serpentHeraldBeat(Date.now()); await this._sdBeat(Date.now()); await this._sdHeraldBeat(Date.now()); return; }   // AUDIT SOC A3: the hub's alarm is its sweep, whoever is in the room; DISCORD-GATES: and its herald's posts; SERPENT2: and the serpent's; SD3: and the Super dungeon's director; SD-HERALD: and its herald's, after the director's moves; EG-E3: and the Spire's, after the gate's
+    if (await this.state.storage.get('hub')) { await this._relayCfgOf(); await this._sweepHub(Date.now()); await this._heraldBeat(Date.now()); await this._egHeraldBeat(Date.now()); await this._serpentHeraldBeat(Date.now()); await this._sdBeat(Date.now()); await this._sdHeraldBeat(Date.now()); await this._ktHeraldBeat(Date.now()); return; }   // AUDIT SOC A3: the hub's alarm is its sweep, whoever is in the room; DISCORD-GATES: and its herald's posts; SERPENT2: and the serpent's; SD3: and the Super dungeon's director; SD-HERALD: and its herald's, after the director's moves; EG-E3: and the Spire's, after the gate's
     // AUDIT 68 X8-park-registry-unbounded: an owner's registry (HCC-PARK) is one object per account and character a
     // client names - its word goes PARK_TTL_MS after it was said, as the cell's record it points at does
     const reg = await this.state.storage.get('reg');
@@ -3162,6 +3174,7 @@ export class Room {
     await this._sdInBeat(Date.now());   // AUDIT SD-THROUGH (A1): a realm's first soul through, owed the hub
     if (await this._sdFightTick()) return;   // SD8b: a realm's alarm is its Remnant's beat while its fight lives
     if (await this._egTick()) return;   // EG-PLAY: a breach's room's alarm is its director's beat while the breach lives
+    if (await this._ktTick()) return;   // KETCH: a ship's room's alarm is its voyage's beat while a member stands aboard
     // SERPENT1: A CELL WITH A SERPENT'S FIGHT beats it - and its other duties (a rite's tell, its raids' ends) still run,
     // every SERPENT_REST_MS while the fight beats and on every firing once it is over, under one alarm: the soonest of the
     // beat and what they arm
@@ -3485,7 +3498,7 @@ export class Room {
     if (battle && !this._spend(ws, now, poseGate, 'bucket', 'drops', 'too many poses')) return;
     const step = battle ? await this._siegeStep(ws, a, m.p, now) : null;
     if (battle && !step) return;
-    const turned = posed ? { ...(isEgRoom(a.key) ? { eAt: now } : {}), turn: ((a.turn | 0) + 1) & 0xffff, ...(still ? { kept: now } : {}), ...(isSdRoom(a.key) ? { pAt: now } : {}) } : {};   // AUDIT SD III (F3): an Hour's pose, stamped - the fight's census reads its age; EG-PLAY: and a breach's (`eAt`) - its director reads each body's age (`_egBodies`)
+    const turned = posed ? { ...(isEgRoom(a.key) ? { eAt: now } : {}), turn: ((a.turn | 0) + 1) & 0xffff, ...(still ? { kept: now } : {}), ...(isSdRoom(a.key) || isKetchRoom(a.key) ? { pAt: now } : {}) } : {};   // AUDIT SD III (F3): an Hour's pose, stamped - the fight's census reads its age; EG-PLAY: and a breach's (`eAt`) - its director reads each body's age (`_egBodies`); KETCH: and a ship's (`_ktBodies` - the live run found its crew gone from the census 25 s after the hello, every cell dropped as carried off)
     const met = battle ? this._metered(ws, a, true, { pose: m.p }, turned) : this._meter(ws, a, now, { pose: posed ? m.p : a.pose }, turned, posed && !stopped);   // SCALE2b: a pose's write is lazy - a stop's is not, it is where the player stands
     if (!met) return;   // over the rate: kept as the latest, not relayed
     if (m.t === 'ping') { this._send(ws, '{"t":"pong"}'); return; }   // a ping that reached the object (the runtime answers the exact one in its sleep)
@@ -3662,8 +3675,9 @@ export class Room {
       const realmRoom = isSdRoom(a.key);
       const instRoom = isInstanceRoom(a.key);   // INSTANCES (the audit): nor an instance's - its key is known to every member it ever had
       const egRoom = isEgRoom(a.key);   // EG-PLAY: an Elite Breach's room - its company admitted by account below, after the room's own gate
+      const ktRoom = isKetchRoom(a.key);   // KETCH: a crew's ship - its gate spent after the token, by account (_ktHello), as an instance's
       let gate = null;
-      if (!battle && !floor && !realmRoom && !instRoom) {
+      if (!battle && !floor && !realmRoom && !instRoom && !ktRoom) {
         // the room's hello gate (A6): a storm is 2N frames a cycle for everyone in a place; a channel's hello costs no roster, so its gate runs deeper - never off (AUDIT CHAT A1)
         gate = tokenGate(this._hellos, now, this._helloHz(a.key));   // SCALE2b: in memory - see `_hellos`; GATE-DOOR: a court's (and its copies') door is its opening's
         this._hellos = gate.bucket;
@@ -3716,6 +3730,7 @@ export class Room {
         const no = await this._egAdmit(a.key, who, now);
         if (no) { this._refuse(ws, no); return; }
       }
+      if (ktRoom) { const no = await this._ktHello(a.key, who, now); if (no) { this._refuse(ws, no.w, no.busy ? CLOSE_BUSY : undefined); return; } }   // KETCH: its captain, staff and the captain's party, to the crew's eight
       if (floor) {
         gate = await this._battleHelloGate(who.subject ?? m.id, (await this._floorOwn(a.key, who.subject)) ? 'fighter' : 'watch', now);   // AUDIT PRE-MERGE 1003b R2
         if (!gate.pass) { this._refuse(ws, 'busy', CLOSE_BUSY); return; }
@@ -3761,7 +3776,7 @@ export class Room {
       // AUDIT WB A1: ONE SEAT AN ACCOUNT in a gate's court. The fight is the account's (net/gate/gateBrain.js - its players by
       // account, the newest socket speaking for it), so a second socket is never a second fighter, only a seat the court
       // cannot give anyone else: the older goes, replaced, its leave said.
-      if ((isGateRoom(a.key) || isBattleRoom(a.key) || isSdRoom(a.key) || isCellRoom(a.key) || isWorldRoom(a.key)) && who.subject) for (const [other, b] of [...this._all()]) if (other !== ws && b.id && b.sub === who.subject) this._refuse(other, 'replaced', CLOSE_REPLACED);   // ONE-BODY (FIELD BUGS 2026-10-15c, a player twice in a town after a deploy; Mac: "One body per account"): and a cell's or a dungeon's place, one body an account - the older socket closed as replaced; PVP-REF: and a siege's field, one fighter an account; SD3: and a Super dungeon's realm
+      if ((isGateRoom(a.key) || isBattleRoom(a.key) || isSdRoom(a.key) || isKetchRoom(a.key) || isCellRoom(a.key) || isWorldRoom(a.key)) && who.subject) for (const [other, b] of [...this._all()]) if (other !== ws && b.id && b.sub === who.subject) this._refuse(other, 'replaced', CLOSE_REPLACED);   // ONE-BODY (FIELD BUGS 2026-10-15c, a player twice in a town after a deploy; Mac: "One body per account"): and a cell's or a dungeon's place, one body an account - the older socket closed as replaced; PVP-REF: and a siege's field, one fighter an account; SD3: and a Super dungeon's realm
       if (egRoom && who.subject) for (const [sock, att] of [...this._all()]) if (sock !== ws && att.id && att.sub === who.subject) this._refuse(sock, 'replaced', CLOSE_REPLACED);   // EG-PLAY: and a breach's - one member an account, its newest socket
       if (isGateRoom(a.key) && !a.ly && who.subject) this._courtReplace(who.subject, null);   // SCALE5d part two: and the court's one seat across its copies
       // ONE-SEAT: A CLAIM TAKES THE SEAT - every other tab of this account in the hub is closed, the reason said first,
@@ -3782,7 +3797,7 @@ export class Room {
       const guild = who.gi ? { gi: who.gi, gt: who.gt, gm: who.gm } : {};   // GUILD1c: the guild the token carried, when it carried one
       const arena = isArenaRoom(a.key) ? { ar: arenaRatingOk(who.ar), lk: who.kind === 'linked' ? 1 : 0, ...(Number.isSafeInteger(who.cl) && who.cl >= ARENA_CL_MIN && who.cl <= ARENA_CL_MAX ? { cl: who.cl } : {}) } : {};   // ARENA4: the hall queues by the signed rating, and a guest is queued for no rated bout   // ARENA4b: and a ladder bout's vitality is the signed character level's (`cl` - absent from a service before it)
       const linked = (isRegionRoom(a.key) || realmRoom) && who.kind === 'linked' ? { lk: 1 } : {};   // SD3: a region's channel marks a registered account - the census counts those alone (a guest is one click); AUDIT SD II (L7 H2): and a realm's - its stones count every guest as one turner
-      const charLv = (isCellRoom(a.key) || realmRoom) && Number.isSafeInteger(who.cl) && who.cl >= 1 ? { cl: who.cl } : {};   // AUDIT SERPENT E4: a cell's serpent fighter's level is never above the token's own character level (`cl` - absent from a service before ARENA4b); AUDIT SD II (L7 M2): and a realm's fighter's level IS it
+      const charLv = (isCellRoom(a.key) || realmRoom || ktRoom) && Number.isSafeInteger(who.cl) && who.cl >= 1 ? { cl: who.cl } : {};   // AUDIT SERPENT E4: a cell's serpent fighter's level is never above the token's own character level (`cl` - absent from a service before ARENA4b); AUDIT SD II (L7 M2): and a realm's fighter's level IS it
       if (egRoom && Number.isSafeInteger(who.cl) && who.cl >= 1) charLv.cl = who.cl;   // EG-PLAY: and a breach member's level is its token's character level
       // AUDIT PRE-MERGE 1003b R5: A FLOOR'S PLACE MOVES WITH ITS RECONNECT - a replaced socket loses its id before its close,
       // so its leave frees no seat, and the new socket's `in` took another: every blip a seat gone from the stands (a full
@@ -3922,6 +3937,7 @@ export class Room {
       if (isSdRoom(a.key)) { try { if (!this._send(ws, this._sdHallWord(await this._sdHallOf(sdSlotOfRoom(a.key))))) return; } catch (e) { console.warn('[sd] hall word failed', e?.message ?? e); } }
       // SD8b: and its fight, while one lives or has fallen - a soul come in mid-fight sees the Remnant where it stands
       if (isSdRoom(a.key)) { try { if (!(await this._sdHelloFight(ws, who.subject, sdSlotOfRoom(a.key), now))) return; } catch (e) { console.warn('[sd] fight word failed', e?.message ?? e); } }
+      if (isKetchRoom(a.key)) { try { if (!(await this._ktWelcome(ws, who.subject, a.key, now))) return; } catch (e) { console.warn('[kt] welcome failed', e?.message ?? e); } }   // KETCH: the ship whole, to one aboard (and its receipt, owed)
       // EG-PLAY: the breach as it stands, its hall's fight and this member's receipts, to a member entering, after the welcome
       if (egRoom) { try { if (!(await this._egHello(ws, who.subject, now))) return; } catch (e) { console.warn('[eg] hello word failed', e?.message ?? e); } }
       // AUDIT CARDS-6 C7/C1: an interior's Iliac tables - a ranked seat kept for this player's blink is his again, and the
@@ -4396,6 +4412,7 @@ export class Room {
       return;
     }
     if (m.t === 'star') return this._starFrame(ws, a, m);   // STAR3: a word at a fallen star, to its cell - a method of its own
+    if (m.t === 'kt') return this._ktFrameIn(ws, a, m);   // KETCH: a word aboard a crew's ship - a method of its own
     if (m.t === 'eg') {
       // EG-PLAY: AN ELITE BREACH - the open, to the hub alone (the service's signed order); a member's admission, door, way
       // home and blows, to its breach's room alone (anywhere else junk), on the breach's own bucket
@@ -7227,6 +7244,7 @@ export class Room {
     if (typeof sub !== 'string' || !sub) return false;
     if (isGateRoom(a.key)) { const f = this._fight; return !!f?.players?.[sub] && !f.fell && !f.wrath; }
     if (isSdRoom(a.key)) { const f = this._sdFight; return !!f?.players?.[sub] && !f.fell && !f.lost; }
+    if (isKetchRoom(a.key)) { const V = this._kt; return !!V?.players?.[sub] && !V.said; }   // KETCH: every member aboard, until the Warden's fall is said
     if (!this._serpents?.size) return false;
     for (const f of this._serpents.values()) if (f.players?.[sub] && !f.fell && !f.gone) return true;
     return false;
@@ -8044,7 +8062,7 @@ export class Room {
       const threads = Object.fromEntries(Object.entries(HERALD_FAMILIES).map(([f, F]) => [f, heraldThread(role(F.thread)) ?? gateThread]));
       // AUDIT HERALD-CARDS L3: a thread set that is no Discord id posts to the gate's thread - said, as a webhook put wrong is
       if (hook) for (const F of Object.values(HERALD_FAMILIES)) if (String(role(F.thread) ?? '').trim() && !heraldThread(role(F.thread))) console.warn(`[herald] ${F.thread} is not a Discord thread's id - its posts go to the gate's thread, else the channel`);
-      this._herald = hook ? { hook, threads, role: heraldRole(role('gateRole')), serpentRole: serpentHeraldRole(role('serpentRole'), role('gateRole')), sdRole: serpentHeraldRole(role('sdRole'), role('gateRole')) } : null;
+      this._herald = hook ? { hook, threads, role: heraldRole(role('gateRole')), serpentRole: serpentHeraldRole(role('serpentRole'), role('gateRole')), sdRole: serpentHeraldRole(role('sdRole'), role('gateRole')), ktRole: ketchHeraldRole(role('ktRole'), role('gateRole')) } : null;   // KETCH: and the Sky-Ketch's sighting
     }
     return this._herald;
   }
@@ -8114,6 +8132,7 @@ export class Room {
     if (at != null) await this._hubArm(at);
     await this._serpentHeraldArm(now);
     await this._sdHeraldArm(now);
+    await this._ktHeraldArm(now);
   }
   /** A gate's kill, owed to the channel once a day while it is news: kept first (the alarm posts it, and posts it again
    *  until Discord takes it - one poster, so never twice), the alarm armed now. */
@@ -8269,6 +8288,42 @@ export class Room {
       if (JSON.stringify(st) !== was) await this.state.storage.put('sdherald', st);   // the alarm alone writes it (its beats never overlap)
       if (retry != null) await this._hubArm(retry);
     } catch (e) { console.warn('[herald] abyss beat failed', e?.message ?? e); await this._hubArm(now + HERALD_RETRY_MS); }
+  }
+
+  // ───────────────────────────── KETCH: THE SKY-KETCH'S HERALD ───────────────────────────
+  // net/ketch/ketchHerald.js. The gate's channel and door (_heraldOf, _heraldSend); its own state (`ktherald`: the voyage and
+  // the moment last posted, or let go) - the voyage itself is the clock's, so nothing else is kept.
+  /** What the Sky-Ketch's herald has posted: the voyage and the moment (net/ketch/ketchHerald.js readKetchHeraldState). */
+  async _ktHeraldState() {
+    return readKetchHeraldState(await this.state.storage.get('ktherald'));
+  }
+  /** The alarm armed for the Ketch's next moment, when the herald owes one before the sweep's. */
+  async _ktHeraldArm(now) {
+    if (!this._heraldOf()) return;
+    const due = ketchHeraldDue(now, await this._ktHeraldState());
+    if (due) await this._hubArm(due.at);
+  }
+  /** THE SKY-KETCH'S HERALD'S BEAT, on the hub's alarm beside the others: each moment due posted in the voyage's order (a
+   *  moment whose window passed unposted let go), and the alarm armed for the next - a post Discord did not take,
+   *  HERALD_RETRY_MS on. */
+  async _ktHeraldBeat(now) {
+    const h = this._heraldOf();
+    if (!h) return;
+    try {
+      let st = await this._ktHeraldState();
+      const was = JSON.stringify(st);
+      let retry = null;
+      for (let step = 0; step < 3; step++) {
+        const due = ketchHeraldDue(now, st);
+        if (!due || due.at > now) break;
+        if (!(await this._heraldSend(ketchHeraldPost(due.n, due.k, h.ktRole), 'ketch'))) { retry = now + HERALD_RETRY_MS; break; }
+        st = { n: due.n, k: due.i };
+      }
+      if (JSON.stringify(st) !== was) await this.state.storage.put('ktherald', st);   // the alarm alone writes it (its beats never overlap)
+      const owed = ketchHeraldDue(now, st);
+      const next = [retry, owed && owed.at > now ? owed.at : null].filter((x) => x != null);
+      if (next.length) await this._hubArm(Math.min(...next));
+    } catch (e) { console.warn('[herald] ketch beat failed', e?.message ?? e); await this._hubArm(now + HERALD_RETRY_MS); }
   }
 
   // ───────────────────────────── EG-E3: THE SPIRE'S HERALD ─────────────────────────────
@@ -9368,6 +9423,153 @@ export class Room {
     this._send(ws, JSON.stringify({ t: 'eg', ...v.call }));
   }
 
+  // ═══ KETCH (2026-10-24; bible/11-Multiplayer/Sky-Ketch.md section 10): A CREW'S SHIP ═══════════════════════════════
+  // One room a crew's ship (`kt:<voyage>.<owner>`), its voyage the pure director's (net/ketch/ketchBrain.js) - kept to
+  // storage every CHECKPOINT_MS and at every stage, fall and admission; its beat BRAIN_TICK_MS while a member stands aboard.
+  /** The ship's voyage, read once a wake - a fresh one for a key it never held. */
+  async _ktOf(key) {
+    if (this._kt === undefined || (this._kt && this._kt.key !== key)) {
+      const v = await this.state.storage.get(KT_VOYAGE_KEY);
+      this._kt = v && typeof v === 'object' && v.key === key ? v : newVoyage(key, Date.now());
+    }
+    return this._kt;
+  }
+  async _ktSave(V, now, force) {
+    if (!force && now - (this._ktSavedAt ?? 0) < CHECKPOINT_MS) return;
+    this._ktSavedAt = now;
+    await this.state.storage.put(KT_VOYAGE_KEY, V);
+  }
+  async _ktArm(now) {
+    const at = await this.state.storage.getAlarm();
+    if (at == null || at > now + BRAIN_TICK_MS) await this.state.storage.setAlarm(now + BRAIN_TICK_MS);
+  }
+  /** A pose of the dungeon's frame in the deck's, with its death. */
+  _ktPoseOf(p) { const [x, y, z] = dungeonToDeck(p.x, p.y ?? 0, p.z); return { x, y, z, dead: !!p.dd }; }
+  /** The crew aboard now - one a member, its newest socket speaking for it (a pose older than KT_POSE_FRESH_MS speaks for no
+   *  body) - each with its trail in the deck's frame. */
+  _ktBodies(V, now) {
+    const newest = new Map();
+    for (const [ws, b] of this._all()) {
+      if (!b.id || !b.sub || !b.pose || !V.players[b.sub] || now - (b.pAt ?? b.since ?? 0) > KT_POSE_FRESH_MS) continue;
+      const had = newest.get(b.sub);
+      if (!had || (b.since ?? 0) >= (had[1].since ?? 0)) newest.set(b.sub, [ws, b]);
+    }
+    return [...newest.values()].map(([ws, b]) => { const p = this._ktPoseOf(b.pose); return { sub: b.sub, x: p.x, y: p.y, z: p.z, dead: p.dead, tr: this._trailOf(ws, (q) => this._ktPoseOf(q)) }; });
+  }
+  /** The voyage's frames to everyone aboard, in order - a frame for one member (`to`) to its sockets alone. */
+  _ktFan(frames) {
+    if (!frames.length) return;
+    const all = [];
+    for (const fr of frames) {
+      if (fr.to == null) { all.push(JSON.stringify({ t: 'kt', ...fr })); continue; }
+      const { to, ...word } = fr, w = JSON.stringify({ t: 'kt', ...word });
+      for (const [ws, b] of [...this._all()]) if (b.id && b.sub === to) this._send(ws, w);
+    }
+    if (all.length) this._fanFrames(all, (b) => b.id);
+  }
+  /** THE DOOR (net/ketch/ketchLaw.js ketchAdmits): the hello's gate by account; the right - staff, the captain (its digest
+   *  the key's owner), or the captain's party (the hub's word, INSTANCES' kin - the hub silent is busy); the crew's eight.
+   *  Answers null, or `{ w, busy }`. A hidden spectator takes no place in the crew. */
+  async _ktHello(key, who, now) {
+    if (!who?.subject) return { w: KT_TEXT.refuse.crew };
+    if (!(await this._battleHelloGate(who.subject, 'fighter', now)).pass) return { w: 'busy', busy: true };
+    if (who.hid) return null;
+    const V = await this._ktOf(key), r = ketchRoomOf(key);
+    let right = null;
+    if (!V.players[who.subject]) {
+      right = isStaff(who.glyphs) ? 'staff' : (await instanceOwnerOf(who.subject)) === r?.owner ? 'owner' : null;
+      if (!right) { const kin = await this._instanceKinOf(who.subject, r?.owner ?? '', now); if (kin == null) return { w: 'busy', busy: true }; right = kin ? 'party' : null; }
+    }
+    const no = ketchAdmits(key, who.subject, right, V.crew, now);
+    if (no) return { w: KT_TEXT.refuse[no] ?? KT_TEXT.refuse.crew };
+    const fresh = joinVoyage(V, who.subject, who.name ?? '', Number.isSafeInteger(who.cl) ? who.cl : 1, now);
+    await this._ktSave(V, now, fresh);
+    await this._ktArm(now);
+    return null;
+  }
+  /** ONE ABOARD TOLD THE SHIP WHOLE (its voyage, its bodies, its blows, its cells, its fight) and its receipt, owed - false
+   *  when its socket is gone. */
+  async _ktWelcome(ws, sub, key, now) {
+    const V = await this._ktOf(key);
+    if (!this._send(ws, JSON.stringify({ t: 'kt', ...voyageStateOf(V, now) }))) return false;
+    const r = sub ? V.rc?.[sub] : null;
+    return !r || this._send(ws, JSON.stringify({ t: 'kt', k: 'rcpt', r }));
+  }
+  /** A WORD ABOARD (net/wire.js validKetchIn): on its own bucket (a body's word on the body's), in a ship's room alone. */
+  async _ktFrameIn(ws, a, m) {
+    const now = Date.now();
+    const w = validKetchIn(m);
+    if (!w) { this._junk(ws); return; }
+    if (w.k === 'vt' ? !this._spend(ws, now, bodyWordRelayGate, 'bodyBucket', 'bodyDrops', 'too many body words') : !this._spend(ws, now, ketchRelayGate, 'ktBucket', 'ktDrops', 'too many ketch words')) return;
+    if (!isKetchRoom(a.key) || typeof a.sub !== 'string' || !a.sub) { this._junk(ws); return; }
+    try { await this._ktWord(ws, a, w, now); } catch (e) { console.warn('[kt] word failed', e?.message ?? e); }
+  }
+  async _ktWord(ws, a, w, now) {
+    const V = await this._ktOf(a.key);
+    const p = V.players[a.sub];
+    if (!p) { this._junk(ws); return; }
+    if (!ketchHolds(V.n, now)) { this._send(ws, JSON.stringify({ t: 'kt', k: 'no', m: 0 })); return; }
+    const line = this._bodyLine();
+    if (w.k === 'vt') { bodySaid(p, w.v / 1000, now, line.body, { enforce: line.enforce }); return; }
+    if (w.k === 'in' && !(w.bv >= KT_BRAIN_MIN)) { this._send(ws, JSON.stringify({ t: 'kt', k: 'no', m: 2 })); return; }
+    if (w.k === 'in' && Number.isSafeInteger(a.cl) && a.cl >= 1) w.lv = a.cl;   // THE LEVEL IS THE TOKEN'S (the Hour's AUDIT SD II L7 M2)
+    // the struck nothing strike nothing: a member the count has fallen (enforced) speaks as the dead
+    const pose = a.pose ? this._ktPoseOf(a.pose) : null;
+    if (pose && bodyOut(p, line.enforce)) pose.dead = true;
+    const out = voyageWord(V, a.sub, w, pose, now, rand01);
+    if (w.k === 'in') this._trailSeed(ws, a, now);
+    this._ktFan(out);
+    if (V.fell && !V.said) await this._ktFall(V, now);
+    await this._ktSave(V, now, w.k !== 'hit' && w.k !== 'drop' && w.k !== 'hurt');
+    await this._ktArm(now);
+  }
+  /** ONE BEAT of a ship's alarm: its voyage gone - every socket told and closed; else its blows judged on the census (the
+   *  constructs', the hazards', the Warden's), a carrier any met letting its cell go, the director stepped, the fall said once.
+   *  False when no ship is here (the alarm is the room's other duties'). */
+  async _ktTick() {
+    const key = this._kt?.key ?? [...this._all()].map(([, b]) => b.key).find((k) => isKetchRoom(k));
+    if (!key || !isKetchRoom(key)) return false;
+    const V = await this._ktOf(key), now = Date.now();
+    if (now >= ketchVoyageOf(V.n).endAt) {
+      for (const [ws, b] of [...this._all()]) if (b.id) this._refuse(ws, KT_TEXT.refuse.gone);
+      await this._ktSave(V, now, true);
+      return false;
+    }
+    try {
+      const line = this._bodyLine(), census = bodyCensus(V, this._ktBodies(V, now), now, line.body, line.enforce);
+      const { hits, struck } = judgeVoyage(V, census, now);
+      if (V.wf) hits.push(...KETCH_SEAM.judge(V.wf, census, now));
+      await this._bodyCount('kt', V, hits, now, line.body);
+      this._bodyTell('kt', V, now);
+      const drops = [];
+      for (const sub of new Set([...struck, ...hits.map((h) => h.sub)])) if (V.cells.carry[sub]) dropCell(V, sub, census.find((b) => b.sub === sub) ?? null, now, 'struck', drops);
+      this._ktFan(drops);
+      this._ktFan(stepVoyage(V, now, this._bodiesBare(census), rand01));
+      if (V.fell && !V.said) await this._ktFall(V, now);
+      await this._ktSave(V, now, false);
+    } catch (e) { console.warn('[kt] beat failed', e?.message ?? e); }
+    const here = [...this._all()].some(([, b]) => b.id);
+    if (here) { await this.state.storage.setAlarm(now + BRAIN_TICK_MS); return true; }
+    return false;
+  }
+  /** THE FALL, SAID ONCE (the Hour's law): each member who earned it minted its k1 receipt - kept before it is said - then
+   *  handed to each of its sockets aboard. One at a time. */
+  async _ktFall(V, now) {
+    if (this._ktFalling) return this._ktFalling;
+    this._ktFalling = (async () => {
+      if (V.said) return;
+      const key = await this._receiptKeyOf(), nowS = Math.floor(now / 1000), f = V.wf;
+      V.rc = {};
+      for (const sub of voyageEarners(V)) {
+        try { V.rc[sub] = await mintKetchReceipt({ d: V.n, o: V.owner, s: sub, c: rand32(), x: earnedBy(f, sub), l: f.players[sub].lv, ...this._bodyMeasureOf({ ...f, players: { ...f.players, [sub]: { ...f.players[sub], bd: V.players[sub]?.bd } } }, sub, KETCH_SEAM.earned) }, key, { subtle: crypto.subtle, nowS }); }
+        catch (e) { console.warn('[kt] receipt refused', e?.message ?? e); }
+      }
+      V.said = true;
+      await this._ktSave(V, now, true);
+      for (const [ws, b] of [...this._all()]) { const r = b.id && b.sub ? V.rc[b.sub] : null; if (r) this._send(ws, JSON.stringify({ t: 'kt', k: 'rcpt', r })); }
+    })().finally(() => { this._ktFalling = null; });
+    return this._ktFalling;
+  }
   // ───────────────────────────── SD8b: THE LAST MOMENT'S FIGHT ─────────────────────────────
   /** The realm's fight - the instance's, else storage's (the gate's law: one room, one fight). */
   async _sdFightOf() {

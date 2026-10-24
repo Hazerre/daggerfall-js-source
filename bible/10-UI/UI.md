@@ -62,7 +62,8 @@ ESCORTING FACES - the quest escorts' portrait column, FE1 - and the CREDITS TABL
 - and SEASON-BOOK's LAUREL (`enhanced/enhancedSeason.js`: the pause face's third mark beside the hourglass and the envelope, and its window - the ranked season, the seats' Season and the festival, each counting down, the player's standing on each board - `10-UI/UI-Arc.md` SEASON-BOOK);
 - and STAFF-PANEL5's TWO (`freezeScreen.js`: the "frozen by staff" banner over the world while a staff freeze stands - why, until when, and the server's Discord invite with its Copy button, above the HUD and below the asset picker; `staffMessageBox.js`: a staff member's Message on screen, the box in the middle of one player's screen until they press OK - the design doc "DFO Staff Panel: design", Freeze player and Message on screen);
 - and STAFF-VIEW1's TAGS (`staffTags.js`: an Admin's or a Moderator's tags over every player on the ground - through walls, a button each, a crowd's box, a "+N" past the cap, and one canvas for an Admin's monster lines; filled by `scenes/staffViewHost.js` - the design doc "DFO Staff Panel: design", In game: the staff view);
-410 modules
+- and KETCH's TWO (`ketch/ketchHud.js`: the Sky-Ketch's voyage tracker - the stage, what it asks, the cell in hand, the crew and the clock - and the Tonal Warden's bar, the gate's in the Hour's brass; `ketch/ketchMapMark.js`: her ring on the held map - `11-Multiplayer/Sky-Ketch.md` section 12);
+412 modules
 live under `src/ui/`. Items still routed here are
 collected in `01-Overview/Port-Ledger.md` section C; scope in
 `01-Overview/Port-Doctrine.md` phase plan.
