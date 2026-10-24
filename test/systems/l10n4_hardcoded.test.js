@@ -215,6 +215,7 @@ const HARDCODED = {
   'src/render/renderer.js': 17,
   'src/render/retroPass.js': 1,
   'src/render/riteSmoke.js': 1,
+  'src/render/rocketPass.js': 4,   // ROCKET1: its shaders' sources, as every pass's - no word a player reads
   'src/render/shipFlagPass.js': 1,
   'src/render/starfall/starfallPass.js': 3,   // STAR4: its shaders' sources, as every pass's (AUDIT STARFALL R3: the ring's vertex stage reads its bearings' count, one fewer)
   'src/render/superDungeon/sdArenaGlow.js': 1,
@@ -739,7 +740,7 @@ const HARDCODED = {
   'src/ui/sigilRune.js': 5,
   'src/ui/skinCard.js': 7,
   'src/ui/socialMenu.js': 4,
-  'src/ui/socialPanel.js': 237,
+  'src/ui/socialPanel.js': 235,   // GUILD-WINDOW: -2, the header's two sentences are its tiles, their names in t()
   'src/ui/socketWells.js': 4,
   'src/ui/spell/spellMakerWindow.js': 15,
   'src/ui/spellbookWindow.js': 4,

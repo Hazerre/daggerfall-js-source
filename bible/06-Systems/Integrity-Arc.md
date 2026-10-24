@@ -357,6 +357,23 @@ Pinned by `test/net/fb1019f_pursemend.test.js` over the real Worker, a record th
 after the old counter's sale, checkpointed so the judge holds it; `tools/mutants/fb1019f_pursemend.json` (28, dead - AUDIT FB1019f's four among them: the
 lift's guard unread and unenforced, a letter and a faucet row of nothing).
 
+STAFF-SET-BANK (2026-10-23, mob: "we need a set bank setting"; asked before how to adjust a player's bank, and nothing
+could) added a fourth, the Staff Panel's alone: `/v1/staff/fix/bank { id, ticket, was, gold, note }`, an Admin's, with
+Fix account's note (`staffRealm.js`), the review's `bank` act (`review.js bankAct`). Online a character keeps one
+account, the Empire's (`banking.js` EMPIRE-ACCOUNT), and the panel's profile says the bank as one number, every
+account's gold together (`staffPlayers.js` `banks`, read by `repairLaw.js bankTotalOf`, the sum the set is checked
+against). The record's bank, still that total (`bank-moved` otherwise), becomes the Empire's account holding `gold` (0 to
+one int's worth), every other branch folded in at nothing as `foldEmpireAccounts` folds them, every loan where it stands;
+a record that keeps no Empire account is refused (`bank-none`: the game mints the table as a character loads, so its
+next checkpoint carries one). The repair's machinery again: once a ticket in `realm_repairs` (a bank set's row names
+faction -1, `BANK_SET_FACTION`, below every faction a repair or a mend names - no migration), the record seized one
+sequence on, the wealth it moved witnessed - up or down, so the budget charges no gain the service made and a set down
+hides none after it - the act written among the findings, and what it raised the bank by the `repair` faucet's (a bank
+below nothing counted none). A set down pays no faucet and writes no sink: the service keeps none for staff's removals,
+so the finding and the panel's audit row are its record. No hold is lifted. The service's acct177. Pinned by
+`test/server/staffsetbank.test.js` over the real Worker, the game's own bank table and the panel's own profile read;
+`tools/mutants/staff-set-bank.json` (31, dead).
+
 ### AUTO-HOLD - no hold waits on a person (2026-10-16, `server-account/src/verdict.js`, `ledger.js`, migration 0120)
 
 Players on Discord, frozen "until staff have looked" because "copies of an item were found", none of them meaning to

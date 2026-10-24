@@ -57,16 +57,19 @@ async function world(fn) {
           pending.push(async () => { const i = r.sockets.indexOf(rws); if (i >= 0) { r.sockets.splice(i, 1); await r.room.webSocketClose(rws, code, reason); } });
         }
       }
+      // a link's token mint (WebCrypto, the thread pool) runs on the real clock: a frame waits for it, or under a loaded
+      // runner its hello lands frames late in the faked one and the links never welcome (deploy 365, shard 2/8)
+      const minting = new Set();
+      const held = (mint) => mint && ((r) => { const p = Promise.resolve(mint(r)); minting.add(p); p.finally(() => minting.delete(p)).catch(() => {}); return p; });
       const settle = async () => {
         for (let i = 0; i < 6; i++) {
-          while (pending.length) await pending.shift()();
-          await turn();
+          while (pending.length || minting.size) { while (pending.length) await pending.shift()(); await Promise.allSettled([...minting]); await turn(); }
           for (const [k, r] of [...W.made]) if (H.isChannelShard(k)) await r.room._hubUpFlush();
           for (const [k, r] of [...W.made]) if (H.isChannelBus(k)) await r.room._downFlush();
           for (const [k, r] of [...W.made]) if (H.isChannelShard(k)) await r.room._hubPoll();
         }
       };
-      const Session = class extends OnlineSession { constructor(o) { super({ wave: reconnectWave({ online: () => true }), ...o, now: () => clock }); } };
+      const Session = class extends OnlineSession { constructor(o) { super({ wave: reconnectWave({ online: () => true }), ...o, mintToken: held(o.mintToken), now: () => clock }); } };
       try {
         return await fn({ W, service, signer, BridgeWS, Session, settle, opened, tick: (ms) => { clock += ms; }, now: () => clock });
       } finally {
