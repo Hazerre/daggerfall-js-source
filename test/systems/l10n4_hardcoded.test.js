@@ -215,6 +215,7 @@ const HARDCODED = {
   'src/render/renderer.js': 17,
   'src/render/retroPass.js': 1,
   'src/render/riteSmoke.js': 1,
+  'src/render/rocketPass.js': 4,   // ROCKET1: its shaders' sources, as every pass's - no word a player reads
   'src/render/shipFlagPass.js': 1,
   'src/render/starfall/starfallPass.js': 3,   // STAR4: its shaders' sources, as every pass's (AUDIT STARFALL R3: the ring's vertex stage reads its bearings' count, one fewer)
   'src/render/superDungeon/sdArenaGlow.js': 1,

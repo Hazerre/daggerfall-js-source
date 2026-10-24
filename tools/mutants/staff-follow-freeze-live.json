@@ -19,5 +19,15 @@
       "test/net/staffpanel5live_e2e.test.js",
       "test/net/staffpanel5_freeze_client.test.js"
     ]
+  },
+  {
+    "name": "FOLLOW-OWN-ID-links-take-the-tab-id",
+    "file": "src/net/staffHook.js",
+    "old": "const ownId = () => ({ id: peerId(null), secret: peerSecret(null) });",
+    "new": "const ownId = () => ({});",
+    "why": "a follow's links say hello with the tab's id, the game's own, and the relay replaces the staff member's World tab and room (mob: \"need the follow dropping me to stop\")",
+    "tests": [
+      "test/net/staffpanel5drop_e2e.test.js"
+    ]
   }
 ]

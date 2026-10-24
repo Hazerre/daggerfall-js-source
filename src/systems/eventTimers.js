@@ -10,6 +10,8 @@
 // to its start). It reads no globals; the host hands in the relay's now and what it holds.
 //
 // A row: { id, kind, title, where, detail, live, at, until }
+//   shut   AUDIT EVENTS1 A6: a live row of an event no one can join any more (the gate sealed, a Hollow collapsing) - the
+//          window lists it, the event board leaves it out
 //   at     the moment the countdown runs to (ms, relay clock): the start of a coming row, the end of a live one
 //   until  a live row's end; null on a coming row
 //   door   EG-ZM: on an Elite row where the host hands the boards' door (`doors.board`) - 'board', the window's button
@@ -61,7 +63,7 @@ const capital = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
  * @param {{ now: number,
  *           gate?: { place?: string|null, fellAt?: (day: number) => (number|null) } | null,
  *           serpent?: { place?: string|null, fellAt?: (day: number) => (number|null) } | null,
- *           sd?: { rec: any, name?: string|null, place?: string|null } | null,
+ *           sd?: { rec: any, name?: string|null, place?: string|null, site?: { cityName?: string, px?: number, py?: number } | null } | null,
  *           stars?: Array<{ id: string, kind: string, title: string, where: string|null, detail: string|null, live: boolean, at: number, until: number|null }> | null,
  *           elite?: { op: number, rh?: number, h?: number, until?: number|null, end?: string|null } | null,
  *           doors?: { board?: () => any } | null,
@@ -71,7 +73,7 @@ const capital = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 export function eventTimerRows(src) {
   const now = Number(src?.now);
   if (!Number.isFinite(now)) return [];
-  /** @type {Array<{id: string, kind: string, title: string, where: string|null, detail: string|null, live: boolean, at: number, until: number|null, door?: string}>} */
+  /** @type {Array<{id: string, kind: string, title: string, where: string|null, detail: string|null, live: boolean, at: number, until: number|null, door?: string, shut?: boolean}>} */
   const rows = [];
   const coming = (id, kind, title, at, where = null, detail = null) => rows.push({ id, kind, title, where, detail, live: false, at, until: null });
   const live = (id, kind, title, until, where = null, detail = null) => rows.push({ id, kind, title, where, detail, live: true, at: until, until });
@@ -85,7 +87,7 @@ export function eventTimerRows(src) {
   if (phase === 'quiet') coming(`gate:${t.day}`, 'gate', 'Dagon\'s Breach opens', t.openAt, null, 'Its omen burns in the sky 15 minutes before');
   else if (phase === 'omen' || phase === 'rising' || phase === 'sealed') coming(`gate:${t.day}`, 'gate', 'Dagon\'s Breach opens', t.openAt, place, 'The omen is in the sky');
   else if (phase === 'open') live(`gate:${t.day}`, 'gate', 'Dagon\'s Breach open', t.sealAt, place, 'Seals when this runs out. Get inside');
-  else if (phase === 'closed') live(`gate:${t.day}`, 'gate', 'Dagon\'s Breach sealed', t.wrathAt, place, 'Collapses when this runs out');
+  else if (phase === 'closed') { live(`gate:${t.day}`, 'gate', 'Dagon\'s Breach sealed', t.wrathAt, place, 'Collapses when this runs out'); rows[rows.length - 1].shut = true; }   // AUDIT EVENTS1 A6: no one gets in - the event board leaves it out
   // ...and the gate after it, once this one is under way
   if (phase !== 'quiet') coming(`gate:${t.day + GATE_EVERY_DAYS}`, 'gate', 'Next Dagon\'s Breach opens', gateTimes(t.day + GATE_EVERY_DAYS).openAt);
 
@@ -114,9 +116,10 @@ export function eventTimerRows(src) {
   const sdRec = src?.sd?.rec ?? null;
   const sdNow = sdPhase(sdRec, now);
   const sdName = src?.sd?.name || 'The Abyss Dungeon';
-  const sdWhere = src?.sd?.place ? `Near ${src.sd.place}` : null;
+  const sdPlace = src?.sd?.place ?? src?.sd?.site?.cityName ?? null;   // AUDIT EVENTS1 A2: the host hands the site itself (its city and its pixel)
+  const sdWhere = sdPlace ? `Near ${sdPlace}` : null;
   if (sdNow === 'found') live(`sd:${sdRec.s}`, 'super', `${sdName} stands`, sdRec.until, sdWhere, 'Found. It fades away unbeaten when this runs out');
-  else if (sdNow === 'fell') live(`sd:${sdRec.s}`, 'super', `${sdName} collapses`, sdRec.fellAt + SD_COLLAPSE_MS, sdWhere, 'Its Hour is broken. It collapses when this runs out');
+  else if (sdNow === 'fell') { live(`sd:${sdRec.s}`, 'super', `${sdName} collapses`, sdRec.fellAt + SD_COLLAPSE_MS, sdWhere, 'Its Hour is broken. It collapses when this runs out'); rows[rows.length - 1].shut = true; }   // AUDIT EVENTS1 A6
   // SD19: the next one's rise, once this one is gone - never where (a Hollow risen is a find), only not before when
   else if (sdNow === 'gone' && Number.isFinite(sdRec?.next) && sdRec.next > now) coming(`sd:${(sdRec.s ?? 0) + 1}`, 'super', 'An Abyss Dungeon rises', sdRec.next, null, 'Not before this. Watch the Bay for its brass omen');
 
