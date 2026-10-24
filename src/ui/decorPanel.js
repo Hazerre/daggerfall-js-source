@@ -173,17 +173,14 @@ body .dfdecor-tabs .dfdecor-chip[aria-pressed="true"] { color: #f2c46b; box-shad
 .dfdecor-foot { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 13px; color: var(--dim, #9a9486);
   padding-top: 6px; border-top: 1px solid var(--iron, #2b323b); }
 .dfdecor-foot > span:empty { display: none; }
-.dfdecor-look { position: fixed; left: 50%; top: calc(50% + 36px); transform: translateX(-50%); z-index: 9; display: none;
-  flex-direction: column; gap: 4px; padding: 8px; width: max-content; background: rgba(14, 16, 19, .92);
-  border: 1px solid #b8943f; border-radius: 6px; ${PIXEL_FONT_CSS} color: var(--bone, #e9e4d9); }
-.dfdecor-look[data-up="1"] { display: flex; }
-.dfdecor-look-name { font-size: 14px; }
 .dfdecor-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   z-index: 8; display: none; flex-direction: column; gap: 6px; padding: 8px 12px; width: max-content; max-width: min(1120px, calc(100vw - 24px));
   box-sizing: border-box; background: rgba(14, 16, 19, .92); border: 1px solid #b8943f; border-radius: 6px;
   pointer-events: none; ${PIXEL_FONT_CSS} color: var(--bone, #e9e4d9); }
 .dfdecor-bar[data-up="1"] { display: flex; }
 .dfdecor-bar-what { font-size: 15px; }
+.dfdecor-bar-count { font-size: 13px; color: var(--dim, #9a9486); }
+.dfdecor-bar-count:empty { display: none; }
 /* MENU-ORDER: the keys a legend - a key's name, then what presses it - never one run-on line */
 .dfdecor-bar-keys { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 2px 16px;
   font-size: 13px; color: var(--dim, #9a9486); line-height: 1.4; }
@@ -199,6 +196,12 @@ body .dfdecor-tabs .dfdecor-chip[aria-pressed="true"] { color: #f2c46b; box-shad
 /* MENU-ORDER: a portrait phone's bar. Clear of the touch layer's top-left presses beside it, a 390px screen gave it 118px -
    a word a line; under them (16px down, 48px tall, ui/touch/touch.js) it has the screen's width */
 @media (orientation: portrait) { .dfdecor-bar.touch { top: calc(72px + env(safe-area-inset-top, 0px)); max-width: calc(100vw - 24px); } }
+/* The decorator's hotbar wears the character bar's sockets (enhancedHotbar.js .hb). In play it stands in that bar's
+   column. With no column it floats where that column sits, above the catalogue, and takes the pointer. */
+.hb.hb-decor { z-index: 14; pointer-events: auto; }
+.hb.hb-decor.hb-float { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(22px + env(safe-area-inset-bottom, 0px)); }
+.hb.hb-decor .hb-slot { pointer-events: auto; cursor: pointer; }
+.hb.hb-decor .hb-icon:not([src]) { display: none; }
 /* MENU-ORDER: PICTURES BEFORE WORDS. A model has no picture until it turns in the preview: its kind's glyph stands in its
    tile over the letters, which stay for a reader. */
 .dfdecor-thumb { position: relative; }
@@ -416,7 +419,7 @@ const swallowPresses = (node) => {
 };
 
 /**
- * THE BUTTON. `onPress()` opens the panel; `render(up)` stands it or takes it away (the host's frame).
+ * THE BUTTON. `onPress()` starts decorating; `render(up)` stands it or takes it away (the host's frame).
  * @param {{ onPress: () => void, touch?: boolean, doc?: any }} opts
  */
 export function createDecorButton({ onPress, touch = false, doc = document }) {
@@ -1355,7 +1358,7 @@ export function createDecorPanel({
 export const DECOR_KEYS_WORD = 'Keys';
 /** MENU-ORDER: each of the bar's presses its picture. */
 const DECOR_BAR_ICONS = Object.freeze({ place: 'place', turnLeft: 'turn-left', turnRight: 'turn-right', raise: 'up', lower: 'down',
-  smaller: 'smaller', bigger: 'bigger', grid: 'grid', preview: 'decorate', back: 'back' });
+  smaller: 'smaller', bigger: 'bigger', grid: 'grid', preview: 'decorate', catalog: 'list', back: 'back' });
 /** MENU-ORDER: THE BAR'S LEGEND - each key's name and what presses it, a pair a line (a finger's two: the stick and
  *  Fly, and the look). DECOR-FIGURE: `sized` false tells no Size key. */
 export function decorBarKeys(touch, sized = true) {
@@ -1374,45 +1377,6 @@ export function decorBarKeys(touch, sized = true) {
  * clear of the stick and the layer's buttons along the bottom.
  * @param {{ on: Record<string, (dir?: number) => void>, touch?: boolean, doc?: any }} opts
  */
-/** The crosshair's menu while the free camera flies: Move, Duplicate, Remove, only the ones this aim allows. */
-export function createDecorLookMenu({ on, doc = document }) {
-  injectStyle(doc);
-  const el = maker(doc);
-  const root = el('div', 'dfdecor-look');
-  root.dataset.up = '0';
-  const name = el('div', 'dfdecor-look-name');
-  const btn = (label, key, icon) => {
-    const n = el('button', 'dfdecor-btn', label);
-    n.type = 'button';
-    n.dataset.dficon = icon;
-    n.addEventListener('click', () => { if (n.style.display !== 'none') on[key]?.(); });
-    return n;
-  };
-  const move = btn('Move', 'move', 'move');
-  const duplicate = btn('Duplicate', 'duplicate', 'place');
-  const remove = btn('Remove', 'remove', 'remove');
-  remove.className += ' warn';
-  root.append(name, move, duplicate, remove);
-  swallowPresses(root);
-  doc.body?.append(root);
-  let alive = true;
-  return {
-    root,
-    show(aim) {
-      if (!alive) return;
-      if (!aim || (!aim.move && !aim.duplicate && !aim.remove)) { this.hide(); return; }
-      if (name.textContent !== aim.name) name.textContent = aim.name;
-      move.style.display = aim.move ? '' : 'none';
-      duplicate.style.display = aim.duplicate ? '' : 'none';
-      remove.style.display = aim.remove ? '' : 'none';
-      if (root.dataset.up !== '1') root.dataset.up = '1';
-    },
-    hide() { if (alive && root.dataset.up !== '0') root.dataset.up = '0'; },
-    isUp: () => root.dataset.up === '1',
-    destroy() { if (!alive) return; alive = false; root.remove?.(); },
-  };
-}
-
 export function createDecorBar({ on, touch = false, doc = document }) {
   injectStyle(doc);
   const el = maker(doc);
@@ -1420,6 +1384,7 @@ export function createDecorBar({ on, touch = false, doc = document }) {
   root.dataset.up = '0';
   root.dataset.keys = '0';   // MENU-ORDER: the legend folded
   const what = el('div', 'dfdecor-bar-what');
+  const tally = el('div', 'dfdecor-bar-count');
   // DECOR-FIGURE: a piece that takes no size step (one of Daggerfall's people) is told no Size key. MENU-ORDER: a legend,
   // a key's name and then what presses it
   const keys = el('div', 'dfdecor-bar-keys');
@@ -1440,6 +1405,8 @@ export function createDecorBar({ on, touch = false, doc = document }) {
   };
   const grid = b('Grid', 'grid');
   const preview = b('Preview', 'preview');
+  const catalog = b('Catalogue', 'catalog');
+  catalog.hidden = true;
   // DECOR1e: THE FINGER'S UP AND DOWN - held, as Jump and Crouch are on a keyboard; let go when the finger lifts, is
   // taken, or the bar goes (a window over the flight)
   let flyDir = 0;
@@ -1455,9 +1422,13 @@ export function createDecorBar({ on, touch = false, doc = document }) {
   const smaller = b('Smaller', 'smaller'), bigger = b('Bigger', 'bigger');   // DECOR-FIGURE: hidden for a figure (show's `sized`)
   // MENU-ORDER: the presses in the legend's groups, a rule between - place; turn; raise and lower; size; the grid (and a
   // finger's fly); back
-  const sep = () => el('span', 'dfdecor-bar-sep');
-  btns.append(b('Place', 'place', 'dfdecor-btn'), sep(), b('Turn left', 'turnLeft'), b('Turn right', 'turnRight'), sep(), b('Raise', 'raise'),
-    b('Lower', 'lower'), sep(), smaller, bigger, grid, preview);
+  const seps = [];
+  const sep = () => { const s = el('span', 'dfdecor-bar-sep'); seps.push(s); return s; };
+  const place = b('Place', 'place', 'dfdecor-btn');
+  const turnLeft = b('Turn left', 'turnLeft'), turnRight = b('Turn right', 'turnRight');
+  const raise = b('Raise', 'raise'), lower = b('Lower', 'lower');
+  const flightBtns = [place, turnLeft, turnRight, raise, lower, smaller, bigger, grid, preview];
+  btns.append(place, sep(), turnLeft, turnRight, sep(), raise, lower, sep(), smaller, bigger, grid, preview);
   if (touch) btns.append(hold('Fly up', 1), hold('Fly down', -1));
   // MENU-ORDER: the keys' legend folded behind one press - the pictured buttons are the bar; the words wait to be asked
   const keysChip = el('button', 'dfdecor-chip dfdecor-keys-toggle', DECOR_KEYS_WORD);
@@ -1465,19 +1436,25 @@ export function createDecorBar({ on, touch = false, doc = document }) {
   keysChip.dataset.dficon = 'list';
   keysChip.setAttribute('aria-pressed', 'false');
   keysChip.addEventListener('click', () => { const on = root.dataset.keys !== '1'; root.dataset.keys = on ? '1' : '0'; keysChip.setAttribute('aria-pressed', on ? 'true' : 'false'); });
-  btns.append(sep(), b('Back', 'back'), keysChip);
-  root.append(what, why, btns, keys);   // MENU-ORDER: the presses first, the legend under them when asked
+  btns.append(sep(), catalog, b('Back', 'back'), keysChip);
+  root.append(what, tally, why, btns, keys);   // MENU-ORDER: the presses first, the legend under them when asked
   swallowPresses(root);
   doc.body?.append(root);
   let alive = true;
   return {
     root,
-    show({ name, price, priceText = null, why: whyText = null, snap = false, sized = true, preview: frozen = false }) {
+    show({ name, price, priceText = null, why: whyText = null, snap = false, sized = true, preview: frozen = false, browse = false, count = null, cap = null }) {
       if (!alive) return;
       const w = `${name} - ${priceText ?? decorPriceText(price)}`;
       if (what.textContent !== w) what.textContent = w;
+      const n = Number.isSafeInteger(count) && Number.isSafeInteger(cap) ? `${count} of ${cap}` : '';
+      if (tally.textContent !== n) tally.textContent = n;
       // DECOR-FIGURE: one of Daggerfall's people stands at its own size - no Smaller, no Bigger, no Size key told
-      if (!!smaller.hidden === sized) { smaller.hidden = !sized; bigger.hidden = !sized; drawKeys(sized); }
+      if (!browse && !!smaller.hidden === sized) { smaller.hidden = !sized; bigger.hidden = !sized; drawKeys(sized); }
+      catalog.hidden = !browse;
+      for (const n of flightBtns) n.hidden = browse ? true : n.hidden;
+      if (!browse) for (const n of [place, turnLeft, turnRight, raise, lower, grid, preview]) n.hidden = false;
+      for (const s of seps) s.hidden = !!browse;
       const y = whyText ?? '';
       if (why.textContent !== y) why.textContent = y;
       grid.setAttribute('aria-pressed', snap ? 'true' : 'false');
@@ -1487,5 +1464,69 @@ export function createDecorBar({ on, touch = false, doc = document }) {
     hide() { flyTo(0); if (alive && root.dataset.up !== '0') root.dataset.up = '0'; },
     isUp: () => root.dataset.up === '1',
     destroy() { if (!alive) return; flyTo(0); alive = false; root.remove?.(); },
+  };
+}
+
+const classSet = (node, c, on) => {
+  const parts = String(node.className).split(/\s+/).filter((x) => x && x !== c);
+  if (on) parts.push(c);
+  node.className = parts.join(' ');
+};
+
+/** The character bar's ten sockets, for catalogue pieces. `cells` are `{ src, filled }`; `sel` is the wheel's slot;
+ *  `box` is the character bar's place on the page, when it has one. */
+export function createDecorHotbar({ onSlot, doc = document, count = 10, keys = [] }) {
+  injectStyle(doc);
+  const el = maker(doc);
+  const root = el('div', 'hb hb-decor hb-float');
+  root.dataset.up = '0';
+  root.setAttribute('role', 'toolbar');
+  const row = el('div', 'hb-row');
+  const slots = [];
+  const icons = [];
+  for (let i = 0; i < count; i++) {
+    const n = el('button', 'hb-slot hb-empty');
+    n.type = 'button';
+    n.dataset.slot = String(i);
+    n.dataset.filled = '0';
+    const face = el('div', 'hb-face');
+    const icon = el('img', 'hb-icon');
+    icon.alt = '';
+    icon.draggable = false;
+    face.append(icon);
+    n.append(el('i', 'hb-frame'), face, el('span', 'hb-key', keys[i] || String((i + 1) % 10)));
+    n.addEventListener('click', () => onSlot(i));
+    slots.push(n);
+    icons.push(icon);
+    row.append(n);
+  }
+  root.append(row);
+  swallowPresses(root);
+  doc.body?.append(root);
+  let alive = true;
+  return {
+    root,
+    rect() {
+      const r = root.getBoundingClientRect?.();
+      return r && r.width > 0 ? r : null;
+    },
+    show(up, cells, sel, dock) {
+      if (!alive) return;
+      root.dataset.up = up ? '1' : '0';
+      classSet(root, 'on', !!up);
+      if (dock && root.parentNode !== dock) dock.append?.(root);
+      classSet(root, 'hb-float', !dock);
+      if (!up) return;
+      for (let i = 0; i < slots.length; i++) {
+        const src = cells?.[i]?.src || '';
+        const filled = !!cells?.[i]?.filled;
+        if (src) { if (icons[i].getAttribute('src') !== src) icons[i].setAttribute('src', src); }
+        else icons[i].removeAttribute('src');
+        slots[i].dataset.filled = filled ? '1' : '0';
+        classSet(slots[i], 'hb-empty', !filled);
+        classSet(slots[i], 'hb-active', i === sel);
+      }
+    },
+    destroy() { if (!alive) return; alive = false; root.remove?.(); },
   };
 }

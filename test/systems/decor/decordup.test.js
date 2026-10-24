@@ -51,6 +51,9 @@ test('a duplicate copies the look and not the contents, and a cancelled copy is 
   rig.tool.back();
   assert.equal(rig.standing.length, 1);
   assert.equal(rig.w.gold, gold, 'leaving the copy charges nothing');
+  assert.equal(rig.tool.flying(), true);
+  assert.equal(rig.tool.panelOpen(), false);
+  assert.equal(rig.tool.openPanel(), true);
   const again = panel(rig);
   roomOf(again).fire('click');
   rows(again).find((r) => r.dataset.key === first.id).fire('click');

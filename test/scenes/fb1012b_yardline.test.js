@@ -39,8 +39,7 @@ test('YARD-LINE the producer stamps the building\'s record on its frame, and the
   assert.match(world, /pixelHomeFrames\.set\(homeKey, \{ at, box: \[\.\.\.box\], rects, type: bd\?\.buildingType \?\? null, faction: bd\?\.factionId \?\? 0 \}\)/);
   assert.match(world, /const bd = b\.dfBlock\?\.rmbBlock\?\.fldHeader\?\.buildingDataList\?\.\[placed\.recordIndex\] \?\? null;/);
   const yards = src('src/scenes/homeYards.js');
-  assert.match(yards, /const why = yardWhyNot\(piece\.pos, cur\.yard\.lot, s\.others, foot, s\.roads, s\.lines\)/);
-  assert.match(yards, /if \(holds && !joined\) lines\.push\(g\);/);
-  assert.match(yards, /const nHome = deps\.homes\?\.homeAt\?\.\(y\.mapId, bk\) \?\? null;/);
-  assert.match(yards, /const holds = yardLineHolder\(f, bk, nHome\);/);
+  assert.match(yards, /yardWhyNot\(piece\.pos, cur\.yard\.lot, cur\.others, foot, cur\.roads, cur\.lines\)/);
+  assert.match(yards, /if \(holds\) lines\.push\(g\);/);
+  assert.match(yards, /const holds = yardLineHolder\(f, bk, deps\.homes\?\.homeAt\?\.\(y\.mapId, bk\) \?\? null\);/);
 });

@@ -229,6 +229,8 @@ const frame = (key, kind, title, subs, rows = [], rest = 0, empty = false) =>
 function resolvePreview(key, hit, name, contents) {
   const named = name?.(key, hit) ?? null;
   if (!named?.title) return null;
+  // Decorating a placed piece answers verbs. That list is the plaque's rows; a contents glance would drop it.
+  if (Array.isArray(named.actions) && named.actions.some((a) => a?.id != null && a.label)) return null;
   const held = contents?.(key);
   const tone = (f) => {
     if (typeof named.tone === 'string' && named.tone) f.tone = named.tone;
@@ -263,7 +265,7 @@ export function resolveHover(hit, { name = null, contents = null } = {}) {
   const key = hit.key;
   if (key == null) return null;
   // CONTAINER-PEEK: before the pile's arm, so a cupboard is never asked to be a take list
-  if (keyPreviews(key) && !keyItemises(key)) return resolvePreview(key, hit, name, contents);
+  if (keyPreviews(key) && !keyItemises(key)) { const glanced = resolvePreview(key, hit, name, contents); if (glanced) return glanced; }
   if (keyItemises(key)) {
     const named = name?.(key, hit) ?? null;
     // OUTDOOR-LOOT (the report: "I can still click on an 'Empty' body and wipe out loot for a party member"): A LIST THE

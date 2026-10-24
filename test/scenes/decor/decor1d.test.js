@@ -318,6 +318,11 @@ test('DECOR1d the tool: the button stands in a room the player may decorate and 
   rig.state.room = { kind: 'house', where: 'Your house' };
   rig.frame();
   button.fire('click');
+  rig.frame();
+  assert.equal(rig.tool.flying(), true, 'decorating starts as a flight');
+  assert.equal(rig.tool.panelOpen(), false, 'the catalogue stays closed');
+  const bar = rig.doc.body.children.find((c) => String(c.className).startsWith('dfdecor-bar'));
+  all(bar, 'dfdecor-chip').find((c) => c.textContent === 'Catalogue').fire('click');
   assert.equal(rig.slots[0][0], 'open');
   assert.equal(rig.tool.panelOpen(), true);
   for (let i = 0; i < 4; i++) { rig.frame({ overlayUp: true }); await settle(); }

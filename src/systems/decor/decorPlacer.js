@@ -98,6 +98,7 @@ export const decorEntrySized = (entry) => !decorIsFigure(entry);
  * reaches into a wall it is set on.
  */
 export function createDecorPlacer(entry, { radius = null, box = null, from = null, free = false, flat = null } = {}) {
+  let measured = radius;   // the scan's, or what a copy was priced at - filled in once the scan reaches it
   const mount = !!entry.mount;
   const s = { yaw: from ? wrapTurn((mount ? from.rot?.[2] : from.rot?.[0]) ?? 0) : 0, raise: 0, scale: from?.scale ?? 1, snap: false };
   // DECOR-FIGURE: one of Daggerfall's people takes no size step - placed or moved, it stands at scale 1, one grown before
@@ -167,8 +168,10 @@ export function createDecorPlacer(entry, { radius = null, box = null, from = nul
     /** The price at this scale (the law's), or null for a piece the scan could not measure; nothing for one's own. */
     price() {
       if (free) return 0;
-      return radius != null && radius > 0 ? decorPrice(radius, s.scale) : null;
+      return measured != null && measured > 0 ? decorPrice(measured, s.scale) : null;
     },
+    /** The scan's measure, once a placement started before the scan had reached this piece. */
+    setRadius(r) { if (r > 0) measured = r; },
     /**
      * THE PIECE for a surface point `hit` (the free camera's eye meeting the room, this visit's frame), measured from
      * the building's `origin` - projected by the law, or null (unpriced, or outside what a piece may be). DECOR2c: a

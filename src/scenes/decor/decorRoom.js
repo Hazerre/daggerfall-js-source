@@ -847,6 +847,25 @@ export const DECOR_LIST_RETRY_MAX_MS = 30_000;
  * holding a process open).
  * @param {{ ask: () => any, live: () => boolean, stand: (r: any) => void, later?: (f: () => void, ms: number) => any, wait?: number }} o
  */
+/** The door's ask, started when the player commits to going in, so the list overlaps the greeting and the build. */
+let decorAhead = null;
+/** `${mapId}:${buildingKey}:${seat}` — the same three the room's list is asked with. */
+export const decorListKey = (mapId, buildingKey, seat) => `${mapId >>> 0}:${buildingKey >>> 0}:${seat ? 1 : 0}`;
+/** Start `ask` now. A later `primedDecorList` of the same key takes this promise; any other key leaves it. */
+export function primeDecorList(key, ask) {
+  if (key == null || typeof ask !== 'function') return;
+  const p = Promise.resolve().then(ask);
+  p.catch(() => {});
+  decorAhead = { key, p };
+}
+/** The promise `primeDecorList` started for `key`, once, or null. */
+export function primedDecorList(key) {
+  if (!decorAhead || decorAhead.key !== key) return null;
+  const p = decorAhead.p;
+  decorAhead = null;
+  return p;
+}
+
 export function askDecorList({ ask, live, stand, later = setTimeout, wait = DECOR_LIST_RETRY_MS }) {
   const again = () => {
     if (live()) later(() => { if (live()) askDecorList({ ask, live, stand, later, wait: Math.min(2 * wait, DECOR_LIST_RETRY_MAX_MS) }); }, wait)?.unref?.();

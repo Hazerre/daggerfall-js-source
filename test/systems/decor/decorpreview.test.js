@@ -33,6 +33,23 @@ test('preview holds the ghost while the camera moves, and Back neither stands it
   assert.equal(rig.tool.ghost(), null);
 });
 
+test('the middle mouse button freezes the preview the same way the bar does', async () => {
+  const rig = toolRig({ gold: 5000 });
+  await placeFrom(rig, 'm41000');
+  rig.frame();
+  const before = rig.tool.ghost().pos.map((v) => v);
+  rig.win.fire('mousedown', { button: 1 });
+  rig.frame();
+  assert.equal(chip(rig, 'Preview').getAttribute('aria-pressed'), 'true');
+  rig.win.fire('keydown', { code: 'KeyW' });
+  rig.frame();
+  rig.win.fire('keyup', { code: 'KeyW' });
+  assert.deepEqual(rig.tool.ghost().pos, before);
+  rig.win.fire('mousedown', { button: 1 });
+  rig.frame();
+  assert.equal(chip(rig, 'Preview').getAttribute('aria-pressed'), 'false');
+});
+
 test('placing from a frozen preview stands and pays once, and closing the flight drops the ghost', async () => {
   const rig = toolRig({ gold: 5000 });
   await placeFrom(rig, 'm41000');
