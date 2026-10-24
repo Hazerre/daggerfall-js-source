@@ -272,7 +272,14 @@ card (`net/herald/heraldCard.js` `ketch`, her blue) and her own thread when the 
 The real relay and account service in workerd (`tools/loadHarness.mjs` standServices) and the real game online in
 headless Chromium, voyage 0 docked: the Ketch over the fields, boarded through the lift into `kt:00000000.<digest>`, the
 Watch, the Gallery, the engine fed, the bridge unbarred, the Tonal Warden felled solo in 9.4 minutes (its Discord, its
-forks, its sections) and its receipt handed. What the run and the tests written beside it found, each fixed and pinned:
+forks, its sections) and its receipt handed. The first run's relay held no signing key, so its receipt went out
+unsigned; THE SECOND RUN (the same day, a throwaway gate pair in both Workers' env, as the account deploy mints one) took
+the rest of the road: boarded, the Watch broken in 24 s, the Wardens in 7, the engine fed in 58, the bridge unbarred, the
+Warden felled solo in 208 s (the Discord's four resonators, the Last Note's three forks, the stun, the sections), its
+receipt SIGNED (an 86-character Ed25519 signature), claimed at `/v1/ketch/claim` (the account's `ketch.sailed` 1), the
+chest offering "Open your share", and the share thrown across the cabin floor - a Legendary, a Rare, 37 Pellets and 526
+gold - with the tracker and the Warden's bar drawn through the text core. A fall to the Watch's first wave before the
+driver ran woke the body in the fields, as the made level's death says. What the runs and the tests written beside it found, each fixed and pinned:
 
 | Found | Fixed | Pinned by |
 |---|---|---|
