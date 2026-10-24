@@ -85,16 +85,17 @@ export function windPitchFor(strength01) {
   return 0.92 + 0.16 * Math.max(0, Math.min(1, strength01));
 }
 
-/** A second-order section's coefficients (the audio EQ cookbook's band-pass at 0 dB peak, or low-pass), a0 divided
- *  out: [b0, b1, b2, a1, a2]. */
-function section(type, f0, q, fs) {
+/** A second-order section's coefficients (the audio EQ cookbook's band-pass at 0 dB peak, low-pass or, SOUNDSCAPE, high-pass), a0 divided
+ *  out: [b0, b1, b2, a1, a2]. SOUNDSCAPE: exported - the sea's and the shore's beds are cut by the same sections
+ *  (systems/soundscape/soundBeds.js). */
+export function section(type, f0, q, fs) {
   const w0 = (2 * Math.PI * f0) / fs, cos = Math.cos(w0), alpha = Math.sin(w0) / (2 * q), a0 = 1 + alpha;
-  const b = type === 'bandpass' ? [alpha, 0, -alpha] : [(1 - cos) / 2, 1 - cos, (1 - cos) / 2];
+  const b = type === 'bandpass' ? [alpha, 0, -alpha] : type === 'highpass' ? [(1 + cos) / 2, -(1 + cos), (1 + cos) / 2] : [(1 - cos) / 2, 1 - cos, (1 - cos) / 2];
   return [b[0] / a0, b[1] / a0, b[2] / a0, (-2 * cos) / a0, (1 - alpha) / a0];
 }
 
-/** mulberry32: a small seeded generator, [0, 1). */
-function mulberry32(seed) {
+/** mulberry32: a small seeded generator, [0, 1). SOUNDSCAPE: exported for the beds beside this one. */
+export function mulberry32(seed) {
   let a = seed >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;

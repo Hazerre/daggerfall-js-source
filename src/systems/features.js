@@ -806,7 +806,10 @@ export const FEATURES = Object.freeze([
     get title() { return t('features.enhancedSounds.title', 'Enhanced sounds'); },
     get note() { return t('features.enhancedSounds.note', 'New sounds on the enhanced UI: wind outdoors that rises and falls with its strength and goes quiet '
       + 'indoors, a coin clink when you take or store items in the enhanced inventory, your hands and boots on stone '
-      + 'when you climb, and the axe, the pick, the leaves, the knife and the net when you gather.'); },
+      + 'when you climb, the axe, the pick, the leaves, the knife and the net when you gather, a horse that snorts, blows '
+      + 'and breathes and whose hooves change with the ground, the sea under a deck with its gulls, bells and its own '
+      + 'music at the helm, the surf on a shore, birds and beasts by region and hour, and a town\'s street, smithies '
+      + 'and taverns.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'soundEnhancements', initial: true, online: 'player' }),   // ES1: systems/enhancedSounds.js enhancedSoundsOn; windAudio.js windSoundOn rides it
