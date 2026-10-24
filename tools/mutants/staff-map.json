@@ -1,0 +1,22 @@
+[
+  {
+    "name": "STAFF-MAP-shown-token-sent",
+    "file": "src/net/staffMap.js",
+    "old": "if (tokenHidden(tok)) { why = null; heard(true); return tok; }",
+    "new": "if (tok) { why = null; heard(true); return tok; }",
+    "why": "a staff game whose Hide me is off says hello in another region's channel as itself - its players see a staff member arrive",
+    "tests": [
+      "test/net/staffmap_e2e.test.js"
+    ]
+  },
+  {
+    "name": "STAFF-MAP-hide-off-unsaid",
+    "file": "src/net/staffMap.js",
+    "old": "state: region == null ? 'off' : shown ? 'hide' : link?.status ?? 'off'",
+    "new": "state: region == null ? 'off' : link?.status ?? 'off'",
+    "why": "a staff game whose Hide me is off shows an empty map with no word why",
+    "tests": [
+      "test/net/staffmap_e2e.test.js"
+    ]
+  }
+]

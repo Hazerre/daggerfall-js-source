@@ -8,6 +8,7 @@
 // and faces where they face. Nothing here moves anyone but the staff member's own camera and body, and nothing fights.
 import { staffDestinationKey } from '../net/staffTeleport.js';
 import { createStaffHook, staffHookDoor } from '../net/staffHook.js';
+import { createStaffMap } from '../net/staffMap.js';   // STAFF-MAP: the Staff Panel's region map
 import { RIDE_EYE_HEIGHT, CAPSULE_HEIGHT } from '../player/motor.js';   // a peer's eye, as the peers' bodies stand it (world.js: a rider's the saddle's)
 
 /** `where()` names the place the staff member stands in (its mode and map pixel): let go, the body the camera carried
@@ -80,11 +81,13 @@ export function relinkGame(minter, main, links) {
  *  `relink` the door's STAFF-HIDE-TOGGLE word (relinkGame, over the host's minter and links).
  *  @param {{ main: () => any, prepare: (d: any) => Promise<any>, mode: () => string, pixel: () => { x: number, y: number }, toScene: (p: any) => number[] | null, relink?: () => void, win?: any, Session?: any }} deps */
 export function staffFollowOnPage({ main, prepare, mode, pixel, toScene, relink = undefined, win = globalThis.window, Session = undefined }) {
-  const door = staffHookDoor(win, () => hook, { relink });
+  // STAFF-MAP: the region map's link, its answers to the panel, and Hide me's relink remaking it too
+  const door = staffHookDoor(win, () => hook, { relink: relink ? () => { relink(); map.relink(); } : relink, mapOf: () => map });
   const hook = createStaffHook({ main, askToken: door.askToken, ...(Session ? { Session } : {}) });
+  const map = createStaffMap({ main, post: door.post, ...(Session ? { Session } : {}) });
   const host = createStaffFollowHost({ hook, prepare, mode, where: () => `${mode()}|${pixel().x},${pixel().y}`, toScene, eyeHeight: (p) => (p.rd ? RIDE_EYE_HEIGHT : CAPSULE_HEIGHT - 0.2) });
   return {
-    hook, frame: host.frame, eye: host.eye, locked: () => hook.locked(),
+    hook, map, frame: () => { map.tick(); return host.frame(); }, eye: host.eye, locked: () => hook.locked(),
     follow: (/** @type {unknown} */ sub) => door.panel() && hook.follow(sub),
     // STAFF-VIEW1 (mob: "np player esp in staff panel?"): what the staff view reads (scenes/staffViewHost.js) - whether a
     // panel spoke here, the followed room's players, the game's own session, its frame and mode, and the panel's tags
