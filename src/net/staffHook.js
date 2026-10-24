@@ -38,7 +38,7 @@
 //                                                  known fields only, ID_RE subs, TAGS_MAX rows, a why of TAG_WHY_MAX
 //   the host posts { dfoStaff: 'act', act: 'follow', sub, name } after a tag click followed - the chat menu's act shape,
 //   so the panel opens its card on the player the game follows (the panel acts on nothing it carries)
-import { OnlineSession } from './online.js';
+import { OnlineSession, peerId, peerSecret } from './online.js';
 import { SOCIAL_ROOM, cellRoomOfWire, isCellRoom, isSocialRoom } from './wire.js';
 import { ID_RE, TOKEN_MAX_CHARS } from './identityToken.js';
 import { noteRoom } from './staffFollow.js';
@@ -70,6 +70,15 @@ export const hiddenSeat = (WS) => WS && class extends WS {
   /** @param {string} url @param {any[]} more */
   constructor(url, ...more) { super(`${url}${url.includes('?') ? '&' : '?'}hd=1`, ...more); }
 };
+
+/** FOLLOW-OWN-ID (2026-10-24, mob: "need the follow dropping me to stop" - a follow put the staff member's own game
+ *  offline, "online in another tab" on its room and its World tab): A FOLLOW'S LINKS ARE PEERS OF THEIR OWN. A session
+ *  given no id takes the TAB's (online.js peerId, kept in the tab's storage) and its secret with it - the game's own
+ *  links' - so the hook's hub link said hello on the hub with the game's id and the relay replaced the game's World tab
+ *  (CLOSE_REPLACED, a reconnect's rule), and its eye did the same to the game's room wherever the two met; a game shown
+ *  had the hidden eye refused instead (`id taken`, server/src/staffHidden.js), so a follow worked only hidden. Each link
+ *  now mints a fresh id and secret no storage keeps (`peerId(null)`). */
+const ownId = () => ({ id: peerId(null), secret: peerSecret(null) });
 
 /** THE FOLLOW. `main()` the game's presence session (its relay's address) or null offline; `askToken(sub, room)` a
  *  follow token for a room, from the panel. Pure of any scene: the host reads `locked`, `view` and `place`.
@@ -136,7 +145,7 @@ export function createStaffHook({ main, askToken, Session = OnlineSession, WS = 
       const m = main?.();
       if (!target || !m?.url) { if (hub || eye) close(); return; }
       if (!hub) {
-        const h = hub = new Session({ url: m.url, name: SPECTATOR, presence: false, mintToken: mint(target), WebSocketImpl: WS });
+        const h = hub = new Session({ url: m.url, name: SPECTATOR, ...ownId(), presence: false, mintToken: mint(target), WebSocketImpl: WS });
         h.onFollow = heard;
         // STAFF-PANEL5-FOLLOW-FIX (the relay review's finding 5): the hub's lease, kept on its link and handed to the eye
         // (as chatSafetyHost does for the game's own links) - with leaseDoor on, a lease room hears nothing else from it
@@ -156,7 +165,7 @@ export function createStaffHook({ main, askToken, Session = OnlineSession, WS = 
       // outdoors the target's own pose names the next cell before their note does (a crossing is not a door)
       const want = seen && room && isCellRoom(room) ? cellRoomOfWire(seen.x, seen.z) ?? room : room;
       if (!want) return;
-      if (!eye) { eye = new Session({ url: m.url, name: SPECTATOR, presence: true, mintToken: mint(target), WebSocketImpl: hiddenSeat(WS) }); eye.leaseFrom(hub); }
+      if (!eye) { eye = new Session({ url: m.url, name: SPECTATOR, ...ownId(), presence: true, mintToken: mint(target), WebSocketImpl: hiddenSeat(WS) }); eye.leaseFrom(hub); }
       const at = seen ?? (Number.isFinite(note?.wx) ? { x: note.wx, y: note.wy, z: note.wz, yaw: 0, pitch: 0, mv: 0 } : null);
       if (eye.room !== want) { eye.layerHint = ly; eye.join(want, at); } else if (at) eye.sendPose(at);
       eye.tick();
