@@ -2640,7 +2640,6 @@ ketch.bridgeOpen,"El puente está desatrancado. El cabo del contramaestre parte 
 ketch.cabinOpen,"El camarote del Maestre del Queche se abre."
 ketch.card.profile,"Travesías realizadas: {n}"
 ketch.castBack,"Las redes de la jarcia te atrapan y te devuelven a la última cofa."
-ketch.claim.guest,"Travesía no registrada a nombre de nadie. Añade un nombre de usuario antes de una semana para conservarla."
 ketch.claim.none,"Ninguna aún"
 ketch.claim.recorded,"La bodega del Maestre del Queche te paga tu parte. Travesías realizadas: {n}."
 ketch.claim.taken,"Ya has tomado tu parte de la bodega del Maestre del Queche en esta travesía, con otra tripulación. No paga a nadie dos veces por semana."

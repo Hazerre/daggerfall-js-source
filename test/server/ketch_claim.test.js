@@ -76,17 +76,22 @@ test('KETCH THE CLAIM: a `k1` the relay signed, naming the claiming account, one
   const A = await member(db), B = await member(db), G = await member(db, { guest: true });
   const { priv, pubKey } = await relayPair();
   const ctx = { db, nowS: T0 + 60, subtle, rand };
-  assert.deepEqual(await claimKetch(ctx, A, await voyage(A.id, 3, SHIP_A, priv), pubKey), { recorded: true, voyage: 3, share: true, sailed: 1 });
-  assert.deepEqual(await claimKetch(ctx, A, await voyage(A.id, 3, SHIP_A, priv, { c: 9 }), pubKey), { recorded: false, why: 'claimed', share: true, sailed: 1 }, 'another device, the same kill');
-  assert.deepEqual(await claimKetch(ctx, A, await voyage(A.id, 3, SHIP_B, priv), pubKey), { recorded: false, why: 'taken', share: false, sailed: 1 }, 'a second crew this week');
-  assert.deepEqual(await claimKetch(ctx, A, await voyage(A.id, 4, SHIP_B, priv), pubKey), { recorded: true, voyage: 4, share: true, sailed: 2 }, 'next week');
+  const C1 = '0123456789abcdef', C2 = 'fedcba9876543210';
+  assert.deepEqual(await claimKetch(ctx, A, await voyage(A.id, 3, SHIP_A, priv), pubKey, C1), { recorded: true, voyage: 3, share: true, sailed: 1 });
+  assert.deepEqual(await claimKetch(ctx, A, await voyage(A.id, 3, SHIP_A, priv, { c: 9 }), pubKey, C1), { recorded: false, why: 'claimed', share: true, sailed: 1 }, 'the same device again, the same kill - a lost answer');
+  // AUDIT KETCH L2-1: the relay hands the receipt to every hello of the account - another browser or device is paid nothing
+  assert.deepEqual(await claimKetch(ctx, A, await voyage(A.id, 3, SHIP_A, priv), pubKey, C2), { recorded: false, why: 'claimed', share: false, sailed: 1 }, 'another device: its share given already');
+  assert.deepEqual(await claimKetch(ctx, A, await voyage(A.id, 3, SHIP_A, priv), pubKey), { recorded: false, why: 'claimed', share: false, sailed: 1 }, 'no claim id: none');
+  assert.deepEqual(await claimKetch(ctx, A, await voyage(A.id, 3, SHIP_A, priv), pubKey, 'NOT-A-CID'), { recorded: false, why: 'claimed', share: false, sailed: 1 });
+  assert.deepEqual(await claimKetch(ctx, A, await voyage(A.id, 3, SHIP_B, priv), pubKey, C1), { recorded: false, why: 'taken', share: false, sailed: 1 }, 'a second crew this week');
+  assert.deepEqual(await claimKetch(ctx, A, await voyage(A.id, 4, SHIP_B, priv), pubKey, C2), { recorded: true, voyage: 4, share: true, sailed: 2 }, 'next week');
   assert.deepEqual(await claimKetch(ctx, B, await voyage(A.id, 5, SHIP_A, priv), pubKey), { error: 'not-yours' });
   assert.deepEqual(await claimKetch(ctx, A, await voyage(A.id, 5, SHIP_A, null), pubKey), { error: 'receipt', why: 'unsigned' });
   assert.deepEqual(await claimKetch(ctx, A, await voyage(A.id, 5, SHIP_A, (await relayPair()).priv), pubKey), { error: 'receipt', why: 'signature' });
   assert.deepEqual(await claimKetch(ctx, A, await voyage(A.id, 5, SHIP_A, priv), null), { error: 'no-gate-key' });
   assert.deepEqual(await claimKetch(ctx, G, await voyage(G.id, 3, SHIP_A, priv), pubKey), { recorded: true, voyage: 3, share: true, sailed: 1, guest: true }, 'a guest\'s week is its account\'s too');
-  const row = db._raw.prepare('SELECT voyage, account, owner, earned, lv FROM ketch_voyages WHERE account = ? ORDER BY voyage').all(A.id);
-  assert.deepEqual(row.map((q) => [q.voyage, q.owner, q.earned, q.lv]), [[3, SHIP_A, 'dealt', 30], [4, SHIP_B, 'dealt', 30]]);
+  const row = db._raw.prepare('SELECT voyage, account, owner, earned, lv, cid FROM ketch_voyages WHERE account = ? ORDER BY voyage').all(A.id);
+  assert.deepEqual(row.map((q) => [q.voyage, q.owner, q.earned, q.lv, q.cid]), [[3, SHIP_A, 'dealt', 30, C1], [4, SHIP_B, 'dealt', 30, C2]]);
   assert.deepEqual(await ketchRecordOf(ctx, A.id), { sailed: 2 });
   assert.deepEqual(await ketchRecordOf(ctx, B.id), { sailed: 0 });
   // the questline's witness: the voyage's row
@@ -111,6 +116,24 @@ async function stand({ gateKey = null } = {}) {
   };
   return { env, call };
 }
+
+test('KETCH THE BUDGET\'S FILL RIDES THE ROW: a recorded share fills the playing character\'s bucket once, in the claim\'s own batch; a claim again, another device\'s, a crew\'s taken - none (AUDIT KETCH L2-9; mutants: the fill unguarded)', async () => {
+  const db = d1();
+  const A = await member(db);
+  const { priv, pubKey } = await relayPair();
+  const ctx = { db, nowS: T0 + 60, subtle, rand };
+  db._raw.prepare('INSERT INTO realm_characters (id, player, name, created_at, updated_at, lease, allowance, level_seen) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run('rc1', A.id, 'Hero', 1, 1, 'lease1', 0, 10);
+  const allowance = () => db._raw.prepare('SELECT allowance FROM realm_characters WHERE id = ?').get('rc1').allowance;
+  await claimKetch(ctx, A, await voyage(A.id, 3, SHIP_A, priv), pubKey, '0123456789abcdef');
+  const once = allowance();
+  assert.ok(once > 0, 'filled');
+  await claimKetch(ctx, A, await voyage(A.id, 3, SHIP_A, priv), pubKey, '0123456789abcdef');
+  await claimKetch(ctx, A, await voyage(A.id, 3, SHIP_A, priv), pubKey, 'fedcba9876543210');
+  await claimKetch(ctx, A, await voyage(A.id, 3, SHIP_B, priv), pubKey, 'fedcba9876543210');
+  assert.equal(allowance(), once, 'once a voyage');
+  await claimKetch(ctx, A, await voyage(A.id, 4, SHIP_A, priv), pubKey, '0123456789abcdef');
+  assert.equal(allowance(), 2 * once, 'the next voyage fills again');
+});
 
 test('KETCH THE WORKER: /v1/ketch/claim behind a session and never open - the session the claimant, never the body; the voyages sailed on /v1/account and the Inspect card\'s record; no public half 503, another\'s 403, a forged one 400 with its rung (mutants: the route unlisted; the cards without the voyages)', async (t) => {
   t.mock.method(Date, 'now', () => T0 * 1000);
@@ -144,14 +167,20 @@ test('KETCH THE CLIENT\'S CALL: no session, no knock; with one the receipt goes 
   assert.equal(none.me(), null);
 });
 
-test('KETCH THE DEVICE\'S BOOK: a signed receipt the ship handed is kept (one a voyage, account and ship) and offered at once; a share paid hands its claims to the hold; `taken` pays nothing and is said; counted, the questline\'s act noted and the count said; an unsigned or expired one never kept; another account\'s waits for its sign-in; a guest\'s kept and said once; the retry at most every ten minutes (mutants: the taken one paid; an unsigned one kept; another\'s offered)', async () => {
+test('KETCH THE DEVICE\'S BOOK: a signed receipt the relay handed is kept (one a voyage, account and ship) with a claim id minted once, and offered at once with it; a share paid hands its claims to the hold; `taken` pays nothing and is said; counted, the count said; an unsigned or expired one never kept; another account\'s waits for its sign-in; a guest\'s counted and let go, told nothing false; the retry at most every ten minutes (mutants: the taken one paid; an unsigned one kept; another\'s offered; the claim id minted at every offer)', async () => {
   const { priv } = await relayPair();
   const store = new Map(), said = [], paid = [], offered = [];
-  let me = 'acct-ann', clock = 0, answer = { ok: true, data: { recorded: true, voyage: 3, share: true, sailed: 1 } };
-  const book = createKetchClaims({ claim: async (r) => { offered.push(r); return answer; }, store: { get: (k) => store.get(k), set: (k, v) => store.set(k, v) }, nowS: () => T0, nowMs: () => clock, say: (s) => said.push(s), me: () => me, paid: (c, d) => paid.push([c.d, c.o, d.why ?? 'recorded']) });
+  let me = 'acct-ann', clock = 0, n = 0, answer = { ok: false, error: 'offline' };
+  const book = createKetchClaims({ claim: async (r, cid) => { offered.push([r, cid]); return answer; }, store: { get: (k) => store.get(k), set: (k, v) => store.set(k, v) }, nowS: () => T0, nowMs: () => clock, say: (s) => said.push(s), me: () => me, paid: (c, d) => paid.push([c.d, c.o, d.why ?? 'recorded']), cid: () => (++n).toString(16).padStart(16, '0') });
   const r = await voyage('acct-ann', 3, SHIP_A, priv);
   assert.equal(book.add(r), true);
   await book.flush();
+  clock += 11 * 60_000; book.tick(); await book.flush();
+  await new Promise((go) => setImmediate(go));
+  assert.ok(offered.length >= 2, 'offered again');
+  assert.deepEqual([...new Set(offered.map(([, c]) => c))], ['0000000000000001'], 'one claim id a receipt, offered with it every time');
+  answer = { ok: true, data: { recorded: true, voyage: 3, share: true, sailed: 1 } };
+  clock += 11 * 60_000; book.tick(); await book.flush();
   assert.deepEqual(paid, [[3, SHIP_A, 'recorded']]);
   assert.deepEqual(said, [KT_CLAIM_TEXT.recorded(1)]);
   assert.deepEqual(store.get(KT_CLAIMS_KEY), [], 'counted: let go');
@@ -166,15 +195,16 @@ test('KETCH THE DEVICE\'S BOOK: a signed receipt the ship handed is kept (one a 
   const theirs = await voyage('acct-bo', 5, SHIP_A, priv);
   book.add(theirs);
   await book.flush();
-  assert.ok(!offered.includes(theirs), 'another\'s waits');
-  assert.deepEqual(book.kept(), [theirs]);
+  assert.ok(!offered.some(([o]) => o === theirs), 'another\'s waits');
+  assert.deepEqual(book.kept().map((e) => e.r), [theirs]);
   me = 'acct-bo';
   answer = { ok: true, data: { recorded: true, voyage: 5, share: true, sailed: 4, guest: true } };
-  clock = 5000;
+  clock += 5000;
   assert.equal(book.tick(), true, 'signed in: offered');
   await book.flush();
-  assert.ok(offered.includes(theirs));
-  assert.equal(said.filter((s) => s === KT_CLAIM_TEXT.guest).length, 1);
+  assert.ok(offered.some(([o]) => o === theirs));
+  assert.equal(said.at(-1), KT_CLAIM_TEXT.recorded(4), 'a guest counted: told so, nothing false (AUDIT KETCH L2-7)');
+  assert.deepEqual(book.kept(), [], 'and let go');
   clock += 1000;
   assert.equal(book.tick(), false, 'nothing kept: nothing offered');
   // the verdicts
@@ -184,6 +214,29 @@ test('KETCH THE DEVICE\'S BOOK: a signed receipt the ship handed is kept (one a 
   assert.equal(ketchClaimVerdict({ ok: false, error: 'receipt', why: 'expired' }), 'done');
   assert.equal(ketchClaimVerdict({ ok: false, error: 'not-yours' }), 'done');
   assert.equal(ketchClaimVerdict({ ok: false, error: 'no-session' }), 'keep');
+});
+
+test('KETCH THE HOLD PAYS THIS DEVICE ONCE: a `claimed` answered with this device\'s share (a lost answer\'s retry) pays and says the questline\'s act; a crash after the act was kept says it never again; another device\'s `claimed` pays nothing and says nothing (AUDIT KETCH L2-1, L2-6; mutants: the act said only at `recorded`; the act said at every share)', async () => {
+  const { priv } = await relayPair();
+  const { hearActs } = await import('../../src/systems/questlines/qlActs.js');
+  const acts = [];
+  hearActs('ketch-test', (k) => { if (k === 'warden-felled') acts.push(k); });
+  try {
+    const store = new Map(), paid = [];
+    let answer = { ok: true, data: { recorded: false, why: 'claimed', share: true, sailed: 1 } };
+    const book = createKetchClaims({ claim: async () => answer, store: { get: (k) => store.get(k), set: (k, v) => store.set(k, v) }, nowS: () => T0, nowMs: () => 0, me: () => 'acct-ann', paid: (c) => paid.push(c.d) });
+    const r3 = await voyage('acct-ann', 3, SHIP_A, priv);
+    book.add(r3);
+    await book.flush();
+    assert.deepEqual([paid, acts.length], [[3], 1], 'a retry\'s own share: paid, and its act said');
+    store.set(KT_CLAIMS_KEY, [{ r: r3, cid: '00000000000000aa', a: 1 }]);   // a crash after the act was kept, before the receipt was let go
+    await book.flush();
+    assert.deepEqual([paid, acts.length], [[3, 3], 1], 'paid again (the pool\'s own mark makes it one), its act never again');
+    answer = { ok: true, data: { recorded: false, why: 'claimed', share: false, sailed: 1 } };
+    book.add(await voyage('acct-ann', 5, SHIP_A, priv));
+    await book.flush();
+    assert.deepEqual([paid, acts.length], [[3, 3], 1], 'another device\'s claimed: nothing');
+  } finally { hearActs('ketch-test', null); }
 });
 
 test('KETCH THE WORDS AND THE CARDS: the account card\'s row says the count or "None yet" (a service from before it, nothing); the Inspect card says it once there is one, through the record\'s one door (mutants: the line said at none)', () => {

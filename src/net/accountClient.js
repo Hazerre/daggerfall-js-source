@@ -1874,7 +1874,7 @@ export function accountSds({ fetch, storage }) {
 /** KETCH (bible/11-Multiplayer/Sky-Ketch.md section 9): a Tonal Warden's receipt the relay signed for this account, carried
  *  to the service - `{ recorded: true, voyage, share: true, sailed }`, or `{ recorded: false, why, share, sailed }` (`claimed`
  *  - this ship's kill again; `taken` - another crew's ship this voyage), `guest` beside either for a guest. */
-export const claimKetchReceipt = (io, receipt) => call(io, '/v1/ketch/claim', { receipt });
+export const claimKetchReceipt = (io, receipt, cid) => call(io, '/v1/ketch/claim', { receipt, cid });   // AUDIT KETCH L2-1: the device's claim id
 /**
  * KETCH: THE KETCHMASTER'S HOLD'S ONE CALL, bound to this device's stored session (the Hours' own shape). With no session
  * there is no account to claim for: `{ ok: false, error: 'no-session' }`, never a knock - and net/ketch/ketchClaims.js keeps
@@ -1883,7 +1883,7 @@ export const claimKetchReceipt = (io, receipt) => call(io, '/v1/ketch/claim', { 
 export function accountKetch({ fetch, storage }) {
   const io = () => { const s = storedSession(storage); return s ? { fetch, base: serviceBase(storage), secret: s.secret } : null; };
   return {
-    claim: async (receipt) => { const i = io(); return i ? claimKetchReceipt(i, receipt) : { ok: false, error: 'no-session' }; },
+    claim: async (receipt, cid) => { const i = io(); return i ? claimKetchReceipt(i, receipt, cid) : { ok: false, error: 'no-session' }; },
     /** The signed-in account's id - the receipts this device may offer are its alone. */
     me: () => storedSession(storage)?.id ?? null,
   };

@@ -2640,7 +2640,6 @@ ketch.bridgeOpen,"The bridge is unbarred. The bosun's line runs from the main to
 ketch.cabinOpen,"The Ketchmaster's cabin opens."
 ketch.card.profile,"Voyages sailed: {n}"
 ketch.castBack,"The rigging nets catch you and haul you back to the last top."
-ketch.claim.guest,"Voyage not recorded to a name. Add a username within a week to keep it."
 ketch.claim.none,"None yet"
 ketch.claim.recorded,"The Ketchmaster's hold pays your share. Voyages sailed: {n}."
 ketch.claim.taken,"You have already taken your share of the Ketchmaster's hold this voyage, with another crew. She pays no hand twice a week."

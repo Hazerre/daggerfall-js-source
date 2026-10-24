@@ -13,7 +13,9 @@
 -- ship the row was paid on (its captain's digest): a receipt of the same voyage from that ship again is the same kill
 -- (another device, a lost answer - its spoils still the page's to roll), one from ANOTHER crew's ship is answered
 -- `taken` (the account helped a second crew this week; the hold had paid it already). `earned` how ('dealt' | 'stood'),
--- `lv` the level the fight admitted, `body` the relay's count of its body (INT14), `nonce` the claim that wrote it.
+-- `lv` the level the fight admitted, `body` the relay's count of its body (INT14), `nonce` the claim that wrote it, `cid`
+-- the device's claim id it was written under - a `claimed` pays its share to that claim id alone (AUDIT KETCH L2-1: the
+-- relay hands a receipt to every hello of its account, so a second browser rolled the share again).
 -- A guest's row is written too: the week's share is the account's, registered or not.
 --
 -- CASCADE: an account that is gone takes its voyages with it.
@@ -26,6 +28,7 @@ CREATE TABLE IF NOT EXISTS ketch_voyages (
   nonce   TEXT NOT NULL,
   at      INTEGER NOT NULL,
   body    TEXT,
+  cid     TEXT,
   PRIMARY KEY (voyage, account),
   FOREIGN KEY (account) REFERENCES players(id) ON DELETE CASCADE
 );

@@ -1156,7 +1156,6 @@ ketch.bridgeOpen,"Bryggan är inte längre bommad. Båtsmanslinan löper från s
 ketch.cabinOpen,"Ketchmästarens hytt öppnas."
 ketch.card.profile,"Resor seglade: {n}"
 ketch.castBack,"Riggens nät fångar dig och halar dig tillbaka till den senaste märsen."
-ketch.claim.guest,"Resan är inte registrerad på ett namn. Lägg till ett användarnamn inom en vecka för att behålla den."
 ketch.claim.none,"Inga än"
 ketch.claim.recorded,"Ketchmästarens lastrum betalar ut din andel. Resor seglade: {n}."
 ketch.claim.taken,"Du har redan tagit din andel av Ketchmästarens lastrum den här resan, med en annan besättning. Hon betalar ingen man två gånger i veckan."

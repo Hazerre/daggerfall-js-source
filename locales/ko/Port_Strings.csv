@@ -2640,7 +2640,6 @@ ketch.bridgeOpen,"함교의 빗장이 풀렸습니다. 주돛대 망대에서 �
 ketch.cabinOpen,"케치 선장의 선실이 열립니다."
 ketch.card.profile,"마친 항해: {n}"
 ketch.castBack,"삭구 그물이 당신을 받아 마지막 망대로 끌어올립니다."
-ketch.claim.guest,"항해가 이름에 기록되지 않았습니다. 일주일 안에 사용자 이름을 추가하면 유지됩니다."
 ketch.claim.none,"아직 없음"
 ketch.claim.recorded,"케치 선장의 선창에서 당신의 몫이 지급됩니다. 마친 항해: {n}."
 ketch.claim.taken,"이번 항해에서 이미 다른 선원들과 함께 케치 선장의 선창에서 몫을 받았습니다. 이 배는 한 주에 같은 사람에게 두 번 주지 않습니다."

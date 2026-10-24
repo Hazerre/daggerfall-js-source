@@ -2640,7 +2640,6 @@ ketch.bridgeOpen,"Můstek je odtarasený. Z hlavního koše vede bocmanovo lano.
 ketch.cabinOpen,"Kajuta Kapitána keče se otevírá."
 ketch.card.profile,"Uskutečněné plavby: {n}"
 ketch.castBack,"Sítě v lanoví tě zachytí a vytáhnou zpět do posledního koše."
-ketch.claim.guest,"Plavba nebyla zapsána na žádné jméno. Přidej si do týdne uživatelské jméno a zůstane ti."
 ketch.claim.none,"Zatím žádné"
 ketch.claim.recorded,"Podpalubí Kapitána keče ti vyplácí tvůj podíl. Uskutečněné plavby: {n}."
 ketch.claim.taken,"Svůj podíl z podpalubí Kapitána keče sis během této plavby už vzal s jinou posádkou. Keč nikomu neplatí dvakrát za týden."

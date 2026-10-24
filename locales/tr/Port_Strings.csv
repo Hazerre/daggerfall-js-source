@@ -415,7 +415,6 @@ ketch.bridgeOpen,"Köprünün sürgüsü açıldı. Lostromo halatı ana çanakl
 ketch.cabinOpen,"Gemi Reisi’nin kamarası açılıyor."
 ketch.card.profile,"Yapılan seferler: {n}"
 ketch.castBack,"Arma ağları sizi yakalayıp son çanaklığa geri çekiyor."
-ketch.claim.guest,"Sefer bir isme kaydedilmedi. Saklamak için bir hafta içinde kullanıcı adı ekleyin."
 ketch.claim.none,"Henüz yok"
 ketch.claim.recorded,"Gemi Reisi’nin ambarı payınızı ödüyor. Yapılan seferler: {n}."
 ketch.claim.taken,"Bu seferde payınızı Gemi Reisi’nin ambarından başka bir mürettebatla zaten aldınız. Gök Gemisi kimseye haftada iki kez ödeme yapmaz."

@@ -1156,7 +1156,6 @@ ketch.bridgeOpen,"ブリッジの閂が外れた。メイントップから甲�
 ketch.cabinOpen,"ケッチ船長の船室が開く。"
 ketch.card.profile,"果たした航海：{n}"
 ketch.castBack,"索具の網があなたを受け止め、最後に立った台へと引き戻す。"
-ketch.claim.guest,"この航海は名前に記録されていません。1週間以内にユーザー名を追加すると保持されます。"
 ketch.claim.none,"まだなし"
 ketch.claim.recorded,"ケッチ船長の船倉から分け前が支払われた。果たした航海：{n}。"
 ketch.claim.taken,"この航海では、別の乗組員とともにケッチ船長の船倉から分け前をすでに受け取っている。この船は同じ者に週に二度は払わない。"

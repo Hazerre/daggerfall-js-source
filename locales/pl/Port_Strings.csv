@@ -1156,7 +1156,6 @@ ketch.bridgeOpen,"Mostek jest odryglowany. Z marsa grotmasztu biegnie lina bosma
 ketch.cabinOpen,"Kajuta Szypra się otwiera."
 ketch.card.profile,"Odbyte rejsy: {n}"
 ketch.castBack,"Sieci w olinowaniu łapią cię i wciągają z powrotem na ostatni mars."
-ketch.claim.guest,"Rejs nie został przypisany do żadnej nazwy. Dodaj nazwę użytkownika w ciągu tygodnia, aby go zachować."
 ketch.claim.none,"Jeszcze żadnych"
 ketch.claim.recorded,"Ładownia Szypra wypłaca twoją dolę. Odbyte rejsy: {n}."
 ketch.claim.taken,"Twoja dola z ładowni Szypra w tym rejsie została już odebrana, z inną załogą. Kecz nikomu nie płaci dwa razy w tygodniu."

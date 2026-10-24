@@ -1156,7 +1156,6 @@ ketch.bridgeOpen,"Komentosillan teljet on avattu. Puosunköysi kulkee isomärssy
 ketch.cabinOpen,"Ketsimestarin hytti aukeaa."
 ketch.card.profile,"Purjehditut matkat: {n}"
 ketch.castBack,"Takilan verkot ottavat sinut kiinni ja hilaavat sinut takaisin viimeisimmälle märssylle."
-ketch.claim.guest,"Matkaa ei ole kirjattu nimelle. Lisää käyttäjänimi viikon sisällä säilyttääksesi sen."
 ketch.claim.none,"Ei vielä"
 ketch.claim.recorded,"Ketsimestarin ruuma maksaa osuutesi. Purjehditut matkat: {n}."
 ketch.claim.taken,"Olet jo ottanut osuutesi Ketsimestarin ruumasta tällä matkalla toisen miehistön kanssa. Se ei maksa kenellekään kahdesti viikossa."

@@ -2640,7 +2640,6 @@ ketch.bridgeOpen,"La plancia non è più sbarrata. La cima del nostromo parte da
 ketch.cabinOpen,"La cabina del Mastro del Ketch si apre."
 ketch.card.profile,"Viaggi compiuti: {n}"
 ketch.castBack,"Le reti del sartiame ti afferrano e ti riportano all’ultima coffa."
-ketch.claim.guest,"Viaggio non registrato a nessun nome. Aggiungi un nome utente entro una settimana per tenerlo."
 ketch.claim.none,"Ancora nessuno"
 ketch.claim.recorded,"La stiva del Mastro del Ketch ti paga la tua parte. Viaggi compiuti: {n}."
 ketch.claim.taken,"Hai già preso la tua parte della stiva del Mastro del Ketch in questo viaggio, con un altro equipaggio. Non paga nessuno due volte a settimana."

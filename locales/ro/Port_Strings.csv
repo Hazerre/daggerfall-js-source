@@ -2640,7 +2640,6 @@ ketch.bridgeOpen,"Puntea de comandă e deschisă. Funia nostromului pornește di
 ketch.cabinOpen,"Cabina Stăpânului Corăbiei se deschide."
 ketch.card.profile,"Călătorii făcute: {n}"
 ketch.castBack,"Plasele din greement te prind și te trag înapoi la ultima gabie."
-ketch.claim.guest,"Călătoria nu a fost înregistrată pe un nume. Adaugă un nume de utilizator în cel mult o săptămână ca s-o păstrezi."
 ketch.claim.none,"Încă niciuna"
 ketch.claim.recorded,"Cala Stăpânului Corăbiei îți plătește partea. Călătorii făcute: {n}."
 ketch.claim.taken,"Ți-ai luat deja partea din cala Stăpânului Corăbiei în această călătorie, cu alt echipaj. Corabia nu plătește pe nimeni de două ori pe săptămână."

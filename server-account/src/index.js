@@ -1528,9 +1528,8 @@ const service = {
         // KETCH: A TONAL WARDEN'S RECEIPT, CARRIED HERE BY THE ACCOUNT IT NAMES (src/net/ketch/ketchReceipt.js) - ketch.js
         // `claimKetch` holds the rest: the signature, the account, one row a (voyage, account), and the week's share. A
         // refusal says its rung, as the Hour's does: the client keeps a receipt the service can mend.
-        const r = await claimKetch(ctx, who.player, body.receipt, await gatePublicKey(env, subtle));
+        const r = await claimKetch(ctx, who.player, body.receipt, await gatePublicKey(env, subtle), body.cid);   // AUDIT KETCH L2-1: the device's claim id; L2-9: the budget's fill in its batch
         if (r.error) return json({ error: r.error, ...(r.why ? { why: r.why } : {}) }, r.error === 'no-gate-key' ? 503 : r.error === 'not-yours' ? 403 : 400, origin);
-        if (r.recorded === true) await grantSpoils(ctx.db, who.player.id);   // INT5: a signed win's spoils, the budget's fill
         return json(r, 200, origin);
       }
 

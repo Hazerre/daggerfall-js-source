@@ -2640,7 +2640,6 @@ ketch.bridgeOpen,"Die Brücke ist entriegelt. Die Bootsmannsleine führt vom Gro
 ketch.cabinOpen,"Die Kajüte des Ketschmeisters öffnet sich."
 ketch.card.profile,"Gesegelte Fahrten: {n}"
 ketch.castBack,"Die Netze der Takelage fangen dich auf und ziehen dich zum letzten Mars zurück."
-ketch.claim.guest,"Fahrt nicht auf einen Namen verbucht. Vergib innerhalb einer Woche einen Benutzernamen, um sie zu behalten."
 ketch.claim.none,"Noch keine"
 ketch.claim.recorded,"Der Laderaum des Ketschmeisters zahlt deinen Anteil. Gesegelte Fahrten: {n}."
 ketch.claim.taken,"Du hast deinen Anteil am Laderaum des Ketschmeisters auf dieser Fahrt schon genommen, mit einer anderen Mannschaft. Sie zahlt niemandem zweimal die Woche."

@@ -309,7 +309,6 @@ ketch.bridgeOpen,"舰桥的门闩已经打开。水手长索道从主桅平台�
 ketch.cabinOpen,"船长室打开了。"
 ketch.card.profile,"已完成的航程：{n}"
 ketch.castBack,"索具网接住了你，把你拉回上一个平台。"
-ketch.claim.guest,"航程未记录在名字下。一周内添加用户名即可保留。"
 ketch.claim.none,"尚无"
 ketch.claim.recorded,"船长的货舱付给你应得的一份。已完成的航程：{n}。"
 ketch.claim.taken,"本次航程你已和另一支船员队伍从船长的货舱领过你的那一份。它每周不会付给同一个人两次。"

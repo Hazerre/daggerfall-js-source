@@ -2640,7 +2640,6 @@ ketch.bridgeOpen,"A ponte está destrancada. O cabo do contramestre sai da gáve
 ketch.cabinOpen,"A cabine do Mestre do Ketch se abre."
 ketch.card.profile,"Viagens realizadas: {n}"
 ketch.castBack,"As redes do cordame seguram você e o puxam de volta à última gávea."
-ketch.claim.guest,"Viagem não registrada em nenhum nome. Adicione um nome de usuário em até uma semana para mantê-la."
 ketch.claim.none,"Nenhuma ainda"
 ketch.claim.recorded,"O porão do Mestre do Ketch paga a sua parte. Viagens realizadas: {n}."
 ketch.claim.taken,"Você já pegou sua parte do porão do Mestre do Ketch nesta viagem, com outra tripulação. Ele não paga ninguém duas vezes por semana."

@@ -1156,7 +1156,6 @@ ketch.bridgeOpen,"A híd reteszét kinyitották. A fedélzetmester kötele a fő
 ketch.cabinOpen,"Kinyílik a Bárkamester kabinja."
 ketch.card.profile,"Megtett utak: {n}"
 ketch.castBack,"A kötélzet hálói elkapnak, és visszahúznak az utolsó árbóckosárhoz."
-ketch.claim.guest,"Az út nincs névhez rögzítve. Adj meg egy felhasználónevet egy héten belül, hogy megtartsd."
 ketch.claim.none,"Még egy sem"
 ketch.claim.recorded,"A Bárkamester raktere kifizeti a részedet. Megtett utak: {n}."
 ketch.claim.taken,"Ezen az úton már felvetted a részedet a Bárkamester rakteréből, egy másik legénységgel. A Bárka egy héten senkinek sem fizet kétszer."

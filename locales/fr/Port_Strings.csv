@@ -2640,7 +2640,6 @@ ketch.bridgeOpen,"La passerelle est déverrouillée. Le filin du bosco part de l
 ketch.cabinOpen,"La cabine du Maître du Ketch s’ouvre."
 ketch.card.profile,"Voyages accomplis : {n}"
 ketch.castBack,"Les filets du gréement vous rattrapent et vous hissent jusqu’à la dernière hune."
-ketch.claim.guest,"Voyage non rattaché à un nom. Ajoutez un nom d’utilisateur sous une semaine pour le garder."
 ketch.claim.none,"Aucun pour l’instant"
 ketch.claim.recorded,"La cale du Maître du Ketch vous verse votre part. Voyages accomplis : {n}."
 ketch.claim.taken,"Vous avez déjà pris votre part de la cale du Maître du Ketch lors de ce voyage, avec un autre équipage. Il ne paie personne deux fois par semaine."

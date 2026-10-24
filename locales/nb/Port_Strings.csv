@@ -2640,7 +2640,6 @@ ketch.bridgeOpen,"Broen er ikke lenger sperret. Båtsmannslinen går fra stormer
 ketch.cabinOpen,"Ketsjmesterens lugar åpnes."
 ketch.card.profile,"Reiser seilt: {n}"
 ketch.castBack,"Nettene i riggen fanger deg og haler deg tilbake til den siste mersen."
-ketch.claim.guest,"Reisen er ikke registrert på et navn. Legg til et brukernavn innen en uke for å beholde den."
 ketch.claim.none,"Ingen ennå"
 ketch.claim.recorded,"Ketsjmesterens lasterom betaler ut andelen din. Reiser seilt: {n}."
 ketch.claim.taken,"Du har allerede tatt andelen din av Ketsjmesterens lasterom på denne reisen, med et annet mannskap. Hun betaler ingen mann to ganger i uken."

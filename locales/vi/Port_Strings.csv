@@ -309,7 +309,6 @@ ketch.bridgeOpen,"Then cửa đài chỉ huy đã mở. Dây trượt của th�
 ketch.cabinOpen,"Khoang Chủ Thuyền mở ra."
 ketch.card.profile,"Chuyến hành trình đã đi: {n}"
 ketch.castBack,"Lưới dây buồm đỡ lấy bạn và kéo bạn về đài gần nhất."
-ketch.claim.guest,"Chuyến đi chưa được ghi dưới tên nào. Thêm tên người dùng trong vòng một tuần để giữ lại."
 ketch.claim.none,"Chưa có"
 ketch.claim.recorded,"Khoang hàng của Chủ Thuyền trả phần của bạn. Chuyến hành trình đã đi: {n}."
 ketch.claim.taken,"Bạn đã nhận phần của mình từ khoang hàng của Chủ Thuyền trong chuyến này, cùng một đội khác. Con thuyền không trả cho ai hai lần trong một tuần."

@@ -134,7 +134,7 @@ export function createKetchClient(deps) {
   /** a share the hold paid, waiting in the chest while I stand aboard: its claims and the service's answer */
   let share = null;
   const claims = createKetchClaims({
-    claim: (r) => account.claim(r), store: deps.store ? { get: (k) => deps.store.get(k), set: (k, v) => deps.store.set(k, v) } : null,
+    claim: (r, cid) => account.claim(r, cid), store: deps.store ? { get: (k) => deps.store.get(k), set: (k, v) => deps.store.set(k, v) } : null,
     nowS: () => Math.floor(now() / 1000), say, me, paid: (c, d) => paid(c, d),
   });
   const fight = createKetchFight({
