@@ -29,7 +29,7 @@
   {
     "name": "CRAFT-WORTH-provenance-test-dropped",
     "file": "src/systems/loot/lootRarity.js",
-    "old": "  if (typeof item?.provenance !== 'string' || !ROLLED_TIERS.includes(item.rarity)) return 0;",
+    "old": "  if ((typeof item?.provenance !== 'string' && item?.imbued !== true) || !ROLLED_TIERS.includes(item.rarity)) return 0;",
     "new": "  if (!ROLLED_TIERS.includes(item?.rarity)) return 0;",
     "tests": [
       "test/systems/craftworth.test.js"

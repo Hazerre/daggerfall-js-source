@@ -38,8 +38,8 @@
   {
     "name": "SCW-host-hook-back",
     "file": "src/scenes/worldModes.js",
-    "old": "      commit: (m, staged, price, proceeds) => commitTrade(shelf, m, staged, price, proceeds, identifySpell, { holidayId: getHolidayId(Math.floor(skyMinutes()), b.regionIndex ?? 0), guildFactionId }),   // AUDIT TOWN-ECON 2 PRICE-1: the purchase's own asks\n",
-    "new": "      credit: (staged, price) => null,\n      commit: (m, staged, price, proceeds) => commitTrade(shelf, m, staged, price, proceeds, identifySpell, { holidayId: getHolidayId(Math.floor(skyMinutes()), b.regionIndex ?? 0), guildFactionId }),   // AUDIT TOWN-ECON 2 PRICE-1: the purchase's own asks\n",
+    "old": "      commit: (m, staged, price, proceeds) => commitTrade(shelf, m, staged, price, proceeds, identifySpell, { holidayId: getHolidayId(Math.floor(skyMinutes()), b.regionIndex ?? 0), guildFactionId, buildingType: b.buildingType }),   // AUDIT TOWN-ECON 2 PRICE-1: the purchase's own asks; ENDLESS-ARROWS: and the counter's shop\n",
+    "new": "      credit: (staged, price) => null,\n      commit: (m, staged, price, proceeds) => commitTrade(shelf, m, staged, price, proceeds, identifySpell, { holidayId: getHolidayId(Math.floor(skyMinutes()), b.regionIndex ?? 0), guildFactionId, buildingType: b.buildingType }),   // AUDIT TOWN-ECON 2 PRICE-1: the purchase's own asks; ENDLESS-ARROWS: and the counter's shop\n",
     "tests": [
       "test/systems/shipcredit.test.js"
     ]

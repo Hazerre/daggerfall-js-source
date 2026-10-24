@@ -3144,10 +3144,20 @@ function goldField() {
   // goes and the pack stays, as the handler's gold arm answers Back pressed anywhere else.
   input.onkeydown = (e) => { if (overlayAction(e) === 'back') { e.preventDefault(); e.stopPropagation(); goldEntry = null; render(); } };
   form.append(input);
-  const go = el('button', 'act primary', GOLD_VERB[remote?.kind] ?? 'Drop');   // GOLD-DROP: named for where it goes
+  // GOLD-ALL: the verb stacked over its "all" - the typed amount's press made small, and under it the press that
+  // moves the whole purse (planDropGold clamps it to what the wagon or the pack beside it can still hold, and says
+  // so). Both are the kit's `.act`, so Enhanced Plus and the DFO Grimoire dress paint them as every other press.
+  const verb = GOLD_VERB[remote?.kind] ?? 'Drop';
+  const acts = el('div', 'goldacts');
+  const go = el('button', 'act primary goldgo', verb);   // GOLD-DROP: named for where it goes
   go.type = 'submit';
   form.onsubmit = (e) => { e.preventDefault(); dropGold(goldEntry); };
-  form.append(go);
+  const all = el('button', 'act goldall', `${verb} all`);
+  all.type = 'button';
+  all.disabled = carried < 1;
+  all.onclick = () => { goldEntry = String(carried); dropGold(goldEntry); };
+  acts.append(go, all);
+  form.append(acts);
   form.append(el('p', 'meta', `${carried.toLocaleString()} gold in the purse`));
   return form;
 }

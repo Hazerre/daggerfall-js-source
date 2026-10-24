@@ -37,6 +37,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { lootRarityOn, reforgeableLines, reforgeAffix, honeableLines, honeAffix, affixBand } from './loot/lootRarity.js';   // LOOT17: and the hone
+import { applyRarity, rarityEligible, AFFIX_KINDS, isCursed } from './loot/lootRarity.js';   // LOOT-GATE: the Imbue
 import { rarityOf } from './loot/lootRarity.js';   // FB1012d SALVAGE-CLASSIC: the tier a piece's card wears
 import { ALL_GEM_IDS, SOCKET_EMPTY, gemKindOf, gemGrade, hasSocket, socketsOf, socketGem, socketGems, setGem, unsetGem, gemWorthOf } from './loot/lootRarity.js';
 import { PATRON_COUNTER_MARK, COUNTER_PAID_MARK, COUNTER_VALUE_MARK } from '../net/patronLaw.js';   // AUDIT TOWN-ECON 2 PRICE-2: a set stone's counter mark   // LOOT20: the sockets; GEM1: a list of them, every grade of gem
@@ -211,6 +212,73 @@ export function honePiece(item, index, player, rolls = Math.random) {
   deductGold(player, gold);
   return { ok: true, line, price };
 }
+// ── LOOT-GATE: the Imbue ───────────────────────────────────────────
+// LOOT-GATE (2026-10-25, Dudey: "we need a gold sink"; "without my level", "15k gold is gate enough"): a press at the
+// Mages Guild's Reforge that raises a piece one tier at a flat price, at any level: plain to Magic, Magic to Rare. Never
+// to Legendary - a Legendary is found, never bought. Its lines are rolled fresh, as a found one's are; a technique line
+// stays, last. The piece is marked `imbued`, and a counter pays for the piece it was (lootRarity.js
+// craftedRarityWorth), so buying a tier and selling it never prints gold.
+
+/** The prices, the same at every level. */
+export const IMBUE_PRICE = Object.freeze({
+  magic: Object.freeze({ shards: 2, gold: 2500 }),
+  rare: Object.freeze({ shards: 6, gold: 15000 }),
+});
+/** What a purse lacks for a price - 'shards', 'gold' - or null. */
+const shortOf = (player, p) => (shardsHeld(player?.items) < p.shards ? 'shards' : totalGoldAmount(player) < p.gold ? 'gold' : null);
+/** Pay a price off a purse: the shards, then the gold. */
+const payFor = (player, p) => { spendShards(player.items, p.shards); deductGold(player, p.gold); };
+
+/** The tier an Imbue raises a piece to, or null: a plain piece the ladder could grade becomes Magic, a found Magic one
+ *  Rare. Never a made piece (its record is its maker's), DFU's own magic, a quest's item or an artifact. */
+export function imbueTarget(item) {
+  if (!item || typeof item.provenance === 'string' || item.questItem || item.artifact) return null;
+  if (item.rarity == null) return rarityEligible({ ...item, equipSlot: null }) ? 'magic' : null;   // worn is the refusal's word, not the target's
+  if (item.magic) return null;
+  return item.rarity === 'magic' ? 'rare' : null;
+}
+/** What an Imbue costs, or null for a piece it does not take. */
+export function imbuePrice(item) {
+  const t = imbueTarget(item);
+  return t ? { ...IMBUE_PRICE[t] } : null;
+}
+/** Why a piece may not be imbued now, or null: 'off', 'not', 'unknown', 'locked', 'worn', 'cursed', 'set',
+ *  'shards', 'gold'. */
+export function imbueRefusal(item, player) {
+  if (!lootRarityOn()) return 'off';
+  const target = imbueTarget(item);
+  if (!target) return 'not';
+  if (item.rarity && !itemIsIdentified(item)) return 'unknown';
+  if (isLocked(item)) return 'locked';
+  if (isEquipped(item)) return 'worn';
+  if (isCursed(item)) return 'cursed';
+  if (socketGems(item).length) return 'set';
+  return shortOf(player, /** @type {{ shards: number, gold: number }} */ (imbuePrice(item)));
+}
+/** THE IMBUE, MADE: paid at its price, the piece rolled at its new tier. Answers `{ ok: true, tier, price }` or
+ *  `{ ok: false, reason }` with nothing taken. */
+export function imbuePiece(item, player, rolls = Math.random) {
+  if (!player || !Array.isArray(player.items) || !player.items.includes(item)) return { ok: false, reason: 'gone' };
+  const why = imbueRefusal(item, player);
+  if (why) return { ok: false, reason: why };
+  const tier = /** @type {'magic'|'rare'} */ (imbueTarget(item));
+  const price = /** @type {{ shards: number, gold: number }} */ (imbuePrice(item));
+  const kept = (item.affixes ?? []).filter((a) => AFFIX_KINDS[a?.id]?.technique);
+  const was = { ...item };
+  if (tier === 'rare') {
+    // the Magic tier's marks go with its lines
+    for (const k of ['rarity', 'reforged', 'honed']) delete item[k];
+    item.affixes = [];
+  }
+  applyRarity(item, tier, rolls);
+  if (item.rarity !== tier) { for (const k of Object.keys(item)) delete item[k]; Object.assign(item, was); return { ok: false, reason: 'not' }; }
+  if (kept.length) item.affixes.push(...kept);
+  item.imbued = true;
+  item.isIdentified = true;   // the guild made it - nothing to identify
+  payFor(player, price);
+  return { ok: true, tier, price };
+}
+
 // ── LOOT20: the sockets ──────────────────────────────────────────────
 /** GEM1 (bible/06-Systems/Gem-Sockets.md section 3): SETTING IS FREE - the gem is the price, in the pack or at the
  *  Reforge alike (LOOT20 charged the guild's 100 gold, when the guild was the only door). What the Reforge alone does is

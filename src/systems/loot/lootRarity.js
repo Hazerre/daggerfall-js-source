@@ -87,6 +87,7 @@ import { THUNDERLOCK_TEMPLATE } from '../../characters/thunderlockIds.js';   // 
 import { dressClassOf } from '../clothingStanding.js';   // LOOT14: a garment's standing leans to its dress
 import { survivalOn } from '../survival/switch.js';   // LOOT14: the warmth and weatherproof lines' reader - a leaf
 import { hoodCapable } from '../survival/temperature.js';   // LOOT15: Unseen answers a hood (HOOD-SAID's one law)
+import { rareGate, legendaryGate, rollerLevel } from './lootLevelGate.js';   // LOOT-GATE: the roller's level holds the top tiers back
 import { ROLLED_TIERS } from '../rarityTier.js';   // RARE-BREAK1: the rolled tiers' one home
 import { setPieceKind, rollSetSigil, rollSetJoin, setLines, setSigilLines } from '../sigil/sigilSets.js';   // SET4: a won piece of armour or a shield may carry a set's sigil; a weapon's may join one; SET5: the set in words
 import { TECHNIQUE_IDS, TECHNIQUE_BANDS, TECHNIQUE_PER_MILLE, techniqueById, techniquesFor, techniqueBrief, techniqueParts } from '../../combat/technique/techniqueRoster.js';   // TECH1: a weapon's technique - the roster's one table (a leaf)
@@ -308,7 +309,7 @@ export const luckMult = (luck = 50) => Math.max(LUCK_MULT_MIN, Math.min(LUCK_MUL
 /** The three thresholds, per mille, for one source at one luck. LOOT5: `find` multiplies the Legendary threshold - the
  *  source's OWN chance, past its cap but never past the Rare threshold (the ladder never inverts): Foxglove's Fortune's
  *  Favour, and LOOT8's drought. */
-export function rarityChances({ kind = 'corpse', tier = 0, boss = false, luck = 50, qualityMult = 1, find = 1, weights = RARITY_WEIGHTS, legendaryTier = null, legendaryQuality = null, ladder = 1 } = {}) {   // FOE-CAP: `weights` a source's own table (systems/foeLootCap.js, a plain foe's); CHAMP-LOOT: `legendaryTier`/`legendaryQuality` the Legendary threshold's own source (a champion's)
+export function rarityChances({ kind = 'corpse', tier = 0, boss = false, luck = 50, qualityMult = 1, find = 1, weights = RARITY_WEIGHTS, legendaryTier = null, legendaryQuality = null, ladder = 1, rollerLevel: atLevel = null } = {}) {   // FOE-CAP: `weights` a source's own table (systems/foeLootCap.js, a plain foe's); CHAMP-LOOT: `legendaryTier`/`legendaryQuality` the Legendary threshold's own source (a champion's)
   // ELITE: `qualityMult` scales the whole ladder (1.2 = every tier 20% likelier), caps unchanged
   const mult = (boss ? SOURCE_MULT.boss : (SOURCE_MULT[kind] ?? 1)) * (Number.isFinite(qualityMult) && qualityMult > 0 ? qualityMult : 1);
   const lk = luckMult(luck);   // LOOT13: luck multiplies, before the cap
@@ -327,7 +328,10 @@ export function rarityChances({ kind = 'corpse', tier = 0, boss = false, luck = 
     return Math.max(0, Math.min(w.cap, (w.base + w.perTier * Math.max(0, lt)) * lm * lk));
   };
   const legendary = Math.min(rare, legAt(W.legendary) * (Number.isFinite(find) && find > 0 ? find : 1));
-  return { magic, rare, legendary };
+  // LOOT-GATE (lootLevelGate.js): the roller's level, when the roll names one, scales Rare and Legendary - never Magic
+  if (atLevel == null || !Number.isFinite(atLevel)) return { magic, rare, legendary };
+  const rareG = Math.min(magic, rare * rareGate(atLevel));
+  return { magic, rare: rareG, legendary: Math.min(rareG, legendary * legendaryGate(atLevel)) };
 }
 
 /** LOOT5 (bible/06-Systems/Loot-Arc.md sections 7 and 10): THE FINDERS - named functions answering a multiplier on the
@@ -343,7 +347,7 @@ export function legendaryFindMult() {
 
 /** One roll in [0, 1000) against the thresholds, highest tier first. */
 export function rollRarity(source, rolls = Math.random) {
-  const c = rarityChances(source);
+  const c = rarityChances({ ...source, rollerLevel: source?.rollerLevel ?? rollerLevel() });   // LOOT-GATE: the source's level, else the player's
   const r = rolls() * 1000;
   if (r < c.legendary) return 'legendary';
   if (r < c.rare) return 'rare';
@@ -1319,7 +1323,7 @@ export const rareEnchantWorth = (item) => Math.round(RARE_ENCHANT_WORTH * (isGar
  *  staff fetches 6, every time, at a shop whose gold never runs out (~79k gold an hour of chopping and sawing at margin
  *  45, ~320k at the service's own throttle). 0 for a piece no craft made, or one its quality rolled nothing onto. */
 export function craftedRarityWorth(item) {
-  if (typeof item?.provenance !== 'string' || !ROLLED_TIERS.includes(item.rarity)) return 0;
+  if ((typeof item?.provenance !== 'string' && item?.imbued !== true) || !ROLLED_TIERS.includes(item.rarity)) return 0;   // LOOT-GATE: an imbued piece too - its tier was bought, so a counter pays for the piece it was
   // AUDIT CRAFT-WORTH: a record's lines only as a list - a malformed one is worth nothing here, never a throw in the Sell walk
   return affixesWorth(Array.isArray(item.affixes) ? item.affixes : [], item) + (item.rarity === 'rare' ? rareEnchantWorth(item) : 0);
 }
@@ -1328,9 +1332,10 @@ export function craftedRarityWorth(item) {
  *  against the source; a no-op with no source, and with the switch off
  *  the DFU loot list untouched but for the final finds (the Pellet). `luck` is the player's
  *  live luck. Returns the list for chaining. */
-export function rollLootRarity(items, source, { rolls = Math.random, luck = 50, find: findIn = undefined } = {}) {   // PARTY-LOOT: `find` the roll's own finders' word (a room's base reads none of a player's)
-  if (!source || !Array.isArray(items)) return items;
-  if (!lootRarityOn()) return (items.push(...rollFinalFinds({ ...source, luck }, rolls)), items);   // AUDIT SHIP C2: the Pellet a find, not a tier - the switch off still drops it, the shelves selling none
+export function rollLootRarity(items, sourceIn, { rolls = Math.random, luck = 50, find: findIn = undefined, level = undefined } = {}) {   // PARTY-LOOT: `find` the roll's own finders' word (a room's base reads none of a player's); LOOT-GATE: `level` the roll's own level (a room's base names its own), else the player's
+  if (!sourceIn || !Array.isArray(items)) return items;
+  if (!lootRarityOn()) return (items.push(...rollFinalFinds({ ...sourceIn, luck }, rolls)), items);   // AUDIT SHIP C2: the Pellet a find, not a tier - the switch off still drops it, the shelves selling none
+  const source = { ...sourceIn, rollerLevel: sourceIn.rollerLevel ?? level ?? rollerLevel() };
   const find = findIn ?? legendaryFindMult();   // LOOT5: the finders' word, once for the list
   const minted = [];
   for (const it of items) {
