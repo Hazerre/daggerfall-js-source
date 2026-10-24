@@ -16,7 +16,8 @@
 // voyage in eight hex, the captain's account digest in sixteen (net/instanceRoom.js instanceOwnerOf, INSTANCES' own),
 // the captain the party's leader or a lone player. The relay admits the captain, staff, and a member of the captain's
 // party (the hub's word - INSTANCES' partyHoldsOwner); at most KT_CREW_MAX accounts in one ship's crew, and an account
-// once of a crew is of it for the voyage (a reload, a member who left the party, a death and the anchor-lift again).
+// once of a crew is of it for the voyage (a reload, a death and the anchor-lift again) - until a full ship frees the
+// place of one gone from the captain's party, unseen a while, with no part in the fight (ketchBrain.js idlePlaces).
 //
 // Not a DFU member: Daggerfall has no other players and no airship. Ledger A (KETCH).
 import { INSTANCE_OWNER_HEX } from '../instanceRoom.js';

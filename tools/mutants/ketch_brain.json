@@ -306,5 +306,41 @@
     "tests": [
       "test/net/ketch/ketch_brain.test.js"
     ]
+  },
+  {
+    "name": "KTB-a-present-member-freed",
+    "file": "src/net/ketch/ketchBrain.js",
+    "old": "return V.crew.filter((s) => !present.has(s) && now",
+    "new": "return V.crew.filter((s) => now",
+    "tests": [
+      "test/net/ketch/ketch_brain.test.js"
+    ]
+  },
+  {
+    "name": "KTB-the-place-keep-forgotten",
+    "file": "src/net/ketch/ketchBrain.js",
+    "old": "(V.players[s]?.seenAt ?? 0) >= KT_PLACE_KEEP_MS",
+    "new": "(V.players[s]?.seenAt ?? 0) >= 0",
+    "tests": [
+      "test/net/ketch/ketch_brain.test.js"
+    ]
+  },
+  {
+    "name": "KTB-a-part-in-the-fight-freed",
+    "file": "src/net/ketch/ketchBrain.js",
+    "old": " && !(V.wf?.players?.[s] && hasPart(V.wf.players[s])));",
+    "new": ");",
+    "tests": [
+      "test/net/ketch/ketch_brain.test.js"
+    ]
+  },
+  {
+    "name": "KTB-a-freed-place-keeps-its-seat",
+    "file": "src/net/ketch/ketchBrain.js",
+    "old": "  if (V.wf?.players?.[sub]) freeSeat(V.wf, new Set(Object.keys(V.wf.players).filter((s) => s !== sub)));",
+    "new": "",
+    "tests": [
+      "test/net/ketch/ketch_brain.test.js"
+    ]
   }
 ]

@@ -189,7 +189,7 @@ import { privateInteriorOf, privateInteriorAdmits, caravanKeyOf } from '../../sr
 import { isInstanceRoom, instanceOf, instanceAdmission, partyHoldsOwner, INSTANCE_INTERNAL_KIN, INSTANCE_KIN_KEEP_MS, INSTANCE_DOOR_WORD } from '../../src/net/instanceRoom.js';   // INSTANCES: an instance's room, its door and the hub's party answer (bible/11-Multiplayer/Instances.md)
 import { isStaff } from '../../src/net/staffCommands.js';
 import { isKetchRoom, ketchRoomOf, ketchRoomHolds, ketchAdmits, ketchHolds, ketchVoyageOf, KT_TEXT } from '../../src/net/ketch/ketchLaw.js';   // KETCH: the sky-ketch's law - its voyages, its ships' rooms, its door
-import { newVoyage, joinVoyage, stepVoyage, voyageWord, voyageStateOf, voyageEarners, dropCell, KT_POSE_FRESH_MS } from '../../src/net/ketch/ketchBrain.js';   // KETCH: a crew's voyage, run by its room
+import { newVoyage, joinVoyage, stepVoyage, voyageWord, voyageStateOf, voyageEarners, dropCell, idlePlaces, freePlace, KT_POSE_FRESH_MS } from '../../src/net/ketch/ketchBrain.js';   // KETCH: a crew's voyage, run by its room
 import { judgeVoyage } from '../../src/net/ketch/ketchJudge.js';   // KETCH: its constructs' blows and its hazards, judged on the trails
 import { KETCH_SEAM } from '../../src/net/ketch/ketchWarden.js';   // KETCH: the Tonal Warden on the boss seam
 import { mintKetchReceipt } from '../../src/net/ketch/ketchReceipt.js';   // KETCH: the k1 receipt
@@ -9480,12 +9480,24 @@ export class Room {
       right = isStaff(who.glyphs) ? 'staff' : (await instanceOwnerOf(who.subject)) === r?.owner ? 'owner' : null;
       if (!right) { const kin = await this._instanceKinOf(who.subject, r?.owner ?? '', now); if (kin == null) return { w: 'busy', busy: true }; right = kin ? 'party' : null; }
     }
-    const no = ketchAdmits(key, who.subject, right, V.crew, now);
+    let no = ketchAdmits(key, who.subject, right, V.crew, now);
+    if (no === 'full' && r && (await this._ktFreePlace(V, r.owner, now))) no = ketchAdmits(key, who.subject, right, V.crew, now);
     if (no) return { w: KT_TEXT.refuse[no] ?? KT_TEXT.refuse.crew };
     const fresh = joinVoyage(V, who.subject, who.name ?? '', Number.isSafeInteger(who.cl) ? who.cl : 1, now);
     await this._ktSave(V, now, fresh);
     await this._ktArm(now);
     return null;
+  }
+  /** A FULL SHIP FREES A PLACE (AUDIT KETCH L1-5): the first idle member (ketchBrain.js idlePlaces) the hub says has left
+   *  the captain's party - never the captain, never on a hub that does not answer; the crew aboard told the ship again. */
+  async _ktFreePlace(V, owner, now) {
+    const present = new Set([...this._all()].filter(([, b]) => b.id && b.sub).map(([, b]) => b.sub));
+    for (const sub of idlePlaces(V, present, now)) {
+      if ((await instanceOwnerOf(sub)) === owner || (await this._instanceKinOf(sub, owner, now)) !== false) continue;
+      this._ktFan([...freePlace(V, sub, now), voyageStateOf(V, now)]);
+      return true;
+    }
+    return false;
   }
   /** ONE ABOARD TOLD THE SHIP WHOLE (its voyage, its bodies, its blows, its cells, its fight) and its receipt, owed - false
    *  when its socket is gone. */

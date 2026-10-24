@@ -32,7 +32,7 @@ import {
 } from './ketchDeck.js';
 import { KT_KINDS, KT_FLOORS, newConstruct, constructHp, bodyWord, beatConstruct, hitConstruct, stepWalk, mvWord } from './ketchConstructs.js';
 import { KETCH_SEAM, KW_ID, KW_FORK_ID0, retune, applyForkHit } from './ketchWarden.js';
-import { dpsRef, clampLv, BUCKET_DEPTH_X, GATE_HIT_HZ_MAX, HP_SEND_MS, STATE_SEND_MS, STEP_MAX_MS, THREAT_DECAY, spendBlow, spendPurse } from '../gate/gateBrain.js';
+import { dpsRef, clampLv, BUCKET_DEPTH_X, GATE_HIT_HZ_MAX, HP_SEND_MS, STATE_SEND_MS, STEP_MAX_MS, THREAT_DECAY, spendBlow, spendPurse, hasPart, freeSeat } from '../gate/gateBrain.js';
 
 // ── the numbers ────────────────────────────────────────────────────────
 /** The Watch: the first wave this long after the first member boards if none has stepped into the waist; each wave this
@@ -129,6 +129,29 @@ export function joinVoyage(V, sub, name, lv, now) {
   };
   if (!V.watch.firstAt) V.watch.firstAt = now;
   return true;
+}
+
+/** An absent member's place is kept this long whatever else - a reload, a death and the anchor-lift again. */
+export const KT_PLACE_KEEP_MS = 5 * 60_000;
+/**
+ * THE PLACES A FULL SHIP MAY FREE (AUDIT KETCH L1-5 - a member who quit kept its place for the whole voyage; the gate's
+ * AUDIT WB A1 freeSeat): a member with no socket aboard (`present`), unseen KT_PLACE_KEEP_MS, and with no real part in
+ * the Warden's fight (hasPart - a claim earned keeps its place). The room frees the first the hub says has left the
+ * captain's party (server/src/index.js _ktFreePlace), never the captain.
+ * @param {any} V @param {Set<string>} present @param {number} now @returns {string[]}
+ */
+export function idlePlaces(V, present, now) {
+  return V.crew.filter((s) => !present.has(s) && now - (V.players[s]?.seenAt ?? 0) >= KT_PLACE_KEEP_MS && !(V.wf?.players?.[s] && hasPart(V.wf.players[s])));
+}
+/** A PLACE FREED: the member out of the crew and its record, its cell let fall, its seat in the fight with it. */
+export function freePlace(V, sub, now) {
+  const out = [];
+  if (!V.players[sub]) return out;
+  dropCell(V, sub, null, now, 'left', out);
+  V.crew = V.crew.filter((s) => s !== sub);
+  delete V.players[sub];
+  if (V.wf?.players?.[sub]) freeSeat(V.wf, new Set(Object.keys(V.wf.players).filter((s) => s !== sub)));
+  return out;
 }
 
 /** The crew aboard and alive by the census (`bodies`), each with its floor and whether it carries. */

@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import {
   newVoyage, joinVoyage, stepVoyage, voyageWord, voyageStateOf, voyageEarners, watchWave, spidersMaxFor, cellsWord,
   KT_WATCH_WAIT_MS, KT_WAVE_GAP_MS, KT_RISE_MS, KT_CELL_LIES_MS, KT_CRADLE_BACK_MS, KT_BRIDGE_CRADLE_BACK_MS, KT_BRIDGE_CRADLE0, KT_RESONATOR0, KT_BODY_ID0,
+  idlePlaces, freePlace, KT_PLACE_KEEP_MS,
 } from '../../../src/net/ketch/ketchBrain.js';
 import { ketchRoomKey, ketchVoyageOf, KT_STAGE, KT_CREW_MAX } from '../../../src/net/ketch/ketchLaw.js';
 import { KT_CRADLES, KT_BRIDGE_CRADLES, KT_SOCKETS, KT_RESONATORS, KT_GANGWAY, KT_WARDEN_WAKE_Z, KT_HOLD, engineNeeds } from '../../../src/net/ketch/ketchDeck.js';
@@ -377,4 +378,23 @@ test('KETCH A CONSTRUCT IS NEVER A FORK BY ITS NUMBER: the Engine\'s spiders kil
     }
   }
   assert.ok(struck > 120, `past where the forks' numbers began (${struck} spiders)`);
+});
+
+test('KETCH A PLACE FREES ONLY WHEN IDLE: a member with no socket aboard, unseen KT_PLACE_KEEP_MS, with no real part in the Warden\'s fight - freed out of the crew, its record and its seat in the fight (AUDIT KETCH L1-5; mutants: a present member freed; the keep forgotten; a part in the fight freed)', () => {
+  const { V, now: t0, core } = toBridge(4), rng = seeded(3);
+  const [a, b, c, d] = V.crew;
+  for (const s of V.crew) voyageWord(V, s, { k: 'in', lv: 30 }, poseOf(core[s]), t0, rng);
+  for (const s of V.crew) V.players[s].seenAt = t0;
+  V.wf.players[d].dealt = 1e9;   // d has a real part in the fight
+  const later = t0 + KT_PLACE_KEEP_MS;
+  assert.deepEqual(idlePlaces(V, new Set([a]), later - 1), [], 'kept KT_PLACE_KEEP_MS');
+  assert.deepEqual(idlePlaces(V, new Set([a]), later), [b, c], 'not the one aboard, not the one with a part');
+  const share = V.wf.players[b].share, max = V.wf.max;
+  freePlace(V, b, later);
+  assert.deepEqual(V.crew, [a, c, d]);
+  assert.equal(V.players[b], undefined);
+  assert.equal(V.wf.players[b], undefined, 'its seat in the fight with it');
+  assert.ok(Math.abs(V.wf.max - (max - share)) < 1e-6, 'its share of the Warden\'s health out');
+  assert.deepEqual(freePlace(V, b, later), [], 'once');
+  assert.ok(validKetchOut(voyageStateOf(V, later)));
 });

@@ -97,5 +97,32 @@
     "tests": [
       "test/net/ketch/ketch_relay.test.js"
     ]
+  },
+  {
+    "name": "KTR-a-full-ship-frees-no-place",
+    "file": "server/src/index.js",
+    "old": "if (no === 'full' && r && (await this._ktFreePlace(V, r.owner, now)))",
+    "new": "if (no === 'full' && r && false && (await this._ktFreePlace(V, r.owner, now)))",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  },
+  {
+    "name": "KTR-a-member-of-the-party-freed",
+    "file": "server/src/index.js",
+    "old": "(await this._instanceKinOf(sub, owner, now)) !== false) continue;",
+    "new": "(await this._instanceKinOf(sub, owner, now)) === null) continue;",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
+  },
+  {
+    "name": "KTR-the-captain-freed",
+    "file": "server/src/index.js",
+    "old": "if ((await instanceOwnerOf(sub)) === owner || (await this._instanceKinOf",
+    "new": "if ((await this._instanceKinOf",
+    "tests": [
+      "test/net/ketch/ketch_relay.test.js"
+    ]
   }
 ]

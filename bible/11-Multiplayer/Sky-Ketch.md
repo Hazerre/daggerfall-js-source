@@ -200,6 +200,8 @@ granted to the pack.
 **The room** (`server/src/index.js`, `_kt*`): the Worker mints a ship's room only while its voyage holds its crews; the
 door (`ketchAdmits`) takes the captain, the captain's party by the hub's word, staff, a member coming back - never a ninth
 (staff neither: the wire's crew is eight, AUDIT KETCH L1-4; a full ship is watched by a hidden spectator, who takes no place),
+a full ship freeing the place of a member gone from the captain's party and from the ship KT_PLACE_KEEP_MS with no part in
+the Warden's fight (AUDIT KETCH L1-5, `idlePlaces`, `_ktFreePlace` - never the captain's, never on a hub that does not answer),
 never a stranger, never a newcomer while she weighs anchor; the ship told whole at the hello and its receipt again; the
 voyage kept to storage; its beat every BRAIN_TICK_MS while a member stands aboard; past her crews' last minutes every
 socket told and closed. Every pose stamped (`pAt`) so the census reads its age.

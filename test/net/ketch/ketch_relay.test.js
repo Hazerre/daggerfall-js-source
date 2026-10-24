@@ -14,7 +14,7 @@ import { ketchRoomKey, ketchVoyageOf, KT_TEXT, KT_STAGE, KT_CREW_MAX } from '../
 import { deckToDungeon } from '../../../src/net/ketch/ketchDeck.js';
 import { KETCH_SEAM } from '../../../src/net/ketch/ketchWarden.js';
 import { readKetchReceipt } from '../../../src/net/ketch/ketchReceipt.js';
-import { KT_POSE_FRESH_MS } from '../../../src/net/ketch/ketchBrain.js';
+import { KT_POSE_FRESH_MS, KT_PLACE_KEEP_MS } from '../../../src/net/ketch/ketchBrain.js';
 
 const V1 = ketchVoyageOf(1);
 const T0 = V1.at + 60_000;
@@ -91,6 +91,31 @@ test('KETCH THE CREW\'S EIGHT: a ninth of the party is refused a full ship (muta
     const ninth = ship.connect(); await ship.hello(ninth, 'ivor', at(0, 0, 6));
     assert.equal(refusal(ninth), KT_TEXT.refuse.full);
     assert.equal(ship.room._kt.crew.length, KT_CREW_MAX);
+  }, names.map((n) => `acct-${n}`));
+});
+
+test('KETCH A FULL SHIP FREES A QUITTER\'S PLACE: a member gone from the captain\'s party and from the ship KT_PLACE_KEEP_MS gives its place to a newcomer of the party; one still of the party, one gone a moment, and the captain keep theirs (AUDIT KETCH L1-5; mutants: no place freed; a member of the party freed)', async () => {
+  const names = ['alice', 'bobby', 'cyrus', 'delia', 'egbert', 'fiona', 'gareth', 'hilda', 'ivor'];
+  await withShip(async ({ ship, hub, step }) => {
+    const ws = {};
+    for (const n of names.slice(0, KT_CREW_MAX)) { ws[n] = ship.connect(); await ship.hello(ws[n], n, at(0, 0, 6)); assert.ok(welcomed(ws[n]), n); }
+    const party = hub.store.get('party:p1');
+    hub.store.set('party:p1', { ...party, members: party.members.filter((m) => m !== 'acct-delia') });
+    hub.store.set('acct:acct-delia', { name: 'delia', party: null });
+    hub.wake();   // the hub's records as stored now
+    await ship.drop(ws.delia); await ship.drop(ws.cyrus); await ship.drop(ws.alice);
+    step(KT_PLACE_KEEP_MS - 1000);
+    const early = ship.connect(); await ship.hello(early, 'ivor', at(0, 0, 6));
+    assert.equal(refusal(early), KT_TEXT.refuse.full, 'gone a moment: kept');
+    step(2000);
+    const ivor = ship.connect(); await ship.hello(ivor, 'ivor', at(0, 0, 6));
+    assert.ok(welcomed(ivor), 'the quitter\'s place');
+    const V = ship.room._kt;
+    assert.ok(!V.crew.includes('acct-delia') && V.crew.includes('acct-ivor') && V.crew.includes('acct-cyrus') && V.crew.includes('acct-alice'), 'cyrus of the party (ahead of the quitter) and alice the captain kept');
+    assert.equal(V.crew.length, KT_CREW_MAX);
+    assert.ok(kt(ws.bobby, 'st').at(-1).cr.every(([s]) => s !== 'acct-delia'), 'the crew aboard told');
+    const delia = ship.connect(); await ship.hello(delia, 'delia', at(0, 0, 6));
+    assert.equal(refusal(delia), KT_TEXT.refuse.crew, 'and a stranger now');
   }, names.map((n) => `acct-${n}`));
 });
 
