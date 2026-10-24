@@ -21,7 +21,9 @@ So, as decided here:
   share. Offline there is no Ketch.
 - **One party, one ship.** A crew is a party - eight at most, the party's own bound (`net/wire.js` PARTY_MAX) - and each
   crew boards its own copy of her (an instance, `11-Multiplayer/Instances.md`'s law): the captain's ship, the captain's
-  party aboard.
+  party aboard. A member rides back up to the ship it was taken into, whoever leads the party since (AUDIT KETCH L1-6,
+  `ketchShipChoice` - the room's `st` naming it keeps the ship on the device; its door saying it is not of that crew
+  forgets it).
 - **Rooms, each its own fight.** Six stages in the order a crew takes them (section 4): the Boarding Watch, the Gallery
   of Hammers, the Starved Engine, the Sailwalk, the Tonal Warden, the Ketchmaster's Cabin.
 - **The new mechanic is the cells** (section 6): the engine eats aether cells a crew carries to it by hand - slowed, its

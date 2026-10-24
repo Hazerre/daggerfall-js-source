@@ -24,7 +24,7 @@
 //     across the cabin floor - the Hour's spoils pool), and goes into the pack if I leave without opening it.
 //
 // Not a DFU member. Ledger A (KETCH).
-import { KT_STAGE, ketchVoyageAt, ketchVoyageOf, ketchBoards, ketchRoomKey } from '../../net/ketch/ketchLaw.js';
+import { KT_STAGE, KT_TEXT, ketchVoyageAt, ketchVoyageOf, ketchBoards, ketchRoomKey } from '../../net/ketch/ketchLaw.js';
 import { t } from '../../systems/textManager.js';
 import { KT_WORDS, KT_REFUSE_WORDS, ketchRefusal, ketchSkyPhase, ketchWhenLine } from '../../systems/ketch/ketchWords.js';
 import {
@@ -87,6 +87,14 @@ export const KT_CLIENT_TEXT = Object.freeze({
   get downSub() { return t('ketch.client.downSub', 'Ride it down'); },
   get away() { return t('ketch.client.away', 'The Ketch is gone. The anchor-lift sets you down in the fields outside Daggerfall.'); },
 });
+/** MY SHIP THIS VOYAGE (AUDIT KETCH L1-6 - after the party's lead passed on, a member riding back up boarded the new
+ *  leader's empty ship): the room's `st` naming me in its crew keeps {n, a, o} under KT_SHIP_KEY on the device. */
+export const KT_SHIP_KEY = 'ketch.myShip';
+/** The ship a `st` frame `w` from the ship under me (`at` - its {n, owner}) says I am of: {n, a, o}, or null. */
+export const ketchShipKept = (w, mine, at) => (w?.k === 'st' && mine && at && w.n === at.n && Array.isArray(w.cr) && w.cr.some((c) => c?.[0] === mine) ? { n: at.n, a: mine, o: at.owner } : null);
+/** THE SHIP I RIDE UP TO: the one I was taken into this voyage (`kept`), else my party leader's, else my own - `{owner}`
+ *  kept, else `{captain}` to digest. */
+export const ketchShipChoice = (n, mine, leader, kept) => (kept && kept.n === n && kept.a === mine && typeof kept.o === 'string' && kept.o ? { owner: kept.o } : { captain: leader ?? mine });
 const NONE = Object.freeze([]);
 const BOX = 0.55;
 /** Daggerfall's map pixel (formats/mapsFile.js longitudeLatitudeToMapPixel of its own row - pinned). */
@@ -120,6 +128,9 @@ export function createKetchClient(deps) {
   const onShip = () => !!ship();
   const feetDeck = () => { if (!onShip()) return null; const f = player.feetAt(); return dungeonToDeck(f[0], f[1], f[2]); };
   const link = createKetchLink({ now, say: (t) => mid(t), me });
+  let shipMem = null;
+  const keptShip = () => { if (shipMem) return shipMem; try { return deps.store?.get?.(KT_SHIP_KEY) ?? null; } catch { return null; } };
+  const keepShip = (m) => { shipMem = m; try { deps.store?.set?.(KT_SHIP_KEY, m); } catch { /* memory holds it */ } };
   /** a share the hold paid, waiting in the chest while I stand aboard: its claims and the service's answer */
   let share = null;
   const claims = createKetchClaims({
@@ -171,8 +182,8 @@ export function createKetchClient(deps) {
     if (!(entity.health > 0)) return false;
     boarding = true;
     try {
-      const captain = social()?.party?.leader ?? mine;
-      const owner = await instanceOwnerOf(captain);
+      const pick = ketchShipChoice(v.n, mine, social()?.party?.leader ?? null, keptShip());
+      const owner = pick.owner ?? await instanceOwnerOf(pick.captain);
       if (!ketchRoomKey(v.n, owner)) { mid(KT_REFUSE_WORDS.busy); return false; }
       mid(KT_WORDS.boarding);
       const ok = !!(await modes()?.enterKetch?.({ n: v.n, owner, site: deps.site?.() ?? null }));
@@ -297,7 +308,10 @@ export function createKetchClient(deps) {
   function aboardFrame(t) {
     const V = link.state(), f = feetDeck(), zone = f ? deckZoneAt(f[0], f[1], f[2]) : null, o = online();
     // the room walks me out: its socket's terminal close (a refusal at the door, the voyage gone)
-    if (o?.terminal && o.status !== 'open' && Date.now() - boardedAt > 1500) { leave(o.error ? ketchRefusal(o.error) : KT_CLIENT_TEXT.away); return; }
+    if (o?.terminal && o.status !== 'open' && Date.now() - boardedAt > 1500) {
+      if (o.error === KT_TEXT.refuse.crew) keepShip(null);   // that ship's crew no longer mine: my party's next
+      leave(o.error ? ketchRefusal(o.error) : KT_CLIENT_TEXT.away); return;
+    }
     const sh = ship();
     if (sh && t >= ketchVoyageOf(sh.n).endAt) { leave(KT_CLIENT_TEXT.away); return; }
     // my `in` to the bridge's fight, my body's word
@@ -331,6 +345,8 @@ export function createKetchClient(deps) {
       if (w.k === 'rcpt') { claims.add(w.r); return; }
       if (w.k === 'bd') { fall('count'); return; }
       if (!onShip()) return;
+      const kept = ketchShipKept(w, me(), ship());
+      if (kept) keepShip(kept);
       link.word(w);
       if (w.k === 'bank' && w.s === me()) noteAct('ketch-cell-banked');
     },

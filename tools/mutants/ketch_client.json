@@ -1,0 +1,29 @@
+[
+  {
+    "name": "KTC-kept-without-my-name",
+    "file": "src/scenes/ketch/ketchClient.js",
+    "old": "Array.isArray(w.cr) && w.cr.some((c) => c?.[0] === mine) ?",
+    "new": "Array.isArray(w.cr) ?",
+    "tests": [
+      "test/scenes/ketch_client.test.js"
+    ]
+  },
+  {
+    "name": "KTC-the-leader-over-the-ship-kept",
+    "file": "src/scenes/ketch/ketchClient.js",
+    "old": "typeof kept.o === 'string' && kept.o ? { owner: kept.o } : { captain: leader ?? mine });",
+    "new": "typeof kept.o === 'string' && kept.o && !leader ? { owner: kept.o } : { captain: leader ?? mine });",
+    "tests": [
+      "test/scenes/ketch_client.test.js"
+    ]
+  },
+  {
+    "name": "KTC-another-voyages-ship-ridden-to",
+    "file": "src/scenes/ketch/ketchClient.js",
+    "old": "(kept && kept.n === n && kept.a === mine",
+    "new": "(kept && kept.a === mine",
+    "tests": [
+      "test/scenes/ketch_client.test.js"
+    ]
+  }
+]

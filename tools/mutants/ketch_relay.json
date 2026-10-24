@@ -38,8 +38,8 @@
   {
     "name": "KTX-the-ninth-let-in",
     "file": "server/src/index.js",
-    "old": "    const no = ketchAdmits(key, who.subject, right, V.crew, now);",
-    "new": "    const no = ketchAdmits(key, who.subject, right, V.crew.slice(1), now);",
+    "old": "    let no = ketchAdmits(key, who.subject, right, V.crew, now);",
+    "new": "    let no = ketchAdmits(key, who.subject, right, V.crew.slice(1), now);",
     "tests": [
       "test/net/ketch/ketch_relay.test.js"
     ]
