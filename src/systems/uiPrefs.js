@@ -95,6 +95,9 @@ export const PREF_DEFAULTS = Object.freeze({
   // CHAT-TRADE (2026-10-14): the Trade and LFG channels this player joined (/join, /leave) - off until they choose one,
   // so a player who never does sees no new tab.
   chatTrade: false, chatLfg: false,
+  // STAFF-CHAT-RED (2026-10-23, mob: "give me a option next to chat to chat as /red or myself at all times"): the voice an
+  // Admin's chat lines go out in - 'me' (as themselves) or 'red' (each as /red would say it, net/chatVoice.js) - kept
+  chatAs: 'me',
   packPhoneDoll: false,   // PACK-PHONE (FIELD BUGS 2026-09-30): the pack's body on a phone - hidden until the header's Body shows it
   // PADPLUS1: the Plus controller - the crossbar ('auto' while a pad is connected, 'on', 'off'), run as a toggle on
   // the Run button, and the version of the one-time layout move already made (ui/plus/plusPad.js)
@@ -170,8 +173,9 @@ export const PREF_DEFAULTS = Object.freeze({
   horseVolume: 1,   // HORSE-VOL: every horse's neigh and hooves, 0..1 (systems/animalVolume.js)
   animalVolume: 1,   // ANIMAL-VOL: the town's dogs, cats, pigs and cows, 0..1 (systems/animalVolume.js)
   peerFootsteps: true,   // PEER-FS1: other players' footstep sounds - on by default
-  // GATE-CROWD (2026-10-07, Mac: "some type of filter when there are too many people"): how many other players an
-  // Oblivion Gate's court draws at once - the nearest, the party always (net/gate/gateCrowd.js GATE_CROWD_TIERS; 0 everyone,
+  // GATE-CROWD (2026-10-07, Mac: "some type of filter when there are too many people"): how many other players are drawn
+  // at once - the nearest, the party and the duel's opponent always; everywhere but where a stranger can fight me since
+  // CROWD-WIDE (2026-10-23), a gate's court alone before it (net/gate/gateCrowd.js GATE_CROWD_TIERS; 0 everyone,
   // the default - Mac: "The default other setting should be everyone"). Its GATE_CROWD_DEFAULT, pinned equal by
   // test/systems/gatecrowd.test.js and not imported: the shelf is on the boot path, and the import made net/gate/gateCrowd.js the
   // entry's 69th file, past BOOT2's ceiling (test/render/boot2.test.js)

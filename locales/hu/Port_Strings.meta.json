@@ -1535,8 +1535,8 @@
   "by": "claude-in-session"
  },
  "account.refusal.homeCap": {
-  "en": "1bca5adf09b6",
-  "tr": "2c659edcdb47",
+  "en": "fa2166171344",
+  "tr": "791ef2c150ed",
   "by": "claude-in-session"
  },
  "account.refusal.homeCharacter": {
@@ -7165,13 +7165,13 @@
   "by": "claude-in-session"
  },
  "menu.peers.crowd": {
-  "en": "677b2a378be9",
-  "tr": "4ee13dbbb0e7",
+  "en": "b6285a333efb",
+  "tr": "330c64e2ade5",
   "by": "claude-in-session"
  },
  "menu.peers.crowdNote": {
-  "en": "d6d8d98f1fb3",
-  "tr": "16b61973be5d",
+  "en": "17fed725d472",
+  "tr": "e42dd89da760",
   "by": "claude-in-session"
  },
  "menu.peers.everyone": {
@@ -7405,8 +7405,8 @@
   "by": "claude-in-session"
  },
  "menu.realm.deleteBody": {
-  "en": "f1d0c63aee13",
-  "tr": "29a9c5769ce6",
+  "en": "aaa3cbaefd05",
+  "tr": "357427ebb6a6",
   "by": "claude-in-session"
  },
  "menu.realm.deleteYes": {
@@ -7552,6 +7552,46 @@
  "menu.settings.more": {
   "en": "b5bcf068eb39",
   "tr": "50e82ac2f4f7",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.custom": {
+  "en": "081ae3fdc403",
+  "tr": "943fa724305e",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.effect": {
+  "en": "14ce279f662a",
+  "tr": "e752b1cd100d",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.high": {
+  "en": "b1a5954a483f",
+  "tr": "9082e8c94ea3",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.low": {
+  "en": "a124947cbd2d",
+  "tr": "4da864cb4750",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.medium": {
+  "en": "d404968ea90b",
+  "tr": "ae51a6bfbfe4",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.name": {
+  "en": "c841c65b2bd6",
+  "tr": "f53ab07ab174",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.note": {
+  "en": "e8f57263fb6e",
+  "tr": "e1dc0530a6e4",
+  "by": "claude-in-session"
+ },
+ "menu.settings.preset.ultra": {
+  "en": "50050d5b621c",
+  "tr": "50050d5b621c",
   "by": "claude-in-session"
  },
  "menu.settings.reset": {
