@@ -8,7 +8,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createStaffViewHost, staffTagWords, STAFF_TAGS_MAX, STAFF_TAGS_ASK_MS, STAFF_FIND_WAIT_MS, STAFF_LINES_MAX, STAFF_TAG_HEAD_M } from '../../src/scenes/staffViewHost.js';
+import { createStaffViewHost, crowded, staffTagWords, STAFF_TAGS_MAX, STAFF_TAGS_ASK_MS, STAFF_FIND_WAIT_MS, STAFF_LINES_MAX, STAFF_TAG_HEAD_M } from '../../src/scenes/staffViewHost.js';
 import { STAFF_LINE, createStaffTags } from '../../src/ui/staffTags.js';
 import { validTags, NAMEPLATE_DIST } from '../../src/net/staffHook.js';
 import { ID_RE } from '../../src/net/identityToken.js';
@@ -545,4 +545,42 @@ test('STAFF-FLAG-LINES (mob: "need to port over my watch lines and review lines 
   r.host.marks([]);
   r.frame();
   assert.equal(kinds().length, 3, 'the Overworld: the same three');
+});
+
+test('CROWD-CHIPS (mob: "to many ocerlapping how would we clean thaT UP"; the card\'s pick "Merge close boxes, count only"): boxes that would touch merge into the one that leads until none does; ones clear of each other stay apart (mutants: no merge; a crowd that opens its names unasked)', () => {
+  const tag = (id, x, y, name = 'Bran', line = '') => ({ p: { x, y }, m: { id, name, line } });
+  // two lone names side by side, overlapping on the screen but past the old 28 px: one chip
+  assert.deepEqual(crowded([tag('a', 100, 100), tag('b', 130, 105)]).map((g) => [g.key, g.members.map((m) => m.id)]), [['crowd:a', ['a', 'b']]]);
+  // a chain: the chip that grew from a+b now reaches c, which a alone did not - merged on the next pass
+  const chain = crowded([tag('a', 100, 100), tag('b', 130, 100), tag('c', 170, 100, 'Cole')]);
+  assert.deepEqual(chain.map((g) => g.members.map((m) => m.id)), [['a', 'b', 'c']]);
+  // clear of each other - far apart across, or a row apart down - each its own
+  assert.deepEqual(crowded([tag('a', 100, 100), tag('b', 400, 100), tag('c', 100, 200)]).map((g) => g.key), ['a', 'b', 'c']);
+  // no two boxes left touching, however many come
+  const many = crowded(Array.from({ length: 120 }, (_, k) => tag(`p${k}`, (k * 37) % 900, (k * 53) % 500, `Player${k}`)));
+  assert.equal(many.reduce((n, g) => n + g.members.length, 0), 120, 'every player kept');
+  assert.ok(many.length < 120);
+});
+
+test('CROWD-CHIPS the chip: a crowd shows its count alone; its names open while the pointer is over it and stay open once its count is clicked, and a second click shuts them; each row still a pick', () => {
+  const doc = fakeDocument();
+  const picked = [];
+  const tags = createStaffTags({ doc, onPick: (id) => picked.push(id) });
+  tags.render([{ key: 'crowd:a', x: 10, y: 10, members: [{ id: 'a', name: 'Ash', line: '', level: null }, { id: 'b', name: 'Bran', line: '', level: null }] }], 0);
+  const box = tagsIn(doc)[0];
+  const [head, list] = box.children;
+  assert.equal(head.textContent, '2 players here');
+  assert.equal(list.style.display, 'none', 'the count alone');
+  box.fire('mouseenter');
+  assert.equal(list.style.display, 'block', 'hovered: the names');
+  box.fire('mouseleave');
+  assert.equal(list.style.display, 'none');
+  const press = head.fire('click');
+  assert.equal(press.stopped, true, 'the world under it hears nothing of it');
+  box.fire('mouseleave');
+  assert.equal(list.style.display, 'block', 'clicked: open past the pointer');
+  list.children[1].fire('click');
+  assert.deepEqual(picked, ['b']);
+  head.fire('click');
+  assert.equal(list.style.display, 'none', 'a second click shuts it');
 });

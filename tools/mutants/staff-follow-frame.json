@@ -88,5 +88,25 @@
     "tests": [
       "test/net/safety/safe_client.test.js"
     ]
+  },
+  {
+    "name": "CROWD-CHIPS-no-merge",
+    "file": "src/scenes/staffViewHost.js",
+    "old": "        if (!touching(groups[i], groups[j])) continue;",
+    "new": "        if (groups) continue;",
+    "why": "boxes that would touch are drawn over each other (mob: \"to many ocerlapping how would we clean thaT UP\")",
+    "tests": [
+      "test/scenes/staffview1.test.js"
+    ]
+  },
+  {
+    "name": "CROWD-CHIPS-names-open-unasked",
+    "file": "src/ui/staffTags.js",
+    "old": "list.style.display = b.hover || b.pinned ? 'block' : 'none';",
+    "new": "list.style.display = 'block';",
+    "why": "every crowd draws its whole name list, and a 95-player box covers the boxes around it",
+    "tests": [
+      "test/scenes/staffview1.test.js"
+    ]
   }
 ]

@@ -6,7 +6,8 @@
 // that does take it (a free cursor's - Y frees it on the ground, as it does for every window). One element per player,
 // moved by its transform alone and its words written only when they change (ui/nameLayer.js's law), so a still frame
 // writes nothing. Players this near one another on the screen are one box, "N players here", a row a player (the box
-// scrolls; the host's cap holds it to STAFF_TAGS_MAX rows); past the cap a "+N". One canvas, for an Admin's monster
+// scrolls; the host's cap holds it to STAFF_TAGS_MAX rows); past the cap a "+N". CROWD-CHIPS: a crowd shows its count
+// alone, its rows while the pointer is over it or once it is clicked. One canvas, for an Admin's monster
 // lines on the Overworld and a line to each flagged player (STAFF-FLAG-LINES), drawn again only when a line moved.
 import { PIXEL_FONT_CSS, PIXEL_TEXT_SHADOW } from './pixelifyFive.js';
 import { t } from '../systems/textManager.js';
@@ -82,7 +83,17 @@ export function createStaffTags({ doc = globalThis.document, onPick }) {
     head.style.display = 'block';
     list.style.cssText = LIST_CSS;
     node.append(head, list);
-    return { node, crowd, v: {}, head, list, rows: [] };
+    // CROWD-CHIPS (mob: "to many ocerlapping how would we clean thaT UP"; the card's pick "Merge close boxes, count only"):
+    // a crowd is its count alone - its names open while the pointer is over it, and stay open once it is clicked (a
+    // second click shuts them)
+    const b = { node, crowd, v: {}, head, list, rows: [], hover: false, pinned: false };
+    const fit = () => { list.style.display = b.hover || b.pinned ? 'block' : 'none'; };
+    fit();
+    node.addEventListener?.('mouseenter', () => { b.hover = true; fit(); });
+    node.addEventListener?.('mouseleave', () => { b.hover = false; fit(); });
+    for (const k of ['mousedown', 'pointerdown']) head.addEventListener?.(k, (/** @type {any} */ e) => e.stopPropagation?.());
+    head.addEventListener?.('click', (/** @type {any} */ e) => { e.stopPropagation?.(); e.preventDefault?.(); b.pinned = !b.pinned; fit(); });
+    return b;
   }
   function crowdRows(/** @type {any} */ b, /** @type {any[]} */ members) {
     put(b.v, 'head', t('net.staffView.crowd', '{n} players here', { n: members.length }), (v) => { b.head.textContent = v; });
