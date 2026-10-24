@@ -122,6 +122,7 @@ import { shotGun, shotFireChance, shotRigFire, naturalShot } from '../../systems
 import { captainWorth, struckGun, statScale } from '../../systems/naval/captainTree.js';   // CAPTAIN-TREE: what her captain's stars do at sea
 import { createNavalLoads } from './navalLoads.js';   // SHOT-KINDS: the captain's choice of load, at the helm
 import { createAimCamera } from './aimCamera.js';   // THE BROADSIDE CAMERA and AIM-ENDS: the helm's eye while a battery is laid
+import { hullAlong } from '../../systems/naval/seaClearance.js';   // FERRY-CLEAR: the ships a journey's hand steers round
 import { createVolleyTally } from './navalTally.js';   // AUDIT NAV1 G17: my volley's tally - CARD-CREW: and her men it took
 import { seaLiveryOf, seaFlagsOf } from '../../systems/naval/seaColours.js';   // SEA-COLOURS: the sea's ships in their own paint and flags
 import { liveryCode } from '../../systems/naval/shipLivery.js';
@@ -3288,8 +3289,11 @@ export function createNavalHost(deps) {
   /** THE BROADSIDE CAMERA, and AIM-ENDS over the bow and the stern: the frame's eye while a battery is laid (aimCamera.js). */
   const aimCam = createAimCamera({
     setting, aiming: () => aiming, aim: () => aim, boat: myBoat, wrecked: (b) => myBoatState(b).damage.state === SHIP_STATES.wrecked, pose: boatPose, rig: rigBoxesOf,
-    alongside: () => [...sea.values()].map((e) => (e.boat && e.ship.damage.state !== SHIP_STATES.sunk ? hullBox(e.boat) : null)),
+    alongside: () => afloatHulls(),
   });
+  /** The hulls of the sea's ships afloat (a sunk ship's none) - the aim camera's ships alongside, and FERRY-CLEAR's the
+   *  journey's hand steers round (`hullAlong`, systems/naval/seaClearance.js). */
+  function afloatHulls() { return [...sea.values()].map((e) => (e.boat && e.ship.damage.state !== SHIP_STATES.sunk ? hullBox(e.boat) : null)); }
 
   /** The side the look lays on my boat, and whether it has guns. */
   function lookSide(boat) {
@@ -4076,7 +4080,7 @@ export function createNavalHost(deps) {
   // ── rams ─────────────────────────────────────────────────────────────────────────────────────────────────────────
   let wayIn = [];   // AUDIT NAV1: my boat's forward way over the last RAM_MEMORY_S - [{ t, v }]
   function checkRams(boat) {
-    if (!boat) { wayIn = []; return; }
+    if (!boat || boat.charter) { wayIn = []; return; }   // FERRY-CLEAR: a booked ship's master never rams - her stem in a neighbour's side broke one or the other, the passenger charged with piracy for it
     const pose = boatPose(boat);
     const v = pose.velocity;
     const fwd = flatUnit(quatRotate(pose.rotation, [0, 0, 1])) ?? [0, 0, 1];
@@ -5411,7 +5415,7 @@ export function createNavalHost(deps) {
   }
 
   return {
-    frame, attackInput, cancelAim, holdFire, activate, hudModel, drawFrame, lights, offsetAll, clear, stowPlunder, aimEye: aimCam.eye, wayScale, sailRefused, brake, postsWay,
+    frame, attackInput, cancelAim, holdFire, activate, hudModel, drawFrame, lights, offsetAll, clear, stowPlunder, aimEye: aimCam.eye, hullAlong: (p, dx, dz, far) => hullAlong(p, dx, dz, far, enabled ? afloatHulls() : []), wayScale, sailRefused, brake, postsWay,
     /** SHOT-KINDS: the load of the guns at hand stepped on (`dir` 1) or back - the key's, the pad's, the helm button's;
      *  the wheel's while they are laid (true: the wheel is the guns'); the helm button's label (null: no guns). */
     cycleShot: (dir = 1) => loads.cycle(dir), shotWheel: (dy) => loads.wheel(dy), shotLabel: () => (enabled ? loads.label(myBoat()) : null),

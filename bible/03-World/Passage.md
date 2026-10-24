@@ -133,6 +133,38 @@ alone: the next player to stand the port stood her at her berth again, bookable 
 hears a word that says her (the booker gone from the room before they came, and nobody since who heard it) may still
 stand her - as a spent packet (AUDIT BAY A18).
 
+## Clear of other ships (FERRY-CLEAR, 2026-10-24)
+
+Discord, "Ferrys still unstable": *"Had several issues with the ferry ramming a neighbour ship till it broke, or running
+ashore."* Read in the code, the ramming was two faults together:
+
+- **Her master's hand saw only water.** The crossing's hand (OWS2, `world.js` tvSeaSail over `systems/seaHelm.js`) looked
+  for land along her bow, her beam and the mark's lane, and nothing else. A booked ship lies along the shore's line,
+  and the next berth's ship can lie on it a quarter of a hull's length past her stem (`shipLife.js` BERTH_SPACING, 1.25
+  lengths centre to centre); a first mark along the coast sent her straight into it. Now a ship's hull is as land to the hand: each of those looks stops at the
+  first hull of the sea's ships afloat, HULL_CLEAR_M (6 m) off her side (`systems/naval/seaClearance.js` hullAlong,
+  handed the sea's ships by the naval host - `navalHost.js` `hullAlong`), and the hand turns off it to the freer hand
+  and holds clear of it as it does an islet (AUDIT SHIPS A2's law, unchanged). Her centreline's look stays land's alone:
+  the landfall's "shore ahead" is the shore, never a ship lying off it. A look that starts within a ship's clearance
+  (alongside her) stops at her side and lets a look away from her go. Every crossing's hand has it - a booked ship's and
+  the traveller's own boat's.
+- **Her stem rammed as a boat of mine does.** The naval host's ram (`checkRams`, AUDIT NAV1 H11) counts the boat at the
+  player's helm, and a booked ship's boat is that boat: a ram's damage every RAM_COOLDOWN_S of the sea's clock, 0.6 of it
+  back on her, the other ship fouled - and the passenger charged with piracy for it. A booked ship's master never rams
+  now: her stem in another's side deals nothing and takes nothing back (Come Sail Away's collider still stops her there).
+
+Running ashore, as read and left: THE ARRIVAL is the landfall by design (The voyage, above) - she runs in on her oars
+anywhere within VOYAGE_LANDFALL_PX of her port, never to a quay there; berthing her at her port's quay is its own
+slice. Between the marks the hand's look is the only thing keeping her off land (the marks float; the run between them
+is not traced), and once beached Come Sail Away holds her where she lies - PASSAGE-PACE's ground outrun at x60
+(`01-Overview/bugs/Field-Bugs-2026-10-21d.md`) is still the next slice's. The x60 is RATE-LAW's, the owner's.
+
+Pinned by `test/systems/auditships_sail.test.js` FERRY-CLEAR (world.js's own hand lifted over Come Sail Away's real
+runtime: a ship moored dead ahead on her line, one across her leg and one off her bow, a galleon and a Carrack in three
+winds - eighteen arrivals, none of her ever inside either ship) and `test/systems/naval/ferryclear.test.js` (the real
+naval host: a booked ship's stem rams nothing, a boat of mine still does; the sea's ships handed to the hand);
+`tools/mutants/ferryclear.json` (8, all dead). Not a DFU member; Ledger A (PASSAGE).
+
 ## The words
 
 Every word the passage says is the text core's (`t('passage.*')`, L10N4 - the eight winds of a port's row too),
@@ -155,6 +187,6 @@ harbour ships - no passage there. `scenes/worldModes.js` (interiors) and `scenes
 booking, the voyage's life, the end, the wiring), `test/scenes/naval/passagesea.test.js` (the ship at her berth, her
 boat, her letting go - the real naval host and pool, two players' rooms), `test/systems/comeSailAway/passage_csa.test.js` (the save and the
 pack, the real runtime), `test/scenes/naval/passageaudit.test.js` (the cabins, the world's audit doors);
-`tools/mutants/passage.json` (93: 91 dead, 2 recorded equivalent). The audit: `01-Overview/audits/Audit-Passage-Batch-Salvage.md`.
+`tools/mutants/passage.json` (93: 91 dead, 2 recorded equivalent). FERRY-CLEAR's are in its section above. The audit: `01-Overview/audits/Audit-Passage-Batch-Salvage.md`.
 
 Not a DFU member. Ledger A (PASSAGE).

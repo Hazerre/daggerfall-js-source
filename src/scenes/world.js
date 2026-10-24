@@ -31092,10 +31092,12 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     csaCall(() => { boat = csaRuntime.LaunchFromParts(parts, () => playerEntity.items, spot.at, spot.dir, csaTerrainOf(csaPixelAt(spot.at[0], spot.at[2]))); });
     if (boat) csaCall(() => csaRuntime.StartSailing(boat));   // "You control the boat!"
   }
-  /** Metres along a flat direction from `p` to the first land within `far` (TV_SEA_AHEAD_M; Infinity: none seen). */
-  function tvSeaLandAlong(p, dx, dz, far = TV_SEA_AHEAD_M) {
-    for (let d = 5; d <= far; d += 5) if (!tvSeaWaterAt(p[0] + dx * d, p[2] + dz * d)) return d;
-    return Infinity;
+  /** Metres along a flat direction from `p` to the first land within `far` (TV_SEA_AHEAD_M; Infinity: none seen) -
+   *  FERRY-CLEAR: with `hulls`, or the first ship's hull, if nearer (the naval host's hullAlong). */
+  function tvSeaLandAlong(p, dx, dz, far = TV_SEA_AHEAD_M, hulls = false) {
+    let d = 5;
+    while (d <= far && tvSeaWaterAt(p[0] + dx * d, p[2] + dz * d)) d += 5;
+    return Math.min(d <= far ? d : Infinity, (hulls && naval?.hullAlong(p, dx, dz, far)) || Infinity);
   }
   /** The hand with more water: land along 45 degrees each side of the bow within `far`, the farther side's (-1 left,
    *  1 right). */
@@ -31160,13 +31162,15 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     const w = s.windVectorCurrent ?? [0, 0, 0];
     // her lane: from her bow and either beam (her nodes - the points the runtime stops her on), and the lane she would
     // sail to the mark - her beam's breadth and TV_SEA_LANE_M either side of its line
+    // FERRY-CLEAR (systems/naval/seaClearance.js): and a ship's hull as land, from her bow and either beam and along the
+    // mark's lane - a ship moored at the next berth stood dead ahead of a booked ship leaving hers, and the hand saw water
     let lane = landAhead;
-    for (const j of [1, 3, 4]) { const n = boat.Nodes?.[j]; if (n) lane = Math.min(lane, tvSeaLandAlong(n.position, fw[0], fw[2], far)); }
+    for (const j of [1, 3, 4]) { const n = boat.Nodes?.[j]; if (n) lane = Math.min(lane, tvSeaLandAlong(n.position, fw[0], fw[2], far, true)); }
     let markAhead = Infinity;
     if (!landfall && dist >= 1) {
       const mx = (mark[0] - p[0]) / dist, mz = (mark[2] - p[2]) / dist, sb = boat.Nodes?.[3]?.position, pt = boat.Nodes?.[4]?.position;
       const half = (sb && pt ? Math.hypot(sb[0] - pt[0], sb[2] - pt[2]) / 2 : 0) + TV_SEA_LANE_M;
-      for (const k of [-1, 0, 1]) markAhead = Math.min(markAhead, tvSeaLandAlong([p[0] + mz * half * k, p[1], p[2] - mx * half * k], mx, mz, Math.min(far, dist)));
+      for (const k of [-1, 0, 1]) markAhead = Math.min(markAhead, tvSeaLandAlong([p[0] + mz * half * k, p[1], p[2] - mx * half * k], mx, mz, Math.min(far, dist), true));
     }
     const cmd = seaHelmStep(tvSea.helm, {
       heading: seaHeadingOf(fw[0], fw[2]), bearing: seaHeadingOf(mark[0] - p[0], mark[2] - p[2]), wind: [w[0], w[2]],

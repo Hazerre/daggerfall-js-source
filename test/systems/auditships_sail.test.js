@@ -19,6 +19,8 @@ import { createSeaHelm, seaHelmStep, seaHelmReach, seaHelmLook, headingOf, squar
 import { heaveToDecel, HEAVE_TO_DECEL, HEAVE_TO_M, HEAVE_TO_S } from '../../src/scenes/naval/navalHost.js';
 import { BOARD_SPEED } from '../../src/systems/naval/navalBoarding.js';
 import { HULL } from '../../src/systems/naval/navalShips.js';
+import { hullAlong, HULL_CLEAR_M } from '../../src/systems/naval/seaClearance.js';   // FERRY-CLEAR
+import { segmentBoxEntry } from '../../src/systems/naval/navalBallistics.js';
 import { quatRotate } from '../../src/world/quat.js';
 import { helmButtons } from '../../src/ui/enhanced/enhancedHelm.js';
 import { createComeSailAwayPool } from '../../src/scenes/comeSailAway/comeSailAwayPool.js';
@@ -63,7 +65,7 @@ test('AUDIT SHIPS A2 the journey\'s hand keeps her off land as far as her way ne
 
 /** world.js's crossing hand (tvSeaLandAlong ... tvSeaSail), lifted whole over Come Sail Away's real runtime: a leg north
  *  to (0, 1800) from her place at the origin with an islet across it - `arrived`, or the journey's own stop. */
-function crossing({ hull, windTo, islet, handling = 'responsive', maxS = 600, len = 1.5 }) {
+function crossing({ hull, windTo, islet, handling = 'responsive', maxS = 600, len = 1.5, ships = [], track = null }) {
   const DT = 1;
   const s = scene();
   s.deps.handling = () => handling;
@@ -87,6 +89,7 @@ function crossing({ hull, windTo, islet, handling = 'responsive', maxS = 600, le
     heightAt: () => WATER_LEVEL, tvSeaY: () => WATER_LEVEL, player: { spawn: () => {} }, tvSay: () => {},
     tvSeaStop: (line) => { stopped = line; }, TRAVEL_VIEW_TEXT: { aground: 'aground', noWayAtSea: 'no way', noShore: 'no shore', leftMoored: 'moored' },
     tvSeaMark: () => mark, worldTimeScale: () => 1,
+    naval: { hullAlong: (p, dx, dz, far) => hullAlong(p, dx, dz, far, ships) },   // FERRY-CLEAR: the sea's ships, as the naval host hands them
     seaHelmStep, seaHelmLook, seaHeadingOf: headingOf, seaSquareOnly: squareOnly,
     csaJourneyHelm: { held: s.held, get row() { return s.deps.input.toggleAutorun; }, set row(v) { s.deps.input.toggleAutorun = !!v; }, press: (a) => presses.push(a) },   // FIELD BUGS 2026-10-21d PASSAGE-HANDS: the journey's taps its own
   };
@@ -100,6 +103,7 @@ function crossing({ hull, windTo, islet, handling = 'responsive', maxS = 600, le
     const p = boat.GameObject.position;
     if (Math.hypot(mark[0] - p[0], mark[2] - p[2]) < 60) return 'arrived';
     presses = [];
+    track?.(boat);
     hand.tvSeaSail(boat, 'open', DT);
     if (stopped) return stopped;
     s.frame({ press: presses });
@@ -121,6 +125,36 @@ test('AUDIT SHIPS A2 the journey crosses open legs at SAIL-FREE\'s way on Come S
     }
   }
   assert.deepEqual(tally, { arrived: 72 });
+});
+
+test('FERRY-CLEAR the journey\'s hand steers round a ship\'s hull as it steers round land (systems/naval/seaClearance.js hullAlong, HULL_CLEAR_M off her side): a ship moored dead ahead on the line she lies on (the next berth\'s, as a booked ship leaves hers) and one lying across her leg further out - a galleon and a Carrack arrive, in every wind, and none of her runs into either ship\'s hull; the hand saw only water, and drove her into them (mutants: the hulls unlooked; her bow\'s and beam\'s looks hull-blind; the mark\'s lane hull-blind)', () => {
+  const box = (c, h) => ({ c, ax: [1, 0, 0], ay: [0, 1, 0], az: [0, 0, 1], h });
+  const tally = {};
+  for (const hull of [HULL.SmallShip, HULL.Carrack]) {
+    for (const windTo of [0, 90, 135]) {
+      for (const ships of [
+        [box([0, WATER_LEVEL, 75], [6, 8, 22])],     // the next berth's, her stern 53 m off my middle, end on
+        [box([10, WATER_LEVEL, 500], [30, 8, 7])],   // a ship lying across the leg
+        [box([15, WATER_LEVEL, 300], [6, 8, 22])],    // one end on, off her starboard bow: her centreline clear of her, her beam not
+      ]) {
+        let struck = 0;
+        const track = (b) => { for (const n of b.Nodes ?? []) if (ships.some((sh) => segmentBoxEntry(n.position, n.position, sh, 0))) struck++; };
+        const r = crossing({ hull, windTo, islet: [5000, 5000, 5001, 5001], ships, track });
+        tally[r] = (tally[r] ?? 0) + 1;
+        assert.equal(r, 'arrived', `hull ${hull}, a wind to ${windTo}, the ship at ${ships[0].c}`);
+        assert.equal(struck, 0, `hull ${hull}, a wind to ${windTo}: none of her inside the ship at ${ships[0].c}`);
+      }
+    }
+  }
+  assert.deepEqual(tally, { arrived: 18 });
+  // the look itself: a hull HULL_CLEAR_M off her side stops it there; one she lies beside stops a look into her side
+  // and lets one away from her go
+  const sh = box([0, 0, 50], [5, 5, 10]);
+  near(hullAlong([0, 0, 0], 0, 1, 200, [sh]), 40 - HULL_CLEAR_M, 1e-9, 'her clearance off her end');
+  assert.equal(hullAlong([0, 0, 0], 0, 1, 30, [sh]), Infinity, 'out of the look\'s reach');
+  assert.equal(hullAlong([0, 0, 0], 1, 0, 200, [sh]), Infinity, 'a look past her');
+  near(hullAlong([8, 0, 50], -1, 0, 200, [sh]), 3, 1e-9, 'alongside: her side itself');
+  assert.equal(hullAlong([8, 0, 50], 1, 0, 200, [sh]), Infinity, 'alongside, looking away');
 });
 
 // ═══ A3: HER WAY OFF BESIDE HER ════════════════════════════════════════════════════════════════════════════════════
