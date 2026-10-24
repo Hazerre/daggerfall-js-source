@@ -10,7 +10,7 @@
  *  ground), else its sampler (heightAt). Outdoors the ground is not a mesh: `raycast` never meets it (player/collider.js
  *  surfaceHit's own note). Indoors and underground the sampler answers -Infinity, and the floors are meshes.
  *  @param {any} collider @param {number} x @param {number} z */
-export function rayGroundAt(collider, x, z) {
+export function groundAt(collider, x, z) {
   try {
     const h = typeof collider?.surfaceAt === 'function' ? collider.surfaceAt(x, z) : collider?.heightAt?.(x, z);
     return Number.isFinite(h) ? h : NaN;
@@ -21,16 +21,16 @@ export const GROUND_MARCH_STEP = 0.25;
 const GROUND_MARCH_REFINE = 10;
 
 /**
- * WHERE A RAY FIRST MEETS THE TERRAIN, within `max` metres: marched against rayGroundAt, then halved down to the crossing,
+ * WHERE A RAY FIRST MEETS THE TERRAIN, within `max` metres: marched against groundAt, then halved down to the crossing,
  * as a distance along the unit `dir` - the first point found not above the ground, so within GROUND_MARCH_STEP / 2^10 of
  * the crossing and never short of it; Infinity when it meets none, where there is no terrain (indoors, underground) and
  * from an origin under the ground (it meets nothing it can see).
  * @param {ArrayLike<number>} origin @param {ArrayLike<number>} dir @param {number} max @param {any} collider
  */
-export function rayGroundHit(origin, dir, max, collider) {
-  if (!Number.isFinite(rayGroundAt(collider, origin[0], origin[2]))) return Infinity;   // no terrain here (indoors, underground)
+export function groundHit(origin, dir, max, collider) {
+  if (!Number.isFinite(groundAt(collider, origin[0], origin[2]))) return Infinity;   // no terrain here (indoors, underground)
   const above = (/** @type {number} */ t) => {
-    const g = rayGroundAt(collider, origin[0] + dir[0] * t, origin[2] + dir[2] * t);
+    const g = groundAt(collider, origin[0] + dir[0] * t, origin[2] + dir[2] * t);
     return !Number.isFinite(g) || origin[1] + dir[1] * t > g;
   };
   if (!above(0)) return Infinity;   // an origin under the ground meets nothing it can see
@@ -45,7 +45,7 @@ export function rayGroundHit(origin, dir, max, collider) {
 
 /**
  * WHERE A RAY FIRST MEETS THE WORLD, within `max` metres: the nearer of the collider's meshes (`raycast` - a wall, a
- * floor indoors, a building) and the terrain (rayGroundHit), as a distance along the unit `dir`; Infinity when it meets
+ * floor indoors, a building) and the terrain (groundHit), as a distance along the unit `dir`; Infinity when it meets
  * neither. AUDIT TECH1 (2026-10-10): every look a technique casts reads this - a mesh ray alone never met the outdoor
  * ground, so every Volley and every ground leap outdoors answered "Out of reach".
  * @param {ArrayLike<number>} origin @param {ArrayLike<number>} dir @param {number} max @param {any} collider
@@ -53,5 +53,5 @@ export function rayGroundHit(origin, dir, max, collider) {
 export function rayHit(origin, dir, max, collider) {
   let best = Infinity;
   try { const m = collider?.raycast?.(origin, dir, max); if (Number.isFinite(m) && m >= 0) best = m; } catch { /* no meshes */ }
-  return Math.min(best, rayGroundHit(origin, dir, Math.min(max, best), collider));
+  return Math.min(best, groundHit(origin, dir, Math.min(max, best), collider));
 }

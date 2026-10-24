@@ -18,7 +18,7 @@ THE CHANGE (as the audit left it):
 
 - The flight's stop is `flightStop` (`hostMagic.js:"export function flightStop(collider, pos, unit, reach, stepLen) {"`),
   the one law of both flights (this engine's and `dungeonContext.js`'s): the mesh ray at the step's whole reach, cover
-  (TACT1) by touch, and the terrain by touch - `rayGroundHit`, AUDIT TECH1's march (`player/groundRay.js`, a leaf since
+  (TACT1) by touch, and the terrain by touch - `groundHit`, AUDIT TECH1's march (`player/groundRay.js`, a leaf since
   the audit: the techniques, the engine and a foe's shot ask the one march). It meets a rise as well as a fall, so a
   level bolt into a hillside stops on it (the collider's `surfaceHit` meets the ground on the way down alone).
 - `liveCollider` (`hostMagic.js:"export function liveCollider(live) {"`) is the collider a host hands the engine:

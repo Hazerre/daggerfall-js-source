@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createPlayerMagic, liveCollider, flightStop, impactGround, struckSurface, burstClear, GROUND_TOUCH_M } from '../../src/scenes/hostMagic.js';
 import { Collider } from '../../src/player/collider.js';
-import { rayGroundHit } from '../../src/player/groundRay.js';
+import { groundHit } from '../../src/player/groundRay.js';
 import { createCoverIndex, coverProxy } from '../../src/ai/cover.js';
 import { EnemyAI } from '../../src/characters/enemy/enemyMotor.js';
 import { RESURRECT_TYPE, RESURRECT_SUBTYPE } from '../../src/systems/resurrect.js';
@@ -166,7 +166,7 @@ test('AUDIT GROUND-BOLT A1/B2: a burst on the terrain throws its chunks onto the
   const hill = (x, z) => 0.3 * Math.sin(x * 0.7) + 0.2 * Math.cos(z * 0.5);
   for (const g of [FLAT, hill]) {
     const col = liveCollider(() => new Collider(g, g));
-    const o = [0.4, 1.6, 0], d = unit([0, -0.6, 0.8]), t = rayGroundHit(o, d, 10, col);
+    const o = [0.4, 1.6, 0], d = unit([0, -0.6, 0.8]), t = groundHit(o, d, 10, col);
     const impact = [o[0] + d[0] * t, o[1] + d[1] * t, o[2] + d[2] * t];
     const under = impactGround(col, impact);
     assert.ok(Math.abs(under - (g(impact[0], impact[2]) - 0.05)) < 1e-3, `the chunks' floor is the ground's (${under.toFixed(3)} against ${g(impact[0], impact[2]).toFixed(3)})`);
@@ -240,7 +240,7 @@ test('GROUND-BOLT (AUDIT D1, D2, D5): liveCollider is the live collider WHOLE - 
   assert.ok(Math.abs(c.raycastHit([0, 1.6, 0], [0, 0, 1], 10).dist - 3) < 1e-6, 'and what it struck');
   here = room;
   assert.ok(Math.abs(c.raycast([0, 1.6, 0], [0, 0, 1], 10) - 2) < 1e-6, 'indoors: the room\'s cupboard');
-  assert.equal(rayGroundHit([0, 1.6, 0], [0, -1, 0], 10, c), Infinity, 'and no ground but its meshes');
+  assert.equal(groundHit([0, 1.6, 0], [0, -1, 0], 10, c), Infinity, 'and no ground but its meshes');
   // ...and the engine flies the street's: a bolt at the house front stops on it, the ground beyond unmet
   here = street;
   const { magic } = rig(() => here);
@@ -251,8 +251,8 @@ test('GROUND-BOLT (AUDIT D1, D2, D5): liveCollider is the live collider WHOLE - 
   const drawn = liveCollider(() => new Collider(() => 0, () => 0.5));
   assert.equal(drawn.surfaceAt(0, 0), 0.5);
   assert.equal(drawn.heightAt(0, 0), 0);
-  assert.ok(Math.abs(rayGroundHit([0, 1.6, 0], [0, -1, 0], 3, drawn) - 1.1) < 1e-3, 'the march meets the drawn ground');
-  assert.equal(liveCollider(() => new Collider(FLAT)).surfaceAt, null, 'none drawn: the sampler answers (rayGroundAt\'s rule)');
+  assert.ok(Math.abs(groundHit([0, 1.6, 0], [0, -1, 0], 3, drawn) - 1.1) < 1e-3, 'the march meets the drawn ground');
+  assert.equal(liveCollider(() => new Collider(FLAT)).surfaceAt, null, 'none drawn: the sampler answers (groundAt\'s rule)');
   // D5: TACT1's cover - "trees, crates and decor flats ... stop arrows and spells" - on the street and in a room
   const shelf = new Collider(() => -Infinity);
   shelf.cover = createCoverIndex({ enabled: () => true });

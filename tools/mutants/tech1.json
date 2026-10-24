@@ -632,7 +632,7 @@
   {
     "name": "TECH1-AUDIT-the-march-dropped",
     "file": "src/player/groundRay.js",
-    "old": "  if (!Number.isFinite(rayGroundAt(collider, origin[0], origin[2]))) return Infinity;   // no terrain here (indoors, underground)",
+    "old": "  if (!Number.isFinite(groundAt(collider, origin[0], origin[2]))) return Infinity;   // no terrain here (indoors, underground)",
     "new": "  return Infinity;   // no terrain here (indoors, underground)",
     "tests": [
       "test/systems/tech1_runner.test.js"
