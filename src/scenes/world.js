@@ -455,7 +455,7 @@ import { bossPlace } from '../world/gate/gateBoss.js';   // AUDIT WBX F3: where 
 import { itemIconColor32 } from '../ui/item/itemIconColor32.js';   // WBX3: a spoil's own picture on the court's floor
 import { setCourtRules } from '../systems/courtRules.js';   // WBX6: the court's laws, switched by the frame
 import { gateRoomKey, isGateRoom, gateBossOf, gateTimes, gateAdmits, gateAt, gatePortentsOf, GATE_COLLAPSE_MS } from '../net/gate/gateLaw.js';   // WB3b: the court's room, and its day's end
-import { createGateCrowd, gateCrowdMax } from '../net/gate/gateCrowd.js';   // GATE-CROWD: a gate's court draws the nearest of a crowd
+import { createGateCrowd, gateCrowdMax, crowdKept } from '../net/gate/gateCrowd.js';   // GATE-CROWD: the card's count draws the nearest of a crowd (CROWD-WIDE: everywhere a stranger cannot fight me)
 import { createPeerRange, peerRangeOf } from '../net/peer/peerRange.js';   // PEER-RANGE: the others drawn out to the distance on the Other players card
 import { gateLandingFor, courtRing, courtArena, courtArenaAt, courtToDungeon, courtBraziers, COURT_TEXT, COURT_FOG, LAVA_Y } from '../world/gate/gateArena.js';   // WB3b: the Burning Court's way home, its ring and its words   // WB2: the gate's countdown over the screen, near it
 import { isMainStoryDungeon } from '../world/dungeon/dungeonTextures.js';   // SPAWNED-DUNGEONS1: the main story's own dungeons are never cloned
@@ -7543,7 +7543,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     renderShift: () => { if (!walkMode || !playerSpawned) return null; const f = player.feetAt(); return [f[0] - player.pos[0], 0, f[2] - player.pos[2]]; },   // WAGONS3: my driven wagon drawn where I am drawn
     peerAnchor: (id) => { const sh = _peerMapPoses.get(id); return sh && (sh.rd | 0) === 2 ? onlineToScene(sh) : null; },   // AUDIT HCC O5: the change key in the wire frame (campToWire is the pose's law, declared with the stream below; read only once frames run); WAGON-HITCH: where another player's cart rider stands as drawn this frame (`rd` 2, the cart - the pose peerRiders stands them on, boat-adjusted; the online frame fills the map before the pool steps), so their trailing wagon hangs from the rider seen here rather than easing apart from it
   });
-  hcc.setPeerLook((id) => (_hiddenPeers.has(id) ? 'hidden' : (_veils.get(id) ?? null)));   // AUDIT (pre-merge) I-B: a concealed owner's team is concealed with it (last frame's word - the pool steps before the peers sync)
+  hcc.setPeerLook((id) => (_hiddenPeers.has(id) || !gateCrowd.shows(id) ? 'hidden' : (_veils.get(id) ?? null)));   // AUDIT (pre-merge) I-B: a concealed owner's team is concealed with it (last frame's word - the pool steps before the peers sync); AUDIT CROWD-WIDE B1: and one the crowd's count leaves undrawn - no team and wagon rolling with an empty bench
   hccGroundMoved = hcc.groundMoved;   // DISC20-C
   // RW1 x WAGONS2: the wagons stand in the street a window looks out on - all but the caravan whose room I stand in
   renderer.outsideViewDraws?.add(({ renderer: r }) => { if (!hccOn()) return; const room = modes?.caravanRoom ?? null; hcc.drawOutside(r, room ? caravanRooms.fromNative(room.origin) : null); });
@@ -7695,7 +7695,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  as DUEL1's opponent is - the helm's time scale, the travel map and the party's trip, a journey, a rest. */
   const navalHostileNear = () => !!naval?.hostileNear();
   const csaPeers = createComeSailAwayPeers({ pool: csa, selfId: () => online?.id ?? null });   // CSA-J: the others' boats, in the pool's peer list
-  csaPeers.setPeerLook((id) => (_hiddenPeers.has(id) ? 'hidden' : (_veils.get(id) ?? null)));   // AUDIT PRE-MERGE 0928 O4: a concealed sailor's boat is concealed with them (the cart pool's I-B law; last frame's word)
+  csaPeers.setPeerLook((id) => (_hiddenPeers.has(id) || !gateCrowd.shows(id) ? 'hidden' : (_veils.get(id) ?? null)));   // AUDIT PRE-MERGE 0928 O4: a concealed sailor's boat is concealed with them (the cart pool's I-B law; last frame's word); AUDIT CROWD-WIDE B1: and one the crowd's count leaves undrawn - no boat under way with an empty helm
   const csaAboard = createComeSailAwayAboard({ peers: csaPeers, geometry: (c) => csaColliderMesh(c), selfId: () => online?.id ?? null });   // CSA-K: another player's boat, stood on and carried by; and the others aboard, seen on the deck
   csaPeers.setKeepAboard((boat) => csaOn() && !(playerEntity.health <= 0)
     && (boat === _partyTravelOriginBoat || (!(_teleporting || _traveling || _loading)
@@ -11997,9 +11997,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const _veils = new Map();   // INVIS-LOOK: peer id -> this frame's concealed draw (ECV1's visual), for every layer
   const _hiddenPeers = new Set();   // AUDIT (pre-merge) I-B: the peers the classic lane stands nowhere this frame - their teams with them
   const veilOf = (id) => _veils.get(id) ?? null;
-  const gateCrowd = createGateCrowd();   // GATE-CROWD: a gate's court draws the nearest of a crowd (net/gate/gateCrowd.js) - the places held frame to frame
+  const gateCrowd = createGateCrowd();   // GATE-CROWD: the card's count draws the nearest of a crowd (net/gate/gateCrowd.js; CROWD-WIDE: everywhere a stranger cannot fight me) - the places held frame to frame
   const peerRange = createPeerRange();   // PEER-RANGE: past the Other players card's distance the others stand nowhere on this screen (net/peer/peerRange.js) - held a little past it frame to frame
-  const crowdDrawnHere = (p) => gateCrowd.shows(p.id) && peerRange.shows(p.id);   // GATE-CROWD: a player the court's crowd leaves undrawn is not there to press or aim a gift at; PEER-RANGE: nor one past the distance
+  const crowdDrawnHere = (p) => gateCrowd.shows(p.id) && peerRange.shows(p.id);   // GATE-CROWD: a player the crowd's count leaves undrawn is not there to press or aim a gift at; PEER-RANGE: nor one past the distance
   const magic = createPlayerMagic({
     renderer, audio, getTexture, uploadRecord, uploadRecordFrame,
     // RVN7 (bible/12-Enhanced-AI/Feud-Arc.md 18.1): a deed in the open world - my map pixel (or the one asked: LAIR-DOOR's mend), and the named
@@ -28465,7 +28465,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const near = peersNear();
     if (!near) return [];
     const me = player.feetAt();
-    return openPeers(near, isPartyMate).map((p) => ({ id: p.id, name: peerName(p.id) ?? 'Someone', d: tradeDistance(me, p.feet) }))   // AUDIT (pre-merge) I-F: nor handed a page (CONCEAL-MATE: a mate is)
+    return openPeers(near, isPartyMate).filter(crowdDrawnHere).map((p) => ({ id: p.id, name: peerName(p.id) ?? 'Someone', d: tradeDistance(me, p.feet) }))   // AUDIT (pre-merge) I-F: nor handed a page (CONCEAL-MATE: a mate is); AUDIT CROWD-WIDE B5: nor one the crowd's count leaves undrawn
       .filter((p) => p.d <= SOCIAL_REACH && online.reachesPeer(p.id))
       .sort((a, b) => a.d - b.d)
       .map(({ id, name }) => ({ id, name }));
@@ -28628,7 +28628,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (!online || !cam?.pos) return _peerLights;
     const now = performance.now() / 1000;
     for (const p of torches ? online.peers.values() : []) {
-      if (!(p?.shown?.lt > 1) || !online.visible(p) || p.shown.dd) continue;
+      if (!(p?.shown?.lt > 1) || !online.visible(p) || p.shown.dd || !gateCrowd.shows(p.id)) continue;   // AUDIT CROWD-WIDE B3: no torch's light walking the walls with nobody under it
       const feet = onlineToScene(p.shown);
       if (!feet) continue;
       let ph = _peerLightPhase.get(p.id);
@@ -28649,7 +28649,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     _peerFxHp = playerEntity?.health ?? null;
     if (!online) return;
     for (const p of online.peers.values()) {
-      if (!p?.shown || !online.visible(p) || !gateCrowd.shows(p.id) || !peerRange.shows(p.id)) { peerFxPlayer.forget(p?.id); continue; }   // GATE-CROWD: no spark nor cry from a player the court's crowd leaves undrawn; PEER-RANGE: nor from one past the distance
+      if (!p?.shown || !online.visible(p) || !gateCrowd.shows(p.id) || !peerRange.shows(p.id)) { peerFxPlayer.forget(p?.id); continue; }   // GATE-CROWD: no spark nor cry from a player the crowd's count leaves undrawn; PEER-RANGE: nor from one past the distance
       peerFxPlayer.update(p.id, p.shown, onlineToScene(p.shown), peerBodies?.heightOf?.(p.id) || 0);
     }
     peerFxPlayer.frame();
@@ -29028,7 +29028,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     for (const d of drawable) if (d?.shown) _peerMapPoses.set(d.id, d.shown);
     if (hccOn()) hcc.driverGlue(drawable, { toWire: campToWire });   // WAGONS3: a driver on their bench, drawn seated there - after the map's poses, where `peerAnchor` reads the puller their wagon hangs from
     const ranged = peerRange.cut(cabin ? drawable : drawable.filter((d) => !csaPeers.isBelowDeck(d.id)), { on: !travelView?.active, me: player.pos, at: (d) => onlineToScene(d.shown), range: peerRangeOf(getPref('peerRange')), mate: (id) => !!social?.isPartyPeer(id) || id === duelMgr.opponent });   // PEER-RANGE (2026-10-10, the owner: "the rendering of players far out is contributing to poor performance"): past the distance on the Other players card a player stands nowhere on this screen - GATE-CROWD's cut by distance (net/peer/peerRange.js): my party and the one I duel always, nobody cut under the travel view (OW-PEERS grows them to be seen from overhead); their map marks, above, are kept
-    const visiblePeers = gateCrowd.cut(ranged, { on: modes?.gateArenaDay?.() != null, me: player.pos, at: (d) => onlineToScene(d.shown), max: gateCrowdMax(getPref('gateCrowd')), mate: (id) => !!social?.isPartyPeer(id) });   // GATE-CROWD (2026-10-07, Mac: "some type of filter when there are too many people"): in a gate's court, past the count on the Other players card only the nearest are drawn, my party always (net/gate/gateCrowd.js) - the rest stand nowhere on this screen this frame: no body, sprite, name, light, cast or step (their map marks, above, are kept)
+    const visiblePeers = gateCrowd.cut(ranged, { on: modes?.gateArenaDay?.() != null || !(travelView?.active || wildHere() || siegeSession?.active() || royalSession?.active() || modes?.roomIdentity?.()?.kind === 'arena'), me: player.pos, at: (d) => onlineToScene(d.shown), max: gateCrowdMax(getPref('gateCrowd')), mate: crowdKept(social?.partyPeers?.(), [duelMgr.opponent, tradeMgr.session?.peer], wagonRiders?.ridingWithMe(), csaAboard.shipmates(), _duelRings.keys()) });   // GATE-CROWD (2026-10-07, Mac: "some type of filter when there are too many people"): past the count on the Other players card only the nearest are drawn, my party always (net/gate/gateCrowd.js) - the rest stand nowhere on this screen this frame: no body, sprite, name, light, cast or step (their map marks, above, are kept); CROWD-WIDE (2026-10-23, the owner: "implement the player toggle we have for the oblivion gate into the entire game"): everywhere, not the court alone - but never where a stranger can fight me (the open zone, a battle, an arena's room) nor under the travel view; AUDIT CROWD-WIDE A2: never cut, those I fight, trade, ride or sail with and a duel's two fighters (net/gate/gateCrowd.js crowdKept)
     peerCastVisuals(visiblePeers);   // SPELLFX1: a peer's new cast, drawn once
     if (modes?.gateArenaDay?.() != null) gateCourt?.stepsIn(drawable, (d) => (d?.shown ? onlineToScene(d.shown) : null));   // AUDIT GATE-FBX C3: a player stepping out of the court's way in opens it - every one in the room, the crowd's cut or not (the fire is the court's, not a body this screen draws)
     _veilT += dt > 0 ? dt : 0;
