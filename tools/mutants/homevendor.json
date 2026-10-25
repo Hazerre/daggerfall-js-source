@@ -30,8 +30,8 @@
   {
     "name": "HOMEVENDOR-the-goods-view-unfiltered",
     "file": "server-account/src/market.js",
-    "old": "      AND vendor_id IS NULL ORDER BY price, at LIMIT 500`)",
-    "new": "      ORDER BY price, at LIMIT 500`)",
+    "old": "\n      AND vendor_id IS NULL`;",
+    "new": "`;",
     "tests": [
       "test/net/homevendor_service.test.js"
     ]
@@ -120,11 +120,12 @@
   {
     "name": "HOMEVENDOR-the-owners-own-hidden",
     "file": "server-account/src/market.js",
-    "old": "mine: l.v_player === player.id && l.v_char === me,",
+    "old": "mine: l.v_player === player.id,",
     "new": "mine: false,",
     "tests": [
       "test/net/homevendor_service.test.js"
-    ]
+    ],
+    "note": "ACCOUNT-HOMES (PIN MOVED): re-aimed by content - the door's `mine` is the account's."
   },
   {
     "name": "HOMEVENDOR-a-bad-waypoint-taken",

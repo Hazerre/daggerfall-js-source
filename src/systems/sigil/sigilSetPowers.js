@@ -85,6 +85,15 @@
 //                              leaves me standing at 1 from does wake it, as it wakes Shed Skin: the guard is no death
 //                              save, and hiding at 1 is what the Veil is for (AUDIT STAR S3)
 //
+// SEA-SET (2026-10-22) - THE ELTHERIC TIDEMAIL, the deep sea's own (bible/11-Multiplayer/Sigil-Sets.md section 6h), through the
+// same seams and one of its own:
+//   Stormwrack                 the FOLD (shock resistance and Speed)
+//   Undertow                   the BLOW: its share whole while I stand in the open Eltheric Ocean (the zone's live flag on
+//                              the sea's ground - systems/wild/wildZone.js wildZoneKind), half of it anywhere else
+//   The Captain's Due          THE SHIP'S DOOR (captainsDue): the naval host asks it of my ship's every ball and every hurt
+//                              her hull takes from a ball or a ram (scenes/naval/navalHost.js gunsRefit, myHullHurt) - the
+//                              player the door's (systems/playerDoor.js player())
+//
 //   THE SPIRE'S RECOVERY       in an Elite Breach (setSpireRecovery - an `eg:` room) every death save here recovers at the
 //                              next Redoubt taken (spireRedoubtTaken), never on its timer: Unbroken, The Hour Turns,
 //                              Shed Skin and the Reprieve (Elite-Gates.md section 15, "Death saves")
@@ -117,7 +126,9 @@ import { careerTolerance, EFFECT_FLAGS } from '../spellcast.js';
 import { KNIGHT_CITY_WATCH } from '../../characters/mobile/mobileTypes.js';
 import { hallowedFoe } from '../festival/festivalFoes.js';   // WITCH1: the Wyrd's Raiment's Tallow-Ward - the dead and the summoned
 import { HARVEST_TEXT } from '../festival/festivalWords.js';   // WITCH1: Soul Harvest's words, in the player's language
-import { healthShare } from '../../combat/healthShare.js';   // FIELD BUGS 2026-10-18f RELAY-SHARE: a body's share of its health, the one law
+import { healthShare } from '../../combat/healthShare.js';
+import { wildZoneKind } from '../wild/wildZone.js';   // SEA-SET: Undertow - the open sea's ground on the zone's live flag
+import { ETHER_KIND } from '../wild/etherWild.js';   // FIELD BUGS 2026-10-18f RELAY-SHARE: a body's share of its health, the one law
 import {
   wornSets, setsAwake, RAMPAGE_SECONDS, RAMPAGE_STACKS, CLEAVE_METRES, WRATH_BELOW, NOVA_METRES, WRATH_SECONDS,
   RIPOSTE_SECONDS, MARK_METRES, MARK_SECONDS, BLOOD_SECONDS, BLOOD_STACKS, COIL_STACKS, COIL_SECONDS, SHED_BELOW,
@@ -209,6 +220,8 @@ export function setFold(entity) {
   if (sight) { add(m().stats, 'willpower', sight.willpower); add(m().resist, 'magic', sight.magic); }
   const thread = t.get('starspun')?.[0];   // STAR7: Spinner's Thread
   if (thread) { add(m().resist, 'poison', thread.poison); add(m().stats, 'agility', thread.agility); }
+  const wrack = t.get('eltheric')?.[0];   // SEA-SET: Stormwrack
+  if (wrack) { add(m().resist, 'shock', wrack.shock); add(m().stats, 'speed', wrack.speed); }
   return mods ?? EMPTY_MODS;
 }
 
@@ -282,6 +295,8 @@ export function setBlow(weapon, damage, attacker, target, info) {
   if (disc && weapon && _s.armed >= 0) { pct += disc.armed * elementShare(target, _s.armed); if (keep) _s.armed = -1; }   // EG15: Battlemage's Discipline - the next weapon blow alone, whatever its element does to this foe
   const silk = t.get('starspun')?.[1];
   if (silk && weapon && strandsAt(target, now) >= STRAND_HITS - 1) pct += silk.more;   // STAR7: Bound in Silk - the blow the web holds (its landing cuts the count: setStrike)
+  const tow = t.get('eltheric')?.[1];
+  if (tow && weapon) pct += atSea() ? tow.more : tow.more / 2;   // SEA-SET: Undertow - whole in the open sea, half ashore
   let out = damage;
   if (pct > 0) {
     const key = weapon ?? attacker;
@@ -332,6 +347,18 @@ function stranded(attacker, target, whole = true) {
   else return;   // a part-blow lays nothing
   _s.strandFoe = target;
 }
+
+// ── SEA-SET: the open sea, and the Captain's Due ──
+/** SEA-SET: do I stand in the open Eltheric Ocean - the open PvP zone on the sea's ground (Undertow's whole share)? */
+const atSea = () => wildZoneKind() === ETHER_KIND;
+/** SEA-SET, THE CAPTAIN'S DUE (scenes/naval/navalHost.js): the multipliers my ship's balls and her hull's hurts take while the
+ *  tier is awake on me - `{ guns, hull }`, `guns` over 1 (her balls' harm), `hull` under 1 (a ball's or a ram's on her);
+ *  1 and 1 while it sleeps or with no player (the door's). One read a ball. */
+export function captainsDue(entity = playerDoor()?.player?.()) {
+  const v = tierOf(entity, 'eltheric', 2);
+  return v ? { guns: 1 + v.guns / 100, hull: Math.max(0, 1 - v.hull / 100) } : NO_DUE;
+}
+const NO_DUE = Object.freeze({ guns: 1, hull: 1 });
 
 // ── EG15: Battlemage's Discipline - the cast, the armed blow, the return ──
 /** EG15: a spell's element (spellcast.js ELEMENTS: Fire 0, Frost 1, DiseaseOrPoison 2, Shock 3, Magic 4) as the effect

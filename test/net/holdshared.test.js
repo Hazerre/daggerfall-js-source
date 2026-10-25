@@ -15,7 +15,7 @@ import { builtDungeonSize } from '../../src/world/smallerDungeons.js';
 import { mapPixelToLongitudeLatitude } from '../../src/formats/mapsFile.js';
 import { setValue } from '../../src/systems/settings/settings.js';
 import { roomKeyFor } from '../../src/net/online.js';
-import { isWorldRoom } from '../../src/net/wire.js';
+import { isWorldRoom, seaVaultRoomId } from '../../src/net/wire.js';
 import * as chat from '../../src/net/chat.js';
 import { withMe } from '../../src/ui/partyPanel.js';
 import { privateInteriorOf } from '../../src/net/privateInterior.js';
@@ -56,8 +56,8 @@ const props = new Map();
   if (n.type === 'Property' && n.key?.name) props.set(n.key.name, WM.slice(n.start, n.end));
   for (const v of Object.values(n)) if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === 'object') walk(v);
 })(parse(WM, { ecmaVersion: 'latest', sourceType: 'module' }));
-const roomIdentityIn = (dungeonLoc) => Function('mode', 'dungeonLoc', 'isGateArena', 'isSdRealm', 'isEgHall', 'isArenaFloor', 'isStartDungeon', 'builtDungeonSize', 'host', 'placeInstance',
-  `return ({${props.get('roomIdentity')}}).roomIdentity();`)('dungeon', dungeonLoc, () => false, () => false, () => false, () => false, isStartDungeon, builtDungeonSize, {}, null);   // PIN MOVED (INSTANCES' audit): `placeInstance`, the mode's own - null, the public room   // INSTANCES: `host` - no door, so no instance (the public room this pins)
+const roomIdentityIn = (dungeonLoc) => Function('mode', 'dungeonLoc', 'isGateArena', 'isSdRealm', 'isEgHall', 'isKetchShip', 'isArenaFloor', 'isStartDungeon', 'builtDungeonSize', 'host', 'placeInstance',
+  `return ({${props.get('roomIdentity')}}).roomIdentity();`)('dungeon', dungeonLoc, () => false, () => false, () => false, () => false, () => false, isStartDungeon, builtDungeonSize, {}, null);   // PIN MOVED (KETCH): `isKetchShip` - a crew's ship is its own room, never the Hold   // PIN MOVED (INSTANCES' audit): `placeInstance`, the mode's own - null, the public room   // INSTANCES: `host` - no door, so no instance (the public room this pins)
 
 // world.js's key block, executed from its source - the one the frame names its room by
 const W = hostText('src/scenes/world.js');
@@ -69,6 +69,7 @@ function keyIn(ident) {
     state: { compensation: [0, 0, 0], localFromWorld: (x, z) => [x, z], worldCoords: (p) => ({ x: p[0], z: p[2] }) },
     player: { pos: [1, 2, 3] }, cam: { yaw: 0, pitch: 0 }, worldCoordToMapPixel, roomKeyFor, privateInteriorOf,
     _questLoc: () => null, privateRoomHere: () => assert.fail('a dungeon is never a private room'), siegeSession: null, royalSession: null, campToWire: (p) => p,
+    seaVaultRoomId, _wdunInside: null, seaVentures: { vaultHere: () => null },   // PIN MOVED (AUDIT SEA VENTURES D7, D8): a vault of the deep's room its own lane - a dungeon of the Bay its own map id, as before
   };
   return new Function(...Object.keys(args), `let onlineToScene, sceneToOnline; ${W.slice(KEY_FROM, KEY_TO)} return key;`)(...Object.values(args));
 }

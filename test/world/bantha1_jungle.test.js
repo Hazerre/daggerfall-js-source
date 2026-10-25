@@ -527,7 +527,8 @@ test('AUDIT BANTHA1 HAZE-3: every fogged pass that draws where the haze is armed
   const MODE_FRAMES_ONLY = new Set(['render/courtCrystals.js', 'render/gate/gateTelegraph.js', 'render/gate/gateFx.js', 'render/deadlands.js',
     'render/eliteGates/egMistPass.js', 'render/eliteGates/egMotes.js', 'render/eliteGates/egLightPass.js', 'render/eliteGates/egLinePass.js',
     'render/superDungeon/sdBeam.js', 'render/superDungeon/sdPillarPass.js', 'render/superDungeon/sdStompWall.js', 'render/superDungeon/sdRiftPass.js',
-    'render/superDungeon/sdMotes.js', 'render/superDungeon/sdHalo.js', 'render/superDungeon/sdArenaGlow.js', 'render/superDungeon/sdStepsPass.js']);
+    'render/superDungeon/sdMotes.js', 'render/superDungeon/sdHalo.js', 'render/superDungeon/sdArenaGlow.js', 'render/superDungeon/sdStepsPass.js',
+    'render/ketch/ktGaugePass.js']);   // KETCH-LOOK KL3: her gauges, drawn in the dungeon arm's frame on her decks alone
   const fogged = [], unhazed = [], bare = [];
   for (const f of walk(join(ROOT, 'src'))) {
     const rel = f.slice(join(ROOT, 'src').length + 1).split('\\').join('/'), s = readFileSync(f, 'utf8');
@@ -842,7 +843,7 @@ test('BANTHA1 the jungle\'s door: Low Poly Trees\' own over the owner\'s files -
     decode: async (bytes) => { const p = PNG.sync.read(Buffer.from(bytes)); return { width: p.width, height: p.height, data: new Uint8Array(p.data) }; },
   });
   await Promise.all([door.load(), door.load()]);
-  assert.equal(fetched, 15, 'every file once');
+  assert.equal(fetched, 21, 'every file once');   // JUNGLE-ROADSIDE (PIN MOVED): the five trees' fifteen and the three roadside pairs' OBJs and MTLs
   assert.equal(door.loaded, true);
   // AUDIT BANTHA1 TREE-6: a load that failed is asked again on BUILD-RETRY's clock, never latched for the session
   let t = 0, drop = true, asked = 0;
@@ -898,7 +899,7 @@ test('BANTHA1 the hosts: world.js builds the jungle\'s host behind its switch an
   assert.match(pb, /coverItems\.push\(\.\.\.jungleCover\(c, species, own\[i\]\)\)/, 'cover');
   assert.match(pb, /f\.jungle != null \? JUNGLE_MEASURES\[f\.jungle\]\.foot \* f\.js : natureReach/, 'the road keeps clear of its foot - loaded or not (AUDIT BANTHA1 LAY-5)');
   assert.match(pb, /jungleTrees: jungleSet\.length \? \{ px, py, ox: 0, oy: 0, oz: 0, handles: jungleHandles, groups: jungleSet, trees: null, centers: null \} : null,/);
-  assert.match(tg, /const nature = withJungle\(jungle && jungleWhole\(jungle\.nine\) \? \[\] : layoutNature\(samples, tilemap, natureOpts\), samples, tilemap,\n\s+\{ \.\.\.natureOpts, jungle: jungle \? \{ nine: jungle\.nine, pois: placesFor\(jungle\.hidden\), paths \} : null \}\);/);
+  assert.match(tg, /const \{ flats: nature, pairs: roadside \} = jungleLayout\(jungle && jungleWhole\(jungle\.nine\) \? \[\] : layoutNature\(samples, tilemap, natureOpts\), samples, tilemap,\n\s+\{ \.\.\.natureOpts, jungle: jungle \? \{ nine: jungle\.nine, pois: placesFor\(jungle\.hidden\), paths, net: roads \} : null \}\);/);   // JUNGLE-ROADSIDE (PIN MOVED): and the network, its pairs astride the roads - handed back beside the flats (AUDIT JUNGLE-ROADSIDE PERF-2)
   assert.match(jh, /scenes\/dungeonContext\.js \(dungeons\) - FLAGGED: none stands the wilderness the jungle grows in/);
 });
 

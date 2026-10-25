@@ -21,13 +21,13 @@ import { scanGatePixels } from '../../src/systems/gate/gateSite.js';
 import { LOCATION_TYPES, CLIMATES } from '../../src/formats/mapsFile.js';
 import { isMainStoryDungeon } from '../../src/world/dungeon/dungeonTextures.js';
 import { sdFirst, sdRise, sdFind, sdFell, sdGone, sdFoundLine, SD_COLLAPSE_MS, SD_CAST_OUT_LINE, SD_NO_CLOSED, isSdRoom, sdRoomKey } from '../../src/net/superDungeon/sdLaw.js';
-import { sdRiftWord, sdReturnStands, sdRiftCount, riftLook, sdRiftPlace, sdReturnPlace, sdLandingPlace, inSdPortal, SD_LANDING_PAST_M, SD_RETURN_REACH_M, SD_ENTERED_KEY, SD_ENTERED_MAX } from '../../src/world/superDungeon/sdDungeon.js';
+import { sdRiftWord, sdReturnStands, sdThroughStands, sdRiftCount, riftLook, sdRiftPlace, sdReturnPlace, sdLandingPlace, inSdPortal, SD_LANDING_PAST_M, SD_RETURN_REACH_M, SD_ENTERED_KEY, SD_ENTERED_MAX } from '../../src/world/superDungeon/sdDungeon.js';
 import { sdSlotsKept } from '../../src/systems/superDungeon/sdSlots.js';
 import { SD_REALM_TEXT } from '../../src/world/superDungeon/sdRealm.js';
 import { createSpoilsPool, spoilsStore, spoilsLevel, SPOILS_SPENT_RESEND_MS, SPOILS_SPENT_MAX, SPOILS_KEYS } from '../../src/scenes/spoilsPool.js';
 import { createSdClaims, SD_CLAIMS_MAX, SD_CLAIMS_ALL_MAX } from '../../src/net/superDungeon/sdClaims.js';
 import { createDuelRecords } from '../../src/net/duel/duelRecord.js';
-import { profileView, profileRenown, profileDuelLine, profileGateLine, profileRaidLine, profileSerpentLine, profileSdLine } from '../../src/ui/profileWindow.js';
+import { profileView, profileRenown, profileDuelLine, profileRecordLines } from '../../src/ui/profileWindow.js';
 import { mintSdReceipt, readSdReceipt } from '../../src/net/superDungeon/sdReceipt.js';
 import { sdSpoilsDay, sdSpoilsList, SD_SPOILS_TEXT } from '../../src/systems/superDungeon/sdSpoils.js';
 import { SOCIAL_ROOM, validSdOut } from '../../src/net/wire.js';
@@ -263,7 +263,7 @@ function riftHost({ rec, hollow, storage = memStorage(), entered = true } = {}) 
     forceExitToExterior: () => log.push('out'), enterSdRealm: async () => { log.push('realm'); return entered; },
   };
   const env = {
-    sdHost: { record: () => h.rec, hollow: () => hollow }, _sharedOffsetMs: 0, sdRiftWord, sdReturnStands, sdRiftCount, riftLook, modes, playerEntity: { health: 10 },
+    sdHost: { record: () => h.rec, hollow: () => hollow }, _sharedOffsetMs: 0, sdRiftWord, sdReturnStands, sdThroughStands, sdRiftCount, riftLook, modes, playerEntity: { health: 10 },   // SD-THROUGH (PIN MOVED): the word says whether one went through
     INTERIOR_SEASON: 3, SD_REALM_TEXT, setMidScreenText: (t) => log.push(['said', t]), sdSay: (t) => log.push(['said', t]), _sdEntered: enteredOf(storage), _sdFallen: new Set(),   // SD-ONELIFE (PIN MOVED)
     _teleportToPixel: async () => { log.push('pixel'); if (h.onWalk) h.rec = h.onWalk; },
     sdVeilCentre: () => null, standBeforeHollowDoor: () => true,   // SD-LOOK S5: the veil's centre; AUDIT SD IV (F40): before its door
@@ -423,7 +423,7 @@ test('SD11c THE INSPECT CARD SAYS THE TOWNS, THE SERPENTS AND THE HOURS (L5 F1):
   // the world host's card, from its own text
   const env = {
     profileRenown, online: null, _profileSub: 'acct-x', duelRecords: { get: () => rec }, duelButtonFor: () => null, wedButtonFor: () => null,
-    profileDuelLine, profileGateLine, profileRaidLine, profileSerpentLine, profileSdLine,
+    profileDuelLine, profileRecordLines,   // PIN MOVED (KETCH): the host lays the record's lines through profileRecordLines (ui/profileWindow.js), the voyages beside them
   };
   const withDuel = new Function(...Object.keys(env), `let _profileView = null;\n${constOf('withDuel')}\nreturn withDuel;`)(...Object.values(env));
   const v = withDuel('peer-x', profileView({ name: 'Ann', state: 'answered' }));

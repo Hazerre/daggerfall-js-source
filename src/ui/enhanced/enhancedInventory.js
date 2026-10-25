@@ -82,7 +82,7 @@ import { EQUIP_SLOTS } from '../../characters/paperdoll/paperdoll.js';
 import { dfWornEquipment } from '../../formats/morrowind/mwItemMap.js';   // PX25
 import { hasDaggerfallArrows } from '../../combat/fpArm.js';   // PX26
 import { ARMOR_ENUM } from '../../combat/enemyEquipment.js';   // PX25
-import { inventoryItemImage, inventoryItemModel, templateByIndex, isAmmunition } from '../../systems/item/itemTemplates.js';   // WEAR-UI: isAmmunition, spent not worn
+import { inventoryItemImage, inventoryItemModel, templateByIndex, isAmmunition, templateLore } from '../../systems/item/itemTemplates.js';   // WEAR-UI: isAmmunition, spent not worn; GUN-LORE: a template's own words
 import { requestIcon, paperDollDataUrl, requestFittedPicture, requestFittedIcon, iconName, fittedImg } from '../textureCanvas.js';
 import { fateColumn, fateKey, ensureFateStyle, FATE_FACE_BOX } from '../revenant/revenantFateView.js';   // REVENANT-FATE: a beaten revenant's choice, this window's FATE side
 import { SLOT_BOX, gridBox, wornBox, screenDpr } from '../iconFit.js';   // UI1: the fit law's boxes and the screen's ratio
@@ -2729,8 +2729,10 @@ function openMenu(item, from, x, y) {
   placeBeside(menuEl, null, x, y);
   const away = (e) => { if (!menuEl?.contains(e.target)) closeMenu(); };
   const key = (e) => { if (e.key === 'Escape') { e.stopPropagation(); closeMenu(); } };
-  setTimeout(() => { if (!menuEl) return; document.addEventListener('pointerdown', away, true); document.addEventListener('keydown', key, true); }, 0);
-  menuOff = () => { document.removeEventListener('pointerdown', away, true); document.removeEventListener('keydown', key, true); };
+  // MEM-AUDIT (2026-10-23): the listeners are THIS menu's, as the dismantle's question's are (AUDIT SS) - a second menu
+  // opened before the first's timer ran laid the first's pair, which nothing could remove, and its key ate every Escape
+  const timer = setTimeout(() => { if (!menuEl) return; document.addEventListener('pointerdown', away, true); document.addEventListener('keydown', key, true); }, 0);
+  menuOff = () => { clearTimeout(timer); document.removeEventListener('pointerdown', away, true); document.removeEventListener('keydown', key, true); };
 }
 
 /** RARITY-UI + SIGIL-UI (2026-09-26, Mac: "Rarity needs to be more noticable in the UI with the icon borders being
@@ -3130,6 +3132,9 @@ function storeFilterBar(list) {
     if (search.value) { search.value = ''; storeFilter.query = ''; fillRemoteList(list, true); } else search.blur?.();
   };
   bar.append(search);
+  // FILTER-FIT: the menus are one group, so a narrow window moves them under the search together.
+  const menus = el('div', 'storemenus');
+  bar.append(menus);
   const menu = el('select', 'storecat');
   menu.setAttribute('aria-label', `Show in the ${String(remote.title).toLowerCase()}`);
   for (const c of storeFilterOptions(remote.items, storeFilter.cat)) {
@@ -3140,33 +3145,33 @@ function storeFilterBar(list) {
   }
   menu.value = storeFilter.cat;
   menu.onchange = () => { storeFilter.cat = menu.value; fillRemoteList(list, true); };
-  bar.append(menu);
+  menus.append(menu);
   // LOOT-BULK: the tiers this container holds, and how many. Absent while the ladder is off - there is nothing to pick.
   if (lootRarityOn()) {
     const rarity = el('select', 'storerarity');
     rarity.setAttribute('aria-label', t('inventory.store.rarityIn', 'Rarity in the {list}', { list: String(remote.title).toLowerCase() }));
     for (const c of storeRarityOptions(remote.items, storeFilter.rarity)) {
-      const o = el('option', null, `${c.label} (${c.count})`);
+      const o = el('option', null, c.id === 'all' ? c.label : `${c.label} (${c.count})`);   // FILTER-FIT: the menu's name; its count is All's
       o.value = c.id;
       if (c.id === storeFilter.rarity) o.selected = true;
       rarity.append(o);
     }
     rarity.value = storeFilter.rarity;
     rarity.onchange = () => { storeFilter.rarity = rarity.value; fillRemoteList(list, true); };
-    bar.append(rarity);
+    menus.append(rarity);
   }
   // MAT-FILTER: the metals this list's armour and weapons are made of, beside the tiers, in the same shape.
   const material = el('select', 'storemat');
   material.setAttribute('aria-label', t('inventory.store.materialIn', 'Material in the {list}', { list: String(remote.title).toLowerCase() }));
   for (const c of storeMaterialOptions(remote.items, storeFilter.material)) {
-    const o = el('option', null, `${c.label} (${c.count})`);
+    const o = el('option', null, c.id === 'all' ? c.label : `${c.label} (${c.count})`);
     o.value = c.id;
     if (c.id === storeFilter.material) o.selected = true;
     material.append(o);
   }
   material.value = storeFilter.material;
   material.onchange = () => { storeFilter.material = material.value; fillRemoteList(list, true); };
-  bar.append(material);
+  menus.append(material);
   return bar;
 }
 
@@ -3667,6 +3672,7 @@ export function itemInfoBoxes(item, d = deps) {
   const rows = d?.rows;
   if (!rows) return [[{ text: 'No item description available.', center: true }]];
   const boxes = [itemInfoRows(item, rows, { name: questLetterName(item, d.getQuest ?? null) })];
+  { const lore = templateLore(item); if (lore) boxes.push([{ text: lore, center: true }]); }   // GUN-LORE: what a thing of the port's own is, under its name
   if (isPotionRecipe(item)) {
     const names = potionRecipeIngredientNames(item) ?? [];
     if (names.length) boxes.push(names.map((text) => ({ text, center: true })));

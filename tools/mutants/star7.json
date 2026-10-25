@@ -74,8 +74,8 @@
  {
   "name": "STAR7-the-cards-silent",
   "file": "server-account/src/index.js",
-  "old": "sds: await sdRecordOf(ctx, who.player.id), stars: await starRecordOf(ctx, who.player.id), renown:",
-  "new": "sds: await sdRecordOf(ctx, who.player.id), renown:",
+  "old": "sds: await sdRecordOf(ctx, who.player.id), stars: await starRecordOf(ctx, who.player.id), ketch: await ketchRecordOf(ctx, who.player.id), renown:",
+  "new": "sds: await sdRecordOf(ctx, who.player.id), ketch: await ketchRecordOf(ctx, who.player.id), renown:",
   "tests": [
    "test/net/starfall/star7_service.test.js"
   ]
@@ -83,8 +83,8 @@
  {
   "name": "STAR7-the-public-card-silent",
   "file": "server-account/src/index.js",
-  "old": "sds: await sdRecordOf(ctx, body.id), stars: await starRecordOf(ctx, body.id) }",
-  "new": "sds: await sdRecordOf(ctx, body.id) }",
+  "old": "sds: await sdRecordOf(ctx, body.id), stars: await starRecordOf(ctx, body.id), ketch: await ketchRecordOf(ctx, body.id) }",
+  "new": "sds: await sdRecordOf(ctx, body.id), ketch: await ketchRecordOf(ctx, body.id) }",
   "tests": [
    "test/net/starfall/star7_service.test.js"
   ]
@@ -155,7 +155,7 @@
  {
   "name": "STAR7-records-unlisted",
   "file": "src/systems/aetheric.js",
-  "old": "...WYRD_SET_PIECES, ...STARSPUN_SET_PIECES]);",
+  "old": "...WYRD_SET_PIECES, ...STARSPUN_SET_PIECES, ...ELTHERIC_SET_PIECES]);",
   "new": "...WYRD_SET_PIECES]);",
   "tests": [
    "test/systems/starfall/star7_rewards.test.js"

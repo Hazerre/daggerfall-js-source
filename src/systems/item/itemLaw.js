@@ -82,6 +82,7 @@ import { DEX_ENEMY_IDS } from '../enemyExpansion/dexIds.js';   // SOUL-LAW: the 
 import '../professions/profTemplates.js';
 import '../survival/items.js';
 import '../thunderlock.js';
+import '../pistolet.js';   // PISTOLET: the second gun's row, the Thunderlock's way
 import '../gate/gateSpoils.js';
 import '../ayleidStones.js';
 import '../gems.js';   // GEM2: the graded gems' rows
@@ -107,8 +108,19 @@ import '../naval/treasureCharts.js';   // CAPT-CHARTS: the treasure chart
  *  Soul Cake (2000) and Hearth Offering (2001) are templates the law knows headless, and the Wyrd's Raiment's nine
  *  records (systems/aetheric.js WYRD_SET_PIECES) are lawful from it on. SOUL-LAW moved it to 9: a Soul Gem or Azura's
  *  Star holding the soul of one of Daggerfall Enemy Expansion's fifty (an Ogre's, 282) is lawful from it on - law 8 found
- *  each one 'soul' and froze its trapper's trading (FIELD BUGS 2026-10-20h). */
-export const ITEM_LAW_VERSION = 9;
+ *  each one 'soul' and froze its trapper's trading (FIELD BUGS 2026-10-20h). PISTOLET moved it to 10: the Dwarven Pistolet
+ *  (562) is a template the law knows, and the Sunken Sovereign is lawful in both its shapes - the gilded Pistolet it is
+ *  minted as from law 10 on, and the Ebony Saber minted before (systems/gilded.js SOVEREIGN_SABER_ERA; AUDIT PISTOLET A7,
+ *  C1, D8) - so a finding a law of 9 made against either is a finding to ask again.
+ *  SEA-SET moved it to 11 (10 on its branch, renumbered past PISTOLET's at the merge): the Eltheric Tidemail's nine
+ *  records (systems/aetheric.js ELTHERIC_SET_PIECES) are lawful from it on - a law of 10 or less found every one 'aetheric'.
+ *  GUNS-UNFOUND moved it to 12: the Hourlock is lawful as the gilded Dwarven Long Bow it is minted as from law 12 on, and
+ *  as the Thunderlock minted before (systems/gilded.js HOURLOCK_GUN_ERA); the Sunken Sovereign as the Ebony Saber it is
+ *  minted as again, and as the Pistolet minted between (SOVEREIGN_PISTOLET_ERA) - so a finding a law of 11 made against
+ *  a bow Hourlock is a finding to ask again. KETCH moved it to 13: the Gilded rung's Ketch pair (systems/gilded.js -
+ *  Volendrung's Echo, a gilded Dwarven Thunderlock, and the Ketchmaster's Word, a gilded Dwarven Pistolet) are lawful from
+ *  it on, so a finding a law of 12 made against either is a finding to ask again. */
+export const ITEM_LAW_VERSION = 13;
 
 const T = ENCHANTMENT_TYPES;
 const TYPE_KEY = Object.freeze(Object.fromEntries(Object.entries(T).map(([k, v]) => [v, k])));
@@ -129,7 +141,7 @@ const CLASSIC_GROUPS = (() => {
  *  writes it. Every index not named here is UselessItems2's - the custom items' own group. Pinned by the producer sweep
  *  (test/systems/item/int1_itemlaw.test.js): every custom index a producer mints, in the group it mints it in. */
 export const CUSTOM_TEMPLATE_GROUPS = Object.freeze({
-  Weapons: Object.freeze([513, 514, 560, 561]),
+  Weapons: Object.freeze([513, 514, 560, 561, 562]),
   Armor: Object.freeze([515, 516, 517, 518, 519, 520, 521, 522, 523, 524, 525, 526]),
   Gems: Object.freeze([570, 571, ...GEM_GRADE_TEMPLATES]),   // GEM2: the graded gems (systems/gems.js)
   Jewellery: Object.freeze([]),

@@ -214,6 +214,7 @@ export default defineConfig({
         viewer: 'viewer.html',
         sky: 'sky.html',   // ES1: the enhanced sky lab
         water: 'water.html', // WATER1: the enhanced water lab (src/tools/waterLab.js)
+        ketch: 'ketch.html', // KETCH: the sky-ketch Mzunthar, made in code, drawn by the game's renderer (src/tools/ketchLab.js)
         abyss: 'abyss.html', // SD-LAB: the Shattered Hour and the Rift, made in code, drawn by the game's renderer (src/tools/abyssLab.js)
         spire: 'spire.html', // EG-G2: an Elite Breach's circle in its band's dress, made in code (src/tools/spireLab.js) - tools/spireLabProbe.mjs
         cards: 'cards.html', // CARDS3: the card table lab (src/tools/cardsLab.js) - tools/cardsProbe.mjs
@@ -256,6 +257,11 @@ export default defineConfig({
         // nothing else borrowed; combat/fpsWeapon.js is untouched and
         // nothing the game runs imports src/tools/gunLab.js.
         gunProto: 'gun-proto.html',
+        // THE PISTOL LAB (2026-10-21): the second new weapon type through
+        // the gun lab's door - a dwarven flintlock pistol, one in either
+        // hand. Our own art (public/art/pistol-frames.png); nothing the
+        // game runs imports src/tools/pistolLab.js.
+        pistolProto: 'pistol-proto.html',
         // LV1: THE ASCENSION LAB - the enhanced level-up window over a
         // made-up character, so the screen a player sees once a level
         // can be opened on demand, at any size, with no ARENA2 on disk.

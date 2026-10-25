@@ -126,6 +126,7 @@ Each line is a slice's acceptance, not an aspiration:
 | MWNPC17 THE WARDROBE | who wears what by role, dressed off the seed - silhouettes, garments, dyes, cloaks, armour kits, Morrowind's clothing ladder; each garment's record picked and the head and hair walked off the look's `npc` hint (SHIPPED, section 25) | wardrobe.js; the item map, the build; every look producer |
 | MWNPC18 THE PLACED FIGURES | a figure a player set down in a home or a yard stands in a body - its sex and role off FLATS.CFG (SHIPPED, section 26) | worldModes.js (rooms), world.js (yards) |
 | MWNPC19 THE FLATS THAT STAND | the standing horses (TEXTURE.201's, a World of Daggerfall site's, the Stables') as the 3D horse; a person's flat no StaticNPC holds (a factionless figure, a site's people, a marker's captive, a boat's crew) in a body (SHIPPED, section 28) | world.js, exterior.js, merchantYardsHost.js, comeSailAwayPool.js; worldModes.js and dungeonContext.js named |
+| NPC-MARKS | a bobbing pixel-art mark over a body whose click is a quest's (a yellow "!" - the work pool's questor too), a merchant's (an amber coin) or a guild's or the arena's (a blue gem), read off the click's own route (SHIPPED, section 30; AUDIT NPC-MARKS, section 31) | worldModes.js (interiors, dungeons), dungeonContext.js (its lane handed), world.js (the street), exterior.js (the bench) |
 
 Click and talk boxes keep the billboard's size (they are the classic
 game's); the arena crowd stays flats.
@@ -302,7 +303,9 @@ it. Off, the card leans and the figure keeps its true height. Read where
 the card is stood (`characterSprite.js:"const qUp = up ??"`), so it takes
 effect at once with no rebuild; a lean the host hands (the travel view's)
 stands as handed either way. Pinned: `test/systems/bodycard.test.js`; mutants
-`tools/mutants/bodycard.json`.
+`tools/mutants/bodycard.json`. BODY-FLAT (2026-10-23, section 32) takes the
+card's picture level since, so the figure stands its true height: the
+cos(pitch) above is the record of what it drew.
 
 ONE-BAD-BODY (FIELD BUGS 2026-10-13b, `01-Overview/bugs/Field-Bugs-2026-10-13b.md`;
 the owner: "people are saying with norrowind models, people are invisable.
@@ -2628,3 +2631,245 @@ Look keep the quad's depth; the target, the unit and every drawn exit's depth wr
 the target is drawn into again (a program sampling it would be a feedback loop). `tools/mutants/fb1015_lootbody.json`:
 13 mutants, 13 dead. Pin moved: AUDIT MW-NPC C6's (`test/characters/mwnpc_audit.test.js`) holds
 C6's own half at the new door - every flat shown before a standing body's is marked; the hosts' order is FB1015's pin.
+
+## 30. NPC-MARKS - A MARK OVER THE PEOPLE WHO DO SOMETHING (SHIPPED 2026-10-21)
+
+The owner, 2026-10-21: "For morrowind models, vendors and quests npcs are hard to find due to everyone looking the
+same. Could we make a bobbing icon above their character for morrowind specifically?"
+
+THE PROBLEM IS THIS ARC'S OWN. Daggerfall's standing people are pictures, and the picture says who they are - a shop's
+keeper wears the shop's sprite. MWNPC17's wardrobe dresses everyone off their faction's role and their seed, so in a
+Morrowind body a jeweller and the customer at the counter can look alike, and a quest's contact looks like the room.
+
+WHAT SHIPS. Over each standing person whose BODY stands on the people lane (`createPopulationLane`'s new `heightOf` -
+PeerBodies' own, so an Altmer's mark hangs over an Altmer's head) and whose click goes somewhere other than talk, a
+small pixel-art icon bobs (`render/npcMarkPass.js`, `scenes/npcMarksHost.js`):
+
+- a yellow "!" - a person a live quest holds (their QuestResourceBehaviour, the one `openStaticNpc`'s `doClick` reaches
+  first - PlayerActivate.cs:1523-1528 - or a quest's stood person). A quest set aside (QUEST-SHELF), ended or broken
+  marks no one. It wins over the other two: what the quest wants first. (AUDIT NPC-MARKS, section 31: and the work
+  pool's questor where the click reaches talk; an arena officer's own window comes before it.)
+- an amber coin - StaticNPCClick's merchant arm (a Merchants-group person in a shop, a bank or a tavern, or a custom
+  merchant service's).
+- a blue gem - its guild-service arm where a guild answers it, and the coven's (a guild's trainers, spell sellers and
+  quest givers); since section 31, the arena's officers too.
+
+THE ROUTE IS THE CLICK'S. `staticNpcRouteIn` builds staticNpcRoute's arguments in one place, and `openStaticNpc` now
+asks it too (ONE CONSTRUCTION SEAM - the rr3 pin moved with it), so a mark never promises a door the click does not
+open. A person's route is read once their faction's row is in (section 31 L1: not "the table" - it is an empty Map
+while it loads), again when a mod's merchant service switches (L6); their quest and their work each frame.
+
+THE FORM. One quad a mark, square to the eye, standing on a point MARK_OVER_HEAD_M over the body's crown (section 31
+R9: its bottom there at any size - it was centred there, and a far mark drawn large reached into the head); the icon
+drawn by the fragment
+stage on a 16 x 16 grid, so it reads as the pixel art the sprites are and ships no picture (nothing read from ARENA2).
+Blended, tested against the world's depth and writing none (a wall hides it - NAME1's complaint about names seen
+through walls is not repeated), never under MARK_MIN_RAD of the view (two screen pixels a cell since section 31 R6), the
+nearest twelve (the lane's Near cap) within
+30 m, faded over the last fifth. The bob: 6 cm each way once a second on duelWall.js's wrapped clock, a phase each;
+still under the system's reduced motion. No fog: a cue for the eye, inside a street's width.
+
+A classic sprite is never marked - its picture is its mark - so with Morrowind People off, or no Morrowind data, nothing
+draws. The switch is the Features page's "Morrowind People Marks" (`npc-marks`, the `npcMarks` pref, on by default, the
+viewer's own).
+
+THE FOUR HOSTS. `scenes/worldModes.js` - the interior (the room's people and its quest stands) and the dungeon (its
+people, through `dungeonContext.js`'s new `peopleLane`, and its quest stands); `scenes/world.js` - the street's
+standing people (route read with no building: a guild's servant and a custom merchant service mark, a plain merchant
+in the street talks); `scenes/exterior.js` - the fixed-city bench's standing people, the same. Not marked: the walkers
+(MWNPC7 - no faction route), the yards' and homes' placed figures (MWNPC18), the stand-flats and the boats' crews
+(STAND-FLAT - no StaticNPC), the living world's residents (LW8).
+
+Not a DFU member: Ledger A row (NPC-MARKS). `test/scenes/npcmarks.test.js`; `tools/mutants/npcmarks.json` (its count
+since the audit is section 31's), one equivalent as recorded (the route's `insideBuilding` with no building). The icons' pixels and the quad's
+size are pinned on the shader's own code, run by `test/glsl.mjs`. The shader was compiled and drawn
+in headless Chromium (SwiftShader) against a dark and a lit wall before it shipped; the bodies themselves need the
+player's Morrowind data, so the marks over a live body were not seen on this machine.
+
+## 31. AUDIT NPC-MARKS (2026-10-22)
+
+The owner, of section 30: "Audit this". Two lanes read the change cold, from its commit and not from this record - the
+LAW AND THE WIRING (does the mark ever disagree with the click; does each host gather and draw in the right order and
+place), and RENDERING, GL STATE, PERFORMANCE AND LIFECYCLE - and nothing was edited while they read (Home.md, DO NOT
+FIX WHILE THE VERIFIER IS READING). Sixteen findings (numbered by the lanes' reports; R8 and R11 read fine): fourteen
+fixed, two stated, and three of the fixes carry a stated remainder (R4, R6, L2).
+
+THE LESSON FIRST. R1 was a red CI the slice pushed: a new foreign pass on a host moves the hosts' seam counts, and
+three pins count them by call site (`test/render/glstate.test.js` EV6, `test/render/perf2.test.js`,
+`test/ui/farring.test.js`) - beside the one the slice did move (`test/bible/audit18_bible_docs.test.js` AUDIT 39r).
+The slice ran its own tests by grepping for the names it touched, and a count of `renderer.markForeignPass();` names
+nothing it touched. A slice that adds a pass greps the tests for `markForeignPass` too.
+
+RENDERING (R):
+- R1 FIXED. The three seam pins moved: world.js 32 -> 33, exterior.js 7 -> 8, each with its reason.
+- R2 FIXED. The pass bound its program and VAO before it knew whether a mark would draw - a lone mark at the reach's
+  very edge fades to alpha 0, drew nothing, and the host, told so, marked no seam: the renderer's program and VAO
+  shadows were left wrong for its next draw (EV6's own class). It looks first now and binds nothing for nothing
+  (spoilsGlow.js's order).
+- R3 FIXED. Every session built the program twice - bootWorld and createWorldModes each made a pass on the one context.
+  ONE PASS A CONTEXT: the hosts share it (`npcMarksHost.js` SHARED), its owner the last to let go.
+- R4 FIXED. No owner freed the program, the VAO or the buffer. `NpcMarkRenderer.dispose` and the host's `dispose`
+  (the last host frees). The hosts' life is their page (the title menu reloads it, scenes/shared.js), as the loot
+  lines' is - stated, as theirs is.
+- R5 FIXED. The icon's right was the view's first row - lookAt's x, which the HANDEDNESS mirror (mat4.js
+  mirrorProjectionX) puts on the screen's LEFT: the icons drew mirrored (only the top-left light showed it). It is the
+  billboards' `camRight` now, the row negated.
+- R6 FIXED. At MARK_MIN_RAD 0.011 a far icon stood about 21 pixels at 1080 lines - 1.3 a cell - so cells came out one
+  and two pixels wide and shimmered as it bobbed. 0.017 is two a cell. And the "!" and the coin were the same gold, so
+  where an icon is a few pixels (retro mode) the two could not be told apart: the "!" a lemon yellow, the coin an
+  amber. STATED: in retro mode a far icon is still a few pixels - the shapes do not survive that; the hues do.
+- R7 STATED. The lit lane's resolve multiplies the frame by its AO, its vignette, its contrast and its dither, and the
+  icon is in the frame, so in front of a corner it darkens a little - as the loot lines do. No bloom: its brightest
+  is under AIR_BRIGHT_THRESHOLD.
+- R9 FIXED. The icon was centred on its point, so a far mark drawn at its larger floor size reached down into the head;
+  it stands ON its point now (the vertex stage lifts it a half-size), MARK_OVER_HEAD_M 0.2 the gap under it.
+- R10 STATED. "No allocation a frame" was not true: the lane's `heightOf` spells its peer id (npcPeerId), as its `has`
+  already did for every actor. The header says so.
+- FINE, as read: the GL state left (blend off, depth mask on, cull on, the VAO unbound - the blend func the next pass
+  sets its own); a standing body's card discards its empty texels, so the body never hides the mark; every lane's
+  bodies are composited before the marks; at most twelve draws, three uniforms each; the shader's highp, int compares
+  and discard.
+
+THE LAW AND THE WIRING (L):
+- L1 FIXED. `townTalk.factionDict` is the FactionFile's own empty Map from the moment the file is fetched until it
+  parses - truthy - so a person first seen in that window read talk and KEPT it. The route is kept only once the
+  person's faction row is in. The test builds the producer's own empty dict (TEST THE SHAPE THE PRODUCER MINTS).
+- L2 FIXED - the owner's case. The work pool's questor - the townsperson the "any work?" answer names - opens the quest
+  offer as their talk's first door (npcSession.isNpcOfferingQuest, TalkManager.cs:757-772) and had no mark. Marked
+  now where the click reaches talk, read each frame by the click's own seed (`offersWork`, worldModes.js and world.js;
+  the bench has no session, and so no pool). STATED: a castle's 25% roll is the click's own and cannot be known ahead.
+- L3 FIXED. A guild-service route with no guild here - a holy order's servant in a building no divine runs, an order
+  no hall holds - is "You get no response." (openGuildService's createGuildForGroup); it marked a gem. It marks only
+  where a guild answers now.
+- L4 FIXED. The dungeon's click is npcTargets' - no width, or a ShowText action's person, is not the NPC's - and the
+  marks gathered every person. `clickable` holds the marks to that law.
+- L5 FIXED. The arena's officers open their own windows before the route (activateStaticNpc: the Herald, the
+  banners' recruiters, the bookmaker, the Pit Master, the Keeper of the Hall) and were marked by their faction. They
+  mark a gem now, before the quest's "!" as their window comes before the quest's click. A warden talks. The Wyrd
+  Sisters and the lamp keepers stand no body (their looks are null), so no mark.
+- L6 FIXED. A mod's merchant service (Roleplay & Realism's) switched mid-session left the kept route. The route is
+  read again whenever the switch's answer moves.
+- L7 FIXED. Under the Billboard Look the upright card draws the body cos(pitch) of its height (BODY-CARD), and the mark
+  hung at the full height floated over a shortened head from above. `markCrownOf` reads the switch.
+- FINE, as read: `interiorBuilding` is cleared on every way out, so the click and the mark read the same building in
+  every mode; the faction listeners' quests are Individuals', whose route is talk; quest-words-first; tombstoned
+  questors' behaviours destroyed; a quest's item and foe stands stand no body; outdoor quest people are the street's
+  StaticNPCs (no stand is stood outdoors); the lane's feet are the holder's own array; interior holders are fresh
+  each visit, so no route crosses buildings.
+
+AT THE PULL REQUEST (#1121): CI's first run of the audited change found one more - the one-home ratchet
+(`test/systems/talk/audit24_onehome.test.js`, ONE DFU MEMBER, ONE EXPORT) caught two names already declared elsewhere
+for other things: `MARK_KINDS` (systems/livingWorld/relations.js, a body's marks) and the audit's own `crownOf`
+(systems/naval/navalShips.js, a water's crown). Not one member twice - two homonyms - so ours were renamed
+(`NPC_MARK_KINDS`, `markCrownOf`) rather than listed in HOMONYMS. The same lesson as R1's: a ratchet over the whole
+tree's declarations names nothing the slice touched, so a slice adding exports runs it.
+
+`test/scenes/npcmarks.test.js` (21 tests; L1-L7, R2, R3/R4 and R5 each their own, the vertex stage's point law beside
+R9); `tools/mutants/npcmarks.json`: 46 records, 45 dead, one equivalent as recorded. The pass was compiled and drawn
+again in headless Chromium through a mirrored projection, the game's.
+
+## 32. BODY-CROP AND MW-DETAIL - THE BODY AS THE CAMERA SEES IT, AT THE VIEWER'S DETAIL (2026-10-22)
+
+A player's report, 2026-10-22: "when the player's camera gets too close to a morrowind 3d character model, the model
+starts to stretch in weird ways and it gets shorter. it seems like an attempt to avoid visual clipping with the camera,
+but honestly clipping is largely preferable to the current behavior", and "morrowind 3d models are always pixelated (or
+just rendering at a different resolution from the rest of the viewport?), this should probably be optional".
+
+WHAT WAS WRONG. Nothing kept the camera out of a body; no code shrinks one near the eye. Every body's picture
+(`render/characterSprite.js` drawRigSpriteBox, MW-D24) was an ORTHO down the eye's ray to its anchor, laid on one quad
+square to that ray (BODY-LEAN). That stands in for a perspective only while the body is small against its distance. Up
+close the ray pitches steeply, so the quad's top leans away from the eye and its foot toward it - the reverse of a
+perspective, where the nearest part draws largest. Measured (a 1.8 m body, the third-person eye at FOCAL_HEIGHT a metre
+behind it, a 60-degree lens): the head drew at -0.59 of the screen where it stands at -0.04, its shoulders 0.28 wide
+where they are 0.45, the knees wider than they are - shorter and stretched, the report's two words. mwCamera's
+MIN_DISTANCE is 0.43 m and an obstacle pulls the eye closer still. And the picture stood at MW_ARM_PIXEL (3) screen
+pixels a texel, NEAREST, inside a 1024-square target: no setting reached it, and a body taller than about 3,000 pixels on
+the screen took coarser texels than that.
+
+BODY-CROP: THE PICTURE IS THE MAIN CAMERA'S OWN, CUT TO THE BODY. `drawBodyPicture` takes every Morrowind body (the
+player's, a peer's, the people's, the foes', the watch's - fpArm.js drawThird) and every 3D horse (horseRig.js draw):
+
+- THE WINDOW (`cropPicture`). The box cut at the lens's near plane - its corners in front of it and the points where
+  its edges cross it - through the frame's own projection and view; their bounds, cut at the image's edge, rounded OUT
+  to whole texels counted from the image's corner. A body beside the eye takes only the window its seen part covers
+  (a whole screen of texels a frame for every body brushing past the camera, otherwise); an eye inside the box takes
+  the whole image; a box wholly behind the near plane or off the image takes nothing. Padded by the tells' and the
+  weapon outline's texels (bodyFxPad, glowPad) as the card was. A window larger than the target's room takes a coarser
+  whole texel. The projection-view and the corners are scratch (CROP_PV, CROP_CORNERS): a frame's crowd measures every
+  body.
+- THE CAMERA. The frame's projection with the window stretched over the whole of NDC - x and y alone, so the picture's
+  depth IS the frame's depth, and the eye's near plane cuts the mesh exactly where it cuts the world: the clipping the
+  report prefers. The texel grid is the screen's, so a pixelated body's texels stand still on the screen instead of
+  sliding with it.
+- THE QUAD (`cropQuad`). The window's own rectangle on the plane square to the view at the anchor's distance, its axes
+  the view's (signed for the HANDEDNESS mirror), so each texel lands on the pixels it was taken for. drawCharacterSpriteQuad
+  takes the right's y now (a card's is level, as it was).
+- THE DEPTH. The quad writes each texel's own depth as it stands (`depth.window`, the shader's `uDepthK.w` 2), after
+  the glow's floor (a ring or an ember keeps the quad's depth, AUDIT WEAPON-GLOW MW-1). The sprite target's depth is
+  24-bit now: over the frame's whole near-to-far 16 bits step a quarter of a metre at 60 m in the street.
+
+THE CARD STAYS where a card is asked for: the Billboard Look's upright one (BODY-CARD - the flat card on purpose; its
+picture level since BODY-FLAT, below), the travel view's leaned one (`up`, AUDIT OW4 J6) and a lens with no perspective
+(an ortho's or a probe's identity - no near plane to crop through), through drawRigSpriteBox;
+and the voxel rigs' (drawCharacterSprite, exterior.js) - not a Morrowind mesh. The hit flash, the concealment's blend,
+a foe's tells and the weapon glow are the quad's and the pass's, so every one draws as it did.
+
+BODY-FLAT (2026-10-23, the same player, of this change's build: "The billboard look still has the same issue, is this
+fixable?"; asked whether the look should shrink by the camera's own tilt or be a true flat sprite: a true flat sprite).
+The Billboard Look's card took its picture down the pitched ray (BODY-CARD), so the eye foreshortened a body twice -
+cos(pitch) of its height at a distance, and from mwCamera's MIN_DISTANCE, the ray to a body's middle 62 degrees down,
+0.16 of it. A Daggerfall flat is a picture drawn level and stood upright: the card's picture is taken along the ray's
+level part now (drawRigSpriteBox `flat`), so the card holds the body at its true height and the eye's own perspective
+is the only foreshortening, at any distance. The level ray is a unit one however close over its body the eye stands
+(the 3D ray's half-metre floor would have left it short and stood the picture's camera inside the box), and straight
+over the body it is the view's own heading (`levelHeading`). The card keeps its own depth (FB1015: the flat card on purpose); a lean the
+travel view hands keeps its pitched picture. It retires AUDIT NPC-MARKS L7 (section 31): a mark hangs over the full
+height under either look (`markCrownOf` is gone). The row's note says so ("flat upright pictures"), redrafted in the
+thirteen whole languages. Pins moved: `test/systems/bodycard.test.js` (the true height from every eye, up close too,
+the picture level, a handed lean's pitched), `test/render/prbow1_bow.test.js` (the card's picture along the level ray),
+`test/scenes/npcmarks.test.js` (L7's law retired, the full height pinned), and a body nearly and straight below the eye
+pinned in `bodycard.test.js`; `tools/mutants/bodycard.json` re-aimed with three records more (the picture pitched
+again, the level ray short of unit, no heading straight over the body), `bodylean.json` re-aimed, and `npcmarks.json`'s two L7 records retired
+with the law.
+
+MW-DETAIL: THE VIEWER'S DETAIL. A Features row, Morrowind Model Detail (`mwModelDetail`, `systems/features.js`
+mw-model-detail; Combat > With Morrowind data, beside the Billboard Look): Pixelated, the default and the owner's look,
+draws a Morrowind texel MW_ARM_PIXEL screen pixels; Sharp draws it one. `mwModelPixel` is read where each Morrowind
+picture is sized - the bodies and horses (drawBodyPicture), the first-person arm (fpArm.js draw) and the rider's horse
+in first person (horseRig.js drawFirstPerson) - so it lands at once; under retro or a render scale a texel is a whole
+number of the image's pixels, as before (AUDIT RETRO1 C6, now `imageTexel`, the one home). The game's canvas draws
+without antialiasing, so a Sharp picture through the frame's own lens is the frame's own pixels of the body. Sharp wants
+the target as large as the screen (a body up close, the arm always): `Renderer.charSpriteRoom` grows it on demand in
+steps of 256, never past CHAR_SPRITE_RT_MAX (4096) nor the GPU's MAX_TEXTURE_SIZE, and never smaller again - 50 MB with
+its depth at 2560 square (a 1440p screen), 128 MB at the most. Pixelated never grows it below a 3072-pixel screen. The
+target is let go and made again at its next use; a batch queued before the growth packs and samples against the edge
+it finds at its flush. A Sharp picture past the most takes two pixels a texel. The card asks for no more than the
+screen's own rows: up close it runs far off the screen, and there it takes coarser texels rather than a larger target.
+
+THE FOUR HOSTS: none changed. Every host reaches a body through fpArm.js drawThird (mwView.js for the local body,
+net/peer/peerBodies.js for every lane) and a horse through horseRig.js, and the arm's pass is the arm's.
+
+PROVEN. `test/render/bodycrop.test.js` (9): every point of a body drawn where the main camera puts it from 3 m to
+MIN_DISTANCE, the mirrored lens and a plain one, the lone pass and the batch - and the card it replaced, on the same eye,
+drawing the head 0.4 of the screen low and the shoulders narrow; the window on the texel grid, every corner inside, no
+texel to spare, cut at the image's edge, padded; the crop's z and w rows the lens's; the whole image from inside the box,
+nothing behind the eye or off the image, a coarser texel past the room; the quad's corners on the window's, mirrored or
+not, at the anchor's distance; the card under the Billboard Look and the travel view's lean alone; the texel at each
+detail and under retro; the target's growth, its steps, its most and its release, and a flush after it; the card's
+room no larger than the screen; the depth mode and the tilted right on a recording GL; the switch, its row and its
+readers. `tools/mutants/bodycrop.json`: 18 records, 18 dead. In a real WebGL2 context (Chromium, a GPU) through the
+game's mirrored lens, the fixture body: at Sharp the picture is the direct draw of its mesh pixel for pixel - coverage
+and colour - from 2 m to 0.15 m, where the card it replaced differed in nearly every body pixel; Pixelated, every body
+pixel the colour of its 3 x 3 block on the screen's grid; a second body crossing the first, the picture drawn before it
+and after it, wins and loses the same pixels the mesh does (the frame's own depth); the target's framebuffer complete
+with its 24-bit depth, grown, with no GL error. NOT CHECKED HERE: the game itself with Morrowind's data.
+Pins moved (each marked PIN MOVED): `test/render/prbow1_bow.test.js` (PR-BOW1's ray and anchor and AUDIT OW3
+J6's grown window are the card's laws, held under the Billboard Look, and the crop's own beside them),
+`test/render/mwnpc5_bodyfx.test.js` (the card's lone pass's tells, under the Billboard Look), `fb1015_lootbody`
+(the 24-bit depth, the flush's edge), `fb1012g_batchshut` (the probe renderer names no world image), `invislook` (and
+the cropped picture's quad beside the card's), `coats3d_horse3d`, `mwnpc16_bodyshadow` (its canvas has a size: the
+picture is cut to it), `weaponglow1`, `macr_fixes`, `ww1_weaponwidget`, `features`, `ft18_features` and
+`ft8_combatvisuals` (one row more), `mwnpc_mainmerge`; their records in `tools/mutants/` (macr, mwnpc5, mwnpcmerge,
+ow4j, prbow1, auditretro2) re-aimed by content, and `tools/mwArmProbe.mjs`'s anchor at the target's viewport. The
+row's four strings are in the English catalog (`tools/l10nExtract.mjs`) and drafted in-session for the thirteen whole
+languages (`tools/l10nInSession.mjs`, recorded as the machine's).

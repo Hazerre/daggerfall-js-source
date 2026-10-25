@@ -351,8 +351,8 @@
  {
   "name": "PVPREF-thunderlock-no-bow",
   "file": "src/net/siege/siegeRef.js",
-  "old": "export const siegeIsBow = (w) => w === SIEGE_WEAPONS.Short_Bow || w === SIEGE_WEAPONS.Long_Bow || w === SIEGE_THUNDERLOCK.template;",
-  "new": "export const siegeIsBow = (w) => w === SIEGE_WEAPONS.Short_Bow || w === SIEGE_WEAPONS.Long_Bow;",
+  "old": "export const siegeIsBow = (w) => w === SIEGE_WEAPONS.Short_Bow || w === SIEGE_WEAPONS.Long_Bow || w === SIEGE_THUNDERLOCK.template || w === SIEGE_PISTOLET.template;",
+  "new": "export const siegeIsBow = (w) => w === SIEGE_WEAPONS.Short_Bow || w === SIEGE_WEAPONS.Long_Bow || w === SIEGE_PISTOLET.template;",
   "tests": [
    "test/systems/pvpref_law.test.js"
   ]
@@ -847,8 +847,8 @@
  {
   "name": "PVPREF-relay-two-seats",
   "file": "server/src/index.js",
-  "old": "      if ((isGateRoom(a.key) || isBattleRoom(a.key) || isSdRoom(a.key) || isCellRoom(a.key) || isWorldRoom(a.key)) && who.subject) for (const [other, b] of [...this._all()])",
-  "new": "      if ((isGateRoom(a.key) || isSdRoom(a.key) || isCellRoom(a.key) || isWorldRoom(a.key)) && who.subject) for (const [other, b] of [...this._all()])",
+  "old": "      if ((isGateRoom(a.key) || isBattleRoom(a.key) || isSdRoom(a.key) || isKetchRoom(a.key) || isCellRoom(a.key) || isWorldRoom(a.key)) && who.subject) for (const [other, b] of [...this._all()])",
+  "new": "      if ((isGateRoom(a.key) || isSdRoom(a.key) || isKetchRoom(a.key) || isCellRoom(a.key) || isWorldRoom(a.key)) && who.subject) for (const [other, b] of [...this._all()])",
   "tests": [
    "test/net/siege/pvpref_relay.test.js"
   ]

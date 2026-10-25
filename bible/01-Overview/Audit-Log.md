@@ -8,6 +8,44 @@
 
 Newest first.
 
+**2026-10-24 - AUDIT KETCH.** The owner: *"Its time to be a deep audit on this and ensure absolute perfection"*, of the
+Sky-Ketch slice (KETCH and the asks before it on the same branch). Five cold lanes on a frozen snapshot, each given the
+asks and the files and never the record's conclusions; 67 reported, 62 defects. Paid: the Engine's spiders numbered into
+the Warden's forks and unkillable six minutes in; a fallen earner off the ship losing its receipt, and one share paying
+again on every other device; the Keel-Song never counted; a ninth aboard breaking every page; a quitter's place never
+freed; a modified page warping through the carry and the Sailwalk; the Ketch's spoils in the Hour's pool and promised to a
+mailbox that refused them; the bridge's rail walling off the gangway and the cabin, the nets drawn solid, DFU's climb over
+the gallery's wall into the barred hold, a 24 m drop down the lift's shaft; the line's book paid as its reward at the
+letter, "every Loredas" false on the game's own calendar, three cells a hand no crew of eight could meet, and lore that
+promised constructs, a stone and a hum the game did not have. Each fixed and pinned red, with a mutant; the lodestone made
+true; the untested fight pinned. One left, with its reason (the loot ladder off is DFU's own loot). 297 mutants, 295
+dead, two recorded equivalent. Record: `Audit-Ketch.md` (AUDIT KETCH).
+
+**2026-10-23 - AUDIT GUILD-WINDOW.** The owner: *"Audit thus"*, of the Guild window (GUILD-WINDOW, the same day). Two
+cold lanes and a measured pass in Chromium; sixteen findings (two HIGH: an invitation's Decline over the window's Close
+on a phone, the touch sizes outranked), each reproduced, fixed and pinned. The record is
+`11-Multiplayer/Guild-Overhaul.md`, AUDIT GUILD-WINDOW.
+
+**2026-10-22 - AUDIT FB1021d (pull request #1118, FIELD BUGS 2026-10-21d: FLAT-WALK, RAVEN-CLOSE, SENTENCE-MENDS, REGARD-OWN,
+PASSAGE).** The owner: *"Audit this"*. Five cold lanes, one a report, read-only over the pull request's own diff at
+`cff651e83` against Daggerfall Unity's C# and the freeware's data, given the reports and the files and never the
+record's conclusions. The worst: a sentence's mend landed before a day was served, so a save under the prison screen
+kept it for nothing (SM-1); the friend line lumin asked for was said under the talk window and ran out unseen (RO-1); a
+booked ship whose master's hand was off - a foe near, aground - was steered by nobody (PS-2), and 25 sailed legs were
+still aimed at land, hidden by the test's own filter (PS-1). The rest: two FLAT-WALK pins too weak to tell a Teleport
+from every flat relay, its count (27, not 41) and FLAT-RELAY's refuted diagnosis left standing on four pages (2026-10-05c
+report 5 reopened); the Raven close's price (a map read after the knight's word) named and pinned; the mend wearing a
+crime's own mark, a petty crime's cheap step, and a Curfew doubling charges laid anywhere in its town; grudges given back
+whole by the rebase and an offline copy frozen; a deed's friend never said; the town rings lost on the land a party
+embarks from; a passenger's autorun outliving the helm; the plate hidden under a bar that never covered it; a passenger's
+card with no dial or Leave. Every finding is in the record's own section with what became of it
+(`01-Overview/bugs/Field-Bugs-2026-10-21d.md`, AUDIT FB1021d): fixed and pinned, or taken under the owner's standing
+word (FW-6, RC-1, SM-3, SM-4, RO-3, PS-2), or found and left with its reason (LW-II's open item 6 on the road's sword;
+the unsaved charge; a realm-era build reading the record; my own boat's embark legs). The campaign, 1,291 mutants on
+the merged tree: 1,275 dead, 2 equivalent, 14 survived - the seven of this change's own answered (four pinned, PS-3's
+reading cut to the half that is the whole of it, SM-4's prison-arm read recorded equivalent with its reason pinned), the
+seven others surviving on main as here (four of them equivalent since PLEA-LOOP), named in the record.
+
 **2026-10-21 - AUDIT STAR-TUNE (pull request #1090, the Starfall from its first run).** The owner: *"Audit this"*. One
 cold lane over the pull request's own diff, read-only, at the head that renumbered it world238 past main's world236 and
 world237. Four findings, each fixed and pinned (`bible/11-Multiplayer/Starfall.md` sections 4, 10 and 13; `Spawn-Grants.md`

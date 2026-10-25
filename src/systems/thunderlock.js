@@ -30,7 +30,7 @@
 // registerCustomTemplates takes them and the frozen DFU table stays
 // what it is. Nothing here writes to itemTemplates.json.
 
-import { registerCustomTemplates, templateByIndex, mintCondition, setItemFields, registerAmmunition, registerOwnItemImage } from './item/itemTemplates.js';
+import { registerCustomTemplates, templateByIndex, mintCondition, setItemFields, registerAmmunition, registerOwnItemImage, registerTemplateLore } from './item/itemTemplates.js';
 import { addVendorTextures, vendorTextureCount } from './textureReplacement.js';
 import { registerUniqueFind, registerLegendary, FOE_FAMILIES } from './loot/lootRarity.js';
 import { SKILLS } from './skills.js';
@@ -41,7 +41,7 @@ import { GUN_FEEL } from '../combat/gun/gunFeel.js';   // FIELD-GUN13: the flash
 // there would close a cycle through systems/item/itemTemplates.js. Said out
 // loud on the leaf itself.
 import {
-  THUNDERLOCK_TEMPLATE, PELLET_TEMPLATE, THUNDERLOCK_ARCHIVE, PELLET_ARCHIVE,
+  THUNDERLOCK_TEMPLATE, PELLET_TEMPLATE, THUNDERLOCK_ARCHIVE, PELLET_ARCHIVE, PISTOLET_TEMPLATE,
   orbColour,   // FIELD-GUN17: the muzzle light wears the orb's own colour, sampled rather than named
 } from '../characters/thunderlockIds.js';
 
@@ -116,6 +116,30 @@ registerCustomTemplates(THUNDERLOCK_TEMPLATES);
 
 export const isThunderlock = (item) => item?.templateIndex === THUNDERLOCK_TEMPLATE;
 export const isPellet = (item) => item?.templateIndex === PELLET_TEMPLATE;
+
+// ── WHAT THEY ARE ───────────────────────────────────────────────────
+//
+// GUN-LORE (2026-10-24, the owner: "A proper lore pass on both weapons and how their projectiles work according to the
+// dweamer"; bible/05-Combat/Dwarven-Thunderlock.md "GUN-LORE"). The lore is the guns' own family's, one home, and every
+// reader takes it from here: each template's Info box (itemTemplates.js registerTemplateLore), the airship's book
+// (systems/portBooks.js, "Rourken Thunder") and the questline that leads there say the same thing in more words.
+//   - CANON (UESP): the Dwemer, the Deep Folk, who vanished at Red Mountain in the First Era; their TONAL ARCHITECTURE,
+//     the art of making the world answer a struck note (Kagrenac's Keening and Sunder); the Rourken, the clan that would
+//     not ally with the Chimer, whose lord threw the hammer Volendrung out of Morrowind and built Volenfell where it fell,
+//     in the Alik'r; aetherium, the Dwemer's blue crystal.
+//   - THE PORT'S OWN: the guns, the thunder-coil, the Pellet's aetherium mote, the sky-ketch Mzunthar and its foundry.
+// HOW THE SHOT WORKS: a gun's lock holds no flint but a TONAL COIL. The trigger frees its striker; the coil sings ONE
+// note, pitched to the mote of aetherium sealed in a Pellet's brass; the note unbinds the mote's charge, and the bead
+// leaves the barrel as a ball of bound lightning - the orb every hit sees. The report is the note itself, the flash its
+// light (FIELD-GUN17's one colour for both is the lore's). A coil sung must be wound again before it sings - the reload's
+// two clacks are its key turned and set.
+export const GUN_LORE = Object.freeze({
+  thunderlock: 'A Rourken long gun. Its lock holds no flint but a tonal coil: the trigger frees the striker, the coil sings one deep note, and the note wakes the aetherium in a Dwemer Pellet and throws it out as a ball of bound lightning. The thunder you hear is the note.',
+  pistolet: 'A Rourken boarding piece, made for the decks of their sky-ketches. Its short coil sings one sharp note and must be wound again by its key before it sings another, so the Ketch\'s marines carried them in braces of two: one sings while the other is wound.',
+  pellet: 'A bead of Dwemer brass sealed around a mote of aetherium. A tonal coil\'s note wakes the mote, and the bead leaves the barrel as lightning. No forge in the Bay has made one since the Dwemer vanished: they are found, never bought.',
+});
+registerTemplateLore(THUNDERLOCK_TEMPLATE, GUN_LORE.thunderlock);
+registerTemplateLore(PELLET_TEMPLATE, GUN_LORE.pellet);
 
 /** THE AMMUNITION LINK lives on the leaf (see the file) - inventory.js
  *  is upstream of everything here and asks it too. Re-exported so this
@@ -303,7 +327,39 @@ export function installThunderlockIcons({ fetchBytes = null } = {}) {
 // drop rather than a rare one. The find mints a handful of pellets
 // with it - few enough that the weapon still sends you looking.
 export const FIND_MIN_TIER = 4;
-export const FIND_PELLETS = Object.freeze({ min: 6, max: 18 });
+/** PELLETS-SCARCE: the Dwemer find's own curve, per mille of a list (lootRarity.js uniqueFindChance - UNIQUE_WEIGHTS'
+ *  shape) - and the tier it begins at. */
+export const PELLET_FIND_WEIGHTS = Object.freeze({ base: 6, perTier: 2.5, cap: 60 });
+export const PELLET_FIND_MIN_TIER = 1;
+/** PELLETS-SCARCE: a Dwemer find's stack. */
+export const PELLET_FIND_STACK = Object.freeze({ min: 4, max: 12 });
+// PISTOLET (2026-10-21, the owner: "make the thunderlock in general more rare along with the new hand cannon" - each
+// "Half as often"): ONE GUN FIND, the Thunderlock's own at its old weight, and the gun it mints is either gun, each
+// GUN_SHARE of the time. AUDIT PISTOLET (A5, A8, C2, C3, D6, D29): two finds at half weight were neither half nor stable
+// - the 6 per mille cap and Luck's nudge are each find's, unscaled by the weight (a tier-14 boss turned up a gun TWICE
+// as often, the Thunderlock no rarer at all), and the second find's roll moved every later draw of every seeded loot
+// list (Loot-II-Arc law 9: seed 43 grew a Welkynd Stone). One find draws what the Thunderlock's always drew - its roll,
+// then ONE draw in the mint, which picks the gun and counts the Pellets both - so every seed is its seed, and each gun
+// is exactly half the old chance at every source, cap and Luck included.
+//
+// GUNS-UNFOUND (2026-10-23, the owner: "remove the thunderlock and pistolet from the loot pool ... Dont remove them from
+// players who have them, but it should no longer be able to drop. Ammo should still drop"): no gun comes with the find.
+// A gun already held is the player's still: its templates, its art and its laws stay. The guns drop again in one place
+// alone - the Dwarven airship's spoils (KETCH, systems/ketch/ketchSpoils.js; bible/11-Multiplayer/Sky-Ketch.md).
+//
+// PELLETS-SCARCE (2026-10-24, the owner: "Remove their ammo from shops and only have ammo has a rare resource drop (not
+// super duper rare but still rare)"): THE PELLET IS ITS OWN FIND NOW, and the gun's old find mints nothing.
+//   - THE OLD FIND'S PLACE, KEPT. It stays registered at its weight, its tier and its place among the finds, and when it
+//     fires its mint still takes its ONE draw - so every seeded list draws exactly what it drew (Loot-II-Arc law 9) - but
+//     it hands nothing over: its curve was the rarest in the game, the gun's, and the shot is not the gun.
+//   - THE DWEMER FIND (`dwemer-pellets`, below): a FINAL find - the loot door's last draw, after the technique's
+//     (lootRarity.js rollFinalFinds) - on a curve of its own, PELLET_FIND_WEIGHTS: from source tier 1 (a rat's nest
+//     never), about 1% a list there, 2% at tier 6, 3% at tier 10, 4% at tier 14 and 6% at most, a pile's x1.3 and a
+//     boss's x2.5 under the same 6%, Luck's nudge as every find's. Rare - a few lists in a hundred - and never the gun's
+//     one in a thousand. It mints PELLET_FIND_STACK, one draw counting them.
+//   - No shelf sells one (systems/shopStock.js, PELLETS-SCARCE). The airship's hold pays every share 20 to 40 from her own
+//     foundry (systems/ketch/ketchSpoils.js KT_SPOILS_PELLETS - her constructs drop nothing, the relay runs them), and
+//     they pass between players by trade.
 
 // The pellet is AMMUNITION: never rarity-promoted, for the Arrow's own
 // reason - promoting a stack enchants it, and an enchanted item does
@@ -311,13 +367,20 @@ export const FIND_PELLETS = Object.freeze({ min: 6, max: 18 });
 registerAmmunition(PELLET_TEMPLATE);
 
 registerUniqueFind({
-  id: 'dwarven-thunderlock',
+  id: 'dwarven-thunderlock',   // its id kept: the find's place, not its prize (GUNS-UNFOUND)
   minTier: FIND_MIN_TIER,
-  weight: 1,
   mint: (rolls = Math.random) => {
-    const n = FIND_PELLETS.min + Math.floor(rolls() * (FIND_PELLETS.max - FIND_PELLETS.min + 1));
-    return [createThunderlock(), createPellets(n)];
+    // ONE draw, as it always drew (law 9); GUNS-UNFOUND: no gun - PELLETS-SCARCE: and no Pellets, which are their own find
+    rolls();
+    return [];
   },
+});
+/** PELLETS-SCARCE: one Dwemer find's stack, counted on one draw. */
+export const pelletFindStack = (rolls = Math.random) => PELLET_FIND_STACK.min
+  + Math.min(PELLET_FIND_STACK.max - PELLET_FIND_STACK.min, Math.floor(rolls() * (PELLET_FIND_STACK.max - PELLET_FIND_STACK.min + 1)));
+registerUniqueFind({
+  id: 'dwemer-pellets', final: true, minTier: PELLET_FIND_MIN_TIER, weights: PELLET_FIND_WEIGHTS,
+  mint: (rolls = Math.random) => [createPellets(pelletFindStack(rolls))],
 });
 
 /** And its LEGENDARY record, for the roll that finds one and then
@@ -325,7 +388,9 @@ registerUniqueFind({
  *  own case - it is already the hardest hitter, so its signature is
  *  what it does to the user rather than more damage. */
 registerLegendary({
-  id: 'the-last-lock', name: 'The Last Lock', group: WEAPON_GROUP, templates: [THUNDERLOCK_TEMPLATE],
+  // AUDIT PISTOLET C5: both guns - a Pistolet claimed by no exclusive record rolled up every time as Wyrmbane, "Forged
+  // for a dragon hunt" with Fire Storm (824 of 824), exactly what `exclusive` is for
+  id: 'the-last-lock', name: 'The Last Lock', group: WEAPON_GROUP, templates: [THUNDERLOCK_TEMPLATE, PISTOLET_TEMPLATE],
   exclusive: true,   // a gun does not roll up as a blade forged for a dragon hunt
   affixes: [
     { id: 'damage', value: 20 },
@@ -339,7 +404,7 @@ registerLegendary({
   // a unique find of no family, where its codex row says it is found
   power: Object.freeze({ name: 'Dwemer Defiance', kind: 'bane', foes: FOE_FAMILIES.daedra, pct: 50,
     brief: '+50% vs daedra and atronachs', text: 'Its shots deal 50% more damage to daedra, atronachs, imps and gargoyles. The Dwemer knelt to none of them' }),
-  hint: 'Said to turn up anywhere, once in a great while',
+  hint: 'No longer found',   // GUNS-UNFOUND: no gun drops, so none rolls up as it - a held one keeps it
 });
 
 // ── THE SOUND ───────────────────────────────────────────────────────
@@ -460,11 +525,15 @@ export function thunderlockMuzzleLight(entity, feet, yaw = 0) {
   const f = [sy, 0, cy];              // forward
   const r = [cy, 0, -sy];             // right
   const o = MUZZLE_OFFSET;
+  // PISTOLET: the side the flash is on - a pair's left pistol fires from the left hand - and the gun's own reach (the
+  // Pistolet's PISTOLET_FEEL.flashRange), both parked by the rig beside the glow
+  const side = entity._thunderlockFlashSide === -1 ? -1 : 1;
+  const reach = entity._thunderlockFlashRange ?? GUN_FEEL.flashRange;
   return {
-    x: feet[0] + r[0] * o.right + f[0] * o.forward,
+    x: feet[0] + r[0] * o.right * side + f[0] * o.forward,
     y: feet[1] + o.up,
-    z: feet[2] + r[2] * o.right + f[2] * o.forward,
-    range: GUN_FEEL.flashRange * glow,
+    z: feet[2] + r[2] * o.right * side + f[2] * o.forward,
+    range: reach * glow,
     color: orbColour(),   // FIELD-GUN17: `withPlayerLights` takes a light's own colour where it has one
     // MAC-T1: a flash in your own hand gets no bloom glare either -
     // the same exemption the carried torch takes, for the same reason

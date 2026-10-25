@@ -50,7 +50,7 @@
 // EVERY CLOCK IS AN ARGUMENT, as in accounts.js.
 // ═══════════════════════════════════════════════════════════════════
 import { accountKind, mintId, overRate } from './accounts.js';
-import { canModerate } from './titles.js';
+import { canModerate, isDeveloper } from './titles.js';
 import { marksOpenFor, balanceOf } from './marks.js';
 import { boardOpenFor } from './board.js';
 import { titheAt } from './seatHolding.js';   // SEAT1d: the bailiwick's Tithe
@@ -74,7 +74,7 @@ import { CHAR_ID_RE, readAll } from './service.js';   // MARKET-SPEED: a read's 
 import { MARKS_MAX, MARK_WORTH_GOLD, utcDay } from '../../src/net/marksLaw.js';
 import { STORES_MAX } from '../../src/net/professionLaw.js';
 import { material, regionOk, WITNESS } from '../../src/net/nodeLaw.js';
-import { recipeById, RECIPES } from '../../src/net/recipeLaw.js';
+import { RECIPES, recipeById } from '../../src/net/recipeLaw.js';
 import {
   MARKET_LISTING_S, MARKET_ORDER_S, MARKET_ORDERS_MAX, MARKET_POSTS_MAX, MARKET_OPS_MAX, MARKET_WINDOW_S,
   MARKET_SHOWN, MARKET_HISTORY_SHOWN, MARKET_TRADES_SHOWN, MARKET_MEDIAN_DAYS, MARKET_KEEP_DAYS, MARKET_RID_RE, MARKET_ID_RE,
@@ -86,6 +86,7 @@ import {
   goodRefusal, goodFamily, GOOD_GROUP_FAMILIES, MARKET_HELD_MAX,   // MARKET-ANY
   fillTaxOn,   // MARKET-AUDIT S2
   wearOf,   // INT19: a crafted piece's wear, its record's
+  marketPageOf, marketSortOf, marketQualityOf, recipesNamed, marketRecipesOf,   // BOARD-SIFT: a page, its order, a search's recipes
 } from '../../src/net/marketLaw.js';
 import { MASTERWORK, PROVENANCE_RE } from '../../src/net/recipeLaw.js';
 import { mintVersionOf } from '../../src/net/productRecord.js';   // CRAFT-PROCS: a piece's mint version, its record's
@@ -94,6 +95,7 @@ import { prepareCraftedPiece, pieceComingBack } from './craftedPiece.js';   // I
 import { vendorOf, VENDOR_STATION, VENDOR_LISTING_S, VENDOR_STOCK_SHOWN, VENDOR_STOCK_MAX, VENDOR_BOARD_SHOWN } from '../../src/net/vendorLaw.js';   // HOME-VENDOR: a home's trader
 import { tradeActStatements, patronActStatements } from './townEcon.js';   // TOWN-ECON TE2: a trader's sale and a patron's, counted at their town
 import { shapeOf, keptFits } from './keptBoard.js';   // AUDIT LEAN-READS B1/B10: a kept board's shape, and its bound in bytes
+import { auditStatement } from './staff.js';   // STAFF-PANEL3-REALM: a removal's audit row (read at a call, never at load)
 
 const DAY_S = 86_400;
 /** GOLD-MARKET: the Stores origin of units bought in the row's own currency (a listing's or a sale's `currency`). */
@@ -120,6 +122,13 @@ const shut = (player, env) => (marketOpenFor(player, env) ? null : { error: 'mar
  *  query joins it as `d` to its home `h`. */
 const VENDOR_STANDS_SQL = `d.map_id = ?1 AND d.id = ?2 AND d.yard = 0 AND json_extract(d.place, '$.station') = '${VENDOR_STATION}'`;
 const idOk = (id) => typeof id === 'string' && MARKET_ID_RE.test(id);
+/** STAFF-PANEL3-REALM (design doc weak spots, "Freeze and trade holds": "A banned, frozen or held player's market listings
+ *  keep selling. Buys and bids check the seller's hold, ban and freeze"): 1 when the seller of listing or auction `x` may
+ *  sell nothing now - its account banned, or the character it listed from held (realm.js holdStandsSql, the patrons'
+ *  own) - `now` the SQL of the time. Read with the row a buy or a bid reads, so it costs no round trip. The freeze joins
+ *  it beside the ban (the freeze's own build). */
+export const sellerStoppedSql = (/** @type {string} */ x, /** @type {string} */ now) => `(EXISTS (SELECT 1 FROM players sp WHERE sp.id = ${x}.seller AND sp.banned_until > ${now})
+  OR EXISTS (SELECT 1 FROM realm_characters sc WHERE sc.id = ${x}.char_id AND sc.player = ${x}.seller AND ${holdStandsSql('sc', now)}))`;
 /** An account a week registered may witness (SEAT0 3.2), as a harvest's does. */
 const witnessOf = (player, nowS) => (Number.isSafeInteger(player.registered_at) && player.registered_at <= nowS - WITNESS.ageS ? 1 : 0);
 
@@ -211,6 +220,26 @@ const GOODS_FAMILY_SQL = `CASE WHEN json_valid(item) THEN CASE json_extract(item
 const RECIPE_FAMILY_KEYS = new Map([...new Set(RECIPES.map((r) => r.family))]
   .map((family) => [family, JSON.stringify(RECIPES.filter((r) => r.family === family).map((r) => r.id))]));
 const recipeFamilyKeys = (family) => family ? (RECIPE_FAMILY_KEYS.get(family) ?? '[]') : null;
+/** BOARD-SIFT: THE RECIPES A READ OF PIECES ASKS, one bound JSON array, so a page is a page: its family's (a family that is
+ *  no string, or not `listed`, names none - recipeFamilyKeys' law), narrowed to a search's recipes (`recipes`, the
+ *  client's reading of its words - marketLaw recipesNamed over the names the rows wear, AUDIT BOARD-SIFT; null for no
+ *  search); `listed` the families a view lists (Crafted's CRAFTED_FAMILIES - the filter that ran after the cutoff), null
+ *  for a view that lists every recipe and an unknown one too (Auctions), which is unfiltered (null) where nothing
+ *  narrows it. */
+const CRAFTED_LISTED = Object.freeze(CRAFTED_FAMILIES.map(([f]) => f));
+function pieceKeys(family, recipes, listed = null) {
+  if (family && (typeof family !== 'string' || (listed && !listed.includes(family)))) return '[]';
+  if (!recipes) return family ? recipeFamilyKeys(family) : listed ? JSON.stringify(recipesNamed('', listed)) : null;
+  const families = family ? [family] : listed;
+  return JSON.stringify(recipes.filter((id) => !families || families.includes(recipeById(id)?.family ?? '')));
+}
+/** BOARD-SIFT: each view's orders as SQL - source-owned, chosen by marketLaw marketSortOf's word, never a bound value; each
+ *  ends on the row's id, so a page never shares a row with the next. */
+const PIECE_ORDER = Object.freeze({ cheap: 'l.price, l.at, l.id', dear: 'l.price DESC, l.at, l.id', new: 'l.at DESC, l.id', quality: 'p.quality DESC, l.price, l.at, l.id' });
+const AUCTION_ORDER = Object.freeze({ ending: 'a.ends_at, a.at, a.id', cheap: 'COALESCE(a.high, a.opening), a.ends_at, a.id',
+  dear: 'COALESCE(a.high, a.opening) DESC, a.ends_at, a.id', new: 'a.at DESC, a.id' });
+/** BOARD-SIFT: a page's rows - MARKET_SHOWN of them, `page` pages in. */
+const pageSql = (page) => `LIMIT ${MARKET_SHOWN} OFFSET ${marketPageOf(page) * MARKET_SHOWN}`;
 function listingView(l, me, extra = {}) {
   return {
     id: l.id, kind: l.kind, region: Number(l.region), ...(l.material ? { material: l.material } : {}),
@@ -614,9 +643,13 @@ function mediansFrom(keys, /** @type {any[]} */ results, today) {
 /**
  * THE MARKET TAB: `{ character, region, view, family?, tier?, material?, hubs? }` - the board's region and one of its
  * views (marketLaw MARKET_VIEWS), after the account's own market is settled. Every answer carries what is on its way
- * to the account, its balance and its live counts.
+ * to the account, its balance and its live counts. BOARD-SIFT: a paged view (MARKET_PAGED_VIEWS) reads its `page`
+ * (`page` and `total` in the answer), Crafted, Goods and Auctions their `sort`, Crafted and Auctions a search's `recipes`
+ * (AUDIT BOARD-SIFT: the client's reading of its words) and Crafted the least `quality` - each read by marketLaw's own
+ * word, anything else its default.
  */
-export async function marketRead(ctx, player, env, { character, region, view, family = null, tier = null, material: key = null, materials = null, hubs, currency = 'marks', pieces = null, board = null } = {}) {
+export async function marketRead(ctx, player, env, { character, region, view, family = null, tier = null, material: key = null, materials = null, hubs, currency = 'marks', pieces = null, board = null,
+  page: pageAsked = 0, sort: sortAsked = null, recipes: recipesAsked = null, quality: qualityAsked = 0 } = {}) {
   const { db, nowS } = ctx;
   const refused = asks(player, { character, needRid: false });
   if (refused) return refused;
@@ -639,6 +672,10 @@ export async function marketRead(ctx, player, env, { character, region, view, fa
   const today = utcDay(nowS);
   const own = hubsOf(hubs);
   const moderator = canModerate(player, env);
+  // BOARD-SIFT: what the paged views read - each by the law's own word
+  const page = marketPageOf(pageAsked), sort = marketSortOf(view, sortAsked), recipes = marketRecipesOf(recipesAsked), quality = marketQualityOf(qualityAsked);
+  /** BOARD-SIFT: a paged view's answer's page and its whole count (MARKET_PAGED_VIEWS - each reads its COUNT beside its rows). */
+  const paged = (/** @type {any[]} */ [counted] = []) => ({ page, total: Number(counted?.n ?? 0) });
   // AUDIT 30 U1: this character's Stores the settle moved, answered so the pages read them
   const stores = await Promise.all([...touched].map((t) => t.split('|')).filter(([c]) => c === character).map(([c, m]) => storeOf(db, me, c, m)));
   /** MARKET-SPEED: THE VIEW'S ROWS AND THE ACCOUNT'S OWN, ONE BATCH - `reads` the view's statements, answered in order
@@ -724,46 +761,53 @@ export async function marketRead(ctx, player, env, { character, region, view, fa
     };
   }
   if (view === 'crafted') {
-    const { rows: [results], base } = await read([db.prepare(`SELECT l.*, p.recipe, p.quality, p.seed, p.maker, p.marked, p.dye, p.hand, p.record, p.template, p.material AS dfu_material
-      FROM market_listings l JOIN products p ON p.provenance = l.provenance
+    // BOARD-SIFT: every filter in the query - the family, the crafted families alone (they were kept after a 500-row
+    // cutoff), a search's recipes and the least quality - so a page of it is a page; and its whole count
+    const keys = pieceKeys(family, recipes, CRAFTED_LISTED);
+    const from = `FROM market_listings l JOIN products p ON p.provenance = l.provenance
       WHERE l.state = 'open' AND l.kind = 'piece' AND l.expires_at > ?1 AND l.currency = '${currency}'
-        AND (?2 IS NULL OR p.recipe IN (SELECT value FROM json_each(?2)))
-      ORDER BY l.price, l.at LIMIT 500`).bind(nowS, recipeFamilyKeys(family))]);   // GOLD-MARKET
-    const famOk = (f) => !family || f === family;
-    const rows = results.filter((l) => famOk(recipeById(l.recipe)?.family ?? null) && CRAFTED_FAMILIES.some(([f]) => f === recipeById(l.recipe)?.family))
-      .slice(0, MARKET_SHOWN);
+        AND p.recipe IN (SELECT value FROM json_each(?2)) AND (?3 = 0 OR p.quality >= ?3)`;   // GOLD-MARKET
+    const { rows: [counted, rows], base } = await read([db.prepare(`SELECT COUNT(*) AS n ${from}`).bind(nowS, keys, quality),
+      db.prepare(`SELECT l.*, p.recipe, p.quality, p.seed, p.maker, p.marked, p.dye, p.hand, p.record, p.template, p.material AS dfu_material
+      ${from} ORDER BY ${PIECE_ORDER[/** @type {keyof typeof PIECE_ORDER} */ (sort)]} ${pageSql(page)}`).bind(nowS, keys, quality)]);
     const { quotes, reports } = await after({ quoted: rows, reported: rows.map((l) => l.id) });
     return {
-      ...base,
+      ...base, ...paged(counted),
       rows: rows.map((l, i) => listingView(l, me, {
         road: quotes[i], piece: pieceOf({ ...l, material: l.dfu_material }, l.wear), ...(moderator ? { reports: reports.get(l.id) ?? 0 } : {}),
       })),
     };
   }
   if (view === 'goods') {
-    // MARKET-ANY: every piece listed from a pack, cheapest first, each with its courier to this board - for gold alone
+    // MARKET-ANY: every piece listed from a pack, in the order asked (the cheapest first, its own), each with its courier
+    // to this board - for gold alone
     // Legacy truthy non-string filters match nothing; never pass their objects/arrays to a D1 binding.
     const familyFilter = family ? (typeof family === 'string' ? family : '') : null;
-    const { rows: [results], base } = await read([db.prepare(`SELECT * FROM market_listings WHERE state = 'open' AND kind = 'item' AND expires_at > ?1
-      AND (?2 IS NULL OR (${GOODS_FAMILY_SQL}) = ?2)
-      AND vendor_id IS NULL ORDER BY price, at LIMIT 500`).bind(nowS, familyFilter)]);   // HOME-VENDOR: a trader's stock stands at it alone
-    const rows = results.filter((l) => { const it = goodOf(l.item); return !!it && (!family || goodFamily(it) === family); }).slice(0, MARKET_SHOWN);
+    // BOARD-SIFT: a record goodOf would refuse is left out in the query too (an object's JSON alone), so a page is a page
+    const from = `FROM market_listings l WHERE state = 'open' AND kind = 'item' AND expires_at > ?1
+      AND (CASE WHEN json_valid(item) THEN json_type(item) = 'object' ELSE 0 END) AND (?2 IS NULL OR (${GOODS_FAMILY_SQL}) = ?2)
+      AND vendor_id IS NULL`;   // HOME-VENDOR: a trader's stock stands at it alone
+    const { rows: [counted, results], base } = await read([db.prepare(`SELECT COUNT(*) AS n ${from}`).bind(nowS, familyFilter),
+      db.prepare(`SELECT * ${from} ORDER BY ${PIECE_ORDER[/** @type {keyof typeof PIECE_ORDER} */ (sort)]} ${pageSql(page)}`).bind(nowS, familyFilter)]);
+    const rows = results.filter((l) => { const it = goodOf(l.item); return !!it && (!family || goodFamily(it) === family); });
     const { quotes, reports } = await after({ quoted: rows, reported: rows.map((l) => l.id) });
-    return { ...base, rows: rows.map((l, i) => listingView(l, me, { road: quotes[i], ...(moderator ? { reports: reports.get(l.id) ?? 0 } : {}) })) };
+    return { ...base, ...paged(counted), rows: rows.map((l, i) => listingView(l, me, { road: quotes[i], ...(moderator ? { reports: reports.get(l.id) ?? 0 } : {}) })) };
   }
   if (view === 'auctions') {
     // PROF5b: every open auction, ending soonest first, each with its courier to this board (one piece)
-    const { rows: [results], base } = await read([db.prepare(`SELECT a.*, p.recipe, p.quality, p.seed, p.maker, p.marked, p.dye, p.hand, p.record, p.template, p.material AS dfu_material,
-        (SELECT bidder FROM market_bids WHERE id = a.high_bid) AS high_bidder
-      FROM market_auctions a JOIN products p ON p.provenance = a.provenance
+    // BOARD-SIFT: a page of them, the family's and a search's recipes in the query (unfiltered, an unknown piece's too,
+    // where neither narrows it), in the order asked
+    const keys = pieceKeys(family, recipes);
+    const from = `FROM market_auctions a JOIN products p ON p.provenance = a.provenance
       WHERE a.state = 'open' AND a.ends_at > ?1
-        AND (?2 IS NULL OR p.recipe IN (SELECT value FROM json_each(?2)))
-      ORDER BY a.ends_at, a.at LIMIT 500`).bind(nowS, recipeFamilyKeys(family))]);
-    const famOk = (f) => !family || f === family;
-    const rows = results.filter((a) => famOk(recipeById(a.recipe)?.family ?? null)).slice(0, MARKET_SHOWN);
+        AND (?2 IS NULL OR p.recipe IN (SELECT value FROM json_each(?2)))`;
+    const { rows: [counted, rows], base } = await read([db.prepare(`SELECT COUNT(*) AS n ${from}`).bind(nowS, keys),
+      db.prepare(`SELECT a.*, p.recipe, p.quality, p.seed, p.maker, p.marked, p.dye, p.hand, p.record, p.template, p.material AS dfu_material,
+        (SELECT bidder FROM market_bids WHERE id = a.high_bid) AS high_bidder
+      ${from} ORDER BY ${AUCTION_ORDER[/** @type {keyof typeof AUCTION_ORDER} */ (sort)]} ${pageSql(page)}`).bind(nowS, keys)]);
     const { quotes, auctionReports: reported } = await after({ quoted: rows, auctions: rows.map((a) => a.id) });
     return {
-      ...base,
+      ...base, ...paged(counted),
       rows: rows.map((a, i) => auctionView(a, me, {
         road: quotes[i], piece: pieceOf({ ...a, material: a.dfu_material }, a.wear), leading: a.high_bidder === me,
         ...(moderator ? { reports: reported.get(a.id) ?? 0 } : {}),
@@ -810,10 +854,13 @@ export async function marketRead(ctx, player, env, { character, region, view, fa
     // region pays the courier out of its pay) - MARKET-AUDIT S4: a family's chosen in the query, before the cutoff, as the
     // Materials view's (a hundred dearer orders of any other family hid it)
     const familyKeys = family ? JSON.stringify([...marketCatalogue().map((c) => c.key), ...UNYIELDED].filter((k) => material(k)?.family === family)) : null;
-    const { rows: [rows], base } = await read([db.prepare(`SELECT * FROM market_orders WHERE state = 'open' AND expires_at > ?1
-      AND (?2 IS NULL OR material IN (SELECT value FROM json_each(?2))) ORDER BY price DESC, at LIMIT ${MARKET_SHOWN}`).bind(nowS, familyKeys)]);
+    // BOARD-SIFT: a page of them, and their whole count
+    const from = `FROM market_orders WHERE state = 'open' AND expires_at > ?1
+      AND (?2 IS NULL OR material IN (SELECT value FROM json_each(?2)))`;
+    const { rows: [counted, rows], base } = await read([db.prepare(`SELECT COUNT(*) AS n ${from}`).bind(nowS, familyKeys),
+      db.prepare(`SELECT * ${from} ORDER BY price DESC, at, id ${pageSql(page)}`).bind(nowS, familyKeys)]);
     const { quotes, medians } = await after({ quoted: rows, medianKeys: [...new Set(rows.map((o) => o.material))] });
-    return { ...base, orders: rows.map((o, i) => ({ ...orderView(o, me), road: quotes[i] })), medians: Object.fromEntries(medians) };
+    return { ...base, ...paged(counted), orders: rows.map((o, i) => ({ ...orderView(o, me), road: quotes[i] })), medians: Object.fromEntries(medians) };
   }
   // history - kept 90 days (section 20); SCALE4b: pruned by the service's clock (pruneMarketHistory), never this read
   // GOLD-MARKET: the History in the view's currency - gold's own table, never the Drakes'
@@ -1067,12 +1114,13 @@ async function listGood(ctx, player, env, { character, region, item, pick, price
   if (prior) return answer(prior, { repeat: true });
   const closed = shut(player, env);
   if (closed) return closed;
-  // HOME-VENDOR: a piece stocked at the seller's own trader - its home's region the listing's, its stall its only door
+  // HOME-VENDOR: a piece stocked at the seller's own trader - its home's region the listing's, its stall its only door.
+  // ACCOUNT-HOMES (2026-10-06): a trader of a home of the seller's ACCOUNT, any character of it (homes.js; a hall's none)
   const vend = vendor == null ? null : vendorOf(vendor);
   if (vendor != null && !vend) return { error: 'bad-vendor' };
   if (vend) {
     const h = await db.prepare(`SELECT h.region FROM home_decor d JOIN homes h ON h.map_id = d.map_id AND h.building_key = d.building_key
-      WHERE ${VENDOR_STANDS_SQL} AND h.player = ?3 AND h.char_id = ?4`).bind(vend.map, vend.id, me, character).first();
+      WHERE ${VENDOR_STANDS_SQL} AND h.player = ?3 AND h.guild_id IS NULL AND (h.deed = 0 OR h.char_id = ?4)`).bind(vend.map, vend.id, me, character).first();
     if (!h) return { error: 'vendor-not-yours' };
     region = Number(h.region);
   }
@@ -1117,7 +1165,7 @@ async function listGood(ctx, player, env, { character, region, item, pick, price
       db.prepare(`INSERT OR IGNORE INTO market_listings (id, seller, char_id, region, kind, units, own, bought, price, fee, at, expires_at, rid, n, currency, item, vendor_map, vendor_id)
         SELECT ?3, ?1, ?2, ?4, 'item', 1, 1, 0, ?5, ?6, ?7, ?8, ?9, ?10, 'gold', ?11, ?13, ?14 WHERE ${vend ? stallSalesSql() : openSalesSql('?7')} < ?12
           AND (?14 IS NULL OR EXISTS (SELECT 1 FROM home_decor d JOIN homes h ON h.map_id = d.map_id AND h.building_key = d.building_key
-            WHERE d.map_id = ?13 AND d.id = ?14 AND d.yard = 0 AND json_extract(d.place, '$.station') = '${VENDOR_STATION}' AND h.player = ?1 AND h.char_id = ?2))`)
+            WHERE d.map_id = ?13 AND d.id = ?14 AND d.yard = 0 AND json_extract(d.place, '$.station') = '${VENDOR_STATION}' AND h.player = ?1 AND h.guild_id IS NULL AND (h.deed = 0 OR h.char_id = ?2)))`)
         .bind(me, character, id, region, price, listingFee(price), nowS, nowS + (vend ? VENDOR_LISTING_S : MARKET_LISTING_S), rid, nonce, JSON.stringify(moved), listingsMax,
           vend?.map ?? null, vend?.id ?? null),
       mustChange(db),   // no listing, no piece out of the record: the record's step rolls back with it
@@ -1197,11 +1245,16 @@ export async function marketBuy(ctx, player, env, { character, region, listing: 
   // MARKET-SPEED: the hour's acts counted and the listing read at once - the hour's refusal still the first word
   const [over, l] = await Promise.all([
     overRate(ctx, `market:${me}`, MARKET_OPS_MAX, MARKET_WINDOW_S),
-    db.prepare('SELECT * FROM market_listings WHERE id = ?1').bind(id).first(),
+    db.prepare(`SELECT l.*, ${sellerStoppedSql('l', '?2')} AS seller_stopped,
+      (SELECT frozen_until FROM players WHERE id = l.seller) AS seller_frozen FROM market_listings l WHERE l.id = ?1`).bind(id, nowS).first(),
   ]);
   if (over) return { error: 'market-rate' };
   if (!l || l.state !== 'open' || Number(l.expires_at) <= nowS) return { error: 'market-gone' };
+  if (Number(l.seller_frozen) > nowS) return { error: 'market-seller-frozen' };   // STAFF-PANEL5-FREEZE: a frozen account's listings sell nothing
   if (l.seller === me) return { error: 'market-own' };
+  // STAFF-PANEL3-REALM: a seller held or banned sells nothing - the word every game already reads for a listing it can no
+  // longer buy (a word of its own would need its text in every language the game ships)
+  if (Number(l.seller_stopped)) return { error: 'market-gone' };
   // HOME-VENDOR: a trader's piece is bought at its trader alone - the buyer's word names the listing's own stall, in its
   // home's region, and the stall still stands; any other listing is no trader's
   const vend = vendor == null ? null : vendorOf(vendor);
@@ -1901,9 +1954,12 @@ export async function marketBid(ctx, player, env, { character, region, auction: 
   if (!idOk(id)) return { error: 'bad-listing' };
   if (!bidOk(amount)) return { error: 'bad-bid' };   // AUDIT 31 L6: a bid's bound is the Marks cap, never a price's
   if (await overRate(ctx, `market:${me}`, MARKET_OPS_MAX, MARKET_WINDOW_S)) return { error: 'market-rate' };
-  const a = await db.prepare(`SELECT a.*, (SELECT bidder FROM market_bids WHERE id = a.high_bid) AS high_bidder FROM market_auctions a WHERE a.id = ?1`).bind(id).first();
+  const a = await db.prepare(`SELECT a.*, (SELECT bidder FROM market_bids WHERE id = a.high_bid) AS high_bidder, ${sellerStoppedSql('a', '?2')} AS seller_stopped,
+    (SELECT frozen_until FROM players WHERE id = a.seller) AS seller_frozen FROM market_auctions a WHERE a.id = ?1`).bind(id, nowS).first();
   if (!a || a.state !== 'open' || Number(a.ends_at) <= nowS) return { error: 'market-gone' };
+  if (Number(a.seller_frozen) > nowS) return { error: 'market-seller-frozen' };   // STAFF-PANEL5-FREEZE: nor its auctions
   if (a.seller === me) return { error: 'market-own' };
+  if (Number(a.seller_stopped)) return { error: 'market-gone' };   // STAFF-PANEL3-REALM: a seller held or banned (sellerStoppedSql)
   if (a.high_bidder === me) return { error: 'auction-leading' };
   const high = a.high == null ? null : Number(a.high);
   const next = auctionNext(high, Number(a.opening));
@@ -2004,19 +2060,49 @@ export async function marketReport(ctx, player, env, { listing: id } = {}) {
   return { ok: true };
 }
 
-/** REMOVE: `{ listing }` - a moderator's: the listing off every board, its goods returned on its seller's next read.
- *  PROF5b: an auction likewise - its standing bid voided (its escrow back on its bidder's read), its piece returned. */
-export async function marketRemove(ctx, player, env, { listing: id } = {}) {
+/** REMOVE: `{ listing }` - a developer's: the listing off every board, its goods returned on its seller's next read.
+ *  PROF5b: an auction likewise - its standing bid voided (its escrow back on its bidder's read), its piece returned.
+ *  STAFF-PANEL2-FIX (design doc "DFO Staff Panel: design", Weak spots: "/v1/mod/ acts are limited to in-game mute and
+ *  ban, and Market Pull is Admin only"): a Moderator no longer pulls a listing - an Admin (DEVELOPER_HANDLES) does.
+ *  STAFF-PANEL3-REALM (design doc "Remove items": "Remove from market: the listing ends and the item does not go back"):
+ *  `keep` - the staff panel's removal: the same end, and the goods marked returned in the statement that ends it (`rn` the
+ *  removal's nonce), so its seller's settle never hands them back; `also(nonce, table)` the panel's own statements for the
+ *  batch (its 30-day store's row, the ledger's mark), each guarded on the nonce. Put back clears the mark (staffRealm.js),
+ *  and the seller's next read settles the goods back as any removal's.
+ *  STAFF-PANEL3-REALM (FLAW REVIEW; design doc weak spots: "Audit rows are written inside the shared act code, so in-game
+ *  ... acts land in the log too"): ONE staff_audit ROW A REMOVAL, whichever door asked it - the staff panel's (`audit`, its
+ *  member, act and words) or the game's (/v1/market/remove: the developer, an Admin) - a refusal 'failed' with its word,
+ *  and the removal's own row in the removal's own batch, 'ok' only where it ended an open listing or auction. */
+export async function marketRemove(ctx, player, env, { listing: id } = {}, { keep = false, also = null, audit = null } = {}) {
   const { db, nowS, rand } = ctx;
-  if (!canModerate(player, env)) return { error: 'not-moderator' };
-  if (!idOk(id)) return { error: 'bad-listing' };
-  const r = await db.prepare(`UPDATE market_listings SET state = 'removed', closed_at = ?2 WHERE id = ?1 AND state = 'open'`).bind(id, nowS).run();
-  if (r.meta?.changes) return { ok: true };
+  if (!isDeveloper(player, env)) return { error: 'not-developer' };
+  /** @type {(how: { target: string|null, okIf?: { sql: string, args: unknown[] }, error?: string }) => any} */
+  const row = audit ?? ((how) => auditStatement(db, nowS, {
+    actor: player, role: 'admin', act: 'market-pull', target: how.target,
+    detail: { listing: String(id ?? '').slice(0, 40), door: 'game', ...(how.error ? { error: how.error } : {}) }, ...(how.okIf ? { okIf: how.okIf } : { outcome: 'failed' }),
+  }));
+  const refuse = async (/** @type {string|null} */ target, /** @type {string} */ error) => { await row({ target, error }).run(); return { error }; };
+  if (!idOk(id)) return refuse(null, 'bad-listing');
+  const at = await db.prepare("SELECT 'listing' AS t, seller, state FROM market_listings WHERE id = ?1 UNION ALL SELECT 'auction', seller, state FROM market_auctions WHERE id = ?1").bind(id).first();
+  if (at?.state !== 'open') return refuse(at?.seller ?? null, 'market-gone');
   const nonce = mintId(rand);
+  const kept = keep ? ', returned = 1, rn = ?3' : '';
+  const more = (/** @type {'listing'|'auction'} */ table) => (also ? also(nonce, table) : []);
+  const written = (/** @type {string} */ table) => row({ target: at.seller, okIf: { sql: `EXISTS (SELECT 1 FROM ${table} WHERE id = ? AND state = 'open')`, args: [id] } });
+  if (at.t === 'listing') {
+    const [, r] = await db.batch([
+      written('market_listings'),
+      db.prepare(`UPDATE market_listings SET state = 'removed', closed_at = ?2${kept} WHERE id = ?1 AND state = 'open'`).bind(id, nowS, ...(keep ? [nonce] : [])),
+      ...more('listing'),
+    ]);
+    return r.meta?.changes ? { ok: true } : { error: 'market-gone' };
+  }
   await db.batch([
-    db.prepare(`UPDATE market_auctions SET state = 'removed', closed_at = ?2, cn = ?3 WHERE id = ?1 AND state = 'open'`).bind(id, nowS, nonce),
+    written('market_auctions'),
+    db.prepare(`UPDATE market_auctions SET state = 'removed', closed_at = ?2, cn = ?3${kept} WHERE id = ?1 AND state = 'open'`).bind(id, nowS, nonce),
     db.prepare(`UPDATE market_bids SET state = 'void' WHERE auction = ?1 AND state = 'high'
       AND EXISTS (SELECT 1 FROM market_auctions WHERE id = ?1 AND cn = ?2 AND state = 'removed')`).bind(id, nonce),
+    ...more('auction'),
   ]);
   const a = await db.prepare('SELECT cn FROM market_auctions WHERE id = ?1').bind(id).first();
   return a?.cn === nonce ? { ok: true } : { error: 'market-gone' };
@@ -2077,7 +2163,9 @@ export async function marketVendors(ctx, player, env, { region, character = null
       GROUP BY map_id, building_key`).bind(player.id, me, nowS),
   ]) : [null, null];
   const board = await vendorBoard(ctx, region);
-  const mate = new Set((mates?.results ?? []).map((/** @type {any} */ m) => `${m.player}\n${m.char_id}`));
+  // ACCOUNT-HOMES (2026-10-06): a house is its ACCOUNT's, so the door's guildmate is a guild shared with any character of
+  // the owner's account - the accounts of the caller's guildmates, not their characters
+  const mate = new Set((mates?.results ?? []).map((/** @type {any} */ m) => m.player));
   const rent = new Map((rooms?.results ?? []).map((/** @type {any} */ r) => [`${r.map_id}:${r.building_key}`, Number(r.until)]));
   const traderOf = (/** @type {any} */ l) => `${l.v_map}:${l.v_key}:${l.v_id}`;
   const shown = new Set(board.newest.map(traderOf));
@@ -2091,8 +2179,8 @@ export async function marketVendors(ctx, player, env, { region, character = null
       return listingView(l, player.id, {
         vendor: { map: Number(l.v_map), id: l.v_id }, map: Number(l.v_map), buildingKey: Number(l.v_key), owner: l.v_owner,
         // the house's door, as the town answer says it to this character (homeMayEnter's own fields)
-        home: { owner: l.v_owner, entry: l.v_entry, mine: l.v_player === player.id && l.v_char === me,
-          ...(l.v_entry === 'guild' && mate.has(`${l.v_player}\n${l.v_char}`) ? { guildmate: true } : {}),
+        home: { owner: l.v_owner, entry: l.v_entry, mine: l.v_player === player.id,   // ACCOUNT-HOMES: the account's own, whichever character bought it
+          ...(l.v_entry === 'guild' && mate.has(l.v_player) ? { guildmate: true } : {}),
           ...(Number.isSafeInteger(tenancy) ? { tenant: tenancy } : {}) },   // the rooms read rents still running alone
       });
     }),
@@ -2186,6 +2274,8 @@ export function vendorBoardOf(/** @type {unknown} */ text) {
  * HOME-VENDOR: MY TRADERS - `{ character }`: the Vendor page's read (the pause window's, beside the Professions). Every
  * trader of this character's homes (where it stands), the pieces standing at them, the pieces they have SOLD (newest
  * first, while the market keeps the sale's listing), and the gold the sales hold to collect at any board.
+ * ACCOUNT-HOMES (2026-10-06): the traders are the ACCOUNT's homes' (every character of it owns them); what stands at
+ * them, what they sold and the gold held stay this character's - a listing is its seller character's goods.
  */
 export async function marketMyVendors(ctx, player, env, { character } = {}) {
   const { db, nowS } = ctx;
@@ -2196,7 +2286,7 @@ export async function marketMyVendors(ctx, player, env, { character } = {}) {
   const me = player.id;
   const { results: traders = [] } = await db.prepare(`SELECT d.map_id, d.id, h.building_key, h.region, h.owner_name, h.player FROM home_decor d
     JOIN homes h ON h.map_id = d.map_id AND h.building_key = d.building_key
-    WHERE h.player = ?1 AND h.char_id = ?2 AND d.yard = 0 AND json_extract(d.place, '$.station') = '${VENDOR_STATION}' ORDER BY h.map_id, d.id`).bind(me, character).all();
+    WHERE h.player = ?1 AND h.guild_id IS NULL AND (h.deed = 0 OR h.char_id = ?2) AND d.yard = 0 AND json_extract(d.place, '$.station') = '${VENDOR_STATION}' ORDER BY h.map_id, d.id`).bind(me, character).all();
   await reckonPatrons(ctx, { maps: [...new Set(traders.map((v) => Number(v.map_id)))] }, env).catch(() => null);   // LW15: my traders' towns' patrons first
   const { results: stock = [] } = await db.prepare(`SELECT * FROM market_listings WHERE seller = ?1 AND char_id = ?2 AND vendor_id IS NOT NULL AND state = 'open'
     AND expires_at > ?3 ORDER BY at DESC LIMIT ${VENDOR_STOCK_SHOWN * 2}`).bind(me, character, nowS).all();

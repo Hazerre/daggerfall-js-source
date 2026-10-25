@@ -1372,6 +1372,176 @@ against the code before anything moved:
 Pins: `test/net/gatherspeed.test.js` (+4: G1, G2, G5, G7). Mutants: eight more in `tools/mutants/gatherspeed.json` (32), and
 the records the fixes moved re-aimed by content - 38 dead, AUDIT29-C4 equivalent as recorded.
 
+### 10.13 BOARD-SIFT - the work sifted and the market paged (2026-10-21)
+
+The owner's screenshot of a thread in the Discord's #feature-feedback ("Notice board market/work writs"), SaberGGaming:
+**"Definitely need sorting/filtering functions for work writs considering there are thousands of them and you have to
+scroll through them all to find what you want. The notice board market also doesnt show everything if there are too
+many weapons/armor/etc listed it stops after a certain number."** TheBard: **"The notice board in general needs some
+TLC. The writs especially."**
+
+FACT, read off the code before anything moved:
+
+- **The Market stopped at a hundred.** Each view answered its first MARKET_SHOWN (100) rows and nothing past them
+  (`server-account/src/market.js` marketRead): Crafted, Goods and Auctions read 500 and kept a hundred, Orders a hundred,
+  and nothing said more stood behind them. Materials differs: its first look is the Bay's cheapest hundred of every
+  material (and this region's fifty), and its search, family and tier choose the materials in the query (AUDIT 30 U2) -
+  any material, each to its own cheapest hundred, its front. It is not paged (AUDIT BOARD-SIFT names what that leaves).
+- **The Work tab was one grid in the service's order**: the Court's and the chapters' writs (6 x max(1, ceil(active / 100)) a
+  region a day, section 11, and each chapter's), then up to fifty guild writs, the contracts, up to fifty commissions -
+  under a panel for each of the region's chapters. An account fills three a day; finding them meant reading all of them.
+
+What changed:
+
+- **The Market turns pages** - Crafted, Goods, Auctions and Orders (`net/marketLaw.js` MARKET_PAGED_VIEWS). The service
+  reads `page` (marketPageOf: 0 to MARKET_PAGES_MAX - 1, 499 - AUDIT BOARD-SIFT: 49 stopped at 5,000 rows; anything
+  else the first) and answers MARKET_SHOWN rows that
+  many pages in, with the whole count (`page`, `total` - one COUNT in the view's own batch, so MARKET-SPEED's three round
+  trips stand). Every filter is in the query so a page is a page: Crafted's crafted-family filter, which ran after the
+  500-row cutoff, is the query's now (`pieceKeys`), and a Goods record goodOf would refuse is left out of the query too.
+  Each order ends on the row's id, so no row stands on two pages. Under the rows (`ui/marketTab.js` pagerNode): Previous,
+  "Page 2 of 7 · 643 in all", Next; a turn reads that page and brings its first row into view; one page draws none.
+- **A search, a least quality, an order.** Crafted and Auctions take a search of the pieces' names, read by the client
+  as the recipes it names - each word somewhere in the recipe's name or in the name its piece wears on the rows, or in
+  either read without its spaces, hyphens and apostrophes (`recipesNamed` over `ui/marketTab.js` recipeShownName,
+  `wordsIn` - AUDIT BOARD-SIFT: 52 recipes' pieces wear another name than their recipe's) - and sent as those recipes
+  (`recipes`), which the service reads within the view's families (`marketRecipesOf`, `pieceKeys`): "mithril sword" names
+  the Mithril Shortsword, Broadsword and Longsword, "iron staff" the Pine Staff its row calls an Iron Staff. Crafted takes the least quality
+  (Standard or better to Masterwork). Crafted, Goods and Auctions take an order (MARKET_SORTS): Cheapest first, the
+  default, still sorted by the landed price within its page (AUDIT 30 U16); Dearest first; Newest first; Best quality
+  first (Crafted); Ending soonest (Auctions' default). Goods takes no search: a pack piece's name is the client's, from the
+  player's own item templates, and the service holds no ARENA2 - its family and its order stand. A change reads the first
+  page; a view opens on its own defaults; a read that asks the defaults asks nothing new, so the request is the one it
+  always was. The market book's minute's cache is keyed by them too (`net/marketBook.js` keyOf).
+- **The Work tab's bar** (`ui/workSift.js`, wired by `ui/noticeWindow.js` workBody; each card handed in as an entry -
+  `writEntry`, `ui/workTab.js` entries): the kind (All work, Court writs, Chapter writs, Guild writs, Guild contracts,
+  Commissions - each with what it would show, the count the search and Only what I can fill leave, a kind with none not
+  offered); a search, each word among the card's words (its material one and many, its kind as its card writes it, its
+  guild and tag, a seat writ's seat and camp or stockpile, a commission's piece, crafter and poster, a contract's region)
+  or its kind's name on the bar; **Only what I can fill** - a Court or chapter writ whose Take
+  would fill it (held whole, the day's three not spent - writNode's own law), a guild writ the reader may deliver to and
+  holds a unit of within the guild Stores' room (`guildWritMost`, the card's Deliver's law), a commission naming the
+  reader with a piece that answers it, a contract never (it is earned in a raid); and the order - Ending soonest (the
+  default, for every kind - the contracts too, which SILVER-WAYS showed best-paying first: AUDIT BOARD-SIFT), Most silver (a guild writ's
+  pay a unit by what it still asks, a contract's pay to one defender), A to Z. The open work stands before the done (a
+  Court writ taken). Forty cards are drawn at once, "Show 40 more" under the last; where nothing matches, "No work
+  matches." and Show all work. The bar's choice is the professions book's for the session (`net/profBook.js`
+  state.workSift), so a board opened again opens on it.
+- **The chapters after the work.** The Merit lines without a card, How chapters work and the chapters' panels stand after
+  the grid and the forms, under "Chapters in Daggerfall" - a panel a chapter stood between the reader and the first writ.
+  What they say and their order among themselves are GUILD3d's and PLAIN-UI's, unchanged. At the merge of CRAFT-WRITS
+  (section 49, built beside this slice): the character's crafting writs stand over the bar under their own head, then
+  "Court and guild writs" over the bar and its grid - never sifted by it: three of the character's own, on their own day.
+- **Words**: 33 keys through the text core (`market.page.*`, `market.sift.*`, `notice.sift.*`, `notice.chapters.head`),
+  the English catalog regenerated (`tools/l10nExtract.mjs`) and drafted in-session for the thirteen whole languages
+  (`tools/l10nInSession.mjs`); the twelve still drafting owe them with the rest of the catalog.
+
+DFU has no member here - the board and its market are the port's own (NOTICE1, PROF5) - and no ledger row moves. THE
+FOUR HOSTS: none is touched; the board is a window its door mounts (`ui/noticeDoor.js`), and the world host's market
+deps are unchanged - the pager and the controls are the tab's own.
+
+Pins: `test/ui/boardsift.test.js` (10) and `test/net/boardsift_market.test.js` (4), as AUDIT BOARD-SIFT left them.
+Three pins moved, each marked PIN MOVED, because the work now stands ending soonest whatever order the service sent it
+in: `test/ui/audit31_tabs.test.js` (U2, U10) picks W2 by its guild and `test/net/prof6_client.test.js` takes the two
+guild writs the other way about - their fixtures list a five-day writ before a two-day one, which the service (soonest
+first) never sends; `test/net/silverways_client.test.js` takes the two contracts the other way about - its fixture is the
+service's own order (best-paying first, `contracts.js` contractBoard), which ending soonest departs from (AUDIT
+BOARD-SIFT, below). `test/net/market_recipe_family_limit.test.js` - the plan's index, the odd families' answers, Auctions'
+unknown piece unfiltered - passes unchanged. Mutants: `tools/mutants/boardsift.json` - its 38 all dead as the slice
+shipped (a 39th written survived and showed the service's paged answer checking its view where only paged views call it
+- the check is gone), 89 since its audit; and 16 records over the code the slice moved, re-aimed by content and judged
+again, all dead.
+
+### AUDIT BOARD-SIFT (2026-10-22, the owner: "Audit this")
+
+Two lanes: the author's own adversarial re-read, and three independent passes that read the commit cold - the service,
+the shared law and the market book; the board as a player meets it (in Chromium, with an IME); the record with its pins
+and mutants (its mutants judged on a copy of the tree) - none touching the tree while the others read. No HIGH. FOUND,
+each fixed and pinned (`test/ui/boardsift.test.js`, `test/net/boardsift_market.test.js`, `tools/mutants/boardsift.json`):
+
+- **MEDIUM - a search missed the names on the rows** (every lane). The search read recipe names; a row names its piece as
+  its record mints it (`scenes/world.js` marketPieceName: itemLongName of mintPiece), and 52 of 818 recipes' pieces wear
+  another: every Wakizashi DFU's "Wakazashi", the staves and bows in metal tiers (a Pine Staff is an "Iron Staff", and
+  "iron staff" found the Ironwood staves, which read "Adamantium Staff"), the Warforged pieces "Ebony"; "shortbow" and
+  "daikatana" found nothing ("Short Bow", "Dai-Katana"). FIXED: the client reads a search as the recipes whose name or
+  whose piece's shown name holds its words - each minted once a recipe and a language, 20 ms for all 819
+  (`ui/marketTab.js` recipeShownName) - each word read without spaces, hyphens and apostrophes too (`net/marketLaw.js`
+  wordsIn), and sends those recipes; the service reads them within the view's families (`marketRecipesOf`, `pieceKeys`),
+  AUDIT 30 U2's way for the materials. Every recipe is found by its own row's name (52 missed, now none); the shown name
+  is the player's language's, so a search in that language finds the piece. The record's "a piece is named by its recipe
+  on both ends" is struck where it stood.
+- **MEDIUM - the currency's switch kept the page** (lanes A and B, the author): Silver page 5 of 7, then Gold - "Page 5 of
+  5 · 30 in all" over no rows, and four presses of Previous to see one. FIXED: it reads from the first page, as every
+  other change does.
+- **MEDIUM - a page an act emptied said the market was empty** (lane B, the author): the one order on Orders page 2
+  filled - "Page 2 of 2 · 100 in all" over "No buy orders right now." FIXED (`ui/marketTab.js` load): a read that finds
+  its page past the last that stands reads that one.
+- **MEDIUM - a word composed was taken mid-word** (lane B, Chromium's IME through its DevTools protocol): the Work tab's
+  search redrew the whole window 150 ms after the keys rested, the field with it, and a phone keyboard's "mithril" with
+  one pause landed "mitmithril" ("みすミスリル" in Japanese); a phone's keyboard plausibly dropped at each pause too.
+  FIXED: the bar's own changes draw the results alone - the grid, "Show more", the bar's counts - never the bar, so the
+  field typed in stays (`ui/noticeWindow.js` workBody's `refresh`); a search waits for a composed word to be whole
+  (`ui/workSift.js` typedField - the market's two searches too); and the window's paint waits while a word is composed
+  in any of its fields (`render`'s `composing`).
+- **MEDIUM - a market list's choice stood behind the old rows** (lane B): MARKET-AUDIT holds a redraw while one of the
+  tab's lists has the focus, and a browser keeps the focus on a list after the choice - an answer the minute's cache gave
+  waited for a click elsewhere: "Cheapest first" over 897, 896, 895 silver. The Family list did the same since
+  MARKET-AUDIT. FIXED: a list a choice was made in is let go (`data-chosen`).
+- **MEDIUM - the default order moved the contracts, and the record said otherwise** (lane C): SILVER-WAYS' contracts came
+  best-paying first (`server-account/src/contracts.js` contractBoard), and the record called their fixture's order one
+  the service never sends. KEPT, and named: ending soonest is the bar's one default for every kind; "Most silver" now
+  orders a contract by what one defender is paid - the old order - where it had taken the pool (pay by defenders left).
+  The pin note is corrected above.
+- **MEDIUM - pins that could not fail** (lane C: 36 of 38 candidate mutants survived). Newest was also cheapest and no
+  auction carried a bid, so Newest, Auctions' Dearest and Newest and the standing bid's Cheapest were unpinned; three of
+  the Work tab's five kinds were never built in their producers' shapes, so a chapter writ counted as the Court's, a
+  commission as a guild's, a contract fillable, a commission's piece unasked, the day's allowance and the reader's own
+  guild dropped from the fill law, and the guild's, seat's, crafter's, poster's and region's words could all go unseen;
+  the order's, quality's and family's page reset; a default order sent; the Orders' count without its family; the
+  pager's cap, floor and scroll; the search's bound; a family Crafted does not list; work with no end; the chapters' head
+  over Merit lines alone. FIXED: a fixture whose every order puts a different row first, auctions with standing bids, two
+  families of orders and an arrows listing Crafted never lists, each order judged against a plain model of it; every kind
+  of work in its producer's shape (`writView`, `guildWritView` with a seat writ, `contractView`, `commissionView`), a
+  commission naming the reader with no piece, the day's three spent, the reader's own guild. 39 records became 89 - 88
+  dead, the id tie-break kept as recorded (equivalent: no row on two pages rests on SQLite answering equal keys alike in
+  two reads, which it does for one plan but does not promise); the five records the audit's own moves touched re-aimed by
+  content (`audit31.json` AUDIT31-tab-two-grids, `audit_chap2.json` T-BOARD-KIND-TEXT, `chap3a.json` CHAP3A-CARD-KIND,
+  `guild3.json` GUILD3a-your-writ-again, `marketaudit2.json` MARKET-AUDIT2-redraw-under-list), all dead; and every record
+  over the files the audit touched, 900, judged again - 886 dead, 13 equivalent as recorded, and one survivor that
+  survives the same on main before BOARD-SIFT (`audit30.json` AUDIT30-S5-a-piece-listed-off-the-road), left to its own arc.
+- **LOW** - a seat writ unfound by "seat", "stockpile" or "camp" (lane B): FIXED, its card's words. "ruby" missing the
+  "Rubies": FIXED, a material one and many. A Court or chapter writ's kind searched in the player's language alone while
+  its card writes it in English (lane B, in German): FIXED, the card's words too. The counts at odds - each kind counted
+  what no filter had left ("Commissions (1)" into "No work matches."), in the browser's numbers: FIXED, what the search
+  and the fill leave, in the player's language's (`currentLocale`); the tab's own count stays the work open to take, as
+  BOARD-UI made it. The focus fell to the page after "Show more" and the pages' presses (lane B): FIXED - the window keeps
+  a press that keys its focus, and Next and Previous take no press while a page is read (disabled, they had lost the
+  focus). "No Court writs in Daggerfall today" under a filter that sifted them away: FIXED. Rows past 5,000 unreachable
+  (every lane): MARKET_PAGES_MAX is 500 - 50,000 rows, past what the Bay holds at thirty listings an account. "Least
+  quality" read as "lowest" in six of the drafts (bg, cs, da, nb, id, ru): redrafted as a minimum. A Merit line's -8px
+  under the chapters' head: FIXED. Stale words - the pager's "none while a page is read", Goods' "cheapest first",
+  section 11's max(1, ...), the commit's "17" records re-aimed (16): corrected.
+
+NOT CHANGED, named:
+- **Pages read by OFFSET, each its own minute's** (lane A): a page cached a minute beside a page read fresh can show a row
+  twice or miss one as listings come and go; a page is whole within one read. A cursor's pages are named, not built.
+- **"Cheapest first" is landed within a page** (lanes A and B): the service pages by the listed price, and the courier's
+  share orders the page it answers (AUDIT 30 U16), so page 2 may begin cheaper landed than page 1 ends. As designed.
+- **A COUNT beside every paged read** (lane A): about twice the rows read for Crafted, Goods and Orders, and Auctions'
+  count walks every open auction where its first page stopped early on its index; every plan is indexed and none scans a
+  table. The count is what says "643 in all".
+- **Materials' first look** (lane C): the Bay's cheapest hundred of every material and this region's fifty - the brief's
+  "stops after a certain number" stands there until a search, a family or a tier is chosen, each of which reaches every
+  material. Its two reads (the Bay's and the region's, MARKET-AUDIT) would page together awkwardly; named.
+- **Goods unsearched**: a pack piece's name comes from the player's own item templates, which the service never holds.
+- **A market list's focus after an answer the cache did not give** (lane B): the window rebuilds the list and the focus
+  falls to the page, as the Family list's did since MARKET-AUDIT; keying the lists would hold every later answer behind
+  MARKET-AUDIT's rule while one keeps the focus.
+- **The live counts rebuilt at each paint** (lane B, plausible): a screen reader may not announce "Showing 40 of 213" or
+  the page's line - the window's whole-paint design (BOARD-UI).
+- **The Work tab's forty at a time is the client's**: the service still sends a region's Court and chapter writs whole,
+  and fifty guild writs and fifty commissions, soonest to end (PROF6's WRIT_SHOWN).
+
 ## 11. Writs - the Work tab
 
 - **Court writs** (the faucet): every region with a seat or hub posts **6 x max(1, ceil(active / 100)) a UTC day** (a
@@ -1403,6 +1573,9 @@ the records the fixes moved re-aimed by content - 38 dead, AUDIT29-C4 equivalent
   the Stores, and the deliverer must stand at that board (the relay knows it). AUDIT 31 R6: as built by PROF6 (28), a
   guild writ is delivered at ANY board of its region, on the client's word - the relay's witness is SEAT1b's, where a
   delivery raises influence; until then a lie buys a fast travel's worth, as a listing's does (26).
+
+- **Crafting writs** (CRAFT-WRITS, section 49): a character's own three a day - a potion, a dish and a kit - asked by the
+  guild that wants them, filled by goods the service saw it make.
 
 ## 12. Why a player comes back
 
@@ -3536,7 +3709,8 @@ Seats-Arc 7.5). What sections 1, 2, 3.3, 4.1, 4.3, 4.5, 9.3 and 9.4 left open fo
   JSON precedent); the deploy's path filter names the three.
 - **The alchemy station** (9.3: "the brewing act at an alchemy station"; `professionLaw.js` ALCHEMY_FEE). DECIDED: an
   **Alchemist's**, open for trade (DFU's own potion seller; its `insideOpenShop` latch), **50 gold a brew** or a
-  transmutation as every station's fee, paid as the potions are bottled - or a home's **`alchemy` station** (HOME-STATIONS'
+  transmutation as every station's fee (**25** since CRAFT-PAYS, 2026-10-21, section 48 - AUDIT CRAFT-WRITS T7), paid as
+  the potions are bottled - or a home's **`alchemy` station** (HOME-STATIONS'
   first, its 50,000 licence; a hall member's). `scenes/worldModes.js` alchemyHere. The station's own press opens DFU's
   potion maker, 1:1 - online it asks first, the maker or the brew on the Stores page (STATION-DOOR,
   `01-Overview/bugs/Field-Bugs-2026-10-11f.md`). The Stores page's **The Alchemy Station**.
@@ -3554,7 +3728,8 @@ Seats-Arc 7.5). What sections 1, 2, 3.3, 4.1, 4.3, 4.5, 9.3 and 9.4 left open fo
   Cook's law), quartered more than two tiers below, **+500 the first** - not for a cauldron wholly of the counter's goods
   (Water Breathing, Levitation: AUDIT 32 S1's law).
 - **The potions a brew makes** (9.3: "2 potions at Journeyman and 3 at Master (Brewer 3 at Journeyman)"): DECIDED **one
-  below Journeyman** - DFU's own maker's one a mix. AUDIT PROF-541 R2-S1: **one at any rank** for a potion wholly of the
+  below Journeyman** - DFU's own maker's one a mix; **two** since CRAFT-PAYS (2026-10-21, section 48 - AUDIT CRAFT-WRITS
+  T7). AUDIT PROF-541 R2-S1: **one at any rank** for a potion wholly of the
   Apothecaries' goods (Water Breathing, Levitation - `brewCount`'s `potion`, `!brewFirstPays`): the counter's silver (a
   fifth of DFU's price) brewed into three potions sold online at half the shop's was gold past the Bank's rate and cap
   (11 silver to 165 gold); the station says it.
@@ -5040,6 +5215,243 @@ hours; `flatLightAt`'s `out`; the draw asking each node's light at its place and
 30 checks (a clear noon's light whole; at night a quarter, its brightest still clear on the picture; a black mine's held
 at the night's by the floor; far, at night, no sheen at any moment it crossed by day - `renderer.flatLightAt` itself
 over the probe's scene); `tools/mutants/nodeglint.json` 107, all dead.
+
+## 48. CRAFT-PAYS and POT-THIN - a crafter's bottle worth brewing, the flood of drops turned down, a cooked meal that weighs what it should (BUILT 2026-10-21)
+
+The Discord's #feature-feedback, TheBard, "Crafting seems unrewarding" (2026-10-21): **"It requires a great deal of
+gathering and then sinking money at the stations. The item I make I can loot with ease"**; Potions: **"I collect so many
+potions from enemy drops that I never need to make potions. I only make them to level the provisioning skill. The profit
+margin is also extremely low or even a loss ... who needs to buy pots when you find them everywhere?"**; Crafting Quests:
+**"crafting writs instead of only gathering writs ... potions of restore power needed by the mages guild. The reward can
+be crafting xp, silver, and rep"**; Food Weight: **"2 kilos per meat ... Or meat should reduce in weight once cooked"**;
+and **"whats the end goal for crafting?"**. The owner, passing it on: **"I definitely want to decrease pot drops on top of
+whatever you suggest relating to the posts"**.
+
+### 48.1 What stood (MEASURED, 2026-10-21)
+
+- **The drops.** A looting foe rolled DFU's random potion (3 in 100, `loot.js` addEnemyLootExtras), then POTION-COMMON's
+  Potion of Healing and MAGICKA-COMMON's Restore Power (`systems/healingSupply.js`) - 10 and 6 in 100 at Renown 20, 12 and
+  9 at Renown 40 (RENOWN-LOOT). **19 potions in 100 looting foes** at Renown 20, 24 at Renown 40; a J-O pile 18 + 10 + DFU's
+  4. The two potions a player drinks most were the two the loot gave most.
+- **The brew.** A Novice's brew (`alchemyLaw.js` brewCount) made **one** potion, for the alchemist's station fee of **50
+  gold** (`professionLaw.js` ALCHEMY_FEE, every station's) and a cauldron of three or four ingredients. A Potion of Healing
+  is DFU's 50 gold and half that at an online counter (ESSENTIALS-HALF): the brew lost money before its herbs were
+  counted, on exactly the rungs a brewer climbs by brewing.
+- **The food.** Climates & Calories' rows (`survival/items.js`, the mod's own `ItemTemplates.json`): a Raw Meat and a Raw
+  Fish **2 kg** each, the cooked Meat **2 kg** and the Cooked Fish **1.5** - the fire took no weight. A cooked Meat feeds
+  240 minutes and a Cooked Fish 200 (`survival/food.js` FOOD - AUDIT CRAFT-WRITS E8: "a cooked meal feeds 240" was the
+  Meat's alone); a meal eaten never banks past the clock (`eatLaw`'s "never a meal in the
+  future", AUDIT SURV-TIERS), so the hours a meal holds are the needs' own ladder - Peckish at 4 hours, Hungry at 12
+  (`needs.js` NEED) - whatever the meal weighs.
+
+### 48.2 What was done
+
+| Slice | What | The numbers |
+|---|---|---|
+| **POT-THIN** | The two potion faucets of `healingSupply.js` cut; DFU's random potion and the counter's shelf untouched | A foe's healing potion 4 in 100 at Renown 20 (it was 10), its Restore Power 2 (6); a J-O pile's 8 (18) and 4 (10). RENOWN-LOOT's ladder on new ends: a foe's healing 3 / 3.5 / 4 / 4.5 / 5 by stage (8-12), its Restore Power 1 to 3 (3-9); a pile's 6 to 10 (15-21) and 2 to 6 (5-15) - `HEALING_ENEMY_CHANCE_BEFORE` 2 and `HEALING_PILE_CHANCE_BEFORE` 4 the step's start (an invented one, below the live game's 6 and 12 - the names kept). **9 potions in 100 looting foes** at Renown 20, 11 at Renown 40 - half what they were (an expected count; at least one on some 8.7 in 100). OFFLINE takes LOOT-EASE's buff whole, so it is cut too - 4 and 2 - its brewer DFU's own potion maker at an Alchemist's (AUDIT CRAFT-WRITS E5: unsaid until the audit). Not touched, and now named: SEARCH1's searchables (`searchables.js` - a shelf's loot roll half random potions, uniform twentieths, so some 0.025 Healing or Restore Power a shelf searched) |
+| **CRAFT-PAYS: the brew** | A Novice's brew two potions; the alchemist's station 25 gold a brew | `brewCount` 2 below Journeyman (1); the rungs above stand - two at Journeyman, a Brewer's three, three at Master - because `prof_brews.count` is CHECKed 1 to 3 (migration 0070), and a fourth is a table's rebuild, not a number's change. The counter's goods still brew one (AUDIT PROF-541 R2-S1). `ALCHEMY_FEE` 25 (50): a brew is a bottle, not a blade - the forge's 50 on a Longsword is a sliver, on a 50-gold potion it was the margin. The same fee is the station's TRANSMUTATION's (`worldModes.js` - AUDIT CRAFT-WRITS T7: it halved too, unsaid until the audit). A home's station stays free |
+| **CRAFT-PAYS: the food** | A cut weighs a kilo, and cooking takes its water | Raw Meat and Raw Fish 1 kg (2), Meat 0.5 (2), Cooked Fish 0.5 (1.5); the dishes stand on these rows (`profTemplates.js` DISH_TEMPLATE_ROWS) - the Stew and the Supper 0.5 (2 and 1.5), the Feast 2 (8); the Tart stays the Bread's 1.5. Weight is read at the template (`inventory.js` unitWeightInKg), so every food already in a pack lightens with it |
+
+Arithmetic at a Novice's station, a Potion of Healing (Red Berries, Mercury, the Apothecaries' Troll's Blood and Elixir
+Vitae - 10 silver at the counter): before, 50 gold and a cauldron for one potion; now 25 gold and the cauldron for two, the
+fee a bottle 12.5 gold where it was 50, and a Brewer at Journeyman 8 a bottle. A brewer's own potions are now the steady
+supply and the drop a windfall - which is what the record already said a crafter's work is for (41.1, "what already
+works: what wears out or is eaten").
+
+**The service.** `brewCount` is the service's law too (`server-account/src/alchemy.js` brewAtStation): a Novice's brew is
+answered two. `ACCOUNT_VERSION` acct169 (acct168 and migration 0144 on its branch, renumbered past STAFF-PANEL1 at the merge). No migration.
+
+### 48.3 What it is for (the record's answer to "whats the end goal for crafting?")
+
+The record has one, and it was never said where a player reads it: **law 7** (section 1) - a craft reaches Rare at most, so
+a crafted piece is never the best a slot holds; loot is the ceiling. Crafting's telos is everything the ceiling is not:
+**what wears out or is eaten** (potions, dishes and the party's Feast, Repair Kits and the tempering that mends what loot
+gives, arrows, a Standard tool's harvests); **the seats' works** (a fortification is stone and timber, SEAT0 7.5); **the
+market** (a Masterwork with your name, commissions, regional prices); and the **Renown** a writ pays. POT-THIN is the first
+change that took a consumable back from the loot so the crafter could supply it; the next ones are 48.4's.
+
+### 48.4 Open, for the owner (DECIDED nothing here)
+
+- **Crafting writs** - BUILT the next day, at the owner's word: section 49 (CRAFT-WRITS).
+- **A meal that holds you longer.** The weight was the complaint's either-or; the other half ("it doesnt fill for very
+  long") is the needs' ladder, not the meal's satiety (48.1) - a change there is the survival arc's, all foods at once.
+- **The other stations' fee.** The forge, the workbench, the loom, the mason's bench and the jeweller's bench keep 50 gold
+  a craft; on their products it is a sliver, so they were left.
+- **The counter's half price** (ESSENTIALS-HALF) still sells a Potion of Healing for 25 gold online - the crafter's floor
+  and ceiling at once. Raising it is the economy arc's call.
+
+### 48.5 As built
+
+- `src/systems/healingSupply.js` (the four chances, the two steps' start), `src/systems/renownLoot.js` (the stage table's
+  two potion columns, a comment).
+- `src/net/alchemyLaw.js` (`brewCount`), `src/net/professionLaw.js` (`ALCHEMY_FEE`), `server-account/src/alchemy.js` (its
+  docblock), `server-account/src/service.js` and `wrangler.toml` (acct169), `src/ui/professions/profPages.js` (a docblock).
+- `src/systems/survival/items.js` (four rows), `vendor/climates-calories/README.md` (nine columns the port changes, not five).
+- **The four hosts**: none touched - the loot hooks are the shared rolls' on every host (`scenes/shared.js`
+  installHealingSupply), the station the pages', the weights the template's.
+- PIN MOVED: `test/systems/potion_common.test.js`, `test/systems/renownloot.test.js` (the potion numbers);
+  `test/systems/prof12_law.test.js`, `test/net/prof12_service.test.js`, `test/systems/prof12_client.test.js` (a Novice's two,
+  25 gold); `test/systems/survival/auditcc_items.test.js`, `test/systems/prof9_client.test.js` (the weights); the account
+  version's pins (acct169). Mutants re-aimed by content: `tools/mutants/potioncommon.json`, `lootease.json`,
+  `renownloot.json` (79, all dead), `prof12.json` (`PROF12-count-novice-one` - the mutant that WAS a Novice's two is now its
+  one; `PROF12-alchemy-fee` back to 50). AUDIT CRAFT-WRITS T5: the list holds 212 - one recorded equivalent
+  (`PROF12-spends-no-hash`) and one survivor (`PROF12-migration-unique`, which survives on main as well), so 210 to die;
+  "209 dead" miscounted it, and the three records re-aimed are the ones this change ran, not the whole list.
+- Ledger A: POTION-COMMON's row narrowed to POT-THIN's numbers; CRAFT-PAYS its own row.
+
+## 49. CRAFT-WRITS - the guilds' asks of a crafter, as built (BUILT 2026-10-22)
+
+The owner, of section 48: **"Why dont you actually build this instead of handing me a small fix?"** - the post's own
+proposal (48.4): **"crafting writs instead of only gathering writs. Something like; potions of restore power needed by
+the mages guild. The reward can be crafting xp, silver, and rep."** Every number below is DECIDED here, at that word.
+
+### 49.1 The shape
+
+- **Whose.** Every writ the board posted asked a gathered material from the Stores (section 11). A crafting writ asks what
+  a crafter MAKES, and is the ACCOUNT's: it is asked **three a UTC day**, drawn the first time any of its living realm
+  characters reads a board that day and written down (`craft_writs`, migration 0145 - `UNIQUE (day, player, slot)`, the
+  id's stem that first reader's realm id) - so a writ never changes under a rank won mid-day, and two accounts never race
+  for one. Filled whole at any board, by any of the account's characters with its OWN goods (`filled_char`), before the
+  day ends. AUDIT CRAFT-WRITS E1: as built first each character was asked three of its own, and an account of six chose
+  its best three of eighteen - the day's best by far and the easiest to fill; the draw is the account's now. **Three a
+  day** is the account's allowance (`CRAFT_WRITS_PER_DAY`, `MARKS_FAUCETS.craftWrit`), beside the Court's three - the
+  schema holds it (three slots a day, one row each), and the decision counts it again as the faucet's word.
+- **What.** Slot 0 a **potion** and slot 1 a **dish**, of Provisioning's (CRAFT3: Alchemy and Cooking are its); slot 2 a
+  **Repair Kit** of Smithing's where one of the account's characters has smithed at all, else a second potion (another
+  than slot 0's where Provisioning opens another). Each within the account's BEST crafter's rank (the most Provisioning
+  and Smithing any of its living realm characters holds, `ranksOf`) and **no more than two tiers below the highest it
+  opens** (`craftWritChoices`) - a Master is asked a Master's work, as XP quarters below that; an alt reading the board
+  sees its main's writs, and fills only what its own brews and pieces cover. Drawn from the account's own dice (its id,
+  the day, the slot - `CRAFT_WRIT_SALT`), never a character's, so the order its characters read the board in chooses
+  nothing.
+- **Never** a Repair Kit of a metal nothing yields (`marketLaw.js` UNYIELDED - the Daedric ingot; AUDIT CRAFT-WRITS E4:
+  a Master smith was asked a kit no smith could make).
+- **Never** a potion made wholly of the Apothecaries' goods (Water Breathing, Levitation - `brewFirstPays`): silver
+  spent at the counter and brewed would come back as more silver with no hand's work between (AUDIT PROF-541 R2-S1's law).
+- **Who asks** (`CRAFT_GUILDS`, the port's own choice - DFU's guilds post no writs): the **Mages Guild** most potions; the
+  **Temple of Stendarr** (mercy) the five remedies - Healing, Heal True, Cure Disease, Cure Poison, Purification; the
+  **Fighters Guild** Orc Strength, Stamina, the Hunter's Stew, the Fisherman's Supper and every Repair Kit; the **Temple
+  of Mara** the Orchard Tart and the Feast of the Hearth.
+
+### 49.2 What fills one - made, and handed over
+
+A writ's silver is minted only for an act the service witnessed (law 8), and the goods leave the character's realm record
+in the same batch (INT19's law for every crafted act):
+
+- **A potion writ**: the character's own **witnessed brews** of the potion - every potion a station bottled for it
+  (`prof_brews.count`), less what the crafting writs IT filled of that potion already took (`brewedLeftSql` - AUDIT
+  CRAFT-WRITS S1: the decision named the writ's product as a column inside its own subquery, so SQLite read the
+  subquery's row and every writ the character had filled, of any product, was taken from its brews; a stew writ filled
+  first refused the potion writ the card offered) - cover the count; AND that many potion BOTTLES of the recipe leave the
+  record's pack (`takeCraftGoods` - the plain before the Potent, a stack giving part of itself; never a worn, quest,
+  summoned, bound or LOCKED one - AUDIT CRAFT-WRITS C3, itemLock.js; never the recipe's sheet, which names the potion's key
+  too - E3). A potion is a potion: the brews are the witness and the record the goods,
+  so a looted bottle can be handed over only where a brew of the character's own stands behind it.
+- **WITNESSED WHOLE** (migration 0145, `prof_brews.witnessed`): a station spends a cauldron's LOOSE units first (AUDIT
+  BAG-CRAFT A1 - what the pack put in that the service never handed out: a looted herb, a reagent bought for gold), and a
+  potion of them is gold's goods, which never fetch silver (GOLD-MARKET). A brew is witnessed where it spent none
+  (`alchemy.js` brewAtStation writes it in the brew's own decision). Brews before the column read 0 - their units'
+  origins are unknown - so **a crafting writ counts the brews from this release on**.
+- **A dish or kit writ**: the pieces themselves, by provenance (`pieces`, exactly the count) - each the account's (a sold
+  one is its buyer's, `products.owner`) and this character's own make (`products.char_id` - a piece bought on the market
+  keeps its maker's), never walled to gold (`products.bought_with IS NOT 'gold'` - a loose-made piece's mark, AUDIT
+  BAG-CRAFT A1), on no listing, auction, road or home nor on its way back (`pieceOkSql`, PROF5's and INT19's guards), loose
+  in the record's pack and not locked; their `products` rows go with them, as a disenchant's. AUDIT CRAFT-WRITS T2: as
+  built first the guard was `bought_with IS NULL`, and `'marks'` is ALSO a piece made of goods bought for silver (AUDIT
+  PROF-541 B7) - every Repair Kit takes the Cured Leather the smith's counter sells, so a kit writ refused the kits a
+  smith made of it. The card's list is the newest pieces first (AUDIT CRAFT-WRITS S3: a piece's row outlives it - the
+  oldest twenty were a cook's long-eaten dinners), sixty at most, by the very guard the decision reads (S2: the board's
+  check named its outer piece as its own).
+
+### 49.3 The pay
+
+| What | The law (`craftWritLaw.js`) |
+|---|---|
+| **Silver** (Marks, a `craft-writ` mint) | A make's GATHERED inputs at their Marks values times **150%** (`CRAFT_PAY_PCT`, the Court's 1.2 for raw goods and a crafter's half again), and the goods ONLY A COUNTER SELLS (`COUNTER_ONLY` - the Apothecaries' reagents, sold at their value) at their cost alone (`bought` - AUDIT CRAFT-WRITS E2: half again on a reagent bought was silver in, more silver out, with only the brewing between), over the units one make gives a Novice (`NOVICE_YIELD`: a brew 2 - CRAFT-PAYS - a dish 1, a kit 1); never under **20 a tier** (`CRAFT_PAY_FLOOR` - a rank's skill is paid for, not only its herbs: THE FLOOR IS WHAT MOST WRITS PAY, and the knob that moves the faucet); never over **200** (`CRAFT_WRIT_PAY_MAX` - the count is lowered first) |
+| **The count** | Potions 4 at tiers 1-2, 3 at 3-4, 2 past; dishes 3, the feast 1; kits 3 at tiers 1-3, 2 at 4-5, 1 past - then fitted under the cap, and never past 20 (`CRAFT_WRIT_QTY_MAX`, the table's CHECK - E6: a count past it was dropped by the post's INSERT OR IGNORE) |
+| **XP** | Twice the pay (the Court writ's `writXp`), to the craft's track - Provisioning for potions and dishes, Smithing for kits - under the crafter's limit (`craftCapSql`, read in the decision) |
+| **Renown** | Twice the pay at the rate (`renownRate`) - the port's own ratio for a crafting writ. AUDIT CRAFT-WRITS T6: "the Court writ's ratio" was wrong - a Court writ's Renown is its tier's and units' (`writRenown`), 0.67 to 1.56 of its pay by the material |
+| **Standing** | `HALL_WRIT_REP` (2) with the asking guild on the character's Roll, where the Roll keeps the guild - a hall writ's own two statements (CHAP2a), while the Chapters are the account's |
+
+So, among the eighteen potions: Restore Power (the post's own) four for **108**, Healing four for **32**, Resist Fire
+four for **68**, Purification two for **140**; three Hunter's Stews **20**, a Feast of the Hearth **120**; three Iron
+Repair Kits **20**, an Orichalcum one **120** (the whole table is pinned, `craftwrits_law.test.js`). Every product but
+six (Restore Power, Resist Fire, Heal True, Healing, and Orc Strength and Water Walking by a silver or two) pays its
+tier's floor. A Novice's Restore Power writ asks two brews - 96 silver of reagents and two mined Silver - for 108 (the reagents
+back at cost, the Silver half again and twelve over), 216 Provisioning XP and 162 Renown; a Novice's Healing writ two
+brews of 20 silver at the counter and the gathered rest, for 32. A kit writ is the smith's floor: three Iron Repair Kits
+(their ingots and leather worth 9) for 20, an Orichalcum one (16) for 120 - less the Cured Leather's counter price (twice
+its value, 4) where it was bought, which the kit's `cost` counts at its value: at a public forge three Iron kits of bought
+leather come to some 7 silver under their pay (the forge's 50 gold a craft), a Quartermaster's 2 over, a home's 8 over
+(AUDIT CRAFT-WRITS E7: the kits' margins, unrecorded; every kit pays its floor, so the leather's value moves none).
+
+**The faucet** (AUDIT CRAFT-WRITS E1 and T6 - the first record's maxima were a character's, and wrong). At most three a
+day an account, at most 200 each by the law; the dearest writ the table makes is Purification's 140. Drawn at the
+account's best crafter's ranks, its three come to: **60 to 74** while that crafter is below rank 10 (tier 1); **60 to
+216** from rank 10 (Restore Power, Resist Fire and the Tart open); 60 to 228 up to rank 49; **280 to 360** at ranks 74-75;
+**300 to 380** for a Master (Purification 140, the Feast 120, Invisibility or a tier-6 kit 120). The Court's three a day
+pay up to 336 each, and no tier-2 Court writ more than 96 - so at tier 2 Restore Power's 108 sits above the gatherer's
+best (96 of it the reagents' cost), and at every other tier the crafter's faucet sits under the Court's. Appendix C's
+model is not re-run here. RECORDED for the owner: if the Marks minted outrun the Marks burnt again, `CRAFT_PAY_FLOOR`
+(what most writs pay) and the cap are the two knobs; `CRAFT_PAY_PCT` moves six products.
+
+### 49.4 Where it is seen
+
+- **The Work tab** (`ui/noticeWindow.js` craftNode): above the Court's writs, under **"Crafting writs - N of 3 today"**,
+  one card a writ - the guild's ask ("The Mages Guild asks you for 4 Potions of Restore Power"), what fills it ("Of your
+  own brewing - the bottles leave your pack."), its pay ("Pays 108 silver, 216 Provisioning experience, 162 Renown and
+  standing with the Mages Guild"), its time left, what the reading character holds ("3 brewed by you, 5 in your pack"),
+  and **Deliver** - waiting, with its reason on its title, in its name for a reader and on the card (a phone has no
+  hover), where something is short or the day's three are filled (AUDIT CRAFT-WRITS C8: the day's three were said on the
+  title alone). A press says the guild's thanks and marks its card filled at once, before the list read again comes back
+  (C1: a second press meanwhile asked the service again); the balance and the Renown are taken as a Court writ's
+  (`onTaken`). The realm's silence and a character changed before the answer are said in their own words (C6), every
+  other refusal the service's.
+- **The host** (`scenes/craftWritHost.js`, wired in `scenes/world.js` by one statement and one entry - HOST-SPLIT): what
+  the pack holds toward a writ, and its goods out of the pack inside the realm act that takes them out of the record
+  (`realmGoldAct` - the save checkpointed first, the goods out as the service is first asked; the disenchant's own
+  order). Back WHERE THEY STOOD (C9) on a refusal, on an `ok` that moved no record (C1: a request answered again,
+  `repeat` with no `realm` - as built first, a second press kept the goods it took out while the record kept them too,
+  and the next checkpoint lost them; the service refuses a filled writ under a new request now, `craft-writ-filled`,
+  S4), and on a throw before the service was asked. The book's `craftDeliver` (`net/profBook.js`) asks it once - the
+  realm act asks again itself; a fill moves the kept list's card and count and has a list read meanwhile read again (C1),
+  a record moved under the ask has the book read again (C4), and a brew, a dish or a kit lets the Work list go (C7: the
+  card's `brewed` stood a minute behind the station).
+- **The four hosts**: the Notice Board is `scenes/world.js`'s; `worldModes.js` and `dungeonContext.js` stand inside its
+  page and open no board of their own; `scenes/exterior.js` - FLAGGED in `craftWritHost.js`: the fixed-city bench never
+  goes online, so it posts no crafting writ, as no Court writ.
+
+**Audited** cold before its merge: `01-Overview/audits/Audit-Craft-Writs.md` (AUDIT CRAFT-WRITS) - what it found, and
+what changed, is marked with its ids above.
+
+### 49.5 As built
+
+- **The law**: `src/net/craftWritLaw.js` (products, guilds, the draw, the pay, the goods, the words); `src/net/marksLaw.js`
+  (`MARKS_FAUCETS.craftWrit`, `MARKS_KINDS['craft-writ']`).
+- **The service**: `server-account/src/craftWrits.js` (`craftWritBoard`, `deliverCraftWrit`, `sweepCraftWrits`);
+  `server-account/migrations/0145_craft_writs.sql` (acct168 and migration 0144 on its branch, renumbered past STAFF-PANEL1 at the merge); `alchemy.js` (a brew's `witnessed`); `index.js` (`/v1/writs/craft`,
+  `crafts` on `/v1/writs/list`, the refusals' statuses); `service.js` (the route listed, acct169 - CRAFT-PAYS and
+  CRAFT-WRITS one release); `progress.js` (INT16-INT17: a progression claim - its XP and Renown); `cron.js` (an unfilled
+  writ swept the day after its own; a filled one stays - a potion writ's brews are counted by it); `professions.js`
+  (`renownAnswer` exported). `realm.js` deletes nothing of them: they are the account's (E1), and a filled writ is the
+  memory of the brews its filler gave.
+- **The client**: `src/scenes/craftWritHost.js`, `src/net/profBook.js` (`craftDeliver`), `src/net/accountClient.js` (the
+  door, five refusals in words), `src/ui/noticeWindow.js`, `src/scenes/world.js`.
+- **The words**: 28 keys through the text core (`prof.craftWrit.*`, `notice.craftWrit.*`, five `account.refusal.craft*`) -
+  `locales/en/Port_Strings.csv` regenerated (`tools/l10nExtract.mjs`), the thirteen languages drafted whole written in
+  session (`tools/l10nInSession.mjs`, recorded as the machine's), each in the words its catalog already uses for a writ,
+  the pack, silver and Renown; the drafting twelve owe them with the rest.
+- **The deploy**: `.github/workflows/account-deploy.yml`'s path filter names `src/net/craftWritLaw.js` (the Worker bundles
+  it - ACC4's walk); its new imports (`marketLaw.js`, `itemTemplatesData.js`, `itemLock.js`) were listed already.
+- **Pinned**: `test/net/craftwrits_law.test.js` (7), `test/net/craftwrits_service.test.js` (13, through the real Worker),
+  `test/net/craftwrits_client.test.js` (7 - the book's delivery against the real Worker among them);
+  `tools/mutants/craftwrits.json` (88: 86 dead; `svc-room` equivalent - the marks table's CHECK refuses an overfill - and
+  `svc-cap` equivalent - the schema holds the day's three, E1). PIN MOVED: `marks1`, `prof5_law` (a fourth mint),
+  `auditscale` (the hour's clock 35), `scale4b` (the Work tab's first read of a day writes the day's three),
+  `accountworker` (the table), `int16`'s ROUTES list, `hostceiling` (bootWorld's ceiling 12 up at the merge with main, 36,243 to 36,255 - the host's one statement and one entry, five getters among them, the room main spent meanwhile), and the account version's pins (acct169) (AUDIT CRAFT-WRITS T5:
+  `int16_progress` was named here and never moved - it walks the routes itself). `fb1013e_writwall` waits on the real
+  Worker's board read by the clock (`performance.now`), not 400 turns - the read does more since the crafting writs ride
+  it, and the count ran out under a loaded suite.
 
 ## Appendix A - a day of a gatherer
 

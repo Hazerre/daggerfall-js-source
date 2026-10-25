@@ -192,18 +192,18 @@
   {
     "name": "SD3-a-returner-refused",
     "file": "server/src/index.js",
-    "old": "    if (sub && realm.in.includes(sub)) return null;",
+    "old": "    if (sub && realm.in.includes(sub)) { this._sdTellIn(s, rec, now); return null; }   // SD-THROUGH",
     "new": "",
     "tests": [
       "test/net/sd3_relay.test.js"
     ],
-    "note": "One who entered may come back until the Hollow is gone."
+    "note": "SD-THROUGH (re-aimed by content): a returner's admission tells the hub too (the Way Through). One who entered may come back until the Hollow is gone."
   },
   {
     "name": "SD3-two-seats",
     "file": "server/src/index.js",
-    "old": "if ((isGateRoom(a.key) || isBattleRoom(a.key) || isSdRoom(a.key) || isCellRoom(a.key) || isWorldRoom(a.key)) && who.subject)",
-    "new": "if ((isGateRoom(a.key) || isBattleRoom(a.key) || isCellRoom(a.key) || isWorldRoom(a.key)) && who.subject)",
+    "old": "if ((isGateRoom(a.key) || isBattleRoom(a.key) || isSdRoom(a.key) || isKetchRoom(a.key) || isCellRoom(a.key) || isWorldRoom(a.key)) && who.subject)",
+    "new": "if ((isGateRoom(a.key) || isBattleRoom(a.key) || isKetchRoom(a.key) || isCellRoom(a.key) || isWorldRoom(a.key)) && who.subject)",
     "tests": [
       "test/net/sd3_relay.test.js"
     ],

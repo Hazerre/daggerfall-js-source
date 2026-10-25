@@ -18,7 +18,10 @@
 //     WILD_REF.mendMs is whole again.
 //   - EVERY BLOW AND CAST is the referee's (refereeBlow, refereeCast - the weapon the striker's look holds, the arms its
 //     token signs, the reach from both fighters' last BELIEVED places: a run the referee allows, never a teleport).
-//   - A FALL is the referee's word: the fallen's vitality at none. The striker is its killer. The killer then has
+//   - A FALL is the referee's word: the fallen's vitality at none. The striker is its killer. AUDIT FOE-KEEPS E2 (the owner,
+//     2026-10-24, asked: "Credit the last player"): and a fighter that dies to anything else - a foe, a fall, the sea -
+//     within WILD_REF.creditMs of a fair player's blow falls to that player (wildCredit): since FOE-KEEPS such a death drops
+//     nothing, and dying to a foe at the last second denied the killer everything. The killer then has
 //     WILD_REF.pickMs to choose one worn piece of the fallen's (`pick` - its place in the offer the fallen's game showed,
 //     systems/wild/wildDropLaw.js wornOffer); then the relay signs the fall (net/wild/wildReceipt.js `f1`) and hands it to both, and
 //     the account service takes the drop and that piece off the fallen's judged record against it.
@@ -35,8 +38,9 @@ import { SIEGE_HIT, newFighter, refereeBlow, refereeCast, refereeStep } from '..
  *  it rose on its next word, where it fell, whole), and how long one away from the zone that long comes back whole; how
  *  long a fighter whose pose jumped past any run strikes nothing (AUDIT INT9: a jump was never believed, so a gallop, a
  *  respawn or a reconnect left its place stale for good - now it is believed, and the jumper waits); the most fighters
- *  and falls a room keeps. */
-export const WILD_REF = Object.freeze({ mendMs: 30_000, pickMs: 60_000, truceMs: 10 * 60_000, riseMs: 120_000, jumpMs: 2_000, fightersMax: 200, fallsMax: 64 });
+ *  and falls a room keeps; AUDIT FOE-KEEPS E2: how recent a fair player's blow names them the killer of a death the
+ *  referee did not see (systems/wild/wildZone.js WILD_KILL_CREDIT_MS, pinned equal - "the player who brought you down"). */
+export const WILD_REF = Object.freeze({ mendMs: 30_000, pickMs: 60_000, truceMs: 10 * 60_000, riseMs: 120_000, jumpMs: 2_000, fightersMax: 200, fallsMax: 64, creditMs: 10_000 });
 
 /** MAC'S DECISION (2026-10-14, "Guildmates are friends"): ONE GUILD - two guilds' marks, each present and the same. A
  *  mark is the relay's verified guild id (the token's `gi`) or a client's guild tag (`gt` - a tag is one guild's alone,
@@ -99,10 +103,13 @@ function takeCarry(x, carry, now) {
   if (Number.isFinite(carry.hp) && carry.hp < x.f.max) { x.f.hp = Math.max(1, Math.min(x.f.max, Math.trunc(carry.hp))); x.struckAt = carry.at; }
 }
 
-/** INT9 (AUDIT): a hub's word on a fighter's carry, checked for the shape wildCarry writes - or null. */
+/** INT9 (AUDIT): a hub's word on a fighter's carry, checked for the shape wildCarry writes - or null. AUDIT SEA VENTURES
+ *  F1/A1: with its ship's where it has one (`sea` - net/sea/seaRef.js seaCarry: her bar's share and when a captain last
+ *  struck her). */
 export function wildCarryOf(v) {
   if (!v || typeof v !== 'object' || !Number.isFinite(v.at) || !Number.isFinite(v.hp) || !Number.isFinite(v.max)) return null;
-  return { hp: Math.max(0, Math.trunc(v.hp)), max: Math.max(1, Math.trunc(v.max)), down: v.down === true, downAt: Number.isFinite(v.downAt) ? v.downAt : 0, at: v.at };
+  const sea = v.sea && typeof v.sea === 'object' && Number.isFinite(v.sea.h) && Number.isFinite(v.sea.at) ? { h: Math.max(0, Math.min(1, v.sea.h)), at: v.sea.at } : null;
+  return { hp: Math.max(0, Math.trunc(v.hp)), max: Math.max(1, Math.trunc(v.max)), down: v.down === true, downAt: Number.isFinite(v.downAt) ? v.downAt : 0, at: v.at, ...(sea ? { sea } : {}) };
 }
 
 /** INT9 (AUDIT): A FALL WAITING ON ITS PICK is kept in the room's storage under this prefix (a relay object that restarts
@@ -111,7 +118,7 @@ export const WILD_FALL_PREFIX = 'wildfall:';
 /** A fall read back from storage, checked for the shape wildBlow writes - or null. */
 export function wildFallOf(v) {
   if (!v || typeof v !== 'object' || typeof v.r !== 'string' || typeof v.fallen !== 'string' || typeof v.killer !== 'string' || !Number.isFinite(v.at)) return null;
-  return { r: v.r, fallen: v.fallen, fallenId: typeof v.fallenId === 'string' ? v.fallenId : '', ci: typeof v.ci === 'string' ? v.ci : '', killer: v.killer, killerId: typeof v.killerId === 'string' ? v.killerId : '', at: v.at,
+  return { r: v.r, fallen: v.fallen, fallenId: typeof v.fallenId === 'string' ? v.fallenId : '', ci: typeof v.ci === 'string' ? v.ci : '', killer: v.killer, killerId: typeof v.killerId === 'string' ? v.killerId : '', kc: typeof v.kc === 'string' ? v.kc : '', m: typeof v.m === 'string' ? v.m : '', at: v.at,
     w: Number.isInteger(v.w) ? v.w : -1, wt: Array.isArray(v.wt) && v.wt.length === 2 ? [v.wt[0], v.wt[1]] : null, picked: v.picked === true };
 }
 
@@ -146,12 +153,13 @@ const mend = (x, now) => { if (!x.down && now - x.struckAt >= WILD_REF.mendMs &&
  * a duel's two, one guild - asked by the relay before it): landed only between two fighters
  * that both stand in the zone, neither down, never kin; judged by the referee (a strike on the weapon `held` its look
  * carries and the arms `wa` its token signs; a cast, `r` SIEGE_HIT.Spell, to its harm's most and rate). A fall makes the
- * fall record (`r` the remains' id the caller minted) - its killer the striker. Answers `{ ok, dealt, fell, fall, why }`.
+ * fall record (`r` the remains' id the caller minted) - its killer the striker, `room` the room that refereed it (SEA-BOUNTY:
+ * signed into its receipt, `m`). Answers `{ ok, dealt, fell, fall, why }`.
  * @param {any} st @param {string} by @param {string} to
- * @param {{ d?: number, r?: number, held?: any, wa?: any, kin?: boolean, rid?: string }} o
+ * @param {{ d?: number, r?: number, held?: any, wa?: any, kin?: boolean, rid?: string, room?: string }} o
  * @param {number} now
  */
-export function wildBlow(st, by, to, { d = 0, r = SIEGE_HIT.Melee, held = null, wa = null, kin = false, rid = '' } = {}, now) {
+export function wildBlow(st, by, to, { d = 0, r = SIEGE_HIT.Melee, held = null, wa = null, kin = false, rid = '', room = '' } = {}, now) {
   const a = st.fighters.get(by), t = st.fighters.get(to);
   if (!a || !t || by === to) return { ok: false, dealt: 0, fell: false, fall: null, why: 'no-fighter' };
   if (!a.zone || !t.zone) return { ok: false, dealt: 0, fell: false, fall: null, why: 'zone' };
@@ -164,15 +172,36 @@ export function wildBlow(st, by, to, { d = 0, r = SIEGE_HIT.Melee, held = null, 
     : refereeBlow(a.f, t.f, { from: a.pose, at: t.pose, held, d, r, wa }, now);
   if (!res.ok || !res.dealt) return { ok: res.ok, dealt: 0, fell: false, fall: null, why: res.why };
   t.struckAt = now;
+  t.by = { sub: by, at: now, room: typeof room === 'string' ? room : '' };   // AUDIT FOE-KEEPS E2: the last fair player's blow
   if (!res.fell) return { ok: true, dealt: res.dealt, fell: false, fall: null, why: null };
-  t.down = true; t.downAt = now;
-  // a full room's oldest fall is SIGNED without its pick, never forgotten (AUDIT INT9: one pushed out was never signed - no
-  // drop at all): the caller signs `evicted`
+  const { fall, evicted } = fallOf(st, rid, to, t, by, a, room, now);
+  return { ok: true, dealt: res.dealt, fell: true, fall, evicted, why: null };
+}
+
+/** A fighter `t` (account `to`) down at `a`'s hand (account `by`): its fall record under `rid` (the caller's), the room
+ *  `room` that refereed it. A full room's oldest fall is SIGNED without its pick, never forgotten (AUDIT INT9: one pushed
+ *  out was never signed - no drop at all): the caller signs `evicted`. */
+function fallOf(/** @type {any} */ st, /** @type {string} */ rid, /** @type {string} */ to, /** @type {any} */ t, /** @type {string} */ by, /** @type {any} */ a, /** @type {unknown} */ room, /** @type {number} */ now) {
+  t.down = true; t.downAt = now; t.by = null;
   let evicted = null;
   if (st.falls.size >= WILD_REF.fallsMax) { evicted = st.falls.values().next().value; evicted.picked = true; st.falls.delete(evicted.r); }
-  const fall = { r: rid, fallen: to, fallenId: t.id, ci: t.ci, killer: by, killerId: a.id, at: now, w: -1, wt: null, picked: false };
+  const fall = { r: rid, fallen: to, fallenId: t.id, ci: t.ci, killer: by, killerId: a.id, kc: a.ci || '', m: typeof room === 'string' ? room : '', at: now, w: -1, wt: null, picked: false };   // SEA-BOUNTY: the killer's character and the room, for the receipt
   st.falls.set(rid, fall);
-  return { ok: true, dealt: res.dealt, fell: true, fall, evicted, why: null };
+  return { fall, evicted };
+}
+
+/** AUDIT FOE-KEEPS E2 (the owner, 2026-10-24, asked: "Credit the last player"): A DEATH THE REFEREE DID NOT SEE - the
+ *  fighter's own word that it died (`zone` 0 with `dd`: a foe, a fall, the sea, a hall's trap) - is the kill of the last
+ *  fair player whose blow landed on it within WILD_REF.creditMs, as the duel's referee counts a fighter fallen to
+ *  something else its opponent's win and the sea's credits a wreck to a captain's shot: its fall made as a blow's is, in
+ *  the room that last blow was refereed in. None when no player struck it that lately, it is down already, or its striker
+ *  has left the room's memory. Answers `{ fall, evicted }` or null. */
+export function wildCredit(/** @type {any} */ st, /** @type {string} */ sub, /** @type {string} */ rid, /** @type {number} */ now) {
+  const t = st.fighters.get(sub), by = t?.by;
+  if (!t || t.down || !by || !(now - by.at <= WILD_REF.creditMs)) return null;
+  const a = st.fighters.get(by.sub);
+  if (!a || by.sub === sub) return null;
+  return fallOf(st, rid, sub, t, by.sub, a, by.room, now);
 }
 
 /** THE KILLER'S PICK (`w` - its place in the fallen's worn offer; `wt` - the piece's template and material as the offer
