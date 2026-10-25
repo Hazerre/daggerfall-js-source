@@ -591,11 +591,11 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
    */
   async function purgeDupes() {
     const act = 'purge-dupes';
-    const early = (/** @type {string} */ error) => (body.confirm === true ? said(act, row.player, { ...ch }, { error }) : { error });
-    if (row.dead_at != null) return early('dead');
-    if (!c.bucket || !row.obj) return early('no-data');
+    const refuse = (/** @type {string} */ error) => body.confirm === true ? said(act, row.player, { ...ch }, { error }) : { error };
+    if (row.dead_at != null) return refuse('dead');
+    if (!c.bucket || !row.obj) return refuse('no-data');
     const save = parse(await realmSaveTextOf(await c.bucket.get(row.obj)));
-    if (!save || typeof save !== 'object') return early('no-data');
+    if (!save || typeof save !== 'object') return refuse('no-data');
     const flagged = /** @type {{ uid: string }[]} */ ((await db.prepare('SELECT uid FROM item_dupes WHERE char_id = ?1').bind(row.id).all())?.results ?? []);
     const keys = flagged.map((d) => d.uid).filter((u) => typeof u === 'string');
     const keySet = new Set(keys);
@@ -624,7 +624,7 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
       for (const list of possessedItemLists(s)) for (const it of list) if (keySet.has(ledgerKeyOf(it))) doomed.push(it);
       for (const it of doomed) takeOut(s, it);   // gear and a room's own piece are not the list the walk handed back
       return null;
-    }, { escrow: false, take: true });
+    }, { take: true, escrow: false });
     if ('error' in seized) return said(act, row.player, detail, { error: seized.error });
     const steps = [...seized.steps];
     const seq = seized.seq;
