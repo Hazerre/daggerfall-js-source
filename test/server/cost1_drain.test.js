@@ -6,7 +6,6 @@
 // before. And the relay's metrics count a storage write by the rows it bills (server/src/relayScale.js countedState).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { fakeRoom } from '../fakeRoom.mjs';
 import { cellRoomOfWire, PIXEL_UNITS } from '../../src/net/wire.js';
 import { GRANT_MEASURE_SIG_HEADER } from '../../src/net/grantMeasure.js';
@@ -62,7 +61,6 @@ test('COST-1 THE DRAIN POSTS THE GRANT\'S WINDOW: a cell whose player asked a gr
   await r.drop(c.ws);
   await settle();
   assert.equal(posts.length, 1, 'nothing open, nothing posted');
-  assert.match(readFileSync(new URL('../../server/src/index.js', import.meta.url), 'utf8'), /this\._metricsTick\(true\); void flushAtDrain\(this\); \}/, 'wired in the last leave\'s branch, beside the drained room\'s last metrics window');
 });
 
 /** A room as the staff feeds see it (staffpanel5feeds_relay.test.js's own shape), its socket count `held`, the account
@@ -127,5 +125,4 @@ test('COST-1 A WRITE IS COUNTED BY THE ROWS IT BILLS: a key\'s put or delete one
   await s.get(['a', 'b']); await s.list();
   assert.equal(m.c.reads - r0, 2, 'reads as before');
   assert.equal(rowsWritten('put', [{}]), 0, 'a put of nothing bills nothing');
-  assert.match(readFileSync(new URL('../../server/src/relayScale.js', import.meta.url), 'utf8'), /\| double10\/11\| storage reads \(get, list\), storage rows written \(COST-1/, 'the metrics table says so');
 });

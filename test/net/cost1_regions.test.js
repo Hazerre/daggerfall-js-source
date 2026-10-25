@@ -9,7 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { fakeRooms } from '../fakeRoom.mjs';
+import { fakeRoom, fakeRooms } from '../fakeRoom.mjs';
 import { chatRegionRoom, CHAT_ROOMS } from '../../src/net/wire.js';
 import * as H from '../../src/net/hubShards.js';
 
@@ -65,8 +65,12 @@ test('COST-1 the law: a region\'s channel has no shard unless the relay names it
   for (const none of ['', '  ', undefined, null, 7, 'none']) assert.equal(H.regionsSharded(none).size, 0, String(none));
   assert.equal(H.regionsSharded('5,23'), H.regionsSharded('5,23'), 'read once');
   for (const k of H.REGION_SHARD_ROOMS) assert.ok(CHAT_ROOMS.has(k), `${k} still a room the Worker opens`);
-  assert.match(src('server/wrangler.toml'), /\nREGION_SHARDS = ""\n/, 'the relay names no region');
-  assert.match(src('server/src/index.js'), /_shardOf\(bus, sub\) \{ return shardOf\(bus, sub, regionsSharded\(this\.env\?\.REGION_SHARDS\)\); \}/, 'the relay reads its own var');
+  // the deploy's own value names no region, and a Room reads the var it is given
+  const shipped = /^REGION_SHARDS = "([^"]*)"$/m.exec(src('server/wrangler.toml'))?.[1];
+  assert.equal(shipped, '', 'wrangler.toml declares it');
+  assert.equal(H.regionsSharded(shipped).size, 0, 'the relay names no region');
+  assert.equal(fakeRoom(RB, { vars: { REGION_SHARDS: shipped } }).room._shardOf(RB, 'acct-x'), null, 'a Room under the deploy\'s value: the channel whole');
+  assert.equal(fakeRoom(RB, { vars: { REGION_SHARDS: '5' } }).room._shardOf(RB, 'acct-x'), H.shardOf(RB, 'acct-x', H.regionsSharded('5')), 'a Room under a var that names it: split');
 });
 
 test('COST-1 A REGION\'S CHANNEL WHOLE: a link of this build is welcomed on the region\'s channel itself, which holds its real socket - no shard made, nothing polled; a region line and a traveller\'s mark reach every other link there and never back to the mark\'s own; a joiner is told the marks; the census counts the registered; the Region tab lists everyone; a link of an older build on a shard is told the channel and closed, nothing written there; and the last leave leaves no object behind it awake on the region\'s behalf (mutants: the bus hops a link to a shard; the old shard keeps its link; the old shard told its own)', async () => {
