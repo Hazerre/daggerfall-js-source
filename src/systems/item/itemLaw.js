@@ -303,7 +303,7 @@ const isGemLine = (/** @type {any} */ a) => a?.gem != null;
  *  garment). */
 const TIER_GROUPS = Object.freeze(['Weapons', 'Armor', 'Jewellery', ...CLOTHING_GROUPS]);
 /** The marks only a rolled tier carries. */
-const TIER_MARKS = Object.freeze(['legendary', 'exalted', 'reforged', 'honed', 'imprint', 'socket', 'sockets', 'cursed']);   // GEM1: and the socket list
+const TIER_MARKS = Object.freeze(['legendary', 'exalted', 'reforged', 'reforges', 'honed', 'imprint', 'socket', 'sockets', 'cursed']);   // GEM1: and the socket list; REFORGE-REPLACE: the reforges' count
 
 /** The ladder's findings: a tier only where a door rolls one, its lines its tier's, a record's lines its record's. */
 function tierFindings(/** @type {any} */ item) {
@@ -394,6 +394,7 @@ function tierFindings(/** @type {any} */ item) {
   } else if (item.exalted === true || isCursed(item)) out.push('affixes');   // an Exalted's line or a curse's, never neither
   if (item.exalted === true && isCursed(item)) out.push('curse');
   if (has(item, 'reforged') && !(item.exalted === true && item.reforged === sig.length)) out.push('reforged');
+  if (has(item, 'reforges') && item.exalted !== true) out.push('reforged');   // REFORGE-REPLACE: the Reforge's count, on the one Legendary it takes
   if (has(item, 'honed') && item.exalted !== true) out.push('honed');
   const first = firstOwnRow(item);
   if (!first || first.type !== rec.enchantment?.type || first.param !== rec.enchantment?.param) out.push('enchantments');
