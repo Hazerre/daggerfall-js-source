@@ -2844,6 +2844,26 @@
   "tr": "ddc05404b0d6",
   "by": "claude-in-session"
  },
+ "net.staffView.dismissFlag": {
+  "en": "ff5751398267",
+  "tr": "a565b799a7db",
+  "by": "claude-in-session"
+ },
+ "portal.buy.ask": {
+  "en": "da8ce194bdac",
+  "tr": "7a5bb94f5520",
+  "by": "claude-in-session"
+ },
+ "portal.buy.bought": {
+  "en": "18df77b041d7",
+  "tr": "9a1198a9bd33",
+  "by": "claude-in-session"
+ },
+ "portal.buy.full": {
+  "en": "1e5fd5bbf70a",
+  "tr": "3e12ebee3ef7",
+  "by": "claude-in-session"
+ },
  "ql.line.skyKetch": {
   "en": "c7f38b5bca74",
   "tr": "efbb25a9deb5",
@@ -3137,6 +3157,71 @@
  "spellbook.effect.magnitude": {
   "en": "032e12a22bdd",
   "tr": "681d8032803b",
+  "by": "claude-in-session"
+ },
+ "staffEvent.attackArea": {
+  "en": "ea6594b7f8f5",
+  "tr": "644793234d4a",
+  "by": "claude-in-session"
+ },
+ "staffEvent.attackCity": {
+  "en": "cab2ffdaf40e",
+  "tr": "50436c77fc9c",
+  "by": "claude-in-session"
+ },
+ "staffEvent.board": {
+  "en": "f432a22c5c95",
+  "tr": "d0b9a715e3fe",
+  "by": "claude-in-session"
+ },
+ "staffEvent.boardRow": {
+  "en": "8e045d01d311",
+  "tr": "4162a688d3a7",
+  "by": "claude-in-session"
+ },
+ "staffEvent.boardRowKiller": {
+  "en": "ae1880046d4c",
+  "tr": "d94021ee70ca",
+  "by": "claude-in-session"
+ },
+ "staffEvent.boardWho": {
+  "en": "7f8dd8d5af1b",
+  "tr": "ac63116a89bb",
+  "by": "claude-in-session"
+ },
+ "staffEvent.bossArea": {
+  "en": "3b8677660ebb",
+  "tr": "112dfdebd1f5",
+  "by": "claude-in-session"
+ },
+ "staffEvent.bossCity": {
+  "en": "4962e5064878",
+  "tr": "9f819313bd73",
+  "by": "claude-in-session"
+ },
+ "staffEvent.bossFellArea": {
+  "en": "8c2df1c3accb",
+  "tr": "b012dc2338ba",
+  "by": "claude-in-session"
+ },
+ "staffEvent.bossFellCity": {
+  "en": "cc20d6a397c1",
+  "tr": "a9d22881ad3a",
+  "by": "claude-in-session"
+ },
+ "staffEvent.overArea": {
+  "en": "3aab11c228c2",
+  "tr": "1d2b6c0fa435",
+  "by": "claude-in-session"
+ },
+ "staffEvent.overCity": {
+  "en": "bade3fdbd23d",
+  "tr": "9c84ceedb142",
+  "by": "claude-in-session"
+ },
+ "staffEvent.spoils": {
+  "en": "5de07de102b8",
+  "tr": "e1ac330fd0ec",
   "by": "claude-in-session"
  },
  "stats.attributes": {

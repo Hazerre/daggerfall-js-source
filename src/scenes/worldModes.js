@@ -439,7 +439,7 @@ import { setPassiveSpecialsHost, FIGHTER_TRAINERS_FACTION } from '../systems/pas
 import { DaedraSummonedWindow, REFUSAL_FOE_COUNT, COVEN_FAIL_FOE_COUNT } from '../ui/daedraSummonedWindow.js';   // G7b: the summoning's own film window
 import { orderOf } from '../systems/guild/guildVariants.js';
 import { joinedGuildOfGroup } from '../systems/guild/guilds.js';
-import { GUILD_GROUPS } from '../formats/factionFile.js'; import { lootRarityOn } from '../systems/loot/lootRarity.js'; import { reforgePiece, salvagePiece, shardsHeld, honePiece, setGemPiece, unsetGemPiece, extractGemPiece } from '../systems/reforge.js'; import { buyPortalStone, portalStoneRefusal, shardsKept, PORTAL_TEXT } from '../systems/portalStone.js'; import { createReforgeOverlay } from '../ui/reforgeDoor.js'; import { imprintPiece } from '../systems/loot/lootCodex.js';   // LOOT9: the Mages Guild's Reforge; LOOT10: its imprint
+import { GUILD_GROUPS } from '../formats/factionFile.js'; import { lootRarityOn } from '../systems/loot/lootRarity.js'; import { reforgePiece, salvagePiece, honePiece, setGemPiece, unsetGemPiece, extractGemPiece } from '../systems/reforge.js'; import { PORTAL_TEXT } from '../systems/portalStone.js'; import { createPortalCounter } from './portalCounter.js'; import { createReforgeOverlay } from '../ui/reforgeDoor.js'; import { imprintPiece } from '../systems/loot/lootCodex.js';   // LOOT9: the Mages Guild's Reforge; LOOT10: its imprint
 import { liftCurse } from '../systems/loot/lootCurse.js';   // LOOT16: the temple's lifting
 import { setJunk } from '../systems/item/itemJunk.js';   // AUDIT LOOT II C5: a sold piece's mark ends at the shelf
 import { scryPlace } from '../systems/loot/lootScry.js';   // LOOT19: the guild's scryers
@@ -6233,28 +6233,10 @@ export function createWorldModes(host) {
    *  one on their popup's own row (ui/merchant/merchantServiceWindow.js portalRowRect; the Enhanced Plus panel's button), in a
    *  building and nowhere else (a bank's teller and a street's driver have none). The row is the hook; undefined, none. */
   const portalRow = () => (mode === 'interior' && isShop(interiorBuilding?.buildingType)
-    ? { label: PORTAL_TEXT.row, onBuy: () => askPortalStone() } : undefined);
-  /** A press asks first - DFU's Yes/No box on either skin - and Yes is the sale; a purse already short is told so at
-   *  once, its locked and worn shards named (AUDIT PORTAL1 C4: it was asked, and refused after the Yes). */
-  function askPortalStone() {
-    const items = playerEntity.items ?? [];
-    if (portalStoneRefusal(items)) { say(PORTAL_TEXT.shards(shardsHeld(items), shardsKept(items))); return; }
-    mountInterior(new YesNoBoxWindow({
-      rows: [{ text: PORTAL_TEXT.ask(shardsHeld(items)), center: true }],
-      onYes: () => buyPortalStoneNow(), onNo: () => {},
-    }));
-  }
-  /** THE SALE: the shards out, a fresh stone in (always in stock - nothing is kept to run out); refused in words,
-   *  nothing taken. No carry gate: the stone weighs less than its shards (portalStone.js portalStoneRefusal). */
-  function buyPortalStoneNow() {
-    playerEntity.items = playerEntity.items || [];
-    const sale = buyPortalStone(playerEntity.items);
-    if (!sale.ok) { say(PORTAL_TEXT.shards(shardsHeld(playerEntity.items), shardsKept(playerEntity.items))); return false; }
-    audio.playOneShot(SOUND.GoldPieces, 1);
-    surfacePlayer();
-    say(PORTAL_TEXT.bought);
-    return true;
-  }
+    ? { label: PORTAL_TEXT.row, onBuy: () => portalCounter.ask() } : undefined);
+  /** PORTAL-BULK: a press asks HOW MANY, then the offer, and Yes is the sale - or, with none to be had, says why at once
+   *  (AUDIT PORTAL1 C4) - in the counter's own module (scenes/portalCounter.js); the slot's door handed live. */
+  const portalCounter = createPortalCounter({ say: (l) => say(l), mount: (w) => mountInterior(w) });
 
   /** U42: the CLASSIC spellbook in CAST mode - the interior host's
    *  Backspace window, ONE construction. The player's own array is
