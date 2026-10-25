@@ -7,11 +7,11 @@
 // word for a covered cell goes down the socket that covers it. Under L0 every cover is its own cell: today's law.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 
 import { coversCell, cellsOfNode, nodeOfCells, nodeHoldsCell } from '../../src/net/cellTree.js';
 import { owCellSquare, owIdInCell, OW_BAND_LIFE_MS } from '../../src/net/overworldLaw.js';
-import { grantRefusal } from '../../src/net/grantLaw.js';
+import { grantRefusal, signGrant, GRANT_TTL_MS } from '../../src/net/grantLaw.js';
+import { createGrantHost } from '../../src/scenes/grantHost.js';
 import { OW_LEDGER_KEY } from '../../src/net/wire.js';
 import { OnlineSession } from '../../src/net/online.js';
 import { fakeRoom } from '../fakeRoom.mjs';
@@ -125,14 +125,63 @@ test('COST-2 (b) THE PAGE: a crossing into a cell its socket covers is no crossi
   });
 });
 
-test('COST-2 (b) A COVERED CROSSING TAKES EVERY ROOM-KEYED RECORD WITH IT: the rename moves each map _forgetRoom lets go of, so neither list can lose one the other has (mutants: a map left behind)', () => {
-  const src = readFileSync(new URL('../../src/net/online.js', import.meta.url), 'utf8');
-  const body = (name) => { const at = src.indexOf(`  ${name}(`); const end = src.indexOf('\n  }\n', at); return src.slice(at, end); };
-  const forgot = [...body('_forgetRoom').matchAll(/this\.(_\w+)\.(?:delete|keys)\(/g)].map((m) => m[1]).filter((k) => k !== '_rooms' || true);
-  const moved = [...body('_renameRoom').matchAll(/move(?:Keyed)?\(this\.(_\w+)\)/g)].map((m) => m[1]);
-  assert.deepEqual([...new Set(moved)].sort(), [...new Set(forgot)].sort());
-  assert.match(body('_forgetRoom'), /p\.src === room/);
-  assert.match(body('_renameRoom'), /p\.src === from\) p\.src = to/);
-  // the grants' reader asks the session what the socket a frame came on covers
-  assert.match(readFileSync(new URL('../../src/scenes/grantHost.js', import.meta.url), 'utf8'), /grantRefusal\(v\.gr, \{ from, cell: at, cover: session\(\)\?\.coverOf\?\.\(at\) \?\? at,/);
+test('COST-2 (b) A COVERED CROSSING TAKES EVERY ROOM-KEYED RECORD WITH IT: every map and set _forgetRoom lets go of a room by - its own key or its `room|account` keys - is one _renameRoom moves, the peers it heard there and the layer it stood in going with it (mutants: a map left behind; a peer\'s source left)', () => {
+  // a room beside the session's own: letting its own room go also starts the hub's lists afresh, which is no record kept by room
+  const FROM = 'world:24,9';
+  const TO = 'world:25,9';
+  // Each entry is iterable (the room's own roster is read as a set of ids) and carries the field a peer is read by.
+  const entry = () => Object.assign([], { src: null });
+  const collections = (session) => Object.entries(session).filter(([, value]) => value instanceof Map || value instanceof Set);
+  const fill = (session) => {
+    for (const [, collection] of collections(session)) {
+      for (const key of [FROM, `${FROM}|acct-x`]) {
+        if (collection instanceof Map) collection.set(key, entry());
+        else collection.add(key);
+      }
+    }
+  };
+  const held = (collection, key) => collection.has(key);
+
+  // Which collections are keyed by the room, learned by asking _forgetRoom to let one go.
+  const probe = session(null).s;
+  fill(probe);
+  probe._forgetRoom(FROM);
+  const roomKeyed = collections(probe)
+    .map(([name, collection]) => [name, [FROM, `${FROM}|acct-x`].filter((key) => !held(collection, key))])
+    .filter(([, keys]) => keys.length);
+  assert.ok(roomKeyed.length >= 6, `the room-keyed records found: ${roomKeyed.map(([name]) => name).join(', ')}`);
+
+  // A crossing's rename moves every one of them, each key to the new room's.
+  const crossing = session(null).s;
+  fill(crossing);
+  const peer = { id: 'peer-0001', src: FROM };
+  crossing.peers.set(peer.id, peer);
+  crossing._layerRoom = FROM;
+  crossing._renameRoom(FROM, TO);
+  for (const [name, keys] of roomKeyed) {
+    const collection = crossing[name];
+    for (const key of keys) {
+      assert.equal(held(collection, key), false, `${name}: ${key} let go`);
+      assert.equal(held(collection, TO + key.slice(FROM.length)), true, `${name}: moved to the room crossed into`);
+    }
+  }
+  assert.equal(peer.src, TO, 'a peer heard in the room is heard in the room crossed into');
+  assert.equal(crossing._layerRoom, TO, 'and the layer the room stood in is that room\'s');
+});
+
+test('COST-2 (b) THE GRANTS\' READER ASKS THE SOCKET\'S COVER: a foe on a grant made out to a cell the socket it came on covers stands; the same grant read by a socket covering its own cell alone is refused as another cell\'s (mutants: the cover unread by the host)', async () => {
+  const { subtle } = globalThis.crypto;
+  const keys = await subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
+  const OWNER = 'aaa-0001';
+  const unsigned = { g: 7, o: OWNER, q: 'world:24,8', a: 'acct-a', k: 'enc', p: [3, 12], m: 9, l: 9, r: 7, n: 1, s: 5, e: 0, c: [-1], h: -1, x: Date.now() + GRANT_TTL_MS };
+  const grant = { ...unsigned, sg: await signGrant(unsigned, keys.privateKey, { subtle }) };
+  const record = { i: 1, gr: [grant.g, 0] };
+  const readFrom = async (coverOfRoom) => {
+    const session = { id: 'mmm-0002', room: 'world:25,9', status: 'open', grantMode: 'measure', coverOf: coverOfRoom, sendGrant: () => true };
+    const host = createGrantHost({ session: () => session, climateAt: null, fetchKey: async () => keys.publicKey });   // no climate: the species is not the question here
+    host.heard(OWNER, [grant]);
+    return host.check(OWNER, 'world:25,9', record);
+  };
+  assert.equal(await readFrom(() => NODE), null, 'the socket covers the node that holds the grant\'s cell: it stands');
+  assert.equal(await readFrom((room) => room), 'cell', 'a socket covering its own cell alone: another cell\'s grant');
 });
