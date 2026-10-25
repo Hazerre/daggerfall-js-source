@@ -10,7 +10,6 @@
 import '../chargenDom.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 
 import { standService, T0 } from '../accountDb.mjs';
 import { seatRealm } from '../realmSeat.mjs';
@@ -21,8 +20,8 @@ import { createMarketBook } from '../../src/net/marketBook.js';
 import { realmGoldAct } from '../../src/systems/realmSaves.js';
 import { createVendorTab } from '../../src/ui/vendor/vendorTab.js';
 import { accountRefusalText } from '../../src/net/accountClient.js';
+import { createVendorHost } from '../../src/scenes/vendorHost.js';
 
-const src = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 let _now = T0;
 const realNow = Date.now;
 Date.now = () => _now * 1000;
@@ -229,9 +228,24 @@ test('VENDOR-LOST stall: a trader\'s stall opened settles the market book\'s kep
   assert.equal(settles, 0, 'the board\'s Vendors tab buys nothing');
 });
 
-test('VENDOR-LOST wiring: the host hands the stall the market book\'s settle over the Market tab\'s own mint, put-back and drop', () => {
-  const w = src('src/scenes/world.js');
-  const at = w.indexOf('const openHomeVendorWindow = (');
-  assert.ok(at > 0);
-  assert.ok(w.slice(at, at + 3000).includes('settle: () => marketBook.settle(marketMint, marketPutBack, marketDrop),'));
+test('VENDOR-LOST wiring: a trader\'s stall opened through the vendor host settles the market book over the Market tab\'s own mint, put-back and drop', async () => {
+  const marketMint = () => {};
+  const marketPutBack = () => {};
+  const marketDrop = () => {};
+  const settleCalls = [];
+  const marketBook = {
+    settle: async (...callbacks) => { settleCalls.push(callbacks); return { ok: true, settled: 0, refused: [] }; },
+  };
+  let stallHost = null;
+  const { openHomeVendorWindow } = createVendorHost({
+    marketBook, marketMint, marketPutBack, marketDrop,
+    profBook: { state: { open: true } },
+    marksBook: { state: { open: true } },
+    noticeBook: {},
+    showNoticeWindow: (window) => { stallHost = window.vendors; return true; },
+  });
+  assert.equal(openHomeVendorWindow({ vendor: VENDOR, owner: 'Eve' }), true);
+  assert.equal(stallHost.mode, 'stall');
+  await stallHost.settle();
+  assert.deepEqual(settleCalls, [[marketMint, marketPutBack, marketDrop]]);
 });

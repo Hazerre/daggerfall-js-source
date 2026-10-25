@@ -10972,8 +10972,8 @@ and `test/systems/decor/decor2b.test.js` (the sale's line, the tap under a fligh
   (`decor.js` vendorStocked, `vendor-stocked`) and its house is not sold (`homes.js`, `home-vendor-stocked`). The
   region's directory says each house's door as the town answer says it (entry, mine, guildmate, tenant); the client
   keeps only the traders `homeMayEnter` lets the character in on. A guild's hall stands no trader.
-- **The client.** A trader pressed in its home (`scenes/worldModes.js` openHomeVendor -> `scenes/world.js`
-  openHomeVendorWindow) opens its stall in the Notice Board's window (`ui/noticeWindow.js` `traderOnly`,
+- **The client.** A trader pressed in its home (`scenes/worldModes.js` openHomeVendor -> `scenes/vendorHost.js`
+  openHomeVendorWindow, moved out of `world.js` by VENDOR-LOST) opens its stall in the Notice Board's window (`ui/noticeWindow.js` `traderOnly`,
   `ui/vendor/vendorTab.js`): a visitor buys off the purse; the owner takes a piece back or puts one up from the pack.
   VENDOR-LOST (FIELD BUGS 2026-10-25): the stall opened settles the market book's kept acts, so a buy whose answer was
   lost has its piece collected where its buyer comes back (only the Market tab settled before). The

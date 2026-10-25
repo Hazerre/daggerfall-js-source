@@ -139,7 +139,7 @@
   },
   {
     "name": "VENDORLOST-the-host-handing-no-settle",
-    "file": "src/scenes/world.js",
+    "file": "src/scenes/vendorHost.js",
     "old": "        settle: () => marketBook.settle(marketMint, marketPutBack, marketDrop),   // VENDOR-LOST: a kept buy's piece collected as the stall opens\n",
     "new": "",
     "tests": [

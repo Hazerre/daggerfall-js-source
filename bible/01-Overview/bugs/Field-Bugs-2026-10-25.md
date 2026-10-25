@@ -17,7 +17,7 @@ held 950 of its 1,000 gold and no piece, the delivery stood uncollected, the lis
 over the real realmGoldAct: the session ended `unknown`, and the settle after the join let the kept buy go on its repeat
 and asked to collect nothing.
 
-WHAT THE PLAYER SAW. A trader's buy is two realm acts: the buy, then the collect of its delivery (`world.js` vendorBuy).
+WHAT THE PLAYER SAW. A trader's buy is two realm acts: the buy, then the collect of its delivery (vendorBuy, `src/scenes/vendorHost.js` since this fix).
 realmGoldAct takes the price out of the purse as the service is asked. The answer did not come - the door's 15 s
 (ACCOUNT_ACT_WAIT_MS), or a 503 after the batch had landed, under the account database's overloads of 2026-10-13 and
 2026-10-19; which one is not measured. The retry was told `seq`, and the player was sent to the title with "The realm
@@ -44,9 +44,11 @@ FIXED.
   sequence (its own sale, its first answer lost) and never for one made before it. A kept buy whose answer names a
   delivery here is collected on that answer. A delivery collected is off the road the last read named: the stall
   settles with no read behind it, and asked it again (`market-gone`, said to a player who had the piece).
-- **The stall** (`vendorTab.js`, `world.js` openHomeVendorWindow). A trader's stall opened settles the book's kept acts
-  through the window's door, beside its read. `bootWorld` takes 2 logical lines for it, its ceiling 36,287 -> 36,289 on the
-  branch and main's 36,386 -> 36,388 at the merge (`hostceiling.test.js`).
+- **The stall** (`vendorTab.js`, `vendorHost.js` openHomeVendorWindow). A trader's stall opened settles the book's kept acts
+  through the window's door, beside its read. HOST-SPLIT: the home traders' block (the stall, the board's Vendors tab,
+  the Vendor page's helpers) moved verbatim out of `bootWorld` to `src/scenes/vendorHost.js` createVendorHost by
+  `tools/hostMove.mjs`, so the wiring lives there and `bootWorld` loses 140 logical lines, its ceiling 36,248
+  (`hostceiling.test.js`).
 
 NOT CHANGED.
 - The collect (`market.js` collectGood) keeps L1-F2's order: its lost answer still ends the session, with the piece in

@@ -561,7 +561,7 @@ export function createMarketBook({ door, storage = null, character, now = () => 
         const refused = [];
         // GOLD-MARKET: a kept gold buy asked again through the realm act (paid on the answer for a sale it made, never for
         // one made before it). VENDOR-LOST (FIELD BUGS 2026-10-25): a piece from a pack bought here comes as a delivery,
-        // arrived at once, which the press collects on its own answer (world.js vendorBuy). A kept buy's answer comes here
+        // arrived at once, which the press collects on its own answer (scenes/vendorHost.js vendorBuy). A kept buy's answer comes here
         // instead, so its delivery is collected here, on the answer that names it - nothing did, and the piece waited on
         // the service for good (and, collected, it is off the road the loop below reads)
         for (const b of k.buys) {
