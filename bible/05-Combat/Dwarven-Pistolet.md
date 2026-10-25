@@ -292,7 +292,7 @@ a pair slid off whole).
 
 **Named departures, each the game's input and never a second composition:**
 - The camera shake stays Better Ambience's `weaponKick` - the port has one camera shaker (the Thunderlock's precedent).
-- ~~The room's light (MAC-I) still tints the sprite - game-wide.~~ Retired by PISTOL-PROTO (2026-10-25, the owner: *"the pistolets still after all this time dont match the prototype 1;1"*): the page lights its room and never the pistols, so the room's light left the game's dim in every dungeon and every night. A Pistolet is drawn as painted now, its flash the strip's own frame (`weaponRig.js` drawThunderlock, `lit` null for a pistol hand); the Thunderlock keeps the room's light. PIN MOVED: `pistolport.test.js` THE FLASH AS PAINTED, `pistoletRig.test.js` (a pair); `pistolport.json` WR-pistol-flash-the-orb re-aimed as WR-pistol-the-room-lit.
+- The room's light (MAC-I) still tints the sprite - game-wide.
 - The player's own Offset and Bob switches (`pistolWidgetSettings`): every magnitude the page's panel, the switches
   theirs, as Weapon Widget's are everywhere.
 - The holster: the page has no sheath; the game lowers the pistols to `sheathTarget` on the same rig (`away`).
@@ -494,6 +494,13 @@ real rig. The notch: closed at two, left open past EDGE_GAP, and the arm in one 
 (the drawn quad is the union, 88 and the bleed's 96 wide at native), `pistolet_pins.test.js` D18 B3 (the gold is the
 keep's on the canvas, then bled). `tools/mutants/pistoledge.json`: 19 dead; `pistolet.json`'s two art records re-aimed
 by content (the keep of the rest frame, the muzzle off the wrong frame), both dead.
+
+## PISTOL-RAISE (2026-10-25): the pistols sit 60 lower
+
+Mac, 2026-10-25: *"Placement needs to be -60 ... the raise"*. `PISTOLET_FEEL.raise` (`src/combat/gun/gunFeel.js`) is
+-60, the panel's floor, where it was -1. The lab's raise slider opens there too, since PISTOL_OPENING reads the row.
+The same day the PISTOL-PROTO tint was reverted (*"Pistols should be affected by lighting"*), so a Pistolet takes the
+room's light again, as the Thunderlock does.
 
 ## Departures (Port-Ledger section A, PISTOLET)
 

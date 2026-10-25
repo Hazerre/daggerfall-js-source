@@ -3995,7 +3995,7 @@ The frames held are the held sent, the held gone and the still held:
 - `tools/foesFirstBench.mjs`: each send read by its frame's number, the senders' tail, a handover its owner heard, the
   `burst`, `liar` and `leavers` scenes.
 
-## COST-1: built (2026-10-24, this branch - relay world259 (world256, world257, then world258, until the merges with main, whose STAFF-EVENT, STAFF-EVENT BOSS and KETCH-LONGER took them), NOT YET DEPLOYED; one relay drop at its merge)
+## COST-1: built (2026-10-24, this branch - relay world260 (world256, world257, world258, then world259, until the merges with main, whose STAFF-EVENT, STAFF-EVENT BOSS, KETCH-LONGER and ASK-LONGER took them), NOT YET DEPLOYED; one relay drop at its merge)
 
 The owner's Cloudflare bill (2026-10-23): about $90 a day, $50 of it Durable Objects compute duration - some 370 objects
 held in memory around the clock at $0.135 an object-day (128 MB billed whatever an object uses, $12.50 per million GB-s).
@@ -4073,10 +4073,10 @@ their timers cleared, a failed post's retry let go in an empty room and kept und
   default too), `lease1.test.js`, `staffpanel5hidden_relay.test.js` and `auditscale2_bus.test.js` run their worlds with
   `REGION_SHARDS` naming every region (`test/fakeRoom.mjs` fakeRooms takes the relay's `vars`); `tools/mutants/scale5c.json`'s
   two hops and `scale2b.json`'s drain re-aimed by content.
-- RELAY_VERSION world259, its hash and the bundle's new file (`server/src/drainWindows.js`) in
-  `test/net/relayversion.test.js`, every pin on world258 moved.
+- RELAY_VERSION world260, its hash and the bundle's new file (`server/src/drainWindows.js`) in
+  `test/net/relayversion.test.js`, every pin on world259 moved.
 
-**The deploy.** One relay drop, world259, at the merge (relay-deploy.yml) - every socket closes once, as every relay
+**The deploy.** One relay drop, world260, at the merge (relay-deploy.yml) - every socket closes once, as every relay
 deploy does. No account-service change, no migration. Rollback is a revert (another drop); a page of either build joins
 whichever the relay answers, so no page change is needed either way. The region shards' stored `hubkey` stays in their
 storage, read by nothing until a region is split again.

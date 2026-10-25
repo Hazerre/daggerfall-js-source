@@ -395,15 +395,13 @@
   ]
  },
  {
-  "name": "WR-pistol-the-room-lit",
+  "name": "WR-pistol-flash-the-orb",
   "file": "src/combat/weapon/weaponRig.js",
-  "old": "    const lit = ph ? null : (tint && glow > 0)",
-  "new": "    const lit = (tint && glow > 0)",
+  "old": "    const flash = ph ? PAINTED_FLASH : orbColour();",
+  "new": "    const flash = orbColour();",
   "tests": [
-   "test/combat/gun/pistolport.test.js",
-   "test/combat/weapon/pistoletRig.test.js"
-  ],
-  "note": "Re-aimed PISTOL-PROTO (2026-10-25): a Pistolet is drawn as painted, as the page draws it; the room's light on it was the old law."
+   "test/combat/gun/pistolport.test.js"
+  ]
  },
  {
   "name": "WR-pistols-pop-on-sheath",
