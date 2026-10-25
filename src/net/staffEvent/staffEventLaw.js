@@ -48,6 +48,9 @@ export const STAFF_BOSS_SIZE_DEFAULT = 200;
 export const STAFF_BOSS_HEALTH_MIN = 1;
 export const STAFF_BOSS_HEALTH_MAX = 100;
 export const STAFF_BOSS_HEALTH_DEFAULT = 10;
+/** BOSS-HP (mob 2026-10-25 02:47Z: "need be able to eneter a exact amount of healt for mini bosses"): the mini boss's
+ *  health as a number staff type (`hp`), in place of the times-its-kind's above; 0 is the times. */
+export const STAFF_BOSS_HP_MAX = 1000000;
 /** The longest an event may be set to run, ms (a day; "only when I end it" is 0). */
 export const STAFF_EVENT_LONGEST_MS = 24 * 60 * 60 * 1000;
 /** A staff member's name as the book carries it. */
@@ -88,10 +91,10 @@ export const staffEventKindOk = (t) => intIn(t, 0, STAFF_EVENT_KIND_MAX) && !STA
 
 /**
  * @typedef {{ id: string, rg: number, loc: number, px: number, py: number, nm: string, ct: 0|1, mt: number[], n: number, m: number,
- *   b: number, bs: number, bh: number, at: number, ue: number, eb: 0|1, fb: number, by: string }} StaffEvent
+ *   b: number, bs: number, bh: number, hp: number, at: number, ue: number, eb: 0|1, fb: number, by: string }} StaffEvent
  *   `loc` -1 for an area (the pixel alone); `ct` 1 when the place is a city (a town on the game's own map - the panel's
  *   pick), never for an area, so its lines say a city or an area; `ue` the end it was set to (ms, 0 none); `eb` 1 ends it at the boss's fall;
- *   `bh` the mini boss's health, times its kind's;
+ *   `bh` the mini boss's health, times its kind's; `hp` BOSS-HP's exact health, which wins over `bh` (0 none);
  *   `fb` how many times staff called the boss by hand (Spawn mini boss now) - each call is one more boss.
  */
 
@@ -100,18 +103,31 @@ export const staffEventKindOk = (t) => intIn(t, 0, STAFF_EVENT_KIND_MAX) && !STA
  * @param {any} e @returns {StaffEvent|null}
  */
 export function validStaffEvent(e) {
-  if (!e || typeof e !== 'object' || Array.isArray(e)) return null;
-  if (typeof e.id !== 'string' || !STAFF_EVENT_ID_RE.test(e.id)) return null;
-  if (!intIn(e.rg, 0, 255) || !intIn(e.loc, -1, 9999) || !intIn(e.px, 0, 999) || !intIn(e.py, 0, 499)) return null;
-  if (!Array.isArray(e.mt) || !e.mt.length || e.mt.length > STAFF_EVENT_KINDS_MAX || !e.mt.every(staffEventKindOk)) return null;
+  if (staffEventFault(e)) return null;
   const mt = [...new Set(/** @type {number[]} */ (e.mt))];
-  if (!intIn(e.n, STAFF_EVENT_TOTAL_MIN, STAFF_EVENT_TOTAL_MAX) || !intIn(e.m, STAFF_EVENT_METER_MIN, Math.min(STAFF_EVENT_METER_MAX, e.n))) return null;
-  if (!staffEventKindOk(e.b) || !intIn(e.bs, STAFF_BOSS_SIZE_MIN, STAFF_BOSS_SIZE_MAX)) return null;
-  if (!intIn(e.bh ?? STAFF_BOSS_HEALTH_DEFAULT, STAFF_BOSS_HEALTH_MIN, STAFF_BOSS_HEALTH_MAX)) return null;
-  if (!Number.isSafeInteger(e.at) || e.at <= 0) return null;
-  if (!(e.ue === 0 || (Number.isSafeInteger(e.ue) && e.ue > e.at && e.ue - e.at <= STAFF_EVENT_LONGEST_MS))) return null;
-  if (!intIn(e.fb ?? 0, 0, 99)) return null;
-  return { id: e.id, rg: e.rg, loc: e.loc, px: e.px, py: e.py, nm: clean(e.nm, STAFF_EVENT_PLACE_MAX), ct: e.loc >= 0 ? bit(e.ct) : 0, mt, n: e.n, m: e.m, b: e.b, bs: e.bs, bh: e.bh ?? STAFF_BOSS_HEALTH_DEFAULT, at: e.at, ue: e.ue, eb: bit(e.eb), fb: e.fb ?? 0, by: clean(e.by, STAFF_EVENT_BY_MAX) };
+  return { id: e.id, rg: e.rg, loc: e.loc, px: e.px, py: e.py, nm: clean(e.nm, STAFF_EVENT_PLACE_MAX), ct: e.loc >= 0 ? bit(e.ct) : 0, mt, n: e.n, m: e.m, b: e.b, bs: e.bs, bh: e.bh ?? STAFF_BOSS_HEALTH_DEFAULT, hp: e.hp ?? 0, at: e.at, ue: e.ue, eb: bit(e.eb), fb: e.fb ?? 0, by: clean(e.by, STAFF_EVENT_BY_MAX) };
+}
+/**
+ * EVENT-FAULT (mob 2026-10-25: "service refused", "toop of event menu says the refusal"): the first field validStaffEvent
+ * refuses, by name - the panel says which - or null for an event it takes.
+ * @param {any} e @returns {string|null}
+ */
+export function staffEventFault(e) {
+  if (!e || typeof e !== 'object' || Array.isArray(e)) return 'event';
+  if (typeof e.id !== 'string' || !STAFF_EVENT_ID_RE.test(e.id)) return 'id';
+  if (!intIn(e.rg, 0, 255)) return 'region';
+  if (!intIn(e.loc, -1, 9999)) return 'place';
+  if (!intIn(e.px, 0, 999) || !intIn(e.py, 0, 499)) return 'pixel';
+  if (!Array.isArray(e.mt) || !e.mt.length || e.mt.length > STAFF_EVENT_KINDS_MAX || !e.mt.every(staffEventKindOk)) return 'monsters';
+  if (!intIn(e.n, STAFF_EVENT_TOTAL_MIN, STAFF_EVENT_TOTAL_MAX)) return 'total';
+  if (!intIn(e.m, STAFF_EVENT_METER_MIN, Math.min(STAFF_EVENT_METER_MAX, e.n))) return 'meter';
+  if (!staffEventKindOk(e.b)) return 'boss';
+  if (!intIn(e.bs, STAFF_BOSS_SIZE_MIN, STAFF_BOSS_SIZE_MAX)) return 'size';
+  if (!intIn(e.bh ?? STAFF_BOSS_HEALTH_DEFAULT, STAFF_BOSS_HEALTH_MIN, STAFF_BOSS_HEALTH_MAX) || !intIn(e.hp ?? 0, 0, STAFF_BOSS_HP_MAX)) return 'health';
+  if (!Number.isSafeInteger(e.at) || e.at <= 0) return 'start';
+  if (!(e.ue === 0 || (Number.isSafeInteger(e.ue) && e.ue > e.at && e.ue - e.at <= STAFF_EVENT_LONGEST_MS))) return 'runs';
+  if (!intIn(e.fb ?? 0, 0, 99)) return 'calls';
+  return null;
 }
 /** Is the event over by its own clock at `nowMs`? @param {StaffEvent} e @param {number} nowMs */
 export const staffEventLapsed = (e, nowMs) => e.ue > 0 && nowMs >= e.ue;
@@ -173,8 +189,9 @@ export function validStaffEventOut(m) {
  *   `h` its kills (a word's `h`, the board's), `t` the words that counted toward its stand (one a STAFF_EVENT_STAND_TICK_MS), `tAt` the last of them.
  * @typedef {{ id: string, first: number, n: number, a: Record<string, StaffEventAccount>, bd: 0|1, bu: 0|1, bk: 0|1,
  *   fc: number, bossN: number, ended: 0|1, kb?: string, fellAt?: number, rw?: 0|1, top?: StaffBoardRow[],
- *   rc?: Record<string, string> }} StaffEventLedger
- *   `fc` the boss calls staff made that the ledger has taken (each one more boss); `bossN` the bosses that fell; THE
+ *   rc?: Record<string, string>, hc?: number, mc?: number }} StaffEventLedger
+ *   `fc` the boss call now (each call one more boss, by the meter or staff's hand); `hc` the hand calls taken (the book's
+ *   `fb`); `mc` the meter's calls (BOSS-AGAIN); `bossN` the bosses that fell; THE
  *   REWARD's: `kb` the account whose word felled the first boss and `fellAt` when, `rw` 1 once it was paid, `top` the
  *   board, `rc` each earner's receipt.
  * @typedef {[string, number, 0|1]} StaffBoardRow  a fighter's name, kills, and 1 for the boss's killer
@@ -188,14 +205,22 @@ export const staffEventCap = (led, nowMs) => STAFF_EVENT_KILLS_BURST + Math.floo
 
 /**
  * A boss called: the meter full (the count at `e.m`), or staff's hand (`e.fb` past the calls the ledger took). A boss
- * already standing is not called twice; one that fell is called again only by another hand. Answers whether it moved.
+ * already standing is not called by the meter; BOSS-AGAIN (mob 2026-10-25: "boss seems to not spawn every time"): the
+ * meter calls one more each time it fills again - every `e.m` kills - once the last has fallen. Each call is the next
+ * `fc`. Answers whether it moved.
  * @param {StaffEventLedger} led @param {StaffEvent} e
  */
 export function staffBossCall(led, e) {
   if (led.ended) return false;
-  if (e.fb > led.fc) { led.fc = e.fb; led.bd = 1; led.bu = 0; led.bk = 0; return true; }   // by hand: one more boss
-  if (!led.bd && led.bossN === 0 && led.n >= e.m) { led.bd = 1; return true; }   // the meter, once
+  const hc = led.hc ?? led.fc, mc = led.mc ?? led.bd;   // a ledger kept before BOSS-AGAIN: `fc` was the hands', and a meter boss called once
+  if (e.fb > hc) { led.hc = e.fb; led.mc = mc; nextStaffBoss(led); return true; }   // by hand: one more boss
+  if ((!led.bd || led.bk) && led.n >= e.m * (mc + 1)) { led.hc = hc; led.mc = mc + 1; nextStaffBoss(led); return true; }   // the meter, each time it fills
   return false;
+}
+/** The next call: the one after the last, a new boss due. @param {StaffEventLedger} led */
+function nextStaffBoss(led) {
+  if (led.bd) led.fc = Math.min(99, led.fc + 1);
+  led.bd = 1; led.bu = 0; led.bk = 0;
 }
 
 /**
