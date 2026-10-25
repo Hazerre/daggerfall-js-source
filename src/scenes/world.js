@@ -704,7 +704,7 @@ import { warmAshesOn, LeaveShip, setWarmAshesHost, onPreFastTravel as warmAshesP
 import { laneNetwork, laneWay, packetsAt, packetAt, LANE_PATH_PX, LANE_DWELL_S } from '../systems/naval/seaLanes.js';   // SEA-LANES: the Bay's packets; LW5: where one is, and her dwell
 import { raidersNear, raiderAt, raiderSight, chaseStep as raiderChaseStep, pixelOfNative, NATIVE_PIXEL as RAID_NATIVE_PIXEL, RAIDER_CONTACT_M, RAIDER_CONTACT_PLAY_M, RAIDER_CHASE_MPS, RAIDERS_WIRE_MAX, RAIDER_WORD_MS, raiderWordOf, validRaiderWord, raiderLifeOf, raiderNearMe, RAIDER_LIFE_MS } from '../systems/seaRaiders.js';   // OWS3: Warm Ashes' raiders on the Overworld's sea
 import { RAIDER_LEAD_S } from '../systems/naval/navalRaiders.js';   // NAV-R: a raider ship steers its seeded course this far on
-import { setRaidingPartiesHost, raidFrame as raidingPartiesFrame, raidState, raidActive, raidingPartiesOn, raidTimerList, raidRegionNow, raidDefendingHere, outOfSight as raidOutOfSight, raidWireWord, raidPeerWord, raidRelayWord, raidTownsFor, raidPoolCleared, raidRelayState, raidSpawnRange, RAID_SPAWN_MIN_DISTANCE, RAID_SPAWN_MAX_DISTANCE } from '../systems/raidingParties.js';   // RAID1: World Events - Raiding Parties, the towns' raids
+import { setRaidingPartiesHost, raidFrame as raidingPartiesFrame, raidState, raidActive, raidingPartiesOn, raidTimerList, raidRegionNow, raidDefendingHere, outOfSight as raidOutOfSight, raidWireWord, raidObjWord, raidWasHeld, raidPeerWord, raidRelayWord, raidTownsFor, raidPoolCleared, raidRelayState, raidSpawnRange, RAID_SPAWN_MIN_DISTANCE, RAID_SPAWN_MAX_DISTANCE } from '../systems/raidingParties.js';   // RAID1: World Events - Raiding Parties, the towns' raids
 import { modSaveRecords, restoreModSaveRecords, newGameModSaveRecords, registerModSaveData } from '../systems/modSaveData.js';   // WA1: DFU's per-mod save slot, for the mods after HCC; OH-D: Ocean Holes' OceanHoleSaveData
 import { applyDeathPenalty, deathPenaltyText, stateDeathLoss, statedDeathLoss } from '../systems/deathPenalty.js';   // DEATH-PENALTY: an online death costs a tenth of the purse
 import { createLegacyHost, LEGACY_TEXT, REMAINS_FLAT } from './legacyHost.js';   // LEGACY1: Project Legacy's family - the record, the deaths, the births
@@ -1130,6 +1130,7 @@ import { OceanHolesRenderer } from '../render/oceanHolesRender.js';   // OH-C: i
 import { createMiasma, miasmaReach } from '../world/oceanHolesMiasma.js';
 import { SURFACE_INNER_COLOR, FLOOR_INNER_COLOR, placementFraction, OCEAN_HOLES_VENDOR } from '../world/oceanHoles.js';
 import { ohLootUpgrades } from './ohLootHost.js';   // OH-E: the abyss's loot upgrades (HOST-SPLIT: out of the host whole)
+import { createRaidSites } from './raidSitesHost.js';   // RAID5: a raided town's square, its way, its bearer and its refugees
 import { createOceanHolesAbyss } from './oceanHolesAbyss.js';   // OH-D: the abyss - the pit's way down, its dungeon, its way back up
 import { DUNGEON_AMBIENT } from '../world/dungeon/dungeonLights.js';   // OH-E: PlayerAmbientLight.DungeonAmbientLight, what the abyss darkens
 import { TILE_WORLD_SIZE_F32 } from '../world/deepWater/deepWaterFloor.js';   // OH-D: RestoreOceanPosition's terrainData.size (AUDIT PRE-MERGE 0928 H4: a float)
@@ -20029,6 +20030,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     selfId: () => online?.id ?? null,
     wallNow: () => performance.now(),
     peersInTown: () => (peersNear() ?? []).filter((p) => _foeInTownRect({ ai: { feet: p.feet } })).map((p) => p.id),   // FIELD-RAID-FT: no room open (a fast travel between the old cell's room and the new) is nobody in town, never a null walked - the crash Discord reported arriving in a raided town
+    sites: () => raidSites,   // RAID5: the town's places and people a raid's kind stands (scenes/raidSitesHost.js)
     peerFeetInTown: () => [[online?.id ?? '', player.feetAt(), playerEntity.level ?? 1], ...(peersNear() ?? []).filter((p) => _foeInTownRect({ ai: { feet: p.feet } })).map((p) => [p.id, p.feet, online?.peers.get(p.id)?.lv ?? 0])],   // PACK-SPREAD: where each player in the town stands, for its share of the packs; BOSS-SPOT: me first, and each one's level
     raidPuppets: () => exteriorFoes.foes.filter((f) => f.puppet && f._pupRaid),   // STAFF-EVENT THE REWARD: the fallen too - a puppet I fought that fell is my kill on the board
     ownRaidFoes: () => exteriorFoes.foes.filter((f) => !f.puppet && f.raidKey && !f.dead),
@@ -20372,7 +20374,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const seaRaidMoved = cell && seaRaidWord(null, full);   // OW6: and a raider's at sea
     const frame = cell ? ((modes?.mode ?? 'exterior') === 'exterior' ? exteriorFoes.foesFrame(full, _hccDirty || csaMoved || csaAboardMoved || bandMoved || navalMoved || seaRaidMoved) : null) : modes?.dungeonFoesFrame?.(full);
     if (!frame) return false;
-    if (cell && full) frame.c = camps.wireRecords(campToWire); if (cell && (full || _hccDirty)) { frame.hv = hcc.wireRecord(campToWire); _hccDirty = false; } if (cell) duelRingWord(frame, full); if (cell) csaWord(frame, full); if (cell) csaAboardWord(frame, full); if (cell) bandWord(frame, full); if (cell) navalWord(frame, full); if (cell) seaRaidWord(frame, full); if (cell) { const rk = raidWireWord(); if (rk) frame.rk = rk; } if (cell) portalWord(frame, full); if (cell && frame.hv !== undefined) frame.wr = wagonRiders?.word() ?? null;   // HCC-ONLINE: my horse and wagon as shown (null: none stand) ride beside the camps - on every full frame, and on a moved word between them   // AUDIT SURV B: an empty list says "none stand" - the last camp packed reaches the peers   // SURV3: my camps ride my full frame - a shared world object in the cell's own way; RAID2: my word on the raids I run or fought - my share of their deaths, and my claim; PORTAL1: my portal, on every full frame while it stands and I stand near it; WAGONS1: my ask for a seat in another's wagon, or the seat I sit in - beside my team's word, on its clock (sent whenever `hv` is)
+    if (cell && full) frame.c = camps.wireRecords(campToWire); if (cell && (full || _hccDirty)) { frame.hv = hcc.wireRecord(campToWire); _hccDirty = false; } if (cell) duelRingWord(frame, full); if (cell) csaWord(frame, full); if (cell) csaAboardWord(frame, full); if (cell) bandWord(frame, full); if (cell) navalWord(frame, full); if (cell) seaRaidWord(frame, full); if (cell) { const rk = raidWireWord(), ro = raidObjWord(); if (rk) frame.rk = rk; if (ro) frame.ro = ro; } if (cell) portalWord(frame, full); if (cell && frame.hv !== undefined) frame.wr = wagonRiders?.word() ?? null;   // HCC-ONLINE: my horse and wagon as shown (null: none stand) ride beside the camps - on every full frame, and on a moved word between them   // AUDIT SURV B: an empty list says "none stand" - the last camp packed reaches the peers   // SURV3: my camps ride my full frame - a shared world object in the cell's own way; RAID2: my word on the raids I run or fought - my share of their deaths, and my claim; PORTAL1: my portal, on every full frame while it stands and I stand near it; WAGONS1: my ask for a seat in another's wagon, or the seat I sit in - beside my team's word, on its clock (sent whenever `hv` is)
     // SCALE2c: A FULL FRAME THAT SAYS NOTHING IS SAID ONCE (net/foesQuiet.js) - in a cell, after one that said the same
     const said = { full, cell, room: online.room };
     if (_foesQuiet.skip(frame, said)) { _foesFullAt = now; return false; }
@@ -21131,7 +21133,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // QUEST-PARTY (2026-09-26, Mac: "Party shares them"): a quest shared with the party streams its foes to the party,
     // a member stands a party peer's, a peer's blow and a quest foe's hunt reach only the party (a quest's own allies
     // take no blow), and my copy of the quest counts the injury and the kill it sees on a partner's foe
-    exteriorFoes.setOnRaids((from, rk, at) => raidPeerWord(from, rk, at));   // RAID2: a peer's word on the raids it fought, past the pool's room test
+    exteriorFoes.setOnRaids((from, rk, at, ro) => raidPeerWord(from, rk, at, ro));   // RAID2: a peer's word on the raids it fought, past the pool's room test; RAID5: and on the objectives it runs
     exteriorFoes.setQuestShare(partyOnlyQuestShare(questShareSeam));   // QUEST-PARTY: the party's law, one home (questShareSeam); QUEST-OWNER: a quest's foe its owner's party's alone, out here too
     exteriorFoes.setOnEgArch((from, r) => { const p = online?.peers?.get(from); egClient?.archHeard(from, r, p?.shown ? onlineToScene(p.shown) : null); });   // EG-F: a peer's Elite arch - believed only near the peer's own feet, and when the hub's signature verifies
     exteriorFoes.setOnPortals((from, r) => { const p = online?.peers?.get(from); portalGates.applyOwner(from, r, p?.shown ? onlineToScene(p.shown) : null); });   // PORTAL1: a peer's portal - believed only near the peer's own feet (AUDIT PORTAL1 O1), kept to its own time
@@ -23969,7 +23971,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const c = readRaidReceipt(entry?.r);
     if (!c) return;
     const level = Math.max(1, Math.floor(Number(entry.lv) || playerEntity.level || 1));
-    spoilsLock(() => raidSpoils.grant({ day: raidSpoilsDay(c.w), acct: c.s, roll: () => raidSpoilsList(c.c, level, c.y), text: RAID_SPOILS_TEXT.granted,
+    spoilsLock(() => raidSpoils.grant({ day: raidSpoilsDay(c.w), acct: c.s, roll: () => raidSpoilsList(c.c, level, c.y, raidWasHeld(c.w)), text: RAID_SPOILS_TEXT.granted,
       owner: entry.ch, kept: RAID_SPOILS_TEXT.kept(entry.nm) }))
       .catch((e) => console.warn('[raid] spoils', e?.message ?? e));
   }
@@ -25704,6 +25706,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const _wardenT = [0, 0, 0];
   /** WARDEN1: the scene's x, z in a built town a watch keeps (wagonWardenHost.js wardenTownIn, over the built pixels). */
   const wardenTownAt = (x, z) => wardenTownIn(built.values(), (px, py) => state.pixelTranslation(px, py, _wardenT), TERRAIN_SIZE, x, z);
+  const raidSites = createRaidSites({ townAt: wardenTownAt, feet: enchantFeet, groundAt: surfaceAt, standGuard: cityGuards.standBearer, spawnFoe: exteriorFoes.spawnFoe });   // RAID5: the town's square and way off its walk grid (the warden's own read)
   const WARDEN_CLIPS = { heave: SOUND.AnimalHorse, throw: SOUND.SwingHighPitch, land: SOUND.BodyFall };
   wardenShows = createWardenShows({
     renderer, getTexture, uploadRecordFrame,

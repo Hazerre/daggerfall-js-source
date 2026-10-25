@@ -3568,16 +3568,27 @@ The Burning Court and the Hour are re-plugged with their behaviour unchanged.
 | Recall | as today | refused | refused |
 | the Portal Stone | refused | refused | refused |
 | companions (GATE-ALONE, SD-ALONE) | kept out | kept out | kept out |
-| natural regeneration (`courtRules`) | off | off | off |
+| natural regeneration (`courtRules`) | held (EVENT-RULES) | held | held |
 | restoring potions | as today | as today | two a hall (THE POTION LAW) |
 | Levitate | as today | banned | banned |
 | Slowfall | as today | as today | banned |
 | a technique's flight on traversal ground | as today | as today | refused |
 | the jump buffer and the late press | none | none | 0.12 s each |
-| Resurrect | as today | refused | refused |
+| Resurrect | as today | as today (EVENT-RULES) | as today (EVENT-RULES) |
 | Stendarr's AvoidDeath | as today | as today | refused |
 | a death | cast out | final for the Hollow | a fall (section 16.5) |
 | DEATH-PENALTY | as today | as today | none |
+
+**EVENT-RULES (2026-10-25, the owner: "A lot of people are unhappy with the world event restrictions including the regen
+not working"; asked, "Back, held in a fight" and "Resurrect allowed").** Two rows changed for every made level, the
+Sky-Ketch's among them. REGENERATION IS HELD, not off (`systems/courtRules.js`): every natural source - the class's and
+the race's, a ring's, a technique's, Grit's, the Firmament's - regrows at half (`REGEN_HELD_SHARE`, each source's
+fraction carried round to round) and not at all for 5 s after the player loses health (`REGEN_HELD_HURT_MS`), so a boss's
+blows still cost but a breather between them pays; WBX6's "off" had no word on the screen, and players read it as a
+broken regeneration. RESURRECT IS ALLOWED: no level refuses a party member's Resurrect; the Hour's one life is kept by the
+relay (`Super-Dungeons.md` SD-REZ), so a fallen member may be raised within its window there and nowhere is the spell's
+door the law. THE RULES ARE SAID: a made level's tile on the HUD's status row (`ui/hud/statusTips.js madeRulesTile`, the
+enhanced HUD's too) names the place and lists what it holds and refuses, the regeneration's pause counting down on it.
 
 **The world's clock does not stop.** The shared clock turns during a three-hour breach (36 game hours, a game day and
 a half). A quest's deadline can lapse inside, which is why the start window warns of it (section 5).

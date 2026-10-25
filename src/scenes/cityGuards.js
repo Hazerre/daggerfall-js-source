@@ -1897,6 +1897,9 @@ export function createCityGuards({ renderer, collider, fetchBytes, getTexture, u
      *  outside the watch's own call - the ONE watchman minted where a walker stood, facing their
      *  way, hostile to the player. Resolves to the guard record (or null when the world moved on). */
     spawnCityGuard: (pos, yaw, attackerFeet = null) => spawnGuardAt([...pos], yaw, attackerFeet),
+    /** RAID5: a raid's Standard-Bearer - one of the watch, a DEFENDER (the player's ally, a raid's), minted where its
+     *  standard is held (scenes/raidSitesHost.js makes him hardy and keeps him at his post). */
+    standBearer: (pos, yaw = 0) => spawnGuardAt([...pos], yaw, null, { defender: true }),
     // M2 (spellcasting above ground): the player's spell damage rides
     // THE SAME door the melee swing uses - corpse, Murder on the kill,
     // hostility - so a fireball is not a free crime channel.

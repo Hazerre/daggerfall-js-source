@@ -3719,6 +3719,131 @@
   "tr": "cbba56750e25",
   "by": "claude-in-session"
  },
+ "bossTraits.rule.bladeturning": {
+  "en": "9e00e68be1a3",
+  "tr": "2f1bc5eab37f",
+  "by": "claude-in-session"
+ },
+ "bossTraits.rule.curbing": {
+  "en": "1a0f170eda6e",
+  "tr": "acca40e861ea",
+  "by": "claude-in-session"
+ },
+ "bossTraits.rule.flameproof": {
+  "en": "8df6b8672cc4",
+  "tr": "c3b4c17bd4d0",
+  "by": "claude-in-session"
+ },
+ "bossTraits.rule.frostproof": {
+  "en": "68f9818f4687",
+  "tr": "b7eb0ef17a26",
+  "by": "claude-in-session"
+ },
+ "bossTraits.rule.spellproof": {
+  "en": "f6f3c56d389b",
+  "tr": "ecd76d19a5fb",
+  "by": "claude-in-session"
+ },
+ "bossTraits.rule.stoneskin": {
+  "en": "74d5788977c9",
+  "tr": "d4054d66a711",
+  "by": "claude-in-session"
+ },
+ "bossTraits.rule.stormproof": {
+  "en": "640474ef4e1f",
+  "tr": "678c690c9c7d",
+  "by": "claude-in-session"
+ },
+ "bossTraits.rule.thorned": {
+  "en": "c0e9eee8a453",
+  "tr": "ed590e50fa26",
+  "by": "claude-in-session"
+ },
+ "bossTraits.rule.venomproof": {
+  "en": "abe84fd1174e",
+  "tr": "ba4672e9114d",
+  "by": "claude-in-session"
+ },
+ "bossTraits.rule.warded": {
+  "en": "36ec6afe33cb",
+  "tr": "903d0a7f2415",
+  "by": "claude-in-session"
+ },
+ "bossTraits.rule.wrathful": {
+  "en": "97b137d93e34",
+  "tr": "9dff4e619743",
+  "by": "claude-in-session"
+ },
+ "bossTraits.say.met": {
+  "en": "bf6e56354aa8",
+  "tr": "bf6e56354aa8",
+  "by": "claude-in-session"
+ },
+ "bossTraits.say.wardBroke": {
+  "en": "79fe796308e2",
+  "tr": "47eccbb79175",
+  "by": "claude-in-session"
+ },
+ "bossTraits.say.wrath": {
+  "en": "cffcce6cadd4",
+  "tr": "2f8dbd5cebd4",
+  "by": "claude-in-session"
+ },
+ "bossTraits.word.bladeturning": {
+  "en": "376cf386076f",
+  "tr": "b76887eca576",
+  "by": "claude-in-session"
+ },
+ "bossTraits.word.curbing": {
+  "en": "2f8c8acf75db",
+  "tr": "bdefb09d708f",
+  "by": "claude-in-session"
+ },
+ "bossTraits.word.flameproof": {
+  "en": "8bdcd0b1ef7e",
+  "tr": "fb1912a53350",
+  "by": "claude-in-session"
+ },
+ "bossTraits.word.frostproof": {
+  "en": "84b9171ed673",
+  "tr": "85ce2bd94194",
+  "by": "claude-in-session"
+ },
+ "bossTraits.word.spellproof": {
+  "en": "12213a24178d",
+  "tr": "16a969396195",
+  "by": "claude-in-session"
+ },
+ "bossTraits.word.stoneskin": {
+  "en": "ad4744e48cad",
+  "tr": "c00dd1167f10",
+  "by": "claude-in-session"
+ },
+ "bossTraits.word.stormproof": {
+  "en": "4001f3511bdf",
+  "tr": "d7b7bab2a3e1",
+  "by": "claude-in-session"
+ },
+ "bossTraits.word.thorned": {
+  "en": "28b9626cc1b6",
+  "tr": "6c00ad62e929",
+  "by": "claude-in-session"
+ },
+ "bossTraits.word.venomproof": {
+  "en": "be6a7a7950b5",
+  "tr": "49b4b4766341",
+  "by": "claude-in-session"
+ },
+ "bossTraits.word.warded": {
+  "en": "bddb0c1c0e65",
+  "tr": "b70b9fc32577",
+  "by": "claude-in-session"
+ },
+ "bossTraits.word.wrathful": {
+  "en": "a973b8ec7111",
+  "tr": "a3f829dbc2cb",
+  "by": "claude-in-session"
+ },
  "cabin.refusal.enemies": {
   "en": "d1fec018f418",
   "tr": "dbe343b3c4b3",
@@ -15152,6 +15277,126 @@
  "lw.econ.thriving.b": {
   "en": "2d8ffddfef34",
   "tr": "e8597c5da231",
+  "by": "claude-in-session"
+ },
+ "madeRules.avoidDeath": {
+  "en": "2e1a10f39ad1",
+  "tr": "526a00ba83d1",
+  "by": "claude-in-session"
+ },
+ "madeRules.castOut": {
+  "en": "bba8848ade5f",
+  "tr": "eed8e39666ae",
+  "by": "claude-in-session"
+ },
+ "madeRules.companions": {
+  "en": "08f4c82fd30d",
+  "tr": "56866793f146",
+  "by": "claude-in-session"
+ },
+ "madeRules.fall": {
+  "en": "9688228b20c8",
+  "tr": "b6cfacd2ab03",
+  "by": "claude-in-session"
+ },
+ "madeRules.final": {
+  "en": "f06ceaf35030",
+  "tr": "6bd003bebf00",
+  "by": "claude-in-session"
+ },
+ "madeRules.foot": {
+  "en": "9e428cf4ef1d",
+  "tr": "404eb562f7f4",
+  "by": "claude-in-session"
+ },
+ "madeRules.meta": {
+  "en": "4dee8ecaf7de",
+  "tr": "24af9d0df112",
+  "by": "claude-in-session"
+ },
+ "madeRules.noFlight": {
+  "en": "f50a9400fa54",
+  "tr": "edc43995d942",
+  "by": "claude-in-session"
+ },
+ "madeRules.noFlightFall": {
+  "en": "9a608873e63e",
+  "tr": "53e3c861e415",
+  "by": "claude-in-session"
+ },
+ "madeRules.noMap": {
+  "en": "f9094fa50ef7",
+  "tr": "f98b64bd5db4",
+  "by": "claude-in-session"
+ },
+ "madeRules.noMark": {
+  "en": "8f1d707aef5a",
+  "tr": "0e49ae895155",
+  "by": "claude-in-session"
+ },
+ "madeRules.noMarkRecall": {
+  "en": "bdadb0a92bd1",
+  "tr": "ab0294b4e169",
+  "by": "claude-in-session"
+ },
+ "madeRules.noPenalty": {
+  "en": "3671dd5849fc",
+  "tr": "ee37f884ae80",
+  "by": "claude-in-session"
+ },
+ "madeRules.noPortal": {
+  "en": "c4a62b9901a6",
+  "tr": "e24ad478d504",
+  "by": "claude-in-session"
+ },
+ "madeRules.noSaveRest": {
+  "en": "70dc58e97e22",
+  "tr": "e73d54f6b748",
+  "by": "claude-in-session"
+ },
+ "madeRules.place.court": {
+  "en": "e43a2f7a34e3",
+  "tr": "e223b5388406",
+  "by": "claude-in-session"
+ },
+ "madeRules.place.hour": {
+  "en": "1999ab512517",
+  "tr": "7bd0e7ccacf7",
+  "by": "claude-in-session"
+ },
+ "madeRules.place.ketch": {
+  "en": "c7f38b5bca74",
+  "tr": "f96a314ad63f",
+  "by": "claude-in-session"
+ },
+ "madeRules.place.spire": {
+  "en": "a89a378928ea",
+  "tr": "0d69be19fbbb",
+  "by": "claude-in-session"
+ },
+ "madeRules.potions": {
+  "en": "88310252fc38",
+  "tr": "5c8365bdfc71",
+  "by": "claude-in-session"
+ },
+ "madeRules.regen": {
+  "en": "5eef830da655",
+  "tr": "eedf84bcc25f",
+  "by": "claude-in-session"
+ },
+ "madeRules.regenTip": {
+  "en": "760582d6ab91",
+  "tr": "b1cb5a4533ab",
+  "by": "claude-in-session"
+ },
+ "madeRules.runLeap": {
+  "en": "00ad979ff956",
+  "tr": "5d643bcc6bd9",
+  "by": "claude-in-session"
+ },
+ "madeRules.techFlight": {
+  "en": "f8232772baa6",
+  "tr": "0c29acb351c5",
   "by": "claude-in-session"
  },
  "market.page.label": {
@@ -29217,6 +29462,121 @@
  "quest.story.stalled": {
   "en": "2eb1fad47125",
   "tr": "adc7916e6eb0",
+  "by": "claude-in-session"
+ },
+ "raid.ask.defend": {
+  "en": "0b7c818bd3d6",
+  "tr": "3ce69d648d44",
+  "by": "claude-in-session"
+ },
+ "raid.ask.escort": {
+  "en": "3ff63108f8e2",
+  "tr": "f1ed7766ee08",
+  "by": "claude-in-session"
+ },
+ "raid.ask.waves": {
+  "en": "7b4de91f5743",
+  "tr": "5a448ca2d799",
+  "by": "claude-in-session"
+ },
+ "raid.bearerFell": {
+  "en": "866dbdf24494",
+  "tr": "b7979e65f770",
+  "by": "claude-in-session"
+ },
+ "raid.detail.leader": {
+  "en": "db76313db796",
+  "tr": "5c61f65a14de",
+  "by": "claude-in-session"
+ },
+ "raid.detail.refugees": {
+  "en": "1b3c01bca571",
+  "tr": "2144384f65b6",
+  "by": "claude-in-session"
+ },
+ "raid.detail.sacked": {
+  "en": "98d3f194d530",
+  "tr": "ff6d88cf3836",
+  "by": "claude-in-session"
+ },
+ "raid.detail.standard": {
+  "en": "b8268d5e19b3",
+  "tr": "f8069350e199",
+  "by": "claude-in-session"
+ },
+ "raid.detail.wave": {
+  "en": "bcfe54866294",
+  "tr": "47db06050ae3",
+  "by": "claude-in-session"
+ },
+ "raid.held": {
+  "en": "7bfc8b5b1f50",
+  "tr": "1a04e4cbd101",
+  "by": "claude-in-session"
+ },
+ "raid.kind.classic": {
+  "en": "be66989af6df",
+  "tr": "d24ccf2ae49f",
+  "by": "claude-in-session"
+ },
+ "raid.kind.defend": {
+  "en": "77f69e11b43b",
+  "tr": "331f2ff35d89",
+  "by": "claude-in-session"
+ },
+ "raid.kind.escort": {
+  "en": "850ba88dbb9c",
+  "tr": "5dcff23d867b",
+  "by": "claude-in-session"
+ },
+ "raid.kind.staff": {
+  "en": "1b81f28b5afb",
+  "tr": "2a9c189a93d7",
+  "by": "claude-in-session"
+ },
+ "raid.kind.waves": {
+  "en": "d8875269ea78",
+  "tr": "7be57d32bb14",
+  "by": "claude-in-session"
+ },
+ "raid.leader": {
+  "en": "148b10bc9dc1",
+  "tr": "08833fdd067c",
+  "by": "claude-in-session"
+ },
+ "raid.leaderName.bandits": {
+  "en": "06b828e18d01",
+  "tr": "27c13d2fca68",
+  "by": "claude-in-session"
+ },
+ "raid.leaderName.knights": {
+  "en": "0f8939b2c0e4",
+  "tr": "ac49bdaf4b87",
+  "by": "claude-in-session"
+ },
+ "raid.leaderName.orcs": {
+  "en": "0c19d7bdc849",
+  "tr": "15d42bd8372a",
+  "by": "claude-in-session"
+ },
+ "raid.leaderThe": {
+  "en": "38712ec0715e",
+  "tr": "18f628e84dd2",
+  "by": "claude-in-session"
+ },
+ "raid.refugeeLost": {
+  "en": "ff604ffc7c3a",
+  "tr": "f5141af8a7dc",
+  "by": "claude-in-session"
+ },
+ "raid.refugeeSafe": {
+  "en": "fa79523a04ba",
+  "tr": "26f05c624c03",
+  "by": "claude-in-session"
+ },
+ "raid.wave": {
+  "en": "f5ad34188f63",
+  "tr": "09d6f1f4f124",
   "by": "claude-in-session"
  },
  "realm.held.until": {

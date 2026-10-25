@@ -306,6 +306,8 @@ alone, flagged at its new site inside calculateAttackDamage.
 - `src/scenes/merchantYardsHost.js` - scenes/exterior.js - FLAGGED: the single-town bench stands no yard; the streaming host is where its towns are played.
 - `src/scenes/poiHost.js` - scenes/exterior.js - FLAGGED: the fixed-city bench (`?exterior`, `?region&loc`) has no feed; a POI stands in the streamed world.
 - `src/scenes/portHost.js` - scenes/exterior.js - FLAGGED: the single-town bench stands no port; the streaming host is where its towns are played.
+- `src/scenes/raidSitesHost.js` - scenes/exterior.js - FLAGGED: the fixed-city bench runs no raid; the streaming host is where its towns are raided.
+- `src/scenes/raidSitesHost.js` - scenes/worldModes.js and scenes/dungeonContext.js - FLAGGED: a raid is the street's, and stands nothing indoors (RAID1).
 - `src/scenes/seatBanners.js` - and dungeonContext.js stand no street; exterior.js (the bench) FLAGGED -
 - `src/scenes/soundscapeHost.js` - scenes/exterior.js - FLAGGED: the fixed-city bench stands no sea, no boats and no streamed shore - its ambience is DFU's.
 - `src/scenes/wagon/wagonWardenHost.js` - scenes/exterior.js - FLAGGED: the single-town bench runs no town watch (its wagon is never stamped nor thrown).

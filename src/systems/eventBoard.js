@@ -163,7 +163,8 @@ function raidRow(r, now, src, soonMs) {
   const type = String(r.type ?? '');
   const party = EVENT_PARTY_TEXT[type]?.() ?? (capital(type) || null);
   const live = r.startMs <= now;
-  const count = live && Number.isFinite(r.n) && Number.isFinite(r.tg) && r.tg > 0 ? EVENT_BOARD_TEXT.raidCount(Math.min(r.n, r.tg), r.tg) : null;
+  const counted = live && Number.isFinite(r.n) && Number.isFinite(r.tg) && r.tg > 0 ? EVENT_BOARD_TEXT.raidCount(Math.min(r.n, r.tg), r.tg) : null;
+  const count = live && r.obj ? [r.kind ? `${r.kind}: ${r.obj}` : r.obj, counted].filter(Boolean).join(' - ') : counted;   // RAID5: its kind's objective first (systems/raidingParties.js raidTimerList)
   return {
     id: r.key ? `raid:${r.key}` : `raid:${r.name}:${r.startMs}`, kind: 'raid', title: EVENT_BOARD_TEXT.raid(r.name), where: r.region || null,
     detail: count ?? (party ? (live ? EVENT_BOARD_TEXT.raidLive(party) : EVENT_BOARD_TEXT.raidComing(party)) : null),

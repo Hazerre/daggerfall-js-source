@@ -353,7 +353,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
   let _onHccClear = null;       // HCC-ONLINE: called wherever clearPuppets runs - the peers' teams go with the puppets
   let _onRide = null;           // WAGONS1: (from, word | null) - a peer's word on a seat in a wagon's back (systems/wagon/wagonSeats.js `wr`)
   let _puppetSeatDraw = null;   // WAGONS2: (puppet) -> { feet, g } | null - where a peer's companion seated in their wagon's back is DRAWN
-  let _onRaids = null;          // RAID2: (from, word, nowMs) - a peer's word on its raids (systems/raidingParties.js raidPeerWord)
+  let _onRaids = null;          // RAID2: (from, word, nowMs, objectives) - a peer's word on its raids (systems/raidingParties.js raidPeerWord; RAID5: `ro`)
   let _onCsa = null;            // CSA-J: (from, record | null, nowMs) - a peer's boats off the same frame (systems/comeSailAway/comeSailAwayWire.js)
   let _onCsaClear = null;       // CSA-J: called wherever the teams' clear runs - the peers' boats go with the puppets
   let _onBands = null;          // TV7b: (from, word, nowMs) - a peer's band chases off the same frame (systems/travel/travelBands.js validBandWord)
@@ -2570,13 +2570,14 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     const cz = campTagsOf(out, (r) => src.get(r));   // OW6: a camp's members, by number, camp and kind - a reader marks the camp on its Overworld, an heir takes it as one
     const al = out.filter((r) => r.t === KNIGHT_CITYWATCH_ID && r.d !== 1 && src.get(r)?.defender).map((r) => r.i);   // RAID2: the watchmen who are MY allies (DISC19-F's defenders, a raid's among them) - a reader stands them as its allies, where a watch record carried no team
     const cw = out.filter((r) => r.d !== 1 && isShipmate(src.get(r))).map((r) => r.i);
+    const rf = out.filter((r) => r.d !== 1 && src.get(r)?.refugee).map((r) => r.i);   // RAID5: a raid's refugees, my allies - a reader stands them as its own
     const mates = out.filter((r) => r.d !== 1 && src.get(r)?.companion != null);
     const cp = mates.map((r) => r.i);   // AUDIT CC-E1: my companions, by number - a reader marks them so its foes may fight them
     const cn = mates.map((r) => src.get(r)?.entity?.name ?? '');   // AUDIT WK-U3: and their names, in that order   // SHIPMATES: my crew on a deck (combat/friendlyFire.js) - a reader stands them as its allies and its own harm passes them by
     for (const r of out) if (r.ls !== undefined) { const f = src.get(r); if (f) f._lkSent = f._lkPend; }   // AUDIT MW-NPC II K2: what went is said
     const bw = body.frameDigests(out, (r) => src.get(r));   // OUTDOOR-LOOT: each dead body's takes digest - the places gone, the stacks drawn down - beside its record
     const gs = _net.grants ? _net.grants.frameGrants(out.filter((r) => r.gr).map((r) => src.get(r)?._grant), full) : [];   // GRANT3: the grants these records name
-    return { n: ++_foesSeq, k: _net.room?.() ?? null, full: full ? 1 : 0, f: out, ...(gs.length ? { gs } : {}), ...(rz.length ? { rz } : {}), ...(sb.length ? { sb } : {}), ...(cz.length ? { cz } : {}), ...(al.length ? { al } : {}), ...(cw.length ? { cw } : {}), ...(cp.length ? { cp, cn } : {}), ...(st.length ? { st } : {}), ...(sp.length ? { sp } : {}), ...(dz.length ? { dz } : {}), ...(qf.length ? { qf } : {}), ...(bw.length ? { bw } : {}) };
+    return { n: ++_foesSeq, k: _net.room?.() ?? null, full: full ? 1 : 0, f: out, ...(gs.length ? { gs } : {}), ...(rz.length ? { rz } : {}), ...(sb.length ? { sb } : {}), ...(cz.length ? { cz } : {}), ...(al.length ? { al } : {}), ...(cw.length ? { cw } : {}), ...(rf.length ? { rf } : {}), ...(cp.length ? { cp, cn } : {}), ...(st.length ? { st } : {}), ...(sp.length ? { sp } : {}), ...(dz.length ? { dz } : {}), ...(qf.length ? { qf } : {}), ...(bw.length ? { bw } : {}) };
   }
   /** The owner's record (AUDIT WORLD6b B4/C3), minted on its first frame. */
   function ownerOf(from) { let o = _owners.get(from); if (!o) { o = { n: -1, at: _now(), gen: ++_ownerGen, k: null }; _owners.set(from, o); } return o; }   // WORLD6b-iii(b): k the cell the owner's frames are keyed to - its own
@@ -2675,6 +2676,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     const campTags = validCampTags(data.cz);   // OW6: which are a camp's members, and whose camp
     const allied = validAlliedIds(data.al);   // RAID2: which watchmen are the owner's allies
     const crew = validAlliedIds(data.cw);   // SHIPMATES: which are the owner's crew on a deck
+    const refugees = validAlliedIds(data.rf);   // RAID5: which are a raid's refugees, the owner's allies
     const comp = validAlliedIds(data.cp);   // AUDIT CC-E1: and which of them are the owner's companions
     const compNames = companionNames(data.cp, data.cn);   // AUDIT WK-U3: and their names
     _net.grants?.heard(from, data.gs);   // GRANT3: the grants this frame carries, each checked once
@@ -2697,7 +2699,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       const site = tags.get(r.i) ?? null;
       const key = pupKey(from, r.i);
       const f = _pupIndex.get(key) ?? null;
-      if (_net.grants?.statsRefused?.(from, r, { camp: campTags.has(r.i), ally: comp.has(r.i) || allied.has(r.i) || crew.has(r.i), boss: r.sb ? raidTags.get(r.i) : null })) { if (f) removePuppet(f); _pupPending.delete(key); continue; }   // FOE-BOUNDS (Spawn-Grants section 19): provably impossible - refused, never rescaled: never built, updated or ADOPTED (its hand-off refused before it is mine), a standing copy taken down silently
+      if (_net.grants?.statsRefused?.(from, r, { camp: campTags.has(r.i), ally: comp.has(r.i) || allied.has(r.i) || crew.has(r.i) || refugees.has(r.i), boss: r.sb ? raidTags.get(r.i) : null })) { if (f) removePuppet(f); _pupPending.delete(key); continue; }   // FOE-BOUNDS (Spawn-Grants section 19): provably impossible - refused, never rescaled: never built, updated or ADOPTED (its hand-off refused before it is mine), a standing copy taken down silently
       const qt = questTags.get(r.i) ?? null;
       // AUDIT DISC28 QS-J: a record that names ME its heir is taken on party membership (partyPeer, the pre-J law) - the
       // owner has let it go, and a copy with no link to its quest stands none of its puppets, so refused here it was
@@ -2741,7 +2743,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       if (site) stood.add(site);
       const gen = o.gen;
       const shipmate = crew.has(r.i);
-      spawnFoe(r.t, feet, { puppet: from, seq: r.i, gender: GENDER_BIT[r.x === 1 ? 1 : 0], feetGiven: true, yaw: r.y ?? null, level: r.l ?? null, site, allied: (r.t === KNIGHT_CITYWATCH_ID && allied.has(r.i)) || shipmate, champion: cp })   // RAID2: a watchman the owner names its ally stands as mine - SHIPMATES: and a crewman
+      spawnFoe(r.t, feet, { puppet: from, seq: r.i, gender: GENDER_BIT[r.x === 1 ? 1 : 0], feetGiven: true, yaw: r.y ?? null, level: r.l ?? null, site, allied: (r.t === KNIGHT_CITYWATCH_ID && allied.has(r.i)) || shipmate || refugees.has(r.i), champion: cp })   // RAID2: a watchman the owner names its ally stands as mine - SHIPMATES: and a crewman
         .then((nf) => {
           if (!nf) return;
           if (grantCheck && _net.grants?.enforcing()) void grantCheck.then((why) => { if (_net.grants?.standsDown(why)) removePuppet(nf); });   // GRANT6: while the law enforces, a forged grant or none stands down (GRANT_STANDDOWN_REASONS)
@@ -2777,7 +2779,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     for (const [s, age] of validSites(data.sp)) if (!refused.has(s) || stood.has(s)) spent.set(s, age);
     for (const s of tags.values()) if (!spent.has(s) && (!refused.has(s) || stood.has(s))) spent.set(s, null);
     if (spent.size) _onSites?.(from, [...spent]);
-    if (data.rk !== undefined) _onRaids?.(from, data.rk, _now());   // RAID2: the owner's word on the raids it fought - past the same room test
+    if (data.rk !== undefined || data.ro !== undefined) _onRaids?.(from, data.rk, _now(), data.ro);   // RAID2: the owner's word on the raids it fought - past the same room test; RAID5: and on their objectives
     if (data.du !== undefined) _onDuel?.(from, data.du, _now());   // DUEL1: the ring the owner duels in (null: none) - a frame without the field leaves the last word standing; past the same room test
     if (data.bd !== undefined) _onBands?.(from, data.bd, _now());   // TV7b: the owner's band chases and spent bands - past the same room test
     if (data.sr !== undefined) _onSeaRaiders?.(from, data.sr, _now());   // OW6: and its raider chases and spent raiders at sea - the same test
