@@ -55,7 +55,7 @@ THE FOUR HOSTS: `world.js` wired (the zone's death, its referee's words and its 
 die through `world.js`'s online frame - so none is wired.
 
 DEPLOY: the account service `acct186` FIRST (an older one holds a `g` fall's killer to the grace), then the relay
-`world258`, then the site.
+`world259` (world258 on its branch, renumbered past KETCH-LONGER at the merge), then the site.
 
 LIMITS (`11-Multiplayer/Wild-Zone.md` section 22): a page that comes back outside the zone, or inside one of its
 buildings, says no zone word and hears no `down` until it steps into the zone; the hub's carry is in memory alone; a

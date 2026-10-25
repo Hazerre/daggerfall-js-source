@@ -292,7 +292,7 @@ a pair slid off whole).
 
 **Named departures, each the game's input and never a second composition:**
 - The camera shake stays Better Ambience's `weaponKick` - the port has one camera shaker (the Thunderlock's precedent).
-- The room's light (MAC-I) still tints the sprite - game-wide.
+- ~~The room's light (MAC-I) still tints the sprite - game-wide.~~ Retired by PISTOL-PROTO (2026-10-25, the owner: *"the pistolets still after all this time dont match the prototype 1;1"*): the page lights its room and never the pistols, so the room's light left the game's dim in every dungeon and every night. A Pistolet is drawn as painted now, its flash the strip's own frame (`weaponRig.js` drawThunderlock, `lit` null for a pistol hand); the Thunderlock keeps the room's light. PIN MOVED: `pistolport.test.js` THE FLASH AS PAINTED, `pistoletRig.test.js` (a pair); `pistolport.json` WR-pistol-flash-the-orb re-aimed as WR-pistol-the-room-lit.
 - The player's own Offset and Bob switches (`pistolWidgetSettings`): every magnitude the page's panel, the switches
   theirs, as Weapon Widget's are everywhere.
 - The holster: the page has no sheath; the game lowers the pistols to `sheathTarget` on the same rig (`away`).
