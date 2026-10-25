@@ -15883,9 +15883,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       if (csaRuntime) await csa.preload();   // CSA-J (the audit): SpawnBoat is synchronous in the C# - the boats' models in before the mod loop, so a load's boats stand at once and no floating-origin shift can land while they are held (the hold stays for models that never come)
       if (csaElsewhere) extras.modData = csaHelmLeft(extras.modData);   // CSA-J (the audit): landed elsewhere - the helm let go before the mod loop reads it
       // AUDIT HCC H3: RestoreSaveData [IL_93ac] once the save's place stands - a world save, a dungeon save, a wake
-      // at a temple alike; a save without the record stays the fresh start OnStartLoad made above
+      // at a temple alike; a save without the record stays the fresh start OnStartLoad made above. HORSE-WAKE: a load
+      // that landed away from its save (csaElsewhere) calls the waiting horse and team to the player, who could not
+      // reach them where the save left them (horseCart.js callTeamToLanding)
       const hccRecord = extras.modData?.[HCC_VENDOR] ?? null;
-      if (hccRecord) hccRuntime.restoreSaveData(hccRecord);
+      if (hccRecord) hccRuntime.restoreSaveData(hccRecord, { elsewhere: csaElsewhere });
       restoreModSaveRecords(extras.modData, csaModLoadFailed);   // WA1: SaveLoadManager's mod loop (:1524-1535) - the save's record, else the mod's NewSaveData; its try per mod (:1536-1540)
       if (csaElsewhere && csaRuntime && extras.modData?.[COME_SAIL_AWAY_VENDOR]?.TemporaryShip) csaCall(() => csaRuntime.ReturnTemporaryShip());   // AUDIT PRE-MERGE 0928 C1: the helm let go (above) - the ship it lent taken back, as StopSailing takes it (IL_b0e7-IL_b121); RestoreSaveData reads TemporaryShip only for a helm it takes, so the save's character kept a sellable ship
       // AUDIT 26 F222/F223/F101: the pose lands with the position -
