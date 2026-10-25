@@ -2,7 +2,7 @@
 // "1k silver + week wait is too punishing ... the effects of some of the perks can be properly understood only after
 // trying"; the owner's pick: a day's free trial after a choice, and a paid change at once with the week as the lock after
 // it) - the law's reads (src/net/professionLaw.js), the track as the service says it (server-account/src/professions.js
-// trackView) and migration 0167, which lands every change still waiting its week. The service's walk through a choice,
+// trackView) and migration 0173, which lands every change still waiting its week. The service's walk through a choice,
 // its trial, a paid change and its lock is test/net/prof1_service.test.js; the page's, test/net/fb1016b_firstpick.test.js.
 // Recorded in bible/06-Systems/Professions-Arc.md PERK-TRIAL.
 import { test } from 'node:test';
@@ -44,10 +44,10 @@ test('PERK-TRIAL the track as said: `trial` its ranks on trial and until when, `
   assert.deepEqual(specsAt({ spec50: 'gardener', respec_rank: 50, respec_to: 'botanist', respec_at: NOW + 6 * DAY }, NOW), { 50: 'botanist', 100: null }, 'whatever its time');
 });
 
-test('PERK-TRIAL migration 0167: a change still waiting its week lands at once, its trial from the migration and its week kept as the lock; one already in effect is folded with neither; a track with no change is untouched (mutants: the waiting change kept waiting; no trial for it; the lock dropped; the choices\' times unread)', () => {
+test('PERK-TRIAL migration 0173: a change still waiting its week lands at once, its trial from the migration and its week kept as the lock; one already in effect is folded with neither; a track with no change is untouched (mutants: the waiting change kept waiting; no trial for it; the lock dropped; the choices\' times unread)', () => {
   const db = new DatabaseSync(':memory:');
   const files = readdirSync(new URL('../../server-account/migrations', import.meta.url)).filter((f) => f.endsWith('.sql')).sort();
-  const at = files.indexOf('0167_perk_trial.sql');
+  const at = files.indexOf('0173_perk_trial.sql');
   assert.ok(at > 0, 'the migration stands');
   for (const f of files.slice(0, at)) db.exec(readFileSync(new URL(`../../server-account/migrations/${f}`, import.meta.url), 'utf8'));
   db.exec('PRAGMA foreign_keys = OFF');
@@ -60,7 +60,7 @@ test('PERK-TRIAL migration 0167: a change still waiting its week lands at once, 
   const choice = db.prepare('INSERT INTO prof_choices (player, rid, char_id, profession, rank, spec, at, n) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
   choice.run('p', 'r1', 'c', 'hunting', 50, 'tracker', now - 3600, 'n1');
   choice.run('p', 'r0', 'c', 'logging', 50, 'lumberjack', now - 30 * DAY, 'n0');
-  db.exec(readFileSync(new URL('../../server-account/migrations/0167_perk_trial.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../../server-account/migrations/0173_perk_trial.sql', import.meta.url), 'utf8'));
   const row = (p) => db.prepare('SELECT * FROM prof_tracks WHERE profession = ?').get(p);
   const m = row('mining');
   assert.deepEqual([m.spec50, m.respec_to, m.respec_rank, m.respec_at], ['deep-delver', null, 50, now + 3 * DAY], 'landed now, the week kept as the lock');

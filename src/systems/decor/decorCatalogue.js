@@ -354,8 +354,9 @@ export const HALL_BOARD_ENTRY = Object.freeze({
 });
 /** The catalogue a room offers: a hall's board in a hall's room alone; HOME-YARD: no door in a yard. NUDE-DECOR: and no
  *  nude figure while Show Nudity is off (`show`, the setting unless told) - one chosen would stand as that figure to
- *  every visitor whose setting is on, and here as its stand-in, a piece its owner never saw. DECOR-OUTDOOR: and the
- *  street's pieces and the climate's nature in a yard alone - its own climate's nature (`room.natureBase`, its set's
+ *  every visitor whose setting is on, and here as its stand-in, a piece its owner never saw. DECOR-OUTDOOR: the
+ *  Outdoors kind may stand in a room (the room's own placement); a street's lights and the climate's nature stay a
+ *  yard's - its own climate's nature (`room.natureBase`, its set's
  *  summer archive). DECOR-MODS (AUDIT 05b A3): and a town mod's piece while the port stands it alone - `mods`, the keys
  *  of the mods' pieces standing now (systems/decor/decorMods.js decorModsLive; none unless told): asked here, as the offer is
  *  made, never once when the catalogue was read - a mod turned off left its pieces for sale that stood nowhere, and one
@@ -365,7 +366,7 @@ export function decorRoomEntries(entries, room, show = null, mods = null) {
   return entries?.filter((e) => (!e.hall || (!!room?.hall && !room?.yard))
     && !(room?.yard && e.kind === 'door')
     && !(nude && e.nude)
-    && (!e.outside || !!room?.yard)
+    && (!e.outside || !!room?.yard || e.kind === 'outdoor')
     && (e.nature == null || e.nature === room?.natureBase)
     && (!MOD_FROM.has(e.from) || !!mods?.has(e.key))) ?? null;
 }
@@ -381,19 +382,21 @@ export function decorSize(radiusMetres) {
 
 /**
  * THE PANEL'S FILTERS over the catalogue: kinds (any of), words (every word found in the name or the kind), a size
- * band, holds-things, gives-light; sorted most common first, by price, or by name. `radiusOf(entry)` is the host's
- * measure (null while unmeasured: such an entry passes no size filter and sorts last by price).
+ * band, holds-things, gives-light, favourites (a set of catalogue ids); sorted most common first, by price, or by
+ * name. `radiusOf(entry)` is the host's measure (null while unmeasured: such an entry passes no size filter and sorts
+ * last by price).
  * @param {readonly any[]} entries
  * @param {{ kinds?: Iterable<string>|null, text?: string, size?: string|null, storage?: boolean|null,
- *   light?: boolean|null, sort?: string, radiusOf?: (entry: any) => (number|null) }} [opts]
+ *   light?: boolean|null, favourite?: Set<string>|null, sort?: string, radiusOf?: (entry: any) => (number|null) }} [opts]
  */
 export function filterDecor(entries, {
-  kinds = null, text = '', size = null, storage = null, light = null, sort = 'common', radiusOf = () => null,
+  kinds = null, text = '', size = null, storage = null, light = null, favourite = null, sort = 'common', radiusOf = () => null,
 } = {}) {
   const want = kinds && [...kinds].length ? new Set(kinds) : null;
   const words = String(text ?? '').toLowerCase().split(/\s+/).filter(Boolean);
   const out = (entries ?? []).filter((e) => {
     if (want && !want.has(e.kind)) return false;
+    if (favourite && !favourite.has(e.key)) return false;
     if (storage !== null && e.storage !== storage) return false;
     if (light !== null && (e.light !== null) !== light) return false;
     if (size !== null && decorSize(radiusOf(e)) !== size) return false;

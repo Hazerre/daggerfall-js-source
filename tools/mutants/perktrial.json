@@ -151,7 +151,7 @@
   },
   {
     "name": "PERKTRIAL-the-waiting-change-kept-waiting",
-    "file": "server-account/migrations/0167_perk_trial.sql",
+    "file": "server-account/migrations/0173_perk_trial.sql",
     "old": "    spec50 = CASE WHEN respec_rank = 50 THEN respec_to ELSE spec50 END,",
     "new": "    spec50 = spec50,",
     "tests": [
@@ -160,7 +160,7 @@
   },
   {
     "name": "PERKTRIAL-no-trial-for-it",
-    "file": "server-account/migrations/0167_perk_trial.sql",
+    "file": "server-account/migrations/0173_perk_trial.sql",
     "old": "    spec50_at = CASE WHEN respec_rank = 50 AND respec_at > CAST(strftime('%s', 'now') AS INTEGER) THEN CAST(strftime('%s', 'now') AS INTEGER) ELSE spec50_at END,",
     "new": "    spec50_at = spec50_at,",
     "tests": [
@@ -169,7 +169,7 @@
   },
   {
     "name": "PERKTRIAL-the-lock-dropped",
-    "file": "server-account/migrations/0167_perk_trial.sql",
+    "file": "server-account/migrations/0173_perk_trial.sql",
     "old": "    respec_at = CASE WHEN respec_at > CAST(strftime('%s', 'now') AS INTEGER) THEN respec_at ELSE NULL END,",
     "new": "    respec_at = NULL,",
     "tests": [
@@ -268,7 +268,7 @@
   },
   {
     "name": "AUDITPERK-P7-the-choices-times-unread",
-    "file": "server-account/migrations/0167_perk_trial.sql",
+    "file": "server-account/migrations/0173_perk_trial.sql",
     "old": "    spec50_at = (SELECT MAX(c.at) FROM prof_choices c",
     "new": "    spec50_at = (SELECT NULL FROM prof_choices c",
     "tests": [
