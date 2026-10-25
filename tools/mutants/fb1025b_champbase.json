@@ -33,9 +33,7 @@
     "new": "      e.champion = championTraitFor(e, f.src?.champion)?.id;",
     "tests": [
       "test/systems/partyloot.test.js"
-    ],
-    "equivalent": true,
-    "why": "No layout foe the case builds is an elite. The arm keeps an elite foe's base on an elite's corpse source, as the build stands it (dungeonContext.js applyEliteScaling: a promoted elite is never a champion); every client reads the same eliteFoe either way, so the room's base stays one."
+    ]
   },
   {
     "name": "FB1025B-CHAMPBASE-the-builders-cap",

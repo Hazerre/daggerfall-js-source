@@ -27,6 +27,7 @@ import { rollCorpseKit, capFoeLoot } from '../../src/systems/foeLootCap.js';
 import { makeEnemyEntity } from '../../src/characters/enemy/enemyEntity.js';
 import { ENEMY_BASICS } from '../../src/characters/enemy/enemyBasics.js';
 import { effectiveLevel } from '../../src/systems/mentorMode.js';
+import { registerRollerLevel, withRollerLevel } from '../../src/systems/loot/lootLevelGate.js';   // AUDIT UPDATE L1: each peer's own level registered, as lootPowers.js registers it
 import { liveStat } from '../../src/systems/statMods.js';
 import { setSigilOnline, setSigilRenown } from '../../src/systems/sigil/sigil.js';
 import { setPref } from '../../src/systems/uiPrefs.js';
@@ -37,7 +38,7 @@ import { installSmithing } from '../../src/systems/smithItems.js';
 import { installHealingSupply } from '../../src/systems/healingSupply.js';
 import { installRestItemLoot, isDeepPileKey } from '../../src/systems/rest/restItems.js';
 import { installSurvivalLoot } from '../../src/systems/survival/loot.js';
-import { grantEliteLoot } from '../../src/systems/eliteFoes.js';
+import { grantEliteLoot, promoteEliteFoe } from '../../src/systems/eliteFoes.js';
 import { markDungeonChampions, applyChampion, championTraitFor, CHAMPION_MIN_LEVEL } from '../../src/systems/champions.js';   // CHAMP-BASE: the layout's champions, as the build marks and stands them
 import { ClassFile } from '../../src/formats/classFile.js';   // CHAMP-BASE: a class foe's career, through the real reader
 import { wildPileMore } from '../../src/systems/wild/wildZone.js';
@@ -133,6 +134,7 @@ function classCareer() {
   return cf.career;
 }
 const FOES = 6, PILES = 4;   // a room's handful: six layout bodies, four layout piles
+const ELITE_FOE = 2;   // AUDIT UPDATE L1: the layout's elite - its base reads the most gates (the kit, the elite's share) of any body
 const KEYS = [...Array.from({ length: FOES }, (_, i) => `corpse:${i}`), ...Array.from({ length: PILES }, (_, i) => `loot:${i}`)];
 const clock = { t: 1_700_000_000_000 };
 
@@ -166,7 +168,8 @@ function peer(net, { id, level, luck, renown, seed, host, foraging, partners, ch
     Math.random = own;
     setSigilRenown(renown);
     setModSetting(FORAGING_VENDOR, 'Enabled', foraging);
-    try { return fn(); } finally { Math.random = realRandom; }
+    registerRollerLevel(() => effectiveLevel(player));   // AUDIT UPDATE L1: the shipping client's LOOT-GATE registry - this peer's own level, never the room's
+    try { return fn(); } finally { Math.random = realRandom; registerRollerLevel(null); }
   };
   const state = {
     foes: [], _layoutFoes: FOES, _sharedById: new Map(), lootPiles: [], searchables: [], _locationKey: `dungeon:${location}`,
@@ -179,8 +182,8 @@ function peer(net, { id, level, luck, renown, seed, host, foraging, partners, ch
     addItem, stacksWith, isGoldPieces, addGoldPieces, isEquipped, unequipItem, neverPeerHanded, notCarried,   // AUDIT AUTO-HOLD: the give asks it (offline here: no filter)
     onlineRoom: () => true, _wallNow: () => clock.t, respawnDue, validLootList, peerHanded, LOOT_LIST_MAX, LOOT_NEWER_TEXT, ENEMY_BASICS, corpseTextureOf,   // AUDIT DEX A1: the corpse mints read it
     generateLootItems: generateItems, addPileLootExtras, rollLootRarity, pileSource, dungeonRarityTier, dungeonFamily, stampWonWeapons,
-    spawnEnemyLoot, wildLootAfter, grantEliteLoot, rollCorpseKit, raiseEnemyDeath, capFoeLoot, rollRoomBonus: (args) => { bonusCalls.push(args); return rollRoomBonus(args); }, applyChampion, championTraitFor, _retyping: new Set(),   // CHAMP-BASE: the build's champion arm (applyEliteScaling) and the base's
-    wildPileMore, seaPileMore, isDeepPileKey, effectiveLevel, liveStat, asTheRoom, CLAIM_KEEP_MS, CLAIMS_KEPT_MAX, SEARCH_COOLDOWN_MINUTES, SEARCH_LOOT_MAX, sharedClassicMinutes, ...RL,
+    spawnEnemyLoot, wildLootAfter, grantEliteLoot, rollCorpseKit, raiseEnemyDeath, capFoeLoot, rollRoomBonus: (args) => { bonusCalls.push(args); return rollRoomBonus(args); }, applyChampion, championTraitFor, promoteEliteFoe, _retyping: new Set(),   // CHAMP-BASE: the build's champion and elite arms (applyEliteScaling) and the base's
+    wildPileMore, seaPileMore, isDeepPileKey, effectiveLevel, liveStat, asTheRoom, withRollerLevel, CLAIM_KEEP_MS, CLAIMS_KEPT_MAX, SEARCH_COOLDOWN_MINUTES, SEARCH_LOOT_MAX, sharedClassicMinutes, ...RL,
     eliteLootOpts: () => ({}), searchHeard: () => {}, settleLootFlat: () => {}, _sharedFoe: () => false, fightN: () => 1,
     spawnCorpseNow: async (f) => { f.corpsePos = [...f.ai.feet]; }, renderer: { destroyBillboardBatch: () => {} }, billboardBatches: [], renownFoeRevived: () => {},
     respawnFoe: () => false, camps: { applyOwner: () => {}, activate: () => false }, roomEncounterAsked: () => false, actions: { applyRemote: () => 0 },
@@ -221,6 +224,9 @@ function peer(net, { id, level, luck, renown, seed, host, foraging, partners, ch
   as(() => {
     for (let i = 0; i < PILES; i++) state.lootPiles.push({ pos: [i, 0, 0], record: 0, items: h.buildPile(), isFixed: false, batch: {}, half: [0.5, 0.5] });
     for (let i = 0; i < FOES; i++) {
+      // AUDIT UPDATE L1: one of the layout's foes an elite, marked on every client alike (pickDungeonElites) - on its
+      // record, which the build's own arm promotes (a promoted elite is never a champion)
+      if (i === ELITE_FOE) records[i].eliteFoe = true;
       const entity = makeEnemyEntity(kind, ENEMY_BASICS[kind], career, effectiveLevel(player), Math.random);
       h.applyEliteScaling(entity, records[i]);
       spawnEnemyLoot(entity, kind, ENEMY_BASICS[kind], player, { where: 'dungeon' });
@@ -689,14 +695,18 @@ test('CHAMP-BASE (FIELD BUGS 2026-10-25b, "Loot will sometime be unobtainable an
   const marked = (p) => p.state.foes.flatMap((f, i) => (f.src.champion != null ? [i] : []));
   const champs = (p) => p.state.foes.map((f) => f.entity.champion ?? null);
   const caps = (p) => p.state.foes.map((f) => f.entity.lootCap ?? null);
+  // AUDIT UPDATE L1's elite stands on one of the two marks: a promoted elite is never a champion, so one champion is left
+  const champions = (p) => marked(p).filter((i) => !p.state.foes[i].src.eliteFoe);
   assert.deepEqual(marked(r.A), [2, 4], 'the layout marks two of the six');
   assert.deepEqual(marked(r.B), marked(r.A), 'the same two on the joiner');
+  assert.deepEqual(champions(r.A), [4], 'the layout\'s elite is one of them (ELITE_FOE)');
   const hostChamps = champs(r.A);
-  assert.ok(marked(r.A).every((i) => hostChamps[i]), 'the level-30 host stands them as champions');
+  assert.ok(champions(r.A).every((i) => hostChamps[i]), 'the level-30 host stands the other as a champion');
+  assert.equal(hostChamps[ELITE_FOE], null, 'and its elite as no champion, as the build promotes it');
   assert.deepEqual(champs(r.B), Array(FOES).fill(null), 'the level-2 joiner stands none - CHAMPION_MIN_LEVEL at its own level, its fight its own');
   assert.ok(RL.roomBaseLevel(30, [2]) >= CHAMPION_MIN_LEVEL, 'the room\'s level is a champion\'s');
   const builtCaps = [caps(r.A), caps(r.B)];
-  assert.ok(marked(r.B).every((i) => Number.isInteger(builtCaps[1][i])), 'the joiner\'s plain copies carry a plain cap from their build');
+  assert.ok(champions(r.B).every((i) => Number.isInteger(builtCaps[1][i])), 'the joiner\'s plain copies carry a plain cap from their build');
   fall(r);
   assert.deepEqual([...r.B.state._lootUnreadable], [], 'no body reads as another build\'s on the joiner');
   for (const key of KEYS) assert.deepEqual(baseRows(shown(r.B, key)), baseRows(shown(r.A, key)), `${key}: the joiner's plaque names the host's base`);
@@ -718,7 +728,8 @@ test('CHAMP-BASE (FIELD BUGS 2026-10-25b, "Loot will sometime be unobtainable an
   assert.deepEqual(champs(r.B), Array(FOES).fill(null), 'and the joiner\'s plain copies');
   assert.deepEqual([caps(r.A), caps(r.B)], builtCaps, 'each with the cap its build stamped');
   // the joiner's own bonus over a champion's base is rolled as over a champion's - the base's judgment, not its plain copy's
-  for (const i of marked(r.B)) {
+  assert.equal(r.B.host.bases.get(`corpse:${ELITE_FOE}`).champion, null, 'the elite\'s base is no champion\'s, marked or not');
+  for (const i of champions(r.B)) {
     const base = r.B.host.bases.get(`corpse:${i}`);
     assert.equal(base.champion, hostChamps[i], `corpse:${i}: the base keeps the champion it rolled`);
     const bonus = r.B.bonusCalls.filter((call) => call.baseItems === base.items);
@@ -729,7 +740,7 @@ test('CHAMP-BASE (FIELD BUGS 2026-10-25b, "Loot will sometime be unobtainable an
   assert.ok(RL.roomBaseLevel(2, [1]) < CHAMPION_MIN_LEVEL, 'the room\'s level is under a champion\'s');
   fall(low);
   assert.deepEqual([...low.B.state._lootUnreadable], [], 'one base in the low room too');
-  for (const i of marked(low.A)) assert.ok(Number.isInteger(low.A.host.bases.get(`corpse:${i}`)?.lootCap), `corpse:${i}: a plain body's base at the room's level`);
+  for (const i of champions(low.A)) assert.ok(Number.isInteger(low.A.host.bases.get(`corpse:${i}`)?.lootCap), `corpse:${i}: a plain body's base at the room's level`);
 });
 
 test('CHAMP-BASE (FIELD BUGS 2026-10-25b, "This was also happening when solo"): a word the room\'s MEMORY hands back that this build cannot match was the room\'s own - an earlier visit\'s, often on the build before an update - so its host starts the container over one generation on, and every client takes the new mint; a live peer\'s word, or the memory\'s on a client that is not the host, is still another build\'s', (t) => {
@@ -808,7 +819,7 @@ test('PARTY-LOOT by source: no Math.random in the room\'s law (systems/roomLoot.
   assert.doesNotMatch(strip(readFileSync(new URL('../../src/systems/roomLoot.js', import.meta.url), 'utf8')), /Math\.random/, 'the room\'s law draws only on its seeded dice');
   assert.ok(BLOCK, 'the dungeon carries the PARTY-LOOT block (PIN MOVED, HOST-SPLIT: constructed from src/scenes/roomLootHost.js)');
   assert.doesNotMatch(strip(BLOCK), /Math\.random/, 'and the block takes no draw of its own');
-  assert.match(modFn('rollRoomBase'), /asTheRoom\(\(\) => \{\s*if \(h\.pile\) items = roomPileBase\(h, terms, rolls, gender\);\s*else \(\{ items, lootCap, champion \} = roomBodyBase\(h\.foe, terms, rolls, gender, rejects\)\);\s*\}\);/);   // PIN MOVED (CHAMP-BASE): the base keeps the champion it rolled a body as, for the bonus
+  assert.match(modFn('rollRoomBase'), /asTheRoom\(\(\) => withRollerLevel\(terms\.lv, \(\) => \{\s*if \(h\.pile\) items = roomPileBase\(h, terms, rolls, gender\);\s*else \(\{ items, lootCap, champion \} = roomBodyBase\(h\.foe, terms, rolls, gender, rejects\)\);\s*\}\)\);/);   // PIN MOVED (AUDIT UPDATE L1): and at the room's level, every LOOT-GATE under it; PIN MOVED (CHAMP-BASE): the base keeps the champion it rolled a body as, for the bonus
   assert.match(modFn('roomBodyBase'), /spawnEnemyLoot\(e, f\.mobileType, ENEMY_BASICS\[f\.mobileType\], roller, \{ \.\.\.eliteLootOpts\(f\.src\), where: 'dungeon', \.\.\.o, rejects \}\);/);
   assert.match(memberSrc('lootContents'), /if \(\(kind === 'loot' \|\| kind === 'corpse'\) && \(roomUnborn\(key\) \|\| _lootUnreadable\.has\(roomLootKey\(key\)\)\)\) return null;/);   // PIN MOVED (AUDIT GRAVE-PARTY G2): nor a container whose word this build cannot read - a target again, its plaque naming no list (test/systems/fb1016b_graveparty.test.js)
   assert.match(memberSrc('takeLoot'), /if \(\(kind === 'loot' \|\| kind === 'corpse'\) && roomUnborn\(key\)\) return 0;/);

@@ -108,8 +108,10 @@ The harness's build follows the dungeon's own now: the layout's marks (`markDung
 which marks none of the six in the other cases) and `applyEliteScaling` sliced from dungeonContext.js, before the loot.
 Pins moved, each marked: `test/net/partyloot_wire.test.js` and `test/scenes/fb1018d_seatloop.test.js` hand their mount of
 the room block its new import (`championTraitFor`) and the host's `_retyping`; `partyloot.test.js` "PARTY-LOOT by source"
-reads the base keeping its champion. MUTANTS: `tools/mutants/fb1025b_champbase.json` (16: 15 dead, and the elite arm
-`equivalent` as recorded - no layout foe the case builds is an elite, and every client reads the same `eliteFoe`);
+reads the base keeping its champion. At the merge past main's AUDIT UPDATE L1, whose harness marks one layout foe an
+elite: that foe is one of the two the case's pick marks, so the harness marks the elite on its record and the build's own
+`applyEliteScaling` promotes it (as the game does - an elite is never a champion), and the case holds the elite's base to
+no champion. MUTANTS: `tools/mutants/fb1025b_champbase.json` (16, all dead - the elite arm too, since the merge);
 `tools/mutants/loot7.json`'s LOOT7-stands-off, LOOT7-stands-under-level-3 and LOOT7-stands-an-ally re-aimed at
 `championTraitFor` by content, and that list re-run whole (44, all dead).
 
