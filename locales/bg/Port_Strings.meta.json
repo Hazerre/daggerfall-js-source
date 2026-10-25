@@ -12034,6 +12034,36 @@
   "tr": "b085a8143af1",
   "by": "claude-in-session"
  },
+ "firmament.status.active": {
+  "en": "dc4b6278d9c8",
+  "tr": "d48661081381",
+  "by": "claude-in-session"
+ },
+ "firmament.status.duel": {
+  "en": "dd8c8223f75a",
+  "tr": "531050edb59c",
+  "by": "claude-in-session"
+ },
+ "firmament.status.mentoring": {
+  "en": "2f8dd90411c0",
+  "tr": "496e6c6b7427",
+  "by": "claude-in-session"
+ },
+ "firmament.status.noSign": {
+  "en": "6a51693daafb",
+  "tr": "9901c682ab95",
+  "by": "claude-in-session"
+ },
+ "firmament.status.seat": {
+  "en": "37ffba19a9a6",
+  "tr": "131d35d2b844",
+  "by": "claude-in-session"
+ },
+ "firmament.status.unread": {
+  "en": "5c50385cb1f6",
+  "tr": "c12d8af18d37",
+  "by": "claude-in-session"
+ },
  "firmament.summary": {
   "en": "12b71c3e0fe5",
   "tr": "8714186b0243",
