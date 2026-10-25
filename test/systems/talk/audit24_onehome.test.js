@@ -73,6 +73,7 @@ const HOMONYMS = new Map([
   // pick (player/travelPick.js) marches its own height sampler with its own steps - none is a DFU member, and each
   // reads a source the others cannot reach (the account Worker bundles groundRay.js and no terrain tile).
   ['groundAt', "the terrain's height off the live collider (player/groundRay.js) vs a pixel's heightmap (world/terrain/terrainNature.js)"],
+  ['thunderlockMuzzleLight', "the light a shot throws on the room (systems/thunderlock.js) vs the gun lab's flash level for a frame of the strip (tools/gunLab.js)"],
   ['groundHit', "a spell's ray against the collider's terrain (player/groundRay.js) vs the travel view's pick over its height sampler (player/travelPick.js)"],
 ]);
 
@@ -183,7 +184,8 @@ test('audit24 wave24: the duplicate-declaration count does not grow', () => {
   // galleon's names (each ship's MEASURED, HELM, GUN... - eleven) and the prefab builders' nodeOf, recorded in HOMONYMS
   // above; their modules export nothing else the galleon's do. 44 at GROUND-BOLT (#1195, fixed at CREW-TRADE's merge of main,
   // where main's deploy had gone red on it), the same deliberate edit: groundAt and groundHit, two things each, recorded
-  // in HOMONYMS above.
+  // in HOMONYMS above. 45 at THUNDERLOCK-LAB (6de661eb58, fixed at BEAST-BOOTS' merge of main, where main had gone red
+  // on it), the same deliberate edit: thunderlockMuzzleLight, two things, recorded in HOMONYMS above.
   const files = walk('src/');
   const decl = new Map();
   for (const f of files) {
@@ -194,8 +196,8 @@ test('audit24 wave24: the duplicate-declaration count does not grow', () => {
     }
   }
   const dupes = [...decl.entries()].filter(([, v]) => v.size > 1);
-  assert.ok(dupes.length <= 44,
-    `${dupes.length} symbols are declared in more than one module (the ratchet is 44):\n  `
+  assert.ok(dupes.length <= 45,
+    `${dupes.length} symbols are declared in more than one module (the ratchet is 45):\n  `
     + dupes.map(([n, v]) => `${n}  ${[...v].join(' ')}`).join('\n  '));
 });
 
