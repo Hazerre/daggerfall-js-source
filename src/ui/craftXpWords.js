@@ -1,6 +1,6 @@
 // CRAFT-FIRST-SHOWN (FIELD BUGS 2026-10-15f; the Discord, 2026-10-13: "The first time craft bonus is not applying to
 // the outfitting. I got somehow it once from...Fishing net? Then never after"): WHAT A CRAFT PAYS, SAID WHERE IT IS
-// EARNED. AUDIT 32 S1 (net/recipeLaw.js firstCraftPays) withholds the first-make 500 (FIRST_CRAFT_XP) from a pattern
+// EARNED. AUDIT 32 S1 (net/recipeLaw.js firstCraftPays) withholds the first-make's XP (then 500) from a pattern
 // made wholly of goods only a counter sells - the Weavers' Linen and Wool: 152 of the loom's patterns, the Fishing-Net
 // among them - and the owner keeps it. Nothing in the game said so: the anvil, the workbench, the loom and the mason's
 // bench showed no XP, the jeweller's and the fire's showed theirs without the first, and the craft's word left the
@@ -15,16 +15,21 @@
 // CRAFT-LIMIT-SAID (FIELD BUGS 2026-10-18f; the Discord, "Smithing stuck at 50": "I have been stuck at level 50 smithing
 // for about 3 days now. it is literally 1xp off of levelling up but everything I craft gives me 0xp"): WHAT A STATION
 // SAYS IS WHAT THE SERVICE CREDITS. The service pays an act its own law's XP with the Firmament's percent on it (FIRM1's
-// scaleXp - never on the first's 500), the first's 500 laid on, all under the room its track has left (professionLaw
+// scaleXp - never on the first's XP), the first's XP laid on whole, all under the room its track has left (professionLaw
 // creditedXp): THE CRAFTER'S LIMIT (PROF0 3.2 - a craft that is not one of the character's two past Journeyman stops one
 // XP short of rank 51, professionLaw craftXpCap) or Master's top. A station's line read the act's own law alone (craftXp),
 // so at the limit the anvil promised "60 Smithing XP, and 500 more" and the craft paid none, and nothing in the game said
 // why. `pay` is what a station reads off the book (ui/professions/profPages.js craftPayOf): the limit over its track
 // (professionLaw craftLimit, from the service's ten tracks) and the Firmament's percent on its XP.
 // bible/06-Systems/Professions-Arc.md 41.10.
+//
+// FIRST-BUDGET (SaberGGaming's report, 2026-10-25: Provisioning is slow): A FIRST-MAKE'S XP IS ITS TRACK'S SHARE of the
+// discovery budget (net/recipeLaw.js DISCOVERY_BUDGET - firstCraftXp, workFirstXp), no longer a flat 500: Smithing's
+// 500, Outfitting's 613 or 614, Building's 2,569 or 2,570, Provisioning's 5,022 or 5,023 - every line below says the
+// recipe's own. bible/06-Systems/Professions-Arc.md 50.
 import { t, intlLocale } from '../systems/textManager.js';
-import { craftXp, firstCraftPays, masonXp, FIRST_CRAFT_XP } from '../net/recipeLaw.js';
-import { creditedXp, professionName, JOURNEYMAN_RANK, CRAFTS_ABOVE_JOURNEYMAN } from '../net/professionLaw.js';
+import { craftXp, firstCraftPays, firstCraftXp, workFirstXp, masonXp } from '../net/recipeLaw.js';
+import { creditedXp, professionName, JOURNEYMAN_RANK, CRAFTS_ABOVE_JOURNEYMAN, MASON_RECIPES } from '../net/professionLaw.js';   // FIRST-BUDGET: the bench's two works, each its first's share
 import { scaleXp } from '../net/firmament/firmamentLaw.js';
 
 /** @typedef {{ limit?: { cap: number, room: number, by: string[], rank: number }|null, pct?: number }} CraftPay */
@@ -39,7 +44,8 @@ function craftsList(by) {
 /**
  * CRAFT-LIMIT-SAID: WHAT AN ACT AT A STATION IS PAID, as the service decides it - `xp` the act's own law's figure (cookXp,
  * brewXp, temperXp, disenchantXp) with the Firmament's percent on it, under the room `pay.limit` leaves (none read, no
- * bound). A first's 500 is laid on whole beside it, never scaled (the lines that say one, below).
+ * bound). A first's XP (its share of its track's discovery budget) is laid on whole beside it, never scaled (the lines
+ * that say one, below).
  * @param {number} xp @param {CraftPay} [pay]
  */
 export const paidXp = (xp, pay = {}) => creditedXp(scaleXp(xp, pay.pct ?? 0), pay.limit?.room ?? Infinity);
@@ -84,32 +90,34 @@ export const limitRuleLine = (past) => t('prof.page.limit.rule', 'Only {max} cra
  * @param {CraftPay} [pay]
  */
 export function craftXpLine(r, rank, profession, pay = {}) {
-  const xp = scaleXp(craftXp(r.tier, rank, false), pay.pct ?? 0);
-  const more = firstCraftPays(r) ? FIRST_CRAFT_XP : 0;
+  const xp = scaleXp(craftXp(r.tier, rank), pay.pct ?? 0);
+  const more = firstCraftXp(r);   // FIRST-BUDGET: the pattern's share of its track's budget - none for the Weavers' cloth alone
   return capLine(profession, pay, xp + more) || (more
-    ? t('prof.page.craft.xpFirst', '{xp} {profession} experience, and {more} more the first time you make this piece at this grade.', { xp, profession, more })
+    ? t('prof.page.craft.xpFirst', '{xp} {profession} experience, and {more, number} more the first time you make this piece at this grade.', { xp, profession, more })
     : t('prof.page.craft.xpShop', '{xp} {profession} experience. Pieces made only from Weavers\' cloth earn no first-time bonus.', { xp, profession }));
 }
 
 /**
- * The fire's first-time line for a dish (its XP is the pans line's - cookXp, XP follows the rank; the first's 500 the
- * service lays on beside it, professions.js craftAtAnvil): empty for a dish whose first pays none. CRAFT-LIMIT-SAID: the
+ * The fire's first-time line for a dish (its XP is the pans line's - cookXp, XP follows the rank; the first's XP - FIRST-BUDGET:
+ * the dish's share of Provisioning's budget, firstCraftXp - the service lays on beside it, professions.js craftAtAnvil):
+ * empty for a dish whose first pays none. CRAFT-LIMIT-SAID: the
  * limit's line in its place where the track cannot take `clean` (a clean pan's XP, the Firmament's percent on it) and the
  * first's.
  * @param {any} r a recipe of net/recipeLaw.js COOKING_RECIPES @param {string} profession @param {CraftPay} [pay] @param {number} [clean]
  */
-export const dishFirstLine = (r, profession, pay = {}, clean = 0) => capLine(profession, pay, clean + (firstCraftPays(r) ? FIRST_CRAFT_XP : 0))
-  || (firstCraftPays(r) ? t('prof.page.fire.first', 'The first time you cook this dish: {more} more {profession} experience.', { more: FIRST_CRAFT_XP, profession }) : '');
+export const dishFirstLine = (r, profession, pay = {}, clean = 0) => capLine(profession, pay, clean + firstCraftXp(r))
+  || (firstCraftXp(r) > 0 ? t('prof.page.fire.first', 'The first time you cook this dish: {more, number} more {profession} experience.', { more: firstCraftXp(r), profession }) : '');
 
 /**
- * The mason's bench's works' first-time line: the first cut and the first mix each lay on the 500 (masonXp's `first` -
- * the service's, keyed by the work, professions.js smeltAtForge; both works pay it, FACT, pinned). CRAFT-LIMIT-SAID: the
- * limit's line in its place where the track cannot take a first clean work of one unit.
+ * The mason's bench's works' first-time line: the first cut and the first mix each lay on their first's XP (FIRST-BUDGET:
+ * each work's share of Building's budget, workFirstXp - the service's, keyed by the work, professions.js smeltAtForge;
+ * both works pay it, and pay the same, FACT, pinned). CRAFT-LIMIT-SAID: the limit's line in its place where the track
+ * cannot take a first clean work of one unit.
  * @param {number} rank @param {string} profession @param {CraftPay} [pay]
  */
-export const masonWorksFirstLine = (rank, profession, pay = {}) => capLine(profession, pay, scaleXp(masonXp(1, rank, { clean: true }), pay.pct ?? 0) + FIRST_CRAFT_XP)
-  || t('prof.page.mason.worksFirst', 'Your first cut and your first mix each earn {more} more {profession} experience.',
-    { more: masonXp(1, rank, { first: true }) - masonXp(1, rank), profession });
+export const masonWorksFirstLine = (rank, profession, pay = {}) => capLine(profession, pay, scaleXp(masonXp(1, rank, { clean: true }), pay.pct ?? 0) + workFirstXp(MASON_RECIPES[0]))
+  || t('prof.page.mason.worksFirst', 'Your first cut and your first mix each earn {more, number} more {profession} experience.',
+    { more: workFirstXp(MASON_RECIPES[0]), profession });
 
 /**
  * The craft's word's XP, from the service's answer (professions.js craftAnswer - `xp` as credited, `first` whether this

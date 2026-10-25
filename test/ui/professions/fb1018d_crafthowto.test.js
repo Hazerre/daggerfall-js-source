@@ -155,7 +155,7 @@ test('CRAFT-HOWTO THE WORDS ARE THE CODE\'S: each craft names the shops its stat
   // never made (COUNTER_ONLY) - the Weavers' two, Linen a furnisher's counter's too (AUDIT FB1018D L1-9)
   for (const r of RECIPES) {
     assert.ok(['smithing', 'building', 'outfitting', 'provisioning'].includes(trackOf(r.profession)), `${r.id} is a craft's`);
-    assert.ok(r.kind === 'dish' ? cookXp(0) > 0 : craftXp(r.tier, 0, false) > 0, `${r.id} pays its craft`);
+    assert.ok(r.kind === 'dish' ? cookXp(0) > 0 : craftXp(r.tier, 0) > 0, `${r.id} pays its craft`);
   }
   assert.deepEqual(WEAVERS_STOCK.map((s) => s.key), ['cloth:linen', 'cloth:wool']);
   assert.ok(COUNTER_ONLY.includes('cloth:linen') && COUNTER_ONLY.includes('cloth:wool'));
