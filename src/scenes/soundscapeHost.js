@@ -134,13 +134,12 @@ export const winterIn = (climate, winter) => !!winter && climate !== CLIMATES.De
 /**
  * @param {{ audio: any, music: any, boat: () => any, aboard?: () => boolean, bow?: (boat: any, yaw: number) => number[], csa: any, fight: () => boolean, pixel: () => ({ x: number, y: number } | null),
  *   seaPixel: (x: number, y: number) => boolean, dw: any, inTown: () => boolean, towns: () => Map<number, { blocks?: number }>,
- *   doors: any[], doorAt: (entry: any) => any, rand?: () => number }} deps - `rand` the airs' dice (Math.random when absent;
- *   a test's seeded one, so a bout of blows is the same every run)
+ *   doors: any[], doorAt: (entry: any) => any }} deps
  */
 export function createSoundscapeHost(deps) {
   const columnAt = deps.dw?.rawColumnAt ? (/** @type {number} */ x, /** @type {number} */ z) => deps.dw.rawColumnAt(x, z) : null;
-  const sea = createSeaAir({ engine: deps.audio, rand: deps.rand });
-  const world = createWorldAir({ engine: deps.audio, rand: deps.rand });
+  const sea = createSeaAir({ engine: deps.audio });
+  const world = createWorldAir({ engine: deps.audio });
   const score = createSeaScore();
   let songsMade = false, held = false;
   // the way of a boat I ride (S4): her last place and her eased speed

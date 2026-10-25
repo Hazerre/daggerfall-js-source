@@ -14,14 +14,16 @@ import { readFileSync } from 'node:fs';
 import {
   STAFF_PACK_MIN, STAFF_PACK_MAX, STAFF_PACK_FILL_MIN_S, STAFF_PACK_FILL_MAX_S, staffPackGapS, staffPackPaceS, STAFF_PACK_FAR_MIN, STAFF_PACK_FAR_MAX, STAFF_PACK_NEAR, MAX_RAID_ENEMIES, raidSpawnRange, RAID_SPAWN_MIN_DISTANCE, RAID_SPAWN_MAX_DISTANCE,
   raidFrame as frame, raidWireWord, raidRelayWord, setRaidingPartiesHost, restoreRaidSaveData, _resetRaidingParties,
-  STAFF_RAID_TYPE, staffBossLine, staffEndLine, staffAttackLine,
+  STAFF_RAID_TYPE, staffBossLine, staffEndLine, staffAttackLine, STAFF_BOSS_CLEAR_MAX_MS, staffBossSpot, STAFF_BOSS_GROUP_M, staffPackScale, STAFF_PACK_CAP_MAX, STAFF_PACK_CAP_PER,
 } from '../../src/systems/raidingParties.js';
 import { staffEventBook, staffRaids, staffRaidHere, staffRaidRoom, staffBossWanted, staffLedgerOf, _resetStaffEvents } from '../../src/systems/staffEvents.js';
 import { validStaffEvent, staffEventKey } from '../../src/net/staffEvent/staffEventLaw.js';
 import {
-  promoteStaffBoss, isStaffBoss, eliteGlow, eliteSize, STAFF_BOSS_GLOW, STAFF_BOSS_HEALTH_MULT, ELITE_FOE_SIZE,
+  promoteStaffBoss, STAFF_BOSS_MIN_METAL, STAFF_BOSS_ARMOR, isStaffBoss, eliteGlow, eliteSize, STAFF_BOSS_GLOW, STAFF_BOSS_HEALTH_MULT, ELITE_FOE_SIZE,
 } from '../../src/systems/eliteFoes.js';
 import { foeTitle } from '../../src/systems/foeTitle.js';
+import { dropWeaponIfTargetImmune } from '../../src/combat/formulas.js';
+import { isImmuneToParalysis } from '../../src/systems/effects.js';
 import { validRaidWords, validRaidTags, validStaffBossTags } from '../../src/world/raidShared.js';
 import { setSharedClock } from '../../src/systems/worldTick.js';
 import { MINUTES_PER_DAY } from '../../src/systems/gameDate.js';
@@ -108,6 +110,11 @@ test('STAFF-EVENT: RUN AS A RAID - its own monsters, mixed, up to its total; no 
   assert.equal(staffLedgerOf(EV.id).bd, 1);
   assert.equal(raidRelayWord({ k: 'sev', sev: { k: 'st', id: EV.id, n: 5, bd: 1, bu: 0, bk: 0, fc: 0 } }, 'social'), false, 'a ledger from the social room is no cell\'s');
   assert.equal(staffBossWanted(raid), 0);
+  // BOSS-CLEAR (mob 2026-10-25: "make sure all those mob are dead not spawned befor the bosss"; BOSS-CLEAR-CALL: "no
+  // only the mini boss need to wait for everything to be dead"): three still stand - no boss until they are dead
+  assert.ok((await run(3)).every((x) => x !== 'boss'));
+  assert.ok(!log.said.some((l) => /A mighty/.test(l)), 'not said before it stands');
+  for (const f of log.raiders.slice(3)) kill(f);
   assert.equal(frame(0.1), 'boss');
   await tick();
   const boss = log.raiders.at(-1);
@@ -117,13 +124,16 @@ test('STAFF-EVENT: RUN AS A RAID - its own monsters, mixed, up to its total; no 
   assert.equal(eliteSize(boss.entity), 2.5);
   assert.equal(raid.bossUp, 1);
   assert.equal(staffBossWanted(raid), -1, 'one boss a call');
-  assert.ok(log.said.some((l) => /A mighty Orc Warlord has come to the city of Gothway Garden!/.test(l)), 'said once where I stand');
   await run(1);
   assert.deepEqual([log.words.at(-1).w.bu, log.words.at(-1).w.bk], [1, 0]);
+  assert.equal(await run(1).then((o) => o[0]), 'idle', 'it stands: the event\'s total stood already');
+  raidRelayWord({ k: 'sev', sev: { k: 'st', id: EV.id, n: 3, bd: 1, bu: 1, bk: 0, fc: 0 } }, w.room);
+  frame(0.1);
+  assert.ok(log.said.some((l) => /A mighty Orc Warlord has come to the city of Gothway Garden!/.test(l)), 'said once it stands, where I stand');
   // the boss falls: its own word, not a fourth kill
   kill(boss);
   await run(1);
-  assert.deepEqual([log.words.at(-1).w.n, log.words.at(-1).w.bk], [3, 1]);
+  assert.deepEqual([log.words.at(-1).w.n, log.words.at(-1).w.bk], [6, 1], 'the six that fell before it, not a seventh');
   // THE REWARD: the board said once where it fell, the killing blow marked, a nameless row the reader's word; my
   // receipt handed to the host once (its spoils rolled there - scenes/world.js onRaidReceipt), a raid's never confused
   const top = [['Ana', 3, 1], ['', 2, 0]];
@@ -146,6 +156,163 @@ test('STAFF-EVENT: RUN AS A RAID - its own monsters, mixed, up to its total; no 
   raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [{ ...EV, id: 'dd33ee44ff' }] } }, 'social');
   raidRelayWord({ k: 'sev', sev: { k: 'st', id: 'dd33ee44ff', n: 0, bd: 1, bu: 0, bk: 0, fc: 2 } }, w.room);
   assert.equal(staffBossWanted(staffRaids()[0]), 2);
+});
+
+test('BOSS-LOST and BOSS-HP (mob 2026-10-25: "boss seems to not spawn every time", "need be able to eneter a exact amount of healt"): a boss stand given up on is asked again; a boss gone without falling is stood again; one coming over is waited for; the exact health wins', async () => {
+  const { at, log, h } = rig();
+  restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });
+  setSharedClock(() => at.now);
+  raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [{ ...EV, hp: 5000 }] } }, 'social');
+  const raid = staffRaids()[0];
+  await run(4);
+  const room = log.words.at(-1)?.room ?? 'world:0';
+  // the boss stand never answers: given up at the pending's timeout, then asked again
+  const stand = h.standRaider;
+  h.standRaider = () => new Promise(() => {});
+  for (const f of log.raiders) kill(f);
+  raidRelayWord({ k: 'sev', sev: { k: 'st', id: EV.id, n: 3, bd: 1, bu: 0, bk: 0, fc: 0 } }, room);
+  assert.equal(frame(0.1), 'boss');
+  for (let i = 0; i < 9; i++) frame(1);
+  assert.equal(raid.bossFc, -1, 'given up: the call stands unanswered');
+  h.standRaider = stand;
+  assert.equal(frame(0.1), 'boss', 'asked again');
+  await tick();
+  const boss = log.raiders.at(-1);
+  assert.equal(boss.entity.maxHealth, 5000, 'BOSS-HP: the exact health, over the 20x');
+  raidRelayWord({ k: 'sev', sev: { k: 'st', id: EV.id, n: 3, bd: 1, bu: 1, bk: 0, fc: 0 } }, room);
+  // a jump's sweep takes it without a fall: stood again for the same call, once the wait is out
+  boss.dead = true;
+  await run(1, 0.1);
+  const n = log.raiders.length;
+  at.wall += 7000;
+  await run(1, 0.1);
+  assert.equal(log.raiders.length, n, 'not yet: one coming over from a fallen runner may land');
+  at.wall += 2000;
+  assert.equal(frame(0.1), 'boss');
+  await tick();
+  assert.ok(isStaffBoss(log.raiders.at(-1).entity) && raid.bossFc === 0, 'the same call\'s boss, stood again');
+  // a puppet of it standing at another's: nothing stood
+  log.raiders.at(-1).dead = true;
+  at.puppets = [{ _pupRaid: KEY, dead: false, entity: { staffBoss: { size: 2 } } }];
+  await run(1, 0.1);
+  at.wall += 20000;
+  await run(2, 0.1);
+  assert.ok(!isStaffBoss(log.raiders.at(-1).entity) || log.raiders.at(-1).dead, 'its puppet stands: no second boss');
+  // one that fell, its word not yet heard: never stood again
+  at.puppets = [];
+  raid.bossDown = 1;
+  at.wall += 20000;
+  await run(2, 0.1);
+  assert.ok(!log.raiders.slice(-2).some((f) => isStaffBoss(f.entity) && !f.dead), 'fallen: no second boss');
+});
+
+test('BOSS-CLEAR: Spawn mini boss now is at once, monsters standing or not; the meter\'s waits for the field that stood at its call to fall, a puppet of it too - BOSS-CLEAR-CALL: the packs come on all the while, and one stood since never holds it', async () => {
+  const { at, log } = rig();
+  restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });
+  setSharedClock(() => at.now);
+  raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [EV] } }, 'social');
+  await run(4);
+  const room = log.words.at(-1)?.room ?? 'world:0';
+  assert.ok(log.raiders.some((f) => !f.dead));
+  raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [{ ...EV, fb: 1 }] } }, 'social');
+  raidRelayWord({ k: 'sev', sev: { k: 'st', id: EV.id, n: 0, bd: 1, bu: 0, bk: 0, fc: 0 } }, room);
+  assert.equal(frame(0.1), 'boss', 'by hand: at once');
+  await tick();
+  {
+    // BOSS-CLEAR-CALL: while it stands, the packs come on
+    raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [{ ...EV, fb: 1, n: 100 }] } }, 'social');
+    raidRelayWord({ k: 'sev', sev: { k: 'st', id: EV.id, n: 0, bd: 1, bu: 1, bk: 0, fc: 0 } }, room);
+    const before = log.raiders.length;
+    await run(5);
+    assert.ok(log.raiders.length > before, 'monsters stood while the boss stands');
+  }
+  // its fall, then the meter's next: waits for its last monster - and for a puppet of it at another's
+  raidRelayWord({ k: 'sev', sev: { k: 'st', id: EV.id, n: 3, bd: 1, bu: 1, bk: 1, fc: 0 } }, room);
+  for (const f of log.raiders) kill(f);
+  at.puppets = [{ _pupRaid: KEY, dead: false, entity: {} }];
+  raidRelayWord({ k: 'sev', sev: { k: 'st', id: EV.id, n: 6, bd: 1, bu: 0, bk: 0, fc: 1 } }, room);
+  assert.notEqual(frame(0.1), 'boss', 'a puppet of it stands');
+  await tick();
+  const since = log.raiders.filter((f) => !f.dead).length;
+  await run(3);
+  assert.ok(log.raiders.filter((f) => !f.dead).length > since || since > 0, 'the packs come on while it waits');
+  at.puppets[0].dead = true;
+  assert.equal(frame(0.1), 'boss', 'the field of its call fell: monsters stood since hold nothing');
+  await tick();
+  // one nobody can reach never holds it back past two minutes
+  raidRelayWord({ k: 'sev', sev: { k: 'st', id: EV.id, n: 6, bd: 1, bu: 1, bk: 1, fc: 1 } }, room);
+  at.puppets = [{ _pupRaid: KEY, dead: false, entity: {} }];
+  raidRelayWord({ k: 'sev', sev: { k: 'st', id: EV.id, n: 6, bd: 1, bu: 0, bk: 0, fc: 2 } }, room);
+  assert.notEqual(frame(0.1), 'boss');
+  at.wall += STAFF_BOSS_CLEAR_MAX_MS - 1;
+  assert.notEqual(frame(0.1), 'boss');
+  at.wall += 1;
+  assert.equal(frame(0.1), 'boss');
+});
+
+test('BOSS-UNSHAKEN (mob 2026-10-25: "he got stun locked lets stop him from getting stunned"): a mini boss\'s wind-up holds under any blow, an overreach too; its kind\'s takes no shove', async () => {
+  const { windupStruck } = await import('../../src/ai/tactics.js');
+  const ai = { _tac: { blow: { guard: 'plain', poise: 1, taken: 0 } } };
+  assert.equal(windupStruck(ai, { staffBoss: { size: 2 } }, 1, 999), null, 'no wind-up open: nothing to break, never a stagger');
+  assert.match(rd('src/ai/tactics.js'), /if \(ent\?\.staffBoss\) return overreachOpen\(ai\) \|\| windupHolds\(ai\) \? 'hold' : null;/);
+  assert.match(rd('src/scenes/exteriorFoes.js'), /if \(knockDir && !f\.entity\?\.staffBoss && weaponKnockbackApplies\(/, 'no shove, so no Hurt: the boss is never stun-locked');
+});
+
+test('PACK-SPREAD (mob 2026-10-25: "evenly swap them between all player in a city"): each pack led from around the next player in the town in turn - me, then each peer in its rect', async () => {
+  const { at, log, h } = rig();
+  restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });
+  setSharedClock(() => at.now);
+  const ana = [100, 0, 100], bo = [-80, 0, 40];
+  h.peerFeetInTown = () => [['zzz-0009', bo], ['aaa-0001', ana], ['mmm-0002', [9, 9, 9]], ['bad', null]];
+  raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [{ ...EV, n: 100 }] } }, 'social');
+  let secs = 0;
+  while (log.raiders.length < MAX_RAID_ENEMIES && secs < 200) { frame(0.05); await tick(); secs += 0.05; }
+  const leaders = log.raiders.filter((f) => !f.o?.at);
+  assert.ok(leaders.length >= 5);
+  assert.deepEqual(leaders.slice(0, 6).map((f) => f.o.near ?? 'me'), [ana, 'me', bo, ana, 'me', bo], 'by id in turn: aaa, mmm (me, my own feet), zzz; a peer with no feet left out');
+  assert.ok(leaders.every((f) => f.o.min === STAFF_PACK_FAR_MIN && f.o.max === STAFF_PACK_FAR_MAX));
+  // alone: every pack around me
+  _resetRaidingParties(); _resetStaffEvents();
+  const solo = rig();
+  restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });
+  setSharedClock(() => solo.at.now);
+  raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [{ ...EV, n: 100 }] } }, 'social');
+  for (let i = 0; i < 200 && solo.log.raiders.length < 10; i++) { frame(0.05); await tick(); }
+  assert.ok(solo.log.raiders.every((f) => f.o?.at || f.o?.near == null), 'my own feet');
+  assert.ok(rd('src/scenes/world.js').includes('feet: at?.at ?? at?.near ?? enchantFeet()'), 'the host stands a leader around the player it was given');
+});
+
+test('PACK-SCALE (mob 2026-10-25: "they arnt spawn ing quick enough", card "Scale with players in town"): one player as ever; each more five more standing to forty, a quarter quicker to twice; the step stands to the scaled cap', async () => {
+  assert.deepEqual([STAFF_PACK_CAP_MAX, STAFF_PACK_CAP_PER], [40, 5]);
+  assert.deepEqual(staffPackScale(1), { cap: MAX_RAID_ENEMIES, speed: 1 }, 'alone: as ever');
+  assert.deepEqual(staffPackScale(2), { cap: 30, speed: 1.25 });
+  assert.deepEqual(staffPackScale(4), { cap: 40, speed: 1.75 });
+  assert.deepEqual(staffPackScale(9), { cap: 40, speed: 2 }, 'at most forty, twice');
+  assert.deepEqual(staffPackScale(0), staffPackScale(1));
+  const { at, log, h } = rig();
+  restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });
+  setSharedClock(() => at.now);
+  h.peerFeetInTown = () => [['me', [0, 0, 0], 1], ['p1', [50, 0, 0], 1], ['p2', [90, 0, 0], 1], ['p3', [130, 0, 0], 1]];
+  raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [{ ...EV, n: 100 }] } }, 'social');
+  let secs = 0;
+  while (log.raiders.length < 40 && secs < 120) { frame(0.05); await tick(); secs += 0.05; }
+  assert.equal(log.raiders.length, 40, 'four players: forty standing');
+  for (let i = 0; i < 40; i++) { frame(0.05); await tick(); }
+  assert.equal(log.raiders.length, 40, 'and no more');
+});
+
+test('BOSS-SPOT (mob 2026-10-25: "spawn it on the highest lvl player", "or largewst groupoing"; card "Biggest group, ties by level"): the boss stands beside the biggest group, a tie to the higher level, then the lower id; beside me when it is me', () => {
+  assert.equal(STAFF_BOSS_GROUP_M, 30);
+  const P = (id, x, lv) => [id, [x, 0, 0], lv];
+  assert.equal(staffBossSpot([P('me', 0, 50), P('a', 200, 5), P('b', 210, 5), P('c', 220, 5)])[0], 'a', 'three together beat one high level alone');
+  assert.equal(staffBossSpot([P('a', 0, 5), P('b', 10, 5), P('c', 200, 40), P('d', 210, 3)])[0], 'c', 'two and two: the group with the level 40');
+  assert.equal(staffBossSpot([P('b', 0, 7), P('a', 500, 7)])[0], 'a', 'all equal: the lower id');
+  assert.equal(staffBossSpot([P('me', 0, 1), ['x', null, 99]])[0], 'me', 'no feet: left out');
+  assert.equal(staffBossSpot([]), null);
+  const src = rd('src/systems/raidingParties.js');
+  assert.equal(src.split("spawn(raid, 'boss', raid.staff.b, staffBossPlace()); return 'boss'; }").length - 1, 2, 'the meter\'s boss and a lost one both');
+  assert.match(src, /return at && at\[0\] !== me \? \{ near: at\[1\] \} : undefined;/);
+  assert.ok(rd('src/scenes/world.js').includes("peerFeetInTown: () => [[online?.id ?? '', player.feetAt(), playerEntity.level ?? 1], ...(peersNear() ?? [])"), 'me first, with my level');
 });
 
 test('STAFF-EVENT PACKS: monsters stood in packs of 3-5 of any of the kinds picked, each led from anywhere around me, its pack around its leader, to the 25 cap in 20-45 s', async () => {
@@ -259,6 +426,25 @@ test('STAFF-EVENT: THE MINI BOSS\'S LOOKS - an elite, larger, its glow carried p
   const glsl = rd('src/systems/hitFlash.js');
   assert.match(glsl, /STAFF_BOSS_RIM = vec3\(1\.0, 0\.82, 0\.18\)/, 'yellow');
   assert.match(glsl, /boss \? STAFF_BOSS_RIM : ELITE_RIM/);
+});
+
+test('STAFF-EVENT BOSS-HARD: every mini boss - owner and puppet - asks Silver and wears a Troll\'s armour; BOSS-UNSHAKEN: never paralysed', () => {
+  for (const own of [true, false]) {
+    const e = { health: 50, maxHealth: 50, minMetalToHit: undefined, armor: 30, armorValues: [30, 5, 30, 30, 30, 30, 30] };
+    assert.ok(!isImmuneToParalysis(e), 'a plain foe can be held');
+    promoteStaffBoss(e, { own });
+    assert.equal(e.minMetalToHit, STAFF_BOSS_MIN_METAL);
+    assert.deepEqual(e.armorValues, [10, 5, 10, 10, 10, 10, 10], 'the Troll\'s 10, a better part kept');
+    assert.equal(e.armor, STAFF_BOSS_ARMOR);
+    assert.equal(dropWeaponIfTargetImmune({ material: 1 }, e), null, 'steel does nothing');
+    assert.ok(dropWeaponIfTargetImmune({ material: 2 }, e), 'silver bites');
+    assert.ok(isImmuneToParalysis(e), 'never held');
+  }
+  const daedra = { health: 50, maxHealth: 50, minMetalToHit: 5 };
+  promoteStaffBoss(daedra);
+  assert.equal(daedra.minMetalToHit, 5, 'a higher floor stays');
+  assert.match(rd('src/scenes/hostCombat.js'), /target\.ai && !tEnt\?\.staffBoss && !windupHolds/, 'no foe shoves it');
+  assert.match(rd('src/scenes/exteriorFoes.js'), /r\.h < p\.h && !f\.entity\.staffBoss\) p\.hurt = true/, 'its puppet plays no Hurt');
 });
 
 test('STAFF-EVENT: the client\'s word and the relay\'s frame - a staff word parsed by the relay\'s own parser; the game reads its frames off the raid door', () => {

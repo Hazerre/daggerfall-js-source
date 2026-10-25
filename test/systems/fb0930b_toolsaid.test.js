@@ -64,8 +64,13 @@ const NOON_MS = (20500 * 86_400 + 43_200) * 1000;
 const DAY = utcDayOfMs(NOON_MS);
 /** Nothing of any kind within 50 m of here. */
 const CLEARING = Object.freeze([400, 0, 400]);
-/** The dungeon of 29h's report: nobody confirmed it, so every vein is its least - Silver, tier 3 (VEIN-NEED's). */
-const DUNGEON = 88;
+/** The dungeon of 29h's report: nobody confirmed it, its first vein Silver, tier 3 (VEIN-NEED's). PIN MOVED (DEEP-OPEN,
+ *  Professions-Arc.md section 53): such a dungeon draws its whole deep table now - every vein was its least, Silver - so
+ *  it is the first from 88 whose first vein is the report's. */
+const DUNGEON = (() => {
+  for (let id = 88; id < 4000; id++) if (dungeonVeins({ dungeon: id, day: DAY, climate: WOODS, confirmed: false })[0]?.material === 'metal:silver') return id;
+  throw new Error('no dungeon whose first vein is Silver');
+})();
 const wall = (marker, bearing) => [Math.sin(bearing) * 2, 1.2, Math.cos(bearing) * 2];
 function pixelEntry() {
   const law = veins({ x: PX, y: PY, day: DAY, climate: WOODS, region: GLENUMBRA });
@@ -594,7 +599,7 @@ test('PROF-MENU: the act choice key steps the plaque\'s light down the node\'s l
 test('PROF-MENU host by source: the street\'s plaque races the node over its own winner and names it first, its click presses a lit row (never mid-act), the list opens where no plaque stands; the dungeon\'s the same through its host; an absent reason still says "not now" (mutants: each wire cut)', () => {
   const w = readFileSync(new URL('../../src/scenes/world.js', import.meta.url), 'utf8');
   assert.match(w, /plaque: \(\) => worldPlaqueOn\(\),\n\s*lit: \(key\) => plaqueActionFor\(key\),\n\s*choose: \(rows, pick\) => profChoose\(rows, pick\),\n\s*step: \(n\) => plaqueStep\(n\),/);
-  assert.match(w, /const _hoverNamers = \[\n\s*\(key\) => gatherHost\?\.hoverName\?\.\(key\) \?\? null,/);
+  assert.match(w, /const _hoverNamers = \[\n\s*\(key\) => gatherHost\?\.hoverName\?\.\(key\) \?\? yards\?\.hoverName\?\.\(key\) \?\? null,/);
   assert.match(w, /pick: \(\) => profHoverOver\(modes\.exteriorHoverPick\(cam\.pos, _hd, \{/);
   assert.match(w, /const profHoverOver = \(ray\) => gatherHost\?\.hoverHit\?\.\(ray\) \?\? ray;/);
   assert.match(w, /const nodeClicked = !useEdge && _act\.activate && !_holdFire && !modes\.transitioning && !gatherHost\?\.acting\(\) && !_actClick && !naval\?\.takesActivate\?\.\(\) && profClickPress\(\);/);   // PIN MOVED (AUDIT HERB-CURSOR B2): nor an act's click lifting
