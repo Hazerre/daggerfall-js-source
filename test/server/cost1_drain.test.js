@@ -22,6 +22,12 @@ const KEY = cellRoomOfWire(P0.x, P0.z);
 const GRANT_URL = 'https://accounts.example/v1/mod/grant-feed', NET_URL = 'https://accounts.example/v1/staff/net-feed', REACT_URL = 'https://accounts.example/v1/mod/reaction-feed';
 /** A settled turn: the drain's posts are the leave's, never awaited by it. */
 const settle = async () => { for (let i = 0; i < 20; i++) await new Promise((r) => setImmediate(r)); };
+/** Until `done()` holds, or two seconds of real time pass. The grant's post signs its window first (crypto.subtle, off
+ *  the event loop), so no fixed number of turns is sure to come after it. */
+const until = async (done) => {
+  const end = performance.now() + 2000;
+  while (!done() && performance.now() < end) await new Promise((resolve) => setTimeout(resolve, 5));
+};
 
 /** A cell with the relay's receipt key and the grant feed on, its posts recorded; players helloed at P0. */
 async function cell(t) {
@@ -52,7 +58,7 @@ test('COST-1 THE DRAIN POSTS THE GRANT\'S WINDOW: a cell whose player asked a gr
   assert.equal(posts.length, 0, 'a player still here: nothing posted');
   assert.ok(r.room._grants.timer, 'its timer stands');
   await r.drop(b.ws);
-  await settle();
+  await until(() => posts.length > 0 && r.room._grants.timer === null);   // the timer is cleared once the post settles
   assert.deepEqual(posts.map((p) => p.url), [GRANT_URL], 'the last leave posts the window');
   assert.ok(posts[0].sig, 'signed');
   assert.equal(r.room._grants.timer, null, 'and nothing is left armed');
