@@ -6884,7 +6884,7 @@ export function validKetchOut(m) {
     case 'dn': return intIn(m.o, 1, KT_BODY_ID_MAX) && ktMs(m.at) ? { k: 'dn', o: m.o, n: name(m.n), at: m.at } : null;
     case 'wk': return intIn(m.o, 1, KT_BODY_ID_MAX) && ktMs(m.at) ? { k: 'wk', o: m.o, at: m.at } : null;
     case 'sg': return intIn(m.sg, 0, 5) && ktMs(m.at) ? { k: 'sg', sg: m.sg, at: m.at, ...(m.by != null ? { by: name(m.by) } : {}) } : null;
-    case 'wave': return intIn(m.w, 1, 3) && ktMs(m.at) ? { k: 'wave', w: m.w, at: m.at } : null;
+    case 'wave': return intIn(m.w, 1, 5) && ktMs(m.at) ? { k: 'wave', w: m.w, at: m.at } : null;   // KETCH-LONGER: the Watch's five (ketchLaw.js KT_WATCH_WAVES)
     case 'cl': return ktCells(m);
     case 'drop': case 'pick': case 'bank': return typeof m.s === 'string' && ID_RE.test(m.s) && ktMs(m.at) ? { k: m.k, s: m.s, n: name(m.n), at: m.at, ...(m.k === 'drop' && typeof m.why === 'string' && /^[a-z]{1,8}$/.test(m.why) ? { why: m.why } : {}), ...(m.k === 'bank' && intIn(m.sk, 0, KT_CELL_SPOT_MAX) ? { sk: m.sk } : {}) } : null;
     case 'wf': return intIn(m.fi, 1, 1e9) && ktMs(m.at) ? { k: 'wf', fi: m.fi, at: m.at } : null;
