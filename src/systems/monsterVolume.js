@@ -4,8 +4,9 @@
 // Volume alone. The Audio tab's Volume row writes uiPrefs `monsterVolume` (0..1); the master bus still scales it.
 import { getPref } from './uiPrefs.js';
 
-/** A 0..1 volume off the shelf (1 when it holds nothing usable - 0 is a value, a muted volume). */
-const shelfVolume = (key) => { const v = Number(getPref(key)); return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 1; };
+/** A 0..1 volume off the shelf (1 when it holds nothing usable - 0 is a value, a muted volume). HORSE-VOL: animalVolume.js reads its
+ *  two rows through it too. */
+export const shelfVolume = (key) => { const v = Number(getPref(key)); return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 1; };
 
 /** The Audio tab's Monster Volume, 0..1 (1 when the shelf holds nothing usable). */
 export function monsterVolume() {

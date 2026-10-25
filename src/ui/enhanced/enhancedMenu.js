@@ -2883,7 +2883,7 @@ function portRowsAudio() {
   if (!can) b.disabled = true;
   ctl.append(b, el('span', `tier ${can ? 'live' : 'unavailable'}`));
   row.append(ctl);
-  return [row, monsterVolumeRow(), companionVolumeRow()];
+  return [row, monsterVolumeRow(), companionVolumeRow(), horseVolumeRow(), animalVolumeRow()];
 }
 
 /** MONSTER-VOL (2026-10-20, the owner: "add an option under audio for it called Monster Volume with 0 - 100%"): the
@@ -2901,6 +2901,18 @@ export const COMPANION_VOLUME_NAME = 'Companion Idle Volume';
 function companionVolumeRow() {
   return volumeRow('companionVolume', t('menu.audio.companionVolume', COMPANION_VOLUME_NAME),
     t('menu.audio.companionVolumeNote', 'How loud companions moan and cry out while they idle, yours and other players\' alike. 0% silences them.'));   // AUDIT UPDATE E-N6: every companion's idle call - a peer's puppet carries `companion` too
+}
+/** HORSE-VOL, ANIMAL-VOL (2026-10-23, travddm: "Add both animal volume & horse volume"): the Audio tab's Volume rows for every
+ *  horse heard and for the other animal flats (systems/animalVolume.js), drawn as Monster Volume's. */
+export const HORSE_VOLUME_NAME = 'Horse Volume';
+export const ANIMAL_VOLUME_NAME = 'Animal Volume';
+function horseVolumeRow() {
+  return volumeRow('horseVolume', t('menu.audio.horseVolume', HORSE_VOLUME_NAME),
+    t('menu.audio.horseVolumeNote', 'How loud horses neigh and clop, your own mount included.'));
+}
+function animalVolumeRow() {
+  return volumeRow('animalVolume', t('menu.audio.animalVolume', ANIMAL_VOLUME_NAME),
+    t('menu.audio.animalVolumeNote', 'How loud dogs, cats, pigs and cows call.'));
 }
 /** MONSTER-VOL's row, for any 0..1 volume on the shelf (`key`): its name, `note` its title. */
 function volumeRow(key, name, note) {
