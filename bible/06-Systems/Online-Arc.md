@@ -16286,7 +16286,11 @@ one breath should end - each keeping it, or the room deciding): **"Host arbitrat
   50, RENOWN-LOOT's first stage, no finder's multiplier. A pile's chain is `rollPileItems` (the table, the pile trio and
   its subscribers, the ladder, the sigils); a body's is SetEnemyCareer's whole loot chain and its death's
   (`roomBodyBase`: `spawnEnemyLoot`, the kit's ladder, the sigils at the fight's count, OnEnemyDeath's subscribers and the
-  cap) over the fallen foe's own entity, handed back without touching what the foe wore or fought with. It is rolled
+  cap) over the fallen foe's own entity, handed back without touching what the foe wore or fought with. A class foe
+  stands at the party's level there, and CHAMP-BASE (2026-10-25, `01-Overview/bugs/Field-Bugs-2026-10-25.md`) asks the
+  layout's champion mark at that level too (`champions.js` `championTraitFor`) and sets the build's FOE-CAP cap aside:
+  each client's build stands the mark at its builder's level, so a character under level 3 had rolled a plain foe's
+  base under the host's champion and read every word about the body as another build's. It is rolled
   AS THE ROOM (`onlineLane.js` `asTheRoom`): REALM P0.2's own read widened, for the length of the roll, to every mod -
   each reads its shipped default, so one player's switch (Foraging off, say) cannot make their base another list. Every
   term of the chain is an argument now: the table's roll, a kit's variant and its poison drew `Math.random` whatever dice
@@ -16419,7 +16423,7 @@ OUTDOOR-LOOT's, below.) A claim
 still in flight when its claimer leaves is kept by the claimer - widened and made honest in OUTDOOR-LOOT's R1: a dupe when the
 claim lost a race or was never heard, and a crash or reload loses a granted piece in flight.
 
-- **Pinned**: `test/systems/partyloot.test.js` (10; 18 since OUTDOOR-LOOT: D-2.1's three - a joiner's Take all of forty stored pieces, two bulk takes judged together by the new seat, a dropped verdict frame recovered by a re-ask - SPLIT-LIFT's "a claim GIVEN UP", and its audit's four: D4, D5, and D-2.1's claims and verdicts AT ONCE) - two and three peers mounted over the dungeon host's real loot doors and
+- **Pinned**: `test/systems/partyloot.test.js` (10; 18 since OUTDOOR-LOOT: D-2.1's three - a joiner's Take all of forty stored pieces, two bulk takes judged together by the new seat, a dropped verdict frame recovered by a re-ask - SPLIT-LIFT's "a claim GIVEN UP", and its audit's four: D4, D5, and D-2.1's claims and verdicts AT ONCE; 19 since CHAMP-BASE: a champion-marked class foe's body one base for a level-30 host and a level-2 joiner) - two and three peers mounted over the dungeon host's real loot doors and
   the real producers, at different levels, Luck, Renown, dice and Foraging switches, joined by a queuing relay: one base
   on every body and pile; a take removing the same piece for everyone; two takes in one breath both landing; THE HOST
   ARBITRATES - the same piece taken in one breath going to one player (the host against a joiner, two joiners), the

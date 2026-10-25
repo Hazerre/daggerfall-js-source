@@ -188,8 +188,11 @@ more and a quarter again. LOOT7's Rare-or-better guarantee is gone. The numbers 
 `06-Systems/Searchables.md`.
 
 **Online.** A dungeon's foes are its layout's, built on every client from the location (the elite's way): the
-champion and its trait are a HASH of the location and the marker, so every client stands the same champion with no
-wire word. A foe in the street or a building is its owner's: the owner's hash says it, and the foe record carries its trait
+champion and its trait are a HASH of the location and the marker, so every client marks the same foe with no wire
+word. CHAMP-BASE (2026-10-25, `01-Overview/bugs/Field-Bugs-2026-10-25.md`): each client stands the mark at its own
+build's level, and a class foe is built at its builder's, so a character under level 3 stands no champion there; the
+room's shared base of the body asks the mark at the room's level (`scenes/roomLootHost.js` `roomBodyBase`), one base
+for everyone. A foe in the street or a building is its owner's: the owner's hash says it, and the foe record carries its trait
 (`cp`, sent only when set) to every puppet, which wears the same scaling, so a puppet's blow resolved on my side is a
 champion's. Said so: when a dying owner hands a street foe over, its carried loot does not travel (the hand-over's
 own law), so a champion adopted mid-fight carries none.
@@ -550,8 +553,10 @@ damage door, so a shield, a ward and a death save see it as any hurt; never a pe
 
 **Who.** A dungeon's: `markDungeonChampions` marks the layout's records by an FNV hash of the location id and the
 marker's index - one in fourteen (`CHAMPION_PER_MILLE` 70; CHAMP-RATE, was 50), its trait from the hash's high bits - so every client
-stands the same champions with no wire word, and a mark rides its record through a rebuild. Every build arm of
-`applyEliteScaling` stands it, an elite dungeon's onto the elite's scaling. A quest's foe is never in the layout. The
+marks the same records with no wire word, and a mark rides its record through a rebuild. Every build arm of
+`applyEliteScaling` stands it, an elite dungeon's onto the elite's scaling, at the build's level (CHAMP-BASE: a class
+foe's is its builder's, and a room's shared base asks the mark again at the room's - `championTraitFor`, the gate's one
+home). A quest's foe is never in the layout. The
 street's: an ordinary encounter's foe (`capped` - never a quest's, a summons, a placed camp's or a replacement) is
 `rollStreetChampion`'s - the same mixer over where it stands, its type and the pool's count of them, NEVER a draw:
 the pool's stream (its loot, its kit) draws as it did, and a seeded test's street stands the same foes every run

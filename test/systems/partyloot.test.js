@@ -38,6 +38,8 @@ import { installHealingSupply } from '../../src/systems/healingSupply.js';
 import { installRestItemLoot, isDeepPileKey } from '../../src/systems/rest/restItems.js';
 import { installSurvivalLoot } from '../../src/systems/survival/loot.js';
 import { grantEliteLoot } from '../../src/systems/eliteFoes.js';
+import { markDungeonChampions, applyChampion, championTraitFor, CHAMPION_MIN_LEVEL } from '../../src/systems/champions.js';   // CHAMP-BASE: the layout's champions, as the build marks and stands them
+import { ClassFile } from '../../src/formats/classFile.js';   // CHAMP-BASE: a class foe's career, through the real reader
 import { wildPileMore } from '../../src/systems/wild/wildZone.js';
 import { seaPileMore } from '../../src/systems/sea/seaSpoils.js';   // PIN MOVED (SEA-SET): the room's base rolls the deep's Tidemail last (roomLootHost.js)
 import { quickLootTake, foldQuickLoot, resetQuickLoot, quickLootWheel } from '../../src/systems/quickLoot.js';
@@ -112,9 +114,24 @@ const scoped = (state) => new Proxy(state, {
 const mount = (body, state) => new Function('__s', `with (__s) { ${body} }`)(scoped(state));
 const lcg = (seed) => { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); };
 
-const ROOM = 'dungeon:4242';
+const ROOM_ID = 4242;      // the dungeon's LocationId - its room key and its champions' hash (none of the six it marks)
+const ROOM = `dungeon:${ROOM_ID}`;
 const DUNGEON_TYPE = 12;   // a Natural Cave's piles: key DUNGEON_LOOT_KEYS[12], one of the deep J-O keys (the potions, the rest supplies)
 const ORC = 7;             // a humanoid foe with a table ('A'), a kit and PLAIN-LOOT's keep
+const NIGHTBLADE = 133;    // CHAMP-BASE: a class foe - built at its builder's level (SetEnemyCareer), table 'U'
+const CHAMP_ROOM_ID = 150; // CHAMP-BASE: a LocationId whose champions' hash marks two of the six (pinned in its test)
+/** CHAMP-BASE: a class foe's career - a 74-byte CLASS*.CFG record read by the real ClassFile reader, as the build's
+ *  loadEnemyCareer reads the player's own (test/characters/enemy/enemyentity.test.js crafts its records the same way). */
+function classCareer() {
+  const b = new Uint8Array(74);
+  const v = new DataView(b.buffer);
+  for (let i = 0; i < 12; i++) b[16 + i] = 40 + i;   // 3+3+6 skills
+  v.setUint16(52, 8, true);                          // hit points a level
+  [55, 66, 45, 50, 40, 35, 60, 30].forEach((a, i) => v.setUint16(58 + i * 2, a, true));   // STR INT WIL AGI END PER SPD LUC
+  const cf = new ClassFile();
+  cf.load(b);
+  return cf.career;
+}
 const FOES = 6, PILES = 4;   // a room's handful: six layout bodies, four layout piles
 const KEYS = [...Array.from({ length: FOES }, (_, i) => `corpse:${i}`), ...Array.from({ length: PILES }, (_, i) => `loot:${i}`)];
 const clock = { t: 1_700_000_000_000 };
@@ -137,8 +154,9 @@ function relay() {
 }
 
 /** ONE PEER: a character (its level, Luck, Renown, dice and its own mod switch), and the real dungeon host's loot
- *  doors over one layout pile and one layout foe - built as the build builds them, on this peer's own roll. */
-function peer(net, { id, level, luck, renown, seed, host, foraging, partners, characterId, seat = { id: host ? id : null } }) {
+ *  doors over one layout pile and one layout foe - built as the build builds them, on this peer's own roll. CHAMP-BASE:
+ *  `kind` the layout's foe (a class foe takes `career`), `location` the dungeon's LocationId. */
+function peer(net, { id, level, luck, renown, seed, host, foraging, partners, characterId, seat = { id: host ? id : null }, kind = ORC, career = null, location = ROOM_ID }) {
   const player = { level, gender: 'male', name: id, characterId, stats: { luck, strength: 60 }, activeEffects: [], items: [], goldPieces: 0 };
   const said = [];   // what the mid-screen line said to this player (the refusal's line)
   const own = lcg(seed);
@@ -150,7 +168,7 @@ function peer(net, { id, level, luck, renown, seed, host, foraging, partners, ch
     try { return fn(); } finally { Math.random = realRandom; }
   };
   const state = {
-    foes: [], _layoutFoes: FOES, _sharedById: new Map(), lootPiles: [], searchables: [], _locationKey: ROOM,
+    foes: [], _layoutFoes: FOES, _sharedById: new Map(), lootPiles: [], searchables: [], _locationKey: `dungeon:${location}`,
     _lootSeen: new Set(), _lootUnreadable: new Set(), _lootAt: new Map(), _lootOpenKey: null, _lootTooBig: new Set(),
     _authority: host, playerEntity: player, dfLocation: { mapTableData: { dungeonType: DUNGEON_TYPE } }, lootKey: DUNGEON_LOOT_KEYS[DUNGEON_TYPE],
     _superTier: false, _wildDungeon: false, _wildRing: null, _deepCleared: new Set(), _deepFoeCleared: new Set(),
@@ -160,7 +178,7 @@ function peer(net, { id, level, luck, renown, seed, host, foraging, partners, ch
     addItem, stacksWith, isGoldPieces, addGoldPieces, isEquipped, unequipItem, neverPeerHanded, notCarried,   // AUDIT AUTO-HOLD: the give asks it (offline here: no filter)
     onlineRoom: () => true, _wallNow: () => clock.t, respawnDue, validLootList, peerHanded, LOOT_LIST_MAX, LOOT_NEWER_TEXT, ENEMY_BASICS, corpseTextureOf,   // AUDIT DEX A1: the corpse mints read it
     generateLootItems: generateItems, addPileLootExtras, rollLootRarity, pileSource, dungeonRarityTier, dungeonFamily, stampWonWeapons,
-    spawnEnemyLoot, wildLootAfter, grantEliteLoot, rollCorpseKit, raiseEnemyDeath, capFoeLoot, rollRoomBonus,
+    spawnEnemyLoot, wildLootAfter, grantEliteLoot, rollCorpseKit, raiseEnemyDeath, capFoeLoot, rollRoomBonus, applyChampion, championTraitFor,   // CHAMP-BASE: the build's champion arm (applyEliteScaling) and the base's
     wildPileMore, seaPileMore, isDeepPileKey, effectiveLevel, liveStat, asTheRoom, CLAIM_KEEP_MS, CLAIMS_KEPT_MAX, SEARCH_COOLDOWN_MINUTES, SEARCH_LOOT_MAX, sharedClassicMinutes, ...RL,
     eliteLootOpts: () => ({}), searchHeard: () => {}, settleLootFlat: () => {}, _sharedFoe: () => false, fightN: () => 1,
     spawnCorpseNow: async (f) => { f.corpsePos = [...f.ai.feet]; }, renderer: { destroyBillboardBatch: () => {} }, billboardBatches: [], renownFoeRevived: () => {},
@@ -189,18 +207,23 @@ function peer(net, { id, level, luck, renown, seed, host, foraging, partners, ch
     ${fnSrc('respawnSweep')}
     ${fnSrc('rollPileItems')}
     ${optFn('setAuthority')}
+    ${fnSrc('applyEliteScaling')}
     const api = { lootContents: ${memberSrc('lootContents')}, takeLoot: ${memberSrc('takeLoot')}, lootFinds: ${memberSrc('lootFinds')}, corpseKeyOf: ${memberSrc('corpseKeyOf')} };
     const buildPile = () => { ${PILE_BUILD}
       return items; };
-    return { api, applyActions, setFoeDead, respawnSweep, rollPileItems, buildPile, publishLoot, setAuthority: typeof setAuthority === 'function' ? setAuthority : null, roomClaimTick: typeof roomClaimTick === 'function' ? roomClaimTick : () => {}, lootBuiltOf: typeof lootBuiltOf === 'function' ? lootBuiltOf : null, bases: typeof _roomBase === 'undefined' ? null : _roomBase };
+    return { api, applyActions, setFoeDead, respawnSweep, rollPileItems, buildPile, publishLoot, applyEliteScaling, setAuthority: typeof setAuthority === 'function' ? setAuthority : null, roomClaimTick: typeof roomClaimTick === 'function' ? roomClaimTick : () => {}, lootBuiltOf: typeof lootBuiltOf === 'function' ? lootBuiltOf : null, bases: typeof _roomBase === 'undefined' ? null : _roomBase };
   `, state);
-  // THE BUILD, as dungeonContext builds it: the pile loop's own lines and buildFoeAt's chain, each on THIS peer's dice
+  // THE BUILD, as dungeonContext builds it: the pile loop's own lines and buildFoeAt's chain, each on THIS peer's dice -
+  // CHAMP-BASE: the layout's champions marked by the dungeon's LocationId and stood by the build's own arm, before the loot
+  const records = Array.from({ length: FOES }, () => ({ mobileType: kind }));
+  markDungeonChampions(records, location);
   as(() => {
     for (let i = 0; i < PILES; i++) state.lootPiles.push({ pos: [i, 0, 0], record: 0, items: h.buildPile(), isFixed: false, batch: {}, half: [0.5, 0.5] });
     for (let i = 0; i < FOES; i++) {
-      const entity = makeEnemyEntity(ORC, ENEMY_BASICS[ORC], null, effectiveLevel(player), Math.random);
-      spawnEnemyLoot(entity, ORC, ENEMY_BASICS[ORC], player, { where: 'dungeon' });
-      const f = { mobileType: ORC, gender: 'male', entity, dead: false, corpse: false, src: { mobileType: ORC }, ai: { feet: [i, 0, 0] } };
+      const entity = makeEnemyEntity(kind, ENEMY_BASICS[kind], career, effectiveLevel(player), Math.random);
+      h.applyEliteScaling(entity, records[i]);
+      spawnEnemyLoot(entity, kind, ENEMY_BASICS[kind], player, { where: 'dungeon' });
+      const f = { mobileType: kind, gender: 'male', entity, dead: false, corpse: false, src: records[i], ai: { feet: [i, 0, 0] } };
       if (h.lootBuiltOf) f._lootBuilt = h.lootBuiltOf(entity);
       state.foes.push(f);
     }
@@ -211,14 +234,15 @@ function peer(net, { id, level, luck, renown, seed, host, foraging, partners, ch
 }
 
 /** A room of two: A hosts (level 30, Luck 70, Ascendant Renown, Foraging on), B joins (level 3, Luck 30, Faint Renown,
- *  Foraging OFF) - in one party, so each one's party is the other. */
-function room() {
+ *  Foraging OFF) - in one party, so each one's party is the other. CHAMP-BASE: `hostLevel` and `joinerLevel` move A's
+ *  and B's, the rest is peer()'s. */
+function room({ hostLevel = 30, joinerLevel = 3, ...layout } = {}) {
   RL._resetRoomLootForTests();
   resetQuickLoot();
   const net = relay();
   const seat = { id: 'aaaa' };   // the relay's seat: A's
-  const A = peer(net, { id: 'aaaa', level: 30, luck: 70, renown: 45, seed: 11, host: true, foraging: true, partners: [3], characterId: 'char-a', seat });
-  const B = peer(net, { id: 'bbbb', level: 3, luck: 30, renown: 1, seed: 29, host: false, foraging: false, partners: [30], characterId: 'char-b', seat });
+  const A = peer(net, { id: 'aaaa', level: hostLevel, luck: 70, renown: 45, seed: 11, host: true, foraging: true, partners: [joinerLevel], characterId: 'char-a', seat, ...layout });
+  const B = peer(net, { id: 'bbbb', level: joinerLevel, luck: 30, renown: 1, seed: 29, host: false, foraging: false, partners: [hostLevel], characterId: 'char-b', seat, ...layout });
   return { net, A, B, seat };
 }
 /** A room of three: A hosts, B and C join (C at level 12, Luck 55, Renown 30 - a bonus of its own). */
@@ -652,6 +676,49 @@ test('PARTY-LOOT: THE BASE IS THE ROOM\'S ROLL ALONE - one name and one set of t
     }
   }
   assert.ok([...lists.values()].some((v) => v !== '[]'), 'and it is a real roll');
+});
+
+test('CHAMP-BASE (FIELD BUGS 2026-10-25, "Loot will sometime be unobtainable and say theres a \'new version of the game\' when there isn\'t"): a body the layout marks a champion is ONE base for the room, whatever level each player built its foe at - a level-2 joiner\'s copy of a marked class foe stood as no champion (applyChampion\'s level gate, read at its builder\'s level), ran PLAIN-LOOT\'s keep on dice the host\'s champion skips, and read the host\'s word about the body as "from a newer version of the game"', () => {
+  const layout = { kind: NIGHTBLADE, career: classCareer(), location: CHAMP_ROOM_ID };
+  const r = room({ joinerLevel: 2, ...layout });
+  // the build's own picture: one pick of the layout's records on both machines, each standing them at its own level
+  const marked = (p) => p.state.foes.flatMap((f, i) => (f.src.champion != null ? [i] : []));
+  const champs = (p) => p.state.foes.map((f) => f.entity.champion ?? null);
+  const caps = (p) => p.state.foes.map((f) => f.entity.lootCap ?? null);
+  assert.deepEqual(marked(r.A), [2, 4], 'the layout marks two of the six');
+  assert.deepEqual(marked(r.B), marked(r.A), 'the same two on the joiner');
+  const hostChamps = champs(r.A);
+  assert.ok(marked(r.A).every((i) => hostChamps[i]), 'the level-30 host stands them as champions');
+  assert.deepEqual(champs(r.B), Array(FOES).fill(null), 'the level-2 joiner stands none - CHAMPION_MIN_LEVEL at its own level, its fight its own');
+  assert.ok(RL.roomBaseLevel(30, [2]) >= CHAMPION_MIN_LEVEL, 'the room\'s level is a champion\'s');
+  const builtCaps = [caps(r.A), caps(r.B)];
+  assert.ok(marked(r.B).every((i) => Number.isInteger(builtCaps[1][i])), 'the joiner\'s plain copies carry a plain cap from their build');
+  fall(r);
+  assert.deepEqual([...r.B.state._lootUnreadable], [], 'no body reads as another build\'s on the joiner');
+  for (const key of KEYS) assert.deepEqual(baseRows(shown(r.B, key)), baseRows(shown(r.A, key)), `${key}: the joiner's plaque names the host's base`);
+  // the base is a CHAMPION's where the layout marks one: no plain cap (FOE-CAP's plainFoeLootRule), a plain body's cap elsewhere
+  for (const p of [r.A, r.B]) {
+    for (let i = 0; i < FOES; i++) {
+      const cap = p.host.bases.get(`corpse:${i}`)?.lootCap;
+      if (marked(p).includes(i)) assert.equal(cap, null, `${p.id} corpse:${i}: a champion's base`);
+      else assert.ok(Number.isInteger(cap), `${p.id} corpse:${i}: a plain body's base`);
+    }
+  }
+  for (const i of marked(r.A)) {
+    assert.ok(shown(r.B, `corpse:${i}`).length > 0, `corpse:${i}: the joiner's plaque names the pieces`);
+    r.B.said.length = 0;
+    r.B.as(() => r.B.host.api.takeLoot(`corpse:${i}`));
+    assert.ok(!r.B.said.includes(LOOT_NEWER_TEXT), `corpse:${i}: the joiner's press takes - never "Reload to open it"`);
+  }
+  assert.deepEqual(champs(r.A), hostChamps, 'the base hands each entity back as its builder stood it - the host\'s champions');
+  assert.deepEqual(champs(r.B), Array(FOES).fill(null), 'and the joiner\'s plain copies');
+  assert.deepEqual([caps(r.A), caps(r.B)], builtCaps, 'each with the cap its build stamped');
+  // a party under CHAMPION_MIN_LEVEL: the mark is no champion in the room's base either, as at either player's build
+  const low = room({ hostLevel: 2, joinerLevel: 1, ...layout });
+  assert.ok(RL.roomBaseLevel(2, [1]) < CHAMPION_MIN_LEVEL, 'the room\'s level is under a champion\'s');
+  fall(low);
+  assert.deepEqual([...low.B.state._lootUnreadable], [], 'one base in the low room too');
+  for (const i of marked(low.A)) assert.ok(Number.isInteger(low.A.host.bases.get(`corpse:${i}`)?.lootCap), `corpse:${i}: a plain body's base at the room's level`);
 });
 
 test('PARTY-LOOT by source: no Math.random in the room\'s law (systems/roomLoot.js) nor in the dungeon\'s PARTY-LOOT block; the base rolls inside asTheRoom; the readers turn an unborn container away; the kill, the stream and the memory roll nothing of their own onto a room body', () => {

@@ -46,6 +46,7 @@ import { planTake, applyTransfer } from '../../src/systems/item/itemTransfer.js'
 import { spawnEnemyLoot, wildLootAfter, rollRoomBonus } from '../../src/scenes/hostCombat.js';
 import { raiseEnemyDeath, corpseTextureOf } from '../../src/scenes/corpseMarker.js';
 import { rollCorpseKit, capFoeLoot } from '../../src/systems/foeLootCap.js';
+import { championTraitFor } from '../../src/systems/champions.js';   // PIN MOVED (CHAMP-BASE): the room block's import - a body's mark at the room's level
 import { makeEnemyEntity } from '../../src/characters/enemy/enemyEntity.js';
 import { ENEMY_BASICS } from '../../src/characters/enemy/enemyBasics.js';
 import { effectiveLevel } from '../../src/systems/mentorMode.js';
@@ -192,7 +193,7 @@ function dungeon(id, { authority, level, luck, renown, seed, foraging, partners,
     _wallNow: () => clock.t, performance: { now: () => clock.t }, respawnDue, validLootList, peerHanded, LOOT_LIST_MAX, LOOT_NEWER_TEXT, ENEMY_BASICS, corpseTextureOf,   // AUDIT DEX A1: the corpse mints read it
     isClassEnemyId, enemyEntityType,
     generateLootItems: generateItems, addPileLootExtras, rollLootRarity, pileSource, dungeonRarityTier, dungeonFamily, stampWonWeapons,
-    spawnEnemyLoot, wildLootAfter, grantEliteLoot, rollCorpseKit, raiseEnemyDeath, capFoeLoot, rollRoomBonus, egFindStruck, egFindKill,
+    spawnEnemyLoot, wildLootAfter, grantEliteLoot, rollCorpseKit, raiseEnemyDeath, capFoeLoot, rollRoomBonus, egFindStruck, egFindKill, championTraitFor,
     CLAIM_KEEP_MS, CLAIMS_KEPT_MAX, SEARCH_COOLDOWN_MINUTES, SEARCH_LOOT_MAX, sharedClassicMinutes,   // OUTDOOR-LOOT: the claim ledger's and the search find's constants the room block reads
     wildPileMore, seaPileMore, isDeepPileKey, effectiveLevel, liveStat, asTheRoom, ...RL,
     eliteLootOpts: () => ({}), searchHeard: () => {}, settleLootFlat: () => {}, _sharedFoe: () => false, fightN: () => 1,

@@ -1,0 +1,76 @@
+[
+  {
+    "name": "FB1025-CHAMPBASE-the-builders-mark",
+    "file": "src/scenes/roomLootHost.js",
+    "old": "      e.champion = e.eliteFoe ? undefined : championTraitFor(e, f.src?.champion)?.id;\n",
+    "new": "",
+    "tests": [
+      "test/systems/partyloot.test.js"
+    ]
+  },
+  {
+    "name": "FB1025-CHAMPBASE-never-a-champion",
+    "file": "src/scenes/roomLootHost.js",
+    "old": "      e.champion = e.eliteFoe ? undefined : championTraitFor(e, f.src?.champion)?.id;",
+    "new": "      e.champion = undefined;",
+    "tests": [
+      "test/systems/partyloot.test.js"
+    ]
+  },
+  {
+    "name": "FB1025-CHAMPBASE-a-mark-at-any-level",
+    "file": "src/scenes/roomLootHost.js",
+    "old": "      e.champion = e.eliteFoe ? undefined : championTraitFor(e, f.src?.champion)?.id;",
+    "new": "      e.champion = e.eliteFoe ? undefined : (Number.isInteger(f.src?.champion) ? 'mighty' : undefined);",
+    "tests": [
+      "test/systems/partyloot.test.js"
+    ]
+  },
+  {
+    "name": "FB1025-CHAMPBASE-an-elite-a-champion",
+    "file": "src/scenes/roomLootHost.js",
+    "old": "      e.champion = e.eliteFoe ? undefined : championTraitFor(e, f.src?.champion)?.id;",
+    "new": "      e.champion = championTraitFor(e, f.src?.champion)?.id;",
+    "tests": [
+      "test/systems/partyloot.test.js"
+    ],
+    "equivalent": true,
+    "why": "No layout foe the case builds is an elite. The arm keeps an elite foe's base on an elite's corpse source, as the build stands it (dungeonContext.js applyEliteScaling: a promoted elite is never a champion); every client reads the same eliteFoe either way, so the room's base stays one."
+  },
+  {
+    "name": "FB1025-CHAMPBASE-the-builders-cap",
+    "file": "src/scenes/roomLootHost.js",
+    "old": "      e.lootCap = undefined;   // CHAMP-BASE: the chain stamps the base's own (FOE-CAP) - the build's was a plain copy's, the bonus's cap\n",
+    "new": "",
+    "tests": [
+      "test/systems/partyloot.test.js"
+    ]
+  },
+  {
+    "name": "FB1025-CHAMPBASE-mark-not-handed-back",
+    "file": "src/scenes/roomLootHost.js",
+    "old": "e.level = saved.level; e.champion = saved.champion; e.lootCap = saved.lootCap;",
+    "new": "e.level = saved.level; e.lootCap = saved.lootCap;",
+    "tests": [
+      "test/systems/partyloot.test.js"
+    ]
+  },
+  {
+    "name": "FB1025-CHAMPBASE-cap-not-handed-back",
+    "file": "src/scenes/roomLootHost.js",
+    "old": "e.level = saved.level; e.champion = saved.champion; e.lootCap = saved.lootCap;",
+    "new": "e.level = saved.level; e.champion = saved.champion;",
+    "tests": [
+      "test/systems/partyloot.test.js"
+    ]
+  },
+  {
+    "name": "FB1025-CHAMPBASE-apply-without-the-gate",
+    "file": "src/systems/champions.js",
+    "old": "  const t = championTraitFor(entity, traitIndex);\n  if (!t) return false;",
+    "new": "  const t = Number.isInteger(traitIndex) ? CHAMPION_TRAITS[traitIndex] : null;\n  if (!t) return false;",
+    "tests": [
+      "test/systems/partyloot.test.js"
+    ]
+  }
+]
