@@ -225,7 +225,7 @@ export async function disenchantPiece(ctx, player, env, { character, provenance,
   if (essence < 1) return { error: 'prof-no-essence' };
   const origin = p.bought_with === 'gold' ? (Number(p.loose) === 1 ? LOOSE_ORIGIN : 'gold') : p.char_id === character && p.bought_with == null ? 'own' : 'bought';   // FB1020h ESSENCE-LOOSE
   const cap = craftCapSql('?1', '?2', 'enchanting');   // AUDIT FB1018f L5-1: the crafter's limit read in the decision itself
-  const xp = scaleXp(disenchantXp(r, rank, base), xpPct(await firmStatsOf(db, player, env, character), 'enchanting'));   // AUDIT PROF12 E2: the piece's recipe's tier, quartered; none for the counter's goods alone - FIRM1: the Firmament's hand on it
+  const xp = scaleXp(disenchantXp(r, rank, base, p.bought_with == null), xpPct(await firmStatsOf(db, player, env, character), 'enchanting'));   // AUDIT PROF12 E2: the piece's recipe's tier, quartered; none for the counter's goods alone - CLOTH-GEMS: but for a piece of them made of own units (S1 judged by the units: never bought) - FIRM1: the Firmament's hand on it
   // AUDIT PROF-541 B2: THE RECORD'S OWN PIECE - a realm character's, out of the record its tab last checkpointed
   const prep = side.at ? await prepareRealmRecord(ctx, player.id, side.at, (save) => {
     const items = Array.isArray(save.items) ? save.items : [];

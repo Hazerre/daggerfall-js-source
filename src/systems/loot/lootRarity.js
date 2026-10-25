@@ -88,6 +88,7 @@ import { dressClassOf } from '../clothingStanding.js';   // LOOT14: a garment's 
 import { survivalOn } from '../survival/switch.js';   // LOOT14: the warmth and weatherproof lines' reader - a leaf
 import { hoodCapable } from '../survival/temperature.js';   // LOOT15: Unseen answers a hood (HOOD-SAID's one law)
 import { ROLLED_TIERS } from '../rarityTier.js';   // RARE-BREAK1: the rolled tiers' one home
+import { GEM_IDS, GEM_GRADES, GEM_GRADE_WORDS, GEM_ROW_GRADES, GEM_GRADE_TEMPLATE_BASE, GEM_GRADE_TEMPLATES, gemId, ALL_GEM_IDS, isGemId, gemKind, gemGrade, GEM_NAMES, gemTemplateOf } from './gemGrades.js';   // GEM-GRADES: a gem's kind and grade, one home
 import { setPieceKind, rollSetSigil, rollSetJoin, setLines, setSigilLines } from '../sigil/sigilSets.js';   // SET4: a won piece of armour or a shield may carry a set's sigil; a weapon's may join one; SET5: the set in words
 import { TECHNIQUE_IDS, TECHNIQUE_BANDS, TECHNIQUE_PER_MILLE, techniqueById, techniquesFor, techniqueBrief, techniqueParts } from '../../combat/technique/techniqueRoster.js';   // TECH1: a weapon's technique - the roster's one table (a leaf)
 
@@ -1755,29 +1756,10 @@ let _socketPerMille = null;
 export function _setSocketForTests(perMille) { _socketPerMille = perMille; }
 export const SOCKET_GROUPS = Object.freeze(['Weapons', 'Armor', 'Jewellery']);
 export const SOCKET_EMPTY = 'empty';
-/** DFU's eight gems - the KINDS - in their templates' order (the Gems group, 0..7). */
-export const GEM_IDS = Object.freeze(['ruby', 'emerald', 'sapphire', 'diamond', 'jade', 'turquoise', 'malachite', 'amber']);
-const GEM_KIND_NAMES = Object.freeze({ ruby: 'Ruby', emerald: 'Emerald', sapphire: 'Sapphire', diamond: 'Diamond', jade: 'Jade', turquoise: 'Turquoise', malachite: 'Malachite', amber: 'Amber' });
-/** GEM2 (bible/06-Systems/Gem-Sockets.md section 4): A GEM'S GRADE, poorest first. 'plain' is DFU's own gem; the four
- *  others are the port's rows (GEM_GRADE_TEMPLATE_BASE). */
-export const GEM_GRADES = Object.freeze(['chipped', 'flawed', 'plain', 'flawless', 'perfect']);
-export const GEM_GRADE_WORDS = Object.freeze({ chipped: 'Chipped', flawed: 'Flawed', plain: '', flawless: 'Flawless', perfect: 'Perfect' });
-/** The grades the port's rows carry, in their rows' order. */
-export const GEM_ROW_GRADES = Object.freeze(['chipped', 'flawed', 'flawless', 'perfect']);
-/** GEM2: the port's first graded row - kind `k` (GEM_IDS' order) at row grade `g` (GEM_ROW_GRADES' order) is
- *  GEM_GRADE_TEMPLATE_BASE + g * 8 + k: 1900 a Chipped Ruby, 1931 a Perfect Amber (systems/gems.js registers them). */
-export const GEM_GRADE_TEMPLATE_BASE = 1900;
-export const GEM_GRADE_TEMPLATES = Object.freeze(GEM_ROW_GRADES.flatMap((_, g) => GEM_IDS.map((__, k) => GEM_GRADE_TEMPLATE_BASE + g * GEM_IDS.length + k)));
-/** A gem's id: its kind alone for DFU's own (LOOT20's ids - 'ruby'), else grade-kind ('flawless-ruby'). */
-export const gemId = (kind, grade = 'plain') => (grade === 'plain' ? kind : `${grade}-${kind}`);
-/** Every gem's id - DFU's eight, then the port's thirty-two in their rows' order. */
-export const ALL_GEM_IDS = Object.freeze([...GEM_IDS, ...GEM_ROW_GRADES.flatMap((g) => GEM_IDS.map((k) => gemId(k, g)))]);
-const isGemId = (id) => typeof id === 'string' && ALL_GEM_IDS.includes(id);
-/** A gem id's kind ('ruby') and grade ('flawless'); null for anything else. */
-export const gemKind = (id) => (isGemId(id) ? id.slice(id.indexOf('-') + 1) : null);
-export const gemGrade = (id) => (!isGemId(id) ? null : id.includes('-') ? id.slice(0, id.indexOf('-')) : 'plain');
-/** Every gem's name: "Ruby", "Flawless Ruby". */
-export const GEM_NAMES = Object.freeze(Object.fromEntries(ALL_GEM_IDS.map((id) => [id, `${GEM_GRADE_WORDS[gemGrade(id)]} ${GEM_KIND_NAMES[gemKind(id)]}`.trim()])));
+/** GEM-GRADES (CLOTH-GEMS, 2026-10-25): DFU's eight gems - the KINDS - their grades, the port's thirty-two rows and every
+ *  gem's id and name, in their one home (systems/loot/gemGrades.js, a leaf the professions' law reads too), re-exported
+ *  here for every reader that asked the ladder. */
+export { GEM_IDS, GEM_GRADES, GEM_GRADE_WORDS, GEM_ROW_GRADES, GEM_GRADE_TEMPLATE_BASE, GEM_GRADE_TEMPLATES, gemId, ALL_GEM_IDS, gemKind, gemGrade, GEM_NAMES, gemTemplateOf };
 /** The values a socket may hold. */
 export const SOCKET_VALUES = Object.freeze([SOCKET_EMPTY, ...ALL_GEM_IDS]);
 /** GEM2: EVERY GEM'S LINE AT EVERY GRADE, by the piece's kind - a weapon's blow, every other piece's wearer - each of a
@@ -1807,8 +1789,6 @@ export function gemKindOf(item) {
   const at = GEM_GRADE_TEMPLATES.indexOf(item.templateIndex);
   return at < 0 ? null : ALL_GEM_IDS[GEM_IDS.length + at];
 }
-/** GEM2: the template a gem id is minted on - DFU's own for a plain gem, the port's row for a graded one; null for none. */
-export const gemTemplateOf = (id) => (!isGemId(id) ? null : id.includes('-') ? GEM_GRADE_TEMPLATES[ALL_GEM_IDS.indexOf(id) - GEM_IDS.length] : GEM_IDS.indexOf(id));
 /** GEM1: HOW MANY SOCKETS A PIECE CAN HOLD - its size's. A short blade one, a one-handed weapon two, a two-handed one
  *  three - DFU's own hands table (WEAPON_HANDS: 'Both'), read without the bow-hand setting so a piece's sockets never
  *  move with a switch, and the Thunderlock with the two-handers; a piece of armour or a jewel one (LOOT20's); none for
