@@ -604,7 +604,7 @@ collider its posed buckets moved (`posesMoved`) once it has carried them - the s
 
 ## VENDOR-LOST's move - the home traders out of bootWorld (FIELD BUGS 2026-10-25)
 
-VENDOR-LOST (`01-Overview/bugs/Field-Bugs-2026-10-25b.md`) had a trader's stall settle the market book as it opens: two
+VENDOR-LOST (`01-Overview/bugs/Field-Bugs-2026-10-25g.md`) had a trader's stall settle the market book as it opens: two
 logical lines of wiring in the stall's host object, inside `bootWorld`. The block they belonged to - the home traders'
 thirteen members (the stall `openHomeVendorWindow`, the board's Vendors tab `vendorBoardHost`, `vendorBuy`, `vendorTake`,
 `vendorPut`, `vendorReachable` and the Vendor page's helpers) - wrote nothing of the host's and was used in three places,

@@ -1,4 +1,4 @@
-# FIELD BUGS 2026-10-25b - a trader's two pieces bought: the gold gone, the pieces never come
+# FIELD BUGS 2026-10-25g - a trader's two pieces bought: the gold gone, the pieces never come
 
 One report, handed over in a session: "I just tried purchasing two items from another users store. The game took a
 while to process the trade, but crashed before or as it happened and on BOTH occasions it took ALL my gold and BOTH the
