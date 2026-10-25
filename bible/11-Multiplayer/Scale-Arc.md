@@ -3995,7 +3995,7 @@ The frames held are the held sent, the held gone and the still held:
 - `tools/foesFirstBench.mjs`: each send read by its frame's number, the senders' tail, a handover its owner heard, the
   `burst`, `liar` and `leavers` scenes.
 
-## COST-2 part one: built (2026-10-24, this branch - relay world260 (world258, then world259, until the merges with main, whose STAFF-EVENT BOSS took world257 and KETCH-LONGER world258; COST-1 holds world259), NOT YET DEPLOYED; one relay drop at its merge, after COST-1's) - cells that can size themselves, the tree fixed at L0
+## COST-2 part one: built (2026-10-24, this branch - relay world261 (world258, world259, then world260, until the merges with main, whose STAFF-EVENT BOSS took world257, KETCH-LONGER world258 and ASK-LONGER world259; COST-1 holds world260), NOT YET DEPLOYED; one relay drop at its merge, after COST-1's) - cells that can size themselves, the tree fixed at L0
 
 The owner (2026-10-24), of COST's third slice: not static bigger cells. A 64-pixel cell fills a town's SOCKETS_MAX early,
 its crowd spills into layers that cannot see each other, and it is wrong both ways at the 10,000 target. So cells size
@@ -4102,8 +4102,8 @@ a wait and not a drop, no `of` for a page in no cell. `tools/mutants/cost2.json`
   count of layers); the source pins of a cell-scoped law read it through the cover (`auditraid`, `hcc_park`, `int12_body_relay`, `seat1b_client`), and the overworld law and the grants' law import the cell tree (`ow6_ledger`, `grant1_law`), so the account Worker bundles it too - `.github/workflows/account-deploy.yml` deploys on it (`accountdeploy`, `discord_setup`); a cell's welcome carries `cells` (`online_relay`); thirty records re-aimed by content to the cover (raid3, star3, wb12d, serpent1, ow6l, hccpark, grant2,
   grant3, grant4, grantaudit, int_lane2, int_lane3_audit, seat1b, audit_seats_relay, auditraid, auditscale2_relay,
   auditwb_relay, fb1016b_graveparty, fb1021b_foeshold, lease1, scale5b).
-- RELAY_VERSION world260, its hash and the bundle's three new files (`src/net/cellTree.js`, `server/src/cellNodes.js`,
-  `server/src/cellHandover.js`) in `test/net/relayversion.test.js`, every pin on world258 moved.
+- RELAY_VERSION world261, its hash and the bundle's three new files (`src/net/cellTree.js`, `server/src/cellNodes.js`,
+  `server/src/cellHandover.js`) in `test/net/relayversion.test.js`, every pin on world259 moved.
 
 **The deploy.** One relay drop at the merge, after COST-1's, and the page with it (GitHub Pages). No account-service
 change, no migration, no object renamed: every cell's object is the one it was.

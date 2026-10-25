@@ -337,7 +337,7 @@ test('the first-person art the loader cuts: native size, 1-bit, the muzzle on th
   });
   assert.equal(art.weaponType, WEAPON_TYPES.Pistolet);
   assert.ok(Math.abs(art.pose.widthPct - 82 * 1.05 / 320) < 1e-12, 'one art pixel a design pixel, times the owner’s 1.05');
-  assert.equal(art.pose.raise, -1);
+  assert.equal(art.pose.raise, -60);
   assert.equal(art.records[1].frames.length, 6);
   // the muzzle: up and left of the union box, where the flame leaves the barrel - not the moved arm's centroid
   assert.ok(art.muzzle.x < 0.25 && art.muzzle.y < 0.25, `on the flame (${art.muzzle.x.toFixed(2)}, ${art.muzzle.y.toFixed(2)})`);

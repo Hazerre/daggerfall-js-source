@@ -151,7 +151,7 @@ export const GUN_FEEL = Object.freeze({
 export const RELOAD_CLOSE_LEAD = 0.42;
 
 export const PISTOLET_FEEL = Object.freeze({
-  scale: 1.05, raise: -1, offset: 0,
+  scale: 1.05, raise: -60, offset: 0,   // PISTOL-RAISE (Mac, 2026-10-25): "Placement needs to be -60 ... the raise"
   fps: 12, reloadMs: 1400, hitFrame: 1,
   kick: 3, back: 0, stiff: 400, damp: 36,
   shake: 20, shakeRot: 2.5, shakeFreq: 60, shakeDecay: 5,
