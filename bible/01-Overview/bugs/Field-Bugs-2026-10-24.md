@@ -51,7 +51,7 @@ cannot tell THIS press from another sale. So the slice as the audit left it is B
 
 - A PRESS CARRIES A REQUEST ID (`rid`, `net/insignia.js` BROKER_RID_RE and mintBrokerRid). `egSink` and `buyInsignia`
   write it beside the sale, in the sale's own batch and only where the sale's write took (`broker_sales`, migration
-  0167; `brokerSales.js` brokerSaleWrite and brokerRidFreeSql). The same press asked again answers its sale (`again`); a
+  0174; `brokerSales.js` brokerSaleWrite and brokerRidFreeSql). The same press asked again answers its sale (`again`); a
   press without an id (a client before this one) sells as it always did.
 - A LOST ANSWER IS ASKED AFTER BY THAT ID (`/v1/broker/settle { rid, nonce }`, settleBrokerSale). The row the id wrote
   answers `held`, its kind and item, and its FIRST ask's nonce (`by`); an id with no row is FENCED in the same batch - a
@@ -98,10 +98,14 @@ first to under-run when the audio thread is slow, and a headset suite that proce
 takes from the same deadline. It asks for `'playback'` now. The film's clock is `audibleContextTime`, which reads the
 device's output timestamp (or subtracts the output latency), so the longer latency moves no frame against the score.
 
+AT THE MERGE OF MAIN (2026-10-25): main's INTRO-REVERT (the owner: "Can we revert the intro music to the original before
+we changed it") puts the film and the menu back on INTRO2's one decoded recording, so the 385-voice score is no longer
+what the menu plays - the heavier cause read here is gone on its own. The playback buffer stays: the menu's context still
+plays the theme alone, and the headset's chain takes from the same deadline whatever it plays.
+
 NOT DONE HERE, put to the owner: the game context keeps the default `'interactive'` (a larger buffer delays every
 blow's sound); the music scheduler's lookahead stays 0.25 s (a longer one rides out a stall but keeps that much more of
-every voice's chain alive on the audio thread, which is the menu theme's load again); the menu theme's voice count is
-INTRO3's design. Asked of the reporter: browser or desktop app, and whether the sounds cut with the music or the music
+every voice's chain alive on the audio thread). Asked of the reporter: browser or desktop app, and whether the sounds cut with the music or the music
 alone - the music alone is the scheduler's stall, both together the audio thread's.
 
 PINS: `test/systems/fb1024_themebuffer.test.js`; mutants BUF1 (2, dead).
@@ -164,5 +168,8 @@ build sees it (a press's id is never sent twice); and `test/net/gate/wb12d_rite_
 batch with its writes' counts alone, where D1 answers each statement's rows - `egSink` already read an UPDATE's RETURNING
 out of a batch, and the insignia's sale does now, so the stand-in answers as D1 does.
 
-NOT THIS SLICE'S. `test/server/founder5.test.js` (FOUNDER5 the live link, a cloud save) fails on the frozen snapshot and on main's code alike since 2026-10-25: an account registered "today" in the fixture is stamped with today's first play (1792886400 is 2026-10-25 00:00 UTC). A clock in a fixture, not this change - named for its own fix.
+NOT THIS SLICE'S. `test/server/founder5.test.js` (FOUNDER5 the live link, a cloud save) failed on the frozen snapshot and on
+main's code alike on 2026-10-25: an account registered "today" in the fixture was stamped with today's first play
+(1792886400 is 2026-10-25 00:00 UTC). A clock in a fixture, not this change - main's own FOUNDER5 (`4c548132f`, then FOUNDER5-CLOCK `2fa176f6c`) fixed it,
+and it passes on the merged tree.
 

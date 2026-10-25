@@ -2520,7 +2520,8 @@ same cooldown and says its seconds): *here*, *danger* or *mine* (an errand claim
 a blue pillar 6 m tall whose glyph names the kind, with a chime (blue is the company's, section 25.2).
 
 A company choice (the decrees, Dagon's Bargain, a respite, the Ready vote) is a prompt at the beacon or the shrine,
-open for 10 s to every member, the witnesses included. It passes on a majority of those who answer; silence abstains,
+open for 30 s (`EG_ASK_MS`; 10 s until FIELD BUGS 2026-10-25 ASK-LONGER - players could not read a rest's
+decrees in it) to every member, the witnesses included. It passes on a majority of those who answer; silence abstains,
 and a tie refuses (for the decrees, a tie takes the first shown). One silent player never blocks the company, and
 nobody decides for eight alone. A respite that passes is asked again, and the Ready with it; a Ready and a respite in one
 word take the respite whole (section 6.2).
@@ -2949,7 +2950,7 @@ the pay law `net/eliteGates/egPay.js`, and the Broker sells the Panoply's sink. 
   `insignia_spent + 20`, where the purse covers it and no `eg_sink` row stands this week. The week's row is written by
   that write alone. It answers `{ ok, piece, week, purse }`, or refuses `guest` 403, `piece` 400, `bought` 409 (which
   piece) or `short` 409 (the purse and the price). BROKER-RID (AUDIT FB1024): `rid`, the press's request id, is written
-  beside the sale in its batch (`broker_sales`, migration 0167) - refused `fenced` 409 where a settle fenced it first,
+  beside the sale in its batch (`broker_sales`, migration 0174) - refused `fenced` 409 where a settle fenced it first,
   `rid` 400 where it is not one; the same id asked again answers its sale (`again`). It is in `ROUTES`, the eg act map, `EG_STATUS` and the route comment.
 - **`server-account/src/index.js`**: the claim takes `{ receipt, character }`. INT5's `grantSpoils` fires only for a
   recorded, paid Redoubt.
