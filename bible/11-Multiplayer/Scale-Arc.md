@@ -4059,8 +4059,8 @@ own keys, and the departing node lets its rows go only when every receiver took 
 partial failure leaves every receiver as one would.
 
 **The node's level** rides each room's metrics point (`server/src/relayScale.js` RoomMetrics, blob11): `0` for a fine
-cell, 1-4 for a coarse node, '' for a room told none. `relay-load.yml`'s questions can count awake rooms by level before
-and after part two.
+cell, 1-4 for a coarse node, '' for a room told none. No question reads it yet: a `levels` question in
+`tools/relayLoad.mjs`, counting awake rooms by level before and after, is part two's.
 
 **Read in the code and left for part two, each with its reason.**
 - **The plan named caravan decor and cell memory**: neither lives in a cell. A caravan's decor is its own room's
@@ -4076,7 +4076,8 @@ and after part two.
   or ships days after this one.
 - **Layers keep no ledger, but they may keep parks**: part two hands over a crowded node's layers too, or blocks on them.
 
-**Expected:** nothing in this drop - the tree is L0. Part two: $9-19 a day on duration (the 64-pixel saving, more at
+**Expected:** nothing saved in this drop - the tree is L0 - and one object more: the directory, which every Worker
+isolate asks once a CELL_TREE_KEEP_MS, so at peak it is awake around the clock (about $4 a month). Part two: $9-19 a day on duration (the 64-pixel saving, more at
 night), with no layering in a town until a 16-pixel cell itself fills.
 
 **Pins.** `test/net/celltree.test.js` (3): the nodes, the tree and the walk (L0_TREE every cell its own node across the
