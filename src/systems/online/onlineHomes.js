@@ -43,6 +43,7 @@ import {
   HOME_ENTRIES, HOME_ENTRY_DEFAULT, homeMapIdOk, homeBuildingKeyOk, homePriceOk, homeMayEnter, rentPriceOk, rentDaysLeft, homeLookOf,
   homeInArenaCell,   // ARENA4b: the arena's cell, the service's own law
   homeDeedOf,   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: the deed a save holds to a building, as the service's hold reads it
+  homeSceneName,
 } from '../../net/homeLaw.js';
 import { ARENA_TEXT } from '../arena/arenaText.js';   // ARENA4b: the bank's letter for a home the arena displaced
 import { RENT_VERB, rentRowLabel, rentTenantLabel } from '../homeRent.js';   // HOME-RENT: the door's rows for a room to rent
@@ -108,8 +109,7 @@ export function homeCandidate(bd) {
 export const homePurchasable = (bd, { isActiveQuestBuilding = null } = {}) =>
   homeCandidate(bd) && bd.hasInterior !== false && !(isActiveQuestBuilding?.(bd) ?? false);
 
-/** The scene an online home's things are kept under - its own, never the building's (the header). */
-export const homeSceneName = (mapId, buildingKey) => `OnlineHome [MapID=${Number(mapId) >>> 0}, BuildingKey=${buildingKey}]`;
+export { homeSceneName };   // the header's scene, the law's own (net/homeLaw.js) so the service names it too
 const HOME_SCENE_RE = /^OnlineHome \[MapID=(\d+), BuildingKey=(\d+)\]$/;
 /** ACCOUNT-HOMES: the home a scene is kept for (homeSceneName's own name - WD3: or a visit of it in another layout,
  *  `<name>|<layout>`), as `{ mapId, buildingKey }`, or null for any other scene. */

@@ -10,6 +10,11 @@ let bin = new Set();
 let shared = new Set();
 let known = false;
 let door = null;
+// HOME-SHARE-WAIT: the room the grants are asked for (an answer for an earlier room is not this room's), whether that
+// ask is out, and how to ask it again after a refusal or no answer
+let asked = 0;
+let asking = false;
+let again = null;
 
 /** Asked when the room's list stands. The service says which of these pieces this player may use. */
 export function noteDecorGrants(homeDecor, mapId, buildingKey, character) {
@@ -18,8 +23,13 @@ export function noteDecorGrants(homeDecor, mapId, buildingKey, character) {
   bin = new Set();
   shared = new Set();
   known = false;
-  if (!homeDecor?.use) return;
+  const ask = ++asked;
+  again = () => noteDecorGrants(homeDecor, mapId, buildingKey, character);
+  if (!homeDecor?.use) { asking = false; known = true; return; }   // no service to say a chest is shared: none is
+  asking = true;
   Promise.resolve(homeDecor.use({ mapId, buildingKey, character, op: 'grants' })).then((res) => {
+    if (ask !== asked) return;
+    asking = false;
     if (!res?.ok) return;
     storage = new Set(res.data.storage ?? []);
     station = new Set(res.data.station ?? []);
@@ -27,7 +37,7 @@ export function noteDecorGrants(homeDecor, mapId, buildingKey, character) {
     const use = new Set((res.data.use ?? []).map((row) => row?.id));
     shared = new Set([...(res.data.storage ?? []).filter((id) => use.has(id)), ...(res.data.bin ?? [])]);
     known = true;
-  }, () => {});
+  }, () => { if (ask === asked) asking = false; });
 }
 
 export const decorMayStorage = (id) => storage.has(id);
@@ -40,6 +50,27 @@ export function noteDecorShared(id, on) {
   if (typeof id !== 'string') return;
   if (on) shared.add(id);
   else shared.delete(id);
+}
+
+/**
+ * HOME-SHARE-WAIT: THE OWNER'S OWN CHEST, PRESSED. A shared chest's goods are in the service's bin, and its list in the
+ * save is empty. So in an online home (`online`), until the service has said which chests are shared, neither window
+ * opens: the save's window would show a shared chest empty, and what went into it there was hidden behind the bin.
+ * The chest stays shut, and the answer is asked again if it is not already out. Elsewhere the save's window opens.
+ * @param {string} id @param {boolean} online @param {() => void} openSave
+ */
+export function openOwnChest(id, online, openSave) {
+  if (online && !known) {
+    door?.say?.(t('decor.grants.shut', 'The chest stays shut.'));
+    if (!asking) again?.();
+    return false;
+  }
+  if (online && shared.has(id)) {
+    void openSharedChest(id);
+    return true;
+  }
+  openSave();
+  return true;
 }
 
 /** What the shared chest's window needs. `items` is the pack array. `realm` is the record's act, or null. */

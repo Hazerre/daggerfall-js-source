@@ -11,6 +11,7 @@ import { r2, seatRealm, recordOf, layRecord, realmAt } from '../realmSeat.mjs';
 import { validLootList } from '../../src/systems/loot/loot.js';
 import { createWeapon } from '../../src/combat/enemyEquipment.js';
 import { seededRng } from '../../src/systems/wind/wind.js';
+import { homeSceneName } from '../../src/net/homeLaw.js';
 
 const src = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const { subtle } = globalThis.crypto;
@@ -139,7 +140,8 @@ test('DECOR-ACCESS a guildmate may, and may not after they leave', async () => {
   assert.deepEqual(shown.body.use, [{ id: 'p1', mode: 'party' }]);
 });
 
-const chestScene = (items) => ({ sceneName: `DaggerfallInterior [MapID=${HOME.mapId}, BuildingKey=${HOME.buildingKey}]`, decorItems: { p1: items } });
+// HOME-POUR (FIELD BUGS 2026-10-25d): the home's own scene, as the owner's client writes it - never the building's
+const chestScene = (items) => ({ sceneName: homeSceneName(HOME.mapId, HOME.buildingKey), decorItems: { p1: items } });
 
 test('DECOR-ACCESS a chest\'s goods move with its access, or the access stays', async () => {
   const { env, call, registered } = await stand();
