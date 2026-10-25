@@ -513,6 +513,15 @@
     ]
   },
   {
+    "name": "COST2B-call-without-a-deadline",
+    "file": "server/src/cellNodes.js",
+    "old": "headers, signal: AbortSignal.timeout(ms) }));",
+    "new": "headers }));",
+    "tests": [
+      "test/server/cellmoves.test.js"
+    ]
+  },
+  {
     "name": "COST2B-call-not-walked-past-a-move",
     "file": "server/src/cellNodes.js",
     "old": "signal: AbortSignal.timeout(ms) }));\n    if (tries || !movedAnswer(res)) return res;",

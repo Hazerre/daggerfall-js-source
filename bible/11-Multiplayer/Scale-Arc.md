@@ -4248,12 +4248,12 @@ the dollars.
 **Pins.** `test/net/celltreemoves.test.js` (4): the seed and the setting read; a split and a merge above and below the
 base, the joined top split back to leaves; 400 random moves each reading back whole, listing only reached nodes, every
 fine cell in one leaf; the hysteresis (the dwell, the line, the sum, staleness, the cool, an L0 or split node, the order).
-`test/server/cellmoves.test.js` (13): the directory knowing itself and its vars; the seed set at the hub and read; the
+`test/server/cellmoves.test.js` (14): the directory knowing itself and the deploy's vars read as the relay reads them; the seed set at the hub and read; the
 count told, a woken node's too; the plan; a split in three stages over every layer; a move resumed after stage 1, after
 the commit, past an unanswered layer and past a late key that blocks; a blocked move; the moved mark; the Worker's second
-walk; the calls that name a cell; the seed's pull; the cell door; the questions and the blobs.
+walk; the calls that name a cell, the staff event's made through its own export, and their deadline; the seed's pull; the cell door; the questions and the blobs.
 `test/net/cellrepartition.test.js` (2): the `cv` hello; CLOSE_REPARTITION a short wait, the primary's and a halo's.
-`tools/mutants/cost2b.json`: 77, all dead.
+`tools/mutants/cost2b.json`: 78, all dead.
 - PIN MOVED: a cell's hello says `cv` (`cellcover`, `world6biiib`, `online`); the directory asks the hub for `cellSeed`, so the hub is among the objects a walk makes (`auditscale2_relay`); the key classes `cellmoved` and
   `cellpulled` (`cellhandover`); the directory serves its stored tree only while `cellSeed` is on, an unreadable one
   seeded afresh (`cellnodes`); blob12 and blob13 (`scale2b`, `fb1021b_foeshold`); the park drop's call is

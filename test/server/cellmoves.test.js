@@ -14,11 +14,12 @@ import worker from '../../server/src/index.js';
 import { fakeRoom, fakeRooms } from '../fakeRoom.mjs';
 import {
   CELL_INTERNAL_COUNT, CELL_INTERNAL_MOVE, CELL_PLAN_KEY, COUNT_TELL_MS, COUNT_STALE_MS, MOVE_COOLDOWN_MS, MOVED_KEEP_MS, CLOSE_RETRY_MS,
-  CELL_LAW_DEFAULT, cellLawOf, cellDoors, isCellDirectory,
+  CELL_LAW_DEFAULT, CELL_LAW_VARS, cellLawOf, cellDoors, isCellDirectory,
 } from '../../server/src/cellMoves.js';
 import { CELL_DIRECTORY, CELL_INTERNAL_TREE, CELL_TREE_KEY, NODE_HEADER, CELL_TELL_HEADER, MOVED_HEADER, cellTreeCache, cellCall, nodeHeard, cellLevelOf } from '../../server/src/cellNodes.js';
 import { RELAY_CFG_TTL_MS } from '../../src/net/relayCfg.js';
 import { CELL_MOVED_KEY, CELL_PULLED_KEY } from '../../server/src/cellHandover.js';
+import { tellCell, SEV_INTERNAL_CALL } from '../../server/src/staffEvents.js';
 import { RoomMetrics } from '../../server/src/relayScale.js';
 import { loadSql } from '../../tools/relayLoad.mjs';
 import { L0_TREE, seedTree, splitTree, childNodes, nodeHolds } from '../../src/net/cellTree.js';
@@ -63,9 +64,12 @@ test('COST-2 part two THE DIRECTORY KNOWS ITSELF BY ITS ID, AND ITS THRESHOLDS A
   assert.deepEqual(cellLawOf({ CELL_SPLIT_AT: '200', CELL_SPLIT_DWELL_MS: '5000', CELL_MERGE_AT: '20', CELL_MERGE_DWELL_MS: '9000' }), { splitAt: 200, splitDwellMs: 5000, mergeAt: 20, mergeDwellMs: 9000 });
   assert.equal(cellLawOf({ CELL_SPLIT_AT: 'lots' }).splitAt, 150);
   assert.deepEqual(cellLawOf({ CELL_MERGE_AT: '150' }), CELL_LAW_DEFAULT);
+  // the deploy's own [vars], read as the relay reads them: the four thresholds the defaults, and no seed
   const toml = readFileSync(new URL('../../server/wrangler.toml', import.meta.url), 'utf8');
-  for (const [k, v] of Object.entries({ CELL_SPLIT_AT: 150, CELL_SPLIT_DWELL_MS: 60000, CELL_MERGE_AT: 40, CELL_MERGE_DWELL_MS: 600000 })) assert.match(toml, new RegExp(`^${k} = "${v}"$`, 'm'), k);
-  assert.doesNotMatch(toml, /^CELL_SEED\s*=/m, 'cellSeed is off unset: it goes on at the hub once the site serves the build that says `cv`');
+  const deployed = Object.fromEntries([...toml.matchAll(/^(CELL_\w+) = "([^"]*)"$/gm)].map((m) => [m[1], m[2]]));
+  assert.deepEqual(Object.keys(deployed).sort(), Object.values(CELL_LAW_VARS).sort(), 'the four thresholds declared, and cellSeed not: it goes on at the hub once the site serves the build that says `cv`');
+  assert.deepEqual(cellLawOf(deployed), CELL_LAW_DEFAULT);
+  for (const k of Object.values(CELL_LAW_VARS)) assert.ok(/^\d+$/.test(deployed[k]), `${k} a whole number, never a default by accident`);
 });
 
 test('COST-2 part two THE SEED IS A SETTING AT THE HUB: a developer sets cellSeed - off, or a level 1 to 4, anything else refused with its words - and the directory, asking the hub as a ground room\'s door does, seeds its tree at that level; set off, the directory answers L0 and keeps the tree it stored (mutants: the setting unrefused; the hub unasked; the stored tree dropped)', async (t) => {
@@ -390,11 +394,34 @@ test('COST-2 part two A CALL BETWEEN ROOMS THAT NAMES A CELL REACHES ITS NODE: t
     const res = await cellCall({ ROOMS: W.ROOMS }, 'world:25,9', 0, PARK_INTERNAL_DROP, { owner: K('e'), at: T0 });
     assert.equal(res.status, 200);
     assert.equal(W.room(KIDS[0]).store.has(pk), false, 'the child dropped it');
-    const src = readFileSync(new URL('../../server/src/staffEvents.js', import.meta.url), 'utf8');
-    assert.match(src, /cellCall\(room\.env, worldRoom\(e\.px, e\.py\), 0, SEV_INTERNAL_CALL, body, CALL_MS\)/, 'the staff event\'s call through the tree');
-    assert.doesNotMatch(src, /idFromName\(worldRoom\(/, 'and never by the fine key');
-    assert.match(readFileSync(new URL('../../server/src/cellNodes.js', import.meta.url), 'utf8'), /export async function cellCall\(env, cell, ly, path, body, ms = ROOM_CALL_MS\)[\s\S]*?signal: AbortSignal\.timeout\(ms\)/, 'every call on a deadline (SCALE2b\'s law)');
+    // a staff event's call to its cell (the hub's, staffEvents.js tellCell): to the child that holds its pixel now
+    const reached = [];
+    const get = W.ROOMS.get;
+    W.ROOMS.get = (id) => ({ fetch: (req) => { reached.push([id, new URL(req.url).pathname]); return get(id).fetch(req); } });
+    await tellCell({ env: { ROOMS: W.ROOMS } }, { px: 400, py: 150 }, { id: 'sev-1', op: 'end' });
+    W.ROOMS.get = get;
+    assert.deepEqual(reached.filter(([, p]) => p === SEV_INTERNAL_CALL).map(([id]) => id), [KIDS[0]], 'the event\'s cell (world:25,9) reached at the node that holds it, never by its fine key');
   });
+});
+
+test('COST-2 part two A CALL THAT NAMES A CELL CARRIES A DEADLINE: an object that never answers is given up on when the call\'s time runs out, as every call between rooms is (SCALE2b\'s law) (mutants: the call without its signal)', async () => {
+  cellTreeCache.reset();
+  const ROOMS = {
+    idFromName: (name) => name,
+    get: (id) => ({
+      fetch: (req) => (id === CELL_DIRECTORY
+        ? Promise.resolve(new Response(JSON.stringify(SEED)))
+        : new Promise((resolve, reject) => {
+          // a call with no deadline would wait for ever: the object gives up on it first, so the pin fails, never hangs
+          const giveUp = setTimeout(() => reject(new Error('never aborted: the call carries no deadline')), 1500);
+          req.signal?.addEventListener('abort', () => { clearTimeout(giveUp); reject(req.signal.reason); });
+        })),
+    }),
+  };
+  const began = performance.now();
+  await assert.rejects(cellCall({ ROOMS }, 'world:25,9', 0, PARK_INTERNAL_DROP, {}, 40), (e) => e?.name === 'TimeoutError');
+  assert.ok(performance.now() - began < 2000, 'given up on at its deadline');
+  cellTreeCache.reset();
 });
 
 test('COST-2 part two THE SEED\'S PULL: a fine cell\'s first socket in a coarse node pulls the rows that cell\'s own object kept before the seed - its parks and ledger taken, forgotten there, the cell remembered - and a second socket asks nothing; a layer\'s socket, an L0 node\'s and a fixed tree\'s never pull (mutants: no pull; pulled again; the rows left behind; a layer pulling; a fixed tree pulling)', async (t) => {

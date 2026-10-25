@@ -87,7 +87,7 @@ function fanAll(room, s) { for (const [ws, b] of [...room._all()]) if (b.id) roo
 
 /** The hub telling the event's cell (best effort: the cell asks the book again on its next word anyway) - COST-2 part two:
  *  the object of the node that holds the cell now (cellNodes.js cellCall). @param {any} room @param {any} e @param {object} body */
-async function tellCell(room, e, body) {
+export async function tellCell(room, e, body) {
   try { const res = await cellCall(room.env, worldRoom(e.px, e.py), 0, SEV_INTERNAL_CALL, body, CALL_MS); return !!res?.ok; }
   catch (err) { console.warn('[sev] cell', /** @type {any} */ (err)?.message ?? err); return false; }
 }
