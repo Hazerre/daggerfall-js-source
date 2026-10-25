@@ -102,9 +102,11 @@ nowhere now - not fallen, not mine, no puppet of it - for `STAFF_BOSS_LOST_MS` (
 gone) is stood again by the one who runs the event, for the same call (`staffEvents.js` `staffBossLost`). The wait lets
 a fallen runner's boss come over first.
 
-BOSS-CLEAR (2026-10-25, mob: "make sure all those mob are dead not spawned befor the bosss"): while a boss is due or
-stands, no monster is stood; the meter's boss waits until every monster of the event standing is dead - mine and the
-puppets of it - or `STAFF_BOSS_CLEAR_MAX_MS` (2 min) for one nobody can reach. Staff's **Spawn mini boss now** stands
+BOSS-CLEAR (2026-10-25, mob: "make sure all those mob are dead not spawned befor the bosss"; then BOSS-CLEAR-CALL, mob:
+"no only the mini boss need to wait for everything to be dead to count to spawn"): the packs come on all the while; the
+meter's boss waits until every monster of the event that stood at its call is dead or gone - mine and the puppets of it,
+taken once at the first ask (`clearWait`), so a pack stood since never holds it - or `STAFF_BOSS_CLEAR_MAX_MS` (2 min)
+for one nobody can reach. Staff's **Spawn mini boss now** stands
 at once (`staffBossByHand`: the book's `fb` past the last I stood). Its line is said once it stands (`bu`), not at its
 call.
 
@@ -120,6 +122,26 @@ players"): every mini boss is held to the Enemy Expansion Troll's rules (`Monste
 health - `STAFF_BOSS_MIN_METAL` Silver (a blade below Silver does nothing, `combat/formulas.js`
 `dropWeaponIfTargetImmune`; hand-to-hand lands, as DFU's does) and `STAFF_BOSS_ARMOR` 10 (the Troll's ArmorValue 2 x 5,
 EnemyEntity.cs:264-267) as its worst armour on any part. Owner and puppet alike, so a peer's blow is held to it too.
+
+BOSS-BOUND (2026-10-25, mob: "heal was set to 10000 for zombie its wromng", "the event boss had to low of health"):
+FOE-BOUNDS (`net/foeBounds.js`, Spawn-Grants section 19) judged a peer's mini boss as a plain elite of its kind, so every
+copy but its owner's took a boss past that bound - an exact health of 10,000, or a large multiplier - down as impossible.
+A record its frame tags both the event's raider (`rz`) and its boss (`sb`), of an event live in my own book, is held
+instead to that event's health: its `hp`, or its kind's bound times its `bh`, whichever is more
+(`systems/staffEvents.js` `staffBossBound`, read by `scenes/grantHost.js` `statsRefused`). Past it, or of no event I
+hold, the plain bound stands. The relay's strip (`grantStrip`, off) still judges it plain.
+
+BOSS-SPOT (2026-10-25, mob: "spawn it on the highest lvl player in the town or area", "or largewst groupoing"; card:
+"Biggest group, ties by level"): the one who runs the event stands its mini boss beside the player with the most players
+within `STAFF_BOSS_GROUP_M` (30 m) of them, themselves counted - a tie to the group whose highest level is higher, then
+the lower id (`raidingParties.js` `staffBossSpot`, off the host's `peerFeetInTown`: me first, then each player in the
+place's rect, each with their level). Beside me when it is me.
+
+PACK-SCALE (2026-10-25, mob: "they arnt spawn ing quick enough"; card: "Scale with players in town"): an event's packs
+by the players in its place, me counted (`raidingParties.js` `staffPackScale`) - one alone as ever (`MAX_RAID_ENEMIES`
+standing, the event's pace); each more player `STAFF_PACK_CAP_PER` (5) more standing, to `STAFF_PACK_CAP_MAX` (40), and
+the pace a quarter quicker, to twice. A reader stands as many of a runner's raiders (`world/raidShared.js`
+`RAID_PUPPETS_MAX`, 40; a runner's raiders, its watch and its loose stands still ride one frame).
 
 ## 6. The place picker (`src/net/staffPlaces.js`)
 
