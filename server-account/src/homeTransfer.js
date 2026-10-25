@@ -173,7 +173,7 @@ async function acceptHome(ctx, player, body) {
   }) : null;
   if (sellerPrep?.error) return sellerPrep;
   sellerKey = sellerPrep?.key ?? null;
-  const buyerPrep = price > 0 ? await prepareRealmRecord(ctx, player.id, realm, (save) => (payFromSave(save, price, home.region) ? null : 'realm-gold')) : null;
+  const buyerPrep = price > 0 ? await prepareRealmRecord(ctx, player.id, realm, (save) => (payFromSave(save, price, home.region) ? null : 'realm-gold'), { outbound: true }) : null;   // INT3: the price goes to the seller - a held record pays no one
   if (buyerPrep?.error) {
     if (sellerKey) await dropIfUnnamed(db, ctx.bucket, offer.seller, offer.seller_char, sellerKey);
     return buyerPrep;

@@ -1,10 +1,11 @@
 // A house offered at its own door. The service keeps the gold, the goods and the owner.
+// ENH-NOTICE3: it builds the game's own windows, so it lives under ui/ - no system names a window.
 // The questions are the game's own windows. A form on the page sits under the canvas and cannot be used.
 
-import { ChoiceWindow } from '../../ui/talkWindow.js';
-import { InputMessageBoxWindow } from '../../ui/inputMessageBox.js';
-import { walletReserve } from '../../net/realm/realmGoldLaw.js';
-import { t } from '../textManager.js';
+import { ChoiceWindow } from './talkWindow.js';
+import { InputMessageBoxWindow } from './inputMessageBox.js';
+import { walletReserve } from '../net/realm/realmGoldLaw.js';
+import { t } from '../systems/textManager.js';
 
 const NAME_RE = /^[A-Za-z0-9]{3,16}$/;
 const PRICE_MAX = 100_000_000;

@@ -392,7 +392,7 @@ import {
 // DECOR1c: the pieces a room's owner placed (their law, and the pool that stands them in the room)
 import { decorPieceOf, decorSaleBack, DECOR_STATION_SERVICES, DECOR_STATION_NAMES } from '../net/decorLaw.js';
 import { noteDecorGrants, decorMayStorage, decorMayStation, decorIsShared, decorStationShut, bindDecorHouseFrom, openSharedChest, openDecorChest } from '../systems/decor/decorGrants.js';   // DECOR-ACCESS
-import { openHomeTransfer, answerHomeTransfer } from '../systems/online/homeTransfer.js';
+import { openHomeTransfer, answerHomeTransfer } from '../ui/homeTransferWindow.js';
 import { VENDOR_STATION, VENDOR_COLD_LINE } from '../net/vendorLaw.js';   // HOME-VENDOR: a trader, and its word where none can trade
 import { forgeOffered, PROF_STATIONS, stationColdLine, enchantGoldPct, STORES_ACT_STATIONS, focusStoresStation } from '../ui/professions/profPages.js';   // AUDIT 29 B2: a Forge worked only where the Stores page is; PROF4: a Workbench
 import { FORGE_FEE, WORKBENCH_FEE, LOOM_FEE, MASON_FEE, COOK_FIRE, JEWEL_FEE, ALCHEMY_FEE, ENCHANT_FEE } from '../net/professionLaw.js';   // PROF2: a smith's forge's use fee; PROF4: a furnisher's workbench's; PROF7: a tailor's loom's; PROF11: a General Store's mason's bench's; PROF10: a Pawn Shop's or a Gem Store's jeweller's bench's

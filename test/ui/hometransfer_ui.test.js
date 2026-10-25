@@ -1,7 +1,7 @@
 // The transfer is asked in the game's own windows. A form on the page sits under the canvas.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { openHomeTransfer, answerHomeTransfer } from '../../../src/systems/online/homeTransfer.js';
+import { openHomeTransfer, answerHomeTransfer } from '../../src/ui/homeTransferWindow.js';
 
 const flush = () => new Promise((r) => { setTimeout(r, 0); });
 
@@ -38,7 +38,9 @@ test('an offer already out is withdrawn by its id, and an answer goes through th
   shown.at(-1).input('KeyW');
   await flush();
   assert.deepEqual(sent[0], { op: 'cancel', id: 'abc', mapId: 9, buildingKey: 3 });
-  answerHomeTransfer(9, 3, { offer: { id: 'off', price: 10, keepDecor: true, keepItems: false } }, true, host, (t) => said.push(t), (c) => c, show);
+  // the buyer's purse: the price is held through the realm act (walletReserve), and a purse short of it sends nothing
+  const purse = { gold: 10, pay: (n) => { purse.gold -= n; }, credit: (n) => { purse.gold += n; } };
+  answerHomeTransfer(9, 3, { offer: { id: 'off', price: 10, keepDecor: true, keepItems: false } }, true, host, (t) => said.push(t), (c) => c, show, purse);
   shown.at(-1).input('KeyY');
   await flush();
   assert.equal(sent[1].op, 'accept');
