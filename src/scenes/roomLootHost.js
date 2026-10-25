@@ -21,7 +21,7 @@ import { rollCorpseKit } from '../systems/foeLootCap.js';
 import { rollRoomBonus, spawnEnemyLoot, wildLootAfter } from './hostCombat.js';
 import { setMidScreenText } from '../ui/midScreenText.js';
 import { stampWonWeapons } from '../systems/loot/lootRarity.js';
-import { championTraitFor } from '../systems/champions.js';   // CHAMP-BASE: a body's champion mark, judged at the room's level
+import { championTraitFor } from '../systems/champions.js';   // a body's champion mark, judged at the room's level
 import { wildPileMore } from '../systems/wild/wildZone.js';
 import { seaPileMore } from '../systems/sea/seaSpoils.js';
 
@@ -178,12 +178,14 @@ export function createRoomLoot(host) {
     const o = { rolls, quarters: ROOM_BASE_QUARTERS, luck: ROOM_BASE_LUCK, find: ROOM_BASE_FIND };
     try {
       if (e.isClass) e.level = terms.lv;
-      // CHAMP-BASE (FIELD BUGS 2026-10-25): applyChampion judged the layout's mark at this player's level, so a level-2
-      // player's copy of a marked class foe was no champion, ran PLAIN-LOOT's keep on dice the host's champion skips, and
-      // read the host's word about the body as "from a newer version of the game". An elite foe is never one
-      // (dungeonContext.js applyEliteScaling).
+      // The build judged the champion mark at this player's own level, so a level-2 player's copy of a marked class foe
+      // is no champion. Judged again here at the room's level, every client rolls the same base; otherwise the plain
+      // copy draws PLAIN-LOOT's keep dice a champion skips, and the host's word about the body reads as another build's.
+      // An elite foe is never a champion, as applyEliteScaling stands it.
       e.champion = e.eliteFoe ? undefined : championTraitFor(e, f.src?.champion)?.id;
-      e.lootCap = undefined;   // CHAMP-BASE: the chain stamps the base's own (FOE-CAP) - the build's was a plain copy's, the bonus's cap
+      // A plain copy's build stamped its own loot cap, and a champion's chain stamps none; the base's record must carry
+      // the cap its own chain stamps, because the player's bonus reads it.
+      e.lootCap = undefined;
       e.items = [];
       e.equip = undefined;   // the base's kit is laid on a table of its own, never over the one the foe wore
       spawnEnemyLoot(e, f.mobileType, ENEMY_BASICS[f.mobileType], roller, { ...eliteLootOpts(f.src), where: 'dungeon', ...o, rejects });
@@ -194,7 +196,7 @@ export function createRoomLoot(host) {
       raiseEnemyDeath(e, { ...o, level: terms.lv, room: true });   // `room`: the room's base, every client's - no kill (systems/eliteGates/egFind.js asks at the kill)
       return { items: e.items, lootCap: Number.isInteger(e.lootCap) ? e.lootCap : null };
     } finally {
-      e.items = saved.items; e.weapon = saved.weapon; e.armorValues = saved.armorValues; e.equip = saved.equip; e.level = saved.level; e.champion = saved.champion; e.lootCap = saved.lootCap;
+      Object.assign(e, saved);
     }
   }
   /** THE BONUS: this player's own layer over a base - on dice seeded by the base's name and the CHARACTER, at their
