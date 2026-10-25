@@ -485,7 +485,7 @@ account.refusal.profPixel,"Het land hier komt niet overeen met de kaart van de s
 account.refusal.profRank,"Je ambacht is daar nog niet bedreven genoeg voor."
 account.refusal.profRate,"Je hebt dit uur te veel aan ambachten gedaan. Probeer het later opnieuw."
 account.refusal.profReforge,"Arcane Essentie kan een eigenschap van een Magisch of Zeldzaam stuk hersmeden, maar nooit van een Legendarisch, Etherisch of artefactstuk."
-account.refusal.profRespecPending,"Er is al een wisseling van specialisatie onderweg ({days} dagen)."
+account.refusal.profRespecPending,"De specialisatie van dit ambacht is minder dan {days} dagen geleden gewisseld. De volgende wisseling kan {days} dagen na de laatste."
 account.refusal.profRid,"Dat verzoek kon niet worden gelezen. Probeer het opnieuw."
 account.refusal.profSculptor,"Alleen een Beeldhouwer kan stenen decor hakken. Kies dat bij Steenhouwen 100, onder Bouwen."
 account.refusal.profSpec,"Die specialisatie biedt dit ambacht niet."

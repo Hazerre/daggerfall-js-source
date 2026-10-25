@@ -652,8 +652,8 @@
   {
     "name": "COST2B-setting-floor",
     "file": "src/net/relayCfg.js",
-    "old": "cellSeed: 261 });",
-    "new": "cellSeed: 260 });",
+    "old": "cellSeed: 262 });",
+    "new": "cellSeed: 261 });",
     "tests": [
       "test/net/herald/heraldcards.test.js"
     ]

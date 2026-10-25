@@ -485,7 +485,7 @@ account.refusal.profPixel,"Teren w tym miejscu nie zgadza się z mapą serwera. 
 account.refusal.profRank,"Twoje rzemiosło nie jest jeszcze na to dość biegłe."
 account.refusal.profRate,"Zbyt wiele prac rzemieślniczych w tej godzinie. Spróbuj później."
 account.refusal.profReforge,"Esencja tajemna może przekuć cechę przedmiotu Magicznego lub Rzadkiego, ale nigdy Legendarnego, Eterycznego ani artefaktu."
-account.refusal.profRespecPending,"Zmiana specjalizacji jest już w toku ({days} dni)."
+account.refusal.profRespecPending,"Specjalizację tego rzemiosła zmieniono mniej niż {days} dni temu. Następna zmiana będzie możliwa {days} dni po ostatniej."
 account.refusal.profRid,"Nie udało się odczytać tego żądania. Spróbuj ponownie."
 account.refusal.profSculptor,"Tylko Rzeźbiarz może rzeźbić kamienne ozdoby. Wybierz go, gdy Kamieniarstwo osiągnie 100 (Budownictwo)."
 account.refusal.profSpec,"To rzemiosło nie oferuje takiej specjalizacji."
