@@ -1136,6 +1136,8 @@ holdings.horse.boons.starving,"Wygłodzony - nie galopuje, dopóki nie zje. Naka
 holdings.wagon.boons.failing,"Rozpada się, ale wciąż jedzie pełnym tempem."
 holdings.wagon.boons.rickety,"Rozklekotany, ale wciąż jedzie pełnym tempem."
 holdings.wagon.boons.sound,"Solidny - dzięki temu jedzie szybciej."
+items.gold.sharedFull,"Nie zmieści się tu więcej złota. Wszyscy tutaj dzielą ten pojemnik, a jedna kupka złota w nim mieści najwyżej {max, number}."
+items.gold.sharedRoom,"Zmieści się tu jeszcze tylko {n, number} sztuk złota. Wszyscy tutaj dzielą ten pojemnik, a jedna kupka złota w nim mieści najwyżej {max, number}."
 ketch.arrived,"Podniebny Kecz Mzunthar klanu Rourken stoi nad Daggerfall. Jego winda kotwiczna czeka na polach za murami."
 ketch.bar.endsIn,"Kecz skręci na zachód za {left}"
 ketch.bar.felled,"Pokonany"

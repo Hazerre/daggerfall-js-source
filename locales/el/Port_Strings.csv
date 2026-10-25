@@ -1136,6 +1136,8 @@ holdings.horse.boons.starving,"Λιμοκτονεί - δεν καλπάζει μ
 holdings.wagon.boons.failing,"Διαλύεται, αλλά κυλά ακόμη με πλήρη ταχύτητα."
 holdings.wagon.boons.rickety,"Ετοιμόρροπη, αλλά κυλά ακόμη με πλήρη ταχύτητα."
 holdings.wagon.boons.sound,"Γερή - γι' αυτό κυλά πιο γρήγορα."
+items.gold.sharedFull,"Εδώ δεν χωράει άλλος χρυσός. Όλοι εδώ μοιράζονται αυτό το δοχείο, και ένας σωρός χρυσού μέσα του χωράει το πολύ {max, number}."
+items.gold.sharedRoom,"Εδώ χωρούν μόνο ακόμη {n, number} χρυσά νομίσματα. Όλοι εδώ μοιράζονται αυτό το δοχείο, και ένας σωρός χρυσού μέσα του χωράει το πολύ {max, number}."
 ketch.arrived,"Το Αερόπλοιο Mzunthar των Rourken στέκεται πάνω από το Daggerfall. Ο ανελκυστήρας της άγκυρας περιμένει στους αγρούς έξω από τα τείχη."
 ketch.bar.endsIn,"Το Αερόπλοιο στρέφεται δυτικά σε {left}"
 ketch.bar.felled,"Έπεσε"

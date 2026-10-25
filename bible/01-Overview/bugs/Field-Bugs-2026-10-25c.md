@@ -47,7 +47,8 @@ THE CHANGE:
   names the room left, as the wagon's clamp does; a full stack refuses (`sharedGoldFull`) and says so. Both windows
   already show the plan's notice, so neither changed. The ground, the wagon, the bag, a companion's pack, a home's
   cupboard and every offline container take the whole amount, as DFU's do (DaggerfallInventoryWindow.cs:1269-1303).
-- The two new lines are the port's own words (`items.gold.sharedRoom`, `items.gold.sharedFull`, `locales/en/Port_Strings.csv`).
+- The two new lines are the port's own words (`items.gold.sharedRoom`, `items.gold.sharedFull`, `locales/en/Port_Strings.csv`),
+  drafted in-session for every other language through `tools/l10nInSession.mjs` (recorded as the machine's).
 
 DFU: DropGoldPopup_OnGotUserInput takes any amount up to the purse into any remote list (DaggerfallInventoryWindow.cs:1269-1303);
 DFU has no other player to share a container with. The clamp is a departure, Ledger A (GOLD-WIRE).
@@ -55,7 +56,11 @@ DFU has no other player to share a container with. The clamp is a departure, Led
 THE PINS (`test/systems/loot/goldwire.test.js`): each runs the real chain - the room module (`createRoomLoot`, the bag's
 `createInteriorRoomLoot` through `mintInteriorShared`) composes and marks the list, the drop is planned and laid in as
 the windows do, the module's frame says the room's word, and `validRoomWord` reads it as another client does. With the
-clamp off (mutant `GOLD-WIRE-clamp-off`) the word reads null, the report's symptom.
+clamp off (mutant `GOLD-WIRE-clamp-off`) the word reads null, the report's symptom. The one link the pins do not run is
+the window's: the mark is by the list's identity, and both hosts hand the window the composed list itself - the
+dungeon's `openInventory` its `source` (`items: () => lootItems`), a cupboard's arm `items: () => c.items`. The three
+PARTY-LOOT harnesses that mount `createRoomLoot`'s text over a scope of its imports (`test/systems/partyloot.test.js`,
+`test/net/partyloot_wire.test.js`, `test/scenes/fb1018d_seatloop.test.js`) are handed `markRoomCarried` (PIN MOVED).
 
 NOT CHANGED: a host still stores a put as it comes (`judgeRoomClaim`); no other producer lays a gold stack in a room's
 list, so no second check was added there.
