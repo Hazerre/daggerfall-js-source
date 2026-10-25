@@ -604,7 +604,7 @@ collider its posed buckets moved (`posesMoved`) once it has carried them - the s
 
 ## WILD-REJOIN's move - the seizure's frame out of bootWorld (2026-10-25)
 
-WILD-REJOIN (`01-Overview/bugs/Field-Bugs-2026-10-25b.md`) wires a page that comes back while its fall is still down, and
+WILD-REJOIN (`01-Overview/bugs/Field-Bugs-2026-10-25h.md`) wires a page that comes back while its fall is still down, and
 `bootWorld` stood one logical line under its ceiling (36,386 of 36,387). The move came first, by `tools/hostMove.mjs`:
 `wildSeizeFrame` - the killer's carry of a fall's receipt, one member that writes nothing of the host's - went verbatim to
 `src/scenes/wildSeizeHost.js` (`createWildSeizeHost(host)`): five names by value (`_wildSeize`, `campToWire`, `player`,

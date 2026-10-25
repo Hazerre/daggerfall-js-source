@@ -1,4 +1,4 @@
-# FIELD BUGS 2026-10-25b - a death in the open zone escaped by closing the game
+# FIELD BUGS 2026-10-25h - a death in the open zone escaped by closing the game
 
 One report, from a player, with the killer's own account of it: "if you die in the wilderness and alt f4 before you
 are looted you wont be able to be looted by who killed you. you can also skip the death timer this way. Its way faster
