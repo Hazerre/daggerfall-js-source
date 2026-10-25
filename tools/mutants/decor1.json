@@ -101,20 +101,12 @@
   {
     "name": "DECOR1-anyone-owns",
     "file": "server-account/src/decor.js",
-    "old": "WHERE (h.guild_id IS NULL AND h.player = k.p AND h.char_id = k.c)",
-    "new": "WHERE (h.guild_id IS NULL AND k.p IS NOT NULL AND h.char_id = k.c)",
+    "old": "WHERE (h.guild_id IS NULL AND h.player = k.p AND (h.deed = 0 OR h.char_id = k.c))",
+    "new": "WHERE (h.guild_id IS NULL AND k.p IS NOT NULL AND (h.deed = 0 OR h.char_id = k.c))",
     "tests": [
       "test/server/decor1.test.js"
-    ]
-  },
-  {
-    "name": "DECOR1-any-character-owns",
-    "file": "server-account/src/decor.js",
-    "old": "WHERE (h.guild_id IS NULL AND h.player = k.p AND h.char_id = k.c)",
-    "new": "WHERE (h.guild_id IS NULL AND h.player = k.p AND k.c IS NOT NULL)",
-    "tests": [
-      "test/server/decor1.test.js"
-    ]
+    ],
+    "note": "ACCOUNT-HOMES (PIN MOVED): re-aimed by content - the home's account, any character of it."
   },
   {
     "name": "DECOR1-the-cap-unread",
@@ -174,8 +166,8 @@
   {
     "name": "DECOR1-the-cap-not-a-conflict",
     "file": "server-account/src/index.js",
-    "old": "const status = r.error === 'decor-cap' || r.error === 'yard-cap' || r.error === 'decor-taken' || r.error === 'guild-treasury-full' || r.error === 'vendor-stocked' ? 409",
-    "new": "const status = r.error === 'yard-cap' || r.error === 'decor-taken' || r.error === 'guild-treasury-full' || r.error === 'vendor-stocked' ? 409",
+    "old": "const status = r.error === 'decor-cap' || r.error === 'yard-cap' || r.error === 'decor-taken' || r.error === 'guild-treasury-full' || r.error === 'vendor-stocked' || r.error === 'decor-rev' || r.error === 'decor-holds' || r.error === 'decor-shut' || r.error === 'decor-held' ? 409",
+    "new": "const status = r.error === 'yard-cap' || r.error === 'decor-taken' || r.error === 'guild-treasury-full' || r.error === 'vendor-stocked' || r.error === 'decor-rev' || r.error === 'decor-holds' || r.error === 'decor-shut' || r.error === 'decor-held' ? 409",
     "tests": [
       "test/server/decor1.test.js"
     ]
@@ -462,8 +454,8 @@
   {
     "name": "DECOR1c-a-visitor-opens-a-piece",
     "file": "src/scenes/worldModes.js",
-    "old": "    if (isHallBoard(piece)) { openHallBoard(); return; }   // GUILD1e: the board in a guild's hall\n    if (!piece?.storage) return;\n    if ((interiorHome?.hall && interiorHome.member) || interiorSeatHall?.member) { openHallChest(); return; } else if (interiorSeatHall && !interiorHome) { say(CROWN_HALL_TEXT.chestShut(interiorSeatHall.name)); return; }   // AUDIT SEATS-2 C6: a visitor told whose it is   // GUILD1d: the guild's chest, as its cupboards; SEAT-HALL: a palace's too\n    if (!decorOwnerHere()) {\n",
-    "new": "    if (isHallBoard(piece)) { openHallBoard(); return; }   // GUILD1e: the board in a guild's hall\n    if (!piece?.storage) return;\n    if ((interiorHome?.hall && interiorHome.member) || interiorSeatHall?.member) { openHallChest(); return; } else if (interiorSeatHall && !interiorHome) { say(CROWN_HALL_TEXT.chestShut(interiorSeatHall.name)); return; }   // AUDIT SEATS-2 C6: a visitor told whose it is   // GUILD1d: the guild's chest, as its cupboards; SEAT-HALL: a palace's too\n    if (false) {\n",
+    "old": "    if (decorIsShared(piece.id) || !decorOwnerHere()) {\n",
+    "new": "    if (decorIsShared(piece.id) || false) {\n",
     "tests": [
       "test/server/decor1.test.js"
     ]

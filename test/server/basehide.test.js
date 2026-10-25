@@ -154,7 +154,7 @@ async function stand() {
 }
 const HOME = { mapId: 1291010263, buildingKey: 0x10203 };
 
-test('BASE-HIDE the service: a home\'s list of what is out is read with its pieces by every session; written WHOLE by the owner\'s character alone; refused whole when the law would; and the home released takes it (mutants: a stranger\'s write kept, a bad list kept, the list unread, the cascade dropped)', async () => {
+test('BASE-HIDE the service: a home\'s list of what is out is read with its pieces by every session; written WHOLE by the owner alone (ACCOUNT-HOMES: any character of its account); refused whole when the law would; and the home released takes it (mutants: a stranger\'s write kept, a bad list kept, the list unread, the cascade dropped)', async () => {
   const { call, registered, oldHome } = await stand();
   assert.ok(ROUTES.has('/v1/homes/decor/hidden'), 'the route is the service\'s');
   const aldric = await registered('Aldric');
@@ -168,7 +168,9 @@ test('BASE-HIDE the service: a home\'s list of what is out is read with its piec
   const stranger = await call('/v1/homes/decor/hidden', at([]), mara);
   assert.deepEqual([stranger.status, stranger.body.error], [404, 'no-home'], 'another player clears nothing');
   assert.equal((await call('/v1/homes/decor/hidden', at([], 'char-mara'), mara)).body.error, 'no-home');
-  assert.equal((await call('/v1/homes/decor/hidden', at([], 'char-second'), aldric)).body.error, 'no-home', 'nor the owner\'s other character');
+  // ACCOUNT-HOMES (PIN MOVED - it was `no-home`, "nor the owner's other character"): the home is its account's, any character
+  // of it writes the list (the same list again here, so the room stands as it was)
+  assert.deepEqual((await call('/v1/homes/decor/hidden', at(['m12:41000', 'f3:210.4'], 'char-second'), aldric)).body, { ok: true, hidden: ['f3:210.4', 'm12:41000'] }, 'the owner\'s other character writes it too');
   const bad = await call('/v1/homes/decor/hidden', at(['m12:41000', 'a chair']), aldric);
   assert.deepEqual([bad.status, bad.body.error], [400, 'bad-decor']);
   assert.deepEqual((await call('/v1/homes/decor', HOME, mara)).body.hidden, ['f3:210.4', 'm12:41000'], 'and a refused list changed nothing');
@@ -290,8 +292,8 @@ test('BASE-HIDE by source: the build stands a furnishable room\'s props and flat
   assert.match(m, /houseOwned, peopleVisible, baseEditable,/);
   for (const [list, v] of [['containers', 'c'], ['shelves', 's']]) assert.match(m, new RegExp(`interiorCtx\\.${list}\\.forEach\\(\\(${v}, i\\) => \\{\\s*if \\(${v}\\.hidden\\) return;`), `${list}: a piece out is no target`);
   assert.match(m, /interiorCtx\.beds\?\.forEach\(\(bd, i\) => \{[^\n]*\n\s*if \(bd\.hidden\) return;/);
-  assert.match(m, /const hiddenBase = interiorHome \|\| _seatHallVisit \? \[\.\.\._keptHidden\] : \(ctx\.base\?\.hidden\(\) \?\? \[\]\);/, 'the scene keeps the list - an online home\'s save record as it came');   // PIN MOVED (SEAT-HALL): the palace's hall shares the line   // PIN MOVED (AUDIT SEATS-3): the visit's latch (C2)
-  assert.match(m, /if \(interiorHome \|\| _seatHallVisit\) _keptHidden = \[\.\.\.\(data\.hiddenBase \?\? \[\]\)\]; else interiorCtx\.base\?\.setHidden\(data\.hiddenBase \?\? \[\]\);/);   // PIN MOVED (SEAT-HALL): the palace's hall shares the line   // PIN MOVED (AUDIT SEATS-3): the visit's latch (C2)
+  assert.match(m, /const hiddenBase = \[\.\.\.\(interiorHome \|\| _seatHallVisit \? _keptHidden : \(ctx\.base\?\.hidden\(\) \?\? \[\]\)\), \.\.\.\(ctx\.base\?\.roomDoors\?\.hidden\?\.\(\) \?\? \[\]\)\];/, 'the scene keeps the list - an online home\'s save record as it came, and any room door taken out');   // PIN MOVED (SEAT-HALL): the palace's hall shares the line   // PIN MOVED (AUDIT SEATS-3): the visit's latch (C2)
+  assert.match(m, /if \(interiorHome \|\| _seatHallVisit\) \(_keptHidden = \(data\.hiddenBase \?\? \[\]\)\.filter\(\(k\) => !String\(k\)\.startsWith\('intdoor:'\)\), interiorCtx\.base\?\.roomDoors\?\.apply\?\.\(data\.hiddenBase\)\); else \(interiorCtx\.base\?\.setHidden\(data\.hiddenBase \?\? \[\]\), interiorCtx\.base\?\.roomDoors\?\.apply\?\.\(data\.hiddenBase\)\);/);   // PIN MOVED (SEAT-HALL): the palace's hall shares the line   // PIN MOVED (AUDIT SEATS-3): the visit's latch (C2)
   assert.match(m, /interiorCtx\?\.base\?\.setHidden\(Array\.isArray\(r\.data\.hidden\) \? r\.data\.hidden : \[\]\);/, 'the room its owner cleared, for everyone');
   assert.match(m, /function decorSold\(sceneName, region\) \{\s*clearSceneHidden\(sceneCache\(\), sceneName\);/, 'a sale brings it back');
   assert.match(m, /base: \(\) => interiorCtx\?\.base \?\? null,/, 'the tool\'s door');

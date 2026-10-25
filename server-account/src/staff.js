@@ -56,6 +56,7 @@ import { staffCensus, CENSUS_ROUTES } from './staffCensus.js';   // STAFF-PANEL4
 import { staffEconomy, ECON_ROUTES } from './staffEconomy.js';   // STAFF-PANEL3-ECON: market and trades, node activity, economy
 import { staffFollow, FOLLOW_ROUTES } from './staffFollow.js';   // STAFF-PANEL5-FOLLOW: a follow token, minted and written down
 import { staffMessage, MESSAGE_ROUTES } from './staffMessage.js';
+import { staffEvents, EVENT_ROUTES, EVENT_STATUS } from './staffEvents.js';   // STAFF-EVENT: staff events (Admins)
 import { staffNet, NET_ROUTES } from './staffNet.js';   // STAFF-PANEL5-FEEDS: Network bursts
 import { staffMonsters, MONSTER_ROUTES } from './staffMonsters.js';   // STAFF-PANEL5-FEEDS: Monster watch
 import { staffReactions, REACTION_ROUTES } from './staffReactions.js';   // STAFF-PANEL5-FEEDS: the bot check
@@ -120,6 +121,11 @@ export const STAFF_STATUS = Object.freeze({
   'not-developer': 403, 'no-realm-character': 404, 'no-clean': 409, 'service-moved': 409, dead: 409, 'repair-no-faction': 409, 'repair-not-set': 409,
   seq: 409, 'mend-not-negative': 409, 'mend-moved': 409, 'repair-ticket': 409, 'no-data': 409, 'no-storage': 503, 'market-gone': 409, 'bad-listing': 400,
   'staff-note': 400, 'staff-reason': 400, 'staff-remove-pending': 409, 'staff-no-piece': 409, 'staff-trail': 409, 'staff-evidence': 404, 'staff-evidence-gone': 409,
+  // STAFF-SET-BANK (net/repairLaw.js applyBankSet): a record that keeps no Empire account, and a bank not the total staff read
+  'bank-none': 409, 'bank-moved': 409,
+  // STAFF-GIVE (staffGive.js): a template, group, material or count the item list does not take; an enchantment the item
+  // maker does not cost, or too many; a gift the item law would find
+  'staff-item-template': 400, 'staff-item-enchant': 400, 'staff-item-unlawful': 409,
   // STAFF-PANEL4-CENSUS (staffCensus.js): a contested piece that is not there, and a kind no save tallies (Marks' jumps)
   'no-piece': 404, 'census-no-tally': 400,
   // STAFF-PANEL2-FIX (safety.js modAct): a case another act took or closed, a spawn case a Moderator asked for, an Admin's
@@ -131,6 +137,7 @@ export const STAFF_STATUS = Object.freeze({
   'staff-message-long': 400, 'staff-message-rate': 429,
   // STAFF-PANEL5-FEEDS (staffMonsters.js): a Flag whose spawn case did not open
   'flag-failed': 500,
+  ...EVENT_STATUS,   // STAFF-EVENT (staffEvents.js): an event the law refuses, a full book, one ended, a relay that did not answer
   ...FREEZE_STATUS,   // STAFF-PANEL5-FREEZE (staffFreeze.js): a freeze's and the staff chat's own words
 });
 
@@ -417,6 +424,8 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   if (FOLLOW_ROUTES.includes(path)) return staffFollow(ctx, env, path, body, who, audit);   // STAFF-PANEL5-FOLLOW: Admins and Moderators
   // ═══ STAFF-PANEL5-MESSAGE: Message on screen, and each message's state - Admins and Moderators both (staffMessage.js) ═══
   if (MESSAGE_ROUTES.includes(path)) return staffMessage(ctx, env, path, body, who, audit);
+  // ═══ STAFF-EVENT: an event staged, ended or its mini boss called, and the events with their meters - Admins (staffEvents.js) ═══
+  if (EVENT_ROUTES.includes(path)) return who.role === 'admin' ? staffEvents(ctx, env, path, body, who, audit) : denied('staff-admin');
   if (NET_ROUTES.includes(path)) return staffNet(ctx, env, path, body, who, audit);
   if (MONSTER_ROUTES.includes(path)) return staffMonsters(ctx, env, path, body, who, audit);
   if (REACTION_ROUTES.includes(path)) return staffReactions(ctx, env, path, body, who, audit);
