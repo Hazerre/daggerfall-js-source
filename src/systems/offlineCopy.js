@@ -148,12 +148,12 @@ export function offlineCopyOf(snap) {
   if (!copy || typeof copy !== 'object') return copy;
   dropLineage(copy);
   dropSeason(copy);
-  // The copy's new id was never counted by the realm, so customs can never let it in: the Online door reads the mark.
-  markRealmCopy(copy);
   const own = saneSaveClock(copy.classicMinutes), world = saneSaveClock(copy.worldMinutes);
   delete copy.worldMinutes;
   delete copy.joinFresh;
   delete copy.realmHeld;   // AUDIT RESCUE-SAVE A1: the realm's spoils records (systems/realmSaves.js REALM_HELD_FIELD) - a new character holds none
+  // The copy's new id was never counted by the realm, so customs can never let it in: the Online door reads the mark.
+  markRealmCopy(copy);
   if (own === null || world === null) return copy;
   if (copy.modData && typeof copy.modData === 'object') delete copy.modData[RAID_RECORD_VENDOR];   // AUDIT LIVED1b R1
   rebaseWorldStamps(copy, Math.floor(own) - Math.floor(world), daysBetween(own, world), { questOwn: 'legacy' });   // classic minutes: the character's clock less the world's
