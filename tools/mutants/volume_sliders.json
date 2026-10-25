@@ -1,17 +1,17 @@
 [
   {
     "name": "HORSE-VOL-unclamped",
-    "file": "src/systems/animalVolume.js",
-    "old": "Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 1;",
-    "new": "Number.isFinite(v) ? v : 1;",
+    "file": "src/systems/monsterVolume.js",
+    "old": "Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 1; };",
+    "new": "Number.isFinite(v) ? v : 1; };",
     "tests": ["test/systems/volume_sliders.test.js"],
     "why": "a row's pref past 1 or under 0 played as it stood"
   },
   {
     "name": "HORSE-VOL-zero-unset",
-    "file": "src/systems/animalVolume.js",
-    "old": "  const v = Number(getPref(key));",
-    "new": "  const v = Number(getPref(key)) || 1;",
+    "file": "src/systems/monsterVolume.js",
+    "old": "{ const v = Number(getPref(key));",
+    "new": "{ const v = Number(getPref(key)) || 1;",
     "tests": ["test/systems/volume_sliders.test.js"],
     "why": "a muted row read as unset: full volume at 0%"
   },
