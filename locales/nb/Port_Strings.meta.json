@@ -1429,6 +1429,11 @@
   "tr": "43c525bcd558",
   "by": "claude-in-session"
  },
+ "account.refusal.fenced": {
+  "en": "51602667d8ce",
+  "tr": "c483a2258ad2",
+  "by": "claude-in-session"
+ },
  "account.refusal.firmCharacter": {
   "en": "2889944e8c48",
   "tr": "3f0c0a0569b0",
@@ -3727,6 +3732,11 @@
  "body.outfit.unknown": {
   "en": "e83bb293cbcc",
   "tr": "3e18846b5315",
+  "by": "claude-in-session"
+ },
+ "broker.owed": {
+  "en": "d66d34978dca",
+  "tr": "0a230a29e688",
   "by": "claude-in-session"
  },
  "cabin.refusal.enemies": {
