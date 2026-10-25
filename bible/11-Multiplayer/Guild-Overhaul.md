@@ -180,7 +180,7 @@ page says it the way a friend's row does (SOC3): a dot, lit while the member is 
   hiddenSince over LAPSED_SQL, for an account the role lists name), their row says the moment they hid instead: the
   first hidden token of the run, one staff session's, after the latest Show myself. Every member's view says it, and
   the reader's own row is marked `hidden` (said of that row alone), so their own "N online" leaves them out too.
-  Show myself and the beat is said again. acct182.
+  Show myself and the beat is said again. acct183.
 
 Pins: `test/net/guildseen.test.js` (the service through the real Worker, the law, the book, the page);
 `tools/mutants/guildseen.json`, 14 of 14 dead. The hidden member: `test/server/hiddenuncounted_guild.test.js`,

@@ -65,8 +65,9 @@ Every finding is fixed, pinned and named below, or left and said.
   alone); the reader's own row is marked `hidden`, said of that row alone, so their own "N online" leaves them out
   (`guildBook.js` guildMemberOnline). The beat itself goes on: the seat, Renown and the play clock read it.
   `staffHidden.js` is loaded where it is asked, never at `guilds.js`'s load - a static import closed realm.js ->
-  guilds.js -> staffHidden.js -> staff.js -> market.js -> realm.js before realm.js had run. ACCOUNT_VERSION acct181 ->
-  acct182 (`service.js`, `wrangler.toml`), every pin and mutant record moved by content. Pinned over the real Worker
+  guilds.js -> staffHidden.js -> staff.js -> market.js -> realm.js before realm.js had run. ACCOUNT_VERSION acct183
+  (`service.js`, `wrangler.toml`; acct182 on its branch, renumbered past STAFF-EVENT's acct182 at the merge), every pin
+  and mutant record moved by content. Pinned over the real Worker
   (`test/server/hiddenuncounted_guild.test.js`), HU-AUDIT-C1-*.
 - **C2 LOW** = L1. FIXED.
 - **C3 LOW - a link before its hello, or one whose mint was late or refused, lists its own row while Hide me is on.**
@@ -118,14 +119,12 @@ Every finding is fixed, pinned and named below, or left and said.
 - **FOUNDER5's cloud-save pin went red on 2026-10-25 on its own** (`test/server/founder5.test.js`, "FOUNDER5 the live
   link, a cloud save"): its "late" guest is dated `OLD_CUT + 30 * DAY` - 2026-10-25 00:00Z - to stand for a first play
   LATER than the account it links, and from today that instant is earlier than the account the pin registers, so the
-  link it says never happens does. Red on a2c40c60c's parent too; it holds three account-version mutant records
-  (CRAFT-HOLD-account-version-unmoved, CRAFT-HOLD-wrangler-version-unmoved, BR5-account-version-unmoved) without a
-  verdict. LEFT for its own change: the guest's date needs to be after the pin's own clock (`Date.now()` plus a month),
-  not a fixed day.
+  link it says never happens does. Red on a2c40c60c's parent too. FIXED ON MAIN the same day, as this page proposed
+  (the guest dated a month past the pin's own clock), and merged in here before this audit's merge.
 
 ## Pins
 
 `test/net/hiddenuncounted.test.js` (8, over the real relay), `test/server/hiddenuncounted_guild.test.js` (1, over the
 real Worker), `test/net/scale5c.test.js`'s wiring pin. `tools/mutants/hiddenuncounted.json` - **24 mutations, 24 dead**.
 Re-aimed by content: `acc3c.json`, `guild1c.json`, `guild1.json`, `guildseen.json` (4) and `scale5c.json` (2) - 9 of 9
-dead; the account version's ten records - 7 dead, 3 held by FOUNDER5's clock (above).
+dead; the account version's ten records, moved to acct183 - 10 of 10 dead.

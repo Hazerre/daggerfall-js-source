@@ -457,7 +457,7 @@ already gets right):
   `+ 1` for a seat a hidden socket never has, so a count one past the link's own shard's was thrown away, and its
   floor of one never took a count of nobody (AUDIT L2).
 - The guild: a hidden staff member reads as last online the moment they hid, to every guildmate and to themselves
-  (`11-Multiplayer/Guild-Overhaul.md` GUILD-SEEN, AUDIT C1; acct182).
+  (`11-Multiplayer/Guild-Overhaul.md` GUILD-SEEN, AUDIT C1; acct183).
 
 **Left as it is.** The relay's welcome to a hidden joiner counts the joiner (`others.length + 1`; on a hub shard
 `_hubN` of it, the bus's count or the shard's own, whichever is more), and the client keeps a welcome's `n` only past

@@ -222,10 +222,12 @@ export function grantEliteLoot(entity, level, rolls = Math.random) {
   entity.items.push(...eliteLoot(level ?? entity.level, rolls));
 }
 
-/** THE GLOW: a slow pulse, 0.55..1, phased per foe so a pack does not breathe in step. 0 for anything not elite. */
+/** THE GLOW: a slow pulse, 0.55..1, phased per foe so a pack does not breathe in step. 0 for anything not elite.
+ *  STAFF-EVENT: a mini boss's is the same pulse past STAFF_BOSS_GLOW, which the shaders read as its yellow. */
 export function eliteGlow(entity, nowSeconds, phase = 0) {
   if (!entity?.eliteFoe) return 0;
-  return 0.775 + 0.225 * Math.sin(nowSeconds * 3.2 + phase);
+  const k = 0.775 + 0.225 * Math.sin(nowSeconds * 3.2 + phase);
+  return entity.staffBoss ? STAFF_BOSS_GLOW + k : k;
 }
 /** Put the glow on a billboard batch (written only when it changes - the draw reads 0 for undefined). */
 /** How far an elite's quad reaches past its sprite (left, bottom, right, top, as fractions of the sprite): room for the
@@ -245,15 +247,50 @@ export function setBatchEliteGlow(batch, k, nowSeconds = 0) {
 export const ELITE_CORPSE_GLOW = 0.85;
 export const ELITE_CORPSE_PAD = Object.freeze([0.08, 0.03, 0.08, 0.03]);
 export const isEliteCorpse = (entity) => !!entity?.eliteFoe;
-export function markEliteCorpseBatch(batch, phase = Math.random()) {
+export function markEliteCorpseBatch(batch, phase = Math.random(), boss = false) {
   if (!batch) return;
   // negative: a corpse - its magnitude is the pulse's phase (0.05..1), so bodies side by side do not breathe in step;
-  // the shader runs the pulse off its own clock (systems/hitFlash.js eliteRimK)
-  batch.eliteGlow = -(0.05 + 0.95 * Math.min(1, Math.max(0, phase)));
+  // the shader runs the pulse off its own clock (systems/hitFlash.js eliteRimK). STAFF-EVENT: a mini boss's past
+  // STAFF_BOSS_GLOW - its outline stays yellow
+  batch.eliteGlow = -((boss ? STAFF_BOSS_GLOW : 0) + 0.05 + 0.95 * Math.min(1, Math.max(0, phase)));
   batch.elitePad = ELITE_CORPSE_PAD;
 }
-/** An elite's body lies a quarter larger too, like the elite that fell. */
-export const eliteCorpseSize = (size, entity) => (isEliteCorpse(entity) && size ? { ...size, w: size.w * ELITE_FOE_SIZE, h: size.h * ELITE_FOE_SIZE } : size);
+/** An elite's body lies a quarter larger too, like the elite that fell (STAFF-EVENT: a mini boss's as large as it stood). */
+export const eliteCorpseSize = (size, entity) => (isEliteCorpse(entity) && size ? { ...size, w: size.w * eliteSize(entity), h: size.h * eliteSize(entity) } : size);
 
-/** The size a sprite is drawn at. */
-export const eliteSize = (entity) => (entity?.eliteFoe ? ELITE_FOE_SIZE : 1);
+/** The size a sprite is drawn at (STAFF-EVENT: a mini boss's its event's). */
+export const eliteSize = (entity) => (entity?.staffBoss ? entity.staffBoss.size : entity?.eliteFoe ? ELITE_FOE_SIZE : 1);
+
+// ═══ STAFF-EVENT: A STAFF EVENT'S MINI BOSS ═══════════════════════════════════════════════════════
+// (2026-10-24, mob: "mini boss need to be a single enlarges version of the mob spawns / instead of the blue elite glow
+// lets make the mini boss have a yellow glow", "also let staff pick the miniboss"; net/staffEvent/staffEventLaw.js.) The
+// one foe a staff event's full meter calls: an ELITE underneath - every surface that draws, names, sizes and loots an
+// elite draws this one - at its event's size (net/staffEvent/staffEventLaw.js STAFF_BOSS_SIZE_*), ten times its kind's
+// health and an elite's blows, its glow yellow (STAFF_BOSS_GLOW: the pulse past it - systems/hitFlash.js reads it).
+/** The glow's offset that says a mini boss to the shaders (systems/hitFlash.js STAFF_BOSS_RIM): a living one's pulse is
+ *  2.55..3, its corpse's -2.05..-3. */
+export const STAFF_BOSS_GLOW = 2;
+export const STAFF_BOSS_HEALTH_MULT = 10;
+export const STAFF_BOSS_DAMAGE_MULT = ELITE_FOE_DAMAGE_MULT;
+/** Is this entity a staff event's mini boss? */
+export const isStaffBoss = (entity) => !!entity?.staffBoss;
+/**
+ * Make a freshly built foe a staff event's mini boss: an elite (the flag, the blows, the drop), `healthX` times its health
+ * (staff's pick on the start form, 1-100; STAFF_BOSS_HEALTH_MULT unset), at `sizePct` of its kind's size. `own` false for a puppet - its maximum is its owner's word (the record's `k`). Idempotent.
+ * @param {any} entity @param {{ own?: boolean, sizePct?: number, healthX?: number, level?: number }} [o]
+ */
+export function promoteStaffBoss(entity, { own = true, sizePct = 200, healthX = STAFF_BOSS_HEALTH_MULT, level } = {}) {
+  if (!entity || entity.staffBoss) return !!entity;
+  entity.staffBoss = { size: Math.max(1.5, Math.min(3, sizePct / 100)) };
+  entity.eliteFoe = true;
+  if (own) {
+    const hx = Number.isFinite(healthX) && healthX >= 1 ? Math.min(100, healthX) : STAFF_BOSS_HEALTH_MULT;   // staff's pick on the start form
+    entity.maxHealth = Math.max(1, Math.round((entity.maxHealth || 1) * hx));
+    entity.health = entity.maxHealth;
+    entity.healthMult = (entity.healthMult ?? 1) * hx;
+  }
+  const prior = Number.isFinite(entity.damageScale) && entity.damageScale > 0 ? entity.damageScale : 1;
+  entity.damageScale = prior * STAFF_BOSS_DAMAGE_MULT;
+  if (own) grantEliteLoot(entity, level ?? entity.level);
+  return true;
+}
