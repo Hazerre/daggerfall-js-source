@@ -4087,12 +4087,12 @@ its request unchanged, its node told - when the directory answers, fails or answ
 a CELL_TREE_KEEP_MS; a seen tree outliving its directory, a failed ask paced, the fine key only for an isolate that never
 saw one; no page reaching a node or the directory by name; a halo in a room its page holds closed CLOSE_SAME_ROOM by the
 Worker alone - its page's own room or another halo's node, at most HALO_OF_MAX read - another node's walked; a node
-believed only when it holds the cell, the directory's tree read strictly, blob11. `test/net/cellcover.test.js` (4): the
+believed only when it holds the cell, the directory's tree read strictly, blob11. `test/net/cellcover.test.js` (5): the
 law of what a socket covers, the welcome's cells and back, the ledger's square, the grant's cover; the relay keeping a
 coarse cover on the socket and saying it, a ledger word for another cell of the node taken and junk at L0; the page's
 covered crossing (no socket closed or opened, the roster renamed), halos only toward what no socket covers, the
-overworld word's bound, an old relay's crossing as today; the rename moving every map the forget lets go of, and the
-grants' reader asking the socket's cover. `test/server/cellhandover.test.js` (3): every key a class and the rest
+overworld word's bound, an old relay's crossing as today; the rename moving every map and set the forget lets go of (found by asking the forget,
+not by reading its source), and the grants' reader asking the socket's cover (a real host and a signed grant). `test/server/cellhandover.test.js` (3): every key a class and the rest
 blocking; a split handing each child its own rows and the four merged back whole, a take asked again changing nothing;
 a blocked node and a child that never answers moving nothing. `test/net/cellhalo.test.js` (3): a halo's `of`, "same room"
 a wait and not a drop, no `of` for a page in no cell. `tools/mutants/cost2.json`: 64 - 63 dead, one recorded equivalent (a halo is opened only while its page stands in a cell).
