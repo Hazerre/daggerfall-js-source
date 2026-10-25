@@ -120,6 +120,7 @@ import { HOTBAR_SLOT_ACTIONS } from '../../systems/inputActions.js';
 import { holdHotbarKeys, coverHotbar, hotbarKeyOf, ensureHotbarSkin } from '../../ui/enhanced/enhancedHotbar.js';
 import { walletReserve } from '../../net/realm/realmGoldLaw.js';   // MARKET-AUDIT: a refusal gives back exactly what the payment took
 import { drawnFlat } from '../../characters/nudeFlats.js';   // NUDE-DECOR: a nude figure shows its clothed stand-in while Show Nudity is off
+import { t } from '../../systems/textManager.js';
 
 /** The free camera's pace, metres a second; Run's pace; and how far it may go from where it began. */
 export const DECOR_FLY_SPEED = 3;
@@ -569,7 +570,7 @@ export function createDecorTool(deps) {
     if (have >= 0) hotSlots[have] = null;
     else {
       const empty = hotSlots.findIndex((s) => !s);
-      if (empty < 0) { deps.say?.('The bar is full.'); return; }
+      if (empty < 0) { deps.say?.(t('decor.tool.barFull', 'The bar is full.')); return; }
       hotSlots[empty] = key;
     }
     saveDecorHotbar(hotSlots);
@@ -1151,7 +1152,7 @@ export function createDecorTool(deps) {
       try {
         if (draft && !draft.before.has(piece.id)) { usePending.add(piece.id); deps.say?.(`${decorHallUseLabel(rank)}.`); return true; }
         const res = await deps.homeDecor.use({ mapId: r.mapId, buildingKey: r.buildingKey, character: deps.character?.(), op: 'set', id: piece.id, kind, mode: 'guild', rank, names: [] });
-        if (!res?.ok) { useRank.set(piece.id, curRank); deps.say?.(deps.refusal?.(res?.error) ?? 'It could not be kept.'); return false; }
+        if (!res?.ok) { useRank.set(piece.id, curRank); deps.say?.(deps.refusal?.(res?.error) ?? t('decor.tool.unkept', 'It could not be kept.')); return false; }
         if (Number.isInteger(res.data?.rank)) useRank.set(piece.id, res.data.rank);
         deps.say?.(`${decorHallUseLabel(useRank.get(piece.id) ?? rank)}.`);
         return true;
@@ -1186,7 +1187,7 @@ export function createDecorTool(deps) {
       const act = !r.hall && kind === 'storage' ? deps.realm?.() : null;
       if (!r.hall && kind === 'storage' && !act) {
         if (cur === 'private') useMode.delete(piece.id); else useMode.set(piece.id, cur);
-        deps.say?.('It could not be kept.');
+        deps.say?.(t('decor.tool.unkept', 'It could not be kept.'));
         return false;
       }
       const res = act
@@ -1194,7 +1195,7 @@ export function createDecorTool(deps) {
         : await deps.homeDecor.use({ ...body, realm: null });
       if (!res?.ok) {
         if (cur === 'private') useMode.delete(piece.id); else useMode.set(piece.id, cur);
-        deps.say?.(res?.error === 'bad-item' ? 'Take out what has no mark first.' : (deps.refusal?.(res?.error) ?? 'It could not be kept.'));
+        deps.say?.(res?.error === 'bad-item' ? t('decor.tool.unmarked', 'Take out what has no mark first.') : (deps.refusal?.(res?.error) ?? t('decor.tool.unkept', 'It could not be kept.')));
         return false;
       }
       const kept = DECOR_USE_MODES.includes(res.data?.mode) ? res.data.mode : mode;
@@ -1354,8 +1355,9 @@ export function createDecorTool(deps) {
         const kind = piece?.station ? 'station' : piece?.storage ? 'storage' : null;
         if (!piece || !kind || !Number.isInteger(rank)) { usePending.delete(id); continue; }
         const res = await deps.homeDecor.use({ mapId: r.mapId, buildingKey: r.buildingKey, character: deps.character?.(), op: 'set', id, kind, mode: 'guild', rank, names: [], realm: null });
-        if (!res?.ok) { deps.say?.(deps.refusal?.(res?.error) ?? 'It could not be kept.'); continue; }
+        if (!res?.ok) { deps.say?.(deps.refusal?.(res?.error) ?? t('decor.tool.unkept', 'It could not be kept.')); continue; }
         usePending.delete(id);
+        if (kind === 'storage') noteDecorShared(id, true);
         continue;
       }
       const mode = useMode.get(id) ?? 'private';
@@ -1364,9 +1366,10 @@ export function createDecorTool(deps) {
       if (!kind) { usePending.delete(id); continue; }
       const names = mode === 'friends' ? circle.friends : mode === 'party' ? circle.party : [];
       const res = await deps.homeDecor.use({ mapId: r.mapId, buildingKey: r.buildingKey, character: deps.character?.(), op: 'set', id, kind, mode, names, realm: null });
-      if (!res?.ok) { deps.say?.(deps.refusal?.(res?.error) ?? 'It could not be kept.'); continue; }
+      if (!res?.ok) { deps.say?.(deps.refusal?.(res?.error) ?? t('decor.tool.unkept', 'It could not be kept.')); continue; }
       usePending.delete(id);
       if (kind === 'storage') {
+        noteDecorShared(id, mode !== 'private');
         const snap = pool.itemsSnapshot?.() ?? {};
         delete snap[id];
         pool.setItems?.(snap);
@@ -1380,14 +1383,14 @@ export function createDecorTool(deps) {
     if (placing) placing.busy = true;
     try {
       await d.asked;
-      if (!Number.isSafeInteger(d.rev)) { deps.say?.('The room could not be read.'); return false; }
+      if (!Number.isSafeInteger(d.rev)) { deps.say?.(t('decor.tool.unread', 'The room could not be read.')); return false; }
       const before = [...d.before.values()];
       const after = pool.list();
       const delta = decorDelta(before, after);
       if (!delta.put.length && !delta.drop.length) { d.packOut = []; d.packIn = []; if (placing) placing.draftWhy = null; await flushStagedUse(r); return true; }
       const gold = draftGoldNow();
       const share = r.hall ? draftParts().back : 0;
-      if ((deps.wallet?.().gold ?? 0) + Math.min(gold, 0) < 0) { deps.say?.('Not enough gold.'); return false; }
+      if ((deps.wallet?.().gold ?? 0) + Math.min(gold, 0) < 0) { deps.say?.(t('decor.tool.short', 'Not enough gold.')); return false; }
       const body = { mapId: r.mapId, buildingKey: r.buildingKey, character: deps.character?.(), rev: d.rev, txn: d.txn, put: delta.put, drop: delta.drop, yard: !!r.yard };
       let res;
       const act = gold !== 0 ? deps.realm?.() : null;
@@ -1406,7 +1409,7 @@ export function createDecorTool(deps) {
         if (res?.ok && gold < 0) deps.wallet().pay(-gold);
         if (res?.ok && gold > 0) deps.wallet().credit?.(gold);
       }
-      if (!res?.ok) { deps.say?.(deps.refusal?.(res?.error) ?? 'The changes could not be kept.'); return false; }
+      if (!res?.ok) { deps.say?.(deps.refusal?.(res?.error) ?? t('decor.tool.unkeptRoom', 'The changes could not be kept.')); return false; }
       d.before = new Map(pool.list().map((p) => [p.id, snapPiece(p)]));
       if (Number.isSafeInteger(res.data?.rev)) d.rev = res.data.rev;
       d.txn = mintDecorTxn();
@@ -1416,7 +1419,7 @@ export function createDecorTool(deps) {
       d.owns = pool.ownSnapshot?.() ?? null;
       if (placing) placing.draftWhy = null;
       await flushStagedUse(r);
-      deps.say?.(share ? 'The room is kept. The guild has its share.' : 'The room is kept.');
+      deps.say?.(share ? t('decor.tool.keptShare', 'The room is kept. The guild has its share.') : t('decor.tool.kept', 'The room is kept.'));
       return true;
     } finally {
       if (placing) placing.busy = false;
@@ -1448,7 +1451,7 @@ export function createDecorTool(deps) {
     if (!piece || typeof deps.openSlot !== 'function') return;
     const back = panel?.isOpen() ? slot : null;
     const box = new InputMessageBoxWindow({
-      lines: ['What should this be called?'],
+      lines: [t('decor.tool.renameAsk', 'What should this be called?')],
       label: 'Name',
       value: piece.name || '',
       maxCharacters: 32,
@@ -1464,7 +1467,7 @@ export function createDecorTool(deps) {
       const cur = pool.list().find((p) => p.id === piece.id);
       if (!cur) return false;
       const next = decorPieceOf({ ...cur, name: typeof text === 'string' ? text : '' });
-      if (!next) { deps.say?.('That name will not do.'); return false; }
+      if (!next) { deps.say?.(t('decor.tool.badName', 'That name will not do.')); return false; }
       if ((next.name ?? '') === (cur.name ?? '')) return true;
       const visit = deps.visit?.();
       const stood = await writeChange(r, next);
@@ -1477,10 +1480,10 @@ export function createDecorTool(deps) {
   /** Leaving a room that is not kept yet. Yes drops the changes. No stays. */
   function askLeave() {
     if (placing?.leaving) return;
-    if (typeof deps.openSlot !== 'function') { placing.draftWhy = 'Confirm or discard the changes first.'; return; }
+    if (typeof deps.openSlot !== 'function') { placing.draftWhy = t('decor.tool.confirmFirst', 'Confirm or discard the changes first.'); return; }
     placing.leaving = true;
     const box = new DecisionBoxWindow({
-      rows: ['These changes are not kept.', 'Leave them behind?'],
+      rows: [t('decor.tool.unkeptLeave', 'These changes are not kept.'), t('decor.tool.leaveBehind', 'Leave them behind?')],
       onYes: () => { deps.closeSlot?.(box); if (placing?.browse) { discardDraft(); endPlacing(); } },
       onNo: () => { deps.closeSlot?.(box); if (placing) placing.leaving = false; },
     });
@@ -1550,7 +1553,7 @@ export function createDecorTool(deps) {
       if (batching) {
         openDraft();
         standRound(p, piece);
-        deps.say?.(`${p.entry.name} set aside. Confirm keeps it.`);
+        deps.say?.(t('decor.tool.setAside', '{name} set aside. Confirm keeps it.', { name: p.entry.name }));
         p.id = mintDecorId();
         return true;
       }
@@ -1625,7 +1628,7 @@ export function createDecorTool(deps) {
       pool.put(piece);
       pool.keepOwn(piece.id, moved);
       draft?.packOut.push(moved);
-      deps.say?.(`${p.entry.name} set aside. Confirm keeps it.`);
+      deps.say?.(t('decor.tool.setAside', '{name} set aside. Confirm keeps it.', { name: p.entry.name }));
       if (placing === p) { endPlacing(); if (openPanel()) panel.showOwn(); }
       return true;
     }
@@ -1741,7 +1744,7 @@ export function createDecorTool(deps) {
       openDraft();
       pool.remove(piece.id);
       if (decorIsDoor(piece)) forgetRooms();
-      deps.say?.(`${entryOf(piece).name} set aside. Confirm removes it.`);
+      deps.say?.(t('decor.tool.setAsideRemove', '{name} set aside. Confirm removes it.', { name: entryOf(piece).name }));
       return true;
     }
     const visit = deps.visit?.();
@@ -1797,7 +1800,7 @@ export function createDecorTool(deps) {
       pool.remove(piece.id);
       const item = pool.takeOwn?.(piece.id) ?? null;
       if (item) { draft?.packIn.push(item); deps.packGive?.(item); }
-      deps.say?.(`${name} set aside. Confirm takes it down.`);
+      deps.say?.(t('decor.tool.setAsideDown', '{name} set aside. Confirm takes it down.', { name }));
       return true;
     }
     const visit = deps.visit?.();
@@ -1952,7 +1955,7 @@ export function createDecorTool(deps) {
       const next = decorPieceOf({ ...cur, station: want });
       if (!next || !purseOk(decorGoldMove(cur, next, cur.paid).delta)) { deps.say?.(decorStationGoldLine(want)); return false; }
       pool.put(next);
-      deps.say?.(want ? `${entryOf(cur).name ?? 'The piece'}: ${DECOR_STATION_NAMES[want]}. Confirm keeps it.` : `${entryOf(cur).name ?? 'The piece'} is no longer a station. Confirm keeps it.`);
+      deps.say?.(want ? t('decor.tool.stationKept', '{name}: {station}. Confirm keeps it.', { name: entryOf(cur).name ?? t('decor.tool.thePiece', 'The piece'), station: DECOR_STATION_NAMES[want] }) : t('decor.tool.stationCleared', '{name} is no longer a station. Confirm keeps it.', { name: entryOf(cur).name ?? t('decor.tool.thePiece', 'The piece') }));
       return true;
     }
     const next = decorPieceOf({ ...cur, station: want });
@@ -2158,7 +2161,7 @@ export function createDecorTool(deps) {
       const pending = draftDirty();
       bar?.show({ name: 'Decorating', priceText: pending ? (r.hall ? decorHallDraftText(draftParts()) : decorDraftText(draftGoldNow())) : '', browse: true, draft: pending, sized: true,
         count: pool.size(), cap: capHere(r),
-        why: p.draftWhy ?? (!deps.touch && !deps.locked?.() ? 'Click to look around again.' : null) });
+        why: p.draftWhy ?? (!deps.touch && !deps.locked?.() ? t('decor.tool.lookAgain', 'Click to look around again.') : null) });
       return;
     }
     if (deps.lot && !p.lock) markLot(p);   // HOME-YARD: the lot's edge, marked while a piece is placed

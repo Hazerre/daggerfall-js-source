@@ -90,6 +90,7 @@ async function offerHome(ctx, player, body) {
   const rev = Number((await db.prepare('SELECT rev FROM decor_rev WHERE map_id = ? AND building_key = ?').bind(mapId, buildingKey).first())?.rev) || 0;
   const id = offerId();
   const until = nowS + OFFER_S;
+  await db.prepare(`UPDATE home_offers SET state = 'expired' WHERE map_id = ? AND building_key = ? AND state = 'open' AND until <= ?`).bind(mapId, buildingKey, nowS).run();
   try {
     const wrote = await db.prepare(`INSERT INTO home_offers (id, map_id, building_key, seller, seller_char, buyer, price, keep_decor, keep_items, rev, state, at, until)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)`).bind(id, mapId, buildingKey, player.id, character, buyer.id, price, keepDecor ? 1 : 0, keepItems ? 1 : 0, rev, nowS, until).run();

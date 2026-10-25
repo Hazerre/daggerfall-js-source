@@ -407,7 +407,7 @@ import { decorScanDeps } from '../systems/decor/decorScan.js';   // DECOR-DUNGEO
 import { GLOBAL_SCALE } from '../world/meshReader.js';
 import { loadIcon } from '../ui/textureCanvas.js';
 import { isTouchDevice } from '../ui/touch/touchDevice.js';
-import { setCursorActive, holdCursor, cursorKeyClaimed, requestLook } from '../player/pointerLock.js';
+import { holdCursor, cursorKeyClaimed } from '../player/pointerLock.js';
 import { decorKey } from '../systems/decor/decorCatalogue.js';
 import { decorBuiltInPlaque, decorPlaque } from '../systems/decor/decorLook.js';
 import { BULLETIN_BOARD_MODEL_ID } from '../world/rmbLayout.js';   // GUILD1e: Daggerfall's own board, placed in a guild's hall
@@ -1862,7 +1862,7 @@ export function createWorldModes(host) {
     collider: () => interiorCtx?.collider ?? null, origin: () => buildingOrigin(), eye: () => cam.pos,
     stick: () => host.stickAxes?.() ?? null,   // DECOR1e: the finger's or the pad's stick, analog - it flies the eye
     actionOf: (e) => actionOf(e, keys),
-    locked: () => typeof document !== 'undefined' && document.pointerLockElement === canvas, cursorOff: () => (setCursorActive(false), requestLook(canvas)),
+    locked: () => typeof document !== 'undefined' && document.pointerLockElement === canvas, cursorOff: () => host.grabLook?.(),
     wallet: () => decorWallet(), homeDecor: decorDoor(), character: () => host.decorCharacter?.() ?? null,
     social: () => host.social?.() ?? null,   // DECOR-ACCESS: Friends and Party, the lists the row sends
     charterClear: (pt) => charterClear(pt),   // SEAT-HALL: two metres from the court
@@ -7986,7 +7986,7 @@ export function createWorldModes(host) {
           // room to rent - asks which room, and for how long, before Daggerfall's lock ladder
           if (home && !home.own && !isBash && !homeAsked && getInteractionMode() !== 'steal'
             && (verb === HOME_VERB.rent || (verb == null && door === 'locked' && home.rent))) { openHomeRent(bd, home).catch((e) => console.error(e)); return true; }
-          if (home?.offer && !isBash && !homeAsked && (verb === HOME_VERB.take || verb === HOME_VERB.refuse)) { answerHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, home, verb === HOME_VERB.take, host, (t) => townTalk?.say?.(t), accountRefusalText, (w) => townTalk?.showOverlay?.(w)); return true; }
+          if (home?.offer && !isBash && !homeAsked && (verb === HOME_VERB.take || verb === HOME_VERB.refuse)) { answerHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, home, verb === HOME_VERB.take, host, (t) => townTalk?.say?.(t), accountRefusalText, (w) => townTalk?.showOverlay?.(w), homeWallet(bd.regionIndex ?? 0)); return true; }
           // HOME-VOTE: a vote row pressed - the vote its row says, on the home as it stands now (AUDIT B5: one gone since is
           // said so, never handed to Daggerfall's lock ladder); and an Info press on a home I may vote on asks - only where
           // the plaque lists no rows (AUDIT B1: a touch screen, World Tooltips off; a drawn plaque's plain click goes in)
@@ -8360,7 +8360,7 @@ export function createWorldModes(host) {
         { code: 'KeyG', label: 'G - go in', action: homeOnward(hit, entries) },
         { code: 'KeyW', label: 'W - who may enter', action: () => openHomeEntryMenu(bd, home.entry) },
         { code: 'KeyS', label: 'S - sell it', action: () => openHomeSale(bd) },
-        { code: 'KeyT', label: 'T - transfer it', action: () => openHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, host, (t) => townTalk?.say?.(t), accountRefusalText, home?.giving, (w) => townTalk?.showOverlay?.(w)) },
+        { code: 'KeyT', label: t('housing.transfer.transferIt', 'T - transfer it'), action: () => openHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, host, (t) => townTalk?.say?.(t), accountRefusalText, home?.giving, (w) => townTalk?.showOverlay?.(w)) },
         { code: 'Escape', label: 'Esc - close', action: () => {} },
       ],
     }));

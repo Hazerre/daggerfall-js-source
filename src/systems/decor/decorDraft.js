@@ -1,6 +1,7 @@
 // @ts-check
 // DECOR-BATCH: a decorating session's final differences. Nothing here talks to the service.
 import { decorGoldMove, mintDecorId } from '../../net/decorLaw.js';
+import { t } from '../textManager.js';
 
 const shapeOf = (p) => JSON.stringify({
   model: p?.model ?? null,
@@ -64,14 +65,14 @@ export function decorDraftGold(before, after) {
 export function decorHallDraftText(parts) {
   const pay = parts?.pay ?? 0;
   const back = parts?.back ?? 0;
-  if (pay && back) return `${pay.toLocaleString('en-US')} gold to confirm, ${back.toLocaleString('en-US')} to the guild`;
-  if (back) return `${back.toLocaleString('en-US')} gold to the guild`;
+  if (pay && back) return t('decor.draft.hallBoth', '{pay} gold to confirm, {back} to the guild', { pay: pay.toLocaleString('en-US'), back: back.toLocaleString('en-US') });
+  if (back) return t('decor.draft.hallBack', '{back} gold to the guild', { back: back.toLocaleString('en-US') });
   return decorDraftText(-pay);
 }
 
 /** The bar's line for that gold, before Confirm. */
 export function decorDraftText(delta) {
-  if (!delta) return 'nothing to pay';
+  if (!delta) return t('decor.draft.free', 'nothing to pay');
   const n = Math.abs(delta).toLocaleString('en-US');
-  return delta < 0 ? `${n} gold to confirm` : `${n} gold back on confirm`;
+  return delta < 0 ? t('decor.draft.pay', '{n} gold to confirm', { n }) : t('decor.draft.back', '{n} gold back on confirm', { n });
 }

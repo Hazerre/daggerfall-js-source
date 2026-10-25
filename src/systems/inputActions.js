@@ -31,6 +31,7 @@
 // thirty-eight buttons in a window whose art cannot move. Past the end,
 // every existing index still means what it meant.
 
+import { t } from './textManager.js';
 import { appStorage } from './appStorage.js';   // DA1: the storage seam
 import { storedModSetting, modSetting, modLatchedOn } from './modSettings.js';   // KB1: a player's own mod key, carried into the registry once; and whether its mod is on
 import { domCodeForKeyCode, KEYCODE_NONE } from './keyCodes.js';   // KB1: the mods' TextKeys are Unity KeyCode names
@@ -558,7 +559,7 @@ export const ACTION_GROUPS = Object.freeze([
     ['UseMagicItem', 'Use magic item'],
   ]),
   g('Interaction', [
-    ['ActivateCenterObject', 'Activate (mouse)'], ['Interact', 'Interact'], ['Decorate', 'Decorate this room'], ['ModeWheel', 'Mode wheel (hold, flick, release)'],
+    ['ActivateCenterObject', 'Activate (mouse)'], ['Interact', 'Interact'], ['Decorate', t('input.action.decorate', 'Decorate this room')], ['ModeWheel', 'Mode wheel (hold, flick, release)'],
     ['StealMode', 'Steal mode'], ['GrabMode', 'Grab mode'], ['InfoMode', 'Info mode'], ['TalkMode', 'Talk mode'],
     ['QuickLootAll', 'Take everything'], ['QuickLootOpen', 'Open the container'],
     ['Transport', 'Transport'], ['Rest', 'Rest'],

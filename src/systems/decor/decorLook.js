@@ -4,19 +4,21 @@
 // only be taken out. A room's swing door (`intdoor:`) may be taken out, and nothing else. An exit, a chained
 // door or a ladder is the building's structure.
 
+import { t } from '../textManager.js';
+
 const NONE = Object.freeze({ move: false, duplicate: false, remove: false, out: false });
 
 /** Who may use a chest or a station, in the door's order: a press moves it on. */
 export const DECOR_USE_MODES = Object.freeze(['private', 'friends', 'party', 'guild']);
 /** The row's word, the door's shape: "Who may use: Me". */
 export const DECOR_USE_WORDS = Object.freeze({ private: 'Me', friends: 'Friends', party: 'Party', guild: 'Guild' });
-export const decorUseLabel = (mode) => `Who may use: ${DECOR_USE_WORDS[mode] ?? DECOR_USE_WORDS.private}`;
+export const decorUseLabel = (mode) => t('decor.look.use', 'Who may use: {who}', { who: DECOR_USE_WORDS[mode] ?? DECOR_USE_WORDS.private });
 export const decorUseNext = (mode) => DECOR_USE_MODES[(Math.max(0, DECOR_USE_MODES.indexOf(mode)) + 1) % DECOR_USE_MODES.length];
 /** A hall chest is the guild's. A press moves the lowest rank that may open it, and every higher rank may too. */
 export const HALL_USE_RANKS = Object.freeze([3, 2, 1, 0]);
 export const HALL_USE_WORDS = Object.freeze({ 3: 'Everyone', 2: 'Members', 1: 'Officers', 0: 'Guildmaster' });
 export const decorHallRankNext = (rank) => HALL_USE_RANKS[(Math.max(0, HALL_USE_RANKS.indexOf(rank)) + 1) % HALL_USE_RANKS.length];
-export const decorHallUseLabel = (rank) => `Who may use: ${HALL_USE_WORDS[rank] ?? HALL_USE_WORDS[3]}`;
+export const decorHallUseLabel = (rank) => t('decor.look.hall', 'Who may use: {who}', { who: HALL_USE_WORDS[rank] ?? HALL_USE_WORDS[3] });
 /** The handles a press on Friends or Party sends. Party leaves the owner out. */
 export function decorUseCircle(social) {
   const friends = [];
@@ -62,7 +64,7 @@ export function decorLookOffers(aim) {
   return row;
 }
 
-const PLAQUE_LABEL = { move: 'Move', duplicate: 'Duplicate', remove: 'Remove', rename: 'Rename', out: 'Take out' };
+const PLAQUE_LABEL = { move: 'Move', duplicate: 'Duplicate', remove: 'Remove', rename: 'Rename', out: t('decor.look.takeOut', 'Take out') };
 
 /**
  * The hover plaque's title and its wheel list, for one aim while decorating. No list, the name the room already

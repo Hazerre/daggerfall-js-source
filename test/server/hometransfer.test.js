@@ -75,7 +75,10 @@ test('HOME-TRANSFER a free gift and a paid sale each land once, and a second ans
   assert.equal(gift.status, 200, JSON.stringify(gift.body));
   const again = await call('POST', '/v1/homes/transfer', { op: 'offer', ...HOME, character: A.id, to: 'Mara', price: 0, keepDecor: true, keepItems: false }, aldric);
   assert.equal(again.body?.error, 'offer-open');
-  assert.equal((await call('POST', '/v1/homes/transfer', { op: 'cancel', id: gift.body.id }, aldric)).status, 200);
+  env.DB._raw.prepare('UPDATE home_offers SET until = 1 WHERE id = ?').run(gift.body.id);
+  const replaced = await call('POST', '/v1/homes/transfer', { op: 'offer', ...HOME, character: A.id, to: 'Mara', price: 0, keepDecor: true, keepItems: false }, aldric);
+  assert.equal(replaced.status, 200, JSON.stringify(replaced.body));
+  assert.equal((await call('POST', '/v1/homes/transfer', { op: 'cancel', id: replaced.body.id }, aldric)).status, 200);
   const sale = await call('POST', '/v1/homes/transfer', { op: 'offer', ...HOME, character: A.id, to: 'Mara', price: 1000, keepDecor: true, keepItems: false }, aldric);
   assert.equal(sale.status, 200, JSON.stringify(sale.body));
   const stranger = await registered('Cedric');

@@ -236,5 +236,6 @@ test('AUDIT HOME-STATIONS S5 + S7 + S8: six acts fit a landscape phone (the side
   const M = src('src/scenes/worldModes.js');
   assert.match(M, /for \(const t of lines\.length \? lines : \[DECOR_STATION_REFUSED\]\) say\(t\);/);
   assert.match(M, /const DECOR_STATION_REFUSED = 'You cannot use the station right now\.';/);
-  assert.match(M, /const craft = piece\.station \? DECOR_STATION_NAMES\[piece\.station\] : null;[^\n]*\n\s*return t \? \{ title: craft \? `\$\{t\} \(\$\{craft\}\)` : t \} : craft \? \{ title: craft \} : null;/);
+  assert.match(src('src/systems/worldTooltips.js'), /const craft = piece\.station \? stationName : null;\n\s*return t \? \{ title: craft \? `\$\{t\} \(\$\{craft\}\)` : t \} : craft \? \{ title: craft \} : null;/);
+  assert.match(M, /stationName: piece\?\.station \? \(DECOR_STATION_NAMES\[piece\.station\] \?\? null\) : null/);
 });

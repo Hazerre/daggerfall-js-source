@@ -288,7 +288,7 @@ export const homeOwnerRows = (entry) => [
   { id: HOME_VERB.enter, label: 'Go in' },
   { id: HOME_VERB.entry, label: `Who may enter: ${HOME_ENTRY_WORDS[entry] ?? HOME_ENTRY_WORDS[HOME_ENTRY_DEFAULT]}` },
   { id: HOME_VERB.sell, label: 'Sell it' },
-  { id: HOME_VERB.give, label: 'Transfer Ownership' },
+  { id: HOME_VERB.give, label: t('housing.door.transfer', 'Transfer Ownership') },
 ];
 /**
  * HOME-RENT: THE ROWS OVER SOMEONE ELSE'S HOME, where they say more than "Locked": a tenant's (go in, and their own room
@@ -298,7 +298,7 @@ export const homeOwnerRows = (entry) => [
 export function homeVisitorRows(home, door, nowS = Math.floor(Date.now() / 1000)) {
   if (home?.hall) return homeHallRows(home, door);   // GUILD1d: a guild's hall - its members' rows, never a room to rent
   if (!home || home.own) return null;
-  const offer = home.offer ? [{ id: HOME_VERB.take, label: home.offer.price > 0 ? `Accept the house: ${gold(home.offer.price)} gold` : 'Accept the house' }, { id: HOME_VERB.refuse, label: 'Decline the house' }] : [];
+  const offer = home.offer ? [{ id: HOME_VERB.take, label: home.offer.price > 0 ? t('housing.door.acceptPriced', 'Accept the house: {gold} gold', { gold: gold(home.offer.price) }) : t('housing.door.accept', 'Accept the house') }, { id: HOME_VERB.refuse, label: t('housing.door.decline', 'Decline the house') }] : [];
   if (rentDaysLeft(home.tenant, nowS) > 0) return [{ id: HOME_VERB.enter, label: 'Go in' }, { id: HOME_VERB.rent, label: rentTenantLabel(rentDaysLeft(home.tenant, nowS)) }, ...offer];
   // AUDIT: never from one's own account (the service refuses it `rent-own`) - another character of the owner's is shown
   // only the door
@@ -766,7 +766,7 @@ export function createOnlineHomes({ api, character = () => null, now = () => Dat
   /** A house offered to one account, or that account's answer. The service decides the gold and the goods. */
   async function transfer(body) {
     const r = await api.transfer?.({ ...body, character: body.character ?? character() });
-    if (r?.ok) { ensure(body.mapId, { force: true }); return { ok: true, data: r.data }; }
+    if (r?.ok) { ensure(body.mapId, { force: true }); return r.data ? r : { ...r, data: r }; }
     return refused(r);
   }
 

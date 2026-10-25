@@ -43,12 +43,12 @@ const holdRow = (db, mapId, buildingKey, id) => db.prepare('SELECT player, char_
 const heldByOther = (row, player, character, nowS) => !!(row && row.until > nowS && !(row.player === player.id && row.char_id === character));
 
 async function takeHold(db, player, character, mapId, buildingKey, id, nowS) {
-  const row = await holdRow(db, mapId, buildingKey, id);
-  if (heldByOther(row, player, character, nowS)) return { error: 'decor-busy' };
-  await db.prepare(`INSERT INTO decor_hold (map_id, building_key, piece_id, player, char_id, until) VALUES (?, ?, ?, ?, ?, ?)
-    ON CONFLICT(map_id, building_key, piece_id) DO UPDATE SET player = excluded.player, char_id = excluded.char_id, until = excluded.until`)
-    .bind(mapId, buildingKey, id, player.id, character, nowS + HOLD_S).run();
-  return { ok: true };
+  // One statement: a live hold is not replaced. Two opens that both saw an empty row cannot both succeed.
+  const wrote = await db.prepare(`INSERT INTO decor_hold (map_id, building_key, piece_id, player, char_id, until) VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(map_id, building_key, piece_id) DO UPDATE SET player = excluded.player, char_id = excluded.char_id, until = excluded.until
+    WHERE decor_hold.until <= ? OR (decor_hold.player = excluded.player AND decor_hold.char_id = excluded.char_id)`)
+    .bind(mapId, buildingKey, id, player.id, character, nowS + HOLD_S, nowS).run();
+  return wrote?.meta?.changes ? { ok: true } : { error: 'decor-busy' };
 }
 
 async function ourHold(db, player, character, mapId, buildingKey, id, nowS) {

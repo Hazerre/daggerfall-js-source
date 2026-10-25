@@ -112,8 +112,10 @@ ${DFICON_CSS}
 .dfdecor-card[data-mode="look"] .dfdecor-room-actions, .dfdecor-card[data-mode="look"] .dfdecor-fg-kinds,
 .dfdecor-card[data-mode="look"] .dfdecor-fg-has { display: none; }
 .dfdecor-room-actions { display: flex; flex-direction: column; gap: 10px; }
-.dfdecor-head { display: flex; align-items: flex-start; gap: 10px; border-bottom: 1px solid var(--iron, #2b323b); padding-bottom: 6px; }
-.dfdecor-tip { position: fixed; z-index: 40; transform: translate(-50%, calc(-100% - 6px)); padding: 2px 8px;
+.dfdecor-head { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--iron, #2b323b); padding-bottom: 6px; }
+.dfdecor-where { flex: 1 0 100%; font-size: 14px; color: var(--bone, #e9e4d9); }
+.dfdecor-where[hidden] { display: none; }
+.dfdecor-tip { position: fixed; z-index: 39; transform: translate(-50%, calc(-100% - 6px)); padding: 2px 8px;
   border: 1px solid #b8943f; background: rgba(14, 16, 19, .96); color: var(--bone, #e9e4d9); font-size: 13px;
   line-height: 1.3; white-space: nowrap; pointer-events: none; }
 .dfdecor-tip[hidden] { display: none; }
@@ -495,7 +497,7 @@ export function createDecorButton({ onPress, touch = false, doc = document }) {
  */
 export function createDecorPanel({
   onPlace, onClose = () => {}, onPoint = () => {}, thumbOf = () => null, onMove = () => {}, onDuplicate = () => {}, onRemove = () => {}, onToggle = () => {},
-  onTurn = () => {}, onRename = () => {}, onAccess = () => {}, useLabel = () => 'Who may use: Me', onPlaceLook = () => {}, onBase = () => {}, onRoom = () => {}, onRent = () => {}, onPaint = () => {}, onHot = () => {}, doc = document, win = globalThis,
+  onTurn = () => {}, onRename = () => {}, onAccess = () => {}, useLabel = () => t('decor.panel.useMe', 'Who may use: Me'), onPlaceLook = () => {}, onBase = () => {}, onRoom = () => {}, onRent = () => {}, onPaint = () => {}, onHot = () => {}, doc = document, win = globalThis,
   thumbKeyOf = (e) => e.key,
 }) {
   injectStyle(doc);
@@ -523,13 +525,15 @@ export function createDecorPanel({
   swallowPresses(card);
 
   const head = el('div', 'dfdecor-head');
+  const whereLine = el('div', 'dfdecor-where');
+  whereLine.hidden = true;
   const close = el('button', 'dfdecor-btn dfdecor-close', 'Close');
   close.type = 'button';
   // MENU-ORDER: the lists as pictures (tiles) or as lines - the player's choice, kept while the panel stands
   const layoutChips = el('div', 'dfdecor-chips dfdecor-layout');
   // DECOR1e: the two views - the catalogue to place from, and the pieces already in the room to change
   const tabs = el('div', 'dfdecor-chips dfdecor-tabs');
-  head.append(tabs, layoutChips, close);
+  head.append(whereLine, tabs, layoutChips, close);
   tabs.setAttribute('role', 'tablist');
   // MENU-ORDER: a house's rooms are a row of their own under the views (DECOR-ROOMS drew them among the tabs)
   const roomsBar = el('div', 'dfdecor-roomsbar');
@@ -597,7 +601,7 @@ export function createDecorPanel({
   const turnLeftBtn = turnBtn('Turn left', -1), turnRightBtn = turnBtn('Turn right', 1);
   const lightBtn = act('Light', () => { const it = placedSelected(); if (it) onToggle(it.piece, 'light'); });
   const storeBtn = act('Holds things', () => { const it = placedSelected(); if (it && !storeBtn.disabled) onToggle(it.piece, 'storage'); });
-  const accessBtn = act('Who may use: Me', () => { const it = placedSelected(); if (it && !accessBtn.disabled) onAccess(it.piece); });
+  const accessBtn = act(t('decor.panel.useMe', 'Who may use: Me'), () => { const it = placedSelected(); if (it && !accessBtn.disabled) onAccess(it.piece); });
   const removeBtn = act('Remove', () => { const it = placedSelected(); if (it && !removeBtn.disabled) onRemove(it.piece); });
   // HOME-STATIONS: the craft offered (cycled, free) and the act on it (made for its licence, or unmade)
   let stationOffer = DECOR_STATIONS[0], stationFor = null, stationArmed = null;   // the offer follows a newly chosen piece's own craft
@@ -1052,14 +1056,14 @@ export function createDecorPanel({
       const on = loadDecorFavourites().has(e.key);
       const fav = el('button', 'dfdecor-btn dfdecor-mark dfdecor-fav', on ? '★' : '☆');
       fav.type = 'button';
-      fav.title = on ? 'Remove favourite' : 'Favourite';
+      fav.title = on ? t('decor.panel.unfav', 'Remove favourite') : 'Favourite';
       fav.setAttribute('aria-pressed', on ? 'true' : 'false');
       fav.setAttribute('aria-label', fav.title);
       fav.addEventListener('click', (ev) => { ev.stopPropagation?.(); toggleDecorFavourite(e.key); redraw(); });
       const hotOn = (view?.hot ?? []).includes(e.key);
       const hot = el('button', 'dfdecor-btn dfdecor-mark', 'Hotbar');
       hot.type = 'button';
-      hot.title = hotOn ? 'Remove from hotbar' : 'Add to hotbar';
+      hot.title = hotOn ? t('decor.panel.unhot', 'Remove from hotbar') : t('decor.panel.hot', 'Add to hotbar');
       hot.setAttribute('aria-pressed', hotOn ? 'true' : 'false');
       hot.setAttribute('aria-label', hot.title);
       hot.addEventListener('click', (ev) => { ev.stopPropagation?.(); onHot(e.key); redraw(); });
@@ -1194,8 +1198,8 @@ export function createDecorPanel({
     const hotOn = markable && (view?.hot ?? []).includes(e.key);
     sideFav.disabled = !markable;
     sideHot.disabled = !markable;
-    sideFav.title = favOn ? 'Remove favourite' : 'Favourite';
-    sideHot.title = hotOn ? 'Remove from hotbar' : 'Add to hotbar';
+    sideFav.title = favOn ? t('decor.panel.unfav', 'Remove favourite') : 'Favourite';
+    sideHot.title = hotOn ? t('decor.panel.unhot', 'Remove from hotbar') : t('decor.panel.hot', 'Add to hotbar');
     sideFav.setAttribute('aria-pressed', favOn ? 'true' : 'false');
     sideHot.setAttribute('aria-pressed', hotOn ? 'true' : 'false');
     sideFav.setAttribute('aria-label', sideFav.title);
@@ -1288,7 +1292,7 @@ export function createDecorPanel({
     turnLeftBtn.disabled = turnRightBtn.disabled = !it || door;   // DECOR-TURN: a door is turned by its doorway (Move)
     lightBtn.disabled = !it || door;
     storeBtn.disabled = !it || !!it.piece.item || (it.piece.storage && it.holds) || !!it.piece.station || door;   // HOME-STATIONS: a station holds nothing
-    accessBtn.textContent = it?.piece ? useLabel(it.piece) : 'Who may use: Me';
+    accessBtn.textContent = it?.piece ? useLabel(it.piece) : t('decor.panel.useMe', 'Who may use: Me');
     accessBtn.disabled = !it || door || !(it.piece.storage || it.piece.station);
     removeBtn.disabled = !it || it.holds;
     pickWhy.textContent = it?.holds ? DECOR_HOLDS_LINE : '';
@@ -1338,6 +1342,9 @@ export function createDecorPanel({
     if (footGold.textContent !== g) footGold.textContent = g;
     const s = view.ready ? '' : `Reading the catalog - ${Math.floor((view.progress ?? 0) * 100)}%`;
     if (footStatus.textContent !== s) footStatus.textContent = s;
+    const w = String(view.where ?? '');
+    if (whereLine.textContent !== w) whereLine.textContent = w;
+    whereLine.hidden = !w;
   }
 
   function hide() {

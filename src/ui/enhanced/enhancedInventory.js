@@ -1663,7 +1663,7 @@ function heldThen(dir, item, amount, go) {
   Promise.resolve(commit(dir, item, amount, go)).then((ok) => {
     heldBusy.delete(item);
     if (ok === false) { refresh(); render(); }
-  }, () => { heldBusy.delete(item); notice = 'The chest stays shut.'; refresh(); render(); });
+  }, () => { heldBusy.delete(item); notice = t('inventory.store.chestShut', 'The chest stays shut.'); refresh(); render(); });
 }
 
 /** LOCAL -> REMOTE, through U56's ladder. */
@@ -1887,7 +1887,7 @@ function bulkMove(dir) {
             sound = plan.sound === 'gold' && sound !== 'click' ? 'gold' : 'click';
           });
         } catch { ok = false; }
-        if (ok === false) { notice = 'The chest stays shut.'; break; }
+        if (ok === false) { notice = t('inventory.store.chestShut', 'The chest stays shut.'); break; }
       }
       if (sound) audio.playOneShot(sound === 'gold' ? SOUND.GoldPieces : SOUND.ButtonClick, 1);
       picked = null;

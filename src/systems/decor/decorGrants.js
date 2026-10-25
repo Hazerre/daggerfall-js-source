@@ -2,6 +2,8 @@
 // DECOR-ACCESS: the room's answer for who may use a chest or a station, and a shared chest's own window.
 // The window changes the pack only after the service has moved the good.
 
+import { t } from '../textManager.js';
+
 let storage = new Set();
 let station = new Set();
 let bin = new Set();
@@ -88,12 +90,12 @@ export function bindDecorHouseFrom(host, player, say, refusal, mapId, buildingKe
 /** The room's storage window, built outside the host so the host only hands the list across. */
 export const openDecorChest = (make, spec) => make?.(spec?.loot ? spec : { loot: spec }) ?? null;
 
-const chestShut = (d, error) => d.say?.(error === 'decor-busy' ? (d.refusal?.('decor-busy') ?? 'Someone else is using this chest.') : (d.refusal?.(error) ?? 'The chest stays shut.'));
+const chestShut = (d, error) => d.say?.(error === 'decor-busy' ? (d.refusal?.('decor-busy') ?? t('decor.grants.busy', 'Someone else is using this chest.')) : (d.refusal?.(error) ?? t('decor.grants.shut', 'The chest stays shut.')));
 
 /** A chest whose goods the service holds. The window moves them locally. Closing sends the whole difference once. */
 export async function openSharedChest(id) {
   const d = door;
-  if (!d?.use || typeof d.open !== 'function') { d?.say?.('The chest stays shut.'); return false; }
+  if (!d?.use || typeof d.open !== 'function') { d?.say?.(t('decor.grants.shut', 'The chest stays shut.')); return false; }
   const at = { mapId: d.mapId, buildingKey: d.buildingKey, character: d.character?.() ?? d.character, id };
   const listed = await d.use({ ...at, op: 'list', hold: true });
   if (!listed?.ok) { chestShut(d, listed?.error); return false; }
@@ -113,8 +115,8 @@ export async function openSharedChest(id) {
   };
   const commit = (dir, item, amount, go) => {
     const stack = item?.stackCount ?? 1;
-    if (amount != null && amount !== stack) { d.say?.('The chest takes the whole stack.'); return false; }
-    if (!item?.uid) { d.say?.(dir === 'put' ? 'That cannot be stored.' : 'It stays in the chest.'); return false; }
+    if (amount != null && amount !== stack) { d.say?.(t('decor.grants.whole', 'The chest takes the whole stack.')); return false; }
+    if (!item?.uid) { d.say?.(dir === 'put' ? t('decor.grants.badItem', 'That cannot be stored.') : t('decor.grants.stays', 'It stays in the chest.')); return false; }
     if (typeof go !== 'function') return false;
     go();
     note(dir, item);
@@ -146,14 +148,14 @@ export async function openSharedChest(id) {
     const res = await d.use({ ...at, op: 'vault' });
     if (!res?.ok) { chestShut(d, res?.error); return null; }
     const items = res.data?.items ?? [];
-    if (!items.length) { d.say?.('The vault is empty.'); return []; }
+    if (!items.length) { d.say?.(t('decor.grants.vaultEmpty', 'The vault is empty.')); return []; }
     for (const it of items) if (!goods.some((g) => g?.uid === it.uid)) goods.push(it);
     return items;
   } : null;
   d.open({
     loot: { items: () => goods, storage: true, title: 'Chest', commit, closed, ...(vaultPour ? { vaultPour } : {}) },
     items: () => draft,
-    onDrop: (items) => { for (const it of items ?? []) draft.push(it); d.say?.('Shut the chest before you drop that.'); return null; },
+    onDrop: (items) => { for (const it of items ?? []) draft.push(it); d.say?.(t('decor.grants.noDrop', 'Shut the chest before you drop that.')); return null; },
   });
   return true;
 }

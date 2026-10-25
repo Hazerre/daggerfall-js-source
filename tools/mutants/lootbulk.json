@@ -29,8 +29,8 @@
   {
     "name": "CONTAINER-PEEK-asks-the-room-for-every-key",
     "file": "src/systems/containerPreview.js",
-    "old": "  return (key) => (typeof key === 'string' && (key.startsWith('container:') || key.startsWith('decor:'))",
-    "new": "  return (key) => (typeof key === 'string' && (shut(), true)",
+    "old": "    if (typeof key !== 'string' || (!key.startsWith('container:') && !key.startsWith('decor:'))) return null;",
+    "new": "    if (typeof key !== 'string') return null;",
     "tests": [
       "test/systems/containerpreview.test.js"
     ]
