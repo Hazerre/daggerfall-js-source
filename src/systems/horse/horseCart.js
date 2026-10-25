@@ -1544,7 +1544,27 @@ export function createHorseCartRuntime(deps) {
     if (!physicalPersistenceEnabled && ready()) applyPersistenceResolution(disabledResolution(), true);
     return copySaveData(wagonState);
   }
-  function restoreSaveData(data) { clearAllTransientState(); wagonState = normalizeSaveData(data, ratio()); pendingPersistenceNormalization = !physicalPersistenceEnabled; changed(); }
+  /** `elsewhere`: the load did not land where its save stood (world.js's load passes it - see callTeamToLanding). */
+  function restoreSaveData(data, { elsewhere = false } = {}) {
+    clearAllTransientState();
+    wagonState = normalizeSaveData(data, ratio());
+    pendingPersistenceNormalization = !physicalPersistenceEnabled;
+    changed();
+    if (elsewhere) callTeamToLanding();
+  }
+  /**
+   * HORSE-WAKE (bible/01-Overview/bugs/Field-Bugs-2026-10-25.md): a load that lands away from its save - the online
+   * page's wake from a dungeon at the nearest temple, town or graveyard, a dungeon that cannot be found or entered, a
+   * save taken somewhere else. DFU's load always lands at the save, so the mod never meets this. Without a call, the
+   * record's waiting horse stands at the dungeon door it was left at, out of every mount's reach (canUseHorseTransport),
+   * while the horse item is still in the pack. The pair is called to the player as the online respawn calls it (WILD1's
+   * forced journey): a horse waiting or following and a hitched team come; a wagon parked alone stays where it was left.
+   */
+  function callTeamToLanding() {
+    forceNextFastTravel();
+    handlePreFastTravel();
+    handlePostFastTravel();
+  }
   /** AUDIT HCC H4: the port's LIVE switch turned off (no IL twin - DFU loads a mod or does not). A mod not loaded
    *  observes nothing, so the machine drops every transient it holds - the presentations, the transport mode it last
    *  saw, the pending work - and keeps its record (the save still carries it). Turned back on, it starts observing
