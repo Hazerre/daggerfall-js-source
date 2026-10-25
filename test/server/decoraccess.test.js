@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import worker from '../../server-account/src/index.js';
+import { decorOf } from '../../server-account/src/decor.js';
 import { _resetKeyForTests } from '../../server-account/src/signing.js';
 import { ACCEPTED } from '../../src/net/legalLaw.js';
 import { r2, seatRealm, recordOf, layRecord, realmAt } from '../realmSeat.mjs';
@@ -314,4 +315,13 @@ test('DECOR-ACCESS two stacks of one good land as one stack', async () => {
   const rows = env.DB._raw.prepare('SELECT item FROM decor_bin').all().map((r) => JSON.parse(r.item));
   assert.deepEqual(rows.map((it) => [it.group, it.stackCount]).sort(), [['Currency', 15], ['Gems', 152]]);
   assert.equal(recordOf(env, M.id).items.length, 0);
+});
+
+test('DECOR-BATCH a standing poll is the revision row', async () => {
+  const db = d1();
+  db._raw.prepare('INSERT INTO decor_rev (map_id, building_key, rev) VALUES (1, 2, 7)').run();
+  assert.deepEqual(await decorOf({ db }, 'p', { mapId: 1, buildingKey: 2, revOnly: true }), { mapId: 1, buildingKey: 2, rev: 7 });
+  const empty = await decorOf({ db }, 'p', { mapId: 3, buildingKey: 4, revOnly: true });
+  assert.equal(empty.rev, 0);
+  assert.equal(empty.pieces, undefined);
 });
