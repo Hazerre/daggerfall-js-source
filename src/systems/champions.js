@@ -108,7 +108,7 @@ export function rollStreetChampion(feet = null, mobileType = 0) {
 export function _resetStreetChampionsForTests() { _streetN = 0; }
 
 /** The trait a champion's mark stands as on this entity, or null - applyChampion's gate: no trait, a foe under
- *  CHAMPION_MIN_LEVEL, the city watch, an ally, or the switch off. CHAMP-BASE (bible/01-Overview/bugs/Field-Bugs-2026-10-25.md):
+ *  CHAMPION_MIN_LEVEL, the city watch, an ally, or the switch off. CHAMP-BASE (bible/01-Overview/bugs/Field-Bugs-2026-10-25b.md):
  *  a class foe stands at its builder's level, so a room's shared base asks it again at the room's
  *  (scenes/roomLootHost.js roomBodyBase). */
 export function championTraitFor(entity, traitIndex) {

@@ -679,7 +679,7 @@ test('PARTY-LOOT: THE BASE IS THE ROOM\'S ROLL ALONE - one name and one set of t
   assert.ok([...lists.values()].some((v) => v !== '[]'), 'and it is a real roll');
 });
 
-test('CHAMP-BASE (FIELD BUGS 2026-10-25, "Loot will sometime be unobtainable and say theres a \'new version of the game\' when there isn\'t"): a body the layout marks a champion is ONE base for the room, whatever level each player built its foe at - a level-2 joiner\'s copy of a marked class foe stood as no champion (applyChampion\'s level gate, read at its builder\'s level), ran PLAIN-LOOT\'s keep on dice the host\'s champion skips, and read the host\'s word about the body as "from a newer version of the game"', (t) => {
+test('CHAMP-BASE (FIELD BUGS 2026-10-25b, "Loot will sometime be unobtainable and say theres a \'new version of the game\' when there isn\'t"): a body the layout marks a champion is ONE base for the room, whatever level each player built its foe at - a level-2 joiner\'s copy of a marked class foe stood as no champion (applyChampion\'s level gate, read at its builder\'s level), ran PLAIN-LOOT\'s keep on dice the host\'s champion skips, and read the host\'s word about the body as "from a newer version of the game"', (t) => {
   // the suite's one clock is put back: a body's generation is its death, so a later case's rolls must not move with this one
   const clockAtStart = clock.t;
   t.after(() => { clock.t = clockAtStart; });
@@ -732,7 +732,7 @@ test('CHAMP-BASE (FIELD BUGS 2026-10-25, "Loot will sometime be unobtainable and
   for (const i of marked(low.A)) assert.ok(Number.isInteger(low.A.host.bases.get(`corpse:${i}`)?.lootCap), `corpse:${i}: a plain body's base at the room's level`);
 });
 
-test('CHAMP-BASE (FIELD BUGS 2026-10-25, "This was also happening when solo"): a word the room\'s MEMORY hands back that this build cannot match was the room\'s own - an earlier visit\'s, often on the build before an update - so its host starts the container over one generation on, and every client takes the new mint; a live peer\'s word, or the memory\'s on a client that is not the host, is still another build\'s', (t) => {
+test('CHAMP-BASE (FIELD BUGS 2026-10-25b, "This was also happening when solo"): a word the room\'s MEMORY hands back that this build cannot match was the room\'s own - an earlier visit\'s, often on the build before an update - so its host starts the container over one generation on, and every client takes the new mint; a live peer\'s word, or the memory\'s on a client that is not the host, is still another build\'s', (t) => {
   // the suite's one clock is put back: a body's generation is its death, so a later case's rolls must not move with this one
   const clockAtStart = clock.t;
   t.after(() => { clock.t = clockAtStart; });

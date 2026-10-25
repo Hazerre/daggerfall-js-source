@@ -1,6 +1,6 @@
 [
   {
-    "name": "FB1025-CHAMPBASE-the-builders-mark",
+    "name": "FB1025B-CHAMPBASE-the-builders-mark",
     "file": "src/scenes/roomLootHost.js",
     "old": "      e.champion = e.eliteFoe ? undefined : championTraitFor(e, f.src?.champion)?.id;\n",
     "new": "",
@@ -9,7 +9,7 @@
     ]
   },
   {
-    "name": "FB1025-CHAMPBASE-never-a-champion",
+    "name": "FB1025B-CHAMPBASE-never-a-champion",
     "file": "src/scenes/roomLootHost.js",
     "old": "      e.champion = e.eliteFoe ? undefined : championTraitFor(e, f.src?.champion)?.id;",
     "new": "      e.champion = undefined;",
@@ -18,7 +18,7 @@
     ]
   },
   {
-    "name": "FB1025-CHAMPBASE-a-mark-at-any-level",
+    "name": "FB1025B-CHAMPBASE-a-mark-at-any-level",
     "file": "src/scenes/roomLootHost.js",
     "old": "      e.champion = e.eliteFoe ? undefined : championTraitFor(e, f.src?.champion)?.id;",
     "new": "      e.champion = e.eliteFoe ? undefined : (Number.isInteger(f.src?.champion) ? 'mighty' : undefined);",
@@ -27,7 +27,7 @@
     ]
   },
   {
-    "name": "FB1025-CHAMPBASE-an-elite-a-champion",
+    "name": "FB1025B-CHAMPBASE-an-elite-a-champion",
     "file": "src/scenes/roomLootHost.js",
     "old": "      e.champion = e.eliteFoe ? undefined : championTraitFor(e, f.src?.champion)?.id;",
     "new": "      e.champion = championTraitFor(e, f.src?.champion)?.id;",
@@ -38,7 +38,7 @@
     "why": "No layout foe the case builds is an elite. The arm keeps an elite foe's base on an elite's corpse source, as the build stands it (dungeonContext.js applyEliteScaling: a promoted elite is never a champion); every client reads the same eliteFoe either way, so the room's base stays one."
   },
   {
-    "name": "FB1025-CHAMPBASE-the-builders-cap",
+    "name": "FB1025B-CHAMPBASE-the-builders-cap",
     "file": "src/scenes/roomLootHost.js",
     "old": "      e.lootCap = undefined;\n",
     "new": "",
@@ -47,7 +47,7 @@
     ]
   },
   {
-    "name": "FB1025-CHAMPBASE-mark-not-handed-back",
+    "name": "FB1025B-CHAMPBASE-mark-not-handed-back",
     "file": "src/scenes/roomLootHost.js",
     "old": "level: e.level, champion: e.champion, lootCap: e.lootCap };",
     "new": "level: e.level, lootCap: e.lootCap };",
@@ -56,7 +56,7 @@
     ]
   },
   {
-    "name": "FB1025-CHAMPBASE-cap-not-handed-back",
+    "name": "FB1025B-CHAMPBASE-cap-not-handed-back",
     "file": "src/scenes/roomLootHost.js",
     "old": "level: e.level, champion: e.champion, lootCap: e.lootCap };",
     "new": "level: e.level, champion: e.champion };",
@@ -65,7 +65,7 @@
     ]
   },
   {
-    "name": "FB1025-CHAMPBASE-apply-without-the-gate",
+    "name": "FB1025B-CHAMPBASE-apply-without-the-gate",
     "file": "src/systems/champions.js",
     "old": "  const t = championTraitFor(entity, traitIndex);\n  if (!t) return false;",
     "new": "  const t = Number.isInteger(traitIndex) ? CHAMPION_TRAITS[traitIndex] : null;\n  if (!t) return false;",
@@ -74,7 +74,7 @@
     ]
   },
   {
-    "name": "FB1025-STALE-memory-locked-on-the-host",
+    "name": "FB1025B-STALE-memory-locked-on-the-host",
     "file": "src/scenes/roomLootHost.js",
     "old": "        if (from == null && host._authority && !bodyRebuilding(h)) {",
     "new": "        if (false) {",
@@ -83,7 +83,7 @@
     ]
   },
   {
-    "name": "FB1025-STALE-a-live-word-restarts-too",
+    "name": "FB1025B-STALE-a-live-word-restarts-too",
     "file": "src/scenes/roomLootHost.js",
     "old": "        if (from == null && host._authority && !bodyRebuilding(h)) {",
     "new": "        if (host._authority && !bodyRebuilding(h)) {",
@@ -92,7 +92,7 @@
     ]
   },
   {
-    "name": "FB1025-STALE-a-joiner-restarts-too",
+    "name": "FB1025B-STALE-a-joiner-restarts-too",
     "file": "src/scenes/roomLootHost.js",
     "old": "        if (from == null && host._authority && !bodyRebuilding(h)) {",
     "new": "        if (from == null && !bodyRebuilding(h)) {",
@@ -101,7 +101,7 @@
     ]
   },
   {
-    "name": "FB1025-STALE-the-same-generation",
+    "name": "FB1025B-STALE-the-same-generation",
     "file": "src/scenes/roomLootHost.js",
     "old": "    _roomNextGen.set(canon, Math.max(_roomNextGen.get(canon) ?? 0, staleGeneration + 1));",
     "new": "    _roomNextGen.set(canon, Math.max(_roomNextGen.get(canon) ?? 0, staleGeneration));",
@@ -110,7 +110,7 @@
     ]
   },
   {
-    "name": "FB1025-STALE-the-seat-forgets",
+    "name": "FB1025B-STALE-the-seat-forgets",
     "file": "src/scenes/roomLootHost.js",
     "old": "      else if (!bodyRebuilding(roomBaseHolder(canon))) restartStaleContainer(canon);",
     "new": "      else void 0;",
@@ -119,7 +119,7 @@
     ]
   },
   {
-    "name": "FB1025-STALE-a-body-at-its-death",
+    "name": "FB1025B-STALE-a-body-at-its-death",
     "file": "src/scenes/roomLootHost.js",
     "old": "    return Math.max(death, _roomNextGen.get(canon) ?? 0);",
     "new": "    return death;",
@@ -128,7 +128,7 @@
     ]
   },
   {
-    "name": "FB1025-CHAMPBASE-the-bonus-reads-the-build",
+    "name": "FB1025B-CHAMPBASE-the-bonus-reads-the-build",
     "file": "src/scenes/roomLootHost.js",
     "old": "champion: base.champion ?? null,",
     "new": "champion: f?.entity?.champion ?? null,",
@@ -137,7 +137,7 @@
     ]
   },
   {
-    "name": "FB1025-STALE-a-rebuilding-body-restarted",
+    "name": "FB1025B-STALE-a-rebuilding-body-restarted",
     "file": "src/scenes/roomLootHost.js",
     "old": "    return !!holder?.foe && host._retyping.has(foes.indexOf(holder.foe));",
     "new": "    return false;",
