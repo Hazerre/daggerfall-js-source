@@ -220,7 +220,7 @@ function injectSkin(doc = document) {
  *   seat?: ({ seat: any, book: any, nameOf?: (key: number) => (string|null) } | null), seatBattle?: (seat: any, fight: any) => boolean,
  *   seatRoyal?: (seat: any, royal: any, watch: boolean) => boolean, seatRecords?: (seat: any) => Promise<boolean>,
  *   vendors?: any, traderOnly?: { title: string, sub?: string } | null,
- *   lines?: (() => ({ cards: Array<{ id: string, title: string, giver: string, text: string }>, take: (id: string) => { ok: boolean, text: string } } | null)) | null,
+ *   questlines?: (() => ({ cards: Array<{ id: string, title: string, giver: string, text: string }>, take: (id: string) => { ok: boolean, text: string } } | null)) | null,
  * }} deps HOME-VENDOR: `vendors` the Vendors tab's host (ui/vendor/vendorTab.js), `traderOnly` a stall's window. `work` - PROF1's Court writs for the board's region (net/profBook.js), or null where the professions are not
  *   this account's; PROF6: with `writs` (net/writBook.js) the guild writs and commissions beside them (ui/workTab.js),
  *   `pieces` the pieces in the save that answer a commission; `market` - PROF5's Market tab's host (ui/marketTab.js createMarketTab's `m`), or null where the
@@ -256,7 +256,7 @@ export function mountNoticeBoard(host, deps) {
   /** QL-OFFERED: this opening's questline offers - read once, at the Notices tab's first draw (the board's one door,
    *  ui/noticeDoor.js, hands the bridge's source) - and the cards still up. */
   let lineOffers;
-  const linesOf = () => (lineOffers === undefined ? (lineOffers = deps.lines?.() ?? null) : lineOffers);
+  const linesOf = () => (lineOffers === undefined ? (lineOffers = deps.questlines?.() ?? null) : lineOffers);
   let chapterGuideOpen = null;   // PLAIN-UI: How chapters work unfolded - null until the reader folds or unfolds it
   const work = deps.work ?? null;
   const workShown = () => !!work && work.book?.state?.open === true;

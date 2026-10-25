@@ -5635,7 +5635,7 @@ function pauseQuests(body) {
   // questName main/side is gone by the time a quest is filed
   // (notebook.js:"AddFinishedQuest(messages)"). Three sections is the shape the DATA has.
   const mains = active.filter((q) => q.main);
-  // QL-OFFERED (FIELD BUGS 2026-10-25, Lord Rumpkin: "My quest log ... has become congested"): a questline's step is its
+  // QL-OFFERED (2026-10-25, Lord Rumpkin: "My quest log ... has become congested"): a questline's step is its
   // line's - drawn under the line's row in Questlines, never a second time as a side quest (while the line is drawn)
   const drawnLines = new Set(lines.filter((r) => r.line).map((r) => r.line.id));
   const lineOfStep = (q) => { const at = lineStepOf(q.questName); return at && drawnLines.has(at.line.id) ? at.line.id : null; };

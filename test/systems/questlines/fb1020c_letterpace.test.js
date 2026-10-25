@@ -5,7 +5,7 @@
 // "don't all arrive at once". The runner paced the lines' STARTS an hour apart (AUDIT QUESTLINES LINES-17), but every
 // line it began at night (online the sky's night is half of every real hour), indoors or in the wild held its letter,
 // and they all landed within a minute at the next town by day. LETTER-PACE made a line begin only when no begun line's
-// first letter was still on its way, and an hour after the last letter arrived. PIN MOVED (QL-OFFERED, FIELD BUGS
+// first letter was still on its way, and an hour after the last letter arrived. PIN MOVED (QL-OFFERED,
 // 2026-10-25, Lord Rumpkin: "every town I enter there is some courier ramming quest letters into my hand"; the owner: a
 // questline is TAKEN, never SENT): no line begins unasked, and a first step's letter is in hand from the take - only a
 // LATER step of a line the player took comes by courier, so the pace is the couriers': a later step sets out only when

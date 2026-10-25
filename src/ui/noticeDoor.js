@@ -18,8 +18,8 @@ export function closeNoticeDoor() { const was = noticeDoorOpen(); _open?.dispose
 
 /**
  * @param {any} deps the window's own deps (ui/noticeWindow.js mountNoticeBoard), less `onExit`; plus `onClose`. QL-OFFERED:
- *   `lines` is this door's own - the page's bridge's offers (scenes/quest/questlineOffers.js lineBoard), so every host's
- *   board posts them and no host hands them (a host's own `lines` stands, for the pins)
+ *   `questlines` is this door's own - the page's bridge's offers (scenes/quest/questlineOffers.js lineBoard), so every host's
+ *   board posts them and no host hands them (a host's own `questlines` stands, for the pins)
  * @returns {any} the overlay, or null with no document
  */
 export function createNoticeOverlay(deps) {
@@ -59,7 +59,7 @@ export function createNoticeOverlay(deps) {
   _open = overlay;
   mountEnhancedChunk({
     load: () => import('./noticeWindow.js'),
-    mount: (m) => { view = m.mountNoticeBoard(host, { lines: lineBoard, ...deps, onExit: close }); },
+    mount: (m) => { view = m.mountNoticeBoard(host, { questlines: lineBoard, ...deps, onExit: close }); },
     alive: () => !fired, host, onDismiss: () => { close(); }, label: 'notice-board',
   });
   return overlay;

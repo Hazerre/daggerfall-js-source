@@ -1,4 +1,4 @@
-// QL-OFFERED (FIELD BUGS 2026-10-25, Lord Rumpkin, "too many quests": "My quest log ... has become congested in a very
+// QL-OFFERED (2026-10-25, Lord Rumpkin, "too many quests": "My quest log ... has become congested in a very
 // short span ... also every town I enter there is some courier ramming quest letters into my hand ... Random quests like
 // that should be picked up in the tavern, or notice board"; the owner: "No band aids", and his decision: A QUESTLINE IS
 // TAKEN, NEVER SENT - bible/06-Systems/Questlines-Arc.md section 4, THE RUNNER). QL0's runner began every line whose
@@ -184,7 +184,7 @@ test('QL-OFFERED THE NOTICE BOARD\'S WORK WANTED: online, the introductions on o
   const S = bridgeAt({ level: 20, online: true });
   assert.ok(lineBoard()?.cards.some((c) => c.id === 'introTables'), 'the bridge posts its board on the page');
   const host = globalThis.document.createElement('div');
-  mountNoticeBoard(host, { town: { name: 'Daggerfall', mapId: 5 }, book: quietBook(), lines: () => S.bridge.lineOffers.board() });
+  mountNoticeBoard(host, { town: { name: 'Daggerfall', mapId: 5 }, book: quietBook(), questlines: () => S.bridge.lineOffers.board() });
   await settle();
   const head = byClass(host, 'notice-section').map((n) => n.textContent).find((h) => h.startsWith('Help wanted'));
   assert.ok(head, 'its section');

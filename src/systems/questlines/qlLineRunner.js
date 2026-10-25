@@ -5,7 +5,7 @@
 // that ends badly is offered again a day later; the last step's outcome is the line's. It never decides a quest: each
 // step is a script on the machine like any other, its objectives a sheet like any other's.
 //
-// QL-OFFERED (FIELD BUGS 2026-10-25, Lord Rumpkin: "every town I enter there is some courier ramming quest letters into
+// QL-OFFERED (2026-10-25, Lord Rumpkin: "every town I enter there is some courier ramming quest letters into
 // my hand ... Random quests like that should be picked up in the tavern, or notice board"; the owner: "No band aids",
 // and his decision: A QUESTLINE IS TAKEN, NEVER SENT). QL0 began every line whose gate held, unasked, and its first
 // letter came by courier at the next town by day. DFU sends a letter unasked only where the story is already the
@@ -79,9 +79,9 @@ const freshLine = (begun = 0) => ({ step: 0, outcomes: {}, done: false, wait: 0,
  *  GivePc), so every letter whose courier ran while the player was elsewhere lands at once, 40 to 500 ticks apart.
  *  QL-OFFERED: a first step's letter is in hand at the take (its start-up's `get item`), so only a later step's courier
  *  is ever read here - and only once it is SENT: its task fired (GivePc holding the letter for a town by day) or its
- *  clock running (the courier on the road). A later step sends its courier where its story does - QLBD03's, QLCH03's
- *  and the Ketch's after a deed - and every first step's had set out at its start-up, so an unsent one held every
- *  other line's next step for as long as its deed waited. */
+ *  clock running (the courier on the road). A later step sends its courier where its story does - QLBD03's once the
+ *  rite is broken, QLIW02's once a revenant kneels - where every first step's had set out at its start-up, so read
+ *  unsent it held every other line's next step for as long as its deed waited. */
 export function letterOnItsWay(quest) {
   if (!quest || quest.questComplete || quest.shelvedAt != null) return false;
   for (const task of quest.tasks?.values?.() ?? []) {

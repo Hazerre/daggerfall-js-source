@@ -273,7 +273,7 @@
   {
     "name": "QLO-the-door-unposted",
     "file": "src/ui/noticeDoor.js",
-    "old": "{ lines: lineBoard, ...deps, onExit: close }",
+    "old": "{ questlines: lineBoard, ...deps, onExit: close }",
     "new": "{ ...deps, onExit: close }",
     "tests": [
       "test/systems/questlines/qloffered.test.js"
