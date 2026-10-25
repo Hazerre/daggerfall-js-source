@@ -2931,8 +2931,7 @@ the pay law `net/eliteGates/egPay.js`, and the Broker sells the Panoply's sink. 
 - **`server-account/src/eg.js`**: claimEg passes `{ env, character }` through and splices the pay into the `w` arm's
   batch. A Redoubt's answer is `{ recorded, q: 'w', b, w, keys, paid, again?, marks, deed, embers, purse, weir, pity }`.
   A receipt carried again is `claimed` and `again`, with the pay its row keeps. `egKeysOf` answers the week's sale too
-  (`sink: { week, piece }`; EMBERS-OWED, FB1024: and `recent`, the weeks before's sales, `EG_SINK_RECENT_WEEKS` in all -
-  `01-Overview/bugs/Field-Bugs-2026-10-24.md`).
+  (`sink: { week, piece }`).
 - **`server-account/src/marks.js`** and **`src/net/marksLaw.js`**: `MARKS_FAUCETS.eg` strikes 20
   (`EG_PAY_MARKS`). `eg` joins `MARKS_COMBAT.kinds`, inside the day's 150 with the gates', the raids' and the
   serpents'. `eg` is a mint in `MARKS_KINDS`. `CLAIM_GUARDS.eg` reads the row's nonce and its pay. The line id is
@@ -2949,7 +2948,9 @@ the pay law `net/eliteGates/egPay.js`, and the Broker sells the Panoply's sink. 
 - **The sink.** `POST /v1/eg/sink { piece }` (one of `EG_PANOPLY_IDS`) is one conditional UPDATE in the insignia's way:
   `insignia_spent + 20`, where the purse covers it and no `eg_sink` row stands this week. The week's row is written by
   that write alone. It answers `{ ok, piece, week, purse }`, or refuses `guest` 403, `piece` 400, `bought` 409 (which
-  piece) or `short` 409 (the purse and the price). It is in `ROUTES`, the eg act map, `EG_STATUS` and the route comment.
+  piece) or `short` 409 (the purse and the price). BROKER-RID (AUDIT FB1024): `rid`, the press's request id, is written
+  beside the sale in its batch (`broker_sales`, migration 0167) - refused `fenced` 409 where a settle fenced it first,
+  `rid` 400 where it is not one; the same id asked again answers its sale (`again`). It is in `ROUTES`, the eg act map, `EG_STATUS` and the route comment.
 - **`server-account/src/index.js`**: the claim takes `{ receipt, character }`. INT5's `grantSpoils` fires only for a
   recorded, paid Redoubt.
 - **Migration 0117** (EG-PLAY's, unshipped; 0111, 0112, 0113, 0114 then 0116 on its branch, renumbered past NAME-AS's 0111, SEAT-FACTS' 0112, LAMP-KEEPER II's 0113, FIRMAMENT-ON's 0114, KG6's 0115 and POI-1's 0116 at the merges) gains a block of its own:
@@ -2961,9 +2962,9 @@ the pay law `net/eliteGates/egPay.js`, and the Broker sells the Panoply's sink. 
     `piece`;
   - `systems/sigil/sigilBroker.js` `panoplySale`, the insignia's two halves. The host's `mint` comes first (a piece it cannot
     make is never paid for). Then the embers leave the pack before the service is asked. A refusal gives them back. A
-    lost answer is asked after (`held`). A held sale adds the piece, with no Broker price on it, and is saved. A sale
-    whose question after went unheard too is owed, not refunded, and her next open settles it (EMBERS-OWED, FB1024:
-    `01-Overview/bugs/Field-Bugs-2026-10-24.md`);
+    lost answer is asked after by the press's own request id (`/v1/broker/settle`: the sale, or the id fenced and the
+    embers back; BROKER-RID, AUDIT FB1024 - `01-Overview/bugs/Field-Bugs-2026-10-24.md`). A held sale adds the piece,
+    with no Broker price on it, and is saved. One unheard twice is owed, and her next open settles it;
   - `ui/brokerWindow.js`: "The Battlemage's Panoply" under the insignia (`panoplyRows`, the nine pieces by section 19's
     names). It shows the price and "One a week", and its Buy says why not ("Need 15 more", "Bought", "Next week"). A
     sale in flight holds every other;

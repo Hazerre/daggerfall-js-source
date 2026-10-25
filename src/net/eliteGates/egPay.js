@@ -27,9 +27,6 @@ export const EG_PANOPLY_VALK_IN = 3;
 export const EG_VALK_KEY_ODDS = 1 / 4;
 /** The Broker's Panoply sink: one piece of the buyer's choosing, once an account an arena week, for this many embers. */
 export const EG_SINK_EMBERS = 20;
-/** EMBERS-OWED (FB1024): the arena weeks of Panoply sales `/v1/eg/keys` answers (`sink.recent`), this one's included - how far
- *  back a sale whose answer was lost can be settled (systems/sigil/sigilBroker.js settleOwedPanoply). */
-export const EG_SINK_RECENT_WEEKS = 8;
 /** The lord's named Legendary: 1 in this at its Redoubt. */
 export const EG_LORD_ARM_IN = 8;
 

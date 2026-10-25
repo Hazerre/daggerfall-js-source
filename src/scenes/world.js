@@ -399,7 +399,7 @@ import { egStartPanelDoors } from '../ui/eliteGates/egStartPanel.js';   // EG-PL
 import { egRecapsKept } from '../ui/eliteGates/egHud.js';   // AUDIT EG V (c, L7-19): the last runs this device kept, on the boards' own tab
 import { registerEgFind, egFindThrow } from '../systems/eliteGates/egFind.js';   // EG-E3: the dungeon's find
 import { setSetPowersAllies, setSpireRecovery, spireRedoubtTaken } from '../systems/sigil/sigilSetPowers.js';   // EG15: the Reprieve's allies, the death saves held to a Redoubt in a breach
-import { brokerStock, brokerDay, brokerBought, makeBrokerSale, spendableStonesIn, lockedStonesIn, stoneCount, insigniaSale, stonesText, panoplySale, brokerOwedDoor, wardrobeHolds, sinkHolds, brokerOwedText } from '../systems/sigil/sigilBroker.js';   // SET7: the day's stock, the record, the sale   // SS1: the stones counted over their stacks   // EMBERS-OWED: a sale unheard, settled at the next open
+import { brokerStock, brokerDay, brokerBought, makeBrokerSale, spendableStonesIn, lockedStonesIn, stoneCount, stonesText, brokerOwedDoor, brokerOwedText } from '../systems/sigil/sigilBroker.js';   // SET7: the day's stock, the record, the sale   // SS1: the stones counted over their stacks   // BROKER-RID (AUDIT FB1024): her two sales by their request ids, an unheard one owed and settled at her next open
 import { drawGateBanner } from '../ui/gate/gateBanner.js';
 import { drawGateGround } from '../ui/gate/gateGroundView.js';   // WB9d: his ground's rim and warning - hidden with a held frame (the court draws it); SD15: and the Hour's
 import { drawGateDamageChart } from '../ui/gate/gateDamageChart.js';   // GATE-UX: the kill's damage chart (the court draws it - scenes/gate/gateCourt.js); a held frame hides it with the rest
@@ -811,7 +811,7 @@ import { createSeatClock } from '../net/seatLive.js';   // FIELD BUGS 2026-10-18
 import { pageWave } from '../net/reconnectWave.js';   // SCALE2c: a relay deploy's reconnect, spread by the hub's count
 import { quietFoesGate } from '../net/foesQuiet.js';   // SCALE2c: a full foes frame that says nothing, said once
 import { createSeatLock, SEAT_NOTICE, SEAT_MID_TEXT, PLAY_HERE_LABEL } from '../net/oneSeat.js';   // ONE-SEAT: one tab of a player online - the browser's arm, beside the hub's
-import { readAccount, buyInsignia, equipTitle, equipAura, adoptIdentity as adoptSessionIdentity } from '../net/accountClient.js';   // WB9g: the Broker's insignia - the account's wardrobe, its sale and its wearing, and my own screen's word of it
+import { readAccount, buyInsignia, settleBrokerSale, equipTitle, equipAura, adoptIdentity as adoptSessionIdentity } from '../net/accountClient.js';   // WB9g: the Broker's insignia - the account's wardrobe, its sale and its wearing, and my own screen's word of it
 import { ownAura, ownNameAsAt } from '../systems/ownGlyphs.js';   // WB9g: the aura at my own feet - the service's last word, kept on the stored session; NAME-AS: and when this device last chose the name its player wears
 import { INSIGNIA, insigniaRefusal } from '../net/insignia.js';   // WB9g
 import { createFirmamentBook, setFirmamentBook } from '../net/firmament/firmamentBook.js';   // FIRM1: the Firmament - this device's tree and purses
@@ -25297,13 +25297,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  one is the account card's own door (equipTitle, equipAura), and my own name and feet show it at once - the room
    *  sees it from the next hello the token signs (AURA-LIVE: said again at once - auraFrame's online.rehello). */
   let _insignia = { loaded: false, busy: false, held: [], title: null, aura: null };
-  const brokerOwed = brokerOwedDoor(playerEntity, saveSoon, panoplyPieceById);   // EMBERS-OWED (FB1024): a sale unheard is owed, never refunded blind - settled as her window opens
-  const insigniaIo = () => { const st = appStorage(); const ses = storedSession(st); return ses ? { fetch: (u, i) => globalThis.fetch(u, i), base: serviceBase(st), secret: ses.secret } : null; };
+  const insigniaIo = () => { const st = appStorage(); const ses = storedSession(st); return ses ? { fetch: (u, i) => globalThis.fetch(u, i), base: serviceBase(st), secret: ses.secret, account: ses.id ?? null } : null; };   // AUDIT FB1024: and the account an owed sale is settled under
+  const brokerOwed = brokerOwedDoor(playerEntity, saveSoon, panoplyPieceById, insigniaIo, settleBrokerSale);   // BROKER-RID (AUDIT FB1024): her sales by their request ids - an unheard one owed, settled as her window opens
   const insigniaAdopt = (w) => { if (w && typeof w === 'object') _insignia = { ..._insignia, loaded: true, held: Array.isArray(w.insignia) ? w.insignia : _insignia.held, title: w.title ?? null, aura: w.aura ?? null }; };
   async function insigniaLoad() {
     const io = insigniaIo();
     if (!io) { _insignia = { ..._insignia, loaded: true, held: [], title: null, aura: null }; return; }
-    try { const r = await brokerOwed.insignia(readAccount, io); if (r.ok) insigniaAdopt(r.data?.wardrobe); } catch { /* the rows say they cannot tell */ }   // EMBERS-OWED: a sale unheard settled first
+    try { const r = await brokerOwed.settled(() => readAccount(io)); if (r.ok) insigniaAdopt(r.data?.wardrobe); } catch { /* the rows say they cannot tell */ }   // BROKER-RID: what is owed settled first
   }
   /** The rows the window draws: each offer, its word, whether the account owns and wears it. */
   const insigniaRows = () => INSIGNIA.map((o) => ({
@@ -25329,11 +25329,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     try {
       playerEntity.items = playerEntity.items || [];
       // AUDIT WB9 (insignia F1, F2): the pack's price held FIRST and given back unless the service holds the sale (a lost
-      // answer asked after), and a held sale saved at once - PROF-SAVE's door (systems/sigil/sigilBroker.js insigniaSale)
-      const r = await insigniaSale(offer, {
-        items: playerEntity.items, buy: (id) => buyInsignia(io, id), save: () => saveSoon.changed(),
-        held: async (id) => wardrobeHolds(await readAccount(io), id),   // EMBERS-OWED: false where the account answered without it
-      });
+      // answer asked after - AUDIT FB1024: by its request id), and a held sale saved at once - PROF-SAVE's door
+      // (systems/sigil/sigilBroker.js insigniaSale, through brokerOwedDoor)
+      const r = await brokerOwed.insignia(offer, (id, rid) => buyInsignia(io, id, rid));
       if (!r.ok) return { ok: false, text: r.error === 'stones' ? `You need ${stonesText(offer.price)}.` : r.error === 'unheard' ? brokerOwedText() : r.error === 'short' ? accountRefusalText('short') : accountRefusalText(r.error) };
       insigniaAdopt(r.data);
       audio.playOneShot(SOUND.GoldPieces, 1);
@@ -25377,17 +25375,14 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let _panoplySink = null;
   const panoplyDeps = {
     rows: () => panoplyRows(_panoplySink),
-    load: async () => { try { const a = await brokerOwed.panoply(_accountEg.keys); if (a?.ok) _panoplySink = a.data?.sink ?? null; } catch { /* the window says what it held */ } },   // EMBERS-OWED: a sale unheard settled first
+    load: async () => { try { const a = await brokerOwed.settled(_accountEg.keys); if (a?.ok) _panoplySink = a.data?.sink ?? null; } catch { /* the window says what it held */ } },   // BROKER-RID: what is owed settled first
     busy: () => _insignia.busy,
     buy: async (id) => {
       if (_insignia.busy) return { ok: false, text: 'The Broker is busy.' };
       _insignia.busy = true;
       try {
         playerEntity.items = playerEntity.items || [];
-        const r = await panoplySale(id, {
-          items: playerEntity.items, buy: (p) => _accountEg.sink(p), mint: (p) => panoplyPieceById(p), save: () => saveSoon.changed(),
-          held: async (p) => sinkHolds(await _accountEg.keys(), p), week: _panoplySink?.week ?? null,   // EMBERS-OWED: false where the service answered without it; the week owed against
-        });
+        const r = await brokerOwed.panoply(id, (p, rid) => _accountEg.sink(p, rid));   // BROKER-RID (AUDIT FB1024): the press by its request id (systems/sigil/sigilBroker.js panoplySale)
         if (!r.ok) return { ok: false, text: r.error === 'stones' ? `You need ${stonesText(EG_SINK_EMBERS)}.` : r.error === 'unheard' ? brokerOwedText() : accountRefusalText(r.error) };
         _panoplySink = { week: r.data?.week ?? _panoplySink?.week ?? null, piece: id };
         audio.playOneShot(SOUND.GoldPieces, 1);

@@ -30,7 +30,7 @@ test('EG-PLAY THE KEYS: a fresh account holds none and may not stake (`unproven`
   const k0 = (await S.call('/v1/eg/keys', {}, me.secret)).body;
   // PIN MOVED (EG-F, 2026-10-12): the keys' answer carries the relay's public half too (`rk`, GATE_PUBLIC_KEY - the key a
   // stranger's arch is verified with, bible/11-Multiplayer/Elite-Gates.md section 6.3)
-  assert.deepEqual(k0, { keys: 0, live: null, rehearsal: true, proven: false, redoubts: 0, sink: { week: arenaWeekOf(T0), piece: null, recent: [] }, annals: 0, feats: {}, first: 0, rk: S.env.GATE_PUBLIC_KEY }, 'PIN MOVED (EG-E2): and what the account keeps of the Spire - the Annals\' pages and each lord\'s feats (egHonours.js egRecordOf); PIN MOVED (EG-ZF): and the first-time lines it has been shown (`first`, Elite-Gates.md section 27.7)');   // PIN MOVED (EG-E1): and the week's Panoply sink (server-account/src/egEconomy.js egSinkOf)
+  assert.deepEqual(k0, { keys: 0, live: null, rehearsal: true, proven: false, redoubts: 0, sink: { week: arenaWeekOf(T0), piece: null }, annals: 0, feats: {}, first: 0, rk: S.env.GATE_PUBLIC_KEY }, 'PIN MOVED (EG-E2): and what the account keeps of the Spire - the Annals\' pages and each lord\'s feats (egHonours.js egRecordOf); PIN MOVED (EG-ZF): and the first-time lines it has been shown (`first`, Elite-Gates.md section 27.7)');   // PIN MOVED (EG-E1): and the week's Panoply sink (server-account/src/egEconomy.js egSinkOf)
   assert.deepEqual((await S.call('/v1/eg/open', { rq: RQ }, me.secret)).body, { error: 'unproven' });
   const g = (await S.claim(me, 700, T0)).body;
   assert.deepEqual(g.weir, { found: true, keys: 1 }, 'the first breach closed gives the Spire once');

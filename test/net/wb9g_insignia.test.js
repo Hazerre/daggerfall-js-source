@@ -670,10 +670,11 @@ test('WB9g the world host, by source: the auras gathered with the peers each fra
   // AUDIT WB9 (insignia F1, F2): both halves through the sale's one law (systems/sigil/sigilBroker.js insigniaSale, driven in
   // the audit's pins below) - the pack's price held first, given back unless the service holds the sale, a lost answer
   // asked after, a held sale saved at once
-  assert.match(buy, /const r = await insigniaSale\(offer, \{\n        items: playerEntity\.items, buy: \(id\) => buyInsignia\(io, id\), save: \(\) => saveSoon\.changed\(\),/);
-  assert.match(buy, /held: async \(id\) => wardrobeHolds\(await readAccount\(io\), id\),/);   // PIN MOVED (EMBERS-OWED): the account's answer read by the module's one law (false: answered without it)
+  // PIN MOVED (BROKER-RID, AUDIT FB1024): through the Broker's one door (sigilBroker.js brokerOwedDoor), the press by its
+  // request id and a lost answer asked after by it
+  assert.match(buy, /const r = await brokerOwed\.insignia\(offer, \(id, rid\) => buyInsignia\(io, id, rid\)\);/);
   assert.ok(!/spendStones/.test(buy), 'the pack paid through the sale alone, never beside it');
-  assert.ok(buy.indexOf('if (!r.ok) return') > buy.indexOf('await insigniaSale('), 'a refused sale adopts nothing');
+  assert.ok(buy.indexOf('if (!r.ok) return') > buy.indexOf('await brokerOwed.insignia('), 'a refused sale adopts nothing');
   const wear = w.slice(w.indexOf('async function insigniaWear(offer) {'), w.indexOf('const openBroker = () => {'));
   assert.match(wear, /offer\.kind === 'title' \? await equipTitle\(io, want\) : await equipAura\(io, want\)/);
   assert.match(wear, /insigniaSelf\(r\.data, io\.secret\);/);
@@ -696,42 +697,42 @@ test('AUDIT WB9 insignia F1/F2 - the sale\'s two halves (systems/sigil/sigilBrok
   const save = () => { saved++; };
   // held: the price gone before the service answers, and saved once it holds the sale
   let pack = [stack(20), stack(15)], seen = null;
-  let r = await insigniaSale(OFFER, { items: pack, save, held: async () => null, buy: async (id) => { seen = count(pack); return { ok: true, data: { insignia: [id] } }; } });
+  let r = await insigniaSale(OFFER, { items: pack, save, account: 'acct-1', settle: async () => null, buy: async (id) => { seen = count(pack); return { ok: true, data: { insignia: [id] } }; } });
   assert.deepEqual([r.ok, r.data.insignia, seen, count(pack), saved], [true, ['title:gatebreaker'], 5, 5, 1]);
   // F2: a Regalia bought while the service is asked - the title's price is already out of the pack
   const day = 20_000, regalia = brokerStock(day).find((o) => o.price === 12);
   assert.ok(regalia, 'the day\'s stock sells a piece at 12');
   pack = [stack(35)];
   let ware = null;
-  r = await insigniaSale(OFFER, { items: pack, save, held: async () => null, buy: async (id) => { ware = makeBrokerSale(regalia, { items: pack, day }); return { ok: true, data: { insignia: [id] } }; } });
+  r = await insigniaSale(OFFER, { items: pack, save, account: 'acct-1', settle: async () => null, buy: async (id) => { ware = makeBrokerSale(regalia, { items: pack, day }); return { ok: true, data: { insignia: [id] } }; } });
   assert.deepEqual([r.ok, ware.ok, ware.reason, count(pack)], [true, false, 'stones', 5], 'thirty-five stones do not buy the title and the Regalia');
   // the service's own refusal (a 4xx): the stones back, nothing saved, the lost answer's question never asked
   for (const refused of [{ ok: false, error: 'short', status: 409 }, { ok: false, error: 'owned', status: 409 }, { ok: false, error: 'guest', status: 403 }]) {
     pack = [stack(20), stack(15)]; saved = 0;
-    r = await insigniaSale(OFFER, { items: pack, save, held: async () => { throw new Error('asked'); }, buy: async () => refused });
+    r = await insigniaSale(OFFER, { items: pack, save, account: 'acct-1', settle: async () => { throw new Error('asked'); }, buy: async () => refused });
     assert.deepEqual([r, count(pack), saved], [{ ok: false, error: refused.error }, 35, 0], refused.error);
   }
   // the answer lost, the sale written all the same: asked after, held - the sale, saved
   for (const lost of [{ ok: false, error: 'offline' }, { ok: false, error: 'server', status: 502 }, { ok: false, error: 'internal', status: 500 }]) {
     pack = [stack(35)]; saved = 0;
-    r = await insigniaSale(OFFER, { items: pack, save, held: async (id) => ({ insignia: [id] }), buy: async () => lost });
+    r = await insigniaSale(OFFER, { items: pack, save, account: 'acct-1', settle: async (b) => ({ ok: true, data: { held: true, kind: 'insignia', item: OFFER.id, by: b.nonce, insignia: [OFFER.id] } }), buy: async () => lost });
     assert.deepEqual([r.ok, r.data?.insignia, count(pack), saved], [true, ['title:gatebreaker'], 5, 1], `${lost.error}: held - the sale`);
   }
-  // lost and not held (the account answered without it; a throw is a lost answer): the stones back
+  // lost and fenced (AUDIT FB1024, BROKER-RID: asked after by its request id; a throw is a lost answer): the stones back
   pack = [stack(35)]; saved = 0;
-  r = await insigniaSale(OFFER, { items: pack, save, held: async () => false, buy: async () => { throw new Error('reset'); } });
+  r = await insigniaSale(OFFER, { items: pack, save, account: 'acct-1', settle: async () => ({ ok: true, data: { held: false } }), buy: async () => { throw new Error('reset'); } });
   assert.deepEqual([r, count(pack), saved], [{ ok: false, error: 'offline' }, 35, 0]);
-  // PIN MOVED (EMBERS-OWED, FB1024): not heard either - OWED, never given back blind (test/systems/fb1024_embersowed.test.js)
-  for (const held of [async () => null, async () => { throw new Error('offline'); }]) {
+  // PIN MOVED (EMBERS-OWED, FB1024; BROKER-RID): not heard either - OWED, never given back blind (test/systems/fb1024_embersowed.test.js)
+  for (const settle of [async () => ({ ok: false, error: 'offline' }), async () => { throw new Error('offline'); }]) {
     _resetOwed(); pack = [stack(35)]; saved = 0;
-    r = await insigniaSale(OFFER, { items: pack, save, held, buy: async () => { throw new Error('reset'); } });
+    r = await insigniaSale(OFFER, { items: pack, save, account: 'acct-1', settle, buy: async () => { throw new Error('reset'); } });
     assert.deepEqual([r, count(pack), saved, brokerOwed().length], [{ ok: false, error: 'unheard' }, 5, 1, 1]);
   }
   _resetOwed();
   // a pack short of the price: the service never asked
   pack = [stack(29)];
   let asked = 0;
-  r = await insigniaSale(OFFER, { items: pack, save, held: async () => null, buy: async () => { asked++; return { ok: true }; } });
+  r = await insigniaSale(OFFER, { items: pack, save, account: 'acct-1', settle: async () => null, buy: async () => { asked++; return { ok: true }; } });
   assert.deepEqual([r, asked, count(pack)], [{ ok: false, error: 'stones' }, 0, 29]);
   assert.deepEqual([{ ok: false, error: 'offline' }, { ok: false, status: 500 }, { ok: false, status: 503 }, { ok: false, error: 'short', status: 409 }, { ok: false, status: 429 }, { ok: true, status: 200 }].map(insigniaUnheard), [true, true, true, false, false, false]);
 });

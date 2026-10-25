@@ -1236,7 +1236,10 @@ export const equipGlyph = (io, glyph, on) => call(io, '/v1/account/glyph', { gly
 export const chooseNameAs = (io, as) => call(io, '/v1/account/name', { as });
 /** WB9g: buy a piece of the Broker's insignia (net/insignia.js INSIGNIA) for this account - the wardrobe after the sale and
  *  the `purse` its closed gates can still pay, or a refusal (`owned`, `short` with `purse` and `price`, `guest`). */
-export const buyInsignia = (io, item) => call(io, '/v1/account/insignia', { item });
+export const buyInsignia = (io, item, rid = null) => call(io, '/v1/account/insignia', rid ? { item, rid } : { item });   // AUDIT FB1024 (BROKER-RID): the press's request id
+/** AUDIT FB1024 (BROKER-RID): a Broker sale whose answer was lost, asked after by its request id (`{ rid, nonce }`) -
+ *  server-account/src/brokerSales.js settleBrokerSale. Signed out, nothing is asked. */
+export const settleBrokerSale = (io, body) => (io ? call(io, '/v1/broker/settle', body) : Promise.resolve({ ok: false, error: 'no-session' }));
 /** PATREON-LINK: take this account's Patreon off it - `{ ok, titles, title, glyphs, auras, aura, insignia, patreon }`,
  *  the wardrobe after it and the card's Patreon row. Linking has no call here: the account read carries the link, and
  *  the player follows it in a browser (server-account/src/patreon.js says why). */
@@ -1937,7 +1940,7 @@ export function accountEg({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
     admit: (b) => post('/v1/eg/admit', { b }),
     board: () => post('/v1/eg/board', {}),   // EG-E2: the three boards (server-account/src/egHonours.js egBoardOf)
     claim: (receipt, character = null) => post('/v1/eg/claim', { receipt, ...(typeof character === 'string' && character ? { character } : {}) }),   // EG-E1: the claiming character - its guild's deed
-    sink: (piece) => post('/v1/eg/sink', { piece }),   // EG-E1: the Broker's Panoply piece, once a week
+    sink: (piece, rid = null) => post('/v1/eg/sink', rid ? { piece, rid } : { piece }),   // EG-E1: the Broker's Panoply piece, once a week (AUDIT FB1024: and the press's request id)
     find: (tier) => post('/v1/eg/find', { tier }),   // EG-E3: a dungeon elite's find (section 5) - `{ found, keys, asks }`
     first: (bits) => post('/v1/eg/first', { bits }),   // EG-ZF: the first-time lines shown, kept once an account (section 27.7) - `{ first }`
     me: () => storedSession(storage)?.id ?? null,

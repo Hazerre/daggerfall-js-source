@@ -1,9 +1,9 @@
 // FB1024 (2026-10-24, #bug-reports: "the effect checks param === 2 && (ctx?.inDarkness?.() ?? false) ...
 // hostEnchant.js defines inSunlight and inHolyPlace in createEnchantCtx(), but apparently never provides
 // inDarkness"): Regens Health: In Darkness healed nothing in any host. RegensHealth.cs:97-98 asks
-// PlayerEnterExit.IsPlayerInDarkness, which is `!isPlayerInSunlight` (PlayerEnterExit.cs:201). The E1 pin fed
-// the arm a hand-built ctx; these build it from the producer every host mounts (TEST THE SHAPE THE PRODUCER
-// MINTS). Record: bible/01-Overview/bugs/Field-Bugs-2026-10-24.md.
+// PlayerEnterExit.IsPlayerInDarkness, which is `!isPlayerInSunlight` (PlayerEnterExit.cs:201). No pin had ever run
+// that arm (E1's fed the InSunlight arm a hand-built ctx - AUDIT FB1024 #15); these build the ctx from the producer
+// every host mounts (TEST THE SHAPE THE PRODUCER MINTS). Record: bible/01-Overview/bugs/Field-Bugs-2026-10-24.md.
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -37,6 +37,10 @@ test('FB1024: IsPlayerInDarkness is !IsPlayerInSunlight (PlayerEnterExit.cs:201)
   assert.equal(playerInDarkness(), true, 'a roof at noon is dark (the career\'s own law is not - passiveSpecials)');
   host(NOON, false);
   assert.equal(playerInDarkness(), false, 'the open street at noon is not');
+  // AUDIT FB1024 (lane A N1): no host and no clock - idle, never "midnight"
+  setPassiveSpecialsHost(null);
+  assert.equal(playerInDarkness(), false, 'headless: the arm idles');
+  assert.equal(playerInDarkness(MIDNIGHT), true, 'a clock handed in still answers');
 });
 
 test('FB1024: the mounted enchant ctx answers inDarkness, and Regens Health: In Darkness heals through it', () => {

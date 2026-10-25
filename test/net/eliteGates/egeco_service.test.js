@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import { standService, sessionStorageOf } from '../../accountDb.mjs';
 import { mintEgReceipt } from '../../../src/net/eliteGates/egReceipt.js';
 import { ARENA_SEASON_EPOCH_S, ARENA_WEEK_S, arenaWeekOf } from '../../../src/net/arena/arenaLaw.js';
-import { egPanoplyHit, egSpoilsSeed, egEmbersOf, EG_PANOPLY_PITY, EG_SINK_EMBERS, EG_PANOPLY_IDS, EG_PAY_MARKS, EG_SINK_RECENT_WEEKS } from '../../../src/net/eliteGates/egPay.js';
+import { egPanoplyHit, egSpoilsSeed, egEmbersOf, EG_PANOPLY_PITY, EG_SINK_EMBERS, EG_PANOPLY_IDS, EG_PAY_MARKS } from '../../../src/net/eliteGates/egPay.js';
 import { MARKS_FAUCETS, MARKS_COMBAT, MARKS_KINDS } from '../../../src/net/marksLaw.js';
 import { INSIGNIA } from '../../../src/net/insignia.js';
 import { accountEg, SESSION_KEY, accountRefusalText } from '../../../src/net/accountClient.js';
@@ -273,7 +273,7 @@ test('EG-E1 THE BROKER\'S PANOPLY SINK: one piece of the buyer\'s choosing, once
   assert.equal(almost.status, 200, JSON.stringify(almost.body));
   assert.deepEqual(almost.body, { ok: true, piece, week: arenaWeekOf(NOW0), purse: 5 });
   assert.equal(player(me).insignia_spent, EG_SINK_EMBERS);
-  assert.deepEqual((await S.call('/v1/eg/keys', {}, me.secret)).body.sink, { week: arenaWeekOf(NOW0), piece, recent: [] });
+  assert.deepEqual((await S.call('/v1/eg/keys', {}, me.secret)).body.sink, { week: arenaWeekOf(NOW0), piece });
   // a second sale that week, with the purse to pay it: refused, nothing spent
   for (let i = 0; i < 20; i++) raw.prepare('INSERT INTO serpent_kills (day, account, boss, hull, char_id, xp, nonce, at, stones) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(2501 + i, me.id, 'sethrakul', 4, me.character, 0, `p${i}`, NOW0, 1);
   const twice = await S.call('/v1/eg/sink', { piece: EG_PANOPLY_IDS[8] }, me.secret);
@@ -290,14 +290,6 @@ test('EG-E1 THE BROKER\'S PANOPLY SINK: one piece of the buyer\'s choosing, once
   at(NOW0 + 2 * WK);
   assert.deepEqual((await S.call('/v1/eg/sink', { piece }, me.secret)).body, { error: 'short', purse: 5, price: EG_SINK_EMBERS });
   assert.deepEqual(raw.prepare('SELECT wk, piece FROM eg_sink WHERE account = ? ORDER BY wk').all(me.id).map((r) => [r.wk, r.piece]), [[arenaWeekOf(NOW0), piece], [arenaWeekOf(NOW0 + WK), EG_PANOPLY_IDS[8]]]);
-  // EMBERS-OWED (FB1024): `/v1/eg/keys` says the weeks before's sales too, newest first, EG_SINK_RECENT_WEEKS in all - so a
-  // client whose sale went unheard settles it on a later week (systems/sigil/sigilBroker.js settleOwedPanoply)
-  const w0 = arenaWeekOf(NOW0);
-  assert.deepEqual((await S.call('/v1/eg/keys', {}, me.secret)).body.sink, { week: w0 + 2, piece: null, recent: [{ week: w0 + 1, piece: EG_PANOPLY_IDS[8] }, { week: w0, piece }] });
-  at(NOW0 + (EG_SINK_RECENT_WEEKS - 1) * WK);
-  assert.deepEqual((await S.call('/v1/eg/keys', {}, me.secret)).body.sink.recent.map((x) => x.week), [w0 + 1, w0], 'the eighth week back still said');
-  at(NOW0 + EG_SINK_RECENT_WEEKS * WK);
-  assert.deepEqual((await S.call('/v1/eg/keys', {}, me.secret)).body.sink, { week: w0 + EG_SINK_RECENT_WEEKS, piece: null, recent: [{ week: w0 + 1, piece: EG_PANOPLY_IDS[8] }] }, 'past it, not');
   assert.equal(accountRefusalText('bought'), 'You have bought from the Panoply this week. Come back next week.');
   let body = null;
   const spy = accountEg({ fetch: async (u, i) => { body = JSON.parse(i.body); return S.fetch(u, i); }, storage: sessionStorageOf(SESSION_KEY, me) });
