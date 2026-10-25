@@ -45,7 +45,7 @@ Every finding is fixed, pinned and named below, or left and said.
   C N4), HU-AUDIT-L4-the-mark-sticks-once-hidden; the harness hands the game the relay's closes and fires each room's
   HUB_COUNT_MS count (`sayCounts`).
 - **L5 NOTE - the record said three things that are not so.** (a) "a tokenless hello ... is counted": the relay
-  refuses it (`index.js:"if (!m.tok) return { error: 'sign in to play online' };"`). (b) "a build from before the
+  refuses it (`server/src/index.js:"if (!m.tok) return { error: 'sign in to play online' };"`). (b) "a build from before the
   shards": a build that mints hidden tokens says `hs` and is moved to a shard; a hidden link reaches the bus only when
   its shard twice failed to open. (c) "reads that `n` only when the welcome's list was cut": on a shard the bus has told,
   the client reads the bus's `n` whenever it is past its own peers plus one. FIXED: the record rewritten (below, P5).
