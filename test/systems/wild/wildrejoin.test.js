@@ -207,6 +207,19 @@ test('WILD-REJOIN THE PAGE: a living page told it is down - and that saw no deat
   }
 });
 
+test('WILD-REJOIN THE BODY RECORD: one home for both deaths that lay a body - the place and room it is handed, the hall and the map pixel the player stands in now, asked at the call; the place copied, never the caller\'s array; nothing known is null (mutants: the hall dropped; the pixel dropped; the caller\'s array kept)', () => {
+  let here = { dungeon: 'hall-7', px: { x: 120, y: 44 } };
+  const page = createWildRejoin({ place: () => here });
+  const mark = [1, 2, 3];
+  const body = page.bodyAt(mark, 'dungeon:m42');
+  assert.deepEqual(body, { p: [1, 2, 3], room: 'dungeon:m42', dungeon: 'hall-7', px: { x: 120, y: 44 } });
+  mark[0] = 99;
+  assert.deepEqual(body.p, [1, 2, 3], 'the death mark moving on does not move the body');
+  here = { dungeon: null, px: null };
+  assert.deepEqual(page.bodyAt([4, 5, 6], 'world:1,1'), { p: [4, 5, 6], room: 'world:1,1', dungeon: null, px: null }, 'asked at the call: outdoors now');
+  assert.deepEqual(createWildRejoin().bodyAt([0, 0, 0], 'world:0,0'), { p: [0, 0, 0], room: 'world:0,0', dungeon: null, px: null }, 'no host: nothing known');
+});
+
 test('WILD-REJOIN THE DEATH\'S DOOR: a death another page already heard is presented alone - the health at zero and the host\'s screen, no subscriber told it a second time (Project Legacy decided it on the page that closed); a referee\'s fall heard on this page still tells them; nothing for the dead (mutants: the subscribers told again; the presenter skipped)', () => {
   const heard = [];
   const shown = [];

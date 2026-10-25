@@ -23045,7 +23045,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     }
   };
   const _wildSeize = new Map();   // a fall I won, signed: r -> { rc, room, p, due, tries } - its drop the fallen's tab's first
-  const wildRejoin = createWildRejoin({ present: () => presentHeardDeath(playerEntity) });   // WILD-REJOIN: whether a referee's `down` word is this page's death to take
+  const wildRejoin = createWildRejoin({ present: () => presentHeardDeath(playerEntity), place: () => ({ dungeon: modes?.mode === 'dungeon' ? (_wdunInside?.h ?? wdKey()) : null, px: playerTravelPixel() }) });   // WILD-REJOIN: whether a referee's `down` word is this page's death to take
   const _wildFellAt = new Map();  // AUDIT INT9: where a fall I won lay, in its room's frame, when the referee called it: r -> p
   /** A FALL (`wref` `fell`): mine - a death in the zone, the referee's word, whatever my save's health says; my foe's at my
    *  hand - its body's offer awaited under the fall's id, from the room that refereed it. */
@@ -23080,7 +23080,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  follows lays my drop there. The closed page heard the death itself, so its subscribers are not told it again. */
   const wildDownIn = (g, room) => {
     const death = wildRejoin.heard(g, { alive: playerEntity.health > 0 });
-    if (death) _wildBody = { p: death.p ?? campToWire(player.feetAt()), room, dungeon: modes?.mode === 'dungeon' ? (_wdunInside?.h ?? wdKey()) : null, px: playerTravelPixel() };
+    if (death) _wildBody = wildRejoin.bodyAt(death.p ?? campToWire(player.feetAt()), room);
   };
   const wildRefIn = (g, room) => {
     if (g.k === 'hp') wildHpIn(g);
@@ -23249,7 +23249,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const fell = wildFallHeard();   // AUDIT FOE-KEEPS H1: any fall heard since my last rise (wildGhostEnd clears it) - a hidden tab hears it, runs no frame
     // WILD-REJOIN: a death the referee told of has its body and its words already (wildDownIn), and offers nothing
     const rejoined = wildRejoin.begin();
-    if (!rejoined) _wildBody = { p: [_deadMark.x, _deadMark.y, _deadMark.z], room: online.room, dungeon: modes?.mode === 'dungeon' ? (_wdunInside?.h ?? wdKey()) : null, px: playerTravelPixel() };
+    if (!rejoined) _wildBody = wildRejoin.bodyAt([_deadMark.x, _deadMark.y, _deadMark.z], online.room);
     // HALL-CROWS (the owner: "i dont see the crows circleling around the dungeon where i died on the zone map"): a death in
     // a hall always locks it and sets the crows over it - whether or not the pack had anything to drop
     if (modes?.mode === 'dungeon' && _wdunInside) wdunLeft(true);

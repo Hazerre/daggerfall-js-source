@@ -613,3 +613,11 @@ WILD-REJOIN (`01-Overview/bugs/Field-Bugs-2026-10-25b.md`) wires a page that com
 ceiling stays. Two pins quote the moved spelling (`host.online`): `test/net/int9_wild_ref.test.js` through `hostText`,
 `test/systems/fb1015_cartaway.test.js` by the module's own path. The change the slice made to the frame (the 'grace'
 word of an older account service asked again once) came after the move, in the module.
+
+WILD-REJOIN BODY (2026-10-25, the owner's rule for every open pull request: the hosts are wiring). The zone death's body
+record - `{ p, room, dungeon, px }`, where the remains of a death are laid - was composed twice in `bootWorld`: at the
+first dead frame (the death mark) and where a page that came back is told it is down (the referee's place). Two copies of
+one shape drift (Home.md, THE ONE CONSTRUCTION SEAM), so the record is `systems/wild/wildRejoin.js` `bodyAt(p, room)`,
+handed the player's hall and pixel through the module's `place` handle, and both sites call it. 4 logical lines out
+(36,387 -> 36,383); the ceiling comes down by them (36,389 -> 36,385). Pinned by `wildrejoin.test.js` THE BODY RECORD,
+three more records in `tools/mutants/wildrejoin.json`.

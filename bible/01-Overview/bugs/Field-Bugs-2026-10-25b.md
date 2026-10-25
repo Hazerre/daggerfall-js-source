@@ -5,7 +5,7 @@ are looted you wont be able to be looted by who killed you. you can also skip th
 to log in than wait 2 minutes." - "I killed a guy and was unable to loot him. He had Daedric gear on, i could see it. he
 must have Alt f4'd. He then came back immedietly". Read on main's `80eafd01ff`. The pins are
 `test/systems/wild/wildrejoin.test.js` and int9's WILD-REJOIN THE SERVICE (`test/net/int9_wild_ref.test.js`), the
-mutants `tools/mutants/wildrejoin.json` (19, all dead). Not seen with two live clients: the relay, the service and the
+mutants `tools/mutants/wildrejoin.json` (22, all dead). Not seen with two live clients: the relay, the service and the
 page's decisions run in the pins, the world host's wiring of them does not.
 
 | | Report | What it was | Done |
@@ -44,7 +44,9 @@ THE CHANGE:
 THE SEIZURE'S FRAME MOVED (HOST-SPLIT): `bootWorld` stood one logical line under its ceiling. `wildSeizeFrame` - one
 member, writing nothing of the host's - went verbatim to `src/scenes/wildSeizeHost.js` (`createWildSeizeHost`) by
 `tools/hostMove.mjs` before the change touched it, 17 logical lines out; the wiring took them back (36,386 before and
-after). Two pins that quoted it read the moved spelling (`host.online`).
+after). Two pins that quoted it read the moved spelling (`host.online`). The body record both deaths lay - composed
+twice in the host - is the module's `bodyAt` (`wildRejoin.js:"bodyAt(p, room) {"`): 4 logical lines more out, the
+ceiling down by them (`01-Overview/Host-Split.md`, WILD-REJOIN BODY).
 
 DECIDED (2026-10-25, the two questions asked with the fix, answered "with your recommended defaults"): a page that comes
 back serves the time LEFT of the two minutes, never a fresh two; the killer keeps the whole pick window when the fallen's

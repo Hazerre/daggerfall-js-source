@@ -31,14 +31,39 @@ export const WILD_REJOIN_KNOWN_MS = (WILD_DEATH_HOLD_S + 30) * 1000;
  */
 
 /**
- * @param {{ now?: () => number, present?: () => void }} [o] `now` a wall clock, ms; `present` puts the character down and
- *   its death screen up without telling the death's subscribers again (characters/playerEntity.js presentHeardDeath)
+ * @typedef {object} WildBody          where my body lies, read at the death for the deposit that follows it
+ * @property {number[]} p              the body's place in its room's frame, `[x, y, z]`
+ * @property {string} room             the room the remains are laid in
+ * @property {string | null} dungeon   the hall it lies in (its lock's key - PVPDUNGEONS), or null outdoors
+ * @property {{ x: number, y: number } | null} px   the map pixel it lies on (the world map's mark)
  */
-export function createWildRejoin({ now = () => Date.now(), present = () => {} } = {}) {
+
+/**
+ * @typedef {object} WildPlace         where the player stands now, as the body record needs it
+ * @property {string | null} dungeon   the hall's key, or null
+ * @property {{ x: number, y: number } | null} px   the travel map pixel, or null
+ */
+
+/**
+ * @param {{ now?: () => number, present?: () => void, place?: () => WildPlace }} [o] `now` a wall clock, ms; `present`
+ *   puts the character down and its death screen up without telling the death's subscribers again
+ *   (characters/playerEntity.js presentHeardDeath); `place` where the player stands now (the host's hall and pixel)
+ */
+export function createWildRejoin({ now = () => Date.now(), present = () => {}, place = () => ({ dungeon: null, px: null }) } = {}) {
   let ownDeathAt = -Infinity;
   /** @type {WildRejoinDeath | null} */
   let waiting = null;
   return {
+    /**
+     * THE BODY RECORD, one home for both deaths that lay one (the first dead frame's, at the death mark; a death the
+     * referee told of, where its word says): the place, the room, and the hall and pixel the player stands in now.
+     * @param {number[]} p @param {string} room
+     * @returns {WildBody}
+     */
+    bodyAt(p, room) {
+      const here = place();
+      return { p: [...p], room, dungeon: here.dungeon ?? null, px: here.px ?? null };
+    },
     /** This page's first dead frame in the zone: its own death noted, and the death the referee told of, if this is
      *  one - answered once, and only inside its own hold (a word whose death never reached a dead frame in the zone is
      *  never a later death's). */
