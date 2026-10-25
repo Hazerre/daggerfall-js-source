@@ -151,7 +151,7 @@
 
 <script type="module">
 import {
-  ALIGN, gunFrameRect, createGunMachine, thunderlockFrames, THUNDERLOCK_STRIP, thunderlockMuzzleLight,
+  ALIGN, gunFrameRect, createGunMachine, thunderlockFrames, THUNDERLOCK_STRIP, thunderlockLabLight,
   createRecoil, createScreenShake, createWidgetRig, widgetRigStep, labWidgetSettings, labMotion,
   SFX_CANDIDATES, createSfxPlayer,
 } from '/src/tools/gunLab.js';
@@ -394,7 +394,7 @@ function frame(now) {
   if (gun.state !== 'Cooling') { _reloadOpened = false; _reloadClosed = false; }
 
   const showFrame = gun.state === 'Firing' ? gun.frame : (scrub >= 0 ? scrub : 0);
-  const lit = state.room * (1 + thunderlockMuzzleLight(gun.state, showFrame) * state.light * 1.9);
+  const lit = state.room * (1 + thunderlockLabLight(gun.state, showFrame) * state.light * 1.9);
   bobWorld = bobWorld * 0.86 - look[0] * canvas.width * 0.18;
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
