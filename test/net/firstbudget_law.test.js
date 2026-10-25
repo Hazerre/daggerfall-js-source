@@ -1,16 +1,17 @@
 // FIRST-BUDGET (2026-10-25, SaberGGaming's report: "Provisioning is slow"; the owner: "No band aids") - A TRACK'S
-// DISCOVERIES SHARE ONE FIXED BUDGET (net/recipeLaw.js DISCOVERY_BUDGET, firstMakesOf, firstMakeXp, firstCraftXp,
-// workFirstXp, brewFirstXp). Every first-make paid a flat 500, every track alike, and the tracks' pools differ tenfold;
-// now each crafting track's first-makes together pay Smithing's whole pool, 110,500 - Smithing unchanged, the slower
-// tracks risen. Pinned here: the budget, each track's count and sum, every share, the keys the service keys a first by,
+// DISCOVERIES SHARE ONE BUDGET (net/recipeLaw.js DISCOVERY_BUDGET, FIRST_MAKE_FLOOR, budgetOf, firstMakesOf, firstMakeXp,
+// firstCraftXp, workFirstXp, brewFirstXp). Every first-make paid a flat 500, every track alike, and the tracks' pools differ
+// tenfold; now each crafting track's first-makes together pay Smithing's whole pool, 110,500 - Smithing unchanged, the
+// slower tracks risen, and a track whose pool is larger (Outfitting's, since CLOTH-GEMS) the floor's 500 a first, so no
+// track loses. The budget says how much a first pays, CLOTH-GEMS whether. Pinned here: the budget, each track's count and sum, every share, the keys the service keys a first by,
 // the words that say it and the pace it makes (tools/craftPace.mjs) - through the real Worker. bible/06-Systems/
-// Professions-Arc.md 50.
+// Professions-Arc.md 51.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { standService } from '../accountDb.mjs';
 import {
-  DISCOVERY_BUDGET, firstMakesOf, firstMakeXp, firstCraftXp, workFirstXp, brewFirstXp, firstCraftKey, firstCraftKin, firstCraftPays,
+  DISCOVERY_BUDGET, FIRST_MAKE_FLOOR, budgetOf, firstMakesOf, firstMakeXp, firstCraftXp, workFirstXp, brewFirstXp, firstCraftKey, firstCraftKin, firstCraftPays,
   RECIPES, recipeById, COOKING_RECIPES, craftXp, cookXp,
 } from '../../src/net/recipeLaw.js';
 import { MASON_RECIPES, WORK_RECIPES, PROFESSIONS, trackOf, xpForRank } from '../../src/net/professionLaw.js';
@@ -25,13 +26,15 @@ const shares = (track) => {
   return out;
 };
 
-test('FIRST-BUDGET the law: the budget is Smithing\'s whole pool at the 500 it paid (221 x 500 = 110,500); each crafting track\'s first-makes sum to it exactly - Smithing 221 at 500 (unchanged), Outfitting 180 (160 at 614, 20 at 613), Building 43 (33 at 2,570, 10 at 2,569), Provisioning 22 (16 at 5,023, 6 at 5,022); Enchanting and the gathering tracks none (mutants: the budget moved; the remainder dropped; the remainder to the last; a work counted that pays none; a smelt counted; the counter\'s goods counted; a brew of the Apothecaries\' goods alone counted)', () => {
+test('FIRST-BUDGET the law: the budget is Smithing\'s whole pool at the 500 it paid (221 x 500 = 110,500); each crafting track\'s first-makes sum to it exactly - Smithing 221 at 500 (unchanged), Outfitting 332 at the floor\'s 500 (its pool past the budget, its budget 166,000 - CLOTH-GEMS\' cloth patterns in it), Building 43 (33 at 2,570, 10 at 2,569), Provisioning 22 (16 at 5,023, 6 at 5,022); Enchanting and the gathering tracks none (mutants: the budget moved; the floor dropped; the remainder dropped; the remainder to the last; a work counted that pays none; a smelt counted; the pool asked as bought; a brew of the Apothecaries\' goods alone counted)', () => {
   assert.equal(DISCOVERY_BUDGET, 110_500);
   assert.equal(DISCOVERY_BUDGET, firstMakesOf('smithing').length * 500, 'Smithing\'s pool at the 500 it always paid - no track loses');
-  assert.deepEqual(['smithing', 'outfitting', 'building', 'provisioning'].map((t) => firstMakesOf(t).length), [221, 180, 43, 22]);
-  for (const t of ['smithing', 'outfitting', 'building', 'provisioning']) assert.equal(sum(t), DISCOVERY_BUDGET, `${t}: its first-makes sum to the budget`);
+  assert.deepEqual(['smithing', 'outfitting', 'building', 'provisioning'].map((t) => firstMakesOf(t).length), [221, 332, 43, 22]);
+  assert.equal(FIRST_MAKE_FLOOR, 500, 'the flat first every track paid before - no track loses it');
+  assert.deepEqual(['smithing', 'outfitting', 'building', 'provisioning', 'enchanting'].map((t) => budgetOf(t)), [110_500, 166_000, 110_500, 110_500, 0], 'the budget, or the floor\'s where the pool is larger (Outfitting\'s 332 x 500)');
+  for (const t of ['smithing', 'outfitting', 'building', 'provisioning']) assert.equal(sum(t), budgetOf(t), `${t}: its first-makes sum to its budget`);
   assert.deepEqual(shares('smithing'), { 500: 221 }, 'Smithing\'s per-make unchanged');
-  assert.deepEqual(shares('outfitting'), { 613: 20, 614: 160 });
+  assert.deepEqual(shares('outfitting'), { 500: 332 }, 'Outfitting\'s 500 as it was - the floor\'s');
   assert.deepEqual(shares('building'), { 2569: 10, 2570: 33 });
   assert.deepEqual(shares('provisioning'), { 5022: 6, 5023: 16 }, 'Provisioning\'s 110,500 over its 22');
   // the remainder one XP each to the first in the tables' order
@@ -46,38 +49,40 @@ test('FIRST-BUDGET the law: the budget is Smithing\'s whole pool at the 500 it p
   assert.deepEqual([firstMakeXp('provisioning', 'nothing@1'), firstMakeXp('smithing', 'stew@1'), firstMakeXp('enchanting', 'stew@1')], [0, 0, 0], 'a key none of the track\'s pays none');
 });
 
-test('FIRST-BUDGET the keys the service keys a first by: a recipe its pattern at its tier (its kin one first, one share), a mason\'s work its id, a brew its potion - each only where its first pays (AUDIT 32 S1: the Weavers\' cloth alone, the Apothecaries\' goods alone none); a smelt pays no first (mutants: the kin split; the counter\'s guard dropped; a smelt\'s first; the brew keyed by its name)', () => {
+test('FIRST-BUDGET the keys the service keys a first by: a recipe its pattern at its tier (its kin one first, one share), a mason\'s work its id, a brew its potion - each only where its first pays (AUDIT 32 S1: the Apothecaries\' goods alone none; CLOTH-GEMS: the Weavers\' cloth alone its share asked as own, none asked as bought); a smelt pays no first (mutants: the kin split; the counter\'s guard dropped; the pool asked as bought; a smelt\'s first; the brew keyed by its name)', () => {
   for (const r of RECIPES) {
     const want = firstCraftPays(r) ? firstMakeXp(r.profession, firstCraftKey(r)) : 0;
     assert.equal(firstCraftXp(r), want, r.id);
     if (firstCraftPays(r)) assert.ok(want > 0, `${r.id}: its pattern in its track's pool`);
     for (const id of firstCraftKin(r)) assert.equal(firstCraftXp(recipeById(id)), want, `${r.id}: its kin ${id} one share`);
+    assert.ok(firstCraftXp(r, true) > 0 && firstCraftXp(r, true) === firstMakeXp(r.profession, firstCraftKey(r)), `${r.id}: asked as own, its pattern\'s share (CLOTH-GEMS: every recipe\'s first can pay)`);
   }
-  assert.deepEqual(['garment-141:linen', 'rug-237:wool', 'fishingnet:linen'].map((id) => firstCraftXp(recipeById(id))), [0, 0, 0], 'the Weavers\' cloth alone');
+  assert.deepEqual(['garment-141:linen', 'rug-237:wool', 'fishingnet:linen'].map((id) => firstCraftXp(recipeById(id))), [0, 0, 0], 'the Weavers\' cloth alone, asked as bought');
+  assert.deepEqual(['garment-141:linen', 'rug-237:wool', 'fishingnet:linen'].map((id) => firstCraftXp(recipeById(id), true)), [500, 500, 500], 'and asked as own - the loom\'s cloth: Outfitting\'s share');
   assert.deepEqual([firstCraftXp(null), workFirstXp(null), brewFirstXp(null)], [0, 0, 0]);
   assert.deepEqual(MASON_RECIPES.map((w) => [w.id, workFirstXp(w)]), [['cut:stone', 2569], ['mix:mortar', 2569]], 'the bench\'s two works, the last of Building\'s pool - each the same share, as the bench\'s line says');
   assert.deepEqual(WORK_RECIPES.filter((w) => !w.act).map((w) => workFirstXp(w)).filter((x) => x !== 0), [], 'a smelt, a burn, a saw, a cure, a weave, a transmutation: no first');
   assert.deepEqual(POTIONS.map((p) => brewFirstXp(p) > 0), POTIONS.map((p) => brewFirstPays(p)), 'a brew\'s first where it pays');
   assert.deepEqual([brewFirstXp(potionById('healing')), brewFirstXp(potionById('purification')), brewFirstXp(potionById('waterBreathing')), brewFirstXp(potionById('levitation'))], [5022, 5023, 0, 0]);
   assert.deepEqual(COOKING_RECIPES.map((r) => firstCraftXp(r)), Array(COOKING_RECIPES.length).fill(5023), 'every dish its pattern\'s, either herb\'s way');
-  assert.deepEqual([firstCraftXp(recipeById('longsword:daedric')), firstCraftXp(recipeById('ring:gold:ruby')), firstCraftXp(recipeById('staff:pine')), firstCraftXp(recipeById('garment-149:linen'))], [500, 500, 2570, 614]);
+  assert.deepEqual([firstCraftXp(recipeById('longsword:daedric')), firstCraftXp(recipeById('ring:gold:ruby')), firstCraftXp(recipeById('staff:pine')), firstCraftXp(recipeById('garment-149:linen'))], [500, 500, 2570, 500]);
 });
 
 test('FIRST-BUDGET the words say it: the anvil\'s, the workbench\'s and the loom\'s line, the fire\'s and the mason\'s bench\'s say the first\'s share, its thousands grouped (mutants: the 500 back in a line; the share unformatted)', () => {
   assert.equal(craftXpLine(recipeById('dagger:iron'), 0, 'Smithing'), '20 Smithing experience, and 500 more the first time you make this piece at this grade.');
   assert.equal(craftXpLine(recipeById('staff:pine'), 0, 'Building'), '20 Building experience, and 2,570 more the first time you make this piece at this grade.');
-  assert.equal(craftXpLine(recipeById('leather-boots:cured'), 10, 'Outfitting'), '40 Outfitting experience, and 614 more the first time you make this piece at this grade.');
+  assert.equal(craftXpLine(recipeById('leather-boots:cured'), 10, 'Outfitting'), '40 Outfitting experience, and 500 more the first time you make this piece at this grade.');
   assert.equal(dishFirstLine(recipeById('stew:north'), 'Provisioning'), 'The first time you cook this dish: 5,023 more Provisioning experience.');
   assert.equal(masonWorksFirstLine(0, 'Building'), 'Your first cut and your first mix each earn 2,569 more Building experience.');
 });
 
-test('FIRST-BUDGET the pace it makes (tools/craftPace.mjs): crafts to Journeyman and to Master, every act at its best, clean where it can be - Smithing 45 and 172 as it was; Outfitting 116 and 246 then, 74 and 181 now; Building 116 and 525 then, 10 and 39; Provisioning 178 and 599 then, 5 and 20 (mutants: the budget moved; Provisioning\'s shares Smithing\'s)', () => {
+test('FIRST-BUDGET the pace it makes (tools/craftPace.mjs): crafts to Journeyman and to Master, every act at its best, clean where it can be - Smithing 45 and 172 as it was; Outfitting 46 and 176 as it was (CLOTH-GEMS\' cloth patterns paid as own, the floor\'s 500); Building 116 and 525 then, 10 and 39; Provisioning 178 and 599 then, 5 and 20 (mutants: the budget moved; Provisioning\'s shares Smithing\'s)', () => {
   const pace = (p) => Object.fromEntries(Object.entries(p).map(([t, v]) => [t, [v.journeyman, v.master]]));
-  assert.deepEqual(pace(craftPace(500)), { smithing: [45, 172], building: [116, 525], outfitting: [116, 246], provisioning: [178, 599] }, 'the flat 500, as the report measured it');
-  assert.deepEqual(pace(craftPace()), { smithing: [45, 172], building: [10, 39], outfitting: [74, 181], provisioning: [5, 20] }, 'the budget: Smithing unchanged, every slower track faster');
+  assert.deepEqual(pace(craftPace(500)), { smithing: [45, 172], building: [116, 525], outfitting: [46, 176], provisioning: [178, 599] }, 'the flat 500 on CLOTH-GEMS\' recipe set (the report measured Outfitting 116 and 246 before its cloth patterns paid)');
+  assert.deepEqual(pace(craftPace()), { smithing: [45, 172], building: [10, 39], outfitting: [46, 176], provisioning: [5, 20] }, 'the budget: Smithing and Outfitting unchanged, every slower track faster');
 });
 
-test('FIRST-BUDGET DONE WHEN, through the real Worker: Provisioning\'s first brew pays 20 and its 5,022 and its first dish 20 and its 5,023, a second of either its own XP alone; Smithing\'s first piece its 500 as ever; Building\'s first cut its 2,569; Outfitting\'s first Linen Boots its 614 (mutants: the service\'s binds the old 500; a brew\'s first unpaid)', async () => {
+test('FIRST-BUDGET DONE WHEN, through the real Worker: Provisioning\'s first brew pays 20 and its 5,022 and its first dish 20 and its 5,023, a second of either its own XP alone; Smithing\'s first piece its 500 as ever; Building\'s first cut its 2,569; Outfitting\'s first Linen Boots its 500, the floor\'s (mutants: the floor dropped;: the service\'s binds the old 500; a brew\'s first unpaid)', async () => {
   const s = await standService({ PROFESSIONS_OPEN: 'on', MARKS_OPEN: 'on' });
   const raw = s.env.DB._raw;
   const mac = await s.seated('Mac');
@@ -110,7 +115,7 @@ test('FIRST-BUDGET DONE WHEN, through the real Worker: Provisioning\'s first bre
   const sword = await craft('dagger:iron');
   assert.deepEqual([sword.status, sword.body.first, sword.body.xp], [200, true, craftXp(1, 0) + 500], 'Smithing\'s 500, as it was');
   const boot = await craft('garment-149:linen');
-  assert.deepEqual([boot.status, boot.body.first, boot.body.xp], [200, true, craftXp(1, 0) + 614], JSON.stringify(boot.body));
+  assert.deepEqual([boot.status, boot.body.first, boot.body.xp], [200, true, craftXp(1, 0) + 500], JSON.stringify(boot.body));
   give('stone:rough', 2);
   const cut = await s.call('/v1/prof/smelt', { character: mac.character, recipe: 'cut:stone', count: 1, rid: rid() }, mac.secret);
   assert.deepEqual([cut.status, cut.body.first, cut.body.xp, cut.body.track.xp], [200, true, 20 + 2569, 20 + 2569], JSON.stringify(cut.body));

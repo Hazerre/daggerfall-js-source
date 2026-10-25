@@ -2,22 +2,22 @@
   {
     "name": "FB1015C-line-shop-never",
     "file": "src/ui/craftXpWords.js",
-    "old": "  const more = firstCraftXp(r);",
-    "new": "  const more = firstCraftXp(r) || 614;",
+    "old": "  const more = firstCraftXp(r, own);",
+    "new": "  const more = firstCraftXp(r, true);",
     "tests": [
       "test/net/fb1015f_firstcraft.test.js"
     ],
-    "note": "PIN MOVED (FIELD BUGS 2026-10-18f CRAFT-LIMIT-SAID): re-aimed by content - the line takes the station's pay (profPages craftPayOf), the craft's XP the Firmament's percent, the 500 whole."
+    "note": "PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "FB1015C-line-shop-always",
     "file": "src/ui/craftXpWords.js",
-    "old": "  const more = firstCraftXp(r);",
+    "old": "  const more = firstCraftXp(r, own);",
     "new": "  const more = 0;",
     "tests": [
       "test/net/fb1015f_firstcraft.test.js"
     ],
-    "note": "PIN MOVED (FIELD BUGS 2026-10-18f CRAFT-LIMIT-SAID): re-aimed by content - the line takes the station's pay (profPages craftPayOf), the craft's XP the Firmament's percent, the 500 whole."
+    "note": "PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "FB1015C-line-no-quarter",
@@ -32,12 +32,12 @@
   {
     "name": "FB1015C-line-more-whole",
     "file": "src/ui/craftXpWords.js",
-    "old": "{ xp, profession, more })\n    : t('prof.page.craft.xpShop'",
-    "new": "{ xp, profession, more: xp + more })\n    : t('prof.page.craft.xpShop'",
+    "old": "{ xp, profession, more })\n    : t('prof.page.craft.xpBought'",
+    "new": "{ xp, profession, more: xp + more })\n    : t('prof.page.craft.xpBought'",
     "tests": [
       "test/net/fb1015f_firstcraft.test.js"
     ],
-    "note": "PIN MOVED (FIELD BUGS 2026-10-18f CRAFT-LIMIT-SAID): re-aimed by content - the line takes the station's pay (profPages craftPayOf), the craft's XP the Firmament's percent, the 500 whole."
+    "note": "PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "FB1015C-dish-never",
@@ -69,20 +69,22 @@
   {
     "name": "FB1015C-word-shop-never",
     "file": "src/ui/craftXpWords.js",
-    "old": "  return firstCraftPays(r)\n    ? t('prof.craft.xpFirst'",
+    "old": "  return (typeof data.firstPaid === 'boolean' ? data.firstPaid : firstCraftPays(r))\n    ? t('prof.craft.xpFirst'",
     "new": "  return true\n    ? t('prof.craft.xpFirst'",
     "tests": [
       "test/net/fb1015f_firstcraft.test.js"
-    ]
+    ],
+    "note": "PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "FB1015C-word-shop-always",
     "file": "src/ui/craftXpWords.js",
-    "old": "  return firstCraftPays(r)\n    ? t('prof.craft.xpFirst'",
+    "old": "  return (typeof data.firstPaid === 'boolean' ? data.firstPaid : firstCraftPays(r))\n    ? t('prof.craft.xpFirst'",
     "new": "  return false\n    ? t('prof.craft.xpFirst'",
     "tests": [
       "test/net/fb1015f_firstcraft.test.js"
-    ]
+    ],
+    "note": "PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "FB1015C-host-old-word",
@@ -128,22 +130,22 @@
   {
     "name": "FB1015C-loom-unsaid",
     "file": "src/ui/professions/profPages.js",
-    "old": "    if (recipeOpen(r, rank)) box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('outfitting'), craftPayOf(book, 'outfitting'))));   // CRAFT-LIMIT-SAID\n",
+    "old": "    if (recipeOpen(r, rank)) box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('outfitting'), craftPayOf(book, 'outfitting'), ownSpend(book, r))));   // CRAFT-LIMIT-SAID\n",
     "new": "",
     "tests": [
       "test/net/fb1015f_firstcraft.test.js"
     ],
-    "note": "PIN MOVED (FIELD BUGS 2026-10-18f CRAFT-LIMIT-SAID): re-aimed by content - the line takes the station's pay (profPages craftPayOf), the craft's XP the Firmament's percent, the 500 whole."
+    "note": "PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "FB1015C-loom-named-smithing",
     "file": "src/ui/professions/profPages.js",
-    "old": "craftXpLine(r, rank, professionName('outfitting'), craftPayOf(book, 'outfitting'))",
-    "new": "craftXpLine(r, rank, professionName('smithing'), craftPayOf(book, 'outfitting'))",
+    "old": "craftXpLine(r, rank, professionName('outfitting'), craftPayOf(book, 'outfitting'), ownSpend(book, r))",
+    "new": "craftXpLine(r, rank, professionName('smithing'), craftPayOf(book, 'outfitting'), ownSpend(book, r))",
     "tests": [
       "test/net/fb1015f_firstcraft.test.js"
     ],
-    "note": "PIN MOVED (FIELD BUGS 2026-10-18f CRAFT-LIMIT-SAID): re-aimed by content - the line takes the station's pay (profPages craftPayOf), the craft's XP the Firmament's percent, the 500 whole."
+    "note": "PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "FB1015C-mason-works-unsaid",

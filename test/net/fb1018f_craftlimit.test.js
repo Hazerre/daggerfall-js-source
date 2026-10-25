@@ -21,7 +21,7 @@ import { accountProf, SESSION_KEY } from '../../src/net/accountClient.js';
 import { createProfBook } from '../../src/net/profBook.js';
 import * as law from '../../src/net/professionLaw.js';
 import { recipeById, craftXp, cookXp, masonXp, workFirstXp, firstCraftXp } from '../../src/net/recipeLaw.js';
-/** FIRST-BUDGET (Professions-Arc 50): a Smithing piece's first, its share of Smithing's discovery budget - the 500 it always was. */
+/** FIRST-BUDGET (Professions-Arc 51): a Smithing piece's first, its share of Smithing's discovery budget - the 500 it always was. */
 const FIRST_CRAFT_XP = 500;
 import { potionById, brewXp, disenchantXp } from '../../src/net/alchemyLaw.js';   // AUDIT FB1018f L5-6: the stations' own laws
 import { temperXp } from '../../src/net/temperLaw.js';

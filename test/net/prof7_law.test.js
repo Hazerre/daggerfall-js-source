@@ -192,7 +192,9 @@ test('PROF7 law: the loom cures two hides to a leather (a Tanner\'s two a unit -
     ['cure:scorpion', 'leather:hardened', '2 hide:scorpion', 'loom', 1, 'tanner', 2, 50, null], ['cure:slaughterfish', 'leather:hardened', '2 hide:slaughterfish', 'loom', 1, 'tanner', 2, 50, null],
     ['cure:dreugh', 'leather:hardened', '2 hide:dreugh', 'loom', 1, 'tanner', 2, 50, null], ['cure:dragonling', 'leather:hardened', '2 hide:dragonling', 'loom', 1, 'tanner', 2, 50, null],
   ]);
-  assert.deepEqual(WEAVE_RECIPES.map((r) => [r.id, r.out, r.inputs.map((i) => `${i.n} ${i.key}`).join(), r.station, r.per, r.more, r.xp]), [['weave:silk', 'cloth:silk', '3 hide:spider', 'loom', 1, null, null]]);
+  // PIN MOVED (CLOTH-GEMS, Professions-Arc 50): and Linen woven of two Root Tendrils, either land's (test/net/clothgems_law.test.js)
+  assert.deepEqual(WEAVE_RECIPES.map((r) => [r.id, r.out, r.inputs.map((i) => `${i.n} ${i.key}`).join(), r.station, r.per, r.more, r.xp]), [['weave:silk', 'cloth:silk', '3 hide:spider', 'loom', 1, null, null],
+    ['weave:linen-north', 'cloth:linen', '2 p1:12', 'loom', 1, null, null], ['weave:linen-south', 'cloth:linen', '2 p2:12', 'loom', 1, null, null]]);
   assert.deepEqual([workPer(smeltRecipe('cure:bear'), { hunting: 'tanner' }), workPer(smeltRecipe('cure:bear'), { hunting: 'tracker' }), workPer(smeltRecipe('cure:bear'))], [2, 1, 1]);
   assert.deepEqual([workSpecRank(smeltRecipe('saw:oak')), workSpecRank(smeltRecipe('ingot:iron')), workSpecRank(smeltRecipe('weave:silk'))], [100, 100, 100], 'the rest read at 100');
   assert.ok(WORK_RECIPES.includes(smeltRecipe('cure:dreugh')));
@@ -232,7 +234,7 @@ test('PROF7 law: Outfitting\'s recipes (9.3) - the leather armour in Cured and H
   assert.deepEqual([net.templateIndex, FISHING_NET_TEMPLATE, net.rank, ins('fishingnet:linen'), net.kind, net.profession], [1603, 1603, 0, '2 cloth:linen', 'tool', 'outfitting']);
   assert.equal(OUTFITTING_RECIPES.length, 14 + 76 * 4 + 4 + 3 + 12 + 1);   // PIN MOVED (DEX-HIDES): skins of six pelts, not four
   assert.ok(OUTFITTING_RECIPES.every((r) => r.profession === 'outfitting' && r.metal === null));
-  assert.equal(RECIPES.length, SMITH_RECIPES.length + CARPENTRY_RECIPES.length + OUTFITTING_RECIPES.length + 4 + 7 + 120);   // PIN MOVED (PROF11): the Sculptor's four stone pieces; PIN MOVED (PROF9): the fire's seven dishes; PIN MOVED (PROF10): the jeweller's 120 pieces
+  assert.equal(RECIPES.length, SMITH_RECIPES.length + CARPENTRY_RECIPES.length + OUTFITTING_RECIPES.length + 4 + 7 + 504);   // PIN MOVED (CLOTH-GEMS): the jeweller's 504, every grade of every gem a recipe   // PIN MOVED (PROF11): the Sculptor's four stone pieces; PIN MOVED (PROF9): the fire's seven dishes; PIN MOVED (PROF10): the jeweller's 120 pieces
   assert.equal(new Set(RECIPES.map((r) => r.id)).size, RECIPES.length, 'every id its own');
   const knife = recipeById('knife:iron');
   assert.deepEqual([knife.templateIndex, knife.rank, knife.profession, ins('knife:iron')], [603, 0, 'smithing', '1 ingot:iron + 1 plank:pine']);
@@ -240,7 +242,7 @@ test('PROF7 law: Outfitting\'s recipes (9.3) - the leather armour in Cured and H
   assert.equal(recipeOpen(recipeById('garment-141:silk'), 39), false);
   assert.equal(recipeOpen(recipeById('garment-141:silk'), 40), true);
   assert.equal(craftXp(4, 40), 80);   // PIN MOVED (FIRST-BUDGET): the first's XP its pattern's share of the track's discovery budget (recipeLaw firstCraftXp), no longer a flat 500
-  assert.deepEqual([firstCraftXp(recipeById('garment-141:silk')), firstCraftXp(recipeById('garment-141:linen'))], [614, 0], 'Outfitting\'s share (110,500 over its 180) - and the Weavers\' Linen alone none (AUDIT 32 S1)');
+  assert.deepEqual([firstCraftXp(recipeById('garment-141:silk')), firstCraftXp(recipeById('garment-141:linen')), firstCraftXp(recipeById('garment-141:linen'), true)], [500, 0, 500], 'Outfitting\'s share (the floor\'s 500, its 332 past the budget) - and the Weavers\' Linen none bought, its share own (CLOTH-GEMS)');
 });
 
 test('PROF7 law: the steps (9.2) - a Tailor\'s clothing, a Leatherworker\'s leather armour, and Hardened Leather\'s step as a Warforged ingot\'s; a garment\'s dye one of DFU\'s ten, asked of a garment that takes one, signed into its record as `u`', () => {

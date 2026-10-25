@@ -27,13 +27,15 @@
     ]
   },
   {
-    "name": "FIRST-BUDGET-counter-goods-counted",
+    "name": "FIRST-BUDGET-pool-asked-as-bought",
     "file": "src/net/recipeLaw.js",
-    "old": "for (const r of RECIPES) if (firstCraftPays(r)) firstMake(",
-    "new": "for (const r of RECIPES) if (r) firstMake(",
+    "old": "for (const r of RECIPES) if (firstCraftPays(r, true)) firstMake(",
+    "new": "for (const r of RECIPES) if (firstCraftPays(r)) firstMake(",
     "tests": [
-      "test/net/firstbudget_law.test.js"
-    ]
+      "test/net/firstbudget_law.test.js",
+      "test/net/clothgems_service.test.js"
+    ],
+    "note": "Re-aimed at the merge with CLOTH-GEMS (Professions-Arc 51): every recipe's first can pay since the loom's own cloth pays, so the pool asks the law as own - asked as bought it drops the cloth patterns from Outfitting's count. Was FIRST-BUDGET-counter-goods-counted."
   },
   {
     "name": "FIRST-BUDGET-apothecary-brew-counted",
@@ -75,19 +77,19 @@
   {
     "name": "FIRST-BUDGET-counter-guard-dropped",
     "file": "src/net/recipeLaw.js",
-    "old": "(!r || !firstCraftPays(r) ? 0 : firstMakeXp(r.profession, firstCraftKey(r)));",
+    "old": "(!r || !firstCraftPays(r, own) ? 0 : firstMakeXp(r.profession, firstCraftKey(r)));",
     "new": "(!r ? 0 : firstMakeXp(r.profession, firstCraftKey(r)));",
     "tests": [
-      "test/net/firstbudget_law.test.js"
+      "test/net/firstbudget_law.test.js",
+      "test/systems/clothgems_client.test.js"
     ],
-    "equivalent": true,
-    "why": "FACT, pinned (craft2_patterns): no pattern at a tier holds both a recipe that pays and one wholly of the counter's goods, so a recipe its own law refuses never has its key in the pool - the guard is belt-and-braces, kept so the recipe's own law is asked as the service always asked it"
+    "note": "No longer equivalent at the merge with CLOTH-GEMS (Professions-Arc 51): a recipe wholly of the counter's cloth is in the pool now, and the guard is what answers 0 for it asked as bought - the line a bought bolt makes says no first."
   },
   {
     "name": "FIRST-BUDGET-svc-craft-the-old-500",
     "file": "server-account/src/professions.js",
-    "old": "nonce, firstCraftXp(r), craft,",
-    "new": "nonce, firstCraftXp(r) && 500, craft,",
+    "old": "nonce, firstCraftXp(r, true), craft,",
+    "new": "nonce, firstCraftXp(r, true) && 500, craft,",
     "tests": [
       "test/net/firstbudget_law.test.js",
       "test/net/prof9_service.test.js"
@@ -153,10 +155,32 @@
   {
     "name": "FIRST-BUDGET-pace-flat-ignored",
     "file": "tools/craftPace.mjs",
-    "old": "first: flat == null ? firstCraftXp(r) : firstCraftPays(r) ? flat : 0,",
-    "new": "first: firstCraftXp(r),",
+    "old": "first: flat == null ? firstCraftXp(r, true) : firstCraftPays(r, true) ? flat : 0,",
+    "new": "first: firstCraftXp(r, true),",
     "tests": [
       "test/net/firstbudget_law.test.js"
     ]
+  },
+  {
+    "name": "FIRST-BUDGET-pace-cloth-bought",
+    "file": "tools/craftPace.mjs",
+    "old": "first: flat == null ? firstCraftXp(r, true) : firstCraftPays(r, true) ? flat : 0,",
+    "new": "first: flat == null ? firstCraftXp(r) : firstCraftPays(r) ? flat : 0,",
+    "tests": [
+      "test/net/firstbudget_law.test.js"
+    ],
+    "note": "At the merge with CLOTH-GEMS (Professions-Arc 51): the walk plays well - a cloth pattern's first paid as own, the loom's Linen and Wool his; asked as bought, Outfitting's pace is the report's 116 and 246 again."
+  },
+  {
+    "name": "FIRST-BUDGET-floor-dropped",
+    "file": "src/net/recipeLaw.js",
+    "old": "return n ? Math.max(DISCOVERY_BUDGET, FIRST_MAKE_FLOOR * n) : 0;",
+    "new": "return n ? DISCOVERY_BUDGET : 0;",
+    "tests": [
+      "test/net/firstbudget_law.test.js",
+      "test/net/clothgems_service.test.js",
+      "test/net/audit32_service.test.js"
+    ],
+    "note": "FIRST-BUDGET's floor (at the merge with CLOTH-GEMS, Professions-Arc 51): Outfitting's 332 first-makes would share 110,500 at 332 or 333, below the 500 they paid - no track loses."
   }
 ]

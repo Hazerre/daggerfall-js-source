@@ -26,8 +26,10 @@ import {
   INGOTS, TIER_RANKS, topTierOf, actBand, minedMaterial, WOODS, PINE_PLANK, RESIN, HEARTWOOD, LINEN, WOOL, BEAR_HIDE, CLOTHS, HIDES,
   CURED_LEATHER, HARDENED_LEATHER, SKINNING_KNIFE, COUNTER_ONLY, CUT_STONE, MORTAR, PROF_RANK_MAX,   // PROF11: the mason's stone
   GEMS, PEARL, SIEGE_GEM,   // PROF10: the gems a jeweller sets, and a Lapidary's Siege-cracked one
+  GRADED_GEMS, gemGradeOfKey,   // CLOTH-GEMS: and every grade of them
   WORK_RECIPES, trackOf, ingredientKeys,   // FIRST-BUDGET: a mason's works and a brew among the first-makes, each its track's
 } from './professionLaw.js';
+import { GEM_GRADE_PRICE } from '../systems/loot/gemGrades.js';   // CLOTH-GEMS: a grade's ladder, one home (a leaf)
 import { POTION_RECIPES } from '../systems/potionRecipes.js';   // FIRST-BUDGET: DFU's twenty, a brew's first-makes (the leaf imports nothing)
 import { GROUP_TEMPLATE_INDICES } from '../systems/item/itemTemplatesData.js';   // PROF10: DFU's Jewellery enum, one home
 import { CLOTHING_DYES } from '../characters/dyes.js';   // DFU's ten clothing dyes (DyeColors 0-9), one home
@@ -481,11 +483,14 @@ export const JEWEL_METALS = Object.freeze([
  *  Ghostwood Planks"), their own tier (6, rank 70) - the jeweller's crown piece. Neither adds points: 9.3 names the metals'. */
 const JEWEL_CLOTH = Object.freeze({ id: 'linen', key: LINEN.key, word: '', tier: LINEN.tier, points: 0 });
 const JEWEL_WOODS = Object.freeze(['ironwood', 'ghostwood'].map((w) => Object.freeze({ id: w, key: `plank:${w}`, word: woodName(w), tier: woodTier(w), points: 0 })));
-/** THE GEMS A JEWELLER SETS (4.6): DFU's eight (professionLaw GEMS - the veins') and the sea's Pearl (DFU 77, Fishing's).
- *  The Siege-cracked Gem is none of them - a Lapidary's stands in for any (LAPIDARY, recipeInputs). */
-export const JEWEL_GEMS = Object.freeze([...GEMS.map((g) => g.key), PEARL.key]);
-/** A gem's word, DFU's template's name ('gem:ruby' Ruby - pinned equal to the rows, test/net/prof10_law.test.js). */
-export const gemWord = (key) => (typeof key === 'string' && key.startsWith('gem:') ? key[4].toUpperCase() + key.slice(5) : '');
+/** THE GEMS A JEWELLER SETS (4.6): DFU's eight (professionLaw GEMS - the veins') and the sea's Pearl (DFU 77, Fishing's) -
+ *  CLOTH-GEMS (Professions-Arc 50; the owner: accept every grade): and the port's thirty-two graded ones (professionLaw
+ *  GRADED_GEMS - Gem-Sockets 4: Chipped, Flawed, Flawless and Perfect, the socket loot), each its own recipe, brought in by
+ *  the loose door. The Siege-cracked Gem is none of them - a Lapidary's stands in for a plain one (LAPIDARY, takesCracked). */
+export const JEWEL_GEMS = Object.freeze([...GEMS.map((g) => g.key), PEARL.key, ...GRADED_GEMS.map((g) => g.key)]);
+/** A gem's word, DFU's template's name ('gem:ruby' Ruby - pinned equal to the rows, test/net/prof10_law.test.js); a graded
+ *  one's its row's ('gem:flawless-ruby' Flawless Ruby - systems/gems.js GEM_GRADE_ROWS, the same names). */
+export const gemWord = (key) => (typeof key === 'string' && key.startsWith('gem:') ? GRADED_GEMS.find((g) => g.key === key)?.name ?? key[4].toUpperCase() + key.slice(5) : '');
 /**
  * THE EIGHT PIECES (9.3: "Ring - 1 Silver, Gold or Platinum (+ a gem); Mark - 1 metal + 1 gem; Bracelet - 2 metal; Bracer
  * - 2 metal + 1 Cured Leather; Amulet - 2 metal + 1 gem; Torc - 3 metal; Cloth Amulet - 1 Linen + 1 gem; Wand - 2 Ironwood
@@ -532,6 +537,13 @@ export const GEMCUTTER = 'gemcutter', GOLDSMITH = 'goldsmith', MASTER_JEWELLER =
 export const GEM_POINTS = 10;
 export const GEMCUTTER_POINTS = 10;
 /**
+ * CLOTH-GEMS (Gem-Sockets 7's next slice, "a road up" for the low grades): WHAT A SET GEM ADDS, percent - 9.3's +10% for a
+ * plain gem (DFU's eight, the Pearl, a Lapidary's cracked one standing in for a plain one), and for a graded one that +10%
+ * on its grade's own ladder, the price's (gemGrades.js GEM_GRADE_PRICE): a Chipped 2.5, a Flawed 5, a Flawless 20, a
+ * Perfect 40. A Gemcutter's +10% is the cutter's hand, never the stone's, and stands beside it whole. 0 for no gem.
+ */
+export const gemPointsPct = (key) => { const g = gemGradeOfKey(key); return g ? GEM_POINTS * GEM_GRADE_PRICE[g] : 0; };
+/**
  * THE JEWELLER'S HAND (the record's `f`, the service's `products.hand` - the cook's column, PROF9): what of the jeweller's
  * choice at 50 a piece carries wherever it goes - 1 a GOLDSMITH's Silver piece (3.3: "Silver counts as Gold" - DECIDED: the
  * piece's points, and so its worth, are Gold's +10%; its rank stays Silver's, the metal it was made of), 2 a GEMCUTTER's
@@ -553,14 +565,16 @@ export const jewelHandOk = (r, f) => r?.kind === 'jewel' && ((f === JEWEL_HAND_G
 export function jewelPointsPct(r, hand = null) {
   if (!r || r.kind !== 'jewel') return 0;
   const metal = hand === JEWEL_HAND_GOLDSMITH && r.metal === JEWEL_METALS[0].key ? JEWEL_METALS[1].points : JEWEL_METALS.find((m) => m.key === r.metal)?.points ?? 0;
-  return metal + (r.gem ? GEM_POINTS + (hand === JEWEL_HAND_GEMCUTTER ? GEMCUTTER_POINTS : 0) : 0);
+  return metal + (r.gem ? gemPointsPct(r.gem) + (hand === JEWEL_HAND_GEMCUTTER ? GEMCUTTER_POINTS : 0) : 0);   // CLOTH-GEMS: the gem's grade's share
 }
 /** A piece's enchantment points - its DFU template's (`templatePoints`, the Ring's 1,800) and the share it adds, floored:
  *  the budget DFU's item maker reads off the piece (systems/enchanting.js itemEnchantmentPower). */
 export const jewelPoints = (r, templatePoints, hand = null) => Math.floor((Math.max(0, Number(templatePoints) || 0) * (100 + jewelPointsPct(r, hand))) / 100);
 /** Whether a recipe takes a Lapidary's Siege-cracked Gem (3.3: "Siege-cracked Gems set as any gem"): a piece that sets a
- *  gem - the cracked one stands in for the recipe's, and the piece is the recipe's (its gem the one chosen). */
-export const takesCracked = (r) => !!r && r.kind === 'jewel' && !!r.gem;
+ *  gem - the cracked one stands in for the recipe's, and the piece is the recipe's (its gem the one chosen). CLOTH-GEMS:
+ *  a PLAIN gem's - 3.3's "any gem" is DFU's eight and the Pearl, and a cracked stone set as a Perfect one would be worth a
+ *  Perfect's points (gemPointsPct); a graded recipe asks its own grade. */
+export const takesCracked = (r) => !!r && r.kind === 'jewel' && !!r.gem && gemGradeOfKey(r.gem) === 'plain';
 /** The specialisations at 100 that add Masterwork points (MASTERWRIGHT_POINTS): Smithing's Masterwright (3.3) and - PROF10
  *  - Jewelcrafting's Master Jeweller ("jewellery Masterwork chance +5%"). CRAFT3: both are the Smithing track's to
  *  choose now (one at 100), so each acts on its own discipline's work as it did - the Masterwright's on the smith's, the
@@ -714,21 +728,33 @@ export const carriesMark = (r, quality, spec100 = null) => quality === MASTERWOR
 
 export const CRAFT_XP_PER_TIER = 20;
 /** A craft's XP (Smithing's, Carpentry's or Outfitting's): 20 x its tier - a quarter for a recipe more than two tiers below
- *  the rank's top. FIRST-BUDGET (Professions-Arc 50): the first time's XP is the discovery budget's (firstCraftXp, below),
+ *  the rank's top. FIRST-BUDGET (Professions-Arc 51): the first time's XP is the discovery budget's (firstCraftXp, below),
  *  laid on by the service's decision beside it - it was a flat 500 here, every track alike. */
 export function craftXp(tier, rank) {
   const xp = CRAFT_XP_PER_TIER * tier;
   return tier < topTierOf(rank) - 2 ? Math.floor(xp / 4) : xp;
 }
 /**
- * AUDIT 32 S1 (Mac: "Whatever you think is best"): whether a recipe's first craft lays on a first's XP - not for a
- * recipe made wholly of goods only a counter sells (professionLaw COUNTER_ONLY, the Weavers' Linen and Wool). 3.2's +500
- * rewards a recipe learnt from the world's goods; the counter's supply has no end, and its 152 recipes (144 garments,
- * the rugs and tapestries, the Fishing-Net) bought a fresh character Outfitting 87 for 811 Marks and no hide. A boot (a bolt and a
- * Cured Leather) and every other recipe keep it - a gatherer's own leather and planks earn what 3.2 promised them.
+ * AUDIT 32 S1 (Mac: "Whatever you think is best"): THE RECIPES S1 JUDGES - those made wholly of the goods a counter sells
+ * without end (professionLaw COUNTER_ONLY: the Weavers' Linen and Wool). 3.2's +500 rewards a recipe learnt from the
+ * world's goods; the counter's supply has no end, and its 152 recipes (144 garments, the rugs and tapestries, the
+ * Fishing-Net) bought a fresh character Outfitting 87 for 811 Marks and no hide. A boot (a bolt and a Cured Leather) and
+ * every other recipe are never judged - a gatherer's own leather and planks earn what 3.2 promised them.
  * @param {Recipe|null} r
  */
-export const firstCraftPays = (r) => !!r && !(r.inputs.length > 0 && r.inputs.every((i) => COUNTER_ONLY.includes(i.key)));
+export const counterMade = (r) => !!r && r.inputs.length > 0 && r.inputs.every((i) => COUNTER_ONLY.includes(i.key));
+/**
+ * AUDIT 32 S1, JUDGED BY THE UNITS (CLOTH-GEMS, 2026-10-25; the player SaberGGaming's "Profession oversights", the owner:
+ * "No band aids"): whether a craft's first lays on its XP (FIRST-BUDGET: firstCraftXp, its share) - every recipe's, but one S1 judges (counterMade) only
+ * where `own`: the craft's units are the character's own, no bought and no loose one among them - the piece's own origin,
+ * AUDIT PROF-541 B7's (`products.bought_with` none), which the service reads in its decision
+ * (server-account/src/professions.js craftAtAnvil). Linen and Wool were the counter's alone, so S1 withheld the 500 from
+ * every recipe of them and 152 of the loom's 332 first-make keys could never pay; the loom weaves and spins them now
+ * (professionLaw WEAVE_RECIPES, SPIN_RECIPES), so the character's own cloth pays and the Weavers' cloth - bought - never
+ * does. Unasked (`own` false), a judged recipe pays none: a station that cannot see the units says the rule.
+ * @param {Recipe|null} r @param {boolean} [own]
+ */
+export const firstCraftPays = (r, own = false) => !!r && (!counterMade(r) || own === true);
 /**
  * CRAFT2 (Professions-Arc 41.2, Mac: "Lets do it"): WHAT A FIRST CRAFT IS COUNTED BY - its PATTERN AT ITS TIER
  * (`longsword@6`): the first Adamantium, Ebony, Orcish or Warforged Longsword is the first of tier 6, whichever is made, and
@@ -742,13 +768,13 @@ export const firstCraftPays = (r) => !!r && !(r.inputs.length > 0 && r.inputs.ev
  */
 export const firstCraftKey = (r) => (!r ? null : `${r.product}@${r.tier}`);
 /** CRAFT2: the recipes a first craft is counted among - every recipe of its pattern at its tier, in the table's order (the
- *  service's `recipe IN (...)`: any one of them made before, and this one is no first). At most 18 (the Wand at tier 6:
- *  two woods, nine gems). */
+ *  service's `recipe IN (...)`: any one of them made before, and this one is no first). At most 82 (the Wand at tier 6:
+ *  two woods, CLOTH-GEMS' 41 gems - every grade), so the service binds the list as one (json_each). */
 const KIN = new Map();
 for (const r of RECIPES) KIN.set(firstCraftKey(r), [...(KIN.get(firstCraftKey(r)) ?? []), r.id]);
 export const firstCraftKin = (r) => (!r ? [] : Object.freeze([...(KIN.get(firstCraftKey(r)) ?? [r.id])]));
 
-// ─── FIRST-BUDGET: A TRACK'S DISCOVERIES SHARE ONE BUDGET (Professions-Arc 50) ───
+// ─── FIRST-BUDGET: A TRACK'S DISCOVERIES SHARE ONE BUDGET (Professions-Arc 51) ───
 
 /**
  * AUDIT 32 S1's law for a brew (AUDIT PROF-541 B6): whether a brew's first time pays - not for a potion made wholly of
@@ -760,19 +786,26 @@ export const firstCraftKin = (r) => (!r ? [] : Object.freeze([...(KIN.get(firstC
 export const brewFirstPays = (potion) => !!potion && !potion.ingredients.every((t) => ingredientKeys(t).every((k) => COUNTER_ONLY.includes(k)));
 /**
  * FIRST-BUDGET (SaberGGaming's report, 2026-10-25: Provisioning is slow; the owner: "No band aids"): A TRACK'S DISCOVERIES
- * SHARE ONE FIXED BUDGET. Every first-make paid a flat 500 (3.2's "+500 the first time a recipe is made"), every track
+ * SHARE ONE BUDGET. Every first-make paid a flat 500 (3.2's "+500 the first time a recipe is made"), every track
  * alike, and a track's whole climb leans on them - but the tracks' pools differ tenfold: Smithing's 221 first-makes paid
- * 110,500 XP in all, Outfitting's 180 90,000, Building's 43 21,500 and Provisioning's 22 11,000, so Provisioning took 178
- * crafts to Journeyman and 599 to Master where Smithing took 45 and 172. Now each crafting track's first-makes together
- * pay DISCOVERY_BUDGET - Smithing's whole pool at the 500 it paid, so Smithing is unchanged and no track loses - each one
- * the budget over its track's count (firstMakesOf), the remainder one XP each to the first in the tables' order, so the
- * shares sum to the budget exactly. A first-make is what the service keys its "made before" by: a recipe's pattern at its
- * tier (firstCraftKey - a jewel's piece and base, a dish either herb's way), a mason's work by its id (smeltAtForge), a
- * brew by its potion (brewAtStation) - each only where its first pays (firstCraftPays, brewFirstPays). Enchanting has no
- * first-make (a disenchant pays none), so it has no budget. Computed once, here, and read by the service's binds
- * (server-account/src/professions.js, alchemy.js) and the stations' words (ui/craftXpWords.js, ui/professions/profPages.js).
+ * 110,500 XP in all, Building's 43 21,500 and Provisioning's 22 11,000 (Outfitting's 180 90,000, and 332 - 166,000 - since
+ * CLOTH-GEMS let the loom's cloth patterns pay), so Provisioning took 178 crafts to Journeyman and 599 to Master where
+ * Smithing took 45 and 172. Now each crafting track's first-makes together pay DISCOVERY_BUDGET - Smithing's whole pool at
+ * the 500 it paid, so Smithing is unchanged - each one the budget over its track's count (firstMakesOf), the remainder one
+ * XP each to the first in the tables' order, so the shares sum to the budget exactly; and NO TRACK LOSES (FIRST_MAKE_FLOOR):
+ * a track whose pool is larger than Smithing's keeps the 500 a first, its budget the floor's (budgetOf - Outfitting's,
+ * 332 x 500). A first-make is what the service keys its "made before" by: a recipe's pattern at its tier (firstCraftKey -
+ * a jewel's piece and base, a dish either herb's way), a mason's work by its id (smeltAtForge), a brew by its potion
+ * (brewAtStation) - each where its first can pay (firstCraftPays, brewFirstPays). THE BUDGET SAYS HOW MUCH A FIRST PAYS,
+ * CLOTH-GEMS WHETHER: a recipe S1 judges (counterMade) is in the pool and pays its share only where its units are own
+ * (the service's decision, its `p`). Enchanting has no first-make (a disenchant pays none), so it has no budget.
+ * Computed once, here, and read by the service's binds (server-account/src/professions.js, alchemy.js) and the stations'
+ * words (ui/craftXpWords.js, ui/professions/profPages.js).
  */
 export const DISCOVERY_BUDGET = 110_500;
+/** FIRST-BUDGET: the least a first-make pays - the flat first every track paid before (3.2's +500) - so a track no budget
+ *  share would raise keeps what it had. */
+export const FIRST_MAKE_FLOOR = 500;
 /** Each track's first-makes, in the tables' order: RECIPES, then the mason's works, then DFU's twenty. */
 const FIRST_MAKES = new Map();
 const firstMake = (/** @type {string} */ track, /** @type {string} */ key) => {
@@ -780,23 +813,26 @@ const firstMake = (/** @type {string} */ track, /** @type {string} */ key) => {
   if (!keys.includes(key)) keys.push(key);
   FIRST_MAKES.set(track, keys);
 };
-for (const r of RECIPES) if (firstCraftPays(r)) firstMake(trackOf(r.profession), /** @type {string} */ (firstCraftKey(r)));
+for (const r of RECIPES) if (firstCraftPays(r, true)) firstMake(trackOf(r.profession), /** @type {string} */ (firstCraftKey(r)));   // CLOTH-GEMS: every recipe's first can pay - one S1 judges where its units are own
 for (const w of /** @type {any[]} */ (WORK_RECIPES)) if (w.act && firstCraftPays(w)) firstMake(trackOf(w.xp), w.id);
 for (const p of POTION_RECIPES) if (brewFirstPays(p)) firstMake(trackOf('alchemy'), p.name);
+/** A track's discovery budget: DISCOVERY_BUDGET, or the floor's where its pool is larger (its count x FIRST_MAKE_FLOOR) -
+ *  0 for a track with no first-make. */
+export const budgetOf = (track) => { const n = FIRST_MAKES.get(trackOf(track))?.length ?? 0; return n ? Math.max(DISCOVERY_BUDGET, FIRST_MAKE_FLOOR * n) : 0; };
 /** What each first-make pays, by its track and its key: the budget's share, the remainder's one XP to the first. */
 const FIRST_XP = new Map();
 for (const [track, keys] of FIRST_MAKES) {
-  const each = Math.floor(DISCOVERY_BUDGET / keys.length), more = DISCOVERY_BUDGET % keys.length;
+  const budget = budgetOf(track), each = Math.floor(budget / keys.length), more = budget % keys.length;
   keys.forEach((k, i) => FIRST_XP.set(`${track} ${k}`, each + (i < more ? 1 : 0)));
 }
 /** A track's first-makes (a discipline answers its craft's), in the tables' order - empty for a track that has none. */
 export const firstMakesOf = (track) => Object.freeze([...(FIRST_MAKES.get(trackOf(track)) ?? [])]);
 /** What a first-make pays on `track` (a discipline its craft's), by its key - 0 for a key that is none of the track's. */
 export const firstMakeXp = (track, key) => FIRST_XP.get(`${trackOf(track)} ${key}`) ?? 0;
-/** A recipe's first time's XP: its pattern at its tier's share of its track's budget - 0 for a recipe wholly of the
- *  counter's goods (AUDIT 32 S1, firstCraftPays: no such pattern is in the pool - FACT, pinned, none at a tier both pays
- *  and does not - and the recipe's own law asked as well, as the service always asked it). */
-export const firstCraftXp = (r) => (!r || !firstCraftPays(r) ? 0 : firstMakeXp(r.profession, firstCraftKey(r)));
+/** A recipe's first time's XP: its pattern at its tier's share of its track's budget, where its first pays - CLOTH-GEMS: a
+ *  recipe S1 judges (counterMade) only where `own`, its units the character's own (firstCraftPays). The service binds the
+ *  share asked as own (`own` true) and its decision says whether the units are (its `p`). */
+export const firstCraftXp = (r, own = false) => (!r || !firstCraftPays(r, own) ? 0 : firstMakeXp(r.profession, firstCraftKey(r)));
 /** A mason's work's first time's XP (a cut, a mix - smeltAtForge keys it by the work): its share of Building's budget -
  *  0 for every other work of the forge's table (a smelt, a burn, a saw, a cure, a weave, a transmutation pays no first). */
 export const workFirstXp = (w) => (!w?.xp ? 0 : firstMakeXp(w.xp, w.id));
@@ -897,7 +933,7 @@ export const masonTier = (rank) => topTierOf(rank);
  * (masonTier) a unit of work - a cut, a mix - never a product (a Quarryman's second Cut Stone earns nothing more, as a
  * Quartermaster's second ingot does not, PROF0 24); half again for a CLEAN chisel (DECIDED: the Stores keep no quality,
  * so the clean act's step is the clean act's +50% - 3.2's harvest law, Mining's at the rock, PROF0 23). FIRST-BUDGET
- * (Professions-Arc 50): the first time the character does it, its share of Building's discovery budget (workFirstXp) -
+ * (Professions-Arc 51): the first time the character does it, its share of Building's discovery budget (workFirstXp) -
  * the service lays it on in its decision, beside this.
  */
 export function masonXp(units, rank, { clean = false } = {}) {

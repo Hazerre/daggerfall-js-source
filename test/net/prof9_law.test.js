@@ -44,7 +44,7 @@ test('PROF9 law: the four dishes of 9.3 (4.8\'s 685-688) - their inputs as 9.3 w
   // every input is a Stores material the law knows: C&C's foods and DFU's plants of both groups
   for (const r of COOKING_RECIPES) for (const i of r.inputs) assert.ok(FOOD_KEYS.includes(i.key) || material(i.key)?.family === 'herbs', i.key);
   for (const t of [13, 9, 17]) assert.ok(PLANT_GROUP_TEMPLATES.p1.includes(t) && PLANT_GROUP_TEMPLATES.p2.includes(t), `template ${t} grows north and south`);
-  assert.deepEqual(RECIPES.slice(-7 - 120, -120), [...COOKING_RECIPES]);   // PIN MOVED (PROF10): the jeweller's 120 pieces come after the dishes
+  assert.deepEqual(RECIPES.slice(-7 - 504, -504), [...COOKING_RECIPES]);   // PIN MOVED (CLOTH-GEMS): the jeweller's 504, every grade of every gem   // PIN MOVED (PROF10): the jeweller's 120 pieces come after the dishes
   assert.equal(new Set(RECIPES.map((r) => r.id)).size, RECIPES.length, 'every id its own');
   assert.equal(recipeById('tart:south'), COOKING_RECIPES[5]);
   assert.deepEqual([dishOf('stew')?.id, dishOf('stew:south')?.id, dishOf(688)?.id, dishOf('stewed:x'), dishOf(684), dishOf(null)], ['stew', 'stew', 'feast', null, null, null]);

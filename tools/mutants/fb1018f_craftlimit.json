@@ -162,12 +162,13 @@
   {
     "name": "CRAFT-LIMIT-SAID-words-line-first-scaled",
     "file": "src/ui/craftXpWords.js",
-    "old": "  const more = firstCraftXp(r);",
-    "new": "  const more = scaleXp(firstCraftXp(r), pay.pct ?? 0);",
+    "old": "  const more = firstCraftXp(r, own);",
+    "new": "  const more = scaleXp(firstCraftXp(r, own), pay.pct ?? 0);",
     "tests": [
       "test/net/fb1018f_craftlimit.test.js"
     ],
-    "why": "the first's XP scaled, which the service lays on whole"
+    "why": "the first's XP scaled (FIRST-BUDGET: its share), which the service lays on whole",
+    "note": "PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "CRAFT-LIMIT-SAID-words-line-most-plain",
@@ -294,12 +295,13 @@
   {
     "name": "CRAFT-LIMIT-SAID-pages-loom-unpaid",
     "file": "src/ui/professions/profPages.js",
-    "old": "craftXpLine(r, rank, professionName('outfitting'), craftPayOf(book, 'outfitting'))",
-    "new": "craftXpLine(r, rank, professionName('outfitting'))",
+    "old": "craftXpLine(r, rank, professionName('outfitting'), craftPayOf(book, 'outfitting'), ownSpend(book, r))",
+    "new": "craftXpLine(r, rank, professionName('outfitting'), {}, ownSpend(book, r))",
     "tests": [
       "test/net/fb1018f_craftlimit.test.js"
     ],
-    "why": "the loom promises at the limit"
+    "why": "the loom promises at the limit",
+    "note": "PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "CRAFT-LIMIT-SAID-pages-jewel-unpaid",
@@ -374,12 +376,13 @@
   {
     "name": "CRAFT-LIMIT-SAID-pages-enchant-row-unbounded",
     "file": "src/ui/professions/profPages.js",
-    "old": "xp: paidXp(disenchantXp(recipeById(pc.recipe), rank, base), pay) };",
-    "new": "xp: paidXp(disenchantXp(recipeById(pc.recipe), rank, base), { pct: pay.pct }) };",
+    "old": "xp: paidXp(disenchantXp(recipeById(pc.recipe), rank, base, true), pay) };",
+    "new": "xp: paidXp(disenchantXp(recipeById(pc.recipe), rank, base, true), { pct: pay.pct }) };",
     "tests": [
       "test/net/fb1018f_craftlimit.test.js"
     ],
-    "why": "a piece's Enchanting XP past the room"
+    "why": "a piece's Enchanting XP past the room",
+    "note": "PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "CRAFT-LIMIT-SAID-pages-temper-line-dropped",
@@ -758,22 +761,24 @@
   {
     "name": "L5-pages-enchant-line-unscaled",
     "file": "src/ui/professions/profPages.js",
-    "old": "paidXp(disenchantXp(recipeById(pc.recipe), rank, essenceOf(pc.points)), { pct: pay.pct })",
-    "new": "disenchantXp(recipeById(pc.recipe), rank, essenceOf(pc.points))",
+    "old": "paidXp(ownXp(pc), { pct: pay.pct })",
+    "new": "ownXp(pc)",
     "tests": [
       "test/net/fb1018f_craftlimit.test.js"
     ],
-    "why": "the enchanting limit line's most unscaled"
+    "why": "the enchanting limit line's most unscaled",
+    "note": "PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "L5-pages-enchant-row-unscaled",
     "file": "src/ui/professions/profPages.js",
-    "old": "xp: paidXp(disenchantXp(recipeById(pc.recipe), rank, base), pay) };",
-    "new": "xp: paidXp(disenchantXp(recipeById(pc.recipe), rank, base), { limit: pay.limit }) };",
+    "old": "xp: paidXp(disenchantXp(recipeById(pc.recipe), rank, base, true), pay) };",
+    "new": "xp: paidXp(disenchantXp(recipeById(pc.recipe), rank, base, true), { limit: pay.limit }) };",
     "tests": [
       "test/net/fb1018f_craftlimit.test.js"
     ],
-    "why": "a disenchant row's XP without the Firmament's percent"
+    "why": "a disenchant row's XP without the Firmament's percent",
+    "note": "PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "L5-pages-temper-line-unscaled",

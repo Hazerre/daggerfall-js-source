@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-// FIRST-BUDGET (2026-10-25, SaberGGaming's report: "Provisioning is slow"; bible/06-Systems/Professions-Arc.md 50): THE
+// FIRST-BUDGET (2026-10-25, SaberGGaming's report: "Provisioning is slow"; bible/06-Systems/Professions-Arc.md 51): THE
 // CRAFTS A TRACK TAKES TO JOURNEYMAN AND TO MASTER, MEASURED. Each crafting track is walked from no XP: every act the best
 // the rank opens - an unmade first-make where one is open (its own XP and its first's), else the best repeat - each a
 // unit (a cut, a mix, a dish, a brew, a piece); the clean act wherever the act has one (a clean pan, a clean chisel - a
-// player levelling plays it well); no Firmament, no seat, no crafter's limit; a Sculptor's carvings only at 100. `first`
-// what a first-make pays: the law's own share (recipeLaw firstCraftXp, workFirstXp, brewFirstXp), or a flat figure - 500,
-// the law before FIRST-BUDGET.
+// player levelling plays it well); a cloth pattern's first paid as own (CLOTH-GEMS: the loom's Linen and Wool his own -
+// the weave and the spin are the loom's works, not counted, and pay no first); no Firmament, no seat, no crafter's limit;
+// a Sculptor's carvings only at 100. `first` what a first-make pays: the law's own share (recipeLaw firstCraftXp asked as
+// own, workFirstXp, brewFirstXp), or a flat figure - 500, the law before FIRST-BUDGET (CLOTH-GEMS' recipe set).
 //
 //   node tools/craftPace.mjs           the law's
 //   node tools/craftPace.mjs 500       a flat first of 500 (as it stood)
@@ -22,7 +23,7 @@ function actsOf(flat) {
     if (r.later) continue;
     add(trackOf(r.profession), {
       key: firstCraftKey(r), rank: r.rank, spec: r.spec ?? null,
-      first: flat == null ? firstCraftXp(r) : firstCraftPays(r) ? flat : 0,
+      first: flat == null ? firstCraftXp(r, true) : firstCraftPays(r, true) ? flat : 0,   // CLOTH-GEMS: the units his own
       xp: (rank) => (r.kind === 'dish' ? cookXp(rank, { clean: true }) : craftXp(r.tier, rank)),
     });
   }

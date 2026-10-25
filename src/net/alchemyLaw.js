@@ -57,7 +57,7 @@ const BY_ID = new Map(POTIONS.map((p) => [p.id, p]));
 export const potionById = (id) => (typeof id === 'string' ? BY_ID.get(id) ?? null : null);
 
 /** The Stores' keys a DFU ingredient is held under, and the template a key holds - professionLaw's since FIRST-BUDGET
- *  (Professions-Arc 50), re-exported here where every reader imports them. */
+ *  (Professions-Arc 51), re-exported here where every reader imports them. */
 export { ingredientKeys, keyTemplate };
 /**
  * WHAT A BREW SPENDS - DFU'S OWN LAW: `keys` the cauldron's contents as the Stores hold them, one key an ingredient (an
@@ -90,7 +90,7 @@ export function brewKeys(potion, held = (/** @type {string} */ k) => 0) {
   });
 }
 /** Whether a brew's first time pays (AUDIT 32 S1's law for a brew), and what it pays - the first-make law's, recipeLaw.js's
- *  since FIRST-BUDGET (Professions-Arc 50): the discovery budget counts a brew among Provisioning's first-makes. */
+ *  since FIRST-BUDGET (Professions-Arc 51): the discovery budget counts a brew among Provisioning's first-makes. */
 export { brewFirstPays, brewFirstXp };
 
 /** The Brewer (3.3: "3 potions a brew at Journeyman"), the Distiller ("Potent chance +10%") - Alchemy's choices at 50; the
@@ -186,7 +186,7 @@ export function potentAble(potion) {
 }
 /** A brew's XP (3.2: "a craft 20 x tier x units"): a brew is one unit, whatever it makes (a Brewer's third potion earns
  *  nothing more, as a Cook's second serving does not, PROF9), at its potion's tier, quartered more than two tiers below the
- *  rank's top. FIRST-BUDGET (Professions-Arc 50): its first time's XP is the discovery budget's (brewFirstXp), laid on by
+ *  rank's top. FIRST-BUDGET (Professions-Arc 51): its first time's XP is the discovery budget's (brewFirstXp), laid on by
  *  the service's decision beside it, never this law's. */
 export const brewXp = (potion, rank) => craftXp(potion.tier, rank);
 
@@ -216,16 +216,17 @@ export const essenceOf = (points, disenchanter = false) => Math.floor(Math.max(0
 /**
  * A DISENCHANT's ENCHANTING XP. DECIDED: 9.3 says Enchanting's XP comes from what the service sees, and names no number:
  * 5 an Essence the piece yields before a Disenchanter's doubling, x THE PIECE's tier - its recipe's, as a craft's XP is
- * (recipeLaw craftXp) - QUARTERED more than two tiers below the rank's top, and NONE for a piece made wholly of goods only a
- * counter sells (recipeLaw firstCraftPays). AUDIT PROF12 E2: it was the RANK's tier, never quartered, so the counter's
+ * (recipeLaw craftXp) - QUARTERED more than two tiers below the rank's top, and NONE for a piece made wholly of goods a
+ * counter sells (recipeLaw firstCraftPays) - CLOTH-GEMS: but where the piece is `own`, made of its maker's own units and
+ * never sold (products.bought_with none - S1 judged by the units). AUDIT PROF12 E2: it was the RANK's tier, never quartered, so the counter's
  * Linen (its robes and cloaks) bought Enchanting to Master for 992 silver - the cheapest track of all; the piece's
  * own tier makes a ring's Essence the jeweller's work it was, and a Master's old Silver Ring the quarter a Master's old
  * craft is. A Gold Ruby Ring's 21 Essence: 315 XP below rank 70, 78 past it.
  * @param {{ tier: number, inputs: readonly { key: string }[] }|null} r the piece's recipe (recipeLaw recipeById)
  */
 export const DISENCHANT_XP = 5;
-export function disenchantXp(r, rank, essence) {
-  if (!firstCraftPays(/** @type {any} */ (r)) || !Number.isSafeInteger(r?.tier)) return 0;
+export function disenchantXp(r, rank, essence, own = false) {
+  if (!firstCraftPays(/** @type {any} */ (r), own) || !Number.isSafeInteger(r?.tier)) return 0;
   const tier = /** @type {number} */ (r?.tier);
   const xp = DISENCHANT_XP * tier * (Number.isSafeInteger(essence) && essence > 0 ? essence : 0);
   return tier < topTierOf(rank) - 2 ? Math.floor(xp / 4) : xp;
