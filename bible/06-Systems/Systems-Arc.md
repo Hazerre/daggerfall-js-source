@@ -8298,8 +8298,8 @@ pixel's mean, the rest eased toward it). Whether a spawn stands was each client'
 moment it built the pixel, and the ground stood as built until the pixel was built again (AUDIT OW5b D2, SPAWN-REBIRTH
 F2) - so two players there stood on two grounds: on the real map, within 150 m of the ruin's door, a median 5.5 m
 apart and up to 129 m, and each saw the other and the other's foes sunk or floating. The ground is the
-roll's now: `scenes/world.js` `groundLocationAt` answers what stands there, else the spawn the roll stands with the
-clocks never asked (`tvSpawnAt(px, py, false)` - the sea, a wet plateau, a path across the pixel; none offline, past
+roll's now: `world/spawnGroundPlace.js` `groundLocationAt` answers what stands there, else the spawn the roll stands with the
+clocks never asked (`spawnAt(px, py, { clocks: false })` - the sea, a wet plateau, a path across the pixel; none offline, past
 the Veil or in the open zone), and the pixel build shapes the blend, the tiles, World of Daggerfall's pick and the
 woods' clearings for it. What stands - the ruin, its door, its plate, its foes - is still the clocks'. A dead spawn
 leaves its level clearing and the ruin's ground tiles until it stands again. `01-Overview/bugs/Field-Bugs-2026-10-24.md`.

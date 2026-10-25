@@ -344,6 +344,7 @@ import { elementalResistanceChance, ELEMENTS, BODY_CAPSULE_RADIUS, EFFECT_FLAGS,
 import { createTownWatch, runTownWatchFrame } from '../systems/town/townWatch.js';   // DISC19-F: the watch defends the town
 import { rollCampEncountersOnChunkLoad, amGroupRollOwner, campAnchorSpot, CAMP_SIGHT_RADIUS } from '../systems/campEncounters.js';   // CAMP1: the group-encounter roll - camps and packs; CAMP-NOTIMER: the chunk-load twin is this host's ONLY trigger now, so the timer's entry point is gone from here
 import { WORLD_SALT, spawnsDungeon, spawnedMapId, pathFreePixel, createSpawnGround, isEliteSpawn, pickTemplate, synthesizeDungeonLocation, spawnTemplates, createSpawnLedger, spawnedLocationCentreLocal, dungeonSightLine } from '../world/spawnedDungeons.js';   // SPAWNED-DUNGEONS1: online, a pixel may hold a dungeon; TTL1: ...and it does not hold it for ever
+import { createSpawnGroundPlace } from '../world/spawnGroundPlace.js';   // GROUND-AGREE: the place a pixel's ground is shaped for
 import { createGateOmen, insideGateRing, gateSceneXZ, fellLine, OMEN_SETTLE_MS, GATE_STORM_RING } from '../systems/gate/gateOmen.js';   // WB1 (Mac: "on the timer, a large area would be shown on the map, also in chat"): the Oblivion Gate's omen - its lines, its ring, its compass mark
 import { gateScanner, findGateSite, gateSeaPixel, politicClaimed } from '../systems/gate/gateSite.js';   // WB1: where the day's gate stands, over the map files every client holds alike
 import { createGatePool, GATE_TEXT } from './gate/gatePool.js';   // WB2: the gate the world stands - its stone, its fire and beacon, its collider and its door
@@ -2688,26 +2689,24 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  until it is built again, though the spawn has stood again since (its time over, `expired` answers false: the plate
    *  and the walk came back over the same bare grass, 29h's report the other way round); off the built ground, the clocks. */
   const tvSpawnGone = (x, y) => { const key = `${x},${y}`; if (_insideSpawn(key)) return false; const b = built.get(key); return b ? b.location == null : _spawnLedger.expired(key, _spawnClock()); };
+  /** GROUND-AGREE: the spawn law the Overworld and the ground share (world/spawnGroundPlace.js) - the gates it reads, handed in. */
+  const spawnGroundPlace = createSpawnGroundPlace({
+    maps,
+    online: params.has('online'),
+    etherSea,
+    plateauDry: _spawnGround,
+    terrainGen,
+    cloneAt: _spawnCloneAt,
+    spawnGone: tvSpawnGone,
+  });
   /** AUDIT OW4 D4: WHAT spawnedDungeonAt WOULD STAND on a pixel it has not built - its own gates (the sea, a path across
    *  the pixel, the clocks; the roll and the page are asked by the caller) and its clone, with none of its writes (the
-   *  index, the roads' provisional keys): a far found spawn is marked, never built. GROUND-AGREE: `clocks` false asks the
-   *  roll's gates alone - the spawn a pixel's ground is shaped for, alive or dead (groundLocationAt, below). */
-  function tvSpawnAt(px, py, clocks = true) {
-    if (maps.getClimateIndex(px, py) === CLIMATES.Ocean || !_spawnGround(px, py) || (clocks && tvSpawnGone(px, py))) return null;
-    const roads = terrainGen.roads();
-    return roads && !pathFreePixel(roads, px, py) ? null : _spawnCloneAt(px, py);
-  }
+   *  index, the roads' provisional keys): a far found spawn is marked, never built. */
+  const tvSpawnAt = spawnGroundPlace.spawnAt;
   /** AUDIT OW5b D3: WHAT STANDS ON A PIXEL, built or not - the index's place, else the spawn its roll would stand (online,
    *  side-effect free: tvSpawnAt). A member walking to the leader's spawn read the index alone, and a far spawn their own
    *  pixels had never built was a bare spot to them. */
   const tvLocationAt = (x, y) => locationIndex.get(`${x},${y}`) ?? (params.has('online') && !inEtherLaw(x, y) && spawnsDungeon(_spawnSalt, x, y) ? tvSpawnAt(x, y) : null);   // ETHER-PLACES: no spawn past the Veil - the isles stand their own
-  /** GROUND-AGREE (bible/01-Overview/bugs/Field-Bugs-2026-10-24.md): THE PLACE A PIXEL'S GROUND IS SHAPED FOR - `stood`,
-   *  what stands there, else online the spawn its roll stands, ALIVE OR DEAD: spawnedDungeonAt's own gates (none past the
-   *  Veil, none in the open zone, the sea, a wet plateau, a path across the pixel) without its clocks. A location levels
-   *  its whole pixel (DFU's BlendLocationTerrain), and whether a spawn stands is each client's clocks at the moment it
-   *  built the pixel (TTL1, SPAWN-REBIRTH): two players there stood on two grounds, and saw each other and each other's
-   *  foes sunk or floating. The ruin, its door and its foes still go with the clocks; its level ground stays. */
-  const groundLocationAt = (px, py, stood) => stood ?? (params.has('online') && !(etherSea && inEther(px, py)) && !(wildMaskOf(maps) && wildInside(wildMaskOf(maps), px, py)) && spawnsDungeon(_spawnSalt, px, py) ? tvSpawnAt(px, py, false) : null);
   /** AUDIT LANDFORMS B1: landformLiftAt's pixels not built yet - what the build will stand there: the index's place, else
    *  online the spawn its roll stands (GROUND-AGREE: alive or dead - its ground is the roll's), read here without taking
    *  anything out of the index. AUDIT LANDFORMS II F1: declared here, beside the build's own answer, so it is the
@@ -2715,7 +2714,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  (`await worldQuickLoad({ ...bootLoadPick, snap })`) - online the only load - so that load stood a spawn's records on
    *  the wild lift and every later save wrote them on the spawn's: a camp at a spawned dungeon drifted by up to 24 m a
    *  session (the Citadel of Copperton), and a camp is never stood again. */
-  const _liftLocationAt = (x, y) => groundLocationAt(x, y, locationIndex.get(`${x},${y}`));
+  const _liftLocationAt = (x, y) => spawnGroundPlace.groundLocationAt(x, y, locationIndex.get(`${x},${y}`));
 
   // U31 / THE CLASSIC START. StartGameBehaviour (:371-401) does not
   // resolve the start by NAME - it reads a map pixel out of settings
@@ -5859,7 +5858,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   });
   const { buildPixelNow } = createPixelBuild({   // HOST-SPLIT: src/scenes/pixelBuild.js
     MILL_SAIL_PAD, TERRAIN_INDICES, TERRAIN_INDICES_LOD, _building, _dwRubble, _dwRubbleCarry, _groundBefore,
-    _livingPatrons, _locationToBuild, groundLocationAt, _lptSway, _lptWindfall, _reskin, adoptWodCarry, archAabb, blocks, boardSplitOf,
+    _livingPatrons, _locationToBuild, spawnGroundPlace, _lptSway, _lptWindfall, _reskin, adoptWodCarry, archAabb, blocks, boardSplitOf,
     breather, buildingDoors, built, chapterSheet, climates3x3, collider, cpuModels, deepWaters, destroyPixel,
     dfMeshSize, dwDecor, ecotones, ensurePersonTex, forests, gateClearSweep, getTexture, getWindmillMeshes,
     halfWidthsOf, heightAt, heightCell, holdPixel, hostBed, labGrass, landform, livingArmOf, livingAshore,

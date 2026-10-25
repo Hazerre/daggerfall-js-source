@@ -13,6 +13,7 @@ import { ARRIVAL_BUFFER } from '../../../src/systems/travel/travelAutopilot.js';
 import { spawnedMapId, spawnsDungeon, createSpawnLedger, GENERAL_TTL_MINUTES, REBIRTH_TTL_MINUTES } from '../../../src/world/spawnedDungeons.js';
 import { planRoute, routeLegs, routeDrawPoints, routeGround, TV_MOUNTAIN_CLIMATE, TV_STEEP_RISE } from '../../../src/systems/travel/travelRoute.js';
 import { hostText } from '../../hostText.mjs';   // HOST-SPLIT 2 (AUDIT, the second read): its negatives read the host whole
+import { createSpawnGroundPlace } from '../../../src/world/spawnGroundPlace.js';   // GROUND-AGREE: the spawn law the Overworld and the ground share
 
 // PIN MOVED (AUDIT OW5 G2): the Overworld's own lines are said through tvSay - held at the scale they are said at
 const rd = (p) => readFileSync(new URL(`../../../${p}`, import.meta.url), 'utf8');
@@ -482,21 +483,33 @@ test('AUDIT OW4 D2/D4 host: a spawn is GONE by the feature\'s own test (the ledg
   clock = NaN;
   assert.equal(gone(5, 6), false, 'a clock not yet running expires nothing');
   // what would stand
-  const a = /\n {2}(function tvSpawnAt\(px, py, clocks = true\) \{\n[\s\S]*?\n {2}\})\n/.exec(w);   // PIN MOVED (GROUND-AGREE): the clocks' switch
-  assert.ok(a, 'the stand');
-  let net = {};
+  // PIN MOVED (GROUND-AGREE, bible/01-Overview/bugs/Field-Bugs-2026-10-24.md): the stand is the shared spawn law's
+  // (world/spawnGroundPlace.js), run here over the same cases
+  assert.match(w, /const tvSpawnAt = spawnGroundPlace\.spawnAt;/, 'the stand');
+  const pathAtThree = new Uint8Array(1000 * 500);
+  pathAtThree[3] = 1;   // a road bit on pixel (3, 0)
+  let net = { roads: pathAtThree };
   const cloned = [];
-  const at = new Function('d', `const { maps, CLIMATES, _spawnGround, tvSpawnGone, terrainGen, pathFreePixel, _spawnCloneAt } = d; return ${a[1]};`)({
-    maps: { getClimateIndex: (x) => (x === 1 ? CLIMATES.Ocean : 231) }, CLIMATES, _spawnGround: (x) => x !== 5, tvSpawnGone: (x) => x === 2, terrainGen: { roads: () => net },
-    pathFreePixel: (n, x) => x !== 3, _spawnCloneAt: (x, y) => { cloned.push(x); return { name: `S${x},${y}` }; },
+  const { spawnAt } = createSpawnGroundPlace({
+    maps: { getClimateIndex: (x) => (x === 1 ? CLIMATES.Ocean : 231) },
+    online: true,
+    etherSea: false,
+    plateauDry: (x) => x !== 5,
+    terrainGen: { roads: () => net },
+    cloneAt: (x, y) => {
+      cloned.push(x);
+      return { name: `S${x},${y}` };
+    },
+    spawnGone: (x) => x === 2,
   });
+  const at = (x, y, clocks = true) => spawnAt(x, y, { clocks });
   assert.deepEqual([at(1, 0), at(2, 0), at(3, 0), at(5, 0)], [null, null, null, null], 'the sea, a spent clock, a path across the pixel, a shore whose plateau is wet (SPAWN-SHORE): nothing');
   assert.deepEqual(at(4, 0), { name: 'S4,0' }, 'else the feature\'s own clone');
   net = null;
   assert.deepEqual(at(3, 0), { name: 'S3,0' }, 'before the network lands, as the feature stands it (provisional)');
   assert.deepEqual(cloned, [4, 3]);
-  // GROUND-AGREE (bible/01-Overview/bugs/Field-Bugs-2026-10-24.md): the clocks off, a spent spawn is still the roll's - the
-  // ground's place, alive or dead - and every other gate still answers
+  // GROUND-AGREE: the clocks off, a spent spawn is still the roll's - the ground's place, alive or dead - and every other
+  // gate still answers
   assert.deepEqual(at(2, 0, false), { name: 'S2,0' }, 'the clocks off: a spent clock stands its clone for the ground');
   assert.deepEqual([at(1, 0, false), at(5, 0, false)], [null, null], 'and the sea and a wet plateau still stand none');
   assert.deepEqual(cloned, [4, 3, 2]);

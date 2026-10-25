@@ -860,7 +860,7 @@
   {
     "name": "GROUND-AGREE-the-lift-asks-the-clocks",
     "file": "src/scenes/world.js",
-    "old": "  const _liftLocationAt = (x, y) => groundLocationAt(x, y, locationIndex.get(`${x},${y}`));\n",
+    "old": "  const _liftLocationAt = (x, y) => spawnGroundPlace.groundLocationAt(x, y, locationIndex.get(`${x},${y}`));\n",
     "new": "  const _liftLocationAt = (x, y) => tvLocationAt(x, y);\n",
     "note": "GROUND-AGREE (Field-Bugs-2026-10-24): re-aimed - the lift asks the clocks again (a spent spawn read as bare ground) where its build shapes the ground for the spawn alive or dead.",
     "tests": [
@@ -871,7 +871,7 @@
   {
     "name": "AUDIT-LANDFORMS-B1-never-bound",
     "file": "src/scenes/world.js",
-    "old": "  const _liftLocationAt = (x, y) => groundLocationAt(x, y, locationIndex.get(`${x},${y}`));\n",
+    "old": "  const _liftLocationAt = (x, y) => spawnGroundPlace.groundLocationAt(x, y, locationIndex.get(`${x},${y}`));\n",
     "new": "  const _liftLocationAt = (x, y) => locationIndex.get(`${x},${y}`);\n",
     "tests": [
       "test/systems/landform.test.js",
@@ -1477,9 +1477,9 @@
   },
   {
     "name": "GROUND-AGREE-roll-transposed",
-    "file": "src/scenes/world.js",
-    "old": "&& spawnsDungeon(_spawnSalt, px, py) ? tvSpawnAt(px, py, false) : null);",
-    "new": "&& spawnsDungeon(_spawnSalt, py, px) ? tvSpawnAt(px, py, false) : null);",
+    "file": "src/world/spawnGroundPlace.js",
+    "old": "if (!spawnsDungeon(WORLD_SALT, px, py)) return null;",
+    "new": "if (!spawnsDungeon(WORLD_SALT, py, px)) return null;",
     "note": "GROUND-AGREE (Field-Bugs-2026-10-24): re-aimed - the lift asks no tvSpawnGone of its own now; the ground's roll is asked of the pixel transposed.",
     "tests": [
       "test/world/terrain/auditlandforms.test.js",

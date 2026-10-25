@@ -319,13 +319,13 @@ test('AUDIT LANDFORMS B1: a pixel not built yet is asked what its build will sta
   // the binding itself: _locationToBuild's answer, side-effect free
   const line = WORLD.match(/\n {2}const (_liftLocationAt = \(x, y\) => [^\n]*;)/);   // PIN MOVED (AUDIT LANDFORMS II F1): declared, not bound later
   assert.ok(line, 'the boot declares it');
-  const probe = (index, ground) => new Function('locationIndex', 'groundLocationAt', `let _liftLocationAt = null; ${line[1]}\nreturn _liftLocationAt;`)(index, ground);
+  const probe = (index, ground) => new Function('locationIndex', 'spawnGroundPlace', `let _liftLocationAt = null; ${line[1]}\nreturn _liftLocationAt;`)(index, { groundLocationAt: ground });
   // AUDIT LANDFORMS II J3: every key OFF the diagonal, each asked with its mirror - on (1, 1), (2, 2) and (3, 3) a probe that
   // swapped its x and y answered the same, so three transposed bindings survived
   const town = { name: 'Town' }, rolled = { name: 'Rolled', spawned: true };
   const index = new Map([['5,2', town], ['2,5', spawn]]), before = [...index];
   // GROUND-AGREE (bible/01-Overview/bugs/Field-Bugs-2026-10-24.md): the ground's place - what the index holds, else the
-  // roll's spawn alive or dead (world.js groundLocationAt, pinned in test/scenes/fb1024_groundagree.test.js)
+  // roll's spawn alive or dead (world/spawnGroundPlace.js, run in test/scenes/fb1024_groundagree.test.js)
   const ask = probe(index, (x2, y2, stood) => stood ?? (x2 === 3 && y2 === 7 ? rolled : null));
   assert.equal(ask(5, 2), town, 'the index\'s place');
   assert.equal(ask(2, 5), spawn, 'GROUND-AGREE: a spawn the index holds, its time run out or not: its ground is the spawn\'s (the build shapes it so)');
@@ -702,13 +702,13 @@ test('AUDIT LANDFORMS II F1: what a pixel not built yet will stand - a spawn inc
   // hold until its pixel builds (_locationToBuild's answer) - it was the index alone there
   const spawn = { name: 'Spawn', spawned: true }, town = { name: 'Town' };
   const index = new Map([['1,1', town]]);
-  const probe = new Function('locationIndex', 'groundLocationAt', `${before.at(-1)[1].replace(/^(?:let|const) /, 'let ')}\nreturn _liftLocationAt;`)(
-    index, (x, y, stood) => stood ?? (x === 3 ? spawn : null));   // PIN MOVED (GROUND-AGREE): the ground's place, world.js groundLocationAt
+  const probe = new Function('locationIndex', 'spawnGroundPlace', `${before.at(-1)[1].replace(/^(?:let|const) /, 'let ')}\nreturn _liftLocationAt;`)(
+    index, { groundLocationAt: (x, y, stood) => stood ?? (x === 3 ? spawn : null) });   // PIN MOVED (GROUND-AGREE): the ground's place, world/spawnGroundPlace.js
   assert.equal(probe(1, 1), town);
   assert.equal(probe(3, 3), spawn, 'a spawn not in the index yet: its own place, not the wild');
   // GROUND-AGREE: and the ground's place it asks is standing before the load too
-  const ground = stmts.findIndex((t) => /^const groundLocationAt = /.test(t));
-  assert.ok(ground >= 0 && ground < load, 'groundLocationAt made before the load');
+  const ground = stmts.findIndex((t) => /^const spawnGroundPlace = /.test(t));
+  assert.ok(ground >= 0 && ground < load, 'the spawn law it asks made before the load');
 });
 
 test('AUDIT LANDFORMS II F3: a pixel\'s lift field is kept for the next save - nine towns asked twice make nine fields, not eighteen; past the cap the longest unasked is let go, never the whole memo', () => {

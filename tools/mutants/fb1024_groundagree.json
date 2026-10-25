@@ -2,7 +2,7 @@
   {
     "name": "GROUND-AGREE-the-build-shapes-the-stood",
     "file": "src/scenes/pixelBuild.js",
-    "old": "const groundLocation = groundLocationAt(px, py, dfLocation);",
+    "old": "const groundLocation = spawnGroundPlace.groundLocationAt(px, py, dfLocation);",
     "new": "const groundLocation = dfLocation;",
     "tests": ["test/scenes/fb1024_groundagree.test.js"]
   },
@@ -29,44 +29,44 @@
   },
   {
     "name": "GROUND-AGREE-the-stood-ignored",
-    "file": "src/scenes/world.js",
-    "old": "const groundLocationAt = (px, py, stood) => stood ?? (",
-    "new": "const groundLocationAt = (px, py, stood) => (",
+    "file": "src/world/spawnGroundPlace.js",
+    "old": "    if (stood) return stood;\n",
+    "new": "",
     "tests": ["test/scenes/fb1024_groundagree.test.js"]
   },
   {
     "name": "GROUND-AGREE-the-ground-asks-the-clocks",
-    "file": "src/scenes/world.js",
-    "old": "spawnsDungeon(_spawnSalt, px, py) ? tvSpawnAt(px, py, false) : null);",
-    "new": "spawnsDungeon(_spawnSalt, px, py) ? tvSpawnAt(px, py) : null);",
+    "file": "src/world/spawnGroundPlace.js",
+    "old": "return spawnAt(px, py, { clocks: false });",
+    "new": "return spawnAt(px, py);",
     "tests": ["test/scenes/fb1024_groundagree.test.js"]
   },
   {
     "name": "GROUND-AGREE-the-stand-asks-the-clocks-anyway",
-    "file": "src/scenes/world.js",
-    "old": "!_spawnGround(px, py) || (clocks && tvSpawnGone(px, py))) return null;",
-    "new": "!_spawnGround(px, py) || tvSpawnGone(px, py)) return null;",
+    "file": "src/world/spawnGroundPlace.js",
+    "old": "if (clocks && spawnGone(px, py)) return null;",
+    "new": "if (spawnGone(px, py)) return null;",
     "tests": ["test/systems/travel/tv6_dungeons.test.js", "test/scenes/fb1024_groundagree.test.js"]
   },
   {
     "name": "GROUND-AGREE-offline-spawns",
-    "file": "src/scenes/world.js",
-    "old": "stood ?? (params.has('online') && !(etherSea",
-    "new": "stood ?? (!(etherSea",
+    "file": "src/world/spawnGroundPlace.js",
+    "old": "    if (!online) return null;\n",
+    "new": "",
     "tests": ["test/scenes/fb1024_groundagree.test.js"]
   },
   {
     "name": "GROUND-AGREE-spawns-past-the-veil",
-    "file": "src/scenes/world.js",
-    "old": "params.has('online') && !(etherSea && inEther(px, py)) && !(wildMaskOf",
-    "new": "params.has('online') && !(wildMaskOf",
+    "file": "src/world/spawnGroundPlace.js",
+    "old": "    if (etherSea && inEther(px, py)) return null;\n",
+    "new": "",
     "tests": ["test/scenes/fb1024_groundagree.test.js"]
   },
   {
     "name": "GROUND-AGREE-spawns-in-the-zone",
-    "file": "src/scenes/world.js",
-    "old": " && !(wildMaskOf(maps) && wildInside(wildMaskOf(maps), px, py)) && spawnsDungeon(",
-    "new": " && spawnsDungeon(",
+    "file": "src/world/spawnGroundPlace.js",
+    "old": "    if (inOpenZone(px, py)) return null;\n",
+    "new": "",
     "tests": ["test/scenes/fb1024_groundagree.test.js"]
   },
   {

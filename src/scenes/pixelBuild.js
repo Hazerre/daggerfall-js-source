@@ -103,7 +103,7 @@ import { lateSolidsOf } from '../player/lateSolid.js';   // ROCK-CLEAR: a pixel'
 export function createPixelBuild(host) {
   const {
     MILL_SAIL_PAD, TERRAIN_INDICES, TERRAIN_INDICES_LOD, _building, _dwRubble, _dwRubbleCarry, _groundBefore,
-    _livingPatrons, _locationToBuild, groundLocationAt, _lptSway, _lptWindfall, _reskin, adoptWodCarry, archAabb, blocks, boardSplitOf,
+    _livingPatrons, _locationToBuild, spawnGroundPlace, _lptSway, _lptWindfall, _reskin, adoptWodCarry, archAabb, blocks, boardSplitOf,
     breather, buildingDoors, built, chapterSheet, climates3x3, collider, cpuModels, deepWaters, destroyPixel,
     dfMeshSize, dwDecor, ecotones, ensurePersonTex, forests, gateClearSweep, getTexture, getWindmillMeshes,
     halfWidthsOf, heightAt, heightCell, holdPixel, hostBed, jungle, labGrass, landform, livingArmOf, livingAshore,
@@ -223,8 +223,8 @@ export function createPixelBuild(host) {
     _building.set(key, made);
     const dfLocation = _locationToBuild(px, py) || null;   // SPAWNED-DUNGEONS1: an empty pixel may stand one (AUDIT OW5b D2: a spawn the index holds asked its clocks)
     // GROUND-AGREE (bible/01-Overview/bugs/Field-Bugs-2026-10-24.md): the terrain is shaped for the place the roll stands
-    // here, alive or dead (world.js groundLocationAt) - every client's the same - and what STANDS is dfLocation's alone
-    const groundLocation = groundLocationAt(px, py, dfLocation);
+    // here, alive or dead (world/spawnGroundPlace.js) - every client's the same - and what STANDS is dfLocation's alone
+    const groundLocation = spawnGroundPlace.groundLocationAt(px, py, dfLocation);
     // EV7: the LOCATION half stays here - setLocationTiles reads
     // BlocksFile + MapsFile, file objects that do not cross a
     // postMessage boundary - and its tilemap + rect ride into the job

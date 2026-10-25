@@ -58,7 +58,14 @@ turns) the pixel is built again and the site stands on the same ground.
 
 ## GROUND-AGREE: a spawn's ground is the roll's, alive or dead
 
-`src/scenes/world.js` (`groundLocationAt`, `tvSpawnAt`'s `clocks`, `_liftLocationAt`), `src/scenes/pixelBuild.js`.
+`src/world/spawnGroundPlace.js` (new: `createSpawnGroundPlace` - `groundLocationAt` and `spawnAt`), `src/scenes/world.js`
+(its construction, `tvSpawnAt` and `_liftLocationAt` bound to it), `src/scenes/pixelBuild.js`.
+
+EXTRACTED, NOT GROWN (THE HOSTS DO NOT GROW, `01-Overview/Host-Split.md`). The law is a module the host wires: the
+host hands it what it holds (the map, the page's `online`, the Eltheric Ocean's switch, the plateau test, the
+terrain client, the clone and the clocks) and keeps the construction and its two call sites. The Overworld's far
+found spawn (`tvSpawnAt`, AUDIT OW4 D4) moved with it, since the ground's spawn is the same gates with the clocks not
+asked; `bootWorld` stands at its ceiling on main's count, 36,392.
 
 FOUND. A spawned dungeon is a location (`world/spawnedDungeons.js`), and the build levels a location's pixel
 (`terrainTiles.js` blendLocationTerrain, DFU's own: its rect to the pixel's mean, the rest eased toward it out to the
@@ -77,9 +84,9 @@ past the 1.7 m. (The landforms' synthetic world: a median 1.5 m, 64.8 m at most.
 The gate itself never stands on a spawn's pixel (`systems/gate/gateSite.js` skips the roll), and a neighbour's
 levelling fades to nothing at the pixel's edge, so this is the open land's half; GATE-AGREE is the events'.
 
-FIXED. `groundLocationAt(px, py, stood)` is the place the ground is shaped for: what stands there, else online the
+FIXED. `groundLocationAt(px, py, stood)` (`world/spawnGroundPlace.js`) is the place the ground is shaped for: what stands there, else online the
 spawn the roll stands with the clocks never asked - spawnedDungeonAt's gates (the zone, the roll, the sea, a wet
-plateau) and tvSpawnAt's path test, `tvSpawnAt(px, py, false)`, none past the Veil. The build shapes the blend, the
+plateau) and the Overworld's path test, `spawnAt(px, py, { clocks: false })`, none past the Veil. The build shapes the blend, the
 location's ground tiles, World of Daggerfall's pick (`hasLocation`), and the woods' and the jungle's clearings for it.
 `_liftLocationAt`, the records' lift for a pixel not built yet, reads the same place. What stands is still the clocks':
 the ruin's blocks, its door, its plate, its foes, the built entry's `location` that tvSpawnGone reads. A dead spawn's
@@ -96,15 +103,15 @@ ledger row (`Port-Ledger.md`, THE ROCK YIELDS TO THE OBLIVION GATE).
 
 ## Pins
 
-`test/scenes/fb1024_groundagree.test.js` (4): `groundLocationAt` lifted out of the host and run (what stands, else the
+`test/scenes/fb1024_groundagree.test.js` (5): the module imported and run over a fake world - `groundLocationAt` (what stands, else the
 roll's spawn with the clocks off; none offline, past the Veil or in the zone; the roll asked of its own pixel); the
 build's wiring (the rect, both `hasLocation`s, both clearings, the lift); on the real producer, a ruin's levelling
 moves the ground past a blow's reach and is one ground whoever holds the clocks; and a clearing held over a camp keeps
 the pick that levels it, where the old pick refused it and moved the ground past a blow's reach.
 
 Pins moved: `gateclear.test.js` (the pick through the host's composition: the first instance keeps the pixel, held;
-the shipped lists' clearing leaves no whole site; the build's source), `tv6_dungeons.test.js` (tvSpawnAt's clocks
-off), `auditlandforms.test.js` (B1 and II F1: the lift reads the ground's place), `spawnshore.test.js`,
+the shipped lists' clearing leaves no whole site; the build's source), `tv6_dungeons.test.js` (the Overworld's stand, run through
+the module), `auditlandforms.test.js` (B1 and II F1: the lift reads the ground's place), `spawnshore.test.js`,
 `terrainworker.test.js`, `tamriel2.test.js`, `wod2_loader.test.js`, `wodbush.test.js`, `fb1002_rocksunk.test.js` and
 `roadsclear.test.js` (the lines they quote).
 
