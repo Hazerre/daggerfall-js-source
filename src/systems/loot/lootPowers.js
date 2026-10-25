@@ -80,6 +80,7 @@ import { SKILLS } from '../skills.js';
 import { friendlyProtected } from '../../combat/playerWeapon.js';
 import { KNIGHT_CITY_WATCH } from '../../characters/mobile/mobileTypes.js';
 import { healthShare } from '../../combat/healthShare.js';   // FIELD BUGS 2026-10-18f RELAY-SHARE: a body's share of its health, the one law
+import { regenShare } from '../courtRules.js';   // AUDIT WORLD-EVENTS L1-3: Hist-Sap is a natural regeneration - a made level holds it
 
 /** All the thorns a wearer's pieces sum to, at most, a blow. BAL5 (bible/05-Combat/Balance-Arc.md section 11): 10, the
  *  top of a Legendary line's band and a Legendary sear's own most - it was 25, a whole endgame swing paid back on every
@@ -570,7 +571,7 @@ export function lootRound(entity) {
   if (!mine(entity)) return;
   const hist = powerKind(entity, 'regen');
   if (hist && entity.maxHealth > 0 && entity.health > 0 && entity.health < entity.maxHealth) {
-    healMine(entity, (entity.maxHealth * (share(entity) < 0.5 ? hist.low : hist.pct)) / 100);
+    { const held = regenShare((entity.maxHealth * (share(entity) < 0.5 ? hist.low : hist.pct)) / 100, 'hist', entity); if (held > 0) healMine(entity, held); }   // AUDIT WORLD-EVENTS L1-3: a natural regeneration - held in a made level (systems/courtRules.js)
   }
   // BAL9c: the Wellspring of Artaeum - a share of my magicka, more under half; never for a career that cannot regenerate
   // it (NoRegenSpellPoints), where rest's own gate holds it back (offline - REST-MANA1: online every career's comes back)

@@ -848,6 +848,7 @@ export class OnlineSession {
      *  moved onto its ride at my shared clock (rideDraw), EG-ZL: and a peer on no ride told, never moved (its ghost slab on a
      *  Crumble I have seen fall - section 10.8). Null outside the Spire. */
     this.poseRide = null;
+    this.poseDown = null;   // AUDIT WORLD-EVENTS L1-4: () => [x, y, z] | null - where my body lies down (scenes/eliteGates/egClient.js, scenes/ketch/ketchClient.js)
     this.rideAt = null;
     /** DECK-POSE: () => [owner, slot, x, y, z] | null - my place aboard a boat (scenes/comeSailAway/comeSailAwayAboard.js
      *  word, or helmWord at my own helm), laid on each pose I say (net/wire.js validAboard). Null ashore, or no Come Sail Away. */
@@ -2056,6 +2057,17 @@ export class OnlineSession {
     return true;
   }
 
+  /** AUDIT WORLD-EVENTS L1-1 (SD-REZ): my Resurrect at a fallen fighter's body, said to the Hour's realm (net/wire.js validSdIn
+   *  `rz` - the account raised), which records it so the body's next hello is its rise. TRUE MEANS THE WORD LEFT THE SOCKET. */
+  sendSdRaise(to) {
+    const w = validSdIn({ k: 'rz', to });
+    if (!w || !this.sdOk || !isSdRoom(this.room) || this.status !== 'open' || !this._ws || !this._welcomed.has(this._ws)) return false;
+    const toll = sdGate(this._sdBucket, this._now());   // the sd words' own bucket, a find's
+    if (!toll.pass) return false;
+    try { this._ws.send(JSON.stringify({ t: 'sd', ...w })); } catch { return false; }
+    this._sdBucket = toll.bucket; this.stats.sent++;
+    return true;
+  }
   /** SD9a: a slot's spoils taken - said to the hub on my own hub socket (net/wire.js validSdIn `spent`), which keeps that
    *  slot's receipt spent and hands it to no other device of mine. TRUE MEANS THE WORD LEFT THE SOCKET. */
   sendSdSpent(s) {
@@ -2562,7 +2574,8 @@ export class OnlineSession {
     if (!(this._ws && this.status === 'open') && ![...this._halo.values()].some((h) => h.status === 'open' && h.ws)) return false;   // nowhere to say it: nothing stamped
     const pl = this.poseRide?.() ?? null;   // EG-H1: RIDDEN POSES - my ride on a breach's moving piece, when I stand on one
     const ab = this.poseAboard?.() ?? null;   // DECK-POSE: and my place on a boat's deck, when I stand aboard one
-    const out = { ...pose, ...(pl ? { pl } : {}), ...(ab ? { ab } : {}), ts: this._stampTs() };   // SCALE2b: one send time for every room's copy - that is what lets a listener order them
+    const dn = this.poseDown?.() ?? null;   // AUDIT WORLD-EVENTS L1-4: my body lying down where it fell (a made level keeps me for a raise) - its place, still, dying
+    const out = { ...pose, ...(dn ? { x: dn[0], y: dn[1], z: dn[2], mv: 0, dd: 1 } : {}), ...(pl && !dn ? { pl } : {}), ...(ab ? { ab } : {}), ts: this._stampTs() };   // SCALE2b: one send time for every room's copy - that is what lets a listener order them
     let went = this._send({ t: 'pose', p: out });
     // HALO-THIN: a halo hears the pose when it is due - every one while my own cell's socket took none, the host says a
     // referee may stand in a halo, the halo's own cell says one does (SCALE5b's `rf`, the relay's word of its duels, Wild

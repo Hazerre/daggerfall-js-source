@@ -48,7 +48,7 @@ import { enemyGroupOf, NEARBY } from './nearbyObjects.js';   // X8: Pacify match
 import { breakNormalPowerConcealment, handleAttackFromSource } from './concealment.js';
 import { entityAbsorbsSpells, setEnchantmentEffectDoors } from './enchantments.js';   // E1: the AbsorbsSpells fold feeds the absorption gate
 import { markPlayerHarm } from './harmMark.js';   // REVENANT-HARM: a lingering effect's round on the player keeps its caster's mark
-import { regenBarred } from './courtRules.js';   // WBX6: the Burning Court keeps no regeneration
+import { regenShare } from './courtRules.js';   // WBX6 / EVENT-RULES: a made level holds regeneration
 import { localizedText, localizedTable } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { HEAL_SPELL_POINTS_KEY } from './potionRecipes.js';   // PROF12: Heal-SpellPoints' key, beside the one recipe that names it
 import { isClassEnemyId } from '../characters/enemy/enemyBasics.js';   // DEX1: DFU's class test (DaggerfallEntity.IsClassEnemyId) - a mod's monster past 255 is no class
@@ -728,7 +728,7 @@ function runEffectRound(a, target, sinks, rolls) {
     // when the player cast it (no caster is the player, hostMagic's `!caster` law). A round sink bills nobody else.
     // DUEL1: and the entry's duel tag rides along - a duel's damage over time (bundleDuel) stops at the duel's floor
     if (n > 0 && target?.isPlayer && a.caster && !a.caster.isPlayer) markPlayerHarm(a.caster);   // REVENANT-HARM: the round that may be the death is its caster's
-    if (n > 0 && sinks.hurt) sinks.hurt(n, { fromPlayer: !a.caster || !!a.caster.isPlayer, bundleDuel: !!a.bundleDuel, round: true });   // TELL1: a round, not a landing - it weighs nothing on a wind-up's poise
+    if (n > 0 && sinks.hurt) sinks.hurt(n, { fromPlayer: !a.caster || !!a.caster.isPlayer, bundleDuel: !!a.bundleDuel, round: true, element: a.element ?? null });   // TELL1: a round, not a landing - it weighs nothing on a wind-up's poise; BOSS-TRAITS: its element (a resistance reads it)
     // RVN1 (Feud-Arc.md section 12): MY round on a foe goes in its fight's ledger by its element (the provenance law
     // above - no caster is mine; a peer's stand-in, a foe's, never)
     if (n > 0 && target && !target.isPlayer && (!a.caster || (a.caster.isPlayer && !a.caster.peer))) noteFeudHarm(target, elementFeudClass(a.element), n);
@@ -752,7 +752,7 @@ function runEffectRound(a, target, sinks, rolls) {
       const k = schoolMult(a.caster, target, a.school, { self: true });
       if (k !== 1) n = Math.max(1, Math.round(n * k));
     }
-    if (n > 0 && sinks.heal && !regenBarred()) sinks.heal(n);   // WBX6: the Burning Court keeps no regeneration (systems/courtRules.js)
+    if (n > 0 && sinks.heal) { const held = regenShare(n, 'spell', target); if (held > 0) sinks.heal(held); }   // WBX6 / EVENT-RULES: a made level holds regeneration - half, and none just after a hurt (systems/courtRules.js)
   }
 }
 
@@ -1084,7 +1084,7 @@ export function applySpell(spell, casterLevel, target, sinks, rolls = Math.rando
     if (isDamageHealth(e)) {
       const n = casterDamageScaled(magnitude(e), caster?.entity, target, schoolOf(e));   // DROPS-AUDIT ELITE-SPELLS; SOFTCAP2: the target, for mentor mode; SCHOOLS3: the school it is cast in
       out.damage += n;
-      if (n > 0 && sinks.hurt) sinks.hurt(n);
+      if (n > 0 && sinks.hurt) sinks.hurt(n, { element: spell.element ?? null });   // BOSS-TRAITS: the spell's element (a resistance reads it - systems/bossTraits.js)
       // DamageHealthFromSource runs HandleAttackFromSource whatever the
       // amount - the `n > 0` guard above is the port's sink contract, not
       // DFU's, and the concealment break is NOT behind it (:162-169).
