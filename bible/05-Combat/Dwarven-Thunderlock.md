@@ -2222,7 +2222,7 @@ so nothing is healed. `healGap` stays the answer for a doll layer that has no pi
 The owner: *"Can you insert the new thunderlock sprite into the prototype so I can adjust it"*. `gun-proto.html` now
 draws the owner's seven-frame strip (`public/art/thunderlock-frames.png`) instead of the old six-frame sheet.
 
-- **The cut is the game's.** `thunderlockFrames`, `THUNDERLOCK_STRIP` and `labMuzzleLight` (the room light on `THUNDERLOCK_MUZZLE_CURVE`, named apart from the game's `thunderlockMuzzleLight`) reach the page
+- **The cut is the game's.** `thunderlockFrames`, `THUNDERLOCK_STRIP` and `labThunderlockLight` reach the page
   through `src/tools/gunLab.js`. The page cuts at a fixed stride with the 1-bit alpha, and uses the canvas as both
   anchor and union.
 - **The defaults are the game's pose.** The panel opens at size 50 (the game's 160 of 320) and raise -5 (seated the
