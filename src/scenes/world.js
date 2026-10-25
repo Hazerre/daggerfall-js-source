@@ -17895,8 +17895,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  makes to the pack (checkpointedTradePack). Refused where the exit save is, and while a duel is in play. Answers
    *  whether it wrote. */
   let _checkpointAt = -Infinity;
+  /** The checkpoint gate as it stands now - its inputs built once, so the periodic checkpoint and the zone's death
+   *  checkpoint below ask the same question and a new input reaches both (Home.md, THE ONE CONSTRUCTION SEAM). */
+  const checkpointGateOpen = () => checkpointAllowed({ online: !!online, spawned: playerSpawned, seatOut: seatOut(), duel: !!duelMgr?.duel, walkWaiting: ownWalkWaiting(playerEntity), realm: !!realmSession });
   const onlineCheckpoint = ({ sink = null } = {}) => {   // AUDIT PRE-MERGE 1003 O10: `sink` a realm save's sink of the caller's (onlineCheckpointLanded)
-    if (!checkpointAllowed({ online: !!online, spawned: playerSpawned, seatOut: seatOut(), duel: !!duelMgr?.duel, walkWaiting: ownWalkWaiting(playerEntity), realm: !!realmSession })) return false;   // AUDIT LIVED1b S1
+    if (!checkpointGateOpen()) return false;   // AUDIT LIVED1b S1
     _checkpointAt = performance.now();
     try {
       // REALM P1.3: a realm character's checkpoint is ONE, the service's - the composer's sink sends it, no slot is written
@@ -23140,7 +23143,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  come back with them (a copy in the pack and on the ground). The character is saved AS IT WILL RISE: one health,
    *  where it fell, without what it dropped. Answers whether a save was handed over. */
   const wildDeathCheckpoint = () => {
-    const allowed = checkpointAllowed({ online: !!online, spawned: playerSpawned, seatOut: seatOut(), duel: !!duelMgr?.duel, walkWaiting: ownWalkWaiting(playerEntity), realm: !!realmSession });   // the periodic checkpoint's own gate
+    const allowed = checkpointGateOpen();   // the periodic checkpoint's own gate
     if (!allowed) return false;
     const hp = playerEntity.health;
     if (!(hp > 0)) playerEntity.health = 1;

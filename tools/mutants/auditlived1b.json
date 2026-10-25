@@ -105,8 +105,8 @@
   {
     "name": "AUDITLIVED1B-S1-the-host-never-asks",
     "file": "src/scenes/world.js",
-    "old": ", walkWaiting: ownWalkWaiting(playerEntity), realm: !!realmSession })) return false;",
-    "new": ", realm: !!realmSession })) return false;",
+    "old": "    if (!checkpointGateOpen()) return false;",
+    "new": "    if (false) return false;",
     "tests": [
       "test/systems/auditlived1b.test.js"
     ]
@@ -114,8 +114,8 @@
   {
     "name": "AUDITLIVED1B-S1-the-death-checkpoint-never-asks",
     "file": "src/scenes/world.js",
-    "old": ", walkWaiting: ownWalkWaiting(playerEntity), realm: !!realmSession });   // the periodic checkpoint's own gate",
-    "new": ", realm: !!realmSession });   // the periodic checkpoint's own gate",
+    "old": "    const allowed = checkpointGateOpen();",
+    "new": "    const allowed = true;",
     "tests": [
       "test/systems/auditlived1b.test.js"
     ]

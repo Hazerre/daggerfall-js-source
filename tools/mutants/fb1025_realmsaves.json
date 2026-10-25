@@ -11,8 +11,8 @@
   {
     "name": "SEAT-SAVES-host-gate-no-realm",
     "file": "src/scenes/world.js",
-    "old": "walkWaiting: ownWalkWaiting(playerEntity), realm: !!realmSession })) return false;",
-    "new": "walkWaiting: ownWalkWaiting(playerEntity), realm: false })) return false;",
+    "old": "walkWaiting: ownWalkWaiting(playerEntity), realm: !!realmSession });",
+    "new": "walkWaiting: ownWalkWaiting(playerEntity), realm: false });",
     "tests": [
       "test/systems/auditrealm2_client.test.js"
     ]
@@ -235,6 +235,15 @@
     "new": "",
     "tests": [
       "test/server/rescuesave.test.js"
+    ]
+  },
+  {
+    "name": "SEAT-SAVES-review-the-one-gate-forgets-the-walk",
+    "file": "src/scenes/world.js",
+    "old": "duel: !!duelMgr?.duel, walkWaiting: ownWalkWaiting(playerEntity), realm: !!realmSession });",
+    "new": "duel: !!duelMgr?.duel, realm: !!realmSession });",
+    "tests": [
+      "test/systems/auditlived1b.test.js"
     ]
   }
 ]

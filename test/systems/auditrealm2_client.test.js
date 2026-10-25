@@ -537,6 +537,7 @@ test('AUDIT REALM2 C7: the pause menu\'s Exit ends a duel first and passes P0.5\
     mount(`
       let _checkpointAt = -Infinity;
       ${W.decl('duelLeaveNow')}
+      ${W.decl('checkpointGateOpen')}
       ${W.decl('onlineCheckpoint')}
       ${W.fn('realmCheckpoint')}
       ${W.top(WORLD, 'setBeforeTitleExit(')}
