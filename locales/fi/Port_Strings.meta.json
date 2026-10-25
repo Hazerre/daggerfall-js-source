@@ -11829,6 +11829,31 @@
   "tr": "9a4709fcca45",
   "by": "claude-in-session"
  },
+ "prof.page.jewel.grade.chipped": {
+  "en": "b437eae3da51",
+  "tr": "f952924eb20b",
+  "by": "claude-in-session"
+ },
+ "prof.page.jewel.grade.flawed": {
+  "en": "b0de332ef9bc",
+  "tr": "db193edb6ef3",
+  "by": "claude-in-session"
+ },
+ "prof.page.jewel.grade.flawless": {
+  "en": "22b9ee43aaa6",
+  "tr": "5fc8836e8e11",
+  "by": "claude-in-session"
+ },
+ "prof.page.jewel.grade.perfect": {
+  "en": "241f20a8a1ff",
+  "tr": "1a68b65f4f8d",
+  "by": "claude-in-session"
+ },
+ "prof.page.jewel.grade.plain": {
+  "en": "7fa3b040ed4e",
+  "tr": "577c7e4ecaf2",
+  "by": "claude-in-session"
+ },
  "prof.page.jewel.home": {
   "en": "76661767dd92",
   "tr": "6150ca194ffd",

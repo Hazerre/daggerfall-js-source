@@ -1335,11 +1335,13 @@ export async function craftAtAnvil(ctx, player, env, { character, recipe: id, cl
   });
   // CRAFT2 (Professions-Arc 41.2): a first craft is its PATTERN AT ITS TIER's (recipeLaw firstCraftKin) - any recipe of it
   // made before (the first Ebony Longsword's after an Adamantium one, a Gold Ruby Ring's after a Gold Ring) and this is
-  // none; ?{after the inputs} on, one a recipe. It holds AUDIT PROF-541 J7 (a jewel's piece and base) and R2-S7 (a dish
+  // none; ?{after the inputs}, the kin's list. It holds AUDIT PROF-541 J7 (a jewel's piece and base) and R2-S7 (a dish
   // either herb's way): both are one pattern at one tier
+  // CLOTH-GEMS: the kin ONE bind, a JSON list json_each reads (craftWrits.js's way) - a jewel's pattern at its tier holds
+  // every grade of every gem now (a Wand's at tier 6: two woods, 41 gems - 82), past D1's hundred binds one a recipe
   const kin = firstCraftKin(r);
-  const madeBefore = `recipe IN (${kin.map((_, i) => `?${binds.length + 1 + i}`).join(', ')})`;
-  binds.push(...kin);
+  const madeBefore = `recipe IN (SELECT value FROM json_each(?${binds.length + 1}))`;
+  binds.push(JSON.stringify(kin));
   const decided = 'EXISTS (SELECT 1 FROM prof_crafts WHERE player = ?1 AND rid = ?5 AND n = ?6)';
   // AUDIT PROF-541 B7: A PIECE MADE OF BOUGHT GOODS IS BOUGHT - 'marks' (GOLD-MARKET's Drakes, products.bought_with) where
   // any input held a bought unit as the pieces are minted, BEFORE the spends (bought first - the smelt's rule, professionLaw

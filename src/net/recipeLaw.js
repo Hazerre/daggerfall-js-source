@@ -26,7 +26,9 @@ import {
   INGOTS, TIER_RANKS, topTierOf, actBand, minedMaterial, WOODS, PINE_PLANK, RESIN, HEARTWOOD, LINEN, WOOL, BEAR_HIDE, CLOTHS, HIDES,
   CURED_LEATHER, HARDENED_LEATHER, SKINNING_KNIFE, COUNTER_ONLY, CUT_STONE, MORTAR, PROF_RANK_MAX,   // PROF11: the mason's stone
   GEMS, PEARL, SIEGE_GEM,   // PROF10: the gems a jeweller sets, and a Lapidary's Siege-cracked one
+  GRADED_GEMS, gemGradeOfKey,   // CLOTH-GEMS: and every grade of them
 } from './professionLaw.js';
+import { GEM_GRADE_PRICE } from '../systems/loot/gemGrades.js';   // CLOTH-GEMS: a grade's ladder, one home (a leaf)
 import { GROUP_TEMPLATE_INDICES } from '../systems/item/itemTemplatesData.js';   // PROF10: DFU's Jewellery enum, one home
 import { CLOTHING_DYES } from '../characters/dyes.js';   // DFU's ten clothing dyes (DyeColors 0-9), one home
 import { textCaught } from './nameFilter.js';   // TEXT-F1: a mark's words, read as a name's (nameFilter.js imports nothing)
@@ -479,11 +481,14 @@ export const JEWEL_METALS = Object.freeze([
  *  Ghostwood Planks"), their own tier (6, rank 70) - the jeweller's crown piece. Neither adds points: 9.3 names the metals'. */
 const JEWEL_CLOTH = Object.freeze({ id: 'linen', key: LINEN.key, word: '', tier: LINEN.tier, points: 0 });
 const JEWEL_WOODS = Object.freeze(['ironwood', 'ghostwood'].map((w) => Object.freeze({ id: w, key: `plank:${w}`, word: woodName(w), tier: woodTier(w), points: 0 })));
-/** THE GEMS A JEWELLER SETS (4.6): DFU's eight (professionLaw GEMS - the veins') and the sea's Pearl (DFU 77, Fishing's).
- *  The Siege-cracked Gem is none of them - a Lapidary's stands in for any (LAPIDARY, recipeInputs). */
-export const JEWEL_GEMS = Object.freeze([...GEMS.map((g) => g.key), PEARL.key]);
-/** A gem's word, DFU's template's name ('gem:ruby' Ruby - pinned equal to the rows, test/net/prof10_law.test.js). */
-export const gemWord = (key) => (typeof key === 'string' && key.startsWith('gem:') ? key[4].toUpperCase() + key.slice(5) : '');
+/** THE GEMS A JEWELLER SETS (4.6): DFU's eight (professionLaw GEMS - the veins') and the sea's Pearl (DFU 77, Fishing's) -
+ *  CLOTH-GEMS (Professions-Arc 50; the owner: accept every grade): and the port's thirty-two graded ones (professionLaw
+ *  GRADED_GEMS - Gem-Sockets 4: Chipped, Flawed, Flawless and Perfect, the socket loot), each its own recipe, brought in by
+ *  the loose door. The Siege-cracked Gem is none of them - a Lapidary's stands in for a plain one (LAPIDARY, takesCracked). */
+export const JEWEL_GEMS = Object.freeze([...GEMS.map((g) => g.key), PEARL.key, ...GRADED_GEMS.map((g) => g.key)]);
+/** A gem's word, DFU's template's name ('gem:ruby' Ruby - pinned equal to the rows, test/net/prof10_law.test.js); a graded
+ *  one's its row's ('gem:flawless-ruby' Flawless Ruby - systems/gems.js GEM_GRADE_ROWS, the same names). */
+export const gemWord = (key) => (typeof key === 'string' && key.startsWith('gem:') ? GRADED_GEMS.find((g) => g.key === key)?.name ?? key[4].toUpperCase() + key.slice(5) : '');
 /**
  * THE EIGHT PIECES (9.3: "Ring - 1 Silver, Gold or Platinum (+ a gem); Mark - 1 metal + 1 gem; Bracelet - 2 metal; Bracer
  * - 2 metal + 1 Cured Leather; Amulet - 2 metal + 1 gem; Torc - 3 metal; Cloth Amulet - 1 Linen + 1 gem; Wand - 2 Ironwood
@@ -530,6 +535,13 @@ export const GEMCUTTER = 'gemcutter', GOLDSMITH = 'goldsmith', MASTER_JEWELLER =
 export const GEM_POINTS = 10;
 export const GEMCUTTER_POINTS = 10;
 /**
+ * CLOTH-GEMS (Gem-Sockets 7's next slice, "a road up" for the low grades): WHAT A SET GEM ADDS, percent - 9.3's +10% for a
+ * plain gem (DFU's eight, the Pearl, a Lapidary's cracked one standing in for a plain one), and for a graded one that +10%
+ * on its grade's own ladder, the price's (gemGrades.js GEM_GRADE_PRICE): a Chipped 2.5, a Flawed 5, a Flawless 20, a
+ * Perfect 40. A Gemcutter's +10% is the cutter's hand, never the stone's, and stands beside it whole. 0 for no gem.
+ */
+export const gemPointsPct = (key) => { const g = gemGradeOfKey(key); return g ? GEM_POINTS * GEM_GRADE_PRICE[g] : 0; };
+/**
  * THE JEWELLER'S HAND (the record's `f`, the service's `products.hand` - the cook's column, PROF9): what of the jeweller's
  * choice at 50 a piece carries wherever it goes - 1 a GOLDSMITH's Silver piece (3.3: "Silver counts as Gold" - DECIDED: the
  * piece's points, and so its worth, are Gold's +10%; its rank stays Silver's, the metal it was made of), 2 a GEMCUTTER's
@@ -551,14 +563,16 @@ export const jewelHandOk = (r, f) => r?.kind === 'jewel' && ((f === JEWEL_HAND_G
 export function jewelPointsPct(r, hand = null) {
   if (!r || r.kind !== 'jewel') return 0;
   const metal = hand === JEWEL_HAND_GOLDSMITH && r.metal === JEWEL_METALS[0].key ? JEWEL_METALS[1].points : JEWEL_METALS.find((m) => m.key === r.metal)?.points ?? 0;
-  return metal + (r.gem ? GEM_POINTS + (hand === JEWEL_HAND_GEMCUTTER ? GEMCUTTER_POINTS : 0) : 0);
+  return metal + (r.gem ? gemPointsPct(r.gem) + (hand === JEWEL_HAND_GEMCUTTER ? GEMCUTTER_POINTS : 0) : 0);   // CLOTH-GEMS: the gem's grade's share
 }
 /** A piece's enchantment points - its DFU template's (`templatePoints`, the Ring's 1,800) and the share it adds, floored:
  *  the budget DFU's item maker reads off the piece (systems/enchanting.js itemEnchantmentPower). */
 export const jewelPoints = (r, templatePoints, hand = null) => Math.floor((Math.max(0, Number(templatePoints) || 0) * (100 + jewelPointsPct(r, hand))) / 100);
 /** Whether a recipe takes a Lapidary's Siege-cracked Gem (3.3: "Siege-cracked Gems set as any gem"): a piece that sets a
- *  gem - the cracked one stands in for the recipe's, and the piece is the recipe's (its gem the one chosen). */
-export const takesCracked = (r) => !!r && r.kind === 'jewel' && !!r.gem;
+ *  gem - the cracked one stands in for the recipe's, and the piece is the recipe's (its gem the one chosen). CLOTH-GEMS:
+ *  a PLAIN gem's - 3.3's "any gem" is DFU's eight and the Pearl, and a cracked stone set as a Perfect one would be worth a
+ *  Perfect's points (gemPointsPct); a graded recipe asks its own grade. */
+export const takesCracked = (r) => !!r && r.kind === 'jewel' && !!r.gem && gemGradeOfKey(r.gem) === 'plain';
 /** The specialisations at 100 that add Masterwork points (MASTERWRIGHT_POINTS): Smithing's Masterwright (3.3) and - PROF10
  *  - Jewelcrafting's Master Jeweller ("jewellery Masterwork chance +5%"). CRAFT3: both are the Smithing track's to
  *  choose now (one at 100), so each acts on its own discipline's work as it did - the Masterwright's on the smith's, the

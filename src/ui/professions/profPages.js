@@ -53,6 +53,7 @@ import {
   JOURNEYMAN_RANK, MATERIAL_FAMILIES, HIGH_HIDES_PER_DAY, WITHDRAW_MAX, professionName, SMELT_RECIPES, SMELT_MAX, FORGE_FEE,
   withdrawable, stockOf, STOCK_MAX, BURN_RECIPES, SAW_RECIPES, WORKBENCH_FEE, WOODS, workPer, workSpecRank, CURE_RECIPES,
   WEAVE_RECIPES, SPIN_RECIPES, LINEN, LOOM_FEE, WEAVERS_STOCK, STANDARD_SILK,   // CLOTH-GEMS: the loom's Linen and Wool
+  gemGradeOfKey,   // CLOTH-GEMS: a gem's grade at the jeweller's bench
   MASON_RECIPES, MASON_FEE, workOpen,   // PROF11: the mason's bench
   JEWEL_FEE,   // PROF10: the jeweller's bench
   ALCHEMY_FEE, ENCHANT_FEE, TRANSMUTE_RECIPES, TRANSMUTER, APOTHECARY_STOCK,   // PROF12: the alchemy and enchanting stations
@@ -63,6 +64,7 @@ import {
   craftLimitOf,   // CRAFT-LIMIT-SAID: the crafter's limit over a track, as the service's decisions bind it
 } from '../../net/professionLaw.js';
 import { xpPct } from '../../net/firmament/firmamentLaw.js';   // CRAFT-LIMIT-SAID: the Firmament's hand on a craft's XP, as the service applies it
+import { GEM_GRADES } from '../../systems/loot/gemGrades.js';   // CLOTH-GEMS: the grades the jeweller's bench lists, poorest first
 import { firmamentStats } from '../../systems/firmamentLive.js';   // CRAFT-LIMIT-SAID: the stars in force
 import {
   POTIONS, brewKeys, brewSpends, brewCount, potentChance, potentPct, potentLasts, potentAble, brewXp, brewFirstPays, ingredientKeys, DISTILLER, POTENT,
@@ -338,7 +340,7 @@ const _cook = {
  *  Lapidary's Siege-cracked Gem for the gem, the facet being cut and what it cuts (`actRecipe`, its stand-ins), a piece
  *  in flight, its word. */
 const _jewel = {
-  piece: 'ring', base: 'silver', picked: /** @type {string|null} */ (null), heartwood: false, cracked: false,
+  piece: 'ring', base: 'silver', grade: 'plain', picked: /** @type {string|null} */ (null), heartwood: false, cracked: false,   // CLOTH-GEMS: the gems' grade shown
   act: /** @type {any} */ (null), crafting: false, word: /** @type {string|null} */ (null), els: /** @type {any} */ (null),
   off: /** @type {(() => void)|null} */ (null), stop: /** @type {((e?: any) => void)|null} */ (null),
   actRecipe: /** @type {string|null} */ (null), actWood: false, actCracked: false,
@@ -460,7 +462,7 @@ export function resetProfPages() {
   endChisel(); _mason.word = null; _mason.picked = null; _mason.counts = {};   // PROF11
   endPan(); _cook.word = null; _cook.picked = null; _cook.crafting = false;   // PROF9
   _anvil.chained = _bench.chained = _loom.chained = _mason.chained = _jewel.chained = false;   // AUDIT CRAFT1 F1
-  endFacet(); _jewel.word = null; _jewel.piece = 'ring'; _jewel.base = 'silver'; _jewel.picked = null; _jewel.crafting = false; _jewel.heartwood = false; _jewel.cracked = false;   // PROF10
+  endFacet(); _jewel.word = null; _jewel.piece = 'ring'; _jewel.base = 'silver'; _jewel.grade = 'plain'; _jewel.picked = null; _jewel.crafting = false; _jewel.heartwood = false; _jewel.cracked = false;   // PROF10
   _alchemy.word = null; _alchemy.picked = null; _alchemy.crafting = false; _alchemy.counts = {};   // PROF12
   _enchant.word = null; _enchant.armed = null;   // PROF12
 }
@@ -2485,8 +2487,20 @@ export const FACET_DOWN_LINE = 'You set the stone down; nothing is spent.';
 const facetDownLine = () => t('prof.page.jewel.down', FACET_DOWN_LINE);
 /** Tests: the bench's state - its facet ticked by hand, as a frame would. */
 export const _jewelForTests = () => _jewel;
-/** The recipes the bench lists for a piece in a base (its metal, its Linen, its wood): the plain piece, then a gem each. */
-export const jewelRecipes = (piece, base) => JEWELCRAFTING_RECIPES.filter((r) => r.product === piece && r.id.split(':')[1] === base);
+/** The recipes the bench lists for a piece in a base (its metal, its Linen, its wood): the plain piece, then a gem each -
+ *  CLOTH-GEMS (Professions-Arc 50): of one GRADE of gem (`grade`, gemGrades.js GEM_GRADES'), the plain grade DFU's eight
+ *  and the Pearl with the gemless piece. */
+export const jewelRecipes = (piece, base, grade = 'plain') => JEWELCRAFTING_RECIPES.filter((r) => r.product === piece && r.id.split(':')[1] === base && (gemGradeOfKey(r.gem) ?? 'plain') === grade);
+/** CLOTH-GEMS: a gem grade's word on the bench's row (the plain grade's the gems DFU has; the four the port's rows'). */
+export function gemGradeWord(grade) {
+  switch (grade) {
+    case 'chipped': return t('prof.page.jewel.grade.chipped', 'Chipped');
+    case 'flawed': return t('prof.page.jewel.grade.flawed', 'Flawed');
+    case 'flawless': return t('prof.page.jewel.grade.flawless', 'Flawless');
+    case 'perfect': return t('prof.page.jewel.grade.perfect', 'Perfect');
+    default: return t('prof.page.jewel.grade.plain', 'Plain gems');
+  }
+}
 /** What the bench says a piece's points are: "1,980 enchantment points (+10%)", its DFU template's and the share added. */
 export function jewelPointsLine(r, hand = null) {
   const pct = jewelPointsPct(r, hand);
@@ -2613,11 +2627,25 @@ function drawJewellerBench(detail, rerender, { el, divider }) {
     }
     detail.append(row);
   }
+  // CLOTH-GEMS: the gems' grade, where the piece sets one - DFU's own (plain), and the port's four (Gem-Sockets 4); a graded
+  // gem in the pack is put in by the loose door when the piece is made (the station's shortfall, as any looted gem's)
+  if (!JEWEL_PIECES.find((x) => x.id === _jewel.piece)?.gem) _jewel.grade = 'plain';
+  else {
+    const row = el('div', 'prof-families prof-metals');
+    for (const g of GEM_GRADES) {
+      const b = el('button', `prof-family${_jewel.grade === g ? ' on' : ''}`, gemGradeWord(g));
+      b.type = 'button';
+      b.disabled = cutting;
+      b.onclick = () => { _jewel.grade = g; _jewel.picked = null; rerender(); };
+      row.append(b);
+    }
+    detail.append(row);
+  }
   const crackedHeld = held('gem:siege');
   const lapidary = specs[100] === LAPIDARY;
   /** What the piece spends as this jeweller would: a Heartwood for a plank, a Siege-cracked Gem for the gem. */
   const spendsFor = (r, wood, cracked) => recipeInputs(r, { heartwood: wood && takesHeartwood(r), cracked: cracked && lapidary && takesCracked(r) });
-  const list = jewelRecipes(_jewel.piece, _jewel.base);
+  const list = jewelRecipes(_jewel.piece, _jewel.base, _jewel.grade);
   for (const r of list) {
     const open = recipeOpen(r, rank);
     const can = open && (craftable(r, held) || (lapidary && takesCracked(r) && craftable(r, held, spendsFor(r, false, true))));

@@ -312,6 +312,9 @@ corpse feeds its body (L2-2).
 DFU's eight gems come from veins, 3% a strike on a clean glint (5.2), by climate: **Amber** (Woodlands), **Jade**
 (Rainforest), **Turquoise** (Desert, Desert2), **Malachite** (Swamp), **Ruby, Sapphire, Emerald** (Mountain), and
 **Diamond** only from deep dungeon veins. **Pearl** (DFU 77) comes from Fishing at sea.
+CLOTH-GEMS (section 50; the owner: accept every grade): the port's graded gems (`Gem-Sockets.md` 4 - Chipped, Flawed,
+Flawless and Perfect, the socket loot) are set at the jeweller's bench too, each its grade's own share of a gem's points,
+brought into the Stores by a station's loose door alone.
 
 ### 4.7 Regions - signatures, marches, free lands
 
@@ -5460,6 +5463,132 @@ what changed, is marked with its ids above.
   `int16_progress` was named here and never moved - it walks the routes itself). `fb1013e_writwall` waits on the real
   Worker's board read by the clock (`performance.now`), not 400 turns - the read does more since the crafting writs ride
   it, and the count ran out under a loaded suite.
+
+## 50. CLOTH-GEMS - the loom's own Linen and Wool, AUDIT 32 S1 judged by the units, and every gem's grade at the jeweller's bench (BUILT 2026-10-25)
+
+The player SaberGGaming's report, "Profession oversights"; the owner: "No band aids". Two of its oversights, verified, and
+the owner's decision on each: Linen and Wool are CRAFTED (wool from furs, linen from a herb), not only bought at a counter;
+and the jeweller ACCEPTS EVERY GRADE of gem.
+
+### 50.1 What stood (MEASURED, 2026-10-25)
+
+- 4.5 made Linen and Wool the Weavers' alone, "never gathered", and AUDIT 32 S1 (3.2) withheld the first-make 500 from
+  every recipe made wholly of them (`recipeLaw.js` `firstCraftPays` over `professionLaw.js` `COUNTER_ONLY`): 152 of
+  Outfitting's 332 first-craft keys could never pay, and at tiers 1-2 only 19 of 171.
+- The jeweller set DFU's eight gems and the Pearl alone (`JEWEL_GEMS`). The port's graded gems (`Gem-Sockets.md` 4:
+  Chipped, Flawed, Flawless, Perfect - templates 1900-1931) were socket loot of the pack with no material key
+  (`materialsBag.js` `materialKeyOfItem` answered none for every one), and a set gem added a flat +10% whatever it was.
+
+### 50.2 Linen and Wool, crafted
+
+- **The law** - `professionLaw.js`: `WEAVE_RECIPES` weaves **Linen** from **Root Tendrils** (`LINEN_FIBRE`, DFU's
+  template 12, of both plant groups - a recipe a land, `weave:linen-north` and `weave:linen-south`), two a bolt
+  (`LINEN_IN`); `SPIN_RECIPES` spins **Wool** from a fur (`WOOL_FURS`: the Rat, Wolf and Tiger Pelts, the Boar and Bear
+  Hides - `recipeLaw.js` `PELTS` less the Bat Leather, a wing's skin), two a bolt (`SPIN_IN`, a cure's two), the Bear Hide
+  last of its tier (the Ram Kit's - AUDIT FB1021 L2-1's law for the cures) and the Tiger Pelt a press of the player's own
+  (a chain never trades it down a tier - `chainLaw.js`). Both at the loom, no XP (a cure's and the Silk's law: the herb's
+  and the hide's was their gathering's); a bolt is own where its goods were (`smeltOrigin`).
+- DECIDED (the plant was ours to pick, "flax-like"): **Root Tendrils** - the one fibrous plant DFU has in both lands,
+  common in the HauntedWoodlands and the Swamp and uncommon in the MountainWoods (`nodeLaw.js` `HERB_TABLES`), kept
+  through the winter. Bamboo and the Palm are the south's alone.
+- **DEPARTURE** (Ledger A, the row CLOTH-GEMS): Daggerfall keeps no sheep, grows no flax and weaves nothing - its own
+  plant and the furs of its own foes stand in.
+- **The counter stands**: the Weavers sell both (`WEAVERS_STOCK`, 2 and 3 Marks), into the Stores as bought.
+- **The chain** (41.3): a cloth's works are planned from raw now (`chainLaw.js` `producersOf` - the cheapest fur first),
+  so a Wool shirt is offered "from raw" to a loom holding four Bear Hides.
+
+### 50.3 AUDIT 32 S1, judged by the units
+
+- **The law** - `recipeLaw.js`: `counterMade` names the recipes S1 judges (made wholly of `COUNTER_ONLY`'s goods - the
+  152, every one the loom's); `firstCraftPays(r, own)` pays every other recipe's first as before, and a judged one's only
+  where `own` - its units the character's own, no bought and no loose one among them. Unasked, a judged recipe pays none
+  (a station that cannot see the units says the rule). FACT, pinned: every Outfitting first-craft key at tiers 1-2 (171)
+  is reachable with the character's own goods, and no key of the 332 can never pay.
+- **The service** - `server-account/src/professions.js` `craftAtAnvil`: the decision's `p` - for a judged recipe, none of
+  its inputs held as loose or bought (a station spends those first, so one held is one spent) - the very test AUDIT
+  PROF-541 B7's `bought_with` reads in the same batch; `f * p * ?13` lays the 500 on. The answer says `firstPaid` (read off
+  the piece as it stands - a repeat asked after a sale reads the sale's). A disenchant (`alchemy.js`) pays a piece wholly
+  of cloth its Enchanting XP only where the piece is its maker's own and never sold (`alchemyLaw.js` `disenchantXp`'s
+  `own`: `products.bought_with` none) - AUDIT PROF12 E2's wall, judged by the units too.
+- DECIDED: S1 stays the cloth's. A recipe partly of cloth (a boot, a bed, the Cloth Amulet) was never judged and is not;
+  the smith's stock stays outside it (every one of its goods is gathered too); and a brew keeps its own rule
+  (`alchemyLaw.js` `brewFirstPays` - the Apothecaries' sixteen have no world source, so a brew of them is bought or loose,
+  never own).
+- **The words** - `ui/craftXpWords.js`: the loom's box says the made cloth's 500 (`prof.page.craft.xpFirstOwn`) where
+  `profPages.js` `ownSpend` reads no bought or loose cloth in the Stores and none bought carried, and otherwise that such
+  cloth goes first and earns none (`prof.page.craft.xpBought`); the craft's word reads the answer's `firstPaid`
+  (`prof.craft.xpFirstBought`, an older service's answer read by the recipe); the Enchanting Station says an own piece's
+  figure and, once, the rule (`prof.page.enchant.cloth`); the loom lists its spins (`Spin`) and says where Linen and Wool
+  come from where it holds none of their goods (`prof.page.loom.noCloth`); the Outfitting how-to says it all
+  (`prof.page.how.outfitting`).
+
+### 50.4 Every gem's grade at the jeweller's bench (Gem-Sockets 7's next slice)
+
+- **A material key a grade** - `professionLaw.js` `GRADED_GEMS`: `gem:<grade>-<kind>` (`gem:flawless-ruby`), DFU's Gems
+  group on the port's own row, its tier its graded price's band (`gemTierOfPrice` over `gemGrades.js` `gradedGemPrice`),
+  its name the row's. DFU's eight prices have one home (`GEM_DFU_PRICES`, pinned to the templates), and the leaf
+  `src/systems/loot/gemGrades.js` holds a gem's kind, grade and price ladder for the loot and the law both
+  (`lootRarity.js` and `gems.js` re-export it - no reader moved).
+- **The loose door alone** - `LOOSE_ONLY_KEYS`, `looseOnly`: a graded gem is read as every material (`minedMaterial`,
+  `materialOf`) and is in no `MINED_KEYS` - the market's catalogue - so no buy order, writ or guild names one, and one in
+  the pack still lists from the pack (`marketLaw.js` `storesForm`). The service counts none carried (no harvest yields
+  one), so the Stores page's Put in and a writ's put-in move none; a station's shortfall alone (`bagLaw.js` `looseOrder`)
+  brings one in, as loose, and the piece made of it is walled to gold as every loose good's. `market.js` refuses a buy
+  order and a Stores listing of one (`bad-material`); withdrawn, it is the gem it came in as. `materialsBag.js`
+  `materialKeys` maps every graded gem item to its key.
+- **A grade in the recipe id** - `recipeLaw.js` `JEWEL_GEMS`: 41 gems (DFU's eight, the Pearl, the thirty-two), a recipe
+  each - `ring:gold:flawless-ruby`, "Gold Flawless Ruby Ring" - 504 jewels where 120 stood. The first-craft key stays the
+  piece and base at its tier (`ring@3`), no key new (20 keys), so its kin holds every grade (a Wand's at tier 6: 82).
+- **Its points its grade's** - `gemPointsPct`: 9.3's +10% on the grade's own ladder (`GEM_GRADE_PRICE`): a Chipped 2.5, a
+  Flawed 5, a plain 10, a Flawless 20, a Perfect 40 - below the plain gem and above it. A Gemcutter's +10% is the cutter's,
+  whole beside it. A Gold Ring of a Chipped, a plain and a Perfect Jade: 2,025, 2,160 and 2,700 points.
+- DECIDED: a Lapidary's Siege-cracked Gem stands in for a PLAIN gem alone (`takesCracked`) - 3.3's "any gem" was DFU's
+  eight and the Pearl, and a cracked stone set as a Perfect one would carry a Perfect's 40%.
+- **The bench** - `profPages.js` `drawJewellerBench`: a grade row under the bases where the piece sets a gem
+  (`gemGradeWord`: Chipped, Flawed, Plain gems, Flawless, Perfect - the plain shown first), `jewelRecipes(piece, base,
+  grade)`; a graded gem in the pack reads as workable, and the points line says its grade's share.
+- NOT BUILT: **combining gems** (three of a grade into one of the next) stays `Gem-Sockets.md` 7's - it would make gold of
+  loose stones (three Flawed, 1.5 of a stone's price, into a Flawless's 2), the owner's question.
+
+### 50.5 The service
+
+`ACCOUNT_VERSION` acct182 (`service.js`, `wrangler.toml` - `01-Overview/audits/Audit-Foe-Keeps.md` L3's rule): the
+decision's `p`, the answer's `firstPaid`, the loom's seven works, the graded gems' keys and recipes, the disenchant's origin,
+the kin's one bind (`json_each`, `craftWrits.js`'s way - the decision binds at most 29 of D1's 100) and the market's two
+refusals. No migration: `prof_crafts` and `products` keep every column as they were.
+
+### 50.6 The four hosts and the process laws
+
+- `scenes/world.js` builds the station pages and says the craft's word through `craftXpText`, unchanged (the answer's
+  `firstPaid` is read inside it); `worldModes.js`, `exterior.js` and `dungeonContext.js` build no station page and no
+  craft word - none to wire. HOST-SPLIT: no host function grew.
+- THE NATIVE-WINDOW RULE: the loom's and the bench's rows are the Stores page's own station boxes (section 21), not a
+  window DFU has.
+- A SLICE CLOSES ITS LEDGER ROW: section C names no loom, weave or jeweller of DFU's (DFU crafts nothing); the departure
+  is Ledger A's row.
+
+### 50.7 Words
+
+Twelve new keys and one whose English moved (`prof.page.how.outfitting`), drafted in-session in all 25 languages
+(`tools/l10nInSession.mjs`); `prof.page.craft.xpShop` and `prof.craft.xpFirstShop` retired, their rows dropped. The
+twelve drafting languages owe the rest of their backlog as before (`06-Systems/Localization-Arc.md` L10N6).
+
+### 50.8 As built
+
+`src/net/professionLaw.js`, `src/net/recipeLaw.js`, `src/net/alchemyLaw.js`, `src/net/chainLaw.js` (a word),
+`src/systems/loot/gemGrades.js` (new), `src/systems/loot/lootRarity.js`, `src/systems/gems.js`, `src/systems/materialsBag.js`,
+`src/ui/craftXpWords.js`, `src/ui/professions/profPages.js`, `server-account/src/professions.js`, `alchemy.js`, `market.js`,
+`service.js`, `wrangler.toml`, `locales/*/Port_Strings.csv` and their records. Pinned: `test/net/clothgems_law.test.js`
+(4), `test/net/clothgems_service.test.js` (2), `test/systems/clothgems_client.test.js` (2), `test/net/clothgems_gems.test.js`
+(4), `test/systems/clothgems_jewel.test.js` (2). `tools/mutants/clothgems.json` (49, all dead); re-aimed by content, each
+still dead: `audit32` (5), `audit_uicalm_firm1`, `prof3` (2), `prof11`, `prof12` (4), `fb1015f_firstcraft` (7),
+`fb1018d_crafthowto`, `fb1018f_craftlimit` (5), `craft2`, `prof10` (4), `gem1`, `loot20`, and the version's ten. PIN MOVED:
+`prof7_law`, `prof4_law`, `craft1_chain` (the loom's works, the chain's), `fb1015f_firstcraft` (the words), `prof12_service`
+and `prof7_service` (the counter's cloth bought, an own piece's XP), `prof7_client` (a Wool shirt from raw),
+`fb1018d_crafthowto`, `prof12_client`, `audit_uicalm_firm1`, `audit32_service` (its title: the units decide),
+`prof10_law`, `prof10_client` and `craft2_patterns` (every grade, the kin), and the version's pins. FOUND on the way:
+`test/server/founder5.test.js` was time-bombed - its "later" guest stood at 2026-09-25 + 30 days, which the real clock
+passed at 00:00Z on 2026-10-25; its row now stands a day past the real clock, as the pin means it.
 
 ## Appendix A - a day of a gatherer
 

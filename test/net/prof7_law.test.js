@@ -234,7 +234,7 @@ test('PROF7 law: Outfitting\'s recipes (9.3) - the leather armour in Cured and H
   assert.deepEqual([net.templateIndex, FISHING_NET_TEMPLATE, net.rank, ins('fishingnet:linen'), net.kind, net.profession], [1603, 1603, 0, '2 cloth:linen', 'tool', 'outfitting']);
   assert.equal(OUTFITTING_RECIPES.length, 14 + 76 * 4 + 4 + 3 + 12 + 1);   // PIN MOVED (DEX-HIDES): skins of six pelts, not four
   assert.ok(OUTFITTING_RECIPES.every((r) => r.profession === 'outfitting' && r.metal === null));
-  assert.equal(RECIPES.length, SMITH_RECIPES.length + CARPENTRY_RECIPES.length + OUTFITTING_RECIPES.length + 4 + 7 + 120);   // PIN MOVED (PROF11): the Sculptor's four stone pieces; PIN MOVED (PROF9): the fire's seven dishes; PIN MOVED (PROF10): the jeweller's 120 pieces
+  assert.equal(RECIPES.length, SMITH_RECIPES.length + CARPENTRY_RECIPES.length + OUTFITTING_RECIPES.length + 4 + 7 + 504);   // PIN MOVED (CLOTH-GEMS): the jeweller's 504, every grade of every gem a recipe   // PIN MOVED (PROF11): the Sculptor's four stone pieces; PIN MOVED (PROF9): the fire's seven dishes; PIN MOVED (PROF10): the jeweller's 120 pieces
   assert.equal(new Set(RECIPES.map((r) => r.id)).size, RECIPES.length, 'every id its own');
   const knife = recipeById('knife:iron');
   assert.deepEqual([knife.templateIndex, knife.rank, knife.profession, ins('knife:iron')], [603, 0, 'smithing', '1 ingot:iron + 1 plank:pine']);

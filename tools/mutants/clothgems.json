@@ -286,5 +286,172 @@
     "tests": [
       "test/systems/prof12_client.test.js"
     ]
+  },
+  {
+    "name": "CLOTHGEMS-gem-price-moved",
+    "file": "src/net/professionLaw.js",
+    "old": "GEM_DFU_PRICES = Object.freeze({ ruby: 250,",
+    "new": "GEM_DFU_PRICES = Object.freeze({ ruby: 251,",
+    "tests": [
+      "test/net/clothgems_gems.test.js"
+    ]
+  },
+  {
+    "name": "CLOTHGEMS-graded-key-respelt",
+    "file": "src/net/professionLaw.js",
+    "old": "  ...dfu(`gem:${gemId(kind, grade)}`, 'gems',",
+    "new": "  ...dfu(`gem:${kind}-${grade}`, 'gems',",
+    "tests": [
+      "test/net/clothgems_gems.test.js"
+    ]
+  },
+  {
+    "name": "CLOTHGEMS-graded-tier-plain",
+    "file": "src/net/professionLaw.js",
+    "old": "gemTierOfPrice(gradedGemPrice(GEM_DFU_PRICES[kind], grade))",
+    "new": "gemTierOfPrice(GEM_DFU_PRICES[kind])",
+    "tests": [
+      "test/net/clothgems_gems.test.js"
+    ]
+  },
+  {
+    "name": "CLOTHGEMS-graded-in-the-catalogue",
+    "file": "src/net/professionLaw.js",
+    "old": "RAM_KIT, ...REAGENTS, ARCANE_ESSENCE].map((m) => [m.key, m]));",
+    "new": "RAM_KIT, ...REAGENTS, ARCANE_ESSENCE, ...GRADED_GEMS].map((m) => [m.key, m]));",
+    "tests": [
+      "test/net/clothgems_gems.test.js",
+      "test/systems/clothgems_jewel.test.js"
+    ]
+  },
+  {
+    "name": "CLOTHGEMS-mined-loose-unread",
+    "file": "src/net/professionLaw.js",
+    "old": "export const minedMaterial = (key) => MINED.get(key) ?? LOOSE.get(key) ?? null;",
+    "new": "export const minedMaterial = (key) => MINED.get(key) ?? null;",
+    "tests": [
+      "test/net/clothgems_gems.test.js"
+    ]
+  },
+  {
+    "name": "CLOTHGEMS-materialof-loose-unread",
+    "file": "src/net/professionLaw.js",
+    "old": "  const r = MINED.get(key) ?? LOOSE.get(key);",
+    "new": "  const r = MINED.get(key);",
+    "tests": [
+      "test/net/clothgems_gems.test.js",
+      "test/systems/clothgems_jewel.test.js"
+    ]
+  },
+  {
+    "name": "CLOTHGEMS-grade-of-key-none",
+    "file": "src/net/professionLaw.js",
+    "old": "gemGrade(key.slice('gem:'.length)) ?? 'plain');",
+    "new": "gemGrade(key.slice('gem:'.length)) ?? null);",
+    "tests": [
+      "test/net/clothgems_gems.test.js"
+    ]
+  },
+  {
+    "name": "CLOTHGEMS-jewel-no-graded",
+    "file": "src/net/recipeLaw.js",
+    "old": "PEARL.key, ...GRADED_GEMS.map((g) => g.key)]);",
+    "new": "PEARL.key]);",
+    "tests": [
+      "test/net/clothgems_gems.test.js",
+      "test/net/prof10_law.test.js"
+    ]
+  },
+  {
+    "name": "CLOTHGEMS-gem-points-flat",
+    "file": "src/net/recipeLaw.js",
+    "old": "return g ? GEM_POINTS * GEM_GRADE_PRICE[g] : 0;",
+    "new": "return g ? GEM_POINTS : 0;",
+    "tests": [
+      "test/net/clothgems_gems.test.js",
+      "test/systems/clothgems_jewel.test.js"
+    ]
+  },
+  {
+    "name": "CLOTHGEMS-gemword-graded-unread",
+    "file": "src/net/recipeLaw.js",
+    "old": "GRADED_GEMS.find((g) => g.key === key)?.name ?? ",
+    "new": "",
+    "tests": [
+      "test/net/clothgems_gems.test.js",
+      "test/systems/clothgems_jewel.test.js"
+    ]
+  },
+  {
+    "name": "CLOTHGEMS-cracked-any-grade",
+    "file": "src/net/recipeLaw.js",
+    "old": "!!r.gem && gemGradeOfKey(r.gem) === 'plain';",
+    "new": "!!r.gem;",
+    "tests": [
+      "test/net/clothgems_gems.test.js"
+    ]
+  },
+  {
+    "name": "CLOTHGEMS-svc-kin-its-own",
+    "file": "server-account/src/professions.js",
+    "old": "  binds.push(JSON.stringify(kin));",
+    "new": "  binds.push(JSON.stringify([r.id]));",
+    "tests": [
+      "test/net/clothgems_gems.test.js"
+    ]
+  },
+  {
+    "name": "CLOTHGEMS-svc-order-loose-open",
+    "file": "server-account/src/market.js",
+    "old": "  if (!material(key) || looseOnly(key)) return { error: 'bad-material' };   // CLOTH-GEMS: a graded gem is the loose door's, no order's",
+    "new": "  if (!material(key)) return { error: 'bad-material' };",
+    "tests": [
+      "test/net/clothgems_gems.test.js"
+    ]
+  },
+  {
+    "name": "CLOTHGEMS-svc-listing-loose-open",
+    "file": "server-account/src/market.js",
+    "old": "    if (!material(key) || looseOnly(key)) return { error: 'bad-material' };   // CLOTH-GEMS: a graded gem lists from the pack, never the Stores",
+    "new": "    if (!material(key)) return { error: 'bad-material' };",
+    "tests": [
+      "test/net/clothgems_gems.test.js"
+    ]
+  },
+  {
+    "name": "CLOTHGEMS-bag-graded-unmapped",
+    "file": "src/systems/materialsBag.js",
+    "old": "...MINED_KEYS, ...LOOSE_ONLY_KEYS].filter",
+    "new": "...MINED_KEYS].filter",
+    "tests": [
+      "test/systems/clothgems_jewel.test.js"
+    ]
+  },
+  {
+    "name": "CLOTHGEMS-pages-grade-unfiltered",
+    "file": "src/ui/professions/profPages.js",
+    "old": "&& (gemGradeOfKey(r.gem) ?? 'plain') === grade);",
+    "new": ");",
+    "tests": [
+      "test/systems/clothgems_jewel.test.js"
+    ]
+  },
+  {
+    "name": "CLOTHGEMS-pages-grade-row-gone",
+    "file": "src/ui/professions/profPages.js",
+    "old": "    for (const g of GEM_GRADES) {",
+    "new": "    for (const g of []) {",
+    "tests": [
+      "test/systems/clothgems_jewel.test.js"
+    ]
+  },
+  {
+    "name": "CLOTHGEMS-pages-grade-unasked",
+    "file": "src/ui/professions/profPages.js",
+    "old": "  const list = jewelRecipes(_jewel.piece, _jewel.base, _jewel.grade);",
+    "new": "  const list = jewelRecipes(_jewel.piece, _jewel.base);",
+    "tests": [
+      "test/systems/clothgems_jewel.test.js"
+    ]
   }
 ]
