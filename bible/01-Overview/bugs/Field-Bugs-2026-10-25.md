@@ -54,7 +54,7 @@ THE FOUR HOSTS: `world.js` wired (the zone's death, its referee's words and its 
 `exterior.js`, `worldModes.js` and `dungeonContext.js` run no zone death of their own - the zone's halls and buildings
 die through `world.js`'s online frame - so none is wired.
 
-DEPLOY: the account service `acct186` FIRST (an older one holds a `g` fall's killer to the grace), then the relay
+DEPLOY: the account service `acct187` (acct186 on its branch, renumbered past DECOR-USE and PERK-TRIAL at the merge) FIRST (an older one holds a `g` fall's killer to the grace), then the relay
 `world259` (world258 on its branch, renumbered past KETCH-LONGER at the merge), then the site.
 
 LIMITS (`11-Multiplayer/Wild-Zone.md` section 22): a page that comes back outside the zone, or inside one of its

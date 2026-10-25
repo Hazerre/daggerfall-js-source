@@ -451,7 +451,7 @@ renumbered past main's SUPER-DUNGEONS (world176) - its parts written on their br
   its takes (section 3-5). INT9 (world185, `WILD_REF_RELAY_MIN`): the zone word (`zone`), the blows refereed and routed
   to nobody, the killer's `pick` the room's, a deposit carrying the service's order on every chunk; `gave` and
   `result` retired. The referee's own frame `{t:'wref', k}` (`validWildRefOut`): `hp`, `fell`, `rc` (the signed fall).
-  WILD-REJOIN (world259 - world258 on its branch, renumbered past KETCH-LONGER at the merge - account acct186): `down` (`ms`, and `r` with `p` from the fall's own room - section 4), said
+  WILD-REJOIN (world259 - world258 on its branch, renumbered past KETCH-LONGER at the merge - account acct187, acct186 on its branch): `down` (`ms`, and `r` with `p` from the fall's own room - section 4), said
   before the receipts a socket is owed; an older client drops the kind. A fall receipt signed with its fallen gone from
   the room carries `g` 1. Deploy the account service first (an older one holds a `g` fall's killer to the grace - the
   killer's tab then asks again past it, `wildSeizeHost.js:"a?.error === 'grace'"`), then the relay, then the site.
