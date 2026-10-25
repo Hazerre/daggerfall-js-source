@@ -36,6 +36,8 @@ export const DECOR_OWN_KEPT_BACK = Object.freeze(new Set([TEMPLATES.Spellbook, T
 
 /** How many pieces one home holds - a room full of furniture, not a frame-rate. */
 export const DECOR_CAP = 200;
+/** A guild hall's interior. A house stays at DECOR_CAP. The palace Charter Room keeps its own cap. */
+export const DECOR_HALL_CAP = 300;
 /** A piece's id: the client mints it (the save and the service key on the same one). */
 export const DECOR_ID_RE = /^[A-Za-z0-9_-]{1,24}$/;
 /** ARCH3D model ids run to six digits; TEXTURE records below 512, and archives below 512 - DECOR2c: or the port's own
@@ -65,6 +67,11 @@ export const DECOR_PRICE_MAX = 400;
  *  hundred, and this stops a script, not a decorator. */
 export const DECOR_OPS_MAX = 600;
 export const DECOR_OPS_WINDOW_S = 3600;
+/** One Confirm: how many final changes it may carry, and how large the body may be. The other JSON routes stay at 4 KiB. */
+export const DECOR_BATCH_OPS = 64;
+export const DECOR_BATCH_BYTES = 128 * 1024;
+/** A batch's own id, so a lost answer is asked again as the same write. */
+export const DECOR_TXN_RE = /^[A-Za-z0-9_-]{16,64}$/;
 
 const fin = (v) => typeof v === 'number' && Number.isFinite(v);
 const round = (v, places) => {
@@ -237,6 +244,17 @@ export const DECOR_STATION_NAMES = Object.freeze({ alchemy: 'Alchemy station', s
  * HOME-STATIONS: `station` the craft it serves (DECOR_STATIONS), carried only when it serves one - a piece holds
  * things or serves a craft, never both (one press, one thing it does).
  */
+/** A placed piece's own name. Empty clears it. Longer than this, or with a control character, is no name. */
+export const DECOR_NAME_MAX = 32;
+export function decorNameOf(raw) {
+  if (raw == null || raw === '') return null;
+  if (typeof raw !== 'string') return false;
+  const name = raw.replace(/\s+/g, ' ').trim();
+  if (!name) return null;
+  if (name.length > DECOR_NAME_MAX || /[\u0000-\u001f\u007f<>]/.test(name)) return false;
+  return name;
+}
+
 export function decorPlaceOf(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const { pos, rot, scale, light = null, storage = false, paid, station = null } = raw;
@@ -247,7 +265,9 @@ export function decorPlaceOf(raw) {
   if (!Number.isSafeInteger(paid) || paid < 0 || paid > DECOR_PRICE_MAX) return null;
   const lit = light === null ? null : decorLightOf(light);
   if (light !== null && !lit) return null;
-  return { pos: pos.map((v) => round(v, 3)), rot: rot.map((v) => round(v, 1)), scale: round(scale, 3), light: lit, storage, paid, ...(station ? { station } : {}) };
+  const name = decorNameOf(raw.name);
+  if (name === false) return null;
+  return { pos: pos.map((v) => round(v, 3)), rot: rot.map((v) => round(v, 1)), scale: round(scale, 3), light: lit, storage, paid, ...(station ? { station } : {}), ...(name ? { name } : {}) };
 }
 
 /** A WHOLE piece - its id, what it is, where it stands - projected, or null. DECOR2a: the owner's own item costs
@@ -283,6 +303,25 @@ export function decorRescale(radiusMetres, paid, scale) {
   if (now >= was) return { pay: now - was, refund: 0, paid: now };
   return { pay: 0, refund: Math.trunc((was - now) / 2), paid: now };
 }
+
+/**
+ * WHAT A PIECE'S CHANGE COSTS. Placed: its price. Grown: the difference. Shrunk or removed: half of what records
+ * paid (`ledger`, never a cost the client merely named). A station's licence is paid and never given back.
+ * `delta` is what the record gains (negative: the purse pays). `ledger` is what records have now paid for it.
+ */
+export function decorGoldMove(was, now, ledger = was?.paid) {
+  const paidWas = was ? Math.max(0, Number(was.paid) || 0) : 0;
+  const own = Math.min(paidWas, Math.max(0, Number(ledger) || 0));
+  if (!now) return { delta: decorRefund(own), ledger: 0 };
+  const paidNow = Math.max(0, Number(now.paid) || 0);
+  let delta, next;
+  if (paidNow >= paidWas) { delta = paidWas - paidNow; next = own + paidNow - paidWas; }
+  else { const base = Math.min(paidWas - paidNow, own); delta = Math.trunc(base / 2); next = own - base; }
+  if (now.station && now.station !== (was?.station ?? null)) delta -= DECOR_STATION_FEES[now.station] ?? 0;
+  return { delta, ledger: next };
+}
+/** The gold alone (decorGoldMove's `delta`). */
+export const decorGoldDelta = (was, now, ledger = was?.paid) => decorGoldMove(was, now, ledger).delta;
 
 /** A fresh piece id - twelve base-36 characters, the client's own (the save and the service key on it). */
 export function mintDecorId(rand = Math.random) {
