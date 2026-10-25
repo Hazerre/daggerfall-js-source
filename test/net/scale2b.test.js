@@ -169,7 +169,7 @@ test('SCALE2b metrics: a room writes ONE point a window - its kind and the relay
   await r.drop(a); await r.drop(b);
   assert.equal(points.length, 1, 'the drain writes the window\'s one point');
   const p = points[0];
-  assert.deepEqual(p.indexes, ['world']); assert.deepEqual(p.blobs, ['world', RELAY_VERSION, '0', '0', '0', '0', '0', '0', '0', '0']);   // PIN MOVED (FOES-FIRST): blob3 to 5, counts - test/net/fb1021_foesfirst.test.js holds them; PIN MOVED (FOES-HOLD): blob6 to 10, the hold's - test/net/fb1021b_foeshold.test.js
+  assert.deepEqual(p.indexes, ['world']); assert.deepEqual(p.blobs, ['world', RELAY_VERSION, '0', '0', '0', '0', '0', '0', '0', '0', '']);   // PIN MOVED (COST-2): blob11 the node's level, '' for a room told none; PIN MOVED (FOES-FIRST): blob3 to 5, counts - test/net/fb1021_foesfirst.test.js holds them; PIN MOVED (FOES-HOLD): blob6 to 10, the hold's - test/net/fb1021b_foeshold.test.js
   assert.equal(p.doubles.length, 20);   // PIN MOVED (SCALE5b): eight more after the twelve - test/net/scale5b.test.js holds them
   const [, sockets, hellos, busy, frames, bytesIn, poses, sends, bytesOut, reads, writes, refusals] = p.doubles;
   assert.equal(hellos, 2); assert.equal(busy, 0); assert.equal(poses, 5); assert.equal(refusals, 0);
@@ -223,7 +223,7 @@ function edge() {
   const me = { x: (cellX * WORLD_CELL + WORLD_CELL - 1) * U + U / 2, y: 0, z: (cellZ * WORLD_CELL + 8) * U, yaw: 0, pitch: 0, mv: 0 };
   s.join(`world:${cellX},${cellZ}`, me); sockets[0].open();
   s.setHalo([`world:${cellX + 1},${cellZ}`]);
-  const halo = sockets.find((w) => w.url.endsWith(`world:${cellX + 1},${cellZ}`)); halo.open();
+  const halo = sockets.find((w) => w.url.split('?')[0].endsWith(`world:${cellX + 1},${cellZ}`)); halo.open();
   const atx = (dx, ts, mv = 1) => ({ ...me, x: me.x - 1600 + dx, mv, ts: ts % POSE_TS_MOD });
   for (const w of [sockets[0], halo]) w.receive({ t: 'welcome', id: 'mac-0001', peers: [{ id: 'eve-0003', name: 'Eve', look: null, pose: atx(0, 0, 0) }], host: null, world: null });
   return { s, cell: sockets[0], halo, clock, atx, sockets, eve: () => s.peers.get('eve-0003') };

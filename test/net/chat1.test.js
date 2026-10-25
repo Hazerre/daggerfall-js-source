@@ -45,6 +45,7 @@ import { ChatLog, CHAT_TABS, CHAT_KEEP, CHAT_FADE_MS, CHAT_PEEK, CHAT_REJOIN_MS,
 import { createChatPanel, isOpenKey, CHAT_STYLE_ID, CHAT_OPEN_ACTION, clockOf, CHAT_CSS } from '../../src/ui/chatPanel.js';
 import { registerOverlay, overlayOpen } from '../../src/ui/enhanced/enhancedOverlays.js';
 import { hostText } from '../hostText.mjs';   // HOST-SPLIT 2 (AUDIT, the second read): its negatives read the host whole
+import { CELL_DIRECTORY } from '../../server/src/cellNodes.js';   // COST-2: the cell directory a cell's door asks
 
 const rd = (p) => hostText(p);
 
@@ -189,7 +190,7 @@ test('CHAT1 / AUDIT CHAT: the Room as a CHANNEL - a hello keeps the secret and n
     assert.equal((await place.room.fetch(upgrade('/room/town:m9'))).status, 503, 'a place still fills at SOCKETS_MAX');
   } finally { globalThis.WebSocketPair = hadPair; }
   let minted = 0;
-  const env = { ROOMS: { idFromName: () => { minted++; return 'id'; }, get: () => ({ fetch: async () => new Response('ok') }) } };
+  const env = { ROOMS: { idFromName: (name) => { if (name !== CELL_DIRECTORY) minted++; return 'id'; }, get: () => ({ fetch: async () => new Response('ok') }) } };   // PIN MOVED (COST-2): a cell's door asks the cell directory (cellNodes.js) - no room's object
   assert.equal((await worker.fetch(upgrade('/room/chat:junk'), env)).status, 404, 'AUDIT CHAT A1: a chat: key the port does not run is no room');
   assert.equal((await worker.fetch(upgrade('/room/chat:' + 'z'.repeat(70)), env)).status, 404);
   assert.equal(minted, 0, 'and no object is minted for it');

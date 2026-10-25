@@ -688,11 +688,12 @@
   {
     "name": "INT9-AUDIT-RELAY-ANOTHER-ROOMS-ORDER",
     "file": "server/src/index.js",
-    "old": "      if (c.wm !== a.key) { this._junk(ws); return; }",
+    "old": "      if (!inCover(a, c.wm)) { this._junk(ws); return; }",
     "new": "",
     "tests": [
       "test/net/int9_wild_ref.test.js"
-    ]
+    ],
+    "note": "COST-2 3a (re-aimed by content: the cell-scoped law reads the socket's cover)."
   },
   {
     "name": "INT9-AUDIT-RELAY-A-TOMBSTONE-LET-GO",

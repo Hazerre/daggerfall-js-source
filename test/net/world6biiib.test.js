@@ -58,7 +58,7 @@ test('WORLD6b-iii(b): the session - a halo room is hello\'d into and posed into;
     s.setHalo(['world:2,12', 'world:3,12', 'town:m1']);
     assert.deepEqual(s.haloRooms(), ['world:2,12'], 'my own cell and a non-cell are no halo');
     assert.equal(sockets.length, 2); const hw = sockets[1];
-    assert.equal(hw.url, 'wss://relay.test/room/world:2,12', 'the halo\'s own room');
+    assert.equal(hw.url.split('?')[0], 'wss://relay.test/room/world:2,12', 'the halo\'s own room');
     assert.equal(s.inRoom('world:2,12'), false, 'not until it opens');
     hw.open();
     const helloTs = JSON.parse(hw.sent[0]).pose.ts;   // SCALE2b: the hello's pose is stamped with when it is said
@@ -131,7 +131,7 @@ test('WORLD6b-iii(b): the session - a halo room is hello\'d into and posed into;
     const before = sockets.length;
     s.tick(); assert.equal(sockets.length, before, 'not yet');
     now += 60000; s.tick();
-    assert.equal(sockets.length, before + 1, 'retried'); assert.equal(sockets.at(-1).url, 'wss://relay.test/room/world:1,12');
+    assert.equal(sockets.length, before + 1, 'retried'); assert.equal(sockets.at(-1).url.split('?')[0], 'wss://relay.test/room/world:1,12');
     // leave closes all
     s.leave();
     assert.equal(sockets.at(-1).closed?.code, 1000); assert.deepEqual(s.haloRooms(), []); assert.equal(s.peers.size, 0);

@@ -5,8 +5,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  CELL_LEVEL_MAX, nodeSize, nodeKey, parseNode, isNodeRoom, isCoarseNode, levelOf, nodeAt, nodeBounds, nodeHolds, parentNode,
-  childNodes, L0_TREE, TREE_NODES_MAX, readTree, isSplit, nodeOf, partitionRows,
+  CELL_LEVEL_MAX, nodeSize, cellNodeKey, parseNode, isNodeRoom, isCoarseNode, nodeLevelOf, nodeAt, nodeBounds, nodeHolds, parentNode,
+  childNodes, L0_TREE, TREE_NODES_MAX, readTree, isSplit, leafOf, partitionRows,
 } from '../../src/net/cellTree.js';
 import { WORLD_CELL, worldRoom, roomOf, isCellRoom } from '../../src/net/wire.js';
 
@@ -14,15 +14,15 @@ test('COST-2 the nodes: five levels over the 16-pixel grid - L0 the fine cell un
   assert.equal(CELL_LEVEL_MAX, 4);
   assert.deepEqual([0, 1, 2, 3, 4].map(nodeSize), [16, 32, 64, 128, 256]);
   assert.equal(nodeSize(0), WORLD_CELL);
-  assert.equal(nodeKey(0, 25, 9), 'world:25,9');
-  assert.equal(nodeKey(2, 6, 2), 'cell:2:6,2');
+  assert.equal(cellNodeKey(0, 25, 9), 'world:25,9');
+  assert.equal(cellNodeKey(2, 6, 2), 'cell:2:6,2');
   assert.deepEqual(parseNode('world:25,9'), { L: 0, nx: 25, ny: 9 });
   assert.deepEqual(parseNode('cell:3:-1,2'), { L: 3, nx: -1, ny: 2 });
   for (const no of ['cell:0:1,1', 'cell:5:1,1', 'cell:2:1', 'cell:2:1,1,1', 'world:1', 'chat:world', null, 7]) assert.equal(parseNode(no), null, String(no));
   assert.equal(isNodeRoom('world:3,4'), true); assert.equal(isCoarseNode('world:3,4'), false);
   assert.equal(isCoarseNode('cell:1:3,4'), true); assert.equal(isCellRoom('cell:1:3,4'), false, 'a node is no cell: no page law reads it as one');
   assert.equal(roomOf('/room/cell:1:3,4'), 'cell:1:3,4', 'a page may ask for it - so the Worker refuses it by name (cellNodes.js)');
-  assert.equal(levelOf('cell:4:0,0'), 4); assert.equal(levelOf('world:0,0'), 0); assert.equal(levelOf('town:x'), null);
+  assert.equal(nodeLevelOf('cell:4:0,0'), 4); assert.equal(nodeLevelOf('world:0,0'), 0); assert.equal(nodeLevelOf('town:x'), null);
   // a pixel's fine cell and its node at every level agree with worldRoom
   for (const [px, py] of [[402, 151], [0, 0], [999, 499], [-1, -1], [-17, 40]]) {
     const fine = worldRoom(px, py);
@@ -45,14 +45,14 @@ test('COST-2 the nodes: five levels over the 16-pixel grid - L0 the fine cell un
 
 test('COST-2 the tree and the walk: L0_TREE leaves every fine cell its own node - today\'s partition, for every cell of the map and past it; a node above the base is split unless joined, at or below it whole unless split; the walk goes down from L4 while split; a tree read back strictly (its version, its base, each listed node coarse and on its list\'s side of the base, each once, bounded) (mutants: the base\'s side; the walk\'s start; the joined set unread; a tree read loose)', () => {
   assert.deepEqual(L0_TREE, { v: 1, base: 0, split: [], joined: [] });
-  for (let cx = -63; cx <= 63; cx += 7) for (let cy = -32; cy <= 32; cy += 5) assert.equal(nodeOf(L0_TREE, `world:${cx},${cy}`), `world:${cx},${cy}`);
-  assert.equal(nodeOf(L0_TREE, 'town:x'), null);
+  for (let cx = -63; cx <= 63; cx += 7) for (let cy = -32; cy <= 32; cy += 5) assert.equal(leafOf(L0_TREE, `world:${cx},${cy}`), `world:${cx},${cy}`);
+  assert.equal(leafOf(L0_TREE, 'town:x'), null);
   // seeded at L2: a cell's node its 64-pixel one; a town split back to L1, a quiet corner joined up to L3
   const seed = readTree({ v: 1, base: 2, split: ['cell:2:6,2'], joined: ['cell:3:0,0'] });
   assert.ok(seed);
-  assert.equal(nodeOf(seed, 'world:25,9'), 'cell:1:12,4', 'the split town: down to L1');
-  assert.equal(nodeOf(seed, 'world:28,9'), 'cell:2:7,2', 'its neighbour stays at the base');
-  assert.equal(nodeOf(seed, 'world:3,3'), 'cell:3:0,0', 'the joined corner is one L3 node');
+  assert.equal(leafOf(seed, 'world:25,9'), 'cell:1:12,4', 'the split town: down to L1');
+  assert.equal(leafOf(seed, 'world:28,9'), 'cell:2:7,2', 'its neighbour stays at the base');
+  assert.equal(leafOf(seed, 'world:3,3'), 'cell:3:0,0', 'the joined corner is one L3 node');
   assert.equal(isSplit(seed, 'cell:4:0,0'), true, 'above the base: split');
   assert.equal(isSplit(seed, 'cell:3:0,0'), false, 'unless joined');
   assert.equal(isSplit(seed, 'cell:2:6,2'), true, 'at the base: whole unless split');

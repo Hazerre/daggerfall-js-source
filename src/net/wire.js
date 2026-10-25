@@ -329,8 +329,11 @@ export const CLOSE_BUSY = 1013;       // the room is full or its hello gate is s
  *  already heard. The Worker answers such a halo with a socket closed with this code (a browser sees no HTTP status on a
  *  refused upgrade), and the page asks that halo again only after HALO_WAIT_MS, counting no drop (online.js). */
 export const CLOSE_SAME_ROOM = 4002;
-/** COST-2: the query parameter a halo's socket names its page's own room with. */
+/** COST-2: the query parameter a halo's socket names the rooms its page holds with - its own room first, then its other
+ *  halos, `;` between (a cell's key has a comma of its own) - and the most it names (a halo's neighbours are at most
+ *  three at a corner; the Worker reads no more than this). */
 export const HALO_OF_PARAM = 'of';
+export const HALO_OF_MAX = 9;
 /** SCALE5a (2026-10-10, Mac: "we just hit 500 online people"): THE REASON A BUSY CLOSE GIVES WHEN THE HELLO'S TOKEN WAS
  *  NEVER READ. A room's hello gate is asked before the token (server/src/index.js - a refused hello costs no signature
  *  check), so the token such a hello carried is unspent in that room and may open it on the retry. The client counted

@@ -182,7 +182,7 @@ import { routeStaffTeleport } from './staffTeleport.js';
 import { followNoted, withoutRoom, followHello, followJoined, followLeft, followSayInternal } from './staffFollow.js';   // STAFF-PANEL5-FOLLOW: the where note kept and read, and a player followed
 import { FOLLOW_INTERNAL_SAY } from '../../src/net/staffFollow.js';
 import { takeStaffMessage } from './staffMessage.js';   // STAFF-PANEL5-MESSAGE: a staff message's nudge, to one account's own hub sockets
-import { cellDoor, cellTreeInternal, nodeHeard, cellLevelOf, CELL_INTERNAL_TREE } from './cellNodes.js';   // COST-2: a cell's node, the directory, the node an object is told
+import { cellDoor, cellTreeInternal, nodeHeard, cellLevelOf, coverOf, inCover, atCover, cellsWelcome, CELL_INTERNAL_TREE } from './cellNodes.js';   // COST-2: a cell's node, the directory, the node an object is told
 import { cellTakeInternal, CELL_INTERNAL_TAKE } from './cellHandover.js';   // COST-2: a node's rows handed over when the tree moves
 import { isCoarseNode } from '../../src/net/cellTree.js';   // COST-2: a coarse node is the Worker's name for an object, never a page's room
 import { staffNetFrame, staffNetClosed, staffFoesSeen, staffFoesStripped, staffReactAsk, staffReactPose, staffLeft } from './staffFeeds.js';   // STAFF-PANEL5-FEEDS: the Staff Panel's counts - network bursts, monsters, an encounter's reaction (off until their URLs are set)
@@ -1121,9 +1121,9 @@ export class Room {
     // included - and the look sits in storage under the id (its meters
     // are the instance's: AUDIT ATTACH)
     this.state.acceptWebSocket(server);
-    if (isCellRoom(key)) nodeHeard(this, request, key);   // COST-2: the node the Worker says this object is (cellNodes.js NODE_HEADER)
+    const nd = isCellRoom(key) ? nodeHeard(this, request, key) : null;   // COST-2: the node the Worker says this object is (cellNodes.js NODE_HEADER) - (b): a coarse one is the socket's cover
     const ly = isLayered(key) || isGateRoom(key) ? layerOf(request.headers.get(LAYER_HEADER)) : 0;   // SCALE5d part two: and a gate court's copy   // SCALE5d: the layer the Worker says this object is
-    const att = { key, id: null, name: null, pose: null, at: Date.now(), ...(ly ? { ly } : {}) };   // AUDIT WB A1: when it opened
+    const att = { key, id: null, name: null, pose: null, at: Date.now(), ...(ly ? { ly } : {}), ...(nd ? { nd } : {}) };   // AUDIT WB A1: when it opened
     if (hs) att.hs = 1;   // STAFF-PANEL5-HIDDEN: the seat is the hidden reserve's - its hello must be a hidden token's
     server.serializeAttachment(att);
     this._adopt(server, att);
@@ -3590,7 +3590,7 @@ export class Room {
     // AUDIT-SEATS R7: in the pose's OWN cell alone - every cell room ticked whatever pixel the pose claimed, a halo's too
     // (the client keeps a halo's `watch` for nothing - net/online.js: "the relay ticks the socket that stands there,
     // never a halo's"), so one player stood in up to four rooms each minting its k1 receipts
-    if (isCellRoom(a.key) && cellRoomOfWire(m.p.x, m.p.z) === a.key && typeof met.sub === 'string' && met.sub) await this._watchTick(ws, met.sub, m.p, !unmoved, now);
+    if (isCellRoom(a.key) && inCover(a, cellRoomOfWire(m.p.x, m.p.z)) && typeof met.sub === 'string' && met.sub) await this._watchTick(ws, met.sub, m.p, !unmoved, now);
     return;
   }
 
@@ -3927,7 +3927,7 @@ export class Room {
       // two, and every millisecond of them was an offset the client carried as the relay's clock
       // SRV-N / SLAM13 (AUDIT SLAM A5): the relay's VERSION rides it (`v`, last), so a client can tell a restarted relay from the one it was talking to, and one built against another law can say so
       const gm = streamsFoes(a.key) ? this._grantWelcome() : '';   // GRANT2: the spawn grants' mode, a cell's (GRANT4: and a world room's)
-      const rf = isCellRoom(a.key) && this._refereesPoses() ? ',"rf":1' : '';   // SCALE5b: this cell judges the poses that reach it - a halo's at their full rate
+      const rf = (isCellRoom(a.key) && this._refereesPoses() ? ',"rf":1' : '') + cellsWelcome(a);   // SCALE5b: this cell judges the poses that reach it - a halo's at their full rate; COST-2 (b): and the fine cells this socket covers (`cells`)
       const welcome = `{"t":"welcome","id":${JSON.stringify(m.id)},"peers":${JSON.stringify(roster)},"host":${JSON.stringify(host)}${ow},"world":${world ?? 'null'},"now":${Date.now()},"v":${JSON.stringify(RELAY_VERSION)}${rf}${gm}${a.ly ? `,"ly":${a.ly}` : ''}}`;   // SCALE5d: and which layer of the place this is
       if (!this._send(ws, welcome)) return;
       // AUDIT SCALE II R1-1: `_rfSaid` IS WHAT EVERY SOCKET OF THE SECOND WIRE WAS LAST TOLD - a welcome tells its own
@@ -4305,13 +4305,13 @@ export class Room {
       if (isChatRoom(a.key) || isSocialRoom(a.key) || typeof a.sub !== 'string' || !a.sub) return;
       const k = await parkKeyOf(a.sub, m.data.c);
       if (a.pk !== k) { a = { ...a, pk: k }; this._setAttach(ws, a); }   // WARDEN1: whose team this socket speaks for - the watch tells it of a throw
-      const here = isCellRoom(a.key) ? a.key : null;
+      const here = isCellRoom(a.key) ? coverOf(a) : null;   // COST-2 (b): the cells this socket covers
       const cell = m.data.a ? cellRoomOfWire(m.data.a[0], m.data.a[1]) : null;
-      if (m.data.r && cell === here) {
+      if (m.data.r && atCover(here, cell)) {
         const thrown = await this._parkStore(k, a.sub, a.id, a.name ?? '', m.data.r, now);
         if (thrown) this._parkTellOwner(thrown, ws);   // WARDEN1: away when the watch threw it - told now, as they re-say where it stood
-      } else if (here && cell !== here) await this._parkDrop(k);   // mine here is superseded: nothing parked, or it stands elsewhere
-      await this._parkRegister(k, cell, now, m.data.r && cell === here ? a.ly | 0 : undefined);   // AUDIT SCALE II R3-8: the layer it is kept in, when it is kept here
+      } else if (here && !atCover(here, cell)) await this._parkDrop(k);   // mine here is superseded: nothing parked, or it stands elsewhere
+      await this._parkRegister(k, cell, now, m.data.r && atCover(here, cell) ? a.ly | 0 : undefined);   // AUDIT SCALE II R3-8: the layer it is kept in, when it is kept here
       return;
     }
     if (m.t === 'caravan') {
@@ -7860,7 +7860,7 @@ export class Room {
     if (!(m.bv >= SERPENT_BRAIN_MIN)) { if (was) was[1].players[a.sub].stale = true; no('reload'); return; }
     if (was?.[1].players[a.sub]?.stale) delete was[1].players[a.sub].stale;
     if (m.d !== t.day || !serpentHolds(t.day, now)) { if (!f?.rc?.[a.sub]) no('the serpent is gone'); return; }
-    if (cellRoomOfWire(m.sx, m.sz) !== a.key) { this._junk(ws); return; }
+    if (!inCover(a, cellRoomOfWire(m.sx, m.sz))) { this._junk(ws); return; }   // COST-2 (b): in a cell this socket covers
     if (!a.pose || a.pose.dd) return;
     const site = f ?? { sx: m.sx, sz: m.sz };
     const at = this._serpentFrameOf(site, a.pose), off = Math.hypot(at.x, at.z);
@@ -8517,7 +8517,7 @@ export class Room {
    *  (the frame must be the cell's own pixel's - anywhere else junk), kept until the hub answers - the first finder's,
    *  while it is owed. */
   async _sdFoundWord(ws, a, m, now) {
-    if (worldRoom(m.px, m.py) !== a.key) { this._junk(ws); return; }
+    if (!inCover(a, worldRoom(m.px, m.py))) { this._junk(ws); return; }   // COST-2 (b): in a cell this socket covers
     if (!a.pose || !sdNearSite(m, a.pose) || typeof a.sub !== 'string' || !a.sub) return;   // not at its door: nothing kept, nothing said
     // AUDIT SD II (L7 M4): A WORD THAT MOVES NOTHING TELLS NOTHING (the rite's AUDIT WB12d R4 law) - a slot this cell has
     // told and the hub answered is never told again, and while the hub's last answer is fresh a find for any slot but the
@@ -10047,7 +10047,7 @@ export class Room {
    * the cleanse, its receipt again (a reconnect that missed it).
    */
   async _raidWord(ws, a, m, now) {
-    if (worldRoom(m.px, m.py) !== a.key) { this._junk(ws); return; }
+    if (!inCover(a, worldRoom(m.px, m.py))) { this._junk(ws); return; }   // COST-2 (b): in a cell this socket covers
     if (!raidWordSane(m)) { this._junk(ws); return; }   // AUDIT RAID R6: no honest machine's word
     // AUDIT SCALE II R3-3: NO RAID LEDGER IN A LAYER. A raid's ledger is its town cell's object's, and a layer is another
     // object for the same cell (SCALE5d): it made a ledger of its own for the same raid - its own count, its own cleanse,
@@ -10145,7 +10145,7 @@ export class Room {
    *  - a word at one never stands in another's way, and the hub chooses by the gate's agreed site. Honest limit (bible
    *  section 19 D): a word is its player's own - the cell checks where and when it was said, not each blow. */
   async _riteWord(ws, a, m, now) {
-    if (worldRoom(m.px, m.py) !== a.key) { this._junk(ws); return; }
+    if (!inCover(a, worldRoom(m.px, m.py))) { this._junk(ws); return; }   // COST-2 (b): in a cell this socket covers
     if (!isGateDay(m.d) || !riteHeard(m.d, now)) return;   // outside its window: nothing read, kept or said
     // AUDIT SCALE II R3-3 (c): NO CIRCLE IN A LAYER (the serpent's and the raid's law). A circle's ledger is its cell
     // object's, and a layer is another object for the same cell (SCALE5d): it kept a circle of its own and told the hub
@@ -10497,7 +10497,7 @@ export class Room {
    * that earned it is answered with its receipt again (a reconnect that missed it).
    */
   async _starWord(ws, a, m, now) {
-    if (worldRoom(m.px, m.py) !== a.key) { this._junk(ws); return; }
+    if (!inCover(a, worldRoom(m.px, m.py))) { this._junk(ws); return; }   // COST-2 (b): in a cell this socket covers
     // NO STAR IN A LAYER (AUDIT SCALE II R3-3, the raid's and the rite's law): a layer is another object for the same cell,
     // and a ledger of its own would be a second fight for one star - its own waves, its own hold, its own receipts. An
     // honest client says its word there, so nobody is struck
@@ -10783,7 +10783,7 @@ export class Room {
       if (!o.ok || o.claims.wr !== d.r) { this._junk(ws); return; }
       const c = o.claims;
       // INT9 (AUDIT): THE ORDER NAMES ITS ROOM, and no other keeps it - one fall's order was laid in two
-      if (c.wm !== a.key) { this._junk(ws); return; }
+      if (!inCover(a, c.wm)) { this._junk(ws); return; }   // COST-2 (b): a room this socket covers
       let rec = map.get(d.r);
       // INT9: vouched for already - a second carrier's deposit (the fallen's tab and its killer's seizure, one fall) is
       // nothing, and so is one on a TOMBSTONE (AUDIT INT9: an emptied remains was let go, and its order laid it again)
@@ -11478,7 +11478,7 @@ export class Room {
    *  dungeon's pose is its own scene's, no map's). */
   _grantHere(ws, a, id) {
     const p = a.pose;
-    if (isWorldRoom(a.key) || (p && cellRoomOfWire(p.x, p.z) === a.key)) return true;
+    if (isWorldRoom(a.key) || (p && inCover(a, cellRoomOfWire(p.x, p.z)))) return true;   // COST-2 (b): a cell this socket covers
     this._send(ws, JSON.stringify({ t: 'grant', k: 'no', id, r: 'cell' }));
     return false;
   }
@@ -11541,7 +11541,7 @@ export class Room {
       // AUDIT GRANT A8: one this cell has forgotten (a relay deployed, the object evicted) - mine, this cell's, alive,
       // and this relay's own signature: signed again and counted live, so its foes do not lose their grant
       key ??= await this._receiptKeyOf();
-      if (gr.o === a.id && gr.a === (a.sub ?? '') && gr.q === a.key && now <= gr.x && await grantSignedHere(gr, key, { subtle: crypto.subtle })) grs.push(await this._grantSign(G, grantRenewed(gr, now), gr.h >= 0 ? 0 : gr.n));
+      if (gr.o === a.id && gr.a === (a.sub ?? '') && inCover(a, gr.q) && now <= gr.x && await grantSignedHere(gr, key, { subtle: crypto.subtle })) grs.push(await this._grantSign(G, grantRenewed(gr, now), gr.h >= 0 ? 0 : gr.n));
     }
     this._send(ws, JSON.stringify({ t: 'grant', k: 'renew', id: ask.id, grs }));
   }
@@ -11564,7 +11564,7 @@ export class Room {
     const key = await this._receiptKeyOf(), env = { subtle: crypto.subtle };
     const grs = [];
     for (const gr of ask.grs) {
-      const ok = isCellRoom(a.key) && isCellRoom(gr.q) && gr.o === a.id && gr.a === (a.sub ?? '') && gr.q !== a.key && now <= gr.x && await grantSignedHere(gr, key, env);   // GRANT4: cell to cell - a room's grants stay its own
+      const ok = isCellRoom(a.key) && isCellRoom(gr.q) && gr.o === a.id && gr.a === (a.sub ?? '') && !inCover(a, gr.q) && now <= gr.x && await grantSignedHere(gr, key, env);   // GRANT4: cell to cell - a room's grants stay its own
       grs.push(ok ? await this._grantSign(G, grantCarried(gr, a.key, this._grantNext(G), now), gr.h >= 0 ? 0 : gr.n) : null);
     }
     this._send(ws, JSON.stringify({ t: 'grant', k: 'carry', id: ask.id, grs }));
@@ -11581,7 +11581,7 @@ export class Room {
     for (const { gr, i, to } of ask.hs) {
       const heir = [...this._all()].find(([, b]) => b.id === to)?.[0] ?? null;
       const live = G.live.get(gr.g);
-      const ok = !!heir && !!live && live.gr.o === a.id && gr.o === a.id && gr.q === a.key && now <= gr.x && !live.handed?.has(i) && await grantSignedHere(gr, key, env);
+      const ok = !!heir && !!live && live.gr.o === a.id && gr.o === a.id && inCover(a, gr.q) && now <= gr.x && !live.handed?.has(i) && await grantSignedHere(gr, key, env);
       if (!ok) { refused = true; continue; }
       (live.handed ??= new Set()).add(i);
       const out = await this._grantSign(G, grantHanded(gr, i, to, this._grantNext(G), now), 0);
@@ -11645,7 +11645,7 @@ export class Room {
   }
   async _owWord(ws, a, m, now) {
     if (m.k === 'gr') return this._owGraves(ws, a, m, now);   // GRAVE-PARTY: the graves' own law
-    const junk = m.k === 'sp' ? !m.ids.every((id) => owIdInCell(id, a.key)) : !m.rows.every((r) => owRowSane(r) && owRowInCell(r, a.key));
+    const junk = m.k === 'sp' ? !m.ids.every((id) => owIdInCell(id, coverOf(a))) : !m.rows.every((r) => owRowSane(r) && owRowInCell(r, coverOf(a)));
     if (junk) { this._junk(ws); return; }
     // AUDIT SCALE II R3-3 (c): A LAYER KEEPS NO LEDGER - every band and raider spent, and every spawned dungeon's clock,
     // is the place's (SCALE5d: a layer is another object for the same cell, and its ledger was one of its own, so a band
@@ -11688,7 +11688,7 @@ export class Room {
    */
   async _owGraves(ws, a, m, now) {
     if (!this._spend(ws, now, owGraveGate, 'owGrBucket', 'owGrDrops', 'too many grave words')) return;
-    if (!m.rows.every((r) => owRowInCell(r, a.key))) { this._junk(ws); return; }
+    if (!m.rows.every((r) => owRowInCell(r, coverOf(a)))) { this._junk(ws); return; }
     if (typeof a.sub !== 'string' || !a.sub) return;
     const led = await this._owLedger(now);
     const taken = owFoldGraves(led, m.rows, a.sub, sharedClassicMinutes(now), a.name);

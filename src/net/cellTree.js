@@ -23,7 +23,7 @@ export const CELL_LEVEL_MAX = 4;
 export const nodeSize = (L) => WORLD_CELL * 2 ** L;
 const NODE_RE = /^cell:([1-4]):(-?\d{1,3}),(-?\d{1,3})$/;
 /** The level-`L` node (`nx`, `ny`)'s key - an L0 node is the fine cell's own `world:` key. */
-export const nodeKey = (/** @type {number} */ L, /** @type {number} */ nx, /** @type {number} */ ny) => (L === 0 ? `world:${nx},${ny}` : `cell:${L}:${nx},${ny}`);
+export const cellNodeKey = (/** @type {number} */ L, /** @type {number} */ nx, /** @type {number} */ ny) => (L === 0 ? `world:${nx},${ny}` : `cell:${L}:${nx},${ny}`);
 /** A node key read back - `{L, nx, ny}` - or null for a key that is no node. @param {unknown} key */
 export function parseNode(key) {
   const c = cellOfRoom(key);
@@ -36,9 +36,9 @@ export const isNodeRoom = (key) => parseNode(key) != null;
 /** Is `key` a COARSE node (L1 and up) - a name only the Worker gives an object, never a page's room? @param {unknown} key */
 export const isCoarseNode = (key) => NODE_RE.test(String(key ?? ''));
 /** A node's level, or null for a key that is no node. @param {unknown} key */
-export const levelOf = (key) => parseNode(key)?.L ?? null;
+export const nodeLevelOf = (key) => parseNode(key)?.L ?? null;
 /** The level-`L` node holding fine cell (`cx`, `cy`). @param {number} L @param {number} cx @param {number} cy */
-export const nodeAt = (L, cx, cy) => nodeKey(L, Math.floor(cx / 2 ** L), Math.floor(cy / 2 ** L));
+export const nodeAt = (L, cx, cy) => cellNodeKey(L, Math.floor(cx / 2 ** L), Math.floor(cy / 2 ** L));
 /** A node's square, map pixels, `[x0, x1) x [y0, y1)`, or null. @param {unknown} key */
 export function nodeBounds(key) {
   const n = parseNode(key);
@@ -48,16 +48,44 @@ export function nodeBounds(key) {
 }
 /** Does node `key` hold map pixel (`px`, `py`)? @param {unknown} key @param {number} px @param {number} py */
 export const nodeHolds = (key, px, py) => { const b = nodeBounds(key); return !!b && Number.isFinite(px) && Number.isFinite(py) && px >= b.x0 && px < b.x1 && py >= b.y0 && py < b.y1; };
+/** Does node `node` hold fine cell `cellKey`? An L0 node holds its own cell alone. @param {unknown} node @param {unknown} cellKey */
+export function nodeHoldsCell(node, cellKey) {
+  const n = parseNode(node), c = cellOfRoom(cellKey);
+  return !!n && !!c && nodeAt(n.L, c[0], c[1]) === node;
+}
+/**
+ * COST-2 (b): THE ONE LAW OF WHAT A SOCKET COVERS, both ends' - a socket's COVER is its node (a coarse node's key) or,
+ * with none, its own room's key. A cell-scoped word, a grant's `q`, a park's anchor stands in that socket's room when its
+ * cell is covered: the cover itself, or a fine cell its coarse node holds. Under L0 every cover is a fine cell, which
+ * covers itself alone - today's law exactly. @param {unknown} cover @param {unknown} key
+ */
+export const coversCell = (cover, key) => typeof key === 'string' && (key === cover || (isCoarseNode(cover) && nodeHoldsCell(cover, key)));
+/** A node's square in FINE CELLS, `[x0, y0, x1, y1]` half-open - what a welcome tells a page its socket covers. @param {unknown} key */
+export function cellsOfNode(key) {
+  const n = parseNode(key);
+  if (!n) return null;
+  const s = 2 ** n.L;
+  return [n.nx * s, n.ny * s, (n.nx + 1) * s, (n.ny + 1) * s];
+}
+/** The node a welcome's `cells` name - an aligned square of 1 to 16 cells a side - or null for anything else. @param {unknown} cells */
+export function nodeOfCells(cells) {
+  if (!Array.isArray(cells) || cells.length !== 4 || !cells.every((v) => Number.isInteger(v))) return null;
+  const [x0, y0, x1, y1] = /** @type {number[]} */ (cells);
+  const s = x1 - x0, L = Math.log2(s);
+  if (y1 - y0 !== s || !Number.isInteger(L) || L < 0 || L > CELL_LEVEL_MAX || x0 % s !== 0 || y0 % s !== 0) return null;
+  const key = cellNodeKey(L, x0 / s, y0 / s);
+  return parseNode(key) ? key : null;
+}
 /** A node's parent (null at the top). @param {unknown} key */
 export function parentNode(key) {
   const n = parseNode(key);
-  return n && n.L < CELL_LEVEL_MAX ? nodeKey(n.L + 1, Math.floor(n.nx / 2), Math.floor(n.ny / 2)) : null;
+  return n && n.L < CELL_LEVEL_MAX ? cellNodeKey(n.L + 1, Math.floor(n.nx / 2), Math.floor(n.ny / 2)) : null;
 }
 /** A node's four children, row by row (none at L0). @param {unknown} key @returns {string[]} */
 export function childNodes(key) {
   const n = parseNode(key);
   if (!n || n.L === 0) return [];
-  return [[0, 0], [1, 0], [0, 1], [1, 1]].map(([dx, dy]) => nodeKey(n.L - 1, n.nx * 2 + dx, n.ny * 2 + dy));
+  return [[0, 0], [1, 0], [0, 1], [1, 1]].map(([dx, dy]) => cellNodeKey(n.L - 1, n.nx * 2 + dx, n.ny * 2 + dy));
 }
 
 /** Today's partition: every node split down to L0, so a fine key is its own node. */
@@ -82,7 +110,7 @@ export function readTree(raw) {
   const list = (/** @type {unknown} */ v, /** @type {(L: number) => boolean} */ side) => {
     if (!Array.isArray(v) || v.length > TREE_NODES_MAX) return null;
     const out = new Set();
-    for (const k of v) { const L = isCoarseNode(k) ? levelOf(k) : null; if (L == null || !side(L) || out.has(k)) return null; out.add(k); }
+    for (const k of v) { const L = isCoarseNode(k) ? nodeLevelOf(k) : null; if (L == null || !side(L) || out.has(k)) return null; out.add(k); }
     return Object.freeze([...out]);
   };
   const split = list(t.split ?? [], (L) => L <= base), joined = list(t.joined ?? [], (L) => L > base);
@@ -91,7 +119,7 @@ export function readTree(raw) {
 
 /** Is node `key` split in `tree`? An L0 node never is. @param {{base: number, split: readonly string[], joined: readonly string[]}} tree @param {string} key */
 export function isSplit(tree, key) {
-  const L = levelOf(key);
+  const L = nodeLevelOf(key);
   if (!L) return false;
   const s = setsOf(tree);
   return L > tree.base ? !s.joined.has(key) : s.split.has(key);
@@ -102,7 +130,7 @@ export function isSplit(tree, key) {
  * split - or null for a key that is no fine cell. Under L0_TREE it is the fine key itself.
  * @param {{base: number, split: readonly string[], joined: readonly string[]}} tree @param {unknown} fineKey
  */
-export function nodeOf(tree, fineKey) {
+export function leafOf(tree, fineKey) {
   const c = cellOfRoom(fineKey);
   if (!c) return null;
   let L = CELL_LEVEL_MAX;

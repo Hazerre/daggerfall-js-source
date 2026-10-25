@@ -126,6 +126,14 @@ test('COST-2 A HALO IN THE PAGE\'S OWN NODE IS CLOSED BY THE WORKER: a halo nami
   assert.equal(await reach(worker.fetch(upgrade('world:28,9?of=world:25,9'), { ROOMS: R.ROOMS })), 200, 'a halo of the next node walks');
   assert.equal(R.asks.at(-1).name, 'cell:2:7,2');
   assert.equal(await reach(worker.fetch(upgrade('world:24,9?of=town:x'), { ROOMS: R.ROOMS })), 200, 'an `of` that is no cell is no halo of one');
+  // COST-2 (b): `of` names every room the page holds - a second halo toward a node a halo of the page already holds is
+  // that halo's room, never a second socket of one peer in one object
+  assert.equal(await reach(worker.fetch(upgrade(`world:29,9?of=${encodeURIComponent('world:25,9;world:28,9')}`), { ROOMS: R.ROOMS })), 101, 'the next node already held by a halo');
+  assert.equal(closes.length, 2);
+  assert.equal(await reach(worker.fetch(upgrade(`world:32,9?of=${encodeURIComponent('world:25,9;world:28,9')}`), { ROOMS: R.ROOMS })), 200, 'a node none of them is in walks');
+  const many = Array.from({ length: 12 }, (_, i) => `world:${60 + i},0`).concat('world:25,9').join(';');
+  assert.equal(await reach(worker.fetch(upgrade(`world:24,9?of=${encodeURIComponent(many)}`), { ROOMS: R.ROOMS })), 200, 'no more than HALO_OF_MAX rooms read');
+  closes.length = 1;
   cellTreeCache.reset();
   const L0 = relay();
   assert.equal(await reach(worker.fetch(upgrade('world:24,9?of=world:25,9'), { ROOMS: L0.ROOMS })), 200, 'at L0 the neighbour is its own object');

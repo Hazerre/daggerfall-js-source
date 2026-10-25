@@ -13,8 +13,8 @@
 // A failed ask is not repeated for CELL_TREE_RETRY_MS, so a directory down costs one deadline an isolate, not one a page.
 //
 // Here, not in index.js: the entrypoint's every named export is read as an entrypoint (relayScale.js's law).
-import { readTree, L0_TREE, nodeOf, isNodeRoom, levelOf, nodeAt } from '../../src/net/cellTree.js';
-import { isCellRoom, cellOfRoom, layerOf, CLOSE_SAME_ROOM, HALO_OF_PARAM } from './relay.js';
+import { readTree, L0_TREE, leafOf, isNodeRoom, nodeLevelOf, nodeAt, coversCell, cellsOfNode } from '../../src/net/cellTree.js';
+import { isCellRoom, cellOfRoom, layerOf, CLOSE_SAME_ROOM, HALO_OF_PARAM, HALO_OF_MAX } from './relay.js';
 import { layerWalk, ROOM_CALL_MS } from './relayScale.js';
 
 /** The directory's object - a name wire.js roomOf can never give, so no page reaches it. */
@@ -56,7 +56,7 @@ export async function cellTreeOf(env, now = Date.now()) {
 }
 
 /** The node a fine cell's key is in under `tree` - the key itself with no tree. @param {any} tree @param {string} key */
-export const cellNodeOf = (tree, key) => (tree && nodeOf(tree, key)) || key;
+export const cellNodeOf = (tree, key) => (tree && leafOf(tree, key)) || key;
 
 /** A socket the Worker opens and closes at once, CLOSE_SAME_ROOM - the page's halo is its own room. */
 export function sameRoomAnswer() {
@@ -75,8 +75,9 @@ export function sameRoomAnswer() {
 export async function cellDoor(env, key, url, request) {
   const tree = await cellTreeOf(env);
   const node = cellNodeOf(tree, key);
-  const of = url.searchParams.get(HALO_OF_PARAM);
-  if (of && of !== key && isCellRoom(of) && cellNodeOf(tree, of) === node) return sameRoomAnswer();
+  // the rooms the page holds already (`?of=`, its own first) - a halo whose node one of them is in is that room's object
+  const held = String(url.searchParams.get(HALO_OF_PARAM) ?? '').split(';').slice(0, HALO_OF_MAX).filter((k) => k !== key && isCellRoom(k));
+  if (held.some((k) => cellNodeOf(tree, k) === node)) return sameRoomAnswer();
   const headers = { ...Object.fromEntries(request.headers), [NODE_HEADER]: node };   // a Headers lower-cases its names, as NODE_HEADER is
   return layerWalk(env.ROOMS, node, new Request(request, { headers }), layerOf(url.searchParams.get('ly')));
 }
@@ -89,15 +90,33 @@ export async function cellTreeInternal(room) {
 }
 
 /** An object told its node (NODE_HEADER) for a socket of fine cell `key` - kept when it names a node that holds that
- *  cell, so a header that does not fit is never believed. @param {any} room @param {Request} request @param {string} key */
+ *  cell, so a header that does not fit is never believed. Answers the node when it is COARSE (the socket's attachment
+ *  keeps it, `nd`, so a woken object still knows what each socket covers), else null.
+ *  @param {any} room @param {Request} request @param {string} key */
 export function nodeHeard(room, request, key) {
   const n = request.headers.get(NODE_HEADER);
   const c = cellOfRoom(key);
-  if (!c || !n || !isNodeRoom(n)) return;
-  const L = /** @type {number} */ (levelOf(n));
-  if (nodeAt(L, c[0], c[1]) === n) room._node = n;
+  if (!c || !n || !isNodeRoom(n)) return null;
+  const L = /** @type {number} */ (nodeLevelOf(n));
+  if (nodeAt(L, c[0], c[1]) !== n) return null;
+  room._node = n;
+  return L > 0 ? n : null;
 }
 
 /** The node level a room's metrics point carries (relayScale.js RoomMetrics blob11): its node's, or '' for a room that
  *  was never told one this instance life (no cell, or woken by its alarm alone). @param {any} room */
-export const cellLevelOf = (room) => (room._node ? String(levelOf(room._node)) : '');
+export const cellLevelOf = (room) => (room._node ? String(nodeLevelOf(room._node)) : '');
+
+/** COST-2 (b): A SOCKET'S COVER - its coarse node (`nd`, kept on its attachment) or its own room's key. Every cell-scoped
+ *  law reads it (net/cellTree.js coversCell): a word whose pixel's cell, a grant whose `q`, a park whose anchor, a
+ *  ledger row whose pixel, stands in the room when the cover covers it. At L0 the cover is the room itself.
+ *  @param {any} a a socket's attachment */
+export const coverOf = (a) => a?.nd ?? a?.key;
+/** Does socket `a`'s cover cover cell `cell`? @param {any} a @param {unknown} cell */
+export const inCover = (a, cell) => coversCell(coverOf(a), cell);
+/** A park word's law of its room (index.js, the `park` arm): `cover` a cell socket's cover, null for a place that is no
+ *  cell - a cell holds a team whose anchor's cell it covers, a place one that names no cell. @param {unknown} cover @param {unknown} cell */
+export const atCover = (cover, cell) => (cover == null ? cell == null : coversCell(cover, cell));
+/** A cell's welcome's `cells` field - the fine cells the socket covers, `[x0, y0, x1, y1]` - for a cell's socket, '' for
+ *  any other room. @param {any} a */
+export const cellsWelcome = (a) => (isCellRoom(a?.key) ? `,"cells":${JSON.stringify(cellsOfNode(coverOf(a)))}` : '');
