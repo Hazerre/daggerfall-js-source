@@ -123,6 +123,7 @@ account.refusal.townUnwalked,"Bir kasabayı bildirmeden önce sokaklarında yür
 account.refusal.townsClosed,"Kasabaların ekonomisi şimdilik kapalı."
 account.refusal.townsNeedAccount,"Kasabaları ve ziyaretlerini yalnızca kayıtlı hesaplar bildirebilir."
 account.refusal.townsRate,"Bu saat içinde çok fazla kasaba bildirdiniz. Daha sonra tekrar deneyin."
+account.refusal.yardTownFull,"Bu kasabanın avlularında toplam {max} parça bulunabilir, bir kasabanın alabileceği en fazla bu. Başka bir parça koymak için kendi parçalarından birini kaldır."
 chair.bench,"Bank"
 chair.chair,"Sandalye"
 chair.taken,"Orada zaten biri oturuyor."

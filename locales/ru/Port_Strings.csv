@@ -712,6 +712,7 @@ account.refusal.writShort,"Этому заказу теперь нужно ме�
 account.refusal.writTaken,"Этот заказ уже выполнил кто-то другой."
 account.refusal.writsClosed,"Заказы гильдий и личные заказы для этой учётной записи закрыты."
 account.refusal.yardCap,"Во дворе может быть не больше {max} предметов. Уберите один, чтобы поставить другой."
+account.refusal.yardTownFull,"Во дворах этого города может быть всего {max} предметов, больше город не вмещает. Уберите один из своих, чтобы поставить другой."
 account.wear.aura,"Аура"
 account.wear.glyphHidden,"Скрыт — нажмите, чтобы показать"
 account.wear.glyphShown,"Показан — нажмите, чтобы скрыть"

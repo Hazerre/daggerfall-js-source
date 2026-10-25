@@ -712,6 +712,7 @@ account.refusal.writShort,"Тази заповед вече иска по-мал
 account.refusal.writTaken,"Някой друг вече изпълни тази заповед."
 account.refusal.writsClosed,"Заповедите и поръчките на гилдиите не са отворени за този акаунт."
 account.refusal.yardCap,"Дворът побира най-много {max} предмета. Премахнете един, за да поставите друг."
+account.refusal.yardTownFull,"Дворовете на този град побират общо {max} предмета – повече не може. Премахнете един от своите, за да поставите друг."
 account.wear.aura,"Аура"
 account.wear.glyphHidden,"Скрит - натиснете, за да го покажете"
 account.wear.glyphShown,"Показва се - натиснете, за да го скриете"

@@ -712,6 +712,7 @@ account.refusal.writShort,"Surat perintah itu sekarang membutuhkan lebih sedikit
 account.refusal.writTaken,"Orang lain sudah memenuhi surat perintah itu."
 account.refusal.writsClosed,"Surat perintah dan komisi serikat tidak terbuka untuk akun ini."
 account.refusal.yardCap,"Satu halaman memuat paling banyak {max} benda. Pindahkan satu untuk menaruh yang lain."
+account.refusal.yardTownFull,"Halaman-halaman di kota ini memuat {max} benda secara keseluruhan, batas sebuah kota. Pindahkan salah satu milikmu untuk menaruh yang lain."
 account.wear.aura,"Aura"
 account.wear.glyphHidden,"Tersembunyi - tekan untuk menampilkannya"
 account.wear.glyphShown,"Ditampilkan - tekan untuk menyembunyikannya"

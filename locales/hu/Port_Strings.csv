@@ -589,6 +589,7 @@ account.refusal.writShort,"Az a megbízólevél most már ennél kevesebbet kér
 account.refusal.writTaken,"Azt a megbízólevelet már valaki más teljesítette."
 account.refusal.writsClosed,"A céhes megbízólevelek és megrendelések nem érhetők el ennek a fióknak."
 account.refusal.yardCap,"Egy udvaron legfeljebb {max} darab lehet. Végy el egyet, hogy újat helyezhess el."
+account.refusal.yardTownFull,"Ennek a városnak az udvarain összesen {max} darab lehet, ennél több nem fér el. Végy el egyet a sajátjaid közül, hogy újat helyezhess el."
 account.wear.aura,"Aura"
 account.wear.glyphHidden,"Rejtve – kattints a megjelenítéshez"
 account.wear.glyphShown,"Látható – kattints az elrejtéshez"
