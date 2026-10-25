@@ -1358,7 +1358,7 @@ async function createWindow({ onShown = null } = {}) {
   // DA13: a version on trial counts this boot (gameStore.bootStarting); a version readied while a page ran is switched
   // to at this page's next document load (playReadyGame), never under it; and one on trial whose page fails to load, or
   // whose renderer dies before the game came up, is given up at once - the one before it plays again (rollback).
-  // Only for a navigation the fence lets through (lib/readyGameSwitch.cjs says why)
+  // Only for a navigation that loads the game's own pages (lib/readyGameSwitch.cjs says why)
   win.webContents.on('did-start-navigation', (d) => {
     if (switchesReadyGame(d)) playReadyGame();
   });

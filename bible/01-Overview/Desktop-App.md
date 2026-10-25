@@ -866,10 +866,10 @@ closed or crashed first) at the next launch. A new install starts over: the inst
 "Updated to v...", and nothing installs or restarts. With the game running, it is kept and told on the HUD, and plays
 from the page's next document load: File > Restart to Update reloads onto it now (the game's own Leave/Stay asks first
 where progress is at risk), and the next launch plays it otherwise. The installer runs only for a release that changes
-the shell itself. Only a navigation to the game's own pages (`dagger://game/`) switches it (`app/lib/readyGameSwitch.cjs`):
-Electron raises `did-start-navigation` before `will-navigate`, so a navigation the fence then cancelled used to switch
-the version under the page still running and count its trial with no boot to prove it - and the next launch rolled
-back the version the HUD had called ready.
+the shell itself. Only a navigation that loads the game's own pages (`dagger://game/`) switches it
+(`app/lib/readyGameSwitch.cjs`): Electron raises `did-start-navigation` before `will-navigate`, so a navigation the
+fence then cancelled used to switch the version under the page still running and count its trial with no boot to prove
+it - and the next launch rolled back the version the HUD had called ready.
 
 **Every failure is the installer's.** A manifest that does not read, a pack that is not the manifest's, a range, a hash,
 the disk, a boot that never came up: the version is remembered (`failed`) and that release goes the installer's path at
@@ -909,9 +909,9 @@ Windows Defender reading the new files.
 
 **Pinned** in `test/tooling/da13_gamechannel.test.js` (15: the per-file pack from the real producer, the manifest's laws, the
 plan, the ranges, the range answer, a version staged from ranges of the real pack byte for byte, a flipped byte and a
-200 refused with nothing staged, the trial and its rollback, a version that no longer reads, which navigations switch, the route,
-the launcher, the shell's wiring and the pipeline's, the release script's commands run);
-`tools/mutants/da13.json`: 52, all dead.
+200 refused with nothing staged, the trial and its rollback, a version that no longer reads, which navigations switch,
+the route, the launcher, the shell's wiring and the pipeline's, the release script's commands run);
+`tools/mutants/da13.json`: 54, all dead.
 Pins moved in `test/tooling/updatecheck.test.js` (the channel's one door, the fourth fetch), `test/tooling/autoupdate.test.js` (the
 menu's check), `test/tooling/da10_launcher.test.js` and `test/tooling/da12_directplay.test.js` (the game's version kept as played;
 `--play` asks the channel first), `test/tooling/da8_launcher.test.js` (the HUD's one sentence: an update that is here plays
