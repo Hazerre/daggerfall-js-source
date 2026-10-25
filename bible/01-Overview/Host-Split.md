@@ -601,3 +601,15 @@ SEA-DROPS (`07-Rendering/Performance-Priority.md`) took one more: the boats' col
 collider its posed buckets moved (`posesMoved`) once it has carried them - the sync is the one place that moves them, and
 `player/collider.js` holds the rest. 36,296 -> 36,297, the reason beside it; 36,295 at the merge with main, whose own host had come down to 36,282.
 
+
+## VENDOR-LOST's move - the home traders out of bootWorld (FIELD BUGS 2026-10-25)
+
+VENDOR-LOST (`01-Overview/bugs/Field-Bugs-2026-10-25g.md`) had a trader's stall settle the market book as it opens: two
+logical lines of wiring in the stall's host object, inside `bootWorld`. The block they belonged to - the home traders'
+thirteen members (the stall `openHomeVendorWindow`, the board's Vendors tab `vendorBoardHost`, `vendorBuy`, `vendorTake`,
+`vendorPut`, `vendorReachable` and the Vendor page's helpers) - wrote nothing of the host's and was used in three places,
+so it moved verbatim instead, by `tools/hostMove.mjs`, to `src/scenes/vendorHost.js` (`createVendorHost(host)`), and the
+wiring lives there. `bootWorld` 36,389 (main's, at the merge) -> 36,251 logical lines, its ceiling down to what stands. No
+pin read the moved code's text; the stall's settle is held by a test that builds the vendor host and opens a stall
+(`fb1025_vendorlost.test.js`). The tool wrote Windows absolute paths into the module's imports on this machine; they were
+set back to the host's relative ones by hand.
