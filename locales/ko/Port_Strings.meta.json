@@ -1394,6 +1394,11 @@
   "tr": "acbf1f5427f1",
   "by": "claude-in-session"
  },
+ "account.refusal.embers": {
+  "en": "e9678673977b",
+  "tr": "52d2b29298e5",
+  "by": "claude-in-session"
+ },
  "account.refusal.escrowCollected": {
   "en": "1667bb71b802",
   "tr": "74b2f3424f69",
@@ -2812,6 +2817,11 @@
  "account.refusal.profDye": {
   "en": "4888ddf74668",
   "tr": "3d4090db6b9e",
+  "by": "claude-in-session"
+ },
+ "account.refusal.profEmbers": {
+  "en": "d2777e4fd91c",
+  "tr": "be29f69e08b5",
   "by": "claude-in-session"
  },
  "account.refusal.profFishCap": {
@@ -22644,6 +22654,71 @@
   "tr": "ac608560cefb",
   "by": "claude-in-session"
  },
+ "ore.tip.both": {
+  "en": "2eb30f4d244b",
+  "tr": "2eb30f4d244b",
+  "by": "claude-in-session"
+ },
+ "ore.tip.deepOnly": {
+  "en": "806db9dd9302",
+  "tr": "65d1a9039e34",
+  "by": "claude-in-session"
+ },
+ "ore.tip.deepWitnessed": {
+  "en": "1437a2ed3056",
+  "tr": "e772d2197644",
+  "by": "claude-in-session"
+ },
+ "ore.tip.dungeons": {
+  "en": "9a59119e6602",
+  "tr": "5a741493e771",
+  "by": "claude-in-session"
+ },
+ "ore.tip.none": {
+  "en": "beffa700b3ee",
+  "tr": "52a818857322",
+  "by": "claude-in-session"
+ },
+ "ore.tip.notYet": {
+  "en": "835972d271b4",
+  "tr": "354ad190c4c4",
+  "by": "claude-in-session"
+ },
+ "ore.tip.onlyWitnessed": {
+  "en": "0665b170bf06",
+  "tr": "b82093cbd48a",
+  "by": "claude-in-session"
+ },
+ "ore.tip.own": {
+  "en": "d67e12d5850d",
+  "tr": "05ac814be194",
+  "by": "claude-in-session"
+ },
+ "ore.tip.rule": {
+  "en": "3142ad83a3f4",
+  "tr": "e65fc6ce2a64",
+  "by": "claude-in-session"
+ },
+ "ore.tip.thisLand": {
+  "en": "8ba519859ad8",
+  "tr": "93b2c495a47c",
+  "by": "claude-in-session"
+ },
+ "ore.tip.title": {
+  "en": "2269e12fa9d9",
+  "tr": "8fd5b6104f04",
+  "by": "claude-in-session"
+ },
+ "ore.tip.veins": {
+  "en": "8b2436a6546c",
+  "tr": "6977c46e1aec",
+  "by": "claude-in-session"
+ },
+ "ore.tip.witnessed": {
+  "en": "d7385ac3848d",
+  "tr": "943df87c7a80",
+  "by": "claude-in-session"
+ },
  "passage.ask": {
   "en": "28def7dd7c23",
   "tr": "bcf406577644",
@@ -26324,6 +26399,11 @@
   "tr": "d57dd43a395e",
   "by": "claude-in-session"
  },
+ "prof.page.forge.daedric": {
+  "en": "403a1fe356fa",
+  "tr": "c1274bfe8e70",
+  "by": "claude-in-session"
+ },
  "prof.page.forge.home": {
   "en": "b081623e140e",
   "tr": "85973756b08c",
@@ -26410,8 +26490,8 @@
   "by": "claude-in-session"
  },
  "prof.page.how.miningGround": {
-  "en": "4a8c74ff512b",
-  "tr": "cb649abccbcb",
+  "en": "09e5de515a92",
+  "tr": "d0aeb80e9e10",
   "by": "claude-in-session"
  },
  "prof.page.how.miningSurveyor": {
@@ -27352,6 +27432,16 @@
  "prof.page.unlocks.smithing6": {
   "en": "8566e87606a9",
   "tr": "265bcf953015",
+  "by": "claude-in-session"
+ },
+ "prof.page.work.ember": {
+  "en": "4492ac548643",
+  "tr": "9c44e1223210",
+  "by": "claude-in-session"
+ },
+ "prof.page.work.emberHeld": {
+  "en": "8ff6a3c3ff02",
+  "tr": "35338bfc7011",
   "by": "claude-in-session"
  },
  "prof.page.work.input": {

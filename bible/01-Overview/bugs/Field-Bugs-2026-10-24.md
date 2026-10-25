@@ -68,7 +68,8 @@ cannot tell THIS press from another sale. So the slice as the audit left it is B
   (a save loaded meanwhile is the pack that is owed). Fenced, the embers back. A Panoply sale held, the piece - when this
   page's ask was the first (`by`, this ask or one of this page's whose answer was lost); a save loaded again after it
   was settled asks again and is told the piece was handed out. An insignia held is the account's.
-- `ACCOUNT_VERSION` acct182 (the law moved; AUDIT FB1024 lane C L1 - the slice had not moved it).
+- `ACCOUNT_VERSION` acct190 (the law moved; AUDIT FB1024 lane C L1 - the slice had not moved it; acct182 on its
+  branch, renumbered past main's acct182-acct189 at the merges, and its migration 0167 to 0174).
 
 LEFT, AND SAID. A settle whose answer is lost and whose page then closes before the next settle leaves that piece
 handed to an ask no page remembers: the sale stands on the account and the pack has paid, but no piece comes. Two lost
