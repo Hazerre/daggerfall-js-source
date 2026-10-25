@@ -22,6 +22,8 @@ import { layoutInterior, INTERIOR_MARKER, PROP_MODEL_TYPE } from '../world/inter
 import { multiply, transformPoint, identity } from '../world/mat4.js';
 import { StaticBatchBuilder, keyResolver } from '../render/staticBatch.js';   // PERF6: the room's static models as one mesh
 import { collectInteriorLights } from '../world/interior/interiorLights.js';
+import { sealDoorsToNowhere, sealedDoorText } from '../world/interior/doorsToNowhere.js';   // FIELD BUGS 2026-10-25 DOOR-VOID
+import { setMidScreenText } from '../ui/midScreenText.js';   // DOOR-VOID: the sealed door's line, where a locked door's is said
 import { applyClimate } from '../world/climateSwaps.js';
 import { remapSubMeshes, markRemapLaw } from '../world/texRemap.js';   // WM3: the one climate/dungeon remap seam; AUDIT MENU-ORDER C3: a table named by its law
 import { unityMaterialName } from '../systems/immersiveFootsteps.js';   // IF1: MaterialReader's material name, for the mod's floor walk
@@ -506,6 +508,11 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
     }
     dynamicDraws.push({ gpu, object: actions.addDoor(cpu, parent(d.matrix)) });
   }
+  // FIELD BUGS 2026-10-25 DOOR-VOID: a door with no floor behind it stays shut - asked of the room's whole shell and its
+  // models, every door registered (world/interior/doorsToNowhere.js). Wired here, as the door sounds are, so both
+  // interior hosts (worldModes' buildings and the standalone interior scene) say the line.
+  sealDoorsToNowhere(actions);
+  actions.onSealedDoor = () => setMidScreenText(sealedDoorText());
 
   // TAVERN-TABLE (world/card/cardTableProp.js, world/placedCardTable.js; the owner: "Lets instead place a specific table in
   // each inn. A new property specifficaly used for the card table"): THE TAVERN'S CARD TABLE, ITS OWN PROP, where the host

@@ -384,6 +384,7 @@ net.staffTp.exact,"Đã dịch chuyển tới vị trí chính xác của {name}
 net.staffTp.noteMismatch,"Đã dịch chuyển tới vị trí chính xác của {name} - đã phải hỏi game của họ vì ghi chú vị trí không khớp (người chơi thấy được việc này)."
 net.staffTp.noteMissing,"Đã dịch chuyển tới vị trí chính xác của {name} - đã phải hỏi game của họ vì thiếu ghi chú vị trí (người chơi thấy được việc này)."
 net.staffTp.viaNote,"Đã dịch chuyển tới {name} theo ghi chú vị trí - game của họ không được báo gì, nhưng người chơi có thể thấy bạn xuất hiện."
+player.sealedDoor,"Cánh cửa này không mở được."
 quest.mark.many,"{n, plural, other {# nhiệm vụ}}"
 quest.mark.more,"+{n} nữa"
 quest.remain.days,"{d, plural, other {# ngày}}"
