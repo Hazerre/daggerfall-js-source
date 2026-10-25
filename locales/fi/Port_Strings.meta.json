@@ -1214,6 +1214,11 @@
   "tr": "e0cb497cd0b1",
   "by": "claude-in-session"
  },
+ "account.refusal.fenced": {
+  "en": "51602667d8ce",
+  "tr": "18153c7bf003",
+  "by": "claude-in-session"
+ },
  "account.refusal.foe": {
   "en": "c8af1250deb1",
   "tr": "5dda9a0db5a1",
@@ -3027,6 +3032,11 @@
  "body.beast.noHelm": {
   "en": "48cfe45d7058",
   "tr": "304f2a26d836",
+  "by": "claude-in-session"
+ },
+ "broker.owed": {
+  "en": "d66d34978dca",
+  "tr": "35b2a4272e38",
   "by": "claude-in-session"
  },
  "chair.bench": {

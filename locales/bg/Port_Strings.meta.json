@@ -1429,6 +1429,11 @@
   "tr": "7d5aaa5dacbe",
   "by": "claude-in-session"
  },
+ "account.refusal.fenced": {
+  "en": "51602667d8ce",
+  "tr": "a7d56b92ec3c",
+  "by": "claude-in-session"
+ },
  "account.refusal.firmCharacter": {
   "en": "2889944e8c48",
   "tr": "69a275c463cd",
@@ -3747,6 +3752,11 @@
  "body.outfit.unknown": {
   "en": "e83bb293cbcc",
   "tr": "887f1cf78ce7",
+  "by": "claude-in-session"
+ },
+ "broker.owed": {
+  "en": "d66d34978dca",
+  "tr": "cc975f1bdb60",
   "by": "claude-in-session"
  },
  "cabin.refusal.enemies": {
@@ -9107,6 +9117,11 @@
  "decor.grants.noDrop": {
   "en": "0841d993a22f",
   "tr": "d87ed478a33e",
+  "by": "claude-in-session"
+ },
+ "decor.grants.saving": {
+  "en": "a7a4c5a8657e",
+  "tr": "942cdf56f067",
   "by": "claude-in-session"
  },
  "decor.grants.shut": {
