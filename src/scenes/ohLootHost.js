@@ -30,7 +30,7 @@ export function ohLootUpgrades(ohAbyss, player) {
     upgradeLoot(worn.length ? [...new Set([...items, ...worn])] : items, {   // the bonus in: UpgradeLoot walks the whole of Items after it
       remintWeapon: (ti, m) => weaponOfMaterial(ti, m),
       remintArmor: (ti, m, v) => armorOfMaterial(ti, m, v),   // ApplyArmorSettings(the player's gender and race, the variant kept)
-      isCustom: (it) => !!customItemClass(it.templateIndex),
+      isCustom: (/** @type {any} */ it) => !!customItemClass(it.templateIndex),
       isEnchanted,
     });
   };

@@ -729,7 +729,7 @@ function runEffectRound(a, target, sinks, rolls) {
     // when the player cast it (no caster is the player, hostMagic's `!caster` law). A round sink bills nobody else.
     // DUEL1: and the entry's duel tag rides along - a duel's damage over time (bundleDuel) stops at the duel's floor
     if (n > 0 && target?.isPlayer && a.caster && !a.caster.isPlayer) markPlayerHarm(a.caster);   // REVENANT-HARM: the round that may be the death is its caster's
-    if (n > 0 && sinks.hurt) sinks.hurt(n, { fromPlayer: !a.caster || !!a.caster.isPlayer, bundleDuel: !!a.bundleDuel, round: true });   // TELL1: a round, not a landing - it weighs nothing on a wind-up's poise
+    if (n > 0 && sinks.hurt) sinks.hurt(n, { fromPlayer: !a.caster || !!a.caster.isPlayer, bundleDuel: !!a.bundleDuel, round: true, element: a.element ?? null });   // TELL1: a round, not a landing - it weighs nothing on a wind-up's poise; BOSS-TRAITS: its element (a resistance reads it)
     // RVN1 (Feud-Arc.md section 12): MY round on a foe goes in its fight's ledger by its element (the provenance law
     // above - no caster is mine; a peer's stand-in, a foe's, never)
     if (n > 0 && target && !target.isPlayer && (!a.caster || (a.caster.isPlayer && !a.caster.peer))) noteFeudHarm(target, elementFeudClass(a.element), n);
@@ -1085,7 +1085,7 @@ export function applySpell(spell, casterLevel, target, sinks, rolls = Math.rando
     if (isDamageHealth(e)) {
       const n = casterDamageScaled(magnitude(e), caster?.entity, target, schoolOf(e));   // DROPS-AUDIT ELITE-SPELLS; SOFTCAP2: the target, for mentor mode; SCHOOLS3: the school it is cast in
       out.damage += n;
-      if (n > 0 && sinks.hurt) sinks.hurt(n);
+      if (n > 0 && sinks.hurt) sinks.hurt(n, { element: spell.element ?? null });   // BOSS-TRAITS: the spell's element (a resistance reads it - systems/bossTraits.js)
       // DamageHealthFromSource runs HandleAttackFromSource whatever the
       // amount - the `n > 0` guard above is the port's sink contract, not
       // DFU's, and the concealment break is NOT behind it (:162-169).

@@ -30,6 +30,7 @@
 //
 // Not a DFU member (every DFU foe is its own); the whole a Disintegrate counts here is gateBoss.js's (STAND_IN_WHOLE).
 import { applySpell, spellSways, isSoulTrapEffect, tickActiveEffects } from '../../systems/effects.js';
+import { bossStrike } from '../../systems/bossTraits.js';   // BOSS-TRAITS: the striker's half on a stand-in
 import { duelSpellOf } from '../../combat/duelCombat.js';
 import { reportPlayerAttack } from '../../combat/formulas.js';
 import { tellSpellLanded } from '../../systems/spell/spellPower.js';
@@ -155,7 +156,8 @@ export function createStandInSpell(host) {
    *  kept when the claim went - a spell its ward or the ground turns lays nothing; one whose first round dealt nothing lays
    *  its rounds (it met the body: DFU pushes the entry whatever the round dealt). */
   function onBody(sp, body, harm, caster, land, key) {
-    const { dealt, r, kept } = countOnStandIn(harm, body.entity, player.level, player, rolls, rounds.carried(key));
+    const { dealt: counted, r, kept } = countOnStandIn(harm, body.entity, player.level, player, rolls, rounds.carried(key));
+    const dealt = counted >= 1 ? bossStrike(body.entity, counted, { kind: 'spell', element: sp.element ?? null }).damage : counted;   // BOSS-TRAITS: a relay boss's resistance to the spell's element (systems/bossTraits.js)
     if (!(dealt >= 1)) {
       const laid = kept.length > 0 && !turned(body);
       if (laid) rounds.keep(key, kept);

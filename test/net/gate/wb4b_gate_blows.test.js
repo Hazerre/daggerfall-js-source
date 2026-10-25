@@ -123,9 +123,9 @@ test('WB4b the seams, by source: the dungeon context meets him as a foe-shaped b
   assert.match(dc, /const boss = gateBossBody\(\);\n\s*if \(boss\) \{ boss\._backFacing = foeDeps\.isBackFacing\(boss\.ai\.yaw, boss\.ai\.feet, playerFeet\); live\.push\(boss\); \}\n\s*const canSee = \(f\) => \{\n\s*if \(f === boss\) return bossSight\(eye, inViewFn, boss\);/, 'the swing sees him by his skin');
   assert.match(dc, /if \(foe === boss\) \{ hitEnemy = true; swingOnBoss\(boss, damage, lookDir\); continue; \}/);
   assert.match(dc, /const \{ point: p, dist \} = bossReach\(eye, boss\.ai\);/);
-  assert.match(dc, /landOnBoss\(boss, damage, HIT_KINDS\.Melee\);/);
+  assert.match(dc, /landOnBoss\(boss, bossStrikeAt\(boss\.entity, damage, 'melee', playerWeapon\.strikingWeapon, null, false, \(n\) => hurtPlayer\(n\)\), HIT_KINDS\.Melee\);/);   // PIN MOVED (BOSS-TRAITS): the number resisted first (systems/bossTraits.js)
   // PIN MOVED (AUDIT FB1018f L3-7): a shaft his ward turns says its word ("Warded") beside the ward's ring
-  assert.match(dc, /if \(boss && missileHitsCapsule\(m\.pos, boss\.ai\.feet, boss\.ai\.height, boss\.ai\.radius\)\) \{\n\s*if \(boss\.warded\) \{ wardTurns\(boss\); reportPlayerAttack\(\{ hit: true, damage: 0, target: boss\.entity \}\); \}[^\n]*\n\s*else playerArrowHitFoe\(m, boss, \{[^\n]*dealDamage: \(t, d\) => landOnBoss\(boss, d, HIT_KINDS\.Shaft\) \}\);/, 'a shaft meets his whole body');
+  assert.match(dc, /if \(boss && missileHitsCapsule\(m\.pos, boss\.ai\.feet, boss\.ai\.height, boss\.ai\.radius\)\) \{\n\s*if \(boss\.warded\) \{ wardTurns\(boss\); reportPlayerAttack\(\{ hit: true, damage: 0, target: boss\.entity \}\); \}[^\n]*\n\s*else playerArrowHitFoe\(m, boss, \{[^\n]*dealDamage: \(t, d\) => landOnBoss\(boss, bossStrikeAt\(boss\.entity, d, 'arrow', null, null, false, \(n\) => hurtPlayer\(n\)\), HIT_KINDS\.Shaft\) \}\);/, 'a shaft meets his whole body');   // PIN MOVED (BOSS-TRAITS): resisted first
   // PIN MOVED (FIELD BUGS 2026-10-19f STAND-IN-WHOLE, HOST-SPLIT): his spell door left the context for scenes/gate/standInSpell.js
   // (one door for him, his crystals, his host and my opponent), wired with his body and his door
   assert.match(dc, /createStandInSpell\(\{[^]*?boss: gateBossBody,[^]*?landOnBoss, landOnCrystal, landOnHost, landOnRival, nextArenaQ,/);

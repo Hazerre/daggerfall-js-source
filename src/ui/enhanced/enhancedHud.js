@@ -716,7 +716,11 @@ function build(doc) {
   const foePoiseFill = el('i', 'hud-poisefill');
   const foePoiseWord = el('span', 'hud-poiseword');
   foePoise.append(foePoiseFill, foePoiseWord);
-  foe.append(foeName, foeTrack, foeBlade, foePoise);
+  // BOSS-TRAITS (bible/05-Combat/Boss-Traits.md): a hard foe's traits under its name, and its ward over its health
+  const foeTraits = el('div', 'hud-foetraits');
+  const foeWard = el('i', 'hud-foeward');
+  foeTrack.append(foeWard);
+  foe.append(foeName, foeTraits, foeTrack, foeBlade, foePoise);
   top.append(foe);
   root.append(top);
 
@@ -991,7 +995,7 @@ function build(doc) {
   cells.main.cell.addEventListener('pointerdown', tap(() => { liveOpts.quickSwitchHand?.(); }));
 
   doc.body.append(root);
-  return { root, bottom, bars, compass, marks, detectMarks: [], partyMarks: [], shipMarks: [], nodeMarks: [], boatMarks: [], gateMark: null, archMark: null, serpentMark: null, sdMark: null, starMark: null, questMark: null, wayOutMark: null, foe, foeName, foeFill, foeGhost, foeChunks, foeBladeFull, foePoise, foePoiseFill, foePoiseWord, magicka, health, fatigue,
+  return { root, bottom, bars, compass, marks, detectMarks: [], partyMarks: [], shipMarks: [], nodeMarks: [], boatMarks: [], gateMark: null, archMark: null, serpentMark: null, sdMark: null, starMark: null, questMark: null, wayOutMark: null, foe, foeName, foeTraits, foeWard, foeFill, foeGhost, foeChunks, foeBladeFull, foePoise, foePoiseFill, foePoiseWord, magicka, health, fatigue,
     temp: { el: temp, glyph: tempGlyph, num: tempNum, word: tempWord, mark: tempMark },   // TEMP-UI: the temperature plate
     stat, quickCap: cap, quickDiamond: diamond, top,   // UI3: the status widget, the caption it stands on, the diamond it may stand beside and the top block over it (its band is measured from them)
     renown, renownBox, renownFill, renownGhost, renownNum, adv,
@@ -1193,6 +1197,10 @@ export function drawEnhancedHud(vitals, heading01, dt = 0, opts = {}) {
       ghosts.foe = { at: was, pct: was, hold: GHOST_HOLD };
     }
     put(parts.foeName, 'foeName', t.name);
+    const traits = (t.traits ?? []).join(' \u00b7 ');   // BOSS-TRAITS: every trait's word; its ward's share of its health over the bar
+    put(parts.foeTraits, 'foeTraits', traits);
+    if (last.foeTraited !== !!traits) { last.foeTraited = !!traits; parts.foe.classList.toggle('traited', !!traits); }
+    width(parts.foeWard, 'foeWard', Math.max(0, Math.min(100, ((t.ward ?? 0) / t.maxHealth) * 100)));
     width(parts.foeFill, 'foeFill', foePct);
     lossTick('foe', { ghost: parts.foeGhost, chunks: parts.foeChunks }, foePct, dt, FOE_CHUNK_MIN_LOSS);
     if (ref) foeSeen.set(ref, foePct);

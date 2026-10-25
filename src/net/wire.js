@@ -1259,6 +1259,10 @@ export const FOE_WEAK_MAX = 13;
  *  its wrath's, a Night-stalker's night: systems/revenant/revenantFeud.js BLOWS_WIRE), per mille. A rank-5 one in its full wrath
  *  by night is x1.98; the ceiling leaves room. */
 export const FOE_BLOWS_MIN = 1000;
+/** BOSS-TRAITS (bible/05-Combat/Boss-Traits.md): a foe's traits on the wire - a mask over systems/bossTraits.js BOSS_TRAITS,
+ *  eleven bits (held equal to its BOSS_TRAIT_MASK_MAX by test/systems/bosstraits.test.js: the relay's bundle carries no
+ *  systems module). */
+export const FOE_TRAITS_MAX = 0x7ff;
 export const FOE_BLOWS_MAX = 4000;
 const bitsOf = (v) => { let n = 0; for (let x = v; x; x &= x - 1) n++; return n; };
 /** DEX1: a foe's kind on the wire - MobileTypes' own space (a u16, None its top), where a mod's enemies join the
@@ -1278,7 +1282,8 @@ export function validFoeRecord(r) {
   if (!Number.isInteger(r.i) || r.i < 0 || r.i > FOE_SEQ_MAX) return null;
   const out = { i: r.i };
   if (r.t !== undefined) { if (!Number.isInteger(r.t) || r.t < 0 || r.t > FOE_TYPE_MAX) return null; out.t = r.t; }
-  for (const k of ['x', 'd', 'm', 'z']) if (r[k] !== undefined) { if (r[k] !== 0 && r[k] !== 1) return null; out[k] = r[k]; }   // ELITE FOES: `z` an elite foe (systems/eliteFoes.js)
+  for (const k of ['x', 'd', 'm', 'z', 'bw', 'rl']) if (r[k] !== undefined) { if (r[k] !== 0 && r[k] !== 1) return null; out[k] = r[k]; }   // ELITE FOES: `z` an elite foe (systems/eliteFoes.js); BOSS-TRAITS: `bw` wrathful; RAID5: `rl` a raid's leader
+  if (r.bt !== undefined) { if (!Number.isInteger(r.bt) || r.bt < 0 || r.bt > FOE_TRAITS_MAX) return null; out.bt = r.bt; }   // BOSS-TRAITS: its traits, a mask (systems/bossTraits.js)
   if (r.f !== undefined) {
     if (!Array.isArray(r.f) || r.f.length !== 3 || !r.f.every(Number.isFinite)) return null;
     if (Math.abs(r.f[0]) > POSE_BOUND || Math.abs(r.f[2]) > POSE_BOUND || Math.abs(r.f[1]) > POSE_Y_BOUND) return null;

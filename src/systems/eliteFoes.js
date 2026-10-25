@@ -170,6 +170,7 @@ export function pickDungeonElites(enemies, key, { elite = true, count = null, cl
     const at = Math.floor(rng() * pool.length);
     const i = pool.splice(at, 1)[0];
     enemies[i].eliteFoe = true;
+    enemies[i].eliteSeed = eliteHash('elite-trait', key, i);   // BOSS-TRAITS: its trait's draw, every client's alike (systems/bossTraits.js eliteTraits)
     n++;
   }
   return n;
@@ -260,7 +261,20 @@ export function markEliteCorpseBatch(batch, phase = Math.random(), boss = false)
 export const eliteCorpseSize = (size, entity) => (isEliteCorpse(entity) && size ? { ...size, w: size.w * eliteSize(entity), h: size.h * eliteSize(entity) } : size);
 
 /** The size a sprite is drawn at (STAFF-EVENT: a mini boss's its event's). */
-export const eliteSize = (entity) => (entity?.staffBoss ? entity.staffBoss.size : entity?.eliteFoe ? ELITE_FOE_SIZE : 1);
+export const eliteSize = (entity) => (entity?.staffBoss ? entity.staffBoss.size : entity?.raidLeader ? RAID_LEADER_SIZE : entity?.eliteFoe ? ELITE_FOE_SIZE : 1);   // RAID5: a raid's leader, larger
+
+// ═══ RAID5: A RAID'S LEADER (bible/03-World/Raiding-Parties.md RAID5) ═══════════════════════════════════════════════
+/** How much larger a raid's leader is drawn than its kind. */
+export const RAID_LEADER_SIZE = 1.5;
+/** Make a raid's leader of a fresh foe: an elite (its health, its blows, its drop - ELITE-FLOOR asked no level: the
+ *  party's leader is no roll), larger, and called by its party's word (`name`, "Knight-Captain") - its traits are the
+ *  caller's (systems/bossTraits.js). `own` false for a puppet (its owner's health, the record's `k`). Idempotent. */
+export function promoteRaidLeader(entity, { own = true, name = '' } = {}) {
+  if (!entity) return false;
+  promoteEliteFoe(entity, { own, checkLevel: false });
+  if (!entity.raidLeader) entity.raidLeader = { name: String(name ?? '') };
+  return true;
+}
 
 // ═══ STAFF-EVENT: A STAFF EVENT'S MINI BOSS ═══════════════════════════════════════════════════════
 // (2026-10-24, mob: "mini boss need to be a single enlarges version of the mob spawns / instead of the blue elite glow

@@ -278,6 +278,7 @@ import { dungeonTier } from '../systems/dungeon/dungeonTier.js';   // SD4a: the 
 import { ENEMY_BASICS, enemyDisplayName, enemyEntityType, isClassEnemyId } from '../characters/enemy/enemyBasics.js';
 import { setupFoeLook } from '../characters/enemy/foeLook.js';   // DEX2: SetupDemoEnemy.cs:129-151, the mobile's renderer
 import { foeTitle } from '../systems/foeTitle.js';   // FOE-TITLE: what a revenant, a champion or an elite is called
+import { bossStrikeAt, bossTakeAt, eliteTraits, giveBossTraits, relayBossTraits, bossTraitWords, bossTraitsMetLine } from '../systems/bossTraits.js';   // BOSS-TRAITS: a hard foe's own rules
 import { revenantFleeStep, revenantFleeHealth, revenantDeed, revenantSlain, revenantSay, revenantFleeEvent, revenantCorneredEvent, revenantEscapeEvent, revenantSlainEvent, revenantUnbrokenEvent, revenantFlinch, revenantSignatureEvent, revenantById, applyRevenant, grantRevenantLoot, revenantForLair, releaseRevenantStand, revenantSpawnOptions, revenantTauntEvent, revenantWakeEvent, revenantToReturn, REVENANT_TAUNT_DISTANCE, revenantStale } from '../systems/revenant/revenant.js';   // RVN7d: a revenant in its lair, its taunt, its band, a rest's return
 import { revenantMayYield, beginYield, yieldStep, slipEvent, kneelPose, beginExecution, executionStep, finishExecution, beginSpare, spareDone, fateDissolve, fateModel, dropFateHeld, revenantWillHolds, beginTearAway, revenantLastStandDue, beginLastStand, roarStep, ownersWholeKill } from '../systems/revenant/revenantFate.js';   // REVENANT-FATE: beaten, it yields - kill it or spare it (the open world's law, one home); RVN-OWNERS-CHOICE: a whole blow closes it only as its owner's
 import { setBatchDissolve } from '../systems/dissolve.js';   // DISSOLVE
@@ -1449,7 +1450,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     foeDeps.applyProgressionScaling?.(entity, scaling);   // lazily loaded beside makeEnemyEntity; the dungeon's own deps (the import used `D`, which only the spawn builders below bind)
   }
   function applyEliteScaling(entity, e) {
-    if (e?.eliteFoe && entity && promoteEliteFoe(entity, { eliteDungeon: !!e.elite, superDungeon: !!e.superTier, checkLevel: false })) { if (e.elite) entity.elite = true; return; }   // ELITE-FLOOR: the pick's own (by the kind's level, every client alike)   // ELITE FOES: 5x health, 3x damage - 7x / 4x in an Elite Dungeon, in place of its doubling
+    if (e?.eliteFoe && entity && promoteEliteFoe(entity, { eliteDungeon: !!e.elite, superDungeon: !!e.superTier, checkLevel: false })) { if (e.elite) entity.elite = true; eliteTraits(entity, e.eliteSeed); return; }   // BOSS-TRAITS: its trait off the pick's own seed - every client the same   // ELITE-FLOOR: the pick's own (by the kind's level, every client alike)   // ELITE FOES: 5x health, 3x damage - 7x / 4x in an Elite Dungeon, in place of its doubling
     if (e?.superTier && entity) { scaleSuperFoe(entity); return void applyChampion(entity, e.champion); }   // SD4a: a Super dungeon's - x4 health, x2.5 damage, an Elite dungeon's marks at the least
     if (!e?.elite || !entity) return void applyChampion(entity, e?.champion);   // LOOT7: a plain dungeon's champion (its loot reads the mark, so before it)
     entity.maxHealth = Math.max(1, Math.round(entity.maxHealth * ELITE_HEALTH_SCALE));
@@ -4365,6 +4366,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     const b = sdRemnant ? sdRemnant.target() : opts.gateBoss?.() ?? null;   // SD8c: in the Hour, the Brass Remnant
     if (!b || !b.entity || !Array.isArray(b.feet) || !(b.height > 0) || !(b.radius > 0)) return null;
     b.entity.warded = !!b.warded;   // AUDIT SETS L4: his ward on his stand-in too - a blow it turns spends no set power (sigilSetPowers.js setBlow)
+    if (!b.entity.bossTraits && giveBossTraits(b.entity, relayBossTraits(b.entity.name, b.mobile), { own: false })) hudText.add(bossTraitsMetLine(b.entity.name ?? '', bossTraitWords(b.entity)));   // BOSS-TRAITS: the striker's traits on him, the same on every machine - said once
     return {
       boss: true, dead: false, entity: b.entity, mobileType: b.mobile ?? null, warded: !!b.warded,
       ai: { feet: b.feet, yaw: b.yaw ?? 0, height: b.height, radius: b.radius, centreOffset: b.height / 2, isHostile: true },
@@ -4497,7 +4499,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     } else {
       audio.play3d(hitSoundFor(playerWeapon.strikingWeapon), bossChest(boss), ENEMY_HIT_VOLUME, { maxDistance: 24 });
       hitEffects?.showBloodSplash(ENEMY_BASICS[boss.mobileType]?.bloodIndex ?? 0, bossChest(boss), null, bloodHit(damage, boss.entity, { fromPlayer: true, weapon: playerWeapon.strikingWeapon, swing: playerWeapon.machine?.state, forward: lookDir }));
-      landOnBoss(boss, damage, HIT_KINDS.Melee);
+      landOnBoss(boss, bossStrikeAt(boss.entity, damage, 'melee', playerWeapon.strikingWeapon, null, false, (n) => hurtPlayer(n)), HIT_KINDS.Melee);   // BOSS-TRAITS: resisted, its thorns at me
     }
     playerWeaponHitEntity(playerEntity, boss.entity, { mobileType: boss.mobileType });
   }
@@ -4808,7 +4810,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
           const boss = struckBy(gateBossBody()) ? null : gateBossBody();
           if (boss && missileHitsCapsule(m.pos, boss.ai.feet, boss.ai.height, boss.ai.radius)) {
             if (boss.warded) { wardTurns(boss); reportPlayerAttack({ hit: true, damage: 0, target: boss.entity }); }   // AUDIT FB1018f L3-7: a shaft his ward turns says "Warded", as a swing's formula does on his stand-in (WB13d)
-            else playerArrowHitFoe(m, boss, { playerEntity, playerWeapon, playerFeet, audio, hitEffects, say: (l) => hudText.add(l), dealDamage: (t, d) => landOnBoss(boss, d, HIT_KINDS.Shaft) });
+            else playerArrowHitFoe(m, boss, { playerEntity, playerWeapon, playerFeet, audio, hitEffects, say: (l) => hudText.add(l), dealDamage: (t, d) => landOnBoss(boss, bossStrikeAt(boss.entity, d, 'arrow', null, null, false, (n) => hurtPlayer(n)), HIT_KINDS.Shaft) });   // BOSS-TRAITS: resisted, its thorns at me
             if (!boss.warded && techniquePierces(m, boss)) continue;
             retireMissile(m);
             continue;
@@ -6734,6 +6736,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // AUDIT PSCALE1 DOORS-1: a KILL is not a blow - a Disintegrate, a stat drained to zero (the sinks' `whole`), the
     // Razor's whole-health strike (its mark on the foe) - and no fighters' toughness divides it, here or at the host
     const _whole = whole || takeWholeBlow(foe.entity);
+    if (fromPlayer && !peer) damage = bossStrikeAt(foe.entity, damage, kind, weapon, element, _whole, (n) => hurtPlayer(n));   // BOSS-TRAITS: MY blow - resisted, its thorns at me - before a puppet's goes to the host
     // TELL8 (10.4): MY blow on a puppet winding up rides to its owner with its class - its K, my feet against its facing;
     // AUDIT FEUD: a blow of its weakness rides winding up or not (RVN13: the host's reveal)
     const _wc = fromPlayer && !peer && foe._ownFrom !== ARENA_PUPPET_OWNER ? blowClassOf(foe.ai, { kind, weapon, claws: !weapon && !!playerEntity?.isInBeastForm, round }, playerFeet, !round && damage > 0 && feudWeakBlow(foe.entity, { kind, weapon, element, attacker: playerEntity })) : null;   // AUDIT TELL: from behind judged from the blow's own feet, as the local door judges it (windupDoor's `from`) - a round with none is never from behind
@@ -6858,6 +6861,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // runs BEFORE DecreaseHealth (WeaponManager.cs:576-596, :627), and
     // HandleAttackFromSource runs after it unconditionally (:630), so
     // a fully absorbed blow still knocks back and still turns the foe.
+    damage = bossTakeAt(foe.entity, damage, _whole, Date.now() / 1000, (l) => hudText.add(l), () => foeTitle(foe.entity, enemyDisplayName(foe.mobileType)) ?? '');   // BOSS-TRAITS: its curb, its ward, its wrath - where its health is
     const healthDamage = bypassShield ? damage : damageShieldPool(foe.entity, damage);
     // AUDIT PSCALE1 (Mac: "Whoever fights it"): every player's blow names a fighter - mine, and a joiner's through
     // applyHit - here where the host hears them all

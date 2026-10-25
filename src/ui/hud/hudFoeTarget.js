@@ -18,6 +18,7 @@
 // furniture. It clears at once when the foe dies, because a dead thing
 // has no health to report.
 import { foeTitle } from '../../systems/foeTitle.js';   // FOE-TITLE: what a special foe is called, one home
+import { bossTraitWords, bossWardNow } from '../../systems/bossTraits.js';   // BOSS-TRAITS: the traits a foe carries, its ward
 
 export const FOE_TARGET_SECONDS = 6;
 /** LOOT7 (the Loot arc): a CHAMPION's trait before its name; ELITE FOES: "Elite" before it; REVENANT: its own name -
@@ -85,6 +86,8 @@ export function foeTarget() {
     maxHealth: max,
     fade: Math.min(1, _left / 1.5),   // the last second and a half
     poise: _poiseOf ? _poiseOf(_foe) ?? null : null,   // TELL9: the poise track under the health (null: none drawn)
+    traits: bossTraitWords(e),   // BOSS-TRAITS: every trait's word (systems/bossTraits.js)
+    ward: bossWardNow(e, Date.now() / 1000)?.now ?? 0,   // BOSS-TRAITS: what its ward holds now
   };
 }
 
